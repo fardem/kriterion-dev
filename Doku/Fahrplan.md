@@ -343,6 +343,50 @@ verlässlich, was er belegt hat.*
 | **4** | **Der Lauf sagt, wo die Zeit hingeht** — eine Zeit je Gruppe und eine Liste der teuersten am Ende. **Ohne diese Zahl ist jede Beschleunigung geraten** | ist die Voraussetzung für alles Weitere |
 | **5** | **Nachprüfen, ob der Lauf bei jedem Push wirklich greift.** *Ein Papier, das zwischen zwei Runden geändert wurde, hat den Zweig schon einmal rot gemacht, ohne dass es jemand bemerkt hat — es lag kein Lauf dazwischen* | fängt Rotes, bevor eine Runde darauf aufsetzt |
 
+### Und jetzt gemessen — ein Lauf mit Zeitstempel je Gruppe, 8. September 2026
+
+**435 Sekunden, 304 Gruppen.** *Der Betreiber hat gefragt, was das Bauen
+beschleunigt; hier steht die Antwort mit Zahlen statt mit Vermutungen.*
+
+| Thema | Zeit | Anteil |
+|---|---|---|
+| **Die Anmeldebremse** *(6 Gruppen)* | **93,5 s** | **21 %** |
+| **Die Mailfristen** *(10 Gruppen)* | **58,2 s** | **13 %** |
+| **Der Export** *(6 Gruppen)* | 40,6 s | 9 % |
+| **Der zweite Faktor** *(15 Gruppen)* | 33,9 s | 8 % |
+| *223 Gruppen unter einer Sekunde* | *72 s* | *17 %* |
+
+***Die teuerste einzelne Gruppe ist „Der Mailversand: die Frist wird gemessen,
+nicht behauptet" mit 48,4 Sekunden — allein sie ist elf Prozent des ganzen
+Laufs.***
+
+**Der lange Schwanz ist kein Problem:** 223 der 304 Gruppen liegen unter einer
+Sekunde und kosten zusammen 72 s. *Dort ist nichts zu holen, und wer dort sucht,
+sucht falsch.*
+
+#### Woran es liegt — und was der Hebel ist
+
+| | Ursache | Hebel |
+|---|---|---|
+| **1** | **Die Bremse schläft wirklich.** `delay(count) = min((count − 4) × 700, 4000)` ms, und die Route wartet das ab. Sechs Gruppen laufen die Kurve real durch: 0,7 + 1,4 + 2,1 + 2,8 + 3,5 + 4,0 … | **`delay()` ist eine REINE FUNKTION.** Die Kurve an der Funktion belegen — jeden Zählerstand, **null Millisekunden** — und die Verdrahtung genau **einmal** an der Route. ***Der Beleg wird dabei stärker, nicht schwächer:*** die Funktionsprobe deckt jeden Zählerstand ab, der Lauf heute nur die sechs, durch die er zufällig geht. **~80 s** |
+| **2** | **Die Fristen werden abgewartet.** `SEND_MS = 20 s`, `GREETING_MS = 7 s`, `CONNECT_MS = 7 s`. Die drei Lagen — stumm, schweigt, tröpfelt — kosten 7 + 20 + 20 s | **Die drei Konstanten aus der Umgebung stellbar machen** und im Lauf auf 300 ms setzen. **Eine Frist ist keine Sicherheitsgrenze** — kurz gestellt belegt sie dieselbe Verdrahtung. *Dazu eine Prüfung, die die Auslieferungswerte 20/7/7 festnagelt.* **~50 s** |
+| **3** | **scrypt rechnet 75 ms je Hash** *(gemessen, `N = 16384`)*. Der Lauf startet **76 Server**, legt in jedem Zugänge an und meldet sich an | **Die Kennwerte stellbar machen**, im Lauf `N = 1024`. **Sie stehen ohnehin im gespeicherten Wert mit drin** (`scrypt$N$r$p$…`) — die Formatprüfung bleibt damit gültig. *Dazu eine Prüfung, die `N = 16384` in der Auslieferung festnagelt.* **~25–45 s** |
+| **4** | **174 Aufbauten des Dokuments.** Jeder wertet `public/app.js` aus — **605 kB**. jsdom laden allein kostet 648 ms, ein leeres Dokument 98 ms | **Ein Grunddokument einmal bauen**, je Prüfung nur den Unterschied setzen — außer dort, wo die Prüfung den Aufbau selbst belegt. *Der Gewinn ist hier zu messen und nicht zu schätzen* |
+
+> **UND DER GRÖSSTE HEBEL IST NICHT DER LAUF, SONDERN DIE GEGENPROBE.** Sie
+> fährt den **ganzen** Prüfstand **einmal je Rückbau**. *Bei 435 s je Lauf und
+> vier Spuren kostet eine Gegenprobe über acht Rückbauten eine Viertelstunde;
+> über die ganze Liste wäre sie tagelang.* **Jede Sekunde, die der Lauf
+> verliert, verliert sie so oft, wie Rückbauten gefahren werden.** *Deshalb
+> zahlt sich diese Runde nicht einmal aus, sondern bei jeder folgenden.*
+
+> **WAS AUSDRÜCKLICH NICHT VORGESCHLAGEN WIRD:** **den Lauf parallel fahren.**
+> *Das ist genau der Portstreit, an dem die Gegenprobe schon einmal neunzehn
+> Rückbauten hintereinander falsch gemeldet hat.* **Und keine Prüfung fällt
+> weg** — die Auflage dieser Runde steht oben.
+
+---
+
 > **DER ECHTE TEILLAUF STEHT HIER NICHT — und der Grund ist kein Zögern.**
 > `testbench.js` ist **ein** langer Ablauf: die Prüflagen bauen aufeinander auf,
 > Server werden einmal gestartet, Bestände nacheinander erzeugt. **Der
