@@ -7284,13 +7284,20 @@ const REGRESSIONS = [
      nimmt EINE Zusage weg -- und keiner von ihnen hatte vor dieser Runde
      etwas, worauf er haette zeigen koennen. */
   {
-    /* DIE STUFE: nur EINE der beiden Spalten wird nachgeruestet. Ein Bestand
-       traegt danach die halbe Antwort -- die Kategorien wissen ihre Sprache,
-       die Kriterien nicht. */
-    nr: '760', name: 'Die Migration ruestet nur eine der beiden Spalten nach',
+    /* DIE STUFE MELDET SICH NICHT MEHR. Ein Migrationsblock, der still laeuft,
+       ist von einem, der gar nicht laeuft, nicht zu unterscheiden -- und der
+       Betreiber erfaehrt nicht, wie viele Namen auf die Nachfrage warten.
+
+       WARUM NICHT „nur EINE der beiden Spalten": das ist gefahren worden und
+       REISST DEN LAUF AB. Eine halb nachgeruestete Datenbank bekommt der
+       Server gar nicht mehr auf -- `qCriteria` fragt `c.language`, und das
+       Vorbereiten der Abfrage scheitert beim Start. **Ein abgerissener
+       Rueckbau belegt nichts** (Stolperstein 161), und deshalb steht hier der
+       Rueckbau, der dieselbe Stelle anfasst und den Lauf stehen laesst. */
+    nr: '760', name: 'Die Datenbankstufe meldet sich nicht',
     file: 'db.js',
-    search: "  for (const table of ['product_categories', 'rating_criteria']) {",
-    replacement: "  for (const table of ['product_categories']) {",
+    search: "  console.log(`[Kriterion] ${missing.join(' und ')} um language ergaenzt (Migration auf 0.25.0); ` +",
+    replacement: "  if (false) console.log(`[Kriterion] ${missing.join(' und ')} (0.25.0); ` +",
     expected: 'Die Datenbankstufe 0.25.0'
   },
   {

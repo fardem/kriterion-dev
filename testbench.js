@@ -3766,6 +3766,72 @@ const shareMain = (purpose, target = null) =>
   check('Und die Tafel steht unter dem Namen der Grundzeile, nicht unter einer Nummer',
     Object.keys(rnFile?.criteriaNames?.de || {}).every(k => Number.isNaN(Number(k))),
     JSON.stringify(Object.keys(rnFile?.criteriaNames?.de || {})));
+  /* UND DIE ERSTELLUNGSSPRACHE REIST MIT -- 0.25.0, Formatnummer 15. Das ist
+     der Befund, den der Auftrag nicht kannte: **der Import ist ein Anlegeweg
+     wie jeder andere**, und diese Runde sagt zu, dass ab jetzt keine Zeile
+     mehr ohne Sprachvermerk entsteht. Ohne diese beiden Felder legte er
+     welche an -- in einer Instanz, die eben erst zugeordnet hat.
+     ÜBER DEN NAMEN DER GRUNDZEILE, wie criteriaWeights daneben: die Nummern
+     einer Zweitinstanz sind andere. */
+  check('Und sie nennt die Erstellungssprache jeder Zeile — 0.25.0',
+    rnFile?.criteriaLanguages?.['Rueckfallkriterium'] === 'en' &&
+    rnFile?.categoryLanguages?.['Rueckfallkategorie'] === 'en',
+    JSON.stringify([rnFile?.criteriaLanguages, rnFile?.categoryLanguages]));
+  /* UND NUR, WAS EINE HAT. Eine Zeile ohne Sprachvermerk taucht gar nicht auf
+     -- dieselbe Regel wie „nur Abweichungen" bei den Gewichten, und sie sagt
+     dasselbe wie NULL in der Spalte: weiss niemand. Ohne diese Zeile wäre die
+     darüber auch mit einer Tafel grün, die für jede Zeile irgendetwas nennt. */
+  {
+    const d = open(path.join(DATA, 'katalog.sqlite'));
+    d.prepare('UPDATE rating_criteria SET language = NULL WHERE id = ?').run(rnCriterion.id);
+    d.close();
+  }
+  const rnFileGap = (await callF('GET', '/api/export?photos=0')).content;
+  check('Und nur, was eine hat — eine Zeile ohne Sprachvermerk taucht gar nicht auf',
+    rnFileGap?.criteriaLanguages?.['Rueckfallkriterium'] === undefined &&
+    Object.keys(rnFileGap?.criteriaLanguages || {}).length ===
+      Object.keys(rnFile?.criteriaLanguages || {}).length - 1,
+    JSON.stringify(rnFileGap?.criteriaLanguages));
+  {
+    const d = open(path.join(DATA, 'katalog.sqlite'));
+    d.prepare("UPDATE rating_criteria SET language = 'en' WHERE id = ?").run(rnCriterion.id);
+    d.close();
+  }
+  /* UND DER IMPORT LEGT SIE MIT AN. Geprüft an einem Namen, den es hier noch
+     nicht gibt: nur eine NEUE Zeile bekommt ihre Sprache aus der Datei — eine
+     vorhandene behält die ihre, so wie sie ihr Gewicht behält. */
+  const rnNewImport = await sendImport({ exported_at: new Date().toISOString(),
+    title: 'Sprachmitnahme', version: 15, items: [],
+    criteria: ['Eingespieltes Kriterium'],
+    criteriaLanguages: { 'Eingespieltes Kriterium': 'tr' } }, 'merge');
+  const rnImported = (() => {
+    const d = open(path.join(DATA, 'katalog.sqlite'));
+    const r = d.prepare('SELECT id, language FROM rating_criteria WHERE name = ?')
+      .get('Eingespieltes Kriterium');
+    d.close(); return r || {};
+  })();
+  check('Und der Import legt sie mit an — 0.25.0',
+    rnNewImport.status === 200 && rnImported.language === 'tr',
+    `Status ${rnNewImport.status}, Sprache ${JSON.stringify(rnImported.language)}`);
+  /* UND EINE DATEI OHNE DAS FELD LEGT SIE OHNE SPRACHVERMERK AN — der Bestand
+     einer Zweitinstanz aus Format 14. Die Karte fragt dann einmal nach. */
+  const rnOldImport = await sendImport({ exported_at: new Date().toISOString(),
+    title: 'Vierzehn', version: 14, items: [],
+    criteria: ['Kriterium aus Vierzehn'] }, 'merge');
+  const rnOldRow = (() => {
+    const d = open(path.join(DATA, 'katalog.sqlite'));
+    const r = d.prepare('SELECT id, language FROM rating_criteria WHERE name = ?')
+      .get('Kriterium aus Vierzehn');
+    d.close(); return r || {};
+  })();
+  check('Und eine Datei aus Format 14 legt sie ohne Sprachvermerk an',
+    rnOldImport.status === 200 && rnOldRow.language === null,
+    `Status ${rnOldImport.status}, Sprache ${JSON.stringify(rnOldRow.language)}`);
+  /* BEIDE WIEDER WEG, UND ZWAR UEBER DEN WEG UND NICHT UEBER DIE DATEI: das
+     Loeschen nummeriert die Reihenfolge neu, und eine Luecke in `sort_order`
+     traefe jede spaetere Prueflage, die sie zaehlt. */
+  await call('DELETE', `/api/criteria/${rnImported.id}`);
+  await call('DELETE', `/api/criteria/${rnOldRow.id}`);
 
   /* JETZT DIE GEGENRICHTUNG: die Uebersetzungen von Hand wegnehmen und die
      Datei zusammenfuehrend wieder einspielen. Ein Export, der etwas mitnimmt,
@@ -4387,6 +4453,39 @@ const shareMain = (purpose, target = null) =>
   check('Sortierprobe: die Reihenfolge ist fuer jeden Leser dieselbe',
     equal(ktOrderDe, ktOrderTr) && equal(ktOrderDe, [ktOne.id, ktTwo.id, ktThree.id, ktFour.id]),
     `${JSON.stringify(ktOrderDe)} · ${JSON.stringify(ktOrderTr)}`);
+
+  /* ---- DIE SPRACHE EINER NEUEN ZEILE IST DIE DES RUFERS --------------
+     UND NICHT DIE VORGABE DER INSTALLATION. Der Unterschied ist nur zu sehen,
+     wenn die beiden auseinanderfallen: dieser Prueflauf liest Deutsch
+     (`Accept-Language: de`, seit 0.24.3 an EINER Stelle gesetzt), und die
+     Vorgabe steht dafuer kurz auf Englisch.
+     WARUM DAS DIE RICHTIGE ANTWORT IST: wer eine Kategorie anlegt, tippt sie
+     in der Sprache, in der er liest. Naehme der Server die Vorgabe, hiesse die
+     Zeile „auf Englisch" und traege einen deutschen Text -- genau die falsche
+     Zuordnung, die diese Runde beseitigt, nur eine Stelle weiter. */
+  await KT.call('PUT', '/api/settings', { languageDefault: 'en' });
+  const ktFresh = (await KT.call('POST', '/api/product-categories',
+    { name: 'Ohne Angabe' })).content;
+  const ktFreshRow = (() => {
+    const d = open(path.join(ktDirectory, 'katalog.sqlite'));
+    const r = d.prepare('SELECT language FROM product_categories WHERE id = ?').get(ktFresh.id);
+    d.close(); return r || {};
+  })();
+  check('Anlegeprobe: eine neue Zeile ohne Sprachangabe bekommt die des Rufers',
+    ktFreshRow.language === 'de',
+    `steht: ${JSON.stringify(ktFreshRow.language)} — soll: "de" (die Vorgabe steht auf "en")`);
+  /* UND DIE MITGESCHICKTE SCHLAEGT SIE. Ohne diese Zeile bliebe die darueber
+     auch dann gruen, wenn der Server die Angabe des Rufers gar nicht liest. */
+  const ktSaid = (await KT.call('POST', '/api/product-categories',
+    { name: 'Mit Angabe', language: 'tr' })).content;
+  const ktSaidRow = (() => {
+    const d = open(path.join(ktDirectory, 'katalog.sqlite'));
+    const r = d.prepare('SELECT language FROM product_categories WHERE id = ?').get(ktSaid.id);
+    d.close(); return r || {};
+  })();
+  check('Und eine mitgeschickte Sprache schlaegt die des Rufers',
+    ktSaidRow.language === 'tr', JSON.stringify(ktSaidRow.language));
+  await KT.call('PUT', '/api/settings', { languageDefault: 'de' });
 
   /* ---- DER EINE GRIFF FUER DIE UNBEKANNTE SPRACHE — F2 ---------------
      ER SCHREIBT IN BEIDE TABELLEN UND NUR DORT, WO `language IS NULL`. Ohne

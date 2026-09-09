@@ -1,6 +1,6 @@
 # Fehler und Ideen
 
-**Das Sammelblatt · Stand 9. September 2026, nach dem Auftrag zu 0.25.0**
+**Das Sammelblatt · Stand 9. September 2026, nach 0.25.0**
 
 **Hier stehen Befunde aus dem Betrieb, Fehler und Ideen — Punkt für Punkt, in
 der Reihenfolge, in der sie aufgefallen sind.** Es ist die Zusammenführung der
@@ -980,11 +980,14 @@ auf `~6.15.1`, die reparierte Fassung ist `6.16.0` — außerhalb. **Der Weg
 dorthin ist `express` 5**, und das ist ein Hauptversionssprung mit geänderter
 Routen- und Fehlerbehandlung.
 
-> **WAS 0.25.0 DAVON MITNIMMT: nichts.** Der Beipack jener Runde (`npm audit
-> fix`) hebt `multer`, `nodemailer`, `sharp` und `body-parser` innerhalb der
-> schon deklarierten Bereiche und lässt `express` stehen. **Danach ist der
-> Schritt „Bekannte Lücken" trotzdem grün** — der Schalter steht auf
-> `--audit-level=high`, und was hier übrig bleibt, ist „mittel".
+> **WAS 0.25.0 DAVON MITGENOMMEN HAT: nichts.** Der Beipack jener Runde
+> (`npm audit fix`) hat `multer` 2.2.0 → 2.3.0, `nodemailer` 9.0.5 → 9.1.1,
+> `sharp` 0.35.3 → 0.35.4 und `body-parser` 1.20.6 → 1.20.8 gehoben — alle
+> innerhalb der schon deklarierten Bereiche — und `express` bei 4.22.2 stehen
+> gelassen. **Der Schritt „Bekannte Lücken" ist seither grün** (Austrittscode
+> 0): der Schalter steht auf `--audit-level=high`, und was hier übrig bleibt,
+> ist „mittel". *Damit ist dieser Punkt der einzige, der nach 0.25.0 noch an
+> `npm audit` hängt.*
 
 **Erreichbar ist es vor der Anmeldung** — express liest den Abfrageteil jeder
 Anfrage, auch der unangemeldeten. *Das ist der Grund, warum es überhaupt hier
@@ -995,4 +998,68 @@ steht und nicht als erledigt gilt.*
 **`express` von 4 auf 5 heben**, mit einem eigenen Durchgang durch die
 Routen: Fehlerbehandlung, `req.query` als Getter, der Wegfall einiger
 Kurzformen. **Ein eigener Prüflauf danach ist Pflicht** — `F_ROUTES` zählt
-heute 71 Wege, und jeder einzelne ist betroffen.
+seit 0.25.0 **72** Wege, und jeder einzelne ist betroffen.
+
+---
+
+## 22. Die Kachel „Vokabular" trägt auf einer frischen Installation den Rahmen
+
+**Art: Frage an den Betreiber** *(kein Fehler — so ist es bestellt)* ·
+**Einschätzung von Claude: nachfragen, nicht bauen** · **Herkunft: 0.25.0**
+
+**Die Vorgabe vor der Fragerunde lautete: „Rahmen an ALLEN Kacheln mit
+fehlenden Zellen, auch am Vokabular."** *So ist es gebaut.* **An den drei
+Namenskarten heißt „fehlende Zelle" etwas Handfestes:** dort steht dann der
+Name einer **anderen Sprache**, und das ist wirklich Arbeit.
+
+**Am Vokabular heißt es etwas anderes.** Die vierzehn Wörter fallen auf die
+**Vorgabe der Sprachdatei** zurück — auf ein Wort in derselben Sprache, das
+richtig ist und richtig bleibt. *Wer sein Vokabular nie anfasst, hat nichts
+versäumt.* **Auf einer frischen Installation sind alle vierzehn in allen
+Sprachen leer**, und die Kachel trägt damit von der ersten Minute an den roten
+Rahmen und die Zahl 14 an jeder Pille.
+
+> **DAS IST KEIN FEHLER, SONDERN EINE FRAGE.** Gebaut ist, was bestellt wurde;
+> ob „nicht eingetragen" am Vokabular wirklich „fehlt" heißen soll, entscheidet
+> der Betreiber. *Denkbar wäre auch: Punkt und Zahl bleiben, der Rahmen
+> entfällt dort — die Zahl sagt, was fehlt, der Rahmen sagt „hier ist Arbeit",
+> und das ist am Vokabular etwas anderes.*
+
+### Was zu bauen wäre
+
+**Eine Zeile**, wenn der Betreiber es anders will: in
+`drawVocabularyLanguages()` fällt das `classList.toggle('gaps', …)` weg oder
+bekommt eine andere Bedingung. **Punkt und Zahl bleiben davon unberührt.**
+
+---
+
+## 23. Die drei mitgelieferten Kriterien stehen auf Deutsch
+
+**Art: Fehler** *(klein, sichtbar, seit je da)* · **Einschätzung von Claude:
+klein und lohnend** · **Herkunft: 0.25.0**
+
+**Eine frische Installation bekommt drei Kriterien mitgeliefert** — „Optische
+Erscheinung", „Verarbeitungsqualität", „Funktionalität". *Sie stehen so in
+`db.js` und sind deutsch.* **Die Auslieferungssprache ist seit 0.24.3
+Englisch.**
+
+**Bis 0.24.6 ist das niemandem aufgefallen**, weil niemand fragte, in welcher
+Sprache ein Name geschrieben ist. **Seit 0.25.0 fragt jede Liste danach:** die
+drei tragen `language = 'de'`, und ein englischer Leser bekommt sie mit dem
+Vermerk *„(nicht eingetragen — es steht Deutsch)"* und dem roten Rahmen an der
+Kachel. *Die Anzeige ist wahr — der Bestand ist es, der nicht stimmt.*
+
+### Was zu bauen wäre
+
+**Zwei Wege, und der zweite ist der richtige:**
+
+* **Die drei Namen englisch ausliefern** und die deutschen als Übersetzung
+  daneben. *Dann bräuchte `db.js` die Sprachdateien — die liegen im Server, und
+  diese Datei kennt sie nicht.*
+* **Die Grundausstattung wandert dorthin, wo die Sprachen liegen.** Der Server
+  legt sie beim ersten Start an, in der Auslieferungssprache, mit den
+  Übersetzungen aus den vorhandenen Dateien. **Das ist eine kleine Runde und
+  keine Zeile.**
+
+> **NICHTS DARAN IST DRINGEND:** wer die drei umbenennt, hat den Punkt für sich
+> erledigt — und die meisten tun das ohnehin.

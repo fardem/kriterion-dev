@@ -29,6 +29,62 @@ bleiben in der Form ihrer Zeit.*
 
 *Hier wird mitgeschrieben, während gebaut wird.*
 
+## [0.25.0] - 2026-09-09
+
+> **SICHERUNG VOR DEM EINSPIELEN.** Diese Runde ist eine **Datenbankstufe**:
+> beim ersten Start läuft ein Migrationsblock und ergänzt zwei Spalten
+> (`product_categories.language`, `rating_criteria.language`). *Er schreibt
+> keinen Wert und ändert keine Zeile — er legt die Spalten an und meldet, wie
+> viele Namen ohne Sprachangabe dastehen.* **Ein zweiter Start ist still.**
+>
+> **DIE VERSIONSNUMMER IST GEWÖHNLICHES SemVer** — eine Datenbankstufe und eine
+> neue Funktion bekommen eine MINOR-Nummer.
+>
+> **NACH DEM EINSPIELEN FRAGT DIE KARTE „Kategorien" EINMAL NACH.** Für deinen
+> vorhandenen Bestand weiß niemand, in welcher Sprache die Namen geschrieben
+> sind — **und das System behauptet es auch nicht.** Bis du antwortest, steht
+> unter jedem dieser Namen *„(Originaltext — Sprache unbekannt)"*, und die
+> Kacheln tragen den roten Rahmen. **Ein Knopf räumt das auf:** *„… Namen ohne
+> Sprachangabe — alle als ⟨Sprache⟩ eintragen"* — stell die Pille auf die
+> Sprache, in der du deinen Bestand eingetragen hast, und drück ihn. **Das ist
+> der einzige Handgriff, den diese Runde von dir verlangt.**
+>
+> **DAMIT IST DER BEFUND AUS 0.24.6 BEHOBEN.** Ein Wechsel der Vorgabesprache
+> verschiebt keine Namen mehr: **jeder Name sagt jetzt selbst, in welcher
+> Sprache er geschrieben ist.**
+>
+> **DIE EXPORTDATEI TRÄGT DIE FORMATNUMMER 15.** Sie nimmt die
+> Erstellungssprache mit. *Ältere Dateien lassen sich weiterhin einspielen —
+> dann bleibt die Sprache unbekannt, und die Karte fragt wieder einmal nach.*
+> **Eine Datei aus 0.25.0 lässt sich in eine ältere Instanz einspielen**, die
+> beiden neuen Felder werden dort wortlos übergangen.
+>
+> **EIN NAME, DER IN ZWEI SPRACHEN GLEICH LAUTET, WIRD NICHT MEHR
+> WEGGERÄUMT.** Bis 0.24.6 löschte das Speichern eine Übersetzung, die dem
+> Grundnamen glich. *Weggeräumt wird ab jetzt mit dem Zeichen am Feld — mit
+> Rückfrage.*
+>
+> **DIE KACHEL „Vokabular" TRÄGT DEN ROTEN RAHMEN, SOLANGE DER GEZEIGTEN
+> SPRACHE WÖRTER FEHLEN.** Auf einer Installation, an der niemand eigene
+> Vokabeln eingetragen hat, ist das von Anfang an so. *Es ist kein Fehler: was
+> fehlt, ersetzt die Vorgabe der Sprachdatei, und die steht unter jedem Feld.*
+
+*Was ein Betreiber merkt: die Sprachpillen sagen jetzt, wo noch Arbeit liegt —
+ein Punkt heißt „vollständig", eine Zahl sagt, wie viele Einträge fehlen.*
+
+- Added: **Jeder Name trägt seine Sprache** — Kategorien und Kriterien wissen, in welcher Sprache sie geschrieben sind
+- Fixed: **Ein Wechsel der Vorgabesprache verschiebt keine Namen mehr** — bisher wanderte der ganze Bestand der Grundnamen auf die neue Sprachpille
+- Added: **Auch ein gewöhnlicher Benutzer bekommt die volle Rückfallkette** — bisher sah nur die Adminkarte mehr als zwei Schritte
+- Added: **Punkt und Zahl an jeder Sprachpille** — der Punkt heißt „für jede Zeile ist etwas eingetragen", die Zahl sagt, wie viele fehlen
+- Added: **Roter Rahmen an einer Kachel, solange der gezeigten Sprache etwas fehlt** — an den drei Namenskarten und am Vokabular
+- Added: **Ein Zeichen am Feld räumt einen Eintrag weg**, mit Rückfrage — der Originaltext bleibt
+- Added: **Ein Knopf ordnet dem Bestand ohne Sprachangabe eine Sprache zu** — die einzige Nachfrage dieser Runde
+- Added: **Nach einem Wechsel der Vorgabesprache sagt die Karte „Sprachen", was der neuen Sprache fehlt** — keine Glocke
+- Added: **Ein geliehener Name steht blass und kursiv da**, mit dem Vermerk darunter
+- Changed: **Das Austauschformat steigt auf 15** — die Erstellungssprache reist mit
+- Changed: **Ein Name, der dem Grundnamen gleicht, wird nicht mehr weggeräumt** — er ist eine Übersetzung wie jede andere
+- Security: **`multer`, `nodemailer`, `sharp` und `body-parser` auf den geprüften Stand gehoben** — `npm audit` meldet keine hohe Lücke mehr
+
 ## [0.24.6] - 2026-09-09
 
 > **KEINE SICHERUNG NÖTIG.** Diese Runde legt keine Tabelle an, ändert kein

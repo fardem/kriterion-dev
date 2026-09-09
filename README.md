@@ -2148,24 +2148,48 @@ keine zweite Fassung einträgt, dessen Leser sehen die erste — und die
 Bewertungen hängen unverändert an ihrem Kriterium, in jeder Sprache.
 
 **Wo für die gezeigte Sprache nichts eingetragen ist, steht ein anderer Name da
-— und darunter, gedämpft, welcher.** Gesucht wird zuerst bei der
-Vorgabesprache, danach der Reihe nach bei den übrigen Sprachen des Vorrats;
-genommen wird die erste, die wirklich einen Eintrag hat. **Der Vermerk nennt
-die Sprache, die man wirklich vor sich hat** — und wenn für keine einzige
-Sprache etwas eingetragen ist, nennt er gar keine, statt eine zu behaupten.
-*Das Umbenennfeld bleibt in diesem Fall leer und zeigt den Rückfall nur als
-Platzhalter: gespeichert wird nur, was jemand wirklich eingetippt hat.*
+— und darunter, gedämpft, welcher.** *Der Name selbst steht dann blass und
+kursiv da: was du liest, ist geliehen.* **Die Kette hat vier Schritte, und sie
+gilt für jeden Leser** — angemeldet oder nicht, Admin oder nicht:
 
-> **DIE VORGABESPRACHE IST EIN SONDERFALL, UND DIE KARTE SAGT ES.** Kategorien
-> und Kriterien haben eine **Grundzeile**, und die trägt keinen Sprachvermerk:
-> ihr Name gilt als der der Vorgabesprache. **Wechselt der Eigentümer die
-> Vorgabesprache, wandert der ganze Bestand der Grundzeilen mit** — auf der
-> Pille der neuen Vorgabesprache stehen danach Namen, die niemand in dieser
-> Sprache eingegeben hat, und die alte steht leer da. *An deinem Bestand ändert
-> das nichts; die eingetragenen Übersetzungen bleiben, wo sie sind.* **Unter
-> der Sprachzeile steht deshalb ein Hinweis, sobald die Vorgabesprache gezeigt
-> wird**: was dort steht, ist der Name der Grundzeile — gleichgültig, in
-> welcher Sprache er eingetragen wurde.
+| | |
+|---|---|
+| **1.** | was für **deine** Sprache eingetragen ist — ohne Vermerk |
+| **2.** | sonst der Eintrag der **Vorgabesprache** der Installation |
+| **3.** | sonst der Eintrag in der **Sprache, in der die Zeile angelegt wurde** |
+| **4.** | sonst der **Originaltext** — mit dem Vermerk „Sprache unbekannt" |
+
+**Jeder Name weiß, in welcher Sprache er geschrieben ist**, und der Vermerk
+nennt sie. *Ein Wechsel der Vorgabesprache verschiebt deshalb keinen Namen: er
+ändert nur, welche Sprache im zweiten Schritt gefragt wird.*
+
+**Schritt 4 tritt nur bei Namen auf, für die in der Datenbank nicht steht, in
+welcher Sprache sie geschrieben sind** — dem Bestand, der aus einer Fassung
+ohne diesen Vermerk stammt. **Das System behauptet dann nichts**, sondern
+schreibt „Sprache unbekannt" daneben. **Die Karte „Kategorien" fragt einmal
+nach:** ein Kasten nennt die Zahl und bietet einen Knopf *„alle als ⟨Sprache⟩
+eintragen"*. Stell die Pille auf die Sprache, in der du deinen Bestand
+eingetragen hast, und drück ihn — danach ist der Kasten weg und kommt nicht
+wieder. *Neue Zeilen bekommen ihre Sprache beim Anlegen.*
+
+**Die Sprachzeile sagt, wo noch Arbeit liegt.** Hinter jeder Sprache steht
+entweder ein **Punkt** — für jede Zeile ist etwas eingetragen — oder die
+**Zahl** der fehlenden Einträge. **Fehlt der gerade gezeigten Sprache etwas,
+bekommt die Kachel einen roten Rahmen.** *Dasselbe gilt für die Kachel
+„Vokabular"; dort heißt „fehlt", dass für diese Sprache kein eigenes Wort
+eingetragen ist — es gilt dann die Vorgabe der Sprachdatei, und die steht unter
+jedem Feld.*
+
+*Das Umbenennfeld bleibt bei einem Rückfall leer und zeigt ihn nur als
+Platzhalter: gespeichert wird nur, was jemand wirklich eingetippt hat.*
+**Weggeräumt wird ein Eintrag mit dem Zeichen neben dem Namen**, mit Rückfrage.
+*Der Originaltext lässt sich nicht wegräumen — er ist der Name der Zeile; wer
+ihn loswerden will, löscht die Zeile.*
+
+> **WER DIE VORGABESPRACHE WECHSELT, BEKOMMT ES GESAGT.** In der Karte
+> „Sprachen" steht darunter, was der neuen Vorgabesprache fehlt — Namen und
+> Vokabelwörter, mit Zahl. **Verhindert wird nichts:** die Vorgabesprache darf
+> auf eine lückige Sprache stehen, und die Kette hält jede Liste lesbar.
 
 ## Hell oder dunkel
 

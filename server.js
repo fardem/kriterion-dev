@@ -3095,7 +3095,7 @@ app.delete('/api/criteria/:id', adminOnly, (req, res) => {
    und Englisch nie das Englische zu sehen.
 
    SIE STEHT GENAU HIER UND SONST NIRGENDS. Die Karte rechnet nicht mit,
-   sondern liest, was dieser Auflöser fuer jede Sprache ausgerechnet hat
+   sondern liest, was dieser Aufloeser fuer jede Sprache ausgerechnet hat
    (`namesAll()` weiter unten) -- eine Kette an zwei Orten laeuft auseinander,
    und das ist Stolperstein 47 in Reinform.
 
