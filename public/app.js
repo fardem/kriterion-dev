@@ -7992,6 +7992,23 @@ function setUpLanguagesOut() {
     try {
       const s = await api('PUT', '/api/settings', body);
       if (Array.isArray(s.languages)) LANGUAGES = s.languages;
+      /* UND DIE NAMENSTAFELN MIT -- 0.24.6, die Reparatur von E3. Bis 0.24.5
+         zog hier `LANGUAGES` nach und `NAMES_ALL` nicht: danach rechneten die
+         drei Verwaltungskarten mit einer NEUEN Vorgabesprache auf einer ALTEN
+         Tafel, und in dieser Lage ist der Rueckfall nicht die Ausnahme,
+         sondern der Normalfall.
+         ES IST DERSELBE FEHLERTYP WIE D2 DER RUNDE 0.24.5 -- ein Zustand im
+         Browser, den jemand nachziehen muss, und eine Stelle, an der es
+         niemand tut. 0.24.5 hat den Zwischenspeicher abgeschafft und die Tafel
+         an zwei Stellen nachgezogen (Start und `adminNew`); dies ist die
+         dritte.
+         AUS DERSELBEN ANTWORT UND OHNE ZWEITEN ABRUF -- dieselbe Zeile wie
+         `takeVocabulary()` beim Sprachwechsel des Lesers. Ein Abruf, den es
+         nicht gibt, kann die falsche Sprache nicht mitbringen.
+         `takeNames()` NIMMT NUR AN, WAS DA IST: bei jedem anderen Schreiben
+         (Filter, Ansichten, Vokabular) traegt die Antwort keine Tafeln, und
+         die vorhandenen bleiben stehen. */
+      takeNames(s);
       drawLanguages();
       toast(message);
     } catch (e) { drawLanguages(); toast(e.message, true); }
@@ -8856,11 +8873,32 @@ function setUpCriteriaOut(fetched, phase) {
          Zeile so wenig Platz, dass sie mit Auslassung kuerzt. Der Zeiger
          darueber zeigt den ganzen Satz -- wie beim Zaehler und beim Gewicht
          daneben, die es seit je so halten. */
-      const fallbackMark = entry.nameFallback
-        ? `<span class="mfallback" title="${esc(t('card.nameFallback',
-            { language: languageNameOf(entry.nameFallback) }))}">${tH('card.nameFallback',
-            { language: languageNameOf(entry.nameFallback) })}</span>`
-        : '';
+      /* ZWEI SAETZE UND NICHT EINER -- 0.24.6. `nameFallback` traegt entweder
+         die KENNUNG der Sprache, deren Name wirklich dasteht, oder `true`:
+         „es steht ein Rueckfall da, und ich kann keine Sprache dafuer
+         nennen". Der zweite Fall ist die Klammer aus namesFrom(), und er
+         bekommt einen eigenen Satz OHNE Sprachnamen -- eine genannte Sprache,
+         die nicht stimmt, ist schlimmer als keine (der Befund dieser Runde).
+         EIN FELD UND NICHT ZWEI: ein zweites Kennzeichen daneben waere eine
+         zweite Aussage ueber dieselbe Sache, und die beiden liefen
+         auseinander. Beide Gestalten sind WAHR im Sinne von JavaScript --
+         daran haengt das Umbennenfeld weiter unten, und es bleibt, wie es
+         war. */
+      /* BEIDE SCHLUESSEL STEHEN WOERTLICH DA und nicht als Variable. Das ist
+         keine Umstaendlichkeit, sondern die Bedingung eines Waechters: der
+         Pruefstand liest die Aufrufe von `t()` am Quelltext und haelt dagegen,
+         dass jeder Platzhalter eines Satzes auch gereicht wird. Ein Schluessel
+         in einer Variablen ist fuer ihn kein Aufruf -- `{language}` bliebe
+         danach woertlich am Bildschirm stehen, und niemand saehe es. */
+      const fallbackName = entry.nameFallback === true
+        ? '' : languageNameOf(entry.nameFallback);
+      const fallbackMark = entry.nameFallback === undefined ? ''
+        : (entry.nameFallback === true
+          ? `<span class="mfallback" title="${esc(t('card.nameFallbackNone'))}">${
+              tH('card.nameFallbackNone')}</span>`
+          : `<span class="mfallback" title="${esc(t('card.nameFallback',
+              { language: fallbackName }))}">${tH('card.nameFallback',
+              { language: fallbackName })}</span>`);
       row.innerHTML = `${spec.sortable && may ? `<span class="grip" title="${esc(t('entry.dragToSort'))}">⣿</span>` : ''}
         <span class="mnamebox"><span class="mname">${esc(entry.name)}</span>${fallbackMark}</span>
         ${weightField}
@@ -9098,14 +9136,34 @@ const languageNameOf = (code) =>
    ausgewählte Sprache keine Eingabe existiert."*
 
      1. was fuer die GEZEIGTE Sprache eingetragen ist,
-     2. sonst der Name der GRUNDZEILE -- und der ist der Eintrag der
-        Vorgabesprache,
-     3. und sonst, was hereinkam.
+     2. sonst die VORGABESPRACHE -- ihre Tafel traegt den Namen der Grundzeile,
+     3. sonst die erste Sprache DES VORRATS, die wirklich einen Eintrag hat,
+     4. und sonst, was hereinkam.
 
-   SCHRITT 3 IST DIE KLAMMER UND KEIN WEG: die Grundzeile TRAEGT einen Namen
-   (`NOT NULL`), Schritt 2 greift also immer. Ohne die Klammer stuende bei einer
-   Tafel, die eine Zeile nicht kennt, gar nichts da -- und ein leerer Name saehe
-   aus wie „nichts angelegt".
+   SCHRITT 3 IST DIE ANTWORT DES BETREIBERS AUF F2 (9. September 2026):
+   *„Geht es als fallback auf deutsch (besser wäre englisch da es ja
+   existiert)."* Bis 0.24.5 gab es ihn nicht, und das war der halbe Befund E2:
+   war auch fuer die Vorgabesprache nichts eingetragen, fiel der NAME auf
+   `z.name` zurueck -- die Antwort des Servers in der Sprache des LESERS -- und
+   der VERMERK sagte trotzdem die Vorgabesprache. Zwei Angaben in derselben
+   Zeile, aus zwei Quellen, und sie widersprachen sich.
+
+   IN DER KANONISCHEN REIHENFOLGE DES VORRATS, nicht in der der Tafel: die
+   Reihenfolge einer Antwort ist keine Aussage. Und NUR aus dem Vorrat -- was
+   der Eigentuemer nicht freigegeben hat, pflegt er auch nicht, und ein
+   Rueckfall darauf zeigte einen Namen aus einer Sprache, die es in dieser
+   Installation nicht gibt. Dieselbe Klemme wie bei `namesLanguage()`.
+
+   SCHRITT 4 IST DIE KLAMMER UND KEIN WEG: die Tafel der Vorgabesprache kommt
+   aus den Grundzeilen, und die tragen einen Namen (`NOT NULL`) -- Schritt 2
+   greift also, solange die Tafel frisch ist. Ohne die Klammer stuende bei
+   einer Tafel, die eine Zeile nicht kennt, gar nichts da, und ein leerer Name
+   saehe aus wie „nichts angelegt".
+
+   DER VERMERK NENNT DIE SPRACHE, DEREN NAME WIRKLICH DASTEHT -- und in der
+   Klammer NENNT ER KEINE (`nameFallback === true`) statt eine zu behaupten.
+   Genau das war der Befund: „zeigt an das kein eintrag gibt (stimmt) aber sagt
+   das es turkisch (stimmt nicht) anzeigt".
 
    DER RUECKFALL WIRD GEKENNZEICHNET (`nameFallback`) und nicht stillschweigend
    eingesetzt. Dieselbe Ueberlegung wie bei den vierzehn Vokabelwoertern
@@ -9115,17 +9173,34 @@ const languageNameOf = (code) =>
    OHNE TAFEL BLEIBT DIE LISTE, WIE SIE HEREINKAM. Der gewoehnliche Benutzer
    bekommt keine (F3) -- er sieht die Liste in seiner eigenen Sprache, und
    einen Umschalter hat er nicht. */
+/* DIE KETTE ALS LISTE VON KENNUNGEN, ohne die gezeigte Sprache: die
+   Vorgabesprache zuerst, danach der Vorrat in seiner kanonischen Reihenfolge.
+   DIE VORGABESPRACHE STEHT VORNE UND NICHT NUR IM VORRAT -- sie ist der
+   zweite Schritt der Kette und nicht einer unter vielen. Doppelte fallen
+   heraus; sie steht ohnehin immer im Vorrat (der Server klemmt es an zwei
+   Stellen), und die Zeile haelt auch, wenn eine Antwort das einmal nicht
+   tut. */
+const nameFallbackChain = (shownCode) => {
+  const base = baseNamesLanguage();
+  const pool = LANGUAGES.filter(a => a.active).map(a => a.code);
+  return [base, ...pool].filter((code, i, all) =>
+    code !== shownCode && all.indexOf(code) === i);
+};
 function namesFrom(fetched, key) {
   const rows = fetched[key] || [];
   const table = NAMES_ALL[key] || {};
-  const shown = table[namesLanguage()];
+  const code = namesLanguage();
+  const shown = table[code];
   if (!shown) return rows;
-  const base = baseNamesLanguage();
-  const fallback = (base === namesLanguage() ? null : table[base]) || {};
+  const chain = nameFallbackChain(code);
   return rows.map(z => {
-    if (z && z.id !== undefined && shown[z.id] !== undefined) return { ...z, name: shown[z.id] };
-    const back = z && z.id !== undefined ? fallback[z.id] : undefined;
-    return { ...z, name: back !== undefined ? back : z.name, nameFallback: base };
+    if (!z || z.id === undefined) return { ...z };
+    if (shown[z.id] !== undefined) return { ...z, name: shown[z.id] };
+    for (const other of chain) {
+      const back = (table[other] || {})[z.id];
+      if (back !== undefined) return { ...z, name: back, nameFallback: other };
+    }
+    return { ...z, nameFallback: true };
   });
 }
 /* DIE PILLENREIHE UEBER EINER ADMINLISTE. Sie steht nur da, wenn es etwas zu
@@ -9142,6 +9217,33 @@ function drawNameLanguages(boxId) {
     b.onclick = () => { NAMES_SHOWN = a.code; renderSystem({ keepScroll: true }); };
     box.appendChild(b);
   });
+  /* UND DER HINWEIS AUF DIE GRUNDZEILE -- 0.24.6, die Antwort des Betreibers
+     auf F3 (9. September 2026): kennzeichnen statt behaupten.
+
+     DIE GRUNDZEILE TRAEGT KEINEN SPRACHVERMERK (0.24.3, Bauabschnitt 6a), und
+     `baseLanguage()` schreibt sie derjenigen Sprache zu, die GERADE Vorgabe
+     ist. Wechselt der Eigentuemer die Vorgabe, wandert damit der ganze Bestand
+     der Grundzeilen von einer Tafel in die andere -- gemessen am 9. September
+     2026: nach dem Wechsel von `en` auf `tr` trug `tr` den englischen Text,
+     den nie jemand tuerkisch eingegeben hat, und `en` stand leer da.
+     DIE ABLAGE BLEIBT, WIE SIE IST -- eine Spalte `language` an den
+     Grundzeilen waere eine Datenbankstufe und eine eigene Runde. Was faellt,
+     ist die BEHAUPTUNG: die Tafel der Vorgabesprache wird als das
+     gekennzeichnet, was sie ist.
+
+     ER STEHT AN DER PILLENREIHE UND NICHT AN JEDER ZEILE: es ist eine Aussage
+     ueber die TAFEL und nicht ueber eine einzelne Zeile -- und an jeder Zeile
+     waere derselbe Satz zwanzigmal untereinander. Gedaempft wie der Vermerk am
+     Rueckfall darunter: er ist eine Auskunft und keine Aktion.
+     UND NUR, SOLANGE DIE VORGABESPRACHE GEZEIGT WIRD. Ein Hinweis, der immer
+     dasteht, sagt nichts mehr. */
+  if (namesLanguage() === baseNamesLanguage()) {
+    const note = document.createElement('p');
+    note.className = 'langnote';
+    note.textContent = t('card.namesBaseRow',
+      { language: languageNameOf(baseNamesLanguage()) });
+    box.appendChild(note);
+  }
 }
 
 /* WELCHE SPRACHE DIE KARTE „VOKABULAR" GERADE ZEIGT -- 0.24.3. Sie faengt bei

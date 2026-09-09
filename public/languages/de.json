@@ -335,11 +335,13 @@
   "card.mySessions": "Meine Sitzungen",
   "card.name": "Name",
   "card.nameFallback": "(nicht eingetragen — es steht {language})",
+  "card.nameFallbackNone": "(nicht eingetragen)",
   "card.nameFreedHint": "Der Name ist wieder frei und wird nicht gespeichert; ihre Beiträge stehen unter\n      „Gelöschter Benutzer &lt;Nummer&gt;“. Ein gelöschter Benutzer lässt sich nicht\n      wiederherstellen — wer nur aussperren will,",
   "card.names": {
     "one": "1 Name",
     "other": "{n} Namen"
   },
+  "card.namesBaseRow": "{language} ist die Vorgabesprache: hier steht der Name der Grundzeile — gleichgültig, in welcher Sprache er eingetragen wurde.",
   "card.neededToSave": "(zum Speichern nötig)",
   "card.needsMailHint": "Einschalten ist erst möglich, wenn der Mailversand eingerichtet ist.",
   "card.never": "noch nie",
