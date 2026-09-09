@@ -440,13 +440,13 @@ Runde.
 
 **Zwanzig neue, 760 bis 779** — drei an der Datenbankstufe, sieben an der Kette
 am Server, acht an der Karte, zwei am Vokabular. **Alle gefahren** — dazu die
-acht mitgegangenen, deren SACHE sich geändert hat: **einunddreißig Läufe** in
-zwei Durchgängen.
+acht mitgegangenen, deren SACHE sich geändert hat: **dreiunddreißig Läufe** in
+drei Durchgängen.
 
 | | |
 |---|---|
 | **23 haben rot gemacht** | von einem Punkt (761, 762, 766, 774, 776) bis sechsundzwanzig (763 — eine Zeile ohne Sprachvermerk trifft die ganze Kettentafel) |
-| **3 liefen STUMM** | **764, 767, 768 — und alle drei hatten recht.** *Jede war eine echte Lücke im Prüfstand, und alle drei sind geschlossen* |
+| **3 liefen STUMM** | **764, 767, 768 — und alle drei hatten recht.** *Jede war eine echte Lücke im Prüfstand, und alle drei sind geschlossen.* **768 lief zweimal stumm** — der zweite Durchgang hat den vierten Fund gebracht |
 | **1 riss den Lauf ab** | **760** — der Rückbau selbst war falsch gewählt; er zielt seither auf eine Stelle, die den Server stehen lässt |
 
 **DIE DREI STUMMEN SIND DER ERTRAG DIESER GEGENPROBEN.** Ohne sie wären drei
@@ -462,6 +462,11 @@ sind noch einmal gefahren worden.*
 > Kriterium entsteht beim Import aus der Kriterienliste, eine Kategorie
 > ausschließlich dadurch, dass ein Eintrag sie nennt.* **Jetzt gibt es zwei
 > Rückbauten (768 und 779) und zwei Zusagen** — und die Liste steht bei **770**.
+>
+> **BEIDE SIND GEFAHREN, UND BEIDE MACHEN ROT.** 768 nimmt *„Und der Import
+> legt sie mit an — 0.25.0"* mit, 779 *„Und dasselbe an der Kategorie —
+> 0.25.0"*; je 6310 von 6312. **Kein STUMM mehr** — der dritte Durchgang ist
+> der erste, der nichts mehr findet.
 
 **Elf sind mitgegangen** statt gelöscht zu werden *(Stolperstein 201)*, und
 sie zerfallen in zwei Gruppen. **Drei tragen nur einen neuen Suchtext und
