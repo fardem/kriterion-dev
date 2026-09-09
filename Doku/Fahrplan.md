@@ -1,8 +1,7 @@
 # Fahrplan
 
-**Der Plan von 0.25.0 bis 1.0 · Stand 8. September 2026, nach dem Bau von 0.24.5
-und dem Rundlauf mit
-0.24.4**
+**Der Plan von 0.24.6 bis 1.0 · Stand 9. September 2026, nach dem Rundlauf mit
+0.24.5**
 
 **HIER STEHT, WAS EINE NUMMER HAT. SONST NIRGENDS.** *Was noch keine hat, steht
 im Sammelblatt `Doku/Fehler_und_Ideen.md`; was gebaut ist, steht im Projektstand
@@ -105,7 +104,8 @@ Sprachumschalter baut, hat damit ein Muster und braucht kein neues.**
 
 | Version | Name | Was | Schema | Format |
 |---|---|---|---|---|
-| **0.25.0** | **Die kleinen Fehler fallen** | Gruppe A: sechs Befunde, von denen der größte eine Messung braucht | nein | — |
+| **0.24.6** | **Der Rückfall sagt, welche Sprache er wirklich zeigt** | drei Teile aus dem Rundlauf mit 0.24.5 | nein | — |
+| **0.25.0** | **Die kleinen Fehler fallen — und das Potenzial wird abschaltbar** | Gruppe A: sechs Befunde, von denen der größte eine Messung braucht, **dazu eine Funktion** | nein | — |
 | **0.26.0** | **Die wählbare Bildablage** | drei Verfahren zur Wahl, dazu die Ableitungen auf WebP | nein | — |
 | **0.27.0** | **Das Telefon bekommt Recht** | Gruppe B, dazu das Blättern im Eintrag und das Startbildzeichen | nein | — |
 | **0.28.0** | **Worauf man sich verlassen können muss** | Gruppe C, das Angenommene — und die letzte Runde, die das Schema anfassen darf | **ja** | 14 → 15 |
@@ -119,7 +119,33 @@ Sprachumschalter baut, hat damit ein Muster und braucht kein neues.**
 
 ---
 
-## 0.25.0 — „Die kleinen Fehler fallen"
+## 0.24.6 — „Der Rückfall sagt, welche Sprache er wirklich zeigt"
+
+**Ein Nachtrag zu 0.24.5, gemeldet am 9. September 2026 vom laufenden
+Programm.** *Die Sprachpille tut, was sie soll — der Betreiber hat es
+abgenommen. Der Vermerk darunter tut es nicht, sobald weder die gezeigte noch
+die Vorgabesprache einen Eintrag hat.*
+
+**Drei Teile, und sie hängen zusammen:**
+
+| | was | Größe |
+|---|---|---|
+| **E1** | **Die Namenstafel folgt der Vorgabesprache, die Ablage nicht.** Stellt man die Vorgabe von `en` auf `tr`, trägt `tr` den Text der Grundzeile — den nie jemand auf Türkisch eingegeben hat — und `en` steht leer da, obwohl der Name dort steht. *Kein Fehler von 0.24.5, sondern die Bauform von 0.24.3: die Grundzeile trägt keinen Sprachvermerk. **Neu ist, dass man es sieht.*** | mittel |
+| **E2** | **Der Vermerk nennt die Sprache, die er zeigen wollte, nicht die, die er zeigt.** Ist auch für die Vorgabesprache nichts eingetragen, steht der Name aus der Antwort in der **Lesersprache** da — und der Vermerk sagt trotzdem „Vorgabesprache" | klein |
+| **E3** | **Die Tafeln werden nach einem Wechsel der Vorgabesprache nicht nachgezogen.** `sendLanguages()` zieht `LANGUAGES` nach, `NAMES_ALL` nicht — die Karte rechnet mit neuer Vorgabe auf alter Tafel. *Derselbe Fehlertyp wie D2 in 0.24.5, eine Stelle weiter* | klein |
+
+**Der Auftrag steht als `Doku/Auftrag_0.24.6.md`**, mit sechs Fragen am Kopf —
+**alle offen.** *Die wichtigste ist die Rückfallkette: der Betreiber schlägt vor,
+auf eine Sprache zurückzufallen, die **wirklich einen Eintrag hat** („besser
+wäre Englisch, da es ja existiert"), statt starr auf die Vorgabesprache.*
+
+> **WARUM EINE EIGENE NUMMER UND NICHT 0.25.0:** es ist eine Reparatur an dem,
+> was 0.24.5 gebaut hat — **PATCH, gewöhnliches SemVer** —, und 0.25.0 hat eine
+> Messung vor sich. *Dieselbe Überlegung wie bei 0.24.5 selbst.*
+
+---
+
+## 0.25.0 — „Die kleinen Fehler fallen" — und das Potenzial wird abschaltbar
 
 **Sechs Befunde, fünf davon klein, einer mit einer Messung davor.** *Alle sind
 gemeldet oder beim Durchsehen gefunden; keiner ist eine neue Funktion.*
@@ -152,6 +178,48 @@ gemeldet oder beim Durchsehen gefunden; keiner ist eine neue Funktion.*
 > keinen dritten mit. *Der Befund bleibt hier — und er ist jetzt billiger:
 > die Faltung steht seit 0.24.4 an EINER Stelle (`searchFold()` in `db.js`),
 > und beide Hälften der Suche rufen sie.*
+
+
+### Und eine Funktion dazu — der Potenzialmodus wird abschaltbar
+
+> **GEWÜNSCHT VOM BETREIBER, 9. September 2026 — und er sagt dazu, dass er es
+> schon beim Bau von 0.21.0 gemeint hat:** *„#Potenzial kriterien Modus durch
+> Admin+Admin(Eigentümer) ein und ausschaltbar machen. Wenn ‚aus' ist, dann darf
+> die Box im Eintragsdetails gar nicht zu sehen sein und auch das Sortierfilter
+> dafür darf nicht zu sehen sein. Ebenso wenn Potenzial Bewertungen schon
+> vorhanden sind dürfen die auch nicht im Overview angezeigt werden und muss
+> ausgeblendet werden."*
+
+**Ein Schalter, und er wirkt an fünf Stellen.** *Das ist der ganze Punkt: ein
+abgeschalteter Modus, der an einer Stelle doch noch durchscheint, ist kein
+abgeschalteter Modus.*
+
+| wo | was verschwindet |
+|---|---|
+| **Eintrag** | der Sternkasten „Potenzial" — **gar nicht erst gezeichnet**, nicht nur eingeklappt |
+| **Sortierung** | die Gruppe `potential_desc` / `potential_asc` im Auswahlfeld der Übersicht |
+| **Filter** | die Zeile, die nach „noch nicht eingeschätzt" filtert |
+| **Übersicht** | die Kopfzahl **◆** an einem ungetesteten Eintrag — *auch dann, wenn schon Potenzialbewertungen in der Datenbank stehen* |
+| **Systembereich** | *offen:* ob die Karte „Potenzial: Kriterien" mitverschwindet oder als Einstellort stehen bleibt |
+
+**Der Schalter gehört dem Admin und in die Datenbank** — dieselbe Bauform wie
+`categoriesFreeCreate` und `tagsFreeCreate`, und aus demselben Grund
+*(Projektstand, Abschnitt 11: eine Einstellung, die an allen Einträgen aller
+Benutzer erscheint, gehört dem Admin und nicht in `user_settings`)*.
+
+**Die vergebenen Sterne bleiben stehen.** *Ausschalten ist Verbergen und nicht
+Löschen: wer ihn wieder einschaltet, findet seinen Bestand vor.* **Was der
+Server mit `potentialRating` in seinen Antworten macht, ist die eine offene
+Frage von Gewicht** — sie ganz wegzulassen wäre sauber und träfe den Export,
+den Vergleich und die Einzelansicht mit.
+
+> **WARUM SIE IN 0.25.0 STEHT UND NICHT IN 0.24.6.** *Es ist eine **Funktion**,
+> und eine Funktion nimmt nach Regel 5.1 eine MINOR-Nummer; 0.24.6 ist eine
+> Reparatur und muss eine PATCH bleiben.* **Der Betreiber hat beides angeboten**
+> (*„das auch in 0.24.6 oder zusammen mit den anderen in 0.25.0"*) — **hier
+> steht sie, weil die Nummer es verlangt**, und der Name der Runde ist dafür
+> erweitert. *Wer sie doch vorziehen will, sagt es; dann rückt sie nach 0.26.0
+> und die Reparatur bekommt 0.25.0.*
 
 ---
 
