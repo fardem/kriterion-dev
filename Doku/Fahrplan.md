@@ -34,17 +34,26 @@ Begründung von acht Rückungen.*
 durchzuarbeiten und Fehler zu beheben, dass wir fast bis Code-Effizienz durch
 sind. Neue Features werden nur bedingt aufgenommen."*
 
-**Was das für dieses Papier heißt:** jede Runde bis 0.30.0 räumt etwas weg, das
+**Was das für dieses Papier heißt:** jede Runde bis 0.31.0 räumt etwas weg, das
 schon dasteht. **Vier neue Funktionen fahren mit**, und jede einzelne ist unten
 begründet; alles andere Neue ist entweder abgelehnt oder mit seiner Bedingung
 zurückgestellt.
 
 ---
 
-## Der Bruch liegt auf 0.30.0 — und das ist der Grund
+## Der Bruch liegt auf 0.31.0 — und das ist der Grund
 
 **Entschieden am 8. September 2026:** die Bereinigung *(bisher 0.28.0)* zieht
 auf **0.30.0**. *„Damit der Bruch auch ein Bruch in der Zahl ist."*
+
+> **UND AM 9. SEPTEMBER 2026 EIN ZWEITES MAL GERÜCKT — auf 0.31.0.** *Die
+> Sprachrunde hat 0.25.0 bekommen, und alles dahinter ist eine Nummer weiter
+> gewandert.* **Der Betreiber hat das ausdrücklich so entschieden**, mit der
+> Alternative vor Augen, zwei Runden zusammenzulegen, um den Bruch auf 0.30.0
+> zu halten: *die runde Zahl war eine Bequemlichkeit und keine Eigenschaft — die
+> Reihenfolge ist die Aussage.* **Was bleibt, ist die Regel darunter:** der
+> Bruch kommt NACH der letzten Runde, die das Schema anfassen darf, und vor
+> allem, was auf einer festen Struktur aufbaut.
 
 **Es ist eine Entscheidung über die LESBARKEIT der Nummer und nicht über den
 Inhalt.** Die Bereinigung wirft neun Migrationsblöcke weg, schreibt die
@@ -80,8 +89,8 @@ hintereinander nicht eingetreten ist.*
 > **UND EIN FÜNFTES MAL: 0.24.5.** Der Rundlauf mit 0.24.4 hat einen Befund
 > gebracht — *die Sprachpille über den drei Verwaltungskarten zeigte nie die
 > Sprache, auf die sie zeigt* —, und er hat wieder eine **PATCH**-Zahl genommen.
-> **Er hätte in 0.25.0 gepasst und gehört trotzdem nicht dorthin:** er ist ein
-> Fehler in dem, was 0.24.3 und 0.24.4 gebaut haben, und 0.25.0 ist die Runde
+> **Er hätte in 0.26.0 gepasst und gehört trotzdem nicht dorthin:** er ist ein
+> Fehler in dem, was 0.24.3 und 0.24.4 gebaut haben, und 0.26.0 ist die Runde
 > der *kleinen* Fehler mit einer Messung davor. *Was gebaut wurde, steht im
 > Änderungsprotokoll 0.24.5.*
 
@@ -89,7 +98,7 @@ hintereinander nicht eingetreten ist.*
 
 ## Was 0.24.5 an diesem Plan geändert hat — nichts
 
-**Die sechs Befunde von 0.25.0 stehen unverändert.** *Keiner von ihnen ist in
+**Die sechs Befunde von 0.26.0 stehen unverändert.** *Keiner von ihnen ist in
 0.24.5 mit weggefallen, und keiner ist dazugekommen:* die Runde hat den
 Leseweg der drei Namenskarten repariert und sonst nichts angefasst.
 
@@ -105,15 +114,16 @@ Sprachumschalter baut, hat damit ein Muster und braucht kein neues.**
 | Version | Name | Was | Schema | Format |
 |---|---|---|---|---|
 | ~~**0.24.6**~~ | ~~Der Rückfall sagt, welche Sprache er wirklich zeigt~~ | **GEBAUT am 9. September 2026** — Änderungsprotokoll 0.24.6 | nein | — |
-| **0.25.0** | **Die kleinen Fehler fallen — und das Potenzial wird abschaltbar** | Gruppe A: sechs Befunde, von denen der größte eine Messung braucht, **dazu eine Funktion** | nein | — |
-| **0.26.0** | **Die wählbare Bildablage** | drei Verfahren zur Wahl, dazu die Ableitungen auf WebP | nein | — |
-| **0.27.0** | **Das Telefon bekommt Recht** | Gruppe B, dazu das Blättern im Eintrag und das Startbildzeichen | nein | — |
-| **0.28.0** | **Worauf man sich verlassen können muss** | Gruppe C, das Angenommene — und die letzte Runde, die das Schema anfassen darf | **ja** | 14 → 15 |
-| **0.29.0** | **Der Prüfstand wird schnell** | Gruppe D: was das Bauen beschleunigt, ohne den Beleg zu schwächen | nein | — |
-| **0.30.0** | **Bereinigung — der Bruch** | neun Migrationsblöcke raus, Struktur festgeschrieben, **kein Rückweg** | **ja** | — |
-| **0.30.x** | **Die Kommentare werden knapp** | 16.281 von 54.822 Zeilen sind Kommentar | nein | — |
-| **0.31.0** | **Der Prüfstand bekommt ein Verzeichnis** | `testbench.js` in Module — **und damit erst der echte Teillauf** | nein | — |
-| **0.32.0** | **Code-Effizienz** | Leichen und ineffizienter Code | offen | — |
+| **0.25.0** | **Der Name weiß, in welcher Sprache er geschrieben ist** | die Kette Leser → Vorgabe → Erstellungssprache, am SERVER; dazu die Adminkarte mit Punkt, Zahl und Rahmen | **ja** | — |
+| **0.26.0** | **Die kleinen Fehler fallen — und das Potenzial wird abschaltbar** | Gruppe A: sechs Befunde, von denen der größte eine Messung braucht, **dazu eine Funktion** | nein | — |
+| **0.27.0** | **Die wählbare Bildablage** | drei Verfahren zur Wahl, dazu die Ableitungen auf WebP | nein | — |
+| **0.28.0** | **Das Telefon bekommt Recht** | Gruppe B, dazu das Blättern im Eintrag und das Startbildzeichen | nein | — |
+| **0.29.0** | **Worauf man sich verlassen können muss** | Gruppe C, das Angenommene — und die letzte Runde, die das Schema anfassen darf | **ja** | 14 → 15 |
+| **0.30.0** | **Der Prüfstand wird schnell** | Gruppe D: was das Bauen beschleunigt, ohne den Beleg zu schwächen | nein | — |
+| **0.31.0** | **Bereinigung — der Bruch** | neun Migrationsblöcke raus, Struktur festgeschrieben, **kein Rückweg** | **ja** | — |
+| **0.31.x** | **Die Kommentare werden knapp** | 16.281 von 54.822 Zeilen sind Kommentar | nein | — |
+| **0.32.0** | **Der Prüfstand bekommt ein Verzeichnis** | `testbench.js` in Module — **und damit erst der echte Teillauf** | nein | — |
+| **0.33.0** | **Code-Effizienz** | Leichen und ineffizienter Code | offen | — |
 | **1.0.0** | **Die Zusage** | Abwärtskompatibilität zugesichert, Schnittstelle steht fest | — | — |
 | *danach* | *Große Dateien bis 2 GB* | **ausdrücklich draußen** — siehe unten | ja | — |
 
@@ -159,16 +169,53 @@ die Vorgabesprache einen Eintrag hat.*
 > weiterhin keinen Sprachvermerk. **Der saubere Weg ist eine Spalte `language`
 > an `product_categories` und `rating_criteria` samt Migrationsblock** — eine
 > Datenbankstufe, und die letzte Runde, die das Schema anfassen darf, ist nach
-> dieser Tafel **0.28.0**. *Bis dahin bleibt es bei der Kennzeichnung; sie sagt
+> dieser Tafel **0.29.0**. *Bis dahin bleibt es bei der Kennzeichnung; sie sagt
 > die Wahrheit, sie räumt sie nur nicht auf.*
 
-> **WARUM EINE EIGENE NUMMER UND NICHT 0.25.0:** es ist eine Reparatur an dem,
-> was 0.24.5 gebaut hat — **PATCH, gewöhnliches SemVer** —, und 0.25.0 hat eine
+> **WARUM EINE EIGENE NUMMER UND NICHT 0.26.0:** es ist eine Reparatur an dem,
+> was 0.24.5 gebaut hat — **PATCH, gewöhnliches SemVer** —, und 0.26.0 hat eine
 > Messung vor sich. *Dieselbe Überlegung wie bei 0.24.5 selbst.*
 
 ---
 
-## 0.25.0 — „Die kleinen Fehler fallen" — und das Potenzial wird abschaltbar
+## 0.25.0 — „Der Name weiß, in welcher Sprache er geschrieben ist"
+
+**Aus dem Rundlauf mit 0.24.6, gemeldet am 9. September 2026 vom laufenden
+Programm** (`c4c07393`): *es funktioniert immer noch nicht richtig.* Der Grund
+steht seit 0.24.3 in der Datenbank und ist in 0.24.6 ausdrücklich nur
+beschriftet worden — **die Grundzeile trägt keinen Sprachvermerk** und zählt
+immer derjenigen Sprache zu, die *gerade* Vorgabe ist.
+
+**Der Betreiber hat die Struktur in drei Entwürfen als Flussdiagramm vorgelegt.**
+Daraus wird gebaut:
+
+| | was |
+|---|---|
+| **Die Kette** | Lesersprache → Vorgabesprache → **Erstellungssprache** → Platzhalter. **Am Server, für jeden Leser** — heute kennt nur die Adminkarte eine Kette, und sie hat zwei Schritte |
+| **Die Datenbankstufe** | eine Spalte `language` an `product_categories` und `rating_criteria`. **Der Migrationsblock trägt NICHTS ein** und die Karte fragt einmal nach — so behauptet das System nie etwas Falsches |
+| **Die Adminkarte** | Punkt und Zahl an den Sprachpillen, roter Rahmen bei lückiger Sprache, gedämpfte Zeilen am Rückfall, ein Zeichen zum Räumen — **und dasselbe am Vokabular** |
+| **Keine Glocke** | sie zeigt nach ihrer eigenen Regel nur *fremde* Tätigkeit; wer die Vorgabesprache umschaltet, ist selbst der Handelnde. Die Karte „Sprachen" sagt es an Ort und Stelle |
+| **Im Beipack** | `npm audit fix` *(nur die Sperrdatei)* und **Workflow Weg B** *(ein Lauf je Stand statt zwei)* |
+
+**Der Auftrag steht als `Doku/Auftrag_0.25.0.md`**, mit acht Fragen am Kopf —
+**alle vor der ersten Zeile beantwortet.** *Er trägt als erster den stehenden
+Schlussabschnitt „Wie der nächste Auftrag auszusehen hat".*
+
+> **WARUM MINOR UND WARUM SIE ALLES ANDERE SCHIEBT:** es ist eine
+> **Datenbankstufe**, und die nimmt nach Regel 5.1 mindestens eine
+> MINOR-Nummer. *Der Betreiber hat am 9. September 2026 entschieden, ihr 0.25.0
+> zu geben und den Rest durchrutschen zu lassen* — mit der Alternative vor
+> Augen, sie hinter die kleinen Fehler zu stellen. **Das Sprachproblem läuft im
+> Feld, die kleinen Fehler nicht.**
+
+> **DER PUNKT 21 DES SAMMELBLATTS IST DAMIT HIER.** *„Die Grundzeile trägt
+> keinen Sprachvermerk"* — aufgenommen am 9. September 2026, am selben Tag mit
+> einer Nummer versehen. **Er steht deshalb nicht mehr im Sammelblatt**
+> (Regel 1 der beiden Papiere).
+
+---
+
+## 0.26.0 — „Die kleinen Fehler fallen" — und das Potenzial wird abschaltbar
 
 **Sechs Befunde, fünf davon klein, einer mit einer Messung davor.** *Alle sind
 gemeldet oder beim Durchsehen gefunden; keiner ist eine neue Funktion.*
@@ -236,17 +283,17 @@ Server mit `potentialRating` in seinen Antworten macht, ist die eine offene
 Frage von Gewicht** — sie ganz wegzulassen wäre sauber und träfe den Export,
 den Vergleich und die Einzelansicht mit.
 
-> **WARUM SIE IN 0.25.0 STEHT UND NICHT IN 0.24.6.** *Es ist eine **Funktion**,
+> **WARUM SIE IN 0.26.0 STEHT UND NICHT IN 0.24.6.** *Es ist eine **Funktion**,
 > und eine Funktion nimmt nach Regel 5.1 eine MINOR-Nummer; 0.24.6 ist eine
 > Reparatur und muss eine PATCH bleiben.* **Der Betreiber hat beides angeboten**
 > (*„das auch in 0.24.6 oder zusammen mit den anderen in 0.25.0"*) — **hier
 > steht sie, weil die Nummer es verlangt**, und der Name der Runde ist dafür
-> erweitert. *Wer sie doch vorziehen will, sagt es; dann rückt sie nach 0.26.0
-> und die Reparatur bekommt 0.25.0.*
+> erweitert. *Wer sie doch vorziehen will, sagt es; dann rückt sie nach 0.27.0
+> und die Reparatur bekommt 0.26.0.*
 
 ---
 
-## 0.26.0 — „Die wählbare Bildablage"
+## 0.27.0 — „Die wählbare Bildablage"
 
 **Unverändert gegenüber dem alten Plan.** Drei Verfahren zur Wahl statt eines
 Schalters: **PNG** (keine Rechenzeit), **WebP verlustfrei**, **WebP
@@ -262,7 +309,7 @@ Bestand statt zwei.
 
 ---
 
-## 0.27.0 — „Das Telefon bekommt Recht"
+## 0.28.0 — „Das Telefon bekommt Recht"
 
 **Alles, was bei der Durchsicht für Telefon und Tablett gemessen und bewusst
 stehen gelassen wurde — plus die zwei Dinge, die genau dort hingehören.**
@@ -320,7 +367,7 @@ dieser Runde.
 
 ---
 
-## 0.28.0 — „Worauf man sich verlassen können muss"
+## 0.29.0 — „Worauf man sich verlassen können muss"
 
 **Die letzte Runde, die das Schema anfassen darf.** *Danach kommt der Bruch, und
 was danach ein Feld braucht, steht allein gegen eine festgeschriebene
@@ -401,7 +448,7 @@ CREATE UNIQUE INDEX IF NOT EXISTS … ON users(email) WHERE email IS NOT NULL
 — der auf beiden Wegen gleich wirkt und mehrere Zugänge ohne Adresse zulässt.
 
 > **DER BETREIBER HAT DAS WANN UND WIE ÜBERLASSEN, und die Antwort ist: hier.**
-> *Ein Index ist Datenbankarbeit, und nach 0.30.0 steht die Struktur fest.
+> *Ein Index ist Datenbankarbeit, und nach 0.31.0 steht die Struktur fest.
 > Wollte man ihn danach, stünde er allein gegen eine festgeschriebene Struktur —
 > genau der Fall, den die Bereinigung ausschließen soll.*
 
@@ -441,7 +488,7 @@ und die der Domain auseinandergehen.
 
 ---
 
-## 0.29.0 — „Der Prüfstand wird schnell"
+## 0.30.0 — „Der Prüfstand wird schnell"
 
 **Der Auftrag des Betreibers wörtlich:** *„Optimiere und mach das, was das Bauen
 beschleunigt, aber dennoch sicher ist."*
@@ -508,13 +555,13 @@ sucht falsch.*
 > Namensfilter kann deshalb nur die Ausgabe einschränken, nicht die Arbeit.**
 >
 > ***Ein echter Teillauf IST die Aufteilung in Module*** — und die steht auf
-> **0.31.0**, hinter dem Bruch, weil sie sonst Prüfgruppen mit umzieht, die die
+> **0.32.0**, hinter dem Bruch, weil sie sonst Prüfgruppen mit umzieht, die die
 > Bereinigung kurz darauf löscht. **Diese Runde legt die Messung hin, mit der
-> 0.31.0 weiß, welche Gruppen die Aufteilung zuerst verdienen.**
+> 0.32.0 weiß, welche Gruppen die Aufteilung zuerst verdienen.**
 
 ---
 
-## 0.30.0 — „Bereinigung — der Bruch"
+## 0.31.0 — „Bereinigung — der Bruch"
 
 **Unverändert gegenüber dem alten Plan; neu ist allein die Nummer.**
 
@@ -522,7 +569,7 @@ Migrationscode raus — **neun Blöcke** —, die Datenbankstruktur festgeschrie
 **Absage an zu alte Datenbanken. Ab hier gibt es keinen Rückweg auf ältere
 Fassungen.** *Ein Bruch — solange die erste Zahl 0 ist, läuft er über MINOR.*
 
-**0.30.x — „Die Kommentare werden knapp".** Fast dreißig Prozent des Quelltextes
+**0.31.x — „Die Kommentare werden knapp".** Fast dreißig Prozent des Quelltextes
 sind Kommentar. **Was das Offensichtliche wiederholt, geht; was eine
 ENTSCHEIDUNG trägt, wandert vorher in den Projektstand und bleibt als Zeiger
 stehen.** *Nach der Bereinigung und nicht davor — sie löscht ganze Blöcke samt
@@ -530,7 +577,7 @@ ihren Kommentaren, und wer vorher schneidet, schneidet zweimal.*
 
 ---
 
-## 0.31.0 — „Der Prüfstand bekommt ein Verzeichnis"
+## 0.32.0 — „Der Prüfstand bekommt ein Verzeichnis"
 
 **`testbench.js` ist EINE Datei mit über 43.000 Zeilen**, `counterproof.js`
 daneben über 7000. **Sie wird aufgeteilt: ein Verzeichnis `test/`, ein Modul je
@@ -538,14 +585,14 @@ Sachgebiet**, der Rahmen als gemeinsames Stück daneben.
 
 **NEU IN DIESER FASSUNG DES PLANS:** *die Aufteilung ist ab jetzt nicht nur
 Ordnung, sondern der Zweck* — **erst mit ihr gibt es einen Teillauf, der auch
-die Arbeit einschränkt und nicht bloß die Ausgabe.** Die Messung aus 0.29.0
+die Arbeit einschränkt und nicht bloß die Ausgabe.** Die Messung aus 0.30.0
 sagt, welche Gruppen zuerst dran sind.
 
 **WAS SIE NICHT TUT:** keine Zusicherung fällt weg, keine wird umgeschrieben,
 kein Prüfungsname ändert sich — **die Zahl steht vorher und nachher**, und der
 Gegenprobenlauf ist der Beleg.
 
-## 0.32.0 — „Code-Effizienz"
+## 0.33.0 — „Code-Effizienz"
 
 Leichen und ineffizienten Code durchgehen und verbessern. **Nach der Bereinigung
 und nach der Aufteilung**, damit sie keinen toten Code mitschleppt und in
@@ -578,19 +625,19 @@ Strecke.*
 | **Zwei Einträge zu einem machen** | **Abgelehnt.** *Der Hinweis beim Anlegen verhindert den zweiten Eintrag, bevor er entsteht — und das ist der Fall, der zählt* |
 | **„Entfällt" am einzelnen Kriterium** | **Abgelehnt.** *Gemeint war: heute sieht ein Kriterium, das man noch nicht bewertet hat, genauso aus wie eines, das es an diesem Gegenstand gar nicht gibt — beides ist `0`. Ein Eintrag sieht dadurch für immer unvollständig aus. **Der Betreiber konnte mit dem Punkt nichts anfangen, und das ist die Antwort:** wer den Fall nicht hat, braucht den dritten Zustand nicht* |
 | **Sicherungen gepackt ablegen** | **Abgelehnt, bleibt wie es ist.** *Gemessen: eine verschlüsselte Sicherung lässt sich nicht packen — sie ist schon Rauschen* |
-| **Ein Versanddienst über HTTPS statt SMTP** | **Abgelehnt** — der Weg ist nicht das Problem, siehe 0.28.0 Punkt 5 |
+| **Ein Versanddienst über HTTPS statt SMTP** | **Abgelehnt** — der Weg ist nicht das Problem, siehe 0.29.0 Punkt 5 |
 | **Die Tagwolke füllt den Platz unter „mehr" mit** | **Abgelehnt** *(8. September 2026)*. *Sie brächte 60 px je Zeile ab der zweiten und kostet den Umbau der ganzen Wolke von Flex auf Fließsatz — alle Maße aus 0.13.0 würden neu messbedürftig* |
 | **Ein QR-Bild für den zweiten Faktor** | **Abgelehnt.** *Der anklickbare Verweis trägt den Weg auf dem Telefon* |
 | **Vorlagen für Einträge · Tags in Mengen bearbeiten · Druckstylesheet** | **Abgelehnt.** *Nützlich, keins davon dringend — und diese Strecke arbeitet ab, was dasteht. Das Umbenennen von Tags kann die Karte „Tags" heute schon* |
 | **Ein Admin kann den zweiten Faktor verlangen** | **Abgelehnt** — die Antwort ist nein |
-| **Ein echter Teillauf als eigener Punkt** | **Ersetzt** durch 0.31.0, wo er hingehört |
+| **Ein echter Teillauf als eigener Punkt** | **Ersetzt** durch 0.32.0, wo er hingehört |
 
 ### Zurückgestellt — mit der Bedingung, unter der es wiederkommt
 
 | | Bedingung |
 |---|---|
-| **Erwähnungen im Kommentar** (`@name`) | **Der Betreiber hat gefragt, warum nicht — und die Idee ist gut. Es scheitert an zwei Dingen, und beide sind größer als die Erwähnung selbst.** *(1)* **Wer wen sehen darf, ist ungeklärt:** `@name` verlangt eine Namensvervollständigung über alle Zugänge, und die Zugangsliste steht heute hinter dem Admin — **eine Erwähnung machte aus ihr eine Auskunft für jeden.** *(2)* **Die Glocke kann kein Ziel tragen:** sie führt einen Zeitstempel und keine Tabelle. „Diese Meldung gilt dir" wäre eine Angabe **je Meldung** — genau die Tabelle, die 0.16.0 ausdrücklich nicht gebaut hat. *Eine Erwähnung ohne Lesestand je Meldung räumt sich beim Öffnen der Tafel selbst mit weg.* **Was sie also wirklich ist: eine eigene MINOR-Runde mit Schemaanteil — und die müsste vor 0.30.0 liegen.** *Sie steht damit nicht auf „nie", sondern auf „nicht in dieser Strecke, es sei denn, sie verdrängt eine der fünf".* |
-| **Eine Messung im echten Browser** | **Der Weg ist gefunden** — Chromium über das DevTools-Protokoll, den Client bringt Node seit v22 mit, **keine neue Abhängigkeit.** *Offen ist nicht das Werkzeug, sondern ob es in den Baum gehört: ein Lauf, der einen Browser startet, braucht Chromium auf der Maschine, und die hat nicht jeder.* **Entschieden wird es beim Auftrag von 0.31.0**, wo der Prüfstand ohnehin auf den Tisch kommt |
+| **Erwähnungen im Kommentar** (`@name`) | **Der Betreiber hat gefragt, warum nicht — und die Idee ist gut. Es scheitert an zwei Dingen, und beide sind größer als die Erwähnung selbst.** *(1)* **Wer wen sehen darf, ist ungeklärt:** `@name` verlangt eine Namensvervollständigung über alle Zugänge, und die Zugangsliste steht heute hinter dem Admin — **eine Erwähnung machte aus ihr eine Auskunft für jeden.** *(2)* **Die Glocke kann kein Ziel tragen:** sie führt einen Zeitstempel und keine Tabelle. „Diese Meldung gilt dir" wäre eine Angabe **je Meldung** — genau die Tabelle, die 0.16.0 ausdrücklich nicht gebaut hat. *Eine Erwähnung ohne Lesestand je Meldung räumt sich beim Öffnen der Tafel selbst mit weg.* **Was sie also wirklich ist: eine eigene MINOR-Runde mit Schemaanteil — und die müsste vor 0.31.0 liegen.** *Sie steht damit nicht auf „nie", sondern auf „nicht in dieser Strecke, es sei denn, sie verdrängt eine der fünf".* |
+| **Eine Messung im echten Browser** | **Der Weg ist gefunden** — Chromium über das DevTools-Protokoll, den Client bringt Node seit v22 mit, **keine neue Abhängigkeit.** *Offen ist nicht das Werkzeug, sondern ob es in den Baum gehört: ein Lauf, der einen Browser startet, braucht Chromium auf der Maschine, und die hat nicht jeder.* **Entschieden wird es beim Auftrag von 0.32.0**, wo der Prüfstand ohnehin auf den Tisch kommt |
 | **Der angepinnte Block kann zur Wand werden** | **Beobachten, nicht bauen.** *Wenn es im Betrieb stört, ist die Antwort NICHT eine Einschränkung des Anpinnens, sondern eine zweite Sortierstufe innerhalb des Blocks* |
 | **Ein abgerissener Prüflauf von 0.9.1** | **Nicht wegerklärt, sondern nicht wiederholt.** *Wer ihn wiedersieht, schreibt den Lauf vollständig mit* |
 
@@ -934,11 +981,11 @@ Kasten oben. Die Sprachdatei bekommt zwei Platzhaltertexte für die Felder.
 
 ---
 
-## Ausarbeitungen zu 0.25.0 — die kleinen Fehler
+## Ausarbeitungen zu 0.26.0 — die kleinen Fehler
 
 ## 11. Drei kleine Anzeigefehler aus dem Augenschein zu 0.22.0
 
-> **ENTSCHIEDEN AM 8. SEPTEMBER 2026 — 0.25.0, Gruppe A.**
+> **ENTSCHIEDEN AM 8. SEPTEMBER 2026 — 0.26.0, Gruppe A.**
 
 **Aufgefallen am 4. September 2026 beim Augenschein zu 0.22.0** — beim
 Durchsehen von 64 Bildschirmfotos je Rolle und je Schirm. **Alle drei sind
@@ -980,7 +1027,7 @@ Gegenproben. **Kein Schema, keine Route, kein Vokabelwort.**
 
 ## 12. Die Übersicht braucht beim Betreten rund eine Sekunde
 
-> **ENTSCHIEDEN AM 8. SEPTEMBER 2026 — 0.25.0, aber die Runde MISST ZUERST.** *Eine Sekunde „fühlt sich langsam an" ist keine Zahl; je nachdem, ob die Zeit im Warten auf die Bilder, im Zeichnen oder im Rechnen davor liegt, ist die Reparatur eine ganz andere.*
+> **ENTSCHIEDEN AM 8. SEPTEMBER 2026 — 0.26.0, aber die Runde MISST ZUERST.** *Eine Sekunde „fühlt sich langsam an" ist keine Zahl; je nachdem, ob die Zeit im Warten auf die Bilder, im Zeichnen oder im Rechnen davor liegt, ist die Reparatur eine ganz andere.*
 
 **Art: Fehler · Einschätzung: empfohlen, aber eine Beobachtung fehlt · Draußen üblich: ja**
 
@@ -1098,7 +1145,7 @@ schneller, aber er hört auf, den Bildschirm ohne Not zu leeren.*
 
 ## 13. Zwei Fehler aus dem Rundlauf mit 0.24.2
 
-> **ENTSCHIEDEN AM 8. SEPTEMBER 2026 — 0.25.0, beide Hälften.**
+> **ENTSCHIEDEN AM 8. SEPTEMBER 2026 — 0.26.0, beide Hälften.**
 
 **Art: Fehler** (zwei) · **Einschätzung: empfohlen** — *der zweite ist eine
 einzige Zeile, und er nimmt einen Weg ganz weg* · **Draußen üblich: ja**
@@ -1220,7 +1267,7 @@ nichts.** *Die Regel dazu steht als TR-S4 im türkischen Wörterbuch.*
 
 ## 18. Die Suche findet „übergroß" nicht, wenn man „ÜBERGROSS" eingibt
 
-> **ENTSCHIEDEN AM 8. SEPTEMBER 2026 — 0.25.0.** *0.24.4 hat die Faltung angefasst und diesen Fall ausdrücklich ausgenommen: er betrifft Deutsch und nicht Türkisch.* **Er ist seither billiger:** die Faltung steht an EINER Stelle (`searchFold()` in `db.js`), beide Hälften der Suche rufen sie, und sie nimmt keine Sprache entgegen — *eine Zeile mehr darin, und der Fall ist erledigt.*
+> **ENTSCHIEDEN AM 8. SEPTEMBER 2026 — 0.26.0.** *0.24.4 hat die Faltung angefasst und diesen Fall ausdrücklich ausgenommen: er betrifft Deutsch und nicht Türkisch.* **Er ist seither billiger:** die Faltung steht an EINER Stelle (`searchFold()` in `db.js`), beide Hälften der Suche rufen sie, und sie nimmt keine Sprache entgegen — *eine Zeile mehr darin, und der Fall ist erledigt.*
 
 **Art: Fehler** · **Einschätzung: empfohlen** — *aber nicht kostenlos: die
 Gleichsetzung trifft in der Gegenrichtung „Masse" und „Maße" mit* · **Draußen
@@ -1294,11 +1341,11 @@ nicht — zwei Runden hintereinander an derselben Zeile sind eine zu viel.*
 
 ---
 
-## Ausarbeitungen zu 0.26.0 — die wählbare Bildablage
+## Ausarbeitungen zu 0.27.0 — die wählbare Bildablage
 
 ## 5. Die Ableitungen auf WebP — was von Punkt 15 liegen geblieben ist
 
-> **ENTSCHIEDEN — 0.26.0, im selben Durchgang wie die wählbare Bildablage:** — ein Lauf über den Bestand statt zwei.
+> **ENTSCHIEDEN — 0.27.0, im selben Durchgang wie die wählbare Bildablage:** — ein Lauf über den Bestand statt zwei.
 
 > **STAND 2. SEPTEMBER 2026: er hat eine Nummer bekommen.** Die Ableitungen
 > gehen in **0.22.0** mit *(bis zum 3. September 2026 als 0.21.0 geführt;
@@ -1356,7 +1403,7 @@ beim Start, Prüfungen, Gegenproben, README. **Kein Schema.**
 
 ## 6. Fotos aus der Zwischenablage — die Ablage soll wählbar werden
 
-> **ENTSCHIEDEN — 0.26.0.**
+> **ENTSCHIEDEN — 0.27.0.**
 
 **Art:** Funktion · **Claude:** empfohlen, mit einer Auflage · **Draußen üblich:**
 ja, jede Fotoverwaltung lässt das Ablageverfahren wählen.
@@ -1435,11 +1482,11 @@ Umstellungslauf, die zweite Bestätigung. **Kein Schema.**
 
 ---
 
-## Ausarbeitungen zu 0.27.0 — das Telefon
+## Ausarbeitungen zu 0.28.0 — das Telefon
 
 ## 14. Blättern im Eintrag — vor und zurück in der Reihenfolge der Übersicht
 
-> **ENTSCHIEDEN AM 8. SEPTEMBER 2026 — 0.27.0, und die Form steht.** *Der Kopf unten sagt noch „NOCH ZU BESPRECHEN" — das war der Stand vom 7. September und bleibt als Herleitung stehen.* **Entschieden ist:** feine Pfeile in der neuen gemeinsamen Kopfzeile, `Bild auf` und `Bild ab` auf der Tastatur, **die Pfeiltasten bleiben bei den Bildern**, und **keine Wischgeste** — in derselben Ansicht wischt schon die Bildreihe.
+> **ENTSCHIEDEN AM 8. SEPTEMBER 2026 — 0.28.0, und die Form steht.** *Der Kopf unten sagt noch „NOCH ZU BESPRECHEN" — das war der Stand vom 7. September und bleibt als Herleitung stehen.* **Entschieden ist:** feine Pfeile in der neuen gemeinsamen Kopfzeile, `Bild auf` und `Bild ab` auf der Tastatur, **die Pfeiltasten bleiben bei den Bildern**, und **keine Wischgeste** — in derselben Ansicht wischt schon die Bildreihe.
 
 **Art: Funktion · Einschätzung: NOCH ZU BESPRECHEN — der Wunsch steht,
 die Form nicht · Draußen üblich: ja**

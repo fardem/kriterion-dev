@@ -1,6 +1,6 @@
 # Fehler und Ideen
 
-**Das Sammelblatt · Stand 9. September 2026, nach dem Bauen von 0.24.6**
+**Das Sammelblatt · Stand 9. September 2026, nach dem Auftrag zu 0.25.0**
 
 **Hier stehen Befunde aus dem Betrieb, Fehler und Ideen — Punkt für Punkt, in
 der Reihenfolge, in der sie aufgefallen sind.** Es ist die Zusammenführung der
@@ -200,8 +200,8 @@ sie ist ein Wegweiser und kein zweiter Eintrag.*
 | **0.24.1** *PATCH, Datenbankstufe* — **GEBAUT am 7. September 2026** | **„Der Quelltext spricht Englisch".** *Nichts aus diesem Blatt: die Runde ist am 6. September 2026 vom Betreiber eingeschoben worden, unmittelbar nach dem Einspielen von 0.24.0 — sie hat hier nie gestanden.* **Sie steht trotzdem hier — diese Tabelle ist der Wegweiser, und ein Punkt, der den Umweg nicht genommen hat, gehört mit genau diesem Vermerk hinein.** Gebaut ist: jeder Name im Code englisch — Bezeichner, Schlüssel, ids, Klassen, Stilblattvariablen, Adressen, Dateinamen, Umgebungsvariablen — und die Datenbank mit sechs Tabellen, sechsundzwanzig Spalten und fünfundsiebzig Werten; sechs Wächter, jeder mit seiner Gegenprobe. **Was gebaut wurde, steht im Änderungsprotokoll 0.24.1; die Regel S9 im Projektstand, Abschnitt 5.6.** ***Drei Befunde aus dem Betrieb sind mitgefahren*** *(7. September 2026, mit Bildern gemeldet): die Vorschaukachel im Eintrag war mit der Maus nicht anzuklicken, ein Tag am Testtag hieß „t", und der zugeklappte Block „Links" zeigte die letzten Zeilen statt der ersten. **Keiner der drei stand in diesem Blatt** — sie sind unmittelbar in die laufende Runde gegangen, dieselbe Herkunft wie bei 0.21.1 und 0.22.1.* ***Und ein Befund aus dem Bauen:*** *die Restzahlen der mittleren Bauabschnitte waren zu gut. Gemessen wurde gegen das Wörterbuch, und das Wörterbuch kannte die Wörter nicht, die es hätte finden sollen — es ist von 716 auf 1186 Paare gewachsen, und die ehrliche Zahl danach lautet 110 statt 143.* |
 | **0.24.2** *PATCH, Datenbankstufe* — **GEBAUT am 7. September 2026** | **„Die gespeicherten Formen ziehen mit".** *Nichts aus diesem Blatt: ein Befund aus dem Betrieb, gemeldet am 7. September 2026 unmittelbar nach dem Einspielen von 0.24.1. Die Migration jener Runde hat die SCHLÜSSEL in `settings` umbenannt, nicht die Feldnamen IN den gespeicherten Werten — die eigenen Suchmaschinen, der Mailzugang und der Beleg der letzten Testmail waren damit unsichtbar; verloren war nichts. Alles Weitere im Änderungsprotokoll 0.24.2; der Fahrplan ist dafür gerückt, die Sprachstufen sind 0.24.3 und 0.24.4.* |
 | **0.24.3** *PATCH (benannte Abweichung), Datenbankstufe* — **GEBAUT am 8. September 2026** | **„Die zweite Sprache" — Stufe 2 der Mehrsprachigkeit.** *Nichts aus diesem Blatt: die Runde stand seit dem 5. September 2026 im Fahrplan, Auftrag `Doku/Auftrag_0.24.3.md`, zwölf Fragen vor der ersten Zeile entschieden.* **Was gebaut wurde, steht im Änderungsprotokoll 0.24.3.** *Mitgefahren sind neun Funde, die nie hier standen, weil sie niemandem aufgefallen waren: sieben stumme Fundstellen aus 0.24.1 — darunter `<html lang>`, das seither auf gar nichts stand — und zwei deutsche Wörter, die seit 0.24.0 fest im Quelltext saßen.* **Stufe 3 (Türkisch) ist damit 0.24.4.** |
-| **0.26.0** *MINOR* *(war 0.21.0, dann 0.22.0, dann 0.24.0, Nummer vorläufig)* | Die wählbare Bildablage — **Punkt 6 dieses Blatts**, zusammen mit den Ableitungen aus Punkt 5 |
-| **0.28.0** *MINOR* *(war 0.19.0, dann 0.21.0, dann 0.22.0, dann 0.23.0, dann 0.26.0, Nummer vorläufig)* | Bereinigung — der Bruch |
+| **0.27.0** *MINOR* *(war 0.21.0, dann 0.22.0, dann 0.24.0, dann 0.26.0, Nummer vorläufig)* | Die wählbare Bildablage — **Punkt 6 dieses Blatts**, zusammen mit den Ableitungen aus Punkt 5 |
+| **0.31.0** *MINOR* *(war 0.19.0, dann 0.21.0, dann 0.22.0, dann 0.23.0, dann 0.26.0, dann 0.28.0, dann 0.30.0, Nummer vorläufig)* | Bereinigung — der Bruch |
 
 **Was hier bleibt, bleibt aus einem Grund:** die **elf** Punkte unten haben
 **keine Nummer**, weil die meisten von ihnen jetzt nicht gebaut werden sollen —
@@ -268,13 +268,13 @@ mitsamt ihrer Ausarbeitung, im Anhang jenes Papiers.
 
 | Punkt | worum es ging | wohin |
 |---|---|---|
-| **11** | Drei kleine Anzeigefehler aus dem Augenschein zu 0.22.0 | **0.25.0** |
-| **12** | Die Übersicht braucht beim Betreten rund eine Sekunde | **0.25.0** *(mit einer Messung davor)* |
-| **13** | Zwei Fehler aus dem Rundlauf mit 0.24.2 | **0.25.0** |
-| **18** | `ß` und `ss` sind für die Suche zwei Dinge | **0.25.0** — *0.24.4 hat die Faltung angefasst und diesen Fall AUSDRÜCKLICH ausgenommen: er betrifft Deutsch und nicht Türkisch, und eine Runde, die schon zwei Fehler an derselben Funktion repariert, nimmt keinen dritten mit* |
-| **5** | Die Ableitungen auf WebP | **0.26.0** |
-| **6** | Fotos aus der Zwischenablage — die Ablage wird wählbar | **0.26.0** |
-| **14** | Blättern im Eintrag, vor und zurück | **0.27.0** — *die Form ist am 8. September 2026 entschieden: Pfeile in der Kopfzeile, `Bild auf`/`Bild ab`, keine Wischgeste* |
+| **11** | Drei kleine Anzeigefehler aus dem Augenschein zu 0.22.0 | **0.26.0** |
+| **12** | Die Übersicht braucht beim Betreten rund eine Sekunde | **0.26.0** *(mit einer Messung davor)* |
+| **13** | Zwei Fehler aus dem Rundlauf mit 0.24.2 | **0.26.0** |
+| **18** | `ß` und `ss` sind für die Suche zwei Dinge | **0.26.0** — *0.24.4 hat die Faltung angefasst und diesen Fall AUSDRÜCKLICH ausgenommen: er betrifft Deutsch und nicht Türkisch, und eine Runde, die schon zwei Fehler an derselben Funktion repariert, nimmt keinen dritten mit* |
+| **5** | Die Ableitungen auf WebP | **0.27.0** |
+| **6** | Fotos aus der Zwischenablage — die Ablage wird wählbar | **0.27.0** |
+| **14** | Blättern im Eintrag, vor und zurück | **0.28.0** — *die Form ist am 8. September 2026 entschieden: Pfeile in der Kopfzeile, `Bild auf`/`Bild ab`, keine Wischgeste* |
 | **15** | Der leere Kasten zeigt ein Bildzeichen | **GEBAUT mit 0.24.4** *(Befund B4)* |
 | **16** | Der Papierkorb — ein Zeichen als Quelltext, eine Zeile ohne Ordnung | **GEBAUT mit 0.24.4** *(Befund B6, Teil A und B — Schritt 2 bleibt offen)* |
 | **17** | Kategorien und Tags lassen sich in ihrer Karte nicht anlegen | **GEBAUT mit 0.24.4** *(Befund B7, samt `POST /api/tags`)* |
@@ -425,27 +425,27 @@ wissen will, was gebaut wird, liest `Doku/Fahrplan.md`.*
 
 | Zeile | wohin |
 |---|---|
-| **Eine tote Regel im Stilblatt** (`.rz-summe:first-of-type`) | **0.25.0** |
-| **Der Hinweis an der Zeitleiste läuft auf schmalem Schirm hinaus** | **0.25.0** |
-| **Die Anmeldungszeile läuft bei ~1024 Pixeln aus ihrer Karte** | **0.27.0** — *mit `@container`, als eigener Schritt* |
-| **Die Erklärung unter dem Ablegefeld spricht von Dingen, die es am Telefon nicht gibt** | **0.27.0** |
-| **Die Unteransichten haben keine Kopfzeile** | **0.27.0** — *und die Kopfzeile trägt zugleich die Pfeile zum Blättern* |
-| **Eine Meldung kann die Vergleichsleiste verdecken** | **0.27.0** |
-| **PWA-Manifest** *(stand in Teil III)* | **0.27.0** — *nur das Startbildzeichen, kein Arbeiter im Hintergrund, kein Zwischenspeicher* |
-| **Prüfung der Wiederherstellung** | **0.28.0** |
-| **Die abweichende Datei beim Namen nennen** | **0.28.0** — *als Zeile, die es nur im Fehlerfall gibt; kein Überfahrtext, weil es den am Telefon nicht gibt* |
-| **Fälligkeitsdatum an Aufgaben** | **0.28.0** — *ein Datum ohne Uhrzeit, freiwillig, ohne Wecker; Schema und Austauschformat steigen mit* |
-| **Eindeutigkeit der Adresse** | **0.28.0** — *partieller Index; er MUSS vor den Bruch* |
-| **Das Wartefenster von zwölf Sekunden** | **0.29.0** |
-| **Ein Papier, zwischen zwei Runden ohne Lauf geändert, macht den Zweig rot** | **0.29.0** |
-| **`counterproof.js` verwechselt Abriss und Störung von außen** | **0.29.0** |
-| **Ein echter Teillauf** | **0.31.0** — *er IST die Aufteilung in Module und nicht ein Filter davor* |
+| **Eine tote Regel im Stilblatt** (`.rz-summe:first-of-type`) | **0.26.0** |
+| **Der Hinweis an der Zeitleiste läuft auf schmalem Schirm hinaus** | **0.26.0** |
+| **Die Anmeldungszeile läuft bei ~1024 Pixeln aus ihrer Karte** | **0.28.0** — *mit `@container`, als eigener Schritt* |
+| **Die Erklärung unter dem Ablegefeld spricht von Dingen, die es am Telefon nicht gibt** | **0.28.0** |
+| **Die Unteransichten haben keine Kopfzeile** | **0.28.0** — *und die Kopfzeile trägt zugleich die Pfeile zum Blättern* |
+| **Eine Meldung kann die Vergleichsleiste verdecken** | **0.28.0** |
+| **PWA-Manifest** *(stand in Teil III)* | **0.28.0** — *nur das Startbildzeichen, kein Arbeiter im Hintergrund, kein Zwischenspeicher* |
+| **Prüfung der Wiederherstellung** | **0.29.0** |
+| **Die abweichende Datei beim Namen nennen** | **0.29.0** — *als Zeile, die es nur im Fehlerfall gibt; kein Überfahrtext, weil es den am Telefon nicht gibt* |
+| **Fälligkeitsdatum an Aufgaben** | **0.29.0** — *ein Datum ohne Uhrzeit, freiwillig, ohne Wecker; Schema und Austauschformat steigen mit* |
+| **Eindeutigkeit der Adresse** | **0.29.0** — *partieller Index; er MUSS vor den Bruch* |
+| **Das Wartefenster von zwölf Sekunden** | **0.30.0** |
+| **Ein Papier, zwischen zwei Runden ohne Lauf geändert, macht den Zweig rot** | **0.30.0** |
+| **`counterproof.js` verwechselt Abriss und Störung von außen** | **0.30.0** |
+| **Ein echter Teillauf** | **0.32.0** — *er IST die Aufteilung in Module und nicht ein Filter davor* |
 | **Ein Versanddienst über HTTPS statt SMTP** | **abgelehnt** — *der Weg ist nicht das Problem. Was hilft, sind SPF, DKIM und DMARC; ein Weiterleitungsdienst bringt sie mit und spricht SMTP, das die Instanz kann. **0.28.0 erklärt es in der README.*** |
 | **Die Tagwolke füllt den Platz unter „mehr" mit** | **abgelehnt** — *60 px je Zeile gegen den Umbau der ganzen Wolke* |
 | **Ob ein Admin den zweiten Faktor verlangen kann** | **abgelehnt** — die Antwort ist nein |
 | **Vorlagen für Einträge · Tags in Mengen · Druckstylesheet** | **abgelehnt** |
 | **Erwähnungen im Kommentar** | **zurückgestellt mit Bedingung** — *sie braucht eine Entscheidung darüber, wer wen sehen darf, und einen Lesestand je Meldung. Das ist eine eigene Runde mit Schemaanteil, und die müsste vor 0.30.0 liegen* |
-| **Eine Messung im echten Browser** | **zurückgestellt** — *entschieden wird es beim Auftrag von 0.31.0* |
+| **Eine Messung im echten Browser** | **zurückgestellt** — *entschieden wird es beim Auftrag von 0.32.0* |
 | **Die beiden Konzeptpapiere tragen „Anlage"** | **erledigt am 8. September 2026** |
 | **Zwei Dateisätze tragen die Nummer 0.9.1** | **erledigt am 8. September 2026** — *das CHANGELOG sagt jetzt, welcher welcher ist* |
 
@@ -966,49 +966,33 @@ Felder.*
 
 ---
 
-## 21. Die Grundzeile trägt keinen Sprachvermerk
+## 21. `express` 5 — die zwei letzten Meldungen von `npm audit`
 
-**Art: Fehler** *(eine Zuordnung, kein Datenverlust)* · **Einschätzung von
-Claude: empfohlen, sobald eine Runde das Schema anfassen darf** · **Herkunft:
-0.24.6**
+**Art: Fehler** *(zwei Meldungen mittlerer Schwere, kein Schaden am Bestand)* ·
+**Einschätzung von Claude: nicht dringend** · **Herkunft: 0.24.6**
 
-**Kategorien und Kriterien haben eine Grundzeile, und die trägt ihren Namen
-ohne Angabe, in welcher Sprache er steht.** `baseLanguage()` schreibt sie
-derjenigen Sprache zu, die *gerade* Vorgabe der Installation ist. **Wechselt
-der Eigentümer die Vorgabesprache, wandert damit der ganze Bestand dieser Namen
-von einer Tafel auf die andere** — ohne dass jemand ein Wort eingegeben hätte.
+**`npm audit` meldet zwei Lücken in `qs`**, dem Leser des Abfrageteils jeder
+HTTP-Anfrage — *array-limit bypass* und *Denial of Service via Attacker
+Controlled isBuffer*, beide **mittel**. Sie kommen über `express` herein.
 
-**Am laufenden Server gemessen**, 9. September 2026, mit `en` als Vorgabe und
-einem Namen `Product_en` in der Grundzeile:
+**Sie lassen sich nicht mit einem Patch beheben.** `express@4.22.2` klemmt `qs`
+auf `~6.15.1`, die reparierte Fassung ist `6.16.0` — außerhalb. **Der Weg
+dorthin ist `express` 5**, und das ist ein Hauptversionssprung mit geänderter
+Routen- und Fehlerbehandlung.
 
-```
-VORHER  (Vorgabe en):  {"de":{"1":"Product_de"},"en":{"1":"Product_en"},"tr":{}}
-NACHHER (Vorgabe tr):  {"de":{"1":"Product_de"},"en":{},              "tr":{"1":"Product_en"}}
-```
+> **WAS 0.25.0 DAVON MITNIMMT: nichts.** Der Beipack jener Runde (`npm audit
+> fix`) hebt `multer`, `nodemailer`, `sharp` und `body-parser` innerhalb der
+> schon deklarierten Bereiche und lässt `express` stehen. **Danach ist der
+> Schritt „Bekannte Lücken" trotzdem grün** — der Schalter steht auf
+> `--audit-level=high`, und was hier übrig bleibt, ist „mittel".
 
-***Türkisch trägt danach einen Eintrag, den nie jemand auf Türkisch eingegeben
-hat, und Englisch steht leer da, obwohl der Name dort steht.***
-
-> **0.24.6 HAT ES GEKENNZEICHNET UND NICHT BEHOBEN** — auf Entscheidung des
-> Betreibers zu F3, 9. September 2026: *kennzeichnen statt behaupten.* Unter
-> der Sprachzeile der drei Verwaltungskarten steht seither ein gedämpfter
-> Hinweis, sobald die Vorgabesprache gezeigt wird: was dort steht, ist der Name
-> der Grundzeile — gleichgültig, in welcher Sprache er eingetragen wurde.
-> **Die Karte sagt damit die Wahrheit; sie räumt sie nur nicht auf.**
+**Erreichbar ist es vor der Anmeldung** — express liest den Abfrageteil jeder
+Anfrage, auch der unangemeldeten. *Das ist der Grund, warum es überhaupt hier
+steht und nicht als erledigt gilt.*
 
 ### Was zu bauen wäre
 
-**Eine Spalte `language` an `product_categories` und `rating_criteria`**, samt
-Migrationsblock, der sie beim ersten Start mit der *dann* geltenden
-Vorgabesprache füllt. **Danach ist die Grundzeile eine Zeile wie jede andere**:
-`namesAll()` liest ihre Sprache aus der Zeile statt aus einer Einstellung, ein
-Wechsel der Vorgabesprache verschiebt nichts mehr, und der Rückfall zeigt auf
-eine Sprache, die auch wirklich dort steht.
-
-**Kein Datenverlust in beiden Richtungen** — was zu tun ist, ist eine Spalte
-nachzurüsten und einmal zu füllen. *Der Grund, warum es nicht in 0.24.6 gehört,
-ist allein die Stufe: eine Datenbankstufe ist eine eigene Runde.*
-
-> **DIE LETZTE RUNDE, DIE DAS SCHEMA ANFASSEN DARF, IST NACH DEM FAHRPLAN
-> 0.28.0.** *Wer diesen Punkt später will als dort, will ihn nach 0.30.0 — und
-> dort ist kein Rückweg mehr vorgesehen.*
+**`express` von 4 auf 5 heben**, mit einem eigenen Durchgang durch die
+Routen: Fehlerbehandlung, `req.query` als Getter, der Wegfall einiger
+Kurzformen. **Ein eigener Prüflauf danach ist Pflicht** — `F_ROUTES` zählt
+heute 71 Wege, und jeder einzelne ist betroffen.
