@@ -3,6 +3,15 @@
 **Eine Reparatur an drei Verwaltungskarten · 9. September 2026 · gebaut auf
 0.24.5 (`aa85a6ed`).**
 
+> **FINGERPRINT DIESER RUNDE: `c4c07393`** — gerechnet am gebauten Stand
+> `d0dd9c3`, **vor dem Einspielen**. *Er steht hier, damit die Installation
+> sich daran messen lässt: Einstellungen → Datenbank → Kennzahlen. Weicht er
+> ab, liegt ein halb eingespielter Dateisatz vor.*
+>
+> **UND DER VON 0.24.5 STEHT JETZT AUCH: `aa85a6ed`** — vom Betreiber aus der
+> laufenden Installation gemeldet und am gemergten Stand `ac72069`
+> nachgerechnet. *Zwei Quellen, ein Wert.*
+
 **0.24.5 hat die Sprachpille über den drei Verwaltungskarten repariert, und der
 Betreiber hat sie am 9. September 2026 am laufenden Programm abgenommen:
 „ja es funktioniert."** *Mit einem Nachtrag, und der war ein eigener Befund:*
