@@ -54,6 +54,14 @@ bleiben in der Form ihrer Zeit.*
 > SPRACHE NENNEN.** Betroffen waren nur Zeilen, für die weder die gezeigte noch
 > die Vorgabesprache einen Eintrag trägt. **Es war eine Falschauskunft und kein
 > Schaden am Bestand** — geschrieben wurde nichts.
+>
+> **UND EINER HAT DOCH GESCHRIEBEN — SIEH DEINE KRITERIEN DURCH.** Bis zu
+> dieser Version benannte das Ändern eines **Gewichts** den Grundnamen des
+> Kriteriums um, sobald die Sprachzeile über der Karte auf einer anderen
+> Sprache als der Vorgabesprache stand: der dort angezeigte Name wanderte in
+> den Grundnamen. **Wer Gewichte nur auf der Vorgabesprache verstellt hat, ist
+> nicht betroffen.** *Ein umbenannter Grundname lässt sich in derselben Karte
+> wieder richtigstellen — auf der Pille der Vorgabesprache umbenennen.*
 
 *Was ein Betreiber merkt: unter einem Namen ohne eigene Übersetzung steht
 jetzt die Sprache, die er wirklich vor sich hat — und wenn es keine gibt, sagt
@@ -64,6 +72,7 @@ der Vermerk das, statt eine zu nennen.*
 - Added: **Ist für die Vorgabesprache nichts eingetragen, wird die nächste Sprache des Vorrats genommen, die etwas trägt** — statt stillschweigend die Sprache des Lesers
 - Added: **Trägt keine einzige Sprache etwas, nennt der Vermerk keine** — er sagt nur noch, dass nichts eingetragen ist
 - Added: **Unter der Sprachzeile steht ein Hinweis, sobald die Vorgabesprache gezeigt wird** — dort stehen die Namen der Grundzeile, gleichgültig in welcher Sprache sie eingetragen wurden
+- Fixed: **Das Gewicht eines Kriteriums zu ändern benennt nichts mehr um** — auf einer anderen Sprachpille als der der Vorgabesprache wanderte bisher der angezeigte Name in den Grundnamen
 
 ## [0.24.5] - 2026-09-08
 

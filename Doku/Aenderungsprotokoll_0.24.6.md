@@ -84,6 +84,8 @@ Kriterienkarten.
   welcher Sprache er eingetragen wurde.
 * **Nach einem Wechsel der Vorgabesprache stimmen die drei Karten sofort**,
   ohne Neuladen.
+* **Das Gewicht eines Kriteriums zu ändern benennt nichts mehr um** — das ist
+  der Befund, den der Auftrag nicht kannte.
 
 ---
 
@@ -155,13 +157,22 @@ ist die Vergleichszeile des Betreibers. *Ohne sie belegte die Tafel die Hälfte
 nicht: eine Prüflage, die überall rot ist, hat womöglich nur den Prüfstand
 falsch aufgesetzt.*
 
-**Fünf der neun Zellen waren rot, bevor repariert wurde** — und die Zelle
-*„Vorgabe Türkçe, Pille Türkçe"* zeigte genau das Bild aus dem Feld:
+**Gemessen am fertigen Prüfstand gegen den Stand von 0.24.5: siebzehn der
+neunundvierzig Zusagen sind rot**, und **fünf der neun Zellen** sind darunter —
+(Deutsch, Deutsch), (English, Deutsch), (English, English), (Türkçe, Deutsch)
+und (Türkçe, Türkçe). *Die Zelle „Vorgabe Türkçe, Pille Türkçe" zeigte dabei
+genau das Bild aus dem Feld:*
 
 ```
 steht: {"name":"Grundname","mark":"(nicht eingetragen — es steht Türkçe)"}
 soll:  Name "Grundname", Vermerk (keiner)
 ```
+
+> **VIER DER NEUN ZELLEN WAREN VON ANFANG AN GRÜN, und das ist kein Mangel,
+> sondern der Maßstab.** *Der Betreiber hat es selbst gesagt: „Wenn für alle
+> Sprachen Eingaben gab, funktioniert es auch gut."* **Eine Tafel, die überall
+> rot ist, hat womöglich nur den Prüfstand falsch aufgesetzt; eine, die genau
+> dort rot ist, wo der Befund es sagt, misst die Sache.**
 
 **Dazu vier eigene Prüflagen für die Kette:** der dritte Schritt, die Klammer
 ohne Sprachnamen, die kanonische Reihenfolge und die Klemme gegen den Vorrat.
@@ -270,10 +281,56 @@ längst gibt, und kein neuer Weg.
 
 ---
 
+## Ein Befund, den der Auftrag nicht kannte — das Gewicht benennt um
+
+**Gefunden beim Gegenlesen des eigenen Diffs**, nachgestellt und repariert.
+*Dieselbe Stelle im Ablauf wie in 0.24.5, wo `drawAdmin()` an `namesFrom()`
+vorbeilas — auch dort stand der Befund nicht im Auftrag.*
+
+**Der Schreibweg verlangt einen Namen** (`server.nameMissing`), ein
+Gewichtswechsel schickt also einen mit. Bis 0.24.5 schickte er `entry.name`
+**ohne Sprachangabe** — und ohne Angabe meint der Server die **Grundzeile**
+(`namedLanguage()`).
+
+> **WER AUF DER PILLE „ENGLISH" EIN GEWICHT VERSTELLTE, BENANNTE DAMIT DIE
+> GRUNDZEILE IN DEN ENGLISCHEN NAMEN UM.** *Der deutsche Name war weg — im
+> Export, in der Sortierung und für jeden anderen Leser.* **Niemand hat einen
+> Namen angefasst, und trotzdem stand danach ein anderer da.**
+
+**Nachgestellt**, mit der Reparatur von Hand zurückgebaut:
+
+```
+✗ Und die Grundzeile heisst danach immer noch, wie sie hiess
+      "First"
+```
+
+*Sie hieß „Zuerst".*
+
+**Die Angabe ist die Sprache, aus deren Tafel der Name stammt** — und nicht die
+der Pille. Bei einem Rückfall steht in `entry.name` der Name einer **anderen**
+Sprache, und mit der Pille als Angabe machte das Speichern aus dem Rückfall
+einen **Eintrag**: *derselbe Fehler wie B2 der Runde 0.24.4, an einem Feld, das
+gar keinen Namen ändern will.* `nameFallback` sagt genau das — die Kennung der
+Tafel, aus der der Name kommt, oder `true`, wenn es keine gibt; dann ist es die
+Antwort des Servers, und die trägt den Namen der Grundzeile.
+
+**So geschrieben ändert der Gewichtswechsel keinen Namen:** er schreibt
+denselben Wert an dieselbe Stelle zurück.
+
+> **WARUM ER TROTZDEM IN DIESE RUNDE GEHÖRT, obwohl er nicht im Auftrag
+> steht:** *die Kette dieser Runde hätte ihn schlimmer gemacht.* Bis 0.24.5 war
+> der Rückfall **immer** der Name der Grundzeile — zurückgeschrieben war er ein
+> Nichts. **Mit dem dritten Schritt kann in `entry.name` jetzt die Übersetzung
+> einer dritten Sprache stehen**, und die wäre in die Grundzeile gewandert.
+> *Eine Reparatur, die einen vorhandenen Fehler schärft, ist ohne ihn nicht
+> fertig.*
+
+---
+
 ## Bauabschnitt 3 — der Prüfstand
 
 **Die neue Gruppe „Die Vorgabesprache als zweite Achse — 0.24.6"** hält
-zweiundvierzig Zusagen:
+neunundvierzig Zusagen:
 
 | was | wie viele |
 |---|---|
@@ -286,6 +343,7 @@ zweiundvierzig Zusagen:
 | **Der Vorrat** — eine Sprache außerhalb trägt den Rückfall nicht (mit Aufbau) | 2 |
 | **Kein zweiter Abruf** — der Wechsel holt die Tafeln nicht nach | 1 |
 | **Die Zählprobe** — es waren wirklich neun Zellen | 1 |
+| **Das Gewicht benennt nichts um** — der Rumpf nennt die Sprache, der Bestand bleibt, das Gewicht kommt an; dazu dieselbe Frage an einer Zeile mit Rückfall | 7 |
 
 **Dazu neun Zusagen am laufenden Server**, in der Gruppe „Die Namenstafeln je
 Sprache": die Messung aus E1 (Türkisch trägt danach den Grundzeilennamen,
@@ -296,6 +354,14 @@ Klemme `isAdmin(req)` am Quelltext.
 
 **Die 27 Zellen von 0.24.5 und die neun der Kachel „Vokabular" sind grün
 geblieben** — vorher wie nachher.
+
+> **UND DIE GRUPPE STEHT AN EINER ANDEREN STELLE ALS ZUERST.** *Sie war
+> unmittelbar hinter die Gruppe von 0.24.5 gesetzt — und hat damit zehn
+> Prüfungen unter ihre Überschrift gezogen, die dort schon lagen und zu 0.24.5
+> gehören.* **`group()` setzt eine Überschrift und keine Klammer:** was danach
+> kommt, gehört dazu, bis die nächste ruft. *Aufgefallen beim Nachzählen —
+> zweiundfünfzig gemeldete gegen zweiundvierzig gezählte.* Die Gruppe steht
+> jetzt hinter jenen zehn.
 
 **Zwei Wächter haben mitgezogen:**
 
@@ -312,15 +378,88 @@ geblieben** — vorher wie nachher.
 
 ## Die Gegenproben
 
-**Zehn neue (749 bis 758), zwei mitgegangen.**
+**Elf neue (749 bis 759), zwei mitgegangen — und einer ist im gefahrenen Lauf
+berichtigt worden.**
 
-<!-- TABELLE -->
+*Drei Nebenspuren im ersten Lauf, zwei im zweiten; Versatz 3500 je Spur, jede
+Kopie aus `git archive HEAD`.*
+
+| Nr | was zurückgebaut wird | rot |
+|---|---|---|
+| **744** | Die Karte liest die Namenstafel nicht mehr *(mitgegangen: der Suchtext steht seit dieser Runde eine Zeile höher)* | **45** |
+| **745** | Der Vermerk am Rückfall fällt weg *(mitgegangen: der Vermerk kennt seit dieser Runde zwei Sätze)* | **4** |
+| **749** | Die Kette bricht nach der Vorgabesprache ab | **2** |
+| **750** | Der Vermerk nennt wieder die Vorgabesprache | **2** |
+| **751** | Die Klammer behauptet wieder eine Sprache | **2** |
+| **752** | Die Kette läuft in der umgekehrten Reihenfolge | **16** |
+| **753** | Die Kette nimmt auch Sprachen außerhalb des Vorrats | **1** |
+| **754** | Der Hinweis auf die Grundzeile fällt weg | **3** |
+| **755** | Der Hinweis auf die Grundzeile steht an jeder Pille | **6** |
+| **756** | Der Wechsel der Vorgabesprache zieht die Tafeln nicht nach | **8** |
+| **757** | Die Antwort des Wechsels trägt die Namenstafeln nicht *(server.js)* | **3** |
+| **758** | Jede Antwort des Schreibwegs trägt die Namenstafeln *(server.js)* | **2** |
+| **759** | Der Gewichtswechsel schickt den Namen ohne Sprache | **3** |
+
+> **EINER LIEF STUMM, UND DAS IST EIN FUND — 755.** *Die erste Fassung tauschte
+> im SATZ des Kartenhinweises `baseNamesLanguage()` gegen `namesLanguage()` —
+> sauber zu lesen und ein Nichts:* **der Satz wird nur gezeichnet, WENN die
+> beiden gleich sind.** Der Rückbau hat also genau denselben Text erzeugt und
+> keinen einzigen Punkt rot gemacht. **Er zielt seither auf die BEDINGUNG**,
+> nicht auf den Text — *ein Rückbau muss die Stelle treffen, die die Zusage
+> trägt.*
+
+> **UND EINE ZAHL SAGT MEHR ALS IHRE GRÖSSE — 752 mit sechzehn roten Punkten.**
+> Die umgekehrte Reihenfolge trifft nicht nur die eine Reihenfolgeprobe: sie
+> dreht in jeder Zelle der zweiten Achse den Rückfall auf eine andere Sprache.
+> *Eine Kette, deren Ordnung niemand festhält, ist keine Kette.*
+
+> **UND 753 MIT EINEM EINZIGEN.** Die Klemme gegen den Vorrat hat genau eine
+> Prüflage, und das ist richtig so: **sie ist eine Klemme und kein Verhalten.**
+> *Ein Rückbau, der einen einzigen Punkt trifft, ist der schärfste — er sagt,
+> dass genau diese Zeile genau diese Zusage trägt.*
+
+**Gefahren in zwei Läufen: zwölf am 9. September 2026 (`1d243d2`), danach die
+berichtigte 755 und die neue 759 (`d0dd9c3`).** *Der zweite Lauf meldet
+**0 STUMM**; im ersten war 755 der eine Fund.* **Die Rückbauten von 744 bis 758
+sind zwischen den beiden Läufen nicht angefasst worden** — verschoben wurde nur
+die Gruppe innerhalb von `testbench.js`, ohne dass eine einzige Zusage sich
+geändert hätte.
 
 ---
 
-## Der Augenschein
+## Der Augenschein — drei Bilder, ein Wechsel
 
-<!-- AUGENSCHEIN -->
+**Gefahren am 9. September 2026 an einem eigenen Server**, mit dem Bestand des
+Befunds: drei Kategorien mit deutschem Namen und englischer Übersetzung, **ohne
+Türkisch** — und eine vierte, für die alle drei gepflegt sind.
+
+| Bild | Lage | was dasteht |
+|---|---|---|
+| **1** | Vorgabe **Deutsch**, Pille **Türkçe** | `1_Datenträger_de`, `KI_de`, `Product_de`, jeweils mit *„(nicht eingetragen — es steht Deutsch)"*. **Die vierte Zeile trägt `Her yerde_tr` und keinen Vermerk** |
+| **2** | Vorgabe **Türkçe**, Pille **Türkçe** *(nach dem Wechsel, ohne Neuladen)* | dieselben drei Namen — **ohne Vermerk**, denn sie sind jetzt die Einträge der türkischen Tafel. Darüber steht der Hinweis: *„Türkçe ist die Vorgabesprache: hier steht der Name der Grundzeile — gleichgültig, in welcher Sprache er eingetragen wurde."* |
+| **3** | Vorgabe **Türkçe**, Pille **Deutsch** | alle vier Zeilen mit *„(nicht eingetragen — es steht Türkçe)"* — **und das stimmt jetzt**: nach dem Wechsel steht in der deutschen Tafel wirklich nichts mehr |
+
+**Das ist E1 am Bildschirm, und die Karte behauptet nichts mehr.** *Bild 2 ist
+die Lage, um die es geht: unter der Pille „Türkçe" stehen drei deutsche Namen,
+und darüber steht, warum.*
+
+> **WAS DER AUGENSCHEIN NICHT ZEIGT UND WAS DER BETREIBER WISSEN SOLL:** der
+> Wunsch aus dem Befund — *„besser wäre Englisch, da es ja existiert"* — greift
+> **nur dort, wo die Vorgabesprache wirklich nichts trägt.** Nach einem Wechsel
+> auf Türkisch trägt die türkische Tafel die Grundzeilen, und damit ist für sie
+> etwas eingetragen; der dritte Schritt der Kette kommt gar nicht erst dran.
+> **Der Vermerk lügt nicht mehr, und der Hinweis sagt, woran es liegt** — *aber
+> Englisch steht dort erst, wenn die Grundzeile ihren eigenen Sprachvermerk
+> hat.* **Das ist E1, und es ist die nächste Runde.**
+
+> **UND DER AUGENSCHEIN HAT WIEDER ETWAS GEFUNDEN — diesmal an sich selbst.**
+> Zwei Läufe zeigten zwei verschiedene Bilder für dieselbe Lage. *Die Ursache
+> war kein Fehler im Programm, sondern ein Server aus einem abgebrochenen Lauf,
+> der den Port noch hielt* — er antwortete auf `/api/config` wie der eigene und
+> trug die Vorgabesprache von damals. **Die Prüflage sieht jetzt nach, ob auf
+> ihrem Port schon jemand antwortet, und bricht ab, statt zu messen.**
+> *Stolperstein 139 in einer Gestalt, die man nicht sieht: nicht ein belegter
+> Port, sondern ein antwortender.*
 
 ---
 
@@ -335,6 +474,10 @@ geblieben** — vorher wie nachher.
   läuft als Vergleichsgruppe mit und ist grün geblieben.*
 * **Der Funktionswunsch „Potenzial abschaltbar"** *(F1)* — er steht im Fahrplan
   unter 0.25.0.
+* **Nichts an der README-Nummer.** *Die Datei trägt keine Versionsnummer* — sie
+  verweist für „was eine Version mitbringt" auf das `CHANGELOG.md`. **Was in ihr
+  geändert wurde, ist die Beschreibung des Rückfalls** und der neue Kasten zur
+  Vorgabesprache.
 
 ---
 
@@ -353,11 +496,31 @@ so, denn `box.innerHTML = ''` räumt ihn beim Neuzeichnen mit weg. **Die
 Zählungen darüber mussten mitziehen**, und zwar von `children` auf `.pill`:
 *was sie fragen, sind die Sprachen und nicht die Knoten.*
 
+**Eine Überschrift ist keine Klammer.** `group()` im Prüfstand setzt eine
+Überschrift; alles, was danach kommt, zählt dazu, bis die nächste ruft. **Eine
+neue Gruppe unmittelbar hinter eine alte zu setzen, nimmt der alten die
+Prüfungen weg, die zwischen ihr und der nächsten Überschrift lagen** — hier
+zehn Stück. *Aufgefallen ist es beim Nachzählen und nicht an einem roten Punkt:
+die Summe stimmte, nur stand sie an der falschen Stelle.*
+
 **Ein Mock, der eine Vereinfachung trägt, hält genau so lange, wie die
 Vereinfachung stimmt.** `namesTableMock()` übersprang Übersetzungen für die
 Vorgabesprache — richtig, solange die Vorgabesprache nie wechselt, und diese
 Runde handelt von nichts anderem als ihrem Wechsel. *Stolperstein 90 in einer
 Gestalt, die erst eine Runde später sichtbar wird.*
+
+**Ein Rückbau, der denselben Text erzeugt, ist kein Rückbau.** 755 tauschte im
+Satz des Kartenhinweises eine Sprache gegen eine andere — und der Satz wird nur
+gezeichnet, wenn die beiden gleich sind. **Er lief STUMM.** *Der Lauf hat es
+gemeldet, und genau dafür ist die STUMM-Meldung da: eine Gegenprobe, die nichts
+rot macht, prüft nichts.*
+
+**Ein fremder Server muss nicht den Port belegen — er muss nur antworten.** Der
+erste Augenschein dieser Runde zeigte in zwei Läufen zwei verschiedene Bilder
+für dieselbe Lage. *Die Ursache war ein Server aus einem abgebrochenen Lauf,
+der auf `/api/config` genauso antwortete wie der eigene und die Vorgabesprache
+von damals trug.* **Die Prüflage sieht jetzt vorher nach.** *Stolperstein 139
+in einer Gestalt, in der der Port frei aussieht.*
 
 ---
 
