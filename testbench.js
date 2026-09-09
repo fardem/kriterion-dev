@@ -3827,11 +3827,40 @@ const shareMain = (purpose, target = null) =>
   check('Und eine Datei aus Format 14 legt sie ohne Sprachvermerk an',
     rnOldImport.status === 200 && rnOldRow.language === null,
     `Status ${rnOldImport.status}, Sprache ${JSON.stringify(rnOldRow.language)}`);
+  /* UND DASSELBE AN DER KATEGORIE, ueber einen Eintrag: eine Kategorie
+     entsteht beim Import ausschliesslich dadurch, dass ein Eintrag sie nennt
+     (`catByName`). ZWEI TABELLEN, ZWEI FELDER -- und wer nur eines von beiden
+     prueft, laesst die Haelfte des Weges ungeprueft. */
+  const rnCatImport = await sendImport({ exported_at: new Date().toISOString(),
+    title: 'Sprachmitnahme, Kategorie', version: 15,
+    items: [{ title: 'Eintrag mit eingespielter Kategorie',
+              category: 'Eingespielte Kategorie', ratings: [] }],
+    categoryLanguages: { 'Eingespielte Kategorie': 'en' } }, 'merge');
+  const rnCatRow = (() => {
+    const d = open(path.join(DATA, 'katalog.sqlite'));
+    const r = d.prepare('SELECT id, language FROM product_categories WHERE name = ?')
+      .get('Eingespielte Kategorie');
+    d.close(); return r || {};
+  })();
+  check('Und dasselbe an der Kategorie — 0.25.0',
+    rnCatImport.status === 200 && rnCatRow.language === 'en',
+    `Status ${rnCatImport.status}, Sprache ${JSON.stringify(rnCatRow.language)}`);
   /* BEIDE WIEDER WEG, UND ZWAR UEBER DEN WEG UND NICHT UEBER DIE DATEI: das
      Loeschen nummeriert die Reihenfolge neu, und eine Luecke in `sort_order`
      traefe jede spaetere Prueflage, die sie zaehlt. */
   await call('DELETE', `/api/criteria/${rnImported.id}`);
   await call('DELETE', `/api/criteria/${rnOldRow.id}`);
+  /* UND DER EINGESPIELTE EINTRAG SAMT SEINER KATEGORIE. Ein Eintrag, der aus
+     einer Prueflage in die naechste laeuft, verfaelscht jede Zaehlung ueber
+     den Bestand. */
+  {
+    const d = open(path.join(DATA, 'katalog.sqlite'));
+    const z = d.prepare('SELECT id FROM items WHERE title = ?')
+      .get('Eintrag mit eingespielter Kategorie');
+    d.close();
+    if (z) await call('DELETE', `/api/items/${z.id}`);
+  }
+  if (rnCatRow.id) await call('DELETE', `/api/product-categories/${rnCatRow.id}`);
 
   /* JETZT DIE GEGENRICHTUNG: die Uebersetzungen von Hand wegnehmen und die
      Datei zusammenfuehrend wieder einspielen. Ein Export, der etwas mitnimmt,
@@ -24890,26 +24919,31 @@ const shareMain = (purpose, target = null) =>
      des Kartenhinweises eine Sprache gegen eine andere -- und weil der Satz
      nur gezeichnet wird, WENN die beiden gleich sind, war der Rueckbau ein
      Nichts. **Er lief STUMM**; er zielt seither auf die BEDINGUNG.
-     769 SEIT 0.25.0: neunzehn neue (760 bis 778) fuer die fuenf
+     770 SEIT 0.25.0: zwanzig neue (760 bis 779) fuer die fuenf
      Bauabschnitte -- drei an der Datenbankstufe (nur eine Spalte, gefuellt
      statt nachgefragt, die Grundausstattung ohne Sprache), sechs an der Kette
      am Server (die neue Zeile ohne Vermerk, die Sprache des Rufers, der eine
      Griff als Umschreiber, das ✕ am Originaltext, Export und Import), acht an
-     der Karte (Punkt und Zahl, die Zahl selbst, die Daempfung, das ✕ an jeder
-     Zeile, sein Rumpf, der Kasten, die Ansage, das Nachziehen der
-     Pillenreihen) und zwei am Vokabular (Pille und Feld).
+     der Karte (Punkt und Zahl, die Zahl selbst, die Daempfung, das Zeichen an
+     jeder Zeile, sein Rumpf, der Kasten, die Ansage, das Nachziehen der
+     Pillenreihen) und zwei am Vokabular (Pille und Feld). DER SIEBTE AN DER
+     KETTE (779) IST NACHGEWACHSEN: 768 baute im ersten Anlauf nur die
+     KATEGORIEN zurueck und lief STUMM, weil die Zusage darueber am KRITERIUM
+     gemessen wurde -- zwei Tabellen, zwei Wege, zwei Rueckbauten.
      EINER IST WEGGEFALLEN und nicht mitgegangen: 753 („die Kette nimmt auch
      Sprachen ausserhalb des Vorrats") hat keinen Ort mehr -- die Kette laeuft
      seit dieser Runde nicht mehr ueber den Vorrat, sondern ueber drei benannte
      Schritte. Ein Rueckbau auf etwas, das es nicht mehr gibt, laesst sich
      nicht mitnehmen.
-     SIEBEN SIND MITGEGANGEN statt geloescht zu werden (Stolperstein 201):
-     233 und 448 (die Formatnummer steht auf 15), 579 (die Abfrage traegt
-     `c.language`), 717 (aus der geloeschten Uebersetzung wird die Frage,
-     welche Zeile ein Umbenennen trifft), 739 (die Tafel traegt jetzt Name UND
-     Herkunft), 749 bis 752 (die Kette steht am Server) und 754/755 (aus dem
-     Kartenhinweis wird der rote Rahmen). */
-  check('Es sind genau 769 Rueckbauten', gpList.length === 769, `${gpList.length}`);
+     ELF SIND MITGEGANGEN statt geloescht zu werden (Stolperstein 201), und sie
+     zerfallen in zwei Gruppen. DREI tragen nur einen neuen Suchtext und
+     dieselbe Aussage: 233 und 448 (die Formatnummer steht auf 15), 579 (die
+     Abfrage traegt `c.language`). ACHT nehmen etwas ANDERES weg als vorher:
+     717 (aus der geloeschten Uebersetzung wird die Frage, welche Zeile ein
+     Umbenennen trifft), 739 (die Tafel traegt jetzt Name UND Herkunft), 749
+     bis 752 (die Kette steht am Server) und 754/755 (aus dem Kartenhinweis
+     wird der rote Rahmen) -- diese acht sind gefahren. */
+  check('Es sind genau 770 Rueckbauten', gpList.length === 770, `${gpList.length}`);
   const gpTwice = gpList.map(r => r.nr).filter((n, i, a) => a.indexOf(n) !== i);
   check('Und keine Nummer steht zweimal', gpTwice.length === 0, gpTwice.join(' '));
   /* JEDER GREIFT: der Suchtext kommt in seiner Datei GENAU EINMAL vor. Keinmal

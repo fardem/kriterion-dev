@@ -95,8 +95,9 @@ Englisch nie das Englische.
 * **Die Kachel bekommt einen roten Rahmen**, solange der **gezeigten** Sprache
   etwas fehlt — an allen drei Namenskarten und an der Kachel „Vokabular".
 * **Ein geliehener Name steht blass und kursiv da**, mit dem Vermerk darunter.
-* **Ein ✕ am Feld räumt einen Eintrag weg**, mit Rückfrage. Der Originaltext
-  lässt sich nicht räumen — er ist der Name der Zeile.
+* **Ein eigenes Zeichen neben dem Namen räumt einen Eintrag weg**, mit
+  Rückfrage — *ein Radierer und nicht das Kreuz daneben: das löscht die ZEILE.*
+  Der Originaltext lässt sich nicht räumen — er ist der Name der Zeile.
 * **Solange Zeilen ohne Sprachangabe liegen, fragt die Karte einmal nach:**
   ein Kasten mit Zahl und **einem** Knopf — *„37 Namen ohne Sprachangabe — alle
   als Deutsch eintragen"*.
@@ -252,7 +253,7 @@ Antwort zurück.*
   Grundzeile eine eigene Sprache trägt, ist ein gleicher Name eine Übersetzung:
   *„Material" heißt auf Deutsch und auf Englisch dasselbe Wort.* Weggeräumt
   sähe die Karte eine Lücke, wo keine ist — und die Zahl an der Pille zählte
-  sie mit. **Weggeräumt wird seither mit dem ✕.**
+  sie mit. **Weggeräumt wird seither mit dem Zeichen am Feld.**
 
 ---
 
@@ -265,7 +266,7 @@ Antwort zurück.*
 │                                                  │
 │   Werkzeug                            2 Einträge │
 │   Material                            0 Einträge │
-│   1_Datenträger_de                ✕   0 Einträge │ ← gedämpft, kursiv
+│   1_Datenträger_de                ⌫   0 Einträge │ ← gedämpft, kursiv
 │   (nicht eingetragen — es steht Deutsch)         │
 └──────────────────────────────────────────────────┘
 ```
@@ -277,14 +278,16 @@ Antwort zurück.*
 | **Gewählte Pille** | bleibt orange **gefüllt**; Punkt und Zahl stehen gedämpft **darin** |
 | **Roter Rahmen** | um die Kachel, solange **die gezeigte Sprache** lückig ist *(F3)* |
 | **Gedämpfte Zeile** | jeder Rückfall: Name blass und kursiv (`.mname.back`), darunter der Vermerk |
-| **✕ am Feld** | *„Eintrag entfernen"*, mit Rückfrage. **Leer speichern bleibt folgenlos** *(F5)* |
+| **Zeichen am Feld** | *„Eintrag entfernen"*, mit Rückfrage. **Leer speichern bleibt folgenlos** *(F5)* |
 | **Nach dem Umschalten** | die Karte „Sprachen" sagt es an Ort und Stelle. **Keine Glocke** *(F4)* |
 | **Unbekannte Sprache** | ein Kasten mit Zahl und **einem** Knopf, an der Karte „Kategorien" |
 
-**Das ✕ trägt ein EIGENES Zeichen** — einen Radierer und nicht das Kreuz
-daneben: *das löscht die ZEILE samt allem, was an ihr hängt; dieses räumt einen
-NAMEN weg, und die Zeile bleibt.* Es steht nur, wo für die gezeigte Sprache
-wirklich etwas eingetragen ist **und** die Zeile es nicht selbst trägt.
+**DER AUFTRAG ZEICHNET EIN ✕, GEBAUT IST EIN RADIERER** — und das ist die
+Antwort auf F5 („eigenes Zeichen am Feld") beim Wort genommen: *das Kreuz
+daneben löscht die ZEILE samt allem, was an ihr hängt; dieses hier räumt einen
+NAMEN weg, und die Zeile bleibt.* Zwei Griffe in einer Zeile brauchen zwei
+Zeichen. Es steht nur, wo für die gezeigte Sprache wirklich etwas eingetragen
+ist **und** die Zeile es nicht selbst trägt.
 
 **Der Kasten mit dem einen Knopf steht an der Karte „Kategorien" und nur dort**,
 obwohl der Knopf beide Tabellen schreibt: es ist EINE Frage an den ganzen
@@ -382,7 +385,7 @@ mehr** — dieselbe Änderung wie in `writeName()` und aus demselben Grund.
 
 ## Der Prüfstand — was er hält *(F8)*
 
-**`npm test` grün: 6311 Zusagen** *(0.24.6: 6219)*. Neu in dieser Runde:
+**`npm test` grün: 6312 Zusagen** *(0.24.6: 6219)*. Neu in dieser Runde:
 
 1. **DIE TAFEL DER KETTE, AM LAUFENDEN SERVER** — Gruppe „Die Kette am Server —
    0.25.0". **Drei Lesersprachen × drei Vorgabesprachen × vier Bestandslagen =
@@ -404,9 +407,10 @@ mehr** — dieselbe Änderung wie in `writeName()` und aus demselben Grund.
 3. **DIE KARTE** — Gruppe „Die Karte sagt, wo Arbeit liegt — 0.25.0". Die neun
    Zellen der zweiten Achse **mit umgekehrtem Sollwert** (die Grundzeile
    wandert nicht mehr), Punkt und Zahl je Pille, der Rahmen bei lückiger und
-   **nicht** bei vollständiger Sprache, die Dämpfung am Rückfall, das ✕ (es
-   steht nur, wo etwas eingetragen ist; es räumt wirklich; die Zahl steigt
-   danach um eins; die Zeile fällt auf die Kette zurück), der Kasten für die
+   **nicht** bei vollständiger Sprache, die Dämpfung am Rückfall, das Zeichen
+   zum Räumen (es steht nur, wo etwas eingetragen ist; es räumt wirklich; die
+   Zahl steigt danach um eins; die Zeile fällt auf die Kette zurück; die
+   Rückfrage nennt die Sprache), der Kasten für die
    unbekannte Sprache mit **einem** Knopf, und die Ansage nach dem Umschalten —
    *und dass sie nicht dasteht, wenn nichts fehlt.*
 4. **DIE KACHEL „VOKABULAR"** mit denselben vier Zusagen.
@@ -426,7 +430,7 @@ Runde.
 | *„Die Tafel der Vorgabesprache kommt aus der Grundzeile"* | heißt jetzt *„Die Tafel der **Erstellungssprache**…"* — dieselbe Frage, die richtige Antwort |
 | *„Und wo nichts eingetragen ist, steht auch nichts"* | die Zelle steht jetzt da und **sagt**, woher sie kommt (`from`) — der Rückfall ist eine Stufe früher gewandert |
 | *„Messung: nach dem Wechsel trägt Türkisch einen Eintrag, den niemand türkisch eingegeben hat"* | **das ist der reparierte Befund.** Dieselbe Messung, umgekehrter Sollwert |
-| *„Eine Übersetzung, die der Grundzeile gleicht, wird geräumt"* | die Regel ist weggefallen (Bauabschnitt 2). An ihre Stelle treten drei Zeilen zum ✕ |
+| *„Eine Übersetzung, die der Grundzeile gleicht, wird geräumt"* | die Regel ist weggefallen (Bauabschnitt 2). An ihre Stelle treten drei Zeilen zum Räumen am laufenden Server |
 | *„Der Hinweis auf die Grundzeile"* (zwei Zellen der Achse) | `card.namesBaseRow` gibt es nicht mehr |
 | *Die Kettenproben im Browsernachbau* (dritter Schritt, Reihenfolge, Vorrat) | die Kette steht am Server; sie sind dorthin gewandert und dort **größer** geworden (36 statt 3 Zellen) |
 
@@ -434,14 +438,40 @@ Runde.
 
 ## Die Gegenproben
 
-**Neunzehn neue, 760 bis 778** — drei an der Datenbankstufe, sechs an der Kette
-am Server, acht an der Karte, zwei am Vokabular. **Alle gefahren.**
+**Zwanzig neue, 760 bis 779** — drei an der Datenbankstufe, sieben an der Kette
+am Server, acht an der Karte, zwei am Vokabular. **Alle gefahren** — dazu die
+acht mitgegangenen, deren SACHE sich geändert hat: **einunddreißig Läufe** in
+zwei Durchgängen.
 
-**Sieben sind mitgegangen** statt gelöscht zu werden *(Stolperstein 201)*:
-233 und 448 (Formatnummer 15), 579 (`c.language` in der Abfrage), 717 (aus der
-gelöschten Übersetzung wird die Frage, welche Zeile ein Umbenennen trifft), 739
-(die Tafel trägt Name **und** Herkunft), 749 bis 752 (die Kette steht am
-Server) und 754/755 (aus dem Kartenhinweis wird der rote Rahmen).
+| | |
+|---|---|
+| **23 haben rot gemacht** | von einem Punkt (761, 762, 766, 774, 776) bis sechsundzwanzig (763 — eine Zeile ohne Sprachvermerk trifft die ganze Kettentafel) |
+| **3 liefen STUMM** | **764, 767, 768 — und alle drei hatten recht.** *Jede war eine echte Lücke im Prüfstand, und alle drei sind geschlossen* |
+| **1 riss den Lauf ab** | **760** — der Rückbau selbst war falsch gewählt; er zielt seither auf eine Stelle, die den Server stehen lässt |
+
+**DIE DREI STUMMEN SIND DER ERTRAG DIESER GEGENPROBEN.** Ohne sie wären drei
+Zusagen dieser Runde ungeprüft geblieben: dass eine neue Zeile die Sprache des
+**Rufers** bekommt (in jeder Prüflage fielen Rufer und Vorgabe zusammen), dass
+die Exportdatei die Erstellungssprache **mitnimmt**, und dass der Import sie
+**mit anlegt**. *Fünf Zusagen sind dafür dazugekommen, und die vier Rückbauten
+sind noch einmal gefahren worden.*
+
+> **UND DER ZWEITE DURCHGANG HAT NOCH EINEN GEFUNDEN.** 768 lief **wieder
+> STUMM** — er baute die Erstellungssprache der **Kategorien** zurück, und die
+> neue Zusage maß sie am **Kriterium**. *Zwei Tabellen, zwei Wege: ein
+> Kriterium entsteht beim Import aus der Kriterienliste, eine Kategorie
+> ausschließlich dadurch, dass ein Eintrag sie nennt.* **Jetzt gibt es zwei
+> Rückbauten (768 und 779) und zwei Zusagen** — und die Liste steht bei **770**.
+
+**Elf sind mitgegangen** statt gelöscht zu werden *(Stolperstein 201)*, und
+sie zerfallen in zwei Gruppen. **Drei tragen nur einen neuen Suchtext und
+dieselbe Aussage:** 233 und 448 (Formatnummer 15 statt 14), 579 (`c.language`
+steht jetzt mit in der Abfrage) — *sie sind nicht noch einmal gefahren worden,
+weil sich an dem, was sie wegnehmen, nichts geändert hat.* **Acht nehmen etwas
+ANDERES weg als vorher, und die sind gefahren:** 717 (aus der gelöschten
+Übersetzung wird die Frage, welche Zeile ein Umbenennen trifft), 739 (die Tafel
+trägt Name **und** Herkunft), 749 bis 752 (die Kette steht am Server) und
+754/755 (aus dem Kartenhinweis wird der rote Rahmen).
 
 **Einer ist weggefallen und nicht mitgegangen: 753** — *„Die Kette nimmt auch
 Sprachen außerhalb des Vorrats"*. Er hat keinen Ort mehr: **die Kette läuft
@@ -451,7 +481,7 @@ Vorrat, an zwei Stellen erzwungen) und die Erstellungssprache der Zeile (die
 ist der Originaltext und keine Wahl). *Ein Rückbau auf etwas, das es nicht mehr
 gibt, lässt sich nicht mitnehmen.*
 
-**Die Liste steht damit bei 769.**
+**Die Liste steht damit bei 770.**
 
 ---
 
@@ -488,6 +518,12 @@ die Einrichtung:** `POST /api/setup` antwortete mit *„Die Einrichtung ist
 bereits abgeschlossen"*. **Beide Werkzeuge sehen seither nach** — wer nicht
 einrichten kann, ist nicht der eigene Server —, und der Fingerprint ist auf
 einer Nummer weit oberhalb aller Prüflagen nachgerechnet.
+
+***Und derselbe Stolperstein noch einmal, andersherum:*** der abgestürzte
+erste Augenschein hat seinen Server nicht beendet, und der
+Gegenprobentreiber **hat sich geweigert loszufahren**, mit Nummer, Pfad und dem
+Befehl zum Beenden daneben. *Der Wächter aus 0.24.6 hat genau das getan, wofür
+er gebaut ist.*
 
 **EIN HALB NACHGERÜSTETER BESTAND KOMMT GAR NICHT MEHR HOCH.** Rückbau 760 hat
 im ersten Entwurf nur EINE der beiden Spalten nachgerüstet — und der ganze Lauf

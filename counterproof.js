@@ -7378,8 +7378,21 @@ const REGRESSIONS = [
     expected: 'Der Rueckfall der Namen — 0.24.3'
   },
   {
-    /* UND DER IMPORT UEBERGEHT SIE, auch wenn die Datei sie traegt. */
-    nr: '768', name: 'Der Import uebergeht die Erstellungssprachen der Datei',
+    /* UND DER IMPORT UEBERGEHT SIE, auch wenn die Datei sie traegt.
+       ZWEI RUECKBAUTEN UND NICHT EINER: die beiden Tabellen haben je ein
+       eigenes Feld und je einen eigenen Weg -- ein Kriterium entsteht aus der
+       Kriterienliste, eine Kategorie ausschliesslich dadurch, dass ein Eintrag
+       sie nennt. **Der erste Anlauf hat nur die Kategorien zurueckgebaut und
+       lief STUMM**, weil die Zusage darueber am Kriterium gemessen wurde. */
+    nr: '768', name: 'Der Import uebergeht die Erstellungssprache der Kriterien',
+    file: 'server.js',
+    search: "    const critLanguages = fileLanguage(payload.criteriaLanguages);",
+    replacement: "    const critLanguages = fileLanguage(null);",
+    expected: 'Der Rueckfall der Namen — 0.24.3'
+  },
+  {
+    /* UND DIE ANDERE HAELFTE: die Kategorien. */
+    nr: '779', name: 'Der Import uebergeht die Erstellungssprache der Kategorien',
     file: 'server.js',
     search: "    const catLanguages = fileLanguage(payload.categoryLanguages);",
     replacement: "    const catLanguages = fileLanguage(null);",

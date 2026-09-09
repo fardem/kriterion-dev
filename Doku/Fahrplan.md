@@ -243,9 +243,10 @@ Schlussabschnitt „Wie der nächste Auftrag auszusehen hat".*
 > gleicht" ist weggefallen** — seit die Grundzeile eine eigene Sprache trägt,
 > ist ein gleicher Name eine Übersetzung.
 >
-> **Was gebaut wurde, steht im Änderungsprotokoll 0.25.0.** *6311 Zusagen,
-> 769 Rückbauten in der Liste; neunzehn neue Gegenproben, alle gefahren, sieben
-> mitgegangen und eine weggefallen.*
+> **Was gebaut wurde, steht im Änderungsprotokoll 0.25.0.** *6312 Zusagen,
+> 770 Rückbauten in der Liste; zwanzig neue Gegenproben und acht mitgegangene
+> — **drei liefen STUMM und haben drei echte Lücken im Prüfstand aufgedeckt**,
+> alle drei geschlossen; eine ist weggefallen (753).*
 >
 > **ZWEI PUNKTE SIND DABEI INS SAMMELBLATT GEGANGEN** *(22 und 23)*: die Kachel
 > „Vokabular" trägt auf einer frischen Installation den Rahmen — *so ist es
