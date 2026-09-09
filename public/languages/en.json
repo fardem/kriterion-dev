@@ -335,11 +335,13 @@
   "card.mySessions": "My sessions",
   "card.name": "Name",
   "card.nameFallback": "(not entered — showing {language})",
+  "card.nameFallbackNone": "(not entered)",
   "card.nameFreedHint": "The name is free again and is not stored; their posts appear under\n      “Deleted user &lt;number&gt;”. A deleted user cannot be\n      restored — whoever only wants to lock them out,",
   "card.names": {
     "one": "1 name",
     "other": "{n} names"
   },
+  "card.namesBaseRow": "{language} is the default language: what stands here is the base row's name — whichever language it was entered in.",
   "card.neededToSave": "(needed for saving)",
   "card.needsMailHint": "Switching it on is only possible once mail delivery is set up.",
   "card.never": "never yet",

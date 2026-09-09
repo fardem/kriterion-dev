@@ -29,6 +29,51 @@ bleiben in der Form ihrer Zeit.*
 
 *Hier wird mitgeschrieben, während gebaut wird.*
 
+## [0.24.6] - 2026-09-09
+
+> **KEINE SICHERUNG NÖTIG.** Diese Runde legt keine Tabelle an, ändert kein
+> Schema und lässt keinen Migrationsblock laufen. Einspielen und fertig.
+>
+> **DIE VERSIONSNUMMER IST GEWÖHNLICHES SemVer** — eine Reparatur bekommt eine
+> PATCH-Nummer.
+>
+> **WER DIE VORGABESPRACHE SEINER INSTALLATION WECHSELT, SOLLTE DANACH IN
+> „Einstellungen → Bestand" NACHSEHEN.** Kategorien und Kriterien haben eine
+> **Grundzeile**, und die trägt keinen Sprachvermerk: ihr Name gilt immer als
+> der der *aktuellen* Vorgabesprache. **Wechselst du die Vorgabesprache,
+> wandert der ganze Bestand dieser Namen auf die neue Pille** — dort stehen
+> danach Namen, die niemand in dieser Sprache eingegeben hat, und die alte
+> Pille steht leer da. **An deinem Bestand ändert das nichts** — kein Name geht
+> verloren, keine eingetragene Übersetzung wandert. Es ist eine Frage der
+> Zuordnung, und sie ist mit dieser Runde **benannt und nicht behoben**: unter
+> der Sprachzeile steht jetzt ein Hinweis, sobald die Vorgabesprache gezeigt
+> wird. *Der saubere Weg — ein Sprachvermerk an der Grundzeile — ist eine
+> Datenbankstufe und kommt in einer eigenen Runde.*
+>
+> **BIS ZU DIESER VERSION KONNTE DER VERMERK UNTER EINEM NAMEN DIE FALSCHE
+> SPRACHE NENNEN.** Betroffen waren nur Zeilen, für die weder die gezeigte noch
+> die Vorgabesprache einen Eintrag trägt. **Es war eine Falschauskunft und kein
+> Schaden am Bestand** — geschrieben wurde nichts.
+>
+> **UND EINER HAT DOCH GESCHRIEBEN — SIEH DEINE KRITERIEN DURCH.** Bis zu
+> dieser Version benannte das Ändern eines **Gewichts** den Grundnamen des
+> Kriteriums um, sobald die Sprachzeile über der Karte auf einer anderen
+> Sprache als der Vorgabesprache stand: der dort angezeigte Name wanderte in
+> den Grundnamen. **Wer Gewichte nur auf der Vorgabesprache verstellt hat, ist
+> nicht betroffen.** *Ein umbenannter Grundname lässt sich in derselben Karte
+> wieder richtigstellen — auf der Pille der Vorgabesprache umbenennen.*
+
+*Was ein Betreiber merkt: unter einem Namen ohne eigene Übersetzung steht
+jetzt die Sprache, die er wirklich vor sich hat — und wenn es keine gibt, sagt
+der Vermerk das, statt eine zu nennen.*
+
+- Fixed: **Der Vermerk unter einem Namen nennt die Sprache, die wirklich dasteht** — bisher die Vorgabesprache, auch wenn deren Name gar nicht gezeigt wurde
+- Fixed: **Nach einem Wechsel der Vorgabesprache stimmen die drei Verwaltungskarten sofort** — bisher erst nach einem Neuladen
+- Added: **Ist für die Vorgabesprache nichts eingetragen, wird die nächste Sprache des Vorrats genommen, die etwas trägt** — statt stillschweigend die Sprache des Lesers
+- Added: **Trägt keine einzige Sprache etwas, nennt der Vermerk keine** — er sagt nur noch, dass nichts eingetragen ist
+- Added: **Unter der Sprachzeile steht ein Hinweis, sobald die Vorgabesprache gezeigt wird** — dort stehen die Namen der Grundzeile, gleichgültig in welcher Sprache sie eingetragen wurden
+- Fixed: **Das Gewicht eines Kriteriums zu ändern benennt nichts mehr um** — auf einer anderen Sprachpille als der der Vorgabesprache wanderte bisher der angezeigte Name in den Grundnamen
+
 ## [0.24.5] - 2026-09-08
 
 > **KEINE SICHERUNG NÖTIG.** Diese Runde legt keine Tabelle an, ändert kein

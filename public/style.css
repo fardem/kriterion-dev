@@ -785,6 +785,15 @@ button { cursor: pointer; background: none; border: none; padding: 0; }
 .tag-toggle[aria-expanded="true"]::before { transform: rotate(45deg); }
 .tag-toggle > span { text-decoration: underline; }
 .pills { display: flex; flex-wrap: wrap; gap: 6px; }
+/* Der Hinweis auf die Grundzeile unter einer Sprachpillenreihe — 0.24.6 (F3).
+   Er liegt IM Pillenkasten und bekommt mit `flex-basis: 100%` eine eigene
+   Zeile darunter: nebeneinander drängte er die Pillen in einer schmalen
+   Kartenspalte zusammen, und dieselbe Falle hat 0.24.5 schon einmal am
+   Vermerk unter dem Namen gestellt.
+   Gedämpft und kursiv wie `.mrow .mfallback` darunter: beide sind Auskünfte
+   über das, was dasteht, und keine Aktionen. */
+.pills .langnote { flex-basis: 100%; margin: 2px 0 0; font-size: .68rem;
+  color: var(--faint); font-style: italic; line-height: 1.35; }
 .pill {
   padding: 5px 12px; border-radius: 999px;
   border: 1px solid var(--line); background: var(--surface);

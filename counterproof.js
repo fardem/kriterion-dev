@@ -7085,19 +7085,16 @@ const REGRESSIONS = [
        achtzehn Zellen gemessen hat. */
     nr: '744', name: 'Die Karte liest die Namenstafel nicht mehr',
     file: 'public/app.js',
-    search: "  const shown = table[namesLanguage()];",
+    search: "  const shown = table[code];",
     replacement: "  const shown = null;",
     expected: 'Die Sprachpillen der Namenskarten — 0.24.5'
   },
   {
     nr: '745', name: 'Der Vermerk am Rueckfall faellt weg',
     file: 'public/app.js',
-    search: "      const fallbackMark = entry.nameFallback\n" +
-      "        ? `<span class=\"mfallback\" title=\"${esc(t('card.nameFallback',\n" +
-      "            { language: languageNameOf(entry.nameFallback) }))}\">${tH('card.nameFallback',\n" +
-      "            { language: languageNameOf(entry.nameFallback) })}</span>`\n" +
-      "        : '';",
-    replacement: "      const fallbackMark = '';",
+    search: "      const fallbackMark = entry.nameFallback === undefined ? ''\n" +
+      "        : (entry.nameFallback === true",
+    replacement: "      const fallbackMark = '' || (false",
     expected: 'Die Sprachpillen der Namenskarten — 0.24.5'
   },
   {
@@ -7127,6 +7124,139 @@ const REGRESSIONS = [
     search: "    takeNames(settings);\n    drawAdmin(fetched);",
     replacement: "    drawAdmin(fetched);",
     expected: 'Die Sprachpillen der Namenskarten — 0.24.5'
+  },
+  /* ================= 0.24.6 — der Rueckfall sagt, was er zeigt ==========
+     ZEHN RUECKBAUTEN FUER DREI TEILE, die zusammenhaengen: die Kette (E2),
+     der Kartenhinweis (E1) und das Nachziehen der Tafeln (E3). Vier davon
+     nehmen eine Zusage weg, die es bis 0.24.5 gar nicht gab -- und genau
+     deshalb muessen sie gefahren werden: eine neue Zeile, die nie
+     zurueckgebaut worden ist, ist eine Behauptung. */
+  {
+    /* DER DRITTE SCHRITT DER KETTE -- die Antwort des Betreibers auf F2. Ohne
+       ihn bleibt die Kette bei der Vorgabesprache stehen, und eine Zeile,
+       fuer die nur eine dritte Sprache etwas traegt, zeigt wieder, was
+       hereinkam. */
+    nr: '749', name: 'Die Kette bricht nach der Vorgabesprache ab',
+    file: 'public/app.js',
+    search: "  const chain = nameFallbackChain(code);",
+    replacement: "  const chain = nameFallbackChain(code).slice(0, 1);",
+    expected: 'Die Vorgabesprache als zweite Achse — 0.24.6'
+  },
+  {
+    /* DER KERN DES BEFUNDS: der Vermerk nennt wieder die Sprache, die er
+       zeigen WOLLTE, statt der, die wirklich dasteht. */
+    nr: '750', name: 'Der Vermerk nennt wieder die Vorgabesprache',
+    file: 'public/app.js',
+    search: "      if (back !== undefined) return { ...z, name: back, nameFallback: other };",
+    replacement: "      if (back !== undefined) return { ...z, name: back, nameFallback: baseNamesLanguage() };",
+    expected: 'Die Vorgabesprache als zweite Achse — 0.24.6'
+  },
+  {
+    /* UND DIE KLAMMER BEHAUPTET WIEDER EINE SPRACHE, statt keine zu nennen --
+       das war die Zeile, die der Betreiber gemeldet hat. */
+    nr: '751', name: 'Die Klammer behauptet wieder eine Sprache',
+    file: 'public/app.js',
+    search: "    return { ...z, nameFallback: true };",
+    replacement: "    return { ...z, nameFallback: baseNamesLanguage() };",
+    expected: 'Die Vorgabesprache als zweite Achse — 0.24.6'
+  },
+  {
+    /* DIE REIHENFOLGE: nicht die des Vorrats, sondern die umgekehrte. Ein
+       Rueckbau, der die Kette LAESST und nur ihre Ordnung dreht -- sonst
+       waere „in der kanonischen Reihenfolge" eine Behauptung ohne Beleg. */
+    nr: '752', name: 'Die Kette laeuft in der umgekehrten Reihenfolge',
+    file: 'public/app.js',
+    search: "  return [base, ...pool].filter((code, i, all) =>\n" +
+      "    code !== shownCode && all.indexOf(code) === i);",
+    replacement: "  return [base, ...pool].filter((code, i, all) =>\n" +
+      "    code !== shownCode && all.indexOf(code) === i).reverse();",
+    expected: 'Die Vorgabesprache als zweite Achse — 0.24.6'
+  },
+  {
+    /* UND DIE KLEMME GEGEN DEN VORRAT faellt weg: der Rueckfall zeigte danach
+       einen Namen aus einer Sprache, die es in dieser Installation nicht
+       gibt. */
+    nr: '753', name: 'Die Kette nimmt auch Sprachen ausserhalb des Vorrats',
+    file: 'public/app.js',
+    search: "  const pool = LANGUAGES.filter(a => a.active).map(a => a.code);\n" +
+      "  return [base, ...pool].filter((code, i, all) =>",
+    replacement: "  const pool = LANGUAGES.map(a => a.code);\n" +
+      "  return [base, ...pool].filter((code, i, all) =>",
+    expected: 'Die Vorgabesprache als zweite Achse — 0.24.6'
+  },
+  {
+    /* DER KARTENHINWEIS (E1, F3) faellt weg -- die Karte behauptet wieder,
+       die Tafel der Vorgabesprache sei eine Uebersetzung wie jede andere. */
+    nr: '754', name: 'Der Hinweis auf die Grundzeile faellt weg',
+    file: 'public/app.js',
+    search: "  if (namesLanguage() === baseNamesLanguage()) {\n" +
+      "    const note = document.createElement('p');",
+    replacement: "  if (false) {\n" +
+      "    const note = document.createElement('p');",
+    expected: 'Die Vorgabesprache als zweite Achse — 0.24.6'
+  },
+  {
+    /* UND DIE ANDERE HAELFTE: er steht ueberall. Ein Hinweis, der immer
+       dasteht, sagt nichts mehr -- und ohne diesen Rueckbau bliebe die
+       Zusage „und sonst nicht" ungeprueft.
+       ER ZIELT AUF DIE BEDINGUNG UND NICHT AUF DEN TEXT, und das hat der
+       gefahrene Lauf entschieden: der erste Entwurf tauschte im Satz
+       `baseNamesLanguage()` gegen `namesLanguage()` -- und weil der Satz nur
+       gezeichnet wird, WENN die beiden gleich sind, war der Rueckbau ein
+       Nichts. **Er lief STUMM** und belegte damit gar nichts (Stolperstein:
+       ein Rueckbau muss die Stelle treffen, die die Zusage traegt).
+       DERSELBE SUCHTEXT WIE 754 UND TROTZDEM EIN ZWEITER: der eine nimmt den
+       Hinweis weg, der andere stellt ihn ueberall hin. Verschiedene Zusagen,
+       verschiedene rote Punkte. */
+    nr: '755', name: 'Der Hinweis auf die Grundzeile steht an jeder Pille',
+    file: 'public/app.js',
+    search: "  if (namesLanguage() === baseNamesLanguage()) {",
+    replacement: "  if (namesLanguage() || true) {",
+    expected: 'Die Vorgabesprache als zweite Achse — 0.24.6'
+  },
+  {
+    /* E3 SELBST: die Karte zieht die Tafeln nach dem Wechsel der
+       Vorgabesprache nicht nach -- der Zustand von 0.24.5, in dem der
+       Betreiber den Befund gemeldet hat. */
+    nr: '756', name: 'Der Wechsel der Vorgabesprache zieht die Tafeln nicht nach',
+    file: 'public/app.js',
+    search: "      takeNames(s);\n      drawLanguages();",
+    replacement: "      drawLanguages();",
+    expected: 'Die Vorgabesprache als zweite Achse — 0.24.6'
+  },
+  {
+    /* UND DIE WURZEL AM SERVER: die Antwort des Wechsels traegt die Tafeln
+       gar nicht erst. Die Karte kann dann nichts nachziehen. */
+    nr: '757', name: 'Die Antwort des Wechsels traegt die Namenstafeln nicht',
+    file: 'server.js',
+    search: "             ...(isAdmin(req) && languagesTouched\n" +
+      "               ? { categoryNames: categoryNamesAll(), criterionNames: criterionNamesAll() } : {}),",
+    replacement: "",
+    expected: 'Die Namenstafeln je Sprache — 0.24.5'
+  },
+  {
+    /* UND DIE BEDINGUNG DANEBEN: jede Antwort dieses Weges traegt die Tafeln,
+       auch die auf ein gespeichertes Filterfeld. Ohne diesen Rueckbau waere
+       „nur wenn die Sprachfrage beruehrt war" eine Behauptung. */
+    nr: '758', name: 'Jede Antwort des Schreibwegs traegt die Namenstafeln',
+    file: 'server.js',
+    search: "             ...(isAdmin(req) && languagesTouched",
+    replacement: "             ...(isAdmin(req)",
+    expected: 'Die Namenstafeln je Sprache — 0.24.5'
+  },
+  {
+    /* UND DER BEFUND, DEN DER AUFTRAG NICHT KANNTE: der Gewichtswechsel
+       schickt seinen Namen wieder OHNE Sprachangabe -- und ohne Angabe meint
+       der Server die Grundzeile. Ein Gewicht auf der Pille „English" benannte
+       damit die Grundzeile in den englischen Namen um. */
+    nr: '759', name: 'Der Gewichtswechsel schickt den Namen ohne Sprache',
+    file: 'public/app.js',
+    search: "          const now = await api('PUT', `${url}/${entry.id}`, spec.perLanguage\n" +
+      "            ? { name: entry.name, weight: g, language: nameLanguage }\n" +
+      "            : { name: entry.name, weight: g });",
+    replacement: "          const now = await api('PUT', `${url}/${entry.id}`, " +
+      "{ name: entry.name, weight: g });",
+    expected: 'Die Vorgabesprache als zweite Achse — 0.24.6'
   }
 ];
 

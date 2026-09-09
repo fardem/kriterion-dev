@@ -2813,7 +2813,9 @@ app.put('/api/settings', (req, res) => {
      Schreibungen liessen dazwischen einen Zustand stehen, den es nicht geben
      darf. Was nicht mitkommt, bleibt, wie es ist -- `undefined` heisst
      „unveraendert" und nicht „leer". */
-  if (req.body.languageDefault !== undefined || req.body.languageOn !== undefined)
+  const languagesTouched =
+    req.body.languageDefault !== undefined || req.body.languageOn !== undefined;
+  if (languagesTouched)
     writeLanguages(
       req.body.languageDefault !== undefined ? String(req.body.languageDefault) : languageDefault(),
       req.body.languageOn);
@@ -2832,6 +2834,23 @@ app.put('/api/settings', (req, res) => {
              tagsFreeCreate: freeCreate('tagsFreeCreate'),
              categoriesFreeCreate: freeCreate('categoriesFreeCreate'),
              languages: languageEntries(),
+             /* UND DIE BEIDEN NAMENSTAFELN, WENN DIE SPRACHFRAGE BERUEHRT WAR
+                -- 0.24.6, die Reparatur von E3. Die Vorgabesprache entscheidet,
+                welche Tafel die Grundzeilen traegt (`namesAll()` weiter unten);
+                wechselt sie, ist JEDE Tafel eine andere. Die Oberflaeche zog
+                bis 0.24.5 `languages` nach und die Tafeln nicht -- und rechnete
+                danach mit einer neuen Vorgabe auf einer alten Tafel.
+                AUS DERSELBEN ANTWORT UND NICHT AUS EINEM ZWEITEN ABRUF: es ist
+                dieselbe Bauform wie `vocabularies` eine Zeile weiter oben, und
+                `F_ROUTES` steigt dabei nicht -- es sind zwei Felder mehr in
+                einer Antwort, die es laengst gibt.
+                NUR WENN DIE SPRACHFRAGE BERUEHRT WAR: dieser Weg schreibt auch
+                Filter, Ansichten und vierzehn Vokabelwoerter, und keiner dieser
+                Rufer braucht zwei Namenstafeln in der Antwort.
+                UND NUR FUER DEN ADMIN, wie beim Lesen (F3 der Runde 0.24.5) --
+                wer den Umschalter nicht sieht, bekommt auch die Tafel nicht. */
+             ...(isAdmin(req) && languagesTouched
+               ? { categoryNames: categoryNamesAll(), criterionNames: criterionNamesAll() } : {}),
              convertImages: convertImages() });
 });
 
