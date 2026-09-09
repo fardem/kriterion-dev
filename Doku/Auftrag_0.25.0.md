@@ -254,7 +254,17 @@ jobs:
 demselben Repo.** Ergebnis: **ein Lauf je Stand statt zwei.** Ein Commit ohne
 Anfrage wird weiterhin geprüft; die Anfrage zeigt das Häkchen trotzdem, weil
 Prüfergebnisse an der Commit-Kennung hängen. *Gemessen an 0.24.6: drei Läufe
-und rund 24 Minuten je Runde werden zwei Läufe und rund 16.*
+je Runde werden zwei.*
+
+> **DER GRUND IST SEIT DEM 9. SEPTEMBER 2026 EIN ANDERER.** Der Betreiber hat
+> das Repository **öffentlich** gestellt, und damit sind die Standardläufer bei
+> GitHub **unbegrenzt kostenlos** — die Minuten, um die es beim Beschluss ging,
+> kosten nichts mehr. **Weg B bleibt trotzdem**, aus zwei Gründen, die von der
+> Rechnung unabhängig sind: *zwei Läufe am selben Stand sagen dasselbe zweimal*
+> — wer die Liste liest, muss jedes Mal prüfen, ob es zwei Stände oder ein Stand
+> mit zwei Läufen sind —, und der zweite Lauf belegt eine halbe Viertelstunde
+> Rechenzeit für eine Antwort, die schon dasteht. **Es ist ab jetzt eine Frage
+> der Ordnung und nicht des Geldes.**
 
 ---
 
@@ -357,7 +367,9 @@ Zuordnen, mit rotem Rahmen auf einer lückigen Sprache, und die Kachel
 
 * **GITHUB, WEG B.** Ein Lauf je Stand. **Ein Push je Runde**, nicht vier —
   `cancel-in-progress` fängt nur ab, was sich überholt, nicht was nacheinander
-  fertig läuft. *Jede Doppelung geht auf die Minuten des Betreibers.*
+  fertig läuft. *Seit das Repository öffentlich ist, kosten die Läufe nichts
+  mehr; die Regel bleibt als Frage der Ordnung — zwei Läufe am selben Stand
+  sagen dasselbe zweimal.*
 * **DER FINGERPRINT WIRD VOR DEM EINSPIELEN GERECHNET** und steht im
   Änderungsprotokoll, damit die Installation sich daran messen kann. *Er deckt
   `node_modules` NICHT ab — eine Hebung von Abhängigkeiten bewegt ihn nicht,
