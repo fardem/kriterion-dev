@@ -195,7 +195,7 @@ Daraus wird gebaut:
 | **Die Datenbankstufe** | eine Spalte `language` an `product_categories` und `rating_criteria`. **Der Migrationsblock trägt NICHTS ein** und die Karte fragt einmal nach — so behauptet das System nie etwas Falsches |
 | **Die Adminkarte** | Punkt und Zahl an den Sprachpillen, roter Rahmen bei lückiger Sprache, gedämpfte Zeilen am Rückfall, ein Zeichen zum Räumen — **und dasselbe am Vokabular** |
 | **Keine Glocke** | sie zeigt nach ihrer eigenen Regel nur *fremde* Tätigkeit; wer die Vorgabesprache umschaltet, ist selbst der Handelnde. Die Karte „Sprachen" sagt es an Ort und Stelle |
-| **Im Beipack** | `npm audit fix` *(nur die Sperrdatei)* und **Workflow Weg B** *(ein Lauf je Stand statt zwei)* |
+| **Im Beipack** | `npm audit fix` *(nur das Lockfile)* und **Workflow Weg B** *(ein Lauf je Stand statt zwei)* |
 
 **Der Auftrag steht als `Doku/Auftrag_0.25.0.md`**, mit acht Fragen am Kopf —
 **alle vor der ersten Zeile beantwortet.** *Er trägt als erster den stehenden

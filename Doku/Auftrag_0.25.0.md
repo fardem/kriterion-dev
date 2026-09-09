@@ -287,7 +287,7 @@ je Runde werden zwei.*
    Vergleichsgruppe bleiben grün** — soweit sie nach dem Umbau noch dieselbe
    Sache prüfen. *Was fällt, fällt NAMENTLICH und mit Begründung im Protokoll.*
 7. **Der Beipack:** ein Wächter, dass `package.json` unverändert ist und nur die
-   Sperrdatei sich bewegt hat; ein Wächter am Workflow, dass die Bedingung
+   Lockfile sich bewegt hat; ein Wächter am Workflow, dass die Bedingung
    dasteht.
 
 **Der Augenschein: vier Bilder** *(F8)* — die Karte vor dem Zuordnen, nach dem
