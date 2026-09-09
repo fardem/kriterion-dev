@@ -1944,6 +1944,23 @@ mark {
 .mrow:hover { border-color: var(--line); background: var(--surface-3); }
 .mrow .mname { flex: 1; min-width: 0; font-size: .9rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .mrow .mcount { font-family: var(--mono); font-size: .7rem; color: var(--faint); }
+/* DER VERMERK AM RUECKFALL — 0.24.5 (F4). Er sagt, dass für die gezeigte
+   Sprache nichts eingetragen ist und welche stattdessen dasteht.
+   GEDÄMPFT WIE DER ZÄHLER DANEBEN und kursiv: er ist eine Auskunft über die
+   Zeile und kein Teil des Namens — wer die Liste überfliegt, soll die Namen
+   lesen und die Vermerke bemerken, nicht umgekehrt.
+   ER STEHT UNTER DEM NAMEN UND NICHT NEBEN IHM, und diese Zeile hat der
+   Augenschein geschrieben. Nebeneinander in einer Zeile gewinnt der Vermerk:
+   `.mname` trägt `flex: 1`, also `flex-basis: 0` — in einer Kartenspalte von
+   rund 280 Pixeln bekommt der Name damit keine Grundbreite, der längere
+   Vermerk behält seine, und am Bildschirm stand „(nicht eingetragen — es steht
+   De…" ohne einen Namen davor. Der Kasten darum stellt beides übereinander:
+   der Name in voller Breite, der Vermerk als zweite, kleinere Zeile — dieselbe
+   Bauform wie „(Vorgabe: …)" unter einem Vokabelfeld. */
+.mrow .mnamebox { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+.mrow .mnamebox .mname { flex: none; }
+.mrow .mfallback { font-size: .68rem; color: var(--faint); font-style: italic;
+  min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .mrow .mact { color: var(--faint); font-size: .8rem; padding: 3px 6px; border-radius: 4px; opacity: 0; transition: all .15s var(--ease); }
 .mrow:hover .mact { opacity: 1; }
 .mrow .mact:hover { color: var(--accent-text); background: var(--accent-dim); }

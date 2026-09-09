@@ -7009,6 +7009,124 @@ const REGRESSIONS = [
     search: "      ['criterion_names', 'criterion_id', critByName, payload.criteriaNames],",
     replacement: "      ['criterion_names', 'criterion_id', critByName, null],",
     expected: 'Der Rueckfall der Namen — 0.24.3'
+  },
+  /* ---- Die Sprachpillen der Namenskarten -- 0.24.5 ----
+     ZWOELF RUECKBAUTEN FUER EINE REPARATUR, und das ist keine Uebertreibung:
+     der Befund hatte drei Wege (D1, D2, D3), die Reparatur hat zwei Enden
+     (Server und Karte), und die Haelfte der neuen Zusagen ist eine
+     ABWESENHEIT -- kein Zwischenspeicher, kein Nachholen, kein fuenfter Wert
+     an api(). Eine Abwesenheit laesst sich nur belegen, indem man sie
+     probeweise zurueckholt. */
+  {
+    nr: '737', name: 'Die Namenstafeln fallen aus der Antwort',
+    file: 'server.js',
+    search: "  ...(isAdmin(req)\n    ? { categoryNames: categoryNamesAll(), criterionNames: criterionNamesAll() } : {}),\n",
+    replacement: "",
+    expected: 'Die Sprachpillen der Namenskarten — 0.24.5'
+  },
+  {
+    nr: '738', name: 'Die Namenstafeln gehen an jeden -- auch an den, der nicht umschalten kann',
+    file: 'server.js',
+    search: "  ...(isAdmin(req)\n    ? { categoryNames: categoryNamesAll(), criterionNames: criterionNamesAll() } : {}),",
+    replacement: "  categoryNames: categoryNamesAll(), criterionNames: criterionNamesAll(),",
+    expected: 'Die Namenstafeln je Sprache — 0.24.5'
+  },
+  {
+    /* DER RUECKFALL SCHON IN DER TAFEL EINGESETZT -- genau die Bauform, die bei
+       den vierzehn Vokabelwoertern B2 verursacht hat: eine Tafel, in der der
+       Rueckfall wie ein Eintrag aussieht, kann die Karte nicht mehr
+       kennzeichnen. */
+    nr: '739', name: 'Die Namenstafel traegt den Rueckfall schon eingesetzt',
+    file: 'server.js',
+    search: "  for (const z of translated) if (perLanguage[z.language]) perLanguage[z.language][z.id] = z.name;",
+    replacement: "  for (const z of translated) if (perLanguage[z.language]) perLanguage[z.language][z.id] = z.name;\n" +
+      "  for (const code of LANGUAGE_CODES) for (const z of rows)\n" +
+      "    if (perLanguage[code][z.id] === undefined) perLanguage[code][z.id] = z.name;",
+    expected: 'Die Sprachpillen der Namenskarten — 0.24.5'
+  },
+  {
+    /* UND DIE TAFEL ENTSCHEIDET WIEDER UEBER EINE SPRACHE. Ein Bauer, der eine
+       Sprache annimmt, ist die alte Frage in neuer Form -- und der Rufer gibt
+       keine mit, also bleibt genau eine Spalte gefuellt. */
+    nr: '740', name: 'Der Bauer der Kriterientafel nimmt wieder eine Sprache an',
+    file: 'server.js',
+    search: "const criterionNamesAll = () => namesAll(qCriterionRows.all(), qCriterionNamesAll.all());",
+    replacement: "const criterionNamesAll = (locale = languageDefault()) =>\n" +
+      "  namesAll(qCriterionRows.all(), qCriterionNamesAll.all().filter(z => z.language === locale));",
+    expected: 'Die Sprachpillen der Namenskarten — 0.24.5'
+  },
+  {
+    nr: '741', name: 'Der Listenweg folgt nicht mehr dem Leser',
+    file: 'server.js',
+    search: "app.get('/api/criteria', (req, res) => res.json(criteriaFor(localeOf(req))));",
+    replacement: "app.get('/api/criteria', (req, res) => res.json(criteriaFor(languageDefault())));",
+    expected: 'Die Namenstafeln je Sprache — 0.24.5'
+  },
+  {
+    /* DER FUENFTE WERT AN api() -- er kommt zurueck, und nichts am Bildschirm
+       aendert sich. Genau dafuer steht der Waechter da: ein Weg, der wieder
+       offen ist, wird wieder benutzt. */
+    nr: '742', name: 'api() nimmt wieder eine fremde Sprache an',
+    file: 'public/app.js',
+    search: "async function api(method, url, body, isForm = false) {",
+    replacement: "async function api(method, url, body, isForm = false, language = LANGUAGE) {",
+    expected: 'Die Namenstafeln je Sprache — 0.24.5'
+  },
+  {
+    nr: '743', name: 'Der Kopf traegt wieder, was der Rufer verlangt',
+    file: 'public/app.js',
+    search: "                 headers: { 'Accept-Language': LANGUAGE } };",
+    replacement: "                 headers: { 'Accept-Language': arguments[4] || LANGUAGE } };",
+    expected: 'Die Namenstafeln je Sprache — 0.24.5'
+  },
+  {
+    /* DER KERN: die Karte liest die Tafel nicht mehr und faellt auf die Liste
+       des Lesers zurueck -- der Zustand von 0.24.4, an dem der Betreiber
+       achtzehn Zellen gemessen hat. */
+    nr: '744', name: 'Die Karte liest die Namenstafel nicht mehr',
+    file: 'public/app.js',
+    search: "  const shown = table[namesLanguage()];",
+    replacement: "  const shown = null;",
+    expected: 'Die Sprachpillen der Namenskarten — 0.24.5'
+  },
+  {
+    nr: '745', name: 'Der Vermerk am Rueckfall faellt weg',
+    file: 'public/app.js',
+    search: "      const fallbackMark = entry.nameFallback\n" +
+      "        ? `<span class=\"mfallback\" title=\"${esc(t('card.nameFallback',\n" +
+      "            { language: languageNameOf(entry.nameFallback) }))}\">${tH('card.nameFallback',\n" +
+      "            { language: languageNameOf(entry.nameFallback) })}</span>`\n" +
+      "        : '';",
+    replacement: "      const fallbackMark = '';",
+    expected: 'Die Sprachpillen der Namenskarten — 0.24.5'
+  },
+  {
+    nr: '746', name: 'Das Umbenennfeld traegt wieder den Rueckfall als Wert',
+    file: 'public/app.js',
+    search: "        inp.value = entry.nameFallback ? '' : entry.name;\n" +
+      "        if (entry.nameFallback) inp.placeholder = entry.name;",
+    replacement: "        inp.value = entry.name;",
+    expected: 'Die Sprachpillen der Namenskarten — 0.24.5'
+  },
+  {
+    /* UND DER ZWEITE WEG IN DIE LISTE -- der, den der Auftrag nicht kannte.
+       drawAdmin() zeichnet nach jedem Umbenennen, Anlegen, Loeschen und
+       Sortieren; las es an namesFrom vorbei, stand die Pille auf Türkçe ueber
+       einer deutschen Liste. */
+    nr: '747', name: 'drawAdmin liest wieder an namesFrom vorbei',
+    file: 'public/app.js',
+    search: "    manageList('mcats', namesFrom(fetched, 'cats'), 'cat', fetched);\n" +
+      "    manageList('mtags', fetched.tags, 'tag', fetched);",
+    replacement: "    manageList('mcats', fetched.cats, 'cat', fetched);\n" +
+      "    manageList('mtags', fetched.tags, 'tag', fetched);",
+    expected: 'Die Sprachpillen der Namenskarten — 0.24.5'
+  },
+  {
+    nr: '748', name: 'adminNew zieht die Namenstafeln nicht nach',
+    file: 'public/app.js',
+    search: "    takeNames(settings);\n    drawAdmin(fetched);",
+    replacement: "    drawAdmin(fetched);",
+    expected: 'Die Sprachpillen der Namenskarten — 0.24.5'
   }
 ];
 
