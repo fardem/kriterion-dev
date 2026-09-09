@@ -1,6 +1,6 @@
 # Fehler und Ideen
 
-**Das Sammelblatt · Stand 8. September 2026, nach dem Rundlauf mit 0.24.4**
+**Das Sammelblatt · Stand 9. September 2026, nach dem Bauen von 0.24.6**
 
 **Hier stehen Befunde aus dem Betrieb, Fehler und Ideen — Punkt für Punkt, in
 der Reihenfolge, in der sie aufgefallen sind.** Es ist die Zusammenführung der
@@ -963,3 +963,52 @@ Felder.*
 > **WARUM ER TROTZDEM NICHT SOFORT WEGGEBAUT WORDEN IST:** die Antwort des
 > Servers ist die eine Wahrheit über die Namen, und ein Umlauf, der sie holt,
 > kann nicht veralten. *Erst messen, ob er stört — dann bauen.*
+
+---
+
+## 21. Die Grundzeile trägt keinen Sprachvermerk
+
+**Art: Fehler** *(eine Zuordnung, kein Datenverlust)* · **Einschätzung von
+Claude: empfohlen, sobald eine Runde das Schema anfassen darf** · **Herkunft:
+0.24.6**
+
+**Kategorien und Kriterien haben eine Grundzeile, und die trägt ihren Namen
+ohne Angabe, in welcher Sprache er steht.** `baseLanguage()` schreibt sie
+derjenigen Sprache zu, die *gerade* Vorgabe der Installation ist. **Wechselt
+der Eigentümer die Vorgabesprache, wandert damit der ganze Bestand dieser Namen
+von einer Tafel auf die andere** — ohne dass jemand ein Wort eingegeben hätte.
+
+**Am laufenden Server gemessen**, 9. September 2026, mit `en` als Vorgabe und
+einem Namen `Product_en` in der Grundzeile:
+
+```
+VORHER  (Vorgabe en):  {"de":{"1":"Product_de"},"en":{"1":"Product_en"},"tr":{}}
+NACHHER (Vorgabe tr):  {"de":{"1":"Product_de"},"en":{},              "tr":{"1":"Product_en"}}
+```
+
+***Türkisch trägt danach einen Eintrag, den nie jemand auf Türkisch eingegeben
+hat, und Englisch steht leer da, obwohl der Name dort steht.***
+
+> **0.24.6 HAT ES GEKENNZEICHNET UND NICHT BEHOBEN** — auf Entscheidung des
+> Betreibers zu F3, 9. September 2026: *kennzeichnen statt behaupten.* Unter
+> der Sprachzeile der drei Verwaltungskarten steht seither ein gedämpfter
+> Hinweis, sobald die Vorgabesprache gezeigt wird: was dort steht, ist der Name
+> der Grundzeile — gleichgültig, in welcher Sprache er eingetragen wurde.
+> **Die Karte sagt damit die Wahrheit; sie räumt sie nur nicht auf.**
+
+### Was zu bauen wäre
+
+**Eine Spalte `language` an `product_categories` und `rating_criteria`**, samt
+Migrationsblock, der sie beim ersten Start mit der *dann* geltenden
+Vorgabesprache füllt. **Danach ist die Grundzeile eine Zeile wie jede andere**:
+`namesAll()` liest ihre Sprache aus der Zeile statt aus einer Einstellung, ein
+Wechsel der Vorgabesprache verschiebt nichts mehr, und der Rückfall zeigt auf
+eine Sprache, die auch wirklich dort steht.
+
+**Kein Datenverlust in beiden Richtungen** — was zu tun ist, ist eine Spalte
+nachzurüsten und einmal zu füllen. *Der Grund, warum es nicht in 0.24.6 gehört,
+ist allein die Stufe: eine Datenbankstufe ist eine eigene Runde.*
+
+> **DIE LETZTE RUNDE, DIE DAS SCHEMA ANFASSEN DARF, IST NACH DEM FAHRPLAN
+> 0.28.0.** *Wer diesen Punkt später will als dort, will ihn nach 0.30.0 — und
+> dort ist kein Rückweg mehr vorgesehen.*

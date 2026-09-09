@@ -8937,7 +8937,34 @@ function setUpCriteriaOut(fetched, phase) {
         // "Gewicht 0".
         if (Number.isNaN(g)) { weightInput.value = weightText(entry.weight); return; }
         try {
-          const now = await api('PUT', `${url}/${entry.id}`, { name: entry.name, weight: g });
+          /* DER NAME GEHT DAHIN ZURUECK, WO ER HERKOMMT -- 0.24.6, und das ist
+             ein Befund, den der Auftrag nicht kannte.
+
+             DER SCHREIBWEG VERLANGT EINEN NAMEN (`server.nameMissing`), ein
+             Gewichtswechsel schickt also einen mit. Bis 0.24.5 schickte er
+             `entry.name` OHNE Sprachangabe -- und ohne Sprachangabe meint der
+             Server die GRUNDZEILE (`namedLanguage()`). Wer also auf der Pille
+             „English" ein Gewicht verstellte, benannte damit die Grundzeile in
+             den englischen Namen um: der deutsche Name war weg, im Export, in
+             der Sortierung und fuer jeden anderen Leser. **Niemand hat einen
+             Namen angefasst, und trotzdem stand danach ein anderer da.**
+
+             DIE ANGABE IST DESHALB DIE SPRACHE, AUS DEREN TAFEL DER NAME
+             STAMMT, und nicht die der Pille: bei einem Rueckfall steht in
+             `entry.name` der Name einer ANDEREN Sprache, und mit der Pille als
+             Angabe machte das Speichern aus dem Rueckfall einen Eintrag --
+             derselbe Fehler wie B2 der Runde 0.24.4, nur an einem Feld, das
+             gar keinen Namen aendern will. `nameFallback` sagt genau das:
+             die Kennung der Tafel, aus der der Name kommt, oder `true`, wenn
+             es keine gibt -- dann ist es die Antwort des Servers, und die
+             traegt den Namen der Grundzeile.
+             SO GESCHRIEBEN AENDERT DER GEWICHTSWECHSEL KEINEN NAMEN: er
+             schreibt denselben Wert an dieselbe Stelle zurueck. */
+          const nameLanguage = entry.nameFallback === true
+            ? baseNamesLanguage() : (entry.nameFallback || namesLanguage());
+          const now = await api('PUT', `${url}/${entry.id}`, spec.perLanguage
+            ? { name: entry.name, weight: g, language: nameLanguage }
+            : { name: entry.name, weight: g });
           // Den Datensatz IN DER LISTE nachziehen statt neu zu laden -- sonst
           // zeigte die naechste Zeichnung wieder den alten Wert.
           entry.weight = now.weight;

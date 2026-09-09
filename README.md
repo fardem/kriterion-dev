@@ -2147,6 +2147,26 @@ Listen steht dieselbe Sprachzeile. **Übersetzt wird nichts von selbst:** wer
 keine zweite Fassung einträgt, dessen Leser sehen die erste — und die
 Bewertungen hängen unverändert an ihrem Kriterium, in jeder Sprache.
 
+**Wo für die gezeigte Sprache nichts eingetragen ist, steht ein anderer Name da
+— und darunter, gedämpft, welcher.** Gesucht wird zuerst bei der
+Vorgabesprache, danach der Reihe nach bei den übrigen Sprachen des Vorrats;
+genommen wird die erste, die wirklich einen Eintrag hat. **Der Vermerk nennt
+die Sprache, die man wirklich vor sich hat** — und wenn für keine einzige
+Sprache etwas eingetragen ist, nennt er gar keine, statt eine zu behaupten.
+*Das Umbenennfeld bleibt in diesem Fall leer und zeigt den Rückfall nur als
+Platzhalter: gespeichert wird nur, was jemand wirklich eingetippt hat.*
+
+> **DIE VORGABESPRACHE IST EIN SONDERFALL, UND DIE KARTE SAGT ES.** Kategorien
+> und Kriterien haben eine **Grundzeile**, und die trägt keinen Sprachvermerk:
+> ihr Name gilt als der der Vorgabesprache. **Wechselt der Eigentümer die
+> Vorgabesprache, wandert der ganze Bestand der Grundzeilen mit** — auf der
+> Pille der neuen Vorgabesprache stehen danach Namen, die niemand in dieser
+> Sprache eingegeben hat, und die alte steht leer da. *An deinem Bestand ändert
+> das nichts; die eingetragenen Übersetzungen bleiben, wo sie sind.* **Unter
+> der Sprachzeile steht deshalb ein Hinweis, sobald die Vorgabesprache gezeigt
+> wird**: was dort steht, ist der Name der Grundzeile — gleichgültig, in
+> welcher Sprache er eingetragen wurde.
+
 ## Hell oder dunkel
 
 **Kriterion hat zwei Farbschemata, und jeder stellt für sich ein, welches er

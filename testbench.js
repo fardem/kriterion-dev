@@ -24245,15 +24245,20 @@ const shareMain = (purpose, target = null) =>
      am Ende der Liste weiterzaehlt, ohne die hoechste Nummer zu suchen, vergibt
      eine zweimal -- und zwei Rueckbauten mit derselben Nummer sind in der
      Tafel des Treibers nicht mehr auseinanderzuhalten.
-     750 SEIT 0.24.6: zehn neue (749 bis 758) fuer die drei Teile dieser Runde
+     751 SEIT 0.24.6: elf neue (749 bis 759) fuer die drei Teile dieser Runde
      -- fuenf an der Kette (dritter Schritt, genannte Sprache, Klammer,
      Reihenfolge, Vorrat), zwei am Kartenhinweis (er faellt weg, er steht
-     ueberall) und drei am Nachziehen der Tafeln (die Karte, der Server, die
-     Bedingung daneben). ZWEI SIND MITGEGANGEN statt geloescht zu werden
+     ueberall), drei am Nachziehen der Tafeln (die Karte, der Server, die
+     Bedingung daneben) und einer am Gewichtsfeld -- dem Befund, den der
+     Auftrag nicht kannte. ZWEI SIND MITGEGANGEN statt geloescht zu werden
      (Stolperstein 201): 744 zeigte auf `table[namesLanguage()]`, das jetzt
      eine Zeile darueber steht, und 745 auf den Vermerk, der seit dieser Runde
-     zwei Saetze kennt. */
-  check('Es sind genau 750 Rueckbauten', gpList.length === 750, `${gpList.length}`);
+     zwei Saetze kennt.
+     UND EINER IST IM GEFAHRENEN LAUF BERICHTIGT WORDEN: 755 tauschte im SATZ
+     des Kartenhinweises eine Sprache gegen eine andere -- und weil der Satz
+     nur gezeichnet wird, WENN die beiden gleich sind, war der Rueckbau ein
+     Nichts. **Er lief STUMM**; er zielt seither auf die BEDINGUNG. */
+  check('Es sind genau 751 Rueckbauten', gpList.length === 751, `${gpList.length}`);
   const gpTwice = gpList.map(r => r.nr).filter((n, i, a) => a.indexOf(n) !== i);
   check('Und keine Nummer steht zweimal', gpTwice.length === 0, gpTwice.join(' '));
   /* JEDER GREIFT: der Suchtext kommt in seiner Datei GENAU EINMAL vor. Keinmal
@@ -28280,6 +28285,87 @@ async function checkUi() {
     }
   }
 
+  /* DIE SCHRIFTGROESSE STEHT IN „Darstellung" UND DAMIT IN EINEM ANDEREN
+     ABSCHNITT ALS DAS VOKABULAR (Stolperstein 201): die Karte ist dieselbe
+     geblieben, ihr Platz nicht. */
+  await sysSection(w3, 'personal');
+  const levels = [...w3.document.querySelectorAll('#fsize .pill')];
+  check('Fuenf Schriftstufen zur Auswahl', levels.length === 5, `${levels.length}`);
+  check('Aktuelle Stufe ist hervorgehoben',
+    levels.find(b => b.classList.contains('on'))?.textContent === '120 %');
+  levels[0].dispatchEvent(new w3.Event('click'));
+  await new Promise(r => setTimeout(r, 30));
+  check('Klick auf eine Stufe wirkt sofort',
+    parseFloat(w3.document.documentElement.style.fontSize) === 12,
+    `ist: ${w3.document.documentElement.style.fontSize}`);
+  const saved = three.sent.filter(s => s.body && s.body.font !== undefined).pop();
+  check('Stufe wird serverseitig gespeichert',
+    saved && saved.method === 'PUT' && saved.body.font === 80,
+    JSON.stringify(saved));
+
+  /* --- Spitze Klammern im Vokabular duerfen kein HTML werden --- */
+  w3.close();
+  const four = buildDom(JSDOM, { settings: { filters: null, vocabulary: {
+    entryOne: '<b id="boese">X</b>', entryMany: '<i id="boese2">Y</i>',
+    testedYes: 'Ja', testedNo: 'Nein',
+    dayOne: 'Z', dayMany: '<u id="boese3">Zs</u>'
+  }}});
+  const w4 = four.w;
+  await new Promise(r => setTimeout(r, 80));
+  check('Uebersicht macht aus dem Vokabular kein HTML',
+    !w4.document.getElementById('boese') && !w4.document.getElementById('boese2') &&
+    !w4.document.getElementById('boese3') &&
+    w4.document.getElementById('new').textContent.includes('<b id="boese">X</b>'),
+    w4.document.getElementById('new').textContent);
+  // Auch Karte, Detailansicht und Verwaltungsliste setzen Vokabelwoerter ein.
+  w4.location.hash = '#/item/1';
+  await new Promise(r => setTimeout(r, 80));
+  check('Detailansicht macht aus dem Vokabular kein HTML',
+    !w4.document.getElementById('boese') && !w4.document.getElementById('boese3'));
+  await sysSection(w4, 'inventory');
+  check('Systembereich macht aus dem Vokabular kein HTML',
+    !w4.document.getElementById('boese2') && !w4.document.getElementById('boese3'));
+  w4.close();
+
+  /* --- Rueckfallprobe: Liste, Eintrag und Anmeldung — 0.24.0 -----------
+     DASSELBE ZEICHEN, DIE ANDEREN DREI ANSICHTEN. ⟦…⟧ steht am Bildschirm,
+     wo ein Schluessel fehlt -- und vor allem dort, wo eine Tabelle beim LADEN
+     der Datei ausgewertet wurde, als es noch keinen Text gab. Der
+     Systembereich steht in seiner eigenen Gruppe. */
+  {
+    const rf = buildDom(JSDOM, {});
+    await new Promise(r => setTimeout(r, 80));
+    const rfText = () => rf.w.document.body.textContent || '';
+    const rfFinding = [];
+    const rfLook = (wo) => {
+      const matched = (rfText().match(/\u27e6[^\u27e7]*\u27e7/g) || []);
+      if (matched.length) rfFinding.push(`${wo}: ${[...new Set(matched)].slice(0, 4).join(' ')}`);
+    };
+    rfLook('Liste');
+    const rfList = rfText().length;
+    rf.w.location.hash = '#/item/1';
+    await new Promise(r => setTimeout(r, 80));
+    rfLook('Eintrag');
+    const rfEntry = rfText().length;
+    rf.w.showLogin();
+    await new Promise(r => setTimeout(r, 40));
+    rfLook('Anmeldung');
+    check('Rueckfallprobe: kein ⟦…⟧ in Liste, Eintrag und Anmeldung',
+      rfFinding.length === 0, rfFinding.join(' · '));
+    check('Und die drei Ansichten tragen wirklich Text',
+      rfList > 200 && rfEntry > 200 && rfText().length > 50,
+      `${rfList} · ${rfEntry} · ${rfText().length} Zeichen`);
+    /* UND DAS ZEICHEN WUERDE WIRKLICH AUFFALLEN: der Helfer setzt es, wenn
+       ein Schluessel weder in der Sprache noch im Rueckfall steht. Ohne diese
+       Zeile waere die Probe oben auch dann gruen, wenn niemand mehr suchte
+       (Stolperstein 106). */
+    check('Und ein fehlender Schluessel wuerde als ⟦…⟧ dastehen',
+      rf.w.t('gibtesnicht.hier') === '\u27e6gibtesnicht.hier\u27e7',
+      rf.w.t('gibtesnicht.hier'));
+    rf.w.close();
+  }
+
+  /* ================= Zeitleiste ================= */
   /* ====== Die Vorgabesprache als zweite Achse — 0.24.6 ==================
      DIE TAFEL VON 0.24.5 BEKOMMT EINE ZWEITE ACHSE, und sie ist die
      Entscheidung des Betreibers zu F5 (9. September 2026).
@@ -28571,89 +28657,86 @@ async function checkUi() {
         nzAfter === nzBefore, `${nzBefore} → ${nzAfter} Abrufe von GET /api/settings`);
       wNz.close();
     }
+
+    /* ---- DAS GEWICHT BENENNT NICHTS UM — 0.24.6 ----------------------
+       EIN BEFUND, DEN DER AUFTRAG NICHT KANNTE, gefunden beim Gegenlesen des
+       eigenen Diffs.
+
+       DER SCHREIBWEG VERLANGT EINEN NAMEN (`server.nameMissing`), ein
+       Gewichtswechsel schickt also einen mit. Bis 0.24.5 schickte er
+       `entry.name` OHNE Sprachangabe -- und ohne Sprachangabe meint der Server
+       die GRUNDZEILE (`namedLanguage()`). **Wer auf der Pille „English" ein
+       Gewicht verstellte, benannte damit die Grundzeile in den englischen
+       Namen um**: der deutsche Name war weg, im Export, in der Sortierung und
+       fuer jeden anderen Leser. Niemand hat einen Namen angefasst, und
+       trotzdem stand danach ein anderer da.
+
+       ZWEI ZUSAGEN, UND DIE ZWEITE TRAEGT DIE SACHE: dass der Rumpf die
+       Sprache nennt, und dass der BESTAND danach unveraendert ist. Die erste
+       allein bliebe auch mit einer falschen Sprache gruen. */
+    {
+      const gwLanguages = axLanguages('de');
+      const gwNames = { en: { 7: 'First', 9: 'Last' }, tr: { 7: 'Birinci' } };
+      const gwDom = buildDom(JSDOM, {
+        settings: { filters: null, language: 'de', languages: gwLanguages },
+        criterionNames: gwNames, criteriaPhases: ['after', 'after', 'before']
+      });
+      const wGw = gwDom.w;
+      await new Promise(r => setTimeout(r, 80));
+      await sysSection(wGw, 'inventory');
+      await axPress(wGw, 'mcrits-lang', 'English');
+      const gwRow = [...wGw.document.querySelectorAll('#mcrits .mrow')]
+        .find(z => Number(z.dataset.mid) === 7);
+      const gwField = gwRow && gwRow.querySelector('.mweight-field');
+      check('Aufbau: die Zeile steht auf der englischen Pille und traegt ihr Gewichtsfeld',
+        !!gwField && (gwRow.querySelector('.mname') || {}).textContent.trim() === 'First',
+        gwRow ? `Name=${(gwRow.querySelector('.mname') || {}).textContent}` : 'keine Zeile 7');
+      if (gwField) {
+        gwField.value = '1,5';
+        gwField.dispatchEvent(new wGw.Event('change', { bubbles: true }));
+        await new Promise(r => setTimeout(r, 220));
+        const gwPut = gwDom.sent.filter(g => g.method === 'PUT' &&
+          g.url === '/api/criteria/7').pop();
+        check('Gewichtsprobe: der Rumpf nennt die Sprache, aus der der Name stammt',
+          !!gwPut && gwPut.body && gwPut.body.language === 'en',
+          JSON.stringify(gwPut && gwPut.body));
+        /* UND DER BESTAND IST UNVERAENDERT. Bis 0.24.5 stand hier danach
+           „First" in der Grundzeile. */
+        check('Und die Grundzeile heisst danach immer noch, wie sie hiess',
+          (gwDom.criteria.find(c => c.id === 7) || {}).name === 'Zuerst',
+          JSON.stringify((gwDom.criteria.find(c => c.id === 7) || {}).name));
+        check('Und das Gewicht ist wirklich angekommen',
+          (gwDom.criteria.find(c => c.id === 7) || {}).weight === 1.5,
+          JSON.stringify((gwDom.criteria.find(c => c.id === 7) || {}).weight));
+      }
+      /* UND AN EINER ZEILE MIT RUECKFALL: der Name stammt aus einer DRITTEN
+         Tafel, und der Rumpf muss DIESE nennen -- mit der Pille als Angabe
+         machte das Speichern aus dem Rueckfall einen Eintrag (B2 der Runde
+         0.24.4, an einem Feld, das gar keinen Namen aendern will). */
+      await axPress(wGw, 'mcrits-lang', 'Türkçe');
+      const gwBack = [...wGw.document.querySelectorAll('#mcrits .mrow')]
+        .find(z => Number(z.dataset.mid) === 8);
+      const gwBackField = gwBack && gwBack.querySelector('.mweight-field');
+      check('Aufbau: die Zeile ohne tuerkischen Namen steht als Rueckfall da',
+        !!gwBackField && !!gwBack.querySelector('.mfallback'),
+        gwBack ? 'kein Vermerk oder kein Feld' : 'keine Zeile 8');
+      if (gwBackField) {
+        gwBackField.value = '0,8';
+        gwBackField.dispatchEvent(new wGw.Event('change', { bubbles: true }));
+        await new Promise(r => setTimeout(r, 220));
+        const gwPut2 = gwDom.sent.filter(g => g.method === 'PUT' &&
+          g.url === '/api/criteria/8').pop();
+        check('Rueckfallprobe: der Rumpf nennt die Sprache des Rueckfalls und nicht die der Pille',
+          !!gwPut2 && gwPut2.body && gwPut2.body.language === 'de',
+          JSON.stringify(gwPut2 && gwPut2.body));
+        check('Und es ist kein tuerkischer Eintrag daraus geworden',
+          ((gwDom.criterionNames || {}).tr || {})[8] === undefined,
+          JSON.stringify((gwDom.criterionNames || {}).tr));
+      }
+      wGw.close();
+    }
   }
 
-  /* DIE SCHRIFTGROESSE STEHT IN „Darstellung" UND DAMIT IN EINEM ANDEREN
-     ABSCHNITT ALS DAS VOKABULAR (Stolperstein 201): die Karte ist dieselbe
-     geblieben, ihr Platz nicht. */
-  await sysSection(w3, 'personal');
-  const levels = [...w3.document.querySelectorAll('#fsize .pill')];
-  check('Fuenf Schriftstufen zur Auswahl', levels.length === 5, `${levels.length}`);
-  check('Aktuelle Stufe ist hervorgehoben',
-    levels.find(b => b.classList.contains('on'))?.textContent === '120 %');
-  levels[0].dispatchEvent(new w3.Event('click'));
-  await new Promise(r => setTimeout(r, 30));
-  check('Klick auf eine Stufe wirkt sofort',
-    parseFloat(w3.document.documentElement.style.fontSize) === 12,
-    `ist: ${w3.document.documentElement.style.fontSize}`);
-  const saved = three.sent.filter(s => s.body && s.body.font !== undefined).pop();
-  check('Stufe wird serverseitig gespeichert',
-    saved && saved.method === 'PUT' && saved.body.font === 80,
-    JSON.stringify(saved));
-
-  /* --- Spitze Klammern im Vokabular duerfen kein HTML werden --- */
-  w3.close();
-  const four = buildDom(JSDOM, { settings: { filters: null, vocabulary: {
-    entryOne: '<b id="boese">X</b>', entryMany: '<i id="boese2">Y</i>',
-    testedYes: 'Ja', testedNo: 'Nein',
-    dayOne: 'Z', dayMany: '<u id="boese3">Zs</u>'
-  }}});
-  const w4 = four.w;
-  await new Promise(r => setTimeout(r, 80));
-  check('Uebersicht macht aus dem Vokabular kein HTML',
-    !w4.document.getElementById('boese') && !w4.document.getElementById('boese2') &&
-    !w4.document.getElementById('boese3') &&
-    w4.document.getElementById('new').textContent.includes('<b id="boese">X</b>'),
-    w4.document.getElementById('new').textContent);
-  // Auch Karte, Detailansicht und Verwaltungsliste setzen Vokabelwoerter ein.
-  w4.location.hash = '#/item/1';
-  await new Promise(r => setTimeout(r, 80));
-  check('Detailansicht macht aus dem Vokabular kein HTML',
-    !w4.document.getElementById('boese') && !w4.document.getElementById('boese3'));
-  await sysSection(w4, 'inventory');
-  check('Systembereich macht aus dem Vokabular kein HTML',
-    !w4.document.getElementById('boese2') && !w4.document.getElementById('boese3'));
-  w4.close();
-
-  /* --- Rueckfallprobe: Liste, Eintrag und Anmeldung — 0.24.0 -----------
-     DASSELBE ZEICHEN, DIE ANDEREN DREI ANSICHTEN. ⟦…⟧ steht am Bildschirm,
-     wo ein Schluessel fehlt -- und vor allem dort, wo eine Tabelle beim LADEN
-     der Datei ausgewertet wurde, als es noch keinen Text gab. Der
-     Systembereich steht in seiner eigenen Gruppe. */
-  {
-    const rf = buildDom(JSDOM, {});
-    await new Promise(r => setTimeout(r, 80));
-    const rfText = () => rf.w.document.body.textContent || '';
-    const rfFinding = [];
-    const rfLook = (wo) => {
-      const matched = (rfText().match(/\u27e6[^\u27e7]*\u27e7/g) || []);
-      if (matched.length) rfFinding.push(`${wo}: ${[...new Set(matched)].slice(0, 4).join(' ')}`);
-    };
-    rfLook('Liste');
-    const rfList = rfText().length;
-    rf.w.location.hash = '#/item/1';
-    await new Promise(r => setTimeout(r, 80));
-    rfLook('Eintrag');
-    const rfEntry = rfText().length;
-    rf.w.showLogin();
-    await new Promise(r => setTimeout(r, 40));
-    rfLook('Anmeldung');
-    check('Rueckfallprobe: kein ⟦…⟧ in Liste, Eintrag und Anmeldung',
-      rfFinding.length === 0, rfFinding.join(' · '));
-    check('Und die drei Ansichten tragen wirklich Text',
-      rfList > 200 && rfEntry > 200 && rfText().length > 50,
-      `${rfList} · ${rfEntry} · ${rfText().length} Zeichen`);
-    /* UND DAS ZEICHEN WUERDE WIRKLICH AUFFALLEN: der Helfer setzt es, wenn
-       ein Schluessel weder in der Sprache noch im Rueckfall steht. Ohne diese
-       Zeile waere die Probe oben auch dann gruen, wenn niemand mehr suchte
-       (Stolperstein 106). */
-    check('Und ein fehlender Schluessel wuerde als ⟦…⟧ dastehen',
-      rf.w.t('gibtesnicht.hier') === '\u27e6gibtesnicht.hier\u27e7',
-      rf.w.t('gibtesnicht.hier'));
-    rf.w.close();
-  }
-
-  /* ================= Zeitleiste ================= */
   group('Zeitleiste der Testtage');
 
   const { w: wz } = buildDom(JSDOM, {});

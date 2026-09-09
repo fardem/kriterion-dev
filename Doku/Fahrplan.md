@@ -1,7 +1,7 @@
 # Fahrplan
 
-**Der Plan von 0.24.6 bis 1.0 · Stand 9. September 2026, nach dem Rundlauf mit
-0.24.5**
+**Der Plan von 0.25.0 bis 1.0 · Stand 9. September 2026, nach dem Bauen von
+0.24.6**
 
 **HIER STEHT, WAS EINE NUMMER HAT. SONST NIRGENDS.** *Was noch keine hat, steht
 im Sammelblatt `Doku/Fehler_und_Ideen.md`; was gebaut ist, steht im Projektstand
@@ -104,7 +104,7 @@ Sprachumschalter baut, hat damit ein Muster und braucht kein neues.**
 
 | Version | Name | Was | Schema | Format |
 |---|---|---|---|---|
-| **0.24.6** | **Der Rückfall sagt, welche Sprache er wirklich zeigt** | drei Teile aus dem Rundlauf mit 0.24.5 | nein | — |
+| ~~**0.24.6**~~ | ~~Der Rückfall sagt, welche Sprache er wirklich zeigt~~ | **GEBAUT am 9. September 2026** — Änderungsprotokoll 0.24.6 | nein | — |
 | **0.25.0** | **Die kleinen Fehler fallen — und das Potenzial wird abschaltbar** | Gruppe A: sechs Befunde, von denen der größte eine Messung braucht, **dazu eine Funktion** | nein | — |
 | **0.26.0** | **Die wählbare Bildablage** | drei Verfahren zur Wahl, dazu die Ableitungen auf WebP | nein | — |
 | **0.27.0** | **Das Telefon bekommt Recht** | Gruppe B, dazu das Blättern im Eintrag und das Startbildzeichen | nein | — |
@@ -134,10 +134,33 @@ die Vorgabesprache einen Eintrag hat.*
 | **E2** | **Der Vermerk nennt die Sprache, die er zeigen wollte, nicht die, die er zeigt.** Ist auch für die Vorgabesprache nichts eingetragen, steht der Name aus der Antwort in der **Lesersprache** da — und der Vermerk sagt trotzdem „Vorgabesprache" | klein |
 | **E3** | **Die Tafeln werden nach einem Wechsel der Vorgabesprache nicht nachgezogen.** `sendLanguages()` zieht `LANGUAGES` nach, `NAMES_ALL` nicht — die Karte rechnet mit neuer Vorgabe auf alter Tafel. *Derselbe Fehlertyp wie D2 in 0.24.5, eine Stelle weiter* | klein |
 
-**Der Auftrag steht als `Doku/Auftrag_0.24.6.md`**, mit sechs Fragen am Kopf —
-**alle offen.** *Die wichtigste ist die Rückfallkette: der Betreiber schlägt vor,
-auf eine Sprache zurückzufallen, die **wirklich einen Eintrag hat** („besser
-wäre Englisch, da es ja existiert"), statt starr auf die Vorgabesprache.*
+**Der Auftrag stand als `Doku/Auftrag_0.24.6.md`**, mit sechs Fragen am Kopf.
+**Alle sechs sind am 9. September 2026 vor der ersten Zeile beantwortet worden
+— und alle nach dem Vorschlag.**
+
+> ## GEBAUT AM 9. SEPTEMBER 2026
+>
+> **E2 und E3 sind behoben, E1 ist gekennzeichnet.**
+>
+> * **Die Rückfallkette hat vier Schritte** (F2): eingetragen → Vorgabesprache →
+>   **erste Sprache des Vorrats, die wirklich einen Eintrag hat**, in
+>   kanonischer Reihenfolge → und sonst, was hereinkam. *„Besser wäre Englisch,
+>   da es ja existiert" — genau das.* **Der Vermerk nennt die Sprache, deren
+>   Name wirklich dasteht**, und wo keine einzige etwas trägt, nennt er gar
+>   keine.
+> * **Die Namenstafeln ziehen nach** (F4): `PUT /api/settings` trägt sie, wenn
+>   Vorgabe oder Vorrat sich ändern, `takeNames()` nimmt sie an. Kein zweiter
+>   Abruf.
+> * **E1 ist gekennzeichnet und nicht behoben** (F3): unter der Pillenreihe
+>   steht ein gedämpfter Hinweis, sobald die Vorgabesprache gezeigt wird — was
+>   dort steht, ist der Name der Grundzeile.
+>
+> **WAS DAMIT OFFEN BLEIBT UND EINE NUMMER BRAUCHT:** die Grundzeile trägt
+> weiterhin keinen Sprachvermerk. **Der saubere Weg ist eine Spalte `language`
+> an `product_categories` und `rating_criteria` samt Migrationsblock** — eine
+> Datenbankstufe, und die letzte Runde, die das Schema anfassen darf, ist nach
+> dieser Tafel **0.28.0**. *Bis dahin bleibt es bei der Kennzeichnung; sie sagt
+> die Wahrheit, sie räumt sie nur nicht auf.*
 
 > **WARUM EINE EIGENE NUMMER UND NICHT 0.25.0:** es ist eine Reparatur an dem,
 > was 0.24.5 gebaut hat — **PATCH, gewöhnliches SemVer** —, und 0.25.0 hat eine

@@ -7198,14 +7198,20 @@ const REGRESSIONS = [
   {
     /* UND DIE ANDERE HAELFTE: er steht ueberall. Ein Hinweis, der immer
        dasteht, sagt nichts mehr -- und ohne diesen Rueckbau bliebe die
-       Zusage „und sonst nicht" ungeprueft. */
+       Zusage „und sonst nicht" ungeprueft.
+       ER ZIELT AUF DIE BEDINGUNG UND NICHT AUF DEN TEXT, und das hat der
+       gefahrene Lauf entschieden: der erste Entwurf tauschte im Satz
+       `baseNamesLanguage()` gegen `namesLanguage()` -- und weil der Satz nur
+       gezeichnet wird, WENN die beiden gleich sind, war der Rueckbau ein
+       Nichts. **Er lief STUMM** und belegte damit gar nichts (Stolperstein:
+       ein Rueckbau muss die Stelle treffen, die die Zusage traegt).
+       DERSELBE SUCHTEXT WIE 754 UND TROTZDEM EIN ZWEITER: der eine nimmt den
+       Hinweis weg, der andere stellt ihn ueberall hin. Verschiedene Zusagen,
+       verschiedene rote Punkte. */
     nr: '755', name: 'Der Hinweis auf die Grundzeile steht an jeder Pille',
     file: 'public/app.js',
-    search: "    note.textContent = t('card.namesBaseRow',\n" +
-      "      { language: languageNameOf(baseNamesLanguage()) });",
-    replacement: "    note.textContent = t('card.namesBaseRow',\n" +
-      "      { language: languageNameOf(namesLanguage()) });\n" +
-      "    note.dataset.always = '1';",
+    search: "  if (namesLanguage() === baseNamesLanguage()) {",
+    replacement: "  if (namesLanguage() || true) {",
     expected: 'Die Vorgabesprache als zweite Achse — 0.24.6'
   },
   {
@@ -7237,6 +7243,20 @@ const REGRESSIONS = [
     search: "             ...(isAdmin(req) && languagesTouched",
     replacement: "             ...(isAdmin(req)",
     expected: 'Die Namenstafeln je Sprache — 0.24.5'
+  },
+  {
+    /* UND DER BEFUND, DEN DER AUFTRAG NICHT KANNTE: der Gewichtswechsel
+       schickt seinen Namen wieder OHNE Sprachangabe -- und ohne Angabe meint
+       der Server die Grundzeile. Ein Gewicht auf der Pille „English" benannte
+       damit die Grundzeile in den englischen Namen um. */
+    nr: '759', name: 'Der Gewichtswechsel schickt den Namen ohne Sprache',
+    file: 'public/app.js',
+    search: "          const now = await api('PUT', `${url}/${entry.id}`, spec.perLanguage\n" +
+      "            ? { name: entry.name, weight: g, language: nameLanguage }\n" +
+      "            : { name: entry.name, weight: g });",
+    replacement: "          const now = await api('PUT', `${url}/${entry.id}`, " +
+      "{ name: entry.name, weight: g });",
+    expected: 'Die Vorgabesprache als zweite Achse — 0.24.6'
   }
 ];
 
