@@ -255,9 +255,55 @@ sie hängen an **genau einer** Klemme.
 
 ---
 
-## Die Gegenproben — zwölf, und gefahren
+## Die Gegenproben — zwölf, gefahren, 0 STUMM
 
-*(Die Tafel steht am Ende dieses Abschnitts; sie wird beim Fahren gefüllt.)*
+**Vier Nebenspuren, Versatz 3500 je Spur, jede Kopie aus `git archive HEAD` am
+gebauten Stand.** *Jeder der zwölf Läufe meldet denselben Nenner — **6161** —,
+und die Zahl ist damit zwölfmal unabhängig bestätigt.*
+
+> **KEIN RÜCKBAU IST STUMM GEBLIEBEN.** Ein Rückbau, der keine einzige Prüfung
+> rot macht, ist ein Fund und kein Erfolg; zwölf von zwölf haben namentlich rot
+> gefärbt.
+
+| # | Rückbau | Datei | namentlich rot |
+|---|---|---|---|
+| **737** | Die Namenstafeln fallen aus der Antwort | `server.js` | **8** — die ganze Servergruppe |
+| **738** | Die Namenstafeln gehen an jeden | `server.js` | **2** — die Rollenprobe und „genau eine Klemme" |
+| **739** | Die Tafel trägt den Rückfall schon eingesetzt | `server.js` | **1** — „wo nichts eingetragen ist, steht auch nichts" |
+| **740** | Der Bauer der Kriterientafel nimmt wieder eine Sprache an | `server.js` | **2** — die Tafel selbst und der Wächter am Quelltext |
+| **741** | Der Listenweg folgt nicht mehr dem Leser | `server.js` | **7** — in **vier** Gruppen |
+| **742** | `api()` nimmt wieder eine fremde Sprache an | `public/app.js` | **1** — der Wächter am Quelltext |
+| **743** | Der Kopf trägt wieder, was der Rufer verlangt | `public/app.js` | **1** — der Wächter am Quelltext |
+| **744** | Die Karte liest die Namenstafel nicht mehr | `public/app.js` | **26** — die 18 Zellen, die Folgeprobe, die Rückfallprobe |
+| **745** | Der Vermerk am Rückfall fällt weg | `public/app.js` | **5** — in **drei** Gruppen |
+| **746** | Das Umbenennfeld trägt wieder den Rückfall als Wert | `public/app.js` | **1** |
+| **747** | `drawAdmin` liest wieder an `namesFrom` vorbei | `public/app.js` | **2** |
+| **748** | `adminNew` zieht die Namenstafeln nicht nach | `public/app.js` | **1** |
+
+### Vier Zeilen dieser Tafel sagen mehr als ihre Zahl
+
+**741 färbt in VIER Gruppen** — im Rückfall der Namen (0.24.3), in den Befunden
+von 0.24.4 und zweimal in dieser Runde. ***Das ist der Beleg, dass `localeOf`
+wirklich unberührt geblieben ist:*** wer die Reihenfolge der drei Quellen für
+die Namen umdrehte, um diesen Befund „einfacher" zu reparieren, träfe damit
+Zusagen aus zwei früheren Runden.
+
+**742 und 743 färben je genau EINE Prüfung** — und das ist kein Mangel, sondern
+der Grund, warum diese beiden Wächter existieren. *Der fünfte Wert an `api()`
+und ein Kopf, der wieder eine fremde Sprache trägt, ändern am Bildschirm
+nichts: sie öffnen nur einen Weg wieder, den es nicht mehr geben soll.* **Ohne
+diese zwei Zeilen käme er in der nächsten Runde wortlos zurück.**
+
+**739 färbt genau eine Zeile, und zwar auf der Serverseite** — die 27 Zellen
+bleiben grün. *Das ist richtig und wäre ohne die Servergruppe unbemerkt
+geblieben:* die Prüflagen am Bildschirm arbeiten gegen den Mock, und der baut
+seine Tafeln selbst. **Ein Fehler in `namesAll()` erreicht die Karte im
+Prüfstand gar nicht** — er braucht einen Wächter am laufenden Server.
+
+**745 färbt auch außerhalb dieser Runde** — in „Die sieben Wächter der
+Sprachdatei" (0.24.0). *Fällt der Vermerk weg, ruft niemand mehr
+`card.nameFallback`, und der Wächter über die ungerufenen Schlüssel schlägt an.*
+**Eine Karteileiche wird gefunden, ohne dass jemand sie gesucht hätte.**
 
 ---
 
