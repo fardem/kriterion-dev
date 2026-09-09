@@ -254,9 +254,15 @@
   "card.keyManagerHint": "key — keep it in a password\n               manager.",
   "card.keyStillBeside": "The key still sits next to the database",
   "card.labelOnlyHint": "Only the labelling\n          changes",
+  "card.languageComplete": "complete — every row has an entry",
+  "card.languageDefaultNow": "{language} is now the default language — {names} and {words} are missing.",
   "card.languageDefaultSaved": "Default language saved",
   "card.languageDefaultTip": "This language applies as long as nobody has chosen their own",
   "card.languageHint": "Language of the interface, the messages and your emails.\n          Takes effect at once and applies on every device you sign in on.",
+  "card.languageMissing": {
+    "one": "1 name missing",
+    "other": "{n} names missing"
+  },
   "card.languagePoolSaved": "Selection saved",
   "card.languages": "Languages",
   "card.languagesFileAfter": "gets one language more — without a rebuild. The front part of the\n          file name is the language tag according to BCP 47.",
@@ -335,13 +341,26 @@
   "card.mySessions": "My sessions",
   "card.name": "Name",
   "card.nameFallback": "(not entered — showing {language})",
-  "card.nameFallbackNone": "(not entered)",
   "card.nameFreedHint": "The name is free again and is not stored; their posts appear under\n      “Deleted user &lt;number&gt;”. A deleted user cannot be\n      restored — whoever only wants to lock them out,",
+  "card.nameOriginal": "(original text — language unknown)",
+  "card.nameRemove": "Remove entry",
+  "card.nameRemoveAsk": "Remove entry?",
+  "card.nameRemoved": "Entry removed",
+  "card.nameRemoveHint": "The name in {language} will be deleted; the original text stays.",
   "card.names": {
     "one": "1 name",
     "other": "{n} names"
   },
-  "card.namesBaseRow": "{language} is the default language: what stands here is the base row's name — whichever language it was entered in.",
+  "card.namesAssign": "record all as {language}",
+  "card.namesAssigned": {
+    "one": "1 name is now recorded as {language}.",
+    "other": "{n} names are now recorded as {language}."
+  },
+  "card.namesUnknown": {
+    "one": "1 name without a language",
+    "other": "{n} names without a language"
+  },
+  "card.namesUnknownHint": "For these names it is not recorded which language they are written in.",
   "card.neededToSave": "(needed for saving)",
   "card.needsMailHint": "Switching it on is only possible once mail delivery is set up.",
   "card.never": "never yet",
@@ -706,6 +725,10 @@
   "card.withoutServerSetting": "Without the server setting",
   "card.withoutVideosHint": "Without the tick on the videos they usually get small enough.",
   "card.withPhotos": "with photos",
+  "card.wordsMissing": {
+    "one": "1 vocabulary word",
+    "other": "{n} vocabulary words"
+  },
   "card.yourRecoveryCodes": "Your {length} recovery codes — they are\n      shown this one time only.",
   "dialog.appWideHint": "This change affects the whole installation. Confirm with your ",
   "dialog.cancel": "Cancel",
@@ -1237,6 +1260,7 @@
   "server.mailAccountMissing": "No complete mail account is set up.",
   "server.nameExists": "This name already exists.",
   "server.nameMissing": "Enter a name.",
+  "server.nameOriginalStays": "The original text cannot be removed — it is the row’s name.",
   "server.noFile": "No file submitted",
   "server.noTextPreview": "There is no text preview for this file.",
   "server.ownEmailMissing": "No email address is stored for your account. Enter it under Settings › My account — the test email goes to your own address only.",

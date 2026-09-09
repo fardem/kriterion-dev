@@ -792,8 +792,16 @@ button { cursor: pointer; background: none; border: none; padding: 0; }
    Vermerk unter dem Namen gestellt.
    Gedämpft und kursiv wie `.mrow .mfallback` darunter: beide sind Auskünfte
    über das, was dasteht, und keine Aktionen. */
+/* DIESELBE ZEILE IN DER KARTE „SPRACHEN" — 0.25.0 (F4). Sie sagt nach dem
+   Umschalten an Ort und Stelle, was der neuen Vorgabesprache fehlt; die Glocke
+   bleibt außen vor, denn wer umschaltet, ist selbst der Handelnde.
+   ZWEI ORTE, EIN AUSSEHEN: gedämpft und kursiv wie jede Auskunft in dieser
+   Oberfläche. Der Abstand ist größer, weil sie unter einer Liste steht und
+   nicht unter einer Pillenreihe. */
 .pills .langnote { flex-basis: 100%; margin: 2px 0 0; font-size: .68rem;
   color: var(--faint); font-style: italic; line-height: 1.35; }
+.engine-list .langnote { margin: 8px 0 0; font-size: .72rem;
+  color: var(--faint); font-style: italic; line-height: 1.45; }
 .pill {
   padding: 5px 12px; border-radius: 999px;
   border: 1px solid var(--line); background: var(--surface);
@@ -832,6 +840,14 @@ button { cursor: pointer; background: none; border: none; padding: 0; }
    Ueberfahren aus wie jede andere. */
 .pill-derived:hover { border-color: var(--accent); color: var(--accent-text); }
 .pill .n { opacity: .55; margin-left: 4px; font-size: .7rem; }
+/* DER PUNKT AN EINER VOLLSTÄNDIGEN SPRACHPILLE — 0.25.0. Er sagt „für jede
+   Zeile ist etwas eingetragen"; wo etwas fehlt, steht stattdessen die ZAHL
+   (`.n` darüber) — sie sagt, ob es ein Handgriff oder ein Nachmittag ist.
+   DIESELBE DÄMPFUNG WIE DIE ZAHL, und aus demselben Grund: er ist eine
+   Auskunft über die Sprache und nicht ihr Name. In der gewählten Pille steht
+   er damit gedämpft IM Orange — zwei Aussagen, zwei Merkmale: die Füllung
+   sagt „gewählt", Punkt und Zahl sagen „vollständig" oder „lückig". */
+.pill .dot { opacity: .5; margin-left: 5px; font-size: .58rem; vertical-align: middle; }
 /* Das Kreuz an einer gespeicherten Ansicht. Es liegt IM Knopf -- ein Knopf im
    Knopf gibt es in HTML nicht --, ist deshalb ein span und traegt seinen
    Klickfaenger in JS. Gedaempft, damit es nicht mit dem Namen um
@@ -1734,6 +1750,14 @@ mark {
    gespeichert() in app.js und nach dem Ablauf wieder genommen, damit die
    naechste Speicherung wieder von vorn anfaengt. */
 .sys-card.saved { animation: card-saved .4s var(--ease); }
+/* DIE KACHEL MIT FEHLENDEN ZELLEN — 0.25.0 (F3). Sie sagt „hier, jetzt, in
+   dieser Ansicht ist Arbeit"; wo sonst noch, sagen die Zahlen in den Pillen.
+   ROT UND KEIN NEUER TON: dieselbe Farbe, mit der diese Oberfläche überall
+   auf etwas Offenes zeigt. Rand und ein schmaler Hof, wie beim gespeicherten
+   Rand darüber — nur ohne Ablauf: er steht, solange die Lücke steht.
+   KEINE FLÄCHE. Eine eingefärbte Kachel läse sich als Fehler; hier ist nichts
+   kaputt, es ist nur etwas nicht eingetragen. */
+.sys-card.gaps { border-color: rgba(var(--red-rgb), .55); box-shadow: 0 0 0 3px var(--red-dim); }
 @keyframes card-saved {
   0% { border-color: var(--green); box-shadow: 0 0 0 3px var(--green-dim); }
   100% { border-color: var(--line-2); box-shadow: none; }
@@ -1797,6 +1821,13 @@ mark {
 .kv .v { font-family: var(--mono); font-size: .83rem; }
 .vocabulary-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 0 12px; }
 .vocabulary-grid .field { margin-bottom: 10px; }
+/* EIN VOKABELFELD OHNE EINTRAG — 0.25.0, Bauabschnitt 4. Gedämpft markiert,
+   wie die Zeile am Rückfall in den Namenskarten: die Beschriftung blasser, das
+   Feld mit gestricheltem Rand. Es ist kein Fehler — was fehlt, ersetzt die
+   Vorgabe der Sprachdatei, und die steht als Hinweis darunter. Die Markierung
+   sagt nur: für DIESE Sprache hat es niemand eingetragen. */
+.vocabulary-grid .field.gap label { color: var(--faint); }
+.vocabulary-grid .field.gap .input { border-style: dashed; }
 .vocabulary-preview {
   display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px;
   margin-top: 4px; padding: 10px 12px;
@@ -1970,10 +2001,31 @@ mark {
 .mrow .mnamebox .mname { flex: none; }
 .mrow .mfallback { font-size: .68rem; color: var(--faint); font-style: italic;
   min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* UND DER NAME SELBST, WENN ER EIN RÜCKFALL IST — 0.25.0. Blass und kursiv:
+   was dasteht, ist nicht der Name dieser Sprache, sondern der einer anderen.
+   NICHT SO BLASS WIE DER VERMERK DARUNTER (`--muted` statt `--faint`): er ist
+   immer noch der Name, den ein Leser dieser Sprache zu sehen bekommt, und muss
+   lesbar bleiben. Die Dämpfung sagt „geliehen", nicht „unwichtig". */
+.mrow .mname.back { color: var(--muted); font-style: italic; }
+/* DER KASTEN FÜR DIE UNBEKANNTE ERSTELLUNGSSPRACHE — 0.25.0 (F2). Eine Zahl,
+   ein Satz und EIN Knopf, abgesetzt wie ein Hinweiskasten und ohne Farbe: es
+   ist eine Nachfrage und keine Warnung. Er steht nur da, solange es etwas zu
+   fragen gibt — nach dem Zuordnen ist er weg und kommt nicht wieder. */
+.namegap { border: 1px dashed var(--line-2); border-radius: var(--r-sm);
+  padding: 10px 12px; margin-bottom: 12px; }
+.namegap .desc { font-size: .82rem; }
 .mrow .mact { color: var(--faint); font-size: .8rem; padding: 3px 6px; border-radius: 4px; opacity: 0; transition: all .15s var(--ease); }
 .mrow:hover .mact { opacity: 1; }
 .mrow .mact:hover { color: var(--accent-text); background: var(--accent-dim); }
 .mrow .mact.rm:hover { color: var(--red); background: var(--red-dim); }
+/* DER RADIERER — 0.25.0 (F5). Er steht DAUERHAFT da und nicht erst beim
+   Überfahren wie ✎ und ✕ daneben: er erscheint ohnehin nur an einer Zeile,
+   für die in dieser Sprache wirklich etwas eingetragen ist, und ist damit
+   selbst schon die Auskunft „hier steht ein Eintrag". Beim Überfahren wird er
+   orange wie jeder Griff, der etwas ändert — und nicht rot: die Zeile bleibt,
+   nur ihr Name in dieser einen Sprache geht. */
+.mrow .mact.nx { opacity: .5; }
+.mrow:hover .mact.nx { opacity: 1; }
 .mrow input.medit { flex: 1; background: var(--bg); border: 1px solid var(--accent); border-radius: 5px; padding: 4px 8px; font-size: .87rem; }
 /* Das Gewicht in der Kriterienzeile, zwischen Name und Verwendungszaehler.
    Anders als ✎ und ✕ steht es DAUERHAFT da (kein opacity: 0 bis zum

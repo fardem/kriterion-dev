@@ -79,6 +79,19 @@ const SCHEMA = `
 CREATE TABLE IF NOT EXISTS product_categories (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   name TEXT NOT NULL UNIQUE COLLATE NOCASE,
+  -- IN WELCHER SPRACHE DIESER NAME GESCHRIEBEN IST -- 0.25.0, Bauabschnitt 1.
+  -- Bis 0.24.6 stand das nirgends, und baseLanguage() schrieb die Zeile
+  -- derjenigen Sprache zu, die GERADE Vorgabe ist. Wer die Vorgabe wechselte,
+  -- verschob damit den ganzen Bestand von einer Namenstafel in die andere --
+  -- kein Datenverlust, eine falsche Zuordnung (Befund A1).
+  -- NULL IST ERLAUBT UND BEDEUTET ETWAS: „in welcher Sprache dieser Name
+  -- geschrieben ist, weiss niemand". Das ist der Zustand des Bestands nach dem
+  -- Einspielen von 0.25.0 -- die Migration fuellt NICHTS (F2), und die Karte
+  -- bietet einen Knopf zum Zuordnen an. Das System behauptet nie etwas
+  -- Falsches.
+  -- AB 0.25.0 ENTSTEHT KEINE ZEILE MEHR OHNE SPRACHVERMERK: der Anlegeweg
+  -- traegt die Sprache des Rufers ein, der Import die der Datei.
+  language TEXT,
   created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
@@ -271,6 +284,12 @@ CREATE TABLE IF NOT EXISTS rating_criteria (
   -- kennt kein ALTER CONSTRAINT), und „Wunsch" in beiden Kaesten waere fuer
   -- den Benutzer ohnehin ein Raetsel.
   phase TEXT NOT NULL DEFAULT 'after',
+  -- IN WELCHER SPRACHE DIESER NAME GESCHRIEBEN IST -- 0.25.0, Bauabschnitt 1.
+  -- Dieselbe Spalte mit derselben Bedeutung wie an product_categories, und
+  -- aus demselben Grund: die Grundzeile trug bis 0.24.6 keinen Sprachvermerk
+  -- und wurde deshalb derjenigen Sprache zugerechnet, die gerade Vorgabe war.
+  -- NULL heisst „unbekannt" und nicht „keine".
+  language TEXT,
   created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
@@ -1606,6 +1625,63 @@ function migration0210() {
 migration0210();
 // ENDE MIGRATION 0.21.0
 
+// MIGRATION 0.25.0 — ENTFAELLT MIT 1.0
+/* ====== DER NAME BEKOMMT SEINE SPRACHE ===================================
+
+   ZWEI SPALTEN, EIN BLOCK, KEIN RUECKSCHREIBEN. `product_categories.language`
+   und `rating_criteria.language` sagen, IN WELCHER SPRACHE der Name der
+   Grundzeile geschrieben ist. Bis 0.24.6 stand das nirgends -- `baseLanguage()`
+   schrieb die Zeile derjenigen Sprache zu, die GERADE Vorgabe ist, und damit
+   war die Frage „existiert fuer die Vorgabesprache ein Eintrag?" nicht
+   wahrheitsgemaess zu beantworten (Befund A1 des Auftrags 0.25.0).
+
+   DER BLOCK FUELLT NICHTS -- Frage F2, vom Betreiber am 9. September 2026
+   entschieden: *„nichts -- und einmal nachfragen."* Er legt die beiden Spalten
+   an und laesst sie leer.
+
+   WARUM NICHT DIE VORGABESPRACHE EINTRAGEN: das waere genau die Behauptung,
+   die diese Runde beseitigt. Eine Instanz, deren Vorgabe heute `tr` ist,
+   waehrend der Bestand deutsch eingetragen wurde, bekaeme damit einen ganzen
+   Satz Zeilen, die „auf Tuerkisch" heissen und es nicht sind -- und niemand
+   saehe es je wieder. NULL heisst „weiss niemand", und das stimmt. Die Karte
+   fragt EINMAL nach und traegt danach ein, was der Eigentuemer sagt.
+
+   HINTER db.exec(SCHEMA), wie jeder ADD-COLUMN-Block hier: die DDL ruehrt mit
+   `IF NOT EXISTS` eine vorhandene Tabelle nicht an (Stolperstein 13). Eine
+   frische Datenbank bekommt die Spalte aus der DDL, eine gewachsene hier.
+
+   WIEDERHOLBAR UND IM NORMALFALL STUMM: gefragt wird die Tabelle selbst --
+   traegt sie die Spalte schon? --, nicht ein Merker. Ein zweiter Lauf findet
+   sie und sagt nichts.
+
+   BEIDE TABELLEN IN EINEM BLOCK UND NICHT IN ZWEIEN: es ist EINE Aussage
+   ueber den Bestand („die Namen wissen jetzt, in welcher Sprache sie
+   geschrieben sind"), und zwei Meldungen darueber waeren zweimal dieselbe.
+   Gezaehlt wird trotzdem je Tabelle -- die Meldung sagt, wie viele Zeilen auf
+   die Nachfrage warten.
+
+   ZU 1.0 FAELLT DER BLOCK WEG, die Spalten in der DDL bleiben. */
+function migration0250Language() {
+  const missing = [];
+  for (const table of ['product_categories', 'rating_criteria']) {
+    const columns = db.prepare(`PRAGMA table_info(${table})`).all().map(c => c.name);
+    if (!columns.includes('language')) missing.push(table);
+  }
+  if (!missing.length) return 0;
+  for (const table of missing) db.exec(`ALTER TABLE ${table} ADD COLUMN language TEXT`);
+  /* GEZAEHLT WIRD UEBER BEIDE TABELLEN UND NICHT NUR UEBER DIE ERGAENZTEN:
+     die Zahl in der Meldung ist die Antwort auf „wie viel Arbeit wartet in der
+     Karte", und darauf antwortet der ganze Bestand. */
+  const n = db.prepare('SELECT COUNT(*) AS n FROM product_categories WHERE language IS NULL').get().n +
+            db.prepare('SELECT COUNT(*) AS n FROM rating_criteria WHERE language IS NULL').get().n;
+  console.log(`[Kriterion] ${missing.join(' und ')} um language ergaenzt (Migration auf 0.25.0); ` +
+    `${n} ${n === 1 ? 'Name steht' : 'Namen stehen'} ohne Sprachangabe da — ` +
+    `die Karte „Kategorien" fragt einmal nach.`);
+  return 1;
+}
+migration0250Language();
+// ENDE MIGRATION 0.25.0 (der Name bekommt seine Sprache)
+
 /* ================= DIE INDIZES AUF NACHGERUESTETE SPALTEN =================
    SIE STEHEN HIER UNTEN UND NICHT IN DER DDL, und der Grund ist ein Befund des
    Pruefstands -- zweimal derselbe, in zwei Stufen.
@@ -1756,10 +1832,20 @@ function assignInventory() {
 assignInventory();
 
 // --- Grundausstattung ---
+/* DIE DREI MITGELIEFERTEN KRITERIEN STEHEN AUF DEUTSCH, und seit 0.25.0 sagen
+   sie es auch: die Spalte `language` traegt ihre Sprache, wie bei jeder Zeile,
+   die ab dieser Runde entsteht.
+   `de` STEHT HIER ALS ZEICHENFOLGE UND NICHT ALS RUF: diese Datei kennt die
+   Sprachdateien nicht -- sie liegen im Server. Was sie kennt, ist der Text
+   daneben, und der ist deutsch. Dieselbe Bauform wie LANGUAGE_BEFORE_0243.
+   EINE BEHAUPTUNG IST DAS NICHT: die drei Namen stehen zwei Zeilen darueber,
+   und wer sie liest, sieht die Sprache. Der Vermerk sagt, was dasteht. */
+const SEED_LANGUAGE = 'de';
 const seedCriteria = ['Optische Erscheinung', 'Verarbeitungsqualität', 'Funktionalität'];
-const insertCriterion = db.prepare('INSERT OR IGNORE INTO rating_criteria (name) VALUES (?)');
+const insertCriterion = db.prepare(
+  'INSERT OR IGNORE INTO rating_criteria (name, language) VALUES (?, ?)');
 if (db.prepare('SELECT COUNT(*) n FROM rating_criteria').get().n === 0) {
-  for (const c of seedCriteria) insertCriterion.run(c);
+  for (const c of seedCriteria) insertCriterion.run(c, SEED_LANGUAGE);
 }
 
 // Reihenfolge der Kriterien lueckenlos durchnummerieren; reihenfolgetreu und
@@ -1807,4 +1893,6 @@ module.exports = { db, DATA_DIR, DB_FILE, keyFromEnv: key.fromEnv, keyHex: key.h
                    // MIGRATION 0.19.0 — ENTFAELLT MIT 1.0
                    migration0190,
                    // MIGRATION 0.21.0 — ENTFAELLT MIT 1.0
-                   migration0210 };
+                   migration0210,
+                   // MIGRATION 0.25.0 — ENTFAELLT MIT 1.0
+                   migration0250Language };

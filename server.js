@@ -2921,8 +2921,12 @@ const number = (n, locale = languageDefault()) => new Intl.NumberFormat(
 // beiden Karten. Die Reihenfolge bleibt sort_order, id ueber BEIDE Kaesten:
 // wer je Phase filtert, bekommt sie damit in sich richtig sortiert, ohne dass
 // hier eine zweite Ordnung stuende.
+// language steht mit in der Liste -- 0.25.0: die Karte muss wissen, WELCHE
+// Sprache die Grundzeile traegt. Daran haengt das ✕ (der Originaltext laesst
+// sich nicht raeumen) und der Feldwert beim Gewichtswechsel. Die Kategorien
+// tragen es ohnehin, ihre Abfrage holt `c.*`.
 const qCriteria = db.prepare(`
-  SELECT c.id, c.name, c.sort_order, c.weight, c.phase, c.created_at,
+  SELECT c.id, c.name, c.language, c.sort_order, c.weight, c.phase, c.created_at,
          (SELECT COUNT(DISTINCT r.item_id) FROM ratings r
            WHERE r.criterion_id = c.id AND r.value > 0) AS usage_count
   FROM rating_criteria c ORDER BY c.sort_order, c.id`);
@@ -2958,9 +2962,15 @@ app.post('/api/criteria', adminOnly, (req, res) => {
   // keine Phase -- „Wunsch" gibt es einmal oder gar nicht.
   if (db.prepare('SELECT 1 FROM rating_criteria WHERE name = ? COLLATE NOCASE').get(name))
     return res.status(409).json({ error: t(localeOf(req), 'server.criterionExists')});
+  /* UND ES BEKOMMT SEINE SPRACHE SOFORT -- 0.25.0, Bauabschnitt 1. Dieselbe
+     Zeile wie an der Kategorie und aus demselben Grund. */
+  const critNew = newLanguage(req);
+  if (critNew === null)
+    return res.status(400).json({ error: t(localeOf(req), 'server.languageUnknown')});
   const pos = db.prepare('SELECT COALESCE(MAX(sort_order), -1) AS m FROM rating_criteria').get().m + 1;
-  const i = db.prepare('INSERT INTO rating_criteria (name, sort_order, phase) VALUES (?, ?, ?)')
-    .run(name, pos, phase);
+  const i = db.prepare(
+    'INSERT INTO rating_criteria (name, sort_order, phase, language) VALUES (?, ?, ?, ?)')
+    .run(name, pos, phase, critNew);
   /* DIE ANTWORT TRAEGT DEN NAMEN DER GELESENEN SPRACHE -- hier ist das der
      eben eingetragene: ein frisches Kriterium hat noch keine Uebersetzung. */
   res.status(201).json(named([db.prepare('SELECT * FROM rating_criteria WHERE id = ?')
@@ -2978,8 +2988,6 @@ app.put('/api/criteria/order', adminOnly, (req, res) => {
 });
 
 app.put('/api/criteria/:id', adminOnly, (req, res) => {
-  const name = (req.body.name || '').trim();
-  if (!name) return res.status(400).json({ error: t(localeOf(req), 'server.nameMissing')});
   /* DER KASTEN LAESST SICH NACH DEM ANLEGEN NICHT MEHR WECHSELN, und der
      Versuch wird ABGEWIESEN und nicht still uebergangen: ein uebergangenes
      Feld sieht fuer den Aufrufer aus wie ein gesetztes.
@@ -2991,16 +2999,29 @@ app.put('/api/criteria/:id', adminOnly, (req, res) => {
      schon umbenanntes Kriterium folgen. */
   if (req.body.phase !== undefined)
     return res.status(400).json({ error: t(localeOf(req), 'server.criterionKindFixed')});
-  if (!db.prepare('SELECT 1 FROM rating_criteria WHERE id = ?').get(req.params.id))
-    return res.status(404).json({ error: t(localeOf(req), 'server.criterionGone')});
-  const critLanguage = namedLanguage(req);
-  if (critLanguage === null)
+  const critRow = db.prepare('SELECT id, name, language FROM rating_criteria WHERE id = ?')
+    .get(req.params.id);
+  if (!critRow) return res.status(404).json({ error: t(localeOf(req), 'server.criterionGone')});
+  const critLanguage = namedLanguage(req, critRow.language);
+  if (critLanguage === false)
     return res.status(400).json({ error: t(localeOf(req), 'server.languageUnknown')});
+  /* DAS ✕ AM FELD -- 0.25.0 (F5), dieselbe Stelle wie an der Kategorie: VOR
+     der Namensfrage, weil ein Raeumen keinen Namen mitschickt.
+     ES RUEHRT DAS GEWICHT NICHT AN. Wer raeumt, raeumt einen NAMEN weg; das
+     Gewicht gehoert dem Kriterium und nicht einer seiner Sprachen. */
+  if (req.body.clearName === true)
+    return sendCleared(req, res, 'criterion_names', 'criterion_id', critRow, critLanguage,
+      () => named([db.prepare('SELECT * FROM rating_criteria WHERE id = ?').get(critRow.id)],
+        criterionNames(localeOf(req)))[0]);
+  const name = (req.body.name || '').trim();
+  if (!name) return res.status(400).json({ error: t(localeOf(req), 'server.nameMissing')});
   /* DER NAMENSSTREIT GILT JE SPRACHE. In der Grundtabelle haelt ihn
      UNIQUE(name); in einer zweiten Sprache wird er hier gefragt -- zwei
      Kriterien, die auf Englisch gleich heissen, waeren am Bildschirm nicht
-     auseinanderzuhalten. */
-  const clash = critLanguage === baseLanguage()
+     auseinanderzuhalten.
+     GEFRAGT WIRD DIE GRUNDTABELLE, WENN DIE ERSTELLUNGSSPRACHE DER ZEILE
+     GEMEINT IST -- 0.25.0, dieselbe Aenderung wie an der Kategorie. */
+  const clash = critLanguage === critRow.language
     ? db.prepare('SELECT id FROM rating_criteria WHERE name = ? COLLATE NOCASE AND id != ?')
         .get(name, req.params.id)
     : db.prepare(`SELECT criterion_id AS id FROM criterion_names
@@ -3021,11 +3042,10 @@ app.put('/api/criteria/:id', adminOnly, (req, res) => {
      halb durchlaufen. COALESCE laesst das Gewicht stehen, wenn keines kam.
      DER NAME EINER ZWEITEN SPRACHE RUEHRT DIE GRUNDZEILE NICHT AN -- dort
      aendert sich dann nur das Gewicht, und das gilt fuer alle Sprachen. */
-  const critBase = db.prepare('SELECT name FROM rating_criteria WHERE id = ?').get(req.params.id).name;
   const critRenameBase = writeName('criterion_names', 'criterion_id',
-    req.params.id, critLanguage, name, critBase);
+    req.params.id, critLanguage, name, critRow.language);
   db.prepare('UPDATE rating_criteria SET name = ?, weight = COALESCE(?, weight) WHERE id = ?')
-    .run(critRenameBase ? name : critBase, weight, req.params.id);
+    .run(critRenameBase ? name : critRow.name, weight, req.params.id);
   res.json(named([db.prepare('SELECT * FROM rating_criteria WHERE id = ?').get(req.params.id)],
     criterionNames(localeOf(req)))[0]);
 });
@@ -3036,131 +3056,246 @@ app.delete('/api/criteria/:id', adminOnly, (req, res) => {
   res.status(204).end();
 });
 
-/* ======== DIE NAMEN JE SPRACHE — 0.24.3, Bauabschnitt 6a ==================
-   EIN LESER FUER BEIDE TABELLEN, und er gibt eine Tafel statt einer Zeile:
-   die Namen werden immer fuer eine ganze LISTE gebraucht -- alle Kriterien
-   eines Eintrags, alle Kategorien der Karte --, und eine Abfrage je Zeile
-   waere ein N+1 an einer Stelle, die jeder Seitenaufbau anfasst.
+/* ======== DIE KETTE — 0.25.0, Bauabschnitt 2 ==============================
+   EIN AUFLOESER, UND ZWAR GENAU EINER. Er bekommt eine Zeile und die Sprache
+   des Lesers und gibt zurueck: WELCHER Name, aus WELCHER Sprache, und ob es
+   ein Rueckfall ist. Vier Schritte, und die Reihenfolge ist die des Betreibers
+   vom 9. September 2026:
 
-   DER RUECKFALL IST DIE ABWESENHEIT EINER ZEILE. Wer keine Uebersetzung
-   eingetragen hat, bekommt den Namen der Grundtabelle -- den der zuerst
-   angelegten Sprache. Deshalb steht hier kein COALESCE und kein zweiter
-   Zweig: `named()` setzt ein, was es findet, und laesst stehen, was es nicht
-   findet.
+     1. Eintrag in der Sprache des LESERS          -> zeigen, ohne Vermerk
+     2. sonst Eintrag in der VORGABESPRACHE        -> zeigen + Vermerk
+     3. sonst Eintrag in der ERSTELLUNGSSPRACHE    -> zeigen + Vermerk
+        der Zeile
+     4. sonst der Grundname ohne Sprachangabe      -> zeigen + Vermerk
+                                                      „Originaltext"
+
+   *„unabhaengig davon welche Sprache im persoenlichen eingestellt ist.. ist
+   der fallback.. wenn nichts eingetragen ist die defaultsprache -- wenn auch
+   da nichts eingetragen ist -> dann die naechste sprache fuer den es
+   eingetragen wird."*
+
+   SCHRITT 4 IST DIE KLAMMER UND IM NORMALFALL UNERREICHBAR: `name` ist
+   `NOT NULL`, in ihrer Erstellungssprache traegt also JEDE Zeile einen Text,
+   und Schritt 3 greift. Erreichbar ist er in genau einer Lage -- eine Zeile,
+   deren Erstellungssprache NIEMAND kennt (Bestand nach der Migration, vor dem
+   Zuordnen). Dann steht der Grundname da, und der Vermerk sagt, was er ist:
+   Originaltext, Sprache unbekannt.
+   EIN PLATZHALTER STATT DES NAMENS WAERE SCHLIMMER ALS DIE LUECKE: drei
+   Zeilen, die alle „(Vorgabe)" heissen, sind nicht auseinanderzuhalten, und
+   eine Liste ohne Namen ist unbedienbar.
+
+   DIE ERSTELLUNGSSPRACHE TRAEGT DEN GRUNDNAMEN und nicht die Namenstabelle:
+   `product_categories.name` IST der Eintrag dieser einen Sprache. Deshalb
+   fragt `at()` erst die Zeile selbst und danach die Tabelle daneben.
+
+   BIS 0.24.6 GAB ES DIESE KETTE AM SERVER GAR NICHT (Befund A2): eine
+   Abfrage, die genau eine Sprache holt, kann sie nicht -- was fehlte, behielt
+   den Grundnamen, und der dritte Schritt lebte ausschliesslich im Browser des
+   Admins. Ein Benutzer, der Tuerkisch liest, bekam bei einer Zeile mit Deutsch
+   und Englisch nie das Englische zu sehen.
+
+   SIE STEHT GENAU HIER UND SONST NIRGENDS. Die Karte rechnet nicht mit,
+   sondern liest, was dieser Auflöser fuer jede Sprache ausgerechnet hat
+   (`namesAll()` weiter unten) -- eine Kette an zwei Orten laeuft auseinander,
+   und das ist Stolperstein 47 in Reinform.
 
    ANGEWANDT WIRD AM AUSGANG UND NICHT IN JEDER ABFRAGE. Die Abfragen holen
    weiterhin `c.name`; wer sie liest, sieht den Namen der Grundtabelle und
    damit die Wahrheit ueber die Zeile. Erst was HINAUSGEHT, traegt die Sprache
    des Lesers. Eine Uebersetzung mitten in einem JOIN waere an sechs Stellen
-   zu wiederholen -- und die siebte vergisst jemand. */
-const qCriterionNames = db.prepare(
-  'SELECT criterion_id AS id, name FROM criterion_names WHERE language = ?');
-const qCategoryNames = db.prepare(
-  'SELECT category_id AS id, name FROM category_names WHERE language = ?');
-const criterionNames = (locale) => new Map(qCriterionNames.all(locale).map(z => [z.id, z.name]));
-const categoryNames = (locale) => new Map(qCategoryNames.all(locale).map(z => [z.id, z.name]));
+   zu wiederholen -- und die siebte vergisst jemand.
 
-/* ======== DIESELBEN NAMEN ALS TAFEL JE SPRACHE — 0.24.5 ==================
-   DIE REPARATUR VON D1, UND SIE IST ABGESCHAUT UND NICHT ERFUNDEN. Bis 0.24.4
-   holte die Karte die Namen einer FREMDEN Sprache nach und schickte dafuer
-   `Accept-Language: <code>`. Der Server hoerte die Frage nicht: `localeOf(req)`
-   fragt ZUERST den persoenlichen Schluessel, und der schlaegt den Kopf (0.24.3,
-   Konzept 5.3). Wer eine Sprache eingestellt hat -- und das hat in dieser Karte
-   jeder --, bekam auf JEDE Pille die Liste seiner EIGENEN Sprache.
+   EINE TAFEL STATT EINER ZEILE, wie seit 0.24.3: die Namen werden immer fuer
+   eine ganze LISTE gebraucht -- alle Kriterien eines Eintrags, alle Kategorien
+   der Karte --, und eine Abfrage je Zeile waere ein N+1 an einer Stelle, die
+   jeder Seitenaufbau anfasst. */
+const qCriterionBase = db.prepare('SELECT id, name, language FROM rating_criteria');
+const qCategoryBase = db.prepare('SELECT id, name, language FROM product_categories');
+const qCriterionNamesAll = db.prepare(
+  'SELECT criterion_id AS id, language, name FROM criterion_names');
+const qCategoryNamesAll = db.prepare(
+  'SELECT category_id AS id, language, name FROM category_names');
 
-   `localeOf` IST NICHT FALSCH. Fuer Meldungen ist die Reihenfolge genau
-   richtig, und sie bleibt unangetastet. Falsch war, diesen Kopf als Frage nach
-   einer FREMDEN Namenstafel zu benutzen: er ist die Antwort auf „in welcher
-   Sprache sprichst du mit mir", nicht auf „welche Namenstafel meinst du".
+/* WAS FUER EINE ZEILE IN WELCHER SPRACHE EINGETRAGEN IST -- einmal gebaut und
+   danach so oft befragt, wie die Kette Schritte hat. Ohne diesen Zwischenbau
+   liefe jeder Schritt noch einmal ueber alle Uebersetzungen. */
+function nameIndex(translated) {
+  const per = new Map();
+  for (const z of translated) {
+    let m = per.get(z.id);
+    if (!m) per.set(z.id, m = new Map());
+    m.set(z.language, z.name);
+  }
+  return per;
+}
 
-   DESHALB WIRD NICHTS MEHR GEFRAGT. Die Karte bekommt alle Sprachen auf
-   einmal -- genau wie `vocabulariesOwn` seit 0.24.4 --, und die Pille schaltet
-   OERTLICH um. Eine Karte, die fuer eine fremde Sprache einen Server fragen
-   muss, hat drei Wege, sich zu irren; eine, die alles schon hat, hat keinen.
+/* DIE KETTE FUER EINE ZEILE. `from` ist die Sprache, deren Eintrag wirklich
+   dasteht, oder `null` -- „der Originaltext, und niemand weiss, welche Sprache
+   das ist". `fallback` sagt, ob ein Vermerk daneben gehoert.
+   EINE ZEILE OHNE SPRACHVERMERK IST IN KEINER SPRACHE EINGETRAGEN: `at(code)`
+   vergleicht gegen `row.language`, und `null === 'de'` ist falsch. Sie faellt
+   damit in jeder Sprache auf Schritt 4 -- und genau das ist wahr. */
+function chainFor(row, entered, locale, std) {
+  const at = (code) => (code != null && code === row.language)
+    ? row.name : (entered ? entered.get(code) : undefined);
+  const own = at(locale);
+  if (own !== undefined) return { name: own, from: locale, fallback: false };
+  for (const code of [std, row.language]) {
+    const back = at(code);
+    if (back !== undefined) return { name: back, from: code, fallback: true };
+  }
+  return { name: row.name, from: null, fallback: true };
+}
 
-   ES STEHT DAS EINGETRAGENE DA UND NICHT DER RUECKFALL -- dieselbe
-   Unterscheidung wie zwischen `vocabularies` und `vocabulariesOwn`: was fuer
-   eine Sprache NICHTS traegt, traegt hier auch nichts, und die Karte sagt es
-   (der Rueckfall wird in der Karte gebildet und ist dort als Rueckfall
-   gekennzeichnet). Eine Tafel mit eingesetztem Rueckfall waere von einer mit
-   Eintraegen nicht zu unterscheiden -- genau der Weg, auf dem B2 der Runde
-   0.24.4 entstanden ist.
+/* DIE TAFEL FUER EINE SPRACHE: Kennung -> was die Kette ergibt. */
+function nameTable(baseRows, translated, locale) {
+  const per = nameIndex(translated);
+  const std = languageDefault();
+  const out = new Map();
+  for (const row of baseRows) out.set(row.id, chainFor(row, per.get(row.id), locale, std));
+  return out;
+}
+const criterionNames = (locale) => nameTable(qCriterionBase.all(), qCriterionNamesAll.all(), locale);
+const categoryNames = (locale) => nameTable(qCategoryBase.all(), qCategoryNamesAll.all(), locale);
 
-   DIE GRUNDZEILE IST DER EINTRAG DER VORGABESPRACHE. `product_categories.name`
-   und `rating_criteria.name` TRAGEN sie, und `writeName()` legt fuer die
-   Vorgabesprache gar keine Zeile in die Namenstabelle (es loescht sie sogar,
-   sobald eine Uebersetzung dem Grundnamen gleicht). Deshalb wird die Tafel der
-   Vorgabesprache aus den Grundzeilen gebaut und nicht aus der Nebentabelle.
+/* ======== DIESELBE KETTE ALS TAFEL JE SPRACHE — 0.24.5, umgebaut 0.25.0 ===
+   WAS EIN LESER DIESER SPRACHE SAEHE, je Sprache einmal ausgerechnet. Das ist
+   genau die Frage des Betreibers an die Pillenreihe (9. September 2026):
+   *„Die Pillen darueber sind nur fuer admins zum kontrollieren was in andere
+   sprache eingetragen ist und was der user angezeigt bekommt wenn er die
+   sprache ausgewaehlt hat."* -- BEIDES, und deshalb traegt jede Zelle zwei
+   Angaben: den Namen und die Sprache, aus der er stammt.
+
+   `from === <die Sprache der Spalte>` HEISST „hier ist wirklich etwas
+   eingetragen". Alles andere ist ein Rueckfall, und die Karte zaehlt genau
+   das: die Zahl an der Pille ist die Zahl der Zellen, deren `from` nicht die
+   Spalte selbst ist.
+
+   BIS 0.24.6 STAND HIER EIN NAME UND SONST NICHTS, und die Karte bildete die
+   Kette selbst. Zwei Ketten an zwei Orten -- der Server hatte zwei Schritte,
+   die Karte drei, und der gewoehnliche Leser gar keine. Diese Runde macht
+   daraus eine.
+
+   DIE GRUNDZEILE STEHT IN DER TAFEL IHRER EIGENEN SPRACHE und nicht in der
+   der gerade eingestellten Vorgabe -- das ist der ganze Befund A1. Eine Zeile
+   ohne Sprachvermerk steht in KEINER Tafel als Eintrag: sie ist der
+   Originaltext und keine Uebersetzung.
+
+   EINE TAFEL JE SPRACHE, FUER DIE EINE DATEI LIEGT -- und nicht nur je Sprache
+   im Vorrat. Dieselbe Wahl wie bei `vocabularyOwnAll()`, und aus demselben
+   Grund: geklemmt wird in der Karte gegen LANGUAGES, und zwei Klemmen ueber
+   dieselbe Frage laufen auseinander.
 
    NUR FUER DEN ADMIN, und das ist die Entscheidung des Betreibers zu F3
    (8. September 2026): *„Der normale User soll nicht mal die Pille über der
-   Kachel sehen können. Er sieht nur die Bezeichnungen der Sprache, den er im
-   persönlichen Bereich eingestellt hat."* Wer nicht umschalten kann, braucht
-   die Tafel nicht -- und eine Antwort, die etwas traegt, das ihr Leser nicht
-   lesen darf, ist eine Antwort auf eine Frage, die er nicht gestellt hat. */
-const qCategoryRows = db.prepare('SELECT id, name FROM product_categories');
-const qCriterionRows = db.prepare('SELECT id, name FROM rating_criteria');
-const qCategoryNamesAll = db.prepare(
-  'SELECT category_id AS id, language, name FROM category_names');
-const qCriterionNamesAll = db.prepare(
-  'SELECT criterion_id AS id, language, name FROM criterion_names');
-/* EINE TAFEL JE SPRACHE, FUER DIE EINE DATEI LIEGT -- und nicht nur je Sprache
-   im Vorrat. Dieselbe Wahl wie bei `vocabularyOwnAll()`, und aus demselben
-   Grund: geklemmt wird in der Karte gegen LANGUAGES, und zwei Klemmen ueber
-   dieselbe Frage laufen auseinander. */
-const namesAll = (rows, translated) => {
-  const base = baseLanguage();
-  const perLanguage = Object.fromEntries(LANGUAGE_CODES.map(code => [code, {}]));
-  if (perLanguage[base]) for (const z of rows) perLanguage[base][z.id] = z.name;
-  for (const z of translated) if (perLanguage[z.language]) perLanguage[z.language][z.id] = z.name;
-  return perLanguage;
+   Kachel sehen können."* Wer nicht umschalten kann, braucht die Tafel nicht. */
+const namesAll = (baseRows, translated) => {
+  const per = nameIndex(translated);
+  const std = languageDefault();
+  const out = {};
+  for (const code of LANGUAGE_CODES) {
+    const table = {};
+    for (const row of baseRows) {
+      const hit = chainFor(row, per.get(row.id), code, std);
+      table[row.id] = { name: hit.name, from: hit.from };
+    }
+    out[code] = table;
+  }
+  return out;
 };
-const categoryNamesAll = () => namesAll(qCategoryRows.all(), qCategoryNamesAll.all());
-const criterionNamesAll = () => namesAll(qCriterionRows.all(), qCriterionNamesAll.all());
+const categoryNamesAll = () => namesAll(qCategoryBase.all(), qCategoryNamesAll.all());
+const criterionNamesAll = () => namesAll(qCriterionBase.all(), qCriterionNamesAll.all());
 
 /* SETZT DIE NAMEN EINER TAFEL IN EINE LISTE EIN. `key` sagt, welches Feld die
    Kennung traegt -- an den Kriterien heisst es mal `id` und mal
    `criterion_id`, je nachdem, wessen Zeile es ist.
    EINE NEUE ZEILE UND KEINE VERAENDERTE: die Abfrageergebnisse werden an
    mehreren Stellen weiterverwendet, und eine stillschweigend umbenannte Zeile
-   waere ein Fund in einer Woche. */
-const named = (rows, table, key = 'id') => rows.map(z =>
-  table.has(z[key]) ? { ...z, name: table.get(z[key]) } : z);
+   waere ein Fund in einer Woche.
+   DER VERMERK REIST MIT -- 0.25.0. `nameFallback` traegt die KENNUNG der
+   Sprache, deren Eintrag wirklich dasteht, oder `true`: „ein Rueckfall, und
+   ich kann keine Sprache dafuer nennen" (Schritt 4). Ohne Rueckfall steht das
+   Feld gar nicht da; ein Feld, das immer da ist, sagt nichts.
+   ES GEHT AN JEDEN LESER UND NICHT NUR AN DEN ADMIN: die Kette gilt ueberall,
+   und wer sie zeigt, entscheidet die Oberflaeche. */
+const named = (rows, table, key = 'id') => rows.map(z => {
+  const hit = table.get(z[key]);
+  if (!hit) return z;
+  if (!hit.fallback) return { ...z, name: hit.name };
+  return { ...z, name: hit.name, nameFallback: hit.from === null ? true : hit.from };
+});
 
-/* WELCHE SPRACHE IN DER GRUNDTABELLE STEHT -- 0.24.3, Bauabschnitt 6a. Die
-   Vorgabe der Installation, und das ist eine Entscheidung mit Folgen:
+/* `baseLanguage()` IST MIT 0.25.0 WEGGEFALLEN, und das ist der Befund A1 in
+   einer Zeile: sie beantwortete „in welcher Sprache ist dieser Name
+   geschrieben" mit „in der, die gerade Vorgabe ist". Wer die Vorgabe von `en`
+   auf `tr` stellte, verschob damit den ganzen Bestand von einer Namenstafel in
+   die andere. Die Antwort steht seither AN DER ZEILE (`language`); die Vorgabe
+   der Installation ist nur noch der ZWEITE Schritt der Kette, und dafuer steht
+   `languageDefault()` da, wo sie immer stand. */
 
-   Wer den Namen DIESER Sprache aendert, benennt die GRUNDZEILE um -- damit
-   bleibt UNIQUE(name) eine Aussage, der Export traegt weiterhin einen Namen
-   je Kriterium, und wer nie eine zweite Sprache anlegt, merkt von der ganzen
-   Maschine nichts. Jede ANDERE Sprache bekommt eine Zeile in der
-   Namenstabelle.
-
-   DER RUECKFALL ZEIGT DAMIT IMMER AUF DIE VORGABESPRACHE, und das ist
-   dieselbe Regel wie beim Vokabular und bei den Texten. */
-const baseLanguage = () => languageDefault();
-
-/* SCHREIBT EINEN NAMEN JE SPRACHE. Gibt `true` zurueck, wenn die Grundzeile
+/* SCHREIBT EINEN NAMEN JE SPRACHE. Gibt `true` zurueck, wenn die GRUNDZEILE
    gemeint war -- dann muss der Rufer sie umbenennen.
-   EIN NAME, DER DEM DER GRUNDZEILE GLEICHT, WIRD GELOESCHT statt gespeichert:
-   eine Uebersetzung, die dasselbe sagt, ist keine, und sie stuende dem
-   Rueckfall im Weg, sobald die Grundzeile sich aendert. */
-function writeName(table, column, id, language, name, baseName) {
-  if (language === baseLanguage()) return true;
-  const del = db.prepare(`DELETE FROM ${table} WHERE ${column} = ? AND language = ?`);
-  if (!name || name === baseName) { del.run(id, language); return false; }
+
+   GEMEINT IST DIE GRUNDZEILE, WENN DIE GESCHICKTE SPRACHE IHRE
+   ERSTELLUNGSSPRACHE IST -- 0.25.0. Bis 0.24.6 war es die VORGABE der
+   Installation, und damit benannte ein Wechsel der Vorgabesprache stillschwei-
+   gend um, welche Zeile ein Umbenennen trifft.
+   EINE ZEILE OHNE SPRACHVERMERK (`null`) WIRD VON EINEM RUFER OHNE
+   SPRACHANGABE GETROFFEN: `namedLanguage()` gibt dann `null` zurueck, und
+   `null === null` ist wahr. Genau so bleibt das Umbenennen ohne Sprachangabe
+   das, was es immer war -- ein Griff an die Zeile selbst.
+
+   DIE LOESCHUNG „EIN NAME, DER DEM DER GRUNDZEILE GLEICHT" IST WEGGEFALLEN --
+   0.25.0, und das ist eine Entscheidung und kein Versehen. Bis 0.24.6 war die
+   Grundzeile die Vorgabesprache, und eine Uebersetzung, die ihr gleicht, war
+   deshalb keine. Seit die Grundzeile eine EIGENE Sprache hat, ist sie eine:
+   „Material" ist auf Deutsch und auf Englisch dasselbe Wort, und wer es
+   englisch eintraegt, hat es eingetragen. Weggeloescht saehe die Karte eine
+   Luecke, wo keine ist -- und die Zahl an der Pille zaehlte sie mit.
+   WEGGERAEUMT WIRD SEITHER MIT DEM ✕ AM FELD (F5) und nicht durch einen
+   gleichen Wert. Leer speichern bleibt folgenlos: die Schreibwege verlangen
+   einen Namen. */
+function writeName(table, column, id, language, name, rowLanguage) {
+  if (language === rowLanguage) return true;
   db.prepare(`INSERT INTO ${table} (${column}, language, name) VALUES (?, ?, ?)
               ON CONFLICT(${column}, language) DO UPDATE SET name = excluded.name`)
     .run(id, language, name);
   return false;
 }
 
-/* WELCHE SPRACHE EIN SCHREIBWEG MEINT. OHNE ANGABE DIE GRUNDZEILE -- und das
+/* RAEUMT EINEN EINTRAG WEG -- 0.25.0 (F5), das ✕ am Feld. Gibt zurueck, ob es
+   etwas zu raeumen gab.
+   DER ORIGINALTEXT LAESST SICH NICHT RAEUMEN, und das faengt der Rufer ab:
+   `name` ist `NOT NULL`, und eine Zeile ohne Namen waere keine. */
+function dropName(table, column, id, language) {
+  return db.prepare(`DELETE FROM ${table} WHERE ${column} = ? AND language = ?`)
+    .run(id, language).changes > 0;
+}
+
+/* DIE ANTWORT AUF DAS ✕ -- 0.25.0 (F5). Sie steht hier und nicht zweimal in
+   den beiden Schreibwegen: es ist dieselbe Frage und dieselbe Absage.
+
+   DER ORIGINALTEXT LAESST SICH NICHT RAEUMEN. `name` ist `NOT NULL`, und eine
+   Zeile ohne Namen waere keine -- wer den Originaltext loswerden will, loescht
+   die Zeile. Das gilt auch fuer eine Zeile OHNE Sprachvermerk: dort ist
+   `language` beidseitig `null`, und `null === null` faengt sie mit ab.
+
+   EIN ✕ AUF EINEN EINTRAG, DEN ES NICHT GIBT, IST KEIN FEHLER: die Karte
+   zeigt das Zeichen nur, wo etwas steht, und eine Absage auf einen zweiten
+   Klick waere eine Meldung ueber den Zustand, der ohnehin gemeint war. */
+function sendCleared(req, res, table, column, row, language, respond) {
+  if (language === row.language)
+    return res.status(400).json({ error: t(localeOf(req), 'server.nameOriginalStays')});
+  dropName(table, column, row.id, language);
+  return res.json(respond());
+}
+
+/* WELCHE SPRACHE EIN SCHREIBWEG MEINT. OHNE ANGABE DIE ZEILE SELBST -- und das
    ist die wichtigste Zeile dieses Bauabschnitts.
 
    Die naechstliegende Wahl waere „die Sprache des Lesers": wer umbenennt,
    sieht ja den Namen, den er umbenennt. Sie traegt nicht. Ein Admin, der die
-   Oberflaeche auf Deutsch liest, waehrend die Installation Englisch vorgibt,
+   Oberflaeche auf Deutsch liest, waehrend die Zeile englisch angelegt wurde,
    legte damit bei JEDEM Umbenennen eine deutsche UEBERSETZUNG an und liesse
    den englischen Namen stehen -- im Export, in der Sortierung und fuer jeden
    anderen Leser. Er haette umbenannt und nichts geaendert.
@@ -3169,14 +3304,56 @@ function writeName(table, column, id, language, name, baseName) {
    will, sagt es: die Karte schickt die Sprache mit, weil sie einen Umschalter
    hat. Jeder andere Rufer meint die Zeile selbst.
 
-   EINE SPRACHE OHNE DATEI WIRD ABGEWIESEN und nicht stillschweigend auf die
-   Vorgabe gedreht: sonst schriebe der Eigentuemer in eine Sprache, die
-   niemand je zu sehen bekaeme, und hielte sie fuer gespeichert. */
-const namedLanguage = (req) => {
+   `false` HEISST ABSAGE UND `null` HEISST „DIE ZEILE WEISS ES SELBST NICHT".
+   Zwei Antworten, zwei Werte: eine Sprache ohne Datei wird abgewiesen und
+   nicht stillschweigend gedreht -- sonst schriebe der Eigentuemer in eine
+   Sprache, die niemand je zu sehen bekaeme, und hielte sie fuer gespeichert.
+   Eine Zeile mit `language IS NULL` dagegen ist ein gueltiger Zustand und
+   keine Absage. */
+const namedLanguage = (req, rowLanguage) => {
   const wanted = req.body && req.body.language;
-  if (wanted === undefined) return baseLanguage();
+  if (wanted === undefined) return rowLanguage;
+  return typeof wanted === 'string' && LANGUAGES[wanted] ? wanted : false;
+};
+
+/* DIE SPRACHE EINER NEUEN ZEILE -- 0.25.0. Die mitgeschickte, sonst die des
+   RUFERS: wer eine Kategorie anlegt, tippt sie in der Sprache, in der er die
+   Oberflaeche liest.
+   `null` HEISST ABSAGE, wie bei `namedLanguage()` das `false` -- hier gibt es
+   den dritten Fall nicht: eine neue Zeile weiss ihre Sprache immer.
+   AB DIESER RUNDE ENTSTEHT KEINE ZEILE MEHR OHNE SPRACHVERMERK. */
+const newLanguage = (req) => {
+  const wanted = req.body && req.body.language;
+  if (wanted === undefined) return localeOf(req);
   return typeof wanted === 'string' && LANGUAGES[wanted] ? wanted : null;
 };
+
+/* ======== DER EINE GRIFF FUER DIE UNBEKANNTE ERSTELLUNGSSPRACHE — 0.25.0 ==
+   DIE ANTWORT AUF F2: die Migration fuellt nichts, und die Karte fragt EINMAL
+   nach. Was hier hereinkommt, ist die Auskunft des Eigentuemers -- „das, was
+   da steht, ist Deutsch" --, und sie gilt fuer alles, was noch keine hat.
+
+   NUR WO `language IS NULL`. Eine Zeile, die ihre Sprache schon kennt, wird
+   nicht angefasst: der Knopf ist eine Nachfrage und kein Umschreiber.
+
+   BEIDE TABELLEN IN EINEM GRIFF, weil es EINE Frage ist -- „in welcher Sprache
+   war dieser Bestand eingetragen". Zwei Knoepfe nebeneinander mit derselben
+   Antwort waeren zwei Gelegenheiten, verschiedene Antworten zu geben.
+
+   ER GIBT DIE BEIDEN TAFELN ZURUECK, wie `PUT /api/settings` es tut: nach dem
+   Zuordnen ist JEDE Zelle eine andere, und ein zweiter Abruf daneben waere ein
+   Weg, den jemand pflegen muss. */
+app.put('/api/names/language', adminOnly, (req, res) => {
+  const wanted = req.body && req.body.language;
+  if (typeof wanted !== 'string' || !LANGUAGES[wanted])
+    return res.status(400).json({ error: t(localeOf(req), 'server.languageUnknown')});
+  const categories = db.prepare('UPDATE product_categories SET language = ? WHERE language IS NULL')
+    .run(wanted).changes;
+  const criteria = db.prepare('UPDATE rating_criteria SET language = ? WHERE language IS NULL')
+    .run(wanted).changes;
+  res.json({ categories, criteria,
+             categoryNames: categoryNamesAll(), criterionNames: criterionNamesAll() });
+});
 
 /* ---- Kategorien ---- */
 /* SORTIERT WIRD NACH DEM NAMEN DER GRUNDTABELLE UND NICHT NACH DEM
@@ -3198,7 +3375,16 @@ app.post('/api/product-categories', (req, res) => {
   // davor, naehme sie das Zuweisen mit.
   if (!mayCreate(req, 'categoriesFreeCreate'))
     return res.status(403).json({ error: t(localeOf(req), DENIED_CATEGORY_NEW)});
-  const i = db.prepare('INSERT INTO product_categories (name) VALUES (?)').run(name);
+  /* UND SIE BEKOMMT IHRE SPRACHE SOFORT -- 0.25.0, Bauabschnitt 1. Die
+     mitgeschickte, sonst die des Rufers: wer aus dem Eintragsformular heraus
+     eine Kategorie anlegt, tippt sie in der Sprache, in der er liest.
+     DIE ABSAGE STEHT VOR DER SCHREIBUNG -- eine Zeile, die schon angelegt ist,
+     laesst sich nicht mehr nicht anlegen. */
+  const catNew = newLanguage(req);
+  if (catNew === null)
+    return res.status(400).json({ error: t(localeOf(req), 'server.languageUnknown')});
+  const i = db.prepare('INSERT INTO product_categories (name, language) VALUES (?, ?)')
+    .run(name, catNew);
   res.status(201).json(named([db.prepare('SELECT * FROM product_categories WHERE id = ?')
     .get(i.lastInsertRowid)], categoryNames(localeOf(req)))[0]);
 });
@@ -3207,23 +3393,33 @@ app.post('/api/product-categories', (req, res) => {
 // traegt -- also Adminsache, wie bei den Kriterien. Das ANLEGEN haengt am
 // Schalter kategorienFreiAnlegen, Vorgabe an; zuweisen darf immer jeder.
 app.put('/api/product-categories/:id', adminOnly, (req, res) => {
+  const catRow = db.prepare('SELECT id, name, language FROM product_categories WHERE id = ?')
+    .get(req.params.id);
+  if (!catRow) return res.status(404).json({ error: t(localeOf(req), 'server.categoryGone')});
+  const catLanguage = namedLanguage(req, catRow.language);
+  if (catLanguage === false)
+    return res.status(400).json({ error: t(localeOf(req), 'server.languageUnknown')});
+  /* DAS ✕ AM FELD -- 0.25.0 (F5). Es steht VOR der Namensfrage: wer raeumen
+     will, schickt keinen Namen mit, und `server.nameMissing` waere die Absage
+     auf eine Frage, die er gar nicht gestellt hat. */
+  if (req.body.clearName === true)
+    return sendCleared(req, res, 'category_names', 'category_id', catRow, catLanguage,
+      () => named([db.prepare('SELECT * FROM product_categories WHERE id = ?').get(catRow.id)],
+        categoryNames(localeOf(req)))[0]);
   const name = (req.body.name || '').trim();
   if (!name) return res.status(400).json({ error: t(localeOf(req), 'server.nameMissing')});
-  if (!db.prepare('SELECT 1 FROM product_categories WHERE id = ?').get(req.params.id))
-    return res.status(404).json({ error: t(localeOf(req), 'server.categoryGone')});
-  const catLanguage = namedLanguage(req);
-  if (catLanguage === null)
-    return res.status(400).json({ error: t(localeOf(req), 'server.languageUnknown')});
-  // Der Namensstreit gilt je Sprache -- dieselbe Ueberlegung wie am Kriterium.
-  const clash = catLanguage === baseLanguage()
+  /* Der Namensstreit gilt je Sprache -- dieselbe Ueberlegung wie am Kriterium.
+     GEFRAGT WIRD DIE GRUNDTABELLE, WENN DIE ERSTELLUNGSSPRACHE DER ZEILE
+     GEMEINT IST -- 0.25.0. Bis 0.24.6 stand hier die Vorgabesprache, und damit
+     fragte ein Umbenennen nach dem Wechsel der Vorgabe die falsche Tabelle. */
+  const clash = catLanguage === catRow.language
     ? db.prepare('SELECT id FROM product_categories WHERE name = ? COLLATE NOCASE AND id != ?')
         .get(name, req.params.id)
     : db.prepare(`SELECT category_id AS id FROM category_names
                   WHERE language = ? AND name = ? COLLATE NOCASE AND category_id != ?`)
         .get(catLanguage, name, req.params.id);
   if (clash) return res.status(409).json({ error: t(localeOf(req), 'server.nameExists')});
-  const catBase = db.prepare('SELECT name FROM product_categories WHERE id = ?').get(req.params.id).name;
-  if (writeName('category_names', 'category_id', req.params.id, catLanguage, name, catBase))
+  if (writeName('category_names', 'category_id', req.params.id, catLanguage, name, catRow.language))
     db.prepare('UPDATE product_categories SET name = ? WHERE id = ?').run(name, req.params.id);
   res.json(named([db.prepare('SELECT * FROM product_categories WHERE id = ?').get(req.params.id)],
     categoryNames(localeOf(req)))[0]);
@@ -5724,7 +5920,16 @@ app.post('/api/images/convert', ownerOnly, secondConfirmNeeded('images'), (req, 
    getroffen wird: der Import entscheidet ueber das VORHANDENSEIN der Felder
    und nie ueber die Nummer. Eine Datei mit Format 13 traegt die beiden Felder
    nicht, und dann gibt es eben keine Uebersetzungen einzuspielen. */
-const EXCHANGE_FORMAT = 14;
+/* UND SEIT 0.25.0 DIE ERSTELLUNGSSPRACHE DER GRUNDZEILE -- Formatnummer 15.
+   Das ist ein Befund, den der Auftrag nicht kannte: diese Runde sagt zu, dass
+   ab jetzt KEINE Zeile mehr ohne Sprachvermerk entsteht, und der Import ist
+   ein Anlegeweg wie jeder andere. Ohne dieses Feld legte er Zeilen mit
+   `language IS NULL` an -- in einer Instanz, die eben erst zugeordnet hat.
+   ZWEI FELDER NEBEN criteriaWeights UND criteriaPhase, in derselben Bauform
+   und aus demselben Grund: eine aeltere Instanz uebergeht ein zusaetzliches
+   Feld wortlos, und eine Datei der Nummer 14 traegt es nicht -- dann bleibt
+   die Sprache unbekannt, und die Karte fragt einmal nach. */
+const EXCHANGE_FORMAT = 15;
 
 /* DIE NAMEN JE SPRACHE, WIE SIE IN DIE DATEI GEHEN -- 0.24.3, Bauabschnitt 6a.
    { <sprachkennung>: { <name der grundzeile>: <name in dieser sprache> } }
@@ -5750,6 +5955,19 @@ const exchangeCategoryNames = () => exchangeNames(`
   SELECT n.language, c.name AS base, n.name FROM category_names n
   JOIN product_categories c ON c.id = n.category_id
   ORDER BY n.language, c.name COLLATE NOCASE`);
+
+/* IN WELCHER SPRACHE DER GRUNDNAME GESCHRIEBEN IST -- 0.25.0, Formatnummer 15.
+   { <name der grundzeile>: <sprachkennung> }, ueber den NAMEN wie criteriaWeights
+   daneben: der Import findet eine Zeile ueber ihren Namen wieder.
+   NUR WAS EINE HAT. Eine Zeile ohne Sprachvermerk taucht gar nicht auf --
+   dieselbe Regel wie „nur Abweichungen" bei den Gewichten, und sie sagt
+   dasselbe wie NULL in der Spalte: weiss niemand. */
+const exchangeLanguages = (sql) => Object.fromEntries(
+  db.prepare(sql).all().map(z => [z.name, z.language]));
+const exchangeCriterionLanguages = () => exchangeLanguages(
+  'SELECT name, language FROM rating_criteria WHERE language IS NOT NULL ORDER BY sort_order, id');
+const exchangeCategoryLanguages = () => exchangeLanguages(
+  'SELECT name, language FROM product_categories WHERE language IS NOT NULL ORDER BY name COLLATE NOCASE');
 
 // Die Grenze, an der eine Exportdatei zerbraeche, mit Luft davor. Sie steht
 // hier und nicht als Zahl im Rumpf: der Wert kommt aus Node und nicht aus
@@ -5944,7 +6162,9 @@ function exportEnvelope(items) {
   return { exported_at: new Date().toISOString(), title, version: EXCHANGE_FORMAT,
            criteria: critRows.map(c => c.name), criteriaWeights, criteriaPhase,
            criteriaNames: exchangeCriterionNames(),
-           categoryNames: exchangeCategoryNames(), items };
+           criteriaLanguages: exchangeCriterionLanguages(),
+           categoryNames: exchangeCategoryNames(),
+           categoryLanguages: exchangeCategoryLanguages(), items };
 }
 
 // Der Dateiname einer Exportdatei. Aus dem Titel der Instanz, damit zwei
@@ -6166,7 +6386,9 @@ function exchangeEnvelopeFrame() {
                           criteriaWeights: Object.fromEntries(
                             critRows.filter(c => c.weight !== 1).map(c => [c.name, c.weight])),
                           criteriaNames: exchangeCriterionNames(),
+                          criteriaLanguages: exchangeCriterionLanguages(),
                           categoryNames: exchangeCategoryNames(),
+                          categoryLanguages: exchangeCategoryLanguages(),
                           // Der Rahmen misst, was der Umschlag KOSTET -- also
                           // gehoert das dritte Feld hier genauso hinein wie in
                           // die Datei. Ohne es faellt die Messung je Teil um
@@ -6580,11 +6802,32 @@ async function importInto(payload, userId, mode2, bytesSource = null) {
       db.prepare('DELETE FROM product_categories').run();
       db.prepare('DELETE FROM tags').run();
     }
+    /* DIE ERSTELLUNGSSPRACHE AUS DER DATEI -- 0.25.0, Formatnummer 15. Eine
+       Datei der Nummer 14 und aelter traegt das Feld nicht; dann bleibt die
+       Spalte leer, und die Karte fragt einmal nach. Eine Sprache, fuer die
+       hier keine Datei liegt, zaehlt nicht -- dieselbe Klemme wie bei den
+       Namen weiter unten.
+       EIN VORHANDENES KRITERIUM BEHAELT SEINE SPRACHE, so wie es sein Gewicht
+       behaelt: der Import legt Bestand an, er schreibt den vorhandenen nicht
+       um. */
+    const fileLanguage = (raw) => {
+      const out = new Map();
+      if (!raw || typeof raw !== 'object') return out;
+      for (const [base, code] of Object.entries(raw))
+        if (typeof code === 'string' && LANGUAGES[code])
+          out.set(String(base).trim().toLocaleLowerCase(compareLocale()), code);
+      return out;
+    };
+    const critLanguages = fileLanguage(payload.criteriaLanguages);
+    const catLanguages = fileLanguage(payload.categoryLanguages);
+    const languageOf = (table, name) =>
+      table.get(String(name).trim().toLocaleLowerCase(compareLocale())) || null;
     const catByName = (name) => {
       if (!name) return null;
       const f = db.prepare('SELECT id FROM product_categories WHERE name = ? COLLATE NOCASE').get(name);
       if (f) return f.id;
-      return db.prepare('INSERT INTO product_categories (name) VALUES (?)').run(name).lastInsertRowid;
+      return db.prepare('INSERT INTO product_categories (name, language) VALUES (?, ?)')
+        .run(name, languageOf(catLanguages, name)).lastInsertRowid;
     };
     const tagByName = (name) => {
       const f = db.prepare('SELECT id FROM tags WHERE name = ? COLLATE NOCASE').get(name);
@@ -6604,8 +6847,10 @@ async function importInto(payload, userId, mode2, bytesSource = null) {
          behaelt den seinen -- so wie es sein Gewicht behaelt; anders als beim
          Gewicht kann es hier aber gar nicht abweichen, denn die Absage
          darueber hat den Fall schon abgefangen. */
-      return db.prepare('INSERT INTO rating_criteria (name, sort_order, weight, phase) VALUES (?, ?, ?, ?)')
-        .run(name, pos, g === undefined ? 1.0 : g, phaseFrom(name)).lastInsertRowid;
+      return db.prepare(
+        'INSERT INTO rating_criteria (name, sort_order, weight, phase, language) VALUES (?, ?, ?, ?, ?)')
+        .run(name, pos, g === undefined ? 1.0 : g, phaseFrom(name),
+             languageOf(critLanguages, name)).lastInsertRowid;
     };
 
     // Kriterien vorab in der Reihenfolge der Datei anlegen. Vorhandene
@@ -6766,8 +7011,15 @@ async function importInto(payload, userId, mode2, bytesSource = null) {
        EINE SPRACHE, FUER DIE HIER KEINE DATEI LIEGT, WIRD UEBERGANGEN: die
        Zweitinstanz hat vielleicht weniger Sprachen als die erste, und ein
        Name, den niemand je zu sehen bekaeme, waere nur Ballast in der
-       Ablage. Ein Name, der dem der Grundzeile gleicht, ebenso -- er ist
-       keine Uebersetzung, sondern der Rueckfall selbst.
+       Ablage.
+
+       EIN NAME, DER DEM DER GRUNDZEILE GLEICHT, WIRD SEIT 0.25.0 EINGESPIELT
+       und nicht mehr uebergangen. Bis 0.24.6 war die Grundzeile die
+       Vorgabesprache, und ein gleicher Name deshalb keine Uebersetzung. Seit
+       die Grundzeile eine EIGENE Sprache hat, ist er einer: „Material" heisst
+       auf Deutsch und auf Englisch dasselbe, und wer es englisch eingetragen
+       hat, hat es eingetragen. Uebergangen kaeme die Zeile als Luecke
+       zurueck -- und die Zahl an der Pille zaehlte sie mit.
 
        OR REPLACE UND NICHT OR IGNORE: beim ZUSAMMENFUEHRENDEN Import gilt,
        was die Datei sagt -- dieselbe Regel wie bei den Bewertungen darueber. */
@@ -6780,7 +7032,7 @@ async function importInto(payload, userId, mode2, bytesSource = null) {
         for (const [base, name] of Object.entries(words)) {
           const clean = String(name || '').trim();
           const id = clean && base ? byName(base) : null;
-          if (!id || clean === base) continue;
+          if (!id) continue;
           db.prepare(`INSERT OR REPLACE INTO ${table} (${column}, language, name)
                       VALUES (?, ?, ?)`).run(id, language, clean);
           stats.names++;

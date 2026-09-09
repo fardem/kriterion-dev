@@ -254,9 +254,15 @@
   "card.keyManagerHint": "Schlüssel — bewahre ihn in einem Passwort-Manager\n               auf.",
   "card.keyStillBeside": "Der Schlüssel liegt noch neben der Datenbank",
   "card.labelOnlyHint": "Es ändert sich nur die\n          Beschriftung",
+  "card.languageComplete": "vollständig — für jede Zeile ist etwas eingetragen",
+  "card.languageDefaultNow": "{language} ist jetzt Vorgabesprache — {names} und {words} fehlen.",
   "card.languageDefaultSaved": "Vorgabesprache gespeichert",
   "card.languageDefaultTip": "Diese Sprache gilt, solange niemand eine eigene gewählt hat",
   "card.languageHint": "Sprache der Oberfläche, der Meldungen und deiner Mails.\n          Wirkt sofort und gilt auf jedem Gerät, an dem du dich anmeldest.",
+  "card.languageMissing": {
+    "one": "1 Name fehlt",
+    "other": "{n} Namen fehlen"
+  },
   "card.languagePoolSaved": "Vorrat gespeichert",
   "card.languages": "Sprachen",
   "card.languagesFileAfter": "legt, hat eine Sprache mehr — ohne Neubau. Der vordere Teil des\n          Dateinamens ist die Sprachkennung nach BCP 47.",
@@ -335,13 +341,26 @@
   "card.mySessions": "Meine Sitzungen",
   "card.name": "Name",
   "card.nameFallback": "(nicht eingetragen — es steht {language})",
-  "card.nameFallbackNone": "(nicht eingetragen)",
   "card.nameFreedHint": "Der Name ist wieder frei und wird nicht gespeichert; ihre Beiträge stehen unter\n      „Gelöschter Benutzer &lt;Nummer&gt;“. Ein gelöschter Benutzer lässt sich nicht\n      wiederherstellen — wer nur aussperren will,",
+  "card.nameOriginal": "(Originaltext — Sprache unbekannt)",
+  "card.nameRemove": "Eintrag entfernen",
+  "card.nameRemoveAsk": "Eintrag entfernen?",
+  "card.nameRemoved": "Eintrag entfernt",
+  "card.nameRemoveHint": "Der Name in {language} wird gelöscht; der Originaltext bleibt stehen.",
   "card.names": {
     "one": "1 Name",
     "other": "{n} Namen"
   },
-  "card.namesBaseRow": "{language} ist die Vorgabesprache: hier steht der Name der Grundzeile — gleichgültig, in welcher Sprache er eingetragen wurde.",
+  "card.namesAssign": "alle als {language} eintragen",
+  "card.namesAssigned": {
+    "one": "1 Name steht jetzt auf {language}.",
+    "other": "{n} Namen stehen jetzt auf {language}."
+  },
+  "card.namesUnknown": {
+    "one": "1 Name ohne Sprachangabe",
+    "other": "{n} Namen ohne Sprachangabe"
+  },
+  "card.namesUnknownHint": "Für diese Namen ist nicht vermerkt, in welcher Sprache sie geschrieben sind.",
   "card.neededToSave": "(zum Speichern nötig)",
   "card.needsMailHint": "Einschalten ist erst möglich, wenn der Mailversand eingerichtet ist.",
   "card.never": "noch nie",
@@ -706,6 +725,10 @@
   "card.withoutServerSetting": "Ohne die Server-Einstellung",
   "card.withoutVideosHint": "Ohne das Häkchen an den Videos werden sie meist klein genug.",
   "card.withPhotos": "mit Fotos",
+  "card.wordsMissing": {
+    "one": "1 Vokabelwort",
+    "other": "{n} Vokabelwörter"
+  },
   "card.yourRecoveryCodes": "Deine {length} Wiederherstellungscodes — sie werden\n      nur dieses eine Mal angezeigt.",
   "dialog.appWideHint": "Diese Änderung betrifft die ganze Anwendung. Bitte mit deinem ",
   "dialog.cancel": "Abbrechen",
@@ -1237,6 +1260,7 @@
   "server.mailAccountMissing": "Es ist kein vollständiger Mailzugang eingerichtet.",
   "server.nameExists": "Diesen Namen gibt es bereits.",
   "server.nameMissing": "Bitte einen Namen eingeben.",
+  "server.nameOriginalStays": "Der Originaltext lässt sich nicht entfernen — er ist der Name der Zeile.",
   "server.noFile": "Keine Datei übermittelt",
   "server.noTextPreview": "Für diese Datei gibt es keine Textvorschau.",
   "server.ownEmailMissing": "Für dein Konto ist keine E-Mail-Adresse hinterlegt. Trag sie unter Einstellungen › Mein Konto ein — die Testmail geht ausschließlich an die eigene Adresse.",

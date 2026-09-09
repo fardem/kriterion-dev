@@ -2188,10 +2188,10 @@ const REGRESSIONS = [
        Formatnummer steht auf 13, der Rueckbau nimmt sie wie immer um eins
        zurueck. Was er belegt, ist unveraendert -- dass die Nummer mit dem
        Format steigt und nicht stehen bleibt. */
-    nr: '233', name: 'Die Formatnummer bleibt auf 13',
+    nr: '233', name: 'Die Formatnummer bleibt auf 14',
     file: 'server.js',
-    search: "const EXCHANGE_FORMAT = 14;",
-    replacement: "const EXCHANGE_FORMAT = 13;",
+    search: "const EXCHANGE_FORMAT = 15;",
+    replacement: "const EXCHANGE_FORMAT = 14;",
     expected: 'Die Entscheidung wird mitgeschrieben — 0.14.0'
   },
   {
@@ -4040,10 +4040,10 @@ const REGRESSIONS = [
   {
     /* MITGEGANGEN MIT 0.21.0, wie 233 -- derselbe Suchtext, eine andere
        Zusage: dort die Entscheidung, hier die Exportdatei. */
-    nr: '448', name: 'Die Formatnummer bleibt bei 13, obwohl die Namen je Sprache mitgehen',
+    nr: '448', name: 'Die Formatnummer bleibt bei 14, obwohl die Erstellungssprache mitgeht',
     file: 'server.js',
-    search: "const EXCHANGE_FORMAT = 14;",
-    replacement: "const EXCHANGE_FORMAT = 13;",
+    search: "const EXCHANGE_FORMAT = 15;",
+    replacement: "const EXCHANGE_FORMAT = 14;",
     expected: 'Die Exportdatei'
   },
 
@@ -5475,8 +5475,8 @@ const REGRESSIONS = [
        Kaesten nicht auseinanderhalten. */
     nr: '579', name: 'GET /api/criteria liefert die Phase nicht mehr',
     file: 'server.js',
-    search: '  SELECT c.id, c.name, c.sort_order, c.weight, c.phase, c.created_at,',
-    replacement: '  SELECT c.id, c.name, c.sort_order, c.weight, c.created_at,',
+    search: '  SELECT c.id, c.name, c.language, c.sort_order, c.weight, c.phase, c.created_at,',
+    replacement: '  SELECT c.id, c.name, c.language, c.sort_order, c.weight, c.created_at,',
     expected: 'Zwei Kaesten, zwei Durchschnitte — 0.21.0'
   },
   {
@@ -6877,16 +6877,22 @@ const REGRESSIONS = [
   {
     nr: '716', name: 'Ohne Sprachangabe meint der Schreibweg wieder die Sprache des Lesers',
     file: 'server.js',
-    search: "  if (wanted === undefined) return baseLanguage();",
+    search: "  if (wanted === undefined) return rowLanguage;",
     replacement: "  if (wanted === undefined) return localeOf(req);",
     expected: 'Der Rueckfall der Namen — 0.24.3'
   },
   {
-    nr: '717', name: 'Eine Uebersetzung, die der Grundzeile gleicht, bleibt stehen',
+    /* MITGEGANGEN MIT 0.25.0 (Stolperstein 201). Bis 0.24.6 baute dieser
+       Rueckbau die Loeschung „eine Uebersetzung, die der Grundzeile gleicht"
+       zurueck -- die Regel ist mit dieser Runde weggefallen (die Grundzeile hat
+       jetzt eine eigene Sprache, und ein gleicher Name ist eine Uebersetzung).
+       An ihre Stelle tritt die Frage, um die es seither geht: WELCHE Zeile ein
+       Umbenennen trifft. */
+    nr: '717', name: 'Die Grundzeile haengt wieder an der Vorgabesprache',
     file: 'server.js',
-    search: "  if (!name || name === baseName) { del.run(id, language); return false; }",
-    replacement: "  if (!name) { del.run(id, language); return false; }",
-    expected: 'Der Rueckfall der Namen — 0.24.3'
+    search: "  if (language === rowLanguage) return true;",
+    replacement: "  if (language === languageDefault()) return true;",
+    expected: 'Die Kette am Server — 0.25.0'
   },
   {
     nr: '718', name: 'Die Namenstabelle haengt nicht mehr an ihrer Grundzeile',
@@ -6902,7 +6908,7 @@ const REGRESSIONS = [
        LESEWEG -- die Liste kommt dann in jeder Sprache in der Grundfassung. */
     nr: '719', name: 'Die Kategorienamen werden nicht mehr je Sprache gelesen',
     file: 'server.js',
-    search: "const categoryNames = (locale) => new Map(qCategoryNames.all(locale).map(z => [z.id, z.name]));",
+    search: "const categoryNames = (locale) => nameTable(qCategoryBase.all(), qCategoryNamesAll.all(), locale);",
     replacement: "const categoryNames = () => new Map();",
     expected: 'Der Rueckfall der Namen — 0.24.3'
   },
@@ -6999,7 +7005,7 @@ const REGRESSIONS = [
   {
     nr: '731', name: 'Der Export nimmt die Sprachfassungen der Namen nicht mit',
     file: 'server.js',
-    search: "           criteriaNames: exchangeCriterionNames(),\n           categoryNames: exchangeCategoryNames(), items };",
+    search: "           criteriaNames: exchangeCriterionNames(),\n           criteriaLanguages: exchangeCriterionLanguages(),\n           categoryNames: exchangeCategoryNames(),\n           categoryLanguages: exchangeCategoryLanguages(), items };",
     replacement: "           items };",
     expected: 'Der Rueckfall der Namen — 0.24.3'
   },
@@ -7035,13 +7041,16 @@ const REGRESSIONS = [
     /* DER RUECKFALL SCHON IN DER TAFEL EINGESETZT -- genau die Bauform, die bei
        den vierzehn Vokabelwoertern B2 verursacht hat: eine Tafel, in der der
        Rueckfall wie ein Eintrag aussieht, kann die Karte nicht mehr
-       kennzeichnen. */
-    nr: '739', name: 'Die Namenstafel traegt den Rueckfall schon eingesetzt',
+       kennzeichnen.
+       MITGEGANGEN MIT 0.25.0 (Stolperstein 201): seit dieser Runde SETZT die
+       Tafel den Rueckfall ein und sagt es (`from`). Der Rueckbau nimmt genau
+       das Sagen weg -- dann sieht jede Zelle aus wie ein Eintrag, die Zahl an
+       der Pille faellt auf null, das ✕ stuende ueberall, und der Rahmen
+       bliebe aus. */
+    nr: '739', name: 'Die Namenstafel behauptet, jede Zelle sei eingetragen',
     file: 'server.js',
-    search: "  for (const z of translated) if (perLanguage[z.language]) perLanguage[z.language][z.id] = z.name;",
-    replacement: "  for (const z of translated) if (perLanguage[z.language]) perLanguage[z.language][z.id] = z.name;\n" +
-      "  for (const code of LANGUAGE_CODES) for (const z of rows)\n" +
-      "    if (perLanguage[code][z.id] === undefined) perLanguage[code][z.id] = z.name;",
+    search: "      table[row.id] = { name: hit.name, from: hit.from };",
+    replacement: "      table[row.id] = { name: hit.name, from: code };",
     expected: 'Die Sprachpillen der Namenskarten — 0.24.5'
   },
   {
@@ -7050,9 +7059,10 @@ const REGRESSIONS = [
        keine mit, also bleibt genau eine Spalte gefuellt. */
     nr: '740', name: 'Der Bauer der Kriterientafel nimmt wieder eine Sprache an',
     file: 'server.js',
-    search: "const criterionNamesAll = () => namesAll(qCriterionRows.all(), qCriterionNamesAll.all());",
-    replacement: "const criterionNamesAll = (locale = languageDefault()) =>\n" +
-      "  namesAll(qCriterionRows.all(), qCriterionNamesAll.all().filter(z => z.language === locale));",
+    search: "const criterionNamesAll = () => namesAll(qCriterionBase.all(), qCriterionNamesAll.all());",
+    replacement: "const criterionNamesAll = () => {\n" +
+      "  const all = namesAll(qCriterionBase.all(), qCriterionNamesAll.all());\n" +
+      "  return { [languageDefault()]: all[languageDefault()] };\n};",
     expected: 'Die Sprachpillen der Namenskarten — 0.24.5'
   },
   {
@@ -7085,7 +7095,7 @@ const REGRESSIONS = [
        achtzehn Zellen gemessen hat. */
     nr: '744', name: 'Die Karte liest die Namenstafel nicht mehr',
     file: 'public/app.js',
-    search: "  const shown = table[code];",
+    search: "  const shown = (NAMES_ALL[key] || {})[code];",
     replacement: "  const shown = null;",
     expected: 'Die Sprachpillen der Namenskarten — 0.24.5'
   },
@@ -7112,10 +7122,10 @@ const REGRESSIONS = [
        einer deutschen Liste. */
     nr: '747', name: 'drawAdmin liest wieder an namesFrom vorbei',
     file: 'public/app.js',
-    search: "    manageList('mcats', namesFrom(fetched, 'cats'), 'cat', fetched);\n" +
-      "    manageList('mtags', fetched.tags, 'tag', fetched);",
-    replacement: "    manageList('mcats', fetched.cats, 'cat', fetched);\n" +
-      "    manageList('mtags', fetched.tags, 'tag', fetched);",
+    search: "       keine Pillenreihe. */\n" +
+      "    manageList('mcats', namesFrom(fetched, 'cats'), 'cat', fetched);",
+    replacement: "       keine Pillenreihe. */\n" +
+      "    manageList('mcats', fetched.cats, 'cat', fetched);",
     expected: 'Die Sprachpillen der Namenskarten — 0.24.5'
   },
   {
@@ -7136,83 +7146,92 @@ const REGRESSIONS = [
        ihn bleibt die Kette bei der Vorgabesprache stehen, und eine Zeile,
        fuer die nur eine dritte Sprache etwas traegt, zeigt wieder, was
        hereinkam. */
+    /* MITGEGANGEN MIT 0.25.0 (Stolperstein 201): die Kette steht seit dieser
+       Runde AM SERVER und nicht mehr in der Karte -- dieselbe Zusage, ein
+       anderer Ort, und sie gilt jetzt fuer JEDEN Leser. */
     nr: '749', name: 'Die Kette bricht nach der Vorgabesprache ab',
-    file: 'public/app.js',
-    search: "  const chain = nameFallbackChain(code);",
-    replacement: "  const chain = nameFallbackChain(code).slice(0, 1);",
-    expected: 'Die Vorgabesprache als zweite Achse — 0.24.6'
+    file: 'server.js',
+    search: "  for (const code of [std, row.language]) {",
+    replacement: "  for (const code of [std]) {",
+    expected: 'Die Kette am Server — 0.25.0'
   },
   {
     /* DER KERN DES BEFUNDS: der Vermerk nennt wieder die Sprache, die er
        zeigen WOLLTE, statt der, die wirklich dasteht. */
     nr: '750', name: 'Der Vermerk nennt wieder die Vorgabesprache',
     file: 'public/app.js',
-    search: "      if (back !== undefined) return { ...z, name: back, nameFallback: other };",
-    replacement: "      if (back !== undefined) return { ...z, name: back, nameFallback: baseNamesLanguage() };",
-    expected: 'Die Vorgabesprache als zweite Achse — 0.24.6'
+    search: "    return { ...z, name: hit.name, nameFallback: hit.from === null ? true : hit.from };",
+    replacement: "    return { ...z, name: hit.name, nameFallback: baseNamesLanguage() };",
+    expected: 'Die Karte sagt, wo Arbeit liegt — 0.25.0'
   },
   {
     /* UND DIE KLAMMER BEHAUPTET WIEDER EINE SPRACHE, statt keine zu nennen --
        das war die Zeile, die der Betreiber gemeldet hat. */
+    /* MITGEGANGEN MIT 0.25.0: die Klammer ist der VIERTE Schritt der Kette
+       und steht seither am Server. Sie behauptet keine Sprache -- der Rueckbau
+       laesst sie eine behaupten, und danach steht „(nicht eingetragen — es
+       steht Deutsch)" an einer Zeile, deren Sprache niemand kennt. */
     nr: '751', name: 'Die Klammer behauptet wieder eine Sprache',
-    file: 'public/app.js',
-    search: "    return { ...z, nameFallback: true };",
-    replacement: "    return { ...z, nameFallback: baseNamesLanguage() };",
-    expected: 'Die Vorgabesprache als zweite Achse — 0.24.6'
+    file: 'server.js',
+    search: "  return { name: row.name, from: null, fallback: true };",
+    replacement: "  return { name: row.name, from: languageDefault(), fallback: true };",
+    expected: 'Die Kette am Server — 0.25.0'
   },
   {
-    /* DIE REIHENFOLGE: nicht die des Vorrats, sondern die umgekehrte. Ein
-       Rueckbau, der die Kette LAESST und nur ihre Ordnung dreht -- sonst
-       waere „in der kanonischen Reihenfolge" eine Behauptung ohne Beleg. */
+    /* DIE REIHENFOLGE: die Vorgabesprache VOR der Erstellungssprache und
+       nicht umgekehrt. Ein Rueckbau, der die Kette LAESST und nur ihre Ordnung
+       dreht -- sonst waere die Reihenfolge eine Behauptung ohne Beleg.
+       MITGEGANGEN MIT 0.25.0: bis 0.24.6 war es die Ordnung des VORRATS, jetzt
+       sind es zwei benannte Schritte. Derselbe Suchtext wie 749, wie bei 233
+       und 448 -- zwei Rueckbauten duerfen an derselben Zeile ziehen, solange
+       sie verschiedene Dinge wegnehmen. */
     nr: '752', name: 'Die Kette laeuft in der umgekehrten Reihenfolge',
+    file: 'server.js',
+    search: "  for (const code of [std, row.language]) {",
+    replacement: "  for (const code of [row.language, std]) {",
+    expected: 'Die Kette am Server — 0.25.0'
+  },
+  /* RUECKBAU 753 IST MIT 0.25.0 WEGGEFALLEN und nicht mitgegangen -- „Die
+     Kette nimmt auch Sprachen ausserhalb des Vorrats". Er hat keinen Ort mehr:
+     die Kette LAEUFT NICHT MEHR UEBER DEN VORRAT. Sie hat drei benannte
+     Schritte -- die Sprache des Lesers (`localeOf` klemmt sie gegen den
+     Vorrat), die Vorgabe der Installation (die IST im Vorrat, an zwei Stellen
+     erzwungen) und die Erstellungssprache der Zeile (die ist der Originaltext
+     und keine Wahl). Eine vierte Sprache, die eine Klemme abweisen muesste,
+     kommt gar nicht mehr vor. */
+  {
+    /* MITGEGANGEN MIT 0.25.0 (Stolperstein 201). Bis 0.24.6 baute dieser
+       Rueckbau den Kartenhinweis zur Grundzeile zurueck; der Hinweis ist mit
+       dieser Runde weggefallen (`card.namesBaseRow`), weil die Grundzeile
+       seither eine eigene Sprache hat und der Satz damit falsch wurde.
+       An seine Stelle tritt das Merkmal, das ihn ersetzt: der rote Rahmen an
+       der Kachel (F3). Ohne ihn sagt die Karte nicht mehr, dass in DIESER
+       Ansicht Arbeit liegt. */
+    nr: '754', name: 'Der rote Rahmen an der Kachel faellt weg',
     file: 'public/app.js',
-    search: "  return [base, ...pool].filter((code, i, all) =>\n" +
-      "    code !== shownCode && all.indexOf(code) === i);",
-    replacement: "  return [base, ...pool].filter((code, i, all) =>\n" +
-      "    code !== shownCode && all.indexOf(code) === i).reverse();",
-    expected: 'Die Vorgabesprache als zweite Achse — 0.24.6'
+    search: "  if (card) card.classList.toggle('gaps', namesMissing(key, shownCode) > 0);",
+    replacement: "  if (card) card.classList.toggle('gaps', false);",
+    expected: 'Die Karte sagt, wo Arbeit liegt — 0.25.0'
   },
   {
-    /* UND DIE KLEMME GEGEN DEN VORRAT faellt weg: der Rueckfall zeigte danach
-       einen Namen aus einer Sprache, die es in dieser Installation nicht
-       gibt. */
-    nr: '753', name: 'Die Kette nimmt auch Sprachen ausserhalb des Vorrats',
+    /* UND DIE ANDERE HAELFTE: es steht ueberall. Ein Merkmal, das immer
+       dasteht, sagt nichts mehr -- und ohne diesen Rueckbau bliebe die Zusage
+       „und bei einer vollstaendigen Sprache NICHT" ungeprueft.
+       ER ZIELT AUF DIE BEDINGUNG UND NICHT AUF DAS AUSSEHEN, und das hat der
+       gefahrene Lauf von 0.24.6 entschieden: der erste Entwurf tauschte damals
+       im Satz `baseNamesLanguage()` gegen `namesLanguage()` -- und weil der
+       Satz nur gezeichnet wurde, WENN die beiden gleich sind, war der Rueckbau
+       ein Nichts. **Er lief STUMM** und belegte gar nichts (ein Rueckbau muss
+       die Stelle treffen, die die Zusage traegt).
+       DERSELBE SUCHTEXT WIE 754 UND TROTZDEM EIN ZWEITER: der eine nimmt das
+       Merkmal weg, der andere stellt es ueberall hin. Verschiedene Zusagen,
+       verschiedene rote Punkte.
+       MITGEGANGEN MIT 0.25.0, wie 754 und aus demselben Grund. */
+    nr: '755', name: 'Der rote Rahmen steht an jeder Kachel',
     file: 'public/app.js',
-    search: "  const pool = LANGUAGES.filter(a => a.active).map(a => a.code);\n" +
-      "  return [base, ...pool].filter((code, i, all) =>",
-    replacement: "  const pool = LANGUAGES.map(a => a.code);\n" +
-      "  return [base, ...pool].filter((code, i, all) =>",
-    expected: 'Die Vorgabesprache als zweite Achse — 0.24.6'
-  },
-  {
-    /* DER KARTENHINWEIS (E1, F3) faellt weg -- die Karte behauptet wieder,
-       die Tafel der Vorgabesprache sei eine Uebersetzung wie jede andere. */
-    nr: '754', name: 'Der Hinweis auf die Grundzeile faellt weg',
-    file: 'public/app.js',
-    search: "  if (namesLanguage() === baseNamesLanguage()) {\n" +
-      "    const note = document.createElement('p');",
-    replacement: "  if (false) {\n" +
-      "    const note = document.createElement('p');",
-    expected: 'Die Vorgabesprache als zweite Achse — 0.24.6'
-  },
-  {
-    /* UND DIE ANDERE HAELFTE: er steht ueberall. Ein Hinweis, der immer
-       dasteht, sagt nichts mehr -- und ohne diesen Rueckbau bliebe die
-       Zusage „und sonst nicht" ungeprueft.
-       ER ZIELT AUF DIE BEDINGUNG UND NICHT AUF DEN TEXT, und das hat der
-       gefahrene Lauf entschieden: der erste Entwurf tauschte im Satz
-       `baseNamesLanguage()` gegen `namesLanguage()` -- und weil der Satz nur
-       gezeichnet wird, WENN die beiden gleich sind, war der Rueckbau ein
-       Nichts. **Er lief STUMM** und belegte damit gar nichts (Stolperstein:
-       ein Rueckbau muss die Stelle treffen, die die Zusage traegt).
-       DERSELBE SUCHTEXT WIE 754 UND TROTZDEM EIN ZWEITER: der eine nimmt den
-       Hinweis weg, der andere stellt ihn ueberall hin. Verschiedene Zusagen,
-       verschiedene rote Punkte. */
-    nr: '755', name: 'Der Hinweis auf die Grundzeile steht an jeder Pille',
-    file: 'public/app.js',
-    search: "  if (namesLanguage() === baseNamesLanguage()) {",
-    replacement: "  if (namesLanguage() || true) {",
-    expected: 'Die Vorgabesprache als zweite Achse — 0.24.6'
+    search: "  if (card) card.classList.toggle('gaps', namesMissing(key, shownCode) > 0);",
+    replacement: "  if (card) card.classList.toggle('gaps', true);",
+    expected: 'Die Karte sagt, wo Arbeit liegt — 0.25.0'
   },
   {
     /* E3 SELBST: die Karte zieht die Tafeln nach dem Wechsel der
@@ -7222,7 +7241,7 @@ const REGRESSIONS = [
     file: 'public/app.js',
     search: "      takeNames(s);\n      drawLanguages();",
     replacement: "      drawLanguages();",
-    expected: 'Die Vorgabesprache als zweite Achse — 0.24.6'
+    expected: 'Die Karte sagt, wo Arbeit liegt — 0.25.0'
   },
   {
     /* UND DIE WURZEL AM SERVER: die Antwort des Wechsels traegt die Tafeln
@@ -7252,11 +7271,215 @@ const REGRESSIONS = [
     nr: '759', name: 'Der Gewichtswechsel schickt den Namen ohne Sprache',
     file: 'public/app.js',
     search: "          const now = await api('PUT', `${url}/${entry.id}`, spec.perLanguage\n" +
-      "            ? { name: entry.name, weight: g, language: nameLanguage }\n" +
+      "            ? { name: entry.name, weight: g,\n" +
+      "                ...(nameLanguage === null ? {} : { language: nameLanguage }) }\n" +
       "            : { name: entry.name, weight: g });",
     replacement: "          const now = await api('PUT', `${url}/${entry.id}`, " +
       "{ name: entry.name, weight: g });",
-    expected: 'Die Vorgabesprache als zweite Achse — 0.24.6'
+    expected: 'Die Karte sagt, wo Arbeit liegt — 0.25.0'
+  },
+  /* ================= 0.25.0 — der Name weiss, in welcher Sprache ========
+     NEUNZEHN RUECKBAUTEN FUER FUENF BAUABSCHNITTE: die Datenbankstufe, die
+     Kette am Server, die Adminkarte, das Vokabular und den Beipack. Jeder
+     nimmt EINE Zusage weg -- und keiner von ihnen hatte vor dieser Runde
+     etwas, worauf er haette zeigen koennen. */
+  {
+    /* DIE STUFE: nur EINE der beiden Spalten wird nachgeruestet. Ein Bestand
+       traegt danach die halbe Antwort -- die Kategorien wissen ihre Sprache,
+       die Kriterien nicht. */
+    nr: '760', name: 'Die Migration ruestet nur eine der beiden Spalten nach',
+    file: 'db.js',
+    search: "  for (const table of ['product_categories', 'rating_criteria']) {",
+    replacement: "  for (const table of ['product_categories']) {",
+    expected: 'Die Datenbankstufe 0.25.0'
+  },
+  {
+    /* UND DIE ANTWORT AUF F2: der Block FUELLT, statt nachzufragen. Genau das
+       ist die Behauptung, die diese Runde beseitigt -- eine Instanz, deren
+       Vorgabe heute `tr` ist, bekaeme einen ganzen Satz Zeilen, die „auf
+       Tuerkisch" heissen und es nicht sind. */
+    nr: '761', name: 'Die Migration traegt die Vorgabesprache ein, statt nachzufragen',
+    file: 'db.js',
+    search: "  for (const table of missing) db.exec(`ALTER TABLE ${table} ADD COLUMN language TEXT`);",
+    replacement: "  for (const table of missing) {\n" +
+      "    db.exec(`ALTER TABLE ${table} ADD COLUMN language TEXT`);\n" +
+      "    db.exec(`UPDATE ${table} SET language = 'de'`);\n  }",
+    expected: 'Die Datenbankstufe 0.25.0'
+  },
+  {
+    /* UND DIE GRUNDAUSSTATTUNG SAGT NICHT MEHR, IN WELCHER SPRACHE SIE STEHT.
+       Die drei mitgelieferten Kriterien sind deutsch; ohne den Vermerk faellt
+       eine frische Installation fuer sie in den vierten Schritt der Kette. */
+    nr: '762', name: 'Die mitgelieferten Kriterien bekommen keine Sprache',
+    file: 'db.js',
+    search: "  for (const c of seedCriteria) insertCriterion.run(c, SEED_LANGUAGE);",
+    replacement: "  for (const c of seedCriteria) insertCriterion.run(c, null);",
+    expected: 'Die Datenbankstufe 0.25.0'
+  },
+  {
+    /* DIE KETTE: eine neue Kategorie entsteht wieder OHNE Sprachvermerk. Ab
+       dieser Runde soll das nicht mehr vorkommen -- und die Zeile faellt
+       danach fuer jeden Leser in den vierten Schritt. */
+    nr: '763', name: 'Eine neue Kategorie entsteht wieder ohne Sprachvermerk',
+    file: 'server.js',
+    search: "  const i = db.prepare('INSERT INTO product_categories (name, language) VALUES (?, ?)')\n" +
+      "    .run(name, catNew);",
+    replacement: "  const i = db.prepare('INSERT INTO product_categories (name) VALUES (?)').run(name);",
+    expected: 'Die Kette am Server — 0.25.0'
+  },
+  {
+    /* UND DIE SPRACHE EINER NEUEN ZEILE IST WIEDER DIE VORGABE DER
+       INSTALLATION statt der des Rufers. Wer auf Deutsch liest und anlegt,
+       bekaeme eine Zeile, die „auf Englisch" heisst. */
+    nr: '764', name: 'Eine neue Zeile bekommt die Vorgabe statt der Sprache des Rufers',
+    file: 'server.js',
+    search: "  if (wanted === undefined) return localeOf(req);\n" +
+      "  return typeof wanted === 'string' && LANGUAGES[wanted] ? wanted : null;",
+    replacement: "  if (wanted === undefined) return languageDefault();\n" +
+      "  return typeof wanted === 'string' && LANGUAGES[wanted] ? wanted : null;",
+    expected: 'Die Kette am Server — 0.25.0'
+  },
+  {
+    /* DER EINE GRIFF WIRD ZUM UMSCHREIBER: er fasst auch die Zeilen an, die
+       ihre Sprache schon kennen. Aus einer Nachfrage wird damit ein Befehl. */
+    nr: '765', name: 'Der eine Griff schreibt auch die Zeilen um, die ihre Sprache kennen',
+    file: 'server.js',
+    search: "  const categories = db.prepare('UPDATE product_categories SET language = ? WHERE language IS NULL')",
+    replacement: "  const categories = db.prepare('UPDATE product_categories SET language = ?')",
+    expected: 'Die Kette am Server — 0.25.0'
+  },
+  {
+    /* UND DAS ✕ RAEUMT DEN ORIGINALTEXT MIT. `name` ist `NOT NULL`, und eine
+       Zeile ohne Namen waere keine -- der Rueckbau nimmt die Absage weg. */
+    nr: '766', name: 'Das ✕ raeumt auch den Originaltext',
+    file: 'server.js',
+    search: "  if (language === row.language)\n" +
+      "    return res.status(400).json({ error: t(localeOf(req), 'server.nameOriginalStays')});",
+    replacement: "  if (false)\n" +
+      "    return res.status(400).json({ error: t(localeOf(req), 'server.nameOriginalStays')});",
+    expected: 'Der Rueckfall der Namen — 0.24.3'
+  },
+  {
+    /* DER EXPORT LAESST DIE ERSTELLUNGSSPRACHEN LIEGEN -- der Befund, den der
+       Auftrag nicht kannte: der Import ist ein Anlegeweg wie jeder andere, und
+       ohne diese beiden Felder legte er Zeilen ohne Sprachvermerk an. */
+    nr: '767', name: 'Der Export nimmt die Erstellungssprachen nicht mit',
+    file: 'server.js',
+    search: "           criteriaNames: exchangeCriterionNames(),\n" +
+      "           criteriaLanguages: exchangeCriterionLanguages(),",
+    replacement: "           criteriaNames: exchangeCriterionNames(),",
+    expected: 'Der Rueckfall der Namen — 0.24.3'
+  },
+  {
+    /* UND DER IMPORT UEBERGEHT SIE, auch wenn die Datei sie traegt. */
+    nr: '768', name: 'Der Import uebergeht die Erstellungssprachen der Datei',
+    file: 'server.js',
+    search: "    const catLanguages = fileLanguage(payload.categoryLanguages);",
+    replacement: "    const catLanguages = fileLanguage(null);",
+    expected: 'Der Rueckfall der Namen — 0.24.3'
+  },
+  {
+    /* DIE KARTE: die Pille traegt kein Merkmal mehr -- weder Punkt noch Zahl.
+       Wer wissen will, ob fuer Tuerkisch noch etwas fehlt, drueckt sie und
+       liest zwanzig Zeilen durch (Befund A3). */
+    nr: '769', name: 'Die Pille traegt weder Punkt noch Zahl',
+    file: 'public/app.js',
+    search: "    b.innerHTML = esc(a.name) + (gaps\n" +
+      "      ? `<span class=\"n\">${gaps}</span>`\n" +
+      "      : '<span class=\"dot\" aria-hidden=\"true\">●</span>');\n" +
+      "    b.title = gaps ? t('card.languageMissing', { n: gaps }) : t('card.languageComplete');",
+    replacement: "    b.textContent = a.name;",
+    expected: 'Die Karte sagt, wo Arbeit liegt — 0.25.0'
+  },
+  {
+    /* UND DIE ZAHL ZAEHLT ALLE ZELLEN STATT DER FEHLENDEN. Sie stuende dann
+       an jeder Pille und saegte nichts ueber die Arbeit. */
+    nr: '770', name: 'Die Zahl an der Pille zaehlt alle Zellen statt der fehlenden',
+    file: 'public/app.js',
+    search: "  return Object.values(table).filter(z => !z || z.from !== code).length;",
+    replacement: "  return Object.values(table).length;",
+    expected: 'Die Karte sagt, wo Arbeit liegt — 0.25.0'
+  },
+  {
+    /* UND DER GELIEHENE NAME WIRD NICHT MEHR GEDAEMPFT. Die dritte Vorgabe des
+       Betreibers: fehlende Zellen gedaempft markiert. */
+    nr: '771', name: 'Der geliehene Name wird nicht mehr gedaempft',
+    file: 'public/app.js',
+    search: "        <span class=\"mnamebox\"><span class=\"mname${\n" +
+      "          entry.nameFallback === undefined ? '' : ' back'}\">${esc(entry.name)}</span>${fallbackMark}</span>",
+    replacement: "        <span class=\"mnamebox\"><span class=\"mname\">${esc(entry.name)}</span>${fallbackMark}</span>",
+    expected: 'Die Karte sagt, wo Arbeit liegt — 0.25.0'
+  },
+  {
+    /* UND DAS ✕ STEHT AN JEDER ZEILE -- auch dort, wo es nichts zu raeumen
+       gibt, und am Originaltext, der bleiben muss. */
+    nr: '772', name: 'Das ✕ steht an jeder Zeile',
+    file: 'public/app.js',
+    search: "      const mayClear = may && spec.perLanguage && entry.nameFallback === undefined &&\n" +
+      "        entry.language !== namesLanguage();",
+    replacement: "      const mayClear = may && spec.perLanguage;",
+    expected: 'Die Karte sagt, wo Arbeit liegt — 0.25.0'
+  },
+  {
+    /* UND ES SCHICKT WIEDER EINEN NAMEN STATT DES RAEUMZEICHENS. Der Server
+       sagte darauf `server.nameMissing`, und geraeumt waere nichts. */
+    nr: '773', name: 'Das ✕ schickt einen leeren Namen statt des Raeumzeichens',
+    file: 'public/app.js',
+    search: "          await api('PUT', `${url}/${entry.id}`,\n" +
+      "            { clearName: true, language: namesLanguage() });",
+    replacement: "          await api('PUT', `${url}/${entry.id}`,\n" +
+      "            { name: '', language: namesLanguage() });",
+    expected: 'Die Karte sagt, wo Arbeit liegt — 0.25.0'
+  },
+  {
+    /* UND DER KASTEN FUER DIE UNBEKANNTE SPRACHE STEHT IMMER -- auch, wenn es
+       nichts mehr zu fragen gibt. Eine Nachfrage, die nach der Antwort
+       stehenbleibt, ist keine. */
+    nr: '774', name: 'Der Kasten fuer die unbekannte Sprache steht immer',
+    file: 'public/app.js',
+    search: "  box.hidden = open === 0;",
+    replacement: "  box.hidden = false;",
+    expected: 'Die Karte sagt, wo Arbeit liegt — 0.25.0'
+  },
+  {
+    /* DAS VOKABULAR: die Pille traegt kein Merkmal. *„Das gilt natürlich auch
+       für Vokabular."* */
+    nr: '775', name: 'Die Vokabelpille traegt weder Punkt noch Zahl',
+    file: 'public/app.js',
+    search: "      b.innerHTML = esc(a.name) + (gaps\n" +
+      "        ? `<span class=\"n\">${gaps}</span>`\n" +
+      "        : '<span class=\"dot\" aria-hidden=\"true\">●</span>');\n" +
+      "      b.title = gaps ? t('card.wordsMissing', { n: gaps }) : t('card.languageComplete');",
+    replacement: "      b.textContent = a.name;",
+    expected: 'Die Karte sagt, wo Arbeit liegt — 0.25.0'
+  },
+  {
+    /* UND DAS LEERE VOKABELFELD WIRD NICHT MEHR MARKIERT. */
+    nr: '776', name: 'Das leere Vokabelfeld wird nicht mehr markiert',
+    file: 'public/app.js',
+    search: "          ${VOCABULARY_FIELDS.map(([id, key, name]) => `<div class=\"field${\n" +
+      "            vocabularyShown()[key] ? '' : ' gap'}\"><label for=\"${id}\">${esc(name())}",
+    replacement: "          ${VOCABULARY_FIELDS.map(([id, key, name]) => `<div class=\"field\"><label for=\"${id}\">${esc(name())}",
+    expected: 'Die Karte sagt, wo Arbeit liegt — 0.25.0'
+  },
+  {
+    /* UND DIE ANSAGE NACH DEM UMSCHALTEN FAELLT WEG (F4). Der Betreiber darf
+       auf eine lueckige Sprache umstellen -- aber er soll es erfahren. */
+    nr: '777', name: 'Die Ansage nach dem Umschalten faellt weg',
+    file: 'public/app.js',
+    search: "    if (gapCode && gaps.names + gaps.words > 0) {",
+    replacement: "    if (false) {",
+    expected: 'Die Karte sagt, wo Arbeit liegt — 0.25.0'
+  },
+  {
+    /* UND DIE PILLENREIHEN WERDEN NACH EINEM UMBENENNEN NICHT NACHGEZOGEN --
+       die Zahl darin bliebe auf dem Stand von vorhin stehen. Dieselbe Bauform
+       wie D2 der Runde 0.24.5, an einer neuen Stelle. */
+    nr: '778', name: 'Die Pillenreihen werden nach einem Umbenennen nicht nachgezogen',
+    file: 'public/app.js',
+    search: "    drawNameLanguages('ncatlang', 'cats');\n    drawNamesUnknown(fetched);",
+    replacement: "    drawNamesUnknown(fetched);",
+    expected: 'Die Karte sagt, wo Arbeit liegt — 0.25.0'
   }
 ];
 

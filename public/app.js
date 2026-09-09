@@ -370,6 +370,12 @@ const ICON_LINK = char('<path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1
 const ICON_KEY = char('<circle cx="8" cy="15.5" r="4"/><path d="M11 12.5L20 3.5"/><path d="M17 6.5l2.5 2.5"/><path d="M14.5 9l2 2"/>');
 const ICON_LOCK = char('<circle cx="12" cy="12" r="8.5"/><path d="M6 6l12 12"/>');
 const ICON_PIN = char('<path d="M9 4h6l-1 6 2.5 2v2h-9v-2l2.5-2z"/><path d="M12 14v6.5"/>');
+/* DAS ZEICHEN „Eintrag entfernen" -- 0.25.0 (F5). Ein Radierer, und
+   ausdruecklich NICHT das Kreuz daneben: das loescht die ZEILE samt allem, was
+   an ihr haengt; dieser hier raeumt einen NAMEN weg, und die Zeile bleibt
+   stehen. Zwei Griffe in einer Zeile brauchen zwei Zeichen -- „eigenes Zeichen
+   am Feld" (die Antwort des Betreibers auf F5). */
+const ICON_ERASE = char('<path d="M8.5 20H20"/><path d="M14.5 5.5l4 4-8 8H6.5l-2-2z"/>');
 
 /* EIN LEERER BEREICH SIEHT GEWOLLT AUS UND NICHT KAPUTT -- 0.22.0 (Ideentafel
    N3). Der Satz geht durch esc() -- er ist fest, aber innerHTML ist innerHTML.
@@ -8013,6 +8019,33 @@ function setUpLanguagesOut() {
       toast(message);
     } catch (e) { drawLanguages(); toast(e.message, true); }
   }
+  /* DIE ANSAGE NACH DEM UMSCHALTEN -- 0.25.0 (F4). Sie steht AN ORT UND
+     STELLE, in der Karte „Sprachen", und ausdruecklich NICHT in der Glocke:
+     die zeigt nach ihrer eigenen Regel nur FREMDE Taetigkeit, und wer
+     umschaltet, ist selbst der Handelnde. *„wir nehmen nicht die Glocke,
+     sondern Rahmen"* -- der Betreiber, 9. September 2026.
+
+     SIE ZAEHLT, WAS DER NEUEN VORGABESPRACHE FEHLT: Namen aus beiden Tafeln
+     und Vokabelwoerter. Beides steht schon da -- die Tafeln kommen aus
+     derselben Antwort (`takeNames`), die vierzehn Woerter aus
+     `VOCABULARIES_OWN`. Ein zweiter Abruf waere ein Weg, den jemand pflegen
+     muss.
+
+     KEIN ZWANG. Der Betreiber darf die Vorgabe auf eine lueckige Sprache
+     stellen; die Karte sagt es ihm, und die Kette haelt die Liste lesbar. Ein
+     Umschalter, der erst nach zwanzig Uebersetzungen greift, waere schlimmer
+     als der Zustand, den er verhindern soll. */
+  const languageGaps = (code) => ({
+    names: namesMissing('cats', code) + namesMissing('crits', code),
+    words: VOCABULARY_FIELDS.filter(
+      ([, key]) => !(((VOCABULARIES_OWN || {})[code] || {})[key])).length
+  });
+  const languageGapLine = (code) => {
+    const gaps = languageGaps(code);
+    return t('card.languageDefaultNow', { language: languageNameOf(code),
+      names: t('card.names', { n: gaps.names }),
+      words: t('card.wordsMissing', { n: gaps.words }) });
+  };
   // Der Vorrat als Liste von Kennungen -- dieselbe Form, in der der Server
   // ihn speichert.
   const languagePool = () => LANGUAGES.filter(a => a.active).map(a => a.code);
@@ -8053,6 +8086,22 @@ function setUpLanguagesOut() {
       row.append(hk, st, nm);
       box.appendChild(row);
     });
+    /* UND DIE ANSAGE DARUNTER, solange der Vorgabesprache etwas fehlt. Sie
+       steht NUR DANN da: ein Satz, der immer dasteht, sagt nichts mehr --
+       dieselbe Ueberlegung wie beim Kartenhinweis, den 0.24.6 an diese Stelle
+       gesetzt und 0.25.0 wieder weggenommen hat.
+       GEZAEHLT WIRD AUS DEN TAFELN, DIE SCHON DA SIND. Der Wechsel zieht sie
+       ueber `takeNames()` aus derselben Antwort nach; ohne das rechnete dieser
+       Satz mit einer neuen Vorgabe auf einer alten Tafel -- der Fehler E3 der
+       Runde 0.24.6, an einer neuen Stelle. */
+    const gapCode = (LANGUAGES.find(a => a.isDefault) || {}).code;
+    const gaps = gapCode ? languageGaps(gapCode) : { names: 0, words: 0 };
+    if (gapCode && gaps.names + gaps.words > 0) {
+      const note = document.createElement('p');
+      note.className = 'langnote';
+      note.textContent = languageGapLine(gapCode);
+      box.appendChild(note);
+    }
   }
 
 
@@ -8559,6 +8608,13 @@ function cardCategories() {
               Umschalter ohne Schreibrecht waere ein Knopf ohne Folge. */''}
         ${ADMIN && LANGUAGES.filter(a => a.active).length > 1
           ? `<div class="pills" id="ncatlang" style="margin-bottom:12px"></div>` : ''}
+        ${/* DER KASTEN FUER DIE UNBEKANNTE ERSTELLUNGSSPRACHE -- 0.25.0 (F2).
+              Er steht AN DIESER Karte und nur hier, obwohl der Knopf beide
+              Tabellen schreibt: es ist eine Frage an den ganzen Bestand.
+              UND NICHT AM UMSCHALTER: er haengt nicht daran, dass es mehr als
+              eine Sprache gibt -- auch eine einsprachige Installation traegt
+              nach dem Einspielen Zeilen ohne Sprachvermerk. */''}
+        ${ADMIN ? `<div class="namegap" id="nunknown" hidden></div>` : ''}
         <div class="manage-list" id="mcats"></div>
         ${/* DAS ANLEGEFELD -- 0.24.4 (B7). `POST /api/product-categories`
               stand laengst; der Weg war nur nicht dort, wo man ihn beim
@@ -8572,7 +8628,8 @@ function cardCategories() {
       </div>`;
 }
 function setUpCategoriesOut(fetched) {
-  drawNameLanguages('ncatlang');
+  drawNameLanguages('ncatlang', 'cats');
+  drawNamesUnknown(fetched);
   manageList('mcats', namesFrom(fetched, 'cats'), 'cat', fetched);
   setUpManageCreate('cat', fetched);
   createToggle('cat-free', 'categoriesFreeCreate', () => CATEGORIES_FREE, v => { CATEGORIES_FREE = v; });
@@ -8671,7 +8728,7 @@ function setUpCriteriaOut(fetched, phase) {
   // NUR DIE ZEILEN DIESES KASTENS. Die Antwort von /api/criteria traegt beide
   // und ist nach sort_order, id sortiert -- gefiltert bleibt jede Karte in
   // sich richtig geordnet, ohne dass irgendwo eine zweite Ordnung stuende.
-  drawNameLanguages(`${k.list}-lang`);
+  drawNameLanguages(`${k.list}-lang`, 'crits');
   manageList(k.list, namesFrom(fetched, 'crits').filter(c => c.phase === phase), 'crit', fetched);
   // Hier wird angelegt, nicht am Eintrag. Das Feld gibt es nur
   // fuer den Admin -- der Server verweigert es allen anderen ohnehin.
@@ -8890,18 +8947,36 @@ function setUpCriteriaOut(fetched, phase) {
          dass jeder Platzhalter eines Satzes auch gereicht wird. Ein Schluessel
          in einer Variablen ist fuer ihn kein Aufruf -- `{language}` bliebe
          danach woertlich am Bildschirm stehen, und niemand saehe es. */
+      /* UND SEIT 0.25.0 SAGT DER ZWEITE SATZ ETWAS ANDERES. `nameFallback ===
+         true` heisst nicht mehr „ein Rueckfall ohne nennbare Sprache", sondern
+         genau eine Lage: der ORIGINALTEXT der Zeile steht da, und niemand
+         weiss, in welcher Sprache er geschrieben ist (Schritt 4 der Kette).
+         Das ist eine Auskunft ueber die ZEILE und nicht ueber die Sprache --
+         `card.nameFallbackNone` („nicht eingetragen") sagte das Gegenteil und
+         ist deshalb weggefallen. */
       const fallbackName = entry.nameFallback === true
         ? '' : languageNameOf(entry.nameFallback);
       const fallbackMark = entry.nameFallback === undefined ? ''
         : (entry.nameFallback === true
-          ? `<span class="mfallback" title="${esc(t('card.nameFallbackNone'))}">${
-              tH('card.nameFallbackNone')}</span>`
+          ? `<span class="mfallback" title="${esc(t('card.nameOriginal'))}">${
+              tH('card.nameOriginal')}</span>`
           : `<span class="mfallback" title="${esc(t('card.nameFallback',
               { language: fallbackName }))}">${tH('card.nameFallback',
               { language: fallbackName })}</span>`);
+      /* DAS ✕ AM FELD -- 0.25.0 (F5). Es steht genau dort, wo etwas
+         EINGETRAGEN ist und die Zeile es nicht selbst traegt: ein Rueckfall
+         laesst sich nicht raeumen (da steht nichts), und der Originaltext
+         auch nicht (er IST der Name der Zeile -- `name` ist `NOT NULL`).
+         EIN EIGENES ZEICHEN UND NICHT „leer speichern": ein leeres Feld heisst
+         seit 0.24.5 „ich habe es mir anders ueberlegt", und dieselbe Geste
+         kann nicht zweierlei bedeuten. */
+      const mayClear = may && spec.perLanguage && entry.nameFallback === undefined &&
+        entry.language !== namesLanguage();
       row.innerHTML = `${spec.sortable && may ? `<span class="grip" title="${esc(t('entry.dragToSort'))}">⣿</span>` : ''}
-        <span class="mnamebox"><span class="mname">${esc(entry.name)}</span>${fallbackMark}</span>
+        <span class="mnamebox"><span class="mname${
+          entry.nameFallback === undefined ? '' : ' back'}">${esc(entry.name)}</span>${fallbackMark}</span>
         ${weightField}
+        ${mayClear ? `<button class="mact nx" title="${esc(t('card.nameRemove'))}">${ICON_ERASE}</button>` : ''}
         <span class="mcount">${esc(spec.counter ? spec.counter(entry) : `${entry.usage_count} ${vThing(entry.usage_count)}`)}</span>
         ${may ? `<button class="mact ed" title="${esc(t('card.rename'))}">${ICON_PEN}</button>
         <button class="mact rm" title="${esc(t('dialog.delete'))}">${ICON_X}</button>` : ''}`;
@@ -8960,10 +9035,18 @@ function setUpCriteriaOut(fetched, phase) {
              traegt den Namen der Grundzeile.
              SO GESCHRIEBEN AENDERT DER GEWICHTSWECHSEL KEINEN NAMEN: er
              schreibt denselben Wert an dieselbe Stelle zurueck. */
+          /* UND SEIT 0.25.0 GEHT DER VIERTE SCHRITT OHNE SPRACHANGABE ZURUECK.
+             `nameFallback === true` heisst: da steht der Originaltext, und
+             seine Sprache kennt niemand. Eine Angabe waere hier eine
+             Behauptung -- ohne Angabe meint der Server die ZEILE SELBST
+             (`namedLanguage()`), und die Grundzeile bekommt denselben Namen
+             zurueck, den sie schon traegt. Ein Gewichtswechsel benennt damit
+             auch in dieser Lage nichts um. */
           const nameLanguage = entry.nameFallback === true
-            ? baseNamesLanguage() : (entry.nameFallback || namesLanguage());
+            ? null : (entry.nameFallback || namesLanguage());
           const now = await api('PUT', `${url}/${entry.id}`, spec.perLanguage
-            ? { name: entry.name, weight: g, language: nameLanguage }
+            ? { name: entry.name, weight: g,
+                ...(nameLanguage === null ? {} : { language: nameLanguage }) }
             : { name: entry.name, weight: g });
           // Den Datensatz IN DER LISTE nachziehen statt neu zu laden -- sonst
           // zeigte die naechste Zeichnung wieder den alten Wert.
@@ -9019,6 +9102,24 @@ function setUpCriteriaOut(fetched, phase) {
         inp.onblur = save;
         inp.onkeydown = e => { if (e.key === 'Enter') inp.blur(); if (e.key === 'Escape') adminNew(fetched); };
       };
+      /* DAS ✕ RAEUMT EINEN EINTRAG WEG UND LOESCHT NICHTS SONST -- 0.25.0
+         (F5). Mit Rueckfrage, wie jeder Griff, der etwas wegnimmt; danach
+         faellt die Zeile auf die Kette zurueck und die Zahl an der Pille
+         steigt um eins.
+         `clearName` UND KEIN LEERER NAME: der Schreibweg verlangt einen Namen,
+         und ein leeres Feld heisst dort etwas anderes. */
+      const clearKnob = row.querySelector('.nx');
+      if (clearKnob) clearKnob.onclick = async () => {
+        if (!await confirmBox(t('card.nameRemoveAsk'),
+          t('card.nameRemoveHint', { language: languageNameOf(namesLanguage()) }),
+          t('dialog.delete'))) return;
+        try {
+          await api('PUT', `${url}/${entry.id}`,
+            { clearName: true, language: namesLanguage() });
+          toast(t('card.nameRemoved'));
+          adminNew(fetched);
+        } catch (e) { toast(e.message, true); }
+      };
       row.querySelector('.rm').onclick = async () => {
         if (!await confirmBox(t(spec.askKey), spec.warning(entry))) return;
         try { await api('DELETE', `${url}/${entry.id}`); toast(t('card.deleted')); adminNew(fetched); }
@@ -9037,6 +9138,14 @@ function setUpCriteriaOut(fetched, phase) {
        (Nachtrag zu E9/E11, Punkt 2), und ueber ihrer Karte steht deshalb auch
        keine Pillenreihe. */
     manageList('mcats', namesFrom(fetched, 'cats'), 'cat', fetched);
+    /* UND DIE PILLENREIHEN MIT -- 0.25.0. Sie tragen seit dieser Runde eine
+       ZAHL, und die aendert sich mit jedem Umbenennen, Anlegen und Raeumen.
+       Bis 0.24.6 stand darin nur der Name der Sprache, und deshalb genuegte
+       es, sie beim Aufbau der Karte einmal zu zeichnen. */
+    drawNameLanguages('ncatlang', 'cats');
+    drawNamesUnknown(fetched);
+    for (const phase of Object.keys(CRIT_CARD))
+      drawNameLanguages(`${CRIT_CARD[phase].list}-lang`, 'crits');
     manageList('mtags', fetched.tags, 'tag', fetched);
     // BEIDE KRITERIENLISTEN, aus DERSELBEN Antwort. manageList() haengt
     // sich an einen Kasten, den es nicht gibt, gar nicht erst an -- wer nur
@@ -9094,7 +9203,16 @@ function cardVocabulary() {
               UND IM FELD STEHT NUR DAS EINGETRAGENE: ein leeres Feld heisst
               „fuer diese Sprache ist nichts eingetragen", und was dann am
               Bildschirm stuende, sagen Hinweis und Vorschau. */''}
-          ${VOCABULARY_FIELDS.map(([id, key, name]) => `<div class="field"><label for="${id}">${esc(name())}
+        ${/* UND DIE FEHLENDEN ZELLEN GEDAEMPFT MARKIERT -- 0.25.0,
+              Bauabschnitt 4. Dieselbe Zusage wie an den Namenskarten: „Rahmen
+              an allen Kacheln mit fehlenden Zellen, AUCH AM VOKABULAR" (der
+              Betreiber, 9. September 2026).
+              AN DER ABLAGE AENDERT SICH NICHTS. Die vierzehn Woerter kennen
+              keine Grundzeile, ihre Tafeln tragen je Sprache nur
+              Eingetragenes, und der Rueckfall auf die Vorgabe der Sprachdatei
+              bleibt, wie er ist. Es ist eine Frage der Darstellung. */''}
+          ${VOCABULARY_FIELDS.map(([id, key, name]) => `<div class="field${
+            vocabularyShown()[key] ? '' : ' gap'}"><label for="${id}">${esc(name())}
             <span class="hint">${tH('card.defaultValue', { defaultWord: vocabularyDefaultShown()[key] })}</span></label>
             <input class="input input-sm" id="${id}" maxlength="40" value="${esc(vocabularyShown()[key] || '')}"></div>`).join('')}
         </div>
@@ -9154,125 +9272,158 @@ const baseNamesLanguage = () => (LANGUAGES.find(a => a.isDefault) || {}).code ||
    sagt einem Betreiber nichts, „Türkçe" alles. */
 const languageNameOf = (code) =>
   ((LANGUAGES.find(a => a.code === code) || {}).name) || code;
-/* DIE LISTE IN DER GEZEIGTEN SPRACHE -- 0.24.5, und sie wird nicht mehr geholt.
+/* DIE LISTE IN DER GEZEIGTEN SPRACHE -- 0.24.5, und seit 0.25.0 RECHNET SIE
+   NICHT MEHR MIT.
 
-   DREI SCHRITTE, UND DIE REIHENFOLGE IST DIE ENTSCHEIDUNG DES BETREIBERS ZU
-   F4 (8. September 2026): *„Wenn die Felder von Defaultsprache gefüllt sind,
-   werden sie vorgezogen. Ist da auch nicht, wird die Vorgabe genommen. Und
-   gerne gedämpft der Hinweis, dass dies ein Fallback ist und für die
-   ausgewählte Sprache keine Eingabe existiert."*
+   DIE KETTE STEHT AM SERVER UND SONST NIRGENDS (Bauabschnitt 2). Was hier
+   ankommt, ist je Sprache schon ausgerechnet: `{ name, from }` -- der Name,
+   den ein Leser DIESER Sprache saehe, und die Sprache, aus der er stammt.
+   Diese Zeile setzt ihn ein und kennzeichnet, wenn `from` eine andere Sprache
+   ist als die gezeigte.
 
-     1. was fuer die GEZEIGTE Sprache eingetragen ist,
-     2. sonst die VORGABESPRACHE -- ihre Tafel traegt den Namen der Grundzeile,
-     3. sonst die erste Sprache DES VORRATS, die wirklich einen Eintrag hat,
-     4. und sonst, was hereinkam.
+   BIS 0.24.6 STAND DIE KETTE HIER, und der Server hatte eine andere: dort
+   zwei Schritte, hier drei, und der gewoehnliche Leser gar keine. Genau das
+   ist Stolperstein 47 -- eine Aussage an zwei Orten --, und diese Runde hat
+   ihn zweimal bezahlt. `nameFallbackChain()` ist damit weggefallen.
 
-   SCHRITT 3 IST DIE ANTWORT DES BETREIBERS AUF F2 (9. September 2026):
-   *„Geht es als fallback auf deutsch (besser wäre englisch da es ja
-   existiert)."* Bis 0.24.5 gab es ihn nicht, und das war der halbe Befund E2:
-   war auch fuer die Vorgabesprache nichts eingetragen, fiel der NAME auf
-   `z.name` zurueck -- die Antwort des Servers in der Sprache des LESERS -- und
-   der VERMERK sagte trotzdem die Vorgabesprache. Zwei Angaben in derselben
-   Zeile, aus zwei Quellen, und sie widersprachen sich.
-
-   IN DER KANONISCHEN REIHENFOLGE DES VORRATS, nicht in der der Tafel: die
-   Reihenfolge einer Antwort ist keine Aussage. Und NUR aus dem Vorrat -- was
-   der Eigentuemer nicht freigegeben hat, pflegt er auch nicht, und ein
-   Rueckfall darauf zeigte einen Namen aus einer Sprache, die es in dieser
-   Installation nicht gibt. Dieselbe Klemme wie bei `namesLanguage()`.
-
-   SCHRITT 4 IST DIE KLAMMER UND KEIN WEG: die Tafel der Vorgabesprache kommt
-   aus den Grundzeilen, und die tragen einen Namen (`NOT NULL`) -- Schritt 2
-   greift also, solange die Tafel frisch ist. Ohne die Klammer stuende bei
-   einer Tafel, die eine Zeile nicht kennt, gar nichts da, und ein leerer Name
-   saehe aus wie „nichts angelegt".
-
-   DER VERMERK NENNT DIE SPRACHE, DEREN NAME WIRKLICH DASTEHT -- und in der
-   Klammer NENNT ER KEINE (`nameFallback === true`) statt eine zu behaupten.
-   Genau das war der Befund: „zeigt an das kein eintrag gibt (stimmt) aber sagt
-   das es turkisch (stimmt nicht) anzeigt".
-
-   DER RUECKFALL WIRD GEKENNZEICHNET (`nameFallback`) und nicht stillschweigend
-   eingesetzt. Dieselbe Ueberlegung wie bei den vierzehn Vokabelwoertern
-   (0.24.4, B2): ein Rueckfall, der wie ein Eintrag aussieht, wird beim
-   naechsten Speichern zu einem.
+   `from === null` HEISST „DER ORIGINALTEXT, UND NIEMAND WEISS, WELCHE SPRACHE
+   DAS IST" -- der vierte Schritt der Kette. Er wird als `nameFallback === true`
+   weitergereicht, in derselben Gestalt wie seit 0.24.6, und die Zeile darunter
+   bekommt dafuer ihren eigenen Satz.
 
    OHNE TAFEL BLEIBT DIE LISTE, WIE SIE HEREINKAM. Der gewoehnliche Benutzer
-   bekommt keine (F3) -- er sieht die Liste in seiner eigenen Sprache, und
-   einen Umschalter hat er nicht. */
-/* DIE KETTE ALS LISTE VON KENNUNGEN, ohne die gezeigte Sprache: die
-   Vorgabesprache zuerst, danach der Vorrat in seiner kanonischen Reihenfolge.
-   DIE VORGABESPRACHE STEHT VORNE UND NICHT NUR IM VORRAT -- sie ist der
-   zweite Schritt der Kette und nicht einer unter vielen. Doppelte fallen
-   heraus; sie steht ohnehin immer im Vorrat (der Server klemmt es an zwei
-   Stellen), und die Zeile haelt auch, wenn eine Antwort das einmal nicht
-   tut. */
-const nameFallbackChain = (shownCode) => {
-  const base = baseNamesLanguage();
-  const pool = LANGUAGES.filter(a => a.active).map(a => a.code);
-  return [base, ...pool].filter((code, i, all) =>
-    code !== shownCode && all.indexOf(code) === i);
-};
+   bekommt keine (F3) -- und er braucht auch keine: seine Liste traegt seit
+   dieser Runde denselben Namen aus derselben Kette, vom Server eingesetzt. */
 function namesFrom(fetched, key) {
   const rows = fetched[key] || [];
-  const table = NAMES_ALL[key] || {};
   const code = namesLanguage();
-  const shown = table[code];
+  const shown = (NAMES_ALL[key] || {})[code];
   if (!shown) return rows;
-  const chain = nameFallbackChain(code);
   return rows.map(z => {
     if (!z || z.id === undefined) return { ...z };
-    if (shown[z.id] !== undefined) return { ...z, name: shown[z.id] };
-    for (const other of chain) {
-      const back = (table[other] || {})[z.id];
-      if (back !== undefined) return { ...z, name: back, nameFallback: other };
-    }
-    return { ...z, nameFallback: true };
+    const hit = shown[z.id];
+    if (!hit || hit.name === undefined) return { ...z };
+    if (hit.from === code) return { ...z, name: hit.name };
+    return { ...z, name: hit.name, nameFallback: hit.from === null ? true : hit.from };
   });
 }
+/* WIE VIELE ZELLEN EINER SPRACHE NICHT EINGETRAGEN SIND -- 0.25.0. Das ist die
+   Zahl an der Pille, und sie ist die Antwort auf „ist das ein Handgriff oder
+   ein Nachmittag".
+   GEZAEHLT WIRD, WAS NICHT AUS DIESER SPALTE KOMMT: `from !== code`. Eine
+   Zeile ohne Sprachvermerk zaehlt damit in JEDER Sprache mit -- sie ist in
+   keiner eingetragen, und das ist wahr. Der Kasten unter der Pillenreihe sagt,
+   woran es liegt.
+   OHNE TAFEL IST DIE ZAHL NULL und nicht „alles fehlt": wer keine Tafel
+   bekommt, hat auch keine Pillenreihe. */
+const namesMissing = (key, code) => {
+  const table = (NAMES_ALL[key] || {})[code];
+  if (!table) return 0;
+  return Object.values(table).filter(z => !z || z.from !== code).length;
+};
+/* WIE VIELE ZEILEN GAR KEINE ERSTELLUNGSSPRACHE HABEN -- ueber BEIDE Tafeln,
+   weil der eine Knopf beide Tabellen schreibt. Gelesen wird die Tafel und
+   nicht die Liste: die Liste einer Karte traegt nur ihre eigenen Zeilen (die
+   Kriterienkarten sogar nur ihren Kasten), die Tafel traegt alle.
+   ERKANNT WIRD SIE AN `from === null` IN DER VORGABESPRACHE -- dort ist der
+   Rueckfall auf die Erstellungssprache der letzte Schritt vor der Klammer.
+   Genau genommen taete es jede Spalte; genommen wird die der Vorgabe, weil sie
+   in jeder Installation dasteht. */
+const namesWithoutLanguage = () => {
+  const base = baseNamesLanguage();
+  let n = 0;
+  for (const key of ['cats', 'crits']) {
+    const table = (NAMES_ALL[key] || {})[base];
+    if (table) n += Object.values(table).filter(z => z && z.from === null).length;
+  }
+  return n;
+};
 /* DIE PILLENREIHE UEBER EINER ADMINLISTE. Sie steht nur da, wenn es etwas zu
    wechseln gibt, und zeichnet nach dem Klick den ganzen Systembereich neu --
-   beide Karten zugleich, weil beide dieselbe Sprache zeigen. */
-function drawNameLanguages(boxId) {
+   beide Karten zugleich, weil beide dieselbe Sprache zeigen.
+
+   SEIT 0.25.0 SAGT SIE AUCH, WO ARBEIT LIEGT. Der Betreiber hat es am
+   9. September 2026 so bestellt: Punkt und Zahl an der Pille, roter Rahmen an
+   der Kachel, Dämpfung an der Zeile.
+
+     PUNKT `●`   fuer eine Sprache, fuer die JEDE Zeile etwas traegt,
+     ZAHL        fuer jede andere -- die Zahl der fehlenden Zellen.
+
+   ZWEI AUSSAGEN, ZWEI MERKMALE. Die gewaehlte Pille bleibt orange GEFUELLT
+   wie bisher; Punkt und Zahl stehen gedaempft DARIN. Wer den Zustand ueber die
+   Fuellung anzeigte, naehme der Karte ihre Auswahlanzeige.
+
+   DER ROTE RAHMEN GILT DER GEZEIGTEN SPRACHE (F3): er sagt „hier, jetzt, in
+   dieser Ansicht ist Arbeit". Wo sonst noch, sagen die Zahlen in den Pillen.
+   Er sitzt an der KACHEL und nicht an der Pillenreihe -- gemeint ist die
+   Liste darunter, nicht der Umschalter darueber. */
+function drawNameLanguages(boxId, key) {
   const box = document.getElementById(boxId);
   if (!box) return;
   box.innerHTML = '';
+  const shownCode = namesLanguage();
   LANGUAGES.filter(a => a.active).forEach(a => {
     const b = document.createElement('button');
-    b.className = 'pill' + (namesLanguage() === a.code ? ' on' : '');
-    b.textContent = a.name;
+    b.className = 'pill' + (shownCode === a.code ? ' on' : '');
+    const gaps = namesMissing(key, a.code);
+    /* DER NAME GEHT DURCH esc(), die Zahl ist eine Zahl -- innerHTML ist
+       innerHTML, auch wenn beides aus der eigenen Antwort kommt. */
+    b.innerHTML = esc(a.name) + (gaps
+      ? `<span class="n">${gaps}</span>`
+      : '<span class="dot" aria-hidden="true">●</span>');
+    b.title = gaps ? t('card.languageMissing', { n: gaps }) : t('card.languageComplete');
     b.onclick = () => { NAMES_SHOWN = a.code; renderSystem({ keepScroll: true }); };
     box.appendChild(b);
   });
-  /* UND DER HINWEIS AUF DIE GRUNDZEILE -- 0.24.6, die Antwort des Betreibers
-     auf F3 (9. September 2026): kennzeichnen statt behaupten.
-
-     DIE GRUNDZEILE TRAEGT KEINEN SPRACHVERMERK (0.24.3, Bauabschnitt 6a), und
-     `baseLanguage()` schreibt sie derjenigen Sprache zu, die GERADE Vorgabe
-     ist. Wechselt der Eigentuemer die Vorgabe, wandert damit der ganze Bestand
-     der Grundzeilen von einer Tafel in die andere -- gemessen am 9. September
-     2026: nach dem Wechsel von `en` auf `tr` trug `tr` den englischen Text,
-     den nie jemand tuerkisch eingegeben hat, und `en` stand leer da.
-     DIE ABLAGE BLEIBT, WIE SIE IST -- eine Spalte `language` an den
-     Grundzeilen waere eine Datenbankstufe und eine eigene Runde. Was faellt,
-     ist die BEHAUPTUNG: die Tafel der Vorgabesprache wird als das
-     gekennzeichnet, was sie ist.
-
-     ER STEHT AN DER PILLENREIHE UND NICHT AN JEDER ZEILE: es ist eine Aussage
-     ueber die TAFEL und nicht ueber eine einzelne Zeile -- und an jeder Zeile
-     waere derselbe Satz zwanzigmal untereinander. Gedaempft wie der Vermerk am
-     Rueckfall darunter: er ist eine Auskunft und keine Aktion.
-     UND NUR, SOLANGE DIE VORGABESPRACHE GEZEIGT WIRD. Ein Hinweis, der immer
-     dasteht, sagt nichts mehr. */
-  if (namesLanguage() === baseNamesLanguage()) {
-    const note = document.createElement('p');
-    note.className = 'langnote';
-    note.textContent = t('card.namesBaseRow',
-      { language: languageNameOf(baseNamesLanguage()) });
-    box.appendChild(note);
-  }
+  /* UND DER RAHMEN AN DER KACHEL. Er haengt an der Kachel und wird von hier
+     gesetzt, weil hier die Zahl steht -- `closest()` findet sie, und ohne
+     Kachel (im Nachbau ohne Karte) passiert nichts. */
+  const card = box.closest('.sys-card');
+  if (card) card.classList.toggle('gaps', namesMissing(key, shownCode) > 0);
 }
+/* DER KASTEN FUER DIE UNBEKANNTE ERSTELLUNGSSPRACHE -- 0.25.0 (F2). Die
+   Migration fuellt nichts, und hier wird EINMAL nachgefragt.
 
+   ER STEHT AN DER KARTE „KATEGORIEN" UND NUR DORT, obwohl der Knopf beide
+   Tabellen schreibt: es ist EINE Frage an den Bestand („in welcher Sprache war
+   das eingetragen"), und drei Knoepfe nebeneinander waeren drei Gelegenheiten,
+   verschiedene Antworten zu geben. Die Zahl zaehlt deshalb ueber beide Tafeln.
+
+   ER STEHT NUR DA, SOLANGE ES ETWAS ZU FRAGEN GIBT. Nach dem Zuordnen ist er
+   weg und kommt nicht wieder -- eine neue Zeile bekommt ihre Sprache beim
+   Anlegen.
+
+   EINGETRAGEN WIRD DIE GEZEIGTE SPRACHE, und sie steht im Knopf: wer auf der
+   Pille „Deutsch" steht und drueckt, sagt „das ist Deutsch". */
+function drawNamesUnknown(fetched) {
+  const box = document.getElementById('nunknown');
+  if (!box) return;
+  const open = namesWithoutLanguage();
+  box.innerHTML = '';
+  box.hidden = open === 0;
+  if (!open) return;
+  const code = namesLanguage();
+  const line = document.createElement('p');
+  line.className = 'desc';
+  line.style.margin = '0 0 8px';
+  line.textContent = `${t('card.namesUnknown', { n: open })} — ${t('card.namesUnknownHint')}`;
+  const knob = document.createElement('button');
+  knob.className = 'btn btn-sm';
+  knob.id = 'nassign';
+  knob.textContent = t('card.namesAssign', { language: languageNameOf(code) });
+  knob.onclick = async () => {
+    try {
+      const r = await api('PUT', '/api/names/language', { language: code });
+      /* DIE TAFELN KOMMEN AUS DERSELBEN ANTWORT und nicht aus einem zweiten
+         Abruf -- dieselbe Bauform wie beim Wechsel der Vorgabesprache. */
+      takeNames(r);
+      toast(t('card.namesAssigned',
+        { n: (r.categories || 0) + (r.criteria || 0), language: languageNameOf(code) }));
+      adminNew(fetched);
+    } catch (e) { toast(e.message, true); }
+  };
+  box.append(line, knob);
+}
 /* WELCHE SPRACHE DIE KARTE „VOKABULAR" GERADE ZEIGT -- 0.24.3. Sie faengt bei
    der des Lesers an: wer die Oberflaeche auf Deutsch liest, will in aller
    Regel die deutschen Woerter pflegen.
@@ -9370,6 +9521,14 @@ function setUpVocabularyOut() {
      Oberflaeche bleibt in der Sprache ihres Lesers, waehrend der Eigentuemer
      die Woerter einer anderen pflegt. Genau das ist der Sinn -- „der
      Eigentuemer schaltet im Adminbereich kurz um" (Nachtrag zu E9, Punkt 4). */
+  /* WIE VIELE DER VIERZEHN WOERTER EINER SPRACHE FEHLEN -- 0.25.0. Gelesen
+     wird `VOCABULARIES_OWN`, also das EINGETRAGENE: `VOCABULARIES` traegt den
+     Rueckfall schon eingesetzt und saehe fuer jede Sprache vollstaendig aus
+     (derselbe Unterschied wie zwischen den beiden Tafeln bei den Namen). */
+  function vocabularyMissing(code) {
+    return VOCABULARY_FIELDS.filter(
+      ([, key]) => !(((VOCABULARIES_OWN || {})[code] || {})[key])).length;
+  }
   function drawVocabularyLanguages() {
     const box = document.getElementById('vlang');
     if (!box) return;
@@ -9377,7 +9536,15 @@ function setUpVocabularyOut() {
     LANGUAGES.filter(a => a.active).forEach(a => {
       const b = document.createElement('button');
       b.className = 'pill' + (vocabularyLanguage() === a.code ? ' on' : '');
-      b.textContent = a.name;
+      /* PUNKT UND ZAHL WIE AN DEN NAMENSKARTEN -- 0.25.0, Bauabschnitt 4, und
+         ausdruecklich dieselbe Gestalt: es ist dieselbe Frage („was fehlt
+         dieser Sprache") an einem anderen Bestand. Zwei Gestalten fuer eine
+         Aussage waeren zwei Aussagen. */
+      const gaps = vocabularyMissing(a.code);
+      b.innerHTML = esc(a.name) + (gaps
+        ? `<span class="n">${gaps}</span>`
+        : '<span class="dot" aria-hidden="true">●</span>');
+      b.title = gaps ? t('card.wordsMissing', { n: gaps }) : t('card.languageComplete');
       b.onclick = () => {
         VOCABULARY_SHOWN = a.code;
         /* MIT DER BILDLAUFSTELLUNG -- 0.24.4 (B3). Die Karte steht weit unten
@@ -9387,6 +9554,10 @@ function setUpVocabularyOut() {
       };
       box.appendChild(b);
     });
+    /* UND DER ROTE RAHMEN AN DER KACHEL, solange der GEZEIGTEN Sprache etwas
+       fehlt (F3) -- dieselbe Zeile wie an den Namenskarten. */
+    const card = box.closest('.sys-card');
+    if (card) card.classList.toggle('gaps', vocabularyMissing(vocabularyLanguage()) > 0);
   }
   // Die Karte steht nur dem Admin offen; ohne sie gibt es weder Felder noch
   // Probe. Das VOKABULAR SELBST wird trotzdem ausgeliefert -- es ist jede

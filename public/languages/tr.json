@@ -254,9 +254,15 @@
   "card.keyManagerHint": "anahtar — onu bir parola yöneticisinde sakla.",
   "card.keyStillBeside": "Anahtar hâlâ veritabanının yanında duruyor",
   "card.labelOnlyHint": "Yalnızca etiketleme değişir",
+  "card.languageComplete": "eksiksiz — her satır için bir kayıt var",
+  "card.languageDefaultNow": "{language} artık varsayılan dil — {names} ve {words} eksik.",
   "card.languageDefaultSaved": "Varsayılan dil kaydedildi",
   "card.languageDefaultTip": "Kimse kendi dilini seçmediği sürece bu dil geçerlidir",
   "card.languageHint": "Arayüzün, iletilerin ve e-postalarının dili. Hemen etki eder ve giriş yaptığın her cihazda geçerlidir.",
+  "card.languageMissing": {
+    "one": "1 ad eksik",
+    "other": "{n} ad eksik"
+  },
   "card.languagePoolSaved": "Seçenekler kaydedildi",
   "card.languages": "Diller",
   "card.languagesFileAfter": "koyan bir dil daha kazanır — yeniden kurmadan. Dosya adının ön kısmı BCP 47'ye göre dil etiketidir.",
@@ -335,13 +341,26 @@
   "card.mySessions": "Oturumlarım",
   "card.name": "Ad",
   "card.nameFallback": "(kayıt yok — {language} görünüyor)",
-  "card.nameFallbackNone": "(kayıt yok)",
   "card.nameFreedHint": "Ad yeniden serbest kalır ve saklanmaz; katkıları „Silinen kullanıcı &lt;numara&gt;“ altında görünür. Silinen bir kullanıcı geri getirilemez — yalnızca dışarıda tutmak isteyen,",
+  "card.nameOriginal": "(özgün metin — dil bilinmiyor)",
+  "card.nameRemove": "Kaydı kaldır",
+  "card.nameRemoveAsk": "Kayıt kaldırılsın mı?",
+  "card.nameRemoved": "Kayıt kaldırıldı",
+  "card.nameRemoveHint": "{language} dilindeki ad silinecek; özgün metin kalır.",
   "card.names": {
     "one": "1 ad",
     "other": "{n} ad"
   },
-  "card.namesBaseRow": "{language} varsayılan dildir: burada temel satırın adı görünür — hangi dilde girildiğinden bağımsız olarak.",
+  "card.namesAssign": "tümünü {language} olarak kaydet",
+  "card.namesAssigned": {
+    "one": "1 ad artık {language} olarak kayıtlı.",
+    "other": "{n} ad artık {language} olarak kayıtlı."
+  },
+  "card.namesUnknown": {
+    "one": "dil bilgisi olmayan 1 ad",
+    "other": "dil bilgisi olmayan {n} ad"
+  },
+  "card.namesUnknownHint": "Bu adların hangi dilde yazıldığı kayıtlı değil.",
   "card.neededToSave": "(kaydetmek için gerekli)",
   "card.needsMailHint": "Açmak ancak posta gönderimi kurulduğunda mümkündür.",
   "card.never": "henüz hiç",
@@ -706,6 +725,10 @@
   "card.withoutServerSetting": "Sunucu ayarı olmadan",
   "card.withoutVideosHint": "Videolardaki işaret olmadan çoğunlukla yeterince küçük olurlar.",
   "card.withPhotos": "fotoğraflarla",
+  "card.wordsMissing": {
+    "one": "1 sözcük",
+    "other": "{n} sözcük"
+  },
   "card.yourRecoveryCodes": "{length} kurtarma kodun — yalnızca bu bir kerelik gösterilir.",
   "dialog.appWideHint": "Bu değişiklik bütün kurulumu etkiler. Şununla onayla: ",
   "dialog.cancel": "İptal",
@@ -1237,6 +1260,7 @@
   "server.mailAccountMissing": "Eksiksiz bir posta hesabı kurulmamış.",
   "server.nameExists": "Bu ad zaten var.",
   "server.nameMissing": "Bir ad gir.",
+  "server.nameOriginalStays": "Özgün metin kaldırılamaz — satırın adı odur.",
   "server.noFile": "Dosya gönderilmedi",
   "server.noTextPreview": "Bu dosya için metin önizlemesi yok.",
   "server.ownEmailMissing": "Hesabın için kayıtlı e-posta adresi yok. Onu Ayarlar › Hesabım altında gir — test e-postası yalnızca kendi adresine gider.",
