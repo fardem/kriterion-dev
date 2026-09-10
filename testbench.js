@@ -41141,14 +41141,15 @@ async function checkUi() {
   {
     const adPaste = (adIncluding.document.querySelector('.drop')?.parentElement
       ?.textContent || '').replace(/\s+/g, ' ');
-    check('An der Einfuegestelle steht, dass Hochladen billiger ist — 0.27.0',
-      /Bild speichern unter/.test(adPaste) && /hochladen/.test(adPaste),
+    /* ZWEI HAELFTEN, UND JEDE HAELT EINE ANDERE: der BEFUND (das Einfuegen
+       kostet) und der WEG daraus (die Datei hochladen). Eine Zusage auf den
+       ganzen Satz bliebe gruen, wenn die Haelfte mit dem Rat wegfiele -- und
+       ein Befund ohne Rat ist eine Klage. */
+    check('An der Einfuegestelle steht, was das Einfuegen kostet — 0.27.0',
+      /Zwischenablage/.test(adPaste) && /größeren Dateien/.test(adPaste),
       adPaste.slice(0, 260) || '(kein Text an der Einfuegestelle)');
-    /* UND ER SAGT AUCH, WARUM. Ohne diese Zeile bliebe die Zusage gruen, wenn
-       vom Satz nur die Empfehlung uebrig bliebe -- ein Rat ohne Grund wird
-       beim naechsten Aufraeumen weggekuerzt. */
-    check('Und warum: eingefuegt wird daraus ein PNG, das viel groesser ist',
-      /PNG/.test(adPaste) && /Vielfaches/.test(adPaste), adPaste.slice(0, 260));
+    check('Und der Weg daraus: die Datei hochladen',
+      /Bild speichern unter/.test(adPaste) && /hoch/.test(adPaste), adPaste.slice(0, 260));
     /* UND DER SATZ ZUR REIHENFOLGE STEHT WEITER DANEBEN. Ohne diese Zeile
        bliebe gruen, wer den neuen an die Stelle des alten setzt. */
     check('Und der Satz zur Reihenfolge steht weiterhin daneben',

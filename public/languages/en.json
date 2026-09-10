@@ -954,7 +954,7 @@
   "entry.uploadFailed": "Upload failed",
   "entry.uploading": "is uploading …",
   "entry.uploadingTitle": "Uploading …",
-  "entry.uploadIsCheaper": "From the web, better “Save image as” and upload — pasting turns it into a PNG, often several times larger.",
+  "entry.uploadIsCheaper": "Pasting from the clipboard results in considerably larger files. An image from the web is better uploaded via “Save image as”.",
   "entry.videoNoImage": "This video has no image",
   "entry.videoNoThumb": "No thumbnail could be created from this video.",
   "entry.videoUnplayable": "The browser cannot read this video",

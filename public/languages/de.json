@@ -954,7 +954,7 @@
   "entry.uploadFailed": "Upload fehlgeschlagen",
   "entry.uploading": "wird hochgeladen …",
   "entry.uploadingTitle": "Wird hochgeladen …",
-  "entry.uploadIsCheaper": "Aus dem Netz besser „Bild speichern unter“ und hochladen — eingefügt wird daraus ein PNG, oft um ein Vielfaches größer.",
+  "entry.uploadIsCheaper": "Das Einfügen über die Zwischenablage führt zu erheblich größeren Dateien. Ein Bild aus dem Netz lädt man besser über „Bild speichern unter“ hoch.",
   "entry.videoNoImage": "Dieses Video hat kein Bild",
   "entry.videoNoThumb": "Aus diesem Video konnte kein Vorschaubild erzeugt werden.",
   "entry.videoUnplayable": "Dieses Video kann der Browser nicht lesen",
