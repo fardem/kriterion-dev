@@ -217,7 +217,7 @@ beide stehen unten mit Begründung.
 
 ## Der Prüfstand
 
-**`npm test` grün: 6329 Zusagen** *(0.25.0: 6312)*.
+**`npm test` grün: 6332 Zusagen** *(0.25.0: 6312)*.
 
 ### Zwei Zusagen haben ihren Sollwert geändert
 
@@ -251,19 +251,39 @@ fängt auch den Satz, der in einem Jahr dazukommt.*
 ## Die Gegenproben
 
 **Acht neue, 780 bis 787** — vier an der Zahl und am Rahmen, zwei am Vermerk,
-eine am Wortlaut, eine am Türkischen. **Alle gefahren.** Dazu **vier
-mitgegangene**, deren Suchtext sich mit dieser Runde bewegt hat.
+eine am Wortlaut, eine am Türkischen. **Alle gefahren.** Dazu **fünf
+mitgegangene**, deren Suchtext sich mit dieser Runde bewegt hat: **zehn Läufe,
+und einer davon zweimal.**
+
+> **EINER LIEF STUMM, UND ER HATTE RECHT: 783.** *Er nimmt der zweiten Stelle,
+> an der die Pillenreihe entsteht, die Auswahl der Kachel weg — und machte
+> keinen einzigen Punkt rot.* **Der Grund war eine echte Lücke im Prüfstand:**
+> die neue Gruppe prüfte ausschließlich den **Aufbau** der Karte
+> (`setUpCriteriaOut`); das **Neuzeichnen** nach einem Griff (`drawAdmin`, über
+> `adminNew`) war von keiner Zusage berührt. *Ein Rückbau, der nur dort
+> zuschlägt, hatte nichts zum Rotmachen.*
+>
+> **DREI ZUSAGEN SCHLIESSEN SIE:** der einzige türkische Eintrag des
+> Potenzialkastens wird über das ✕ geräumt, und danach muss **seine** Zahl von
+> ● auf 1 gehen, während die des Bewertungskastens auf **2** stehen bleibt.
+> *Ohne die Auswahl an beiden Stellen stünden nach dem Räumen beide bei 3.*
+> **6329 → 6332.** Danach ist 783 rot.
 
 | # | Rückbau | trifft |
 |---|---|---|
 | **780** | Die Zahl an der Pille zählt wieder beide Kriterienkarten | Befund A, die Zahl |
 | **781** | Der rote Rahmen zählt wieder beide Kriterienkarten | Befund A, der Rahmen |
 | **782** | Die erste Zeichnung reicht der Pillenreihe die Zeilen nicht | `setUpCriteriaOut` |
-| **783** | Das Neuzeichnen reicht der Pillenreihe die Zeilen nicht | `drawAdmin` |
+| **783** | Das Neuzeichnen reicht der Pillenreihe die Zeilen nicht | `drawAdmin` — **lief im ersten Anlauf STUMM** |
 | **784** | Der Vermerk sitzt wieder im Namenskasten | Befund B |
 | **785** | Die Zeile mit Vermerk bekommt den Umbruch nicht | Befund B |
 | **786** | Der Vermerk nennt die fehlende Sprache nicht | Befund C |
 | **787** | Ein alleinstehendes „yedek" bleibt im Türkischen stehen | Befund D |
+
+**Was sie rot gemacht haben:** 597 (31 Zusagen), 770 (12), 780 (5), 781 (3),
+782 (7), 784 (4), 785 (2), 786 (10), 787 (2) — **und 783 mit 3, nachdem die
+Lücke geschlossen war.** *Zehn Rückbauten, elf Läufe, am Ende kein einziges
+STUMM.*
 
 **ZWEI RÜCKBAUTEN FÜR EINE SACHE, ZWEIMAL** — und beide Male aus demselben
 Grund. **780 und 781:** die Zahl sagt „so viel liegt hier", der Rahmen sagt

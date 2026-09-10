@@ -29782,6 +29782,50 @@ async function checkUi() {
         axFramed(wKz, 'mpcrits-lang') && !axFramed(wKz, 'mcrits-lang'),
         `mcrits=${axFramed(wKz, 'mcrits-lang')} mpcrits=${axFramed(wKz, 'mpcrits-lang')}`);
 
+      /* ---- UND DAS NEUZEICHNEN HAELT DIE TRENNUNG — 0.25.1 -------------
+         DIE PILLENREIHEN ENTSTEHEN AN ZWEI STELLEN: beim Aufbau der Karte
+         (`setUpCriteriaOut`) und beim Neuzeichnen nach einem Griff
+         (`drawAdmin`, ueber `adminNew`). Bis 0.25.0 standen dort ZWEI
+         Schleifen, und nur die eine kannte die Phase -- genau die Bauform,
+         aus der der Befund entstanden ist.
+
+         DIESE ZEILEN SIND NACHGEWACHSEN, und zwar durch einen gefahrenen
+         Rueckbau: 783 nimmt der zweiten Stelle die Auswahl weg und lief im
+         ersten Anlauf STUMM. Die Gruppe darueber prueft ausschliesslich den
+         AUFBAU -- ein Rueckbau am Neuzeichnen hatte nichts, was er rot machen
+         konnte. Ein STUMM ist ein Fund und kein Versehen.
+
+         GERAEUMT WIRD DER EINZIGE TUERKISCHE EINTRAG DES POTENZIALKASTENS.
+         Danach muss SEINE Zahl von ● auf 1 gehen -- und die des
+         Bewertungskastens auf 2 stehen bleiben. Mit der Auswahl beider Stellen
+         stimmt beides; ohne sie zaehlen beide wieder die ganze Tafel und
+         stuenden nach dem Raeumen bei 3. */
+      await axPress(wKz, 'mpcrits-lang', 'Türkçe');
+      const kzVorP = axMarks(wKz, 'mpcrits-lang');
+      const kzVorB = axMarks(wKz, 'mcrits-lang');
+      const kzNeun = [...wKz.document.querySelectorAll('#mpcrits .mrow')]
+        .find(z => Number(z.dataset.mid) === 9);
+      const kzX = kzNeun && kzNeun.querySelector('.mact.nx');
+      /* MIT RUECKFRAGE, wie jeder Griff, der etwas wegnimmt (F5). Ohne den
+         Beobachter bliebe der Dialog stehen und der Rumpf ginge nie hinaus. */
+      const kzWatch = placeConfirm(wKz, true, []);
+      if (kzX) {
+        kzX.dispatchEvent(new wKz.Event('click', { bubbles: true }));
+        await new Promise(r => setTimeout(r, 320));
+      }
+      kzWatch.disconnect();
+      check('Raeumprobe: der tuerkische Eintrag des Potenzialkastens ist weg',
+        !!kzX && ((kzDom.criterionNames || {}).tr || {})[9] === undefined,
+        kzX ? JSON.stringify((kzDom.criterionNames || {}).tr) : 'kein ✕ an der Zeile 9');
+      check('Und nach dem Neuzeichnen steht an „Potenzial" eine 1 statt des Punktes',
+        kzVorP === 'Deutsch:● English:1 Türkçe:●' &&
+        axMarks(wKz, 'mpcrits-lang') === 'Deutsch:● English:1 Türkçe:1',
+        `vorher: ${kzVorP} — nachher: ${axMarks(wKz, 'mpcrits-lang')}`);
+      check('Und „Bewertung" steht unveraendert auf 2 — auch das Neuzeichnen trennt',
+        kzVorB === axMarks(wKz, 'mcrits-lang') &&
+        axMarks(wKz, 'mcrits-lang') === 'Deutsch:● English:● Türkçe:2',
+        `vorher: ${kzVorB} — nachher: ${axMarks(wKz, 'mcrits-lang')}`);
+
       /* ---- DER VERMERK HAT DIE VOLLE BREITE — 0.25.1 -------------------
          DER ZWEITE BEFUND DESSELBEN TAGES: „warum ist der untere text mit dem
          hinweis im ersten kachel volltaendig zu sehen und in den beiden
