@@ -1820,7 +1820,32 @@ mark {
 .kv .k .extra { color: var(--faint); }
 .kv .v { font-family: var(--mono); font-size: .83rem; }
 .vocabulary-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 0 12px; }
-.vocabulary-grid .field { margin-bottom: 10px; }
+/* ZWEI FELDER IN EINER ZEILE STEHEN AUF DERSELBEN LINIE — 0.25.3.
+
+   DAS RASTER STRECKT DIE KÄSTEN längst auf gleiche Höhe; der INHALT floss aber
+   von oben nach unten. Braucht eine Beschriftung zwei Zeilen und die daneben
+   nur eine, rutschte das eine Eingabefeld nach unten und das andere blieb
+   oben — zwei Felder derselben Zeile auf zwei verschiedenen Linien.
+
+   DER BETREIBER AM 10. September 2026: *„es darf keine Verschiebung innerhalb
+   der Zeile durch Texte passieren. wenn der eine mehr Platz braucht, nimmt
+   sich sein Nachbar auch diesen Platz und sie haben beide dieselbe Höhe."*
+   Gesehen an „Görev, çoğul" im Türkischen — **und es trifft jede Sprache**:
+   im Englischen bricht „Stars before the test", im Deutschen „Sterne nach dem
+   Test" um. Welche Beschriftung umbricht, entscheidet die Sprache; DASS eine
+   umbricht, ist die Regel und nicht die Ausnahme.
+
+   `margin-top: auto` AM FELD UND KEINE FESTE HÖHE AN DER BESCHRIFTUNG. Eine
+   Mindesthöhe müsste die längste Beschriftung aller Sprachen kennen und wäre
+   mit der nächsten Sprache wieder falsch; der Eintrag unten drückt das Feld an
+   die Unterkante des Kastens, den das Raster ohnehin gleich hoch macht. Damit
+   liegen beide auf einer Linie, gleich wie viele Zeilen darüber stehen.
+
+   AN DER ZEILE UND NICHT AN `.field` SCHLECHTHIN: dieselbe Klasse trägt jedes
+   Anmeldefeld, jeden Dialog und jede andere Karte — dort stehen die Felder
+   UNTEREINANDER, und eine Unterkante zum Andrücken gibt es gar nicht. */
+.vocabulary-grid .field { margin-bottom: 10px; display: flex; flex-direction: column; }
+.vocabulary-grid .field .input { margin-top: auto; }
 /* EIN VOKABELFELD OHNE EINTRAG — 0.25.0, Bauabschnitt 4. Gedämpft markiert,
    wie die Zeile am Rückfall in den Namenskarten: die Beschriftung blasser, das
    Feld mit gestricheltem Rand. Es ist kein Fehler — was fehlt, ersetzt die
