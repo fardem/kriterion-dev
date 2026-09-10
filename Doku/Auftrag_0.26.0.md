@@ -57,16 +57,29 @@ Rückbauten** · `F_ROUTES` = **72** · Austauschformat `EXCHANGE_FORMAT` = **15
 > *Gebaut wird erst, wenn jede Frage beantwortet und in diesem Papier
 > eingetragen ist* (Projektstand, Abschnitt 11).
 
+> **BEANTWORTET AM 10. SEPTEMBER 2026 — im Gespräch und einzeln durchgegangen**,
+> nicht aus der Vorschlagsspalte übernommen. *Vierte Runde unter der Regel aus
+> Abschnitt 11.*
+>
+> **EINE ANTWORT FÄLLT GEGEN DEN VORSCHLAG: F3.** *Der Schalter gehört dem
+> **Eigentümer allein** und nicht Admin und Eigentümer gemeinsam.* **Das wirkt
+> auf BA 6** — die Ablage bleibt die von `categoriesFreeCreate`, die Klemme wird
+> enger und gehört namentlich in den Prüfstand.
+>
+> **F6 IST BEANTWORTET UND NOCH NICHT ERLEDIGT:** die Beobachtung fährt der
+> Betreiber. **BA 5 wartet auf sie**; die übrigen Bauabschnitte laufen
+> unterdessen.
+
 | # | Frage | Vorschlag von Claude | Antwort |
 |---|---|---|---|
-| **F1** | **Was macht der Server mit `potentialRating`, wenn der Modus aus ist?** Ganz weglassen wäre sauber, trifft aber Export, Vergleich und Einzelansicht mit — und ein Export, dem ein Feld fehlt, ist beim Wiedereinschalten nicht mehr derselbe | **Der Server rechnet und liefert weiter; nur die Oberfläche zeigt nichts.** *Ausschalten ist Verbergen und nicht Löschen — dieselbe Zusage wie bei den Sternen. Ein Export bleibt damit vollständig, und wer wieder einschaltet, findet seinen Bestand vor.* | |
-| **F2** | **Bleibt die Karte „Potenzial: Kriterien" im Systembereich stehen, wenn der Modus aus ist?** | **Sie bleibt, und der Schalter steht darin.** *Eine Karte, die verschwindet, nimmt den Ort mit, an dem man den Modus wieder einschaltet. Die Kriterienliste darin wird gedämpft und trägt einen Satz: „Der Modus ist aus — die Kriterien bleiben erhalten."* | |
-| **F3** | **Wem gehört der Schalter — Admin oder Eigentümer?** Der Betreiber schreibt *„Admin+Admin(Eigentümer)"* | **Beiden, wie `categoriesFreeCreate`.** *Er erscheint an allen Einträgen aller Benutzer und gehört deshalb dem Admin und nicht in `user_settings` (Projektstand, Abschnitt 11).* | |
-| **F4** | **Die Sortierung `potential_desc` schaltet heute den Statusfilter auf „nicht getestet" um** (`public/app.js:2287`). Fällt die Gruppe weg — fällt die Kopplung mit? | **Ja, im selben Zug.** *Eine Kopplung auf eine Sortierung, die es nicht gibt, ist toter Code, und Regel „was fällt, fällt namentlich" gilt auch für ihn.* | |
-| **F5** | **Was steht in der Übersicht an der Stelle der Kopfzahl ◆, wenn der Modus aus ist?** | **Nichts — die Zeile schließt sich.** *Kein Platzhalter, kein Strich: eine leere Stelle, an der einmal etwas stand, sieht aus wie ein Fehler.* | |
-| **F6** | **Die Messung an der Übersicht** *(Befund 7)* **braucht eine Beobachtung im Browser des Betreibers.** Wird sie gemacht, bevor gebaut wird? | **Ja, und sie ist der erste Bauabschnitt.** *Ohne sie ist die Ursache nicht bewiesen; mit ihr steht in zehn Minuten fest, ob (a) die ganze Antwort ist.* **Sie kostet den Betreiber F12 und einen Klick.** | |
-| **F7** | **`ß`/`ss`** *(Befund 6)* **hat einen Preis: „Masse" findet danach auch „Maße".** Wird er bezahlt? | **Ja.** *Für eine SUCHE ist das die richtige Seite des Irrtums — wer sucht, will lieber eine Zeile zu viel sehen als eine zu wenig. Für einen VERGLEICH wäre es falsch, und der Vergleich der Namen ist eine andere Funktion und bleibt es.* | |
-| **F8** | **Die Nummer: 0.26.0 als MINOR — richtig?** | **Ja.** *Die sechs Befunde und die Messung wären zusammen ein PATCH. Der Potenzialmodus ist eine **Funktion** und nimmt nach Regel 5.1 eine MINOR-Nummer; die Reparaturen fahren mit.* | |
+| **F1** | **Was macht der Server mit `potentialRating`, wenn der Modus aus ist?** Ganz weglassen wäre sauber, trifft aber Export, Vergleich und Einzelansicht mit — und ein Export, dem ein Feld fehlt, ist beim Wiedereinschalten nicht mehr derselbe | **Der Server rechnet und liefert weiter; nur die Oberfläche zeigt nichts.** *Ausschalten ist Verbergen und nicht Löschen — dieselbe Zusage wie bei den Sternen. Ein Export bleibt damit vollständig, und wer wieder einschaltet, findet seinen Bestand vor.* | | **JA — der Server rechnet und liefert weiter.** *Wie vorgeschlagen. Ausschalten ist Verbergen und nicht Löschen; das Austauschformat bleibt bei 15, und wer wieder einschaltet, findet seinen Bestand vor.* |
+| **F2** | **Bleibt die Karte „Potenzial: Kriterien" im Systembereich stehen, wenn der Modus aus ist?** | **Sie bleibt, und der Schalter steht darin.** *Eine Karte, die verschwindet, nimmt den Ort mit, an dem man den Modus wieder einschaltet. Die Kriterienliste darin wird gedämpft und trägt einen Satz: „Der Modus ist aus — die Kriterien bleiben erhalten."* | | **Sie bleibt, und der Schalter steht darin.** *Wie vorgeschlagen — samt gedämpfter Kriterienliste und dem Satz „Der Modus ist aus — die Kriterien bleiben erhalten."* |
+| **F3** | **Wem gehört der Schalter — Admin oder Eigentümer?** Der Betreiber schreibt *„Admin+Admin(Eigentümer)"* | **Beiden, wie `categoriesFreeCreate`.** *Er erscheint an allen Einträgen aller Benutzer und gehört deshalb dem Admin und nicht in `user_settings` (Projektstand, Abschnitt 11).* | | **NUR DER EIGENTÜMER — und das ist GEGEN den Vorschlag.** *Ein Admin sieht den Schalter, stellen kann ihn nur der Eigentümer: der Modus ist eine Grundsatzentscheidung der Installation und kein Tagesgeschäft.* **Die Einstellung gehört trotzdem in die Datenbank und nicht in `user_settings`** — sie erscheint an allen Einträgen aller Benutzer. *Die Bauform von `categoriesFreeCreate` trägt also nur die Ablage, nicht die Klemme; die Klemme ist enger und gehört benannt.* |
+| **F4** | **Die Sortierung `potential_desc` schaltet heute den Statusfilter auf „nicht getestet" um** (`public/app.js:2287`). Fällt die Gruppe weg — fällt die Kopplung mit? | **Ja, im selben Zug.** *Eine Kopplung auf eine Sortierung, die es nicht gibt, ist toter Code, und Regel „was fällt, fällt namentlich" gilt auch für ihn.* | | **Ja, im selben Zug.** *Wie vorgeschlagen — und nur bei ausgeschaltetem Modus; bei eingeschaltetem bleibt die Kopplung, wie sie heute ist.* |
+| **F5** | **Was steht in der Übersicht an der Stelle der Kopfzahl ◆, wenn der Modus aus ist?** | **Nichts — die Zeile schließt sich.** *Kein Platzhalter, kein Strich: eine leere Stelle, an der einmal etwas stand, sieht aus wie ein Fehler.* | | **Nichts — die Zeile schließt sich.** *Wie vorgeschlagen: kein Platzhalter, kein Strich.* |
+| **F6** | **Die Messung an der Übersicht** *(Befund 7)* **braucht eine Beobachtung im Browser des Betreibers.** Wird sie gemacht, bevor gebaut wird? | **Ja, und sie ist der erste Bauabschnitt.** *Ohne sie ist die Ursache nicht bewiesen; mit ihr steht in zehn Minuten fest, ob (a) die ganze Antwort ist.* **Sie kostet den Betreiber F12 und einen Klick.** | | **Ja, und sie ist der erste Bauabschnitt.** *Der Betreiber fährt die Beobachtung; BA 5 wartet auf sie und wird auf der Antwort gebaut — **(a)** in jedem Fall, **(b)** nur, wenn die Übertragung entlastet ist.* **Die übrigen Bauabschnitte laufen unterdessen.** |
+| **F7** | **`ß`/`ss`** *(Befund 6)* **hat einen Preis: „Masse" findet danach auch „Maße".** Wird er bezahlt? | **Ja.** *Für eine SUCHE ist das die richtige Seite des Irrtums — wer sucht, will lieber eine Zeile zu viel sehen als eine zu wenig. Für einen VERGLEICH wäre es falsch, und der Vergleich der Namen ist eine andere Funktion und bleibt es.* | | **Ja, der Preis wird bezahlt.** *Wie vorgeschlagen — für eine SUCHE ist das die richtige Seite des Irrtums. Der Vergleich der Namen bleibt eine andere Funktion.* **Und er wird ausdrücklich als Zusage geprüft:** `searchFold('Masse') === searchFold('Maße')`. |
+| **F8** | **Die Nummer: 0.26.0 als MINOR — richtig?** | **Ja.** *Die sechs Befunde und die Messung wären zusammen ein PATCH. Der Potenzialmodus ist eine **Funktion** und nimmt nach Regel 5.1 eine MINOR-Nummer; die Reparaturen fahren mit.* | | **Ja, MINOR.** *Wie vorgeschlagen. Der Fahrplan rückt nicht; 0.32.0 bleibt frei, der Bruch bleibt auf 0.33.0.* |
 
 ---
 
@@ -339,10 +352,18 @@ abgeschalteter Modus.*
 | **Übersicht** | die Kopfzahl **◆** an einem ungetesteten Eintrag — *auch dann, wenn schon Potenzialbewertungen in der Datenbank stehen* | `public/app.js:4211` |
 | **Systembereich** | *offen (F2)* — ob die Karte „Potenzial: Kriterien" mitverschwindet oder als Einstellort stehen bleibt | `public/app.js:8717` |
 
-**Der Schalter gehört dem Admin und in die Datenbank** — dieselbe Bauform wie
+**Der Schalter gehört in die Datenbank** — dieselbe **Ablage** wie
 `categoriesFreeCreate` und `tagsFreeCreate`, und aus demselben Grund
 *(Projektstand, Abschnitt 11: eine Einstellung, die an allen Einträgen aller
-Benutzer erscheint, gehört dem Admin und nicht in `user_settings`)*.
+Benutzer erscheint, gehört nicht in `user_settings`)*.
+
+> **ABER NICHT DIESELBE KLEMME — DAS IST DIE ANTWORT AUF F3, UND SIE FÄLLT
+> GEGEN DEN VORSCHLAG.** *Stellen kann den Schalter **der Eigentümer allein**;
+> ein Admin sieht ihn und kommt nicht daran.* **Die beiden Vorlagen taugen
+> deshalb für die Ablage und den Reiseweg, nicht für die Prüfung des Rufers** —
+> wer sie ganz abschreibt, baut eine Adminklemme, wo eine Eigentümerklemme
+> stehen soll. *Der Prüfstand bekommt dafür eine eigene Zusage: ein Admin, der
+> den Schalter am Server zu stellen versucht, wird abgewiesen.*
 
 **Die Vorlagen stehen da und sind zu lesen, bevor eine Zeile fällt:**
 `public/app.js:8669` *(`createToggle('cat-free', 'categoriesFreeCreate', …)`)*,

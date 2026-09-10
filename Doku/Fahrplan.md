@@ -377,10 +377,14 @@ abgeschalteter Modus.*
 | **Übersicht** | die Kopfzahl **◆** an einem ungetesteten Eintrag — *auch dann, wenn schon Potenzialbewertungen in der Datenbank stehen* |
 | **Systembereich** | *offen:* ob die Karte „Potenzial: Kriterien" mitverschwindet oder als Einstellort stehen bleibt |
 
-**Der Schalter gehört dem Admin und in die Datenbank** — dieselbe Bauform wie
+**Der Schalter gehört in die Datenbank** — dieselbe Ablage wie
 `categoriesFreeCreate` und `tagsFreeCreate`, und aus demselben Grund
 *(Projektstand, Abschnitt 11: eine Einstellung, die an allen Einträgen aller
-Benutzer erscheint, gehört dem Admin und nicht in `user_settings`)*.
+Benutzer erscheint, gehört nicht in `user_settings`)*. **Stellen kann ihn der
+EIGENTÜMER allein** — die Antwort des Betreibers auf F3 am 10. September 2026,
+und sie fällt gegen den Vorschlag des Auftrags. *Ein Admin sieht den Schalter
+und kommt nicht daran; die beiden Vorlagen taugen für die Ablage, nicht für die
+Klemme.*
 
 **Die vergebenen Sterne bleiben stehen.** *Ausschalten ist Verbergen und nicht
 Löschen: wer ihn wieder einschaltet, findet seinen Bestand vor.* **Was der
