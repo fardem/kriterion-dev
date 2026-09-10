@@ -135,13 +135,36 @@ einer Seite folgt, wäre wieder zwei.
 
 | # | Rückbau | trifft |
 |---|---|---|
-| **788** | Der Stempel des Servers reist wieder mit | Befund A |
-| **789** | Der Vokabelumschalter schreibt wieder in eine eigene Angabe | Befund B, die eine Richtung |
-| **790** | Der Vokabelumschalter liest wieder seine eigene Angabe | Befund B, die andere |
+| **788** | Der Stempel des Servers reist wieder mit | Befund A — **4 rot** |
+| **789** | Die zweite Angabe steht wieder im Quelltext | Befund B, der Wächter über den Quelltext — **1 rot** |
+| **790** | Der Vokabelumschalter liest wieder seine eigene Angabe | Befund B, der Gleichlauf — **4 rot** |
 
-**ZWEI RÜCKBAUTEN FÜR EINEN GLEICHLAUF**, und der Grund steht in der Sache:
-*schreiben und lesen sind zwei Richtungen, und der gemeldete Fehler hatte genau
-eine davon.* Ein Rückbau, der beide träfe, ließe offen, welche hält.
+**Alle drei gefahren, kein STUMM.** *789 und 790 ein zweites Mal, nachdem der
+erste Durchgang die beiden Funde unten gebracht hatte.*
+
+### Der erste Durchgang hat zwei Dinge gefunden, und beide waren meine
+
+> **789 HAT DEN LAUF ABGERISSEN.** *Der erste Entwurf zielte auf die
+> Klickweiche und ließ den Vokabelumschalter ins Leere schreiben.* Der Lauf
+> starb mit „Cannot convert undefined or null to object": **ältere Gruppen
+> schalten die Kachel um und rechnen danach mit dem, was dort steht** — ohne
+> Umschalten greifen sie ins Leere. *Ein Rückbau, der den Lauf niederreißt,
+> belegt nichts — dieselbe Lage wie 760 in 0.25.0.*
+>
+> **UND ER WAR ÜBERFLÜSSIG.** Mit **einer** Angabe gibt es keine zwei
+> Richtungen, die getrennt kaputtgehen könnten; 790 nimmt beide. *Er zielt
+> seither auf die zweite Angabe selbst: sie wieder hinzuschreiben, auch wenn
+> niemand sie liest — denn genau das ist der Anfang von Stolperstein 47 und
+> nicht sein Ende.*
+
+> **UND EINE ZUSAGE VON MIR WAR ZU SCHWACH.** Die erste Gleichlaufprobe
+> schaltete auf **Türkçe** — die Sprache des Lesers, und damit genau die, auf
+> die jede kaputte Pillenreihe ohnehin zurückfällt. *Sie war von „läuft mit"
+> nicht zu unterscheiden.* **Der gefahrene Rückbau 790 hat es gezeigt:** er
+> machte nur die Gegenrichtung rot. **Sie schaltet jetzt auf Deutsch.**
+>
+> *Beides hat kein Mensch gemeldet und keine Prüfung gefunden — es hat der
+> gefahrene Rückbau gefunden. Dafür wird er gefahren.*
 
 ---
 

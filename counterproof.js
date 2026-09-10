@@ -7618,16 +7618,23 @@ const REGRESSIONS = [
     expected: 'Ein Leser, der anders liest — 0.25.2'
   },
   {
-    /* UND DER VOKABELUMSCHALTER SCHREIBT WIEDER IRGENDWOHIN. Er setzt dann
-       eine Angabe, die niemand liest -- der Klick bewegt nichts mehr, und
-       der Gleichlauf in DIESE Richtung ist hin. Das ist die plausible
-       Bauform des Fehlers: „vergessen zu verdrahten". */
-    nr: '789', name: 'Der Vokabelumschalter schreibt wieder in eine eigene Angabe',
+    /* UND DIE ZWEITE ANGABE STEHT WIEDER IM QUELLTEXT. Sie tut dann nichts --
+       und genau das ist der Punkt: eine Angabe, die dieselbe Frage beantwortet
+       und noch niemand liest, ist der Anfang, nicht das Ende (Stolperstein 47).
+       Der Waechter ueber den Quelltext muss sie finden.
+
+       DER ERSTE ENTWURF ZIELTE AUF DIE KLICKWEICHE und liess den
+       Vokabelumschalter ins Leere schreiben. ER HAT DEN LAUF ABGERISSEN
+       („Cannot convert undefined or null to object"): aeltere Gruppen schalten
+       die Kachel um und rechnen danach mit dem, was dort steht -- ohne
+       Umschalten greifen sie ins Leere. Ein Rueckbau, der den Lauf
+       niederreisst, belegt nichts (dieselbe Lage wie 760 in 0.25.0). Und er
+       war ohnehin ueberfluessig: mit EINER Angabe gibt es keine zwei
+       Richtungen, die getrennt kaputtgehen koennten -- 790 nimmt sie beide. */
+    nr: '789', name: 'Die zweite Angabe steht wieder im Quelltext',
     file: 'public/app.js',
-    search: "        /* DIESELBE ANGABE WIE AN DEN NAMENSKARTEN -- 0.25.2. Wer hier\n" +
-      "           umschaltet, schaltet den ganzen Abschnitt um, und umgekehrt. */\n" +
-      "        NAMES_SHOWN = a.code;",
-    replacement: "        window.VOCABULARY_SHOWN = a.code;",
+    search: "let NAMES_SHOWN = null;",
+    replacement: "let NAMES_SHOWN = null;\nlet VOCABULARY_SHOWN = null;",
     expected: 'Ein Leser, der anders liest — 0.25.2'
   },
   {

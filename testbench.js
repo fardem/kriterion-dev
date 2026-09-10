@@ -29994,10 +29994,15 @@ async function checkUi() {
          BIS 0.25.1 GAB ES ZWEI ANGABEN (`NAMES_SHOWN` und `VOCABULARY_SHOWN`)
          ueber dieselbe Frage. Geprueft wird in BEIDE Richtungen: eine Angabe,
          die nur einer Seite folgt, waere wieder zwei. */
-      await axPress(wAl, 'ncatlang', 'Türkçe');
+      /* GESCHALTET WIRD AUF EINE SPRACHE, DIE NICHT DIE DES LESERS IST.
+         Der erste Entwurf schaltete auf Türkçe -- und weil der Leser Türkisch
+         liest, faellt jede kaputte Reihe genau dorthin zurueck. Die Zusage war
+         damit von „laeuft mit" nicht zu unterscheiden; der gefahrene Rueckbau
+         790 hat es gezeigt (er machte nur die Gegenrichtung rot). */
+      await axPress(wAl, 'ncatlang', 'Deutsch');
       check('Gleichlaufprobe: ein Klick an der Kategorienkachel zieht alle vier Reihen mit',
         ['ncatlang', 'mcrits-lang', 'mpcrits-lang', 'vlang']
-          .every(id => alReihe(id) === 'Türkçe'), alAlle());
+          .every(id => alReihe(id) === 'Deutsch'), alAlle());
       /* UND ANDERSHERUM — das war die Richtung, die nicht ging. */
       await axPress(wAl, 'vlang', 'English');
       check('Und andersherum: ein Klick an der Vokabelkachel zieht die drei Namenskarten mit',
