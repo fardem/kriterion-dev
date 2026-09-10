@@ -500,6 +500,18 @@ zurück und lässt den Knopf stehen.*
 örtlich** — und genau das ist ab jetzt der Regelfall: **gebaut und geprüft
 wird örtlich, gepusht wird auf Ansage.**
 
+> **812 IST GEFAHREN: 6409 von 6412, 0 STUMM.** *Sie fällt in **drei** Gruppen —
+> die neue Zusage über die Ereignisliste, die Zusage über den fehlenden
+> Zweigfilter und der Waechter über die Suchtexte.*
+
+> **UND DER UMBAU HAT SICH BEIM LAUFEN SELBST EINEN FUND GEHOLT.** *Am Auslöser
+> hingen **drei** Zusagen, nicht zwei.* **Die dritte stand nicht im Beipack,
+> sondern oben bei den Zusagen über die Workflowdatei** — dort, wo auch
+> Node-Version und `npm ci` geprüft werden —, und sie hieß noch *„Er läuft nur
+> bei Push auf main"*. *Der örtliche Lauf hat sie rot gemeldet, bevor irgend
+> etwas GitHub erreicht hat; das ist der erste Beleg dafür, dass die neue
+> Arbeitsweise trägt.*
+
 ---
 
 ## Was ausdrücklich NICHT gebaut wird
