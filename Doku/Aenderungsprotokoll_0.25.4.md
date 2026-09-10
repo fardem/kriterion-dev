@@ -4,7 +4,10 @@
 (`a3c561d7`).**
 
 > **FINGERPRINT DIESER RUNDE: `c56df7db`** —
-> gerechnet am gebauten Stand, **vor dem Einspielen**.
+> gerechnet am gebauten Stand, **vor dem Einspielen**, und am **abgelegten
+> Stand nachgerechnet**: ein Server aus `git archive HEAD` meldet denselben
+> Wert. *Zwei Quellen, ein Wert.* **Die dritte — die laufende Installation —
+> steht aus, bis eingespielt ist.**
 
 > **DER BETREIBER IM WORTLAUT, 10. September 2026:** *„warum wurde das nicht
 > einfach umgesetzt ‚Der türkische Verneinungssatz'?"*
@@ -201,6 +204,23 @@ prüft den Wächter und nicht das Auge.**
 **793 greift an EINER Datei, obwohl alle drei betroffen waren.** *Der Wächter
 sieht jede Datei einzeln an, und eine offene reicht.* Wer den Rückbau
 überlebt, hat einen Wächter, der nur die Mehrheit fragt.
+
+### Gefahren, nicht behauptet — 10. September 2026, drei Nebenspuren
+
+| # | Lauf | namentlich rot |
+|---|---|---|
+| **792** | 6356 von 6358 | **„Und im Türkischen ist es das VERB — nicht ein Wörtchen davor"** |
+| **793** | 6356 von 6358 | **„Das Anführungszeichen am Tagzeichen wird in jeder Sprache geschlossen"** |
+| **794** | 6354 von 6358 | **„Und beide Stellen reichen den Zählwert unter dem Namen `n`"** — dazu **drei weitere in drei anderen Gruppen** |
+
+> **0 STUMM.** *Jeder der drei fällt in der Gruppe auf, die ihn erwartet.*
+
+**794 FÄLLT VIERFACH AUF, und das ist kein Zufall.** Neben der eigenen Zusage
+greifen der allgemeine Platzhalterwächter (*„Und jeder Platzhalter wird
+gereicht oder ist ein Vokabelwort"*) und die Karte des Sicherheitsprotokolls,
+die die Frist am Bildschirm nachliest. *Genau deshalb steht die eigene Zusage
+trotzdem da: sie nennt den Befund beim Namen, die anderen drei nennen nur eine
+Folge.*
 
 ---
 

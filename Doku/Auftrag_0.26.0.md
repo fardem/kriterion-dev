@@ -36,7 +36,7 @@ MINOR-Nummer:
 | Quelle | Wert |
 |---|---|
 | **Am gebauten Stand gerechnet, vor dem Einspielen** *(10. September 2026)* | **`c56df7db`** |
-| **Am gemergten Stand nachgerechnet** *(ein Server aus `git archive` des Standes, der auf `main` liegt)* | **`c56df7db`** — *derselbe Wert* |
+| **Am abgelegten Stand nachgerechnet** *(ein Server aus `git archive HEAD`, 10. September 2026)* | **`c56df7db`** — *derselbe Wert* |
 | Aus der laufenden Installation gemeldet | **steht aus** — *0.25.4 ist noch nicht eingespielt* |
 
 > **ZWEI QUELLEN, EIN WERT.** *Die dritte Zeile ist keine Formsache: erst die
