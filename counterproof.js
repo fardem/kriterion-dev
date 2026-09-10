@@ -8053,6 +8053,18 @@ const REGRESSIONS = [
        Rueckbau laesst den alten Schluessel stehen -- danach stuenden ZWEI
        Zeilen ueber dieselbe Frage in derselben Tabelle, und beim naechsten
        Griff waere nicht zu sagen, welche gilt (Stolperstein 47). */
+    /* F7 — DER SATZ AN DER EINFUEGESTELLE. Der Rueckbau nimmt ihn aus der
+       Zeile, in der er gezeichnet wird -- nicht aus der Sprachdatei: ein Satz,
+       der dort steht und nirgends erscheint, ist genau der Fall, den diese
+       Gegenprobe finden soll. Dieselbe Bauform wie 485, die daran STUMM
+       geblieben ist. */
+    nr: '824', name: 'Der Satz an der Einfuegestelle wird nicht gezeichnet',
+    file: 'public/app.js',
+    search: "          ${tH('entry.photoOrderHint')} ${tH('entry.uploadIsCheaper')}</p>",
+    replacement: "          ${tH('entry.photoOrderHint')}</p>",
+    expected: 'Der Eintrag am Bildschirm'
+  },
+  {
     nr: '823', name: 'Der alte Schluessel bleibt stehen',
     file: 'db.js',
     search: "    db.prepare(\"DELETE FROM settings WHERE key = 'convertImages'\").run();",

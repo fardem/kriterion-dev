@@ -478,7 +478,7 @@ weiterhin offen. Daraus folgt die Stellung von `HINTER_PROXY` (Abschnitt 3).
 
 ## 2. Betriebsstand
 
-**Gebaut ist 0.27.0** — **6491 Prüfungen**, **814 Rückbauten in der Liste**
+**Gebaut ist 0.27.0** — **6497 Prüfungen**, **815 Rückbauten in der Liste**
 (Abschnitt 8). **Am Wirt läuft 0.24.6, eingespielt am 9. September 2026,
 Fingerprint `c4c07393`** *(Abschnitt 8)*.
 
@@ -510,13 +510,18 @@ als `image/jpeg` angekündigt, und die Fertigmeldung der Umstellung stand halb
 auf Deutsch, gleich welche Sprache eingestellt war.
 Einzelheiten im Änderungsprotokoll 0.27.0.
 
-> **DIE FRAGETAFEL DIESER RUNDE IST NICHT IM GESPRÄCH DURCHGEGANGEN WORDEN.**
-> *Der Betreiber hat sie am 10. September 2026 mit* „Keine Ahnung was wir
-> damals für die 27.0 ausgemacht haben" *in Auftrag gegeben; gebaut wurde nach
-> der Vorschlagsspalte, vollständig und ohne Abweichung.* **Regel 11 dieses
-> Blatts („ein Vorschlag ist keine Antwort") ist damit in dieser Runde
-> ausdrücklich nicht erfüllt** — sie steht hier als offener Punkt und nicht als
-> Fußnote. *Jede der zehn Antworten ist ohne Datenverlust umzustellen.*
+> **DIE FRAGETAFEL DIESER RUNDE IST NACH DEM BAUEN DURCHGEGANGEN WORDEN UND
+> NICHT DAVOR.** *Der Betreiber hat sie am 10. September 2026 mit* „Keine
+> Ahnung was wir damals für die 27.0 ausgemacht haben" *in Auftrag gegeben;
+> gebaut wurde nach der Vorschlagsspalte.* **Noch am selben Tag sind F1, F3, F4
+> und F6 entschieden worden — jede wie vorgeschlagen, keine Abweichung —, und
+> F2 war im Auftrag selbst vorgegeben:** „Standard soll das sein, was heute
+> aktiv genutzt wird". **F5, F7, F8, F9 und F10 sind nach Vorschlag gebaut und
+> nicht einzeln bestätigt.**
+> **Regel 11 dieses Blatts („ein Vorschlag ist keine Antwort") ist trotzdem
+> nicht erfüllt** — sie verlangt die Antwort VOR der ersten Zeile. *Das steht
+> hier als offener Punkt und nicht als Fußnote: dass das Ergebnis hinterher
+> bestätigt wurde, macht die Reihenfolge nicht richtig.*
 
 > **DER RÜCKWEG AUF 0.26.0 IST OFFEN — mit einer benannten Folge.** *Eine
 > ältere Fassung kennt `imageStore` nicht und liest wieder `convertImages`;

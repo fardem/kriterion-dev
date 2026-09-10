@@ -25883,12 +25883,19 @@ const shareMain = (purpose, target = null) =>
      Ableitungen, die zweite Haelfte des Bestandslaufs, der Lauf am
      Umschalten, die Auflage in der Karte, die Richtung der Migration und der
      alte Schluessel.
+     815 SEIT DEM NACHTRAG ZU F7: der zwoelfte (824) nimmt den Satz an der
+     Einfuegestelle aus der Zeile, in der er GEZEICHNET wird -- und nicht aus
+     der Sprachdatei. Ein Satz, der dort steht und nirgends erscheint, ist
+     genau der Fall, den diese Gegenprobe finden soll; 485 ist an derselben
+     Bauform STUMM geblieben. Der Betreiber hat F7 am 10. September 2026
+     ausdruecklich entschieden -- „behalten, aber kuerzer" --, und eine
+     entschiedene Sache bekommt eine Zusage.
      DIE NEUNZEHN ALTEN DIESER SACHE STEHEN NICHT ZWEIMAL DA (431 bis 435,
      454 bis 462, 493, 506 bis 508, 522 bis 524, 810): sie sind MITGEGANGEN
      und zeigen auf die Zeilen, die dieselbe Sache jetzt tragen (Stolperstein
      201). Ein zweiter Rueckbau daneben waere eine zweite Wahrheit ueber
      denselben Fund. */
-  check('Es sind genau 814 Rueckbauten', gpList.length === 814, `${gpList.length}`);
+  check('Es sind genau 815 Rueckbauten', gpList.length === 815, `${gpList.length}`);
   const gpTwice = gpList.map(r => r.nr).filter((n, i, a) => a.indexOf(n) !== i);
   check('Und keine Nummer steht zweimal', gpTwice.length === 0, gpTwice.join(' '));
   /* JEDER GREIFT: der Suchtext kommt in seiner Datei GENAU EINMAL vor. Keinmal
@@ -41117,6 +41124,36 @@ async function checkUi() {
     /const dropText = document\.getElementById\('drop-text'\);/.test(adAppCode) &&
     !/\bdrop\.textContent\s*=/.test(adAppCode),
     (adAppSource.match(/const dropText[^\n]*/) || ['(keine Zeile)'])[0]);
+  /* ---- DER SATZ AN DER EINFUEGESTELLE -- 0.27.0, F7 ----
+     DER BILLIGSTE WEG STEHT DORT, WO JEMAND IHN NOCH NEHMEN KANN. „Bild
+     speichern unter" und dann hochladen kostet keine Rechenzeit und verliert
+     nichts -- Kriterion fasst JPEG nicht an. Ueber die Zwischenablage wurden
+     aus einem 5,21-MB-JPEG gemessen 34,79 MB PNG, und das sieht man dem
+     Ergebnis nicht an.
+     ER STEHT IM SELBEN ABSATZ WIE DIE VIDEOGRENZE und aus demselben Grund
+     (Regel S1): eine Folge, die man VOR dem Handeln kennen muss, darf stehen.
+     0.22.0 hat die fuenf Saetze dort auf einen gekuerzt; dieser ist der
+     zweite, und der Betreiber hat ihn am 10. September 2026 ausdruecklich
+     behalten -- „aber kuerzer", und das ist er.
+     GEPRUEFT WIRD AM BILDSCHIRM UND NICHT AN DER SPRACHDATEI: ein Satz, der in
+     der Datei steht und nirgends gezeichnet wird, ist keiner. Dieselbe
+     Ueberlegung wie bei Gegenprobe 485, die genau daran STUMM blieb. */
+  {
+    const adPaste = (adIncluding.document.querySelector('.drop')?.parentElement
+      ?.textContent || '').replace(/\s+/g, ' ');
+    check('An der Einfuegestelle steht, dass Hochladen billiger ist — 0.27.0',
+      /Bild speichern unter/.test(adPaste) && /hochladen/.test(adPaste),
+      adPaste.slice(0, 260) || '(kein Text an der Einfuegestelle)');
+    /* UND ER SAGT AUCH, WARUM. Ohne diese Zeile bliebe die Zusage gruen, wenn
+       vom Satz nur die Empfehlung uebrig bliebe -- ein Rat ohne Grund wird
+       beim naechsten Aufraeumen weggekuerzt. */
+    check('Und warum: eingefuegt wird daraus ein PNG, das viel groesser ist',
+      /PNG/.test(adPaste) && /Vielfaches/.test(adPaste), adPaste.slice(0, 260));
+    /* UND DER SATZ ZUR REIHENFOLGE STEHT WEITER DANEBEN. Ohne diese Zeile
+       bliebe gruen, wer den neuen an die Stelle des alten setzt. */
+    check('Und der Satz zur Reihenfolge steht weiterhin daneben',
+      /erste Foto ist das Hauptbild/.test(adPaste), adPaste.slice(0, 260));
+  }
   check('Der Titel ist ein Eingabefeld und traegt deshalb keine Marke',
     adIncluding.document.querySelectorAll('.title-in mark').length === 0 &&
     adIncluding.document.getElementById('title')?.tagName === 'TEXTAREA',

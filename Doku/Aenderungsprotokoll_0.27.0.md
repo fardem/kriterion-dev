@@ -3,22 +3,53 @@
 **Eine Funktion mit einer Auflage, dazu die Ableitungen · gebaut am 10.
 September 2026 auf 0.26.0 (`9ad0be7b`).**
 
-> **FINGERPRINT DIESER RUNDE: `FINGERPRINT_PLATZHALTER`** — gerechnet am
-> fertigen Stand, **vor dem Einspielen**.
-
-> **DIE FRAGETAFEL IST NICHT IM GESPRÄCH DURCHGEGANGEN WORDEN, und das gehört
-> als erstes ins Papier.** *Der Betreiber hat die Runde am 10. September 2026
-> mit den Worten in Auftrag gegeben:* **„Keine Ahnung was wir damals für die
-> 27.0 ausgemacht haben."** *Damit lag keine Antwortspalte vor.*
+> **FINGERPRINT DIESER RUNDE: `56e508ab`** — gerechnet am fertigen Stand,
+> **vor dem Einspielen**.
 >
-> **GEBAUT WURDE NACH DER VORSCHLAGSSPALTE — vollständig und ohne Abweichung.**
-> Sie ist unten als Antwortspalte eingetragen, damit das Papier nicht so
-> aussieht, als hätte jemand einzeln zugestimmt. **Regel 11 des Projektstands
-> („ein Vorschlag ist keine Antwort") ist damit in dieser Runde ausdrücklich
-> nicht erfüllt worden** — sie steht hier als offener Punkt und nicht als
-> Fußnote. *Wer eine der zehn Antworten anders will, sagt es; jede einzelne ist
-> ohne Datenverlust umzustellen, F1 und F4 mit einer neuen Runde, die übrigen
-> mit einem Handgriff.*
+> **AUS ZWEI QUELLEN, wie die Regel es verlangt — nur ist die zweite hier noch
+> nicht die laufende Installation, sondern eine zweite RECHNUNG:** einmal aus
+> dem Arbeitsbaum nachgerechnet (dieselben achtzehn Dateien, die der Handgriff
+> in der README nennt) und einmal aus dem **Server selbst** gelesen, der dafuer
+> mit einem frischen Datenverzeichnis gestartet und über `/api/stats` befragt
+> wurde. **Beide sagen `56e508ab`.**
+> **DIE ZWEITE ECHTE QUELLE FEHLT UND STEHT HIER ALS OFFENER PUNKT:** die
+> Meldung aus der laufenden Installation nach dem Einspielen. *Sie ist erst zu
+> haben, wenn eingespielt ist.*
+>
+> **ER HAT WAEHREND DIESER RUNDE EINMAL GEWECHSELT, und das gehört dazu:** bis
+> zur Antwort auf F7 stand hier `ca68c8c0`. *Der Betreiber hat den Satz an der
+> Einfügestelle behalten, aber gekürzt — drei Sprachdateien haben sich damit
+> geändert, und die drei liegen in der Liste.* **Gilt: `56e508ab`.**
+
+> **DIE FRAGETAFEL IST NACH DEM BAUEN DURCHGEGANGEN WORDEN UND NICHT DAVOR,
+> und das gehört als erstes ins Papier.** *Der Betreiber hat die Runde am
+> 10. September 2026 mit den Worten in Auftrag gegeben:* **„Keine Ahnung was
+> wir damals für die 27.0 ausgemacht haben."** *Damit lag keine Antwortspalte
+> vor; gebaut wurde nach der Vorschlagsspalte.*
+>
+> **NOCH AM SELBEN TAG IST DIE TAFEL DURCHGEGANGEN WORDEN — und fünf der zehn
+> sind damit ENTSCHIEDEN:**
+>
+> | | | |
+> |---|---|---|
+> | **F2** | die Vorgabe bleibt das heutige Verhalten | *vom Betreiber im Auftrag selbst vorgegeben:* „Standard soll das sein, was heute aktiv genutzt wird" |
+> | **F1** | der alte Schlüssel fällt | wie vorgeschlagen |
+> | **F3** | die Ableitungen folgen der Wahl nicht | wie vorgeschlagen |
+> | **F4** | `medium` wird nicht verlustfrei | wie vorgeschlagen — und **gemessen** |
+> | **F6** | Zwischenablage und Upload gleich | wie vorgeschlagen |
+>
+> **KEINE EINZIGE ABWEICHUNG** — anders als in 0.26.0, wo F3 gegen den
+> Vorschlag fiel.
+>
+> **FÜNF SIND NACH VORSCHLAG GEBAUT UND NICHT EINZELN BESTÄTIGT:** F5, F7, F8,
+> F9, F10 — die mechanischen. *Sie stehen so in der Antwortspalte des Auftrags,
+> damit niemand sie für abgenommen hält.*
+>
+> **REGEL 11 DES PROJEKTSTANDS („ein Vorschlag ist keine Antwort") IST IN
+> DIESER RUNDE TROTZDEM NICHT ERFÜLLT** — sie verlangt die Antwort VOR der
+> ersten Zeile, und die lag nicht vor. *Das steht hier als offener Punkt und
+> nicht als Fußnote: dass das Ergebnis hinterher bestätigt wurde, macht die
+> Reihenfolge nicht richtig.*
 >
 > **EIN ZUSATZ DES BETREIBERS IST IN DIE BAUFORM EINGEGANGEN:** *„die heutige
 > Einstellung wie wir Bilder reinholen ist unter den Knopf ‚standart' zu
@@ -70,20 +101,26 @@ stehengeblieben.** *Diese Runde macht aus den zehn elf.*
 
 ---
 
-## Die Fragetafel — nach der Vorschlagsspalte gebaut
+## Die Fragetafel
 
-| # | Antwort | |
-|---|---|---|
-| **F1** | Ein weiterer Migrationsblock, der alte Schlüssel fällt in demselben Griff. Die Zahl der Blöcke ist nachgezählt (siehe oben) | wie vorgeschlagen |
-| **F2** | Die Vorgabe einer frischen Installation bleibt **WebP verlustfrei** | wie vorgeschlagen |
-| **F3** | Die Wahl trifft **nur das Original**; die Ableitungen gehen unabhängig davon auf WebP | wie vorgeschlagen |
-| **F4** | **`medium` wird NICHT `nearLossless`** — gemessen, und die Messung spricht deutlich dagegen | wie vorgeschlagen, **jetzt mit Zahlen** |
-| **F5** | Der Bestand wird auf Knopfdruck nachgezogen, **niemals beim Umschalten** | wie vorgeschlagen |
-| **F6** | Zwischenablage und hochgeladenes PNG werden **gleich** behandelt; die Karte nennt den Preis | wie vorgeschlagen |
-| **F7** | Der billigste Weg steht als Satz **an der Einfügestelle** | wie vorgeschlagen |
-| **F8** | 0.27.0 bleibt **MINOR** | wie vorgeschlagen |
-| **F9** | **Kein neuer Weg** — `F_ROUTES` bleibt bei 72 | wie vorgeschlagen |
-| **F10** | Die Klemme wird **geerbt**: Eigentümer, sieben Schlüssel | wie vorgeschlagen |
+| # | Antwort | | |
+|---|---|---|---|
+| **F1** | Ein weiterer Migrationsblock, der alte Schlüssel fällt in demselben Griff. Die Zahl der Blöcke ist nachgezählt (siehe oben) | wie vorgeschlagen | **entschieden** |
+| **F2** | Die Vorgabe einer frischen Installation bleibt **WebP verlustfrei** | wie vorgeschlagen | **vom Betreiber vorgegeben** |
+| **F3** | Die Wahl trifft **nur das Original**; die Ableitungen gehen unabhängig davon auf WebP | wie vorgeschlagen | **entschieden** |
+| **F4** | **`medium` wird NICHT `nearLossless`** — gemessen, und die Messung spricht deutlich dagegen | wie vorgeschlagen, **jetzt mit Zahlen** | **entschieden** |
+| **F5** | Der Bestand wird auf Knopfdruck nachgezogen, **niemals beim Umschalten** | wie vorgeschlagen | *nicht bestätigt* |
+| **F6** | Zwischenablage und hochgeladenes PNG werden **gleich** behandelt; die Karte nennt den Preis | wie vorgeschlagen | **entschieden** |
+| **F7** | Der billigste Weg steht als Satz **an der Einfügestelle** | wie vorgeschlagen | *nicht bestätigt* |
+| **F8** | 0.27.0 bleibt **MINOR** | wie vorgeschlagen | *nicht bestätigt* |
+| **F9** | **Kein neuer Weg** — `F_ROUTES` bleibt bei 72 | wie vorgeschlagen | *nicht bestätigt* |
+| **F10** | Die Klemme wird **geerbt**: Eigentümer, sieben Schlüssel | wie vorgeschlagen | *nicht bestätigt* |
+
+> **DIE VIERTE SPALTE IST NEU UND SIE IST DER PUNKT.** *Bisher trug diese Tafel
+> nur, WAS entschieden wurde. Wenn die Antworten — wie in dieser Runde — erst
+> nach dem Bauen kommen, muss auch dastehen, WELCHE von wem.* **„Wie
+> vorgeschlagen" und „entschieden" sind zwei verschiedene Aussagen**, und eine
+> Tafel, die sie in eine Spalte legt, lässt den Unterschied verschwinden.
 
 ---
 
@@ -357,7 +394,7 @@ ganz in der Sprachdatei.
 
 ## Der Prüfstand
 
-**6491 von 6491 Prüfungen** — *6412 vor dieser Runde.*
+**6497 von 6497 Prüfungen** — *6412 vor dieser Runde.*
 
 | | Zusage | gebaut als |
 |---|---|---|
@@ -373,12 +410,53 @@ ganz in der Sprachdatei.
 | **10** | Die Migration übersetzt **beide** alten Stellungen | drei echte Altbestände, dazu die vierte Lage (vorhandene Wahl gewinnt) |
 | **11** | `convertImages` steht **nirgends** mehr | im Code gesucht, ohne Kommentare; in `db.js` genau drei Zeilen, alle im Block, der ihn wegnimmt |
 
-### Die Gegenproben — 813 bis 823
+### Die Gegenproben — 813 bis 824
 
-**Elf neue, und jede fährt gegen GENAU EINE der elf Zusagen.** *Die
-Rückbautabelle trägt danach **814** Einträge.*
+**Elf neue, und jede fährt gegen GENAU EINE der elf Zusagen — dazu ein
+zwölfter (824), nachgetragen zu F7.** *Die Rückbautabelle trägt danach
+**815** Einträge.*
 
-GEGENPROBEN_PLATZHALTER
+| Nr | Rueckbau | rot | wo |
+|---|---|---|---|
+| **813** | Ein vierter Wert kommt durch | **9** | Die Bildablage: die Rechte |
+| **814** | Die Wahl wird gewöhnliche Adminsache | **6** | Die Bildablage: die Rechte |
+| **815** | Die Vorgabe einer frischen Installation wird verstellt | **10** | Die Bildablage: die Rechte |
+| **816** | Die Wahl wird wieder fest verdrahtet | **3** | PNG kommt herein, WebP geht in die Tabelle |
+| **817** | Die Größenprüfung gilt nicht mehr für jedes Verfahren | **STUMM → rot** | *siehe unten* |
+| **818** | Die Ableitungen werden wieder JPEG | **15** | PNG kommt herein, WebP geht in die Tabelle |
+| **819** | Der Bestandslauf lässt die Ableitungen aus | **3** | PNG kommt herein, WebP geht in die Tabelle |
+| **820** | Der Lauf hängt am Umschalten | **1** | Die Bildablage in der Oberfläche |
+| **821** | Die Karte nennt die Auflage nicht mehr | **2** | Die Bildablage in der Oberfläche |
+| **822** | Die Migration biegt eine Richtung falsch ab | **3** | Die Datenbankstufe 0.27.0 |
+| **823** | Der alte Schlüssel bleibt stehen | **7** | Die Datenbankstufe 0.27.0 |
+| **824** | Der Satz an der Einfügestelle wird nicht gezeichnet | *(nachgetragen zu F7)* | Der Eintrag am Bildschirm |
+
+> **817 IST BEIM ERSTEN LAUF STUMM GEBLIEBEN — UND DAS IST DER WERTVOLLSTE
+> EINZELNE BEFUND DIESER RUNDE.** *Der Rueckbau schaltet die Größenprüfung
+> NUR für den verlustbehafteten Weg ab. Keine einzige Prüfung wurde rot.*
+>
+> **DER GRUND WAR DER PRÜFFALL UND NICHT DIE ZUSAGE.** *Geprüft wurde an einem
+> Bild mit weichen Verläufen — und daran gewinnt JEDES WebP-Verfahren über die
+> Größe.* **Eine Regel, die im Prüffall nie greift, lässt sich abschalten,
+> ohne dass etwas rot wird.**
+>
+> **GESUCHT WURDE DER FALL, IN DEM VERLUSTBEHAFTET VERLIERT — und es gibt ihn:**
+> wenige Farben, harte Kanten, große Fläche.
+>
+> | Vorlage | PNG | WebP q90 | verlustfrei |
+> |---|---|---|---|
+> | 1200×800, 2 Farben, 400 Kästchen | 9 331 | **14 154** *(+52 %)* | 1 680 |
+> | 64×64, 2 Farben | 200 | **276** *(+38 %)* | 70 |
+> | 1200×800, 2 Farben, 40 Kästchen | 5 859 | 3 226 | 238 |
+> | 2000×2000 einfarbig weiß | 15 107 | 7 172 | 212 |
+>
+> **VERLUSTFREI GEWINNT IN ALLEN VIER FÄLLEN, VERLUSTBEHAFTET VERLIERT IN
+> ZWEIEN.** *Das ist der Grund, aus dem die Größenprüfung am verlustbehafteten
+> Weg schärfer gebraucht ist als am anderen — und der Satz stand vorher schon
+> so im Quelltext, war aber nicht geprüft.*
+> **Die Zusage hat jetzt einen Gegenstand**, und die Gegenlage steht daneben
+> (*„verlustbehaftet wäre hier GRÖSSER als das PNG“*), damit die Probe ihn nicht
+> unbemerkt wieder verliert.
 
 > **DIE NEUNZEHN ALTEN DIESER SACHE STEHEN NICHT ZWEIMAL DA** — 431, 435, 436,
 > 437, 454 bis 457, 462, 472, 485, 493, 506 bis 508, 522 bis 524 und 810.

@@ -954,7 +954,7 @@
   "entry.uploadFailed": "Yükleme başarısız",
   "entry.uploading": "yükleniyor …",
   "entry.uploadingTitle": "Yükleniyor …",
-  "entry.uploadIsCheaper": "Ağdan alırken en ucuz yol „Resmi farklı kaydet“ ve dosyayı yüklemektir: pano bir dosya değil, görüntü noktaları tutar — PNG olarak çoğu zaman özgün dosyanın kat kat üstünde.",
+  "entry.uploadIsCheaper": "Ağdan alırken „Resmi farklı kaydet“ ve yükle — yapıştırılınca PNG olur, çoğu zaman kat kat büyük.",
   "entry.videoNoImage": "Bu videonun resmi yok",
   "entry.videoNoThumb": "Bu videodan küçük resim oluşturulamadı.",
   "entry.videoUnplayable": "Tarayıcı bu videoyu okuyamıyor",

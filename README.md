@@ -2361,7 +2361,7 @@ Bildern des echten Bestands gemessen weicht der schlimmste einzelne Farbwert um
 **2 von 255** ab. **JPEG, GIF und vorhandenes WebP bleiben unberührt**, und ein
 PNG, das als WebP größer wäre, bleibt PNG.
 
-**Seit 0.27.0 ist es eine Wahl aus drei Verfahren und kein Häkchen mehr.** In
+**Es ist eine Wahl aus drei Verfahren und kein Häkchen.** In
 den Einstellungen unter **Datenbank → Bildformate** steht die Karte „Verfahren
 der Ablage" mit drei Zeilen; die gewählte trägt den Knopf **Standard**
 (nur der Eigentümer, dieselbe Rechtezeile wie Export, Sicherung und Schlüssel):
@@ -2369,7 +2369,7 @@ der Ablage" mit drei Zeilen; die gewählte trägt den Knopf **Standard**
 | Verfahren | was es tut |
 |---|---|
 | **PNG** | nichts wird umkodiert — keine Rechenzeit, größte Ablage. Jedes PNG bleibt byte-genau so liegen, wie es ankam |
-| **WebP verlustfrei** | `nearLossless` 60 — **die Vorgabe**, und das Verhalten aller Fassungen seit 0.19.0 |
+| **WebP verlustfrei** | `nearLossless` 60 — **die Vorgabe** |
 | **WebP verlustbehaftet** | Qualität 90 — für Fotos aus der Zwischenablage, gemessen rund zwei Drittel kleiner |
 
 **Das dritte Verfahren hat eine Auflage, und die Karte sagt sie:** verlustbehaftet
@@ -2397,8 +2397,8 @@ Kachel (512 × 512, mit dem eingestellten Bildausschnitt darin) für die
 Übersicht und eine mittlere (1600 px auf der langen Kante, ungeschnitten) für
 Detail- und Vollbildansicht. Das kostet rund 7 % mehr Speicher, spart beim Blättern aber
 etwa den Faktor 100 an Datenübertragung. Das Original wird erst geladen, wenn im
-Vollbild gezoomt wird. **Beide Varianten sind seit 0.27.0 WebP** — bis 0.26.0
-waren sie JPEG. **Sie folgen der Wahl oben nicht, sondern sind immer WebP:**
+Vollbild gezoomt wird. **Beide Varianten sind WebP.** **Sie folgen der Wahl
+oben nicht, sondern sind immer WebP:**
 sie sind ohnehin verlustbehaftet, und niemand archiviert sie. Die Zahlen dahinter
 sind neu gesetzt und nicht übernommen — `thumb` auf Qualität 82, `medium` auf 78;
 dieselbe Zahl bedeutet in JPEG und WebP nicht dasselbe. Gemessen an drei
@@ -2624,9 +2624,9 @@ Start eine leere Neuinstallation vermuten.
 - `settings` — die **globale** Hälfte: Titel, Vokabular, die Suchmaschinen
   (Vorrat, eigene, Standard), die beiden Schalter, wer neue
   Tags und Kategorien anlegen darf, und das **Verfahren der Bildablage**
-  (`imageStore`, seit 0.27.0 ein Wert aus dreien; bis 0.26.0 hieß der
-  Schlüssel `convertImages` und trug ein Ja/Nein — ein Migrationsblock
-  übersetzt beide alten Stellungen und nimmt den alten Schlüssel weg).
+  (`imageStore`, ein Wert aus dreien; eine ältere Fassung trug hier ein
+  Ja/Nein unter anderem Namen — ein Migrationsblock übersetzt beide alten
+  Stellungen und nimmt den alten Schlüssel weg).
   Sache des Admins — das Verfahren der Bildablage allerdings nur des
   **Eigentümers**: es bestimmt, wie die ganze Installation künftig ablegt, und
   liegt damit in derselben Zeile wie Export, Sicherung und Schlüssel
