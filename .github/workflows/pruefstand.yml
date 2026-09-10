@@ -4,12 +4,7 @@
 # englisch, weil GitHub sie so liest; alles andere steht auf Deutsch.
 name: Pruefstand
 
-on:
-  push:
-    branches:
-      - main
-  # Optional: Erlaubt es dir, den Test jederzeit manuell bei GitHub per Klick zu starten
-  workflow_dispatch:
+on: [push, pull_request]
 
 # Ein neuer Push auf denselben Zweig loest den vorigen Lauf ab. Fuer ein
 # privates Repository sind die Minuten gedeckelt, und zwei Laeufe auf einen
@@ -40,9 +35,9 @@ jobs:
     # Laeufen sind --, und der zweite Lauf belegt eine halbe Viertelstunde
     # Rechenzeit fuer eine Antwort, die schon dasteht. Es ist ab jetzt eine
     # Frage der Ordnung und nicht des Geldes.
-    ###if: >-
-    ###  github.event_name != 'pull_request'
-    ###  || github.event.pull_request.head.repo.full_name != github.repository
+    if: >-
+      github.event_name != 'pull_request'
+      || github.event.pull_request.head.repo.full_name != github.repository
     steps:
       - uses: actions/checkout@v4
 
