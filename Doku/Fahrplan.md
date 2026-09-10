@@ -1053,7 +1053,7 @@ Hauptbild wenn noch Platz da ist — oder wenn man drauf klickt als
 Detailansicht. Da muss ein sinnvoller Workflow her."*
 
 **Was heute dasteht:** der Titel, zwei Knöpfe und eine graue Zeile
-*„gelöscht 08.09.2026, 10:36 von faruk · noch 30 Tage · 12,2 MB"*.
+*„gelöscht 08.09.2026, 10:36 von erika · noch 30 Tage · 12,2 MB"*.
 
 **Woran das hakt:** die Zeile beantwortet „**wann** ist es weg" und „**wie
 groß**" — aber nicht die Frage, die vor dem Wiederherstellen steht: **„ist das
@@ -1968,7 +1968,7 @@ einzige Teil der Runde ohne begrenzten Prüfaufwand.*
 ### Was gebaut werden könnte
 
 Der Encoder selbst, dazu der Dekoder im Prüfstand. **Gemessen statt geschätzt:**
-die `otpauth://`-Zeile ist **100 Zeichen** bei `Kriterion/faruk`, **117** bei
+die `otpauth://`-Zeile ist **100 Zeichen** bei `Kriterion/erika`, **117** bei
 `Bewertungskatalog/chefin` und **203** bei einem langen Instanz- und
 Zugangsnamen. Im Bytemodus heißt das **Version 5 bis 8**.
 

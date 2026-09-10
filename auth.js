@@ -625,7 +625,7 @@ if (process.env.AUTH_USER || process.env.AUTH_PASSWORD) {
 // sieht verteiltes Raten gegen EINEN Namen nicht.
 //
 // DER NAME WIRD NUR VERZOEGERT, NIE GESPERRT. Eine harte Namenssperre waere
-// ein Werkzeug GEGEN fremde Zugaenge: wer "faruk" kennt, sperrte ihn mit zehn
+// ein Werkzeug GEGEN fremde Zugaenge: wer "erika" kennt, sperrte ihn mit zehn
 // falschen Passwoertern aus. Eine wachsende Verzoegerung bremst das Raten
 // genauso und laesst den Richtigen durch -- hoechstens vier Sekunden.
 const attempts = new Map(); // 'ip:…' | 'name:…' -> { count, until }

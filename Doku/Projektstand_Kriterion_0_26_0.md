@@ -3806,8 +3806,8 @@ dieselbe Bauform wie `F_ROUTEN` (Stolperstein 243).*
   Wegen (Anlegen und Umbenennen). *Das Feld draußen ist geteilt: Discourse,
   MediaWiki und GitHub geben den Namen frei, Slack, Jira und Mastodon behalten
   ihn.* Für Kriterion gab den Ausschlag, dass der **Export** seit 0.7.1 den
-  Namen nennt: trüge ein Grabstein weiter „faruk", schöbe dieselbe Datei in
-  einer anderen Instanz mit einem lebenden „faruk" dessen Zeilen zu.
+  Namen nennt: trüge ein Grabstein weiter „erika", schöbe dieselbe Datei in
+  einer anderen Instanz mit einem lebenden „erika" dessen Zeilen zu.
   **Der Preis: der alte Name ist danach endgültig weg.**
 - **Zwei Häkchen beim Entfernen, nicht eine Entscheidung** (seit 0.8.0).
   **„seine Einträge löschen"** nimmt über die Kaskade auch **fremde**
@@ -11164,7 +11164,7 @@ belegt. Zwei Sitzungen nebeneinander:
 
 ```bash
 curl -s -c a.txt -X POST localhost:3100/api/login \
-  -H 'Content-Type: application/json' -d '{"user":"faruk","password":"..."}'
+  -H 'Content-Type: application/json' -d '{"user":"erika","password":"..."}'
 curl -s -c b.txt -X POST localhost:3100/api/login \
   -H 'Content-Type: application/json' -d '{"user":"gast","password":"..."}'
 curl -s -b b.txt -X DELETE localhost:3100/api/items/1     # muss 403 sein

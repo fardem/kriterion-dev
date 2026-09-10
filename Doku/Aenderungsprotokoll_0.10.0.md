@@ -268,7 +268,7 @@ die Zeichenfolge, die ein QR-Code ohnehin nur zeichnen würde. *Der abtippbare
 Schlüssel ist die Zusage, der QR-Code wäre die Bequemlichkeit.*
 
 **Gemessen statt geschätzt, für die eigene Runde:** die Zeile ist **100
-Zeichen** bei `Kriterion/faruk`, **117** bei `Bewertungskatalog/chefin` und
+Zeichen** bei `Kriterion/erika`, **117** bei `Bewertungskatalog/chefin` und
 **203** bei einem langen Anlagen- und Zugangsnamen. Im Bytemodus heißt das
 Version 5 bis 8. Vorgemerkt im Projektstand, Abschnitt 10.
 
