@@ -200,7 +200,7 @@ sie ist ein Wegweiser und kein zweiter Eintrag.*
 | **0.24.1** *PATCH, Datenbankstufe* — **GEBAUT am 7. September 2026** | **„Der Quelltext spricht Englisch".** *Nichts aus diesem Blatt: die Runde ist am 6. September 2026 vom Betreiber eingeschoben worden, unmittelbar nach dem Einspielen von 0.24.0 — sie hat hier nie gestanden.* **Sie steht trotzdem hier — diese Tabelle ist der Wegweiser, und ein Punkt, der den Umweg nicht genommen hat, gehört mit genau diesem Vermerk hinein.** Gebaut ist: jeder Name im Code englisch — Bezeichner, Schlüssel, ids, Klassen, Stilblattvariablen, Adressen, Dateinamen, Umgebungsvariablen — und die Datenbank mit sechs Tabellen, sechsundzwanzig Spalten und fünfundsiebzig Werten; sechs Wächter, jeder mit seiner Gegenprobe. **Was gebaut wurde, steht im Änderungsprotokoll 0.24.1; die Regel S9 im Projektstand, Abschnitt 5.6.** ***Drei Befunde aus dem Betrieb sind mitgefahren*** *(7. September 2026, mit Bildern gemeldet): die Vorschaukachel im Eintrag war mit der Maus nicht anzuklicken, ein Tag am Testtag hieß „t", und der zugeklappte Block „Links" zeigte die letzten Zeilen statt der ersten. **Keiner der drei stand in diesem Blatt** — sie sind unmittelbar in die laufende Runde gegangen, dieselbe Herkunft wie bei 0.21.1 und 0.22.1.* ***Und ein Befund aus dem Bauen:*** *die Restzahlen der mittleren Bauabschnitte waren zu gut. Gemessen wurde gegen das Wörterbuch, und das Wörterbuch kannte die Wörter nicht, die es hätte finden sollen — es ist von 716 auf 1186 Paare gewachsen, und die ehrliche Zahl danach lautet 110 statt 143.* |
 | **0.24.2** *PATCH, Datenbankstufe* — **GEBAUT am 7. September 2026** | **„Die gespeicherten Formen ziehen mit".** *Nichts aus diesem Blatt: ein Befund aus dem Betrieb, gemeldet am 7. September 2026 unmittelbar nach dem Einspielen von 0.24.1. Die Migration jener Runde hat die SCHLÜSSEL in `settings` umbenannt, nicht die Feldnamen IN den gespeicherten Werten — die eigenen Suchmaschinen, der Mailzugang und der Beleg der letzten Testmail waren damit unsichtbar; verloren war nichts. Alles Weitere im Änderungsprotokoll 0.24.2; der Fahrplan ist dafür gerückt, die Sprachstufen sind 0.24.3 und 0.24.4.* |
 | **0.24.3** *PATCH (benannte Abweichung), Datenbankstufe* — **GEBAUT am 8. September 2026** | **„Die zweite Sprache" — Stufe 2 der Mehrsprachigkeit.** *Nichts aus diesem Blatt: die Runde stand seit dem 5. September 2026 im Fahrplan, Auftrag `Doku/Auftrag_0.24.3.md` *(weggefallen — es liegt immer nur einer im Repo)*, zwölf Fragen vor der ersten Zeile entschieden.* **Was gebaut wurde, steht im Änderungsprotokoll 0.24.3.** *Mitgefahren sind neun Funde, die nie hier standen, weil sie niemandem aufgefallen waren: sieben stumme Fundstellen aus 0.24.1 — darunter `<html lang>`, das seither auf gar nichts stand — und zwei deutsche Wörter, die seit 0.24.0 fest im Quelltext saßen.* **Stufe 3 (Türkisch) ist damit 0.24.4.** |
-| **0.27.0** *MINOR* *(war 0.21.0, dann 0.22.0, dann 0.24.0, dann 0.26.0, Nummer vorläufig)* | Die wählbare Bildablage — **Punkt 6 dieses Blatts**, zusammen mit den Ableitungen aus Punkt 5 |
+| **0.27.0** *MINOR* *(war 0.21.0, dann 0.22.0, dann 0.24.0, dann 0.26.0)* — **GEBAUT am 10. September 2026** | **„Die wählbare Bildablage" — Punkt 6 dieses Blatts, zusammen mit den Ableitungen aus Punkt 5.** Gebaut ist: `imageStore` mit drei Verfahren (PNG, WebP verlustfrei, WebP verlustbehaftet) als Wahl mit je einem Knopf „Standard", die Auflage in der Karte, der **elfte** Migrationsblock (`convertImages` → `imageStore`, der alte Schlüssel fällt), die Ableitungen auf **WebP** mit neu gesetzten Zahlen (`thumb` 82, `medium` 78) und ein Bestandslauf, der **beide Hälften in einem Durchgang** nachzieht. **`F_ROUTES` bleibt 72, das Austauschformat 15, `OWNER_KEYS` sieben.** **Was gebaut wurde, steht im Änderungsprotokoll 0.27.0.** ***Die Frage, ob `medium` verlustfrei werden soll, ist GEMESSEN und mit NEIN beantwortet*** — *`nearLossless` ist an einem Foto +500,8 %.* ***Und zwei Befunde sind beim Bauen aufgefallen, die der Auftrag nicht kannte:*** *das Kommentarbild wurde mit einem festen Dateinamen ausgeliefert und damit immer als JPEG angekündigt; und die Fertigmeldung der Umstellung stand halb auf Deutsch, egal welche Sprache eingestellt war.* ***Ein offener Punkt gehört genannt:*** *die Fragetafel ist nicht im Gespräch durchgegangen worden — der Betreiber hat die Runde mit „Keine Ahnung was wir damals für die 27.0 ausgemacht haben" in Auftrag gegeben, und gebaut wurde nach der Vorschlagsspalte.* |
 | **0.31.0** *MINOR* *(war 0.19.0, dann 0.21.0, dann 0.22.0, dann 0.23.0, dann 0.26.0, dann 0.28.0, dann 0.30.0, Nummer vorläufig)* | Bereinigung — der Bruch |
 
 **Was hier bleibt, bleibt aus einem Grund:** die **elf** Punkte unten haben
@@ -217,9 +217,9 @@ die Verfahren entschieden wird, **und einer ist am 3. September 2026
 dazugekommen: Punkt 9, die gepackte Sicherung** — *sein Kern ist gemessen und
 trägt nicht, sein kleinster Teil ist empfohlen.* *Punkt 4 ist am 1. September 2026
 dazugekommen: er ist der Teil von Punkt 1, den 0.18.0 mit Begründung liegen
-gelassen hat.* *Punkt 5 ist am selben Tag dazugekommen: er ist der Teil von
-Punkt 15, den 0.19.0 liegen lässt — **und sein Grund ist ein anderer als
-vorher.*** *Ein Sammelblatt, in dem nur noch das Verworfene
+gelassen hat.* *Punkt 5 war am selben Tag dazugekommen: er war der Teil von
+Punkt 15, den 0.19.0 liegen ließ — **und sein Grund war ein anderer als
+vorher.*** ***Er ist mit 0.27.0 gebaut, zusammen mit Punkt 6.*** *Ein Sammelblatt, in dem nur noch das Verworfene
 steht, sieht mager aus. Es ist trotzdem der richtige Zustand: alles Übrige ist
 entschieden und hat seinen Ort.*
 
@@ -272,8 +272,8 @@ mitsamt ihrer Ausarbeitung, im Anhang jenes Papiers.
 | **12** | Die Übersicht braucht beim Betreten rund eine Sekunde | **GEMESSEN am 10. September 2026 — und dabei WEGGEFALLEN.** *Die Sekunde war am gemeldeten Gerät nicht mehr da, und nichts an dieser Stelle war geändert worden; die Messung steht im Auftrag 0.26.0, Befund 7.* **Der Punkt wird beobachtet, nicht gebaut** — die eine Hälfte, die unabhängig davon richtig war, ist mit 0.26.0 gebaut *(die Übersicht leert den Bildschirm nicht mehr, bevor sie fragt)* |
 | **13** | Zwei Fehler aus dem Rundlauf mit 0.24.2 | **GEBAUT mit 0.26.0** |
 | **18** | `ß` und `ss` sind für die Suche zwei Dinge | **GEBAUT mit 0.26.0**, mit dem genannten Preis — *0.24.4 hat die Faltung angefasst und diesen Fall AUSDRÜCKLICH ausgenommen: er betrifft Deutsch und nicht Türkisch, und eine Runde, die schon zwei Fehler an derselben Funktion repariert, nimmt keinen dritten mit* |
-| **5** | Die Ableitungen auf WebP | **0.27.0** |
-| **6** | Fotos aus der Zwischenablage — die Ablage wird wählbar | **0.27.0** |
+| **5** | Die Ableitungen auf WebP | **GEBAUT mit 0.27.0** |
+| **6** | Fotos aus der Zwischenablage — die Ablage wird wählbar | **GEBAUT mit 0.27.0** |
 | **14** | Blättern im Eintrag, vor und zurück | **0.28.0** — *die Form ist am 8. September 2026 entschieden: Pfeile in der Kopfzeile, `Bild auf`/`Bild ab`, keine Wischgeste* |
 | **15** | Der leere Kasten zeigt ein Bildzeichen | **GEBAUT mit 0.24.4** *(Befund B4)* |
 | **16** | Der Papierkorb — ein Zeichen als Quelltext, eine Zeile ohne Ordnung | **GEBAUT mit 0.24.4** *(Befund B6, Teil A und B — Schritt 2 bleibt offen)* |
@@ -283,6 +283,14 @@ mitsamt ihrer Ausarbeitung, im Anhang jenes Papiers.
 | **3** | Der QR-Encoder für den zweiten Faktor | **abgelehnt** |
 | **4** | Der Suchbereich als Häkchen | **abgelehnt** |
 | **9** | Sicherungen gepackt ablegen | **abgelehnt** *(Teil (c) war schon mit 0.20.1 gebaut)* |
+
+> **NACHTRAG VOM 10. SEPTEMBER 2026: PUNKT 5 UND PUNKT 6 SIND GEBAUT.** *Sie
+> sind mit **0.27.0** herausgegangen — die wählbare Bildablage und die
+> Ableitungen auf WebP, in einem Durchgang über den Bestand.* **Nach Regel 2
+> stehen sie damit nicht mehr als offene Punkte hier**; die Zeilen in der Tafel
+> darüber sagen nur noch, wohin sie gegangen sind. *Was gebaut wurde, steht im
+> Änderungsprotokoll 0.27.0; ihre vollständige Ausarbeitung steht weiterhin im
+> Anhang des Fahrplans, dort jetzt als Herleitung durchgestrichen.*
 
 > **DIE ABGELEHNTEN SIND NICHT GELÖSCHT.** Sie stehen im Anhang des Fahrplans
 > mit ihrer vollständigen Ausarbeitung. *Eine Ablehnung ohne die Überlegung, die

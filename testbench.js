@@ -21703,6 +21703,65 @@ const shareMain = (purpose, target = null) =>
       stored[method].bytes.length <= templatePNG.length,
       `${stored[method].bytes.length} gegen ${templatePNG.length}`);
   }
+  /* UND DAS IST DIE PROBE, DIE WIRKLICH ZIEHT -- ein FUND der Gegenprobe 817.
+     DIE ZEILEN DARUEBER BLIEBEN STUMM, und der Grund ist der Prueffall und
+     nicht die Zusage: an einem Bild mit weichen Verlaeufen gewinnt JEDES
+     WebP-Verfahren ueber die Groesse, und dann fragt die Pruefung eine Regel
+     ab, die ohnehin nie greift. Ein Rueckbau, der die Regel nur fuer den
+     verlustbehafteten Weg abschaltet, wurde daran nicht rot.
+
+     GESUCHT WURDE DER FALL, IN DEM VERLUSTBEHAFTET VERLIERT, und es gibt ihn:
+     WENIGE FARBEN, HARTE KANTEN, GROSSE FLAECHE. Gemessen am 10. September
+     2026:
+
+       Vorlage                            PNG      WebP q90     verlustfrei
+       1200x800, 2 Farben, 400 Kaestchen  9 331    14 154 (+52 %)   1 680
+       64x64, 2 Farben                      200       276 (+38 %)      70
+       1200x800, 2 Farben,  40 Kaestchen  5 859     3 226            238
+       2000x2000 einfarbig weiss         15 107     7 172            212
+
+     DAS IST DER GRUND, AUS DEM DIE GROESSENPRUEFUNG AM VERLUSTBEHAFTETEN WEG
+     SCHAERFER GEBRAUCHT IST ALS AM ANDEREN: verlustfrei (VP8L) gewinnt in
+     allen vier Faellen, verlustbehaftet (VP8) verliert in zweien. Wer die
+     Pruefung „nur fuer Fotos" abschaltete, legte an genau diesen Bildern mehr
+     Bytes ab als hereinkamen -- und dazu ein schlechteres Bild.
+
+     DAS BILD WIRD HIER GEBAUT UND NICHT OBEN MITGENOMMEN: es ist die
+     GEGENLAGE zu templatePNG, und beide werden gebraucht. */
+  {
+    const kaesten = Array.from({ length: 400 }, (unused, i) =>
+      `<rect x="${i * 17 % 1200}" y="${i * 23 % 800}" width="9" height="9" fill="#000"/>`).join('');
+    const hardEdges = await sharp(Buffer.from(
+      `<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="800">` +
+      `<rect width="1200" height="800" fill="#fff"/>${kaesten}</svg>`))
+      .png({ compressionLevel: 9 }).toBuffer();
+    const harsh = {};
+    for (const method of ['webp-lossless', 'webp-lossy']) {
+      await call('PUT', '/api/settings', { imageStore: method });
+      const one = lastPhoto(await loadImage(ba.id, `kanten-${method}.png`, 'image/png', hardEdges));
+      harsh[method] = { mime: one.mime_type, bytes: (await imageRaw(one.id)).bytes };
+    }
+    /* ZUERST DIE GEGENLAGE: das Bild ist wirklich eines, an dem
+       verlustbehaftet verliert. Ohne diese Zeile bliebe die naechste auch
+       dann gruen, wenn sich das Verhalten des Kodierers aendert -- und
+       niemand wuesste, dass die Probe ihren Gegenstand verloren hat
+       (Stolperstein 81). */
+    const wouldBe = (await sharp(hardEdges).webp({ quality: 90, effort: 4 }).toBuffer()).length;
+    check('Die Gegenlage steht: verlustbehaftet waere hier GROESSER als das PNG',
+      wouldBe > hardEdges.length, `${wouldBe} gegen ${hardEdges.length}`);
+    check('Und die Groessenpruefung laesst das PNG deshalb liegen',
+      harsh['webp-lossy'].mime === 'image/png' &&
+      harsh['webp-lossy'].bytes.equals(hardEdges),
+      `${harsh['webp-lossy'].mime}, ${harsh['webp-lossy'].bytes.length} Bytes`);
+    /* UND VERLUSTFREI GEWINNT AN DEMSELBEN BILD. Ohne diese Zeile bliebe die
+       Zusage auch dann gruen, wenn die Pruefung JEDES Verfahren abwiese --
+       dann laege nie wieder ein WebP in der Tabelle. */
+    check('Verlustfrei gewinnt am selben Bild und wird genommen',
+      harsh['webp-lossless'].mime === 'image/webp' &&
+      harsh['webp-lossless'].bytes.length < hardEdges.length,
+      `${harsh['webp-lossless'].mime}, ${harsh['webp-lossless'].bytes.length} gegen ${hardEdges.length}`);
+    await call('PUT', '/api/settings', { imageStore: 'webp-lossless' });
+  }
   /* ZUSAGE 8: UMSCHALTEN ALLEIN RUEHRT DEN BESTAND NICHT AN (F5).
      Wer die Wahl probiert, soll nicht 500 MB umkodiert bekommen. GEMESSEN AM
      SCHON ABGELEGTEN BILD: es steht in der Stellung, in der es hereinkam, und

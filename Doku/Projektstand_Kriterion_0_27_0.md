@@ -1,6 +1,6 @@
 # Projektstand — Kriterion
 
-**Kompakte Übergabe · Revision 78 · Stand 10. September 2026 · gebaut: Version 0.26.0**
+**Kompakte Übergabe · Revision 79 · Stand 10. September 2026 · gebaut: Version 0.27.0**
 
 Dieses Blatt ist der **einzige Ort, an dem steht, was gebaut ist und was
 bindet.** Es genügt, um in einem frischen Chat weiterzuarbeiten, ohne den alten
@@ -478,9 +478,58 @@ weiterhin offen. Daraus folgt die Stellung von `HINTER_PROXY` (Abschnitt 3).
 
 ## 2. Betriebsstand
 
-**Gebaut ist 0.26.0** — **6412 Prüfungen**, **803 Rückbauten in der Liste**
+**Gebaut ist 0.27.0** — **6491 Prüfungen**, **814 Rückbauten in der Liste**
 (Abschnitt 8). **Am Wirt läuft 0.24.6, eingespielt am 9. September 2026,
 Fingerprint `c4c07393`** *(Abschnitt 8)*.
+
+*0.27.0 macht aus dem Häkchen der Bildablage eine Wahl mit drei Verfahren — und
+zieht die Ableitungen im selben Durchgang auf WebP.* **`imageStore` löst
+`convertImages` ab**: `png` (nichts wird umkodiert), `webp-lossless`
+(`nearLossless` 60 — **die Vorgabe**, das Verhalten seit 0.19.0) und **neu**
+`webp-lossy` (Güte 90, für Fotos aus der Zwischenablage). **Es ist eine
+Datenbankstufe ohne Schema:** der **elfte** markierte Migrationsblock
+(`migration0270ImageStore()`) übersetzt beide alten Stellungen — `true` →
+`webp-lossless`, `false` → `png` — und **nimmt den alten Schlüssel in
+demselben Griff weg**; wo nichts gespeichert war, wird nichts geschrieben.
+**Die Karte zeigt drei Zeilen mit je einem Knopf „Standard"** — dieselbe
+Bauform wie „Suchanbieter" und „Sprachen" — **und nennt die Auflage:** an einem
+Bildschirmfoto mit Text ist das verlustbehaftete Verfahren gemessen ein
+Vielfaches **größer** als das verlustfreie. **Die Ableitungen folgen der Wahl
+NICHT** *(F3)*: sie sind ausnahmslos WebP, mit **neu gesetzten** Zahlen —
+`thumb` 82, `medium` 78. *Die alten 78 und 84 hießen JPEG-Güte; übernommen
+hätten sie `medium` an einem Foto um 49,3 % größer gemacht.* **Der Bestandslauf
+zieht Originale und Ableitungen in EINEM Durchgang** und wählt dafür großzügig
+aus — jede Fotozeile —, weil die Frage nach dem Format der Ableitung in SQL die
+1338-ms-Klasse kostet. **`F_ROUTES` bleibt 72**, das Austauschformat **15**,
+die Karten **19**, `OWNER_KEYS` **sieben** *(einer geht, einer kommt)*. Die
+Sprachdateien tragen **1238 Schlüssel** (1320 flach gezählt); **sieben fallen
+namentlich weg**, achtzehn kommen dazu, fünf ändern ihren Wortlaut.
+**Zwei Befunde, die der Auftrag nicht kannte, sind mitgefahren:** das
+Kommentarbild wurde mit einem festen Dateinamen ausgeliefert und damit immer
+als `image/jpeg` angekündigt, und die Fertigmeldung der Umstellung stand halb
+auf Deutsch, gleich welche Sprache eingestellt war.
+Einzelheiten im Änderungsprotokoll 0.27.0.
+
+> **DIE FRAGETAFEL DIESER RUNDE IST NICHT IM GESPRÄCH DURCHGEGANGEN WORDEN.**
+> *Der Betreiber hat sie am 10. September 2026 mit* „Keine Ahnung was wir
+> damals für die 27.0 ausgemacht haben" *in Auftrag gegeben; gebaut wurde nach
+> der Vorschlagsspalte, vollständig und ohne Abweichung.* **Regel 11 dieses
+> Blatts („ein Vorschlag ist keine Antwort") ist damit in dieser Runde
+> ausdrücklich nicht erfüllt** — sie steht hier als offener Punkt und nicht als
+> Fußnote. *Jede der zehn Antworten ist ohne Datenverlust umzustellen.*
+
+> **DER RÜCKWEG AUF 0.26.0 IST OFFEN — mit einer benannten Folge.** *Eine
+> ältere Fassung kennt `imageStore` nicht und liest wieder `convertImages`;
+> den gibt es nach der Migration nicht mehr, also gilt dort die Vorgabe „an"
+> (WebP verlustfrei). Wer auf `png` gestellt hatte, muss das Häkchen dort
+> einmal wieder ausschalten.* **Die Bilder selbst sind davon unberührt** — was
+> als WebP daliegt, bleibt WebP, und eine ältere Fassung liest es anstandslos.
+> **Und die Ableitungen bleiben WebP:** ältere Fassungen liefern sie aus, ohne
+> zu stolpern — der Kopf kommt aus den Bytes. *Neu erzeugte sind dort wieder
+> JPEG; der Knopf holt das in beide Richtungen nach.*
+
+*0.26.0 davor* — Fingerprint `9ad0be7b`, 6412 Prüfungen, 803 Rückbauten.
+*0.26.0 räumt sechs Befunde weg und macht den Potenzialmodus abschaltbar.*
 
 *0.25.0 gibt dem Namen seine Sprache — und baut die Kette dorthin, wo sie
 hingehört.* **Es ist eine Datenbankstufe:** `product_categories.language` und
@@ -2421,7 +2470,7 @@ oder Sprache — und das entscheidet, wem sie gehört.**
 | `linkZeilen` — sichtbare Linkzeilen | `mailtestOk` — Marke der letzten Testmail *(0.9.0)* |
 | `zeitleiste` — ein/aus | `schluesselGewechseltAm` — Marke des Wechsels *(0.8.91)* |
 | `suchNamen` — Zahl der Anbieternamen | `mailzugang` *(0.9.0 — **beim Eigentümer**, nicht beim Admin)* |
-| | `bilderUmwandeln` *(0.19.0 — **beim Eigentümer**, nicht beim Admin)* |
+| | `imageStore` *(0.19.0 als `bilderUmwandeln`/`convertImages`, seit 0.27.0 ein Wert aus DREIEN — **beim Eigentümer**, nicht beim Admin)* |
 | | `sicherungOrt` — das Unterverzeichnis der Sicherung *(0.8.70)* |
 | | `sicherungAufraeumen`, `sicherungBehalten`, `sicherungTage` *(0.20.0 — **beim Eigentümer**, nicht beim Admin)* |
 
@@ -2440,12 +2489,27 @@ oder Sprache — und das entscheidet, wem sie gehört.**
 > persönlichen Schlüssel aus der globalen Tabelle heraushält. *Heute ruft ihn
 > niemand; wer ihn je wieder einbaut, muss ihn in die Liste zurücknehmen.*
 
-**`mailzugang`, `sicherungOrt`, `bilderUmwandeln` und die drei Schlüssel der
+**`mailzugang`, `sicherungOrt`, `imageStore` und die drei Schlüssel der
 Aufräumregel sind die Zeilen in `settings`, die NICHT dem Admin gehören** — und
 damit die Ausnahmen von „global heißt Adminsache". *`mailzugang` und
 `sicherungOrt` gehen über eigene Routen (`PUT /api/mail`,
-`PUT /api/sicherung/ort`), `bilderUmwandeln` und die drei aus 0.20.0 über
+`PUT /api/sicherung/ort`), `imageStore` und die drei aus 0.20.0 über
 `PUT /api/settings` wie jede andere Einstellung.*
+
+> **`imageStore` TRÄGT SEIT 0.27.0 EINEN WERT AUS DREIEN — `png`,
+> `webp-lossless` oder `webp-lossy` — und hieß bis 0.26.0 `convertImages` mit
+> einem Ja/Nein.** *Der elfte markierte Migrationsblock übersetzt beide alten
+> Stellungen und nimmt den alten Schlüssel in demselben Griff weg; wo nichts
+> gespeichert war, wird nichts geschrieben.* **Die Vorgabe wird beim LESEN
+> abgeleitet und nicht eingetragen** — dieselbe Haltung wie bei den drei
+> Schlüsseln aus 0.20.0, und aus demselben Grund: ein fehlender Wert ist die
+> Aussage „niemand hat gewählt", und wer ihn füllte, nähme jeder späteren
+> Änderung der Vorgabe die Wirkung. **Ein vierter Wert bekommt an der Route
+> eine ABSAGE**; beim Lesen fällt ein unbekannter auf die Vorgabe zurück — die
+> Klemme steht an der Stelle, an der der Fehler wehtut.
+> **Die Zahl der Eigentümerschlüssel bleibt dabei bei SIEBEN:** einer geht,
+> einer kommt. *Der Satz steht hier, weil eine unveränderte Zahl sonst wie ein
+> vergessener Eintrag aussieht.*
 
 > **DIE DREI AUS 0.20.0 STEHEN IN DER DATENBANK UND NICHT IN DER `.env`** —
 > Abschnitt 11: *eine Einstellung, die dem Betreiber gehört, gehört in die
@@ -3270,10 +3334,20 @@ Dateien und eines für **Videos**, Import (ersetzen oder zusammenführen), die
 Karte **„Sicherung"**, **seit 0.20.0 die Karte „Alte Sicherungen"** daneben,
 das **„Sicherheitsprotokoll"**, die Karte
 **„Mailversand"** — und **seit 0.19.1 die Bedienung in der eigenen Karte
-„Bildformate"** (bis 0.21.1 „Bildablage"): der Schalter „PNG-Fotos beim Upload in
-WebP umwandeln" und der Knopf „Alle PNG in WebP umwandeln". *Die Zahlen darüber sieht jeder Admin;
+„Bildformate"** (bis 0.21.1 „Bildablage"): **seit 0.27.0 die Wahl aus drei
+Verfahren** — drei Zeilen mit je einem Knopf „Standard", darunter die Auflage
+zum verlustbehafteten Weg und der Satz zu den Ableitungen — und der Knopf
+„Vorhandene Bilder umstellen". *Bis 0.26.0 stand dort ein Häkchen („PNG-Fotos
+beim Upload in WebP umwandeln") und der Knopf „Alle PNG in WebP umwandeln".*
+*Die Zahlen darüber sieht jeder Admin;
 bedienen darf sie nur der Eigentümer — ein Knopf, der zuverlässig 403 erzeugt,
 sieht aus wie ein Fehler.*
+
+> **DER KNOPF IST SEIT 0.27.0 NICHT MEHR TOT, WENN KEIN PNG MEHR DASTEHT.**
+> *Er hat eine zweite Hälfte bekommen — die Ableitungen —, und die fällt
+> unabhängig vom Format der Originale an.* **Ein toter Knopf verspräche, es
+> gäbe nichts zu tun, und das wäre unwahr.** *Tot ist er nur noch, solange ein
+> Lauf läuft.*
 
 > **ZWANZIG KARTEN SEIT 0.20.0, und „Alte Sicherungen" ist die zwanzigste.**
 > Sie steht im Abschnitt „Datenbank" **unmittelbar hinter „Sicherung"** — die
