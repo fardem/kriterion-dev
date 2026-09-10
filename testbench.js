@@ -1220,17 +1220,30 @@ const shareMain = (purpose, target = null) =>
     !/audit-level=(low|moderate)/.test(workText) &&
     !/continue-on-error/.test(workText) && !/\|\|\s*true/.test(workText),
     workText.split('\n').filter(z => /audit|continue-on-error/.test(z)).join(' | '));
-  /* NUR PUSH, UND NUR AUF main -- entschieden vom Betreiber am 10. September
-     2026. Diese Zeile zielt seit 0.8.10 auf den Rueckbau der Ereignisliste;
-     ihre Sache hat sich geaendert, und sie geht deshalb MIT, statt geloescht
-     zu werden (Stolperstein 201). Sie haelt jetzt beides fest: dass genau das
-     eine Ereignis dasteht und dass es main nennt.
+  /* PUSH OHNE ZWEIGFILTER, DAZU DER KNOPF -- entschieden vom Betreiber am
+     Abend des 10. September 2026. Diese Zeile zielt seit 0.8.10 auf den
+     Rueckbau der Ereignisliste; ihre Sache hat sich an EINEM TAG ZWEIMAL
+     geaendert, und sie geht beide Male MIT, statt geloescht zu werden
+     (Stolperstein 201):
+
+       bis 10.9. mittags   push UND pull_request, mit der Bedingung (Weg B)
+       10.9. nachmittags   nur push auf main
+       10.9. abends        push (jeder Zweig) UND workflow_dispatch
+
+     DER GRUND DER LETZTEN AENDERUNG STEHT NICHT IM ABLAUF, SONDERN IM GELD:
+     das Repository ist privat und wird nur um einen Push herum oeffentlich.
+     Haengt der Lauf an `main` allein, prueft der Push auf einen Zweig gar
+     nichts -- und genau der ist der Schritt, den der Betreiber selbst
+     ausloest.
+     GEPRUEFT WIRD DER ZWEIGFILTER UND DAS FEHLEN VON `pull_request`, nicht
+     die Zahl der Ereignisse: die Zahl haelt die Zusage im Beipack fest, und
+     zwei Waechter, die dasselbe zaehlen, sind einer zu viel.
      GELESEN WIRD OHNE DIE KOMMENTARE. Der Kasten in der Datei NENNT, was
      weggefallen ist -- eine Probe, die das Wort dort faende, faende
      ausgerechnet die Begruendung fuer seinen Wegfall. */
   const workCode = workText.split('\n').filter(z => !/^\s*#/.test(z)).join('\n');
-  check('Er läuft nur bei Push auf main',
-    /^on:[ \t]*\n[ \t]+push:[ \t]*\n[ \t]+branches:[ \t]*\n[ \t]+-[ \t]*main[ \t]*$/m.test(workCode) &&
+  check('Er läuft bei jedem Push und auf Knopfdruck — und nicht bei einer Anfrage',
+    /^on:[ \t]*\n[ \t]+push:[ \t]*\n[ \t]+workflow_dispatch:[ \t]*$/m.test(workCode) &&
     !/pull_request/.test(workCode),
     (workCode.match(/^on:[\s\S]{0,60}/m) || ['(keine Zeile on:)'])[0].replace(/\s+/g, ' '));
 
