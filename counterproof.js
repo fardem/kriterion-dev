@@ -5656,11 +5656,19 @@ const REGRESSIONS = [
   {
     /* DIE ZWEITE SYSTEMKARTE ZEIGT DIE KRITERIEN DES ANDEREN KASTENS. Beide
        Karten zeigten dann dieselbe Liste, und wer im Potenzialkasten anlegt,
-       saehe sein Kriterium in beiden. */
+       saehe sein Kriterium in beiden.
+       MITGEGANGEN MIT 0.25.1 (Stolperstein 201). Bis 0.25.0 stand der
+       Phasenfilter im Ruf von `manageList()`; seit 0.25.1 teilen sich Liste
+       UND Pillenreihe denselben Ausdruck (`critRows()`), und den Filter gibt
+       es nur noch dort. Der Rueckbau zielt jetzt darauf -- und nimmt damit
+       beiden zugleich die Trennung, was mehr rot macht als vorher und
+       dieselbe Sache belegt. */
     nr: '597', name: 'Die zweite Kriterienkarte filtert nicht nach Phase',
     file: 'public/app.js',
-    search: "  manageList(k.list, namesFrom(fetched, 'crits').filter(c => c.phase === phase), 'crit', fetched);",
-    replacement: "  manageList(k.list, namesFrom(fetched, 'crits'), 'crit', fetched);",
+    search: "function critRows(fetched, phase) {\n" +
+      "  return namesFrom(fetched, 'crits').filter(c => c.phase === phase);\n}",
+    replacement: "function critRows(fetched, phase) {\n" +
+      "  return namesFrom(fetched, 'crits');\n}",
     expected: 'Zwei Kaesten in der Oberflaeche — 0.21.0'
   },
   {
@@ -7209,7 +7217,7 @@ const REGRESSIONS = [
        Ansicht Arbeit liegt. */
     nr: '754', name: 'Der rote Rahmen an der Kachel faellt weg',
     file: 'public/app.js',
-    search: "  if (card) card.classList.toggle('gaps', namesMissing(key, shownCode) > 0);",
+    search: "  if (card) card.classList.toggle('gaps', namesMissing(key, shownCode, only) > 0);",
     replacement: "  if (card) card.classList.toggle('gaps', false);",
     expected: 'Die Karte sagt, wo Arbeit liegt — 0.25.0'
   },
@@ -7229,7 +7237,7 @@ const REGRESSIONS = [
        MITGEGANGEN MIT 0.25.0, wie 754 und aus demselben Grund. */
     nr: '755', name: 'Der rote Rahmen steht an jeder Kachel',
     file: 'public/app.js',
-    search: "  if (card) card.classList.toggle('gaps', namesMissing(key, shownCode) > 0);",
+    search: "  if (card) card.classList.toggle('gaps', namesMissing(key, shownCode, only) > 0);",
     replacement: "  if (card) card.classList.toggle('gaps', true);",
     expected: 'Die Karte sagt, wo Arbeit liegt — 0.25.0'
   },
@@ -7416,8 +7424,10 @@ const REGRESSIONS = [
        an jeder Pille und saegte nichts ueber die Arbeit. */
     nr: '770', name: 'Die Zahl an der Pille zaehlt alle Zellen statt der fehlenden',
     file: 'public/app.js',
-    search: "  return Object.values(table).filter(z => !z || z.from !== code).length;",
-    replacement: "  return Object.values(table).length;",
+    search: "  return Object.entries(table).filter(([id, z]) =>\n" +
+      "    (!only || only.has(Number(id))) && (!z || z.from !== code)).length;",
+    replacement: "  return Object.entries(table).filter(([id]) =>\n" +
+      "    !only || only.has(Number(id))).length;",
     expected: 'Die Karte sagt, wo Arbeit liegt — 0.25.0'
   },
   {
@@ -7425,9 +7435,9 @@ const REGRESSIONS = [
        Betreibers: fehlende Zellen gedaempft markiert. */
     nr: '771', name: 'Der geliehene Name wird nicht mehr gedaempft',
     file: 'public/app.js',
-    search: "        <span class=\"mnamebox\"><span class=\"mname${\n" +
-      "          entry.nameFallback === undefined ? '' : ' back'}\">${esc(entry.name)}</span>${fallbackMark}</span>",
-    replacement: "        <span class=\"mnamebox\"><span class=\"mname\">${esc(entry.name)}</span>${fallbackMark}</span>",
+    search: "        <span class=\"mname${\n" +
+      "          entry.nameFallback === undefined ? '' : ' back'}\">${esc(entry.name)}</span>",
+    replacement: "        <span class=\"mname\">${esc(entry.name)}</span>",
     expected: 'Die Karte sagt, wo Arbeit liegt — 0.25.0'
   },
   {
@@ -7500,6 +7510,99 @@ const REGRESSIONS = [
     search: "    drawNameLanguages('ncatlang', 'cats');\n    drawNamesUnknown(fetched);",
     replacement: "    drawNamesUnknown(fetched);",
     expected: 'Die Karte sagt, wo Arbeit liegt — 0.25.0'
+  },
+  {
+    /* ================= 0.25.1 =========================================
+       DIE ZAHL AN DER PILLE ZAEHLT WIEDER BEIDE KRITERIENKARTEN. Das ist
+       der gemeldete Zustand von 0.25.0: die Tafel `crits` traegt beide
+       Karten, und ohne die Auswahl der Kachel stand ueber „Bewertung" und
+       ueber „Potenzial" dieselbe Summe. */
+    nr: '780', name: 'Die Zahl an der Pille zaehlt wieder beide Kriterienkarten',
+    file: 'public/app.js',
+    search: "    const gaps = namesMissing(key, a.code, only);",
+    replacement: "    const gaps = namesMissing(key, a.code);",
+    expected: 'Jede Kachel zaehlt ihre eigene Arbeit — 0.25.1'
+  },
+  {
+    /* UND DER ROTE RAHMEN TUT ES AUCH. Zwei Aussagen, zwei Rueckbauten: die
+       Zahl sagt „so viel liegt hier", der Rahmen sagt „hier liegt etwas".
+       Ein Rueckbau, der beide traefe, liesse offen, welche von beiden haelt.
+       DERSELBE SUCHTEXT WIE 754 UND 755, und aus demselben Grund wie dort:
+       an einer Zeile haengen drei verschiedene Zusagen. */
+    nr: '781', name: 'Der rote Rahmen zaehlt wieder beide Kriterienkarten',
+    file: 'public/app.js',
+    search: "  if (card) card.classList.toggle('gaps', namesMissing(key, shownCode, only) > 0);",
+    replacement: "  if (card) card.classList.toggle('gaps', namesMissing(key, shownCode) > 0);",
+    expected: 'Jede Kachel zaehlt ihre eigene Arbeit — 0.25.1'
+  },
+  {
+    /* UND DIE KARTE REICHT DIE ZEILEN GAR NICHT ERST DURCH -- beim AUFBAU.
+       Die Pillenreihe entsteht an zwei Stellen, und beide muessen die
+       Auswahl kennen; dieser Rueckbau trifft die erste. */
+    nr: '782', name: 'Die erste Zeichnung reicht der Pillenreihe die Zeilen nicht',
+    file: 'public/app.js',
+    search: "  drawNameLanguages(`${k.list}-lang`, 'crits', rows);",
+    replacement: "  drawNameLanguages(`${k.list}-lang`, 'crits');",
+    expected: 'Jede Kachel zaehlt ihre eigene Arbeit — 0.25.1'
+  },
+  {
+    /* UND DIE ZWEITE: das Neuzeichnen nach einem Griff (`drawAdmin`). Bis
+       0.25.0 standen Liste und Pillenreihe dort in ZWEI Schleifen, und nur
+       die eine kannte die Phase -- genau die Bauform, aus der der Befund
+       entstanden ist. Ohne diesen Rueckbau bliebe unbelegt, dass die
+       Trennung ein Raeumen ueberlebt. */
+    nr: '783', name: 'Das Neuzeichnen reicht der Pillenreihe die Zeilen nicht',
+    file: 'public/app.js',
+    search: "      drawNameLanguages(`${CRIT_CARD[phase].list}-lang`, 'crits', rows);",
+    replacement: "      drawNameLanguages(`${CRIT_CARD[phase].list}-lang`, 'crits');",
+    expected: 'Jede Kachel zaehlt ihre eigene Arbeit — 0.25.1'
+  },
+  {
+    /* UND DER VERMERK SITZT WIEDER IM NAMENSKASTEN -- der Zustand, in dem
+       er in der Kriterienkarte mit Auslassung kuerzte, weil ihm nur die
+       Namensspalte blieb.
+       ER STEHT DANACH ZWEIMAL IN DER ZEILE, einmal im Kasten und einmal am
+       Ende: ein Rueckbau tauscht EINE Stelle, und die Zusage haengt an der
+       ersten, die `querySelector` findet. Das ist gewollt und genuegt --
+       gepruefft wird, WO der Vermerk haengt und ob es den Kasten gibt. */
+    nr: '784', name: 'Der Vermerk sitzt wieder im Namenskasten',
+    file: 'public/app.js',
+    search: "        <span class=\"mname${\n" +
+      "          entry.nameFallback === undefined ? '' : ' back'}\">${esc(entry.name)}</span>",
+    replacement: "        <span class=\"mnamebox\"><span class=\"mname${\n" +
+      "          entry.nameFallback === undefined ? '' : ' back'}\">${esc(entry.name)}</span>${fallbackMark}</span>",
+    expected: 'Jede Kachel zaehlt ihre eigene Arbeit — 0.25.1'
+  },
+  {
+    /* UND DIE ZEILE BEKOMMT DEN UMBRUCH NICHT. Ohne ihn bliebe der Vermerk
+       ein Feld neben den anderen: `flex-basis: 100%` wirkt nur in einer
+       Zeile, die umbrechen darf. */
+    nr: '785', name: 'Die Zeile mit Vermerk bekommt den Umbruch nicht',
+    file: 'public/app.js',
+    search: "      if (entry.nameFallback !== undefined) row.classList.add('withback');",
+    replacement: "      if (false) row.classList.add('withback');",
+    expected: 'Jede Kachel zaehlt ihre eigene Arbeit — 0.25.1'
+  },
+  {
+    /* UND DER SATZ NENNT DIE FEHLENDE SPRACHE NICHT -- der Wortlaut von
+       0.25.0, den der Betreiber als „irgendwie ein nicht klarer satz"
+       gemeldet hat. */
+    nr: '786', name: 'Der Vermerk nennt die fehlende Sprache nicht',
+    file: 'public/languages/de.json',
+    search: "\"card.nameFallback\": \"(kein Eintrag in {missing} — gezeigt wird {language})\"",
+    replacement: "\"card.nameFallback\": \"(nicht eingetragen — es steht {language})\"",
+    expected: 'Jede Kachel zaehlt ihre eigene Arbeit — 0.25.1'
+  },
+  {
+    /* UND EIN ALLEINSTEHENDES „yedek" BLEIBT IM TUERKISCHEN STEHEN. Ein
+       Waechter ueber alle Saetze faengt auch den einen, der wieder
+       hineinrutscht -- ohne diesen Rueckbau bliebe unbelegt, dass er das
+       tut. */
+    nr: '787', name: 'Ein alleinstehendes „yedek" bleibt im Tuerkischen stehen',
+    file: 'public/languages/tr.json',
+    search: "\"card.lastBackup\": \"Son yedekleme\"",
+    replacement: "\"card.lastBackup\": \"Son yedek\"",
+    expected: '„Backup" heisst auf Tuerkisch yedekleme — 0.25.1'
   }
 ];
 

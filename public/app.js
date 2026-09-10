@@ -8628,6 +8628,9 @@ function cardCategories() {
       </div>`;
 }
 function setUpCategoriesOut(fetched) {
+  // OHNE AUSWAHL, UND DAS IST KEINE AUSNAHME -- 0.25.1. Diese Kachel zeigt
+  // ALLE Kategorien; ihre Auswahl IST die Tafel. Eine Menge zu bauen, die
+  // ohnehin jede Kennung enthaelt, waere eine Zeile, die nichts entscheidet.
   drawNameLanguages('ncatlang', 'cats');
   drawNamesUnknown(fetched);
   manageList('mcats', namesFrom(fetched, 'cats'), 'cat', fetched);
@@ -8723,13 +8726,27 @@ function cardCriteria(phase) {
         </div>` : ''}
       </div>`;
 }
+/* DIE ZEILEN EINER KRITERIENKARTE -- 0.25.1. EIN Ausdruck fuer die Liste UND
+   fuer die Pillenreihe darueber. Bis 0.25.0 filterte nur die Liste nach der
+   Phase; die Zahl an der Pille zaehlte die Tafel `crits` ganz, also BEIDE
+   Karten -- die Liste zeigte fuenf Zeilen, und die Pille darueber sprach von
+   acht. Zwei Auswahlen fuer eine Kachel, und die eine wusste nichts von der
+   anderen.
+   EINE DEKLARATION UND KEIN `const`: sie wird von `setUpCriteriaOut()` und von
+   `drawAdmin()` gerufen, und eine Deklaration steht ueberall da, wo sie
+   gebraucht wird -- eine Bindung nicht (das hat 0.25.0 einmal gekostet). */
+function critRows(fetched, phase) {
+  return namesFrom(fetched, 'crits').filter(c => c.phase === phase);
+}
 function setUpCriteriaOut(fetched, phase) {
   const k = CRIT_CARD[phase];
   // NUR DIE ZEILEN DIESES KASTENS. Die Antwort von /api/criteria traegt beide
   // und ist nach sort_order, id sortiert -- gefiltert bleibt jede Karte in
   // sich richtig geordnet, ohne dass irgendwo eine zweite Ordnung stuende.
-  drawNameLanguages(`${k.list}-lang`, 'crits');
-  manageList(k.list, namesFrom(fetched, 'crits').filter(c => c.phase === phase), 'crit', fetched);
+  // UND DIE PILLENREIHE BEKOMMT DIESELBEN ZEILEN -- 0.25.1.
+  const rows = critRows(fetched, phase);
+  drawNameLanguages(`${k.list}-lang`, 'crits', rows);
+  manageList(k.list, rows, 'crit', fetched);
   // Hier wird angelegt, nicht am Eintrag. Das Feld gibt es nur
   // fuer den Admin -- der Server verweigert es allen anderen ohnehin.
   const critField = document.getElementById(k.field);
@@ -8954,15 +8971,31 @@ function setUpCriteriaOut(fetched, phase) {
          Das ist eine Auskunft ueber die ZEILE und nicht ueber die Sprache --
          `card.nameFallbackNone` („nicht eingetragen") sagte das Gegenteil und
          ist deshalb weggefallen. */
+      /* UND SEIT 0.25.1 NENNT DER SATZ BEIDE SPRACHEN. Bis 0.25.0 stand da
+         „(nicht eingetragen -- es steht Deutsch)", und der Betreiber hat am
+         10. September 2026 gesagt, was daran fehlt: „ist irgendwie ein nicht
+         klarer satz." Er sagte nicht, WAS nicht eingetragen ist, und „es
+         steht Deutsch" liest sich wie eine Aussage ueber den Text selbst.
+         JETZT: „(kein Eintrag in Türkçe -- gezeigt wird Deutsch)". Zwei
+         Angaben, weil es zwei Sprachen sind: die, in der nichts steht (die
+         Pille, auf der man gerade steht), und die, deren Name stattdessen
+         dasteht.
+         DIE FEHLENDE MUSS MIT, obwohl die Pille darueber sie schon nennt:
+         wer die Liste ueberfliegt, liest die Zeile und nicht den Umschalter.
+         DIE GEZEIGTE MUSS BLEIBEN -- das ist der Befund von 0.24.6: eine
+         genannte Sprache, die nicht stimmt, ist schlimmer als keine, und
+         darum steht sie ueberhaupt da. */
       const fallbackName = entry.nameFallback === true
         ? '' : languageNameOf(entry.nameFallback);
+      const shownName = languageNameOf(namesLanguage());
       const fallbackMark = entry.nameFallback === undefined ? ''
         : (entry.nameFallback === true
           ? `<span class="mfallback" title="${esc(t('card.nameOriginal'))}">${
               tH('card.nameOriginal')}</span>`
           : `<span class="mfallback" title="${esc(t('card.nameFallback',
-              { language: fallbackName }))}">${tH('card.nameFallback',
-              { language: fallbackName })}</span>`);
+              { missing: shownName, language: fallbackName }))}">${
+              tH('card.nameFallback',
+              { missing: shownName, language: fallbackName })}</span>`);
       /* DAS ✕ AM FELD -- 0.25.0 (F5). Es steht genau dort, wo etwas
          EINGETRAGEN ist und die Zeile es nicht selbst traegt: ein Rueckfall
          laesst sich nicht raeumen (da steht nichts), und der Originaltext
@@ -8972,14 +9005,44 @@ function setUpCriteriaOut(fetched, phase) {
          kann nicht zweierlei bedeuten. */
       const mayClear = may && spec.perLanguage && entry.nameFallback === undefined &&
         entry.language !== namesLanguage();
+      /* DER VERMERK STEHT AM ENDE DER ZEILE UND NICHT MEHR IM NAMENSKASTEN --
+         0.25.1, und das ist der Befund des Betreibers vom 10. September 2026:
+         „warum ist der untere text mit dem hinweis im ersten kachel
+         vollstaendig zu sehen und in den beiden anderen nicht?“
+
+         BIS 0.25.0 SASS ER IN `.mnamebox`, ALSO IN DER NAMENSSPALTE. In einer
+         Kriterienzeile teilen sich Ziehgriff, Gewichtsfeld, ✕, Zaehler und
+         zwei Knoepfe dieselbe Zeile; was der Namensspalte blieb, war schmal,
+         und der Vermerk kuerzte mit Auslassung. Eine Kategorienzeile hat
+         weder Griff noch Gewicht -- dort stand derselbe Satz vollstaendig da.
+         EIN SATZ, ZWEI BREITEN, je nach Karte -- und der Betreiber hat es am
+         Bildschirm gesehen, nicht im Quelltext.
+
+         ALS LETZTES KIND DER ZEILE bricht er mit `flex-basis: 100%` auf eine
+         eigene Zeile um und hat die volle Kachelbreite, in jeder Karte
+         dieselbe. LETZTES Kind und nicht irgendeines: stuende er vor dem
+         Gewichtsfeld, schoebe der Umbruch alles dahinter auf eine dritte
+         Zeile.
+
+         DER NAMENSKASTEN FAELLT DAMIT WEG. Er hatte genau einen Zweck --
+         Name und Vermerk uebereinanderzustellen (0.24.5) --, und den erledigt
+         jetzt der Umbruch der Zeile selbst. `.mname` ist wieder ein Kind der
+         Zeile und traegt `flex: 1; min-width: 0` wie vor 0.24.5.
+
+         DEN UMBRUCH TRAEGT EINE EIGENE KLASSE und nicht `.mrow` schlechthin:
+         dieselbe Zeile zeichnet auch Tags, Papierkorb und Benutzer, und ein
+         Umbruch fuer alle waere eine Aenderung an Listen, die gar keinen
+         Vermerk kennen. */
+      if (entry.nameFallback !== undefined) row.classList.add('withback');
       row.innerHTML = `${spec.sortable && may ? `<span class="grip" title="${esc(t('entry.dragToSort'))}">⣿</span>` : ''}
-        <span class="mnamebox"><span class="mname${
-          entry.nameFallback === undefined ? '' : ' back'}">${esc(entry.name)}</span>${fallbackMark}</span>
+        <span class="mname${
+          entry.nameFallback === undefined ? '' : ' back'}">${esc(entry.name)}</span>
         ${weightField}
         ${mayClear ? `<button class="mact nx" title="${esc(t('card.nameRemove'))}">${ICON_ERASE}</button>` : ''}
         <span class="mcount">${esc(spec.counter ? spec.counter(entry) : `${entry.usage_count} ${vThing(entry.usage_count)}`)}</span>
         ${may ? `<button class="mact ed" title="${esc(t('card.rename'))}">${ICON_PEN}</button>
-        <button class="mact rm" title="${esc(t('dialog.delete'))}">${ICON_X}</button>` : ''}`;
+        <button class="mact rm" title="${esc(t('dialog.delete'))}">${ICON_X}</button>` : ''}
+        ${fallbackMark}`;
       if (!may) { box.appendChild(row); return; }
       if (spec.sortable) {
         // Ziehen wie bei Fotos und Links: Pointer-Events, gleiche Schwelle.
@@ -9144,15 +9207,19 @@ function setUpCriteriaOut(fetched, phase) {
        es, sie beim Aufbau der Karte einmal zu zeichnen. */
     drawNameLanguages('ncatlang', 'cats');
     drawNamesUnknown(fetched);
-    for (const phase of Object.keys(CRIT_CARD))
-      drawNameLanguages(`${CRIT_CARD[phase].list}-lang`, 'crits');
     manageList('mtags', fetched.tags, 'tag', fetched);
     // BEIDE KRITERIENLISTEN, aus DERSELBEN Antwort. manageList() haengt
     // sich an einen Kasten, den es nicht gibt, gar nicht erst an -- wer nur
     // eine der beiden Karten offen hat, bekommt nur diese gezeichnet.
-    for (const phase of Object.keys(CRIT_CARD))
-      manageList(CRIT_CARD[phase].list,
-        namesFrom(fetched, 'crits').filter(c => c.phase === phase), 'crit', fetched);
+    // LISTE UND PILLENREIHE IN EINEM DURCHGANG -- 0.25.1. Bis dahin standen
+    // sie in zwei Schleifen, und nur die eine kannte die Phase. Zwei
+    // Schleifen ueber dieselbe Sache laufen auseinander, sobald eine sich
+    // aendert -- und genau das war passiert.
+    for (const phase of Object.keys(CRIT_CARD)) {
+      const rows = critRows(fetched, phase);
+      drawNameLanguages(`${CRIT_CARD[phase].list}-lang`, 'crits', rows);
+      manageList(CRIT_CARD[phase].list, rows, 'crit', fetched);
+    }
   }
   async function adminNew(fetched) {
     /* UND DIE NAMENSTAFELN MIT -- 0.24.5. Anlegen, Umbenennen und Loeschen
@@ -9316,10 +9383,25 @@ function namesFrom(fetched, key) {
    woran es liegt.
    OHNE TAFEL IST DIE ZAHL NULL und nicht „alles fehlt": wer keine Tafel
    bekommt, hat auch keine Pillenreihe. */
-const namesMissing = (key, code) => {
+/* UND SEIT 0.25.1 ZAEHLT SIE JE KACHEL. `only` ist die Menge der Kennungen,
+   die eine Kachel wirklich zeigt; ohne Angabe zaehlt sie die ganze Tafel.
+   DAS WAR DER BEFUND DES BETREIBERS vom 10. September 2026: „die zahl in der
+   sprachen pille ist das eine zahl pro kachel oder fuer alle? Im moment ist es
+   gemischt." Er war es: die Tafel `crits` traegt BEIDE Kriterienkarten, und
+   ueber „Bewertung" wie ueber „Potenzial" stand dieselbe Summe. Ueber
+   „Kategorien" stand die richtige Zahl nur deshalb, weil Kategorien eine
+   Tabelle und eine Kachel sind.
+   DIE ZAHL SOLL SAGEN, WIE VIEL ARBEIT IN DIESER KACHEL LIEGT -- das ist ihr
+   Zweck („dann weiss man wieviele man in dem kachel noch bearbeiten muss"),
+   und eine Summe ueber zwei Kacheln beantwortet die Frage nicht.
+   OHNE `only` BLEIBT ES DIE SUMME, und das ist kein Rest, sondern ein
+   eigener Fall: die Karte „Sprachen" fragt nach der ganzen Installation und
+   ruft sie deshalb ohne Auswahl. */
+const namesMissing = (key, code, only) => {
   const table = (NAMES_ALL[key] || {})[code];
   if (!table) return 0;
-  return Object.values(table).filter(z => !z || z.from !== code).length;
+  return Object.entries(table).filter(([id, z]) =>
+    (!only || only.has(Number(id))) && (!z || z.from !== code)).length;
 };
 /* WIE VIELE ZEILEN GAR KEINE ERSTELLUNGSSPRACHE HABEN -- ueber BEIDE Tafeln,
    weil der eine Knopf beide Tabellen schreibt. Gelesen wird die Tafel und
@@ -9357,15 +9439,21 @@ const namesWithoutLanguage = () => {
    dieser Ansicht ist Arbeit". Wo sonst noch, sagen die Zahlen in den Pillen.
    Er sitzt an der KACHEL und nicht an der Pillenreihe -- gemeint ist die
    Liste darunter, nicht der Umschalter darueber. */
-function drawNameLanguages(boxId, key) {
+function drawNameLanguages(boxId, key, rows) {
   const box = document.getElementById(boxId);
   if (!box) return;
   box.innerHTML = '';
   const shownCode = namesLanguage();
+  /* DIE KENNUNGEN DIESER KACHEL -- 0.25.1. Sie kommen aus DERSELBEN Liste,
+     die darunter gezeichnet wird, und nicht aus einer zweiten Abfrage: eine
+     Zahl ueber einer Liste, die eine andere Auswahl trifft als die Liste
+     selbst, ist Stolperstein 47 in klein. Ohne Liste zaehlt die ganze Tafel --
+     so ruft die Karte „Kategorien", die alle Kategorien zeigt. */
+  const only = rows ? new Set(rows.map(z => z.id)) : null;
   LANGUAGES.filter(a => a.active).forEach(a => {
     const b = document.createElement('button');
     b.className = 'pill' + (shownCode === a.code ? ' on' : '');
-    const gaps = namesMissing(key, a.code);
+    const gaps = namesMissing(key, a.code, only);
     /* DER NAME GEHT DURCH esc(), die Zahl ist eine Zahl -- innerHTML ist
        innerHTML, auch wenn beides aus der eigenen Antwort kommt. */
     b.innerHTML = esc(a.name) + (gaps
@@ -9379,7 +9467,7 @@ function drawNameLanguages(boxId, key) {
      gesetzt, weil hier die Zahl steht -- `closest()` findet sie, und ohne
      Kachel (im Nachbau ohne Karte) passiert nichts. */
   const card = box.closest('.sys-card');
-  if (card) card.classList.toggle('gaps', namesMissing(key, shownCode) > 0);
+  if (card) card.classList.toggle('gaps', namesMissing(key, shownCode, only) > 0);
 }
 /* DER KASTEN FUER DIE UNBEKANNTE ERSTELLUNGSSPRACHE -- 0.25.0 (F2). Die
    Migration fuellt nichts, und hier wird EINMAL nachgefragt.
