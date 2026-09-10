@@ -5172,28 +5172,44 @@ async function renderDetail(id, termAddress) {
              sie VOR dem Upload wissen muss (Regel S1: eine Folge, die man
              kennen muss, darf stehen).
              ZWEI SAETZE SEIT 0.27.0, UND DER ZWEITE STEHT AUS DEMSELBEN
-             GRUND WIE DIE VIDEOGRENZE -- F7 des Auftrags 0.27.0. „Grafik
-             kopieren" und dann einfuegen ist der TEUERSTE Weg, ein Bild
-             hereinzuholen, und man sieht es dem Ergebnis nicht an: die
-             Zwischenablage traegt keine Datei, sondern Bildpunkte, und der
-             Browser legt sie als PNG ab. Gemessen am 2. September 2026 wurden
-             aus einem 5,21-MB-JPEG im Netz 34,79 MB Zwischenablage und daraus
-             20,42 MB in der Datenbank. „Bild speichern unter" und dann
-             hochladen kostet 5,21 MB, keinen Generationsverlust und keine
-             Rechenzeit -- Kriterion fasst JPEG nicht an.
+             GRUND WIE DIE VIDEOGRENZE -- F7 des Auftrags 0.27.0, Regel S1:
+             eine Folge, die man VOR dem Handeln kennen muss, darf stehen.
+             Einfuegen ist der TEUERSTE Weg, ein Bild hereinzuholen, und man
+             sieht es dem Ergebnis nicht an: die Zwischenablage traegt keine
+             Datei, sondern Bildpunkte, und der Browser legt sie als PNG ab.
+             Gemessen am 2. September 2026 wurden aus einem 5,21-MB-JPEG im
+             Netz 34,79 MB Zwischenablage und daraus 20,42 MB in der
+             Datenbank.
+
+             ER NENNT DIE FOLGE UND GIBT KEINEN RAT, und das ist die
+             Entscheidung des Betreibers vom 10. September 2026: „Welche
+             Folgen ... hat, wird im kurzen Satz erklaert und der Rest ist
+             Usersache. ... Wir sind nicht sein Papa und er nicht ein
+             Kindergartenkind."
+             ZWEI FASSUNGEN SIND VORHER GEFALLEN. Die erste erklaerte den
+             billigsten Weg mit („Bild speichern unter" und hochladen) und war
+             zu lang; die zweite hatte beim Kuerzen ihre Verben verloren und
+             war kein deutscher Satz mehr. DIE DRITTE IST NICHT NUR KUERZER,
+             SONDERN SAGT ETWAS ANDERES: sie stellt fest, statt zu raten. Wer
+             die Folge kennt, zieht den Schluss selbst.
+             DER PRUEFSTAND HAELT BEIDES FEST -- dass die Folge dasteht UND
+             dass keine Empfehlung danebensteht. Ohne die zweite Zusage waere
+             die Entscheidung eine Laune und kaeme beim naechsten Aufraeumen
+             zurueck.
+
              ER STEHT AN DER EINFUEGESTELLE UND NICHT IN DER KARTE: hier
              trifft ihn jemand in dem Augenblick, in dem er die Wahl noch hat.
              Wer die Karte „Bildformate" liest, fuegt gerade kein Bild ein.
-             UND ER STEHT UNABHAENGIG VOM VERFAHREN DA. Der billigste Weg ist
-             in jedem der drei der billigste -- bei „PNG" sogar am
-             deutlichsten, denn dort bleiben die 34,79 MB liegen. Ein Satz, der
-             je nach Einstellung verschwaende, waere ein Rat, den man nur
-             bekommt, wenn man ihn am wenigsten braucht.
+             UND ER STEHT UNABHAENGIG VOM VERFAHREN DA. Die Folge gilt in jedem
+             der drei -- bei „PNG" am deutlichsten, denn dort bleiben die
+             34,79 MB liegen. Ein Satz, der je nach Einstellung verschwaende,
+             waere eine Auskunft, die man nur bekommt, wenn man sie am
+             wenigsten braucht.
              IM SELBEN ABSATZ UND NICHT IN EINEM ZWEITEN: es ist dieselbe
              Auskunft ueber dasselbe Feld, und zwei Absaetze untereinander
              lesen sich als zwei Themen. */''}
         <p class="hint hint-sm" style="margin:8px 2px 0">
-          ${tH('entry.photoOrderHint')} ${tH('entry.uploadIsCheaper')}</p>
+          ${tH('entry.photoOrderHint')} ${tH('entry.clipboardLarger')}</p>
       </div>
 
       <div class="meta-col">

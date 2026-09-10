@@ -513,11 +513,14 @@ Einzelheiten im Änderungsprotokoll 0.27.0.
 > **DIE FRAGETAFEL DIESER RUNDE IST NACH DEM BAUEN DURCHGEGANGEN WORDEN UND
 > NICHT DAVOR.** *Der Betreiber hat sie am 10. September 2026 mit* „Keine
 > Ahnung was wir damals für die 27.0 ausgemacht haben" *in Auftrag gegeben;
-> gebaut wurde nach der Vorschlagsspalte.* **Noch am selben Tag sind F1, F3, F4
-> und F6 entschieden worden — jede wie vorgeschlagen, keine Abweichung —, und
-> F2 war im Auftrag selbst vorgegeben:** „Standard soll das sein, was heute
-> aktiv genutzt wird". **F5, F7, F8, F9 und F10 sind nach Vorschlag gebaut und
-> nicht einzeln bestätigt.**
+> gebaut wurde nach der Vorschlagsspalte.* **Noch am selben Tag ist die Tafel
+> VOLLSTÄNDIG durchgegangen worden, in zwei Runden — neun Antworten wie
+> vorgeschlagen, eine abweichend.** *F2 war im Auftrag selbst vorgegeben
+> („Standard soll das sein, was heute aktiv genutzt wird"), F9 hatte keine Wahl
+> zu treffen.* **Die Abweichung ist F7:** der Satz an der Einfügestelle bleibt,
+> aber kürzer — und die erste gekürzte Fassung ist zurückgewiesen worden, weil
+> sie beim Kürzen ihre Verben verloren hatte. *Der Wortlaut, der dasteht, ist
+> der des Betreibers.*
 > **Regel 11 dieses Blatts („ein Vorschlag ist keine Antwort") ist trotzdem
 > nicht erfüllt** — sie verlangt die Antwort VOR der ersten Zeile. *Das steht
 > hier als offener Punkt und nicht als Fußnote: dass das Ergebnis hinterher

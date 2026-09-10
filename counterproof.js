@@ -8060,7 +8060,7 @@ const REGRESSIONS = [
        geblieben ist. */
     nr: '824', name: 'Der Satz an der Einfuegestelle wird nicht gezeichnet',
     file: 'public/app.js',
-    search: "          ${tH('entry.photoOrderHint')} ${tH('entry.uploadIsCheaper')}</p>",
+    search: "          ${tH('entry.photoOrderHint')} ${tH('entry.clipboardLarger')}</p>",
     replacement: "          ${tH('entry.photoOrderHint')}</p>",
     expected: 'Der Eintrag am Bildschirm'
   },

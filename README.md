@@ -2379,12 +2379,14 @@ Bitstrom (VP8) kann mit harten Kanten nichts anfangen, der verlustfreie (VP8L)
 kann genau das. Und woher ein PNG kommt, ist seinen Bytes nicht anzusehen: die
 Wahl gilt für alles, was hereinkommt.
 
-**Der billigste Weg steht gar nicht in dieser Liste.** Ein Bild aus dem Netz
-über „Bild speichern unter" zu holen und die Datei hochzuladen kostet nichts an
-Rechenzeit und verliert nichts — Kriterion fasst JPEG nicht an. Die
-Zwischenablage trägt keine Datei, sondern Bildpunkte; der Browser legt sie als
-PNG ab, und das ist oft ein Vielfaches der ursprünglichen Datei. Ein Satz an
-der Einfügestelle sagt das.
+**Und ein dritter Weg steht gar nicht in dieser Liste:** eine Datei
+hochzuladen, statt sie einzufügen. Die Zwischenablage trägt keine Datei,
+sondern Bildpunkte; der Browser legt sie als PNG ab, und das ist oft ein
+Vielfaches der ursprünglichen Datei — aus einem 5,21-MB-JPEG im Netz wurden
+gemessen 34,79 MB. **An der Einfügestelle steht deshalb ein Satz, der die Folge
+nennt** *(„Das Einfügen über die Zwischenablage führt zu erheblich größeren
+Dateien.")*. Was daraus folgt, entscheidet jeder selbst — die Anwendung gibt
+dazu keinen Rat.
 
 **Daneben steht der Knopf „Vorhandene Bilder umstellen"** für den vorhandenen
 Bestand — er fragt vorher das Passwort und sagt, was er tut: die alte Fassung

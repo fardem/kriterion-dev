@@ -3,23 +3,37 @@
 **Eine Funktion mit einer Auflage, dazu die Ableitungen · gebaut am 10.
 September 2026 auf 0.26.0 (`9ad0be7b`).**
 
-> **FINGERPRINT DIESER RUNDE: `56e508ab`** — gerechnet am fertigen Stand,
+> **FINGERPRINT DIESER RUNDE: `276c4f75`** — gerechnet am fertigen Stand,
 > **vor dem Einspielen**.
 >
 > **AUS ZWEI QUELLEN, wie die Regel es verlangt — nur ist die zweite hier noch
-> nicht die laufende Installation, sondern eine zweite RECHNUNG:** einmal aus
-> dem Arbeitsbaum nachgerechnet (dieselben achtzehn Dateien, die der Handgriff
-> in der README nennt) und einmal aus dem **Server selbst** gelesen, der dafuer
-> mit einem frischen Datenverzeichnis gestartet und über `/api/stats` befragt
-> wurde. **Beide sagen `56e508ab`.**
+> nicht die laufende Installation, sondern eine zweite RECHNUNG:** einmal am
+> Arbeitsbaum nachgerechnet (dieselben achtzehn Dateien, die der Handgriff in
+> der README nennt) und einmal aus dem **Server selbst** gelesen, der dafür mit
+> einem frischen Datenverzeichnis gestartet und über `/api/stats` befragt
+> wurde. **Beide sagen `276c4f75`.**
 > **DIE ZWEITE ECHTE QUELLE FEHLT UND STEHT HIER ALS OFFENER PUNKT:** die
 > Meldung aus der laufenden Installation nach dem Einspielen. *Sie ist erst zu
 > haben, wenn eingespielt ist.*
 >
-> **ER HAT WAEHREND DIESER RUNDE EINMAL GEWECHSELT, und das gehört dazu:** bis
-> zur Antwort auf F7 stand hier `ca68c8c0`. *Der Betreiber hat den Satz an der
-> Einfügestelle behalten, aber gekürzt — drei Sprachdateien haben sich damit
-> geändert, und die drei liegen in der Liste.* **Gilt: `56e508ab`.**
+> **ER HAT WÄHREND DIESER RUNDE DREIMAL GEWECHSELT, und alle drei Male ging es
+> um DENSELBEN SATZ:**
+>
+> | | |
+> |---|---|
+> | `ca68c8c0` | der Stand, wie er nach dem Bauen dalag |
+> | `56e508ab` | nach der Antwort auf F7 — *„behalten, aber kürzer"* |
+> | `286739a4` | nach dem **zweiten** Anlauf — die gekürzte Fassung war kein deutscher Satz mehr |
+> | **`276c4f75`** | nach dem **dritten** — die Empfehlung fällt, der Schlüssel wird umbenannt |
+>
+> *Jedes Mal haben sich nur die drei Sprachdateien geändert (beim letzten dazu
+> `public/app.js`), und die liegen in der Liste — **ein Satz bewegt den
+> Fingerprint genauso wie eine Anweisung**, und das ist kein Mangel der
+> Rechnung, sondern ihr Zweck.*
+>
+> **KEINER DER DREI GRIFFE WAR EINE VERFEINERUNG** — jeder war eine
+> Zurückweisung mit einem eigenen Grund. *Die Begründungen stehen bei BA 6, in
+> einer Tafel; sie gehören dorthin und nicht hierher.* **Gilt: `276c4f75`.**
 
 > **DIE FRAGETAFEL IST NACH DEM BAUEN DURCHGEGANGEN WORDEN UND NICHT DAVOR,
 > und das gehört als erstes ins Papier.** *Der Betreiber hat die Runde am
@@ -27,23 +41,13 @@ September 2026 auf 0.26.0 (`9ad0be7b`).**
 > wir damals für die 27.0 ausgemacht haben."** *Damit lag keine Antwortspalte
 > vor; gebaut wurde nach der Vorschlagsspalte.*
 >
-> **NOCH AM SELBEN TAG IST DIE TAFEL DURCHGEGANGEN WORDEN — und fünf der zehn
-> sind damit ENTSCHIEDEN:**
+> **NOCH AM SELBEN TAG IST DIE TAFEL VOLLSTÄNDIG DURCHGEGANGEN WORDEN**, in
+> zwei Runden: F1, F3, F4 und F6 zuerst, dann F5, F7, F8 und F10. *F2 war im
+> Auftrag selbst vorgegeben, F9 hatte gar keine Wahl zu treffen.*
 >
-> | | | |
-> |---|---|---|
-> | **F2** | die Vorgabe bleibt das heutige Verhalten | *vom Betreiber im Auftrag selbst vorgegeben:* „Standard soll das sein, was heute aktiv genutzt wird" |
-> | **F1** | der alte Schlüssel fällt | wie vorgeschlagen |
-> | **F3** | die Ableitungen folgen der Wahl nicht | wie vorgeschlagen |
-> | **F4** | `medium` wird nicht verlustfrei | wie vorgeschlagen — und **gemessen** |
-> | **F6** | Zwischenablage und Upload gleich | wie vorgeschlagen |
->
-> **KEINE EINZIGE ABWEICHUNG** — anders als in 0.26.0, wo F3 gegen den
-> Vorschlag fiel.
->
-> **FÜNF SIND NACH VORSCHLAG GEBAUT UND NICHT EINZELN BESTÄTIGT:** F5, F7, F8,
-> F9, F10 — die mechanischen. *Sie stehen so in der Antwortspalte des Auftrags,
-> damit niemand sie für abgenommen hält.*
+> **NEUN SIND WIE VORGESCHLAGEN. EINE WEICHT AB — F7:** *der Satz an der
+> Einfügestelle nennt die FOLGE und gibt keinen Rat.* **Er hat drei Anläufe
+> gebraucht** (BA 6).
 >
 > **REGEL 11 DES PROJEKTSTANDS („ein Vorschlag ist keine Antwort") IST IN
 > DIESER RUNDE TROTZDEM NICHT ERFÜLLT** — sie verlangt die Antwort VOR der
@@ -109,18 +113,24 @@ stehengeblieben.** *Diese Runde macht aus den zehn elf.*
 | **F2** | Die Vorgabe einer frischen Installation bleibt **WebP verlustfrei** | wie vorgeschlagen | **vom Betreiber vorgegeben** |
 | **F3** | Die Wahl trifft **nur das Original**; die Ableitungen gehen unabhängig davon auf WebP | wie vorgeschlagen | **entschieden** |
 | **F4** | **`medium` wird NICHT `nearLossless`** — gemessen, und die Messung spricht deutlich dagegen | wie vorgeschlagen, **jetzt mit Zahlen** | **entschieden** |
-| **F5** | Der Bestand wird auf Knopfdruck nachgezogen, **niemals beim Umschalten** | wie vorgeschlagen | *nicht bestätigt* |
+| **F5** | Der Bestand wird auf Knopfdruck nachgezogen, **niemals beim Umschalten** | wie vorgeschlagen | **entschieden** |
 | **F6** | Zwischenablage und hochgeladenes PNG werden **gleich** behandelt; die Karte nennt den Preis | wie vorgeschlagen | **entschieden** |
-| **F7** | Der billigste Weg steht als Satz **an der Einfügestelle** | wie vorgeschlagen | *nicht bestätigt* |
-| **F8** | 0.27.0 bleibt **MINOR** | wie vorgeschlagen | *nicht bestätigt* |
-| **F9** | **Kein neuer Weg** — `F_ROUTES` bleibt bei 72 | wie vorgeschlagen | *nicht bestätigt* |
-| **F10** | Die Klemme wird **geerbt**: Eigentümer, sieben Schlüssel | wie vorgeschlagen | *nicht bestätigt* |
+| **F7** | Der billigste Weg steht als Satz **an der Einfügestelle** | **ABWEICHUNG — die FOLGE steht dort, die Empfehlung fällt** | **entschieden** |
+| **F8** | 0.27.0 bleibt **MINOR** | wie vorgeschlagen | **entschieden** |
+| **F9** | **Kein neuer Weg** — `F_ROUTES` bleibt bei 72 | wie vorgeschlagen | *keine Wahl zu treffen* |
+| **F10** | Die Klemme wird **geerbt**: Eigentümer, sieben Schlüssel | wie vorgeschlagen | **entschieden** |
 
 > **DIE VIERTE SPALTE IST NEU UND SIE IST DER PUNKT.** *Bisher trug diese Tafel
 > nur, WAS entschieden wurde. Wenn die Antworten — wie in dieser Runde — erst
 > nach dem Bauen kommen, muss auch dastehen, WELCHE von wem.* **„Wie
 > vorgeschlagen" und „entschieden" sind zwei verschiedene Aussagen**, und eine
 > Tafel, die sie in eine Spalte legt, lässt den Unterschied verschwinden.
+
+> **DIE EINE ABWEICHUNG IST F7, UND SIE IST GRÖSSER ALS „kürzer".** *Der
+> Vorschlag lautete: sag dem Benutzer den billigsten Weg. Entschieden ist:*
+> **sag ihm die FOLGE und sonst nichts** — „Wir sind nicht sein Papa und er
+> nicht ein Kindergartenkind." **Der Rat fällt, der Befund bleibt.** *Die drei
+> Anläufe und ihre Gründe stehen bei BA 6.*
 
 ---
 
@@ -358,9 +368,42 @@ Videogrenze — Regel S1: eine Folge, die man kennen muss, darf stehen.*
 jemand in dem Augenblick, in dem er die Wahl noch hat. *Wer die Karte
 „Bildformate" liest, fügt gerade kein Bild ein.*
 
-**Und er steht unabhängig vom Verfahren da.** *Der billigste Weg ist in jedem
-der drei der billigste — bei „PNG" sogar am deutlichsten, denn dort bleiben die
-34,79 MB liegen.*
+**Und er steht unabhängig vom Verfahren da.** *Die Folge gilt in jedem der drei
+— bei „PNG" am deutlichsten, denn dort bleiben die 34,79 MB liegen.*
+
+### Der Wortlaut — drei Anläufe, und jeder ist aus einem anderen Grund gefallen
+
+| | Fassung | woran sie gescheitert ist |
+|---|---|---|
+| **1** | *„Aus dem Netz ist ,Bild speichern unter' und dann hochladen der günstigste Weg: die Zwischenablage enthält keine Datei, sondern Bildpunkte — als PNG oft ein Vielfaches der ursprünglichen Datei."* | **zu lang.** *„Behalten, aber kürzer"* |
+| **2** | *„Aus dem Netz besser ,Bild speichern unter' und hochladen — eingefügt wird daraus ein PNG, oft um ein Vielfaches größer."* | **kein deutscher Satz mehr.** *„Der Satz ist mehr als kaputt … wenn schon Hinweis ein trockenes aber gebräuchliche form von Satz."* |
+| **3** | **„Das Einfügen über die Zwischenablage führt zu erheblich größeren Dateien."** | — |
+
+**DIE DRITTE IST NICHT NUR KÜRZER, SIE SAGT ETWAS ANDERES: sie stellt fest,
+statt zu raten.** *Die Empfehlung ist ausdrücklich weggefallen, und das ist die
+Entscheidung des Betreibers vom 10. September 2026:*
+
+> „Eine Empfehlung, was man mit einem Bild aus dem Netz macht, lass bitte weg.
+> Welche Folgen … hat, wird im kurzen Satz erklärt und der Rest ist Usersache.
+> … Wir sind nicht sein Papa und er nicht ein Kindergartenkind."
+
+**DER ZWEITE ANLAUF IST DER LEHRREICHE:** *er ist beim Kürzen entstanden, und
+beim Kürzen fällt zuerst das Verb.* **Was übrig blieb, war Telegrammstil und
+hat es trotzdem durch drei Sprachdateien und einen grünen Prüflauf geschafft**
+— *keine Zusage dieses Prüfstands fragt nach Grammatik, und keine kann es. Wer
+einen Satz kürzt, liest ihn danach laut.*
+
+**DER SCHLÜSSEL HEISST DESHALB JETZT `entry.clipboardLarger`** und nicht mehr
+`entry.uploadIsCheaper`. *Der alte Name sagte, was der Satz EMPFIEHLT — und der
+Satz empfiehlt nichts mehr.* **Ein Name, der etwas anderes behauptet als sein
+Inhalt, ist eine zweite Wahrheit im Kleinen** (Stolperstein 47).
+
+**DER PRÜFSTAND HÄLT BEIDES FEST:** dass die Folge dasteht **und dass keine
+Empfehlung danebensteht**. *Ohne die zweite Zusage wäre die Entscheidung eine
+Laune und käme beim nächsten Aufräumen zurück.* **Gegenprobe 824** nimmt den
+Satz aus der Zeile, in der er GEZEICHNET wird — nicht aus der Sprachdatei: ein
+Satz, der dort steht und nirgends erscheint, ist genau der Fall, an dem
+Gegenprobe 485 einmal STUMM geblieben ist.
 
 ---
 

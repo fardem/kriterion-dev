@@ -17813,7 +17813,7 @@ const shareMain = (purpose, target = null) =>
        Dialogtexte. Er tut seit dieser Runde ZWEIERLEI, und ein Satz, der nur
        die eine Haelfte nennt, verschwiege die andere.
        UND EINER STEHT NICHT IN DER KARTE, sondern an der EINFUEGESTELLE:
-       `entry.uploadIsCheaper`. Er gehoert dorthin, weil der billigste Weg --
+       `entry.clipboardLarger`. Er gehoert dorthin, weil der billigste Weg --
        „Bild speichern unter" und hochladen -- dort noch offensteht und in der
        Karte niemanden mehr erreicht. */
     const WORDING_NEW_0270 = ['card.storeMethod',
@@ -17824,7 +17824,7 @@ const shareMain = (purpose, target = null) =>
       'card.catchUpStore', 'card.catchUpBoth', 'card.catchUpDerivatives',
       'card.catchUpAsk', 'card.derivativesAsk',
       'card.convertCounts', 'card.nothingToDo',
-      'entry.uploadIsCheaper', 'server.imageStoreUnknown'];
+      'entry.clipboardLarger', 'server.imageStoreUnknown'];
     const WORDING_NEW = [...WORDING_NEW_0243, ...WORDING_NEW_0244,
       ...WORDING_NEW_0245, ...WORDING_NEW_0246, ...WORDING_NEW_0250,
       ...WORDING_NEW_0254, ...WORDING_NEW_0260, ...WORDING_NEW_0270];
@@ -41141,15 +41141,26 @@ async function checkUi() {
   {
     const adPaste = (adIncluding.document.querySelector('.drop')?.parentElement
       ?.textContent || '').replace(/\s+/g, ' ');
-    /* ZWEI HAELFTEN, UND JEDE HAELT EINE ANDERE: der BEFUND (das Einfuegen
-       kostet) und der WEG daraus (die Datei hochladen). Eine Zusage auf den
-       ganzen Satz bliebe gruen, wenn die Haelfte mit dem Rat wegfiele -- und
-       ein Befund ohne Rat ist eine Klage. */
+    /* EIN SATZ, UND ER NENNT DIE FOLGE UND SONST NICHTS. Vom Betreiber am
+       10. September 2026 entschieden: *„Welche Folgen ... hat, wird im kurzen
+       Satz erklaert und der Rest ist Usersache. ... Wir sind nicht sein Papa
+       und er nicht ein Kindergartenkind."*
+       ZWEI FASSUNGEN SIND VORHER GEFALLEN, und beide aus einem eigenen Grund:
+       die erste war zu lang (drei Teilsaetze samt Herleitung), die zweite hatte
+       beim Kuerzen ihre Verben verloren. DIE DRITTE IST NICHT NUR KUERZER,
+       SONDERN SAGT ETWAS ANDERES: sie stellt fest, statt zu raten.
+       DIE EMPFEHLUNG IST AUSDRUECKLICH WEGGEFALLEN -- „also lade die Datei
+       lieber hoch" stand darin und steht nicht mehr da. Wer die Folge kennt,
+       zieht den Schluss selbst; ein Programm, das ihn mitliefert, erklaert dem
+       Benutzer seine eigene Arbeit.
+       GEPRUEFT WIRD DESHALB BEIDES: dass die Folge dasteht, UND dass die
+       Empfehlung nicht wiederkommt. Ohne die zweite Zeile waere die
+       Entscheidung des Betreibers eine Laune und keine Zusage. */
     check('An der Einfuegestelle steht, was das Einfuegen kostet — 0.27.0',
       /Zwischenablage/.test(adPaste) && /größeren Dateien/.test(adPaste),
       adPaste.slice(0, 260) || '(kein Text an der Einfuegestelle)');
-    check('Und der Weg daraus: die Datei hochladen',
-      /Bild speichern unter/.test(adPaste) && /hoch/.test(adPaste), adPaste.slice(0, 260));
+    check('Und keine Empfehlung daneben, was der Benutzer statt dessen tun soll',
+      !/speichern unter/.test(adPaste) && !/besser/.test(adPaste), adPaste.slice(0, 260));
     /* UND DER SATZ ZUR REIHENFOLGE STEHT WEITER DANEBEN. Ohne diese Zeile
        bliebe gruen, wer den neuen an die Stelle des alten setzt. */
     check('Und der Satz zur Reihenfolge steht weiterhin daneben',

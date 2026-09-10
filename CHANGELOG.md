@@ -47,7 +47,7 @@ bleiben in der Form ihrer Zeit.*
 ### Neu
 - **Die Bildablage ist eine Wahl aus drei Verfahren geworden.** *PNG (nichts wird umkodiert), WebP verlustfrei (die Vorgabe, das bisherige Verhalten) und **neu** WebP verlustbehaftet für Fotos aus der Zwischenablage — gemessen rund zwei Drittel kleiner.* Zu finden unter **Datenbank → Bildformate**, jede Zeile mit einem Knopf **Standard**; stellen kann es der Eigentümer allein.
 - **Das dritte Verfahren trägt eine Auflage, und die Karte sagt sie:** bei einem **Bildschirmfoto mit Text** ist verlustbehaftet gemessen ein Vielfaches **größer** als verlustfrei. Es lohnt sich nur bei Fotos.
-- **Ein Satz an der Einfügestelle nennt den billigsten Weg:** aus dem Netz „Bild speichern unter" und die Datei hochladen — Kriterion fasst JPEG nicht an, und die Zwischenablage liefert ein PNG, das oft ein Vielfaches der ursprünglichen Datei ist.
+- **Ein Satz an der Einfügestelle nennt die Folge:** *„Das Einfügen über die Zwischenablage führt zu erheblich größeren Dateien."* Was daraus folgt, entscheidet jeder selbst — die Anwendung gibt dazu keinen Rat.
 - **Der Knopf „Vorhandene Bilder umstellen"** zieht Originale **und** Vorschaubilder in **einem** Durchgang nach. *Er fragt weiterhin vorher das Passwort.*
 
 ### Geändert
