@@ -25817,8 +25817,19 @@ const shareMain = (purpose, target = null) =>
      `main` haengt. ER NIMMT DEN ZWEIGFILTER UND LAESST DEN KNOPF STEHEN --
      zwei Ereignisse bleiben es damit, und genau darauf zielt er: die Zusage
      hat bis zum 10. September nur GEZAEHLT, und eine zaehlende Zusage bliebe
-     hier stumm. */
-  check('Es sind genau 803 Rueckbauten', gpList.length === 803, `${gpList.length}`);
+     hier stumm.
+     814 SEIT 0.27.0: ELF neue, 813 bis 823, und jeder faehrt gegen GENAU EINE
+     der elf Zusagen des Auftrags -- der vierte Wert, die Rechtezeile, die
+     Vorgabe, die gelesene Wahl, die Groessenpruefung, das Format der
+     Ableitungen, die zweite Haelfte des Bestandslaufs, der Lauf am
+     Umschalten, die Auflage in der Karte, die Richtung der Migration und der
+     alte Schluessel.
+     DIE NEUNZEHN ALTEN DIESER SACHE STEHEN NICHT ZWEIMAL DA (431 bis 435,
+     454 bis 462, 493, 506 bis 508, 522 bis 524, 810): sie sind MITGEGANGEN
+     und zeigen auf die Zeilen, die dieselbe Sache jetzt tragen (Stolperstein
+     201). Ein zweiter Rueckbau daneben waere eine zweite Wahrheit ueber
+     denselben Fund. */
+  check('Es sind genau 814 Rueckbauten', gpList.length === 814, `${gpList.length}`);
   const gpTwice = gpList.map(r => r.nr).filter((n, i, a) => a.indexOf(n) !== i);
   check('Und keine Nummer steht zweimal', gpTwice.length === 0, gpTwice.join(' '));
   /* JEDER GREIFT: der Suchtext kommt in seiner Datei GENAU EINMAL vor. Keinmal

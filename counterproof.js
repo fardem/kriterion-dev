@@ -7929,6 +7929,135 @@ const REGRESSIONS = [
     search: "on:\n  push:\n  workflow_dispatch:",
     replacement: "on:\n  push:\n    branches:\n      - main\n  workflow_dispatch:",
     expected: 'Der Beipack — 0.25.0'
+  },
+
+  /* ---- Die waehlbare Bildablage — 0.27.0 ----
+     ELF ZUSAGEN, ELF RUECKBAUTEN, und jeder faehrt gegen GENAU EINE.
+     WAS HIER NICHT NOCH EINMAL STEHT: die neunzehn Rueckbauten dieser Sache,
+     die es laengst gibt (431 bis 435, 454 bis 462, 493, 506 bis 508, 522 bis
+     524, 810). Sie sind mit dieser Runde MITGEGANGEN und zeigen auf die
+     Zeilen, die dieselbe Sache jetzt tragen (Stolperstein 201) -- ein
+     zweiter Rueckbau daneben waere eine zweite Wahrheit ueber denselben
+     Fund. */
+  {
+    /* ZUSAGE 1: die Einstellung kennt GENAU DREI Werte. Der Rueckbau laesst
+       einen vierten durch -- die Karte zeigte danach ein Verfahren an und der
+       Server legte in einem anderen ab, denn `imageStore()` faellt beim Lesen
+       auf die Vorgabe zurueck. Eine Luege, die nirgends auffaellt. */
+    nr: '813', name: 'Ein vierter Wert kommt durch',
+    file: 'server.js',
+    search: "    if (!isImageStore(req.body.imageStore))",
+    replacement: "    if (false)",
+    expected: 'Die Bildablage: die Rechte'
+  },
+  {
+    /* ZUSAGE 2: sie gehoert dem Eigentuemer. Der Rueckbau weitet die Klemme
+       auf jeden Admin -- ein Schluessel, der den PLATZBEDARF DER GANZEN
+       INSTANZ bestimmt, waere damit Tagesgeschaeft. */
+    nr: '814', name: 'Die Wahl der Bildablage wird gewoehnliche Adminsache',
+    file: 'server.js',
+    search: "const OWNER_KEYS = ['imageStore',\n",
+    replacement: "const OWNER_KEYS = [\n",
+    expected: 'Die Bildablage: die Rechte'
+  },
+  {
+    /* ZUSAGE 3: eine frische Installation steht auf „WebP verlustfrei". Der
+       Rueckbau verstellt die Vorgabe auf PNG -- eine Runde, die eine Wahl
+       einfuehrt, haette damit die bisherige Antwort nebenbei geaendert, und
+       jede neue Installation legte ploetzlich dreimal so gross ab. */
+    nr: '815', name: 'Die Vorgabe einer frischen Installation wird verstellt',
+    file: 'images.js',
+    search: "const IMAGE_STORE_DEFAULT = 'webp-lossless';",
+    replacement: "const IMAGE_STORE_DEFAULT = 'png';",
+    expected: 'Die Bildablage: die Rechte'
+  },
+  {
+    /* ZUSAGE 4: storeImage() LIEST die Wahl. Der Rueckbau verdrahtet sie
+       wieder fest -- dreimal dasselbe Bild ergaebe dreimal dasselbe Ergebnis,
+       und die Karte zeigte eine Wahl, die nichts tut. */
+    nr: '816', name: 'Die Wahl wird wieder fest verdrahtet',
+    file: 'images.js',
+    search: "  const recipe = IMAGE_STORES[isImageStore(store) ? store : IMAGE_STORE_DEFAULT];",
+    replacement: "  const recipe = IMAGE_STORES[IMAGE_STORE_DEFAULT];",
+    expected: 'Die Bildablage: PNG kommt herein, WebP geht in die Tabelle'
+  },
+  {
+    /* ZUSAGE 5: die Groessenpruefung gilt in JEDEM Verfahren. Der Rueckbau
+       schaltet sie ab -- aus einer Wahl wuerde eine Wette, und am
+       verlustbehafteten Weg ist sie schaerfer gebraucht als am anderen.
+       ER IST NICHT DERSELBE WIE 433: der dort nimmt die Pruefung heraus und
+       ist als STUMM erwartet, weil PNG ueber die Groesse nie gewinnt. DIESER
+       laesst sie fuer ein Verfahren stehen und fuer die anderen fallen --
+       genau die Form, in der jemand sie „nur fuer Fotos" abschaltete. */
+    nr: '817', name: 'Die Groessenpruefung gilt nicht mehr fuer jedes Verfahren',
+    file: 'images.js',
+    search: "    if (webp.length < buf.length)",
+    replacement: "    if (webp.length < buf.length || store === 'webp-lossy')",
+    expected: 'Die Bildablage: PNG kommt herein, WebP geht in die Tabelle'
+  },
+  {
+    /* ZUSAGE 6: die Ableitungen sind WebP, und ihr MIME-Typ sagt es. Der
+       Rueckbau stellt eine davon auf JPEG zurueck -- die Tafel traege
+       weiterhin ihre Zahl, und die bedeutete etwas anderes. */
+    nr: '818', name: 'Die Ableitungen werden wieder JPEG',
+    file: 'images.js',
+    search: "        .webp(variantWebp(v.q)).toBuffer();",
+    replacement: "        .jpeg({ quality: v.q, mozjpeg: true }).toBuffer();",
+    expected: 'Die Bildablage: PNG kommt herein, WebP geht in die Tabelle'
+  },
+  {
+    /* ZUSAGE 7: der Bestandslauf zieht Originale UND Ableitungen. Der
+       Rueckbau laesst die zweite Haelfte aus -- der Lauf saehe jede Zeile an
+       und taete an den meisten nichts, und die groessere Haelfte des
+       Bildbestands bliebe JPEG. */
+    nr: '819', name: 'Der Bestandslauf laesst die Ableitungen aus',
+    file: 'batchrun.js',
+    search: "        const fresh = (isJpeg(z.thumb) || isJpeg(z.medium))\n          ? await makeVariants(z.data, cropFrom(z)) : null;",
+    replacement: "        const fresh = null;",
+    expected: 'Die Bildablage: PNG kommt herein, WebP geht in die Tabelle'
+  },
+  {
+    /* ZUSAGE 8: Umschalten allein ruehrt den Bestand nicht an (F5). Der
+       Rueckbau haengt den Lauf ans Umschalten -- wer die Wahl PROBIERT,
+       bekaeme 500 MB umkodiert, und zwar ohne die zweite Bestaetigung. */
+    nr: '820', name: 'Der Lauf haengt am Umschalten',
+    file: 'public/app.js',
+    search: "      } catch (e) { IMAGE_STORE = before; toast(e.message, true); }",
+    replacement: "      } catch (e) { IMAGE_STORE = before; toast(e.message, true); }\n      try { await api('POST', '/api/images/convert', {}); } catch {}",
+    expected: 'Die Bildablage in der Oberflaeche'
+  },
+  {
+    /* ZUSAGE 9: die Karte nennt die Auflage. Der Rueckbau nimmt den Satz aus
+       der deutschen Datei -- und genau diese Bauform ist ein FUND vom
+       6. September 2026: Gegenprobe 485 nahm den damaligen Halbsatz heraus
+       und blieb STUMM, weil ihn keine Zusage las. */
+    nr: '821', name: 'Die Karte nennt die Auflage nicht mehr',
+    file: 'public/languages/de.json',
+    search: "Zur Auflage: Verlustbehaftet lohnt sich nur bei Fotos",
+    replacement: "Zur Auflage: Verlustbehaftet lohnt sich immer",
+    expected: 'Die Bildablage in der Oberflaeche'
+  },
+  {
+    /* ZUSAGE 10: die Migration uebersetzt BEIDE alten Stellungen. Der
+       Rueckbau laesst eine Richtung falsch abbiegen -- eine Installation, die
+       das Haekchen ausdruecklich AUS hatte, legte danach als WebP ab, und
+       niemand haette es bestellt. */
+    nr: '822', name: 'Die Migration biegt eine Richtung falsch ab',
+    file: 'db.js',
+    search: "const IMAGE_STORE_FROM_0190 = { true: 'webp-lossless', false: 'png' };",
+    replacement: "const IMAGE_STORE_FROM_0190 = { true: 'webp-lossless', false: 'webp-lossless' };",
+    expected: 'Die Datenbankstufe 0.27.0'
+  },
+  {
+    /* ZUSAGE 11: `convertImages` steht nach der Migration NIRGENDS mehr. Der
+       Rueckbau laesst den alten Schluessel stehen -- danach stuenden ZWEI
+       Zeilen ueber dieselbe Frage in derselben Tabelle, und beim naechsten
+       Griff waere nicht zu sagen, welche gilt (Stolperstein 47). */
+    nr: '823', name: 'Der alte Schluessel bleibt stehen',
+    file: 'db.js',
+    search: "    db.prepare(\"DELETE FROM settings WHERE key = 'convertImages'\").run();",
+    replacement: "    void 0;",
+    expected: 'Die Datenbankstufe 0.27.0'
   }
 ];
 
