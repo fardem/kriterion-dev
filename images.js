@@ -26,9 +26,10 @@ const sharp = require('sharp');
 
      Weg                          was in der Datenbank landet
      ---------------------------  ------------------------------------------
-     Foto am Eintrag (photos)     DAS ORIGINAL (ein PNG als WebP, siehe
+     Foto am Eintrag (photos)     DAS ORIGINAL (ein PNG in dem Verfahren,
+                                  das der Eigentuemer gewaehlt hat -- siehe
                                   storeImage() weiter unten), dazu `medium`
-                                  und `thumb` als JPEG
+                                  und `thumb` als WebP
      Bild im Kommentar            NUR `medium` und `thumb` --
      (comment_images)             KEIN ORIGINAL
 
@@ -40,10 +41,12 @@ const sharp = require('sharp');
 
    WAS DARAUS FOLGT UND GEMESSEN IST: das Kommentarbild summiert sich beim
    wiederholten Ein- und Ausspielen, denn der Import kodiert das gespeicherte
-   JPEG erneut als JPEG (kein Original, aus dem er neu rechnen koennte). Die
-   Zahlen dazu: MAE 0,06 nach einer Runde, 0,10 nach sechs -- es laeuft aus
-   statt davonzulaufen, und die ERSTE Kodierung kostet mit 1,89 ohnehin ein
-   Vielfaches davon. Am Foto passiert das nicht: dort schreibt der Import das
+   Bild erneut (kein Original, aus dem er neu rechnen koennte). Die Zahlen
+   dazu wurden an JPEG gemessen: MAE 0,06 nach einer Runde, 0,10 nach sechs --
+   es laeuft aus statt davonzulaufen, und die ERSTE Kodierung kostet mit 1,89
+   ohnehin ein Vielfaches davon. MIT 0.27.0 IST ES WEBP, und die Richtung
+   aendert sich dadurch nicht: es bleibt ein verlustbehafteter Bitstrom, der
+   ein zweites Mal ueber dieselben Bildpunkte geht. Am Foto passiert das nicht: dort schreibt der Import das
    Original byte-genau zurueck und rechnet thumb/medium neu daraus.
    KEIN HANDLUNGSBEDARF -- aber wer es entdeckt, soll die Zahlen daneben
    finden und es nicht fuer schlimmer halten, als es ist. */
@@ -127,10 +130,66 @@ const sharp = require('sharp');
    der Tafel und nicht als `if` in der Schleife: es wird mit `object-fit:
    contain` gezeigt, also GANZ, und der Editor zeichnet den Rahmen darauf.
    Ein geschnittenes `medium` naehme dem Editor seine Vorlage. */
+/* ---- DIE ABLEITUNGEN SIND WEBP -- 0.27.0 ----
+
+   BIS 0.26.0 WAREN SIE JPEG, und der Grund, das zu aendern, hat sich mit
+   0.19.0 umgedreht. Bis dahin waren sie die kleinere Haelfte des Bestands --
+   71,1 MB gegen 497,7 MB Originale. Nach 0.19.0 schrumpfen die Originale auf
+   rund 162 MB, und die Ableitungen bleiben bei 71,1 MB: sie sind damit die
+   GROESSERE Haelfte. Und `medium` ist das, was man in der Anwendung ansieht --
+   nicht das Original.
+
+   DIE ZAHLEN SIND NEU GESETZT UND NICHT UEBERNOMMEN, und das ist der ganze
+   Punkt an dieser Stelle: `q` hiess bis 0.26.0 JPEG-Guete und heisst jetzt
+   WebP-Guete. Dieselbe Zahl bedeutet in den beiden Verfahren NICHT dasselbe.
+   Wer 78 und 84 stehen liesse, machte `medium` an einem Foto um die HAELFTE
+   groesser als vorher -- gemessen +49,3 %.
+
+   GEMESSEN AM 10. SEPTEMBER 2026, an drei selbstgebauten Bildarten (ein Foto
+   mit Verlauf und Koernung, ein Bildschirmfoto mit Text, eine
+   Strichzeichnung), je gegen die verlustfreie Fassung DERSELBEN Ableitung.
+   Gesucht war die Zahl, die in KEINER Bildart schlechter ist als heute --
+   weder in Bytes noch in der Abweichung:
+
+     medium    Bytes gegen JPEG q84        mittlere Abweichung (heute)
+     WebP q76  -21 % / -30 % / -33 %       3,02 (2,97) / 0,69 (1,03) / 0,66 (1,32)
+     WebP q78   -9 % / -27 % / -30 %       2,91 (2,97) / 0,63 (1,03) / 0,60 (1,32)  <-
+     WebP q80   +1 % / -25 % / -28 %       2,79 (2,97) / 0,59 (1,03) / 0,55 (1,32)
+
+   BEI 78 KREUZEN SICH DIE KURVEN: es ist die hoechste Guete, bei der auch das
+   FOTO noch kleiner wird. Bei 80 waechst es wieder -- und ein Verfahren, das
+   eine Bildart teurer macht, ist keine Ersparnis, sondern eine Verschiebung.
+
+     thumb     Bytes gegen JPEG q78        mittlere Abweichung (heute)
+     WebP q82  -52 % / -5 % / -6 %         1,39 (1,35) / 0,88 (2,56) / 1,14 (3,03)  <-
+     WebP q84  -45 % / -2 % / -1 %         1,39 (1,35) / 0,83 (2,56) / 1,05 (3,03)
+     WebP q86  -31 % / +2 % / +4 %         1,37 (1,35) / 0,75 (2,56) / 0,96 (3,03)
+
+   82 UND NICHT 84, weil die Marge bleiben soll: bei 84 liegt das
+   Bildschirmfoto nur noch 2 % unter heute, bei 86 darueber. Und der `thumb`
+   ist die Ableitung, die man am haeufigsten sieht -- an Text und Strich ist er
+   bei 82 mehr als doppelt so genau wie das heutige JPEG (0,88 gegen 2,56).
+
+   DAS FOTO IST DIE EINE AUSNAHME, UND SIE GEHOERT GENANNT: seine Abweichung
+   steigt von 1,35 auf 1,39 -- vier Hundertstel einer Stufe von 255, waehrend
+   die Kachel um mehr als die Haelfte schrumpft. Das ist der Tausch, und er
+   steht hier, damit ihn niemand fuer uebersehen haelt.
+
+   `effort` STEHT AUF 4 WIE BEI DER ABLAGE. Es ist dieselbe Zahl an derselben
+   Bibliothek, und zwei verschiedene Werte in einer Datei muesste man
+   erklaeren koennen. */
 const VARIANTS = {
-  thumb:  { short: 512,  long: 1280, q: 78, crops: true  },
-  medium: { short: 1600, long: 1600, q: 84, crops: false }
+  thumb:  { short: 512,  long: 1280, q: 82, crops: true  },
+  medium: { short: 1600, long: 1600, q: 78, crops: false }
 };
+
+/* DIE GUETE EINER ABLEITUNG STEHT AN GENAU EINER STELLE -- auch fuer das
+   Kommentarbild. `encodeCommentImage()` in server.js hat eine eigene
+   GEOMETRIE (400 und 1600, ohne Zuschnitt), aber es ist dieselbe Frage nach
+   dem Verfahren; zwei Tafeln darueber liefen beim naechsten Anfassen
+   auseinander (Stolperstein 47). Es ruft deshalb hier ab, statt eine Zahl
+   abzuschreiben. */
+const variantWebp = (q) => ({ quality: q, effort: 4 });
 
 /* ---- DIE EINE RECHNUNG FUER DEN AUSSCHNITT -- 0.19.5 ----
 
@@ -263,7 +322,7 @@ async function makeVariants(buf, cropSpec) {
         .resize(cropped ? v.short : (landscape ? v.long : v.short),
                 cropped ? v.short : (landscape ? v.short : v.long),
                 { fit: 'inside', withoutEnlargement: true })
-        .jpeg({ quality: v.q, mozjpeg: true }).toBuffer();
+        .webp(variantWebp(v.q)).toBuffer();
     } catch { out[name] = null; }
   }
   return out;
@@ -374,7 +433,63 @@ async function isUncropped(thumb) {
    WER DIE ABWAEGUNG ANDERS TRIFFT, setzt hier `nearLossless: true` mit
    `quality: 100` (dann wird gar nicht geglaettet) und zahlt 55 MB. Beides ist
    vertretbar; entschieden ist 60. */
-const WEBP_STORE = { nearLossless: true, quality: 60, effort: 4 };
+
+/* ---- UND SEIT 0.27.0 IST ES EINE WAHL UND KEINE REGEL ----
+
+   DIE WAHL GAB ES ZUR HAELFTE SCHON. Seit 0.19.0 stand in der Karte ein
+   Haekchen `convertImages`: aus hiess „ein PNG bleibt ein PNG", an hiess
+   „`nearLossless` 60, wenn es kleiner ist". Zwei der drei Verfahren standen
+   damit da; diese Runde macht aus dem Ja/Nein einen Wert aus dreien.
+
+   DAS DRITTE IST NEU, UND ES KOMMT AUS DEM BETRIEB (2. September 2026): ein
+   JPEG von 5,21 MB, im Browser ueber „Grafik kopieren" genommen und hier
+   eingefuegt, liegt danach als 20,42 MB in der Datenbank. DAS IST KEIN
+   FEHLER -- die Zwischenablage traegt keine Datei, sondern Bildpunkte, und
+   der Browser legt sie als PNG von 34,79 MB ab. Kriterion verkleinert um
+   41 %, nur von einer Zahl aus, die es vorher nicht gab. Verlustbehaftet q90
+   waeren es 6,64 MB: 67 % weniger.
+
+   UND DIE AUFLAGE IST DER GRUND, WARUM ES EINE WAHL BLEIBT UND KEINE REGEL
+   WIRD. An einem Bildschirmfoto mit Text ist derselbe verlustbehaftete Weg
+   GROESSER als der verlustfreie -- gemeldet siebenmal, hier am 10. September
+   2026 an einem selbstgebauten Bildschirmfoto mit ELFMAL nachgemessen
+   (149 gegen 13 kB). Der verlustbehaftete Bitstrom (VP8) kann mit harten
+   Kanten nichts anfangen; der verlustfreie (VP8L) kann genau das. An der
+   Strichzeichnung ist es Faktor 1,2, am Foto umgekehrt 0,4.
+   DIE ENTSCHEIDUNG VON 0.19.0 WAR FUER DIESEN BESTAND RICHTIG und bleibt die
+   Vorgabe -- 92 % davon sind Bildschirmfotos.
+
+   WARUM q90 UND NICHT WENIGER: es ist die Stufe, an der die Messung des
+   Betriebs haengt (6,64 MB, 67 %). Eine andere Zahl hier machte die Aussage
+   der Karte unwahr, ohne dass jemand nachrechnete.
+
+   AUS DEN BYTES SIND ZWISCHENABLAGE UND HOCHGELADENES PNG NICHT ZU
+   UNTERSCHEIDEN, und deshalb behandelt diese Tafel beide gleich (F6). Eine
+   Weiche, die den Weg des Bildes RAET, waere eine zweite Wahrheit ueber
+   dieselbe Frage. Was das Verfahren kann und was nicht, sagt die Karte beim
+   Einschalten.
+
+   `null` HEISST „NICHT UMKODIEREN" UND IST KEIN FEHLENDER EINTRAG. Der
+   Schluessel steht in der Tafel, damit die Frage „kennt sie ihn?" und die
+   Frage „was tut sie damit?" dieselbe Tafel haben -- ein Verfahren, das nur
+   als `if` im Rumpf vorkaeme, liesse sich von aussen nicht aufzaehlen, und
+   genau das braucht die Karte. */
+const IMAGE_STORES = {
+  'png':           null,
+  'webp-lossless': { nearLossless: true, quality: 60, effort: 4 },
+  'webp-lossy':    { quality: 90, effort: 4 }
+};
+
+/* DIE VORGABE IST DAS HEUTIGE VERHALTEN (F2). Eine Runde, die eine Wahl
+   einfuehrt, darf die bisherige Antwort nicht nebenbei aendern -- die Messung
+   von 0.19.0 gilt unveraendert. */
+const IMAGE_STORE_DEFAULT = 'webp-lossless';
+
+/* GEPRUEFT WIRD GEGEN DIE TAFEL UND NICHT GEGEN EINE ZWEITE LISTE. Was hier
+   nicht steht, ist kein Verfahren -- weder aus einer Einstellungszeile noch
+   aus einer Anfrage. */
+const isImageStore = (v) => typeof v === 'string' &&
+  Object.prototype.hasOwnProperty.call(IMAGE_STORES, v);
 
 /* DIE ERKENNUNG GEHT UEBER DIE ERSTEN ACHT BYTES, nicht ueber den gemeldeten
    Typ: ein Byte-Vergleich kostet nichts, und er glaubt dem Browser nicht auf
@@ -387,8 +502,8 @@ const PNG_MAGIC_HEX = PNG_MAGIC.toString('hex').toUpperCase();
 const isPng = (buf) =>
   Buffer.isBuffer(buf) && buf.length >= 8 && buf.subarray(0, 8).equals(PNG_MAGIC);
 
-/* WAS WIRKLICH IN photos.data GEHT. Ein PNG wird ein WebP, alles andere bleibt,
-   wie es ist.
+/* WAS WIRKLICH IN photos.data GEHT. Ein PNG geht durch das GEWAEHLTE
+   Verfahren, alles andere bleibt, wie es ist.
 
    JPEG, GIF UND VORHANDENES WEBP WERDEN NICHT ANGEFASST, und jedes aus einem
    eigenen Grund:
@@ -413,11 +528,38 @@ const isPng = (buf) =>
    AUSDRUECKLICH OHNE `failOn: 'none'`, anders als makeVariants(): eine
    Vorlage, an der sharp etwas zu beanstanden hat, soll hier NICHT halb
    umgewandelt werden. Sie faellt in den Rueckfall und bleibt unberuehrt --
-   bei einer Ableitung ist ein Rest besser als nichts, beim Original nicht. */
-async function storeImage(buf, reportedType) {
-  if (!isPng(buf)) return { data: buf, mime: reportedType, converted: false };
+   bei einer Ableitung ist ein Rest besser als nichts, beim Original nicht.
+
+   DAS VERFAHREN IST EIN ARGUMENT UND KEINE KENNTNIS -- 0.27.0. Bis 0.26.0
+   wusste diese Funktion, wie abgelegt wird, und der Rufer wusste, OB. Das
+   ging, solange es zwei Stellungen gab: `convertImages() ? storeImage(...) :
+   {…}` am Aufrufer war die zweite Haelfte derselben Wahl. Bei DREI Werten
+   ginge das nicht mehr auf -- der Aufrufer muesste zwei davon kennen und der
+   Rumpf den dritten. Also kommt die ganze Wahl herein.
+
+   EIN UNBEKANNTES VERFAHREN FAELLT AUF DIE VORGABE, und das ist kein
+   Durchwinken: die Klemme sitzt an der schreibenden Route (PUT
+   /api/settings), wo ein vierter Wert eine ABSAGE bekommt. Hier steht die
+   Lesestelle, und die hat es mit einer Einstellungszeile zu tun, die eine
+   aeltere Fassung geschrieben haben kann. Sie soll dann ablegen wie eine
+   frische Installation und nicht gar nicht ablegen.
+
+   DIE GROESSENPRUEFUNG GILT IN JEDEM VERFAHREN, AUCH IM VERLUSTBEHAFTETEN.
+   Sie ist Rueckbau 433, und sie steht hier ausserhalb der Verzweigung: wer
+   sie fuer einen Weg abschaltete, machte aus einer Wahl eine Wette. Gemessen
+   an achtzehn Laborversuchen quer durch Palette, Text, Graustufen, Alpha und
+   1x1 gewinnt PNG nie ueber die Groesse -- und trotzdem bleibt die Frage
+   gestellt, denn „nie" ist eine Messung und keine Zusicherung des Kodierers.
+   AM VERLUSTBEHAFTETEN WEG IST SIE SOGAR SCHAERFER GEBRAUCHT ALS AM ANDEREN:
+   an einem Bildschirmfoto mit Text liegt q90 gemessen ueber dem PNG-Umfang
+   derselben Vorlage, wenn die Vorlage wenig Farben traegt. */
+async function storeImage(buf, reportedType, store) {
+  const recipe = IMAGE_STORES[isImageStore(store) ? store : IMAGE_STORE_DEFAULT];
+  // Das Verfahren „PNG" hat kein Rezept -- es ist die Abwesenheit einer
+  // Umkodierung und nicht eine Umkodierung mit anderen Zahlen.
+  if (!recipe || !isPng(buf)) return { data: buf, mime: reportedType, converted: false };
   try {
-    const webp = await sharp(buf).webp(WEBP_STORE).toBuffer();
+    const webp = await sharp(buf).webp(recipe).toBuffer();
     if (webp.length < buf.length)
       return { data: webp, mime: 'image/webp', converted: true };
   } catch (e) {
@@ -448,5 +590,21 @@ async function storeImage(buf, reportedType) {
    `PNG_MAGIC_HEX` STEHT DAGEGEN DABEI: server.js braucht dieselbe Byte-Folge
    in der Schreibweise, in der SQLite sie liefert (hex(substr(data,1,8))), und
    eine zweite Stelle mit einer zweiten Schreibweise liefe auseinander. */
-module.exports = { makeVariants, PNG_MAGIC_HEX, isPng, storeImage,
+/* `IMAGE_STORES`, `IMAGE_STORE_DEFAULT` UND `isImageStore` GEHEN SEIT 0.27.0
+   HINAUS, und das ist der Bruch mit dem Absatz darueber -- mit Grund: die
+   Wahl hat ausserhalb dieser Datei drei Empfaenger, und alle drei stellen
+   dieselbe Frage. server.js liest die Einstellungszeile und weist einen
+   vierten Wert ab, die Karte zaehlt die Verfahren auf, und der Bestandslauf
+   legt mit demselben Verfahren ab wie der Anfrageweg. Jede zweite Aufzaehlung
+   davon liefe auseinander (Stolperstein 47).
+   `WEBP_STORE` IST DABEI WEGGEFALLEN und heisst jetzt `IMAGE_STORES` mit drei
+   Zeilen: ein Name in der Einzahl fuer eine Tafel mit drei Eintraegen waere
+   der Rest der alten Frage.
+   `VARIANTS` UND `variantWebp` BLEIBEN DRINNEN -- fast: `VARIANTS.thumb.q`
+   und `VARIANTS.medium.q` braucht `encodeCommentImage()` in server.js, damit
+   die Guete einer Ableitung an genau EINER Stelle steht. Die Tafel geht
+   deshalb mit hinaus, `variantWebp` nicht: wer die Zahl hat, baut sich das
+   Rezept nicht selbst zusammen -- er ruft die Ableitung. */
+module.exports = { makeVariants, VARIANTS, PNG_MAGIC_HEX, isPng, storeImage,
+                   IMAGE_STORES, IMAGE_STORE_DEFAULT, isImageStore,
                    isUncropped, hasNoCropSpec, cropSpecBox };

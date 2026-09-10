@@ -1697,6 +1697,88 @@ function migration0250Language() {
 migration0250Language();
 // ENDE MIGRATION 0.25.0 (der Name bekommt seine Sprache)
 
+// MIGRATION 0.27.0 — ENTFAELLT MIT 1.0
+/* ====== AUS DEM HAEKCHEN WIRD DIE WAHL =====================================
+
+   DER TEURE TEIL DIESER RUNDE IST NICHT DAS KODIEREN, SONDERN DIESER BLOCK.
+   Seit 0.19.0 traegt jede gewachsene Installation `convertImages` als `true`
+   oder `false`; ab 0.27.0 heisst der Schluessel `imageStore` und traegt einen
+   Wert aus DREIEN. Ein Ja/Nein wird zu einem von drei Namen, und beide alten
+   Stellungen haben genau eine richtige Uebersetzung:
+
+     convertImages = true   ->  imageStore = 'webp-lossless'
+     convertImages = false  ->  imageStore = 'png'
+     nichts gespeichert     ->  nichts geschrieben (die Vorgabe greift beim Lesen)
+
+   DIE DRITTE ZEILE IST DIE, DIE MAN FALSCH MACHT. Wer sie „der Vollstaendigkeit
+   halber" mit der Vorgabe fuellte, schriebe eine ENTSCHEIDUNG in eine Instanz,
+   in der nie jemand eine getroffen hat -- und naehme damit jeder spaeteren
+   Aenderung der Vorgabe die Wirkung. Ein fehlender Wert IST eine Aussage
+   („niemand hat gewaehlt"), und `imageStore()` in server.js beantwortet sie
+   beim Lesen. Dieselbe Haltung wie bei `backupCleanup` und den beiden
+   Anlegen-Schaltern.
+
+   UND DER ALTE SCHLUESSEL FAELLT -- Frage F1, und das ist der eigentliche
+   Grund fuer den Block. Uebersetzen allein waere billiger: man liesse
+   `convertImages` stehen und schriebe `imageStore` daneben. Danach stuenden
+   ZWEI Zeilen ueber dieselbe Frage in derselben Tabelle, und beim naechsten
+   Griff waere nicht zu sagen, welche gilt (Stolperstein 47). Eine Zeile, die
+   nach der Migration noch dastuende, waere eine zweite Wahrheit -- also faellt
+   sie in DEMSELBEN Griff, in dem die neue entsteht.
+
+   IN EINER TRANSAKTION, UND ZWAR AUSDRUECKLICH: zwischen dem Schreiben der
+   neuen und dem Loeschen der alten Zeile gibt es einen Augenblick, in dem
+   beide dastehen. Er darf keinen Absturz ueberleben.
+
+   TRAEGT DIE INSTANZ SCHON EINEN `imageStore`, GEWINNT ER -- und der alte
+   Schluessel faellt trotzdem. Das ist der Weg zurueck aus einem Stand, der
+   0.27.0 schon gesehen hat und noch einmal auf 0.26.0 lief: dort schriebe die
+   alte Fassung wieder `convertImages`, und die neue Wahl waere die juengere
+   Aussage. Sie zu ueberschreiben hiesse, eine Wahl mit einem Haekchen zu
+   erschlagen.
+
+   WIEDERHOLBAR UND IM NORMALFALL STUMM: gefragt werden die Zeilen selbst,
+   nicht ein Merker. Ein zweiter Lauf findet kein `convertImages` mehr und
+   sagt nichts.
+
+   HINTER db.exec(SCHEMA), wie die Bloecke darueber: `settings` muss dasein.
+   Sie ist keine nachgeruestete Spalte, sondern eine Tabelle aus der DDL --
+   `CREATE TABLE IF NOT EXISTS` legt sie bei jedem Start an, wenn sie fehlt.
+
+   ZU 1.0 FAELLT DER BLOCK WEG. Dann gibt es `convertImages` seit sieben
+   Runden nicht mehr, und was dann noch eine solche Zeile traegt, hat sie von
+   Hand bekommen. */
+const IMAGE_STORE_FROM_0190 = { true: 'webp-lossless', false: 'png' };
+function migration0270ImageStore() {
+  const tables = new Set(db.prepare("SELECT name FROM sqlite_master WHERE type = 'table'")
+    .all().map(z => z.name));
+  if (!tables.has('settings')) return 0;
+  const old = db.prepare("SELECT value FROM settings WHERE key = 'convertImages'").get();
+  if (!old) return 0;
+  /* GELESEN WIE JEDE ANDERE EINSTELLUNGSZEILE: der Wert steht als JSON da
+     (`true` / `false`). Was sich nicht lesen laesst oder etwas anderes ist als
+     die beiden, gilt als „an" -- das war die Vorgabe des Haekchens, und ein
+     unlesbarer Rest darf die Ablage nicht auf PNG umlegen. */
+  let on = true;
+  try { on = JSON.parse(old.value) !== false; } catch { on = String(old.value) !== 'false'; }
+  const wanted = IMAGE_STORE_FROM_0190[on];
+  const present = db.prepare("SELECT value FROM settings WHERE key = 'imageStore'").get();
+  db.transaction(() => {
+    if (!present)
+      db.prepare('INSERT INTO settings (key, value) VALUES (?, ?)')
+        .run('imageStore', JSON.stringify(wanted));
+    db.prepare("DELETE FROM settings WHERE key = 'convertImages'").run();
+  })();
+  console.log(`[Kriterion] Die Bildablage steht jetzt als Wahl da: ` +
+    `convertImages = ${on} → imageStore = "${present ? JSON.parse(present.value) : wanted}" ` +
+    `(Migration auf 0.27.0)${present ? ' — die vorhandene Wahl blieb stehen' : ''}; ` +
+    `der alte Schluessel ist gefallen. Am Bildschirm aendert sich damit nichts ` +
+    `an der Ablage — nur die Karte zeigt drei Verfahren statt eines Haekchens.`);
+  return 1;
+}
+migration0270ImageStore();
+// ENDE MIGRATION 0.27.0 (aus dem Haekchen wird die Wahl)
+
 /* ================= DIE INDIZES AUF NACHGERUESTETE SPALTEN =================
    SIE STEHEN HIER UNTEN UND NICHT IN DER DDL, und der Grund ist ein Befund des
    Pruefstands -- zweimal derselbe, in zwei Stufen.

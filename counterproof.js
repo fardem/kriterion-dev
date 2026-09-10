@@ -3868,7 +3868,7 @@ const REGRESSIONS = [
   {
     nr: '431', name: 'Ein ankommendes PNG wird gar nicht mehr umgewandelt',
     file: 'images.js',
-    search: "  if (!isPng(buf)) return { data: buf, mime: reportedType, converted: false };",
+    search: "  if (!recipe || !isPng(buf)) return { data: buf, mime: reportedType, converted: false };",
     replacement: "  if (true) return { data: buf, mime: reportedType, umgewandelt: false };",
     expected: 'Die Bildablage: PNG kommt herein, WebP geht in die Tabelle'
   },
@@ -3942,15 +3942,15 @@ const REGRESSIONS = [
        eine Pruefung, die PIXEL vergleicht, bliebe dieser Rueckbau stumm. */
     nr: '435', name: 'Der verlustbehaftete Kodierer statt nearLossless',
     file: 'images.js',
-    search: "const WEBP_STORE = { nearLossless: true, quality: 60, effort: 4 };",
-    replacement: "const WEBP_STORE = { quality: 60, effort: 4 };",
+    search: "  'webp-lossless': { nearLossless: true, quality: 60, effort: 4 },",
+    replacement: "  'webp-lossless': { quality: 60, effort: 4 },",
     expected: 'Die Bildablage: PNG kommt herein, WebP geht in die Tabelle'
   },
   {
     nr: '436', name: 'Der Schalter wirkt nicht mehr -- es wird immer umgewandelt',
     file: 'server.js',
-    search: "const convertImages = () => getSetting('convertImages', true) !== false;",
-    replacement: "const convertImages = () => true;",
+    search: "  const v = getSetting('imageStore', IMAGE_STORE_DEFAULT);",
+    replacement: "  const v = IMAGE_STORE_DEFAULT;",
     expected: 'Die Bildablage: PNG kommt herein, WebP geht in die Tabelle'
   },
   {
@@ -3964,7 +3964,7 @@ const REGRESSIONS = [
        dasselbe. */
     nr: '437', name: 'Der Schalter der Bildablage ist nur noch Adminsache',
     file: 'server.js',
-    search: "const OWNER_KEYS = ['convertImages',\n" +
+    search: "const OWNER_KEYS = ['imageStore',\n" +
            "                                'backupCleanup', 'backupKeep', 'backupDays',\n" +
            "                                'languageDefault', 'languageOn', 'potentialMode'];",
     replacement: "const OWNER_KEYS = ['backupCleanup', 'backupKeep', 'backupDays',\n" +
@@ -4123,8 +4123,8 @@ const REGRESSIONS = [
   {
     nr: '454', name: 'Der Knopf der Umstellung fragt kein Passwort',
     file: 'public/app.js',
-    search: "      const ok = await secondConfirm('images', null, t('card.convertPngWebp'),",
-    replacement: "      const ok = true || await secondConfirm('images', null, t('card.convertPngWebp'),",
+    search: "      const ok = await secondConfirm('images', null, t('card.catchUpStore'),",
+    replacement: "      const ok = true || await secondConfirm('images', null, t('card.catchUpStore'),",
     expected: 'Die Bildablage in der Oberflaeche'
   },
   {
@@ -4132,14 +4132,14 @@ const REGRESSIONS = [
        mehr, dass die PNG-Fassung danach weg ist. */
     nr: '455', name: 'Der Dialog sagt nicht mehr, was verloren geht',
     file: 'public/app.js',
-    search: "        t('card.pngConverting', { n: png.count, bytes: fmtBytes(png.bytes),\n          after: fmtBytes(Math.round(png.bytes * 0.37)) }));",
-    replacement: "        `${png.anzahl} PNG-Fotos (${fmtBytes(png.bytes)}) werden umgewandelt. Dauer: Minuten bis Stunden.`);",
+    search: "        both ? t('card.catchUpAsk', { n: png.count, bytes: fmtBytes(png.bytes),",
+    replacement: "        both ? `${png.count} PNG-Fotos werden umgestellt.` || t('card.catchUpAsk', { n: png.count, bytes: fmtBytes(png.bytes),",
     expected: 'Die Bildablage in der Oberflaeche'
   },
   {
     nr: '456', name: 'Der Knopf bleibt bedienbar, obwohl kein PNG mehr dasteht',
     file: 'public/app.js',
-    search: "id=\"convert-run\"${png && !running ? '' : ' disabled'}",
+    search: "id=\"convert-run\"${running ? ' disabled' : ''}",
     replacement: "id=\"convert-run\"${''}",
     expected: 'Die Bildablage in der Oberflaeche'
   },
@@ -4149,8 +4149,8 @@ const REGRESSIONS = [
        ein Fehler. */
     nr: '457', name: 'Schalter und Knopf stehen jedem Admin',
     file: 'public/app.js',
-    search: "        ${OWNER ? `\n        <label class=\"ex-files\" style=\"margin-top:10px\"><input type=\"checkbox\" id=\"convert-images\">",
-    replacement: "        ${true ? `\n        <label class=\"ex-files\" style=\"margin-top:10px\"><input type=\"checkbox\" id=\"convert-images\">",
+    search: "        ${OWNER ? `\n        ${/* ---- DIE WAHL, UND SIE IST EIN KNOPF „Standard\" JE ZEILE ----",
+    replacement: "        ${true ? `\n        ${/* ---- DIE WAHL, UND SIE IST EIN KNOPF „Standard\" JE ZEILE ----",
     expected: 'Die Bildablage in der Oberflaeche'
   },
 
@@ -4199,8 +4199,8 @@ const REGRESSIONS = [
        schriebe eine Datei um, die gar kein PNG ist. */
     nr: '462', name: 'Der Knopf sucht am gemeldeten Typ statt am Inhalt',
     file: 'server.js',
-    search: "  \"SELECT id FROM photos WHERE kind != 'video' AND hex(substr(data,1,8)) = ?\");",
-    replacement: "  \"SELECT id FROM photos WHERE kind != 'video' AND mime_type = 'image/png' AND ? IS NOT NULL\");",
+    search: "  \"SELECT id FROM photos WHERE kind != 'video'\");",
+    replacement: "  \"SELECT id FROM photos WHERE kind != 'video' AND mime_type = 'image/png'\");",
     expected: 'Die Bildablage: PNG kommt herein, WebP geht in die Tabelle'
   },
   {
@@ -4303,8 +4303,8 @@ const REGRESSIONS = [
        ein Rueckbau an der Einzahl blieb deshalb STUMM. */
     nr: '472', name: 'Der Dialog sagt nicht mehr, dass es dauern kann',
     file: 'public/languages/de.json',
-    search: "werden umgewandelt, die Originale ersetzt (danach etwa {after}). Rückgängig nur mit einer vorher angelegten Sicherung. Dauer: Minuten bis Stunden.\"",
-    replacement: "werden umgewandelt, die Originale ersetzt (danach etwa {after}). Rückgängig nur mit einer vorher angelegten Sicherung.\"",
+    search: "werden umgestellt, die Originale ersetzt (danach etwa {after}). Dabei wird jedes Vorschaubild angesehen und, wo es noch JPEG ist, aus dem Original neu gerechnet. Rückgängig nur mit einer vorher angelegten Sicherung. Dauer: Minuten bis Stunden.\"",
+    replacement: "werden umgestellt, die Originale ersetzt (danach etwa {after}). Dabei wird jedes Vorschaubild angesehen und, wo es noch JPEG ist, aus dem Original neu gerechnet. Rückgängig nur mit einer vorher angelegten Sicherung.\"",
     expected: 'Die Bildablage in der Oberflaeche'
   },
   {
@@ -4445,8 +4445,8 @@ const REGRESSIONS = [
        Wer das nicht liest, haelt den Knopf fuer eine Verschlechterung. */
     nr: '485', name: 'Der Dialog sagt nicht mehr, dass es nahezu verlustfrei ist',
     file: 'public/languages/de.json',
-    search: "WebP gespeichert — etwa zwei Drittel kleiner, ohne sichtbaren Verlust. JPEG, GIF und",
-    replacement: "WebP gespeichert — etwa zwei Drittel kleiner. JPEG, GIF und",
+    search: "\"card.storeLosslessHint\": \"Vorgabe — kein sichtbarer Verlust, gemessen rund zwei Drittel kleiner\",",
+    replacement: "\"card.storeLosslessHint\": \"Vorgabe — gemessen rund zwei Drittel kleiner\",",
     expected: 'Die Bildablage in der Oberflaeche'
   },
 
@@ -4531,7 +4531,7 @@ const REGRESSIONS = [
        denselben Weg wie der Haupt-Thread. */
     nr: '493', name: 'Der Schluessel reist ueber workerData in den Thread',
     file: 'server.js',
-    search: "  const w = new Worker(BATCHRUN, { workerData: { task, rows } });",
+    search: "  const w = new Worker(BATCHRUN, { workerData: { task, rows, store } });",
     replacement: "  const w = new Worker(BESTANDSLAUF, { workerData: { aufgabe, zeilen, schluessel: keyHex } });",
     expected: 'Der Bestandslauf faehrt in einem eigenen Thread — 0.19.3'
   },
@@ -4668,8 +4668,8 @@ const REGRESSIONS = [
        diese eine Zahl gemessen wird und nicht zwei zugleich. */
     nr: '506', name: 'Die kurze Kante des thumb steht wieder auf 400',
     file: 'images.js',
-    search: "  thumb:  { short: 512,  long: 1280, q: 78, crops: true  },",
-    replacement: "  thumb:  { kurz: 400,  lang: 1280, q: 78, schneidet: true  },",
+    search: "  thumb:  { short: 512,  long: 1280, q: 82, crops: true  },",
+    replacement: "  thumb:  { kurz: 400,  lang: 1280, q: 82, schneidet: true  },",
     expected: 'Die Ableitung folgt der Anzeige — 0.19.4'
   },
   {
@@ -4678,8 +4678,8 @@ const REGRESSIONS = [
        groessten Ableitung der Tabelle -- groesser als sein eigenes `medium`. */
     nr: '507', name: 'Der Deckel auf der langen Kante faellt weg',
     file: 'images.js',
-    search: "long: 1280, q: 78, crops: true  }",
-    replacement: "lang: 99999, q: 78, schneidet: true  }",
+    search: "long: 1280, q: 82, crops: true  }",
+    replacement: "lang: 99999, q: 82, schneidet: true  }",
     expected: 'Die Ableitung folgt der Anzeige — 0.19.4'
   },
   {
@@ -4689,8 +4689,8 @@ const REGRESSIONS = [
        schlechter und die Datenbank groesser. */
     nr: '508', name: 'medium bekommt dieselbe Kiste wie thumb',
     file: 'images.js',
-    search: "  medium: { short: 1600, long: 1600, q: 84, crops: false }",
-    replacement: "  medium: { kurz: 512, lang: 1280, q: 84, schneidet: false }",
+    search: "  medium: { short: 1600, long: 1600, q: 78, crops: false }",
+    replacement: "  medium: { kurz: 512, lang: 1280, q: 78, schneidet: false }",
     expected: 'Die Ableitung folgt der Anzeige — 0.19.4'
   },
   {
@@ -4848,8 +4848,8 @@ const REGRESSIONS = [
        das, worauf es ankommt: WELCHE Kante die Zahl traegt. */
     nr: '522', name: 'Die Karte nennt wieder 400 px, ohne die Kante zu sagen',
     file: 'public/languages/de.json',
-    search: "(JPEG) sind nicht mitgezählt.\"",
-    replacement: "(JPEG, 400 px) sind nicht mitgezählt.\"",
+    search: "(WebP) sind nicht mitgezählt.\"",
+    replacement: "(WebP, 400 px) sind nicht mitgezählt.\"",
     expected: 'Die Bildablage in der Oberflaeche'
   },
 
@@ -4866,8 +4866,8 @@ const REGRESSIONS = [
        Browser, der sie zurechtzoege, ist weg. */
     nr: '523', name: 'Die Kachel wird wieder ungeschnitten abgeleitet',
     file: 'images.js',
-    search: "  thumb:  { short: 512,  long: 1280, q: 78, crops: true  },",
-    replacement: "  thumb:  { kurz: 512,  lang: 1280, q: 78, schneidet: false },",
+    search: "  thumb:  { short: 512,  long: 1280, q: 82, crops: true  },",
+    replacement: "  thumb:  { kurz: 512,  lang: 1280, q: 82, schneidet: false },",
     expected: 'Der Ausschnitt steckt in der Kachel — 0.19.5'
   },
   {
@@ -4876,8 +4876,8 @@ const REGRESSIONS = [
        geschnittenes `medium` naehme ihm seine Vorlage. */
     nr: '524', name: 'medium wird mitgeschnitten',
     file: 'images.js',
-    search: "  medium: { short: 1600, long: 1600, q: 84, crops: false }",
-    replacement: "  medium: { kurz: 1600, lang: 1600, q: 84, schneidet: true }",
+    search: "  medium: { short: 1600, long: 1600, q: 78, crops: false }",
+    replacement: "  medium: { kurz: 1600, lang: 1600, q: 78, schneidet: true }",
     expected: 'Der Ausschnitt steckt in der Kachel — 0.19.5'
   },
   {
@@ -7894,8 +7894,8 @@ const REGRESSIONS = [
        nur ein Schalter, der nichts mehr tut. */
     nr: '810', name: 'Die Antwort verschweigt, wie der Schalter steht',
     file: 'server.js',
-    search: "  potentialMode: potentialMode(),\n  /* DER SCHALTER DER BILDABLAGE",
-    replacement: "  /* DER SCHALTER DER BILDABLAGE",
+    search: "  potentialMode: potentialMode(),\n  /* DIE WAHL DER BILDABLAGE",
+    replacement: "  /* DIE WAHL DER BILDABLAGE",
     expected: 'Der Potenzialmodus — 0.26.0'
   },
   {

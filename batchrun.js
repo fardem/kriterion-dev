@@ -72,6 +72,24 @@ sharp.concurrency(Math.max(1, Math.floor(os.cpus().length / 2)));
 const { db } = require('./db');
 const { makeVariants, isPng, storeImage, isUncropped } = require('./images');
 
+/* WORAN EINE ABLEITUNG ERKANNT WIRD, DIE NOCH JPEG IST -- 0.27.0.
+   UEBER DIE ERSTEN DREI BYTES UND NICHT UEBER EINE SPALTE. Ein Merker in der
+   Datenbank waere eine Schemaaenderung und ausserdem eine zweite Wahrheit
+   ueber dieselbe Sache (Stolperstein 47): die Ableitung liegt ja da, und sie
+   traegt ihr Format im Kopf. Dieselbe Haltung wie bei `isPng` in images.js
+   und bei der Auslieferung, die den Kopf ebenfalls aus den Bytes setzt.
+   GEFRAGT WIRD IM THREAD UND NICHT IN SQL, und das ist eine Messung und keine
+   Vorliebe: `thumb` steht in der Spaltenreihenfolge HINTER `data`, und
+   `hex(substr(thumb,1,3))` muesste dafuer die ganze Kette der Overflow-Seiten
+   des Originals lesen und entschluesseln -- die 1338-ms-Klasse aus dem Kasten
+   ueber `idx_photos_kind` in db.js. Der Haupt-Thread waehlt deshalb
+   GROSSZUEGIG aus (alle Fotozeilen) und ueberlaesst die eigentliche Frage
+   dieser Zeile hier; genau die Bauform, die `refreshTiles` seit 0.19.4 hat.
+   EIN FEHLENDES ODER UNLESBARES BLOB IST KEINE JPEG-ABLEITUNG: `null` heisst
+   „gar keine", und die ist Sache des Nachruestens beim Start. */
+const isJpeg = (b) => Buffer.isBuffer(b) && b.length >= 3 &&
+  b[0] === 0xff && b[1] === 0xd8 && b[2] === 0xff;
+
 /* WIE DER STAND ZURUECKREIST -- EINE MELDUNG JE ZEILE, UND SIE TRAEGT DEN
    GANZEN STAND.
 
@@ -89,33 +107,105 @@ const { makeVariants, isPng, storeImage, isUncropped } = require('./images');
    nicht (Stolperstein 47). */
 const report = (status) => parentPort.postMessage({ kind: 'status', status });
 
-/* ---- Die Umstellung von PNG auf WebP ----
-   WORTGLEICH ZUR FASSUNG AUS 0.19.2, bis auf zwei Dinge: der Stand steht in
-   einer oertlichen Abbildung statt in `umstellung` (das bleibt im
-   Haupt-Thread), und er geht je Zeile als Meldung hinaus.
+/* ---- Der Bestandslauf: das Original UND die Ableitungen ----
+
+   BIS 0.26.0 HIESS ER „die Umstellung von PNG auf WebP" und fasste genau eine
+   Spalte an: `data`. Seit 0.27.0 fasst er DREI an, und das ist der einzige
+   Grund, aus dem die beiden Punkte in einer Runde stehen -- ein Durchgang
+   ueber den Bestand ist billiger als zwei, und im Feld dauert er 5,3 s je
+   Bild.
+
+   ZWEI FRAGEN JE ZEILE, UND SIE SIND UNABHAENGIG (F3):
+     das ORIGINAL  liegt es als PNG da, und will das gewaehlte Verfahren etwas
+                   damit? Bei 'png' will es nichts -- dann bleibt die Spalte,
+                   wie sie ist, und die Zeile ist trotzdem nicht umsonst
+                   angefasst: die zweite Frage steht noch offen.
+     die ABLEITUNG ist `thumb` oder `medium` noch JPEG? Dann werden BEIDE neu
+                   aus dem Original gerechnet.
+
+   DIE ABLEITUNGEN FOLGEN DER WAHL NICHT -- sie gehen IMMER auf WebP. Das ist
+   F3 des Auftrags 0.27.0: zwei Fragen, zwei Antworten. Sie sind heute JPEG
+   q78/q84 und damit ohnehin verlustbehaftet, niemand archiviert sie, und wer
+   beides in einen Schalter legte, koennte „PNG" nicht mehr waehlen, ohne die
+   Anzeige mitzubestrafen.
+
+   BEIDE ABLEITUNGEN ZUSAMMEN UND NICHT JE EINZELN: makeVariants() rechnet
+   sie in einem Griff aus derselben Vorlage, und ein Weg, der nur eine
+   schriebe, waere eine zweite Wahrheit ueber die Ableitung (Stolperstein 47).
+   Ist eine von beiden noch JPEG, sind es in der Praxis beide -- sie sind
+   immer zusammen entstanden.
+
+   AUS DEM ORIGINAL UND NICHT AUS DEM ALTEN JPEG. Ein JPEG nach WebP
+   umzukodieren waere eine zweite verlustbehaftete Runde ueber dieselben
+   Bildpunkte; aus `data` gerechnet ist die neue Ableitung genau so gut wie
+   eine frisch hochgeladene. DIE REIHENFOLGE IST DESHALB NICHT BELIEBIG: erst
+   das Original umstellen, dann daraus ableiten -- die WebP-Fassung ist
+   `nearLossless` und weicht hoechstens um 2 von 255 ab, aber sie traegt kein
+   EXIF mehr, und .rotate() braucht es. Also wird aus DEN BYTES gerechnet, die
+   hereinkamen, und nicht aus denen, die gerade geschrieben wurden.
+
+   DER ZUSCHNITT GEHT MIT, wie beim Nachruesten: die drei Zahlen stehen in
+   eigenen Spalten und nicht im Bild. Ohne sie entstuende hier eine
+   ungeschnittene Kachel, die der Geometrielauf beim naechsten Start ein
+   zweites Mal anfassen muesste.
+
+   DIE VIDEOZEILE IST NICHT DABEI, und das ist eine Entscheidung: in `data`
+   liegt dort die Videodatei, ihr `medium` IST das Standbild und nicht dessen
+   Ableitung, und der Kernsatz gilt weiter -- der Server oeffnet nie ein
+   Video. Ihr Standbild aus sich selbst neu zu kodieren machte es nur
+   schlechter (siehe sourceFrom() weiter unten). Der Haupt-Thread waehlt
+   deshalb `kind != 'video'`.
+
    JE BILD EINE EIGENE TRANSAKTION -- und dafuer steht hier bewusst KEIN
-   db.transaction() um das einzelne UPDATE: eine einzelne Anweisung IST in
-   SQLite ihre eigene Transaktion. Eine Klammer darum sagte, es geschehe mehr
-   als eines, und das waere unwahr.
-   WAS AUSDRUECKLICH NICHT PASSIERT: thumb und medium werden NICHT neu
-   gerechnet. Sie sind aus demselben Bild entstanden und bleiben gueltig; ein
-   Neurechnen kostete Zeit und aenderte nichts. */
-async function convertInventory(rows) {
+   db.transaction() um ein einzelnes UPDATE: eine einzelne Anweisung IST in
+   SQLite ihre eigene Transaktion. WO ZWEI ANWEISUNGEN ZUSAMMENGEHOEREN, steht
+   jetzt eine: Original und Ableitung derselben Zeile gehen in EINEM UPDATE
+   hinaus, damit es keinen Augenblick gibt, in dem eine Ableitung zu einem
+   Original gehoert, das es so nicht mehr gibt.
+
+   VIER ZAHLEN STATT DREI, und keine davon ist doppelt: `converted` sind die
+   umgestellten ORIGINALE, `derived` die neu gerechneten ABLEITUNGSPAARE,
+   `stayed` die Zeilen, an denen nichts zu tun war oder nichts gelang, und
+   `freed` die gesparten Bytes ueber beides. Ein Lauf, der 1032 anfasst, 0
+   Originale umstellt und 1032 Ableitungen erneuert, ist nach dieser Runde der
+   Normalfall -- und er sagt das dann auch. */
+async function convertInventory(rows, store) {
   const status = { running: true, total: rows.length, done: 0,
-                  converted: 0, stayed: 0, freed: 0 };
-  const get = db.prepare('SELECT data FROM photos WHERE id = ?');
-  const write = db.prepare('UPDATE photos SET mime_type = ?, data = ? WHERE id = ?');
+                  converted: 0, derived: 0, stayed: 0, freed: 0 };
+  const get = db.prepare(
+    'SELECT mime_type, data, thumb, medium, focus_x, focus_y, zoom FROM photos WHERE id = ?');
+  const write = db.prepare(
+    'UPDATE photos SET mime_type = ?, data = ?, thumb = ?, medium = ? WHERE id = ?');
   for (const { id } of rows) {
     try {
       const z = get.get(id);
       // Die Zeile kann waehrend des Laufs geloescht oder schon umgestellt
       // worden sein. Beides ist kein Fehler -- nur nichts zu tun.
-      if (z && isPng(z.data)) {
-        const start = await storeImage(z.data, 'image/png');
-        if (start.converted) {
-          write.run(start.mime, start.data, id);
-          status.converted++;
-          status.freed += z.data.length - start.data.length;
+      if (z) {
+        const sizeBefore = (z.data ? z.data.length : 0) +
+                    (z.thumb ? z.thumb.length : 0) + (z.medium ? z.medium.length : 0);
+        const start = isPng(z.data) ? await storeImage(z.data, 'image/png', store)
+                                    : null;
+        /* GERECHNET WIRD AUS DER VORLAGE -- siehe der Absatz oben. `z.data`
+           und nicht `start.data`: die WebP-Fassung traegt kein EXIF mehr. */
+        const fresh = (isJpeg(z.thumb) || isJpeg(z.medium))
+          ? await makeVariants(z.data, cropFrom(z)) : null;
+        /* EINE ABLEITUNG, DIE NICHT ZUSTANDE KAM, ERSETZT KEINE VORHANDENE.
+           Danach stuende NULL in einer Spalte, die vorher ein Bild trug, und
+           die Zeile waere beim naechsten Start ein Fall fuers Nachruesten.
+           Dieselbe Regel wie in refreshRow() weiter unten. */
+        const renewed = fresh && fresh.thumb && fresh.medium ? fresh : null;
+        if ((start && start.converted) || renewed) {
+          write.run(start && start.converted ? start.mime : z.mime_type,
+                    start && start.converted ? start.data : z.data,
+                    renewed ? renewed.thumb : z.thumb,
+                    renewed ? renewed.medium : z.medium, id);
+          if (start && start.converted) status.converted++;
+          if (renewed) status.derived++;
+          status.freed += sizeBefore -
+            ((start && start.converted ? start.data.length : (z.data ? z.data.length : 0)) +
+             (renewed ? renewed.thumb.length : (z.thumb ? z.thumb.length : 0)) +
+             (renewed ? renewed.medium.length : (z.medium ? z.medium.length : 0)));
         } else status.stayed++;
       }
     } catch (e) {
@@ -144,8 +234,9 @@ async function convertInventory(rows) {
      uebertragen waere. */
   reclaim();
   report(status);
-  console.log(`[Kriterion] Bildumstellung fertig: ${status.converted} von ` +
-    `${status.total} umgestellt, ${status.stayed} blieben PNG, ` +
+  console.log(`[Kriterion] Bestandslauf fertig: ${status.converted} von ` +
+    `${status.total} Originalen umgestellt, ${status.derived} Ableitungspaare ` +
+    `neu gerechnet, an ${status.stayed} Zeilen war nichts zu tun, ` +
     `${status.freed} Bytes gespart.`);
 }
 
@@ -428,7 +519,7 @@ function reclaim() {
    parentPort.close() DANACH -- ohne ihn haelt der offene Kanal den Thread am
    Leben, und der Haupt-Thread bekaeme sein 'exit' nie. */
 (async () => {
-  if (workerData.task === 'conversion') await convertInventory(workerData.rows);
+  if (workerData.task === 'conversion') await convertInventory(workerData.rows, workerData.store);
   else if (workerData.task === 'thumbnails') await backfillThumbnails(workerData.rows);
   else if (workerData.task === 'geometry') await refreshTiles(workerData.rows);
   else if (workerData.task === 'crop') await refreshOneTile(workerData.rows);

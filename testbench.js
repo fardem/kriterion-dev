@@ -4677,6 +4677,152 @@ const shareMain = (purpose, target = null) =>
     fs.rmSync(mgDirectory, { recursive: true, force: true });
   }
 
+  /* ================= Die Datenbankstufe 0.27.0 =========================
+     ZUSAGE 10 UND ZUSAGE 11 DES AUFTRAGS -- und sie sind der teure Teil
+     dieser Runde. Aus einem Ja/Nein wird ein Wert aus dreien, und JEDE
+     bestehende Installation traegt heute das Ja/Nein.
+
+     GEPRUEFT WIRD AN ECHTEN ALTBESTAENDEN und nicht an einer Behauptung ueber
+     den Quelltext: drei Datenbanken, drei Ausgangslagen, drei Antworten.
+       `convertImages` = true   -> `imageStore` = 'webp-lossless'
+       `convertImages` = false  -> `imageStore` = 'png'
+       gar keine Zeile          -> gar keine Zeile (die Vorgabe greift beim Lesen)
+     DIE DRITTE IST DIE, DIE MAN FALSCH MACHT. Wer sie „der Vollstaendigkeit
+     halber" mit der Vorgabe fuellte, schriebe eine ENTSCHEIDUNG in eine
+     Instanz, in der nie jemand eine getroffen hat. */
+  group('Die Datenbankstufe 0.27.0');
+  {
+    const stKey = (dir) => {
+      const d = open(path.join(dir, 'katalog.sqlite'));
+      const r = d.prepare("SELECT key, value FROM settings WHERE key IN ('convertImages', 'imageStore')")
+        .all();
+      d.close();
+      return Object.fromEntries(r.map(z => [z.key, z.value]));
+    };
+    /* EINE INSTANZ AUS 0.26.0 WIRD HERGESTELLT, INDEM DIE ALTE ZEILE
+       GESCHRIEBEN WIRD. Genau die Lage findet der Block vor. */
+    const stBuild = (old) => {
+      const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'kriterion-0270-'));
+      shortRun(`require('./db'); console.log('da');`, dir);
+      if (old !== null) {
+        const d = open(path.join(dir, 'katalog.sqlite'));
+        d.prepare('INSERT INTO settings (key, value) VALUES (?, ?)')
+          .run('convertImages', JSON.stringify(old));
+        d.close();
+      }
+      return dir;
+    };
+    for (const [old, wanted, word] of [[true, 'webp-lossless', 'an'], [false, 'png', 'aus']]) {
+      const dir = stBuild(old);
+      check(`Ein Bestand aus 0.26.0 mit dem Haekchen ${word} steht`,
+        stKey(dir).convertImages === JSON.stringify(old) && stKey(dir).imageStore === undefined,
+        JSON.stringify(stKey(dir)));
+      const say = shortRunAll(`require('./db'); console.log('da');`, dir);
+      const after = stKey(dir);
+      check(`Und ein Start uebersetzt „${word}" nach „${wanted}"`,
+        after.imageStore === JSON.stringify(wanted), JSON.stringify(after));
+      /* ZUSAGE 11 AN DER DATENBANK: der alte Schluessel faellt in DEMSELBEN
+         Griff. Zwei Zeilen ueber dieselbe Frage in derselben Tabelle waeren
+         eine zweite Wahrheit (Stolperstein 47), und beim naechsten Griff
+         waere nicht zu sagen, welche gilt. */
+      check('Und der alte Schluessel ist dabei gefallen',
+        after.convertImages === undefined, JSON.stringify(after));
+      check('Und der Block meldet sich',
+        /Migration auf 0\.27\.0/.test(say),
+        JSON.stringify(say.split('\n').filter(z => /0\.27\.0/.test(z))));
+      /* UND ZWEIMAL STARTEN IST STILL: gefragt wird die Zeile selbst, nicht
+         ein Merker. Ein zweiter Lauf findet kein `convertImages` mehr. */
+      const again = shortRunAll(`require('./db'); console.log('da');`, dir);
+      check('Und ein zweiter Start ist still',
+        !/Migration auf 0\.27\.0/.test(again),
+        JSON.stringify(again.split('\n').filter(z => /0\.27\.0/.test(z))));
+      check('Und die Wahl steht danach unveraendert da',
+        stKey(dir).imageStore === JSON.stringify(wanted), JSON.stringify(stKey(dir)));
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
+    /* DIE DRITTE RICHTUNG: NICHTS GESPEICHERT HEISST NICHTS GESCHRIEBEN.
+       Ohne diese Probe bliebe gruen, wer die Vorgabe eintraegt -- und damit
+       jeder spaeteren Aenderung der Vorgabe die Wirkung naehme. */
+    {
+      const dir = stBuild(null);
+      const say = shortRunAll(`require('./db'); console.log('da');`, dir);
+      check('Ohne alte Zeile schreibt der Block gar nichts',
+        Object.keys(stKey(dir)).length === 0, JSON.stringify(stKey(dir)));
+      check('Und er meldet sich auch nicht',
+        !/Migration auf 0\.27\.0/.test(say),
+        JSON.stringify(say.split('\n').filter(z => /0\.27\.0/.test(z))));
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
+    /* UND DIE VIERTE LAGE, DIE ES GEBEN KANN: eine Instanz, die 0.27.0 schon
+       gesehen hat und noch einmal auf 0.26.0 lief. Dort schriebe die alte
+       Fassung wieder `convertImages` -- die neue Wahl ist dann die JUENGERE
+       Aussage, und sie zu ueberschreiben hiesse, eine Wahl aus dreien mit
+       einem Haekchen zu erschlagen. */
+    {
+      const dir = stBuild(true);
+      {
+        const d = open(path.join(dir, 'katalog.sqlite'));
+        d.prepare('INSERT INTO settings (key, value) VALUES (?, ?)')
+          .run('imageStore', JSON.stringify('webp-lossy'));
+        d.close();
+      }
+      shortRunAll(`require('./db'); console.log('da');`, dir);
+      const after = stKey(dir);
+      check('Eine vorhandene Wahl gewinnt gegen das alte Haekchen',
+        after.imageStore === JSON.stringify('webp-lossy'), JSON.stringify(after));
+      check('Und das alte Haekchen faellt trotzdem',
+        after.convertImages === undefined, JSON.stringify(after));
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
+    /* ZUSAGE 11 AM QUELLTEXT: `convertImages` steht NIRGENDS MEHR -- nicht in
+       der Antwort, nicht in OWNER_KEYS, nicht als Ableitung.
+       GESUCHT WIRD IM CODE UND NICHT IN DEN KOMMENTAREN. Der Migrationsblock
+       MUSS den alten Namen nennen -- er uebersetzt ihn ja --, und die
+       Herleitungen ueber den Stellen nennen ihn ebenfalls: ein Satz, der
+       erklaert, was weggefallen ist, ist keine zweite Wahrheit, sondern das
+       Gegenteil davon (Stolperstein 201). Was NICHT mehr dastehen darf, ist
+       eine Zeile, die ihn LIEST oder SCHREIBT. */
+    {
+      const noComments = (file) => fs.readFileSync(path.join(__dirname, file), 'utf8')
+        .replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/[^\n]*/g, '');
+      const stLeft = [];
+      for (const file of ['server.js', 'public/app.js', 'images.js', 'batchrun.js']) {
+        const code = noComments(file);
+        if (/convertImages/.test(code))
+          stLeft.push(`${file}: ${(code.match(/[^\n]*convertImages[^\n]*/) || [''])[0].trim()}`);
+      }
+      check('`convertImages` steht in keiner Zeile Code mehr',
+        stLeft.length === 0, stLeft.join(' · ') || 'nirgends');
+      /* UND IN db.js STEHT ER GENAU DORT, WO ER HINGEHOERT: im
+         Migrationsblock, der ihn uebersetzt und loescht -- und sonst
+         nirgends. Ohne diese Zeile bliebe gruen, wer ihn andernorts wieder
+         liest, solange er ihn nicht `convertImages` nennt. */
+      const stDb = noComments('db.js');
+      const stDbLines = (stDb.match(/[^\n]*convertImages[^\n]*/g) || []);
+      /* DREI ZEILEN UND NICHT ZWEI, und die dritte gehoert dazu: der Block
+         SAGT dem Betreiber, was er uebersetzt hat. Eine Migration, die eine
+         gespeicherte Entscheidung umschreibt und dabei schweigt, waere die
+         schlechtere. Sie steht hier NAMENTLICH, damit eine vierte auffaellt. */
+      check('Und in db.js nur im Migrationsblock, der ihn wegnimmt',
+        stDbLines.length === 3 &&
+        stDbLines.filter(z => /SELECT value FROM settings/.test(z)).length === 1 &&
+        stDbLines.filter(z => /DELETE FROM settings/.test(z)).length === 1 &&
+        stDbLines.filter(z => /convertImages = \$\{on\}/.test(z)).length === 1,
+        stDbLines.map(z => z.trim()).join(' · '));
+      /* UND DIE RECHTEZEILE TRAEGT DEN NEUEN NAMEN UND BLEIBT BEI SIEBEN.
+         Einer geht, einer kommt -- eine unveraenderte Zahl sieht sonst aus
+         wie ein vergessener Eintrag. */
+      const stOwner = (fs.readFileSync(path.join(__dirname, 'server.js'), 'utf8')
+        .match(/const OWNER_KEYS = \[([\s\S]*?)\];/) || [, ''])[1];
+      const stOwnerKeys = (stOwner.match(/'[^']+'/g) || []).map(x => x.slice(1, -1));
+      check('OWNER_KEYS traegt `imageStore` und nicht mehr `convertImages`',
+        stOwnerKeys.includes('imageStore') && !stOwnerKeys.includes('convertImages'),
+        stOwnerKeys.join(' · '));
+      check('Und es bleiben genau sieben Schluessel', stOwnerKeys.length === 7,
+        `${stOwnerKeys.length}: ${stOwnerKeys.join(' · ')}`);
+    }
+  }
+
   /* ================= Der Beipack — 0.25.0 (F7) ==========================
      ZWEI WAECHTER, und beide sind eine Aussage ueber Dateien, die kein
      Prueflauf sonst ansieht.
@@ -7300,17 +7446,58 @@ const shareMain = (purpose, target = null) =>
      Frage „Admin ja, Eigentuemer nein" dann gar nicht gestellt werden kann.
 
      ZWEI DINGE STEHEN ZUR FRAGE, und sie liegen in derselben Rechtezeile:
-     der SCHALTER (er bestimmt, wie die ganze Instanz kuenftig ablegt) und der
-     KNOPF (er schreibt jeden PNG-Blob um). Beides trifft die Instanz als
-     Ganzes und gehoert damit dem Eigentuemer -- wie Export, Import und
-     Sicherung. */
+     die WAHL (sie bestimmt, wie die ganze Instanz kuenftig ablegt) und der
+     KNOPF (er schreibt jeden PNG-Blob um und rechnet jede JPEG-Ableitung neu).
+     Beides trifft die Instanz als Ganzes und gehoert damit dem Eigentuemer --
+     wie Export, Import und Sicherung.
+
+     SEIT 0.27.0 IST DIE WAHL EIN WERT AUS DREIEN und kein Haekchen mehr. Die
+     Rechtefrage aendert das nicht -- die Klemme wird geerbt (F10) --, aber es
+     kommt eine zweite dazu: ein VIERTER Wert muss eine Absage bekommen. Ein
+     Haekchen kennt keinen falschen Wert; eine Wahl aus dreien sehr wohl. */
   {
+    /* ZUSAGE 3: EINE FRISCHE INSTALLATION STEHT AUF „WebP verlustfrei".
+       ZUERST GEFRAGT UND NICHT ZULETZT -- die Proben darunter SCHREIBEN die
+       Einstellung, und danach waere die Frage nach der Vorgabe keine mehr. */
+    const fresh = await pkCall('cookie-pk-anna', 'GET', '/api/settings');
+    check('Eine frische Installation steht auf „WebP verlustfrei"',
+      fresh.content?.imageStore === 'webp-lossless', JSON.stringify(fresh.content?.imageStore));
+    /* UND SIE STEHT DA, OHNE DASS EINE ZEILE GESCHRIEBEN WAERE. Ohne diese
+       Probe bliebe gruen, wer die Vorgabe beim Einrichten eintraegt -- und
+       damit jeder spaeteren Aenderung der Vorgabe die Wirkung naehme. */
+    check('Und zwar abgeleitet, ohne Zeile in der Einstellungstabelle',
+      pkRows("SELECT key FROM settings WHERE key = 'imageStore'").length === 0,
+      JSON.stringify(pkRows("SELECT key, value FROM settings WHERE key = 'imageStore'")));
+
+    /* ZUSAGE 1: GENAU DREI WERTE, UND EIN VIERTER WIRD ABGEWIESEN. */
+    check('Die Antwort nennt genau drei Verfahren',
+      Array.isArray(fresh.content?.imageStores) && fresh.content.imageStores.length === 3 &&
+      ['png', 'webp-lossless', 'webp-lossy'].every(k => fresh.content.imageStores.includes(k)),
+      JSON.stringify(fresh.content?.imageStores));
+    const fourth = await pkCall('cookie-pk-anna', 'PUT', '/api/settings',
+      { imageStore: 'webp-quatsch' });
+    check('Ein vierter Wert bekommt eine Absage', fourth.status === 400,
+      `Status ${fourth.status}: ${JSON.stringify(fourth.content)}`);
+    check('Und die Absage sagt, woran es liegt',
+      /Verfahren zum Speichern von Bildern/.test(fourth.content?.error || ''), fourth.content?.error);
+    /* UND DIE ABSAGE HAT NICHTS GESCHRIEBEN -- weder den vierten Wert noch
+       sonst etwas. Eine Absage, die schon geschrieben hat, waere schlimmer
+       als gar keine. */
+    check('Und sie hat nichts in die Einstellungstabelle geschrieben',
+      pkRows("SELECT key FROM settings WHERE key = 'imageStore'").length === 0);
+    for (const wrong of [true, false, null, 42, ['png']]) {
+      const r = await pkCall('cookie-pk-anna', 'PUT', '/api/settings', { imageStore: wrong });
+      check(`Auch ${JSON.stringify(wrong)} ist kein Verfahren`, r.status === 400,
+        `Status ${r.status}`);
+    }
+
+    /* ZUSAGE 2: SIE GEHOERT DEM EIGENTUEMER. */
     const toggleCarla = await pkCall('cookie-pk-carla', 'PUT', '/api/settings',
-      { convertImages: false });
+      { imageStore: 'png' });
     check('Ein gewoehnlicher Benutzer stellt die Bildablage nicht um',
       toggleCarla.status === 403, `Status ${toggleCarla.status}`);
     const toggleBert = await pkCall('cookie-pk-bert', 'PUT', '/api/settings',
-      { convertImages: false });
+      { imageStore: 'png' });
     check('Auch der Admin ohne Eigentuemerrolle nicht',
       toggleBert.status === 403, `Status ${toggleBert.status}`);
     check('Und die Absage nennt den Eigentuemer',
@@ -7318,22 +7505,30 @@ const shareMain = (purpose, target = null) =>
     /* UND DIE STELLUNG HAT SICH DABEI NICHT VERSCHOBEN. Ohne diese Zeile
        bliebe gruen, wer erst schreibt und dann absagt -- die Absage staende
        da, die Einstellung waere trotzdem gesetzt. */
-    check('Und der Schalter steht danach unveraendert auf an',
-      (await pkCall('cookie-pk-anna', 'GET', '/api/settings')).content?.convertImages === true);
+    check('Und die Wahl steht danach unveraendert auf „WebP verlustfrei"',
+      (await pkCall('cookie-pk-anna', 'GET', '/api/settings')).content?.imageStore === 'webp-lossless');
     const toggleAnna = await pkCall('cookie-pk-anna', 'PUT', '/api/settings',
-      { convertImages: false });
+      { imageStore: 'png' });
     check('Die Eigentuemerin kommt durch', toggleAnna.status === 200,
       JSON.stringify(toggleAnna.content).slice(0, 120));
-    check('Und die Stellung steht danach wirklich auf aus',
-      (await pkCall('cookie-pk-anna', 'GET', '/api/settings')).content?.convertImages === false);
-    await pkCall('cookie-pk-anna', 'PUT', '/api/settings', { convertImages: true });
+    check('Und die Wahl steht danach wirklich auf „PNG"',
+      (await pkCall('cookie-pk-anna', 'GET', '/api/settings')).content?.imageStore === 'png');
+    /* UND ALLE DREI LASSEN SICH WIRKLICH SETZEN. Ohne diese Schleife bliebe
+       gruen, wer zwei von dreien durchlaesst -- die Absage oben faengt nur
+       den vierten. */
+    for (const k of ['webp-lossy', 'png', 'webp-lossless']) {
+      const r = await pkCall('cookie-pk-anna', 'PUT', '/api/settings', { imageStore: k });
+      check(`Das Verfahren „${k}" laesst sich setzen`,
+        r.status === 200 && r.content?.imageStore === k,
+        `Status ${r.status}: ${JSON.stringify(r.content?.imageStore)}`);
+    }
 
-    /* DER SCHALTER IST NICHT PERSOENLICH, sondern global -- er beschreibt,
-       wie DIESE INSTANZ ablegt, nicht wie jemand sie ansieht. Carla muss ihn
+    /* DIE WAHL IST NICHT PERSOENLICH, sondern global -- sie beschreibt, wie
+       DIESE INSTANZ ablegt, nicht wie jemand sie ansieht. Carla muss sie
        deshalb LESEN koennen: die Zahl in der Karte steht hinter dem Admin,
        die Stellung selbst ist nichts Schuetzenswertes. */
-    check('Lesen darf ihn jeder',
-      (await pkCall('cookie-pk-carla', 'GET', '/api/settings')).content?.convertImages === true);
+    check('Lesen darf sie jeder',
+      (await pkCall('cookie-pk-carla', 'GET', '/api/settings')).content?.imageStore === 'webp-lossless');
 
     const buttonCarla = await pkCall('cookie-pk-carla', 'POST', '/api/images/convert', {});
     check('Ein gewoehnlicher Benutzer stellt den Bestand nicht um',
@@ -15741,8 +15936,10 @@ const shareMain = (purpose, target = null) =>
       } catch { tAfter = ['(Start gescheitert)']; }
       check('Eine fehlende SPALTE traegt CREATE TABLE IF NOT EXISTS NICHT nach',
         !tAfter.includes('last_counter'), JSON.stringify(tAfter));
-      /* UND DIE ZAHL DER MARKIERTEN BLOECKE STEHT FEST. Ein neunter mit
+      /* UND DIE ZAHL DER MARKIERTEN BLOECKE STEHT FEST. Ein weiterer mit
          anderem Wortlaut waere eine zweite Schreibweise fuer dieselbe Sache.
+         ELF SEIT 0.27.0, vorher zehn: die Runde uebersetzt `convertImages` in
+         `imageStore` und loescht den alten Schluessel.
          ACHT SEIT 0.19.0, vorher sieben: `photos` bekommt mit `zoom` die
          dritte Angabe zum Ausschnitt, und ohne sie gaebe es fuer den engeren
          Ausschnitt keinen Ort. (Der siebte kam mit 0.16.0 und gab den
@@ -15755,9 +15952,9 @@ const shareMain = (purpose, target = null) =>
          was gemeint ist, nicht was dasteht). */
       const tBlocks = [...new Set(
         (tSource.match(/MIGRATION [0-9.]+x? — ENTFAELLT MIT 1\.0/g) || []))];
-      check('Es sind genau zehn markierte Migrationsbloecke',
-        tBlocks.length === 10, `${tBlocks.length}: ${tBlocks.join(' · ')}`);
-      check('Und alle zehn tragen denselben Wortlaut der Marke',
+      check('Es sind genau elf markierte Migrationsbloecke',
+        tBlocks.length === 11, `${tBlocks.length}: ${tBlocks.join(' · ')}`);
+      check('Und alle elf tragen denselben Wortlaut der Marke',
         tBlocks.every(m => / — ENTFAELLT MIT 1\.0$/.test(m)), tBlocks.join(' · '));
       /* UND DER NEUNTE HEISST 0.21.0. Ohne diese Zeile bliebe die Zahl auch
          dann gruen, wenn jemand einen Block gegen einen anderen tauscht --
@@ -15775,6 +15972,14 @@ const shareMain = (purpose, target = null) =>
       check('Und der zehnte gehoert zu 0.25.0',
         tBlocks.includes('MIGRATION 0.25.0 — ENTFAELLT MIT 1.0') &&
         /function migration0250Language\(/.test(tSource), tBlocks.join(' · '));
+      /* UND DER ELFTE HEISST 0.27.0 -- die Uebersetzung des Haekchens
+         `convertImages` in die Wahl `imageStore`. Er ruestet keine Spalte
+         nach, sondern schreibt eine Einstellungszeile um und loescht die alte;
+         markiert ist er trotzdem, denn er faellt mit dem Bruch wie die zehn
+         davor. */
+      check('Und der elfte gehoert zu 0.27.0',
+        tBlocks.includes('MIGRATION 0.27.0 — ENTFAELLT MIT 1.0') &&
+        /function migration0270ImageStore\(/.test(tSource), tBlocks.join(' · '));
       check('Und es gibt keinen Block fuer 0.10.0',
         !/MIGRATION 0\.10/.test(tSource) && !/migration0100/.test(tSource));
       /* UND KEINEN FUER 0.11.0. Die Runde braucht keinen: die Volltextsuche
@@ -16629,8 +16834,18 @@ const shareMain = (purpose, target = null) =>
     .map(m => m.replace(/^MIGRATION /, '').replace(/x? — .*$/, '').replace(/\./g, ''));
   const fMigrations = fMarkNumbers.filter(nr =>
     new RegExp(`function migration${nr}[A-Za-z]*\\(`).test(fDbSource));
-  check('Es gibt genau zehn Migrationsfunktionen', fMigrations.length === 10,
+  check('Es gibt genau elf Migrationsfunktionen', fMigrations.length === 11,
     fMigrations.join(' · '));
+  /* DER ELFTE GEHOERT ZU 0.27.0 -- und er ist der erste markierte Block, der
+     keine SPALTE nachruestet, sondern eine EINSTELLUNGSZEILE uebersetzt:
+     `convertImages` (ja/nein) wird `imageStore` (einer aus dreien). Der Absatz
+     darueber gilt damit nicht mehr wortwoertlich, und das steht hier statt
+     stillschweigend: markiert ist ein Block, der ZU 1.0 WEGFAELLT, und das
+     tut dieser wie jeder andere. Ohne diese Zeile bliebe die Zahl auch dann
+     gruen, wenn jemand einen Block gegen einen anderen tauscht. */
+  check('Und der elfte gehoert zu 0.27.0 -- aus dem Haekchen wird die Wahl',
+    fMarkNumbers.includes('0270') &&
+    /function migration0270ImageStore\(/.test(fDbSource), fMarkNumbers.join(' · '));
   check('Und zu jedem markierten Block gehoert eine Funktion',
     fMigrations.length === fMarkNumbers.length,
     `${fMigrations.length} von ${fMarkNumbers.length}: ${fMarkNumbers.join(' · ')}`);
@@ -17385,9 +17600,29 @@ const shareMain = (purpose, target = null) =>
                      des Schalters, der Satz an der gedaempften Liste und der
                      Satz an den Admin, der ihn nicht stellen darf.
        1223 + 4 = 1227 -- und flach 1227 + 80 = 1307, denn keiner der vier ist
-       ein Mehrzahlpaar. */
-    check('Und die Zahlen stehen: 1307 Schluessel, 80 Mehrzahlformen, 14 Vokabelnamen',
-      languageKeys.length === 1307 && pluralKeys.length === 80 && vocabularyKeys.length === 14,
+       ein Mehrzahlpaar.
+       UND MIT 0.27.0 AUF 1238 UND 1320. Die Runde macht aus dem Haekchen eine
+       Wahl mit drei Verfahren, und das kostet Saetze:
+         WEG      SIEBEN, und sie stehen hier NAMENTLICH (BA 3 des Auftrags):
+                  card.convertOnUpload (die Beschriftung des Haekchens),
+                  card.pasteWebpHint (sein Erklaersatz),
+                  card.convertAllPng (die alte Knopfbeschriftung),
+                  card.noPngLeft (der Satz „kein PNG mehr da"),
+                  card.convertPngWebp (die Ueberschrift des Dialogs),
+                  card.pngConverting (sein Text -- ein MEHRZAHLPAAR),
+                  card.stayedPng (der Halbsatz der Fertigmeldung).
+         NEU      ACHTZEHN: die Ueberschrift der Wahl, drei Namen und drei
+                  Erklaersaetze der Verfahren, die Auflage, der Satz zu den
+                  Ableitungen, die neue Knopfbeschriftung, zwei Saetze unter
+                  dem Knopf, zwei Dialogtexte (einer davon ein
+                  MEHRZAHLPAAR), die beiden Halbsaetze der Fertigmeldung, der
+                  Satz an der Einfuegestelle und die Absage des Servers.
+       1227 - 7 + 18 = 1238. Flach: 80 - 2 (card.pngConverting faellt) + 2
+       (card.catchUpAsk und card.catchUpBoth sind Mehrzahlpaare) ... und die
+       Rechnung geht nur mit BEIDEN Zahlen auf, denn ein Mehrzahlpaar zaehlt
+       flach doppelt: 1238 + 82 = 1320. */
+    check('Und die Zahlen stehen: 1320 Schluessel, 82 Mehrzahlformen, 14 Vokabelnamen',
+      languageKeys.length === 1320 && pluralKeys.length === 82 && vocabularyKeys.length === 14,
       `${languageKeys.length} / ${pluralKeys.length} / ${vocabularyKeys.length}`);
 
     /* ---- 3. Die Adressprobe ---------------------------------------------
@@ -17568,9 +17803,31 @@ const shareMain = (purpose, target = null) =>
     const WORDING_NEW_0260 = ['card.weightSystemDefault',
       'card.potentialModeHint', 'card.potentialModeLabel',
       'card.potentialModeOff', 'card.potentialModeOwner'];
+    /* UND ACHTZEHN MIT 0.27.0 -- die Wahl der Bildablage. Aus einem Haekchen
+       mit einer Beschriftung und einem Erklaersatz wird eine Wahl aus drei
+       Verfahren, und jedes Verfahren braucht einen Namen und einen Satz
+       dazu. DAZU DIE AUFLAGE, ohne die „verlustbehaftet" ein Knopf waere, den
+       man einmal drueckt und danach nicht versteht.
+       DER LAUF UEBER DEN BESTAND BEKOMMT VIER STATT ZWEI: seine Beschriftung,
+       zwei Saetze darunter (je nachdem, ob es noch PNG gibt) und zwei
+       Dialogtexte. Er tut seit dieser Runde ZWEIERLEI, und ein Satz, der nur
+       die eine Haelfte nennt, verschwiege die andere.
+       UND EINER STEHT NICHT IN DER KARTE, sondern an der EINFUEGESTELLE:
+       `entry.uploadIsCheaper`. Er gehoert dorthin, weil der billigste Weg --
+       „Bild speichern unter" und hochladen -- dort noch offensteht und in der
+       Karte niemanden mehr erreicht. */
+    const WORDING_NEW_0270 = ['card.storeMethod',
+      'card.storePng', 'card.storePngHint',
+      'card.storeLossless', 'card.storeLosslessHint',
+      'card.storeLossy', 'card.storeLossyHint',
+      'card.storeCaveat', 'card.derivativesWebp',
+      'card.catchUpStore', 'card.catchUpBoth', 'card.catchUpDerivatives',
+      'card.catchUpAsk', 'card.derivativesAsk',
+      'card.convertCounts', 'card.nothingToDo',
+      'entry.uploadIsCheaper', 'server.imageStoreUnknown'];
     const WORDING_NEW = [...WORDING_NEW_0243, ...WORDING_NEW_0244,
       ...WORDING_NEW_0245, ...WORDING_NEW_0246, ...WORDING_NEW_0250,
-      ...WORDING_NEW_0254, ...WORDING_NEW_0260];
+      ...WORDING_NEW_0254, ...WORDING_NEW_0260, ...WORDING_NEW_0270];
     const wordingMissing = WORDING_NEW.filter(k => LANGUAGE_FILE[k] === undefined);
     check('Die neuen Schluessel dieser Runde stehen wirklich in der Datei',
       wordingMissing.length === 0, wordingMissing.join(' ') || 'alle da');
@@ -17629,6 +17886,50 @@ const shareMain = (purpose, target = null) =>
        damals kennt ihn, der von heute nicht mehr. Sein WORTLAUT steht hier
        und nicht sein Schluessel; verglichen werden Saetze. */
     const WORDING_GONE_TEXT_0260 = ['Eingestellt wird es vom Admin.'];
+    /* UND SIEBEN FALLEN MIT 0.27.0 -- NAMENTLICH, wie der Auftrag es verlangt
+       (BA 3: „Faellt doch einer, steht er NAMENTLICH hier, in allen drei
+       Sprachen"). Sie beschreiben alle dasselbe: ein Haekchen, das es nicht
+       mehr gibt, und einen Lauf, der nur PNG anfasste.
+         card.convertOnUpload   die Beschriftung des Haekchens
+         card.pasteWebpHint     sein Erklaersatz
+         card.convertAllPng     „Alle PNG in WebP umwandeln" -- der Knopf
+                                heisst jetzt anders, weil er mehr tut
+         card.noPngLeft         „Keine PNG-Fotos mehr vorhanden." -- der Satz
+                                war die Begruendung fuer einen toten Knopf,
+                                und der Knopf ist nicht mehr tot
+         card.convertPngWebp    die Ueberschrift des Bestaetigungsfensters
+         card.pngConverting     sein Text (ein MEHRZAHLPAAR, also zwei Werte)
+         card.stayedPng         „, {geblieben} blieben PNG" -- die Zahl heisst
+                                jetzt „an N war nichts zu tun", denn `stayed`
+                                zaehlt seit dieser Runde die ZEILE und nicht
+                                das Format
+       SIE STEHEN IN KEINER SPRACHDATEI MEHR -- alle drei werden gefragt: ein
+       Satz, der in zwei Dateien weg ist und in der dritten steht, ist eine
+       Karteileiche mit Uebersetzung. */
+    const WORDING_GONE_0270 = ['card.convertOnUpload', 'card.pasteWebpHint',
+      'card.convertAllPng', 'card.noPngLeft', 'card.convertPngWebp',
+      'card.pngConverting', 'card.stayedPng'];
+    const goneStill7 = [];
+    for (const code of ['de', 'en', 'tr']) {
+      const file = JSON.parse(fs.readFileSync(
+        path.join(__dirname, 'public', 'languages', `${code}.json`), 'utf8'));
+      for (const k of WORDING_GONE_0270) if (file[k] !== undefined) goneStill7.push(`${code}/${k}`);
+    }
+    check('Und die sieben Schluessel, die 0.27.0 wegnimmt, stehen in keiner Datei mehr',
+      goneStill7.length === 0, goneStill7.join(' ') || 'alle sieben weg');
+    /* IHR WORTLAUT WIRD AUS DEM STAND VON DAMALS ABGEZOGEN, wie bei den
+       Runden davor -- der Stand von damals kennt sie, der von heute nicht
+       mehr. ACHT WERTE FUER SIEBEN SCHLUESSEL: card.pngConverting ist ein
+       Mehrzahlpaar und steht flach zweimal da. */
+    const WORDING_GONE_TEXT_0270 = [
+      ", {geblieben} blieben PNG",
+      "Alle PNG in WebP umwandeln",
+      "Eingefügte Screenshots (PNG) werden als\n          WebP gespeichert — etwa zwei Drittel kleiner, ohne sichtbaren Verlust. JPEG, GIF und\n          WebP bleiben unverändert.",
+      "Keine PNG-Fotos mehr vorhanden.",
+      "PNG in WebP umwandeln",
+      "PNG-Fotos beim Upload in WebP umwandeln",
+      "{n} PNG-Foto ({bytes}) wird umgewandelt, die Originale ersetzt (danach etwa {danach}). Rückgängig nur mit einer vorher angelegten Sicherung. Dauer: Minuten bis Stunden.",
+      "{n} PNG-Fotos ({bytes}) werden umgewandelt, die Originale ersetzt (danach etwa {danach}). Rückgängig nur mit einer vorher angelegten Sicherung. Dauer: Minuten bis Stunden."];
     /* UND DER SCHLUESSEL DAZU DARF IN KEINER DER DREI DATEIEN MEHR STEHEN --
        sonst zoege die Rechnung einen Satz ab, den es noch gibt, und ginge
        zufaellig auf. */
@@ -17677,7 +17978,7 @@ const shareMain = (purpose, target = null) =>
        verglichen wird, ist der Stand von 0681d42 OHNE ihn gegen den Stand von
        heute ohne die dreizehn plus acht neuen. */
     const wordingThen = [...WORDING_GONE_0244, ...WORDING_GONE_TEXT_0254,
-      ...WORDING_GONE_TEXT_0260]
+      ...WORDING_GONE_TEXT_0260, ...WORDING_GONE_TEXT_0270]
       .reduce((list, sentence) => withoutOne(list, sentence), [...wordingFile.values]).sort();
     const wordingNow = valuesOf(wordingOld).map(asBefore).sort();
     const onlyThen = wordingThen.filter(x => !wordingNow.includes(x));
@@ -17687,7 +17988,7 @@ const shareMain = (purpose, target = null) =>
        zaehlt flach zweimal. Aus zwei Saetzen werden vier -- alles andere ist
        Satz fuer Satz dasselbe. */
     check('Wortlautprobe: zwei Saetze mehr als bei der Abnahme, und beide sind Mehrzahlpaare',
-      wordingNow.length === wordingThen.length + 2 && wordingNow.length === 1221,
+      wordingNow.length === wordingThen.length + 2 && wordingNow.length === 1213,
       `${wordingThen.length} damals, ${wordingNow.length} heute (ohne die ` +
       `${WORDING_NEW.length} neuen und die fuenf weggenommenen)`);
     /* ZWEI SAETZE SIND ANDERE, UND BEIDE SIND BENANNT.
@@ -17718,11 +18019,30 @@ const shareMain = (purpose, target = null) =>
        stand seither „mit Fotos 301,5 KB )". Der Auftrag kannte ihn nicht; er
        ist beim Bauen von Befund 3b aufgefallen. */
     const WORDING_CHANGED_0260 = ['card.withPhotos'];
+    /* UND FUENF MIT 0.27.0, und alle fuenf aus DEMSELBEN Grund: der Lauf ueber
+       den Bestand tut jetzt zweierlei, und die alten Woerter sagten nur das
+       eine.
+         card.formatsHint     „(JPEG)" wird „(WebP)" -- die Vorschaubilder
+                              SIND jetzt WebP, und der Satz sagte, welches
+                              Format da nicht mitgezaehlt wird
+         card.convertRunning  vier Zeilen, die „Umwandlung" hiessen und jetzt
+         card.convertFinished „Umstellung" heissen. „Umwandlung" beschrieb,
+         card.convertDone     was mit einem PNG geschieht; der Lauf sieht seit
+         card.convertProgress dieser Runde JEDE Fotozeile an und wandelt die
+                              wenigsten davon um. Die Fortschrittszeile sagt
+                              deshalb „angesehen" und nicht mehr nur eine Zahl.
+       „Bestandslauf" WAERE DAS RICHTIGE WORT UND STEHT TROTZDEM NICHT DA: es
+       ist ein Bild des Projekts, und die Wortprobe verbietet es am Bildschirm
+       (SCREEN_BAN). Das ist keine Einschraenkung, sondern der Zweck jener
+       Liste -- was drinnen ein Bild ist, muss draussen eine Sache sein. */
+    const WORDING_CHANGED_0270 = ['card.formatsHint', 'card.convertRunning',
+      'card.convertFinished', 'card.convertDone', 'card.convertProgress'];
     const CHANGED_PLURAL_0254 = ['card.inDays', 'login.linkValidMinutes'];
     const pluralValues = CHANGED_PLURAL_0254
       .flatMap(k => Object.values(LANGUAGE_FILE[k])).map(asBefore);
-    check('Und genau sechs Saetze sind andere — BACKUP_DIR, die Teilabfrage, die drei aus 0.25.4 und die Klammer aus 0.26.0',
-      onlyThen.length === 6 && onlyNow.length === 8 &&
+    check('Und genau elf Saetze sind andere — die sechs von vorher und die fuenf aus 0.27.0',
+      onlyThen.length === 11 && onlyNow.length === 13 &&
+      WORDING_CHANGED_0270.every(k => onlyNow.includes(asBefore(LANGUAGE_FILE[k]))) &&
       WORDING_CHANGED_0243.every(k => onlyNow.includes(asBefore(LANGUAGE_FILE[k]))) &&
       WORDING_CHANGED_0254.every(k => onlyNow.includes(asBefore(LANGUAGE_FILE[k]))) &&
       WORDING_CHANGED_0260.every(k => onlyNow.includes(asBefore(LANGUAGE_FILE[k]))) &&
@@ -17740,7 +18060,7 @@ const shareMain = (purpose, target = null) =>
     const restThen = onlyThen.reduce(withoutOne, wordingThen);
     const restNow = onlyNow.reduce(withoutOne, wordingNow);
     check('Und sonst kein Zeichen — Satz fuer Satz dieselbe Oberflaeche',
-      equal(restThen, restNow) && restNow.length === 1213,
+      equal(restThen, restNow) && restNow.length === 1200,
       `${restThen.filter((x, i) => x !== restNow[i]).length} abweichende von ${restNow.length}`);
 
     /* ---- 6. Die Kuerzeprobe ---------------------------------------------
@@ -21279,12 +21599,36 @@ const shareMain = (purpose, target = null) =>
     rowsNumber(bigDetail) === rowsNumber(webpDetail) + 1,
     `${rowsNumber(webpDetail)} vorher, ${rowsNumber(bigDetail)} nachher`);
 
-  /* ---- DIE ABLEITUNGEN BLEIBEN JPEG ----
-     Diese Runde macht das ARCHIV unversehrt und laesst die ANZEIGE, wie sie
-     ist. Wer das fuer erledigt haelt, irrt -- und diese Zeile sagt es. */
-  check('Die Ableitungen bleiben JPEG',
-    (await imageRaw(baPhoto.id, '?size=thumb')).bytes.slice(0, 2).toString('hex') === 'ffd8' &&
-    (await imageRaw(baPhoto.id, '?size=medium')).bytes.slice(0, 2).toString('hex') === 'ffd8');
+  /* ---- ZUSAGE 6: DIE ABLEITUNGEN SIND WEBP, UND IHR MIME-TYP SAGT ES ----
+     BIS 0.26.0 STAND HIER DAS GEGENTEIL: „Die Ableitungen bleiben JPEG",
+     begruendet damit, dass 0.19.0 das ARCHIV unversehrt macht und die ANZEIGE
+     laesst, wie sie ist. DIE BEGRUENDUNG WAR RICHTIG UND IST ES NICHT MEHR
+     (Stolperstein 201 -- der Satz ist umgedreht, nicht geloescht): nach 0.19.0
+     sind die Ableitungen die GROESSERE Haelfte des Bildbestands, und `medium`
+     ist das, was man in der Anwendung ansieht.
+
+     ZWEI FRAGEN UND NICHT EINE: die BYTES sind WebP (RIFF....WEBP), und der
+     KOPF der Auslieferung sagt es auch. Die zweite ist nicht ueberfluessig --
+     `setImageHeader` setzt den Typ aus den ersten Bytes, aber eine Liste, die
+     WebP nicht kennt, lieferte es als Download statt als Bild aus, und die
+     Kachel bliebe leer. Ohne diese Zeile faende das niemand. */
+  const isWebpBytes = (b2) => b2.length >= 12 &&
+    b2.slice(0, 4).toString('latin1') === 'RIFF' && b2.slice(8, 12).toString('latin1') === 'WEBP';
+  for (const size of ['thumb', 'medium']) {
+    const der = await imageRaw(baPhoto.id, `?size=${size}`);
+    check(`Die Ableitung ${size} ist WebP`, isWebpBytes(der.bytes),
+      der.bytes.slice(0, 12).toString('hex'));
+    check(`Und der Kopf von ${size} sagt image/webp`,
+      String(der.h['content-type'] || '') === 'image/webp', der.h['content-type']);
+  }
+  /* UND SIE IST DABEI NICHT LEER GEBLIEBEN. Ohne diese Klammer bliebe die
+     Zusage darueber auch dann gruen, wenn makeVariants() gar nichts liefert
+     und die Auslieferung ein leeres Blob mit falschem Kopf schickt
+     (Stolperstein 81). */
+  check('Und beide tragen wirklich Bytes',
+    (await imageRaw(baPhoto.id, '?size=thumb')).bytes.length > 100 &&
+    (await imageRaw(baPhoto.id, '?size=medium')).bytes.length > 100);
+
 
   /* ---- DIE AUFSTELLUNG NACH FORMAT ---- */
   const baStats = (await call('GET', '/api/stats')).content;
@@ -21306,26 +21650,83 @@ const shareMain = (purpose, target = null) =>
     baStats.videoCount === 0 || baSum === baStats.photoCount,
     `${baSum} / ${baStats.photoCount} / ${baStats.videoCount}`);
 
-  /* ---- DER SCHALTER ---- */
-  check('Der Schalter steht in den Einstellungen und ist an',
-    (await call('GET', '/api/settings')).content.convertImages === true,
-    JSON.stringify((await call('GET', '/api/settings')).content.convertImages));
-  const baOut = await call('PUT', '/api/settings', { convertImages: false });
-  check('Er lässt sich ausschalten', baOut.status === 200 &&
-    baOut.content && baOut.content.convertImages === false,
-    JSON.stringify(baOut.content && baOut.content.convertImages));
-  const outDetail = await loadImage(ba.id, 'aus.png', 'image/png', templatePNG);
-  const outPhotoB = lastPhoto(outDetail);
-  /* AUS HEISST AUS: byte-genau, nicht „fast unveraendert". Das ist die
+  /* ---- DIE WAHL: ZUSAGE 4, ZUSAGE 5 UND ZUSAGE 8 ----
+     BIS 0.26.0 STAND HIER EIN SCHALTER MIT ZWEI STELLUNGEN. Seit 0.27.0 sind
+     es drei Verfahren, und die Zusage ist eine andere geworden: storeImage()
+     LIEST die Wahl, statt sie zu kennen.
+
+     GEMESSEN WIRD AN DREIMAL DEMSELBEN BILD. Das ist der Kern von Zusage 4 --
+     eine Probe, die nur EIN Verfahren anfasst, bliebe auch dann gruen, wenn
+     die Wahl wieder fest verdrahtet waere. Dieselbe Vorlage, drei Stellungen,
+     drei verschiedene Ergebnisse. */
+  const stored = {};
+  for (const method of ['png', 'webp-lossless', 'webp-lossy']) {
+    const set = await call('PUT', '/api/settings', { imageStore: method });
+    check(`Die Wahl steht auf „${method}"`,
+      set.status === 200 && set.content?.imageStore === method,
+      `Status ${set.status}: ${JSON.stringify(set.content?.imageStore)}`);
+    const one = lastPhoto(await loadImage(ba.id, `${method}.png`, 'image/png', templatePNG));
+    const raw = (await imageRaw(one.id)).bytes;
+    stored[method] = { mime: one.mime_type, bytes: raw };
+  }
+  /* „PNG" HEISST BYTE-GENAU UND NICHT „fast unveraendert". Das ist die
      Stellung, die dem Verhalten von Immich, Nextcloud und Piwigo entspricht --
      wer die Abweichung nicht mitgehen will, hat sie hier. */
-  check('Ausgeschaltet bleibt ein ankommendes PNG byte-genau PNG',
-    outPhotoB.mime_type === 'image/png' &&
-    (await imageRaw(outPhotoB.id)).bytes.equals(templatePNG),
-    outPhotoB.mime_type);
-  await call('PUT', '/api/settings', { convertImages: true });
-  check('Und er lässt sich wieder einschalten',
-    (await call('GET', '/api/settings')).content.convertImages === true);
+  check('„PNG" laesst ein ankommendes PNG byte-genau PNG',
+    stored['png'].mime === 'image/png' && stored['png'].bytes.equals(templatePNG),
+    stored['png'].mime);
+  check('„WebP verlustfrei" macht ein WebP daraus',
+    stored['webp-lossless'].mime === 'image/webp' && isWebpBytes(stored['webp-lossless'].bytes),
+    stored['webp-lossless'].mime);
+  check('„WebP verlustbehaftet" ebenfalls',
+    stored['webp-lossy'].mime === 'image/webp' && isWebpBytes(stored['webp-lossy'].bytes),
+    stored['webp-lossy'].mime);
+  /* UND DIE DREI SIND WIRKLICH DREI. Ohne diese Zeile bliebe gruen, wer beide
+     WebP-Wege durch denselben Kodierer schickt -- der Typ waere derselbe, das
+     Bild ein anderes, und niemand saehe es. GEMESSEN WIRD AN DEN BYTES und
+     nicht an einer Zahl: welches Verfahren an welchem Bild gewinnt, haengt am
+     Bild, aber DASSELBE koennen zwei verschiedene Verfahren nicht liefern. */
+  check('Und dreimal dasselbe Bild ergibt dreimal ein anderes Ergebnis',
+    !stored['png'].bytes.equals(stored['webp-lossless'].bytes) &&
+    !stored['png'].bytes.equals(stored['webp-lossy'].bytes) &&
+    !stored['webp-lossless'].bytes.equals(stored['webp-lossy'].bytes),
+    `${stored['png'].bytes.length} · ${stored['webp-lossless'].bytes.length} · ` +
+    `${stored['webp-lossy'].bytes.length}`);
+  /* ZUSAGE 5: DIE GROESSENPRUEFUNG GILT IN JEDEM VERFAHREN -- auch im
+     verlustbehafteten. Sie ist Rueckbau 433, und sie ist hier SCHAERFER
+     gebraucht als am verlustfreien Weg: an einem Bild mit wenigen Farben und
+     harten Kanten liegt q90 gemessen ueber dem PNG-Umfang derselben Vorlage.
+     GEPRUEFT WIRD AN DER TATSACHE UND NICHT AN EINER ZAHL: was in der Tabelle
+     liegt, ist nie groesser als das, was hereinkam -- in keinem der drei. */
+  for (const method of ['png', 'webp-lossless', 'webp-lossy']) {
+    check(`In „${method}" ist das Abgelegte nie groesser als die Vorlage`,
+      stored[method].bytes.length <= templatePNG.length,
+      `${stored[method].bytes.length} gegen ${templatePNG.length}`);
+  }
+  /* ZUSAGE 8: UMSCHALTEN ALLEIN RUEHRT DEN BESTAND NICHT AN (F5).
+     Wer die Wahl probiert, soll nicht 500 MB umkodiert bekommen. GEMESSEN AM
+     SCHON ABGELEGTEN BILD: es steht in der Stellung, in der es hereinkam, und
+     bleibt darin, waehrend die Wahl zweimal wechselt. */
+  const untouchedId = lastPhoto(await loadImage(ba.id, 'stillstand.png', 'image/png', templatePNG)).id;
+  const untouchedBefore = (await imageRaw(untouchedId)).bytes;
+  const pngBefore = formatNumber((await call('GET', '/api/stats')).content, 'png');
+  for (const method of ['png', 'webp-lossy', 'webp-lossless']) {
+    await call('PUT', '/api/settings', { imageStore: method });
+    /* KEIN WARTEN DAZWISCHEN, UND DAS IST DIE PROBE: liefe ein Lauf am
+       Umschalten mit, staende er JETZT in den Kennzahlen. */
+    const st = (await call('GET', '/api/stats')).content;
+    check(`Das Umschalten auf „${method}" startet keinen Lauf`,
+      !(st && st.conversion && st.conversion.running),
+      JSON.stringify(st && st.conversion));
+  }
+  check('Und das schon abgelegte Bild ist dabei byte-genau dasselbe geblieben',
+    (await imageRaw(untouchedId)).bytes.equals(untouchedBefore));
+  check('Und die Aufstellung nach Format hat sich nicht verschoben',
+    formatNumber((await call('GET', '/api/stats')).content, 'png') === pngBefore,
+    `${formatNumber((await call('GET', '/api/stats')).content, 'png')} gegen ${pngBefore}`);
+  await call('PUT', '/api/settings', { imageStore: 'webp-lossless' });
+  check('Und die Wahl laesst sich wieder auf die Vorgabe stellen',
+    (await call('GET', '/api/settings')).content.imageStore === 'webp-lossless');
 
   /* ---- DER IMPORT WANDELT AUSDRÜCKLICH NICHT UM ----
      Begruendet: der Import ist EIN Aufruf ueber den ganzen Bestand und
@@ -21363,9 +21764,24 @@ const shareMain = (purpose, target = null) =>
      HTTP-Verbindung sind das, was beim Import ausdruecklich vermieden wird. */
   check('Die Umstellung kehrt sofort zurück (202)', run.status === 202,
     `Status ${run.status}: ${JSON.stringify(run.content)}`);
-  check('Und nennt dabei, wie viele Bilder sie vorhat',
-    !!run.content && run.content.running === true && run.content.total === vorPNG,
-    JSON.stringify(run.content));
+  /* UND NENNT DABEI, WIE VIELE ZEILEN SIE ANSIEHT -- 0.27.0, und die Zahl ist
+     eine andere geworden. Bis 0.26.0 war `total` die Zahl der offenen PNG; der
+     Lauf fasste genau die an. Seit dieser Runde stellt er ZWEI Fragen je Zeile
+     (Original und Ableitung), und die zweite laesst sich in SQL nicht bezahlen
+     -- er sieht deshalb JEDE Fotozeile an. `total` heisst damit „angesehen"
+     und nicht „umgestellt"; was wirklich geschehen ist, zaehlen `converted`
+     und `derived`.
+     GEPRUEFT GEGEN DIE ZAHL DER FOTOZEILEN und nicht gegen eine feste Zahl:
+     der Lauf steht mitten in einer Prueflage, die vor ihm Bilder anlegt. */
+  const photoRowsNow = (await call('GET', '/api/stats')).content?.photoCount;
+  check('Und nennt dabei, wie viele Zeilen sie ansieht',
+    !!run.content && run.content.running === true && run.content.total === photoRowsNow,
+    `${JSON.stringify(run.content)} gegen photoCount ${photoRowsNow}`);
+  /* UND ES SIND MEHR ALS DIE OFFENEN PNG. Ohne diese Zeile bliebe gruen, wer
+     die Auswahl wieder auf die PNG einengt und damit die Ableitungen der
+     uebrigen Zeilen nie anfasst -- die halbe Zusage 7. */
+  check('Und das sind mehr Zeilen als die offenen PNG',
+    run.content.total > vorPNG, `${run.content.total} gegen ${vorPNG} PNG`);
   /* ZWEIMAL DRUECKEN STARTET NICHT ZWEIMAL. Eine Absage ist ehrlicher als
      eine zweite Schleife, die dem gemeldeten Fortschritt die Grundlage
      entzieht. */
@@ -21392,11 +21808,19 @@ const shareMain = (purpose, target = null) =>
     baStatus && baStatus.done === baStatus.total, JSON.stringify(baStatus));
   const afterStats = (await call('GET', '/api/stats')).content;
   /* DAS ZU BREITE PNG BLEIBT LIEGEN -- WebP kann es nicht fassen. Der Lauf
-     zaehlt es als „geblieben" und laesst es in Ruhe; „kein PNG mehr da" waere
-     an dieser Instanz also die FALSCHE Zusage. */
-  check('Nach dem Lauf bleibt genau das PNG liegen, das WebP nicht fassen kann',
-    formatNumber(afterStats, 'png') === status.stayed,
-    `${formatNumber(afterStats, 'png')} gegen ${status.stayed}`);
+     laesst es in Ruhe; „kein PNG mehr da" waere an dieser Instanz also die
+     FALSCHE Zusage.
+     GEZAEHLT WIRD ES SEIT 0.27.0 NICHT MEHR ALS `stayed`, und das ist kein
+     Zufall: `stayed` heisst jetzt „an dieser ZEILE war nichts zu tun", und an
+     der Zeile des zu breiten PNG war sehr wohl etwas zu tun -- ihre
+     Ableitungen sind neu gerechnet worden. Die beiden Zahlen sind
+     auseinandergegangen, weil der Lauf zwei Dinge tut. GEPRUEFT WIRD DESHALB
+     DIE SACHE SELBST: es liegt hoechstens das eine PNG da, das nicht kann.
+     Die falsch benannte Zeile (JPEG-Bytes unter image/png) kommt spaeter
+     dazu -- hier gibt es sie noch nicht. */
+  check('Nach dem Lauf bleibt genau das eine PNG liegen, das WebP nicht fassen kann',
+    formatNumber(afterStats, 'png') === 1,
+    `${formatNumber(afterStats, 'png')} PNG uebrig, Lauf: ${JSON.stringify(status)}`);
   check('Und der Lauf hat wirklich etwas umgestellt', status.converted > 0,
     JSON.stringify(status));
   check('Und dabei Platz gespart', status.freed > 0, JSON.stringify(status));
@@ -21412,11 +21836,80 @@ const shareMain = (purpose, target = null) =>
   check('Und dabei unversehrt geblieben',
     afterBytes.length > 0 && (await largestDeviation(templatePNG, afterBytes)) <= 2,
     `${afterBytes.length} Bytes`);
-  /* thumb UND medium WERDEN NICHT NEU GERECHNET. Sie sind aus demselben Bild
-     entstanden und bleiben gueltig; ein Neurechnen kostete Zeit und aenderte
-     nichts. */
-  check('Die Ableitungen sind dabei unberührt geblieben',
-    (await imageRaw(afterPhoto.id, '?size=thumb')).bytes.slice(0, 2).toString('hex') === 'ffd8');
+  /* ---- ZUSAGE 7: DER LAUF ZIEHT ORIGINALE UND ABLEITUNGEN ----
+     BIS 0.26.0 STAND HIER DAS GEGENTEIL: „thumb und medium werden NICHT neu
+     gerechnet -- sie sind aus demselben Bild entstanden und bleiben gueltig."
+     DAS GALT, SOLANGE BEIDE JPEG WAREN (Stolperstein 201: der Satz ist
+     umgedreht, nicht geloescht). Seit 0.27.0 sind die Ableitungen WebP, und
+     eine JPEG-Ableitung ist damit genau das, was der Lauf nachzuziehen hat.
+     GEPRUEFT AM EINGESPIELTEN BILD: der Import rechnet seine Ableitungen mit
+     der Fassung, die gerade laeuft -- die Zeile ist also nicht der Beweis
+     allein. Deshalb steht darunter die Probe an einer Zeile, deren Ableitung
+     von Hand auf JPEG gesetzt wurde. */
+  check('Die Ableitungen sind danach WebP', isWebpBytes(
+    (await imageRaw(afterPhoto.id, '?size=thumb')).bytes));
+  /* UND DAS IST DIE EIGENTLICHE PROBE: eine Zeile, deren Ableitungen
+     ausdruecklich JPEG sind -- so, wie eine Instanz aus 0.26.0 sie traegt.
+     VON HAND IN DIE DATENBANK GESCHRIEBEN und nicht ueber den Server erzeugt:
+     der Server dieser Fassung KANN kein JPEG mehr ableiten, und eine Probe,
+     die den Altbestand nicht nachstellt, prueft die Migration nicht.
+     BEIDE SPALTEN, denn der Lauf fragt beide -- und er rechnet beide neu. */
+  {
+    /* DIE JPEG-ABLEITUNGEN WERDEN HIER GEBAUT UND NICHT VOM SERVER GEHOLT --
+       der KANN seit dieser Runde keine mehr. Dieselbe Kiste wie makeVariants()
+       sie nimmt, damit die Zeile aussieht wie eine aus 0.26.0 und nicht wie
+       ein Fremdkoerper. */
+    const asJpeg = (short) => sharp(templatePNG)
+      .resize(short, short, { fit: 'inside', withoutEnlargement: true })
+      .jpeg({ quality: 80, mozjpeg: true }).toBuffer();
+    const jpegThumb = await asJpeg(512);
+    const jpegMedium = await asJpeg(1600);
+    const oldRow = lastPhoto(await loadImage(ba.id, 'altbestand.png', 'image/png', templatePNG));
+    /* GESCHRIEBEN WIRD AN DER DATENBANK VORBEI AM SERVER, und das ist hier
+       richtig: es gibt keinen Weg durch die Schnittstelle, der eine
+       JPEG-Ableitung erzeugt -- genau deshalb ist es ein ALTBESTAND. Die
+       Verbindung wird sofort wieder geschlossen; zwei Schreiber auf einer
+       WAL-Datei sind nachgemessen (siehe batchrun.js), aber offen bleiben
+       muss deshalb keiner. */
+    {
+      const d2 = open(path.join(DATA, 'katalog.sqlite'));
+      d2.prepare('UPDATE photos SET thumb = ?, medium = ? WHERE id = ?')
+        .run(jpegThumb, jpegMedium, oldRow.id);
+      d2.close();
+    }
+    check('Eine Zeile traegt jetzt JPEG-Ableitungen wie aus 0.26.0',
+      (await imageRaw(oldRow.id, '?size=thumb')).bytes.slice(0, 2).toString('hex') === 'ffd8' &&
+      (await imageRaw(oldRow.id, '?size=medium')).bytes.slice(0, 2).toString('hex') === 'ffd8');
+    /* UND IHR ORIGINAL IST SCHON WEBP -- die erste Haelfte hat an ihr also
+       nichts zu tun. Genau das macht sie zur Probe fuer die ZWEITE: ein Lauf,
+       der nur Originale anfasst, laesst sie unveraendert. */
+    check('Und ihr Original ist schon WebP -- die erste Haelfte hat nichts zu tun',
+      isWebpBytes((await imageRaw(oldRow.id)).bytes));
+    const catchUp = await callF('POST', '/api/images/convert', {});
+    check('Der Lauf startet auch ohne ein einziges offenes PNG', catchUp.status === 202,
+      `Status ${catchUp.status}: ${JSON.stringify(catchUp.content)}`);
+    let s2 = null;
+    for (let i = 0; i < 400; i++) {
+      const st = (await call('GET', '/api/stats')).content;
+      s2 = (st && st.conversion) || null;
+      if (s2 && !s2.running) break;
+      await new Promise(r => setTimeout(r, 50));
+    }
+    check('Und er laeuft aus', s2 && s2.running === false, JSON.stringify(s2));
+    check('Er hat mindestens ein Ableitungspaar neu gerechnet',
+      s2 && s2.derived >= 1, JSON.stringify(s2));
+    check('Und die JPEG-Ableitungen sind danach WebP -- beide',
+      isWebpBytes((await imageRaw(oldRow.id, '?size=thumb')).bytes) &&
+      isWebpBytes((await imageRaw(oldRow.id, '?size=medium')).bytes),
+      (await imageRaw(oldRow.id, '?size=thumb')).bytes.slice(0, 12).toString('hex'));
+    /* UND DAS ORIGINAL DIESER ZEILE IST DABEI BYTE-GENAU DASSELBE GEBLIEBEN.
+       Ohne diese Zeile bliebe gruen, wer das schon umgestellte Original zur
+       Sicherheit noch einmal durch den Kodierer schickt -- eine zweite Runde
+       ueber dieselben Bildpunkte, die niemand bestellt hat. */
+    check('Und das Original ist dabei byte-genau dasselbe geblieben',
+      (await imageRaw(oldRow.id)).bytes.equals((await imageRaw(oldRow.id)).bytes) &&
+      isWebpBytes((await imageRaw(oldRow.id)).bytes));
+  }
   check('JPEG und GIF haben den Lauf unverändert überstanden',
     (await imageRaw(jpegPhoto.id)).bytes.equals(jpegTemplate) &&
     (await imageRaw(gifPhoto.id)).bytes.equals(gifTemplate));
@@ -21458,21 +21951,39 @@ const shareMain = (purpose, target = null) =>
       formatNumber(afterWrong, 'jpeg') === jpegVor,
       `png ${pngVor} -> ${formatNumber(afterWrong, 'png')}, ` +
       `jpeg ${jpegVor} -> ${formatNumber(afterWrong, 'jpeg')}`);
-    /* UND DER KNOPF NIMMT ES NICHT MIT. `gesamt` ist die Zahl der Zeilen, die
-       qOffenePNG am INHALT gefunden hat -- die falsch benannte ist nicht
-       darunter. Uebrig bleibt genau das zu breite PNG, das WebP nicht fassen
-       kann und das jeder Lauf wieder liegen laesst. */
-    const lauf2 = await callF('POST', '/api/images/convert', {});
-    check('Der Knopf nimmt es dagegen nicht mit — er sucht am Inhalt',
-      lauf2.status === 202 && lauf2.content && lauf2.content.total === status.stayed,
-      `${JSON.stringify(lauf2.content)} gegen geblieben ${status.stayed}`);
+    /* UND DER KNOPF FASST SIE NICHT AN -- ER SIEHT IN DIE BYTES.
+       DIE PROBE IST MIT 0.27.0 EINE ANDERE GEWORDEN, und der Grund gehoert
+       hierher: bis 0.26.0 stand sie an `total`. Der Lauf waehlte am INHALT
+       aus, die falsch benannte Zeile war nicht in der Auswahl, und `total`
+       bewies das. Seit dieser Runde waehlt er GROSSZUEGIG aus (jede
+       Fotozeile) -- sie ist also sehr wohl in der Auswahl, und `total` sagt
+       darueber nichts mehr.
+       DIE ZUSAGE IST DESHALB AN DIE SACHE GERUECKT: die Zeile wird ANGESEHEN
+       und NICHT ANGEFASST. Das ist dieselbe Aussage wie vorher, nur eine
+       Stufe spaeter geprueft -- und die schaerfere: sie haengt am Ergebnis
+       und nicht mehr an einer Zahl, die man auch anders erzeugen koennte. */
+    const before2 = (await imageRaw(wrongPhoto.id)).bytes;
+    const run2 = await callF('POST', '/api/images/convert', {});
+    check('Der Lauf sieht auch die falsch benannte Zeile an',
+      run2.status === 202 && run2.content && run2.content.total >= 1,
+      JSON.stringify(run2.content));
+    let s3 = null;
     for (let i = 0; i < 400; i++) {
       const st = (await call('GET', '/api/stats')).content;
-      if (st && st.conversion && !st.conversion.running) break;
+      s3 = (st && st.conversion) || null;
+      if (s3 && !s3.running) break;
       await new Promise(r => setTimeout(r, 50));
     }
+    check('Und er laeuft aus', s3 && s3.running === false, JSON.stringify(s3));
     check('Und die falsch benannte Zeile liegt danach unverändert da',
-      (await imageRaw(wrongPhoto.id)).bytes.equals(jpegTemplate));
+      (await imageRaw(wrongPhoto.id)).bytes.equals(jpegTemplate) &&
+      before2.equals(jpegTemplate));
+    /* UND IHRE SPALTE LUEGT WEITER, und das ist richtig so: sie sagt, was der
+       Hochladende gemeldet hat. Ein Lauf, der sie „berichtigte", schriebe eine
+       Aussage um, die nie seine war. */
+    check('Und die Karte zaehlt sie weiterhin als PNG',
+      formatNumber((await call('GET', '/api/stats')).content, 'png') === pngVor + 1,
+      `${formatNumber((await call('GET', '/api/stats')).content, 'png')} gegen ${pngVor + 1}`);
   }
 
   /* ---- WORAUS DIE ABFRAGEN DER BESTANDSKARTE GEBAUT SIND — 0.19.1
@@ -21587,12 +22098,33 @@ const shareMain = (purpose, target = null) =>
       !/PHOTO_COLUMNS = '[^']*thumb/.test(oneLine) &&
       oneLine.includes('const qAllPhotos = db.prepare(`SELECT ${PHOTO_COLUMNS}, ${PHOTO_VERSION} FROM photos'),
       (oneLine.match(/const PHOTO_VERSION = [^;]*/) || ['(nicht gefunden)'])[0]);
-    /* DER KNOPF DAGEGEN SUCHT WEITER AM INHALT -- er laeuft nur auf Verlangen.
-       Ohne diese Zeile bliebe gruen, wer beide auf die Spalte umstellt, und
-       dann schriebe der Lauf Zeilen um, die gar keine PNG sind. */
-    check('Der Knopf sucht dagegen weiter am Inhalt',
-      /qOpenPng = db\.prepare\([\s\S]{0,200}?hex\(substr\(data,1,8\)\)/.test(serverSource),
-      (serverSource.match(/qOpenPng = db\.prepare\([\s\S]{0,200}/) || [''])[0]);
+    /* DER KNOPF WAEHLT SEIT 0.27.0 GROSSZUEGIG AUS -- und die Zusage ist
+       mitgegangen statt geloescht zu werden (Stolperstein 201).
+       BIS 0.26.0 HIESS SIE: „Der Knopf sucht am INHALT" (`hex(substr(data,1,8))`),
+       damit er keine Zeile umschreibt, die gar kein PNG ist. Die SACHE gilt
+       unveraendert -- die Probe darauf steht jetzt am Ergebnis, an der falsch
+       benannten Zeile weiter oben. WAS SICH GEAENDERT HAT, ist der Ort der
+       Frage: der Lauf stellt seit dieser Runde zwei Fragen je Zeile, und die
+       zweite (ist die Ableitung noch JPEG?) kostet in SQL die 1338-ms-Klasse,
+       weil `thumb` hinter `data` steht. Er waehlt deshalb jede Fotozeile aus
+       und fragt im Thread nach den Bytes.
+       HIER STEHT DAMIT DAS, WAS AM TEXT ZU HALTEN IST: die Auswahl fragt
+       NICHT mehr nach dem Blob-Inhalt (das waere der teure Weg im
+       Haupt-Thread), und sie laesst die Videos ausdruecklich aus. */
+    check('Die Auswahl des Knopfs liest keinen Blob-Inhalt mehr',
+      /qConvertRows = db\.prepare\(\s*"SELECT id FROM photos WHERE kind != 'video'"\);/.test(oneLine.replace(/\s+/g, ' ')) ||
+      /qConvertRows = db\.prepare\([\s\S]{0,200}?SELECT id FROM photos WHERE kind != 'video'\"\);/.test(serverSource),
+      (serverSource.match(/qConvertRows = db\.prepare\([\s\S]{0,200}/) || ['(nicht gefunden)'])[0]);
+    check('Und sie nennt kein hex(substr(...)) mehr',
+      !/qConvertRows = db\.prepare\([\s\S]{0,200}?hex\(substr/.test(serverSource),
+      (serverSource.match(/qConvertRows = db\.prepare\([\s\S]{0,200}/) || [''])[0]);
+    /* UND DIE FRAGE NACH DEN BYTES STEHT IM THREAD. Ohne diese Zeile bliebe
+       gruen, wer die Auswahl weitet und die Pruefung dabei vergisst -- dann
+       rechnete der Lauf jede Ableitung neu, bei jedem Druck. */
+    const batchSource = fs.readFileSync(path.join(__dirname, 'batchrun.js'), 'utf8');
+    check('Der Thread fragt die Ableitung an ihren ersten Bytes',
+      /const isJpeg = \(b\) =>[\s\S]{0,160}?0xff[\s\S]{0,40}?0xd8[\s\S]{0,40}?0xff/.test(batchSource),
+      (batchSource.match(/const isJpeg = [^\n]*/) || ['(nicht gefunden)'])[0]);
     /* DIE ZUORDNUNG mime_type -> SCHLUESSEL STEHT AN EINER STELLE. Zwei
        Tabellen ueber dieselbe Sache duerfen sich nicht widersprechen
        (Stolperstein 47) -- die Oberflaeche kennt nur noch Schluessel und Namen. */
@@ -21779,10 +22311,34 @@ const shareMain = (purpose, target = null) =>
        ob geschnitten wird. Auch die steht in der Tafel und nicht als
        `if (name === 'thumb')` in der Schleife. */
     const quGeoImages = fs.readFileSync(path.join(__dirname, 'images.js'), 'utf8');
+    /* DIE GUETEZAHLEN SIND MIT 0.27.0 NEUE -- 82 statt 78 und 78 statt 84.
+       Sie heissen seither WebP-Guete und nicht mehr JPEG-Guete, und dieselbe
+       Zahl bedeutet in den beiden Verfahren NICHT dasselbe: WebP q84 macht
+       `medium` an einem Foto gemessen um 49,3 % GROESSER als JPEG q84. Wer die
+       alten Zahlen stehen liesse, machte die Datenbank groesser und hielte es
+       fuer eine Ersparnis. Die Herleitung mit allen drei Bildarten steht ueber
+       der Tafel in images.js. */
     check('Die Tafel nennt jeder Ableitung ihre Kiste aus kurzer und langer Kante',
-      /thumb:\s*\{ short: 512,\s*long: 1280, q: 78, crops: true\s*\}/.test(quGeoImages) &&
-      /medium:\s*\{ short: 1600, long: 1600, q: 84, crops: false \}/.test(quGeoImages),
+      /thumb:\s*\{ short: 512,\s*long: 1280, q: 82, crops: true\s*\}/.test(quGeoImages) &&
+      /medium:\s*\{ short: 1600, long: 1600, q: 78, crops: false \}/.test(quGeoImages),
       (quGeoImages.match(/const VARIANTS = \{[\s\S]{0,180}/) || ['(nicht gefunden)'])[0]);
+    /* UND DIE ABLEITUNG WIRD MIT DIESER ZAHL ALS WEBP KODIERT. Ohne diese
+       Zeile bliebe die Tafel gruen, waehrend die Schleife weiter `.jpeg()`
+       ruft -- die Zahl staende richtig da und bedeutete etwas anderes. */
+    check('Und die Schleife kodiert damit WebP und nicht JPEG',
+      /\.webp\(variantWebp\(v\.q\)\)\.toBuffer\(\)/.test(quGeoImages) &&
+      !/\.jpeg\(/.test(quGeoImages),
+      (quGeoImages.match(/out\[name\] = await[\s\S]{0,220}/) || ['(nicht gefunden)'])[0]);
+    /* UND DAS KOMMENTARBILD HOLT SEINE GUETE AUS DERSELBEN TAFEL. Zwei
+       Tafeln ueber dieselbe Frage liefen beim naechsten Anfassen auseinander
+       (Stolperstein 47) -- bis 0.26.0 standen 84 und 78 ein zweites Mal in
+       server.js, zufaellig dieselben Zahlen. */
+    const quGeoServer = fs.readFileSync(path.join(__dirname, 'server.js'), 'utf8');
+    check('Das Kommentarbild holt seine Guete aus VARIANTS',
+      /quality: VARIANTS\.medium\.q/.test(quGeoServer) &&
+      /quality: VARIANTS\.thumb\.q/.test(quGeoServer) &&
+      !/mozjpeg/.test(quGeoServer),
+      (quGeoServer.match(/async function encodeCommentImage[\s\S]{0,400}/) || ['(nicht gefunden)'])[0].slice(0, 260));
     check('Und die Schleife wählt ohne Verzweigung je Ableitung',
       /const cropped = v\.crops && cropRect;/.test(quGeoImages) &&
       !/if \([^)]*name === 'thumb'/.test(quGeoImages),
@@ -22369,9 +22925,16 @@ const shareMain = (purpose, target = null) =>
     return { status: a2.status, h: Object.fromEntries(a2.headers), bytes: Buffer.from(await a2.arrayBuffer()) };
   };
   const raw = await bResponse(bild1.id);
-  check('Kommentarbild wird als JPEG ausgeliefert', raw.h['content-type'] === 'image/jpeg', raw.h['content-type']);
+  /* SEIT 0.27.0 IST AUCH DAS KOMMENTARBILD WEBP. Es ist dieselbe Frage wie am
+     Foto -- was man in der Anwendung ansieht, ist die Ableitung --, und die
+     meisten Bilder fallen genau hier an.
+     „NEU KODIERT, NICHT DURCHGEREICHT" BLEIBT DIE ZUSAGE, nur mit anderen
+     Bytes: hereingekommen ist ein PNG, herausgekommen ist WebP. Eine als .png
+     getarnte HTML-Datei kaeme damit gar nicht erst in die Datenbank. */
+  check('Kommentarbild wird als WebP ausgeliefert', raw.h['content-type'] === 'image/webp', raw.h['content-type']);
   check('Es wird neu kodiert, nicht durchgereicht',
-    raw.bytes.slice(0, 2).toString('hex') === 'ffd8', raw.bytes.slice(0, 4).toString('hex'));
+    raw.bytes.slice(0, 4).toString('latin1') === 'RIFF' &&
+    raw.bytes.slice(8, 12).toString('latin1') === 'WEBP', raw.bytes.slice(0, 12).toString('hex'));
   check('Auch hier gilt die Sicherheitsregel',
     /default-src 'none'/.test(raw.h['content-security-policy'] || '') &&
     raw.h['x-content-type-options'] === 'nosniff');
@@ -22650,10 +23213,16 @@ const shareMain = (purpose, target = null) =>
   check('Das Foto darf kein Skript ausfuehren',
     !/allow-scripts/.test(fPng.h['content-security-policy'] || ''), fPng.h['content-security-policy']);
   const fThumb = await fResponse(foAfter.photos[0].id, '?size=thumb');
-  check('Das Vorschaubild kommt als JPEG', fThumb.h['content-type'] === 'image/jpeg',
+  /* SEIT 0.27.0 KOMMT DIE ABLEITUNG ALS WEBP -- bis 0.26.0 stand hier JPEG.
+     Die Auslieferung selbst hat sich dabei nicht geaendert: sie liest den Typ
+     aus den ersten Bytes und hat WebP immer gekonnt. Was sich geaendert hat,
+     ist das, was makeVariants() hineinschreibt. */
+  check('Das Vorschaubild kommt als WebP', fThumb.h['content-type'] === 'image/webp',
     fThumb.h['content-type']);
-  check('Und es sind wirklich JPEG-Bytes', fThumb.bytes.slice(0, 2).toString('hex') === 'ffd8',
-    fThumb.bytes.slice(0, 4).toString('hex'));
+  check('Und es sind wirklich WebP-Bytes',
+    fThumb.bytes.slice(0, 4).toString('latin1') === 'RIFF' &&
+    fThumb.bytes.slice(8, 12).toString('latin1') === 'WEBP',
+    fThumb.bytes.slice(0, 12).toString('hex'));
 
   /* BESTANDSDATEN. Eine SVG, die vor dieser Version hereinkam: an der
      Hochladepruefung vorbei direkt in die Tabelle, mit genau dem gemeldeten
@@ -22994,12 +23563,20 @@ const shareMain = (purpose, target = null) =>
   /* MIT GROESSE DAS STANDBILD, OHNE GROESSE DIE VIDEODATEI. Dieselbe Zeile,
      zwei verschiedene Blobs -- und der Erkenner sieht das den Bytes an, ohne
      dass die Route etwas unterscheiden muesste. */
+  /* DAS STANDBILD IST SEIT 0.27.0 EBENFALLS WEBP -- und das ist eine Folge
+     und keine Entscheidung dieser Zeile: der Browser schickt es als JPEG, und
+     der Server rechnet daraus mit makeVariants() `thumb` und `medium`. Die
+     Ableitung folgt damit derselben Tafel wie am Foto.
+     WAS AUSDRUECKLICH NICHT PASSIERT: der Server oeffnet das VIDEO nicht. Die
+     Videodatei kommt weiterhin bytegleich heraus -- zwei Zeilen weiter oben
+     steht die Probe darauf. */
   for (const filesize of ['thumb', 'medium']) {
     const s2 = vMp4Id ? await vResponse(vMp4Id, `?size=${filesize}`) : vEmpty;
     check(`size=${filesize} an einer Videozeile liefert ein Bild`,
-      s2.h['content-type'] === 'image/jpeg', s2.h['content-type']);
-    check(`Und es sind wirklich JPEG-Bytes (${filesize})`,
-      s2.bytes.slice(0, 2).toString('hex') === 'ffd8', s2.bytes.slice(0, 4).toString('hex'));
+      s2.h['content-type'] === 'image/webp', s2.h['content-type']);
+    check(`Und es sind wirklich WebP-Bytes (${filesize})`,
+      s2.bytes.slice(0, 4).toString('latin1') === 'RIFF' &&
+      s2.bytes.slice(8, 12).toString('latin1') === 'WEBP', s2.bytes.slice(0, 12).toString('hex'));
   }
 
   /* BEREICHE. Ohne sie kann der Browser im Video nicht springen, und manche
@@ -38447,22 +39024,61 @@ async function checkUi() {
        eine Aussage, und sie lenkt von den beiden Zahlen ab, um die es geht. */
     check('Ein Format ohne Bilder steht gar nicht da',
       !baRows(kEig).some(z => z.startsWith('GIF')), baRows(kEig).join(' · '));
-    /* UMGEDREHT MIT 0.22.0 (Anlage F): der Zusatz am PNG haengt am Schalter --
-       „wird beim Upload zu WebP" steht nur bei eingeschalteter Umwandlung --,
-       und JPEG „bleibt unverändert". */
-    const baToggleAn = !!kEig?.querySelector('#convert-images')?.checked;
-    check('Und PNG traegt den Zusatz genau dann, wenn der Schalter an ist — 0.22.0',
-      baRows(kEig).some(z => /^PNG/.test(z) && /wird beim Upload zu WebP/.test(z) === baToggleAn),
-      `Schalter ${baToggleAn ? 'an' : 'aus'}: ` + baRows(kEig).join(' · '));
+    /* UMGEDREHT MIT 0.22.0 (Anlage F): der Zusatz am PNG haengt an der Wahl --
+       „wird beim Upload zu WebP" steht nur, wenn ueberhaupt umkodiert wird --,
+       und JPEG „bleibt unverändert".
+       SEIT 0.27.0 HAENGT ER AN DREI STELLUNGEN STATT AN ZWEIEN: bei „PNG"
+       bleibt jedes PNG, wie es hereinkam, bei den beiden WebP-Wegen nicht. */
+    const baPicked = kEig?.querySelector('.engine .sdefault.on')
+      ?.closest('.engine')?.getAttribute('data-store');
+    check('Und PNG traegt den Zusatz genau dann, wenn umkodiert wird — 0.22.0',
+      baRows(kEig).some(z => /^PNG/.test(z) &&
+        /wird beim Upload zu WebP/.test(z) === (baPicked !== 'png')),
+      `Wahl ${baPicked}: ` + baRows(kEig).join(' · '));
     check('Und JPEG den, dass es unveraendert bleibt — 0.22.0',
       baRows(kEig).some(z => /^JPEG.*bleibt unverändert/.test(z)), baRows(kEig).join(' · '));
 
-    const checkbox = baEig.w.document.getElementById('convert-images');
-    check('Die Eigentuemerin bekommt den Schalter', !!checkbox);
-    check('Und er steht auf der Stellung aus der Antwort', !!checkbox && checkbox.checked === true);
+    /* ---- ZUSAGE 9: DIE KARTE ZEIGT DREI VERFAHREN UND NENNT DIE AUFLAGE ----
+       BIS 0.26.0 STAND HIER EIN HAEKCHEN. Seit 0.27.0 sind es drei Zeilen mit
+       je einem Knopf „Standard" -- dieselbe Bauform wie „Suchanbieter" und
+       „Sprachen", denn die Oberflaeche hat fuer „eines von mehreren ist der
+       Standard" genau eine Gestalt, und sie steht dort schon zweimal. */
+    const storeRows = [...(baEig.w.document.querySelectorAll('.sys-card .engine[data-store]') || [])];
+    check('Die Eigentuemerin bekommt drei Verfahren zur Wahl',
+      storeRows.length === 3, `${storeRows.length} Zeilen: ` +
+      storeRows.map(z => z.getAttribute('data-store')).join(' · '));
+    check('Und es sind genau die drei aus der Antwort',
+      ['png', 'webp-lossless', 'webp-lossy'].every(k =>
+        storeRows.some(z => z.getAttribute('data-store') === k)),
+      storeRows.map(z => z.getAttribute('data-store')).join(' · '));
+    /* JEDE ZEILE TRAEGT EINEN KNOPF „Standard", UND GENAU EINER STEHT AN.
+       Zwei angeschaltete Knoepfe waeren zwei Wahrheiten ueber dieselbe Wahl
+       (Stolperstein 47), keiner waere gar keine. */
+    check('Jede Zeile traegt einen Knopf „Standard"',
+      storeRows.every(z => (z.querySelector('.sdefault')?.textContent || '').trim() === 'Standard'),
+      storeRows.map(z => z.querySelector('.sdefault')?.textContent).join(' · '));
+    const onButtons = storeRows.filter(z => z.querySelector('.sdefault.on'));
+    check('Und genau einer davon steht an', onButtons.length === 1,
+      `${onButtons.length} angeschaltet`);
+    check('Und zwar der, den die Antwort nennt',
+      onButtons[0]?.getAttribute('data-store') === 'webp-lossless',
+      onButtons[0]?.getAttribute('data-store'));
+    /* UND JEDE ZEILE SAGT, WOFUER IHR VERFAHREN GUT IST. Eine Wahl aus drei
+       Namen ohne einen Satz dazu ist eine Wahl ins Blaue. */
+    const storeText = (k) => storeRows.find(z => z.getAttribute('data-store') === k)
+      ?.textContent.replace(/\s+/g, ' ') || '';
+    check('„PNG" sagt, dass nichts umkodiert wird',
+      /nichts wird umkodiert/.test(storeText('png')), storeText('png'));
+    check('„WebP verlustfrei" nennt sich die Vorgabe',
+      /WebP verlustfrei/.test(storeText('webp-lossless')) &&
+      /Vorgabe/.test(storeText('webp-lossless')), storeText('webp-lossless'));
+    check('„WebP verlustbehaftet" nennt die Zwischenablage und die Auflage',
+      /WebP verlustbehaftet/.test(storeText('webp-lossy')) &&
+      /Zwischenablage/.test(storeText('webp-lossy')) &&
+      /Auflage/.test(storeText('webp-lossy')), storeText('webp-lossy'));
     const button = baEig.w.document.getElementById('convert-run');
-    check('Und den Knopf, der den Bestand nachzieht', !!button);
-    check('Der Knopf ist bedienbar, solange PNG dasteht', !!button && !button.disabled);
+    check('Und den Knopf, der den Bestand umstellt', !!button);
+    check('Der Knopf ist bedienbar, solange kein Lauf laeuft', !!button && !button.disabled);
 
     /* WAS DER SCHALTER TUT, STEHT AM SCHALTER -- und zwar vollstaendig: was
        aus einem eingefuegten Bildschirmfoto wird, dass die Guete dabei
@@ -38473,29 +39089,28 @@ async function checkUi() {
        0.22.0 am Bildschirm und wurde von keiner einzigen Zusicherung
        gelesen. */
     const baCardText = (kEig?.textContent || '').replace(/\s+/g, ' ');
-    check('Der Schalter sagt, was aus einem eingefuegten Bildschirmfoto wird',
-      /Eingefügte Screenshots \(PNG\) werden als WebP gespeichert/.test(baCardText),
-      baCardText.slice(0, 300));
-    check('Und dass dabei nichts Sichtbares verloren geht',
-      /etwa zwei Drittel kleiner, ohne sichtbaren Verlust/.test(baCardText),
-      baCardText.slice(0, 300));
-    check('Und welche Formate er gar nicht anfasst',
-      /JPEG, GIF und WebP bleiben unverändert/.test(baCardText), baCardText.slice(0, 300));
-
-    /* DER SCHALTER SCHREIBT WIRKLICH -- und ueber PUT /api/settings, nicht
-       ueber eine eigene Route. Ohne diese Zeile bliebe gruen, wer den Haken
-       zeichnet und nichts damit tut. */
-    baEig.sent.length = 0;
-    if (checkbox) { checkbox.checked = false; await checkbox.onchange(); }
-    const toggleCall = baEig.sent.find(g => g.url === '/api/settings' && g.method === 'PUT');
-    check('Der Schalter geht ueber PUT /api/settings', !!toggleCall,
-      baEig.sent.map(g => `${g.method} ${g.url}`).join(' · '));
-    check('Und schickt genau die eine Stellung',
-      toggleCall && toggleCall.body && toggleCall.body.convertImages === false,
-      JSON.stringify(toggleCall && toggleCall.body));
-    check('Und es gibt keine eigene Route dafuer',
-      !baEig.sent.some(g => /bilder\/(schalter|umwandeln)$/.test(g.url)),
-      baEig.sent.map(g => g.url).join(' · '));
+    /* ZUSAGE 9: DIE KARTE NENNT DIE AUFLAGE. Sie ist der Grund, aus dem es
+       eine WAHL gibt und keine Regel -- und ohne sie waere „verlustbehaftet"
+       ein Knopf, den man einmal drueckt und danach nicht versteht.
+       DREI HAELFTEN, UND JEDE HAELT EINE ANDERE: wofuer das Verfahren gut ist
+       (Fotos), wofuer es GERADE NICHT gut ist (Bildschirmfoto mit Text), und
+       dass die beiden aus den Bytes nicht zu unterscheiden sind.
+       DIESE BAUFORM IST EIN FUND VOM 6. SEPTEMBER 2026: Gegenprobe 485 nahm
+       den Halbsatz „ohne sichtbaren Verlust" heraus und blieb STUMM -- der
+       Satz stand seit 0.22.0 am Bildschirm und wurde von keiner einzigen
+       Zusage gelesen. Deshalb steht hier jede Haelfte einzeln. */
+    check('Die Karte nennt die Auflage: verlustbehaftet lohnt bei Fotos',
+      /Verlustbehaftet lohnt sich nur bei Fotos/.test(baCardText), baCardText.slice(0, 400));
+    check('Und dass es beim Bildschirmfoto mit Text GRÖSSER wird',
+      /Bildschirmfoto mit Text ist es dagegen ein Vielfaches GRÖSSER/.test(baCardText),
+      baCardText.slice(0, 400));
+    check('Und dass die Bytes den Weg des Bildes nicht verraten',
+      /lässt sich seinen Bytes nicht ansehen/.test(baCardText), baCardText.slice(0, 400));
+    /* UND DIE ABLEITUNGEN FOLGEN DER WAHL NICHT (F3). Ohne diesen Satz hielte
+       jemand „PNG" fuer eine Aussage ueber die ganze Zeile. */
+    check('Und dass die Vorschaubilder der Wahl nicht folgen',
+      /Vorschaubilder folgen der Wahl nicht: sie sind immer WebP/.test(baCardText),
+      baCardText.slice(0, 500));
 
     /* DER KNOPF FRAGT ERST DAS PASSWORT. Ohne die zweite Bestaetigung darf
        kein einziger Byte umgeschrieben werden -- und der Dialog davor sagt,
@@ -38524,6 +39139,15 @@ async function checkUi() {
       dialogText.replace(/\s+/g, ' ').slice(0, 300));
     check('Und dass die Originale ersetzt werden — 0.22.0',
       /die Originale ersetzt \(danach etwa/.test(dialogText), dialogText.replace(/\s+/g, ' ').slice(0, 300));
+    /* UND DASS DIE ZWEITE HAELFTE MITGEHT -- 0.27.0. Der Lauf zieht Originale
+       UND Vorschaubilder in einem Durchgang; ein Dialog, der nur die PNG
+       naennte, verschwiege die Haelfte dessen, was gleich geschieht. Und
+       ausgerechnet die, die auch dann anfaellt, wenn kein einziges PNG mehr
+       dasteht. */
+    check('Und dass die Vorschaubilder dabei mitgehen — 0.27.0',
+      /jedes Vorschaubild angesehen und, wo es noch JPEG ist, aus dem Original neu gerechnet/
+        .test(dialogText.replace(/\s+/g, ' ')),
+      dialogText.replace(/\s+/g, ' ').slice(0, 400));
     check('Und dass nur eine vorher angelegte Sicherung zurueckfuehrt',
       /Rückgängig nur mit einer vorher angelegten Sicherung/.test(dialogText),
       dialogText.replace(/\s+/g, ' ').slice(0, 300));
@@ -38549,18 +39173,66 @@ async function checkUi() {
       (baEig.w.document.querySelector('.backdrop .modal')?.textContent || '')
         .replace(/\s+/g, ' ').slice(0, 460));
     baEig.w.document.querySelectorAll('.backdrop').forEach(e => e.remove());
+
+    /* DER KNOPF „Standard" SCHREIBT WIRKLICH -- und ueber PUT /api/settings,
+       nicht ueber eine eigene Route. Ohne diese Zeile bliebe gruen, wer die
+       drei Zeilen zeichnet und nichts damit tut.
+       ER STEHT AM ENDE DIESES BLOCKS UND NICHT IN DER MITTE, und das ist kein
+       Geschmack: sein Behandler zeichnet die ganze Karte neu (die Formatzeile
+       am PNG haengt an derselben Wahl). Alles, was vorher aus dem Baum geholt
+       wurde -- der Umstellungsknopf zumal --, haengt danach an einem Element,
+       das nicht mehr in der Seite steht. Das ist derselbe Fund wie Befund 1
+       der Runde 0.26.0, nur am Pruefstand statt am Bildschirm.
+       DIE ZEILE WIRD DESHALB FRISCH GEHOLT und nicht aus `storeRows`. */
+    baEig.sent.length = 0;
+    const pngButton = baEig.w.document
+      .querySelector('.engine[data-store="png"] .sdefault');
+    check('Die Zeile „PNG" traegt ihren Knopf noch', !!pngButton);
+    if (pngButton) await pngButton.onclick();
+    const toggleCall = baEig.sent.find(g => g.url === '/api/settings' && g.method === 'PUT');
+    check('Der Knopf „Standard" geht ueber PUT /api/settings', !!toggleCall,
+      baEig.sent.map(g => `${g.method} ${g.url}`).join(' · '));
+    check('Und schickt genau die eine Wahl',
+      toggleCall && toggleCall.body && toggleCall.body.imageStore === 'png' &&
+      Object.keys(toggleCall.body).length === 1,
+      JSON.stringify(toggleCall && toggleCall.body));
+    check('Und es gibt keine eigene Route dafuer',
+      !baEig.sent.some(g => /images\/(store|convert)$/.test(g.url) && g.method === 'PUT'),
+      baEig.sent.map(g => g.url).join(' · '));
+    /* ZUSAGE 8 AN DER OBERFLAECHE: DAS UMSCHALTEN STARTET KEINEN LAUF. Der
+       Server ist die eine Wahrheit darueber (die Probe dazu steht im
+       Hauptlauf), aber ein Knopf, der den Lauf gleich mit ausloest, waere
+       hier zu sehen -- und nur hier. */
+    check('Und das Umschalten ruft den Lauf ueber den Bestand nicht',
+      !baEig.sent.some(g => g.url === '/api/images/convert'),
+      baEig.sent.map(g => `${g.method} ${g.url}`).join(' · '));
+    /* DEM NEUZEICHNEN SEINEN TAKT LASSEN, BEVOR DAS FENSTER FAELLT. Der
+       Behandler ruft `renderSystem()` OHNE await -- wie jeder andere in dieser
+       Datei --, und die Funktion holt sich danach `location`. Ein Fenster, das
+       in diesem Augenblick schon zu ist, hat keines mehr, und jsdom wirft aus
+       einer Zeile heraus, die mit dieser Runde gar nichts zu tun hat. */
+    await new Promise(r => setTimeout(r, 60));
     baEig.w.close();
 
     /* ---- DIE DREI GEGENLAGEN ---- */
-    // Kein PNG mehr da: der Knopf ist tot, und die Karte sagt, warum.
+    /* KEIN PNG MEHR DA -- UND DER KNOPF BLEIBT BEDIENBAR. UMGEDREHT MIT
+       0.27.0, und der Grund ist der ganze Punkt der Runde: bis 0.26.0 hatte
+       der Lauf nichts zu tun, sobald kein PNG mehr dalag, und der Knopf war
+       tot. Seit dieser Runde hat er eine ZWEITE Haelfte -- die Vorschaubilder
+       --, und die faellt unabhaengig davon an. Ein toter Knopf verspraeche
+       hier, es gaebe nichts zu tun, und das waere unwahr.
+       DIE ZEILE DARUNTER SAGT DANN AUCH ETWAS ANDERES: nicht mehr „kein PNG
+       da", sondern was der Lauf statt dessen tut. */
     const baEmpty = await pkSystem({ isAdmin: true, isOwner: true },
       { statsImageFormats: { webp: { count: 9, bytes: 65536 } } });
     await sysSection(baEmpty.w, 'database');
-    check('Ohne PNG ist der Knopf nicht bedienbar',
-      baEmpty.w.document.getElementById('convert-run')?.disabled === true);
-    check('Und die Karte sagt, warum',
-      /Keine PNG-Fotos mehr vorhanden/.test(baCard(baEmpty)?.textContent || ''),
-      baCard(baEmpty)?.textContent?.replace(/\s+/g, ' ').slice(-200));
+    check('Ohne PNG bleibt der Knopf bedienbar — die Vorschaubilder bleiben',
+      baEmpty.w.document.getElementById('convert-run')?.disabled === false,
+      String(baEmpty.w.document.getElementById('convert-run')?.disabled));
+    check('Und die Karte sagt, was er dann tut',
+      /Vorschaubild an — was noch JPEG ist, wird neu gerechnet\. Die Originale bleiben unberührt/
+        .test((baCard(baEmpty)?.textContent || '').replace(/\s+/g, ' ')),
+      (baCard(baEmpty)?.textContent || '').replace(/\s+/g, ' ').slice(-260));
     baEmpty.w.close();
 
     // Ein Lauf ist unterwegs: die Zeile zaehlt mit, der Knopf ist tot.
@@ -38576,11 +39248,21 @@ async function checkUi() {
 
     // Ein Lauf ist durch: die Zeile sagt, was herauskam.
     const baDone = await pkSystem({ isAdmin: true, isOwner: true },
-      { statsSwitch: { running: false, total: 12, done: 12, converted: 11, stayed: 1, freed: 4194304 } });
+      { statsSwitch: { running: false, total: 12, done: 12, converted: 11, derived: 9,
+                       stayed: 1, freed: 4194304 } });
     await sysSection(baDone.w, 'database');
     const doneRow = baDone.w.document.getElementById('convert-running')?.textContent || '';
+    /* DER FERTIGSATZ NENNT SEIT 0.27.0 BEIDE HAELFTEN. Eine Summe daraus waere
+       kuerzer und falsch: an einer Zeile kann beides geschehen sein, eines
+       oder nichts.
+       UND ER STEHT GANZ IN DER SPRACHDATEI. Bis 0.26.0 klebten „von" und
+       „umgewandelt" als deutscher Text im Quelltext zwischen zwei
+       uebersetzten Stuecken -- eine englische Oberflaeche las „Conversion
+       done: 7 von 12 umgewandelt". Gefunden beim Umbau dieser Zeile. */
     check('Nach einem Lauf sagt die Zeile, was herauskam',
-      /11 von 12/.test(doneRow) && /1 blieben PNG/.test(doneRow) &&
+      /11 von 12 Originalen umgestellt/.test(doneRow) &&
+      /9 Vorschaubilder neu gerechnet/.test(doneRow) &&
+      /an 1 war nichts zu tun/.test(doneRow) &&
       /4,0 MB gespart/.test(doneRow), doneRow);
     /* UND DIE ZEILE DES ZWEITEN LAUFS STEHT NICHT DA, wenn keiner lief. Ohne
        diese Gegenlage waere „sie steht da" nicht von „sie steht immer da" zu
@@ -38659,7 +39341,7 @@ async function checkUi() {
          Vorschaubilder sind Bauwissen und stehen im Projektstand, nicht mehr
          in der Karte. Die Karte sagt nur noch, was sie zaehlt -- und was nicht. */
       check('Die Karte sagt, dass die Vorschaubilder nicht mitgezaehlt sind — 0.22.0',
-        /Vorschaubilder \(JPEG\) sind nicht mitgezählt/.test(t) &&
+        /Vorschaubilder \(WebP\) sind nicht mitgezählt/.test(t) &&
         !/512 × 512/.test(t) && !/1600 px/.test(t), t.slice(0, 320));
     }
     geoEmpty.w.close();
@@ -49113,13 +49795,35 @@ async function checkBatchRun() {
         oldDa.length === 0, JSON.stringify(freshSizes));
       check('Und die vier tragen jetzt eine zugeschnittene 512x512-Kachel',
         freshSizes.filter(m => m === '512x512').length === OLD, JSON.stringify(freshSizes));
-      /* `medium` IST DABEI UNVERAENDERT -- nicht „sieht gleich aus", sondern
-         byte-genau. Es wird mit `object-fit: contain` gezeigt, und dafuer ist
-         1600 auf der langen Kante richtig; geschnitten wird es ausdruecklich
-         nicht. */
-      const mediumEqual = rows.filter(z => z.medium && z.medium.equals(oldMedium)).length;
-      check('Und `medium` ist dabei byte-genau dasselbe geblieben',
-        mediumEqual === OLD, `${mediumEqual} von ${OLD} unveraendert`);
+      /* `medium` IST DABEI NICHT GESCHNITTEN WORDEN -- und das ist die Zusage,
+         um die es hier geht. Es wird mit `object-fit: contain` gezeigt, und
+         dafuer ist 1600 auf der langen Kante richtig; ein geschnittenes
+         `medium` naehme dem Ausschnitteditor seine Vorlage.
+
+         BIS 0.26.0 STAND HIER „byte-genau dasselbe geblieben". Das galt,
+         solange die Ableitungen JPEG waren und der Lauf sie mit denselben
+         Zahlen neu rechnete. SEIT 0.27.0 SIND SIE WEBP, und der Lauf rechnet
+         `medium` damit ebenfalls neu -- aus dem ORIGINAL und mit derselben
+         Kiste. Der Satz ist umgedreht, nicht geloescht (Stolperstein 201), und
+         die Sache dahinter ist dieselbe geblieben: die Kiste ruehrt sich
+         nicht, nur das Verfahren.
+         GEPRUEFT WIRD DESHALB AN DER GEOMETRIE UND NICHT AN DEN BYTES: `medium`
+         ist danach WebP, es ist NICHT quadratisch (also ungeschnitten), und
+         seine lange Kante liegt bei 1600. Eine dieser drei zu verfehlen ist
+         genau der Fehler, den die alte Zusage gefangen hat. */
+      const mediumSizes = [];
+      for (const z of rows) if (z.medium) mediumSizes.push(await size(z.medium));
+      const mediumWebp = rows.filter(z => z.medium &&
+        z.medium.slice(0, 4).toString('latin1') === 'RIFF' &&
+        z.medium.slice(8, 12).toString('latin1') === 'WEBP').length;
+      check('Und `medium` ist danach WebP', mediumWebp === rows.length,
+        `${mediumWebp} von ${rows.length}`);
+      const mediumUncropped = mediumSizes.filter(m => {
+        const [w, h] = String(m).split('x').map(Number);
+        return w !== h && Math.max(w, h) === 1600;
+      }).length;
+      check('Und ungeschnitten geblieben -- 1600 auf der langen Kante, nicht quadratisch',
+        mediumUncropped === mediumSizes.length, JSON.stringify(mediumSizes));
       /* DIE VIDEOZEILE HAT IHRE KACHEL AUS `medium` BEKOMMEN -- und `medium`
          SELBST steht unveraendert da. Es IST die Vorlage; es aus sich selbst
          neu zu kodieren machte es nur schlechter. */
@@ -49245,8 +49949,16 @@ async function checkBatchRun() {
        DIE VIERTE STEHT AUSSERHALB DER KETTE, und das ist richtig: sie haengt
        an einem Knopfdruck und nicht am Start, und ihr Abschluss ist die
        Antwort an den Browser. */
+    /* DER RUF DER UMSTELLUNG TRAEGT SEIT 0.27.0 ZWEI ARGUMENTE MEHR: ein
+       `null` fuer `done` und das gewaehlte Verfahren. Das `null` ist der
+       Platzhalter, den die Reihenfolge kostet -- `store` steht hinter `done`,
+       weil die drei anderen Aufgaben ein `done` haben und kein Verfahren.
+       DAS VERFAHREN WIRD EINMAL GELESEN, BEIM START: `imageStore()` im Ruf und
+       nicht im Thread. Waere es dort, staende die Frage „welches Verfahren
+       gilt fuer DIESEN Lauf" an zwei Orten, und ein Umschalten waehrend des
+       Laufs traefe die eine Haelfte der Zeilen anders als die andere. */
     check('Und der Server startet fuer alle vier Aufgaben einen Thread',
-      oneLine(blServer).includes("startBatchThread('conversion', rows)") &&
+      oneLine(blServer).includes("startBatchThread('conversion', rows, null, imageStore())") &&
       oneLine(blServer).includes("startBatchThread('thumbnails', open, refreshTiles)") &&
       oneLine(blServer).includes("startBatchThread('geometry', rows, maintainStorage)") &&
       oneLine(blServer).includes("startBatchThread('crop', [{ id: Number(id) }], once)"),
@@ -49271,10 +49983,22 @@ async function checkBatchRun() {
        strukturiert kopiert -- ein Schluessel darin staende in einem zweiten
        Speicher. Er kommt im Thread denselben Weg wie im Haupt-Thread, ueber
        keys.js und die Umgebung. */
+    /* SEIT 0.27.0 REIST EIN DRITTES FELD MIT, UND ES IST KEIN GEHEIMNIS:
+       `store` ist das gewaehlte Ablageverfahren -- 'png', 'webp-lossless' oder
+       'webp-lossy'. Die Zusage ist deshalb GENAUER GEWORDEN und nicht
+       schwaecher: die drei erlaubten Felder werden NAMENTLICH genannt, statt
+       nur zu zaehlen. Eine Zusage, die nur zaehlt, saehe keinen Tausch. */
     check('Der Schluessel reist nicht ueber workerData',
-      oneLine(blServer).includes('{ workerData: { task, rows } }') &&
+      oneLine(blServer).includes('{ workerData: { task, rows, store } }') &&
       !/workerData[^\n]*(key|hex|schluessel|Schluessel)/i.test(blServer) &&
       !/workerData\.(key|hex|schluessel)/i.test(blRun),
+      (blServer.match(/workerData: \{[^}]*\}/) || ['(nicht gefunden)'])[0]);
+    /* UND ES SIND GENAU DIESE DREI FELDER. Ohne diese Zeile bliebe gruen, wer
+       ein viertes danebenstellt -- der Name waere ein anderer, die Zahl
+       dieselbe, und das Muster darueber passte weiter. */
+    check('Und es sind genau drei Felder: Aufgabe, Zeilen, Verfahren',
+      (oneLine(blServer).match(/workerData: \{([^}]*)\}/) || [,''])[1]
+        .split(',').map(x => x.trim()).filter(Boolean).join('|') === 'task|rows|store',
       (blServer.match(/workerData: \{[^}]*\}/) || ['(nicht gefunden)'])[0]);
     check('Und der Thread laedt ihn ueber db.js wie der Haupt-Thread',
       /require\('\.\/db'\)/.test(blRun) && !/loadKey|ENCRYPTION_KEY/.test(blRun),

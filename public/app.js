@@ -2412,11 +2412,22 @@ let CATEGORIES_FREE = true;
    der ganze Punkt. Ein abgeschalteter Modus, der an einer Stelle doch noch
    durchscheint, ist kein abgeschalteter Modus. */
 let POTENTIAL_MODE = true;
-/* WANDELT DIESE INSTANZ ANKOMMENDE PNG UM? Vorgabe an, wie im Server. Der Wert
-   entscheidet hier NICHTS -- die Umwandlung geschieht im Server, und der liest
-   seine eigene Einstellung. Er sagt der Karte nur, wo der Haken steht; die
-   Schranke liegt nicht hier. */
-let IMAGES_CONVERT = true;
+/* IN WELCHEM VERFAHREN LEGT DIESE INSTANZ ANKOMMENDE PNG AB? Vorgabe wie im
+   Server. Der Wert entscheidet hier NICHTS -- abgelegt wird im Server, und der
+   liest seine eigene Einstellung. Er sagt der Karte nur, welches Verfahren
+   gilt; die Schranke liegt nicht hier.
+   BIS 0.26.0 WAR ES EIN JA/NEIN (`IMAGES_CONVERT`). Seit 0.27.0 ist es ein
+   Wert aus dreien, und die Vorgabe ist das, was das Haekchen „an" bedeutet
+   hat.
+   DIE LISTE DANEBEN KOMMT VOM SERVER und wird hier nicht aufgezaehlt: die
+   Karte zeichnet, was hereinkommt. Eine zweite Aufzaehlung der Verfahren im
+   Browser liefe beim naechsten auseinander (Stolperstein 47) -- die WOERTER
+   dazu stehen sehr wohl hier (IMAGE_STORE_WORDS), denn der Server hat mit der
+   Sprache der Karte nichts zu schaffen.
+   DIE VORGABE STEHT ALS EINZELNE LISTE UND NICHT ALS LEERE: bis die Antwort da
+   ist, soll die Karte das heutige Verfahren zeigen und keine leere Auswahl. */
+let IMAGE_STORE = 'webp-lossless';
+let IMAGE_STORES = ['png', 'webp-lossless', 'webp-lossy'];
 /* Ob DIESER Zugang einen zweiten Faktor traegt, . KOMMT VOM SERVER
    und wird hier nie geraten: die Oberflaeche entscheidet damit nur, ob das
    Bestaetigungsfenster ein zweites Feld zeigt. Wer den Wert von Hand auf false
@@ -2494,8 +2505,9 @@ async function loadSettings() {
     CATEGORIES_FREE = SETTINGS.categoriesFreeCreate !== false;
   if (SETTINGS.potentialMode !== undefined)
     POTENTIAL_MODE = SETTINGS.potentialMode !== false;
-  if (SETTINGS.convertImages !== undefined)
-    IMAGES_CONVERT = SETTINGS.convertImages !== false;
+  if (SETTINGS.imageStore !== undefined) IMAGE_STORE = SETTINGS.imageStore;
+  if (Array.isArray(SETTINGS.imageStores) && SETTINGS.imageStores.length)
+    IMAGE_STORES = SETTINGS.imageStores;
   if (SETTINGS.trashDays) TRASH_DAYS = SETTINGS.trashDays;
   TWO_FACTOR = SETTINGS.twoFactor === true;
   applyFont();
@@ -5158,9 +5170,30 @@ async function renderDetail(id, termAddress) {
              Saetze (Vollbild, Blaettern, Papierkorb, Standbild): was ein Knopf
              tut, sagt sein Tooltip. Die Grenze fuer Videos bleibt, weil man
              sie VOR dem Upload wissen muss (Regel S1: eine Folge, die man
-             kennen muss, darf stehen). */''}
+             kennen muss, darf stehen).
+             ZWEI SAETZE SEIT 0.27.0, UND DER ZWEITE STEHT AUS DEMSELBEN
+             GRUND WIE DIE VIDEOGRENZE -- F7 des Auftrags 0.27.0. „Grafik
+             kopieren" und dann einfuegen ist der TEUERSTE Weg, ein Bild
+             hereinzuholen, und man sieht es dem Ergebnis nicht an: die
+             Zwischenablage traegt keine Datei, sondern Bildpunkte, und der
+             Browser legt sie als PNG ab. Gemessen am 2. September 2026 wurden
+             aus einem 5,21-MB-JPEG im Netz 34,79 MB Zwischenablage und daraus
+             20,42 MB in der Datenbank. „Bild speichern unter" und dann
+             hochladen kostet 5,21 MB, keinen Generationsverlust und keine
+             Rechenzeit -- Kriterion fasst JPEG nicht an.
+             ER STEHT AN DER EINFUEGESTELLE UND NICHT IN DER KARTE: hier
+             trifft ihn jemand in dem Augenblick, in dem er die Wahl noch hat.
+             Wer die Karte „Bildformate" liest, fuegt gerade kein Bild ein.
+             UND ER STEHT UNABHAENGIG VOM VERFAHREN DA. Der billigste Weg ist
+             in jedem der drei der billigste -- bei „PNG" sogar am
+             deutlichsten, denn dort bleiben die 34,79 MB liegen. Ein Satz, der
+             je nach Einstellung verschwaende, waere ein Rat, den man nur
+             bekommt, wenn man ihn am wenigsten braucht.
+             IM SELBEN ABSATZ UND NICHT IN EINEM ZWEITEN: es ist dieselbe
+             Auskunft ueber dasselbe Feld, und zwei Absaetze untereinander
+             lesen sich als zwei Themen. */''}
         <p class="hint hint-sm" style="margin:8px 2px 0">
-          ${tH('entry.photoOrderHint')}</p>
+          ${tH('entry.photoOrderHint')} ${tH('entry.uploadIsCheaper')}</p>
       </div>
 
       <div class="meta-col">
@@ -11318,13 +11351,36 @@ function setUpMailDeliveryOut(fetched) {
    Namen stehen als Ruf da: die Zeile, die sie ausgibt, soll nicht zweierlei
    Formen kennen muessen. */
 const IMAGE_FORMATS = [
-  // Der Hinweis am PNG haengt am Schalter und steht deshalb in der Karte selbst.
+  // Der Hinweis am PNG haengt an der Wahl und steht deshalb in der Karte selbst.
   { key: 'png',     name: () => 'PNG',  hint: () => '' },
   { key: 'jpeg',    name: () => 'JPEG', hint: () => t('card.staysUnchanged') },
   { key: 'webp',    name: () => t('card.webp'), hint: () => t('card.targetFormat') },
   { key: 'gif',     name: () => 'GIF',  hint: () => t('card.staysUnchanged') },
   { key: 'other', name: () => t('card.otherFormat'), hint: () => '' }
 ];
+
+/* WIE DIE DREI VERFAHREN AUF DEM BILDSCHIRM HEISSEN -- 0.27.0.
+   DIE SCHLUESSEL KOMMEN VOM SERVER, DIE WOERTER VON HIER. Das ist dieselbe
+   Aufteilung wie bei IMAGE_FORMATS darueber und bei IMAGE_MIME_FORMAT in
+   server.js: eine Tafel ueber die SACHE (dort) und eine ueber ihren NAMEN
+   (hier). Der Server hat mit der Sprache der Karte nichts zu schaffen, und
+   zwei Aufzaehlungen der Verfahren wuerden sich frueher oder spaeter
+   widersprechen (Stolperstein 47).
+   WAS HIER FEHLT, FAELLT NICHT WEG, SONDERN ZEIGT SEINEN SCHLUESSEL. Ein
+   viertes Verfahren im Server erschiene damit als `webp-irgendwas` in der
+   Karte -- sichtbar unfertig statt unsichtbar. Eine Zeile, die still
+   verschwaende, waere die schlechtere Art zu scheitern.
+   RUFE STATT WERTE, wie ueberall in dieser Datei seit 0.24.0: diese Zeilen
+   laufen, sobald der Browser die Datei liest -- die Sprachdatei kommt erst
+   danach. */
+const IMAGE_STORE_WORDS = {
+  'png':           { name: () => t('card.storePng'),
+                     hint: () => t('card.storePngHint') },
+  'webp-lossless': { name: () => t('card.storeLossless'),
+                     hint: () => t('card.storeLosslessHint') },
+  'webp-lossy':    { name: () => t('card.storeLossy'),
+                     hint: () => t('card.storeLossyHint') }
+};
 
 /* Die Fortschrittszeile. EIN Ort fuer den Satz, den drei Zustaende brauchen --
    laeuft, fertig, nie gelaufen --, sonst stuenden drei Formulierungen
@@ -11334,10 +11390,21 @@ function switchRow(u) {
   if (u.running)
     return `<p class="hint hint-sm" style="margin:8px 2px 0" id="convert-running">${tH('card.convertRunning')} ` +
            `${tH('card.progressOf', { done: u.done, total: u.total })}</p>`;
+  /* DER FERTIGSATZ NENNT BEIDE HAELFTEN -- 0.27.0. Bis 0.26.0 stand hier
+     „N von M umgewandelt", und M waren die PNG: eine Zahl, ein Sinn. Der Lauf
+     sieht jetzt jede Fotozeile an und tut an ihr ZWEIERLEI, also sagt der Satz
+     beides -- wie viele ORIGINALE umgestellt und wie viele ABLEITUNGEN neu
+     gerechnet wurden. Eine Summe daraus waere kuerzer und falsch: an einer
+     Zeile kann beides, eines oder nichts geschehen sein.
+     UND ER STEHT GANZ IN DER SPRACHDATEI. Bis 0.26.0 klebte „von" und
+     „umgewandelt" als deutscher Text im Quelltext zwischen zwei uebersetzten
+     Stuecken -- eine englische Oberflaeche las „Conversion done: 7 von 12
+     umgewandelt". Gefunden beim Umbau dieser Zeile. */
   return `<p class="hint hint-sm" style="margin:8px 2px 0" id="convert-running">${tH('card.convertFinished')} ` +
-         `${u.converted} von ${u.total} umgewandelt` +
-         (u.stayed ? t('card.stayedPng', { stayed: u.stayed }) : '') +
-         (u.freed > 0 ? t('card.saved', { freed: fmtBytes(u.freed) }) : '') + `.</p>`;
+         `${tH('card.convertCounts', { converted: u.converted, derived: u.derived || 0,
+                                       total: u.total })}` +
+         (u.stayed ? tH('card.nothingToDo', { stayed: u.stayed }) : '') +
+         (u.freed > 0 ? tH('card.saved', { freed: fmtBytes(u.freed) }) : '') + `.</p>`;
 }
 
 /* Die zweite Fortschrittszeile — 0.19.4, fuer das Nachziehen der Geometrie.
@@ -11507,24 +11574,64 @@ function cardImageStore(fetched) {
         ${rows.length ? rows.map(f => {
           const z = bf[f.key];
           // Der Hinweis am PNG sagt nur dann etwas, wenn die Umwandlung an ist.
+          /* Der Hinweis am PNG sagt nur dann etwas, wenn ueberhaupt umkodiert
+             wird -- bei 'png' bleibt jedes PNG, wie es hereinkam. */
           const hint = f.key === 'png'
-            ? (IMAGES_CONVERT ? t('card.webpOnUpload') : '') : f.hint();
+            ? (IMAGE_STORE === 'png' ? '' : t('card.webpOnUpload')) : f.hint();
           return `<div class="kv"><span class="k">${f.name()}${
             hint ? ` <span class="extra">— ${hint}</span>` : ''
           }</span><span class="v">${z.count} · ${fmtBytes(z.bytes)}</span></div>`;
         }).join('') : `<p class="hint hint-sm" style="margin:2px 2px 0">${tH('card.noPhotosYet')}</p>`}
         ${OWNER ? `
-        <label class="ex-files" style="margin-top:10px"><input type="checkbox" id="convert-images">
-          ${tH('card.convertOnUpload')}</label>
-        ${/* WAS DER SCHALTER TUT, UND WAS ER NICHT TUT. Der Satz nennt beides:
-             ein eingefügtes Bildschirmfoto liegt danach als WebP da, und die
-             Güte bleibt dabei erhalten. Ohne Häkchen bleibt jedes PNG
-             byte-genau, wie es hereinkam. */''}
-        <p class="hint hint-sm" style="margin:6px 2px 0">${tH('card.pasteWebpHint')}</p>
-        <div class="row-in" style="margin-top:10px">
-          <button class="btn btn-sm" id="convert-run"${png && !running ? '' : ' disabled'}>${tH('card.convertAllPng')}</button>
+        ${/* ---- DIE WAHL, UND SIE IST EIN KNOPF „Standard" JE ZEILE ----
+             DIESELBE BAUFORM WIE „Suchanbieter" UND „Sprachen", und das ist
+             der Grund für die Wahl der Bauform: die Oberfläche hat für „eines
+             von mehreren ist der Standard" genau eine Gestalt, und sie steht
+             schon zweimal da. Ein Auswahlfeld oder eine Reihe Radioknöpfe wäre
+             ein drittes Vokabular für dieselbe Frage — und Radioknöpfe kommen
+             in dieser Oberfläche überhaupt nicht vor.
+             OHNE DAS HÄKCHEN DER BEIDEN ANDEREN: dort gibt es einen VORRAT,
+             aus dem der Benutzer wählt, und daneben den Standard. Hier gibt es
+             keinen Vorrat — die Installation legt in EINEM Verfahren ab.
+             DIE ZEILEN KOMMEN AUS DER LISTE DES SERVERS und nicht aus einer
+             Aufzählung hier; die Wörter kommen aus IMAGE_STORE_WORDS. */''}
+        <h4 class="sys-sub">${tH('card.storeMethod')}</h4>
+        <div class="engine-list" style="margin-top:6px">${IMAGE_STORES.map(k => {
+          const w = IMAGE_STORE_WORDS[k];
+          return `<div class="engine" data-store="${esc(k)}">
+            <button type="button" class="sdefault${k === IMAGE_STORE ? ' on' : ''}"
+              data-store-pick="${esc(k)}">${tH('card.standard')}</button>
+            <span class="engine-name">${w ? esc(w.name()) : esc(k)}${
+              w ? ` <span class="extra">— ${esc(w.hint())}</span>` : ''}</span>
+          </div>`;
+        }).join('')}</div>
+        ${/* DIE AUFLAGE STEHT IMMER DA UND NICHT ERST NACH DEM EINSCHALTEN.
+             Sie ist der Grund, aus dem es eine WAHL gibt und keine Regel, und
+             wer sie erst nach dem Umschalten läse, hätte schon gewählt. Zwei
+             Sätze: wofür das verlustbehaftete Verfahren gedacht ist, und wofür
+             ausdrücklich nicht (F6 des Auftrags 0.27.0).
+             UND DER BILLIGSTE WEG STEHT NICHT HIER, sondern an der
+             Einfügestelle (F7): dort trifft ihn jemand, hier liest ihn
+             niemand, der gerade ein Bild einfügt. */''}
+        <p class="hint hint-sm" style="margin:8px 2px 0">${tH('card.storeCaveat')}</p>
+        ${/* WAS DIE ABLEITUNGEN TUN, STEHT DANEBEN UND NICHT IN DER WAHL. Sie
+             folgen ihr nicht — sie sind immer WebP (F3). Ohne diesen Satz
+             hielte jemand „PNG" für eine Aussage über die ganze Zeile. */''}
+        <p class="hint hint-sm" style="margin:6px 2px 0">${tH('card.derivativesWebp')}</p>
+        <div class="row-in" style="margin-top:12px">
+          <button class="btn btn-sm" id="convert-run"${running ? ' disabled' : ''}>${tH('card.catchUpStore')}</button>
         </div>
-        ${png || running ? '' : `<p class="hint hint-sm" style="margin:6px 2px 0">${tH('card.noPngLeft')}</p>`}
+        ${/* WAS DER KNOPF ANFASST, HÄNGT AN DER WAHL — und die Zeile darunter
+             sagt es, statt den Knopf tot zu stellen. Bis 0.26.0 war er
+             abgeschaltet, sobald kein PNG mehr dalag; seit 0.27.0 hat er auch
+             dann etwas zu tun, denn die Ableitungen sind eine zweite Hälfte.
+             ER IST NUR NOCH WÄHREND EINES LAUFS TOT: da sagt der Server dem
+             zweiten Ruf ohnehin ab, und ein Knopf, der zuverlässig eine Absage
+             erzeugt, sieht aus wie ein Fehler. */''}
+        ${running ? '' : `<p class="hint hint-sm" style="margin:6px 2px 0">${
+          png && IMAGE_STORE !== 'png'
+            ? tH('card.catchUpBoth', { n: png })
+            : tH('card.catchUpDerivatives')}</p>`}
         ${switchRow(stats.conversion)}
         ${geometryRow(stats.geometry)}` : ''}
       </div>`;
@@ -11591,11 +11698,36 @@ function followBatchRun() {
 }
 
 function setUpImageStoreOut(fetched) {
-  /* DERSELBE HELFER WIE BEI DEN BEIDEN ANLEGEN-SCHALTERN. Er nimmt die
-     Stellung bei einem Fehlschlag zurueck -- sonst zeigte der Bildschirm
-     etwas anderes an, als der Server haelt. */
-  createToggle('convert-images', 'convertImages',
-    () => IMAGES_CONVERT, v => { IMAGES_CONVERT = v; });
+  /* DIE DREI KNOEPFE „Standard" -- 0.27.0, und bis 0.26.0 stand hier ein
+     createToggle() auf ein Haekchen. DERSELBE UMGANG MIT DEM FEHLSCHLAG wie
+     dort und wie bei den Suchanbietern: die neue Stellung wird gezeigt, und
+     wenn der Server absagt, kommt die alte zurueck. Sonst zeigte der
+     Bildschirm etwas anderes an, als der Server haelt.
+     NEU GEZEICHNET WIRD DIE GANZE KARTE und nicht nur der Knopf: die
+     Formatzeile am PNG haengt an derselben Wahl („wird beim Upload zu WebP"),
+     und die Zeile unter dem Nachziehknopf ebenfalls. Drei Stellen von Hand
+     nachzufuehren waere derselbe Fehler in drei Ausfuehrungen.
+     EIN KNOPF AUF DAS SCHON GEWAEHLTE VERFAHREN TUT NICHTS. Er schickte
+     denselben Wert, bekaeme dieselbe Antwort und meldete „gespeichert" fuer
+     eine Aenderung, die es nicht gab. */
+  for (const b of document.querySelectorAll('[data-store-pick]')) {
+    b.onclick = async () => {
+      const wanted = b.dataset.storePick;
+      if (wanted === IMAGE_STORE) return;
+      const before = IMAGE_STORE;
+      IMAGE_STORE = wanted;
+      try {
+        const back = await api('PUT', '/api/settings', { imageStore: wanted });
+        if (back && back.imageStore) IMAGE_STORE = back.imageStore;
+        saved();
+      } catch (e) { IMAGE_STORE = before; toast(e.message, true); }
+      /* UND DER BESTAND BLEIBT, WIE ER IST -- F5, und das ist die Zusage, an
+         der hier nichts zu tun ist. Kein Lauf haengt an dieser Zeile. Wer die
+         Wahl probiert, soll nicht 500 MB umkodiert bekommen; nachgezogen wird
+         auf Knopfdruck und mit einer zweiten Bestaetigung. */
+      renderSystem();
+    };
+  }
 
   atElement('convert-run', (button) => {
     button.onclick = async () => {
@@ -11625,9 +11757,24 @@ function setUpImageStoreOut(fetched) {
          KEINE RESTLAUFZEIT IN DER FORTSCHRITTSZEILE, aus demselben Grund: sie
          waere aus dem gemessenen Takt zwar ehrlich zu rechnen, aber sie kostet
          eine Anzeige, die bei jedem Umlauf springt. */
-      const ok = await secondConfirm('images', null, t('card.convertPngWebp'),
-        t('card.pngConverting', { n: png.count, bytes: fmtBytes(png.bytes),
-          after: fmtBytes(Math.round(png.bytes * 0.37)) }));
+      /* UND DIE ZAHL IN SEINEM SATZ NENNT BEIDE HAELFTEN -- 0.27.0. Der Lauf
+         zieht Originale UND Ableitungen in einem Durchgang; ein Dialog, der
+         nur die PNG nennte, verschwiege die Haelfte dessen, was gleich
+         geschieht -- und ausgerechnet die, die auch dann anfaellt, wenn kein
+         einziges PNG mehr dasteht.
+         WIE VIELE ABLEITUNGEN NOCH JPEG SIND, STEHT NICHT DA, und das ist
+         keine Nachlaessigkeit: die Frage ist in SQL zu teuer (die
+         1338-ms-Klasse, siehe qConvertRows in server.js), und geraten wird
+         hier nichts. Der Satz sagt deshalb, was ANGESEHEN wird -- so, wie der
+         Lauf es auch zaehlt.
+         BEI DER WAHL „PNG" FAELLT DIE ERSTE HAELFTE WEG, und der Dialog sagt
+         dann auch nur die zweite: ein Satz ueber Bytes, die niemand anfasst,
+         ist eine Unwahrheit im Bestaetigungsfenster. */
+      const both = png.count && IMAGE_STORE !== 'png';
+      const ok = await secondConfirm('images', null, t('card.catchUpStore'),
+        both ? t('card.catchUpAsk', { n: png.count, bytes: fmtBytes(png.bytes),
+                                      after: fmtBytes(Math.round(png.bytes * 0.37)) })
+             : t('card.derivativesAsk'));
       if (!ok) return;
       try { await api('POST', '/api/images/convert', {}); }
       catch (e) { return toast(e.message, true); }

@@ -35,11 +35,20 @@ sharp.concurrency(Math.max(1, Math.floor(os.cpus().length / 2)));
    dieselbe Umwandlung wie der Anfrageweg (Stolperstein 47). Gerufen wird
    dasselbe wie vorher, nur aus einer Datei daneben. */
 /* `isPng` STEHT HIER NICHT MEHR: die einzige Stelle, die es im Server rief,
-   war die Schleife des Bestandslaufs -- und die faehrt seit dieser Runde im
-   Thread. Ein Import, den niemand ruft, ist eine Zeile, die beim naechsten
-   Lesen erklaert werden muss. Der KOMMENTAR ueber qOpenPng nennt es
-   weiterhin, und das ist richtig: die Byte-Folge dort ist dieselbe. */
-const { makeVariants, PNG_MAGIC_HEX, storeImage } = require('./images');
+   war die Schleife des Bestandslaufs -- und die faehrt seit 0.19.3 im Thread.
+   Ein Import, den niemand ruft, ist eine Zeile, die beim naechsten Lesen
+   erklaert werden muss.
+   `PNG_MAGIC_HEX` IST MIT 0.27.0 DAZU GEKOMMEN, und zwar auf demselben Weg:
+   die einzige Stelle, die es im Server brauchte, war die Auswahl des
+   Bestandslaufs (`hex(substr(data,1,8)) = ?`). Seit dieser Runde stellt der
+   Lauf ZWEI Fragen, von denen die zweite in SQL zu teuer ist -- er waehlt
+   grosszuegig aus und fragt im Thread nach den Bytes. Damit ist die
+   Schreibweise, in der SQLite die Byte-Folge liefert, im Server nirgends mehr
+   gebraucht. Sie steht weiterhin in images.js und geht weiterhin hinaus: der
+   Pruefstand haelt sie gegen `isPng`.
+   `VARIANTS` KOMMT DAGEGEN NEU HEREIN -- `encodeCommentImage()` holt die Guete
+   der Ableitungen von dort, statt sie ein zweites Mal hinzuschreiben. */
+const { makeVariants, VARIANTS, storeImage, IMAGE_STORES, IMAGE_STORE_DEFAULT, isImageStore } = require('./images');
 const { db, DATA_DIR, DB_FILE, keyFromEnv, keyHex, renumberCriteria, method, searchFold, COLUMNS_0241, VALUES_0241 } = require('./db');
 const auth = require('./auth');
 const mail = require('./mail');
@@ -668,7 +677,8 @@ const PERSONAL_KEYS = ['filters', 'font', 'blocks', 'linkRows', 'timeline', 'sea
    Adminsache.
    VIER SEIT 0.20.0, vorher einer. Die drei neuen sind die Aufraeumregel der
    Sicherungen: der Schalter und die beiden Werte. Sie gehen denselben Weg wie
-   `convertImages` -- eine eigene schreibende Route liesse F_ROUTEN wachsen,
+   die Bildablage (`imageStore`, bis 0.26.0 `convertImages`) -- eine eigene
+   schreibende Route liesse F_ROUTEN wachsen,
    ohne dass es etwas Neues zu bewachen gaebe, und die Karte steht ohnehin
    hinter `ownerOnly`. Genau dafuer war diese Liste angelegt: "der zweite
    Schluessel dieser Art steht dann daneben und nicht als zweite
@@ -694,7 +704,17 @@ const PERSONAL_KEYS = ['filters', 'font', 'blocks', 'linkRows', 'timeline', 'sea
    vorhandene. `F_ROUTES` bleibt deshalb bei 72. Die Vorlage taugt fuer die
    Ablage, nicht fuer die Klemme -- wer sie ganz abschriebe, baute eine
    Adminklemme, wo eine Eigentuemerklemme stehen soll. */
-const OWNER_KEYS = ['convertImages',
+/* ACHT SEIT 0.27.0? NEIN -- ES BLEIBEN SIEBEN, und genau deshalb steht der
+   Satz hier. `convertImages` FAELLT und `imageStore` kommt: einer geht, einer
+   kommt, die Zahl ruehrt sich nicht. Eine unveraenderte Zahl sieht sonst aus
+   wie ein vergessener Eintrag, und die naechste Runde suchte den achten.
+   DIE KLEMME WIRD GEERBT UND NICHT NEU ENTSCHIEDEN (F10 des Auftrags 0.27.0).
+   Sie steht seit 0.19.0 auf dem Eigentuemer, mit der Begruendung, die zwei
+   Absaetze weiter oben steht: ein Schluessel, der den PLATZBEDARF DER GANZEN
+   INSTANZ bestimmt, gehoert in dieselbe Rechtezeile wie Export, Sicherung und
+   Schluessel. Aus einem Haekchen wird eine Wahl mit drei Stellungen -- das
+   aendert, WIE VIEL man entscheiden kann, und nicht, WER. */
+const OWNER_KEYS = ['imageStore',
                                 'backupCleanup', 'backupKeep', 'backupDays',
                                 'languageDefault', 'languageOn', 'potentialMode'];
 
@@ -737,13 +757,35 @@ const IMAGE_MIME_FORMAT = {
 };
 const formatFromMime = (m) => IMAGE_MIME_FORMAT[String(m || '').trim().toLowerCase()] || 'other';
 
-/* Der Schalter aus dem Reiter „Datenbank". VORGABE AN -- und „aus" heisst
-   wirklich aus: ankommende PNG bleiben dann byte-genau PNG. Das ist die
-   Stellung, die dem Verhalten von Immich, Nextcloud und Piwigo entspricht.
-   DER SCHALTER IST NIE ENDGUELTIG: in beide Richtungen holt der Knopf
-   „Alle PNG nach WebP umstellen" nach, was in der anderen Stellung entstanden
-   ist. Genau deshalb ist er billig. */
-const convertImages = () => getSetting('convertImages', true) !== false;
+/* DIE WAHL AUS DEM REITER „Datenbank" -- 0.27.0, und bis 0.26.0 war sie ein
+   Haekchen. Drei Verfahren, die Tafel dazu steht in images.js:
+
+     'png'            ankommende PNG bleiben byte-genau PNG. Keine Rechenzeit,
+                      groesste Ablage -- das Verhalten von Immich, Nextcloud
+                      und Piwigo.
+     'webp-lossless'  `nearLossless` 60. DIE VORGABE, und zwar die von 0.19.0:
+                      eine Runde, die eine Wahl einfuehrt, aendert die
+                      bisherige Antwort nicht nebenbei (F2).
+     'webp-lossy'     q90 -- fuer Fotos aus der Zwischenablage, gemessen 67 %
+                      kleiner. UND AN EINEM BILDSCHIRMFOTO MIT TEXT GROESSER
+                      als das verlustfreie. Das ist die Auflage dieser Runde,
+                      und die Karte sagt sie beim Einschalten.
+
+   DIE VORGABE WIRD BEIM LESEN ABGELEITET UND NICHT EINGETRAGEN. Steht keine
+   Zeile da, hat niemand gewaehlt -- dieselbe Haltung wie bei `backupCleanup`
+   und den beiden Anlegen-Schaltern, und der Grund steht ausfuehrlich am
+   Migrationsblock 0.27.0 in db.js.
+   EIN UNBEKANNTER WERT FAELLT AUF DIE VORGABE. Er kann nur aus einer Zeile
+   kommen, die eine andere Fassung geschrieben hat; die schreibende Route sagt
+   einem vierten Wert ausdruecklich ab.
+
+   DIE WAHL IST NIE ENDGUELTIG: der Knopf „Bestand nachziehen" holt nach, was
+   in einer anderen Stellung entstanden ist. Genau deshalb ist sie billig --
+   und deshalb rueht das Umschalten ALLEIN den Bestand nicht an (F5). */
+const imageStore = () => {
+  const v = getSetting('imageStore', IMAGE_STORE_DEFAULT);
+  return isImageStore(v) ? v : IMAGE_STORE_DEFAULT;
+};
 
 /* ---- Den vorhandenen Bestand nachziehen ----
    DIES WAR ALS WIRTSSKRIPT `images.js` GEPLANT, in der Bauform von usertool.js
@@ -788,15 +830,44 @@ const batchStates = { conversion: null, geometry: null };
 const batchState = (task) =>
   batchStates[task] && { ...batchStates[task] };
 
-/* WELCHE ZEILEN UEBERHAUPT IN FRAGE KOMMEN -- am INHALT erkannt, mit derselben
-   Byte-Folge wie isPng(). AUSDRUECKLICH OHNE VIDEOS: dort traegt `data` die
-   Videodatei.
+/* WELCHE ZEILEN DER BESTANDSLAUF ANSIEHT -- 0.19.0, und mit 0.27.0 sind es
+   ALLE FOTOZEILEN statt nur der PNG.
+
+   DER GRUND IST, DASS ER JETZT ZWEI FRAGEN STELLT und nicht mehr eine. Bis
+   0.26.0 ging es um `data`, und ob es ein PNG ist, sagen die ersten acht
+   Bytes -- `hex(substr(data,1,8))` liest dafuer die erste Seite des Blobs und
+   sonst nichts. Seit 0.27.0 fragt der Lauf zusaetzlich, ob `thumb` und
+   `medium` noch JPEG sind, und DIESE Frage ist in SQL teuer: die beiden
+   stehen in der Spaltenreihenfolge HINTER `data`, und wer sie anfasst, muss
+   die ganze Kette der Overflow-Seiten des Originals lesen und entschluesseln
+   -- die 1338-ms-Klasse aus dem Kasten ueber `idx_photos_kind` in db.js, und
+   zwar im Haupt-Thread, bevor die 202 hinausgeht.
+
+   ALSO WAEHLT DIESE ABFRAGE GROSSZUEGIG AUS UND DER THREAD ENTSCHEIDET --
+   genau die Bauform, die `qTileRows` daneben seit 0.19.4 hat, und aus
+   demselben Grund. Was es kostet, ist ehrlich zu nennen: der Lauf faehrt
+   ueber jede Fotozeile, auch ueber die, an denen nichts zu tun ist, und legt
+   zwischen zweien 30 ms Pause ein. Was es spart, ist eine Sekunde
+   Haupt-Thread bei jedem Knopfdruck.
+
+   DIE ZAHL IN DER FORTSCHRITTSZEILE HEISST DAMIT „ANGESEHEN" UND NICHT
+   „UMGESTELLT", und die Karte sagt das auch so. Sie zaehlt getrennt, was
+   wirklich geschehen ist (Originale, Ableitungspaare) -- dieselbe
+   Unterscheidung, die `refreshTiles` zwischen `geprueft` und `nachgezogen`
+   macht.
+
+   AUSDRUECKLICH OHNE VIDEOS: dort traegt `data` die Videodatei, und `medium`
+   IST das Standbild und nicht dessen Ableitung. Der Kernsatz gilt weiter --
+   der Server oeffnet nie ein Video.
    HIER DARF `kind != 'video'` STEHEN, anders als in /api/stats: diese Abfrage
-   laeuft nur auf Knopfdruck, sie liest ohnehin die ersten Bytes jedes Blobs,
-   und der Index brächte ihr nichts (gemessen 1424 ms -- das ist der Preis des
-   Lesens und nicht der der Spaltenlage). */
-const qOpenPng = db.prepare(
-  "SELECT id FROM photos WHERE kind != 'video' AND hex(substr(data,1,8)) = ?");
+   laeuft nur auf Knopfdruck, und sie holt NUR die Nummern -- `id` und `kind`
+   stehen beide im Index `idx_photos_kind`, der Satz selbst wird gar nicht
+   angefasst.
+   SIE HIESS BIS 0.26.0 `qOpenPng` UND FRAGTE NACH DEN ERSTEN ACHT BYTES. Der
+   Name ist mitgegangen, weil die Frage eine andere ist: „offene PNG" waere
+   nach dieser Runde die kleinere Haelfte dessen, was der Lauf anfasst. */
+const qConvertRows = db.prepare(
+  "SELECT id FROM photos WHERE kind != 'video'");
 
 /* WELCHE ZEILEN DAS ERNEUERN DER KACHELN ANSIEHT -- 0.19.4, erweitert 0.19.5.
    ALLE ZEILEN, UND NICHT DIE FAELLIGEN. Ob eine Zeile faellig ist, sagt erst
@@ -885,8 +956,19 @@ const BATCHRUN = path.join(__dirname, 'batchrun.js');
    Rest des Servers steht.
    `laeuft` FAELLT DABEI AUF false, und nicht der ganze Stand auf null: die
    Karte soll sehen, wie weit er gekommen ist. */
-function startBatchThread(task, rows, done) {
-  const w = new Worker(BATCHRUN, { workerData: { task, rows } });
+/* `store` IST DAS VERFAHREN DER ABLAGE UND GEHT NUR DEN BESTANDSLAUF AN --
+   0.27.0. Es steht als eigenes Argument und nicht in `rows`: die Zeilen sind
+   Nummern, und eine Einstellung, die als Feld an einer Nummernliste haengt,
+   findet beim naechsten Lesen niemand.
+   ES STEHT HINTER `done` UND NICHT DAVOR, obwohl es das wichtigere Argument
+   ist: die drei anderen Aufgaben haben ein `done` und kein Verfahren, die
+   Umstellung ein Verfahren und kein `done`. In dieser Reihenfolge traegt
+   genau EIN Aufruf ein `null` als Platzhalter statt dreien.
+   FEHLT ES, legt der Thread mit der Vorgabe ab -- die Klemme dagegen sitzt in
+   storeImage(); hier ist nichts zu pruefen, was dort nicht schon geprueft
+   wird. */
+function startBatchThread(task, rows, done, store) {
+  const w = new Worker(BATCHRUN, { workerData: { task, rows, store } });
   batchThreads.add(w);
   /* DER STAND WIRD ERSETZT UND NICHT FORTGESCHRIEBEN. Der Thread meldet je
      Zeile den GANZEN Stand; eine Zunahme muesste hier aufaddiert werden, und
@@ -2558,14 +2640,22 @@ app.get('/api/settings', (req, res) => res.json({
      fehlt, waere beim Wiedereinschalten nicht mehr derselbe; das
      Austauschformat bleibt deshalb bei 15. */
   potentialMode: potentialMode(),
-  /* DER SCHALTER DER BILDABLAGE, seit 0.19.0. Er steht in DIESER Antwort und
-     nicht nur in /api/stats: die Karte im Reiter „Datenbank" zeigt ihn, aber
-     die Stellung ist eine EINSTELLUNG und keine Kennzahl. Gelesen wird er
-     ohnehin serverseitig -- die Antwort hier sagt der Karte nur, wo der Haken
-     steht. Ausgeliefert an jeden, geschrieben nur vom Eigentuemer: die
-     Stellung ist nichts Schuetzenswertes, sie steht auch an der Formatzeile
-     der Kennzahlen ablesbar da. */
-  convertImages: convertImages(),
+  /* DIE WAHL DER BILDABLAGE, seit 0.19.0 als Haekchen und seit 0.27.0 als
+     Wahl aus dreien. Sie steht in DIESER Antwort und nicht nur in /api/stats:
+     die Karte im Reiter „Datenbank" zeigt sie, aber die Stellung ist eine
+     EINSTELLUNG und keine Kennzahl. Gelesen wird sie ohnehin serverseitig --
+     die Antwort hier sagt der Karte nur, welches Verfahren gilt. Ausgeliefert
+     an jeden, geschrieben nur vom Eigentuemer: die Stellung ist nichts
+     Schuetzenswertes, sie steht auch an der Formatzeile der Kennzahlen
+     ablesbar da.
+     UND DIE DREI NAMEN GEHEN MIT -- 0.27.0. Ohne sie muesste die Karte sie
+     selbst aufzaehlen, und eine zweite Aufzaehlung derselben Tafel liefe beim
+     naechsten Verfahren auseinander (Stolperstein 47). Es sind die
+     SCHLUESSEL und keine Saetze: was sie auf dem Bildschirm heissen, steht in
+     der Sprachdatei, und der Server hat mit der Sprache der Karte nichts zu
+     schaffen. */
+  imageStore: imageStore(),
+  imageStores: Object.keys(IMAGE_STORES),
   /* Fragt die zweite Bestaetigung bei DIESEM Zugang zusaetzlich den Code?
      Gebraucht wird es ausserhalb des Systembereichs -- das
      Bestaetigungsfenster steht auch vor Export und Import, und ohne die
@@ -2611,6 +2701,20 @@ app.put('/api/settings', (req, res) => {
     const g = checkRuleValue(req.body[k], range, event);
     if (g.error) return res.status(400).json({ error: t(localeOf(req), g.error, g.values) });
     ruleValues[k] = g.value;
+  }
+
+  /* DIE WAHL DER BILDABLAGE WIRD HIER GEPRUEFT UND ERST WEITER UNTEN
+     GESCHRIEBEN -- 0.27.0, aus demselben Grund wie die beiden Werte darueber
+     und die Ansichten darunter: eine Absage, die schon etwas geschrieben hat,
+     waere schlimmer als gar keine.
+     `null` HEISST „NICHT MITGESCHICKT" UND NICHT „LEER". `undefined` waere
+     hier zweideutig -- es ist auch das, was `req.body.imageStore` liefert,
+     wenn jemand den Schluessel mit dem Wert `undefined` schickt. */
+  let storeWanted = null;
+  if (req.body.imageStore !== undefined) {
+    if (!isImageStore(req.body.imageStore))
+      return res.status(400).json({ error: t(localeOf(req), 'server.imageStoreUnknown')});
+    storeWanted = req.body.imageStore;
   }
 
   /* DIE ANSICHTEN WERDEN HIER GEPRUEFT UND ERST WEITER UNTEN GESCHRIEBEN --
@@ -2827,12 +2931,24 @@ app.put('/api/settings', (req, res) => {
   // Ableitung ganz oben, ohne zweite Liste und ohne eigene Route.
   for (const k of ['tagsFreeCreate', 'categoriesFreeCreate'])
     if (req.body[k] !== undefined) putSetting.run(k, JSON.stringify(!!req.body[k]));
-  /* DER SCHALTER DER BILDABLAGE. Er geht denselben Weg wie die beiden
-     darueber -- eine eigene schreibende Route liesse F_ROUTEN wachsen, ohne
-     dass es etwas Neues zu bewachen gaebe. Die Rechtefrage steht ganz oben in
-     EINER Zeile (OWNER_KEYS) und nicht hier ein zweites Mal. */
-  if (req.body.convertImages !== undefined)
-    putSetting.run('convertImages', JSON.stringify(!!req.body.convertImages));
+  /* DIE WAHL DER BILDABLAGE. Sie geht denselben Weg wie die beiden darueber
+     -- eine eigene schreibende Route liesse F_ROUTES wachsen, ohne dass es
+     etwas Neues zu bewachen gaebe. Die Rechtefrage steht ganz oben in EINER
+     Zeile (OWNER_KEYS) und nicht hier ein zweites Mal.
+
+     UND EIN VIERTER WERT BEKOMMT EINE ABSAGE UND KEINE STILLE VORGABE --
+     0.27.0. Bis 0.26.0 stand hier `!!req.body.convertImages`: ein Haekchen
+     kennt keinen falschen Wert, alles ist wahr oder unwahr. Eine Wahl aus
+     dreien kennt ihn sehr wohl, und was hier durchrutschte, laege als vierter
+     Name in der Einstellungstabelle -- gelesen wuerde er nie, denn
+     `imageStore()` faellt auf die Vorgabe zurueck. Die Karte zeigte danach
+     ein Verfahren an, und der Server legte in einem anderen ab.
+     GEPRUEFT GEGEN DIE TAFEL IN images.js und nicht gegen eine zweite Liste
+     hier: die Verfahren stehen an genau einer Stelle.
+     VOR DEM ERSTEN SCHREIBEN wie jede Klemme dieser Route -- die Zeile steht
+     hier zwischen zwei Schreibungen, aber die Absage kommt aus der Pruefung
+     ganz oben (`storeWanted`), bevor irgendetwas gefallen ist. */
+  if (storeWanted !== null) putSetting.run('imageStore', JSON.stringify(storeWanted));
   /* DER POTENZIALMODUS -- 0.26.0, derselbe Weg wie der Schalter darueber, und
      dieselbe Rechtezeile: er steht in OWNER_KEYS, und die Schranke ganz oben
      an dieser Route weist einen Admin ab, bevor hier eine Zeile faellt.
@@ -2892,7 +3008,7 @@ app.put('/api/settings', (req, res) => {
                 wer den Umschalter nicht sieht, bekommt auch die Tafel nicht. */
              ...(isAdmin(req) && languagesTouched
                ? { categoryNames: categoryNamesAll(), criterionNames: criterionNamesAll() } : {}),
-             convertImages: convertImages() });
+             imageStore: imageStore(), imageStores: Object.keys(IMAGE_STORES) });
 });
 
 /* ---- Bewertungskriterien (Skala fest 1-5) ---- */
@@ -4907,8 +5023,14 @@ app.post('/api/items/:id/photos', entryAuthorOnly, upload.array('photos', 40), a
          Er braucht die Unterscheidung auch nicht: die Zwischenablage liefert
          IMMER PNG, eine Kamera JPEG. Die Regel „PNG umwandeln, JPEG in Ruhe
          lassen" trifft damit genau das, was gemeint ist. */
-      const start = convertImages() ? await storeImage(f.buffer, f.mimetype)
-                                   : { data: f.buffer, mime: f.mimetype };
+      /* DAS VERFAHREN GEHT ALS ARGUMENT HINEIN -- 0.27.0, und die
+         Verzweigung hier ist damit weggefallen. Bis 0.26.0 stand hier
+         `convertImages() ? storeImage(...) : {…}`: der Aufrufer entschied
+         ueber das eine Verfahren, die Funktion kannte das andere. Bei DREI
+         Werten muesste er zwei kennen und sie den dritten -- eine Wahl an
+         zwei Orten (Stolperstein 47). Jetzt kennt sie keiner von beiden: die
+         Tafel steht in images.js, und hier wird nur gelesen, was gilt. */
+      const start = await storeImage(f.buffer, f.mimetype, imageStore());
       into.run(req.params.id, start.mime, start.data, v.thumb, v.medium, pos++);
     }
     touch.run(req.params.id);
@@ -5528,13 +5650,32 @@ const IMAGE_MAX = 20 * 1024 * 1024;
 const IMAGE_COUNT = 6;
 const commentImageUpload = multer({ storage: multer.memoryStorage(), limits: { fileSize: IMAGE_MAX } });
 
+/* DAS KOMMENTARBILD IST SEIT 0.27.0 EBENFALLS WEBP -- BA 4. Es ist dieselbe
+   Frage wie am Foto (was in der Anwendung angesehen wird, ist die Ableitung),
+   und die Gruende von dort gelten hier unveraendert.
+
+   DIE GUETE KOMMT AUS `VARIANTS` UND STEHT NICHT NOCH EINMAL HIER. Bis 0.26.0
+   trug diese Funktion `84` und `78` als eigene Zahlen -- zufaellig dieselben
+   wie die Ableitungstafel, und niemand haette gemerkt, wenn eine der beiden
+   Stellen sie geaendert haette. Sie beantworten dieselbe Frage („welche Guete
+   bekommt eine Ableitung"), also stehen sie an einer Stelle (Stolperstein 47).
+
+   DIE GEOMETRIE BLEIBT DAGEGEN IHRE EIGENE, und das ist kein Versehen: 1600
+   und 400 auf der LANGEN Kante, ohne Zuschnitt. Das Kommentarbild hat weder
+   Fokuspunkt noch Zoom, und seine Kachel wird kleiner gezeigt als die des
+   Fotos. Wer die Kiste aus VARIANTS mitnaehme, machte die Tabelle
+   comment_images groesser, ohne dass jemand einen Bildpunkt mehr saehe.
+   ZUR ERINNERUNG AN DIE ZAHLEN: `big` ist 1600 und traegt die Guete von
+   `medium` (78), `small` ist 400 und traegt die von `thumb` (82). Die
+   Zuordnung geht nach dem ZWECK und nicht nach der Groesse -- `small` wird
+   mit `object-fit: cover` gezeigt wie jeder `thumb`. */
 async function encodeCommentImage(buf) {
   const big = await sharp(buf, { failOn: 'none' }).rotate()
     .resize(1600, 1600, { fit: 'inside', withoutEnlargement: true })
-    .jpeg({ quality: 84, mozjpeg: true }).toBuffer();
+    .webp({ quality: VARIANTS.medium.q, effort: 4 }).toBuffer();
   const small = await sharp(buf, { failOn: 'none' }).rotate()
     .resize(400, 400, { fit: 'inside', withoutEnlargement: true })
-    .jpeg({ quality: 78, mozjpeg: true }).toBuffer();
+    .webp({ quality: VARIANTS.thumb.q, effort: 4 }).toBuffer();
   return { big, small };
 }
 
@@ -5681,11 +5822,36 @@ app.delete('/api/comment-images/:id', (req, res) => {
 // Bild eines Kommentars ausliefern. Dieselben Regeln wie bei den Anhaengen.
 // Der Name ist immer .jpg, weil beim Hochladen neu kodiert wurde -- damit
 // steht der ausgelieferte Typ ohnehin fest.
+/* DER KOPF KOMMT AUS DEN BYTES UND NICHT AUS EINEM ERFUNDENEN DATEINAMEN --
+   0.27.0, und das ist ein BEFUND dieser Runde.
+
+   BIS 0.26.0 STAND HIER `setHeader(res, 'bild.jpg')`. Der entscheidet ueber
+   die ENDUNG, und die war fest hingeschrieben: jedes Kommentarbild ging als
+   `image/jpeg` hinaus, egal was darin lag. Das ging gut, solange
+   `encodeCommentImage()` ausnahmslos JPEG erzeugte -- es war keine Aussage
+   ueber das Bild, sondern eine ueber den Kodierer, und beide stimmten
+   zufaellig ueberein.
+
+   MIT 0.27.0 KODIERT SIE WEBP, und die Zeile wurde damit zur Luege: WebP-Bytes
+   unter `image/jpeg`, dazu `nosniff` -- der Browser haette sie gar nicht erst
+   angezeigt. GEFUNDEN HAT DAS DER PRUEFSTAND und nicht das Auge; die Zusage
+   „Kommentarbild wird als WebP ausgeliefert" wurde rot, waehrend die Bytes
+   laengst stimmten.
+
+   `setImageHeader` STELLT DIESELBE FRAGE WIE AM FOTO: er liest die ersten
+   Bytes. Damit ist der Kopf ab jetzt eine Aussage ueber DAS BILD und nicht
+   ueber die Fassung, die es erzeugt hat -- und ein Bestand aus 0.26.0, dessen
+   Kommentarbilder JPEG sind, geht weiterhin als JPEG hinaus, ohne dass es hier
+   eine Verzweigung braeuchte.
+   DER NAME TRAEGT DIE NUMMER DER ZEILE, wie am Foto: `bild-7.webp` statt
+   `bild.jpg`. Ein Name, den jede Zeile teilt, ist beim Speichern von Hand
+   keine Hilfe. */
 app.get('/api/comment-images/:id/raw', (req, res) => {
   const b = db.prepare('SELECT * FROM comment_images WHERE id = ?').get(req.params.id);
   if (!b) return res.status(404).end();
-  attachments.setHeader(res, 'bild.jpg', { inline: true });
-  res.send(req.query.size === 'thumb' && b.thumb ? b.thumb : b.data);
+  const blob = req.query.size === 'thumb' && b.thumb ? b.thumb : b.data;
+  attachments.setImageHeader(res, blob, { name: `bild-${b.id}` });
+  res.send(blob);
 });
 
 app.delete('/api/comments/:id', (req, res) => {
@@ -5857,8 +6023,14 @@ app.get('/api/stats', adminOnly, (req, res) => {
     /* DIE FOTOS AM EINTRAG NACH FORMAT -- die Auskunft, um derentwillen die
        Abfrage oben zusammengelegt wurde. Sie sagt, wovon die Datenbank so
        gross ist, und sie sagt, ob der Knopf daneben noch etwas zu tun hat.
-       NUR DAS ORIGINAL. thumb und medium sind immer JPEG und stehen in keiner
-       eigenen Zeile; sie werden von dieser Runde nicht angefasst. */
+       NUR DAS ORIGINAL. `thumb` und `medium` stehen in keiner eigenen Zeile,
+       und das bleibt auch nach 0.27.0 so -- die Aufstellung beantwortet die
+       Frage „welches Format tragen die Bilder, die HEREINGEKOMMEN sind", und
+       darauf antwortet die Ableitung nicht: sie traegt das Format, das
+       Kriterion selbst gewaehlt hat, und seit 0.27.0 ist das ausnahmslos
+       WebP. Eine Zeile „WebP: alle" waere eine Zahl ohne Frage.
+       WAS SIE WIEGEN, STEHT DAGEGEN SEHR WOHL DA -- in der Belegung auf der
+       Platte, wie eh und je. */
     imageFormats,
     /* WIE WEIT DIE UMSTELLUNG IST -- ODER null. KEINE ZWEITE ROUTE dafuer:
        die Karte fragt ohnehin die Kennzahlen ab, und ein eigener Endpunkt fuer
@@ -5934,10 +6106,11 @@ app.post('/api/images/convert', ownerOnly, secondConfirmNeeded('images'), (req, 
      zuletzt gestarteten. Eine Absage ist ehrlicher als eine zweite Schleife. */
   if (batchStates.conversion && batchStates.conversion.running)
     return res.status(409).json({ error: t(localeOf(req), 'server.convertRunning')});
-  const rows = qOpenPng.all(PNG_MAGIC_HEX);
+  const rows = qConvertRows.all();
   batchStates.conversion = { running: true, total: rows.length, done: 0,
-                                 converted: 0, stayed: 0, freed: 0 };
-  console.log(`[Kriterion] Bildumstellung gestartet: ${rows.length} PNG.`);
+                                 converted: 0, derived: 0, stayed: 0, freed: 0 };
+  console.log(`[Kriterion] Bestandslauf gestartet: ${rows.length} Fotozeilen ` +
+    `werden angesehen; das Verfahren der Ablage ist "${imageStore()}".`);
   res.status(202).json(batchState('conversion'));
   /* DIE ANTWORT IST SCHON HINAUS, WENN DER THREAD ANFAENGT -- seit 0.19.3
      laeuft die Schleife nicht mehr hier, sondern in batchrun.js. Was der
@@ -5947,7 +6120,13 @@ app.post('/api/images/convert', ownerOnly, secondConfirmNeeded('images'), (req, 
      (worker.on('error') in startBatchThread) statt an einem catch: eine
      unbehandelte Zusage naehme in Node den ganzen Server mit, ein Fehler im
      Thread nimmt nur den Lauf. */
-  startBatchThread('conversion', rows);
+  /* DAS VERFAHREN REIST MIT UND WIRD NICHT IM THREAD GELESEN -- 0.27.0.
+     Der Thread hat seine eigene Verbindung und koennte die Einstellungszeile
+     selbst holen; dann staende die Frage „welches Verfahren gilt fuer DIESEN
+     Lauf" an zwei Orten, und ein Umschalten waehrend des Laufs traefe die
+     Haelfte der Zeilen anders als die andere. EINMAL GELESEN, BEIM START --
+     wer waehrend eines Laufs umschaltet, bekommt seine Wahl beim naechsten. */
+  startBatchThread('conversion', rows, null, imageStore());
 });
 
 /* ================= Das Austauschformat =================
@@ -7426,10 +7605,11 @@ const BACKUP_PATTERN = /^kriterion-.+\.sqlite$/;
    DIE GRENZEN STEHEN HIER UND NICHT NUR IM EINGABEFELD: `min`/`max` im HTML
    ist eine Bitte, keine Klemme. Ein Feld, in das jemand 0 schreiben kann, ist
    eine Falle -- ein Boden von 0 hiesse "alles darf fallen".
-   VORGABE DES SCHALTERS IST AUS, und das ist die Abweichung von
-   `convertImages`: eine umgewandelte PNG-Datei holt der Knopf in der
-   Gegenrichtung zurueck, eine geloeschte Sicherung holt nichts zurueck. Was
-   nicht umkehrbar ist, wird nicht stillschweigend eingeschaltet. */
+   VORGABE DES SCHALTERS IST AUS, und das ist die Abweichung von der
+   Bildablage (`imageStore`, bis 0.26.0 `convertImages`): eine umgewandelte
+   PNG-Datei holt der Knopf in der Gegenrichtung zurueck, eine geloeschte
+   Sicherung holt nichts zurueck. Was nicht umkehrbar ist, wird nicht
+   stillschweigend eingeschaltet. */
 const CLEANUP_KEEP = { fallback: 3, min: 1, max: 20 };
 const CLEANUP_DAYS = { fallback: 30, min: 7, max: 365 };
 const DAY_MS = 86400000;
