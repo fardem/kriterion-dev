@@ -478,7 +478,7 @@ weiterhin offen. Daraus folgt die Stellung von `HINTER_PROXY` (Abschnitt 3).
 
 ## 2. Betriebsstand
 
-**Gebaut ist 0.26.0** — **6411 Prüfungen**, **802 Rückbauten in der Liste**
+**Gebaut ist 0.26.0** — **6411 Prüfungen**, **803 Rückbauten in der Liste**
 (Abschnitt 8). **Am Wirt läuft 0.24.6, eingespielt am 9. September 2026,
 Fingerprint `c4c07393`** *(Abschnitt 8)*.
 

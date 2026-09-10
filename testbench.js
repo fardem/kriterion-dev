@@ -4724,14 +4724,36 @@ const shareMain = (purpose, target = null) =>
       !/github\.event_name/.test(bpFlow) &&
       !/pull_request\.head\.repo/.test(bpFlow),
       (bpFlow.match(/^.*if:.*$/m) || ['(keine Bedingung)'])[0]);
-    /* UND DER LAUF HAENGT AN GENAU EINEM EREIGNIS. Gezaehlt wird, was unter
-       `on:` auf der ersten Stufe steht: ein zweites Ereignis brauchte die
-       Bedingung darueber wieder, und die gibt es nicht mehr. */
+    /* UND DER LAUF HAENGT AN GENAU ZWEI EREIGNISSEN, DIE NAMENTLICH DASTEHEN.
+       Bis zum Abend des 10. September 2026 war es EINES (`push: main`), und
+       diese Zusage zaehlte nur. GEZAEHLT REICHT NICHT MEHR: der Betreiber
+       haelt das Repository privat und setzt es nur um einen Push herum
+       oeffentlich, damit die Laeufer nichts kosten. Daraus folgen zwei Dinge,
+       und beide muessen zugesagt sein:
+
+         push               -- OHNE Zweigfilter, sonst prueft der Push auf
+                               einen Zweig gar nichts, und genau der ist der
+                               Schritt, den der Betreiber selbst ausloest.
+         workflow_dispatch  -- der Knopf. Er haengt an keinem Ereignis,
+                               sondern am Menschen.
+
+       UND `pull_request` DARF NICHT DABEISTEHEN. Es gaebe zwei Laeufe auf
+       denselben Stand und braeuchte die Bedingung wieder, die am selben Tag
+       gefallen ist (Weg B, 0.25.0). Eine Zusage, die nur ZAEHLT, saehe diesen
+       Tausch nicht: zwei bleiben zwei, auch wenn das falsche zweite dasteht. */
     const bpOn = ((bpFlow.split('\n').filter(z => !/^\s*#/.test(z)).join('\n'))
       .match(/^on:[ \t]*\n(?:[ \t]+\S.*\n|[ \t]*\n)*/m) || [''])[0];
     const bpEvents = [...bpOn.matchAll(/^ {2}(\w+):/mg)].map(t => t[1]);
-    check('Und der Lauf haengt an genau EINEM Ereignis',
-      bpEvents.length === 1, bpEvents.join(', ') || '(keins)');
+    check('Und der Lauf haengt an genau ZWEI Ereignissen, beide namentlich',
+      bpEvents.length === 2 && bpEvents.includes('push')
+        && bpEvents.includes('workflow_dispatch'),
+      bpEvents.join(', ') || '(keins)');
+    /* UND DER PUSH TRAEGT KEINEN ZWEIGFILTER. Ein `branches:` darunter machte
+       den Knopf zur einzigen Pruefung eines Zweiges -- und der Betreiber
+       muesste ihn jedes Mal von Hand druecken, obwohl er gerade gepusht hat. */
+    check('Und der Push traegt keinen Zweigfilter',
+      !/^ {2}push:[ \t]*\n {4}branches:/m.test(bpOn),
+      bpOn.replace(/\n/g, ' \\n ').trim());
   }
 
   /* ================= Die Befunde der Runde 0.24.4 =======================
@@ -25200,8 +25222,13 @@ const shareMain = (purpose, target = null) =>
      BEDINGUNG und laesst die Zuweisung stehen: eine Zuweisung, die ganz
      fehlte, waere ein ANDERER Fehler -- kein Platzhalter beim ersten
      Betreten -- und ein Rueckbau soll den alten Zustand herstellen und
-     keinen dritten. */
-  check('Es sind genau 802 Rueckbauten', gpList.length === 802, `${gpList.length}`);
+     keinen dritten.
+     803 SEIT 0.26.0, BEIPACK: einer (812) daran, dass der Lauf wieder nur an
+     `main` haengt. ER NIMMT DEN ZWEIGFILTER UND LAESST DEN KNOPF STEHEN --
+     zwei Ereignisse bleiben es damit, und genau darauf zielt er: die Zusage
+     hat bis zum 10. September nur GEZAEHLT, und eine zaehlende Zusage bliebe
+     hier stumm. */
+  check('Es sind genau 803 Rueckbauten', gpList.length === 803, `${gpList.length}`);
   const gpTwice = gpList.map(r => r.nr).filter((n, i, a) => a.indexOf(n) !== i);
   check('Und keine Nummer steht zweimal', gpTwice.length === 0, gpTwice.join(' '));
   /* JEDER GREIFT: der Suchtext kommt in seiner Datei GENAU EINMAL vor. Keinmal

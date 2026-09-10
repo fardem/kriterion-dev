@@ -405,9 +405,10 @@ BA 5.*
 | Der Titel | „ist ein `INPUT`" | „ist ein `TEXTAREA`" |
 | Die Faltung | „deutscher Bestand ändert sich um kein Zeichen" | „ändert nur sein `ß` — der Umlaut bleibt" |
 
-**Siebzehn neue Rückbauten: 795 bis 811.** *Nummeriert fortlaufend ab 795,
+**Achtzehn neue Rückbauten: 795 bis 812.** *Nummeriert fortlaufend ab 795,
 wie der Auftrag es verlangt — sechzehn aus BA 1 bis 4 und BA 6, der
-siebzehnte (811) aus BA 5.* **785 → 802.**
+siebzehnte (811) aus BA 5, der achtzehnte (812) aus dem Beipack.*
+**785 → 803.**
 
 **811 IST GEFAHREN: 6409 von 6411, 0 STUMM.** *Er nimmt die Bedingung heraus
 und lässt die Zuweisung stehen — der alte Zustand, kein dritter —, und fällt
@@ -446,7 +447,7 @@ nachgesehen**, im echten Browser und nicht im Nachbau:
 
 ---
 
-## Im Beipack — der Prüfstand hängt nur noch an `main`
+## Im Beipack — der Prüfstand hängt am Push und an einem Knopf
 
 **Entschieden vom Betreiber am 10. September 2026, vor dem ersten
 Bauabschnitt.** `.github/workflows/pruefstand.yml` hängt an **einem** Ereignis:
@@ -454,10 +455,50 @@ Push auf `main`. **Weg B aus 0.25.0 ist damit zurückgenommen** — bei einem
 einzigen Ereignis hat die Bedingung am Auftrag nichts mehr zu entscheiden, und
 sie ist gefallen. *Nicht auskommentiert, sondern weg.*
 
-**Der Preis steht in der Datei selbst und ist genannt, nicht eingehandelt:** ein
+**Der Preis stand in der Datei selbst und war genannt, nicht eingehandelt:** ein
 Zweig wird **nicht mehr geprüft, bevor er in `main` steht**, und eine Anfrage aus
-einem fremden Abzug bekommt **gar keinen** Lauf. *Wer einen Stand vorher geprüft
-sehen will, fährt `npm test` örtlich.*
+einem fremden Abzug bekommt **gar keinen** Lauf.
+
+### Und am selben Abend noch einmal geändert — weil der Grund ein anderer war
+
+> **DER BETREIBER IM WORTLAUT:** *„ich möchte um Aktivitätskosten zu sparen vor
+> dem Mergen auf public setzen und danach wieder auf privat. … wenn ich prüfen
+> selber das pushen selber anstoßen könnte nachdem ich es auf public gesetzt
+> habe, wäre es auch ok wenn es auch vorher prüft."*
+>
+> **Und daraus, eine Nachricht später, der ganze Ablauf:** *„ideal wäre … dass
+> du mir Bescheid gibst, dass du fertig gebaut hast, aber bis dahin weiß GitHub
+> von nichts. Ich setze den auf public und sag dir: jetzt push alles auf GitHub
+> — und es prüft, was es soll."*
+
+**DAS IST EINE ANDERE ANNAHME, UND SIE KIPPT DIE FORM VOM NACHMITTAG.** *Die
+Einengung auf `push: main` stand unter dem Satz, der seit dem 9. September in
+der Datei stand: „das Repository ist öffentlich, und die Standardläufer sind
+damit unbegrenzt kostenlos".* **Das gilt nicht mehr:** das Repository ist
+privat und wird **nur um einen Push herum** öffentlich.
+
+| | |
+|---|---|
+| **`push`** | **ohne Zweigfilter.** *Sonst prüft genau der Schritt nichts, den der Betreiber selbst auslöst — der Push auf einen Zweig, während das Repository offen ist.* |
+| **`workflow_dispatch`** | **der Knopf.** *Actions → Prüfstand → „Run workflow", Zweig wählen. Er hängt an keinem Ereignis, sondern am Menschen — der Weg, einen Stand ein zweites Mal zu prüfen, ohne einen leeren Commit zu erfinden.* |
+
+> **UND `pull_request` STEHT AUSDRÜCKLICH NICHT DA.** *Es gäbe zwei Läufe auf
+> denselben Stand und bräuchte die Bedingung wieder, die am selben Tag gefallen
+> ist.* **Der Preis bleibt damit derselbe wie am Nachmittag, aber nur noch der
+> halbe:** eine Anfrage aus einem fremden Abzug bekommt keinen Lauf; ein Zweig
+> dieses Repositorys sehr wohl.
+
+**DIE ZUSAGE MUSSTE MIT, und sie ist dabei besser geworden.** Bis hierher hieß
+sie *„der Lauf hängt an genau EINEM Ereignis"* und **zählte nur**. *Eine
+zählende Zusage hätte den Tausch von `workflow_dispatch` gegen `pull_request`
+nicht gesehen — zwei bleiben zwei.* **Jetzt stehen beide Ereignisse
+namentlich da**, und eine zweite Zusage hält fest, dass am `push` **kein
+Zweigfilter** hängt. *Gegenprobe 812 zielt genau darauf: sie nimmt den Filter
+zurück und lässt den Knopf stehen.*
+
+**Wer einen Stand ohne GitHub geprüft sehen will, fährt weiterhin `npm test`
+örtlich** — und genau das ist ab jetzt der Regelfall: **gebaut und geprüft
+wird örtlich, gepusht wird auf Ansage.**
 
 ---
 

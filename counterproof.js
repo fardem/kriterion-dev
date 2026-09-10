@@ -7913,6 +7913,22 @@ const REGRESSIONS = [
     search: "  if (!app.firstElementChild)\n    app.innerHTML = `<div class=\"shell\"><p class=\"hint\" style=\"padding-top:44px\">${tH('list.loading')}</p></div>`;",
     replacement: "  app.innerHTML = `<div class=\"shell\"><p class=\"hint\" style=\"padding-top:44px\">${tH('list.loading')}</p></div>`;",
     expected: 'Die Hervorhebung in der Uebersicht'
+  },
+  {
+    /* ================= 0.26.0, Beipack ==================================
+       DER LAUF HAENGT WIEDER NUR AN main. Das ist der Zustand vom Nachmittag
+       des 10. September, und er macht den Ablauf des Betreibers unmoeglich:
+       er setzt das Repository nur um einen Push herum auf oeffentlich, und
+       ein Push auf einen ZWEIG loeste dann gar nichts aus -- geprueft wuerde
+       erst nach dem Zusammenfuehren, also zu spaet.
+       ER NIMMT DEN ZWEIGFILTER UND LAESST DEN KNOPF STEHEN. Zwei Ereignisse
+       bleiben es damit, und genau darauf zielt er: eine Zusage, die nur
+       ZAEHLT, bliebe hier stumm. */
+    nr: '812', name: 'Der Lauf haengt wieder nur an main',
+    file: '.github/workflows/pruefstand.yml',
+    search: "on:\n  push:\n  workflow_dispatch:",
+    replacement: "on:\n  push:\n    branches:\n      - main\n  workflow_dispatch:",
+    expected: 'Der Beipack — 0.25.0'
   }
 ];
 

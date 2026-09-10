@@ -1,40 +1,56 @@
-# Der Pruefstand laeuft bei jedem Push auf main.
+# Der Pruefstand laeuft bei jedem Push -- auf jeden Zweig -- und ausserdem auf
+# Knopfdruck.
 #
-# Bisher lief er nur, wenn jemand daran dachte. Die Schluesselwoerter sind
-# englisch, weil GitHub sie so liest; alles andere steht auf Deutsch.
+# Die Schluesselwoerter sind englisch, weil GitHub sie so liest; alles andere
+# steht auf Deutsch.
 name: Pruefstand
 
-# EIN EREIGNIS, UND ES HEISST PUSH AUF main -- entschieden vom Betreiber am
-# 10. September 2026. Vorher hing der Lauf an zwei Ereignissen (Push und
-# Anfrage), und eine Bedingung am Auftrag waehlte den zweiten Lauf am selben
-# Stand ab (Weg B, 0.25.0). Die Bedingung ist damit gegenstandslos und
-# weggefallen: bei einem einzigen Ereignis gibt es keinen zweiten Lauf, den
-# sie noch abwaehlen koennte.
+# ZWEI EREIGNISSE, UND SIE STEHEN BEIDE NAMENTLICH DA -- entschieden vom
+# Betreiber am 10. September 2026, am selben Abend, an dem der Lauf auf
+# `push: main` eingeengt worden war.
 #
-# WAS DAMIT WEGFAELLT, UND ES FAELLT NAMENTLICH:
-#   1. DER LAUF AUF EINEM ZWEIG DIESES REPOSITORIUMS. Ein Zweig wird nicht
-#      mehr geprueft, bevor er in main steht -- die erste Pruefung eines
-#      Standes passiert NACH dem Zusammenfuehren und nicht davor.
-#   2. DER LAUF FUER EINE ANFRAGE AUS EINEM FREMDEN ABZUG. Dort gibt es
-#      keinen Push in dieses Repository; ohne das zweite Ereignis in dieser
-#      Liste laeuft fuer sie gar nichts.
+# WARUM ES WIEDER JEDER ZWEIG IST, UND DIESMAL AUS EINEM ANDEREN GRUND ALS
+# FRUEHER. Das Repository ist nicht mehr dauerhaft oeffentlich: der Betreiber
+# haelt es privat und setzt es NUR UM EINEN PUSH HERUM auf oeffentlich, weil
+# die Standardlaeufer dann nichts kosten. Sein Ablauf ist:
 #
-# Das ist der Preis, und er steht hier, damit ihn spaeter niemand fuer ein
-# Versehen haelt. Wer einen Stand vor dem Zusammenfuehren geprueft sehen
-# will, faehrt `npm test` oertlich -- der Pruefstand braucht GitHub nicht.
+#   1. gebaut und oertlich geprueft wird, OHNE zu pushen -- GitHub weiss nichts
+#   2. Repository auf oeffentlich
+#   3. „jetzt push alles"  ->  der Push loest den Lauf aus
+#   4. gruen -> zusammenfuehren (der Merge loest den zweiten Lauf aus, auf main)
+#   5. Repository wieder auf privat
+#
+# DARAUS FOLGT DIE FORM: der Ausloeser muss am PUSH haengen und nicht an
+# `main` allein, sonst prueft Schritt 3 gar nichts. Und es darf KEIN
+# `pull_request` daneben stehen -- das gaebe zwei Laeufe auf denselben Stand
+# und braeuchte die Bedingung wieder, die am 10. September gefallen ist
+# (Weg B, 0.25.0).
+#
+# DER KNOPF IST DIE ZWEITE HAELFTE. `workflow_dispatch` haengt an keinem
+# Ereignis, sondern am Menschen: Actions -> Pruefstand -> „Run workflow",
+# Zweig waehlen. Er ist der Weg, einen Stand ZWEIMAL zu pruefen, ohne einen
+# leeren Commit zu erfinden -- und der Rettungsanker, wenn ein Lauf haengt.
+#
+# WAS DAMIT WIEDERKOMMT: der Lauf auf einem Zweig, bevor er in main steht.
+# WAS WEITER FEHLT: der Lauf fuer eine Anfrage aus einem fremden Abzug. Dort
+# gibt es keinen Push in dieses Repository, und `pull_request` steht
+# ausdruecklich nicht in der Liste. Das ist der Preis, und er steht hier,
+# damit ihn spaeter niemand fuer ein Versehen haelt.
 on:
   push:
-    branches:
-      - main
+  workflow_dispatch:
 
-# Ein neuer Push auf main loest den vorigen Lauf ab. Zwei Laeufe auf einen
-# ueberholten Stand sagen nichts, was der neuere nicht besser saegte.
+# Ein neuer Push auf denselben Zweig loest den vorigen Lauf ab. Zwei Laeufe auf
+# einen ueberholten Stand sagen nichts, was der neuere nicht besser saegte.
 #
-# UM DIE MINUTEN GEHT ES DABEI SEIT DEM 9. SEPTEMBER 2026 NICHT MEHR: das
-# Repository ist oeffentlich, und die Standardlaeufer sind damit unbegrenzt
-# kostenlos. Es bleibt eine Frage der Ordnung -- wer die Liste liest, soll
-# nicht pruefen muessen, ob zwei Eintraege zwei Staende sind oder ein Stand
-# mit zwei Laeufen.
+# UM DIE MINUTEN GEHT ES DABEI WIEDER, und zwar seit dem 10. September 2026:
+# das Repository ist nur noch um einen Push herum oeffentlich (siehe oben).
+# Bleibt ein ueberholter Lauf stehen, laeuft er unter Umstaenden noch, wenn das
+# Repository schon wieder privat ist. Die Ordnung war der erste Grund; jetzt
+# gibt es einen zweiten.
+#
+# `github.ref` UND NICHT `main`: der Schluessel nennt den ZWEIG, sonst
+# loeschten sich Laeufe auf verschiedenen Zweigen gegenseitig ab.
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
