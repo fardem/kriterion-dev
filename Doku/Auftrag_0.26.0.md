@@ -1,7 +1,7 @@
 # Auftrag 0.26.0 — „Die kleinen Fehler fallen" — und das Potenzial wird abschaltbar
 
-**Sechs Befunde, eine Messung und eine Funktion · geschrieben am 10. September
-2026 · gebaut auf 0.25.4.**
+**Sechs Befunde, eine Beobachtung und eine Funktion · geschrieben am
+10. September 2026 · gebaut auf 0.25.4.**
 
 ---
 
@@ -13,9 +13,13 @@ beim Durchsehen gefunden, und jeder hat eine Stelle im Quelltext.* **Zwei davon
 sind je eine Zeile, zwei je zwei, einer hat einen ausdrücklich genannten
 Preis.**
 
-**Einer von ihnen wird nicht gebaut, sondern zuerst GEMESSEN.** *Die Übersicht
-braucht beim Betreten rund eine Sekunde; woher sie kommt, ist nicht bewiesen —
-und je nach Antwort ist die Reparatur eine ganz andere.*
+**EIN SIEBTER IST AM SELBEN TAG GEMESSEN WORDEN UND DABEI VERSCHWUNDEN.** *Die
+Übersicht brauchte beim Betreten rund eine Sekunde; der Betreiber hat
+gemessen und festgestellt, dass sie am gemeldeten Gerät nicht mehr da ist —
+und dass **niemand etwas repariert hat**, das sie erklären würde.* **Er wird
+beobachtet und nicht gebaut** *(Befund 7)*. **Eine Hälfte davon bleibt
+trotzdem**, weil sie unabhängig davon richtig ist: `renderList()` leert den
+Bildschirm, **bevor** es fragt.
 
 **Und die Runde trägt eine Funktion**, und die ist der Grund für die
 MINOR-Nummer:
@@ -64,9 +68,9 @@ Rückbauten** · `F_ROUTES` = **72** · Austauschformat `EXCHANGE_FORMAT` = **15
 | **F3** | **Wem gehört der Schalter — Admin oder Eigentümer?** Der Betreiber schreibt *„Admin+Admin(Eigentümer)"* | **Beiden, wie `categoriesFreeCreate`.** *Er erscheint an allen Einträgen aller Benutzer und gehört deshalb dem Admin und nicht in `user_settings` (Projektstand, Abschnitt 11).* | |
 | **F4** | **Die Sortierung `potential_desc` schaltet heute den Statusfilter auf „nicht getestet" um** (`public/app.js:2287`). Fällt die Gruppe weg — fällt die Kopplung mit? | **Ja, im selben Zug.** *Eine Kopplung auf eine Sortierung, die es nicht gibt, ist toter Code, und Regel „was fällt, fällt namentlich" gilt auch für ihn.* | |
 | **F5** | **Was steht in der Übersicht an der Stelle der Kopfzahl ◆, wenn der Modus aus ist?** | **Nichts — die Zeile schließt sich.** *Kein Platzhalter, kein Strich: eine leere Stelle, an der einmal etwas stand, sieht aus wie ein Fehler.* | |
-| **F6** | **Die Messung an der Übersicht** *(Befund 7)* **braucht eine Beobachtung im Browser des Betreibers.** Wird sie gemacht, bevor gebaut wird? | **Ja, und sie ist der erste Bauabschnitt.** *Ohne sie ist die Ursache nicht bewiesen; mit ihr steht in zehn Minuten fest, ob (a) die ganze Antwort ist.* **Sie kostet den Betreiber F12 und einen Klick.** | |
+| **F6** | **Die Messung an der Übersicht** *(Befund 7)* **braucht eine Beobachtung im Browser des Betreibers.** Wird sie gemacht, bevor gebaut wird? | **Ja, und sie ist der erste Bauabschnitt.** | **ERLEDIGT am 10. September 2026, und der Befund ist dabei weggefallen.** Drei Mitschnitte; die Übertragung der Kacheln ist als Ursache ausgeschlossen. **Dann die Feststellung des Betreibers:** *„also auch auf dem mobil ist das gut."* — und der Vergleich mit 0.22.1 zeigt, dass an dieser Stelle **nichts geändert** wurde. **Befund 7 wird beobachtet, nicht gebaut;** nur **(a)** bleibt und wandert zu den kleinen Befunden. |
 | **F7** | **`ß`/`ss`** *(Befund 6)* **hat einen Preis: „Masse" findet danach auch „Maße".** Wird er bezahlt? | **Ja.** *Für eine SUCHE ist das die richtige Seite des Irrtums — wer sucht, will lieber eine Zeile zu viel sehen als eine zu wenig. Für einen VERGLEICH wäre es falsch, und der Vergleich der Namen ist eine andere Funktion und bleibt es.* | |
-| **F8** | **Die Nummer: 0.26.0 als MINOR — richtig?** | **Ja.** *Die sechs Befunde und die Messung wären zusammen ein PATCH. Der Potenzialmodus ist eine **Funktion** und nimmt nach Regel 5.1 eine MINOR-Nummer; die Reparaturen fahren mit.* | |
+| **F8** | **Die Nummer: 0.26.0 als MINOR — richtig?** | **Ja.** *Die sechs Befunde und die zwei Zeilen aus Befund 7 wären zusammen ein PATCH. Der Potenzialmodus ist eine **Funktion** und nimmt nach Regel 5.1 eine MINOR-Nummer; die Reparaturen fahren mit.* **Dass Befund 7 weggefallen ist, ändert daran nichts** — die Nummer hängt an der Funktion. | |
 
 ---
 
@@ -264,8 +268,20 @@ Finger gibt es ihn gar nicht, dort öffnet die Berührung gleich den Eintrag.
 
 ### Befund 7 — die Übersicht braucht beim Betreten rund eine Sekunde
 
-> **DIESER BEFUND WIRD ZUERST GEMESSEN UND DANN GEBAUT.** *„Eine Sekunde fühlt
-> sich langsam an" ist keine Zahl.*
+> **ER WIRD NICHT GEBAUT. ER WIRD BEOBACHTET — entschieden am 10. September
+> 2026, nach der Messung.** *Der Betreiber hat gemessen und dabei festgestellt:*
+> **„also auch auf dem mobil ist das gut."** *Die Sekunde ist am gemeldeten
+> Gerät nicht mehr da.*
+>
+> **UND ES IST NICHTS REPARIERT WORDEN, DAS SIE ERKLÄREN WÜRDE** — siehe den
+> Abschnitt „Haben wir etwas geändert?" unten. **Ein Befund, der verschwindet,
+> ohne dass jemand ihn angefasst hat, ist keine Reparatur wert, sondern eine
+> Beobachtung** — dieselbe Form wie beim angepinnten Block und beim einen
+> abgerissenen Prüflauf von 0.9.1.
+>
+> **Die Messung bleibt trotzdem hier stehen, vollständig.** *Was gemessen und
+> ausgeschlossen ist, muss niemand ein zweites Mal messen — und wenn die
+> Sekunde wiederkommt, fängt die Suche nicht bei null an.*
 
 **Gemeldet aus dem Betrieb, 5. September 2026**, am Telefon über Mobilfunk
 gegen einen entfernten Wirt: *„overview → Einstellung → overview → Eintrag →
@@ -296,32 +312,125 @@ zusammen ≈ 28 ms kalt, ≈ 9 kB.** *Der Server trägt im schlimmsten Fall rund
 0.19.5 hält)* **und keine zu große Kachel** *(512 px kurze Kante gegen 540
 Gerätepunkte auf dem Telefon — eher knapp als üppig)*.
 
-#### Bauabschnitt 0 — die eine Beobachtung, die noch fehlt
+#### Die Beobachtung ist gemacht — 10. September 2026, Firefox gegen `kriterion.dmrts.de`
 
-**Sie passiert im Browser des Betreibers und ist von außen nicht messbar:** im
-Netzwerk-Reiter (F12), **„Cache deaktivieren" AUS**, von einem Eintrag zurück
-in die Übersicht, und bei den Bild-Abrufen ablesen:
+> **DER BETREIBER HAT SIE GELIEFERT, und sie beantwortet die Frage.** *Drei
+> Mitschnitte: einmal mit abgeschaltetem Zwischenspeicher, einmal mit
+> eingeschaltetem, einmal nach Grafiken gefiltert.*
 
-| steht dort … | dann |
+**1 · DIE FÜNF ABRUFE AUS `loadAll()` LAUFEN PARALLEL UND KOSTEN EINE
+RUNDREISE.**
+
+| | |
 |---|---|
-| **eine echte Zeit** | der Zwischenspeicher greift nicht — **das wäre der eigentliche Fehler**, und er ist zu suchen. Die Kachel trägt `Cache-Control: private, max-age=86400`; der Browser dürfte gar nicht erst fragen |
-| **„(disk cache)" / „(memory cache)"** | die Übertragung ist es nicht — dann bleibt der Neuaufbau, und **(a)** unten ist die ganze Antwort |
+| Status | **304**, alle fünf |
+| Übertragen | **nichts** — „Aus Cache" |
+| Dauer | **226–228 ms**, und sie **starten und enden zusammen** |
+| Größe | `items` **53,14 kB**, die anderen vier zusammen unter 9 kB |
 
-#### Was danach gebaut wird
+*Der Browser fragt jedes Mal nach — bedingte Anfragen mit ETag —, bekommt
+fünfmal „nicht geändert" und nimmt die Inhalte aus dem Zwischenspeicher.*
+**Der Server rechnet dabei nichts: lokal sind dieselben fünf 28 ms. Die 227 ms
+sind Laufzeit.**
 
-* **(a) Nicht leeren, bevor Ersatz da ist.** `renderList()` (`public/app.js:3121`)
-  setzt in der Zeile darauf `app.innerHTML = „Lädt …"` und wartet **erst danach**
-  auf `loadAll()`. **Der
-  Bildschirm ist leer, bevor überhaupt gefragt wird.** *Kleinster Eingriff,
-  größte Wirkung auf das Gefühl — und er hilft in jedem Fall, gleich was die
-  Beobachtung sagt.* **Er ändert keine einzige Zahl.**
-* **(b) Sofort aus `state.alle` zeichnen, dann nachladen** — *nur, wenn die
-  Beobachtung die Übertragung entlastet.* **Hat einen Preis:** hat inzwischen
-  jemand anders etwas angelegt, steht kurz der alte Stand da. *Das ist mit der
-  Glocke abzugleichen und keine Kleinigkeit.*
-* **(c) Weniger als fünf Abrufe** — *nach der Messung der kleinste Gewinn von
-  den dreien; die fünf zusammen sind 28 ms.* **Vorschlag: nicht bauen**, und
-  hinschreiben, warum.
+**2 · DIE KACHELN GEHEN AUF DEM RÜCKWEG GAR NICHT ÜBER DIE LEITUNG.** Im
+Mitschnitt mit eingeschaltetem Zwischenspeicher steht **keine einzige
+Bildzeile**. *Das ist kein Fehler der Aufnahme, sondern die gebaute Zusage:*
+
+* `public/app.js:4143` — die Kachel trägt `loading="lazy"`.
+* `server.js:4950` — sie wird mit `Cache-Control: private, max-age=86400`
+  ausgeliefert *(0.19.5; der Kommentar an `PHOTO_COLUMNS` sagt es wörtlich:
+  „solange der Eintrag frisch ist, FRAGT DER BROWSER GAR NICHT ERST NACH")*.
+
+**Bei kaltem Zwischenspeicher tut sie es sehr wohl** — der nach Grafiken
+gefilterte Mitschnitt zeigt sie als **200 mit echter Übertragung**, je
+**30–48 kB** und **60–139 ms**, unter Adressen der Form
+`raw?size=thumb&v=30351`. *Die Sitzung insgesamt: **33 Anfragen, 926 kB**.*
+
+> **DAMIT IST DIE ÜBERTRAGUNG DER KACHELN ALS URSACHE AUSGESCHLOSSEN**, und
+> zwar für den Weg, um den es geht: **das Zurückgehen in die Übersicht.**
+> *Beim allerersten Betreten kostet sie sehr wohl — aber das ist nicht der
+> gemeldete Fall.*
+
+**3 · WAS DAMIT NOCH OFFEN IST.** **227 ms von rund 1000 sind erklärt.** Die
+übrigen rund 700 liegen **nicht** in der Leitung. *Sie stecken im Neuaufbau,
+im Dekodieren der Kacheln aus dem Plattenspeicher oder in der Zeit, bevor
+überhaupt gefragt wird* — und das zeigt der Netzwerk-Reiter nicht, sondern die
+**Laufzeitanalyse**.
+
+> **UND ES IST NOCH ZU KLÄREN, OB DIE SEKUNDE AUF DIESEM GERÄT ÜBERHAUPT
+> STEHT.** *Gemeldet ist sie am **Telefon über Mobilfunk**; gemessen ist hier
+> ein Desktop-Firefox.* **Wenn der Desktop flott ist, misst diese Aufnahme die
+> falsche Lage**, und die Rundreise von 227 ms ist am Telefon eine andere Zahl.
+> *Das steht hier als offener Punkt und nicht als Fußnote.*
+
+#### Haben wir etwas geändert? — nein, und das ist nachgesehen
+
+**Der Betreiber hat genau richtig gefragt:** *„haben wir in der zwischenzeit
+irgendeine methode verändert?"* **Nein.** *Verglichen wurde der Stand von
+0.22.1 (`bc175ce`, der Stand des gemeldeten Befundes) mit 0.25.4 — 156
+Commits dazwischen.*
+
+| die Stelle | bei 0.22.1 | heute |
+|---|---|---|
+| **`loadAll()`** | fünf Abrufe in einem `Promise.all` | **zeichengleich** — dieselben fünf, dasselbe `Promise.all` |
+| **die Übersichtskachel** | `<img src="${bildQuelle(…, 'thumb')}" loading="lazy">` | **nur der Name ist anders:** `imageSource` statt `bildQuelle` (0.24.1, „Der Quelltext spricht Englisch") |
+| **die Auslieferung der Kachel** | `maxAge: 86400` an `/api/photos/:id/raw` | **unverändert** |
+| **`renderList()` leert vor dem Fragen** | ja | **ja — und das ist der einzige Punkt, der bleibt** |
+
+> **DIE DREI COMMITS, DIE DIESE ZEILEN ÜBERHAUPT BERÜHRT HABEN, GEHÖREN ALLE ZU
+> 0.24.1** — der Umbenennungsrunde. *Sie haben Bezeichner getauscht und kein
+> Verhalten.* **Was schneller geworden ist, ist nicht von uns.**
+
+**Was dann? Ehrlich: unbekannt.** *Denkbar sind ein warmer Kachelspeicher, wo
+er am 5. September kalt war (`max-age=86400` gilt einen Tag), eine andere
+Funkstrecke, oder ein Maß, das die erste Meldung anders genommen hat als die
+Messung heute.* **Keines davon ist bewiesen, und deshalb steht hier keines als
+Ursache.**
+
+#### Und ein Fund, der keiner ist — nachgesehen, damit ihn niemand zweimal sucht
+
+**Die Konsole meldete beim selben Blick einen roten Fehler**, und der ist
+**nicht unserer:**
+
+```
+Content-Security-Policy: Die Einstellungen der Seite haben die Ausführung
+eines Inline-Skripts (script-src-elem) blockiert …  sandbox eval code:17:34
+```
+
+**Die drei Warnungen daneben nennen ihre Quelle beim Namen:** `menu.html`,
+`menu.html`, `menu-button.html`. *Dieses Projekt hat **eine** HTML-Datei —
+`public/index.html`.* **Die drei gehören einer Browsererweiterung** (im
+Bildschirmfoto steht Adblock Plus in der Leiste).
+
+> **UND DIE MELDUNG IST EIN GUTES ZEICHEN.** `server.js:579` setzt
+> `script-src 'self'` — **die Sperre hat ein fremdes Inline-Skript
+> abgewiesen, genau wie bestellt.** *Hier ist nichts zu bauen; es steht nur
+> deshalb im Papier, damit die rote Eins beim nächsten Augenschein nicht noch
+> einmal Zeit kostet.*
+
+#### Was daraus folgt — einer bleibt, zwei fallen
+
+* **(a) Nicht leeren, bevor Ersatz da ist. — BLEIBT, und wandert zu den
+  kleinen Befunden.** `renderList()` (`public/app.js:3121`) setzt in der Zeile
+  darauf `app.innerHTML = „Lädt …"` und wartet **erst danach** auf `loadAll()`.
+  **Der Bildschirm ist leer, bevor überhaupt gefragt wird.**
+  *Das ist unabhängig davon falsch, wie schnell die Antwort kommt* — und
+  deshalb fällt es nicht mit dem Befund weg. **Zwei Zeilen, und es ändert keine
+  einzige Zahl.**
+* **(b) Sofort aus `state.alle` zeichnen, dann nachladen. — FÄLLT.** *Sie
+  kauft Geschwindigkeit mit Aktualität: hat inzwischen jemand anders etwas
+  angelegt, steht kurz der alte Stand da.* **Diesen Preis für eine Sekunde zu
+  zahlen, die niemand mehr sieht, wäre ein schlechter Handel.** *Kommt sie
+  wieder, ist (b) der erste Griff — und die Messung oben sagt bereits, warum:
+  die 227 ms sind EINE Rundreise und lassen sich nicht verkürzen, nur
+  zudecken.*
+* **(c) Weniger als fünf Abrufe. — FÄLLT, und zwar endgültig.** *Der Plan
+  nannte sie „den kleinsten Gewinn von den dreien, die fünf zusammen sind
+  28 ms".* **Die Messung sagt mehr, und sie sagt es unabhängig von der
+  Sekunde:** die fünf laufen **parallel** und kosten zusammen **eine**
+  Rundreise. Vier davon einzusparen spart **null** — `items` muss ohnehin
+  fragen. **Auch wenn der Befund wiederkäme, wäre (c) keine Antwort.**
 
 ---
 
@@ -359,12 +468,12 @@ Stellen (`server.js:4083`, `server.js:4574`).*
 
 | | was | was fällt |
 |---|---|---|
-| **BA 0** | **Die Beobachtung zu Befund 7** *(F6)* — der Betreiber liest im Netzwerk-Reiter ab | *nichts — es wird gemessen, nicht gebaut* |
+| **BA 0** | ~~Die Beobachtung zu Befund 7~~ — **am 10. September 2026 vorab erledigt**, und der Befund ist dabei weggefallen | *nichts* |
 | **BA 1** | **Die fünf Ein- und Zweizeiler:** Befund 1, 3a, 3b, 4 und 5 | **`.calc-sum:first-of-type`** fällt namentlich *(Befund 4)*; `white-space: nowrap` an `.timeline-hint` fällt *(Befund 5)* |
 | **BA 2** | **Die Sitzungsliste** *(Befund 2)* — die Fußzeile wandert aus der rollenden Liste | *keine Zeile fällt; der Kommentar an `#msessions` wird neu gerechnet und trägt die neue Zahl mit ihrer Herleitung* |
 | **BA 3** | **Befund 3c** — der Gewichtssatz hinter die Adminklemme | **ein Satz der Sprachdateien** wird verschoben, keiner fällt. *Fällt doch einer, steht er hier NAMENTLICH, in allen drei Dateien* |
 | **BA 4** | **Befund 6** — `ß`/`ss` in `searchFold()` | *nichts fällt; eine Zeile kommt hinzu* |
-| **BA 5** | **Befund 7** — `renderList()` leert nicht mehr ins Blaue *(a)*, alles Weitere nach BA 0 | *nichts fällt* |
+| **BA 5** | **Was von Befund 7 bleibt** — `renderList()` leert nicht mehr ins Blaue *(a)*, **zwei Zeilen**. *(b)* und *(c)* fallen namentlich | *nichts fällt* |
 | **BA 6** | **Der Potenzialmodus** — Schalter am Server, Schalter in der Karte, fünf Stellen in der Oberfläche | **Die Kopplung `potential_desc → 'untested'` fällt** *(F4)*; **`F_ROUTES` bleibt bei 72** — der Schalter reist über die vorhandene Einstellungsroute, wie `categoriesFreeCreate`. *Kommt doch ein Weg hinzu, steht die neue Zahl im Änderungsprotokoll* |
 
 > **DAS SCHEMA WIRD NICHT ANGEFASST.** *Der Schalter ist eine Zeile in der
@@ -379,9 +488,9 @@ Stellen (`server.js:4083`, `server.js:4574`).*
 
 **0.26.0 ist ein MINOR — Regel 5.1.**
 
-**Die sechs Befunde und die Messung wären zusammen ein PATCH:** *sieben
-Reparaturen, keine neue Fähigkeit — die Installation könnte danach nichts, was
-sie vorher nicht konnte.* **Der Potenzialmodus ist eine FUNKTION** — die Installation kann
+**Die sechs Befunde und die zwei Zeilen aus Befund 7 wären zusammen ein
+PATCH:** *lauter Reparaturen, keine neue Fähigkeit — die Installation könnte
+danach nichts, was sie vorher nicht konnte.* **Der Potenzialmodus ist eine FUNKTION** — die Installation kann
 danach etwas, was sie vorher nicht konnte —, **und eine Funktion nimmt eine
 MINOR-Nummer.** *Die Reparaturen fahren mit; deshalb heißt die Runde nach
 beidem.*
@@ -410,7 +519,7 @@ nummeriert ab 795.** *Ein STUMM ist ein Fund und kein Versehen.*
 | **4** | `.calc-sum:first-of-type` steht **nirgends** mehr im Stilblatt | die tote Regel zurück |
 | **5** | `.timeline-hint` trägt kein `nowrap` und eine Deckelung | `nowrap` zurück |
 | **6** | `searchFold('ÜBERGROSS')` und `searchFold('übergroß')` sind **gleich** — **und `searchFold('Masse') === searchFold('Maße')`**, ausdrücklich als Preis geprüft | die Gleichsetzung heraus |
-| **7 (a)** | `renderList()` leert erst, wenn geladen ist | die Reihenfolge zurück |
+| **7 (a)** | `renderList()` leert erst, wenn geladen ist — *die einzige Zusage, die von Befund 7 übrig bleibt* | die Reihenfolge zurück |
 | **Modus** | **fünf Stellen**, je eine Zusage: mit Schalter da, ohne Schalter weg. **Dazu: die Sterne stehen nach dem Aus- und Wiedereinschalten noch in der Datenbank** | je eine — *und eine, die den Schalter am SERVER umgeht und prüft, ob die Oberfläche trotzdem dicht ist* |
 
 > **DER PRÜFSTAND PRÜFT DIE REGEL UND NICHT DIE LAGE**, wo es um das Stilblatt
@@ -447,7 +556,8 @@ Bildschirm nachgesehen** — im echten Browser, nicht im Nachbau:
 | **Die drei mitgelieferten Kriterien auf Deutsch** *(Punkt 23)* | **eine eigene kleine Runde** — die Grundausstattung müsste dorthin wandern, wo die Sprachen liegen. *Keine Zeile, und sie gehört nicht neben sechs Anzeigefehler* |
 | **`potentialRating` aus den Antworten des Servers nehmen** | **Vorschlag F1 sagt nein.** *Ausschalten ist Verbergen; ein Export, dem ein Feld fehlt, ist beim Wiedereinschalten nicht mehr derselbe* |
 | **Die vergebenen Potenzialsterne löschen** | **niemals beim Ausschalten.** *Wer wieder einschaltet, findet seinen Bestand vor* |
-| **`(c)` aus Befund 7 — weniger als fünf Abrufe** | *nach der Messung der kleinste Gewinn: die fünf zusammen sind 28 ms.* **Es steht hier, damit niemand es für vergessen hält** |
+| **Befund 7 selbst — bis auf `(a)`** | **die Sekunde ist am gemeldeten Gerät nicht mehr da, und niemand hat sie repariert.** *Er wird beobachtet; die ganze Messung steht im Papier, damit die Suche nicht bei null anfängt, wenn er wiederkommt* |
+| **`(b)` und `(c)` aus Befund 7** | *(b)* kauft Geschwindigkeit mit Aktualität und wäre ein schlechter Handel für eine Sekunde, die niemand mehr sieht; *(c)* ist **bewiesen wirkungslos** — die fünf Abrufe laufen parallel und kosten zusammen eine Rundreise |
 | **Der Anschlag der Zeitleiste am Rand** *(die vollständige Lösung zu Befund 5)* | *teurer als der Befund; eine Deckelung genügt.* **Wird sie es nicht, steht es im Änderungsprotokoll** |
 
 ---

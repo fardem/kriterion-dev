@@ -142,7 +142,7 @@ Sprachumschalter baut, hat damit ein Muster und braucht kein neues.**
 | ~~**0.24.6**~~ | ~~Der Rückfall sagt, welche Sprache er wirklich zeigt~~ | **GEBAUT am 9. September 2026** — Änderungsprotokoll 0.24.6 | nein | — |
 | ~~**0.25.0**~~ | ~~Der Name weiß, in welcher Sprache er geschrieben ist~~ | **GEBAUT am 9. September 2026** — Änderungsprotokoll 0.25.0 | **ja** | 14 → 15 |
 | ~~**0.25.1**~~ | ~~Jede Kachel zählt ihre eigene Arbeit~~ | **GEBAUT am 10. September 2026** — Änderungsprotokoll 0.25.1 | nein | — |
-| **0.26.0** | **Die kleinen Fehler fallen — und das Potenzial wird abschaltbar** | Gruppe A: sechs Befunde, von denen der größte eine Messung braucht, **dazu eine Funktion** | nein | — |
+| **0.26.0** | **Die kleinen Fehler fallen — und das Potenzial wird abschaltbar** | Gruppe A: sechs Befunde — der siebte ist am 10. September gemessen worden und dabei weggefallen —, **dazu eine Funktion** | nein | — |
 | **0.27.0** | **Die wählbare Bildablage** | drei Verfahren zur Wahl, dazu die Ableitungen auf WebP | nein | — |
 | **0.28.0** | **Das Telefon bekommt Recht** | Gruppe B, dazu das Blättern im Eintrag und das Startbildzeichen | nein | — |
 | **0.29.0** | **Worauf man sich verlassen können muss** | Gruppe C, das Angenommene — und die letzte Runde, die das Schema anfassen darf | **ja** | 15 → 16 |
@@ -329,22 +329,35 @@ gemeldet oder beim Durchsehen gefunden; keiner ist eine neue Funktion.*
 |---|---|---|
 | **1** | **Nach dem ersten Bild geht die Dateiauswahl nicht mehr auf.** `uploadFiles()` überschreibt den Ablegekasten mit Text und wirft dabei das versteckte Dateifeld mit hinaus. Strg+V geht die ganze Zeit weiter, F5 heilt es — *deshalb ist es nie als Fehler gemeldet worden, sondern als Eigenart.* **Ursache ist eine Zeile** | **eine Zeile** |
 | **2** | **Die Sitzungsliste läuft unten aus dem Kasten.** Bei zehn Sitzungen bricht der Satz mitten in der Zeile ab, und **der Knopf „Andere Sitzungen beenden" steht gar nicht mehr da** — erreichbar nur über einen Bildlauf, den von außen niemand als solchen erkennt | klein |
-| **3** | **Drei kleine Anzeigefehler** aus dem Augenschein zu 0.22.0: der Eintragstitel wird auf dem Telefon abgeschnitten statt umgebrochen; ein Leerzeichen vor einer Klammer, das aus dem `gap` des Knopfes kommt und nicht aus dem Text; und der dritte | klein |
-| **4** | **Eine tote Regel im Stilblatt.** `.rz-summe:first-of-type` soll der ersten Summenzeile einen Strich geben, zählt aber DIV-Geschwister — und das erste `div` ist der Kopf. **Die Regel greift nie**; der Strich entsteht heute an anderer Stelle, und niemand hat es gemerkt | eine Zeile |
+| **3** | **Drei kleine Anzeigefehler** aus dem Augenschein zu 0.22.0: der Eintragstitel wird auf dem Telefon abgeschnitten statt umgebrochen; ein Leerzeichen vor einer Klammer, das aus dem `gap` des Knopfes kommt und nicht aus dem Text; **und die Karte „Bewertung: Kriterien", die dem Benutzer das Gewicht erklärt, das er nicht stellen kann** *(Sprachregel S5 — die halbe Klemme steht seit je, die andere Hälfte fehlt; Einzelheiten im Auftrag 0.26.0)* | klein |
+| **4** | **Eine tote Regel im Stilblatt.** `.calc-sum:first-of-type` *(bis 0.24.1 `.rz-summe`)* soll der ersten Summenzeile einen Strich geben, zählt aber DIV-Geschwister — und das erste `div` ist der Kopf. **Die Regel greift nie**; der Strich entsteht heute an anderer Stelle, und niemand hat es gemerkt | eine Zeile |
 | **5** | **Der Hinweis an der Zeitleiste läuft am rechten Rand hinaus.** Er steht mittig über seinem Punkt und bricht nicht um. Trifft nur ein schmales Fenster mit Maus — auf dem Finger gibt es ihn gar nicht | eine Zeile |
 | **6** | **`ß` und `ss` sind für die Suche zwei verschiedene Dinge.** „ÜBERGROSS" findet „übergroß" nicht. **Mit ausdrücklichem Preis:** in der Gegenrichtung findet „Masse" danach auch „Maße" | eine Zeile, **mit Preis** |
 
-### Und einer, der eine Messung vor sich hat
+### Und einer, der GEMESSEN worden ist — und dabei verschwand
 
-**Die Übersicht braucht beim Betreten rund eine Sekunde**, die Einstellungen mit
-**zwölf** Abrufen sind blitzschnell. **Die Asymmetrie ist der ganze Befund:** die
-Übersicht holt fünf Abrufe und **dreizehn Bilder à 45 kB**.
+**Die Übersicht brauchte beim Betreten rund eine Sekunde**, die Einstellungen
+mit **zwölf** Abrufen waren blitzschnell. **Die Asymmetrie war der ganze
+Befund:** die Übersicht holt fünf Abrufe und dreizehn Kacheln.
 
-> **DIE RUNDE MISST ZUERST UND BAUT DANN.** *Eine Sekunde „fühlt sich langsam
-> an" ist keine Zahl. Was fehlt, ist die Beobachtung, ob die Zeit im Warten auf
-> die Bilder liegt, im Zeichnen oder im Rechnen davor* — **und je nach Antwort
-> ist die Reparatur eine ganz andere.** Der Server ist bereits ausgemessen und
-> ausgeschlossen.
+> **GEMESSEN AM 10. SEPTEMBER 2026 — UND DER BEFUND IST DABEI WEGGEFALLEN.**
+> *Der Betreiber hat drei Mitschnitte aus seinem Browser geliefert und dann
+> festgestellt:* **„also auch auf dem mobil ist das gut."**
+>
+> **Und es ist nichts repariert worden, das es erklären würde.** *Der Vergleich
+> mit dem Stand des gemeldeten Befundes (0.22.1, `bc175ce`, 156 Commits
+> zurück) zeigt `loadAll()` **zeichengleich**, die Kachelzeile nur umbenannt
+> und `max-age=86400` unverändert.*
+>
+> **ER WIRD BEOBACHTET UND NICHT GEBAUT** — dieselbe Form wie beim angepinnten
+> Block. *Die ganze Messung steht in `Doku/Auftrag_0.26.0.md`, Befund 7: die
+> fünf Abrufe kommen als **304**, parallel, **227 ms** — eine Rundreise; die
+> Kacheln gehen auf dem Rückweg **gar nicht** über die Leitung. Wenn die
+> Sekunde wiederkommt, fängt die Suche nicht bei null an.*
+>
+> **EINE ZEILE DAVON BLEIBT UND WIRD GEBAUT:** `renderList()` leert den
+> Bildschirm, **bevor** es fragt. *Das ist unabhängig davon falsch, wie schnell
+> die Antwort kommt.*
 
 > **BEFUND 6 IST NICHT VORHER WEGGEFALLEN — und das ist entschieden worden.**
 > 0.24.4 hat die Faltung der Suche angefasst (Befund B8 dort) und `ß`/`ss`
