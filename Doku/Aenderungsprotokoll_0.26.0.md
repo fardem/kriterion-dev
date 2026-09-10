@@ -384,7 +384,8 @@ er steht.*
 
 ## Der Prüfstand
 
-**6358 → 6409 Zusagen.** *51 neue.*
+**6358 → 6411 Zusagen.** *53 neue — 51 aus BA 1 bis 4 und BA 6, zwei aus
+BA 5.*
 
 **Sechs Zusagen sind MITGEGANGEN, statt gelöscht zu werden** (Stolperstein 201):
 
@@ -397,8 +398,9 @@ er steht.*
 | Der Titel | „ist ein `INPUT`" | „ist ein `TEXTAREA`" |
 | Die Faltung | „deutscher Bestand ändert sich um kein Zeichen" | „ändert nur sein `ß` — der Umlaut bleibt" |
 
-**Sechzehn neue Rückbauten: 795 bis 810.** *Nummeriert fortlaufend ab 795, wie
-der Auftrag es verlangt.*
+**Siebzehn neue Rückbauten: 795 bis 811.** *Nummeriert fortlaufend ab 795,
+wie der Auftrag es verlangt — sechzehn aus BA 1 bis 4 und BA 6, der
+siebzehnte (811) aus BA 5.* **785 → 802.**
 
 > **DER LEHRREICHSTE IST 796.** *Der Versuch des Betreibers vom 10. September,
 > 14:09 Uhr, hatte die Weg-B-Bedingung mit `###` **auskommentiert** — und die
