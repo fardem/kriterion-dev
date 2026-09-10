@@ -681,9 +681,22 @@ const PERSONAL_KEYS = ['filters', 'font', 'blocks', 'linkRows', 'timeline', 'sea
    `language` STEHT NICHT HIER, SONDERN IN PERSONAL_KEYS -- es ist die Sprache
    des BENUTZERS. Zwei Sachen, zwei Namen: der Rumpf von PUT /api/settings
    entscheidet ueber den Namen, wem ein Wert gehoert. */
+/* SIEBEN SEIT 0.26.0: `potentialMode` -- der Schalter, der den ganzen
+   Potenzialmodus aus- und wieder einschaltet.
+   ER GEHOERT DEM EIGENTUEMER ALLEIN, und das ist die Antwort des Betreibers
+   auf F3 des Auftrags 0.26.0 -- sie faellt GEGEN den Vorschlag aus. Der
+   Vorschlag wollte ihn wie `categoriesFreeCreate` behandeln: Admin und
+   Eigentuemer. Der Betreiber hat entschieden, dass der Modus eine
+   Grundsatzentscheidung der INSTALLATION ist und kein Tagesgeschaeft -- ein
+   Admin sieht den Schalter und kommt nicht daran.
+   DIE ABLAGE IST TROTZDEM DIE VON `categoriesFreeCreate`: eine Zeile in der
+   Einstellungstabelle, kein Feld an einer Grundtabelle, und der Weg ist der
+   vorhandene. `F_ROUTES` bleibt deshalb bei 72. Die Vorlage taugt fuer die
+   Ablage, nicht fuer die Klemme -- wer sie ganz abschriebe, baute eine
+   Adminklemme, wo eine Eigentuemerklemme stehen soll. */
 const OWNER_KEYS = ['convertImages',
                                 'backupCleanup', 'backupKeep', 'backupDays',
-                                'languageDefault', 'languageOn'];
+                                'languageDefault', 'languageOn', 'potentialMode'];
 
 // DIE KLEMME IST DIE EINZIGE SCHICHT: better-sqlite3 bindet ein fehlendes
 // Argument STILL als NULL, und `WHERE user_id = NULL` ist in SQL nie wahr.
@@ -1367,6 +1380,15 @@ function selfOnly(req, authorId) {
    DIE KLEMME SITZT HINTER DEM NACHSCHLAGEN DES VORHANDENEN NAMENS -- nur so
    bleibt "Zuweisen darf immer jeder" baulich wahr. */
 const freeCreate = (key) => getSetting(key, true) !== false;
+/* DER POTENZIALMODUS -- 0.26.0. Abgeleitet beim Lesen wie die beiden
+   Anlegen-Schalter darueber, mit derselben Vorgabe: WER NICHTS EINGESTELLT
+   HAT, HAT IHN AN. Eine Installation, die nach der Hebung ploetzlich ihre
+   Potenzialsterne nicht mehr zeigte, waere ein Datenverlust im Auge des
+   Betrachters -- die Sterne stehen ja noch da.
+   ER BEKOMMT EINEN EIGENEN NAMEN UND NICHT freeCreate('potentialMode'):
+   `freeCreate` heisst „darf jeder anlegen", und das ist eine andere Frage.
+   Zwei Fragen unter einem Namen laufen beim naechsten Griff auseinander. */
+const potentialMode = () => getSetting('potentialMode', true) !== false;
 function mayCreate(req, key) {
   return isAdmin(req) || freeCreate(key);
 }
@@ -2525,6 +2547,17 @@ app.get('/api/settings', (req, res) => res.json({
   // Vorhandenen bleibt in jedem Fall stehen.
   tagsFreeCreate: freeCreate('tagsFreeCreate'),
   categoriesFreeCreate: freeCreate('categoriesFreeCreate'),
+  /* DER POTENZIALMODUS -- 0.26.0. Er steht in DIESER Antwort und nicht in
+     einer eigenen: die Oberflaeche braucht ihn an fuenf Stellen, und alle
+     fuenf zeichnen aus dem, was hier hereinkommt. Ausgeliefert an JEDEN --
+     ein Benutzer muss wissen, ob der Kasten fehlt oder nur nicht geladen
+     ist --, geschrieben nur vom Eigentuemer (OWNER_KEYS).
+     UND DER SERVER RECHNET WEITER: `potentialRating` bleibt in jeder
+     Antwort, auch wenn der Modus aus ist. Das ist F1 des Auftrags 0.26.0 --
+     Ausschalten ist Verbergen und nicht Loeschen. Ein Export, dem ein Feld
+     fehlt, waere beim Wiedereinschalten nicht mehr derselbe; das
+     Austauschformat bleibt deshalb bei 15. */
+  potentialMode: potentialMode(),
   /* DER SCHALTER DER BILDABLAGE, seit 0.19.0. Er steht in DIESER Antwort und
      nicht nur in /api/stats: die Karte im Reiter „Datenbank" zeigt ihn, aber
      die Stellung ist eine EINSTELLUNG und keine Kennzahl. Gelesen wird er
@@ -2800,6 +2833,13 @@ app.put('/api/settings', (req, res) => {
      EINER Zeile (OWNER_KEYS) und nicht hier ein zweites Mal. */
   if (req.body.convertImages !== undefined)
     putSetting.run('convertImages', JSON.stringify(!!req.body.convertImages));
+  /* DER POTENZIALMODUS -- 0.26.0, derselbe Weg wie der Schalter darueber, und
+     dieselbe Rechtezeile: er steht in OWNER_KEYS, und die Schranke ganz oben
+     an dieser Route weist einen Admin ab, bevor hier eine Zeile faellt.
+     KEINE ZWEITE PRUEFUNG HIER: eine Rechtefrage an zwei Orten laeuft beim
+     naechsten Griff auseinander (Stolperstein 47). */
+  if (req.body.potentialMode !== undefined)
+    putSetting.run('potentialMode', JSON.stringify(!!req.body.potentialMode));
   /* DIE AUFRAEUMREGEL DER SICHERUNGEN, 0.20.0 -- derselbe Weg, dieselbe
      Rechtezeile (OWNER_KEYS ganz oben), und die beiden Zahlen
      sind oben schon geprueft. DER SCHALTER STEHT AUF AUS, wenn nichts
@@ -2833,6 +2873,7 @@ app.put('/api/settings', (req, res) => {
              searchNames: searchNames(req.user.id),
              tagsFreeCreate: freeCreate('tagsFreeCreate'),
              categoriesFreeCreate: freeCreate('categoriesFreeCreate'),
+             potentialMode: potentialMode(),
              languages: languageEntries(),
              /* UND DIE BEIDEN NAMENSTAFELN, WENN DIE SPRACHFRAGE BERUEHRT WAR
                 -- 0.24.6, die Reparatur von E3. Die Vorgabesprache entscheidet,
@@ -4257,15 +4298,34 @@ const oneLine = (s) => String(s ?? '').replace(/\s+/g, ' ').trim();
    GEFALTET WIRD ZEICHEN FUER ZEICHEN, und das ist keine Zierde: `İ` faellt
    ueber searchFold() auf EIN Zeichen, `toLowerCase()` allein machte zwei
    daraus (i + U+0307), und jede Stelle dahinter waere um eins verschoben --
-   der Ausschnitt schnitte mitten ins Wort. Stimmt die Laenge trotzdem nicht
-   ueberein, wird gar nicht erst gesucht; dann steht der Anfang des Textes da,
-   und das ist die Regel, die es hier schon gibt. */
+   der Ausschnitt schnitte mitten ins Wort.
+   BIS 0.25.4 STAND HIER STATTDESSEN EIN LAENGENVERGLEICH: war der gefaltete
+   Text nicht so lang wie der rohe, wurde gar nicht erst gesucht, und es stand
+   der Anfang des Textes da. Das ging, solange NICHTS die Laenge aenderte.
+   SEIT 0.26.0 AENDERT ETWAS SIE -- `ß` faellt auf `ss` (Befund 6). Mit dem
+   Laengenvergleich haette JEDER deutsche Text mit `ß` seinen Ausschnitt
+   verloren und den Anfang gezeigt: kein falscher Ausschnitt, aber ein
+   schlechterer, und zwar in der Sprache, in der die meisten Eintraege stehen.
+   DESHALB EINE RUECKABBILDUNG STATT EINES VERGLEICHS. Zu jeder Stelle des
+   gefalteten Textes steht die Stelle im rohen daneben; die Fundstelle wird
+   darueber zurueckgerechnet. Das traegt auch den Fall, den der Vergleich
+   bisher nur ABGEFANGEN hat (`İ`), und es zaehlt in UTF-16-Einheiten, weil
+   `slice()` das auch tut -- ein Zeichen ausserhalb der Grundebene ist zwei. */
 function snippet(text, term) {
   const row = oneLine(text);
   const b = String(term ?? '');
   if (!b) return row.slice(0, SNIPPET_LENGTH);
-  const flat = [...row].map(c => searchFold(c)).join('');
-  const pos = flat.length === row.length ? flat.indexOf(searchFold(b)) : -1;
+  let flat = '';
+  const back = [];
+  let raw = 0;
+  for (const c of row) {
+    const piece = searchFold(c);
+    for (let k = 0; k < piece.length; k++) back.push(raw);
+    flat += piece;
+    raw += c.length;
+  }
+  const hit = flat.indexOf(searchFold(b));
+  const pos = hit < 0 ? -1 : back[hit];
   /* GEFUNDEN WIRD SIE HIER NORMALERWEISE WIEDER -- gesucht hat SQLite auf dem
      Rohtext, geschnitten wird auf dem eingeebneten. Ein Begriff, der selbst
      einen doppelten Leerraum traegt, ist danach nicht mehr zu finden; dann

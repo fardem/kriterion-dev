@@ -1220,9 +1220,19 @@ const shareMain = (purpose, target = null) =>
     !/audit-level=(low|moderate)/.test(workText) &&
     !/continue-on-error/.test(workText) && !/\|\|\s*true/.test(workText),
     workText.split('\n').filter(z => /audit|continue-on-error/.test(z)).join(' | '));
-  check('Er läuft bei push und bei pull_request',
-    /^on:\s*\[push, pull_request\]$/m.test(workText),
-    (workText.match(/^on:.*$/m) || [''])[0]);
+  /* NUR PUSH, UND NUR AUF main -- entschieden vom Betreiber am 10. September
+     2026. Diese Zeile zielt seit 0.8.10 auf den Rueckbau der Ereignisliste;
+     ihre Sache hat sich geaendert, und sie geht deshalb MIT, statt geloescht
+     zu werden (Stolperstein 201). Sie haelt jetzt beides fest: dass genau das
+     eine Ereignis dasteht und dass es main nennt.
+     GELESEN WIRD OHNE DIE KOMMENTARE. Der Kasten in der Datei NENNT, was
+     weggefallen ist -- eine Probe, die das Wort dort faende, faende
+     ausgerechnet die Begruendung fuer seinen Wegfall. */
+  const workCode = workText.split('\n').filter(z => !/^\s*#/.test(z)).join('\n');
+  check('Er läuft nur bei Push auf main',
+    /^on:[ \t]*\n[ \t]+push:[ \t]*\n[ \t]+branches:[ \t]*\n[ \t]+-[ \t]*main[ \t]*$/m.test(workCode) &&
+    !/pull_request/.test(workCode),
+    (workCode.match(/^on:[\s\S]{0,60}/m) || ['(keine Zeile on:)'])[0].replace(/\s+/g, ' '));
 
   /* ---------------------------------------------------------------- */
   group('Kriterien: lesen, umbenennen, anlegen');
@@ -4662,7 +4672,8 @@ const shareMain = (purpose, target = null) =>
         Lockfile hat sich bewegt. `npm audit fix` hebt innerhalb der schon
         deklarierten Bereiche; waere dabei ein Bereich in `package.json`
         gewandert, waere aus einer Hebung eine Entscheidung geworden.
-     ② DIE BEDINGUNG AM WORKFLOW STEHT DA -- Weg B: ein Lauf je Stand. */
+     ② DIE BEDINGUNG AM WORKFLOW IST WEG -- Weg B ist am 10. September 2026
+        zurueckgenommen worden; der Lauf haengt an einem einzigen Ereignis. */
   group('Der Beipack — 0.25.0');
   {
     const bpPackage = JSON.parse(fs.readFileSync(path.join(__dirname, 'package.json'), 'utf8'));
@@ -4693,24 +4704,34 @@ const shareMain = (purpose, target = null) =>
        im Sammelblatt. Ohne diese Zeile ginge er stillschweigend mit. */
     check('Und express bleibt bei 4 — der Sprung auf 5 ist eine eigene Runde',
       /^4\./.test(String(bpAt('express'))), `express=${bpAt('express')}`);
-    /* ② DER WORKFLOW. Gelesen wird die Bedingung und nicht ihre Wirkung: was
-       GitHub daraus macht, laesst sich hier nicht fahren. Was sich pruefen
-       laesst, ist, dass sie dasteht und beide Haelften nennt -- ohne die
-       zweite liefe fuer eine Anfrage aus einem fremden Abzug gar nichts. */
+    /* ② DER WORKFLOW -- UND SEINE SACHE HAT SICH GEAENDERT. 0.25.0 hat hier
+       Weg B festgehalten: zwei Ereignisse in `on:` und eine Bedingung am
+       Auftrag, die den zweiten Lauf am selben Stand abwaehlt. DER BETREIBER
+       HAT DAS AM 10. SEPTEMBER 2026 ZURUECKGENOMMEN -- ein Ereignis, Push auf
+       main, und die Bedingung faellt. Die beiden Waechter gehen mit, statt
+       geloescht zu werden (Stolperstein 201): sie halten jetzt fest, dass die
+       Bedingung WEG ist und dass wirklich nur EIN Ereignis dasteht.
+       DASS ES PUSH AUF main IST, steht in der Gruppe „Der Prueflauf bei jedem
+       Push" -- und hier ausdruecklich nicht ein zweites Mal (Stolperstein 47). */
     const bpFlow = fs.readFileSync(
       path.join(__dirname, '.github', 'workflows', 'pruefstand.yml'), 'utf8');
-    check('Workflowprobe: die Bedingung fuer Weg B steht da',
-      /if:\s*>-/.test(bpFlow) &&
-      /github\.event_name != 'pull_request'/.test(bpFlow) &&
-      /github\.event\.pull_request\.head\.repo\.full_name != github\.repository/.test(bpFlow),
-      (bpFlow.match(/if:[\s\S]{0,180}/) || ['(keine Bedingung)'])[0]);
-    /* UND DER LAUF HAENGT WEITER AN BEIDEN EREIGNISSEN. Wer `pull_request`
-       aus `on:` naehme, bekaeme fuer eine Anfrage aus einem fremden Abzug gar
-       keinen Lauf -- und die Bedingung darueber haette nichts mehr zu
-       entscheiden. */
-    check('Und der Lauf haengt weiter an Push UND Anfrage',
-      /on: \[push, pull_request\]/.test(bpFlow),
-      (bpFlow.match(/^on:.*$/m) || ['(keine Zeile on:)'])[0]);
+    /* AUCH NICHT AUSKOMMENTIERT: eine Bedingung, die als Kommentar
+       stehenbliebe, waere genau die tote Regel, die diese Reihe an anderer
+       Stelle als Befund fuehrt -- sie tut nichts und liest sich, als tue sie
+       etwas. Gelesen wird deshalb der VOLLE Text, Kommentare eingeschlossen. */
+    check('Workflowprobe: die Bedingung fuer Weg B ist weg — auch als Kommentar',
+      !/^[ \t]*#*[ \t]*if:/m.test(bpFlow) &&
+      !/github\.event_name/.test(bpFlow) &&
+      !/pull_request\.head\.repo/.test(bpFlow),
+      (bpFlow.match(/^.*if:.*$/m) || ['(keine Bedingung)'])[0]);
+    /* UND DER LAUF HAENGT AN GENAU EINEM EREIGNIS. Gezaehlt wird, was unter
+       `on:` auf der ersten Stufe steht: ein zweites Ereignis brauchte die
+       Bedingung darueber wieder, und die gibt es nicht mehr. */
+    const bpOn = ((bpFlow.split('\n').filter(z => !/^\s*#/.test(z)).join('\n'))
+      .match(/^on:[ \t]*\n(?:[ \t]+\S.*\n|[ \t]*\n)*/m) || [''])[0];
+    const bpEvents = [...bpOn.matchAll(/^ {2}(\w+):/mg)].map(t => t[1]);
+    check('Und der Lauf haengt an genau EINEM Ereignis',
+      bpEvents.length === 1, bpEvents.join(', ') || '(keins)');
   }
 
   /* ================= Die Befunde der Runde 0.24.4 =======================
@@ -17321,9 +17342,17 @@ const shareMain = (purpose, target = null) =>
        ueber `n`; mit `{days}` und `{minutes}` kam immer `select(undefined)`
        heraus, und das ist die MEHRZAHL. „in 1 Tagen" stand deshalb sieben
        Runden lang da. 38 Objekte werden 40, flach 76 + 4 = 80; flach also
-       1223 + 80 = 1303. */
-    check('Und die Zahlen stehen: 1303 Schluessel, 80 Mehrzahlformen, 14 Vokabelnamen',
-      languageKeys.length === 1303 && pluralKeys.length === 80 && vocabularyKeys.length === 14,
+       1223 + 80 = 1303.
+       UND MIT 0.26.0 AUF 1226 UND 1306. Drei Runden in einer Zeile:
+         Befund 3c   `card.setByAdmin` faellt, `card.weightSystemDefault` kommt --
+                     eine Umbenennung, die Zahl bleibt.
+         Der Modus   VIER kommen dazu: der einleitende Satz, die Beschriftung
+                     des Schalters, der Satz an der gedaempften Liste und der
+                     Satz an den Admin, der ihn nicht stellen darf.
+       1223 + 4 = 1227 -- und flach 1227 + 80 = 1307, denn keiner der vier ist
+       ein Mehrzahlpaar. */
+    check('Und die Zahlen stehen: 1307 Schluessel, 80 Mehrzahlformen, 14 Vokabelnamen',
+      languageKeys.length === 1307 && pluralKeys.length === 80 && vocabularyKeys.length === 14,
       `${languageKeys.length} / ${pluralKeys.length} / ${vocabularyKeys.length}`);
 
     /* ---- 3. Die Adressprobe ---------------------------------------------
@@ -17486,9 +17515,27 @@ const shareMain = (purpose, target = null) =>
        im Tuerkischen das ganze Verb „etkilenmez". */
     const WORDING_NEW_0254 = ['login.linkUnaffected', 'login.linkUnaffectedRetry',
       'login.linkUnaffectedWord'];
+    /* UND EINER MIT 0.26.0 -- Befund 3c. `card.setByAdmin` sagte dem Benutzer
+       „Eingestellt wird es vom Admin." und beschrieb damit einen KNOPF, den
+       er nicht hat. Der Betreiber hat entschieden, was an seiner Stelle steht:
+       dass die Gewichte eine Systemvorgabe sind. Der Schluessel heisst
+       deshalb anders, und der alte faellt weiter unten namentlich weg -- eine
+       Umbenennung ist hier ein neuer Satz UND eine Wegnahme, und beide
+       gehoeren in ihre Liste. */
+    /* UND VIER FUER DEN POTENZIALMODUS -- dieselbe Runde, andere Sache. Sie
+       stehen NEBEN dem Satz aus Befund 3c und nicht in derselben Zeile: die
+       Listen sind die Buchfuehrung darueber, WELCHE Runde welchen Satz
+       hinzugefuegt hat, und innerhalb einer Runde sagt die Trennung, WOFUER.
+       DER SCHALTER SELBST BRAUCHT KEINEN SATZ -- er braucht vier: was er tut
+       (der einleitende Satz), wie er heisst (die Beschriftung), was die
+       gedaempfte Liste bedeutet, und warum ein Admin ihn nicht stellen kann.
+       Der letzte ist der Preis der Antwort auf F3. */
+    const WORDING_NEW_0260 = ['card.weightSystemDefault',
+      'card.potentialModeHint', 'card.potentialModeLabel',
+      'card.potentialModeOff', 'card.potentialModeOwner'];
     const WORDING_NEW = [...WORDING_NEW_0243, ...WORDING_NEW_0244,
       ...WORDING_NEW_0245, ...WORDING_NEW_0246, ...WORDING_NEW_0250,
-      ...WORDING_NEW_0254];
+      ...WORDING_NEW_0254, ...WORDING_NEW_0260];
     const wordingMissing = WORDING_NEW.filter(k => LANGUAGE_FILE[k] === undefined);
     check('Die neuen Schluessel dieser Runde stehen wirklich in der Datei',
       wordingMissing.length === 0, wordingMissing.join(' ') || 'alle da');
@@ -17543,6 +17590,21 @@ const shareMain = (purpose, target = null) =>
     const WORDING_GONE_TEXT_0254 = ['nicht', 'Dein Link ist davon',
       'betroffen — er gilt\n          weiter.',
       'betroffen — er gilt weiter.\n        Versuch es gleich noch einmal.'];
+    /* UND EINER MIT 0.26.0 -- Befund 3c, aus demselben Grund: der Stand von
+       damals kennt ihn, der von heute nicht mehr. Sein WORTLAUT steht hier
+       und nicht sein Schluessel; verglichen werden Saetze. */
+    const WORDING_GONE_TEXT_0260 = ['Eingestellt wird es vom Admin.'];
+    /* UND DER SCHLUESSEL DAZU DARF IN KEINER DER DREI DATEIEN MEHR STEHEN --
+       sonst zoege die Rechnung einen Satz ab, den es noch gibt, und ginge
+       zufaellig auf. */
+    const goneAdmin = [];
+    for (const code of ['de', 'en', 'tr']) {
+      const file = JSON.parse(fs.readFileSync(
+        path.join(__dirname, 'public', 'languages', `${code}.json`), 'utf8'));
+      if (file['card.setByAdmin'] !== undefined) goneAdmin.push(code);
+    }
+    check('Und card.setByAdmin steht in keiner der drei Dateien mehr',
+      goneAdmin.length === 0, goneAdmin.join(' ') || 'in allen dreien weg');
     check('Und der Schluessel, den diese Runde wegnimmt, steht wirklich nicht mehr da',
       LANGUAGE_FILE['card.restoreIcon'] === undefined,
       JSON.stringify(LANGUAGE_FILE['card.restoreIcon']));
@@ -17579,7 +17641,8 @@ const shareMain = (purpose, target = null) =>
        aus dem von heute -- dort steht er ja gerade nicht mehr. Was danach
        verglichen wird, ist der Stand von 0681d42 OHNE ihn gegen den Stand von
        heute ohne die dreizehn plus acht neuen. */
-    const wordingThen = [...WORDING_GONE_0244, ...WORDING_GONE_TEXT_0254]
+    const wordingThen = [...WORDING_GONE_0244, ...WORDING_GONE_TEXT_0254,
+      ...WORDING_GONE_TEXT_0260]
       .reduce((list, sentence) => withoutOne(list, sentence), [...wordingFile.values]).sort();
     const wordingNow = valuesOf(wordingOld).map(asBefore).sort();
     const onlyThen = wordingThen.filter(x => !wordingNow.includes(x));
@@ -17589,7 +17652,7 @@ const shareMain = (purpose, target = null) =>
        zaehlt flach zweimal. Aus zwei Saetzen werden vier -- alles andere ist
        Satz fuer Satz dasselbe. */
     check('Wortlautprobe: zwei Saetze mehr als bei der Abnahme, und beide sind Mehrzahlpaare',
-      wordingNow.length === wordingThen.length + 2 && wordingNow.length === 1222,
+      wordingNow.length === wordingThen.length + 2 && wordingNow.length === 1221,
       `${wordingThen.length} damals, ${wordingNow.length} heute (ohne die ` +
       `${WORDING_NEW.length} neuen und die fuenf weggenommenen)`);
     /* ZWEI SAETZE SIND ANDERE, UND BEIDE SIND BENANNT.
@@ -17613,13 +17676,22 @@ const shareMain = (purpose, target = null) =>
        DIE BEIDEN MEHRZAHLPAARE STEHEN MIT ZWEI WERTEN IN `onlyNow` -- deshalb
        sind es dort sieben und hier drueben fuenf. */
     const WORDING_CHANGED_0254 = ['entry.tagQuote'];
+    /* UND EINER MIT 0.26.0, und er ist ein Befund und keine Entscheidung:
+       `card.withPhotos` hat beim Umbenennen der Bezeichner auf Englisch den
+       Wert eines gleichlautenden Satzes bekommen -- „mit Fotos", OHNE die
+       oeffnende Klammer, waehrend die drei Geschwister sie tragen. Am Knopf
+       stand seither „mit Fotos 301,5 KB )". Der Auftrag kannte ihn nicht; er
+       ist beim Bauen von Befund 3b aufgefallen. */
+    const WORDING_CHANGED_0260 = ['card.withPhotos'];
     const CHANGED_PLURAL_0254 = ['card.inDays', 'login.linkValidMinutes'];
     const pluralValues = CHANGED_PLURAL_0254
       .flatMap(k => Object.values(LANGUAGE_FILE[k])).map(asBefore);
-    check('Und genau fuenf Saetze sind andere — BACKUP_DIR, die Teilabfrage und die drei aus 0.25.4',
-      onlyThen.length === 5 && onlyNow.length === 7 &&
+    check('Und genau sechs Saetze sind andere — BACKUP_DIR, die Teilabfrage, die drei aus 0.25.4 und die Klammer aus 0.26.0',
+      onlyThen.length === 6 && onlyNow.length === 8 &&
       WORDING_CHANGED_0243.every(k => onlyNow.includes(asBefore(LANGUAGE_FILE[k]))) &&
       WORDING_CHANGED_0254.every(k => onlyNow.includes(asBefore(LANGUAGE_FILE[k]))) &&
+      WORDING_CHANGED_0260.every(k => onlyNow.includes(asBefore(LANGUAGE_FILE[k]))) &&
+      onlyThen.includes('mit Fotos') &&
       pluralValues.every(v => onlyNow.includes(v)) &&
       onlyThen.some(x => x.includes('SICHERUNG_DIR')) &&
       onlyThen.some(x => x.includes('&von=')) &&
@@ -17633,7 +17705,7 @@ const shareMain = (purpose, target = null) =>
     const restThen = onlyThen.reduce(withoutOne, wordingThen);
     const restNow = onlyNow.reduce(withoutOne, wordingNow);
     check('Und sonst kein Zeichen — Satz fuer Satz dieselbe Oberflaeche',
-      equal(restThen, restNow) && restNow.length === 1215,
+      equal(restThen, restNow) && restNow.length === 1213,
       `${restThen.filter((x, i) => x !== restNow[i]).length} abweichende von ${restNow.length}`);
 
     /* ---- 6. Die Kuerzeprobe ---------------------------------------------
@@ -21499,6 +21571,84 @@ const shareMain = (purpose, target = null) =>
   if (baImpItem) await call('DELETE', `/api/items/${baImpItem.id}`);
 
   /* ---------------------------------------------------------------- */
+  /* ================= Der Potenzialmodus am Server — 0.26.0 ================
+     ZWEI ZUSAGEN, UND BEIDE SIND VERSPRECHEN AN DEN BESTAND.
+     ERSTENS: AUSSCHALTEN IST VERBERGEN UND NICHT LOESCHEN (F1). Der Server
+     rechnet `potentialRating` weiter aus und liefert es weiter aus, auch
+     wenn der Modus aus ist. Wer wieder einschaltet, findet seinen Bestand
+     vor -- und ein Export, dem ein Feld fehlt, waere beim Wiedereinschalten
+     nicht mehr derselbe.
+     ZWEITENS: DIE KLEMME IST DIE DES EIGENTUEMERS (F3, gegen den Vorschlag).
+     Sie steht am SERVER und nicht im Browser -- `disabled` an einem Haken ist
+     eine Auskunft und keine Schranke.
+     GEFAHREN AM LAUFENDEN SERVER und nicht am Nachbau: die Frage ist, was
+     die Datenbank nach dem Umschalten traegt, und das weiss nur sie. */
+  group('Der Potenzialmodus am Server — 0.26.0');
+  {
+    const pmCrit = await call('POST', '/api/criteria', { name: 'Aussicht', phase: 'before' });
+    check('Ein Kriterium im Kasten „vorher" steht bereit',
+      pmCrit.status === 201 && pmCrit.content.phase === 'before',
+      `${pmCrit.status} ${JSON.stringify(pmCrit.content)}`);
+    const pmItem = await call('POST', '/api/items', { title: 'Der Modus und die Sterne' });
+    check('Und ein Eintrag dazu', pmItem.status === 201, `${pmItem.status}`);
+    await call('PUT', `/api/items/${pmItem.content.id}/ratings`,
+      { criterionId: pmCrit.content.id, value: 4 });
+    const pmRead = async () => (await call('GET', `/api/items/${pmItem.content.id}`)).content;
+    const pmBefore = await pmRead();
+    /* ERST DAS VORHANDENSEIN, DANN JEDE AUSSAGE DARUEBER (Stolperstein 81):
+       ohne eine Zahl belegte „sie steht noch da" gar nichts. */
+    check('Der Eintrag traegt eine Potenzialzahl',
+      pmBefore.potentialRating === 4, JSON.stringify(pmBefore.potentialRating));
+
+    check('Der Modus steht in den Einstellungen und ist an',
+      (await call('GET', '/api/settings')).content.potentialMode === true,
+      JSON.stringify((await call('GET', '/api/settings')).content.potentialMode));
+    const pmOff = await call('PUT', '/api/settings', { potentialMode: false });
+    check('Er laesst sich ausschalten',
+      pmOff.status === 200 && pmOff.content.potentialMode === false,
+      `${pmOff.status} ${JSON.stringify(pmOff.content.potentialMode)}`);
+    /* UND DER SERVER RECHNET WEITER -- das ist F1, und es ist die Zusage, an
+       der Export, Vergleich und Einzelansicht haengen. */
+    const pmWhileOff = await pmRead();
+    check('Und liefert die Potenzialzahl trotzdem weiter aus',
+      pmWhileOff.potentialRating === 4, JSON.stringify(pmWhileOff.potentialRating));
+    check('Und die vergebenen Sterne stehen unveraendert in der Zeile',
+      equal((pmWhileOff.ratings || []).filter(r => r.phase === 'before').map(r => r.value),
+            (pmBefore.ratings || []).filter(r => r.phase === 'before').map(r => r.value)),
+      JSON.stringify((pmWhileOff.ratings || []).filter(r => r.phase === 'before')));
+    const pmBack = await call('PUT', '/api/settings', { potentialMode: true });
+    const pmAfter = await pmRead();
+    check('Und nach dem Wiedereinschalten steht der Bestand da, wie er war',
+      pmBack.content.potentialMode === true && pmAfter.potentialRating === 4,
+      JSON.stringify([pmBack.content.potentialMode, pmAfter.potentialRating]));
+
+    /* DIE KLEMME -- F3, UND SIE IST DIE EINE ANTWORT, DIE GEGEN DEN VORSCHLAG
+       AUSFAELLT. Der Rufer DIESES Laufs ist der Eigentuemer; ein Zugang, der
+       Admin und nicht Eigentuemer ist, gehoert zu einem eigenen Server mit
+       eigenem Bestand, und der steht in dieser Prueflage nicht.
+       GEPRUEFT WIRD DESHALB DIE ZEILE, DIE DIE KLEMME TRAEGT: der Schluessel
+       steht in OWNER_KEYS, und die Schranke am Kopf der Route liest genau
+       diese Liste. Das ist keine schwaechere Zusage, sondern eine andere --
+       sie faellt rot, sobald jemand den Schluessel herausnimmt, und das ist
+       der Weg, auf dem die Klemme verlorenginge.
+       DASS DIE LISTE WIRKT, ist die Sache der Rollenpruefungen und nicht
+       dieser Zeile; sie sagt, dass der Modus IN der Liste steht. */
+    const pmServerSource = fs.readFileSync(path.join(__dirname, 'server.js'), 'utf8');
+    const pmOwnerLine = (pmServerSource.match(/const OWNER_KEYS = \[[^\]]*\]/) || [''])[0];
+    check('Der Modus steht in der Eigentuemerliste und nicht in der Adminhaelfte',
+      /'potentialMode'/.test(pmOwnerLine), pmOwnerLine.replace(/\s+/g, ' '));
+    /* UND ER STEHT IN KEINER ANDEREN ROLLENLISTE. Ohne diese Zeile waere die
+       obige auch dann gruen, wenn er zusaetzlich als persoenlicher Wert
+       durchginge -- und dann schriebe ihn jeder fuer sich. */
+    check('Und in keiner anderen Rollenliste',
+      !/const PERSONAL_KEYS = \[[^\]]*'potentialMode'/.test(pmServerSource),
+      (pmServerSource.match(/const PERSONAL_KEYS = \[[^\]]*\]/) || [''])[0].replace(/\s+/g, ' '));
+
+    await call('DELETE', `/api/items/${pmItem.content.id}`);
+    await call('DELETE', `/api/criteria/${pmCrit.content.id}`);
+  }
+
+  /* ---------------------------------------------------------------- */
   group('Die Ableitung folgt der Anzeige — 0.19.4');
 
   /* WAS HIER BELEGT WIRD, UND WARUM ES OHNE PIXEL NICHT GEHT. 0.19.4 aendert
@@ -25034,7 +25184,7 @@ const shareMain = (purpose, target = null) =>
      SPRACHDATEI und nicht am Quelltext, und das ist hier richtig: dort sass
      der Fehler. Ein Rueckbau, der nur Programmzeilen kennt, kann einen
      Sprachfehler nicht stellen. */
-  check('Es sind genau 785 Rueckbauten', gpList.length === 785, `${gpList.length}`);
+  check('Es sind genau 801 Rueckbauten', gpList.length === 801, `${gpList.length}`);
   const gpTwice = gpList.map(r => r.nr).filter((n, i, a) => a.indexOf(n) !== i);
   check('Und keine Nummer steht zweimal', gpTwice.length === 0, gpTwice.join(' '));
   /* JEDER GREIFT: der Suchtext kommt in seiner Datei GENAU EINMAL vor. Keinmal
@@ -36508,6 +36658,29 @@ async function checkUi() {
     msCard(msuEig)?.textContent?.slice(-260));
   check('Und den Knopf, der sie beendet',
     !!msCard(msuEig)?.querySelector('#sessions-all'), 'der Knopf fehlt');
+  /* ---- BEFUND 2 DER RUNDE 0.26.0 -- DIE FUSSZEILE STEHT NEBEN DER LISTE ----
+     Sie war bis dahin das letzte Kind IN `#msessions` und wurde vom Deckel
+     dieser Liste mitgerechnet. Auf einem schmalen Schirm fiel sie heraus: der
+     Satz brach mitten in der Zeile ab, und der Knopf war nur ueber einen
+     Bildlauf zu erreichen, den von aussen niemand als solchen erkennt.
+     GEPRUEFT WIRD DIE VERWANDTSCHAFT UND NICHT DIE LAGE -- der Nachbau hat
+     keine Layoutrechnung, `getBoundingClientRect()` gibt dort Nullen
+     (dieselbe Wahl wie in 0.25.3). Dass der Knopf am Bildschirm steht, gehoert
+     in den Augenschein; dass er nicht in der rollenden Liste haengt, steht
+     hier. */
+  const msuFoot = msCard(msuEig)?.querySelector('.session-foot');
+  check('Die Fusszeile der Sitzungen steht da', !!msuFoot,
+    msCard(msuEig)?.innerHTML?.slice(-200));
+  check('Und sie ist kein Kind der rollenden Liste',
+    !!msuFoot && !msCard(msuEig)?.querySelector('#msessions .session-foot'),
+    msuFoot?.parentElement?.id || msuFoot?.parentElement?.className || '(kein Elternteil)');
+  /* UND DER KNOPF MIT IHR. Ohne diese Zeile bliebe „kein Kind" auch dann
+     gruen, wenn der Knopf aus der Fusszeile heraus in die Liste wanderte --
+     und genau er ist der, der nicht zu sehen war. */
+  check('Und der Knopf steht in ihr, nicht in der Liste',
+    !!msuFoot?.querySelector('#sessions-all') &&
+    !msCard(msuEig)?.querySelector('#msessions #sessions-all'),
+    msCard(msuEig)?.querySelector('#sessions-all')?.parentElement?.className || '(kein Knopf)');
   check('Die Frist kommt vom Server und wird nicht nachgerechnet',
     /30 Tagen/.test(msCard(msuEig)?.textContent || ''),
     msCard(msuEig)?.textContent?.slice(-260));
@@ -40058,19 +40231,50 @@ async function checkUi() {
     adIncluding.document.querySelectorAll('#links .lrow .dom mark').length > 0,
     `${adIncluding.document.querySelectorAll('#links .lrow .dom mark').length} Marken`);
   /* DER TITEL UND DIE BESCHREIBUNG TRAGEN KEINE MARKE, und das ist kein
-     Versehen: beide sind Eingabefelder. Ein <input> und ein <textarea> haben
-     keine Kindknoten -- in sie laesst sich kein Element haengen, und ein
-     zweiter, nur zum Ansehen gebauter Titel daneben waere eine zweite
-     Anzeige derselben Sache. Die Abweichung steht im Aenderungsprotokoll
-     0.18.0; hier steht sie als Zusage, damit niemand sie fuer einen Fehler
-     haelt und still einen Weg dafuer baut. */
+     Versehen: beide sind Eingabefelder. Ein Feld hat keine Kindknoten -- in es
+     laesst sich kein Element haengen, und ein zweiter, nur zum Ansehen
+     gebauter Titel daneben waere eine zweite Anzeige derselben Sache. Die
+     Abweichung steht im Aenderungsprotokoll 0.18.0; hier steht sie als Zusage,
+     damit niemand sie fuer einen Fehler haelt und still einen Weg dafuer baut.
+     SEIT 0.26.0 IST DER TITEL EIN TEXTBEREICH UND KEIN EINZEILIGES FELD --
+     Befund 3a. Die Zusage geht mit, statt geloescht zu werden (Stolperstein
+     201): ihre Sache ist unveraendert -- keine Marke, weil es ein Feld ist --,
+     nur heisst das Element jetzt anders, und zwar wie das der Beschreibung. */
   /* ERST DAS VORHANDENSEIN, DANN DIE EIGENSCHAFT (Stolperstein 81 und 138).
      Ein Rueckbau, der die Adresse gar nicht mehr in den Eintrag fuehren laesst,
      liess den Lauf sonst ABREISSEN statt rot zu werden -- gefunden in der
      Gegenprobe zu 0.18.0. */
+  /* ---- BEFUND 1 DER RUNDE 0.26.0 -- DAS DATEIFELD BLEIBT IM BAUM --------
+     `uploadFiles()` tauschte den Hinweistext ueber `drop.textContent`, und das
+     wirft ALLE Kinder des Labels weg -- den Text UND das Dateifeld darin. Am
+     Ende kam der Text zurueck, das Feld nicht: ein Label ohne Feld hat nichts
+     zu oeffnen, und der `onchange` hing an einem Element ausserhalb des
+     Baums. Strg+V ging weiter, weil der Einfuegeweg am `document` haengt;
+     F5 heilte es. Deshalb war es nie als Fehler gemeldet, sondern als
+     Eigenart.
+     GEPRUEFT WIRD DER BAU: das Feld und der Texttraeger sind GESCHWISTER im
+     Label. Nur dann trifft ein Textwechsel am Traeger das Feld nicht. */
+  const adDrop = adIncluding.document.getElementById('drop');
+  check('Das Ablagefeld traegt sein Dateifeld und einen eigenen Texttraeger',
+    !!adDrop && !!adDrop.querySelector('#file') && !!adDrop.querySelector('#drop-text'),
+    adDrop?.innerHTML?.slice(0, 140) || '(kein Ablagefeld)');
+  check('Und beide sind Geschwister — ein Textwechsel trifft das Feld nicht',
+    adIncluding.document.getElementById('file')?.parentElement === adDrop &&
+    adIncluding.document.getElementById('drop-text')?.parentElement === adDrop,
+    adIncluding.document.getElementById('file')?.parentElement?.id || '(kein Elternteil)');
+  /* UND DER FORTSCHRITT SCHREIBT IN DEN TRAEGER UND NICHT INS LABEL. Der Bau
+     allein genuegt nicht: er stuende auch dann da, wenn `uploadFiles()`
+     weiter das Label beschriebe -- und dann waere der Befund zurueck, ohne
+     dass eine der beiden Zeilen darueber rot wuerde. */
+  const adAppSource = fs.readFileSync(path.join(__dirname, 'public', 'app.js'), 'utf8');
+  const adAppCode = adAppSource.replace(/\/\*[\s\S]*?\*\//g, '');
+  check('Und der Fortschritt schreibt in den Traeger, nicht ins Label',
+    /const dropText = document\.getElementById\('drop-text'\);/.test(adAppCode) &&
+    !/\bdrop\.textContent\s*=/.test(adAppCode),
+    (adAppSource.match(/const dropText[^\n]*/) || ['(keine Zeile)'])[0]);
   check('Der Titel ist ein Eingabefeld und traegt deshalb keine Marke',
     adIncluding.document.querySelectorAll('.title-in mark').length === 0 &&
-    adIncluding.document.getElementById('title')?.tagName === 'INPUT',
+    adIncluding.document.getElementById('title')?.tagName === 'TEXTAREA',
     adIncluding.document.getElementById('title')?.tagName ?? '(kein Titelfeld)');
   check('Und die Beschreibung ebenso',
     adIncluding.document.querySelectorAll('#desc mark').length === 0 &&
@@ -40555,6 +40759,45 @@ async function checkUi() {
     exText('ex-gr-yes') === exW.fmtBytes(11 * MB), exText('ex-gr-yes'));
   check('Und „Ohne Fotos" die seine — nicht null, der Umschlag bleibt',
     exText('ex-gr-no') === exW.fmtBytes(1 * MB), exText('ex-gr-no'));
+  /* ---- BEFUND 3b DER RUNDE 0.26.0 -- EIN FLEXKIND JE KNOPF ----------------
+     `.btn` ist `inline-flex` mit `gap: 7px`. Text, Zahl und Klammer standen
+     als DREI Kinder nebeneinander, und der Abstand setzte sich zwischen sie:
+     „Mit Fotos (~ 301,5 KB )". Das Leerzeichen kam aus dem Raster und nicht
+     aus dem Text -- wer im Woerterbuch danach suchte, fand nichts.
+     GEPRUEFT WIRD DER BAU UND NICHT DIE LAGE: der Nachbau hat keine
+     Layoutrechnung, ein `gap` ist dort nicht zu messen (dieselbe Wahl wie in
+     0.25.3). Dass genau EIN Kind dasteht, ist die Bedingung, unter der kein
+     Abstand mehr zwischen die Teile faellt; die Lage gehoert in den
+     Augenschein. */
+  const exBtnYes = exW.document.getElementById('ex-yes');
+  const exBtnNo = exW.document.getElementById('ex-no');
+  check('Der Knopf „Mit Fotos" traegt genau ein Flexkind',
+    exBtnYes?.children.length === 1 && exBtnYes.firstElementChild?.tagName === 'SPAN',
+    `${exBtnYes?.children.length} Kinder`);
+  check('Und die Zahl steht darin und nicht daneben',
+    exW.document.getElementById('ex-gr-yes')?.parentElement === exBtnYes?.firstElementChild,
+    exW.document.getElementById('ex-gr-yes')?.parentElement?.tagName || '(kein Traeger)');
+  check('Und der Knopf „Ohne Fotos" ebenso',
+    exBtnNo?.children.length === 1 &&
+    exW.document.getElementById('ex-gr-no')?.parentElement === exBtnNo?.firstElementChild,
+    `${exBtnNo?.children.length} Kinder`);
+  /* UND DIE KLAMMER GEHT AUF, BEVOR SIE ZUGEHT -- ein Befund, den der Auftrag
+     nicht kannte und der beim Bauen von 3b aufgefallen ist. Beim Umbenennen
+     der Bezeichner auf Englisch hat `card.withPhotos` den Wert eines
+     gleichlautenden Satzes bekommen -- „mit Fotos", OHNE die oeffnende
+     Klammer --, waehrend die drei Geschwister sie tragen. Am Knopf stand
+     seither „mit Fotos 301,5 KB )".
+     GEPRUEFT AM TEXT DES KNOPFES und nicht am Woerterbuch: der Fehler lag im
+     ZUSAMMENSPIEL von Satz und Markup, und genau das steht hier. */
+  const exLabel = (el) => (el?.textContent || '').replace(/\s+/g, ' ').trim();
+  check('Der Knopf „Mit Fotos" macht seine Klammer auf und wieder zu',
+    /\(~.+\)$/.test(exLabel(exBtnYes)), JSON.stringify(exLabel(exBtnYes)));
+  check('Und ohne Leerzeichen an der Klammer',
+    !/\(~ /.test(exLabel(exBtnYes)) && !/ \)$/.test(exLabel(exBtnYes)),
+    JSON.stringify(exLabel(exBtnYes)));
+  check('Und „Ohne Fotos" schliesst seine Klammer genauso',
+    /\(~.+\)$/.test(exLabel(exBtnNo)) && !/ \)$/.test(exLabel(exBtnNo)),
+    JSON.stringify(exLabel(exBtnNo)));
   check('Unter dem Schwellwert steht keine Warnung',
     exText('ex-warn').trim() === '', exText('ex-warn').slice(0, 80));
 
@@ -44714,13 +44957,56 @@ async function checkUi() {
        die DIESE Liste wirklich hat. Eine `.mrow.sitz` ist ein Raster ueber drei
        Zeilen und misst 72,55 px, wo eine gewoehnliche `.mrow` 41,92 misst; mit
        dem gemeinsamen Deckel standen FUENF Sitzungen da, wo die Zusage zehn
-       sagt. 55.23rem sind 10 x 72,55 plus die 102,88 der `.session-foot`, die
-       INNERHALB der Liste steht. Nachgemessen in Chromium bei 1384x1061: zehn
-       sichtbare Sitzungen statt fuenf, und unter der Liste bleiben 44 Pixel
-       statt 453. */
+       sagt.
+       SEIT 0.26.0 SIND ES 48.37rem UND NICHT MEHR 55.23rem -- Befund 2. Die
+       alte Zahl rechnete die Fusszeile mit (10 x 72,55 = 725,5 plus die 102,88
+       der `.session-foot`), weil die Fusszeile INNERHALB der Liste stand. Auf
+       einem schmalen Schirm ist eine Sitzungszeile hoeher als 72,55, und dann
+       fiel die Fusszeile aus dem Deckel heraus. Sie steht seither als
+       Geschwister daneben, und der Deckel deckelt nur noch Zeilen: 725,5 / 15
+       = 48,367rem. DIE ZUSAGE GEHT MIT, statt geloescht zu werden
+       (Stolperstein 201) -- sie zielt auf dieselbe Regel, nur auf ihre neue
+       Zahl. */
     const khSitz = (withoutMedia.match(/#msessions \{[^}]*\}/) || [''])[0];
     check('Die Sitzungsliste deckelt nach ihrer eigenen Zeile',
-      /max-height: 55\.23rem/.test(khSitz), khSitz || '(keine Regel)');
+      /max-height: 48\.37rem/.test(khSitz), khSitz || '(keine Regel)');
+    /* UND SIE RECHNET DIE FUSSZEILE NICHT MEHR MIT. Die alte Zahl steht
+       namentlich in der Verneinung: kaeme sie zurueck, waere der Befund
+       zurueck. */
+    check('Und rechnet die Fusszeile nicht mehr mit',
+      !/max-height: 55\.23rem/.test(khSitz), khSitz || '(keine Regel)');
+    /* ---- BEFUND 4 DER RUNDE 0.26.0 -- DIE TOTE REGEL IST WEG --------------
+       Sie verband `.calc-sum` mit `:first-of-type` und gab den Spans einen
+       `border-top`. `:first-of-type` zaehlt DIV-Geschwister, und das erste
+       `div` im Raster ist `.calc-row.calc-head` -- die Regel hat NIE
+       gegriffen. Der Strich, den man sieht, kam aus dem `border-bottom` der
+       Zeile darueber; deshalb ist es niemandem aufgefallen.
+       DER WORTLAUT STEHT NIRGENDS MEHR IM STILBLATT, auch nicht im Nachruf:
+       der Kommentar an seiner Stelle umschreibt ihn ausdruecklich, damit
+       diese Zeile ihn nicht in seiner eigenen Grabrede findet. */
+    check('Die tote Regel am Erklaerkasten steht nirgends mehr im Stilblatt',
+      !/\.calc-sum:first-of-type/.test(withoutMedia),
+      (withoutMedia.match(/^.*calc-sum:first-of-type.*$/m) || ['(steht nicht mehr da)'])[0]);
+    /* UND DER STRICH IST NICHT EINFACH VERSCHWUNDEN: er kommt jetzt aus der
+       letzten Kriterienzeile, die ihn ohnehin zieht -- EIN Strich statt
+       zweier. Ohne diese Zeile waere „die tote Regel ist weg" auch dann
+       gruen, wenn jemand sie ersatzlos geloescht haette. */
+    check('Und der Strich vor den Summen kommt aus der letzten Kriterienzeile',
+      /\.calc-last > span \{ border-bottom-color: var\(--line\); \}/.test(withoutMedia),
+      (withoutMedia.match(/^.*calc-last.*$/m) || ['(keine Regel)'])[0]);
+    /* ---- BEFUND 5 -- DER HINWEIS AN DER ZEITLEISTE ------------------------
+       Er steht mittig ueber seinem Punkt (`translateX(-50%)`) und trug
+       `white-space: nowrap`: ein langer Eintragstitel machte ihn beliebig
+       breit, und am rechten Ende der Achse ragte er hinaus.
+       ZWEI MASSE UND NICHT EINES: `14rem` deckelt ihn in Zeilen, `46%` an der
+       Achse -- der Ueberhang ist die halbe Kastenbreite, 46% heisst also
+       hoechstens 23% Ueberhang, auch auf einem schmalen Schirm. */
+    const khHint = (withoutMedia.match(/\.timeline-hint \{[^}]*\}/) || [''])[0];
+    check('Der Hinweis an der Zeitleiste bricht um', !/nowrap/.test(khHint),
+      khHint || '(keine Regel)');
+    check('Und er ist an beiden Massen gedeckelt',
+      /max-width: min\(14rem, 46%\)/.test(khHint) && /overflow-wrap: anywhere/.test(khHint),
+      khHint || '(keine Regel)');
     /* UND SIE SAGT NICHTS ZWEIMAL: alles andere -- die Forderung, das
        Schrumpfen, das Rollen -- steht in der Grundregel und gilt weiter
        (Stolperstein 47). */
@@ -45895,6 +46181,154 @@ async function checkUi() {
     d.w.close();
   }
 
+  /* ================= Der Potenzialmodus — 0.26.0 ==========================
+     EIN SCHALTER, UND ER WIRKT AN FUENF STELLEN. Das ist der ganze Punkt:
+     ein abgeschalteter Modus, der an einer Stelle doch noch durchscheint,
+     ist kein abgeschalteter Modus. Jede der fuenf bekommt deshalb ihre
+     eigene Zusage, und jede in BEIDEN Lagen -- mit Schalter da, ohne
+     Schalter weg. Eine Zusage, die nur die eine Lage prueft, waere auch dann
+     gruen, wenn die Stelle IMMER leer bliebe (Stolperstein 81).
+     DER BESTAND TRAEGT POTENZIALZAHLEN, und zwar in beiden Lagen. Genau das
+     ist die Forderung des Betreibers: „auch wenn Potenzial Bewertungen schon
+     vorhanden sind duerfen die nicht im Overview angezeigt werden". Der
+     Server rechnet sie weiter aus (F1) -- die Oberflaeche muss dicht sein,
+     nicht der Server. */
+  group('Der Potenzialmodus — 0.26.0');
+  {
+    const pmInventory = ksInventory;
+    const pmBuild = async (further = {}, hash = '') => {
+      const d = buildDom(JSDOM, { overviewItems: pmInventory, hash,
+        settings: { filters: null, ...further } });
+      await new Promise(r => setTimeout(r, 200));
+      return d;
+    };
+    const pmOn = await pmBuild({ potentialMode: true });
+    const pmOff = await pmBuild({ potentialMode: false });
+
+    /* ---- 1. DIE UEBERSICHT (F5) --------------------------------------
+       An der Stelle der Kopfzahl steht NICHTS -- kein Platzhalter, kein
+       Strich, die Zeile schliesst sich. Eine leere Stelle, an der einmal
+       etwas stand, sieht aus wie ein Fehler.
+       GEZAEHLT WIRD AN DEN UNGETESTETEN: ein getesteter Eintrag zeigt seine
+       Bewertung ★ weiter, und die hat mit dem Potenzial nichts zu tun. */
+    const pmDiamonds = (d) => d.w.document.querySelectorAll('.rating-inline.potential').length;
+    const pmStars = (d) => d.w.document.querySelectorAll('.rating-inline:not(.potential)').length;
+    check('Mit Schalter traegt die Uebersicht die Kopfzahl ◆',
+      pmDiamonds(pmOn) === 2, `${pmDiamonds(pmOn)} Rauten`);
+    check('Ohne Schalter steht dort nichts',
+      pmDiamonds(pmOff) === 0, `${pmDiamonds(pmOff)} Rauten`);
+    /* UND DIE STERNE DER GETESTETEN BLEIBEN IN BEIDEN LAGEN STEHEN. Ohne
+       diese Zeile waere „ohne Schalter steht dort nichts" auch dann gruen,
+       wenn die ganze Kachelzahl verschwunden waere. */
+    check('Und die Bewertung der getesteten steht in beiden Lagen da',
+      pmStars(pmOn) === 2 && pmStars(pmOff) === 2,
+      `mit ${pmStars(pmOn)}, ohne ${pmStars(pmOff)}`);
+    /* UND AUCH DER SATZ „noch nicht eingeschätzt" IST WEG. Er ist die andere
+       Haelfte derselben Stelle: ohne Zahl stand dort bis 0.26.0 ein Hinweis,
+       und ein Hinweis auf eine Schaetzung, die es nicht gibt, ist derselbe
+       Durchschein wie die Zahl selbst. */
+    const pmText = (d) => d.w.document.getElementById('app')?.textContent || '';
+    /* GEPRUEFT AN EINEM EIGENEN BESTAND: der oben traegt an BEIDEN ungetesteten
+       eine Zahl, und dann stuende der Hinweis auch mit Schalter nirgends --
+       die Zusage waere gruen, ohne etwas zu belegen (Stolperstein 106). */
+    const pmNoValue = [{ id: 9, title: 'Idee ohne Zahl', rejected: false, tested: false,
+      favorite: false, category: null, tags: [], mainPhoto: null, photoCount: 0, linkCount: 0,
+      avgRating: null, potentialRating: null, testCount: null, testAvg: null, testLast: null,
+      testDays: [], updated_at: '2026-08-05 10:00:00' }];
+    const pmHintBuild = async (mode) => {
+      const d = buildDom(JSDOM, { overviewItems: pmNoValue,
+        settings: { filters: null, potentialMode: mode } });
+      await new Promise(r => setTimeout(r, 200));
+      return d;
+    };
+    const pmHintOn = await pmHintBuild(true);
+    const pmHintOff = await pmHintBuild(false);
+    check('Und der Hinweis „noch nicht eingeschätzt" ebenso',
+      /noch nicht eingeschätzt/.test(pmText(pmHintOn)) &&
+      !/noch nicht eingeschätzt/.test(pmText(pmHintOff)),
+      pmText(pmHintOff).slice(0, 160));
+    pmHintOn.w.close(); pmHintOff.w.close();
+
+    /* ---- 2. DIE SORTIERUNG -------------------------------------------
+       Eine Sortierung nach einer Zahl, die nirgends zu sehen ist, ordnet
+       nach etwas Unsichtbarem. */
+    const pmSortValues = (d) => [...(d.w.document.getElementById('f-sort')?.options || [])]
+      .map(o => o.value);
+    check('Mit Schalter steht die Gruppe im Sortierfeld',
+      pmSortValues(pmOn).includes('potential_desc') &&
+      pmSortValues(pmOn).includes('potential_asc'),
+      pmSortValues(pmOn).join(' '));
+    check('Ohne Schalter steht sie nicht da',
+      !pmSortValues(pmOff).includes('potential_desc') &&
+      !pmSortValues(pmOff).includes('potential_asc'),
+      pmSortValues(pmOff).join(' '));
+    /* UND DIE UEBRIGEN SORTIERUNGEN BLEIBEN. Ohne diese Zeile waere „sie
+       steht nicht da" auch bei einem leeren Auswahlfeld gruen. */
+    check('Und die uebrigen Sortierungen bleiben in beiden Lagen',
+      pmSortValues(pmOff).includes('rating_desc') &&
+      pmSortValues(pmOff).includes('title_asc'),
+      pmSortValues(pmOff).join(' '));
+
+    /* ---- 3. DIE KOPPLUNG (F4) ----------------------------------------
+       `potential_desc` stellt den Statusfilter auf „nicht getestet". Faellt
+       die Gruppe weg, faellt die Kopplung mit -- sie koennte sonst nur noch
+       aus einer GESPEICHERTEN Ansicht heraus greifen und den Filter stellen,
+       ohne dass jemand etwas ausgewaehlt haette.
+       GEPRUEFT AN DER GESPEICHERTEN STELLUNG, denn genau die ist der Fall,
+       der uebrigbleibt: das Auswahlfeld bietet die Sortierung ja nicht mehr
+       an. */
+    const pmSaved = async (mode) => await pmBuild(
+      { potentialMode: mode, filters: { sort: 'potential_desc' } });
+    const pmOnSaved = await pmSaved(true);
+    const pmOffSaved = await pmSaved(false);
+    const pmTitles = (d) => [...d.w.document.querySelectorAll('.card .card-title')]
+      .map(e => e.textContent).sort();
+    check('Mit Schalter stellt die gespeicherte Sortierung den Status auf „nicht getestet"',
+      equal(pmTitles(pmOnSaved), ['Idee schwach', 'Idee stark']),
+      pmTitles(pmOnSaved).join(' · '));
+    check('Ohne Schalter stellt sie ihn nicht mehr — die Kopplung ist gefallen',
+      equal(pmTitles(pmOffSaved), ksAll), pmTitles(pmOffSaved).join(' · '));
+
+    /* ---- 4. DER STERNKASTEN AM EINTRAG -------------------------------
+       GAR NICHT ERST GEZEICHNET und nicht bloss eingeklappt. Der
+       Unterschied ist der ganze Punkt: eingeklappt heisst sichtbar --
+       Kopfzeile, Griff, Pfeil --, und ein Klick liesse Sterne vergeben.
+       Genau diesen Fehler hat 0.22.1 am Bewertungskasten repariert.
+       GEFRAGT WIRD DER BAUM UND NICHT DIE SICHTBARKEIT: ein `[hidden]`
+       stuende noch darin, und was im Baum steht, findet frueher oder
+       spaeter jemand. */
+    const pmEntryOn = await pmBuild({ potentialMode: true }, '#/item/1');
+    const pmEntryOff = await pmBuild({ potentialMode: false }, '#/item/1');
+    const pmBox = (d) => d.w.document.querySelector('[data-block="potenzial"]');
+    check('Mit Schalter steht der Sternkasten am Eintrag',
+      !!pmBox(pmEntryOn), '(kein Kasten)');
+    check('Ohne Schalter steht er GAR NICHT im Baum',
+      !pmBox(pmEntryOff), pmBox(pmEntryOff)?.outerHTML?.slice(0, 120) || '');
+    /* UND DER BEWERTUNGSKASTEN BLEIBT IN BEIDEN LAGEN. Zwei Sternkaesten,
+       ein Schalter -- er nimmt genau einen von beiden. */
+    check('Und der Bewertungskasten steht in beiden Lagen da',
+      !!pmEntryOn.w.document.querySelector('[data-block="bewertung"]') &&
+      !!pmEntryOff.w.document.querySelector('[data-block="bewertung"]'), '');
+
+    /* ---- 5. DIE OBERFLAECHE IST DICHT, AUCH WENN DER SERVER LIEFERT ----
+       DIE ZUSAGE, DIE DEN SCHALTER AM SERVER UMGEHT. Der Server rechnet
+       `potentialRating` weiter aus und liefert es in jeder Antwort (F1) --
+       der Bestand oben traegt Zahlen an beiden ungetesteten Eintraegen. Wenn
+       die Oberflaeche trotzdem nichts davon zeigt, ist sie dicht.
+       SIE IST DIE WICHTIGSTE DER SIEBEN. Ein Modus, der nur deshalb aus
+       aussieht, weil zufaellig keine Zahlen da sind, ist nicht aus. */
+    check('Der Bestand traegt Potenzialzahlen — sonst belegte das Ganze nichts',
+      pmInventory.filter(z => !z.tested && z.potentialRating).length === 2,
+      JSON.stringify(pmInventory.map(z => z.potentialRating)));
+    check('Und trotzdem steht in der ganzen Uebersicht keine Raute',
+      !/◆/.test(pmText(pmOff)), (pmText(pmOff).match(/.{0,30}◆.{0,30}/) || [''])[0]);
+    check('Und im Eintrag steht das Wort des Potenzialkastens nicht',
+      !pmBox(pmEntryOff) &&
+      !/data-block="potenzial"/.test(pmEntryOff.w.document.body.innerHTML), '');
+
+    pmOn.w.close(); pmOff.w.close(); pmOnSaved.w.close(); pmOffSaved.w.close();
+    pmEntryOn.w.close(); pmEntryOff.w.close();
+  }
   /* ================= Kein Milchglas im Stilblatt — 0.22.0 =================
      Eine Regelpruefung wie die zu [hidden] aus 0.15.1: die Regel steht seit
      0.19.x im Projektstand (10a), und das Stilblatt brach sie an neun
@@ -47006,15 +47440,40 @@ async function checkUi() {
       const flDirectory = fs.mkdtempSync(path.join(os.tmpdir(), 'kriterion-faltung-'));
       const flOut = JSON.parse(shortRun(
         `const { searchFold } = require('./db');` +
-        `console.log(JSON.stringify(['I','i','İ','ı','Übergroß','STICHSÄGE',null]` +
+        `console.log(JSON.stringify(['I','i','İ','ı','Übergroß','STICHSÄGE',` +
+        `'ÜBERGROSS','Grüße','GRÜSSE','GRÜßE','Masse','Maße','STRAẞE',null]` +
         `.map(z => searchFold(z))));`, flDirectory));
       fs.rmSync(flDirectory, { recursive: true, force: true });
       check('Und die vier i fallen wirklich auf eines',
         equal(flOut.slice(0, 4), ['i', 'i', 'i', 'i']), JSON.stringify(flOut.slice(0, 4)));
-      check('Und deutscher Bestand aendert sich dabei um kein Zeichen',
-        flOut[4] === 'übergroß' && flOut[5] === 'stichsäge', `${flOut[4]} · ${flOut[5]}`);
+      /* HIER STAND BIS 0.25.4 „deutscher Bestand aendert sich um kein
+         Zeichen", und die Zusage war richtig: 0.24.4 hat `ß`/`ss`
+         ausdruecklich AUSGENOMMEN. 0.26.0 nimmt den Fall auf (Befund 6), und
+         die Zusage geht mit, statt geloescht zu werden (Stolperstein 201) --
+         sie haelt jetzt fest, WAS sich aendert und was nicht: das `ß` faellt
+         auf `ss`, der Umlaut bleibt ein Umlaut. */
+      check('Und deutscher Bestand aendert nur sein ß — der Umlaut bleibt',
+        flOut[4] === 'übergross' && flOut[5] === 'stichsäge', `${flOut[4]} · ${flOut[5]}`);
+      /* DIE VIER ZEILEN DES BEFUNDS, EINE JE ZEILE SEINER TAFEL. Drei davon
+         gingen vorher ins Leere. */
+      check('Und ÜBERGROSS findet übergroß',
+        flOut[6] === flOut[4], `${flOut[6]} gegen ${flOut[4]}`);
+      check('Und Grüße, GRÜSSE und GRÜßE fallen auf dasselbe',
+        flOut[7] === flOut[8] && flOut[8] === flOut[9],
+        JSON.stringify(flOut.slice(7, 10)));
+      /* UND DER PREIS IST BEZAHLT, AUSDRUECKLICH GEPRUEFT -- F7 des Auftrags
+         0.26.0. „Masse" findet danach auch „Maße". Das ist kein Nebeneffekt,
+         sondern dieselbe Gleichsetzung von der anderen Seite; fuer eine SUCHE
+         die richtige Seite des Irrtums. Wer sie nicht mehr will, faellt hier
+         auf und nicht erst im Betrieb. */
+      check('Und der Preis steht: Masse und Maße sind fuer die Suche dasselbe',
+        flOut[10] === flOut[11], `${flOut[10]} gegen ${flOut[11]}`);
+      /* UND DAS GROSSE ẞ FAELLT MIT, weil die Gleichsetzung NACH
+         `toLowerCase()` greift -- dort ist U+1E9E schon ein kleines `ß`. */
+      check('Und das große ẞ fällt mit',
+        flOut[12] === 'strasse', JSON.stringify(flOut[12]));
       check('Und NULL wird zum leeren String, nicht zu NULL',
-        flOut[6] === '', JSON.stringify(flOut[6]));
+        flOut[13] === '', JSON.stringify(flOut[13]));
     }
 
     /* ---- 7. Formatprobe -------------------------------------------------
@@ -47699,6 +48158,39 @@ async function checkUi() {
     /* UND DIE LISTE STEHT BEIM BENUTZER TROTZDEM DA: er sieht, was es gibt. */
     check('Die Liste der Kategorien steht auch beim Benutzer',
       !!kUserCategory?.querySelector('#mcats') && !!kUserTag?.querySelector('#mtags'), '');
+    /* ---- BEFUND 3c DER RUNDE 0.26.0 -- DER GEWICHTSSATZ -------------------
+       Die Karte „Bewertung: Kriterien" schloss ihren Gewichtssatz fuer den
+       Benutzer mit „Eingestellt wird es vom Admin." -- ein Satz ueber einen
+       KNOPF, den er nicht hat, und damit Sprachregel S5 (Stolperstein 315).
+       DER BETREIBER HAT AM 10. SEPTEMBER 2026 ENTSCHIEDEN, und zwar gegen den
+       Vorschlag des Auftrags: die ERSTE Haelfte bleibt fuer jeden stehen. Was
+       das Gewicht TUT, erklaert die Marke ×1, die der Benutzer an jedem
+       Kriterium sieht -- der Satz erklaert eine Anzeige, die vor ihm steht.
+       DIE ZWEITE HAELFTE SAGT SEITHER, WAS ER WIRKLICH WISSEN MUSS: dass die
+       Gewichte eine Systemvorgabe sind. S5 greift damit auf die zweite
+       Haelfte und nicht auf den ganzen Satz. */
+    const kUserWeight = cardText(rwUserB, 'Bewertung: Kriterien');
+    const kAdmWeight = cardText(rwAdmB, 'Bewertung: Kriterien');
+    const kFlat = (el) => (el?.textContent || '').replace(/\s+/g, ' ');
+    check('Der Benutzer liest weiter, was das Gewicht tut',
+      /bestimmt, wie stark ein Kriterium in den Durchschnitt eingeht/.test(kFlat(kUserWeight)),
+      kFlat(kUserWeight).slice(-200));
+    check('Und dazu, dass die Gewichte eine Systemvorgabe sind',
+      /Die Gewichte sind eine Systemvorgabe\./.test(kFlat(kUserWeight)),
+      kFlat(kUserWeight).slice(-200));
+    /* UND DER SATZ UEBER DEN KNOPF STEHT NUR BEIM ADMIN -- das ist die
+       Klemme, um die es geht. Ohne die zweite Haelfte dieser Zeile waere sie
+       auch dann gruen, wenn der Bereich bei BEIDEN stuende. */
+    check('Der Bereich 0,2 bis 2 steht nur beim Admin',
+      /Möglich ist 0,2 bis 2/.test(kFlat(kAdmWeight)) &&
+      !/Möglich ist 0,2 bis 2/.test(kFlat(kUserWeight)),
+      kFlat(kUserWeight).slice(-200));
+    /* UND DER ALTE SATZ STEHT NIRGENDS MEHR -- `card.setByAdmin` ist
+       namentlich weggefallen, in allen drei Sprachdateien. */
+    check('Und „Eingestellt wird es vom Admin" steht bei keiner Rolle mehr',
+      !/Eingestellt wird es vom Admin/.test(kFlat(kUserWeight)) &&
+      !/Eingestellt wird es vom Admin/.test(kFlat(kAdmWeight)),
+      kFlat(kUserWeight).slice(-200));
     /* DER KOPF DER EINSTELLUNGEN SAGT JE ROLLE, WAS DRIN IST. */
     check('Die Seite heisst „Einstellungen", und ihr Satz nennt die Installation nur dem Admin',
       rwUserB.w.document.querySelector('.page-title')?.textContent === 'Einstellungen' &&

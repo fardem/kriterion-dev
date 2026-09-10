@@ -377,10 +377,14 @@ abgeschalteter Modus.*
 | **Übersicht** | die Kopfzahl **◆** an einem ungetesteten Eintrag — *auch dann, wenn schon Potenzialbewertungen in der Datenbank stehen* |
 | **Systembereich** | *offen:* ob die Karte „Potenzial: Kriterien" mitverschwindet oder als Einstellort stehen bleibt |
 
-**Der Schalter gehört dem Admin und in die Datenbank** — dieselbe Bauform wie
+**Der Schalter gehört in die Datenbank** — dieselbe Ablage wie
 `categoriesFreeCreate` und `tagsFreeCreate`, und aus demselben Grund
 *(Projektstand, Abschnitt 11: eine Einstellung, die an allen Einträgen aller
-Benutzer erscheint, gehört dem Admin und nicht in `user_settings`)*.
+Benutzer erscheint, gehört nicht in `user_settings`)*. **Stellen kann ihn der
+EIGENTÜMER allein** — die Antwort des Betreibers auf F3 am 10. September 2026,
+und sie fällt gegen den Vorschlag des Auftrags. *Ein Admin sieht den Schalter
+und kommt nicht daran; die beiden Vorlagen taugen für die Ablage, nicht für die
+Klemme.*
 
 **Die vergebenen Sterne bleiben stehen.** *Ausschalten ist Verbergen und nicht
 Löschen: wer ihn wieder einschaltet, findet seinen Bestand vor.* **Was der
@@ -395,6 +399,17 @@ den Vergleich und die Einzelansicht mit.
 > steht sie, weil die Nummer es verlangt**, und der Name der Runde ist dafür
 > erweitert. *Wer sie doch vorziehen will, sagt es; dann rückt sie nach 0.27.0
 > und die Reparatur bekommt 0.26.0.*
+
+### Im Beipack — der Prüfstand hängt nur noch an `main`
+
+**Entschieden vom Betreiber am 10. September 2026 und schon gefahren:**
+`.github/workflows/pruefstand.yml` hängt an **einem** Ereignis, Push auf
+`main`. **Weg B aus 0.25.0 ist damit zurückgenommen** — bei einem einzigen
+Ereignis hat die Bedingung am Auftrag nichts mehr zu entscheiden, und sie ist
+gefallen. **Der Preis ist genannt:** ein Zweig wird nicht mehr geprüft, bevor
+er in `main` steht, und eine Anfrage aus einem fremden Abzug bekommt gar
+keinen Lauf. *Die Einzelheiten und die drei mitgegangenen Zusagen stehen im
+Auftrag.*
 
 ---
 
