@@ -3,8 +3,15 @@
 **Sechs Befunde, eine Beobachtung und eine Funktion · gebaut am 10. September
 2026 auf 0.25.4 (`c56df7db`).**
 
-> **FINGERPRINT DIESER RUNDE: `ab3a7f3d`** — gerechnet am fertigen Stand,
+> **FINGERPRINT DIESER RUNDE: `9ad0be7b`** — gerechnet am fertigen Stand,
 > **vor dem Einspielen**.
+>
+> *Er hat waehrend dieser Runde EINMAL gewechselt, und das gehört dazu: bis
+> zum späten Abend stand hier `ab3a7f3d`.* **Dann ist auf Wunsch des Betreibers
+> sein Vorname aus den Papieren und aus einem Kommentar in `auth.js` gefallen**
+> — und `auth.js` liegt in der Liste. *Ein Kommentar bewegt den Fingerprint
+> genauso wie eine Anweisung; das ist keine Schwäche der Rechnung, sondern ihr
+> Zweck.* **Gilt: `9ad0be7b`.**
 
 > **DIE RUNDE IST GESCHLOSSEN — und der Weg dorthin gehört ins Papier.**
 > *Bis zum Abend des 10. September stand hier: BA 5 steht aus, der Fingerprint
@@ -401,6 +408,10 @@ BA 5.*
 **Siebzehn neue Rückbauten: 795 bis 811.** *Nummeriert fortlaufend ab 795,
 wie der Auftrag es verlangt — sechzehn aus BA 1 bis 4 und BA 6, der
 siebzehnte (811) aus BA 5.* **785 → 802.**
+
+**811 IST GEFAHREN: 6409 von 6411, 0 STUMM.** *Er nimmt die Bedingung heraus
+und lässt die Zuweisung stehen — der alte Zustand, kein dritter —, und fällt
+namentlich in „Der Platzhalter wird nur gesetzt, wenn nichts dasteht".*
 
 > **DER LEHRREICHSTE IST 796.** *Der Versuch des Betreibers vom 10. September,
 > 14:09 Uhr, hatte die Weg-B-Bedingung mit `###` **auskommentiert** — und die
