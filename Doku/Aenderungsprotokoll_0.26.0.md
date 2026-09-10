@@ -274,7 +274,7 @@ ein kleines `ß`, das aus `SS` zurückkäme, gibt es nicht.**
 ## BA 5 — Befund 7: gemessen, weggefallen, und **eine Zeile bleibt**
 
 **BA 0 ist gefahren.** Der Betreiber hat drei Mitschnitte aus seinem Browser
-geliefert (Firefox gegen `kriterion.dmrts.de`, 10. September 2026):
+geliefert (Firefox gegen seine Instanz, 10. September 2026):
 
 | | |
 |---|---|

@@ -325,7 +325,7 @@ zusammen ≈ 28 ms kalt, ≈ 9 kB.** *Der Server trägt im schlimmsten Fall rund
 0.19.5 hält)* **und keine zu große Kachel** *(512 px kurze Kante gegen 540
 Gerätepunkte auf dem Telefon — eher knapp als üppig)*.
 
-#### Die Beobachtung ist gemacht — 10. September 2026, Firefox gegen `kriterion.dmrts.de`
+#### Die Beobachtung ist gemacht — 10. September 2026, Firefox gegen die Instanz des Betreibers
 
 > **DER BETREIBER HAT SIE GELIEFERT, und sie beantwortet die Frage.** *Drei
 > Mitschnitte: einmal mit abgeschaltetem Zwischenspeicher, einmal mit
