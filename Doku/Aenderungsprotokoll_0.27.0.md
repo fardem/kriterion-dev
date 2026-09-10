@@ -465,14 +465,14 @@ zwölfter (824), nachgetragen zu F7.** *Die Rückbautabelle trägt danach
 | **814** | Die Wahl wird gewöhnliche Adminsache | **6** | Die Bildablage: die Rechte |
 | **815** | Die Vorgabe einer frischen Installation wird verstellt | **10** | Die Bildablage: die Rechte |
 | **816** | Die Wahl wird wieder fest verdrahtet | **3** | PNG kommt herein, WebP geht in die Tabelle |
-| **817** | Die Größenprüfung gilt nicht mehr für jedes Verfahren | **STUMM → rot** | *siehe unten* |
+| **817** | Die Größenprüfung gilt nicht mehr für jedes Verfahren | **STUMM → 2** | *siehe unten* |
 | **818** | Die Ableitungen werden wieder JPEG | **15** | PNG kommt herein, WebP geht in die Tabelle |
 | **819** | Der Bestandslauf lässt die Ableitungen aus | **3** | PNG kommt herein, WebP geht in die Tabelle |
 | **820** | Der Lauf hängt am Umschalten | **1** | Die Bildablage in der Oberfläche |
 | **821** | Die Karte nennt die Auflage nicht mehr | **2** | Die Bildablage in der Oberfläche |
 | **822** | Die Migration biegt eine Richtung falsch ab | **3** | Die Datenbankstufe 0.27.0 |
 | **823** | Der alte Schlüssel bleibt stehen | **7** | Die Datenbankstufe 0.27.0 |
-| **824** | Der Satz an der Einfügestelle wird nicht gezeichnet | *(nachgetragen zu F7)* | Der Eintrag am Bildschirm |
+| **824** | Der Satz an der Einfügestelle wird nicht gezeichnet | **3** | Der Eintrag am Bildschirm |
 
 > **817 IST BEIM ERSTEN LAUF STUMM GEBLIEBEN — UND DAS IST DER WERTVOLLSTE
 > EINZELNE BEFUND DIESER RUNDE.** *Der Rueckbau schaltet die Größenprüfung
@@ -498,8 +498,15 @@ zwölfter (824), nachgetragen zu F7.** *Die Rückbautabelle trägt danach
 > Weg schärfer gebraucht ist als am anderen — und der Satz stand vorher schon
 > so im Quelltext, war aber nicht geprüft.*
 > **Die Zusage hat jetzt einen Gegenstand**, und die Gegenlage steht daneben
-> (*„verlustbehaftet wäre hier GRÖSSER als das PNG“*), damit die Probe ihn nicht
-> unbemerkt wieder verliert.
+> (*„verlustbehaftet wäre hier GRÖSSER als das PNG"*), damit die Probe ihn nicht
+> unbemerkt wieder verliert. **Nachgefahren: 817 ist danach rot.**
+
+> **UND 824 IST NACHGETRAGEN, NICHT MITGEPLANT.** *Der Auftrag sieht für BA 6
+> keine Zusage vor — ein Satz an einer Einfügestelle sah nach nichts aus, was
+> zu bewachen wäre.* **Er ist es geworden, als der Betreiber ihn zur Sache
+> gemacht hat:** dreimal zurückgewiesen, am Ende mit einer eigenen Aussage
+> („die Folge ja, der Rat nein"). *Eine entschiedene Sache bekommt eine Zusage;
+> sonst ist sie beim nächsten Aufräumen wieder offen.*
 
 > **DIE NEUNZEHN ALTEN DIESER SACHE STEHEN NICHT ZWEIMAL DA** — 431, 435, 436,
 > 437, 454 bis 457, 462, 472, 485, 493, 506 bis 508, 522 bis 524 und 810.
