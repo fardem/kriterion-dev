@@ -350,10 +350,14 @@ Befund:** die Übersicht holt fünf Abrufe und dreizehn Kacheln.
 > und `max-age=86400` unverändert.*
 >
 > **ER WIRD BEOBACHTET UND NICHT GEBAUT** — dieselbe Form wie beim angepinnten
-> Block. *Die ganze Messung steht in `Doku/Auftrag_0.26.0.md`, Befund 7: die
-> fünf Abrufe kommen als **304**, parallel, **227 ms** — eine Rundreise; die
-> Kacheln gehen auf dem Rückweg **gar nicht** über die Leitung. Wenn die
+> Block. *Die ganze Messung steht im Änderungsprotokoll 0.26.0, Abschnitt BA 5:
+> die fünf Abrufe kommen als **304**, parallel, **227 ms** — eine Rundreise;
+> die Kacheln gehen auf dem Rückweg **gar nicht** über die Leitung. Wenn die
 > Sekunde wiederkommt, fängt die Suche nicht bei null an.*
+>
+> *Der Auftrag zu 0.26.0 trug sie ebenfalls und ist mit dem Auftrag zu 0.27.0
+> weggefallen — es liegt immer nur einer im Repo. **Deshalb zeigt dieser
+> Verweis auf das Protokoll und nicht auf den Auftrag:** ein Protokoll bleibt.*
 >
 > **EINE ZEILE DAVON BLEIBT UND WIRD GEBAUT:** `renderList()` leert den
 > Bildschirm, **bevor** es fragt. *Das ist unabhängig davon falsch, wie schnell
