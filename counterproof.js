@@ -7897,6 +7897,38 @@ const REGRESSIONS = [
     search: "  potentialMode: potentialMode(),\n  /* DER SCHALTER DER BILDABLAGE",
     replacement: "  /* DER SCHALTER DER BILDABLAGE",
     expected: 'Der Potenzialmodus — 0.26.0'
+  },
+  {
+    /* ================= 0.26.0, BA 5 =====================================
+       DER BILDSCHIRM WIRD WIEDER GELEERT, BEVOR JEMAND GEFRAGT HAT. Das ist
+       der gemeldete Zustand: `renderList()` setzte den Platzhalter ohne
+       Bedingung und wartete erst danach auf `loadAll()` -- 227 ms weisse
+       Flaeche, gemessen im Browser des Betreibers am 10. September 2026.
+       ER NIMMT NUR DIE BEDINGUNG UND LAESST DIE ZUWEISUNG STEHEN, und das
+       ist hier richtig: eine Zuweisung, die ganz fehlte, waere ein anderer
+       Fehler (kein Platzhalter beim ersten Betreten). Der Rueckbau soll den
+       ALTEN Zustand herstellen und keinen dritten. */
+    nr: '811', name: 'Der Bildschirm wird wieder geleert, bevor jemand gefragt hat',
+    file: 'public/app.js',
+    search: "  if (!app.firstElementChild)\n    app.innerHTML = `<div class=\"shell\"><p class=\"hint\" style=\"padding-top:44px\">${tH('list.loading')}</p></div>`;",
+    replacement: "  app.innerHTML = `<div class=\"shell\"><p class=\"hint\" style=\"padding-top:44px\">${tH('list.loading')}</p></div>`;",
+    expected: 'Die Hervorhebung in der Uebersicht'
+  },
+  {
+    /* ================= 0.26.0, Beipack ==================================
+       DER LAUF HAENGT WIEDER NUR AN main. Das ist der Zustand vom Nachmittag
+       des 10. September, und er macht den Ablauf des Betreibers unmoeglich:
+       er setzt das Repository nur um einen Push herum auf oeffentlich, und
+       ein Push auf einen ZWEIG loeste dann gar nichts aus -- geprueft wuerde
+       erst nach dem Zusammenfuehren, also zu spaet.
+       ER NIMMT DEN ZWEIGFILTER UND LAESST DEN KNOPF STEHEN. Zwei Ereignisse
+       bleiben es damit, und genau darauf zielt er: eine Zusage, die nur
+       ZAEHLT, bliebe hier stumm. */
+    nr: '812', name: 'Der Lauf haengt wieder nur an main',
+    file: '.github/workflows/pruefstand.yml',
+    search: "on:\n  push:\n  workflow_dispatch:",
+    replacement: "on:\n  push:\n    branches:\n      - main\n  workflow_dispatch:",
+    expected: 'Der Beipack — 0.25.0'
   }
 ];
 

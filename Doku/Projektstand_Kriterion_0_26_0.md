@@ -1,6 +1,6 @@
 # Projektstand — Kriterion
 
-**Kompakte Übergabe · Revision 77 · Stand 10. September 2026 · gebaut: Version 0.25.4**
+**Kompakte Übergabe · Revision 78 · Stand 10. September 2026 · gebaut: Version 0.26.0**
 
 Dieses Blatt ist der **einzige Ort, an dem steht, was gebaut ist und was
 bindet.** Es genügt, um in einem frischen Chat weiterzuarbeiten, ohne den alten
@@ -478,7 +478,7 @@ weiterhin offen. Daraus folgt die Stellung von `HINTER_PROXY` (Abschnitt 3).
 
 ## 2. Betriebsstand
 
-**Gebaut ist 0.25.4** — **6358 Prüfungen**, **785 Rückbauten in der Liste**
+**Gebaut ist 0.26.0** — **6412 Prüfungen**, **803 Rückbauten in der Liste**
 (Abschnitt 8). **Am Wirt läuft 0.24.6, eingespielt am 9. September 2026,
 Fingerprint `c4c07393`** *(Abschnitt 8)*.
 
@@ -1523,6 +1523,8 @@ Ursache war **eine Datei zu viel** auf dem Wirt (Stolperstein 158).
 
 | Version | Fingerprint | Prüfungen |
 |---|---|---|
+| **0.26.0** | `9ad0be7b` *(gerechnet am 10. September 2026 am fertigen Stand — **vor dem Einspielen**, nach derselben Regel. Die Runde fasst `db.js`, `server.js`, `public/app.js`, `public/style.css`, die drei Sprachdateien und `package.json` an.)* | **6412** |
+| **0.25.4** *(Zwischenstand)* | `a0a4c927` — **vom Betreiber aus der laufenden Installation gemeldet, 10. September 2026.** *Er gehört zu keiner Runde: der Code von 0.26.0 lag schon auf `main`, die Nummer war noch nicht gesetzt. Der Wert stimmte auf das Byte mit `main` überein — die Installation war richtig, die Nummer daran war es nicht.* **Er steht hier, weil ein gemeldeter Fingerprint ohne Zuordnung sonst als Abweichung gelesen wird.* | — |
 | **0.25.4** | `c56df7db` *(gerechnet am 10. September 2026 am gebauten Stand — **vor dem Einspielen**, nach derselben Regel. Die Runde fasst `public/app.js`, die drei Sprachdateien und `package.json` an — alle fünf liegen in der Liste.)* | **6358** |
 | **0.25.3** | `a3c561d7` *(gerechnet am 10. September 2026 am gebauten Stand — **vor dem Einspielen**. Die Runde fasst nur `public/style.css` und `package.json` an.)* | **6348** |
 | **0.25.2** | `d1c126ff` *(gerechnet am 10. September 2026 am gebauten Stand — **vor dem Einspielen**, nach derselben Regel. **Am Wirt noch nicht gesehen.** Die Runde fasst `public/app.js` und `package.json` an — beide liegen in der Liste.)* | **6343** |
@@ -3804,8 +3806,8 @@ dieselbe Bauform wie `F_ROUTEN` (Stolperstein 243).*
   Wegen (Anlegen und Umbenennen). *Das Feld draußen ist geteilt: Discourse,
   MediaWiki und GitHub geben den Namen frei, Slack, Jira und Mastodon behalten
   ihn.* Für Kriterion gab den Ausschlag, dass der **Export** seit 0.7.1 den
-  Namen nennt: trüge ein Grabstein weiter „faruk", schöbe dieselbe Datei in
-  einer anderen Instanz mit einem lebenden „faruk" dessen Zeilen zu.
+  Namen nennt: trüge ein Grabstein weiter „erika", schöbe dieselbe Datei in
+  einer anderen Instanz mit einem lebenden „erika" dessen Zeilen zu.
   **Der Preis: der alte Name ist danach endgültig weg.**
 - **Zwei Häkchen beim Entfernen, nicht eine Entscheidung** (seit 0.8.0).
   **„seine Einträge löschen"** nimmt über die Kaskade auch **fremde**
@@ -11162,7 +11164,7 @@ belegt. Zwei Sitzungen nebeneinander:
 
 ```bash
 curl -s -c a.txt -X POST localhost:3100/api/login \
-  -H 'Content-Type: application/json' -d '{"user":"faruk","password":"..."}'
+  -H 'Content-Type: application/json' -d '{"user":"erika","password":"..."}'
 curl -s -c b.txt -X POST localhost:3100/api/login \
   -H 'Content-Type: application/json' -d '{"user":"gast","password":"..."}'
 curl -s -b b.txt -X DELETE localhost:3100/api/items/1     # muss 403 sein

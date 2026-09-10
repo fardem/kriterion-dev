@@ -1220,17 +1220,30 @@ const shareMain = (purpose, target = null) =>
     !/audit-level=(low|moderate)/.test(workText) &&
     !/continue-on-error/.test(workText) && !/\|\|\s*true/.test(workText),
     workText.split('\n').filter(z => /audit|continue-on-error/.test(z)).join(' | '));
-  /* NUR PUSH, UND NUR AUF main -- entschieden vom Betreiber am 10. September
-     2026. Diese Zeile zielt seit 0.8.10 auf den Rueckbau der Ereignisliste;
-     ihre Sache hat sich geaendert, und sie geht deshalb MIT, statt geloescht
-     zu werden (Stolperstein 201). Sie haelt jetzt beides fest: dass genau das
-     eine Ereignis dasteht und dass es main nennt.
+  /* PUSH OHNE ZWEIGFILTER, DAZU DER KNOPF -- entschieden vom Betreiber am
+     Abend des 10. September 2026. Diese Zeile zielt seit 0.8.10 auf den
+     Rueckbau der Ereignisliste; ihre Sache hat sich an EINEM TAG ZWEIMAL
+     geaendert, und sie geht beide Male MIT, statt geloescht zu werden
+     (Stolperstein 201):
+
+       bis 10.9. mittags   push UND pull_request, mit der Bedingung (Weg B)
+       10.9. nachmittags   nur push auf main
+       10.9. abends        push (jeder Zweig) UND workflow_dispatch
+
+     DER GRUND DER LETZTEN AENDERUNG STEHT NICHT IM ABLAUF, SONDERN IM GELD:
+     das Repository ist privat und wird nur um einen Push herum oeffentlich.
+     Haengt der Lauf an `main` allein, prueft der Push auf einen Zweig gar
+     nichts -- und genau der ist der Schritt, den der Betreiber selbst
+     ausloest.
+     GEPRUEFT WIRD DER ZWEIGFILTER UND DAS FEHLEN VON `pull_request`, nicht
+     die Zahl der Ereignisse: die Zahl haelt die Zusage im Beipack fest, und
+     zwei Waechter, die dasselbe zaehlen, sind einer zu viel.
      GELESEN WIRD OHNE DIE KOMMENTARE. Der Kasten in der Datei NENNT, was
      weggefallen ist -- eine Probe, die das Wort dort faende, faende
      ausgerechnet die Begruendung fuer seinen Wegfall. */
   const workCode = workText.split('\n').filter(z => !/^\s*#/.test(z)).join('\n');
-  check('Er läuft nur bei Push auf main',
-    /^on:[ \t]*\n[ \t]+push:[ \t]*\n[ \t]+branches:[ \t]*\n[ \t]+-[ \t]*main[ \t]*$/m.test(workCode) &&
+  check('Er läuft bei jedem Push und auf Knopfdruck — und nicht bei einer Anfrage',
+    /^on:[ \t]*\n[ \t]+push:[ \t]*\n[ \t]+workflow_dispatch:[ \t]*$/m.test(workCode) &&
     !/pull_request/.test(workCode),
     (workCode.match(/^on:[\s\S]{0,60}/m) || ['(keine Zeile on:)'])[0].replace(/\s+/g, ' '));
 
@@ -4724,14 +4737,36 @@ const shareMain = (purpose, target = null) =>
       !/github\.event_name/.test(bpFlow) &&
       !/pull_request\.head\.repo/.test(bpFlow),
       (bpFlow.match(/^.*if:.*$/m) || ['(keine Bedingung)'])[0]);
-    /* UND DER LAUF HAENGT AN GENAU EINEM EREIGNIS. Gezaehlt wird, was unter
-       `on:` auf der ersten Stufe steht: ein zweites Ereignis brauchte die
-       Bedingung darueber wieder, und die gibt es nicht mehr. */
+    /* UND DER LAUF HAENGT AN GENAU ZWEI EREIGNISSEN, DIE NAMENTLICH DASTEHEN.
+       Bis zum Abend des 10. September 2026 war es EINES (`push: main`), und
+       diese Zusage zaehlte nur. GEZAEHLT REICHT NICHT MEHR: der Betreiber
+       haelt das Repository privat und setzt es nur um einen Push herum
+       oeffentlich, damit die Laeufer nichts kosten. Daraus folgen zwei Dinge,
+       und beide muessen zugesagt sein:
+
+         push               -- OHNE Zweigfilter, sonst prueft der Push auf
+                               einen Zweig gar nichts, und genau der ist der
+                               Schritt, den der Betreiber selbst ausloest.
+         workflow_dispatch  -- der Knopf. Er haengt an keinem Ereignis,
+                               sondern am Menschen.
+
+       UND `pull_request` DARF NICHT DABEISTEHEN. Es gaebe zwei Laeufe auf
+       denselben Stand und braeuchte die Bedingung wieder, die am selben Tag
+       gefallen ist (Weg B, 0.25.0). Eine Zusage, die nur ZAEHLT, saehe diesen
+       Tausch nicht: zwei bleiben zwei, auch wenn das falsche zweite dasteht. */
     const bpOn = ((bpFlow.split('\n').filter(z => !/^\s*#/.test(z)).join('\n'))
       .match(/^on:[ \t]*\n(?:[ \t]+\S.*\n|[ \t]*\n)*/m) || [''])[0];
     const bpEvents = [...bpOn.matchAll(/^ {2}(\w+):/mg)].map(t => t[1]);
-    check('Und der Lauf haengt an genau EINEM Ereignis',
-      bpEvents.length === 1, bpEvents.join(', ') || '(keins)');
+    check('Und der Lauf haengt an genau ZWEI Ereignissen, beide namentlich',
+      bpEvents.length === 2 && bpEvents.includes('push')
+        && bpEvents.includes('workflow_dispatch'),
+      bpEvents.join(', ') || '(keins)');
+    /* UND DER PUSH TRAEGT KEINEN ZWEIGFILTER. Ein `branches:` darunter machte
+       den Knopf zur einzigen Pruefung eines Zweiges -- und der Betreiber
+       muesste ihn jedes Mal von Hand druecken, obwohl er gerade gepusht hat. */
+    check('Und der Push traegt keinen Zweigfilter',
+      !/^ {2}push:[ \t]*\n {4}branches:/m.test(bpOn),
+      bpOn.replace(/\n/g, ' \\n ').trim());
   }
 
   /* ================= Die Befunde der Runde 0.24.4 =======================
@@ -25183,8 +25218,30 @@ const shareMain = (purpose, target = null) =>
      unter einem fremden Namen gereicht. ZWEI VON DREI GREIFEN AN EINER
      SPRACHDATEI und nicht am Quelltext, und das ist hier richtig: dort sass
      der Fehler. Ein Rueckbau, der nur Programmzeilen kennt, kann einen
-     Sprachfehler nicht stellen. */
-  check('Es sind genau 801 Rueckbauten', gpList.length === 801, `${gpList.length}`);
+     Sprachfehler nicht stellen.
+     801 SEIT 0.26.0, BA 1 BIS 4 UND BA 6: sechzehn neue (795 bis 810). Sieben
+     an den kleinen Befunden -- zwei am Dateifeld, das `textContent` mit dem
+     Hinweistext hinauswarf (Traeger und Fortschritt sind zwei Richtungen),
+     einer an der Fusszeile der Sitzungen, einer am Eintragstitel, zwei am
+     Ausfuhrknopf (die Flexkinder UND der Satz, der die Klammer aufmacht --
+     der eine greift am Quelltext, der andere an einer Sprachdatei), einer am
+     Gewichtssatz hinter der Adminklemme. Drei an den Einzeilern: die tote
+     Stilblattregel, der Hinweis an der Zeitleiste, `ss` und `ß`. Und sechs am
+     Potenzialmodus -- vier an den Stellen der Oberflaeche und zwei am Server,
+     einer davon an der Klemme (Eigentuemer statt Admin, F3) und einer daran,
+     dass die Antwort den Stand des Schalters ueberhaupt nennt.
+     802 SEIT 0.26.0, BA 5: einer (811) daran, dass `renderList()` den
+     Bildschirm wieder leert, bevor jemand gefragt hat. ER NIMMT NUR DIE
+     BEDINGUNG und laesst die Zuweisung stehen: eine Zuweisung, die ganz
+     fehlte, waere ein ANDERER Fehler -- kein Platzhalter beim ersten
+     Betreten -- und ein Rueckbau soll den alten Zustand herstellen und
+     keinen dritten.
+     803 SEIT 0.26.0, BEIPACK: einer (812) daran, dass der Lauf wieder nur an
+     `main` haengt. ER NIMMT DEN ZWEIGFILTER UND LAESST DEN KNOPF STEHEN --
+     zwei Ereignisse bleiben es damit, und genau darauf zielt er: die Zusage
+     hat bis zum 10. September nur GEZAEHLT, und eine zaehlende Zusage bliebe
+     hier stumm. */
+  check('Es sind genau 803 Rueckbauten', gpList.length === 803, `${gpList.length}`);
   const gpTwice = gpList.map(r => r.nr).filter((n, i, a) => a.indexOf(n) !== i);
   check('Und keine Nummer steht zweimal', gpTwice.length === 0, gpTwice.join(' '));
   /* JEDER GREIFT: der Suchtext kommt in seiner Datei GENAU EINMAL vor. Keinmal
@@ -40191,6 +40248,42 @@ async function checkUi() {
     equal(hvMarks('.card-title'), ['a.b']),
     JSON.stringify(hvMarks('.card-title')));
   hv.close();
+
+  /* ---- BEFUND 7a DER RUNDE 0.26.0 -- NICHT LEEREN OHNE NOT -------------
+     `renderList()` setzte `app.innerHTML = "Laedt ..."` OHNE Bedingung und
+     wartete erst danach auf `loadAll()`: der Bildschirm war leer, bevor
+     ueberhaupt jemand gefragt hatte. Gemessen im Browser des Betreibers am
+     10. September 2026 sind das 227 ms weisse Flaeche -- EINE Rundreise, die
+     sich nicht verkuerzen laesst.
+     DER BEFUND SELBST (die Sekunde beim Betreten) IST WEGGEFALLEN und wird
+     nur noch beobachtet; DIESE Zeile bleibt, weil sie unabhaengig davon
+     richtig ist, wie schnell die Antwort kommt.
+     GEPRUEFT WIRD DIE REIHENFOLGE AM QUELLTEXT und nicht am Bildschirm: die
+     Lage entsteht erst durch eine Antwort, die auf sich warten laesst, und
+     ein Nachbau ohne Wartezeit koennte sie gar nicht herstellen. Dieselbe
+     Wahl wie beim Vokabelraster in 0.25.3 (die Regel statt der Lage). */
+  {
+    const naQuelle = fs.readFileSync(path.join(__dirname, 'public', 'app.js'), 'utf8');
+    const naStelle = naQuelle.slice(naQuelle.indexOf('async function renderList()'));
+    const naKopf = naStelle.slice(0, naStelle.indexOf('try { await loadAll(); }'));
+    /* DER PLATZHALTER STEHT HINTER EINER BEDINGUNG -- und die fragt, ob ueberhaupt
+       schon etwas dasteht. Ohne sie waere die Zusage wieder die alte. */
+    check('Der Platzhalter wird nur gesetzt, wenn nichts dasteht',
+      /if \(!app\.firstElementChild\)\s*\n\s*app\.innerHTML =/.test(naKopf),
+      naKopf.split('\n').filter(z => /app\.innerHTML|firstElementChild/.test(z))
+        .map(z => z.trim()).join(' | ') || 'keine Zeile gefunden');
+    /* UND ES STEHT KEINE UNBEDINGTE ZUWEISUNG DANEBEN. Die Zusage darueber
+       sagt nur, dass EINE bedingte da ist -- eine zweite, unbedingte gleich
+       daneben machte sie wertlos, und genau so sah die Stelle vorher aus.
+       DIE KOMMENTARE WERDEN VORHER WEGGESCHNITTEN, und das ist keine Kuer:
+       der erste Entwurf zaehlte den eigenen Erklaertext mit, in dem
+       `app.innerHTML` als Zitat des ALTEN Standes vorkommt -- die Zahl war
+       dann von etwas abhaengig, das gar nichts tut. */
+    const naCode = naKopf.replace(/\/\*[\s\S]*?\*\//g, '');
+    const naZuweisungen = (naCode.match(/app\.innerHTML\s*=/g) || []).length;
+    check('Und daneben steht keine zweite, unbedingte Zuweisung',
+      naZuweisungen === 1, `${naZuweisungen} Zuweisungen vor dem Fragen`);
+  }
 
   /* ---------------------------------------------------------------- */
   group('Der Suchbegriff in der Adresse');

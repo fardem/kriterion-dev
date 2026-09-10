@@ -142,7 +142,7 @@ Sprachumschalter baut, hat damit ein Muster und braucht kein neues.**
 | ~~**0.24.6**~~ | ~~Der Rückfall sagt, welche Sprache er wirklich zeigt~~ | **GEBAUT am 9. September 2026** — Änderungsprotokoll 0.24.6 | nein | — |
 | ~~**0.25.0**~~ | ~~Der Name weiß, in welcher Sprache er geschrieben ist~~ | **GEBAUT am 9. September 2026** — Änderungsprotokoll 0.25.0 | **ja** | 14 → 15 |
 | ~~**0.25.1**~~ | ~~Jede Kachel zählt ihre eigene Arbeit~~ | **GEBAUT am 10. September 2026** — Änderungsprotokoll 0.25.1 | nein | — |
-| **0.26.0** | **Die kleinen Fehler fallen — und das Potenzial wird abschaltbar** | Gruppe A: sechs Befunde — der siebte ist am 10. September gemessen worden und dabei weggefallen —, **dazu eine Funktion** | nein | — |
+| ~~**0.26.0**~~ | ~~Die kleinen Fehler fallen — und das Potenzial wird abschaltbar~~ | **GEBAUT am 10. September 2026** — Änderungsprotokoll 0.26.0 | nein | — |
 | **0.27.0** | **Die wählbare Bildablage** | drei Verfahren zur Wahl, dazu die Ableitungen auf WebP | nein | — |
 | **0.28.0** | **Das Telefon bekommt Recht** | Gruppe B, dazu das Blättern im Eintrag und das Startbildzeichen | nein | — |
 | **0.29.0** | **Worauf man sich verlassen können muss** | Gruppe C, das Angenommene — und die letzte Runde, die das Schema anfassen darf | **ja** | 15 → 16 |
@@ -1053,7 +1053,7 @@ Hauptbild wenn noch Platz da ist — oder wenn man drauf klickt als
 Detailansicht. Da muss ein sinnvoller Workflow her."*
 
 **Was heute dasteht:** der Titel, zwei Knöpfe und eine graue Zeile
-*„gelöscht 08.09.2026, 10:36 von faruk · noch 30 Tage · 12,2 MB"*.
+*„gelöscht 08.09.2026, 10:36 von erika · noch 30 Tage · 12,2 MB"*.
 
 **Woran das hakt:** die Zeile beantwortet „**wann** ist es weg" und „**wie
 groß**" — aber nicht die Frage, die vor dem Wiederherstellen steht: **„ist das
@@ -1968,7 +1968,7 @@ einzige Teil der Runde ohne begrenzten Prüfaufwand.*
 ### Was gebaut werden könnte
 
 Der Encoder selbst, dazu der Dekoder im Prüfstand. **Gemessen statt geschätzt:**
-die `otpauth://`-Zeile ist **100 Zeichen** bei `Kriterion/faruk`, **117** bei
+die `otpauth://`-Zeile ist **100 Zeichen** bei `Kriterion/erika`, **117** bei
 `Bewertungskatalog/chefin` und **203** bei einem langen Instanz- und
 Zugangsnamen. Im Bytemodus heißt das **Version 5 bis 8**.
 

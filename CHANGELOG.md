@@ -29,6 +29,20 @@ bleiben in der Form ihrer Zeit.*
 
 *Hier wird mitgeschrieben, während gebaut wird.*
 
+## [0.26.0] - 2026-09-10
+
+### Neu
+- **Der Potenzialmodus lässt sich abschalten.** *Ist er aus, ist der Sternkasten am Eintrag gar nicht erst gezeichnet, die Sortiergruppe fällt aus dem Auswahlfeld, und die Kopfzahl ◆ verschwindet aus der Übersicht — auch dann, wenn schon Bewertungen in der Datenbank stehen.* **Die vergebenen Sterne bleiben stehen:** Ausschalten ist Verbergen und nicht Löschen, und wer wieder einschaltet, findet seinen Bestand vor. **Stellen kann den Schalter der Eigentümer allein** — ein Admin sieht ihn und kommt nicht daran.
+
+### Behoben
+- **Nach dem ersten Bild ging die Dateiauswahl nicht mehr auf.** *Der Fortschrittstext im Ablegefeld warf das versteckte Dateifeld mit hinaus; Strg+V ging die ganze Zeit weiter, F5 heilte es — deshalb ist es nie als Fehler gemeldet worden, sondern als Eigenart.*
+- **Die Sitzungsliste lief unten aus dem Kasten** und nahm den Knopf „Andere Sitzungen beenden" mit. *Auf einem schmalen Schirm ist eine Sitzungszeile höher, als der Deckel gerechnet hatte.*
+- **Drei kleine Anzeigefehler** aus dem Augenschein zu 0.22.0: der Eintragstitel bricht auf dem Telefon um, statt abgeschnitten zu werden; das Leerzeichen vor der Klammer am Ausfuhrknopf ist weg; und der Satz über das Gewicht steht hinter der Adminklemme, wo er hingehört.
+- **Eine Regel im Stilblatt, die nie greifen konnte** — `.calc-sum:first-of-type` zählte DIV-Geschwister, und das erste `div` ist der Kopf.
+- **Der Hinweis an der Zeitleiste lief am rechten Rand hinaus.**
+- **„ÜBERGROSS" findet jetzt „übergroß".** *Mit ausdrücklichem Preis: in der Gegenrichtung findet „Masse" danach auch „Maße" — für eine Suche ist das die richtige Seite des Irrtums.*
+- **Die Übersicht leert den Bildschirm nicht mehr, bevor sie überhaupt fragt.** *Steht schon eine Ansicht da, bleibt sie stehen, bis die neue fertig ist.*
+
 ## [0.25.4] - 2026-09-10
 
 ### Behoben
