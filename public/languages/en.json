@@ -340,7 +340,7 @@
   "card.myAccount": "My account",
   "card.mySessions": "My sessions",
   "card.name": "Name",
-  "card.nameFallback": "(not entered — showing {language})",
+  "card.nameFallback": "(no entry in {missing} — showing {language})",
   "card.nameFreedHint": "The name is free again and is not stored; their posts appear under\n      “Deleted user &lt;number&gt;”. A deleted user cannot be\n      restored — whoever only wants to lock them out,",
   "card.nameOriginal": "(original text — language unknown)",
   "card.nameRemove": "Remove entry",

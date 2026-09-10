@@ -115,6 +115,7 @@ Sprachumschalter baut, hat damit ein Muster und braucht kein neues.**
 |---|---|---|---|---|
 | ~~**0.24.6**~~ | ~~Der Rückfall sagt, welche Sprache er wirklich zeigt~~ | **GEBAUT am 9. September 2026** — Änderungsprotokoll 0.24.6 | nein | — |
 | ~~**0.25.0**~~ | ~~Der Name weiß, in welcher Sprache er geschrieben ist~~ | **GEBAUT am 9. September 2026** — Änderungsprotokoll 0.25.0 | **ja** | 14 → 15 |
+| ~~**0.25.1**~~ | ~~Jede Kachel zählt ihre eigene Arbeit~~ | **GEBAUT am 10. September 2026** — Änderungsprotokoll 0.25.1 | nein | — |
 | **0.26.0** | **Die kleinen Fehler fallen — und das Potenzial wird abschaltbar** | Gruppe A: sechs Befunde, von denen der größte eine Messung braucht, **dazu eine Funktion** | nein | — |
 | **0.27.0** | **Die wählbare Bildablage** | drei Verfahren zur Wahl, dazu die Ableitungen auf WebP | nein | — |
 | **0.28.0** | **Das Telefon bekommt Recht** | Gruppe B, dazu das Blättern im Eintrag und das Startbildzeichen | nein | — |
@@ -255,6 +256,40 @@ Schlussabschnitt „Wie der nächste Auftrag auszusehen hat".*
 > gehört dem Betreiber* —, und die drei mitgelieferten Kriterien stehen auf
 > Deutsch, während die Auslieferungssprache Englisch ist.
 
+---
+
+## 0.25.1 — „Jede Kachel zählt ihre eigene Arbeit"
+
+**Drei Befunde vom Bildschirm, am Vormittag nach dem Einspielen von 0.25.0**
+(`84933c06`, vom Betreiber aus der laufenden Installation bestätigt). *Keiner
+davon ist im Quelltext gesucht worden; alle drei hat der Betreiber gesehen,
+während er die neue Karte benutzte.*
+
+| | was | Größe |
+|---|---|---|
+| **A** | **Die Zahl an der Sprachpille war eine Summe über zwei Kacheln.** Die Tafel `crits` trägt beide Kriterienkarten; die Liste filterte nach der Phase, die Zahl darüber nicht — über „Bewertung" und „Potenzial" stand dieselbe Zahl. *Über „Kategorien" stimmte sie nur durch Zufall: eine Tabelle, eine Kachel.* Der rote Rahmen hing an derselben Zahl | mittel |
+| **B** | **Der Hinweis unter einem geliehenen Namen wurde abgeschnitten** — aber nur in den Kriterienkarten. Er saß in der Namensspalte, und die teilt sich die Zeile mit Ziehgriff, Gewichtsfeld, ✕, Zähler und zwei Knöpfen. *In der Kategorienkarte, die weder Griff noch Gewicht hat, stand derselbe Satz vollständig da* | klein |
+| **C** | **„(nicht eingetragen — es steht Deutsch)" sagte nicht, WAS fehlt.** Jetzt: **„(kein Eintrag in Türkçe — gezeigt wird Deutsch)"** | klein |
+| **D** | **„Backup" heißt auf Türkisch `yedekleme`, nicht `yedek`** — 45 Sätze. *Entscheidung des Betreibers, nachdem er zwei Quellen beigebracht hatte* | klein |
+
+> **B WAR BEIM BAUEN BEKANNT UND IST ZUGEDECKT WORDEN.** Der Kommentar dazu
+> stand seit 0.24.5 wörtlich im Quelltext, und die Antwort darauf war ein
+> `title` am Vermerk. **Ein Zeiger ist keine Reparatur — und am Telefon gibt es
+> keinen.**
+
+**Kein Auftragspapier, keine Fragetafel:** drei Befunde aus dem laufenden
+Gespräch, zwei Entscheidungen des Betreibers unterwegs *(der Wortlaut und das
+türkische Wort)*. **PATCH — keine Spalte, kein Weg, keine Funktion;
+`F_ROUTES` bleibt bei 72.**
+
+**AM SELBEN TAG SIND ALLE DREI SPRACHDATEIEN GEGENGELESEN WORDEN** — vom
+Betreiber durch ein zweites Modell gegeben. *Das Ergebnis steht als **Punkt 24**
+im Sammelblatt und wird ausdrücklich NICHT in dieser Runde gebaut:* es zerfällt
+in harte Fehler, Fragen an die Hausstimme und **zwei nachweislich falsche
+Diagnosen**. **Der stärkste Fund daraus ist nicht aus der Liste, sondern aus
+der Prüfung:** der türkische Verneinungssatz ist wirklich kaputt, weil Türkisch
+mit einem Suffix verneint und der Satz im Quelltext um ein eigenes Wort herum
+zersägt ist.
 ---
 
 ## 0.26.0 — „Die kleinen Fehler fallen" — und das Potenzial wird abschaltbar

@@ -1046,7 +1046,7 @@ Englisch.**
 **Bis 0.24.6 ist das niemandem aufgefallen**, weil niemand fragte, in welcher
 Sprache ein Name geschrieben ist. **Seit 0.25.0 fragt jede Liste danach:** die
 drei tragen `language = 'de'`, und ein englischer Leser bekommt sie mit dem
-Vermerk *„(nicht eingetragen — es steht Deutsch)"* und dem roten Rahmen an der
+Vermerk *„(kein Eintrag in English — gezeigt wird Deutsch)"* und dem roten Rahmen an der
 Kachel. *Die Anzeige ist wahr — der Bestand ist es, der nicht stimmt.*
 
 ### Was zu bauen wäre
@@ -1063,3 +1063,109 @@ Kachel. *Die Anzeige ist wahr — der Bestand ist es, der nicht stimmt.*
 
 > **NICHTS DARAN IST DRINGEND:** wer die drei umbenennt, hat den Punkt für sich
 > erledigt — und die meisten tun das ohnehin.
+
+---
+
+## 24. Die Sprachdurchsicht — drei Berichte über drei Dateien
+
+**Art: gemischt** *(harte Fehler, Fragen an die Hausstimme und zwei falsche
+Diagnosen in einem)* · **Einschätzung von Claude: die Fehler bauen, den Rest
+erst entscheiden** · **Herkunft: 0.25.1** · **Draußen üblich: ja** —
+*Übersetzungen gegenlesen zu lassen ist Handwerk*
+
+**Der Betreiber hat am 10. September 2026 alle drei Sprachdateien durch ein
+zweites Modell gegeben** — erst Türkisch, dann Englisch, dann das deutsche
+Original — und die Berichte hierher gebracht. *Sie sind ausführlich und zum
+größeren Teil brauchbar.* **Jede Behauptung daraus ist am Quelltext
+nachgeprüft worden, und das Ergebnis zerfällt in vier Gruppen.**
+
+### 1 · Zwei Diagnosen sind falsch — und beide Male aus demselben Grund
+
+**Der Bericht sieht die Sprachdatei und nicht den Aufruf.**
+
+**`login.stillValid`.** Der Bericht nennt das Deutsche „unlogisch formuliert"
+(*„Wenn etwas betroffen ist, gilt es meist nicht weiter"*) und will
+„unberührt — er gilt weiterhin". **Der Satz ist aber nicht zerbrochen, sondern
+dreiteilig.** `public/app.js:1103`:
+
+```js
+${tH('login.yourLinkAffected')} <strong>${tH('login.not')}</strong> ${tH('login.stillValid')}
+```
+
+`login.not` ist „nicht" / „not" / „değil". **Am Bildschirm steht „Dein Link ist
+davon NICHT betroffen — er gilt weiter."** Deutsch und Englisch sind richtig;
+die vorgeschlagene Korrektur machte daraus „ist davon nicht **unberührt**" —
+das Gegenteil.
+
+> **IM TÜRKISCHEN IST DERSELBE SATZ TROTZDEM KAPUTT, und schlimmer, als der
+> Bericht sagt.** Türkisch verneint mit einem **Suffix im Verb**, nicht mit
+> einem eigenen Wort davor: *„Bağlantın bundan **değil** etkilendi"* ist keine
+> Verneinung, sondern Kauderwelsch. **Ein getauschtes Wort rettet das nicht** —
+> der Satz muss im Quelltext anders geschnitten werden.
+>
+> **DAS IST DER ERSTE BELEGTE SCHADEN AUS DER SATZ-STÜCKELUNG**, die der dritte
+> Bericht als Muster beschreibt. Damit ist dieser Punkt der stärkste aus allen
+> drei Berichten — und er kommt nicht aus der Liste, sondern aus der Prüfung.
+
+**Die türkischen Mehrzahlformen (`vocabulary.*Many`).** Der Bericht will
+`Öğeler`, `Test günleri`, `Raporlar`. **Das ist keine Lücke, sondern die
+Entscheidung des Betreibers vom 8. September 2026** — sie steht als Punkt 19
+in diesem Blatt: *„Nein, es wird keine Felder für mehrzahlige Angaben auf
+Türkisch geben. 1 Öğe, 4 Öğe, beides geht."* **Zwölf türkische Sätze sind
+damals umgeschrieben worden**, damit sie sich mit der Einzahl lesen, und die
+30 Zählerstellen stehen dadurch richtig. *Wer jetzt „Öğeler" einträgt, macht
+aus „3 öğe" wieder „3 öğeler" und gewinnt dafür fünf bloße Beschriftungen.*
+**Der Preis war benannt und ist bezahlt.**
+
+### 2 · Was stimmt und ein Fehler ist
+
+| Befund | nachgeprüft am |
+|---|---|
+| **`entry.tagQuote` hat kein schließendes Anführungszeichen** — und zwar **in allen drei Dateien**. Der Wert geht unverändert in ein `title` (`public/app.js:6843`); am Bildschirm steht „Tag „Werkzeug" | alle drei Sprachdateien |
+| **`card.inDays` hat keine Mehrzahlform.** `{days} Tagen` → **„in 1 Tagen"**. Das Gegenstück `card.daysAgo` hat sie | `de.json` |
+| **`login.linkValidMinutes` ebenso** — „noch 1 Minuten" | `de.json` |
+| **36 deutsche Sätze öffnen mit `„` und schließen mit einem geraden `"`** *(der Bericht nannte drei)* | `de.json` |
+| **65 türkische Stellen tragen das deutsche `„…"`.** Englisch benutzt bereits `“…”` — Türkisch ist die Ausnahme | `tr.json` |
+| **„hap" für „Pille".** Das Original sagt wirklich *„ein Klick auf eine der drei **Pillen**"* — ein Hausbegriff; im Türkischen ist `hap` die **Arzneitablette** | `list.pillHint` |
+| **„Note" bei 1 bis 5 Sternen.** `entry.grade` = „Note", `server.gradeRange` = „Die Note muss zwischen 1 und 5 liegen" — bei Schulnoten ist **1 die beste**, hier sind **5 Sterne das Beste**. Englisch heißt es längst „Score" | `de.json` |
+
+### 3 · Was die Hausstimme angreift und keinen Fehler nennt
+
+**„Das Haus verlassen", „Sache", „von Hand", „Sicherung geschrieben",
+„Antworten darauf liest niemand", „Wer diesen Link hat, kommt herein",
+„Standbild", „Wie das Gerät", „Zweiter Faktor".**
+
+*Das sind bewusste Formulierungen dieses Projekts, in Deutsch **und** Englisch
+gleich — der Bericht hält sie für Übersetzungsfehler, weil er sie einzeln
+sieht.* **Ob sie bleiben, entscheidet der Betreiber.** Bei einigen ist der
+Einwand trotzdem stark: *„Wie das Gerät"* heißt in keinem Betriebssystem so,
+und *„Standbild"* stammt aus dem Fernsehschnitt.
+
+**Ein Vorschlag steht gegen den Betreiber selbst:** der Bericht will
+`card.backupWritten` als **„Yedek oluşturuldu"** und holt damit `yedek` zurück,
+während der Betreiber am selben Tag *„immer nur das wort yedekleme"* gesagt
+hat. **Der gebaute Stand „Yedekleme yapıldı" erfüllt beides** — *gemacht*
+statt *geschrieben*, und mit dem Wort des Betreibers.
+
+### 4 · Das Muster dahinter, und es ist der eigentliche Ertrag
+
+**Viele Sätze sind in mehrere Schlüssel zersägt** und werden im Aufruf wieder
+zusammengesetzt — `card.exportHint` + `card.exportContentHint`,
+`login.yourLinkAffected` + `login.not` + `login.stillValid`, `entry.calcFirstAvg`
++ `entry.calcThenAvg`. **Im Deutschen geht das auf, im Englischen meistens
+auch.** *In einer Sprache mit anderer Wortstellung und mit Suffixen statt
+Wörtern geht es nicht auf* — und der türkische Verneinungssatz ist der Beleg,
+dass es schon schiefgegangen ist.
+
+### Was zu bauen wäre
+
+**Drei Stufen, und sie gehören nicht in dieselbe Runde:**
+
+* **Die harten Fehler** *(Gruppe 2)* — ein PATCH. Das schließende
+  Anführungszeichen, zwei Mehrzahlformen, die Anführungszeichen in beiden
+  Dateien. **Kein Wortlaut, keine Stimme, keine Metapher.**
+* **Der türkische Verneinungssatz** — er braucht einen Schnitt im Quelltext,
+  nicht in der Datei, und damit einen eigenen kleinen Bauabschnitt.
+* **Die Hausstimme** *(Gruppe 3)* und die zersägten Sätze *(Gruppe 4)* — eine
+  eigene Runde mit **Fragetafel**. Rund fünfzehn Entscheidungen, die nur der
+  Betreiber treffen kann, und jede davon ändert alle drei Dateien zugleich.

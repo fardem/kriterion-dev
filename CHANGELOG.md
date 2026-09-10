@@ -29,6 +29,17 @@ bleiben in der Form ihrer Zeit.*
 
 *Hier wird mitgeschrieben, während gebaut wird.*
 
+## [0.25.1] - 2026-09-10
+
+### Behoben
+- Die Zahl an der Sprachpille zählt jetzt **je Kachel**. Über „Bewertung" und „Potenzial" stand bisher dieselbe Summe über beide Kacheln.
+- Der rote Rahmen folgt derselben Zahl: eine vollständige Kachel trägt ihn nicht mehr, auch wenn die andere Lücken hat.
+- Der Hinweis unter einem geliehenen Namen wird nicht mehr abgeschnitten — er steht über die ganze Kachelbreite.
+
+### Geändert
+- Der Hinweis nennt jetzt **beide** Sprachen: „(kein Eintrag in Türkçe — gezeigt wird Deutsch)" statt „(nicht eingetragen — es steht Deutsch)".
+- Türkisch: „Backup" heißt durchgehend **`yedekleme`** statt `yedek` (45 Sätze).
+
 ## [0.25.0] - 2026-09-09
 
 > **SICHERUNG VOR DEM EINSPIELEN.** Diese Runde ist eine **Datenbankstufe**:

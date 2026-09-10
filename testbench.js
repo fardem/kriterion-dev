@@ -24942,8 +24942,19 @@ const shareMain = (purpose, target = null) =>
      717 (aus der geloeschten Uebersetzung wird die Frage, welche Zeile ein
      Umbenennen trifft), 739 (die Tafel traegt jetzt Name UND Herkunft), 749
      bis 752 (die Kette steht am Server) und 754/755 (aus dem Kartenhinweis
-     wird der rote Rahmen) -- diese acht sind gefahren. */
-  check('Es sind genau 770 Rueckbauten', gpList.length === 770, `${gpList.length}`);
+     wird der rote Rahmen) -- diese acht sind gefahren.
+     778 SEIT 0.25.1: acht neue (780 bis 787) fuer die drei Befunde des
+     Betreibers vom 10. September 2026 -- vier an der Zahl und am Rahmen (die
+     Zahl selbst, der Rahmen, und je einer an den ZWEI Stellen, an denen die
+     Pillenreihe entsteht), zwei am Vermerk (der Kasten, der Umbruch), einer am
+     Wortlaut und einer am tuerkischen Wort fuer „Backup".
+     FUENF SIND DABEI MITGEGANGEN (Stolperstein 201): 754 und 755 (der Rahmen
+     liest die Auswahl der Kachel mit), 770 (`namesMissing()` hat einen dritten
+     Wert), 771 (der Namenskasten ist weg) und 597 -- der zielte auf den
+     Phasenfilter der zweiten Kriterienkarte, und den gibt es als eigenen
+     Ausdruck nicht mehr: Liste und Pillenreihe teilen sich seit 0.25.1
+     `critRows()`, und genau darauf zielt er jetzt. */
+  check('Es sind genau 778 Rueckbauten', gpList.length === 778, `${gpList.length}`);
   const gpTwice = gpList.map(r => r.nr).filter((n, i, a) => a.indexOf(n) !== i);
   check('Und keine Nummer steht zweimal', gpTwice.length === 0, gpTwice.join(' '));
   /* JEDER GREIFT: der Suchtext kommt in seiner Datei GENAU EINMAL vor. Keinmal
@@ -29234,11 +29245,20 @@ async function checkUi() {
        `null` HEISST „ueberhaupt kein Vermerk", `''` heisst „ein Vermerk, der
        KEINE Sprache nennt" (der Originaltext, Schritt 4 der Kette). */
     const AX_ALL_NAMES = ['Deutsch', 'English', 'Türkçe'];
-    const axMarkOk = (mark, wanted) => {
+    /* UND SEIT 0.25.1 NENNT DER SATZ ZWEI SPRACHEN. `missing` ist die, in der
+       nichts eingetragen ist (die Pille, auf der man steht), `wanted` die,
+       deren Name stattdessen dasteht. BEIDE muessen vorkommen, und die dritte
+       darf es nicht -- ohne die dritte Haelfte bliebe ein Satz gruen, der
+       einfach alle Sprachnamen aufzaehlt.
+       DER GRUND FUER DIE ZWEITE ANGABE steht im Befund des Betreibers vom
+       10. September 2026: „(nicht eingetragen — es steht Deutsch)" sagte
+       nicht, WAS nicht eingetragen ist. */
+    const axMarkOk = (mark, wanted, missing) => {
       if (wanted === null) return mark === '';
       if (wanted === '') return mark !== '' && AX_ALL_NAMES.every(n => !mark.includes(n));
-      return mark.includes(wanted) &&
-        AX_ALL_NAMES.filter(n => n !== wanted).every(n => !mark.includes(n));
+      const nennt = [wanted, ...(missing ? [missing] : [])];
+      return nennt.every(n => mark.includes(n)) &&
+        AX_ALL_NAMES.filter(n => !nennt.includes(n)).every(n => !mark.includes(n));
     };
 
     /* ---- DIE NEUN ZELLEN, MIT DEM SOLLWERT DIESER RUNDE ---------------
@@ -29284,7 +29304,7 @@ async function checkUi() {
         const cell = axCell(wAx, 'mcats', 21);
         const wantMark = pill === 'de' ? null : 'Deutsch';
         check(`Zelle: Vorgabe ${axName[std]}, Pille ${axName[pill]} — Name und genannte Sprache`,
-          cell.name === 'Grundname' && axMarkOk(cell.mark, wantMark),
+          cell.name === 'Grundname' && axMarkOk(cell.mark, wantMark, axName[pill]),
           `steht: ${JSON.stringify(cell)} — soll: Name "Grundname", ` +
           `Vermerk ${wantMark === null ? '(keiner)' : JSON.stringify(wantMark)}`);
         /* UND DER NAME IST GEDAEMPFT, WO ER GELIEHEN IST -- die dritte Vorgabe
@@ -29326,12 +29346,17 @@ async function checkUi() {
       check('Pillenprobe: die vollstaendige Sprache traegt den Punkt, jede andere ihre Zahl',
         axMarks(wPz, 'ncatlang') === 'Deutsch:● English:1 Türkçe:1',
         axMarks(wPz, 'ncatlang'));
-      /* UND DIE ZAHL IST DIE DER FEHLENDEN ZELLEN und nicht die der Zeilen:
-         die drei Kriterien sind alle deutsch angelegt und tragen keine
-         Uebersetzung -- an ihrer Karte fehlen Englisch und Tuerkisch je DREI.
-         Ohne diese Zeile bliebe die darueber auch mit einer festen 1 gruen. */
-      check('Und die Zahl zaehlt die fehlenden Zellen, nicht die Zeilen',
-        axMarks(wPz, 'mcrits-lang') === 'Deutsch:● English:3 Türkçe:3',
+      /* UND DIE ZAHL IST DIE DER FEHLENDEN ZELLEN und nicht die der Zeilen.
+         SEIT 0.25.1 SIND ES ZWEI UND NICHT DREI: die drei Kriterien sind alle
+         deutsch angelegt und tragen keine Uebersetzung, aber ZWEI davon
+         gehoeren in den Bewertungskasten und eines in den Potenzialkasten
+         (`criteriaPhases`). Bis 0.25.0 stand hier eine 3, weil die Zahl die
+         ganze Tafel zaehlte -- also beide Kacheln. Der Sollwert hat sich
+         geaendert, die Zusage nicht: es sind die FEHLENDEN Zellen und nicht
+         die Zeilen. Ohne diese Zeile bliebe die darueber auch mit einer
+         festen 1 gruen. */
+      check('Und die Zahl zaehlt die fehlenden Zellen dieser Kachel, nicht die Zeilen',
+        axMarks(wPz, 'mcrits-lang') === 'Deutsch:● English:2 Türkçe:2',
         axMarks(wPz, 'mcrits-lang'));
       /* DER RAHMEN GILT DER GEZEIGTEN SPRACHE (F3). Auf Deutsch ist nichts
          offen -- kein Rahmen; auf Englisch fehlt eine Zelle -- Rahmen. */
@@ -29410,7 +29435,7 @@ async function checkUi() {
          geloescht: geraeumt wurde ein NAME und nicht die Zeile. */
       const xCell = axCell(wX, 'mcats', 22);
       check('Und die Zeile faellt auf die Kette zurueck, statt zu verschwinden',
-        xCell.name === 'Ueberall_de' && axMarkOk(xCell.mark, 'Deutsch') && xCell.faded,
+        xCell.name === 'Ueberall_de' && axMarkOk(xCell.mark, 'Deutsch', 'English') && xCell.faded,
         JSON.stringify(xCell));
       wX.close();
     }
@@ -29678,6 +29703,174 @@ async function checkUi() {
           JSON.stringify((gwDom.criterionNames || {}).tr));
       }
       wGw.close();
+    }
+
+    /* ================= Jede Kachel zaehlt ihre eigene Arbeit — 0.25.1 =====
+       DER BEFUND DES BETREIBERS, 10. September 2026, am eingespielten 0.25.0:
+       „die zahl in der sprachen pille ist das eine zahl pro kachel oder fuer
+       alle? Im momment ist es gemischt. besser waere pro kachel dann weis man
+       wieviele man in dem kachel noch bearbeiten muss."
+
+       ER WAR ES. Die Tafel `crits` traegt BEIDE Kriterienkarten; die Liste
+       darunter filterte nach der Phase, die Zahl darueber nicht. Ueber
+       „Bewertung" und ueber „Potenzial" stand deshalb dieselbe Summe --
+       zweimal hingeschrieben. Ueber „Kategorien" stand die richtige Zahl nur
+       deshalb, weil Kategorien EINE Tabelle und EINE Kachel sind.
+
+       DIE PRUEFLAGE TRENNT DIE BEIDEN KACHELN SCHARF: fuer Tuerkisch ist nur
+       am Potenzialkriterium etwas eingetragen, fuer Englisch nur an den beiden
+       Bewertungskriterien. Damit traegt jede Kachel in JEDER der beiden
+       Sprachen etwas ANDERES:
+
+         Kachel        Deutsch   English   Türkçe
+         Bewertung        ●         ●         2
+         Potenzial        ●         1         ●
+
+       EINE PRUEFLAGE, IN DER BEIDE DASSELBE ZEIGTEN, BEWIESE NICHTS -- und
+       genau das war der Zustand: bis 0.25.0 stand an beiden „English:1
+       Türkçe:2", die Summe. */
+    group('Jede Kachel zaehlt ihre eigene Arbeit — 0.25.1');
+    {
+      const kzDom = buildDom(JSDOM, {
+        settings: { filters: null, language: 'de', languages: axLanguages('de') },
+        categories: AX_CATS.map(z => ({ ...z })), categoryNames: AX_NAMES,
+        criteriaPhases: ['after', 'after', 'before'],
+        criterionNames: { en: { 7: 'First', 8: 'Then' }, tr: { 9: 'Sonuncu' } }
+      });
+      const wKz = kzDom.w;
+      await new Promise(r => setTimeout(r, 80));
+      await sysSection(wKz, 'inventory');
+      /* DER AUFBAU ZUERST. Ohne ihn belegten die Zahlen darunter nichts: eine
+         Kachel, die gar keine Liste hat, zaehlt auch keine Luecken. */
+      const kzRows = (boxId) => [...wKz.document.querySelectorAll(`#${boxId} .mrow`)].length;
+      check('Aufbau: die beiden Kriterienkacheln stehen mit zwei und einer Zeile da',
+        kzRows('mcrits') === 2 && kzRows('mpcrits') === 1,
+        `mcrits=${kzRows('mcrits')} mpcrits=${kzRows('mpcrits')}`);
+      check('Die Pille ueber „Bewertung" nennt nur die Luecken dieser Kachel',
+        axMarks(wKz, 'mcrits-lang') === 'Deutsch:● English:● Türkçe:2',
+        axMarks(wKz, 'mcrits-lang'));
+      check('Und die Pille ueber „Potenzial" nennt ihre eigenen — eine andere Zahl',
+        axMarks(wKz, 'mpcrits-lang') === 'Deutsch:● English:1 Türkçe:●',
+        axMarks(wKz, 'mpcrits-lang'));
+      /* UND DIE BEIDEN REIHEN SAGEN NICHT DASSELBE. Das ist der Befund in
+         einer Zeile: bis 0.25.0 waren sie Zeichen fuer Zeichen gleich, weil
+         beide dieselbe Tafel ganz zaehlten. */
+      check('Und die beiden Pillenreihen sagen NICHT dasselbe',
+        axMarks(wKz, 'mcrits-lang') !== axMarks(wKz, 'mpcrits-lang'),
+        `beide: ${axMarks(wKz, 'mcrits-lang')}`);
+      /* UND DIE KACHEL „KATEGORIEN" ZAEHLT WEITER IHRE EIGENE TAFEL. Sie hat
+         nie etwas anderes getan -- aber ohne diese Zeile bliebe unbelegt, dass
+         die neue Auswahl sie nicht beschneidet. */
+      check('Und die Kachel „Kategorien" zaehlt weiter ihre eigene Tafel',
+        axMarks(wKz, 'ncatlang') === 'Deutsch:● English:1 Türkçe:1',
+        axMarks(wKz, 'ncatlang'));
+
+      /* ---- UND DER RAHMEN FOLGT DERSELBEN ZAHL -------------------------
+         Auf Tuerkisch ist die Bewertungskachel lueckig und die
+         Potenzialkachel vollstaendig -- genau EINE von beiden traegt den
+         Rahmen. Bis 0.25.0 trugen ihn beide, weil beide dieselbe Zahl
+         lasen. */
+      await axPress(wKz, 'mcrits-lang', 'Türkçe');
+      check('Rahmenprobe: auf Türkçe traegt „Bewertung" den Rahmen',
+        axFramed(wKz, 'mcrits-lang'), 'kein Rahmen an der lueckigen Kachel');
+      check('Und „Potenzial" traegt ihn nicht — dort ist nichts offen',
+        !axFramed(wKz, 'mpcrits-lang'), 'Rahmen an der vollstaendigen Kachel');
+      /* UND ANDERSHERUM. Ohne diese zweite Haelfte bliebe eine Karte gruen,
+         die den Rahmen einfach immer an dieselbe Kachel haengt. */
+      await axPress(wKz, 'mcrits-lang', 'English');
+      check('Und auf English ist es umgekehrt: „Potenzial" traegt ihn',
+        axFramed(wKz, 'mpcrits-lang') && !axFramed(wKz, 'mcrits-lang'),
+        `mcrits=${axFramed(wKz, 'mcrits-lang')} mpcrits=${axFramed(wKz, 'mpcrits-lang')}`);
+
+      /* ---- DER VERMERK HAT DIE VOLLE BREITE — 0.25.1 -------------------
+         DER ZWEITE BEFUND DESSELBEN TAGES: „warum ist der untere text mit dem
+         hinweis im ersten kachel volltaendig zu sehen und in den beiden
+         andren nicht?"
+         WEIL ER IN DER NAMENSSPALTE SASS. Gepruefft wird deshalb, WO er
+         haengt, und nicht, wie breit er am Bildschirm ist: eine Breite in
+         Pixeln hat der Nachbau nicht, die Stelle im Baum hat er. Sie ist es,
+         die ueber die Breite entscheidet. */
+      await axPress(wKz, 'ncatlang', 'Türkçe');
+      const kzBack = [...wKz.document.querySelectorAll('#mcats .mrow')]
+        .find(z => Number(z.dataset.mid) === 21);
+      const kzMark = kzBack && kzBack.querySelector('.mfallback');
+      check('Der Vermerk haengt an der ZEILE und nicht mehr im Namenskasten',
+        !!kzMark && kzMark.parentElement === kzBack,
+        kzMark ? `haengt an .${kzMark.parentElement.className}` : 'kein Vermerk an Zeile 21');
+      /* UND ER IST IHR LETZTES KIND. Stuende er vor dem Gewichtsfeld, schoebe
+         der Umbruch alles dahinter auf eine dritte Zeile -- die Zusage gilt
+         der Stelle und nicht nur der Elternschaft. */
+      check('Und er ist ihr LETZTES Kind',
+        !!kzBack && kzBack.lastElementChild === kzMark,
+        kzBack ? `letztes Kind: .${(kzBack.lastElementChild || {}).className}` : 'keine Zeile 21');
+      check('Und den Namenskasten gibt es nicht mehr',
+        !wKz.document.querySelector('.mnamebox'),
+        'es steht noch ein .mnamebox in der Karte');
+      check('Und die Zeile mit Vermerk traegt den Umbruch',
+        !!kzBack && kzBack.classList.contains('withback'),
+        kzBack ? kzBack.className : 'keine Zeile 21');
+      /* UND EINE ZEILE OHNE VERMERK TRAEGT IHN NICHT: ein Merkmal, das an
+         jeder Zeile steht, sagt nichts mehr. */
+      const kzFull = [...wKz.document.querySelectorAll('#mcats .mrow')]
+        .find(z => Number(z.dataset.mid) === 22);
+      check('Und eine Zeile ohne Vermerk traegt ihn nicht',
+        !!kzFull && !kzFull.classList.contains('withback'),
+        kzFull ? kzFull.className : 'keine Zeile 22');
+
+      /* ---- UND DER SATZ NENNT BEIDE SPRACHEN — 0.25.1 ------------------
+         DER DRITTE BEFUND: „ist irgendwie ein nicht klarer satz. warum nicht
+         ‚Fallback — Kein Eintrag in xxxx Vorhanden'".
+         BEIDE, UND NICHT NUR EINE. Die fehlende sagt, WAS zu tun ist; die
+         gezeigte sagt, was ein Leser dieser Sprache stattdessen vor sich hat
+         -- und die ist seit 0.24.6 der Grund, warum der Vermerk ueberhaupt
+         dasteht (eine genannte Sprache, die nicht stimmt, ist schlimmer als
+         keine).
+         DIE DRITTE DARF NICHT VORKOMMEN: ohne diese Haelfte bliebe ein Satz
+         gruen, der einfach alle Sprachnamen aufzaehlt. */
+      const kzText = kzMark ? (kzMark.textContent || '') : '';
+      check('Der Vermerk nennt die fehlende UND die gezeigte Sprache',
+        kzText.includes('Türkçe') && kzText.includes('Deutsch'), JSON.stringify(kzText));
+      check('Und er nennt die dritte Sprache nicht',
+        kzText !== '' && !kzText.includes('English'), JSON.stringify(kzText));
+      wKz.close();
+    }
+
+    /* ================= „Backup" heisst auf Tuerkisch yedekleme — 0.25.1 ===
+       DER BETREIBER AM 10. September 2026: „türkcede backup icin yedek
+       kelmiesi kullanmisin. galiba ona daha cok yedekleme denir" -- und nach
+       zwei Quellen und einer Rueckfrage: „immer nur das wort yedekleme".
+
+       IM TUERKISCHEN IST `yedekleme` DER VORGANG und `yedek` die entstandene
+       Kopie; die Karte heisst nach dem Vorgang, und die Entscheidung des
+       Betreibers ist, dass auch die gezaehlte Sicherung so heisst.
+
+       GEPRUEFT WIRD DIE DATEI UND NICHT DER BILDSCHIRM: es ist eine Frage des
+       Wortlauts, und der steht in der Sprachdatei. Ein Waechter ueber alle
+       Saetze faengt auch den, der in einem Jahr dazukommt -- eine Probe an
+       einer einzelnen Karte faenge ihn nicht.
+       `yedekleme` UND `yedeklemeden` SIND NICHT BETROFFEN: hinter `yedek`
+       steht dort ein Wortzeichen, und die Wortgrenze fehlt. */
+    group('„Backup" heisst auf Tuerkisch yedekleme — 0.25.1');
+    {
+      const ydFlat = [];
+      const ydWalk = (o, p) => {
+        for (const [k, v] of Object.entries(o)) {
+          if (typeof v === 'string') ydFlat.push([`${p}${k}`, v]);
+          else ydWalk(v, `${p}${k}.`);
+        }
+      };
+      ydWalk(JSON.parse(fs.readFileSync(
+        path.join(__dirname, 'public', 'languages', 'tr.json'), 'utf8')), '');
+      /* DASS ES UEBERHAUPT SAETZE MIT DEM WORT GIBT -- ohne diese Zeile waere
+         der Waechter darunter auch dann gruen, wenn die Datei gar nicht
+         gelesen wurde (Stolperstein 81). */
+      const ydGood = ydFlat.filter(([, v]) => /yedekleme/i.test(v));
+      check('Aufbau: die tuerkische Datei spricht wirklich von Sicherungen',
+        ydGood.length >= 40, `${ydGood.length} Saetze mit „yedekleme"`);
+      const ydBad = ydFlat.filter(([, v]) => /\byedek(ler|leri|le|tir)?\b/i.test(v));
+      check('Kein alleinstehendes „yedek" mehr — es heisst ueberall yedekleme',
+        ydBad.length === 0,
+        ydBad.map(([k, v]) => `${k}: ${v}`).join(' · ') || 'keins');
     }
   }
 
