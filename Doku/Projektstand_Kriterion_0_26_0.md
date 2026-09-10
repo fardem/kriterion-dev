@@ -478,7 +478,7 @@ weiterhin offen. Daraus folgt die Stellung von `HINTER_PROXY` (Abschnitt 3).
 
 ## 2. Betriebsstand
 
-**Gebaut ist 0.26.0** — **6411 Prüfungen**, **803 Rückbauten in der Liste**
+**Gebaut ist 0.26.0** — **6412 Prüfungen**, **803 Rückbauten in der Liste**
 (Abschnitt 8). **Am Wirt läuft 0.24.6, eingespielt am 9. September 2026,
 Fingerprint `c4c07393`** *(Abschnitt 8)*.
 
@@ -1523,7 +1523,7 @@ Ursache war **eine Datei zu viel** auf dem Wirt (Stolperstein 158).
 
 | Version | Fingerprint | Prüfungen |
 |---|---|---|
-| **0.26.0** | `9ad0be7b` *(gerechnet am 10. September 2026 am fertigen Stand — **vor dem Einspielen**, nach derselben Regel. Die Runde fasst `db.js`, `server.js`, `public/app.js`, `public/style.css`, die drei Sprachdateien und `package.json` an.)* | **6411** |
+| **0.26.0** | `9ad0be7b` *(gerechnet am 10. September 2026 am fertigen Stand — **vor dem Einspielen**, nach derselben Regel. Die Runde fasst `db.js`, `server.js`, `public/app.js`, `public/style.css`, die drei Sprachdateien und `package.json` an.)* | **6412** |
 | **0.25.4** *(Zwischenstand)* | `a0a4c927` — **vom Betreiber aus der laufenden Installation gemeldet, 10. September 2026.** *Er gehört zu keiner Runde: der Code von 0.26.0 lag schon auf `main`, die Nummer war noch nicht gesetzt. Der Wert stimmte auf das Byte mit `main` überein — die Installation war richtig, die Nummer daran war es nicht.* **Er steht hier, weil ein gemeldeter Fingerprint ohne Zuordnung sonst als Abweichung gelesen wird.* | — |
 | **0.25.4** | `c56df7db` *(gerechnet am 10. September 2026 am gebauten Stand — **vor dem Einspielen**, nach derselben Regel. Die Runde fasst `public/app.js`, die drei Sprachdateien und `package.json` an — alle fünf liegen in der Liste.)* | **6358** |
 | **0.25.3** | `a3c561d7` *(gerechnet am 10. September 2026 am gebauten Stand — **vor dem Einspielen**. Die Runde fasst nur `public/style.css` und `package.json` an.)* | **6348** |

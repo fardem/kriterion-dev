@@ -391,8 +391,8 @@ er steht.*
 
 ## Der Prüfstand
 
-**6358 → 6411 Zusagen.** *53 neue — 51 aus BA 1 bis 4 und BA 6, zwei aus
-BA 5.*
+**6358 → 6412 Zusagen.** *54 neue — 51 aus BA 1 bis 4 und BA 6, zwei aus
+BA 5 und zwei aus dem Beipack, wovon eine eine gezaehlte ersetzt.*
 
 **Sechs Zusagen sind MITGEGANGEN, statt gelöscht zu werden** (Stolperstein 201):
 
