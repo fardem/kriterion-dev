@@ -898,7 +898,7 @@ Entscheidung in einem halben Jahr noch zu beurteilen ist.*
 | **E9** | Vokabelwörter? | **Vorgaben in der Sprachdatei, Überschreibungen je Sprache**, alter flacher Wert gilt als `de` (Abschnitt 7) — **vom Betreiber am 5. September 2026 in Frage gestellt:** *das Vokabular soll der Sprache der Installation folgen, nicht der des Benutzers — ein Satz Wörter je Installation, wie der Titel.* Frage F3 im Auftrag 0.24.0; der Auftrag folgt dem Betreiber. *Die Empfehlung hier bleibt stehen, damit die Entscheidung in einem halben Jahr noch zu beurteilen ist* — **und am selben Tag, beim Start der Runde, hat der Betreiber sie zu Ende entschieden (siehe den Kasten unter dieser Tafel)** |
 | **E10** | Datum, Zahl, Sortierung? | **`_locale` im Kopf der Datei, `Intl` statt `replace`, `toLocaleLowerCase`** (Abschnitt 6) |
 | **E11** | Was wird nicht übersetzt? | **Inhalte, Titel, Kommentare, Papiere, Konsole, Werkzeuge, Prüfstand** (Abschnitt 0, S1.2) — **geschärft am 5. September 2026 (F4 des Auftrags):** *Tags sind eine Wolke für alle und gehören keiner Sprache; die **Kriterien** dagegen bekommen in Stufe 2 je Sprache eine Fassung — **in der Datenbank, nicht in der Sprachdatei.** Kategorien, Titel, Einträge und Kommentare nie.* **Für Stufe 1 folgenlos:** die Namen stehen in `rating_criteria`, nicht im Quelltext |
-| **E12** | Welche Stufe geht mit welcher Nummer heraus? | **Stufe 1 + 2 = 0.24.0.** Stufe 3 ist eine eigene Runde und nimmt die nächste freie Nummer — **oder fährt in 0.24.0 mit, wenn `tr.json` gegengelesen ist, bevor die Runde herausgeht.** *Eine dritte Datei allein bringt eine Funktion (die Installation spricht danach Türkisch) und wäre nach 5.1 MINOR, nicht PATCH* — **Entschieden am 5. September 2026, anders als empfohlen: Stufe 1 geht zuerst und allein heraus, als 0.24.0 — Auftrag `Doku/Auftrag_0.24.0.md`.** *Zunächst 0.24.1 genannt und noch am selben Tag auf 0.24.0 entschieden, weil eine PATCH-Zahl ihre MINOR-Zahl voraussetzt. Die Nummern für Stufe 2 und 3 sind offen und werden am Auftrag zu Stufe 2 entschieden.* **NACHTRAG VOM 6. SEPTEMBER 2026:** *Stufe 1 ist als 0.24.0 herausgegangen. Der Betreiber hat am selben Tag eine Runde eingeschoben — 0.24.1, „Der Quelltext spricht Englisch" — und die Mehrsprachigkeit dahinter eine Nummer höher gerückt: **Stufe 2 ist im Fahrplan als 0.24.2 vorgemerkt, Stufe 3 als 0.24.3.** Die Warnung dieser Zeile gilt unverändert: Stufe 2 bringt eine Funktion und wäre nach 5.1 MINOR — entschieden wird das am Auftrag der Stufe, nicht hier.* |
+| **E12** | Welche Stufe geht mit welcher Nummer heraus? | **Stufe 1 + 2 = 0.24.0.** Stufe 3 ist eine eigene Runde und nimmt die nächste freie Nummer — **oder fährt in 0.24.0 mit, wenn `tr.json` gegengelesen ist, bevor die Runde herausgeht.** *Eine dritte Datei allein bringt eine Funktion (die Installation spricht danach Türkisch) und wäre nach 5.1 MINOR, nicht PATCH* — **Entschieden am 5. September 2026, anders als empfohlen: Stufe 1 geht zuerst und allein heraus, als 0.24.0 — Auftrag `Doku/Auftrag_0.24.0.md` *(weggefallen — es liegt immer nur einer im Repo)*.** *Zunächst 0.24.1 genannt und noch am selben Tag auf 0.24.0 entschieden, weil eine PATCH-Zahl ihre MINOR-Zahl voraussetzt. Die Nummern für Stufe 2 und 3 sind offen und werden am Auftrag zu Stufe 2 entschieden.* **NACHTRAG VOM 6. SEPTEMBER 2026:** *Stufe 1 ist als 0.24.0 herausgegangen. Der Betreiber hat am selben Tag eine Runde eingeschoben — 0.24.1, „Der Quelltext spricht Englisch" — und die Mehrsprachigkeit dahinter eine Nummer höher gerückt: **Stufe 2 ist im Fahrplan als 0.24.2 vorgemerkt, Stufe 3 als 0.24.3.** Die Warnung dieser Zeile gilt unverändert: Stufe 2 bringt eine Funktion und wäre nach 5.1 MINOR — entschieden wird das am Auftrag der Stufe, nicht hier.* |
 | **E13** | Welches Englisch? | **`en-GB`** — Tag zuerst wie Deutsch und Türkisch, 24 Stunden, *Colour*. *Alternative `en-US`: Monat zuerst, 12 Stunden, *Color*.* Es ist eine Zeile in `en.json`, und sie ist später änderbar — aber nicht ohne die Wörter |
 | **E14** | Wer liest Englisch und Türkisch gegen? | **Der Betreiber nennt je Sprache einen Leser.** Ohne Leser geht keine Datei heraus (S3.4) |
 
@@ -1007,7 +1007,7 @@ abschreiben).
 geschrieben wurde; was die Runde anders entschieden hat, steht hier — an einer
 Stelle und nicht verteilt über die Abschnitte, damit ein Leser in einem halben
 Jahr Herleitung und Ergebnis auseinanderhalten kann. **Die zwölf Fragen samt
-Antworten stehen im Auftrag `Doku/Auftrag_0.24.3.md`, was gebaut wurde im
+Antworten stehen im Auftrag `Doku/Auftrag_0.24.3.md` *(weggefallen — es liegt immer nur einer im Repo)*, was gebaut wurde im
 Änderungsprotokoll 0.24.3.**
 
 **E12 — die Nummer.** Dieses Papier warnte: Stufe 2 bringt eine Funktion und
@@ -1100,7 +1100,7 @@ steht, gehört in den Prüfstand und nicht in ein Papier.*
 
 # NACHTRAG VOM 8. SEPTEMBER 2026 — STUFE 3 IST GEBAUT
 
-**Türkisch ist als 0.24.4 herausgegangen** — Auftrag `Doku/Auftrag_0.24.4.md`,
+**Türkisch ist als 0.24.4 herausgegangen** — Auftrag `Doku/Auftrag_0.24.4.md` *(weggefallen — es liegt immer nur einer im Repo)*,
 Wörterbuch `Doku/Woerterbuch_Tuerkisch_0_24_4.md`, gebaut im
 Änderungsprotokoll 0.24.4. **Damit sind alle drei Stufen dieses Papiers
 gebaut**, und was hier als Plan stand, steht ab jetzt als Zustand im

@@ -3,7 +3,9 @@
 **Ein zweiter Sternkasten für ungetestete Einträge. Arbeitstitel des Kastens: *Potenzial*
 (das Wort steht im Vokabular und ist dort änderbar).**
 *Stand: 3. September 2026, geschrieben gegen Kriterion 0.19.5. Der zugehörige Auftrag
-liegt daneben: `Doku/Auftrag_0.21.0.md` — eine eingeschobene Runde, siehe dort.*
+(`Doku/Auftrag_0.21.0.md` — eine eingeschobene Runde) ist **längst weggefallen**:
+es liegt immer nur einer im Repo. Was gebaut wurde, steht im Änderungsprotokoll
+0.21.0.*
 
 ---
 

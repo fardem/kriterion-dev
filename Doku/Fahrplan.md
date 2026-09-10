@@ -173,7 +173,7 @@ die Vorgabesprache einen Eintrag hat.*
 | **E2** | **Der Vermerk nennt die Sprache, die er zeigen wollte, nicht die, die er zeigt.** Ist auch für die Vorgabesprache nichts eingetragen, steht der Name aus der Antwort in der **Lesersprache** da — und der Vermerk sagt trotzdem „Vorgabesprache" | klein |
 | **E3** | **Die Tafeln werden nach einem Wechsel der Vorgabesprache nicht nachgezogen.** `sendLanguages()` zieht `LANGUAGES` nach, `NAMES_ALL` nicht — die Karte rechnet mit neuer Vorgabe auf alter Tafel. *Derselbe Fehlertyp wie D2 in 0.24.5, eine Stelle weiter* | klein |
 
-**Der Auftrag stand als `Doku/Auftrag_0.24.6.md`**, mit sechs Fragen am Kopf.
+**Der Auftrag stand als `Doku/Auftrag_0.24.6.md` *(weggefallen — es liegt immer nur einer im Repo)*, mit sechs Fragen am Kopf.**
 **Alle sechs sind am 9. September 2026 vor der ersten Zeile beantwortet worden
 — und alle nach dem Vorschlag.**
 
@@ -226,7 +226,7 @@ Daraus wird gebaut:
 | **Keine Glocke** | sie zeigt nach ihrer eigenen Regel nur *fremde* Tätigkeit; wer die Vorgabesprache umschaltet, ist selbst der Handelnde. Die Karte „Sprachen" sagt es an Ort und Stelle |
 | **Im Beipack** | `npm audit fix` *(nur das Lockfile)* und **Workflow Weg B** *(ein Lauf je Stand statt zwei)* |
 
-**Der Auftrag steht als `Doku/Auftrag_0.25.0.md`**, mit acht Fragen am Kopf —
+**Der Auftrag stand als `Doku/Auftrag_0.25.0.md` *(weggefallen — es liegt immer nur einer im Repo)*, mit acht Fragen am Kopf** —
 **alle vor der ersten Zeile beantwortet.** *Er trägt als erster den stehenden
 Schlussabschnitt „Wie der nächste Auftrag auszusehen hat".*
 
@@ -875,7 +875,7 @@ gelegt:
 
 ## Ausarbeitungen zu 0.24.4 — Türkisch und die Befunde
 
-Diese drei standen im Auftrag `Doku/Auftrag_0.24.4.md` als **B4**, **B6** und
+Diese drei standen im Auftrag `Doku/Auftrag_0.24.4.md` *(weggefallen — es liegt immer nur einer im Repo)* als **B4**, **B6** und
 **B7**.
 
 > ## SIE SIND AM 8. SEPTEMBER 2026 GEBAUT WORDEN.
