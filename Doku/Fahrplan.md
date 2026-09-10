@@ -396,6 +396,17 @@ den Vergleich und die Einzelansicht mit.
 > erweitert. *Wer sie doch vorziehen will, sagt es; dann rückt sie nach 0.27.0
 > und die Reparatur bekommt 0.26.0.*
 
+### Im Beipack — der Prüfstand hängt nur noch an `main`
+
+**Entschieden vom Betreiber am 10. September 2026 und schon gefahren:**
+`.github/workflows/pruefstand.yml` hängt an **einem** Ereignis, Push auf
+`main`. **Weg B aus 0.25.0 ist damit zurückgenommen** — bei einem einzigen
+Ereignis hat die Bedingung am Auftrag nichts mehr zu entscheiden, und sie ist
+gefallen. **Der Preis ist genannt:** ein Zweig wird nicht mehr geprüft, bevor
+er in `main` steht, und eine Anfrage aus einem fremden Abzug bekommt gar
+keinen Lauf. *Die Einzelheiten und die drei mitgegangenen Zusagen stehen im
+Auftrag.*
+
 ---
 
 ## 0.27.0 — „Die wählbare Bildablage"

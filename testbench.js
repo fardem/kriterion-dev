@@ -1220,9 +1220,19 @@ const shareMain = (purpose, target = null) =>
     !/audit-level=(low|moderate)/.test(workText) &&
     !/continue-on-error/.test(workText) && !/\|\|\s*true/.test(workText),
     workText.split('\n').filter(z => /audit|continue-on-error/.test(z)).join(' | '));
-  check('Er läuft bei push und bei pull_request',
-    /^on:\s*\[push, pull_request\]$/m.test(workText),
-    (workText.match(/^on:.*$/m) || [''])[0]);
+  /* NUR PUSH, UND NUR AUF main -- entschieden vom Betreiber am 10. September
+     2026. Diese Zeile zielt seit 0.8.10 auf den Rueckbau der Ereignisliste;
+     ihre Sache hat sich geaendert, und sie geht deshalb MIT, statt geloescht
+     zu werden (Stolperstein 201). Sie haelt jetzt beides fest: dass genau das
+     eine Ereignis dasteht und dass es main nennt.
+     GELESEN WIRD OHNE DIE KOMMENTARE. Der Kasten in der Datei NENNT, was
+     weggefallen ist -- eine Probe, die das Wort dort faende, faende
+     ausgerechnet die Begruendung fuer seinen Wegfall. */
+  const workCode = workText.split('\n').filter(z => !/^\s*#/.test(z)).join('\n');
+  check('Er läuft nur bei Push auf main',
+    /^on:[ \t]*\n[ \t]+push:[ \t]*\n[ \t]+branches:[ \t]*\n[ \t]+-[ \t]*main[ \t]*$/m.test(workCode) &&
+    !/pull_request/.test(workCode),
+    (workCode.match(/^on:[\s\S]{0,60}/m) || ['(keine Zeile on:)'])[0].replace(/\s+/g, ' '));
 
   /* ---------------------------------------------------------------- */
   group('Kriterien: lesen, umbenennen, anlegen');
@@ -4662,7 +4672,8 @@ const shareMain = (purpose, target = null) =>
         Lockfile hat sich bewegt. `npm audit fix` hebt innerhalb der schon
         deklarierten Bereiche; waere dabei ein Bereich in `package.json`
         gewandert, waere aus einer Hebung eine Entscheidung geworden.
-     ② DIE BEDINGUNG AM WORKFLOW STEHT DA -- Weg B: ein Lauf je Stand. */
+     ② DIE BEDINGUNG AM WORKFLOW IST WEG -- Weg B ist am 10. September 2026
+        zurueckgenommen worden; der Lauf haengt an einem einzigen Ereignis. */
   group('Der Beipack — 0.25.0');
   {
     const bpPackage = JSON.parse(fs.readFileSync(path.join(__dirname, 'package.json'), 'utf8'));
@@ -4693,24 +4704,34 @@ const shareMain = (purpose, target = null) =>
        im Sammelblatt. Ohne diese Zeile ginge er stillschweigend mit. */
     check('Und express bleibt bei 4 — der Sprung auf 5 ist eine eigene Runde',
       /^4\./.test(String(bpAt('express'))), `express=${bpAt('express')}`);
-    /* ② DER WORKFLOW. Gelesen wird die Bedingung und nicht ihre Wirkung: was
-       GitHub daraus macht, laesst sich hier nicht fahren. Was sich pruefen
-       laesst, ist, dass sie dasteht und beide Haelften nennt -- ohne die
-       zweite liefe fuer eine Anfrage aus einem fremden Abzug gar nichts. */
+    /* ② DER WORKFLOW -- UND SEINE SACHE HAT SICH GEAENDERT. 0.25.0 hat hier
+       Weg B festgehalten: zwei Ereignisse in `on:` und eine Bedingung am
+       Auftrag, die den zweiten Lauf am selben Stand abwaehlt. DER BETREIBER
+       HAT DAS AM 10. SEPTEMBER 2026 ZURUECKGENOMMEN -- ein Ereignis, Push auf
+       main, und die Bedingung faellt. Die beiden Waechter gehen mit, statt
+       geloescht zu werden (Stolperstein 201): sie halten jetzt fest, dass die
+       Bedingung WEG ist und dass wirklich nur EIN Ereignis dasteht.
+       DASS ES PUSH AUF main IST, steht in der Gruppe „Der Prueflauf bei jedem
+       Push" -- und hier ausdruecklich nicht ein zweites Mal (Stolperstein 47). */
     const bpFlow = fs.readFileSync(
       path.join(__dirname, '.github', 'workflows', 'pruefstand.yml'), 'utf8');
-    check('Workflowprobe: die Bedingung fuer Weg B steht da',
-      /if:\s*>-/.test(bpFlow) &&
-      /github\.event_name != 'pull_request'/.test(bpFlow) &&
-      /github\.event\.pull_request\.head\.repo\.full_name != github\.repository/.test(bpFlow),
-      (bpFlow.match(/if:[\s\S]{0,180}/) || ['(keine Bedingung)'])[0]);
-    /* UND DER LAUF HAENGT WEITER AN BEIDEN EREIGNISSEN. Wer `pull_request`
-       aus `on:` naehme, bekaeme fuer eine Anfrage aus einem fremden Abzug gar
-       keinen Lauf -- und die Bedingung darueber haette nichts mehr zu
-       entscheiden. */
-    check('Und der Lauf haengt weiter an Push UND Anfrage',
-      /on: \[push, pull_request\]/.test(bpFlow),
-      (bpFlow.match(/^on:.*$/m) || ['(keine Zeile on:)'])[0]);
+    /* AUCH NICHT AUSKOMMENTIERT: eine Bedingung, die als Kommentar
+       stehenbliebe, waere genau die tote Regel, die diese Reihe an anderer
+       Stelle als Befund fuehrt -- sie tut nichts und liest sich, als tue sie
+       etwas. Gelesen wird deshalb der VOLLE Text, Kommentare eingeschlossen. */
+    check('Workflowprobe: die Bedingung fuer Weg B ist weg — auch als Kommentar',
+      !/^[ \t]*#*[ \t]*if:/m.test(bpFlow) &&
+      !/github\.event_name/.test(bpFlow) &&
+      !/pull_request\.head\.repo/.test(bpFlow),
+      (bpFlow.match(/^.*if:.*$/m) || ['(keine Bedingung)'])[0]);
+    /* UND DER LAUF HAENGT AN GENAU EINEM EREIGNIS. Gezaehlt wird, was unter
+       `on:` auf der ersten Stufe steht: ein zweites Ereignis brauchte die
+       Bedingung darueber wieder, und die gibt es nicht mehr. */
+    const bpOn = ((bpFlow.split('\n').filter(z => !/^\s*#/.test(z)).join('\n'))
+      .match(/^on:[ \t]*\n(?:[ \t]+\S.*\n|[ \t]*\n)*/m) || [''])[0];
+    const bpEvents = [...bpOn.matchAll(/^ {2}(\w+):/mg)].map(t => t[1]);
+    check('Und der Lauf haengt an genau EINEM Ereignis',
+      bpEvents.length === 1, bpEvents.join(', ') || '(keins)');
   }
 
   /* ================= Die Befunde der Runde 0.24.4 =======================

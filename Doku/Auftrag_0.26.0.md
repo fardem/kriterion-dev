@@ -375,6 +375,53 @@ Stellen (`server.js:4083`, `server.js:4574`).*
 
 ---
 
+## Im Beipack — der Prüfstand hängt nur noch an `main`
+
+> **ENTSCHIEDEN VOM BETREIBER AM 10. SEPTEMBER 2026, und schon gefahren** —
+> vor dem ersten Bauabschnitt, weil es keinen berührt.
+
+**`.github/workflows/pruefstand.yml` hängt an EINEM Ereignis: Push auf
+`main`.** *Vorher waren es zwei (Push und Anfrage), und die Bedingung am
+Auftrag wählte den zweiten Lauf am selben Stand ab — Weg B aus 0.25.0.*
+**Bei einem einzigen Ereignis hat sie nichts mehr zu entscheiden, und sie ist
+gefallen** — nicht auskommentiert, sondern weg. *Eine Bedingung, die als
+Kommentar stehenbleibt, ist genau die tote Regel, die Befund 4 dieser Runde
+meint.*
+
+**DER PREIS STEHT IN DER DATEI SELBST UND IST GENANNT, NICHT EINGEHANDELT:**
+
+| was wegfällt | Folge |
+|---|---|
+| **Der Lauf auf einem Zweig dieses Repositoriums** | ein Zweig wird **nicht mehr geprüft, bevor er in `main` steht** — die erste Prüfung eines Standes passiert **nach** dem Zusammenführen |
+| **Der Lauf für eine Anfrage aus einem fremden Abzug** | dort gibt es keinen Push in dieses Repository; ohne das zweite Ereignis läuft für sie **gar nichts** |
+
+*Wer einen Stand vorher geprüft sehen will, fährt `npm test` örtlich — der
+Prüfstand braucht GitHub nicht.*
+
+**DREI ZUSAGEN SIND MITGEGANGEN, STATT GELÖSCHT ZU WERDEN** *(Stolperstein
+201: wer eine Zeile umbaut, auf die ein Rückbau zielt, richtet den Rückbau auf
+die neue Zeile)*. **Sie bekommen keine Nummer ab 795** — die Reihe gehört den
+Befunden dieser Runde:
+
+| Zusage | Rückbau, gefahren am 10. September 2026 | Ergebnis |
+|---|---|---|
+| **„Er läuft nur bei Push auf `main`"** *(vorher: „bei push und bei pull_request")* | die alte Ereignisliste zurück | **rot** |
+| **„Die Bedingung für Weg B ist weg — auch als Kommentar"** *(vorher: „… steht da")* | die Bedingung mit `###` auskommentiert zurück *(der Versuch vom 10. September, 14:09 Uhr)* | **rot** |
+| **„Der Lauf hängt an genau EINEM Ereignis"** *(vorher: „… an Push UND Anfrage")* | ein zweites Ereignis daneben *(`workflow_dispatch`)* | **rot** |
+
+> **DIE ERSTE LIEST OHNE DIE KOMMENTARE, DIE ZWEITE MIT.** *Der Kasten in der
+> Datei nennt, was weggefallen ist; eine Probe, die das Wort dort fände, fände
+> ausgerechnet die Begründung für seinen Wegfall.* **Die zweite muss den vollen
+> Text lesen** — sonst wäre eine auskommentierte Bedingung für sie unsichtbar,
+> und genau darauf zielt sie.
+
+> **DASS ES PUSH AUF `main` IST, steht an EINER Stelle im Prüfstand** — in der
+> Gruppe „Der Prüflauf bei jedem Push". *Der Beipack von 0.25.0 hält nur noch
+> fest, dass die Bedingung weg ist und dass es bei einem Ereignis bleibt
+> (Stolperstein 47).*
+
+---
+
 ## Die Nummer und ihre Begründung
 
 **0.26.0 ist ein MINOR — Regel 5.1.**
@@ -460,7 +507,8 @@ Bildschirm nachgesehen** — im echten Browser, nicht im Nachbau:
 | `Doku/Projektstand_Kriterion_0_26_0.md` | `git mv`, **Revision 78** — Abschnitt 2, die Fingerprinttafel, die große Tafel; **und der Potenzialmodus in Abschnitt 3** (die Einstellungstabelle) |
 | `Doku/Fahrplan.md` | die Zeile 0.26.0 wird durchgestrichen; **die Ausarbeitungen zu 0.26.0 wandern nicht mit** — sie sind Herleitung |
 | `Doku/Fehler_und_Ideen.md` | **die sechs Zeilen fallen heraus** (Regel 2: was gebaut ist, steht nicht mehr hier) — *namentlich: die tote Stilblattregel, der Zeitleistenhinweis, die drei Anzeigefehler, die zwei Fehler aus dem Rundlauf mit 0.24.2, `ß`/`ss`, die Übersichtssekunde* |
-| `CHANGELOG.md` · `package.json` · `package-lock.json` | die Nummer |
+| `.github/workflows/pruefstand.yml` · `testbench.js` | **schon gefahren** — der Beipack oben: ein Ereignis statt zwei, die Bedingung gefallen, drei Zusagen mitgegangen |
+| `CHANGELOG.md` · `package.json` · `package-lock.json` | die Nummer — **und der Beipack gehört in den Eintrag zu 0.26.0**, weil er den Prüflauf und nicht den Quelltext betrifft |
 | `README.md` | **nur wenn der Potenzialmodus dort erklärt gehört** — zu entscheiden beim Bauen |
 
 ---
@@ -510,9 +558,18 @@ Bildschirm nachgesehen** — im echten Browser, nicht im Nachbau:
 
 **Und die stehenden Regeln, die keine Runde neu verhandelt**
 
-* **GITHUB, WEG B.** Ein Lauf je Stand. **Ein Push je Runde**, nicht vier —
-  `cancel-in-progress` fängt nur ab, was sich überholt, nicht was nacheinander
-  fertig läuft.
+* **GITHUB: EIN LAUF JE STAND — UND NUR AUF `main`.** **Weg B ist am
+  10. September 2026 vom Betreiber zurückgenommen worden**, und zwar nach
+  vorne: der Prüfstand hängt seither an **einem** Ereignis, Push auf `main`.
+  *Die Bedingung am Auftrag, die bei zwei Ereignissen den zweiten Lauf am
+  selben Stand abwählte, hat damit nichts mehr zu entscheiden und ist
+  gefallen.* **Ein Push je Runde**, nicht vier — `cancel-in-progress` fängt
+  nur ab, was sich überholt, nicht was nacheinander fertig läuft. **Der Preis
+  steht in der Datei selbst und ist genannt, nicht eingehandelt:** ein Zweig
+  dieses Repositoriums wird **nicht mehr geprüft, bevor er in `main` steht**,
+  und eine Anfrage aus einem fremden Abzug bekommt **gar keinen** Lauf. *Wer
+  einen Stand vorher geprüft sehen will, fährt `npm test` örtlich — der
+  Prüfstand braucht GitHub nicht.*
 * **DER FINGERPRINT WIRD VOR DEM EINSPIELEN GERECHNET** und steht im
   Änderungsprotokoll, damit die Installation sich daran messen kann. *Er deckt
   `node_modules` NICHT ab — eine Hebung von Abhängigkeiten bewegt ihn nicht,
