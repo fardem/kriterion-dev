@@ -34,14 +34,14 @@ Begründung von acht Rückungen.*
 durchzuarbeiten und Fehler zu beheben, dass wir fast bis Code-Effizienz durch
 sind. Neue Features werden nur bedingt aufgenommen."*
 
-**Was das für dieses Papier heißt:** jede Runde bis 0.32.0 räumt etwas weg, das
+**Was das für dieses Papier heißt:** jede Runde bis 0.33.0 räumt etwas weg, das
 schon dasteht. **Vier neue Funktionen fahren mit**, und jede einzelne ist unten
 begründet; alles andere Neue ist entweder abgelehnt oder mit seiner Bedingung
 zurückgestellt.
 
 ---
 
-## Der Bruch liegt auf 0.32.0 — und das ist der Grund
+## Der Bruch liegt auf 0.33.0 — und das ist der Grund
 
 **Entschieden am 8. September 2026:** die Bereinigung *(bisher 0.28.0)* zieht
 auf **0.30.0**. *„Damit der Bruch auch ein Bruch in der Zahl ist."*
@@ -61,6 +61,16 @@ auf **0.30.0**. *„Damit der Bruch auch ein Bruch in der Zahl ist."*
 > ein drittes Mal zu schonen hieße, eine Runde an eine Nummer zu hängen statt
 > an ihre Stelle in der Reihe. **Die Reihenfolge ist die Aussage, nicht die
 > Zahl.**
+
+> **UND EIN VIERTES MAL AM SELBEN TAG — auf 0.33.0, und diesmal auf Wunsch.**
+> *Der Betreiber: „Bruch mal auf die 0.33.0 legen.. ist auch ne schöne Zahl 🙂
+> wenn das klappt."* **Es klappt, und der Preis ist keiner:** zwischen der
+> Sprachdurchsicht und dem Bruch entsteht dabei **0.32.0**, und die bleibt
+> ausdrücklich **frei**. *Sie ist kein Versehen und keine Rückkehr zur alten
+> Regel der freien Zwischenräume — sie ist EIN Platz an EINER Stelle, und zwar
+> an der letzten, an der ein MINOR noch etwas ändern darf, bevor die Struktur
+> feststeht.* **Damit ist die Zahl wieder rund und trägt zugleich eine
+> Reserve.**
 
 **Es ist eine Entscheidung über die LESBARKEIT der Nummer und nicht über den
 Inhalt.** Die Bereinigung wirft zehn Migrationsblöcke weg, schreibt die
@@ -138,10 +148,11 @@ Sprachumschalter baut, hat damit ein Muster und braucht kein neues.**
 | **0.29.0** | **Worauf man sich verlassen können muss** | Gruppe C, das Angenommene — und die letzte Runde, die das Schema anfassen darf | **ja** | 15 → 16 |
 | **0.30.0** | **Der Prüfstand wird schnell** | Gruppe D: was das Bauen beschleunigt, ohne den Beleg zu schwächen | nein | — |
 | **0.31.0** | **Die Sprachen werden gegengelesen** | drei Dateien, drei Stufen — harte Fehler, der zersägte Satzbau, die Hausstimme | nein | — |
-| **0.32.0** | **Bereinigung — der Bruch** | zehn Migrationsblöcke raus, Struktur festgeschrieben, **kein Rückweg** | **ja** | — |
-| **0.32.x** | **Die Kommentare werden knapp** | 16.281 von 54.822 Zeilen sind Kommentar | nein | — |
-| **0.33.0** | **Der Prüfstand bekommt ein Verzeichnis** | `testbench.js` in Module — **und damit erst der echte Teillauf** | nein | — |
-| **0.34.0** | **Code-Effizienz** | Leichen und ineffizienter Code | offen | — |
+| **0.32.0** | *frei — der letzte Platz vor dem Bruch* | **absichtlich leer.** Was aus dem Rundlauf kommt und mehr ist als eine Reparatur, findet hier Platz, ohne den Bruch noch einmal zu verschieben | offen | — |
+| **0.33.0** | **Bereinigung — der Bruch** | zehn Migrationsblöcke raus, Struktur festgeschrieben, **kein Rückweg** | **ja** | — |
+| **0.33.x** | **Die Kommentare werden knapp** | 16.281 von 54.822 Zeilen sind Kommentar | nein | — |
+| **0.34.0** | **Der Prüfstand bekommt ein Verzeichnis** | `testbench.js` in Module — **und damit erst der echte Teillauf** | nein | — |
+| **0.35.0** | **Code-Effizienz** | Leichen und ineffizienter Code | offen | — |
 | **1.0.0** | **Die Zusage** | Abwärtskompatibilität zugesichert, Schnittstelle steht fest | — | — |
 | *danach* | *Große Dateien bis 2 GB* | **ausdrücklich draußen** — siehe unten | ja | — |
 
@@ -542,7 +553,7 @@ CREATE UNIQUE INDEX IF NOT EXISTS … ON users(email) WHERE email IS NOT NULL
 — der auf beiden Wegen gleich wirkt und mehrere Zugänge ohne Adresse zulässt.
 
 > **DER BETREIBER HAT DAS WANN UND WIE ÜBERLASSEN, und die Antwort ist: hier.**
-> *Ein Index ist Datenbankarbeit, und nach 0.32.0 steht die Struktur fest.
+> *Ein Index ist Datenbankarbeit, und nach 0.33.0 steht die Struktur fest.
 > Wollte man ihn danach, stünde er allein gegen eine festgeschriebene Struktur —
 > genau der Fall, den die Bereinigung ausschließen soll.*
 
@@ -649,9 +660,9 @@ sucht falsch.*
 > Namensfilter kann deshalb nur die Ausgabe einschränken, nicht die Arbeit.**
 >
 > ***Ein echter Teillauf IST die Aufteilung in Module*** — und die steht auf
-> **0.33.0**, hinter dem Bruch, weil sie sonst Prüfgruppen mit umzieht, die die
+> **0.34.0**, hinter dem Bruch, weil sie sonst Prüfgruppen mit umzieht, die die
 > Bereinigung kurz darauf löscht. **Diese Runde legt die Messung hin, mit der
-> 0.33.0 weiß, welche Gruppen die Aufteilung zuerst verdienen.**
+> 0.34.0 weiß, welche Gruppen die Aufteilung zuerst verdienen.**
 
 ---
 
@@ -693,7 +704,31 @@ Sprachdateien an und keine Tabelle.
 
 ---
 
-## 0.32.0 — „Bereinigung — der Bruch"
+## 0.32.0 — frei, und zwar mit Absicht
+
+**Der letzte MINOR-Platz vor dem Bruch.** *Hier steht nichts, und das ist die
+Aussage.*
+
+**WARUM ES KEINE RÜCKKEHR ZUR ALTEN REGEL IST.** Bis zum 8. September 2026 blieb
+zwischen **je zwei** geplanten Runden eine Nummer frei; diese Regel ist
+aufgehoben worden, und der Grund war gemessen: *fünf Einschübe aus dem Betrieb
+hintereinander — 0.24.1 bis 0.24.5 — haben alle eine **PATCH**-Zahl genommen und
+keinen freien MINOR-Platz.* **Ein Befund aus dem Rundlauf ist eine Reparatur,
+und eine Reparatur hängt an ihrer Runde.** *(Die Runden 0.25.1 und 0.25.2 haben
+es am 10. September 2026 ein sechstes und siebtes Mal bestätigt.)*
+
+**Was hier steht, ist etwas anderes: EIN Platz an EINER Stelle.** Nicht für eine
+Reparatur, sondern für das, was aus dem Rundlauf kommt und **mehr** ist als
+eine — eine Funktion, ein Befund mit Schemaanteil, eine Runde, die jemand nach
+dem Einspielen von 0.31.0 bestellt. **Ab dem Bruch geht das nicht mehr ohne
+Weiteres:** er schreibt die Struktur fest und sagt alten Beständen ab.
+
+> **BLEIBT ER LEER, KOSTET ER NICHTS.** Eine übersprungene MINOR-Zahl ist kein
+> Schaden — eine verschobene Bruchzahl war schon dreimal eine.
+
+---
+
+## 0.33.0 — „Bereinigung — der Bruch"
 
 **Unverändert gegenüber dem alten Plan; neu ist allein die Nummer.**
 
@@ -701,7 +736,7 @@ Migrationscode raus — **zehn Blöcke** (der zehnte ist mit 0.25.0 dazugekommen
 **Absage an zu alte Datenbanken. Ab hier gibt es keinen Rückweg auf ältere
 Fassungen.** *Ein Bruch — solange die erste Zahl 0 ist, läuft er über MINOR.*
 
-**0.32.x — „Die Kommentare werden knapp".** Fast dreißig Prozent des Quelltextes
+**0.33.x — „Die Kommentare werden knapp".** Fast dreißig Prozent des Quelltextes
 sind Kommentar. **Was das Offensichtliche wiederholt, geht; was eine
 ENTSCHEIDUNG trägt, wandert vorher in den Projektstand und bleibt als Zeiger
 stehen.** *Nach der Bereinigung und nicht davor — sie löscht ganze Blöcke samt
@@ -709,7 +744,7 @@ ihren Kommentaren, und wer vorher schneidet, schneidet zweimal.*
 
 ---
 
-## 0.33.0 — „Der Prüfstand bekommt ein Verzeichnis"
+## 0.34.0 — „Der Prüfstand bekommt ein Verzeichnis"
 
 **`testbench.js` ist EINE Datei mit über 43.000 Zeilen**, `counterproof.js`
 daneben über 7000. **Sie wird aufgeteilt: ein Verzeichnis `test/`, ein Modul je
@@ -724,7 +759,7 @@ sagt, welche Gruppen zuerst dran sind.
 kein Prüfungsname ändert sich — **die Zahl steht vorher und nachher**, und der
 Gegenprobenlauf ist der Beleg.
 
-## 0.34.0 — „Code-Effizienz"
+## 0.35.0 — „Code-Effizienz"
 
 Leichen und ineffizienten Code durchgehen und verbessern. **Nach der Bereinigung
 und nach der Aufteilung**, damit sie keinen toten Code mitschleppt und in
@@ -762,14 +797,14 @@ Strecke.*
 | **Ein QR-Bild für den zweiten Faktor** | **Abgelehnt.** *Der anklickbare Verweis trägt den Weg auf dem Telefon* |
 | **Vorlagen für Einträge · Tags in Mengen bearbeiten · Druckstylesheet** | **Abgelehnt.** *Nützlich, keins davon dringend — und diese Strecke arbeitet ab, was dasteht. Das Umbenennen von Tags kann die Karte „Tags" heute schon* |
 | **Ein Admin kann den zweiten Faktor verlangen** | **Abgelehnt** — die Antwort ist nein |
-| **Ein echter Teillauf als eigener Punkt** | **Ersetzt** durch 0.33.0, wo er hingehört |
+| **Ein echter Teillauf als eigener Punkt** | **Ersetzt** durch 0.34.0, wo er hingehört |
 
 ### Zurückgestellt — mit der Bedingung, unter der es wiederkommt
 
 | | Bedingung |
 |---|---|
-| **Erwähnungen im Kommentar** (`@name`) | **Der Betreiber hat gefragt, warum nicht — und die Idee ist gut. Es scheitert an zwei Dingen, und beide sind größer als die Erwähnung selbst.** *(1)* **Wer wen sehen darf, ist ungeklärt:** `@name` verlangt eine Namensvervollständigung über alle Zugänge, und die Zugangsliste steht heute hinter dem Admin — **eine Erwähnung machte aus ihr eine Auskunft für jeden.** *(2)* **Die Glocke kann kein Ziel tragen:** sie führt einen Zeitstempel und keine Tabelle. „Diese Meldung gilt dir" wäre eine Angabe **je Meldung** — genau die Tabelle, die 0.16.0 ausdrücklich nicht gebaut hat. *Eine Erwähnung ohne Lesestand je Meldung räumt sich beim Öffnen der Tafel selbst mit weg.* **Was sie also wirklich ist: eine eigene MINOR-Runde mit Schemaanteil — und die müsste vor 0.32.0 liegen.** *Sie steht damit nicht auf „nie", sondern auf „nicht in dieser Strecke, es sei denn, sie verdrängt eine der fünf".* |
-| **Eine Messung im echten Browser** | **Der Weg ist gefunden** — Chromium über das DevTools-Protokoll, den Client bringt Node seit v22 mit, **keine neue Abhängigkeit.** *Offen ist nicht das Werkzeug, sondern ob es in den Baum gehört: ein Lauf, der einen Browser startet, braucht Chromium auf der Maschine, und die hat nicht jeder.* **Entschieden wird es beim Auftrag von 0.33.0**, wo der Prüfstand ohnehin auf den Tisch kommt |
+| **Erwähnungen im Kommentar** (`@name`) | **Der Betreiber hat gefragt, warum nicht — und die Idee ist gut. Es scheitert an zwei Dingen, und beide sind größer als die Erwähnung selbst.** *(1)* **Wer wen sehen darf, ist ungeklärt:** `@name` verlangt eine Namensvervollständigung über alle Zugänge, und die Zugangsliste steht heute hinter dem Admin — **eine Erwähnung machte aus ihr eine Auskunft für jeden.** *(2)* **Die Glocke kann kein Ziel tragen:** sie führt einen Zeitstempel und keine Tabelle. „Diese Meldung gilt dir" wäre eine Angabe **je Meldung** — genau die Tabelle, die 0.16.0 ausdrücklich nicht gebaut hat. *Eine Erwähnung ohne Lesestand je Meldung räumt sich beim Öffnen der Tafel selbst mit weg.* **Was sie also wirklich ist: eine eigene MINOR-Runde mit Schemaanteil — und die müsste vor 0.33.0 liegen.** *Sie steht damit nicht auf „nie", sondern auf „nicht in dieser Strecke, es sei denn, sie verdrängt eine der fünf".* |
+| **Eine Messung im echten Browser** | **Der Weg ist gefunden** — Chromium über das DevTools-Protokoll, den Client bringt Node seit v22 mit, **keine neue Abhängigkeit.** *Offen ist nicht das Werkzeug, sondern ob es in den Baum gehört: ein Lauf, der einen Browser startet, braucht Chromium auf der Maschine, und die hat nicht jeder.* **Entschieden wird es beim Auftrag von 0.34.0**, wo der Prüfstand ohnehin auf den Tisch kommt |
 | **Der angepinnte Block kann zur Wand werden** | **Beobachten, nicht bauen.** *Wenn es im Betrieb stört, ist die Antwort NICHT eine Einschränkung des Anpinnens, sondern eine zweite Sortierstufe innerhalb des Blocks* |
 | **Ein abgerissener Prüflauf von 0.9.1** | **Nicht wegerklärt, sondern nicht wiederholt.** *Wer ihn wiedersieht, schreibt den Lauf vollständig mit* |
 

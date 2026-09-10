@@ -7603,6 +7603,43 @@ const REGRESSIONS = [
     search: "\"card.lastBackup\": \"Son yedekleme\"",
     replacement: "\"card.lastBackup\": \"Son yedek\"",
     expected: '„Backup" heisst auf Tuerkisch yedekleme — 0.25.1'
+  },
+  {
+    /* ================= 0.25.2 =========================================
+       DER STEMPEL DES SERVERS REIST WIEDER MIT. Das ist der gemeldete
+       Zustand: auf der Pille „Deutsch" steht der Punkt, und darunter
+       behauptet jede Zeile, fuer Deutsch sei nichts eingetragen -- weil der
+       Vermerk aus der Sprache des LESERS stammt und mit der Sprache der
+       PILLE beschriftet wird. */
+    nr: '788', name: 'Der Stempel des Servers reist wieder mit',
+    file: 'public/app.js',
+    search: "    if (hit.from === code) return { ...z, name: hit.name, nameFallback: undefined };",
+    replacement: "    if (hit.from === code) return { ...z, name: hit.name };",
+    expected: 'Ein Leser, der anders liest — 0.25.2'
+  },
+  {
+    /* UND DER VOKABELUMSCHALTER SCHREIBT WIEDER IRGENDWOHIN. Er setzt dann
+       eine Angabe, die niemand liest -- der Klick bewegt nichts mehr, und
+       der Gleichlauf in DIESE Richtung ist hin. Das ist die plausible
+       Bauform des Fehlers: „vergessen zu verdrahten". */
+    nr: '789', name: 'Der Vokabelumschalter schreibt wieder in eine eigene Angabe',
+    file: 'public/app.js',
+    search: "        /* DIESELBE ANGABE WIE AN DEN NAMENSKARTEN -- 0.25.2. Wer hier\n" +
+      "           umschaltet, schaltet den ganzen Abschnitt um, und umgekehrt. */\n" +
+      "        NAMES_SHOWN = a.code;",
+    replacement: "        window.VOCABULARY_SHOWN = a.code;",
+    expected: 'Ein Leser, der anders liest — 0.25.2'
+  },
+  {
+    /* UND ER LIEST WIEDER SEINE EIGENE. Die andere Haelfte desselben
+       Gleichlaufs: wer schreibt, aber woanders liest, bewegt sich nicht mit,
+       wenn eine NACHBARKACHEL umschaltet. Zwei Rueckbauten, weil es zwei
+       Richtungen sind. */
+    nr: '790', name: 'Der Vokabelumschalter liest wieder seine eigene Angabe',
+    file: 'public/app.js',
+    search: "      b.className = 'pill' + (namesLanguage() === a.code ? ' on' : '');",
+    replacement: "      b.className = 'pill' + (LANGUAGE === a.code ? ' on' : '');",
+    expected: 'Ein Leser, der anders liest — 0.25.2'
   }
 ];
 

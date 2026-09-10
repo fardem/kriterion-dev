@@ -29,6 +29,13 @@ bleiben in der Form ihrer Zeit.*
 
 *Hier wird mitgeschrieben, während gebaut wird.*
 
+## [0.25.2] - 2026-09-10
+
+### Behoben
+- **Bei anderssprachiger Oberfläche behaupteten die Namenskarten Unwahrheiten.** Wer Kriterion auf Türkisch las und in der Kartenpille auf „Deutsch" schaltete, sah an jeder deutschen Zeile *„kein Eintrag in Deutsch — gezeigt wird Deutsch"*, obwohl die Pille darüber den Punkt für „vollständig" trug. *Bei deutscher oder englischer Oberfläche fiel es nicht auf.*
+- **Das Zeichen zum Räumen (✕) fehlte an denselben Zeilen** — es hängt an derselben Abfrage.
+- **Der Sprachumschalter der Kachel „Vokabular" lief nicht mit.** Die drei Namenskarten schalteten gemeinsam um, das Vokabular blieb stehen. **Jetzt schalten alle vier gemeinsam**, in beide Richtungen.
+
 ## [0.25.1] - 2026-09-10
 
 ### Behoben
