@@ -7897,6 +7897,22 @@ const REGRESSIONS = [
     search: "  potentialMode: potentialMode(),\n  /* DER SCHALTER DER BILDABLAGE",
     replacement: "  /* DER SCHALTER DER BILDABLAGE",
     expected: 'Der Potenzialmodus — 0.26.0'
+  },
+  {
+    /* ================= 0.26.0, BA 5 =====================================
+       DER BILDSCHIRM WIRD WIEDER GELEERT, BEVOR JEMAND GEFRAGT HAT. Das ist
+       der gemeldete Zustand: `renderList()` setzte den Platzhalter ohne
+       Bedingung und wartete erst danach auf `loadAll()` -- 227 ms weisse
+       Flaeche, gemessen im Browser des Betreibers am 10. September 2026.
+       ER NIMMT NUR DIE BEDINGUNG UND LAESST DIE ZUWEISUNG STEHEN, und das
+       ist hier richtig: eine Zuweisung, die ganz fehlte, waere ein anderer
+       Fehler (kein Platzhalter beim ersten Betreten). Der Rueckbau soll den
+       ALTEN Zustand herstellen und keinen dritten. */
+    nr: '811', name: 'Der Bildschirm wird wieder geleert, bevor jemand gefragt hat',
+    file: 'public/app.js',
+    search: "  if (!app.firstElementChild)\n    app.innerHTML = `<div class=\"shell\"><p class=\"hint\" style=\"padding-top:44px\">${tH('list.loading')}</p></div>`;",
+    replacement: "  app.innerHTML = `<div class=\"shell\"><p class=\"hint\" style=\"padding-top:44px\">${tH('list.loading')}</p></div>`;",
+    expected: 'Die Hervorhebung in der Uebersicht'
   }
 ];
 

@@ -268,10 +268,10 @@ mitsamt ihrer Ausarbeitung, im Anhang jenes Papiers.
 
 | Punkt | worum es ging | wohin |
 |---|---|---|
-| **11** | Drei kleine Anzeigefehler aus dem Augenschein zu 0.22.0 | **0.26.0** |
-| **12** | Die Übersicht braucht beim Betreten rund eine Sekunde | **0.26.0** *(mit einer Messung davor)* |
-| **13** | Zwei Fehler aus dem Rundlauf mit 0.24.2 | **0.26.0** |
-| **18** | `ß` und `ss` sind für die Suche zwei Dinge | **0.26.0** — *0.24.4 hat die Faltung angefasst und diesen Fall AUSDRÜCKLICH ausgenommen: er betrifft Deutsch und nicht Türkisch, und eine Runde, die schon zwei Fehler an derselben Funktion repariert, nimmt keinen dritten mit* |
+| **11** | Drei kleine Anzeigefehler aus dem Augenschein zu 0.22.0 | **GEBAUT mit 0.26.0** |
+| **12** | Die Übersicht braucht beim Betreten rund eine Sekunde | **GEMESSEN am 10. September 2026 — und dabei WEGGEFALLEN.** *Die Sekunde war am gemeldeten Gerät nicht mehr da, und nichts an dieser Stelle war geändert worden; die Messung steht im Auftrag 0.26.0, Befund 7.* **Der Punkt wird beobachtet, nicht gebaut** — die eine Hälfte, die unabhängig davon richtig war, ist mit 0.26.0 gebaut *(die Übersicht leert den Bildschirm nicht mehr, bevor sie fragt)* |
+| **13** | Zwei Fehler aus dem Rundlauf mit 0.24.2 | **GEBAUT mit 0.26.0** |
+| **18** | `ß` und `ss` sind für die Suche zwei Dinge | **GEBAUT mit 0.26.0**, mit dem genannten Preis — *0.24.4 hat die Faltung angefasst und diesen Fall AUSDRÜCKLICH ausgenommen: er betrifft Deutsch und nicht Türkisch, und eine Runde, die schon zwei Fehler an derselben Funktion repariert, nimmt keinen dritten mit* |
 | **5** | Die Ableitungen auf WebP | **0.27.0** |
 | **6** | Fotos aus der Zwischenablage — die Ablage wird wählbar | **0.27.0** |
 | **14** | Blättern im Eintrag, vor und zurück | **0.28.0** — *die Form ist am 8. September 2026 entschieden: Pfeile in der Kopfzeile, `Bild auf`/`Bild ab`, keine Wischgeste* |
@@ -425,8 +425,8 @@ wissen will, was gebaut wird, liest `Doku/Fahrplan.md`.*
 
 | Zeile | wohin |
 |---|---|
-| **Eine tote Regel im Stilblatt** (`.rz-summe:first-of-type`) | **0.26.0** |
-| **Der Hinweis an der Zeitleiste läuft auf schmalem Schirm hinaus** | **0.26.0** |
+| **Eine tote Regel im Stilblatt** (`.calc-sum:first-of-type`, bis 0.24.1 `.rz-summe`) | **GEBAUT mit 0.26.0** |
+| **Der Hinweis an der Zeitleiste läuft auf schmalem Schirm hinaus** | **GEBAUT mit 0.26.0** |
 | **Die Anmeldungszeile läuft bei ~1024 Pixeln aus ihrer Karte** | **0.28.0** — *mit `@container`, als eigener Schritt* |
 | **Die Erklärung unter dem Ablegefeld spricht von Dingen, die es am Telefon nicht gibt** | **0.28.0** |
 | **Die Unteransichten haben keine Kopfzeile** | **0.28.0** — *und die Kopfzeile trägt zugleich die Pfeile zum Blättern* |
@@ -540,15 +540,6 @@ wiedersieht, schreibt den Lauf vollständig mit)**.
   einzeln zu entscheiden, und ein Teil davon sind Grenzfälle, über die man
   reden muss. **Nicht mit 0.17.2 mitgemacht**, weil jede dieser Dateien in den
   Fingerprint geht und die Runde ihre Papiere schon geschrieben hatte.)*
-- **`.rz-summe:first-of-type` im Stilblatt kann nie greifen** *(0.16.0, beim
-  Bau von 0.17.0 aufgefallen)*. Die Regel soll der ersten Summenzeile des
-  Erklärkastens einen Strich darüber geben; `:first-of-type` zählt aber
-  **DIV-Geschwister**, und das erste `div` in `.rechnung` ist `.rz-kopf`.
-  **Die Regel ist damit tot** — der Strich entsteht heute an anderer Stelle,
-  und niemand hat es gemerkt.
-  *(Claude: eine Zeile, ein PATCH-Kandidat. Nicht in 0.17.0 mitgefahren, weil
-  sie zu keinem der neun Punkte gehört und die Runde eine Kartenbreite von
-  einem Anzeigefehler unterscheiden können muss.)*
 - **Die Tagwolke soll ab der zweiten Zeile den Platz unter „mehr" / „weniger"
   mitfüllen** *(0.13.1, aus dem Betrieb — geprüft, beziffert, zurückgestellt)*.
   Die Wolke steht seit 0.13.0 **neben** ihren Verweisen; damit endet **jede**
@@ -774,12 +765,6 @@ wurde. Keines davon ist neu entstanden; jedes gab es vorher genauso.*
   Leiste nur, solange etwas ausgewählt ist — der Fall ist selten und wieder
   vorbei, bevor man ihn benennen kann. Der Fix wäre eine Abfrage `body:has(…)`.
   *(Claude: später — der Aufwand steht nicht im Verhältnis)*
-- **Der Hinweis an der Zeitleiste kann auf schmalem Schirm hinauslaufen.** Er
-  steht mittig über seinem Punkt und bricht nicht um; am rechten Ende der Achse
-  ragt er hinaus. **Er erscheint nur beim Überfahren** — auf dem Finger gibt es
-  ihn gar nicht, dort öffnet die Berührung gleich den Eintrag. Es trifft also
-  nur ein schmales Fenster mit Maus. *(Claude: empfohlen — eine Deckelung der
-  Breite genügt)*
 - **Die Erklärung unter dem Ablegefeld spricht auf dem Telefon von Dingen, die
   es dort nicht gibt** — „Klick aufs Foto", „mit Strg+V einfügen", „Blättern
   mit ← →". Fünf Zeilen, von denen die Hälfte ins Leere geht, und sie stehen

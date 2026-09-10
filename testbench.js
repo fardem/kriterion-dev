@@ -25183,8 +25183,25 @@ const shareMain = (purpose, target = null) =>
      unter einem fremden Namen gereicht. ZWEI VON DREI GREIFEN AN EINER
      SPRACHDATEI und nicht am Quelltext, und das ist hier richtig: dort sass
      der Fehler. Ein Rueckbau, der nur Programmzeilen kennt, kann einen
-     Sprachfehler nicht stellen. */
-  check('Es sind genau 801 Rueckbauten', gpList.length === 801, `${gpList.length}`);
+     Sprachfehler nicht stellen.
+     801 SEIT 0.26.0, BA 1 BIS 4 UND BA 6: sechzehn neue (795 bis 810). Sieben
+     an den kleinen Befunden -- zwei am Dateifeld, das `textContent` mit dem
+     Hinweistext hinauswarf (Traeger und Fortschritt sind zwei Richtungen),
+     einer an der Fusszeile der Sitzungen, einer am Eintragstitel, zwei am
+     Ausfuhrknopf (die Flexkinder UND der Satz, der die Klammer aufmacht --
+     der eine greift am Quelltext, der andere an einer Sprachdatei), einer am
+     Gewichtssatz hinter der Adminklemme. Drei an den Einzeilern: die tote
+     Stilblattregel, der Hinweis an der Zeitleiste, `ss` und `ß`. Und sechs am
+     Potenzialmodus -- vier an den Stellen der Oberflaeche und zwei am Server,
+     einer davon an der Klemme (Eigentuemer statt Admin, F3) und einer daran,
+     dass die Antwort den Stand des Schalters ueberhaupt nennt.
+     802 SEIT 0.26.0, BA 5: einer (811) daran, dass `renderList()` den
+     Bildschirm wieder leert, bevor jemand gefragt hat. ER NIMMT NUR DIE
+     BEDINGUNG und laesst die Zuweisung stehen: eine Zuweisung, die ganz
+     fehlte, waere ein ANDERER Fehler -- kein Platzhalter beim ersten
+     Betreten -- und ein Rueckbau soll den alten Zustand herstellen und
+     keinen dritten. */
+  check('Es sind genau 802 Rueckbauten', gpList.length === 802, `${gpList.length}`);
   const gpTwice = gpList.map(r => r.nr).filter((n, i, a) => a.indexOf(n) !== i);
   check('Und keine Nummer steht zweimal', gpTwice.length === 0, gpTwice.join(' '));
   /* JEDER GREIFT: der Suchtext kommt in seiner Datei GENAU EINMAL vor. Keinmal
@@ -40191,6 +40208,42 @@ async function checkUi() {
     equal(hvMarks('.card-title'), ['a.b']),
     JSON.stringify(hvMarks('.card-title')));
   hv.close();
+
+  /* ---- BEFUND 7a DER RUNDE 0.26.0 -- NICHT LEEREN OHNE NOT -------------
+     `renderList()` setzte `app.innerHTML = "Laedt ..."` OHNE Bedingung und
+     wartete erst danach auf `loadAll()`: der Bildschirm war leer, bevor
+     ueberhaupt jemand gefragt hatte. Gemessen im Browser des Betreibers am
+     10. September 2026 sind das 227 ms weisse Flaeche -- EINE Rundreise, die
+     sich nicht verkuerzen laesst.
+     DER BEFUND SELBST (die Sekunde beim Betreten) IST WEGGEFALLEN und wird
+     nur noch beobachtet; DIESE Zeile bleibt, weil sie unabhaengig davon
+     richtig ist, wie schnell die Antwort kommt.
+     GEPRUEFT WIRD DIE REIHENFOLGE AM QUELLTEXT und nicht am Bildschirm: die
+     Lage entsteht erst durch eine Antwort, die auf sich warten laesst, und
+     ein Nachbau ohne Wartezeit koennte sie gar nicht herstellen. Dieselbe
+     Wahl wie beim Vokabelraster in 0.25.3 (die Regel statt der Lage). */
+  {
+    const naQuelle = fs.readFileSync(path.join(__dirname, 'public', 'app.js'), 'utf8');
+    const naStelle = naQuelle.slice(naQuelle.indexOf('async function renderList()'));
+    const naKopf = naStelle.slice(0, naStelle.indexOf('try { await loadAll(); }'));
+    /* DER PLATZHALTER STEHT HINTER EINER BEDINGUNG -- und die fragt, ob ueberhaupt
+       schon etwas dasteht. Ohne sie waere die Zusage wieder die alte. */
+    check('Der Platzhalter wird nur gesetzt, wenn nichts dasteht',
+      /if \(!app\.firstElementChild\)\s*\n\s*app\.innerHTML =/.test(naKopf),
+      naKopf.split('\n').filter(z => /app\.innerHTML|firstElementChild/.test(z))
+        .map(z => z.trim()).join(' | ') || 'keine Zeile gefunden');
+    /* UND ES STEHT KEINE UNBEDINGTE ZUWEISUNG DANEBEN. Die Zusage darueber
+       sagt nur, dass EINE bedingte da ist -- eine zweite, unbedingte gleich
+       daneben machte sie wertlos, und genau so sah die Stelle vorher aus.
+       DIE KOMMENTARE WERDEN VORHER WEGGESCHNITTEN, und das ist keine Kuer:
+       der erste Entwurf zaehlte den eigenen Erklaertext mit, in dem
+       `app.innerHTML` als Zitat des ALTEN Standes vorkommt -- die Zahl war
+       dann von etwas abhaengig, das gar nichts tut. */
+    const naCode = naKopf.replace(/\/\*[\s\S]*?\*\//g, '');
+    const naZuweisungen = (naCode.match(/app\.innerHTML\s*=/g) || []).length;
+    check('Und daneben steht keine zweite, unbedingte Zuweisung',
+      naZuweisungen === 1, `${naZuweisungen} Zuweisungen vor dem Fragen`);
+  }
 
   /* ---------------------------------------------------------------- */
   group('Der Suchbegriff in der Adresse');

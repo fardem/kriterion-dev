@@ -3141,7 +3141,24 @@ function showBellPanel() {
 
 /* ================= Übersicht ================= */
 async function renderList() {
-  app.innerHTML = `<div class="shell"><p class="hint" style="padding-top:44px">${tH('list.loading')}</p></div>`;
+  /* NICHT LEEREN, BEVOR ERSATZ DA IST -- 0.26.0, BA 5 (Befund 7a).
+     Bis hierher stand `app.innerHTML = "Laedt ..."` ohne Bedingung, und
+     danach erst wurde gefragt: DER BILDSCHIRM WAR LEER, BEVOR UEBERHAUPT
+     JEMAND GEFRAGT HATTE. Wer aus einem Eintrag zurueckkam, sah eine weisse
+     Flaeche, solange die Antwort unterwegs war -- gemessen am 10. September
+     2026 im Browser des Betreibers: 227 ms fuer die fuenf Abrufe, und die
+     sind EINE Rundreise und lassen sich nicht verkuerzen.
+     DER PLATZHALTER BLEIBT, WO ES NICHTS ZU LASSEN GIBT -- beim ersten
+     Betreten steht nichts da, und dann ist "Laedt ..." besser als nichts.
+     Steht dagegen schon eine Ansicht, bleibt sie stehen, bis die neue
+     fertig ist. Das macht NICHTS schneller; es hoert nur auf, ohne Not zu
+     leeren.
+     DER BEFUND SELBST WIRD BEOBACHTET UND NICHT GEBAUT: die Sekunde war am
+     gemeldeten Geraet nicht mehr da, und niemand hat etwas repariert, das
+     sie erklaeren wuerde. Diese Zeile bleibt trotzdem -- sie ist unabhaengig
+     davon richtig, wie schnell die Antwort kommt. */
+  if (!app.firstElementChild)
+    app.innerHTML = `<div class="shell"><p class="hint" style="padding-top:44px">${tH('list.loading')}</p></div>`;
   try { await loadAll(); }
   catch (e) { if (e.message !== t('dialog.sessionExpired')) app.innerHTML = `<div class="shell"><p class="hint">${esc(e.message)}</p></div>`; return; }
 

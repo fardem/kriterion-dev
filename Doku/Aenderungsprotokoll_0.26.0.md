@@ -1,19 +1,29 @@
 # Änderungsprotokoll 0.26.0 — „Die kleinen Fehler fallen" — und das Potenzial wird abschaltbar
 
-**Sechs Befunde, eine Messung und eine Funktion · gebaut am 10. September 2026
-auf 0.25.4 (`c56df7db`).**
+**Sechs Befunde, eine Beobachtung und eine Funktion · gebaut am 10. September
+2026 auf 0.25.4 (`c56df7db`).**
 
-> **DIESE RUNDE IST NOCH NICHT GESCHLOSSEN.** *Gebaut sind BA 1 bis BA 4 und
-> BA 6. **BA 5 (Befund 7) steht aus** — er wartet auf die Beobachtung im
-> Browser des Betreibers (BA 0), und die ist von außen nicht zu messen.*
+> **FINGERPRINT DIESER RUNDE: `ab3a7f3d`** — gerechnet am fertigen Stand,
+> **vor dem Einspielen**.
+
+> **DIE RUNDE IST GESCHLOSSEN — und der Weg dorthin gehört ins Papier.**
+> *Bis zum Abend des 10. September stand hier: BA 5 steht aus, der Fingerprint
+> steht aus, die Nummer ist nicht gesetzt.* **BA 0 — die Beobachtung im
+> Browser des Betreibers — ist am selben Abend gefahren worden**, und sie hat
+> den Befund nicht bestätigt, sondern **abgeräumt**: die Sekunde war am
+> gemeldeten Gerät nicht mehr da.
 >
-> **FINGERPRINT DIESER RUNDE: steht aus.** *Er wird am fertigen Stand
-> gerechnet, vor dem Einspielen — solange BA 5 fehlt, wäre jede Zahl hier die
-> eines Zwischenstands.*
->
-> **DIE NUMMER IST DESHALB NOCH NICHT GESETZT:** `package.json` trägt weiter
-> 0.25.4, und im CHANGELOG steht noch kein Eintrag. *Beides gehört an das Ende
-> der Runde und nicht in ihre Mitte.*
+> **DAZWISCHEN LAG EIN FEHLER, DER GENANNT GEHÖRT.** *Der Code dieser Runde lag
+> vier Stunden lang auf `main`, ohne dass `package.json` mitgezogen war:* **die
+> Installation zeigte den Potenzialschalter und im Fuß und im Datenbankbereich
+> weiter 0.25.4.** Der Betreiber hat es gemeldet — *„im footer und im bereich
+> datenbank bekomme ich immer noch 0.25.4 angezeigt"* — **und den Fingerprint
+> seiner laufenden Installation gleich mitgeliefert: `a0a4c927`.** *Der stimmte
+> auf das Byte mit `main` überein; die Installation war also richtig. Falsch
+> war die Nummer daran.* **Die Zwischenzeit ist der Preis dafür, dass eine
+> Runde in der Mitte ausgeliefert wurde** — und der Grund, aus dem die Nummer
+> ans Ende gehört, steht damit nicht mehr nur als Regel da, sondern als
+> Erfahrung.
 
 ---
 
@@ -261,20 +271,55 @@ ein kleines `ß`, das aus `SS` zurückkäme, gibt es nicht.**
 
 ---
 
-## BA 5 — Befund 7: **steht aus**
+## BA 5 — Befund 7: gemessen, weggefallen, und **eine Zeile bleibt**
 
-**Er wartet auf BA 0, und BA 0 ist eine Beobachtung im Browser des Betreibers:**
-F12 → Netzwerk-Reiter, **„Cache deaktivieren" AUS**, von einem Eintrag zurück in
-die Übersicht, und bei den Bild-Abrufen ablesen —
+**BA 0 ist gefahren.** Der Betreiber hat drei Mitschnitte aus seinem Browser
+geliefert (Firefox gegen `kriterion.dmrts.de`, 10. September 2026):
 
-| steht dort … | dann |
+| | |
 |---|---|
-| **eine echte Zeit** | der Zwischenspeicher greift nicht — **das wäre der eigentliche Fehler**, und er ist zu suchen |
-| **„(disk cache)" / „(memory cache)"** | die Übertragung ist es nicht — dann bleibt der Neuaufbau, und **(a)** ist die ganze Antwort |
+| **Die fünf Abrufe aus `loadAll()`** | **304**, „Aus Cache", je **226–228 ms** — und sie **starten und enden zusammen**. *Eine Rundreise; übertragen wird nichts. Lokal sind dieselben fünf 28 ms: die 227 ms sind Laufzeit, nicht Rechenzeit.* |
+| **Die Kacheln auf dem Rückweg** | **keine einzige Bildzeile.** *`loading="lazy"` an der Kachel (`public/app.js`) und `Cache-Control: private, max-age=86400` an ihrer Auslieferung (`server.js`) — der Browser fragt gar nicht erst.* Bei kaltem Speicher sehr wohl: **200**, je 30–48 kB und 60–139 ms. |
 
-*Der Auftrag nennt sie ausdrücklich als ersten Bauabschnitt; ohne sie ist die
-Ursache nicht bewiesen, und je nach Antwort ist die Reparatur eine ganz andere.*
-**Von außen ist sie nicht zu messen.**
+> **DAMIT IST DIE ÜBERTRAGUNG ALS URSACHE AUSGESCHLOSSEN** — für den Weg, um
+> den es geht. **Und dann war der Befund selbst weg:** *„also auch auf dem
+> mobil ist das gut."*
+
+**HABEN WIR ETWAS GEÄNDERT? NEIN — und das ist nachgesehen, nicht erinnert.**
+*Verglichen wurde 0.22.1 (`bc175ce`, der Stand des gemeldeten Befundes) mit
+0.25.4, 156 Commits dazwischen:* **`loadAll()` ist zeichengleich**, die
+Kachelzeile unterscheidet sich **nur im Namen der Funktion** (`bildQuelle` →
+`imageSource`, 0.24.1), `maxAge: 86400` steht unverändert. *Die drei Commits,
+die diese Zeilen überhaupt berührt haben, gehören alle zur Umbenennungsrunde.*
+
+> **DER BEFUND WIRD DESHALB BEOBACHTET UND NICHT GEBAUT** — dieselbe Form wie
+> beim angepinnten Block und beim einen abgerissenen Prüflauf von 0.9.1. *Die
+> ganze Messung steht im Auftrag, Befund 7, damit die Suche nicht bei null
+> anfängt, wenn die Sekunde wiederkommt.*
+
+### Was trotzdem gebaut ist — (a), und es sind zwei Zeilen
+
+```js
+if (!app.firstElementChild)
+  app.innerHTML = `… ${tH('list.loading')} …`;
+```
+
+**`renderList()` setzte den Platzhalter OHNE Bedingung und wartete erst danach
+auf `loadAll()`** — der Bildschirm war leer, **bevor überhaupt jemand gefragt
+hatte**. *Das ist unabhängig davon falsch, wie schnell die Antwort kommt, und
+deshalb fällt es nicht mit dem Befund weg.*
+
+**DER PLATZHALTER BLEIBT, WO ES NICHTS ZU LASSEN GIBT.** *Beim ersten Betreten
+steht nichts da, und dann ist „Lädt …" besser als nichts.* **Steht dagegen
+schon eine Ansicht, bleibt sie stehen, bis die neue fertig ist.**
+
+> **DER PREIS IST GENANNT:** wer aus einem Eintrag zurückgeht, sieht für die
+> Dauer der Rundreise weiter den Eintrag statt einer weißen Fläche. *Es macht
+> NICHTS schneller — es hört nur auf, ohne Not zu leeren.*
+
+**(b) und (c) fallen, und (c) ist bewiesen wirkungslos:** *die fünf Abrufe
+laufen **parallel** und kosten zusammen **eine** Rundreise — vier davon
+einzusparen spart null.*
 
 ---
 
@@ -415,14 +460,14 @@ sehen will, fährt `npm test` örtlich.*
 
 ---
 
-## Die Papiere — was noch aussteht
+## Die Papiere
 
-| Datei | Stand |
+| Datei | was |
 |---|---|
-| `Doku/Aenderungsprotokoll_0.26.0.md` | **dieses Papier** |
-| `Doku/Auftrag_0.26.0.md` | **beantwortet und nachgezogen** |
-| `Doku/Fahrplan.md` | der Beipack steht darin; **die Zeile 0.26.0 wird erst durchgestrichen, wenn BA 5 gebaut ist** |
-| `Doku/Projektstand_Kriterion_0_26_0.md` | **steht aus** — `git mv`, Revision 78 |
-| `Doku/Fehler_und_Ideen.md` | **steht aus** — die sechs Zeilen fallen heraus, wenn alle sechs gebaut sind |
-| `CHANGELOG.md` · `package.json` · `package-lock.json` | **steht aus** — die Nummer gehört an das Ende der Runde |
-| `README.md` | **zu entscheiden** — ob der Potenzialmodus dort erklärt gehört |
+| `Doku/Aenderungsprotokoll_0.26.0.md` | **dieses Papier**, mit BA 5 geschlossen |
+| `Doku/Auftrag_0.26.0.md` | **beantwortet und nachgezogen** — *und die sieben Antworten, die ein Merge am Abend verschluckt hatte, sind zurückgeholt; sie standen überdies in einer fünften Spalte, die eine vierspaltige Tafel gar nicht anzeigt* |
+| `Doku/Fahrplan.md` | die Zeile 0.26.0 ist **durchgestrichen**; der Beipack steht darin |
+| `Doku/Projektstand_Kriterion_0_26_0.md` | `git mv`, **Revision 78** |
+| `Doku/Fehler_und_Ideen.md` | **die sechs Zeilen sind heraus** — was gebaut ist, steht dort nicht mehr (Regel 2) |
+| `CHANGELOG.md` · `package.json` · `package-lock.json` | **die Nummer: 0.26.0** |
+| `README.md` | **unangetastet** — der Potenzialmodus ist eine Einstellung im Systembereich und kein Betriebsschritt; die README beschreibt das Einspielen und nicht jede Karte |

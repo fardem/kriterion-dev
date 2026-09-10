@@ -1,6 +1,6 @@
 # Projektstand — Kriterion
 
-**Kompakte Übergabe · Revision 77 · Stand 10. September 2026 · gebaut: Version 0.25.4**
+**Kompakte Übergabe · Revision 78 · Stand 10. September 2026 · gebaut: Version 0.26.0**
 
 Dieses Blatt ist der **einzige Ort, an dem steht, was gebaut ist und was
 bindet.** Es genügt, um in einem frischen Chat weiterzuarbeiten, ohne den alten
@@ -478,7 +478,7 @@ weiterhin offen. Daraus folgt die Stellung von `HINTER_PROXY` (Abschnitt 3).
 
 ## 2. Betriebsstand
 
-**Gebaut ist 0.25.4** — **6358 Prüfungen**, **785 Rückbauten in der Liste**
+**Gebaut ist 0.26.0** — **PRUEFZAHL Prüfungen**, **802 Rückbauten in der Liste**
 (Abschnitt 8). **Am Wirt läuft 0.24.6, eingespielt am 9. September 2026,
 Fingerprint `c4c07393`** *(Abschnitt 8)*.
 
@@ -1523,6 +1523,8 @@ Ursache war **eine Datei zu viel** auf dem Wirt (Stolperstein 158).
 
 | Version | Fingerprint | Prüfungen |
 |---|---|---|
+| **0.26.0** | `ab3a7f3d` *(gerechnet am 10. September 2026 am fertigen Stand — **vor dem Einspielen**, nach derselben Regel. Die Runde fasst `db.js`, `server.js`, `public/app.js`, `public/style.css`, die drei Sprachdateien und `package.json` an.)* | **PRUEFZAHL** |
+| **0.25.4** *(Zwischenstand)* | `a0a4c927` — **vom Betreiber aus der laufenden Installation gemeldet, 10. September 2026.** *Er gehört zu keiner Runde: der Code von 0.26.0 lag schon auf `main`, die Nummer war noch nicht gesetzt. Der Wert stimmte auf das Byte mit `main` überein — die Installation war richtig, die Nummer daran war es nicht.* **Er steht hier, weil ein gemeldeter Fingerprint ohne Zuordnung sonst als Abweichung gelesen wird.* | — |
 | **0.25.4** | `c56df7db` *(gerechnet am 10. September 2026 am gebauten Stand — **vor dem Einspielen**, nach derselben Regel. Die Runde fasst `public/app.js`, die drei Sprachdateien und `package.json` an — alle fünf liegen in der Liste.)* | **6358** |
 | **0.25.3** | `a3c561d7` *(gerechnet am 10. September 2026 am gebauten Stand — **vor dem Einspielen**. Die Runde fasst nur `public/style.css` und `package.json` an.)* | **6348** |
 | **0.25.2** | `d1c126ff` *(gerechnet am 10. September 2026 am gebauten Stand — **vor dem Einspielen**, nach derselben Regel. **Am Wirt noch nicht gesehen.** Die Runde fasst `public/app.js` und `package.json` an — beide liegen in der Liste.)* | **6343** |
