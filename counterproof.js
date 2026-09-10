@@ -297,10 +297,15 @@ const REGRESSIONS = [
     expected: 'Die eigene Adresse in der Karte „Zugang“'
   },
   {
+    /* MITGEGANGEN MIT 0.25.4 (Stolperstein 201): der Zaehlwert heisst jetzt
+       `n` und nicht mehr `minutes` -- nur ueber `n` waehlt
+       `PLURAL.select()` die Form, und ohne ihn stand dort immer die
+       Mehrzahl („noch 1 Minuten"). Die Sache des Rueckbaus ist dieselbe
+       geblieben: die Frist verschwindet von der Seite. */
     nr: '30', name: 'Die Frist steht nicht mehr auf der Einladungsseite',
     file: 'public/app.js',
-    search: "        ${status.minutes ? `<strong>${tH('login.linkValidMinutes', { minutes: status.minutes })}</strong> ${tH('login.thenNeedNew')}` : ''}",
-    replacement: "        ${false ? `<strong>${tH('login.linkValidMinutes', { minutes: stand.minutes })}</strong> ${tH('login.thenNeedNew')}` : ''}",
+    search: "        ${status.minutes ? `<strong>${tH('login.linkValidMinutes', { n: status.minutes })}</strong> ${tH('login.thenNeedNew')}` : ''}",
+    replacement: "        ${false ? `<strong>${tH('login.linkValidMinutes', { n: stand.minutes })}</strong> ${tH('login.thenNeedNew')}` : ''}",
     expected: 'Die Einladungsseite in der Oberflaeche'
   },
   /* ---- Die Selbstanmeldung: die immer gleiche Antwort ---- */
@@ -7663,6 +7668,53 @@ const REGRESSIONS = [
       ".vocabulary-grid .field .input { margin-top: auto; }",
     replacement: ".vocabulary-grid .field { margin-bottom: 10px; }",
     expected: 'Zwei Felder in einer Zeile stehen auf einer Linie — 0.25.3'
+  },
+  {
+    /* ================= 0.25.4 =========================================
+       DAS FREISTEHENDE WOERTCHEN STEHT WIEDER DA, WO EIN VERB HINGEHOERT.
+       Das ist der Befund selbst und nicht seine Umgebung: „değil" allein
+       verneint im Tuerkischen nichts, die Verneinung sitzt IM VERB. Der Satz
+       las sich damit als „Deine Verbindung ist davon nicht betroffen" und
+       sagte in Wahrheit das Gegenteil.
+       ER GREIFT AN EINER SPRACHDATEI UND NICHT AM QUELLTEXT, weil dort der
+       Fehler sass: der Bau von 0.25.4 gibt jeder Sprache einen ganzen Satz
+       und ueberlaesst ihr das hervorgehobene Stueck -- wer dieses Stueck
+       wieder zu einem Woertchen macht, hat den Befund zurueckgebaut, ohne
+       eine Zeile Programm anzufassen. Genau das muss auffallen. */
+    nr: '792', name: 'Das tuerkische Stueck ist wieder ein Woertchen statt eines Verbs',
+    file: 'public/languages/tr.json',
+    search: '"login.linkUnaffectedWord": "etkilenmez",',
+    replacement: '"login.linkUnaffectedWord": "de\u011fil",',
+    expected: 'Ein Satz, den jede Sprache selbst schneidet — 0.25.4'
+  },
+  {
+    /* UND DAS ANFUEHRUNGSZEICHEN BLEIBT WIEDER OFFEN. Der kleinste der drei
+       Befunde und der aelteste: `entry.tagQuote` geht unveraendert in ein
+       `title`, und am Bildschirm stand „Etiket „Werkzeug -- auf, aber nie zu.
+       ER GREIFT AN EINER EINZIGEN DATEI, obwohl alle drei betroffen waren:
+       der Waechter sieht jede Datei einzeln an, und eine offene reicht.
+       Wer den Rueckbau ueberlebt, hat einen Waechter, der nur die Mehrheit
+       fragt. */
+    nr: '793', name: 'Das Anfuehrungszeichen am Tagzeichen bleibt wieder offen',
+    file: 'public/languages/tr.json',
+    search: '"entry.tagQuote": "Etiket \u201e{name}\u201c",',
+    replacement: '"entry.tagQuote": "Etiket \u201e{name}",',
+    expected: 'Ein Satz, den jede Sprache selbst schneidet — 0.25.4'
+  },
+  {
+    /* UND DER ZAEHLWERT REIST WIEDER UNTER EINEM FREMDEN NAMEN. Die Form
+       waehlt `PLURAL.select(values.n)` und NUR ueber `n`. Wer wieder `days`
+       reicht, bekommt `select(undefined)` -- und das ist die Mehrzahl, immer.
+       „in 1 Tagen" stand sieben Runden lang da.
+       DIE DATEI BLEIBT DABEI HEIL, und das ist der Sinn: die zwei Formen
+       stehen weiter drin und sehen richtig aus. Nur waehlt sie niemand mehr.
+       Ein Rueckbau, der die sichtbare Haelfte in Ruhe laesst und die
+       unsichtbare nimmt, prueft den Waechter und nicht das Auge. */
+    nr: '794', name: 'Der Zaehlwert reist wieder unter einem fremden Namen',
+    file: 'public/app.js',
+    search: "tH('card.inDays', { n: log.days })",
+    replacement: "tH('card.inDays', { days: log.days })",
+    expected: 'Ein Satz, den jede Sprache selbst schneidet — 0.25.4'
   }
 ];
 

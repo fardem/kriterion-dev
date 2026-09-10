@@ -439,13 +439,13 @@ wissen will, was gebaut wird, liest `Doku/Fahrplan.md`.*
 | **Das Wartefenster von zwölf Sekunden** | **0.30.0** |
 | **Ein Papier, zwischen zwei Runden ohne Lauf geändert, macht den Zweig rot** | **0.30.0** |
 | **`counterproof.js` verwechselt Abriss und Störung von außen** | **0.30.0** |
-| **Ein echter Teillauf** | **0.32.0** — *er IST die Aufteilung in Module und nicht ein Filter davor* |
+| **Ein echter Teillauf** | **0.34.0** — *er IST die Aufteilung in Module und nicht ein Filter davor.* **Am 8. September stand hier 0.32.0**; die Nummer ist am 10. September mit der Sprachrunde und dem Bruch gerückt — die Runde ist dieselbe geblieben |
 | **Ein Versanddienst über HTTPS statt SMTP** | **abgelehnt** — *der Weg ist nicht das Problem. Was hilft, sind SPF, DKIM und DMARC; ein Weiterleitungsdienst bringt sie mit und spricht SMTP, das die Instanz kann. **0.28.0 erklärt es in der README.*** |
 | **Die Tagwolke füllt den Platz unter „mehr" mit** | **abgelehnt** — *60 px je Zeile gegen den Umbau der ganzen Wolke* |
 | **Ob ein Admin den zweiten Faktor verlangen kann** | **abgelehnt** — die Antwort ist nein |
 | **Vorlagen für Einträge · Tags in Mengen · Druckstylesheet** | **abgelehnt** |
 | **Erwähnungen im Kommentar** | **zurückgestellt mit Bedingung** — *sie braucht eine Entscheidung darüber, wer wen sehen darf, und einen Lesestand je Meldung. Das ist eine eigene Runde mit Schemaanteil, und die müsste vor 0.30.0 liegen* |
-| **Eine Messung im echten Browser** | **zurückgestellt** — *entschieden wird es beim Auftrag von 0.32.0* |
+| **Eine Messung im echten Browser** | **zurückgestellt** — *entschieden wird es beim Auftrag von **0.34.0*** (am 8. September als 0.32.0 notiert, am 10. September mitgerückt) |
 | **Die beiden Konzeptpapiere tragen „Anlage"** | **erledigt am 8. September 2026** |
 | **Zwei Dateisätze tragen die Nummer 0.9.1** | **erledigt am 8. September 2026** — *das CHANGELOG sagt jetzt, welcher welcher ist* |
 
@@ -1004,8 +1004,18 @@ seit 0.25.0 **72** Wege, und jeder einzelne ist betroffen.
 
 ## 22. Die Kachel „Vokabular" trägt auf einer frischen Installation den Rahmen
 
+> **ENTSCHIEDEN AM 10. SEPTEMBER 2026 — ES BLEIBT, WIE ES BESTELLT IST.**
+> *„Punkt 22 und 23 meinst du die roten rahmen? das finktioniert"* — der
+> Betreiber sieht den Rahmen am Vokabular und hält ihn für richtig.
+> **Die eine Zeile unten wird nicht gebaut**, und der Punkt ist damit zu.
+>
+> *Er steht weiter im Wortlaut, als **Herleitung**: dort ist ausgeführt, warum
+> die Frage überhaupt gestellt wurde — und eine beantwortete Frage ohne
+> aufgeschriebene Begründung kommt in einem halben Jahr als neue Frage
+> zurück.* **Dieselbe Form wie bei Punkt 19.**
+
 **Art: Frage an den Betreiber** *(kein Fehler — so ist es bestellt)* ·
-**Einschätzung von Claude: nachfragen, nicht bauen** · **Herkunft: 0.25.0**
+**Einschätzung von Claude war: nachfragen, nicht bauen** · **Herkunft: 0.25.0**
 
 **Die Vorgabe vor der Fragerunde lautete: „Rahmen an ALLEN Kacheln mit
 fehlenden Zellen, auch am Vokabular."** *So ist es gebaut.* **An den drei
@@ -1034,6 +1044,16 @@ bekommt eine andere Bedingung. **Punkt und Zahl bleiben davon unberührt.**
 ---
 
 ## 23. Die drei mitgelieferten Kriterien stehen auf Deutsch
+
+> **DIESER PUNKT IST NICHT DER ROTE RAHMEN — und er bleibt offen.** Der
+> Betreiber hat am 10. September 2026 nach *„Punkt 22 und 23"* zusammen
+> gefragt und beide für denselben Befund gehalten. **Es sind zwei
+> verschiedene:** Punkt 22 fragt, ob der Rahmen am Vokabular überhaupt
+> stehen soll — *das ist entschieden, er bleibt.* **Hier geht es um den
+> BESTAND und nicht um die Anzeige:** drei mitgelieferte Kriterien tragen
+> `language = 'de'`, obwohl die Auslieferungssprache Englisch ist. *Die Anzeige
+> ist wahr — der Bestand ist es, der nicht stimmt.* **Es ist eine kleine
+> Runde und keine Zeile**, und deshalb steht der Punkt hier weiter.
 
 **Art: Fehler** *(klein, sichtbar, seit je da)* · **Einschätzung von Claude:
 klein und lohnend** · **Herkunft: 0.25.0**
@@ -1157,23 +1177,34 @@ auch.** *In einer Sprache mit anderer Wortstellung und mit Suffixen statt
 Wörtern geht es nicht auf* — und der türkische Verneinungssatz ist der Beleg,
 dass es schon schiefgegangen ist.
 
-### Was zu bauen wäre
+### Was davon gebaut ist — und was offen bleibt
 
-**Drei Stufen, und sie gehören nicht in dieselbe Runde:**
+> **DIE HARTEN FEHLER SIND WEG, GEBAUT AM 10. SEPTEMBER 2026 ALS 0.25.4.**
+> *„warum wurde das nicht einfach umgesetzt ‚Der türkische
+> Verneinungssatz'?"* — die Frage des Betreibers war berechtigt: **ein Satz,
+> der das Gegenteil dessen sagt, was dastehen soll, ist ein Fehler und keine
+> Geschmacksfrage.** Er hatte hier nichts zu suchen. *Was daraus geworden ist,
+> steht im Änderungsprotokoll 0.25.4 und im Projektstand — und nach Regel 2
+> nicht mehr hier.*
+>
+> **Mitgegangen sind die beiden anderen harten Fehler derselben Gruppe:** das
+> nie geschlossene Anführungszeichen an `entry.tagQuote` und die zwei
+> Zählsätze ohne Einzahlform.
 
-* **Die harten Fehler** *(Gruppe 2)* — ein PATCH. Das schließende
-  Anführungszeichen, zwei Mehrzahlformen, die Anführungszeichen in beiden
-  Dateien. **Kein Wortlaut, keine Stimme, keine Metapher.**
-* **Der türkische Verneinungssatz** — er braucht einen Schnitt im Quelltext,
-  nicht in der Datei, und damit einen eigenen kleinen Bauabschnitt.
-* **Die Hausstimme** *(Gruppe 3)* und die zersägten Sätze *(Gruppe 4)* — eine
-  eigene Runde mit **Fragetafel**. Rund fünfzehn Entscheidungen, die nur der
-  Betreiber treffen kann, und jede davon ändert alle drei Dateien zugleich.
+**Offen bleibt die eine Stufe, die dem Betreiber gehört:** **die Hausstimme**
+*(Gruppe 3)* und **die zersägten Sätze** *(Gruppe 4)* — eine eigene Runde mit
+**Fragetafel**. *Rund fünfzehn Entscheidungen, die nur der Betreiber treffen
+kann, und jede davon ändert alle drei Dateien zugleich.* **Die zwei falschen
+Diagnosen** *(Gruppe 1)* bleiben ebenfalls aufgeschrieben — nicht als Arbeit,
+sondern damit derselbe Bericht nicht ein zweites Mal geglaubt wird.
 
 > **SIE HAT EINE NUMMER: 0.31.0 — „Die Sprachen werden gegengelesen"**, am
 > 10. September 2026 in den Fahrplan gesetzt. **Unmittelbar vor dem Bruch**,
 > weil sie die letzte Runde ist, die den Wortlaut der Oberfläche und den
 > Satzbau in `public/app.js` frei umbauen darf — *jede Runde davor legt neue
 > Sätze an, und jeder davon nach dem Muster, das diese abschafft.* **Der Bruch
-> rückt dafür ein drittes Mal**, auf 0.32.0; der Betreiber hat es entschieden:
-> *„bruch ist leider zerbrochen"*. **Die reservierte 0.40.0 bleibt unangetastet.**
+> rückt dafür ein drittes Mal, auf 0.33.0** — der Betreiber hat erst die
+> Runde entschieden (*„bruch ist leider zerbrochen"*) und dann die Zahl
+> (*„Bruch mal auf die 0.33.0 legen.. ist auch ne schöne zahl"*); **0.32.0
+> bleibt frei, als letzter Platz vor dem Bruch.** *Die reservierte 0.40.0 bleibt
+> unangetastet.*

@@ -80,6 +80,32 @@ function tH(key, values = {}) {
   return fillSentence(languageSentence(key, values), values, true);
 }
 
+/* EIN SATZ MIT EINEM HERVORGEHOBENEN STUECK -- 0.25.4.
+
+   BIS 0.25.3 WURDE SO EIN SATZ IN DREI SCHLUESSEL ZERSAEGT und im Aufruf
+   wieder zusammengesetzt: „Dein Link ist davon" + <strong>nicht</strong> +
+   „betroffen -- er gilt weiter." Im Deutschen geht das auf, im Englischen
+   auch.
+
+   IM TUERKISCHEN NICHT. Dort verneint ein SUFFIX IM VERB und kein eigenes
+   Woertchen davor; aus den drei Stuecken wurde „Bağlantın bundan değil
+   etkilendi" -- keine Verneinung, sondern Kauderwelsch. DER SATZ SAGTE DAS
+   GEGENTEIL dessen, was dastehen sollte, und stand so seit 0.24.3 im
+   Programm.
+
+   JETZT TRAEGT JEDE SPRACHE EINEN GANZEN SATZ mit einem Platzhalter, und sie
+   entscheidet selbst, WO das hervorgehobene Stueck sitzt und WAS es ist: im
+   Deutschen das Woertchen „nicht", im Tuerkischen das ganze Verb
+   „etkilenmez".
+
+   DER SATZ WIRD NICHT MASKIERT, DAS EINGESETZTE STUECK SCHON -- dieselbe
+   Teilung wie in tH() darueber. Der Umweg ueber das Steuerzeichen sorgt
+   dafuer, dass die Auszeichnung NIE durch einen maskierenden Weg laeuft: wer
+   hier einen Wert vom Benutzer einsetzen wollte, muesste diese Zeile aendern,
+   und dann faellt es auf. */
+const tMark = (key, wordKey) => tH(key, { word: '\u0001' })
+  .replace('\u0001', `<strong>${tH(wordKey)}</strong>`);
+
 /* ZWEI FORMEN, UND DIE ZAHL WAEHLT -- ueber Intl.PluralRules und nicht ueber
    `n === 1`. Der Vergleich waere die deutsche Regel, festgeschrieben im Code;
    die Regel gehoert aber der Sprache (Konzept 4.3).
@@ -1100,7 +1126,7 @@ async function showConfirm(key) {
       ${good ? `<p class="sub" id="confirm-ok"><strong>${tH('login.confirmed')}</strong>
         ${tH('login.requestPending')}</p>`
         : `<div class="login-error">${esc(message)}</div>
-        ${again ? `<p class="sub">${tH('login.yourLinkAffected')} <strong>${tH('login.not')}</strong> ${tH('login.stillValid')}</p><button class="btn btn-accent" id="confirm-again">${tH('login.tryAgain')}</button>`
+        ${again ? `<p class="sub">${tMark('login.linkUnaffected', 'login.linkUnaffectedWord')}</p><button class="btn btn-accent" id="confirm-again">${tH('login.tryAgain')}</button>`
           : ''}`}
       <p class="sub" style="margin:14px 0 0"><a href="#" id="confirm-back">${tH('login.backToSignIn')}</a></p>
     </div></div>`;
@@ -1172,7 +1198,7 @@ async function showInvite(key) {
     app.innerHTML = `<div class="login-screen"><div class="login-card">
       ${BRAND_LINE()}
       <div class="login-error">${esc(message)}</div>
-      <p class="sub">${tH('login.yourLinkAffected')} <strong>${tH('login.not')}</strong> ${tH('login.stillValidRetry')}</p>
+      <p class="sub">${tMark('login.linkUnaffectedRetry', 'login.linkUnaffectedWord')}</p>
       <button class="btn btn-accent" id="eb-again">${tH('login.tryAgain')}</button>
     </div></div>`;
     document.getElementById('eb-again').onclick = () => showInvite(key);
@@ -1194,7 +1220,7 @@ async function showInvite(key) {
             die Mail im Postfach lag. Wer sie hier nicht liest, erfährt sie
             erst an der Absage, und dann ist es zu spät. */''}
       <p class="sub" style="margin:0 0 4px">${tH('login.minChars', { min: min })}
-        ${status.minutes ? `<strong>${tH('login.linkValidMinutes', { minutes: status.minutes })}</strong> ${tH('login.thenNeedNew')}` : ''}
+        ${status.minutes ? `<strong>${tH('login.linkValidMinutes', { n: status.minutes })}</strong> ${tH('login.thenNeedNew')}` : ''}
         <br>${tH('login.logoutHint')}</p>
       <button class="btn btn-accent" id="eb">${tH('dialog.setPassword')}</button>
     </div></div>`;
@@ -10564,7 +10590,7 @@ function cardLog(fetched) {
   return `<div class="sys-card wide">
         <h3>${tH('card.securityLog')}</h3>
         <p class="desc">${tH('card.logHint')} <strong>${tH('card.notIncluded')}</strong> ${tH('card.logContentHint')}</p>
-        <p class="desc">${tH('card.rowsSortedBy')} <strong>${tH('card.inDays', { days: log.days })}</strong> ${tH('card.autoDeleteHint')}</p>
+        <p class="desc">${tH('card.rowsSortedBy')} <strong>${tH('card.inDays', { n: log.days })}</strong> ${tH('card.autoDeleteHint')}</p>
         ${/* DIE FILTERLEISTE. Sie steht VOR der Liste, wie jede Filterreihe in
              dieser Instanz -- man waehlt, bevor man liest. Gezeichnet wird sie
              aus einer geschlossenen Liste; die Auswahl geht an den Server,
