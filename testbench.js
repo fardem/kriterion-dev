@@ -17312,9 +17312,18 @@ const shareMain = (purpose, target = null) =>
        mit der Spalte `language` falsch).
        DIE OBERSTE ZAHL STEHT DAMIT AUF 1224 (1212 + 14 - 2), und VIER der
        vierzehn sind Mehrzahlformen: 34 Formen werden 38, flach gezaehlt 68 + 8
-       = 76. Flach also 1224 + 76 = 1300. */
-    check('Und die Zahlen stehen: 1300 Schluessel, 76 Mehrzahlformen, 14 Vokabelnamen',
-      languageKeys.length === 1300 && pluralKeys.length === 76 && vocabularyKeys.length === 14,
+       = 76. Flach also 1224 + 76 = 1300.
+       UND MIT 0.25.4 AUF 1223 UND 1303: vier Schluessel des zersaegten
+       Verneinungssatzes fallen, drei kommen (1224 - 4 + 3 = 1223), und ZWEI
+       Saetze werden zu Mehrzahlpaaren -- `card.inDays` und
+       `login.linkValidMinutes`. Beide reichten bis dahin einen Zaehlwert, der
+       gar nicht zaehlte: die Form waehlt `PLURAL.select(values.n)` und NUR
+       ueber `n`; mit `{days}` und `{minutes}` kam immer `select(undefined)`
+       heraus, und das ist die MEHRZAHL. „in 1 Tagen" stand deshalb sieben
+       Runden lang da. 38 Objekte werden 40, flach 76 + 4 = 80; flach also
+       1223 + 80 = 1303. */
+    check('Und die Zahlen stehen: 1303 Schluessel, 80 Mehrzahlformen, 14 Vokabelnamen',
+      languageKeys.length === 1303 && pluralKeys.length === 80 && vocabularyKeys.length === 14,
       `${languageKeys.length} / ${pluralKeys.length} / ${vocabularyKeys.length}`);
 
     /* ---- 3. Die Adressprobe ---------------------------------------------
@@ -17470,8 +17479,16 @@ const shareMain = (purpose, target = null) =>
       'card.languageComplete', 'card.languageMissing',
       'card.namesUnknown', 'card.namesUnknownHint', 'card.namesAssign', 'card.namesAssigned',
       'card.languageDefaultNow', 'card.wordsMissing'];
+    /* UND DREI MIT 0.25.4 -- der Verneinungssatz, den 0.24.3 in drei Stuecke
+       zersaegt hatte. Jede Sprache traegt jetzt EINEN ganzen Satz und das
+       hervorgehobene Stueck als eigenen Schluessel, und sie entscheidet
+       selbst, WO es sitzt und WAS es ist: im Deutschen das Woertchen „nicht",
+       im Tuerkischen das ganze Verb „etkilenmez". */
+    const WORDING_NEW_0254 = ['login.linkUnaffected', 'login.linkUnaffectedRetry',
+      'login.linkUnaffectedWord'];
     const WORDING_NEW = [...WORDING_NEW_0243, ...WORDING_NEW_0244,
-      ...WORDING_NEW_0245, ...WORDING_NEW_0246, ...WORDING_NEW_0250];
+      ...WORDING_NEW_0245, ...WORDING_NEW_0246, ...WORDING_NEW_0250,
+      ...WORDING_NEW_0254];
     const wordingMissing = WORDING_NEW.filter(k => LANGUAGE_FILE[k] === undefined);
     check('Die neuen Schluessel dieser Runde stehen wirklich in der Datei',
       wordingMissing.length === 0, wordingMissing.join(' ') || 'alle da');
@@ -17491,6 +17508,24 @@ const shareMain = (purpose, target = null) =>
     }
     check('Und die zwei Schluessel, die 0.25.0 wegnimmt, stehen in keiner Datei mehr',
       goneStill.length === 0, goneStill.join(' ') || 'beide weg');
+    /* UND VIER FALLEN MIT 0.25.4 -- der zersaegte Verneinungssatz.
+       „Dein Link ist davon" + <strong>nicht</strong> + „betroffen -- er gilt
+       weiter." geht im Deutschen auf und im Englischen auch. IM TUERKISCHEN
+       NICHT: dort verneint ein SUFFIX IM VERB, und aus den drei Stuecken wurde
+       „Bağlantın bundan değil etkilendi" -- keine Verneinung, sondern
+       Kauderwelsch. Der Satz sagte das GEGENTEIL dessen, was dastehen sollte.
+       SIE STEHEN IN KEINER SPRACHDATEI MEHR -- alle drei werden gefragt, wie
+       bei den zweien aus 0.25.0. */
+    const WORDING_GONE_0254 = ['login.not', 'login.yourLinkAffected',
+      'login.stillValid', 'login.stillValidRetry'];
+    const goneStill4 = [];
+    for (const code of ['de', 'en', 'tr']) {
+      const file = JSON.parse(fs.readFileSync(
+        path.join(__dirname, 'public', 'languages', `${code}.json`), 'utf8'));
+      for (const k of WORDING_GONE_0254) if (file[k] !== undefined) goneStill4.push(`${code}/${k}`);
+    }
+    check('Und die vier Schluessel, die 0.25.4 wegnimmt, stehen in keiner Datei mehr',
+      goneStill4.length === 0, goneStill4.join(' ') || 'alle vier weg');
     /* UND EINER IST WEGGEFALLEN -- `card.restoreIcon`, 0.24.4 (B6 A). Ein
        Zeichen ist kein Wort und gehoert nicht in einen Satz, den jemand
        uebersetzt; der Knopf setzt es selbst und schreibt „Wiederherstellen"
@@ -17501,6 +17536,13 @@ const shareMain = (purpose, target = null) =>
        darunter einen Satz ab, den es noch gibt, und die Rechnung ginge
        zufaellig auf. */
     const WORDING_GONE_0244 = ['{iconWiederher} Wiederherstellen'];
+    /* UND DIE VIER STUECKE DES VERNEINUNGSSATZES -- 0.25.4, aus demselben
+       Grund wie oben: der Stand von damals kennt sie, der von heute nicht
+       mehr. Ihr WORTLAUT steht hier und nicht ihr Schluessel; verglichen
+       werden Saetze. */
+    const WORDING_GONE_TEXT_0254 = ['nicht', 'Dein Link ist davon',
+      'betroffen — er gilt\n          weiter.',
+      'betroffen — er gilt weiter.\n        Versuch es gleich noch einmal.'];
     check('Und der Schluessel, den diese Runde wegnimmt, steht wirklich nicht mehr da',
       LANGUAGE_FILE['card.restoreIcon'] === undefined,
       JSON.stringify(LANGUAGE_FILE['card.restoreIcon']));
@@ -17537,15 +17579,19 @@ const shareMain = (purpose, target = null) =>
        aus dem von heute -- dort steht er ja gerade nicht mehr. Was danach
        verglichen wird, ist der Stand von 0681d42 OHNE ihn gegen den Stand von
        heute ohne die dreizehn plus acht neuen. */
-    const wordingThen = WORDING_GONE_0244
+    const wordingThen = [...WORDING_GONE_0244, ...WORDING_GONE_TEXT_0254]
       .reduce((list, sentence) => withoutOne(list, sentence), [...wordingFile.values]).sort();
     const wordingNow = valuesOf(wordingOld).map(asBefore).sort();
     const onlyThen = wordingThen.filter(x => !wordingNow.includes(x));
     const onlyNow = wordingNow.filter(x => !wordingThen.includes(x));
-    check('Wortlautprobe: gleich viele Saetze wie bei der Abnahme',
-      wordingThen.length === wordingNow.length && wordingNow.length === 1224,
+    /* SEIT 0.25.4 SIND ES ZWEI MEHR, UND DAS IST BENANNT: `card.inDays` und
+       `login.linkValidMinutes` sind zu Mehrzahlpaaren geworden, und ein Paar
+       zaehlt flach zweimal. Aus zwei Saetzen werden vier -- alles andere ist
+       Satz fuer Satz dasselbe. */
+    check('Wortlautprobe: zwei Saetze mehr als bei der Abnahme, und beide sind Mehrzahlpaare',
+      wordingNow.length === wordingThen.length + 2 && wordingNow.length === 1222,
       `${wordingThen.length} damals, ${wordingNow.length} heute (ohne die ` +
-      `${WORDING_NEW.length} neuen und den einen weggenommenen)`);
+      `${WORDING_NEW.length} neuen und die fuenf weggenommenen)`);
     /* ZWEI SAETZE SIND ANDERE, UND BEIDE SIND BENANNT.
        `server.backupDirNotSet` NENNT die Umgebungsvariable, und die heisst
        seit 0.24.1 anders -- der Satz musste mitziehen, weil er sonst auf etwas
@@ -17557,19 +17603,37 @@ const shareMain = (purpose, target = null) =>
        aendert sich kein Wort" -- er steht hier trotzdem, weil er in derselben
        Datei liegt und sonst stillschweigend durchginge. */
     const WORDING_CHANGED_0243 = ['server.backupDirNotSet', 'card.partQuery'];
-    check('Und genau zwei Saetze sind andere — BACKUP_DIR und die Teilabfrage',
-      onlyThen.length === 2 && onlyNow.length === 2 &&
+    /* UND DREI MIT 0.25.4, jeder mit seinem Grund:
+         `entry.tagQuote`        oeffnete ein Anfuehrungszeichen und schloss es
+                                 nie -- am Bildschirm stand „Tag „Werkzeug".
+                                 Der Wert geht unveraendert in ein `title`.
+         `card.inDays`           bekommt die Mehrzahlform, die ihm gefehlt hat,
+         `login.linkValidMinutes`  und den Zaehlwert, der sie ueberhaupt erst
+                                 waehlen kann (`{n}` statt `{days}`/`{minutes}`).
+       DIE BEIDEN MEHRZAHLPAARE STEHEN MIT ZWEI WERTEN IN `onlyNow` -- deshalb
+       sind es dort sieben und hier drueben fuenf. */
+    const WORDING_CHANGED_0254 = ['entry.tagQuote'];
+    const CHANGED_PLURAL_0254 = ['card.inDays', 'login.linkValidMinutes'];
+    const pluralValues = CHANGED_PLURAL_0254
+      .flatMap(k => Object.values(LANGUAGE_FILE[k])).map(asBefore);
+    check('Und genau fuenf Saetze sind andere — BACKUP_DIR, die Teilabfrage und die drei aus 0.25.4',
+      onlyThen.length === 5 && onlyNow.length === 7 &&
       WORDING_CHANGED_0243.every(k => onlyNow.includes(asBefore(LANGUAGE_FILE[k]))) &&
+      WORDING_CHANGED_0254.every(k => onlyNow.includes(asBefore(LANGUAGE_FILE[k]))) &&
+      pluralValues.every(v => onlyNow.includes(v)) &&
       onlyThen.some(x => x.includes('SICHERUNG_DIR')) &&
-      onlyThen.some(x => x.includes('&von=')),
-      `${onlyThen.length} damals / ${onlyNow.length} heute: ${JSON.stringify(onlyNow).slice(0, 160)}`);
+      onlyThen.some(x => x.includes('&von=')) &&
+      onlyThen.includes('Tag „{name}') &&
+      onlyThen.includes('{tage} Tagen') &&
+      onlyThen.includes('Der Link gilt noch {minuten} Minuten'),
+      `${onlyThen.length} damals / ${onlyNow.length} heute: ${JSON.stringify(onlyNow).slice(0, 200)}`);
     /* UND SONST KEIN ZEICHEN. Die eine Ausnahme wird aus BEIDEN Listen
        genommen, und was bleibt, muss Satz fuer Satz dasselbe sein -- nicht
        „ungefaehr gleich viele", sondern derselbe Wortlaut. */
     const restThen = onlyThen.reduce(withoutOne, wordingThen);
     const restNow = onlyNow.reduce(withoutOne, wordingNow);
     check('Und sonst kein Zeichen — Satz fuer Satz dieselbe Oberflaeche',
-      equal(restThen, restNow) && restNow.length === 1222,
+      equal(restThen, restNow) && restNow.length === 1215,
       `${restThen.filter((x, i) => x !== restNow[i]).length} abweichende von ${restNow.length}`);
 
     /* ---- 6. Die Kuerzeprobe ---------------------------------------------
@@ -24962,8 +25026,15 @@ const shareMain = (purpose, target = null) =>
      782 SEIT 0.25.3: einer (791) fuer den Befund am Vokabelraster -- er nimmt
      beide Zeilen der Reparatur auf einmal, weil sie EINE Zusage sind: ohne die
      Spalte gibt es keine Unterkante, und ohne die Unterkante nuetzt die Spalte
-     nichts. */
-  check('Es sind genau 782 Rueckbauten', gpList.length === 782, `${gpList.length}`);
+     nichts.
+     785 SEIT 0.25.4: drei neue (792 bis 794) fuer die drei harten Sprachfehler
+     -- das tuerkische Stueck wieder ein Woertchen statt eines Verbs, das
+     Anfuehrungszeichen am Tagzeichen wieder offen, und der Zaehlwert wieder
+     unter einem fremden Namen gereicht. ZWEI VON DREI GREIFEN AN EINER
+     SPRACHDATEI und nicht am Quelltext, und das ist hier richtig: dort sass
+     der Fehler. Ein Rueckbau, der nur Programmzeilen kennt, kann einen
+     Sprachfehler nicht stellen. */
+  check('Es sind genau 785 Rueckbauten', gpList.length === 785, `${gpList.length}`);
   const gpTwice = gpList.map(r => r.nr).filter((n, i, a) => a.indexOf(n) !== i);
   check('Und keine Nummer steht zweimal', gpTwice.length === 0, gpTwice.join(' '));
   /* JEDER GREIFT: der Suchtext kommt in seiner Datei GENAU EINMAL vor. Keinmal
@@ -30125,6 +30196,122 @@ async function checkUi() {
          Unterkante zum Andruecken gibt es gar nicht. */
       check('Und die allgemeine Feldregel bleibt unangetastet',
         !!vzAllgemein && !/display:\s*flex/.test(vzAllgemein), String(vzAllgemein));
+    }
+
+    /* ================= Ein Satz, den jede Sprache selbst schneidet — 0.25.4 =
+       DER STAERKSTE FUND DER SPRACHDURCHSICHT, und er kam nicht aus den
+       Berichten, sondern aus der Gegenpruefung: `login.yourLinkAffected` +
+       <strong>`login.not`</strong> + `login.stillValid` ergab im Deutschen
+       „Dein Link ist davon NICHT betroffen -- er gilt weiter." und im
+       Englischen dasselbe. IM TUERKISCHEN NICHT: dort verneint ein SUFFIX IM
+       VERB, und aus den drei Stuecken wurde „Bağlantın bundan değil
+       etkilendi" -- keine Verneinung, sondern Kauderwelsch. **Der Satz sagte
+       das Gegenteil dessen, was dastehen sollte**, und stand so seit 0.24.3
+       im Programm.
+
+       JETZT TRAEGT JEDE SPRACHE EINEN GANZEN SATZ mit einem Platzhalter, und
+       sie entscheidet selbst, wo das hervorgehobene Stueck sitzt und WAS es
+       ist -- im Deutschen ein Woertchen, im Tuerkischen ein Verb. */
+    group('Ein Satz, den jede Sprache selbst schneidet — 0.25.4');
+    {
+      const vsDateien = {};
+      for (const code of ['de', 'en', 'tr'])
+        vsDateien[code] = JSON.parse(fs.readFileSync(
+          path.join(__dirname, 'public', 'languages', `${code}.json`), 'utf8'));
+      const vsSaetze = ['login.linkUnaffected', 'login.linkUnaffectedRetry'];
+      /* JEDER SATZ IST EINER, und er traegt genau EINEN Platzhalter. Zwei
+         waeren wieder eine Zusammensetzung, keiner waere keine Hervorhebung. */
+      const vsFalsch = [];
+      for (const [code, datei] of Object.entries(vsDateien))
+        for (const k of vsSaetze) {
+          const wert = datei[k];
+          const platz = (String(wert).match(/\{\w+\}/g) || []);
+          if (typeof wert !== 'string' || platz.length !== 1 || platz[0] !== '{word}')
+            vsFalsch.push(`${code}/${k}: ${JSON.stringify(wert)}`);
+        }
+      check('Jede Sprache trägt EINEN Satz mit genau einem hervorgehobenen Stück',
+        vsFalsch.length === 0, vsFalsch.join(' · ') || 'alle sechs');
+      /* UND DAS STUECK STEHT DA UND IST NICHT LEER. Ein leeres Stueck waere
+         eine Hervorhebung um nichts. */
+      const vsLeer = Object.entries(vsDateien)
+        .filter(([, d]) => !d['login.linkUnaffectedWord']).map(([c]) => c);
+      check('Und das hervorgehobene Stück steht in jeder Sprache da',
+        vsLeer.length === 0, vsLeer.join(' ') || 'alle drei');
+      /* UND IM TUERKISCHEN IST ES DAS VERB. Das ist der ganze Befund in einer
+         Zeile: „değil" allein ist keine Verneinung, „etkilenmez" ist eine.
+         Ohne diese Zusage koennte jemand den Satz wieder um ein freistehendes
+         Woertchen herum bauen, und niemand saehe es. */
+      const vsTr = vsDateien.tr;
+      check('Und im Türkischen ist es das VERB — nicht ein Wörtchen davor',
+        vsTr['login.linkUnaffectedWord'] === 'etkilenmez' &&
+        !/\bdeğil\b/.test(vsTr['login.linkUnaffected']) &&
+        !/\bdeğil\b/.test(vsTr['login.linkUnaffectedRetry']),
+        `${JSON.stringify(vsTr['login.linkUnaffectedWord'])} · ${JSON.stringify(vsTr['login.linkUnaffected'])}`);
+      /* UND DIE ALTE ZUSAMMENSETZUNG GIBT ES IM QUELLTEXT NICHT MEHR. Die
+         Schluessel sind weg (das steht weiter oben); hier geht es um den
+         RUF, der sie zusammensetzte. */
+      const vsQuelle = fs.readFileSync(path.join(__dirname, 'public', 'app.js'), 'utf8');
+      /* AN DER WORTGRENZE GESUCHT UND NICHT IRGENDWO: `weightMark(` traegt
+         die Zeichenfolge „tMark(" mitten im Namen, und der erste Entwurf
+         zaehlte die beiden Gewichtsstellen mit -- vier statt zwei. Eine Zahl,
+         die von einer fremden Funktion mit abhaengt, sagt nichts ueber die
+         eigene. */
+      const vsRufe = (vsQuelle.match(/\btMark\(/g) || []).length;
+      check('Und der Ruf, der drei Stücke zusammensetzte, ist weg',
+        !/login\.yourLinkAffected|login\.not'/.test(vsQuelle) && vsRufe === 2,
+        `tMark-Stellen: ${vsRufe}`);
+
+      /* ---- DAS ANFUEHRUNGSZEICHEN, DAS NIE GESCHLOSSEN WURDE ------------
+         `entry.tagQuote` geht unveraendert in ein `title`; am Bildschirm
+         stand „Tag „Werkzeug" -- in ALLEN DREI Dateien. */
+      const vsOffen = Object.entries(vsDateien).filter(([, d]) => {
+        const v = String(d['entry.tagQuote'] || '');
+        return (v.match(/[„“”]/g) || []).length !== 2;
+      }).map(([c, d]) => `${c}: ${JSON.stringify(d['entry.tagQuote'])}`);
+      check('Das Anführungszeichen am Tagzeichen wird in jeder Sprache geschlossen',
+        vsOffen.length === 0, vsOffen.join(' · ') || 'alle drei geschlossen');
+
+      /* ---- DIE ZWEI MEHRZAHLFORMEN, DIE NIE EINE WAREN ------------------
+         Die Form waehlt `PLURAL.select(values.n)` und NUR ueber `n`. Beide
+         Saetze reichten `{days}` beziehungsweise `{minutes}` -- damit kam
+         immer `select(undefined)` heraus, und das ist die MEHRZAHL.
+         „in 1 Tagen" stand sieben Runden lang da. */
+      const vsZaehl = ['card.inDays', 'login.linkValidMinutes'];
+      const vsOhneN = [];
+      for (const [code, datei] of Object.entries(vsDateien))
+        for (const k of vsZaehl) {
+          const wert = datei[k];
+          if (!wert || typeof wert !== 'object' || wert.one === undefined || wert.other === undefined)
+            { vsOhneN.push(`${code}/${k}: keine zwei Formen`); continue; }
+          if (!/\{n\}/.test(wert.one) || !/\{n\}/.test(wert.other))
+            vsOhneN.push(`${code}/${k}: kein {n}`);
+        }
+      check('Die zwei Zählsätze tragen zwei Formen — und den Zählwert, der sie wählt',
+        vsOhneN.length === 0, vsOhneN.join(' · ') || 'beide in allen drei');
+      /* UND IM DEUTSCHEN SIND ES WIRKLICH ZWEI VERSCHIEDENE. Ein Paar mit
+         zweimal demselben Wort waere im Deutschen ein Fehler -- im
+         Tuerkischen ist es richtig (TR-S4, Punkt 19), und genau deshalb steht
+         hier `de` und nicht „alle drei". */
+      check('Und im Deutschen unterscheiden sich die beiden Formen wirklich',
+        vsZaehl.every(k => vsDateien.de[k].one !== vsDateien.de[k].other),
+        vsZaehl.map(k => `${k}: ${JSON.stringify(vsDateien.de[k])}`).join(' · '));
+      /* UND IM TUERKISCHEN SIND SIE GLEICH, und das ist keine Nachlaessigkeit,
+         sondern die Entscheidung des Betreibers vom 8. September 2026: nach
+         einer Zahl bleibt das Substantiv im Singular. */
+      check('Und im Türkischen sind sie gleich — nach einer Zahl bleibt der Singular',
+        vsZaehl.every(k => vsDateien.tr[k].one === vsDateien.tr[k].other),
+        vsZaehl.map(k => `${k}: ${JSON.stringify(vsDateien.tr[k])}`).join(' · '));
+      /* UND DIE ANDERE HAELFTE DERSELBEN REPARATUR: DER ZAEHLWERT WIRD
+         GEREICHT. Zwei Formen in der Datei nuetzen nichts, wenn die Stelle
+         weiter `{days}` reicht -- `PLURAL.select(values.n)` bekaeme wieder
+         `undefined` und waehlte wieder die Mehrzahl. Die Zusage steht HIER
+         und nicht nur beim allgemeinen Platzhalterwaechter: der Befund ist
+         diese Runde, und wer ihn zurueckbaut, soll unter seinem Namen
+         auffallen und nicht unter einem fremden. */
+      const vsGereicht = (vsQuelle.match(
+        /tH\('(?:card\.inDays|login\.linkValidMinutes)',\s*\{\s*n:/g) || []).length;
+      check('Und beide Stellen reichen den Zählwert unter dem Namen n',
+        vsGereicht === 2, `${vsGereicht} von 2`);
     }
   }
 
@@ -46543,7 +46730,14 @@ async function checkUi() {
        spanne, was)` bekommt den Namen gereicht und baut die Werte selbst.
        Sie stehen NAMENTLICH hier und nicht als Regel: wer einen dritten so
        baut, faellt auf. */
-    const OVER_HELPER = ['server.ruleKeep', 'server.ruleDays'];
+    /* UND ZWEI REISEN SEIT 0.25.4 UEBER `tMark()` -- der Verneinungssatz. Sein
+       `{word}` wird nicht als Wert gereicht, sondern gegen ein Steuerzeichen
+       getauscht und danach mit `<strong>` umschlossen; genau so laeuft die
+       Auszeichnung NIE durch einen maskierenden Weg. Fuer diesen Waechter
+       sieht das aus wie ein Platzhalter, den niemand bedient -- er steht
+       deshalb NAMENTLICH hier, wie die zwei darueber. */
+    const OVER_HELPER = ['server.ruleKeep', 'server.ruleDays',
+      'login.linkUnaffected', 'login.linkUnaffectedRetry'];
     const unserved = [];
     for (const k of deKey) {
       if (k === '_locale' || LETTERS.includes(k) || OVER_HELPER.includes(k)) continue;
@@ -46555,7 +46749,7 @@ async function checkUi() {
       phError.length === 0, phError.slice(0, 10).join(' · ') || 'gleich');
     check('Und jeder Platzhalter wird gereicht oder ist ein Vokabelwort',
       unserved.length === 0, unserved.slice(0, 10).join(' · '));
-    check('Und die zwei ueber einen Helfer gereichten stehen namentlich da',
+    check('Und die vier ueber einen Helfer gereichten stehen namentlich da',
       OVER_HELPER.every(k => spContent.de[k] !== undefined
         && placeholderFrom(spContent.de[k]).size > 0), OVER_HELPER.join(' · '));
     check('Und es sind wirklich vierzehn Vokabelwoerter',

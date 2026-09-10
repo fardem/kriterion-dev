@@ -29,6 +29,13 @@ bleiben in der Form ihrer Zeit.*
 
 *Hier wird mitgeschrieben, während gebaut wird.*
 
+## [0.25.4] - 2026-09-10
+
+### Behoben
+- **Auf Türkisch sagte ein Satz das Gegenteil.** *„Dein Link ist davon **nicht** betroffen"* war in drei Schlüssel zerlegt und wurde erst beim Anzeigen zusammengesetzt. Türkisch verneint mit einer Endung im Verb und nicht mit einem eigenen Wort davor — dort stand Kauderwelsch. **Jede Sprache trägt jetzt einen ganzen Satz und entscheidet selbst, welches Stück hervorgehoben wird.**
+- **Das Anführungszeichen am Tag-Zeichen wurde nie geschlossen** — in allen drei Sprachen.
+- **„in 1 Tagen" und „noch 1 Minuten".** Beiden Sätzen fehlte die Einzahlform — und der Zählwert, über den sie überhaupt gewählt wird.
+
 ## [0.25.3] - 2026-09-10
 
 ### Behoben
