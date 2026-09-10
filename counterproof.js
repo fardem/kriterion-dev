@@ -7833,6 +7833,70 @@ const REGRESSIONS = [
     search: "      .replace(/\\u00df/g, 'ss'));",
     replacement: "      );",
     expected: 'Die kleinen Fehler fallen — 0.26.0'
+  },
+
+  /* ---- 0.26.0: der Potenzialmodus ---- */
+  {
+    /* DER STERNKASTEN WIRD WIEDER IMMER GEZEICHNET. Der Modus mag aus sein --
+       im Eintrag steht der Kasten dann doch, und ein Klick vergibt Sterne. */
+    nr: '805', name: 'Der Sternkasten steht wieder an jedem Eintrag',
+    file: 'public/app.js',
+    search: '        ${POTENTIAL_MODE ? `<div class="block" data-block="potenzial">',
+    replacement: '        ${true ? `<div class="block" data-block="potenzial">',
+    expected: 'Der Potenzialmodus — 0.26.0'
+  },
+  {
+    /* DIE SORTIERGRUPPE STEHT WIEDER IMMER DA -- eine Sortierung nach einer
+       Zahl, die nirgends zu sehen ist. */
+    nr: '806', name: 'Die Sortiergruppe des Potenzials steht wieder immer da',
+    file: 'public/app.js',
+    search: '    ${POTENTIAL_MODE ? `<optgroup label="${esc(V.potential)}">',
+    replacement: '    ${true ? `<optgroup label="${esc(V.potential)}">',
+    expected: 'Der Potenzialmodus — 0.26.0'
+  },
+  {
+    /* DIE KOPPLUNG GREIFT WIEDER -- eine gespeicherte Sortierung stellt den
+       Statusfilter auf „nicht getestet", ohne dass jemand etwas gewaehlt hat
+       und ohne dass die Sortierung ueberhaupt noch angeboten wuerde. */
+    nr: '807', name: 'Die Kopplung der Potenzialsortierung greift wieder',
+    file: 'public/app.js',
+    search: "    ? ((!POTENTIAL_MODE && /^potential_/.test(sort)) ? null : SORT_STATUS[sort])",
+    replacement: "    ? SORT_STATUS[sort]",
+    expected: 'Der Potenzialmodus — 0.26.0'
+  },
+  {
+    /* DIE KOPFZAHL STEHT WIEDER AN DER KACHEL -- genau das, was der Betreiber
+       ausdruecklich nicht will: „auch wenn Potenzial Bewertungen schon
+       vorhanden sind duerfen die nicht im Overview angezeigt werden." */
+    nr: '808', name: 'Die Kopfzahl des Potenzials steht wieder in der Uebersicht',
+    file: 'public/app.js',
+    search: "  if (!POTENTIAL_MODE && potential) return '';",
+    replacement: "  if (false && potential) return '';",
+    expected: 'Der Potenzialmodus — 0.26.0'
+  },
+  {
+    /* DER SCHALTER FAELLT AUS DER EIGENTUEMERLISTE und wird gewoehnliche
+       Adminsache -- die Antwort auf F3 ist damit zurueckgenommen.
+       ER NIMMT GENAU `potentialMode` HERAUS und laesst die sechs anderen
+       stehen; Rueckbau 437 nimmt `convertImages`, und die beiden duerfen sich
+       nicht ins Gehege kommen. */
+    nr: '809', name: 'Der Potenzialmodus ist wieder gewoehnliche Adminsache',
+    file: 'server.js',
+    search: "                                'languageDefault', 'languageOn', 'potentialMode'];",
+    replacement: "                                'languageDefault', 'languageOn'];",
+    expected: 'Der Potenzialmodus — 0.26.0'
+  },
+  {
+    /* DER SERVER SAGT DER OBERFLAECHE NICHT MEHR, WIE DER SCHALTER STEHT.
+       Sie faellt dann auf ihre Vorgabe „an" zurueck -- und der ganze Modus
+       ist wieder da, obwohl er in der Datenbank auf aus steht. DER
+       SCHLIMMSTE FALL, und er faellt still aus: kein Fehler, keine Meldung,
+       nur ein Schalter, der nichts mehr tut. */
+    nr: '810', name: 'Die Antwort verschweigt, wie der Schalter steht',
+    file: 'server.js',
+    search: "  potentialMode: potentialMode(),\n  /* DER SCHALTER DER BILDABLAGE",
+    replacement: "  /* DER SCHALTER DER BILDABLAGE",
+    expected: 'Der Potenzialmodus — 0.26.0'
   }
 ];
 

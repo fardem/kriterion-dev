@@ -21571,6 +21571,84 @@ const shareMain = (purpose, target = null) =>
   if (baImpItem) await call('DELETE', `/api/items/${baImpItem.id}`);
 
   /* ---------------------------------------------------------------- */
+  /* ================= Der Potenzialmodus am Server — 0.26.0 ================
+     ZWEI ZUSAGEN, UND BEIDE SIND VERSPRECHEN AN DEN BESTAND.
+     ERSTENS: AUSSCHALTEN IST VERBERGEN UND NICHT LOESCHEN (F1). Der Server
+     rechnet `potentialRating` weiter aus und liefert es weiter aus, auch
+     wenn der Modus aus ist. Wer wieder einschaltet, findet seinen Bestand
+     vor -- und ein Export, dem ein Feld fehlt, waere beim Wiedereinschalten
+     nicht mehr derselbe.
+     ZWEITENS: DIE KLEMME IST DIE DES EIGENTUEMERS (F3, gegen den Vorschlag).
+     Sie steht am SERVER und nicht im Browser -- `disabled` an einem Haken ist
+     eine Auskunft und keine Schranke.
+     GEFAHREN AM LAUFENDEN SERVER und nicht am Nachbau: die Frage ist, was
+     die Datenbank nach dem Umschalten traegt, und das weiss nur sie. */
+  group('Der Potenzialmodus am Server — 0.26.0');
+  {
+    const pmCrit = await call('POST', '/api/criteria', { name: 'Aussicht', phase: 'before' });
+    check('Ein Kriterium im Kasten „vorher" steht bereit',
+      pmCrit.status === 201 && pmCrit.content.phase === 'before',
+      `${pmCrit.status} ${JSON.stringify(pmCrit.content)}`);
+    const pmItem = await call('POST', '/api/items', { title: 'Der Modus und die Sterne' });
+    check('Und ein Eintrag dazu', pmItem.status === 201, `${pmItem.status}`);
+    await call('PUT', `/api/items/${pmItem.content.id}/ratings`,
+      { criterionId: pmCrit.content.id, value: 4 });
+    const pmRead = async () => (await call('GET', `/api/items/${pmItem.content.id}`)).content;
+    const pmBefore = await pmRead();
+    /* ERST DAS VORHANDENSEIN, DANN JEDE AUSSAGE DARUEBER (Stolperstein 81):
+       ohne eine Zahl belegte „sie steht noch da" gar nichts. */
+    check('Der Eintrag traegt eine Potenzialzahl',
+      pmBefore.potentialRating === 4, JSON.stringify(pmBefore.potentialRating));
+
+    check('Der Modus steht in den Einstellungen und ist an',
+      (await call('GET', '/api/settings')).content.potentialMode === true,
+      JSON.stringify((await call('GET', '/api/settings')).content.potentialMode));
+    const pmOff = await call('PUT', '/api/settings', { potentialMode: false });
+    check('Er laesst sich ausschalten',
+      pmOff.status === 200 && pmOff.content.potentialMode === false,
+      `${pmOff.status} ${JSON.stringify(pmOff.content.potentialMode)}`);
+    /* UND DER SERVER RECHNET WEITER -- das ist F1, und es ist die Zusage, an
+       der Export, Vergleich und Einzelansicht haengen. */
+    const pmWhileOff = await pmRead();
+    check('Und liefert die Potenzialzahl trotzdem weiter aus',
+      pmWhileOff.potentialRating === 4, JSON.stringify(pmWhileOff.potentialRating));
+    check('Und die vergebenen Sterne stehen unveraendert in der Zeile',
+      equal((pmWhileOff.ratings || []).filter(r => r.phase === 'before').map(r => r.value),
+            (pmBefore.ratings || []).filter(r => r.phase === 'before').map(r => r.value)),
+      JSON.stringify((pmWhileOff.ratings || []).filter(r => r.phase === 'before')));
+    const pmBack = await call('PUT', '/api/settings', { potentialMode: true });
+    const pmAfter = await pmRead();
+    check('Und nach dem Wiedereinschalten steht der Bestand da, wie er war',
+      pmBack.content.potentialMode === true && pmAfter.potentialRating === 4,
+      JSON.stringify([pmBack.content.potentialMode, pmAfter.potentialRating]));
+
+    /* DIE KLEMME -- F3, UND SIE IST DIE EINE ANTWORT, DIE GEGEN DEN VORSCHLAG
+       AUSFAELLT. Der Rufer DIESES Laufs ist der Eigentuemer; ein Zugang, der
+       Admin und nicht Eigentuemer ist, gehoert zu einem eigenen Server mit
+       eigenem Bestand, und der steht in dieser Prueflage nicht.
+       GEPRUEFT WIRD DESHALB DIE ZEILE, DIE DIE KLEMME TRAEGT: der Schluessel
+       steht in OWNER_KEYS, und die Schranke am Kopf der Route liest genau
+       diese Liste. Das ist keine schwaechere Zusage, sondern eine andere --
+       sie faellt rot, sobald jemand den Schluessel herausnimmt, und das ist
+       der Weg, auf dem die Klemme verlorenginge.
+       DASS DIE LISTE WIRKT, ist die Sache der Rollenpruefungen und nicht
+       dieser Zeile; sie sagt, dass der Modus IN der Liste steht. */
+    const pmServerSource = fs.readFileSync(path.join(__dirname, 'server.js'), 'utf8');
+    const pmOwnerLine = (pmServerSource.match(/const OWNER_KEYS = \[[^\]]*\]/) || [''])[0];
+    check('Der Modus steht in der Eigentuemerliste und nicht in der Adminhaelfte',
+      /'potentialMode'/.test(pmOwnerLine), pmOwnerLine.replace(/\s+/g, ' '));
+    /* UND ER STEHT IN KEINER ANDEREN ROLLENLISTE. Ohne diese Zeile waere die
+       obige auch dann gruen, wenn er zusaetzlich als persoenlicher Wert
+       durchginge -- und dann schriebe ihn jeder fuer sich. */
+    check('Und in keiner anderen Rollenliste',
+      !/const PERSONAL_KEYS = \[[^\]]*'potentialMode'/.test(pmServerSource),
+      (pmServerSource.match(/const PERSONAL_KEYS = \[[^\]]*\]/) || [''])[0].replace(/\s+/g, ' '));
+
+    await call('DELETE', `/api/items/${pmItem.content.id}`);
+    await call('DELETE', `/api/criteria/${pmCrit.content.id}`);
+  }
+
+  /* ---------------------------------------------------------------- */
   group('Die Ableitung folgt der Anzeige — 0.19.4');
 
   /* WAS HIER BELEGT WIRD, UND WARUM ES OHNE PIXEL NICHT GEHT. 0.19.4 aendert
@@ -25106,7 +25184,7 @@ const shareMain = (purpose, target = null) =>
      SPRACHDATEI und nicht am Quelltext, und das ist hier richtig: dort sass
      der Fehler. Ein Rueckbau, der nur Programmzeilen kennt, kann einen
      Sprachfehler nicht stellen. */
-  check('Es sind genau 795 Rueckbauten', gpList.length === 795, `${gpList.length}`);
+  check('Es sind genau 801 Rueckbauten', gpList.length === 801, `${gpList.length}`);
   const gpTwice = gpList.map(r => r.nr).filter((n, i, a) => a.indexOf(n) !== i);
   check('Und keine Nummer steht zweimal', gpTwice.length === 0, gpTwice.join(' '));
   /* JEDER GREIFT: der Suchtext kommt in seiner Datei GENAU EINMAL vor. Keinmal
@@ -46103,6 +46181,154 @@ async function checkUi() {
     d.w.close();
   }
 
+  /* ================= Der Potenzialmodus — 0.26.0 ==========================
+     EIN SCHALTER, UND ER WIRKT AN FUENF STELLEN. Das ist der ganze Punkt:
+     ein abgeschalteter Modus, der an einer Stelle doch noch durchscheint,
+     ist kein abgeschalteter Modus. Jede der fuenf bekommt deshalb ihre
+     eigene Zusage, und jede in BEIDEN Lagen -- mit Schalter da, ohne
+     Schalter weg. Eine Zusage, die nur die eine Lage prueft, waere auch dann
+     gruen, wenn die Stelle IMMER leer bliebe (Stolperstein 81).
+     DER BESTAND TRAEGT POTENZIALZAHLEN, und zwar in beiden Lagen. Genau das
+     ist die Forderung des Betreibers: „auch wenn Potenzial Bewertungen schon
+     vorhanden sind duerfen die nicht im Overview angezeigt werden". Der
+     Server rechnet sie weiter aus (F1) -- die Oberflaeche muss dicht sein,
+     nicht der Server. */
+  group('Der Potenzialmodus — 0.26.0');
+  {
+    const pmInventory = ksInventory;
+    const pmBuild = async (further = {}, hash = '') => {
+      const d = buildDom(JSDOM, { overviewItems: pmInventory, hash,
+        settings: { filters: null, ...further } });
+      await new Promise(r => setTimeout(r, 200));
+      return d;
+    };
+    const pmOn = await pmBuild({ potentialMode: true });
+    const pmOff = await pmBuild({ potentialMode: false });
+
+    /* ---- 1. DIE UEBERSICHT (F5) --------------------------------------
+       An der Stelle der Kopfzahl steht NICHTS -- kein Platzhalter, kein
+       Strich, die Zeile schliesst sich. Eine leere Stelle, an der einmal
+       etwas stand, sieht aus wie ein Fehler.
+       GEZAEHLT WIRD AN DEN UNGETESTETEN: ein getesteter Eintrag zeigt seine
+       Bewertung ★ weiter, und die hat mit dem Potenzial nichts zu tun. */
+    const pmDiamonds = (d) => d.w.document.querySelectorAll('.rating-inline.potential').length;
+    const pmStars = (d) => d.w.document.querySelectorAll('.rating-inline:not(.potential)').length;
+    check('Mit Schalter traegt die Uebersicht die Kopfzahl ◆',
+      pmDiamonds(pmOn) === 2, `${pmDiamonds(pmOn)} Rauten`);
+    check('Ohne Schalter steht dort nichts',
+      pmDiamonds(pmOff) === 0, `${pmDiamonds(pmOff)} Rauten`);
+    /* UND DIE STERNE DER GETESTETEN BLEIBEN IN BEIDEN LAGEN STEHEN. Ohne
+       diese Zeile waere „ohne Schalter steht dort nichts" auch dann gruen,
+       wenn die ganze Kachelzahl verschwunden waere. */
+    check('Und die Bewertung der getesteten steht in beiden Lagen da',
+      pmStars(pmOn) === 2 && pmStars(pmOff) === 2,
+      `mit ${pmStars(pmOn)}, ohne ${pmStars(pmOff)}`);
+    /* UND AUCH DER SATZ „noch nicht eingeschätzt" IST WEG. Er ist die andere
+       Haelfte derselben Stelle: ohne Zahl stand dort bis 0.26.0 ein Hinweis,
+       und ein Hinweis auf eine Schaetzung, die es nicht gibt, ist derselbe
+       Durchschein wie die Zahl selbst. */
+    const pmText = (d) => d.w.document.getElementById('app')?.textContent || '';
+    /* GEPRUEFT AN EINEM EIGENEN BESTAND: der oben traegt an BEIDEN ungetesteten
+       eine Zahl, und dann stuende der Hinweis auch mit Schalter nirgends --
+       die Zusage waere gruen, ohne etwas zu belegen (Stolperstein 106). */
+    const pmNoValue = [{ id: 9, title: 'Idee ohne Zahl', rejected: false, tested: false,
+      favorite: false, category: null, tags: [], mainPhoto: null, photoCount: 0, linkCount: 0,
+      avgRating: null, potentialRating: null, testCount: null, testAvg: null, testLast: null,
+      testDays: [], updated_at: '2026-08-05 10:00:00' }];
+    const pmHintBuild = async (mode) => {
+      const d = buildDom(JSDOM, { overviewItems: pmNoValue,
+        settings: { filters: null, potentialMode: mode } });
+      await new Promise(r => setTimeout(r, 200));
+      return d;
+    };
+    const pmHintOn = await pmHintBuild(true);
+    const pmHintOff = await pmHintBuild(false);
+    check('Und der Hinweis „noch nicht eingeschätzt" ebenso',
+      /noch nicht eingeschätzt/.test(pmText(pmHintOn)) &&
+      !/noch nicht eingeschätzt/.test(pmText(pmHintOff)),
+      pmText(pmHintOff).slice(0, 160));
+    pmHintOn.w.close(); pmHintOff.w.close();
+
+    /* ---- 2. DIE SORTIERUNG -------------------------------------------
+       Eine Sortierung nach einer Zahl, die nirgends zu sehen ist, ordnet
+       nach etwas Unsichtbarem. */
+    const pmSortValues = (d) => [...(d.w.document.getElementById('f-sort')?.options || [])]
+      .map(o => o.value);
+    check('Mit Schalter steht die Gruppe im Sortierfeld',
+      pmSortValues(pmOn).includes('potential_desc') &&
+      pmSortValues(pmOn).includes('potential_asc'),
+      pmSortValues(pmOn).join(' '));
+    check('Ohne Schalter steht sie nicht da',
+      !pmSortValues(pmOff).includes('potential_desc') &&
+      !pmSortValues(pmOff).includes('potential_asc'),
+      pmSortValues(pmOff).join(' '));
+    /* UND DIE UEBRIGEN SORTIERUNGEN BLEIBEN. Ohne diese Zeile waere „sie
+       steht nicht da" auch bei einem leeren Auswahlfeld gruen. */
+    check('Und die uebrigen Sortierungen bleiben in beiden Lagen',
+      pmSortValues(pmOff).includes('rating_desc') &&
+      pmSortValues(pmOff).includes('title_asc'),
+      pmSortValues(pmOff).join(' '));
+
+    /* ---- 3. DIE KOPPLUNG (F4) ----------------------------------------
+       `potential_desc` stellt den Statusfilter auf „nicht getestet". Faellt
+       die Gruppe weg, faellt die Kopplung mit -- sie koennte sonst nur noch
+       aus einer GESPEICHERTEN Ansicht heraus greifen und den Filter stellen,
+       ohne dass jemand etwas ausgewaehlt haette.
+       GEPRUEFT AN DER GESPEICHERTEN STELLUNG, denn genau die ist der Fall,
+       der uebrigbleibt: das Auswahlfeld bietet die Sortierung ja nicht mehr
+       an. */
+    const pmSaved = async (mode) => await pmBuild(
+      { potentialMode: mode, filters: { sort: 'potential_desc' } });
+    const pmOnSaved = await pmSaved(true);
+    const pmOffSaved = await pmSaved(false);
+    const pmTitles = (d) => [...d.w.document.querySelectorAll('.card .card-title')]
+      .map(e => e.textContent).sort();
+    check('Mit Schalter stellt die gespeicherte Sortierung den Status auf „nicht getestet"',
+      equal(pmTitles(pmOnSaved), ['Idee schwach', 'Idee stark']),
+      pmTitles(pmOnSaved).join(' · '));
+    check('Ohne Schalter stellt sie ihn nicht mehr — die Kopplung ist gefallen',
+      equal(pmTitles(pmOffSaved), ksAll), pmTitles(pmOffSaved).join(' · '));
+
+    /* ---- 4. DER STERNKASTEN AM EINTRAG -------------------------------
+       GAR NICHT ERST GEZEICHNET und nicht bloss eingeklappt. Der
+       Unterschied ist der ganze Punkt: eingeklappt heisst sichtbar --
+       Kopfzeile, Griff, Pfeil --, und ein Klick liesse Sterne vergeben.
+       Genau diesen Fehler hat 0.22.1 am Bewertungskasten repariert.
+       GEFRAGT WIRD DER BAUM UND NICHT DIE SICHTBARKEIT: ein `[hidden]`
+       stuende noch darin, und was im Baum steht, findet frueher oder
+       spaeter jemand. */
+    const pmEntryOn = await pmBuild({ potentialMode: true }, '#/item/1');
+    const pmEntryOff = await pmBuild({ potentialMode: false }, '#/item/1');
+    const pmBox = (d) => d.w.document.querySelector('[data-block="potenzial"]');
+    check('Mit Schalter steht der Sternkasten am Eintrag',
+      !!pmBox(pmEntryOn), '(kein Kasten)');
+    check('Ohne Schalter steht er GAR NICHT im Baum',
+      !pmBox(pmEntryOff), pmBox(pmEntryOff)?.outerHTML?.slice(0, 120) || '');
+    /* UND DER BEWERTUNGSKASTEN BLEIBT IN BEIDEN LAGEN. Zwei Sternkaesten,
+       ein Schalter -- er nimmt genau einen von beiden. */
+    check('Und der Bewertungskasten steht in beiden Lagen da',
+      !!pmEntryOn.w.document.querySelector('[data-block="bewertung"]') &&
+      !!pmEntryOff.w.document.querySelector('[data-block="bewertung"]'), '');
+
+    /* ---- 5. DIE OBERFLAECHE IST DICHT, AUCH WENN DER SERVER LIEFERT ----
+       DIE ZUSAGE, DIE DEN SCHALTER AM SERVER UMGEHT. Der Server rechnet
+       `potentialRating` weiter aus und liefert es in jeder Antwort (F1) --
+       der Bestand oben traegt Zahlen an beiden ungetesteten Eintraegen. Wenn
+       die Oberflaeche trotzdem nichts davon zeigt, ist sie dicht.
+       SIE IST DIE WICHTIGSTE DER SIEBEN. Ein Modus, der nur deshalb aus
+       aussieht, weil zufaellig keine Zahlen da sind, ist nicht aus. */
+    check('Der Bestand traegt Potenzialzahlen — sonst belegte das Ganze nichts',
+      pmInventory.filter(z => !z.tested && z.potentialRating).length === 2,
+      JSON.stringify(pmInventory.map(z => z.potentialRating)));
+    check('Und trotzdem steht in der ganzen Uebersicht keine Raute',
+      !/◆/.test(pmText(pmOff)), (pmText(pmOff).match(/.{0,30}◆.{0,30}/) || [''])[0]);
+    check('Und im Eintrag steht das Wort des Potenzialkastens nicht',
+      !pmBox(pmEntryOff) &&
+      !/data-block="potenzial"/.test(pmEntryOff.w.document.body.innerHTML), '');
+
+    pmOn.w.close(); pmOff.w.close(); pmOnSaved.w.close(); pmOffSaved.w.close();
+    pmEntryOn.w.close(); pmEntryOff.w.close();
+  }
   /* ================= Kein Milchglas im Stilblatt — 0.22.0 =================
      Eine Regelpruefung wie die zu [hidden] aus 0.15.1: die Regel steht seit
      0.19.x im Projektstand (10a), und das Stilblatt brach sie an neun
