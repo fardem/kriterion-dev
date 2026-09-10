@@ -24958,8 +24958,12 @@ const shareMain = (purpose, target = null) =>
      Betreibers an einer TUERKISCHEN Oberflaeche -- einer am Stempel des
      Servers, der in der Karte mitreiste, und zwei am Gleichlauf der vier
      Umschalter (schreiben und lesen sind zwei Richtungen, und der Fehler
-     hatte genau eine davon). */
-  check('Es sind genau 781 Rueckbauten', gpList.length === 781, `${gpList.length}`);
+     hatte genau eine davon).
+     782 SEIT 0.25.3: einer (791) fuer den Befund am Vokabelraster -- er nimmt
+     beide Zeilen der Reparatur auf einmal, weil sie EINE Zusage sind: ohne die
+     Spalte gibt es keine Unterkante, und ohne die Unterkante nuetzt die Spalte
+     nichts. */
+  check('Es sind genau 782 Rueckbauten', gpList.length === 782, `${gpList.length}`);
   const gpTwice = gpList.map(r => r.nr).filter((n, i, a) => a.indexOf(n) !== i);
   check('Und keine Nummer steht zweimal', gpTwice.length === 0, gpTwice.join(' '));
   /* JEDER GREIFT: der Suchtext kommt in seiner Datei GENAU EINMAL vor. Keinmal
@@ -30054,6 +30058,73 @@ async function checkUi() {
       check('Kein alleinstehendes „yedek" mehr — es heisst ueberall yedekleme',
         ydBad.length === 0,
         ydBad.map(([k, v]) => `${k}: ${v}`).join(' · ') || 'keins');
+    }
+
+    /* ================= Zwei Felder in einer Zeile stehen auf einer Linie ===
+       0.25.3. DER BEFUND DES BETREIBERS, 10. September 2026: „es darf keine
+       verschiebung innerhalb der zeile durch texte passieren. wenn der eine
+       mehr platz braucht, nimmt sich sein nachbar auch diesen platz und sie
+       haben beide die selbe höhe. schau dir bei Görev, çoğul [an]. Das darf
+       natürlich in keiner sprache passieren."
+
+       DAS RASTER STRECKTE DIE KAESTEN laengst auf gleiche Hoehe; der INHALT
+       floss von oben. Wo eine Beschriftung zwei Zeilen brauchte und die
+       daneben eine, stand das eine Eingabefeld tiefer als das andere.
+
+       GEMESSEN AM ECHTEN BROWSER, 10. September 2026, OHNE die Reparatur:
+       schief in ALLEN DREI Sprachen, sobald das Raster zwei Spalten hat --
+       Tuerkisch und Englisch ab 1280 Pixeln, Deutsch ab 1360. *Der Betreiber
+       hat es im Tuerkischen gesehen, weil dessen Beschriftungen frueher
+       umbrechen; ein deutscher Bildschirm derselben Breite war zufaellig
+       gerade.* MIT der Reparatur: 21 von 21 Lagen auf einer Linie.
+
+       GEPRUEFT WIRD HIER DIE REGEL UND NICHT DIE LAGE. Der Nachbau hat keine
+       Layoutrechnung -- `getBoundingClientRect()` gibt dort Nullen zurueck,
+       und eine Messung in Pixeln waere eine Messung an nichts. Was sich
+       pruefen laesst, ist die Zeile im Stilblatt, die die Lage erzeugt;
+       dieselbe Wahl wie bei der Daempfung am Rueckfall (die Klasse statt der
+       Farbe). Die Messung selbst steht als Augenschein im Protokoll. */
+    group('Zwei Felder in einer Zeile stehen auf einer Linie — 0.25.3');
+    {
+      const vzRoh = fs.readFileSync(path.join(__dirname, 'public', 'style.css'), 'utf8');
+      /* DER RUMPF EINER REGEL, am Zeilenanfang verankert: `.field` steht auch
+         INNERHALB von `.vocabulary-grid .field`, und ohne Anker faende die
+         Suche nach der allgemeinen Regel die besondere. */
+      const vzRegel = (wahl) => {
+        const m = vzRoh.match(new RegExp(
+          '^' + wahl.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\s*\\{([^}]*)\\}', 'm'));
+        return m ? m[1].replace(/\s+/g, ' ').trim() : null;
+      };
+      const vzFeld = vzRegel('.vocabulary-grid .field');
+      const vzEingabe = vzRegel('.vocabulary-grid .field .input');
+      const vzAllgemein = vzRegel('.field');
+      /* DER AUFBAU ZUERST: ohne die drei Regeln prueft alles darunter nichts,
+         und ein Tippfehler im Suchtext saehe aus wie ein Befund. */
+      check('Aufbau: das Stilblatt kennt beide Regeln des Vokabelrasters',
+        vzFeld !== null && vzEingabe !== null && vzAllgemein !== null,
+        `Feld=${vzFeld} · Eingabe=${vzEingabe} · allgemein=${vzAllgemein}`);
+      /* DER KASTEN IST EINE SPALTE. Ohne ihn gibt es keine Unterkante, an die
+         sich etwas druecken liesse. */
+      check('Das Feld einer Vokabelzeile ist eine Spalte',
+        !!vzFeld && /display:\s*flex/.test(vzFeld) && /flex-direction:\s*column/.test(vzFeld),
+        String(vzFeld));
+      /* UND DAS EINGABEFELD HAENGT AN DER UNTERKANTE. Das ist die Zeile, die
+         beide Felder einer Zeile auf dieselbe Linie bringt: das Raster macht
+         die Kaesten gleich hoch, `margin-top: auto` schiebt den Eintrag ans
+         untere Ende. */
+      check('Und das Eingabefeld hängt an der Unterkante',
+        !!vzEingabe && /margin-top:\s*auto/.test(vzEingabe), String(vzEingabe));
+      /* UND KEINE FESTE HOEHE AN DER BESCHRIFTUNG. Sie muesste die laengste
+         Beschriftung ALLER Sprachen kennen und waere mit der naechsten Sprache
+         wieder falsch -- genau die Bauform, die dieser Befund verbietet. */
+      const vzLabel = vzRegel('.vocabulary-grid .field label') || '';
+      check('Und die Beschriftung bekommt keine feste Höhe',
+        !/(min-)?height:/.test(vzLabel), vzLabel || '(keine eigene Regel)');
+      /* UND DIE REGEL GILT NUR DORT. Dieselbe Klasse traegt jedes Anmeldefeld
+         und jeden Dialog; dort stehen die Felder UNTEREINANDER, und eine
+         Unterkante zum Andruecken gibt es gar nicht. */
+      check('Und die allgemeine Feldregel bleibt unangetastet',
+        !!vzAllgemein && !/display:\s*flex/.test(vzAllgemein), String(vzAllgemein));
     }
   }
 

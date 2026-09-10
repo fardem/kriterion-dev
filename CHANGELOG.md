@@ -29,6 +29,11 @@ bleiben in der Form ihrer Zeit.*
 
 *Hier wird mitgeschrieben, während gebaut wird.*
 
+## [0.25.3] - 2026-09-10
+
+### Behoben
+- **In der Kachel „Vokabular" standen die beiden Felder einer Zeile nicht auf einer Linie.** Brauchte eine Beschriftung zwei Zeilen und die daneben nur eine, rutschte das eine Eingabefeld nach unten. *Betraf alle drei Sprachen, sobald die Kachel zwei Spalten breit ist — im Türkischen und Englischen ab 1280 Pixeln, im Deutschen ab 1360.*
+
 ## [0.25.2] - 2026-09-10
 
 ### Behoben

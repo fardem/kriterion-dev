@@ -7647,6 +7647,22 @@ const REGRESSIONS = [
     search: "      b.className = 'pill' + (namesLanguage() === a.code ? ' on' : '');",
     replacement: "      b.className = 'pill' + (LANGUAGE === a.code ? ' on' : '');",
     expected: 'Ein Leser, der anders liest — 0.25.2'
+  },
+  {
+    /* ================= 0.25.3 =========================================
+       DIE FELDER EINER VOKABELZEILE FLIESSEN WIEDER VON OBEN. Das ist der
+       gemeldete Zustand: braucht eine Beschriftung zwei Zeilen und die
+       daneben eine, steht das eine Eingabefeld tiefer als das andere.
+       ER NIMMT BEIDE ZEILEN AUF EINMAL, und das ist hier richtig: sie sind
+       EINE Reparatur -- ohne die Spalte gibt es keine Unterkante, und ohne
+       die Unterkante nuetzt die Spalte nichts. Zwei Rueckbauten waeren zwei
+       Haelften derselben Zusage. */
+    nr: '791', name: 'Die Felder einer Vokabelzeile fliessen wieder von oben',
+    file: 'public/style.css',
+    search: ".vocabulary-grid .field { margin-bottom: 10px; display: flex; flex-direction: column; }\n" +
+      ".vocabulary-grid .field .input { margin-top: auto; }",
+    replacement: ".vocabulary-grid .field { margin-bottom: 10px; }",
+    expected: 'Zwei Felder in einer Zeile stehen auf einer Linie — 0.25.3'
   }
 ];
 
