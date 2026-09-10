@@ -1,4 +1,4 @@
-# Der Pruefstand laeuft bei jedem Push und an jeder Anfrage.
+# Der Pruefstand laeuft bei jedem Push und an jeder Anfrage von aussen.
 #
 # Bisher lief er nur, wenn jemand daran dachte. Die Schluesselwoerter sind
 # englisch, weil GitHub sie so liest; alles andere steht auf Deutsch.
@@ -16,6 +16,28 @@ concurrency:
 jobs:
   pruefen:
     runs-on: ubuntu-latest
+    # EIN LAUF JE STAND -- 0.25.0, Bauabschnitt 5 (Weg B). Ein Zweig in
+    # DIESEM Repository wird schon beim Push geprueft; die Anfrage darauf
+    # liefe ein zweites Mal ueber denselben Stand und saegte dasselbe noch
+    # einmal. Sie zeigt das Haekchen trotzdem, weil Pruefergebnisse an der
+    # COMMIT-KENNUNG haengen und nicht am Ereignis.
+    #
+    # EINE ANFRAGE AUS EINEM FREMDEN ABZUG WIRD WEITERHIN GEPRUEFT: dort gibt
+    # es keinen Push in dieses Repository, und ohne diese Zeile liefe fuer sie
+    # gar nichts.
+    #
+    # DER GRUND IST SEIT DEM 9. SEPTEMBER 2026 EIN ANDERER. Das Repository ist
+    # oeffentlich, und damit sind die Standardlaeufer bei GitHub unbegrenzt
+    # kostenlos -- die Minuten, um die es beim Beschluss ging, kosten nichts
+    # mehr. Weg B bleibt aus zwei Gruenden, die von der Rechnung unabhaengig
+    # sind: zwei Laeufe am selben Stand sagen dasselbe zweimal -- wer die Liste
+    # liest, muss jedes Mal pruefen, ob es zwei Staende oder ein Stand mit zwei
+    # Laeufen sind --, und der zweite Lauf belegt eine halbe Viertelstunde
+    # Rechenzeit fuer eine Antwort, die schon dasteht. Es ist ab jetzt eine
+    # Frage der Ordnung und nicht des Geldes.
+    if: >-
+      github.event_name != 'pull_request'
+      || github.event.pull_request.head.repo.full_name != github.repository
     steps:
       - uses: actions/checkout@v4
 

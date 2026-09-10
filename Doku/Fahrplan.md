@@ -1,7 +1,7 @@
 # Fahrplan
 
-**Der Plan von 0.25.0 bis 1.0 · Stand 9. September 2026, nach dem Bauen von
-0.24.6**
+**Der Plan von 0.26.0 bis 1.0 · Stand 9. September 2026, nach dem Bauen von
+0.25.0**
 
 **HIER STEHT, WAS EINE NUMMER HAT. SONST NIRGENDS.** *Was noch keine hat, steht
 im Sammelblatt `Doku/Fehler_und_Ideen.md`; was gebaut ist, steht im Projektstand
@@ -56,7 +56,7 @@ auf **0.30.0**. *„Damit der Bruch auch ein Bruch in der Zahl ist."*
 > allem, was auf einer festen Struktur aufbaut.
 
 **Es ist eine Entscheidung über die LESBARKEIT der Nummer und nicht über den
-Inhalt.** Die Bereinigung wirft neun Migrationsblöcke weg, schreibt die
+Inhalt.** Die Bereinigung wirft zehn Migrationsblöcke weg, schreibt die
 Datenbankstruktur fest und sagt zu alten Beständen ab — **ab ihr gibt es keinen
 Rückweg.** Eine solche Runde auf einer runden Zehnerzahl ist im Nachhinein
 wiederzufinden; auf der 28 ist sie es nicht.
@@ -114,13 +114,13 @@ Sprachumschalter baut, hat damit ein Muster und braucht kein neues.**
 | Version | Name | Was | Schema | Format |
 |---|---|---|---|---|
 | ~~**0.24.6**~~ | ~~Der Rückfall sagt, welche Sprache er wirklich zeigt~~ | **GEBAUT am 9. September 2026** — Änderungsprotokoll 0.24.6 | nein | — |
-| **0.25.0** | **Der Name weiß, in welcher Sprache er geschrieben ist** | die Kette Leser → Vorgabe → Erstellungssprache, am SERVER; dazu die Adminkarte mit Punkt, Zahl und Rahmen | **ja** | — |
+| ~~**0.25.0**~~ | ~~Der Name weiß, in welcher Sprache er geschrieben ist~~ | **GEBAUT am 9. September 2026** — Änderungsprotokoll 0.25.0 | **ja** | 14 → 15 |
 | **0.26.0** | **Die kleinen Fehler fallen — und das Potenzial wird abschaltbar** | Gruppe A: sechs Befunde, von denen der größte eine Messung braucht, **dazu eine Funktion** | nein | — |
 | **0.27.0** | **Die wählbare Bildablage** | drei Verfahren zur Wahl, dazu die Ableitungen auf WebP | nein | — |
 | **0.28.0** | **Das Telefon bekommt Recht** | Gruppe B, dazu das Blättern im Eintrag und das Startbildzeichen | nein | — |
-| **0.29.0** | **Worauf man sich verlassen können muss** | Gruppe C, das Angenommene — und die letzte Runde, die das Schema anfassen darf | **ja** | 14 → 15 |
+| **0.29.0** | **Worauf man sich verlassen können muss** | Gruppe C, das Angenommene — und die letzte Runde, die das Schema anfassen darf | **ja** | 15 → 16 |
 | **0.30.0** | **Der Prüfstand wird schnell** | Gruppe D: was das Bauen beschleunigt, ohne den Beleg zu schwächen | nein | — |
-| **0.31.0** | **Bereinigung — der Bruch** | neun Migrationsblöcke raus, Struktur festgeschrieben, **kein Rückweg** | **ja** | — |
+| **0.31.0** | **Bereinigung — der Bruch** | zehn Migrationsblöcke raus, Struktur festgeschrieben, **kein Rückweg** | **ja** | — |
 | **0.31.x** | **Die Kommentare werden knapp** | 16.281 von 54.822 Zeilen sind Kommentar | nein | — |
 | **0.32.0** | **Der Prüfstand bekommt ein Verzeichnis** | `testbench.js` in Module — **und damit erst der echte Teillauf** | nein | — |
 | **0.33.0** | **Code-Effizienz** | Leichen und ineffizienter Code | offen | — |
@@ -212,6 +212,48 @@ Schlussabschnitt „Wie der nächste Auftrag auszusehen hat".*
 > keinen Sprachvermerk"* — aufgenommen am 9. September 2026, am selben Tag mit
 > einer Nummer versehen. **Er steht deshalb nicht mehr im Sammelblatt**
 > (Regel 1 der beiden Papiere).
+
+> ## GEBAUT AM 9. SEPTEMBER 2026
+>
+> **Alles fünf ist gebaut, und zwei Dinge kamen dazu.**
+>
+> * **Die Datenbankstufe:** `product_categories.language` und
+>   `rating_criteria.language`, `NULL` erlaubt und bedeutend.
+>   `migration0250Language()` ist der **zehnte** markierte Block; **er füllt
+>   nichts** (F2), meldet sich einmal und ist beim zweiten Start still.
+> * **Die Kette steht an genau einem Ort — am Server**, und sie gilt für
+>   **jeden** Leser: eingetragen → Vorgabesprache → Erstellungssprache der Zeile
+>   → Originaltext. *`nameFallbackChain()` in der Oberfläche ist damit
+>   weggefallen; die Karte liest, was der Server ausgerechnet hat.*
+>   **`F_ROUTES` steigt 71 → 72** (`PUT /api/names/language`), `baseLanguage()`
+>   fällt weg.
+> * **Die Karte sagt, wo Arbeit liegt:** Punkt und Zahl an jeder Sprachpille,
+>   roter Rahmen an der lückigen Kachel, gedämpfter Name am Rückfall, ein
+>   eigenes Zeichen zum Räumen (F5), ein Kasten mit **einem** Knopf für die
+>   unbekannte Erstellungssprache — und dasselbe am Vokabular.
+> * **Die Ansage steht in der Karte „Sprachen"** und nicht in der Glocke (F4).
+> * **Der Beipack ist gefahren:** `npm audit fix` (nur die Lockfile bewegt sich,
+>   `express` bleibt bei 4.22.2) und **Weg B** am Workflow.
+>
+> **UND ZWEI DINGE KAMEN DAZU, DIE IM AUFTRAG NICHT STANDEN:**
+> **① Der Import ist ein Anlegeweg wie jeder andere** — ohne die
+> Erstellungssprache in der Datei legte er Zeilen ohne Sprachvermerk an. **Das
+> Austauschformat steigt deshalb 14 → 15** (`criteriaLanguages`,
+> `categoryLanguages`). **② Die Löschung „ein Name, der dem der Grundzeile
+> gleicht" ist weggefallen** — seit die Grundzeile eine eigene Sprache trägt,
+> ist ein gleicher Name eine Übersetzung.
+>
+> **Was gebaut wurde, steht im Änderungsprotokoll 0.25.0.** *6312 Zusagen,
+> 770 Rückbauten in der Liste; zwanzig neue Gegenproben und acht mitgegangene
+> — **drei liefen STUMM und haben drei echte Lücken im Prüfstand aufgedeckt**,
+> alle drei geschlossen (768 lief zweimal stumm und hat dabei einen vierten
+> Fund gebracht); eine ist weggefallen (753).*
+>
+> **ZWEI PUNKTE SIND DABEI INS SAMMELBLATT GEGANGEN** *(22 und 23)*: die Kachel
+> „Vokabular" trägt auf einer frischen Installation den Rahmen — *so ist es
+> bestellt, und die Frage, ob „nicht eingetragen" dort „fehlt" heißen soll,
+> gehört dem Betreiber* —, und die drei mitgelieferten Kriterien stehen auf
+> Deutsch, während die Auslieferungssprache Englisch ist.
 
 ---
 
@@ -432,7 +474,7 @@ gefragt.
 * **KEINE Benachrichtigung, kein Wecker, keine Mail.** *Die Glocke ist
   ausdrücklich schlank gebaut und trägt einen Zeitstempel und keine Tabelle. Ein
   Fälligkeitsdatum, das sich meldet, wäre ein zweites Vorhaben und nicht dieses.*
-* **Das Austauschformat steigt auf 15** — ein Feld, das im Export fehlt, ist
+* **Das Austauschformat steigt auf 16** — ein Feld, das im Export fehlt, ist
   beim nächsten Einspielen weg.
 
 ### 4 · Die Adresse wird eindeutig
@@ -565,7 +607,7 @@ sucht falsch.*
 
 **Unverändert gegenüber dem alten Plan; neu ist allein die Nummer.**
 
-Migrationscode raus — **neun Blöcke** —, die Datenbankstruktur festgeschrieben,
+Migrationscode raus — **zehn Blöcke** (der zehnte ist mit 0.25.0 dazugekommen) —, die Datenbankstruktur festgeschrieben,
 **Absage an zu alte Datenbanken. Ab hier gibt es keinen Rückweg auf ältere
 Fassungen.** *Ein Bruch — solange die erste Zahl 0 ist, läuft er über MINOR.*
 
