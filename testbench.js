@@ -17342,9 +17342,17 @@ const shareMain = (purpose, target = null) =>
        ueber `n`; mit `{days}` und `{minutes}` kam immer `select(undefined)`
        heraus, und das ist die MEHRZAHL. „in 1 Tagen" stand deshalb sieben
        Runden lang da. 38 Objekte werden 40, flach 76 + 4 = 80; flach also
-       1223 + 80 = 1303. */
-    check('Und die Zahlen stehen: 1303 Schluessel, 80 Mehrzahlformen, 14 Vokabelnamen',
-      languageKeys.length === 1303 && pluralKeys.length === 80 && vocabularyKeys.length === 14,
+       1223 + 80 = 1303.
+       UND MIT 0.26.0 AUF 1226 UND 1306. Drei Runden in einer Zeile:
+         Befund 3c   `card.setByAdmin` faellt, `card.weightSystemDefault` kommt --
+                     eine Umbenennung, die Zahl bleibt.
+         Der Modus   VIER kommen dazu: der einleitende Satz, die Beschriftung
+                     des Schalters, der Satz an der gedaempften Liste und der
+                     Satz an den Admin, der ihn nicht stellen darf.
+       1223 + 4 = 1227 -- und flach 1227 + 80 = 1307, denn keiner der vier ist
+       ein Mehrzahlpaar. */
+    check('Und die Zahlen stehen: 1307 Schluessel, 80 Mehrzahlformen, 14 Vokabelnamen',
+      languageKeys.length === 1307 && pluralKeys.length === 80 && vocabularyKeys.length === 14,
       `${languageKeys.length} / ${pluralKeys.length} / ${vocabularyKeys.length}`);
 
     /* ---- 3. Die Adressprobe ---------------------------------------------
@@ -17514,7 +17522,17 @@ const shareMain = (purpose, target = null) =>
        deshalb anders, und der alte faellt weiter unten namentlich weg -- eine
        Umbenennung ist hier ein neuer Satz UND eine Wegnahme, und beide
        gehoeren in ihre Liste. */
-    const WORDING_NEW_0260 = ['card.weightSystemDefault'];
+    /* UND VIER FUER DEN POTENZIALMODUS -- dieselbe Runde, andere Sache. Sie
+       stehen NEBEN dem Satz aus Befund 3c und nicht in derselben Zeile: die
+       Listen sind die Buchfuehrung darueber, WELCHE Runde welchen Satz
+       hinzugefuegt hat, und innerhalb einer Runde sagt die Trennung, WOFUER.
+       DER SCHALTER SELBST BRAUCHT KEINEN SATZ -- er braucht vier: was er tut
+       (der einleitende Satz), wie er heisst (die Beschriftung), was die
+       gedaempfte Liste bedeutet, und warum ein Admin ihn nicht stellen kann.
+       Der letzte ist der Preis der Antwort auf F3. */
+    const WORDING_NEW_0260 = ['card.weightSystemDefault',
+      'card.potentialModeHint', 'card.potentialModeLabel',
+      'card.potentialModeOff', 'card.potentialModeOwner'];
     const WORDING_NEW = [...WORDING_NEW_0243, ...WORDING_NEW_0244,
       ...WORDING_NEW_0245, ...WORDING_NEW_0246, ...WORDING_NEW_0250,
       ...WORDING_NEW_0254, ...WORDING_NEW_0260];

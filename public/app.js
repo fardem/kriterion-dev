@@ -2309,9 +2309,21 @@ let STATUS_BY_HAND = false;
    ganz weg, samt der gespeicherten Wahl.
    EIN UNBEKANNTER WERT DARF NICHTS WEGNEHMEN. Dieselbe Regel steht in
    visibleItems() schon am Schluessel `abgelehnt`, und sie gilt hier genauso. */
+/* UND BEI AUSGESCHALTETEM MODUS FAELLT DIE KOPPLUNG DER BEIDEN
+   POTENZIALSORTIERUNGEN MIT -- 0.26.0, Antwort auf F4. Eine Kopplung auf eine
+   Sortierung, die es im Auswahlfeld gar nicht gibt, ist toter Code; sie
+   koennte nur noch aus einer GESPEICHERTEN Ansicht heraus greifen und stellte
+   dann den Statusfilter auf „nicht getestet", ohne dass jemand etwas
+   ausgewaehlt haette.
+   NUR BEI AUSGESCHALTETEM MODUS. Bei eingeschaltetem bleibt sie, wie sie ist
+   -- der Betreiber hat die weitergehende Lesart ausdruecklich nicht gewaehlt.
+   DIE TAFEL BLEIBT VOLLSTAENDIG STEHEN: gefiltert wird beim LESEN und nicht
+   beim Anlegen. Eine Tafel, die je nach Schalter anders aussieht, waere zwei
+   Tafeln. */
 const defaultClosed = (sort) =>
   Object.prototype.hasOwnProperty.call(SORT_STATUS, sort)
-    ? SORT_STATUS[sort] : null;
+    ? ((!POTENTIAL_MODE && /^potential_/.test(sort)) ? null : SORT_STATUS[sort])
+    : null;
 
 /* DIE EINE STELLE, AN DER AUS SORTIERUNG UND HANDWAHL EINE VORGABE WIRD.
    Sie liefert den abgeleiteten Wert oder null -- null heisst „hier leitet
@@ -2392,6 +2404,14 @@ let BELL_SEEN = null;
    und Wolke bleiben, denn zuweisen darf immer jeder. */
 let TAGS_FREE = true;
 let CATEGORIES_FREE = true;
+/* DER POTENZIALMODUS -- 0.26.0. AN, solange der Server nichts anderes sagt:
+   dieselbe Vorgabe wie am Server, und aus demselben Grund. Eine Installation,
+   die nach der Hebung ploetzlich ihre Potenzialsterne nicht mehr zeigte, saehe
+   aus, als haette sie etwas verloren -- die Sterne stehen ja noch da.
+   EIN MERKER UND NICHT FUENF ABFRAGEN: er wirkt an fuenf Stellen, und das ist
+   der ganze Punkt. Ein abgeschalteter Modus, der an einer Stelle doch noch
+   durchscheint, ist kein abgeschalteter Modus. */
+let POTENTIAL_MODE = true;
 /* WANDELT DIESE INSTANZ ANKOMMENDE PNG UM? Vorgabe an, wie im Server. Der Wert
    entscheidet hier NICHTS -- die Umwandlung geschieht im Server, und der liest
    seine eigene Einstellung. Er sagt der Karte nur, wo der Haken steht; die
@@ -2472,6 +2492,8 @@ async function loadSettings() {
   if (SETTINGS.tagsFreeCreate !== undefined) TAGS_FREE = SETTINGS.tagsFreeCreate !== false;
   if (SETTINGS.categoriesFreeCreate !== undefined)
     CATEGORIES_FREE = SETTINGS.categoriesFreeCreate !== false;
+  if (SETTINGS.potentialMode !== undefined)
+    POTENTIAL_MODE = SETTINGS.potentialMode !== false;
   if (SETTINGS.convertImages !== undefined)
     IMAGES_CONVERT = SETTINGS.convertImages !== false;
   if (SETTINGS.trashDays) TRASH_DAYS = SETTINGS.trashDays;
@@ -3762,10 +3784,13 @@ function drawFilters() {
       <option value="rating_desc">${tH('list.sortRatingDesc')}</option>
       <option value="rating_asc">${tH('list.sortRatingAsc')}</option>
     </optgroup>
-    <optgroup label="${esc(V.potential)}">
+    ${/* DIE GRUPPE STEHT NUR BEI EINGESCHALTETEM MODUS DA -- 0.26.0. Eine
+         Sortierung nach einer Zahl, die nirgends zu sehen ist, ordnet nach
+         etwas Unsichtbarem. */''}
+    ${POTENTIAL_MODE ? `<optgroup label="${esc(V.potential)}">
       <option value="potential_desc">${tH('list.sortPotentialDesc')}</option>
       <option value="potential_asc">${tH('list.sortPotentialAsc')}</option>
-    </optgroup>
+    </optgroup>` : ''}
     <optgroup label="Verlauf">
       <option value="tests_desc">${tH('list.sortDaysDesc')}</option>
       <option value="tests_asc">${tH('list.sortDaysAsc')}</option>
@@ -4200,6 +4225,16 @@ function card(it) {
    Bewertung. */
 function tileNumber(it) {
   const potential = !it.tested;
+  /* IST DER MODUS AUS, STEHT AN DIESER STELLE NICHTS -- 0.26.0, und das ist
+     die Antwort auf F5: kein Platzhalter, kein Strich, die Zeile schliesst
+     sich. Eine leere Stelle, an der einmal etwas stand, sieht aus wie ein
+     Fehler.
+     ES TRIFFT NUR DEN UNGETESTETEN EINTRAG. Ein getesteter zeigt seine
+     Bewertung ★ weiter -- die hat mit dem Potenzial nichts zu tun.
+     UND ES GILT AUCH DANN, WENN SCHON POTENZIALBEWERTUNGEN IN DER DATENBANK
+     STEHEN. Der Server rechnet sie weiter aus (F1); gezeigt werden sie
+     nicht. Genau das hat der Betreiber verlangt. */
+  if (!POTENTIAL_MODE && potential) return '';
   const value = potential ? it.potentialRating : it.avgRating;
   /* „noch nicht eingeschätzt" UND NICHT „keine <Vokabelwort>sterne": das Wort
      aus dem Vokabular wird nirgends zu einem Wort verbaut. Es ist derselbe
@@ -5205,12 +5240,22 @@ async function renderDetail(id, termAddress) {
              Bewertung zuruecksetzen" brach auf dem Telefon den Blockkopf in
              drei Zeilen und tat nichts, was das × an der Zeile nicht besser
              tut. */''}
-        <div class="block" data-block="potenzial">
+        ${/* DER STERNKASTEN STEHT NUR BEI EINGESCHALTETEM MODUS DA -- 0.26.0,
+             und zwar GAR NICHT ERST GEZEICHNET und nicht bloss eingeklappt.
+             Der Unterschied ist der ganze Punkt: eingeklappt heisst sichtbar
+             -- Kopfzeile, Griff, Pfeil, und ein Klick liesse Sterne vergeben.
+             Genau diesen Fehler hat 0.22.1 am Bewertungskasten repariert.
+             NICHT `[hidden]`, SONDERN FORT. Ein verstecktes Element steht im
+             Baum, und was im Baum steht, findet frueher oder spaeter jemand.
+             Der Betreiber hat gesagt: „darf die Box gar nicht zu sehen sein."
+             `sortBlocks()` VERTRAEGT DAS: es sucht den Kasten und verschiebt
+             ihn, wenn es ihn findet. Fehlt er, ruecken die anderen zusammen. */''}
+        ${POTENTIAL_MODE ? `<div class="block" data-block="potenzial">
           <div class="block-head"><span class="label">${esc(V.potential)}</span>
             <span class="hint" id="phead"></span>
             ${ADMIN && multipleUsers() ? `<button class="btn btn-ghost btn-sm" id="pwho">${tH('entry.whoRated')}</button>` : ''}</div>
           <div id="potential-ratings"></div>
-        </div>
+        </div>` : ''}
 
         <div class="block" data-block="bewertung">
           <div class="block-head"><span class="label">${esc(V.ratingOne)}</span>
@@ -8789,7 +8834,11 @@ function cardCriteria(phase) {
               Karte umlegt, sieht ihn an der anderen mitgehen. */''}
         ${ADMIN && LANGUAGES.filter(a => a.active).length > 1
           ? `<div class="pills" id="${k.list}-lang" style="margin-bottom:12px"></div>` : ''}
-        <div class="manage-list" id="${k.list}"></div>
+        ${/* DIE LISTE WIRD GEDAEMPFT, WENN DER MODUS AUS IST -- 0.26.0, F2.
+             Sie bleibt bedienbar: die Kriterien sind nicht weg, und wer sie
+             beim Wiedereinschalten vorfinden soll, muss sie vorher pflegen
+             duerfen. Gedaempft heisst „steht hier, wirkt gerade nicht". */''}
+        <div class="manage-list${before && !POTENTIAL_MODE ? ' list-quiet' : ''}" id="${k.list}"></div>
         ${/* BEFUND 3c DER RUNDE 0.26.0 -- UND ER FAELLT ANDERS AUS, ALS DER
              AUFTRAG VORSCHLUG. Der Vorschlag wollte den ganzen Gewichtssatz
              hinter die Adminklemme legen (Sprachregel S5). DER BETREIBER HAT
@@ -8827,6 +8876,28 @@ function cardCriteria(phase) {
           <input class="input input-sm" id="${k.field}" placeholder="${esc(t('card.newCriterion'))}" style="padding:8px 11px">
           <button class="btn btn-sm" id="${k.button}">${tH('entry.create')}</button>
         </div>` : ''}
+        ${/* DER SCHALTER DES POTENZIALMODUS -- 0.26.0, und er steht IN dieser
+             Karte. Das ist die Antwort auf F2: eine Karte, die beim
+             Ausschalten mitverschwindet, nimmt den Ort mit, an dem man den
+             Modus wieder einschaltet.
+             DER SATZ STEHT AUCH OHNE SCHALTER DA, fuer jede Rolle: wer die
+             gedaempfte Liste sieht, soll lesen, warum sie gedaempft ist --
+             und dass nichts verloren ist.
+             DER SCHALTER GEHOERT DEM EIGENTUEMER ALLEIN (F3, gegen den
+             Vorschlag). Ein Admin sieht ihn und kommt nicht daran; `disabled`
+             und ein Satz daneben, damit die Sperre nicht wie ein Fehler
+             aussieht. Ein gewoehnlicher Benutzer sieht ihn gar nicht --
+             Sprachregel S5: was nur die Rolle darueber braucht, steht hinter
+             deren Klemme.
+             DIE SPERRE HIER IST DIE BEQUEMLICHKEIT, NICHT DIE SICHERUNG. Die
+             traegt der Server (OWNER_KEYS); `disabled` im Browser ist eine
+             Auskunft und keine Schranke. */''}
+        ${before ? `${!POTENTIAL_MODE
+            ? `<p class="desc" id="pot-off" style="margin:16px 0 0">${tH('card.potentialModeOff')}</p>` : ''}
+          ${ADMIN ? `<p class="desc" style="margin:16px 0 8px">${tH('card.potentialModeHint')}</p>
+          <label class="ex-files"><input type="checkbox" id="pot-mode"${OWNER ? '' : ' disabled'}>
+            ${tH('card.potentialModeLabel')}</label>
+          ${OWNER ? '' : `<p class="desc">${tH('card.potentialModeOwner')}</p>`}` : ''}` : ''}
       </div>`;
 }
 /* DIE ZEILEN EINER KRITERIENKARTE -- 0.25.1. EIN Ausdruck fuer die Liste UND
@@ -8865,6 +8936,19 @@ function setUpCriteriaOut(fetched, phase) {
     document.getElementById(k.button).onclick = addCrit;
     critField.addEventListener('keydown', e => { if (e.key === 'Enter') addCrit(); });
   }
+  /* DER SCHALTER DES POTENZIALMODUS -- 0.26.0, und nur an der Potenzialkarte.
+     Er wird hier verdrahtet und nicht bei den beiden Anlegen-Schaltern: er
+     gehoert dieser Karte, und ein Schalter, der woanders verdrahtet wird als
+     er steht, ist beim naechsten Umbau verwaist.
+     DER HELFER FINDET IHN NUR, WENN ER DASTEHT -- fuer die zweite Karte und
+     fuer jeden, der kein Admin ist, gibt es das Element nicht, und er kehrt
+     still zurueck.
+     NEU GEZEICHNET WIRD DER GANZE BEREICH: der Modus wirkt an fuenf Stellen,
+     und zwei davon stehen in dieser Karte. Die Bildlaufstellung bleibt --
+     dieselbe Wahl wie beim Sprachwechsel (B3 der Runde 0.24.4). */
+  if (phase === 'before') createToggle('pot-mode', 'potentialMode',
+    () => POTENTIAL_MODE, v => { POTENTIAL_MODE = v; },
+    () => renderSystem({ keepScroll: true }));
 }
 
   /* --- Die beiden Anlegen-Schalter ---
@@ -8873,14 +8957,21 @@ function setUpCriteriaOut(fetched, phase) {
      gleichlautende Bloecke nebeneinander liefen frueher oder spaeter
      auseinander. Schlaegt das Speichern fehl, geht die Stellung zurueck --
      sonst zeigte der Bildschirm etwas anderes an als der Server haelt. */
-  const createToggle = (id, key, read, remember) => {
+  /* `after` SEIT 0.26.0, UND NUR EIN RUFER BRAUCHT ES. Die drei aelteren
+     Schalter aendern eine Regel und sonst nichts Sichtbares; der
+     Potenzialmodus aendert die Karte, in der er steht (gedaempfte Liste, ein
+     Satz darueber) und vier weitere Stellen. Ohne ein Neuzeichnen stuende der
+     Haken auf „aus" und die Karte saehe aus wie vorher.
+     NACH DEM SPEICHERN UND NICHT DAVOR: schlaegt der Ruf fehl, geht die
+     Stellung zurueck, und dann gibt es nichts neu zu zeichnen. */
+  const createToggle = (id, key, read, remember, after) => {
     const el = document.getElementById(id);
     if (!el) return;
     el.checked = read();
     el.onchange = async () => {
       const before = read();
       remember(el.checked);
-      try { await api('PUT', '/api/settings', { [key]: el.checked }); saved(); }
+      try { await api('PUT', '/api/settings', { [key]: el.checked }); saved(); if (after) after(); }
       catch (e) { remember(before); el.checked = before; toast(e.message, true); }
     };
   };

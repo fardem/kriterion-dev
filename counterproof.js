@@ -3957,16 +3957,18 @@ const REGRESSIONS = [
     /* Der Schalter faellt aus der Eigentuemerliste und wird damit gewoehnliche
        Adminsache. Er bestimmt, wie die ganze Instanz ablegt.
        DER SUCHTEXT IST MIT 0.20.0 MITGEGANGEN, nicht geloescht (Stolperstein
-       201): die Liste traegt seit dieser Runde vier Schluessel statt einem.
-       Der Rueckbau nimmt weiterhin GENAU `convertImages` heraus und laesst
-       die drei neuen stehen -- sonst pruefte er nicht mehr dasselbe. */
+       201): die Liste traegt seit jener Runde vier Schluessel statt einem, und
+       seit 0.26.0 sieben -- `potentialMode` ist dazugekommen (F3). Der
+       Rueckbau geht wieder mit und nimmt weiterhin GENAU `convertImages`
+       heraus; alles Uebrige bleibt stehen, sonst pruefte er nicht mehr
+       dasselbe. */
     nr: '437', name: 'Der Schalter der Bildablage ist nur noch Adminsache',
     file: 'server.js',
     search: "const OWNER_KEYS = ['convertImages',\n" +
            "                                'backupCleanup', 'backupKeep', 'backupDays',\n" +
-           "                                'languageDefault', 'languageOn'];",
+           "                                'languageDefault', 'languageOn', 'potentialMode'];",
     replacement: "const OWNER_KEYS = ['backupCleanup', 'backupKeep', 'backupDays',\n" +
-           "                                'languageDefault', 'languageOn'];",
+           "                                'languageDefault', 'languageOn', 'potentialMode'];",
     expected: 'Die Bildablage: die Rechte'
   },
   {
@@ -5960,11 +5962,18 @@ const REGRESSIONS = [
        dann eine FUNKTION: die Ableitung gilt als greifend, und weil eine
        Funktion weder 'tested' noch 'untested' ist, faellt der Statusfilter
        still ganz weg -- samt der gespeicherten Wahl. */
+    /* SEIT 0.26.0 STEHT IN DERSELBEN ABLEITUNG DIE KLEMME DES
+       POTENZIALMODUS (F4). Der Rueckbau geht mit (Stolperstein 201) und
+       nimmt weiterhin GENAU die Prototypfrage heraus -- die Klemme bleibt
+       stehen, sonst faerbte er zwei Sachen auf einmal rot. */
     nr: '623', name: 'Die Vorgabetabelle wird ohne Ruecksicht auf den Prototyp gefragt',
     file: 'public/app.js',
     search: "  Object.prototype.hasOwnProperty.call(SORT_STATUS, sort)\n" +
-           "    ? SORT_STATUS[sort] : null;",
-    replacement: "  SORT_STATUS[sort] || null;",
+           "    ? ((!POTENTIAL_MODE && /^potential_/.test(sort)) ? null : SORT_STATUS[sort])\n" +
+           "    : null;",
+    replacement: "  (SORT_STATUS[sort]\n" +
+           "    ? ((!POTENTIAL_MODE && /^potential_/.test(sort)) ? null : SORT_STATUS[sort])\n" +
+           "    : null);",
     expected: 'Die Sortierung gibt den Status vor — 0.21.1'
   },
   {

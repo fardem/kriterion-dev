@@ -1985,6 +1985,15 @@ mark {
    (Stolperstein 256). `#ex-part-list` weiter unten macht es genauso. */
 #msessions { max-height: 48.37rem; }
 
+/* EINE LISTE, DIE DASTEHT UND GERADE NICHT WIRKT -- 0.26.0. Die Kriterien des
+   Potenzials bleiben bei ausgeschaltetem Modus vollstaendig bedienbar: wer sie
+   beim Wiedereinschalten vorfinden soll, muss sie vorher pflegen duerfen.
+   GEDAEMPFT UND NICHT GESPERRT. Ein `disabled` waere eine Behauptung, die der
+   Server nicht deckt -- er nimmt die Aenderung an, Modus hin oder her. Der Satz
+   darueber sagt, WARUM die Liste gedaempft ist; die Daempfung allein waere ein
+   Raetsel. */
+.list-quiet { opacity: .55; }
+
 /* DIE AUSNAHME, UND SIE STEHT ALS SATZ DA. Die Teileliste des Exports ist die
    einzige, die kurz bleiben soll: sie steht MITTEN in ihrer Karte -- ueber ihr
    der Export, unter ihr der Import. Naehme sie die Kachelhoehe, schoebe sie
