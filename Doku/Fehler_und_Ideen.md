@@ -1169,3 +1169,11 @@ dass es schon schiefgegangen ist.
 * **Die Hausstimme** *(Gruppe 3)* und die zersägten Sätze *(Gruppe 4)* — eine
   eigene Runde mit **Fragetafel**. Rund fünfzehn Entscheidungen, die nur der
   Betreiber treffen kann, und jede davon ändert alle drei Dateien zugleich.
+
+> **SIE HAT EINE NUMMER: 0.31.0 — „Die Sprachen werden gegengelesen"**, am
+> 10. September 2026 in den Fahrplan gesetzt. **Unmittelbar vor dem Bruch**,
+> weil sie die letzte Runde ist, die den Wortlaut der Oberfläche und den
+> Satzbau in `public/app.js` frei umbauen darf — *jede Runde davor legt neue
+> Sätze an, und jeder davon nach dem Muster, das diese abschafft.* **Der Bruch
+> rückt dafür ein drittes Mal**, auf 0.32.0; der Betreiber hat es entschieden:
+> *„bruch ist leider zerbrochen"*. **Die reservierte 0.40.0 bleibt unangetastet.**

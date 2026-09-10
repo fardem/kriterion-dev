@@ -1853,10 +1853,15 @@ function takeVocabulary(r) {
   if (r.vocabularyDefaults) VOCABULARY_DEFAULTS = r.vocabularyDefaults;
   if (r.vocabulary) V = { ...V, ...r.vocabulary };
 }
-/* WELCHE SPRACHE DIE ADMINLISTEN ZEIGEN -- 0.24.3, Bauabschnitt 6a. Dieselbe
-   Bauform wie VOCABULARY_SHOWN bei den vierzehn Woertern: sie faengt bei der
-   des Lesers an, steht als Zustand der Karte und nicht in der Adresse, und
-   faellt beim Neuzeichnen des Systembereichs auf die des Lesers zurueck. */
+/* WELCHE SPRACHE DER ABSCHNITT „BESTAND" ZEIGT -- 0.24.3, Bauabschnitt 6a,
+   und seit 0.25.2 fuer ALLE VIER KACHELN: die drei Namenskarten UND das
+   Vokabular. Sie faengt bei der Sprache des Lesers an, steht als Zustand der
+   Karte und nicht in der Adresse, und faellt beim Neuzeichnen des
+   Systembereichs auf die des Lesers zurueck -- eine gemerkte Sprache, die
+   niemand sieht, waere eine zweite Wahrheit ueber „was steht da gerade".
+   BIS 0.25.1 STAND DANEBEN `VOCABULARY_SHOWN` fuer die vierzehn Woerter, Zeile
+   fuer Zeile dieselbe Bauform. Zwei Angaben ueber dieselbe Frage laufen
+   auseinander, sobald man EINE umstellt -- und genau das tat der Betreiber. */
 let NAMES_SHOWN = null;
 /* DIE NAMEN JE SPRACHE, ALS TAFEL UND AUF EINMAL -- 0.24.5, und damit faellt
    der Zwischenspeicher der Runde 0.24.3 weg.
@@ -9370,7 +9375,30 @@ function namesFrom(fetched, key) {
     if (!z || z.id === undefined) return { ...z };
     const hit = shown[z.id];
     if (!hit || hit.name === undefined) return { ...z };
-    if (hit.from === code) return { ...z, name: hit.name };
+    /* UND DER STEMPEL DES SERVERS MUSS AUSDRUECKLICH WEG -- 0.25.2.
+       `z` ist die Zeile, wie sie hereinkam, und der Server hat sie fuer die
+       Sprache des LESERS gestempelt (`named()`, `nameFallback`). Wo die Tafel
+       der gezeigten Sprache „eingetragen" sagt, ist dieser Stempel falsch --
+       und ohne diese Zeile reist er im Spread mit.
+
+       DER BEFUND DES BETREIBERS vom 10. September 2026, an einer tuerkischen
+       Oberflaeche: „obwohl deutsch vorhanden ist, und auch der punkt in der
+       pille das so anzeigt, wird unten behauptet das keine eintrag vorhanden
+       waere." Auf der Pille „Deutsch" stand der Punkt (die Tafel: nichts
+       fehlt), und darunter an jeder Zeile „(Deutsch icin kayit yok -- Deutsch
+       goruenuyor)" -- DIESELBE Sprache in beiden Haelften, weil der Satz mit
+       der Sprache der PILLE beschriftet wird und der Stempel aus der Sprache
+       des LESERS stammte.
+
+       BEI DEUTSCHER ODER ENGLISCHER OBERFLAECHE FIEL ES NICHT AUF: ein
+       deutscher Leser bekommt an einer deutschen Zeile gar keinen Stempel,
+       und ohne Stempel gibt es nichts, was mitreisen koennte. Der Fehler war
+       seit 0.24.5 da und brauchte eine dritte Sprache, um sichtbar zu werden.
+
+       ES HING NOCH ETWAS DARAN: das Zeichen zum Raeumen fragt dieselbe Zeile
+       ab (`entry.nameFallback === undefined`). Wo der Stempel mitreiste,
+       fehlte das ✕ -- an genau den Zeilen, an denen es hingehoert. */
+    if (hit.from === code) return { ...z, name: hit.name, nameFallback: undefined };
     return { ...z, name: hit.name, nameFallback: hit.from === null ? true : hit.from };
   });
 }
@@ -9512,25 +9540,24 @@ function drawNamesUnknown(fetched) {
   };
   box.append(line, knob);
 }
-/* WELCHE SPRACHE DIE KARTE „VOKABULAR" GERADE ZEIGT -- 0.24.3. Sie faengt bei
-   der des Lesers an: wer die Oberflaeche auf Deutsch liest, will in aller
-   Regel die deutschen Woerter pflegen.
-   SIE STEHT ALS ZUSTAND DER KARTE UND NICHT IN DER ADRESSE: ein Umschalten
-   innerhalb einer Karte ist keine Ansicht, und der Weg zurueck ist der Reiter
-   daneben. Beim Neuzeichnen des Systembereichs faellt sie auf die Sprache des
-   Lesers zurueck -- das ist gewollt: eine gemerkte Sprache, die niemand sieht,
-   waere eine zweite Wahrheit ueber „was steht da gerade". */
-let VOCABULARY_SHOWN = null;
-/* GEKLEMMT WIRD GEGEN DEN VORRAT UND NICHT GEGEN EINE TAFEL -- 0.24.4, und es
-   ist dieselbe Zeile wie bei namesLanguage() darueber. Bis 0.24.3 stand hier
-   `VOCABULARIES[VOCABULARY_SHOWN]`: die Karte haette auf jede Sprache
-   umschalten koennen, fuer die eine Tafel ankam, und auf keine, fuer die
-   keine kam. Was gewaehlt werden darf, sagt aber der VORRAT -- und der steht
-   in LANGUAGES. Zwei Klemmen ueber dieselbe Frage laufen auseinander. */
-const vocabularyLanguage = () => {
-  const ok = LANGUAGES.some(a => a.active && a.code === VOCABULARY_SHOWN);
-  return ok ? VOCABULARY_SHOWN : LANGUAGE;
-};
+/* WELCHE SPRACHE DER ABSCHNITT „BESTAND" GERADE ZEIGT, STEHT SEIT 0.25.2 AN
+   EINER EINZIGEN STELLE -- in `namesLanguage()` weiter oben, und sie gilt fuer
+   ALLE VIER KACHELN.
+
+   BIS 0.25.1 WAREN ES ZWEI ANGABEN: `NAMES_SHOWN` fuer die drei Namenskarten
+   und `VOCABULARY_SHOWN` fuer das Vokabular, jede mit eigener Klemme gegen den
+   Vorrat und eigenem Rueckfall auf die Sprache des Lesers -- Zeile fuer Zeile
+   dieselben. Zwei Antworten auf EINE Frage laufen auseinander, sobald man eine
+   davon umstellt, und genau das ist passiert: die drei Namenskarten liefen
+   synchron, das Vokabular blieb stehen.
+
+   DER BETREIBER AM 10. SEPTEMBER 2026: „bei den 3 kacheln laufen die
+   sprachumschalter der pilen syncron mit aber der von vokabular nicht. bitte
+   alle syncronisieren."
+
+   DIE ZWEITE FUNKTION IST WEGGEFALLEN und nicht umbenannt worden: ein zweiter
+   Name fuer dieselbe Auskunft ist der halbe Weg zurueck zur zweiten Wahrheit
+   (Stolperstein 47). */
 /* DIE VIERZEHN WOERTER, DIE IN DEN FELDERN STEHEN -- 0.24.4: das, was fuer
    diese Sprache EINGETRAGEN ist, und sonst nichts.
    BIS 0.24.3 STAND HIER DER SATZ MIT RUECKFALL (`V` beziehungsweise
@@ -9542,12 +9569,12 @@ const vocabularyLanguage = () => {
    EIN LEERES FELD IST JETZT EINE AUSSAGE: „fuer diese Sprache ist nichts
    eingetragen". Was stattdessen dasteht, sagt der Hinweis darunter
    (vocabularyDefaultShown) und die Vorschau. */
-const vocabularyShown = () => VOCABULARIES_OWN[vocabularyLanguage()] || {};
+const vocabularyShown = () => VOCABULARIES_OWN[namesLanguage()] || {};
 /* WAS EIN LESER DIESER SPRACHE SAEHE -- mit Rueckfall, und genau dafuer gibt
    es die Tafel des Servers. Die Vorschau rechnet damit: ein leeres Feld zeigt
    dort nicht die Vorgabe, sondern das, was wirklich am Bildschirm stuende. */
 const vocabularyEffective = () => {
-  const code = vocabularyLanguage();
+  const code = namesLanguage();
   if (code === LANGUAGE) return V;
   return VOCABULARIES[code] || V;
 };
@@ -9560,7 +9587,7 @@ const vocabularyEffective = () => {
    DER RUECKFALL AUF DIE DATEI DES LESERS gilt die Millisekunden vor der
    ersten Antwort und fuer eine Sprache, die der Server nicht kennt. */
 const vocabularyDefaultShown = () =>
-  VOCABULARY_DEFAULTS[vocabularyLanguage()] || vocabularyDefault();
+  VOCABULARY_DEFAULTS[namesLanguage()] || vocabularyDefault();
 
 function setUpVocabularyOut() {
   drawVocabularyLanguages();
@@ -9623,7 +9650,7 @@ function setUpVocabularyOut() {
     box.innerHTML = '';
     LANGUAGES.filter(a => a.active).forEach(a => {
       const b = document.createElement('button');
-      b.className = 'pill' + (vocabularyLanguage() === a.code ? ' on' : '');
+      b.className = 'pill' + (namesLanguage() === a.code ? ' on' : '');
       /* PUNKT UND ZAHL WIE AN DEN NAMENSKARTEN -- 0.25.0, Bauabschnitt 4, und
          ausdruecklich dieselbe Gestalt: es ist dieselbe Frage („was fehlt
          dieser Sprache") an einem anderen Bestand. Zwei Gestalten fuer eine
@@ -9634,7 +9661,9 @@ function setUpVocabularyOut() {
         : '<span class="dot" aria-hidden="true">●</span>');
       b.title = gaps ? t('card.wordsMissing', { n: gaps }) : t('card.languageComplete');
       b.onclick = () => {
-        VOCABULARY_SHOWN = a.code;
+        /* DIESELBE ANGABE WIE AN DEN NAMENSKARTEN -- 0.25.2. Wer hier
+           umschaltet, schaltet den ganzen Abschnitt um, und umgekehrt. */
+        NAMES_SHOWN = a.code;
         /* MIT DER BILDLAUFSTELLUNG -- 0.24.4 (B3). Die Karte steht weit unten
            im Abschnitt „Bestand"; wer umschaltet, will die vierzehn Felder
            vor sich behalten und nicht den Seitenkopf. */
@@ -9645,7 +9674,7 @@ function setUpVocabularyOut() {
     /* UND DER ROTE RAHMEN AN DER KACHEL, solange der GEZEIGTEN Sprache etwas
        fehlt (F3) -- dieselbe Zeile wie an den Namenskarten. */
     const card = box.closest('.sys-card');
-    if (card) card.classList.toggle('gaps', vocabularyMissing(vocabularyLanguage()) > 0);
+    if (card) card.classList.toggle('gaps', vocabularyMissing(namesLanguage()) > 0);
   }
   // Die Karte steht nur dem Admin offen; ohne sie gibt es weder Felder noch
   // Probe. Das VOKABULAR SELBST wird trotzdem ausgeliefert -- es ist jede
@@ -9657,7 +9686,7 @@ function setUpVocabularyOut() {
   /* GESPEICHERT WIRD JE SPRACHE -- 0.24.3, F3. Der Rumpf traegt dieselbe Form
      wie die Ablage: ein Objekt je Sprachkennung, und die Karte schickt genau
      die eine, die gerade offen ist. Die uebrigen bleiben am Server stehen. */
-  const vocabularyBody = (words) => ({ [vocabularyLanguage()]: words });
+  const vocabularyBody = (words) => ({ [namesLanguage()]: words });
   /* DIE DREI TAFELN ZIEHEN MIT -- 0.24.4, ueber takeVocabulary() weiter oben.
      Wer nur `vocabularies` nachzoege, saehe nach dem Speichern in den Feldern
      noch den Stand von vorhin. */

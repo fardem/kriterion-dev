@@ -24953,8 +24953,13 @@ const shareMain = (purpose, target = null) =>
      Wert), 771 (der Namenskasten ist weg) und 597 -- der zielte auf den
      Phasenfilter der zweiten Kriterienkarte, und den gibt es als eigenen
      Ausdruck nicht mehr: Liste und Pillenreihe teilen sich seit 0.25.1
-     `critRows()`, und genau darauf zielt er jetzt. */
-  check('Es sind genau 778 Rueckbauten', gpList.length === 778, `${gpList.length}`);
+     `critRows()`, und genau darauf zielt er jetzt.
+     781 SEIT 0.25.2: drei neue (788 bis 790) fuer die beiden Befunde des
+     Betreibers an einer TUERKISCHEN Oberflaeche -- einer am Stempel des
+     Servers, der in der Karte mitreiste, und zwei am Gleichlauf der vier
+     Umschalter (schreiben und lesen sind zwei Richtungen, und der Fehler
+     hatte genau eine davon). */
+  check('Es sind genau 781 Rueckbauten', gpList.length === 781, `${gpList.length}`);
   const gpTwice = gpList.map(r => r.nr).filter((n, i, a) => a.indexOf(n) !== i);
   check('Und keine Nummer steht zweimal', gpTwice.length === 0, gpTwice.join(' '));
   /* JEDER GREIFT: der Suchtext kommt in seiner Datei GENAU EINMAL vor. Keinmal
@@ -29879,6 +29884,140 @@ async function checkUi() {
       wKz.close();
     }
 
+
+    /* ================= Ein Leser, der anders liest — 0.25.2 ==============
+       DER BEFUND DES BETREIBERS, 10. September 2026, an einer TUERKISCHEN
+       Oberflaeche: „wenn kriterion selber auf türkisch steht, dann wird
+       unwahrheit angezeigt. obwohl deutsch vorhanden ist, und auch der punkt
+       in der pille das so anzeigt, wird unten behauptet das keine eintrag
+       vorhanden wäre."
+
+       DIE URSACHE: `namesFrom()` setzte den Namen aus der Tafel ein und liess
+       den `nameFallback`-STEMPEL DES SERVERS im Spread stehen. Der Server
+       stempelt fuer die Sprache des LESERS; der Satz darunter wird mit der
+       Sprache der PILLE beschriftet. Auf der Pille „Deutsch" stand deshalb
+       „(kein Eintrag in Deutsch — gezeigt wird Deutsch)" — dieselbe Sprache in
+       beiden Haelften, und die Pille darueber trug den Punkt.
+
+       UND WARUM ES NIEMAND GEMERKT HAT: in JEDER Prueflage dieses Prüfstands
+       las der Leser dieselbe Sprache, in der die Zeilen angelegt sind — und
+       dann stempelt der Server gar nicht. Ohne Stempel gibt es nichts, was
+       mitreisen koennte. **Es fehlte kein Wächter, es fehlte eine LAGE.**
+
+       DIESE GRUPPE STELLT SIE HER: der Leser liest TUERKISCH, die Zeilen sind
+       DEUTSCH angelegt, und eine davon traegt zusaetzlich Englisch. Damit
+       stempelt der Server, und die Karte muss den Stempel wegwerfen. */
+    group('Ein Leser, der anders liest — 0.25.2');
+    {
+      /* 31 nur deutsch, 32 deutsch mit englischer Uebersetzung, 33 in allen
+         dreien. Nur 31 und 32 werden vom Server gestempelt — 33 ist der
+         Maßstab: eine Tafel, in der alles gleich ist, misst nichts. */
+      const alCats = [{ id: 31, name: 'Nur_de', usage_count: 0, language: 'de' },
+                      { id: 32, name: 'Mit_en', usage_count: 1, language: 'de' },
+                      { id: 33, name: 'Alle_de', usage_count: 0, language: 'de' }];
+      const alNames = { en: { 32: 'With_en', 33: 'All_en' }, tr: { 33: 'All_tr' } };
+      const alDom = buildDom(JSDOM, {
+        /* DER LESER LIEST TUERKISCH, die Vorgabe der Installation ist deutsch.
+           Genau die Lage des Betreibers. */
+        settings: { filters: null, language: 'tr', languages: axLanguages('de') },
+        categories: alCats.map(z => ({ ...z })), categoryNames: alNames,
+        criteriaPhases: ['after', 'after', 'before']
+      });
+      const wAl = alDom.w;
+      await new Promise(r => setTimeout(r, 80));
+      await sysSection(wAl, 'inventory');
+      /* WELCHE PILLE IN EINER REIHE ANSTEHT -- gebraucht wird es zweimal: als
+         Beleg, dass der Leser wirklich Tuerkisch liest, und unten fuer den
+         Gleichlauf der vier Reihen. */
+      const alReihe = (boxId) => axPills(wAl, boxId)
+        .filter(b => b.classList.contains('on')).map(b => pillName(b)).join(',');
+      const alAlle = () => ['ncatlang', 'mcrits-lang', 'mpcrits-lang', 'vlang']
+        .map(id => `${id}=${alReihe(id)}`).join(' ');
+      /* DER AUFBAU ZUERST, und er ist hier mehr als eine Hoeflichkeit: ohne
+         einen Leser, der ANDERS liest als die Zeilen angelegt sind, stempelt
+         der Server gar nicht — und die ganze Gruppe belegte nichts. */
+      check('Aufbau: die Karte öffnet in der Sprache des Lesers — Türkçe',
+        alReihe('ncatlang') === 'Türkçe', `es steht an: ${alAlle()}`);
+      /* UND DER SERVER HAT WIRKLICH GESTEMPELT. Der Nachbau antwortet wie der
+         echte (`withNames`): fuer einen tuerkischen Leser faellt 31 und 32 auf
+         Deutsch zurueck, 33 nicht. Ohne diese Zeile bliebe die Gruppe darunter
+         auch dann gruen, wenn gar nichts zu verwerfen waere. */
+      check('Und der Server stempelt die zurückgefallenen Zeilen — sonst misst die Gruppe nichts',
+        axMarkOk(axCell(wAl, 'mcats', 31).mark, 'Deutsch', 'Türkçe') &&
+        axMarkOk(axCell(wAl, 'mcats', 32).mark, 'Deutsch', 'Türkçe') &&
+        axCell(wAl, 'mcats', 33).mark === '',
+        `31=${JSON.stringify(axCell(wAl, 'mcats', 31).mark)} ` +
+        `32=${JSON.stringify(axCell(wAl, 'mcats', 32).mark)} ` +
+        `33=${JSON.stringify(axCell(wAl, 'mcats', 33).mark)}`);
+
+      /* ---- AUF DER PILLE „DEUTSCH" IST NICHTS ZU VERMERKEN --------------
+         Alle drei Zeilen sind deutsch angelegt; die Tafel „de" sagt bei jeder
+         „eingetragen". Vor der Reparatur stand an 31 und 32 trotzdem ein
+         Vermerk — der Stempel aus der Lesersprache. */
+      await axPress(wAl, 'ncatlang', 'Deutsch');
+      check('Auf der Pille „Deutsch" steht an keiner Zeile ein Vermerk',
+        ['31', '32', '33'].every(id => axCell(wAl, 'mcats', Number(id)).mark === ''),
+        [31, 32, 33].map(id => `${id}=${JSON.stringify(axCell(wAl, 'mcats', id).mark)}`).join(' '));
+      /* UND DIE PILLE SAGT DASSELBE. Der Widerspruch war der Befund: der Punkt
+         oben, die Behauptung unten. Beide Haelften gehoeren in eine Zusage. */
+      check('Und die Pille sagt dasselbe — Punkt oben, kein Vermerk unten',
+        axMarks(wAl, 'ncatlang').startsWith('Deutsch:●') && !axFramed(wAl, 'ncatlang'),
+        `${axMarks(wAl, 'ncatlang')} · Rahmen=${axFramed(wAl, 'ncatlang')}`);
+      /* UND DIE NAMEN SIND NICHT GEDAEMPFT. Die Daempfung haengt an derselben
+         Abfrage; ohne diese Zeile bliebe sie stehen. */
+      check('Und kein Name steht gedämpft da',
+        [31, 32, 33].every(id => !axCell(wAl, 'mcats', id).faded),
+        [31, 32, 33].map(id => `${id}=${axCell(wAl, 'mcats', id).faded}`).join(' '));
+
+      /* ---- UND DAS ✕ IST WIEDER DA, WO ES HINGEHOERT -------------------
+         Es haengt an derselben Abfrage (`nameFallback === undefined`), und wo
+         der Stempel mitreiste, fehlte es. Auf der Pille „English" traegt 32
+         einen Eintrag und ist deutsch angelegt — genau die Lage, in der
+         geraeumt werden darf. */
+      await axPress(wAl, 'ncatlang', 'English');
+      check('Zeichenprobe: auf „English" steht das ✕ an der übersetzten Zeile',
+        axCell(wAl, 'mcats', 32).erase && axCell(wAl, 'mcats', 33).erase,
+        `32=${axCell(wAl, 'mcats', 32).erase} 33=${axCell(wAl, 'mcats', 33).erase}`);
+      check('Und an der Zeile ohne englischen Eintrag steht es nicht',
+        !axCell(wAl, 'mcats', 31).erase, 'ein ✕ an einer Zeile ohne Eintrag');
+      /* UND DER VERMERK IST NICHT VERSCHWUNDEN, sondern richtig: 31 hat kein
+         Englisch und faellt auf Deutsch zurueck. Ohne diese Zeile bliebe die
+         Gruppe auch dann gruen, wenn die Reparatur ALLE Vermerke wegnaehme. */
+      check('Und der Vermerk steht weiter da, wo wirklich nichts eingetragen ist',
+        axMarkOk(axCell(wAl, 'mcats', 31).mark, 'Deutsch', 'English'),
+        JSON.stringify(axCell(wAl, 'mcats', 31).mark));
+
+      /* ---- DIE VIER UMSCHALTER LAUFEN SYNCHRON — 0.25.2 ----------------
+         DER BETREIBER: „bei den 3 kacheln laufen die sprachumschalter der
+         pilen syncron mit aber der von vokabular nicht. bitte alle
+         syncronisieren."
+         BIS 0.25.1 GAB ES ZWEI ANGABEN (`NAMES_SHOWN` und `VOCABULARY_SHOWN`)
+         ueber dieselbe Frage. Geprueft wird in BEIDE Richtungen: eine Angabe,
+         die nur einer Seite folgt, waere wieder zwei. */
+      /* GESCHALTET WIRD AUF EINE SPRACHE, DIE NICHT DIE DES LESERS IST.
+         Der erste Entwurf schaltete auf Türkçe -- und weil der Leser Türkisch
+         liest, faellt jede kaputte Reihe genau dorthin zurueck. Die Zusage war
+         damit von „laeuft mit" nicht zu unterscheiden; der gefahrene Rueckbau
+         790 hat es gezeigt (er machte nur die Gegenrichtung rot). */
+      await axPress(wAl, 'ncatlang', 'Deutsch');
+      check('Gleichlaufprobe: ein Klick an der Kategorienkachel zieht alle vier Reihen mit',
+        ['ncatlang', 'mcrits-lang', 'mpcrits-lang', 'vlang']
+          .every(id => alReihe(id) === 'Deutsch'), alAlle());
+      /* UND ANDERSHERUM — das war die Richtung, die nicht ging. */
+      await axPress(wAl, 'vlang', 'English');
+      check('Und andersherum: ein Klick an der Vokabelkachel zieht die drei Namenskarten mit',
+        ['ncatlang', 'mcrits-lang', 'mpcrits-lang', 'vlang']
+          .every(id => alReihe(id) === 'English'), alAlle());
+      wAl.close();
+
+      /* UND ES GIBT WIRKLICH NUR EINE ANGABE. Zwei, die zufaellig gleich
+         laufen, sind kein Gleichlauf — sie sind zwei, die noch nicht
+         auseinandergelaufen sind (Stolperstein 47). */
+      const alQuelle = fs.readFileSync(path.join(__dirname, 'public', 'app.js'), 'utf8');
+      check('Und es gibt nur EINE Angabe dafür — VOCABULARY_SHOWN ist weg',
+        !/VOCABULARY_SHOWN\s*=/.test(alQuelle) && !/vocabularyLanguage\s*\(/.test(alQuelle),
+        'im Quelltext steht noch eine zweite Angabe');
+    }
     /* ================= „Backup" heisst auf Tuerkisch yedekleme — 0.25.1 ===
        DER BETREIBER AM 10. September 2026: „türkcede backup icin yedek
        kelmiesi kullanmisin. galiba ona daha cok yedekleme denir" -- und nach

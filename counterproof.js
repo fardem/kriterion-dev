@@ -7603,6 +7603,50 @@ const REGRESSIONS = [
     search: "\"card.lastBackup\": \"Son yedekleme\"",
     replacement: "\"card.lastBackup\": \"Son yedek\"",
     expected: '„Backup" heisst auf Tuerkisch yedekleme — 0.25.1'
+  },
+  {
+    /* ================= 0.25.2 =========================================
+       DER STEMPEL DES SERVERS REIST WIEDER MIT. Das ist der gemeldete
+       Zustand: auf der Pille „Deutsch" steht der Punkt, und darunter
+       behauptet jede Zeile, fuer Deutsch sei nichts eingetragen -- weil der
+       Vermerk aus der Sprache des LESERS stammt und mit der Sprache der
+       PILLE beschriftet wird. */
+    nr: '788', name: 'Der Stempel des Servers reist wieder mit',
+    file: 'public/app.js',
+    search: "    if (hit.from === code) return { ...z, name: hit.name, nameFallback: undefined };",
+    replacement: "    if (hit.from === code) return { ...z, name: hit.name };",
+    expected: 'Ein Leser, der anders liest — 0.25.2'
+  },
+  {
+    /* UND DIE ZWEITE ANGABE STEHT WIEDER IM QUELLTEXT. Sie tut dann nichts --
+       und genau das ist der Punkt: eine Angabe, die dieselbe Frage beantwortet
+       und noch niemand liest, ist der Anfang, nicht das Ende (Stolperstein 47).
+       Der Waechter ueber den Quelltext muss sie finden.
+
+       DER ERSTE ENTWURF ZIELTE AUF DIE KLICKWEICHE und liess den
+       Vokabelumschalter ins Leere schreiben. ER HAT DEN LAUF ABGERISSEN
+       („Cannot convert undefined or null to object"): aeltere Gruppen schalten
+       die Kachel um und rechnen danach mit dem, was dort steht -- ohne
+       Umschalten greifen sie ins Leere. Ein Rueckbau, der den Lauf
+       niederreisst, belegt nichts (dieselbe Lage wie 760 in 0.25.0). Und er
+       war ohnehin ueberfluessig: mit EINER Angabe gibt es keine zwei
+       Richtungen, die getrennt kaputtgehen koennten -- 790 nimmt sie beide. */
+    nr: '789', name: 'Die zweite Angabe steht wieder im Quelltext',
+    file: 'public/app.js',
+    search: "let NAMES_SHOWN = null;",
+    replacement: "let NAMES_SHOWN = null;\nlet VOCABULARY_SHOWN = null;",
+    expected: 'Ein Leser, der anders liest — 0.25.2'
+  },
+  {
+    /* UND ER LIEST WIEDER SEINE EIGENE. Die andere Haelfte desselben
+       Gleichlaufs: wer schreibt, aber woanders liest, bewegt sich nicht mit,
+       wenn eine NACHBARKACHEL umschaltet. Zwei Rueckbauten, weil es zwei
+       Richtungen sind. */
+    nr: '790', name: 'Der Vokabelumschalter liest wieder seine eigene Angabe',
+    file: 'public/app.js',
+    search: "      b.className = 'pill' + (namesLanguage() === a.code ? ' on' : '');",
+    replacement: "      b.className = 'pill' + (LANGUAGE === a.code ? ' on' : '');",
+    expected: 'Ein Leser, der anders liest — 0.25.2'
   }
 ];
 
