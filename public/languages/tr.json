@@ -588,7 +588,6 @@
     "other": "{n} oturum bitirildi"
   },
   "card.sessionsHint": "Hesabının giriş yapmış olduğu bütün tarayıcılar ve cihazlar. Cihaz ve yer saklanmaz.",
-  "card.setByAdmin": "Bunu yönetici ayarlar.",
   "card.setPasswordFor": "„{username}“ için parola ayarla",
   "card.settingsHint": "Hesabın ve verilerin için ayarlar.",
   "card.settingsHintAll": "Hesabın, verilerin ve kurulum için ayarlar.",
@@ -718,6 +717,7 @@
   "card.weight": "(ağırlık 1,5),",
   "card.weightHint": "bir ölçütün ortalamaya ne kadar güçlü girdiğini belirler; 1'de hepsi eşit sayılır.",
   "card.weightRangeHint": "0,2 ile 2 arası mümkündür — öneriler yalnızca en sık kullanılan değerlerdir.",
+  "card.weightSystemDefault": "Ağırlıklar sistem varsayılanıdır.",
   "card.weightSaved": "Ağırlık kaydedildi",
   "card.whileSignupOn": ", kayıt olmaya izin verildiği sürece.",
   "card.withoutKeyFrom": "Şuradaki anahtar olmadan:",
@@ -727,7 +727,7 @@
   "card.withoutPhotosSize": "fotoğrafsız yaklaşık {withoutPhotos}",
   "card.withoutServerSetting": "Sunucu ayarı olmadan",
   "card.withoutVideosHint": "Videolardaki işaret olmadan çoğunlukla yeterince küçük olurlar.",
-  "card.withPhotos": "fotoğraflarla",
+  "card.withPhotos": "Fotoğraflarla (~",
   "card.wordsMissing": {
     "one": "1 sözcük",
     "other": "{n} sözcük"

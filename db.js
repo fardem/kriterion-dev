@@ -823,10 +823,24 @@ const db = open(DB_FILE);
    `ı` und `İ` kommen dort nicht vor. Gemessen: von neun gewoehnlichen
    tuerkischen Suchfaellen gingen vorher fuenf ins Leere, danach keiner.
 
-   `ß` GEGEN `ss` STEHT AUSDRUECKLICH NICHT HIER. „UEBERGROSS" findet
-   „uebergroß" heute nicht und nachher auch nicht; das ist ein eigener Fall,
-   er betrifft Deutsch und nicht Tuerkisch, und er steht in
-   Doku/Fehler_und_Ideen.md.
+   UND SEIT 0.26.0 FALLEN `ß` UND `ss` AUF DASSELBE -- Befund 6. Der Grund war
+   nie Nachlaessigkeit, sondern Unicode: `'UEBERGROSS'.toLowerCase()` ist
+   `'uebergross'` mit zwei s, im Bestand steht `uebergroß` mit `ß`, und ein
+   kleines `ß`, das aus `SS` zurueckkaeme, gibt es nicht. Die Faltung war
+   richtig; sie hatte nur keine Seite, auf der sich die beiden treffen.
+   HIER TREFFEN SIE SICH AUF `ss`, und zwar NACH `toLowerCase()`: das grosse
+   `ẞ` (U+1E9E) ist dann schon ein `ß` und faellt mit.
+   DER PREIS STEHT DANEBEN UND IST BEZAHLT (F7 des Auftrags 0.26.0): „Masse"
+   findet damit auch „Maße", „Busse" auch „Buße". Das ist kein Nebeneffekt,
+   sondern dieselbe Gleichsetzung, von der anderen Seite gelesen -- fuer eine
+   SUCHE die richtige Seite des Irrtums, denn wer sucht, will lieber eine Zeile
+   zu viel sehen als eine zu wenig.
+   FUER EINEN VERGLEICH WAERE SIE FALSCH, und der Vergleich der Namen ist eine
+   andere Funktion und bleibt es. Wer hier etwas aendert, aendert die SUCHE.
+   0.24.4 HAT DIESEN FALL AUSDRUECKLICH AUSGENOMMEN -- er betrifft Deutsch und
+   nicht Tuerkisch, und eine Runde, die schon zwei Fehler an derselben Funktion
+   repariert, nimmt keinen dritten mit. Seither ist er billiger: die Faltung
+   steht an EINER Stelle, und beide Haelften der Suche rufen sie.
 
    SIE GEHOERT HIERHER UND NICHT IN server.js: SQLite ruft sie ueber kkl() bei
    jeder Zeile, und die Nadel muss DIESELBE Funktion rufen -- nicht eine, die
@@ -838,7 +852,8 @@ const db = open(DB_FILE);
    fehlende Beschreibung waere damit kein "kein Treffer", sondern ein Wert,
    mit dem sich nicht rechnen laesst. */
 const searchFold = (s) => (s === null || s === undefined ? ''
-  : String(s).toLowerCase().replace(/\u0307/g, '').replace(/\u0131/g, 'i'));
+  : String(s).toLowerCase().replace(/\u0307/g, '').replace(/\u0131/g, 'i')
+      .replace(/\u00df/g, 'ss'));
 
 /* kkl() -- DIE FALTUNG, IN SQL EINGEHAENGT.
    SQLites lower() faltet AUSSCHLIESSLICH ASCII: lower('Ü') bleibt

@@ -1212,10 +1212,16 @@ mark {
 .drop input { display: none; }
 
 .title-line { display: flex; align-items: flex-start; gap: 10px; }
+/* SEIT 0.26.0 IST DAS EIN TEXTBEREICH UND KEIN EINZEILIGES FELD -- Befund 3a.
+   `display: block` nimmt ihm die Grundlinie, an der ein Textbereich sonst ein
+   paar Pixel Luft unter sich haengen laesst; `overflow: hidden` haelt den
+   Bildlaufbalken fern, den `autoGrow()` ohnehin ueberfluessig macht -- die
+   Hoehe kommt aus dem Inhalt. Alles Uebrige steht unveraendert wie am Feld. */
 .title-in {
   flex: 1; font-size: 1.6rem; font-weight: 640; letter-spacing: -.032em; color: var(--text);
   background: transparent; border: 1px solid transparent; border-radius: var(--r-sm);
   padding: 5px 8px; margin: -5px 0 0 -8px; line-height: 1.28;
+  display: block; overflow: hidden;
   transition: background .15s var(--ease), border-color .15s var(--ease);
 }
 .title-in:hover { background: var(--surface); border-color: var(--line); }
@@ -1961,15 +1967,23 @@ mark {
    72,55 sind 5,8. Gemeldet mit Bild -- „er hat nach unten hin Platz bis zum
    Boden und koennte ihn nutzen": unter der Liste standen 453 von 1054,92
    Pixeln leer.
-   55.23rem SIND ZEHN SITZUNGSZEILEN UND DIE FUSSZEILE: 10 x 72,55 = 725,5, dazu
-   die 102,88 der `.session-foot`, die INNERHALB der Liste steht -- zusammen 828,38
-   Pixel bei Wurzelschrift 15. Ohne die Fusszeile im Deckel muesste man an zehn
-   Sitzungen vorbeirollen, um den Knopf darunter zu sehen.
+   48.37rem SIND ZEHN SITZUNGSZEILEN UND SONST NICHTS: 10 x 72,55 = 725,5 Pixel
+   bei Wurzelschrift 15, also 48,367rem.
+   BIS 0.26.0 STANDEN HIER 55.23rem, UND DIE ZAHL RECHNETE DIE FUSSZEILE MIT
+   (725,5 + 102,88 = 828,38). Sie musste es, weil die Fusszeile INNERHALB der
+   Liste stand. Das ging so lange gut, wie eine Sitzungszeile wirklich 72,55
+   Pixel misst -- gemessen auf einem BREITEN Schirm. Auf einem schmalen ist sie
+   hoeher, zehn Zeilen samt Fusszeile passten nicht mehr darunter, und heraus
+   fiel die Fusszeile mitsamt ihrem Knopf (Befund 2).
+   SEIT 0.26.0 STEHT DIE FUSSZEILE ALS GESCHWISTER DANEBEN -- `#msessions-foot`
+   in `cardSessions()`. Der Deckel deckelt damit nur noch Zeilen, und die Zahl
+   sagt wieder, was sie meint. Wird eine Zeile hoeher als gerechnet, rollt die
+   Liste eine Zeile frueher; die Fusszeile steht davon unberuehrt darunter.
    DER WEG UEBER DIE NUMMER UND NICHT UEBER `:has()`: welche Zeilen eine Liste
    traegt, weiss das Stilblatt nicht, und ein Waehler, auf den erst seit ein
    paar Jahren Verlass ist, hat diese Instanz schon einmal Leerraum gekostet
    (Stolperstein 256). `#ex-part-list` weiter unten macht es genauso. */
-#msessions { max-height: 55.23rem; }
+#msessions { max-height: 48.37rem; }
 
 /* DIE AUSNAHME, UND SIE STEHT ALS SATZ DA. Die Teileliste des Exports ist die
    einzige, die kurz bleiben soll: sie steht MITTEN in ihrer Karte -- ueber ihr
@@ -2518,7 +2532,26 @@ body.lb-open { overflow: hidden; }
   letter-spacing: .05em; border-bottom-color: var(--line); }
 .calc-head > span:not(:first-child) { font-family: inherit; font-size: .74rem; }
 .calc-sum > span { color: var(--text-2); }
-.calc-sum:first-of-type > span { border-top: 1px solid var(--line); }
+/* DER STRICH VOR DEN SUMMEN -- Befund 4 der Runde 0.26.0.
+   HIER STAND EINE REGEL, DIE `.calc-sum` MIT `:first-of-type` VERBAND und den
+   Spans einen `border-top` gab -- ausgeschrieben steht sie im Auftrag, hier
+   ausdruecklich nicht, damit die Zusage des Pruefstands („der Wortlaut steht
+   nirgends mehr im Stilblatt") sie nicht in ihrem eigenen Nachruf findet.
+   SIE HAT NIE GEGRIFFEN: `:first-of-type` zaehlt DIV-Geschwister, und das
+   erste `div` im Raster ist `.calc-row.calc-head`. Der Strich, den man
+   sieht, kam die ganze Zeit aus dem `border-bottom` der Zeile darueber --
+   deshalb ist es niemandem aufgefallen.
+   WARUM NICHT `:not(.calc-sum) + .calc-sum`, DER VORSCHLAG DES AUFTRAGS: die
+   Zeile darueber zieht ihren `border-bottom` weiter, ein `border-top` an der
+   Summenzeile kaeme DAZU -- aus einem Strich wuerden zwei Pixel in zwei
+   Farben. Wegnehmen liesse sich der untere nur mit `:has()`, und dagegen hat
+   diese Datei sich schon einmal ausdruecklich entschieden (siehe `#msessions`).
+   DESHALB DER UMGEKEHRTE WEG, UND ER IST DIE EINE ABWEICHUNG VOM VORSCHLAG:
+   die letzte Kriterienzeile faerbt den Strich, den sie ohnehin zieht, staerker.
+   EIN Strich statt zwei, und der Kasten sieht aus, wie die tote Regel es
+   gemeint hat. Preis: eine Klasse im Markup (`calc-last`, gesetzt in
+   `public/app.js`) -- die der Vorschlag sparen wollte. */
+.calc-last > span { border-bottom-color: var(--line); }
 .calc-result > span { font-weight: 640; color: var(--text); border-bottom: 0; }
 /* DIE VERGLEICHSZAHL OHNE GEWICHTE -- 0.17.0. Sie steht UNTER dem Ergebnis und
    ist ihm untergeordnet: gedaempft, ohne den fetten Schnitt. Der Strich
@@ -2573,11 +2606,29 @@ body.lb-open { overflow: hidden; }
   position: absolute; transform: translateX(-50%); top: 3px;
   font-family: var(--mono); font-size: .63rem; color: var(--timeline-year); white-space: nowrap;
 }
+/* DER KASTEN IST GEDECKELT UND BRICHT UM -- Befund 5 der Runde 0.26.0.
+   HIER STAND `white-space: nowrap`, und der Kasten steht mittig ueber seinem
+   Punkt (`transform: translateX(-50%)`). Ein langer Eintragstitel machte ihn
+   beliebig breit, und am rechten Ende der Achse ragte er hinaus.
+   DIE DECKELUNG IST DER GANZE EINGRIFF, und das ist ausdruecklich entschieden:
+   ein Anschlag an den Rand der Leiste waere die vollstaendige Loesung -- er
+   muesste nach dem Anhaengen messen und `left` nachrechnen -- und ist teurer
+   als der Befund. Er trifft nur ein schmales Fenster mit Maus: auf dem Finger
+   gibt es den Hinweis gar nicht, dort oeffnet die Beruehrung gleich den
+   Eintrag.
+   ZWEI MASSE UND NICHT EINES: `14rem` deckelt den Kasten in Zeilen, damit ein
+   langer Titel umbricht statt zu wachsen; `46%` deckelt ihn an der ACHSE, denn
+   der Ueberhang ist die halbe Kastenbreite -- 46% der Achse heisst hoechstens
+   23% Ueberhang, auch auf einem schmalen Schirm. Das kleinere der beiden
+   gewinnt.
+   `overflow-wrap: anywhere` FAENGT DEN EINEN FALL AB, den der Umbruch sonst
+   nicht kann: einen Titel aus einem einzigen langen Wort ohne Trennstelle. */
 .timeline-hint {
   position: absolute; bottom: 100%; transform: translateX(-50%);
   margin-bottom: -6px; padding: 7px 10px; z-index: var(--z-timeline-hint); pointer-events: none;
   background: var(--surface-2); border: 1px solid var(--line); border-radius: var(--r-sm);
-  display: flex; flex-direction: column; gap: 2px; white-space: nowrap;
+  display: flex; flex-direction: column; gap: 2px;
+  max-width: min(14rem, 46%); overflow-wrap: anywhere;
   box-shadow: var(--sh-menu);
 }
 .timeline-hint strong { font-size: .83rem; font-weight: 600; }

@@ -5089,8 +5089,19 @@ async function renderDetail(id, termAddress) {
       <div>
         <div class="viewer" id="viewer"></div>
         <div class="thumbs" id="thumbs"></div>
-        <label class="drop" id="drop"><input type="file" id="file" accept="image/*,video/*" multiple>
-          ${tH('entry.addMediaHint')}</label>
+        ${/* DER HINWEISTEXT STEHT IN EINEM EIGENEN SPAN -- Befund 1 der Runde
+             0.26.0. uploadFiles() tauschte ihn ueber `drop.textContent`, und
+             das wirft ALLE Kinder des Labels weg: den Text UND das Dateifeld
+             darin. Am Ende kam der Text zurueck, das Feld nicht -- ein Label
+             ohne Feld hat nichts zu oeffnen, und der `onchange` hing an einem
+             Element, das nicht mehr im Baum stand. Strg+V ging die ganze Zeit
+             weiter, weil der Einfuegeweg am `document` haengt und das Feld gar
+             nicht braucht, und F5 heilte es -- deshalb ist es nie als Fehler
+             gemeldet worden, sondern als Eigenart.
+             NICHT `innerHTML` NEU SETZEN: dann waere der `onchange` wieder weg,
+             nur eine Ebene spaeter. */''}
+        <label class="drop" id="drop"><input type="file" id="file" accept="image/*,video/*" multiple><span
+          id="drop-text">${tH('entry.addMediaHint')}</span></label>
         ${/* EIN SATZ UND KEIN ABSATZ -- 0.22.0. Bis 0.21.1 standen hier fuenf
              Saetze (Vollbild, Blaettern, Papierkorb, Standbild): was ein Knopf
              tut, sagt sein Tooltip. Die Grenze fuer Videos bleibt, weil man
@@ -5115,7 +5126,19 @@ async function renderDetail(id, termAddress) {
              dort keine einzige Regel. */''}
         <div class="title-head">
           <div class="title-line">
-            <input class="title-in" id="title" value="${esc(item.title)}">
+            ${/* EIN MITWACHSENDES FELD UND KEIN EINZEILIGES -- Befund 3a der
+                 Runde 0.26.0. Hier stand ein `<input>`, und ein `<input>`
+                 bricht NICHT um: ein langer Titel lief rechts aus dem Feld
+                 heraus und war auf dem Telefon nicht zu lesen -- auf dem
+                 Geraet also, an dem man ihn am ehesten sucht.
+                 KEINE ZEILE IM STILBLATT KANN DAS: dass ein `<input>` nicht
+                 umbricht, ist seine Bauart und keine Regel. Der Auftrag hat
+                 das Stilblatt genannt; die Abweichung steht im
+                 Aenderungsprotokoll.
+                 DIE MASCHINERIE STEHT SEIT LANGEM DA -- `autoGrow()`, dasselbe
+                 wie an der Beschreibung darunter. Die Hoehe kommt aus dem
+                 Inhalt, der Ziehgriff faellt weg (`.ta-auto`). */''}
+            <textarea class="title-in" id="title" rows="1">${esc(item.title)}</textarea>
             <button class="pin-btn${item.favorite ? ' on' : ''}" id="pin" title="${item.favorite ? t('entry.unmarkFavorite') : t('entry.markFavorite')}">${item.favorite ? '★' : '☆'}</button>
           </div>
           <div class="hint hint-sm author-row" id="iauthor" hidden></div>
@@ -5819,9 +5842,12 @@ async function renderDetail(id, termAddress) {
     if (!files.length) return;
     const images = files.filter(f => !/^video\//.test(f.type));
     const videos = files.filter(f => /^video\//.test(f.type));
-    const drop = document.getElementById('drop');
-    const old = drop.textContent;
-    drop.textContent = t('entry.uploading');
+    /* NUR DER TEXT WANDERT, NICHT DAS FELD -- Befund 1. Getauscht wird der
+       Text des eigenen `<span>`; das Dateifeld bleibt, wo es steht, und mit
+       ihm sein `onchange`. */
+    const dropText = document.getElementById('drop-text');
+    const old = dropText.textContent;
+    dropText.textContent = t('entry.uploading');
     let finished = 0;
     try {
       if (images.length) {
@@ -5831,9 +5857,9 @@ async function renderDetail(id, termAddress) {
         finished += images.length;
       }
       for (const f of videos) {
-        drop.textContent = t('entry.thumbBuilding');
+        dropText.textContent = t('entry.thumbBuilding');
         const { image, duration } = await stillFrame(f);
-        drop.textContent = t('entry.uploading');
+        dropText.textContent = t('entry.uploading');
         const fd = new FormData();
         fd.append('video', f, f.name);
         fd.append('stillFrame', image, 'stillframe.jpg');
@@ -5851,7 +5877,7 @@ async function renderDetail(id, termAddress) {
       // Was schon durchging, ist durch -- die Anzeige muss es zeigen.
       if (finished) { drawViewer(); drawThumbs(); }
     }
-    drop.textContent = old;
+    dropText.textContent = old;
   }
 
   document.getElementById('file').onchange = e => { uploadFiles([...e.target.files]); e.target.value = ''; };
@@ -6208,8 +6234,16 @@ async function renderDetail(id, termAddress) {
 
   /* ---- Texte ---- */
   const titleEl = document.getElementById('title');
+  /* EIN TITEL HAT KEINE ZEILEN -- Befund 3a. Er DARF umbrechen, wo der Platz
+     endet, und er soll keinen Umbruch TRAGEN: die Eingabetaste beendet ihn,
+     wie sie es im Feld davor tat, und ein eingefuegter Absatz wird beim
+     Speichern zu einem Leerzeichen. Das Feld zeigt danach, was gespeichert
+     ist -- sonst stuenden zwei Wahrheiten in derselben Zeile. */
+  titleEl.onkeydown = e => { if (e.key === 'Enter') { e.preventDefault(); titleEl.blur(); } };
+  const titleFit = autoGrow(titleEl);
   titleEl.onblur = async () => {
-    const v = titleEl.value.trim();
+    const v = titleEl.value.replace(/[\r\n]+/g, ' ').trim();
+    if (titleEl.value !== v) { titleEl.value = v; titleFit(); }
     if (!v || v === item.title) return;
     try { item = await api('PUT', `/api/items/${id}`, { title: v }); toast(t('list.saved')); }
     catch (e) { toast(e.message, true); }
@@ -6641,7 +6675,11 @@ async function renderDetail(id, termAddress) {
           : t('entry.calcAllEqual')}.</p>
       <div class="calc" id="calc">
         <div class="calc-row calc-head"><span>${tH('entry.criterion')}</span><span>${tH('entry.grade')}</span><span>${tH('entry.weight')}</span><span>${tH('entry.calcGradeWeight')}</span></div>
-        ${removed.rows.map(z => `<div class="calc-row" data-krit="${Number(z.criterionId)}">
+        ${/* DIE LETZTE KRITERIENZEILE HEISST SO -- Befund 4. Sie zieht den
+             Strich vor den Summen; das Stilblatt faerbt ihn dort staerker.
+             Ohne Kriterien gibt es sie nicht, und dann grenzt der Kopf mit
+             seinem eigenen Strich an die Summen. */''}
+        ${removed.rows.map((z, i) => `<div class="calc-row${i === removed.rows.length - 1 ? ' calc-last' : ''}" data-krit="${Number(z.criterionId)}">
           <span class="calc-name">${esc(names.get(z.criterionId) || '—')}</span>
           <span>${esc(weightNumber(z.average))}</span>
           <span>× ${esc(weightNumber(z.weight))}</span>
@@ -8376,6 +8414,24 @@ function cardSessions() {
         <h3>${tH('card.mySessions')}</h3>
         <p class="desc">${tH('card.sessionsHint')}</p>
         <div class="manage-list" id="msessions"></div>
+        ${/* DIE FUSSZEILE STEHT NEBEN DER LISTE UND NICHT DARIN -- Befund 2 der
+             Runde 0.26.0. Bis dahin haengte `drawSessions()` sie als letztes
+             Kind IN `#msessions`, und der Deckel dieser Liste rechnete sie mit.
+             Auf einem schmalen Schirm ist eine Sitzungszeile hoeher als die
+             72,55 Pixel, mit denen gerechnet wurde -- dann passten zehn Zeilen
+             samt Fusszeile nicht mehr darunter, und HERAUS fiel die Fusszeile:
+             der Satz brach mitten in der Zeile ab, und der Knopf „Andere
+             Sitzungen beenden" stand gar nicht mehr da. Erreichbar war er nur
+             ueber einen Bildlauf, den von aussen niemand als solchen erkennt.
+             ALS GESCHWISTER DECKELT DER DECKEL NUR NOCH ZEILEN: die Liste
+             rollt, Kopf und Fuss stehen immer da. Der Grund, aus dem 0.17.3 die
+             Fusszeile in den Deckel rechnete („sonst muesste man an zehn
+             Sitzungen vorbeirollen, um den Knopf zu sehen"), faellt damit weg
+             -- ausserhalb der rollenden Liste ist er ohne Rollen zu sehen.
+             UND SIE STEHT AN DIESER EINEN KARTE UND NICHT AN `.manage-list`:
+             die sechs anderen Listen haben keine Fusszeile, und eine Regel, die
+             nirgends sonst greift, gehoert nicht in die gemeinsame. */''}
+        <div class="session-foot" id="msessions-foot"></div>
       </div>`;
 }
 function setUpSessionsOut(fetched) {
@@ -8394,9 +8450,13 @@ function setUpSessionsOut(fetched) {
     const box = document.getElementById('msessions');
     if (!box) return;
     const doc = box.ownerDocument;
+    const foot = doc.getElementById('msessions-foot');
     const list = (d && Array.isArray(d.sessions)) ? d.sessions : null;
     if (!list) {
       box.innerHTML = `<span class="hint">${tH('card.loginsLoadFailed')}</span>`;
+      // UND DIE FUSSZEILE MIT -- sie steht seit Befund 2 ausserhalb der Liste
+      // und wuerde sonst die Zahl der letzten geglueckten Abfrage weitertragen.
+      if (foot) foot.innerHTML = '';
       return;
     }
     box.innerHTML = '';
@@ -8426,15 +8486,13 @@ function setUpSessionsOut(fetched) {
        vier sieht, weiss genug -- und das Heilmittel ist der eine Knopf
        daneben. Steht keine andere da, steht auch kein Knopf: einer, der
        zuverlaessig nichts tut, sieht aus wie ein Fehler. */
-    const foot = doc.createElement('div');
-    foot.className = 'session-foot';
+    if (!foot) return;
     foot.innerHTML = other
       ? `<p class="desc" style="margin:10px 0 8px">${tH('card.besidesThisOne')} <strong>${
           tH('card.moreSessions', { n: other })}</strong> ${tH('card.sessionsDot', { n: other })}
           ${tH('card.sessionExpiresIn')} ${d.days || 30} ${tH('card.sessionIdleHint')}</p>
          <button class="btn btn-sm" id="sessions-all">${tH('card.endOtherSessions')}</button>`
       : `<p class="desc" style="margin:10px 0 0">${tH('card.thisIsThe')} <strong>${tH('card.only')}</strong> ${tH('card.sessionOfAccount')}</p>`;
-    box.appendChild(foot);
     const all = doc.getElementById('sessions-all');
     if (all) all.onclick = async () => {
       if (!await confirmBox(t('card.endSessionsAsk'), t('card.thisSessionStays'), t('card.end'))) return;
@@ -8732,9 +8790,23 @@ function cardCriteria(phase) {
         ${ADMIN && LANGUAGES.filter(a => a.active).length > 1
           ? `<div class="pills" id="${k.list}-lang" style="margin-bottom:12px"></div>` : ''}
         <div class="manage-list" id="${k.list}"></div>
+        ${/* BEFUND 3c DER RUNDE 0.26.0 -- UND ER FAELLT ANDERS AUS, ALS DER
+             AUFTRAG VORSCHLUG. Der Vorschlag wollte den ganzen Gewichtssatz
+             hinter die Adminklemme legen (Sprachregel S5). DER BETREIBER HAT
+             AM 10. SEPTEMBER 2026 ANDERS ENTSCHIEDEN: was das Gewicht TUT,
+             liest jeder weiter -- er sieht die Marke ×1 an jedem Kriterium
+             und den Durchschnitt darunter, und der Satz erklaert damit eine
+             ANZEIGE, die vor ihm steht, und keinen Knopf, den er nicht hat.
+             S5 GREIFT DESHALB NUR AUF DIE ZWEITE HAELFTE, und die war schon
+             geklemmt -- sie sagte nur das Falsche: „Eingestellt wird es vom
+             Admin" beschrieb einen Knopf. Sie sagt jetzt, was der Benutzer
+             wirklich wissen muss: dass die Gewichte eine SYSTEMVORGABE sind.
+             `card.setByAdmin` FAELLT DAMIT NAMENTLICH WEG, in allen drei
+             Sprachdateien; `card.weightSystemDefault` steht an seiner Stelle,
+             an derselben Zeile in allen dreien. Die Zahl der Saetze bleibt. */''}
         <p class="desc" style="margin:10px 0 0">${tH('card.the')} <strong>${tH('entry.weight')}</strong> ${tH('card.weightHint')} ${ADMIN
             ? t('card.weightRangeHint')
-            : t('card.setByAdmin')}</p>
+            : t('card.weightSystemDefault')}</p>
         <!-- Ein Textfeld MIT Vorschlagsliste, kein Auswahlfeld: feste Stufen decken 0,2 bis 2 nicht
              ab, und ein Eintrag "anderer Wert ..." waere ein Moduswechsel -- erst waehlen, dann
              tippen, zwei Bedienformen fuer dieselbe Sache. Dasselbe Muster wie die Tageingabe am
@@ -11894,9 +11966,19 @@ function cardExport(fetched) {
              GERECHNET WIRD AN EINER STELLE, in exportSum(); die Warnung
              darunter liest dieselbe Zahl. Zwei Rechenwege naennten frueher oder
              spaeter zwei Groessen fuer dieselbe Datei. */''}
+        ${/* EIN KIND JE KNOPF UND NICHT DREI -- Befund 3b der Runde 0.26.0.
+             `.btn` ist `inline-flex` mit `gap: 7px`. Text, Zahl und Klammer
+             standen als DREI Flexkinder nebeneinander, und der Abstand setzte
+             sich zwischen sie: „Mit Fotos (~ 301,5 KB )". Das Leerzeichen kam
+             also aus dem Raster und nicht aus dem Text -- wer im Woerterbuch
+             danach suchte, fand nichts.
+             DER GEMEINSAME TRAEGER LOEST ES, ohne `gap` anzuruehren: der
+             Abstand gehoert den Knoepfen mit Zeichen davor und bleibt ihnen.
+             Innerhalb des Traegers steht wieder gewoehnlicher Fliesstext, und
+             der traegt genau die Leerzeichen, die jemand geschrieben hat. */''}
         <div class="row-in">
-          <button class="btn btn-accent btn-sm" id="ex-yes">${tH('card.withPhotos')}<span id="ex-gr-yes">…</span>)</button>
-          <button class="btn btn-sm" id="ex-no">${tH('card.withoutPhotos')}<span id="ex-gr-no">…</span>)</button>
+          <button class="btn btn-accent btn-sm" id="ex-yes"><span>${tH('card.withPhotos')}<span id="ex-gr-yes">…</span>)</span></button>
+          <button class="btn btn-sm" id="ex-no"><span>${tH('card.withoutPhotos')}<span id="ex-gr-no">…</span>)</span></button>
         </div>
         <label class="ex-files"><input type="checkbox" id="ex-files">
           ${tH('card.includeFiles')}${fmtBytes((stats.export?.attachments || 0) + (stats.export?.commentImages || 0))})</label>

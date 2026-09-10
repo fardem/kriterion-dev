@@ -588,7 +588,6 @@
     "other": "{n} Sitzungen beendet"
   },
   "card.sessionsHint": "Alle Browser und Geräte, in denen dein Konto angemeldet ist. Gerät und\n          Ort werden nicht gespeichert.",
-  "card.setByAdmin": "Eingestellt wird es vom Admin.",
   "card.setPasswordFor": "Passwort für „{username}“ setzen",
   "card.settingsHint": "Einstellungen für dein Konto und den Bestand.",
   "card.settingsHintAll": "Einstellungen für dein Konto, den Bestand und die Installation.",
@@ -718,6 +717,7 @@
   "card.weight": "(Gewicht 1,5),",
   "card.weightHint": "bestimmt, wie stark ein\n          Kriterium in den Durchschnitt eingeht; bei 1 zählen alle gleich.",
   "card.weightRangeHint": "Möglich ist 0,2 bis 2 — die Vorschläge sind nur die häufigsten Werte.",
+  "card.weightSystemDefault": "Die Gewichte sind eine Systemvorgabe.",
   "card.weightSaved": "Gewicht gespeichert",
   "card.whileSignupOn": ", solange die Registrierung erlaubt ist.",
   "card.withoutKeyFrom": "Ohne den Schlüssel aus der",
@@ -727,7 +727,7 @@
   "card.withoutPhotosSize": "ohne Fotos rund {withoutPhotos}",
   "card.withoutServerSetting": "Ohne die Server-Einstellung",
   "card.withoutVideosHint": "Ohne das Häkchen an den Videos werden sie meist klein genug.",
-  "card.withPhotos": "mit Fotos",
+  "card.withPhotos": "Mit Fotos (~",
   "card.wordsMissing": {
     "one": "1 Vokabelwort",
     "other": "{n} Vokabelwörter"

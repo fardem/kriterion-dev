@@ -4257,15 +4257,34 @@ const oneLine = (s) => String(s ?? '').replace(/\s+/g, ' ').trim();
    GEFALTET WIRD ZEICHEN FUER ZEICHEN, und das ist keine Zierde: `İ` faellt
    ueber searchFold() auf EIN Zeichen, `toLowerCase()` allein machte zwei
    daraus (i + U+0307), und jede Stelle dahinter waere um eins verschoben --
-   der Ausschnitt schnitte mitten ins Wort. Stimmt die Laenge trotzdem nicht
-   ueberein, wird gar nicht erst gesucht; dann steht der Anfang des Textes da,
-   und das ist die Regel, die es hier schon gibt. */
+   der Ausschnitt schnitte mitten ins Wort.
+   BIS 0.25.4 STAND HIER STATTDESSEN EIN LAENGENVERGLEICH: war der gefaltete
+   Text nicht so lang wie der rohe, wurde gar nicht erst gesucht, und es stand
+   der Anfang des Textes da. Das ging, solange NICHTS die Laenge aenderte.
+   SEIT 0.26.0 AENDERT ETWAS SIE -- `ß` faellt auf `ss` (Befund 6). Mit dem
+   Laengenvergleich haette JEDER deutsche Text mit `ß` seinen Ausschnitt
+   verloren und den Anfang gezeigt: kein falscher Ausschnitt, aber ein
+   schlechterer, und zwar in der Sprache, in der die meisten Eintraege stehen.
+   DESHALB EINE RUECKABBILDUNG STATT EINES VERGLEICHS. Zu jeder Stelle des
+   gefalteten Textes steht die Stelle im rohen daneben; die Fundstelle wird
+   darueber zurueckgerechnet. Das traegt auch den Fall, den der Vergleich
+   bisher nur ABGEFANGEN hat (`İ`), und es zaehlt in UTF-16-Einheiten, weil
+   `slice()` das auch tut -- ein Zeichen ausserhalb der Grundebene ist zwei. */
 function snippet(text, term) {
   const row = oneLine(text);
   const b = String(term ?? '');
   if (!b) return row.slice(0, SNIPPET_LENGTH);
-  const flat = [...row].map(c => searchFold(c)).join('');
-  const pos = flat.length === row.length ? flat.indexOf(searchFold(b)) : -1;
+  let flat = '';
+  const back = [];
+  let raw = 0;
+  for (const c of row) {
+    const piece = searchFold(c);
+    for (let k = 0; k < piece.length; k++) back.push(raw);
+    flat += piece;
+    raw += c.length;
+  }
+  const hit = flat.indexOf(searchFold(b));
+  const pos = hit < 0 ? -1 : back[hit];
   /* GEFUNDEN WIRD SIE HIER NORMALERWEISE WIEDER -- gesucht hat SQLite auf dem
      Rohtext, geschnitten wird auf dem eingeebneten. Ein Begriff, der selbst
      einen doppelten Leerraum traegt, ist danach nicht mehr zu finden; dann
