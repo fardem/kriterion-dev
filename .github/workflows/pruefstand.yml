@@ -1,14 +1,40 @@
-# Der Pruefstand laeuft bei jedem Push und an jeder Anfrage von aussen.
+# Der Pruefstand laeuft bei jedem Push auf main.
 #
 # Bisher lief er nur, wenn jemand daran dachte. Die Schluesselwoerter sind
 # englisch, weil GitHub sie so liest; alles andere steht auf Deutsch.
 name: Pruefstand
 
-on: [push, pull_request]
+# EIN EREIGNIS, UND ES HEISST PUSH AUF main -- entschieden vom Betreiber am
+# 10. September 2026. Vorher hing der Lauf an zwei Ereignissen (Push und
+# Anfrage), und eine Bedingung am Auftrag waehlte den zweiten Lauf am selben
+# Stand ab (Weg B, 0.25.0). Die Bedingung ist damit gegenstandslos und
+# weggefallen: bei einem einzigen Ereignis gibt es keinen zweiten Lauf, den
+# sie noch abwaehlen koennte.
+#
+# WAS DAMIT WEGFAELLT, UND ES FAELLT NAMENTLICH:
+#   1. DER LAUF AUF EINEM ZWEIG DIESES REPOSITORIUMS. Ein Zweig wird nicht
+#      mehr geprueft, bevor er in main steht -- die erste Pruefung eines
+#      Standes passiert NACH dem Zusammenfuehren und nicht davor.
+#   2. DER LAUF FUER EINE ANFRAGE AUS EINEM FREMDEN ABZUG. Dort gibt es
+#      keinen Push in dieses Repository; ohne das zweite Ereignis in dieser
+#      Liste laeuft fuer sie gar nichts.
+#
+# Das ist der Preis, und er steht hier, damit ihn spaeter niemand fuer ein
+# Versehen haelt. Wer einen Stand vor dem Zusammenfuehren geprueft sehen
+# will, faehrt `npm test` oertlich -- der Pruefstand braucht GitHub nicht.
+on:
+  push:
+    branches:
+      - main
 
-# Ein neuer Push auf denselben Zweig loest den vorigen Lauf ab. Fuer ein
-# privates Repository sind die Minuten gedeckelt, und zwei Laeufe auf einen
+# Ein neuer Push auf main loest den vorigen Lauf ab. Zwei Laeufe auf einen
 # ueberholten Stand sagen nichts, was der neuere nicht besser saegte.
+#
+# UM DIE MINUTEN GEHT ES DABEI SEIT DEM 9. SEPTEMBER 2026 NICHT MEHR: das
+# Repository ist oeffentlich, und die Standardlaeufer sind damit unbegrenzt
+# kostenlos. Es bleibt eine Frage der Ordnung -- wer die Liste liest, soll
+# nicht pruefen muessen, ob zwei Eintraege zwei Staende sind oder ein Stand
+# mit zwei Laeufen.
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
@@ -16,28 +42,6 @@ concurrency:
 jobs:
   pruefen:
     runs-on: ubuntu-latest
-    # EIN LAUF JE STAND -- 0.25.0, Bauabschnitt 5 (Weg B). Ein Zweig in
-    # DIESEM Repository wird schon beim Push geprueft; die Anfrage darauf
-    # liefe ein zweites Mal ueber denselben Stand und saegte dasselbe noch
-    # einmal. Sie zeigt das Haekchen trotzdem, weil Pruefergebnisse an der
-    # COMMIT-KENNUNG haengen und nicht am Ereignis.
-    #
-    # EINE ANFRAGE AUS EINEM FREMDEN ABZUG WIRD WEITERHIN GEPRUEFT: dort gibt
-    # es keinen Push in dieses Repository, und ohne diese Zeile liefe fuer sie
-    # gar nichts.
-    #
-    # DER GRUND IST SEIT DEM 9. SEPTEMBER 2026 EIN ANDERER. Das Repository ist
-    # oeffentlich, und damit sind die Standardlaeufer bei GitHub unbegrenzt
-    # kostenlos -- die Minuten, um die es beim Beschluss ging, kosten nichts
-    # mehr. Weg B bleibt aus zwei Gruenden, die von der Rechnung unabhaengig
-    # sind: zwei Laeufe am selben Stand sagen dasselbe zweimal -- wer die Liste
-    # liest, muss jedes Mal pruefen, ob es zwei Staende oder ein Stand mit zwei
-    # Laeufen sind --, und der zweite Lauf belegt eine halbe Viertelstunde
-    # Rechenzeit fuer eine Antwort, die schon dasteht. Es ist ab jetzt eine
-    # Frage der Ordnung und nicht des Geldes.
-    if: >-
-      github.event_name != 'pull_request'
-      || github.event.pull_request.head.repo.full_name != github.repository
     steps:
       - uses: actions/checkout@v4
 

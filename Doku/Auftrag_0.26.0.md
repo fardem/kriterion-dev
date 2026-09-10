@@ -61,6 +61,19 @@ Rückbauten** · `F_ROUTES` = **72** · Austauschformat `EXCHANGE_FORMAT` = **15
 > *Gebaut wird erst, wenn jede Frage beantwortet und in diesem Papier
 > eingetragen ist* (Projektstand, Abschnitt 11).
 
+> **BEANTWORTET AM 10. SEPTEMBER 2026 — im Gespräch und einzeln durchgegangen**,
+> nicht aus der Vorschlagsspalte übernommen. *Vierte Runde unter der Regel aus
+> Abschnitt 11.*
+>
+> **EINE ANTWORT FÄLLT GEGEN DEN VORSCHLAG: F3.** *Der Schalter gehört dem
+> **Eigentümer allein** und nicht Admin und Eigentümer gemeinsam.* **Das wirkt
+> auf BA 6** — die Ablage bleibt die von `categoriesFreeCreate`, die Klemme wird
+> enger und gehört namentlich in den Prüfstand.
+>
+> **F6 IST BEANTWORTET UND NOCH NICHT ERLEDIGT:** die Beobachtung fährt der
+> Betreiber. **BA 5 wartet auf sie**; die übrigen Bauabschnitte laufen
+> unterdessen.
+
 | # | Frage | Vorschlag von Claude | Antwort |
 |---|---|---|---|
 | **F1** | **Was macht der Server mit `potentialRating`, wenn der Modus aus ist?** Ganz weglassen wäre sauber, trifft aber Export, Vergleich und Einzelansicht mit — und ein Export, dem ein Feld fehlt, ist beim Wiedereinschalten nicht mehr derselbe | **Der Server rechnet und liefert weiter; nur die Oberfläche zeigt nichts.** *Ausschalten ist Verbergen und nicht Löschen — dieselbe Zusage wie bei den Sternen. Ein Export bleibt damit vollständig, und wer wieder einschaltet, findet seinen Bestand vor.* | |
@@ -448,10 +461,18 @@ abgeschalteter Modus.*
 | **Übersicht** | die Kopfzahl **◆** an einem ungetesteten Eintrag — *auch dann, wenn schon Potenzialbewertungen in der Datenbank stehen* | `public/app.js:4211` |
 | **Systembereich** | *offen (F2)* — ob die Karte „Potenzial: Kriterien" mitverschwindet oder als Einstellort stehen bleibt | `public/app.js:8717` |
 
-**Der Schalter gehört dem Admin und in die Datenbank** — dieselbe Bauform wie
+**Der Schalter gehört in die Datenbank** — dieselbe **Ablage** wie
 `categoriesFreeCreate` und `tagsFreeCreate`, und aus demselben Grund
 *(Projektstand, Abschnitt 11: eine Einstellung, die an allen Einträgen aller
-Benutzer erscheint, gehört dem Admin und nicht in `user_settings`)*.
+Benutzer erscheint, gehört nicht in `user_settings`)*.
+
+> **ABER NICHT DIESELBE KLEMME — DAS IST DIE ANTWORT AUF F3, UND SIE FÄLLT
+> GEGEN DEN VORSCHLAG.** *Stellen kann den Schalter **der Eigentümer allein**;
+> ein Admin sieht ihn und kommt nicht daran.* **Die beiden Vorlagen taugen
+> deshalb für die Ablage und den Reiseweg, nicht für die Prüfung des Rufers** —
+> wer sie ganz abschreibt, baut eine Adminklemme, wo eine Eigentümerklemme
+> stehen soll. *Der Prüfstand bekommt dafür eine eigene Zusage: ein Admin, der
+> den Schalter am Server zu stellen versucht, wird abgewiesen.*
 
 **Die Vorlagen stehen da und sind zu lesen, bevor eine Zeile fällt:**
 `public/app.js:8669` *(`createToggle('cat-free', 'categoriesFreeCreate', …)`)*,
@@ -481,6 +502,53 @@ Stellen (`server.js:4083`, `server.js:4574`).*
 > Austauschformat bleibt bei 15** — der Export trägt `potentialRating` weiter,
 > wie F1 es vorschlägt. *Die letzte Runde, die das Schema anfassen darf, ist
 > 0.29.0; danach kommt der Bruch.*
+
+---
+
+## Im Beipack — der Prüfstand hängt nur noch an `main`
+
+> **ENTSCHIEDEN VOM BETREIBER AM 10. SEPTEMBER 2026, und schon gefahren** —
+> vor dem ersten Bauabschnitt, weil es keinen berührt.
+
+**`.github/workflows/pruefstand.yml` hängt an EINEM Ereignis: Push auf
+`main`.** *Vorher waren es zwei (Push und Anfrage), und die Bedingung am
+Auftrag wählte den zweiten Lauf am selben Stand ab — Weg B aus 0.25.0.*
+**Bei einem einzigen Ereignis hat sie nichts mehr zu entscheiden, und sie ist
+gefallen** — nicht auskommentiert, sondern weg. *Eine Bedingung, die als
+Kommentar stehenbleibt, ist genau die tote Regel, die Befund 4 dieser Runde
+meint.*
+
+**DER PREIS STEHT IN DER DATEI SELBST UND IST GENANNT, NICHT EINGEHANDELT:**
+
+| was wegfällt | Folge |
+|---|---|
+| **Der Lauf auf einem Zweig dieses Repositoriums** | ein Zweig wird **nicht mehr geprüft, bevor er in `main` steht** — die erste Prüfung eines Standes passiert **nach** dem Zusammenführen |
+| **Der Lauf für eine Anfrage aus einem fremden Abzug** | dort gibt es keinen Push in dieses Repository; ohne das zweite Ereignis läuft für sie **gar nichts** |
+
+*Wer einen Stand vorher geprüft sehen will, fährt `npm test` örtlich — der
+Prüfstand braucht GitHub nicht.*
+
+**DREI ZUSAGEN SIND MITGEGANGEN, STATT GELÖSCHT ZU WERDEN** *(Stolperstein
+201: wer eine Zeile umbaut, auf die ein Rückbau zielt, richtet den Rückbau auf
+die neue Zeile)*. **Sie bekommen keine Nummer ab 795** — die Reihe gehört den
+Befunden dieser Runde:
+
+| Zusage | Rückbau, gefahren am 10. September 2026 | Ergebnis |
+|---|---|---|
+| **„Er läuft nur bei Push auf `main`"** *(vorher: „bei push und bei pull_request")* | die alte Ereignisliste zurück | **rot** |
+| **„Die Bedingung für Weg B ist weg — auch als Kommentar"** *(vorher: „… steht da")* | die Bedingung mit `###` auskommentiert zurück *(der Versuch vom 10. September, 14:09 Uhr)* | **rot** |
+| **„Der Lauf hängt an genau EINEM Ereignis"** *(vorher: „… an Push UND Anfrage")* | ein zweites Ereignis daneben *(`workflow_dispatch`)* | **rot** |
+
+> **DIE ERSTE LIEST OHNE DIE KOMMENTARE, DIE ZWEITE MIT.** *Der Kasten in der
+> Datei nennt, was weggefallen ist; eine Probe, die das Wort dort fände, fände
+> ausgerechnet die Begründung für seinen Wegfall.* **Die zweite muss den vollen
+> Text lesen** — sonst wäre eine auskommentierte Bedingung für sie unsichtbar,
+> und genau darauf zielt sie.
+
+> **DASS ES PUSH AUF `main` IST, steht an EINER Stelle im Prüfstand** — in der
+> Gruppe „Der Prüflauf bei jedem Push". *Der Beipack von 0.25.0 hält nur noch
+> fest, dass die Bedingung weg ist und dass es bei einem Ereignis bleibt
+> (Stolperstein 47).*
 
 ---
 
@@ -570,7 +638,8 @@ Bildschirm nachgesehen** — im echten Browser, nicht im Nachbau:
 | `Doku/Projektstand_Kriterion_0_26_0.md` | `git mv`, **Revision 78** — Abschnitt 2, die Fingerprinttafel, die große Tafel; **und der Potenzialmodus in Abschnitt 3** (die Einstellungstabelle) |
 | `Doku/Fahrplan.md` | die Zeile 0.26.0 wird durchgestrichen; **die Ausarbeitungen zu 0.26.0 wandern nicht mit** — sie sind Herleitung |
 | `Doku/Fehler_und_Ideen.md` | **die sechs Zeilen fallen heraus** (Regel 2: was gebaut ist, steht nicht mehr hier) — *namentlich: die tote Stilblattregel, der Zeitleistenhinweis, die drei Anzeigefehler, die zwei Fehler aus dem Rundlauf mit 0.24.2, `ß`/`ss`, die Übersichtssekunde* |
-| `CHANGELOG.md` · `package.json` · `package-lock.json` | die Nummer |
+| `.github/workflows/pruefstand.yml` · `testbench.js` | **schon gefahren** — der Beipack oben: ein Ereignis statt zwei, die Bedingung gefallen, drei Zusagen mitgegangen |
+| `CHANGELOG.md` · `package.json` · `package-lock.json` | die Nummer — **und der Beipack gehört in den Eintrag zu 0.26.0**, weil er den Prüflauf und nicht den Quelltext betrifft |
 | `README.md` | **nur wenn der Potenzialmodus dort erklärt gehört** — zu entscheiden beim Bauen |
 
 ---
@@ -620,9 +689,18 @@ Bildschirm nachgesehen** — im echten Browser, nicht im Nachbau:
 
 **Und die stehenden Regeln, die keine Runde neu verhandelt**
 
-* **GITHUB, WEG B.** Ein Lauf je Stand. **Ein Push je Runde**, nicht vier —
-  `cancel-in-progress` fängt nur ab, was sich überholt, nicht was nacheinander
-  fertig läuft.
+* **GITHUB: EIN LAUF JE STAND — UND NUR AUF `main`.** **Weg B ist am
+  10. September 2026 vom Betreiber zurückgenommen worden**, und zwar nach
+  vorne: der Prüfstand hängt seither an **einem** Ereignis, Push auf `main`.
+  *Die Bedingung am Auftrag, die bei zwei Ereignissen den zweiten Lauf am
+  selben Stand abwählte, hat damit nichts mehr zu entscheiden und ist
+  gefallen.* **Ein Push je Runde**, nicht vier — `cancel-in-progress` fängt
+  nur ab, was sich überholt, nicht was nacheinander fertig läuft. **Der Preis
+  steht in der Datei selbst und ist genannt, nicht eingehandelt:** ein Zweig
+  dieses Repositoriums wird **nicht mehr geprüft, bevor er in `main` steht**,
+  und eine Anfrage aus einem fremden Abzug bekommt **gar keinen** Lauf. *Wer
+  einen Stand vorher geprüft sehen will, fährt `npm test` örtlich — der
+  Prüfstand braucht GitHub nicht.*
 * **DER FINGERPRINT WIRD VOR DEM EINSPIELEN GERECHNET** und steht im
   Änderungsprotokoll, damit die Installation sich daran messen kann. *Er deckt
   `node_modules` NICHT ab — eine Hebung von Abhängigkeiten bewegt ihn nicht,

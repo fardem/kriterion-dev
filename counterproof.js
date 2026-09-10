@@ -1226,10 +1226,15 @@ const REGRESSIONS = [
        den Schritt, der `İ` und `ı` auf `i` bringt. Die T3-Probe wird rot,
        die Zwei-Leser-Probe NICHT -- beide Haelften falten ja weiter gleich.
        Genau diese Trennung ist der Grund fuer zwei Rueckbauten statt einem. */
+    /* SEIT 0.26.0 ZIELT ER AUF EINE UMGEBAUTE ZEILE -- die Faltung setzt
+       seither auch `ß` und `ss` gleich (Befund 6). Der Rueckbau geht mit,
+       statt geloescht zu werden (Stolperstein 201), und er nimmt WEITER NUR
+       die beiden i-Schritte: die ß-Gleichsetzung bleibt stehen, sonst
+       faerbte ein Rueckbau zwei Befunde auf einmal rot und saegte keinen. */
     nr: '735', name: 'Die vier i fallen nicht mehr auf eines',
     file: 'db.js',
-    search: "  : String(s).toLowerCase().replace(/\\u0307/g, '').replace(/\\u0131/g, 'i'));",
-    replacement: "  : String(s).toLowerCase());",
+    search: "  : String(s).toLowerCase().replace(/\\u0307/g, '').replace(/\\u0131/g, 'i')\n      .replace(/\\u00df/g, 'ss'));",
+    replacement: "  : String(s).toLowerCase().replace(/\\u00df/g, 'ss'));",
     expected: 'Die Befunde der Runde 0.24.4'
   },
   {
@@ -3832,10 +3837,18 @@ const REGRESSIONS = [
 
   /* ---- 0.18.1: der Deckel der Sitzungsliste, die leere Message ---- */
   {
+    /* SEIT 0.26.0 STEHT DORT 48.37rem UND NICHT MEHR 55.23rem: die Fusszeile
+       ist aus der rollenden Liste heraus (Befund 2), und der Deckel rechnet
+       sie nicht mehr mit. Der Rueckbau geht mit (Stolperstein 201) und zielt
+       auf die neue Zahl.
+       UND DER ERSATZ HEISST WIEDER RICHTIG: er trug bis hierher `#msitzungen`,
+       den deutschen Bezeichner von vor 0.24.1. Er wirkte trotzdem -- eine
+       Regel auf einen Namen, den es nicht gibt, nimmt der Liste ihren Deckel
+       genauso --, aber er wirkte aus dem falschen Grund. */
     nr: '430', name: 'Die Sitzungsliste deckelt wieder nach der fremden Zeile',
     file: 'public/style.css',
-    search: "#msessions { max-height: 55.23rem; }",
-    replacement: "#msitzungen { max-height: 27.95rem; }",
+    search: "#msessions { max-height: 48.37rem; }",
+    replacement: "#msessions-ohne-deckel { max-height: 27.95rem; }",
     expected: 'So hoch wie der Inhalt — 0.17.5'
   },
 
@@ -3944,16 +3957,18 @@ const REGRESSIONS = [
     /* Der Schalter faellt aus der Eigentuemerliste und wird damit gewoehnliche
        Adminsache. Er bestimmt, wie die ganze Instanz ablegt.
        DER SUCHTEXT IST MIT 0.20.0 MITGEGANGEN, nicht geloescht (Stolperstein
-       201): die Liste traegt seit dieser Runde vier Schluessel statt einem.
-       Der Rueckbau nimmt weiterhin GENAU `convertImages` heraus und laesst
-       die drei neuen stehen -- sonst pruefte er nicht mehr dasselbe. */
+       201): die Liste traegt seit jener Runde vier Schluessel statt einem, und
+       seit 0.26.0 sieben -- `potentialMode` ist dazugekommen (F3). Der
+       Rueckbau geht wieder mit und nimmt weiterhin GENAU `convertImages`
+       heraus; alles Uebrige bleibt stehen, sonst pruefte er nicht mehr
+       dasselbe. */
     nr: '437', name: 'Der Schalter der Bildablage ist nur noch Adminsache',
     file: 'server.js',
     search: "const OWNER_KEYS = ['convertImages',\n" +
            "                                'backupCleanup', 'backupKeep', 'backupDays',\n" +
-           "                                'languageDefault', 'languageOn'];",
+           "                                'languageDefault', 'languageOn', 'potentialMode'];",
     replacement: "const OWNER_KEYS = ['backupCleanup', 'backupKeep', 'backupDays',\n" +
-           "                                'languageDefault', 'languageOn'];",
+           "                                'languageDefault', 'languageOn', 'potentialMode'];",
     expected: 'Die Bildablage: die Rechte'
   },
   {
@@ -5947,11 +5962,18 @@ const REGRESSIONS = [
        dann eine FUNKTION: die Ableitung gilt als greifend, und weil eine
        Funktion weder 'tested' noch 'untested' ist, faellt der Statusfilter
        still ganz weg -- samt der gespeicherten Wahl. */
+    /* SEIT 0.26.0 STEHT IN DERSELBEN ABLEITUNG DIE KLEMME DES
+       POTENZIALMODUS (F4). Der Rueckbau geht mit (Stolperstein 201) und
+       nimmt weiterhin GENAU die Prototypfrage heraus -- die Klemme bleibt
+       stehen, sonst faerbte er zwei Sachen auf einmal rot. */
     nr: '623', name: 'Die Vorgabetabelle wird ohne Ruecksicht auf den Prototyp gefragt',
     file: 'public/app.js',
     search: "  Object.prototype.hasOwnProperty.call(SORT_STATUS, sort)\n" +
-           "    ? SORT_STATUS[sort] : null;",
-    replacement: "  SORT_STATUS[sort] || null;",
+           "    ? ((!POTENTIAL_MODE && /^potential_/.test(sort)) ? null : SORT_STATUS[sort])\n" +
+           "    : null;",
+    replacement: "  (SORT_STATUS[sort]\n" +
+           "    ? ((!POTENTIAL_MODE && /^potential_/.test(sort)) ? null : SORT_STATUS[sort])\n" +
+           "    : null);",
     expected: 'Die Sortierung gibt den Status vor — 0.21.1'
   },
   {
@@ -7715,6 +7737,166 @@ const REGRESSIONS = [
     search: "tH('card.inDays', { n: log.days })",
     replacement: "tH('card.inDays', { days: log.days })",
     expected: 'Ein Satz, den jede Sprache selbst schneidet — 0.25.4'
+  },
+
+  /* ---- 0.26.0: die kleinen Fehler fallen ---- */
+  {
+    /* DAS DATEIFELD FLIEGT WIEDER AUS DEM LABEL. Ohne den eigenen Traeger
+       gibt es nichts, dessen Text sich tauschen liesse, ohne die Kinder des
+       Labels mitzunehmen -- und eines davon ist das Feld selbst. */
+    nr: '795', name: 'Der Hinweistext hat keinen eigenen Traeger mehr',
+    file: 'public/app.js',
+    search: '<input type="file" id="file" accept="image/*,video/*" multiple><span\n          id="drop-text">',
+    replacement: '<input type="file" id="file" accept="image/*,video/*" multiple>\n          <span-ohne-kennung>',
+    expected: 'Die kleinen Fehler fallen — 0.26.0'
+  },
+  {
+    /* UND DER FORTSCHRITT SCHREIBT WIEDER INS LABEL. Der Traeger steht dann
+       zwar da, aber niemand benutzt ihn: `textContent` am Label wirft alle
+       Kinder weg, das Feld eingeschlossen. Genau der Zustand vor 0.26.0. */
+    nr: '796', name: 'Der Fortschritt schreibt wieder ins Label statt in den Traeger',
+    file: 'public/app.js',
+    search: "    const dropText = document.getElementById('drop-text');",
+    replacement: "    const dropText = document.getElementById('drop');",
+    expected: 'Die kleinen Fehler fallen — 0.26.0'
+  },
+  {
+    /* DIE FUSSZEILE HAENGT WIEDER IN DER ROLLENDEN LISTE -- `box.appendChild(foot)`,
+       der Zustand vor Befund 2. Der Knopf ist dann nur ueber einen Bildlauf
+       zu erreichen, den von aussen niemand als solchen erkennt. */
+    nr: '797', name: 'Die Fusszeile der Sitzungen haengt wieder in der Liste',
+    file: 'public/app.js',
+    search: "    if (!foot) return;\n    foot.innerHTML = other",
+    replacement: "    if (!foot) return;\n    box.appendChild(foot);\n    foot.innerHTML = other",
+    expected: 'Die kleinen Fehler fallen — 0.26.0'
+  },
+  {
+    /* DER TITEL IST WIEDER EINZEILIG. Ein `<input>` bricht nicht um; auf dem
+       Telefon steht ein langer Titel dann wieder rechts aus dem Feld heraus. */
+    nr: '798', name: 'Der Eintragstitel ist wieder ein einzeiliges Feld',
+    file: 'public/app.js',
+    search: '<textarea class="title-in" id="title" rows="1">${esc(item.title)}</textarea>',
+    replacement: '<input class="title-in" id="title" value="${esc(item.title)}">',
+    expected: 'Die kleinen Fehler fallen — 0.26.0'
+  },
+  {
+    /* DIE DREI TEILE DES KNOPFES STEHEN WIEDER NEBENEINANDER, und der
+       `gap: 7px` setzt sich zwischen sie: „Mit Fotos (~ 301,5 KB )". */
+    nr: '799', name: 'Der Ausfuhrknopf traegt wieder drei Flexkinder',
+    file: 'public/app.js',
+    search: '<button class="btn btn-accent btn-sm" id="ex-yes"><span>${tH(\'card.withPhotos\')}<span id="ex-gr-yes">…</span>)</span></button>',
+    replacement: '<button class="btn btn-accent btn-sm" id="ex-yes">${tH(\'card.withPhotos\')}<span id="ex-gr-yes">…</span>)</button>',
+    expected: 'Die kleinen Fehler fallen — 0.26.0'
+  },
+  {
+    /* UND DIE KLAMMER GEHT WIEDER NICHT AUF -- der Satz, den das Umbenennen
+       der Bezeichner erwischt hat. Am Knopf steht dann „mit Fotos 301,5 KB )". */
+    nr: '800', name: 'Der Satz am Ausfuhrknopf macht seine Klammer nicht mehr auf',
+    file: 'public/languages/de.json',
+    search: '"card.withPhotos": "Mit Fotos (~",',
+    replacement: '"card.withPhotos": "mit Fotos",',
+    expected: 'Die kleinen Fehler fallen — 0.26.0'
+  },
+  {
+    /* DER BENUTZER LIEST WIEDER UEBER EINEN KNOPF, DEN ER NICHT HAT. Der
+       Rueckbau gibt ihm den Bereich 0,2 bis 2 -- den Satz des Admins. */
+    nr: '801', name: 'Der Gewichtssatz erklaert dem Benutzer wieder den Knopf des Admins',
+    file: 'public/app.js',
+    search: "            : t('card.weightSystemDefault')}</p>",
+    replacement: "            : t('card.weightRangeHint')}</p>",
+    expected: 'Die kleinen Fehler fallen — 0.26.0'
+  },
+  {
+    /* DIE TOTE REGEL STEHT WIEDER DA, und die lebende faellt. Sie tut nichts:
+       `:first-of-type` zaehlt DIV-Geschwister, und das erste ist der Kopf. */
+    nr: '802', name: 'Der Strich vor den Summen kommt wieder aus einer toten Regel',
+    file: 'public/style.css',
+    search: '.calc-last > span { border-bottom-color: var(--line); }',
+    replacement: '.calc-sum:first-of-type > span { border-top: 1px solid var(--line); }',
+    expected: 'Die kleinen Fehler fallen — 0.26.0'
+  },
+  {
+    /* DER HINWEIS AN DER ZEITLEISTE BRICHT WIEDER NICHT UM und ist nicht mehr
+       gedeckelt -- am rechten Ende der Achse ragt er dann wieder hinaus. */
+    nr: '803', name: 'Der Hinweis an der Zeitleiste laeuft wieder hinaus',
+    file: 'public/style.css',
+    search: '  max-width: min(14rem, 46%); overflow-wrap: anywhere;',
+    replacement: '  white-space: nowrap;',
+    expected: 'Die kleinen Fehler fallen — 0.26.0'
+  },
+  {
+    /* ß UND ss FALLEN WIEDER AUSEINANDER. „UEBERGROSS" findet „uebergroß"
+       dann nicht mehr -- und „Masse" findet „Maße" nicht, der Preis faellt
+       mit. Der Rueckbau nimmt NUR diesen Schritt: die vier i bleiben. */
+    nr: '804', name: 'ß und ss sind wieder zwei verschiedene Dinge',
+    file: 'db.js',
+    search: "      .replace(/\\u00df/g, 'ss'));",
+    replacement: "      );",
+    expected: 'Die kleinen Fehler fallen — 0.26.0'
+  },
+
+  /* ---- 0.26.0: der Potenzialmodus ---- */
+  {
+    /* DER STERNKASTEN WIRD WIEDER IMMER GEZEICHNET. Der Modus mag aus sein --
+       im Eintrag steht der Kasten dann doch, und ein Klick vergibt Sterne. */
+    nr: '805', name: 'Der Sternkasten steht wieder an jedem Eintrag',
+    file: 'public/app.js',
+    search: '        ${POTENTIAL_MODE ? `<div class="block" data-block="potenzial">',
+    replacement: '        ${true ? `<div class="block" data-block="potenzial">',
+    expected: 'Der Potenzialmodus — 0.26.0'
+  },
+  {
+    /* DIE SORTIERGRUPPE STEHT WIEDER IMMER DA -- eine Sortierung nach einer
+       Zahl, die nirgends zu sehen ist. */
+    nr: '806', name: 'Die Sortiergruppe des Potenzials steht wieder immer da',
+    file: 'public/app.js',
+    search: '    ${POTENTIAL_MODE ? `<optgroup label="${esc(V.potential)}">',
+    replacement: '    ${true ? `<optgroup label="${esc(V.potential)}">',
+    expected: 'Der Potenzialmodus — 0.26.0'
+  },
+  {
+    /* DIE KOPPLUNG GREIFT WIEDER -- eine gespeicherte Sortierung stellt den
+       Statusfilter auf „nicht getestet", ohne dass jemand etwas gewaehlt hat
+       und ohne dass die Sortierung ueberhaupt noch angeboten wuerde. */
+    nr: '807', name: 'Die Kopplung der Potenzialsortierung greift wieder',
+    file: 'public/app.js',
+    search: "    ? ((!POTENTIAL_MODE && /^potential_/.test(sort)) ? null : SORT_STATUS[sort])",
+    replacement: "    ? SORT_STATUS[sort]",
+    expected: 'Der Potenzialmodus — 0.26.0'
+  },
+  {
+    /* DIE KOPFZAHL STEHT WIEDER AN DER KACHEL -- genau das, was der Betreiber
+       ausdruecklich nicht will: „auch wenn Potenzial Bewertungen schon
+       vorhanden sind duerfen die nicht im Overview angezeigt werden." */
+    nr: '808', name: 'Die Kopfzahl des Potenzials steht wieder in der Uebersicht',
+    file: 'public/app.js',
+    search: "  if (!POTENTIAL_MODE && potential) return '';",
+    replacement: "  if (false && potential) return '';",
+    expected: 'Der Potenzialmodus — 0.26.0'
+  },
+  {
+    /* DER SCHALTER FAELLT AUS DER EIGENTUEMERLISTE und wird gewoehnliche
+       Adminsache -- die Antwort auf F3 ist damit zurueckgenommen.
+       ER NIMMT GENAU `potentialMode` HERAUS und laesst die sechs anderen
+       stehen; Rueckbau 437 nimmt `convertImages`, und die beiden duerfen sich
+       nicht ins Gehege kommen. */
+    nr: '809', name: 'Der Potenzialmodus ist wieder gewoehnliche Adminsache',
+    file: 'server.js',
+    search: "                                'languageDefault', 'languageOn', 'potentialMode'];",
+    replacement: "                                'languageDefault', 'languageOn'];",
+    expected: 'Der Potenzialmodus — 0.26.0'
+  },
+  {
+    /* DER SERVER SAGT DER OBERFLAECHE NICHT MEHR, WIE DER SCHALTER STEHT.
+       Sie faellt dann auf ihre Vorgabe „an" zurueck -- und der ganze Modus
+       ist wieder da, obwohl er in der Datenbank auf aus steht. DER
+       SCHLIMMSTE FALL, und er faellt still aus: kein Fehler, keine Meldung,
+       nur ein Schalter, der nichts mehr tut. */
+    nr: '810', name: 'Die Antwort verschweigt, wie der Schalter steht',
+    file: 'server.js',
+    search: "  potentialMode: potentialMode(),\n  /* DER SCHALTER DER BILDABLAGE",
+    replacement: "  /* DER SCHALTER DER BILDABLAGE",
+    expected: 'Der Potenzialmodus — 0.26.0'
   }
 ];
 

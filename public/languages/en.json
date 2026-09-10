@@ -495,6 +495,10 @@
   "card.postsAssignedHint": " Posts without a known author were assigned to you: {names}.",
   "card.potential": "Stars before the test",
   "card.potentialHint": "the test: which idea comes\n             next? Your own average, independent of “{ratingOne}”.",
+  "card.potentialModeHint": "With the mode off, the estimate disappears everywhere — in the entry, in the sorting and in the overview. The stars already given stay.",
+  "card.potentialModeLabel": "Turn on “{potential}”",
+  "card.potentialModeOff": "The mode is off — the criteria are kept.",
+  "card.potentialModeOwner": "Only the owner can turn it on and off.",
   "card.presetPassword": "Set a password",
   "card.preview": "Preview",
   "card.progressOf": "{done} of {total} …",
@@ -588,7 +592,6 @@
     "other": "{n} sessions ended"
   },
   "card.sessionsHint": "Every browser and device your account is signed in on. Device and\n          place are not stored.",
-  "card.setByAdmin": "The admin sets it.",
   "card.setPasswordFor": "Set password for “{username}”",
   "card.settingsHint": "Settings for your account and the inventory.",
   "card.settingsHintAll": "Settings for your account, the inventory and the installation.",
@@ -718,6 +721,7 @@
   "card.weight": "(weight 1.5),",
   "card.weightHint": "decides how strongly a\n          criterion counts towards the average; at 1 all count the same.",
   "card.weightRangeHint": "0.2 to 2 is possible — the suggestions are only the most common values.",
+  "card.weightSystemDefault": "The weights are a system default.",
   "card.weightSaved": "Weight saved",
   "card.whileSignupOn": ", as long as registration is allowed.",
   "card.withoutKeyFrom": "Without the key from the",
@@ -727,7 +731,7 @@
   "card.withoutPhotosSize": "around {withoutPhotos} without photos",
   "card.withoutServerSetting": "Without the server setting",
   "card.withoutVideosHint": "Without the tick on the videos they usually get small enough.",
-  "card.withPhotos": "with photos",
+  "card.withPhotos": "With photos (~",
   "card.wordsMissing": {
     "one": "1 vocabulary word",
     "other": "{n} vocabulary words"

@@ -2309,9 +2309,21 @@ let STATUS_BY_HAND = false;
    ganz weg, samt der gespeicherten Wahl.
    EIN UNBEKANNTER WERT DARF NICHTS WEGNEHMEN. Dieselbe Regel steht in
    visibleItems() schon am Schluessel `abgelehnt`, und sie gilt hier genauso. */
+/* UND BEI AUSGESCHALTETEM MODUS FAELLT DIE KOPPLUNG DER BEIDEN
+   POTENZIALSORTIERUNGEN MIT -- 0.26.0, Antwort auf F4. Eine Kopplung auf eine
+   Sortierung, die es im Auswahlfeld gar nicht gibt, ist toter Code; sie
+   koennte nur noch aus einer GESPEICHERTEN Ansicht heraus greifen und stellte
+   dann den Statusfilter auf „nicht getestet", ohne dass jemand etwas
+   ausgewaehlt haette.
+   NUR BEI AUSGESCHALTETEM MODUS. Bei eingeschaltetem bleibt sie, wie sie ist
+   -- der Betreiber hat die weitergehende Lesart ausdruecklich nicht gewaehlt.
+   DIE TAFEL BLEIBT VOLLSTAENDIG STEHEN: gefiltert wird beim LESEN und nicht
+   beim Anlegen. Eine Tafel, die je nach Schalter anders aussieht, waere zwei
+   Tafeln. */
 const defaultClosed = (sort) =>
   Object.prototype.hasOwnProperty.call(SORT_STATUS, sort)
-    ? SORT_STATUS[sort] : null;
+    ? ((!POTENTIAL_MODE && /^potential_/.test(sort)) ? null : SORT_STATUS[sort])
+    : null;
 
 /* DIE EINE STELLE, AN DER AUS SORTIERUNG UND HANDWAHL EINE VORGABE WIRD.
    Sie liefert den abgeleiteten Wert oder null -- null heisst „hier leitet
@@ -2392,6 +2404,14 @@ let BELL_SEEN = null;
    und Wolke bleiben, denn zuweisen darf immer jeder. */
 let TAGS_FREE = true;
 let CATEGORIES_FREE = true;
+/* DER POTENZIALMODUS -- 0.26.0. AN, solange der Server nichts anderes sagt:
+   dieselbe Vorgabe wie am Server, und aus demselben Grund. Eine Installation,
+   die nach der Hebung ploetzlich ihre Potenzialsterne nicht mehr zeigte, saehe
+   aus, als haette sie etwas verloren -- die Sterne stehen ja noch da.
+   EIN MERKER UND NICHT FUENF ABFRAGEN: er wirkt an fuenf Stellen, und das ist
+   der ganze Punkt. Ein abgeschalteter Modus, der an einer Stelle doch noch
+   durchscheint, ist kein abgeschalteter Modus. */
+let POTENTIAL_MODE = true;
 /* WANDELT DIESE INSTANZ ANKOMMENDE PNG UM? Vorgabe an, wie im Server. Der Wert
    entscheidet hier NICHTS -- die Umwandlung geschieht im Server, und der liest
    seine eigene Einstellung. Er sagt der Karte nur, wo der Haken steht; die
@@ -2472,6 +2492,8 @@ async function loadSettings() {
   if (SETTINGS.tagsFreeCreate !== undefined) TAGS_FREE = SETTINGS.tagsFreeCreate !== false;
   if (SETTINGS.categoriesFreeCreate !== undefined)
     CATEGORIES_FREE = SETTINGS.categoriesFreeCreate !== false;
+  if (SETTINGS.potentialMode !== undefined)
+    POTENTIAL_MODE = SETTINGS.potentialMode !== false;
   if (SETTINGS.convertImages !== undefined)
     IMAGES_CONVERT = SETTINGS.convertImages !== false;
   if (SETTINGS.trashDays) TRASH_DAYS = SETTINGS.trashDays;
@@ -3762,10 +3784,13 @@ function drawFilters() {
       <option value="rating_desc">${tH('list.sortRatingDesc')}</option>
       <option value="rating_asc">${tH('list.sortRatingAsc')}</option>
     </optgroup>
-    <optgroup label="${esc(V.potential)}">
+    ${/* DIE GRUPPE STEHT NUR BEI EINGESCHALTETEM MODUS DA -- 0.26.0. Eine
+         Sortierung nach einer Zahl, die nirgends zu sehen ist, ordnet nach
+         etwas Unsichtbarem. */''}
+    ${POTENTIAL_MODE ? `<optgroup label="${esc(V.potential)}">
       <option value="potential_desc">${tH('list.sortPotentialDesc')}</option>
       <option value="potential_asc">${tH('list.sortPotentialAsc')}</option>
-    </optgroup>
+    </optgroup>` : ''}
     <optgroup label="Verlauf">
       <option value="tests_desc">${tH('list.sortDaysDesc')}</option>
       <option value="tests_asc">${tH('list.sortDaysAsc')}</option>
@@ -4200,6 +4225,16 @@ function card(it) {
    Bewertung. */
 function tileNumber(it) {
   const potential = !it.tested;
+  /* IST DER MODUS AUS, STEHT AN DIESER STELLE NICHTS -- 0.26.0, und das ist
+     die Antwort auf F5: kein Platzhalter, kein Strich, die Zeile schliesst
+     sich. Eine leere Stelle, an der einmal etwas stand, sieht aus wie ein
+     Fehler.
+     ES TRIFFT NUR DEN UNGETESTETEN EINTRAG. Ein getesteter zeigt seine
+     Bewertung ★ weiter -- die hat mit dem Potenzial nichts zu tun.
+     UND ES GILT AUCH DANN, WENN SCHON POTENZIALBEWERTUNGEN IN DER DATENBANK
+     STEHEN. Der Server rechnet sie weiter aus (F1); gezeigt werden sie
+     nicht. Genau das hat der Betreiber verlangt. */
+  if (!POTENTIAL_MODE && potential) return '';
   const value = potential ? it.potentialRating : it.avgRating;
   /* „noch nicht eingeschätzt" UND NICHT „keine <Vokabelwort>sterne": das Wort
      aus dem Vokabular wird nirgends zu einem Wort verbaut. Es ist derselbe
@@ -5089,8 +5124,19 @@ async function renderDetail(id, termAddress) {
       <div>
         <div class="viewer" id="viewer"></div>
         <div class="thumbs" id="thumbs"></div>
-        <label class="drop" id="drop"><input type="file" id="file" accept="image/*,video/*" multiple>
-          ${tH('entry.addMediaHint')}</label>
+        ${/* DER HINWEISTEXT STEHT IN EINEM EIGENEN SPAN -- Befund 1 der Runde
+             0.26.0. uploadFiles() tauschte ihn ueber `drop.textContent`, und
+             das wirft ALLE Kinder des Labels weg: den Text UND das Dateifeld
+             darin. Am Ende kam der Text zurueck, das Feld nicht -- ein Label
+             ohne Feld hat nichts zu oeffnen, und der `onchange` hing an einem
+             Element, das nicht mehr im Baum stand. Strg+V ging die ganze Zeit
+             weiter, weil der Einfuegeweg am `document` haengt und das Feld gar
+             nicht braucht, und F5 heilte es -- deshalb ist es nie als Fehler
+             gemeldet worden, sondern als Eigenart.
+             NICHT `innerHTML` NEU SETZEN: dann waere der `onchange` wieder weg,
+             nur eine Ebene spaeter. */''}
+        <label class="drop" id="drop"><input type="file" id="file" accept="image/*,video/*" multiple><span
+          id="drop-text">${tH('entry.addMediaHint')}</span></label>
         ${/* EIN SATZ UND KEIN ABSATZ -- 0.22.0. Bis 0.21.1 standen hier fuenf
              Saetze (Vollbild, Blaettern, Papierkorb, Standbild): was ein Knopf
              tut, sagt sein Tooltip. Die Grenze fuer Videos bleibt, weil man
@@ -5115,7 +5161,19 @@ async function renderDetail(id, termAddress) {
              dort keine einzige Regel. */''}
         <div class="title-head">
           <div class="title-line">
-            <input class="title-in" id="title" value="${esc(item.title)}">
+            ${/* EIN MITWACHSENDES FELD UND KEIN EINZEILIGES -- Befund 3a der
+                 Runde 0.26.0. Hier stand ein `<input>`, und ein `<input>`
+                 bricht NICHT um: ein langer Titel lief rechts aus dem Feld
+                 heraus und war auf dem Telefon nicht zu lesen -- auf dem
+                 Geraet also, an dem man ihn am ehesten sucht.
+                 KEINE ZEILE IM STILBLATT KANN DAS: dass ein `<input>` nicht
+                 umbricht, ist seine Bauart und keine Regel. Der Auftrag hat
+                 das Stilblatt genannt; die Abweichung steht im
+                 Aenderungsprotokoll.
+                 DIE MASCHINERIE STEHT SEIT LANGEM DA -- `autoGrow()`, dasselbe
+                 wie an der Beschreibung darunter. Die Hoehe kommt aus dem
+                 Inhalt, der Ziehgriff faellt weg (`.ta-auto`). */''}
+            <textarea class="title-in" id="title" rows="1">${esc(item.title)}</textarea>
             <button class="pin-btn${item.favorite ? ' on' : ''}" id="pin" title="${item.favorite ? t('entry.unmarkFavorite') : t('entry.markFavorite')}">${item.favorite ? '★' : '☆'}</button>
           </div>
           <div class="hint hint-sm author-row" id="iauthor" hidden></div>
@@ -5182,12 +5240,22 @@ async function renderDetail(id, termAddress) {
              Bewertung zuruecksetzen" brach auf dem Telefon den Blockkopf in
              drei Zeilen und tat nichts, was das × an der Zeile nicht besser
              tut. */''}
-        <div class="block" data-block="potenzial">
+        ${/* DER STERNKASTEN STEHT NUR BEI EINGESCHALTETEM MODUS DA -- 0.26.0,
+             und zwar GAR NICHT ERST GEZEICHNET und nicht bloss eingeklappt.
+             Der Unterschied ist der ganze Punkt: eingeklappt heisst sichtbar
+             -- Kopfzeile, Griff, Pfeil, und ein Klick liesse Sterne vergeben.
+             Genau diesen Fehler hat 0.22.1 am Bewertungskasten repariert.
+             NICHT `[hidden]`, SONDERN FORT. Ein verstecktes Element steht im
+             Baum, und was im Baum steht, findet frueher oder spaeter jemand.
+             Der Betreiber hat gesagt: „darf die Box gar nicht zu sehen sein."
+             `sortBlocks()` VERTRAEGT DAS: es sucht den Kasten und verschiebt
+             ihn, wenn es ihn findet. Fehlt er, ruecken die anderen zusammen. */''}
+        ${POTENTIAL_MODE ? `<div class="block" data-block="potenzial">
           <div class="block-head"><span class="label">${esc(V.potential)}</span>
             <span class="hint" id="phead"></span>
             ${ADMIN && multipleUsers() ? `<button class="btn btn-ghost btn-sm" id="pwho">${tH('entry.whoRated')}</button>` : ''}</div>
           <div id="potential-ratings"></div>
-        </div>
+        </div>` : ''}
 
         <div class="block" data-block="bewertung">
           <div class="block-head"><span class="label">${esc(V.ratingOne)}</span>
@@ -5819,9 +5887,12 @@ async function renderDetail(id, termAddress) {
     if (!files.length) return;
     const images = files.filter(f => !/^video\//.test(f.type));
     const videos = files.filter(f => /^video\//.test(f.type));
-    const drop = document.getElementById('drop');
-    const old = drop.textContent;
-    drop.textContent = t('entry.uploading');
+    /* NUR DER TEXT WANDERT, NICHT DAS FELD -- Befund 1. Getauscht wird der
+       Text des eigenen `<span>`; das Dateifeld bleibt, wo es steht, und mit
+       ihm sein `onchange`. */
+    const dropText = document.getElementById('drop-text');
+    const old = dropText.textContent;
+    dropText.textContent = t('entry.uploading');
     let finished = 0;
     try {
       if (images.length) {
@@ -5831,9 +5902,9 @@ async function renderDetail(id, termAddress) {
         finished += images.length;
       }
       for (const f of videos) {
-        drop.textContent = t('entry.thumbBuilding');
+        dropText.textContent = t('entry.thumbBuilding');
         const { image, duration } = await stillFrame(f);
-        drop.textContent = t('entry.uploading');
+        dropText.textContent = t('entry.uploading');
         const fd = new FormData();
         fd.append('video', f, f.name);
         fd.append('stillFrame', image, 'stillframe.jpg');
@@ -5851,7 +5922,7 @@ async function renderDetail(id, termAddress) {
       // Was schon durchging, ist durch -- die Anzeige muss es zeigen.
       if (finished) { drawViewer(); drawThumbs(); }
     }
-    drop.textContent = old;
+    dropText.textContent = old;
   }
 
   document.getElementById('file').onchange = e => { uploadFiles([...e.target.files]); e.target.value = ''; };
@@ -6208,8 +6279,16 @@ async function renderDetail(id, termAddress) {
 
   /* ---- Texte ---- */
   const titleEl = document.getElementById('title');
+  /* EIN TITEL HAT KEINE ZEILEN -- Befund 3a. Er DARF umbrechen, wo der Platz
+     endet, und er soll keinen Umbruch TRAGEN: die Eingabetaste beendet ihn,
+     wie sie es im Feld davor tat, und ein eingefuegter Absatz wird beim
+     Speichern zu einem Leerzeichen. Das Feld zeigt danach, was gespeichert
+     ist -- sonst stuenden zwei Wahrheiten in derselben Zeile. */
+  titleEl.onkeydown = e => { if (e.key === 'Enter') { e.preventDefault(); titleEl.blur(); } };
+  const titleFit = autoGrow(titleEl);
   titleEl.onblur = async () => {
-    const v = titleEl.value.trim();
+    const v = titleEl.value.replace(/[\r\n]+/g, ' ').trim();
+    if (titleEl.value !== v) { titleEl.value = v; titleFit(); }
     if (!v || v === item.title) return;
     try { item = await api('PUT', `/api/items/${id}`, { title: v }); toast(t('list.saved')); }
     catch (e) { toast(e.message, true); }
@@ -6641,7 +6720,11 @@ async function renderDetail(id, termAddress) {
           : t('entry.calcAllEqual')}.</p>
       <div class="calc" id="calc">
         <div class="calc-row calc-head"><span>${tH('entry.criterion')}</span><span>${tH('entry.grade')}</span><span>${tH('entry.weight')}</span><span>${tH('entry.calcGradeWeight')}</span></div>
-        ${removed.rows.map(z => `<div class="calc-row" data-krit="${Number(z.criterionId)}">
+        ${/* DIE LETZTE KRITERIENZEILE HEISST SO -- Befund 4. Sie zieht den
+             Strich vor den Summen; das Stilblatt faerbt ihn dort staerker.
+             Ohne Kriterien gibt es sie nicht, und dann grenzt der Kopf mit
+             seinem eigenen Strich an die Summen. */''}
+        ${removed.rows.map((z, i) => `<div class="calc-row${i === removed.rows.length - 1 ? ' calc-last' : ''}" data-krit="${Number(z.criterionId)}">
           <span class="calc-name">${esc(names.get(z.criterionId) || '—')}</span>
           <span>${esc(weightNumber(z.average))}</span>
           <span>× ${esc(weightNumber(z.weight))}</span>
@@ -8376,6 +8459,24 @@ function cardSessions() {
         <h3>${tH('card.mySessions')}</h3>
         <p class="desc">${tH('card.sessionsHint')}</p>
         <div class="manage-list" id="msessions"></div>
+        ${/* DIE FUSSZEILE STEHT NEBEN DER LISTE UND NICHT DARIN -- Befund 2 der
+             Runde 0.26.0. Bis dahin haengte `drawSessions()` sie als letztes
+             Kind IN `#msessions`, und der Deckel dieser Liste rechnete sie mit.
+             Auf einem schmalen Schirm ist eine Sitzungszeile hoeher als die
+             72,55 Pixel, mit denen gerechnet wurde -- dann passten zehn Zeilen
+             samt Fusszeile nicht mehr darunter, und HERAUS fiel die Fusszeile:
+             der Satz brach mitten in der Zeile ab, und der Knopf „Andere
+             Sitzungen beenden" stand gar nicht mehr da. Erreichbar war er nur
+             ueber einen Bildlauf, den von aussen niemand als solchen erkennt.
+             ALS GESCHWISTER DECKELT DER DECKEL NUR NOCH ZEILEN: die Liste
+             rollt, Kopf und Fuss stehen immer da. Der Grund, aus dem 0.17.3 die
+             Fusszeile in den Deckel rechnete („sonst muesste man an zehn
+             Sitzungen vorbeirollen, um den Knopf zu sehen"), faellt damit weg
+             -- ausserhalb der rollenden Liste ist er ohne Rollen zu sehen.
+             UND SIE STEHT AN DIESER EINEN KARTE UND NICHT AN `.manage-list`:
+             die sechs anderen Listen haben keine Fusszeile, und eine Regel, die
+             nirgends sonst greift, gehoert nicht in die gemeinsame. */''}
+        <div class="session-foot" id="msessions-foot"></div>
       </div>`;
 }
 function setUpSessionsOut(fetched) {
@@ -8394,9 +8495,13 @@ function setUpSessionsOut(fetched) {
     const box = document.getElementById('msessions');
     if (!box) return;
     const doc = box.ownerDocument;
+    const foot = doc.getElementById('msessions-foot');
     const list = (d && Array.isArray(d.sessions)) ? d.sessions : null;
     if (!list) {
       box.innerHTML = `<span class="hint">${tH('card.loginsLoadFailed')}</span>`;
+      // UND DIE FUSSZEILE MIT -- sie steht seit Befund 2 ausserhalb der Liste
+      // und wuerde sonst die Zahl der letzten geglueckten Abfrage weitertragen.
+      if (foot) foot.innerHTML = '';
       return;
     }
     box.innerHTML = '';
@@ -8426,15 +8531,13 @@ function setUpSessionsOut(fetched) {
        vier sieht, weiss genug -- und das Heilmittel ist der eine Knopf
        daneben. Steht keine andere da, steht auch kein Knopf: einer, der
        zuverlaessig nichts tut, sieht aus wie ein Fehler. */
-    const foot = doc.createElement('div');
-    foot.className = 'session-foot';
+    if (!foot) return;
     foot.innerHTML = other
       ? `<p class="desc" style="margin:10px 0 8px">${tH('card.besidesThisOne')} <strong>${
           tH('card.moreSessions', { n: other })}</strong> ${tH('card.sessionsDot', { n: other })}
           ${tH('card.sessionExpiresIn')} ${d.days || 30} ${tH('card.sessionIdleHint')}</p>
          <button class="btn btn-sm" id="sessions-all">${tH('card.endOtherSessions')}</button>`
       : `<p class="desc" style="margin:10px 0 0">${tH('card.thisIsThe')} <strong>${tH('card.only')}</strong> ${tH('card.sessionOfAccount')}</p>`;
-    box.appendChild(foot);
     const all = doc.getElementById('sessions-all');
     if (all) all.onclick = async () => {
       if (!await confirmBox(t('card.endSessionsAsk'), t('card.thisSessionStays'), t('card.end'))) return;
@@ -8731,10 +8834,28 @@ function cardCriteria(phase) {
               Karte umlegt, sieht ihn an der anderen mitgehen. */''}
         ${ADMIN && LANGUAGES.filter(a => a.active).length > 1
           ? `<div class="pills" id="${k.list}-lang" style="margin-bottom:12px"></div>` : ''}
-        <div class="manage-list" id="${k.list}"></div>
+        ${/* DIE LISTE WIRD GEDAEMPFT, WENN DER MODUS AUS IST -- 0.26.0, F2.
+             Sie bleibt bedienbar: die Kriterien sind nicht weg, und wer sie
+             beim Wiedereinschalten vorfinden soll, muss sie vorher pflegen
+             duerfen. Gedaempft heisst „steht hier, wirkt gerade nicht". */''}
+        <div class="manage-list${before && !POTENTIAL_MODE ? ' list-quiet' : ''}" id="${k.list}"></div>
+        ${/* BEFUND 3c DER RUNDE 0.26.0 -- UND ER FAELLT ANDERS AUS, ALS DER
+             AUFTRAG VORSCHLUG. Der Vorschlag wollte den ganzen Gewichtssatz
+             hinter die Adminklemme legen (Sprachregel S5). DER BETREIBER HAT
+             AM 10. SEPTEMBER 2026 ANDERS ENTSCHIEDEN: was das Gewicht TUT,
+             liest jeder weiter -- er sieht die Marke ×1 an jedem Kriterium
+             und den Durchschnitt darunter, und der Satz erklaert damit eine
+             ANZEIGE, die vor ihm steht, und keinen Knopf, den er nicht hat.
+             S5 GREIFT DESHALB NUR AUF DIE ZWEITE HAELFTE, und die war schon
+             geklemmt -- sie sagte nur das Falsche: „Eingestellt wird es vom
+             Admin" beschrieb einen Knopf. Sie sagt jetzt, was der Benutzer
+             wirklich wissen muss: dass die Gewichte eine SYSTEMVORGABE sind.
+             `card.setByAdmin` FAELLT DAMIT NAMENTLICH WEG, in allen drei
+             Sprachdateien; `card.weightSystemDefault` steht an seiner Stelle,
+             an derselben Zeile in allen dreien. Die Zahl der Saetze bleibt. */''}
         <p class="desc" style="margin:10px 0 0">${tH('card.the')} <strong>${tH('entry.weight')}</strong> ${tH('card.weightHint')} ${ADMIN
             ? t('card.weightRangeHint')
-            : t('card.setByAdmin')}</p>
+            : t('card.weightSystemDefault')}</p>
         <!-- Ein Textfeld MIT Vorschlagsliste, kein Auswahlfeld: feste Stufen decken 0,2 bis 2 nicht
              ab, und ein Eintrag "anderer Wert ..." waere ein Moduswechsel -- erst waehlen, dann
              tippen, zwei Bedienformen fuer dieselbe Sache. Dasselbe Muster wie die Tageingabe am
@@ -8755,6 +8876,28 @@ function cardCriteria(phase) {
           <input class="input input-sm" id="${k.field}" placeholder="${esc(t('card.newCriterion'))}" style="padding:8px 11px">
           <button class="btn btn-sm" id="${k.button}">${tH('entry.create')}</button>
         </div>` : ''}
+        ${/* DER SCHALTER DES POTENZIALMODUS -- 0.26.0, und er steht IN dieser
+             Karte. Das ist die Antwort auf F2: eine Karte, die beim
+             Ausschalten mitverschwindet, nimmt den Ort mit, an dem man den
+             Modus wieder einschaltet.
+             DER SATZ STEHT AUCH OHNE SCHALTER DA, fuer jede Rolle: wer die
+             gedaempfte Liste sieht, soll lesen, warum sie gedaempft ist --
+             und dass nichts verloren ist.
+             DER SCHALTER GEHOERT DEM EIGENTUEMER ALLEIN (F3, gegen den
+             Vorschlag). Ein Admin sieht ihn und kommt nicht daran; `disabled`
+             und ein Satz daneben, damit die Sperre nicht wie ein Fehler
+             aussieht. Ein gewoehnlicher Benutzer sieht ihn gar nicht --
+             Sprachregel S5: was nur die Rolle darueber braucht, steht hinter
+             deren Klemme.
+             DIE SPERRE HIER IST DIE BEQUEMLICHKEIT, NICHT DIE SICHERUNG. Die
+             traegt der Server (OWNER_KEYS); `disabled` im Browser ist eine
+             Auskunft und keine Schranke. */''}
+        ${before ? `${!POTENTIAL_MODE
+            ? `<p class="desc" id="pot-off" style="margin:16px 0 0">${tH('card.potentialModeOff')}</p>` : ''}
+          ${ADMIN ? `<p class="desc" style="margin:16px 0 8px">${tH('card.potentialModeHint')}</p>
+          <label class="ex-files"><input type="checkbox" id="pot-mode"${OWNER ? '' : ' disabled'}>
+            ${tH('card.potentialModeLabel')}</label>
+          ${OWNER ? '' : `<p class="desc">${tH('card.potentialModeOwner')}</p>`}` : ''}` : ''}
       </div>`;
 }
 /* DIE ZEILEN EINER KRITERIENKARTE -- 0.25.1. EIN Ausdruck fuer die Liste UND
@@ -8793,6 +8936,19 @@ function setUpCriteriaOut(fetched, phase) {
     document.getElementById(k.button).onclick = addCrit;
     critField.addEventListener('keydown', e => { if (e.key === 'Enter') addCrit(); });
   }
+  /* DER SCHALTER DES POTENZIALMODUS -- 0.26.0, und nur an der Potenzialkarte.
+     Er wird hier verdrahtet und nicht bei den beiden Anlegen-Schaltern: er
+     gehoert dieser Karte, und ein Schalter, der woanders verdrahtet wird als
+     er steht, ist beim naechsten Umbau verwaist.
+     DER HELFER FINDET IHN NUR, WENN ER DASTEHT -- fuer die zweite Karte und
+     fuer jeden, der kein Admin ist, gibt es das Element nicht, und er kehrt
+     still zurueck.
+     NEU GEZEICHNET WIRD DER GANZE BEREICH: der Modus wirkt an fuenf Stellen,
+     und zwei davon stehen in dieser Karte. Die Bildlaufstellung bleibt --
+     dieselbe Wahl wie beim Sprachwechsel (B3 der Runde 0.24.4). */
+  if (phase === 'before') createToggle('pot-mode', 'potentialMode',
+    () => POTENTIAL_MODE, v => { POTENTIAL_MODE = v; },
+    () => renderSystem({ keepScroll: true }));
 }
 
   /* --- Die beiden Anlegen-Schalter ---
@@ -8801,14 +8957,21 @@ function setUpCriteriaOut(fetched, phase) {
      gleichlautende Bloecke nebeneinander liefen frueher oder spaeter
      auseinander. Schlaegt das Speichern fehl, geht die Stellung zurueck --
      sonst zeigte der Bildschirm etwas anderes an als der Server haelt. */
-  const createToggle = (id, key, read, remember) => {
+  /* `after` SEIT 0.26.0, UND NUR EIN RUFER BRAUCHT ES. Die drei aelteren
+     Schalter aendern eine Regel und sonst nichts Sichtbares; der
+     Potenzialmodus aendert die Karte, in der er steht (gedaempfte Liste, ein
+     Satz darueber) und vier weitere Stellen. Ohne ein Neuzeichnen stuende der
+     Haken auf „aus" und die Karte saehe aus wie vorher.
+     NACH DEM SPEICHERN UND NICHT DAVOR: schlaegt der Ruf fehl, geht die
+     Stellung zurueck, und dann gibt es nichts neu zu zeichnen. */
+  const createToggle = (id, key, read, remember, after) => {
     const el = document.getElementById(id);
     if (!el) return;
     el.checked = read();
     el.onchange = async () => {
       const before = read();
       remember(el.checked);
-      try { await api('PUT', '/api/settings', { [key]: el.checked }); saved(); }
+      try { await api('PUT', '/api/settings', { [key]: el.checked }); saved(); if (after) after(); }
       catch (e) { remember(before); el.checked = before; toast(e.message, true); }
     };
   };
@@ -11894,9 +12057,19 @@ function cardExport(fetched) {
              GERECHNET WIRD AN EINER STELLE, in exportSum(); die Warnung
              darunter liest dieselbe Zahl. Zwei Rechenwege naennten frueher oder
              spaeter zwei Groessen fuer dieselbe Datei. */''}
+        ${/* EIN KIND JE KNOPF UND NICHT DREI -- Befund 3b der Runde 0.26.0.
+             `.btn` ist `inline-flex` mit `gap: 7px`. Text, Zahl und Klammer
+             standen als DREI Flexkinder nebeneinander, und der Abstand setzte
+             sich zwischen sie: „Mit Fotos (~ 301,5 KB )". Das Leerzeichen kam
+             also aus dem Raster und nicht aus dem Text -- wer im Woerterbuch
+             danach suchte, fand nichts.
+             DER GEMEINSAME TRAEGER LOEST ES, ohne `gap` anzuruehren: der
+             Abstand gehoert den Knoepfen mit Zeichen davor und bleibt ihnen.
+             Innerhalb des Traegers steht wieder gewoehnlicher Fliesstext, und
+             der traegt genau die Leerzeichen, die jemand geschrieben hat. */''}
         <div class="row-in">
-          <button class="btn btn-accent btn-sm" id="ex-yes">${tH('card.withPhotos')}<span id="ex-gr-yes">…</span>)</button>
-          <button class="btn btn-sm" id="ex-no">${tH('card.withoutPhotos')}<span id="ex-gr-no">…</span>)</button>
+          <button class="btn btn-accent btn-sm" id="ex-yes"><span>${tH('card.withPhotos')}<span id="ex-gr-yes">…</span>)</span></button>
+          <button class="btn btn-sm" id="ex-no"><span>${tH('card.withoutPhotos')}<span id="ex-gr-no">…</span>)</span></button>
         </div>
         <label class="ex-files"><input type="checkbox" id="ex-files">
           ${tH('card.includeFiles')}${fmtBytes((stats.export?.attachments || 0) + (stats.export?.commentImages || 0))})</label>
