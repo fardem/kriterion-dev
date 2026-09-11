@@ -379,6 +379,19 @@ Steht eine Zeile zu viel da, ist das die Ursache; weicht eine Prüfsumme ab, ist
 es diese Datei. Löschen bzw. ersetzen und `docker compose up -d --build`, denn
 der Quelltext steckt im Image.
 
+**Seit 0.29.0 geht das auch ohne Shell.** Unter dem Fingerprint steht in der
+Karte „Kennzahlen" ein Verweis **„Dateien zeigen"**; er klappt dieselbe Liste
+auf — Name und Prüfsumme, achtzehn Zeilen. **Es sind dieselben acht Zeichen wie
+oben**, aus derselben Schleife, die auch den Gesamtwert bildet: Du kannst die
+Liste Zeile für Zeile gegen das Änderungsprotokoll halten oder gegen den Befehl
+darüber, und beides vergleicht Gleiches mit Gleichem.
+
+*Solange niemand auf den Verweis drückt, steht dort nichts* — **die
+Installation weiß nicht, ob der Fingerprint stimmt.** Der Sollwert steht im
+Änderungsprotokoll, also auf Papier; verglichen wird mit dem Auge. Eine Zeile
+„alles in Ordnung" wäre eine Behauptung über etwas, das die Installation nie
+gelesen hat.
+
 *Ein Randfall, der wie ein Fehler aussieht und keiner ist:* ändert eine Version
 die Marke der Installation, zeigt der Browser im Reiter noch die alte — ein hartes
 Neuladen (Strg+Umschalt+R) räumt den Zwischenspeicher weg.
@@ -861,6 +874,52 @@ nie unmittelbar vom eigenen Internetanschluss.** Dort fehlen rDNS und SPF/DKIM, 
 Mail landet im besten Fall im Spam. *Dieser Satz steht auch im Dialog — aber
 nur dort, wo er gilt: bei „Eigener Server".*
 
+##### Die Mail kommt an und landet trotzdem im Spam
+
+**Das ist der häufigste Befund aus dem Betrieb, und er hat nichts mit dem Weg
+zu tun, auf dem die Mail den Server verlässt.** Ob ein Empfänger sie annimmt,
+entscheidet er an einer einzigen Frage: **deckt die Domain des Absenders diesen
+Versand?** Google und Microsoft prüfen das seit Jahren streng; eine Mail, deren
+Domain nichts über sie sagt, gilt als unbelegt und geht in den Spam-Ordner.
+
+**Der typische Fall:** Die Adresse des Servers und die der Absenderdomain gehen
+auseinander. Du versendest über den SMTP-Server deines Anbieters, aber als
+Absender steht deine eigene Domain darin — und in deren Namensdienst steht
+nichts, was diesen Anbieter erlaubt.
+
+**Drei Einträge im Namensdienst (DNS) räumen das aus.** Sie gehören zur
+**Domain**, nicht zu Kriterion, und sie werden dort gesetzt, wo du die Domain
+verwaltest:
+
+| | was er sagt |
+|---|---|
+| **SPF** | **wer für diese Domain senden darf** — ein `TXT`-Eintrag, der die Server deines Anbieters nennt |
+| **DKIM** | **eine Unterschrift unter jeder Mail**, die der Empfänger gegen einen öffentlichen Schlüssel im Namensdienst prüft |
+| **DMARC** | **was mit einer undeckten Mail geschehen soll** — und wohin die Berichte darüber gehen |
+
+**Die Werte kommen vom Anbieter, über den du sendest**, und sie stehen dort in
+der Anleitung zum Thema „eigene Domain" oder „Absenderdomain verifizieren". Es
+gibt dafür keine allgemeingültigen Zeilen, die hier stehen könnten — ein SPF
+für GMX sieht anders aus als einer für Brevo.
+
+**Und deshalb hilft ein Dienst wie Brevo oder Postmark wirklich** — aber nicht,
+weil er über HTTPS spricht, sondern **weil er die drei Einträge mitbringt und
+von Adressen sendet, denen die Empfänger schon trauen.** Er führt dich durch
+das Eintragen, und danach ist die Domain gedeckt.
+
+**Kriterion braucht dafür keine Zeile Code.** Diese Dienste sprechen alle
+**SMTP**, und genau das kann die Installation: Wirt, Port, Konto, Passwort in
+die Karte „Mailversand" — dieselben vier Felder wie bei jedem anderen Anbieter.
+*Ein zweiter Versandweg über HTTPS stand lange auf dem Sammelblatt und ist
+gestrichen: er hätte neuen Code für etwas gebraucht, das der vorhandene schon
+leistet, und das eigentliche Problem nicht angefasst.*
+
+> **PRÜFEN LÄSST SICH DAS OHNE KRITERION.** Schick eine Testmail an ein
+> Gmail-Konto, öffne sie dort und sieh dir „Original anzeigen" an: in der
+> Kopfzeile stehen `spf=`, `dkim=` und `dmarc=` mit `pass` oder `fail`. Steht
+> dort dreimal `pass` und die Mail landet trotzdem im Spam, liegt es nicht an
+> der Deckung.
+
 **Der Testmail-Knopf geht ausschließlich an die Adresse deines eigenen
 Kontos.** Es gibt kein Adressfeld daneben, und das ist Absicht: ein Knopf, der
 an eine beliebige Adresse schickt, wäre ein offener Mailverteiler hinter einer
@@ -1341,6 +1400,19 @@ es zwei, beide in den Einstellungen einstellbar:
   sich der Haken gleich wieder wegnehmen lässt. Abhaken darf, wer den Kommentar
   geschrieben hat, und der Admin — dieselbe Regel wie im Eintrag. Bei mehr als
   einem Zugang steht darüber ein Umschalter **„meine / alle"**.
+  **Eine Aufgabe kann seit 0.29.0 ein Fälligkeitsdatum tragen** — ein Datum
+  ohne Uhrzeit, **freiwillig**. Gesetzt wird es am Kommentar selbst: sobald die
+  Aufgabenmarke steht, erscheint neben ihr ein Verweis, der das Datum trägt
+  oder das Wort „Datum"; ein Klick macht daraus ein Datumsfeld, und ein leeres
+  Feld nimmt das Datum wieder weg. **Ohne Datum ist eine Aufgabe genau das, was
+  sie vorher war.** In „Offen" ordnen sich die Aufgaben danach in vier
+  Abschnitten — **überfällig · heute · später**, und **ohne Datum** hinten,
+  jeder mit seiner Zahl. *Innerhalb eines Abschnitts bleibt die Gruppierung
+  nach Eintrag erhalten.* **Es gibt keine Benachrichtigung, keinen Wecker und
+  keine Mail** — die Glocke trägt einen Zeitstempel und keine Tabelle.
+  *„Überfällig" rechnet sich am heutigen Tag dessen, der hinsieht, und nicht am
+  Tag des Servers.* Das Datum geht in den Export mit (**Austauschformat 16**)
+  und kommt beim Einspielen wieder zurück.
   Ein erledigtes Todo verlässt die Spitze und reiht sich nach Alter bei den
   Notizen ein — es bleibt aber als erledigt gekennzeichnet und wird nicht
   wieder zur Notiz. Der Berichtsknopf daneben bleibt ein gewöhnlicher
@@ -1730,7 +1802,22 @@ Listen.
   einstellen (**1 bis 20** und **7 bis 365 Tage**); die Grenzen hält der Server,
   und jede Änderung rechnet die Liste neu, ohne dass etwas gelöscht wird. **Der
   Schalter „Nach jeder erfolgreichen Sicherung aufräumen" steht auf AUS.**
-  Daneben ein **Knopf** hinter der Passwortabfrage. **Angefasst wird
+  Daneben ein **Knopf** hinter der Passwortabfrage.
+  **An jeder Zeile steht seit 0.29.0 ein „prüfen".** Es öffnet *diese* Kopie
+  probeweise, zählt darin und macht sie wieder zu — **die laufende Datenbank
+  wird dabei nicht angefasst**. Darunter erscheint eine Zeile: *so viele
+  Einträge, so viele Fotos, so viele Zugänge, und bis zu welchem Datum der
+  Inhalt reicht.* Die drei Zahlen tragen die Namen der Karte „Kennzahlen",
+  damit sich beides ohne Kopfrechnen vergleichen lässt; das Datum ist die
+  **jüngste Änderung im Bestand** und nicht der Zeitpunkt der Datei — der steht
+  in derselben Zeile schon. **Die Zeile bleibt stehen**, sodass sich zwei
+  Kopien nebeneinander vergleichen lassen; gespeichert wird nichts.
+  *Lässt sich eine Kopie mit dem Schlüssel dieser Installation nicht öffnen,
+  sagt sie genau das* — **„Mit diesem Schlüssel nicht lesbar"** — und keinen
+  Fehler: wer das sieht, weiß, dass seine `.env` nicht zu dieser Kopie passt.
+  **Eine Sicherung zurückzuspielen kann die Oberfläche weiterhin nicht**; das
+  hieße, die laufende Datenbank zu ersetzen, und dafür gibt es den Abschnitt
+  „Sichern". **Angefasst wird
   ausschließlich, was dem Namensschema der Installation entspricht** — eine
   eigene Datei im Ordner bleibt liegen, ein Unterverzeichnis wird nicht
   betreten, und ein Symlink ist keine Sicherung. **Kopien von vor einem
