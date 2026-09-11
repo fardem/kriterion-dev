@@ -852,7 +852,10 @@ button { cursor: pointer; background: none; border: none; padding: 0; }
    bleibt trotzdem stehen. Verschwaende er, spraenge die Zeile, sobald jemand
    die Sortierung wechselt. */
 .sort-dir { white-space: nowrap; flex-shrink: 0; font-family: var(--mono); font-size: .74rem; }
-.sort-dir:disabled { opacity: .42; cursor: default; }
+/* KEINE REGEL FUER DEN GESPERRTEN ZUSTAND MEHR -- 0.29.0. Bis dahin stand der
+   Knopf bei „Titel" gedaempft da, weil es dort nur A → Z gab. Seit dieser
+   Runde kennt jede der sieben Grundlagen beide Richtungen; eine Regel, die
+   nichts mehr treffen kann, bleibt nicht stehen. */
 /* Der Hinweis auf die Grundzeile unter einer Sprachpillenreihe — 0.24.6 (F3).
    Er liegt IM Pillenkasten und bekommt mit `flex-basis: 100%` eine eigene
    Zeile darunter: nebeneinander drängte er die Pillen in einer schmalen
@@ -1353,6 +1356,18 @@ mark {
 .select-sm { font-size: .9rem; }
 .row-in { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
 .row-in .input { flex: 1; min-width: 145px; }
+/* ---- Die Auswahl der Kategorie im Eintrag -- 0.29.0, Befund 7 ----
+   SIE STAND BIS HIERHER INLINE IM QUELLTEXT (`style="min-width:148px"`), und
+   damit war sie aus dem Stilblatt nicht mehr zu erreichen: ein inline gesetztes
+   Mass schlaegt jede Regel, auch die des schmalen Schirms. Sie steht deshalb
+   jetzt hier -- dasselbe Mass, derselbe Schreibtisch, nur an einem Ort, an dem
+   die Umbruchstelle darunter sie noch einmal anfassen kann.
+   DAS MASS IST EINE UNTERGRENZE UND KEINE OBERGRENZE, und genau das war der
+   zweite Teil des Befundes: `<select>` nimmt die Breite seines laengsten
+   Eintrags. Gemessen bei einer Kategorie „Haushaltsgrossgeraete und Zubehoer"
+   misst die Auswahl 278 statt 148 Pixel -- am Telefon schob sie damit das Feld
+   und den Knopf in weitere Zeilen. */
+#cat { min-width: 148px; }
 
 /* ---------- Sterne ---------- */
 .stars { display: inline-flex; gap: 2px; align-items: center; }
@@ -3904,16 +3919,41 @@ body.login .login-screen { flex: 1 0 auto; min-height: 0; }
      DIE WOLKE IST AUSGENOMMEN. Sie hat ihr eigenes „mehr", und das misst die
      Zeilenhoehe an der ersten Marke -- eine Reihe, die nicht umbricht, hat
      keine zweite Zeile zu verbergen. */
-  .frow { display: grid; grid-template-columns: auto minmax(0, 1fr);
+  .frow { display: grid; grid-template-columns: auto minmax(0, 1fr) auto;
     align-items: center; gap: 7px 10px; }
   .frow > .eyebrow, .frow > .eyebrow-with { grid-column: 1; min-width: 0;
     margin-left: 0; margin-top: 0; }
   .frow > .pills, .frow > .select, .frow > .sort-pair { grid-column: 2; min-width: 0; }
-  /* WAS ZU KEINEM PAAR GEHOERT, spannt ueber beide Spalten: der Vermerk unter
-     den Statuspillen, der Und/Oder-Umschalter der Marken und die Verweise
-     „mehr"/„zuruecksetzen" am Ende der Markenzeile. Stuenden sie in Spalte
-     eins, waeren sie so schmal wie das laengste Beschriftungswort. */
-  .frow > #f-status-from, .frow > .frow-right, .frow > .tagmode { grid-column: 1 / -1; }
+  /* WAS ZU KEINEM PAAR GEHOERT, spannt ueber alle Spalten: der Vermerk unter
+     den Statuspillen und der Ruecksetzer der Sortierzeile. Stuenden sie in
+     Spalte eins, waeren sie so schmal wie das laengste Beschriftungswort. */
+  .frow > #f-status-from, .frow > .frow-right { grid-column: 1 / -1; }
+  /* ---- DIE DRITTE SPALTE -- 0.29.0, Befund 6 ----
+     0.28.1 HAT DAS RASTER GEBAUT UND DABEI EINEN FEHLER GEMACHT: alle Verweise
+     am Zeilenende bekamen `grid-column: 1 / -1`. Fuer den Vermerk „folgt der
+     Sortierung" war das richtig; der Umschalter „Tags" ist 46 px breit und
+     stand seither ALLEIN auf einer Zeile von 366 (Betreiber, 11.9.2026, mit
+     Bild).
+     DIE SPALTE IST `auto` UND KOSTET NICHTS, WO NICHTS DRINSTEHT -- gemessen:
+     die Statuszeile behaelt ihre 268 px, weil jede Filterzeile ihr EIGENES
+     Raster ist und eine leere dritte Spalte dort null misst.
+     SIE GILT NICHT FUER JEDEN VERWEIS, und das ist der Kern des Befundes.
+     „Filter zuruecksetzen (n)" in der Sortierzeile misst 140 px; wanderte es
+     mit hinein, naehme es sie der Sortierwahl daneben -- gemessen schrumpfte
+     die auf 30 px, und der NAME der Sortierung war nicht mehr zu sehen. Die
+     letzten 39 der 144 gewonnenen Pixel haetten also eine Auskunft gekostet.
+     DESHALB EINE EIGENE KLASSE UND KEIN `:has()`: die beiden, die ans Ende
+     ihrer Zeile gehoeren, sagen es selbst (`frow-right-end`, in drawFilters()
+     gesetzt). Eine Regel, die sich ihren Traeger ueber den Inhalt der Zeile
+     zusammensucht, liest sich beim naechsten Filter falsch. */
+  .frow > .frow-right-end { grid-column: 3; }
+  /* DER UND/ODER-UMSCHALTER GEHOERT NEBEN SEINE BESCHRIFTUNG -- 0.29.0 (F12).
+     Er spannte bis hierher ueber alle Spalten: 362 Pixel fuer zwei Pillen, die
+     zusammen 86 brauchen -- und die Beschriftung „Tags" blieb dabei allein auf
+     der Zeile darueber stehen. Zwei Zeilen kuendigten dieselbe Sache an.
+     GEMESSEN: die Markenzeile misst damit 69 statt 94 px, der Filterkasten 291
+     statt 316, und die erste Kachel steht bei y = 502 statt 527. */
+  .frow > .tagmode { grid-column: 2; }
   /* QUER ROLLEN STATT UMBRECHEN -- und ohne Rollbalken: er naehme die Hoehe
      wieder weg, die die Zeile gerade gewonnen hat. Dass rechts noch etwas
      steht, sagt die angeschnittene Pille am Rand. */
@@ -3928,6 +3968,29 @@ body.login .login-screen { flex: 1 0 auto; min-height: 0; }
      `order` BRAUCHT ES NICHT MEHR: die Verweise stehen seit 0.13.0 auch im
      Aufbau hinter der Wolke, und damit stimmt die Reihenfolge von selbst. */
   .frow > .pills.cloud { flex: 0 1 auto; }
+
+  /* ---- Der Kategoriekasten im Eintrag -- 0.29.0, Befund 7 ----
+     DER ANLEGEKNOPF STAND VERWAIST AUF EINER ZWEITEN ZEILE, und rechts daneben
+     war Platz ohne Sinn (Betreiber, 11.9.2026, mit Bild und Skizze). Gemessen
+     bei 390 px: der Kasten 161 px in ZWEI Zeilen -- die Auswahl 148, das Feld
+     210, der Knopf allein darunter.
+     BEIDE TEILEN SICH, WAS UEBRIG BLEIBT, statt zweier ausgerechneter Zahlen.
+     Der Auftrag hatte 119 und 137 vorgeschlagen; gemessen tragen beide Wege
+     eine Zeile, aber eine feste Zahl kann bei 80 bis 120 Prozent Schrift nur
+     falsch werden -- dieselbe Ueberlegung, die in dieser Datei schon dreimal
+     steht. `flex: 1 1 0` rechnet nichts aus: es teilt, was der Knopf uebrig
+     laesst.
+     GEMESSEN, ALLE DREI SCHRIFTSTUFEN: 107 / 110 / 118 px in EINER Zeile, wo
+     vorher 153 / 161 / 167 px in ZWEI standen -- die Auswahl 130 / 122 / 115,
+     das Feld ebenso. EINUNDFUENFZIG PIXEL UND EINE ZEILE bei der mittleren.
+     `min-width: 0` IST DER GRIFF, DER DAS ERLAUBT: ohne diese Null waere die
+     Mindestbreite der Inhalt -- bei der Auswahl der laengste Kategoriename,
+     beim Feld die 145 px von `.row-in .input`. Beide schoeben den Knopf wieder
+     um.
+     NUR HIER UND NICHT AN JEDER `.row-in`: die Tagzeile im Eintrag misst
+     bereits 43 px in einer Zeile und braucht nichts davon. */
+  [data-block="kategorie"] .row-in > #cat,
+  [data-block="kategorie"] .row-in > .input { flex: 1 1 0; min-width: 0; }
 
   /* ---- Das Kartenraster ----
      240 Pixel Mindestbreite ergaben auf dem Telefon genau EINE Spalte: eine

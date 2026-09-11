@@ -2880,6 +2880,13 @@ function visibleItems(filter) {
       case 'potential_desc': return (b.potentialRating ?? -1) - (a.potentialRating ?? -1);
       case 'potential_asc':  return (a.potentialRating ?? 99) - (b.potentialRating ?? 99);
       case 'title_asc':   return a.title.localeCompare(b.title, LOCALE);
+      /* SPIEGELBILD, und die Sprache steht auf BEIDEN Seiten -- 0.29.0.
+         `localeCompare` mit vertauschten Seiten und nicht ein negiertes
+         Ergebnis: zwei Titel, die in dieser Sprache gleich einsortieren,
+         liefern 0, und die Negation machte daraus -0. Das ist dieselbe
+         Reihenfolge, aber es liest sich wie eine Aussage ueber eine
+         Gegenrichtung, die es bei Gleichheit nicht gibt. */
+      case 'title_desc':  return b.title.localeCompare(a.title, LOCALE);
       case 'tests_desc':  return byTest(a, b, 'testCount', 'desc');
       case 'tests_asc':   return byTest(a, b, 'testCount', 'asc');
       case 'testavg_desc':return byTest(a, b, 'testAvg', 'desc');
@@ -3881,7 +3888,11 @@ function drawFilters() {
     (MORE_FILTERS_OPEN === null ? f.tagIds.length > 0 : MORE_FILTERS_OPEN);
   if (tagsPossible) {
     const right2 = document.createElement('div');
-    right2.className = 'frow-right frow-right-wide';
+    /* `frow-right-end` SAGT DEM RASTER, DASS ER ANS ZEILENENDE GEHOERT --
+       0.29.0, Befund 6. Auf dem Telefon setzt ihn das in die dritte Spalte,
+       statt ihn ueber die ganze Breite zu spannen; am Schreibtisch aendert die
+       Klasse nichts, dort ordnet weiter `frow-right-wide`. */
+    right2.className = 'frow-right frow-right-wide frow-right-end';
     const toggle = document.createElement('button');
     toggle.className = 'link-btn tag-toggle';
     toggle.id = 'f-weitere';
@@ -3981,7 +3992,8 @@ function drawFilters() {
        hing (`right: 92px`, Befund A). Die Instanz stellt die Schrift von 80 bis
        120 Prozent; jede ausgerechnete Breite kann dabei nur falsch werden. */
     const right = document.createElement('div');
-    right.className = 'frow-right';
+    // Ans Ende SEINER Zeile, wie der Umschalter darueber -- 0.29.0, Befund 6.
+    right.className = 'frow-right frow-right-end';
     if (trimmed || cloudOpen.overview) {
       const m = document.createElement('button');
       m.className = 'link-btn';
@@ -4037,53 +4049,72 @@ function drawFilters() {
      Sprache da. */
   const GENERAL = t('list.sortGroupGeneral');
   const HISTORY = t('list.sortGroupHistory');
+  /* `start` SAGT, WORAUF EIN WECHSEL AUF DIESE GRUNDLAGE LANDET -- 0.29.0, und
+     es steht an JEDER der sieben und nicht nur an der einen, die abweicht: ein
+     stiller Vorgabewert liesse die Ausnahme wie ein Versehen aussehen.
+     SECHS FANGEN OBEN AN ('down'): bei einer Zahl und bei einem Datum ist „das
+     Groesste zuerst" das, wonach gefragt wird -- die neuesten Aenderungen, die
+     beste Bewertung, die meisten Testtage.
+     „TITEL" FAENGT VORN AN ('up'): ein Name wird von A nach Z gelesen, und wer
+     auf „Titel" stellt, sucht das Alphabet und nicht sein Ende. Der Betreiber
+     hat es am 11. September 2026 entschieden, nachdem die Messung gezeigt
+     hatte, dass eine mitwandernde Richtung ihn auf „Z → A" abgesetzt haette --
+     dorthin, wo vor dieser Runde nie jemand landete.
+     GEWECHSELT WIRD DAMIT NUR DIE GRUNDLAGE. Wer die Richtung danach umlegt,
+     behaelt sie, solange er bei dieser Grundlage bleibt -- `start` greift beim
+     WECHSEL und nicht bei jedem Zeichnen. */
   const SORT_BASES = [
     { key: 'updated',  group: GENERAL,      word: () => t('list.sortChanged'),
-      down: 'list.dirNewOld',   up: 'list.dirOldNew' },
-    /* „Titel" KENNT NUR EINE RICHTUNG -- die AUFSTEIGENDE, und sie steht
-       deshalb unter `up` und nicht unter `down`: der gespeicherte Wert heisst
-       seit jeher `title_asc`, und nur den kennt die Sortierung weiter unten.
-       DASS ES BEI DER EINEN BLEIBT, IST ENTSCHIEDEN -- Z nach A waere eine
-       FUNKTION, und eine Funktion ist nach Regel 5.1 mindestens MINOR. Diese
-       Runde ist ein PATCH aus acht Reparaturen; drei Zeilen haetten den
-       Fahrplan ab 0.29.0 um eine Stelle verschoben (Betreiber, 11.9.2026).
-       DER SONDERFALL IST SICHTBAR und nicht versteckt: der Umschalter steht
-       daneben gedaempft. Ein Sonderfall, den man sieht, ist besser als eine
-       gebogene Regel, die man nicht sieht. */
+      down: 'list.dirNewOld',   up: 'list.dirOldNew',  start: 'down' },
+    /* „Titel" KANN SEIT 0.29.0 BEIDE RICHTUNGEN -- und bis dahin nur die eine.
+       DER GRUND FUER DIE EINE WAR DIE NUMMER UND NICHT DIE SACHE: 0.28.1
+       schrieb hierher, Z nach A waere eine FUNKTION und damit nach Regel 5.1
+       mindestens MINOR, und jene Runde war ein PATCH. Der Betreiber hat es am
+       11. September 2026 am laufenden 0.28.1 gemeldet („aber Z bis A kann
+       nicht angewaehlt werden"), und 0.29.0 ist ohnehin MINOR -- damit reisen
+       die drei Zeilen zum Nulltarif mit.
+       `down` UND `up` WIE UEBERALL: der gespeicherte Wert heisst weiter
+       `title_asc`, und `title_desc` kommt dazu. Eine gespeicherte Ansicht aus
+       einer aelteren Fassung traegt `title_asc` und meint damit dasselbe wie
+       vorher.
+       UND DAMIT IST KEINE GRUNDLAGE MEHR EINSPURIG: der gedaempfte Knopf, der
+       Satz „Diese Sortierung hat nur eine Richtung" und die Weiche, die beides
+       trug, sind mit dieser Runde fort. Eine Regel ohne Traeger bleibt nicht
+       stehen. */
     { key: 'title',    group: GENERAL,      word: () => t('list.sortTitle'),
-      down: null,               up: 'list.dirAZ' },
+      down: 'list.dirZA',       up: 'list.dirAZ',     start: 'up' },
     { key: 'rating',   group: V.ratingOne,   word: () => V.ratingOne,
-      down: 'list.dirHighLow',  up: 'list.dirLowHigh' },
+      down: 'list.dirHighLow',  up: 'list.dirLowHigh', start: 'down' },
     /* NUR BEI EINGESCHALTETEM MODUS -- 0.26.0. Eine Sortierung nach einer Zahl,
        die nirgends zu sehen ist, ordnet nach etwas Unsichtbarem. */
     { key: 'potential', group: V.potential,  word: () => V.potential,
-      down: 'list.dirHighLow',  up: 'list.dirLowHigh', only: () => POTENTIAL_MODE },
+      down: 'list.dirHighLow',  up: 'list.dirLowHigh', start: 'down',
+      only: () => POTENTIAL_MODE },
     { key: 'tests',    group: HISTORY,      word: () => V.dayMany,
-      down: 'list.dirManyFew',  up: 'list.dirFewMany' },
+      down: 'list.dirManyFew',  up: 'list.dirFewMany', start: 'down' },
     { key: 'testavg',  group: HISTORY,      word: () => t('list.sortAvg'),
-      down: 'list.dirHighLow',  up: 'list.dirLowHigh' },
+      down: 'list.dirHighLow',  up: 'list.dirLowHigh', start: 'down' },
     { key: 'testlast', group: HISTORY,      word: () => t('list.sortLast'),
-      down: 'list.dirHighLow',  up: 'list.dirLowHigh' }
+      down: 'list.dirHighLow',  up: 'list.dirLowHigh', start: 'down' }
   ].filter(b => !b.only || b.only());
   /* GELESEN WIRD VON HINTEN: die Kennung endet auf `_desc` oder `_asc`, und der
      Rest davor ist die Grundlage. Steht dort etwas Unbekanntes -- eine
      gespeicherte Ansicht aus einer Fassung, die diese nicht kennt --, faellt es
      auf die erste Grundlage und die absteigende Richtung zurueck, genau wie
      `sel.value` es vorher tat. */
-  /* WELCHE RICHTUNG BEI DIESER GRUNDLAGE GILT, wenn jemand die eine oder die
-     andere will. EINE GRUNDLAGE MIT NUR EINER RICHTUNG BEKOMMT IMMER DIESE,
-     und das ist kein Feinschliff: „Titel" kennt nur A → Z, und ein
-     `title_desc` gibt es in der Sortierung gar nicht. Es fiele dort still auf
-     die Vorgabe zurueck, und „Titel" ordnete nach dem Aenderungsdatum --
-     ausgewaehlt, ohne Fehler, und schlicht falsch. Gefunden hat es Zusage 3,
-     die jede der sieben in beide Richtungen faehrt. */
-  const dirOf = (b, wantsUp) => (b.down && b.up) ? wantsUp : !b.down;
-  const twoWays = (b) => !!(b.down && b.up);
+  /* WELCHE RICHTUNG GILT, STEHT IM WERT und in nichts sonst -- 0.29.0.
+     BIS DAHIN STAND HIER EINE WEICHE, und sie hatte ihren Grund: „Titel"
+     kannte nur A → Z, ein `title_desc` gab es in der Sortierung nicht, und es
+     fiele still auf die Vorgabe zurueck -- ausgewaehlt, ohne Fehler, und
+     schlicht falsch. Gefunden hatte das Zusage 3, die jede Grundlage in beide
+     Richtungen faehrt.
+     JETZT KENNT JEDE GRUNDLAGE BEIDE, und die Weiche haette nichts mehr zu
+     entscheiden. Sie faellt samt `twoWays()`, samt dem gedaempften Knopf und
+     samt dem Satz daneben -- eine Regel ohne Traeger bleibt nicht stehen. */
   const sortParts = (value) => {
-    const wantsUp = String(value || '').endsWith('_asc');
     const stem = String(value || '').replace(/_(desc|asc)$/, '');
     const b = SORT_BASES.find(x => x.key === stem) || SORT_BASES[0];
-    return { base: b, asc: dirOf(b, wantsUp) };
+    return { base: b, asc: String(value || '').endsWith('_asc') };
   };
   const groups = [];
   for (const b of SORT_BASES) {
@@ -4104,18 +4135,17 @@ function drawFilters() {
      ER IST BESSER ALS DIE ALTE LISTE UND NICHT NUR KUERZER: dort musste man
      zwei Zeilen nebeneinanderhalten, um zu sehen, welche Richtung gerade galt.
      Hier steht sie an einer Stelle.
-     GEDAEMPFT BEI „TITEL", weil es dort nur eine Richtung gibt (siehe oben).
-     `disabled` und nicht `hidden`: ein Knopf, der verschwindet, laesst die
-     Zeile springen, sobald jemand die Sortierung wechselt. */
+     SEIT 0.29.0 IST ER NIE MEHR GESPERRT. Bis dahin stand er bei „Titel"
+     gedaempft da, weil es dort nur A → Z gab; jetzt kennt jede der sieben
+     Grundlagen beide Richtungen, und ein Zustand, den nichts mehr ausloest,
+     bleibt nicht stehen. */
   const dirBtn = document.createElement('button');
   dirBtn.className = 'btn btn-sm sort-dir';
   dirBtn.id = 'f-sort-dir';
   const drawDir = () => {
     const b = picked.base;
-    const key = picked.asc ? b.up : b.down;
-    dirBtn.textContent = t(key);
-    dirBtn.disabled = !twoWays(b);
-    dirBtn.title = twoWays(b) ? t('list.sortFlip') : t('list.sortOneWay');
+    dirBtn.textContent = t(picked.asc ? b.up : b.down);
+    dirBtn.title = t('list.sortFlip');
   };
   drawDir();
   /* ZUSAMMENGESETZT WIRD HIER UND NUR HIER -- an beiden Bedienelementen
@@ -4128,15 +4158,17 @@ function drawFilters() {
      ordnete; jetzt aendert sie auch, was die Leiste zeigt. */
   sel.onchange = () => {
     const b = SORT_BASES.find(x => x.key === sel.value) || SORT_BASES[0];
-    /* DIE RICHTUNG FAELLT AUF DIE EINE ZURUECK, die die neue Grundlage kennt.
-       „Titel" hat nur A → Z: wer von „Bewertung hoch → niedrig" dorthin
-       wechselt, bekommt `title_asc` und nicht `title_desc` -- letzteres gibt es
-       in der Sortierung nicht, und die Liste ordnete dann still nach dem
-       Aenderungsdatum weiter. */
-    picked = { base: b, asc: dirOf(b, picked.asc) };
+    /* DER WECHSEL NIMMT DIE RICHTUNG DER NEUEN GRUNDLAGE und nicht die der
+       alten -- 0.29.0. Bis dahin wanderte sie mit, und das war richtig,
+       solange sechs der sieben oben anfingen; mit „Titel" in beiden
+       Richtungen waere daraus ein „Z → A" fuer jeden geworden, der aus der
+       Vorgabe („neu → alt") kommt -- also fuer jeden beim ersten Mal.
+       ER GREIFT NUR BEIM WECHSEL: wer danach umlegt, behaelt seine Richtung,
+       solange er bei dieser Grundlage bleibt. */
+    picked = { base: b, asc: b.start === 'up' };
     applySort();
   };
-  dirBtn.onclick = () => { if (!twoWays(picked.base)) return; picked.asc = !picked.asc; applySort(); };
+  dirBtn.onclick = () => { picked.asc = !picked.asc; applySort(); };
   /* BEIDE IN EINEM KASTEN: die Sortierung und ihre Richtung sind EINE
      Einstellung in zwei Bedienelementen, und sie sollen bei einem Umbruch
      nicht auseinanderfallen. Der Kasten ist ausserdem das eine Feld, das die
@@ -5589,7 +5621,10 @@ async function renderDetail(id, termAddress) {
         <div class="block" data-block="kategorie">
           <div class="block-head"><span class="label">${tH('list.category')}</span></div>
           <div class="row-in">
-            <select class="select select-sm" id="cat" style="min-width:148px;padding:9px 11px"></select>
+            ${/* DIE MINDESTBREITE STEHT SEIT 0.29.0 IM STILBLATT und nicht mehr
+                 hier: inline schlug sie jede Regel, auch die des schmalen
+                 Schirms, und genau die braucht sie (Befund 7). */''}
+            <select class="select select-sm" id="cat" style="padding:9px 11px"></select>
             ${mayCategoryCreate() ? `<input class="input input-sm" id="newcat" placeholder="${esc(t('entry.newCategoryHint'))}" style="padding:8px 11px">
             <button class="btn btn-sm" id="newcat-b">${tH('entry.create')}</button>` : ''}
           </div>
