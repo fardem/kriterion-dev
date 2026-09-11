@@ -8070,6 +8070,300 @@ const REGRESSIONS = [
     search: "    db.prepare(\"DELETE FROM settings WHERE key = 'convertImages'\").run();",
     replacement: "    void 0;",
     expected: 'Die Datenbankstufe 0.27.0'
+  },
+
+  /* ================= 0.28.0 — „Das Telefon bekommt Recht" =================
+     SECHZEHN RUECKBAUTEN ZU SIEBEN BAUABSCHNITTEN. Jeder nimmt genau EINE
+     Zusage ins Visier; wo ein Rueckbau zwei rot macht, steht das daneben. */
+
+  /* ---- BA 1: die gemeinsame Kopfzeile ---- */
+  {
+    /* DER UMBAU GING UEBER VIER AUFBAUTEN, und genau das ist die Gefahr: eine
+       Zusage, die nur an renderDetail() haengt, bliebe gruen, wenn
+       renderCompare() seine alte Zeile behaelt. Dieser Rueckbau setzt sie an
+       der Ansicht zurueck, die am leichtesten vergessen wird. */
+    nr: '825', name: 'Der Vergleich behaelt seine alte Rueckzeile',
+    file: 'public/app.js',
+    search: "  app.innerHTML = `<div class=\"shell\">\n    ${subhead()}\n    <h1 class=\"page-title\">${tH('list.compare')}</h1>",
+    replacement: "  app.innerHTML = `<div class=\"shell\">\n    <a href=\"#/\" class=\"back\">${tH('list.backToList')}</a>\n    <h1 class=\"page-title\">${tH('list.compare')}</h1>",
+    expected: 'Die gemeinsame Kopfzeile und das Blaettern — 0.28.0'
+  },
+  {
+    /* DER FUENFTE RUFER, den niemand sieht, solange alle Nummern aufgehen. */
+    nr: '826', name: 'Der Fehlerweg des Eintrags bleibt ohne Kopfzeile',
+    file: 'public/app.js',
+    search: "      app.innerHTML = `<div class=\"shell\">${subhead()}<p class=\"hint\">${tH('server.entryUnknown')}</p></div>`;",
+    replacement: "      app.innerHTML = `<div class=\"shell\"><a href=\"#/\" class=\"back\">${tH('list.backToList')}</a><p class=\"hint\">${tH('server.entryUnknown')}</p></div>`;",
+    expected: 'Die gemeinsame Kopfzeile und das Blaettern — 0.28.0'
+  },
+  {
+    /* EIN FUENFTES DING DANEBENSTELLEN -- Gegenprobe zu Zusage 2. Sie nennt
+       die Stuecke namentlich; eine, die nur zaehlte, saehe diesen Tausch. */
+    nr: '827', name: 'Die Glocke wandert in die Kopfzeile der Unteransicht',
+    file: 'public/app.js',
+    search: "    <div class=\"mast-rest\" id=\"mast-rest\">\n      <button class=\"icon-btn\" id=\"open\"",
+    replacement: "    <div class=\"mast-rest\" id=\"mast-rest\">\n      <button class=\"icon-btn bell\" id=\"bell\">${ICON_BELL}</button>\n      <button class=\"icon-btn\" id=\"open\"",
+    expected: 'Die gemeinsame Kopfzeile und das Blaettern — 0.28.0'
+  },
+  {
+    /* SIE WIRD EINE ZWEITE KOPFZEILE. Ohne `.masthead` haette die Unteransicht
+       ein eigenes Stilblatt -- und damit klebte sie nicht mehr oben, klappte
+       auf dem Telefon nicht ein und truege ihren Schatten nicht. */
+    nr: '828', name: 'Die Kopfzeile der Unteransicht wird eine eigene',
+    file: 'public/app.js',
+    search: "  return `<div class=\"masthead subhead\">",
+    replacement: "  return `<div class=\"subhead\">",
+    expected: 'Die gemeinsame Kopfzeile und das Blaettern — 0.28.0'
+  },
+  {
+    /* DIE SUCHE SUCHT IN DER UNTERANSICHT statt zu springen -- Gegenprobe zu
+       Zusage 3. */
+    nr: '829', name: 'Die Suche springt nicht mehr zur Uebersicht',
+    file: 'public/app.js',
+    search: "  const over = () => { SEARCH_HANDOFF = true; location.hash = '#/'; };",
+    replacement: "  const over = () => { state.search = sq.value; };",
+    expected: 'Die gemeinsame Kopfzeile und das Blaettern — 0.28.0'
+  },
+  {
+    /* UND DER SCHREIBSTRICH BLEIBT LIEGEN. Der Sprung allein waere ein Griff,
+       das Tippen ein zweiter -- also genau die zwei Griffe, die die Runde
+       wegnimmt. Eine Zusage, die nur den Sprung prueft, saehe das nicht. */
+    nr: '830', name: 'Der Schreibstrich landet nach dem Sprung nirgends',
+    file: 'public/app.js',
+    search: "    atElement('q', el => { el.focus(); el.setSelectionRange(el.value.length, el.value.length); });",
+    replacement: "    void 0;",
+    expected: 'Die gemeinsame Kopfzeile und das Blaettern — 0.28.0'
+  },
+
+  /* ---- BA 2: das Blaettern ---- */
+  {
+    /* DIE UNGEFILTERTE LISTE NEHMEN -- Gegenprobe zu Zusage 4. Sie ist der
+       Fehler, den man macht, ohne ihn zu bemerken: die Pfeile blaettern dann
+       durch Eintraege, die der eingestellte Filter gar nicht zeigt. */
+    nr: '831', name: 'Die Pfeile blaettern im ganzen Bestand statt in der Trefferliste',
+    file: 'public/app.js',
+    search: "  const list = state.items || [];",
+    replacement: "  const list = state.all || [];",
+    expected: 'Die gemeinsame Kopfzeile und das Blaettern — 0.28.0'
+  },
+  {
+    /* EINE REIHENFOLGE ERFINDEN -- Gegenprobe zu Zusage 6. Wer den Eintrag
+       nicht in der Liste findet, tut so, als staende er am Anfang: beide Pfeile
+       saehen aktiv aus und fuehrten in eine Liste, die niemand vor sich hat. */
+    nr: '832', name: 'Ohne Reihenfolge wird eine erfunden',
+    file: 'public/app.js',
+    search: "  if (at < 0) return { prev: null, next: null, ordered: false };",
+    replacement: "  if (at < 0) return { prev: (list[0] || {}).id || null, next: (list[1] || {}).id || null, ordered: true };",
+    expected: 'Die gemeinsame Kopfzeile und das Blaettern — 0.28.0'
+  },
+  {
+    /* SIE VERSCHWINDEN LASSEN statt sie zu daempfen -- Gegenprobe zu Zusage 5.
+       Das verschiebt alles daneben: der Titel wandert beim Blaettern hin und
+       her, weil am ersten und letzten Eintrag ein Knopf fehlt. */
+    nr: '833', name: 'Der gedaempfte Pfeil verschwindet statt dazubleiben',
+    file: 'public/style.css',
+    search: ".subhead .step:disabled { opacity: .26; cursor: default; }",
+    replacement: ".subhead .step:disabled { display: none; }",
+    expected: 'Die gemeinsame Kopfzeile und das Blaettern — 0.28.0'
+  },
+  {
+    /* DIE REIHENFOLGE SPEICHERN -- ausdruecklich nicht gebaut (F2). Eine
+       gespeicherte Reihenfolge waere beim naechsten Oeffnen eine Behauptung
+       ueber eine Uebersicht, die niemand mehr sieht. */
+    nr: '834', name: 'Die Reihenfolge wird im Browser abgelegt',
+    file: 'public/app.js',
+    search: "  const list = state.items || [];",
+    replacement: "  const list = state.items || []; try { sessionStorage.setItem('reihe', JSON.stringify(list.map(x => x.id))); } catch {}",
+    expected: 'Die gemeinsame Kopfzeile und das Blaettern — 0.28.0'
+  },
+  {
+    /* EINE TASTE MITNEHMEN -- Gegenprobe zu Zusage 7. Der Betreiber hat
+       `Bild auf`/`Bild ab` am 11. September 2026 gestrichen: bei langen
+       Kommentaren wird `Bild ab` zum Rollen gebraucht. */
+    nr: '835', name: 'Bild auf und Bild ab blaettern doch den Eintrag',
+    file: 'public/app.js',
+    search: "  document.querySelectorAll('.subhead .step').forEach(b => {",
+    replacement: "  document.addEventListener('keydown', e => { if (e.key === 'PageDown' || e.key === 'PageUp') e.preventDefault(); });\n  document.querySelectorAll('.subhead .step').forEach(b => {",
+    expected: 'Die gemeinsame Kopfzeile und das Blaettern — 0.28.0'
+  },
+  {
+    /* DER BEGRIFF FAELLT UNTERWEGS AUS DER ADRESSE. Wer mit einem gesuchten
+       Begriff in einen Eintrag gegangen ist, blaettert in der Trefferliste --
+       und stuende nach einem Schritt ohne Begriff da. */
+    nr: '836', name: 'Der Begriff faellt beim Blaettern aus der Adresse',
+    file: 'public/app.js',
+    search: "      if (to) location.hash = entryAddress(+to, term);",
+    replacement: "      if (to) location.hash = entryAddress(+to, '');",
+    expected: 'Die gemeinsame Kopfzeile und das Blaettern — 0.28.0'
+  },
+
+  /* ---- BA 3: die Behaelterabfragen ---- */
+  {
+    /* DIE BEHAELTERABFRAGE GEGEN EINE FENSTERABFRAGE TAUSCHEN -- Gegenprobe zu
+       Zusage 9. Das ist genau der Rueckbau auf den Stand vor dieser Runde. */
+    nr: '837', name: 'Die Protokollzeile fragt wieder das Fenster',
+    file: 'public/style.css',
+    search: "@container (max-width: 420px) {",
+    replacement: "@media (max-width: 420px) {",
+    expected: 'Handy und Tablett: die Staffel der Umbruchpunkte'
+  },
+  {
+    /* DIE KARTE IST KEIN BEHAELTER MEHR. Dann greift keine der beiden
+       Behaelterabfragen -- und beide Regeln liegen still da, ohne dass etwas
+       fehlt, das man sehen wuerde. */
+    nr: '838', name: 'Die Karte des Systembereichs ist kein Behaelter mehr',
+    file: 'public/style.css',
+    search: ".sys-card { container-type: inline-size; }",
+    replacement: ".sys-card { }",
+    expected: 'Handy und Tablett: die Staffel der Umbruchpunkte'
+  },
+  {
+    /* DER BEFEHL ROLLT WIEDER SEITLICH -- Befund 3. Gemessen: 452 px Inhalt in
+       182 px Kasten. */
+    nr: '839', name: 'Der Befehl rollt wieder seitlich statt umzubrechen',
+    file: 'public/style.css',
+    search: "  .server-row code { flex: 1 1 100%; overflow-x: visible;\n    white-space: pre-wrap; overflow-wrap: anywhere; }",
+    replacement: "  .server-row code { flex: 1 1 auto; }",
+    expected: 'Handy und Tablett: die Staffel der Umbruchpunkte'
+  },
+
+  /* ---- BA 4: der Halbsatz am Ablegefeld ---- */
+  {
+    /* „STRG+V" WIEDER HINEINSCHREIBEN -- Gegenprobe zu Zusage 10, und zwar in
+       EINER Sprache: eine Zusage, die nur Deutsch ansieht, bliebe gruen. */
+    nr: '840', name: 'Strg+V steht wieder am Ablegefeld (englisch)',
+    file: 'public/languages/en.json',
+    search: '"entry.addMediaHint": "Add photos and videos — several at a time",',
+    replacement: '"entry.addMediaHint": "Add photos and videos — several at a time, or paste with Ctrl+V",',
+    expected: 'Die gemeinsame Kopfzeile und das Blaettern — 0.28.0'
+  },
+
+  /* ---- BA 5: die Meldung ---- */
+  {
+    /* DIE REGEL ABSCHALTEN -- Gegenprobe zu Zusage 11. */
+    nr: '841', name: 'Die Meldung deckt die Vergleichsleiste wieder zu',
+    file: 'public/style.css',
+    search: "body:has(.cmp-bar) .toast { bottom: calc(90px + env(safe-area-inset-bottom)); }",
+    replacement: "",
+    expected: 'Handy und Tablett: die Staffel der Umbruchpunkte'
+  },
+  {
+    /* EIN HUB, DER KLEINER IST ALS DIE LEISTE HOCH IST. Er verschoebe die
+       Meldung und deckte sie trotzdem zu -- die schlimmere Fassung, weil sie
+       aussieht, als waere etwas getan worden. */
+    nr: '842', name: 'Der Hub der Meldung ist kleiner als die Leiste',
+    file: 'public/style.css',
+    search: "body:has(.cmp-bar) .toast { bottom: calc(90px + env(safe-area-inset-bottom)); }",
+    replacement: "body:has(.cmp-bar) .toast { bottom: calc(40px + env(safe-area-inset-bottom)); }",
+    expected: 'Handy und Tablett: die Staffel der Umbruchpunkte'
+  },
+
+  /* ---- BA 6: das Startbildzeichen ---- */
+  {
+    /* EINEN FESTEN NAMEN HINEINSCHREIBEN -- Gegenprobe zu Zusage 12. */
+    nr: '843', name: 'Das Manifest traegt einen festen Namen',
+    file: 'server.js',
+    search: "  const name = getSetting('title_public', 'Bewertungskatalog');",
+    replacement: "  const name = 'Kriterion';",
+    expected: 'Das Startbildzeichen — 0.28.0'
+  },
+  {
+    /* ES HINTER DIE ANMELDUNG HAENGEN -- Gegenprobe zu Zusage 13. Der Browser
+       holt das Manifest ohne Anmeldedaten; dahinter ist es fuer ihn nicht da. */
+    nr: '844', name: 'Das Manifest haengt hinter der Anmeldung',
+    file: 'server.js',
+    search: "app.get('/api/manifest.json', (req, res) => {",
+    replacement: "app.get('/api/manifest.json', adminOnly, (req, res) => {",
+    expected: 'Das Startbildzeichen — 0.28.0'
+  },
+  {
+    /* EINEN ARBEITER IM HINTERGRUND REGISTRIEREN -- Gegenprobe zu Zusage 14.
+       Er steht hier als blosser Aufruf da; es geht um die Zusage, nicht um
+       einen laufenden Zwischenspeicher. */
+    nr: '845', name: 'Ein Arbeiter im Hintergrund wird registriert',
+    file: 'public/theme.js',
+    search: "  } catch (e) {\n    document.documentElement.dataset.theme = 'dark';\n  }",
+    replacement: "  } catch (e) {\n    document.documentElement.dataset.theme = 'dark';\n  }\n  try { navigator.serviceWorker.register('/sw.js'); } catch (e) {}",
+    expected: 'Das Startbildzeichen — 0.28.0'
+  },
+  {
+    /* DIE SEITE VERWEIST NICHT MEHR AUF DAS MANIFEST. Die Route allein legt
+       nichts auf einen Startbildschirm -- ohne die Verknuepfung findet der
+       Browser sie nie. */
+    nr: '846', name: 'Die Seite verweist nicht mehr auf das Manifest',
+    file: 'public/index.html',
+    search: '<link rel="manifest" href="/api/manifest.json">',
+    replacement: "",
+    expected: 'Das Startbildzeichen — 0.28.0'
+  },
+
+  /* ---- BA 7: die Dichte am Finger ---- */
+  {
+    /* EINES DER BEIDEN MASSE WEGLASSEN -- Gegenprobe zu Zusage 16. Zurueck auf
+       das ZEIGERMASS: „kleiner als vorher" waere damit erfuellt, „groesser als
+       am Zeiger" nicht. Eine Zusage, die nur eines der beiden nennt, bliebe
+       hier gruen. */
+    nr: '847', name: 'Die Pille faellt am Finger auf das Zeigermass zurueck',
+    file: 'public/style.css',
+    search: "  .pill { padding: 7px 13px; }",
+    replacement: "  .pill { padding: 5px 12px; }",
+    expected: 'Handy und Tablett: die Staffel der Umbruchpunkte'
+  },
+  {
+    /* DER UMSCHALTER BLEIBT STEHEN und ist danach genau so hoch wie die Pille.
+       Der Satz „er bleibt kleiner als die Pillen daneben" waere nicht mehr
+       wahr -- und das ist die Zusage, die es merkt. */
+    nr: '848', name: 'Der Und/Oder-Umschalter wird so hoch wie die Pille',
+    file: 'public/style.css',
+    search: "  .pill-mode { padding: 5px 11px; }",
+    replacement: "  .pill-mode { padding: 7px 12px; }",
+    expected: 'Handy und Tablett: die Staffel der Umbruchpunkte'
+  },
+  {
+    /* DEN SYMBOLKNOPF MITSCHRUMPFEN LASSEN -- Gegenprobe zu Zusage 17. Seine
+       44 Pixel sind die einzige Zahl, die der Finger-Abschnitt ausdruecklich
+       verspricht. */
+    nr: '849', name: 'Der Symbolknopf schrumpft mit',
+    file: 'public/style.css',
+    search: "  .icon-btn { width: 44px; height: 44px; }",
+    replacement: "  .icon-btn { width: 36px; height: 36px; }",
+    expected: 'Handy und Tablett: die Staffel der Umbruchpunkte'
+  },
+  {
+    /* `.select` WIEDER HINEINSCHREIBEN -- Gegenprobe zu Zusage 19. */
+    nr: '850', name: 'Die Auswahlfelder stehen wieder in der Zoomregel',
+    file: 'public/style.css',
+    search: "  .input, .input-sm, .ta, .title-in,",
+    replacement: "  .input, .input-sm, .ta, .select, .select-sm, .title-in,",
+    expected: 'Handy und Tablett: die Staffel der Umbruchpunkte'
+  },
+  {
+    /* EIN EINGABEFELD HERAUSNEHMEN -- Gegenprobe zu Zusage 18, und die
+       wichtigere Richtung: die Regel soll fuer die Felder bleiben, fuer die sie
+       gedacht war. */
+    nr: '851', name: 'Ein Eingabefeld faellt aus der Zoomregel',
+    file: 'public/style.css',
+    search: "  .mrow input.medit, .mrow .mweight-field,",
+    replacement: "  .mrow .mweight-field,",
+    expected: 'Handy und Tablett: die Staffel der Umbruchpunkte'
+  },
+  {
+    /* DAS DATUMSFELD MIT HERAUSNEHMEN -- F16 sagt ausdruecklich nein: es traegt
+       einen Schreibstrich, den ein `<select>` nicht hat. */
+    nr: '852', name: 'Das Datumsfeld faellt mit aus der Zoomregel',
+    file: 'public/style.css',
+    search: "  .test-add input[type=date] { font-size: max(16px, 1rem); }",
+    replacement: "  .title-in { font-size: max(16px, 1rem); }",
+    expected: 'Handy und Tablett: die Staffel der Umbruchpunkte'
+  },
+  {
+    /* DIE UNTERGRENZE ALS BLANKE ZAHL -- Gegenprobe zu Zusage 20. Sie waere ein
+       zweites Grundmass neben dem am Wurzelelement. */
+    nr: '853', name: 'Die Untergrenze steht als blanke Zahl',
+    file: 'public/style.css',
+    search: "  .test-add input[type=date] { font-size: max(16px, 1rem); }",
+    replacement: "  .test-add input[type=date] { font-size: 16px; }",
+    expected: 'Handy und Tablett: die Staffel der Umbruchpunkte'
   }
 ];
 

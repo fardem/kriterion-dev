@@ -710,6 +710,47 @@ button { cursor: pointer; background: none; border: none; padding: 0; }
 }
 .icon-btn:hover { background: var(--surface-3); color: var(--text); border-color: var(--line-hover); }
 
+/* ---------- Die Kopfzeile der Unteransichten -- 0.28.0 ----------
+   SIE IST DIESELBE KOPFZEILE WIE IN DER UEBERSICHT. `.subhead` traegt
+   `.masthead` daneben und erbt damit alles: das Kleben oben, den Schatten beim
+   Rollen, den Umbruch, und vor allem die zwei Gestalten von `.mast-rest` --
+   auf dem breiten Schirm eine Reihe Knoepfe, auf dem Telefon eine Tafel hinter
+   dem Zeichen. Hier stehen nur die Unterschiede.
+   SIE WIRD NICHT HOEHER ALS DIE DER UEBERSICHT. Das hoechste Stueck in beiden
+   ist die Marke mit 3,1 rem (46,5 px); ein Symbolknopf misst 36 und auf dem
+   Finger 44. Die zwei Blaetterpfeile kosten deshalb KEINE Hoehe -- genau das
+   war die Bedingung des Betreibers am 8. September 2026. */
+
+/* DER RUECKWEG IST EIN ZEICHEN UND KEIN SATZ MEHR. Bis 0.27.0 stand er als
+   eigene Zeile ueber dem Inhalt und nahm dort eine ganze Zeilenhoehe; in der
+   Kopfzeile sitzt er neben den anderen und nimmt keine.
+   SEIN SATZ BLEIBT: `list.backToList` steht als Titel am Knopf, Pfeilglyphe und
+   alles. Ein zweiter, kuerzerer Satz fuer dieselbe Handlung waere eine zweite
+   Wahrheit (Stolperstein 47). */
+.sub-back, .subhead .step { border-color: transparent; background: none; }
+.sub-back:hover, .subhead .step:hover:not(:disabled) {
+  background: var(--surface-2); border-color: var(--line); color: var(--text); }
+/* Die Marke rueckt an die Pfeile heran: 11 px Abstand wie in der Uebersicht
+   liessen die beiden Zeichen wie eigene Bedienelemente neben dem Titel stehen
+   statt wie seine zwei Seiten. */
+.subhead .brand { gap: 5px; }
+/* DER TITEL GIBT NACH, NICHT DIE PFEILE -- gemessen am Telefon (390 px): ohne
+   diese zwei Zeilen schrumpften die beiden Pfeile als Flexkinder von 44 auf
+   28 Pixel Breite, waehrend der Titel seine volle Laenge behielt. Ein Ziel von
+   28 Pixeln ist auf dem Finger zu klein, und der Titel ist das Stueck, das
+   ohne Verlust kuerzer werden kann: er steht daneben in der Adresszeile und
+   im Tab.
+   `flex-shrink: 0` an Zeichen und Pfeilen, `min-width: 0` samt Ellipse am
+   Titel -- damit geht die Breite dorthin, wo sie nichts kostet. */
+.subhead .brand h1 { margin: 0 6px; min-width: 0;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.subhead .brand > div { min-width: 0; }
+.sub-back, .subhead .step, .subhead .brand .logo { flex-shrink: 0; }
+/* GEDAEMPFT UND DA, NICHT WEG -- Zusage 5. Ein Pfeil, der am ersten oder
+   letzten Eintrag verschwaende, schoebe den Titel daneben um seine Breite, und
+   der Titel wanderte beim Blaettern hin und her. */
+.subhead .step:disabled { opacity: .26; cursor: default; }
+
 /* ---------- Filter ---------- */
 .filters { display: flex; flex-direction: column; gap: 10px; margin-bottom: 24px; }
 /* AN DER GRUNDLINIE UND NICHT IN DER MITTE, seit 0.13.1. Eine Filterzeile ist
@@ -1095,8 +1136,11 @@ mark {
 .empty p { color: var(--muted); margin: 0; font-size: .93rem; }
 
 /* ---------- Detail ---------- */
-.back { display: inline-flex; align-items: center; gap: 6px; color: var(--muted); font-size: .9rem; margin: 18px 0 16px; font-weight: 500; transition: color .15s var(--ease); }
-.back:hover { color: var(--accent-text); }
+/* `.back` IST MIT 0.28.0 GEFALLEN. Die Klasse stand an fuenf Stellen im
+   Quelltext -- vier Unteransichten und der Fehlerweg des Eintrags -- und
+   fuehrte zurueck und sonst nirgendwohin. Ihren Platz hat `.sub-back` in der
+   gemeinsamen Kopfzeile; ihren SATZ (`list.backToList`) traegt derselbe Knopf
+   weiter. Eine Regel ohne Traeger bleibt nicht stehen. */
 .detail { display: grid; grid-template-columns: minmax(300px, 46%) 1fr; gap: 28px; align-items: start; }
 @media (max-width: 860px) { .detail { grid-template-columns: 1fr; } }
 .meta-col { display: flex; flex-direction: column; gap: 16px; position: sticky; top: 84px; }
@@ -2327,19 +2371,11 @@ mark {
    quer gehaltenen Telefon (breit, aber niedrig) blieb es sogar ganz bei fuenf.
    Eine Zahl weniger heisst hier: ein Fall weniger, den niemand mehr im Kopf
    haben muss. */
-@media (max-width: 700px), (max-height: 500px) and (max-width: 960px) {
-  /* AUF DEM SCHMALEN SCHIRM TRAEGT DIE ZEILE IHR RASTER WIEDER SELBST. Fuenf
-     Felder in zwei Spalten gehen nicht auf: bei `display: contents` liefe das
-     sechste Feld der ersten Zeile in die Reihe der zweiten, und aus zwei
-     Vorgaengen wuerde eine Zeile. Zwei Spalten heissen hier also: jede Zeile
-     ist wieder ein Kasten -- und traegt damit auch ihre Trennlinie selbst. */
-  .log-list { display: block; }
-  .log-row { display: grid; grid-template-columns: 1fr auto; gap: 4px 12px;
-    align-items: baseline; padding: 7px 2px; border-bottom: 1px solid var(--line); }
-  .log-row > * { padding: 0; border-bottom: 0; }
-  .log-row:last-child { border-bottom: 0; }
-  .log-time { grid-column: 1 / -1; }
-}
+/* DIESE FENSTERABFRAGE IST MIT 0.28.0 EINE BEHAELTERABFRAGE GEWORDEN und steht
+   jetzt bei `.sys-card` (BA 3). Sie stand hier falsch: sie klappte die Zeile um,
+   wenn das FENSTER schmal wurde -- und das ist genau die Lage, in der die Karte
+   des Protokolls mit 664 px am breitesten ist. Keine Regel ist gefallen, sie
+   hat nur die richtige Frage bekommen. */
 
 /* DIE ZEILE EINER ANMELDUNG STEHT IN EINEM RASTER UND HAT ZWEI REIHEN:
    OBEN DER NAME, DARUNTER DIE BEIDEN ZEITANGABEN -- rechtsbuendig und
@@ -2573,6 +2609,19 @@ body.lb-open { overflow: hidden; }
 /* Ueber dem Bedienbalken des Telefons und nicht darunter -- sonst steht die
    Meldung zur Haelfte hinter dem Griffstreifen. */
 .toast { position: fixed; bottom: calc(22px + env(safe-area-inset-bottom)); left: 50%; transform: translateX(-50%); background: var(--surface-3); border: 1px solid var(--line); color: var(--text); padding: 10px 18px; border-radius: 999px; font-size: .9rem; z-index: var(--z-toast); box-shadow: var(--sh-lg); animation: pop 2.6s forwards; max-width: 82vw; text-align: center; }
+/* UND SIE WEICHT DER VERGLEICHSLEISTE -- 0.28.0, BA 5.
+   BEIDE SASSEN UNTEN: die Meldung bei 22 px, die Leiste bei 20. Die Meldung
+   liegt hoeher im Stapel und deckte die Leiste zu -- GEMESSEN in Chromium:
+   die Leiste misst 54 px am Zeiger und 60 am Finger, die Meldung 43; sie
+   ueberdeckten einander vollstaendig.
+   90 PIXEL SIND DIE SUMME UND KEINE RUNDE ZAHL: 20 px steht die Leiste ueber
+   dem Rand, 60 px ist sie hoch (der Finger-Fall, der groessere von beiden),
+   10 px Luft bleiben dazwischen. EIN Wert fuer beide Zeiger -- eine Weiche
+   nach Geraet waere hier zwei Wahrheiten ueber denselben Abstand.
+   `:has()` UND KEINE KLASSE AN `body`: die Leiste haengt sich selbst an den
+   Rumpf und nimmt sich selbst wieder weg (drawCompareBar). Eine Klasse muesste
+   an beiden Stellen mitgefuehrt werden, und die zweite vergisst man. */
+body:has(.cmp-bar) .toast { bottom: calc(90px + env(safe-area-inset-bottom)); }
 .toast.err { background: var(--red); border-color: var(--red); color: var(--on-signal); }
 /* DIE MELDUNG MIT KNOPF -- 0.22.0 (E16): „Sterne bei „Qualität" entfernt · Rückgängig".
    Der Knopf ist Text in der Akzentfarbe, kein Kasten im Kasten; die Dauer
@@ -3221,6 +3270,94 @@ body.login .login-screen { flex: 1 0 auto; min-height: 0; }
    `order: 3` schiebt sie hinter alles Uebrige, `flex-basis: 100%` erzwingt
    die eigene Zeile -- ohne das eine saesse sie vorn, ohne das andere neben
    dem Menuezeichen. */
+/* ===============================================================
+   DIE BEHAELTERABFRAGEN STEHEN HIER UND NICHT WEITER OBEN, und das ist
+   kein Ordnungsgeschmack, sondern eine Bedingung: `@container` hebt das
+   GEWICHT eines Waehlers nicht an. `.log-list` in einer Behaelterabfrage
+   wiegt genau so viel wie `.log-list` daneben -- bei gleichem Gewicht
+   gewinnt die SPAETERE Zeile.
+   BEIM ERSTEN ANLAUF STANDEN SIE VOR DEN GRUNDREGELN, und damit wirkten
+   sie ueberhaupt nicht: die Karte war 320 px schmal, und `.log-list` stand
+   trotzdem auf `display: grid`. Gemessen in Chromium und vom Prueflauf
+   gemeldet, nicht im Bild gesehen -- eine Regel ohne Wirkung sieht aus wie
+   eine Regel.
+   SIE STEHEN DESHALB BEI DEN FENSTERABFRAGEN: alles, was eine Grundregel
+   ueberschreibt, steht hinter ihr.
+   =============================================================== */
+/* ---------- DIE KARTE FRAGT SICH SELBST -- 0.28.0, BA 3 ----------
+   DAS ERSTE `container-type` DIESES STILBLATTS. Bis hierher kannte es
+   siebzehn Fensterabfragen und keine einzige Behaelterabfrage, und an drei
+   Stellen war genau das der Fehler: die Regel fragte das FENSTER, obwohl die
+   Antwort an der KARTE haengt.
+
+   WIE WEIT DIE BEIDEN AUSEINANDERLIEGEN, ist gemessen und nicht geschaetzt
+   (Chromium, 11. September 2026, am laufenden Server):
+
+     Fenster 1440 px  ->  schmale Karte 405 px   ->  breite Karte 1252 px
+     Fenster 1280 px  ->  schmale Karte 399 px
+     Fenster 1024 px  ->  schmale Karte 320 px   ->  breite Karte  988 px
+     Fenster  768 px  ->  schmale Karte 359 px
+     Fenster  700 px  ->  eine Spalte, jede Karte  664 px
+
+   DARAN SIEHT MAN DIE VERKEHRUNG: unter 700 px Fenster klappte die
+   Protokollzeile in zwei Spalten -- und das ist genau die Breite, bei der ihre
+   Karte mit 664 px am BREITESTEN ist. Sie klappte um, weil das Fenster schmal
+   wurde, nicht weil die Karte es war. Umgekehrt stand sie bei 1024 px Fenster
+   in fuenf Spalten, obwohl ihre Karte dort auf 320 px sitzt.
+
+   WAS AUSDRUECKLICH EINE FENSTERFRAGE BLEIBT, und warum:
+   `.sys-grid` -- wieviele Spalten auf den SCHIRM passen. Ein Behaelter kann
+     sich nicht selbst fragen, wie breit er ist; die Frage steht eine Ebene
+     darueber.
+   `.sys-card` am Telefon (Rahmen weg, Rundung weg) -- das ist die SEITE, die
+     zur Telefonseite wird, und nicht die Karte, die schmal wird.
+   Der ganze Abschnitt `pointer: coarse` -- eine Frage an den ZEIGER. Ein
+     Tablett im Querformat ist breit UND wird mit dem Finger bedient.
+   `max-height: 62dvh` -- die HOEHE des Fensters, und Hoehe hat ein Behaelter
+     hier gar nicht zu vergeben.
+   Vier Regeln, vier Gruende, und keine davon wird umgestellt. */
+.sys-card { container-type: inline-size; }
+
+/* ---- Die Zeile des Sicherheitsprotokolls ----
+   420 PIXEL, GEMESSEN: bis dahin haelt die Zeile ihre fuenf Spalten auf EINER
+   Zeilenhoehe (20 px); darunter bricht sie um und wird 40 px hoch, unter 300
+   dann 60. Die Zahl ist die Breite der KARTE und nicht die der Liste -- die
+   Liste sitzt in den Innenabstaenden der Karte.
+   DIE ZWEI SPALTEN SIND DIESELBEN WIE VORHER: fuenf Felder gehen in zwei
+   Spalten nicht auf, also traegt jede Zeile ihr Raster wieder selbst und damit
+   auch ihre Trennlinie. */
+@container (max-width: 420px) {
+  .log-list { display: block; }
+  .log-row { display: grid; grid-template-columns: 1fr auto; gap: 4px 12px;
+    align-items: baseline; padding: 7px 2px; border-bottom: 1px solid var(--line); }
+  .log-row > * { padding: 0; border-bottom: 0; }
+  .log-row:last-child { border-bottom: 0; }
+  .log-time { grid-column: 1 / -1; }
+  /* Zwei Spalten Formularfelder auf 320 Pixeln sind zwei zu schmale Spalten --
+     derselbe Satz wie vorher, nur an der richtigen Groesse gemessen. */
+  .vocabulary-grid { grid-template-columns: 1fr; }
+}
+
+/* ---- Der Befehl in „Mein Zugang" und in „Kennzahlen" ----
+   DAS IST DIE ZEILE AUS BEFUND 3, und sie heisst weder Anmeldungszeile noch
+   Protokollzeile: es ist der Befehl in `.server-row code`. GEMESSEN bei 1024 px
+   Fenster, am laufenden Server: der Befehl misst 452 px und steht in 182 px --
+   270 Pixel liegen ausserhalb, und weil `overflow-x: auto` daran haengt, ROLLT
+   der Kasten seitlich, waehrend die Seite ruhig bleibt. Genau so steht es im
+   Befund; nur der Name der Zeile stimmte nicht.
+   560 PIXEL, GERECHNET: der Befehl braucht 452 px, der Knopf daneben und sein
+   Abstand rund 100, die Karte ihre Innenabstaende. Unter dieser Breite hat er
+   keine Aussicht, in eine Zeile zu passen -- also bricht er um, statt zu
+   rollen. EIN UMGEBROCHENER BEFEHL IST GANZ ZU LESEN; ein gerollter zeigt ein
+   Drittel und verschweigt den Rest.
+   DER KNOPF GEHT IN DIE ZWEITE ZEILE: er ist „kopieren", und der Befehl ist
+   die Auskunft. Die Auskunft bekommt die volle Breite. */
+@container (max-width: 560px) {
+  .server-row { flex-wrap: wrap; }
+  .server-row code { flex: 1 1 100%; overflow-x: visible;
+    white-space: pre-wrap; overflow-wrap: anywhere; }
+}
+
 @media (max-width: 700px) {
   .search-box { order: 3; flex: 1 1 100%; max-width: none; }
 }
@@ -3243,10 +3380,24 @@ body.login .login-screen { flex: 1 0 auto; min-height: 0; }
   .btn { padding: 12px 17px; }
   .btn-sm { padding: 10px 14px; }
   .icon-btn { width: 44px; height: 44px; }
-  .pill { padding: 10px 15px; }
+  /* ZWISCHEN DEN BEIDEN MASSEN UND NICHT AUF DEM ZEIGERMASS -- 0.28.0, BA 7.
+     GERECHNET: die Pille misst am Zeiger 31 px hoch (5 px + 5 px + 21 px
+     Zeile), trug am Finger 41 und traegt jetzt 35. Die Reihe bricht um und
+     gewinnt damit SECHS Pixel je Zeile; bei fuenf Zeilen sind das dreissig.
+     NICHT ZURUECK AUF DAS ZEIGERMASS: ein Finger ist breiter als ein
+     Mauszeiger, und diese Runde nimmt ihm nicht weg, was er gebraucht hat.
+     Der Befund des Betreibers vom 11. September 2026 lautete „filigraner" und
+     nicht „wie am Schreibtisch". */
+  .pill { padding: 7px 13px; }
   /* Der Und/Oder-Umschalter bleibt kleiner als die Pillen daneben: er ist
-     eine Einstellung ZU der Reihe und nicht ein Glied darin. */
-  .pill-mode { padding: 7px 12px; }
+     eine Einstellung ZU der Reihe und nicht ein Glied darin.
+     ER MUSS MITGEHEN, SONST STIMMT DER SATZ DARUEBER NICHT MEHR. Bei 7px 12px
+     stuende er nach dem Schrumpfen der Pille GENAU SO HOCH wie sie -- gleiche
+     senkrechte Polsterung, ein Pixel Unterschied in der Breite. Vier Pixel
+     niedriger sagt weiter, was er ist; null Pixel sagten es nicht mehr.
+     Und er bleibt ueber seinem Zeigermass (3px 9px): dasselbe Mass, dieselbe
+     Ueberlegung wie bei der Pille darueber. */
+  .pill-mode { padding: 5px 11px; }
   .chip { padding: 7px 12px; }
   .chip button { padding: 3px 5px; }
   /* DIE KLEINE MARKE AM TESTTAG BLEIBT DIE KLEINE MARKE. `.chip-xs` traegt
@@ -3385,9 +3536,29 @@ body.login .login-screen { flex: 1 0 auto; min-height: 0; }
      hoeherem Gewicht oder weiter unten im Stylesheet -- eine Sammelregel auf
      `.input` allein liesse genau die kleinsten Felder ungedeckt, und das sind
      die, um die es geht. */
-  .input, .input-sm, .ta, .select, .select-sm, .title-in,
+  /* DIE AUSWAHLFELDER STEHEN SEIT 0.28.0 NICHT MEHR HIER, und der Grund ist
+     nicht Gestaltung, sondern der Anlass der Regel selbst: sie steht gegen das
+     Hineinzoomen beim TIPPEN. Ein `<select>` nimmt keinen Schreibstrich -- es
+     oeffnet die Auswahl des Systems, es gibt dort nichts zu tippen, und
+     folglich nichts, wogegen der Browser hineinzoomen koennte. Die drei
+     Waehler `.select`, `.select-sm` und `.mrow.user select.user-role-sel`
+     fuhren in einer Regel mit, deren Anlass sie nicht haben.
+     WAS DAS AUSMACHT: die aufgeklappte Liste erbt die Schriftgroesse des
+     Feldes. Die Sortierung traegt bis zu dreizehn Eintraege in vier Gruppen --
+     mit den Ueberschriften bis zu siebzehn Zeilen. Bei 16 px passte das auf
+     kein Telefon; das ist die Schrift, die der Betreiber am 11. September 2026
+     „deutlich groesser" genannt hat.
+     GEMESSEN AUF ANDROID MIT CHROME, und dort erbt die Liste die Groesse des
+     Feldes. Auf einem iPhone zeichnet iOS die Auswahl mit der Schrift des
+     SYSTEMS -- dort wird das FELD kleiner und die Liste nicht. Der Gewinn
+     haengt also am Geraet; die Regel ist auf beiden richtig.
+     DAS DATUMSFELD BLEIBT DRIN: es traegt einen Schreibstrich, den ein
+     `<select>` nicht hat -- auf dem Schreibtisch immer, auf manchen Telefonen
+     auch. Im Zweifel fuer die Regel.
+     DIE EINGABEFELDER BLEIBEN AUSNAHMSLOS DRIN. */
+  .input, .input-sm, .ta, .title-in,
   .engine-slot .input, .user-link-row .input,
-  .mrow input.medit, .mrow .mweight-field, .mrow.user select.user-role-sel,
+  .mrow input.medit, .mrow .mweight-field,
   .test-add input[type=date] { font-size: max(16px, 1rem); }
   /* Dasselbe, nur traegt die Regel oben ein !important und ist anders nicht
      zu erreichen. */
@@ -3804,8 +3975,9 @@ body.login .login-screen { flex: 1 0 auto; min-height: 0; }
      Abschnitt; ueber der ersten Karte steht die Ueberschrift der Seite samt
      ihrer Unterzeile, und die trennt sich selbst. */
   .sys-grid > .sys-card:first-child { border-top: 0; padding-top: 4px; }
-  /* Zwei Spalten Formularfelder auf 366 Pixeln sind zwei zu schmale Spalten. */
-  .vocabulary-grid { grid-template-columns: 1fr; }
+  /* AUCH DIESE REGEL IST MIT 0.28.0 EINE BEHAELTERABFRAGE GEWORDEN (BA 3): zwei
+     zu schmale Spalten entstehen, wenn die KARTE schmal ist, und die ist bei
+     1024 px Fenster mit 320 px schmaler als auf dem Telefon mit 354. */
   /* UND AUS DEMSELBEN GRUND FAELLT DER MAILVERSAND WIEDER IN EINE SPALTE. Eine
      Reihe, die auf 366 Pixeln drei Felder nebeneinander zwingt, ist schlechter
      als die Spalte, die es vorher war -- "Benutzername beim Anbieter" stuende

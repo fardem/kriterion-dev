@@ -1889,8 +1889,148 @@ const shareMain = (purpose, target = null) =>
   check('Eingabefelder fallen auf dem Finger nicht unter die Zoomgrenze',
     (cssEng.match(/font-size: max\(16px, 1rem\)/g) || []).length >= 2,
     String((cssEng.match(/font-size: max\(16px, 1rem\)/g) || []).length));
-  check('Und die kleinen Felder stehen ausdruecklich mit dabei',
-    /\.input, \.input-sm, \.ta, \.select, \.select-sm/.test(cssEng));
+  /* DIESE ZUSAGE IST IN ZWEI ZERFALLEN UND NICHT GEFALLEN -- 0.28.0,
+     Stolperstein 201. Bis 0.27.0 stand hier EINE Zeile, die
+     `.input, .input-sm, .ta, .select, .select-sm` in einem Stueck verlangte.
+     Die Auswahlfelder sind aus der Regel herausgenommen worden (BA 7), und
+     eine Zusage, die mit ihrem Gegenstand verschwindet, hat den Gegenstand nie
+     geprueft. Sie hat weiter einen Sinn, nur einen engeren: die Eingabefelder
+     drin, die Auswahlfelder draussen -- beides NAMENTLICH und nicht gezaehlt.
+     EINE ZUSAGE, DIE NUR ZAEHLT, SIEHT KEINEN TAUSCH: stuende hier „fuenf
+     Waehler", bliebe sie gruen, wenn jemand `.select` gegen `.title-in`
+     tauscht. */
+  /* DIE KOMMENTARE MUESSEN WEG, BEVOR DER WAEHLER GELESEN WIRD -- und das ist
+     ein Fund aus dem ersten Lauf dieser Runde. Der Absatz ueber der Regel
+     ERKLAERT, warum die Auswahlfelder herausgefallen sind, und nennt sie dabei
+     namentlich. Eine Zusage, die den rohen Text ansieht, findet `.select` dort
+     wieder und bleibt rot, obwohl der Waehler stimmt.
+     SIE HAETTE AUCH IN DIE ANDERE RICHTUNG GEHEN KOENNEN: waere die Erklaerung
+     eines Tages umformuliert, wuerde die Zusage still gruen -- ohne dass sich
+     am Stilblatt etwas geaendert haette. Eine Zusage liest den WAEHLER und
+     nicht den Absatz darueber. */
+  const cssOhneRede = css.replace(/\/\*[\s\S]*?\*\//g, ' ').replace(/\s+/g, ' ');
+  const zoomRegel = (cssOhneRede.match(/[^{}]*\{ font-size: max\(16px, 1rem\); \}/g) || []).join(' ');
+  check('Die Eingabefelder stehen ausnahmslos in der Zoomregel',
+    /\.input, \.input-sm, \.ta, \.title-in/.test(zoomRegel)
+    && /\.engine-slot \.input/.test(zoomRegel)
+    && /\.user-link-row \.input/.test(zoomRegel)
+    && /\.mrow input\.medit/.test(zoomRegel)
+    && /\.mrow \.mweight-field/.test(zoomRegel)
+    && /\.test-add input\[type=date\]/.test(zoomRegel),
+    zoomRegel || '(Regel nicht gefunden)');
+  /* UND DAS DATUMSFELD BLEIBT AUSDRUECKLICH DRIN (F16). Es traegt einen
+     Schreibstrich, den ein `<select>` nicht hat -- die Zeile darueber nennt es
+     mit, diese sagt WARUM es eine eigene Frage war. */
+  check('Und das Datumsfeld ist eines von ihnen und kein Auswahlfeld',
+    /\.test-add input\[type=date\]/.test(zoomRegel)
+    && !/input\[type=date\][^,}]*select/.test(zoomRegel));
+  check('Die Auswahlfelder stehen NICHT mehr darin -- alle drei namentlich',
+    !/\.select\b/.test(zoomRegel)
+    && !/\.select-sm\b/.test(zoomRegel)
+    && !/select\.user-role-sel/.test(zoomRegel),
+    zoomRegel || '(Regel nicht gefunden)');
+  /* UND DER GRUND STEHT IM STILBLATT DANEBEN. Eine Wegnahme ohne Begruendung
+     liest sich beim naechsten Mal wie ein Versehen und wird zurueckgebaut. */
+  check('Und der Grund dafuer steht im Stilblatt daneben',
+    /<select> NIMMT KEINEN SCHREIBSTRICH|`<select>` nicht hat|oeffnet die Auswahl des Systems/.test(css)
+    && /Anlass/.test(css));
+  /* DIE UNTERGRENZE STEHT WEITER IN EINER FUNKTION und nicht als blanke Zahl --
+     Zusage 20. Eine blanke Pixelzahl waere ein zweites Grundmass neben dem am
+     Wurzelelement, und die Pruefung darueber faellt darauf. */
+  check('Die Untergrenze steht weiter in einer Funktion und nicht als blanke Zahl',
+    /font-size: max\(16px, 1rem\)/.test(cssEng)
+    && !/font-size: 16px/.test(cssEng));
+
+  /* ---- Die Dichte am Finger -- 0.28.0, BA 7 ----
+     ZWEI MASSE IN EINER ZUSAGE, und das ist Absicht: „kleiner als heute" allein
+     waere auch dann gruen, wenn jemand die Pille auf das ZEIGERMASS
+     zurueckstellte -- und genau das soll nicht passieren. Der Finger ist
+     breiter als ein Mauszeiger, und diese Runde nimmt ihm nicht weg, was er
+     gebraucht hat.
+     GERECHNET UND NICHT GERATEN: die Zeilenhoehe ist 1,55 am body, die Schrift
+     der Pille 0,83 rem bei 15 px Grundmass -- also 21 px Zeile. Mit 5 px
+     Polsterung misst sie am Zeiger 31, mit 7 px 35, mit 10 px 41. */
+  const fingerBlock2 = (cssEng.match(/@media \(pointer: coarse\) \{.*?\n?/) || [''])[0];
+  const pillFinger = (cssEng.match(/@media \(pointer: coarse\) \{[^@]*?\.pill \{ padding: (\d+)px (\d+)px; \}/) || [])[1];
+  const pillZeiger = (cssEng.match(/\.pill \{ padding: (\d+)px/) || [])[1];
+  check('Die Pille ist am Finger kleiner als vorher UND groesser als am Zeiger',
+    Number(pillFinger) === 7 && Number(pillZeiger) === 5,
+    `Finger ${pillFinger}px (vorher 10), Zeiger ${pillZeiger}px`);
+  /* UND DER UND/ODER-UMSCHALTER MUSS MITGEHEN. Bei 7px stuende er nach dem
+     Schrumpfen der Pille GENAU SO HOCH wie sie -- der Satz „er bleibt kleiner
+     als die Pillen daneben" waere damit nicht mehr wahr. */
+  const modeFinger = (cssEng.match(/@media \(pointer: coarse\) \{[^@]*?\.pill-mode \{ padding: (\d+)px/) || [])[1];
+  check('Und der Und/Oder-Umschalter bleibt am Finger kleiner als die Pille',
+    Number(modeFinger) < Number(pillFinger),
+    `Umschalter ${modeFinger}px gegen Pille ${pillFinger}px`);
+  check('Und er bleibt ueber seinem Zeigermass',
+    Number(modeFinger) > Number((cssEng.match(/\.pill-mode \{ padding: (\d+)px/) || [])[1]),
+    `Finger ${modeFinger}px, Zeiger ${(cssEng.match(/\.pill-mode \{ padding: (\d+)px/) || [])[1]}px`);
+  /* DAS MASS DES SYMBOLKNOPFS BLEIBT UNANGETASTET -- Zusage 17. Es ist die
+     einzige Zahl, die der Finger-Abschnitt ausdruecklich verspricht. Die Zeile
+     darueber prueft sie schon; diese sagt, dass BA 7 sie nicht mitgenommen hat. */
+  check('Und der Symbolknopf hat dabei seine 44 Pixel behalten',
+    /@media \(pointer: coarse\) \{[^@]*\.icon-btn \{ width: 44px; height: 44px; \}/.test(cssEng));
+
+  /* ---- Die Meldung weicht der Vergleichsleiste -- 0.28.0, BA 5 ----
+     GEMESSEN IN CHROMIUM am 11. September 2026: die Leiste misst 54 px am
+     Zeiger und 60 am Finger, die Meldung 43; beide sassen unten und deckten
+     einander vollstaendig. */
+  check('Die Meldung weicht der Vergleichsleiste',
+    /body:has\(\.cmp-bar\) \.toast \{ bottom: calc\(90px \+ env\(safe-area-inset-bottom\)\); \}/.test(cssEng),
+    (cssEng.match(/body:has\([^)]*\) \.toast \{[^}]*\}/) || ['(keine Regel)'])[0]);
+  /* UND SIE STEHT HOEHER ALS DIE LEISTE HOCH IST. Eine Zahl, die kleiner waere
+     als die Leiste, verschoebe die Meldung und deckte sie trotzdem zu. */
+  const hub = Number((cssEng.match(/body:has\(\.cmp-bar\) \.toast \{ bottom: calc\((\d+)px/) || [])[1]);
+  const leisteUnten = Number((cssEng.match(/\.cmp-bar \{ position: fixed; bottom: (\d+)px/) || [])[1]);
+  check('Und der Hub ist groesser als Stand und Hoehe der Leiste zusammen',
+    hub > leisteUnten + 60, `Hub ${hub}px gegen Leiste bei ${leisteUnten}px plus 60px Hoehe`);
+
+  /* ---- Die Behaelterabfragen -- 0.28.0, BA 3 ----
+     DAS ERSTE `container-type` DIESES STILBLATTS. Die Zahl der Fensterabfragen
+     steht hier ausdruecklich: sie ist von siebzehn auf sechzehn gefallen, weil
+     EINE Abfrage zur Behaelterabfrage geworden ist -- nicht, weil eine Regel
+     verschwunden waere. Faellt sie weiter, ist etwas gefallen, das niemand
+     gemeldet hat (dieselbe Bauform wie die Zahl in F_ROUTES). */
+  check('Die Karte des Systembereichs ist ein Behaelter',
+    /\.sys-card \{ container-type: inline-size; \}/.test(cssEng));
+  check('Und das Stilblatt hat genau zwei Behaelterabfragen',
+    (cssEng.match(/@container /g) || []).length === 2,
+    String((cssEng.match(/@container /g) || []).length));
+  check('Und sechzehn Fensterabfragen -- eine weniger als vor dieser Runde',
+    (cssEng.match(/@media /g) || []).length === 16,
+    String((cssEng.match(/@media /g) || []).length));
+  /* DIE ZEILE DES PROTOKOLLS WIRD AN DER KARTE GEMESSEN UND NICHT AM FENSTER --
+     Zusage 9. GEMESSEN am laufenden Server (Chromium, 11. September 2026): bei
+     1024 px Fenster misst die schmale Karte 320 px und die breite 988; bei
+     700 px Fenster ist JEDE Karte 664 px breit. Die alte Fensterabfrage klappte
+     die Zeile also genau dann um, wenn ihre Karte am BREITESTEN war. */
+  const behaelter = (css.match(/@container \(max-width: 420px\) \{[\s\S]*?\n\}/) || [''])[0];
+  check('Die Zeile des Protokolls fragt die Karte und nicht mehr das Fenster',
+    /\.log-row \{ display: grid;/.test(behaelter) && /\.log-time \{ grid-column: 1 \/ -1; \}/.test(behaelter),
+    behaelter ? '(Behaelterabfrage gefunden)' : '(keine Behaelterabfrage bei 420px)');
+  check('Und keine Fensterabfrage klappt sie mehr um',
+    !/@media[^@]*\.log-row \{ display: grid;/.test(cssEng));
+  check('Und die zwei Spalten Formularfelder fragen ebenfalls die Karte',
+    /\.vocabulary-grid \{ grid-template-columns: 1fr; \}/.test(behaelter));
+  /* DER BEFEHL AUS BEFUND 3. GEMESSEN bei 1024 px Fenster am laufenden Server:
+     er misst 452 px und steht in 182 px -- 270 Pixel liegen ausserhalb, und
+     `overflow-x: auto` laesst den Kasten seitlich rollen. Das ist die Zeile,
+     die der Befund meinte; sie heisst weder Anmeldungszeile noch
+     Protokollzeile. */
+  const befehl = (css.match(/@container \(max-width: 560px\) \{[\s\S]*?\n\}/) || [''])[0];
+  check('Der Befehl bricht um, statt seitlich zu rollen',
+    /\.server-row code \{[^}]*overflow-x: visible/.test(befehl)
+    && /white-space: pre-wrap/.test(befehl),
+    befehl ? '(Behaelterabfrage gefunden)' : '(keine Behaelterabfrage bei 560px)');
+  /* UND VIER REGELN BLEIBEN AUSDRUECKLICH FENSTERABFRAGEN, jede mit ihrem Grund
+     im Stilblatt. Wer sie mit umstellte, machte sie falsch: ein Behaelter kann
+     sich nicht selbst fragen, wie breit er ist, und Hoehe und Zeiger sind gar
+     keine Breitenfragen. */
+  check('Das Raster der Karten bleibt eine Fensterfrage',
+    /@media \(max-width: 1024px\) \{[^@]*\.sys-grid \{ grid-template-columns: repeat\(auto-fit/.test(cssEng));
+  check('Und der Deckel der Listen bleibt eine Frage an die HOEHE',
+    /max-height: 62dvh/.test(cssOhneRede) && !/@container[^@]*62dvh/.test(cssOhneRede));
 
   /* Jede Sichtbarkeit, die an :hover haengt, braucht ihr Gegenstueck fuer den
      Finger. Vor dieser Runde fehlte es an drei Stellen -- und der Blaetterpfeil
@@ -1996,6 +2136,255 @@ const shareMain = (purpose, target = null) =>
   const bar = (cssEng.match(/\.cmp-bar \{[^}]*\}/) || [''])[0];
   check('Die Vergleichsleiste steht wirklich mittig',
     /margin: 0 auto/.test(bar) && !/transform: translateX/.test(bar), bar);
+
+  /* ---------------------------------------------------------------- */
+  group('Die gemeinsame Kopfzeile und das Blaettern — 0.28.0');
+
+  /* DIE VIER UNTERANSICHTEN WERDEN EINZELN GEPRUEFT UND NICHT
+     STELLVERTRETEND. Eine Zusage, die nur an renderDetail() haengt, bliebe
+     gruen, wenn renderCompare() seine alte Zeile behaelt -- und genau das ist
+     der Fehler, den ein Umbau ueber vier Aufbauten macht.
+     GESCHNITTEN WIRD JEDE FUNKTION FUER SICH, damit die Zusage nicht aus
+     Versehen die Kopfzeile der NACHBARansicht sieht. */
+  const stueck = (von, bis) => {
+    const a = appSource.indexOf(von);
+    if (a < 0) return '';
+    const b = bis ? appSource.indexOf(bis, a) : -1;
+    return appSource.slice(a, b < 0 ? a + 4000 : b);
+  };
+  const VIER = [
+    ['Eintrag',          'async function renderDetail(', '\n/* ---- Fotos ----'],
+    ['Systembereich',    'async function renderSystem(', '  for (const k of cards)'],
+    ['Offene Aufgaben',  'async function renderOpen(',   '  function drawView()'],
+    ['Vergleich',        'async function renderCompare(', '  const cg = document.getElementById'],
+  ];
+  for (const [name, von, bis] of VIER) {
+    const teil = stueck(von, bis);
+    check(`${name}: traegt die gemeinsame Kopfzeile`,
+      /\$\{subhead\(/.test(teil) && /wireSubhead\(/.test(teil),
+      teil ? '(Ansicht gefunden, aber ohne subhead)' : '(Ansicht nicht gefunden)');
+    check(`${name}: die alte Rueckzeile ist weg`,
+      !/class="back"/.test(teil));
+  }
+  /* UND DER FUENFTE: der Fehlerweg des Eintrags. Er stand mit derselben Zeile
+     da und wird gern vergessen, weil ihn niemand sieht, solange alle Nummern
+     aufgehen. */
+  check('Auch der Fehlerweg des Eintrags traegt sie',
+    /server\.entryUnknown[\s\S]{0,80}<\/div>`;\n      wireSubhead/.test(appSource)
+    || /\$\{subhead\(\)\}<p class="hint">\$\{tH\('server\.entryUnknown'\)\}/.test(appSource));
+  /* GEZAEHLT WIRD IM AUFBAU UND NICHT IN DEN ERKLAERUNGEN. Der Absatz ueber
+     subhead() nennt die gefallene Zeile woertlich -- er ist die Herleitung und
+     gehoert dorthin. Eine Zusage, die den rohen Text zaehlt, faende ihn und
+     bliebe rot, obwohl kein einziger Aufbau die Klasse mehr traegt. Derselbe
+     Fund und dieselbe Antwort wie bei der Zoomregel weiter oben. */
+  const appOhneRede = appSource.replace(/\/\*[\s\S]*?\*\//g, ' ');
+  check('Und die Klasse `back` steht nirgends mehr im Aufbau',
+    (appOhneRede.match(/class="back"/g) || []).length === 0,
+    String((appOhneRede.match(/class="back"/g) || []).length));
+  /* DER SATZ BLEIBT. Die Zeile ist gefallen, nicht ihr Wortlaut -- der Knopf
+     traegt ihn weiter als Titel. Eine Runde, die eine Ansicht umbaut und dabei
+     still einen Satz aus dem Vokabular verliert, faellt spaeter in drei
+     Sprachen auf. */
+  check('Der Satz `list.backToList` lebt weiter und traegt den Knopf',
+    /class="icon-btn sub-back" title="\$\{esc\(t\('list\.backToList'\)\)\}/.test(appSource));
+
+  /* ---- Zusage 2: WAS sie traegt, namentlich und nicht gezaehlt ----
+     EINE ZUSAGE, DIE NUR ZAEHLT, SIEHT KEINEN TAUSCH: „sechs Dinge" bliebe
+     gruen, wenn jemand das Suchfeld gegen die Glocke tauscht. */
+  const kopf = stueck('function subhead(', '\nfunction wireSubhead(');
+  check('Sie traegt Zurueck, Marke, Suchfeld und Menue -- jedes namentlich',
+    /class="icon-btn sub-back"/.test(kopf)
+    && /\$\{MARK\(32\)\}/.test(kopf)
+    && /<h1>\$\{esc\(TITLE_APP\)\}<\/h1>/.test(kopf)
+    && /class="search-box"/.test(kopf) && /id="sub-q"/.test(kopf)
+    && /class="icon-btn mast-menu" id="menu"/.test(kopf));
+  check('Und im Eintrag dazu die zwei Blaetterpfeile',
+    /nav \? step\(nav\.prev, ICON_STEP_BACK/.test(kopf)
+    && /nav \? step\(nav\.next, ICON_STEP_FWD/.test(kopf));
+  /* WAS SIE AUSDRUECKLICH NICHT TRAEGT (F1), und jedes einzeln: der Zaehler
+     zaehlt die Uebersicht, „+ Eintrag" gehoert dorthin, wo man anlegt, und die
+     Glocke ist eine Auskunft ueber den Bestand. */
+  check('Sie traegt KEINEN Zaehler', !/class="count"/.test(kopf));
+  check('Sie traegt KEIN „+ Eintrag"', !/id="new"/.test(kopf) && !/V\.entryOne/.test(kopf));
+  check('Sie traegt KEINE Glocke', !/id="bell"/.test(kopf) && !/ICON_BELL/.test(kopf));
+  /* UND SIE IST DIESELBE KOPFZEILE WIE IN DER UEBERSICHT und keine zweite.
+     Traegt sie `.masthead` nicht, hat sie ein eigenes Stilblatt -- und damit
+     eine zweite Wahrheit ueber die Kopfzeile dieser Instanz. */
+  check('Sie ist dieselbe Kopfzeile wie die der Uebersicht',
+    /class="masthead subhead"/.test(kopf));
+  check('Und das Menue klappt auf dem Telefon nach derselben Regel ein',
+    /class="mast-rest" id="mast-rest"/.test(kopf));
+
+  /* ---- Zusage 3: die Suche springt zur Uebersicht ---- */
+  const draht = stueck('function wireSubhead(', '\n/* Gesetzt von der Tuer');
+  check('Die Suche darin springt zur Uebersicht und sucht nicht in der Ansicht',
+    /SEARCH_HANDOFF = true; location\.hash = '#\/';/.test(draht)
+    && !/api\('GET', '\/api\/items\?/.test(draht));
+  check('Und der Schreibstrich landet danach im Feld der Uebersicht',
+    /if \(SEARCH_HANDOFF\) \{[\s\S]{0,200}atElement\('q', el => \{ el\.focus\(\)/.test(appSource));
+  check('Und die Marke gilt fuer genau einen Sprung',
+    /SEARCH_HANDOFF = false;/.test(appSource));
+
+  /* ---- Zusage 4 bis 6: die Reihenfolge ---- */
+  const nachbarn = stueck('const entryNeighbours =', '\n/* Der Aufbau.');
+  check('Die Pfeile blaettern in der Reihenfolge der Uebersicht',
+    /state\.items \|\| \[\]/.test(nachbarn));
+  check('Und nicht im ungefilterten Bestand',
+    !/state\.all\b/.test(nachbarn));
+  check('Ohne Reihenfolge gibt es keine Nachbarn -- beide gedaempft',
+    /if \(at < 0\) return \{ prev: null, next: null, ordered: false \};/.test(nachbarn));
+  check('Am Anfang und am Ende sind sie gedaempft und bleiben stehen',
+    /at > 0 \? list\[at - 1\]\.id : null/.test(nachbarn)
+    && /at < list\.length - 1 \? list\[at \+ 1\]\.id : null/.test(nachbarn)
+    && /id == null \? 'disabled' : ''/.test(kopf));
+  /* SIE VERSCHWINDEN NICHT -- das verschoebe den Titel daneben, und der Titel
+     wanderte beim Blaettern hin und her. */
+  check('Und sie verschwinden nicht, sondern werden gedaempft',
+    /\.subhead \.step:disabled \{ opacity: \.26; cursor: default; \}/.test(cssEng));
+  check('Die Reihenfolge wird NICHT gespeichert und NICHT am Server gefragt',
+    !/sessionStorage/.test(nachbarn) && !/localStorage/.test(nachbarn)
+    && !/api\(/.test(nachbarn));
+  check('Und der Begriff faehrt beim Blaettern in der Adresse mit',
+    /location\.hash = entryAddress\(\+to, term\)/.test(draht));
+
+  /* ---- Zusage 7: KEINE Taste blaettert den Eintrag ----
+     DER BETREIBER HAT `Bild auf`/`Bild ab` AM 11. SEPTEMBER 2026 GESTRICHEN:
+     bei langen Kommentaren wird `Bild ab` zum Rollen gebraucht, und der Eintrag
+     ist die Ansicht mit dem laengsten Inhalt. Die Pfeiltasten bleiben
+     ungeteilt bei den Bildern.
+     EINE GEGENPROBE FUER BEIDE FAELLE: die Zusage faellt, sobald IRGENDEINE
+     Taste den Eintrag wechselt. */
+  check('Keine Taste blaettert den Eintrag -- weder Bild auf/ab noch die Pfeile',
+    !/PageUp|PageDown/.test(appSource));
+  check('Und die Pfeiltasten bleiben bei den Bildern',
+    /e\.key === 'ArrowLeft'/.test(appSource) && /e\.key === 'ArrowRight'/.test(appSource));
+  check('Der Wechsel des Eintrags haengt am Klick und nicht an einer Taste',
+    /b\.onclick = \(\) => \{[\s\S]{0,160}location\.hash = entryAddress/.test(draht)
+    && !/keydown[\s\S]{0,200}entryAddress/.test(draht));
+  /* ---- Zusage 8: keine Wischgeste ---- */
+  check('Es ist keine Wischgeste zum Blaettern angehaengt',
+    !/touchstart[\s\S]{0,300}entryAddress/.test(appSource)
+    && !new RegExp('swipe', 'i').test(draht));
+
+  /* ---- Zusage 10: der Halbsatz am Ablegefeld, in allen drei Sprachen ---- */
+  for (const sprache of ['de', 'en', 'tr']) {
+    const worte = JSON.parse(fs.readFileSync(path.join(__dirname, 'public', 'languages', sprache + '.json'), 'utf8'));
+    check(`Der Satz am Ablegefeld gilt am Telefon (${sprache})`,
+      !/Strg\+V|Ctrl\+V/.test(worte['entry.addMediaHint'] || ''),
+      worte['entry.addMediaHint']);
+    check(`Und der Schluessel steht noch da (${sprache})`,
+      typeof worte['entry.addMediaHint'] === 'string' && worte['entry.addMediaHint'].length > 10);
+    check(`Und die zwei neuen Saetze fuer die Pfeile stehen da (${sprache})`,
+      typeof worte['list.prevInList'] === 'string' && typeof worte['list.nextInList'] === 'string',
+      `${worte['list.prevInList']} / ${worte['list.nextInList']}`);
+  }
+
+  /* ---------------------------------------------------------------- */
+  group('Das Startbildzeichen — 0.28.0');
+
+  /* GEFRAGT WIRD DER LAUFENDE SERVER UND NICHT DER QUELLTEXT. Eine Route, die
+     im Quelltext steht und beim Rufen 404 liefert, ist keine Route. */
+  {
+    const titelVorher = (await call('GET', '/api/titles')).content;
+    /* ZUERST OHNE ANMELDUNG -- und das ist die eigentliche Zusage. Der Browser
+       holt das Manifest nach der Regel OHNE Anmeldedaten; haengt es hinter der
+       Anmeldung, ist es fuer ihn schlicht nicht da. Der Cookie wird dafuer
+       beiseite gelegt und danach zurueckgegeben: die Pruefungen danach brauchen
+       ihn. */
+    const merk = cookie; cookie = '';
+    const ohne = await call('GET', '/api/manifest.json');
+    cookie = merk;
+    check('Der Manifestweg antwortet OHNE Anmeldung',
+      ohne.status === 200 && ohne.content && typeof ohne.content.name === 'string',
+      `Status ${ohne.status}`);
+
+    /* UND ER TRAEGT DEN TITEL DIESER INSTALLATION. Gepruefet wird mit einem
+       Namen, den niemand raten kann -- steht danach „Kriterion" oder
+       „Bewertungskatalog" da, ist ein fester Name hineingeschrieben worden.
+       ZWEI TITEL GIBT ES: `title_app` ist der Name IN der angemeldeten
+       Anwendung, `title_public` der, den die Anmeldeseite schon vor der
+       Anmeldung zeigt. Das Manifest traegt den OEFFENTLICHEN -- entschieden
+       vom Betreiber am 11. September 2026 -, weil der Browser es holt, bevor
+       sich jemand angemeldet hat. Mit `title_app` legte diese Route eine
+       Angabe offen, die bisher hinter der Anmeldung stand. */
+    const probe = 'Werkstatt Nord ' + Math.random().toString(36).slice(2, 7);
+    await callF('PUT', '/api/titles', { publicTitle: probe, appTitle: probe + ' intern' });
+    const nachher = await call('GET', '/api/manifest.json');
+    check('Er traegt den Titel DIESER Installation und keinen festen Namen',
+      nachher.content && nachher.content.name === probe,
+      `ist: ${nachher.content && nachher.content.name}`);
+    check('Und zwar den OEFFENTLICHEN Titel und nicht den der Anwendung',
+      nachher.content && nachher.content.name === probe
+      && nachher.content.name !== probe + ' intern',
+      `ist: ${nachher.content && nachher.content.name}`);
+    /* WAS EIN STARTBILDZEICHEN BRAUCHT, und jedes Stueck einzeln: ohne
+       `start_url` oeffnet die Kachel irgendwo, ohne `display: standalone` ist
+       sie ein huebscheres Lesezeichen, ohne Zeichen ist sie grau. */
+    const m = nachher.content || {};
+    check('Er nennt Startadresse, Geltungsbereich und Darstellungsart',
+      m.start_url === '/' && m.scope === '/' && m.display === 'standalone',
+      JSON.stringify({ start_url: m.start_url, scope: m.scope, display: m.display }));
+    check('Und ein einziges Zeichen: die vorhandene SVG',
+      Array.isArray(m.icons) && m.icons.length === 1
+      && m.icons[0].src === '/favicon.svg' && m.icons[0].type === 'image/svg+xml',
+      JSON.stringify(m.icons));
+    /* DIE FARBE IST DAS DUNKLE --bg UND EINE ABSCHRIFT. Steht hier ein anderer
+       Wert als in index.html, blitzt beim Start ein Streifen in der falschen
+       Farbe auf -- zwei Wahrheiten ueber dieselbe Farbe. */
+    const kopfHtml = fs.readFileSync(path.join(__dirname, 'public', 'index.html'), 'utf8');
+    const themeMeta = (kopfHtml.match(/<meta name="theme-color" content="([^"]+)"/) || [])[1];
+    /* UND SIE SETZT IHREN TYP NICHT SELBST. Der Waechter weiter unten haelt
+       `server.js` frei von jedem Content-Type -- der ausgelieferte Typ soll nie
+       aus der Datenbank kommen koennen. Diese Zeile sagt, dass die neue Route
+       ihn nicht zur ersten Ausnahme gemacht hat, und sie sagt es HIER, wo man
+       die Route baut, und nicht nur dort, wo der Waechter steht.
+       GEMESSEN (Chromium, Page.getAppManifest): mit `application/json` liest
+       der Browser das Manifest fehlerfrei. */
+    check('Und sie setzt den ausgelieferten Typ nicht selbst',
+      !/res\.type\(/.test(fs.readFileSync(path.join(__dirname, 'server.js'), 'utf8')
+        .replace(/\/\*[\s\S]*?\*\//g, ' ')));
+    check('Und die Farbe ist dieselbe wie die der Browserleiste',
+      m.theme_color === themeMeta && m.background_color === themeMeta,
+      `Manifest ${m.theme_color} / ${m.background_color}, index.html ${themeMeta}`);
+    check('Die Seite verweist auf das Manifest',
+      /<link rel="manifest" href="\/api\/manifest\.json">/.test(kopfHtml));
+    /* UND OHNE crossorigin: der Browser holt das Manifest ohne Anmeldedaten,
+       und die Route ist genau deshalb offen. Stuende dort use-credentials,
+       verlangte er einen Zugang fuer eine Datei, die er vor der Anmeldung
+       braucht. */
+    check('Und zwar ohne use-credentials',
+      !/rel="manifest"[^>]*crossorigin/.test(kopfHtml));
+
+    /* KEIN ARBEITER IM HINTERGRUND, KEIN ZWISCHENSPEICHER -- am Quelltext
+       geprueft, im GANZEN Auslieferungsverzeichnis und nicht nur in app.js.
+       Ein Zwischenspeicher, der eine alte Fassung ausliefert, waere in einer
+       Instanz mit Fingerprint das Gegenteil von hilfreich: die Oberflaeche
+       zeigte eine Version, die der Server laengst nicht mehr ist. */
+    const ausgeliefert = fs.readdirSync(path.join(__dirname, 'public'), { recursive: true })
+      .filter(f => /\.(js|html|json)$/.test(String(f)))
+      .map(f => fs.readFileSync(path.join(__dirname, 'public', String(f)), 'utf8')).join('\n');
+    check('Kein Arbeiter im Hintergrund und kein Zwischenspeicher',
+      !/serviceWorker|ServiceWorker|caches\.open|workbox/.test(ausgeliefert + fs.readFileSync(path.join(__dirname, 'server.js'), 'utf8')));
+
+    /* UND DIE ZAHL, DIE NICHT WAECHST. `F_ROUTES` fuehrt die SCHREIBENDEN
+       Routen; die Manifestroute ist lesend und steht dort nicht. Der Auftrag
+       sagte an drei Stellen „72 wird 73" -- das kann nicht sein, und die Zahl
+       steht hier ausdruecklich, damit es niemand nachtraeglich hineinschreibt.
+       Die Zahl selbst wird weiter unten in ihrer eigenen Gruppe geprueft; hier
+       steht, dass die NEUE Route lesend ist. */
+    const serverQuelle = fs.readFileSync(path.join(__dirname, 'server.js'), 'utf8');
+    check('Die neue Route ist lesend und waechst F_ROUTES nicht',
+      /app\.get\('\/api\/manifest\.json'/.test(serverQuelle)
+      && !/app\.(post|put|delete)\('\/api\/manifest\.json'/.test(serverQuelle));
+    check('Und sie ist die EINZIGE neue Route dieser Runde',
+      (serverQuelle.match(/^app\.get\('/gm) || []).length === 31,
+      String((serverQuelle.match(/^app\.get\('/gm) || []).length));
+
+    // Den Titel zurueckstellen -- die Pruefungen danach rechnen mit dem alten.
+    if (titelVorher && titelVorher.publicTitle)
+      await callF('PUT', '/api/titles',
+        { publicTitle: titelVorher.publicTitle, appTitle: titelVorher.appTitle });
+  }
 
   /* ---------------------------------------------------------------- */
   group('Einstellungen: Vokabular und Schriftgroesse');
@@ -17621,8 +18010,11 @@ const shareMain = (purpose, target = null) =>
        (card.catchUpAsk und card.catchUpBoth sind Mehrzahlpaare) ... und die
        Rechnung geht nur mit BEIDEN Zahlen auf, denn ein Mehrzahlpaar zaehlt
        flach doppelt: 1238 + 82 = 1320. */
-    check('Und die Zahlen stehen: 1320 Schluessel, 82 Mehrzahlformen, 14 Vokabelnamen',
-      languageKeys.length === 1320 && pluralKeys.length === 82 && vocabularyKeys.length === 14,
+    /* 1320 + 2 = 1322 -- die beiden Titel der Blaetterpfeile (0.28.0). Die
+       Mehrzahlformen und die Vokabelnamen ruehren sich nicht: ein Pfeil hat
+       keine Mehrzahl, und „Uebersicht" ist kein Vokabelwort. */
+    check('Und die Zahlen stehen: 1322 Schluessel, 82 Mehrzahlformen, 14 Vokabelnamen',
+      languageKeys.length === 1322 && pluralKeys.length === 82 && vocabularyKeys.length === 14,
       `${languageKeys.length} / ${pluralKeys.length} / ${vocabularyKeys.length}`);
 
     /* ---- 3. Die Adressprobe ---------------------------------------------
@@ -17825,9 +18217,15 @@ const shareMain = (purpose, target = null) =>
       'card.catchUpAsk', 'card.derivativesAsk',
       'card.convertCounts', 'card.nothingToDo',
       'entry.clipboardLarger', 'server.imageStoreUnknown'];
+    /* UND ZWEI MIT 0.28.0: die Titel der beiden Blaetterpfeile in der
+       Kopfzeile. Mehr Saetze braucht diese Runde nicht -- der Rueckweg behaelt
+       seinen (`list.backToList`), und die Kopfzeile leiht sich alles andere
+       von der Uebersicht. */
+    const WORDING_NEW_0280 = ['list.prevInList', 'list.nextInList'];
     const WORDING_NEW = [...WORDING_NEW_0243, ...WORDING_NEW_0244,
       ...WORDING_NEW_0245, ...WORDING_NEW_0246, ...WORDING_NEW_0250,
-      ...WORDING_NEW_0254, ...WORDING_NEW_0260, ...WORDING_NEW_0270];
+      ...WORDING_NEW_0254, ...WORDING_NEW_0260, ...WORDING_NEW_0270,
+      ...WORDING_NEW_0280];
     const wordingMissing = WORDING_NEW.filter(k => LANGUAGE_FILE[k] === undefined);
     check('Die neuen Schluessel dieser Runde stehen wirklich in der Datei',
       wordingMissing.length === 0, wordingMissing.join(' ') || 'alle da');
@@ -18037,11 +18435,22 @@ const shareMain = (purpose, target = null) =>
        Liste -- was drinnen ein Bild ist, muss draussen eine Sache sein. */
     const WORDING_CHANGED_0270 = ['card.formatsHint', 'card.convertRunning',
       'card.convertFinished', 'card.convertDone', 'card.convertProgress'];
+    /* UND EINER MIT 0.28.0: `entry.addMediaHint` verliert seinen Halbsatz.
+       „oder mit Strg+V einfuegen" nennt einen Griff, den es auf einem Telefon
+       nicht gibt -- das Einfuegen selbst bleibt, es wird nur nicht mehr
+       angesagt. EINE Fassung fuer beide Geraete und keine Weiche: zwei
+       Fassungen waeren ein zweiter Schluessel in drei Sprachen und eine
+       Abfrage nach dem Geraet, die von da an mitgepflegt werden muesste. */
+    const WORDING_CHANGED_0280 = ['entry.addMediaHint'];
     const CHANGED_PLURAL_0254 = ['card.inDays', 'login.linkValidMinutes'];
     const pluralValues = CHANGED_PLURAL_0254
       .flatMap(k => Object.values(LANGUAGE_FILE[k])).map(asBefore);
-    check('Und genau elf Saetze sind andere — die sechs von vorher und die fuenf aus 0.27.0',
-      onlyThen.length === 11 && onlyNow.length === 13 &&
+    /* ZWOELF UND VIERZEHN SEIT 0.28.0 -- einer mehr auf jeder Seite, und es
+       ist derselbe Satz: der alte Wortlaut von `entry.addMediaHint` steht nur
+       noch in der Abnahme, der neue nur noch in der Datei. */
+    check('Und genau zwoelf Saetze sind andere — die elf von vorher und der eine aus 0.28.0',
+      onlyThen.length === 12 && onlyNow.length === 14 &&
+      WORDING_CHANGED_0280.every(k => onlyNow.includes(asBefore(LANGUAGE_FILE[k]))) &&
       WORDING_CHANGED_0270.every(k => onlyNow.includes(asBefore(LANGUAGE_FILE[k]))) &&
       WORDING_CHANGED_0243.every(k => onlyNow.includes(asBefore(LANGUAGE_FILE[k]))) &&
       WORDING_CHANGED_0254.every(k => onlyNow.includes(asBefore(LANGUAGE_FILE[k]))) &&
@@ -18060,7 +18469,7 @@ const shareMain = (purpose, target = null) =>
     const restThen = onlyThen.reduce(withoutOne, wordingThen);
     const restNow = onlyNow.reduce(withoutOne, wordingNow);
     check('Und sonst kein Zeichen — Satz fuer Satz dieselbe Oberflaeche',
-      equal(restThen, restNow) && restNow.length === 1200,
+      equal(restThen, restNow) && restNow.length === 1199,
       `${restThen.filter((x, i) => x !== restNow[i]).length} abweichende von ${restNow.length}`);
 
     /* ---- 6. Die Kuerzeprobe ---------------------------------------------
@@ -25895,7 +26304,11 @@ const shareMain = (purpose, target = null) =>
      und zeigen auf die Zeilen, die dieselbe Sache jetzt tragen (Stolperstein
      201). Ein zweiter Rueckbau daneben waere eine zweite Wahrheit ueber
      denselben Fund. */
-  check('Es sind genau 815 Rueckbauten', gpList.length === 815, `${gpList.length}`);
+  /* 815 + 29 = 844 -- die Gegenproben von 0.28.0, nummeriert von 825 bis 853.
+     SIE SIND DIE TEUERSTE HAELFTE DER RUNDE, und die Zahl steht hier
+     ausdruecklich: eine Gegenprobe, die still verschwindet, nimmt eine Zusage
+     mit, die niemand mehr belegt. */
+  check('Es sind genau 844 Rueckbauten', gpList.length === 844, `${gpList.length}`);
   const gpTwice = gpList.map(r => r.nr).filter((n, i, a) => a.indexOf(n) !== i);
   check('Und keine Nummer steht zweimal', gpTwice.length === 0, gpTwice.join(' '));
   /* JEDER GREIFT: der Suchtext kommt in seiner Datei GENAU EINMAL vor. Keinmal

@@ -1,6 +1,6 @@
 # Projektstand — Kriterion
 
-**Kompakte Übergabe · Revision 79 · Stand 10. September 2026 · gebaut: Version 0.27.0**
+**Kompakte Übergabe · Revision 80 · Stand 11. September 2026 · gebaut: Version 0.28.0**
 
 Dieses Blatt ist der **einzige Ort, an dem steht, was gebaut ist und was
 bindet.** Es genügt, um in einem frischen Chat weiterzuarbeiten, ohne den alten
@@ -478,10 +478,62 @@ weiterhin offen. Daraus folgt die Stellung von `HINTER_PROXY` (Abschnitt 3).
 
 ## 2. Betriebsstand
 
-**Gebaut ist 0.27.0** — **6497 Prüfungen**, **815 Rückbauten in der Liste**
+**Gebaut ist 0.28.0** — **6569 Prüfungen**, **844 Rückbauten in der Liste**
 (Abschnitt 8). **Am Wirt läuft 0.27.0, eingespielt am 11. September 2026,
 Fingerprint `9f6741b5`** *(Abschnitt 8)* — *vom Betreiber am selben Tag aus
 seiner Installation gemeldet und damit auf das Byte bestätigt.*
+**0.28.0 ist gebaut und noch nicht eingespielt; sein Fingerprint ist
+`22be889d`.**
+
+*0.28.0 holt nach, was die Durchsicht für Telefon und Tablett gemessen und
+bewusst stehen gelassen hatte, und stellt zwei Funktionen daneben.* **Der Kern
+ist eine gemeinsame Kopfzeile für die vier Unteransichten** — *Eintrag,
+Systembereich, offene Aufgaben und Vergleich trugen bis dahin nur „← Zurück zur
+Übersicht"; am Telefon war der Weg von einem Eintrag zur Suche zwei Griffe statt
+einem.* **Sie ist DIESELBE Kopfzeile wie die der Übersicht** (`.masthead` samt
+`.mast-rest`) und keine zweite: ein eigenes Menü hätte zwei Bedienungen für
+dasselbe Ziel erzeugt, je nachdem, wo man steht. **An ihr hängen die zwei
+Blätterpfeile:** vor und zurück in der Reihenfolge, die die Übersicht zuletzt
+gezeigt hat, mit ihrem Filter und ihrer Sortierung. *Die Reihenfolge lebt in
+`state.items` und hält nur die Sitzung; ohne sie sind beide Pfeile gedämpft —
+nicht weg.* **Es gibt keine Taste dafür:** `Bild auf`/`Bild ab` war vorgesehen
+und ist vom Betreiber am 11. September gestrichen worden — *bei einem Eintrag
+mit vielen Kommentaren wird `Bild ab` zum Rollen gebraucht.*
+
+**Das Startbildzeichen ist eine lesende Route:** `GET /api/manifest.json`, offen
+und ohne Anmeldung, mit `title_public` als Namen. *`title_app` hätte eine Angabe
+offengelegt, die bisher hinter der Anmeldung stand.* **Kein Arbeiter im
+Hintergrund und kein Zwischenspeicher.** **`F_ROUTES` bleibt bei 72** — *die
+Liste führt die SCHREIBENDEN Routen, eine `GET`-Route steht dort nicht und kann
+dort nicht stehen; der Auftrag sagte an drei Stellen „73" und lag falsch.* **Die
+lesenden Routen gehen von 30 auf 31, und für sie führt der Prüfstand kein
+Verzeichnis** — das steht als eigener Punkt auf dem Sammelblatt.
+
+**Das erste `container-type` dieses Stilblatts.** *Drei Gruppen im Systembereich
+fragen künftig die KARTE statt das Fenster; vier Regeln bleiben ausdrücklich
+Fensterfragen, jede mit ihrem Grund daneben.* **Gemessen am laufenden Server:
+bei 1024 px Fenster misst die schmale Karte 320 px und die breite 988; bei 700 px
+Fenster ist jede Karte 664 px breit** — *die alte Fensterabfrage klappte die
+Protokollzeile also genau dann um, wenn ihre Karte am breitesten war.* **Die
+Fensterabfragen gehen von 17 auf 16**, es kommen **zwei** Behälterabfragen dazu.
+
+**Am Finger ist es filigraner:** `.pill` von `10px 15px` auf `7px 13px` (41 → 35
+px), `.pill-mode` auf `5px 11px`, **und die Auswahlfelder fallen aus der
+Zoomregel** — *ein `<select>` nimmt keinen Schreibstrich, es hat den Anlass
+dieser Regel nie gehabt.* **Die Schrift der aufgeklappten Sortierung geht von 16
+auf 12,45 px.** `.icon-btn` behält seine **44 Pixel**. **Die Sprachdateien tragen
+1240 Schlüssel** (1322 flach): *zwei kommen dazu, einer ändert seinen Wortlaut in
+allen drei Sprachen.* Das Schema ist nicht angefasst, das Austauschformat bleibt
+**15**, die Karten **19**.
+Einzelheiten im Änderungsprotokoll 0.28.0.
+
+> **DIE FRAGETAFEL IST VOR DER ERSTEN ZEILE BEANTWORTET WORDEN — Regel 11 ist
+> in dieser Runde eingehalten.** *Siebzehn Fragen, siebzehn Antworten, vom
+> Betreiber am 11. September 2026 entschieden; vierzehn wie vorgeschlagen, drei
+> nicht.* **Vier Angaben des Auftrags haben dem Quelltext nicht standgehalten**
+> und stehen als eigener Abschnitt im Auftrag und im Änderungsprotokoll — *die
+> erste davon (`F_ROUTES` 72 → 73) hätte eine Zusage erzeugt, die gar nicht grün
+> werden kann.*
 
 *0.27.0 macht aus dem Häkchen der Bildablage eine Wahl mit drei Verfahren — und
 zieht die Ableitungen im selben Durchgang auf WebP.* **`imageStore` löst

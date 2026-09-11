@@ -1842,6 +1842,66 @@ Die Tafel schließt sich beim Klick daneben und mit Escape. Ein Menü, das nur
 sein eigener Knopf wieder zumacht, steht im Weg, sobald man es versehentlich
 geöffnet hat.
 
+**Die vier Unteransichten tragen dieselbe Kopfzeile** — Eintrag, Systembereich,
+offene Aufgaben und Vergleich. Sie ist nicht nachgebaut, sondern dieselbe: sie
+klebt genauso oben, klappt auf dem Telefon genauso hinter das Menüzeichen ein
+und wirft beim Rollen denselben Schatten.
+
+Sie trägt **vier Dinge**: zurück zur Übersicht, die Marke, das Suchfeld und das
+Menü. **Keinen Zähler** — er zählt den Bestand der Übersicht und nicht diese
+Ansicht. **Kein „+ Eintrag"** — wer einen Eintrag liest, legt selten dabei
+einen an, und das Menü hat den Weg. **Keine Glocke** — sie ist eine Auskunft
+über den Bestand und gehört dorthin, wo der Bestand steht.
+
+**Das Suchfeld ist eine Tür und kein zweiter Sucher.** Ein Tipp darauf bringt
+dich in die Übersicht, und der Schreibstrich steht dort schon im Feld. Gesucht
+wird, wo der Bestand ist. *Vorher waren das zwei Griffe: erst zurück, dann ins
+Feld.*
+
+### Von einem Eintrag zum nächsten
+
+**Zwei feine Pfeile links und rechts von der Marke** blättern durch die
+Einträge — vor und zurück in **der Reihenfolge, die die Übersicht zuletzt
+gezeigt hat**, mit ihrem Filter und ihrer Sortierung. Wer mit einem Suchbegriff
+in einen Eintrag gegangen ist, blättert durch die Treffer und nicht durch den
+ganzen Bestand.
+
+**Sie kosten keine eigene Zeile.** Sie sitzen in der Kopfzeile, die ohnehin da
+ist; die Ansicht wird durch sie keinen Pixel höher.
+
+**Am ersten und am letzten Eintrag ist der jeweilige Pfeil gedämpft und bleibt
+stehen.** Er verschwindet nicht — sonst rutschte der Titel daneben jedesmal
+hin und her, wenn du an den Rand der Liste kommst.
+
+**Wer einen Eintrag über seine Adresse aufruft oder die Seite neu lädt, hat
+keine Reihenfolge** — dann sind beide Pfeile gedämpft. Die Reihenfolge lebt im
+Browser und in dieser Sitzung; sie wird **nicht gespeichert** und **nicht am
+Server nachgefragt**. Eine erfundene Reihenfolge sähe aktiv aus und führte in
+eine Liste, die niemand vor sich hat.
+
+**Es gibt keine Taste dafür und keine Wischgeste.** Beides ist in dieser Ansicht
+schon vergeben: `←` und `→` blättern durch die **Bilder** des Eintrags, quer
+wischen tut dasselbe, und `Bild auf`/`Bild ab` rollen die Seite — bei einem
+Eintrag mit vielen Kommentaren wird das gebraucht. *Eine Taste, zwei
+Bedeutungen, wäre ein Modus, den man vor dem Drücken nicht sieht.*
+
+### Auf den Startbildschirm legen
+
+**Die Installation lässt sich als Anwendung ablegen.** Im Browser des Telefons
+„Zum Startbildschirm hinzufügen" — danach liegt dort ein Zeichen, das die
+Installation **unter ihrem eigenen Namen** öffnet, ohne Adresszeile darüber.
+
+Der Name kommt aus der Einstellung **„Öffentlicher Titel"** und nicht aus einer
+festen Datei: eine Datei mit „Kriterion" darin wäre eine zweite Wahrheit über
+den Namen deiner Installation.
+
+**Es wird nichts zwischengespeichert und läuft nichts im Hintergrund.** Kein
+`service worker`, keine Offline-Ablage. *Ein Zwischenspeicher, der eine alte
+Fassung ausliefert, wäre in einer Installation, die ihren Fingerprint nennt,
+das Gegenteil von hilfreich: die Oberfläche zeigte eine Version, die der Server
+längst nicht mehr ist.* **Ohne Netz öffnet sich also nichts** — das ist so
+gewollt.
+
 ### Die Glocke und der Zähler „Offen"
 
 *(auf jedem Gerät — die Kopfzeile ist **eine**, und was in ihr steht, wandert

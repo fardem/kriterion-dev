@@ -29,6 +29,33 @@ bleiben in der Form ihrer Zeit.*
 
 *Hier wird mitgeschrieben, während gebaut wird.*
 
+## [0.28.0] - 2026-09-11
+
+> **VOR DEM EINSPIELEN NICHTS ZU TUN.** Kein Schemaschritt, keine Migration.
+>
+> **Eine Folge, die auffällt:** die Bedienelemente sind auf dem Telefon
+> schlanker, und die aufgeklappte Sortierung steht dort in kleinerer Schrift.
+> Auf dem Schreibtisch ändert sich an beidem nichts.
+
+### Hinzugefügt
+
+- **Von einem Eintrag zum nächsten blättern** — zwei Pfeile in der Kopfzeile, in der Reihenfolge der Übersicht mit ihrem Filter und ihrer Sortierung.
+- **Die Installation lässt sich auf den Startbildschirm legen** — eigenes Zeichen, eigener Name aus „Öffentlicher Titel", ohne Adresszeile darüber.
+- **Eine gemeinsame Kopfzeile für Eintrag, Systembereich, offene Aufgaben und Vergleich** — mit Suchfeld und Menü; vorher stand dort nur „Zurück zur Übersicht".
+
+### Geändert
+
+- Die Suche ist aus jeder Unteransicht **einen Griff** entfernt statt zwei.
+- Die Bedienelemente sind auf dem Telefon schlanker: eine Pillenreihe spart sechs Pixel je Zeile.
+- Die Auswahlfelder zoomen auf dem Telefon nicht mehr auf 16 Pixel hoch — die aufgeklappte Sortierung passt jetzt auf den Schirm.
+- Der Hinweis unter dem Ablegefeld nennt „Strg+V" nicht mehr — auf dem Telefon gibt es das nicht.
+
+### Behoben
+
+- Der Befehl in „Mein Zugang" und in „Kennzahlen" lief in schmalen Karten seitlich aus dem Kasten; er bricht jetzt um.
+- Die Zeile des Sicherheitsprotokolls richtet sich nach der Breite ihrer **Karte** statt nach der des Fensters.
+- Eine Meldung verdeckt die Vergleichsleiste nicht mehr.
+
 ## [0.27.0] - 2026-09-10
 
 > **VOR DEM EINSPIELEN NICHTS ZU TUN — ABER ZWEI FOLGEN, DIE ÜBERRASCHEN
