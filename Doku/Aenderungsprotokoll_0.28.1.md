@@ -534,4 +534,4 @@ GEFAHREN_TABELLE
 | `Doku/Fehler_und_Ideen.md` | **zwei neue Punkte** — die sieben deutschen `id` und die Restprobe auf Vorlagen |
 | `Doku/Auftrag_0.28.0.md` | **gefallen** — es liegt immer nur einer im Repo |
 | `CHANGELOG.md` · `package.json` · `package-lock.json` | die Nummer, dazu die Berichtigung zu 0.28.0 |
-| `README.md` | die Sortierrichtung, das Blättern am Fuß, die Suche in den Unteransichten |
+| `README.md` | die Sortierrichtung, das Blättern am Fuß, die Suche in den Unteransichten und die einklappbare Abschnittsliste |

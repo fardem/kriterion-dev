@@ -48115,8 +48115,9 @@ async function checkUi() {
      mit derselben Zahl. Eine zweite Zeile daneben waere eine zweite Wahrheit
      ueber dieselbe Sache (Stolperstein 47) -- und sie liefe beim naechsten Weg
      von der ersten weg.
-     WO SIE STEHT: in der Gruppe „Die Wege und ihre Klemmen", zusammen mit den
-     Wegen, die sie zaehlt. */
+     WO SIE STEHT: in der Gruppe „Der Waechter ueber den Quelltext", zusammen mit
+     den Wegen, die sie zaehlt -- die Zeile heisst dort „Und es sind jetzt genau
+     72 schreibende Routen". */
 
   /* ================= Der Potenzialmodus — 0.26.0 ==========================
      EIN SCHALTER, UND ER WIRKT AN FUENF STELLEN. Das ist der ganze Punkt:
