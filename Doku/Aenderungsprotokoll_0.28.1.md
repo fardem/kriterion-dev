@@ -504,15 +504,25 @@ dabei.*
 | **5** | **857** *(die Richtung kommt nicht an)* |
 | **12** | **856** *(der Umschalter hängt nicht in der Zeile — die halbe neue Gruppe fällt)* |
 
-> **DREI VON IHNEN REISSEN ZUSAGEN AUS ANDEREN GRUPPEN MIT, und das ist kein
-> Makel, sondern der Beleg dafür, dass die Wächter einander decken:** *866
-> bringt „Der schmale Schirm behält seine eigene Anordnung" von 0.13.1 zu Fall,
-> 868 die beiden Pillenmaße aus „Handy und Tablett".* **Eine Zusage, die nur in
-> ihrer eigenen Gruppe rot wird, deckt weniger, als sie zu decken vorgibt.**
+> **FÜNF VON IHNEN REISSEN ZUSAGEN AUS ANDEREN GRUPPEN MIT, und das ist kein
+> Makel, sondern der Beleg dafür, dass die Wächter einander decken:**
+>
+> | | fällt außerdem in |
+> |---|---|
+> | **856** | *Gespeicherte Ansichten* · *Zwei Kästen in der Oberfläche — 0.21.0* · *Die Sortierung gibt den Status vor — 0.21.1* |
+> | **857** | *Zwei Kästen in der Oberfläche — 0.21.0* · *Die Sortierung gibt den Status vor — 0.21.1* |
+> | **855** | *Die sieben Wächter der Sprachdatei — 0.24.0* |
+> | **866** | *Die Beschriftungen stehen oben — 0.13.1* |
+> | **868** | *Handy und Tablett: die Staffel der Umbruchpunkte* |
+>
+> **Eine Zusage, die nur in ihrer eigenen Gruppe rot wird, deckt weniger, als
+> sie zu decken vorgibt.** *Dass 856 und 857 bis in die Gruppen von 0.21.0 und
+> 0.21.1 durchschlagen, sagt etwas über die Sache: die Richtung hängt an
+> derselben Stellung, die den Statusfilter vorgibt.*
 >
 > **856 IST DIE AUSSAGEKRÄFTIGSTE:** *nimmt man den Umschalter aus der Zeile,
-> fallen zwölf Zusagen* — *die Richtung ist kein Beiwerk neben dem Feld, sondern
-> die Hälfte der Bedienung.*
+> fallen zwölf Zusagen in vier Gruppen* — *die Richtung ist kein Beiwerk neben
+> dem Feld, sondern die Hälfte der Bedienung.*
 
 ---
 
