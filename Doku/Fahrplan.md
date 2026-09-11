@@ -893,6 +893,41 @@ sagt, welche Gruppen zuerst dran sind.
 kein Prüfungsname ändert sich — **die Zahl steht vorher und nachher**, und der
 Gegenprobenlauf ist der Beleg.
 
+### Der Speicher — gemessen am 11. September 2026, und er ist der Grund
+
+> **DER LAUF IST AUF DEM LÄUFER GESTORBEN, nicht an einer Prüfung.** *Zweimal
+> hintereinander derselbe Abbruch:* `FATAL ERROR: Ineffective mark-compacts near
+> heap limit`. **Mit derselben Grenze örtlich nachgestellt — dieselbe Stelle.**
+
+**Der Betreiber hat dazu die richtige Frage gestellt:** *„warum überhaupt so ein
+riesige prüfung. müsste man da nicht mal aufräumen"* — **und die Messung
+antwortet: die Größe ist es nicht.**
+
+| Minute | Speicher | was währenddessen läuft |
+|---|---|---|
+| **0 bis 4½** | **43 bis 91 MB** | *Tausende Prüfungen — und sie kosten nichts* |
+| **ab 4½** | 404 → 974 → 1613 → 1993 → **2133 MB** | *gleichmäßig steigend, und **nie zurück*** |
+
+**DIE ZAHL DER PRÜFUNGEN IST UNSCHULDIG.** *6497 Prüfungen in 50 210 Zeilen — der
+größte Teil davon läuft in fünfzig Megabyte.* **Wer hier Prüfungen löschte,
+nähme die Schwelle weg und rührte die Ursache nicht an.**
+
+**DIE URSACHE STEHT IN DER ZWEITEN HÄLFTE: 196 vollständige Browserfenster.**
+*`buildDom()` (`testbench.js:27055`) baut je ein ganzes Fenster; 184 davon
+werden geschlossen — der Speicher kommt trotzdem nicht wieder herunter.* **Rund
+zehn Megabyte je Fenster, und das ist genau die Kurve oben.**
+
+**WAS DAS FÜR DIESE RUNDE HEISST:** *die Aufteilung in Module ist nicht mehr nur
+Ordnung und nicht mehr nur die Bedingung für den Teillauf* — **sie ist die
+Stelle, an der die Fenster einen Besitzer bekommen, der sie auch wieder
+hergibt.** *Ein Modul je Sachgebiet läuft als eigener Vorgang und gibt seinen
+Speicher beim Ende zurück; eine einzige Datei kann das nicht.*
+
+> **BIS DAHIN STEHT EIN NOTNAGEL IM PRÜFLAUF** *(`.github/workflows/pruefstand.yml`,
+> 11. September 2026)*: der Lauf bekommt ausdrücklich die Speichergrenze, die
+> die Entwicklungsmaschine ohnehin hat. **Keine Prüfung fällt dafür weg, keine
+> Schwelle sinkt.** *Er ist als Notnagel benannt und zeigt auf diese Runde.*
+
 ## 0.35.0 — „Code-Effizienz"
 
 Leichen und ineffizienten Code durchgehen und verbessern. **Nach der Bereinigung

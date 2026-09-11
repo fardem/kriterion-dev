@@ -76,7 +76,31 @@ jobs:
       - name: Abhaengigkeiten
         run: npm ci
 
+      # DER SPEICHER MUSS GESETZT WERDEN, SONST STIRBT DER LAUF -- 11. September
+      # 2026. Node nimmt sich seine Heap-Grenze aus dem, was die Maschine
+      # hergibt: auf der Entwicklungsmaschine sind das 8240 MB, auf dem
+      # Standardlaeufer rund 2081. Der Pruefstand braucht ueber 2100 und ist
+      # damit GENAU HIER und nirgends sonst gescheitert -- zweimal
+      # hintereinander, und mit derselben Grenze oertlich nachgestellt.
+      #
+      # ES IST EIN NOTNAGEL UND WIRD HIER ALS SOLCHER BENANNT. Gemessen ist:
+      # die ersten viereinhalb Minuten laeuft der Pruefstand in 50 MB und
+      # erledigt darin Tausende Pruefungen -- die ZAHL der Pruefungen kostet
+      # nichts. Erst danach steigt der Speicher gleichmaessig auf ueber 2100 MB
+      # und faellt nie zurueck. Dort baut der Lauf 196 vollstaendige
+      # Browserfenster, und die kommen nicht wieder herunter.
+      #
+      # WAS HIER AUSDRUECKLICH NICHT PASSIERT: keine Pruefung faellt weg, keine
+      # Schwelle sinkt, keine Gruppe wird uebersprungen. Der Lauf bekommt
+      # dieselbe Grenze, die er auf der Entwicklungsmaschine seit jeher hat --
+      # die Verengung war der Laeufer, nicht der Pruefstand.
+      #
+      # DIE ECHTE REPARATUR STEHT IM FAHRPLAN BEI 0.34.0 („Der Pruefstand
+      # bekommt ein Verzeichnis"). Diese Zeile kauft die Zeit bis dahin und
+      # ersetzt sie nicht.
       - name: Pruefstand
+        env:
+          NODE_OPTIONS: --max-old-space-size=6144
         run: npm test
 
       # UEBER ALLE Abhaengigkeiten, auch die zum Entwickeln. Sich hier auf
