@@ -41969,12 +41969,12 @@ async function checkUi() {
      die Leiste zeigt sie seit dieser Runde an zwei Stellen. „Titel" kennt nur
      eine Richtung; der Umschalter sagt sie und steht gedaempft daneben. */
   check('Und die Sortierung steht auf der gespeicherten',
-    aw.document.getElementById('f-sort').value === 'title'
-    && aw.document.getElementById('f-sort-dir').textContent === 'A → Z'
-    && aw.document.getElementById('f-sort-dir').disabled === true,
-    `${aw.document.getElementById('f-sort').value} · ` +
-    `${aw.document.getElementById('f-sort-dir').textContent} · ` +
-    `${aw.document.getElementById('f-sort-dir').disabled}`);
+    aw.document.getElementById('f-sort')?.value === 'title'
+    && aw.document.getElementById('f-sort-dir')?.textContent === 'A → Z'
+    && aw.document.getElementById('f-sort-dir')?.disabled === true,
+    `${aw.document.getElementById('f-sort')?.value} · ` +
+    `${aw.document.getElementById('f-sort-dir')?.textContent} · ` +
+    `${aw.document.getElementById('f-sort-dir')?.disabled}`);
   check('Und der Knopf ist danach als geltend markiert',
     awPill().classList.contains('on'), awPill().className);
   check('Und das Kreuz zum Leeren steht da, weil ein Begriff im Feld steht',
@@ -42049,10 +42049,10 @@ async function checkUi() {
     ag.document.querySelectorAll('.card-title').length === 6,
     `${ag.document.querySelectorAll('.card-title').length} Karten`);
   check('Und die uebrige Stellung der Ansicht gilt trotzdem',
-    ag.document.getElementById('f-sort').value === 'title'
-    && ag.document.getElementById('f-sort-dir').textContent === 'A → Z',
-    `${ag.document.getElementById('f-sort').value} · ` +
-    `${ag.document.getElementById('f-sort-dir').textContent}`);
+    ag.document.getElementById('f-sort')?.value === 'title'
+    && ag.document.getElementById('f-sort-dir')?.textContent === 'A → Z',
+    `${ag.document.getElementById('f-sort')?.value} · ` +
+    `${ag.document.getElementById('f-sort-dir')?.textContent}`);
   ag.close();
 
   /* ---------------------------------------------------------------- */
@@ -44487,7 +44487,7 @@ async function checkUi() {
        antwortete ueber eine Leiste, die niemand mehr sieht. */
     const zkFeld = () => zkUeb.w.document.getElementById('f-sort');
     const zkDir = () => zkUeb.w.document.getElementById('f-sort-dir');
-    zkFeld().value = 'potential'; zkFeld().onchange();
+    if (zkFeld()) { zkFeld().value = 'potential'; zkFeld().onchange(); }
     await new Promise(r => setTimeout(r, 60));
     check('Nach Potenzial sortiert stehen nur noch die Ungetesteten da — 0.21.1',
       equal(zkTitle(), ['Idee', 'Blanko']), JSON.stringify(zkTitle()));
@@ -44498,13 +44498,13 @@ async function checkUi() {
        die, die gerade gilt -- und der Klick darunter drehte etwas um, das der
        Leser nie gesehen hat. */
     check('Und der Umschalter daneben nennt die geltende Richtung — 0.28.1',
-      zkDir().textContent === 'hoch → niedrig', JSON.stringify(zkDir().textContent));
-    zkDir().click();
+      zkDir()?.textContent === 'hoch → niedrig', JSON.stringify(zkDir()?.textContent));
+    zkDir()?.click();
     await new Promise(r => setTimeout(r, 60));
     check('Und aufsteigend ebenfalls',
       zkTitle()[zkTitle().length - 1] === 'Blanko', JSON.stringify(zkTitle()));
     check('Und der Umschalter nennt danach die andere Richtung — 0.28.1',
-      zkDir().textContent === 'niedrig → hoch', JSON.stringify(zkDir().textContent));
+      zkDir()?.textContent === 'niedrig → hoch', JSON.stringify(zkDir()?.textContent));
     zkUeb.w.close();
   }
 

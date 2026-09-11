@@ -4128,9 +4128,11 @@ function drawFilters() {
      ordnete; jetzt aendert sie auch, was die Leiste zeigt. */
   sel.onchange = () => {
     const b = SORT_BASES.find(x => x.key === sel.value) || SORT_BASES[0];
-    /* DIE RICHTUNG FAELLT AUF ABSTEIGEND ZURUECK, wenn die neue Grundlage keine
-       aufsteigende kennt -- sonst stuende `title_asc` dort als `title_desc`,
-       das es gar nicht gibt. */
+    /* DIE RICHTUNG FAELLT AUF DIE EINE ZURUECK, die die neue Grundlage kennt.
+       „Titel" hat nur A → Z: wer von „Bewertung hoch → niedrig" dorthin
+       wechselt, bekommt `title_asc` und nicht `title_desc` -- letzteres gibt es
+       in der Sortierung nicht, und die Liste ordnete dann still nach dem
+       Aenderungsdatum weiter. */
     picked = { base: b, asc: dirOf(b, picked.asc) };
     applySort();
   };

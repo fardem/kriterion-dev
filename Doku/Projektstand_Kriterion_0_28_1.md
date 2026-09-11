@@ -478,13 +478,56 @@ weiterhin offen. Daraus folgt die Stellung von `HINTER_PROXY` (Abschnitt 3).
 
 ## 2. Betriebsstand
 
-**Gebaut ist 0.28.0** — **6570 Prüfungen**, **844 Rückbauten in der Liste**
-(Abschnitt 8); *die 29 neuen sind **alle gefahren**, 57 rote Prüfungen,
-**0 STUMM**.* **Am Wirt läuft 0.27.0, eingespielt am 11. September 2026,
-Fingerprint `9f6741b5`** *(Abschnitt 8)* — *vom Betreiber am selben Tag aus
-seiner Installation gemeldet und damit auf das Byte bestätigt.*
-**0.28.0 ist gebaut und noch nicht eingespielt; sein Fingerprint ist
-`8b205f42`.**
+**Gebaut ist 0.28.1** — **6611 Prüfungen**, **859 Rückbauten in der Liste**
+(Abschnitt 8); *die 15 neuen sind **alle gefahren**, **0 STUMM**.* **Am Wirt
+läuft 0.28.0, eingespielt am 11. September 2026, Fingerprint `8b205f42`**
+*(Abschnitt 8)* — *vom Betreiber am selben Tag aus seiner Installation gemeldet
+und damit auf das Byte bestätigt.* **0.28.1 ist gebaut und noch nicht
+eingespielt; sein Fingerprint ist `7ab6ae75`.**
+
+*0.28.1 holt nach, was 0.28.0 nur halb erledigt hat, und richtet, was der
+Betreiber am Gerät gesehen hat — **acht Reparaturen, keine Funktion**.* **Der
+Kern ist die Sortierung:** *sie stand als dreizehn Einträge in vier Gruppen da,
+weil jede Grundlage zweimal dastand, einmal je Richtung — am Telefon der ganze
+Schirm.* **Die Liste nennt jetzt nur noch, WONACH sortiert wird** *(sieben
+Einträge, elf Zeilen)*, **und die Richtung sitzt als eigener Umschalter
+daneben**, der sie im Klartext sagt („neu → alt", „hoch → niedrig").
+*Der gespeicherte Wert ändert sich nicht: `f.sort` heißt weiter `updated_desc`
+und `title_asc`, und gespeicherte Ansichten aus 0.28.0 gelten unverändert
+weiter.*
+
+**Dazu:** *die Blätterpfeile ziehen an den **Fuß** des Eintrags (BA 2), das
+Suchfeld fällt im Systembereich ganz und am Telefon aus allen Unteransichten
+(BA 3), die Sterne werden am Finger filigraner (BA 4), die Abschnittsliste des
+Systembereichs klappt am Telefon ein (BA 5), die Titelzeile dehnt sich auf die
+volle Spaltenbreite und der Favoritenstern steht damit bündig rechts (BA 6), und
+die Filterreihen stellen die Beschriftung wieder **neben** die Reihe und rollen
+quer statt umzubrechen (BA 7).* **Die Pillen bleiben bei 35 px** — *gemessen
+machen sie 33 % des Filterkastens aus, Beschriftungen und Abstände 42 %.*
+
+**ZWEI FEHLER HAT ERST DER PRÜFSTAND GEFUNDEN:** *„Titel" sortierte nach dem
+Änderungsdatum, sobald man von einer anderen Sortierung dorthin wechselte
+(`title_desc` gibt es nicht, und die Sortierung fiel still auf die Vorgabe
+zurück); und „Allgemein" und „Verlauf" standen als feste deutsche Wörter im
+Quelltext und damit in jeder Sprache deutsch am Bildschirm.*
+
+**Das Schema ist nicht angefasst**, das Austauschformat bleibt **15**, die Karten
+**19**, `F_ROUTES` **72**, die lesenden Routen **31**. **Die Sprachdateien tragen
+1245 Schlüssel** (1327 flach): *zwölf fallen, siebzehn kommen dazu, drei ändern
+ihren Wortlaut.* Einzelheiten im Änderungsprotokoll 0.28.1.
+
+> **DIE FRAGETAFEL IST VOR DER ERSTEN ZEILE BEANTWORTET WORDEN — Regel 11 ist
+> zum ZWEITEN Mal in Folge eingehalten.** *Zwölf Fragen, zwölf Antworten, vom
+> Betreiber am 11. September 2026; zehn wie vorgeschlagen, zwei nicht.*
+>
+> **UND EINE MESSUNG AM EMULIERTEN GERÄT IST KEINE AM ECHTEN.** *0.28.0 hat auf
+> einem emulierten Android gemessen und daraus geschlossen, die aufgeklappte
+> Auswahlliste erbe die Schrift des Feldes. Das echte Gerät hat es widerlegt —
+> Chrome zeichnet dort einen eigenen Systemdialog.* **Wo das Betriebssystem
+> zeichnet, entscheidet nur das Gerät.** *Der Absatz im Änderungsprotokoll
+> 0.28.0 ist berichtigt und nicht gelöscht.*
+
+*0.28.0 davor* — Fingerprint `8b205f42`, 6570 Prüfungen, 844 Rückbauten.
 
 *0.28.0 holt nach, was die Durchsicht für Telefon und Tablett gemessen und
 bewusst stehen gelassen hatte, und stellt zwei Funktionen daneben.* **Der Kern
@@ -495,7 +538,8 @@ einem.* **Sie ist DIESELBE Kopfzeile wie die der Übersicht** (`.masthead` samt
 `.mast-rest`) und keine zweite: ein eigenes Menü hätte zwei Bedienungen für
 dasselbe Ziel erzeugt, je nachdem, wo man steht. **An ihr hängen die zwei
 Blätterpfeile:** vor und zurück in der Reihenfolge, die die Übersicht zuletzt
-gezeigt hat, mit ihrem Filter und ihrer Sortierung. *Die Reihenfolge lebt in
+gezeigt hat, mit ihrem Filter und ihrer Sortierung. *Dort hängen sie nur bis
+0.28.1 — seither stehen sie am Fuß des Eintrags.* *Die Reihenfolge lebt in
 `state.items` und hält nur die Sitzung; ohne sie sind beide Pfeile gedämpft —
 nicht weg.* **Es gibt keine Taste dafür:** `Bild auf`/`Bild ab` war vorgesehen
 und ist vom Betreiber am 11. September gestrichen worden — *bei einem Eintrag
@@ -521,8 +565,12 @@ Fensterabfragen gehen von 17 auf 16**, es kommen **zwei** Behälterabfragen dazu
 **Am Finger ist es filigraner:** `.pill` von `10px 15px` auf `7px 13px` (41 → 35
 px), `.pill-mode` auf `5px 11px`, **und die Auswahlfelder fallen aus der
 Zoomregel** — *ein `<select>` nimmt keinen Schreibstrich, es hat den Anlass
-dieser Regel nie gehabt.* **Die Schrift der aufgeklappten Sortierung geht von 16
-auf 12,45 px.** `.icon-btn` behält seine **44 Pixel**. **Die Sprachdateien tragen
+dieser Regel nie gehabt.* **Die Schrift des Auswahl*feldes* geht von 16 auf
+12,45 px** — *die aufgeklappte **Liste** nicht: Chrome auf Android zeichnet sie
+als eigenen Systemdialog.* **Diese Zeile stand bis 0.28.1 anders hier und war
+falsch** *(gemessen war ein emuliertes Gerät)*; *die andere Hälfte des Befundes
+ist mit 0.28.1 erledigt, indem die Liste kürzer geworden ist.*
+`.icon-btn` behält seine **44 Pixel**. **Die Sprachdateien tragen
 1240 Schlüssel** (1322 flach): *zwei kommen dazu, einer ändert seinen Wortlaut in
 allen drei Sprachen.* Das Schema ist nicht angefasst, das Austauschformat bleibt
 **15**, die Karten **19**.
@@ -1602,7 +1650,8 @@ Ursache war **eine Datei zu viel** auf dem Wirt (Stolperstein 158).
 
 | Version | Fingerprint | Prüfungen |
 |---|---|---|
-| **0.28.0** | `8b205f42` *(gerechnet am 11. September 2026 am fertigen Stand — **vor dem Einspielen**. **Zwei Quellen, ein Wert:** aus dem Server selbst gelesen (frisches Datenverzeichnis, `/api/stats`) und am Arbeitsbaum über dieselben achtzehn Dateien nachgerechnet. **Am Wirt noch nicht gesehen** — die dritte Quelle fehlt, und das steht im Änderungsprotokoll als offener Punkt. Die Runde fasst `server.js`, `public/app.js`, `public/style.css`, `public/index.html`, die drei Sprachdateien und `package.json` an.)* | **6570** |
+| **0.28.1** | `7ab6ae75` *(gerechnet am 11. September 2026 am fertigen Stand — **vor dem Einspielen**. **Zwei Quellen, ein Wert:** aus dem Server selbst gelesen (frisches Datenverzeichnis, `/api/stats`) und am Arbeitsbaum über dieselben achtzehn Dateien nachgerechnet, mit eigenem Code über dieselbe Vorschrift. **Am Wirt noch nicht gesehen** — die dritte Quelle fehlt, und das steht im Änderungsprotokoll als offener Punkt. Die Runde fasst `public/app.js`, `public/style.css`, die drei Sprachdateien und `package.json` an.)* | **6611** |
+| **0.28.0** | `8b205f42` *(gerechnet am 11. September 2026 am fertigen Stand — **vor dem Einspielen**, und am selben Tag **vom Betreiber aus der laufenden Installation gemeldet**: **drei Quellen, ein Wert**, und die dritte ist die stärkste — sie belegt, dass das Eingespielte auf das Byte dasselbe ist wie das Gebaute. Die ersten beiden waren der Server selbst (frisches Datenverzeichnis, `/api/stats`) und die eigene Rechnung am Arbeitsbaum über dieselben achtzehn Dateien. Die Runde fasst `server.js`, `public/app.js`, `public/style.css`, `public/index.html`, die drei Sprachdateien und `package.json` an.)* | **6570** |
 | **0.27.0** | `9f6741b5` *(am 10. September 2026 vor dem Einspielen gerechnet, am 11. September 2026 **vom Betreiber aus der laufenden Installation gemeldet** — **drei Quellen, ein Wert, und die dritte ist die stärkste:** sie belegt, dass das Eingespielte dasselbe ist wie das Gebaute. **Er hat während der Runde VIERMAL gewechselt**, dreimal wegen desselben Satzes und einmal wegen eines nachgetragenen Kommentars — ein Kommentar bewegt ihn genauso wie eine Anweisung.)* | **6497** |
 | **0.26.0** | `9ad0be7b` *(gerechnet am 10. September 2026 am fertigen Stand — **vor dem Einspielen**, nach derselben Regel. Die Runde fasst `db.js`, `server.js`, `public/app.js`, `public/style.css`, die drei Sprachdateien und `package.json` an.)* | **6412** |
 | **0.25.4** *(Zwischenstand)* | `a0a4c927` — **vom Betreiber aus der laufenden Installation gemeldet, 10. September 2026.** *Er gehört zu keiner Runde: der Code von 0.26.0 lag schon auf `main`, die Nummer war noch nicht gesetzt. Der Wert stimmte auf das Byte mit `main` überein — die Installation war richtig, die Nummer daran war es nicht.* **Er steht hier, weil ein gemeldeter Fingerprint ohne Zuordnung sonst als Abweichung gelesen wird.* | — |
@@ -5836,6 +5885,78 @@ liest jeden Text in Anführungszeichen und Backticks von `public/app.js` und jed
   wer angemeldet ist, sieht die Kommentare ohnehin in jedem Eintrag. Sie steht
   deshalb **nicht** in `F_ROUTEN`, und der Erledigt-Haken geht über
   `PUT /api/comments/:id`.
+#### Die Filterzeile auf dem Telefon: Beschriftung daneben, Reihen quer (seit 0.28.1)
+
+**GEMESSEN, BEVOR ETWAS GEÄNDERT WURDE** *(390 × 844, aufgeklappte Filter,
+fünfzehn Einträge, drei Kategorien)*: **der Filterkasten maß 378 Pixel, und die
+erste Kachel begann bei y = 590 — siebzig Prozent des Schirms waren Bedienung,
+bevor die erste Auskunft dastand.** *Von innen: fünf Beschriftungen zu 18 px
+sind 90, die Abstände 69 — **zweiundvierzig Prozent** sind Gerüst und nicht
+Bedienung; die Pillen machen 33 Prozent aus.*
+
+> **DIE MESSUNG HAT DIE ANTWORT GEÄNDERT, und deshalb steht sie hier.**
+> *Vorgeschlagen war, die Pillen anzufassen — sie sind nicht das Problem.* **Der
+> Betreiber hat die Messung ausdrücklich verlangt, bevor er entschieden hat**
+> (11. September 2026).
+
+- **ERSTER HEBEL: DIE BESCHRIFTUNG STEHT WIEDER NEBEN DER REIHE.** *Bis 0.28.0
+  wurde die Zeile hier zur **Spalte**, und jede Beschriftung kostete eine eigene
+  Zeile.* **Der Grund dafür war gut und ist entfallen:** *7,25 em
+  Beschriftungsspalte sind auf 366 Pixeln fast ein Drittel der Breite; ein
+  Raster mit `auto` in der ersten Spalte nimmt nur, was das längste Wort
+  braucht.* **Was zu keinem Paar gehört** — *der Vermerk „folgt der Sortierung",
+  der Und/Oder-Umschalter, die Verweise am Zeilenende* — **spannt über beide
+  Spalten**; *stünde es in Spalte eins, wäre es so schmal wie das längste
+  Beschriftungswort.*
+- **ZWEITER HEBEL: DIE REIHEN ROLLEN QUER, STATT UMZUBRECHEN.** *Eine
+  Kategoriereihe mit fünf Pillen maß umgebrochen 77 Pixel und misst in einer
+  Zeile 35.* **Der Gewinn wächst mit dem Bestand.** *Ohne Rollbalken — er nähme
+  die Höhe wieder weg, die die Zeile gerade gewonnen hat; dass rechts noch etwas
+  steht, sagt die angeschnittene Pille am Rand.* **Die Markenwolke ist
+  ausgenommen:** *sie hat ihr eigenes „mehr", und das misst die Zeilenhöhe an
+  der ersten Marke.*
+- **DIE PILLEN BLEIBEN BEI 35 PIXELN.** *Kleiner wird am Finger schwierig, und
+  sie sind nicht das Problem.* **Dieselbe Überlegung wie beim Stern:** *ein
+  Bedienelement, das man antippt, ist ein Ziel und kein Zeichen.*
+
+#### Die Sortierung: Grundlage und Richtung sind zwei Bedienelemente (seit 0.28.1)
+
+**Das Feld sagt, WONACH sortiert wird; der Knopf daneben sagt die RICHTUNG.**
+
+- **BIS 0.28.0 STAND JEDE SORTIERUNG ZWEIMAL IN DER LISTE**, einmal je Richtung
+  — *dreizehn Einträge in vier Gruppen, mit den Überschriften siebzehn Zeilen.*
+  **Am Telefon war das der ganze Schirm**, und das Stilblatt kann daran nichts
+  ändern: *Chrome auf Android zeichnet die aufgeklappte Auswahl als **eigenen
+  Systemdialog** mit Systemschrift.* **Gegen den Dialog hilft nur, ihn kürzer zu
+  machen.**
+- **DER KNOPF SAGT DIE KONKRETE RICHTUNG UND NICHT „ABSTEIGEND":** *„neu → alt",
+  „hoch → niedrig", „viele → wenige", „A → Z".* **Vier Wortpaare decken alle
+  sieben Grundlagen** — *vier Sortierungen teilen sich „hoch → niedrig".*
+  **Er ist besser als die alte Liste und nicht nur kürzer:** *dort musste man
+  zwei Zeilen nebeneinanderhalten, um zu sehen, welche Richtung gerade galt.*
+- **DER GESPEICHERTE WERT ÄNDERT SICH NICHT.** *`f.sort` heißt weiter
+  `updated_desc`, `title_asc` und so fort.* **Gespeicherte Ansichten aus 0.28.0
+  gelten unverändert weiter, und der Server sieht keinen Unterschied.** *Zerlegt
+  wird erst beim Zeichnen, zusammengesetzt beim Wählen — und zwar an **einer**
+  Stelle (`applySort()`): zwei Stellen, die `Grundlage + Richtung` bilden,
+  liefen beim nächsten Griff auseinander.*
+- **„TITEL" HAT NUR EINE RICHTUNG, und der Umschalter steht dort GEDÄMPFT
+  DANEBEN.** *„Titel Z → A" wäre eine **Funktion** und die Runde damit MINOR
+  (Regel 5.1); der Betreiber hat am 11. September 2026 dagegen entschieden.*
+  **Ein Sonderfall, den man sieht, ist besser als eine gebogene Regel, die man
+  nicht sieht.** *`disabled` und nicht `hidden`: ein Knopf, der verschwindet,
+  lässt die Zeile springen, sobald jemand die Sortierung wechselt.*
+- **EINE GRUNDLAGE MIT NUR EINER RICHTUNG BEKOMMT IMMER DIESE** *(`dirOf()`)*.
+  **Das ist kein Feinschliff:** *`title_desc` gibt es in der Sortierung nicht —
+  es fiele still auf die Vorgabe zurück, und „Titel" ordnete nach dem
+  Änderungsdatum.* **Ausgewählt, ohne Fehler, und schlicht falsch.** *Gefunden
+  hat es die Zusage, die jede der sieben in beide Richtungen **fährt** statt sie
+  zu lesen.*
+- **DIE GRUPPENÜBERSCHRIFTEN KOMMEN AUS DER SPRACHDATEI.** *„Allgemein" und
+  „Verlauf" standen bis 0.28.1 als feste Wörter im Quelltext und damit in jeder
+  Sprache deutsch am Bildschirm.* **Die beiden anderen brauchen keinen
+  Schlüssel** — *sie heißen wie das Vokabular des Betreibers.*
+
 #### Die gemeinsame Kopfzeile der Unteransichten (seit 0.28.0)
 
 **Eintrag, Systembereich, offene Aufgaben und Vergleich tragen DIESELBE
@@ -6070,6 +6191,18 @@ ihre Karte am BREITESTEN war.**
   machte die Zurück-Taste unbrauchbar). **Der zuletzt offene Abschnitt wird
   nicht gemerkt:** die Adresse tut es schon, ein Merker daneben wäre eine
   zweite Wahrheit.
+- **DIE ABSCHNITTSLISTE KLAPPT AUF DEM TELEFON EIN** (seit 0.28.1), *und es ist
+  dieselbe Bauform wie der Filterschalter der Übersicht (0.22.0) — kein zweites
+  Muster.* **Gemessen** *(390 px)*: *die Reiterliste maß 241 Pixel bei fünf
+  Abschnitten, und die erste Karte begann bei y = 480 von 844 — **57 % des
+  Schirms waren Bedienung**, bevor die erste Auskunft dastand.*
+  **DER KNOPF TRÄGT DEN NAMEN DES OFFENEN ABSCHNITTS**, und das ist der ganze
+  Unterschied zwischen einem Schalter und einem Versteck: *eingeklappt sagt er,
+  wo man steht.* **Die Breite entscheidet den Anfangszustand, mit derselben
+  Frage wie das Stilblatt** (`isNarrow()`) — *ohne sie säße ein breites Fenster
+  vor eingeklappten Abschnitten und hätte keinen sichtbaren Knopf, sie zu
+  öffnen.* **Wer einen Abschnitt wählt, ist fertig:** *die Ansicht wird ohnehin
+  neu gezeichnet, und danach steht die Liste wieder eingeklappt da.*
 - **Die Reihe ist so hoch wie ihre höchste starre Kachel** (seit 0.17.4, der
   Bau darunter seit 0.17.5).
   Gibt es keine starre, ist sie so hoch wie die größte **Forderung** der

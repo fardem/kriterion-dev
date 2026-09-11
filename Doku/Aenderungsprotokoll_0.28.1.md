@@ -3,7 +3,7 @@
 **Acht Befunde vom laufenden Gerät · gebaut am 11. September 2026 auf 0.28.0
 (`8b205f42`).**
 
-> **FINGERPRINT DIESER RUNDE: `FP_PLATZHALTER`** — gerechnet am fertigen Stand,
+> **FINGERPRINT DIESER RUNDE: `7ab6ae75`** — gerechnet am fertigen Stand,
 > **vor dem Einspielen**.
 >
 > **AUS ZWEI QUELLEN, und die zweite ist eine eigene Rechnung und keine
@@ -11,8 +11,8 @@
 >
 > | Quelle | Wert |
 > |---|---|
-> | Aus dem **Server selbst** gelesen — frisches Datenverzeichnis, über `/api/stats` befragt | **`FP_PLATZHALTER`** |
-> | Am Arbeitsbaum nachgerechnet — **dieselben achtzehn Dateien**, die der Handgriff in der README nennt, mit eigenem Code über dieselbe Vorschrift | **`FP_PLATZHALTER`** |
+> | Aus dem **Server selbst** gelesen — frisches Datenverzeichnis, über `/api/stats` befragt | **`7ab6ae75`** |
+> | Am Arbeitsbaum nachgerechnet — **dieselben achtzehn Dateien**, die der Handgriff in der README nennt, mit eigenem Code über dieselbe Vorschrift | **`7ab6ae75`** |
 >
 > **DIE DRITTE QUELLE FEHLT NOCH, und das steht hier als offener Punkt und
 > nicht als Fußnote:** *0.28.1 ist gebaut und **nicht eingespielt**. Erst die
@@ -75,7 +75,7 @@ im Auftrag und hier, und keiner ist weggeschrieben.**
 **0.28.1 ist ein PATCH — Regel 5.1.** *Acht Reparaturen, keine Funktion. Die
 Installation kann danach nichts, was sie vorher nicht konnte.*
 
-> **DIE FRAGE HAT AM SEIDENEN FADEN GEHANGEN.** *Ein Richtungsumschalter, der
+> **DIE FRAGE HAT AN EINEM HAAR GEHANGEN.** *Ein Richtungsumschalter, der
 > für alle sieben Sortierungen gilt, wäre die sauberere Bedienung gewesen —
 > aber „Titel Z → A" ist eine **Funktion**, und eine Funktion ist nach Regel 5.1
 > mindestens MINOR.* **Drei Zeilen Arbeit hätten den Fahrplan ab 0.29.0 um eine
@@ -369,7 +369,8 @@ Mehrzahl, und „hoch → niedrig" ist kein Vokabelwort.* **82 und 14 bleiben.**
 
 ## Der Prüfstand
 
-**PRUEF_ZEILE**
+**41 Zusagen mehr als in 0.28.0 — aus 6570 werden 6611**, und alle 6611 sind
+grün.
 
 > **IM QUELLTEXT STEHEN 50 NEUE `check(`-ZEILEN UND NEUN SIND WEGGEFALLEN.**
 > *Der Unterschied zur gefahrenen Zahl sind die Schleifen.* **Gezählt wird, was
