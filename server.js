@@ -3852,6 +3852,10 @@ function qComments(itemId, userId, card) {
     // ihm verwehrt ist.
     c.imagesRemoved = c.images_removed;
     delete c.images_removed;
+    // Wie der Eingriffsvermerk darueber: die Spalte heisst in der Datenbank
+    // mit Unterstrich und am Bildschirm ohne (0.29.0, Befund 3).
+    c.dueDate = c.due_date || null;
+    delete c.due_date;
     delete c.user_id;
   }
   return list;
@@ -5784,6 +5788,37 @@ async function encodeAll(files) {
 
 // Bilder kommen zusammen mit dem Text, nicht danach: sonst entstuende bei
 // einem Abbruch ein leerer Kommentar mit Bildern.
+/* ---- DAS FAELLIGKEITSDATUM -- 0.29.0, Befund 3 ------------------------
+   EIN ORT, DER ES ZURECHTRUECKT, und beide Wege (Anlegen und Aendern) rufen
+   ihn. Zwei Stellen, die dasselbe Datum pruefen, liefen auseinander.
+
+   'JJJJ-MM-TT' UND SONST NICHTS. Der Browser schickt genau das aus einem
+   `<input type="date">`; alles andere ist entweder ein Tippfehler oder ein
+   Versuch. GEPRUEFT WIRD DIE FORM UND DER KALENDER: "2026-02-31" hat die
+   richtige Form und gibt es nicht -- `Date.UTC` rechnet daraus den 3. Maerz,
+   und wer das durchliesse, speicherte einen Tag, den niemand gemeint hat.
+
+   LEER HEISST LEER. '' und null nehmen das Datum wieder weg; das ist der
+   Rueckweg, und es gibt keinen zweiten. `undefined` dagegen heisst "nicht
+   gemeint" -- die Umschalter in der Kopfzeile schicken nur ihr eigenes Feld.
+
+   KEINE UHRZEIT UND KEINE ZEITZONE. Ein Tag ist ein Tag; wer daraus einen
+   Zeitpunkt machte, haette am Wirt in Berlin und am Telefon in Istanbul zwei
+   verschiedene. */
+const DUE_FORM = /^\d{4}-\d{2}-\d{2}$/;
+function dueValue(raw) {
+  if (raw === null) return { value: null };
+  const text = String(raw).trim();
+  if (!text) return { value: null };
+  if (!DUE_FORM.test(text)) return { error: 'server.dueInvalid' };
+  const [year, month, day] = text.split('-').map(Number);
+  const d = new Date(Date.UTC(year, month - 1, day));
+  // Der Kalender selbst: schiebt er den Tag, gab es ihn nicht.
+  if (d.getUTCFullYear() !== year || d.getUTCMonth() !== month - 1 || d.getUTCDate() !== day)
+    return { error: 'server.dueInvalid' };
+  return { value: text };
+}
+
 app.post('/api/items/:id/comments', commentImageUpload.array('images', IMAGE_COUNT), async (req, res, next) => {
   try {
     const text = (req.body.text || '').trim();
@@ -5795,9 +5830,15 @@ app.post('/api/items/:id/comments', commentImageUpload.array('images', IMAGE_COU
     if (k.error) return res.status(400).json({ error: t(localeOf(req), k.error, k.values) });
 
     const pinned = req.body.pinned === '1' || req.body.pinned === true;
+    /* DAS DATUM DARF SCHON BEIM ANLEGEN MITKOMMEN -- 0.29.0. Es ist derselbe
+       Weg wie `pinned` und `kind`: ein Feld im Rumpf, und wenn es fehlt, ist
+       es NULL. Der Rumpf kommt hier als Formular (die Bilder haengen daran),
+       also steht auch das Datum als Zeichenkette da. */
+    const due = dueValue(req.body.dueDate === undefined ? null : req.body.dueDate);
+    if (due.error) return res.status(400).json({ error: t(localeOf(req), due.error) });
     // Der Schreibende ist der Verfasser.
-    const fresh = db.prepare('INSERT INTO comments (item_id, text, kind, pinned, user_id) VALUES (?, ?, ?, ?, ?)')
-      .run(req.params.id, text, kindValue(req.body.kind), pinned ? 1 : 0, req.user.id);
+    const fresh = db.prepare('INSERT INTO comments (item_id, text, kind, pinned, user_id, due_date) VALUES (?, ?, ?, ?, ?, ?)')
+      .run(req.params.id, text, kindValue(req.body.kind), pinned ? 1 : 0, req.user.id, due.value);
     if (k.images.length) saveCommentImages(fresh.lastInsertRowid, k.images);
     touch.run(req.params.id);
     res.status(201).json(detail(req.params.id, req.user.id, localeOf(req)));
@@ -5818,8 +5859,20 @@ app.put('/api/comments/:id', (req, res) => {
      Beide Fragen stehen VOR dem ersten UPDATE. */
   if (req.body.text !== undefined && !selfOnly(req, c.user_id))
     return res.status(403).json({ error: t(localeOf(req), DENIED_SELF)});
-  if ((req.body.kind !== undefined || req.body.pinned !== undefined) && !mayChange(req, c.user_id))
+  /* DAS DATUM GEHOERT ZUR ART UND NICHT ZUM TEXT -- 0.29.0: es ist eine
+     Angabe UEBER die Aufgabe und keine Aussage IN ihr, und deshalb darf es
+     dieselbe Runde setzen, die auch die Aufgabenmarke setzt. Wer den Haken in
+     „Offen" druecken darf, darf auch das Datum ruecken. */
+  if ((req.body.kind !== undefined || req.body.pinned !== undefined
+       || req.body.dueDate !== undefined) && !mayChange(req, c.user_id))
     return res.status(403).json({ error: t(localeOf(req), DENIED_SELF)});
+  // GEPRUEFT VOR DEM ERSTEN UPDATE, wie die Rechtefragen darueber: eine
+  // Absage, die den Text schon gewechselt hat, waere schlimmer als keine.
+  let due = null;
+  if (req.body.dueDate !== undefined) {
+    due = dueValue(req.body.dueDate);
+    if (due.error) return res.status(400).json({ error: t(localeOf(req), due.error) });
+  }
 
   if (req.body.text !== undefined) {
     const text = String(req.body.text).trim();
@@ -5833,6 +5886,9 @@ app.put('/api/comments/:id', (req, res) => {
     db.prepare('UPDATE comments SET kind = ? WHERE id = ?').run(kindValue(req.body.kind), c.id);
   if (req.body.pinned !== undefined)
     db.prepare('UPDATE comments SET pinned = ? WHERE id = ?').run(req.body.pinned ? 1 : 0, c.id);
+  // Wie die beiden darueber: keine Bearbeitung des Textes, also kein
+  // „bearbeitet" -- ein gerücktes Datum ist keine geaenderte Aussage.
+  if (due) db.prepare('UPDATE comments SET due_date = ? WHERE id = ?').run(due.value, c.id);
 
   touch.run(c.item_id);
   res.json(detail(c.item_id, req.user.id, localeOf(req)));
@@ -5953,15 +6009,36 @@ app.delete('/api/comments/:id', (req, res) => {
    `kind != 'done'` schriebe, naehme Notizen und Berichte mit.
    SORTIERT WIE DIE UEBERSICHT; die Gruppierung macht die Oberflaeche.
    `mine` haengt an JEDER Zeile -- daran haengt der Haken. */
+/* ---- DIE ORDNUNG SEIT 0.29.0 (Befund 3) ----------------------------------
+   ERST DAS DATUM, DANN DER EINTRAG. Bis hierher kam die Reihenfolge allein
+   von `i.updated_at DESC`, und die Oberflaeche fasste aufeinanderfolgende
+   Zeilen desselben Eintrags zu einer Gruppe zusammen.
+   OHNE DATUM HINTEN, UND ZWAR MIT EINER EIGENEN STUFE: `due_date IS NULL`
+   ordnet vor dem Datum selbst. Ein NULL in SQLite sortiert von sich aus nach
+   VORN -- wer keine Zahl hat, haette damit den niedrigsten Wert statt gar
+   keinen, und die Aufgaben ohne Datum stuenden vor den ueberfaelligen.
+   Dieselbe Regel wie bei den Eintraegen ohne Testtage.
+   DER EINTRAG BLEIBT DIE ZWEITE STUFE: innerhalb desselben Tages stehen die
+   Zeilen eines Eintrags weiterhin beieinander, und die Gruppierung der
+   Oberflaeche greift wie bisher. Ohne diese Stufe zerfiele sie -- derselbe
+   Eintrag stuende dann mehrfach in der Liste (F18).
+   DIE DREI ZUSTAENDE RECHNET DIE OBERFLAECHE und nicht diese Abfrage:
+   „ueberfaellig" haengt am HEUTIGEN Tag des LESERS, und der Server kennt
+   dessen Zeitzone nicht. Eine Stufe „ueberfaellig" in SQL waere am Telefon in
+   Istanbul eine andere als am Wirt in Berlin. */
 const qOpenTasks = db.prepare(`
-  SELECT c.id, c.text, c.created_at, c.user_id, c.item_id, i.title, i.updated_at
+  SELECT c.id, c.text, c.created_at, c.user_id, c.item_id, c.due_date,
+         i.title, i.updated_at
     FROM comments c JOIN items i ON i.id = c.item_id
    WHERE c.kind = 'task'
-   ORDER BY i.updated_at DESC, c.id`);
+   ORDER BY CASE WHEN c.due_date IS NULL THEN 1 ELSE 0 END,
+            c.due_date,
+            i.updated_at DESC, c.id`);
 app.get('/api/open', (req, res) => {
   const card = authorCard();
   res.json(qOpenTasks.all().map(z => ({
     id: z.id, text: z.text, created_at: z.created_at,
+    dueDate: z.due_date || null,
     item: { id: z.item_id, title: z.title },
     mine: z.user_id === req.user.id,
     author: authorFrom(card, z.user_id)
@@ -6259,7 +6336,12 @@ app.post('/api/images/convert', ownerOnly, secondConfirmNeeded('images'), (req, 
    und aus demselben Grund: eine aeltere Instanz uebergeht ein zusaetzliches
    Feld wortlos, und eine Datei der Nummer 14 traegt es nicht -- dann bleibt
    die Sprache unbekannt, und die Karte fragt einmal nach. */
-const EXCHANGE_FORMAT = 15;
+/* UND SEIT 0.29.0 DAS FAELLIGKEITSDATUM AM KOMMENTAR -- Formatnummer 16
+   (Befund 3). Es steht nur an den Zeilen, die eines tragen, und eine Datei der
+   Nummer 15 traegt es gar nicht -- dann gibt es eben keines einzuspielen.
+   DIE NUMMER IST WEITER EINE AUSSAGE UND KEINE BEDINGUNG: entschieden wird
+   ueber das VORHANDENSEIN des Feldes, wie bei jedem Feld vor ihm. */
+const EXCHANGE_FORMAT = 16;
 
 /* DIE NAMEN JE SPRACHE, WIE SIE IN DIE DATEI GEHEN -- 0.24.3, Bauabschnitt 6a.
    { <sprachkennung>: { <name der grundzeile>: <name in dieser sprache> } }
@@ -6412,10 +6494,17 @@ function entryAsBundle(it, situation) {
                          JOIN rating_criteria c ON c.id = r.criterion_id WHERE r.item_id = ?
                          ORDER BY c.sort_order, c.id, r.user_id`).all(it.id)
       .map(r => ({ name: r.name, value: r.value, author: authorName(r.user_id) })),
-    comments: db.prepare('SELECT id, text, kind, pinned, created_at, updated_at, user_id FROM comments WHERE item_id = ? ORDER BY id')
+    comments: db.prepare('SELECT id, text, kind, pinned, created_at, updated_at, user_id, due_date FROM comments WHERE item_id = ? ORDER BY id')
       .all(it.id).map(c => ({
         text: c.text, kind: c.kind, pinned: !!c.pinned, author: authorName(c.user_id),
         created_at: c.created_at, updated_at: c.updated_at,
+        /* DAS FAELLIGKEITSDATUM -- 0.29.0, Formatnummer 16. Ein Feld, das im
+           Export fehlt, ist beim naechsten Einspielen weg; der Export ist fuer
+           viele die einzige vollstaendige Kopie ausserhalb der Datenbank.
+           NUR WENN EINES DASTEHT -- dieselbe Regel wie „nur Abweichungen" bei
+           den Gewichten: ein `null` in jeder Zeile blaehte die Datei auf und
+           sagte dasselbe wie ein fehlendes Feld. */
+        ...(c.due_date ? { dueDate: c.due_date } : {}),
         // Kommentarbilder folgen dem Schalter der Dateien; ein dritter waere
         // zu viel. Die Merkmale gehen immer mit, sie kosten nichts.
         images: withFiles
@@ -7298,10 +7387,22 @@ async function importInto(payload, userId, mode2, bytesSource = null) {
       for (const c of it.comments || []) {
         // Aeltere Exportdateien kennen kind und pinned nicht -- dann gilt der
         // Kommentar als gewoehnliche Notiz.
-        const simple = db.prepare(`INSERT INTO comments (item_id, text, kind, pinned, created_at, updated_at, user_id)
-                      VALUES (?, ?, ?, ?, COALESCE(?, datetime('now')), ?, ?)`)
+        /* UND DAS FAELLIGKEITSDATUM SEIT 0.29.0 (Formatnummer 16). Es geht
+           durch DIESELBE Pruefung wie am Bildschirm -- dueValue() -- und nicht
+           roh in die Spalte: eine Exportdatei kommt von aussen, und ein
+           „2026-02-31" oder ein „morgen" darin waere ein Tag, den die
+           Oberflaeche nie erlaubt haette.
+           WAS NICHT DURCHGEHT, FAELLT STILL WEG und reisst die Zeile nicht
+           ab: der Kommentar ist die Sache, das Datum eine Angabe daneben.
+           Dieselbe Haltung wie bei einem Testtag ohne Tags eine Handvoll
+           Zeilen weiter oben. Eine Datei der Nummer 15 traegt das Feld gar
+           nicht -- dann bleibt es NULL. */
+        const cDue = c.dueDate === undefined ? { value: null } : dueValue(c.dueDate);
+        const simple = db.prepare(`INSERT INTO comments (item_id, text, kind, pinned, created_at, updated_at, user_id, due_date)
+                      VALUES (?, ?, ?, ?, COALESCE(?, datetime('now')), ?, ?, ?)`)
             .run(id, c.text || '', kindValue(c.kind), c.pinned ? 1 : 0,
-                 c.created_at || null, c.updated_at || null, authorId(c.author));
+                 c.created_at || null, c.updated_at || null, authorId(c.author),
+                 cDue.error ? null : cDue.value);
         stats.comments++;
         (commentImages.get(c) || []).forEach((b2, i) =>
           db.prepare(`INSERT INTO comment_images (comment_id, filename, data, thumb, sort_order)

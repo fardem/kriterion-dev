@@ -1911,6 +1911,24 @@ mark {
    nicht neben ihr steht. */
 .kv .k .extra { color: var(--faint); }
 .kv .v { font-family: var(--mono); font-size: .83rem; }
+/* ---- Das Faelligkeitsdatum -- 0.29.0, Befund 3 ----
+   DER VERWEIS AM KOMMENTAR steht in der Markenreihe und ist deshalb so klein
+   wie sie. Traegt er ein Datum, ist er nicht mehr gedaempft: ein gesetztes
+   Datum ist eine Angabe, ein leeres ein Angebot.
+   DAS FELD, DAS AUS IHM WIRD, bekommt eine Breite -- ein `<input type="date">`
+   nimmt sonst die des Betriebssystems, und die ist am Telefon breiter als die
+   Kopfzeile des Kommentars.
+   DIE ABSCHNITTE IN „Offen" sind Ueberschriften und keine Zeilen: sie tragen
+   die Beschriftungsschrift der Leiste, und „Ueberfaellig" ist rot -- die eine
+   Stelle, an der eine Farbe hier etwas sagt. */
+.cmt-due { font-size: .76rem; color: var(--muted); }
+.cmt-due.on { color: var(--text); font-family: var(--mono); }
+.cmt-due-in { width: 9.5em; font-size: .76rem; padding: 2px 6px; }
+.open-section { font-size: .72rem; letter-spacing: .08em; text-transform: uppercase;
+  color: var(--muted); margin: 18px 0 7px; }
+.open-section:first-child { margin-top: 0; }
+.open-section.overdue { color: var(--red); }
+
 /* ---- Die Sicherungsprobe in der Liste -- 0.29.0, Befund 1 ----
    DER VERWEIS STEHT AM ENDE SEINER ZEILE, hinter Datum und Groesse: er gehoert
    zu dieser Kopie und zu keiner anderen.

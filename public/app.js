@@ -4789,15 +4789,50 @@ async function renderOpen() {
     } catch (e) { toast(e.message, true); }
   };
 
+  /* ---- DIE DREI ZUSTÄNDE -- 0.29.0, Befund 3 ----
+     HEUTE IST DER HEUTIGE TAG DES LESERS und nicht der des Servers: „überfällig"
+     entscheidet sich an der Uhr, vor der jemand sitzt. Der Server liefert
+     deshalb das nackte Datum und ordnet nur vor (siehe qOpenTasks); die drei
+     Zustände rechnet diese Zeile.
+     GERECHNET WIRD IN ORTSZEIT UND NICHT ÜBER toISOString(): das gäbe UTC, und
+     östlich von Greenwich wäre „heute" bis zum Vormittag noch „gestern".
+     ZEICHENVERGLEICH UND KEIN Date: 'JJJJ-MM-TT' ordnet als Text wie im
+     Kalender, und zwei Zeichenketten zu vergleichen kann keine Zeitzone
+     verlieren. */
+  const heute = (() => {
+    const d = new Date();
+    const zwei = (n) => String(n).padStart(2, '0');
+    return `${d.getFullYear()}-${zwei(d.getMonth() + 1)}-${zwei(d.getDate())}`;
+  })();
+  /* VIER ABSCHNITTE UND NICHT DREI, und der vierte ist kein vierter Zustand:
+     „ohne Datum" ist die Abwesenheit eines Zustands. Er steht hinten und trägt
+     seine eigene Überschrift — unter „Später" wäre er eine Behauptung über
+     etwas, das niemand gesagt hat.
+     EINE ÜBERSCHRIFT STEHT NUR DA, WENN ETWAS DARUNTER STEHT. Wer keine
+     überfälligen Aufgaben hat, soll das Wort „Überfällig" gar nicht erst
+     sehen — dieselbe Überlegung wie bei der fehlenden Null am Zähler. */
+  const dueOf = (z) => !z.dueDate ? 'none'
+    : z.dueDate < heute ? 'overdue' : z.dueDate === heute ? 'today' : 'later';
+  const SECTIONS = [['overdue', 'list.dueOverdue'], ['today', 'list.dueToday'],
+                    ['later', 'list.dueLater'], ['none', 'list.dueNone']];
+
   function draw() {
     drawView();
     const visible = onlyMy ? rows.filter(z => z.mine) : rows;
-    const groups = [];
-    for (const z of visible) {
-      const last = groups[groups.length - 1];
-      if (last && last.id === z.item.id) last.rows.push(z);
-      else groups.push({ id: z.item.id, title: z.item.title, rows: [z] });
-    }
+    /* DIE GRUPPIERUNG NACH EINTRAG BLEIBT — INNERHALB DES ABSCHNITTS (F18).
+       Der Server ordnet nach Datum, dann nach Eintrag; wer die Abschnitte
+       weglässt und stumpf durchsortiert, bekommt denselben Eintrag mehrfach
+       in der Liste. Die Gruppen entstehen deshalb JE Abschnitt und aus
+       aufeinanderfolgenden Zeilen, wie bisher. */
+    const groupsOf = (list) => {
+      const out = [];
+      for (const z of list) {
+        const last = out[out.length - 1];
+        if (last && last.id === z.item.id) last.rows.push(z);
+        else out.push({ id: z.item.id, title: z.item.title, rows: [z] });
+      }
+      return out;
+    };
 
     // Ein leerer Bildschirm ist eine schlechte Antwort. Und die beiden Fälle
     // sind verschieden: gar nichts offen, oder nichts von mir.
@@ -4811,7 +4846,17 @@ async function renderOpen() {
 
     const box = document.getElementById('open-list');
     box.innerHTML = '';
-    groups.forEach(g => {
+    SECTIONS.forEach(([key, word]) => {
+      const drin = visible.filter(z => dueOf(z) === key);
+      if (!drin.length) return;
+      // Die Überschrift des Abschnitts. Sie trägt die Zahl -- wer drei
+      // überfällige Aufgaben hat, soll das sehen, ohne zu zählen.
+      const kopf = document.createElement('div');
+      kopf.className = 'open-section' + (key === 'overdue' ? ' overdue' : '');
+      kopf.dataset.due = key;
+      kopf.textContent = `${t(word)} · ${drin.length}`;
+      box.appendChild(kopf);
+      groupsOf(drin).forEach(g => {
       const boxId = document.createElement('div');
       boxId.className = 'open-group';
       boxId.dataset.item = g.id;
@@ -4850,15 +4895,23 @@ async function renderOpen() {
 
         // Verfasser nur ab zwei Zugängen -- bei einem wiederholte der Name nur,
         // wer ohnehin alles geschrieben hat. Dieselbe Schwelle wie überall.
+        /* DAS FÄLLIGKEITSDATUM AN DER ZEILE -- 0.29.0. Es steht nur da, wenn
+           eines gesetzt ist; im Abschnitt „Ohne Datum" wäre es ohnehin leer.
+           NEBEN DEM VERFASSER UND NICHT STATT SEINER: die beiden sagen
+           Verschiedenes — wer es aufgeschrieben hat und wann es fällig ist.
+           UND NICHT NOCH EINMAL DER ABSCHNITT: „Überfällig" steht in der
+           Überschrift darüber, und ein zweites Wort an jeder Zeile wäre
+           dieselbe Auskunft ein zweites Mal (Stolperstein 47). */
         const when = document.createElement('span');
         when.className = 'open-when';
         when.textContent = (multipleUsers() ? `${authorName(z.author)} · ` : '')
-          + fmtDate(z.created_at);
+          + (z.dueDate ? fmtDay(z.dueDate) : fmtDate(z.created_at));
         el.appendChild(when);
 
         boxId.appendChild(el);
       });
       box.appendChild(boxId);
+      });
     });
   }
 
@@ -7884,6 +7937,25 @@ async function renderDetail(id, termAddress) {
                        : task ? t('list.setDone')
                                  : t('entry.markTask')
             }">${esc(done ? V.taskDone : V.taskOne)}</button>
+            ${/* ---- DAS FÄLLIGKEITSDATUM -- 0.29.0, Befund 3 ----
+                 NUR AN EINER AUFGABE, und erst, wenn die Marke steht (F20).
+                 Ein Datumsfeld an jedem Vermerk stünde bei den meisten
+                 Kommentaren für nichts da — und die meisten Kommentare sind
+                 Vermerke.
+                 UND NUR AN EINER OFFENEN. An einer erledigten sagte „fällig
+                 am 14.03." nichts mehr; das Datum BLEIBT aber in der Zeile
+                 stehen (die Spalte hängt nicht an `kind`) und steht wieder da,
+                 sobald jemand sie wieder aufmacht.
+                 EIN VERWEIS UND KEIN FELD: ein `<input type="date">` an jeder
+                 Aufgabenzeile wäre in einer Liste von zwölf Kommentaren zwölf
+                 Bedienelemente. Der Verweis trägt das Datum, wenn eines da
+                 ist, und sonst das Wort — geklickt wird daraus das Feld.
+                 DER RÜCKWEG IST DAS LEERE FELD und kein zweites ✕: wer das
+                 Datum im Feld löscht, nimmt es weg. Ein Kreuz daneben wäre ein
+                 zweiter Weg für dieselbe Sache. */''}
+            ${task ? `<button class="link-btn cmt-due${c.dueDate ? ' on' : ''}"
+              title="${esc(t('entry.dueHint'))}">${c.dueDate
+                ? esc(fmtDay(c.dueDate)) : tH('entry.dueSet')}</button>` : ''}
           </span>` : ''}
           <span class="cmt-when">${multipleUsers()
             ? `<span class="cmt-from">${esc(authorName(c.author))}</span> · ` : ''
@@ -7919,6 +7991,28 @@ async function renderDetail(id, termAddress) {
         // nimmt sie wieder zurueck auf Notiz.
         el.querySelector('.kind').onclick = () => flip('kind', report ? 'note' : 'report');
         el.querySelector('.task').onclick = () => flip('kind', taskMore(c.kind));
+        /* AUS DEM VERWEIS WIRD DAS FELD -- 0.29.0. Getauscht wird an Ort und
+           Stelle, damit die Zeile nicht springt; `showPicker()` oeffnet den
+           Kalender gleich mit, sonst muesste man das Feld ein zweites Mal
+           antippen.
+           GESCHRIEBEN WIRD BEI `change` UND NICHT BEI JEDEM ZEICHEN: ein
+           `input` an einem Datumsfeld feuert auch bei halb getippten Jahren
+           („0002-01-01"), und jede davon waere eine Runde zum Server.
+           VERLAESST MAN ES OHNE ZU AENDERN, kommt der Verweis zurueck --
+           `drawComments()` zeichnet ihn ohnehin neu, sobald etwas gespeichert
+           wurde; hier ist es der Weg ohne Speichern. */
+        const dueButton = el.querySelector('.cmt-due');
+        if (dueButton) dueButton.onclick = () => {
+          const feld = document.createElement('input');
+          feld.type = 'date';
+          feld.className = 'input input-sm cmt-due-in';
+          feld.value = c.dueDate || '';
+          feld.onchange = () => flip('dueDate', feld.value || null);
+          feld.onblur = () => { if (feld.isConnected) drawComments(); };
+          dueButton.replaceWith(feld);
+          feld.focus();
+          try { feld.showPicker(); } catch { /* nicht jeder Browser kann das */ }
+        };
       }
 
       // Bilder als Kacheln unter dem Text; Klick öffnet das vorhandene Vollbild.

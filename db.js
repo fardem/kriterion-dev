@@ -376,7 +376,26 @@ CREATE TABLE IF NOT EXISTS comments (
   -- das, was er nicht darf.
   -- Die Vorgabe 0 greift fuer jede Bestandszeile; Migrationscode braucht es
   -- deshalb nicht.
-  images_removed INTEGER NOT NULL DEFAULT 0
+  images_removed INTEGER NOT NULL DEFAULT 0,
+  -- DAS FAELLIGKEITSDATUM EINER AUFGABE -- 0.29.0, Befund 3.
+  -- EIN DATUM, KEINE UHRZEIT, und das ist eine Entscheidung ueber die Sache:
+  -- eine Aufgabe in einem Bewertungsarchiv ist an einem TAG faellig und nicht
+  -- um 14:30. Eine Uhrzeit waere eine Genauigkeit, die niemand pflegt -- und
+  -- ein Feld, das niemand pflegt, wird zur zweiten Wahrheit.
+  -- 'JJJJ-MM-TT' ALS TEXT, wie test_days.day: in dieser Form ordnet der
+  -- Zeichenvergleich wie der Kalender, und SQLite kennt ohnehin keinen
+  -- eigenen Datumstyp.
+  -- EINE SPALTE AN comments UND KEINE NEUE TABELLE: die Tabelle traegt die
+  -- Aufgaben schon (kind = 'task'), und ein Datum daneben ist eine Spalte.
+  -- FREIWILLIG -- NULL heisst "ohne Datum", und eine Aufgabe ohne Datum ist
+  -- genau das, was sie vor dieser Runde war. Es gibt keinen Vorgabewert:
+  -- ein selbst gesetztes Datum waere eine Behauptung ueber etwas, das niemand
+  -- gesagt hat.
+  -- SIE HAENGT NICHT AN kind. Wer eine Aufgabe zur Notiz zurueckschaltet,
+  -- behaelt das Datum -- schaltet er wieder auf Aufgabe, steht es noch da.
+  -- Ein Datum beim Umschalten zu loeschen waere eine Wegnahme, die niemand
+  -- verlangt hat, und sie fiele erst beim Zurueckschalten auf.
+  due_date TEXT
 );
 
 -- Bilder in Kommentaren. Eigene Tabelle statt einer Spalte an attachments:
@@ -1778,6 +1797,38 @@ function migration0270ImageStore() {
 }
 migration0270ImageStore();
 // ENDE MIGRATION 0.27.0 (aus dem Haekchen wird die Wahl)
+
+// MIGRATION 0.29.0 — ENTFAELLT MIT 1.0
+/* DAS FAELLIGKEITSDATUM AN DER AUFGABE -- Befund 3, und der ZWOELFTE
+   Migrationsblock. Die Spalte steht in der DDL, aber CREATE TABLE IF NOT
+   EXISTS ruehrt eine VORHANDENE Tabelle nicht an (Stolperstein 13): ein
+   Bestand aus 0.8.0 bis 0.28.1 traegt `comments` ohne sie.
+
+   OHNE VORGABEWERT UND OHNE NACHGESCHOBENES UPDATE. `ALTER TABLE ... ADD
+   COLUMN` setzt jede Bestandszeile auf NULL, und NULL ist hier die richtige
+   Aussage: diese Aufgaben hatten nie ein Datum, und eines zu erfinden waere
+   eine Behauptung ueber fremde Arbeit. Frisch angelegt und gewandert sehen
+   damit gleich aus.
+
+   WIEDERHOLBAR UND IM NORMALFALL STUMM: gefragt wird die Tabelle selbst und
+   kein Merker. Ein zweiter Start findet die Spalte und sagt nichts.
+
+   HINTER db.exec(SCHEMA), wie jeder ADD-COLUMN-Block hier: die DDL legt die
+   Tabelle an, wenn sie fehlt, und erst danach ist etwas zu ergaenzen.
+
+   DIE ZAHL IM SATZ IST DIE DER AUFGABEN UND NICHT DIE DER KOMMENTARE: sie
+   sagt, wie viele Zeilen das neue Feld ueberhaupt benutzen koennen. */
+function migration0290() {
+  const columns = db.prepare('PRAGMA table_info(comments)').all().map(c => c.name);
+  if (columns.includes('due_date')) return 0;
+  db.exec('ALTER TABLE comments ADD COLUMN due_date TEXT');
+  const n = db.prepare("SELECT COUNT(*) AS n FROM comments WHERE kind = 'task'").get().n;
+  console.log(`[Kriterion] comments um due_date ergaenzt (Migration auf 0.29.0); ` +
+    `${n} ${n === 1 ? 'Aufgabe steht' : 'Aufgaben stehen'} weiterhin ohne Faelligkeitsdatum da.`);
+  return 1;
+}
+migration0290();
+// ENDE MIGRATION 0.29.0 (das Faelligkeitsdatum an der Aufgabe)
 
 /* ================= DIE INDIZES AUF NACHGERUESTETE SPALTEN =================
    SIE STEHEN HIER UNTEN UND NICHT IN DER DDL, und der Grund ist ein Befund des
