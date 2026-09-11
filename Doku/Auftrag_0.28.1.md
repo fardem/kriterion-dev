@@ -51,23 +51,30 @@ Fensterabfragen und **zwei** Behälterabfragen.
 
 ## Die Fragetafel — vor der ersten Zeile zu beantworten
 
-> **VIER FRAGEN SIND SCHON BEANTWORTET** *(Betreiber, 11. September 2026, im
-> Rundlauf nach dem Einspielen)*. **Die übrigen stehen offen.**
+> **DIE TAFEL IST VOLLSTÄNDIG BEANTWORTET** — *vom Betreiber am 11. September
+> 2026, in zwei Runden nach dem Einspielen von 0.28.0, und **vor der ersten
+> geänderten Zeile**.* **Regel 11 ist eingehalten, zum zweiten Mal in Folge.**
+>
+> **ZEHN VON ZWÖLF FIELEN WIE VORGESCHLAGEN. ZWEI NICHT — und beide Male hat
+> der Betreiber gegen Claude entschieden:** *F2 (die Pfeile ziehen ans Ende des
+> Eintrags statt als Paar in der Kopfzeile zu bleiben) und F3 (das Suchfeld
+> fällt am Telefon ganz, statt zu einer Lupe zu werden).* **Beide Male ist der
+> Preis im Papier benannt und nicht weggeschrieben.**
 
 | # | Frage | Vorschlag von Claude | Antwort |
 |---|---|---|---|
 | **F1** | **Die Sortierliste am Telefon — wie kürzen?** *Gegen den Systemdialog hilft kein Stilblatt* | **Die Richtung wird ein eigener Umschalter.** *Die Liste nennt nur noch WONACH sortiert wird; aus 13 Einträgen werden sieben, aus 17 Zeilen elf* | **Wie vorgeschlagen** *(11.9.2026)* |
 | **F2** | **Wohin mit den Blätterpfeilen?** *Sie flankieren heute die MARKE und nicht den Eintrag* | *Claude empfahl: als Paar in der Kopfzeile, ohne zu flankieren* | **NICHT wie vorgeschlagen: ans ENDE des Eintrags, breit und mit Wort** *(11.9.2026)*. **Die Kopfzeile verliert das Blättern ganz** |
 | **F3** | **Das Suchfeld am Telefon in den Unteransichten** | *Claude empfahl: eine Lupe statt des Feldes, damit der eine Griff aus 0.28.0 bleibt* | **NICHT wie vorgeschlagen: am Telefon ganz weg** *(11.9.2026)*. **Der Weg zur Suche ist dort wieder zwei Griffe, und das ist der Preis für 54 Pixel** |
-| **F4** | **Die Filterreihen** | *Claude schlug querrollende Reihen vor* | **Erst messen, dann vorschlagen** *(11.9.2026)*. **Die Messung liegt vor — Befund 8 —, die Entscheidung steht aus: siehe F10** | |
-| **F5** | **Bekommt „Titel" eine zweite Richtung?** *Heute gibt es nur A → Z. Ein Richtungsumschalter, der bei einem Eintrag nichts tut, ist ein Sonderfall* | **Ja, Z → A dazu.** *Ein Umschalter, der für alle sieben gilt, ist einfacher als einer mit einer Ausnahme.* **ABER: das ist eine FUNKTION**, und nach Regel 5.1 wäre die Runde damit MINOR statt PATCH — siehe F11 | |
-| **F6** | **Tragen die Pfeile am Fuß den TITEL des Nachbarn?** *„‹ Voriger" oder „‹ Bosch Serie 6 Waschmaschine"* | **Nur das Wort, nicht den Titel.** *Der Titel des Nachbarn steht in `state.items` und wäre zu haben — aber er ist beim Direkteinstieg nicht da, und dann stünde dort mal ein Name und mal keiner.* **Ein Knopf, der manchmal etwas anderes sagt, ist zwei Knöpfe** | |
-| **F7** | **Fällt die Suche im Systembereich auf BEIDEN Geräten?** | **Ja, auf beiden.** *Der Betreiber hat es für Desktop und Telefon gesagt, und der Grund gilt auf beiden: das Feld verspricht dort, Einstellungen zu suchen, und springt in den Bestand* | |
-| **F8** | **Wie klein werden die Sterne am Telefon?** *Heute `1.45rem` (21,75 px) plus `5px 4px` Polsterung — rund 50 px je Kriterienzeile* | **`1.25rem` (18,75 px) und `3px 4px`.** *Rund 40 px je Zeile statt 50; bei sieben Kriterien siebzig Pixel weniger.* **Nicht auf das Zeigermaß (`1.2rem`, ohne Polsterung):** ein Stern ist ein ZIEL und kein Zeichen — man tippt darauf | |
-| **F9** | **Wie klappt die Abschnittsliste im Systembereich ein?** | **Wie der Filterschalter der Übersicht** — *ein Knopf darüber, der den Namen des offenen Abschnitts trägt.* **Dieselbe Bauform, kein zweites Muster** | |
-| **F10** | **Die Filterreihen — welcher Hebel?** *Gemessen: der Kasten misst 378 px, davon **90 px Beschriftungen** und **69 px Abstände**; die erste Kachel beginnt bei y = 590 von 844* | **Zwei Hebel, keiner davon die Pillen:** *(a) die Reihen rollen quer statt umzubrechen — die Kategoriereihe fällt von 77 auf 35 px; (b) die Beschriftung rückt NEBEN die Reihe statt darüber — fünfmal 18 px.* **Zusammen rund 130 px.** *Die Pillen bleiben bei 35 px: kleiner wird am Finger schwierig, und sie sind nicht das Problem* | |
-| **F11** | **Die Nummer: 0.28.1 als PATCH?** | **Hängt an F5.** *Sieben der acht Befunde sind Reparaturen — das ist ein PATCH.* **Kommt „Titel Z → A" dazu, ist es nach Regel 5.1 eine Funktion.** *Zwei ehrliche Wege: `Titel` behält seine eine Richtung und die Runde bleibt **0.28.1**, oder die Richtung gilt für alle sieben und die Runde heißt **0.29.0** — dann rückt der Fahrplan, denn 0.29.0 ist vergeben* | |
-| **F12** | **Die tote Regel `.back` im Telefonblock** *(`style.css:4026`)* | **Fällt mit.** *`.back` ist in 0.28.0 gefallen; diese eine Zeile im Telefonabschnitt ist stehengeblieben und trifft nichts mehr.* **Eine Regel ohne Träger bleibt nicht stehen** | |
+| **F4** | **Die Filterreihen** | *Claude schlug querrollende Reihen vor* | **Erst messen, dann vorschlagen** *(11.9.2026)*. **Die Messung liegt vor — Befund 8 —, die Entscheidung steht aus: siehe F10** |**Beide Hebel — siehe F10.** *Die Messung steht als Befund 8 im Papier* |
+| **F5** | **Bekommt „Titel" eine zweite Richtung?** *Heute gibt es nur A → Z. Ein Richtungsumschalter, der bei einem Eintrag nichts tut, ist ein Sonderfall* | **Ja, Z → A dazu.** *Ein Umschalter, der für alle sieben gilt, ist einfacher als einer mit einer Ausnahme.* **ABER: das ist eine FUNKTION**, und nach Regel 5.1 wäre die Runde damit MINOR statt PATCH — siehe F11 |**NEIN** *(11.9.2026)*. *„Titel" behält seine eine Richtung; der Umschalter steht dort **gedämpft**.* **Damit kommt nichts Neues dazu, die Runde bleibt reine Reparatur — und der Fahrplan rückt nicht.** *Der Preis ist benannt: ein Bedienelement, das bei einem von sieben Einträgen nichts tut* |
+| **F6** | **Tragen die Pfeile am Fuß den TITEL des Nachbarn?** *„‹ Voriger" oder „‹ Bosch Serie 6 Waschmaschine"* | **Nur das Wort, nicht den Titel.** *Der Titel des Nachbarn steht in `state.items` und wäre zu haben — aber er ist beim Direkteinstieg nicht da, und dann stünde dort mal ein Name und mal keiner.* **Ein Knopf, der manchmal etwas anderes sagt, ist zwei Knöpfe** |**Wie vorgeschlagen: nur das Wort** *(11.9.2026)*. *„‹ Voriger" und „Nächster ›"* |
+| **F7** | **Fällt die Suche im Systembereich auf BEIDEN Geräten?** | **Ja, auf beiden.** *Der Betreiber hat es für Desktop und Telefon gesagt, und der Grund gilt auf beiden: das Feld verspricht dort, Einstellungen zu suchen, und springt in den Bestand* |**Ja, auf beiden** *(11.9.2026)* |
+| **F8** | **Wie klein werden die Sterne am Telefon?** *Heute `1.45rem` (21,75 px) plus `5px 4px` Polsterung — rund 50 px je Kriterienzeile* | **`1.25rem` (18,75 px) und `3px 4px`.** *Rund 40 px je Zeile statt 50; bei sieben Kriterien siebzig Pixel weniger.* **Nicht auf das Zeigermaß (`1.2rem`, ohne Polsterung):** ein Stern ist ein ZIEL und kein Zeichen — man tippt darauf |**Wie vorgeschlagen: `1.25rem` und `3px 4px`** *(11.9.2026)*. *Rund 40 px je Zeile statt 50* |
+| **F9** | **Wie klappt die Abschnittsliste im Systembereich ein?** | **Wie der Filterschalter der Übersicht** — *ein Knopf darüber, der den Namen des offenen Abschnitts trägt.* **Dieselbe Bauform, kein zweites Muster** |**Wie vorgeschlagen: wie der Filterschalter** *(11.9.2026)*, mit dem Namen des offenen Abschnitts am Knopf |
+| **F10** | **Die Filterreihen — welcher Hebel?** *Gemessen: der Kasten misst 378 px, davon **90 px Beschriftungen** und **69 px Abstände**; die erste Kachel beginnt bei y = 590 von 844* | **Zwei Hebel, keiner davon die Pillen:** *(a) die Reihen rollen quer statt umzubrechen — die Kategoriereihe fällt von 77 auf 35 px; (b) die Beschriftung rückt NEBEN die Reihe statt darüber — fünfmal 18 px.* **Zusammen rund 130 px.** *Die Pillen bleiben bei 35 px: kleiner wird am Finger schwierig, und sie sind nicht das Problem* |**Wie vorgeschlagen: BEIDE Hebel** *(11.9.2026)*. *Quer rollen UND die Beschriftung daneben — zusammen rund 130 px; die erste Kachel rückt von y=590 auf rund y=460.* **Die Pillen bleiben bei 35 px** |
+| **F11** | **Die Nummer: 0.28.1 als PATCH?** | **Hängt an F5.** *Sieben der acht Befunde sind Reparaturen — das ist ein PATCH.* **Kommt „Titel Z → A" dazu, ist es nach Regel 5.1 eine Funktion.** *Zwei ehrliche Wege: `Titel` behält seine eine Richtung und die Runde bleibt **0.28.1**, oder die Richtung gilt für alle sieben und die Runde heißt **0.29.0** — dann rückt der Fahrplan, denn 0.29.0 ist vergeben* |**0.28.1 als PATCH** *(11.9.2026, folgt aus F5)*. **Acht Reparaturen, keine Funktion.** *Der Fahrplan bleibt, wie er steht* |
+| **F12** | **Die tote Regel `.back` im Telefonblock** *(`style.css:4026`)* | **Fällt mit.** *`.back` ist in 0.28.0 gefallen; diese eine Zeile im Telefonabschnitt ist stehengeblieben und trifft nichts mehr.* **Eine Regel ohne Träger bleibt nicht stehen** |**Wie vorgeschlagen: fällt mit** *(11.9.2026)* |
 
 ---
 
@@ -257,19 +264,24 @@ Kategorien:**
 
 ## Die Nummer und ihre Begründung
 
-**HÄNGT AN F5 UND IST DIE EINZIGE OFFENE FRAGE, DIE DEN FAHRPLAN BERÜHRT.**
+**0.28.1 ist ein PATCH — Regel 5.1.** *Entschieden vom Betreiber am
+11. September 2026 (F5, F11).*
 
-**Sieben der acht Befunde sind Reparaturen** — *sie richten, was schiefsteht,
-und geben nichts dazu.* **Das ist ein PATCH: 0.28.1.**
+**ALLE ACHT BEFUNDE SIND REPARATUREN.** *Sie richten, was schiefsteht, und
+geben nichts dazu.* **Die Installation kann danach nichts, was sie vorher nicht
+konnte** — und genau dafür ist „Titel" bei seiner einen Richtung geblieben.
 
-**Der achte Punkt ist die Sortierrichtung**, *und wenn „Titel" dabei Z → A
-bekommt, kann die Installation danach etwas, was sie vorher nicht konnte.*
-**Nach Regel 5.1 ist das eine Funktion und damit MINOR.**
+> **DIE FRAGE HAT AM SEIDENEN FADEN GEHANGEN, und das gehört aufgeschrieben.**
+> *Ein Richtungsumschalter für alle sieben Sortierungen wäre die sauberere
+> Bedienung gewesen — aber „Titel Z → A" ist eine Funktion, und eine Funktion
+> ist nach Regel 5.1 mindestens MINOR.* **Drei Zeilen Arbeit hätten den
+> Fahrplan ab 0.29.0 um eine Stelle verschoben.**
+>
+> **DER PREIS STEHT DAFÜR IM BEDIENELEMENT:** *bei „Titel" ist der Umschalter
+> gedämpft und tut nichts.* **Ein Sonderfall, den man sieht** — und der besser
+> ist als eine gebogene Regel, die man nicht sieht.
 
-*Zwei ehrliche Wege, und beide stehen in F5/F11:* **„Titel" behält seine eine
-Richtung und die Runde bleibt 0.28.1**, *oder die Richtung gilt für alle sieben
-und die Runde braucht eine MINOR-Nummer — dann rückt der Fahrplan, denn 0.29.0
-ist vergeben.*
+**Der Fahrplan rückt nicht.** *0.29.0 bis 0.35.0 stehen, wo sie stehen.*
 
 ---
 
