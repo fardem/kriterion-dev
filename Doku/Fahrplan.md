@@ -144,7 +144,7 @@ Sprachumschalter baut, hat damit ein Muster und braucht kein neues.**
 | ~~**0.25.1**~~ | ~~Jede Kachel zählt ihre eigene Arbeit~~ | **GEBAUT am 10. September 2026** — Änderungsprotokoll 0.25.1 | nein | — |
 | ~~**0.26.0**~~ | ~~Die kleinen Fehler fallen — und das Potenzial wird abschaltbar~~ | **GEBAUT am 10. September 2026** — Änderungsprotokoll 0.26.0 | nein | — |
 | ~~**0.27.0**~~ | ~~Die wählbare Bildablage~~ | **GEBAUT am 10. September 2026** — Änderungsprotokoll 0.27.0 | nein | — |
-| **0.28.0** | **Das Telefon bekommt Recht** | Gruppe B, dazu das Blättern im Eintrag, das Startbildzeichen und **die Dichte der Bedienelemente am Finger** | nein | — |
+| ~~**0.28.0**~~ | ~~Das Telefon bekommt Recht~~ | **GEBAUT am 11. September 2026** — Änderungsprotokoll 0.28.0 | nein | — |
 | **0.29.0** | **Worauf man sich verlassen können muss** | Gruppe C, das Angenommene — und die letzte Runde, die das Schema anfassen darf | **ja** | 15 → 16 |
 | **0.30.0** | **Der Prüfstand wird schnell** | Gruppe D: was das Bauen beschleunigt, ohne den Beleg zu schwächen | nein | — |
 | **0.31.0** | **Die Sprachen werden gegengelesen** | drei Dateien, drei Stufen — harte Fehler, der zersägte Satzbau, die Hausstimme | nein | — |
@@ -459,7 +459,26 @@ Bestand statt zwei.
 
 ---
 
-## 0.28.0 — „Das Telefon bekommt Recht"
+## ~~0.28.0 — „Das Telefon bekommt Recht"~~ — GEBAUT am 11. September 2026
+
+> **DIESE AUSARBEITUNG BLEIBT ALS HERLEITUNG STEHEN.** *Was gebaut wurde, steht
+> im Änderungsprotokoll 0.28.0; hier steht, wie die Runde gedacht war.*
+>
+> **DREI PUNKTE HABEN SICH BEIM BAUEN GEÄNDERT, und alle drei sind gemessen
+> worden statt geglaubt:**
+>
+> * **Punkt 3 nennt die falsche Zeile.** *Nicht die Anmeldungszeile läuft aus
+>   ihrer Karte — sie steht in einem Raster mit `minmax(0, 1fr)` und kann es
+>   gar nicht.* **Es ist der Befehl in „Mein Zugang" und in „Kennzahlen":**
+>   452 Pixel Inhalt in einem Kasten von 182, gemessen bei 1024 Pixeln
+>   Fensterbreite am laufenden Server.
+> * **Die Behälterabfrage wurde ausgeweitet** *(Betreiber, 11. September)*: nicht
+>   eine Stelle, sondern der ganze Systembereich — nachgemessen sind das drei
+>   Gruppen und nicht zehn.
+> * **`Bild auf` und `Bild ab` sind gestrichen** *(Betreiber, 11. September)*:
+>   „oh ja bei langen koimmentaren braucht man bild ab… das können wir nicht
+>   nehmen." **In dieser Runde blättert gar keine Taste den Eintrag**; es bleiben
+>   die zwei Pfeile in der Kopfzeile.
 
 **Alles, was bei der Durchsicht für Telefon und Tablett gemessen und bewusst
 stehen gelassen wurde — plus die zwei Dinge, die genau dort hingehören.**

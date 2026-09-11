@@ -31,6 +31,19 @@
      Lesezeichenleiste; sie bringt ihre eigene dunkle Kachel mit, damit sie
      auch auf einer hellen Leiste steht. -->
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
+<!-- DAS MANIFEST -- 0.28.0. Es macht aus der Seite eine Anwendung, die sich auf
+     einen Startbildschirm legen laesst: Zeichen, Name, Farbe, und beim Oeffnen
+     keine Adresszeile darueber.
+     ES KOMMT VOM SERVER UND NICHT AUS DIESEM VERZEICHNIS, weil der Name der
+     Installation eine Einstellung ist. Eine feste Datei mit "Kriterion" darin
+     waere eine zweite Wahrheit ueber den Namen -- die Kopfzeile sagte das eine,
+     der Startbildschirm das andere. Die Begruendung steht vollstaendig an der
+     Route in server.js.
+     OHNE crossorigin: der Browser holt das Manifest nach der Regel OHNE
+     Anmeldedaten, und die Route ist genau deshalb offen. Stuende hier
+     use-credentials, verlangte er einen Zugang fuer eine Datei, die er braucht,
+     bevor sich jemand anmelden kann. -->
+<link rel="manifest" href="/api/manifest.json">
 <!-- WAS VOR DEM ERSTEN ANSTRICH ZU SEHEN IST -- 0.23.0. Die Begruendung steht
      vollstaendig in der Datei; hier nur, warum sie HIER steht und nicht
      weiter unten: sie muss VOR dem Stilblatt laufen, sonst blitzt beim

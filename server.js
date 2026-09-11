@@ -1019,6 +1019,72 @@ app.get('/api/config', (req, res) => {
   });
 });
 
+/* DAS MANIFEST -- 0.28.0, BA 6.
+   ES MACHT AUS DER SEITE EINE ANWENDUNG, die man auf den Startbildschirm legen
+   kann: eigenes Zeichen, eigener Name, eigene Farbe, und beim Oeffnen keine
+   Adresszeile darueber. Mehr ist es nicht, und mehr soll es nicht sein.
+
+   ES KOMMT VOM SERVER UND NICHT VON DER PLATTE, weil der Name der Installation
+   eine EINSTELLUNG ist. Eine feste `public/manifest.json` mit „Kriterion"
+   darin waere eine zweite Wahrheit ueber den Namen (Stolperstein 47): die
+   Kopfzeile sagte das eine, der Startbildschirm das andere.
+
+   ER TRAEGT `title_public` UND NICHT `title_app` -- entschieden vom Betreiber
+   am 11. September 2026. Beide gibt es: `title_app` ist der Name IN der
+   angemeldeten Anwendung, `title_public` der Name, den die Anmeldeseite schon
+   heute vor der Anmeldung zeigt. Das Manifest holt der Browser, BEVOR jemand
+   angemeldet ist -- mit `title_app` haette diese Route eine Angabe
+   offengelegt, die bisher hinter der Anmeldung stand. `title_public` steht
+   ohnehin schon in /api/config, und damit kommt hier nichts Neues hinaus.
+
+   OFFEN UND OHNE ANMELDUNG, und das ist keine Nachlaessigkeit: `<link
+   rel="manifest">` wird nach der Regel ohne Anmeldedaten geholt. Hinter der
+   Anmeldung waere die Datei fuer den Browser schlicht nicht da.
+
+   LESEND, ALSO NICHT IN F_ROUTES. Die Liste im Pruefstand fuehrt die
+   SCHREIBENDEN Routen und sammelt dafuer app.post, app.put und app.delete ein;
+   eine GET-Route steht dort nicht und kann dort nicht stehen. Die Zahl bleibt
+   bei 72. Was diese Route bewacht, sind drei eigene Zusagen: der Name kommt
+   aus der Einstellung, sie antwortet ohne Anmeldung, und im ganzen Quelltext
+   steht kein Arbeiter im Hintergrund.
+
+   KEIN ARBEITER IM HINTERGRUND, KEIN ZWISCHENSPEICHER -- ausdruecklich. Ein
+   `service worker` liefert im Zweifel eine alte Fassung aus, und in einer
+   Instanz, die ihren Fingerprint nennt, waere das das Gegenteil von hilfreich:
+   die Oberflaeche zeigte eine Version, die der Server laengst nicht mehr ist.
+
+   EINE SVG UND KEIN ZWEITES BILDFORMAT. `favicon.svg` traegt vom 16-Pixel-Tab
+   bis zum Startbildschirm; `any maskable` sagt dem System, dass es das Zeichen
+   auch beschneiden darf, wenn es runde Kacheln zeichnet.
+   DIE FARBE IST DAS DUNKLE --bg UND EINE ABSCHRIFT -- dieselbe, die schon als
+   `theme-color` in index.html steht, aus demselben Grund und mit demselben
+   Wert. Das Manifest kann nur EINE tragen; die Vorgabe der Instanz ist dunkel,
+   also ist es diese. */
+app.get('/api/manifest.json', (req, res) => {
+  /* UND SIE SETZT DEN AUSGELIEFERTEN TYP NICHT SELBST -- das ist kein
+     Versehen. Diese Datei setzt ihn an KEINER Stelle, und ein Waechter im
+     Pruefstand haelt das fest: der ausgelieferte Typ soll nie aus der
+     Datenbank kommen koennen. Die eigene Angabe des Manifesttyps waere die
+     erste Ausnahme gewesen, und eine Ausnahme in einem Waechter ist der Anfang
+     seines Endes.
+     DER WAECHTER ZAEHLT WOERTLICH UND NIMMT KOMMENTARE NICHT AUS -- wer die
+     Wortfolge hier auch nur ERWAEHNTE, liesse ihn scheitern. Deshalb steht sie
+     in diesem Absatz nirgends ausgeschrieben; dieselbe Bauform wie am
+     Zoomabsatz im Stilblatt.
+     GEMESSEN STATT GERATEN (Chromium, 11. September 2026, ueber
+     `Page.getAppManifest`): mit dem Typ, den `res.json` von selbst setzt,
+     liest der Browser das Manifest fehlerfrei -- keine Meldung, der Name kommt
+     an. Der genauere Typ haette nichts gebracht, was diese Instanz nicht
+     schon hat. */
+  const name = getSetting('title_public', 'Bewertungskatalog');
+  res.json({
+    name, short_name: name,
+    start_url: '/', scope: '/', display: 'standalone',
+    background_color: '#0e1012', theme_color: '#0e1012',
+    icons: [{ src: '/favicon.svg', sizes: 'any', type: 'image/svg+xml', purpose: 'any maskable' }]
+  });
+});
+
 // Erste Einrichtung. Steht vor der Anmeldung, weil es dahinter noch nichts
 // gibt -- und ist genau deshalb nur solange offen, wie kein Zugang existiert.
 app.post('/api/setup', async (req, res) => {

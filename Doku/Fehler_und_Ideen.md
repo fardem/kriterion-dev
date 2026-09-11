@@ -755,36 +755,44 @@ wiedersieht, schreibt den Lauf vollständig mit)**.
 
 ### Aus der Durchsicht für Telefon und Tablett
 
-*Kleinteiliges, das bei der Durchsicht gemessen und **bewusst stehen gelassen**
-wurde. Keines davon ist neu entstanden; jedes gab es vorher genauso.*
+> **DIESER ABSCHNITT IST MIT 0.28.0 LEER GEWORDEN.** *Alle vier Punkte sind
+> gebaut — die gemeinsame Kopfzeile, die Behälterabfrage, der Halbsatz am
+> Ablegefeld und die Meldung über der Vergleichsleiste.* **Sie stehen nach
+> Regel 2 nicht mehr hier, sondern im Änderungsprotokoll 0.28.0.**
+>
+> **EINER VON IHNEN STAND FALSCH BESCHRIEBEN DA, und das gehört festgehalten:**
+> *„Die Zeile einer Anmeldung läuft bei rund 1024 Pixeln aus ihrer Karte" —
+> nachgemessen am laufenden Server ist es NICHT die Anmeldungszeile.* **Sie
+> steht in einem Raster mit `minmax(0, 1fr)` und kann gar nicht breiter werden
+> als ihre Karte.** *Was wirklich läuft, ist der Befehl in „Mein Zugang" und in
+> „Kennzahlen": `docker compose exec kriterion node usertool.js …` misst 452
+> Pixel und steht bei 1024 Pixeln Fensterbreite in einem Kasten von 182.*
+> **Die Beschreibung des Symptoms war richtig, der Name der Zeile nicht** — und
+> gefunden wurde es erst, als jemand am laufenden Server nachsah statt im
+> Stilblatt zu suchen.
 
-- **Die Zeile einer Anmeldung läuft bei rund 1024 Pixeln aus ihrer Karte.**
-  Auf dem Telefon bricht sie seit der Durchsicht um; am Desktop tut sie es
-  nicht, und in einem Fenster von 1024 Pixeln ist die Karte des Systembereichs
-  gerade schmal genug, dass die Zeile in ihrer eigenen Liste seitlich scrollt.
-  **Die Seite läuft nicht über** — es scrollt der Kasten, und das war vor der
-  Durchsicht genauso. Der saubere Weg wäre eine Behälterabfrage
-  (`@container`) statt einer Fensterabfrage: die Karte weiß dann selbst, wie
-  breit sie ist. *(Claude: empfohlen, aber als eigener Schritt — eine
-  Behälterabfrage ist ein neues Werkzeug im Stylesheet und gehört nicht
-  nebenbei hinein)*
-- **Eine Meldung kann auf dem Telefon die Vergleichsleiste verdecken.** Beide
-  sitzen unten, die Meldung liegt darüber. Sie steht 2,6 Sekunden und die
-  Leiste nur, solange etwas ausgewählt ist — der Fall ist selten und wieder
-  vorbei, bevor man ihn benennen kann. Der Fix wäre eine Abfrage `body:has(…)`.
-  *(Claude: später — der Aufwand steht nicht im Verhältnis)*
-- **Die Erklärung unter dem Ablegefeld spricht auf dem Telefon von Dingen, die
-  es dort nicht gibt** — „Klick aufs Foto", „mit Strg+V einfügen", „Blättern
-  mit ← →". Fünf Zeilen, von denen die Hälfte ins Leere geht, und sie stehen
-  zwischen dem Bild und der Beschreibung. **Das ist eine Frage an den Text und
-  nicht an das Stylesheet:** eine Fassung, die für beide gilt, wäre besser als
-  zwei Fassungen mit einer Weiche dazwischen. *(Claude: empfohlen)*
-- **Die Unteransichten haben keine Kopfzeile.** Eintrag, System, Offen und
-  Vergleich tragen nur „← Zurück zur Übersicht"; Suche, Menü und „+ Eintrag"
-  gibt es dort nicht. Am Desktop fällt das kaum auf — auf einem Telefon
-  ist der Weg von einem Eintrag zur Suche zwei Griffe statt einem. **Eine
-  gemeinsame Kopfzeile für alle vier wäre der Umbau**, und er berührt vier
-  Aufbauten und deren Prüflagen. *(Claude: empfohlen, aber als eigene Runde)*
+### Zwei Funde aus dem Bau von 0.28.0 — noch offen
+
+*Beide sind beim Bauen aufgefallen, gehören aber nicht in eine Runde über das
+Telefon. Sie warten hier auf ihre.*
+
+- **Es gibt kein Verzeichnis der LESENDEN Routen.** `F_ROUTES` führt die
+  schreibenden — heute 72 — und nagelt jede mit ihrer Klemme fest: eine Route,
+  die im Server steht und nicht in der Liste, färbt den Prüfstand rot.
+  **Für die 31 lesenden Routen gibt es nichts dergleichen.** Eine `GET`-Route
+  kann still dazukommen oder verschwinden, und niemand merkt es. *Aufgefallen
+  bei 0.28.0, weil der Auftrag an drei Stellen „`F_ROUTES` geht auf 73" sagte —
+  das kann nicht sein, die neue Route ist lesend.* **Die Lücke ist älter als
+  diese Runde.** *(Claude: empfohlen, als eigene Runde — es sind 31 Routen, je
+  mit Klemme und Begründung, und das ist dieselbe Arbeit, die F_ROUTES einmal
+  gekostet hat)*
+- **`entry.commentPlaceholder` nennt Strg+V, und am Telefon gibt es das
+  nicht.** *„Kommentar schreiben — Bilder mit Strg+V einfügen …"* — derselbe
+  Befund wie beim Ablegefeld, dieselbe Antwort. **Er ist in 0.28.0
+  ausdrücklich NICHT mitgebaut worden:** der Auftrag hat drei Sätze unter dem
+  Ablegefeld gezählt und genau einen benannt; dieser Satz steht woanders.
+  *Eine Runde wird nicht nebenbei breiter gemacht.* *(Claude: empfohlen, und
+  es ist ein Halbsatz in drei Sprachen)*
 
 ### An den Nummern
 

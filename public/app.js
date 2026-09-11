@@ -402,6 +402,27 @@ const ICON_PIN = char('<path d="M9 4h6l-1 6 2.5 2v2h-9v-2l2.5-2z"/><path d="M12 
    stehen. Zwei Griffe in einer Zeile brauchen zwei Zeichen -- „eigenes Zeichen
    am Feld" (die Antwort des Betreibers auf F5). */
 const ICON_ERASE = char('<path d="M8.5 20H20"/><path d="M14.5 5.5l4 4-8 8H6.5l-2-2z"/>');
+/* DIE ZWEI FEINEN PFEILE DER KOPFZEILE -- 0.28.0, und ausdruecklich NICHT
+   dieselben Zeichen wie an der Bildreihe. Die `.vnav` traegt die Glyphen
+   ‹ und › und blaettert die BILDER dieses Eintrags; diese beiden blaettern die
+   EINTRAEGE der Uebersicht. Zwei Folgen liegen hier ineinander, und wer ihnen
+   dasselbe Zeichen gibt, laesst den Menschen raten, welche gemeint ist.
+   DUENNER ALS JEDES ANDERE ZEICHEN (1,5 statt 1,8): sie stehen neben der
+   Marke und sollen die Kopfzeile nicht anfuehren. Der Betreiber hat sie am
+   8. September 2026 so bestellt -- „feine Pfeile an der linken und rechten
+   Seite, oben, was kaum Platz nimmt". */
+const ICON_STEP_BACK = char('<path d="M14.5 5.5L8 12l6.5 6.5"/>', 1.5);
+const ICON_STEP_FWD  = char('<path d="M9.5 5.5L16 12l-6.5 6.5"/>', 1.5);
+/* DER RUECKWEG IST EIN PFEIL MIT SCHAFT UND KEIN WINKEL -- und das ist kein
+   Geschmack, sondern ein Befund aus dem Augenschein vom 11. September 2026.
+   ERST TRUGEN BEIDE DENSELBEN WINKEL: der Rueckweg zur Uebersicht und der
+   Pfeil „ein Eintrag zurueck" standen als zwei gleiche Zeichen
+   NEBENEINANDER in derselben Zeile. Zwei verschiedene Ziele, ein Zeichen --
+   auf dem Bild war nicht zu sehen, welches welches ist.
+   DER SCHAFT IST DER UNTERSCHIED, und er steht schon im Satz: `list.backToList`
+   beginnt mit „←" und nicht mit „‹". Das Zeichen sagt jetzt dasselbe wie sein
+   Titel. */
+const ICON_BACK_OUT = char('<path d="M19.5 12H5"/><path d="M11 5.5L4.5 12l6.5 6.5"/>', 1.6);
 
 /* EIN LEERER BEREICH SIEHT GEWOLLT AUS UND NICHT KAPUTT -- 0.22.0 (Ideentafel
    N3). Der Satz geht durch esc() -- er ist fest, aber innerHTML ist innerHTML.
@@ -3151,6 +3172,174 @@ function showBellPanel() {
   drawHeadCounts();
 }
 
+/* ================= Die gemeinsame Kopfzeile der Unteransichten =================
+   VIER ANSICHTEN TRUGEN EINE ZEILE: `<a href="#/" class="back">`, fuenfmal im
+   Quelltext -- im Eintrag, im Systembereich, in den offenen Aufgaben, im
+   Vergleich und auf dem Fehlerweg des Eintrags. Sie fuehrte zurueck und sonst
+   nirgendwohin. Am Schreibtisch faellt das kaum auf; am Telefon war der Weg
+   von einem Eintrag zur Suche ZWEI Griffe statt einem: erst zurueck, dann ins
+   Feld.
+
+   ES IST DIESELBE KOPFZEILE WIE IN DER UEBERSICHT UND KEINE ZWEITE. Sie traegt
+   `.masthead` und `.mast-rest`, also dasselbe Stilblatt und damit auch
+   dieselben zwei Gestalten: auf dem breiten Schirm stehen die Knoepfe in der
+   Reihe, auf dem Telefon wandern sie hinter das Menuezeichen (0.12.0).
+   ES WAERE DER GROESSERE FEHLER GEWESEN, HIER EIN EIGENES MENUE ZU BAUEN, das
+   auf JEDER Breite eine Tafel bleibt: dann fuehrte der Weg in den
+   Systembereich in der Uebersicht ueber einen Knopf und im Eintrag ueber ein
+   Zeichen -- zwei Bedienungen fuer dasselbe Ziel, je nachdem, wo man steht
+   (Stolperstein 47).
+
+   WAS SIE NICHT TRAEGT, und warum (Fragetafel F1, beantwortet am 11.9.2026):
+   KEIN ZAEHLER -- er zaehlt den Bestand der Uebersicht, nicht diese Ansicht.
+   KEIN „+ Eintrag" -- wer einen Eintrag liest, legt selten dabei einen an,
+   und das Menue hat den Weg.
+   KEINE GLOCKE -- sie ist eine Auskunft ueber den BESTAND und gehoert dorthin,
+   wo der Bestand steht.
+
+   DER RUECKWEG BLEIBT EIN SATZ UND WIRD EIN ZEICHEN. `list.backToList` faellt
+   nicht: der Knopf traegt ihn als Titel, Pfeilglyphe und alles. Ein zweiter,
+   kuerzerer Satz fuer dieselbe Handlung waere eine zweite Wahrheit. */
+
+/* DIE NACHBARN IN DER REIHENFOLGE DER UEBERSICHT -- 0.28.0, F2.
+   `state.items` ist, was die Uebersicht ZULETZT GEZEIGT hat: mit ihrem Filter
+   und ihrer Sortierung. Sie ueberlebt einen Wechsel der Ansicht, weil `state`
+   auf Modulebene steht -- und sie ueberlebt kein Neuladen.
+   STEHT DER EINTRAG NICHT DARIN, GIBT ES KEINE NACHBARN, und beide Pfeile sind
+   gedaempft. Das ist der Direkteinstieg ueber die Adresse, das frisch geladene
+   Fenster, und der Eintrag, den der eingestellte Filter gar nicht zeigt.
+   EINE ERFUNDENE REIHENFOLGE WAERE DER SCHLECHTERE WEG: die Pfeile saehen
+   aktiv aus und fuehrten in eine Liste, die niemand vor sich hat. */
+const entryNeighbours = (id) => {
+  const list = state.items || [];
+  const at = list.findIndex(x => x && x.id === id);
+  /* UND ES GIBT KEIN FELD `ordered` DANEBEN, obwohl es sich anbote: „keine
+     Reihenfolge" und „am Rand der Reihenfolge" sehen beide genau so aus, wie
+     sie aussehen sollen -- zwei gedaempfte Pfeile beziehungsweise einer. Ein
+     Feld, das niemand liest, bleibt nicht stehen (Stolperstein 47). */
+  if (at < 0) return { prev: null, next: null };
+  return {
+    prev: at > 0 ? list[at - 1].id : null,
+    next: at < list.length - 1 ? list[at + 1].id : null
+  };
+};
+
+/* Der Aufbau. `nav` steht NUR im Eintrag -- in den drei anderen Unteransichten
+   gibt es keine Folge, in der sich blaettern liesse, und ein Paar gedaempfter
+   Pfeile, das dort fuer immer gedaempft bliebe, waere ein Versprechen ohne
+   Deckung. */
+function subhead({ nav = null } = {}) {
+  /* GEDAEMPFT UND DA, NICHT WEG. Ein Pfeil, der am ersten Eintrag verschwindet,
+     schiebt die Marke daneben um seine Breite -- und dann wandert der Titel,
+     waehrend man blaettert. `disabled` haelt die Stelle und nimmt den Griff. */
+  const step = (id, icon, label) =>
+    `<button class="icon-btn step" data-step="${id == null ? '' : id}"
+      ${id == null ? 'disabled' : ''} title="${esc(t(label))}"
+      aria-label="${esc(t(label))}">${icon}</button>`;
+  return `<div class="masthead subhead">
+    <a href="#/" class="icon-btn sub-back" title="${esc(t('list.backToList'))}"
+      aria-label="${esc(t('list.backToList'))}">${ICON_BACK_OUT}</a>
+    <div class="brand">
+      ${nav ? step(nav.prev, ICON_STEP_BACK, 'list.prevInList') : ''}
+      ${MARK(32)}
+      <div><h1>${esc(TITLE_APP)}</h1></div>
+      ${nav ? step(nav.next, ICON_STEP_FWD, 'list.nextInList') : ''}
+    </div>
+    ${/* DAS FELD IST EINE TUER UND KEIN ZWEITER SUCHER -- F1. Gesucht wird in
+         der Uebersicht, weil dort der Bestand steht; hier ist der Weg dorthin.
+         ZWEI WEGE HINUEBER, und beide fuehren an dieselbe Stelle: ein Tipp auf
+         das Feld springt sofort (der haeufige Fall am Telefon -- ein Griff
+         statt zwei, und genau das ist der Befund), und wer mit der Tabtaste
+         hierher kommt und tippt, nimmt den ersten Buchstaben mit. Der Fokus
+         geht in beiden Faellen in das Feld der Uebersicht.
+         DIE TABTASTE ALLEIN SPRINGT NICHT. Ein Fokus, der die Ansicht
+         wechselt, machte das Durchtabben der Kopfzeile unbenutzbar. */''}
+    <div class="search-box">
+      <span class="ic">${ICON_SEARCH}</span>
+      <input class="input" id="sub-q" placeholder="${esc(t('list.searching'))}"
+        value="${esc(state.search)}">
+    </div>
+    <div class="mast-rest" id="mast-rest">
+      <button class="icon-btn" id="open" title="${esc(t('list.openTasks'))}">${ICON_OPEN}<span class="open-count" id="open-count" hidden></span><span class="mast-word">${tH('list.openTasks')}</span></button>
+      <button class="icon-btn" id="sys" title="${esc(t('list.settings'))}">${ICON_SYS}<span class="mast-word">${tH('list.settings')}</span></button>
+      <span class="hint who" id="who">${tH('list.signedInAs', { name: NAME })}</span>
+      <button class="btn btn-ghost btn-sm" id="out">${tH('list.signOut')}</button>
+    </div>
+    <button class="icon-btn mast-menu" id="menu" aria-expanded="false"
+      aria-controls="mast-rest" aria-label="${esc(t('list.openMenu'))}" title="${esc(t('list.menu'))}">${ICON_MENU}</button>
+  </div>`;
+}
+
+/* Die Zusagen dazu. Sie stehen hier und nicht viermal in den Ansichten -- vier
+   Abschriften desselben Behandlers laufen auseinander, sobald einer geaendert
+   wird.
+   ALLES, WAS AM DOKUMENT HAENGT, GEHT BEIM VERLASSEN DER ANSICHT WIEDER WEG.
+   `app.innerHTML` nimmt die Elemente mit; die Zusagen am Dokument blieben
+   sonst liegen und sammelten sich mit jedem Aufruf. Dieselbe Bauform wie in
+   renderList(). */
+function wireSubhead({ term = '' } = {}) {
+  atElement('open', b => b.onclick = () => { location.hash = '#/open'; });
+  atElement('sys', b => b.onclick = () => { location.hash = '#/system'; });
+  atElement('out', b => b.onclick = async () => {
+    await fetch('/api/logout', { method: 'POST', credentials: 'same-origin' });
+    showLogin();
+  });
+  drawHeadCounts();
+
+  /* DER SCHATTEN BEIM ROLLEN -- dieselbe Zeile wie in der Uebersicht und aus
+     demselben Grund: die Kopfzeile klebt oben, und dass unter ihr etwas liegt,
+     sagt ab acht Bildpunkten der Schatten. */
+  const scrollGuard = () =>
+    document.querySelector('.masthead')?.classList.toggle('scrolled', (window.scrollY || 0) > 8);
+  window.addEventListener('scroll', scrollGuard, { passive: true });
+  scrollGuard();
+
+  const menu = document.getElementById('menu');
+  const panel = document.getElementById('mast-rest');
+  const menuPlaces = (on) => {
+    panel.classList.toggle('open', on);
+    menu.setAttribute('aria-expanded', on ? 'true' : 'false');
+    menu.setAttribute('aria-label', on ? t('list.closeMenu') : t('list.openMenu'));
+  };
+  menu.onclick = () => menuPlaces(!panel.classList.contains('open'));
+  const menuOutside = (e) => {
+    if (e.target.closest('#menu') || e.target.closest('#mast-rest')) return;
+    menuPlaces(false);
+  };
+  const menuKey = (e) => { if (e.key === 'Escape') menuPlaces(false); };
+  document.addEventListener('click', menuOutside);
+  document.addEventListener('keydown', menuKey);
+
+  /* DIE TUER ZUR SUCHE. `SEARCH_HANDOFF` sagt der Uebersicht, dass der Fokus
+     ins Feld gehoert -- ohne die Marke landete der Schreibstrich nirgends, und
+     der Mensch muesste nach dem Sprung ein zweites Mal tippen. Genau die zwei
+     Griffe, die diese Runde wegnimmt. */
+  const sq = document.getElementById('sub-q');
+  const over = () => { SEARCH_HANDOFF = true; location.hash = '#/'; };
+  sq.addEventListener('pointerdown', (e) => { e.preventDefault(); over(); });
+  sq.oninput = () => { state.search = sq.value; over(); };
+
+  /* DIE ZWEI PFEILE. Der Begriff faehrt mit: wer mit einem gesuchten Begriff in
+     einen Eintrag gegangen ist, blaettert in der Trefferliste und soll die
+     Adresse nicht unterwegs verlieren. */
+  document.querySelectorAll('.subhead .step').forEach(b => {
+    b.onclick = () => {
+      const to = b.getAttribute('data-step');
+      if (to) location.hash = entryAddress(+to, term);
+    };
+  });
+
+  window.addEventListener('hashchange', () => {
+    document.removeEventListener('click', menuOutside);
+    document.removeEventListener('keydown', menuKey);
+    window.removeEventListener('scroll', scrollGuard);
+  }, { once: true });
+}
+
+/* Gesetzt von der Tuer oben, gelesen und geleert von der Uebersicht. Eine
+   Marke und keine Einstellung: sie gilt fuer genau einen Sprung. */
+let SEARCH_HANDOFF = false;
+
 /* ================= Übersicht ================= */
 async function renderList() {
   /* NICHT LEEREN, BEVOR ERSATZ DA IST -- 0.26.0, BA 5 (Befund 7a).
@@ -3339,6 +3528,21 @@ async function renderList() {
     document.removeEventListener('keydown', menuKey);
     window.removeEventListener('scroll', scrollGuard);
   }, { once: true });
+
+  /* DER SCHREIBSTRICH KOMMT AUS DER UNTERANSICHT MIT -- 0.28.0, BA 1.
+     Wer dort das Suchfeld angetippt hat, steht jetzt hier, und der Strich
+     gehoert ins Feld: ohne diese Zeile waere der Sprung ein Griff und das
+     Tippen ein zweiter -- also genau die zwei Griffe, die diese Runde
+     wegnimmt.
+     DER STRICH ANS ENDE und nicht an den Anfang: wer schon einen Buchstaben
+     mitgebracht hat, schreibt dahinter weiter.
+     DIE MARKE GILT FUER GENAU EINEN SPRUNG und wird hier geleert. Bliebe sie
+     stehen, risse sie beim naechsten Zeichnen der Uebersicht den Fokus an
+     sich -- auch dann, wenn niemand gesucht hat. */
+  if (SEARCH_HANDOFF) {
+    SEARCH_HANDOFF = false;
+    atElement('q', el => { el.focus(); el.setSelectionRange(el.value.length, el.value.length); });
+  }
 
   drawFilters(); drawBody();
   /* STAND SCHON EIN BEGRIFF IM FELD, wird er jetzt gefragt. Der Begriff
@@ -4404,12 +4608,13 @@ async function renderOpen() {
   let onlyMy = false;
 
   app.innerHTML = `<div class="shell">
-    <a href="#/" class="back">${tH('list.backToList')}</a>
+    ${subhead()}
     <h1 class="page-title">${tH('list.openTasks')}</h1>
     <p class="hint" id="open-hint" style="margin:0 0 ${multipleUsers() ? t('list.px10') : t('list.px20')}"></p>
     ${multipleUsers() ? `<div class="pills" id="open-view" style="margin:0 0 20px"></div>` : ''}
     <div id="open-list"></div>
   </div>`;
+  wireSubhead();
 
   function drawView() {
     const box = document.getElementById('open-view');
@@ -4564,12 +4769,13 @@ async function renderCompare() {
   let onlyMy = false;
 
   app.innerHTML = `<div class="shell">
-    <a href="#/" class="back">${tH('list.backToList')}</a>
+    ${subhead()}
     <h1 class="page-title">${tH('list.compare')}</h1>
     <p class="hint" id="cmp-hint" style="margin:0 0 ${multipleUsers() ? t('list.px10') : t('list.px20')}"></p>
     ${multipleUsers() ? `<div class="pills" id="cmp-view" style="margin:0 0 20px"></div>` : ''}
     <div class="cmp-grid" id="cg" style="grid-template-columns:repeat(auto-fit,minmax(264px,1fr))"></div>
   </div>`;
+  wireSubhead();
 
   const cg = document.getElementById('cg');
 
@@ -5139,8 +5345,10 @@ async function renderDetail(id, termAddress) {
       api('GET', `/api/items/${id}`), api('GET', '/api/product-categories'), api('GET', '/api/tags')
     ]);
   } catch (e) {
-    if (e.message !== t('dialog.sessionExpired'))
-      app.innerHTML = `<div class="shell"><a href="#/" class="back">${tH('list.backToList')}</a><p class="hint">${tH('server.entryUnknown')}</p></div>`;
+    if (e.message !== t('dialog.sessionExpired')) {
+      app.innerHTML = `<div class="shell">${subhead()}<p class="hint">${tH('server.entryUnknown')}</p></div>`;
+      wireSubhead({ term });
+    }
     return;
   }
   let idx = 0;
@@ -5148,7 +5356,7 @@ async function renderDetail(id, termAddress) {
   let linksOpen = false;        // nur fuer diese Ansicht, nicht auf dem Server
 
   app.innerHTML = `<div class="shell">
-    <a href="#/" class="back">${tH('list.backToList')}</a>
+    ${subhead({ nav: entryNeighbours(id) })}
     <div class="detail">
       <div>
         <div class="viewer" id="viewer"></div>
@@ -5400,6 +5608,7 @@ async function renderDetail(id, termAddress) {
       ? `<div class="danger-row"><button class="btn btn-danger btn-sm" id="del">${tH('entry.deleteEntry')}</button></div>`
       : ''}
   </div>`;
+  wireSubhead({ term });
 
   /* ---- Fotos ---- */
   /* ---- Ein Foto oder Video entfernen ----
@@ -8074,7 +8283,7 @@ async function renderSystem({ keepScroll = false } = {}) {
   const cards = SYS_CARDS.filter(k => k.section === open.key && k.visible(fetched));
 
   app.innerHTML = `<div class="shell">
-    <a href="#/" class="back">${tH('list.backToList')}</a>
+    ${subhead()}
     <h1 class="page-title">${tH('list.settings')}</h1>
     <p class="hint" style="margin:0 0 16px">${ADMIN
       ? t('card.settingsHintAll')
@@ -8094,6 +8303,7 @@ async function renderSystem({ keepScroll = false } = {}) {
     <div class="sys-grid">
       ${cards.map(k => k.markup(fetched)).join('\n')}
     </div></div>`;
+  wireSubhead();
 
   for (const k of cards) if (k.wireUp) k.wireUp(fetched);
 
