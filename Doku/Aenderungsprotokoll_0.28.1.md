@@ -3,7 +3,7 @@
 **Acht Befunde vom laufenden Gerät · gebaut am 11. September 2026 auf 0.28.0
 (`8b205f42`).**
 
-> **FINGERPRINT DIESER RUNDE: `432e64ad`** — gerechnet am fertigen Stand,
+> **FINGERPRINT DIESER RUNDE: `452d1764`** — gerechnet am fertigen Stand,
 > **vor dem Einspielen**.
 >
 > **AUS ZWEI QUELLEN, und die zweite ist eine eigene Rechnung und keine
@@ -11,20 +11,24 @@
 >
 > | Quelle | Wert |
 > |---|---|
-> | Aus dem **Server selbst** gelesen — frisches Datenverzeichnis, über `/api/stats` befragt | **`432e64ad`** |
-> | Am Arbeitsbaum nachgerechnet — **dieselben achtzehn Dateien**, die der Handgriff in der README nennt, mit eigenem Code über dieselbe Vorschrift | **`432e64ad`** |
+> | Aus dem **Server selbst** gelesen — frisches Datenverzeichnis, über `/api/stats` befragt | **`452d1764`** |
+> | Am Arbeitsbaum nachgerechnet — **dieselben achtzehn Dateien**, die der Handgriff in der README nennt, mit eigenem Code über dieselbe Vorschrift | **`452d1764`** |
 >
-> **ER HAT WÄHREND DIESER RUNDE EINMAL GEWECHSELT — wegen ZWEI KOMMENTAREN:**
+> **ER HAT WÄHREND DIESER RUNDE ZWEIMAL GEWECHSELT — wegen DREI KOMMENTAREN:**
 >
 > | | |
 > |---|---|
 > | `7ab6ae75` | der Stand, wie er nach dem Bauen dalag |
-> | **`432e64ad`** | nachdem zwei Absätze in `public/app.js` berichtigt waren |
+> | `432e64ad` | nachdem zwei Absätze in `public/app.js` berichtigt waren |
+> | **`452d1764`** | nachdem ein Satz im Stilblatt berichtigt war |
 >
-> *Der eine sagte noch „die Richtung fällt auf absteigend zurück", wo sie seit
+> *Der erste sagte noch „die Richtung fällt auf absteigend zurück", wo sie seit
 > `dirOf()` auf die EINE Richtung zurückfällt, die die Grundlage kennt; der
-> andere schrieb „Titel" die absteigende Seite zu.* **Ein Kommentar bewegt ihn
-> genauso wie eine Anweisung** — *er hängt an jeder Datei der Liste.*
+> zweite schrieb „Titel" die absteigende Seite zu; der dritte war schlicht
+> Unsinn — „ZWEI SPALTEN UND KEINE ZWEI", gemeint war, dass das Raster ohne
+> Zeilenangaben auskommt.* **Ein Kommentar bewegt ihn genauso wie eine
+> Anweisung** — *er hängt an jeder Datei der Liste, und alle drei sind beim
+> Gegenlesen des eigenen Diffs gefunden worden.*
 >
 > **DIE DRITTE QUELLE FEHLT NOCH, und das steht hier als offener Punkt und
 > nicht als Fußnote:** *0.28.1 ist gebaut und **nicht eingespielt**. Erst die
@@ -485,9 +489,30 @@ Visier.*
 > *und ohne den Rückbau hätte das niemand gemerkt, denn im grünen Lauf steht der
 > Knopf ja da.*
 
-### Gefahren — GEFAHREN_ZEILE
+### Gefahren — alle 15, und **0 STUMM**
 
-GEFAHREN_TABELLE
+**Jeder der 15 Rückbauten hat mindestens eine Zusage NAMENTLICH rot gemacht**;
+zusammen **38 rote Prüfungen**. *Ein STUMM wäre ein Fund gewesen und keiner ist
+dabei.*
+
+| rot | Rückbauten |
+|---|---|
+| **je 1** | 854, 859, 860, 861, 862, 863, 864, 865, 867 |
+| **2** | 866 *(die Filterzeile wird wieder eine Spalte — sie reißt die Zusage von 0.13.1 mit)* |
+| **je 3** | 855, 868 *(die Pillen schrumpfen mit — zwei Zusagen der Umbruchstaffel fallen dazu)* |
+| **4** | **858** *(die einseitige Sortierung bekommt die falsche Endung — der Fehler, den diese Runde gefunden hat)* |
+| **5** | **857** *(die Richtung kommt nicht an)* |
+| **12** | **856** *(der Umschalter hängt nicht in der Zeile — die halbe neue Gruppe fällt)* |
+
+> **DREI VON IHNEN REISSEN ZUSAGEN AUS ANDEREN GRUPPEN MIT, und das ist kein
+> Makel, sondern der Beleg dafür, dass die Wächter einander decken:** *866
+> bringt „Der schmale Schirm behält seine eigene Anordnung" von 0.13.1 zu Fall,
+> 868 die beiden Pillenmaße aus „Handy und Tablett".* **Eine Zusage, die nur in
+> ihrer eigenen Gruppe rot wird, deckt weniger, als sie zu decken vorgibt.**
+>
+> **856 IST DIE AUSSAGEKRÄFTIGSTE:** *nimmt man den Umschalter aus der Zeile,
+> fallen zwölf Zusagen* — *die Richtung ist kein Beiwerk neben dem Feld, sondern
+> die Hälfte der Bedienung.*
 
 ---
 
