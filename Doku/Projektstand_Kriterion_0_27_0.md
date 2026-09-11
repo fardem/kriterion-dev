@@ -479,8 +479,9 @@ weiterhin offen. Daraus folgt die Stellung von `HINTER_PROXY` (Abschnitt 3).
 ## 2. Betriebsstand
 
 **Gebaut ist 0.27.0** — **6497 Prüfungen**, **815 Rückbauten in der Liste**
-(Abschnitt 8). **Am Wirt läuft 0.24.6, eingespielt am 9. September 2026,
-Fingerprint `c4c07393`** *(Abschnitt 8)*.
+(Abschnitt 8). **Am Wirt läuft 0.27.0, eingespielt am 11. September 2026,
+Fingerprint `9f6741b5`** *(Abschnitt 8)* — *vom Betreiber am selben Tag aus
+seiner Installation gemeldet und damit auf das Byte bestätigt.*
 
 *0.27.0 macht aus dem Häkchen der Bildablage eine Wahl mit drei Verfahren — und
 zieht die Ableitungen im selben Durchgang auf WebP.* **`imageStore` löst
