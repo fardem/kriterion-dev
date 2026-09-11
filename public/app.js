@@ -3224,41 +3224,62 @@ const entryNeighbours = (id) => {
   };
 };
 
-/* Der Aufbau. `nav` steht NUR im Eintrag -- in den drei anderen Unteransichten
-   gibt es keine Folge, in der sich blaettern liesse, und ein Paar gedaempfter
-   Pfeile, das dort fuer immer gedaempft bliebe, waere ein Versprechen ohne
-   Deckung. */
-function subhead({ nav = null } = {}) {
-  /* GEDAEMPFT UND DA, NICHT WEG. Ein Pfeil, der am ersten Eintrag verschwindet,
-     schiebt die Marke daneben um seine Breite -- und dann wandert der Titel,
-     waehrend man blaettert. `disabled` haelt die Stelle und nimmt den Griff. */
-  const step = (id, icon, label) =>
-    `<button class="icon-btn step" data-step="${id == null ? '' : id}"
-      ${id == null ? 'disabled' : ''} title="${esc(t(label))}"
-      aria-label="${esc(t(label))}">${icon}</button>`;
+/* Der Aufbau.
+
+   DIE BLAETTERPFEILE STANDEN BIS 0.28.0 HIER, links und rechts von der Marke --
+   und genau das war der Fehler. ZWEI PFEILE LINKS UND RECHTS VON ETWAS SAGEN:
+   „wir blaettern das hier dazwischen". Dazwischen stand der Name der
+   INSTALLATION, geblaettert wurden die EINTRAEGE.
+   DER BETREIBER HAT ES AM GERAET GEMERKT, ohne es benennen zu koennen
+   (11.9.2026): „aber eintrag blaettern pfeile da weis ich nicht". Sie stehen
+   seit 0.28.1 am ENDE des Eintrags -- dort, wo man ist, wenn man
+   weiterblaettern will, und wo sie nichts einrahmen.
+   DER PREIS IST BENANNT: wer frueher wechseln will als am Ende, muss erst ans
+   Ende rollen. Der Betreiber hat ihn gegen Claudes Vorschlag gewaehlt.
+
+   `searchBox` STEHT NUR DA, WO GESUCHT WERDEN KANN -- siehe die Tuer weiter
+   unten. */
+function subhead({ searchBox = true } = {}) {
   return `<div class="masthead subhead">
     <a href="#/" class="icon-btn sub-back" title="${esc(t('list.backToList'))}"
       aria-label="${esc(t('list.backToList'))}">${ICON_BACK_OUT}</a>
     <div class="brand">
-      ${nav ? step(nav.prev, ICON_STEP_BACK, 'list.prevInList') : ''}
       ${MARK(32)}
       <div><h1>${esc(TITLE_APP)}</h1></div>
-      ${nav ? step(nav.next, ICON_STEP_FWD, 'list.nextInList') : ''}
     </div>
-    ${/* DAS FELD IST EINE TUER UND KEIN ZWEITER SUCHER -- F1. Gesucht wird in
-         der Uebersicht, weil dort der Bestand steht; hier ist der Weg dorthin.
+    ${/* DAS FELD IST EINE TUER UND KEIN ZWEITER SUCHER. Gesucht wird in der
+         Uebersicht, weil dort der Bestand steht; hier ist der Weg dorthin.
          ZWEI WEGE HINUEBER, und beide fuehren an dieselbe Stelle: ein Tipp auf
-         das Feld springt sofort (der haeufige Fall am Telefon -- ein Griff
-         statt zwei, und genau das ist der Befund), und wer mit der Tabtaste
-         hierher kommt und tippt, nimmt den ersten Buchstaben mit. Der Fokus
-         geht in beiden Faellen in das Feld der Uebersicht.
+         das Feld springt sofort, und wer mit der Tabtaste hierher kommt und
+         tippt, nimmt den ersten Buchstaben mit. Der Fokus geht in beiden
+         Faellen in das Feld der Uebersicht.
          DIE TABTASTE ALLEIN SPRINGT NICHT. Ein Fokus, der die Ansicht
-         wechselt, machte das Durchtabben der Kopfzeile unbenutzbar. */''}
-    <div class="search-box">
+         wechselt, machte das Durchtabben der Kopfzeile unbenutzbar.
+
+         SIE STEHT SEIT 0.28.1 NICHT MEHR UEBERALL, und das hat zwei
+         verschiedene Gruende:
+         IM SYSTEMBEREICH GAR NICHT, auf keinem Geraet. Ein Suchfeld ueber den
+         Einstellungen verspricht, IN den Einstellungen zu suchen, und springt
+         in den Bestand. Eine Oberflaeche sagt, was ist (Projektstand 5.6) --
+         und dieses Feld sagte etwas anderes. Der Betreiber hat es am laufenden
+         Geraet benannt (11.9.2026): „man wuerde annehmen wenn man da sucht
+         sucht man im adminpanel nach funktionen etc."
+         AM TELEFON AUCH IM EINTRAG NICHT: das Feld bricht dort in eine eigene
+         Zeile um und kostet 54 Pixel -- gemessen, Kopfzeile 123 px mit und
+         69 ohne. Der Betreiber hat den Preis dafuer ausdruecklich in Kauf
+         genommen: der Weg zur Suche ist am Telefon wieder zwei Griffe. Claude
+         hatte eine Lupe statt des Feldes vorgeschlagen (ein Griff, keine
+         Zeile) und ist ueberstimmt worden. Das steht so, damit niemand es
+         spaeter fuer ein Versehen haelt.
+         DIE WEICHE STEHT IM STILBLATT UND NICHT HIER: `searchBox` sagt nur, ob es
+         die Ansicht ueberhaupt angeht; ob das Telefon es zeigt, entscheidet
+         der Telefonabschnitt. Eine Abfrage der Fensterbreite im Aufbau muesste
+         beim Drehen des Geraets nachgezogen werden. */''}
+    ${searchBox ? `<div class="search-box">
       <span class="ic">${ICON_SEARCH}</span>
       <input class="input" id="sub-q" placeholder="${esc(t('list.searching'))}"
         value="${esc(state.search)}">
-    </div>
+    </div>` : ''}
     <div class="mast-rest" id="mast-rest">
       <button class="icon-btn" id="open" title="${esc(t('list.openTasks'))}">${ICON_OPEN}<span class="open-count" id="open-count" hidden></span><span class="mast-word">${tH('list.openTasks')}</span></button>
       <button class="icon-btn" id="sys" title="${esc(t('list.settings'))}">${ICON_SYS}<span class="mast-word">${tH('list.settings')}</span></button>
@@ -3312,21 +3333,15 @@ function wireSubhead({ term = '' } = {}) {
 
   /* DIE TUER ZUR SUCHE. `SEARCH_HANDOFF` sagt der Uebersicht, dass der Fokus
      ins Feld gehoert -- ohne die Marke landete der Schreibstrich nirgends, und
-     der Mensch muesste nach dem Sprung ein zweites Mal tippen. Genau die zwei
-     Griffe, die diese Runde wegnimmt. */
-  const sq = document.getElementById('sub-q');
-  const over = () => { SEARCH_HANDOFF = true; location.hash = '#/'; };
-  sq.addEventListener('pointerdown', (e) => { e.preventDefault(); over(); });
-  sq.oninput = () => { state.search = sq.value; over(); };
-
-  /* DIE ZWEI PFEILE. Der Begriff faehrt mit: wer mit einem gesuchten Begriff in
-     einen Eintrag gegangen ist, blaettert in der Trefferliste und soll die
-     Adresse nicht unterwegs verlieren. */
-  document.querySelectorAll('.subhead .step').forEach(b => {
-    b.onclick = () => {
-      const to = b.getAttribute('data-step');
-      if (to) location.hash = entryAddress(+to, term);
-    };
+     der Mensch muesste nach dem Sprung ein zweites Mal tippen.
+     SIE STEHT NICHT IN JEDER ANSICHT (siehe subhead), also wird sie auch nicht
+     in jeder verdrahtet. `atElement` und nicht `getElementById` mit Punkt
+     dahinter: ein Feld, das es nicht gibt, ist hier kein Fehler, sondern die
+     Absicht. */
+  atElement('sub-q', sq => {
+    const over = () => { SEARCH_HANDOFF = true; location.hash = '#/'; };
+    sq.addEventListener('pointerdown', (e) => { e.preventDefault(); over(); });
+    sq.oninput = () => { state.search = sq.value; over(); };
   });
 
   window.addEventListener('hashchange', () => {
@@ -3735,7 +3750,7 @@ function drawFilters() {
      kommt; wie man es wieder loswird, gehoert daneben. */
   if (fallback) {
     const from = secondLabel(r1, t('list.followsSort'));
-    from.id = 'f-status-woher';
+    from.id = 'f-status-from';
     from.title = t('list.pillHint');
   }
 
@@ -3997,48 +4012,141 @@ function drawFilters() {
   // Auswahlfelder der Instanz.
   sel.id = 'f-sort';
   sel.className = 'select';
-  sel.innerHTML = `
-    ${/* VIER GRUPPEN SEIT 0.22.0: Allgemein, Bewertung, Potenzial, Verlauf. Der
-         Titel steht bei „Allgemein" und nicht mehr unter der Bewertung, und
-         das Potenzial hat seine eigene Gruppe -- beide Gruppen tragen ihr Wort
-         aus dem Vokabular als Beschriftung. „Verlauf" und nicht „Testverlauf":
-         ein Vokabelwort wird in kein Wort verbaut, und „Test" steckt in
-         „Testtage" (Regel S6).
-         DAS WORT KOMMT AUS DEM VOKABULAR und steht in der Klammer daneben,
-         nie darin verbaut: „Potenzial (hoch → niedrig)". `V` ist hier
-         geladen -- loadSettings() laeuft vor route(), und drawFilters()
-         haengt daran. */''}
-    <optgroup label="Allgemein">
-      <option value="updated_desc">${tH('list.sortChangedDesc')}</option>
-      <option value="updated_asc">${tH('list.sortChangedAsc')}</option>
-      <option value="title_asc">${tH('list.sortTitle')}</option>
-    </optgroup>
-    <optgroup label="${esc(V.ratingOne)}">
-      <option value="rating_desc">${tH('list.sortRatingDesc')}</option>
-      <option value="rating_asc">${tH('list.sortRatingAsc')}</option>
-    </optgroup>
-    ${/* DIE GRUPPE STEHT NUR BEI EINGESCHALTETEM MODUS DA -- 0.26.0. Eine
-         Sortierung nach einer Zahl, die nirgends zu sehen ist, ordnet nach
-         etwas Unsichtbarem. */''}
-    ${POTENTIAL_MODE ? `<optgroup label="${esc(V.potential)}">
-      <option value="potential_desc">${tH('list.sortPotentialDesc')}</option>
-      <option value="potential_asc">${tH('list.sortPotentialAsc')}</option>
-    </optgroup>` : ''}
-    <optgroup label="Verlauf">
-      <option value="tests_desc">${tH('list.sortDaysDesc')}</option>
-      <option value="tests_asc">${tH('list.sortDaysAsc')}</option>
-      <option value="testavg_desc">${tH('list.sortAvgDesc')}</option>
-      <option value="testavg_asc">${tH('list.sortAvgAsc')}</option>
-      <option value="testlast_desc">${tH('list.sortLastDesc')}</option>
-      <option value="testlast_asc">${tH('list.sortLastAsc')}</option>
-    </optgroup>`;
-  sel.value = f.sort;
+  /* ---- DIE RICHTUNG IST SEIT 0.28.1 KEIN EINTRAG DER LISTE MEHR ----
+     BIS 0.28.0 STAND JEDE SORTIERUNG ZWEIMAL DA, einmal je Richtung: dreizehn
+     Eintraege in vier Gruppen, mit den Ueberschriften siebzehn Zeilen.
+     DAS IST AM TELEFON DER GANZE SCHIRM, und das Stilblatt kann daran nichts
+     aendern: Chrome auf Android zeichnet die aufgeklappte Auswahl als EIGENEN
+     Systemdialog mit Systemschrift. 0.28.0 hat das FELD von 16 auf 12,45 px
+     gebracht und die LISTE nicht -- am Geraet des Betreibers nachgesehen,
+     11. September 2026. Der Befund war damit zur Haelfte erledigt.
+     GEGEN DEN DIALOG HILFT NUR, IHN KUERZER ZU MACHEN: die Liste nennt jetzt
+     nur noch, WONACH sortiert wird, und die Richtung sitzt daneben. Sieben
+     Eintraege statt dreizehn, elf Zeilen statt siebzehn.
+     DER GESPEICHERTE WERT AENDERT SICH NICHT. `f.sort` heisst weiter
+     `updated_desc`, `title_asc` und so fort -- gespeicherte Ansichten aus
+     0.28.0 gelten unveraendert weiter, und der Server sieht keinen Unterschied.
+     Zerlegt wird erst beim Zeichnen und wieder zusammengesetzt beim Waehlen. */
+  /* DIE BEIDEN UEBERSCHRIFTEN KOMMEN AUS DER SPRACHDATEI -- 0.28.1. Bis dahin
+     standen „Allgemein" und „Verlauf" als feste Woerter im Quelltext und
+     damit auf JEDER Sprache deutsch am Bildschirm. Sie sind beim Umbau dieses
+     Feldes aufgefallen, weil die Restprobe sie erst jetzt einzeln zu sehen
+     bekam: vorher lagen sie mitten in einer langen Vorlage.
+     DIE BEIDEN ANDEREN UEBERSCHRIFTEN BRAUCHEN KEINEN SCHLUESSEL: sie heissen
+     wie das Vokabular des Betreibers und stehen damit ohnehin in seiner
+     Sprache da. */
+  const GENERAL = t('list.sortGroupGeneral');
+  const HISTORY = t('list.sortGroupHistory');
+  const SORT_BASES = [
+    { key: 'updated',  group: GENERAL,      word: () => t('list.sortChanged'),
+      down: 'list.dirNewOld',   up: 'list.dirOldNew' },
+    /* „Titel" KENNT NUR EINE RICHTUNG -- die AUFSTEIGENDE, und sie steht
+       deshalb unter `up` und nicht unter `down`: der gespeicherte Wert heisst
+       seit jeher `title_asc`, und nur den kennt die Sortierung weiter unten.
+       DASS ES BEI DER EINEN BLEIBT, IST ENTSCHIEDEN -- Z nach A waere eine
+       FUNKTION, und eine Funktion ist nach Regel 5.1 mindestens MINOR. Diese
+       Runde ist ein PATCH aus acht Reparaturen; drei Zeilen haetten den
+       Fahrplan ab 0.29.0 um eine Stelle verschoben (Betreiber, 11.9.2026).
+       DER SONDERFALL IST SICHTBAR und nicht versteckt: der Umschalter steht
+       daneben gedaempft. Ein Sonderfall, den man sieht, ist besser als eine
+       gebogene Regel, die man nicht sieht. */
+    { key: 'title',    group: GENERAL,      word: () => t('list.sortTitle'),
+      down: null,               up: 'list.dirAZ' },
+    { key: 'rating',   group: V.ratingOne,   word: () => V.ratingOne,
+      down: 'list.dirHighLow',  up: 'list.dirLowHigh' },
+    /* NUR BEI EINGESCHALTETEM MODUS -- 0.26.0. Eine Sortierung nach einer Zahl,
+       die nirgends zu sehen ist, ordnet nach etwas Unsichtbarem. */
+    { key: 'potential', group: V.potential,  word: () => V.potential,
+      down: 'list.dirHighLow',  up: 'list.dirLowHigh', only: () => POTENTIAL_MODE },
+    { key: 'tests',    group: HISTORY,      word: () => V.dayMany,
+      down: 'list.dirManyFew',  up: 'list.dirFewMany' },
+    { key: 'testavg',  group: HISTORY,      word: () => t('list.sortAvg'),
+      down: 'list.dirHighLow',  up: 'list.dirLowHigh' },
+    { key: 'testlast', group: HISTORY,      word: () => t('list.sortLast'),
+      down: 'list.dirHighLow',  up: 'list.dirLowHigh' }
+  ].filter(b => !b.only || b.only());
+  /* GELESEN WIRD VON HINTEN: die Kennung endet auf `_desc` oder `_asc`, und der
+     Rest davor ist die Grundlage. Steht dort etwas Unbekanntes -- eine
+     gespeicherte Ansicht aus einer Fassung, die diese nicht kennt --, faellt es
+     auf die erste Grundlage und die absteigende Richtung zurueck, genau wie
+     `sel.value` es vorher tat. */
+  /* WELCHE RICHTUNG BEI DIESER GRUNDLAGE GILT, wenn jemand die eine oder die
+     andere will. EINE GRUNDLAGE MIT NUR EINER RICHTUNG BEKOMMT IMMER DIESE,
+     und das ist kein Feinschliff: „Titel" kennt nur A → Z, und ein
+     `title_desc` gibt es in der Sortierung gar nicht. Es fiele dort still auf
+     die Vorgabe zurueck, und „Titel" ordnete nach dem Aenderungsdatum --
+     ausgewaehlt, ohne Fehler, und schlicht falsch. Gefunden hat es Zusage 3,
+     die jede der sieben in beide Richtungen faehrt. */
+  const dirOf = (b, wantsUp) => (b.down && b.up) ? wantsUp : !b.down;
+  const twoWays = (b) => !!(b.down && b.up);
+  const sortParts = (value) => {
+    const wantsUp = String(value || '').endsWith('_asc');
+    const stem = String(value || '').replace(/_(desc|asc)$/, '');
+    const b = SORT_BASES.find(x => x.key === stem) || SORT_BASES[0];
+    return { base: b, asc: dirOf(b, wantsUp) };
+  };
+  const groups = [];
+  for (const b of SORT_BASES) {
+    const last = groups[groups.length - 1];
+    if (last && last.name === b.group) last.bases.push(b);
+    else groups.push({ name: b.group, bases: [b] });
+  }
+  sel.innerHTML = groups.map(g => `<optgroup label="${esc(g.name)}">`
+    + g.bases.map(b => `<option value="${b.key}">${esc(b.word())}</option>`).join('')
+    + `</optgroup>`).join('');
+  let picked = sortParts(f.sort);
+  sel.value = picked.base.key;
+  /* DER UMSCHALTER DANEBEN, und er sagt die KONKRETE Richtung und nicht
+     „absteigend": bei „Zuletzt geaendert" steht „neu → alt", bei der Bewertung
+     „hoch → niedrig", bei den Testtagen „viele → wenige". Vier Wortpaare
+     decken alle sieben Grundlagen -- vier Sortierungen teilen sich „hoch →
+     niedrig", und deshalb sind es sieben Saetze und nicht vierzehn.
+     ER IST BESSER ALS DIE ALTE LISTE UND NICHT NUR KUERZER: dort musste man
+     zwei Zeilen nebeneinanderhalten, um zu sehen, welche Richtung gerade galt.
+     Hier steht sie an einer Stelle.
+     GEDAEMPFT BEI „TITEL", weil es dort nur eine Richtung gibt (siehe oben).
+     `disabled` und nicht `hidden`: ein Knopf, der verschwindet, laesst die
+     Zeile springen, sobald jemand die Sortierung wechselt. */
+  const dirBtn = document.createElement('button');
+  dirBtn.className = 'btn btn-sm sort-dir';
+  dirBtn.id = 'f-sort-dir';
+  const drawDir = () => {
+    const b = picked.base;
+    const key = picked.asc ? b.up : b.down;
+    dirBtn.textContent = t(key);
+    dirBtn.disabled = !twoWays(b);
+    dirBtn.title = twoWays(b) ? t('list.sortFlip') : t('list.sortOneWay');
+  };
+  drawDir();
+  /* ZUSAMMENGESETZT WIRD HIER UND NUR HIER -- an beiden Bedienelementen
+     dieselbe Zeile. Zwei Stellen, die `base + '_' + richtung` bilden, liefen
+     beim naechsten Griff auseinander. */
+  const applySort = () => { f.sort = picked.base.key + (picked.asc ? '_asc' : '_desc'); redraw(); };
   /* SEIT 0.21.1 WIRD DIE GANZE LEISTE NEU GEZEICHNET UND NICHT NUR DIE LISTE:
      die Sortierung gibt den Statusfilter vor, und die Statuspillen stehen eine
      Zeile weiter oben. Vorher genuegte drawBody(), weil eine Sortierung nur
      ordnete; jetzt aendert sie auch, was die Leiste zeigt. */
-  sel.onchange = () => { f.sort = sel.value; redraw(); };
-  r4.appendChild(sel);
+  sel.onchange = () => {
+    const b = SORT_BASES.find(x => x.key === sel.value) || SORT_BASES[0];
+    /* DIE RICHTUNG FAELLT AUF DIE EINE ZURUECK, die die neue Grundlage kennt.
+       „Titel" hat nur A → Z: wer von „Bewertung hoch → niedrig" dorthin
+       wechselt, bekommt `title_asc` und nicht `title_desc` -- letzteres gibt es
+       in der Sortierung nicht, und die Liste ordnete dann still nach dem
+       Aenderungsdatum weiter. */
+    picked = { base: b, asc: dirOf(b, picked.asc) };
+    applySort();
+  };
+  dirBtn.onclick = () => { if (!twoWays(picked.base)) return; picked.asc = !picked.asc; applySort(); };
+  /* BEIDE IN EINEM KASTEN: die Sortierung und ihre Richtung sind EINE
+     Einstellung in zwei Bedienelementen, und sie sollen bei einem Umbruch
+     nicht auseinanderfallen. Der Kasten ist ausserdem das eine Feld, das die
+     Beschriftung daneben (0.28.1, BA 7) fuellt -- zwei lose Kinder haetten
+     dort zwei Rasterzellen gebraucht. */
+  const sortPair = document.createElement('div');
+  sortPair.className = 'sort-pair';
+  sortPair.appendChild(sel);
+  sortPair.appendChild(dirBtn);
+  r4.appendChild(sortPair);
 
   /* ---- Die gespeicherten Ansichten ----
      GANZ UNTEN UND NICHT GANZ OBEN: sie sind die Zusammenfassung der Zeilen
@@ -5356,7 +5464,7 @@ async function renderDetail(id, termAddress) {
   let linksOpen = false;        // nur fuer diese Ansicht, nicht auf dem Server
 
   app.innerHTML = `<div class="shell">
-    ${subhead({ nav: entryNeighbours(id) })}
+    ${subhead()}
     <div class="detail">
       <div>
         <div class="viewer" id="viewer"></div>
@@ -5607,8 +5715,52 @@ async function renderDetail(id, termAddress) {
     ${item.mine === true || ADMIN
       ? `<div class="danger-row"><button class="btn btn-danger btn-sm" id="del">${tH('entry.deleteEntry')}</button></div>`
       : ''}
+
+    ${/* ---- DAS BLAETTERN, AM ENDE DES EINTRAGS -- 0.28.1 ----
+         HIER UND NICHT IN DER KOPFZEILE, und der Grund steht bei subhead():
+         zwei Pfeile links und rechts von der Marke behaupteten, die Marke zu
+         blaettern. Hier behaupten sie nichts -- sie stehen dort, wo man ist,
+         wenn man mit dem Eintrag fertig ist.
+         NUR DAS WORT UND NICHT DER NAME DES NACHBARN (F6): der Name steht in
+         `state.items` und waere zu haben -- aber beim Direkteinstieg ueber die
+         Adresse gibt es ihn nicht. Dann stuende dort mal ein Name und mal
+         keiner, und ein Knopf, der manchmal etwas anderes sagt, ist zwei
+         Knoepfe.
+         GEDAEMPFT UND DA, NICHT WEG: am ersten und letzten Eintrag bleibt der
+         Knopf stehen und nimmt nur den Griff. Verschwaende er, spraenge der
+         andere an seine Stelle. */''}
+    ${(() => {
+      const nb = entryNeighbours(id);
+      /* KURZ AUF DEM KNOPF, VOLLSTAENDIG IM TITEL -- und das ist ein Befund aus
+         dem Augenschein vom 11. September 2026. „Eins zurueck in der
+         Uebersicht" war als Tooltip an einem Zeichen geschrieben, wo Laenge
+         nichts kostet; als BESCHRIFTUNG lief der zweite Knopf am Telefon aus
+         dem Schirm.
+         DER PFEIL STEHT IM AUFBAU UND NICHT IM SATZ: eine Richtung ist keine
+         Sprache, und ein uebersetzter Satz, der eine Glyphe mitschleppt,
+         verliert sie beim naechsten Uebersetzen. */
+      const stepBtn = (target, word, hint, cls, arrow) =>
+        `<button class="btn btn-sm step ${cls}" data-step="${target == null ? '' : target}"
+          ${target == null ? 'disabled' : ''} title="${esc(t(hint))}">${arrow === 'before'
+            ? `<span class="step-arrow">\u2039</span> ${tH(word)}`
+            : `${tH(word)} <span class="step-arrow">\u203a</span>`}</button>`;
+      return `<div class="entry-nav">
+        ${stepBtn(nb.prev, 'list.prevInList', 'list.prevHint', 'step-prev', 'before')}
+        ${stepBtn(nb.next, 'list.nextInList', 'list.nextHint', 'step-next', 'after')}
+      </div>`;
+    })()}
   </div>`;
   wireSubhead({ term });
+
+  /* DIE ZWEI KNOEPFE AM FUSS. Der Begriff faehrt mit: wer mit einem gesuchten
+     Begriff in einen Eintrag gegangen ist, blaettert in der Trefferliste und
+     soll die Adresse nicht unterwegs verlieren. */
+  document.querySelectorAll('.entry-nav .step').forEach(b => {
+    b.onclick = () => {
+      const to = b.getAttribute('data-step');
+      if (to) location.hash = entryAddress(+to, term);
+    };
+  });
 
   /* ---- Fotos ---- */
   /* ---- Ein Foto oder Video entfernen ----
@@ -8283,7 +8435,11 @@ async function renderSystem({ keepScroll = false } = {}) {
   const cards = SYS_CARDS.filter(k => k.section === open.key && k.visible(fetched));
 
   app.innerHTML = `<div class="shell">
-    ${subhead()}
+    ${/* OHNE SUCHFELD, auf jedem Geraet -- 0.28.1. Ein Feld ueber den
+         Einstellungen verspricht, IN den Einstellungen zu suchen; es sprang
+         aber in den Bestand. Die Begruendung steht vollstaendig bei
+         subhead(). */''}
+    ${subhead({ searchBox: false })}
     <h1 class="page-title">${tH('list.settings')}</h1>
     <p class="hint" style="margin:0 0 16px">${ADMIN
       ? t('card.settingsHintAll')
@@ -8295,7 +8451,23 @@ async function renderSystem({ keepScroll = false } = {}) {
          ES SIND LINKS UND KEINE KNOEPFE. Ein Reiter, der eine Adresse hat,
          laesst sich kopieren, in einem neuen Fenster oeffnen und mit der
          Zurueck-Taste verlassen -- ein Knopf koennte davon nichts. */''}
-    <nav class="sys-tabs" aria-label="${esc(t('card.sectionsHint'))}">
+    ${/* DER SCHALTER DARUEBER GEHOERT DEM TELEFON -- 0.28.1, und es ist
+         dieselbe Bauform wie der Filterschalter der Uebersicht (0.22.0).
+         GEMESSEN: die Reiterliste misst am Telefon 241 Pixel bei fuenf
+         Abschnitten, und die erste Karte begann bei y = 480 von 844 -- 57
+         Prozent des Schirms waren Bedienung, bevor die erste Auskunft dastand.
+         Der Betreiber (11.9.2026): „Menue muss aufklappbar sein. aehnlich wie
+         das filter."
+         ER TRAEGT DEN NAMEN DES OFFENEN ABSCHNITTS, und das ist der ganze
+         Unterschied zwischen einem Schalter und einem Versteck: eingeklappt
+         sagt er, wo man steht. Ohne den Namen waere die Liste nur weg.
+         EIN MARKUP, ZWEI GESTALTEN: das Stilblatt entscheidet, ob der Schalter
+         ueberhaupt dasteht -- auf dem breiten Schirm ist er unsichtbar und die
+         Reiter stehen, wo sie immer standen. Keine Abfrage der Fensterbreite
+         im Aufbau, nichts, was beim Drehen des Geraets nachzuziehen waere. */''}
+    <button class="btn btn-sm sys-toggle" id="sys-toggle"
+      aria-expanded="false" aria-controls="sys-tabs">${tH('card.sections')}<span class="fcount">${esc(open.name())}</span></button>
+    <nav class="sys-tabs" id="sys-tabs" aria-label="${esc(t('card.sectionsHint'))}">
       ${visibleOnes.map(a => `<a class="sys-tab${a === open ? ' on' : ''}"
         href="${sysUrl(a.key)}" data-section="${esc(a.key)}"${
         a === open ? ' aria-current="page"' : ''}>${esc(a.name())}</a>`).join('')}
@@ -8304,6 +8476,24 @@ async function renderSystem({ keepScroll = false } = {}) {
       ${cards.map(k => k.markup(fetched)).join('\n')}
     </div></div>`;
   wireSubhead();
+
+  /* ---- Der Schalter ueber den Abschnitten ----
+     EINGEKLAPPT FAENGT ER AN, und die Bedingung ist dieselbe wie im Stilblatt
+     (isNarrow) -- genau wie beim Filterschalter der Uebersicht. Ohne die Frage
+     saesse ein breites Fenster vor eingeklappten Abschnitten und haette keinen
+     sichtbaren Knopf, sie zu oeffnen.
+     WER EINEN ABSCHNITT WAEHLT, IST FERTIG: die Ansicht wird ohnehin neu
+     gezeichnet, und danach steht die Liste wieder eingeklappt da -- mit dem
+     Namen des neuen Abschnitts am Knopf. Es braucht dafuer keine Zeile. */
+  atElement('sys-toggle', b => {
+    const tabs = document.getElementById('sys-tabs');
+    if (isNarrow()) tabs.classList.add('closed');
+    b.setAttribute('aria-expanded', tabs.classList.contains('closed') ? 'false' : 'true');
+    b.onclick = () => {
+      const shut = tabs.classList.toggle('closed');
+      b.setAttribute('aria-expanded', shut ? 'false' : 'true');
+    };
+  });
 
   for (const k of cards) if (k.wireUp) k.wireUp(fetched);
 

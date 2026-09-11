@@ -392,6 +392,27 @@ bestätigt)*, *und dort erbt die aufgeklappte Liste die Schriftgröße des Felde
 die Regel ist auf beiden richtig.** *Das gehört in den Augenschein und nicht in
 eine Zusage.*
 
+> **DIESER ABSATZ IST MIT 0.28.1 BERICHTIGT — der Satz „und dort erbt die
+> aufgeklappte Liste die Schriftgröße des Feldes" IST FALSCH.** *Chrome auf
+> Android zeichnet die aufgeklappte Auswahl als **eigenen Systemdialog** —
+> Radioknöpfe, Systemschrift, eigene Zeilenhöhe. Die `font-size` des Feldes
+> erreicht ihn nicht.* **Nachgesehen am Gerät des Betreibers** *(Samsung S21G,
+> Chrome, 11. September 2026)*: **das Feld ist kleiner geworden, die Liste
+> nicht.**
+>
+> **WIE DER FEHLER ZUSTANDE KAM, und das ist die eigentliche Lehre:** *gemessen
+> wurde an einem **emulierten** Android — und ein emuliertes Gerät hat den
+> Systemdialog gar nicht. Es zeichnet die Liste selbst und erbt deshalb die
+> Schrift des Feldes.* **WO DAS BETRIEBSSYSTEM ZEICHNET, ENTSCHEIDET NUR DAS
+> ECHTE GERÄT.** *Die Zeile steht seit 0.28.1 unter den stehenden Regeln des
+> Auftrags.*
+>
+> **DIE REGEL SELBST BLEIBT RICHTIG** — *das Feld wird kleiner, und das ist
+> gemessen.* **Falsch war nur der Schluss auf die Liste.** *Die andere Hälfte
+> des Befundes ist mit 0.28.1 erledigt: die Liste nennt seither nur noch,
+> **wonach** sortiert wird — sieben Einträge statt dreizehn —, und die Richtung
+> steht als eigener Umschalter daneben.*
+
 **DAS DATUMSFELD BLEIBT DRIN** *(F16)*: *es trägt einen Schreibstrich, den ein
 `<select>` nicht hat.* **Die Eingabefelder bleiben ausnahmslos drin.**
 

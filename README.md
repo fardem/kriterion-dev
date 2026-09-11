@@ -1230,6 +1230,12 @@ es zwei, beide in den Einstellungen einstellbar:
   gerade sichtbaren Einträgen und bleibt unter fünf Testtagen weg.
 - Filter- und Sortierwahl werden serverseitig gespeichert und sind auf jedem
   Gerät gleich.
+- **Die Sortierung besteht aus zwei Bedienelementen:** das Feld sagt, **wonach**
+  sortiert wird, der Knopf daneben sagt die **Richtung** — und zwar im Klartext
+  („neu → alt", „hoch → niedrig", „viele → wenige"). *Ein Druck darauf dreht
+  um.* **Bei „Titel" gibt es nur A → Z; der Knopf steht dort gedämpft daneben.**
+  *Vorher stand jede Sortierung zweimal in der Liste, einmal je Richtung —
+  dreizehn Einträge, die auf dem Telefon den ganzen Schirm füllten.*
 - Sortierung nach Änderung, Bewertung, **Potenzial**, Titel sowie nach
   Testverlauf: Anzahl der Testtage, Durchschnitt der Tagesnoten und letzte
   Tagesnote. Einträge ohne Testtage stehen dabei immer am Ende — sie haben
@@ -1552,6 +1558,12 @@ weitergeben, in einem neuen Fenster öffnen und mit der Zurück-Taste wieder
 verlassen. `#/system` ohne Abschnitt bleibt gültig und löst sich auf den ersten
 sichtbaren auf.
 
+**Auf dem Telefon steht die Abschnittsliste eingeklappt**, hinter einem Knopf,
+der den Namen des offenen Abschnitts trägt — dieselbe Bauform wie der
+Filterschalter der Übersicht. *Ohne ihn waren fünf Reiter 241 Pixel hoch, und
+die erste Karte begann erst bei 57 % des Schirms.* **Am Schreibtisch steht die
+Liste unverändert offen.**
+
 **Der fünfte Abschnitt hieß früher anders, und die alten Adressen führen
 weiter.** `#/system/anlage` und `#/system/instanz` landen beide bei
 „Installation"; ein Lesezeichen von damals führt also nicht ins Leere, und die
@@ -1858,23 +1870,35 @@ dich in die Übersicht, und der Schreibstrich steht dort schon im Feld. Gesucht
 wird, wo der Bestand ist. *Vorher waren das zwei Griffe: erst zurück, dann ins
 Feld.*
 
+**Zwei Stellen tragen es nicht.** **Im Systembereich steht es auf keinem
+Gerät** — ein Suchfeld über den Einstellungen sagt „hier werden Einstellungen
+gesucht", und es sprang in den Bestand. **Auf dem Telefon steht es in keiner
+Unteransicht** — dort kostete es eine ganze Zeile: die Kopfzeile misst 123
+Pixel mit ihm und 69 ohne. *Der Weg zur Suche ist dort wieder zwei Griffe, und
+das ist der Preis dafür.* **Am Schreibtisch trägt es Eintrag, offene Aufgaben
+und Vergleich unverändert.**
+
 ### Von einem Eintrag zum nächsten
 
-**Zwei feine Pfeile links und rechts von der Marke** blättern durch die
-Einträge — vor und zurück in **der Reihenfolge, die die Übersicht zuletzt
-gezeigt hat**, mit ihrem Filter und ihrer Sortierung. Wer mit einem Suchbegriff
-in einen Eintrag gegangen ist, blättert durch die Treffer und nicht durch den
-ganzen Bestand.
+**Zwei breite Knöpfe am Fuß des Eintrags** — *„‹ Voriger"* und *„Nächster ›"* —
+blättern durch die Einträge, vor und zurück in **der Reihenfolge, die die
+Übersicht zuletzt gezeigt hat**, mit ihrem Filter und ihrer Sortierung. Wer mit
+einem Suchbegriff in einen Eintrag gegangen ist, blättert durch die Treffer und
+nicht durch den ganzen Bestand.
 
-**Sie kosten keine eigene Zeile.** Sie sitzen in der Kopfzeile, die ohnehin da
-ist; die Ansicht wird durch sie keinen Pixel höher.
+**Sie stehen am Ende und nicht oben, und das ist Absicht:** *dort ist man, wenn
+man weiterblättern will.* **Wer früher wechseln will, muss erst ans Ende
+scrollen** — das ist der Preis. *Bis dahin saßen sie links und rechts von der
+Marke in der Kopfzeile; zwei Pfeile links und rechts von etwas behaupten, das
+Dazwischenliegende zu blättern, und dazwischen stand der Name der
+Installation.*
 
-**Am ersten und am letzten Eintrag ist der jeweilige Pfeil gedämpft und bleibt
-stehen.** Er verschwindet nicht — sonst rutschte der Titel daneben jedesmal
-hin und her, wenn du an den Rand der Liste kommst.
+**Am ersten und am letzten Eintrag ist der jeweilige Knopf gedämpft und bleibt
+stehen.** Er verschwindet nicht — sonst spränge der andere an seine Stelle,
+sobald du an den Rand der Liste kommst.
 
 **Wer einen Eintrag über seine Adresse aufruft oder die Seite neu lädt, hat
-keine Reihenfolge** — dann sind beide Pfeile gedämpft. Die Reihenfolge lebt im
+keine Reihenfolge** — dann sind beide Knöpfe gedämpft. Die Reihenfolge lebt im
 Browser und in dieser Sitzung; sie wird **nicht gespeichert** und **nicht am
 Server nachgefragt**. Eine erfundene Reihenfolge sähe aktiv aus und führte in
 eine Liste, die niemand vor sich hat.
