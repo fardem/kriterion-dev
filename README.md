@@ -2361,21 +2361,54 @@ Bildern des echten Bestands gemessen weicht der schlimmste einzelne Farbwert um
 **2 von 255** ab. **JPEG, GIF und vorhandenes WebP bleiben unberührt**, und ein
 PNG, das als WebP größer wäre, bleibt PNG.
 
-Wer das nicht will, schaltet es ab: in den Einstellungen unter **Datenbank →
-Bildformate** steht der Schalter „PNG-Fotos beim Upload in WebP umwandeln"
-(Vorgabe an, nur der Eigentümer). Ohne Häkchen bleibt jedes PNG byte-genau so
-liegen, wie es ankam. **Daneben steht der Knopf „Alle PNG in WebP umwandeln"
-für den vorhandenen Bestand** — er fragt vorher das Passwort und sagt, was er
-tut: die PNG-Fassung ist danach weg, und zurück führt nur eine vorher angelegte
-Sicherung des Datenverzeichnisses.
+**Es ist eine Wahl aus drei Verfahren und kein Häkchen.** In
+den Einstellungen unter **Datenbank → Bildformate** steht die Karte „Verfahren
+der Ablage" mit drei Zeilen; die gewählte trägt den Knopf **Standard**
+(nur der Eigentümer, dieselbe Rechtezeile wie Export, Sicherung und Schlüssel):
+
+| Verfahren | was es tut |
+|---|---|
+| **PNG** | nichts wird umkodiert — keine Rechenzeit, größte Ablage. Jedes PNG bleibt byte-genau so liegen, wie es ankam |
+| **WebP verlustfrei** | `nearLossless` 60 — **die Vorgabe** |
+| **WebP verlustbehaftet** | Qualität 90 — für Fotos aus der Zwischenablage, gemessen rund zwei Drittel kleiner |
+
+**Das dritte Verfahren hat eine Auflage, und die Karte sagt sie:** verlustbehaftet
+lohnt sich nur bei **Fotos**. An einem **Bildschirmfoto mit Text** ist es
+gemessen ein Vielfaches **größer** als verlustfrei — der verlustbehaftete
+Bitstrom (VP8) kann mit harten Kanten nichts anfangen, der verlustfreie (VP8L)
+kann genau das. Und woher ein PNG kommt, ist seinen Bytes nicht anzusehen: die
+Wahl gilt für alles, was hereinkommt.
+
+**Und ein dritter Weg steht gar nicht in dieser Liste:** eine Datei
+hochzuladen, statt sie einzufügen. Die Zwischenablage trägt keine Datei,
+sondern Bildpunkte; der Browser legt sie als PNG ab, und das ist oft ein
+Vielfaches der ursprünglichen Datei — aus einem 5,21-MB-JPEG im Netz wurden
+gemessen 34,79 MB. **An der Einfügestelle steht deshalb ein Satz, der die Folge
+nennt** *(„Das Einfügen über die Zwischenablage führt zu erheblich größeren
+Dateien.")*. Was daraus folgt, entscheidet jeder selbst — die Anwendung gibt
+dazu keinen Rat.
+
+**Daneben steht der Knopf „Vorhandene Bilder umstellen"** für den vorhandenen
+Bestand — er fragt vorher das Passwort und sagt, was er tut: die alte Fassung
+ist danach weg, und zurück führt nur eine vorher angelegte Sicherung des
+Datenverzeichnisses. **Das Umschalten allein rührt den Bestand nicht an**; wer
+die Wahl probiert, bekommt nicht 500 MB umkodiert.
 
 Zusätzlich entstehen zwei kleinere Varianten: eine
 Kachel (512 × 512, mit dem eingestellten Bildausschnitt darin) für die
 Übersicht und eine mittlere (1600 px auf der langen Kante, ungeschnitten) für
 Detail- und Vollbildansicht. Das kostet rund 7 % mehr Speicher, spart beim Blättern aber
 etwa den Faktor 100 an Datenübertragung. Das Original wird erst geladen, wenn im
-Vollbild gezoomt wird. **Beide Varianten sind JPEG und bleiben es** — das
-Original ist unversehrt, die Anzeige ist es nicht.
+Vollbild gezoomt wird. **Beide Varianten sind WebP.** **Sie folgen der Wahl
+oben nicht, sondern sind immer WebP:**
+sie sind ohnehin verlustbehaftet, und niemand archiviert sie. Die Zahlen dahinter
+sind neu gesetzt und nicht übernommen — `thumb` auf Qualität 82, `medium` auf 78;
+dieselbe Zahl bedeutet in JPEG und WebP nicht dasselbe. Gemessen an drei
+Bildarten spart das bei der Kachel 52 / 5 / 6 % und bei der mittleren
+9 / 27 / 30 % — bei durchweg **kleinerer** Abweichung als vorher.
+**Der Knopf „Vorhandene Bilder umstellen" zieht beide Hälften in einem
+Durchgang nach:** die Originale nach dem gewählten Verfahren und jede Ableitung,
+die noch JPEG ist.
 
 **Ein Video zählt voll.** Es wird nicht umkodiert, sondern unverändert
 abgelegt; dazu kommen die beiden Varianten seines Standbilds. Bei 20 MB je
@@ -2592,9 +2625,12 @@ Start eine leere Neuinstallation vermuten.
   Anzeige
 - `settings` — die **globale** Hälfte: Titel, Vokabular, die Suchmaschinen
   (Vorrat, eigene, Standard), die beiden Schalter, wer neue
-  Tags und Kategorien anlegen darf, und der Schalter der **Bildformate**.
-  Sache des Admins — der Schalter der Bildformate allerdings nur des
-  **Eigentümers**: er bestimmt, wie die ganze Installation künftig ablegt, und
+  Tags und Kategorien anlegen darf, und das **Verfahren der Bildablage**
+  (`imageStore`, ein Wert aus dreien; eine ältere Fassung trug hier ein
+  Ja/Nein unter anderem Namen — ein Migrationsblock übersetzt beide alten
+  Stellungen und nimmt den alten Schlüssel weg).
+  Sache des Admins — das Verfahren der Bildablage allerdings nur des
+  **Eigentümers**: es bestimmt, wie die ganze Installation künftig ablegt, und
   liegt damit in derselben Zeile wie Export, Sicherung und Schlüssel
 - `user_settings` — die **persönliche** Hälfte, **zehn** Schlüssel: die zuletzt
   benutzte Filterwahl, die **gespeicherten Ansichten**, der Bezugspunkt der

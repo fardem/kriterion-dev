@@ -143,13 +143,13 @@ Sprachumschalter baut, hat damit ein Muster und braucht kein neues.**
 | ~~**0.25.0**~~ | ~~Der Name weiß, in welcher Sprache er geschrieben ist~~ | **GEBAUT am 9. September 2026** — Änderungsprotokoll 0.25.0 | **ja** | 14 → 15 |
 | ~~**0.25.1**~~ | ~~Jede Kachel zählt ihre eigene Arbeit~~ | **GEBAUT am 10. September 2026** — Änderungsprotokoll 0.25.1 | nein | — |
 | ~~**0.26.0**~~ | ~~Die kleinen Fehler fallen — und das Potenzial wird abschaltbar~~ | **GEBAUT am 10. September 2026** — Änderungsprotokoll 0.26.0 | nein | — |
-| **0.27.0** | **Die wählbare Bildablage** | drei Verfahren zur Wahl, dazu die Ableitungen auf WebP | nein | — |
+| ~~**0.27.0**~~ | ~~Die wählbare Bildablage~~ | **GEBAUT am 10. September 2026** — Änderungsprotokoll 0.27.0 | nein | — |
 | **0.28.0** | **Das Telefon bekommt Recht** | Gruppe B, dazu das Blättern im Eintrag und das Startbildzeichen | nein | — |
 | **0.29.0** | **Worauf man sich verlassen können muss** | Gruppe C, das Angenommene — und die letzte Runde, die das Schema anfassen darf | **ja** | 15 → 16 |
 | **0.30.0** | **Der Prüfstand wird schnell** | Gruppe D: was das Bauen beschleunigt, ohne den Beleg zu schwächen | nein | — |
 | **0.31.0** | **Die Sprachen werden gegengelesen** | drei Dateien, drei Stufen — harte Fehler, der zersägte Satzbau, die Hausstimme | nein | — |
 | **0.32.0** | *frei — der letzte Platz vor dem Bruch* | **absichtlich leer.** Was aus dem Rundlauf kommt und mehr ist als eine Reparatur, findet hier Platz, ohne den Bruch noch einmal zu verschieben | offen | — |
-| **0.33.0** | **Bereinigung — der Bruch** | zehn Migrationsblöcke raus, Struktur festgeschrieben, **kein Rückweg** | **ja** | — |
+| **0.33.0** | **Bereinigung — der Bruch** | **elf** Migrationsblöcke raus *(0.27.0 hat den elften gebracht)*, Struktur festgeschrieben, **kein Rückweg** | **ja** | — |
 | **0.33.x** | **Die Kommentare werden knapp** | 16.281 von 54.822 Zeilen sind Kommentar | nein | — |
 | **0.34.0** | **Der Prüfstand bekommt ein Verzeichnis** | `testbench.js` in Module — **und damit erst der echte Teillauf** | nein | — |
 | **0.35.0** | **Code-Effizienz** | Leichen und ineffizienter Code | offen | — |
@@ -430,7 +430,20 @@ Auftrag.*
 
 ---
 
-## 0.27.0 — „Die wählbare Bildablage"
+## ~~0.27.0 — „Die wählbare Bildablage"~~
+
+> **GEBAUT AM 10. SEPTEMBER 2026.** *Die Einzelheiten stehen im
+> Änderungsprotokoll 0.27.0; was hier steht, bleibt als HERLEITUNG stehen und
+> nicht als offener Punkt.*
+>
+> **ZWEI DINGE SIND ANDERS GEKOMMEN, ALS ES HIER STAND, und beide sind
+> gemessen:**
+> * **`medium` wird NICHT verlustfrei** — die Messung, die der Fahrplan seit
+>   dem 2. September verlangt, ist gefahren: `nearLossless` ist an einem Foto
+>   **+500,8 %**. Die Frage ist damit beantwortet und fällt weg.
+> * **Die Güte der Ableitungen ist neu gesetzt** — `thumb` 82, `medium` 78
+>   (WebP-Güte, nicht JPEG-Güte). Die alten Zahlen zu übernehmen hätte `medium`
+>   an einem Foto um 49,3 % größer gemacht.
 
 **Unverändert gegenüber dem alten Plan.** Drei Verfahren zur Wahl statt eines
 Schalters: **PNG** (keine Rechenzeit), **WebP verlustfrei**, **WebP
@@ -1542,9 +1555,14 @@ nicht — zwei Runden hintereinander an derselben Zeile sind eine zu viel.*
 
 ## Ausarbeitungen zu 0.27.0 — die wählbare Bildablage
 
-## 5. Die Ableitungen auf WebP — was von Punkt 15 liegen geblieben ist
+> **BEIDE PUNKTE SIND AM 10. SEPTEMBER 2026 GEBAUT.** *Sie bleiben als
+> Herleitung stehen — die Messungen und die Abwägung, aus der die Runde
+> entstanden ist, stehen sonst nirgends.* **Was daraus geworden ist, steht im
+> Änderungsprotokoll 0.27.0.**
 
-> **ENTSCHIEDEN — 0.27.0, im selben Durchgang wie die wählbare Bildablage:** — ein Lauf über den Bestand statt zwei.
+## ~~5. Die Ableitungen auf WebP — was von Punkt 15 liegen geblieben ist~~
+
+> **GEBAUT — 0.27.0, im selben Durchgang wie die wählbare Bildablage:** ein Lauf über den Bestand statt zwei. **Die Frage, ob `medium` verlustfrei werden soll, ist gemessen und mit NEIN beantwortet.**
 
 > **STAND 2. SEPTEMBER 2026: er hat eine Nummer bekommen.** Die Ableitungen
 > gehen in **0.22.0** mit *(bis zum 3. September 2026 als 0.21.0 geführt;
@@ -1600,9 +1618,9 @@ beim Start, Prüfungen, Gegenproben, README. **Kein Schema.**
 
 ---
 
-## 6. Fotos aus der Zwischenablage — die Ablage soll wählbar werden
+## ~~6. Fotos aus der Zwischenablage — die Ablage soll wählbar werden~~
 
-> **ENTSCHIEDEN — 0.27.0.**
+> **GEBAUT — 0.27.0.**
 
 **Art:** Funktion · **Claude:** empfohlen, mit einer Auflage · **Draußen üblich:**
 ja, jede Fotoverwaltung lässt das Ablageverfahren wählen.

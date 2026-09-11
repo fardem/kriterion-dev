@@ -29,6 +29,36 @@ bleiben in der Form ihrer Zeit.*
 
 *Hier wird mitgeschrieben, während gebaut wird.*
 
+## [0.27.0] - 2026-09-10
+
+> **VOR DEM EINSPIELEN NICHTS ZU TUN — ABER ZWEI FOLGEN, DIE ÜBERRASCHEN
+> KÖNNEN.**
+>
+> **Erstens:** deine bisherige Einstellung wird beim ersten Start übersetzt.
+> Stand das Häkchen „PNG-Fotos beim Upload in WebP umwandeln" **an**, steht
+> danach **WebP verlustfrei**; stand es **aus**, steht **PNG**. **Am Bildschirm
+> ändert sich an der Ablage kein Byte** — nur die Karte zeigt drei Verfahren
+> statt eines Häkchens.
+>
+> **Zweitens:** neu erzeugte Vorschaubilder sind ab jetzt **WebP** statt JPEG.
+> Die vorhandenen bleiben liegen, bis du den Knopf drückst — sie werden nicht
+> von selbst umgerechnet.
+
+### Neu
+- **Die Bildablage ist eine Wahl aus drei Verfahren geworden.** *PNG (nichts wird umkodiert), WebP verlustfrei (die Vorgabe, das bisherige Verhalten) und **neu** WebP verlustbehaftet für Fotos aus der Zwischenablage — gemessen rund zwei Drittel kleiner.* Zu finden unter **Datenbank → Bildformate**, jede Zeile mit einem Knopf **Standard**; stellen kann es der Eigentümer allein.
+- **Das dritte Verfahren trägt eine Auflage, und die Karte sagt sie:** bei einem **Bildschirmfoto mit Text** ist verlustbehaftet gemessen ein Vielfaches **größer** als verlustfrei. Es lohnt sich nur bei Fotos.
+- **Ein Satz an der Einfügestelle nennt die Folge:** *„Das Einfügen über die Zwischenablage führt zu erheblich größeren Dateien."* Was daraus folgt, entscheidet jeder selbst — die Anwendung gibt dazu keinen Rat.
+- **Der Knopf „Vorhandene Bilder umstellen"** zieht Originale **und** Vorschaubilder in **einem** Durchgang nach. *Er fragt weiterhin vorher das Passwort.*
+
+### Geändert
+- **Die Vorschaubilder sind WebP statt JPEG.** *Sie folgen der Wahl oben nicht — sie sind immer WebP.* Gemessen an drei Bildarten spart das bei der Kachel 52 / 5 / 6 % und bei der mittleren Ansicht 9 / 27 / 30 %, bei durchweg **kleinerer** Abweichung als vorher.
+- **Das Umschalten allein rührt den Bestand nicht an.** Wer die Wahl nur ausprobiert, bekommt nichts umkodiert.
+- **Die Fortschrittszeile nennt beide Hälften** — wie viele Originale umgestellt und wie viele Vorschaubilder neu gerechnet wurden.
+
+### Behoben
+- **Ein Bild im Kommentar wurde mit einem festen Dateinamen ausgeliefert** und damit immer als JPEG angekündigt, was auch darin lag. *Solange alles JPEG war, stimmte es zufällig.* Der Typ kommt jetzt aus den Bytes, wie beim Foto am Eintrag.
+- **Die Fertigmeldung der Umstellung stand halb auf Deutsch, egal welche Sprache eingestellt war** — „Conversion done: 7 von 12 umgewandelt".
+
 ## [0.26.0] - 2026-09-10
 
 ### Neu
