@@ -30,10 +30,12 @@
 > Anweisung** — *er hängt an jeder Datei der Liste, und alle drei sind beim
 > Gegenlesen des eigenen Diffs gefunden worden.*
 >
-> **DIE DRITTE QUELLE FEHLT NOCH, und das steht hier als offener Punkt und
-> nicht als Fußnote:** *0.28.1 ist gebaut und **nicht eingespielt**. Erst die
-> Meldung aus der laufenden Installation belegt, dass das Eingespielte dasselbe
-> ist wie das Gebaute.* **Bis dahin gilt: zwei Rechnungen, ein Wert.**
+> **UND DIE DRITTE QUELLE LIEGT VOR — der Betreiber hat `452d1764` am
+> 11. September 2026 aus seiner laufenden Installation gemeldet.** *Drei
+> Quellen, ein Wert, und die dritte ist die stärkste: sie belegt, dass das
+> Eingespielte auf das Byte dasselbe ist wie das Gebaute.* **Zum dritten Mal in
+> Folge liegt die Bestätigung aus dem Feld vor, bevor die nächste Runde
+> anfängt.**
 >
 > **DER VORGÄNGER IST IM FELD BESTÄTIGT.** *Der offene Punkt aus dem
 > Änderungsprotokoll 0.28.0 ist geschlossen: der Betreiber hat `8b205f42` am

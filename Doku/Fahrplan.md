@@ -594,6 +594,15 @@ sie zerfällt in zwei: was drin sein muss, und was draußen sein muss.
 was danach ein Feld braucht, steht allein gegen eine festgeschriebene
 Struktur.* **Deshalb liegen hier die beiden Punkte mit Datenbankanteil.**
 
+> **ZWEI BEFUNDE AUS DEM BETRIEB VON 0.28.1 FAHREN MIT — Punkt 6 und 7**,
+> entschieden vom Betreiber am 11. September 2026: *„Ich würde ungern wegen den
+> Befunden eine eigene Runde machen und deswegen nachfolgende mit 0.29.0
+> kombinieren."*
+>
+> **DIE NUMMER ÄNDERT SICH DADURCH NICHT.** *0.29.0 ist wegen des
+> Fälligkeitsdatums und des Index ohnehin MINOR; zwei Reparaturen an der
+> Oberfläche heben sie nicht weiter.* **Der Fahrplan rückt nicht.**
+
 ### 1 · Die Sicherung wird zur Probe geöffnet
 
 **Es gibt Sicherungsdateien, die noch nie jemand zurückgespielt hat.** *Eine
@@ -678,6 +687,106 @@ doppelte Adresse klar gesagt („Diese Adresse ist bereits vergeben") — wer da
 sieht, ist angemeldet und sieht die Liste ohnehin. **Vor der Anmeldung gilt das
 Gegenteil**, dort ist jede unterschiedliche Antwort ein Werkzeug zum
 Durchprobieren.
+
+### 6 · Der Umschalter der Tagzeile kostet eine Rasterzeile
+
+> **VOM BETREIBER AM LAUFENDEN 0.28.1 GEMELDET** *(11. September 2026, mit
+> Bild)*: „Ehrlich gesagt stört mich noch, dass Tags nun doch nur für Tags eine
+> Zeile nimmt. … So nimmt ein Wort eine Zeile Platz und sieht falsch aus."
+
+**ER HAT RECHT, UND DIE URSACHE IST 0.28.1 SELBST.** *Die Filterzeile ist mit
+jener Runde ein Raster aus zwei Spalten geworden, und die Verweise am
+Zeilenende (`.frow-right`) bekamen darin `grid-column: 1 / -1` — also eine
+eigene Rasterzeile.* **Der Umschalter „Tags" ist 46 px breit und steht damit
+allein auf einer Zeile von 366.**
+
+**GEMESSEN** *(390 × 844, aufgeklappte Filter, zehn Tags)*:
+
+| | Filterkasten | Kategoriezeile | erste Kachel |
+|---|---|---|---|
+| **heute, zugeklappt** | 252 px | **75 px** | y = 464 |
+| heute, aufgeklappt | 395 px | 75 px | y = 607 |
+
+*Eine Filterzeile ohne solchen Verweis misst 35 px — der Umschalter kostet also
+**40 Pixel**, und zwar in jedem Zustand.*
+
+**DER VORSCHLAG DES BETREIBERS — den Umschalter fallen lassen und die Tagzeile
+immer zeigen — IST GEMESSEN WORDEN UND KOSTET MEHR, ALS ER SPART:**
+
+| | |
+|---|---|
+| Tagzeile aufgeklappt | **134 px** |
+| Unterschied zugeklappt/aufgeklappt | **143 px** |
+
+*Die Tagzeile belegt im neuen Raster **vier** Zeilen: Beschriftung, der
+Und/Oder-Umschalter (er spannt über beide Spalten), die Wolke und die Verweise
+„mehr"/„zurücksetzen" (die spannen ebenfalls).* **Der Betreiber hat das selbst
+vermutet** *(„ja tags könnte tatsächlich dem widersprechen")* — **und die
+Messung gibt ihm recht.**
+
+**WAS STATTDESSEN GEBAUT WIRD: eine DRITTE Rasterspalte für die Verweise am
+Zeilenende.** *Dann steht der Umschalter dort, wo er hingehört — am Ende
+seiner Zeile — und kostet keine eigene mehr.*
+
+| | Filterkasten | Kategoriezeile | Tagzeile | erste Kachel |
+|---|---|---|---|---|
+| heute, zugeklappt | 252 px | 75 px | — | y = 464 |
+| **drei Spalten, zugeklappt** | **212 px** | **35 px** | — | **y = 424** |
+| heute, aufgeklappt | 395 px | 75 px | 134 px | y = 607 |
+| **drei Spalten, aufgeklappt** | **316 px** | **35 px** | **94 px** | **y = 527** |
+
+**VIERZIG PIXEL ZUGEKLAPPT, NEUNUNDSIEBZIG AUFGEKLAPPT** — *und der Umschalter
+bleibt, weil er weiter 104 Pixel spart.* **Der Befund ist damit gelöst, ohne
+dass ein Bedienelement fällt.**
+
+**Offene Entscheidung:** *der Und/Oder-Umschalter der Marken spannt weiterhin
+über beide Spalten — 362 px für einen kleinen Schalter. Ob er in die erste
+Spalte neben die Beschriftung gehört, ist zu messen, bevor es entschieden wird.*
+
+---
+
+### 7 · Der Anlegeknopf der Kategorie steht verwaist unter seinem Feld
+
+> **VOM BETREIBER AM LAUFENDEN 0.28.1 GEMELDET** *(11. September 2026, mit
+> Bild und Skizze)*: „sieht man das Anlegen-Button unten ist und sieht verwaist
+> aus. Rechts ist Platz da ohne Sinn." — *und, als Frage nachgereicht:* „das
+> Hinzufügen rechts vom Namen zu halten. Würde je eine Zeile sparen?"
+
+**DIE ANTWORT IST JA — für die Kategorie, und sie ist gemessen** *(390 px,
+Spalte 366 px)*:
+
+| | Kasten | Zeilen | Auswahl | Feld | Knopf |
+|---|---|---|---|---|---|
+| **heute** | 161 px | **2** | 148 | 210 | 94 (allein auf Zeile 2) |
+| **Skizze: alle drei in einer Zeile** | **110 px** | **1** | 148 | **108** | 94 |
+| *ausgeglichen: die Auswahl gibt Breite ab* | 110 px | 1 | 119 | 137 | 94 |
+| *„wie Tags": Auswahl oben, Feld + Knopf darunter* | 156 px | 2 | 366 | 264 | 94 |
+
+**EINUNDFÜNFZIG PIXEL UND EINE ZEILE.** *Die vierte Zeile war Claudes
+Vorschlag — die Skizze des Betreibers ist besser und spart zehnmal so viel.*
+
+**DIE TAGZEILE IM EINTRAG IST NICHT BETROFFEN:** *ihre Eingabereihe misst
+bereits **43 px in einer Zeile** — dort ist nichts zu sparen. „Je eine Zeile"
+gilt für die Kategorie.*
+
+**DER PREIS IST DAS NAMENSFELD**, und er ist kleiner, als er aussieht:
+
+> **DER PLATZHALTER IST HEUTE SCHON ABGESCHNITTEN.** *„Neue Kategorie, Enter"
+> braucht 238 px; im heutigen Feld sind 186 px Platz — es fehlen 52.* **Nach
+> dem Umbau sind es 84 px** *(bzw. 113 px, wenn die Auswahl Breite abgibt)*.
+> **Das Abschneiden ist also nicht neu, sondern älter als dieser Befund** — und
+> die eigentliche Abhilfe ist ein **kürzerer Platzhalter**, nicht ein breiteres
+> Feld.
+
+**Offene Entscheidungen für die Fragetafel**
+
+| | Frage |
+|---|---|
+| **a** | Gibt die **Auswahl** Breite ab *(119/137)* oder behält sie ihre 148 *(148/108)*? |
+| **b** | Wird der **Platzhalter gekürzt** — „Neue Kategorie" statt „Neue Kategorie, Enter", oder nur „Name"? *Er steht in drei Sprachen* |
+| **c** | Gilt dasselbe am **Schreibtisch**, wo die Spalte breiter ist und heute schon alles in eine Zeile passt? *Dort ändert sich nichts — die Regel gehört in den Telefonabschnitt* |
+
+---
 
 ### 5 · Ein Abschnitt in der README über die Zustellbarkeit
 
