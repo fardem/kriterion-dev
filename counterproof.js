@@ -8152,8 +8152,8 @@ const REGRESSIONS = [
        saehen aktiv aus und fuehrten in eine Liste, die niemand vor sich hat. */
     nr: '832', name: 'Ohne Reihenfolge wird eine erfunden',
     file: 'public/app.js',
-    search: "  if (at < 0) return { prev: null, next: null, ordered: false };",
-    replacement: "  if (at < 0) return { prev: (list[0] || {}).id || null, next: (list[1] || {}).id || null, ordered: true };",
+    search: "  if (at < 0) return { prev: null, next: null };",
+    replacement: "  if (at < 0) return { prev: (list[0] || {}).id || null, next: (list[1] || {}).id || null };",
     expected: 'Die gemeinsame Kopfzeile und das Blaettern — 0.28.0'
   },
   {

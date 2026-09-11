@@ -3213,11 +3213,14 @@ function showBellPanel() {
 const entryNeighbours = (id) => {
   const list = state.items || [];
   const at = list.findIndex(x => x && x.id === id);
-  if (at < 0) return { prev: null, next: null, ordered: false };
+  /* UND ES GIBT KEIN FELD `ordered` DANEBEN, obwohl es sich anbote: „keine
+     Reihenfolge" und „am Rand der Reihenfolge" sehen beide genau so aus, wie
+     sie aussehen sollen -- zwei gedaempfte Pfeile beziehungsweise einer. Ein
+     Feld, das niemand liest, bleibt nicht stehen (Stolperstein 47). */
+  if (at < 0) return { prev: null, next: null };
   return {
     prev: at > 0 ? list[at - 1].id : null,
-    next: at < list.length - 1 ? list[at + 1].id : null,
-    ordered: true
+    next: at < list.length - 1 ? list[at + 1].id : null
   };
 };
 

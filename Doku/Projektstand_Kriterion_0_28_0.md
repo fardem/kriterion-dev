@@ -478,12 +478,12 @@ weiterhin offen. Daraus folgt die Stellung von `HINTER_PROXY` (Abschnitt 3).
 
 ## 2. Betriebsstand
 
-**Gebaut ist 0.28.0** — **6569 Prüfungen**, **844 Rückbauten in der Liste**
+**Gebaut ist 0.28.0** — **6570 Prüfungen**, **844 Rückbauten in der Liste**
 (Abschnitt 8). **Am Wirt läuft 0.27.0, eingespielt am 11. September 2026,
 Fingerprint `9f6741b5`** *(Abschnitt 8)* — *vom Betreiber am selben Tag aus
 seiner Installation gemeldet und damit auf das Byte bestätigt.*
 **0.28.0 ist gebaut und noch nicht eingespielt; sein Fingerprint ist
-`22be889d`.**
+`8b205f42`.**
 
 *0.28.0 holt nach, was die Durchsicht für Telefon und Tablett gemessen und
 bewusst stehen gelassen hatte, und stellt zwei Funktionen daneben.* **Der Kern
@@ -535,49 +535,17 @@ Einzelheiten im Änderungsprotokoll 0.28.0.
 > erste davon (`F_ROUTES` 72 → 73) hätte eine Zusage erzeugt, die gar nicht grün
 > werden kann.*
 
-*0.27.0 macht aus dem Häkchen der Bildablage eine Wahl mit drei Verfahren — und
-zieht die Ableitungen im selben Durchgang auf WebP.* **`imageStore` löst
-`convertImages` ab**: `png` (nichts wird umkodiert), `webp-lossless`
-(`nearLossless` 60 — **die Vorgabe**, das Verhalten seit 0.19.0) und **neu**
-`webp-lossy` (Güte 90, für Fotos aus der Zwischenablage). **Es ist eine
-Datenbankstufe ohne Schema:** der **elfte** markierte Migrationsblock
-(`migration0270ImageStore()`) übersetzt beide alten Stellungen — `true` →
-`webp-lossless`, `false` → `png` — und **nimmt den alten Schlüssel in
-demselben Griff weg**; wo nichts gespeichert war, wird nichts geschrieben.
-**Die Karte zeigt drei Zeilen mit je einem Knopf „Standard"** — dieselbe
-Bauform wie „Suchanbieter" und „Sprachen" — **und nennt die Auflage:** an einem
-Bildschirmfoto mit Text ist das verlustbehaftete Verfahren gemessen ein
-Vielfaches **größer** als das verlustfreie. **Die Ableitungen folgen der Wahl
-NICHT** *(F3)*: sie sind ausnahmslos WebP, mit **neu gesetzten** Zahlen —
-`thumb` 82, `medium` 78. *Die alten 78 und 84 hießen JPEG-Güte; übernommen
-hätten sie `medium` an einem Foto um 49,3 % größer gemacht.* **Der Bestandslauf
-zieht Originale und Ableitungen in EINEM Durchgang** und wählt dafür großzügig
-aus — jede Fotozeile —, weil die Frage nach dem Format der Ableitung in SQL die
-1338-ms-Klasse kostet. **`F_ROUTES` bleibt 72**, das Austauschformat **15**,
-die Karten **19**, `OWNER_KEYS` **sieben** *(einer geht, einer kommt)*. Die
-Sprachdateien tragen **1238 Schlüssel** (1320 flach gezählt); **sieben fallen
-namentlich weg**, achtzehn kommen dazu, fünf ändern ihren Wortlaut.
-**Zwei Befunde, die der Auftrag nicht kannte, sind mitgefahren:** das
-Kommentarbild wurde mit einem festen Dateinamen ausgeliefert und damit immer
-als `image/jpeg` angekündigt, und die Fertigmeldung der Umstellung stand halb
-auf Deutsch, gleich welche Sprache eingestellt war.
-Einzelheiten im Änderungsprotokoll 0.27.0.
+*0.27.0 davor* — Fingerprint `9f6741b5`, 6497 Prüfungen, 815 Rückbauten.
+*0.27.0 macht aus dem Häkchen der Bildablage eine Wahl mit drei Verfahren
+(`imageStore`: `png`, `webp-lossless`, `webp-lossy`) und zieht die Ableitungen
+im selben Durchgang auf WebP. Der **elfte** markierte Migrationsblock übersetzt
+beide alten Stellungen und nimmt den alten Schlüssel weg. Einzelheiten im
+Änderungsprotokoll 0.27.0.*
 
-> **DIE FRAGETAFEL DIESER RUNDE IST NACH DEM BAUEN DURCHGEGANGEN WORDEN UND
-> NICHT DAVOR.** *Der Betreiber hat sie am 10. September 2026 mit* „Keine
-> Ahnung was wir damals für die 27.0 ausgemacht haben" *in Auftrag gegeben;
-> gebaut wurde nach der Vorschlagsspalte.* **Noch am selben Tag ist die Tafel
-> VOLLSTÄNDIG durchgegangen worden, in zwei Runden — neun Antworten wie
-> vorgeschlagen, eine abweichend.** *F2 war im Auftrag selbst vorgegeben
-> („Standard soll das sein, was heute aktiv genutzt wird"), F9 hatte keine Wahl
-> zu treffen.* **Die Abweichung ist F7:** der Satz an der Einfügestelle bleibt,
-> aber kürzer — und die erste gekürzte Fassung ist zurückgewiesen worden, weil
-> sie beim Kürzen ihre Verben verloren hatte. *Der Wortlaut, der dasteht, ist
-> der des Betreibers.*
-> **Regel 11 dieses Blatts („ein Vorschlag ist keine Antwort") ist trotzdem
-> nicht erfüllt** — sie verlangt die Antwort VOR der ersten Zeile. *Das steht
-> hier als offener Punkt und nicht als Fußnote: dass das Ergebnis hinterher
-> bestätigt wurde, macht die Reihenfolge nicht richtig.*
+> **IHRE FRAGETAFEL IST NACH DEM BAUEN DURCHGEGANGEN WORDEN UND NICHT DAVOR** —
+> *Regel 11 dieses Blatts war damit gebrochen, und es hat drei Anläufe an einem
+> einzigen Satz gekostet.* **0.28.0 hat deshalb gewartet, bis die Tafel
+> beantwortet war, und Regel 11 ist dort eingehalten.**
 
 > **DER RÜCKWEG AUF 0.26.0 IST OFFEN — mit einer benannten Folge.** *Eine
 > ältere Fassung kennt `imageStore` nicht und liest wieder `convertImages`;
@@ -1633,6 +1601,8 @@ Ursache war **eine Datei zu viel** auf dem Wirt (Stolperstein 158).
 
 | Version | Fingerprint | Prüfungen |
 |---|---|---|
+| **0.28.0** | `8b205f42` *(gerechnet am 11. September 2026 am fertigen Stand — **vor dem Einspielen**. **Zwei Quellen, ein Wert:** aus dem Server selbst gelesen (frisches Datenverzeichnis, `/api/stats`) und am Arbeitsbaum über dieselben achtzehn Dateien nachgerechnet. **Am Wirt noch nicht gesehen** — die dritte Quelle fehlt, und das steht im Änderungsprotokoll als offener Punkt. Die Runde fasst `server.js`, `public/app.js`, `public/style.css`, `public/index.html`, die drei Sprachdateien und `package.json` an.)* | **6570** |
+| **0.27.0** | `9f6741b5` *(am 10. September 2026 vor dem Einspielen gerechnet, am 11. September 2026 **vom Betreiber aus der laufenden Installation gemeldet** — **drei Quellen, ein Wert, und die dritte ist die stärkste:** sie belegt, dass das Eingespielte dasselbe ist wie das Gebaute. **Er hat während der Runde VIERMAL gewechselt**, dreimal wegen desselben Satzes und einmal wegen eines nachgetragenen Kommentars — ein Kommentar bewegt ihn genauso wie eine Anweisung.)* | **6497** |
 | **0.26.0** | `9ad0be7b` *(gerechnet am 10. September 2026 am fertigen Stand — **vor dem Einspielen**, nach derselben Regel. Die Runde fasst `db.js`, `server.js`, `public/app.js`, `public/style.css`, die drei Sprachdateien und `package.json` an.)* | **6412** |
 | **0.25.4** *(Zwischenstand)* | `a0a4c927` — **vom Betreiber aus der laufenden Installation gemeldet, 10. September 2026.** *Er gehört zu keiner Runde: der Code von 0.26.0 lag schon auf `main`, die Nummer war noch nicht gesetzt. Der Wert stimmte auf das Byte mit `main` überein — die Installation war richtig, die Nummer daran war es nicht.* **Er steht hier, weil ein gemeldeter Fingerprint ohne Zuordnung sonst als Abweichung gelesen wird.* | — |
 | **0.25.4** | `c56df7db` *(gerechnet am 10. September 2026 am gebauten Stand — **vor dem Einspielen**, nach derselben Regel. Die Runde fasst `public/app.js`, die drei Sprachdateien und `package.json` an — alle fünf liegen in der Liste.)* | **6358** |
@@ -5865,6 +5835,86 @@ liest jeden Text in Anführungszeichen und Backticks von `public/app.js` und jed
   wer angemeldet ist, sieht die Kommentare ohnehin in jedem Eintrag. Sie steht
   deshalb **nicht** in `F_ROUTEN`, und der Erledigt-Haken geht über
   `PUT /api/comments/:id`.
+#### Die gemeinsame Kopfzeile der Unteransichten (seit 0.28.0)
+
+**Eintrag, Systembereich, offene Aufgaben und Vergleich tragen DIESELBE
+Kopfzeile wie die Übersicht** — nicht eine nachgebaute, sondern dieselbe:
+`class="masthead subhead"` samt `.mast-rest`. *Bis 0.27.0 stand dort nur
+`<a href="#/" class="back">`, fünfmal im Quelltext.*
+
+- **EIN EIGENES MENÜ WÄRE DER GRÖSSERE FEHLER GEWESEN.** *Eines, das auf jeder
+  Breite eine Tafel bleibt, hätte zwei Bedienungen für dasselbe Ziel erzeugt:
+  in der Übersicht führt ein Knopf in den Systembereich, in der Unteransicht ein
+  Zeichen.* **Stolperstein 47 in Bedienform.** *So klappt sie am Telefon nach
+  derselben Regel ein wie die der Übersicht — ein Markup, zwei Gestalten.*
+- **Sie trägt vier Dinge: Zurück, Marke, Suchfeld, Menü** — *im Eintrag dazu die
+  zwei Blätterpfeile, also sechs.* **Keinen Zähler** *(er zählt den Bestand der
+  Übersicht und nicht diese Ansicht)*, **kein „+ Eintrag"** *(wer liest, legt
+  selten dabei an)*, **keine Glocke** *(sie ist eine Auskunft über den Bestand
+  und gehört dorthin, wo der Bestand steht)*.
+- **Das Suchfeld ist eine Tür und kein zweiter Sucher.** *Gesucht wird in der
+  Übersicht, weil dort der Bestand steht; ein Tipp auf das Feld springt hinüber,
+  und der Schreibstrich landet dort im Feld.* **Ohne diese Übergabe wäre der
+  Sprung ein Griff und das Tippen ein zweiter** — genau die zwei Griffe, die
+  0.28.0 wegnimmt.
+- **Der Rückweg ist ein Zeichen geworden und hat seinen Satz behalten.**
+  *`list.backToList` steht als Titel am Knopf.* **Ein zweiter, kürzerer Satz für
+  dieselbe Handlung wäre eine zweite Wahrheit.**
+- **Sein Zeichen ist ein Pfeil mit Schaft und kein Winkel** — *Befund aus dem
+  Augenschein: der Rückweg und der Blätterpfeil standen als zwei gleiche Winkel
+  nebeneinander, und auf dem Bild war nicht zu sehen, welcher welcher ist.*
+  **Der Satz sagt es ohnehin: er beginnt mit „←" und nicht mit „‹".**
+
+#### Das Blättern im Eintrag (seit 0.28.0)
+
+**Zwei Pfeile links und rechts von der Marke, und sonst nichts.**
+
+- **Die Reihenfolge ist die der Übersicht** — `state.items`, mit ihrem Filter
+  und ihrer Sortierung. *Sie lebt im Browser und hält die Sitzung.*
+- **Ohne Reihenfolge sind beide Pfeile gedämpft** *(Direkteinstieg über die
+  Adresse, neu geladen, oder der Eintrag steht nicht im eingestellten Filter)*.
+  **Nicht weg, sondern gedämpft:** *ein Pfeil, der am Rand der Liste wegfiele,
+  schöbe den Titel daneben um seine Breite.*
+- **Kein Speichern und keine Nachfrage am Server.** *Eine gespeicherte
+  Reihenfolge wäre beim nächsten Öffnen eine Behauptung über eine Übersicht,
+  die niemand mehr sieht; eine nachgeladene wäre die ungefilterte.*
+- **KEINE TASTE UND KEINE GESTE** — *vom Betreiber am 11. September 2026
+  entschieden:* „oh ja bei langen koimmentaren braucht man bild ab… das können
+  wir nicht nehmen." **Im Eintrag liegen zwei Folgen ineinander**, die Bilder
+  und die Einträge: `←`/`→` und das Wischen gehören den Bildern, `Bild auf`/
+  `Bild ab` dem Rollen der Seite. *Die äußere Folge bekommt eine eigene
+  Bedienung DANEBEN — so wird es überall gelöst, wo zwei Reihen ineinander
+  liegen.*
+- **Ein Modus, den der Fokus umschaltet, ist ausdrücklich abgelehnt.**
+  *Dieselbe Taste, zwei Bedeutungen, und welche gilt, sieht man vor dem Drücken
+  nicht.* **Eine Taste, eine Bedeutung.**
+
+#### Die Karte fragt sich selbst — Behälterabfragen (seit 0.28.0)
+
+**Eine Regel fragt das FENSTER nur dann, wenn die Antwort am Fenster hängt.**
+*Bis 0.27.0 kannte das Stilblatt siebzehn Fensterabfragen und keine einzige
+Behälterabfrage — und an drei Stellen im Systembereich war genau das der
+Fehler.*
+
+**GEMESSEN, und die Messung zeigt die Verkehrung:** *bei 1024 px Fenster misst
+eine schmale Karte 320 px und eine breite 988; bei 700 px Fenster ist jede Karte
+664 px breit.* **Die Protokollzeile klappte also genau dann in zwei Spalten, wenn
+ihre Karte am BREITESTEN war.**
+
+- **Umgestellt wird, was an der Breite der KARTE hängt** — die Zeile des
+  Sicherheitsprotokolls, die zwei Spalten Formularfelder, der Befehl in
+  „Mein Zugang".
+- **Fensterfrage bleibt, was an Schirm, Zeiger oder Höhe hängt** — *wieviele
+  Spalten das Raster trägt (ein Behälter kann sich nicht selbst fragen, wie
+  breit er ist), die Seite, die zur Telefonseite wird, der ganze Abschnitt
+  `pointer: coarse`, und der Deckel in `dvh`.* **Jede dieser vier trägt ihren
+  Grund im Stilblatt daneben.**
+- **`@container` HEBT DAS GEWICHT EINES WÄHLERS NICHT AN.** *Bei gleichem
+  Gewicht gewinnt die spätere Zeile — eine Behälterabfrage vor ihrer Grundregel
+  wirkt überhaupt nicht.* **Sie stehen deshalb bei den Fensterabfragen, hinter
+  allem, was sie überschreiben.** *In 0.28.0 stand sie zuerst davor, und im Bild
+  war nichts zu sehen; gemeldet hat es der Prüflauf.*
+
 #### Die Glocke und der Zähler „Offen" (seit 0.16.0, erweitert mit 0.17.0)
 
 - **Die Glocke trägt den PUNKT, der Knopf „Offen" die ZAHL.** Eine Zahl

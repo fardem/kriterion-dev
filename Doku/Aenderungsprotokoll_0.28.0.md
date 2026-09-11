@@ -3,7 +3,7 @@
 **Sieben Befunde, eine gemeinsame Kopfzeile und zwei neue Funktionen · gebaut
 am 11. September 2026 auf 0.27.0 (`9f6741b5`).**
 
-> **FINGERPRINT DIESER RUNDE: `22be889d`** — gerechnet am fertigen Stand,
+> **FINGERPRINT DIESER RUNDE: `8b205f42`** — gerechnet am fertigen Stand,
 > **vor dem Einspielen**.
 >
 > **AUS ZWEI QUELLEN, und die zweite ist eine eigene Rechnung und keine
@@ -11,8 +11,22 @@ am 11. September 2026 auf 0.27.0 (`9f6741b5`).**
 >
 > | Quelle | Wert |
 > |---|---|
-> | Aus dem **Server selbst** gelesen — frisches Datenverzeichnis, über `/api/stats` befragt | **`22be889d`** |
-> | Am Arbeitsbaum nachgerechnet — **dieselben achtzehn Dateien**, die der Handgriff in der README nennt, mit eigenem Code über dieselbe Vorschrift | **`22be889d`** |
+> | Aus dem **Server selbst** gelesen — frisches Datenverzeichnis, über `/api/stats` befragt | **`8b205f42`** |
+> | Am Arbeitsbaum nachgerechnet — **dieselben achtzehn Dateien**, die der Handgriff in der README nennt, mit eigenem Code über dieselbe Vorschrift | **`8b205f42`** |
+>
+> **ER HAT WÄHREND DIESER RUNDE EINMAL GEWECHSELT — wegen VIER ZEILEN:**
+>
+> | | |
+> |---|---|
+> | `22be889d` | der Stand, wie er nach dem Bauen dalag |
+> | **`8b205f42`** | nachdem `ordered` aus `entryNeighbours()` gefallen ist |
+>
+> *`entryNeighbours()` gab ein Feld `ordered` zurück, das **niemand liest**:
+> „keine Reihenfolge" und „am Rand der Reihenfolge" sehen beide genau so aus,
+> wie sie aussehen sollen — zwei gedämpfte Pfeile beziehungsweise einer.*
+> **Ein Feld ohne Leser bleibt nicht stehen (Stolperstein 47)**, und dass es
+> beim Gegenlesen des eigenen Diffs aufgefallen ist und nicht im Betrieb, ist
+> der Sinn dieses Gegenlesens. *Die Gegenprobe 832 ist mitgezogen worden.*
 >
 > **DIE DRITTE QUELLE FEHLT NOCH, und das steht hier als offener Punkt und
 > nicht als Fußnote:** *0.28.0 ist gebaut und **nicht eingespielt**. Erst die
@@ -391,7 +405,8 @@ eine Zusage.*
 
 ## Der Prüfstand
 
-**60 neue Zusagen**, verteilt auf drei Gruppen:
+**61 neue Zusagen** — *aus 6509 werden **6570**, und alle 6570 sind grün.*
+Verteilt auf drei Gruppen:
 
 | Gruppe | was sie deckt |
 |---|---|

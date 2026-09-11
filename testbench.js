@@ -2146,11 +2146,24 @@ const shareMain = (purpose, target = null) =>
      der Fehler, den ein Umbau ueber vier Aufbauten macht.
      GESCHNITTEN WIRD JEDE FUNKTION FUER SICH, damit die Zusage nicht aus
      Versehen die Kopfzeile der NACHBARansicht sieht. */
+  /* UND DER SCHNITT NIMMT DIE KOMMENTARE HERAUS -- fuenfmal in dieser Runde ist
+     eine Zusage daran gescheitert, dass der Absatz UEBER einer Zeile genau das
+     Wort nennt, das die Zusage darin NICHT sehen will. Das ist keine Panne,
+     sondern die Natur dieser Absaetze: sie erklaeren, was weggenommen wurde,
+     und muessen es dafuer benennen.
+     ES GEHT AUCH IN DIE ANDERE RICHTUNG: waere eine Erklaerung eines Tages
+     umformuliert, wuerde eine solche Zusage still gruen -- ohne dass sich am
+     Quelltext etwas geaendert haette. EINE ZUSAGE LIEST DEN GEGENSTAND UND
+     NICHT DEN ABSATZ DARUEBER.
+     GESCHNITTEN WIRD AM ROHEN TEXT und erst danach geleert: die Marken, an
+     denen geschnitten wird, sind Funktionskoepfe und stehen nie in einem
+     Kommentar. */
   const stueck = (von, bis) => {
     const a = appSource.indexOf(von);
     if (a < 0) return '';
     const b = bis ? appSource.indexOf(bis, a) : -1;
-    return appSource.slice(a, b < 0 ? a + 4000 : b);
+    return appSource.slice(a, b < 0 ? a + 4000 : b)
+      .replace(/\/\*[\s\S]*?\*\//g, ' ');
   };
   const VIER = [
     ['Eintrag',          'async function renderDetail(', '\n/* ---- Fotos ----'],
@@ -2232,7 +2245,13 @@ const shareMain = (purpose, target = null) =>
   check('Und nicht im ungefilterten Bestand',
     !/state\.all\b/.test(nachbarn));
   check('Ohne Reihenfolge gibt es keine Nachbarn -- beide gedaempft',
-    /if \(at < 0\) return \{ prev: null, next: null, ordered: false \};/.test(nachbarn));
+    /if \(at < 0\) return \{ prev: null, next: null \};/.test(nachbarn));
+  /* UND KEIN FELD DANEBEN, DAS NIEMAND LIEST. Ein `ordered: false` stuende hier
+     nahe -- und haette keinen Leser: „keine Reihenfolge" und „am Rand der
+     Reihenfolge" sehen beide genau so aus, wie sie aussehen sollen
+     (Stolperstein 47). */
+  check('Und kein Feld daneben, das niemand liest',
+    !/ordered/.test(nachbarn));
   check('Am Anfang und am Ende sind sie gedaempft und bleiben stehen',
     /at > 0 \? list\[at - 1\]\.id : null/.test(nachbarn)
     && /at < list\.length - 1 \? list\[at \+ 1\]\.id : null/.test(nachbarn)
