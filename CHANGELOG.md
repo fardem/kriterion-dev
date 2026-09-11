@@ -29,6 +29,40 @@ bleiben in der Form ihrer Zeit.*
 
 *Hier wird mitgeschrieben, während gebaut wird.*
 
+## [0.28.1] - 2026-09-11
+
+> **VOR DEM EINSPIELEN NICHTS ZU TUN.** Kein Schemaschritt, keine Migration.
+>
+> **Eine Folge, die auffällt:** die Sortierung wird jetzt an **zwei**
+> Bedienelementen eingestellt — das Feld sagt, wonach sortiert wird, der Knopf
+> daneben sagt die Richtung. **Gespeicherte Ansichten gelten unverändert
+> weiter.**
+>
+> **Und eine zweite:** die Blätterpfeile stehen nicht mehr in der Kopfzeile,
+> sondern als zwei breite Knöpfe am **Fuß** des Eintrags.
+
+### Geändert
+
+- **Die Sortierliste ist halb so lang** — sie nennt nur noch, **wonach** sortiert wird; die Richtung steht als eigener Knopf daneben und sagt sie im Klartext („neu → alt", „hoch → niedrig"). Sieben Einträge statt dreizehn.
+- **Das Blättern im Eintrag zog ans Ende** — zwei breite Knöpfe „‹ Voriger" und „Nächster ›", statt zweier Pfeile links und rechts von der Marke.
+- **Im Systembereich steht kein Suchfeld mehr** — es versprach, in den Einstellungen zu suchen, und sprang in den Bestand.
+- **Auf dem Telefon steht in keiner Unteransicht mehr ein Suchfeld** — es kostete dort eine ganze Zeile. Am Schreibtisch bleibt es.
+- **Die Abschnitte des Systembereichs klappen auf dem Telefon ein** — ein Knopf darüber nennt den offenen Abschnitt, wie der Filterschalter der Übersicht.
+- **Die Sterne der Bewertung sind auf dem Telefon feiner** — rund 40 Pixel je Kriterienzeile statt 50.
+- **Die Filterreihen sind auf dem Telefon flacher** — die Beschriftung steht wieder **neben** der Reihe statt darüber, und die Reihen rollen quer, statt umzubrechen. Die Pillen bleiben, wie sie sind.
+
+### Behoben
+
+- **Der Favoritenstern steht auf dem Telefon jetzt bündig rechts** — die Titelzeile war 88 Pixel schmaler als ihre Spalte.
+- **„Titel" sortierte nach dem Änderungsdatum**, sobald man von einer anderen Sortierung dorthin wechselte — ohne Meldung und ohne dass man es sah.
+- Eine tote Stilblattregel aus 0.28.0 ist gefallen.
+
+> **BERICHTIGUNG ZU 0.28.0:** *dort steht „die aufgeklappte Sortierung passt
+> jetzt auf den Schirm".* **Das stimmte nicht.** *Chrome auf Android zeichnet
+> die aufgeklappte Auswahl als eigenen Systemdialog mit eigener Schrift — das
+> Feld wurde kleiner, die Liste nicht.* **Diese Runde holt die andere Hälfte
+> nach, auf einem anderen Weg: die Liste ist kürzer geworden.**
+
 ## [0.28.0] - 2026-09-11
 
 > **VOR DEM EINSPIELEN NICHTS ZU TUN.** Kein Schemaschritt, keine Migration.

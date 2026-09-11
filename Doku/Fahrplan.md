@@ -145,6 +145,7 @@ Sprachumschalter baut, hat damit ein Muster und braucht kein neues.**
 | ~~**0.26.0**~~ | ~~Die kleinen Fehler fallen — und das Potenzial wird abschaltbar~~ | **GEBAUT am 10. September 2026** — Änderungsprotokoll 0.26.0 | nein | — |
 | ~~**0.27.0**~~ | ~~Die wählbare Bildablage~~ | **GEBAUT am 10. September 2026** — Änderungsprotokoll 0.27.0 | nein | — |
 | ~~**0.28.0**~~ | ~~Das Telefon bekommt Recht~~ | **GEBAUT am 11. September 2026** — Änderungsprotokoll 0.28.0 | nein | — |
+| ~~**0.28.1**~~ | ~~Was 0.28.0 nur halb erledigt hat~~ | **GEBAUT am 11. September 2026** — Änderungsprotokoll 0.28.1. *Acht Befunde vom laufenden Gerät; **keine Funktion**, der Fahrplan rückt nicht* | nein | — |
 | **0.29.0** | **Worauf man sich verlassen können muss** | Gruppe C, das Angenommene — und die letzte Runde, die das Schema anfassen darf | **ja** | 15 → 16 |
 | **0.30.0** | **Der Prüfstand wird schnell** | Gruppe D: was das Bauen beschleunigt, ohne den Beleg zu schwächen | nein | — |
 | **0.31.0** | **Die Sprachen werden gegengelesen** | drei Dateien, drei Stufen — harte Fehler, der zersägte Satzbau, die Hausstimme | nein | — |
@@ -1847,6 +1848,15 @@ Umstellungslauf, die zweite Bestätigung. **Kein Schema.**
 ## 14. Blättern im Eintrag — vor und zurück in der Reihenfolge der Übersicht
 
 > **ENTSCHIEDEN AM 8. SEPTEMBER 2026 — 0.28.0, und die Form steht.** *Der Kopf unten sagt noch „NOCH ZU BESPRECHEN" — das war der Stand vom 7. September und bleibt als Herleitung stehen.* **Entschieden ist:** feine Pfeile in der neuen gemeinsamen Kopfzeile, `Bild auf` und `Bild ab` auf der Tastatur, **die Pfeiltasten bleiben bei den Bildern**, und **keine Wischgeste** — in derselben Ansicht wischt schon die Bildreihe.
+
+> **UND MIT 0.28.1 AM 11. SEPTEMBER 2026 UMGESTELLT — der Ort, nicht die
+> Sache.** *Der Betreiber hat die Pfeile am Gerät gesehen:* „aber eintrag
+> blättern pfeile da weis ich nicht. was hältst du den wenn wir die von da
+> neben dem status machen. dann etwas breiter?" **Zwei Pfeile links und rechts
+> von etwas behaupten, das Dazwischenliegende zu blättern — und dazwischen
+> stand der Name der Installation.** *Sie stehen seither am **Fuß** des
+> Eintrags, breit und mit Wort („‹ Voriger", „Nächster ›").* **Die Tastatur und
+> die fehlende Wischgeste bleiben, wie sie hier stehen.**
 
 **Art: Funktion · Einschätzung: NOCH ZU BESPRECHEN — der Wunsch steht,
 die Form nicht · Draußen üblich: ja**

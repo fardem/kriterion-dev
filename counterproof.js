@@ -5871,11 +5871,16 @@ const REGRESSIONS = [
        PUT /api/settings hinaus, und nach dem Neuladen stuende ein Filter da,
        den niemand gesetzt hat (Stolperstein 304 von der anderen Seite).
        ER MUSS ROT WERDEN, sonst ist Regel 3 nicht baulich, sondern behauptet. */
+    /* MITGEZOGEN MIT 0.28.1 (Stolperstein 201): seit der Richtungstrennung
+       setzt der Behandler nicht mehr `sel.value` unmittelbar, sondern legt die
+       Lage in `applySort()` zusammen. Der Rueckbau zielt auf dieselbe Sache --
+       die Ableitung des Status wird mitgespeichert, statt abgeleitet zu
+       bleiben. */
     nr: '613', name: 'Die Ableitung wird mitgespeichert',
     file: 'public/app.js',
-    search: "  sel.onchange = () => { f.sort = sel.value; redraw(); };",
-    replacement: "  sel.onchange = () => { f.sort = sel.value;\n" +
-            "    f.tested = statusOutSort(sel.value) || f.tested; redraw(); };",
+    search: "  const applySort = () => { f.sort = picked.base.key + (picked.asc ? '_asc' : '_desc'); redraw(); };",
+    replacement: "  const applySort = () => { f.sort = picked.base.key + (picked.asc ? '_asc' : '_desc');\n" +
+            "    f.tested = statusOutSort(f.sort) || f.tested; redraw(); };",
     expected: 'Die Sortierung gibt den Status vor — 0.21.1'
   },
   {
@@ -5883,10 +5888,11 @@ const REGRESSIONS = [
        der Stand vor 0.21.1, als eine Sortierung nur ordnete. Die Liste zeigt
        dann schon die neue Menge, waehrend die Pillen darueber die alte
        Stellung behaupten. */
+    /* MITGEZOGEN MIT 0.28.1 (Stolperstein 201) -- dieselbe Zeile wie 613. */
     nr: '614', name: 'Der Wechsel der Sortierung zeichnet nur noch die Liste',
     file: 'public/app.js',
-    search: "  sel.onchange = () => { f.sort = sel.value; redraw(); };",
-    replacement: "  sel.onchange = () => { f.sort = sel.value; saveFilters(); drawBody(); };",
+    search: "  const applySort = () => { f.sort = picked.base.key + (picked.asc ? '_asc' : '_desc'); redraw(); };",
+    replacement: "  const applySort = () => { f.sort = picked.base.key + (picked.asc ? '_asc' : '_desc'); saveFilters(); drawBody(); };",
     expected: 'Die Sortierung gibt den Status vor — 0.21.1'
   },
   {
@@ -7850,8 +7856,11 @@ const REGRESSIONS = [
        Zahl, die nirgends zu sehen ist. */
     nr: '806', name: 'Die Sortiergruppe des Potenzials steht wieder immer da',
     file: 'public/app.js',
-    search: '    ${POTENTIAL_MODE ? `<optgroup label="${esc(V.potential)}">',
-    replacement: '    ${true ? `<optgroup label="${esc(V.potential)}">',
+    /* MITGEZOGEN MIT 0.28.1 (Stolperstein 201): die Gruppe wird seit der
+       Richtungstrennung nicht mehr im Aufbau verzweigt, sondern ueber `only`
+       aus der Liste der Grundlagen gefiltert. Dieselbe Sache, andere Stelle. */
+    search: "      down: 'list.dirHighLow',  up: 'list.dirLowHigh', only: () => POTENTIAL_MODE },",
+    replacement: "      down: 'list.dirHighLow',  up: 'list.dirLowHigh', only: () => true },",
     expected: 'Der Potenzialmodus — 0.26.0'
   },
   {
@@ -8169,10 +8178,14 @@ const REGRESSIONS = [
     /* SIE VERSCHWINDEN LASSEN statt sie zu daempfen -- Gegenprobe zu Zusage 5.
        Das verschiebt alles daneben: der Titel wandert beim Blaettern hin und
        her, weil am ersten und letzten Eintrag ein Knopf fehlt. */
-    nr: '833', name: 'Der gedaempfte Pfeil verschwindet statt dazubleiben',
+    /* MITGEZOGEN MIT 0.28.1 (Stolperstein 201): die Pfeile stehen seit dieser
+       Runde am FUSS des Eintrags. Die Zusage ist dieselbe -- der gedaempfte
+       Knopf bleibt stehen, statt zu verschwinden --, nur an der Stelle, an der
+       sie jetzt haengt. */
+    nr: '833', name: 'Der gedaempfte Blaetterknopf verschwindet statt dazubleiben',
     file: 'public/style.css',
-    search: ".subhead .step:disabled { opacity: .26; cursor: default; }",
-    replacement: ".subhead .step:disabled { display: none; }",
+    search: ".entry-nav .step:disabled { opacity: .38; cursor: default; }",
+    replacement: ".entry-nav .step:disabled { display: none; }",
     expected: 'Die gemeinsame Kopfzeile und das Blaettern — 0.28.0'
   },
   {
@@ -8191,8 +8204,10 @@ const REGRESSIONS = [
        Kommentaren wird `Bild ab` zum Rollen gebraucht. */
     nr: '835', name: 'Bild auf und Bild ab blaettern doch den Eintrag',
     file: 'public/app.js',
-    search: "  document.querySelectorAll('.subhead .step').forEach(b => {",
-    replacement: "  document.addEventListener('keydown', e => { if (e.key === 'PageDown' || e.key === 'PageUp') e.preventDefault(); });\n  document.querySelectorAll('.subhead .step').forEach(b => {",
+    /* MITGEZOGEN MIT 0.28.1 (Stolperstein 201): die Knoepfe stehen am Fuss des
+       Eintrags. Die Zusage ist dieselbe -- keine Taste blaettert. */
+    search: "  document.querySelectorAll('.entry-nav .step').forEach(b => {",
+    replacement: "  document.addEventListener('keydown', e => { if (e.key === 'PageDown' || e.key === 'PageUp') e.preventDefault(); });\n  document.querySelectorAll('.entry-nav .step').forEach(b => {",
     expected: 'Die gemeinsame Kopfzeile und das Blaettern — 0.28.0'
   },
   {
@@ -8373,6 +8388,173 @@ const REGRESSIONS = [
     search: "  .test-add input[type=date] { font-size: max(16px, 1rem); }",
     replacement: "  .test-add input[type=date] { font-size: 16px; }",
     expected: 'Handy und Tablett: die Staffel der Umbruchpunkte'
+  },
+  /* ================= 0.28.1 — die acht Reparaturen ======================
+     JEDE NEUE ZUSAGE MIT EINER GEFAHRENEN GEGENPROBE, fortlaufend ab 854.
+     WAS HIER NICHT STEHT: die Zusagen 4 bis 8 (die Kopfzeile, das Blaettern,
+     das Suchfeld). Sie sind mit 0.28.0 gekommen und haben ihre Rueckbauten
+     seither -- diese Runde hat sie UMGEDREHT und nicht neu gemacht, und ein
+     zweiter Rueckbau auf dieselbe Zeile belegte nichts, was der erste nicht
+     schon belegt. Zusage 17 haelt das Wegeverzeichnis mit seinen eigenen
+     Rueckbauten. */
+  {
+    /* EIN ACHTER EINTRAG DANEBEN -- Gegenprobe zu Zusage 1. „Genau sieben"
+       muss die Liste NAMENTLICH kennen: eine Zusage, die nur zaehlt, saehe
+       einen Tausch nicht, und eine, die nur die sieben sucht, saehe den
+       achten nicht. */
+    nr: '854', name: 'Ein achter Eintrag steht in der Sortierliste',
+    file: 'public/app.js',
+    search: "  ].filter(b => !b.only || b.only());",
+    replacement: "    ,{ key: 'favorite', group: GENERAL, word: () => t('list.sortTitle'),\n" +
+            "      down: 'list.dirHighLow', up: 'list.dirLowHigh' }\n" +
+            "  ].filter(b => !b.only || b.only());",
+    expected: 'Die Sortierung trennt Grundlage und Richtung — 0.28.1'
+  },
+  {
+    /* DIE RICHTUNG WANDERT ZURUECK INS WORT -- Gegenprobe zu Zusage 2, und
+       zwar auf der Seite, die man leicht vergisst: der WERT bliebe sauber,
+       und die Liste waere trotzdem wieder so lang wie vorher. Genau das war
+       der Befund vom Geraet. */
+    nr: '855', name: 'Die Richtung steht wieder im Wort der Option',
+    file: 'public/app.js',
+    search: "word: () => t('list.sortChanged'),",
+    replacement: "word: () => t('list.sortChanged') + ' (neu → alt)',",
+    expected: 'Die Sortierung trennt Grundlage und Richtung — 0.28.1'
+  },
+  {
+    /* DER UMSCHALTER STEHT GAR NICHT ERST DA -- die andere Haelfte von
+       Zusage 2. Er wird gebaut und verdrahtet, aber nicht angehaengt: der
+       Fall, in dem ein Rueckbau die Oberflaeche NICHT abreisst und die
+       Bedienung trotzdem fehlt. */
+    nr: '856', name: 'Der Richtungsumschalter haengt nicht in der Zeile',
+    file: 'public/app.js',
+    search: "  sortPair.appendChild(dirBtn);",
+    replacement: "",
+    expected: 'Die Sortierung trennt Grundlage und Richtung — 0.28.1'
+  },
+  {
+    /* DIE RICHTUNG KOMMT NICHT AN -- Gegenprobe zu Zusage 3, und der Grund,
+       warum diese Zusage die Liste FAEHRT statt den Aufbau zu lesen: der
+       Umschalter steht da, sagt sein Wort, und die Liste dreht sich nicht. */
+    nr: '857', name: 'Die Richtung kommt in der Sortierung nicht an',
+    file: 'public/app.js',
+    search: "  const applySort = () => { f.sort = picked.base.key + (picked.asc ? '_asc' : '_desc'); redraw(); };",
+    replacement: "  const applySort = () => { f.sort = picked.base.key + '_desc'; redraw(); };",
+    expected: 'Die Sortierung trennt Grundlage und Richtung — 0.28.1'
+  },
+  {
+    /* „TITEL" BEKOMMT DIE ABSTEIGENDE ENDUNG ZURUECK -- und das ist keine
+       erfundene Lage, sondern der Fehler, den diese Zusage beim ersten Lauf
+       GEFUNDEN hat: `title_desc` gibt es in der Sortierung nicht, und die
+       Liste ordnete still nach dem Aenderungsdatum weiter. Ausgewaehlt, ohne
+       Fehlermeldung, und schlicht falsch. */
+    nr: '858', name: 'Die einseitige Sortierung bekommt die falsche Endung',
+    file: 'public/app.js',
+    search: "  const dirOf = (b, wantsUp) => (b.down && b.up) ? wantsUp : !b.down;",
+    replacement: "  const dirOf = (b, wantsUp) => wantsUp && !!b.up;",
+    expected: 'Die Sortierung trennt Grundlage und Richtung — 0.28.1'
+  },
+  {
+    /* DER STERN FAELLT AUF DAS ZEIGERMASS -- Gegenprobe zu Zusage 9, erste
+       Haelfte. Ein Finger ist breiter als ein Mauszeiger, und diese Runde
+       nimmt ihm nicht weg, was er gebraucht hat. */
+    nr: '859', name: 'Der Stern faellt am Finger auf das Zeigermass',
+    file: 'public/style.css',
+    search: "  .star { font-size: 1.25rem; }",
+    replacement: "  .star { font-size: 1.2rem; }",
+    expected: 'Die Sortierung trennt Grundlage und Richtung — 0.28.1'
+  },
+  {
+    /* UND DIE ANDERE HAELFTE: er bleibt, wie er war. Ohne sie bliebe die
+       Zusage gruen, wenn die Runde am Stern gar nichts taete. */
+    nr: '860', name: 'Der Stern behaelt sein altes Mass',
+    file: 'public/style.css',
+    search: "  .star { font-size: 1.25rem; }",
+    replacement: "  .star { font-size: 1.45rem; }",
+    expected: 'Die Sortierung trennt Grundlage und Richtung — 0.28.1'
+  },
+  {
+    /* DIE ABSCHNITTSLISTE KLAPPT OHNE AUSKUNFT EIN -- Gegenprobe zu
+       Zusage 10. Das ist derselbe Fehler wie ein Filter ohne Zahl: die Liste
+       ist weg, und niemand sieht, wo er gerade ist. */
+    nr: '861', name: 'Der Abschnittsschalter sagt nicht, welcher Abschnitt offen ist',
+    file: 'public/app.js',
+    search: "aria-controls=\"sys-tabs\">${tH('card.sections')}<span class=\"fcount\">${esc(open.name())}</span></button>",
+    replacement: "aria-controls=\"sys-tabs\">${tH('card.sections')}</button>",
+    expected: 'Die Sortierung trennt Grundlage und Richtung — 0.28.1'
+  },
+  {
+    /* EINGEKLAPPT AUF JEDEM SCHIRM -- Gegenprobe zu Zusage 11. Ein breites
+       Fenster saesse dann vor eingeklappten Abschnitten und haette keinen
+       sichtbaren Knopf, sie zu oeffnen: der Schalter selbst steht dort im
+       Stilblatt auf `display: none`. */
+    nr: '862', name: 'Die Abschnittsliste klappt auf jedem Schirm ein',
+    file: 'public/app.js',
+    search: "    if (isNarrow()) tabs.classList.add('closed');",
+    replacement: "    tabs.classList.add('closed');",
+    expected: 'Die Sortierung trennt Grundlage und Richtung — 0.28.1'
+  },
+  {
+    /* DER UEBERLAEUFER WIRD ZURUECKGESCHRIEBEN -- Gegenprobe zu Zusage 12,
+       und die Sorte ist gefaehrlich: der Wert steht richtig da, wo er
+       geschrieben wurde, und wird falsch, wo die Anzeigeart wechselt. Am
+       Schreibtisch ist nichts zu sehen. */
+    nr: '863', name: 'Die Titelzeile dehnt sich am Telefon wieder nicht',
+    file: 'public/style.css',
+    search: "  .detail { display: flex; flex-direction: column; gap: 16px; align-items: stretch; }",
+    replacement: "  .detail { display: flex; flex-direction: column; gap: 16px; align-items: start; }",
+    expected: 'Die Sortierung trennt Grundlage und Richtung — 0.28.1'
+  },
+  {
+    /* UND DIE GEGENRICHTUNG: `align-items` wird GLOBAL geaendert --
+       Gegenprobe zu Zusage 13. Im Raster heisst derselbe Wert etwas anderes,
+       und die beiden Spalten des Eintrags stuenden danach gedehnt da. */
+    nr: '864', name: 'Die Dehnung wird global statt am Telefon gesetzt',
+    file: 'public/style.css',
+    search: ".detail { display: grid; grid-template-columns: minmax(300px, 46%) 1fr; gap: 28px; align-items: start; }",
+    replacement: ".detail { display: grid; grid-template-columns: minmax(300px, 46%) 1fr; gap: 28px; align-items: stretch; }",
+    expected: 'Die Sortierung trennt Grundlage und Richtung — 0.28.1'
+  },
+  {
+    /* DIE TOTE REGEL KOMMT ZURUECK -- Gegenprobe zu Zusage 14. Sie trifft
+       nichts mehr, und genau deshalb faellt sie sonst niemandem auf. */
+    nr: '865', name: 'Die tote Regel `.back` steht wieder im Telefonblock',
+    file: 'public/style.css',
+    search: "  .detail { display: flex; flex-direction: column; gap: 16px; align-items: stretch; }",
+    replacement: "  .back { margin-bottom: 14px; }\n" +
+            "  .detail { display: flex; flex-direction: column; gap: 16px; align-items: stretch; }",
+    expected: 'Die Sortierung trennt Grundlage und Richtung — 0.28.1'
+  },
+  {
+    /* DIE ZEILE WIRD WIEDER ZUR SPALTE -- Gegenprobe zum ERSTEN Hebel aus
+       Zusage 15. Jede Beschriftung kostete dann wieder eine eigene Zeile;
+       fuenf davon waren am Geraet 90 Pixel. */
+    nr: '866', name: 'Die Filterzeile wird am Telefon wieder eine Spalte',
+    file: 'public/style.css',
+    search: "  .frow { display: grid; grid-template-columns: auto minmax(0, 1fr);",
+    replacement: "  .frow { display: flex; flex-direction: column;",
+    expected: 'Die Sortierung trennt Grundlage und Richtung — 0.28.1'
+  },
+  {
+    /* UND DIE REIHEN BRECHEN WIEDER UM -- Gegenprobe zum ZWEITEN Hebel. Eine
+       Kategoriereihe mit fuenf Pillen mass umgebrochen 77 Pixel und misst in
+       einer Zeile 35; der Gewinn waechst mit dem Bestand. */
+    nr: '867', name: 'Die Filterreihen brechen wieder um, statt quer zu rollen',
+    file: 'public/style.css',
+    search: "  .frow > .pills:not(.cloud) { flex-wrap: nowrap; overflow-x: auto;",
+    replacement: "  .frow > .pills:not(.cloud) { flex-wrap: wrap;",
+    expected: 'Die Sortierung trennt Grundlage und Richtung — 0.28.1'
+  },
+  {
+    /* DIE PILLEN SCHRUMPFEN MIT -- Gegenprobe zu Zusage 16, und sie haelt
+       eine ENTSCHEIDUNG fest: gemessen machen die Pillen 33 Prozent des
+       Kastens aus, Beschriftungen und Abstaende 42. Der Betreiber hat die
+       Messung verlangt, bevor er entschieden hat (11.9.2026). */
+    nr: '868', name: 'Die Pillen schrumpfen mit',
+    file: 'public/style.css',
+    search: "  .pill { padding: 7px 13px; }",
+    replacement: "  .pill { padding: 5px 11px; }",
+    expected: 'Die Sortierung trennt Grundlage und Richtung — 0.28.1'
   }
 ];
 

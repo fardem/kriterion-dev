@@ -727,29 +727,43 @@ button { cursor: pointer; background: none; border: none; padding: 0; }
    SEIN SATZ BLEIBT: `list.backToList` steht als Titel am Knopf, Pfeilglyphe und
    alles. Ein zweiter, kuerzerer Satz fuer dieselbe Handlung waere eine zweite
    Wahrheit (Stolperstein 47). */
-.sub-back, .subhead .step { border-color: transparent; background: none; }
-.sub-back:hover, .subhead .step:hover:not(:disabled) {
-  background: var(--surface-2); border-color: var(--line); color: var(--text); }
-/* Die Marke rueckt an die Pfeile heran: 11 px Abstand wie in der Uebersicht
-   liessen die beiden Zeichen wie eigene Bedienelemente neben dem Titel stehen
-   statt wie seine zwei Seiten. */
-.subhead .brand { gap: 5px; }
-/* DER TITEL GIBT NACH, NICHT DIE PFEILE -- gemessen am Telefon (390 px): ohne
-   diese zwei Zeilen schrumpften die beiden Pfeile als Flexkinder von 44 auf
-   28 Pixel Breite, waehrend der Titel seine volle Laenge behielt. Ein Ziel von
-   28 Pixeln ist auf dem Finger zu klein, und der Titel ist das Stueck, das
-   ohne Verlust kuerzer werden kann: er steht daneben in der Adresszeile und
-   im Tab.
-   `flex-shrink: 0` an Zeichen und Pfeilen, `min-width: 0` samt Ellipse am
-   Titel -- damit geht die Breite dorthin, wo sie nichts kostet. */
-.subhead .brand h1 { margin: 0 6px; min-width: 0;
+.sub-back { border-color: transparent; background: none; }
+.sub-back:hover { background: var(--surface-2); border-color: var(--line); color: var(--text); }
+
+/* ---------- Das Blaettern, am Ende des Eintrags -- 0.28.1 ----------
+   ES STAND BIS 0.28.0 IN DER KOPFZEILE, links und rechts von der Marke. Zwei
+   Pfeile links und rechts von etwas sagen: „wir blaettern das hier
+   dazwischen" -- und dazwischen stand der Name der INSTALLATION.
+   HIER BEHAUPTEN SIE NICHTS. Sie stehen am Ende des Eintrags, also dort, wo
+   man ist, wenn man mit ihm fertig ist.
+   ZWEI KNOEPFE AN DIE ENDEN: der eine geht zurueck, der andere vor, und
+   dazwischen ist Luft. Nebeneinander in der Mitte saehen sie aus wie ein
+   Paar, das zusammengehoert -- sie fuehren aber in entgegengesetzte
+   Richtungen.
+   GEDAEMPFT UND DA, NICHT WEG: am ersten und letzten Eintrag bleibt der Knopf
+   stehen. `visibility` statt `display` waere der andere Weg und der
+   schlechtere -- ein Knopf, den man nicht sieht, aber antippen kann, ist
+   schlimmer als ein sichtbarer, der nichts tut. */
+.entry-nav { display: flex; justify-content: space-between; gap: 12px;
+  margin-top: 26px; padding-top: 18px; border-top: 1px solid var(--line); }
+/* KEINER DER BEIDEN DARF AUS DEM SCHIRM LAUFEN -- gemessen am Telefon, wo der
+   zweite Knopf mit seiner vollen Beschriftung rechts hinausragte. Die
+   Beschriftung ist seither kurz; diese Zeile ist der Guertel dazu, falls eine
+   Uebersetzung laenger ausfaellt. */
+.entry-nav .step { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* Der Winkel ist gedaempft: er zeigt die Richtung, das Wort traegt die Sache. */
+.entry-nav .step-arrow { color: var(--faint); }
+.entry-nav .step:disabled { opacity: .38; cursor: default; }
+.entry-nav .step:disabled:hover { background: var(--surface-2); border-color: var(--line); color: var(--text-2); }
+/* DER TITEL GIBT NACH, NICHT DIE ZEICHEN. Gemessen am Telefon (390 px): ohne
+   diese Zeilen schrumpfen die Symbolknoepfe als Flexkinder unter ihr Mass,
+   waehrend der Titel seine volle Laenge behaelt. Der Titel ist das Stueck, das
+   ohne Verlust kuerzer werden kann -- er steht daneben in der Adresszeile und
+   im Tab. */
+.subhead .brand h1 { min-width: 0;
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .subhead .brand > div { min-width: 0; }
-.sub-back, .subhead .step, .subhead .brand .logo { flex-shrink: 0; }
-/* GEDAEMPFT UND DA, NICHT WEG -- Zusage 5. Ein Pfeil, der am ersten oder
-   letzten Eintrag verschwaende, schoebe den Titel daneben um seine Breite, und
-   der Titel wanderte beim Blaettern hin und her. */
-.subhead .step:disabled { opacity: .26; cursor: default; }
+.sub-back, .subhead .brand .logo { flex-shrink: 0; }
 
 /* ---------- Filter ---------- */
 .filters { display: flex; flex-direction: column; gap: 10px; margin-bottom: 24px; }
@@ -826,6 +840,19 @@ button { cursor: pointer; background: none; border: none; padding: 0; }
 .tag-toggle[aria-expanded="true"]::before { transform: rotate(45deg); }
 .tag-toggle > span { text-decoration: underline; }
 .pills { display: flex; flex-wrap: wrap; gap: 6px; }
+/* Die Sortierung und ihre Richtung -- 0.28.1. Eine Einstellung in zwei
+   Bedienelementen: welches Merkmal ordnet, und in welche Richtung. */
+.sort-pair { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.sort-pair .select { min-width: 0; }
+/* DER RICHTUNGSKNOPF SAGT DIE KONKRETE RICHTUNG und nicht „absteigend": bei
+   „Zuletzt geaendert" steht „neu → alt", bei der Bewertung „hoch → niedrig".
+   Er ist deshalb breiter als ein Zeichen und traegt einen einfarbigen Rand --
+   er ist kein Hauptknopf, sondern das Gegenstueck zum Feld daneben.
+   GEDAEMPFT BEI „TITEL": diese Sortierung hat nur eine Richtung, und der Knopf
+   bleibt trotzdem stehen. Verschwaende er, spraenge die Zeile, sobald jemand
+   die Sortierung wechselt. */
+.sort-dir { white-space: nowrap; flex-shrink: 0; font-family: var(--mono); font-size: .74rem; }
+.sort-dir:disabled { opacity: .42; cursor: default; }
 /* Der Hinweis auf die Grundzeile unter einer Sprachpillenreihe — 0.24.6 (F3).
    Er liegt IM Pillenkasten und bekommt mit `flex-basis: 100%` eine eigene
    Zeile darunter: nebeneinander drängte er die Pillen in einer schmalen
@@ -3252,6 +3279,13 @@ body.login .login-screen { flex: 1 0 auto; min-height: 0; }
    Griff ohne Grund. */
 .filter-toggle { display: none; align-items: center; gap: 7px; margin-bottom: 14px; }
 .filter-toggle .fcount { font-family: var(--mono); font-size: .72rem; color: var(--faint); }
+/* DERSELBE SCHALTER FUER DIE ABSCHNITTE DES SYSTEMBEREICHS -- 0.28.1. Er
+   traegt dieselbe Klasse `.fcount` fuer seine Auskunft und dieselbe Regel
+   „unsichtbar, solange Platz ist": wo die Reiter in eine Zeile passen, waere
+   ein Schalter ein Griff ohne Grund. */
+.sys-toggle { display: none; align-items: center; gap: 7px; margin-bottom: 12px; }
+.sys-toggle .fcount { font-family: var(--mono); font-size: .72rem; color: var(--faint); }
+.sys-tabs.closed { display: none; }
 .filter-toggle.active { border-color: var(--accent-line); color: var(--text); }
 .filter-toggle.active .fcount { color: var(--accent-text); }
 
@@ -3468,9 +3502,20 @@ body.login .login-screen { flex: 1 0 auto; min-height: 0; }
      Bedienelement der ganzen Instanz -- danebengetroffen heisst hier: einen
      falschen Wert vergeben. Sie werden groesser gesetzt UND bekommen Flaeche
      zwischen sich; die Reihe misst damit rund 150 statt 100 Pixel. */
-  .star { font-size: 1.45rem; }
+  /* GERECHNET UND NICHT GERATEN -- 0.28.1. Der Stern trug am Finger
+     1,45 rem (21,75 px) und dazu 5 px Polsterung ueber und unter sich; mit den
+     9 px der Zeile kostete eine Kriterienzeile rund 50 Pixel. Bei sieben
+     Kriterien sind das 350 -- und genau das hat der Betreiber am Geraet
+     gesehen (11.9.2026): „die sterne koennten auch etwas filigraner werden.
+     auch die nehmen recht viel platz weg."
+     JETZT 1,25 rem (18,75 px) und 3 px: rund 40 Pixel je Zeile, siebzig
+     weniger bei sieben Kriterien.
+     NICHT AUF DAS ZEIGERMASS (1,2 rem, ohne Polsterung): ein Stern ist ein
+     ZIEL und kein Zeichen -- man tippt darauf, und fuenf davon stehen
+     nebeneinander. Dieselbe Ueberlegung wie bei der Pille in 0.28.0. */
+  .star { font-size: 1.25rem; }
   .stars { gap: 3px; }
-  .stars .star { padding: 5px 4px; }
+  .stars .star { padding: 3px 4px; }
 
   /* Die Punkte der Zeitleiste. Neun Pixel sind mit der Maus genau richtig und
      mit dem Finger nicht zu treffen. Der Rand bleibt bei 1.5px -- er
@@ -3735,6 +3780,10 @@ body.login .login-screen { flex: 1 0 auto; min-height: 0; }
      und was vorher sichtbar war, soll nicht ohne Not verschwinden. Neu ist
      allein die Moeglichkeit, sie wegzuklappen. */
   .filter-toggle { display: inline-flex; }
+  /* UND DER SCHALTER DER ABSCHNITTE, aus demselben Grund und an derselben
+     Stelle: gemessen misst die Reiterliste hier 241 Pixel bei fuenf
+     Abschnitten, und die erste Karte begann bei y = 480 von 844. */
+  .sys-toggle { display: inline-flex; }
   .filters.closed { display: none; }
 }
 
@@ -3798,6 +3847,18 @@ body.login .login-screen { flex: 1 0 auto; min-height: 0; }
   .brand { gap: 9px; flex: 1 1 0; }
   .brand .count { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .search-box { min-width: 0; }
+  /* DIE SUCHE FAELLT AM TELEFON AUS DEN UNTERANSICHTEN -- 0.28.1.
+     GEMESSEN: das Feld bricht dort in eine eigene Zeile um; die Kopfzeile im
+     Eintrag misst 123 px mit ihm und 69 ohne -- 54 Pixel fuer ein Feld, das
+     man beim Lesen eines Eintrags selten braucht.
+     DER PREIS IST BENANNT UND GEWOLLT: der Weg zur Suche ist am Telefon wieder
+     zwei Griffe -- zurueck, dann ins Feld. 0.28.0 hatte daraus einen gemacht,
+     und der Betreiber hat die Zeile hoeher gewichtet (11.9.2026). Claude hatte
+     eine Lupe statt des Feldes vorgeschlagen und ist ueberstimmt worden.
+     NUR IN DEN UNTERANSICHTEN. Die Uebersicht behaelt ihr Feld: dort ist die
+     Suche das wichtigste Bedienelement, weil Filter und Tagwolke auf einem
+     kleinen Schirm nicht auf einen Blick dastehen. */
+  .subhead .search-box { display: none; }
 
   /* ---- Die Filter ----
      Vier Reihen mit Beschriftung und beliebig vielen Pillen -- Status,
@@ -3813,11 +3874,52 @@ body.login .login-screen { flex: 1 0 auto; min-height: 0; }
      das Wort kuerzer ist. Der Schalter selbst steht weiter oben, im
      gemeinsamen Block mit der Tafel -- er gehoert dem Tablett genauso. */
   .filters { gap: 9px; margin-bottom: 16px; }
-  .frow { flex-direction: column; align-items: stretch; gap: 6px; }
-  .frow > .eyebrow { min-width: 0; }
-  /* Die zweite Beschriftung steht in der Spalte ueber ihrer eigenen Reihe und
-     braucht dort keinen Abstand nach links. */
-  .frow > .eyebrow-with { margin-left: 0; margin-top: 4px; }
+  /* ---- DIE FILTERREIHEN -- 0.28.1, BA 7 ----
+     GEMESSEN, bevor etwas geaendert wurde (390 x 844, aufgeklappte Filter,
+     fuenfzehn Eintraege, drei Kategorien): der Filterkasten misst 378 Pixel,
+     und die erste Kachel beginnt bei y = 590 -- SIEBZIG PROZENT DES SCHIRMS
+     sind Bedienung, bevor die erste Auskunft dasteht.
+     UND DER KASTEN VON INNEN: fuenf Beschriftungen zu 18 px sind 90, die
+     Abstaende 69 -- ZWEIUNDVIERZIG PROZENT sind Geruest und nicht Bedienung.
+     Die Pillen selbst machen 33 Prozent aus; sie sind seit 0.28.0 bei 35 px
+     und werden hier NICHT kleiner. Der Betreiber hat die Messung verlangt,
+     bevor er entschieden hat (11.9.2026).
+
+     ERSTER HEBEL: DIE BESCHRIFTUNG STEHT WIEDER DANEBEN. Bis 0.28.0 wurde die
+     Zeile hier zur SPALTE, und jede Beschriftung kostete eine eigene Zeile.
+     Der Grund dafuer war gut und ist entfallen: 7,25 em Beschriftungsspalte
+     sind auf 366 Pixeln fast ein Drittel der Breite. Ein RASTER mit `auto` in
+     der ersten Spalte nimmt nur, was das laengste Wort braucht.
+     ZWEI SPALTEN UND KEINE ZWEI: die Beschriftungen stehen in der ersten, die
+     Reihen in der zweiten, und jedes Paar bekommt von selbst seine eigene
+     Rasterzeile. Was zu keinem Paar gehoert -- der Vermerk „folgt der
+     Sortierung", der Und/Oder-Umschalter, die Verweise am Zeilenende --, spannt
+     ueber beide.
+
+     ZWEITER HEBEL: DIE REIHEN ROLLEN QUER, STATT UMZUBRECHEN. Eine
+     Kategoriereihe mit fuenf Pillen mass umgebrochen 77 Pixel und misst in
+     einer Zeile 35. Der Gewinn waechst mit dem Bestand: je mehr Kategorien,
+     desto mehr Zeilen fielen vorher an.
+     DIE WOLKE IST AUSGENOMMEN. Sie hat ihr eigenes „mehr", und das misst die
+     Zeilenhoehe an der ersten Marke -- eine Reihe, die nicht umbricht, hat
+     keine zweite Zeile zu verbergen. */
+  .frow { display: grid; grid-template-columns: auto minmax(0, 1fr);
+    align-items: center; gap: 7px 10px; }
+  .frow > .eyebrow, .frow > .eyebrow-with { grid-column: 1; min-width: 0;
+    margin-left: 0; margin-top: 0; }
+  .frow > .pills, .frow > .select, .frow > .sort-pair { grid-column: 2; min-width: 0; }
+  /* WAS ZU KEINEM PAAR GEHOERT, spannt ueber beide Spalten: der Vermerk unter
+     den Statuspillen, der Und/Oder-Umschalter der Marken und die Verweise
+     „mehr"/„zuruecksetzen" am Ende der Markenzeile. Stuenden sie in Spalte
+     eins, waeren sie so schmal wie das laengste Beschriftungswort. */
+  .frow > #f-status-from, .frow > .frow-right, .frow > .tagmode { grid-column: 1 / -1; }
+  /* QUER ROLLEN STATT UMBRECHEN -- und ohne Rollbalken: er naehme die Hoehe
+     wieder weg, die die Zeile gerade gewonnen hat. Dass rechts noch etwas
+     steht, sagt die angeschnittene Pille am Rand. */
+  .frow > .pills:not(.cloud) { flex-wrap: nowrap; overflow-x: auto;
+    scrollbar-width: none; -ms-overflow-style: none; }
+  .frow > .pills:not(.cloud)::-webkit-scrollbar { display: none; }
+  .frow > .pills:not(.cloud) > * { flex-shrink: 0; }
   /* IN DER SPALTE IST DIE HAUPTACHSE DIE HOEHE. `flex: 1 1 0` hiesse dort
      "Grundhoehe null und dann wachsen" -- die Wolke faellt zusammen und zieht
      sich ueber die ganze Spalte. Sie bekommt deshalb ihre natuerliche Hoehe
@@ -4019,11 +4121,29 @@ body.login .login-screen { flex: 1 0 auto; min-height: 0; }
      anders als das Auge liest. Das ist der Preis, und er ist hier vertretbar:
      es geht um EIN Stueck, das nach vorn rueckt, und der Titel ist ein
      Eingabefeld, das man ansteuert, nicht eines, an dem man vorbeimuss. */
-  .detail { display: flex; flex-direction: column; gap: 16px; }
+  /* `align-items: stretch` IST HIER KEINE ZIERDE, SONDERN EINE BERICHTIGUNG --
+     0.28.1, Befund 7.
+     `.detail` traegt oben `align-items: start` (siehe die Grundregel). Im
+     RASTER heisst das „die Spalten oben ausrichten" und ist richtig. Hier wird
+     `.detail` zu einem Flexkasten in SPALTENRICHTUNG -- und dort heisst
+     derselbe Wert etwas ganz anderes: „die Kinder NICHT auf volle Breite
+     dehnen".
+     DIE FOLGE WAR AM GERAET ZU SEHEN und niemand konnte sie benennen: die
+     Titelzeile mass 278 Pixel in einer Spalte von 366, und der Favoritenstern
+     sass dadurch 88 Pixel vor dem rechten Rand. Der Betreiber (11.9.2026):
+     „der stern ist nicht an der rechten seite sondern irgendwie links vom
+     rechten seite. sind ungeordnet aus." Am Schreibtisch war nichts zu sehen
+     -- dort ist `.detail` ein Raster.
+     EIN WERT, DER DIE BAUFORM WECHSELT, WECHSELT SEINE BEDEUTUNG. Das ist die
+     Sorte Fehler, die richtig dasteht, wo sie geschrieben wurde, und falsch
+     wird, wo die Anzeigeart umspringt. */
+  .detail { display: flex; flex-direction: column; gap: 16px; align-items: stretch; }
   .meta-col { display: contents; }
   .title-head { order: -1; }
   .title-in { font-size: 1.32rem; }
-  .back { margin: 12px 0 14px; }
+  /* `.back` IST MIT 0.28.0 GEFALLEN, und diese Zeile ist dabei stehengeblieben
+     -- sie traf seither nichts mehr. Eine Regel ohne Traeger bleibt nicht
+     stehen (0.28.1, F12). */
   /* MIT DER FENSTERHOEHE UND NICHT MIT EINER FESTEN ZAHL. Der Telefonblock
      greift nach seiner eigenen Bedingung auch quer, und quer ist ein Telefon
      390 bis 430 Pixel HOCH -- eine Vorschau von 420 Pixeln waere dort der

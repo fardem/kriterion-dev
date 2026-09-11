@@ -1,6 +1,6 @@
 # Projektstand — Kriterion
 
-**Kompakte Übergabe · Revision 80 · Stand 11. September 2026 · gebaut: Version 0.28.0**
+**Kompakte Übergabe · Revision 81 · Stand 11. September 2026 · gebaut: Version 0.28.1**
 
 Dieses Blatt ist der **einzige Ort, an dem steht, was gebaut ist und was
 bindet.** Es genügt, um in einem frischen Chat weiterzuarbeiten, ohne den alten
@@ -5848,16 +5848,27 @@ Kopfzeile wie die Übersicht** — nicht eine nachgebaute, sondern dieselbe:
   in der Übersicht führt ein Knopf in den Systembereich, in der Unteransicht ein
   Zeichen.* **Stolperstein 47 in Bedienform.** *So klappt sie am Telefon nach
   derselben Regel ein wie die der Übersicht — ein Markup, zwei Gestalten.*
-- **Sie trägt vier Dinge: Zurück, Marke, Suchfeld, Menü** — *im Eintrag dazu die
-  zwei Blätterpfeile, also sechs.* **Keinen Zähler** *(er zählt den Bestand der
+- **Sie trägt vier Dinge: Zurück, Marke, Suchfeld, Menü** — *in ALLEN vier
+  Unteransichten dieselben vier.* **Keinen Zähler** *(er zählt den Bestand der
   Übersicht und nicht diese Ansicht)*, **kein „+ Eintrag"** *(wer liest, legt
   selten dabei an)*, **keine Glocke** *(sie ist eine Auskunft über den Bestand
-  und gehört dorthin, wo der Bestand steht)*.
+  und gehört dorthin, wo der Bestand steht)*, **und seit 0.28.1 keine
+  Blätterpfeile** *(sie stehen am Fuß des Eintrags — siehe unten)*.
 - **Das Suchfeld ist eine Tür und kein zweiter Sucher.** *Gesucht wird in der
   Übersicht, weil dort der Bestand steht; ein Tipp auf das Feld springt hinüber,
   und der Schreibstrich landet dort im Feld.* **Ohne diese Übergabe wäre der
   Sprung ein Griff und das Tippen ein zweiter** — genau die zwei Griffe, die
   0.28.0 wegnimmt.
+- **ZWEI STELLEN TRAGEN ES NICHT — 0.28.1, und die Gründe sind verschieden.**
+  **Im Systembereich auf KEINEM Gerät:** *ein Feld über den Einstellungen sagt
+  „hier werden Einstellungen gesucht" und sprang in den Bestand.* **Eine
+  Oberfläche sagt, was ist** — *und dieses Feld sagte etwas anderes.*
+  **Am Telefon in KEINER Unteransicht:** *gemessen kostete es dort 54 Pixel —
+  die Kopfzeile misst 123 px mit ihm und 69 ohne.* **Der Weg zur Suche ist dort
+  wieder zwei Griffe, und das ist der benannte Preis** *(Betreiber, 11.9.2026;
+  eine Lupe statt des Feldes war vorgeschlagen und ist abgelehnt worden)*.
+  **Zwei Gründe, zwei Orte:** *der eine steht im Aufbau (`searchBox: false`),
+  der andere im Stilblatt.*
 - **Der Rückweg ist ein Zeichen geworden und hat seinen Satz behalten.**
   *`list.backToList` steht als Titel am Knopf.* **Ein zweiter, kürzerer Satz für
   dieselbe Handlung wäre eine zweite Wahrheit.**
@@ -5866,16 +5877,34 @@ Kopfzeile wie die Übersicht** — nicht eine nachgebaute, sondern dieselbe:
   nebeneinander, und auf dem Bild war nicht zu sehen, welcher welcher ist.*
   **Der Satz sagt es ohnehin: er beginnt mit „←" und nicht mit „‹".**
 
-#### Das Blättern im Eintrag (seit 0.28.0)
+#### Das Blättern im Eintrag (seit 0.28.0, am Fuß seit 0.28.1)
 
-**Zwei Pfeile links und rechts von der Marke, und sonst nichts.**
+**Zwei breite Knöpfe am Fuß des Eintrags — „‹ Voriger" und „Nächster ›".**
+
+> **BIS 0.28.0 STANDEN SIE IN DER KOPFZEILE, links und rechts von der Marke.**
+> *Zwei Pfeile links und rechts von etwas behaupten, das Dazwischenliegende zu
+> blättern — und dazwischen stand der Name der **Installation**.* **Der
+> Betreiber hat es am Gerät gemerkt** *(11. September 2026)*: „aber eintrag
+> blättern pfeile da weis ich nicht. was hältst du den wenn wir die von da
+> neben dem status machen. dann etwas breiter?"
+>
+> **AM ENDE UND NICHT OBEN, weil man dort ist, wenn man weiterblättern will.**
+> *Der Preis ist benannt: wer früher wechseln will, muss erst ans Ende
+> scrollen.* **Sie kosten dafür keine Kopfzeile mehr** — *die trägt seither in
+> allen vier Unteransichten dieselben vier Dinge und nicht sechs im Eintrag und
+> vier anderswo.*
+>
+> **KURZ AUF DEM KNOPF, VOLLSTÄNDIG IM TITEL.** *Mit dem vollen Satz („Eins
+> zurück in der Übersicht") lief der zweite Knopf am Telefon aus dem Schirm.*
 
 - **Die Reihenfolge ist die der Übersicht** — `state.items`, mit ihrem Filter
   und ihrer Sortierung. *Sie lebt im Browser und hält die Sitzung.*
 - **Ohne Reihenfolge sind beide Pfeile gedämpft** *(Direkteinstieg über die
   Adresse, neu geladen, oder der Eintrag steht nicht im eingestellten Filter)*.
-  **Nicht weg, sondern gedämpft:** *ein Pfeil, der am Rand der Liste wegfiele,
-  schöbe den Titel daneben um seine Breite.*
+  **Nicht weg, sondern gedämpft:** *bis 0.28.0 war der Grund, dass ein
+  verschwundener Pfeil den Titel daneben verschoben hätte; am Fuß ist es der
+  andere Knopf, der an seine Stelle spränge.* **Dieselbe Zusage, derselbe
+  Grund, andere Nachbarschaft.**
 - **Kein Speichern und keine Nachfrage am Server.** *Eine gespeicherte
   Reihenfolge wäre beim nächsten Öffnen eine Behauptung über eine Übersicht,
   die niemand mehr sieht; eine nachgeladene wäre die ungefilterte.*

@@ -1209,3 +1209,94 @@ sondern damit derselbe Bericht nicht ein zweites Mal geglaubt wird.
 > (*„Bruch mal auf die 0.33.0 legen.. ist auch ne schöne zahl"*); **0.32.0
 > bleibt frei, als letzter Platz vor dem Bruch.** *Die reservierte 0.40.0 bleibt
 > unangetastet.*
+
+---
+
+## 25. Sieben deutsche Bezeichner, die kein Wächter sieht
+
+**Woher** — *aus dem Bauen von 0.28.1, am 11. September 2026.* **Nicht aus einer
+Durchsicht, sondern aus einem Zufall:** *eine Stilblattregel dieser Runde musste
+eine `id` beim Namen nennen, und damit bekam die **Gestaltprobe** sie zum ersten
+Mal zu sehen. Sie war deutsch, seit Jahren, und nichts hatte sie gemeldet.*
+
+**Was auffiel** — **die Gestaltprobe** *(`testbench.js`, „deutsch ist keine id,
+keine Klasse, keine Variable")* **liest `id="…"` aus dem Aufbau und alles, was
+im Stilblatt steht.** *Eine `id`, die `public/app.js` mit `element.id = '…'`
+setzt und die in keiner Stilblattregel vorkommt, steht in keiner der beiden
+Quellen* — **und die Namensprobe sieht sie auch nicht: ein String ist kein
+Bezeichner.**
+
+**ACHT SOLCHE `id` GIBT ES, und sieben davon sind deutsch:**
+
+| `id` | wo |
+|---|---|
+| ~~`f-status-woher`~~ | **mit 0.28.1 zu `f-status-from` geworden** — die Regel dieser Runde nennt sie, und damit war sie nicht mehr zu halten |
+| `f-abgelehnt` | die Ablehnungspillen der Filterzeile |
+| `f-kat-ohne` | „ohne Kategorie" |
+| `f-tagzeile` | die Markenzeile |
+| `f-weitere` | „mehr" an der Markenwolke |
+| `filter-zurueck` | der Rücksetzer |
+| `ansicht-neu` | „Ansicht speichern" |
+| `zug-weg-auf` | der Griff am Vergleichsstreifen |
+
+**Was es nicht ist** — **kein Fehler im Betrieb.** *Eine `id` ist ein Name im
+Baum; niemand sieht sie, und nichts geht davon kaputt.* **Ein Fehler ist der
+Wächter:** *er sagt „deutsch ist keine id" und meint „deutsch ist keine id, die
+ich sehe".* **Das ist die schlimmere Sorte** — *eine grüne Zeile über eine
+Menge, die kleiner ist als ihr Name sagt.*
+
+**Was gebaut werden könnte**
+
+1. **Die Gestaltprobe liest auch `…​.id = '…'` aus `public/app.js`** — drei
+   Zeilen, und sie machen die sieben sofort sichtbar. *Ohne 2 ist die Runde
+   danach rot.*
+2. **Die sieben umbenennen** — `public/app.js`, `testbench.js` *(acht
+   Fundstellen an `f-abgelehnt` allein)* und `counterproof.js`. **Mechanisch,
+   aber breit:** *jeder Suchtext einer Gegenprobe muss danach wieder genau
+   einmal vorkommen.*
+
+**Offene Entscheidungen** — *keine.* **F7 ist am 7. September 2026 entschieden:
+alles zieht auf Englisch um, auch was in der Datenbank steht.** *Eine `id` im
+Baum ist weniger verflochten als ein Datenbankfeld.*
+
+**Was es anfasst** — `public/app.js`, `public/style.css`, `testbench.js`,
+`counterproof.js`. **Kein Schema, keine Route, kein Satz der Sprachdateien.**
+
+> **WARUM ES NICHT IN 0.28.1 MITGEGANGEN IST:** *die Runde ist ein PATCH aus
+> acht benannten Reparaturen.* **Die eine, die die Runde selbst freigelegt hat,
+> ist mitgegangen — die anderen sechs sind kein Befund dieser Runde, sondern
+> einer über den Wächter.** *Sie stehen hier, damit sie nicht ein zweites Mal
+> zufällig gefunden werden müssen.*
+
+## 26. Zwei feste deutsche Wörter im Sortierfeld — und wie sie durchgerutscht sind
+
+**Woher** — *aus dem Bauen von 0.28.1, am 11. September 2026, auf demselben Weg
+wie Punkt 25.*
+
+**Was auffiel** — **„Allgemein" und „Verlauf", die beiden Gruppenüberschriften
+des Sortierfeldes, standen als feste Wörter im Quelltext** *(`public/app.js`)*
+— **und damit auf Englisch und auf Türkisch deutsch am Bildschirm.** *Sie sind
+mit 0.28.1 in die Sprachdateien gezogen (`list.sortGroupGeneral`,
+`list.sortGroupHistory`); das ist erledigt und steht nach Regel 2 nicht hier.*
+
+**WAS HIER STEHT, IST DER GRUND:** *die **Restprobe** zählt die lesbaren Texte
+in `public/app.js` und vergleicht sie mit einer benannten Liste.* **Sie hat die
+beiden Wörter nicht gesehen, solange sie mitten in einer langen Vorlage lagen**
+— *erst als der Umbau sie zu einzelnen Strings machte, standen sie in der
+Liste.*
+
+**Was es nicht ist** — **kein Einzelfall und kein Versehen beim Schreiben.**
+*Derselbe Leser übersieht jedes feste Wort, das in einer Vorlage mit
+`${…}`-Stellen steckt.* **Wie viele es sind, weiß niemand** — *und genau das
+ist der Punkt.*
+
+**Was gebaut werden könnte** — **die Restprobe zerlegt Vorlagen an ihren
+`${…}`-Stellen und liest die Stücke einzeln.** *Was dabei herauskommt, ist
+unbekannt: es können null sein und es können dreißig sein.* **Die Zahl zuerst
+messen, dann entscheiden** — *eine Runde, die dreißig Sätze in drei Sprachen
+anlegt, ist keine Reparatur mehr.*
+
+**Offene Entscheidungen** — *keine vor der Messung.*
+
+**Was es anfasst** — `testbench.js`; je nach Messung `public/app.js` und die
+drei Sprachdateien.

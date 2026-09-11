@@ -2211,9 +2211,17 @@ const shareMain = (purpose, target = null) =>
     && /<h1>\$\{esc\(TITLE_APP\)\}<\/h1>/.test(kopf)
     && /class="search-box"/.test(kopf) && /id="sub-q"/.test(kopf)
     && /class="icon-btn mast-menu" id="menu"/.test(kopf));
-  check('Und im Eintrag dazu die zwei Blaetterpfeile',
-    /nav \? step\(nav\.prev, ICON_STEP_BACK/.test(kopf)
-    && /nav \? step\(nav\.next, ICON_STEP_FWD/.test(kopf));
+  /* UND SIE TRAEGT KEINE BLAETTERPFEILE MEHR -- 0.28.1, und die Zusage hat sich
+     dabei UMGEDREHT statt zu verschwinden (Stolperstein 201).
+     IN 0.28.0 STANDEN SIE HIER, links und rechts von der Marke. Zwei Pfeile
+     links und rechts von etwas behaupten, das Dazwischenliegende zu blaettern
+     -- und dazwischen stand der Name der INSTALLATION. Der Betreiber hat es am
+     Geraet gemerkt (11.9.2026); sie stehen seither am FUSS des Eintrags.
+     DIE KOPFZEILE TRAEGT DAMIT IN ALLEN VIER UNTERANSICHTEN VIER DINGE, und
+     nicht mehr sechs im Eintrag und vier anderswo. */
+  check('Und KEINE Blaetterpfeile -- die stehen seit 0.28.1 am Fuss des Eintrags',
+    !/ICON_STEP_BACK/.test(kopf) && !/ICON_STEP_FWD/.test(kopf)
+    && !/class="icon-btn step"/.test(kopf));
   /* WAS SIE AUSDRUECKLICH NICHT TRAEGT (F1), und jedes einzeln: der Zaehler
      zaehlt die Uebersicht, „+ Eintrag" gehoert dorthin, wo man anlegt, und die
      Glocke ist eine Auskunft ueber den Bestand. */
@@ -2233,6 +2241,20 @@ const shareMain = (purpose, target = null) =>
   check('Die Suche darin springt zur Uebersicht und sucht nicht in der Ansicht',
     /SEARCH_HANDOFF = true; location\.hash = '#\/';/.test(draht)
     && !/api\('GET', '\/api\/items\?/.test(draht));
+  /* ---- UND SIE STEHT NICHT MEHR UEBERALL -- 0.28.1 ----
+     IM SYSTEMBEREICH AUF KEINEM GERAET: ein Feld ueber den Einstellungen
+     verspricht, IN den Einstellungen zu suchen, und sprang in den Bestand.
+     AM TELEFON AUCH IM EINTRAG NICHT: gemessen kostete es dort 54 Pixel --
+     die Kopfzeile misst 123 px mit ihm und 69 ohne.
+     ZWEI VERSCHIEDENE GRUENDE, ZWEI VERSCHIEDENE ORTE: der eine steht im
+     Aufbau (`searchBox: false`), der andere im Stilblatt. Eine Zusage je
+     Grund. */
+  check('Der Systembereich traegt auf KEINEM Geraet ein Suchfeld',
+    /\$\{subhead\(\{ searchBox: false \}\)\}/.test(appOhneRede));
+  check('Und das Feld steht nur da, wo die Ansicht es zulaesst',
+    /\$\{searchBox \? `<div class="search-box">/.test(kopf));
+  check('Am Telefon faellt es auch aus den uebrigen Unteransichten',
+    /\.subhead \.search-box \{ display: none; \}/.test(cssEng));
   check('Und der Schreibstrich landet danach im Feld der Uebersicht',
     /if \(SEARCH_HANDOFF\) \{[\s\S]{0,200}atElement\('q', el => \{ el\.focus\(\)/.test(appSource));
   check('Und die Marke gilt fuer genau einen Sprung',
@@ -2252,19 +2274,34 @@ const shareMain = (purpose, target = null) =>
      (Stolperstein 47). */
   check('Und kein Feld daneben, das niemand liest',
     !/ordered/.test(nachbarn));
+  /* DER FUSS DES EINTRAGS -- seit 0.28.1 der Ort der beiden Knoepfe. */
+  const fuss = stueck('      const nb = entryNeighbours(id);', '\n  wireSubhead(');
   check('Am Anfang und am Ende sind sie gedaempft und bleiben stehen',
     /at > 0 \? list\[at - 1\]\.id : null/.test(nachbarn)
     && /at < list\.length - 1 \? list\[at \+ 1\]\.id : null/.test(nachbarn)
-    && /id == null \? 'disabled' : ''/.test(kopf));
-  /* SIE VERSCHWINDEN NICHT -- das verschoebe den Titel daneben, und der Titel
-     wanderte beim Blaettern hin und her. */
+    && /target == null \? 'disabled' : ''/.test(fuss));
+  /* SIE VERSCHWINDEN NICHT. Bis 0.28.0 war der Grund, dass ein verschwundener
+     Pfeil den Titel daneben verschoben haette; am Fuss ist es der andere
+     Knopf, der an seine Stelle spraenge. Dieselbe Zusage, derselbe Grund,
+     andere Nachbarschaft. */
   check('Und sie verschwinden nicht, sondern werden gedaempft',
-    /\.subhead \.step:disabled \{ opacity: \.26; cursor: default; \}/.test(cssEng));
+    /\.entry-nav \.step:disabled \{ opacity: \.38; cursor: default; \}/.test(cssEng));
+  /* UND SIE STEHEN AM FUSS UND NICHT IN DER KOPFZEILE -- die Zusage, die 0.28.1
+     umdreht. Ohne sie bliebe „am Anfang gedaempft" auch dann gruen, wenn die
+     Knoepfe wieder nach oben wanderten. */
+  check('Und sie stehen am FUSS des Eintrags, in einer eigenen Reihe',
+    /<div class="entry-nav">/.test(fuss)
+    && /\.entry-nav \{ display: flex; justify-content: space-between;/.test(cssEng));
+  /* KURZ AUF DEM KNOPF, VOLLSTAENDIG IM TITEL -- ein Befund aus dem Augenschein:
+     mit dem vollen Satz lief der zweite Knopf am Telefon aus dem Schirm. */
+  check('Der Knopf traegt das kurze Wort und den vollen Satz im Titel',
+    /title="\$\{esc\(t\(hint\)\)\}"/.test(fuss)
+    && /list\.prevHint/.test(fuss) && /list\.nextHint/.test(fuss));
   check('Die Reihenfolge wird NICHT gespeichert und NICHT am Server gefragt',
     !/sessionStorage/.test(nachbarn) && !/localStorage/.test(nachbarn)
     && !/api\(/.test(nachbarn));
   check('Und der Begriff faehrt beim Blaettern in der Adresse mit',
-    /location\.hash = entryAddress\(\+to, term\)/.test(draht));
+    /location\.hash = entryAddress\(\+to, term\)/.test(appOhneRede));
 
   /* ---- Zusage 7: KEINE Taste blaettert den Eintrag ----
      DER BETREIBER HAT `Bild auf`/`Bild ab` AM 11. SEPTEMBER 2026 GESTRICHEN:
@@ -2278,8 +2315,8 @@ const shareMain = (purpose, target = null) =>
   check('Und die Pfeiltasten bleiben bei den Bildern',
     /e\.key === 'ArrowLeft'/.test(appSource) && /e\.key === 'ArrowRight'/.test(appSource));
   check('Der Wechsel des Eintrags haengt am Klick und nicht an einer Taste',
-    /b\.onclick = \(\) => \{[\s\S]{0,160}location\.hash = entryAddress/.test(draht)
-    && !/keydown[\s\S]{0,200}entryAddress/.test(draht));
+    /b\.onclick = \(\) => \{[\s\S]{0,160}location\.hash = entryAddress/.test(appOhneRede)
+    && !/keydown[\s\S]{0,200}entryAddress/.test(appOhneRede));
   /* ---- Zusage 8: keine Wischgeste ---- */
   check('Es ist keine Wischgeste zum Blaettern angehaengt',
     !/touchstart[\s\S]{0,300}entryAddress/.test(appSource)
@@ -18032,8 +18069,31 @@ const shareMain = (purpose, target = null) =>
     /* 1320 + 2 = 1322 -- die beiden Titel der Blaetterpfeile (0.28.0). Die
        Mehrzahlformen und die Vokabelnamen ruehren sich nicht: ein Pfeil hat
        keine Mehrzahl, und „Uebersicht" ist kein Vokabelwort. */
-    check('Und die Zahlen stehen: 1322 Schluessel, 82 Mehrzahlformen, 14 Vokabelnamen',
-      languageKeys.length === 1322 && pluralKeys.length === 82 && vocabularyKeys.length === 14,
+    /* 0.28.1 -- die Rechnung steht darunter.
+       WEG ZWOELF: die Sortiersaetze, die ihre Richtung im Wort trugen -- zu
+                sechs Grundlagen je ein absteigender und ein aufsteigender Satz.
+       1322 - 12 + 17 = 1327.
+       NEU SIEBZEHN: sieben Richtungswoerter fuer den Umschalter (vier Paare,
+                aber „A → Z" steht allein, weil „Titel" nur eine Richtung
+                kennt -- 4 x 2 - 1 = 7), drei Sortierwoerter ohne Richtung
+                („Zuletzt geaendert", „Durchschnittsnote", „Letzte Note" --
+                die uebrigen vier Grundlagen nehmen ihr Wort aus dem
+                Vokabular), die beiden Titel des Umschalters, die Ueberschrift
+                der Abschnittsliste und die beiden langen Saetze der
+                Blaetterpfeile, und die beiden Ueberschriften des
+                Sortierfeldes.
+       DIE BEIDEN UEBERSCHRIFTEN SIND EIN BEFUND UND KEINE ENTSCHEIDUNG:
+       „Allgemein" und „Verlauf" standen seit jeher als feste Woerter im
+       Quelltext und damit in jeder Sprache deutsch am Bildschirm. Der Umbau
+       des Feldes hat sie freigelegt -- die Restprobe bekam sie erst einzeln zu
+       sehen, als sie aus der langen Vorlage heraustraten.
+       DREI SIND NUR NEU GESCHRIEBEN UND ZAEHLEN DESHALB NICHT MIT: „Titel",
+       „Voriger" und „Naechster" behalten ihren Schluessel und wechseln nur den
+       Wortlaut -- sie stehen in der Wortlautprobe weiter unten.
+       DIE MEHRZAHLFORMEN UND DIE VOKABELNAMEN RUEHREN SICH NICHT: eine Richtung
+       hat keine Mehrzahl, und „hoch → niedrig" ist kein Vokabelwort. */
+    check('Und die Zahlen stehen: 1327 Schluessel, 82 Mehrzahlformen, 14 Vokabelnamen',
+      languageKeys.length === 1327 && pluralKeys.length === 82 && vocabularyKeys.length === 14,
       `${languageKeys.length} / ${pluralKeys.length} / ${vocabularyKeys.length}`);
 
     /* ---- 3. Die Adressprobe ---------------------------------------------
@@ -18241,10 +18301,30 @@ const shareMain = (purpose, target = null) =>
        seinen (`list.backToList`), und die Kopfzeile leiht sich alles andere
        von der Uebersicht. */
     const WORDING_NEW_0280 = ['list.prevInList', 'list.nextInList'];
+    /* UND FUENFZEHN MIT 0.28.1, und sie kommen aus zwei Umbauten:
+       SIEBEN RICHTUNGSWOERTER und ZWEI TITEL fuer den Umschalter neben dem
+              Sortierfeld. Die Richtung stand vorher IM Eintrag („Titel (A →
+              Z)"); jetzt steht sie daneben und ist anklickbar. Vier Paare
+              decken alle sieben Grundlagen -- „A → Z" hat kein Gegenstueck,
+              weil „Titel" nur eine Richtung kennt.
+       DREI SORTIERWOERTER ohne Richtung: „Zuletzt geaendert",
+              „Durchschnittsnote", „Letzte Note". Die anderen vier Grundlagen
+              nehmen ihr Wort aus dem Vokabular und brauchen keinen Schluessel.
+       EINE UEBERSCHRIFT fuer die Abschnittsliste im Eintrag.
+       ZWEI LANGE SAETZE fuer die Blaetterpfeile: die Knopfwoerter sind kurz
+              geworden, damit die Leiste auf ein Telefon passt, und der ganze
+              Satz steht seither im `title` daneben. */
+    const WORDING_NEW_0281 = ['card.sections',
+      'list.dirNewOld', 'list.dirOldNew', 'list.dirAZ',
+      'list.dirHighLow', 'list.dirLowHigh', 'list.dirManyFew', 'list.dirFewMany',
+      'list.sortChanged', 'list.sortAvg', 'list.sortLast',
+      'list.sortFlip', 'list.sortOneWay',
+      'list.prevHint', 'list.nextHint',
+      'list.sortGroupGeneral', 'list.sortGroupHistory'];
     const WORDING_NEW = [...WORDING_NEW_0243, ...WORDING_NEW_0244,
       ...WORDING_NEW_0245, ...WORDING_NEW_0246, ...WORDING_NEW_0250,
       ...WORDING_NEW_0254, ...WORDING_NEW_0260, ...WORDING_NEW_0270,
-      ...WORDING_NEW_0280];
+      ...WORDING_NEW_0280, ...WORDING_NEW_0281];
     const wordingMissing = WORDING_NEW.filter(k => LANGUAGE_FILE[k] === undefined);
     check('Die neuen Schluessel dieser Runde stehen wirklich in der Datei',
       wordingMissing.length === 0, wordingMissing.join(' ') || 'alle da');
@@ -18358,6 +18438,46 @@ const shareMain = (purpose, target = null) =>
     }
     check('Und card.setByAdmin steht in keiner der drei Dateien mehr',
       goneAdmin.length === 0, goneAdmin.join(' ') || 'in allen dreien weg');
+    /* UND ZWOELF FALLEN MIT 0.28.1 -- sechs Grundlagen mit je einem
+       absteigenden und einem aufsteigenden Satz. Sie sind weg, weil die
+       Richtung nicht mehr im Satz steht: aus zwei Eintraegen „{potenzial}
+       (hoch → niedrig)" und „{potenzial} (niedrig → hoch)" ist EIN Eintrag
+       „{potenzial}" plus ein Umschalter geworden, der „hoch → niedrig" sagt.
+       SECHS UND NICHT SIEBEN: „Titel" hatte nie ein Gegenstueck, und sein
+       Schluessel bleibt deshalb stehen -- nur sein Wortlaut verliert die
+       Klammer. Er steht weiter unten bei den geaenderten Saetzen. */
+    const WORDING_GONE_0281 = ['list.sortChangedAsc', 'list.sortChangedDesc',
+      'list.sortRatingAsc', 'list.sortRatingDesc',
+      'list.sortPotentialAsc', 'list.sortPotentialDesc',
+      'list.sortDaysAsc', 'list.sortDaysDesc',
+      'list.sortAvgAsc', 'list.sortAvgDesc',
+      'list.sortLastAsc', 'list.sortLastDesc'];
+    const goneStill8 = [];
+    for (const code of ['de', 'en', 'tr']) {
+      const file = JSON.parse(fs.readFileSync(
+        path.join(__dirname, 'public', 'languages', `${code}.json`), 'utf8'));
+      for (const k of WORDING_GONE_0281) if (file[k] !== undefined) goneStill8.push(`${code}/${k}`);
+    }
+    check('Und die zwoelf Schluessel, die 0.28.1 wegnimmt, stehen in keiner Datei mehr',
+      goneStill8.length === 0, goneStill8.join(' ') || 'alle zwoelf weg');
+    /* IHR WORTLAUT WIRD AUS DEM STAND VON DAMALS ABGEZOGEN, wie bei den Runden
+       davor. ZWOELF WERTE FUER ZWOELF SCHLUESSEL -- keiner ist ein
+       Mehrzahlpaar, eine Sortierung gibt es nur einmal.
+       DIE PLATZHALTER TRAGEN HIER IHRE DEUTSCHEN NAMEN, weil der Stand von
+       damals sie so kennt: die Rueckdrehung trifft nur die Liste von heute. */
+    const WORDING_GONE_TEXT_0281 = [
+      "Zuletzt geändert (neu → alt)",
+      "Zuletzt geändert (alt → neu)",
+      "{bewertungEinzahl} (hoch → niedrig)",
+      "{bewertungEinzahl} (niedrig → hoch)",
+      "{potenzial} (hoch → niedrig)",
+      "{potenzial} (niedrig → hoch)",
+      "{zeitpunktMehrzahl} (viele → wenige)",
+      "{zeitpunktMehrzahl} (wenige → viele)",
+      "Durchschnittsnote (hoch → niedrig)",
+      "Durchschnittsnote (niedrig → hoch)",
+      "Letzte Note (hoch → niedrig)",
+      "Letzte Note (niedrig → hoch)"];
     check('Und der Schluessel, den diese Runde wegnimmt, steht wirklich nicht mehr da',
       LANGUAGE_FILE['card.restoreIcon'] === undefined,
       JSON.stringify(LANGUAGE_FILE['card.restoreIcon']));
@@ -18395,7 +18515,8 @@ const shareMain = (purpose, target = null) =>
        verglichen wird, ist der Stand von 0681d42 OHNE ihn gegen den Stand von
        heute ohne die dreizehn plus acht neuen. */
     const wordingThen = [...WORDING_GONE_0244, ...WORDING_GONE_TEXT_0254,
-      ...WORDING_GONE_TEXT_0260, ...WORDING_GONE_TEXT_0270]
+      ...WORDING_GONE_TEXT_0260, ...WORDING_GONE_TEXT_0270,
+      ...WORDING_GONE_TEXT_0281]
       .reduce((list, sentence) => withoutOne(list, sentence), [...wordingFile.values]).sort();
     const wordingNow = valuesOf(wordingOld).map(asBefore).sort();
     const onlyThen = wordingThen.filter(x => !wordingNow.includes(x));
@@ -18404,8 +18525,12 @@ const shareMain = (purpose, target = null) =>
        `login.linkValidMinutes` sind zu Mehrzahlpaaren geworden, und ein Paar
        zaehlt flach zweimal. Aus zwei Saetzen werden vier -- alles andere ist
        Satz fuer Satz dasselbe. */
+    /* 1213 WURDEN 1201 -- 0.28.1, und AUF BEIDEN SEITEN sind es zwoelf
+       weniger: die zwoelf Sortiersaetze fallen aus der Datei von heute und
+       werden gleichzeitig aus dem Stand von damals abgezogen. Der Abstand
+       zwischen beiden Listen bleibt deshalb bei zwei. */
     check('Wortlautprobe: zwei Saetze mehr als bei der Abnahme, und beide sind Mehrzahlpaare',
-      wordingNow.length === wordingThen.length + 2 && wordingNow.length === 1213,
+      wordingNow.length === wordingThen.length + 2 && wordingNow.length === 1201,
       `${wordingThen.length} damals, ${wordingNow.length} heute (ohne die ` +
       `${WORDING_NEW.length} neuen und die fuenf weggenommenen)`);
     /* ZWEI SAETZE SIND ANDERE, UND BEIDE SIND BENANNT.
@@ -18461,14 +18586,30 @@ const shareMain = (purpose, target = null) =>
        Fassungen waeren ein zweiter Schluessel in drei Sprachen und eine
        Abfrage nach dem Geraet, die von da an mitgepflegt werden muesste. */
     const WORDING_CHANGED_0280 = ['entry.addMediaHint'];
+    /* UND EINER MIT 0.28.1: `list.sortTitle` verliert seine Klammer. „Titel
+       (A → Z)" wird „Titel" -- die Richtung steht seit dieser Runde am
+       Umschalter daneben und nicht mehr im Eintrag.
+       ER STEHT NICHT IN `onlyNow`, UND DAS IST KEIN FEHLER: „Titel" gibt es
+       in der Datei schon, es ist die Ueberschrift der Titelspalte
+       (`list.title`). Der Satz ist also nicht NEU dazugekommen, sondern
+       DOPPELT geworden -- und eine Liste mit `includes` kann ein zweites
+       Vorkommen nicht sehen. Die Zeile darunter fragt ihn deshalb von der
+       anderen Seite: der ALTE Wortlaut muss verschwunden sein. Das Doppelte
+       selbst wird beim Rest weiter unten namentlich abgezogen. */
+    const WORDING_CHANGED_0281 = ['list.sortTitle'];
     const CHANGED_PLURAL_0254 = ['card.inDays', 'login.linkValidMinutes'];
     const pluralValues = CHANGED_PLURAL_0254
       .flatMap(k => Object.values(LANGUAGE_FILE[k])).map(asBefore);
     /* ZWOELF UND VIERZEHN SEIT 0.28.0 -- einer mehr auf jeder Seite, und es
        ist derselbe Satz: der alte Wortlaut von `entry.addMediaHint` steht nur
        noch in der Abnahme, der neue nur noch in der Datei. */
-    check('Und genau zwoelf Saetze sind andere — die elf von vorher und der eine aus 0.28.0',
-      onlyThen.length === 12 && onlyNow.length === 14 &&
+    /* DREIZEHN UND VIERZEHN SEIT 0.28.1 -- einer mehr auf der Seite von
+       damals und keiner hier: „Titel (A → Z)" ist verschwunden, und „Titel"
+       stand schon da (siehe WORDING_CHANGED_0281). */
+    check('Und genau dreizehn Saetze sind andere — die zwoelf von vorher und der eine aus 0.28.1',
+      onlyThen.length === 13 && onlyNow.length === 14 &&
+      onlyThen.includes('Titel (A → Z)') &&
+      WORDING_CHANGED_0281.every(k => !onlyNow.includes(asBefore(LANGUAGE_FILE[k]))) &&
       WORDING_CHANGED_0280.every(k => onlyNow.includes(asBefore(LANGUAGE_FILE[k]))) &&
       WORDING_CHANGED_0270.every(k => onlyNow.includes(asBefore(LANGUAGE_FILE[k]))) &&
       WORDING_CHANGED_0243.every(k => onlyNow.includes(asBefore(LANGUAGE_FILE[k]))) &&
@@ -18485,10 +18626,20 @@ const shareMain = (purpose, target = null) =>
     /* UND SONST KEIN ZEICHEN. Die eine Ausnahme wird aus BEIDEN Listen
        genommen, und was bleibt, muss Satz fuer Satz dasselbe sein -- nicht
        „ungefaehr gleich viele", sondern derselbe Wortlaut. */
+    /* UND EIN SATZ WIRD ZUSAETZLICH ABGEZOGEN -- 0.28.1, und zwar aus der
+       Liste von HEUTE. „Titel" steht dort seit dieser Runde ZWEIMAL: einmal
+       als Ueberschrift der Spalte, einmal als Sortierwort. Beide Listen sind
+       Satz fuer Satz gleich, sobald das zweite Vorkommen weg ist -- und es
+       muss NAMENTLICH weg, sonst deckte ein `length`-Vergleich hier jede
+       kuenftige Doppelung zu.
+       ER GEHT DURCH `withoutOne` UND NICHT DURCH `filter`: das erste „Titel"
+       soll ja bleiben. */
+    const WORDING_DOUBLED_0281 = ['Titel'];
     const restThen = onlyThen.reduce(withoutOne, wordingThen);
-    const restNow = onlyNow.reduce(withoutOne, wordingNow);
+    const restNow = WORDING_DOUBLED_0281.reduce(withoutOne,
+      onlyNow.reduce(withoutOne, wordingNow));
     check('Und sonst kein Zeichen — Satz fuer Satz dieselbe Oberflaeche',
-      equal(restThen, restNow) && restNow.length === 1199,
+      equal(restThen, restNow) && restNow.length === 1186,
       `${restThen.filter((x, i) => x !== restNow[i]).length} abweichende von ${restNow.length}`);
 
     /* ---- 6. Die Kuerzeprobe ---------------------------------------------
@@ -26327,7 +26478,15 @@ const shareMain = (purpose, target = null) =>
      SIE SIND DIE TEUERSTE HAELFTE DER RUNDE, und die Zahl steht hier
      ausdruecklich: eine Gegenprobe, die still verschwindet, nimmt eine Zusage
      mit, die niemand mehr belegt. */
-  check('Es sind genau 844 Rueckbauten', gpList.length === 844, `${gpList.length}`);
+  /* 844 + 15 = 859 -- die Gegenproben von 0.28.1, nummeriert von 854 bis 868.
+     FUENFZEHN UND NICHT SIEBZEHN: die Zusagen 4 bis 8 (die Kopfzeile, das
+     Blaettern, das Suchfeld) sind mit 0.28.0 gekommen und haben ihre
+     Rueckbauten seither. Diese Runde hat sie UMGEDREHT und nicht neu gemacht,
+     und ein zweiter Rueckbau auf dieselbe Zeile belegte nichts, was der erste
+     nicht schon belegt. Zusage 17 haelt das Wegeverzeichnis mit den seinen.
+     FUENF VON IHNEN ZIEHEN MIT (613, 614, 806, 833, 835): sie zeigen auf die
+     Zeilen, die dieselbe Sache jetzt tragen (Stolperstein 201). */
+  check('Es sind genau 859 Rueckbauten', gpList.length === 859, `${gpList.length}`);
   const gpTwice = gpList.map(r => r.nr).filter((n, i, a) => a.indexOf(n) !== i);
   check('Und keine Nummer steht zweimal', gpTwice.length === 0, gpTwice.join(' '));
   /* JEDER GREIFT: der Suchtext kommt in seiner Datei GENAU EINMAL vor. Keinmal
@@ -29803,8 +29962,19 @@ async function checkUi() {
     textList.includes('Geprüft') && textList.includes('Ungeprüft'));
   check('Filterbeschriftung bleibt generisch',
     textList.includes('Status') && !textList.includes('Teststatus'));
+  /* MITGEZOGEN MIT 0.28.1 (Stolperstein 201): die Richtung haengt nicht mehr am
+     Eintrag, sondern am Umschalter daneben -- aus „Sitzungen (viele → wenige)"
+     ist „Sitzungen" geworden. Die Aussage bleibt dieselbe: die Sortierliste
+     nennt die Zeitpunkte mit dem WORT DES BETREIBERS und die Note daneben.
+     GEFRAGT WIRD JETZT DAS FELD UND NICHT DER SEITENTEXT: „Sitzungen" steht
+     ohne die Richtung dahinter auch auf jeder Karte („2 Sitzungen"), und eine
+     Zusage ueber den ganzen Text waere damit gruen geblieben, selbst wenn die
+     Sortierliste das Vorgabewort zurueckbekaeme. */
+  const sortWorte = [...w2.document.querySelectorAll('#f-sort option')]
+    .map(o => `${o.value}=${o.textContent}`);
   check('Sortierung nennt Zeitpunkte und Note',
-    textList.includes('Sitzungen (viele → wenige)') && textList.includes('Letzte Note'));
+    sortWorte.includes('tests=Sitzungen') && sortWorte.includes('testlast=Letzte Note'),
+    JSON.stringify(sortWorte));
   check('Karte zaehlt Zeitpunkte in der Mehrzahl', textList.includes('2 Sitzungen'));
 
   // Abmelden setzt die Schriftgroesse zurueck
@@ -41794,9 +41964,17 @@ async function checkUi() {
   check('Und sucht damit',
     awDom.sent.some(g => g.url === '/api/items?q=bosch'),
     JSON.stringify(awDom.sent.filter(g => String(g.url).startsWith('/api/items?q=')).map(g => g.url)));
+  /* MITGEZOGEN MIT 0.28.1 (Stolperstein 201): die gespeicherte Ansicht traegt
+     weiter `title_asc` -- die Schreibweise hat sich NICHT geaendert --, und
+     die Leiste zeigt sie seit dieser Runde an zwei Stellen. „Titel" kennt nur
+     eine Richtung; der Umschalter sagt sie und steht gedaempft daneben. */
   check('Und die Sortierung steht auf der gespeicherten',
-    aw.document.getElementById('f-sort').value === 'title_asc',
-    aw.document.getElementById('f-sort').value);
+    aw.document.getElementById('f-sort').value === 'title'
+    && aw.document.getElementById('f-sort-dir').textContent === 'A → Z'
+    && aw.document.getElementById('f-sort-dir').disabled === true,
+    `${aw.document.getElementById('f-sort').value} · ` +
+    `${aw.document.getElementById('f-sort-dir').textContent} · ` +
+    `${aw.document.getElementById('f-sort-dir').disabled}`);
   check('Und der Knopf ist danach als geltend markiert',
     awPill().classList.contains('on'), awPill().className);
   check('Und das Kreuz zum Leeren steht da, weil ein Begriff im Feld steht',
@@ -41871,8 +42049,10 @@ async function checkUi() {
     ag.document.querySelectorAll('.card-title').length === 6,
     `${ag.document.querySelectorAll('.card-title').length} Karten`);
   check('Und die uebrige Stellung der Ansicht gilt trotzdem',
-    ag.document.getElementById('f-sort').value === 'title_asc',
-    ag.document.getElementById('f-sort').value);
+    ag.document.getElementById('f-sort').value === 'title'
+    && ag.document.getElementById('f-sort-dir').textContent === 'A → Z',
+    `${ag.document.getElementById('f-sort').value} · ` +
+    `${ag.document.getElementById('f-sort-dir').textContent}`);
   ag.close();
 
   /* ---------------------------------------------------------------- */
@@ -43215,8 +43395,20 @@ async function checkUi() {
   // hinaus, statt sich zu teilen.
   check('Die Zeile bricht weiterhin um',
     /flex-wrap: wrap/.test(obFrow[0] || ''), obFrow[0] || '(keine Regel)');
-  check('Der schmale Schirm behaelt seine eigene Anordnung',
-    /flex-direction: column/.test(obFrow[1] || ''), obFrow[1] || '(keine Regel)');
+  /* UMGEDREHT MIT 0.28.1 UND NICHT GELOESCHT (Stolperstein 74). Der schmale
+     Schirm hat seit 0.12.1 seine eigene Anordnung, und das ist geblieben --
+     nur ist es nicht mehr die SPALTE. Eine Spalte gab jeder Beschriftung eine
+     eigene Zeile; gemessen am Telefon des Betreibers waren fuenf davon 90
+     Pixel Schrift und 69 Pixel Abstand, ZWEIUNDVIERZIG PROZENT des Kastens.
+     Ein Raster mit `auto` in der ersten Spalte stellt die Beschriftung wieder
+     DANEBEN und nimmt nur, was das laengste Wort braucht.
+     DIE AUSSAGE BLEIBT DIESELBE: der schmale Schirm ordnet anders an als der
+     breite. GEFRAGT WIRD AUCH DAS GEGENTEIL -- ohne „keine Spalte mehr" bliebe
+     die Zeile gruen, wenn jemand beides nebeneinander stehen liesse. */
+  check('Der schmale Schirm behaelt seine eigene Anordnung — seit 0.28.1 ein Raster',
+    /display: grid/.test(obFrow[1] || '')
+    && /grid-template-columns: auto minmax\(0, 1fr\)/.test(obFrow[1] || '')
+    && !/flex-direction: column/.test(obFrow[1] || ''), obFrow[1] || '(keine Regel)');
   /* KEIN NACHGEBESSERTER INNENABSTAND. Der naheliegende zweite Weg waere
      `align-items: flex-start` plus ein Innenabstand, der den Groessenunterschied
      zwischen Beschriftung und Pille ausgleicht -- also eine ausgerechnete Zahl.
@@ -44261,17 +44453,20 @@ async function checkUi() {
     /* --- Die Sortierung --- */
     const zkSort = zkUeb.w.document.getElementById('f-sort');
     const zkValues = [...zkSort.options].map(o => o.value);
-    check('Das Auswahlfeld traegt die beiden neuen Eintraege',
-      zkValues.includes('potential_desc') && zkValues.includes('potential_asc'),
+    /* MITGEZOGEN MIT 0.28.1 (Stolperstein 201): die Richtung ist kein Eintrag
+       der Liste mehr, sondern ein Umschalter daneben -- aus `potential_desc`
+       und `potential_asc` ist EIN Eintrag `potential` geworden. Die Zusage
+       prueft dieselbe Sache: das Potenzial steht im Feld, an der richtigen
+       Stelle, mit seinem Wort aus dem Vokabular. */
+    check('Das Auswahlfeld traegt den neuen Eintrag',
+      zkValues.includes('potential'),
       JSON.stringify(zkValues));
-    check('Und sie stehen direkt hinter den beiden Bewertungseintraegen',
-      zkValues.indexOf('potential_desc') === zkValues.indexOf('rating_asc') + 1 &&
-      zkValues.indexOf('potential_asc') === zkValues.indexOf('potential_desc') + 1,
+    check('Und er steht direkt hinter dem Bewertungseintrag',
+      zkValues.indexOf('potential') === zkValues.indexOf('rating') + 1,
       JSON.stringify(zkValues));
-    check('Und sie tragen das Wort aus dem Vokabular',
-      [...zkSort.options].find(o => o.value === 'potential_desc')?.textContent
-        === 'Potenzial (hoch → niedrig)',
-      JSON.stringify([...zkSort.options].find(o => o.value === 'potential_desc')?.textContent));
+    check('Und er traegt das Wort aus dem Vokabular -- ohne Richtung',
+      [...zkSort.options].find(o => o.value === 'potential')?.textContent === 'Potenzial',
+      JSON.stringify([...zkSort.options].find(o => o.value === 'potential')?.textContent));
     const zkTitle = () => [...zkUeb.w.document.querySelectorAll('.card-title')].map(t => t.textContent);
     /* UMGEDREHT MIT 0.21.1 UND NICHT GELOESCHT (Stolperstein 74). Die
        Potenzialsortierung gibt seit dieser Runde „Ungetestet" vor: „Geprueft"
@@ -44282,16 +44477,34 @@ async function checkUi() {
        DIE VORGABE SELBST BEKOMMT DABEI IHRE EIGENE ZEILE, sonst bliebe die
        gekuerzte Liste unerklaert und ein Fehler in der Ableitung saehe aus wie
        eine Sortierung. */
-    zkSort.value = 'potential_desc'; zkSort.onchange();
+    /* MITGEZOGEN MIT 0.28.1 (Stolperstein 201): die Richtung wird nicht mehr im
+       Auswahlfeld GEWAEHLT, sondern am Umschalter daneben GEKLICKT. Die Zusagen
+       darunter fragen dieselbe Sache wie vorher -- was die Sortierung mit den
+       Eintraegen ohne Zahl macht.
+       BEIDE BEDIENELEMENTE WERDEN JEDESMAL NEU GELESEN: ein Zug zeichnet die
+       ganze Leiste neu, und die Knoten von vorhin haengen danach nicht mehr in
+       der Seite. Eine festgehaltene Fassung antwortete zwar noch, aber sie
+       antwortete ueber eine Leiste, die niemand mehr sieht. */
+    const zkFeld = () => zkUeb.w.document.getElementById('f-sort');
+    const zkDir = () => zkUeb.w.document.getElementById('f-sort-dir');
+    zkFeld().value = 'potential'; zkFeld().onchange();
     await new Promise(r => setTimeout(r, 60));
     check('Nach Potenzial sortiert stehen nur noch die Ungetesteten da — 0.21.1',
       equal(zkTitle(), ['Idee', 'Blanko']), JSON.stringify(zkTitle()));
     check('Nach Potenzial absteigend stehen Eintraege ohne Zahl hinten',
       zkTitle()[zkTitle().length - 1] === 'Blanko', JSON.stringify(zkTitle()));
-    zkSort.value = 'potential_asc'; zkSort.onchange();
+    /* DER UMSCHALTER SAGT DIE KONKRETE RICHTUNG und nicht „absteigend“. Stuende
+       dort das falsche Wortpaar, zeigte der Knopf eine andere Richtung an als
+       die, die gerade gilt -- und der Klick darunter drehte etwas um, das der
+       Leser nie gesehen hat. */
+    check('Und der Umschalter daneben nennt die geltende Richtung — 0.28.1',
+      zkDir().textContent === 'hoch → niedrig', JSON.stringify(zkDir().textContent));
+    zkDir().click();
     await new Promise(r => setTimeout(r, 60));
     check('Und aufsteigend ebenfalls',
       zkTitle()[zkTitle().length - 1] === 'Blanko', JSON.stringify(zkTitle()));
+    check('Und der Umschalter nennt danach die andere Richtung — 0.28.1',
+      zkDir().textContent === 'niedrig → hoch', JSON.stringify(zkDir().textContent));
     zkUeb.w.close();
   }
 
@@ -47145,12 +47358,39 @@ async function checkUi() {
   };
   // Die Sortierung wird ueber ihr eigenes Bedienelement gestellt und nicht
   // ueber eine zweite gebaute Lage: nur so ist der WECHSEL geprueft.
+  /* MITGEZOGEN MIT 0.28.1 (Stolperstein 201): eine Sortierung wird seit dieser
+     Runde an ZWEI Bedienelementen eingestellt -- die Grundlage im Auswahlfeld,
+     die Richtung am Umschalter daneben. Der Helfer nimmt weiter die
+     GESPEICHERTE Schreibweise (`potential_asc`), weil die Zusagen darunter
+     ueber sie reden, und teilt sie selbst auf. Haette stattdessen jede
+     Aufrufstelle die Aufteilung gemacht, stuende dieselbe Zerlegung
+     fuenfundzwanzigmal da.
+     DIE RICHTUNG WIRD GEKLICKT UND NICHT GESETZT: sie haengt am Knopf, und ein
+     gesetztes Feld allein liesse den Umschalter stehen, wo er war.
+     ER WIRD NACH DEM ZUG NEU GESUCHT -- `redraw()` zeichnet die ganze Leiste
+     neu, und der Knopf von vorhin haengt danach nicht mehr in der Seite.
+     GEDAEMPFT HEISST: DIESE GRUNDLAGE HAT NUR EINE RICHTUNG. Ein Klick darauf
+     taete nichts, und `title_asc` gibt es nicht -- deshalb wird er uebergangen
+     und nicht erzwungen. */
   const ksSort = async (d, value) => {
     const sel = d.w.document.getElementById('f-sort');
-    if (sel) { sel.value = value; sel.onchange(); }
+    if (!sel) return false;
+    sel.value = String(value).replace(/_(desc|asc)$/, '');
+    sel.onchange();
     await new Promise(r => setTimeout(r, 50));
-    return !!sel;
+    if (String(value).endsWith('_asc')) {
+      const dir = d.w.document.getElementById('f-sort-dir');
+      if (dir && !dir.disabled) { dir.click(); await new Promise(r => setTimeout(r, 50)); }
+    }
+    return true;
   };
+  /* WAS DIE LEISTE GERADE ANZEIGT, an BEIDEN Stellen und als EIN Satz.
+     ZUSAMMENGESETZT WIRD HIER NICHT ZU `potential_desc`: das waere die Formel
+     aus `applySort()` ein zweites Mal (Stolperstein 47), und sie stuende dann
+     im Gegenstand und in der Zusage zugleich. Gelesen wird, was am Bildschirm
+     steht -- die Grundlage im Feld und die Richtung als Wort daneben. */
+  const ksShown = (d) => `${d.w.document.getElementById('f-sort')?.value}`
+    + ` · ${d.w.document.getElementById('f-sort-dir')?.textContent}`;
   const ksSetting = (d, start = 0) => {
     const put = d.sent.slice(start).filter(x => x.method === 'PUT' && x.url === '/api/settings');
     return put[put.length - 1]?.body?.filters || null;
@@ -47226,8 +47466,8 @@ async function checkUi() {
        `tested: 'all'` koennte den Unterschied nicht zeigen (Stolperstein 224). */
     const d = await ksBuild({ ...ksDefault, tested: 'tested', sort: 'constructor' });
     check('Ein Sortierwert vom Prototyp gibt keine Vorgabe her',
-      !d.w.document.getElementById('f-status-woher'),
-      d.w.document.getElementById('f-status-woher')?.textContent);
+      !d.w.document.getElementById('f-status-from'),
+      d.w.document.getElementById('f-status-from')?.textContent);
     check('Und er nimmt der gespeicherten Wahl nichts weg',
       equal(ksTitle(d), ['Geprüft gut', 'Geprüft mau']), JSON.stringify(ksTitle(d)));
     d.w.close();
@@ -47260,8 +47500,7 @@ async function checkUi() {
        stellt die Sortierung NICHT um. Zwei Bedienelemente, die sich gegenseitig
        verstellen, sind ein Kreis (Stolperstein 312). */
     check('Ein Klick auf eine Statuspille laesst die Sortierung stehen',
-      d.w.document.getElementById('f-sort')?.value === 'potential_asc',
-      d.w.document.getElementById('f-sort')?.value);
+      ksShown(d) === 'potential · niedrig → hoch', ksShown(d));
     d.w.close();
   }
 
@@ -47315,7 +47554,7 @@ async function checkUi() {
     check('Ein frisch gebautes Fenster mit derselben Stellung zeigt dieselbe Menge wie vorher',
       equal(ksTitle(d), ['Idee schwach', 'Idee stark']), JSON.stringify(ksTitle(d)));
     check('Und die Handwahl des anderen Fensters wirkt nicht nach',
-      !!d.w.document.getElementById('f-status-woher'),
+      !!d.w.document.getElementById('f-status-from'),
       '(kein Wort — die Ableitung greift nicht)');
     d.w.close();
   }
@@ -47337,8 +47576,7 @@ async function checkUi() {
       JSON.stringify([...d.w.document.querySelectorAll('#filters .pill')].map(b => b.textContent)));
     await ksClickable(d, view);
     check('Sie stellt ihre Sortierung wirklich ein',
-      d.w.document.getElementById('f-sort')?.value === 'potential_desc',
-      d.w.document.getElementById('f-sort')?.value);
+      ksShown(d) === 'potential · hoch → niedrig', ksShown(d));
     check('Und ihr „alles anzeigen" schlaegt die Vorgabe der Sortierung',
       equal(ksTitle(d), ksAll), JSON.stringify(ksTitle(d)));
     // UND SIE GILT WEITER ALS DIE AKTIVE ANSICHT -- eine Ableitung, die sich
@@ -47368,15 +47606,14 @@ async function checkUi() {
     check('Nach dem Zuruecksetzen folgt der Status wieder der Sortierung',
       equal(ksTitle(d), ['Idee schwach', 'Idee stark']), JSON.stringify(ksTitle(d)));
     check('Und die Sortierung selbst bleibt dabei stehen',
-      d.w.document.getElementById('f-sort')?.value === 'potential_desc',
-      d.w.document.getElementById('f-sort')?.value);
+      ksShown(d) === 'potential · hoch → niedrig', ksShown(d));
     // UND DER KNOPF IST DANACH WEG: die Ruhestellung ist wieder erreicht, und
     // ein Knopf, der nichts mehr zu tun hat, steht nicht da.
     check('Und danach ist der Ruecksetzer selbst wieder weg',
       !d.w.document.getElementById('filter-zurueck'),
       d.w.document.getElementById('filter-zurueck')?.textContent);
     check('Und das Wort steht wieder neben den Pillen',
-      !!d.w.document.getElementById('f-status-woher'), '(kein Wort)');
+      !!d.w.document.getElementById('f-status-from'), '(kein Wort)');
     d.w.close();
   }
 
@@ -47384,7 +47621,7 @@ async function checkUi() {
      Ein unsichtbarer Automatismus ist ein Fehler, auch wenn er richtig raet. */
   {
     const d = await ksBuild({ ...ksDefault, sort: 'potential_desc' });
-    const word = d.w.document.getElementById('f-status-woher');
+    const word = d.w.document.getElementById('f-status-from');
     check('Neben den Statuspillen steht, woher die Stellung kommt',
       word?.textContent === 'folgt der Sortierung', JSON.stringify(word?.textContent));
     check('Und es ist eine zweite Beschriftung ohne eigene Spalte',
@@ -47426,9 +47663,9 @@ async function checkUi() {
     check('Anklickbar bleibt sie', derived?.disabled !== true, String(derived?.disabled));
     await ksClickable(d, derived);
     check('Und ein Klick darauf ist eine Handwahl und beendet die Vorgabe',
-      !d.w.document.getElementById('f-status-woher') &&
+      !d.w.document.getElementById('f-status-from') &&
       ksPill(d, 'Ungetestet')?.classList.contains('on'),
-      `${d.w.document.getElementById('f-status-woher')?.textContent} · ${ksPill(d, 'Ungetestet')?.className}`);
+      `${d.w.document.getElementById('f-status-from')?.textContent} · ${ksPill(d, 'Ungetestet')?.className}`);
     d.w.close();
   }
   {
@@ -47436,8 +47673,8 @@ async function checkUi() {
     // dasteht, ist dieselbe Auskunft ueber nichts wie eine Null am Zaehler.
     const d = await ksBuild({ ...ksDefault, sort: 'updated_desc' });
     check('Ohne Ableitung steht das Wort nicht da',
-      !d.w.document.getElementById('f-status-woher'),
-      d.w.document.getElementById('f-status-woher')?.textContent);
+      !d.w.document.getElementById('f-status-from'),
+      d.w.document.getElementById('f-status-from')?.textContent);
     check('Und eine von Hand gesetzte Pille zeichnet sich wie immer',
       ksPill(d, 'Alle')?.classList.contains('on') &&
       !ksPill(d, 'Alle')?.classList.contains('pill-derived'),
@@ -47454,10 +47691,10 @@ async function checkUi() {
        Neuzeichnen ueberhaupt im Spiel (Stolperstein 308). */
     const d = await ksBuild({ ...ksDefault, sort: 'updated_desc' });
     check('Der Aufbau steht: vorher steht kein Wort da',
-      !d.w.document.getElementById('f-status-woher'), '(das Wort steht schon da)');
+      !d.w.document.getElementById('f-status-from'), '(das Wort steht schon da)');
     await ksSort(d, 'potential_desc');
     check('Nach dem Wechsel der Sortierung steht das Wort da',
-      !!d.w.document.getElementById('f-status-woher'), '(kein Wort)');
+      !!d.w.document.getElementById('f-status-from'), '(kein Wort)');
     check('Und die abgeleitete Pille ist mitgezogen',
       ksPill(d, 'Ungetestet')?.classList.contains('pill-derived'),
       ksPill(d, 'Ungetestet')?.className);
@@ -47506,6 +47743,380 @@ async function checkUi() {
       JSON.stringify(d.w.document.querySelector('#filter-toggle .fcount')?.textContent));
     d.w.close();
   }
+
+  /* ================= Die acht Reparaturen — 0.28.1 ====================== */
+  group('Die Sortierung trennt Grundlage und Richtung — 0.28.1');
+
+  /* DER BEFUND KAM VOM GERAET (Android, Samsung S21G, Chrome, 11.9.2026): die
+     aufgeklappte Sortierliste fuellte den ganzen Schirm, und 0.28.0 hat daran
+     nichts geaendert. Chrome auf Android zeichnet die Auswahl als EIGENEN
+     Systemdialog mit Systemschrift -- die `font-size` des Feldes erreicht ihn
+     nicht. GEGEN DEN DIALOG HILFT NUR, IHN KUERZER ZU MACHEN.
+     DREI EINTRAEGE MIT DREI VERSCHIEDENEN ZAHLEN JE SORTIERUNG, und keine
+     zwei Sortierungen ergeben dieselbe Folge: waeren zwei gleich, bliebe eine
+     vertauschte Zuordnung gruen. */
+  /* DREI EINTRAEGE, SECHS SORTIERUNGEN, SECHS VERSCHIEDENE FOLGEN -- und das
+     sind zugleich ALLE sechs Anordnungen, die drei Dinge haben. Die Zahlen
+     sind daraufhin gewaehlt und nicht der Reihe nach vergeben: beim ersten
+     Lauf liefen „Zuletzt geaendert" und „Bewertung" auf dieselbe Folge
+     hinaus, und damit haette eine vertauschte Zuordnung der beiden gruen
+     bleiben koennen. */
+  const soInventory = [
+    //                                        Bew  Pot  Tage  Schnitt  Letzte
+    { id: 1, title: 'Alpha', rejected: false, tested: true, favorite: false, category: null,
+      tags: [], mainPhoto: null, photoCount: 0, linkCount: 0, avgRating: 3, potentialRating: 3,
+      testCount: 2, testAvg: 4, testLast: 4, testDays: [], updated_at: '2026-01-01 10:00:00' },
+    { id: 2, title: 'Beta', rejected: false, tested: true, favorite: false, category: null,
+      tags: [], mainPhoto: null, photoCount: 0, linkCount: 0, avgRating: 1, potentialRating: 2,
+      testCount: 6, testAvg: 2, testLast: 6, testDays: [], updated_at: '2026-02-02 10:00:00' },
+    { id: 3, title: 'Gamma', rejected: false, tested: true, favorite: false, category: null,
+      tags: [], mainPhoto: null, photoCount: 0, linkCount: 0, avgRating: 2, potentialRating: 1,
+      testCount: 4, testAvg: 6, testLast: 2, testDays: [], updated_at: '2026-03-03 10:00:00' }
+  ];
+  /* DIE FOLGE UND NICHT DIE MENGE: hier wird NICHT sortiert gelesen. Genau die
+     Reihenfolge ist der Gegenstand dieser Gruppe. */
+  const soOrder = (d) => [...d.w.document.querySelectorAll('.card .card-title')]
+    .map(e => e.textContent);
+  const soField = (d) => d.w.document.getElementById('f-sort');
+  const soDir = (d) => d.w.document.getElementById('f-sort-dir');
+  const soValues = (d) => [...(soField(d)?.options || [])].map(o => o.value);
+
+  /* DAS STILBLATT OHNE SEINE ERKLAERUNGEN -- die Absaetze dieser Runde nennen
+     jede Regel, die sie ersetzt, woertlich. Eine Zusage ueber den rohen Text
+     faende sie dort wieder.
+     UND DER WAEHLER WIRD GANZ GELESEN UND NICHT NUR SEIN ENDE: ein Ausdruck,
+     der „.star {" sucht, findet auch den Schluss von „.stars .star {" -- und
+     zaehlt dann VIER Regeln, wo zwei stehen. Davor muss deshalb eine Klammer
+     stehen, und sie wird VORAUSGESCHAUT und nicht mitgegessen: ein Anker, der
+     die schliessende Klammer der vorigen Regel verbraucht, ueberspringt jede
+     zweite (derselbe Fund wie beim Raster der Kriterienliste weiter oben). */
+  const soCss = css123.replace(/\/\*[\s\S]*?\*\//g, ' ');
+  const soRegeln = (waehler) => soCss.match(
+    new RegExp('(?<=[{}])\\s*' + waehler.replace(/\./g, '\\.') + ' \\{[^}]*\\}', 'g')
+  )?.map(r => r.trim()) || [];
+
+  /* DER POTENZIALMODUS IST AN: ohne ihn fehlte der siebte Eintrag, und „genau
+     sieben" waere eine Zusage ueber sechs. */
+  const soBuild = async () => {
+    const d = buildDom(JSDOM, { overviewItems: soInventory,
+      settings: { potentialMode: true,
+        filters: { categoryIds: [], tagIds: [], tagMode: 'and', tested: 'all',
+                   rejected: 'all', favorite: false, sort: 'updated_desc' } } });
+    await new Promise(r => setTimeout(r, 90));
+    /* DIE HANDWAHL WIRD GESETZT, BEVOR SORTIERT WIRD. Seit 0.21.1 gibt die
+       Sortierung den Statusfilter vor: „Bewertung" zeigt nur Getestete,
+       „Potenzial" nur Ungetestete. Fuer eine Zusage ueber die REIHENFOLGE
+       muessen in jeder Lage dieselben drei Eintraege dastehen -- ein Klick auf
+       „Alle" ist die ausdrueckliche Wahl, die das haelt. */
+    const alle = [...d.w.document.querySelectorAll('#filters .pill')]
+      .find(b => b.textContent.trim() === 'Alle');
+    alle?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
+    await new Promise(r => setTimeout(r, 60));
+    return d;
+  };
+
+  /* ---- Zusage 1: genau sieben Eintraege, namentlich ---- */
+  {
+    const d = await soBuild();
+    check('Der Aufbau steht: alle drei Eintraege sind da',
+      soOrder(d).length === 3, JSON.stringify(soOrder(d)));
+    /* NAMENTLICH UND NICHT GEZAEHLT: „sieben Eintraege" bliebe gruen, wenn
+       jemand die Bewertung gegen eine achte Sortierung tauscht. */
+    check('Das Sortierfeld traegt genau sieben Eintraege — namentlich',
+      equal(soValues(d), ['updated', 'title', 'rating', 'potential',
+                          'tests', 'testavg', 'testlast']),
+      soValues(d).join(' '));
+    /* ---- Zusage 2: die Richtung steht in einem eigenen Bedienelement ---- */
+    check('Die Richtung steht in einem eigenen Bedienelement daneben',
+      !!soDir(d) && soDir(d).tagName === 'BUTTON'
+      && !!soField(d) && soDir(d).closest('.sort-pair') === soField(d).closest('.sort-pair'),
+      soDir(d) ? soDir(d).outerHTML.slice(0, 120) : '(kein Umschalter)');
+    /* UND IN KEINER EINZIGEN OPTION -- weder im WERT noch im WORT. Die eine
+       Frage allein genuegt nicht: ein Wert ohne Endung mit „(hoch → niedrig)"
+       im Wort waere dieselbe lange Liste mit anderer Schreibweise. */
+    const soWords = [...(soField(d)?.options || [])].map(o => o.textContent);
+    check('Und in keiner Option — weder im Wert noch im Wort',
+      !soValues(d).some(v => /_(desc|asc)$/.test(v))
+      && !soWords.some(w => /→/.test(w)),
+      `${soValues(d).join(' ')} · ${soWords.join(' | ')}`);
+    /* UND ER SAGT DIE KONKRETE RICHTUNG und nicht „absteigend": „neu → alt"
+       bei der Aenderung, „hoch → niedrig" bei der Bewertung. Ein Wort, das
+       fuer alle sieben dasselbe waere, sagte an keiner Stelle, was geschieht. */
+    check('Und er nennt die konkrete Richtung und nicht „absteigend"',
+      soDir(d)?.textContent === 'neu → alt', JSON.stringify(soDir(d)?.textContent));
+    d.w.close();
+  }
+
+  /* ---- Zusage 3: jede der sieben laesst sich in beide Richtungen fahren ----
+     GEFAHREN UND NICHT GELESEN: eine Zusage, die nur den Aufbau ansieht,
+     bliebe gruen, wenn der Umschalter dasteht und die Richtung nirgends
+     ankommt. Hier wird jede Sortierung gewaehlt, die Liste gelesen, der
+     Umschalter gedrueckt und die Liste noch einmal gelesen.
+     VIERZEHN LAGEN AN EINEM FENSTER und nicht vierzehn Fenster: genau der
+     WECHSEL ist der Gegenstand. */
+  {
+    const d = await soBuild();
+    const soSechs = ['updated', 'rating', 'potential', 'tests', 'testavg', 'testlast'];
+    const soAb = {}, soAuf = {};
+    for (const key of soSechs) {
+      if (soField(d)) { soField(d).value = key; soField(d).onchange(); }
+      await new Promise(r => setTimeout(r, 50));
+      soAb[key] = soOrder(d);
+      soDir(d)?.click();
+      await new Promise(r => setTimeout(r, 50));
+      soAuf[key] = soOrder(d);
+      /* ZURUECK IN DIE ABSTEIGENDE LAGE, damit die naechste Grundlage von
+         derselben Stellung aus anfaengt -- die Richtung bleibt beim Wechsel
+         der Grundlage stehen, und ohne diesen Zug maesse die naechste Runde
+         etwas anderes als die vorige. */
+      soDir(d)?.click();
+      await new Promise(r => setTimeout(r, 50));
+    }
+    /* JEDE LAGE IST EINDEUTIG: drei verschiedene Zahlen, also drei
+       verschiedene Plaetze. Eine Sortierung, die zwei Eintraege gleich
+       einordnet, koennte ihre Gegenrichtung nicht belegen. */
+    check('Jede der sechs zweiseitigen Sortierungen ordnet alle drei Eintraege',
+      soSechs.every(k => soAb[k].length === 3 && new Set(soAb[k]).size === 3),
+      JSON.stringify(soAb));
+    /* UND DIE GEGENRICHTUNG IST DIE UMGEKEHRTE FOLGE -- nicht „eine andere":
+       „irgendwie anders" bliebe gruen, wenn der Umschalter auf eine dritte
+       Sortierung umlegt. */
+    const soKehrt = soSechs.filter(k => equal([...soAb[k]].reverse(), soAuf[k]));
+    check('Und der Umschalter dreht jede von ihnen wirklich um',
+      soKehrt.length === 6,
+      soSechs.map(k => `${k}: ${soAb[k].join('>')} / ${soAuf[k].join('>')}`).join(' · '));
+    /* UND KEINE ZWEI VON IHNEN ORDNEN GLEICH. Ohne diese Zeile belegte die
+       Zusage darueber nur, dass sich ETWAS dreht -- sechs Sortierungen, die
+       alle dieselbe Folge ergaeben, waeren eine Sortierung mit sechs Namen. */
+    check('Und keine zwei von ihnen ergeben dieselbe Folge',
+      new Set(soSechs.map(k => soAb[k].join('>'))).size === 6,
+      soSechs.map(k => `${k}: ${soAb[k].join('>')}`).join(' · '));
+    /* DIE SIEBTE HAT NUR EINE RICHTUNG, und das ist die Entscheidung des
+       Betreibers zu F5 (11.9.2026): „Titel Z → A" waere eine FUNKTION und die
+       Runde damit MINOR statt PATCH. Der Sonderfall ist SICHTBAR -- der
+       Umschalter steht gedaempft daneben -- und nicht versteckt.
+       GEDAEMPFT UND NICHT WEG: ein Knopf, der verschwindet, laesst die Zeile
+       springen, sobald jemand die Sortierung wechselt. */
+    if (soField(d)) { soField(d).value = 'title'; soField(d).onchange(); }
+    await new Promise(r => setTimeout(r, 50));
+    const soTitel = soOrder(d);
+    check('Die siebte ordnet nach Titel, aufsteigend',
+      equal(soTitel, ['Alpha', 'Beta', 'Gamma']), JSON.stringify(soTitel));
+    check('Und ihr Umschalter steht DA und ist gedaempft',
+      !!soDir(d) && soDir(d).disabled === true && soDir(d).textContent === 'A → Z',
+      `${soDir(d)?.textContent} · disabled=${soDir(d)?.disabled}`);
+    /* UND EIN DRUCK DARAUF TUT NICHTS. Ohne diese Zeile bliebe gruen, wer den
+       Knopf nur grau FAERBT und ihn trotzdem schalten laesst -- dann stuende
+       `title_desc` in der gespeicherten Stellung, und das gibt es nicht. */
+    soDir(d)?.click();
+    await new Promise(r => setTimeout(r, 50));
+    check('Und ein Druck darauf aendert nichts',
+      equal(soOrder(d), soTitel) && soDir(d)?.textContent === 'A → Z',
+      `${soOrder(d).join('>')} · ${soDir(d)?.textContent}`);
+    /* UND DER GESPEICHERTE WERT BLEIBT DIE ALTE SCHREIBWEISE. `f.sort` heisst
+       weiter `title_asc` -- gespeicherte Ansichten aus 0.28.0 gelten
+       unveraendert weiter, und der Server sieht keinen Unterschied.
+       GEPRUEFT AM GESENDETEN RUMPF: was die Oberflaeche INTERN haelt, ist
+       ihre Sache; was hinausgeht, ist die Zusage. */
+    const soPut = d.sent.filter(x => x.method === 'PUT' && x.url === '/api/settings');
+    check('Und der gespeicherte Wert traegt weiter die alte Schreibweise',
+      soPut[soPut.length - 1]?.body?.filters?.sort === 'title_asc',
+      JSON.stringify(soPut[soPut.length - 1]?.body?.filters?.sort));
+    d.w.close();
+  }
+
+  /* ---- Zusage 15 und 16: der Filterkasten ----
+     GEMESSEN AM GERAET (390 x 844, aufgeklappte Filter, fuenfzehn Eintraege,
+     drei Kategorien): der Kasten misst 378 px, davon 90 px Beschriftungen und
+     69 px Abstaende -- ZWEIUNDVIERZIG PROZENT sind Geruest und nicht
+     Bedienung. Die erste Kachel beginnt bei y = 590 von 844.
+     ZWEI HEBEL, UND KEINER DAVON SIND DIE PILLEN (Betreiber, 11.9.2026, F10).
+     EINE HOEHE LAESST SICH IN jsdom NICHT MESSEN -- dort hat nichts eine
+     Hoehe. Gepruefet wird deshalb, WAS die Hoehe macht: die beiden Hebel, jeder
+     einzeln und namentlich. */
+  {
+    const soSchmal = soRegeln('.frow')[1] || '';
+    /* ERSTER HEBEL: DIE BESCHRIFTUNG STEHT WIEDER DANEBEN. Bis 0.28.0 wurde
+       die Zeile am schmalen Schirm zur SPALTE, und jede Beschriftung kostete
+       eine eigene Zeile -- fuenfmal 18 px. */
+    check('Erster Hebel: die Beschriftung steht am Telefon wieder NEBEN der Reihe',
+      /display: grid/.test(soSchmal)
+      && /grid-template-columns: auto minmax\(0, 1fr\)/.test(soSchmal),
+      soSchmal || '(keine Regel)');
+    check('Und Beschriftung und Reihe stehen in verschiedenen Spalten',
+      /\.frow > \.eyebrow, \.frow > \.eyebrow-with \{ grid-column: 1;/.test(soCss)
+      && /\.frow > \.pills, \.frow > \.select, \.frow > \.sort-pair \{ grid-column: 2;/.test(soCss),
+      '(die Spaltenzuweisung fehlt)');
+    /* UND WAS ZU KEINEM PAAR GEHOERT, SPANNT UEBER BEIDE. Stuenden der Vermerk
+       „folgt der Sortierung", der Und/Oder-Umschalter und die Verweise in
+       Spalte eins, waeren sie so schmal wie das laengste Beschriftungswort. */
+    check('Und was zu keinem Paar gehoert, spannt ueber beide Spalten',
+      /\.frow > #f-status-from, \.frow > \.frow-right, \.frow > \.tagmode \{ grid-column: 1 \/ -1; \}/.test(soCss),
+      '(die Spanne fehlt)');
+    /* ZWEITER HEBEL: DIE REIHEN ROLLEN QUER, STATT UMZUBRECHEN. Eine
+       Kategoriereihe mit fuenf Pillen mass umgebrochen 77 px und misst in
+       einer Zeile 35. OHNE ROLLBALKEN -- er naehme die Hoehe wieder weg, die
+       die Zeile gerade gewonnen hat. */
+    check('Zweiter Hebel: die Reihen rollen quer, statt umzubrechen',
+      /\.frow > \.pills:not\(\.cloud\) \{ flex-wrap: nowrap; overflow-x: auto;/.test(soCss),
+      '(die Reihen brechen weiter um)');
+    check('Und ohne Rollbalken, der die gewonnene Hoehe wieder naehme',
+      /scrollbar-width: none/.test(soCss)
+      && /\.frow > \.pills:not\(\.cloud\)::-webkit-scrollbar \{ display: none; \}/.test(soCss),
+      '(ein Rollbalken steht da)');
+    /* DIE WOLKE IST AUSGENOMMEN. Sie hat ihr eigenes „mehr", und das misst die
+       Zeilenhoehe an der ersten Marke -- eine Reihe, die nicht umbricht, hat
+       keine zweite Zeile zu verbergen. */
+    check('Und die Markenwolke ist ausdruecklich ausgenommen',
+      /:not\(\.cloud\)/.test(soCss)
+      && /\.frow > \.pills\.cloud \{ flex: 0 1 auto; \}/.test(soCss),
+      '(die Wolke rollt mit)');
+    /* ---- Zusage 16: die Pillen bleiben, wie sie sind ----
+       SIE SIND NICHT DAS PROBLEM: gemessen machen sie 33 Prozent des Kastens
+       aus, Beschriftungen und Abstaende 42. Sie stehen seit 0.28.0 bei 35 px,
+       und kleiner wird am Finger schwierig. */
+    check('Und die Pillen messen unveraendert weiter — sie waren nicht das Problem',
+      /\.pill \{ padding: 7px 13px; \}/.test(soCss),
+      soRegeln('.pill').join(' || ') || '(keine Regel)');
+  }
+
+  /* ---- Zusage 9: die Sterne werden filigraner ----
+     BEFUND DES BETREIBERS (11.9.2026): „die sterne koennten auch etwas
+     filigraner werden. auch die nehmen recht viel platz weg." Bei sieben
+     Kriterien standen rund 350 Pixel Bewertung auf dem Schirm.
+     BEIDE MASSE IN EINER ZUSAGE: kleiner als vorher UND groesser als am
+     Zeiger. Nur die eine Haelfte zu fragen hiesse, den Stern entweder gar
+     nicht zu verkleinern oder ihn auf das Zeigermass zu setzen -- und ein
+     Stern ist ein ZIEL und kein Zeichen: man tippt darauf. */
+  {
+    const soRegeln = (waehler) => soCss.match(
+      new RegExp('(?<=[{}])\\s*' + waehler.replace(/\./g, '\\.') + ' \\{[^}]*\\}', 'g')
+    )?.map(r => r.trim()) || [];
+    const soStern = soRegeln('.star');
+    check('Der Stern hat zwei Masse: eines am Zeiger, eines am Finger',
+      soStern.length === 2, soStern.join(' || ') || '(keine Regel)');
+    check('Am Zeiger steht er unveraendert auf 1.2rem',
+      /font-size: 1\.2rem/.test(soStern[0] || ''), soStern[0] || '(keine Regel)');
+    /* KLEINER ALS DIE 1.45rem VON VORHER UND GROESSER ALS DIE 1.2rem DES
+       ZEIGERS -- gerechnet und nicht abgeschrieben: eine Zahl, die dasteht,
+       kann man vertauschen; eine, die zwischen zwei anderen liegen muss,
+       nicht. */
+    const soRem = Number(((soStern[1] || '').match(/font-size: ([\d.]+)rem/) || [])[1]);
+    check('Am Finger ist er kleiner als vorher und groesser als am Zeiger',
+      soRem > 1.2 && soRem < 1.45, `${soRem}rem`);
+    check('Und seine Polsterung ist mitgegangen — 3px statt 5px',
+      /\.stars \.star \{ padding: 3px 4px; \}/.test(soCss),
+      soRegeln('.stars .star').join(' || ') || '(keine Regel)');
+  }
+
+  /* ---- Zusage 12 und 13: die Titelzeile dehnt sich ----
+     DER BEFUND: „der stern ist nicht an der rechten seite sondern irgendwie
+     links vom rechten seite" (Betreiber, 11.9.2026). Gemessen war `.detail`
+     366 px breit und `.title-head` darin 278 -- der Stern stand buendig rechts
+     in einer Zeile, die 88 Pixel zu kurz war.
+     DIE URSACHE IST EIN WERT, DER DIE BAUFORM WECHSELT: `align-items: start`
+     heisst im RASTER „Spalten oben ausrichten" und ist dort richtig. Am
+     Telefon wird `.detail` zu einer flexiblen SPALTE -- und dort heisst
+     derselbe Wert „Kinder nicht auf volle Breite dehnen".
+     DIE SORTE IST GEFAEHRLICH: der Wert steht richtig da, wo er geschrieben
+     wurde, und wird falsch, wo die Anzeigeart wechselt. Am Schreibtisch ist
+     nichts zu sehen. */
+  {
+    const soRegeln = (waehler) => soCss.match(
+      new RegExp('(?<=[{}])\\s*' + waehler.replace(/\./g, '\\.') + ' \\{[^}]*\\}', 'g')
+    )?.map(r => r.trim()) || [];
+    const soDetail = soRegeln('.detail');
+    check('Am Schreibtisch bleibt der Eintrag ein Raster mit `align-items: start`',
+      /display: grid/.test(soDetail[0] || '') && /align-items: start/.test(soDetail[0] || ''),
+      soDetail[0] || '(keine Regel)');
+    const soFlex = soDetail.find(r => /flex-direction: column/.test(r)) || '';
+    check('Am Telefon wird er eine Spalte — und dehnt seine Kinder ausdruecklich',
+      /align-items: stretch/.test(soFlex) && !/align-items: start/.test(soFlex),
+      soFlex || '(keine Telefonregel)');
+    /* ---- Zusage 14: die tote Regel faellt ----
+       `.back` ist mit 0.28.0 gefallen; die eine Zeile im Telefonabschnitt ist
+       stehengeblieben und traf nichts mehr. Eine Regel ohne Traeger bleibt
+       nicht stehen.
+       GEFRAGT WIRD DER WAEHLER UND NICHT DER TEXT: der Absatz hier nennt die
+       Klasse woertlich, und eine Zusage ueber das rohe Stilblatt faende sie
+       dort wieder. */
+    check('Und die tote Regel `.back` steht nirgends mehr im Stilblatt',
+      !/(?:^|[ ,{}])\.back[ ,{:]/.test(soCss),
+      (soCss.match(/[^{}]*\.back[^{}]*\{[^}]*\}/g) || []).join(' || ') || '(keine)');
+  }
+
+  /* ---- Zusage 10 und 11: die Abschnittsliste klappt ein ----
+     GEMESSEN (390 px): die Reiterliste misst 241 px bei fuenf Abschnitten, und
+     die erste Karte beginnt bei y = 480 von 844 -- 57 Prozent des Schirms sind
+     Bedienung, bevor die erste Auskunft dasteht.
+     DIESELBE BAUFORM WIE DER FILTERSCHALTER DER UEBERSICHT (F9) und kein
+     zweites Muster: ein Knopf darueber, der den Namen des offenen Abschnitts
+     traegt.
+     DIE BREITE WIRD GESTELLT UND NICHT GERATEN: jsdom hat keine, und
+     `matchMedia` antwortet dort auf jede Frage mit „nein". Beide Lagen werden
+     deshalb ausdruecklich gebaut -- dieselbe Frage, die auch das Stilblatt
+     stellt. */
+  {
+    const soSys = async (schmal) => {
+      const d = buildDom(JSDOM, {});
+      await new Promise(r => setTimeout(r, 60));
+      d.w.matchMedia = () => ({ matches: schmal, addEventListener() {}, addListener() {} });
+      await sysSection(d.w, 'inventory');
+      return d;
+    };
+    const soEng = await soSys(true);
+    const soKnopf = soEng.w.document.getElementById('sys-toggle');
+    const soReiter = soEng.w.document.getElementById('sys-tabs');
+    check('Ueber den Abschnitten steht ein Schalter', !!soKnopf && !!soReiter,
+      soKnopf ? '(Reiter fehlen)' : '(kein Schalter)');
+    /* UND ER SAGT, WAS DAHINTERSTECKT. Eine Liste, die ohne Auskunft
+       eingeklappt dasteht, ist derselbe Fehler wie ein Filter ohne Zahl:
+       niemand sieht, wo er gerade ist. */
+    check('Und er traegt den Namen des offenen Abschnitts',
+      soKnopf?.querySelector('.fcount')?.textContent === 'Bestand',
+      JSON.stringify(soKnopf?.querySelector('.fcount')?.textContent));
+    check('Am Telefon steht die Liste eingeklappt da',
+      soReiter?.classList.contains('closed')
+      && soKnopf?.getAttribute('aria-expanded') === 'false',
+      `${soReiter?.className} · ${soKnopf?.getAttribute('aria-expanded')}`);
+    soKnopf?.dispatchEvent(new soEng.w.MouseEvent('click', { bubbles: true }));
+    check('Ein Druck holt sie hervor',
+      !soReiter?.classList.contains('closed')
+      && soKnopf?.getAttribute('aria-expanded') === 'true',
+      `${soReiter?.className} · ${soKnopf?.getAttribute('aria-expanded')}`);
+    soKnopf?.dispatchEvent(new soEng.w.MouseEvent('click', { bubbles: true }));
+    check('Und der naechste legt sie wieder weg',
+      soReiter?.classList.contains('closed'), soReiter?.className);
+    soEng.w.close();
+    /* ---- Zusage 11: am Schreibtisch unveraendert ----
+       Ohne die Frage nach der Breite saesse ein breites Fenster vor
+       eingeklappten Abschnitten und haette keinen sichtbaren Knopf, sie zu
+       oeffnen -- der Schalter selbst steht dort im Stilblatt auf
+       `display: none`. */
+    const soBreit = await soSys(false);
+    check('Am Schreibtisch steht die Liste unveraendert offen',
+      !soBreit.w.document.getElementById('sys-tabs')?.classList.contains('closed'),
+      soBreit.w.document.getElementById('sys-tabs')?.className);
+    soBreit.w.close();
+    /* UND DER SCHALTER STEHT NUR AM TELEFON DA. Er ist im Baum, aber das
+       Stilblatt zeigt ihn erst am Finger -- dieselbe Bauform wie beim
+       Filterschalter der Uebersicht. */
+    check('Und der Schalter selbst steht nur am Telefon da',
+      /\.sys-toggle \{ display: none;/.test(soCss)
+      && /\.sys-toggle \{ display: inline-flex; \}/.test(soCss)
+      && /\.sys-tabs\.closed \{ display: none; \}/.test(soCss),
+      soRegeln('.sys-toggle').join(' || ') || '(keine Regel)');
+  }
+
+  /* ---- Zusage 17 STEHT HIER NICHT ----
+     „`F_ROUTES` bleibt bei 72, die lesenden bei 31" ist die siebzehnte Zusage
+     des Auftrags, und sie wird NICHT hier noch einmal aufgeschrieben: das
+     Verzeichnis der schreibenden Wege sagt es bereits, Zeile fuer Zeile und
+     mit derselben Zahl. Eine zweite Zeile daneben waere eine zweite Wahrheit
+     ueber dieselbe Sache (Stolperstein 47) -- und sie liefe beim naechsten Weg
+     von der ersten weg.
+     WO SIE STEHT: in der Gruppe „Die Wege und ihre Klemmen", zusammen mit den
+     Wegen, die sie zaehlt. */
 
   /* ================= Der Potenzialmodus — 0.26.0 ==========================
      EIN SCHALTER, UND ER WIRKT AN FUENF STELLEN. Das ist der ganze Punkt:
@@ -47580,19 +48191,19 @@ async function checkUi() {
        nach etwas Unsichtbarem. */
     const pmSortValues = (d) => [...(d.w.document.getElementById('f-sort')?.options || [])]
       .map(o => o.value);
+    /* MITGEZOGEN MIT 0.28.1: ein Eintrag statt zweier, die Richtung steht
+       daneben. */
     check('Mit Schalter steht die Gruppe im Sortierfeld',
-      pmSortValues(pmOn).includes('potential_desc') &&
-      pmSortValues(pmOn).includes('potential_asc'),
+      pmSortValues(pmOn).includes('potential'),
       pmSortValues(pmOn).join(' '));
     check('Ohne Schalter steht sie nicht da',
-      !pmSortValues(pmOff).includes('potential_desc') &&
-      !pmSortValues(pmOff).includes('potential_asc'),
+      !pmSortValues(pmOff).includes('potential'),
       pmSortValues(pmOff).join(' '));
     /* UND DIE UEBRIGEN SORTIERUNGEN BLEIBEN. Ohne diese Zeile waere „sie
        steht nicht da" auch bei einem leeren Auswahlfeld gruen. */
     check('Und die uebrigen Sortierungen bleiben in beiden Lagen',
-      pmSortValues(pmOff).includes('rating_desc') &&
-      pmSortValues(pmOff).includes('title_asc'),
+      pmSortValues(pmOff).includes('rating') &&
+      pmSortValues(pmOff).includes('title'),
       pmSortValues(pmOff).join(' '));
 
     /* ---- 3. DIE KOPPLUNG (F4) ----------------------------------------
@@ -48593,6 +49204,14 @@ async function checkUi() {
       '(max-width: 700px), (max-height: 500px) and (max-width: 960px)',
       // Stuecke einer Adresse
       '?entries=', '&posts=', '?gruppe=', '&days=', '&target=',
+      /* DIE BEIDEN ENDUNGEN DES GESPEICHERTEN SORTIERWERTES -- 0.28.1. `f.sort`
+         heisst `updated_desc` oder `title_asc`; die Endung wird beim Zeichnen
+         abgeschnitten und beim Waehlen wieder angehaengt. Sie ist eine
+         gespeicherte FORM und kein Satz -- niemand liest sie am Bildschirm,
+         und sie steht in jeder Sprache gleich da.
+         SIE STEHEN ERST SEIT DIESER RUNDE EINZELN DA: bis 0.28.0 lagen sie
+         mitten in der langen Vorlage des Auswahlfeldes. */
+      '_asc', '_desc',
       /* DER NAME EINES HTTP-KOPFES -- 0.24.3, Bauabschnitt 4. Er ist ein
          technischer Name wie ein MIME-Typ und in jeder Sprache derselbe;
          gelesen wird er von keinem Menschen. */
@@ -48617,7 +49236,7 @@ async function checkUi() {
     const missing = REST_EXPECTED.filter(t => !rest.includes(t));
     check('Restprobe: weniger als sechzig lesbare Texte in app.js',
       rest.length < 60, `${rest.length} verschiedene, ${restPlaces.length} Stellen`);
-    check('Und es sind genau die achtundvierzig benannten',
+    check('Und es sind genau die fuenfzig benannten',
       tooMany.length === 0 && missing.length === 0,
       `zu viel: ${tooMany.slice(0, 8).map(t => JSON.stringify(t.slice(0, 40))).join(' · ')} · fehlt: ${missing.slice(0, 8).map(t => JSON.stringify(t.slice(0, 40))).join(' · ')}`);
     // Und der Filter wirft nicht alles weg: ein deutscher Satz geht durch.
