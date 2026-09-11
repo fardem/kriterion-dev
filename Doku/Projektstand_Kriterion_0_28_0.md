@@ -479,7 +479,8 @@ weiterhin offen. Daraus folgt die Stellung von `HINTER_PROXY` (Abschnitt 3).
 ## 2. Betriebsstand
 
 **Gebaut ist 0.28.0** — **6570 Prüfungen**, **844 Rückbauten in der Liste**
-(Abschnitt 8). **Am Wirt läuft 0.27.0, eingespielt am 11. September 2026,
+(Abschnitt 8); *die 29 neuen sind **alle gefahren**, 57 rote Prüfungen,
+**0 STUMM**.* **Am Wirt läuft 0.27.0, eingespielt am 11. September 2026,
 Fingerprint `9f6741b5`** *(Abschnitt 8)* — *vom Betreiber am selben Tag aus
 seiner Installation gemeldet und damit auf das Byte bestätigt.*
 **0.28.0 ist gebaut und noch nicht eingespielt; sein Fingerprint ist

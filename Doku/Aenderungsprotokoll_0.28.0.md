@@ -464,6 +464,32 @@ Visier.*
 | **BA 6** | das Startbildzeichen | **843–846** — ein fester Name · hinter die Anmeldung · ein Arbeiter im Hintergrund · die Seite verweist nicht mehr darauf |
 | **BA 7** | die Dichte | **847–853** — zurück auf das Zeigermaß · der Umschalter bleibt stehen · der Symbolknopf schrumpft mit · `.select` wieder hinein · ein Eingabefeld heraus · das Datumsfeld heraus · die Untergrenze als blanke Zahl |
 
+### Gefahren — alle 29, und **0 STUMM**
+
+**Jeder der 29 Rückbauten hat mindestens eine Zusage NAMENTLICH rot gemacht**;
+zusammen **57 rote Prüfungen**. *Ein STUMM wäre ein Fund gewesen und keiner ist
+dabei.*
+
+| rot | Rückbauten |
+|---|---|
+| **je 1** | 827, 828, 829, 830, 832, 833, 834, 836, 838, 839, 840, 845, 846, 848, 851 |
+| **je 2** | 826, 831, 835, 841, 842, 843, 847, 850, 852 |
+| **3** | **825** |
+| **4** | **849** *(der Symbolknopf schrumpft mit)* |
+| **je 5–6** | **853** *(die Untergrenze als blanke Zahl — sie reißt auch den Wächter „nur noch eine feste Schriftgröße" mit)*, **837** *(zurück auf eine Fensterabfrage — sie reißt die Staffel der Umbruchpunkte mit)*, **844** *(das Manifest hinter der Anmeldung — die ganze Gruppe fällt)* |
+
+> **EINER MUSSTE ZWEIMAL GEBAUT WERDEN, und das gehört ins Papier.** *825 nahm
+> der Vergleichsansicht ihre Kopfzeile und ließ `wireSubhead()` stehen;
+> `document.getElementById('menu')` gab null zurück, und `menu.onclick` warf,
+> **bevor eine einzige Zusicherung lief**.* **Der Bericht sagte „ABGERISSEN"
+> statt eine Zeile rot zu färben — und das belegt nichts** (Stolpersteine 138,
+> 161 und 170).
+>
+> **ER NIMMT JETZT AUFBAU UND ZUSAGEN ZUSAMMEN**, und das ist ohnehin der
+> ehrlichere Rückbau: *„die Ansicht behält ihre alte Zeile" heißt, dass sie die
+> neue Kopfzeile gar nicht kennt — nicht, dass sie eine halbe trägt.* **Neu
+> gefahren: 3 rot.**
+
 ---
 
 ## Der Augenschein
