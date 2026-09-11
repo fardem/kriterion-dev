@@ -3890,9 +3890,10 @@ body.login .login-screen { flex: 1 0 auto; min-height: 0; }
      Der Grund dafuer war gut und ist entfallen: 7,25 em Beschriftungsspalte
      sind auf 366 Pixeln fast ein Drittel der Breite. Ein RASTER mit `auto` in
      der ersten Spalte nimmt nur, was das laengste Wort braucht.
-     ZWEI SPALTEN UND KEINE ZWEI: die Beschriftungen stehen in der ersten, die
-     Reihen in der zweiten, und jedes Paar bekommt von selbst seine eigene
-     Rasterzeile. Was zu keinem Paar gehoert -- der Vermerk „folgt der
+     ZWEI SPALTEN UND KEINE ZEILENANGABEN: die Beschriftungen stehen in der
+     ersten, die Reihen in der zweiten, und jedes Paar bekommt von selbst seine
+     eigene Rasterzeile. Wer die Zeilen mitzaehlte, muesste beim naechsten
+     Filter nachzaehlen. Was zu keinem Paar gehoert -- der Vermerk „folgt der
      Sortierung", der Und/Oder-Umschalter, die Verweise am Zeilenende --, spannt
      ueber beide.
 

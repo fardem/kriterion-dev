@@ -3,7 +3,7 @@
 **Acht Befunde vom laufenden Gerät · gebaut am 11. September 2026 auf 0.28.0
 (`8b205f42`).**
 
-> **FINGERPRINT DIESER RUNDE: `7ab6ae75`** — gerechnet am fertigen Stand,
+> **FINGERPRINT DIESER RUNDE: `432e64ad`** — gerechnet am fertigen Stand,
 > **vor dem Einspielen**.
 >
 > **AUS ZWEI QUELLEN, und die zweite ist eine eigene Rechnung und keine
@@ -11,8 +11,20 @@
 >
 > | Quelle | Wert |
 > |---|---|
-> | Aus dem **Server selbst** gelesen — frisches Datenverzeichnis, über `/api/stats` befragt | **`7ab6ae75`** |
-> | Am Arbeitsbaum nachgerechnet — **dieselben achtzehn Dateien**, die der Handgriff in der README nennt, mit eigenem Code über dieselbe Vorschrift | **`7ab6ae75`** |
+> | Aus dem **Server selbst** gelesen — frisches Datenverzeichnis, über `/api/stats` befragt | **`432e64ad`** |
+> | Am Arbeitsbaum nachgerechnet — **dieselben achtzehn Dateien**, die der Handgriff in der README nennt, mit eigenem Code über dieselbe Vorschrift | **`432e64ad`** |
+>
+> **ER HAT WÄHREND DIESER RUNDE EINMAL GEWECHSELT — wegen ZWEI KOMMENTAREN:**
+>
+> | | |
+> |---|---|
+> | `7ab6ae75` | der Stand, wie er nach dem Bauen dalag |
+> | **`432e64ad`** | nachdem zwei Absätze in `public/app.js` berichtigt waren |
+>
+> *Der eine sagte noch „die Richtung fällt auf absteigend zurück", wo sie seit
+> `dirOf()` auf die EINE Richtung zurückfällt, die die Grundlage kennt; der
+> andere schrieb „Titel" die absteigende Seite zu.* **Ein Kommentar bewegt ihn
+> genauso wie eine Anweisung** — *er hängt an jeder Datei der Liste.*
 >
 > **DIE DRITTE QUELLE FEHLT NOCH, und das steht hier als offener Punkt und
 > nicht als Fußnote:** *0.28.1 ist gebaut und **nicht eingespielt**. Erst die
@@ -140,7 +152,7 @@ wird erst beim Zeichnen und wieder zusammengesetzt beim Wählen.**
 > *Behoben mit `dirOf()`: eine Grundlage mit nur einer Richtung bekommt immer
 > diese. Die Gegenprobe **858** schreibt den Fehler zurück.*
 
-### Zwei Funde nebenbei
+### Drei Funde nebenbei
 
 > **„ALLGEMEIN" UND „VERLAUF" STANDEN ALS FESTE WÖRTER IM QUELLTEXT** — *die
 > beiden Gruppenüberschriften des Sortierfeldes, und damit auf Englisch und auf
@@ -166,6 +178,18 @@ wird erst beim Zeichnen und wieder zusammengesetzt beim Wählen.**
 > **Der Punkt steht als **25** auf dem Sammelblatt** — *mit den sieben Namen,
 > damit sie nicht ein zweites Mal zufällig gefunden werden müssen.* **Nicht
 > mitgegangen, weil diese Runde ein PATCH aus acht benannten Reparaturen ist.**
+
+> **UND FÜNFZEHN DEUTSCHE BEZEICHNER IM NEUEN CODE DIESER RUNDE — von Claude
+> geschrieben und von der Namensprobe gefangen, bevor etwas hinausging.**
+> *`lage`, `gruppen`, `knopf`, `ziel`, `wort`, `pfeil`, `klasse`, `schluessel`,
+> `sortSetzen` und sechs weitere.* **Sie heißen jetzt `picked`, `groups`,
+> `stepBtn`, `target`, `word`, `arrow`, `cls`, `key`, `applySort` und so fort.**
+>
+> *Das ist kein Fund über den Quelltext, sondern einer über das Arbeiten:* **ein
+> Wächter, der bei jedem Lauf dieselbe Regel durchsetzt, nimmt niemandem die
+> Entscheidung ab — er nimmt ihm nur die Möglichkeit, sie zu vergessen.**
+> *F7 ist am 7. September 2026 entschieden worden; diese Runde hätte sie ohne
+> die Namensprobe stillschweigend aufgeweicht.*
 
 ---
 
@@ -326,9 +350,11 @@ Zeile am schmalen Schirm zur **Spalte**, und jede Beschriftung kostete eine
 eigene Zeile.* **Der Grund dafür war gut und ist entfallen:** *7,25 em
 Beschriftungsspalte sind auf 366 Pixeln fast ein Drittel der Breite — ein Raster
 mit `auto` in der ersten Spalte nimmt nur, was das längste Wort braucht.*
-**Zwei Spalten und keine zwei:** *was zu keinem Paar gehört — der Vermerk „folgt
-der Sortierung", der Und/Oder-Umschalter, die Verweise am Zeilenende — spannt
-über beide.*
+**Zwei Spalten und keine Zeilenangaben:** *jedes Paar aus Beschriftung und Reihe
+bekommt von selbst seine eigene Rasterzeile — wer die Zeilen mitzählte, müsste
+beim nächsten Filter nachzählen.* **Was zu keinem Paar gehört** — *der Vermerk
+„folgt der Sortierung", der Und/Oder-Umschalter, die Verweise am Zeilenende* —
+**spannt über beide Spalten.**
 
 **ZWEITER HEBEL: DIE REIHEN ROLLEN QUER, STATT UMZUBRECHEN.** *Eine
 Kategoriereihe mit fünf Pillen maß umgebrochen 77 Pixel und misst in einer Zeile
@@ -351,7 +377,7 @@ steht, sagt die angeschnittene Pille am Rand.* **Die Wolke ist ausgenommen:**
 | | |
 |---|---|
 | **weg: zwölf** | die Sortiersätze, die ihre Richtung im Wort trugen — *zu sechs Grundlagen je ein absteigender und ein aufsteigender Satz* |
-| **neu: siebzehn** | **sieben** Richtungswörter für den Umschalter *(vier Paare, aber „A → Z" steht allein: 4 × 2 − 1)* · **drei** Sortierwörter ohne Richtung · **zwei** Titel des Umschalters · **eine** Überschrift der Abschnittsliste · **zwei** lange Sätze der Blätterpfeile · **zwei** Überschriften des Sortierfeldes *(„Allgemein", „Verlauf" — siehe BA 1)* |
+| **neu: siebzehn** | **sieben** Richtungswörter für den Umschalter *(**drei vollständige Paare** — „neu → alt / alt → neu", „hoch → niedrig / niedrig → hoch", „viele → wenige / wenige → viele" — **und „A → Z" allein**, weil „Titel" nur eine Richtung kennt: 3 × 2 + 1)* · **drei** Sortierwörter ohne Richtung · **zwei** Titel des Umschalters · **eine** Überschrift der Abschnittsliste · **zwei** lange Sätze der Blätterpfeile · **zwei** Überschriften des Sortierfeldes *(„Allgemein", „Verlauf" — siehe BA 1)* |
 | **neu geschrieben: drei** | `list.sortTitle` *(„Titel (A → Z)" → „Titel")*, `list.prevInList` und `list.nextInList` *(„Eins zurück in der Übersicht" → „Voriger")* |
 
 > **EIN SATZ IST NICHT NEU, SONDERN DOPPELT GEWORDEN, und das ist im Prüfstand
@@ -386,6 +412,8 @@ grün.
 | **Die gemeinsame Kopfzeile und das Blättern — 0.28.0** *(umgedreht)* | die Kopfzeile trägt jetzt **vier** Dinge in allen vier Unteransichten; die Knöpfe stehen am **Fuß**; das Suchfeld fällt an zwei Stellen |
 | **Der Sprachwächter** *(nachgezogen)* | 1327 Schlüssel, die zwölf weggefallenen in **allen drei** Dateien, der Wortlaut Satz für Satz |
 | **Die Sortierung gibt den Status vor — 0.21.1** *(mitgezogen)* | dieselben Zusagen, gelesen an **zwei** Bedienelementen statt an einem |
+| **Gespeicherte Ansichten in der Oberfläche** *(mitgezogen)* | eine gespeicherte `title_asc` steht seither als Feld **und** gedämpfter Knopf da |
+| **Der Potenzialmodus — 0.26.0** *(mitgezogen)* | der Eintrag heißt jetzt `potential` und nicht mehr `potential_desc`/`_asc` |
 
 ### Die Sortierung wird GEFAHREN und nicht gelesen
 
@@ -434,6 +462,28 @@ Visier.*
 >
 > **FÜNF ALTE ZIEHEN MIT** *(613, 614, 806, 833, 835)*: *sie zeigen auf die
 > Zeilen, die dieselbe Sache jetzt tragen* **(Stolperstein 201)**.
+
+### Eine Gegenprobe, die den Lauf abriss — und was sie belegt hat
+
+> **RÜCKBAU 856 NIMMT DEN RICHTUNGSUMSCHALTER AUS DER ZEILE.** *Beim ersten Lauf
+> wurde er nicht rot, sondern meldete **ABGERISSEN** — und eine Gegenprobe, die
+> den Lauf abreißt, belegt nichts* (Stolperstein 161).
+>
+> **DER GRUND WAR NICHT DER RÜCKBAU, SONDERN ZWEI ZEILEN, DIE DIESE RUNDE
+> SELBST GESCHRIEBEN HAT.** *In der Gruppe „Gespeicherte Ansichten in der
+> Oberfläche" lasen zwei Zusagen bis dahin `f-sort`.value === 'title_asc'; sie
+> mussten mitgezogen werden, weil die Richtung jetzt am Knopf steht — und beim
+> Mitziehen sind sie als ungeklammertes
+> `getElementById('f-sort-dir').textContent` geschrieben worden.* **Ist der
+> Knopf weg, wirft der Griff**, und zwar bevor irgendeine Zusage etwas sagen
+> konnte. *Der Fehler steckte also im Neugeschriebenen und nicht im Geerbten —
+> das ist die unangenehmere Hälfte.*
+>
+> **JEDER GRIFF IN EINEN NACHBAU IST JETZT GEKLAMMERT**, in der neuen Gruppe wie
+> in den mitgezogenen. *Beim zweiten Lauf hat 856 **zwölf** Zusagen namentlich
+> rot gemacht.* **Der Rückbau war richtig gebaut; der Prüfstand war es nicht** —
+> *und ohne den Rückbau hätte das niemand gemerkt, denn im grünen Lauf steht der
+> Knopf ja da.*
 
 ### Gefahren — GEFAHREN_ZEILE
 

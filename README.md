@@ -1558,6 +1558,12 @@ weitergeben, in einem neuen Fenster öffnen und mit der Zurück-Taste wieder
 verlassen. `#/system` ohne Abschnitt bleibt gültig und löst sich auf den ersten
 sichtbaren auf.
 
+**Auf dem Telefon steht die Abschnittsliste eingeklappt**, hinter einem Knopf,
+der den Namen des offenen Abschnitts trägt — dieselbe Bauform wie der
+Filterschalter der Übersicht. *Ohne ihn waren fünf Reiter 241 Pixel hoch, und
+die erste Karte begann erst bei 57 % des Schirms.* **Am Schreibtisch steht die
+Liste unverändert offen.**
+
 **Der fünfte Abschnitt hieß früher anders, und die alten Adressen führen
 weiter.** `#/system/anlage` und `#/system/instanz` landen beide bei
 „Installation"; ein Lesezeichen von damals führt also nicht ins Leere, und die
@@ -1892,7 +1898,7 @@ stehen.** Er verschwindet nicht — sonst spränge der andere an seine Stelle,
 sobald du an den Rand der Liste kommst.
 
 **Wer einen Eintrag über seine Adresse aufruft oder die Seite neu lädt, hat
-keine Reihenfolge** — dann sind beide Pfeile gedämpft. Die Reihenfolge lebt im
+keine Reihenfolge** — dann sind beide Knöpfe gedämpft. Die Reihenfolge lebt im
 Browser und in dieser Sitzung; sie wird **nicht gespeichert** und **nicht am
 Server nachgefragt**. Eine erfundene Reihenfolge sähe aktiv aus und führte in
 eine Liste, die niemand vor sich hat.

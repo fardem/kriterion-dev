@@ -1214,6 +1214,15 @@ sondern damit derselbe Bericht nicht ein zweites Mal geglaubt wird.
 
 ## 25. Sieben deutsche Bezeichner, die kein Wächter sieht
 
+**Art: Fehler** *(am Wächter, nicht im Betrieb)* **· Einschätzung: empfohlen ·
+Draußen üblich:** *dieselbe Lücke, und niemand hat sie geschlossen.* **Eine
+`id`, die als Text in einer Zuweisung steht, ist für einen Linter eine
+Zeichenfolge wie jede andere** — *ESLints Namensregeln greifen an Bezeichnern,
+Stylelints an Wählern im Stilblatt, und diese `id` ist keines von beidem.*
+**Was draußen üblich ist, ist eine andere Bauform:** *die `id` steht in der
+Vorlage (`id="f-abgelehnt"`), wo ein Leser über das Markup sie findet — genau
+das tut die Gestaltprobe bereits.*
+
 **Woher** — *aus dem Bauen von 0.28.1, am 11. September 2026.* **Nicht aus einer
 Durchsicht, sondern aus einem Zufall:** *eine Stilblattregel dieser Runde musste
 eine `id` beim Namen nennen, und damit bekam die **Gestaltprobe** sie zum ersten
@@ -1269,6 +1278,13 @@ Baum ist weniger verflochten als ein Datenbankfeld.*
 > zufällig gefunden werden müssen.*
 
 ## 26. Zwei feste deutsche Wörter im Sortierfeld — und wie sie durchgerutscht sind
+
+**Art: Fehler** *(am Wächter; die zwei Wörter selbst sind mit 0.28.1 erledigt)*
+**· Einschätzung: empfohlen — nach der Messung · Draußen üblich:** *Werkzeuge
+für Übersetzungen lesen dafür den Syntaxbaum statt den Text* — *in einer
+Vorlage ist jedes Stück zwischen zwei Einsetzstellen ein eigener Textknoten, und
+der steht dort einzeln da.* **Ein Leser, der die Vorlage als EINEN Text
+ansieht, sieht die Stücke nicht** — *und genau das tut die Restprobe heute.*
 
 **Woher** — *aus dem Bauen von 0.28.1, am 11. September 2026, auf demselben Weg
 wie Punkt 25.*

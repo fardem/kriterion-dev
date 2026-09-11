@@ -483,7 +483,7 @@ weiterhin offen. Daraus folgt die Stellung von `HINTER_PROXY` (Abschnitt 3).
 läuft 0.28.0, eingespielt am 11. September 2026, Fingerprint `8b205f42`**
 *(Abschnitt 8)* — *vom Betreiber am selben Tag aus seiner Installation gemeldet
 und damit auf das Byte bestätigt.* **0.28.1 ist gebaut und noch nicht
-eingespielt; sein Fingerprint ist `7ab6ae75`.**
+eingespielt; sein Fingerprint ist `432e64ad`.**
 
 *0.28.1 holt nach, was 0.28.0 nur halb erledigt hat, und richtet, was der
 Betreiber am Gerät gesehen hat — **acht Reparaturen, keine Funktion**.* **Der
@@ -1650,7 +1650,7 @@ Ursache war **eine Datei zu viel** auf dem Wirt (Stolperstein 158).
 
 | Version | Fingerprint | Prüfungen |
 |---|---|---|
-| **0.28.1** | `7ab6ae75` *(gerechnet am 11. September 2026 am fertigen Stand — **vor dem Einspielen**. **Zwei Quellen, ein Wert:** aus dem Server selbst gelesen (frisches Datenverzeichnis, `/api/stats`) und am Arbeitsbaum über dieselben achtzehn Dateien nachgerechnet, mit eigenem Code über dieselbe Vorschrift. **Am Wirt noch nicht gesehen** — die dritte Quelle fehlt, und das steht im Änderungsprotokoll als offener Punkt. Die Runde fasst `public/app.js`, `public/style.css`, die drei Sprachdateien und `package.json` an.)* | **6611** |
+| **0.28.1** | `432e64ad` *(gerechnet am 11. September 2026 am fertigen Stand — **vor dem Einspielen**. **Zwei Quellen, ein Wert:** aus dem Server selbst gelesen (frisches Datenverzeichnis, `/api/stats`) und am Arbeitsbaum über dieselben achtzehn Dateien nachgerechnet, mit eigenem Code über dieselbe Vorschrift. **Am Wirt noch nicht gesehen** — die dritte Quelle fehlt, und das steht im Änderungsprotokoll als offener Punkt. Die Runde fasst `public/app.js`, `public/style.css`, die drei Sprachdateien und `package.json` an. **Er hat einmal gewechselt — von `7ab6ae75`, wegen zweier berichtigter Kommentare in `public/app.js`:** ein Kommentar bewegt ihn genauso wie eine Anweisung.)* | **6611** |
 | **0.28.0** | `8b205f42` *(gerechnet am 11. September 2026 am fertigen Stand — **vor dem Einspielen**, und am selben Tag **vom Betreiber aus der laufenden Installation gemeldet**: **drei Quellen, ein Wert**, und die dritte ist die stärkste — sie belegt, dass das Eingespielte auf das Byte dasselbe ist wie das Gebaute. Die ersten beiden waren der Server selbst (frisches Datenverzeichnis, `/api/stats`) und die eigene Rechnung am Arbeitsbaum über dieselben achtzehn Dateien. Die Runde fasst `server.js`, `public/app.js`, `public/style.css`, `public/index.html`, die drei Sprachdateien und `package.json` an.)* | **6570** |
 | **0.27.0** | `9f6741b5` *(am 10. September 2026 vor dem Einspielen gerechnet, am 11. September 2026 **vom Betreiber aus der laufenden Installation gemeldet** — **drei Quellen, ein Wert, und die dritte ist die stärkste:** sie belegt, dass das Eingespielte dasselbe ist wie das Gebaute. **Er hat während der Runde VIERMAL gewechselt**, dreimal wegen desselben Satzes und einmal wegen eines nachgetragenen Kommentars — ein Kommentar bewegt ihn genauso wie eine Anweisung.)* | **6497** |
 | **0.26.0** | `9ad0be7b` *(gerechnet am 10. September 2026 am fertigen Stand — **vor dem Einspielen**, nach derselben Regel. Die Runde fasst `db.js`, `server.js`, `public/app.js`, `public/style.css`, die drei Sprachdateien und `package.json` an.)* | **6412** |
@@ -5904,10 +5904,12 @@ Bedienung; die Pillen machen 33 Prozent aus.*
   Zeile.* **Der Grund dafür war gut und ist entfallen:** *7,25 em
   Beschriftungsspalte sind auf 366 Pixeln fast ein Drittel der Breite; ein
   Raster mit `auto` in der ersten Spalte nimmt nur, was das längste Wort
-  braucht.* **Was zu keinem Paar gehört** — *der Vermerk „folgt der Sortierung",
-  der Und/Oder-Umschalter, die Verweise am Zeilenende* — **spannt über beide
-  Spalten**; *stünde es in Spalte eins, wäre es so schmal wie das längste
-  Beschriftungswort.*
+  braucht.* **Jedes Paar aus Beschriftung und Reihe bekommt von selbst
+  seine eigene Rasterzeile** — *keine Zeilenangaben; wer die Zeilen mitzählte,
+  müsste beim nächsten Filter nachzählen.* **Was zu keinem Paar gehört** — *der
+  Vermerk „folgt der Sortierung", der Und/Oder-Umschalter, die Verweise am
+  Zeilenende* — **spannt über beide Spalten**; *stünde es in Spalte eins, wäre es
+  so schmal wie das längste Beschriftungswort.*
 - **ZWEITER HEBEL: DIE REIHEN ROLLEN QUER, STATT UMZUBRECHEN.** *Eine
   Kategoriereihe mit fünf Pillen maß umgebrochen 77 Pixel und misst in einer
   Zeile 35.* **Der Gewinn wächst mit dem Bestand.** *Ohne Rollbalken — er nähme
