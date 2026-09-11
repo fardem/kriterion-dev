@@ -8082,10 +8082,19 @@ const REGRESSIONS = [
        Zusage, die nur an renderDetail() haengt, bliebe gruen, wenn
        renderCompare() seine alte Zeile behaelt. Dieser Rueckbau setzt sie an
        der Ansicht zurueck, die am leichtesten vergessen wird. */
+    /* DER ERSTE ANLAUF HAT DEN LAUF ABGERISSEN, und das belegt nichts
+       (Stolpersteine 138, 161 und 170). Er nahm der Ansicht ihre Kopfzeile und
+       liess `wireSubhead()` stehen; `document.getElementById('menu')` gab
+       daraufhin null zurueck, und `menu.onclick = ...` warf, BEVOR eine
+       einzige Zusicherung lief.
+       ER NIMMT DESHALB BEIDES ZUSAMMEN -- den Aufbau UND seine Zusagen. Das
+       ist ohnehin der ehrlichere Rueckbau: „die Ansicht behaelt ihre alte
+       Zeile" heisst, dass sie die neue Kopfzeile gar nicht kennt, und nicht,
+       dass sie eine halbe traegt. */
     nr: '825', name: 'Der Vergleich behaelt seine alte Rueckzeile',
     file: 'public/app.js',
-    search: "  app.innerHTML = `<div class=\"shell\">\n    ${subhead()}\n    <h1 class=\"page-title\">${tH('list.compare')}</h1>",
-    replacement: "  app.innerHTML = `<div class=\"shell\">\n    <a href=\"#/\" class=\"back\">${tH('list.backToList')}</a>\n    <h1 class=\"page-title\">${tH('list.compare')}</h1>",
+    search: "    ${subhead()}\n    <h1 class=\"page-title\">${tH('list.compare')}</h1>\n    <p class=\"hint\" id=\"cmp-hint\" style=\"margin:0 0 ${multipleUsers() ? t('list.px10') : t('list.px20')}\"></p>\n    ${multipleUsers() ? `<div class=\"pills\" id=\"cmp-view\" style=\"margin:0 0 20px\"></div>` : ''}\n    <div class=\"cmp-grid\" id=\"cg\" style=\"grid-template-columns:repeat(auto-fit,minmax(264px,1fr))\"></div>\n  </div>`;\n  wireSubhead();",
+    replacement: "    <a href=\"#/\" class=\"back\">${tH('list.backToList')}</a>\n    <h1 class=\"page-title\">${tH('list.compare')}</h1>\n    <p class=\"hint\" id=\"cmp-hint\" style=\"margin:0 0 ${multipleUsers() ? t('list.px10') : t('list.px20')}\"></p>\n    ${multipleUsers() ? `<div class=\"pills\" id=\"cmp-view\" style=\"margin:0 0 20px\"></div>` : ''}\n    <div class=\"cmp-grid\" id=\"cg\" style=\"grid-template-columns:repeat(auto-fit,minmax(264px,1fr))\"></div>\n  </div>`;",
     expected: 'Die gemeinsame Kopfzeile und das Blaettern — 0.28.0'
   },
   {

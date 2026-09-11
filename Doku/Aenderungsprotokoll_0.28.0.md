@@ -405,7 +405,19 @@ eine Zusage.*
 
 ## Der Prüfstand
 
-**61 neue Zusagen** — *aus 6509 werden **6570**, und alle 6570 sind grün.*
+**73 Zusagen mehr als in 0.27.0 — aus 6497 werden 6570**, und alle 6570 sind
+grün.
+
+> **IM QUELLTEXT STEHEN 65 NEUE `check(`-ZEILEN, VIER SIND WEGGEFALLEN, UND
+> GEFAHREN WERDEN 73 MEHR.** *Der Unterschied sind die Schleifen: die vier
+> Unteransichten werden mit je zwei Zusagen durchgegangen, die drei Sprachen
+> mit je drei.* **Gezählt wird, was läuft, und nicht, was dasteht.**
+>
+> **DIE VIER WEGGEFALLENEN SIND NICHT GELÖSCHT, SONDERN ERSETZT** *(Stolperstein
+> 201)*: *die eine Zusage über die Zoomregel ist in zwei zerfallen — was drin
+> sein muss und was draußen sein muss —, und drei weitere sind umgeschrieben
+> worden, weil sie Kommentare mitlasen statt den Gegenstand.*
+
 Verteilt auf drei Gruppen:
 
 | Gruppe | was sie deckt |
