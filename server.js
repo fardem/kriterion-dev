@@ -50,6 +50,15 @@ sharp.concurrency(Math.max(1, Math.floor(os.cpus().length / 2)));
    der Ableitungen von dort, statt sie ein zweites Mal hinzuschreiben. */
 const { makeVariants, VARIANTS, storeImage, IMAGE_STORES, IMAGE_STORE_DEFAULT, isImageStore } = require('./images');
 const { db, DATA_DIR, DB_FILE, keyFromEnv, keyHex, renumberCriteria, method, searchFold, COLUMNS_0241, VALUES_0241, emailsDoubled } = require('./db');
+/* DERSELBE TREIBER, EIN ZWEITER GRIFF -- 0.29.0, Befund 1. Die Sicherungsprobe
+   oeffnet eine FREMDE Datei, und das geht nur mit einer eigenen Verbindung;
+   `db` aus der Zeile darueber zeigt auf die laufende Datenbank und wird dabei
+   ausdruecklich nicht angefasst.
+   ER STEHT HIER UND NICHT IN DER ROUTE: ein `require` INNERHALB einer Funktion
+   fiele aus dem Fingerprint heraus -- der wird beim Start aus `require.cache`
+   abgeleitet, und was erst beim ersten Klick geladen wird, steht dort noch
+   nicht drin. Der Pruefstand haelt genau das fest. */
+const Database = require('better-sqlite3-multiple-ciphers');
 const auth = require('./auth');
 const mail = require('./mail');
 
@@ -8305,6 +8314,109 @@ app.post('/api/backup/cleanup', ownerOnly,
              cleanup: { ...after,
                            limits: { keep: CLEANUP_KEEP, days: CLEANUP_DAYS },
                            ...cleanupPreview(target.filePath, after.keep, after.days) } });
+});
+
+/* ---- DIE SICHERUNGSPROBE -- 0.29.0, Befund 1 --------------------------
+   EINE SICHERUNG OHNE PROBE IST EINE VERMUTUNG. Die Instanz legt sie ueber
+   `VACUUM INTO` an -- vollstaendig, verschluesselt, mit demselben Schluessel
+   wie die laufende Datenbank. Ob eine BESTIMMTE Datei sich wirklich oeffnen
+   laesst, wusste bis hierher niemand, bis jemand sie zurueckspielte.
+
+   POST UND NICHT GET -- die dreiundsiebzigste schreibende Route (F3). Sie
+   schreibt nichts in den Bestand, aber sie OEFFNET eine fremde Datei und
+   kostet Zeit; ein `GET`, das eine Datenbank aufmacht, laedt zum Nachladen
+   ein. Dieselbe Ueberlegung wie bei POST /api/token/check, das auch nur
+   liest.
+
+   DIE NUMMER GEHT UEBER DIE LEITUNG UND NICHT DER DATEINAME (F22). Die Liste
+   in der Karte nummeriert von der juengsten (1) zur aeltesten, und genau diese
+   Nummer kommt zurueck. KEIN WEG DIESER INSTANZ NIMMT EINEN DATEINAMEN
+   ENTGEGEN -- das ist in 0.20.0 fuer das Loeschen entschieden worden
+   (Stolperstein 300), und eine Probe, die es anders haelt, risse das Loch
+   wieder auf, gegen das dort gebaut wurde.
+   AUFGELOEST WIRD MIT backupList(), DERSELBEN FUNKTION, die die Liste baut:
+   eine zweite Nummerierung daneben liefe auseinander, sobald jemand zwischen
+   Zeichnen und Klick eine Kopie ablegt. Der PREIS ist benannt und angenommen
+   -- geschieht genau das, prueft die Probe die Nachbarzeile. Sie gibt deshalb
+   Datum und Groesse der Datei mit zurueck, die sie WIRKLICH geoeffnet hat.
+
+   DIE LAUFENDE DATENBANK WIRD NICHT ANGEFASST. Ein eigener Griff auf eine
+   eigene Datei, `readonly`, und am Ende zu -- `db` aus db.js kommt hier nicht
+   vor. Auch `readonly` ist nicht bloss Zierde: ohne es legte SQLite beim
+   Oeffnen eine WAL neben die Sicherung und aenderte damit den Ordner, den die
+   Aufraeumregel gleich wieder zaehlt.
+
+   DER FREMDE SCHLUESSEL IST EINE AUSKUNFT UND KEIN FEHLER (F4). Wer sie
+   sieht, weiss etwas, das er vorher nicht wusste: seine `.env` passt nicht zu
+   dieser Kopie. Ein 500 mit dem Wortlaut von SQLite sagte dasselbe und saehe
+   aus wie ein Gebrechen der Instanz.
+   UNTERSCHIEDEN WIRD ZWISCHEN "nicht lesbar" UND "keine Sicherung dieser
+   Instanz": eine Datei, die sich oeffnen laesst und `items` nicht kennt, ist
+   etwas anderes als eine, die sich gar nicht oeffnen laesst. Beide Male
+   bleibt die Instanz stehen, aber die beiden Saetze schicken an verschiedene
+   Orte. */
+app.post('/api/backup/check', ownerOnly, (req, res) => {
+  const situation = backupState();
+  if (!situation.input)
+    return res.status(400).json({ error: t(localeOf(req), situation.reason, situation.values) });
+  const target = checkPlace(getSetting('backupPlace', ''));
+  if (target.error)
+    return res.status(400).json({ error: t(localeOf(req), target.error, target.values) });
+  const files = backupList(target.filePath);
+  if (files === null)
+    return res.status(400).json({ error: t(localeOf(req), 'server.backupDirUnreachable') });
+  /* DIE NUMMER WIRD GEPRUEFT UND NICHT GEGLAUBT: `files[nr - 1]` mit einem
+     "0" oder einem "1e3" griffe daneben, und `undefined` faende erst die
+     naechste Zeile. Ganzzahl, ab eins, hoechstens so viele wie da sind. */
+  const nr = Number(req.body && req.body.nr);
+  const file = Number.isInteger(nr) && nr >= 1 && nr <= files.length ? files[nr - 1] : null;
+  if (!file) return res.status(404).json({ error: t(localeOf(req), 'server.backupGone') });
+
+  const full = path.join(target.filePath, file.name);
+  let probe = null;
+  try {
+    probe = new Database(full, { readonly: true });
+    probe.pragma("cipher='sqlcipher'");
+    probe.pragma(`key="x'${keyHex}'"`);
+    /* DER ERSTE GRIFF IST DER, DER DIE ENTSCHEIDUNG FAELLT. Bis hierher hat
+       SQLite die Datei nicht angesehen -- `new Database` oeffnet sie traege,
+       und ein falscher Schluessel faellt erst auf, wenn jemand eine Seite
+       lesen will. Diese Zeile ist dieser Jemand. */
+    probe.prepare('SELECT COUNT(*) AS n FROM sqlite_master').get();
+  } catch {
+    if (probe) { try { probe.close(); } catch {} }
+    return res.json({ ok: false, reason: 'key', at: file.time, bytes: file.bytes, nr });
+  }
+  try {
+    /* VIER ZAHLEN, UND SIE TRAGEN DIE NAMEN DER KARTE „KENNZAHLEN" (F2) --
+       dort stehen Fotos und Videos getrennt, und ein Wort „Bilder" gibt es
+       nicht. Wer die Probe gegen den Bestand haelt, soll nichts im Kopf
+       zusammenrechnen muessen.
+       `photos` TRAEGT BEIDES, Fotos und Videos, unterschieden durch `kind` --
+       dieselbe Bedingung wie in /api/stats, damit die beiden Zahlen dasselbe
+       meinen.
+       GRABSTEINE ZAEHLEN NICHT MIT, wie ueberall sonst: ein geloeschter Zugang
+       ist keiner mehr.
+       „INHALT BIS" IST NICHT DER ZEITPUNKT DER DATEI. Der steht in derselben
+       Zeile schon, und zweimal dasselbe waere Stolperstein 47. Dies hier ist
+       die juengste Aenderung IM Bestand -- die Auskunft, die sagt, ob diese
+       Kopie inhaltlich juenger ist als die davor. */
+    const eine = (sql) => probe.prepare(sql).get();
+    const out = {
+      ok: true, nr, at: file.time, bytes: file.bytes,
+      itemCount: eine('SELECT COUNT(*) AS n FROM items').n,
+      photoCount: eine("SELECT COUNT(*) AS n FROM photos WHERE COALESCE(kind, 'photo') <> 'video'").n,
+      userCount: eine("SELECT COUNT(*) AS n FROM users WHERE status <> 'deleted'").n,
+      contentUntil: eine('SELECT MAX(updated_at) AS t FROM items').t || null
+    };
+    probe.close();
+    return res.json(out);
+  } catch {
+    try { probe.close(); } catch {}
+    // Sie laesst sich oeffnen und kennt `items` nicht: eine fremde
+    // SQLite-Datei, keine Sicherung dieser Instanz.
+    return res.json({ ok: false, reason: 'foreign', at: file.time, bytes: file.bytes, nr });
+  }
 });
 
 // Einmal beim Start ins Protokoll -- wer den Ort falsch stehen hat, sieht es

@@ -12558,13 +12558,38 @@ function setUpCleanupOut(fetched) {
        Karte, unter ihr stehen die Zusammenfassung und beide Knoepfe. Ein Ordner
        mit vierzig Kopien schoebe sie sonst aus dem Blick -- dieselbe Ausnahme
        und dieselbe Begruendung wie bei `#ex-part-list`. */
+    /* ---- DIE PROBE JE ZEILE -- 0.29.0, Befund 1 ----
+       „prüfen" UND NICHT „Sicherung prüfen" (F1): die Zeile misst am Telefon
+       366 px und trägt schon Nummer, Datum, Alter und Größe. Das Wort
+       „Sicherung" steht im Kartentitel und in jeder Zeile darüber; ein drittes
+       Mal sagt es nichts dazu und bräuchte eine zweite Zeile.
+       JE ZEILE UND NICHT EINMAL FÜR DIE JÜNGSTE: der Befund heißt „es gibt
+       Sicherungen, die noch nie jemand geöffnet hat", und das ist meistens
+       nicht die jüngste — der traut man ohnehin.
+       ES IST KEIN WIDERSPRUCH ZU STOLPERSTEIN 300. Dort ging es um das
+       LÖSCHEN einer einzelnen Kopie über ihren Dateinamen; hier geht die
+       NUMMER hinaus, die in der Zeile ohnehin steht, und der Weg liest nur.
+       DIE ERGEBNISZEILE STEHT UNTER IHRER ZEILE UND BLEIBT (F22): wer zwei
+       Kopien prüft, sieht beide Ergebnisse nebeneinander und kann sie
+       vergleichen. Gemerkt wird nichts — beim nächsten Zeichnen der Karte ist
+       sie fort. */
     const row = (z) => {
       const mark = z.affected ? `<span class="cleanup-badge remove">${tH('card.deleteLower')}</span>`
                   : z.outdated ? `<span class="cleanup-badge old">${tH('card.oldKey')}</span>` : '';
       return `<div class="mrow">
         <span class="mname">#${z.nr} · ${esc(fmtDate(z.at))}</span>${mark}
-        <span class="mcount">${tH('card.daysAgo', { n: z.daysAgo })} · ${
-          esc(fmtBytes(z.bytes))}</span></div>`;
+        ${/* DIE GRÖSSE STEHT VORN, SEIT DER VERWEIS DANEBEN STEHT — 0.29.0.
+             Gemessen bei 390 px fehlen der Zeile 24 Pixel, und irgendetwas muss
+             weichen. Es ist das ALTER: „vor 0 Tagen" ist dieselbe Auskunft wie
+             das Datum zwei Felder weiter links, nur bequemer. Die Größe ist es
+             nicht — sie steht sonst nirgends.
+             Also läuft der Text von hinten aus: „280,0 KB · vor 0 Ta…" statt
+             „vor 0 Tagen · 280,0…". Beide Male dieselbe Zeile, beide Male
+             derselbe Schnitt — nur trifft er jetzt das Entbehrliche. */''}
+        <span class="mcount">${esc(fmtBytes(z.bytes))} · ${
+          tH('card.daysAgo', { n: z.daysAgo })}</span>
+        <button class="link-btn backup-check" data-nr="${z.nr}">${tH('card.checkBackup')}</button>
+        </div><div class="backup-probe" id="probe-${z.nr}" hidden></div>`;
     };
     const all = Array.isArray(a.files) ? a.files : [];
     const matched = Array.isArray(a.matched) ? a.matched : [];
@@ -12724,6 +12749,44 @@ function setUpCleanupOut(fetched) {
       button.onclick = () => clear('outdated', t('card.deleteOldKeyBackups'),
         t('card.oldKeyBackupsPurge',
           { n: oldCount, bytes: fmtBytes(a.oldBytes || 0) }));
+    });
+
+    /* ---- Die Sicherungsprobe -- 0.29.0, Befund 1 ----
+       KEINE ZWEITE BESTAETIGUNG: sie liest, sie loescht nicht. Die beiden
+       Knoepfe darueber holen eine, weil sie Dateien wegnehmen.
+       DER KNOPF SPERRT SICH WAEHREND DES LAUFS und sagt es. Die Probe oeffnet
+       eine Datei von womoeglich einem Gigabyte; ein zweiter Druck in derselben
+       Sekunde legte einen zweiten Griff auf dieselbe Datei.
+       GEZEICHNET WIRD IN DIE ZEILE UNTER IHRER ZEILE, nicht in einen
+       gemeinsamen Kasten: zwei Proben nebeneinander sind die Auskunft, um
+       derentwillen die Zeile bleibt. */
+    box.querySelectorAll('.backup-check').forEach(button => {
+      button.onclick = async () => {
+        const nr = Number(button.dataset.nr);
+        const out = document.getElementById('probe-' + nr);
+        const word = button.textContent;
+        button.disabled = true;
+        button.textContent = t('card.checkRunning');
+        try {
+          const r = await api('POST', '/api/backup/check', { nr });
+          if (out) {
+            out.hidden = false;
+            /* DREI ANTWORTEN, DREI SAETZE. Ein fremder Schluessel und eine
+               fremde Datei sind KEINE Fehler, sondern Auskuenfte (F4) -- sie
+               stehen deshalb in einem gedaempften Kasten und nicht in Rot.
+               DIE ZAHLEN TRAGEN DIE NAMEN DER KARTE „Kennzahlen", damit der
+               Vergleich ohne Kopfrechnen geht (F2). */
+            out.innerHTML = r.ok
+              ? `<span class="probe-ok">${esc(V.entryMany)} ${r.itemCount} · ${
+                   tH('list.photos')} ${r.photoCount} · ${tH('card.checkUsers')} ${r.userCount}${
+                   r.contentUntil ? ` · ${tH('card.checkUntil')} ${esc(fmtDate(r.contentUntil))}` : ''}</span>`
+              : `<span class="probe-no">${
+                   r.reason === 'key' ? tH('card.checkKeyWrong') : tH('card.checkForeign')}</span>`;
+          }
+        } catch (e) { toast(e.message, true); }
+        button.disabled = false;
+        button.textContent = word;
+      };
     });
   }
 

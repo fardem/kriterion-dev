@@ -1911,6 +1911,37 @@ mark {
    nicht neben ihr steht. */
 .kv .k .extra { color: var(--faint); }
 .kv .v { font-family: var(--mono); font-size: .83rem; }
+/* ---- Die Sicherungsprobe in der Liste -- 0.29.0, Befund 1 ----
+   DER VERWEIS STEHT AM ENDE SEINER ZEILE, hinter Datum und Groesse: er gehoert
+   zu dieser Kopie und zu keiner anderen.
+   DIE ERGEBNISZEILE HAENGT UNTER IHRER ZEILE und ist eingerueckt -- sie sagt
+   etwas UEBER die Zeile darueber und steht nicht neben ihr. Eingerueckt und
+   nicht gerahmt: ein Kasten je Probe zerrisse eine Liste von fuenf Zeilen in
+   fuenf Bloecke.
+   ZWEI FARBEN UND KEIN ROT: „mit diesem Schluessel nicht lesbar" ist eine
+   AUSKUNFT und kein Gebrechen (F4). Sie ist gedaempft wie ein Hinweis und
+   nicht gewarnt wie ein Fehler. */
+/* OHNE EIGENEN ABSTAND: die Zeile ist ein Flex-Kasten mit `gap`, und ein
+   `margin` daneben waere ein zweiter Abstand ueber dieselbe Luecke -- am
+   Telefon zehn Pixel, die der Zeile an anderer Stelle fehlten. */
+.mrow .backup-check { flex-shrink: 0; }
+/* DIE ZEITMARKE IST DER NAME DER KOPIE UND WIRD NICHT GEKUERZT. In dieser
+   Liste steht im Namensfeld keine Datei, sondern „#3 · 11.09.2026, 23:33" --
+   und die Uhrzeit ist das, was zwei Kopien desselben Tages unterscheidet.
+   Ohne diese Zeile nahm der Verweis „prüfen" sich den Platz von ihr, und aus
+   dem Datum wurde „11.09.2026, …".
+   GESCHRUMPFT WIRD STATTDESSEN DAS ALTER RECHTS: „vor 0 Tagen" ist dieselbe
+   Auskunft wie das Datum links, nur bequemer -- wenn etwas weichen muss, dann
+   das, was daneben ohnehin schon steht.
+   NUR IN DIESER LISTE: anderswo traegt `.mname` einen Namen, den nichts
+   ersetzt, und dort ist das Kuerzen richtig. */
+#cleanup-list .mrow .mname { flex: 0 0 auto; }
+#cleanup-list .mrow .mcount { flex: 1 1 0; min-width: 0; overflow: hidden;
+  text-overflow: ellipsis; white-space: nowrap; text-align: right; }
+.backup-probe { padding: 0 0 6px 14px; font-size: .83rem; }
+.probe-ok { font-family: var(--mono); font-size: .8rem; }
+.probe-no { color: var(--muted); }
+
 /* ---- Der Verweis unter dem Fingerprint und die Dateiliste -- 0.29.0 ----
    EINE `.kv`-ZEILE OHNE ZWEITE SPALTE: sie traegt nur den Verweis, und der
    gehoert unter die Zeile, die er erlaeutert, und nicht an ihren rechten Rand.
