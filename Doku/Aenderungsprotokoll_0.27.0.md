@@ -3,7 +3,7 @@
 **Eine Funktion mit einer Auflage, dazu die Ableitungen · gebaut am 10.
 September 2026 auf 0.26.0 (`9ad0be7b`).**
 
-> **FINGERPRINT DIESER RUNDE: `276c4f75`** — gerechnet am fertigen Stand,
+> **FINGERPRINT DIESER RUNDE: `9f6741b5`** — gerechnet am fertigen Stand,
 > **vor dem Einspielen**.
 >
 > **AUS ZWEI QUELLEN, wie die Regel es verlangt — nur ist die zweite hier noch
@@ -11,29 +11,30 @@ September 2026 auf 0.26.0 (`9ad0be7b`).**
 > Arbeitsbaum nachgerechnet (dieselben achtzehn Dateien, die der Handgriff in
 > der README nennt) und einmal aus dem **Server selbst** gelesen, der dafür mit
 > einem frischen Datenverzeichnis gestartet und über `/api/stats` befragt
-> wurde. **Beide sagen `276c4f75`.**
+> wurde. **Beide sagen `9f6741b5`.**
 > **DIE ZWEITE ECHTE QUELLE FEHLT UND STEHT HIER ALS OFFENER PUNKT:** die
 > Meldung aus der laufenden Installation nach dem Einspielen. *Sie ist erst zu
 > haben, wenn eingespielt ist.*
 >
-> **ER HAT WÄHREND DIESER RUNDE DREIMAL GEWECHSELT, und alle drei Male ging es
-> um DENSELBEN SATZ:**
+> **ER HAT WÄHREND DIESER RUNDE VIERMAL GEWECHSELT:**
 >
 > | | |
 > |---|---|
 > | `ca68c8c0` | der Stand, wie er nach dem Bauen dalag |
 > | `56e508ab` | nach der Antwort auf F7 — *„behalten, aber kürzer"* |
 > | `286739a4` | nach dem **zweiten** Anlauf — die gekürzte Fassung war kein deutscher Satz mehr |
-> | **`276c4f75`** | nach dem **dritten** — die Empfehlung fällt, der Schlüssel wird umbenannt |
+> | `276c4f75` | nach dem **dritten** — die Empfehlung fällt, der Schlüssel wird umbenannt |
+> | **`9f6741b5`** | nachdem die Herleitung der Güte 90 in `images.js` nachgetragen wurde |
 >
-> *Jedes Mal haben sich nur die drei Sprachdateien geändert (beim letzten dazu
-> `public/app.js`), und die liegen in der Liste — **ein Satz bewegt den
-> Fingerprint genauso wie eine Anweisung**, und das ist kein Mangel der
-> Rechnung, sondern ihr Zweck.*
+> *Die ersten drei Male ging es um DENSELBEN SATZ — drei Sprachdateien, beim
+> dritten dazu `public/app.js`. Beim vierten hat sich **nur ein Kommentar**
+> geändert: die nachgetragene Herleitung der Güte 90 in `images.js`.* **Ein
+> Kommentar bewegt den Fingerprint genauso wie eine Anweisung**, *und das ist
+> kein Mangel der Rechnung, sondern ihr Zweck.*
 >
 > **KEINER DER DREI GRIFFE WAR EINE VERFEINERUNG** — jeder war eine
 > Zurückweisung mit einem eigenen Grund. *Die Begründungen stehen bei BA 6, in
-> einer Tafel; sie gehören dorthin und nicht hierher.* **Gilt: `276c4f75`.**
+> einer Tafel; sie gehören dorthin und nicht hierher.* **Gilt: `9f6741b5`.**
 
 > **DIE FRAGETAFEL IST NACH DEM BAUEN DURCHGEGANGEN WORDEN UND NICHT DAVOR,
 > und das gehört als erstes ins Papier.** *Der Betreiber hat die Runde am
@@ -178,6 +179,36 @@ const IMAGE_STORES = {
 };
 const IMAGE_STORE_DEFAULT = 'webp-lossless';
 ```
+
+### Die Größe 90 ist ÜBERNOMMEN und nicht ermittelt — nachgeholt am 11.9.
+
+**Die Zahl kommt aus der Messung des Betriebs vom 2. September** (6,64 MB,
+67 % kleiner) **und nicht aus einer eigenen Reihe.** *Bei `thumb` und `medium`
+steht eine: sieben Gütestufen, drei Bildarten, Bytes gegen Abweichung. Hier
+stand zunächst nur die eine Zahl — und die Karte behauptet auf ihr „rund zwei
+Drittel kleiner".* **Das ist ein Unterschied im Vorgehen, und er gehört
+benannt, nicht verwischt.**
+
+**Nachgeholt am 11. September 2026**, an denselben drei Bildarten, je gegen das
+PNG, das hereinkam — **Foto** (PNG 2,47 MB, verlustfrei 0,68 MB):
+
+| Güte | Größe | gegen verlustfrei | größte Abweichung |
+|---|---|---|---|
+| q85 | 0,18 MB | −74 % | 16 von 255 |
+| **q90** | **0,28 MB** | **−59 %** | **11 von 255** |
+| q95 | 0,44 MB | −36 % | 8 von 255 |
+
+**ES GIBT KEINEN KNICK IN DIESER KURVE** — anders als bei `nearLossless`, wo
+sich Gewinn und Abweichung bei 60 kreuzen und die 60 damit begründet ist.
+*Hier kauft jede Stufe Platz mit Bildpunkten, gleichmäßig.* **Die Messung
+widerspricht der übernommenen Zahl nicht — sie bestätigt sie aber auch nicht
+als die einzig richtige.** *q90 ist eine vertretbare Wahl in der Mitte, und sie
+steht, weil die Karte auf ihr steht.*
+
+**UND SIE SCHÄRFT DIE AUFLAGE:** an einem Bildschirmfoto mit Text liegt q90 um
+**1016 %** über dem verlustfreien, an einer Strichzeichnung um **18 %**. *Kein
+Wert dieser Reihe dreht das um — q75 liegt dort immer noch 729 % darüber.*
+**Es ist keine Frage der Güte, sondern des Verfahrens.**
 
 **`null` heißt „nicht umkodieren" und ist kein fehlender Eintrag.** *Der
 Schlüssel steht in der Tafel, damit „kennt sie ihn?" und „was tut sie damit?"

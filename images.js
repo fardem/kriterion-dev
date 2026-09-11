@@ -463,6 +463,30 @@ async function isUncropped(thumb) {
    Betriebs haengt (6,64 MB, 67 %). Eine andere Zahl hier machte die Aussage
    der Karte unwahr, ohne dass jemand nachrechnete.
 
+   DIE ZAHL IST UEBERNOMMEN UND NICHT ERMITTELT -- und das gehoert dazu.
+   Bei `VARIANTS` weiter oben steht eine ganze Reihe: sieben Guetestufen, drei
+   Bildarten, Bytes gegen Abweichung. HIER STAND ZUNAECHST NUR DIE EINE ZAHL
+   AUS DEM BETRIEB. Nachgeholt am 11. September 2026, an denselben drei
+   Bildarten, je gegen das PNG, das hereinkam:
+
+     Foto (PNG 2,47 MB, verlustfrei 0,68 MB)
+       q85   0,18 MB   -74 % gegen verlustfrei   groesste Abweichung 16
+       q90   0,28 MB   -59 %                                         11
+       q95   0,44 MB   -36 %                                          8
+
+   ES GIBT KEINEN KNICK IN DIESER KURVE, anders als bei `nearLossless`, wo
+   sich Gewinn und Abweichung bei 60 kreuzen. Hier kauft jede Stufe Platz mit
+   Bildpunkten, gleichmaessig. DIE MESSUNG WIDERSPRICHT DER UEBERNOMMENEN ZAHL
+   ALSO NICHT -- sie bestaetigt sie aber auch nicht als die einzig richtige.
+   Sie ist eine vertretbare Wahl in der Mitte, und sie steht, weil die Karte
+   auf ihr steht.
+
+   UND SIE SAGT NOCH ETWAS, das die Auflage weiter oben schaerft: an einem
+   Bildschirmfoto mit Text liegt q90 um 1016 % UEBER dem verlustfreien, an
+   einer Strichzeichnung um 18 %. Kein Wert dieser Reihe dreht das um --
+   q75 liegt dort immer noch 729 % darueber. ES IST KEINE FRAGE DER GUETE,
+   SONDERN DES VERFAHRENS.
+
    AUS DEN BYTES SIND ZWISCHENABLAGE UND HOCHGELADENES PNG NICHT ZU
    UNTERSCHEIDEN, und deshalb behandelt diese Tafel beide gleich (F6). Eine
    Weiche, die den Weg des Bildes RAET, waere eine zweite Wahrheit ueber
