@@ -6,15 +6,17 @@ September 2026 auf 0.26.0 (`9ad0be7b`).**
 > **FINGERPRINT DIESER RUNDE: `9f6741b5`** — gerechnet am fertigen Stand,
 > **vor dem Einspielen**.
 >
-> **AUS ZWEI QUELLEN, wie die Regel es verlangt — nur ist die zweite hier noch
-> nicht die laufende Installation, sondern eine zweite RECHNUNG:** einmal am
-> Arbeitsbaum nachgerechnet (dieselben achtzehn Dateien, die der Handgriff in
-> der README nennt) und einmal aus dem **Server selbst** gelesen, der dafür mit
-> einem frischen Datenverzeichnis gestartet und über `/api/stats` befragt
-> wurde. **Beide sagen `9f6741b5`.**
-> **DIE ZWEITE ECHTE QUELLE FEHLT UND STEHT HIER ALS OFFENER PUNKT:** die
-> Meldung aus der laufenden Installation nach dem Einspielen. *Sie ist erst zu
-> haben, wenn eingespielt ist.*
+> **AUS DREI QUELLEN, und die dritte ist die stärkste:**
+>
+> | Quelle | Wert |
+> |---|---|
+> | Am Arbeitsbaum nachgerechnet *(dieselben achtzehn Dateien, die der Handgriff in der README nennt)* | **`9f6741b5`** |
+> | Aus dem **Server selbst** gelesen, mit frischem Datenverzeichnis gestartet und über `/api/stats` befragt | **`9f6741b5`** |
+> | **Aus der laufenden Installation gemeldet** *(Betreiber, 11. September 2026)* | **`9f6741b5`** |
+>
+> **DIE DRITTE ZEILE IST KEINE DRITTE RECHNUNG, SONDERN DER BEWEIS:** *sie sagt,
+> dass das EINGESPIELTE dasselbe ist wie das GEBAUTE.* **Der offene Punkt, der
+> hier bis zum Einspielen stand, ist damit geschlossen.**
 >
 > **ER HAT WÄHREND DIESER RUNDE VIERMAL GEWECHSELT:**
 >

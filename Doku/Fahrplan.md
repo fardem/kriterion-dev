@@ -144,7 +144,7 @@ Sprachumschalter baut, hat damit ein Muster und braucht kein neues.**
 | ~~**0.25.1**~~ | ~~Jede Kachel zählt ihre eigene Arbeit~~ | **GEBAUT am 10. September 2026** — Änderungsprotokoll 0.25.1 | nein | — |
 | ~~**0.26.0**~~ | ~~Die kleinen Fehler fallen — und das Potenzial wird abschaltbar~~ | **GEBAUT am 10. September 2026** — Änderungsprotokoll 0.26.0 | nein | — |
 | ~~**0.27.0**~~ | ~~Die wählbare Bildablage~~ | **GEBAUT am 10. September 2026** — Änderungsprotokoll 0.27.0 | nein | — |
-| **0.28.0** | **Das Telefon bekommt Recht** | Gruppe B, dazu das Blättern im Eintrag und das Startbildzeichen | nein | — |
+| **0.28.0** | **Das Telefon bekommt Recht** | Gruppe B, dazu das Blättern im Eintrag, das Startbildzeichen und **die Dichte der Bedienelemente am Finger** | nein | — |
 | **0.29.0** | **Worauf man sich verlassen können muss** | Gruppe C, das Angenommene — und die letzte Runde, die das Schema anfassen darf | **ja** | 15 → 16 |
 | **0.30.0** | **Der Prüfstand wird schnell** | Gruppe D: was das Bauen beschleunigt, ohne den Beleg zu schwächen | nein | — |
 | **0.31.0** | **Die Sprachen werden gegengelesen** | drei Dateien, drei Stufen — harte Fehler, der zersägte Satzbau, die Hausstimme | nein | — |
@@ -472,6 +472,7 @@ stehen gelassen wurde — plus die zwei Dinge, die genau dort hingehören.**
 | **4** | **Die Erklärung unter dem Ablegefeld redet auf dem Telefon von Dingen, die es dort nicht gibt** — „Klick aufs Foto", „mit Strg+V einfügen", „Blättern mit ← →". Fünf Zeilen, die Hälfte geht ins Leere. **Eine Frage an den Text, nicht an das Stilblatt:** eine Fassung für beide ist besser als zwei mit einer Weiche dazwischen |
 | **5** | **Eine Meldung kann auf dem Telefon die Vergleichsleiste verdecken.** Beide sitzen unten. `body:has(…)` löst es |
 | **6** | **Ein Startbildzeichen** *(PWA-Manifest)* — siehe unten |
+| **7** | **Die Bedienelemente sind am Finger zu groß.** Eine Pillenreihe nimmt den halben Schirm, und die aufgeklappte Sortierung passt gar nicht darauf. *Befund aus dem Betrieb vom 11. September 2026 — siehe unten* |
 
 ### Das Blättern im Eintrag — die Form
 
@@ -514,6 +515,56 @@ ausliefert, wäre in einer Instanz mit Fingerprint das Gegenteil von hilfreich.*
 **Es fährt hier mit und bekommt keine eigene Zeile in der Tafel** — es ist eine
 Datei und eine Zeile, und es gehört zu derselben Frage wie alles andere in
 dieser Runde.
+
+### Die Dichte am Finger — der Befund vom 11. September 2026
+
+> **AUS DEM BETRIEB, mit drei Aufnahmen vom Telefon:** *„Auf mobil sind die
+> Pillen so groß das ein ganzes Display ausfüllt. Genauso ist es im overview
+> und wenn ich die sortiert filter aufmache ist die Schrift deutlich größer und
+> die liste passt nicht mal in ein Display ohne scrollen. Ein etwas filigranere
+> darstellung damit einfache schaltflächen nicht so viel platz wegnehmen und
+> auch die liste."*
+>
+> **UND DIE EINORDNUNG GLEICH MIT DAZU:** *„am liebsten in ein bestehenden
+> zusammen damit der rundenanzahl nicht so sehr wächst."* **Deshalb steht er
+> hier und nicht in einer eigenen Runde** — er stellt dieselbe Frage wie die
+> sechs Punkte darüber.
+
+**NACHGEMESSEN AM 11. September 2026:**
+
+| | am Zeiger | am Finger |
+|---|---|---|
+| **Pille** | `5px 12px` · **31 px hoch** | `10px 15px` · **41 px hoch** |
+| **Auswahlfeld** | `6px 10px` · Schrift **12,45 px** | `9px 12px` · Schrift **16 px** |
+
+**Die Pillen sind der kleinere Teil.** *Zehn Pillen sind auf einem Telefon vier
+bis fünf Zeilen, und jede Zeile ist am Finger zehn Pixel höher — fünfzig Pixel,
+die nichts zusätzlich zeigen.* **Sie schrumpfen, aber nicht auf das Zeigermaß:
+der Finger ist breiter als ein Mauszeiger.**
+
+**Der größere Teil ist die Schrift im Auswahlfeld — und sie ist kein
+Gestaltungsfehler.** *Das Stilblatt setzt für den Finger eine Untergrenze von
+16 Pixeln auf Eingabefeldern; sie steht gegen das Hineinzoomen von Safari auf
+dem iPhone und ist dort richtig.* **Ein `<select>` nimmt aber keinen
+Schreibstrich:** es öffnet die Auswahl des Systems, und dort gibt es nichts zu
+tippen — also auch nichts, wogegen der Browser hineinzoomen könnte. *Die
+Auswahlfelder fahren in einer Regel mit, deren Anlass sie nicht haben, und die
+aufgeklappte Liste nimmt die 16 Pixel mit.*
+
+**Die Sortierung hat 13 Einträge in vier bis fünf Gruppen** — mit den
+Überschriften sind es 17 bis 18 Zeilen. **Bei 16 Pixeln passt das auf kein
+Telefon.**
+
+**WAS NICHT PASSIERT:** *der Symbolknopf behält seine 44 Pixel — das ist die
+einzige Zahl, die der Finger-Abschnitt ausdrücklich verspricht. Die
+Eingabefelder bleiben ausnahmslos in der Zoomregel. Und es wird **keine
+Einstellung für die Dichte**: sie wäre eine zweite Wahrheit über jedes Maß im
+Stilblatt.*
+
+**WAS DER PRÜFSTAND DAZU SAGT:** *er hält die Auswahlfelder heute wörtlich in
+der Zoomregel fest.* **Diese Zusage wird neu geschrieben und nicht gelöscht** —
+sie zerfällt in zwei: was drin sein muss, und was draußen sein muss.
+*Stolperstein 201.*
 
 ---
 
@@ -716,7 +767,9 @@ sucht falsch.*
 **Aus dem Rundlauf mit 0.25.1, am 10. September 2026.** Der Betreiber hat alle
 drei Sprachdateien durch ein zweites Modell gegeben und die Berichte
 beigebracht. *Jede Behauptung daraus ist am Quelltext nachgeprüft worden; das
-Ergebnis steht als **Punkt 24** im Sammelblatt und zerfällt in vier Gruppen.*
+Ergebnis steht als **Punkt 24** im Sammelblatt und zerfiel in vier Gruppen.*
+**EINE FÜNFTE IST AM 11. SEPTEMBER 2026 DAZUGEKOMMEN**, aus dem Rundlauf mit
+0.27.0 und nicht aus den Berichten: **die Textmenge.**
 
 **SIE STEHT UNMITTELBAR VOR DEM BRUCH, und das hat einen Grund.** Sie ist die
 letzte Runde, die den **Wortlaut der Oberfläche** und den **Satzbau in
@@ -731,6 +784,42 @@ abträgt.**
 | **2** | **Der zersägte Satzbau — der eigentliche Ertrag.** Viele Sätze sind in mehrere Schlüssel geteilt und werden im Aufruf zusammengesetzt. *Im Deutschen geht das auf, im Englischen meistens auch.* **Im Türkischen ist es schon schiefgegangen:** `login.yourLinkAffected` + `login.not` + `login.stillValid` setzt die Verneinung als **eigenes Wort** zwischen zwei Hälften — Türkisch verneint mit einem **Suffix im Verb**, und „Bağlantın bundan **değil** etkilendi" ist keine Verneinung, sondern Kauderwelsch. **Das lässt sich nicht in der Datei reparieren, nur im Quelltext** | mittel |
 | **3** | **Die Hausstimme.** „Das Haus verlassen", „Sache", „von Hand", „Standbild", „Wie das Gerät", „Note" bei 1 bis 5 Sternen, der Ton der E-Mails. *Das sind bewusste Formulierungen dieses Projekts, in Deutsch **und** Englisch gleich — keine Übersetzungsfehler.* **Ob sie bleiben, entscheidet der Betreiber**, und das sind rund fünfzehn Entscheidungen, von denen jede alle drei Dateien zugleich ändert | offen — hängt an der Fragetafel |
 | **4** | **„Pille" und „hap".** Der Hausbegriff für die abgerundeten Filterflächen ist im Türkischen zur **Arzneitablette** geworden. *Er gehört zu Gruppe 3 und steht trotzdem eigens hier: er ist der einzige, bei dem die deutsche Entscheidung schon feststeht — der Begriff bleibt, die Übersetzung nicht* | klein |
+| **5** | **Der Erklärbärsaft — neu am 11. September 2026, aus dem Rundlauf mit 0.27.0.** *Der Betreiber über die Texte der neuen Karte:* „an vielen stellen hast du ein schluck erklärbärsaft getrunken … letztlich zählt nur welche auswirkung es hat". **Genannt hat er zwei, und beide stammen aus 0.27.0:** `card.storeCaveat` (die Auflage — vier Teilsätze, darunter die Herleitung über den Kodierer und die Bytes) und `card.derivativesWebp` (die Vorschaubilder — zwei Sätze, der zweite eine Begründung). *Beide sagen, WARUM etwas so ist; gebraucht wird, WAS es bewirkt.* **Es ist dieselbe Sorte Befund wie Gruppe 3, aber die andere Richtung:** dort geht es um die WORTWAHL, hier um die MENGE. *Die Regel steht schon im Projektstand (5.6): eine Oberfläche sagt, WAS IST, nicht warum es so gebaut wurde. Sie ist in 0.27.0 nicht eingehalten worden.* **Die beiden sind der Anfang, nicht die Liste** — die Runde geht alle Karten durch | mittel |
+| **6** | **Zwei deutsche Wörter sitzen fest im Quelltext — nebenbei gefunden am 11. September 2026.** *Die Sortierung ordnet ihre dreizehn Einträge in Gruppen, und zwei Gruppenüberschriften stehen als blanker deutscher Text da:* `label="Allgemein"` (`public/app.js:3807`) und `label="Verlauf"` (`:3823`). **Die beiden anderen Gruppen holen ihr Wort aus dem Vokabular** — diese zwei nicht. *Sie stehen in einer Türkisch eingestellten Instanz auf Deutsch.* **Derselbe Fund wie die zwei aus 0.24.3** *(dort: zwei deutsche Wörter, die seit 0.24.0 fest im Quelltext saßen)*, und er gehört hierher und nicht in die Runde, die ihn gefunden hat: *eine Sprachfrage wird nicht in einer Stilblattrunde beantwortet* | klein |
+
+### Das Muster für Gruppe 5 — vom Betreiber am 11. September 2026 geliefert
+
+**Er hat nicht nur den Befund genannt, sondern eine Fassung dazugestellt.** *Sie
+steht hier wörtlich, weil sie die Regel besser zeigt als jede Beschreibung der
+Regel:*
+
+> **Hinweis zur Komprimierung der Originale:**
+>
+> * **Verlustbehaftet:** Empfohlen für *Fotos* (Dateigröße sinkt um ca. zwei
+>   Drittel). Bei Screenshots oder Textgrafiken führt dies an harten Kanten (wie
+>   Schrift) jedoch zu störendem Bildrauschen und oft sogar zu deutlich
+>   *größeren* Dateien als verlustfrei.
+> * **Globale Auswirkung:** Das System kann den Inhalt von PNGs nicht
+>   automatisch analysieren. Die gewählte Einstellung gilt daher einheitlich für
+>   alle Uploads.
+> * **Vorschaubilder:** Werden hiervon nicht beeinflusst; sie werden zur
+>   Optimierung der Ladezeiten immer verlustbehaftet im WebP-Format erzeugt.
+
+**WAS DIESE FASSUNG ANDERS MACHT — drei Dinge, und jedes ist eine eigene Regel:**
+
+| | |
+|---|---|
+| **1** | **Jeder Punkt trägt ein Stichwort vorn.** *„Verlustbehaftet:", „Globale Auswirkung:", „Vorschaubilder:"* — man findet die Zeile, die einen angeht, ohne den Absatz zu lesen |
+| **2** | **Drei Punkte statt zweier Absätze.** *Die heutige Fassung legt Empfehlung, Gegenanzeige und Geltungsbereich in EINEN Fließtext; hier hat jede Aussage ihre Zeile* |
+| **3** | **Die Herleitung ist weg, die Auswirkung bleibt.** *Heute steht in der Karte, WARUM der Kodierer mit harten Kanten nicht umgehen kann (VP8 gegen VP8L, die Bitströme). Dort steht, WAS dabei herauskommt: Bildrauschen und größere Dateien* |
+
+> **DIE DRITTE IST DIE EIGENTLICHE.** *Der Betreiber sagt es so:* „letztlich
+> zählt nur welche auswirkung es hat." **Die Herleitung gehört in den Quelltext
+> und in die Papiere — dort steht sie auch, ausführlich.** *In der Karte ist sie
+> Ballast.*
+
+**DIESE DREI REGELN GELTEN FÜR ALLE KARTEN**, nicht nur für die beiden aus
+0.27.0. *Die Runde geht sie durch; die beiden sind der Anfang, nicht die Liste.*
 
 > **ZWEI DIAGNOSEN AUS DEN BERICHTEN SIND FALSCH**, und beide Male aus
 > demselben Grund: der Bericht sieht die Sprachdatei und nicht den Aufruf.
