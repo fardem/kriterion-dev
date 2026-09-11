@@ -49,7 +49,7 @@ sharp.concurrency(Math.max(1, Math.floor(os.cpus().length / 2)));
    `VARIANTS` KOMMT DAGEGEN NEU HEREIN -- `encodeCommentImage()` holt die Guete
    der Ableitungen von dort, statt sie ein zweites Mal hinzuschreiben. */
 const { makeVariants, VARIANTS, storeImage, IMAGE_STORES, IMAGE_STORE_DEFAULT, isImageStore } = require('./images');
-const { db, DATA_DIR, DB_FILE, keyFromEnv, keyHex, renumberCriteria, method, searchFold, COLUMNS_0241, VALUES_0241 } = require('./db');
+const { db, DATA_DIR, DB_FILE, keyFromEnv, keyHex, renumberCriteria, method, searchFold, COLUMNS_0241, VALUES_0241, emailsDoubled } = require('./db');
 const auth = require('./auth');
 const mail = require('./mail');
 
@@ -1894,7 +1894,14 @@ app.get('/api/users', adminOnly, (req, res) => {
     users: auth.listUsers(),
     ich: req.user.id,
     mayRoles: isOwner(req),
-    owner: auth.ownerCount()
+    owner: auth.ownerCount(),
+    /* WELCHE ADRESSEN MEHRFACH VERGEBEN SIND -- 0.29.0, Befund 4. Im
+       Normalfall eine leere Liste: steht der partielle Index, kann es keine
+       geben, und db.js fragt dann gar nicht erst.
+       HIER UND NICHT IN /api/stats: der Ort, an dem man etwas dagegen tut, ist
+       die Karte „Benutzer" -- dort stehen die Zugaenge, die es betrifft. Eine
+       Auskunft neben den Kennzahlen naehme den Weg zum Handeln nicht mit. */
+    emailsDoubled: emailsDoubled()
   });
 });
 
@@ -6072,7 +6079,16 @@ app.get('/api/stats', adminOnly, (req, res) => {
     // Und die Liste in /api/config ist ausdruecklich abgeschlossen; was
     // dort steht, sieht jeder, der die Adresse kennt. Der Fingerprint nagelt
     // den laufenden Dateisatz fest und geht deshalb nicht vor die Anmeldung.
-    fingerprint: FINGERPRINT,
+    fingerprint: FINGERPRINT.value,
+    /* DIE ACHTZEHN EINZELWERTE -- 0.29.0, Befund 2. Sie fahren auf der
+       vorhandenen lesenden Route mit; ein eigener Weg dafuer liesse
+       `F_ROUTES` wachsen, ohne dass es etwas Neues zu bewachen gaebe.
+       SIE KOSTEN NICHTS: gerechnet wird beim Start, einmal, zusammen mit dem
+       Gesamtwert. Was hier durchgereicht wird, liegt seither im Speicher.
+       WELCHE DAVON ABWEICHT, SAGT DIE INSTANZ NICHT -- sie kann es nicht: der
+       Sollwert steht im Aenderungsprotokoll und nicht im Image. Die Karte
+       zeigt die Liste deshalb auf Verlangen und nicht von selbst (F16). */
+    fingerprintFiles: FINGERPRINT.files,
     /* WAS UNTER DER HAUBE LAEUFT -- abgelesen in db.js, hier nur
        durchgereicht. Die Karte nennt Verfahren und keine Paketversionen: das
        eine sagt, WIE gerechnet wird, das andere, WELCHE Luecke passt.
@@ -8418,6 +8434,19 @@ function filesUnder(directory) {
   return out2;
 }
 
+/* ER LIEFERT SEIT 0.29.0 ZWEI DINGE AUS EINEM LAUF: den Gesamtwert und die
+   achtzehn Einzelwerte. KEIN ZWEITER LESER UND KEINE ZWEITE LISTE -- dieselbe
+   Schleife, dieselbe Reihenfolge, dieselben Bytes (Stolperstein 47). Ein
+   zweiter Durchgang ueber dasselbe Verzeichnis koennte irgendwann etwas
+   anderes sehen als der erste, und dann sagte die Karte, alles stimme, waehrend
+   der Gesamtwert von etwas anderem kaeme.
+   DIE EINZELWERTE SIND ACHT ZEICHEN WIE DER GESAMTWERT -- und wie
+   `sha256sum | cut -c1-8` in der README. Wer die Liste gegen den Handgriff von
+   dort haelt, vergleicht Gleiches mit Gleichem.
+   SIE GEHEN UEBER DEN BLOSSEN INHALT und nicht ueber Name-plus-Inhalt wie der
+   Gesamtwert: dort trennt das Nullzeichen den Namen ab, damit zwei getauschte
+   Dateien auffallen. Hier steht der Name in der Zeile daneben, und ein Wert,
+   den man mit `sha256sum` nicht nachrechnen kann, waere in der Liste nutzlos. */
 function buildFingerprint() {
   const ran = Object.keys(require.cache).filter(f =>
     f.startsWith(__dirname + path.sep) && !f.split(path.sep).includes('node_modules'));
@@ -8433,14 +8462,20 @@ function buildFingerprint() {
     .map(f => path.relative(__dirname, f).split(path.sep).join('/'))
     .sort();
   const h = crypto.createHash('sha256');
+  const files = [];
   for (const rel of list) {
+    const bytes = fs.readFileSync(path.join(__dirname, rel));
     // Der NAME gehoert mit hinein, sonst bliebe der Fingerprint gleich, wenn zwei
     // Dateien ihre Inhalte tauschen oder eine umbenannt wird. Das Nullzeichen
     // trennt, damit sich Name und Inhalt nicht ineinanderschieben koennen.
     h.update(rel); h.update('\0');
-    h.update(fs.readFileSync(path.join(__dirname, rel))); h.update('\0');
+    h.update(bytes); h.update('\0');
+    // DIESELBEN BYTES, EINMAL GELESEN -- der Einzelwert entsteht aus der Puffer,
+    // die der Gesamtwert gerade verarbeitet hat.
+    files.push({ name: rel,
+      hash: crypto.createHash('sha256').update(bytes).digest('hex').slice(0, 8) });
   }
-  return h.digest('hex').slice(0, 8);
+  return { value: h.digest('hex').slice(0, 8), files };
 }
 
 // Beim Start, nach allen require-Aufrufen: erst dann ist require.cache

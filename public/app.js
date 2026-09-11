@@ -8362,7 +8362,7 @@ const SYS_CARDS = [
     markup: cardMailDelivery,  wireUp: setUpMailDeliveryOut },
 
   { key: 'kennzahlen',   section: 'database', visible: () => ADMIN,
-    markup: cardStats },
+    markup: cardStats,    wireUp: setUpStatsOut },
   { key: 'bildablage',   section: 'database', visible: () => ADMIN,
     markup: cardImageStore,   wireUp: setUpImageStoreOut },
   { key: 'sicherung',    section: 'database', visible: () => OWNER,
@@ -10705,6 +10705,13 @@ function cardUsers() {
         ${more(`<strong>${tH('card.lockNotDelete')}</strong> ${tH('card.lockedUserHint')} ${OWNER
             ? t('card.rolesYouOnly')
             : t('card.rolesOwnerHint')}`)}
+        ${/* DER KASTEN ZU DEN DOPPELTEN ADRESSEN -- 0.29.0, Befund 4. Er ist
+             leer und steht nicht da, solange nichts zu klären ist; gefüllt
+             wird er von drawUsers(), sobald die Liste vom Server da ist.
+             ÜBER DER LISTE, nicht darunter: er sagt etwas über die Zugänge,
+             die gleich folgen, und wer ihn unter einer Liste von zwanzig
+             fände, fände ihn nicht. */''}
+        <div id="user-doubles"></div>
         <div class="manage-list" id="musers"></div>
         ${/* DER KNOPF ZU DEN GRABSTEINEN. Die Zeile steht leer da, solange
              nichts geloescht wurde -- gefuellt wird sie von
@@ -10918,6 +10925,27 @@ function setUpUsersOut() {
     catch (e) { if (box.isConnected) box.innerHTML = `<span class="hint">${esc(e.message)}</span>`; return; }
     if (!box.isConnected) return;
     box.innerHTML = '';
+    /* ---- DIE DOPPELTEN ADRESSEN -- 0.29.0, Befund 4 ----
+       SIE STEHEN NUR DA, WENN ES WELCHE GIBT. Im Normalfall trägt der
+       partielle Index das Schloss, die Liste ist leer, und dieser Kasten
+       zeichnet nichts — eine Zeile „keine doppelten Adressen" wäre eine
+       Auskunft über nichts, dieselbe Überlegung wie bei der fehlenden Null am
+       Zähler „Offen".
+       ER NENNT DIE ADRESSE UND DIE ZUGÄNGE, denn ohne die Namen wüsste
+       niemand, wo er anfassen soll. Beides ist Freitext von außen und geht
+       deshalb durch esc().
+       UND ER SAGT, WAS ZU TUN IST: eine der beiden leeren oder ändern, dann
+       legt der nächste Start den Index von selbst nach. Ohne diesen Satz
+       stünde dort ein Befund ohne Ausweg. */
+    const doubles = doc.getElementById('user-doubles');
+    if (doubles) {
+      const list = Array.isArray(data.emailsDoubled) ? data.emailsDoubled : [];
+      doubles.innerHTML = !list.length ? '' : `<div class="warn-box" style="margin:0 0 12px">
+        <strong>${tH('card.emailsDoubled')}</strong>
+        ${list.map(z => `<div class="kv"><span class="k">${esc(z.address)}</span><span class="v">${
+          esc(z.names || '')}</span></div>`).join('')}
+        <p style="margin:9px 0 0">${tH('card.emailsDoubledHint')}</p></div>`;
+    }
     /* GRABSTEINE STEHEN NICHT MEHR ZWISCHEN DEN LEBENDEN. Sie sind kein
        Zugang, den man verwalten kann -- kein Werkzeug, keine Rolle, kein
        Passwort --, und sie wachsen mit jeder Löschung. Sie stehen deshalb in
@@ -11885,11 +11913,12 @@ function geometryRow(g) {
 }
 
 /* ---- Karte „Kennzahlen" — Abschnitt „Datenbank" ----
-   OHNE BEHANDLER, WIEDER. In 0.19.0 trug sie einen -- der Schalter und der
-   Knopf der Bildablage sassen darin. Sie sind in 0.19.1 in eine eigene Karte
-   gezogen (siehe cardImageStore()), und was hier bleibt, sind Zahlen. Eine
-   leere ausruesten-Funktion daneben waere eine Zeile, die behauptet, es gaebe
-   hier etwas zu tun. */
+   SIE TRAEGT SEIT 0.29.0 WIEDER EINEN BEHANDLER, und zwar genau einen: den
+   Verweis „Dateien zeigen" unter dem Fingerprint (Befund 2). In 0.19.0 trug
+   sie schon einmal einen -- Schalter und Knopf der Bildablage sassen darin --,
+   und der ist in 0.19.1 mit jener Karte fortgezogen (siehe cardImageStore()).
+   Was seither blieb, waren Zahlen; jetzt kommt ein Aufklappen dazu und sonst
+   nichts. */
 function cardStats(fetched) {
   const { stats } = fetched;
   return `<div class="sys-card">
@@ -11937,6 +11966,30 @@ function cardStats(fetched) {
              nebeneinander. */''}
         <div class="kv"><span class="k">${tH('card.version')}</span><span class="v">${esc(stats.version || '—')}</span></div>
         <div class="kv"><span class="k">${tH('card.fingerprint')}</span><span class="v"><code>${esc(stats.fingerprint || '—')}</code></span></div>
+        ${/* ---- DIE ACHTZEHN DATEIEN -- 0.29.0, Befund 2 ----
+             DER FINGERPRINT SAGT NUR, DASS ETWAS ANDERS IST, und nicht, WAS.
+             Der Handgriff dagegen stand bis hierher allein in der README: eine
+             Schleife ueber `sha256sum`, die man von Hand in einen Container
+             tippt. Wer einen abweichenden Wert bemerkt, sitzt aber genauso oft
+             am Telefon, und dort gibt es keine Shell.
+             AUF VERLANGEN UND NICHT VON SELBST, und das ist keine Zierde,
+             sondern die einzige ehrliche Bauform: DIE INSTANZ KENNT KEINEN
+             SOLLWERT. Er steht im Aenderungsprotokoll, auf Papier. Sie kann
+             also gar nicht wissen, ob etwas abweicht -- eine Zeile „alles in
+             Ordnung" waere eine Behauptung ueber etwas, das sie nicht gelesen
+             hat. Solange niemand drueckt, steht hier deshalb nichts.
+             KEIN UEBERFAHRTEXT: auf dem Telefon waere er gar nichts, und genau
+             dort wird die Liste gebraucht (Betreiber, „muss keine extra
+             Zeile").
+             DIE WERTE KOMMEN AUS DERSELBEN SCHLEIFE WIE DER GESAMTWERT und
+             sind wie er acht Zeichen lang -- so wie `sha256sum | cut -c1-8`
+             in der README. Wer die Liste gegen den Handgriff von dort haelt,
+             vergleicht Gleiches mit Gleichem (Stolperstein 47). */''}
+        ${(stats.fingerprintFiles || []).length ? `<div class="kv kv-act">
+          <button class="link-btn" id="fp-files" aria-expanded="false"
+            aria-controls="fp-list">${tH('card.showFiles')}</button></div>
+        <div class="fp-list" id="fp-list" hidden>${stats.fingerprintFiles.map(z =>
+          `<div class="fp-row"><span class="fp-name">${esc(z.name)}</span><code>${esc(z.hash)}</code></div>`).join('')}</div>` : ''}
         ${/* DER KLARTEXTSCHLUESSEL GEHOERT DEM EIGENTUEMER -- 0.22.0 (E13). Der
              Admin sieht stattdessen einen Satz: der Schluessel liegt noch
              neben der Datenbank, und der Eigentuemer sollte das aendern. Der
@@ -11981,6 +12034,26 @@ function cardStats(fetched) {
         <div class="kv"><span class="k">${tH('card.journal')}</span><span class="v">${esc(stats.method.journal || '—')}</span></div>
         <div class="kv"><span class="k">${tH('card.passwords')}</span><span class="v">${esc(stats.method.passwords || '—')}</span></div>` : ''}
       </div>`;
+}
+
+/* DER VERWEIS UNTER DEM FINGERPRINT -- 0.29.0, Befund 2.
+   `hidden` UND NICHT EIN ZWEITES ZEICHNEN: die Liste steht fertig im Baum, und
+   der Klick legt nur um. Sie neu zu bauen hiesse, die achtzehn Zeilen ein
+   zweites Mal aus denselben Daten zusammenzusetzen -- fuer nichts.
+   DER ZUSTAND STEHT AM KNOPF (`aria-expanded`) und nicht in einer Variablen
+   daneben: wer die Karte neu zeichnet, bekommt sie zugeklappt, und das ist
+   richtig -- „Dateien zeigen" ist eine Frage und keine Einstellung. */
+function setUpStatsOut() {
+  const button = document.getElementById('fp-files');
+  const list = document.getElementById('fp-list');
+  // Ohne Liste kein Knopf: die Karte zeichnet beide oder keinen von beiden.
+  if (!button || !list) return;
+  button.onclick = () => {
+    const open = button.getAttribute('aria-expanded') === 'true';
+    button.setAttribute('aria-expanded', String(!open));
+    list.hidden = open;
+    button.textContent = open ? t('card.showFiles') : t('card.hideFiles');
+  };
 }
 
 /* ---- Karte „Bildablage" — Abschnitt „Datenbank" ----

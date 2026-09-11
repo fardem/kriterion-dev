@@ -1862,6 +1862,66 @@ db.exec('CREATE INDEX IF NOT EXISTS idx_photos_kind ON photos(kind)');
 db.exec(`CREATE INDEX IF NOT EXISTS idx_photos_tile
            ON photos(item_id, sort_order, id, mime_type, focus_x, focus_y, zoom, created_at, kind, duration)`);
 
+/* ---- DIE ADRESSE IST EINDEUTIG -- 0.29.0, Befund 4 ----
+   `users.email` HATTE KEIN `UNIQUE`, UND DAS WAR KEIN VERSEHEN: `ALTER TABLE`
+   kann eines nicht nachruesten, und die gewanderte und die frisch angelegte
+   Datenbank waeren damit VERSCHIEDEN GEBAUT -- genau die Sorte Unterschied,
+   die sich erst Jahre spaeter zeigt.
+   EIN PARTIELLER INDEX WIRKT AUF BEIDEN WEGEN GLEICH. Er ist keine
+   Datenbankstufe: er fasst die Zeilenform nicht an und legt sich bei jedem
+   Start selbst nach, in frischer wie bestehender Instanz -- dieselbe Bauform
+   wie `idx_sessions_user`.
+   `WHERE email IS NOT NULL` IST DER GANZE PUNKT: ohne die Bedingung waere
+   schon der ZWEITE Zugang ohne Adresse eine Verletzung. In SQLite sind zwar
+   mehrere NULL in einem gewoehnlichen UNIQUE erlaubt -- aber ein leerer String
+   ist keine NULL, und die Bedingung sagt ausserdem, was gemeint ist.
+   NOCASE, WIE AM BENUTZERNAMEN: „Anna@Haus.de" und „anna@haus.de" sind
+   dieselbe Adresse. Ein Index ohne diese Angabe liesse beide nebeneinander
+   stehen und haette den Befund nur halb erledigt.
+
+   UND WAS GESCHIEHT, WENN HEUTE SCHON ZWEI GLEICHE DASTEHEN (F10):
+   `CREATE UNIQUE INDEX` SCHEITERT DORT, und ein stiller Fehlschlag waere die
+   schlimmste Antwort -- die Instanz saehe aus, als haette sie ein Schloss, und
+   haette keins. Sie laeuft weiter, sie sagt es im Containerprotokoll, und die
+   Karte „Benutzer" nennt die betroffenen Adressen. Wer sie zusammenfuehrt oder
+   eine davon leert, bekommt den Index beim naechsten Start von selbst.
+   GEZAEHLT WIRD VORHER UND NICHT AM FEHLERTEXT: „UNIQUE constraint failed"
+   sagt nicht, WELCHE Adresse doppelt ist, und ein Text, den eine fremde
+   Bibliothek formuliert, ist keine Grundlage fuer eine Bildschirmauskunft. */
+const qDoubleEmails = `
+  SELECT lower(email) AS address, COUNT(*) AS n,
+         group_concat(username, ', ') AS names
+    FROM users
+   WHERE email IS NOT NULL AND trim(email) <> '' AND status <> 'deleted'
+   GROUP BY lower(email) HAVING COUNT(*) > 1
+   ORDER BY lower(email)`;
+/* GRABSTEINE ZAEHLEN NICHT MIT: ein geloeschter Zugang traegt einen
+   ueberschriebenen Namen und meldet sich nie wieder an. Seine Adresse dort
+   stehenzulassen waere eine Auskunft ueber jemanden, den es nicht mehr gibt.
+   ER STEHT ABER IM WEG, wenn seine Adresse noch dasteht -- deshalb raeumt die
+   Zeile darunter sie beim Grabstein weg, bevor der Index versucht wird. */
+db.prepare(`UPDATE users SET email = NULL WHERE status = 'deleted' AND email IS NOT NULL`).run();
+let doubleEmails = [];
+try {
+  db.exec(`CREATE UNIQUE INDEX IF NOT EXISTS idx_users_email
+             ON users(email COLLATE NOCASE) WHERE email IS NOT NULL`);
+} catch {
+  doubleEmails = db.prepare(qDoubleEmails).all();
+  console.log('[Kriterion] Die Adresse bleibt ohne Schloss: ' +
+    doubleEmails.map(z => `${z.address} (${z.n})`).join(', ') +
+    ' -- mehrfach vergeben. Die Karte „Benutzer" nennt sie.');
+}
+/* SIE WIRD BEI JEDEM ABRUF NEU GEFRAGT UND NICHT GEMERKT: wer die Doppelung
+   aufloest, soll die Karte sauber sehen, ohne den Server neu zu starten --
+   und wer eine NEUE anlegt, waehrend der Index fehlt, soll sie dort finden.
+   NUR WENN DER INDEX FEHLT: steht er, kann es keine geben, und eine Abfrage
+   bei jedem Aufruf der Karte waere Arbeit fuer eine Antwort, die feststeht. */
+function emailsDoubled() {
+  const steht = db.prepare(
+    `SELECT 1 FROM sqlite_master WHERE type = 'index' AND name = 'idx_users_email'`).get();
+  return steht ? [] : db.prepare(qDoubleEmails).all();
+}
+
 // --- Auffangnetz: die Instanz braucht einen Eigentuemer ---
 // Gibt es keinen, wird es der aelteste Zugang, DER SCHON RECHTE HAT; erst wenn
 // es auch keinen Admin gibt, der mit der kleinsten Nummer. Der Zwischenschritt
@@ -1966,6 +2026,9 @@ renumberCriteria();
 // Abschreiben zeigen kann. Ausgeliefert wird er nur hinter der Anmeldung und
 // nur dann, wenn er ohnehin schon neben der Datenbank liegt.
 module.exports = { db, DATA_DIR, DB_FILE, keyFromEnv: key.fromEnv, keyHex: key.hex,
+                   // Welche Adressen mehrfach vergeben sind -- leer, solange
+                   // der partielle Index steht (0.29.0, Befund 4).
+                   emailsDoubled,
                    // Die eine Faltung der Suche -- 0.24.4 (B8). Sie geht hinaus,
                    // damit die NADEL dieselbe Funktion ruft wie der Heuhaufen und
                    // nicht eine zweite, die dasselbe tut.

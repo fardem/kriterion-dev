@@ -1911,6 +1911,26 @@ mark {
    nicht neben ihr steht. */
 .kv .k .extra { color: var(--faint); }
 .kv .v { font-family: var(--mono); font-size: .83rem; }
+/* ---- Der Verweis unter dem Fingerprint und die Dateiliste -- 0.29.0 ----
+   EINE `.kv`-ZEILE OHNE ZWEITE SPALTE: sie traegt nur den Verweis, und der
+   gehoert unter die Zeile, die er erlaeutert, und nicht an ihren rechten Rand.
+   `justify-content` zurueck auf den Anfang, sonst schoebe die Regel darueber
+   ihn nach rechts. */
+.kv-act { justify-content: flex-start; padding-top: 4px; }
+/* DIE LISTE SELBST -- achtzehn Zeilen, Name links, Wert rechts.
+   SIE ROLLT SENKRECHT AB ZEHN ZEILEN, wie die uebrigen Systemlisten: achtzehn
+   Zeilen schoeben die Verfahren darunter aus dem Blick, und die stehen in
+   derselben Karte.
+   DER NAME DARF ABBRECHEN, DER WERT NICHT: `public/languages/de.json` ist
+   laenger als ein Telefon breit ist, acht Ziffern sind es nie. Bricht der
+   Wert um, steht er nicht mehr neben seinem Namen -- und dann taugt die Liste
+   zum Vergleichen nicht mehr. */
+.fp-list { max-height: 260px; overflow-y: auto; margin: 2px 0 4px;
+  border-bottom: 1px solid var(--line-2); }
+.fp-row { display: flex; justify-content: space-between; align-items: baseline;
+  gap: 12px; padding: 4px 0; font-size: .83rem; }
+.fp-row code { font-family: var(--mono); flex-shrink: 0; }
+.fp-name { color: var(--muted); word-break: break-all; }
 .vocabulary-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 0 12px; }
 /* ZWEI FELDER IN EINER ZEILE STEHEN AUF DERSELBEN LINIE — 0.25.3.
 
