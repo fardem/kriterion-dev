@@ -13,10 +13,18 @@
 > |---|---|
 > | **Am Arbeitsbaum nachgerechnet** *(dieselben achtzehn Dateien)* | **`194e8984`** |
 > | **Aus dem Server selbst gelesen** *(frisches Datenverzeichnis, `/api/stats`)* | **`194e8984`** |
-> | **Aus der laufenden Installation gemeldet** | *steht aus — trägt der Betreiber nach* |
+> | **Aus der laufenden Installation gemeldet** *(Betreiber, 12. September 2026)* | **`a6726a83`** |
 >
-> **ZWEI QUELLEN, EIN WERT.** *Die dritte kommt aus dem Feld und steht hier als
-> offener Punkt und nicht als Fußnote.*
+> **ZWEI QUELLEN FÜR DEN AUSGELIEFERTEN WERT — UND DIE DRITTE NENNT EINEN
+> ANDEREN.** *Das ist kein Widerspruch, sondern eine Reihenfolge: der Betreiber
+> hat eingespielt, als `a6726a83` der Stand war, und danach ist der **Wortlaut
+> der Kommentare** berichtigt worden.*
+>
+> **DIE BEIDEN STÄNDE UNTERSCHEIDEN SICH IN KEINER EINZIGEN AUSGEFÜHRTEN
+> ZEILE** — nur in Kommentaren und in den Papieren. *Wer `a6726a83` laufen hat,
+> hat dieselbe Anwendung; wer den Sollwert dieser Runde nachrechnen will, muss
+> `194e8984` einspielen.* **Der offene Punkt bleibt damit offen, und er steht
+> hier und nicht als Fußnote.**
 >
 > **UND ER IST WÄHREND DER RUNDE ZWEIMAL FALSCH DAGESTANDEN — aus demselben
 > Grund.** *Beim ersten Mal war er nach BA 7 gerechnet, und danach kam noch eine
