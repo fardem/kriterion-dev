@@ -32752,7 +32752,16 @@ async function checkUi() {
     wf.matchesTags(inventory[1], [1, 2], 'quatsch') === false);
 
   const title = () => [...wf.document.querySelectorAll('.card .card-title')].map(e => e.textContent);
-  const mark = (name) => [...wf.document.querySelectorAll('#filters .pill-tag')].find(b => b.textContent === name);
+  /* GEKLAMMERT WIE JEDER GRIFF IN EINEN NACHBAU -- 0.30.0, Stolperstein 161.
+     Ein Rueckbau, der die Tagzeile wegnimmt, findet hier keine Marke mehr; ein
+     nackter `.onclick()` darauf RISSE DEN LAUF AB, statt die Zusagen darunter
+     rot zu machen -- und eine abgerissene Gegenprobe belegt gar nichts.
+     Gefunden am gefahrenen Rueckbau 636 dieser Runde.
+     `markClick()` KLICKT ODER TUT NICHTS; dass die Marke ueberhaupt dasteht,
+     ist eine eigene Zusage und keine stille Voraussetzung. */
+  const mark = (name) => [...wf.document.querySelectorAll('#filters .pill-tag')]
+    .find(b => b.textContent === name) || null;
+  const markClick = (name) => { const b = mark(name); if (b) b.onclick(); return !!b; };
   const mode = (value) => wf.document.querySelector(`#filters .pill-mode[data-mode="${value}"]`);
 
   /* DIE TAGZEILE STEHT SEIT 0.24.0 ZUGEKLAPPT, solange kein Tagfilter greift
@@ -32768,12 +32777,19 @@ async function checkUi() {
   check('Der Umschalter ruht, solange nichts gewählt ist',
     !!wf.document.querySelector('#filters .tagmode.idle'));
 
-  mark('Grün').onclick();
+  check('Die Marken stehen in der Tagzeile und lassen sich anklicken',
+    markClick('Grün'), '(keine Tagzeile oder keine Marke darin)');
   await new Promise(r => setTimeout(r, 20));
   check('Ein Tag filtert wie gehabt',
     equal(title().sort(), ['Grün und leicht', 'Grün und schwer', 'Nur grün']), JSON.stringify(title()));
 
-  mark('Schwer').onclick();
+  /* UND SIE STEHEN AUCH NOCH DA, WENN EIN FILTER GREIFT. Bis 0.30.0 war die
+     Zeile bei greifendem Filter aufgeklappt; jetzt steht sie immer da, und
+     genau das haelt diese Zeile fest -- ohne sie liese sich der Rueckbau, der
+     sie wieder zuklappt, nur am Abriss erkennen. */
+  check('Und sie stehen auch bei greifendem Filter noch da',
+    !!mark('Schwer'), '(die Tagzeile ist bei greifendem Filter verschwunden)');
+  markClick('Schwer');
   await new Promise(r => setTimeout(r, 20));
   check('Zwei Tags mit UND zeigen nur den Schnitt',
     equal(title(), ['Grün und schwer']), JSON.stringify(title()));
@@ -32815,9 +32831,9 @@ async function checkUi() {
   // gleichzeitig hervorgehoben und gedämpft, was wie ein Fehler aussieht.
   mode('and').onclick();
   await new Promise(r => setTimeout(r, 20));
-  mark('Grün').onclick();          // abwählen
+  markClick('Grün');          // abwählen
   await new Promise(r => setTimeout(r, 20));
-  mark('Leicht').onclick();        // Schwer + Leicht: kein Eintrag hat beide
+  markClick('Leicht');        // Schwer + Leicht: kein Eintrag hat beide
   await new Promise(r => setTimeout(r, 20));
   check('Diese Auswahl ergibt wirklich keinen Treffer', title().length === 0, JSON.stringify(title()));
   check('Auch bei leerem Ergebnis bleiben gewählte Tags ungedämpft',

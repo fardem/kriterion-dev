@@ -561,6 +561,42 @@ fünf, in dieser Runde wieder)*.
 > genau eine Zusage rot: die, die denselben Namen zitierte.** *Jetzt macht er
 > zwei rot, und die zweite startet einen echten Prozess.*
 
+**ALLE SECHSUNDZWANZIG SIND GEFAHREN. 0 STUMM.**
+
+| Nr | Rückbau | rot |
+|---|---|---|
+| **604** | der Treiber fährt los, ohne nach fremden Servern zu sehen | 4 |
+| **605** | die Suche kennt den Prüflauf nicht mehr *(`pruefung.js` zurück)* | 3 |
+| **636** | die Tagzeile bleibt bei greifendem Tagfilter zugeklappt | 3 |
+| **658** | die Tagzeile sagt dem Raster nicht, dass sie es ist | 2 |
+| **889** | „und/Oder" steht wieder neben der Beschriftung | 3 |
+| **895** | der Portblick sieht nicht mehr nach | 4 |
+| **896** | das Wartefenster steht wieder auf zwölf Sekunden | 2 |
+| **897** | die Meldung des Zweitservers nennt ihn nicht mehr | 2 |
+| **898** | der Aufräumer beendet nichts mehr | 3 |
+| **899** | die Schlusstafel bleibt leer | 7 |
+| **900** | die Kurve der Anmeldebremse ist verbogen | 7 |
+| **901** | die Route wartet gar nicht mehr | 4 |
+| **902** | die Auslieferung trägt eine gesenkte Kostenstufe | 3 |
+| **903** | die Kostenstufe lässt sich über eine gewöhnliche Variable senken | 2 |
+| **904** | die ausgelieferte Mailfrist ist gesenkt | 7 |
+| **905** | der Prüfschalter stellt die Fristen gar nicht mehr kurz | 2 |
+| **906** | „gewichtet" steht wieder fest im Quelltext | 3 |
+| **907** | die neue Wache schaut an jeder Kennung vorbei | 2 |
+| **908** | eine zweite Einteilung steht neben der ersten | 3 |
+| **909** | zwei Zustände sind gleich gefärbt | 2 |
+| **910** | das Datum verschwindet beim Abhaken wieder | 3 |
+| **911** | die Vokabelkarte behält ihre Luft | 4 |
+| **912** | die Luft geht auch dort weg, wo nur ein Zugang ist | 3 |
+| **913** | die Zahl am gefallenen Umschalter steht wieder da | 8 |
+| **914** | der Knopf heißt wieder „Wer hat bewertet" | 6 |
+| **915** | die Sternzeile behält ihre Luft unter den Sternen | 2 |
+
+> **KEIN EINZIGER IST STUMM GEBLIEBEN.** *Zwei waren im ersten Anlauf „nicht
+> auswertbar" — sie rissen den Lauf ab statt ihn rot zu machen —, und beide
+> Ursachen sind Funde über den Prüfstand und nicht über den Baum. Sie stehen
+> unten.*
+
 ---
 
 ## Der Augenschein
