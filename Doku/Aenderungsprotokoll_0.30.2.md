@@ -140,9 +140,9 @@ aufgeklappt ist nicht sichtbar".*
 
 ## Der Prüfstand
 
-**6800 von 6800 grün, 344 Gruppen.**
+**6801 von 6801 grün, 344 Gruppen.**
 
-**EINE NEUE GRUPPE MIT SECHZEHN ZUSAGEN** — und **sechs umgestellte Zusagen
+**EINE NEUE GRUPPE MIT SIEBZEHN ZUSAGEN** — und **sechs umgestellte Zusagen
 älterer Runden** *(Stolperstein 201: umgestellt und nicht gelöscht)*:
 
 | | was sich geändert hat |
@@ -161,6 +161,56 @@ Auswahl, mit einem Tag, mit zweien —, und der Haken, der sich dreht.*
 > ist — und das kann sie dort nicht, weil jsdom keine Höhen rechnet.* **Sie wird
 > deshalb gegen eine getauscht, die „abgeschnitten" sagt** — dieselbe Bauform,
 > die 0.30.1 für ihren eigenen Befund gebraucht hat.
+
+---
+
+## Die Gegenproben — zehn gefahren, und eine hat eine Lücke gefunden
+
+**NEUN NEUE RÜCKBAUTEN** *(935 bis 942)* **UND EINER NACHGEZOGEN** *(916 — sein
+Suchtext stand nach dieser Runde nicht mehr da)*.
+
+> **941 WAR STUMM, und das ist ein Fund.** *Er macht den Umschalter „und/Oder"
+> wieder immer sichtbar — und **keine einzige Prüfung wurde rot**.*
+>
+> **DIE ZUSAGEN DARÜBER FRAGTEN DIE KLASSE** *(`tags-live`)* **UND DIE
+> RASTERZEILE — aber nie die Regel, die tatsächlich verbirgt.** *Ein Wächter
+> über nichts ist grün* *(Stolperstein 81)*.
+>
+> **DIE NACHGETRAGENE ZUSAGE FRAGT DIE VERNEINUNG und nicht bloß das Vorkommen
+> der Klasse:** *eine Regel `.frow-tags.tags-live > .tagmode { display:
+> inline-flex; }` nennt beide Namen und verbirgt trotzdem nichts — genau das ist
+> der Rückbau.* **Nachgefahren: 941 macht jetzt seine eigene Gruppe rot.**
+
+**DAMIT SIND ES ZEHN GEFAHRENE RÜCKBAUTEN IN ZWEI LÄUFEN, 0 STUMM** — *neun im
+ersten, einer im Nachlauf.*
+
+> **ZWEI RUNDEN, ZWEI FUNDE, UND BEIDE DERSELBEN SORTE.** *0.30.1 hatte eine
+> Zusage, die ihren eigenen Gegenstand nicht abdeckte (die Begrenzung war
+> belegt, ihr **Ruf** nicht); 0.30.2 hatte eine, die den Träger prüfte und nicht
+> die **Wirkung**.* **Beide Male hat es nur die Gegenprobe gezeigt.**
+
+---
+
+## Der Augenschein
+
+**Gefahren am 12. September 2026 am laufenden Server**, in echtem Chromium bei
+390 × 844 — **in zwei Sprachen und drei Lagen.**
+
+| Sprache | Lage | Spalten | Wolke | Griffe | Umschalter | erste Reihe | Zeile |
+|---|---|---|---|---|---|---|---|
+| **de** | zu, ohne Filter | 35 / 311 / **0** | 311 | „mehr" 30 × 30 | **verborgen** | **4 Tags** | 62 |
+| **de** | zu, mit Filter | 64 / 282 / **0** | 282 | „mehr", „Tags zurücksetzen" | **verborgen** | **4 Tags** | 62 |
+| **de** | offen, mit Filter | 74 / 272 / **0** | 272 | „weniger", „Tags zurücksetzen" | **sichtbar** | 4 Tags | 321 |
+| **tr** | zu, mit Filter | 78 / 268 / **0** | 268 | „daha fazla", „Etiketleri sıfırla" | **verborgen** | 4 Tags | 62 |
+| **tr** | offen, mit Filter | 78 / 268 / **0** | 268 | „daha az", „Etiketleri sıfırla" | **sichtbar** | 4 Tags | 321 |
+
+**DREI SACHEN STEHEN DAMIT AM LAUFENDEN SERVER FEST:**
+
+| | |
+|---|---|
+| **1** | **Die dritte Spalte misst in JEDER Lage null** — sie ist weg, nicht nur schmal |
+| **2** | **Jeder Griff misst 30 × 30 Pixel und trägt sein Wort im Titel** — in beiden Sprachen, und das türkische ist ein anderes als das deutsche |
+| **3** | **Der Umschalter ist verborgen, wenn zugeklappt, und steht da, wenn offen** — und **nichts rollt seitlich**, in keiner Lage |
 
 ---
 

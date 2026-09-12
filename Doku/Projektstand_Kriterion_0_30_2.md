@@ -479,7 +479,7 @@ weiterhin offen. Daraus folgt die Stellung von `HINTER_PROXY` (Abschnitt 3).
 ## 2. Betriebsstand
 
 **Gebaut ist 0.30.2** — *die Zahlen des Prüfstands stehen im Änderungsprotokoll
-0.30.2: 6800 von 6800 Prüfungen, 344 Gruppen.* **0.30.2 ist der Rundlauf zu
+0.30.2: 6801 von 6801 Prüfungen, 344 Gruppen.* **0.30.2 ist der Rundlauf zu
 0.30.1 und fasst eine einzige Zeile an: die Tagzeile.** *Ihre dritte Rasterspalte
 nahm der Tagwolke bis zu 180 der 366 Pixel, sobald ein Tagfilter griff — „mehr"
 und „Tags zurücksetzen" standen dort als Wörter. Sie sind jetzt zwei Zeichen und
@@ -1735,7 +1735,7 @@ Ursache war **eine Datei zu viel** auf dem Wirt (Stolperstein 158).
 
 | Version | Fingerprint | Prüfungen |
 |---|---|---|
-| **0.30.2** | `3d03be45` *(gerechnet am 12. September 2026 **als letztes und hinter der letzten Zeile** — die Lehre aus 0.30.1; aus zwei Quellen bestätigt, die dritte steht aus)* | 6800 |
+| **0.30.2** | `3d03be45` *(gerechnet am 12. September 2026 **als letztes und hinter der letzten Zeile** — die Lehre aus 0.30.1; aus zwei Quellen bestätigt, die dritte steht aus)* | 6801 |
 | **0.30.1** | `194e8984` *(gerechnet am 12. September 2026 am gebauten Stand — **vor dem Einspielen**, aus zwei Quellen bestätigt. **Im Feld läuft `a6726a83`** — derselbe Stand vor der Berichtigung des Kommentarwortlauts; keine ausgeführte Zeile unterscheidet die beiden)* | 6780 |
 | **0.30.0** | `2363b00a` *(am 12. September 2026 von der laufenden Installation gemeldet — **im Feld bestätigt**, genau der Sollwert; drei Quellen, ein Wert)* | 6741 |
 | **0.29.0** | `0336d3a5` *(am 12. September 2026 von der laufenden Installation gemeldet — **im Feld bestätigt**, genau der Sollwert)* | 6662 |
