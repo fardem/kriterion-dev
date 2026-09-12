@@ -18806,8 +18806,22 @@ const shareMain = (purpose, target = null) =>
     /* DREIZEHN UND VIERZEHN SEIT 0.28.1 -- einer mehr auf der Seite von
        damals und keiner hier: „Titel (A → Z)" ist verschwunden, und „Titel"
        stand schon da (siehe WORDING_CHANGED_0281). */
-    check('Und genau dreizehn Saetze sind andere — die zwoelf von vorher und der eine aus 0.28.1',
-      onlyThen.length === 13 && onlyNow.length === 14 &&
+    /* UND VIERZEHN UND VIERZEHN SEIT 0.29.0 -- wieder einer mehr auf der Seite
+       von damals und keiner hier, und aus demselben Grund wie bei „Titel":
+       `entry.newCategoryHint` heisst nicht mehr „Neue Kategorie, Enter
+       bestaetigt", sondern „Name". Der alte Wortlaut ist verschwunden; der
+       neue stand schon da -- „Name" ist in der Datei kein neuer Satz, sondern
+       ein zweites Vorkommen, und eine Liste mit `includes` kann das nicht
+       sehen. Die Zeile darunter fragt ihn deshalb von der anderen Seite.
+       WARUM ER UEBERHAUPT GEKUERZT WURDE: der Kategoriekasten misst seit
+       Befund 7 EINE Zeile, und das Feld darin ist danach rund 100 px breit.
+       „Neue Kategorie, Enter bestaetigt" braucht 254 -- und selbst das
+       gekuerzte „Neue Kategorie" noch 124. Gemessen passt nur „Name". */
+    const WORDING_CHANGED_0290 = ['entry.newCategoryHint'];
+    check('Und genau vierzehn Saetze sind andere — die dreizehn von vorher und der eine aus 0.29.0',
+      onlyThen.length === 14 && onlyNow.length === 14 &&
+      onlyThen.some(x => x.startsWith('Neue Kategorie')) &&
+      WORDING_CHANGED_0290.every(k => !onlyNow.includes(asBefore(LANGUAGE_FILE[k]))) &&
       onlyThen.includes('Titel (A → Z)') &&
       WORDING_CHANGED_0281.every(k => !onlyNow.includes(asBefore(LANGUAGE_FILE[k]))) &&
       WORDING_CHANGED_0280.every(k => onlyNow.includes(asBefore(LANGUAGE_FILE[k]))) &&
@@ -18835,11 +18849,17 @@ const shareMain = (purpose, target = null) =>
        ER GEHT DURCH `withoutOne` UND NICHT DURCH `filter`: das erste „Titel"
        soll ja bleiben. */
     const WORDING_DOUBLED_0281 = ['Titel'];
+    /* UND EIN ZWEITER MIT 0.29.0, aus demselben Grund: „Name" steht seit dem
+       gekuerzten Platzhalter ZWEIMAL in der Datei. Beide Listen sind Satz fuer
+       Satz gleich, sobald das zweite Vorkommen weg ist -- und es muss
+       NAMENTLICH weg, sonst deckte ein `length`-Vergleich hier jede kuenftige
+       Doppelung zu. */
+    const WORDING_DOUBLED_0290 = ['Name'];
     const restThen = onlyThen.reduce(withoutOne, wordingThen);
-    const restNow = WORDING_DOUBLED_0281.reduce(withoutOne,
+    const restNow = [...WORDING_DOUBLED_0281, ...WORDING_DOUBLED_0290].reduce(withoutOne,
       onlyNow.reduce(withoutOne, wordingNow));
     check('Und sonst kein Zeichen — Satz fuer Satz dieselbe Oberflaeche',
-      equal(restThen, restNow) && restNow.length === 1186,
+      equal(restThen, restNow) && restNow.length === 1185,
       `${restThen.filter((x, i) => x !== restNow[i]).length} abweichende von ${restNow.length}`);
 
     /* ---- 6. Die Kuerzeprobe ---------------------------------------------
@@ -25914,7 +25934,7 @@ const shareMain = (purpose, target = null) =>
 
   /* --- Das Austauschformat --------------------------------------------- */
   const phEx = await phExport(PH);
-  check('Die Formatnummer steht auf 15', phEx.version === 15, `${phEx.version}`);
+  check('Die Formatnummer steht auf 16', phEx.version === 16, `${phEx.version}`);
   /* NUR ABWEICHUNGEN, wie bei den Gewichten: ein Nachher-Kriterium taucht in
      criteriaPhase gar nicht auf. Eine Datei ohne Vorher-Kriterien sieht damit
      aus wie bisher, plus einer Formatnummer. */
@@ -42759,7 +42779,7 @@ async function checkUi() {
   // Jeder Teil traegt dieselbe Nummer wie ein voller Export -- ein Teil ist ein
   // vollstaendiges Paket mit weniger Eintraegen darin, kein halbes.
   check('Und jeder Teil traegt die Formatnummer des vollen Exports',
-    tlPackages.every(p => p.version === 15), JSON.stringify(tlPackages.map(p => p.version)));
+    tlPackages.every(p => p.version === 16), JSON.stringify(tlPackages.map(p => p.version)));
   check('Zusammen tragen die Teile jeden Eintrag genau einmal',
     tlPackages.reduce((n, p) => n + p.items.length, 0) === 6 &&
     new Set(tlPackages.flatMap(p => p.items.map(i => i.title))).size === 6,
@@ -51752,8 +51772,15 @@ async function check0290() {
        DER SCHMALE SCHIRM UND NUR ER: die Regeln stehen innerhalb der
        Umbruchstelle. Stuenden sie global, aenderte sich der Schreibtisch mit
        -- und genau das ist zugesagt, dass es NICHT geschieht. */
+    /* DIE UMBRUCHSTELLE HEISST 700 UND NICHT 760, und sie traegt zwei weitere
+       Bedingungen: `(max-height: 500px) and (max-width: 960px)` faengt das
+       Telefon im Querformat. Gesucht wird deshalb der WORTLAUT der Stelle und
+       keine Zahl, die sich abschreiben laesst. */
+    const CS_NARROW = '@media (max-width: 700px), (max-height: 500px) and (max-width: 960px) {';
+    check('Die Umbruchstelle des schmalen Schirms steht, wo sie stand',
+      csSource.includes(CS_NARROW), '(die Umbruchstelle heisst anders)');
     const csNarrow = (() => {
-      const a = csSource.indexOf('@media (max-width: 760px)');
+      const a = csSource.lastIndexOf(CS_NARROW);
       return a < 0 ? '' : csSource.slice(a);
     })();
     check('Die Filterzeile hat am Telefon DREI Rasterspalten',
@@ -51787,7 +51814,7 @@ async function check0290() {
       (csApp.match(/id="cat"[^>]*/) || ['(nicht gefunden)'])[0]);
     /* AM SCHREIBTISCH AENDERT SICH NICHTS: keine der vier Regeln steht
        ausserhalb der Umbruchstelle. */
-    const csWide = csSource.slice(0, csSource.indexOf('@media (max-width: 760px)'));
+    const csWide = csSource.slice(0, csSource.lastIndexOf(CS_NARROW));
     check('Und am Schreibtisch aendert sich nichts',
       !/frow-right-end/.test(csWide) &&
       !/grid-template-columns: auto minmax\(0, 1fr\) auto/.test(csWide) &&
@@ -51822,10 +51849,15 @@ async function check0290() {
     /* UND DER SONDERFALL IST GANZ GEFALLEN (F21). Keine Grundlage ist mehr
        einspurig, also bleibt weder der gesperrte Knopf noch die Weiche noch
        der Satz daneben stehen -- eine Regel ohne Traeger bleibt nicht stehen. */
+    /* GELESEN WIRD DER CODE UND NICHT DER KOMMENTAR. `twoWays()` steht in
+       app.js noch EINMAL da -- in dem Absatz, der erklaert, WARUM es die
+       Funktion nicht mehr gibt. Ein Waechter, der den Kommentar mitliest,
+       zwaenge dazu, die Begruendung zu loeschen, und genau die soll bleiben. */
+    const tiCode = tiApp.replace(/\/\*[\s\S]*?\*\//g, ' ').replace(/^\s*\/\/.*$/gm, ' ');
     check('Der gesperrte Knopf und seine Weiche sind fort',
-      !/twoWays/.test(tiApp) && !/dirBtn\.disabled/.test(tiApp) &&
+      !/twoWays/.test(tiCode) && !/dirBtn\.disabled/.test(tiCode) &&
       !/\.sort-dir:disabled/.test(fs.readFileSync(path.join(__dirname, 'public', 'style.css'), 'utf8')),
-      'twoWays, disabled oder die Stilblattregel steht noch da');
+      (tiCode.match(/twoWays[^\n]*|dirBtn\.disabled[^\n]*/) || ['die Stilblattregel steht noch da'])[0]);
     const tiKeys = ['de', 'en', 'tr'].map(code => {
       const f = JSON.parse(fs.readFileSync(
         path.join(__dirname, 'public', 'languages', `${code}.json`), 'utf8'));

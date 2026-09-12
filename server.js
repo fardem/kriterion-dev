@@ -6022,6 +6022,12 @@ app.delete('/api/comments/:id', (req, res) => {
    Zeilen eines Eintrags weiterhin beieinander, und die Gruppierung der
    Oberflaeche greift wie bisher. Ohne diese Stufe zerfiele sie -- derselbe
    Eintrag stuende dann mehrfach in der Liste (F18).
+   UND `c.item_id` STEHT DAHINTER, NICHT WEIL ES SCHOEN WAERE, SONDERN WEIL DIE
+   ZUSAGE ES GEFUNDEN HAT: `updated_at` ist auf die SEKUNDE genau. Werden zwei
+   Eintraege in derselben Sekunde angefasst -- beim Einspielen die Regel und
+   nicht die Ausnahme --, sind ihre Werte gleich, die Stufe entscheidet nichts
+   mehr, und `c.id` mischt die Zeilen beider Eintraege ineinander. Die
+   Gruppierung zerfiel dann genau in dem Fall, fuer den sie gebaut ist.
    DIE DREI ZUSTAENDE RECHNET DIE OBERFLAECHE und nicht diese Abfrage:
    „ueberfaellig" haengt am HEUTIGEN Tag des LESERS, und der Server kennt
    dessen Zeitzone nicht. Eine Stufe „ueberfaellig" in SQL waere am Telefon in
@@ -6033,7 +6039,7 @@ const qOpenTasks = db.prepare(`
    WHERE c.kind = 'task'
    ORDER BY CASE WHEN c.due_date IS NULL THEN 1 ELSE 0 END,
             c.due_date,
-            i.updated_at DESC, c.id`);
+            i.updated_at DESC, c.item_id, c.id`);
 app.get('/api/open', (req, res) => {
   const card = authorCard();
   res.json(qOpenTasks.all().map(z => ({
