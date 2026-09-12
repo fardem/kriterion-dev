@@ -379,7 +379,7 @@ Steht eine Zeile zu viel da, ist das die Ursache; weicht eine Prüfsumme ab, ist
 es diese Datei. Löschen bzw. ersetzen und `docker compose up -d --build`, denn
 der Quelltext steckt im Image.
 
-**Seit 0.29.0 geht das auch ohne Shell.** Unter dem Fingerprint steht in der
+**Das geht auch ohne Shell.** Unter dem Fingerprint steht in der
 Karte „Kennzahlen" ein Verweis **„Dateien zeigen"**; er klappt dieselbe Liste
 auf — Name und Prüfsumme, achtzehn Zeilen. **Es sind dieselben acht Zeichen wie
 oben**, aus derselben Schleife, die auch den Gesamtwert bildet: Du kannst die
@@ -1400,7 +1400,7 @@ es zwei, beide in den Einstellungen einstellbar:
   sich der Haken gleich wieder wegnehmen lässt. Abhaken darf, wer den Kommentar
   geschrieben hat, und der Admin — dieselbe Regel wie im Eintrag. Bei mehr als
   einem Zugang steht darüber ein Umschalter **„meine / alle"**.
-  **Eine Aufgabe kann seit 0.29.0 ein Fälligkeitsdatum tragen** — ein Datum
+  **Eine Aufgabe kann ein Fälligkeitsdatum tragen** — ein Datum
   ohne Uhrzeit, **freiwillig**. Gesetzt wird es am Kommentar selbst: sobald die
   Aufgabenmarke steht, erscheint neben ihr ein Verweis, der das Datum trägt
   oder das Wort „Datum"; ein Klick macht daraus ein Datumsfeld, und ein leeres
@@ -1803,7 +1803,7 @@ Listen.
   und jede Änderung rechnet die Liste neu, ohne dass etwas gelöscht wird. **Der
   Schalter „Nach jeder erfolgreichen Sicherung aufräumen" steht auf AUS.**
   Daneben ein **Knopf** hinter der Passwortabfrage.
-  **An jeder Zeile steht seit 0.29.0 ein „prüfen".** Es öffnet *diese* Kopie
+  **An jeder Zeile steht ein „prüfen".** Es öffnet *diese* Kopie
   probeweise, zählt darin und macht sie wieder zu — **die laufende Datenbank
   wird dabei nicht angefasst**. Darunter erscheint eine Zeile: *so viele
   Einträge, so viele Fotos, so viele Zugänge, und bis zu welchem Datum der

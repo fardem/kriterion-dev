@@ -4796,13 +4796,13 @@ async function renderOpen() {
      Zustände rechnet diese Zeile.
      GERECHNET WIRD IN ORTSZEIT UND NICHT ÜBER toISOString(): das gäbe UTC, und
      östlich von Greenwich wäre „heute" bis zum Vormittag noch „gestern".
-     ZEICHENVERGLEICH UND KEIN Date: 'JJJJ-MM-TT' ordnet als Text wie im
-     Kalender, und zwei Zeichenketten zu vergleichen kann keine Zeitzone
+     TEXTVERGLEICH UND KEIN Date: 'JJJJ-MM-TT' ordnet als Text wie im
+     Kalender, und zwei Strings zu vergleichen kann keine Zeitzone
      verlieren. */
-  const heute = (() => {
+  const todayKey = (() => {
     const d = new Date();
-    const zwei = (n) => String(n).padStart(2, '0');
-    return `${d.getFullYear()}-${zwei(d.getMonth() + 1)}-${zwei(d.getDate())}`;
+    const pad = (n) => String(n).padStart(2, '0');
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
   })();
   /* VIER ABSCHNITTE UND NICHT DREI, und der vierte ist kein vierter Zustand:
      „ohne Datum" ist die Abwesenheit eines Zustands. Er steht hinten und trägt
@@ -4812,7 +4812,7 @@ async function renderOpen() {
      überfälligen Aufgaben hat, soll das Wort „Überfällig" gar nicht erst
      sehen — dieselbe Überlegung wie bei der fehlenden Null am Zähler. */
   const dueOf = (z) => !z.dueDate ? 'none'
-    : z.dueDate < heute ? 'overdue' : z.dueDate === heute ? 'today' : 'later';
+    : z.dueDate < todayKey ? 'overdue' : z.dueDate === todayKey ? 'today' : 'later';
   const SECTIONS = [['overdue', 'list.dueOverdue'], ['today', 'list.dueToday'],
                     ['later', 'list.dueLater'], ['none', 'list.dueNone']];
 
@@ -4847,16 +4847,16 @@ async function renderOpen() {
     const box = document.getElementById('open-list');
     box.innerHTML = '';
     SECTIONS.forEach(([key, word]) => {
-      const drin = visible.filter(z => dueOf(z) === key);
-      if (!drin.length) return;
+      const inside = visible.filter(z => dueOf(z) === key);
+      if (!inside.length) return;
       // Die Überschrift des Abschnitts. Sie trägt die Zahl -- wer drei
       // überfällige Aufgaben hat, soll das sehen, ohne zu zählen.
-      const kopf = document.createElement('div');
-      kopf.className = 'open-section' + (key === 'overdue' ? ' overdue' : '');
-      kopf.dataset.due = key;
-      kopf.textContent = `${t(word)} · ${drin.length}`;
-      box.appendChild(kopf);
-      groupsOf(drin).forEach(g => {
+      const section = document.createElement('div');
+      section.className = 'open-section' + (key === 'overdue' ? ' overdue' : '');
+      section.dataset.due = key;
+      section.textContent = `${t(word)} · ${inside.length}`;
+      box.appendChild(section);
+      groupsOf(inside).forEach(g => {
       const boxId = document.createElement('div');
       boxId.className = 'open-group';
       boxId.dataset.item = g.id;
@@ -8003,15 +8003,15 @@ async function renderDetail(id, termAddress) {
            wurde; hier ist es der Weg ohne Speichern. */
         const dueButton = el.querySelector('.cmt-due');
         if (dueButton) dueButton.onclick = () => {
-          const feld = document.createElement('input');
-          feld.type = 'date';
-          feld.className = 'input input-sm cmt-due-in';
-          feld.value = c.dueDate || '';
-          feld.onchange = () => flip('dueDate', feld.value || null);
-          feld.onblur = () => { if (feld.isConnected) drawComments(); };
-          dueButton.replaceWith(feld);
-          feld.focus();
-          try { feld.showPicker(); } catch { /* nicht jeder Browser kann das */ }
+          const field = document.createElement('input');
+          field.type = 'date';
+          field.className = 'input input-sm cmt-due-in';
+          field.value = c.dueDate || '';
+          field.onchange = () => flip('dueDate', field.value || null);
+          field.onblur = () => { if (field.isConnected) drawComments(); };
+          dueButton.replaceWith(field);
+          field.focus();
+          try { field.showPicker(); } catch { /* nicht jeder Browser kann das */ }
         };
       }
 

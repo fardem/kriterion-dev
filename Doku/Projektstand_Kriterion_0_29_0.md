@@ -1,6 +1,6 @@
 # Projektstand — Kriterion
 
-**Kompakte Übergabe · Revision 81 · Stand 11. September 2026 · gebaut: Version 0.28.1**
+**Kompakte Übergabe · Revision 82 · Stand 11. September 2026 · gebaut: Version 0.29.0**
 
 Dieses Blatt ist der **einzige Ort, an dem steht, was gebaut ist und was
 bindet.** Es genügt, um in einem frischen Chat weiterzuarbeiten, ohne den alten

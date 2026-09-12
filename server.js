@@ -5833,7 +5833,7 @@ app.post('/api/items/:id/comments', commentImageUpload.array('images', IMAGE_COU
     /* DAS DATUM DARF SCHON BEIM ANLEGEN MITKOMMEN -- 0.29.0. Es ist derselbe
        Weg wie `pinned` und `kind`: ein Feld im Rumpf, und wenn es fehlt, ist
        es NULL. Der Rumpf kommt hier als Formular (die Bilder haengen daran),
-       also steht auch das Datum als Zeichenkette da. */
+       also steht auch das Datum als String da. */
     const due = dueValue(req.body.dueDate === undefined ? null : req.body.dueDate);
     if (due.error) return res.status(400).json({ error: t(localeOf(req), due.error) });
     // Der Schreibende ist der Verfasser.
@@ -8502,13 +8502,13 @@ app.post('/api/backup/check', ownerOnly, (req, res) => {
        Zeile schon, und zweimal dasselbe waere Stolperstein 47. Dies hier ist
        die juengste Aenderung IM Bestand -- die Auskunft, die sagt, ob diese
        Kopie inhaltlich juenger ist als die davor. */
-    const eine = (sql) => probe.prepare(sql).get();
+    const one = (sql) => probe.prepare(sql).get();
     const out = {
       ok: true, nr, at: file.time, bytes: file.bytes,
-      itemCount: eine('SELECT COUNT(*) AS n FROM items').n,
-      photoCount: eine("SELECT COUNT(*) AS n FROM photos WHERE COALESCE(kind, 'photo') <> 'video'").n,
-      userCount: eine("SELECT COUNT(*) AS n FROM users WHERE status <> 'deleted'").n,
-      contentUntil: eine('SELECT MAX(updated_at) AS t FROM items').t || null
+      itemCount: one('SELECT COUNT(*) AS n FROM items').n,
+      photoCount: one("SELECT COUNT(*) AS n FROM photos WHERE COALESCE(kind, 'photo') <> 'video'").n,
+      userCount: one("SELECT COUNT(*) AS n FROM users WHERE status <> 'deleted'").n,
+      contentUntil: one('SELECT MAX(updated_at) AS t FROM items').t || null
     };
     probe.close();
     return res.json(out);

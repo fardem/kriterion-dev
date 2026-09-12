@@ -2198,10 +2198,10 @@ const REGRESSIONS = [
        Formatnummer steht auf 13, der Rueckbau nimmt sie wie immer um eins
        zurueck. Was er belegt, ist unveraendert -- dass die Nummer mit dem
        Format steigt und nicht stehen bleibt. */
-    nr: '233', name: 'Die Formatnummer bleibt auf 14',
+    nr: '233', name: 'Die Formatnummer bleibt auf 15',
     file: 'server.js',
-    search: "const EXCHANGE_FORMAT = 15;",
-    replacement: "const EXCHANGE_FORMAT = 14;",
+    search: "const EXCHANGE_FORMAT = 16;",
+    replacement: "const EXCHANGE_FORMAT = 15;",
     expected: 'Die Entscheidung wird mitgeschrieben — 0.14.0'
   },
   {
@@ -4060,10 +4060,10 @@ const REGRESSIONS = [
   {
     /* MITGEGANGEN MIT 0.21.0, wie 233 -- derselbe Suchtext, eine andere
        Zusage: dort die Entscheidung, hier die Exportdatei. */
-    nr: '448', name: 'Die Formatnummer bleibt bei 14, obwohl die Erstellungssprache mitgeht',
+    nr: '448', name: 'Die Formatnummer bleibt bei 15, obwohl das Faelligkeitsdatum mitgeht',
     file: 'server.js',
-    search: "const EXCHANGE_FORMAT = 15;",
-    replacement: "const EXCHANGE_FORMAT = 14;",
+    search: "const EXCHANGE_FORMAT = 16;",
+    replacement: "const EXCHANGE_FORMAT = 15;",
     expected: 'Die Exportdatei'
   },
 
@@ -7859,8 +7859,11 @@ const REGRESSIONS = [
     /* MITGEZOGEN MIT 0.28.1 (Stolperstein 201): die Gruppe wird seit der
        Richtungstrennung nicht mehr im Aufbau verzweigt, sondern ueber `only`
        aus der Liste der Grundlagen gefiltert. Dieselbe Sache, andere Stelle. */
-    search: "      down: 'list.dirHighLow',  up: 'list.dirLowHigh', only: () => POTENTIAL_MODE },",
-    replacement: "      down: 'list.dirHighLow',  up: 'list.dirLowHigh', only: () => true },",
+    /* UND MITGEZOGEN MIT 0.29.0: die Grundlage traegt seit dieser Runde auch
+       `start` (Befund 8), und die Zeile ist dabei umgebrochen. Dieselbe Sache,
+       dieselbe Stelle, eine Zeile weiter. */
+    search: "      down: 'list.dirHighLow',  up: 'list.dirLowHigh', start: 'down',\n      only: () => POTENTIAL_MODE },",
+    replacement: "      down: 'list.dirHighLow',  up: 'list.dirLowHigh', start: 'down',\n      only: () => true },",
     expected: 'Der Potenzialmodus — 0.26.0'
   },
   {
@@ -8448,10 +8451,19 @@ const REGRESSIONS = [
        GEFUNDEN hat: `title_desc` gibt es in der Sortierung nicht, und die
        Liste ordnete still nach dem Aenderungsdatum weiter. Ausgewaehlt, ohne
        Fehlermeldung, und schlicht falsch. */
-    nr: '858', name: 'Die einseitige Sortierung bekommt die falsche Endung',
+    /* MITGEZOGEN MIT 0.29.0 (Stolperstein 201), und diesmal hat der Gegenstand
+       gewechselt: `dirOf()` ist mit Befund 8 gefallen -- seit „Titel" beide
+       Richtungen kennt, ist keine Grundlage mehr einspurig, und eine Weiche
+       ohne Fall bleibt nicht stehen.
+       WAS DER RUECKBAU BELEGT, IST DASSELBE GEBLIEBEN: dass der Wechsel der
+       Grundlage die RICHTIGE Richtung nimmt. Er nimmt jetzt die der ALTEN
+       Grundlage statt die der neuen -- genau der Fehler, den `start` verhindert,
+       und er setzt jeden, der aus der Vorgabe „neu → alt" kommt, bei „Titel"
+       auf „Z → A". */
+    nr: '858', name: 'Der Wechsel der Grundlage nimmt die alte Richtung mit',
     file: 'public/app.js',
-    search: "  const dirOf = (b, wantsUp) => (b.down && b.up) ? wantsUp : !b.down;",
-    replacement: "  const dirOf = (b, wantsUp) => wantsUp && !!b.up;",
+    search: "    picked = { base: b, asc: b.start === 'up' };",
+    replacement: "    picked = { base: b, asc: picked.asc };",
     expected: 'Die Sortierung trennt Grundlage und Richtung — 0.28.1'
   },
   {
@@ -8531,7 +8543,10 @@ const REGRESSIONS = [
        fuenf davon waren am Geraet 90 Pixel. */
     nr: '866', name: 'Die Filterzeile wird am Telefon wieder eine Spalte',
     file: 'public/style.css',
-    search: "  .frow { display: grid; grid-template-columns: auto minmax(0, 1fr);",
+    /* MITGEZOGEN MIT 0.29.0: die Zeile traegt seit Befund 6 eine DRITTE Spalte.
+       Was der Rueckbau belegt, ist unveraendert -- dass das Raster die Zeile
+       traegt und nicht eine Spalte. */
+    search: "  .frow { display: grid; grid-template-columns: auto minmax(0, 1fr) auto;",
     replacement: "  .frow { display: flex; flex-direction: column;",
     expected: 'Die Sortierung trennt Grundlage und Richtung — 0.28.1'
   },

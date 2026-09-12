@@ -1800,9 +1800,9 @@ migration0270ImageStore();
 
 // MIGRATION 0.29.0 — ENTFAELLT MIT 1.0
 /* DAS FAELLIGKEITSDATUM AN DER AUFGABE -- Befund 3, und der ZWOELFTE
-   Migrationsblock. Die Spalte steht in der DDL, aber CREATE TABLE IF NOT
-   EXISTS ruehrt eine VORHANDENE Tabelle nicht an (Stolperstein 13): ein
-   Bestand aus 0.8.0 bis 0.28.1 traegt `comments` ohne sie.
+   Migrationsblock. Die Spalte steht in der DDL, aber ein
+   CREATE TABLE IF NOT EXISTS ruehrt eine VORHANDENE Tabelle nicht an
+   (Stolperstein 13): ein aelterer Bestand traegt `comments` ohne sie.
 
    OHNE VORGABEWERT UND OHNE NACHGESCHOBENES UPDATE. `ALTER TABLE ... ADD
    COLUMN` setzt jede Bestandszeile auf NULL, und NULL ist hier die richtige
@@ -1968,9 +1968,9 @@ try {
    NUR WENN DER INDEX FEHLT: steht er, kann es keine geben, und eine Abfrage
    bei jedem Aufruf der Karte waere Arbeit fuer eine Antwort, die feststeht. */
 function emailsDoubled() {
-  const steht = db.prepare(
+  const present = db.prepare(
     `SELECT 1 FROM sqlite_master WHERE type = 'index' AND name = 'idx_users_email'`).get();
-  return steht ? [] : db.prepare(qDoubleEmails).all();
+  return present ? [] : db.prepare(qDoubleEmails).all();
 }
 
 // --- Auffangnetz: die Instanz braucht einen Eigentuemer ---
