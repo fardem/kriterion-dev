@@ -479,8 +479,9 @@ weiterhin offen. Daraus folgt die Stellung von `HINTER_PROXY` (Abschnitt 3).
 ## 2. Betriebsstand
 
 **Gebaut ist 0.29.0** — *die Zahlen des Prüfstands stehen im Änderungsprotokoll
-0.29.0.* **Am Wirt lief zuletzt 0.28.1, Fingerprint `452d1764`**, vom Betreiber
-am 11. September 2026 bestätigt.
+0.29.0.* **Am Wirt läuft 0.29.0, Fingerprint `0336d3a5`** *(Abschnitt 8)* — *vom
+Betreiber am 12. September 2026 aus seiner Installation gemeldet und damit auf
+das Byte bestätigt.* **Drei Quellen, ein Wert, zum vierten Mal in Folge.**
 
 *0.29.0 baut fünf geplante Punkte und **drei** Befunde aus dem Betrieb.* **Der
 Kern ist, woran man erkennt, dass eine Sache wirklich so ist, wie sie dasteht:**

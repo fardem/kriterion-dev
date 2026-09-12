@@ -15,9 +15,10 @@ gebaut auf 0.28.1 (`452d1764`).**
 > |---|---|
 > | **Am Arbeitsbaum nachgerechnet** *(dieselben achtzehn Dateien)* | **`0336d3a5`** |
 > | **Aus dem Server selbst gelesen** *(frisches Datenverzeichnis, `/api/stats`)* | **`0336d3a5`** |
+> | **Aus der laufenden Installation gemeldet** *(Betreiber, 12. September 2026)* | **`0336d3a5`** |
 >
-> **ZWEI QUELLEN, EIN WERT.** *Die dritte — die Meldung aus der laufenden
-> Installation — kann erst nach dem Einspielen kommen.*
+> **DREI QUELLEN, EIN WERT — und zum vierten Mal in Folge lag die Bestätigung
+> aus dem Feld vor, bevor die nächste Runde anfing.**
 
 > **DER BETREIBER IM WORTLAUT, 11. September 2026, zum dritten Befund:**
 > *„Achso wenn man nach Titel sortieren lässt sortiert es von A bis Z aber Z
