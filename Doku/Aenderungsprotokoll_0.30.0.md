@@ -24,10 +24,10 @@ Nachmessen · 12. September 2026 · gebaut auf 0.29.0 (`0336d3a5`).**
 > |---|---|---|---|
 > | **vorher** *(0.29.0, dieselbe Maschine)* | **464,4 s** | 329 | 6662 von 6662 grün |
 > | **die Runde ohne ihre eigenen neuen Gruppen** | **261,3 s** | 329 | 6690 von 6690 grün |
-> | **nachher, vollständig** *(0.30.0)* | **279,2 s** | **339** | **6735 von 6735 grün** |
+> | **nachher, vollständig** *(0.30.0)* | **271,5 s** | **339** | **6741 von 6741 grün** |
 >
-> **PFLICHT WAREN 280 SEKUNDEN, ZIEL 250** *(F6)*. **Erreicht sind 279,2 — die
-> Pflicht mit 0,8 Sekunden Abstand, das Ziel deutlich verfehlt.**
+> **PFLICHT WAREN 280 SEKUNDEN, ZIEL 250** *(F6)*. **Erreicht sind 271,5 — die
+> Pflicht ist erfüllt, das Ziel nicht.**
 >
 > **UND DIE MITTLERE ZEILE GEHÖRT DAZU, weil sie die ehrlichere ist:** *die
 > Hebel haben 203 Sekunden gebracht; die zehn NEUEN Prüfgruppen dieser Runde —
@@ -39,7 +39,7 @@ Nachmessen · 12. September 2026 · gebaut auf 0.29.0 (`0336d3a5`).**
 > **DIE ZAHL SCHWANKT UM RUND ZEHN SEKUNDEN, und die Ursache ist benannt:** *die
 > Gruppe „Der Teilexport mit zweitem Faktor" schreibt einen Anhang von 400 MB
 > über eine zweite Verbindung und misst je nach Maschine zwischen 13 und 29
-> Sekunden.* **Zwei Läufe hintereinander: 279,2 und 282,6.**
+> Sekunden.* **Vier Läufe hintereinander: 271,5 · 279,2 · 279,4 · 282,6.**
 >
 > **UND DER GRÖSSTE GEWINN IST NICHT DER LAUF, SONDERN DIE GEGENPROBE.** *Sie
 > fährt den ganzen Prüfstand einmal JE RÜCKBAU — 185 gesparte Sekunden je
@@ -535,7 +535,7 @@ an.**
 
 ## Der Prüfstand
 
-**6735 VON 6735 PRÜFUNGEN GRÜN, 339 GRUPPEN, 279,2 SEKUNDEN.**
+**6741 VON 6741 PRÜFUNGEN GRÜN, 339 GRUPPEN, 271,5 SEKUNDEN.**
 
 **ACHT ZUSAGEN FAHREN EINEN ECHTEN PROZESS ODER EINEN LAUFENDEN SERVER** und
 lesen nicht den Quelltext: *der Wächter an einem echt gestarteten `node
@@ -625,10 +625,18 @@ nur, was man SIEHT; diese Runde baut zur Hälfte an etwas, das niemand sieht.*
 | **5** | Die Instanz auf **Türkisch** | **„⌀ 3,5 ağırlıklı" und „Kim?"** — kein deutsches Wort mehr, Kopfzeile 42 px |
 | **6** | Eine Aufgabe auf gestern, heute, morgen, eine abgehakt | **vier verschiedene Erscheinungen**: rot · hell und fett · gedämpft · blass und durchgestrichen |
 | **7** | Die Vokabelkarte am Telefon | **1056 statt 1203 px**, und es bricht keine Beschriftung zusätzlich um |
-| **8** | `npm test` fahren | **die Schlusstafel steht da; 279,2 s, 6735 von 6735 grün** |
-| **9** | Einen Lauf anhalten und sofort einen zweiten starten | **er räumt auf und sagt, was er angefasst hat** *(Zusage 4, an einem echt verwaisten Server gefahren)* |
+| **8** | `npm test` fahren | **die Schlusstafel steht da; 271,5 s, 6741 von 6741 grün** |
+| **9** | Einen Lauf anhalten und sofort einen zweiten starten | **er räumt auf und sagt, was er angefasst hat** — *gefahren: ein Lauf mit `kill -9` angehalten, zwei Server blieben an der Eins hängen, der zweite Lauf meldete beide mit PID, Port und Verzeichnis, beendete sie und entfernte ihre Wegwerfverzeichnisse* |
 | **10** | Einen Lauf starten und **daneben** die Gegenprobe | **sie bricht ab und nennt jeden fremden Server mit PID, Port und Verzeichnis** |
 
+> **DIE MELDUNG AUS LAGE 9 IM WORTLAUT:**
+>
+> ```
+> Ein frueherer Lauf hat 2 Server stehen lassen -- beendet und ihre Verzeichnisse entfernt.
+>   PID 11605  PORT=3960  /tmp/kriterion-pruefung-aYbmfh
+>   PID 13528  PORT=6655  /tmp/kriterion-zweifaktor-cymp2o
+> ```
+>
 > **LAGE 10 IST NICHT NACHGESTELLT, SONDERN PASSIERT.** *Beim ersten
 > Gegenprobenlauf dieser Runde standen fünf Messinstanzen aus der
 > Oberflächenmessung noch offen; der Wächter aus BA 1 hat sie alle fünf
