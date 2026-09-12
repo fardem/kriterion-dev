@@ -26707,7 +26707,13 @@ const shareMain = (purpose, target = null) =>
      nicht schon belegt. Zusage 17 haelt das Wegeverzeichnis mit den seinen.
      FUENF VON IHNEN ZIEHEN MIT (613, 614, 806, 833, 835): sie zeigen auf die
      Zeilen, die dieselbe Sache jetzt tragen (Stolperstein 201). */
-  check('Es sind genau 859 Rueckbauten', gpList.length === 859, `${gpList.length}`);
+  /* 859 WURDEN 885 -- 0.29.0, und die sechsundzwanzig neuen tragen die
+     Nummern 869 bis 894: je einer fuer die Sicherungsprobe, den Fingerprint,
+     das Faelligkeitsdatum, den partiellen Index, die beiden Bildschirmbefunde
+     und „Titel" in beide Richtungen. Vier vorhandene sind MITGEZOGEN und nicht
+     ersetzt worden (233, 448, 806, 866), einer hat den Gegenstand gewechselt
+     (858: dirOf() ist gefallen, er zielt jetzt auf `start`). */
+  check('Es sind genau 885 Rueckbauten', gpList.length === 885, `${gpList.length}`);
   const gpTwice = gpList.map(r => r.nr).filter((n, i, a) => a.indexOf(n) !== i);
   check('Und keine Nummer steht zweimal', gpTwice.length === 0, gpTwice.join(' '));
   /* JEDER GREIFT: der Suchtext kommt in seiner Datei GENAU EINMAL vor. Keinmal
