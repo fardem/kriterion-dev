@@ -1,6 +1,6 @@
 # Projektstand — Kriterion
 
-**Kompakte Übergabe · Revision 82 · Stand 11. September 2026 · gebaut: Version 0.29.0**
+**Kompakte Übergabe · Revision 83 · Stand 12. September 2026 · gebaut: Version 0.30.0**
 
 Dieses Blatt ist der **einzige Ort, an dem steht, was gebaut ist und was
 bindet.** Es genügt, um in einem frischen Chat weiterzuarbeiten, ohne den alten
@@ -4307,6 +4307,32 @@ dieselbe Bauform wie `F_ROUTEN` (Stolperstein 243).*
 - **Ein leeres `wer` im Protokoll heißt „über den Wirt"** (seit 0.8.90) — mit
   genau einer Ausnahme, und die ist am Vorgang zu erkennen. *Ein eigenes Feld
   für die Herkunft wäre eine zweite Wahrheit daneben.*
+- **Die Kostenstufe von `scrypt` steht als Zahl im Quelltext und nicht in der
+  Umgebung** (seit jeher; die Klammer seit 0.30.0). `N = 16384`, festgenagelt in
+  `auth.js`. **`N` ist eine SICHERHEITSGRENZE**, und eine Umgebungsvariable, die
+  sie senkt, senkt sie auch auf dem Wirt — *aus Versehen, weil sie so heißt, wie
+  man sie errät.*
+  > **DER PRÜFSTAND DARF SIE TROTZDEM SENKEN, und zwar über EINEN Schalter —
+  > 0.30.0 (F1).** *Er kostet den Lauf sonst 35 der 465 Sekunden, und die
+  > Gegenproben zahlen sie je Rückbau noch einmal.*
+  > **DREI KLAMMERN HALTEN IHN:** *eine Marke am Anfang* (`KRITERION_TESTBENCH=
+  > pruefstand:scrypt=1024` — `SCRYPT_N=1024` bewirkt nichts und
+  > `KRITERION_TESTBENCH=1` auch nicht), *ein Boden je Einstellung* (1024, und
+  > immer eine Zweierpotenz — was darunter steht, wird gehoben statt
+  > abgewiesen), *und eine Ansage beim Start des Servers*. **Eine Installation,
+  > die den Schalter aus Versehen trägt, ist langsamer zu prüfen und nicht
+  > ungeschützt** — und sie sagt es in ihrem Protokoll.
+  > **DIESELBE KLAMMER TRÄGT ZWEI WEITERE EINSTELLUNGEN:** *die drei Mailfristen
+  > (`mail=<Teiler>`, alle drei mit DEMSELBEN Teiler — ihr Verhältnis ist die
+  > Sache, die der Lauf belegt) und die WARTEZEIT der Anmeldebremse
+  > (`brake=<Teiler>`).* **Gesenkt wird bei der Bremse allein das Warten:** *die
+  > Kurve bleibt die ausgelieferte, weich ab fünf und hart ab zehn bleiben, wo
+  > sie sind, und die harte Sperre dauert ihre fünf Minuten.* **Der Schutz vor
+  > dem Durchprobieren ist die SPERRE und nicht die Verzögerung** — die
+  > Verzögerung ist die Höflichkeit gegenüber dem, der sich vertippt hat.
+  > **UND DIE AUSLIEFERUNG TRÄGT DIE ECHTEN WERTE FESTGENAGELT** (Zusagen 8 bis
+  > 11): *ohne Schalter ist `N = 16384` und sind die Fristen 20 / 7 / 7
+  > Sekunden, und der Prüfstand hält beide Zahlen namentlich.*
 - **Die Obergrenze des Protokolls ist die Anmeldebremse, keine eigene Regel**
   (seit 0.8.90). *Ein Deckel, den es nicht gibt, kann nicht vergessen werden* —
   dieselbe Bauform wie beim gewichteten Mittel.

@@ -444,9 +444,9 @@ wissen will, was gebaut wird, liest `Doku/Fahrplan.md`.*
 | **Die abweichende Datei beim Namen nennen** | **0.29.0** — *als Zeile, die es nur im Fehlerfall gibt; kein Überfahrtext, weil es den am Telefon nicht gibt* |
 | **Fälligkeitsdatum an Aufgaben** | **0.29.0** — *ein Datum ohne Uhrzeit, freiwillig, ohne Wecker; Schema und Austauschformat steigen mit* |
 | **Eindeutigkeit der Adresse** | **0.29.0** — *partieller Index; er MUSS vor den Bruch* |
-| **Das Wartefenster von zwölf Sekunden** | **0.30.0** |
-| **Ein Papier, zwischen zwei Runden ohne Lauf geändert, macht den Zweig rot** | **0.30.0** |
-| **`counterproof.js` verwechselt Abriss und Störung von außen** | **0.30.0** |
+| ~~**Das Wartefenster von zwölf Sekunden**~~ | **GEBAUT in 0.30.0** — *dreißig Sekunden, und die Meldung nennt Portbasis, Port und Verzeichnis* |
+| ~~**Ein Papier, zwischen zwei Runden ohne Lauf geändert, macht den Zweig rot**~~ | **NACHGESEHEN am 12. September 2026 — der Lauf greift** *(kein Code, Regel 2)*. *Ein Commit, der nur `Doku/Auftrag_0.30.0.md` anfasst, hat Lauf 726 ausgelöst: 454 Sekunden, grün. Es war nicht die Einrichtung, sondern der Blick.* **Der Satz „ein Papier ist Prüfstoff" steht seither in der README** |
+| ~~**`counterproof.js` verwechselt Abriss und Störung von außen**~~ | **GEBAUT in 0.30.0** — *und die Antwort war zur einen Hälfte schon da und zur anderen tippfehlerhaft: `foreignServer()` suchte seit 0.21.0 nach `pruefung.js`, einer Datei, die es nie gegeben hat. Dazu der Portblick (F7)* |
 | **Ein echter Teillauf** | **0.34.0** — *er IST die Aufteilung in Module und nicht ein Filter davor.* **Am 8. September stand hier 0.32.0**; die Nummer ist am 10. September mit der Sprachrunde und dem Bruch gerückt — die Runde ist dieselbe geblieben |
 | **Die Tagwolke füllt den Platz unter „mehr" mit** | **abgelehnt** — *60 px je Zeile gegen den Umbau der ganzen Wolke* |
 | **Ob ein Admin den zweiten Faktor verlangen kann** | **abgelehnt** — die Antwort ist nein |
@@ -685,12 +685,15 @@ wiedersieht, schreibt den Lauf vollständig mit)**.
   *(Claude: später — die Entscheidung fällt nicht nebenbei · Draußen üblich:
   wer Oberfläche prüft, prüft sie im Browser; wer das nicht kann, prüft die
   Regeln statt der Bilder)*
-- **Das Wartefenster von zwölf Sekunden** *(0.8.10)*. `starteWeiterenServer`
-  wartet 120 × 100 ms auf `/api/config`; unter schwerer Nebenlast reicht das
-  nicht, und der Lauf reißt mit „Zweitserver nicht erreichbar" ab. **Beobachtet
-  in 0.8.10 und 0.8.30, beide Male neben einem gleichzeitigen Image-Bau.** Die
-  Antwort wäre ein größeres Fenster **und** eine Meldung, die sagt, welcher
-  Zweitserver gemeint ist. *(Claude: empfohlen — klein)*
+- ~~**Das Wartefenster von zwölf Sekunden** *(0.8.10)*~~ — **GEBAUT in 0.30.0
+  (BA 2).** *Dreißig Sekunden statt zwölf, und die Meldung nennt Portbasis, Port,
+  Verzeichnis und die gewartete Zeit.* **Die teurere Hälfte war die Meldung:**
+  der Lauf startet 78 Server, und „Zweitserver nicht erreichbar" schickte auf
+  eine Suche durch alle. **Dazu zwei, die nicht im Punkt standen und beim Bauen
+  dazugekommen sind:** *ein Server, der von selbst endet, sagt es jetzt selbst —
+  und der Abbruch nennt die Ursachenkette statt nur „fetch failed".* **Die
+  zweite hat in derselben Runde einen Befund gefunden, der zwei Stunden
+  unsichtbar war** *(Änderungsprotokoll 0.30.0, Befund 11)*.
 - **Ein abgerissener Prüflauf, der sich nicht wiederholen ließ** *(0.9.1)*.
   Einer von sieben Läufen riss in der **ersten** Gruppe ab; ein übriggebliebener
   Server ist ausgeschlossen, sechs volle Läufe danach waren grün. *Es fehlte die
@@ -724,16 +727,32 @@ wiedersieht, schreibt den Lauf vollständig mit)**.
   > anderes als einer, der `jsdom` baut — er braucht Chromium auf der Maschine,
   > und die hat nicht jeder.* **Die Zahlen stehen deshalb weiter im
   > Änderungsprotokoll und nicht in einer Prüfung** (Stolperstein 223).
-- **Ein Papier, das zwischen zwei Runden ohne Lauf geändert wird, kann den
-  Prüfstand rot machen, ohne dass es jemand bemerkt** *(0.12.3)*. Der
-  Sprachwächter sieht auch die Dokumente an. Ein Merge in `Fehler_und_Ideen.md`
-  nach 0.12.2 brachte `Zeichenkette` statt `String` herein; der Branch war
-  danach rot und niemand hat es gesehen, weil zwischen Merge und nächster Runde
-  kein Lauf lag. *(Claude: empfohlen — der Prüflauf bei jedem Push gibt es seit
-  0.8.10; hier hat er entweder nicht gegriffen oder niemand hat hingesehen. Das
-  gehört nachgeprüft, bevor daraus eine neue Regel wird.)*
-- **`counterproof.js` kann einen Abriss nicht von einer Störung von außen
-  unterscheiden** *(0.17.0)*. **Art: Werkzeug.** Spur 0 fährt ohne Versatz,
+- ~~**Ein Papier, das zwischen zwei Runden ohne Lauf geändert wird, kann den
+  Prüfstand rot machen, ohne dass es jemand bemerkt** *(0.12.3)*~~ —
+  **NACHGESEHEN am 12. September 2026, und der Punkt fällt ohne Code** *(Regel
+  2, F8)*. *Der Lauf greift bei jedem Push, auf jedem Zweig, auch bei einem
+  Commit, der nur ein Papier anfasst: `d82b3d5` ändert ausschließlich
+  `Doku/Auftrag_0.30.0.md` und hat Lauf 726 ausgelöst — 454 Sekunden, grün.
+  Dieselbe Beobachtung an drei weiteren reinen Papier-Commits.* **Es war nicht
+  die Einrichtung, sondern der Blick.** *An die Stelle des Punktes tritt ein
+  Satz in der README: ein Papier ist Prüfstoff, und wer eines ändert, fährt den
+  Lauf.*
+- ~~**`counterproof.js` kann einen Abriss nicht von einer Störung von außen
+  unterscheiden** *(0.17.0)*~~ — **GEBAUT in 0.30.0 (BA 1).**
+  > **UND DIE ANTWORT WAR ZUR EINEN HÄLFTE SCHON DA UND ZUR ANDEREN
+  > TIPPFEHLERHAFT.** *0.21.0 hat `foreignServer()` angelegt; der Kommentar
+  > darüber sagte „ein Prozess zählt als fremd, wenn sein Befehl auf server.js
+  > oder testbench.js endet" — der Ausdruck drei Zeilen darunter suchte nach
+  > `pruefung.js`.* **Eine Datei, die es in diesem Repository nie gegeben hat,
+  > und damit fand der Wächter genau den Fall nicht, für den es ihn gibt.**
+  > *Die Zusage daneben hat den Fehler nicht gefunden, weil sie denselben Namen
+  > ZITIERT hat: eine Zusage, die ihren Gegenstand abschreibt, prüft sich
+  > selbst.* **Seit 0.30.0 startet sie einen echten `node testbench.js` und
+  > sucht ihn wieder** *(Zusage 1)*. **Dazu der Portblick auf die Spanne der
+  > Portbasen** *(F7)*: *er findet auch einen Server aus `node -e`, den kein
+  > Muster über die Befehlszeile je findet.*
+
+  *Der Befund im Wortlaut von 0.17.0:* Spur 0 fährt ohne Versatz,
   also auf denselben Portbasen wie ein gewöhnlicher `npm test`. Läuft daneben
   ein Prüflauf, nimmt er ihr die Ports, ihre Server enden sofort — und der
   Bericht meldet **ABGERISSEN**, was wie ein Befund über den Rückbau aussieht.

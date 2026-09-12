@@ -2956,7 +2956,7 @@ darunter die Zeit in den Gruppen und die des ganzen Laufs.
 
 ```
   DIE TEUERSTEN 10 VON 329 GRUPPEN:
-    Der Sprachhelfer und die Ladung — 0.24.0      20.4 s    7.8 %
+    Der Sprachhelfer und die Ladung              20.4 s    7.8 %
     …
   260.8 s in Gruppen, 261.3 s im ganzen Lauf.
 ```
@@ -3016,9 +3016,9 @@ arbeitet, gehört er entfernt.
 
 **Wer ein Dokument unter `Doku/` ändert, fährt den Prüflauf.** Das ist keine
 Förmlichkeit: der Sprachwächter liest die Papiere mit, und ein einziges Wort aus
-seiner Liste macht den Prüfstand rot. Genau das ist zwischen 0.12.2 und 0.12.3
-passiert — ein Merge brachte ein Wort in `Fehler_und_Ideen.md`, der Zweig war
-danach rot, und niemand hat es bemerkt.
+seiner Liste macht den Prüfstand rot. Genau das ist schon einmal passiert — ein
+Merge brachte ein Wort in `Fehler_und_Ideen.md`, der Zweig war danach rot, und
+niemand hat es bemerkt, weil zwischen Merge und nächster Runde kein Lauf lag.
 
 *Der Lauf bei jedem Push fängt es ab: `.github/workflows/pruefstand.yml` hängt
 an `push:` ohne Zweigfilter, also auch an einem Commit, der nur ein Papier

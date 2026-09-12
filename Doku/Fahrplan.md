@@ -147,7 +147,7 @@ Sprachumschalter baut, hat damit ein Muster und braucht kein neues.**
 | ~~**0.28.0**~~ | ~~Das Telefon bekommt Recht~~ | **GEBAUT am 11. September 2026** — Änderungsprotokoll 0.28.0 | nein | — |
 | ~~**0.28.1**~~ | ~~Was 0.28.0 nur halb erledigt hat~~ | **GEBAUT am 11. September 2026** — Änderungsprotokoll 0.28.1. *Acht Befunde vom laufenden Gerät; **keine Funktion**, der Fahrplan rückt nicht* | nein | — |
 | ~~**0.29.0**~~ | ~~Worauf man sich verlassen können muss~~ | **GEBAUT am 11. September 2026** — Änderungsprotokoll 0.29.0. *Fünf geplante Punkte und **drei** Befunde aus dem Betrieb; der dritte („Titel" kennt nur A → Z) kam während der Fragerunde herein und fuhr mit, weil die Nummer ohnehin MINOR ist* | **ja** | 15 → 16 |
-| **0.30.0** | **Der Prüfstand wird schnell** | Gruppe D: was das Bauen beschleunigt, ohne den Beleg zu schwächen | nein | — |
+| ~~**0.30.0**~~ | ~~Der Prüfstand wird schnell, das Telefon wird ruhig~~ | **GEBAUT am 12. September 2026** — Änderungsprotokoll 0.30.0. *Fünf geplante Punkte, vier Befunde vom Telefon und einer aus dem Nachmessen; **MINOR** allein wegen des Prüfschalters (F1/F2). Der Lauf fällt von 464 auf 261 Sekunden* | nein | — |
 | **0.31.0** | **Die Sprachen werden gegengelesen** | drei Dateien, drei Stufen — harte Fehler, der zersägte Satzbau, die Hausstimme | nein | — |
 | **0.32.0** | **Der Ruf beim Namen** | `@name` in Notiz, Bericht und Aufgabe — hervorgehoben, und der Genannte bekommt eine Glocke *(bestellt 12.9.2026)* | **offen** | — |
 | **0.33.0** | **Bereinigung — der Bruch** | **elf** Migrationsblöcke raus *(0.27.0 hat den elften gebracht)*, Struktur festgeschrieben, **kein Rückweg** | **ja** | — |
@@ -831,7 +831,20 @@ und die der Domain auseinandergehen.
 
 ---
 
-## 0.30.0 — „Der Prüfstand wird schnell"
+## ~~0.30.0 — „Der Prüfstand wird schnell"~~ — GEBAUT
+
+> **GEBAUT AM 12. SEPTEMBER 2026, und die Runde heißt „Der Prüfstand wird
+> schnell, das Telefon wird ruhig".** *Der Betreiber hat sie mit vier Befunden
+> vom Telefon zusammengelegt: „ich will es wieder kombinieren. und keine runde
+> alleine dafür machen."*
+>
+> **DIE ZAHL, AN DER SIE GEMESSEN IST: 464,4 Sekunden vorher, 261,3 nachher.**
+> *Pflicht waren 280, Ziel 250 (F6); die Prüfungszahl ist dabei nicht gesunken
+> und die Zahl der Gruppen mit 329 dieselbe geblieben.* **Alles Weitere steht
+> im Änderungsprotokoll 0.30.0.**
+>
+> **DIE HERLEITUNG UNTEN BLEIBT STEHEN**, weil sie die HEBEL erklärt — und
+> weil zwei ihrer Vermutungen von der Messung berichtigt worden sind.
 
 **Der Auftrag des Betreibers wörtlich:** *„Optimiere und mach das, was das Bauen
 beschleunigt, aber dennoch sicher ist."*
