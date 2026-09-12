@@ -26459,6 +26459,7 @@ function sweepLeftovers() {
   await check0300();
   await check0301();
   await check0302();
+  await check0303();
 
   /* ---------------------------------------------------------------- */
   /* Der Schlussdurchlauf. Die Gruppen weiter oben pruefen einzelne
@@ -27163,7 +27164,16 @@ function sweepLeftovers() {
      setzt jetzt den NAMEN zurueck, der von 0.21.0 bis 0.30.0 im Waechter
      stand, statt ihn zu halbieren -- und macht damit zwei Zusagen rot statt
      einer. */
-  check('Es sind genau 933 Rueckbauten', gpList.length === 933, `${gpList.length}`);
+  /* 933 WURDEN 942 -- 0.30.3, und die NEUN neuen tragen die Nummern 943 bis
+     951: je einer fuer die Zahl der Wolkenreihen, ihre Geltung am
+     Schreibtisch, die beiden Ausgaenge der Bedingung ueber `tags-deep`, den
+     Abstand in der Rechnung des Reihenzaehlers, seine eigene Messung, seinen
+     Blick auf das Abgeschnittene und die beiden Regeln, die ohne Traeger
+     wieder immer gaelten.
+     DREI VORHANDENE SIND NACHGEZOGEN und nicht ersetzt worden (916, 935, 936):
+     die drei Regeln der Tagzeile nennen seit dieser Runde ihren Traeger, und
+     die Suchtexte sind mitgewandert. */
+  check('Es sind genau 942 Rueckbauten', gpList.length === 942, `${gpList.length}`);
   const gpTwice = gpList.map(r => r.nr).filter((n, i, a) => a.indexOf(n) !== i);
   check('Und keine Nummer steht zweimal', gpTwice.length === 0, gpTwice.join(' '));
   /* JEDER GREIFT: der Suchtext kommt in seiner Datei GENAU EINMAL vor. Keinmal
@@ -47691,9 +47701,13 @@ async function checkUi() {
        dem Bildschirm; genau diesen Unterschied haelt die Zeile fest.
        SECHSUNDDREISSIG SEIT 0.30.2: der Absatz zu den beiden Zeichen an der
        Tagwolke sagt, dass die Instanz die Schrift von 80 bis 120 Prozent
-       stellt -- auch das ein Bild des Projekts in einem Kommentar. */
-    check('In den Kommentaren derselben Datei stehen unveraendert 36 Vorkommen',
-      iAppRaw === 36, `${iAppRaw} Vorkommen`);
+       stellt -- auch das ein Bild des Projekts in einem Kommentar.
+       SIEBENUNDDREISSIG SEIT 0.30.3: der Absatz zur Zahl der Wolkenreihen
+       haelt fest, dass die Instanz sich genau EINE Bruecke zwischen Stilblatt
+       und Skript haelt -- eine Aussage ueber das Projekt und keine ueber den
+       Bildschirm. */
+    check('In den Kommentaren derselben Datei stehen unveraendert 37 Vorkommen',
+      iAppRaw === 37, `${iAppRaw} Vorkommen`);
 
     /* DIE EINE ZEILE, DIE BLEIBT, UND SIE STEHT NAMENTLICH DA. server.js
        schreibt „Die Instanz laeuft weiter …" ins Containerprotokoll, wenn
@@ -53232,16 +53246,21 @@ async function check0301() {
        Umschalter. Die beiden ersten sind so hoch wie ihr Inhalt, die dritte
        nimmt den Rest -- dieselbe Bauform wie in 0.30.1, nur eine Zeile
        tiefer. Die Zusage von 0.30.1 bleibt damit erhalten und wird nicht
-       geloescht (Stolperstein 201). */
+       geloescht (Stolperstein 201).
+       SEIT 0.30.3 STEHEN BEIDE FASSUNGEN NEBENEINANDER: die dritte Zeile gibt
+       es nur, wo die Wolke sie traegt (`tags-deep`); sonst gilt wieder die
+       Bauform von 0.30.1 mit zwei Zeilen. Die Zusage sagt deshalb, dass die
+       ERSTEN Zeilen so hoch sind wie ihr Inhalt -- und zwar in beiden. */
     check('Die ersten Rasterzeilen der Tagzeile sind so hoch wie ihr Inhalt',
-      /\.frow-tags \{ grid-template-rows: auto auto 1fr; \}/.test(uNarrow),
-      (uNarrow.match(/\.frow-tags \{[^}]*\}/) || ['(keine Regel)'])[0]);
+      /\.frow-tags \{ grid-template-rows: auto 1fr; \}/.test(uNarrow) &&
+      /\.frow-tags\.tags-deep \{ grid-template-rows: auto auto 1fr; \}/.test(uNarrow),
+      (uNarrow.match(/\.frow-tags[^\n{]*\{ grid-template-rows[^}]*\}/g) || ['(keine Regel)']).join(' | '));
     /* UND SIE STEHT IM SCHMALEN ABSCHNITT UND NICHT GLOBAL: am Schreibtisch
        ist die Tagzeile einzeilig, und dort gibt es die zweite Rasterzeile gar
        nicht. */
     check('Und sie steht nur im schmalen Abschnitt',
-      (uCss.match(/\.frow-tags \{ grid-template-rows/g) || []).length === 1 &&
-      /\.frow-tags \{ grid-template-rows/.test(uNarrow));
+      (uCss.match(/\.frow-tags[^\n{]*\{ grid-template-rows/g) || []).length === 2 &&
+      (uNarrow.match(/\.frow-tags[^\n{]*\{ grid-template-rows/g) || []).length === 2);
     check('Der Umschalter steht weiter in der zweiten Zeile und oben darin',
       /\.frow-tags > \.tagmode \{ grid-column: 1; grid-row: 2; margin-right: 0;\s*align-self: start; \}/.test(uNarrow),
       (uNarrow.match(/\.frow-tags > \.tagmode \{[^}]*\}/) || ['(keine Regel)'])[0]);
@@ -53526,13 +53545,16 @@ async function check0302() {
       (vApp.match(/setAttribute\('aria-label', [mc]\.title\)/g) || []).length === 2);
 
     /* ---- Zusage 3: die dritte Spalte ist weg ---- */
+    /* SEIT 0.30.3 HAENGEN DIESE DREI AN `tags-deep`: die Anordnung gilt nur,
+       wo die Wolke die zweite Rasterzeile auch ausfuellt. Die Zusagen bleiben
+       dieselben und nennen nur den Traeger mit (Stolperstein 201). */
     check('Die beiden Verweise stehen in Spalte eins, unter der Beschriftung',
-      /\.frow-tags > \.frow-right-end \{ grid-column: 1; grid-row: 2;/.test(vNarrow),
-      (vNarrow.match(/\.frow-tags > \.frow-right-end[^\n]*/) || ['(keine Regel)'])[0]);
+      /\.frow-tags\.tags-deep > \.frow-right-end \{ grid-column: 1; grid-row: 2;/.test(vNarrow),
+      (vNarrow.match(/\.frow-tags[^\n{]*> \.frow-right-end[^\n]*/) || ['(keine Regel)'])[0]);
     check('Und die Zeile traegt drei Rasterzeilen',
-      /\.frow-tags \{ grid-template-rows: auto auto 1fr; \}/.test(vNarrow));
+      /\.frow-tags\.tags-deep \{ grid-template-rows: auto auto 1fr; \}/.test(vNarrow));
     check('Und der Umschalter steht in der dritten',
-      /\.frow-tags > \.tagmode \{ grid-row: 3; \}/.test(vNarrow));
+      /\.frow-tags\.tags-deep > \.tagmode \{ grid-row: 3; \}/.test(vNarrow));
     /* ---- UND ZUGEKLAPPT IST ER VERBORGEN -- nachgetragen, 0.30.2 ----
        DIE GEGENPROBE HAT ES GEFUNDEN, und das ist ihr Zweck. Rueckbau 941
        macht den Umschalter wieder immer sichtbar, und KEINE EINZIGE PRUEFUNG
@@ -53616,6 +53638,199 @@ async function check0302() {
       vHaken.innerHTML.includes('M6 14.5L12 8.5l6 6'),
       vHaken ? `„${vHaken.getAttribute('title')}"` : '(kein Griff)');
     vAuf.w.close();
+  }
+}
+
+/* =================================================================
+   0.30.3 — „Die zugeklappte Tagzeile fuellt, was sie ohnehin kostet"
+
+   EIN BEFUND, DREI BAUABSCHNITTE. Seit 0.30.2 stehen die beiden Zeichen unter
+   der Beschriftung; Spalte 1 verlangt damit 18 + 7 + 30 + 7 = 62 Pixel, ob die
+   Wolke sie braucht oder nicht. EINE Wolkenreihe misst 27 -- FUENFUNDDREISSIG
+   Pixel standen leer.
+   GEMESSEN AM 12. SEPTEMBER 2026 in echtem Chromium bei 390 x 844, dreissig
+   Tags, zugeklappt:
+     vorher   Zeile 62, Wolke 27, leer 35, vier sichtbare Tags
+     nachher  Zeile 62, Wolke 60, leer  2, SIEBEN sichtbare Tags (de),
+              sechs (tr), sechs mit gesetztem Filter
+   UND DER JUNGE BESTAND, drei Tags: vorher Zeile 62 und leer 35 -- nachher
+   Zeile 27 ohne Filter und 37 mit, leer 0 bzw. 10.
+   ================================================================= */
+async function check0303() {
+  const wCss = fs.readFileSync(path.join(__dirname, 'public', 'style.css'), 'utf8');
+  const wApp = fs.readFileSync(path.join(__dirname, 'public', 'app.js'), 'utf8');
+  const wNarrow = (wCss.match(/@media \(max-width: 700px\), \(max-height: 500px\) and \(max-width: 960px\) \{[\s\S]*$/) || [''])[0];
+  let JSDOMw;
+  try { ({ JSDOM: JSDOMw } = require('jsdom')); } catch { JSDOMw = null; }
+  const warte = () => new Promise(r => setTimeout(r, 120));
+
+  group('Die zugeklappte Tagzeile fuellt ihre Hoehe — 0.30.3');
+  {
+    check('jsdom steht fuer die Tagzeile bereit', !!JSDOMw, 'ohne jsdom keine Oberflaechenprobe');
+
+    /* ---- Zusage 1: die Zeilenhoehe wird an EINER Stelle gemessen ----
+       Zwei Leser fragen sie. Stuende die Messung zweimal da, liefen sie beim
+       naechsten Griff an der Pille auseinander -- und eine Begrenzung, die
+       eine andere Zeilenhoehe annimmt als der Zaehler daneben, schneidet an
+       einer Stelle ab, die der Zaehler nicht kennt (Stolperstein 47).
+       GEPRUEFT WIRD DER LESER UND NICHT DER WORTLAUT: beide duerfen `offsetHeight`
+       nicht selbst anfassen. */
+    check('Die Zeilenhoehe einer Wolke wird an EINER Stelle gemessen',
+      /function cloudLine\(box\) \{/.test(wApp) &&
+      (wApp.match(/firstElementChild;\s*\n\s*return first \? first\.offsetHeight/g) || []).length === 1,
+      (wApp.match(/first\.offsetHeight[^\n]*/g) || ['(nicht gefunden)']).join(' | '));
+    check('Und beide Leser fragen dort',
+      /function limitCloud\(box, rows\) \{[\s\S]{0,400}?const height = cloudLine\(box\);/.test(wApp) &&
+      /function cloudRows\(box\) \{\s*\n\s*const height = cloudLine\(box\);/.test(wApp));
+
+    /* ---- Zusage 2: cloudRows zaehlt die Reihen UNGEKUERZT ----
+       GEFAHREN UND NICHT GELESEN, und zwar am Mock: jsdom rechnet keine
+       Hoehen, also bekommt die Zeile einen Kasten, der welche nennt
+       (Stolperstein 161). `scrollHeight` misst den vollen Inhalt auch hinter
+       einer Begrenzung -- genau das ist der Punkt der Zusage. */
+    const wLeer = buildDom(JSDOMw, { tags: [] });
+    await warte();
+    const wFenster = wLeer.w;
+    const wKasten = (hoch, voll) => ({ firstElementChild: { offsetHeight: hoch }, scrollHeight: voll });
+    check('cloudRows zaehlt EINE Reihe als eine',
+      wFenster.cloudRows(wKasten(27, 27)) === 1, String(wFenster.cloudRows(wKasten(27, 27))));
+    check('Und ZWEI Reihen als zwei — auch hinter einer Begrenzung',
+      wFenster.cloudRows(wKasten(27, 60)) === 2, String(wFenster.cloudRows(wKasten(27, 60))));
+    check('Und dreissig Reihen als dreissig',
+      wFenster.cloudRows(wKasten(27, 30 * 27 + 29 * 6)) === 30,
+      String(wFenster.cloudRows(wKasten(27, 30 * 27 + 29 * 6))));
+    /* EIN EINGEKLAPPTER BLOCK MISST NULL -- seine Kinder stehen auf
+       display: none. Null heisst „nicht messbar" und nicht „keine Reihe". */
+    check('Eine Wolke ohne messbare Hoehe meldet null Reihen',
+      wFenster.cloudRows(wKasten(0, 0)) === 0 &&
+      wFenster.cloudRows({ firstElementChild: null, scrollHeight: 0 }) === 0);
+    /* ---- Zusage 3: beide rechnen mit derselben Zeilenhoehe ----
+       DIE BEGRENZUNG SETZT EINE HOEHE, DER ZAEHLER LIEST EINE -- und was die
+       eine fuer zwei Reihen haelt, muss die andere ebenso. Gefahren und nicht
+       behauptet: die gesetzte Hoehe wird dem Zaehler zurueckgegeben. */
+    const wMess = { firstElementChild: { offsetHeight: 27 }, scrollHeight: 999,
+      clientHeight: 0, style: {} };
+    wFenster.limitCloud(wMess, 2);
+    check('Was die Begrenzung fuer zwei Reihen haelt, haelt der Zaehler ebenso',
+      wMess.style.maxHeight === '60px' &&
+      wFenster.cloudRows(wKasten(27, parseInt(wMess.style.maxHeight, 10))) === 2,
+      `Begrenzung ${wMess.style.maxHeight}`);
+    wLeer.w.close();
+
+    /* ---- Zusage 4 und 5: zwei Reihen am Telefon, eine am Schreibtisch ----
+       DIE ZAHL HAENGT AM STILBLATT UND NICHT AN EINER ZWEITEN BEDINGUNG: das
+       Raster gibt es nur im schmalen Abschnitt, also ist `display: grid` die
+       Antwort auf „steht die Zeile am Telefon".
+       GEFAHREN WIRD MIT EINEM SPAEHER an der Begrenzung: er sagt, mit welcher
+       Zahl sie gerufen wurde. Die Zusage gilt dem RUF und nicht der Funktion
+       -- genau die Luecke, die 0.30.1 an ihrer eigenen Gegenprobe gefunden hat. */
+    const wTags = [
+      { id: 61, name: 'Alu', usage_count: 3, test_usage_count: 0 },
+      { id: 62, name: 'Stahl', usage_count: 2, test_usage_count: 0 },
+      { id: 63, name: 'Holz', usage_count: 1, test_usage_count: 0 }
+    ];
+    const wDom = buildDom(JSDOMw, { tags: wTags });
+    await warte();
+    const w = wDom.w;
+    const wZeile = () => w.document.getElementById('f-tagzeile');
+    let wRufe = [];
+    const wEchteGrenze = w.limitCloud;
+    w.limitCloud = (box, rows) => { wRufe.push(rows); return wEchteGrenze(box, rows); };
+    /* JSDOM MELDET FUER EIN DIV KEIN RASTER -- das ist der Schreibtisch. */
+    wRufe = [];
+    wZeile()?.querySelector('.pill-tag')?.click();
+    await warte();
+    check('Am Schreibtisch zeigt die zugeklappte Wolke EINE Reihe',
+      wRufe.length > 0 && wRufe[wRufe.length - 1] === 1, `gerufen mit ${wRufe.join(', ')}`);
+    /* UND JETZT DAS TELEFON: die Antwort des Stilblatts wird fuer diese eine
+       Zeile getauscht -- jsdom wertet den schmalen Abschnitt nicht aus
+       (Stolperstein 161). */
+    const wEchterStil = w.getComputedStyle.bind(w);
+    w.getComputedStyle = (el, ...rest) =>
+      (el && el.id === 'f-tagzeile') ? { display: 'grid' } : wEchterStil(el, ...rest);
+    wRufe = [];
+    wZeile()?.querySelector('.pill-tag.on')?.click();
+    await warte();
+    check('Am Telefon zeigt sie ZWEI — die Hoehe ist ohnehin bezahlt',
+      wRufe.length > 0 && wRufe[wRufe.length - 1] === 2, `gerufen mit ${wRufe.join(', ')}`);
+    /* ---- Zusage 6: aufgeklappt gilt keine Begrenzung ----
+       Die Zahl gilt nur zugeklappt. Der Betreiber am 12. September 2026:
+       „Aufgeklappt sieht es gut aus." */
+    w.limitCloud = (box, rows) => { wRufe.push(rows); return true; };
+    wRufe = [];
+    wZeile()?.querySelector('.pill-tag')?.click();
+    await warte();
+    wZeile()?.querySelector('.frow-right-end .link-btn')?.click();
+    await warte();
+    check('Aufgeklappt gilt keine Begrenzung',
+      wRufe[wRufe.length - 1] === 0, `gerufen mit ${wRufe.join(', ')}`);
+
+    /* ---- Zusage 7: die Anordnung gilt nur, wo die Wolke sie traegt ----
+       BEI EINEM JUNGEN BESTAND GIBT ES KEINE ZWEITE REIHE ZU ZEIGEN -- gemessen
+       mit drei Tags blieb die Zeile bei 62 und die Wolke bei 27, mit zwei
+       Reihen genauso. Die Wolke kann nicht fuellen, was nicht da ist.
+       GEFAHREN WIRD DER ZAEHLER GEGEN DIE KLASSE, in beide Richtungen: eine
+       Zusage, die nur den einen Ausgang kennt, bliebe gruen, wenn die
+       Bedingung ganz fiele (Stolperstein 81). */
+    w.limitCloud = wEchteGrenze;
+    const wEchterZaehler = w.cloudRows;
+    w.cloudRows = () => 2;
+    wZeile()?.querySelector('.pill-tag')?.click();
+    await warte();
+    check('Ab ZWEI Reihen traegt die Zeile `tags-deep`',
+      !!wZeile()?.classList.contains('tags-deep'), wZeile() ? wZeile().className : '(keine Zeile)');
+    w.cloudRows = () => 1;
+    /* EIN KLICK AUF DIE ERSTE PILLE UND NICHT AUF EINE GEWAEHLTE: sortCloud()
+       stellt die gewaehlten nach vorn, der erste Klick hat die eine also
+       wieder abgewaehlt -- und `.pill-tag.on` traf danach ins Leere. Ohne Klick
+       kein Neuzeichnen, und die Zeile behielt die Klasse aus dem Zug davor. */
+    wZeile()?.querySelector('.pill-tag')?.click();
+    await warte();
+    check('Bei EINER Reihe traegt sie es nicht',
+      !!wZeile() && !wZeile().classList.contains('tags-deep'),
+      wZeile() ? wZeile().className : '(keine Zeile)');
+    w.cloudRows = wEchterZaehler;
+    wDom.w.close();
+
+    /* ---- Zusage 8 bis 10: was ohne `tags-deep` gilt ----
+       DIE GRUNDREGEL GREIFT WIEDER -- die Zeichen stehen am Zeilenende, wie an
+       jeder anderen Filterzeile. Es braucht dafuer KEINE neue Regel, und genau
+       das haelt die Zusage fest: die drei Regeln von 0.30.2 nennen ihren
+       Traeger, und ohne ihn steht nichts an ihrer Stelle. */
+    for (const [wName, wRegel] of [
+      ['Die Verweise stehen nur MIT `tags-deep` in Spalte eins',
+        /\.frow-tags\.tags-deep > \.frow-right-end \{ grid-column: 1;/],
+      ['Die dritte Rasterzeile gibt es nur MIT `tags-deep`',
+        /\.frow-tags\.tags-deep \{ grid-template-rows: auto auto 1fr; \}/],
+      ['Und der Umschalter steht nur dort in der dritten',
+        /\.frow-tags\.tags-deep > \.tagmode \{ grid-row: 3; \}/]
+    ]) check(wName, wRegel.test(wNarrow), (wNarrow.match(wRegel) || ['(keine Regel)'])[0]);
+    /* UND KEINE DER DREI STEHT OHNE TRAEGER DA. Ohne diese Zeile bliebe die
+       Gruppe gruen, wenn jemand die alte Fassung danebenstellte -- zwei Regeln
+       zur selben Sache, und die spaetere gewaenne. */
+    check('Und keine der drei steht daneben noch ohne Traeger',
+      !/\.frow-tags > \.frow-right-end \{/.test(wNarrow) &&
+      !/\.frow-tags \{ grid-template-rows: auto auto 1fr; \}/.test(wNarrow) &&
+      !/\.frow-tags > \.tagmode \{ grid-row: 3; \}/.test(wNarrow),
+      (wNarrow.match(/\.frow-tags[^\n{]*\{[^}]{0,60}/g) || []).slice(0, 6).join(' | '));
+    check('Ohne `tags-deep` traegt die Zeile zwei Rasterzeilen — die Bauform von 0.30.1',
+      /\.frow-tags \{ grid-template-rows: auto 1fr; \}/.test(wNarrow));
+    check('Und der Umschalter steht dann in der zweiten',
+      /\.frow-tags > \.tagmode \{ grid-column: 1; grid-row: 2;/.test(wNarrow));
+    /* DIE WOLKE SPANNT IN BEIDEN FASSUNGEN UEBER ALLE RASTERZEILEN -- `1 / -1`
+       nennt keine Zahl und gilt deshalb fuer zwei wie fuer drei. */
+    check('Und die Wolke spannt in beiden Fassungen ueber alle Rasterzeilen',
+      /\.frow-tags > \.pills\.cloud \{ grid-row: 1 \/ -1;/.test(wNarrow));
+
+    /* ---- Zusage 11 und 12: die beiden anderen Wolken bleiben ----
+       KEINE VON BEIDEN HAT EIN LOCH ZU FUELLEN: die Wolke im Eintrag steht in
+       keinem Raster mit Beschriftungsspalte und traegt ihr „mehr" als Wort in
+       einem eigenen Kasten; die Tagzeile eines Testtags ist eine Flexzeile,
+       und 0.30.1 hat sie genau dafuer gebaut. */
+    check('Die Wolke im Eintrag bleibt bei DREI Reihen',
+      /limitCloud\(box, cloudOpen\.detail \? 0 : 3\)/.test(wApp));
+    check('Und die Tagzeile eines Testtags bei EINER',
+      /limitCloud\(tagBox, opened \? 0 : 1\)/.test(wApp));
   }
 }
 

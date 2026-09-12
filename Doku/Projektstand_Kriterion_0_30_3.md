@@ -1,6 +1,6 @@
 # Projektstand — Kriterion
 
-**Kompakte Übergabe · Revision 85 · Stand 12. September 2026 · gebaut: Version 0.30.2**
+**Kompakte Übergabe · Revision 86 · Stand 12. September 2026 · gebaut: Version 0.30.3**
 
 Dieses Blatt ist der **einzige Ort, an dem steht, was gebaut ist und was
 bindet.** Es genügt, um in einem frischen Chat weiterzuarbeiten, ohne den alten
@@ -478,15 +478,20 @@ weiterhin offen. Daraus folgt die Stellung von `HINTER_PROXY` (Abschnitt 3).
 
 ## 2. Betriebsstand
 
-**Gebaut ist 0.30.2** — *die Zahlen des Prüfstands stehen im Änderungsprotokoll
-0.30.2: 6801 von 6801 Prüfungen, 344 Gruppen.* **0.30.2 ist der Rundlauf zu
-0.30.1 und fasst eine einzige Zeile an: die Tagzeile.** *Ihre dritte Rasterspalte
-nahm der Tagwolke bis zu 180 der 366 Pixel, sobald ein Tagfilter griff — „mehr"
-und „Tags zurücksetzen" standen dort als Wörter. Sie sind jetzt zwei Zeichen und
-stehen unter der Beschriftung; die dritte Spalte fällt weg.* **Am Wirt läuft
-0.30.0, Fingerprint `2363b00a`** *(Abschnitt 8)* — *vom Betreiber am 12.
-September 2026 aus seiner Installation gemeldet und damit auf das Byte
-bestätigt.* **Drei Quellen, ein Wert, zum fünften Mal in Folge.**
+**Gebaut ist 0.30.3** — *die Zahlen des Prüfstands stehen im Änderungsprotokoll
+0.30.3.* **0.30.3 ist der Rundlauf zu 0.30.2 und fasst dieselbe Zeile noch
+einmal an: die Tagzeile, und zwar zugeklappt.** *Seit 0.30.2 stehen die beiden
+Zeichen unter der Beschriftung; Spalte 1 verlangt damit 62 Pixel, ob die Wolke
+sie braucht oder nicht — eine Wolkenreihe misst 27, und fünfunddreißig Pixel
+standen leer.* **Die Wolke zeigt dort jetzt ZWEI Reihen und füllt, was die Zeile
+ohnehin kostet** *(sieben sichtbare Tags statt vier, bei gleicher Höhe)*; **und
+wo sie keine zweite Reihe hat — ein junger Bestand —, fällt die Anordnung ganz
+weg und die Zeile misst 27 statt 62.**
+
+**Am Wirt läuft 0.30.2** — *vom Betreiber am 12. September 2026 mit drei Bildern
+aus seiner Installation belegt; **der Fingerprint aus dem Feld steht aus** und
+wird nachgetragen.* **0.30.0 davor war auf das Byte bestätigt** *(`2363b00a`,
+drei Quellen, ein Wert — Abschnitt 8)*.
 
 **0.30.0 hat an zwei Enden gebaut, und beide Enden waren dieselbe Sache: Zeit,
 in der niemand etwas sieht.** *Der Prüflauf fällt von 464,4 auf 271,5 Sekunden —

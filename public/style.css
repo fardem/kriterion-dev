@@ -4180,8 +4180,25 @@ body.login .login-screen { flex: 1 0 auto; min-height: 0; }
      Umschalter. Die erste und die zweite sind so hoch wie ihr Inhalt, die
      dritte nimmt den Rest -- dieselbe Bauform wie in 0.30.1, nur eine Zeile
      tiefer. */
-  .frow-tags { grid-template-rows: auto auto 1fr; }
-  .frow-tags > .frow-right-end { grid-column: 1; grid-row: 2;
+  /* ---- UND SIE GILT NUR, WENN DIE WOLKE SIE TRAEGT -- 0.30.3, Befund 1 ----
+     DER BETREIBER, 12. SEPTEMBER 2026, MIT DREI BILDERN: „Aufgeklappt sieht es
+     gut aus. … aber zugeklappt sieht es wie da ist was falsch gelaufen aus."
+     ZWEI RASTERZEILEN IN SPALTE 1 KOSTEN 62 PIXEL, ob die Wolke sie braucht
+     oder nicht -- 18 fuer die Beschriftung, 30 fuer die Zeichen, zweimal 7
+     Rasterabstand. Eine Wolkenreihe misst 27. Gemessen standen damit
+     FUENFUNDDREISSIG PIXEL leer, rechts neben dem Haken, und weil dort sonst
+     nichts ist, las sich das Loch wie ein Fehler.
+     ZWEI REIHEN FUELLEN SIE (60 von 62), UND DAS SETZT DAS SKRIPT -- hier
+     steht nur, wann die Anordnung ueberhaupt gilt.
+     OHNE `tags-deep` FAELLT SIE WEG: die Zeile traegt dann zwei Rasterzeilen
+     statt dreier, die Zeichen stehen am Zeilenende (Grundregel, Spalte 3) und
+     der Umschalter in der zweiten -- die Anordnung, die 0.30.1 gebaut hat.
+     DEN BEFUND VON 0.30.2 HOLT DAS NICHT ZURUECK: der hing an zwei WOERTERN in
+     Spalte 3 (180 px). Seit 0.30.2 sind es ZEICHEN zu 30 Pixeln, und wo nichts
+     abgeschnitten ist, steht dort ohnehin kein „mehr". */
+  .frow-tags { grid-template-rows: auto 1fr; }
+  .frow-tags.tags-deep { grid-template-rows: auto auto 1fr; }
+  .frow-tags.tags-deep > .frow-right-end { grid-column: 1; grid-row: 2;
     align-self: start; justify-self: start; gap: 4px; }
   /* ---- UND DER UMSCHALTER GEHT UNTER DIE KLAPPE ----
      Er steht in der dritten Rasterzeile und ist verborgen, solange die Wolke
@@ -4193,7 +4210,9 @@ body.login .login-screen { flex: 1 0 auto; min-height: 0; }
      `tags-live` setzt drawFilters(), und sie steht fuer „offen ODER es haengt
      etwas daran". */
   .frow-tags:not(.tags-live) > .tagmode { display: none; }
-  .frow-tags > .tagmode { grid-row: 3; }
+  /* IN DIE DRITTE RASTERZEILE NUR DORT, WO ES EINE GIBT -- 0.30.3. Ohne
+     `tags-deep` bleibt er in der zweiten, wie ihn 0.30.1 gesetzt hat. */
+  .frow-tags.tags-deep > .tagmode { grid-row: 3; }
   /* ---- DIE MARKEN EINE STUFE KLEINER -- 0.30.1, Befund 2 (F4) ----
      DER BETREIBER: „Tags koennen glaube ich eine bis zwei stufen kleiner als
      die anderen damit mehr rein passt da auch deutlich mehr von denen gibt,

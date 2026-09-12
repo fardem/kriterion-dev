@@ -1738,11 +1738,33 @@ function sortCloud(tags, highlight) {
 // wurde. n = 0 hebt die Begrenzung auf. Die Zeilenhoehe wird am ersten Element
 // gemessen statt geraten -- sie haengt an der eingestellten Schriftgroesse.
 const CLOUD_GAP = 6;
+/* DIE ZEILENHOEHE EINER WOLKE WIRD AN EINER STELLE GEMESSEN -- 0.30.3.
+   Zwei Leser fragen sie: die Begrenzung unten und cloudRows(). Stuende die
+   Messung zweimal da, liefen die beiden beim naechsten Griff an der Pille
+   auseinander -- und eine Begrenzung, die eine andere Zeilenhoehe annimmt als
+   der Zaehler daneben, schneidet an einer Stelle ab, die der Zaehler nicht
+   kennt (Stolperstein 47).
+   NULL HEISST „NICHT MESSBAR": ein eingeklappter Block misst null, seine
+   Kinder stehen auf display: none. Beide Leser behandeln das je fuer sich. */
+function cloudLine(box) {
+  const first = box.firstElementChild;
+  return first ? first.offsetHeight || 0 : 0;
+}
+/* WIE VIELE REIHEN DIE WOLKE UNGEKUERZT BRAUCHT -- 0.30.3, Befund 1.
+   `scrollHeight` misst den vollen Inhalt, AUCH hinter einer Begrenzung; die
+   Antwort haengt also nicht daran, ob limitCloud() vorher gelaufen ist.
+   GERECHNET WIRD MIT DERSELBEN ZEILENHOEHE, die die Begrenzung setzt -- eine
+   Reihe ist `hoehe`, zwei sind `2*hoehe + CLOUD_GAP`, und der Weg zurueck ist
+   diese Zeile. */
+function cloudRows(box) {
+  const height = cloudLine(box);
+  if (!height) return 0;
+  return Math.round((box.scrollHeight + CLOUD_GAP) / (height + CLOUD_GAP));
+}
 function limitCloud(box, rows) {
   if (!rows) { box.style.maxHeight = ''; box.style.overflow = ''; return false; }
-  const first = box.firstElementChild;
-  if (!first) return false;
-  const height = first.offsetHeight || 0;
+  if (!box.firstElementChild) return false;
+  const height = cloudLine(box);
   // EIN EINGEKLAPPTER BLOCK MISST NULL: seine Kinder stehen auf
   // display: none, und aus der Hoehe 0 entstuende eine feste maxHeight, die
   // nach dem Aufklappen stehenbliebe. Also gar nichts setzen.
@@ -4020,9 +4042,52 @@ function drawFilters() {
       g3.appendChild(b);
     });
     r3.appendChild(g3);
-    // Eine Zeile, Rest aufklappbar. Der Knopf erscheint nur, wenn wirklich etwas
+    /* ---- WIE VIELE REIHEN DIE ZUGEKLAPPTE WOLKE ZEIGT -- 0.30.3, Befund 1 ----
+       DER BETREIBER, 12. SEPTEMBER 2026, MIT DREI BILDERN: „Aufgeklappt sieht
+       es gut aus. Da zeigt den richtigen Weg aber zugeklappt sieht es wie da
+       ist was falsch gelaufen aus. … Eine zweite Reihe von Tags?"
+       ZWEI REIHEN KOSTEN AM TELEFON NICHTS, und das ist gemessen. Seit 0.30.2
+       stehen die beiden Zeichen unter der Beschriftung; Spalte 1 verlangt damit
+       18 + 7 + 30 + 7 = 62 Pixel, ob die Wolke sie braucht oder nicht. EINE
+       Reihe misst 27 -- fuenfunddreissig Pixel standen leer, und weil rechts
+       neben dem Haken sonst nichts ist, las sich das Loch wie ein Fehler.
+       ZWEI REIHEN MESSEN 27 + 6 + 27 = 60 und passen hinein: die Zeile blieb in
+       der Messung bei 62, mit gesetztem Tagfilter ebenso. Sichtbar sind dafuer
+       sieben Tags statt vier (ohne Filter) und sechs statt vier (mit).
+       DREI WAEREN 93 und liessen die Zeile wachsen -- zwei ist genau die Zahl,
+       die Spalte 1 ohnehin verlangt.
+       AM SCHREIBTISCH GILT SIE NICHT. Dort ist die Zeile eine Flexzeile, die
+       Zeichen stehen neben der Wolke, und es gibt kein Loch zu fuellen; zwei
+       Reihen waeren dort rund 33 Pixel fuer nichts (Betreiber, 12. September
+       2026: nur am Telefon).
+       GEFRAGT WIRD DAS STILBLATT UND NICHT EINE ZWEITE ZAHL: das Raster gibt es
+       nur im schmalen Abschnitt, also ist `display: grid` die Antwort auf „steht
+       die Zeile am Telefon". Eine eigene Bedingung daneben waere die zweite
+       Wahrheit, gegen die Stolperstein 47 steht -- und die Instanz haelt sich
+       genau EINE Bruecke dieser Art (NARROW, fuer die Frage, ob die Filter
+       eingeklappt anfangen). */
+    const cloudLimit = getComputedStyle(r3).display === 'grid' ? 2 : 1;
+    // Rest aufklappbar. Der Knopf erscheint nur, wenn wirklich etwas
     // abgeschnitten ist.
-    const trimmed = limitCloud(g3, cloudOpen.overview ? 0 : 1);
+    const trimmed = limitCloud(g3, cloudOpen.overview ? 0 : cloudLimit);
+    /* ---- UND DIE ZEICHEN BEKOMMEN IHRE ZEILE NUR, WENN DIE WOLKE SIE TRAEGT ----
+       0.30.3, Befund 1. BEI EINEM JUNGEN BESTAND GIBT ES KEINE ZWEITE REIHE ZU
+       ZEIGEN: gemessen mit drei Tags blieb die Zeile bei 62, die Wolke bei 27,
+       und die fuenfunddreissig Pixel standen wieder leer -- mit zwei Reihen
+       genauso, denn die Wolke kann nicht fuellen, was nicht da ist.
+       DANN DUERFEN DIE ZEICHEN KEINE EIGENE RASTERZEILE VERLANGEN. Ohne
+       `tags-deep` faellt die Anordnung von 0.30.2 weg und die Grundregel greift
+       wieder: die Zeichen stehen am Zeilenende, wie an jeder anderen Filterzeile.
+       DEN BEFUND VON 0.30.2 HOLT DAS NICHT ZURUECK. Der war: zwei WOERTER in
+       Spalte 3 machten aus 38 Pixeln deren 180. Beide sind seit 0.30.2 ZEICHEN
+       -- 30 Pixel je Stueck. Und wo nichts abgeschnitten ist, gibt es kein
+       „mehr": bei flacher Wolke steht dort meist nur der Ruecksetzer.
+       GEMESSEN WIRD EINMAL JE ZEICHNUNG und bevor die Zeichen im Dokument
+       stehen -- die Wolke hat dabei immer dieselbe Breite, die Antwort kann also
+       nicht hin- und herspringen. Und der unguenstige Ausgang ist harmlos: wird
+       die Wolke nach dem Umzug doch zweireihig, misst die Zeile 60 und die Wolke
+       60. Auch dann bleibt kein Loch. */
+    if (cloudRows(g3) > 1) r3.classList.add('tags-deep');
     /* DIE BEIDEN VERWEISE STEHEN HINTER DER WOLKE, als gewoehnliche Geschwister
        -- und seit 0.13.0 ist das wieder die natuerliche Reihenfolge: "mehr"
        gehoert hinter das, was es aufklappt.
