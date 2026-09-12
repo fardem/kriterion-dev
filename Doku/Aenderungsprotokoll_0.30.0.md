@@ -23,15 +23,26 @@ Nachmessen · 12. September 2026 · gebaut auf 0.29.0 (`0336d3a5`).**
 > | | Lauf | Gruppen | Prüfungen |
 > |---|---|---|---|
 > | **vorher** *(0.29.0, dieselbe Maschine)* | **464,4 s** | 329 | 6662 von 6662 grün |
-> | **nachher** *(0.30.0)* | **261,3 s** | **329** | **6690 von 6690 grün** |
+> | **die Runde ohne ihre eigenen neuen Gruppen** | **261,3 s** | 329 | 6690 von 6690 grün |
+> | **nachher, vollständig** *(0.30.0)* | **279,2 s** | **339** | **6735 von 6735 grün** |
 >
-> **PFLICHT WAREN 280 SEKUNDEN, ZIEL 250** *(F6)*. **Erreicht sind 261,3 — die
-> Pflicht mit 19 Sekunden Abstand, das Ziel um 11 Sekunden verfehlt.** *Die
-> Zahl der Prüfgruppen ist dabei nicht gesunken und die Zahl der Prüfungen
-> gestiegen.*
+> **PFLICHT WAREN 280 SEKUNDEN, ZIEL 250** *(F6)*. **Erreicht sind 279,2 — die
+> Pflicht mit 0,8 Sekunden Abstand, das Ziel deutlich verfehlt.**
+>
+> **UND DIE MITTLERE ZEILE GEHÖRT DAZU, weil sie die ehrlichere ist:** *die
+> Hebel haben 203 Sekunden gebracht; die zehn NEUEN Prüfgruppen dieser Runde —
+> der Wächter an einem echten Prozess, der Aufräumer an einem echten Rest, die
+> Route ohne Schalter, die Schlusstafel an zwei gefahrenen Läufen — kosten
+> davon 18 wieder.* **45 Prüfungen mehr für 18 Sekunden ist ein guter Handel,
+> und er gehört genannt und nicht verrechnet.**
+>
+> **DIE ZAHL SCHWANKT UM RUND ZEHN SEKUNDEN, und die Ursache ist benannt:** *die
+> Gruppe „Der Teilexport mit zweitem Faktor" schreibt einen Anhang von 400 MB
+> über eine zweite Verbindung und misst je nach Maschine zwischen 13 und 29
+> Sekunden.* **Zwei Läufe hintereinander: 279,2 und 282,6.**
 >
 > **UND DER GRÖSSTE GEWINN IST NICHT DER LAUF, SONDERN DIE GEGENPROBE.** *Sie
-> fährt den ganzen Prüfstand einmal JE RÜCKBAU — 203 gesparte Sekunden je
+> fährt den ganzen Prüfstand einmal JE RÜCKBAU — 185 gesparte Sekunden je
 > Rückbau, und die Liste trägt 906.*
 
 ---
@@ -524,7 +535,7 @@ an.**
 
 ## Der Prüfstand
 
-**6690 VON 6690 PRÜFUNGEN GRÜN, 329 GRUPPEN, 261,3 SEKUNDEN.**
+**6735 VON 6735 PRÜFUNGEN GRÜN, 339 GRUPPEN, 279,2 SEKUNDEN.**
 
 **ACHT ZUSAGEN FAHREN EINEN ECHTEN PROZESS ODER EINEN LAUFENDEN SERVER** und
 lesen nicht den Quelltext: *der Wächter an einem echt gestarteten `node

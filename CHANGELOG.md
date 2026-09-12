@@ -46,7 +46,7 @@ bleiben in der Form ihrer Zeit.*
 
 ### Geändert
 
-- **Der Prüflauf braucht 261 statt 465 Sekunden** — bei derselben Zahl Prüfungen und derselben Zahl Prüfgruppen. Die Gegenproben sparen dieselbe Zeit **je Rückbau**.
+- **Der Prüflauf braucht 279 statt 465 Sekunden** — bei mehr Prüfungen und mehr Prüfgruppen als vorher. Die Gegenproben sparen dieselbe Zeit **je Rückbau**.
 - **Die Tagzeile steht offen, sobald die Filter aufgeklappt sind** — der Umschalter „Tags" fällt dafür weg. „und/Oder" steht klein unter der Beschriftung; am Telefon 24 Pixel weniger Filterleiste.
 - **Der Knopf „Wer hat bewertet" heißt „Wer?"** — damit steht die Kopfzeile des Bewertungskastens wieder auf **einer** Zeile statt zwei.
 - **Der Bewertungskasten misst am Telefon 439 statt 537 Pixel**, sobald es mehr als einen Zugang gibt. Bei einem einzigen Zugang ändert sich nichts.

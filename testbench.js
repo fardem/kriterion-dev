@@ -815,11 +815,24 @@ const shareMain = (purpose, target = null) =>
    Rest, wenn sein DATA_DIR unter dem Wegwerfpfad DIESES Pruefstands liegt:
    `<tmp>/kriterion-...`. Ein Bestand liegt dort nie.
 
-   UND ER ZAEHLT NUR, WAS NICHT VON DIESEM LAUF ABSTAMMT. Waehrend des Laufs
-   leben bis zu 78 eigene Server mit genau solchen Verzeichnissen; ein
-   Aufraeumer, der sie mitnaehme, brachte den Lauf um, den er schuetzen soll.
-   Die Abstammung wird ueber `/proc/<pid>/stat` nach oben verfolgt -- ein Rest
-   haengt nach dem Tod seines Vaters an der Eins und nicht an uns.
+   UND ER ZAEHLT NUR, WAS WIRKLICH VERWAIST IST -- also einen Prozess, dessen
+   VATER FORT IST. Das ist die Frage, um die es geht: ein Rest ist kein Server
+   mit einem bestimmten Namen, sondern einer, auf den niemand mehr wartet.
+
+   ZWEI FAELLE HAENGEN DARAN, UND DER ZWEITE HAT DIESE ZEILE ERZWUNGEN.
+   Der erste ist der eigene Lauf: waehrend er laeuft, leben bis zu 79 eigene
+   Server mit genau solchen Verzeichnissen, und ein Aufraeumer, der sie
+   mitnaehme, braechte den Lauf um, den er schuetzen soll.
+   DER ZWEITE IST DIE GEGENPROBE, und sie faehrt VIER LAEUFE NEBENEINANDER.
+   Ein Aufraeumer, der nur „nicht von mir" fragt, raeumt dort die Server der
+   drei anderen Spuren weg -- gefahren am 12. September 2026, und alle
+   sechsundzwanzig Rueckbauten meldeten ABGERISSEN nach einer Sekunde. DAS IST
+   GENAU DER SCHADEN, GEGEN DEN foreignServer() GEBAUT IST, nur aus der anderen
+   Richtung: dort nimmt ein fremder Lauf die Ports, hier naehme ein fremder
+   Lauf die Prozesse.
+   „DER VATER IST FORT" IST DIE ANTWORT AUF BEIDE: die eigenen Kinder haben uns
+   als Vater, die Kinder der Nachbarspur haben ihren eigenen Lauf -- und nur
+   ein Rest haengt an der Eins, weil sein Lauf nicht mehr da ist.
 
    GELESEN WIRD UEBER `/proc`, wie ueberall in diesem Haus: keine neue
    Abhaengigkeit, kein `ps`, kein `pkill` auf einen Namen -- genau der hat in
@@ -836,6 +849,9 @@ function parentOf(pid) {
   const rest = row.slice(row.lastIndexOf(')') + 1).trim().split(/\s+/);
   return Number(rest[1]) || 0;
 }
+
+/* LEBT DIESE NUMMER NOCH? Signal 0 stellt die Frage, ohne etwas zu schicken. */
+const alive = (pid) => { try { process.kill(pid, 0); return true; } catch { return false; } };
 
 const ourOwn = (pid) => {
   for (let up = parentOf(pid), step = 0; up > 1 && step < 40; up = parentOf(up), step++)
@@ -854,6 +870,12 @@ function leftovers() {
     try { environment = fs.readFileSync(`/proc/${e}/environ`, 'utf8').split('\0'); } catch { continue; }
     const where = (environment.find(z => z.startsWith('DATA_DIR=')) || '').slice(9);
     if (!where || !where.startsWith(LEFTOVER_ROOT)) continue;
+    /* DER VATER MUSS FORT SEIN. `ppid === 1` heisst: er ist gestorben, und der
+       Kern hat den Prozess an die Eins gehaengt. Lebt der Vater noch, gehoert
+       der Server einem laufenden Prueflauf -- unserem eigenen oder dem der
+       Nachbarspur -- und ist kein Rest. */
+    const father = parentOf(Number(e));
+    if (father > 1 && alive(father)) continue;
     if (ourOwn(Number(e))) continue;
     outcome.push({ pid: Number(e), where,
       port: (environment.find(z => z.startsWith('PORT=')) || '').slice(5) });
