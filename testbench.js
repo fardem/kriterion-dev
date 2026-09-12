@@ -32806,6 +32806,7 @@ async function checkUi() {
     equal(title().sort(), ['Grün und leicht', 'Grün und schwer', 'Nur grün', 'Nur schwer']),
     JSON.stringify(title()));
   check('ODER ist jetzt hervorgehoben',
+    !!mode('or') && !!mode('and') &&
     mode('or').classList.contains('on') && !mode('and').classList.contains('on'));
   const storedMode = filterDom.sent
     .filter(x => x.body && x.body.filters).pop();
@@ -32820,9 +32821,10 @@ async function checkUi() {
   check('Aussichtslose Tags werden gedämpft',
     equal(emptyMarks, ['Leicht']), JSON.stringify(emptyMarks));
   check('Gewählte Tags gelten nie als aussichtslos',
+    !!mark('Grün') && !!mark('Schwer') &&
     !mark('Grün').classList.contains('blank') && !mark('Schwer').classList.contains('blank'));
-  check('Gedämpfte Tags bleiben anklickbar', typeof mark('Leicht').onclick === 'function');
-  check('Ein Hinweis erklärt die Dämpfung', /keine Treffer/i.test(mark('Leicht').title || ''));
+  check('Gedämpfte Tags bleiben anklickbar', typeof mark('Leicht')?.onclick === 'function');
+  check('Ein Hinweis erklärt die Dämpfung', /keine Treffer/i.test(mark('Leicht')?.title || ''));
 
   modeClick('or');
   await new Promise(r => setTimeout(r, 20));
@@ -32841,10 +32843,11 @@ async function checkUi() {
   await new Promise(r => setTimeout(r, 20));
   check('Diese Auswahl ergibt wirklich keinen Treffer', title().length === 0, JSON.stringify(title()));
   check('Auch bei leerem Ergebnis bleiben gewählte Tags ungedämpft',
+    !!mark('Schwer') && !!mark('Leicht') &&
     !mark('Schwer').classList.contains('blank') && !mark('Leicht').classList.contains('blank'),
     [...wf.document.querySelectorAll('#filters .pill-tag.blank')].map(b => b.textContent).join(' '));
   check('Der übrige Tag wird dabei sehr wohl gedämpft',
-    mark('Grün').classList.contains('blank'));
+    !!mark('Grün') && mark('Grün').classList.contains('blank'));
   wf.close();
 
   // Aeltere gespeicherte Filter kennen die Verknuepfung nicht.
