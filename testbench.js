@@ -26457,6 +26457,7 @@ function sweepLeftovers() {
   checkKeyChange();
   await check0290();
   await check0300();
+  await check0301();
 
   /* ---------------------------------------------------------------- */
   /* Der Schlussdurchlauf. Die Gruppen weiter oben pruefen einzelne
@@ -27161,7 +27162,7 @@ function sweepLeftovers() {
      setzt jetzt den NAMEN zurueck, der von 0.21.0 bis 0.30.0 im Waechter
      stand, statt ihn zu halbieren -- und macht damit zwei Zusagen rot statt
      einer. */
-  check('Es sind genau 906 Rueckbauten', gpList.length === 906, `${gpList.length}`);
+  check('Es sind genau 925 Rueckbauten', gpList.length === 925, `${gpList.length}`);
   const gpTwice = gpList.map(r => r.nr).filter((n, i, a) => a.indexOf(n) !== i);
   check('Und keine Nummer steht zweimal', gpTwice.length === 0, gpTwice.join(' '));
   /* JEDER GREIFT: der Suchtext kommt in seiner Datei GENAU EINMAL vor. Keinmal
@@ -28370,6 +28371,11 @@ function buildDom(JSDOM, { withoutLanguage = false, settings = { filters: null }
      braucht vier Aufgaben mit vier verschiedenen Daten, und eine davon
      erledigt. */
   commentInventory = null,
+  /* DIE TESTTAGE DES BEISPIELEINTRAGS, stellbar seit 0.30.1 -- wie
+     `commentInventory` fuer die Kommentare. Die drei Faelle der Testtagzeile
+     (ohne Marken, mit zweien, mit sieben) sind sonst nicht zu fahren: der
+     Vorgabeeintrag traegt genau einen Testtag mit genau einer Marke. */
+  dayInventory = null,
   untested = false, openInventory = null, trashInventory = null, backupStatus = null, backupCopies = null, sessionsInventory = null, logInventory = null,
   publicAddress = '', mailStatus = null, mailError = false, ownAddress = 'chefin@beispiel.de',
   tokenThrottle = 0, signup = false, requestsStatus = null, twoFactorState = null, statsExport = null,
@@ -28828,7 +28834,7 @@ function buildDom(JSDOM, { withoutLanguage = false, settings = { filters: null }
     // Abrufenden gehoert. Der Mock muss das mitliefern -- sonst
     // zeichnete die Zeitleiste hier alles gefuellt und die Unterscheidung
     // waere unpruefbar.
-    testDays: [{ id: 3, day: '2026-08-01', rating: 4, mine: true, author: vChefin,
+    testDays: dayInventory || [{ id: 3, day: '2026-08-01', rating: 4, mine: true, author: vChefin,
                  tags: [{ id: 91, name: 'Regen' }] }],
     // avg und count stehen an jeder Zeile. Bewusst VERSCHIEDENE
     // Werte je Kriterium: gleiche machten die Pruefung blind dafuer, ob die
@@ -30449,7 +30455,20 @@ async function checkUi() {
   check('Zeilen haben einen Griff', rowList.every(r => r.querySelector('.grip')));
   check('Kategorien behalten ihre Zeilen ohne Griff',
     !w.document.querySelector('#mcats .grip') && !w.document.querySelector('#mtags .grip'));
-  check('Zaehler nennt die Eintraege', rowList[0].querySelector('.mcount').textContent.trim() === '2 Einträge');
+  /* ---- IN DER ZEILE DIE ZAHL, IM TITEL DAS WORT -- 0.30.1, Befund 6 ----
+     BIS 0.30.0 STAND „2 Einträge" IN DER ZEILE. Der Betreiber, 12. September
+     2026, mit Bild: „Wir verlieren so viel Platz um Eintraege zu schreiben."
+     Von sieben Kriterien standen fuenf mit Auslassung da.
+     DIE ZUSAGE WIRD UMGESTELLT UND NICHT GELOESCHT (Stolperstein 201): sie
+     fragt jetzt BEIDES -- dass die Zeile nur noch die Zahl zeigt UND dass das
+     Wort im Titel steht. Nur das erste zu fragen hiesse, eine Zeile ohne jede
+     Auskunft gruen zu nennen.
+     DAS WORT IST UMGEZOGEN UND NICHT ERFUNDEN: im Titel steht genau der Text,
+     der vorher in der Zeile stand. */
+  const mZelle = rowList[0].querySelector('.mcount');
+  check('Zaehler zeigt nur noch die Zahl', mZelle.textContent.trim() === '2');
+  check('Und das Wort steht im Titel derselben Zelle',
+    mZelle.getAttribute('title') === '2 Einträge', mZelle.getAttribute('title'));
 
   /* --- Ziehen: echte Zeigerereignisse auf den gerenderten Zeilen --- */
   w.document.elementFromPoint = () => rowList[2];      // jsdom kennt das sonst nicht
@@ -48794,8 +48813,17 @@ async function checkUi() {
       new RegExp('(?<=[{}])\\s*' + waehler.replace(/\./g, '\\.') + ' \\{[^}]*\\}', 'g')
     )?.map(r => r.trim()) || [];
     const soStern = soRegeln('.star');
-    check('Der Stern hat zwei Masse: eines am Zeiger, eines am Finger',
-      soStern.length === 2, soStern.join(' || ') || '(keine Regel)');
+    /* SEIT 0.30.1 SIND ES DREI (Befund 5, F10): Zeiger, Finger, Telefon.
+       DIE ZUSAGE WIRD ERWEITERT UND NICHT ERSETZT -- Stolperstein 201. Die
+       beiden alten Masse stehen unveraendert da; das dritte kommt hinzu, und
+       es ist das kleinste von allen. Der Betreiber, 12. September 2026: „Ich
+       finde die sterne koennen kleiner werden damit etwas mehr platz
+       entsteht."
+       WARUM EIN DRITTES UND NICHT EIN GEAENDERTES ZWEITES: das Fingermass gilt
+       auch fuer ein Tablet, und dort ist die Breite da. Gemessen worden ist
+       das Telefon. */
+    check('Der Stern hat drei Masse: Zeiger, Finger, Telefon',
+      soStern.length === 3, soStern.join(' || ') || '(keine Regel)');
     check('Am Zeiger steht er unveraendert auf 1.2rem',
       /font-size: 1\.2rem/.test(soStern[0] || ''), soStern[0] || '(keine Regel)');
     /* KLEINER ALS DIE 1.45rem VON VORHER UND GROESSER ALS DIE 1.2rem DES
@@ -48808,6 +48836,23 @@ async function checkUi() {
     check('Und seine Polsterung ist mitgegangen — 3px statt 5px',
       /\.stars \.star \{ padding: 3px 4px; \}/.test(soCss),
       soRegeln('.stars .star').join(' || ') || '(keine Regel)');
+    /* ---- DAS DRITTE MASS -- 0.30.1, Befund 5 (F10) ----
+       GERECHNET UND NICHT ABGESCHRIEBEN, wie schon beim zweiten: es muss
+       kleiner sein als beide anderen. Eine Zahl, die dasteht, kann man
+       vertauschen; eine, die unter zwei anderen liegen muss, nicht.
+       UND DER GEWINN STEHT DANEBEN: die Namensspalte im Einzelzugang waechst
+       von 186 auf 210 px, und das laengste Wort eines Kriteriennamens misst
+       200 -- gemessen am 12. September 2026 in echtem Chromium bei 390 x 844.
+       Der Kasten wird dabei kein Pixel hoeher: 256 vorher, 256 nachher. */
+    const soSchmal = Number(((soStern[2] || '').match(/font-size: ([\d.]+)rem/) || [])[1]);
+    check('Und am Telefon ist er kleiner als an beiden anderen',
+      soSchmal < 1.2 && soSchmal < soRem, `${soSchmal}rem gegen ${soRem}rem und 1.2rem`);
+    check('Und auch dort geht die Polsterung mit — 3px ringsum',
+      /\.stars \.star \{ padding: 3px 3px; \}/.test(soCss),
+      soRegeln('.stars .star').join(' || ') || '(keine Regel)');
+    check('Und der Abstand zwischen den Sternen ebenso — 2px statt 3px',
+      /\.stars \{ gap: 2px; \}/.test(soCss),
+      soRegeln('.stars').join(' || ') || '(keine Regel)');
   }
 
   /* ---- Zusage 12 und 13: die Titelzeile dehnt sich ----
@@ -52917,12 +52962,43 @@ async function check0300() {
        Ort fuer dieselbe Frage und gehoerte benannt. */
     check('Und beide Orte fragen dieselbe Funktion — genau zwei Rufer',
       (dCode.match(/dueOf\(/g) || []).length === 2, `${(dCode.match(/dueOf\(/g) || []).length} Aufrufe`);
-    /* VIER ZUSTAENDE, VIER FARBEN -- und nicht drei Farben und ein Strich. */
+    /* ---- SEIT 0.30.1 SIND ES FUENF ZUSTAENDE UND DREI FARBEN -- Befund 7 ----
+       DIE FARBE SAGT DEN ZUSTAND UND NICHT MEHR NUR DIE FRIST. Der Betreiber,
+       12. September 2026: „Blau bei unerledigten aufgabe. rot wenn das datum
+       ueberschritten ist … wenn aber ein nicht ueberschrittene aufgabe auf
+       fertig gesetzt wird, muss das datum auch mit gruen werden."
+       DREI FARBEN UND NICHT FUENF, UND DAS IST DIE ZUSAGE: Rot fuer gerissen,
+       Blau fuer offen, Gruen fuer gehalten. Die Paare unterscheiden sich nicht
+       in der Farbe, sondern in der AUSZEICHNUNG -- „heute" durch das Gewicht,
+       „zu spaet erledigt" durch den Strich. Wer nur die Farben zaehlte,
+       verlangte fuenf und bekaeme eine Oberflaeche, die drei Sachen mit fuenf
+       Toenen sagt.
+       KEIN NEUER FARBTON: Blau und Gruen fuer offen und erledigt traegt das
+       Haus schon an der Kante des Kommentars und an der Marke „ToDo". Das
+       Datum war die dritte Stelle und die einzige, die nicht mitmachte. */
     const dCss = fs.readFileSync(path.join(__dirname, 'public', 'style.css'), 'utf8');
     const dRule = (name) => (dCss.match(new RegExp(`\\.cmt-due\\.due-${name} \\{([^}]*)\\}`)) || [])[1] || '';
-    const dColours = ['overdue', 'today', 'later', 'done'].map(n => (dRule(n).match(/color: ([^;]+);/) || [])[1]);
-    check('Vier Zustaende tragen vier verschiedene Farben',
-      dColours.every(Boolean) && new Set(dColours).size === 4, JSON.stringify(dColours));
+    const dStates = ['overdue', 'today', 'later', 'late', 'done'];
+    const dColours = dStates.map(n => (dRule(n).match(/color: ([^;]+);/) || [])[1]);
+    check('Fuenf Zustaende tragen drei Farben',
+      dColours.every(Boolean) && new Set(dColours).size === 3, JSON.stringify(dColours));
+    check('Und jeder Zustand ist von jedem anderen unterscheidbar',
+      new Set(dStates.map(n => dRule(n).replace(/\s+/g, ' ').trim())).size === 5,
+      JSON.stringify(dStates.map(n => dRule(n).replace(/\s+/g, ' ').trim()))); 
+    /* DIE ZUORDNUNG AUSDRUECKLICH und nicht bloss „drei verschiedene": eine
+       vertauschte Zuordnung -- gruen fuer gerissen, rot fuer gehalten -- waere
+       ebenfalls dreifarbig und sagte das Gegenteil. */
+    check('Offen ist blau, gerissen ist rot, gehalten ist gruen',
+      /var\(--blue\)/.test(dRule('later')) && /var\(--blue\)/.test(dRule('today')) &&
+      /var\(--red\)/.test(dRule('overdue')) && /var\(--red\)/.test(dRule('late')) &&
+      /var\(--green\)/.test(dRule('done')),
+      JSON.stringify(dColours));
+    /* „ZU SPAET FERTIG" BLEIBT SICHTBAR ZU SPAET. Bis 0.30.0 schlug „erledigt"
+       jede Frist: sobald jemand abhakte, wurde das Datum gedaempft und
+       durchgestrichen, ganz gleich ob die Frist gehalten wurde. Das ist die
+       eigentliche Aenderung dieser Runde am Datum. */
+    check('Eine erledigte Aufgabe mit gerissener Frist bleibt rot — und durchgestrichen',
+      /var\(--red\)/.test(dRule('late')) && /line-through/.test(dRule('late')), dRule('late'));
     check('Und „ueberfaellig" traegt dasselbe Rot wie die Ueberschrift in „Offen"',
       /\.cmt-due\.due-overdue \{ color: var\(--red\); \}/.test(dCss) &&
       /\.open-section\.overdue \{ color: var\(--red\); \}/.test(dCss),
@@ -52931,6 +53007,14 @@ async function check0300() {
       /font-weight: 600/.test(dRule('today')) && !/--red/.test(dRule('today')), dRule('today'));
     check('Und „erledigt" ist durchgestrichen',
       /line-through/.test(dRule('done')), dRule('done'));
+    /* DER STRICH BLEIBT, UND ZWAR AN BEIDEN ERLEDIGTEN (F17). Farbe und Strich
+       schliessen einander nicht aus: die Farbe sagt „gehalten oder gerissen",
+       der Strich sagt „erledigt". Ohne ihn waeren eine offene ueberfaellige
+       und eine spaet erledigte Aufgabe beide rot und sonst nichts. */
+    check('Und der Strich steht an BEIDEN erledigten, an keiner offenen',
+      ['late', 'done'].every(n => /line-through/.test(dRule(n))) &&
+      ['overdue', 'today', 'later'].every(n => !/line-through/.test(dRule(n))),
+      JSON.stringify(dStates.map(n => /line-through/.test(dRule(n)))));
     /* UND GEFAHREN: vier Aufgaben, vier Klassen. Eine Zusage, die nur das
        Stilblatt liest, bliebe gruen, wenn die Klasse nie gesetzt wird. */
     const dToday = (() => { const d = new Date(); const p = (n) => String(n).padStart(2, '0');
@@ -52947,11 +53031,15 @@ async function check0300() {
     const dRow = (id, kind, text, due) => ({ id, kind, text, dueDate: due, pinned: false,
       mine: true, imagesRemoved: 0, author: dWho, images: [],
       created_at: '2026-09-01 09:00:00', updated_at: null });
+    /* FUENF AUFGABEN SEIT 0.30.1, und die fuenfte ist der Kern des Befundes:
+       eine ERLEDIGTE, deren Frist noch nicht abgelaufen war. Bis 0.30.0 sah
+       sie genauso aus wie die zu spaet erledigte darueber. */
     const dComments = [
       dRow(91, 'task', 'Gestern', dShift(-1)),
       dRow(92, 'task', 'Heute', dToday),
       dRow(93, 'task', 'Morgen', dShift(1)),
-      dRow(94, 'done', 'Erledigt', dShift(-2))
+      dRow(94, 'done', 'Erledigt', dShift(-2)),
+      dRow(95, 'done', 'Erledigt und gehalten', dShift(4))
     ];
     /* JSDOM WIRD HIER GEHOLT UND NICHT VORAUSGESETZT: der Prueflauf laeuft
        auch ohne es und sagt das dann deutlich. */
@@ -52962,16 +53050,26 @@ async function check0300() {
     await new Promise(r => setTimeout(r, 200));
     const dSeen = [...dDom.w.document.querySelectorAll('.cmt-due')]
       .map(b => (b.className.match(/due-[a-z]+/) || ['—'])[0]);
-    check('Vier Aufgaben, vier Zustaende — gefahren und nicht am Markup gelesen',
-      equal(dSeen, ['due-overdue', 'due-today', 'due-later', 'due-done']), JSON.stringify(dSeen));
+    check('Fuenf Aufgaben, fuenf Zustaende — gefahren und nicht am Markup gelesen',
+      equal(dSeen, ['due-overdue', 'due-today', 'due-later', 'due-late', 'due-done']),
+      JSON.stringify(dSeen));
     /* UND DIE ERLEDIGTE ZEIGT IHR DATUM. Bis 0.30.0 verschwand es beim
        Abhaken: die Spalte behielt es, der Bildschirm zeigte es nicht. */
     const dDone = [...dDom.w.document.querySelectorAll('.cmt')]
-      .find(c => (c.textContent || '').includes('Erledigt'));
+      .find(c => (c.querySelector('.cmt-body')?.textContent || '').trim() === 'Erledigt und gehalten');
     check('Eine ERLEDIGTE Aufgabe zeigt ihr Datum und kennzeichnet es als erledigt',
       !!dDone?.querySelector('.cmt-due.due-done') &&
       (dDone.querySelector('.cmt-due')?.textContent || '').trim().length > 4,
       JSON.stringify(dDone?.querySelector('.cmt-due')?.outerHTML?.slice(0, 120)));
+    /* UND DIE ZU SPAET ERLEDIGTE STEHT DANEBEN UND SIEHT ANDERS AUS. Zwei
+       erledigte Aufgaben, zwei Zustaende -- genau die Unterscheidung, die es
+       bis 0.30.0 nicht gab. */
+    const dLate = [...dDom.w.document.querySelectorAll('.cmt')]
+      .find(c => (c.querySelector('.cmt-body')?.textContent || '').trim() === 'Erledigt');
+    check('Und die ZU SPAET erledigte daneben traegt einen anderen Zustand',
+      !!dLate?.querySelector('.cmt-due.due-late') &&
+      !dLate.querySelector('.cmt-due.due-done'),
+      JSON.stringify(dLate?.querySelector('.cmt-due')?.outerHTML?.slice(0, 120)));
     dDom.w.close();
   }
 
@@ -53076,3 +53174,245 @@ async function check0300() {
       'die Karte am Schreibtisch ist mitgewandert');
   }
 }
+
+/* =================================================================
+   0.30.1 — „Was der Rundlauf mit 0.30.0 gefunden hat"
+
+   ACHT BEFUNDE, SIEBEN BAUABSCHNITTE, und alle ausser einem sind
+   Oberflaeche. Die Zusagen stehen im Auftrag 0.30.1; jede wird an dem
+   belegt, was sie behauptet, und nicht an ihrer Schreibweise.
+   GEMESSEN WORDEN IST VORHER (BA 1), in echtem Chromium bei 390 x 844,
+   `deviceScaleFactor: 3`, `isMobile: true` -- an zwei Installationen mit
+   denselben Daten, einer mit zwei Zugaengen und einer mit einem. Die Zahlen
+   stehen an den Zusagen, zu denen sie gehoeren.
+   ================================================================= */
+async function check0301() {
+  const uCss = fs.readFileSync(path.join(__dirname, 'public', 'style.css'), 'utf8');
+  const uApp = fs.readFileSync(path.join(__dirname, 'public', 'app.js'), 'utf8');
+  /* DER SCHMALE ABSCHNITT, und zwar derselbe, den 0.30.0 schon liest: die
+     Regeln dieser Runde muessen DORT stehen und nicht global. Eine Regel, die
+     am Schreibtisch mitgilt, ist eine andere Zusage als die gegebene. */
+  const uNarrow = (uCss.match(/@media \(max-width: 700px\), \(max-height: 500px\) and \(max-width: 960px\) \{[\s\S]*$/) || [''])[0];
+  let JSDOMu;
+  try { ({ JSDOM: JSDOMu } = require('jsdom')); } catch { JSDOMu = null; }
+
+  /* ---- Zusage 1 und 2: die Tagzeile rueckt nach oben ---------------- */
+  group('Die Tagzeile rueckt nach oben — 0.30.1');
+  {
+    check('jsdom steht fuer die Tagzeile bereit', !!JSDOMu, 'ohne jsdom keine Oberflaechenprobe');
+    /* DIE ZEILE AUF `1fr` IST DIE GANZE REPARATUR. Beide Rasterzeilen standen
+       auf `auto`; die Wolke spannt ueber beide und bestimmt die Hoehe, also
+       teilten sich die zwei Zeilen deren 433 Pixel zu je 212. Die
+       Beschriftung stand darin 96 px tief, der Umschalter 218.
+       GEMESSEN NACHHER: Beschriftung +0, Umschalter +25 -- und das sind genau
+       die 18 px der Beschriftung plus die 7 px Zeilenabstand des Rasters. */
+    check('Die erste Rasterzeile der Tagzeile ist so hoch wie ihr Inhalt',
+      /\.frow-tags \{ grid-template-rows: auto 1fr; \}/.test(uNarrow),
+      (uNarrow.match(/\.frow-tags \{[^}]*\}/) || ['(keine Regel)'])[0]);
+    /* UND SIE STEHT IM SCHMALEN ABSCHNITT UND NICHT GLOBAL: am Schreibtisch
+       ist die Tagzeile einzeilig, und dort gibt es die zweite Rasterzeile gar
+       nicht. */
+    check('Und sie steht nur im schmalen Abschnitt',
+      (uCss.match(/\.frow-tags \{ grid-template-rows/g) || []).length === 1 &&
+      /\.frow-tags \{ grid-template-rows/.test(uNarrow));
+    check('Der Umschalter steht weiter in der zweiten Zeile und oben darin',
+      /\.frow-tags > \.tagmode \{ grid-column: 1; grid-row: 2; margin-right: 0;\s*align-self: start; \}/.test(uNarrow),
+      (uNarrow.match(/\.frow-tags > \.tagmode \{[^}]*\}/) || ['(keine Regel)'])[0]);
+    /* DIE MARKEN SIND KLEINER ALS DIE KATEGORIEN -- GERECHNET UND NICHT
+       ABGESCHRIEBEN. Eine Zahl, die dasteht, kann man vertauschen; eine, die
+       unter einer anderen liegen muss, nicht.
+       GEMESSEN: zugeklappt stehen vier Marken in der einen Reihe statt dreier,
+       und der offene Filterkasten faellt von 654 auf 543 Pixel. */
+    const uPill = Number(((uCss.match(/\.pill \{[^}]*font-size: ([\d.]+)rem/) || [])[1]));
+    const uTagWeit = Number(((uCss.match(/\.pill-tag \{ font-family: var\(--mono\); font-size: ([\d.]+)rem; \}/) || [])[1]));
+    const uTagSchmal = Number(((uNarrow.match(/\.pill-tag \{ font-size: ([\d.]+)rem; padding: 4px 10px; \}/) || [])[1]));
+    check('Die Marke war schon vorher kleiner als die Kategorie',
+      uTagWeit > 0 && uPill > 0 && uTagWeit < uPill, `${uTagWeit}rem gegen ${uPill}rem`);
+    check('Und am Telefon ist sie noch eine Stufe kleiner',
+      uTagSchmal > 0 && uTagSchmal < uTagWeit, `${uTagSchmal}rem gegen ${uTagWeit}rem`);
+    /* DIE FESTSCHRIFT BLEIBT, UND DAS IST EINE MESSUNG UND KEINE MEINUNG. Der
+       Auftrag hatte vermutet, sie sei die eigentliche Breite; sie allein macht
+       die breiteste Marke um neun Pixel schmaler und aendert an Reihen und
+       Hoehe gar nichts. Der Gewinn steckt im Polster. */
+    check('Und sie traegt weiterhin die Festschrift',
+      /\.pill-tag \{ font-family: var\(--mono\)/.test(uCss) &&
+      !/\.pill-tag \{[^}]*font-family: inherit/.test(uNarrow),
+      (uNarrow.match(/\.pill-tag \{[^}]*\}/) || ['(keine Regel)'])[0]);
+    /* UND DIE KATEGORIENPILLE IST NICHT MITGEGANGEN: der Befund ist die Zahl
+       der Marken und nicht die Groesse aller Pillen. */
+    check('Die Kategorienpille bleibt, wie sie war',
+      !/\.pill \{ font-size/.test(uNarrow),
+      (uNarrow.match(/\.pill \{[^}]*\}/) || ['(keine Regel)'])[0]);
+  }
+
+  /* ---- Zusage 3 und 4: die Testtagzeile ----------------------------- */
+  group('Die Testtagzeile ordnet sich nach ihrem Inhalt — 0.30.1');
+  {
+    /* DER WOCHENTAG FAELLT AN DER BREITE UND NICHT AM GERAET. Im Quelltext
+       kommt kein Geraetename vor; gefragt wird der schmale Abschnitt. */
+    check('Der Wochentag faellt, wo der Platz fehlt',
+      /\.trow \.tweek \{ display: none; \}/.test(uNarrow));
+    check('Und er steht weiterhin da, wo Platz ist',
+      /\.trow \.tweek \{ font-size: \.73rem;/.test(uCss) &&
+      !/\.trow \.tweek \{ display: none/.test(uCss.replace(uNarrow, '')));
+    check('Und kein Geraetename steht im Stilblatt',
+      !/ultra|max phone|iphone|ipad|galaxy/i.test(uCss.replace(/\/\*[\s\S]*?\*\//g, ' ')));
+    /* OHNE MARKEN WAECHST DER MARKENKASTEN IN DEN FREIEN PLATZ UND SCHIEBT DIE
+       STERNE ANS ENDE. `flex: 1` hiess „Grundbreite null und dann wachsen": er
+       griff sich die ganze uebrige Breite, auch wenn gar keine Marke darin
+       stand, und drueckte die Sterne aus der Zeile. */
+    check('Ohne Marken behaelt der Markenkasten seinen Inhalt als Grundmass',
+      /\.trow \.ttags \{ flex: 1 1 auto; \}/.test(uNarrow));
+    check('Mit Marken schrumpft er, statt die Zeile vor sich herzutragen',
+      /\.trow-tags \.ttags \{ flex: 1 1 0; \}/.test(uNarrow));
+    check('Und mit Marken bricht die Zeile vor den Sternen um',
+      /\.trow-tags::after \{ content: ''; flex-basis: 100%; height: 0; order: 1; \}/.test(uNarrow) &&
+      /\.trow-tags \.tfrom, \.trow-tags \.stars \{ order: 2; \}/.test(uNarrow));
+    /* UND GEFAHREN: drei Testtage, drei Lagen. Eine Zusage, die nur das
+       Stilblatt liest, bliebe gruen, wenn die Klasse nie gesetzt wird. */
+    const uDays = [
+      { id: 41, day: '2026-08-01', rating: 3, mine: true, author: { id: 1, name: 'chefin' }, tags: [] },
+      { id: 42, day: '2026-08-02', rating: 4, mine: true, author: { id: 1, name: 'chefin' },
+        tags: [{ id: 91, name: 'BIOS' }, { id: 92, name: 'Gelb' }] },
+      { id: 43, day: '2026-08-03', rating: 2, mine: true, author: { id: 1, name: 'chefin' },
+        tags: [91, 92, 93, 94, 95, 96, 97].map((n, i) => ({ id: n, name: 'Marke' + i })) }
+    ];
+    const uDom = buildDom(JSDOMu, { hash: '#/item/1', dayInventory: uDays });
+    await new Promise(r => setTimeout(r, 200));
+    const uRows = [...uDom.w.document.querySelectorAll('.trow')];
+    check('Drei Testtage stehen da', uRows.length === 3, String(uRows.length));
+    check('Nur die Zeilen MIT Marken tragen die Klasse',
+      equal(uRows.map(r => r.classList.contains('trow-tags')), [false, true, true]),
+      JSON.stringify(uRows.map(r => r.classList.contains('trow-tags'))));
+    /* „MEHR" STEHT RECHTS VON DEN MARKEN UND NICHT AM ZEILENENDE -- so steht
+       es in der Bestellung, und es stimmt auch baulich: am Zeilenende stuende
+       es hinter den Sternen und sagte nichts mehr darueber, WAS da noch
+       kommt. Gemessen wird die Reihenfolge im Aufbau und nicht die Klasse. */
+    const uOrder = (r) => [...r.children].map(e =>
+      ['ttags', 'ttag-more', 'stars', 'tdate', 'tweek', 'tfrom', 'xdel']
+        .find(n => e.classList.contains(n)) || e.className.split(' ')[0]);
+    check('Und „mehr" steht zwischen den Marken und den Sternen',
+      uRows.every(r => {
+        const o = uOrder(r);
+        return o.indexOf('ttags') >= 0 && o.indexOf('ttag-more') === o.indexOf('ttags') + 1 &&
+               o.indexOf('stars') > o.indexOf('ttag-more');
+      }), JSON.stringify(uOrder(uRows[2] || uRows[0])));
+    /* DIE BEGRENZUNG SELBST WIRD GEFAHREN UND NICHT GELESEN. jsdom rechnet
+       keine Hoehen -- offsetHeight ist dort null --, also bekommt der Kasten
+       seine Masse hier ausdruecklich, und limitCloud() muss daran dasselbe
+       tun wie am Bildschirm: begrenzen und melden, dass etwas abgeschnitten
+       ist. DIE FUNKTION IST DIESELBE, die die beiden Wolken benutzen. */
+    const uBox = uDom.w.document.createElement('div');
+    const uChild = uDom.w.document.createElement('span');
+    uBox.appendChild(uChild);
+    Object.defineProperty(uChild, 'offsetHeight', { value: 29, configurable: true });
+    Object.defineProperty(uBox, 'scrollHeight', { value: 120, configurable: true });
+    Object.defineProperty(uBox, 'clientHeight', { value: 29, configurable: true });
+    const uTrimmed = uDom.w.limitCloud(uBox, 1);
+    check('Eine Reihe begrenzt, und die Begrenzung meldet den Rest',
+      uTrimmed === true && uBox.style.maxHeight === '29px' && uBox.style.overflow === 'hidden',
+      `${uTrimmed} · ${uBox.style.maxHeight} · ${uBox.style.overflow}`);
+    /* UND EINE BEGRENZUNG UEBER NICHTS WIRD WIEDER WEGGENOMMEN: eine feste
+       Hoehe an einem Kasten, der ohnehin hineinpasst, stuende der Zeile im
+       Weg, sobald eine Marke ihre Hoehe aendert. */
+    Object.defineProperty(uBox, 'scrollHeight', { value: 29, configurable: true });
+    const uEng = uDom.w.limitCloud(uBox, 1);
+    uDom.w.limitCloud(uBox, 0);
+    check('Und passt alles hinein, bleibt keine Grenze stehen',
+      uEng === false && !uBox.style.maxHeight && !uBox.style.overflow,
+      `${uEng} · „${uBox.style.maxHeight}" · „${uBox.style.overflow}"`);
+    uDom.w.close();
+  }
+
+  /* ---- Zusage 5: der Zaehler ---------------------------------------- */
+  group('In der Zeile die Zahl, im Titel das Wort — 0.30.1');
+  {
+    /* EIN HELFER UND NICHT VIER STELLEN. Vier Listen tragen den gewoehnlichen
+       Zaehler: Kategorien, Tags, Kriterien und die Zugaenge samt
+       Grabsteinfenster. Stuende die Bauform an jeder einzeln, liefen sie
+       auseinander. */
+    const uCode = uApp.replace(/\/\*[\s\S]*?\*\//g, ' ').replace(/^\s*\/\/.*$/gm, ' ');
+    check('Der Zaehler entsteht an EINER Stelle',
+      (uCode.match(/const countCell = /g) || []).length === 1,
+      String((uCode.match(/const countCell = /g) || []).length));
+    check('Und keine Zeile baut ihre Zaehlerzelle mehr selbst',
+      !/<span class="mcount">\$\{[^}]*vThing/.test(uCode),
+      (uCode.match(/<span class="mcount">[^<]*</g) || []).join(' || ') || '(keine)');
+    /* DREI RUFSTELLEN FUER FUENF LISTEN: Kategorien, Tags und Kriterien teilen
+       sich manageList(), dazu kommen die Zugaenge und das Grabsteinfenster.
+       DIE ZAHL AUSDRUECKLICH und nicht „mindestens eine": eine Stelle, die
+       zurueckfaellt, bliebe sonst unbemerkt. */
+    check('Und drei Rufstellen tragen fuenf Listen',
+      (uCode.match(/countCell\(/g) || []).length === 3,
+      String((uCode.match(/countCell\(/g) || []).length));
+    /* GEFAHREN AM SYSTEMBEREICH: die Tagkarte traegt ZWEI Zahlen, und ihr
+       Titel nennt beide Woerter. Zwei Zahlen ohne Wort sind lesbar, solange
+       ihre Reihenfolge feststeht -- und sie steht fest. */
+    /* MIT MARKEN IM BESTAND: eine leere Karte hat keine Zeilen, und eine
+       Pruefung an null Zeilen bliebe gruen und belegte nichts
+       (Stolperstein 81). Beide Zahlen sind VERSCHIEDEN -- gleiche machten die
+       Pruefung blind dafuer, welche wo steht. */
+    const uSys = buildDom(JSDOMu, { tags: [
+      { id: 91, name: 'BIOS', usage_count: 4, test_usage_count: 2 },
+      { id: 92, name: 'Gelb', usage_count: 1, test_usage_count: 0 }] });
+    await new Promise(r => setTimeout(r, 250));
+    /* DERSELBE WEG WIE UEBERALL IM SYSTEMBEREICH: der Abschnitt „Bestand"
+       wird geoeffnet, sonst steht seine Karte gar nicht im Dokument. */
+    await sysSection(uSys.w, 'inventory');
+    const uTagRow = uSys.w.document.querySelector('#mtags .mrow .mcount');
+    check('Die Tagkarte zeigt zwei Zahlen ohne Wort',
+      !!uTagRow && /^\d+ · \d+$/.test(uTagRow.textContent.trim()),
+      uTagRow ? uTagRow.textContent.trim() : '(keine Zeile)');
+    check('Und ihr Titel nennt beide Woerter',
+      !!uTagRow && /\d+ .+ · \d+ .+/.test(uTagRow.getAttribute('title') || ''),
+      uTagRow ? uTagRow.getAttribute('title') : '(kein Titel)');
+    uSys.w.close();
+  }
+
+  /* ---- Zusage 7: das Datum sieht auch, wer es nicht aendern darf ----- */
+  group('Das Faelligkeitsdatum sieht jeder, der den Eintrag sieht — 0.30.1');
+  {
+    const uWho = { id: 7, name: 'bert' };
+    const uRow = (id, kind, text, due) => ({ id, kind, text, dueDate: due, pinned: false,
+      mine: false, imagesRemoved: 0, author: uWho, images: [],
+      created_at: '2026-09-01 09:00:00', updated_at: null });
+    const uComments = [uRow(81, 'task', 'Fremde Aufgabe mit Frist', '2026-09-30')];
+    /* EIN ZUGANG, DER WEDER VERFASSER NOCH ADMIN IST. Bis 0.30.1 stand der
+       ganze Markenkasten hinter „darf aendern" -- und damit sah das
+       Faelligkeitsdatum nur, wer es auch aendern durfte. Die Ansicht „Offen"
+       zeigte dasselbe Datum dagegen jedem. */
+    const uFremd = buildDom(JSDOMu, { hash: '#/item/1', commentInventory: uComments,
+      settings: { filters: null, isAdmin: false } });
+    await new Promise(r => setTimeout(r, 250));
+    const uDue = uFremd.w.document.querySelector('.cmt-due');
+    check('Das Datum steht da, obwohl der Leser es nicht aendern darf', !!uDue,
+      uFremd.w.document.querySelector('.cmt-head')?.outerHTML?.slice(0, 160) || '(kein Kopf)');
+    /* UND ES IST KEIN KNOPF. Ein Knopf, der nichts tut, ist eine Luege ueber
+       die eigene Bedienbarkeit -- dieselbe Ueberlegung wie beim Schalter des
+       Potenzialmodus, den ein Admin sieht und nicht drueckt. */
+    check('Und es ist ein Text und kein Knopf',
+      !!uDue && uDue.tagName === 'SPAN',
+      uDue ? uDue.tagName : '(kein Element)');
+    check('Und die Marken daneben stehen nicht da',
+      !uFremd.w.document.querySelector('.cmt-head .mark'),
+      String(uFremd.w.document.querySelectorAll('.cmt-head .mark').length));
+    check('Und es traegt trotzdem seinen Zustand',
+      !!uDue && /due-[a-z]+/.test(uDue.className), uDue ? uDue.className : '(kein Element)');
+    uFremd.w.close();
+    /* UND WER AENDERN DARF, BEKOMMT WEITER EINEN KNOPF -- auch an einer
+       ERLEDIGTEN OHNE DATUM. Bis 0.30.1 stand er nur bei `task || (done &&
+       dueDate)`; einer erledigten Aufgabe ohne Datum liess sich damit keines
+       mehr geben. */
+    const uEigen = buildDom(JSDOMu, { hash: '#/item/1', commentInventory: [
+      { id: 82, kind: 'done', text: 'Erledigt, ohne Datum', dueDate: null, pinned: false,
+        mine: true, imagesRemoved: 0, author: { id: 1, name: 'chefin' }, images: [],
+        created_at: '2026-09-01 09:00:00', updated_at: null }] });
+    await new Promise(r => setTimeout(r, 250));
+    const uNach = uEigen.w.document.querySelector('.cmt-due');
+    check('Eine erledigte Aufgabe ohne Datum bekommt wieder einen Knopf',
+      !!uNach && uNach.tagName === 'BUTTON',
+      uNach ? `${uNach.tagName} „${uNach.textContent.trim()}"` : '(kein Element)');
+    uEigen.w.close();
+  }
+}
+
