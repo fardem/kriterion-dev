@@ -1362,6 +1362,11 @@ Prüfläufe gleichzeitig starten und sehen, welcher Zweig der Erkennung greift.*
 > *Der Nachlauf mit **drei** Spuren hat dasselbe Flackern gezeigt — in zwei von
 > drei Läufen.* **Es hängt also nicht an der Vier.** *Wie es bei zwei Spuren
 > aussieht, ist nicht gemessen, und deshalb steht hier keine Zahl dazu.*
+>
+> **DRITTE ZÄHLUNG, 0.30.3:** *zwölf Rückbauten auf **drei** Spuren, das
+> Flackern in **sechs** von zwölf Läufen.* **Damit stehen drei Zahlen da — 9/21
+> auf vier Spuren, 2/3 und 6/12 auf dreien.** *Rund die Hälfte, gleich welche
+> Spurenzahl; die Vier war nie die Ursache.*
 
 **Offene Entscheidungen** — *ob der Aufräumer fremde Wegwerfverzeichnisse
 überhaupt ansehen soll, oder nur die unter seiner eigenen Portbasis.*
