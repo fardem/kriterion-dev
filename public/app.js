@@ -411,6 +411,20 @@ const ICON_ERASE = char('<path d="M8.5 20H20"/><path d="M14.5 5.5l4 4-8 8H6.5l-2
    Marke und sollen die Kopfzeile nicht anfuehren. Der Betreiber hat sie am
    8. September 2026 so bestellt -- „feine Pfeile an der linken und rechten
    Seite, oben, was kaum Platz nimmt". */
+/* ---- DER HAKEN NACH UNTEN UND NACH OBEN -- 0.30.2, Befund 1 ----
+   KEINE NEUE FORM: `ICON_STEP_BACK` und `ICON_STEP_FWD` gleich darunter sind
+   derselbe Haken, nur gedreht. Er entsteht aus demselben Helfer und traegt
+   dieselbe Strichstaerke -- ein Zeichen, das die Instanz schon zweimal zeigt,
+   muss niemand neu lernen.
+   WOFUER: „mehr" und „weniger" an der Tagwolke. Sie standen als WORT am Ende
+   ihrer Zeile und kosteten dort zusammen mit dem Ruecksetzer bis zu 180 der
+   366 Pixel (Deutsch, aufgeklappt, mit gesetztem Tagfilter). Der Betreiber,
+   12. September 2026, mit zwei Bildern.
+   DAS WORT IST NICHT WEG, SONDERN IM TITEL -- ein Zeichen allein liest kein
+   Vorleseprogramm vor. Dieselbe Bauform wie an den Werkzeugen einer
+   Verwaltungszeile (Stift und Kreuz). */
+const ICON_MORE_DOWN = char('<path d="M6 9.5L12 15.5l6-6"/>', 1.7);
+const ICON_MORE_UP   = char('<path d="M6 14.5L12 8.5l6 6"/>', 1.7);
 const ICON_STEP_BACK = char('<path d="M14.5 5.5L8 12l6.5 6.5"/>', 1.5);
 const ICON_STEP_FWD  = char('<path d="M9.5 5.5L16 12l-6.5 6.5"/>', 1.5);
 /* DER RUECKWEG IST EIN PFEIL MIT SCHAFT UND KEIN WINKEL -- und das ist kein
@@ -4033,22 +4047,51 @@ function drawFilters() {
     const right = document.createElement('div');
     // Ans Ende SEINER Zeile, wie der Umschalter darueber -- 0.29.0, Befund 6.
     right.className = 'frow-right frow-right-end';
+    /* ---- ZWEI ZEICHEN STATT ZWEIER WOERTER -- 0.30.2, Befund 1 ----
+       GEMESSEN IN DREI SPRACHEN, aufgeklappt und mit gesetztem Tagfilter: das
+       Zeilenende mass 180 Pixel auf Deutsch, 159 auf Tuerkisch, 109 auf
+       Englisch -- und der Wolke blieben 92, 109 und 175 von 366. Auf Deutsch
+       fiel die Tagzeile damit auf 26 Reihen und 845 Pixel.
+       DER HAKEN SAGT „mehr" UND „weniger" -- nach unten, solange zugeklappt
+       ist, nach oben, wenn offen. Der KREISPFEIL sagt „zuruecksetzen", und er
+       steht schon so an der Sternzeile (`.rreset`). EIN KREUZ WAERE FALSCH:
+       es heisst im Haus „weg" -- eine Zeile loeschen, einen Tag vom Testtag
+       nehmen, eine Ansicht entfernen -- und „zuruecksetzen" ist etwas anderes.
+       (Eine offene Tuer war der andere Vorschlag; sie faellt, weil „Das Haus
+       verlassen" die Wendung dieses Projekts fuer das ist, was hinausgeht.)
+       DAS WORT STEHT IM TITEL, in jeder der drei Sprachen -- die Schluessel
+       `list.more`, `list.less` und `list.resetTags` bleiben unveraendert
+       stehen und wechseln nur den Ort. */
     if (trimmed || cloudOpen.overview) {
       const m = document.createElement('button');
-      m.className = 'link-btn';
-      m.textContent = cloudOpen.overview ? t('list.less') : t('list.more');
+      m.className = 'link-btn icon-link';
+      m.innerHTML = cloudOpen.overview ? ICON_MORE_UP : ICON_MORE_DOWN;
+      m.title = cloudOpen.overview ? t('list.less') : t('list.more');
+      m.setAttribute('aria-label', m.title);
       m.onclick = () => { cloudOpen.overview = !cloudOpen.overview; drawFilters(); };
       right.appendChild(m);
     }
     if (f.tagIds.length) {
       const c = document.createElement('button');
-      c.className = 'link-btn'; c.textContent = t('list.resetTags');
+      c.className = 'link-btn icon-link';
+      c.innerHTML = ICON_RESET;
+      c.title = t('list.resetTags');
+      c.setAttribute('aria-label', c.title);
       c.onclick = () => { f.tagIds = []; redraw(); };
       right.appendChild(c);
     }
     // Ein leerer Kasten bliebe als Flex-Element stehen und naehme der Wolke
     // eine Luecke weg.
     if (right.childElementCount) r3.appendChild(right);
+    /* DIE ZEILE SAGT, OB DER UMSCHALTER ZU SEHEN SEIN MUSS -- 0.30.2.
+       Er steht unter der Klappe: verborgen, solange die Wolke zugeklappt ist.
+       AUSGENOMMEN, WENN ER GREIFT: ab zwei gewaehlten Tags entscheidet er
+       ueber das Ergebnis, und ein Filter, der greift und nicht zu sehen ist,
+       ist der Befund, wegen dessen bis 0.30.0 „Tags (2)" am alten Umschalter
+       stand.
+       EINE KLASSE UND KEINE ABFRAGE IM STILBLATT: das Stilblatt kann nicht
+       zaehlen, wie viele Tags gewaehlt sind. */
+    if (cloudOpen.overview || f.tagIds.length > 1) r3.classList.add('tags-live');
   }
 
   /* SORTIEREN UND ANSICHTEN TEILEN SICH EINE ZEILE -- gemessen brauchen sie

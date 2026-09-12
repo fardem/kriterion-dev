@@ -9082,8 +9082,8 @@ const REGRESSIONS = [
      Umschalter sacken wieder ab -- gemessen 96 und 218 Pixel tief. */
     nr: "916", name: "Beide Rasterzeilen der Tagzeile teilen sich wieder die Hoehe",
     file: "public/style.css",
-    search: "  .frow-tags { grid-template-rows: auto 1fr; }",
-    replacement: "  .frow-tags { grid-template-rows: auto auto; }",
+    search: "  .frow-tags { grid-template-rows: auto auto 1fr; }",
+    replacement: "  .frow-tags { grid-template-rows: auto auto auto; }",
     expected: "Die Tagzeile rueckt nach oben \u2014 0.30.1"
   },
   {
@@ -9251,6 +9251,81 @@ const REGRESSIONS = [
     search: "  .stars { gap: 2px; }",
     replacement: "  .stars { gap: 3px; }",
     expected: "Die Sortierung trennt Grundlage und Richtung \u2014 0.28.1"
+  },
+  {
+    /* DIE DRITTE SPALTE IST DIE URSACHE DES BEFUNDES. Kommen die Verweise dorthin
+     zurueck, nimmt sie der Wolke wieder bis zu 180 der 366 Pixel. */
+    nr: "935", name: "Die beiden Verweise stehen wieder am Zeilenende",
+    file: "public/style.css",
+    search: "  .frow-tags > .frow-right-end { grid-column: 1; grid-row: 2;\n    align-self: start; justify-self: start; gap: 4px; }",
+    replacement: "  .frow-tags > .frow-right-end { grid-row: 1 / -1; align-self: start; }",
+    expected: "Die Tagzeile traegt Zeichen statt Woerter \u2014 0.30.2"
+  },
+  {
+    /* DANN TEILT ER SICH DIE ZEILE MIT DEN BEIDEN ZEICHEN, und eines von beiden
+     steht nicht mehr da, wo es bestellt ist. */
+    nr: "936", name: "Der Umschalter steht wieder in der zweiten Rasterzeile",
+    file: "public/style.css",
+    search: "  .frow-tags > .tagmode { grid-row: 3; }",
+    replacement: "  .frow-tags > .tagmode { grid-row: 2; }",
+    expected: "Die Tagzeile traegt Zeichen statt Woerter \u2014 0.30.2"
+  },
+  {
+    /* DAS WORT IST UMGEZOGEN UND NICHT GEFALLEN -- in den Titel. Steht es wieder
+     im Text, ist die Zeile so breit wie vorher. */
+    nr: "937", name: "\u201emehr\" steht wieder als Wort statt als Zeichen",
+    file: "public/app.js",
+    search: "      m.title = cloudOpen.overview ? t('list.less') : t('list.more');",
+    replacement: "      m.textContent = cloudOpen.overview ? t('list.less') : t('list.more');",
+    expected: "Die Tagzeile traegt Zeichen statt Woerter \u2014 0.30.2"
+  },
+  {
+    /* EIN KREUZ HEISST IM HAUS „weg" -- eine Zeile loeschen, einen Tag vom
+     Testtag nehmen, eine Ansicht entfernen. „Zuruecksetzen" ist etwas anderes,
+     und das Haus hat dafuer den Kreispfeil. */
+    nr: "938", name: "Der Ruecksetzer nimmt wieder das Kreuz",
+    file: "public/app.js",
+    search: "      c.innerHTML = ICON_RESET;",
+    replacement: "      c.innerHTML = ICON_X;",
+    expected: "Die Tagzeile traegt Zeichen statt Woerter \u2014 0.30.2"
+  },
+  {
+    /* EIN ZEICHEN ALLEIN LIEST KEIN VORLESEPROGRAMM VOR. Der Rueckbau laesst den
+     Titel stehen und nimmt nur die Ansage weg -- die Zusage muss beides
+     verlangen. */
+    nr: "939", name: "Die Zeichen sagen dem Vorleseprogramm nichts mehr",
+    file: "public/app.js",
+    search: "      m.setAttribute('aria-label', m.title);",
+    replacement: "      m.title = m.title;",
+    expected: "Die Tagzeile traegt Zeichen statt Woerter \u2014 0.30.2"
+  },
+  {
+    /* EIN FILTER, DER GREIFT UND NICHT ZU SEHEN IST, ist genau der Befund, wegen
+     dessen bis 0.30.0 „Tags (2)" am alten Umschalter stand. */
+    nr: "940", name: "Der Umschalter bleibt verborgen, auch wenn er greift",
+    file: "public/app.js",
+    search: "    if (cloudOpen.overview || f.tagIds.length > 1) r3.classList.add('tags-live');",
+    replacement: "    if (cloudOpen.overview) r3.classList.add('tags-live');",
+    expected: "Die Tagzeile traegt Zeichen statt Woerter \u2014 0.30.2"
+  },
+  {
+    /* „UNTER DIE KLAPPE" HEISST: im Regelzustand nicht sichtbar. Steht er immer
+     da, ist die Bestellung nicht gebaut. */
+    nr: "941", name: "Der Umschalter steht immer da, auch zugeklappt",
+    file: "public/style.css",
+    search: "  .frow-tags:not(.tags-live) > .tagmode { display: none; }",
+    replacement: "  .frow-tags.tags-live > .tagmode { display: inline-flex; }",
+    expected: "Die Tagzeile traegt Zeichen statt Woerter \u2014 0.30.2"
+  },
+  {
+    /* DREISSIG PIXEL IM QUADRAT SIND DASSELBE MASS, das der Ruecksetzer der
+     Sternzeile am groben Zeiger traegt. Sechzehn sind das Zeichen selbst --
+     und nichts zum Treffen. */
+    nr: "942", name: "Das Zeichen ist kein Ziel mehr fuer den Finger",
+    file: "public/style.css",
+    search: "  width: 30px; height: 30px; padding: 0; border-radius: 7px;",
+    replacement: "  width: 16px; height: 16px; padding: 0; border-radius: 7px;",
+    expected: "Die Tagzeile traegt Zeichen statt Woerter \u2014 0.30.2"
   }
 ];
 
