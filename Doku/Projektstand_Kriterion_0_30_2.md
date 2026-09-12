@@ -1,6 +1,6 @@
 # Projektstand — Kriterion
 
-**Kompakte Übergabe · Revision 84 · Stand 12. September 2026 · gebaut: Version 0.30.1**
+**Kompakte Übergabe · Revision 85 · Stand 12. September 2026 · gebaut: Version 0.30.2**
 
 Dieses Blatt ist der **einzige Ort, an dem steht, was gebaut ist und was
 bindet.** Es genügt, um in einem frischen Chat weiterzuarbeiten, ohne den alten
@@ -478,8 +478,12 @@ weiterhin offen. Daraus folgt die Stellung von `HINTER_PROXY` (Abschnitt 3).
 
 ## 2. Betriebsstand
 
-**Gebaut ist 0.30.1** — *die Zahlen des Prüfstands stehen im Änderungsprotokoll
-0.30.1: 6780 von 6780 Prüfungen, 343 Gruppen, 265,1 Sekunden.* **Am Wirt läuft
+**Gebaut ist 0.30.2** — *die Zahlen des Prüfstands stehen im Änderungsprotokoll
+0.30.2: 6800 von 6800 Prüfungen, 344 Gruppen.* **0.30.2 ist der Rundlauf zu
+0.30.1 und fasst eine einzige Zeile an: die Tagzeile.** *Ihre dritte Rasterspalte
+nahm der Tagwolke bis zu 180 der 366 Pixel, sobald ein Tagfilter griff — „mehr"
+und „Tags zurücksetzen" standen dort als Wörter. Sie sind jetzt zwei Zeichen und
+stehen unter der Beschriftung; die dritte Spalte fällt weg.* **Am Wirt läuft
 0.30.0, Fingerprint `2363b00a`** *(Abschnitt 8)* — *vom Betreiber am 12.
 September 2026 aus seiner Installation gemeldet und damit auf das Byte
 bestätigt.* **Drei Quellen, ein Wert, zum fünften Mal in Folge.**
@@ -1731,6 +1735,7 @@ Ursache war **eine Datei zu viel** auf dem Wirt (Stolperstein 158).
 
 | Version | Fingerprint | Prüfungen |
 |---|---|---|
+| **0.30.2** | `3d03be45` *(gerechnet am 12. September 2026 **als letztes und hinter der letzten Zeile** — die Lehre aus 0.30.1; aus zwei Quellen bestätigt, die dritte steht aus)* | 6800 |
 | **0.30.1** | `194e8984` *(gerechnet am 12. September 2026 am gebauten Stand — **vor dem Einspielen**, aus zwei Quellen bestätigt. **Im Feld läuft `a6726a83`** — derselbe Stand vor der Berichtigung des Kommentarwortlauts; keine ausgeführte Zeile unterscheidet die beiden)* | 6780 |
 | **0.30.0** | `2363b00a` *(am 12. September 2026 von der laufenden Installation gemeldet — **im Feld bestätigt**, genau der Sollwert; drei Quellen, ein Wert)* | 6741 |
 | **0.29.0** | `0336d3a5` *(am 12. September 2026 von der laufenden Installation gemeldet — **im Feld bestätigt**, genau der Sollwert)* | 6662 |

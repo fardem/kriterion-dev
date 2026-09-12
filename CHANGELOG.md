@@ -29,6 +29,20 @@ bleiben in der Form ihrer Zeit.*
 
 *Hier wird mitgeschrieben, während gebaut wird.*
 
+## [0.30.2] - 2026-09-12
+
+> **NICHTS ZU TUN.** Kein Schemaanteil, kein Migrationsblock, das
+> Austauschformat bleibt 16. Einspielen und fertig.
+
+### Behoben
+
+- **Die aufgeklappte Tagwolke setzte jeden Tag auf eine eigene Zeile, sobald ein Tagfilter griff** — auf Deutsch war die Tagzeile dann 845 Pixel hoch. Jetzt sind es 321.
+
+### Geändert
+
+- **„mehr"/„weniger" und „Tags zurücksetzen" sind Zeichen statt Wörter** — ein Haken und der Kreispfeil, beide mit ihrem Wort im Titel. Sie stehen jetzt unter der Beschriftung statt am Zeilenende.
+- **Der Umschalter „und/Oder" steht unter der Klappe** — sichtbar, sobald die Wolke offen ist oder zwei Tags greifen.
+
 ## [0.30.1] - 2026-09-12
 
 > **NICHTS ZU TUN.** Kein Schemaanteil, kein Migrationsblock, das

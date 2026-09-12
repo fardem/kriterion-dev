@@ -1,12 +1,31 @@
-# Auftrag 0.30.2 — „Die Tagzeile bekommt ihre Breite zurück" *(Arbeitstitel)*
+# Auftrag 0.30.2 — „Die Tagzeile bekommt ihre Breite zurück"
 
-**IN SAMMLUNG · angelegt am 12. September 2026 · ein Befund bisher ·
-gebaut auf 0.30.1.**
+**Ein Befund aus dem Betrieb · geschrieben am 12. September 2026 · gebaut auf
+0.30.1.**
 
-> **DIESES PAPIER IST NICHT VOLLSTÄNDIG, UND ES WIRD NICHTS DAVON GEBAUT.**
-> *Der Betreiber hat 0.30.1 eingespielt und den Befund mit zwei Bildern
-> gemeldet.* **Die Fragetafel entsteht, wenn die Sammlung geschlossen ist** —
-> Auflage 2 des Fahrplans.
+> **DER BETREIBER HAT DIE SAMMLUNG AM SELBEN TAG GESCHLOSSEN:** *„nein bitte
+> baue 0.30.2 jetzt."* **Die Fragetafel ist damit kurz, und sie ist beantwortet,
+> bevor die erste Zeile entstand** *(Regel 11, zum sechsten Mal in Folge)*.
+
+---
+
+## Die Fragetafel — vor der ersten Zeile beantwortet
+
+| # | Frage | Vorschlag von Claude | Antwort |
+|---|---|---|---|
+| **F1** | **„mehr"/„weniger" wird ein Haken nach unten** | **Ja — und es ist keine neue Form.** *`ICON_STEP_BACK` und `ICON_STEP_FWD` sind derselbe Haken, nur gedreht; er entsteht aus demselben Helfer `char()` und trägt dieselbe Strichstärke* |**JA.** *Betreiber, 12. September 2026: „dein vorschlag oben ist gut."* |
+| **F2** | **Eine offene Tür statt des Hakens?** *(sein zweiter Vorschlag)* | **Nein, und der Grund ist im Haus schon vergeben.** *„Das Haus verlassen" ist die Wendung dieses Projekts für das, was hinausgeht.* **An einer Tagwolke sagte eine Tür „hinaus"** — das Gegenteil von „mehr zeigen" |**FÄLLT.** *Betreiber, 12. September 2026, mit derselben Zusage* |
+| **F3** | **× für „Tags zurücksetzen"?** *(sein dritter Vorschlag)* | **Fast — das Haus hat ein besseres.** *`ICON_RESET` ist der Kreispfeil und steht an `.rreset`, dem Rücksetzer der Sternzeile.* **× heißt im Haus „weg"** — eine Zeile löschen, einen Tag vom Testtag nehmen, eine Ansicht entfernen |**DER KREISPFEIL.** *Betreiber, 12. September 2026* |
+| **F4** | **Beide wandern in Spalte 1, unter die Beschriftung** *(seine Bestellung)* | **Ja — damit fällt die dritte Spalte ganz weg.** *Gemessen wächst Spalte 1 dabei nicht: sie misst 74 px (de), 63 (en), 78 (tr), und zwei Zeichen brauchen rund 70* |**JA** *(seine eigene Bestellung)* |
+| **F5** | **„und/Oder" geht unter die Klappe** *(seine Bestellung)* | **Ja — mit einer Ausnahme.** *Greifen **zwei oder mehr** Tags, entscheidet der Umschalter über das Ergebnis, und ein Filter, der greift und nicht zu sehen ist, ist genau der Befund, wegen dessen bis 0.30.0 „Tags (2)" am alten Umschalter stand.* **Sein Wort „in der Regel nicht sichtbar" trägt die Ausnahme** |**JA, mit dieser Ausnahme** |
+| **F6** | **Funktionieren Zeichen in drei Sprachen?** *(seine Frage)* | **Ja — und zwar deshalb, weil ein Zeichen keine Sprache hat.** *Der **Titel** hat eine, und der bleibt: die Schlüssel `list.more`, `list.less` und `list.resetTags` stehen unverändert da und wechseln nur den Ort.* **Kein Wort ist gefallen, keines ist erfunden** |**JA** |
+
+> **EINE ENTSCHEIDUNG IST NICHT GEFRAGT WORDEN UND STEHT TROTZDEM HIER:** *der
+> Rücksetzer am Fuß desselben Kastens heißt weiterhin **„Filter zurücksetzen
+> (11)" als Wort**.* **Er bleibt ein Wort, und der Grund ist der Umfang:** *er
+> setzt ALLE Filter zurück, der Kreispfeil an der Tagzeile nur die Tags.* **Zwei
+> verschiedene Reichweiten dürfen verschieden aussehen** — *und ein zweites
+> Zeichen an derselben Karte hieße, dass beide dasselbe tun.*
 
 ---
 
@@ -132,13 +151,55 @@ dritte fällt an einer Kollision, die es nicht gibt, sondern schon gab.**
 
 ---
 
+## Der Bauabschnitt
+
+**EINER, UND ER FASST DREI DATEIEN AN:** `public/app.js` *(die beiden Zeichen
+und der Merker `tags-live`)*, `public/style.css` *(das Raster, der
+Zeichenverweis)* und **keine Sprachdatei** — *die drei Schlüssel bleiben, was
+sie sind.*
+
+**KEIN SCHEMAANTEIL**, keine neue Spalte, kein Migrationsblock, das
+Austauschformat bleibt **16**, `F_ROUTES` bleibt **73**. **PATCH.**
+
+---
+
+## Der Prüfstand — was er halten muss
+
+| | Zusage |
+|---|---|
+| **1** | **Der Haken entsteht aus demselben Helfer wie die vorhandenen** — geprüft wird der **Bauweg** und nicht der Pfad: der Pfad darf sich ändern, der Bauweg nicht |
+| **2** | **Der Rücksetzer nimmt den Kreispfeil, den es schon gibt — und kein Kreuz** |
+| **3** | **Die drei Schlüssel stehen weiter in allen drei Sprachdateien** — *das Wort ist umgezogen und nicht gefallen* |
+| **4** | **Und es steht im TITEL, nicht im Text** — samt Ansage für das Vorleseprogramm |
+| **5** | **Die beiden Verweise stehen in Spalte eins**, die Zeile trägt drei Rasterzeilen, der Umschalter die dritte |
+| **6** | **Ein Zeichenverweis ist ein Ziel für den Finger** — dreißig Pixel im Quadrat, dasselbe Maß wie am Rücksetzer der Sternzeile |
+| **7** | **Der Umschalter ist verborgen, solange zugeklappt ist und weniger als zwei Tags greifen** — *gefahren in drei Lagen: ohne Auswahl, mit einem Tag, mit zweien* |
+| **8** | **Aufgeklappt steht er da, und der Haken zeigt dann nach oben** |
+
+> **JEDE NEUE PRÜFUNG BEKOMMT IHRE GEGENPROBE, UND DIE WIRD GEFAHREN.**
+
+---
+
+## Was ausdrücklich NICHT gebaut wird
+
+| | |
+|---|---|
+| **Keine neue Sprachzeile** | *die drei Schlüssel wechseln den Ort, nicht den Wortlaut* |
+| **Kein neues Zeichen, wo es eines gibt** | *der Kreispfeil steht schon an der Sternzeile* |
+| **Keine Tür** | *„Das Haus verlassen" ist im Haus vergeben* |
+| **Kein zweites Zeichen am Fuß der Karte** | *„Filter zurücksetzen" bleibt ein Wort — andere Reichweite, anderes Bild* |
+| **Kein Schemaanteil** | keine Spalte, kein Migrationsblock, Austauschformat bleibt 16 |
+
+---
+
 ## Wie es weitergeht
 
-1. **Der Betreiber sammelt weiter.** *Kommt etwas, wandert es hier unten an.*
-2. **Sagt er „das waren alle", wird gemessen** *(die vier Punkte oben)*, **und
-   erst danach entsteht die Fragetafel.**
-3. **Gebaut wird nichts, bevor jede Frage beantwortet und eingetragen ist**
-   *(Regel 11)*.
+1. **Gebaut, geprüft, Gegenproben gefahren, Augenschein.**
+2. **Der Fingerprint wird ALS LETZTES gerechnet** — *die Lehre aus 0.30.1, wo er
+   zweimal überholt im Papier stand.*
+3. **Eingespielt wird dieser Stand** — *der Betreiber hat 0.30.1 zurückgehalten:
+   „ich werde die den nur wieder einspielen wenn wir den patch mit dem tagfilter
+   haben."*
 
 > **DER BETREIBER SPIELT ERST WIEDER EIN, WENN DIESE RUNDE DA IST** *(12.
 > September 2026: „ich werde die den nur wieder einspielen wenn wir den patch
