@@ -32763,6 +32763,9 @@ async function checkUi() {
     .find(b => b.textContent === name) || null;
   const markClick = (name) => { const b = mark(name); if (b) b.onclick(); return !!b; };
   const mode = (value) => wf.document.querySelector(`#filters .pill-mode[data-mode="${value}"]`);
+  /* DERSELBE GRIFF FUER DEN UMSCHALTER: er steht in derselben Zeile und faellt
+     mit ihr. Klickt oder tut nichts -- und dass er dasteht, ist eine Zusage. */
+  const modeClick = (value) => { const b = mode(value); if (b) b.onclick(); return !!b; };
 
   /* DIE TAGZEILE STEHT SEIT 0.24.0 ZUGEKLAPPT, solange kein Tagfilter greift
      (Bauabschnitt 0.2). Diese Gruppe prueft, was IN der Zeile steht -- sie
@@ -32796,7 +32799,8 @@ async function checkUi() {
   check('Der Umschalter ruht jetzt nicht mehr',
     !wf.document.querySelector('#filters .tagmode.idle'));
 
-  mode('or').onclick();
+  check('Der Umschalter steht in der Tagzeile und laesst sich anklicken',
+    modeClick('or'), '(kein Umschalter -- die Tagzeile fehlt)');
   await new Promise(r => setTimeout(r, 20));
   check('Umschalten auf ODER erweitert das Ergebnis',
     equal(title().sort(), ['Grün und leicht', 'Grün und schwer', 'Nur grün', 'Nur schwer']),
@@ -32810,7 +32814,7 @@ async function checkUi() {
     JSON.stringify(storedMode?.body.filters));
 
   // Sackgassen: im UND-Modus muss vorher sichtbar sein, was leer laeuft.
-  mode('and').onclick();
+  modeClick('and');
   await new Promise(r => setTimeout(r, 20));
   const emptyMarks = [...wf.document.querySelectorAll('#filters .pill-tag.blank')].map(b => b.textContent);
   check('Aussichtslose Tags werden gedämpft',
@@ -32820,7 +32824,7 @@ async function checkUi() {
   check('Gedämpfte Tags bleiben anklickbar', typeof mark('Leicht').onclick === 'function');
   check('Ein Hinweis erklärt die Dämpfung', /keine Treffer/i.test(mark('Leicht').title || ''));
 
-  mode('or').onclick();
+  modeClick('or');
   await new Promise(r => setTimeout(r, 20));
   check('Im ODER-Modus wird nichts gedämpft',
     wf.document.querySelectorAll('#filters .pill-tag.blank').length === 0);
@@ -32829,7 +32833,7 @@ async function checkUi() {
   // ohne jeden Treffer. Dann ist die sichtbare Liste leer, und ohne die
   // Ausnahme würden auch die gewählten Tags als aussichtslos gelten -- also
   // gleichzeitig hervorgehoben und gedämpft, was wie ein Fehler aussieht.
-  mode('and').onclick();
+  modeClick('and');
   await new Promise(r => setTimeout(r, 20));
   markClick('Grün');          // abwählen
   await new Promise(r => setTimeout(r, 20));
