@@ -1,6 +1,6 @@
 # Projektstand — Kriterion
 
-**Kompakte Übergabe · Revision 83 · Stand 12. September 2026 · gebaut: Version 0.30.0**
+**Kompakte Übergabe · Revision 84 · Stand 12. September 2026 · gebaut: Version 0.30.1**
 
 Dieses Blatt ist der **einzige Ort, an dem steht, was gebaut ist und was
 bindet.** Es genügt, um in einem frischen Chat weiterzuarbeiten, ohne den alten
@@ -478,12 +478,37 @@ weiterhin offen. Daraus folgt die Stellung von `HINTER_PROXY` (Abschnitt 3).
 
 ## 2. Betriebsstand
 
-**Gebaut ist 0.29.0** — *die Zahlen des Prüfstands stehen im Änderungsprotokoll
-0.29.0.* **Am Wirt läuft 0.29.0, Fingerprint `0336d3a5`** *(Abschnitt 8)* — *vom
-Betreiber am 12. September 2026 aus seiner Installation gemeldet und damit auf
-das Byte bestätigt.* **Drei Quellen, ein Wert, zum vierten Mal in Folge.**
+**Gebaut ist 0.30.1** — *die Zahlen des Prüfstands stehen im Änderungsprotokoll
+0.30.1: 6779 von 6779 Prüfungen, 343 Gruppen, 275,2 Sekunden.* **Am Wirt läuft
+0.30.0, Fingerprint `2363b00a`** *(Abschnitt 8)* — *vom Betreiber am 12.
+September 2026 aus seiner Installation gemeldet und damit auf das Byte
+bestätigt.* **Drei Quellen, ein Wert, zum fünften Mal in Folge.**
 
-*0.29.0 baut fünf geplante Punkte und **drei** Befunde aus dem Betrieb.* **Der
+**0.30.0 hat an zwei Enden gebaut, und beide Enden waren dieselbe Sache: Zeit,
+in der niemand etwas sieht.** *Der Prüflauf fällt von 464,4 auf 271,5 Sekunden —
+bei mehr Prüfungen als vorher —, und die Gegenproben sparen dieselbe Zeit **je
+Rückbau**. Am anderen Ende stand das Telefon: die Tagzeile, der
+Bewertungskasten, das Fälligkeitsdatum, die Vokabelkarte.* **MINOR allein wegen
+des Prüfschalters** *(Abschnitt 5.3)*: eine Instanz kann ihre Kostenstufe und
+ihre Mailfristen aus **einem** Schalter nehmen — das konnte sie vorher nicht.
+
+**0.30.1 ist der Rundlauf dazu: acht Befunde vom eingespielten Stand, sieben
+davon Oberfläche.** *PATCH, kein Schemaanteil.* **Drei der acht standen an genau
+den Stellen, die 0.30.0 zuletzt angefasst hatte** — *und das ist der Rundlauf,
+wie er gedacht ist: gebaut, eingespielt, am Gerät angesehen, nachgebessert.*
+
+> **WAS AUS 0.30.1 BINDET:**
+>
+> | | |
+> |---|---|
+> | **Die Farbe des Fälligkeitsdatums sagt den ZUSTAND und nicht nur die Frist** | *fünf Zustände, drei Farben: offen blau, überschritten rot, erledigt und gehalten grün; „heute" fett, beide erledigten durchgestrichen.* **„Zu spät fertig" bleibt sichtbar zu spät** |
+> | **Das Datum sieht jeder, der den Eintrag sieht** | *ändern darf weiterhin nur der Verfasser oder der Admin — die Klemme sitzt an der Bedienung und nicht an der Auskunft. Wer nicht ändern darf, bekommt einen Text und keinen Knopf* |
+> | **In einer Verwaltungszeile steht die ZAHL, im Titel das WORT** | *fünf Listen, drei Rufstellen, ein Helfer.* **Das Wort ist umgezogen und nicht erfunden:** im Titel steht genau der Text, der vorher in der Zeile stand |
+> | **Eine Testtagzeile ordnet sich nach ihrem Inhalt** | *ohne Marken die Sterne rechts; mit Marken die Sterne darunter; zu viele Marken hinter „mehr" — rechts von den Marken und nicht am Zeilenende* |
+> | **Die zweizeilige Sternzeile bleibt** | *zum zweiten Mal in Folge gemessen und zum zweiten Mal bestätigt — einzeilig spart 35 Pixel und kostet Namen, die drei bis vier Zeilen hoch brechen* |
+> | **Marken und Sterne sind am Telefon eine Stufe kleiner** | *und nur dort: gemessen ist das Telefon, geändert wird das Telefon* |
+
+*0.29.0 baute fünf geplante Punkte und **drei** Befunde aus dem Betrieb.* **Der
 Kern ist, woran man erkennt, dass eine Sache wirklich so ist, wie sie dasteht:**
 *eine Sicherung lässt sich jetzt **probeweise öffnen** — an jeder Zeile der
 Liste steht „prüfen", und darunter erscheinen vier Zahlen aus der Kopie selbst,
@@ -1706,6 +1731,9 @@ Ursache war **eine Datei zu viel** auf dem Wirt (Stolperstein 158).
 
 | Version | Fingerprint | Prüfungen |
 |---|---|---|
+| **0.30.1** | `c879a92b` *(gerechnet am 12. September 2026 am gebauten Stand — **vor dem Einspielen**; aus zwei Quellen bestätigt, die dritte steht aus)* | 6779 |
+| **0.30.0** | `2363b00a` *(am 12. September 2026 von der laufenden Installation gemeldet — **im Feld bestätigt**, genau der Sollwert; drei Quellen, ein Wert)* | 6741 |
+| **0.29.0** | `0336d3a5` *(am 12. September 2026 von der laufenden Installation gemeldet — **im Feld bestätigt**, genau der Sollwert)* | 6662 |
 | **0.28.1** | `452d1764` *(gerechnet am 11. September 2026 am fertigen Stand — **vor dem Einspielen**. **Zwei Quellen, ein Wert:** aus dem Server selbst gelesen (frisches Datenverzeichnis, `/api/stats`) und am Arbeitsbaum über dieselben achtzehn Dateien nachgerechnet, mit eigenem Code über dieselbe Vorschrift. **Am 11. September 2026 vom Betreiber aus der laufenden Installation gemeldet — drei Quellen, ein Wert.** Die Runde fasst `public/app.js`, `public/style.css`, die drei Sprachdateien und `package.json` an. **Er hat ZWEIMAL gewechselt — `7ab6ae75` → `432e64ad` → `452d1764`, wegen dreier berichtigter Kommentare in `public/app.js` und `public/style.css`:** ein Kommentar bewegt ihn genauso wie eine Anweisung, und alle drei sind beim Gegenlesen des eigenen Diffs gefunden worden.)* | **6611** |
 | **0.28.0** | `8b205f42` *(gerechnet am 11. September 2026 am fertigen Stand — **vor dem Einspielen**, und am selben Tag **vom Betreiber aus der laufenden Installation gemeldet**: **drei Quellen, ein Wert**, und die dritte ist die stärkste — sie belegt, dass das Eingespielte auf das Byte dasselbe ist wie das Gebaute. Die ersten beiden waren der Server selbst (frisches Datenverzeichnis, `/api/stats`) und die eigene Rechnung am Arbeitsbaum über dieselben achtzehn Dateien. Die Runde fasst `server.js`, `public/app.js`, `public/style.css`, `public/index.html`, die drei Sprachdateien und `package.json` an.)* | **6570** |
 | **0.27.0** | `9f6741b5` *(am 10. September 2026 vor dem Einspielen gerechnet, am 11. September 2026 **vom Betreiber aus der laufenden Installation gemeldet** — **drei Quellen, ein Wert, und die dritte ist die stärkste:** sie belegt, dass das Eingespielte dasselbe ist wie das Gebaute. **Er hat während der Runde VIERMAL gewechselt**, dreimal wegen desselben Satzes und einmal wegen eines nachgetragenen Kommentars — ein Kommentar bewegt ihn genauso wie eine Anweisung.)* | **6497** |

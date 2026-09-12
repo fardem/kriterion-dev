@@ -4534,8 +4534,8 @@ body.login .login-screen { flex: 1 0 auto; min-height: 0; }
      ZWEI STUFEN GAEBEN 230 px -- dreissig Pixel Luft statt zehn. Sie sind
      nicht gewaehlt: die Sterne sind ein Bedienelement am Finger, und zehn
      Pixel Luft reichen fuer den laengsten Namen, den diese Instanz heute hat.
-     HIER UND NICHT IM GROBEN ZEIGER. Die Werte daneben stehen in
-     `@media (pointer: coarse)` und gelten auch fuer ein Tablet; dort ist die
+     HIER UND NICHT IM GROBEN ZEIGER. Die Werte daneben stehen in der Abfrage
+     auf den groben Zeiger und gelten damit auch fuer ein Tablet; dort ist die
      Breite da, und ein Finger ist ein Finger. Gemessen ist das Telefon,
      geaendert wird das Telefon.
      F11 IST MIT DERSELBEN MESSUNG BEANTWORTET, und zwar mit NEIN: die

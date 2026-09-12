@@ -1800,9 +1800,9 @@ const todayKey = () => {
    Wahrheit (Stolperstein 47). */
 const dueOf = (z, doneToo = false) => {
   if (!z.dueDate) return 'none';
-  const fertig = doneToo && (z.kind === 'done' || z.done);
-  if (z.dueDate < todayKey()) return fertig ? 'late' : 'overdue';
-  if (fertig) return 'done';
+  const settled = doneToo && (z.kind === 'done' || z.done);
+  if (z.dueDate < todayKey()) return settled ? 'late' : 'overdue';
+  if (settled) return 'done';
   return z.dueDate === todayKey() ? 'today' : 'later';
 };
 
@@ -7580,8 +7580,8 @@ async function renderDetail(id, termAddress) {
       /* GEMESSEN WIRD ERST IM DOKUMENT. limitCloud() liest die Hoehe des
          ersten Kindes; ausserhalb misst sie null, und aus null entstuende
          keine Begrenzung. Dieselbe Reihenfolge wie bei den beiden Wolken. */
-      const offen = dayTagsOpen.has(d.id);
-      const trimmed = limitCloud(tagBox, offen ? 0 : 1);
+      const opened = dayTagsOpen.has(d.id);
+      const trimmed = limitCloud(tagBox, opened ? 0 : 1);
       /* SCHNEIDET SIE NICHTS AB, WIRD SIE WIEDER WEGGENOMMEN. Eine feste
          `max-height` an einem Kasten, der ohnehin hineinpasst, ist eine Grenze
          ueber nichts -- sie belegt nichts und stuende der Zeile im Weg, sobald
@@ -7589,11 +7589,11 @@ async function renderDetail(id, termAddress) {
          SIE GILT IN JEDER BREITE und nicht nur am Telefon: die Tagwolke des
          Eintrags steht am Schreibtisch ebenso auf drei Reihen begrenzt. Eine
          Regel und nicht zwei. */
-      if (!trimmed && !offen) limitCloud(tagBox, 0);
-      more.hidden = !trimmed && !offen;
-      more.textContent = offen ? t('list.less') : t('list.more');
+      if (!trimmed && !opened) limitCloud(tagBox, 0);
+      more.hidden = !trimmed && !opened;
+      more.textContent = opened ? t('list.less') : t('list.more');
       more.onclick = () => {
-        if (offen) dayTagsOpen.delete(d.id); else dayTagsOpen.add(d.id);
+        if (opened) dayTagsOpen.delete(d.id); else dayTagsOpen.add(d.id);
         drawTestDays();
       };
     });
@@ -8026,9 +8026,12 @@ async function renderDetail(id, termAddress) {
          Knopf, der nichts tut, ist eine Luege ueber die eigene Bedienbarkeit
          -- dieselbe Ueberlegung wie beim Schalter des Potenzialmodus, den ein
          Admin sieht und nicht drueckt. */
-      const dueSichtbar = (task || done) && c.dueDate;
+      const dueShown = (task || done) && c.dueDate;
+      /* EIN RUF UND NICHT ZWEI. Knopf und Text zeigen denselben Zustand;
+         zweimal zu fragen hiesse, dass sie auseinanderlaufen koennen. */
+      const dueState = c.dueDate ? dueOf(c, true) : 'none';
       el.innerHTML = `<div class="cmt-head">
-          ${manage || dueSichtbar ? `<span class="marks">
+          ${manage || dueShown ? `<span class="marks">
           ${manage ? `
             ${/* JEDE MARKE NENNT AUCH DEN RUECKWEG -- 0.22.0: eine gesetzte Marke
                  sagt „aufheben", nicht noch einmal „markieren". */''}
@@ -8077,10 +8080,10 @@ async function renderDetail(id, termAddress) {
                  „jederzeit editierbar" heisst auch „nachtragbar". */''}
             ${manage
               ? (task || done ? `<button class="link-btn cmt-due${
-                  c.dueDate ? ` on due-${dueOf(c, true)}` : ''}"
+                  c.dueDate ? ` on due-${dueState}` : ''}"
                   title="${esc(t('entry.dueHint'))}">${c.dueDate
                     ? esc(fmtDay(c.dueDate)) : tH('entry.dueSet')}</button>` : '')
-              : `<span class="cmt-due on due-${dueOf(c, true)}"
+              : `<span class="cmt-due on due-${dueState}"
                   title="${esc(t('entry.dueHint'))}">${esc(fmtDay(c.dueDate))}</span>`}
           </span>` : ''}
           <span class="cmt-when">${multipleUsers()
