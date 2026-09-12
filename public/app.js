@@ -1744,6 +1744,11 @@ function limitCloud(box, rows) {
 // Speicher: er sagt nichts ueber den Bestand aus und gehoert nicht auf den
 // Server.
 const cloudOpen = { overview: false, detail: false };
+/* UND DIE MARKEN EINES TESTTAGS -- 0.30.1, Befund 4 (F9). Je Testtag ein
+   Merker, und aus demselben Grund nur im Speicher: er sagt nichts ueber den
+   Bestand aus. EINE MENGE UND KEIN FELD AM TAG SELBST: der Tag kommt vom
+   Server, und ein Merker der Oberflaeche gehoert nicht in seine Antwort. */
+const dayTagsOpen = new Set();
 /* HIER STAND BIS 0.30.0 `MORE_FILTERS_OPEN` -- der Merker, ob die Tagzeile
    offen steht. Er ist mit dem Umschalter „Tags" gefallen: die Zeile steht
    seither immer da, sobald die Filter aufgeklappt sind (Betreiber, 12.
@@ -7493,17 +7498,66 @@ async function renderDetail(id, termAddress) {
       };
       tagBox.appendChild(plus);
 
+      /* ---- „MEHR" RECHTS VON DEN MARKEN -- 0.30.1, Befund 4 (F9) ----
+         DER BETREIBER HAT DIE ENTSCHEIDUNG NICHT SELBST GETROFFEN, SONDERN
+         EINE REGEL DAFUER GEGEBEN: „Beides machbar. welches eher in frage
+         kommt, kommt darauf an welche form wir im eintragsview welche benutzt
+         haben." Damit entscheidet der Quelltext und nicht der Geschmack -- und
+         er ist eindeutig: die Tagwolke DIESER Ansicht steht auf drei Reihen
+         begrenzt und traegt darunter „mehr"/„weniger" (drawCloud(), weiter
+         oben). Gerollt wird nur die KATEGORIENREIHE der Uebersicht, und das
+         ist ein anderer Ort.
+         EINE REIHE UND NICHT DREI: eine Testtagzeile ist eine ZEILE. Drei
+         Reihen Marken darin waeren derselbe Umbruch, gegen den dieser Befund
+         gebaut wird.
+         RECHTS VON DEN MARKEN UND NICHT AM ZEILENENDE -- so steht es in der
+         Bestellung, und es stimmt auch baulich: am Zeilenende stuende er
+         hinter den Sternen und sagte nichts mehr darueber, WAS da noch kommt. */
+      const more = document.createElement('button');
+      more.className = 'link-btn ttag-more';
+      more.hidden = true;
+
+      /* DIE ZEILE SAGT SELBST, OB SIE MARKEN TRAEGT -- 0.30.1, Befund 4.
+         Danach richtet sich ihr Aufbau: ohne Marken steht alles in EINER
+         Zeile und die Sterne rechtsbuendig; mit Marken traegt die erste Zeile
+         Datum und Marken, und die Sterne rutschen darunter.
+         EINE KLASSE UND KEIN `:has()`: dieselbe Ueberlegung wie bei
+         `frow-tags` in 0.30.0 -- eine Regel, die sich ihren Traeger ueber den
+         Inhalt der Zeile zusammensucht, liest sich beim naechsten Stueck in
+         der Zeile falsch. */
+      if ((d.tags || []).length) row.classList.add('trow-tags');
+
       // Wer den Tag eingetragen hat -- ab zwei Zugängen. Die Zeitleiste
       // unterscheidet weiter über die Füllung; hier steht der Name.
       if (multipleUsers()) {
         const from = document.createElement('span');
         from.className = 'tfrom' + (d.mine ? ' mine' : '');
         from.textContent = authorName(d.author);
-        row.append(date, wd, from, tagBox, s, x);
+        row.append(date, wd, from, tagBox, more, s, x);
       } else {
-        row.append(date, wd, tagBox, s, x);
+        row.append(date, wd, tagBox, more, s, x);
       }
       list.appendChild(row);
+
+      /* GEMESSEN WIRD ERST IM DOKUMENT. limitCloud() liest die Hoehe des
+         ersten Kindes; ausserhalb misst sie null, und aus null entstuende
+         keine Begrenzung. Dieselbe Reihenfolge wie bei den beiden Wolken. */
+      const offen = dayTagsOpen.has(d.id);
+      const trimmed = limitCloud(tagBox, offen ? 0 : 1);
+      /* SCHNEIDET SIE NICHTS AB, WIRD SIE WIEDER WEGGENOMMEN. Eine feste
+         `max-height` an einem Kasten, der ohnehin hineinpasst, ist eine Grenze
+         ueber nichts -- sie belegt nichts und stuende der Zeile im Weg, sobald
+         eine Marke ihre Hoehe aendert (Schriftstufe, laengerer Name).
+         SIE GILT IN JEDER BREITE und nicht nur am Telefon: die Tagwolke des
+         Eintrags steht am Schreibtisch ebenso auf drei Reihen begrenzt. Eine
+         Regel und nicht zwei. */
+      if (!trimmed && !offen) limitCloud(tagBox, 0);
+      more.hidden = !trimmed && !offen;
+      more.textContent = offen ? t('list.less') : t('list.more');
+      more.onclick = () => {
+        if (offen) dayTagsOpen.delete(d.id); else dayTagsOpen.add(d.id);
+        drawTestDays();
+      };
     });
 
     let newRating = 4;
