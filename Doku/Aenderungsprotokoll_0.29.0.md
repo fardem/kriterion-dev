@@ -3,9 +3,13 @@
 **Fünf geplante Punkte und drei Befunde aus dem Betrieb · 11. September 2026 ·
 gebaut auf 0.28.1 (`452d1764`).**
 
-> **FINGERPRINT DIESER RUNDE: `PLATZHALTER`** —
+> **FINGERPRINT DIESER RUNDE: `0336d3a5`** —
 > gerechnet am gebauten Stand, **vor dem Einspielen**. Er deckt `node_modules`
 > nicht ab und hängt an jeder Datei der Liste — auch an einem Kommentar.
+>
+> **ACHTZEHN DATEIEN, WIE IN DER VORRUNDE.** *Und seit dieser Runde nennt die
+> Karte „Kennzahlen" sie auf Verlangen einzeln — wer den Wert oben nicht
+> wiederfindet, muss die Liste nicht mehr von Hand in einen Container tippen.*
 
 > **DER BETREIBER IM WORTLAUT, 11. September 2026, zum dritten Befund:**
 > *„Achso wenn man nach Titel sortieren lässt sortiert es von A bis Z aber Z
@@ -322,6 +326,62 @@ und ein Klick tat nichts.*
 | **Das Zurückspielen einer Sicherung über die Oberfläche** | *die Probe öffnet und zählt; zurückspielen heißt die laufende Datenbank ersetzen* |
 | **Der Rücksetzer der Sortierzeile in Spalte 3** | *gemessen: er kostet den Namen der Sortierung* |
 | **Eine mitgelieferte Sollliste für den Fingerprint** | *eine zweite Liste, die ausläuft — F6 und Stolperstein 47* |
+
+---
+
+## Der Prüfstand
+
+**6662 von 6662 Prüfungen bestanden.** *Der Lauf trug vor dieser Runde 6611;
+**einundfünfzig** sind dazugekommen.*
+
+**Sechsundzwanzig neue Gegenproben, Nummern 869 bis 894** — *je eine für die
+Sicherungsprobe, den Fingerprint, das Fälligkeitsdatum, den partiellen Index,
+die beiden Bildschirmbefunde und „Titel" in beide Richtungen.* **Die Liste
+wächst von 859 auf 885, und alle 885 Suchtexte greifen in ihrer Datei genau
+einmal.**
+
+> **FÜNF RÜCKBAUTEN GRIFFEN INS LEERE — genau der Fall, vor dem der Auftrag
+> warnt.** *233 und 448 zielten auf die Formatnummer, 806 auf die
+> Potenzialzeile, 866 auf das Raster der Filterzeile — alle vier **mitgezogen**
+> und nicht ersetzt.* **858 hat den Gegenstand gewechselt:** *`dirOf()` ist mit
+> Befund 8 gefallen, und der Rückbau zielt jetzt auf die Zeile, die `start`
+> auswertet — was er belegt, ist dasselbe geblieben.*
+
+### Was der Prüfstand an dieser Runde gefunden hat
+
+**ZWEI EIGENE FEHLER, und beide steckten in Zeilen, die diese Runde selbst
+geschrieben hat:**
+
+**DIE GRUPPIERUNG IN „OFFEN" ZERFIEL BEI GLEICHER SEKUNDE.** *Sortiert wurde
+nach `due_date`, dann `i.updated_at DESC`, dann `c.id` — und `updated_at` ist
+auf die **Sekunde** genau.* **Werden zwei Einträge in derselben Sekunde
+angefasst — beim Einspielen die Regel und nicht die Ausnahme —, sind ihre Werte
+gleich, die Stufe entscheidet nichts mehr, und `c.id` mischt die Zeilen beider
+Einträge ineinander.** *Die Gruppierung zerfiel also genau in dem Fall, für den
+sie gebaut ist.* `c.item_id` **steht jetzt davor.**
+
+**UND MEINE EIGENEN CSS-ZUSAGEN SUCHTEN AN DER FALSCHEN UMBRUCHSTELLE.** *Sie
+heißt **700** und nicht 760 und trägt zwei weitere Bedingungen.* **Eine eigene
+Zusage hält jetzt ihren Wortlaut fest**, damit die nächste Runde ihn nicht
+wieder abschreibt.
+
+**UND FÜNF WEITERE HABEN DIE WÄCHTER GEFANGEN, BEVOR SIE INS PAPIER KAMEN:**
+*sechs deutsche Bezeichner in neuem Code (`eine`, `feld`, `heute`, `kopf`,
+`steht`, `zwei`); zweimal „Zeichenkette" statt „String" in Kommentaren;
+„Instanz", „Zugänge" und „Kopie" in vier Bildschirmsätzen — alle drei hat das
+Wörterbuch aus 0.22.0 vom Bildschirm genommen; ein alleinstehendes „yedek" im
+Türkischen, wo es „yedekleme" heißt; und ein `CREATE TABLE IF NOT EXISTS`, das
+über einen Zeilenumbruch lief und den Wächter darüber rot färbte.*
+
+> **UND EINE ZUSAGE MUSSTE IHREN GEGENSTAND WECHSELN.** *Zwei Gegenlagen nahmen
+> bis hierher `users.email`, **weil sie keinen Migrationsblock trägt** — sie
+> belegen, dass eine entfernte Spalte nicht von selbst zurückkommt.* **Seit
+> dieser Runde trägt sie etwas anderes: den partiellen Index.** *SQLite weist
+> ein `DROP COLUMN` ab, sobald ein Index auf der Spalte steht, und der ganze
+> Lauf riss an dieser Zeile ab.* **Sie nehmen jetzt `users.last_login`** — kein
+> Migrationsblock, kein Index, kein Vorgabewert. *Die Zusage ist dieselbe
+> geblieben; nur ihr Gegenstand hat gewechselt, weil der alte in dieser Runde
+> einen Träger bekommen hat.*
 
 ---
 
