@@ -52503,7 +52503,10 @@ async function check0300() {
       aFound.some(z => z.pid === aBorn),
       aFound.map(z => `${z.pid} ${z.where}`).join(' · ') || 'nichts gefunden');
     const aSweep = sweepLeftovers();
-    await new Promise(r => setTimeout(r, 300));
+    /* GEWARTET WIRD AUF DAS ENDE UND NICHT AUF DIE UHR. Ein SIGKILL wirkt
+       nicht in derselben Zeile, und eine feste Zahl Millisekunden ist auf einer
+       belasteten Maschine eine Wette. */
+    for (let i = 0; i < 50 && aAlive(aBorn); i++) await new Promise(r => setTimeout(r, 100));
     check('Und er raeumt ihn wirklich weg — der Prozess lebt danach nicht mehr',
       !aAlive(aBorn), `PID ${aBorn} lebt noch`);
     check('Und das Wegwerfverzeichnis ist mit fort',
@@ -52597,8 +52600,11 @@ async function check0300() {
   {
     const withoutSwitch = { ...process.env };
     delete withoutSwitch.KRITERION_TESTBENCH;
+    /* DIE LETZTE ZEILE UND NICHT DIE GANZE AUSGABE -- dieselbe Bauform wie
+       shortRun(). keys.js sagt beim Laden „Schluessel aus ENCRYPTION_KEY
+       geladen", und diese Zeile stuende sonst vor jeder Antwort. */
     const ask = (code, environment) => execFileSync(process.execPath, ['-e', code],
-      { cwd: __dirname, encoding: 'utf8', env: environment }).trim();
+      { cwd: __dirname, encoding: 'utf8', env: environment }).trim().split('\n').pop().trim();
     /* DIE AUSLIEFERUNG TRAEGT N = 16384 -- FESTGENAGELT. Gefragt wird das
        MODUL und nicht der Quelltext: eine Zeile, die dasteht und nicht
        greift, waere genau der Fehler aus Befund 1. */
@@ -52750,7 +52756,14 @@ async function check0300() {
     const SENTENCE_EXCEPTIONS = [
       'docker compose exec kriterion node usertool.js passwort <name>',
       'docker compose exec kriterion node usertool.js zweifaktor <name>',
+      /* ZWEI BEISPIELADRESSEN UND EINE ABFRAGE. `forum.beispiel.de` steht in
+         der Karte „Suchanbieter" als Beispiel, einmal als Adresse und einmal
+         in einem <code>-Kasten daneben; `?gruppe=` ist ein Stueck Abfrage und
+         kein Satz. Keines von beiden gehoert in eine Sprachdatei -- eine
+         Adresse wird nicht uebersetzt. */
       'https://forum.beispiel.de/suche?q=%s',
+      'site%3Aforum.beispiel.de',
+      '?gruppe=',
       'Die Sprachdatei fehlt.'
     ];
     const gTexts = screenTextsFrom(gApp);
@@ -52783,9 +52796,10 @@ async function check0300() {
     /* DIE ZAHL DER AUSNAHMEN STEHT AUSDRUECKLICH DA. Ohne sie waere die Liste
        eine Selbstbestaetigung: wer einen Satz hinzufuegt, macht sie wieder
        gruen -- dieselbe Ueberlegung wie bei den zwoelf benannten Bezeichnern. */
-    check('Und es sind genau vier benannte Ausnahmen — drei Befehle und ein Satz',
-      SENTENCE_EXCEPTIONS.length === 4 &&
-      SENTENCE_EXCEPTIONS.filter(x => x.startsWith('docker')).length === 2,
+    check('Und es sind genau sechs benannte Ausnahmen — zwei Befehle, drei Adressen, ein Satz',
+      SENTENCE_EXCEPTIONS.length === 6 &&
+      SENTENCE_EXCEPTIONS.filter(x => x.startsWith('docker')).length === 2 &&
+      SENTENCE_EXCEPTIONS.filter(x => /beispiel\.de|gruppe=/.test(x)).length === 3,
       SENTENCE_EXCEPTIONS.join(' · '));
     /* UND DIE DREI FUNDE DIESER RUNDE STEHEN JETZT IM WOERTERBUCH. */
     check('„an", „aus" und „eingerichtet" kommen jetzt aus der Sprachdatei',
@@ -52808,8 +52822,11 @@ async function check0300() {
       (dCode.match(/const todayKey = /g) || []).length === 1,
       `dueOf ${(dCode.match(/const dueOf = /g) || []).length}x, ` +
       `todayKey ${(dCode.match(/const todayKey = /g) || []).length}x`);
-    check('Und beide Orte fragen dieselbe Funktion',
-      (dCode.match(/dueOf\(/g) || []).length >= 3, `${(dCode.match(/dueOf\(/g) || []).length} Aufrufe`);
+    /* GENAU ZWEI RUFER, und das ist die Zahl und nicht „mindestens zwei": die
+       Ansicht „Offen" und die Zeile im Eintrag. Ein dritter waere ein dritter
+       Ort fuer dieselbe Frage und gehoerte benannt. */
+    check('Und beide Orte fragen dieselbe Funktion — genau zwei Rufer',
+      (dCode.match(/dueOf\(/g) || []).length === 2, `${(dCode.match(/dueOf\(/g) || []).length} Aufrufe`);
     /* VIER ZUSTAENDE, VIER FARBEN -- und nicht drei Farben und ein Strich. */
     const dCss = fs.readFileSync(path.join(__dirname, 'public', 'style.css'), 'utf8');
     const dRule = (name) => (dCss.match(new RegExp(`\\.cmt-due\\.due-${name} \\{([^}]*)\\}`)) || [])[1] || '';
@@ -52837,7 +52854,12 @@ async function check0300() {
       { id: 93, kind: 'task', text: 'Morgen', created_at: '2026-09-01 09:00:00', dueDate: dShift(1), mine: true, author: { id: 1, name: 'chefin' } },
       { id: 94, kind: 'done', text: 'Erledigt', created_at: '2026-09-01 09:00:00', dueDate: dShift(-2), mine: true, author: { id: 1, name: 'chefin' } }
     ];
-    const dDom = buildDom(JSDOM, { hash: '#/item/1', comments: dComments });
+    /* JSDOM WIRD HIER GEHOLT UND NICHT VORAUSGESETZT: der Prueflauf laeuft
+       auch ohne es und sagt das dann deutlich. */
+    let JSDOMd;
+    try { ({ JSDOM: JSDOMd } = require('jsdom')); } catch { JSDOMd = null; }
+    check('jsdom steht fuer die vier Zustaende bereit', !!JSDOMd, 'ohne jsdom keine Oberflaechenprobe');
+    const dDom = buildDom(JSDOMd, { hash: '#/item/1', comments: dComments });
     await new Promise(r => setTimeout(r, 200));
     const dSeen = [...dDom.w.document.querySelectorAll('.cmt-due')]
       .map(b => (b.className.match(/due-[a-z]+/) || ['—'])[0]);
