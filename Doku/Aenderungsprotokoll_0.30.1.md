@@ -23,9 +23,9 @@
 > | | Lauf | Gruppen | Prüfungen |
 > |---|---|---|---|
 > | **vorher** *(0.30.0, dieselbe Maschine)* | 271,5 s | 339 | 6741 von 6741 grün |
-> | **nachher** *(0.30.1)* | **275,2 s** | **343** | **6779 von 6779 grün** |
+> | **nachher** *(0.30.1)* | **287,0 s** | **343** | **6780 von 6780 grün** |
 >
-> **38 PRÜFUNGEN UND VIER GRUPPEN MEHR FÜR 3,7 SEKUNDEN.** *Die Runde hat kein
+> **39 PRÜFUNGEN UND VIER GRUPPEN MEHR.** *Die Runde hat kein
 > Geschwindigkeitsziel — sie ist Oberfläche —, und die Zahl steht hier, damit
 > sie nicht unbemerkt steigt.*
 
@@ -259,7 +259,7 @@ Aufrufort gewesen.** *Die Schuld steht im Fahrplan unter 0.31.0.*
 
 ## Der Prüfstand
 
-**6779 von 6779 grün, 343 Gruppen, 275,2 Sekunden.**
+**6780 von 6780 grün, 343 Gruppen, 287,0 Sekunden.**
 
 **VIER NEUE GRUPPEN** — die Tagzeile, die Testtagzeile, der Zähler und das
 Datum, das jeder sieht. **DAZU UMGESTELLTE ZUSAGEN IN DREI ALTEN GRUPPEN**
@@ -276,6 +276,42 @@ die Zahl und trägt das Wort im Titel.
 | **die Begrenzung selbst** | `limitCloud()` mit **gesetzten Maßen** — *jsdom rechnet keine Höhen, also bekommt der Kasten sie ausdrücklich, und die Funktion muss daran dasselbe tun wie am Bildschirm* |
 | **die fünf Farbzustände** | an fünf Aufgaben, und die fünfte ist der Kern: eine erledigte, deren Frist noch nicht abgelaufen war |
 | **das Datum ohne Recht** | an einem Zugang, der weder Verfasser noch Admin ist |
+
+### Die Gegenproben — 21 gefahren, 0 STUMM, und trotzdem ein Fund
+
+**NEUNZEHN NEUE RÜCKBAUTEN** *(916 bis 934)* **UND ZWEI NACHGEZOGENE** *(909,
+910 — ihre Suchtexte standen nach dieser Runde nicht mehr da)*. **Keiner ist
+stumm geblieben.**
+
+> **UND EINER HAT TROTZDEM EINE LÜCKE AUFGEDECKT — 926.** *Er nimmt die
+> Begrenzung der Marken eines Testtags auf **eine Reihe** ganz weg, und keine
+> einzige Prüfung wurde daraufhin rot.* **Belegt war die Begrenzung SELBST; ihr
+> RUF war es nicht.**
+>
+> **WARUM SIE NICHT AM ERGEBNIS ZU SEHEN IST:** *jsdom rechnet keine Höhen, also
+> steigt `limitCloud()` gleich am Anfang aus und setzt nichts — am fertigen
+> Dokument ist zwischen „begrenzt" und „nicht begrenzt" kein Unterschied zu
+> messen.* **Die nachgetragene Zusage fährt deshalb einen Mitschreiber:** die
+> Funktion wird getauscht, die Ansicht neu gezeichnet, und der Ruf mit der
+> Reihenzahl **1** muss dabei vorkommen. *Sie ist eine Funktionsdeklaration auf
+> oberster Ebene und liegt damit am Fenster — der Tausch greift auch für die
+> Rufe innerhalb der Datei.*
+>
+> **DAS IST DER ZWECK DER GEGENPROBE, und sie hat ihn zum zweiten Mal in zwei
+> Runden erfüllt.** *0.30.0 hat über sie neun ungeklammerte Griffe gefunden;
+> 0.30.1 eine Zusage, die ihren eigenen Gegenstand nicht abdeckte.*
+
+**ZWEI ERWARTUNGEN WAREN FALSCH EINGETRAGEN** *(933, 934)*: die Sternzusagen
+liegen in der Gruppe aus 0.28.1 und nicht in der aus 0.30.0. *Rote Zeilen haben
+beide erzeugt — nur eben dort.*
+
+> **EINE BEOBACHTUNG AUS DEM LAUF, und sie ist kein Fehler dieser Runde:** *die
+> Gruppe „Der Prüfstand räumt beim Start auf — 0.30.0" wurde in **neun von
+> einundzwanzig** Läufen rot, ohne dass der jeweilige Rückbau etwas mit ihr zu
+> tun hatte.* **Vier Spuren nebeneinander sind für den Aufräumer aus BA 3 immer
+> noch eine unruhige Lage** — dieselbe Sorte Befund, die 0.30.0 schon einmal
+> geliefert hat *(„der Vater ist fort")*, nur eine Stufe feiner. **Er gehört ins
+> Sammelblatt und nicht in diese Runde.**
 
 ---
 
