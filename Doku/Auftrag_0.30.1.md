@@ -1,18 +1,39 @@
-# Auftrag 0.30.1 — „Was der Rundlauf mit 0.30.0 gefunden hat" *(Arbeitstitel)*
+# Auftrag 0.30.1 — „Was der Rundlauf mit 0.30.0 gefunden hat"
 
-**IN SAMMLUNG · angelegt am 12. September 2026 · sieben Befunde bisher ·
-gebaut auf 0.30.0 (`2363b00a`).**
+**Sieben Befunde aus dem Betrieb und einer aus dem Nachsehen · geschrieben am
+12. September 2026 · gebaut auf 0.30.0 (`2363b00a`).**
 
-> **DIESES PAPIER IST NICHT VOLLSTÄNDIG, UND ES WIRD NICHTS DAVON GEBAUT.**
-> *Der Betreiber prüft die eingespielte 0.30.0 noch am Gerät.* **Er hat es so
-> angesagt:** *„notier das, ich teste da noch etwas. wenn ich dann was neues
-> finde schicke ich dir eine nachricht mit den neuen befunde sonst meld ich mich
-> ok das waren alle dann machst du die papiere fertig. also warte noch etwas."*
->
-> **WAS HIER STEHT, IST DIE MITSCHRIFT UND KEINE ZUORDNUNG.** *Die Fragetafel
-> entsteht erst, wenn die Sammlung geschlossen ist — Auflage 2 des Fahrplans:
-> jede Runde hat einen Auftrag, und der Auftrag stellt seine Fragen, bevor die
-> erste Zeile entsteht.*
+> **DIE SAMMLUNG IST GESCHLOSSEN.** *Der Betreiber hat 0.30.0 eingespielt und
+> das Gerät durchgesehen; die Befunde kamen in fünf Nachrichten herein, mit
+> Bildern aus zwei Installationen.* **Dieses Papier ist aus der Mitschrift
+> entstanden, die währenddessen geführt wurde** — jeder Befund steht mit dem
+> Wortlaut da, in dem er gemeldet wurde.
+
+---
+
+## Was in dieser Runde passiert
+
+**ALLES, WAS HIER STEHT, IST OBERFLÄCHE — und der größere Teil davon ist Platz.**
+*Fünf der acht Befunde sagen dasselbe auf fünf Arten: am Telefon steht etwas
+breiter da, als der Bildschirm hergibt, und was dann bricht, bricht an der
+falschen Stelle — mitten im Wort, unter dem Namen, neben einem leeren Feld.*
+**Zwei betreffen das Fälligkeitsdatum, und einer ist ein einziges Wort.**
+
+**DREI DER ACHT STEHEN AN GENAU DEN STELLEN, DIE 0.30.0 ZULETZT ANGEFASST HAT:**
+*die Tagzeile aus BA 7, der Bewertungskasten aus BA 8 und das Fälligkeitsdatum
+aus BA 10.* **Das ist kein Rückschlag, sondern der Rundlauf, wie er gedacht
+ist** — gebaut, eingespielt, am Gerät angesehen, nachgebessert.
+
+> **UND EINER IST DER LEHRREICHSTE DER ACHT: Befund 5.** *0.30.0 hat die
+> Kopfzeile des Bewertungskastens geheilt und dabei gemessen, dass an der
+> Sternzeile nichts zu machen sei (F12). Der Betreiber sieht dieselbe Zeile am
+> Gerät und schlägt etwas vor, das in jener Messung gar nicht vorkam — die
+> Breite der **Sterne** selbst.* **Eine Messung beantwortet die Frage, die man
+> ihr stellt, und keine andere.**
+
+**KEIN SCHEMAANTEIL**, keine neue Spalte, kein Migrationsblock, das
+Austauschformat bleibt **16**. *0.29.0 war die letzte Runde, die die Struktur
+anfassen durfte, und diese hier fasst keine Tabelle an.*
 
 ---
 
@@ -31,6 +52,103 @@ und der Bruch bleibt auf 0.33.0.**
 
 **Kein Schemaanteil**, keine neue Spalte, kein Migrationsblock — nach heutigem
 Stand der Sammlung.
+
+---
+
+---
+
+## Der Fingerprint des Vorgängers
+
+| Quelle | Wert |
+|---|---|
+| **Am Arbeitsbaum nachgerechnet** *(achtzehn Dateien)* | **`2363b00a`** |
+| **Aus dem Server selbst gelesen** *(frisches Datenverzeichnis, `/api/stats`)* | **`2363b00a`** |
+| **Aus der laufenden Installation gemeldet** *(Betreiber, 12. September 2026)* | **`2363b00a`** |
+
+> **DREI QUELLEN, EIN WERT — und zum fünften Mal in Folge lag die Bestätigung
+> aus dem Feld vor, bevor die nächste Runde anfing.** *Am Wirt läuft 0.30.0.*
+>
+> **DIESMAL KAM SIE SOGAR, BEVOR DAS ÄNDERUNGSPROTOKOLL FERTIG WAR:** *der
+> offene Punkt aus 0.30.0 stand keine Stunde und ist am selben Tag geschlossen
+> worden.*
+
+---
+
+## Die Fragetafel — vor der ersten Zeile zu beantworten
+
+> **REGEL 11: GEBAUT WIRD ERST, WENN JEDE FRAGE BEANTWORTET UND IM PAPIER
+> EINGETRAGEN IST.** *Seit 0.28.0 ist das viermal eingehalten worden, jedes Mal
+> mit Gewinn — in 0.30.0 haben vier Messungen vier Antworten des Auftrags
+> berichtigt, und jede einzelne hätte beim Bauen einen Schaden angerichtet.*
+>
+> **DIE SPALTE „VORSCHLAG VON CLAUDE" IST EIN VORSCHLAG UND KEINE ANTWORT.**
+> *Die Spalte „Antwort" ist leer und bleibt es, bis der Betreiber sie füllt.*
+>
+> **DREI FRAGEN SIND RÜCKFRAGEN AN EINEN SATZ und keine Entscheidungen** *(F1,
+> F8, F18)*: **sie werden nicht geraten.** *Ein geratener Satz wird zu einer
+> gebauten Zeile, und die steht dann falsch da.*
+
+### Die Tagzeile — Befund 2
+
+| # | Frage | Vorschlag von Claude | Antwort |
+|---|---|---|---|
+| **F1** | **„dann wäre es 2der 2" — was heißt der Satz?** *Er steht zwischen den beiden Bitten und dem Vorschlag zur Schriftgröße* | **Keiner.** *Er kann „beide zusammen ergeben zwei Zeilen statt zwei" heißen, „zwei von zwei erledigt" — oder etwas Drittes.* **Diese Zeile bitte nur beantworten** | |
+| **F2** | **Der Umschalter und/oder rückt unter „TAGS"** *(heute steht er am UNTEREN Ende der Wolke)* | **Ja — und es sind zwei Zeilen Raster.** *Heute spannt die Wolke über beide Rasterzeilen und bestimmt damit die Höhe; der Umschalter sitzt in Zeile 2 und rutscht mit ihr nach unten.* **`grid-template-rows: auto 1fr` und `align-self: start` am Umschalter** — *dann ist Zeile 1 so hoch wie die Beschriftung, und Zeile 2 beginnt unmittelbar darunter* | |
+| **F3** | **Die Marken sollen in der ersten Zeile anfangen.** *Auf dem Bild steht die erste Markenreihe eine Spur tiefer als die Beschriftung daneben* | **Ja — aber zuerst gemessen, woher der Abstand kommt.** *Es kommt entweder aus dem Zeilenabstand des Filterrasters oder aus der Höhe der Beschriftungszeile, und das sind zwei verschiedene Reparaturen.* **Vorgelegt wird die Zahl, dann die Zeile** | |
+| **F4** | **Wie viel kleiner werden die Marken?** *Der Betreiber: „eine bis zwei Stufen … natürlich sollten sie noch lesbar sein"* | **Gemessen und vorgelegt, nicht geschätzt — und mit einer dritten Fassung, die er nicht genannt hat.** *Eine Marke trägt heute `.77rem` in **Festschrift** (`--mono`), eine Kategorie `.83rem` in gewöhnlicher Schrift.* **Die Festschrift ist die eigentliche Breite:** dieselbe Zahl Zeichen braucht in ihr spürbar mehr Platz. **Drei Fassungen werden gemessen:** *eine Stufe kleiner · zwei Stufen kleiner · **gleiche Größe, aber ohne Festschrift**.* **Die dritte könnte am meisten bringen und am wenigsten kosten** — sie nimmt aber ein Merkmal weg, an dem man eine Marke von einer Kategorie unterscheidet | |
+
+### Die Testtagzeile im Eintrag — Befunde 3 und 4
+
+| # | Frage | Vorschlag von Claude | Antwort |
+|---|---|---|---|
+| **F5** | **Der Wochentag fällt weg, wenn kein Platz ist** *(„Dienstag", „Sonntag", „Mittwoch")* | **Ja — über die BREITE und nicht über den Gerätenamen.** *`@container`, wie die Vokabelkarte in 0.30.0.* **Auf einem Ultra, einem Max oder einem Tablet steht er damit weiter da, ohne dass irgendwo ein Gerätename im Quelltext steht** | |
+| **F6** | **Fällt er ganz — oder kürzt er auf „Di."?** *Der Betreiber hat „nicht anzeigen" gesagt* | **Ganz.** *Drei Zeichen sparen nur die halbe Breite und bringen dafür eine zweite Schreibweise desselben Tages in die Oberfläche.* **Und das Datum steht daneben — der Wochentag ist die Bequemlichkeit, nicht die Auskunft** | |
+| **F7** | **Die drei Fälle der Testtagzeile** *(keine Marken → Sterne rechts; Marken und es passt nicht → Sterne in Zeile 2; zu viele Marken → „mehr" oder rollbar)* | **Alle drei bauen.** *Der erste ist der eigentliche Fehler: `.ttags` nimmt sich die ganze übrige Breite, **auch wenn gar keine Marke darin steht**, und drückt die Sterne in die zweite Zeile, obwohl neben dem Datum die halbe Zeile frei ist* | |
+| **F8** | **„Haben Tage datum und sie passen nicht in eine reihe" — ist „MARKEN" gemeint?** | **Ja, so gelesen.** *Sonst wäre der Fall derselbe wie der erste, und die beiden Sätze widersprächen sich.* **Es ist eine Lesart und keine Gewissheit — bitte bestätigen** | |
+| **F9** | **Zu viele Marken: ein Knopf „mehr" — oder rollbar?** | **Rollbar, und zwar nur am Telefon.** *Ein Knopf „mehr" ist eine dritte Bedienung an einer Zeile, die schon zwei hat (Marke abräumen, Marke anlegen); rollen ist keine Bedienung.* **Der Preis: rollbar versteckt, dass da noch etwas ist** — dagegen hilft ein angeschnittenes letztes Stück am Rand, und das kostet keine Bedienung | |
+
+### Der Bewertungskasten — Befund 5
+
+| # | Frage | Vorschlag von Claude | Antwort |
+|---|---|---|---|
+| **F10** | **Wie viel kleiner werden die Sterne?** | **Gemessen und als Tafel vorgelegt, so wie die Vokabelkarte in BA 11** — *drei Größen, dieselben Daten, dasselbe Gerät, beide Fassungen (ein Zugang und mehrere).* **Entschieden wird nach der Zahl** | |
+| **F11** | **Kippt damit F12 aus 0.30.0?** *Jene Antwort lautete „die zweizeilige Sternzeile bleibt", und der Grund war die Breite der übrigen Spalten — genau die greift dieser Vorschlag an* | **Wenn die Messung es hergibt: ja — aber es ist eine EIGENE Antwort und keine Folge.** *Die zweizeilige Sternzeile steht als Entscheidung im Projektstand (5.3); wer sie zurücknimmt, ändert ein Papier und nicht nur eine Zeile.* **Vorgelegt wird beides nebeneinander: kleinere Sterne MIT zweizeiliger Sternzeile und kleinere Sterne OHNE** | |
+
+### Die Kriterienkarte — Befund 6
+
+| # | Frage | Vorschlag von Claude | Antwort |
+|---|---|---|---|
+| **F12** | **Nur die Kriterienkarte — oder jede Liste mit `.mcount`?** *Dieselbe Zeile zeichnet Kategorien, Tags, den Papierkorb und die Zugänge* | **Alle, die den gewöhnlichen Zähler tragen.** *Der Befund ist die Breite und nicht die Karte; eine Kategorienzeile am Telefon hat dasselbe Problem, nur ohne Gewichtsfeld daneben.* **Eine Ausnahme für eine Karte wäre eine zweite Regel für dieselbe Zeile** | |
+| **F13** | **Wie kürzt der Zähler der TAGKARTE?** *Er trägt zwei Zahlen: „10 Einträge · 3 Testtage"* | **„10 · 3" mit einem Titel, der beide benennt.** *Zwei Zahlen ohne Wort sind nur dann lesbar, wenn ihre Reihenfolge feststeht — und sie steht fest.* **Wenn das zu knapp ist, ist die Alternative: die Tagkarte behält ihren ausgeschriebenen Zähler und bricht dafür um** | |
+| **F14** | **Welches Zeichen steht neben der Zahl?** *„10×" wäre das DRITTE `×` in derselben Zeile: eines vor dem Gewichtsfeld („× 1,2") und eines als Löschknopf* | **Gar keins — nur die Zahl, rechtsbündig.** *Drei gleiche Zeichen mit drei Bedeutungen („mal", „mal", „weg") in einer Zeile sind genau die Sorte Unruhe, die man sieht, ohne sie benennen zu können.* **Die Zahl allein sagt dasselbe, und der Titel der Zelle trägt das Wort** | |
+
+### Das Fälligkeitsdatum — Befunde 7 und 8
+
+| # | Frage | Vorschlag von Claude | Antwort |
+|---|---|---|---|
+| **F15** | **Das Datum färbt künftig nach dem ZUSTAND und nicht nur nach der Frist:** *offen und in der Zukunft **blau**, überschritten **rot**, erledigt und überschritten **rot**, erledigt und gehalten **grün*** | **Ja, genau so — und es ist kein neuer Farbton.** *Blau für die offene und Grün für die erledigte Aufgabe trägt das Haus schon zweimal: an der Kante des Kommentars (`.cmt.task` / `.cmt.done`) und an der Marke „ToDo" (`.mark.task.on` / `.mark.task.on.done`).* **Das Datum ist die dritte Stelle derselben Sache und die einzige, die nicht mitmacht** | |
+| **F16** | **Was wird aus „heute"?** *0.30.0 hat vier Fristzustände gebaut; „heute" steht fett in Textfarbe, und der Betreiber hat ihn nicht genannt* | **Er bleibt eigen — fett, aber BLAU statt in Textfarbe.** *„Heute" sagt etwas anderes als „irgendwann", und das ist die Fettschrift; die Farbe sagt den Zustand, und der ist „offen".* **So tragen beide Angaben ihren eigenen Träger** | |
+| **F17** | **Bleibt der Durchstrich am erledigten Datum?** | **Ja.** *Farbe nach Zustand und Durchstrich schließen einander nicht aus, und der Augenschein von 0.30.0 hat den Durchstrich ausdrücklich festgehalten.* **Wer ihn wegnimmt, nimmt einen belegten Zustand weg** | |
+| **F18** | **„Datum von Aufgabe soll durch Anklicken editierbar sein" — hat das bei Ihnen NICHT funktioniert?** | **Es ist seit 0.29.0 genau so gebaut**: *der Verweis wird beim Klick zum Datumsfeld und öffnet den Kalender gleich mit; erlaubt ist es dem Verfasser und dem Admin (`manage = mine \|\| ADMIN`).* **Deshalb ist das eine Rückfrage und keine Bestellung:** *ging es nicht — dann ist das ein **Fehler** und die wichtigste Zeile dieser Runde. War es nur nicht auffindbar — dann ist es die Auffindbarkeit, und die ist eine andere Reparatur* | |
+| **F19** | **Soll eine ERLEDIGTE Aufgabe OHNE Datum noch eines bekommen können?** *Der Knopf steht heute bei `task \|\| (done && dueDate)` — an einer erledigten ohne Datum steht gar nichts* | **Ja.** *„Jederzeit editierbar" heißt auch „nachtragbar".* **Der Betreiber nennt den Fall selbst: man verschätzt sich und spricht ein neues Datum ab** — und das kann nach dem Abhaken passieren | |
+| **F20** | **Das Datum sieht heute NUR, wer es ändern darf** *(Befund 8: der ganze Markenkasten steht hinter `manage`)*. **Soll es jeder sehen, der den Eintrag sehen darf?** | **Ja — sehen ja, ändern nein.** *In der Ansicht „Offen" steht dasselbe Datum schon heute für jeden da; nur am Kommentar selbst fehlt es.* **Eine Frist, die nur ihr Verfasser sieht, ist in einer Installation mit mehreren Zugängen keine Frist** | |
+
+### Der Wortlaut — Befund 1
+
+| # | Frage | Vorschlag von Claude | Antwort |
+|---|---|---|---|
+| **F21** | **„Inhalt bis" wird zu „Stand von". Was wird daraus auf Englisch und Türkisch?** | **Englisch „As of", Türkisch „Durum".** *Beide sagen dasselbe wie „Stand von": ein Zeitpunkt, bis zu dem der Inhalt reicht — und keines der beiden ist eine Übersetzung des alten Satzes, sondern des neuen.* **Der Schlüssel gehört zur Sorte, die 0.31.0 in Gruppe 3 durchgeht; hier entschieden, ist er dort erledigt** | |
+
+### Zur Runde selbst
+
+| # | Frage | Vorschlag von Claude | Antwort |
+|---|---|---|---|
+| **F22** | **Die Nummer: PATCH, also 0.30.1?** | **Ja.** *Acht Befunde, kein Schemaanteil, keine neue Spalte — und keiner der acht macht etwas möglich, was die Instanz vorher nicht konnte.* **Der Fahrplan rückt nicht: 0.31.0 bleibt die Sprachdurchsicht, 0.32.0 bleibt der Ruf beim Namen, der Bruch bleibt auf 0.33.0** | |
+| **F23** | **Wird in EINER Runde gebaut — oder trennt sich das Fälligkeitsdatum ab?** *Die Befunde 7 und 8 sind Verhalten, die übrigen sechs sind Platz* | **In einer.** *Sie kommen aus demselben Rundlauf, hängen an derselben Runde und teilen sich die Papiere.* **Zwei Runden für acht Befunde wären zwei Prüfläufe, zwei Änderungsprotokolle und zwei Einspielungen für dieselbe Sache** | |
+
+> **DIE TAFEL IST NOCH NICHT BEANTWORTET.** *Dreiundzwanzig Fragen stehen da,
+> dreiundzwanzig Antwortfelder sind leer.* **Bis sie gefüllt sind, entsteht
+> keine Zeile Code** — das ist Regel 11, und sie gilt zum fünften Mal.
 
 ---
 
@@ -87,7 +205,7 @@ bestimmt.*
 | **3** | **Die Marken dürfen ein bis zwei Stufen kleiner sein als die übrigen Pillen** *(Kategorien)* — es gibt deutlich mehr von ihnen, und so passen mehr hinein. **Grenze: lesbar müssen sie bleiben** |
 
 > **EINE STELLE IST UNKLAR UND WIRD NACHGEFRAGT:** *„dann wäre es 2der 2."*
-> **Das wird nicht geraten.** *(siehe „Was nachgefragt werden muss")*
+> **Das wird nicht geraten.** *(F1)*
 
 ---
 
@@ -280,9 +398,23 @@ erledigt durchgestrichen* *(`public/style.css:1941–1944`, `dueOf()` in
 **EINE HÄLFTE DES BEFUNDS IST SCHON GEBAUT.** *„Datum soll jederzeit editierbar
 sein und zwar von dem Ersteller oder von dem Admin" — genau so steht es da:*
 `const manage = mine || ADMIN` *(`public/app.js:7914`)*, **und der Datumsknopf
-hängt an `manage`.** *Bleibt ein Rest, und der ist eine Frage: der Knopf steht
-nur bei `task || (done && c.dueDate)` — **einer erledigten Aufgabe ohne Datum
-lässt sich damit keines mehr geben.***
+hängt an `manage`.**
+
+> **DER BETREIBER HAT ES AM SELBEN TAG NOCH EINMAL BESTELLT, und das ist der
+> Grund, warum daraus eine RÜCKFRAGE wird und keine Zeile Code:** *„Datum von
+> Aufgabe soll durch anklicken editierbar sein. Ist ja möglich das man sich
+> verschätzt hat und neuen Datum abgesprochen hat."*
+>
+> **DER HANDGRIFF STEHT SEIT 0.29.0 UND TUT GENAU DAS:** *aus dem Verweis wird
+> beim Klick ein Datumsfeld, und der Kalender geht gleich mit auf
+> (`showPicker()`).* **Wenn er beim Betreiber nicht ging, ist das ein FEHLER und
+> die wichtigste Zeile dieser Runde** *(F18)* — *und Befund 8 unten ist der
+> erste Ort, an dem danach zu suchen wäre.*
+
+**ZWEI RESTE BLEIBEN, und beide sind Fragen und keine Bestellungen.** *Der eine:
+der Knopf steht nur bei* `task || (done && c.dueDate)` — **einer erledigten
+Aufgabe ohne Datum lässt sich damit keines mehr geben** *(F19)*. *Der andere
+steht als eigener Befund unten.*
 
 > **NOCH EIN PUNKT AUS DEMSELBEN BILD, UND ER IST SCHON VERBUCHT:** *der obere
 > Kommentar („dieser text bei ‚Datenbank' muss kürzer und normaler werden nicht
@@ -292,41 +424,163 @@ lässt sich damit keines mehr geben.***
 
 ---
 
-## Was nachgefragt werden muss, bevor die Fragetafel entsteht
+### Befund 8 — Das Fälligkeitsdatum sieht nur, wer es ändern darf
 
-| | Stelle | Warum es nicht geraten wird |
+**Art: Fehler** · **aus dem Nachsehen, 12. September 2026** · *nicht aus dem
+Feld gemeldet, sondern beim Prüfen der Bitte „durch Anklicken editierbar"
+gefunden*
+
+**Was dasteht:** der ganze Markenkasten einer Kommentarzeile — Anheftung, Art,
+Aufgabe **und das Fälligkeitsdatum** — steht hinter einer einzigen Klemme:
+
+```
+${manage ? `<span class="marks"> … </span>` : ''}      public/app.js:7924
+const manage = mine || ADMIN;                          public/app.js:7914
+```
+
+**Wer weder der Verfasser noch der Admin ist, sieht das Datum also gar nicht.**
+*In einer Installation mit einem einzigen Zugang fällt das nie auf; in einer mit
+mehreren ist eine Frist, die nur ihr Verfasser sieht, keine Frist.*
+
+> **UND DIE ANSICHT „OFFEN" MACHT ES SCHON ANDERS.** *Dort steht dasselbe Datum
+> für jeden da, der die Zeile sehen darf — ohne jede Klemme*
+> *(`public/app.js:4889`)*. **Zwei Orte, dieselbe Angabe, zwei verschiedene
+> Antworten auf die Frage, wer sie sehen darf.**
+
+**Was daraus folgt:** die Klemme gehört an die **Bedienung** und nicht an die
+**Auskunft**. *Ändern bleibt beim Verfasser und beim Admin; sehen darf, wer den
+Eintrag sieht.* **Das ist dieselbe Trennung, die das Haus an jeder anderen
+Stelle schon zieht** *(Sprachregel S5: was nur die Rolle darüber braucht, steht
+hinter deren Klemme — das Datum braucht nicht nur sie)*.
+
+> **DIESER BEFUND IST DER GRUND, WARUM F18 EINE RÜCKFRAGE IST UND KEINE
+> BESTELLUNG.** *Der Handgriff „anklicken und ändern" steht seit 0.29.0 genau
+> so da. Wenn er beim Betreiber nicht ging, ist das ein Fehler — und dieser hier
+> ist der erste Ort, an dem danach zu suchen wäre.*
+
+---
+
+## Die Bauabschnitte
+
+> **DIE REIHENFOLGE STEHT, DIE INHALTE HÄNGEN AN DER TAFEL.** *Was unten
+> steht, ist der Bauplan unter den vorgeschlagenen Antworten; jede abweichende
+> Antwort ändert ihren Abschnitt und keinen anderen.*
+
+| | was | hängt an |
 |---|---|---|
-| **1** | **„dann wäre es 2der 2"** *(Befund 2)* | Der Satz steht zwischen den beiden Bitten und dem Vorschlag zur Schriftgröße. **Er kann „beide zusammen ergeben zwei Zeilen statt zwei" heißen, „zwei von zwei erledigt" — oder etwas Drittes.** *Ein geratener Satz wird zu einer gebauten Zeile, und die steht dann falsch da* |
-| **2** | **„Haben Tage datum und sie passen nicht in eine reihe"** *(Befund 4, Fall 2)* | **Gelesen als „haben Tage MARKEN"** — sonst wäre der Fall derselbe wie Fall 1, und die beiden Sätze widersprächen sich. **Die Lesart ist plausibel, aber sie ist eine Lesart** |
-| **3** | **Englisch und Türkisch zu „Stand von"** *(Befund 1)* | Der Wortlaut ist eine Entscheidung des Hauses, und sie fällt in allen drei Dateien zugleich |
-| **4** | **„mehr" oder rollbar** *(Befund 4, Fall 3)* | Der Betreiber hat beides genannt und keins ausgeschlossen |
-| **5** | **Wie viel kleiner werden die Sterne?** *(Befund 5)* | **Wird gemessen, nicht gefragt** — und die Messung beantwortet zugleich, **ob F12 aus 0.30.0 kippt.** *Vorgelegt wird eine Tafel wie bei der Vokabelkarte, entschieden wird danach* |
-| **6** | **Nur die Kriterienkarte oder jede Liste mit `.mcount`?** *(Befund 6)* | Kategorien, Tags, Papierkorb und Zugänge zeichnen dieselbe Zeile |
-| **7** | **Wie kürzt der Zähler der Tagkarte?** *(Befund 6)* | Er trägt zwei Zahlen und nicht eine |
-| **8** | **Welches Zeichen steht neben der Zahl?** *(Befund 6)* | „10×" wäre das **dritte** `×` in derselben Zeile, und die drei hießen dann „mal", „mal" und „weg" |
-| **9** | **Was wird aus „heute"?** *(Befund 7)* | 0.30.0 hat vier Fristzustände gebaut; **„heute" hat der Betreiber nicht genannt.** *Blau wie „später" — oder bleibt er eigen, weil „heute" etwas anderes sagt als „irgendwann"?* |
-| **10** | **Bleibt der Durchstrich am erledigten Datum?** *(Befund 7)* | Farbe nach Zustand und Durchstrich schließen einander nicht aus. **Der Augenschein von 0.30.0 hat den Durchstrich ausdrücklich festgehalten** — wer ihn wegnimmt, nimmt einen belegten Zustand weg |
-| **11** | **Soll eine erledigte Aufgabe OHNE Datum noch eines bekommen können?** *(Befund 7)* | „jederzeit editierbar" gilt heute für jedes vorhandene Datum, aber der Knopf fehlt, wo keines steht |
+| **BA 1** | **GEMESSEN WIRD ZUERST — und gebaut wird danach.** *Der Messstand aus 0.30.0 wird wiederverwendet: zwei Server an **demselben** Datenverzeichnis, echtes Chromium bei 390 × 844, `deviceScaleFactor: 3`, `isMobile: true`, Sprache de-DE — nur der ausgelieferte Stand unterscheidet sich.* **Vier Zahlen werden vorgelegt, bevor eine Zeile entsteht:** der Abstand über der Markenwolke *(F3)*, die drei Markengrößen *(F4)*, die drei Sterngrößen *(F10)* und beide Fassungen der Sternzeile *(F11)* | F3, F4, F10, F11 |
+| **BA 2** | **Die Tagzeile** — der Umschalter rückt unter die Beschriftung, die Wolke beginnt oben, die Marken werden kleiner | F2, F3, F4 |
+| **BA 3** | **Die Testtagzeile** — der Wochentag fällt bei zu wenig Platz, und die Zeile ordnet sich nach dem, was in ihr steht: drei Fälle, eine Rangfolge | F5 bis F9 |
+| **BA 4** | **Der Bewertungskasten** — kleinere Sterne, und je nach Messung fällt oder bleibt die zweizeilige Sternzeile | F10, F11 |
+| **BA 5** | **Die Zähler der Verwaltungslisten** — schmal nur die Zahl, breit der ausgeschriebene Satz | F12, F13, F14 |
+| **BA 6** | **Das Fälligkeitsdatum** — Farbe nach Zustand, nachtragbar an der erledigten Aufgabe, und sichtbar für jeden, der den Eintrag sieht | F15 bis F20 |
+| **BA 7** | **Der Wortlaut** — `card.checkUntil` in drei Sprachen | F21 |
+
+> **BA 1 IST KEIN VORSPIEL, SONDERN DER ABSCHNITT MIT DEM GRÖSSTEN RISIKO.**
+> *0.30.0 hat zweimal erlebt, was eine ungemessene Annahme kostet: der
+> Vorschlag des Auftrags zur Sternzeile war falsch, und der „dritte Weg" zur
+> Vokabelkarte war schlechter als das, was er ersetzen sollte.* **Beide Male
+> hat dieselbe Messung beides widerlegt, und beide Male vor der ersten Zeile.**
+
+---
+
+## Die Nummer und ihre Begründung
+
+**0.30.1 — PATCH.** *Acht Befunde aus dem Rundlauf, kein Schemaanteil, keine
+neue Spalte, kein Migrationsblock, das Austauschformat bleibt 16.* **Keiner der
+acht macht etwas möglich, was die Instanz vorher nicht konnte** — das ist die
+Grenze zwischen PATCH und MINOR *(Projektstand 5.1)*.
+
+**Zwei liegen dicht an dieser Grenze, und beide bleiben darunter:**
+
+| | | warum PATCH |
+|---|---|---|
+| **Befund 7** | das Datum färbt nach dem Zustand | *Es zeigt einen Zustand, den es schon hat, in einer Farbe, die das Haus schon führt.* **Nichts wird möglich, was vorher unmöglich war** |
+| **Befund 8** | das Datum wird für alle sichtbar | *Eine Auskunft, die an einem zweiten Ort längst für alle dasteht, steht künftig auch am ersten.* **Es ist eine Berichtigung und keine Erweiterung** |
+
+> **DER FAHRPLAN RÜCKT NICHT.** *0.31.0 bleibt die Sprachdurchsicht, 0.32.0
+> bleibt der Ruf beim Namen, und der Bruch bleibt auf 0.33.0 — er ist viermal
+> gerückt, und keiner dieser acht Befunde ist ein Grund für ein fünftes Mal.*
+
+---
+
+## Der Prüfstand — was er halten muss
+
+**Jede Zusage dieser Runde wird an dem belegt, was sie behauptet, und nicht an
+ihrer Schreibweise.**
+
+| | Zusage |
+|---|---|
+| **1** | **Der Umschalter und/oder steht in derselben Rasterzeile wie die Beschriftung** — geprüft an den gerechneten Rasterangaben und nicht am Vorhandensein der Regel |
+| **2** | **Die Marke trägt eine kleinere Schrift als die Kategorie** — mit der Zahl, die BA 1 gemessen hat, und nicht mit „kleiner als vorher" |
+| **3** | **Der Wochentag steht breit da und schmal nicht** — zwei Fassungen, dasselbe Dokument |
+| **4** | **Die Testtagzeile in ihren drei Fällen** — ohne Marken, mit Marken und mit zu vielen; jeder Fall eine eigene Prüfung |
+| **5** | **Der Zähler ist schmal die Zahl und breit der Satz** — und der Titel der Zelle trägt das Wort in beiden Fassungen |
+| **6** | **Die Farbtafel des Datums in allen fünf Fällen** *(offen/später, offen/heute, offen/überfällig, erledigt/gehalten, erledigt/überfällig)* — jede Farbe einzeln |
+| **7** | **Das Datum steht auch da, wo es nicht geändert werden darf** — ein Kommentar eines anderen Zugangs, gelesen ohne Adminrecht, zeigt die Frist und keinen Knopf |
+| **8** | **`dueOf()` bleibt die EINE Wahrheit** *(Stolperstein 47)* — die Ansicht „Offen" und der Eintrag rufen weiterhin dieselbe Funktion |
+
+> **JEDE NEUE PRÜFUNG BEKOMMT IHRE GEGENPROBE, UND DIE WIRD GEFAHREN.** *Eine
+> stumme Gegenprobe ist ein Fund* *(Auflage 1 des Fahrplans)*.
+>
+> **UND JEDER GRIFF IN EIN NACHGEBAUTES DOKUMENT WIRD GEKLEMMT** *(Stolperstein
+> 161)*. **0.30.0 hat dafür neun Stellen bezahlt:** *vier Marken, vier
+> Umschalter und vier Verneinungen ohne Klemme — sie rissen einen Rückbau ab,
+> statt ihn rot zu machen, und eine Verneinung auf ein fehlendes Element ist
+> wahr und damit **still grün**.* **Diese Runde fasst dieselben Zeilen wieder
+> an.**
+
+---
+
+## Der Augenschein
+
+**Gefahren wird an beiden Installationen, und das ist diesmal keine Zugabe:**
+*Befund 5 ist überhaupt nur sichtbar, weil es sie beide gibt* — **mit einem
+Zugang bricht der Name, mit mehreren bricht die Zeile.**
+
+| | Lage |
+|---|---|
+| **1** | **Die Übersicht mit offenem Filter** — die Tagzeile, der Umschalter, die Zahl der sichtbaren Marken |
+| **2** | **Ein Eintrag mit Testtagen** — mit Marken, ohne Marken, mit zu vielen |
+| **3** | **Der Bewertungskasten in beiden Fassungen** — ein Zugang und mehrere |
+| **4** | **Die Kriterienkarte** — schmal und breit, und der Name steht wieder vollständig da |
+| **5** | **Eine Aufgabe durch alle fünf Farbzustände** — angelegt, überfällig, abgehakt, Datum nachgetragen |
+| **6** | **Dieselbe Aufgabe mit einem ZWEITEN Zugang gelesen** — das Datum steht da, der Knopf nicht |
+
+---
+
+## Was ausdrücklich NICHT gebaut wird
+
+| | |
+|---|---|
+| **Kein Schemaanteil** | keine Spalte, kein Migrationsblock, Austauschformat bleibt 16 |
+| **Kein neuer Farbton** | Blau und Grün gibt es längst *(`--blue`, `--green`)*, und eine zweite Erklärung im selben `:root` wäre still |
+| **Keine Gerätenamen** | gefragt wird die **Breite** — `@container`, wie in 0.30.0. *„Ultra", „Max" und „Tablet" kommen im Quelltext nicht vor* |
+| **Der Erklärbärsaft** | *„der Text bei ‚Datenbank' muss kürzer und normaler werden"* steht seit dem 11. September 2026 als **Gruppe 5 in 0.31.0** und wird hier nicht doppelt aufgemacht |
+| **Keine zweite Wahrheit am Datum** | `dueOf()` bleibt die eine Funktion für beide Orte *(Stolperstein 47)* |
+| **Keine Mail und keine Glocke am Fälligkeitsdatum** | eine Frist, die sich meldet, ist eine eigene Runde |
+
+---
+
+## Die Papiere
+
+| | |
+|---|---|
+| **`Doku/Aenderungsprotokoll_0.30.1.md`** | neu — was wirklich gebaut wurde, mit den Zahlen aus BA 1 und dem Fingerprint des gebauten Stands |
+| **`Doku/Projektstand_Kriterion_0_30_1.md`** | umbenannt, Revision 84. **Abschnitt 5.3 nur, wenn F11 kippt** — die zweizeilige Sternzeile steht dort als Entscheidung |
+| **`Doku/Fahrplan.md`** | eine Zeile in der Tafel; **die geplanten Runden rücken nicht** |
+| **`CHANGELOG.md`** | ein Eintrag 0.30.1 |
+| **`package.json`, `package-lock.json`** | 0.30.1 |
+| **`Doku/Fehler_und_Ideen.md`** | **unberührt.** *Was eine Nummer hat, steht nicht im Sammelblatt* *(Regel 3)* |
 
 ---
 
 ## Wie es weitergeht
 
-1. **Der Betreiber prüft weiter.** *Kommt etwas, kommt es als Nachricht und
-   wandert hier unten an.*
-2. **Sagt er „das waren alle", wird dieses Papier fertiggeschrieben:** die vier
-   Fragen oben werden zur **Fragetafel**, jede bekommt einen Vorschlag, und
-   **Regel 11 gilt wie in den vier Runden davor — gebaut wird erst, wenn jede
-   Antwort im Papier steht.**
-3. **Erst dann** entstehen Bauabschnitte, Prüfungen und Gegenproben.
+1. **Die Fragetafel wird beantwortet** — dreiundzwanzig Felder, und drei davon
+   sind Rückfragen an einen Satz *(F1, F8, F18)*.
+2. **BA 1 misst und legt vor.** *Vier Zahlen, bevor eine Zeile entsteht.*
+3. **Erst danach wird gebaut**, in der Reihenfolge der Abschnitte.
 
-> **DREI DER SIEBEN BEFUNDE STEHEN AN GENAU DEN STELLEN, DIE 0.30.0 ZULETZT
-> ANGEFASST HAT** — *die Tagzeile aus BA 7 (Befund 2), der Bewertungskasten aus
-> BA 8 (Befund 5) und das Fälligkeitsdatum aus BA 10 (Befund 7)*. **Das ist kein Rückschlag, sondern der Rundlauf, wie er
-> gedacht ist:** *gebaut, eingespielt, am Gerät angesehen, nachgebessert.*
->
-> **BEFUND 5 IST DABEI DER LEHRREICHSTE DER SECHS.** *0.30.0 hat die Kopfzeile
-> geheilt und dabei gemessen, dass an der Sternzeile nichts zu machen sei (F12).
-> Der Betreiber sieht jetzt dieselbe Zeile am Gerät und schlägt etwas vor, das
-> in der Messung gar nicht vorkam — die Breite der Sterne selbst.* **Eine
-> Messung beantwortet die Frage, die man ihr stellt, und keine andere.**
+> **UND DIE REGEL AUS 0.30.0 GILT WEITER:** *gebaut und geprüft wird örtlich,
+> gepusht wird auf Ansage.*
