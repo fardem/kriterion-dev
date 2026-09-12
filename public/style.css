@@ -4566,8 +4566,13 @@ body.login .login-screen { flex: 1 0 auto; min-height: 0; }
      Verfasser 45, Anlegeknopf 29, Sterne 112, Papierkorb 33 -- zusammen 311
      von 344, und vier Abstaende zu 12 machen 359. Der Papierkorb fiel dadurch
      in eine zweite Zeile, und die Zeile mass 81 statt 54 Pixel. Acht Pixel
-     Abstand geben die noetigen sechzehn zurueck. */
-  .trow { flex-wrap: wrap; row-gap: 4px; gap: 8px; }
+     Abstand geben die noetigen sechzehn zurueck.
+     DIE REIHENFOLGE DER BEIDEN ANGABEN IST KEINE ZIERDE: `gap` ist die
+     Kurzform fuer BEIDE Richtungen. Stuende sie hinter `row-gap`, setzte sie
+     den Zeilenabstand wieder auf acht -- und die zweizeilige Fassung der Zeile
+     bekaeme vier Pixel, die sie nicht braucht. Erst die Kurzform, dann die
+     Ausnahme. */
+  .trow { flex-wrap: wrap; gap: 8px; row-gap: 4px; }
   /* ---- DIE TESTTAGZEILE ORDNET SICH NACH IHREM INHALT -- 0.30.1, Befund 4 ----
      DER BETREIBER, 12. SEPTEMBER 2026, in der berichtigten Fassung: „wenn die
      testtage keine Tags haben, dann koennen die sterne rechts von testdatum
