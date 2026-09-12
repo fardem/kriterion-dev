@@ -13,10 +13,12 @@ Nachmessen · 12. September 2026 · gebaut auf 0.29.0 (`0336d3a5`).**
 > |---|---|
 > | **Am Arbeitsbaum nachgerechnet** *(dieselben achtzehn Dateien)* | **`2363b00a`** |
 > | **Aus dem Server selbst gelesen** *(frisches Datenverzeichnis, `/api/stats`)* | **`2363b00a`** |
-> | **Aus der laufenden Installation gemeldet** | *steht aus — trägt der Betreiber nach* |
+> | **Aus der laufenden Installation gemeldet** *(der Betreiber, nach dem Einspielen)* | **`2363b00a`** |
 >
-> **ZWEI QUELLEN, EIN WERT.** *Die dritte kommt aus dem Feld und steht hier als
-> offener Punkt und nicht als Fußnote.*
+> **DREI QUELLEN, EIN WERT — der offene Punkt ist geschlossen.** *Die dritte kam
+> am selben Tag aus dem Feld nach: der Betreiber hat sie an seiner laufenden
+> Einrichtung abgelesen und gemeldet.* **Damit ist belegt, dass der Stand, der
+> hier steht, auch der Stand ist, der dort läuft.**
 
 > **DIE ZAHL, AN DER DIESE RUNDE GEMESSEN IST:**
 >
