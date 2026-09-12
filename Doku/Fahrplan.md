@@ -149,7 +149,7 @@ Sprachumschalter baut, hat damit ein Muster und braucht kein neues.**
 | ~~**0.29.0**~~ | ~~Worauf man sich verlassen können muss~~ | **GEBAUT am 11. September 2026** — Änderungsprotokoll 0.29.0. *Fünf geplante Punkte und **drei** Befunde aus dem Betrieb; der dritte („Titel" kennt nur A → Z) kam während der Fragerunde herein und fuhr mit, weil die Nummer ohnehin MINOR ist* | **ja** | 15 → 16 |
 | **0.30.0** | **Der Prüfstand wird schnell** | Gruppe D: was das Bauen beschleunigt, ohne den Beleg zu schwächen | nein | — |
 | **0.31.0** | **Die Sprachen werden gegengelesen** | drei Dateien, drei Stufen — harte Fehler, der zersägte Satzbau, die Hausstimme | nein | — |
-| **0.32.0** | *frei — der letzte Platz vor dem Bruch* | **absichtlich leer.** Was aus dem Rundlauf kommt und mehr ist als eine Reparatur, findet hier Platz, ohne den Bruch noch einmal zu verschieben | offen | — |
+| **0.32.0** | **Der Ruf beim Namen** | `@name` in Notiz, Bericht und Aufgabe — hervorgehoben, und der Genannte bekommt eine Glocke *(bestellt 12.9.2026)* | **offen** | — |
 | **0.33.0** | **Bereinigung — der Bruch** | **elf** Migrationsblöcke raus *(0.27.0 hat den elften gebracht)*, Struktur festgeschrieben, **kein Rückweg** | **ja** | — |
 | **0.33.x** | **Die Kommentare werden knapp** | 16.281 von 54.822 Zeilen sind Kommentar | nein | — |
 | **0.34.0** | **Der Prüfstand bekommt ein Verzeichnis** | `testbench.js` in Module — **und damit erst der echte Teillauf** | nein | — |
@@ -850,7 +850,12 @@ verlässlich, was er belegt hat.*
 
 ### Und jetzt gemessen — ein Lauf mit Zeitstempel je Gruppe, 8. September 2026
 
-**435 Sekunden, 304 Gruppen.** *Der Betreiber hat gefragt, was das Bauen
+> **DIESE ZAHLEN SIND 0.28.1 UND DAMIT ÜBERHOLT.** *Am 12. September 2026 ist derselbe
+> Lauf auf **0.29.0** gefahren worden: **446,8 Sekunden, 329 Gruppen, 6662 von 6662 grün.**
+> Die vollständige Auswertung steht im **Auftrag 0.30.0** und nicht hier — die Herleitung
+> unten bleibt stehen, weil sie die HEBEL erklärt und nicht die Zahlen.*
+
+**435 Sekunden, 304 Gruppen.**
 beschleunigt; hier steht die Antwort mit Zahlen statt mit Vermutungen.*
 
 | Thema | Zeit | Anteil |
@@ -927,7 +932,7 @@ abträgt.**
 | **3** | **Die Hausstimme.** „Das Haus verlassen", „Sache", „von Hand", „Standbild", „Wie das Gerät", „Note" bei 1 bis 5 Sternen, der Ton der E-Mails. *Das sind bewusste Formulierungen dieses Projekts, in Deutsch **und** Englisch gleich — keine Übersetzungsfehler.* **Ob sie bleiben, entscheidet der Betreiber**, und das sind rund fünfzehn Entscheidungen, von denen jede alle drei Dateien zugleich ändert | offen — hängt an der Fragetafel |
 | **4** | **„Pille" und „hap".** Der Hausbegriff für die abgerundeten Filterflächen ist im Türkischen zur **Arzneitablette** geworden. *Er gehört zu Gruppe 3 und steht trotzdem eigens hier: er ist der einzige, bei dem die deutsche Entscheidung schon feststeht — der Begriff bleibt, die Übersetzung nicht* | klein |
 | **5** | **Der Erklärbärsaft — neu am 11. September 2026, aus dem Rundlauf mit 0.27.0.** *Der Betreiber über die Texte der neuen Karte:* „an vielen stellen hast du ein schluck erklärbärsaft getrunken … letztlich zählt nur welche auswirkung es hat". **Genannt hat er zwei, und beide stammen aus 0.27.0:** `card.storeCaveat` (die Auflage — vier Teilsätze, darunter die Herleitung über den Kodierer und die Bytes) und `card.derivativesWebp` (die Vorschaubilder — zwei Sätze, der zweite eine Begründung). *Beide sagen, WARUM etwas so ist; gebraucht wird, WAS es bewirkt.* **Es ist dieselbe Sorte Befund wie Gruppe 3, aber die andere Richtung:** dort geht es um die WORTWAHL, hier um die MENGE. *Die Regel steht schon im Projektstand (5.6): eine Oberfläche sagt, WAS IST, nicht warum es so gebaut wurde. Sie ist in 0.27.0 nicht eingehalten worden.* **Die beiden sind der Anfang, nicht die Liste** — die Runde geht alle Karten durch | mittel |
-| **6** | **Zwei deutsche Wörter sitzen fest im Quelltext — nebenbei gefunden am 11. September 2026.** *Die Sortierung ordnet ihre dreizehn Einträge in Gruppen, und zwei Gruppenüberschriften stehen als blanker deutscher Text da:* `label="Allgemein"` (`public/app.js:3807`) und `label="Verlauf"` (`:3823`). **Die beiden anderen Gruppen holen ihr Wort aus dem Vokabular** — diese zwei nicht. *Sie stehen in einer Türkisch eingestellten Instanz auf Deutsch.* **Derselbe Fund wie die zwei aus 0.24.3** *(dort: zwei deutsche Wörter, die seit 0.24.0 fest im Quelltext saßen)*, und er gehört hierher und nicht in die Runde, die ihn gefunden hat: *eine Sprachfrage wird nicht in einer Stilblattrunde beantwortet* | klein |
+| **6** | ~~Zwei deutsche Wörter sitzen fest im Quelltext~~ — **mit 0.28.1 GEBAUT und am 12. September 2026 nachgesehen.** *`label="Allgemein"` und `label="Verlauf"` holen ihr Wort seit jener Runde aus `list.sortGroupGeneral` und `list.sortGroupHistory` (`public/app.js:4050`).* **EIN DRITTES WORT IST AM 12. SEPTEMBER 2026 AUFGEFALLEN und fährt nicht hier, sondern in 0.30.0:** *„gewichtet" in `public/app.js:7020` — es steht in keiner der drei Sprachdateien, und 0.30.0 hat dieselbe Kopfzeile ohnehin in der Hand.* **Was hier bleibt, ist die WACHE**, die solche Sätze künftig findet: sie liest Werte und nicht Namen und wird in 0.30.0 gebaut *(Zusage 21)* | **erledigt** |
 
 ### Das Muster für Gruppe 5 — vom Betreiber am 11. September 2026 geliefert
 
@@ -980,10 +985,91 @@ Sprachdateien an und keine Tabelle.
 
 ---
 
-## 0.32.0 — frei, und zwar mit Absicht
+## 0.32.0 — „Der Ruf beim Namen"
 
-**Der letzte MINOR-Platz vor dem Bruch.** *Hier steht nichts, und das ist die
-Aussage.*
+**BESTELLT AM 12. SEPTEMBER 2026, WÄHREND 0.30.0 GESCHRIEBEN WURDE.**
+*Der Betreiber wörtlich:* **„pack bitte ins roadmap, eventuell in den 0.32.0,
+das mit dem in kommentaren, berichten und notizen, aufgaben das man ein user
+markieren kann mit @username so das er deutlich hervorgehoben wird und auch eine
+benachrichtigung in der glocke bekommt."**
+
+**DAS IST GENAU DER FALL, FÜR DEN DIESER PLATZ FREIGEHALTEN WURDE** *(die
+Begründung dafür steht unten und bleibt wörtlich stehen)*: **eine Funktion, aus
+dem Betrieb bestellt, nach dem Einspielen einer Runde** — *und keine Reparatur,
+die an ihrer eigenen Runde hängen müsste.*
+
+### Was gebaut wird
+
+| | |
+|---|---|
+| **1** | **`@name` in einem Kommentar nennt einen Zugang.** *Die vier Arten sind dieselben, die der Betreiber genannt hat und die die Instanz kennt: **Notiz, Bericht, Aufgabe, erledigte Aufgabe** (`kind`).* **Eine fünfte Stelle gibt es nicht** |
+| **2** | **Der Ruf steht deutlich da** — hervorgehoben wie ein Treffer der Suche, aber als eigene Sache erkennbar |
+| **3** | **Der Genannte bekommt eine Glocke** — und zwar **er**, nicht jeder |
+
+### Was daran NICHT trivial ist — drei Sachen, und die dritte entscheidet über die Nummer
+
+**ERSTENS: DIE GLOCKE IST HEUTE NICHT PERSÖNLICH.** *Sie zählt, was an einem
+Eintrag neu ist, den man sehen darf — `bellNew()` summiert `newComments` und
+`newRatings` über alle Einträge (`public/app.js:3040`), und der Bezugspunkt ist
+eine persönliche Einstellung (`bellSeen`, `server.js:2613`).* **Ein Ruf ist
+etwas anderes: er gilt EINEM.** *Die Glocke bekommt damit zum ersten Mal eine
+zweite Art Eintrag — und die Frage, ob sie zwei Zahlen zeigt oder eine, ist
+keine Kleinigkeit.*
+
+**ZWEITENS: DER TEXT WIRD NICHT NACHBEARBEITET.** *Seit 0.18.0 entsteht der
+Kommentartext als **echte Knoten** und nie als String —
+`buildCommentNodes(splitCommentText(text, term))` (`public/app.js:7979`).* **Der
+Ruf ist ein VIERTES Stück dieser Zerlegung** und kein `replace()` über das
+Ergebnis. *Wer das umdreht, holt sich Markup in einen Text, der ausdrücklich
+keines tragen darf.*
+
+**DRITTENS — UND HIER LIEGT DER HAKEN: WAS PASSIERT BEI EINER UMBENENNUNG?**
+*Ein Ruf, der als `@bert` im Text steht, zeigt nach der Umbenennung auf
+niemanden mehr.* **Wer das abfangen will, muss die ZUGANGSNUMMER speichern und
+nicht den Namen — und das ist ein Schemaschritt.**
+
+> **UND EIN SCHEMASCHRITT KOLLIDIERT MIT DEM, WAS 0.29.0 ANGEKÜNDIGT HAT:**
+> *„Dies ist die letzte Runde, die das Schema anfassen darf."* **Der Bruch auf
+> 0.33.0 steht unmittelbar dahinter.**
+>
+> **ES GIBT EINEN WEG OHNE SCHEMA, und er ist zu prüfen, bevor die Runde
+> anfängt:** *`bellSeen` ist ein Zeitstempel je Zugang, `comments` trägt
+> `created_at` und den Text.* **„Kommentare, die neuer sind als mein Bezugspunkt
+> und meinen Namen rufen" ist eine ABFRAGE und keine Tabelle** — *dieselbe
+> Bauform, aus der die Glocke heute schon besteht: abgeleitet, nicht
+> gespeichert.* **Dann kostet der Ruf keine Spalte, und die Umbenennung ist der
+> Preis dafür.**
+>
+> **DIE ENTSCHEIDUNG GEHÖRT IN DIE FRAGETAFEL JENER RUNDE und nicht hierher.**
+> *Hier steht nur, dass sie ansteht — und dass sie VOR 0.33.0 fällt, weil
+> danach keine Spalte mehr dazukommt.*
+
+### Was die Runde zu entscheiden hat
+
+| | Frage |
+|---|---|
+| **1** | **Wer darf gerufen werden?** *Jeder Zugang — oder nur, wer diesen Eintrag überhaupt sehen darf?* **Ein Ruf an jemanden, der die Sache nicht sehen darf, ist eine Auskunft über einen Eintrag, den es für ihn nicht gibt** |
+| **2** | **Wie wird getippt?** *Freier Text mit `@` — oder eine Auswahl, die beim `@` aufgeht?* **Freier Text bedeutet Tippfehler, die still ins Leere rufen** |
+| **3** | **Zeigt die Glocke ZWEI Zahlen** *(„neu" und „genannt")* **oder eine?** *Zwei Zahlen an einem Symbol sind zwei Sachen an einem Ort; eine Zahl verwischt den Unterschied, den der Betreiber gerade will* |
+| **4** | **Was geschieht bei der Umbenennung?** *(siehe oben — der einzige Punkt mit möglichem Schemaanteil)* |
+| **5** | **Nur die Glocke — oder auch eine Mail?** **Vorschlag: nur die Glocke.** *Der Betreiber hat die Glocke genannt, und eine Mail je Ruf ist eine Entscheidung mit ganz anderen Folgen* |
+| **6** | **Wie sieht der Ruf im BEARBEITENMODUS aus?** *Dort steht der Rohtext im Textfeld — `@bert` bleibt `@bert`, und das ist richtig so* |
+
+> **WAS SIE NICHT WERDEN DARF: eine zweite Wahrheit neben der Glocke.**
+> *Stolperstein 47 gilt hier besonders, weil zwei Zähler über dieselbe Sache
+> genau der Fall sind, den die Glocke schon einmal hatte und der
+> zurückgenommen wurde (`public/app.js:3033`).*
+
+**Schemaanteil: OFFEN** *(siehe „drittens")* — **und das ist der Grund, warum
+diese Runde vor 0.33.0 steht und nicht danach.**
+
+---
+
+## Warum dieser Platz frei gehalten wurde
+
+> **DER ABSATZ BLEIBT STEHEN, obwohl der Platz jetzt belegt ist.** *Er erklärt,
+> warum es ihn gab — und warum ein Befund aus dem Rundlauf ihn NICHT hätte
+> belegen dürfen.*
 
 **WARUM ES KEINE RÜCKKEHR ZUR ALTEN REGEL IST.** Bis zum 8. September 2026 blieb
 zwischen **je zwei** geplanten Runden eine Nummer frei; diese Regel ist
@@ -993,14 +1079,16 @@ keinen freien MINOR-Platz.* **Ein Befund aus dem Rundlauf ist eine Reparatur,
 und eine Reparatur hängt an ihrer Runde.** *(Die Runden 0.25.1 und 0.25.2 haben
 es am 10. September 2026 ein sechstes und siebtes Mal bestätigt.)*
 
-**Was hier steht, ist etwas anderes: EIN Platz an EINER Stelle.** Nicht für eine
+**Was hier stand, war etwas anderes: EIN Platz an EINER Stelle.** Nicht für eine
 Reparatur, sondern für das, was aus dem Rundlauf kommt und **mehr** ist als
 eine — eine Funktion, ein Befund mit Schemaanteil, eine Runde, die jemand nach
-dem Einspielen von 0.31.0 bestellt. **Ab dem Bruch geht das nicht mehr ohne
+dem Einspielen einer anderen bestellt. **Ab dem Bruch geht das nicht mehr ohne
 Weiteres:** er schreibt die Struktur fest und sagt alten Beständen ab.
 
-> **BLEIBT ER LEER, KOSTET ER NICHTS.** Eine übersprungene MINOR-Zahl ist kein
-> Schaden — eine verschobene Bruchzahl war schon dreimal eine.
+> **ER IST AM 12. SEPTEMBER 2026 BELEGT WORDEN, vier Tage nachdem er angelegt
+> wurde — und genau mit der Sorte Sache, für die er da war.** *Eine Funktion,
+> aus dem Betrieb bestellt, mit möglichem Schemaanteil.* **Hätte es ihn nicht
+> gegeben, stünde jetzt die Wahl an, den Bruch zum vierten Mal zu verschieben.**
 
 ---
 
