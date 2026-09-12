@@ -1744,6 +1744,11 @@ function limitCloud(box, rows) {
 // Speicher: er sagt nichts ueber den Bestand aus und gehoert nicht auf den
 // Server.
 const cloudOpen = { overview: false, detail: false };
+/* UND DIE MARKEN EINES TESTTAGS -- 0.30.1, Befund 4 (F9). Je Testtag ein
+   Merker, und aus demselben Grund nur im Speicher: er sagt nichts ueber den
+   Bestand aus. EINE MENGE UND KEIN FELD AM TAG SELBST: der Tag kommt vom
+   Server, und ein Merker der Oberflaeche gehoert nicht in seine Antwort. */
+const dayTagsOpen = new Set();
 /* HIER STAND BIS 0.30.0 `MORE_FILTERS_OPEN` -- der Merker, ob die Tagzeile
    offen steht. Er ist mit dem Umschalter „Tags" gefallen: die Zeile steht
    seither immer da, sobald die Filter aufgeklappt sind (Betreiber, 12.
@@ -1777,11 +1782,29 @@ const todayKey = () => {
 };
 /* `erledigt` GEHT ALS ZWEITES EIN UND NICHT ALS FUENFTER ZUSTAND DER ZEILE:
    eine erledigte Aufgabe HAT ein Datum und einen Termin -- sie ist nur nicht
-   mehr offen. Ohne diesen Weg stuende eine erledigte, ueberfaellige Aufgabe
-   rot da, und die Farbe sagte etwas, das nicht mehr gilt. */
-const dueOf = (z, doneToo = false) => !z.dueDate ? 'none'
-  : doneToo && (z.kind === 'done' || z.done) ? 'done'
-  : z.dueDate < todayKey() ? 'overdue' : z.dueDate === todayKey() ? 'today' : 'later';
+   mehr offen.
+   BIS 0.30.0 SCHLUG `erledigt` JEDE FRIST: sobald die Aufgabe fertig war,
+   stand das Datum gedaempft und durchgestrichen da, ganz gleich ob die Frist
+   gehalten wurde oder nicht. DER BETREIBER WILL DAS GEGENTEIL (0.30.1,
+   Befund 7): „auch wenn es erledigt gesetzt wird. solange das datum nicht
+   editiert worden ist … und das bestehende datum immer noch ueberschritten
+   ist, ist es rot. wenn aber ein nicht ueberschrittene aufgabe auf fertig
+   gesetzt wird, muss das datum auch mit gruen werden."
+   DESHALB ENTSCHEIDET DIE FRIST ZUERST UND DER ZUSTAND DANACH. Fuenf
+   Zustaende statt vier: `late` ist die erledigte, deren Frist gerissen ist --
+   rot wie eine offene ueberfaellige, durchgestrichen wie jede erledigte.
+   „Zu spaet fertig" bleibt damit sichtbar zu spaet.
+   DIE ANSICHT „OFFEN" RUFT WEITER OHNE ZWEITES ARGUMENT und bekommt damit
+   dieselben vier Zustaende wie bisher: `late` und `done` entstehen nur, wenn
+   der Rufer nach dem ERLEDIGT fragt. Eine Funktion, zwei Rufer, keine zweite
+   Wahrheit (Stolperstein 47). */
+const dueOf = (z, doneToo = false) => {
+  if (!z.dueDate) return 'none';
+  const settled = doneToo && (z.kind === 'done' || z.done);
+  if (z.dueDate < todayKey()) return settled ? 'late' : 'overdue';
+  if (settled) return 'done';
+  return z.dueDate === todayKey() ? 'today' : 'later';
+};
 
 // Wer die Wolke der Detailansicht neu zeichnen kann. Sie laesst sich nur
 // messen, wenn ihr Block offen ist. Modulweit statt als Ereignis am Dokument:
@@ -1855,6 +1878,26 @@ const weightText = (g) => number(Math.round(Number(g) * 100) / 100, 0, 2);
 const weightMark = (g) => (Number(g) === 1 || g == null ? '' : '×' + weightText(g));
 
 const vThing = (n) => plural(n, V.entryOne, V.entryMany);
+/* ---- DER ZAEHLER EINER VERWALTUNGSZEILE -- 0.30.1, Befund 6 ----
+   IN DER ZEILE STEHT DIE ZAHL, IM TITEL DAS WORT (F14). Der Betreiber, 12.
+   September 2026, mit Bild: „Wir verlieren so viel Platz um Eintraege zu
+   schreiben. bei Mobil reicht doch einfach 3x, 10x oder 0x zu schreiben."
+   Gemessen an seinem Bild: von sieben Kriterien standen fuenf mit Auslassung
+   da -- „1_O…", „2_V…", „Test2…" --, und der Name ist das Einzige, woran man
+   die Zeile erkennt.
+   OHNE ZEICHEN NEBEN DER ZAHL, und das ist gegen seinen ersten Wortlaut
+   entschieden (F14): in derselben Kriterienzeile steht das × schon zweimal --
+   vor dem Gewichtsfeld („× 1,2") und als Loeschknopf am rechten Ende. Ein
+   drittes traege die dritte Bedeutung.
+   UND IN JEDER BREITE, nicht nur am Telefon (F24). Der Betreiber hat F12
+   eingeschraenkt: „gekuerzt werden kann, auch wenn platz da ist wenn der sinn
+   nicht verloren geht." Der Sinn steht im Titel, also geht er nicht verloren
+   -- und es bleibt EINE Regel statt zweier.
+   DAS WORT IST NICHT ERFUNDEN, SONDERN UMGEZOGEN: im Titel steht genau der
+   Text, der bis 0.30.0 in der Zeile stand. Keine neue Zeile in einer
+   Sprachdatei, kein neues Wort, das uebersetzt werden muesste. */
+const countCell = (short, long) =>
+  `<span class="mcount" title="${esc(long)}">${esc(short)}</span>`;
 const vTime = (n) => plural(n, V.dayOne, V.dayMany);
 const vReport = (n) => plural(n, V.reportOne, V.reportMany);
 const vTask = (n) => plural(n, V.taskOne, V.taskMany);
@@ -7493,17 +7536,66 @@ async function renderDetail(id, termAddress) {
       };
       tagBox.appendChild(plus);
 
+      /* ---- „MEHR" RECHTS VON DEN MARKEN -- 0.30.1, Befund 4 (F9) ----
+         DER BETREIBER HAT DIE ENTSCHEIDUNG NICHT SELBST GETROFFEN, SONDERN
+         EINE REGEL DAFUER GEGEBEN: „Beides machbar. welches eher in frage
+         kommt, kommt darauf an welche form wir im eintragsview welche benutzt
+         haben." Damit entscheidet der Quelltext und nicht der Geschmack -- und
+         er ist eindeutig: die Tagwolke DIESER Ansicht steht auf drei Reihen
+         begrenzt und traegt darunter „mehr"/„weniger" (drawCloud(), weiter
+         oben). Gerollt wird nur die KATEGORIENREIHE der Uebersicht, und das
+         ist ein anderer Ort.
+         EINE REIHE UND NICHT DREI: eine Testtagzeile ist eine ZEILE. Drei
+         Reihen Marken darin waeren derselbe Umbruch, gegen den dieser Befund
+         gebaut wird.
+         RECHTS VON DEN MARKEN UND NICHT AM ZEILENENDE -- so steht es in der
+         Bestellung, und es stimmt auch baulich: am Zeilenende stuende er
+         hinter den Sternen und sagte nichts mehr darueber, WAS da noch kommt. */
+      const more = document.createElement('button');
+      more.className = 'link-btn ttag-more';
+      more.hidden = true;
+
+      /* DIE ZEILE SAGT SELBST, OB SIE MARKEN TRAEGT -- 0.30.1, Befund 4.
+         Danach richtet sich ihr Aufbau: ohne Marken steht alles in EINER
+         Zeile und die Sterne rechtsbuendig; mit Marken traegt die erste Zeile
+         Datum und Marken, und die Sterne rutschen darunter.
+         EINE KLASSE UND KEIN `:has()`: dieselbe Ueberlegung wie bei
+         `frow-tags` in 0.30.0 -- eine Regel, die sich ihren Traeger ueber den
+         Inhalt der Zeile zusammensucht, liest sich beim naechsten Stueck in
+         der Zeile falsch. */
+      if ((d.tags || []).length) row.classList.add('trow-tags');
+
       // Wer den Tag eingetragen hat -- ab zwei Zugängen. Die Zeitleiste
       // unterscheidet weiter über die Füllung; hier steht der Name.
       if (multipleUsers()) {
         const from = document.createElement('span');
         from.className = 'tfrom' + (d.mine ? ' mine' : '');
         from.textContent = authorName(d.author);
-        row.append(date, wd, from, tagBox, s, x);
+        row.append(date, wd, from, tagBox, more, s, x);
       } else {
-        row.append(date, wd, tagBox, s, x);
+        row.append(date, wd, tagBox, more, s, x);
       }
       list.appendChild(row);
+
+      /* GEMESSEN WIRD ERST IM DOKUMENT. limitCloud() liest die Hoehe des
+         ersten Kindes; ausserhalb misst sie null, und aus null entstuende
+         keine Begrenzung. Dieselbe Reihenfolge wie bei den beiden Wolken. */
+      const opened = dayTagsOpen.has(d.id);
+      const trimmed = limitCloud(tagBox, opened ? 0 : 1);
+      /* SCHNEIDET SIE NICHTS AB, WIRD SIE WIEDER WEGGENOMMEN. Eine feste
+         `max-height` an einem Kasten, der ohnehin hineinpasst, ist eine Grenze
+         ueber nichts -- sie belegt nichts und stuende der Zeile im Weg, sobald
+         eine Marke ihre Hoehe aendert (Schriftstufe, laengerer Name).
+         SIE GILT IN JEDER BREITE und nicht nur am Telefon: die Tagwolke des
+         Eintrags steht am Schreibtisch ebenso auf drei Reihen begrenzt. Eine
+         Regel und nicht zwei. */
+      if (!trimmed && !opened) limitCloud(tagBox, 0);
+      more.hidden = !trimmed && !opened;
+      more.textContent = opened ? t('list.less') : t('list.more');
+      more.onclick = () => {
+        if (opened) dayTagsOpen.delete(d.id); else dayTagsOpen.add(d.id);
+        drawTestDays();
+      };
     });
 
     let newRating = 4;
@@ -7920,8 +8012,27 @@ async function renderDetail(id, termAddress) {
          Admin sein. Kein Name, kein Zeitpunkt, keine Kette.
          Der Satz ist nur so lange wahr, wie die Klemme dort steht -- eine
          Pruefung am Quelltext bindet die Beschriftung an sie. */
+      /* ---- DAS DATUM SIEHT JEDER, AENDERN DARF ES NUR, WER DARF -- 0.30.1 ----
+         BEFUND 8, aus dem Nachsehen und nicht aus dem Feld: der ganze
+         Markenkasten stand hinter `manage`, und damit sah das
+         Faelligkeitsdatum nur, wer es auch aendern durfte. Die Ansicht „Offen"
+         zeigt dasselbe Datum dagegen jedem, der die Zeile sehen darf
+         (renderOpen(), ohne jede Klemme). Zwei Orte, eine Angabe, zwei
+         Antworten auf die Frage, wer sie sehen darf.
+         DIE KLEMME GEHOERT AN DIE BEDIENUNG UND NICHT AN DIE AUSKUNFT (F20).
+         In einer Installation mit mehreren Zugaengen ist eine Frist, die nur
+         ihr Verfasser sieht, keine Frist.
+         WER NICHT AENDERN DARF, BEKOMMT KEINEN KNOPF, SONDERN EINEN TEXT. Ein
+         Knopf, der nichts tut, ist eine Luege ueber die eigene Bedienbarkeit
+         -- dieselbe Ueberlegung wie beim Schalter des Potenzialmodus, den ein
+         Admin sieht und nicht drueckt. */
+      const dueShown = (task || done) && c.dueDate;
+      /* EIN RUF UND NICHT ZWEI. Knopf und Text zeigen denselben Zustand;
+         zweimal zu fragen hiesse, dass sie auseinanderlaufen koennen. */
+      const dueState = c.dueDate ? dueOf(c, true) : 'none';
       el.innerHTML = `<div class="cmt-head">
-          ${manage ? `<span class="marks">
+          ${manage || dueShown ? `<span class="marks">
+          ${manage ? `
             ${/* JEDE MARKE NENNT AUCH DEN RUECKWEG -- 0.22.0: eine gesetzte Marke
                  sagt „aufheben", nicht noch einmal „markieren". */''}
             <button class="mark pin${c.pinned ? ' on' : ''}" title="${c.pinned ? t('entry.unpin') : t('entry.pinHint')}">${ICON_PIN}</button>
@@ -7959,10 +8070,21 @@ async function renderDetail(id, termAddress) {
                  DER RÜCKWEG IST DAS LEERE FELD und kein zweites ✕: wer das
                  Datum im Feld löscht, nimmt es weg. Ein Kreuz daneben wäre ein
                  zweiter Weg für dieselbe Sache. */''}
-            ${task || (done && c.dueDate) ? `<button class="link-btn cmt-due${
-              c.dueDate ? ` on due-${dueOf(c, true)}` : ''}"
-              title="${esc(t('entry.dueHint'))}">${c.dueDate
-                ? esc(fmtDay(c.dueDate)) : tH('entry.dueSet')}</button>` : ''}
+            ` : ''}
+            ${/* SEIT 0.30.1 AUCH AN EINER ERLEDIGTEN OHNE DATUM (F19). Bis
+                 dahin stand der Knopf nur bei `task || (done && dueDate)` --
+                 einer erledigten Aufgabe ohne Datum liess sich damit keines
+                 mehr geben. Der Betreiber nennt den Fall selbst: „Ist ja
+                 moeglich das man sich verschaetzt hat und neuen Datum
+                 abgesprochen hat." Das kann nach dem Abhaken eintreten, und
+                 „jederzeit editierbar" heisst auch „nachtragbar". */''}
+            ${manage
+              ? (task || done ? `<button class="link-btn cmt-due${
+                  c.dueDate ? ` on due-${dueState}` : ''}"
+                  title="${esc(t('entry.dueHint'))}">${c.dueDate
+                    ? esc(fmtDay(c.dueDate)) : tH('entry.dueSet')}</button>` : '')
+              : `<span class="cmt-due on due-${dueState}"
+                  title="${esc(t('entry.dueHint'))}">${esc(fmtDay(c.dueDate))}</span>`}
           </span>` : ''}
           <span class="cmt-when">${multipleUsers()
             ? `<span class="cmt-from">${esc(authorName(c.author))}</span> · ` : ''
@@ -9619,6 +9741,10 @@ function setUpCriteriaOut(fetched, phase) {
       // Beide Verwendungen nennen: sonst wird ein scheinbar ungenutzter Tag
       // entfernt und reisst die Kennzeichnungen an den Testtagen mit.
       counter: e => `${e.usage_count} ${vThing(e.usage_count)} · ${e.test_usage_count} ${vTime(e.test_usage_count)}`,
+      /* ZWEI ZAHLEN OHNE WORT -- 0.30.1, Befund 6 (F13). Sie sind lesbar,
+         solange ihre Reihenfolge feststeht, und sie steht fest: erst die
+         Eintraege, dann die Testtage, wie im Titel daneben. */
+      shortCounter: e => `${e.usage_count} · ${e.test_usage_count}`,
       warning: e => t('card.tagDeleteHint', { name: e.name }) +
         `${e.usage_count} ${vThing(e.usage_count)} und ${e.test_usage_count} ${vTime(e.test_usage_count)}` +
         `${e.test_usage_count ? t('card.marksGoneToo') : '.'}`
@@ -9835,7 +9961,8 @@ function setUpCriteriaOut(fetched, phase) {
           entry.nameFallback === undefined ? '' : ' back'}">${esc(entry.name)}</span>
         ${weightField}
         ${mayClear ? `<button class="mact nx" title="${esc(t('card.nameRemove'))}">${ICON_ERASE}</button>` : ''}
-        <span class="mcount">${esc(spec.counter ? spec.counter(entry) : `${entry.usage_count} ${vThing(entry.usage_count)}`)}</span>
+        ${countCell(spec.shortCounter ? spec.shortCounter(entry) : String(entry.usage_count),
+                    spec.counter ? spec.counter(entry) : `${entry.usage_count} ${vThing(entry.usage_count)}`)}
         ${may ? `<button class="mact ed" title="${esc(t('card.rename'))}">${ICON_PEN}</button>
         <button class="mact rm" title="${esc(t('dialog.delete'))}">${ICON_X}</button>` : ''}
         ${fallbackMark}`;
@@ -11087,7 +11214,7 @@ function setUpUsersOut() {
         <span class="user-status" title="${waiting ? esc(t('card.inviteOpen')) : esc(statusWord(z.status))}"><span
           class="user-dot ${waiting ? 'invited' : esc(z.status)}"></span>${esc(statusWord(z.status))}${
           waiting ? ` <span class="user-waiting">${tH('card.noPasswordYet')}</span>` : ''}</span>
-        <span class="mcount">${z.entries} ${esc(vThing(z.entries))}</span>`;
+        ${countCell(String(z.entries), `${z.entries} ${vThing(z.entries)}`)}`;
       if (may) {
         const tool = doc.createElement('span');
         tool.className = 'user-act';
@@ -11248,7 +11375,7 @@ function setUpUsersOut() {
       // Stellen auseinander.
       row.innerHTML = `<span class="mname">${esc(authorName({ id: z.id, name: z.username, deleted: true }))}</span>
         <span class="user-status">${tH('card.deletedLower')}</span>
-        <span class="mcount">${z.entries} ${esc(vThing(z.entries))}</span>`;
+        ${countCell(String(z.entries), `${z.entries} ${vThing(z.entries)}`)}`;
       box.appendChild(row);
     }
   }

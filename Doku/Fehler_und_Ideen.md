@@ -1328,3 +1328,42 @@ anlegt, ist keine Reparatur mehr.*
 
 **Was es anfasst** — `testbench.js`; je nach Messung `public/app.js` und die
 drei Sprachdateien.
+
+---
+
+## 27. Der Aufräumer des Prüfstands wird auf vier Spuren unruhig
+
+**Art: Fehler** *(am Prüfstand, nicht an der Anwendung)* **· Herkunft: 0.30.1,
+aus dem Gegenprobenlauf vom 12. September 2026 · Einschätzung: klein, aber
+lästig**
+
+**Was passiert.** *Bei einem Gegenprobenlauf mit **vier** Nebenspuren wurde die
+Prüfgruppe **„Der Prüfstand räumt beim Start auf — 0.30.0"** in **neun von
+einundzwanzig** Läufen rot — und zwar bei Rückbauten, die mit ihr nichts zu tun
+haben* (das Fälligkeitsdatum, die Markengröße, der Zähler). **Rot wurden zwei
+Zusagen:** *„Der Aufräumer findet ihn — am Wegwerfverzeichnis und nicht am
+Namen"* und *„Und er sagt, was er angefasst hat".*
+
+**Warum das kein Fehler dieser Runde ist.** *Die Gruppe prüft, dass der
+Prüfstand beim Start aufräumt, was ein abgebrochener Lauf liegen gelassen hat.
+Sie legt dafür einen verwaisten Server an und sieht nach, ob er weg ist.* **Auf
+vier Spuren laufen vier solche Prüfläufe gleichzeitig, jeder mit eigenen
+Wegwerfverzeichnissen** — *und die Erkennung „der Vater ist fort" aus 0.30.0
+trennt sie zwar, aber offenbar nicht in jedem Zeitfenster.*
+
+> **DIESELBE SORTE BEFUND WIE IN 0.30.0, NUR EINE STUFE FEINER.** *Dort hat der
+> Aufräumer die Server der jeweils anderen Spuren erschlagen; das ist behoben.
+> Hier bleibt ein Rest, der sich nur unter vier gleichzeitigen Läufen zeigt.*
+
+**Was zu tun wäre.** *Die Lage nachstellen und messen, statt zu raten: zwei
+Prüfläufe gleichzeitig starten und sehen, welcher Zweig der Erkennung greift.*
+
+> **NACHGESEHEN AM 12. SEPTEMBER 2026, UND DIE ERSTE VERMUTUNG WAR FALSCH.**
+> *Der Nachlauf mit **drei** Spuren hat dasselbe Flackern gezeigt — in zwei von
+> drei Läufen.* **Es hängt also nicht an der Vier.** *Wie es bei zwei Spuren
+> aussieht, ist nicht gemessen, und deshalb steht hier keine Zahl dazu.*
+
+**Offene Entscheidungen** — *ob der Aufräumer fremde Wegwerfverzeichnisse
+überhaupt ansehen soll, oder nur die unter seiner eigenen Portbasis.*
+
+**Was es anfasst** — `testbench.js`.

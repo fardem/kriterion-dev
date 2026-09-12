@@ -29,6 +29,28 @@ bleiben in der Form ihrer Zeit.*
 
 *Hier wird mitgeschrieben, während gebaut wird.*
 
+## [0.30.1] - 2026-09-12
+
+> **NICHTS ZU TUN.** Kein Schemaanteil, kein Migrationsblock, das
+> Austauschformat bleibt 16. Einspielen und fertig.
+
+### Behoben
+
+- **Das Fälligkeitsdatum sahen nur der Verfasser und der Admin** — jetzt sieht es jeder, der den Eintrag sieht; ändern darf es weiterhin nur, wer darf.
+- **Einer erledigten Aufgabe ohne Datum ließ sich keines mehr geben.**
+- **Ein langer Kriterienname brach am Telefon mitten im Wort** — bei einem einzigen Zugang.
+
+### Geändert
+
+- **Das Fälligkeitsdatum färbt nach dem Zustand und nicht mehr nur nach der Frist** — offen blau, überschritten rot, erledigt und Frist gehalten grün. Eine zu spät erledigte Aufgabe bleibt rot.
+- **„TAGS" und „und/Oder" stehen oben in ihrer Zeile** statt in der Mitte und am unteren Ende der Markenwolke.
+- **Die Marken sind am Telefon eine Stufe kleiner** — vier statt drei in der zugeklappten Reihe, und der offene Filterkasten ist 111 Pixel flacher.
+- **Der Wochentag fällt an einer Testtagzeile weg, wenn der Platz fehlt.**
+- **Eine Testtagzeile ordnet sich nach ihrem Inhalt** — ohne Marken stehen die Sterne rechts; mit Marken rutschen sie in die zweite Zeile; sind es zu viele Marken, steht rechts von ihnen „mehr".
+- **Die Sterne sind am Telefon eine Stufe kleiner.**
+- **In den Verwaltungslisten steht nur noch die Zahl** — das Wort steht im Titel der Zelle, und der Name hat wieder Platz.
+- **„Inhalt bis" heißt „Stand von"** *(auf Deutsch; Englisch und Türkisch folgen)*.
+
 ## [0.30.0] - 2026-09-12
 
 > **NICHTS ZU TUN.** Diese Runde fasst das Schema nicht an, das Austauschformat

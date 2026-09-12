@@ -9017,8 +9017,8 @@ const REGRESSIONS = [
        Gemessen ist es: „spaeter" und „erledigt" trugen zuerst dieselbe. */
     nr: '909', name: "Zwei Zustaende des Faelligkeitsdatums sind gleich gefaerbt",
     file: "public/style.css",
-    search: ".cmt-due.due-done { color: var(--faint); text-decoration: line-through; }",
-    replacement: ".cmt-due.due-done { color: var(--muted); text-decoration: line-through; }",
+    search: ".cmt-due.due-done { color: var(--green); text-decoration: line-through; }",
+    replacement: ".cmt-due.due-done { color: var(--blue); text-decoration: line-through; }",
     expected: "Das Faelligkeitsdatum bekommt Farbe — 0.30.0"
   },
   {
@@ -9027,8 +9027,8 @@ const REGRESSIONS = [
        offen". */
     nr: '910', name: "Das Datum verschwindet beim Abhaken wieder",
     file: "public/app.js",
-    search: "            ${task || (done && c.dueDate) ? `<button class=\"link-btn cmt-due${",
-    replacement: "            ${task ? `<button class=\"link-btn cmt-due${",
+    search: "              ? (task || done ? `<button class=\"link-btn cmt-due${",
+    replacement: "              ? (task ? `<button class=\"link-btn cmt-due${",
     expected: "Das Faelligkeitsdatum bekommt Farbe — 0.30.0"
   },
   {
@@ -9075,6 +9075,182 @@ const REGRESSIONS = [
     search: "  .rlist:not(.no-average) .rrow .rreset-cell { padding-bottom: 5px; }",
     replacement: "  .rlist:not(.no-average) .rrow .rreset-cell { padding-bottom: 9px; }",
     expected: "Der Bewertungskasten und die Vokabelkarte — 0.30.0"
+  },
+  {
+    /* DIE GANZE REPARATUR STECKT IN EINER ZEILE. Auf `auto auto` teilen sich
+     beide Zeilen die Hoehe der spannenden Wolke, und Beschriftung und
+     Umschalter sacken wieder ab -- gemessen 96 und 218 Pixel tief. */
+    nr: "916", name: "Beide Rasterzeilen der Tagzeile teilen sich wieder die Hoehe",
+    file: "public/style.css",
+    search: "  .frow-tags { grid-template-rows: auto 1fr; }",
+    replacement: "  .frow-tags { grid-template-rows: auto auto; }",
+    expected: "Die Tagzeile rueckt nach oben \u2014 0.30.1"
+  },
+  {
+    /* OHNE `align-self: start` STEHT ER MITTIG in seiner nun 407 px hohen Zeile.
+     Die erste Haelfte der Reparatur allein genuegt nicht. */
+    nr: "917", name: "Der Umschalter sitzt wieder mittig in seiner Zeile",
+    file: "public/style.css",
+    search: "  .frow-tags > .tagmode { grid-column: 1; grid-row: 2; margin-right: 0;\n    align-self: start; }",
+    replacement: "  .frow-tags > .tagmode { grid-column: 1; grid-row: 2; margin-right: 0; }",
+    expected: "Die Tagzeile rueckt nach oben \u2014 0.30.1"
+  },
+  {
+    /* GEMESSEN IST DER UNTERSCHIED: drei Marken in der zugeklappten Reihe statt
+     vier, und der offene Filterkasten 654 statt 543 Pixel. */
+    nr: "918", name: "Die Marken sind wieder so gross wie vorher",
+    file: "public/style.css",
+    search: "  .pill-tag { font-size: .72rem; padding: 4px 10px; }",
+    replacement: "  .pill-tag { font-size: .77rem; padding: 7px 13px; }",
+    expected: "Die Tagzeile rueckt nach oben \u2014 0.30.1"
+  },
+  {
+    /* SIE IST DAS MERKMAL, AN DEM EINE MARKE VON EINER KATEGORIE ZU
+     UNTERSCHEIDEN IST -- und sie bringt an Breite fast nichts (gemessen neun
+     Pixel an der breitesten Marke, keine Reihe, kein Pixel Hoehe). */
+    nr: "919", name: "Die Festschrift der Marken faellt",
+    file: "public/style.css",
+    search: "  .pill-tag { font-size: .72rem; padding: 4px 10px; }",
+    replacement: "  .pill-tag { font-size: .72rem; padding: 4px 10px; font-family: inherit; }",
+    expected: "Die Tagzeile rueckt nach oben \u2014 0.30.1"
+  },
+  {
+    /* DER BEFUND IST DIE ZAHL DER MARKEN und nicht die Groesse aller Pillen. Wer
+     die Kategorien mitschrumpft, hat etwas anderes gebaut als bestellt. */
+    nr: "920", name: "Die Kategorienpille schrumpft mit",
+    file: "public/style.css",
+    search: "  .pill-tag { font-size: .72rem; padding: 4px 10px; }",
+    replacement: "  .pill-tag { font-size: .72rem; padding: 4px 10px; }\n  .pill { font-size: .72rem; }",
+    expected: "Die Tagzeile rueckt nach oben \u2014 0.30.1"
+  },
+  {
+    /* ER MISST 51 DER 344 PIXEL. Ohne ihn passt die Zeile ohne Marken in EINE
+     Zeile -- gemessen 54 statt 83 Pixel. */
+    nr: "921", name: "Der Wochentag bleibt auch am Telefon stehen",
+    file: "public/style.css",
+    search: "  .trow .tweek { display: none; }",
+    replacement: "  .trow .tweek { display: inline; }",
+    expected: "Die Testtagzeile ordnet sich nach ihrem Inhalt \u2014 0.30.1"
+  },
+  {
+    /* `flex: 1 1 0` HEISST „GRUNDBREITE NULL UND DANN WACHSEN": er nimmt sich
+     alles, auch wenn gar keine Marke darin steht, und drueckt die Sterne aus
+     der Zeile. Genau der Befund des Betreibers. */
+    nr: "922", name: "Der Markenkasten greift sich wieder die ganze Breite",
+    file: "public/style.css",
+    search: "  .trow .ttags { flex: 1 1 auto; }",
+    replacement: "  .trow .ttags { flex: 1 1 0; }",
+    expected: "Die Testtagzeile ordnet sich nach ihrem Inhalt \u2014 0.30.1"
+  },
+  {
+    /* OHNE `flex-basis: 100%` ZWINGT DAS STUECK KEINEN UMBRUCH, und die erste
+     Zeile traegt wieder Datum, Marken UND Sterne. */
+    nr: "923", name: "Mit Marken bricht die Zeile nicht mehr vor den Sternen um",
+    file: "public/style.css",
+    search: "  .trow-tags::after { content: ''; flex-basis: 100%; height: 0; order: 1; }",
+    replacement: "  .trow-tags::after { content: ''; height: 0; order: 1; }",
+    expected: "Die Testtagzeile ordnet sich nach ihrem Inhalt \u2014 0.30.1"
+  },
+  {
+    /* OHNE DIE KLASSE GREIFT KEINE DER DREI REGELN. Eine Zusage, die nur das
+     Stilblatt liest, bliebe hier gruen -- deshalb wird die Klasse gefahren. */
+    nr: "924", name: "Die Zeile sagt nicht mehr, ob sie Marken traegt",
+    file: "public/app.js",
+    search: "      if ((d.tags || []).length) row.classList.add('trow-tags');",
+    replacement: "      if (false) row.classList.add('trow-tags');",
+    expected: "Die Testtagzeile ordnet sich nach ihrem Inhalt \u2014 0.30.1"
+  },
+  {
+    /* AM ZEILENENDE SAGT ES NICHTS MEHR DARUEBER, WAS DA NOCH KOMMT. Der
+     Betreiber hat es ausdruecklich rechts VON DEN MARKEN bestellt. */
+    nr: "925", name: "\u201emehr\" steht hinter den Sternen statt bei den Marken",
+    file: "public/app.js",
+    search: "        row.append(date, wd, tagBox, more, s, x);",
+    replacement: "        row.append(date, wd, tagBox, s, x, more);",
+    expected: "Die Testtagzeile ordnet sich nach ihrem Inhalt \u2014 0.30.1"
+  },
+  {
+    /* DANN BRECHEN SIEBEN MARKEN DIE ZEILE WIEDER AUF VIER REIHEN AUF --
+     gemessen 309 statt 100 Pixel. */
+    nr: "926", name: "Die Marken eines Testtags werden nicht mehr auf eine Reihe begrenzt",
+    file: "public/app.js",
+    search: "      const trimmed = limitCloud(tagBox, opened ? 0 : 1);",
+    replacement: "      const trimmed = limitCloud(tagBox, 0);",
+    expected: "Die Testtagzeile ordnet sich nach ihrem Inhalt \u2014 0.30.1"
+  },
+  {
+    /* DIE ZAHL ALLEIN SAGT NICHT, WAS SIE ZAEHLT. Der Sinn steht im Titel --
+     ohne ihn ist die Kuerzung genau der Verlust, den F12 ausschliesst. */
+    nr: "927", name: "Der Zaehler verliert seinen Titel",
+    file: "public/app.js",
+    search: "  `<span class=\"mcount\" title=\"${esc(long)}\">${esc(short)}</span>`;",
+    replacement: "  `<span class=\"mcount\">${esc(short)}</span>`;",
+    expected: "In der Zeile die Zahl, im Titel das Wort \u2014 0.30.1"
+  },
+  {
+    /* ZWEI ZAHLEN OHNE WORT SIND LESBAR, solange ihre Reihenfolge feststeht.
+     Ausgeschrieben frisst die Zelle die Namensspalte, um die es geht. */
+    nr: "928", name: "Die Tagkarte schreibt ihre beiden Zahlen wieder aus",
+    file: "public/app.js",
+    search: "      shortCounter: e => `${e.usage_count} \u00b7 ${e.test_usage_count}`,",
+    replacement: "      shortCounter: e => `${e.usage_count} ${vThing(e.usage_count)} \u00b7 ${e.test_usage_count} ${vTime(e.test_usage_count)}`,",
+    expected: "In der Zeile die Zahl, im Titel das Wort \u2014 0.30.1"
+  },
+  {
+    /* DAS IST DIE FASSUNG VON 0.30.0: „erledigt" schlaegt jede Frist. „Zu spaet
+     fertig" saehe dann aus wie „rechtzeitig fertig". */
+    nr: "929", name: "Eine zu spaet erledigte Aufgabe verliert ihr Rot",
+    file: "public/app.js",
+    search: "  if (z.dueDate < todayKey()) return settled ? 'late' : 'overdue';",
+    replacement: "  if (settled) return 'done';\n  if (z.dueDate < todayKey()) return 'overdue';",
+    expected: "Das Faelligkeitsdatum bekommt Farbe \u2014 0.30.0"
+  },
+  {
+    /* DIE ZUORDNUNG AUSDRUECKLICH: gruen fuer gerissen waere ebenfalls
+     dreifarbig und sagte das Gegenteil. */
+    nr: "930", name: "Gerissen und gehalten tragen dieselbe Farbe",
+    file: "public/style.css",
+    search: ".cmt-due.due-late { color: var(--red); text-decoration: line-through; }",
+    replacement: ".cmt-due.due-late { color: var(--green); text-decoration: line-through; }",
+    expected: "Das Faelligkeitsdatum bekommt Farbe \u2014 0.30.0"
+  },
+  {
+    /* BEFUND 8: der ganze Markenkasten stand hinter „darf aendern", und damit
+     sah das Datum nur, wer es auch aendern durfte -- waehrend die Ansicht
+     „Offen" es jedem zeigt. */
+    nr: "931", name: "Das Faelligkeitsdatum verschwindet wieder hinter der Bedienung",
+    file: "public/app.js",
+    search: "      const dueShown = (task || done) && c.dueDate;",
+    replacement: "      const dueShown = false;",
+    expected: "Das Faelligkeitsdatum sieht jeder, der den Eintrag sieht \u2014 0.30.1"
+  },
+  {
+    /* EIN KNOPF, DER NICHTS TUT, IST EINE LUEGE UEBER DIE EIGENE BEDIENBARKEIT.
+     Der Rueckbau schliesst das Element bewusst falsch -- der Browser macht
+     daraus einen Knopf ohne Inhalt, und die Zusage faellt. */
+    nr: "932", name: "Wer nicht aendern darf, bekommt wieder einen Knopf",
+    file: "public/app.js",
+    search: "              : `<span class=\"cmt-due on due-${dueState}\"",
+    replacement: "              : `<button class=\"cmt-due on due-${dueState}\"",
+    expected: "Das Faelligkeitsdatum sieht jeder, der den Eintrag sieht \u2014 0.30.1"
+  },
+  {
+    /* GEMESSEN: die Namensspalte im Einzelzugang faellt von 210 auf 186 Pixel,
+     und das laengste Wort misst 200 -- es bricht wieder mitten durch. */
+    nr: "933", name: "Der Stern am Telefon ist wieder so gross wie am Finger",
+    file: "public/style.css",
+    search: "  .star { font-size: 1.1rem; }",
+    replacement: "  .star { font-size: 1.25rem; }",
+    expected: "Die Sortierung trennt Grundlage und Richtung \u2014 0.28.1"
+  },
+  {
+    /* VIER ABSTAENDE ZU EINEM PIXEL SIND VIER PIXEL SPALTENBREITE. An zehn
+     Pixeln Luft ist das die Haelfte. */
+    nr: "934", name: "Der Abstand zwischen den Sternen bleibt, wie er war",
+    file: "public/style.css",
+    search: "  .stars { gap: 2px; }",
+    replacement: "  .stars { gap: 3px; }",
+    expected: "Die Sortierung trennt Grundlage und Richtung \u2014 0.28.1"
   }
 ];
 
