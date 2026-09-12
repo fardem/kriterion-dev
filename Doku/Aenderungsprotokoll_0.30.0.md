@@ -567,7 +567,7 @@ fünf, in dieser Runde wieder)*.
 |---|---|---|
 | **604** | der Treiber fährt los, ohne nach fremden Servern zu sehen | 4 |
 | **605** | die Suche kennt den Prüflauf nicht mehr *(`pruefung.js` zurück)* | 3 |
-| **636** | die Tagzeile bleibt bei greifendem Tagfilter zugeklappt | 3 |
+| **636** | die Tagzeile bleibt bei greifendem Tagfilter zugeklappt | **29** |
 | **658** | die Tagzeile sagt dem Raster nicht, dass sie es ist | 2 |
 | **889** | „und/Oder" steht wieder neben der Beschriftung | 3 |
 | **895** | der Portblick sieht nicht mehr nach | 4 |
@@ -596,6 +596,17 @@ fünf, in dieser Runde wieder)*.
 > auswertbar" — sie rissen den Lauf ab statt ihn rot zu machen —, und beide
 > Ursachen sind Funde über den Prüfstand und nicht über den Baum. Sie stehen
 > unten.*
+>
+> **605 IST DER BELEG DAFÜR, DASS DIE NEUE BAUFORM TRÄGT.** *Er setzt genau den
+> Namen zurück, der neun Runden lang unbemerkt dastand — und die Zusage, die
+> ihn findet, ist die, die einen ECHTEN Prozess startet:* **„Der Wächter sieht
+> einen ECHT gestarteten `node testbench.js`".**
+>
+> **UND 636 MACHT 29 PRÜFUNGEN ROT.** *Er nimmt die Tagzeile bei greifendem
+> Filter weg, und daran hängen elf Gruppen — von der Und/Oder-Verknüpfung über
+> die Beschriftungen bis zu den drei neuen Zusagen dieser Runde.* **Eine Zeile,
+> an der so viel hängt, war neun Anläufe lang durch nichts als einen Abriss
+> geschützt.**
 
 ---
 
@@ -657,6 +668,18 @@ rot statt den Lauf tot.*
 horchte auf einer festen Nummer am oberen Ende der Spanne — genau dort, wo die
 vierte Nebenspur ihre Fenster hat.* **Sie sucht sich die Nummer jetzt und nimmt
 sie nicht.**
+
+**UND EIN VIERTER, DER KEIN ABRISS WAR, SONDERN EIN STILLES GRÜN.** *Beim
+Klammern der Griffe fiel auf, dass vier Zeilen ihre Bedingung verneinen — „nicht
+gedämpft", „nicht hervorgehoben".* **Eine Verneinung auf ein FEHLENDES Element
+ist wahr.** *Hinter einem `?.` wären diese vier grün geblieben, wenn die
+Tagzeile ganz verschwindet — also genau in dem Fall, den sie prüfen sollen.*
+**Sie verlangen das Element jetzt ausdrücklich.**
+
+> **NEUN ANLÄUFE HAT 636 GEBRAUCHT, und jeder einzelne hat einen Griff
+> gefunden:** *vier Marken, vier Umschalter, vier Verneinungen.* **Die Zeile,
+> an der sie alle hängen, ist dieselbe — und sie war neun Runden lang durch
+> nichts als einen Abriss geschützt.**
 
 ---
 
