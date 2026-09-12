@@ -5773,21 +5773,32 @@ const REGRESSIONS = [
        abgebrochenen Laeufen an den Ports 6180 bis 6242, Spur 0 faehrt ohne
        Versatz dagegen, und die Tabelle zeigt einen stummen Rueckbau als
        greifenden. EINE FALSCHE TABELLE IST SCHLIMMER ALS GAR KEINE. */
+    /* NACHGEZOGEN MIT 0.30.0: der Treiber sieht seither ZWEIMAL nach -- ueber
+       die Befehlszeile und ueber die Ports (F7). Der Suchtext von 0.21.0 stand
+       nicht mehr da, und ein Rueckbau, dessen Suchtext fehlt, ist ein Fund
+       ueber die Liste und kein Fund ueber den Baum. */
     nr: '604', name: 'Der Treiber faehrt los, ohne nach fremden Servern zu sehen',
     file: 'counterproof.js',
-    search: '  const foreign = foreignServer();\n  if (foreign.length) {',
-    replacement: '  const fremde = [];\n  if (fremde.length) {',
+    search: '  const foreign = foreignServer();\n  const busy = foreignPort(foreign.map(f => f.port));\n  if (foreign.length || busy.length) {',
+    replacement: '  const foreign = [];\n  const busy = [];\n  if (false) {',
     expected: 'Die Gegenproben greifen'
   },
   {
     /* UND DIE SUCHE SELBST FINDET NUR NOCH EINEN DER BEIDEN NAMEN. Ein
        liegengebliebener PRUEFLAUF belegt genauso Ports wie ein liegen-
        gebliebener Server -- er startet ja welche. */
+    /* NACHGEZOGEN MIT 0.30.0, UND ZWAR AUF DEN BEFUND SELBST: der Rueckbau
+       setzt den Namen zurueck, der von 0.21.0 bis 0.30.0 dort stand --
+       `pruefung.js`, eine Datei, die es in diesem Repository nie gegeben hat.
+       ER MUSS JETZT ZWEI ZUSAGEN ROT MACHEN: die, die den Quelltext liest,
+       und die, die einen ECHTEN `node testbench.js` startet und wiederfindet.
+       Bis 0.30.0 gab es nur die erste -- und sie hat den Namen abgeschrieben,
+       den der Ausdruck trug. */
     nr: '605', name: 'Die Suche nach fremden Servern kennt den Prueflauf nicht mehr',
     file: 'counterproof.js',
-    search: "    const script = parts.find(t => /(^|\\/)(server|pruefung)\\.js$/.test(t));",
-    replacement: "    const script = parts.find(t => /(^|\\/)server\\.js$/.test(t));",
-    expected: 'Die Gegenproben greifen'
+    search: "    const script = parts.find(t => /(^|\\/)(server|testbench)\\.js$/.test(t));",
+    replacement: "    const script = parts.find(t => /(^|\\/)(server|pruefung)\\.js$/.test(t));",
+    expected: 'Der Waechter erkennt den Prueflauf — 0.30.0'
   },
 
   /* ---- 0.21.1: die Sortierung gibt den Status vor ---- */
@@ -6142,11 +6153,16 @@ const REGRESSIONS = [
        bliebe beim Aufbau zu, obwohl ein Tag die Liste kuerzt.
        MITGEZOGEN, NICHT GELOESCHT -- 0.24.0 (Stolperstein 201): der Aufklapper
        ist ein Knopf geworden, die Regel dahinter ist dieselbe geblieben. */
+    /* NACHGEZOGEN MIT 0.30.0 (Stolperstein 201): der Merker ist mit dem
+       Umschalter gefallen, die REGEL dahinter ist dieselbe geblieben -- ein
+       Filter, der greift und unsichtbar ist, ist ein Fehler. Der Rueckbau
+       stellt genau das wieder her: die Zeile steht nur noch da, wenn sie
+       gerade nicht gebraucht wird. */
     nr: '636', name: 'Die Tagzeile bleibt bei greifendem Tagfilter zugeklappt',
     file: 'public/app.js',
-    search: "    (MORE_FILTERS_OPEN === null ? f.tagIds.length > 0 : MORE_FILTERS_OPEN);",
-    replacement: "    (WEITERE_FILTER_OFFEN === null ? false : WEITERE_FILTER_OFFEN);",
-    expected: 'Der Umschalter der Tagzeile — 0.24.0'
+    search: "  const tagsOpen = tagsPossible;",
+    replacement: "  const tagsOpen = tagsPossible && f.tagIds.length === 0;",
+    expected: 'Die Tagzeile steht offen — 0.30.0'
   },
   {
     // filterZahl() vergisst die Tags hinter dem Umschalter.
@@ -6159,11 +6175,16 @@ const REGRESSIONS = [
   {
     /* DER UMSCHALTER BELEGT WIEDER EINE EIGENE ZEILE -- 0.24.0. Genau das war
        der Befund: er kostete den Platz, den er sparen sollte. */
-    nr: '658', name: 'Der Umschalter der Tagzeile steht nicht in der Kategoriezeile',
+    /* NACHGEZOGEN MIT 0.30.0: der Umschalter ist gefallen, und mit ihm sein
+       Platz in der Kategoriezeile. Was an seine Stelle tritt, ist die Klasse,
+       an der das Raster des Telefons haengt -- ohne sie steht „und/Oder"
+       wieder neben der Beschriftung, und die Zeile traegt drei Rasterzeilen
+       statt zweier. Dieselbe Sache, ein anderer Traeger. */
+    nr: '658', name: 'Die Tagzeile sagt dem Raster nicht mehr, dass sie die Tagzeile ist',
     file: 'public/app.js',
-    search: "    r2.appendChild(right2);",
-    replacement: "    box.appendChild(rechts2);",
-    expected: 'Der Umschalter der Tagzeile — 0.24.0'
+    search: "    r3.classList.add('frow-tags');",
+    replacement: "    r3.classList.add('frow-tagzeile');",
+    expected: 'Die Tagzeile steht offen — 0.30.0'
   },
   {
     /* ZUGEKLAPPT WAERE DIE ZEILE NUR VERBORGEN UND NICHT FORT -- sie kostete
@@ -8791,10 +8812,14 @@ const REGRESSIONS = [
     /* DER UND/ODER-UMSCHALTER ZURUECK IN DIE SPANNE. Zwei Pillen, die 86 px
        brauchen, spannen dann wieder ueber 362 -- und die Beschriftung „Tags"
        bleibt allein auf der Zeile darueber stehen. */
-    nr: '889', name: 'Der Und/Oder-Umschalter spannt wieder ueber alle Spalten',
+    /* NACHGEZOGEN MIT 0.30.0: „und/Oder" steht seither in Spalte EINS und in
+       der ZWEITEN Rasterzeile -- unter der Beschriftung. Der Rueckbau setzt
+       ihn wieder daneben, und genau das ist der Befund vom 12. September:
+       neben ihr nimmt er der Wolke die erste Zeile weg. */
+    nr: '889', name: 'Der Und/Oder-Umschalter steht wieder neben der Beschriftung',
     file: 'public/style.css',
-    search: "  .frow > .tagmode { grid-column: 2; }",
-    replacement: "  .frow > .tagmode { grid-column: 1 / -1; }",
+    search: "  .frow-tags > .tagmode { grid-column: 1; grid-row: 2; margin-right: 0;",
+    replacement: "  .frow-tags > .tagmode { grid-column: 2; grid-row: 1; margin-right: 0;",
     expected: 'Die Filterzeile und der Kategoriekasten — 0.29.0'
   },
   {
@@ -8846,6 +8871,210 @@ const REGRESSIONS = [
     search: '  "list.sortFlip": "Richtung umkehren",',
     replacement: '  "list.sortFlip": "Richtung umkehren",\n  "list.sortOneWay": "Diese Sortierung hat nur eine Richtung",',
     expected: '„Titel" kehrt um — 0.29.0'
+  },
+
+  /* ================= DIE RUECKBAUTEN DER RUNDE 0.30.0 =================
+     EINUNDZWANZIG NEUE, 895 bis 915. Jede neue Zusage dieser Runde bekommt
+     ihren Rueckbau, und jeder Rueckbau nennt die Gruppe, die er rot machen
+     muss -- ein Rueckbau, der NICHTS rot macht, ist ein STUMMER und damit ein
+     Fund ueber die Zusage und nicht ueber den Baum.
+     FUENF ALTE SIND AUSSERDEM NACHGEZOGEN (604, 605, 636, 658, 889): ihre
+     Suchtexte standen nach dieser Runde nicht mehr da. Ein Rueckbau, dessen
+     Suchtext fehlt, ist ein Fund ueber die LISTE -- in 0.29.0 waren es fuenf,
+     in dieser Runde wieder. */
+  {
+    /* DER ZWEITE BLICK FAELLT WEG. Was kein Muster ueber die Befehlszeile je
+       findet -- ein Server aus `node -e` --, faellt danach wieder durch. */
+    nr: '895', name: "Der Portblick der Gegenprobe sieht nicht mehr nach",
+    file: "counterproof.js",
+    search: "  return [...listeningPorts()]\n    .filter(p => p >= span.from && p <= span.to && !taken.has(p))",
+    replacement: "  return [].concat()\n    .filter(p => p >= span.from && p <= span.to && !taken.has(p))",
+    expected: "Der Waechter erkennt den Prueflauf — 0.30.0"
+  },
+  {
+    /* ZURUECK AUF DIE ZAHL, DIE IN 0.8.10 UND 0.8.30 ZU KLEIN WAR. Unter
+       schwerer Nebenlast reisst der Lauf dann wieder ab, statt eine Pruefung
+       namentlich rot zu faerben. */
+    nr: '896', name: "Das Wartefenster steht wieder auf zwoelf Sekunden",
+    file: "testbench.js",
+    search: "const READY_TRIES = 300;",
+    replacement: "const READY_TRIES = 120;",
+    expected: "Das Wartefenster und seine Meldung — 0.30.0"
+  },
+  {
+    /* DIE TEURERE HAELFTE DES BEFUNDES. Der Lauf startet 78 Server;
+       „Zweitserver nicht erreichbar" schickt auf eine Suche durch alle. */
+    nr: '897', name: "Die Meldung des Zweitservers nennt ihn nicht mehr",
+    file: "testbench.js",
+    search: "  `Zweitserver nicht erreichbar: Portbasis ${portBase}, Port ${port}, ` +\n  `Verzeichnis ${dataDirectory} -- ${READY_TRIES * READY_STEP / 1000} s gewartet\\n${log}`;",
+    replacement: "  `Zweitserver nicht erreichbar -- ${READY_TRIES * READY_STEP / 1000} s gewartet\\n${log}`;",
+    expected: "Das Wartefenster und seine Meldung — 0.30.0"
+  },
+  {
+    /* EIN AUFRAEUMEN, DAS NIE GREIFT, SIEHT AUS WIE EINES, DAS GREIFT. Genau
+       deshalb sieht die Zusage hinterher nach, ob der Prozess wirklich fort
+       ist -- und nicht nur, ob der Aufraeumer gerufen wurde. */
+    nr: '898', name: "Der Aufraeumer beim Start beendet nichts mehr",
+    file: "testbench.js",
+    search: "  for (const z of found) { try { process.kill(z.pid, 'SIGKILL'); } catch {} }",
+    replacement: "  for (const z of found) { /* nicht beenden */ }",
+    expected: "Der Pruefstand raeumt beim Start auf — 0.30.0"
+  },
+  {
+    /* OHNE DIESE ZAHL IST JEDE BESCHLEUNIGUNG GERATEN. Eine leere Tafel sagt
+       genauso wenig wie gar keine -- und sieht aus wie eine. */
+    nr: '899', name: "Die Schlusstafel bleibt leer",
+    file: "testbench.js",
+    search: "  const worst = [...rows].sort((a, b) => b.ms - a.ms).slice(0, top);",
+    replacement: "  const worst = [];",
+    expected: "Die Schlusstafel sagt, wo die Zeit hingeht — 0.30.0"
+  },
+  {
+    /* DIE KURVE FUER JEDEN ZAEHLERSTAND. Bis 0.30.0 deckte der Lauf nur die
+       sechs Staende ab, durch die er zufaellig ging -- ein Schritt von 500
+       statt 700 ms waere dabei durchgegangen. */
+    nr: '900', name: "Die Kurve der Anmeldebremse ist verbogen",
+    file: "auth.js",
+    search: "  return over > 0 ? Math.min(over * 700, 4000) : 0;",
+    replacement: "  return over > 0 ? Math.min(over * 500, 4000) : 0;",
+    expected: "Die Anmeldebremse — an der reinen Funktion — 0.30.0"
+  },
+  {
+    /* DIE KURVE AN DER FUNKTION UND DIE VERDRAHTUNG AN DER ROUTE. Ohne diese
+       zweite Haelfte belegte der Lauf eine Formel, die niemand ruft. */
+    nr: '901', name: "Die Route wartet gar nicht mehr",
+    file: "auth.js",
+    search: "  return { blocked: false, delayMs: keys.brakeWait(delayMs) };",
+    replacement: "  return { blocked: false, delayMs: 0 };",
+    expected: "Und die Route wartet wirklich — 0.30.0"
+  },
+  {
+    /* `N` IST EINE SICHERHEITSGRENZE. Eine Auslieferung, die sie senkt,
+       senkt sie auf jedem Wirt -- und niemand sieht es. */
+    nr: '902', name: "Die Auslieferung traegt eine gesenkte Kostenstufe",
+    file: "auth.js",
+    search: "const SCRYPT_SHIPPED = 16384;",
+    replacement: "const SCRYPT_SHIPPED = 1024;",
+    expected: "Der Pruefschalter und seine Grenzen — 0.30.0"
+  },
+  {
+    /* DIE KLAMMER IST DER GANZE PUNKT VON F1. Eine Variable, die so heisst,
+       wie man sie erraet, senkt die Anmeldung aus Versehen. */
+    nr: '903', name: "Die Kostenstufe laesst sich wieder ueber eine gewoehnliche Variable senken",
+    file: "keys.js",
+    search: "  const wish = set && set.scrypt;",
+    replacement: "  const wish = Number(process.env.SCRYPT_N) || (set && set.scrypt);",
+    expected: "Der Pruefschalter und seine Grenzen — 0.30.0"
+  },
+  {
+    /* EINE ANLAGE, DIE NACH FUENF SEKUNDEN AUFGIBT, VERSCHICKT WENIGER MAIL.
+       Die Frist ist keine Sicherheitsgrenze, aber sie ist hergeleitet. */
+    nr: '904', name: "Die ausgelieferte Mailfrist ist gesenkt",
+    file: "mail.js",
+    search: "const SEND_SHIPPED = 20 * 1000;",
+    replacement: "const SEND_SHIPPED = 5 * 1000;",
+    expected: "Der Pruefschalter und seine Grenzen — 0.30.0"
+  },
+  {
+    /* EIN SCHALTER, DER NICHTS TUT, SIEHT AUS WIE EINER, DER WIRKT. Ohne
+       diesen Rueckbau bliebe offen, ob die 55 Sekunden wirklich von ihm
+       kommen. */
+    nr: '905', name: "Der Pruefschalter stellt die Fristen gar nicht mehr kurz",
+    file: "keys.js",
+    search: "  return Math.max(TESTBENCH_FLOOR.mail, Math.round(shipped / part));",
+    replacement: "  return shipped;",
+    expected: "Der Pruefschalter und seine Grenzen — 0.30.0"
+  },
+  {
+    /* DER FUENFTE FUND IN SECHS RUNDEN, wiederhergestellt. Genau ihn soll
+       die neue Wache fangen -- und nicht nur der nachgetragene Schluessel. */
+    nr: '906', name: "„gewichtet\" steht wieder fest im Quelltext",
+    file: "public/app.js",
+    search: "          (weightedCalc ? ' ' + t('entry.weighted') : '');",
+    replacement: "          (weightedCalc ? ' gewichtet' : '');",
+    expected: "Kein deutscher Bildschirmsatz sitzt fest — die neue Wache — 0.30.0"
+  },
+  {
+    /* EIN SIEB, DAS ALLES DURCHLAESST, IST KEIN SIEB. Die Wache waere danach
+       gruen und blind -- deshalb prueft die Zusage das Sieb selbst. */
+    nr: '907', name: "Die neue Wache schaut an jeder Kennung vorbei",
+    file: "testbench.js",
+    search: "    const isName = (t) => /^[a-z0-9][a-z0-9._#/-]*$/.test(t.trim()) || /^#\\//.test(t.trim());",
+    replacement: "    const isName = (t) => true;",
+    expected: "Kein deutscher Bildschirmsatz sitzt fest — die neue Wache — 0.30.0"
+  },
+  {
+    /* ZWEI EINTEILUNGEN AN ZWEI ORTEN LAUFEN AUSEINANDER -- Stolperstein 47.
+       Genau dafuer ist `dueOf` in dieser Runde nach oben gewandert. */
+    nr: '908', name: "Eine zweite Einteilung steht neben der ersten",
+    file: "public/app.js",
+    search: "  const SECTIONS = [['overdue', 'list.dueOverdue'], ['today', 'list.dueToday'],",
+    replacement: "  const dueOf = (z) => !z.dueDate ? 'none' : 'later';\n  const SECTIONS = [['overdue', 'list.dueOverdue'], ['today', 'list.dueToday'],",
+    expected: "Das Faelligkeitsdatum bekommt Farbe — 0.30.0"
+  },
+  {
+    /* VIER ZUSTAENDE, VIER FARBEN -- wer zwei davon gleich faerbt, hat drei.
+       Gemessen ist es: „spaeter" und „erledigt" trugen zuerst dieselbe. */
+    nr: '909', name: "Zwei Zustaende des Faelligkeitsdatums sind gleich gefaerbt",
+    file: "public/style.css",
+    search: ".cmt-due.due-done { color: var(--faint); text-decoration: line-through; }",
+    replacement: ".cmt-due.due-done { color: var(--muted); text-decoration: line-through; }",
+    expected: "Das Faelligkeitsdatum bekommt Farbe — 0.30.0"
+  },
+  {
+    /* EINE ANGABE, DIE JEMAND EINGETRAGEN HAT, VERSCHWINDET NICHT BEIM
+       ABHAKEN. Der Betreiber verlangt ausdruecklich „ob fertig, oder noch
+       offen". */
+    nr: '910', name: "Das Datum verschwindet beim Abhaken wieder",
+    file: "public/app.js",
+    search: "            ${task || (done && c.dueDate) ? `<button class=\"link-btn cmt-due${",
+    replacement: "            ${task ? `<button class=\"link-btn cmt-due${",
+    expected: "Das Faelligkeitsdatum bekommt Farbe — 0.30.0"
+  },
+  {
+    /* 147 PIXEL, UND SIE KOSTEN KEINE EINZIGE BESCHRIFTUNG. Der Rueckbau
+       nimmt sie wieder her. */
+    nr: '911', name: "Die Vokabelkarte behaelt ihre Luft",
+    file: "public/style.css",
+    search: "  .vocabulary-grid .field { margin-bottom: 4px; }",
+    replacement: "  .vocabulary-grid .field { margin-bottom: 10px; }",
+    expected: "Der Bewertungskasten und die Vokabelkarte — 0.30.0"
+  },
+  {
+    /* C1 STATT C1a. Wer „gut" sagt, bekommt nicht ungefragt etwas anderes --
+       und eine Regel ohne die Klammer trifft genau diese Fassung. */
+    nr: '912', name: "Die Luft geht auch dort weg, wo nur ein Zugang ist",
+    file: "public/style.css",
+    search: "  .rlist:not(.no-average) .rrow .rname { padding-top: 4px; line-height: 1.35; }",
+    replacement: "  .rrow .rname { padding-top: 4px; line-height: 1.35; }",
+    expected: "Der Bewertungskasten und die Vokabelkarte — 0.30.0"
+  },
+  {
+    /* EIN SATZ OHNE LESER BLEIBT NICHT STEHEN. Der Umschalter ist gefallen,
+       und mit ihm die Zahl, die an ihm stand. */
+    nr: '913', name: "Die Zahl am gefallenen Umschalter steht wieder in der Sprachdatei",
+    file: "public/languages/de.json",
+    search: "  \"list.tags\": ",
+    replacement: "  \"list.tagsCount\": \"Tags ({length})\",\n  \"list.tags\": ",
+    expected: "Die Tagzeile steht offen — 0.30.0"
+  },
+  {
+    /* 159 STATT 67 PIXEL. Gemessen kippt die Kopfzeile damit von 42 auf 81
+       px -- zusammen mit dem Wort „gewichtet" daneben. */
+    nr: '914', name: "Der Knopf heisst wieder „Wer hat bewertet\"",
+    file: "public/languages/de.json",
+    search: "  \"entry.whoRated\": \"Wer?\",",
+    replacement: "  \"entry.whoRated\": \"Wer hat bewertet\",",
+    expected: "Der Bewertungskasten und die Vokabelkarte — 0.30.0"
+  },
+  {
+    /* DIE HAELFTE VON C1a. Ohne sie bleibt der Kasten bei 537 statt 439 px --
+       gemessen an fuenf Kriterien und zwei Zugaengen. */
+    nr: '915', name: "Die Sternzeile behaelt ihre Luft unter den Sternen",
+    file: "public/style.css",
+    search: "  .rlist:not(.no-average) .rrow .rreset-cell { padding-bottom: 5px; }",
+    replacement: "  .rlist:not(.no-average) .rrow .rreset-cell { padding-bottom: 9px; }",
+    expected: "Der Bewertungskasten und die Vokabelkarte — 0.30.0"
   }
 ];
 
@@ -8915,15 +9144,27 @@ function processesUnder(dirPath) {
    keit, kein `ps`, und dieselbe Auskunft. Ein Prozess zaehlt als fremd, wenn
    sein Befehl auf server.js oder testbench.js endet -- eigene Kinder gibt es zu
    diesem Zeitpunkt noch keine.
-   WAS DIESER WAECHTER NICHT FINDET, und das gehoert dazugesagt: einen Server,
-   den jemand ueber `node -e "require('./server.js')"` startet. Sein Befehl
-   endet nicht auf server.js, und ein Muster ueber den ganzen Aufruf faenge
-   jedes zweite Werkzeug mit. GENAU SO EINER IST BEIM BAUEN DIESER RUNDE
-   entstanden und eine Viertelstunde unbemerkt gelaufen.
-   DIE GRENZE IST HINNEHMBAR, WEIL SIE DEN ECHTEN WEG NICHT BETRIFFT: das
-   Image, `npm start` und der Prueflauf starten alle `node server.js`. Wer von
-   Hand etwas anderes tut, weiss, dass er es getan hat -- und findet seinen
-   Prozess ueber den Port. */
+
+   DER NAME WAR BIS 0.30.0 FALSCH, UND ZWAR SEIT 0.21.0: im Ausdruck stand
+   `pruefung.js` -- eine Datei, die es in diesem Repository nie gegeben hat.
+   Der Kommentar hier sagte die ganze Zeit das Richtige, drei Zeilen tiefer
+   stand etwas anderes, und damit fand der Waechter GENAU DEN FALL NICHT, fuer
+   den es ihn gibt: den nebenher laufenden Prueflauf. Neunzehn Rueckbauten sind
+   hintereinander als ABGERISSEN gemeldet worden. EINE ZUSAGE LIEST IHREN
+   GEGENSTAND UND NICHT DEN ABSATZ DARUEBER -- deshalb faehrt die Zusage zu
+   dieser Zeile seit 0.30.0 einen ECHT GESTARTETEN Prozess und liest den
+   Ausdruck nicht mehr.
+
+   UND DER ZWEITE BLICK GEHT AUF DIE PORTS -- 0.30.0 (F7). Ein Server aus
+   `node -e "require('./server.js')"` traegt server.js nirgends in seiner
+   Befehlszeile; ein Muster ueber den ganzen Aufruf faenge dafuer jedes zweite
+   Werkzeug mit. GENAU SO EINER IST BEIM BAUEN VON 0.21.0 ENTSTANDEN und eine
+   Viertelstunde unbemerkt gelaufen. Wer horcht, faellt dagegen auf, ganz
+   gleich, wie er gestartet wurde: `/proc/net/tcp` nennt jeden horchenden
+   Socket samt Port, und die Spanne der Portbasen steht im Pruefstand.
+   ZWEI BLICKE UND NICHT EINER, weil sie VERSCHIEDENES finden: der erste sieht
+   auch einen Server, der gerade erst startet und noch nicht horcht; der zweite
+   sieht auch einen, dessen Befehlszeile nichts verraet. */
 function foreignServer() {
   const outcome = [];
   let entries;
@@ -8936,7 +9177,7 @@ function foreignServer() {
     /* DAS SKRIPT UND NICHT DAS LETZTE STUECK. `node testbench.js sterne` endet
        auf dem Filterwort -- wer die Zeile daran erkennen will, bekommt dann
        „sterne" gemeldet und sucht nach etwas, das es nicht gibt. */
-    const script = parts.find(t => /(^|\/)(server|pruefung)\.js$/.test(t));
+    const script = parts.find(t => /(^|\/)(server|testbench)\.js$/.test(t));
     if (!script) continue;
     /* DER PORT AUS DER UMGEBUNG, wenn er dasteht: ohne ihn muesste der Leser
        raten, welches Fenster belegt ist -- und genau das Raten hat in dieser
@@ -8951,6 +9192,53 @@ function foreignServer() {
     outcome.push({ pid: Number(e), port, wo, script: path.basename(script) });
   }
   return outcome;
+}
+
+/* ================= Wer horcht im Fenster des Prueflaufs? =================
+   0.30.0, F7. DIE SPANNE KOMMT AUS DEM PRUEFSTAND und wird dort gegen die
+   LAUFENDEN Portbasen nachgerechnet (Gruppe „Die Portbasen und der Versatz").
+   Zwei Zahlen an zwei Orten liefen auseinander -- deshalb steht sie einmal da
+   und wird hier gelesen, genau wie OFFSET_LEVEL.
+   GELESEN WIRD `/proc/net/tcp` UND `/proc/net/tcp6`: der Zustand 0A ist
+   LISTEN, das Feld davor traegt Adresse und Port hexadezimal. Keine neue
+   Abhaengigkeit, kein `ss`, kein `lsof` -- dieselbe Auskunft wie bei
+   processesUnder() und aus derselben Quelle. */
+function portSpan() {
+  const t = fs.readFileSync(path.join(__dirname, 'testbench.js'), 'utf8');
+  const from = t.match(/^const PORT_SPAN_FROM = (\d+);$/m);
+  const to = t.match(/^const PORT_SPAN_TO = (\d+);$/m);
+  if (!from || !to) {
+    console.error('In testbench.js fehlt PORT_SPAN_FROM oder PORT_SPAN_TO.');
+    console.error('Ohne die Spanne kann die Gegenprobe die Ports nicht ansehen.');
+    process.exit(1);
+  }
+  return { from: Number(from[1]), to: Number(to[1]) };
+}
+
+function listeningPorts() {
+  const outcome = new Set();
+  for (const file of ['/proc/net/tcp', '/proc/net/tcp6']) {
+    let rows;
+    try { rows = fs.readFileSync(file, 'utf8').split('\n').slice(1); } catch { continue; }
+    for (const row of rows) {
+      const piece = row.trim().split(/\s+/);
+      if (piece.length < 4 || piece[3] !== '0A') continue;
+      const port = parseInt((piece[1].split(':')[1] || ''), 16);
+      if (port) outcome.add(port);
+    }
+  }
+  return outcome;
+}
+
+/* WER HORCHT, OHNE DASS SEIN BEFEHL IHN VERRAET. Die Nummern, die schon ueber
+   foreignServer() gemeldet sind, bleiben hier weg: zweimal dieselbe Sache zu
+   melden macht die Meldung laenger und nicht genauer. */
+function foreignPort(known = []) {
+  const span = portSpan();
+  const taken = new Set(known.map(Number).filter(Boolean));
+  return [...listeningPorts()]
+    .filter(p => p >= span.from && p <= span.to && !taken.has(p))
+    .sort((a, b) => a - b);
 }
 
 /* Raeumt auf UND SIEHT NACH. Ein Aufraeumen, das nie greift, sieht aus wie
@@ -9241,7 +9529,8 @@ const matchesRegression = (r, argument) => {
 /* foreignServer GEHT EBENFALLS MIT HINAUS: die Regel, was als fremder Server
    gilt, laesst sich damit am laufenden Prueflauf selbst nachsehen -- er ist
    ja einer. Ein Waechter, den niemand pruefen kann, ist ein Versprechen. */
-module.exports = { REGRESSIONS, readRun, matchesRegression, writeTable, foreignServer };
+module.exports = { REGRESSIONS, readRun, matchesRegression, writeTable,
+                   foreignServer, foreignPort, listeningPorts, portSpan };
 if (require.main !== module) return;
 
 (async function main() {
@@ -9269,14 +9558,23 @@ if (require.main !== module) return;
      gar keine. Abgebrochen wird deshalb, statt zu warnen: wer eine Warnung
      ueberliest, liest hinterher Zahlen, die nichts bedeuten. */
   const foreign = foreignServer();
-  if (foreign.length) {
-    console.error(`\n${foreign.length} fremde(r) Server laufen noch -- sie belegen Ports, ` +
-                  `auf die die Prueflaeufe warten (Stolperstein 139).`);
+  const busy = foreignPort(foreign.map(f => f.port));
+  if (foreign.length || busy.length) {
+    console.error(`\nIm Portfenster des Prueflaufs ist etwas los -- ` +
+                  `${foreign.length} fremde(r) Server, ${busy.length} weitere(r) ` +
+                  `horchende(r) Port (Stolperstein 139).`);
     for (const f of foreign)
       console.error(`  PID ${f.pid}  ${f.script}${f.port ? `  PORT=${f.port}` : ''}` +
                     `${f.wo ? `  in ${f.wo}` : ''}`);
-    console.error('\nErst beenden, dann fahren:  kill -9 ' +
-                  foreign.map(f => f.pid).join(' '));
+    /* DER PORTBLICK NENNT KEINE PID, und das ist keine Nachlaessigkeit: die
+       Zuordnung Socket -> Prozess steht in /proc/net/tcp nur als Inode und
+       verlangte einen Gang durch jedes /proc/<pid>/fd. Wer den Port kennt,
+       findet den Prozess mit einem Befehl; wer ihn nicht kennt, sucht. */
+    for (const p of busy)
+      console.error(`  PORT ${p}  horcht -- sein Befehl verraet ihn nicht ` +
+                    `(z. B. node -e). Finden:  ss -lptn 'sport = :${p}'`);
+    console.error('\nErst beenden, dann fahren.' +
+                  (foreign.length ? '  kill -9 ' + foreign.map(f => f.pid).join(' ') : ''));
     process.exit(1);
   }
   const level = offsetLevel();

@@ -1,5 +1,8 @@
 const crypto = require('crypto');
 const { db, assignInventory } = require('./db');
+/* DER PRUEFSCHALTER -- 0.30.0, F1. keys.js haengt an keiner anderen Datei des
+   Hauses; dieses require macht deshalb keinen Kreis auf. */
+const keys = require('./keys');
 // Nur wegen istAdresse: die Frage "sieht das ueberhaupt nach einer Adresse
 // aus" wird an drei Stellen gestellt (Anlegen, eigener Zugang, Versand), und
 // drei Muster nebeneinander liefen auseinander. Die Antwort steht deshalb dort,
@@ -209,7 +212,13 @@ const SESSION_DAYS = 30;
 // stehen im gespeicherten Wert mit drin, damit sie sich spaeter anheben lassen,
 // ohne alte Eintraege unlesbar zu machen.
 const PASSWORD_MIN = 10;
-const SCRYPT = { N: 16384, r: 8, p: 1, keylen: 64 };
+/* DIE AUSGELIEFERTE KOSTENSTUFE, FESTGENAGELT -- 0.30.0, F1. Sie steht als
+   Zahl hier und nicht in einer Umgebungsvariablen: `N` ist eine
+   SICHERHEITSGRENZE, und eine Variable, die sie senkt, senkt sie auch auf dem
+   Wirt. Nur der Pruefschalter aus keys.js darf sie herunterholen, und auch er
+   nur bis zu seinem Boden (Zusagen 8 und 9). */
+const SCRYPT_SHIPPED = 16384;
+const SCRYPT = { N: keys.scryptCost(SCRYPT_SHIPPED), r: 8, p: 1, keylen: 64 };
 
 function scryptCompute(password, salt, k) {
   return new Promise((done, error) => {
@@ -692,7 +701,17 @@ function checkThrottle(ip, name) {
   }
   const b = attempts.get(keyName(name));
   if (b) delayMs = Math.max(delayMs, delay(b.count));
-  return { blocked: false, delayMs };
+  /* KURZ GESTELLT WARTET DIE ROUTE KUERZER, DIE KURVE BLEIBT DIE KURVE --
+     0.30.0, F3. Bis dahin fuhren SECHS Pruefgruppen die Kurve real durch die
+     Routen: zwoelf Fehlversuche kosten 700 + 1400 + 2100 + 2800 + 3500
+     Millisekunden, sechsmal macht das rund 80 Sekunden je Lauf -- und die
+     Gegenprobe zahlt sie je Rueckbau noch einmal.
+     GEAENDERT HAT SICH DABEI NICHTS AUSSER DER WARTEZEIT: gezaehlt wird wie
+     vorher, gesperrt wird wie vorher, geantwortet wird wie vorher. Die KURVE
+     belegt der Pruefstand seit dieser Runde an `delay()` selbst -- fuer JEDEN
+     Zaehlerstand statt fuer die sechs, durch die ein Lauf zufaellig geht --,
+     und DASS die Route wirklich wartet, an einem Server OHNE Schalter. */
+  return { blocked: false, delayMs: keys.brakeWait(delayMs) };
 }
 
 function noteFailure(ip, name) {
@@ -1788,6 +1807,13 @@ module.exports = {
   PUBLIC_ADDRESS, checkPublicAddress, parseCookies, checkLogin, createSession, destroySession,
   sessionUser, pruneSessions, sessionCookie, clearCookie, requireAuth,
   clientIp, checkThrottle, noteFailure, noteSuccess,
+  /* DIE KURVE UND DIE GEWAEHLTE KOSTENSTUFE GEHEN MIT HINAUS -- 0.30.0, F1
+     und F3. `delay` ist eine REINE Funktion: der Pruefstand belegt die Kurve
+     an ihr, fuer JEDEN Zaehlerstand und in null Millisekunden, statt sie
+     sechsmal durch eine Route zu fahren. SCRYPT_COST nennt die Zahl, mit der
+     diese Instanz WIRKLICH rechnet -- die Ansage beim Start und die Zusage
+     lesen dieselbe. */
+  delay, SCRYPT_COST: SCRYPT.N, SCRYPT_SHIPPED,
   // Meine Sitzungen und die Token; Rufer ist server.js.
   sessionIdOf, sessionsOf, endSession, endOtherSessions,
   TOKEN_DAYS, TOKEN_TRACE_DAYS, TOKEN_PURPOSES, TOKEN_DEADLINE_MINUTES, tokenHash,

@@ -29,6 +29,38 @@ bleiben in der Form ihrer Zeit.*
 
 *Hier wird mitgeschrieben, während gebaut wird.*
 
+## [0.30.0] - 2026-09-12
+
+> **NICHTS ZU TUN.** Diese Runde fasst das Schema nicht an, das Austauschformat
+> bleibt 16, und es gibt keinen Migrationsblock. Einspielen und fertig.
+>
+> **Eine Zeile im Protokoll ist neu und sollte dort NICHT stehen:** steht beim
+> Start „PRUEFSCHALTER AKTIV", trägt deine `.env` die Variable
+> `KRITERION_TESTBENCH`. Sie gehört nur in den Prüfstand — entfernen.
+
+### Neu
+
+- **Der Prüflauf sagt am Ende, wo seine Zeit hingeht** — eine Schlusstafel mit den zehn teuersten Prüfgruppen, ihrem Anteil und der Gesamtzeit. Die Zeit je Gruppe steht mit `TESTBENCH_ZEIT=1` daneben.
+- **Der Prüfstand darf zwei Kosten senken, die nur ihn betreffen** — die Kostenstufe des Passwortspeichers und die Mailfristen. Über **einen** Schalter mit Marke, Boden und Ansage beim Start; eine gewöhnliche Umgebungsvariable greift nicht.
+- **Der Prüfstand räumt beim Start auf**, was ein abgebrochener Lauf liegen gelassen hat.
+
+### Geändert
+
+- **Der Prüflauf braucht 271 statt 465 Sekunden** — bei mehr Prüfungen und mehr Prüfgruppen als vorher. Die Gegenproben sparen dieselbe Zeit **je Rückbau**.
+- **Die Tagzeile steht offen, sobald die Filter aufgeklappt sind** — der Umschalter „Tags" fällt dafür weg. „und/Oder" steht klein unter der Beschriftung; am Telefon 24 Pixel weniger Filterleiste.
+- **Der Knopf „Wer hat bewertet" heißt „Wer?"** — damit steht die Kopfzeile des Bewertungskastens wieder auf **einer** Zeile statt zwei.
+- **Der Bewertungskasten misst am Telefon 439 statt 537 Pixel**, sobald es mehr als einen Zugang gibt. Bei einem einzigen Zugang ändert sich nichts.
+- **Das Fälligkeitsdatum sagt seinen Zustand mit Farbe** — überfällig rot, heute hervorgehoben, später gedämpft, erledigt durchgestrichen. Bis hierher sah es aus wie der Zeitstempel daneben.
+- **Eine erledigte Aufgabe zeigt ihr Fälligkeitsdatum weiter** — bis hierher verschwand es beim Abhaken.
+- **Die Vokabelkarte misst am Telefon 1056 statt 1203 Pixel** — dieselbe Bauform, weniger Luft.
+
+### Behoben
+
+- **Vier deutsche Wörter standen fest im Quelltext** und blieben deutsch, auch wenn die Oberfläche englisch oder türkisch eingestellt war: „gewichtet" am Durchschnitt, „an" und „aus" an der Registrierung und „eingerichtet" am Mailversand.
+- **Ein Bestandslauf konnte den Server mitnehmen** — hatte beim Start gerade etwas anderes die Datenbank gesperrt, endete der ganze Prozess. Er sagt es jetzt und versucht es später noch einmal.
+- **Die Gegenproben erkannten einen nebenher laufenden Prüflauf nicht** und meldeten seine Störung als Befund über den Rückbau.
+- **Startet ein Zweitserver des Prüflaufs nicht, sagt die Meldung jetzt, welcher.**
+
 ## [0.29.0] - 2026-09-11
 
 > **VOR DEM EINSPIELEN: EINE SICHERUNG.** Diese Runde fasst das Schema an — eine

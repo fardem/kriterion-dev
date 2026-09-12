@@ -15,6 +15,36 @@
  * Die Oberflaechenpruefungen brauchen jsdom:  npm install
  * Fehlt es, werden sie uebersprungen und der Prueflauf sagt das deutlich.
  */
+/* ============ DER PRUEFSCHALTER DIESES LAUFS -- 0.30.0, F1 und F2 =========
+   ER STEHT VOR JEDEM require, und das ist der ganze Grund fuer diese Stelle:
+   auth.js und mail.js lesen ihn beim LADEN. Wer ihn eine Zeile spaeter setzte,
+   liese die erste geladene Datei mit den ausgelieferten Zahlen rechnen und die
+   zweite mit den kurzen -- eine Instanz mit zwei Wahrheiten ueber sich selbst.
+
+   ZWEI EINSTELLUNGEN, UND BEIDE SIND GEMESSEN. `scrypt=1024` nimmt dem Lauf
+   die Kostenstufe des Passwortspeichers (rund 35 s von 464); `mail=40` teilt
+   die drei Mailfristen durch vierzig, aus 20/7/7 Sekunden werden 500/175/175
+   Millisekunden (rund 55 s). DAS VERHAELTNIS DER DREI BLEIBT DABEI GENAU
+   ERHALTEN -- es ist die Sache, die der Lauf belegt, und ein Teiler kann es
+   nicht umdrehen.
+
+   UND DIE DRITTE IST DIE ANMELDEBREMSE (F3). `brake=10` teilt NUR die
+   Wartezeit -- aus 700 Millisekunden werden 70 --, und zwar ausdruecklich
+   nicht die Kurve und nicht die Schwellen: weich ab fuenf, hart ab zehn, fuenf
+   Minuten Sperre. Sechs Gruppen fuhren diese Kurve real durch die Routen und
+   kosteten damit rund 80 der 464 Sekunden.
+   ZEHN UND NICHT VIERZIG, und das ist gemessen und nicht gegriffen: bei
+   vierzig blieben 18 Millisekunden uebrig, und das ist im Rauschen einer
+   HTTP-Antwort nicht mehr sicher von null zu unterscheiden. Die Pruefungen,
+   die „ohne Verzoegerung" gegen „verzoegert" halten, brauchen einen Abstand,
+   den man messen kann. Siebzig Millisekunden sind einer.
+
+   WAS SICH DAMIT NICHT AENDERT: keine Schwelle, keine Route, keine Antwort.
+   Die Prueflagen, die die AUSGELIEFERTEN Zahlen belegen, starten ihre Server
+   ausdruecklich OHNE den Schalter (`KRITERION_TESTBENCH: ''`) -- Zusagen 8 und
+   10 lesen die Auslieferung und nicht diesen Lauf. */
+process.env.KRITERION_TESTBENCH = 'pruefstand:scrypt=1024:mail=40:brake=10';
+
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
@@ -41,6 +71,53 @@ const sharp = require('sharp');
    Adresse. Er ist WERKZEUG und wird nicht ausgeliefert -- deshalb steht er
    hier und nicht in einer Serverdatei. */
 const { zerlege, CODE, TEXT, KOMMENTAR } = require('./tools/segments.js');
+
+/* DIE FRISTEN, MIT DENEN DIE SERVER DIESES LAUFS WIRKLICH RECHNEN -- 0.30.0.
+   GELESEN AUS mail.js SELBST und nicht danebengeschrieben: die Prueflagen des
+   Mailversands messen gegen sie, und eine zweite Zahl hier liefe mit der
+   ersten auseinander, sobald jemand den Teiler aendert (Stolperstein 47).
+   mail.js oeffnet keine Datenbank und haengt an nichts ausser keys.js -- es
+   laesst sich hier ohne Nebenwirkung laden. */
+const MAIL_TIMES = require('./mail');
+
+/* ============= DAS GRUNDDOKUMENT FUER jsdom -- 0.30.0, BA 5 (F4) ==========
+   174 AUFBAUTEN, UND JEDER HAT DIESELBE DATEI NEU GELESEN UND NEU UEBERSETZT.
+   `public/app.js` ist 13 299 Zeilen lang; sie von der Platte zu holen und in
+   Maschinencode zu uebersetzen kostet je Fenster ein Vielfaches dessen, was
+   die Pruefung darin danach tut. Die Gruppe „Der Sprachhelfer und die Ladung"
+   ist der Beleg: 20,5 Sekunden, und sie wartet auf keine einzige Frist.
+
+   ZWEI SACHEN STEHEN JETZT EINMAL DA STATT 174-MAL. Der QUELLTEXT wird einmal
+   gelesen, und die UEBERSETZUNG liegt einmal als `vm.Script` -- dieselbe
+   Bauform, die jsdom selbst fuer ein <script> im Dokument benutzt, nur nicht
+   je Fenster neu. Ausgefuehrt wird sie weiterhin JE FENSTER und in dessen
+   eigenem Zusammenhang: jede Prueflage bekommt ihre eigenen Werte, ihre
+   eigenen Zaehler und ihr eigenes Dokument. NICHTS WIRD GETEILT ausser der
+   Uebersetzung.
+
+   UND DER FEHLERWEG BLEIBT DERSELBE. Ein <script> im Dokument meldet einen
+   Fehler an die virtuelle Konsole und laesst den Aufbau weiterlaufen; ein
+   nackter runInContext wuerfe ihn nach aussen und RISSE DEN LAUF AB, statt
+   eine Zusage rot zu faerben (Stolperstein 161). Deshalb die Klammer -- jeder
+   Griff in einen Nachbau wird geklammert. */
+const vm = require('vm');
+const BASE_SOURCE = fs.readFileSync(path.join(__dirname, 'public', 'app.js'), 'utf8');
+const BASE_SCRIPT = new vm.Script(BASE_SOURCE, { filename: 'public/app.js' });
+/* UND DIE WARTEZEIT, DIE DIE ROUTEN DIESES LAUFS WIRKLICH EINLEGEN -- 0.30.0,
+   F3. Dieselbe Funktion, die der Server ruft, und keine zweite Zahl daneben:
+   die Prueflagen halten „ohne Verzoegerung" gegen „verzoegert" und muessen
+   dafuer wissen, wo die Grenze zwischen beidem liegt. */
+const RUN_KEYS = require('./keys');
+const BRAKE_STEP = RUN_KEYS.brakeWait(700);
+/* UND DIE KOSTENSTUFE, MIT DER DIESE INSTANZEN WIRKLICH RECHNEN -- 0.30.0, F1.
+   DIE AUSGELIEFERTE ZAHL KOMMT AUS auth.js SELBST und steht hier nicht noch
+   einmal: sie ist dort festgenagelt, die Zusage haelt sie namentlich, und eine
+   zweite Zahl hier liefe mit ihr auseinander (Stolperstein 47). Gelesen wird
+   der Quelltext und nicht das Modul -- auth.js haengt an db.js, und das
+   oeffnete beim Laden eine Datenbank. */
+const SCRYPT_SHIPPED = Number((fs.readFileSync(path.join(__dirname, 'auth.js'), 'utf8')
+  .match(/^const SCRYPT_SHIPPED = (\d+);$/m) || [])[1]);
+const RUN_SCRYPT = RUN_KEYS.scryptCost(SCRYPT_SHIPPED);
 
 /* DIE README ALS EIN LANGER STRING, EINMAL GELESEN. Gebraucht wird sie
    ueberall dort, wo ein Text die Oberflaeche VERLAESST: was aus der Instanz
@@ -77,8 +154,73 @@ let passedCount = 0, failed = 0, skipped = 0;
 let stillPassed = 0, stillFailed = 0;
 let groupsShown = 0, groupsStill = 0;
 let silent = false;
+
+/* ================= WO DIE ZEIT HINGEHT -- 0.30.0, BA 4 =================
+   OHNE DIESE ZAHL IST JEDE BESCHLEUNIGUNG GERATEN. Am 12. September 2026 ist
+   ein vollstaendiger Lauf mit einem Zeitstempel je Gruppe gefahren worden --
+   VON AUSSEN, ohne eine einzige Zeile im Baum: 446,8 Sekunden, 329 Gruppen,
+   und zwoelf davon trugen 210 Sekunden. Was hier gebaut wird, ist deshalb
+   nicht die MOEGLICHKEIT, sondern die WIEDERHOLBARKEIT -- eine Zahl, die jeder
+   Lauf selbst nennt, statt einer, die jemand von aussen nachhaelt.
+
+   DIE TAFEL STEHT IMMER, DIE ZEILE JE GRUPPE NUR AUF SCHALTER (F5). Eine Zeile
+   je Gruppe macht die Ausgabe um 329 Zeilen laenger; wer die Zeit einer
+   einzelnen Gruppe nicht sucht, soll sie nicht lesen muessen.
+
+   DER SCHALTER IST EINE UMGEBUNGSVARIABLE UND KEIN ZWEITES ARGUMENT: argv[2]
+   traegt den Namensfilter, und ein zweites Argument daneben liese sich mit ihm
+   verwechseln -- `node testbench.js Rechte 1` saehe aus wie ein zweiter Name.
+
+   GEMESSEN WIRD AUCH, WAS DER FILTER UEBERGEHT. Der Filter nimmt die AUSGABE
+   weg und nicht die ARBEIT: eine uebergangene Gruppe kostet dieselbe Zeit wie
+   eine gezeigte. Die Tafel zeigt trotzdem nur die GEZEIGTEN -- sonst stuende
+   in einem gefilterten Lauf der Name einer Gruppe, die er gerade verschweigt,
+   und die Regel des gefilterten Laufs waere an ihrer eigenen Schlusstafel
+   gebrochen. */
+const TIMES = [];
+const TIME_EACH = process.env.TESTBENCH_ZEIT === '1';
+const RUN_START = Date.now();
+let timeName = '', timeStart = 0, timeSilent = false;
+/* SCHLIESST DIE LAUFENDE GRUPPE UND MERKT IHRE ZEIT. Gerufen wird sie von
+   group() UND von endBlock(): hinter der letzten Gruppe kommt kein group()
+   mehr, und ohne den zweiten Aufruf fehlte ausgerechnet sie in der Tafel. */
+function closeTime() {
+  if (!timeName) return;
+  const ms = Date.now() - timeStart;
+  if (!timeSilent) TIMES.push({ name: timeName, ms });
+  if (TIME_EACH && !timeSilent) console.log(`  ⏱ ${(ms / 1000).toFixed(1)} s`);
+  timeName = '';
+}
+/* DIE SCHLUSSTAFEL IST EINE REINE FUNKTION, und das ist kein Geschmack: „die
+   ZEHN teuersten" laesst sich an einem Lauf mit zwei Gruppen nicht belegen.
+   So faehrt die Zusage sie an gestellten Zahlen -- in null Millisekunden und
+   fuer jede Zahl von Gruppen.
+   KEINE ZEILE DIESER TAFEL DARF WIE EINE GRUPPE ODER WIE EIN ROTER PUNKT
+   AUSSEHEN: counterproof.js liest die Ausgabe und erkennt Gruppen an „── " am
+   Zeilenanfang und rote Punkte an genau zwei Leerzeichen vor einem Kreuz.
+   Die Zeilen hier fangen mit vier Leerzeichen an und tragen kein Kreuz. */
+function timeTable(rows, wholeMs, top = 10) {
+  const inGroups = rows.reduce((n, z) => n + z.ms, 0);
+  const worst = [...rows].sort((a, b) => b.ms - a.ms).slice(0, top);
+  const wide = Math.max(0, ...worst.map(z => z.name.length));
+  const out = [`  DIE TEUERSTEN ${worst.length} VON ${rows.length} GRUPPEN:`];
+  for (const z of worst)
+    out.push(`    ${z.name.padEnd(wide)}  ${(z.ms / 1000).toFixed(1).padStart(6)} s  ` +
+             `${(wholeMs ? z.ms * 100 / wholeMs : 0).toFixed(1).padStart(5)} %`);
+  /* BEIDE ZAHLEN, UND SIE SIND VERSCHIEDEN: die Summe der Gruppen laesst
+     alles weg, was zwischen ihnen liegt -- der Aufbau vor der ersten Gruppe,
+     das Aufraeumen hinter der letzten. Gemessen wird die Runde an der
+     ZWEITEN (F6), also steht sie auch da. */
+  out.push(`  ${(inGroups / 1000).toFixed(1)} s in Gruppen, ` +
+           `${(wholeMs / 1000).toFixed(1)} s im ganzen Lauf.`);
+  return out;
+}
+
 const group = (name) => {
+  closeTime();
+  timeName = name; timeStart = Date.now();
   silent = FILTER !== '' && !name.toLowerCase().includes(FILTER.toLowerCase());
+  timeSilent = silent;
   if (silent) { groupsStill++; return; }
   groupsShown++;
   /* MINDESTENS ZWEI STRICHE, auch bei einem langen Namen. Eine Ueberschrift
@@ -99,6 +241,8 @@ function check(name, condition, hint = '') {
 // EINE Stelle fuer den Schlussblock: der gefilterte und der volle Lauf enden
 // gleich, und die Selbstprobe weiter unten pruefT genau diese Stelle.
 function endBlock() {
+  // Die letzte Gruppe hat kein nachfolgendes group() mehr.
+  closeTime();
   console.log(`\n${'═'.repeat(62)}`);
   const sum = passedCount + failed;
   // "0 von 0 bestanden -- alles in Ordnung" waere die schlimmste Zeile des
@@ -117,6 +261,13 @@ function endBlock() {
     if (stillFailed)
       console.log(`  DARIN ${stillFailed} GESCHEITERT — hier nicht angezeigt. ` +
                   `Ohne Filter laufen lassen, um sie zu sehen.`);
+  }
+  /* DIE TAFEL STEHT IM SCHLUSSBLOCK UND NICHT DANEBEN. Eine zweite Stelle
+     liefe mit der ersten auseinander -- und der gefilterte Lauf endet seit
+     jeher an genau dieser einen (Stolperstein 47). */
+  if (TIMES.length) {
+    console.log('');
+    for (const z of timeTable(TIMES, Date.now() - RUN_START)) console.log(z);
   }
   console.log(`${'═'.repeat(62)}\n`);
 }
@@ -190,6 +341,22 @@ const KEY = crypto.randomBytes(32).toString('hex');
 const OFFSET_LEVEL = 3500;
 const OFFSET_TRACES = 4;
 const PORT_WIDTH = 60;
+/* ================= DIE SPANNE ALLER PORTBASEN -- 0.30.0, F7 =================
+   Die Gegenprobe sieht VOR dem ersten Rueckbau nach, ob in diesem Fenster
+   jemand horcht -- der Portblick findet auch das, was kein Muster ueber die
+   Befehlszeile je findet (counterproof.js, foreignPort()). Dafuer braucht sie
+   die Spanne, und eine zweite Liste dort liefe mit dieser auseinander
+   (Stolperstein 47); gelesen wird sie deshalb von dort aus HIER, genau wie
+   OFFSET_LEVEL.
+   DIE ZWEI ZAHLEN WERDEN NACHGERECHNET UND NICHT BEHAUPTET: die Gruppe „Die
+   Portbasen und der Versatz" haelt sie gegen die Basen, die der Lauf WIRKLICH
+   benutzt hat, samt Fensterbreite und samt dem Versatz aller Nebenspuren. Ein
+   Fenster, das zu eng wird, faellt dort auf und nicht erst im Betrieb.
+   DIE OBERE ZAHL IST GERECHNET: hoechste Basis 7120 plus Fensterbreite 60 plus
+   der Versatz der letzten Nebenspur (3 mal 3500) -- macht 17680, und die
+   hoechste ERREICHBARE Nummer ist die davor. */
+const PORT_SPAN_FROM = 3900;
+const PORT_SPAN_TO = 17679;
 const MAIN_WIDTH = 90;
 const MAIN_BASE = 3900;
 /* DER ALTE NAME GILT WEITER (F9). Der Pruefstand liest ihn ohne Umschweife
@@ -218,14 +385,28 @@ function startServer() {
     });
     kind.stdout.on('data', d => { output += d; });
     kind.stderr.on('data', d => { output += d; });
-    kind.on('exit', c => { if (c) error(new Error(`Server beendet (Code ${c})\n${output}`)); });
+    /* AUCH DER HAUPTSERVER SAGT ES, WENN ER VON SELBST ENDET -- 0.30.0, BA 2.
+       `error()` greift nur, solange das Versprechen des Starts offen ist;
+       danach war sein Ende bis 0.30.0 STUMM, und die naechste Anfrage meldete
+       „fetch failed" ohne Ort und ohne Grund. Genau so ist in dieser Runde ein
+       Befund zwei Stunden lang unsichtbar geblieben (Befund 11). */
+    kind.on('exit', (c, signal) => {
+      if (c) error(new Error(`Server beendet (Code ${c})\n${output}`));
+      if (c === null && signal === 'SIGTERM') return;   // das ist unser eigenes kill()
+      console.error(`\n  ACHTUNG: der Hauptserver (Port ${PORT}) ist von selbst beendet -- ` +
+        `Code ${c}, Signal ${signal}, Verzeichnis ${DATA}`);
+      console.error('  ' + output.split('\n').filter(Boolean).slice(-8).join('\n  '));
+    });
     (async () => {
-      for (let i = 0; i < 100; i++) {
-        await new Promise(r => setTimeout(r, 100));
+      for (let i = 0; i < READY_TRIES; i++) {
+        await new Promise(r => setTimeout(r, READY_STEP));
         // /api/config statt /api/health: health liegt hinter der Anmeldung.
         try { if ((await fetch(`${BASE}/api/config`)).ok) return done(); } catch {}
       }
-      error(new Error(`Server nicht erreichbar\n${output}`));
+      // DERSELBE SATZ WIE BEIM ZWEITSERVER -- 0.30.0, BA 2: wer sucht, sucht
+      // mit denselben drei Angaben.
+      error(new Error(`Hauptserver nicht erreichbar: Portbasis ${MAIN_BASE}, Port ${PORT}, ` +
+        `Verzeichnis ${DATA} -- ${READY_TRIES * READY_STEP / 1000} s gewartet\n${output}`));
     })();
   });
 }
@@ -370,7 +551,15 @@ function smtpEmpfaenger(kind = 'ok') {
     sock.write('220 kriterion-probe ESMTP\r\n');
     if (kind === 'schweigt') return;
     if (kind === 'troepfelt') {
-      const drop = setInterval(() => { try { sock.write('2'); } catch {} }, 3000);
+      /* DER TROPFEN FOLGT DER FRIST -- 0.30.0. Sein Sinn ist, socketTimeout
+         mit JEDEM Byte zurueckzusetzen: er muss deshalb deutlich kuerzer
+         takten als die Frist, die er aushebelt. Ausgeliefert sind das 3 von 20
+         Sekunden; kurz gestellt bleibt dasselbe Verhaeltnis, und der Beleg
+         bleibt derselbe. Eine feste Zahl daneben liefe mit dem Teiler
+         auseinander und liese diese Lage still an socketTimeout scheitern --
+         also an der Frist, die sie gerade widerlegen soll. */
+      const beat = Math.max(20, Math.round(MAIL_TIMES.SEND_MS * 0.15));
+      const drop = setInterval(() => { try { sock.write('2'); } catch {} }, beat);
       sock.on('close', () => clearInterval(drop));
       return;
     }
@@ -426,6 +615,31 @@ function smtpEmpfaenger(kind = 'ok') {
 // Ein weiterer Server mit eigenem Datenverzeichnis, eigener Umgebung und
 // eigenem Cookie. Gebraucht fuer alle Prueflagen, die eine eigene Instanz
 // brauchen: frische Einrichtung, Rechte mit mehreren Zugaengen, Sperren.
+/* ================= DAS WARTEFENSTER -- 0.30.0, BA 2 =================
+   ZWOELF SEKUNDEN WAREN ZU WENIG. Unter schwerer Nebenlast -- beobachtet in
+   0.8.10 und 0.8.30, beide Male neben einem gleichzeitigen Image-Bau -- ist
+   der Zweitserver spaeter dagewesen als das Fenster, und der Lauf RISS AB,
+   statt eine Pruefung namentlich rot zu faerben.
+   DREISSIG UND NICHT SECHZIG: ein Fenster, das zu weit steht, verwandelt einen
+   echten Fehlstart in eine halbe Minute Warten je Prueflage -- bei 78 Servern
+   waere das eine Stunde, in der niemand etwas sieht. Dreissig Sekunden sind
+   das Zweieinhalbfache der alten Zahl und immer noch eine Zeit, die ein Mensch
+   abwartet.
+   DIE TEURERE HAELFTE WAR ABER DIE MELDUNG. „Zweitserver nicht erreichbar"
+   schickte auf eine Suche durch 78 Server; welcher gemeint war, stand
+   nirgends. Seit 0.30.0 nennt sie die Portbasis, den gezogenen Port und das
+   Verzeichnis -- die drei Angaben, mit denen sich die Prueflage in einer Zeile
+   wiederfinden laesst. */
+const READY_TRIES = 300;
+const READY_STEP = 100;
+/* DIE MELDUNG ALS EIGENE FUNKTION, und das ist kein Umweg: die Zusage dazu
+   soll sie FAHREN und nicht den Quelltext lesen -- und einen Zweitserver
+   wirklich ins Leere laufen zu lassen kostete dreissig Sekunden. So steht die
+   Meldung an EINER Stelle, und die Zusage baut dieselbe. */
+const readyFailure = (portBase, port, dataDirectory, log = '') =>
+  `Zweitserver nicht erreichbar: Portbasis ${portBase}, Port ${port}, ` +
+  `Verzeichnis ${dataDirectory} -- ${READY_TRIES * READY_STEP / 1000} s gewartet\n${log}`;
+
 function startFurtherServer(dataDirectory, extraEnv, portBase) {
   const port = portBase + PORT_OFFSET + Math.floor(Math.random() * PORT_WIDTH);
   const base = `http://127.0.0.1:${port}`;
@@ -434,9 +648,22 @@ function startFurtherServer(dataDirectory, extraEnv, portBase) {
   delete environment.AUTH_RESET;
   Object.assign(environment, extraEnv);
   const kindB = spawn(process.execPath, ['server.js'], { cwd: __dirname, env: environment });
-  CASES.push({ base: portBase, port, kind: kindB, directory: dataDirectory });
+  const state = { base: portBase, port, kind: kindB, directory: dataDirectory };
+  CASES.push(state);
   kindB.stdout.on('data', d => { log += d; });
   kindB.stderr.on('data', d => { log += d; });
+  /* EIN SERVER, DER VON SELBST ENDET, IST EIN FUND -- 0.30.0, BA 2. Bis dahin
+     fiel er erst an der naechsten Anfrage auf, und zwar als „fetch failed"
+     ohne Ort und ohne Grund. Wer ihn beendet hat, weiss es; wer ihn verliert,
+     sucht. Deshalb sagt er es hier selbst, mit Portbasis, Port, Verzeichnis
+     und den letzten Zeilen seiner Ausgabe.
+     `state.stopped` SETZT stop() -- ein geordnetes Ende ist kein Fund. */
+  kindB.on('exit', (code, signal) => {
+    if (state.stopped) return;
+    console.error(`\n  ACHTUNG: der Server der Portbasis ${portBase} (Port ${port}) ist von ` +
+      `selbst beendet -- Code ${code}, Signal ${signal}, Verzeichnis ${dataDirectory}`);
+    console.error('  ' + log.split('\n').filter(Boolean).slice(-6).join('\n  '));
+  });
   const callB = async (method, filePath, body) => {
     const opt = { method: method, headers: {} };
     if (cookieB) opt.headers.cookie = cookieB;
@@ -449,11 +676,11 @@ function startFurtherServer(dataDirectory, extraEnv, portBase) {
     return { status: a.status, content };
   };
   const ready = (async () => {
-    for (let i = 0; i < 120; i++) {
-      await new Promise(r => setTimeout(r, 100));
+    for (let i = 0; i < READY_TRIES; i++) {
+      await new Promise(r => setTimeout(r, READY_STEP));
       try { if ((await fetch(`${base}/api/config`)).ok) return true; } catch {}
     }
-    throw new Error(`Zweitserver nicht erreichbar\n${log}`);
+    throw new Error(readyFailure(portBase, port, dataDirectory, log));
   })();
   return { ready, call: callB, log: () => log, base,
            cookieRemove: () => { cookieB = ''; },
@@ -462,7 +689,7 @@ function startFurtherServer(dataDirectory, extraEnv, portBase) {
            // reicht call() nicht, und ein zweiter Anmeldeweg daneben waere
            // eine zweite Wahrheit ueber dieselbe Sitzung.
            cookieValue: () => cookieB,
-           stop: () => endKind(kindB) };
+           stop: () => { state.stopped = true; return endKind(kindB); } };
 }
 
 /* ================= DIESER PRUEFLAUF LIEST DEUTSCH -- 0.24.3 ==============
@@ -571,8 +798,129 @@ const callF = (...w) => includingShare(call, PASSWORD)(...w);
 const shareMain = (purpose, target = null) =>
   call('POST', '/api/confirm', { password: PASSWORD, purpose, target });
 
+/* ============ WAS EIN ABGEBROCHENER LAUF STEHENLAESST -- 0.30.0, BA 3 ======
+   AM 8. SEPTEMBER 2026 GESEHEN: sieben verwaiste Server, zweieinhalb Stunden
+   alt, jeder mit seinem Wegwerfverzeichnis. Der Waechter „Keine Prueflage
+   laesst ihren Server zurueck" greift nur beim ORDENTLICHEN Ende -- wer den
+   Lauf mit Strg-C anhaelt oder das Fenster schliesst, laesst alles stehen, was
+   gerade laeuft.
+   DIE GEGENPROBE HAT IHREN AUFRAEUMER SCHON (foreignServer), DER PRUEFSTAND
+   HATTE KEINEN. Er startet in ein belegtes Portfenster hinein und merkt es
+   nicht: ein zweiter Server auf demselben Port faellt nicht von selbst auf,
+   die Bereitschaftspruefung bekommt ja eine Antwort (Stolperstein 139).
+
+   ERKANNT WIRD AM WEGWERFVERZEICHNIS UND NICHT AM NAMEN. `node server.js`
+   heisst der Server des Betreibers auch -- und den darf dieser Aufraeumer
+   unter keinen Umstaenden anfassen. Ein Prozess zaehlt deshalb nur dann als
+   Rest, wenn sein DATA_DIR unter dem Wegwerfpfad DIESES Pruefstands liegt:
+   `<tmp>/kriterion-...`. Ein Bestand liegt dort nie.
+
+   UND ER ZAEHLT NUR, WAS WIRKLICH VERWAIST IST -- also einen Prozess, dessen
+   VATER FORT IST. Das ist die Frage, um die es geht: ein Rest ist kein Server
+   mit einem bestimmten Namen, sondern einer, auf den niemand mehr wartet.
+
+   ZWEI FAELLE HAENGEN DARAN, UND DER ZWEITE HAT DIESE ZEILE ERZWUNGEN.
+   Der erste ist der eigene Lauf: waehrend er laeuft, leben bis zu 79 eigene
+   Server mit genau solchen Verzeichnissen, und ein Aufraeumer, der sie
+   mitnaehme, braechte den Lauf um, den er schuetzen soll.
+   DER ZWEITE IST DIE GEGENPROBE, und sie faehrt VIER LAEUFE NEBENEINANDER.
+   Ein Aufraeumer, der nur „nicht von mir" fragt, raeumt dort die Server der
+   drei anderen Spuren weg -- gefahren am 12. September 2026, und alle
+   sechsundzwanzig Rueckbauten meldeten ABGERISSEN nach einer Sekunde. DAS IST
+   GENAU DER SCHADEN, GEGEN DEN foreignServer() GEBAUT IST, nur aus der anderen
+   Richtung: dort nimmt ein fremder Lauf die Ports, hier naehme ein fremder
+   Lauf die Prozesse.
+   „DER VATER IST FORT" IST DIE ANTWORT AUF BEIDE: die eigenen Kinder haben uns
+   als Vater, die Kinder der Nachbarspur haben ihren eigenen Lauf -- und nur
+   ein Rest haengt an der Eins, weil sein Lauf nicht mehr da ist.
+
+   GELESEN WIRD UEBER `/proc`, wie ueberall in diesem Haus: keine neue
+   Abhaengigkeit, kein `ps`, kein `pkill` auf einen Namen -- genau der hat in
+   0.17.0 den Schaden ausgedehnt. */
+const LEFTOVER_ROOT = path.join(os.tmpdir(), 'kriterion-');
+
+function parentOf(pid) {
+  let row;
+  try { row = fs.readFileSync(`/proc/${pid}/stat`, 'utf8'); } catch { return 0; }
+  /* HINTER DER LETZTEN KLAMMER UND NICHT AM ZWEITEN FELD: der Name des
+     Prozesses steht in Klammern und darf selbst Leerzeichen und Klammern
+     tragen. Wer stumpf an Leerzeichen trennt, liest bei einem solchen Namen
+     die falsche Zahl. */
+  const rest = row.slice(row.lastIndexOf(')') + 1).trim().split(/\s+/);
+  return Number(rest[1]) || 0;
+}
+
+/* LEBT DIESE NUMMER NOCH? Signal 0 stellt die Frage, ohne etwas zu schicken. */
+const alive = (pid) => { try { process.kill(pid, 0); return true; } catch { return false; } };
+
+const ourOwn = (pid) => {
+  for (let up = parentOf(pid), step = 0; up > 1 && step < 40; up = parentOf(up), step++)
+    if (up === process.pid) return true;
+  return false;
+};
+
+/* Liefert die Reste: Prozessnummer, Verzeichnis und Port, soweit er dasteht. */
+function leftovers() {
+  const outcome = [];
+  let entries;
+  try { entries = fs.readdirSync('/proc'); } catch { return outcome; }
+  for (const e of entries) {
+    if (!/^\d+$/.test(e) || Number(e) === process.pid) continue;
+    let environment;
+    try { environment = fs.readFileSync(`/proc/${e}/environ`, 'utf8').split('\0'); } catch { continue; }
+    const where = (environment.find(z => z.startsWith('DATA_DIR=')) || '').slice(9);
+    if (!where || !where.startsWith(LEFTOVER_ROOT)) continue;
+    /* DER VATER MUSS FORT SEIN. `ppid === 1` heisst: er ist gestorben, und der
+       Kern hat den Prozess an die Eins gehaengt. Lebt der Vater noch, gehoert
+       der Server einem laufenden Prueflauf -- unserem eigenen oder dem der
+       Nachbarspur -- und ist kein Rest. */
+    const father = parentOf(Number(e));
+    if (father > 1 && alive(father)) continue;
+    if (ourOwn(Number(e))) continue;
+    outcome.push({ pid: Number(e), where,
+      port: (environment.find(z => z.startsWith('PORT=')) || '').slice(5) });
+  }
+  return outcome;
+}
+
+/* RAEUMT AUF UND SIEHT NACH -- dieselbe Bauform wie cleanUp() in der
+   Gegenprobe: ein Aufraeumen, das nie greift, sieht aus wie eines, das greift.
+   Geliefert wird, WAS es angefasst hat, und ob etwas stehengeblieben ist. */
+function sweepLeftovers() {
+  const found = leftovers();
+  for (const z of found) { try { process.kill(z.pid, 'SIGKILL'); } catch {} }
+  /* EIN SIGKILL WIRKT NICHT IN DERSELBEN ZEILE. Gewartet wird synchron: der
+     Aufraeumer laeuft VOR dem ersten Server, und ein await mittendrin liesse
+     den Lauf an ihm vorbeistarten. */
+  const wait = (ms) => Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms);
+  const until = Date.now() + 5000;
+  let left = leftovers().filter(z => found.some(f => f.pid === z.pid));
+  while (left.length && Date.now() < until) {
+    wait(100);
+    left = leftovers().filter(z => found.some(f => f.pid === z.pid));
+  }
+  /* DAS VERZEICHNIS GEHT MIT. Ein Wegwerfverzeichnis ohne seinen Server ist
+     nichts als belegter Platz -- in 0.29.0 lagen davon vierzig herum. */
+  for (const z of found) { try { fs.rmSync(z.where, { recursive: true, force: true }); } catch {} }
+  return { cleared: found, left: left.length };
+}
+
 /* ================= Ablauf ================= */
 (async function run() {
+  /* ERST AUFRAEUMEN, DANN STARTEN -- und die Meldung steht VOR der ersten
+     Gruppe, wo sie niemand fuer einen Befund haelt. Wer nichts liegen gelassen
+     hat, liest hier auch nichts. */
+  {
+    const sweep = sweepLeftovers();
+    if (sweep.cleared.length) {
+      console.log(`\nEin frueherer Lauf hat ${sweep.cleared.length} Server stehen lassen -- ` +
+        `beendet und ihre Verzeichnisse entfernt.`);
+      for (const z of sweep.cleared)
+        console.log(`  PID ${z.pid}${z.port ? `  PORT=${z.port}` : ''}  ${z.where}`);
+      if (sweep.left)
+        console.log(`  ${sweep.left} davon leben noch -- von Hand nachsehen.`);
+    }
+  }
   await startServer();
 
   /* ---------------------------------------------------------------- */
@@ -616,8 +964,14 @@ const shareMain = (purpose, target = null) =>
   // Erst auf Vorhandensein, dann auf Eigenschaften: sonst reisst ein fehlender
   // Zugang den ganzen Lauf mit.
   const hash = created[0]?.password_hash || '';
+  /* DIE KOSTENSTUFE IM HASH IST DIE DIESES LAUFS und nicht die getippte Zahl
+     -- 0.30.0, F1. Das FORMAT ist der Gegenstand dieser Zeile; DASS die
+     Auslieferung 16384 traegt, haelt Zusage 8 an auth.js selbst. Eine
+     getippte 16384 hier bliebe beim kurz gestellten Lauf rot, ohne dass
+     irgendetwas falsch waere. */
   check('Passwort liegt als scrypt-Hash, nicht im Klartext',
-    /^scrypt\$16384\$8\$1\$[0-9a-f]{32}\$[0-9a-f]{128}$/.test(hash) && !hash.includes(PASSWORD),
+    new RegExp(`^scrypt\\$${RUN_SCRYPT}\\$8\\$1\\$[0-9a-f]{32}\\$[0-9a-f]{128}$`).test(hash) &&
+      !hash.includes(PASSWORD),
     hash ? hash.slice(0, 40) : 'kein Zugang vorhanden');
   userTable.close();
 
@@ -14161,7 +14515,20 @@ const shareMain = (purpose, target = null) =>
        aus wie einer, den niemand bemerkt.
        DIE GRENZE IST DAS DOPPELTE der Zusage: was darunter liegt, ist eine
        Messung; was darueber liegt, ist ein Befund. */
-    const MEASURE_LIMIT_MS = 40 * 1000;
+    /* DIE GRENZE IST DAS DOPPELTE DER ZUSAGE, und die Zusage ist die Frist
+       dieses Laufs -- nicht mehr die Zahl 40 000. Kurz gestellt waeren 40
+       Sekunden keine Grenze, sondern ein Freibrief: jede der drei Lagen kaeme
+       darunter durch, auch wenn gar keine Frist mehr greift. UND EIN BODEN
+       DARUNTER, damit die Grenze nicht selbst zur Wackelei wird: unter zwei
+       Sekunden misst man auf dieser Maschine den Anlauf und nicht die Frist. */
+    const MEASURE_LIMIT_MS = Math.max(2000, MAIL_TIMES.SEND_MS * 2);
+    /* DIE OBERE SCHRANKE EINER MESSUNG: die Frist plus ein Zehntel, mindestens
+       aber 300 ms Anlauf. DIE UNTERE: der Gruss plus ein Zwanzigstel -- wer
+       darunter bleibt, ist am GRUSS haengengeblieben und nicht an der
+       aeusseren Schranke. Beide Zahlen kommen aus mail.js und stehen nicht
+       daneben. */
+    const sendLimit = MAIL_TIMES.SEND_MS + Math.max(300, MAIL_TIMES.SEND_MS * 0.1);
+    const pastGreeting = MAIL_TIMES.GREETING_MS * 1.05;
     const includingNet = async (promise) => {
       let clock;
       const timeout = new Promise(r => { clock = setTimeout(() => r({ overdue: true }), MEASURE_LIMIT_MS); });
@@ -14187,8 +14554,9 @@ const shareMain = (purpose, target = null) =>
     const stFresh = await includingNet(StA.S.call('POST', '/api/users',
       { username: 'bert', sendInvite: true, email: 'bert@beispiel.de' }));
     const stDuration = Date.now() - t0;
-    check('Ein Empfaenger, der nicht gruesst, haelt die Antwort nicht laenger als 20 s auf',
-      !stFresh.overdue && stDuration < 21000,
+    check(`Ein Empfaenger, der nicht gruesst, haelt die Antwort nicht laenger als ` +
+      `${MAIL_TIMES.SEND_MS} ms auf`,
+      !stFresh.overdue && stDuration < sendLimit,
       stFresh.overdue ? `nach ${MEASURE_LIMIT_MS} ms keine Antwort` : `gemessen ${stDuration} ms`);
     check('Und der Token ist trotzdem da',
       /^[0-9a-f]{64}$/.test(stFresh.content?.token || '') && stFresh.content?.delivery === 'fehlgeschlagen',
@@ -14202,12 +14570,13 @@ const shareMain = (purpose, target = null) =>
       { username: 'bert', sendInvite: true, email: 'bert@beispiel.de' }));
     const swDuration = Date.now() - t1;
     check('Ein Empfaenger, der gruesst und dann schweigt, ebenso wenig',
-      !swFresh.overdue && swDuration < 21000,
+      !swFresh.overdue && swDuration < sendLimit,
       swFresh.overdue ? `nach ${MEASURE_LIMIT_MS} ms keine Antwort` : `gemessen ${swDuration} ms`);
     /* UND DIE UNTERGRENZE: dieser Fall darf nicht am GRUSS haengenbleiben.
        Bliebe er unter sieben Sekunden, haette ihn greetingTimeout gefangen. */
     check('Und er kommt wirklich am Gruss vorbei',
-      swDuration > 7500, `gemessen ${swDuration} ms -- unter 7,5 s haette der Gruss gehalten`);
+      swDuration > pastGreeting,
+      `gemessen ${swDuration} ms -- unter ${Math.round(pastGreeting)} ms haette der Gruss gehalten`);
     check('Der Token ist auch hier da',
       /^[0-9a-f]{64}$/.test(swFresh.content?.token || '') && Boolean(swFresh.content?.link),
       JSON.stringify([swFresh.content?.token, swFresh.content?.link]));
@@ -14224,12 +14593,13 @@ const shareMain = (purpose, target = null) =>
     const trFresh = await includingNet(TrA.S.call('POST', '/api/users',
       { username: 'bert', sendInvite: true, email: 'bert@beispiel.de' }));
     const trDuration = Date.now() - t2;
-    check('Ein Empfaenger, der troepfelt, haelt die Antwort trotzdem nicht laenger als 20 s auf',
-      !trFresh.overdue && trDuration < 21000,
+    check(`Ein Empfaenger, der troepfelt, haelt die Antwort trotzdem nicht laenger als ` +
+      `${MAIL_TIMES.SEND_MS} ms auf`,
+      !trFresh.overdue && trDuration < sendLimit,
       trFresh.overdue ? `nach ${MEASURE_LIMIT_MS} ms keine Antwort — die aeussere Schranke fehlt`
                          : `gemessen ${trDuration} ms`);
     check('Und auch er kommt an allen Fristen von nodemailer vorbei',
-      trDuration > 7500, `gemessen ${trDuration} ms`);
+      trDuration > pastGreeting, `gemessen ${trDuration} ms`);
     check('Der Token ist auch dort da',
       /^[0-9a-f]{64}$/.test(trFresh.content?.token || '') && Boolean(trFresh.content?.link),
       JSON.stringify([trFresh.content?.token, trFresh.content?.link]));
@@ -18279,8 +18649,17 @@ const shareMain = (purpose, target = null) =>
        Wortlaut -- er steht in der Wortlautprobe weiter unten.
        DIE MEHRZAHLFORMEN UND DIE VOKABELNAMEN RUEHREN SICH NICHT: ein Datum
        hat keine Mehrzahl, und „Ueberfaellig" ist kein Vokabelwort. */
-    check('Und die Zahlen stehen: 1346 Schluessel, 82 Mehrzahlformen, 14 Vokabelnamen',
-      languageKeys.length === 1346 && pluralKeys.length === 82 && vocabularyKeys.length === 14,
+    /* 1347 SEIT 0.30.0 -- 1346 minus einen plus zwei, und alle drei haben
+       einen Namen (Befund 9 und Befund 10):
+         WEG    `list.tagsCount` („Tags (2)") -- der Umschalter der Tagzeile ist
+                gefallen, und die Zahl stand an ihm (F9).
+         NEU    `entry.weighted` („gewichtet") und `card.configured`
+                („eingerichtet") -- zwei Woerter, die fest im Quelltext
+                standen. Gefunden hat sie die Wache, die WERTE liest (F15).
+       DIE MEHRZAHLFORMEN UND DIE VOKABELNAMEN RUEHREN SICH NICHT: „gewichtet"
+       hat keine Mehrzahl, und „eingerichtet" ist kein Vokabelwort. */
+    check('Und die Zahlen stehen: 1347 Schluessel, 82 Mehrzahlformen, 14 Vokabelnamen',
+      languageKeys.length === 1347 && pluralKeys.length === 82 && vocabularyKeys.length === 14,
       `${languageKeys.length} / ${pluralKeys.length} / ${vocabularyKeys.length}`);
 
     /* ---- 3. Die Adressprobe ---------------------------------------------
@@ -18521,10 +18900,24 @@ const shareMain = (purpose, target = null) =>
       'list.dueOverdue', 'list.dueToday', 'list.dueLater', 'list.dueNone',
       'entry.dueSet', 'entry.dueHint', 'server.dueInvalid',
       'card.emailsDoubled', 'card.emailsDoubledHint', 'login.emailTaken'];
+    /* UND ZWEI MIT 0.30.0, und beide kommen aus Befund 10: ein Wort, das fest
+       im Quelltext stand, bekommt seinen Schluessel.
+         `entry.weighted`   „gewichtet" an der Kopfzahl des Bewertungskastens.
+                            Es stand seit 0.16.0 fest da und in KEINER
+                            Sprachdatei -- in einer englisch oder tuerkisch
+                            eingestellten Instanz stand dort deutscher Text.
+         `card.configured`  „eingerichtet" am Mailversand. Dieselbe Zeile las
+                            fuer das Gegenteil schon `card.notConfigured`;
+                            die Zusage stand fest auf Deutsch daneben.
+       GEFUNDEN HAT BEIDE DIESELBE WACHE, und sie ist die eigentliche Antwort
+       auf Befund 10: „an" und „aus" hat sie auch gefunden -- dafuer gab es
+       die Schluessel schon (`card.on`, `card.off`). */
+    const WORDING_NEW_0300 = ['entry.weighted', 'card.configured'];
     const WORDING_NEW = [...WORDING_NEW_0243, ...WORDING_NEW_0244,
       ...WORDING_NEW_0245, ...WORDING_NEW_0246, ...WORDING_NEW_0250,
       ...WORDING_NEW_0254, ...WORDING_NEW_0260, ...WORDING_NEW_0270,
-      ...WORDING_NEW_0280, ...WORDING_NEW_0281, ...WORDING_NEW_0290];
+      ...WORDING_NEW_0280, ...WORDING_NEW_0281, ...WORDING_NEW_0290,
+      ...WORDING_NEW_0300];
     const wordingMissing = WORDING_NEW.filter(k => LANGUAGE_FILE[k] === undefined);
     check('Die neuen Schluessel dieser Runde stehen wirklich in der Datei',
       wordingMissing.length === 0, wordingMissing.join(' ') || 'alle da');
@@ -18714,9 +19107,13 @@ const shareMain = (purpose, target = null) =>
        aus dem von heute -- dort steht er ja gerade nicht mehr. Was danach
        verglichen wird, ist der Stand von 0681d42 OHNE ihn gegen den Stand von
        heute ohne die dreizehn plus acht neuen. */
+    /* UND EINER MIT 0.30.0: „Tags ({length})" stand am Umschalter der
+       Tagzeile, und den gibt es nicht mehr (F9). Der Stand von damals kennt
+       ihn, der von heute nicht -- also wird er dort abgezogen. */
+    const WORDING_GONE_TEXT_0300 = ['Tags ({length})'];
     const wordingThen = [...WORDING_GONE_0244, ...WORDING_GONE_TEXT_0254,
       ...WORDING_GONE_TEXT_0260, ...WORDING_GONE_TEXT_0270,
-      ...WORDING_GONE_TEXT_0281]
+      ...WORDING_GONE_TEXT_0281, ...WORDING_GONE_TEXT_0300]
       .reduce((list, sentence) => withoutOne(list, sentence), [...wordingFile.values]).sort();
     const wordingNow = valuesOf(wordingOld).map(asBefore).sort();
     const onlyThen = wordingThen.filter(x => !wordingNow.includes(x));
@@ -18729,10 +19126,15 @@ const shareMain = (purpose, target = null) =>
        weniger: die zwoelf Sortiersaetze fallen aus der Datei von heute und
        werden gleichzeitig aus dem Stand von damals abgezogen. Der Abstand
        zwischen beiden Listen bleibt deshalb bei zwei. */
+    /* 1201 WURDEN 1200 -- 0.30.0, und AUF BEIDEN SEITEN ist es einer weniger:
+       „Tags ({length})" faellt aus der Datei von heute und wird gleichzeitig
+       aus dem Stand von damals abgezogen. Die beiden NEUEN Schluessel stehen
+       in WORDING_NEW und zaehlen hier ohnehin nicht mit. Der Abstand zwischen
+       beiden Listen bleibt deshalb bei zwei. */
     check('Wortlautprobe: zwei Saetze mehr als bei der Abnahme, und beide sind Mehrzahlpaare',
-      wordingNow.length === wordingThen.length + 2 && wordingNow.length === 1201,
+      wordingNow.length === wordingThen.length + 2 && wordingNow.length === 1200,
       `${wordingThen.length} damals, ${wordingNow.length} heute (ohne die ` +
-      `${WORDING_NEW.length} neuen und die fuenf weggenommenen)`);
+      `${WORDING_NEW.length} neuen und die sechs weggenommenen)`);
     /* ZWEI SAETZE SIND ANDERE, UND BEIDE SIND BENANNT.
        `server.backupDirNotSet` NENNT die Umgebungsvariable, und die heisst
        seit 0.24.1 anders -- der Satz musste mitziehen, weil er sonst auf etwas
@@ -18818,8 +19220,32 @@ const shareMain = (purpose, target = null) =>
        „Neue Kategorie, Enter bestaetigt" braucht 254 -- und selbst das
        gekuerzte „Neue Kategorie" noch 124. Gemessen passt nur „Name". */
     const WORDING_CHANGED_0290 = ['entry.newCategoryHint'];
-    check('Und genau vierzehn Saetze sind andere — die dreizehn von vorher und der eine aus 0.29.0',
-      onlyThen.length === 14 && onlyNow.length === 14 &&
+    /* UND ZWEI MIT 0.30.0 -- einer auf jeder Seite mehr, und beide haben einen
+       Namen.
+       `entry.whoRated` HEISST NICHT MEHR „Wer hat bewertet", SONDERN „Wer?"
+       (Befund 7, F11). Gemessen ist der Grund: mit „⌀ 4,5 gewichtet" daneben
+       passt ein Knopf bis 98 px in eine Zeile, ab 127 bricht sie; „Wer hat
+       bewertet" misst 159, „Wer?" deren 67. Der alte Wortlaut ist damit
+       verschwunden (einer mehr in `onlyThen`), der neue dazugekommen (einer
+       mehr in `onlyNow`).
+       `list.tagsCount` IST GANZ GEFALLEN -- „Tags ({length})" stand am
+       Umschalter der Tagzeile, und den gibt es nicht mehr (F9). Er steht damit
+       nur noch in der Abnahme: der DRITTE in `onlyThen`.
+       `entry.weighted` IST NEU -- das Wort „gewichtet" stand bis 0.30.0 fest in
+       public/app.js und in keiner Sprachdatei (Befund 10, F15). Es ist der
+       DRITTE in `onlyNow`.
+       FUENFZEHN UND FUENFZEHN: dreizehn von vorher, einer aus 0.29.0 und
+       dieser eine -- auf jeder Seite dieselbe Rechnung.
+       `list.tagsCount` UND `entry.weighted` STEHEN HIER NICHT: der eine ist
+       ganz gefallen und wird vom Stand von damals abgezogen
+       (WORDING_GONE_TEXT_0300), der andere ist ein NEUER Schluessel und steht
+       in WORDING_NEW_0300. Nur der WORTLAUT eines bleibenden Schluessels
+       gehoert in diese Liste -- und das ist `entry.whoRated`. */
+    const WORDING_CHANGED_0300 = ['entry.whoRated'];
+    check('Und genau fuenfzehn Saetze sind andere — die vierzehn von vorher und der eine aus 0.30.0',
+      onlyThen.length === 15 && onlyNow.length === 15 &&
+      onlyThen.includes('Wer hat bewertet') &&
+      WORDING_CHANGED_0300.every(k => onlyNow.includes(asBefore(LANGUAGE_FILE[k]))) &&
       onlyThen.some(x => x.startsWith('Neue Kategorie')) &&
       WORDING_CHANGED_0290.every(k => !onlyNow.includes(asBefore(LANGUAGE_FILE[k]))) &&
       onlyThen.includes('Titel (A → Z)') &&
@@ -18858,8 +19284,13 @@ const shareMain = (purpose, target = null) =>
     const restThen = onlyThen.reduce(withoutOne, wordingThen);
     const restNow = [...WORDING_DOUBLED_0281, ...WORDING_DOUBLED_0290].reduce(withoutOne,
       onlyNow.reduce(withoutOne, wordingNow));
+    /* 1183 SEIT 0.30.0, vorher 1185: `list.tagsCount` ist ganz gefallen, und
+       „Wer hat bewertet" ist durch „Wer?" ersetzt -- der alte Wortlaut steht
+       auf beiden Seiten nicht mehr im Rest, sondern in den Listen darueber.
+       Die Zahl steht ausdruecklich da: ein Vergleich ohne sie bliebe gruen,
+       wenn beide Listen zugleich schrumpfen. */
     check('Und sonst kein Zeichen — Satz fuer Satz dieselbe Oberflaeche',
-      equal(restThen, restNow) && restNow.length === 1185,
+      equal(restThen, restNow) && restNow.length === 1183,
       `${restThen.filter((x, i) => x !== restNow[i]).length} abweichende von ${restNow.length}`);
 
     /* ---- 6. Die Kuerzeprobe ---------------------------------------------
@@ -20455,12 +20886,12 @@ const shareMain = (purpose, target = null) =>
   // wird trotzdem. Ohne den Namenszaehler kaeme die Antwort sofort.
   const gForeignAddress = await gAttempt('anna', '10.0.9.1');
   check('Ein oft geratener Name wird auch von einer frischen Adresse gebremst',
-    gForeignAddress.ms >= 700, `${gForeignAddress.ms} ms`);
+    gForeignAddress.ms >= BRAKE_STEP, `${gForeignAddress.ms} ms, Grenze ${BRAKE_STEP} ms`);
   // Dieselbe frische Adresse, anderer Name: keine Bremse. Sonst waere es doch
   // die IP gewesen, und die Pruefung darueber belegte nichts.
   const gOtherOneName = await gAttempt('zzz-gibt-es-nicht', '10.0.9.1');
   check('Ein anderer Name von derselben Adresse dagegen nicht',
-    gOtherOneName.ms < 700, `${gOtherOneName.ms} ms`);
+    gOtherOneName.ms < BRAKE_STEP, `${gOtherOneName.ms} ms, Grenze ${BRAKE_STEP} ms`);
   for (let i = 7; i <= 12; i++) {
     const a = await gAttempt('anna', `10.0.0.${i}`);
     if (a.status === 429 && !gNameLock) gNameLock = i;
@@ -20473,7 +20904,7 @@ const shareMain = (purpose, target = null) =>
   check('Das richtige Passwort kommt trotz Bremse durch', gAnyway.status === 200,
     `Status ${gAnyway.status}`);
   check('Und der Zaehler des Namens ist danach zurueckgesetzt',
-    (await gAttempt('anna', '10.0.9.3')).ms < 700);
+    (await gAttempt('anna', '10.0.9.3')).ms < BRAKE_STEP);
 
   /* ---------------------------------------------------------------- */
   group('Welcher Eintrag der Kette zaehlt');
@@ -26025,6 +26456,7 @@ const shareMain = (purpose, target = null) =>
   await checkBatchRun();
   checkKeyChange();
   await check0290();
+  await check0300();
 
   /* ---------------------------------------------------------------- */
   /* Der Schlussdurchlauf. Die Gruppen weiter oben pruefen einzelne
@@ -26713,7 +27145,23 @@ const shareMain = (purpose, target = null) =>
      und „Titel" in beide Richtungen. Vier vorhandene sind MITGEZOGEN und nicht
      ersetzt worden (233, 448, 806, 866), einer hat den Gegenstand gewechselt
      (858: dirOf() ist gefallen, er zielt jetzt auf `start`). */
-  check('Es sind genau 885 Rueckbauten', gpList.length === 885, `${gpList.length}`);
+  /* 885 WURDEN 906 -- 0.30.0, und die EINUNDZWANZIG neuen tragen die Nummern
+     895 bis 915: je einer fuer den Portblick, das Wartefenster und seine
+     Meldung, den Aufraeumer, die Schlusstafel, die Kurve der Anmeldebremse und
+     ihre Verdrahtung, die vier Klammern des Pruefschalters, die beiden festen
+     deutschen Woerter und die Wache darueber, die zweite Einteilung, die vier
+     Farben, das Datum an der erledigten Aufgabe, die Luft der Vokabelkarte,
+     die Klammer von C1a, die Zahl am gefallenen Umschalter und den langen
+     Knopf.
+     FUENF VORHANDENE SIND NACHGEZOGEN und nicht ersetzt worden (604, 605, 636,
+     658, 889): ihre Suchtexte standen nach dieser Runde nicht mehr da. Ein
+     Rueckbau, dessen Suchtext fehlt, ist ein Fund ueber die LISTE -- in 0.29.0
+     waren es fuenf, in dieser Runde wieder.
+     605 HAT DABEI DEN GEGENSTAND GEWECHSELT, ohne die Sache zu wechseln: er
+     setzt jetzt den NAMEN zurueck, der von 0.21.0 bis 0.30.0 im Waechter
+     stand, statt ihn zu halbieren -- und macht damit zwei Zusagen rot statt
+     einer. */
+  check('Es sind genau 906 Rueckbauten', gpList.length === 906, `${gpList.length}`);
   const gpTwice = gpList.map(r => r.nr).filter((n, i, a) => a.indexOf(n) !== i);
   check('Und keine Nummer steht zweimal', gpTwice.length === 0, gpTwice.join(' '));
   /* JEDER GREIFT: der Suchtext kommt in seiner Datei GENAU EINMAL vor. Keinmal
@@ -26928,20 +27376,38 @@ const shareMain = (purpose, target = null) =>
      dieselbe Bauform wie beim zweiten Musterwaechter von 0.20.0. */
   const gpSource = fs.readFileSync(path.join(__dirname, 'counterproof.js'), 'utf8');
   const gpOneLine = gpSource.replace(/\s+/g, ' ');
+  /* SEIT 0.30.0 SIND ES ZWEI BLICKE (F7): der ueber die Befehlszeile und der
+     ueber die Ports. Sie finden VERSCHIEDENES -- der erste auch einen Server,
+     der gerade erst startet und noch nicht horcht; der zweite auch einen,
+     dessen Befehlszeile nichts verraet. Abgebrochen wird, sobald EINER von
+     beiden etwas sieht. */
   check('Der Treiber sieht vor dem ersten Rueckbau nach und bricht ab',
-    gpOneLine.includes('const foreign = foreignServer(); if (foreign.length) {') &&
-    /if \(foreign\.length\) \{[\s\S]{0,900}?process\.exit\(1\);/.test(gpSource) &&
+    gpOneLine.includes('const foreign = foreignServer(); const busy = foreignPort(foreign.map(f => f.port)); if (foreign.length || busy.length) {') &&
+    /if \(foreign\.length \|\| busy\.length\) \{[\s\S]{0,1400}?process\.exit\(1\);/.test(gpSource) &&
     gpSource.indexOf('const foreign = foreignServer();') <
       gpSource.indexOf('await runAll(list, traces, level)'),
     (gpOneLine.match(/const foreign = foreignServer\(\)[^;]*/) || ['(nicht gefunden)'])[0]);
   /* UND SIE SUCHT NACH BEIDEN NAMEN. Ein liegengebliebener PRUEFLAUF belegt
      genauso Ports wie ein liegengebliebener Server -- er startet ja welche.
-     AM VERHALTEN WAERE DAS VON HIER AUS NICHT ZU SEHEN: die Funktion meldet
-     sich selbst nicht, und ob waehrend dieser Zeile ein zweiter Prueflauf
-     laeuft, ist Zufall. Also der Quelltext (Stolperstein 307). */
+     HIER STAND BIS 0.30.0 `pruefung.js`, UND DAS WAR DER FEHLER. Diese Zeile
+     hat ihn nicht gefunden, weil sie denselben Namen abgeschrieben hat, den
+     der Ausdruck trug: eine Zusage, die ihren Gegenstand ZITIERT, prueft sich
+     selbst. Sie bleibt trotzdem stehen -- ein Tippfehler im Namen soll auch
+     dann auffallen, wenn gerade kein Prozess laeuft --, und der ECHTE Beleg
+     steht seit dieser Runde in „Der Waechter erkennt den Prueflauf": dort
+     wird ein ECHTER Prozess gestartet und wiedergefunden (Zusage 1). */
   check('Und sie sucht nach beiden Namen -- Server wie Prueflauf',
-    gpSource.includes('const script = parts.find(t => /(^|\\/)(server|pruefung)\\.js$/.test(t));'),
+    gpSource.includes('const script = parts.find(t => /(^|\\/)(server|testbench)\\.js$/.test(t));'),
     (gpSource.match(/const script = parts\.find[^\n]*/g) || ['(nicht gefunden)']).pop());
+  /* UND `pruefung.js` STEHT IN KEINER ZEILE CODE MEHR. Ein Ausdruck, der einen
+     Namen sucht, den es nicht gibt, ist derselbe Fall wie ein Feld ohne Leser.
+     GELESEN WIRD DER CODE UND NICHT DER KOMMENTAR -- dieselbe Ueberlegung wie
+     bei `twoWays` in 0.28.1: der Absatz darueber ERZAEHLT von dem Namen, und
+     ein Waechter, der ihn mitliest, zwaenge dazu, die Begruendung zu loeschen.
+     Genau diese Begruendung ist die Lehre dieser Runde. */
+  const gpCode = gpSource.replace(/\/\*[\s\S]*?\*\//g, ' ').replace(/^\s*\/\/.*$/gm, ' ');
+  check('Und der Name, den es nie gab, steht in keiner Zeile Code mehr',
+    !/pruefung\.js/.test(gpCode), 'pruefung.js steht noch im Code von counterproof.js');
 
   /* ================= Die Groesse der Funktionen — 0.16.0 ================
      SIE MISST, SIE WEIST NICHT AB. Eine harte Grenze („keine Funktion ueber
@@ -27313,7 +27779,18 @@ const shareMain = (purpose, target = null) =>
   fs.rmSync(DATA, { recursive: true, force: true });
   process.exit(returnValue());
 })().catch(e => {
-  console.error('\nPrueflauf abgebrochen:', e.message);
+  /* DIE URSACHE GEHOERT DAZU -- 0.30.0, BA 2. „Prueflauf abgebrochen: fetch
+     failed" nennt weder die Stelle noch den Grund: undici packt den echten
+     Fehler (ECONNREFUSED, ECONNRESET, EAI_AGAIN) in `cause`, und ohne ihn
+     sucht man den Fehler in der falschen Datei. Dieselbe Ueberlegung wie beim
+     Wartefenster: eine Meldung, die auf eine Suche durch 78 Server schickt,
+     ist die teurere Haelfte des Befundes.
+     UND DIE KETTE GANZ: ein `cause` kann selbst eines tragen. */
+  const chain = [];
+  for (let z = e, step = 0; z && step < 5; z = z.cause, step++)
+    chain.push(`${z.code ? `[${z.code}] ` : ''}${z.message || z}`);
+  console.error('\nPrueflauf abgebrochen:', chain.join('  <-  '));
+  if (e && e.stack) console.error(e.stack.split('\n').slice(1, 4).join('\n'));
   if (kind) kind.kill();
   fs.rmSync(DATA, { recursive: true, force: true });
   process.exit(1);
@@ -27420,9 +27897,11 @@ async function checkFirstLogin() {
     times.push(Date.now() - t0);
     if (a.status === 429 && !lockedFrom) { lockedFrom = i; lastMessage = a.content.error || ''; }
   }
-  check('Die ersten Versuche kommen ohne Verzoegerung zurueck', times[0] < 700, `${times[0]} ms`);
+  check('Die ersten Versuche kommen ohne Verzoegerung zurueck',
+    times[0] < BRAKE_STEP, `${times[0]} ms, Grenze ${BRAKE_STEP} ms`);
   check('Ab dem sechsten Versuch wird verzoegert geantwortet',
-    times[5] >= 700, `Versuch 6: ${times[5]} ms (Versuch 1: ${times[0]} ms)`);
+    times[5] >= BRAKE_STEP,
+    `Versuch 6: ${times[5]} ms (Versuch 1: ${times[0]} ms), Grenze ${BRAKE_STEP} ms`);
   check('Ab dem elften Versuch ist gesperrt', lockedFrom === 11, `gesperrt ab Versuch ${lockedFrom}`);
   check('Die Sperre nennt die verbleibende Zeit', /Sekunden/.test(lastMessage), lastMessage);
   check('Auch das richtige Passwort kommt waehrend der Sperre nicht durch',
@@ -27885,6 +28364,12 @@ function buildDom(JSDOM, { withoutLanguage = false, settings = { filters: null }
      Runde behaelt damit ihren Gegenstand. Der Einklappzustand der beiden
      Sternkaesten haengt seit 0.21.0 an genau diesem Schalter, und ohne ihn
      waere die Regel gar nicht zu belegen. */
+  /* DIE KOMMENTARE DES BEISPIELEINTRAGS, stellbar seit 0.30.0 -- wie
+     `openInventory` fuer die Ansicht „Offen". Die vier Zustaende des
+     Faelligkeitsdatums lassen sich an der festen Liste nicht stellen: sie
+     braucht vier Aufgaben mit vier verschiedenen Daten, und eine davon
+     erledigt. */
+  commentInventory = null,
   untested = false, openInventory = null, trashInventory = null, backupStatus = null, backupCopies = null, sessionsInventory = null, logInventory = null,
   publicAddress = '', mailStatus = null, mailError = false, ownAddress = 'chefin@beispiel.de',
   tokenThrottle = 0, signup = false, requestsStatus = null, twoFactorState = null, statsExport = null,
@@ -28185,7 +28670,8 @@ function buildDom(JSDOM, { withoutLanguage = false, settings = { filters: null }
      sie zeichnet, was zurueckkommt, und dass sie dabei nichts loescht.
      JUENGSTE ZUERST, wie beim echten Server: der Boden zaehlt von vorn. */
   const cleanupCopies = (backupCopies || []).slice();
-  const source = fs.readFileSync(path.join(__dirname, 'public', 'app.js'), 'utf8');
+  // DER QUELLTEXT STEHT OBEN UND WIRD EINMAL GELESEN -- 0.30.0, F4.
+  const source = BASE_SOURCE;
   /* Die dreistellige Stimmenzahl der zweiten Kriterienzeile. Sie steht als
      Zahl an EINER Stelle: `count` in der Zeile und die Laenge der Stimmliste
      muessen uebereinstimmen, und zwei getippte Zahlen liefen auseinander. */
@@ -28285,7 +28771,7 @@ function buildDom(JSDOM, { withoutLanguage = false, settings = { filters: null }
       { id: 87, url: 'Handbuch 3000', sort_order: 7,
         created_at: '2026-08-04 13:00:00', mine: false, author: vTomb }
     ],
-    comments: [
+    comments: commentInventory || [
       /* mine und bilderEntfernt an JEDEM Kommentar: der echte Server liefert
          beides seit 0.8.3, und ein Mock, der die Antwort
          vereinfacht, loescht genau die Pruefung, fuer die er gebaut ist.
@@ -29575,12 +30061,18 @@ function buildDom(JSDOM, { withoutLanguage = false, settings = { filters: null }
     }
     return give({});
   };
-  const script = w.document.createElement('script');
-  script.textContent = source;
-  // In den Kopf, nicht in den Rumpf: sonst steht der gesamte Quelltext in
-  // document.body.textContent und jede Textpruefung findet dort Woerter,
-  // die auf dem Bildschirm gar nicht stehen.
-  w.document.head.appendChild(script);
+  /* DIE UEBERSETZUNG KOMMT AUS DEM GRUNDDOKUMENT -- 0.30.0, F4. Gelaufen wird
+     sie im Zusammenhang DIESES Fensters; geteilt ist allein die Uebersetzung.
+     UND SIE STEHT DAMIT AUCH NICHT MEHR IM DOKUMENT: bis 0.30.0 haengte der
+     ganze Quelltext als <script> im Kopf -- ausdruecklich im Kopf und nicht im
+     Rumpf, damit er nicht in `document.body.textContent` steht und jede
+     Textpruefung Woerter findet, die auf dem Bildschirm gar nicht stehen. Wer
+     gar nicht erst im Dokument steht, steht auch in keinem Text.
+     GEKLAMMERT WIE JEDER GRIFF IN EINEN NACHBAU: ein Rueckbau, der app.js
+     zerbricht, soll eine Zusage rot machen und nicht den Lauf abreissen. Die
+     Message geht denselben Weg wie vorher -- in dieselbe virtuelle Konsole. */
+  try { BASE_SCRIPT.runInContext(dom.getInternalVMContext()); }
+  catch (e) { silenceConsole.emit('jsdomError', e instanceof Error ? e : new Error(String(e))); }
   return { w, sent, criteria, example, matchResponse, categoryNames, criterionNames };
 }
 /* DIE TAGZEILE AUFKLAPPEN -- 0.24.0 (Bauabschnitt 0.2). Sie steht seither
@@ -32260,8 +32752,20 @@ async function checkUi() {
     wf.matchesTags(inventory[1], [1, 2], 'quatsch') === false);
 
   const title = () => [...wf.document.querySelectorAll('.card .card-title')].map(e => e.textContent);
-  const mark = (name) => [...wf.document.querySelectorAll('#filters .pill-tag')].find(b => b.textContent === name);
+  /* GEKLAMMERT WIE JEDER GRIFF IN EINEN NACHBAU -- 0.30.0, Stolperstein 161.
+     Ein Rueckbau, der die Tagzeile wegnimmt, findet hier keine Marke mehr; ein
+     nackter `.onclick()` darauf RISSE DEN LAUF AB, statt die Zusagen darunter
+     rot zu machen -- und eine abgerissene Gegenprobe belegt gar nichts.
+     Gefunden am gefahrenen Rueckbau 636 dieser Runde.
+     `markClick()` KLICKT ODER TUT NICHTS; dass die Marke ueberhaupt dasteht,
+     ist eine eigene Zusage und keine stille Voraussetzung. */
+  const mark = (name) => [...wf.document.querySelectorAll('#filters .pill-tag')]
+    .find(b => b.textContent === name) || null;
+  const markClick = (name) => { const b = mark(name); if (b) b.onclick(); return !!b; };
   const mode = (value) => wf.document.querySelector(`#filters .pill-mode[data-mode="${value}"]`);
+  /* DERSELBE GRIFF FUER DEN UMSCHALTER: er steht in derselben Zeile und faellt
+     mit ihr. Klickt oder tut nichts -- und dass er dasteht, ist eine Zusage. */
+  const modeClick = (value) => { const b = mode(value); if (b) b.onclick(); return !!b; };
 
   /* DIE TAGZEILE STEHT SEIT 0.24.0 ZUGEKLAPPT, solange kein Tagfilter greift
      (Bauabschnitt 0.2). Diese Gruppe prueft, was IN der Zeile steht -- sie
@@ -32276,24 +32780,33 @@ async function checkUi() {
   check('Der Umschalter ruht, solange nichts gewählt ist',
     !!wf.document.querySelector('#filters .tagmode.idle'));
 
-  mark('Grün').onclick();
+  check('Die Marken stehen in der Tagzeile und lassen sich anklicken',
+    markClick('Grün'), '(keine Tagzeile oder keine Marke darin)');
   await new Promise(r => setTimeout(r, 20));
   check('Ein Tag filtert wie gehabt',
     equal(title().sort(), ['Grün und leicht', 'Grün und schwer', 'Nur grün']), JSON.stringify(title()));
 
-  mark('Schwer').onclick();
+  /* UND SIE STEHEN AUCH NOCH DA, WENN EIN FILTER GREIFT. Bis 0.30.0 war die
+     Zeile bei greifendem Filter aufgeklappt; jetzt steht sie immer da, und
+     genau das haelt diese Zeile fest -- ohne sie liese sich der Rueckbau, der
+     sie wieder zuklappt, nur am Abriss erkennen. */
+  check('Und sie stehen auch bei greifendem Filter noch da',
+    !!mark('Schwer'), '(die Tagzeile ist bei greifendem Filter verschwunden)');
+  markClick('Schwer');
   await new Promise(r => setTimeout(r, 20));
   check('Zwei Tags mit UND zeigen nur den Schnitt',
     equal(title(), ['Grün und schwer']), JSON.stringify(title()));
   check('Der Umschalter ruht jetzt nicht mehr',
     !wf.document.querySelector('#filters .tagmode.idle'));
 
-  mode('or').onclick();
+  check('Der Umschalter steht in der Tagzeile und laesst sich anklicken',
+    modeClick('or'), '(kein Umschalter -- die Tagzeile fehlt)');
   await new Promise(r => setTimeout(r, 20));
   check('Umschalten auf ODER erweitert das Ergebnis',
     equal(title().sort(), ['Grün und leicht', 'Grün und schwer', 'Nur grün', 'Nur schwer']),
     JSON.stringify(title()));
   check('ODER ist jetzt hervorgehoben',
+    !!mode('or') && !!mode('and') &&
     mode('or').classList.contains('on') && !mode('and').classList.contains('on'));
   const storedMode = filterDom.sent
     .filter(x => x.body && x.body.filters).pop();
@@ -32302,17 +32815,18 @@ async function checkUi() {
     JSON.stringify(storedMode?.body.filters));
 
   // Sackgassen: im UND-Modus muss vorher sichtbar sein, was leer laeuft.
-  mode('and').onclick();
+  modeClick('and');
   await new Promise(r => setTimeout(r, 20));
   const emptyMarks = [...wf.document.querySelectorAll('#filters .pill-tag.blank')].map(b => b.textContent);
   check('Aussichtslose Tags werden gedämpft',
     equal(emptyMarks, ['Leicht']), JSON.stringify(emptyMarks));
   check('Gewählte Tags gelten nie als aussichtslos',
+    !!mark('Grün') && !!mark('Schwer') &&
     !mark('Grün').classList.contains('blank') && !mark('Schwer').classList.contains('blank'));
-  check('Gedämpfte Tags bleiben anklickbar', typeof mark('Leicht').onclick === 'function');
-  check('Ein Hinweis erklärt die Dämpfung', /keine Treffer/i.test(mark('Leicht').title || ''));
+  check('Gedämpfte Tags bleiben anklickbar', typeof mark('Leicht')?.onclick === 'function');
+  check('Ein Hinweis erklärt die Dämpfung', /keine Treffer/i.test(mark('Leicht')?.title || ''));
 
-  mode('or').onclick();
+  modeClick('or');
   await new Promise(r => setTimeout(r, 20));
   check('Im ODER-Modus wird nichts gedämpft',
     wf.document.querySelectorAll('#filters .pill-tag.blank').length === 0);
@@ -32321,18 +32835,19 @@ async function checkUi() {
   // ohne jeden Treffer. Dann ist die sichtbare Liste leer, und ohne die
   // Ausnahme würden auch die gewählten Tags als aussichtslos gelten -- also
   // gleichzeitig hervorgehoben und gedämpft, was wie ein Fehler aussieht.
-  mode('and').onclick();
+  modeClick('and');
   await new Promise(r => setTimeout(r, 20));
-  mark('Grün').onclick();          // abwählen
+  markClick('Grün');          // abwählen
   await new Promise(r => setTimeout(r, 20));
-  mark('Leicht').onclick();        // Schwer + Leicht: kein Eintrag hat beide
+  markClick('Leicht');        // Schwer + Leicht: kein Eintrag hat beide
   await new Promise(r => setTimeout(r, 20));
   check('Diese Auswahl ergibt wirklich keinen Treffer', title().length === 0, JSON.stringify(title()));
   check('Auch bei leerem Ergebnis bleiben gewählte Tags ungedämpft',
+    !!mark('Schwer') && !!mark('Leicht') &&
     !mark('Schwer').classList.contains('blank') && !mark('Leicht').classList.contains('blank'),
     [...wf.document.querySelectorAll('#filters .pill-tag.blank')].map(b => b.textContent).join(' '));
   check('Der übrige Tag wird dabei sehr wohl gedämpft',
-    mark('Grün').classList.contains('blank'));
+    !!mark('Grün') && mark('Grün').classList.contains('blank'));
   wf.close();
 
   // Aeltere gespeicherte Filter kennen die Verknuepfung nicht.
@@ -33320,7 +33835,16 @@ async function checkUi() {
 
   // Die Marke liegt seit 0.24.0 hinter dem Umschalter (Bauabschnitt 0.2).
   await openTagRow(wFilt);
-  [...wFilt.document.querySelectorAll('#filters .pill-tag')].find(b2 => b2.textContent === 'Grün').onclick();
+  /* GEKLAMMERT WIE JEDER GRIFF IN EINEN NACHBAU -- 0.30.0, Stolperstein 161.
+     Ein Rueckbau, der die Tagzeile wegnimmt, soll die Zusagen darunter ROT
+     machen und nicht den Lauf abreissen: eine abgerissene Gegenprobe belegt
+     gar nichts. Gefunden beim ersten gefahrenen Gegenprobenlauf dieser Runde
+     -- Rueckbau 636 riss hier nach 125 Sekunden ab. */
+  const tagPill = (name) => [...wFilt.document.querySelectorAll('#filters .pill-tag')]
+    .find(b2 => b2.textContent === name) || null;
+  check('Die Marke „Grün" steht in der Tagzeile', !!tagPill('Grün'),
+    '(keine Tagzeile oder keine Marke darin)');
+  tagPill('Grün')?.onclick();
   await new Promise(r => setTimeout(r, 20));
   check('Ein Tagfilter greift', equal(visible(), ['Mit Tag']), JSON.stringify(visible()));
 
@@ -33334,11 +33858,12 @@ async function checkUi() {
   check('Nach der Rückkehr steht der Filter noch',
     equal(visible(), ['Mit Tag']), JSON.stringify(visible()));
   check('Und die Marke ist weiterhin hervorgehoben',
-    !![...wFilt.document.querySelectorAll('#filters .pill-tag')]
-      .find(b2 => b2.textContent === 'Grün')?.classList.contains('on'));
+    !!tagPill('Grün')?.classList.contains('on'));
 
   // Auch das Zurücksetzen muss die Momentaufnahme mitführen.
-  [...wFilt.document.querySelectorAll('#filters .pill-tag')].find(b2 => b2.textContent === 'Grün').onclick();
+  check('Und sie steht noch da, um sie wieder aufzuheben', !!tagPill('Grün'),
+    '(die Tagzeile ist bei greifendem Filter verschwunden)');
+  tagPill('Grün')?.onclick();
   await new Promise(r => setTimeout(r, 20));
   wFilt.location.hash = '#/item/1';
   await new Promise(r => setTimeout(r, 80));
@@ -44247,9 +44772,16 @@ async function checkUi() {
     check('Die Kopfzeile traegt keinen Knopf zum Zuruecksetzen mehr',
       !szDoc.getElementById('reset-r') && !szDoc.querySelector('[id$="reset-r"]'),
       JSON.stringify(szDoc.getElementById('reset-r')?.textContent));
-    check('Und der Knopf des Admins heisst in beiden Koepfen „Wer hat bewertet" — 0.22.0',
-      szDoc.getElementById('rwho')?.textContent.trim() === 'Wer hat bewertet' &&
-      szDoc.getElementById('pwho')?.textContent.trim() === 'Wer hat bewertet',
+    /* „Wer?" SEIT 0.30.0, vorher „Wer hat bewertet" -- Befund 7 (F11).
+       GEMESSEN IST DER GRUND: mit „⌀ 4,5 gewichtet" daneben passt ein Knopf bis
+       98 px in eine Zeile, ab 127 px bricht sie. „Wer hat bewertet" misst 159,
+       „Wer?" deren 67 -- und die Kopfzeile faellt damit von 81 auf 42 px.
+       DER SCHLUESSEL BLEIBT `entry.whoRated`: er wechselt seinen Wortlaut und
+       nicht seinen Namen, und der Titel des Fensters dahinter
+       (`entry.whoRatedWord`) bleibt der ganze Satz -- dort ist Platz. */
+    check('Und der Knopf des Admins heisst in beiden Koepfen „Wer?" — 0.30.0',
+      szDoc.getElementById('rwho')?.textContent.trim() === 'Wer?' &&
+      szDoc.getElementById('pwho')?.textContent.trim() === 'Wer?',
       JSON.stringify([szDoc.getElementById('rwho')?.textContent,
                       szDoc.getElementById('pwho')?.textContent]));
 
@@ -47126,8 +47658,13 @@ async function checkUi() {
        wurden (Stolperstein 201). */
     const iAppRaw = (fs.readFileSync(path.join(__dirname, 'public', 'app.js'), 'utf8')
       .match(/Instanz/g) || []).length;
-    check('In den Kommentaren derselben Datei stehen unveraendert 33 Vorkommen',
-      iAppRaw === 33, `${iAppRaw} Vorkommen`);
+    /* FUENFUNDDREISSIG SEIT 0.30.0, vorher 33: die Absaetze zu Befund 10 sagen,
+       warum „gewichtet" aus der Sprachdatei kommen muss -- „in einer englisch
+       oder tuerkisch eingestellten Instanz stand dort deutscher Text". Das
+       Wort steht dort als BILD DES PROJEKTS in einem Kommentar und nicht auf
+       dem Bildschirm; genau diesen Unterschied haelt die Zeile fest. */
+    check('In den Kommentaren derselben Datei stehen unveraendert 35 Vorkommen',
+      iAppRaw === 35, `${iAppRaw} Vorkommen`);
 
     /* DIE EINE ZEILE, DIE BLEIBT, UND SIE STEHT NAMENTLICH DA. server.js
        schreibt „Die Instanz laeuft weiter …" ins Containerprotokoll, wenn
@@ -48204,15 +48741,18 @@ async function checkUi() {
     /* UND WAS ZU KEINEM PAAR GEHOERT, SPANNT UEBER ALLE. Stuenden der Vermerk
        „folgt der Sortierung" und der Ruecksetzer der Sortierzeile in Spalte
        eins, waeren sie so schmal wie das laengste Beschriftungswort.
-       SEIT 0.29.0 SIND ES NUR NOCH DIESE BEIDEN (Befund 6): der Umschalter
-       „Tags" und die Verweise der Tagzeile stehen in der dritten Spalte, der
-       Und/Oder-Umschalter in der zweiten. `1 / -1` spannt jetzt ueber DREI
+       SEIT 0.29.0 SIND ES NUR NOCH DIESE BEIDEN (Befund 6): die Verweise der
+       Tagzeile stehen in der dritten Spalte. `1 / -1` spannt ueber DREI
        Spalten und nicht mehr ueber zwei -- die Schreibweise ist dieselbe, die
-       Bedeutung folgt dem Raster. */
+       Bedeutung folgt dem Raster.
+       UND SEIT 0.30.0 STEHT „und/Oder" IN SPALTE EINS, in der ZWEITEN
+       Rasterzeile -- also unter der Beschriftung und nicht mehr neben ihr
+       (Befund 6, F9). Bis 0.29.0 stand er in Spalte zwei und nahm der Wolke
+       die erste Zeile weg; genau das sieht der Betreiber am Bild. */
     check('Und was zu keinem Paar gehoert, spannt ueber alle Spalten',
       /\.frow > #f-status-from, \.frow > \.frow-right \{ grid-column: 1 \/ -1; \}/.test(soCss) &&
       /\.frow > \.frow-right-end \{ grid-column: 3; \}/.test(soCss) &&
-      /\.frow > \.tagmode \{ grid-column: 2; \}/.test(soCss),
+      /\.frow-tags > \.tagmode \{ grid-column: 1; grid-row: 2;/.test(soCss),
       '(die Spanne oder eine der beiden Spaltenzuweisungen fehlt)');
     /* ZWEITER HEBEL: DIE REIHEN ROLLEN QUER, STATT UMZUBRECHEN. Eine
        Kategoriereihe mit fuenf Pillen mass umgebrochen 77 px und misst in
@@ -50153,17 +50693,24 @@ async function checkUi() {
     stDom.w.close(); stNull.w.close(); stOne.w.close();
   }
 
-  /* ================= Der Umschalter der Tagzeile — 0.24.0 =================
-     Hinter ihm steht allein die Tagzeile (E8 der Runde 0.22.0). Er sass bis
-     0.24.0 als <summary> eines <details> in einer EIGENEN Zeile und kostete
-     damit den Platz, den er sparen sollte (Befund vom 5. September 2026);
-     jetzt sitzt er am rechten Ende der Kategoriezeile.
-     DREI REGELN, KEINE VERHANDELBAR: greift ein Tagfilter, steht die Zeile
-     beim Aufbau OFFEN; filterZahl() zaehlt ihn weiter mit; und zugeklappt ist
-     die Tagzeile GANZ weg -- eine verborgene Zeile kostete den Platz weiter.
-     DIE ZUSICHERUNG UEBER `tagName === 'DETAILS'` IST NICHT GELOESCHT,
-     sondern zur Zusicherung ueber den Knopf geworden (Stolperstein 201). */
-  group('Der Umschalter der Tagzeile — 0.24.0');
+  /* ============= DIE TAGZEILE STEHT OFFEN — 0.30.0, Befund 6 =============
+     BIS 0.30.0 STAND HIER EIN UMSCHALTER. Er kam in 0.22.0 (E8) als <summary>
+     eines <details> in einer EIGENEN Zeile, wurde in 0.24.0 zu einem Knopf am
+     rechten Ende der Kategoriezeile -- und ist jetzt ganz gefallen.
+     DER BETREIBER, 12. SEPTEMBER 2026, MIT BILD: „tag soll grundsaetzlich wenn
+     man filter aufklappt zu sehen sein." Ein Schalter, der beim Aufbau immer
+     schon umgelegt ist, ist ein Wort ueber eine Sache und nicht die Sache.
+     DREI REGELN BLEIBEN, UND SIE SIND NICHT GELOESCHT, SONDERN UMGESCHRIEBEN
+     (Stolperstein 201): die Zeile steht da, sobald es etwas zu filtern gibt;
+     filterNumber() zaehlt den Tagfilter weiter mit; und gibt es NICHTS zu
+     filtern, ist die Zeile GANZ weg -- eine leere Zeile kostete den Platz
+     weiter. Die vierte, „zugeklappt ist sie ganz weg", hat keinen Gegenstand
+     mehr und ist zur Zusicherung geworden, dass es den Umschalter NICHT MEHR
+     GIBT -- in keinem Zustand und in keiner Datei.
+     GEFAHREN UND NICHT AM MARKUP GELESEN: die Leiste wird wirklich gezeichnet,
+     und zwar in drei Lagen -- ohne Filter, mit Filter, und ohne einen einzigen
+     Tag an einem Eintrag. */
+  group('Die Tagzeile steht offen — 0.30.0');
   {
     const wfTags = [{ id: 41, name: 'Alu', usage_count: 3, test_usage_count: 0 },
                     { id: 42, name: 'Stahl', usage_count: 2, test_usage_count: 0 }];
@@ -50173,72 +50720,50 @@ async function checkUi() {
       .map(z => z.querySelector('.eyebrow')?.textContent);
     const wfWithout = buildDom(JSDOM, { tags: wfTags, settings: { filters: wfFilter([]) } });
     await new Promise(r => setTimeout(r, 80));
-    const wfButton = wfWithout.w.document.getElementById('f-weitere');
-    /* KEIN <details> MEHR, SONDERN EIN KNOPF. Die Zusammenfassung eines
-       <details> laesst sich nicht in eine fremde Zeile setzen; den Zustand
-       traegt jetzt `aria-expanded`, Tastatur und Fokusring der <button>. */
-    check('Der Umschalter ist ein Knopf und kein <details> mehr',
-      wfButton?.tagName === 'BUTTON', String(wfButton?.tagName));
-    check('Er traegt die Beschriftung „Tags" — nicht mehr „Weitere Filter"',
-      wfButton?.textContent === 'Tags', JSON.stringify(wfButton?.textContent));
-    check('Und er steht in der Kategoriezeile, am rechten Ende',
-      wfButton?.closest('.frow')?.querySelector('.eyebrow')?.textContent === 'Kategorie'
-        && !!wfButton?.closest('.frow-right-wide'),
-      `${wfButton?.closest('.frow')?.querySelector('.eyebrow')?.textContent} · ${wfButton?.parentElement?.className}`);
-    check('Ohne Tagfilter steht er beim Aufbau zugeklappt',
-      wfButton?.getAttribute('aria-expanded') === 'false',
-      String(wfButton?.getAttribute('aria-expanded')));
-    /* ZUGEKLAPPT IST DIE TAGZEILE GANZ WEG. Bis 0.24.0 stand sie verborgen im
-       <details> und kostete den Platz der Zusammenfassung darueber. */
-    check('Und zugeklappt gibt es keine Zeile mit der Beschriftung „Tags"',
-      wfRows(wfWithout.w.document).join() === 'Status,Kategorie,Sortieren',
-      wfRows(wfWithout.w.document).join(' · '));
-    check('Der Umschalter belegt in keinem Zustand eine eigene Zeile',
-      [...wfWithout.w.document.querySelectorAll('#filters > *')].every(e => e.classList.contains('frow')),
-      [...wfWithout.w.document.querySelectorAll('#filters > *')].map(e => e.tagName + '.' + e.className).join(' · '));
+    const wfDoc = wfWithout.w.document;
+    /* DIE ZEILE STEHT BEIM AUFBAU DA, OHNE DASS JEMAND GEKLICKT HAT. Bis
+       0.30.0 stand sie nur dann da, wenn ein Tagfilter griff. */
+    check('Ohne Tagfilter steht die Tagzeile beim Aufbau schon da',
+      !!wfDoc.getElementById('f-tagzeile'), 'die Zeile fehlt');
+    check('Und sie steht an ihrem Platz zwischen Kategorie und Sortieren',
+      wfRows(wfDoc).join() === 'Status,Kategorie,Tags,Sortieren', wfRows(wfDoc).join(' · '));
+    /* DER UMSCHALTER IST FORT -- in keinem Zustand, unter keiner Kennung. */
+    check('Einen Umschalter „Tags" gibt es nicht mehr',
+      !wfDoc.getElementById('f-weitere') && !wfDoc.querySelector('.tag-toggle'),
+      `${wfDoc.getElementById('f-weitere')?.outerHTML || ''}`);
+    check('Und keine Zeile der Leiste ist etwas anderes als eine Filterzeile',
+      [...wfDoc.querySelectorAll('#filters > *')].every(e => e.classList.contains('frow')),
+      [...wfDoc.querySelectorAll('#filters > *')].map(e => e.tagName + '.' + e.className).join(' · '));
     check('Die Ablehnung bleibt in der Statuszeile',
-      wfWithout.w.document.querySelector('#f-abgelehnt')?.closest('.frow')?.querySelector('.eyebrow')?.textContent === 'Status',
-      wfWithout.w.document.querySelector('#f-abgelehnt')?.closest('.frow')?.textContent.slice(0, 60));
-    /* EIN KLICK KLAPPT AUF -- und die Zeile steht danach zwischen Kategorie
-       und Sortieren, mit Und/Oder und Wolke. */
-    wfButton.dispatchEvent(new wfWithout.w.Event('click'));
-    await new Promise(r => setTimeout(r, 40));
-    const wfOn = wfWithout.w.document.getElementById('f-weitere');
-    check('Ein Klick klappt die Tagzeile auf, an ihrem Platz zwischen Kategorie und Sortieren',
-      wfRows(wfWithout.w.document).join() === 'Status,Kategorie,Tags,Sortieren',
-      wfRows(wfWithout.w.document).join(' · '));
-    check('Und der Knopf sagt es an: aria-expanded steht auf true',
-      wfOn?.getAttribute('aria-expanded') === 'true',
-      String(wfOn?.getAttribute('aria-expanded')));
-    check('Die aufgeklappte Zeile traegt Und/Oder und die Wolke',
-      !!wfWithout.w.document.querySelector('#f-tagzeile .tagmode')
-        && wfWithout.w.document.querySelectorAll('#f-tagzeile .pill-tag').length === 2,
-      `${!!wfWithout.w.document.querySelector('#f-tagzeile .tagmode')} · ` +
-      `${wfWithout.w.document.querySelectorAll('#f-tagzeile .pill-tag').length} Marken`);
-    /* UND EIN ZWEITER KLICK SCHLIESST WIEDER. Das ist der Grund, warum der
-       Merker drei Werte hat: die alte Oder-Verbindung haette die Zeile im
-       selben Atemzug wieder aufgezogen. */
-    wfOn.dispatchEvent(new wfWithout.w.Event('click'));
-    await new Promise(r => setTimeout(r, 40));
-    check('Ein zweiter Klick schliesst sie wieder',
-      wfRows(wfWithout.w.document).join() === 'Status,Kategorie,Sortieren'
-        && wfWithout.w.document.getElementById('f-weitere')?.getAttribute('aria-expanded') === 'false',
-      wfRows(wfWithout.w.document).join(' · '));
+      wfDoc.querySelector('#f-abgelehnt')?.closest('.frow')?.querySelector('.eyebrow')?.textContent === 'Status',
+      wfDoc.querySelector('#f-abgelehnt')?.closest('.frow')?.textContent.slice(0, 60));
+    check('Die Zeile traegt Und/Oder und die Wolke',
+      !!wfDoc.querySelector('#f-tagzeile .tagmode')
+        && wfDoc.querySelectorAll('#f-tagzeile .pill-tag').length === 2,
+      `${!!wfDoc.querySelector('#f-tagzeile .tagmode')} · ` +
+      `${wfDoc.querySelectorAll('#f-tagzeile .pill-tag').length} Marken`);
+    /* UND SIE SAGT DEM RASTER SELBST, DASS SIE DIE TAGZEILE IST. Ohne die
+       Klasse griffen die vier Regeln des schmalen Abschnitts ins Leere, und
+       „und/Oder" stuende wieder neben der Beschriftung statt darunter. */
+    check('Und sie traegt `frow-tags` — daran haengt das Raster des Telefons',
+      wfDoc.getElementById('f-tagzeile')?.classList.contains('frow-tags'),
+      wfDoc.getElementById('f-tagzeile')?.className);
+    /* DIE REIHENFOLGE IM AUFBAU: erst „und/Oder", dann die Wolke, dann die
+       Verweise. Der Betreiber hat genau diese Folge beschrieben, und am
+       Telefon setzt das Raster sie in zwei Zeilen um. */
+    const wfOrder = [...(wfDoc.getElementById('f-tagzeile')?.children || [])]
+      .map(e => e.className.split(' ')[0]);
+    check('Und die Reihenfolge stimmt: Beschriftung, und/Oder, Wolke, Verweise',
+      wfOrder[0] === 'eyebrow' && wfOrder[1] === 'tagmode' && wfOrder[2] === 'pills',
+      wfOrder.join(' · '));
     wfWithout.w.close();
-    /* GREIFT EIN TAGFILTER, STEHT SIE BEIM AUFBAU OFFEN -- ein Filter, der die
-       Liste kuerzt und dabei unsichtbar ist, ist ein Fehler und kein
-       Aufraeumen. */
+    /* GREIFT EIN TAGFILTER, STEHT SIE ERST RECHT DA -- und der Rueckweg
+       ebenfalls. Ein Filter, der die Liste kuerzt und dabei unsichtbar ist,
+       ist ein Fehler und kein Aufraeumen. */
     const wfIncluding = buildDom(JSDOM, { tags: wfTags, settings: { filters: wfFilter([41]) } });
     await new Promise(r => setTimeout(r, 80));
-    const wfKnopf2 = wfIncluding.w.document.getElementById('f-weitere');
-    check('Greift ein Tagfilter, steht die Tagzeile beim Aufbau offen',
-      wfKnopf2?.getAttribute('aria-expanded') === 'true' && !!wfIncluding.w.document.getElementById('f-tagzeile'),
-      `${wfKnopf2?.getAttribute('aria-expanded')} · Zeile: ${!!wfIncluding.w.document.getElementById('f-tagzeile')}`);
-    /* UND DIE ZAHL STEHT AM UMSCHALTER. Sie ist der Grund, warum sich die
-       Zeile ueberhaupt zuklappen laesst, solange ein Filter greift: der Filter
-       wird dabei nicht unsichtbar, er steht als Zahl da. */
-    check('Und der Umschalter traegt die Zahl der greifenden Tagfilter: „Tags (1)"',
-      wfKnopf2?.textContent === 'Tags (1)', JSON.stringify(wfKnopf2?.textContent));
+    check('Greift ein Tagfilter, steht die Tagzeile ebenso da',
+      !!wfIncluding.w.document.getElementById('f-tagzeile'), 'die Zeile fehlt');
     check('Und filterNumber() zaehlt den Tag weiter mit: der Ruecksetzer sagt (1)',
       wfIncluding.w.document.getElementById('filter-zurueck')?.textContent === 'Filter zurücksetzen (1)' &&
       wfIncluding.w.document.querySelector('#filter-toggle .fcount')?.textContent === '· 1 aktiv',
@@ -50248,45 +50773,70 @@ async function checkUi() {
       [...wfIncluding.w.document.querySelectorAll('#f-tagzeile .link-btn')].some(b => b.textContent === 'Tags zurücksetzen'),
       [...wfIncluding.w.document.querySelectorAll('#f-tagzeile .link-btn')].map(b => b.textContent).join(' | '));
     wfIncluding.w.close();
-    /* DIE ZWEITE HAELFTE DES BEFUNDES: „und blendet zusaetzlich nicht die Tags
-       ein". Nachgestellt am 5. September 2026 in einem echten Browser -- es
-       war kein Stilblattfehler, sondern der Fall, den der Pruefstand bis dahin
-       nicht stellte: kein Tag mit usage_count > 0. Der Aufklapper ging auf und
-       zeigte „Noch keine Tags". Ein Umschalter fuer eine leere Zeile ist ein
-       Bedienelement fuer nichts. */
+    /* GIBT ES NICHTS ZU FILTERN, IST DIE ZEILE GANZ WEG. Nachgestellt am 5.
+       September 2026 in einem echten Browser: kein Tag mit usage_count > 0 --
+       der Aufklapper ging auf und zeigte „Noch keine Tags". Eine Zeile fuer
+       nichts ist dieselbe Verschwendung wie ein Schalter fuer nichts. */
     const wfEmpty = buildDom(JSDOM, { tags: [], settings: { filters: wfFilter([]) } });
     await new Promise(r => setTimeout(r, 80));
-    check('Haengt kein Tag an einem Eintrag, steht der Umschalter gar nicht da',
-      !wfEmpty.w.document.getElementById('f-weitere') && !wfEmpty.w.document.getElementById('f-tagzeile'),
-      `Knopf: ${!!wfEmpty.w.document.getElementById('f-weitere')} · Zeile: ${!!wfEmpty.w.document.getElementById('f-tagzeile')}`);
+    check('Haengt kein Tag an einem Eintrag, steht die Zeile gar nicht da',
+      !wfEmpty.w.document.getElementById('f-tagzeile'),
+      `Zeile: ${!!wfEmpty.w.document.getElementById('f-tagzeile')}`);
     check('Und die Leiste traegt dann drei Zeilen statt vier',
       wfRows(wfEmpty.w.document).join() === 'Status,Kategorie,Sortieren',
       wfRows(wfEmpty.w.document).join(' · '));
     wfEmpty.w.close();
     /* UND DER RANDFALL DAZU: ein Filter auf einen Tag, dessen letzter Eintrag
-       gerade weggefallen ist. Dann ist die Wolke leer -- der Umschalter steht
+       gerade weggefallen ist. Dann ist die Wolke leer -- die Zeile steht
        trotzdem da, sonst verschwaende der eigene Filter unter der Hand. */
     const wfEmptyIncluding = buildDom(JSDOM, {
       tags: [{ id: 41, name: 'Alu', usage_count: 0, test_usage_count: 2 }],
       settings: { filters: wfFilter([41]) } });
     await new Promise(r => setTimeout(r, 80));
-    check('Greift ein Filter auf einen Tag ohne Eintraege, steht er trotzdem da',
-      wfEmptyIncluding.w.document.getElementById('f-weitere')?.textContent === 'Tags (1)'
+    check('Greift ein Filter auf einen Tag ohne Eintraege, steht sie trotzdem da',
+      !!wfEmptyIncluding.w.document.getElementById('f-tagzeile')
         && [...wfEmptyIncluding.w.document.querySelectorAll('#f-tagzeile .link-btn')]
              .some(b => b.textContent === 'Tags zurücksetzen'),
-      JSON.stringify(wfEmptyIncluding.w.document.getElementById('f-weitere')?.textContent));
+      `Zeile: ${!!wfEmptyIncluding.w.document.getElementById('f-tagzeile')}`);
     wfEmptyIncluding.w.close();
-    /* DER WINKEL IM STILBLATT -- er haengt jetzt an `aria-expanded` und nicht
-       mehr an `[open]`, und der Unterstrich des link-btn traegt das Wort und
-       nicht den Winkel. */
-    check('Der Umschalter traegt im Stilblatt seinen eigenen Winkel',
-      /\.tag-toggle::before \{[^}]*border-right: 1\.5px solid currentColor/.test(css123) &&
-      /\.tag-toggle\[aria-expanded="true"\]::before \{ transform: rotate\(45deg\); \}/.test(css123),
-      regel123('.tag-toggle::before') || '(keine Regel)');
-    check('Und der Unterstrich steht unter dem Wort, nicht unter dem Winkel',
-      /\.tag-toggle \{[^}]*text-decoration: none/.test(css123) &&
-      /\.tag-toggle > span \{ text-decoration: underline; \}/.test(css123),
-      regel123('.tag-toggle') || '(keine Regel)');
+    /* ---- WAS MIT DEM UMSCHALTER GEFALLEN IST ----
+       VIER REGELN IM STILBLATT und ein Satz in drei Sprachdateien. Eine Regel
+       ohne Traeger bleibt nicht stehen, und ein Satz ohne Leser auch nicht. */
+    /* GELESEN WIRD DIE REGEL UND NICHT DER ABSATZ DARUEBER. Der Kommentar an
+       ihrer alten Stelle sagt, dass sie gefallen ist, und NENNT sie dabei --
+       ein Waechter, der ihn mitliest, zwaenge dazu, die Begruendung zu
+       loeschen. Dieselbe Ueberlegung wie bei `twoWays` in 0.28.1. */
+    const cssBare = css123.replace(/\/\*[\s\S]*?\*\//g, ' ');
+    check('Die vier Regeln des Umschalters stehen im Stilblatt nicht mehr',
+      !/\.tag-toggle/.test(cssBare), regel123('.tag-toggle') || '(keine Regel)');
+    check('Und in app.js ruft ihn nichts mehr',
+      !/tag-toggle|f-weitere|MORE_FILTERS_OPEN/.test(
+        fs.readFileSync(path.join(__dirname, 'public', 'app.js'), 'utf8')
+          .replace(/\/\*[\s\S]*?\*\//g, ' ').replace(/^\s*\/\/.*$/gm, ' ')),
+      'ein Aufruf steht noch im Code');
+    /* `list.tagsCount` WAR DIE ZAHL AM UMSCHALTER („Tags (2)"). Sie stand dort,
+       damit ein greifender Filter hinter der ZUGEKLAPPTEN Zeile nicht
+       unsichtbar wird -- es gibt keine zugeklappte Zeile mehr. */
+    const wfLanguages = ['de', 'en', 'tr'].map(code => JSON.parse(fs.readFileSync(
+      path.join(__dirname, 'public', 'languages', `${code}.json`), 'utf8')));
+    check('`list.tagsCount` steht in keiner der drei Sprachdateien mehr',
+      wfLanguages.every(f => f['list.tagsCount'] === undefined),
+      wfLanguages.map(f => String(f['list.tagsCount'])).join(' · '));
+    /* GELESEN WIRD DER CODE UND NICHT DER KOMMENTAR: der Absatz an der alten
+       Stelle erklaert, WARUM der Satz gefallen ist, und nennt ihn dabei. */
+    const wfBare = (n) => fs.readFileSync(path.join(__dirname, 'public', n), 'utf8')
+      .replace(/\/\*[\s\S]*?\*\//g, ' ').replace(/^\s*\/\/.*$/gm, ' ');
+    check('Und kein Aufruf sucht ihn — in keiner Datei des Auslieferungsverzeichnisses',
+      !fs.readdirSync(path.join(__dirname, 'public'))
+        .filter(n => n.endsWith('.js')).some(n => /tagsCount/.test(wfBare(n))) &&
+      !/tagsCount/.test(fs.readFileSync(path.join(__dirname, 'tools', 'keys.json'), 'utf8')),
+      'tagsCount steht noch irgendwo');
+    /* UND `list.tags` BLEIBT: die Zeile traegt weiter ihre Beschriftung. Ohne
+       diese Zeile liese sich „der Satz ist weg" auch dadurch erfuellen, dass
+       beide fallen. */
+    check('Und `list.tags` steht weiter in allen dreien',
+      wfLanguages.every(f => typeof f['list.tags'] === 'string' && f['list.tags'].length > 0),
+      wfLanguages.map(f => JSON.stringify(f['list.tags'])).join(' · '));
     // Und der alte Aufklapper ist wirklich fort -- aus dem Stilblatt wie aus
     // dem Quelltext. Sonst bliebe totes Regelwerk liegen.
     check('Vom alten <details> ist nichts uebrig',
@@ -50294,6 +50844,7 @@ async function checkUi() {
       !/weitere-filter/.test(fs.readFileSync(path.join(__dirname, 'public', 'app.js'), 'utf8')),
       `Stilblatt: ${/weitere-filter/.test(css123)} · app.js: ${/weitere-filter/.test(fs.readFileSync(path.join(__dirname, 'public', 'app.js'), 'utf8'))}`);
   }
+
 
   /* ================= Die Rollenweichen — 0.22.0 =================
      Was hinter einer Rolle liegt, wird ihr nicht erklaert (Regel S5) -- je
@@ -51800,13 +52351,30 @@ async function check0290() {
        von F17: mit ihm in Spalte 3 schrumpft die Sortierwahl auf 30 px, und
        der NAME der Sortierung ist nicht mehr zu sehen. Getragen wird die
        Unterscheidung von einer Klasse, die nur die beiden bekommen. */
+    /* EINER SEIT 0.30.0, vorher zwei: der Umschalter „Tags" ist gefallen (F9),
+       und mit ihm der zweite Traeger der Klasse. Die Verweise der Tagzeile
+       tragen sie weiter -- „mehr" und „Tags zurücksetzen" gehoeren ans Ende
+       ihrer Zeile und nicht ueber ihre ganze Breite. */
     const csEnd = (csApp.match(/className = '[^']*frow-right-end[^']*'/g) || []);
-    check('Genau zwei Verweise tragen die Klasse — und der Ruecksetzer nicht',
-      csEnd.length === 2 && !/right5\.className = '[^']*frow-right-end/.test(csApp),
+    check('Genau ein Verweis traegt die Klasse — und der Ruecksetzer nicht',
+      csEnd.length === 1 && !/right5\.className = '[^']*frow-right-end/.test(csApp),
       csEnd.join(' · '));
-    check('Der Und/Oder-Umschalter steht in Spalte zwei',
-      /\.frow > \.tagmode \{ grid-column: 2; \}/.test(csNarrow),
-      (csNarrow.match(/\.frow > \.tagmode[^\n]*/) || ['(nicht gefunden)'])[0]);
+    /* UND „und/Oder" STEHT SEIT 0.30.0 IN SPALTE EINS, in der ZWEITEN
+       Rasterzeile: unter der Beschriftung und nicht mehr neben ihr (Befund 6,
+       F9). Gemessen ist der Gewinn: die Tagzeile faellt von 69 auf 46 px, der
+       Filterkasten von 291 auf 267, und die erste Kachel rueckt von y = 502
+       auf y = 479. */
+    check('Der Und/Oder-Umschalter steht unter der Beschriftung — Spalte eins, Zeile zwei',
+      /\.frow-tags > \.tagmode \{ grid-column: 1; grid-row: 2;/.test(csNarrow) &&
+      !/\.frow > \.tagmode \{ grid-column: 2; \}/.test(csNarrow),
+      (csNarrow.match(/\.frow-tags > \.tagmode[^\n]*/) || ['(nicht gefunden)'])[0]);
+    /* UND DIE WOLKE SPANNT UEBER BEIDE RASTERZEILEN. Ohne das stuende „mehr"
+       unter der Wolke, die Zeile truege drei Rasterzeilen statt zweier und
+       waere hoeher als vorher -- also das Gegenteil des Befundes. */
+    check('Und Wolke und Verweise spannen ueber beide Rasterzeilen',
+      /\.frow-tags > \.pills\.cloud \{ grid-row: 1 \/ span 2;/.test(csNarrow) &&
+      /\.frow-tags > \.frow-right-end \{ grid-row: 1 \/ span 2;/.test(csNarrow),
+      (csNarrow.match(/\.frow-tags > \.pills\.cloud[^\n]*/) || ['(nicht gefunden)'])[0]);
     /* DER KATEGORIEKASTEN: geteilt statt ausgerechnet. Eine feste Zahl faerbt
        diese Zeile rot -- das Stilblatt verbietet ausgerechnete Breiten bei 80
        bis 120 Prozent Schrift an drei anderen Stellen selbst. */
@@ -51885,5 +52453,626 @@ async function check0290() {
     check('A → Z und Z → A sind wirklich Gegenrichtungen',
       tiTitles.length > 1 && equal(tiUp, [...tiDown].reverse()),
       `${tiTitles.length} Titel`);
+  }
+}
+
+/* ===================================================================== */
+/* ================= DIE ZUSAGEN DER RUNDE 0.30.0 ====================== */
+/* Jede neue Zusage mit gefahrener Gegenprobe, fortlaufend ab 895.
+   ACHT VON IHNEN FAHREN EINEN ECHTEN PROZESS ODER EINEN LAUFENDEN SERVER und
+   lesen nicht den Quelltext -- eine Zusage, die nur den Ausdruck ansieht,
+   bliebe gruen, wenn er dasteht und nichts trifft. Genau das war Befund 1. */
+async function check0300() {
+
+  /* ---- BA 1: der Waechter erkennt den Prueflauf --------------------- */
+  group('Der Waechter erkennt den Prueflauf — 0.30.0');
+  {
+    const cp = require('./counterproof.js');
+    /* GEFAHREN UND NICHT GELESEN. Bis 0.30.0 stand im Ausdruck `pruefung.js`
+       -- eine Datei, die es in diesem Repository nie gegeben hat --, und der
+       Kommentar zwei Zeilen darueber sagte die ganze Zeit das Richtige. Eine
+       Zusage, die den Ausdruck liest, haette denselben Fehler gemacht wie der
+       Leser: sie haette den Absatz geglaubt.
+       ZWEI ECHTE PROZESSE, die auf die beiden Namen enden und lange genug
+       leben, um gesehen zu werden. Sie tun nichts -- gesucht wird ihr NAME. */
+    const wDir = fs.mkdtempSync(path.join(os.tmpdir(), 'kriterion-waechter-'));
+    const wSleep = "setTimeout(() => {}, 8000);";
+    fs.writeFileSync(path.join(wDir, 'testbench.js'), wSleep);
+    fs.writeFileSync(path.join(wDir, 'server.js'), wSleep);
+    fs.writeFileSync(path.join(wDir, 'werkzeug.js'), wSleep);
+    const wKinds = ['testbench.js', 'server.js', 'werkzeug.js'].map(n =>
+      spawn(process.execPath, [path.join(wDir, n)], { cwd: wDir, env: { ...process.env, PORT: '' } }));
+    await new Promise(r => setTimeout(r, 700));
+    const wSeen = cp.foreignServer();
+    const wHas = (n) => wSeen.some(z => z.pid === wKinds[n].pid);
+    check('Der Waechter sieht einen ECHT gestarteten node testbench.js',
+      wHas(0), `gesehen: ${wSeen.map(z => `${z.pid} ${z.script}`).join(' · ') || '—'}`);
+    check('Und einen node server.js ebenso — wie seit 0.21.0',
+      wHas(1), `gesehen: ${wSeen.map(z => z.script).join(' · ') || '—'}`);
+    /* UND ER FAERBT SICH NICHT AN JEDEM WERKZEUG. Ein Muster ueber den ganzen
+       Aufruf faenge jedes zweite mit -- und ein Waechter, der bei jedem Lauf
+       anschlaegt, wird abgeschaltet. */
+    check('Und ein anderes Werkzeug laesst er in Ruhe',
+      !wHas(2), 'der Waechter faerbt sich an einem beliebigen Skript');
+    for (const k of wKinds) { try { k.kill('SIGKILL'); } catch {} }
+
+    /* ---- DER PORTBLICK (F7) ----
+       Er findet, was kein Muster ueber die Befehlszeile je findet: einen
+       Server aus `node -e "require('./server.js')"`. GEFAHREN AN EINEM ECHT
+       HORCHENDEN SOCKET und nicht an einer Liste. */
+    const wSpan = cp.portSpan();
+    check('Die Spanne der Portbasen kommt aus dem Pruefstand und ist eine Spanne',
+      wSpan.from === PORT_SPAN_FROM && wSpan.to === PORT_SPAN_TO && wSpan.to > wSpan.from,
+      JSON.stringify(wSpan));
+    const net = require('net');
+    /* EINE FREIE NUMMER WIRD GESUCHT UND NICHT GESETZT, und das ist die Lehre
+       aus dem ersten gefahrenen Gegenprobenlauf dieser Runde: die Gegenprobe
+       faehrt VIER Spuren nebeneinander, und die oberste reicht mit ihrem
+       Versatz bis an das obere Ende der Spanne. Eine feste Nummer traf dort
+       irgendwann einen laufenden Server, `listen` warf EADDRINUSE, und der
+       ganze Lauf riss ab -- eine abgerissene Gegenprobe belegt gar nichts
+       (Stolperstein 161).
+       GESUCHT WIRD VON OBEN NACH UNTEN, und der Fehlschlag ist ein ROTER PUNKT
+       und kein Abbruch. */
+    const listenOn = async (from, step) => {
+      for (let i = 0; i < 40; i++) {
+        const port = from - i * step;
+        const server = net.createServer(() => {});
+        const ok = await new Promise(done => {
+          server.once('error', () => done(false));
+          server.listen(port, '127.0.0.1', () => done(true));
+        });
+        if (ok) return { server, port };
+        try { server.close(); } catch {}
+      }
+      return { server: null, port: 0 };
+    };
+    const wIn = await listenOn(PORT_SPAN_TO, 1);
+    check('Der Aufbau steht: ein Socket horcht wirklich in der Spanne',
+      !!wIn.server && wIn.port >= PORT_SPAN_FROM && wIn.port <= PORT_SPAN_TO,
+      `Port ${wIn.port}`);
+    const wBusy = wIn.server ? cp.foreignPort([]) : [];
+    check('Der Portblick findet einen horchenden Port in der Spanne',
+      wBusy.includes(wIn.port), `gefunden: ${wBusy.join(' ') || '—'}`);
+    /* UND ER SIEHT NICHT AUSSERHALB DER SPANNE NACH. Sonst meldete er jeden
+       Dienst des Wirts und waere nach dem zweiten Mal abgeschaltet. */
+    const wOut = await listenOn(PORT_SPAN_TO + 211, -1);
+    check('Und einen ausserhalb der Spanne meldet er nicht',
+      !!wOut.server && wOut.port > PORT_SPAN_TO &&
+      !cp.foreignPort([]).includes(wOut.port), `Port ${wOut.port}`);
+    if (wIn.server) await new Promise(r => wIn.server.close(r));
+    if (wOut.server) await new Promise(r => wOut.server.close(r));
+    fs.rmSync(wDir, { recursive: true, force: true });
+  }
+
+  /* ---- BA 2: das Wartefenster und die Meldung ----------------------- */
+  group('Das Wartefenster und seine Meldung — 0.30.0');
+  {
+    check('Das Wartefenster ist groesser als zwoelf Sekunden',
+      READY_TRIES * READY_STEP > 12000,
+      `${READY_TRIES} x ${READY_STEP} ms = ${READY_TRIES * READY_STEP / 1000} s`);
+    /* DIE MELDUNG WIRD GEBAUT UND NICHT GELESEN: dieselbe Funktion, die der
+       Zweitserver wirft. Ihn wirklich ins Leere laufen zu lassen kostete
+       dreissig Sekunden und belegte nichts mehr. */
+    const mText = readyFailure(6180, 6213, '/tmp/kriterion-beispiel', 'ausgabe des servers');
+    check('Und die Meldung nennt Portbasis, Port und Verzeichnis',
+      /6180/.test(mText) && /6213/.test(mText) && /\/tmp\/kriterion-beispiel/.test(mText),
+      JSON.stringify(mText.slice(0, 120)));
+    check('Und sie nennt auch, wie lange gewartet wurde',
+      new RegExp(`${READY_TRIES * READY_STEP / 1000} s gewartet`).test(mText),
+      JSON.stringify(mText.slice(0, 120)));
+    check('Und sie traegt die Ausgabe des Servers weiter',
+      /ausgabe des servers/.test(mText), JSON.stringify(mText.slice(-60)));
+  }
+
+  /* ---- BA 3: der Aufraeumer beim Start ------------------------------ */
+  group('Der Pruefstand raeumt beim Start auf — 0.30.0');
+  {
+    /* AN EINEM ECHT HINTERLASSENEN SERVER GEFAHREN. Ein KIND dieses Laufs
+       waere keiner: der Aufraeumer laesst die eigene Nachkommenschaft
+       ausdruecklich stehen, sonst brachte er den Lauf um, den er schuetzt.
+       DER ENKEL IST DER WEG: ein kurzlebiger Helfer startet den Server und
+       beendet sich selbst -- danach haengt der Server an der Eins und ist ein
+       Rest wie jeder andere. */
+    const aDir = fs.mkdtempSync(path.join(os.tmpdir(), 'kriterion-rest-'));
+    const aScript =
+      `const { spawn } = require('child_process');` +
+      `const k = spawn(process.execPath, ['-e', 'setTimeout(() => {}, 60000)'], ` +
+      `{ detached: true, stdio: 'ignore', env: { ...process.env, DATA_DIR: ${JSON.stringify(aDir)} } });` +
+      `k.unref(); console.log(k.pid);`;
+    const aBorn = Number(execFileSync(process.execPath, ['-e', aScript],
+      { encoding: 'utf8', env: { ...process.env, DATA_DIR: aDir } }).trim());
+    // Der Helfer ist fort; der Enkel lebt und haengt nicht mehr an uns.
+    await new Promise(r => setTimeout(r, 400));
+    const aAlive = (pid) => { try { process.kill(pid, 0); return true; } catch { return false; } };
+    check('Der Aufbau steht: ein echter Rest laeuft und ist nicht unser Kind',
+      aAlive(aBorn) && !ourOwn(aBorn) && parentOf(aBorn) !== process.pid,
+      `PID ${aBorn}, lebt ${aAlive(aBorn)}, Vater ${parentOf(aBorn)}`);
+    const aFound = leftovers();
+    check('Der Aufraeumer findet ihn — am Wegwerfverzeichnis und nicht am Namen',
+      aFound.some(z => z.pid === aBorn),
+      aFound.map(z => `${z.pid} ${z.where}`).join(' · ') || 'nichts gefunden');
+    const aSweep = sweepLeftovers();
+    /* GEWARTET WIRD AUF DAS ENDE UND NICHT AUF DIE UHR. Ein SIGKILL wirkt
+       nicht in derselben Zeile, und eine feste Zahl Millisekunden ist auf einer
+       belasteten Maschine eine Wette. */
+    for (let i = 0; i < 50 && aAlive(aBorn); i++) await new Promise(r => setTimeout(r, 100));
+    check('Und er raeumt ihn wirklich weg — der Prozess lebt danach nicht mehr',
+      !aAlive(aBorn), `PID ${aBorn} lebt noch`);
+    check('Und das Wegwerfverzeichnis ist mit fort',
+      !fs.existsSync(aDir), aDir);
+    check('Und er sagt, was er angefasst hat',
+      aSweep.cleared.some(z => z.pid === aBorn) && aSweep.left === 0,
+      `${aSweep.cleared.length} geraeumt, ${aSweep.left} uebrig`);
+    /* UND DIE ANDERE HAELFTE: die EIGENEN Server dieses Laufs bleiben stehen.
+       Ohne sie waere ein Aufraeumer, der alles mitnimmt, hier genauso gruen. */
+    const aOwn = CASES.filter(l => l.kind.exitCode === null && l.kind.signalCode === null);
+    check('Und die eigenen Server dieses Laufs laesst er ausdruecklich stehen',
+      aOwn.every(l => !leftovers().some(z => z.pid === l.kind.pid)),
+      `${aOwn.length} eigene Server laufen gerade`);
+  }
+
+  /* ---- BA 4: die Schlusstafel --------------------------------------- */
+  group('Die Schlusstafel sagt, wo die Zeit hingeht — 0.30.0');
+  {
+    /* AN GESTELLTEN ZAHLEN GEFAHREN: „die ZEHN teuersten" laesst sich an
+       einem Lauf mit zwei Gruppen nicht belegen, und der eigene Lauf hat
+       seine Tafel noch nicht gedruckt, wenn diese Zeile laeuft. */
+    const tRows = Array.from({ length: 20 }, (_, i) => ({ name: `Gruppe ${i}`, ms: (i + 1) * 1000 }));
+    const tLines = timeTable(tRows, 300000);
+    const tNamed = tLines.filter(z => /^ {4}Gruppe /.test(z));
+    check('Die Tafel nennt genau zehn Gruppen, auch wenn es zwanzig gibt',
+      tNamed.length === 10, `${tNamed.length} Zeilen`);
+    check('Und es sind die zehn TEUERSTEN, die teuerste zuerst',
+      /Gruppe 19/.test(tNamed[0]) && /Gruppe 10/.test(tNamed[9]) &&
+      !tNamed.some(z => /Gruppe [0-9] /.test(z)),
+      tNamed.map(z => z.trim().split(/\s\s+/)[0]).join(' · '));
+    check('Und die Zeile darunter nennt die Gesamtzeit des Laufs',
+      /300\.0 s im ganzen Lauf/.test(tLines[tLines.length - 1]),
+      JSON.stringify(tLines[tLines.length - 1]));
+    check('Und die Zeit in den Gruppen daneben — es sind zwei verschiedene Zahlen',
+      /210\.0 s in Gruppen/.test(tLines[tLines.length - 1]),
+      JSON.stringify(tLines[tLines.length - 1]));
+    /* UND SIE KOMMT MIT WENIGER ALS ZEHN AUS. Eine Tafel, die auf genau zehn
+       besteht, waere bei einem gefilterten Lauf leer oder kaputt. */
+    const tFew = timeTable([{ name: 'Eine', ms: 5000 }], 5000);
+    check('Und bei weniger als zehn Gruppen nennt sie die, die es gibt',
+      tFew.filter(z => /^ {4}Eine/.test(z)).length === 1 && /1 VON 1 GRUPPEN/.test(tFew[0]),
+      tFew.join(' | '));
+    /* UND SIE STEHT WIRKLICH IM SCHLUSSBLOCK EINES GEFAHRENEN LAUFS. Der
+       Rahmen wird dafuer als EIGENER Prozess gefahren -- wie beim
+       Gruppenfilter, und aus demselben Grund. */
+    const tProbe = require('child_process').spawnSync(process.execPath, ['testbench.js'],
+      { cwd: __dirname, encoding: 'utf8', env: { ...process.env, TESTBENCH_PROBE: '1' } });
+    check('Und ein gefahrener Lauf traegt sie in seinem Schlussblock',
+      /DIE TEUERSTEN 2 VON 2 GRUPPEN:/.test(tProbe.stdout) &&
+      /s in Gruppen, .* s im ganzen Lauf\./.test(tProbe.stdout),
+      JSON.stringify(tProbe.stdout.split('\n').slice(-8).join(' | ')));
+    /* DIE ZEIT JE GRUPPE NUR AUF SCHALTER (F5) -- gefahren in beiden
+       Stellungen, sonst belegte die Zeile nur eine davon. */
+    const tWith = require('child_process').spawnSync(process.execPath, ['testbench.js'],
+      { cwd: __dirname, encoding: 'utf8',
+        env: { ...process.env, TESTBENCH_PROBE: '1', TESTBENCH_ZEIT: '1' } });
+    check('Mit dem Schalter steht die Zeit auch je Gruppe da',
+      /⏱ [0-9]+\.[0-9] s/.test(tWith.stdout),
+      JSON.stringify(tWith.stdout.split('\n').slice(0, 8).join(' | ')));
+    check('Und ohne ihn nicht — er ist ein Schalter und keine Ansichtssache',
+      !/⏱/.test(tProbe.stdout), 'die Zeile steht auch ohne Schalter da');
+  }
+
+  /* ---- BA 5: die Anmeldebremse an der Funktion (F3) ----------------- */
+  group('Die Anmeldebremse — an der reinen Funktion — 0.30.0');
+  {
+    /* DIE KURVE FUER JEDEN ZAEHLERSTAND UND IN NULL MILLISEKUNDEN. Bis 0.30.0
+       fuhren sechs Prueflagen sie real durch die Routen: 700 + 1400 + 2100 +
+       2800 + 3500 ms je Durchlauf, und abgedeckt waren dabei genau die sechs
+       Staende, durch die ein Lauf zufaellig geht. Hier sind es alle. */
+    const bCurve = JSON.parse(shortRun(
+      `const a = require('./auth');` +
+      `console.log(JSON.stringify(Array.from({length: 21}, (_, i) => a.delay(i))));`, DATA));
+    const bWanted = Array.from({ length: 21 }, (_, i) => {
+      const over = Math.max(0, i - 5 + 1);
+      return over > 0 ? Math.min(over * 700, 4000) : 0;
+    });
+    check('delay() liefert fuer JEDEN Zaehlerstand von 0 bis 20 den Wert der Kurve',
+      equal(bCurve, bWanted), JSON.stringify(bCurve));
+    check('Und unterhalb der weichen Schwelle wartet sie gar nicht',
+      bCurve.slice(0, 5).every(z => z === 0), JSON.stringify(bCurve.slice(0, 6)));
+    check('Und oberhalb steigt sie in Schritten von 700 ms',
+      bCurve[5] === 700 && bCurve[6] === 1400 && bCurve[7] === 2100,
+      JSON.stringify(bCurve.slice(5, 8)));
+    check('Und sie ist bei vier Sekunden gedeckelt — eine Bremse, keine Sperre',
+      bCurve[10] === 4000 && bCurve[20] === 4000, JSON.stringify([bCurve[10], bCurve[20]]));
+  }
+
+  /* ---- BA 5: der Pruefschalter (F1, F2) ----------------------------- */
+  group('Der Pruefschalter und seine Grenzen — 0.30.0');
+  {
+    const withoutSwitch = { ...process.env };
+    delete withoutSwitch.KRITERION_TESTBENCH;
+    /* DIE LETZTE ZEILE UND NICHT DIE GANZE AUSGABE -- dieselbe Bauform wie
+       shortRun(). keys.js sagt beim Laden „Schluessel aus ENCRYPTION_KEY
+       geladen", und diese Zeile stuende sonst vor jeder Antwort. */
+    const ask = (code, environment) => execFileSync(process.execPath, ['-e', code],
+      { cwd: __dirname, encoding: 'utf8', env: environment }).trim().split('\n').pop().trim();
+    /* DIE AUSLIEFERUNG TRAEGT N = 16384 -- FESTGENAGELT. Gefragt wird das
+       MODUL und nicht der Quelltext: eine Zeile, die dasteht und nicht
+       greift, waere genau der Fehler aus Befund 1. */
+    const sShipped = ask(`const a = require('./auth'); console.log(a.SCRYPT_SHIPPED + ' ' + a.SCRYPT_COST);`,
+      { ...withoutSwitch, DATA_DIR: DATA, ENCRYPTION_KEY: KEY });
+    check('Die Auslieferung traegt scrypt N = 16384, und sie rechnet auch damit',
+      sShipped === '16384 16384', sShipped);
+    /* UND SIE LAESST SICH NICHT MIT EINER GEWOEHNLICHEN UMGEBUNGSVARIABLEN
+       SENKEN. Vier plausible Namen, und keiner greift. */
+    const sTricked = ask(`const a = require('./auth'); console.log(a.SCRYPT_COST);`,
+      { ...withoutSwitch, DATA_DIR: DATA, ENCRYPTION_KEY: KEY,
+        SCRYPT_N: '1024', SCRYPT: '1024', N: '1024', KRITERION_SCRYPT: '1024',
+        KRITERION_TESTBENCH: '1' });
+    check('Und keine gewoehnliche Umgebungsvariable senkt sie',
+      sTricked === '16384', `N = ${sTricked}`);
+    const sSwitched = ask(`const a = require('./auth'); console.log(a.SCRYPT_COST);`,
+      { ...withoutSwitch, DATA_DIR: DATA, ENCRYPTION_KEY: KEY,
+        KRITERION_TESTBENCH: 'pruefstand:scrypt=1024' });
+    check('Der Pruefschalter dagegen schon — das ist der einzige Weg',
+      sSwitched === '1024', `N = ${sSwitched}`);
+    /* UND AUCH ER KANN NICHT BELIEBIG WEIT. Ein Boden, und er wird gehoben
+       statt abgewiesen: eine Anlage, die den Schalter aus Versehen traegt,
+       ist langsamer zu pruefen und nicht ungeschuetzt. */
+    const sFloor = ask(`const a = require('./auth'); console.log(a.SCRYPT_COST);`,
+      { ...withoutSwitch, DATA_DIR: DATA, ENCRYPTION_KEY: KEY,
+        KRITERION_TESTBENCH: 'pruefstand:scrypt=2' });
+    check('Und unter seinen Boden kommt auch er nicht',
+      sFloor === '1024', `N = ${sFloor}`);
+    /* DIE DREI MAILFRISTEN, DIESELBE KLAMMER. */
+    const mShipped = ask(`const m = require('./mail');` +
+      `console.log([m.SEND_SHIPPED, m.CONNECT_SHIPPED, m.GREETING_SHIPPED,` +
+      ` m.SEND_MS, m.CONNECT_MS, m.GREETING_MS].join(' '));`, withoutSwitch);
+    check('Die Auslieferung traegt 20 s, 7 s und 7 s — und rechnet auch damit',
+      mShipped === '20000 7000 7000 20000 7000 7000', mShipped);
+    const mTricked = ask(`const m = require('./mail'); console.log([m.SEND_MS, m.GREETING_MS].join(' '));`,
+      { ...withoutSwitch, SEND_MS: '300', MAIL_TIMEOUT: '300', KRITERION_MAIL: '300',
+        KRITERION_TESTBENCH: 'pruefstand' });
+    check('Und keine gewoehnliche Umgebungsvariable stellt sie kurz',
+      mTricked === '20000 7000', mTricked);
+    const mSwitched = ask(`const m = require('./mail'); console.log([m.SEND_MS, m.CONNECT_MS, m.GREETING_MS].join(' '));`,
+      { ...withoutSwitch, KRITERION_TESTBENCH: 'pruefstand:mail=40' });
+    check('Der Pruefschalter stellt alle drei kurz — mit DEMSELBEN Teiler',
+      mSwitched === '500 175 175', mSwitched);
+    /* DAS VERHAELTNIS IST DIE SACHE. Waere es umkehrbar, pruefte der Lauf
+       eine Verdrahtung, die es im Betrieb nicht gibt. */
+    const [mSend, mConnect] = mSwitched.split(' ').map(Number);
+    check('Und das Verhaeltnis der drei bleibt genau erhalten',
+      Math.abs(mSend / mConnect - 20000 / 7000) < 0.05, `${mSend} zu ${mConnect}`);
+    /* UND DIE ANMELDEBREMSE: NUR DAS WARTEN, NICHT DIE KURVE. */
+    const bSwitched = ask(`const k = require('./keys'); const a = require('./auth');` +
+      `console.log([a.delay(5), k.brakeWait(a.delay(5))].join(' '));`,
+      { ...withoutSwitch, DATA_DIR: DATA, ENCRYPTION_KEY: KEY,
+        KRITERION_TESTBENCH: 'pruefstand:brake=10' });
+    check('Kurz gestellt wartet die Route kuerzer — die KURVE bleibt die Kurve',
+      bSwitched === '700 70', bSwitched);
+  }
+
+  /* ---- BA 5: und die Route wartet wirklich (Zusage 7) --------------- */
+  group('Und die Route wartet wirklich — 0.30.0');
+  {
+    /* EINMAL, AM LAUFENDEN SERVER UND OHNE SCHALTER. Alles Uebrige belegt der
+       Lauf an der reinen Funktion; DASS die Verdrahtung dahinter wirklich
+       wartet, laesst sich nur am Server sehen -- und nur mit den
+       ausgelieferten Zahlen. */
+    const rDir = fs.mkdtempSync(path.join(os.tmpdir(), 'kriterion-warten-'));
+    const R = startFurtherServer(rDir, { KRITERION_TESTBENCH: '' }, 7180);
+    await R.ready;
+    await R.call('POST', '/api/setup', { user: 'chefin', password: 'chefins-langes-wort' });
+    R.cookieRemove();
+    const rTimes = [];
+    for (let i = 1; i <= 6; i++) {
+      const t0 = Date.now();
+      await R.call('POST', '/api/login', { user: 'chefin', password: 'ganz-sicher-falsch' });
+      rTimes.push(Date.now() - t0);
+    }
+    check('Die ersten fuenf Versuche kommen ohne Verzoegerung zurueck',
+      rTimes.slice(0, 5).every(z => z < 700), JSON.stringify(rTimes));
+    /* DER SECHSTE IST DER ERSTE GEBREMSTE: checkThrottle liest den Zaehler,
+       BEVOR noteFailure ihn hochzaehlt -- weich ab fuenf heisst also, dass der
+       sechste wartet. */
+    check('Und der sechste wartet die ausgelieferten 700 ms wirklich ab',
+      rTimes[5] >= 700, `Versuch 6: ${rTimes[5]} ms (Versuch 1: ${rTimes[0]} ms)`);
+    /* UND ER TRAEGT DEN SCHALTER WIRKLICH NICHT -- sonst belegte die Zeile
+       darueber nur, dass dieser eine Server langsam ist. */
+    check('Dieser Server faehrt ausdruecklich OHNE den Pruefschalter',
+      !/PRUEFSCHALTER AKTIV/.test(R.log()), 'der Schalter steht doch');
+    await R.stop();
+    fs.rmSync(rDir, { recursive: true, force: true });
+  }
+
+  /* ---- BA 9 und die neue Wache (Zusagen 20 und 21) ----------------- */
+  group('Kein deutscher Bildschirmsatz sitzt fest — die neue Wache — 0.30.0');
+  {
+    const gLanguages = ['de', 'en', 'tr'].map(code => JSON.parse(fs.readFileSync(
+      path.join(__dirname, 'public', 'languages', `${code}.json`), 'utf8')));
+    check('„gewichtet" steht als Schluessel in allen drei Sprachdateien',
+      gLanguages.every(f => typeof f['entry.weighted'] === 'string' && f['entry.weighted'].length > 2),
+      gLanguages.map(f => JSON.stringify(f['entry.weighted'])).join(' · '));
+    check('Und in jeder Sprache mit ihrem eigenen Wort',
+      new Set(gLanguages.map(f => f['entry.weighted'])).size === 3,
+      gLanguages.map(f => f['entry.weighted']).join(' · '));
+    const gApp = fs.readFileSync(path.join(__dirname, 'public', 'app.js'), 'utf8');
+    check('Und die Kopfzeile liest ihn, statt das Wort zu tragen',
+      /weightedCalc \? ' ' \+ t\('entry\.weighted'\)/.test(gApp) &&
+      !/' gewichtet'/.test(gApp), 'das feste Wort steht noch im Quelltext');
+
+    /* ================= DIE WACHE, DIE WERTE LIEST -- Zusage 21 =========
+       DEN SCHLUESSEL NACHZUTRAGEN REPARIERT EINEN SATZ; eine Wache faengt den
+       naechsten. Fuenf festsitzende deutsche Woerter in sechs Runden sind
+       keine fuenf Versehen, sondern eine Masche im Netz: die Restprobe
+       vergleicht die SPRACHDATEI gegen eine Urfassung, `SCREEN_BAN` liest die
+       Texte auf VERBOTENE Woerter, und der Bezeichnerwaechter liest NAMEN.
+       Ein fester deutscher Satz im Quelltext faellt durch alle drei.
+       SIE LIEST WERTE: jeden Text, den der Zerleger in public/app.js findet.
+       DREI SIEBE DAVOR, und jedes hat einen Grund:
+         1. EINE KENNUNG IST KEIN SATZ. Reine Kleinschreibung ohne Leerzeichen
+            ist ein id, eine Klasse, eine Adresse oder ein gespeicherter Wert.
+            Deutsche `id` sind ein eigener Befund (Sammelblatt 25).
+         2. MARKUP IST KEIN SATZ. Aus einer Vorlage bleibt der Text ZWISCHEN
+            den Marken; Attribute und Marken stehen nie am Bildschirm.
+         3. UND EIN BRUCHSTUECK MITTEN IN EINER MARKE ist keines von beidem:
+            `" alt="` hat gar kein `>`, und was danach kaeme, steht im
+            naechsten Stueck der Vorlage.
+       WAS SIE BEIM BAUEN GEFUNDEN HAT: drei weitere feste deutsche Woerter --
+       „an", „aus" und „eingerichtet" (0.30.0, Befund 10). Sie stehen jetzt im
+       Woerterbuch, und genau deshalb steht diese Wache hier. */
+    const GERMAN_WORDS = Object.create(null);
+    {
+      const dict = JSON.parse(fs.readFileSync(path.join(__dirname, 'tools', 'dictionary.json'), 'utf8'));
+      for (const [word, english] of Object.entries(dict.words))
+        if (word !== english) GERMAN_WORDS[word] = english;
+    }
+    const bareText = (t) => t.replace(/<!--[\s\S]*?-->/g, ' ').replace(/<[^>]*>/g, ' ')
+      .replace(/<[^>]*$/, ' ').replace(/^[^<]*>/, ' ');
+    const isName = (t) => /^[a-z0-9][a-z0-9._#/-]*$/.test(t.trim()) || /^#\//.test(t.trim());
+    const insideMark = (t) => /=\s*"$/.test(t) || (/="/.test(t) && !/>/.test(t));
+    const germanWordsIn = (t) => bareText(t).split(/[^A-Za-zÄÖÜäöüß]+/)
+      .filter(x => x.length > 2).map(x => x.toLowerCase()).filter(w => GERMAN_WORDS[w]);
+    /* DIE BENANNTEN AUSNAHMEN, und jede hat einen Grund und keinen Platz in
+       einer Sprachdatei:
+         die drei Befehle   sie werden auf dem WIRT getippt und sind an
+                            usertool.js gebunden -- `passwort` und
+                            `zweifaktor` sind dort Argumente und keine Woerter
+         die zwei Adressen  `forum.beispiel.de` ist ein Beispiel und keine
+                            Sprache
+         der eine Satz      „Die Sprachdatei fehlt." -- ohne die Datei gibt es
+                            keinen Schluessel, mit dem sich sagen liesse, dass
+                            sie fehlt (Entscheidung A1 aus 0.24.0) */
+    const SENTENCE_EXCEPTIONS = [
+      'docker compose exec kriterion node usertool.js passwort <name>',
+      'docker compose exec kriterion node usertool.js zweifaktor <name>',
+      /* ZWEI BEISPIELADRESSEN UND EINE ABFRAGE. `forum.beispiel.de` steht in
+         der Karte „Suchanbieter" als Beispiel, einmal als Adresse und einmal
+         in einem <code>-Kasten daneben; `?gruppe=` ist ein Stueck Abfrage und
+         kein Satz. Keines von beiden gehoert in eine Sprachdatei -- eine
+         Adresse wird nicht uebersetzt. */
+      'https://forum.beispiel.de/suche?q=%s',
+      'site%3Aforum.beispiel.de',
+      '?gruppe=',
+      'Die Sprachdatei fehlt.'
+    ];
+    const gTexts = screenTextsFrom(gApp);
+    check('Die Wache liest ueberhaupt etwas: die Texte von app.js',
+      gTexts.length > 4000, `${gTexts.length} Texte`);
+    check('Und sie kennt deutsche Woerter',
+      Object.keys(GERMAN_WORDS).length > 1000 &&
+      germanWordsIn('Die Sterne sind gewichtet').includes('gewichtet'),
+      `${Object.keys(GERMAN_WORDS).length} Wortpaare`);
+    /* ERST DER BEFUND AM GESTELLTEN SATZ (Stolperstein 81): eine Wache, die
+       nichts faende, waere gruen und belegte nichts. */
+    check('Und sie WUERDE ein festes deutsches Wort am Bildschirm finden',
+      germanWordsIn("<strong>eingerichtet</strong>").length === 1 &&
+      germanWordsIn(" gewichtet").length === 1,
+      'die Wache sieht das Wort nicht');
+    check('Und an einer Kennung faerbt sie sich nicht',
+      isName('f-abgelehnt') && isName('#/offen') && isName('kategorie') && !isName('Die Marke ist weg'),
+      'das Sieb ueber die Kennungen greift nicht');
+    check('Und an einem Bruchstueck mitten in einer Marke ebenso wenig',
+      insideMark('" alt="') && insideMark('/raw?size=medium" alt="" title="') &&
+      !insideMark('<strong class="mail-on">eingerichtet</strong>'),
+      'das Sieb ueber die Marken greift nicht');
+    const gStuck = gTexts
+      .filter(z => !isName(z.text) && !insideMark(z.text))
+      .filter(z => germanWordsIn(z.text).length > 0)
+      .filter(z => !SENTENCE_EXCEPTIONS.some(x => z.text.includes(x)));
+    check('KEIN deutscher Bildschirmsatz sitzt mehr fest in public/app.js',
+      gStuck.length === 0,
+      gStuck.map(z => `${z.row}: ${JSON.stringify(z.text.slice(0, 60))}`).join(' · '));
+    /* DIE ZAHL DER AUSNAHMEN STEHT AUSDRUECKLICH DA. Ohne sie waere die Liste
+       eine Selbstbestaetigung: wer einen Satz hinzufuegt, macht sie wieder
+       gruen -- dieselbe Ueberlegung wie bei den zwoelf benannten Bezeichnern. */
+    check('Und es sind genau sechs benannte Ausnahmen — zwei Befehle, drei Adressen, ein Satz',
+      SENTENCE_EXCEPTIONS.length === 6 &&
+      SENTENCE_EXCEPTIONS.filter(x => x.startsWith('docker')).length === 2 &&
+      SENTENCE_EXCEPTIONS.filter(x => /beispiel\.de|gruppe=/.test(x)).length === 3,
+      SENTENCE_EXCEPTIONS.join(' · '));
+    /* UND DIE DREI FUNDE DIESER RUNDE STEHEN JETZT IM WOERTERBUCH. */
+    check('„an", „aus" und „eingerichtet" kommen jetzt aus der Sprachdatei',
+      /tH\('card\.on'\)/.test(gApp) && /tH\('card\.off'\)/.test(gApp) &&
+      /tH\('card\.configured'\)/.test(gApp) &&
+      gLanguages.every(f => typeof f['card.configured'] === 'string'),
+      'einer der drei steht noch fest im Quelltext');
+  }
+
+  /* ---- BA 10: das Faelligkeitsdatum (Zusagen 22 bis 24) ------------- */
+  group('Das Faelligkeitsdatum bekommt Farbe — 0.30.0');
+  {
+    const dApp = fs.readFileSync(path.join(__dirname, 'public', 'app.js'), 'utf8');
+    const dCode = dApp.replace(/\/\*[\s\S]*?\*\//g, ' ').replace(/^\s*\/\/.*$/gm, ' ');
+    /* EINE EINZIGE EINTEILUNG. `dueOf` stand bis 0.30.0 INNERHALB von
+       renderOpen() und war von dort aus nirgends zu erreichen; eine zweite
+       daneben waere genau die zweite Wahrheit aus Stolperstein 47. */
+    check('`dueOf` steht genau EINMAL im Code — und nicht mehr in renderOpen()',
+      (dCode.match(/const dueOf = /g) || []).length === 1 &&
+      (dCode.match(/const todayKey = /g) || []).length === 1,
+      `dueOf ${(dCode.match(/const dueOf = /g) || []).length}x, ` +
+      `todayKey ${(dCode.match(/const todayKey = /g) || []).length}x`);
+    /* GENAU ZWEI RUFER, und das ist die Zahl und nicht „mindestens zwei": die
+       Ansicht „Offen" und die Zeile im Eintrag. Ein dritter waere ein dritter
+       Ort fuer dieselbe Frage und gehoerte benannt. */
+    check('Und beide Orte fragen dieselbe Funktion — genau zwei Rufer',
+      (dCode.match(/dueOf\(/g) || []).length === 2, `${(dCode.match(/dueOf\(/g) || []).length} Aufrufe`);
+    /* VIER ZUSTAENDE, VIER FARBEN -- und nicht drei Farben und ein Strich. */
+    const dCss = fs.readFileSync(path.join(__dirname, 'public', 'style.css'), 'utf8');
+    const dRule = (name) => (dCss.match(new RegExp(`\\.cmt-due\\.due-${name} \\{([^}]*)\\}`)) || [])[1] || '';
+    const dColours = ['overdue', 'today', 'later', 'done'].map(n => (dRule(n).match(/color: ([^;]+);/) || [])[1]);
+    check('Vier Zustaende tragen vier verschiedene Farben',
+      dColours.every(Boolean) && new Set(dColours).size === 4, JSON.stringify(dColours));
+    check('Und „ueberfaellig" traegt dasselbe Rot wie die Ueberschrift in „Offen"',
+      /\.cmt-due\.due-overdue \{ color: var\(--red\); \}/.test(dCss) &&
+      /\.open-section\.overdue \{ color: var\(--red\); \}/.test(dCss),
+      dRule('overdue'));
+    check('Und „heute" sticht durch das Gewicht heraus, nicht durch Rot',
+      /font-weight: 600/.test(dRule('today')) && !/--red/.test(dRule('today')), dRule('today'));
+    check('Und „erledigt" ist durchgestrichen',
+      /line-through/.test(dRule('done')), dRule('done'));
+    /* UND GEFAHREN: vier Aufgaben, vier Klassen. Eine Zusage, die nur das
+       Stilblatt liest, bliebe gruen, wenn die Klasse nie gesetzt wird. */
+    const dToday = (() => { const d = new Date(); const p = (n) => String(n).padStart(2, '0');
+      return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`; })();
+    const dShift = (days) => { const d = new Date(Date.now() + days * 86400000);
+      const p = (n) => String(n).padStart(2, '0');
+      return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`; };
+    /* VIER AUFGABEN IN VIER ZUSTAENDEN. `mine` an jeder: der Verweis steht
+       nur da, wo jemand ihn auch bedienen darf. `pinned` und `imagesRemoved`
+       gehoeren dazu, weil der echte Server sie an JEDEM Kommentar liefert --
+       ein Mock, der die Antwort vereinfacht, loescht genau die Pruefung,
+       fuer die er gebaut ist. */
+    const dWho = { id: 1, name: 'chefin' };
+    const dRow = (id, kind, text, due) => ({ id, kind, text, dueDate: due, pinned: false,
+      mine: true, imagesRemoved: 0, author: dWho, images: [],
+      created_at: '2026-09-01 09:00:00', updated_at: null });
+    const dComments = [
+      dRow(91, 'task', 'Gestern', dShift(-1)),
+      dRow(92, 'task', 'Heute', dToday),
+      dRow(93, 'task', 'Morgen', dShift(1)),
+      dRow(94, 'done', 'Erledigt', dShift(-2))
+    ];
+    /* JSDOM WIRD HIER GEHOLT UND NICHT VORAUSGESETZT: der Prueflauf laeuft
+       auch ohne es und sagt das dann deutlich. */
+    let JSDOMd;
+    try { ({ JSDOM: JSDOMd } = require('jsdom')); } catch { JSDOMd = null; }
+    check('jsdom steht fuer die vier Zustaende bereit', !!JSDOMd, 'ohne jsdom keine Oberflaechenprobe');
+    const dDom = buildDom(JSDOMd, { hash: '#/item/1', commentInventory: dComments });
+    await new Promise(r => setTimeout(r, 200));
+    const dSeen = [...dDom.w.document.querySelectorAll('.cmt-due')]
+      .map(b => (b.className.match(/due-[a-z]+/) || ['—'])[0]);
+    check('Vier Aufgaben, vier Zustaende — gefahren und nicht am Markup gelesen',
+      equal(dSeen, ['due-overdue', 'due-today', 'due-later', 'due-done']), JSON.stringify(dSeen));
+    /* UND DIE ERLEDIGTE ZEIGT IHR DATUM. Bis 0.30.0 verschwand es beim
+       Abhaken: die Spalte behielt es, der Bildschirm zeigte es nicht. */
+    const dDone = [...dDom.w.document.querySelectorAll('.cmt')]
+      .find(c => (c.textContent || '').includes('Erledigt'));
+    check('Eine ERLEDIGTE Aufgabe zeigt ihr Datum und kennzeichnet es als erledigt',
+      !!dDone?.querySelector('.cmt-due.due-done') &&
+      (dDone.querySelector('.cmt-due')?.textContent || '').trim().length > 4,
+      JSON.stringify(dDone?.querySelector('.cmt-due')?.outerHTML?.slice(0, 120)));
+    dDom.w.close();
+  }
+
+  /* ---- BA 8 und BA 11: die beiden Kaesten (Zusagen 17 bis 19, 25, 26) ---- */
+  group('Der Bewertungskasten und die Vokabelkarte — 0.30.0');
+  {
+    const kApp = fs.readFileSync(path.join(__dirname, 'public', 'app.js'), 'utf8');
+    const kCss = fs.readFileSync(path.join(__dirname, 'public', 'style.css'), 'utf8');
+    /* DER SCHMALE ABSCHNITT ALLEIN. Was hier steht, gilt nur unterhalb der
+       Umbruchstelle; alles davor ist der Schreibtisch und wird von dieser
+       Runde ausdruecklich nicht angefasst (Zusage 26). */
+    const K_NARROW = '@media (max-width: 700px), (max-height: 500px) and (max-width: 960px) {';
+    const kNarrow = kCss.slice(kCss.lastIndexOf(K_NARROW));
+    const kWide = kCss.slice(0, kCss.lastIndexOf(K_NARROW));
+    check('Der schmale Abschnitt steht da und ist der letzte',
+      kNarrow.length > 1000 && kWide.length > 1000, `${kNarrow.length} / ${kWide.length} Zeichen`);
+
+    /* ---- DIE KOPFZEILE (Zusage 17) ----
+       GEMESSEN AM 12. SEPTEMBER 2026 in echtem Chromium bei 390 x 844, an
+       einer Anlage mit ZWEI Zugaengen und gesetzten Gewichten:
+         „⌀ 3,5 gewichtet" + „Wer hat bewertet" (159 px)   81 px, ZWEI Zeilen
+         „⌀ 3,5 gewichtet" + „Wer?"             ( 67 px)   42 px, EINE Zeile
+       DIE GRENZE IST GEFAHREN: „Bewerter" (98 px) passt, „Abgestimmt?" (127)
+       nicht. Der Knopf muss also unter 127 px bleiben -- und weil eine
+       Sprachdatei ihn laenger machen kann, haelt diese Zeile die LAENGE und
+       nicht den Wortlaut. */
+    const kButton = ['de', 'en', 'tr'].map(code => JSON.parse(fs.readFileSync(
+      path.join(__dirname, 'public', 'languages', `${code}.json`), 'utf8'))['entry.whoRated']);
+    check('Der Knopf heisst in jeder Sprache hoechstens acht Zeichen',
+      kButton.every(w => typeof w === 'string' && w.length > 0 && w.length <= 8),
+      JSON.stringify(kButton));
+    check('Und auf Deutsch heisst er „Wer?" — 67 statt 159 Pixel',
+      kButton[0] === 'Wer?', JSON.stringify(kButton[0]));
+    /* UND DER FENSTERTITEL BLEIBT DER GANZE SATZ. Er steht nicht in der
+       Kopfzeile und hat Platz; der kurze Knopf bekommt seine Erklaerung genau
+       beim Oeffnen (F11, zweite Haelfte). */
+    const kTitle = ['de', 'en', 'tr'].map(code => JSON.parse(fs.readFileSync(
+      path.join(__dirname, 'public', 'languages', `${code}.json`), 'utf8'))['entry.whoRatedWord']);
+    check('Der Titel des Fensters dahinter bleibt der ganze Satz',
+      kTitle.every(w => typeof w === 'string' && w.includes('{word}') && w.length > 12),
+      JSON.stringify(kTitle));
+
+    /* ---- DIE STERNZEILE (Zusagen 18 und 19) ----
+       DIE ZWEIZEILIGE FORM BLEIBT, und das hat die Messung entschieden und
+       nicht der Geschmack: zurueckgenommen waechst der Kasten von 580 auf 607
+       px, die Namensspalte faellt auf 54, jeder Name bricht fuenfzeilig um,
+       und die Seite ROLLT seitlich (Projektstand 5.3 behaelt recht, F12).
+       GEBAUT IST STATTDESSEN WENIGER LUFT IN DERSELBEN FORM -- C1a, also NUR
+       dort, wo die vierte Spalte steht. GEMESSEN bei 390 x 844, zwei Zugaenge,
+       fuenf Kriterien:
+         vorher   Kasten 537 px, je Kriterium 82 px
+         nachher  Kasten 439 px, je Kriterium 70 px
+       und bei EINEM Zugang 336 px vorher wie nachher -- unangetastet. */
+    check('Die zweizeilige Sternzeile bleibt — die Regel steht unveraendert da',
+      /\.rlist:not\(\.no-average\) \{ grid-template-columns: auto 1fr auto; \}/.test(kNarrow) &&
+      /\.rlist:not\(\.no-average\) \.rrow \.rname \{\s*grid-column: 1 \/ -1;/.test(kNarrow),
+      '(die Regel aus Projektstand 5.3 fehlt)');
+    check('Und die Luft geht NUR dort weg, wo die vierte Spalte steht',
+      /\.rlist:not\(\.no-average\) \.rrow \.rname \{ padding-top: 4px; line-height: 1\.35; \}/.test(kNarrow) &&
+      /\.rlist:not\(\.no-average\) \.rrow \.rreset-cell \{ padding-bottom: 5px; \}/.test(kNarrow),
+      (kNarrow.match(/\.rlist:not\(\.no-average\) \.rrow \.rname \{ padding[^\n]*/) || ['(nicht gefunden)'])[0]);
+    /* UND KEINE DIESER REGELN STEHT OHNE DIE KLAMMER. Ohne `:not(.no-average)`
+       traefe sie auch die Fassung mit EINEM Zugang -- also genau die, die der
+       Betreiber „gut" nennt (F12). Das waere C1 und nicht C1a. */
+    check('Und keine von ihnen trifft die Fassung mit einem einzigen Zugang',
+      !/^\s*\.rrow \.rname \{ padding-top: 4px/m.test(kNarrow) &&
+      !/^\s*\.rrow > \* \{ padding-bottom: 5px/m.test(kNarrow),
+      'eine der Regeln steht ohne die Klammer');
+    /* UND AM SCHREIBTISCH AENDERT SICH NICHTS (Zusage 26). Gemessen: der
+       Kasten misst dort 304 px vorher wie nachher, bei einem Zugang 290. */
+    check('Und am Schreibtisch steht keine der beiden Regeln',
+      !/\.rrow \.rname \{ padding-top: 4px/.test(kWide) &&
+      !/rreset-cell \{ padding-bottom: 5px/.test(kWide),
+      'eine der Regeln steht ausserhalb der Umbruchstelle');
+
+    /* ---- DIE VOKABELKARTE (Zusage 25) ----
+       GEMESSEN, UND DIE MESSUNG HAT DEN VORSCHLAG DES AUFTRAGS WIDERLEGT:
+         heute, einspaltig            1203 px    2 von 14 Umbruechen
+         zwei Spalten (Vorschlag)      733 px   14 von 14, zwei dreizeilig
+         Beschriftung neben dem Feld   982 px   14 von 14, DREI dreizeilig
+         diese Fassung                1056 px    2 von 14, keine dreizeilig
+       GEBAUT IST DASSELBE MITTEL WIE AM BEWERTUNGSKASTEN: weniger Luft,
+       gleiche Bauform (F14, zweite Runde). */
+    const V_NARROW = '@container (max-width: 420px)';
+    const kContainer = kCss.slice(kCss.indexOf(V_NARROW));
+    check('Die Vokabelkarte bleibt einspaltig — zwei Spalten sind gemessen widerlegt',
+      /\.vocabulary-grid \{ grid-template-columns: 1fr; \}/.test(kContainer),
+      '(die Regel aus dcef9dc fehlt)');
+    check('Und ihre Luft geht weg, ohne die Bauform anzufassen',
+      /\.vocabulary-grid \.field \{ margin-bottom: 4px; \}/.test(kContainer) &&
+      /\.vocabulary-grid \.field label \{ line-height: 1\.25; \}/.test(kContainer) &&
+      /\.vocabulary-grid \.field label \.hint \{ display: inline; margin-left: 4px; \}/.test(kContainer),
+      (kContainer.match(/\.vocabulary-grid \.field \{[^\n]*/) || ['(nicht gefunden)'])[0]);
+    /* UND DIE BESCHRIFTUNG BLEIBT UEBER DEM FELD. Daneben zu stellen ist der
+       „dritte Weg" aus dem Auftrag -- und er bricht alle vierzehn um. */
+    check('Und die Beschriftung steht weiter UEBER dem Feld, nicht daneben',
+      !/\.vocabulary-grid \.field \{[^}]*flex-direction: row/.test(kContainer),
+      'die Beschriftung steht neben dem Feld');
+    check('Und am Schreibtisch aendert sich auch hier nichts',
+      /\.vocabulary-grid \.field \{ margin-bottom: 10px; display: flex; flex-direction: column; \}/
+        .test(kCss.slice(0, kCss.indexOf(V_NARROW))),
+      'die Karte am Schreibtisch ist mitgewandert');
   }
 }

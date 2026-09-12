@@ -824,21 +824,10 @@ button { cursor: pointer; background: none; border: none; padding: 0; }
    dahinter steht: deshalb ohne die Beschriftungsspalte und mit einem Abstand
    davor, der sie vom Vorhergehenden loest. */
 .frow > .eyebrow-with { min-width: 0; margin-left: 22px; }
-/* DER UMSCHALTER DER TAGZEILE -- 0.22.0 (E8), umgebaut in 0.24.0
-   (Bauabschnitt 0.2). Bis dahin war er die <summary> eines <details> und
-   belegte damit eine EIGENE Zeile in der Leiste -- also genau den Platz, den
-   er sparen sollte. Jetzt sitzt er am rechten Ende der Kategoriezeile, in der
-   Bauform von „Filter zurücksetzen": ein .link-btn in einem
-   .frow-right-wide, das die selbsttaetige Aussenkante traegt.
-   DER WINKEL IST DERSELBE WIE VORHER und dreht sich beim Oeffnen -- nur haengt
-   er jetzt an `aria-expanded` und nicht mehr an `[open]`.
-   DER UNTERSTRICH GEHOERT UNTER DIE WOERTER: .link-btn unterstreicht, und ein
-   Strich unter dem Winkel saehe aus wie ein zweiter Winkel. Deshalb traegt ihn
-   das Wort und nicht der Knopf. */
-.tag-toggle { display: inline-flex; align-items: center; gap: 7px; text-decoration: none; }
-.tag-toggle::before { content: ''; width: .45em; height: .45em; border-right: 1.5px solid currentColor; border-bottom: 1.5px solid currentColor; transform: rotate(-45deg); transition: transform .15s var(--ease); }
-.tag-toggle[aria-expanded="true"]::before { transform: rotate(45deg); }
-.tag-toggle > span { text-decoration: underline; }
+/* HIER STANDEN BIS 0.30.0 DIE VIER REGELN DES UMSCHALTERS „Tags" --
+   `.tag-toggle` samt Winkel und Unterstrich. Der Umschalter ist gefallen (F9):
+   die Tagzeile steht da, sobald die Filter aufgeklappt sind. Eine Regel ohne
+   Traeger bleibt nicht stehen. */
 .pills { display: flex; flex-wrap: wrap; gap: 6px; }
 /* Die Sortierung und ihre Richtung -- 0.28.1. Eine Einstellung in zwei
    Bedienelementen: welches Merkmal ordnet, und in welche Richtung. */
@@ -1923,6 +1912,36 @@ mark {
    Stelle, an der eine Farbe hier etwas sagt. */
 .cmt-due { font-size: .76rem; color: var(--muted); }
 .cmt-due.on { color: var(--text); font-family: var(--mono); }
+/* ---- DIE VIER ZUSTÄNDE DES FÄLLIGKEITSDATUMS -- 0.30.0, Befund 8 (F13) ----
+   DER BETREIBER, 12. SEPTEMBER 2026, MIT BILD: „Datum feld muss farblich zum
+   todo zugeordnet werden können. passend zum status. ob fertig, oder noch
+   offen. so sieht es aus als ob das einfach nur ein datumstempel von dem
+   erstellungstag oder so. man wird es nicht beachten!"
+   ER HAT RECHT, UND DAS STILBLATT SAGTE ES SELBST: ein gesetztes Datum stand
+   in der gewöhnlichen Textfarbe — und drei Elemente weiter rechts steht in
+   derselben Zeile das Erstellungsdatum des Kommentars (`.cmt-when`). Zwei
+   Daten nebeneinander, und keines sagte, welches welches ist.
+   DIESELBE FARBE WIE IN DER ANSICHT „Offen": `.open-section.overdue` trägt
+   seit 0.29.0 `var(--red)`, und die Überschrift ÜBER der Liste war rot,
+   während die Zeile IN der Liste es nicht war. Jetzt sagen beide dasselbe.
+   „HEUTE" IST NICHT ROT, UND DAS IST ABSICHT: heute fällig ist kein Fehler,
+   sondern ein Termin. Es bekommt die volle Textfarbe und Gewicht — es sticht
+   heraus, ohne zu warnen. Rot bleibt dem vorbehalten, was VERSÄUMT ist.
+   „SPÄTER" BLEIBT GEDÄMPFT, also so, wie ein Datum bis 0.29.0 immer aussah:
+   es ist eingetragen und noch nicht dran.
+   ERLEDIGT IST DURCHGESTRICHEN UND NICHT WEG. Bis 0.30.0 verschwand das Datum
+   beim Abhaken ganz — die Spalte behielt es, der Bildschirm zeigte es nicht.
+   Eine Angabe, die jemand eingetragen hat, verschwindet nicht beim Abhaken;
+   der Strich sagt, dass sie nicht mehr gilt.
+   UND ES IST BLASSER ALS „später", nicht gleich blass: gemessen trugen beide
+   zuerst `var(--muted)`, und dann unterschied sie allein der Strich. VIER
+   ZUSTÄNDE, VIER FARBEN — wer zwei davon gleich färbt, hat drei. `--faint` ist
+   dieselbe Blässe, die ein leeres Vokabelfeld trägt: eingetragen, aber nicht
+   mehr in Kraft. */
+.cmt-due.due-overdue { color: var(--red); }
+.cmt-due.due-today { color: var(--text); font-weight: 600; }
+.cmt-due.due-later { color: var(--muted); }
+.cmt-due.due-done { color: var(--faint); text-decoration: line-through; }
 .cmt-due-in { width: 9.5em; font-size: .76rem; padding: 2px 6px; }
 .open-section { font-size: .72rem; letter-spacing: .08em; text-transform: uppercase;
   color: var(--muted); margin: 18px 0 7px; }
@@ -3454,6 +3473,35 @@ body.login .login-screen { flex: 1 0 auto; min-height: 0; }
   /* Zwei Spalten Formularfelder auf 320 Pixeln sind zwei zu schmale Spalten --
      derselbe Satz wie vorher, nur an der richtigen Groesse gemessen. */
   .vocabulary-grid { grid-template-columns: 1fr; }
+  /* ---- WENIGER LUFT IN DERSELBEN BAUFORM -- 0.30.0, Befund 9 (F14) ----
+     DER BETREIBER, MITTEN IN DER FRAGERUNDE: „ich bemerke das du vokabular
+     vergroessert hast.. hmm. war das vorher nicht besser mit einer zeile mit 2
+     spalten?" -- und kurz darauf, nach dem Nachsehen: „vielleicht halt in der
+     28er aber ich habe es jetzt bemerkt."
+     ER HAT RECHT MIT DER BEOBACHTUNG UND DIE MESSUNG WIDERLEGT DEN VORSCHLAG.
+     Gefahren in echtem Chromium bei 390 x 844, jede Fassung mit erzwungenem
+     frischem Ladevorgang:
+
+       heute, einspaltig            1203 px   2 von 14 Umbruechen
+       zwei Spalten (der Vorschlag)  733 px  14 von 14, zwei dreizeilig
+       Beschriftung neben dem Feld   982 px  14 von 14, DREI dreizeilig
+       daneben und enger             853 px  14 von 14, zwei dreizeilig
+       DIESE FASSUNG                1056 px   2 von 14, keine dreizeilig
+
+     DER „DRITTE WEG" AUS DEM AUFTRAG WAR DIE BESCHRIFTUNG NEBEN DEM FELD, und
+     er scheitert an genau derselben Messung wie der Vorschlag, den er ersetzen
+     sollte: er bricht ALLE VIERZEHN Beschriftungen um, drei davon dreizeilig
+     -- und das Feld faellt von 366 auf 195 px. Beides ist gemessen und nicht
+     geschaetzt (F14, zweite Runde: „erst messen, dann entscheiden").
+     GEBAUT WIRD DESHALB DASSELBE MITTEL WIE AM BEWERTUNGSKASTEN: weniger Luft,
+     gleiche Bauform. 147 Pixel weniger, das Feld behaelt seine volle Breite,
+     und es bricht keine Beschriftung zusaetzlich um.
+     DER HINWEIS RUECKT IN DIE ZEILE DER BESCHRIFTUNG. „(Vorgabe: Eintrag)"
+     stand als eigener Block darunter und kostete je Feld eine ganze Zeile; er
+     gehoert zur Beschriftung und steht jetzt hinter ihr. */
+  .vocabulary-grid .field { margin-bottom: 4px; }
+  .vocabulary-grid .field label { line-height: 1.25; }
+  .vocabulary-grid .field label .hint { display: inline; margin-left: 4px; }
 }
 
 /* ---- Der Befehl in „Mein Zugang" und in „Kennzahlen" ----
@@ -4016,13 +4064,33 @@ body.login .login-screen { flex: 1 0 auto; min-height: 0; }
      gesetzt). Eine Regel, die sich ihren Traeger ueber den Inhalt der Zeile
      zusammensucht, liest sich beim naechsten Filter falsch. */
   .frow > .frow-right-end { grid-column: 3; }
-  /* DER UND/ODER-UMSCHALTER GEHOERT NEBEN SEINE BESCHRIFTUNG -- 0.29.0 (F12).
-     Er spannte bis hierher ueber alle Spalten: 362 Pixel fuer zwei Pillen, die
-     zusammen 86 brauchen -- und die Beschriftung „Tags" blieb dabei allein auf
-     der Zeile darueber stehen. Zwei Zeilen kuendigten dieselbe Sache an.
-     GEMESSEN: die Markenzeile misst damit 69 statt 94 px, der Filterkasten 291
-     statt 316, und die erste Kachel steht bei y = 502 statt 527. */
-  .frow > .tagmode { grid-column: 2; }
+  /* ---- DIE TAGZEILE -- 0.30.0, Befund 6 (F9, F10) ----
+     DER BETREIBER, 12. SEPTEMBER 2026, MIT BILD: „ich moechte das das ‚und'
+     und ‚Oder' kleiner unter dem tag kateogier ueberschrift sind und zwar
+     kleiner. … danach soll rechts davon die tags aufgelistet werden und rechte
+     ende dann das mehr button. wenn das mit einer zeile nicht klappt dann
+     bitte 2 zeilig machen."
+     ES KLAPPT NICHT MIT EINER ZEILE, UND ES IST ZWEIZEILIG. Gemessen wurden
+     vier Fassungen; diese ist die kuerzeste: „und/Oder" klein UNTER der
+     Beschriftung, die Wolke rechts daneben ueber beide Rasterzeilen, „mehr"
+     am rechten Ende.
+     0.29.0 HATTE IHN NEBEN DIE BESCHRIFTUNG GESETZT (F12) -- das war
+     richtiger als daruntergespannt und ist jetzt ueberholt: neben ihr nahm er
+     der Wolke die erste Zeile weg, und genau das sieht der Betreiber am Bild.
+     DER PREIS IST EIN SICHTBARER TAG WENIGER (F10): die Beschriftungsspalte
+     waechst von 35 auf 67 px, weil „und/Oder" darunter steht. Der Rest steht
+     hinter „mehr", wie vorher auch -- und dafuer ist „mehr" da.
+     KLEINER ALS DIE PILLEN DANEBEN, und zwar deutlicher als bisher: er ist
+     eine Einstellung ZU der Reihe und nicht ein Glied darin, und unter der
+     Beschriftung soll er sie nicht ueberragen. */
+  .frow-tags > .tagmode { grid-column: 1; grid-row: 2; margin-right: 0;
+    align-self: start; }
+  .frow-tags > .tagmode .pill-mode { padding: 2px 7px; font-size: .62rem; }
+  /* WOLKE UND VERWEISE SPANNEN UEBER BEIDE RASTERZEILEN. Ohne das stuende die
+     Wolke in Zeile eins und „mehr" darunter -- die Zeile truege drei
+     Rasterzeilen statt zweier und waere hoeher als vorher. */
+  .frow-tags > .pills.cloud { grid-row: 1 / span 2; align-self: start; }
+  .frow-tags > .frow-right-end { grid-row: 1 / span 2; align-self: start; }
   /* QUER ROLLEN STATT UMBRECHEN -- und ohne Rollbalken: er naehme die Hoehe
      wieder weg, die die Zeile gerade gewonnen hat. Dass rechts noch etwas
      steht, sagt die angeschnittene Pille am Rand. */
@@ -4355,6 +4423,33 @@ body.login .login-screen { flex: 1 0 auto; min-height: 0; }
   }
   .rlist:not(.no-average) .rrow .racts,
   .rlist:not(.no-average) .rrow .ravg { padding-top: 4px; }
+  /* ---- WENIGER LUFT, NUR WO DIE VIERTE SPALTE STEHT -- 0.30.0, Befund 7 ----
+     DER BETREIBER, 12. SEPTEMBER 2026, MIT ZWEI INSTALLATIONEN: „bei einem
+     user ist die anordnung der sterne gut aber bei mehr user nimmt es durch
+     den umbruch in der kopfzeile und in den sternenzeile viel zu viel platz."
+     GEMESSEN IST DER KASTEN, UND DIE MESSUNG HAT DEN ERSTEN VORSCHLAG DIESES
+     AUFTRAGS WIDERLEGT. Den schmalen Dreispalter zurueckzunehmen -- also die
+     zweizeilige Sternzeile aus Projektstand 5.3 umzukehren -- macht den Kasten
+     GROESSER: 607 statt 580 px, die Namensspalte faellt auf 54, jeder Name
+     bricht fuenfzeilig um, und die Seite ROLLT seitlich (drei Spalten brauchen
+     362 px nebeneinander, die Liste hat 366). PROJEKTSTAND 5.3 BEHAELT RECHT
+     (F12).
+     WAS WIRKLICH HILFT, IST DIE LUFT. Von den 82 Pixeln je Kriterium sind 22
+     Innenabstand: 9 ueber dem Namen, 4 ueber den Sternen, 9 darunter. Hier
+     fallen 9 davon weg -- 5 ueber dem Namen und 4 unter den Sternen.
+     C1a UND NICHT C1, und das ist eine Entscheidung und keine Messung: C1
+     naehme die Luft in JEDER Bewertungszeile und spart 97 statt 49 Pixel --
+     aber eben auch dort, wo der Betreiber „gut" gesagt hat. Wer „gut" sagt,
+     bekommt nicht ungefragt etwas anderes (F12). Deshalb steht die Regel unter
+     `:not(.no-average)`: die Fassung mit EINEM Zugang bleibt unangetastet.
+     DIE ZEILENHOEHE DES NAMENS GEHT MIT. Sie steht sonst auf 21,6 px bei einer
+     Schrift von 13,95 -- ein Name, der nicht umbricht, braucht davon nicht so
+     viel. Umbrechen darf er weiterhin (`overflow-wrap: anywhere` oben), und
+     dann stehen die Zeilen enger statt gar nicht. */
+  .rlist:not(.no-average) .rrow .rname { padding-top: 4px; line-height: 1.35; }
+  .rlist:not(.no-average) .rrow .racts,
+  .rlist:not(.no-average) .rrow .ravg,
+  .rlist:not(.no-average) .rrow .rreset-cell { padding-bottom: 5px; }
 
   /* DIE DATEIZEILE UND DIE TESTTAGZEILE brechen um, statt zu quetschen. An
      der Datei hingen sieben Stuecke in einer Zeile; dem Dateinamen blieben
