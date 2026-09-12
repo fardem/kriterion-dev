@@ -4221,8 +4221,8 @@ const shareMain = (purpose, target = null) =>
      LEER HEISST LEER: hat niemand etwas uebersetzt, steht ein leeres Objekt
      in der Datei. Das ist eine Angabe und kein fehlendes Feld. */
   const rnFile = (await callF('GET', '/api/export?photos=0')).content;
-  check('Die Exportdatei traegt die Formatnummer 15',
-    rnFile?.version === 15, JSON.stringify(rnFile?.version));
+  check('Die Exportdatei traegt die Formatnummer 16',
+    rnFile?.version === 16, JSON.stringify(rnFile?.version));
   check('Und sie traegt beide Namenstafeln, je Sprache geordnet',
     rnFile?.criteriaNames?.de?.['Rueckfallkriterium'] === 'Deutscher Name' &&
     rnFile?.categoryNames?.de?.['Rueckfallkategorie'] === 'Deutsche Kategorie',
@@ -5590,7 +5590,7 @@ const shareMain = (purpose, target = null) =>
     await call('PUT', `/api/criteria/${exCrit.id}`, { name: 'Üç dilli', language: 'tr' });
     const exFile = (await callF('GET', '/api/export?photos=0')).content;
     check('Ein Export traegt alle drei Sprachfassungen',
-      exFile?.version === 15 &&
+      exFile?.version === 16 &&
       exFile?.criteriaNames?.de?.['Dreisprachig'] === 'Dreisprachig DE' &&
       exFile?.criteriaNames?.tr?.['Dreisprachig'] === 'Üç dilli',
       JSON.stringify([exFile?.version, exFile?.criteriaNames?.de?.['Dreisprachig'],
@@ -6161,7 +6161,7 @@ const shareMain = (purpose, target = null) =>
   await gSet('Preis', 1); await gSet('Kundendienst', 1);
   const eOneF = includingShare((m, p, k) => eCall('cookie-e-eins', m, p, k), eWord);
   const gOut = (await eOneF('GET', '/api/export?photos=0')).content;
-  check('Die Formatnummer steht auf 15', gOut?.version === 15, JSON.stringify(gOut?.version));
+  check('Die Formatnummer steht auf 16', gOut?.version === 16, JSON.stringify(gOut?.version));
   check('criteria bleibt eine Liste von Namen',
     Array.isArray(gOut?.criteria) && gOut.criteria.every(n => typeof n === 'string'),
     JSON.stringify(gOut?.criteria));
@@ -6732,7 +6732,7 @@ const shareMain = (purpose, target = null) =>
     e2Entry?.comments?.find(c => c.text === 'Kommentar ohne Verfasser')?.author === null &&
     'author' in (e2Entry?.comments?.find(c => c.text === 'Kommentar ohne Verfasser') || {}),
     JSON.stringify(e2Entry?.comments?.find(c => c.text === 'Kommentar ohne Verfasser')));
-  check('Die Formatnummer der Datei steht auf 15', e2Out?.version === 15, JSON.stringify(e2Out?.version));
+  check('Die Formatnummer der Datei steht auf 16', e2Out?.version === 16, JSON.stringify(e2Out?.version));
 
   /* Der sechste Traeger steht nur in einem Export MIT Dateien -- deshalb ein
      zweiter Ruf. Dieselben drei Lagen wie an der Linkzeile, und die herrenlose
@@ -8011,7 +8011,7 @@ const shareMain = (purpose, target = null) =>
     // Dieselbe Nummer wie beim vollen Export: ein Einzelexport ist ein
     // vollstaendiges Paket mit einem Eintrag darin, kein halbes.
     check('Die Formatnummer ist dieselbe wie beim vollen Export',
-      singleExport.content?.version === 15 && full.content?.version === 15,
+      singleExport.content?.version === 16 && full.content?.version === 16,
       JSON.stringify([singleExport.content?.version, full.content?.version]));
     check('Der Umschlag traegt dieselben Felder wie beim vollen Export',
       equal(Object.keys(singleExport.content || {}).sort(), Object.keys(full.content || {}).sort()),
@@ -8498,6 +8498,123 @@ const shareMain = (purpose, target = null) =>
     const go = await siCall('cookie-si-anna', 'POST', '/api/backup');
     check('Die Eigentuemerin kommt durch', go.status === 200, JSON.stringify(go.content));
   }
+  /* ================= DIE SICHERUNGSPROBE -- 0.29.0, Befund 1 =============
+     GEFAHREN UND NICHT GELESEN: die Probe laeuft an den Dateien, die diese
+     Gruppe eben geschrieben hat, und ihre Zahlen werden gegen den Bestand
+     derselben Instanz gehalten. Eine Zusage, die nur den Quelltext ansieht,
+     bliebe gruen, wenn der Weg dasteht und nichts tut -- das ist die Lehre aus
+     0.28.1. */
+  group('Die Sicherungsprobe — 0.29.0');
+  {
+    const siPlace = (await siCall('cookie-si-anna', 'GET', '/api/backup')).content;
+    const siList = siPlace?.cleanup?.files || [];
+    check('Es liegen Sicherungen zum Pruefen da',
+      siList.length >= 1, JSON.stringify(siList.map(z => z.nr)));
+
+    /* DIE ZAHLEN AUS DER LAUFENDEN DATENBANK -- sie sind der Massstab. Gelesen
+       werden sie aus der Datei selbst und nicht aus /api/stats: die Route
+       braucht Adminrechte, und der Vergleich soll an den ZEILEN haengen. */
+    const siWant = (() => {
+      const d = open(path.join(siDir, 'katalog.sqlite'));
+      d.pragma('busy_timeout = 4000');
+      const one = (sql) => d.prepare(sql).get();
+      const out = {
+        items: one('SELECT COUNT(*) AS n FROM items').n,
+        photos: one("SELECT COUNT(*) AS n FROM photos WHERE COALESCE(kind, 'photo') <> 'video'").n,
+        users: one("SELECT COUNT(*) AS n FROM users WHERE status <> 'deleted'").n
+      };
+      d.close();
+      return out;
+    })();
+
+    const siProbe = await siCall('cookie-si-anna', 'POST', '/api/backup/check', { nr: 1 });
+    check('Die Probe oeffnet die juengste Sicherung und zaehlt',
+      siProbe.status === 200 && siProbe.content?.ok === true,
+      JSON.stringify(siProbe.content));
+    check('Und ihre Zahlen sind die des Bestands',
+      siProbe.content?.itemCount === siWant.items &&
+      siProbe.content?.photoCount === siWant.photos &&
+      siProbe.content?.userCount === siWant.users,
+      `Probe ${JSON.stringify([siProbe.content?.itemCount, siProbe.content?.photoCount,
+        siProbe.content?.userCount])} gegen Bestand ${JSON.stringify(
+        [siWant.items, siWant.photos, siWant.users])}`);
+    check('Sie nennt Datum und Groesse der Datei, die sie wirklich geoeffnet hat',
+      Number.isFinite(siProbe.content?.at) && Number.isFinite(siProbe.content?.bytes) &&
+      siProbe.content?.nr === 1, JSON.stringify(siProbe.content));
+
+    /* SIE FASST DIE LAUFENDE DATENBANK NICHT AN. Verglichen wird der BESTAND
+       vorher und nachher und nicht bloss die Dateigroesse: eine WAL, die
+       daneben entsteht, aenderte die Groesse nicht sofort. */
+    const siCount = () => {
+      const d = open(path.join(siDir, 'katalog.sqlite'));
+      d.pragma('busy_timeout = 4000');
+      const n = d.prepare('SELECT COUNT(*) AS n FROM items').get().n;
+      const m = d.prepare('SELECT COUNT(*) AS n FROM comments').get().n;
+      d.close();
+      return [n, m];
+    };
+    const siBefore = siCount();
+    await siCall('cookie-si-anna', 'POST', '/api/backup/check', { nr: 1 });
+    const siAfter = siCount();
+    check('Und sie fasst die laufende Datenbank nicht an',
+      equal(siBefore, siAfter), `${JSON.stringify(siBefore)} gegen ${JSON.stringify(siAfter)}`);
+
+    /* EINE SICHERUNG MIT FREMDEM SCHLUESSEL WIRD ALS SOLCHE GEMELDET und nicht
+       als Fehler (F4). Sie wird hier eigens angelegt -- mit einem Schluessel,
+       den diese Instanz nicht kennt -- und ALT datiert, damit ihre Nummer
+       eindeutig hinten steht. */
+    {
+      const siStrangeKey = crypto.randomBytes(32).toString('hex');
+      const siStrangeFile = path.join(siRoot, 'taeglich', 'kriterion-2020-01-01-000000.sqlite');
+      const d = new Database(siStrangeFile);
+      d.pragma("cipher='sqlcipher'");
+      d.pragma(`key="x'${siStrangeKey}'"`);
+      d.exec('CREATE TABLE items (id INTEGER PRIMARY KEY)');
+      d.close();
+      const old = new Date('2020-01-01T00:00:00Z');
+      fs.utimesSync(siStrangeFile, old, old);
+
+      const siNow = (await siCall('cookie-si-anna', 'GET', '/api/backup')).content;
+      const siLast = (siNow?.cleanup?.files || []).slice(-1)[0];
+      const siStrange = await siCall('cookie-si-anna', 'POST', '/api/backup/check', { nr: siLast?.nr });
+      check('Eine Sicherung mit fremdem Schluessel wird als solche gemeldet',
+        siStrange.status === 200 && siStrange.content?.ok === false &&
+        siStrange.content?.reason === 'key', JSON.stringify(siStrange.content));
+      fs.unlinkSync(siStrangeFile);
+    }
+
+    /* EINE NUMMER, DIE ES NICHT GIBT, ist eine Absage und kein Absturz. Drei
+       Formen, und jede einzelne hat ihren Grund: zu gross, null (denn
+       `files[0 - 1]` waere undefined und faende erst die naechste Zeile), und
+       gar keine. */
+    const siGone = await siCall('cookie-si-anna', 'POST', '/api/backup/check', { nr: 9999 });
+    const siZero = await siCall('cookie-si-anna', 'POST', '/api/backup/check', { nr: 0 });
+    const siNone = await siCall('cookie-si-anna', 'POST', '/api/backup/check', {});
+    check('Eine Nummer, die es nicht gibt, wird abgewiesen',
+      siGone.status === 404 && siZero.status === 404 && siNone.status === 404,
+      `${siGone.status} / ${siZero.status} / ${siNone.status}`);
+
+    /* UND SIE GEHOERT DER EIGENTUEMERIN. bert ist Admin und nicht Eigentuemer;
+       die Probe nennt einen Pfad des Wirts und steht deshalb hinter derselben
+       Klemme wie die Karte selbst. */
+    const siAdmin = await siCall('cookie-si-bert', 'POST', '/api/backup/check', { nr: 1 });
+    check('Ein Admin kommt an die Probe nicht heran',
+      siAdmin.status === 403, `${siAdmin.status} ${JSON.stringify(siAdmin.content)}`);
+
+    /* UND DER WEG IST DER BENANNTE. `F_ROUTES` steht weiter unten auf 73; hier
+       steht, dass genau DIESER Weg der dreiundsiebzigste ist und nicht ein
+       zweiter daneben. */
+    const siSource = fs.readFileSync(path.join(__dirname, 'server.js'), 'utf8');
+    check('Der Weg heisst POST /api/backup/check und nimmt eine NUMMER',
+      /app\.post\('\/api\/backup\/check', ownerOnly,/.test(siSource) &&
+      /const nr = Number\(req\.body && req\.body\.nr\);/.test(siSource) &&
+      !/backup\/check[^\n]*req\.body\.(file|name|datei)/.test(siSource),
+      'die Route sieht anders aus als zugesagt');
+    check('Und sie oeffnet die Kopie nur lesend',
+      /new Database\(full, \{ readonly: true \}\)/.test(siSource),
+      (siSource.match(/new Database\(full[^\n]*/) || ['(nicht gefunden)'])[0]);
+  }
+
   /* DER PROTOKOLLBELEG ZULETZT: die Ausgabe des Kindprozesses wird gepuffert,
      und unmittelbar nach dem Start ist die Zeile womoeglich noch gar nicht
      angekommen. Hier liegt der ganze Verkehr der Gruppe dazwischen. */
@@ -11138,7 +11255,7 @@ const shareMain = (purpose, target = null) =>
   const agCallF = includingShare((m, p, k) => agCall('cookie-ag-anna', m, p, k), AG_WORD);
   const agFile = (await agCallF('GET', '/api/export?fotos=0')).content;
   const agPackage = agFile?.items?.find(i => i.title === 'Berts Saege');
-  check('Die Formatnummer der Datei steht auf 15', agFile?.version === 15,
+  check('Die Formatnummer der Datei steht auf 16', agFile?.version === 16,
     JSON.stringify(agFile?.version));
   check('Die Datei traegt Datum, Grund und den NAMEN des Ablehnenden',
     agPackage?.rejected_at === agBefore.rejected_at &&
@@ -11588,15 +11705,24 @@ const shareMain = (purpose, target = null) =>
     }
     /* DIE GEGENLAGE, wie in der Vorrunde: eine SPALTE kommt nicht von selbst
        zurueck. Ohne sie belegte die Probe nur, dass irgendetwas nachwaechst.
-       Genommen wird users.email -- sie traegt keinen Migrationsblock. */
+       GENOMMEN WIRD users.last_login UND NICHT MEHR users.email -- 0.29.0.
+       Der Grund fuer email war, dass sie keinen Migrationsblock traegt; seit
+       dieser Runde traegt sie etwas anderes: den partiellen Index
+       `idx_users_email` (Befund 4). SQLite weist ein DROP COLUMN ab, sobald
+       ein Index auf der Spalte steht -- „error in index idx_users_email after
+       drop column" --, und der Lauf riss an genau dieser Zeile ab.
+       last_login ERFUELLT DIESELBE BEDINGUNG: kein Migrationsblock, kein
+       Index, kein Vorgabewert. Die Zusage ist dieselbe geblieben; nur ihr
+       Gegenstand hat gewechselt, weil der alte in dieser Runde einen Traeger
+       bekommen hat. */
     {
       const d = open(tkFile);
       d.pragma('foreign_keys = OFF');
-      d.exec('ALTER TABLE users DROP COLUMN email');
+      d.exec('ALTER TABLE users DROP COLUMN last_login');
       const withoutColumn = d.prepare('PRAGMA table_info(users)').all().map(c => c.name);
       d.close();
       check('Die Spalte ist von Hand entfernt',
-        !withoutColumn.includes('email'), JSON.stringify(withoutColumn));
+        !withoutColumn.includes('last_login'), JSON.stringify(withoutColumn));
     }
     let tkAfterStart = [];
     try {
@@ -11606,7 +11732,7 @@ const shareMain = (purpose, target = null) =>
       d.close();
     } catch { tkAfterStart = ['(Start gescheitert)']; }
     check('Eine fehlende SPALTE traegt CREATE TABLE IF NOT EXISTS NICHT nach',
-      !tkAfterStart.includes('email'), JSON.stringify(tkAfterStart));
+      !tkAfterStart.includes('last_login'), JSON.stringify(tkAfterStart));
 
     fs.rmSync(tkDir, { recursive: true, force: true });
   }
@@ -12731,16 +12857,18 @@ const shareMain = (purpose, target = null) =>
     }
     /* DIE GEGENLAGE, wie in den beiden Runden zuvor: eine SPALTE kommt nicht
        von selbst zurueck. Ohne sie belegte die Probe nur, dass irgendetwas
-       nachwaechst. Genommen wird users.email -- sie traegt keinen
-       Migrationsblock. */
+       nachwaechst. GENOMMEN WIRD users.last_login UND NICHT MEHR users.email
+       -- die Begruendung steht bei der gleichlautenden Gegenlage weiter oben
+       (0.29.0, Befund 4: email traegt jetzt einen Index, und ein DROP COLUMN
+       scheitert daran). */
     {
       const d = open(spFile);
       d.pragma('foreign_keys = OFF');
-      d.exec('ALTER TABLE users DROP COLUMN email');
+      d.exec('ALTER TABLE users DROP COLUMN last_login');
       const withoutColumn = d.prepare('PRAGMA table_info(users)').all().map(c => c.name);
       d.close();
       check('Die Spalte ist von Hand entfernt',
-        !withoutColumn.includes('email'), JSON.stringify(withoutColumn));
+        !withoutColumn.includes('last_login'), JSON.stringify(withoutColumn));
     }
     let spAfterStart = [];
     try {
@@ -12750,7 +12878,7 @@ const shareMain = (purpose, target = null) =>
       d.close();
     } catch { spAfterStart = ['(Start gescheitert)']; }
     check('Eine fehlende SPALTE traegt CREATE TABLE IF NOT EXISTS NICHT nach',
-      !spAfterStart.includes('email'), JSON.stringify(spAfterStart));
+      !spAfterStart.includes('last_login'), JSON.stringify(spAfterStart));
 
     fs.rmSync(spDir, { recursive: true, force: true });
   }
@@ -16397,9 +16525,9 @@ const shareMain = (purpose, target = null) =>
          was gemeint ist, nicht was dasteht). */
       const tBlocks = [...new Set(
         (tSource.match(/MIGRATION [0-9.]+x? — ENTFAELLT MIT 1\.0/g) || []))];
-      check('Es sind genau elf markierte Migrationsbloecke',
-        tBlocks.length === 11, `${tBlocks.length}: ${tBlocks.join(' · ')}`);
-      check('Und alle elf tragen denselben Wortlaut der Marke',
+      check('Es sind genau zwoelf markierte Migrationsbloecke',
+        tBlocks.length === 12, `${tBlocks.length}: ${tBlocks.join(' · ')}`);
+      check('Und alle zwoelf tragen denselben Wortlaut der Marke',
         tBlocks.every(m => / — ENTFAELLT MIT 1\.0$/.test(m)), tBlocks.join(' · '));
       /* UND DER NEUNTE HEISST 0.21.0. Ohne diese Zeile bliebe die Zahl auch
          dann gruen, wenn jemand einen Block gegen einen anderen tauscht --
@@ -16682,7 +16810,22 @@ const shareMain = (purpose, target = null) =>
        DER SCHALTER UND DIE BEIDEN WERTE BEKOMMEN AUSDRUECKLICH KEINE ROUTE.
        Sie gehen ueber PUT /api/settings wie jede andere Einstellung; die
        Vorschau ist ein Feld in GET /api/backup und damit lesend. */
-    ['POST',   '/api/backup/cleanup',      'ownerOnly, zweitbestaetigt']
+    ['POST',   '/api/backup/cleanup',      'ownerOnly, zweitbestaetigt'],
+    /* Die Sicherungsprobe, 0.29.0 -- die DREIUNDSIEBZIGSTE. Beim Eigentuemer
+       wie die drei Wege darueber: die Antwort nennt Datum und Groesse einer
+       Datei auf dem Wirt.
+       SIE SCHREIBT NICHTS IN DEN BESTAND und steht trotzdem hier -- wie POST
+       /api/token/check, das auch nur liest. Der Grund ist derselbe: sie
+       OEFFNET eine Datei und kostet Zeit, und ein GET, das eine Datenbank
+       aufmacht, laedt zum Nachladen ein. Der Waechter sieht jedes app.post(
+       an; eine Route, die er findet und die Liste nicht kennt, faerbt ihn rot
+       -- also gehoert sie hierher, mit dieser Begruendung daneben und nicht
+       stillschweigend ausgenommen.
+       KEINE ZWEITBESTAETIGUNG: sie liest, sie loescht nicht. Die drei Wege
+       darueber holen eine, weil sie Bytes unwiderruflich entfernen.
+       UND KEIN DATEINAME IM RUMPF, sondern die NUMMER der Zeile -- Stolperstein
+       300 gilt unveraendert. */
+    ['POST',   '/api/backup/check',            'ownerOnly']
   ];
 
   function writingRoutes(text) {
@@ -16788,8 +16931,18 @@ const shareMain = (purpose, target = null) =>
      eh und je; und die drei Vokabeltafeln gehen ueber GET und PUT
      /api/settings, die es beide gibt. Wer aus einem davon eine eigene
      schreibende Route machte, wird hier namentlich rot. */
-  check('Und es sind jetzt genau 72 schreibende Routen',
-    F_ROUTES.length === 72 && fFound.length === 72,
+  /* 0.29.0 bewegt sie um EINE: 72 werden 73 -- POST /api/backup/check. Eine
+     Sicherung ohne Probe ist eine Vermutung; bis hierher wusste niemand, ob
+     eine BESTIMMTE Datei sich oeffnen laesst, bis jemand sie zurueckspielte.
+     UND FUENF DINGE DIESER RUNDE BEWEGEN SIE AUSDRUECKLICH NICHT: die
+     achtzehn Einzelwerte des Fingerprints fahren auf GET /api/stats mit; das
+     Faelligkeitsdatum geht ueber POST /api/items/:id/comments und PUT
+     /api/comments/:id, die es beide gibt; der partielle Index ist gar keine
+     Route; die doppelten Adressen sind ein Feld mehr in GET /api/users; und
+     die drei Bildschirmbefunde fassen keinen Weg an. Wer aus einem davon eine
+     eigene schreibende Route machte, wird hier namentlich rot. */
+  check('Und es sind jetzt genau 73 schreibende Routen',
+    F_ROUTES.length === 73 && fFound.length === 73,
     `${F_ROUTES.length} erwartet, ${fFound.length} gefunden`);
   /* DIE GESCHLOSSENEN LISTEN AUS auth.js, ausdruecklich mit ihrer ZAHL --
      dieselbe Bauform wie F_ROUTES und aus demselben Grund (Stolperstein 137):
@@ -17279,7 +17432,7 @@ const shareMain = (purpose, target = null) =>
     .map(m => m.replace(/^MIGRATION /, '').replace(/x? — .*$/, '').replace(/\./g, ''));
   const fMigrations = fMarkNumbers.filter(nr =>
     new RegExp(`function migration${nr}[A-Za-z]*\\(`).test(fDbSource));
-  check('Es gibt genau elf Migrationsfunktionen', fMigrations.length === 11,
+  check('Es gibt genau zwoelf Migrationsfunktionen', fMigrations.length === 12,
     fMigrations.join(' · '));
   /* DER ELFTE GEHOERT ZU 0.27.0 -- und er ist der erste markierte Block, der
      keine SPALTE nachruestet, sondern eine EINSTELLUNGSZEILE uebersetzt:
@@ -17291,6 +17444,20 @@ const shareMain = (purpose, target = null) =>
   check('Und der elfte gehoert zu 0.27.0 -- aus dem Haekchen wird die Wahl',
     fMarkNumbers.includes('0270') &&
     /function migration0270ImageStore\(/.test(fDbSource), fMarkNumbers.join(' · '));
+  /* DER ZWOELFTE GEHOERT ZU 0.29.0 -- das Faelligkeitsdatum an der Aufgabe
+     (Befund 3), und er ist der LETZTE vor dem Bruch auf 0.33.0: diese Runde
+     ist die letzte, die das Schema anfassen darf.
+     ER RUESTET WIEDER EINE SPALTE NACH, wie die neun vor 0.25.0 -- und ohne
+     nachgeschobenes UPDATE: `ALTER TABLE ... ADD COLUMN` setzt jede
+     Bestandszeile auf NULL, und NULL ist hier die richtige Aussage. Ein
+     Vorgabewert waere eine Behauptung ueber fremde Arbeit. */
+  check('Und der zwoelfte gehoert zu 0.29.0 -- das Faelligkeitsdatum',
+    fMarkNumbers.includes('0290') && /function migration0290\(/.test(fDbSource) &&
+    /ALTER TABLE comments ADD COLUMN due_date TEXT/.test(fDbSource),
+    fMarkNumbers.join(' · '));
+  check('Und er setzt keinen Vorgabewert nach',
+    !/UPDATE comments SET due_date/.test(fDbSource),
+    (fDbSource.match(/UPDATE comments SET due_date[^\n]*/) || ['(keiner — richtig)'])[0]);
   check('Und zu jedem markierten Block gehoert eine Funktion',
     fMigrations.length === fMarkNumbers.length,
     `${fMigrations.length} von ${fMarkNumbers.length}: ${fMarkNumbers.join(' · ')}`);
@@ -18092,8 +18259,28 @@ const shareMain = (purpose, target = null) =>
        Wortlaut -- sie stehen in der Wortlautprobe weiter unten.
        DIE MEHRZAHLFORMEN UND DIE VOKABELNAMEN RUEHREN SICH NICHT: eine Richtung
        hat keine Mehrzahl, und „hoch → niedrig" ist kein Vokabelwort. */
-    check('Und die Zahlen stehen: 1327 Schluessel, 82 Mehrzahlformen, 14 Vokabelnamen',
-      languageKeys.length === 1327 && pluralKeys.length === 82 && vocabularyKeys.length === 14,
+      /* 0.29.0 -- die Rechnung steht darunter.
+       WEG EINS: `list.sortOneWay` („Diese Sortierung hat nur eine Richtung").
+                Seit „Titel" beide Richtungen kennt, ist keine der sieben
+                Grundlagen mehr einspurig -- der Satz hat keinen Traeger mehr
+                (Befund 8).
+       1327 - 1 + 20 = 1346.
+       NEU ZWANZIG: „Z → A"; die beiden Verweise unter dem Fingerprint;
+                sechs Saetze der Sicherungsprobe (der Verweis, der laufende
+                Zustand, die beiden Auskuenfte bei fremdem Schluessel und
+                fremder Datei, „Benutzer" und „Inhalt bis"); die Absage auf
+                eine Sicherung, die es nicht mehr gibt; vier Ueberschriften der
+                Abschnitte in „Offen"; der Verweis am Kommentar und sein Griff;
+                die Absage auf ein Datum, das es nicht gibt; die beiden Saetze
+                des Warnkastens zu doppelten Adressen; und die Absage auf eine
+                Adresse, die schon vergeben ist.
+       EINER IST NUR NEU GESCHRIEBEN UND ZAEHLT DESHALB NICHT MIT:
+       `entry.newCategoryHint` behaelt seinen Schluessel und wechselt nur den
+       Wortlaut -- er steht in der Wortlautprobe weiter unten.
+       DIE MEHRZAHLFORMEN UND DIE VOKABELNAMEN RUEHREN SICH NICHT: ein Datum
+       hat keine Mehrzahl, und „Ueberfaellig" ist kein Vokabelwort. */
+    check('Und die Zahlen stehen: 1346 Schluessel, 82 Mehrzahlformen, 14 Vokabelnamen',
+      languageKeys.length === 1346 && pluralKeys.length === 82 && vocabularyKeys.length === 14,
       `${languageKeys.length} / ${pluralKeys.length} / ${vocabularyKeys.length}`);
 
     /* ---- 3. Die Adressprobe ---------------------------------------------
@@ -18318,13 +18505,26 @@ const shareMain = (purpose, target = null) =>
       'list.dirNewOld', 'list.dirOldNew', 'list.dirAZ',
       'list.dirHighLow', 'list.dirLowHigh', 'list.dirManyFew', 'list.dirFewMany',
       'list.sortChanged', 'list.sortAvg', 'list.sortLast',
-      'list.sortFlip', 'list.sortOneWay',
+      'list.sortFlip',
       'list.prevHint', 'list.nextHint',
       'list.sortGroupGeneral', 'list.sortGroupHistory'];
+    /* UND ZWANZIG MIT 0.29.0. `list.sortOneWay` steht eine Zeile hoeher NICHT
+       mehr: der Satz ist mit Befund 8 gefallen, und eine Liste „neu in 0.28.1",
+       die einen gefallenen Schluessel fuehrt, waere eine Ankuendigung ins
+       Leere. Die Zahl darueber rechnet ihn mit ab. */
+    const WORDING_NEW_0290 = [
+      'list.dirZA',
+      'card.showFiles', 'card.hideFiles',
+      'card.checkBackup', 'card.checkRunning', 'card.checkKeyWrong',
+      'card.checkForeign', 'card.checkUsers', 'card.checkUntil',
+      'server.backupGone',
+      'list.dueOverdue', 'list.dueToday', 'list.dueLater', 'list.dueNone',
+      'entry.dueSet', 'entry.dueHint', 'server.dueInvalid',
+      'card.emailsDoubled', 'card.emailsDoubledHint', 'login.emailTaken'];
     const WORDING_NEW = [...WORDING_NEW_0243, ...WORDING_NEW_0244,
       ...WORDING_NEW_0245, ...WORDING_NEW_0246, ...WORDING_NEW_0250,
       ...WORDING_NEW_0254, ...WORDING_NEW_0260, ...WORDING_NEW_0270,
-      ...WORDING_NEW_0280, ...WORDING_NEW_0281];
+      ...WORDING_NEW_0280, ...WORDING_NEW_0281, ...WORDING_NEW_0290];
     const wordingMissing = WORDING_NEW.filter(k => LANGUAGE_FILE[k] === undefined);
     check('Die neuen Schluessel dieser Runde stehen wirklich in der Datei',
       wordingMissing.length === 0, wordingMissing.join(' ') || 'alle da');
@@ -18606,8 +18806,22 @@ const shareMain = (purpose, target = null) =>
     /* DREIZEHN UND VIERZEHN SEIT 0.28.1 -- einer mehr auf der Seite von
        damals und keiner hier: „Titel (A → Z)" ist verschwunden, und „Titel"
        stand schon da (siehe WORDING_CHANGED_0281). */
-    check('Und genau dreizehn Saetze sind andere — die zwoelf von vorher und der eine aus 0.28.1',
-      onlyThen.length === 13 && onlyNow.length === 14 &&
+    /* UND VIERZEHN UND VIERZEHN SEIT 0.29.0 -- wieder einer mehr auf der Seite
+       von damals und keiner hier, und aus demselben Grund wie bei „Titel":
+       `entry.newCategoryHint` heisst nicht mehr „Neue Kategorie, Enter
+       bestaetigt", sondern „Name". Der alte Wortlaut ist verschwunden; der
+       neue stand schon da -- „Name" ist in der Datei kein neuer Satz, sondern
+       ein zweites Vorkommen, und eine Liste mit `includes` kann das nicht
+       sehen. Die Zeile darunter fragt ihn deshalb von der anderen Seite.
+       WARUM ER UEBERHAUPT GEKUERZT WURDE: der Kategoriekasten misst seit
+       Befund 7 EINE Zeile, und das Feld darin ist danach rund 100 px breit.
+       „Neue Kategorie, Enter bestaetigt" braucht 254 -- und selbst das
+       gekuerzte „Neue Kategorie" noch 124. Gemessen passt nur „Name". */
+    const WORDING_CHANGED_0290 = ['entry.newCategoryHint'];
+    check('Und genau vierzehn Saetze sind andere — die dreizehn von vorher und der eine aus 0.29.0',
+      onlyThen.length === 14 && onlyNow.length === 14 &&
+      onlyThen.some(x => x.startsWith('Neue Kategorie')) &&
+      WORDING_CHANGED_0290.every(k => !onlyNow.includes(asBefore(LANGUAGE_FILE[k]))) &&
       onlyThen.includes('Titel (A → Z)') &&
       WORDING_CHANGED_0281.every(k => !onlyNow.includes(asBefore(LANGUAGE_FILE[k]))) &&
       WORDING_CHANGED_0280.every(k => onlyNow.includes(asBefore(LANGUAGE_FILE[k]))) &&
@@ -18635,11 +18849,17 @@ const shareMain = (purpose, target = null) =>
        ER GEHT DURCH `withoutOne` UND NICHT DURCH `filter`: das erste „Titel"
        soll ja bleiben. */
     const WORDING_DOUBLED_0281 = ['Titel'];
+    /* UND EIN ZWEITER MIT 0.29.0, aus demselben Grund: „Name" steht seit dem
+       gekuerzten Platzhalter ZWEIMAL in der Datei. Beide Listen sind Satz fuer
+       Satz gleich, sobald das zweite Vorkommen weg ist -- und es muss
+       NAMENTLICH weg, sonst deckte ein `length`-Vergleich hier jede kuenftige
+       Doppelung zu. */
+    const WORDING_DOUBLED_0290 = ['Name'];
     const restThen = onlyThen.reduce(withoutOne, wordingThen);
-    const restNow = WORDING_DOUBLED_0281.reduce(withoutOne,
+    const restNow = [...WORDING_DOUBLED_0281, ...WORDING_DOUBLED_0290].reduce(withoutOne,
       onlyNow.reduce(withoutOne, wordingNow));
     check('Und sonst kein Zeichen — Satz fuer Satz dieselbe Oberflaeche',
-      equal(restThen, restNow) && restNow.length === 1186,
+      equal(restThen, restNow) && restNow.length === 1185,
       `${restThen.filter((x, i) => x !== restNow[i]).length} abweichende von ${restNow.length}`);
 
     /* ---- 6. Die Kuerzeprobe ---------------------------------------------
@@ -25714,7 +25934,7 @@ const shareMain = (purpose, target = null) =>
 
   /* --- Das Austauschformat --------------------------------------------- */
   const phEx = await phExport(PH);
-  check('Die Formatnummer steht auf 15', phEx.version === 15, `${phEx.version}`);
+  check('Die Formatnummer steht auf 16', phEx.version === 16, `${phEx.version}`);
   /* NUR ABWEICHUNGEN, wie bei den Gewichten: ein Nachher-Kriterium taucht in
      criteriaPhase gar nicht auf. Eine Datei ohne Vorher-Kriterien sieht damit
      aus wie bisher, plus einer Formatnummer. */
@@ -25804,6 +26024,7 @@ const shareMain = (purpose, target = null) =>
   await checkFirstLogin();
   await checkBatchRun();
   checkKeyChange();
+  await check0290();
 
   /* ---------------------------------------------------------------- */
   /* Der Schlussdurchlauf. Die Gruppen weiter oben pruefen einzelne
@@ -26486,7 +26707,13 @@ const shareMain = (purpose, target = null) =>
      nicht schon belegt. Zusage 17 haelt das Wegeverzeichnis mit den seinen.
      FUENF VON IHNEN ZIEHEN MIT (613, 614, 806, 833, 835): sie zeigen auf die
      Zeilen, die dieselbe Sache jetzt tragen (Stolperstein 201). */
-  check('Es sind genau 859 Rueckbauten', gpList.length === 859, `${gpList.length}`);
+  /* 859 WURDEN 885 -- 0.29.0, und die sechsundzwanzig neuen tragen die
+     Nummern 869 bis 894: je einer fuer die Sicherungsprobe, den Fingerprint,
+     das Faelligkeitsdatum, den partiellen Index, die beiden Bildschirmbefunde
+     und „Titel" in beide Richtungen. Vier vorhandene sind MITGEZOGEN und nicht
+     ersetzt worden (233, 448, 806, 866), einer hat den Gegenstand gewechselt
+     (858: dirOf() ist gefallen, er zielt jetzt auf `start`). */
+  check('Es sind genau 885 Rueckbauten', gpList.length === 885, `${gpList.length}`);
   const gpTwice = gpList.map(r => r.nr).filter((n, i, a) => a.indexOf(n) !== i);
   check('Und keine Nummer steht zweimal', gpTwice.length === 0, gpTwice.join(' '));
   /* JEDER GREIFT: der Suchtext kommt in seiner Datei GENAU EINMAL vor. Keinmal
@@ -40430,17 +40657,31 @@ async function checkUi() {
     equal(afRows(afEig).map(z => (z.match(/^#(\d+)/) || [])[1]),
            ['1', '2', '3', '4', '5']),
     afRows(afEig).map(z => (z.match(/^#(\d+)/) || [])[1]).join(' '));
-  check('Je Zeile Datum, Alter und Groesse',
-    /^#1 · 03\.09\.2026, \d{2}:\d{2}.*vor 0 Tagen · 50,0 MB$/.test(afRows(afEig)[0]),
+  /* DIE GROESSE STEHT SEIT 0.29.0 VOR DEM ALTER, und der Grund ist gemessen:
+     mit dem Verweis „prüfen" daneben fehlen der Zeile am Telefon 24 Pixel, und
+     etwas muss weichen. Es ist das ALTER -- „vor 0 Tagen" ist dieselbe Auskunft
+     wie das Datum zwei Felder weiter links, nur bequemer. Die Groesse steht
+     sonst nirgends, und die Zeitmarke ist der NAME der Kopie. */
+  check('Je Zeile Datum, Groesse und Alter',
+    /^#1 · 03\.09\.2026, \d{2}:\d{2}.*50,0 MB · vor 0 Tagen/.test(afRows(afEig)[0]),
     afRows(afEig)[0]);
   /* KEIN DATEINAME IN DER ZEILE, und dabei geht nichts verloren: der Name IST
      die Zeitmarke, und die Zeile nennt Datum und Uhrzeit. */
   check('Und kein Dateiname',
     !/kriterion-/.test(afRows(afEig).join(' ')), afRows(afEig).join(' · ').slice(0, 200));
-  /* NUR ZUM ANSEHEN: kein Knopf je Zeile. Eine einzelne Kopie per Klick zu
-     loeschen waere die Loeschroute mit Dateinamen (Stolperstein 300). */
-  check('Und kein Knopf in einer Zeile -- die Liste ist nur zum Ansehen',
-    afButtons(afEig) === 0, `${afButtons(afEig)} Knoepfe in der Liste`);
+  /* GENAU EIN KNOPF JE ZEILE, UND ER LIEST -- 0.29.0, Befund 1.
+     BIS HIERHER STAND HIER „kein Knopf je Zeile", und der Grund war und bleibt
+     richtig: eine einzelne Kopie per Klick zu LOESCHEN waere die Loeschroute
+     mit Dateinamen (Stolperstein 300). Die Probe ist etwas anderes -- sie
+     liest, und ueber die Leitung geht die NUMMER, die in der Zeile ohnehin
+     steht. Der Stolperstein gilt unveraendert weiter; was fiel, ist die
+     Verallgemeinerung „kein Knopf", nicht die Regel dahinter.
+     GEZAEHLT WIRD DESHALB GENAU, und die Zusage nennt die Zahl: je Zeile
+     EINER. Ein zweiter -- oder einer, der etwas anderes tut -- faerbt sie rot. */
+  check('Je Zeile genau ein Knopf, und er prueft nur',
+    afButtons(afEig) === afRows(afEig).length &&
+    afRows(afEig).every(z => /prüfen/.test(z)),
+    `${afButtons(afEig)} Knoepfe auf ${afRows(afEig).length} Zeilen`);
   /* DIE MARKE SAGT, WELCHE ZEILE FAELLT -- an der Zeile und nicht in einer
      zweiten Liste darunter. Dieselbe Auskunft an zwei Stellen ist eine zu
      viel (Stolperstein 47). */
@@ -41966,12 +42207,15 @@ async function checkUi() {
     JSON.stringify(awDom.sent.filter(g => String(g.url).startsWith('/api/items?q=')).map(g => g.url)));
   /* MITGEZOGEN MIT 0.28.1 (Stolperstein 201): die gespeicherte Ansicht traegt
      weiter `title_asc` -- die Schreibweise hat sich NICHT geaendert --, und
-     die Leiste zeigt sie seit dieser Runde an zwei Stellen. „Titel" kennt nur
-     eine Richtung; der Umschalter sagt sie und steht gedaempft daneben. */
+     die Leiste zeigt sie seit jener Runde an zwei Stellen.
+     UND MIT 0.29.0 IST DER KNOPF NICHT MEHR GESPERRT (Befund 8): „Titel" kennt
+     jetzt beide Richtungen. Die GESPEICHERTE Ansicht steht unveraendert auf
+     A → Z -- das ist der Punkt dieser Zusage, und er ist der Beleg, dass die
+     neue Gegenrichtung keine alte Ansicht umbiegt. */
   check('Und die Sortierung steht auf der gespeicherten',
     aw.document.getElementById('f-sort')?.value === 'title'
     && aw.document.getElementById('f-sort-dir')?.textContent === 'A → Z'
-    && aw.document.getElementById('f-sort-dir')?.disabled === true,
+    && aw.document.getElementById('f-sort-dir')?.disabled === false,
     `${aw.document.getElementById('f-sort')?.value} · ` +
     `${aw.document.getElementById('f-sort-dir')?.textContent} · ` +
     `${aw.document.getElementById('f-sort-dir')?.disabled}`);
@@ -42541,7 +42785,7 @@ async function checkUi() {
   // Jeder Teil traegt dieselbe Nummer wie ein voller Export -- ein Teil ist ein
   // vollstaendiges Paket mit weniger Eintraegen darin, kein halbes.
   check('Und jeder Teil traegt die Formatnummer des vollen Exports',
-    tlPackages.every(p => p.version === 15), JSON.stringify(tlPackages.map(p => p.version)));
+    tlPackages.every(p => p.version === 16), JSON.stringify(tlPackages.map(p => p.version)));
   check('Zusammen tragen die Teile jeden Eintrag genau einmal',
     tlPackages.reduce((n, p) => n + p.items.length, 0) === 6 &&
     new Set(tlPackages.flatMap(p => p.items.map(i => i.title))).size === 6,
@@ -43027,9 +43271,13 @@ async function checkUi() {
      Layout, die Ersparnis von 82 px kann dieser Lauf nicht sehen. Was er
      sehen kann, ist der Aufbau. */
   const fChildren = [...(fZeile2?.children || [])].map(k => k.className);
+  /* GESUCHT WIRD DIE KLASSE UND NICHT DER GANZE WERT -- 0.29.0. Der Kasten
+     traegt seit dieser Runde eine zweite Klasse (`frow-right-end`, Befund 6),
+     und ein Vergleich auf Gleichheit faende ihn nicht mehr. Die Zusage meint
+     die REIHENFOLGE und nicht die Schreibweise des Attributs. */
+  const fRightAt = fChildren.findIndex(k => /\bfrow-right\b/.test(k));
   check('Und er steht im Aufbau HINTER der Wolke, in derselben Zeile',
-    fChildren.indexOf('frow-right') >= 0 &&
-    fChildren.indexOf('frow-right') > fChildren.findIndex(k => /cloud/.test(k)),
+    fRightAt >= 0 && fRightAt > fChildren.findIndex(k => /cloud/.test(k)),
     JSON.stringify(fChildren));
   // Wolke und Verweise sind Geschwister in EINER Zeile -- das ist die
   // Ersparnis, und sie laesst sich am Aufbau ablesen.
@@ -47891,37 +48139,43 @@ async function checkUi() {
     check('Und keine zwei von ihnen ergeben dieselbe Folge',
       new Set(soSechs.map(k => soAb[k].join('>'))).size === 6,
       soSechs.map(k => `${k}: ${soAb[k].join('>')}`).join(' · '));
-    /* DIE SIEBTE HAT NUR EINE RICHTUNG, und das ist die Entscheidung des
-       Betreibers zu F5 (11.9.2026): „Titel Z → A" waere eine FUNKTION und die
-       Runde damit MINOR statt PATCH. Der Sonderfall ist SICHTBAR -- der
-       Umschalter steht gedaempft daneben -- und nicht versteckt.
-       GEDAEMPFT UND NICHT WEG: ein Knopf, der verschwindet, laesst die Zeile
-       springen, sobald jemand die Sortierung wechselt. */
+    /* DIE SIEBTE KANN SEIT 0.29.0 BEIDE RICHTUNGEN -- Befund 8, aus dem
+       Betrieb gemeldet (11.9.2026): „Z bis A kann nicht angewahlt werden".
+       BIS DAHIN HATTE SIE NUR EINE, und der Grund war die NUMMER und nicht die
+       Sache: „Titel Z → A" ist eine FUNKTION, und 0.28.1 war ein PATCH. Diese
+       Runde ist ohnehin MINOR, damit reisen die drei Zeilen zum Nulltarif mit.
+       SIE LANDET TROTZDEM AUF A → Z, und das ist eigens entschieden: ein Name
+       wird von A nach Z gelesen, und wer aus der Vorgabe „neu → alt" kommt,
+       laege sonst beim ersten Mal auf „Z → A" -- dort, wo vor dieser Runde nie
+       jemand landete. Getragen wird das von `start` an der Grundlage. */
     if (soField(d)) { soField(d).value = 'title'; soField(d).onchange(); }
     await new Promise(r => setTimeout(r, 50));
     const soTitel = soOrder(d);
     check('Die siebte ordnet nach Titel, aufsteigend',
       equal(soTitel, ['Alpha', 'Beta', 'Gamma']), JSON.stringify(soTitel));
-    check('Und ihr Umschalter steht DA und ist gedaempft',
-      !!soDir(d) && soDir(d).disabled === true && soDir(d).textContent === 'A → Z',
+    check('Und ihr Umschalter steht DA und ist nicht mehr gesperrt',
+      !!soDir(d) && soDir(d).disabled === false && soDir(d).textContent === 'A → Z',
       `${soDir(d)?.textContent} · disabled=${soDir(d)?.disabled}`);
-    /* UND EIN DRUCK DARAUF TUT NICHTS. Ohne diese Zeile bliebe gruen, wer den
-       Knopf nur grau FAERBT und ihn trotzdem schalten laesst -- dann stuende
-       `title_desc` in der gespeicherten Stellung, und das gibt es nicht. */
+    /* UND EIN DRUCK DARAUF DREHT SIE WIRKLICH UM -- gefahren und nicht am
+       Wortlaut abgelesen. Ohne die zweite Haelfte bliebe gruen, wer nur das
+       WORT wechselt und die Liste stehen laesst; genau dieser Fehler ist in
+       0.28.1 gefunden worden, als „Titel" nach dem Aenderungsdatum ordnete. */
     soDir(d)?.click();
     await new Promise(r => setTimeout(r, 50));
-    check('Und ein Druck darauf aendert nichts',
-      equal(soOrder(d), soTitel) && soDir(d)?.textContent === 'A → Z',
+    check('Und ein Druck darauf dreht die Reihenfolge um',
+      equal(soOrder(d), [...soTitel].reverse()) && soDir(d)?.textContent === 'Z → A',
       `${soOrder(d).join('>')} · ${soDir(d)?.textContent}`);
-    /* UND DER GESPEICHERTE WERT BLEIBT DIE ALTE SCHREIBWEISE. `f.sort` heisst
+    /* UND DIE AUFSTEIGENDE SCHREIBWEISE BLEIBT DIESELBE. `title_asc` heisst
        weiter `title_asc` -- gespeicherte Ansichten aus 0.28.0 gelten
-       unveraendert weiter, und der Server sieht keinen Unterschied.
+       unveraendert weiter, und die Gegenrichtung kommt als `title_desc` NEU
+       dazu, statt die alte umzubenennen.
        GEPRUEFT AM GESENDETEN RUMPF: was die Oberflaeche INTERN haelt, ist
        ihre Sache; was hinausgeht, ist die Zusage. */
     const soPut = d.sent.filter(x => x.method === 'PUT' && x.url === '/api/settings');
-    check('Und der gespeicherte Wert traegt weiter die alte Schreibweise',
-      soPut[soPut.length - 1]?.body?.filters?.sort === 'title_asc',
-      JSON.stringify(soPut[soPut.length - 1]?.body?.filters?.sort));
+    check('Und die Gegenrichtung geht als title_desc hinaus',
+      soPut[soPut.length - 1]?.body?.filters?.sort === 'title_desc' &&
+      soPut.some(x => x?.body?.filters?.sort === 'title_asc'),
+      JSON.stringify(soPut.map(x => x?.body?.filters?.sort).slice(-3)));
     d.w.close();
   }
 
@@ -47947,12 +48201,19 @@ async function checkUi() {
       /\.frow > \.eyebrow, \.frow > \.eyebrow-with \{ grid-column: 1;/.test(soCss)
       && /\.frow > \.pills, \.frow > \.select, \.frow > \.sort-pair \{ grid-column: 2;/.test(soCss),
       '(die Spaltenzuweisung fehlt)');
-    /* UND WAS ZU KEINEM PAAR GEHOERT, SPANNT UEBER BEIDE. Stuenden der Vermerk
-       „folgt der Sortierung", der Und/Oder-Umschalter und die Verweise in
-       Spalte eins, waeren sie so schmal wie das laengste Beschriftungswort. */
-    check('Und was zu keinem Paar gehoert, spannt ueber beide Spalten',
-      /\.frow > #f-status-from, \.frow > \.frow-right, \.frow > \.tagmode \{ grid-column: 1 \/ -1; \}/.test(soCss),
-      '(die Spanne fehlt)');
+    /* UND WAS ZU KEINEM PAAR GEHOERT, SPANNT UEBER ALLE. Stuenden der Vermerk
+       „folgt der Sortierung" und der Ruecksetzer der Sortierzeile in Spalte
+       eins, waeren sie so schmal wie das laengste Beschriftungswort.
+       SEIT 0.29.0 SIND ES NUR NOCH DIESE BEIDEN (Befund 6): der Umschalter
+       „Tags" und die Verweise der Tagzeile stehen in der dritten Spalte, der
+       Und/Oder-Umschalter in der zweiten. `1 / -1` spannt jetzt ueber DREI
+       Spalten und nicht mehr ueber zwei -- die Schreibweise ist dieselbe, die
+       Bedeutung folgt dem Raster. */
+    check('Und was zu keinem Paar gehoert, spannt ueber alle Spalten',
+      /\.frow > #f-status-from, \.frow > \.frow-right \{ grid-column: 1 \/ -1; \}/.test(soCss) &&
+      /\.frow > \.frow-right-end \{ grid-column: 3; \}/.test(soCss) &&
+      /\.frow > \.tagmode \{ grid-column: 2; \}/.test(soCss),
+      '(die Spanne oder eine der beiden Spaltenzuweisungen fehlt)');
     /* ZWEITER HEBEL: DIE REIHEN ROLLEN QUER, STATT UMZUBRECHEN. Eine
        Kategoriereihe mit fuenf Pillen mass umgebrochen 77 px und misst in
        einer Zeile 35. OHNE ROLLBALKEN -- er naehme die Hoehe wieder weg, die
@@ -51259,4 +51520,370 @@ async function checkBatchRun() {
   }
 
   fs.rmSync(BL, { recursive: true, force: true });
+}
+
+/* ======================================================================
+   0.29.0 — „Worauf man sich verlassen können muss"
+
+   WAS HIER STEHT UND WAS NICHT: die Sicherungsprobe hat ihre eigenen Zusagen
+   in der Gruppe „Die Sicherungsprobe — 0.29.0" weiter oben, weil sie eine
+   Instanz mit eingerichtetem Sicherungsort braucht. Hier stehen die uebrigen
+   sieben Bauabschnitte.
+
+   GEFAHREN, WO ES GEHT, UND GELESEN, WO JSDOM NICHT RECHNET. Der Pruefstand
+   rechnet kein CSS (Stolperstein 223): jede Pixelzahl dieser Runde ist im
+   echten Chromium gemessen und steht im Aenderungsprotokoll. Was hier stehen
+   kann, ist die REGEL — dass sie an der richtigen Stelle steht, den richtigen
+   Traeger hat und den Schreibtisch nicht anfasst. */
+async function check0290() {
+
+  /* ---- BA 2: der Fingerprint nennt die Datei ------------------------- */
+  group('Der Fingerprint nennt die Datei — 0.29.0');
+  {
+    const fpStats = (await call('GET', '/api/stats')).content;
+    const fpFiles = fpStats?.fingerprintFiles || [];
+    check('Die Kennzahlen tragen die Einzelwerte mit',
+      Array.isArray(fpFiles) && fpFiles.length >= 15,
+      `${fpFiles.length} Dateien`);
+    /* DIESELBE LISTE WIE DER GESAMTWERT -- und nicht eine zweite daneben
+       (F6, Stolperstein 47). Gepruefte Eigenschaften: es sind genau die
+       Dateien, ueber die der Fingerprint geht, sie stehen in derselben
+       Reihenfolge, und testbench.js und Doku/ sind NICHT dabei. */
+    check('Es sind genau die ausgelieferten und ausgefuehrten Dateien',
+      fpFiles.some(z => z.name === 'server.js') &&
+      fpFiles.some(z => z.name === 'public/app.js') &&
+      fpFiles.some(z => z.name === 'batchrun.js') &&
+      !fpFiles.some(z => /^(testbench\.js|Doku\/|usertool\.js|keytool)/.test(z.name)),
+      fpFiles.map(z => z.name).join(' · '));
+    check('Und sie stehen sortiert, wie der Gesamtwert sie liest',
+      equal(fpFiles.map(z => z.name), [...fpFiles.map(z => z.name)].sort()),
+      fpFiles.map(z => z.name).join(' · '));
+    /* DIE WERTE LASSEN SICH MIT sha256sum NACHRECHNEN -- genau das ist ihr
+       Zweck: der Handgriff in der README liefert dieselben acht Zeichen. Ohne
+       diese Zusage koennte die Karte irgendetwas Achtstelliges zeigen. */
+    const fpWrong = fpFiles.filter(z => {
+      const soll = crypto.createHash('sha256')
+        .update(fs.readFileSync(path.join(__dirname, z.name))).digest('hex').slice(0, 8);
+      return soll !== z.hash;
+    });
+    check('Jeder Einzelwert ist der sha256 seiner Datei, acht Zeichen',
+      fpWrong.length === 0 && fpFiles.every(z => /^[0-9a-f]{8}$/.test(z.hash)),
+      fpWrong.map(z => z.name).join(' · ') || 'alle gleich');
+    /* UND SIE ENTSTEHEN IN DERSELBEN SCHLEIFE. Am Quelltext gelesen, denn ein
+       zweiter Durchgang ueber dasselbe Verzeichnis liefe erst auseinander,
+       wenn jemand zwischen beiden eine Datei anfasst -- und dann ist es zu
+       spaet. Gegenprobe: ein zweites `filesUnder` oder ein zweites
+       `readFileSync` je Datei faerbt diese Zeile rot. */
+    const fpServer = fs.readFileSync(path.join(__dirname, 'server.js'), 'utf8');
+    const fpBody = fpServer.slice(fpServer.indexOf('function buildFingerprint()'),
+                                  fpServer.indexOf('const FINGERPRINT = buildFingerprint()'));
+    check('Gesamtwert und Einzelwerte kommen aus EINER Schleife',
+      (fpBody.match(/fs\.readFileSync/g) || []).length === 1 &&
+      /const bytes = fs\.readFileSync/.test(fpBody) &&
+      /h\.update\(bytes\)/.test(fpBody) && /\.update\(bytes\)\.digest/.test(fpBody),
+      `${(fpBody.match(/fs\.readFileSync/g) || []).length} Lesevorgaenge in der Schleife`);
+    /* KEINE DAUERHAFTE ZEILE UND KEIN UEBERFAHRTEXT. Die Liste steht im Baum,
+       aber `hidden`; sichtbar wird sie erst auf Verlangen (F16). Gelesen wird
+       die Vorlage der Karte -- eine Liste ohne `hidden` faerbt das rot. */
+    const fpApp = fs.readFileSync(path.join(__dirname, 'public', 'app.js'), 'utf8');
+    check('Die Dateiliste steht zugeklappt da und traegt keinen Ueberfahrtext',
+      /<div class="fp-list" id="fp-list" hidden>/.test(fpApp) &&
+      !/id="fp-list"[^>]*title=/.test(fpApp),
+      'die Liste steht offen oder traegt einen title');
+    check('Und der Verweis sagt, dass er sie zeigt',
+      /id="fp-files" aria-expanded="false"/.test(fpApp) &&
+      /card\.showFiles/.test(fpApp) && /card\.hideFiles/.test(fpApp),
+      'der Verweis fehlt oder sagt nichts');
+  }
+
+  /* ---- BA 3: das Faelligkeitsdatum ----------------------------------- */
+  group('Das Faelligkeitsdatum — 0.29.0');
+  {
+    const dueItem = (await call('POST', '/api/items', { title: 'Faelligkeit' })).content;
+    const heute = (() => {
+      const d = new Date(); const z = (n) => String(n).padStart(2, '0');
+      return `${d.getFullYear()}-${z(d.getMonth() + 1)}-${z(d.getDate())}`;
+    })();
+    const tag = (versatz) => {
+      const d = new Date(); d.setDate(d.getDate() + versatz);
+      const z = (n) => String(n).padStart(2, '0');
+      return `${d.getFullYear()}-${z(d.getMonth() + 1)}-${z(d.getDate())}`;
+    };
+    const dueAdd = (text, due) => call('POST', `/api/items/${dueItem.id}/comments`,
+      { text, kind: 'task', ...(due === null ? {} : { dueDate: due }) });
+
+    const dueGood = await dueAdd('mit Datum', heute);
+    check('Eine Aufgabe nimmt ein Datum an',
+      dueGood.status === 201 &&
+      (dueGood.content?.comments || []).some(c => c.dueDate === heute),
+      JSON.stringify((dueGood.content?.comments || []).map(c => c.dueDate)));
+    /* EINE AUFGABE OHNE DATUM VERHAELT SICH WIE VORHER -- die Zusage, die
+       belegt, dass das Feld FREIWILLIG ist. Gegenprobe waere eine Vorgabe:
+       stuende dort ein selbst gesetztes Datum, faerbte das diese Zeile rot. */
+    const dueNone = await dueAdd('ohne Datum', null);
+    check('Und ohne Datum bleibt sie, was sie war',
+      dueNone.status === 201 &&
+      (dueNone.content?.comments || []).some(c => c.text === 'ohne Datum' && c.dueDate === null),
+      JSON.stringify((dueNone.content?.comments || []).map(c => [c.text, c.dueDate])));
+    /* DER KALENDER WIRD GEPRUEFT UND NICHT NUR DIE FORM: "2026-02-31" hat die
+       richtige Form und gibt es nicht. Ohne diese Zeile bliebe die Zusage
+       gruen, wenn nur die Zeichen gezaehlt wuerden. */
+    const dueBad = await dueAdd('krumm', '2026-02-31');
+    const dueWord = await dueAdd('wort', 'morgen');
+    check('Ein Tag, den es nicht gibt, wird abgewiesen',
+      dueBad.status === 400 && dueWord.status === 400,
+      `${dueBad.status} / ${dueWord.status}`);
+    /* DAS FELD HAENGT NICHT AN kind: wer zur Notiz zurueckschaltet und wieder
+       zur Aufgabe, findet sein Datum vor. */
+    const dueRow = (dueGood.content?.comments || []).find(c => c.dueDate === heute);
+    await call('PUT', `/api/comments/${dueRow.id}`, { kind: 'note' });
+    const dueBack = await call('PUT', `/api/comments/${dueRow.id}`, { kind: 'task' });
+    check('Das Datum ueberlebt den Weg ueber die Notiz',
+      (dueBack.content?.comments || []).some(c => c.id === dueRow.id && c.dueDate === heute),
+      JSON.stringify((dueBack.content?.comments || []).map(c => [c.id, c.dueDate])));
+    /* UND DER RUECKWEG IST DAS LEERE FELD -- und es gibt keinen zweiten. */
+    const dueClear = await call('PUT', `/api/comments/${dueRow.id}`, { dueDate: '' });
+    check('Ein leeres Feld nimmt das Datum wieder weg',
+      (dueClear.content?.comments || []).some(c => c.id === dueRow.id && c.dueDate === null),
+      JSON.stringify((dueClear.content?.comments || []).map(c => [c.id, c.dueDate])));
+
+    /* „OFFEN" ORDNET UEBERFAELLIG, HEUTE, SPAETER -- UND OHNE DATUM HINTEN.
+       VIER Aufgaben, VIER Zustaende, und geprueft wird die REIHENFOLGE, die
+       der Server liefert. Gegenprobe: die ohne Datum nach vorn nehmen -- ein
+       NULL sortiert in SQLite von sich aus dorthin, und genau davor steht die
+       eigene Sortierstufe. */
+    const dueOrderItem = (await call('POST', '/api/items', { title: 'Ordnung' })).content;
+    for (const [text, d] of [['spaeter', tag(5)], ['ueberfaellig', tag(-5)],
+                             ['ohne', null], ['heute', heute]])
+      await call('POST', `/api/items/${dueOrderItem.id}/comments`,
+        { text, kind: 'task', ...(d === null ? {} : { dueDate: d }) });
+    const dueOpen = (await call('GET', '/api/open')).content
+      .filter(z => z.item.id === dueOrderItem.id).map(z => z.text);
+    check('„Offen" ordnet ueberfaellig · heute · spaeter, ohne Datum hinten',
+      equal(dueOpen, ['ueberfaellig', 'heute', 'spaeter', 'ohne']),
+      dueOpen.join(' · '));
+    /* UND DIE ZWEITE SORTIERSTUFE HAELT DIE GRUPPIERUNG (F18). Zwei Aufgaben
+       desselben Eintrags mit DEMSELBEN Datum muessen beieinander stehen --
+       sonst zerfaellt die Gruppierung, und derselbe Eintrag stuende mehrfach
+       in der Liste. */
+    const dueA = (await call('POST', '/api/items', { title: 'Gruppe A' })).content;
+    const dueB = (await call('POST', '/api/items', { title: 'Gruppe B' })).content;
+    for (const it of [dueA, dueB, dueA, dueB])
+      await call('POST', `/api/items/${it.id}/comments`,
+        { text: 'x', kind: 'task', dueDate: tag(9) });
+    const dueGroup = (await call('GET', '/api/open')).content
+      .filter(z => z.dueDate === tag(9)).map(z => z.item.id);
+    const dueBroken = dueGroup.filter((id, i) => i > 0 && id !== dueGroup[i - 1])
+      .filter((id, i, a) => a.indexOf(id) !== i);
+    check('Und die Zeilen eines Eintrags bleiben beieinander',
+      dueBroken.length === 0, dueGroup.join(' · '));
+
+    /* DAS AUSTAUSCHFORMAT: das Feld steht NUR an den Zeilen, die eines tragen
+       -- dieselbe Regel wie „nur Abweichungen" bei den Gewichten. */
+    await call('POST', '/api/confirm', { password: PASSWORD, purpose: 'export' });
+    const dueFile = (await call('GET', '/api/export?photos=0')).content;
+    const dueComments = (dueFile?.items || []).flatMap(i => i.comments || []);
+    check('Die Exportdatei traegt das Datum nur, wo eines steht',
+      dueComments.some(c => c.dueDate === tag(9)) &&
+      dueComments.filter(c => c.text === 'ohne Datum').every(c => !('dueDate' in c)),
+      JSON.stringify(dueComments.filter(c => c.dueDate).map(c => c.dueDate).slice(0, 5)));
+    /* UND DER IMPORT PRUEFT ES WIE DIE OBERFLAECHE. Eine Datei von aussen darf
+       keinen Tag einspielen, den die Oberflaeche nie erlaubt haette; die
+       Zeile selbst bleibt trotzdem stehen. */
+    const dueServer = fs.readFileSync(path.join(__dirname, 'server.js'), 'utf8');
+    check('Der Import laesst das Datum durch dieselbe Pruefung',
+      /const cDue = c\.dueDate === undefined \? \{ value: null \} : dueValue\(c\.dueDate\);/
+        .test(dueServer) && /cDue\.error \? null : cDue\.value/.test(dueServer),
+      'der Import schreibt roh in die Spalte');
+  }
+
+  /* ---- BA 4: die Adresse bekommt ihr Schloss ------------------------- */
+  group('Die Adresse ist eindeutig — 0.29.0');
+  {
+    const emServer = fs.readFileSync(path.join(__dirname, 'db.js'), 'utf8');
+    check('Der Index steht als PARTIELLER Index in db.js',
+      /CREATE UNIQUE INDEX IF NOT EXISTS idx_users_email/.test(emServer) &&
+      /ON users\(email COLLATE NOCASE\) WHERE email IS NOT NULL/.test(emServer),
+      (emServer.match(/CREATE UNIQUE INDEX IF NOT EXISTS idx_users_email[\s\S]{0,90}/) ||
+        ['(nicht gefunden)'])[0]);
+    /* GEFAHREN UND NICHT GELESEN: der Index selbst weist ab, nicht die Frage
+       davor. Geschrieben wird DIREKT in die Tabelle -- ueber die Route griffe
+       die Frage in auth.js, und die Zusage belegte dann sie und nicht das
+       Schloss. */
+    const emDir = fs.mkdtempSync(path.join(os.tmpdir(), 'kriterion-adresse-'));
+    shortRun(`require('./db'); console.log('da');`, emDir);
+    const emOut = shortRun(`const { db } = require('./db');
+      const zeig = (was, fn) => { try { fn(); console.log(was + ':DURCH'); }
+                                  catch { console.log(was + ':AB'); } };
+      db.prepare("INSERT INTO users (username,password_hash,role,email) VALUES ('a','x','user','anna@haus.de')").run();
+      zeig('zweitegleiche', () => db.prepare("INSERT INTO users (username,password_hash,role,email) VALUES ('b','x','user','ANNA@Haus.DE')").run());
+      zeig('ohneadresse1', () => db.prepare("INSERT INTO users (username,password_hash,role,email) VALUES ('c','x','user',NULL)").run());
+      zeig('ohneadresse2', () => db.prepare("INSERT INTO users (username,password_hash,role,email) VALUES ('d','x','user',NULL)").run());
+      console.log('fertig');`, emDir);
+    const emAll = shortRunAll(`const { db } = require('./db');
+      const zeig = (was, fn) => { try { fn(); console.log(was + ':DURCH'); }
+                                  catch { console.log(was + ':AB'); } };
+      zeig('nochmal', () => db.prepare("INSERT INTO users (username,password_hash,role,email) VALUES ('e','x','user','anna@HAUS.de')").run());
+      zeig('ohnedritte', () => db.prepare("INSERT INTO users (username,password_hash,role,email) VALUES ('f','x','user',NULL)").run());`, emDir);
+    check('Der Index verhindert eine zweite gleiche Adresse — auch anders geschrieben',
+      /nochmal:AB/.test(emAll), emAll.split('\n').slice(-3).join(' | '));
+    check('Und er laesst mehrere Zugaenge OHNE Adresse zu',
+      /ohnedritte:DURCH/.test(emAll), emAll.split('\n').slice(-3).join(' | '));
+
+    /* BESTEHENDE DOPPELADRESSEN LASSEN DIE INSTANZ LAUFEN (F10) und werden
+       benannt. Gegenprobe waere ein verschluckter Fehlschlag: dann stuende der
+       Index nicht da, die Karte saegte nichts, und niemand wuesste es. */
+    const emOldDir = fs.mkdtempSync(path.join(os.tmpdir(), 'kriterion-doppelt-'));
+    shortRun(`require('./db'); console.log('da');`, emOldDir);
+    shortRun(`const { db } = require('./db');
+      db.exec('DROP INDEX IF EXISTS idx_users_email');
+      db.prepare("INSERT INTO users (username,password_hash,role,email) VALUES ('eins','x','user','doppelt@haus.de')").run();
+      db.prepare("INSERT INTO users (username,password_hash,role,email) VALUES ('zwei','x','user','Doppelt@Haus.de')").run();
+      console.log('gesetzt');`, emOldDir);
+    const emStart = shortRunAll(`const { db, emailsDoubled } = require('./db');
+      console.log('GEMELDET ' + JSON.stringify(emailsDoubled()));
+      console.log('INDEX ' + db.prepare("SELECT COUNT(*) AS n FROM sqlite_master WHERE name='idx_users_email'").get().n);`,
+      emOldDir);
+    check('Bestehende Doppeladressen lassen die Instanz laufen',
+      /INDEX 0/.test(emStart) && !/Error/.test(emStart),
+      emStart.split('\n').slice(-4).join(' | '));
+    check('Das Containerprotokoll nennt sie',
+      /Die Adresse bleibt ohne Schloss: doppelt@haus\.de \(2\)/.test(emStart),
+      emStart.split('\n').filter(z => /Schloss/.test(z)).join(' | ') || '(keine Zeile)');
+    check('Und die Karte „Benutzer" bekommt Adresse und Zugaenge',
+      /GEMELDET \[\{"address":"doppelt@haus\.de","n":2,"names":"eins, zwei"\}\]/.test(emStart),
+      (emStart.match(/GEMELDET .*/) || ['(nichts gemeldet)'])[0]);
+    /* UND DER KLARTEXT GILT NUR HINTER DER ANMELDUNG. Vor ihr ist jede
+       unterschiedliche Antwort ein Werkzeug zum Durchprobieren -- der Weg der
+       Selbstanmeldung darf den Satz deshalb NICHT kennen. */
+    const emAuth = fs.readFileSync(path.join(__dirname, 'auth.js'), 'utf8');
+    const emRequest = emAuth.slice(emAuth.indexOf('function requestAccess'),
+                                   emAuth.indexOf('function requestAccess') + 3000);
+    check('Der Klartext steht hinter der Anmeldung und nicht davor',
+      (emAuth.match(/login\.emailTaken/g) || []).length === 2 &&
+      !/login\.emailTaken/.test(emRequest),
+      `${(emAuth.match(/login\.emailTaken/g) || []).length} Stellen`);
+    fs.rmSync(emDir, { recursive: true, force: true });
+    fs.rmSync(emOldDir, { recursive: true, force: true });
+  }
+
+  /* ---- BA 6 und 7: die beiden Bildschirmbefunde ---------------------- */
+  group('Die Filterzeile und der Kategoriekasten — 0.29.0');
+  {
+    const csSource = fs.readFileSync(path.join(__dirname, 'public', 'style.css'), 'utf8');
+    const csApp = fs.readFileSync(path.join(__dirname, 'public', 'app.js'), 'utf8');
+    /* JSDOM RECHNET KEIN CSS (Stolperstein 223). Die Pixelzahlen dieser Runde
+       sind im echten Chromium gemessen und stehen im Aenderungsprotokoll; was
+       hier steht, ist die REGEL und ihr TRAEGER.
+       DER SCHMALE SCHIRM UND NUR ER: die Regeln stehen innerhalb der
+       Umbruchstelle. Stuenden sie global, aenderte sich der Schreibtisch mit
+       -- und genau das ist zugesagt, dass es NICHT geschieht. */
+    /* DIE UMBRUCHSTELLE HEISST 700 UND NICHT 760, und sie traegt zwei weitere
+       Bedingungen: `(max-height: 500px) and (max-width: 960px)` faengt das
+       Telefon im Querformat. Gesucht wird deshalb der WORTLAUT der Stelle und
+       keine Zahl, die sich abschreiben laesst. */
+    const CS_NARROW = '@media (max-width: 700px), (max-height: 500px) and (max-width: 960px) {';
+    check('Die Umbruchstelle des schmalen Schirms steht, wo sie stand',
+      csSource.includes(CS_NARROW), '(die Umbruchstelle heisst anders)');
+    const csNarrow = (() => {
+      const a = csSource.lastIndexOf(CS_NARROW);
+      return a < 0 ? '' : csSource.slice(a);
+    })();
+    check('Die Filterzeile hat am Telefon DREI Rasterspalten',
+      /\.frow \{ display: grid; grid-template-columns: auto minmax\(0, 1fr\) auto;/.test(csNarrow),
+      (csNarrow.match(/\.frow \{ display: grid;[^\n]*/) || ['(nicht gefunden)'])[0]);
+    check('Und der Umschalter steht am Ende SEINER Zeile',
+      /\.frow > \.frow-right-end \{ grid-column: 3; \}/.test(csNarrow) &&
+      /\.frow > #f-status-from, \.frow > \.frow-right \{ grid-column: 1 \/ -1; \}/.test(csNarrow),
+      'die Spaltenzuweisung fehlt oder trifft alle Verweise');
+    /* DER RUECKSETZER DER SORTIERZEILE BLEIBT DRAUSSEN, und das ist der Kern
+       von F17: mit ihm in Spalte 3 schrumpft die Sortierwahl auf 30 px, und
+       der NAME der Sortierung ist nicht mehr zu sehen. Getragen wird die
+       Unterscheidung von einer Klasse, die nur die beiden bekommen. */
+    const csEnd = (csApp.match(/className = '[^']*frow-right-end[^']*'/g) || []);
+    check('Genau zwei Verweise tragen die Klasse — und der Ruecksetzer nicht',
+      csEnd.length === 2 && !/right5\.className = '[^']*frow-right-end/.test(csApp),
+      csEnd.join(' · '));
+    check('Der Und/Oder-Umschalter steht in Spalte zwei',
+      /\.frow > \.tagmode \{ grid-column: 2; \}/.test(csNarrow),
+      (csNarrow.match(/\.frow > \.tagmode[^\n]*/) || ['(nicht gefunden)'])[0]);
+    /* DER KATEGORIEKASTEN: geteilt statt ausgerechnet. Eine feste Zahl faerbt
+       diese Zeile rot -- das Stilblatt verbietet ausgerechnete Breiten bei 80
+       bis 120 Prozent Schrift an drei anderen Stellen selbst. */
+    check('Auswahl und Feld teilen sich, was der Knopf uebrig laesst',
+      /\[data-block="kategorie"\] \.row-in > #cat,\s*\n\s*\[data-block="kategorie"\] \.row-in > \.input \{ flex: 1 1 0; min-width: 0; \}/
+        .test(csNarrow),
+      (csNarrow.match(/\[data-block="kategorie"\][^\n]*\n[^\n]*/) || ['(nicht gefunden)'])[0]);
+    check('Und die Mindestbreite steht im Stilblatt statt inline',
+      /#cat \{ min-width: 148px; \}/.test(csSource) &&
+      !/id="cat"[^>]*min-width/.test(csApp),
+      (csApp.match(/id="cat"[^>]*/) || ['(nicht gefunden)'])[0]);
+    /* AM SCHREIBTISCH AENDERT SICH NICHTS: keine der vier Regeln steht
+       ausserhalb der Umbruchstelle. */
+    const csWide = csSource.slice(0, csSource.lastIndexOf(CS_NARROW));
+    check('Und am Schreibtisch aendert sich nichts',
+      !/frow-right-end/.test(csWide) &&
+      !/grid-template-columns: auto minmax\(0, 1fr\) auto/.test(csWide) &&
+      !/\[data-block="kategorie"\] \.row-in > #cat/.test(csWide),
+      'eine der Regeln steht ausserhalb der Umbruchstelle');
+    /* DER PLATZHALTER IST GEKUERZT, in drei Sprachen -- und der SCHLUESSEL
+       bleibt. Ein neuer Schluessel waere eine Wegnahme an der Sprachdatei. */
+    const csWords = ['de', 'en', 'tr'].map(code =>
+      JSON.parse(fs.readFileSync(path.join(__dirname, 'public', 'languages', `${code}.json`), 'utf8'))
+        ['entry.newCategoryHint']);
+    check('Der Platzhalter ist in allen drei Sprachen kurz',
+      equal(csWords, ['Name', 'Name', 'Ad']), JSON.stringify(csWords));
+  }
+
+  /* ---- BA 8: „Titel" kehrt um ---------------------------------------- */
+  group('„Titel" kehrt um — 0.29.0');
+  {
+    const tiApp = fs.readFileSync(path.join(__dirname, 'public', 'app.js'), 'utf8');
+    check('„Titel" kennt beide Richtungen',
+      /down: 'list\.dirZA',\s*up: 'list\.dirAZ',\s*start: 'up' \}/.test(tiApp),
+      (tiApp.match(/key: 'title'[\s\S]{0,120}/) || ['(nicht gefunden)'])[0]);
+    check('Und der Vergleicher kennt title_desc',
+      /case 'title_desc':\s*return b\.title\.localeCompare\(a\.title, LOCALE\);/.test(tiApp),
+      'die Gegenrichtung fehlt im Vergleicher');
+    /* JEDE DER SIEBEN GRUNDLAGEN SAGT, WORAUF EIN WECHSEL LANDET. Ohne das
+       haette die mitwandernde Richtung jeden, der aus der Vorgabe kommt, auf
+       „Z → A" abgesetzt -- also jeden beim ersten Mal. */
+    const tiStarts = (tiApp.match(/start: '(up|down)'/g) || []);
+    check('Jede Grundlage sagt, worauf ein Wechsel landet',
+      tiStarts.length === 7 && tiStarts.filter(z => /up/.test(z)).length === 1,
+      tiStarts.join(' · '));
+    /* UND DER SONDERFALL IST GANZ GEFALLEN (F21). Keine Grundlage ist mehr
+       einspurig, also bleibt weder der gesperrte Knopf noch die Weiche noch
+       der Satz daneben stehen -- eine Regel ohne Traeger bleibt nicht stehen. */
+    /* GELESEN WIRD DER CODE UND NICHT DER KOMMENTAR. `twoWays()` steht in
+       app.js noch EINMAL da -- in dem Absatz, der erklaert, WARUM es die
+       Funktion nicht mehr gibt. Ein Waechter, der den Kommentar mitliest,
+       zwaenge dazu, die Begruendung zu loeschen, und genau die soll bleiben. */
+    const tiCode = tiApp.replace(/\/\*[\s\S]*?\*\//g, ' ').replace(/^\s*\/\/.*$/gm, ' ');
+    check('Der gesperrte Knopf und seine Weiche sind fort',
+      !/twoWays/.test(tiCode) && !/dirBtn\.disabled/.test(tiCode) &&
+      !/\.sort-dir:disabled/.test(fs.readFileSync(path.join(__dirname, 'public', 'style.css'), 'utf8')),
+      (tiCode.match(/twoWays[^\n]*|dirBtn\.disabled[^\n]*/) || ['die Stilblattregel steht noch da'])[0]);
+    const tiKeys = ['de', 'en', 'tr'].map(code => {
+      const f = JSON.parse(fs.readFileSync(
+        path.join(__dirname, 'public', 'languages', `${code}.json`), 'utf8'));
+      return [f['list.sortOneWay'] === undefined, f['list.dirZA']];
+    });
+    check('„Diese Sortierung hat nur eine Richtung" steht in keiner Sprachdatei mehr',
+      tiKeys.every(([weg]) => weg), JSON.stringify(tiKeys));
+    check('Und „Z → A" steht in allen dreien',
+      tiKeys.every(([, wort]) => wort === 'Z → A'), JSON.stringify(tiKeys));
+    /* GEFAHREN UND NICHT GELESEN: die Sortierung selbst, am laufenden Server.
+       Eine Zusage, die nur SORT_BASES ansieht, bliebe gruen, wenn der
+       Vergleicher danebengreift -- genau dieser Fehler ist in 0.28.1
+       aufgefallen („Titel" sortierte nach dem Aenderungsdatum). */
+    const tiWhich = (await call('GET', '/api/items')).content;
+    const tiTitles = (Array.isArray(tiWhich) ? tiWhich : tiWhich?.items || [])
+      .map(i => i.title).filter(Boolean);
+    const tiUp = [...tiTitles].sort((a, b) => a.localeCompare(b, 'de-DE'));
+    const tiDown = [...tiTitles].sort((a, b) => b.localeCompare(a, 'de-DE'));
+    check('A → Z und Z → A sind wirklich Gegenrichtungen',
+      tiTitles.length > 1 && equal(tiUp, [...tiDown].reverse()),
+      `${tiTitles.length} Titel`);
+  }
 }

@@ -376,7 +376,26 @@ CREATE TABLE IF NOT EXISTS comments (
   -- das, was er nicht darf.
   -- Die Vorgabe 0 greift fuer jede Bestandszeile; Migrationscode braucht es
   -- deshalb nicht.
-  images_removed INTEGER NOT NULL DEFAULT 0
+  images_removed INTEGER NOT NULL DEFAULT 0,
+  -- DAS FAELLIGKEITSDATUM EINER AUFGABE -- 0.29.0, Befund 3.
+  -- EIN DATUM, KEINE UHRZEIT, und das ist eine Entscheidung ueber die Sache:
+  -- eine Aufgabe in einem Bewertungsarchiv ist an einem TAG faellig und nicht
+  -- um 14:30. Eine Uhrzeit waere eine Genauigkeit, die niemand pflegt -- und
+  -- ein Feld, das niemand pflegt, wird zur zweiten Wahrheit.
+  -- 'JJJJ-MM-TT' ALS TEXT, wie test_days.day: in dieser Form ordnet der
+  -- Zeichenvergleich wie der Kalender, und SQLite kennt ohnehin keinen
+  -- eigenen Datumstyp.
+  -- EINE SPALTE AN comments UND KEINE NEUE TABELLE: die Tabelle traegt die
+  -- Aufgaben schon (kind = 'task'), und ein Datum daneben ist eine Spalte.
+  -- FREIWILLIG -- NULL heisst "ohne Datum", und eine Aufgabe ohne Datum ist
+  -- genau das, was sie vor dieser Runde war. Es gibt keinen Vorgabewert:
+  -- ein selbst gesetztes Datum waere eine Behauptung ueber etwas, das niemand
+  -- gesagt hat.
+  -- SIE HAENGT NICHT AN kind. Wer eine Aufgabe zur Notiz zurueckschaltet,
+  -- behaelt das Datum -- schaltet er wieder auf Aufgabe, steht es noch da.
+  -- Ein Datum beim Umschalten zu loeschen waere eine Wegnahme, die niemand
+  -- verlangt hat, und sie fiele erst beim Zurueckschalten auf.
+  due_date TEXT
 );
 
 -- Bilder in Kommentaren. Eigene Tabelle statt einer Spalte an attachments:
@@ -1779,6 +1798,38 @@ function migration0270ImageStore() {
 migration0270ImageStore();
 // ENDE MIGRATION 0.27.0 (aus dem Haekchen wird die Wahl)
 
+// MIGRATION 0.29.0 — ENTFAELLT MIT 1.0
+/* DAS FAELLIGKEITSDATUM AN DER AUFGABE -- Befund 3, und der ZWOELFTE
+   Migrationsblock. Die Spalte steht in der DDL, aber ein
+   CREATE TABLE IF NOT EXISTS ruehrt eine VORHANDENE Tabelle nicht an
+   (Stolperstein 13): ein aelterer Bestand traegt `comments` ohne sie.
+
+   OHNE VORGABEWERT UND OHNE NACHGESCHOBENES UPDATE. `ALTER TABLE ... ADD
+   COLUMN` setzt jede Bestandszeile auf NULL, und NULL ist hier die richtige
+   Aussage: diese Aufgaben hatten nie ein Datum, und eines zu erfinden waere
+   eine Behauptung ueber fremde Arbeit. Frisch angelegt und gewandert sehen
+   damit gleich aus.
+
+   WIEDERHOLBAR UND IM NORMALFALL STUMM: gefragt wird die Tabelle selbst und
+   kein Merker. Ein zweiter Start findet die Spalte und sagt nichts.
+
+   HINTER db.exec(SCHEMA), wie jeder ADD-COLUMN-Block hier: die DDL legt die
+   Tabelle an, wenn sie fehlt, und erst danach ist etwas zu ergaenzen.
+
+   DIE ZAHL IM SATZ IST DIE DER AUFGABEN UND NICHT DIE DER KOMMENTARE: sie
+   sagt, wie viele Zeilen das neue Feld ueberhaupt benutzen koennen. */
+function migration0290() {
+  const columns = db.prepare('PRAGMA table_info(comments)').all().map(c => c.name);
+  if (columns.includes('due_date')) return 0;
+  db.exec('ALTER TABLE comments ADD COLUMN due_date TEXT');
+  const n = db.prepare("SELECT COUNT(*) AS n FROM comments WHERE kind = 'task'").get().n;
+  console.log(`[Kriterion] comments um due_date ergaenzt (Migration auf 0.29.0); ` +
+    `${n} ${n === 1 ? 'Aufgabe steht' : 'Aufgaben stehen'} weiterhin ohne Faelligkeitsdatum da.`);
+  return 1;
+}
+migration0290();
+// ENDE MIGRATION 0.29.0 (das Faelligkeitsdatum an der Aufgabe)
+
 /* ================= DIE INDIZES AUF NACHGERUESTETE SPALTEN =================
    SIE STEHEN HIER UNTEN UND NICHT IN DER DDL, und der Grund ist ein Befund des
    Pruefstands -- zweimal derselbe, in zwei Stufen.
@@ -1861,6 +1912,66 @@ db.exec('CREATE INDEX IF NOT EXISTS idx_photos_kind ON photos(kind)');
    Pruefung haelt beide gegeneinander. */
 db.exec(`CREATE INDEX IF NOT EXISTS idx_photos_tile
            ON photos(item_id, sort_order, id, mime_type, focus_x, focus_y, zoom, created_at, kind, duration)`);
+
+/* ---- DIE ADRESSE IST EINDEUTIG -- 0.29.0, Befund 4 ----
+   `users.email` HATTE KEIN `UNIQUE`, UND DAS WAR KEIN VERSEHEN: `ALTER TABLE`
+   kann eines nicht nachruesten, und die gewanderte und die frisch angelegte
+   Datenbank waeren damit VERSCHIEDEN GEBAUT -- genau die Sorte Unterschied,
+   die sich erst Jahre spaeter zeigt.
+   EIN PARTIELLER INDEX WIRKT AUF BEIDEN WEGEN GLEICH. Er ist keine
+   Datenbankstufe: er fasst die Zeilenform nicht an und legt sich bei jedem
+   Start selbst nach, in frischer wie bestehender Instanz -- dieselbe Bauform
+   wie `idx_sessions_user`.
+   `WHERE email IS NOT NULL` IST DER GANZE PUNKT: ohne die Bedingung waere
+   schon der ZWEITE Zugang ohne Adresse eine Verletzung. In SQLite sind zwar
+   mehrere NULL in einem gewoehnlichen UNIQUE erlaubt -- aber ein leerer String
+   ist keine NULL, und die Bedingung sagt ausserdem, was gemeint ist.
+   NOCASE, WIE AM BENUTZERNAMEN: „Anna@Haus.de" und „anna@haus.de" sind
+   dieselbe Adresse. Ein Index ohne diese Angabe liesse beide nebeneinander
+   stehen und haette den Befund nur halb erledigt.
+
+   UND WAS GESCHIEHT, WENN HEUTE SCHON ZWEI GLEICHE DASTEHEN (F10):
+   `CREATE UNIQUE INDEX` SCHEITERT DORT, und ein stiller Fehlschlag waere die
+   schlimmste Antwort -- die Instanz saehe aus, als haette sie ein Schloss, und
+   haette keins. Sie laeuft weiter, sie sagt es im Containerprotokoll, und die
+   Karte „Benutzer" nennt die betroffenen Adressen. Wer sie zusammenfuehrt oder
+   eine davon leert, bekommt den Index beim naechsten Start von selbst.
+   GEZAEHLT WIRD VORHER UND NICHT AM FEHLERTEXT: „UNIQUE constraint failed"
+   sagt nicht, WELCHE Adresse doppelt ist, und ein Text, den eine fremde
+   Bibliothek formuliert, ist keine Grundlage fuer eine Bildschirmauskunft. */
+const qDoubleEmails = `
+  SELECT lower(email) AS address, COUNT(*) AS n,
+         group_concat(username, ', ') AS names
+    FROM users
+   WHERE email IS NOT NULL AND trim(email) <> '' AND status <> 'deleted'
+   GROUP BY lower(email) HAVING COUNT(*) > 1
+   ORDER BY lower(email)`;
+/* GRABSTEINE ZAEHLEN NICHT MIT: ein geloeschter Zugang traegt einen
+   ueberschriebenen Namen und meldet sich nie wieder an. Seine Adresse dort
+   stehenzulassen waere eine Auskunft ueber jemanden, den es nicht mehr gibt.
+   ER STEHT ABER IM WEG, wenn seine Adresse noch dasteht -- deshalb raeumt die
+   Zeile darunter sie beim Grabstein weg, bevor der Index versucht wird. */
+db.prepare(`UPDATE users SET email = NULL WHERE status = 'deleted' AND email IS NOT NULL`).run();
+let doubleEmails = [];
+try {
+  db.exec(`CREATE UNIQUE INDEX IF NOT EXISTS idx_users_email
+             ON users(email COLLATE NOCASE) WHERE email IS NOT NULL`);
+} catch {
+  doubleEmails = db.prepare(qDoubleEmails).all();
+  console.log('[Kriterion] Die Adresse bleibt ohne Schloss: ' +
+    doubleEmails.map(z => `${z.address} (${z.n})`).join(', ') +
+    ' -- mehrfach vergeben. Die Karte „Benutzer" nennt sie.');
+}
+/* SIE WIRD BEI JEDEM ABRUF NEU GEFRAGT UND NICHT GEMERKT: wer die Doppelung
+   aufloest, soll die Karte sauber sehen, ohne den Server neu zu starten --
+   und wer eine NEUE anlegt, waehrend der Index fehlt, soll sie dort finden.
+   NUR WENN DER INDEX FEHLT: steht er, kann es keine geben, und eine Abfrage
+   bei jedem Aufruf der Karte waere Arbeit fuer eine Antwort, die feststeht. */
+function emailsDoubled() {
+  const present = db.prepare(
+    `SELECT 1 FROM sqlite_master WHERE type = 'index' AND name = 'idx_users_email'`).get();
+  return present ? [] : db.prepare(qDoubleEmails).all();
+}
 
 // --- Auffangnetz: die Instanz braucht einen Eigentuemer ---
 // Gibt es keinen, wird es der aelteste Zugang, DER SCHON RECHTE HAT; erst wenn
@@ -1966,6 +2077,9 @@ renumberCriteria();
 // Abschreiben zeigen kann. Ausgeliefert wird er nur hinter der Anmeldung und
 // nur dann, wenn er ohnehin schon neben der Datenbank liegt.
 module.exports = { db, DATA_DIR, DB_FILE, keyFromEnv: key.fromEnv, keyHex: key.hex,
+                   // Welche Adressen mehrfach vergeben sind -- leer, solange
+                   // der partielle Index steht (0.29.0, Befund 4).
+                   emailsDoubled,
                    // Die eine Faltung der Suche -- 0.24.4 (B8). Sie geht hinaus,
                    // damit die NADEL dieselbe Funktion ruft wie der Heuhaufen und
                    // nicht eine zweite, die dasselbe tut.

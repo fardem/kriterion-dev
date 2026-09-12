@@ -448,7 +448,6 @@ wissen will, was gebaut wird, liest `Doku/Fahrplan.md`.*
 | **Ein Papier, zwischen zwei Runden ohne Lauf geändert, macht den Zweig rot** | **0.30.0** |
 | **`counterproof.js` verwechselt Abriss und Störung von außen** | **0.30.0** |
 | **Ein echter Teillauf** | **0.34.0** — *er IST die Aufteilung in Module und nicht ein Filter davor.* **Am 8. September stand hier 0.32.0**; die Nummer ist am 10. September mit der Sprachrunde und dem Bruch gerückt — die Runde ist dieselbe geblieben |
-| **Ein Versanddienst über HTTPS statt SMTP** | **abgelehnt** — *der Weg ist nicht das Problem. Was hilft, sind SPF, DKIM und DMARC; ein Weiterleitungsdienst bringt sie mit und spricht SMTP, das die Instanz kann. **0.28.0 erklärt es in der README.*** |
 | **Die Tagwolke füllt den Platz unter „mehr" mit** | **abgelehnt** — *60 px je Zeile gegen den Umbau der ganzen Wolke* |
 | **Ob ein Admin den zweiten Faktor verlangen kann** | **abgelehnt** — die Antwort ist nein |
 | **Vorlagen für Einträge · Tags in Mengen · Druckstylesheet** | **abgelehnt** |
@@ -618,12 +617,6 @@ wiedersieht, schreibt den Lauf vollständig mit)**.
   sieht, ist angemeldet und sieht die Liste ohnehin; **vor der Anmeldung gilt
   das Gegenteil**, dort ist jede unterschiedliche Antwort ein Werkzeug zum
   Durchprobieren. *(Claude: später — mit der Runde, die sie braucht)*
-- **Ein Versanddienst über HTTPS statt SMTP** *(0.9.0)*. Falls SMTP am
-  Anschluss gar nicht durchkommt — manche Anbieter sperren Port 587 ausgehend —,
-  wäre er der Ausweg: Brevo, Mailjet und Postmark haben Schnittstellen, die
-  sich mit einem einfachen `fetch` bedienen lassen, **ganz ohne Bibliothek**.
-  *Zweiter Weg im Code — erst bauen, wenn SMTP nachweislich scheitert.*
-  *(Claude: später)*
 - **Der angepinnte Block kann zur Wand werden** *(akut erst bei mehreren
   Zugängen)*. Bei vielen angepinnten Kommentaren mehrerer Leute wächst er über
   allem zusammen. **Wenn das im Betrieb stört, ist die Antwort NICHT eine

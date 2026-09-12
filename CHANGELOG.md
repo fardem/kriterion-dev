@@ -29,6 +29,37 @@ bleiben in der Form ihrer Zeit.*
 
 *Hier wird mitgeschrieben, während gebaut wird.*
 
+## [0.29.0] - 2026-09-11
+
+> **VOR DEM EINSPIELEN: EINE SICHERUNG.** Diese Runde fasst das Schema an — eine
+> Spalte an den Kommentaren (`due_date`) und ein Index auf der Adresse. Beides
+> legt der erste Start selbst nach; die Migrationszeile steht danach einmal im
+> Containerprotokoll und beim nächsten Start nicht mehr.
+>
+> **Das Austauschformat steigt auf 16.** Ältere Exportdateien bleiben lesbar;
+> eine Datei aus dieser Runde spielt eine ältere Fassung ohne das neue Feld ein.
+>
+> **Und eine Folge, die auffallen kann:** trägt dein Bestand heute schon **zwei
+> Zugänge mit derselben Adresse**, wird der Index nicht angelegt. Die Instanz
+> läuft weiter, das Containerprotokoll sagt es, und die Karte „Benutzer" nennt
+> die Adressen. Eine davon ändern oder leeren — beim nächsten Start greift das
+> Schloss von selbst.
+
+### Neu
+
+- **Jede Sicherung lässt sich prüfen** — an jeder Zeile der Liste steht „prüfen". Es öffnet die Kopie probeweise und sagt, wie viele Einträge, Fotos und Zugänge darin stehen und bis wann der Inhalt reicht. Die laufende Datenbank wird dabei nicht angefasst.
+- **Eine Aufgabe kann ein Fälligkeitsdatum tragen** — freiwillig, ein Datum ohne Uhrzeit. „Offen" ordnet danach in vier Abschnitten: überfällig, heute, später, ohne Datum.
+- **Die Kennzahlen nennen auf Verlangen jede einzelne Datei** — der Verweis „Dateien zeigen" unter dem Fingerprint klappt alle achtzehn mit ihrer Prüfsumme auf. Dieselben acht Zeichen wie `sha256sum | cut -c1-8`.
+- **Eine E-Mail-Adresse kann nur noch einmal vergeben werden** — mehrere Zugänge ohne Adresse bleiben erlaubt.
+- **Nach Titel lässt sich jetzt auch von Z nach A sortieren.**
+
+### Geändert
+
+- **Der Umschalter „Tags" steht am Ende der Kategoriezeile** statt allein auf einer eigenen — am Telefon 104 Pixel weniger Filterleiste, 105 mit gesetztem Tagfilter.
+- **Der Kategoriekasten im Eintrag misst eine Zeile statt zwei** — der Anlegeknopf steht neben dem Feld. Das Feld heißt jetzt „Name".
+- **In der Liste der Sicherungen steht die Größe vor dem Alter** — die Zeitmarke wird dafür nicht mehr gekürzt.
+- **Die README erklärt, warum Mails im Spam landen** — und dass SPF, DKIM und DMARC das ausräumen, nicht ein anderer Versandweg.
+
 ## [0.28.1] - 2026-09-11
 
 > **VOR DEM EINSPIELEN NICHTS ZU TUN.** Kein Schemaschritt, keine Migration.

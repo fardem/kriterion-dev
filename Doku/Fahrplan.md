@@ -146,7 +146,7 @@ Sprachumschalter baut, hat damit ein Muster und braucht kein neues.**
 | ~~**0.27.0**~~ | ~~Die wählbare Bildablage~~ | **GEBAUT am 10. September 2026** — Änderungsprotokoll 0.27.0 | nein | — |
 | ~~**0.28.0**~~ | ~~Das Telefon bekommt Recht~~ | **GEBAUT am 11. September 2026** — Änderungsprotokoll 0.28.0 | nein | — |
 | ~~**0.28.1**~~ | ~~Was 0.28.0 nur halb erledigt hat~~ | **GEBAUT am 11. September 2026** — Änderungsprotokoll 0.28.1. *Acht Befunde vom laufenden Gerät; **keine Funktion**, der Fahrplan rückt nicht* | nein | — |
-| **0.29.0** | **Worauf man sich verlassen können muss** | Gruppe C, das Angenommene — und die letzte Runde, die das Schema anfassen darf | **ja** | 15 → 16 |
+| ~~**0.29.0**~~ | ~~Worauf man sich verlassen können muss~~ | **GEBAUT am 11. September 2026** — Änderungsprotokoll 0.29.0. *Fünf geplante Punkte und **drei** Befunde aus dem Betrieb; der dritte („Titel" kennt nur A → Z) kam während der Fragerunde herein und fuhr mit, weil die Nummer ohnehin MINOR ist* | **ja** | 15 → 16 |
 | **0.30.0** | **Der Prüfstand wird schnell** | Gruppe D: was das Bauen beschleunigt, ohne den Beleg zu schwächen | nein | — |
 | **0.31.0** | **Die Sprachen werden gegengelesen** | drei Dateien, drei Stufen — harte Fehler, der zersägte Satzbau, die Hausstimme | nein | — |
 | **0.32.0** | *frei — der letzte Platz vor dem Bruch* | **absichtlich leer.** Was aus dem Rundlauf kommt und mehr ist als eine Reparatur, findet hier Platz, ohne den Bruch noch einmal zu verschieben | offen | — |
@@ -589,6 +589,19 @@ sie zerfällt in zwei: was drin sein muss, und was draußen sein muss.
 ---
 
 ## 0.29.0 — „Worauf man sich verlassen können muss"
+
+> **GEBAUT AM 11. SEPTEMBER 2026.** *Die Ausarbeitung darunter bleibt als
+> HERLEITUNG stehen — was daraus geworden ist, steht im Änderungsprotokoll
+> 0.29.0, und was dabei anders kam als hier gedacht, ebenfalls.* **Drei Angaben
+> dieser Ausarbeitung hat die Messung berichtigt** (die dritte Rasterspalte, die
+> Breite der Kategorieauswahl, der gekürzte Platzhalter), **und eine ist
+> ersetzt worden**: „weicht etwas ab, steht die Karte ohnehin auf Rot" — die
+> Instanz kennt keinen Sollwert.
+>
+> **UND EIN DRITTER BEFUND IST DAZUGEKOMMEN:** *„Titel" sortierte nur von A bis
+> Z (Betreiber, 11. September 2026).* Er fuhr mit, weil die Nummer ohnehin
+> MINOR ist — und genau das war der Grund, aus dem 0.28.1 ihn liegen lassen
+> musste.
 
 **Die letzte Runde, die das Schema anfassen darf.** *Danach kommt der Bruch, und
 was danach ein Feld braucht, steht allein gegen eine festgeschriebene

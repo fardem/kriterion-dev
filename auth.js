@@ -371,6 +371,22 @@ async function changeUser(userId, oldPassword, newName, newPassword, newAddress)
   const address = addressMeant ? String(newAddress || '').trim() : null;
   if (addressMeant && address && !mail.isAddress(address))
     throw new Message('login.emailInvalid');
+  /* IST SIE SCHON VERGEBEN? -- 0.29.0, Befund 4. Dieselbe Bauform und derselbe
+     Grund wie beim Namen eine Handvoll Zeilen darueber: den Riegel legt der
+     partielle Index (`idx_users_email` in db.js), aber ohne diese Frage kaeme
+     seine rohe Meldung als 400 heraus -- unverstaendlich an einer Stelle, an
+     der man nur eine Adresse tippt.
+     IM KLARTEXT, UND DAS IST ENTSCHIEDEN: wer diesen Satz sieht, ist
+     ANGEMELDET und sieht die Zugaenge ohnehin. Vor der Anmeldung gilt das
+     Gegenteil -- dort ist jede unterschiedliche Antwort ein Werkzeug zum
+     Durchprobieren, und der Weg dorthin (die Anfrage auf einen Zugang) bleibt
+     deshalb unberuehrt.
+     `COLLATE NOCASE` WIE DER INDEX: sonst saegte die Frage hier anders als das
+     Schloss dahinter, und der Aufrufer bekaeme die rohe Meldung doch. */
+  if (addressMeant && address &&
+      db.prepare('SELECT 1 FROM users WHERE email = ? COLLATE NOCASE AND id != ?')
+        .get(address, u.id))
+    throw new Message('login.emailTaken');
   db.prepare('UPDATE users SET username = ?, password_hash = ? WHERE id = ?').run(name, hash, u.id);
   if (addressMeant)
     db.prepare('UPDATE users SET email = ? WHERE id = ?').run(address || null, u.id);
@@ -441,6 +457,11 @@ async function createUser(name, password, role = 'user', withoutPassword = false
   const mailAddress = String(address || '').trim();
   if (mailAddress && !mail.isAddress(mailAddress))
     throw new Message('login.emailInvalid');
+  // Und dieselbe Frage wie in changeUser -- die Begruendung steht dort. Hier
+  // gibt es noch keine eigene Zeile, also auch kein `id != ?`.
+  if (mailAddress &&
+      db.prepare('SELECT 1 FROM users WHERE email = ? COLLATE NOCASE').get(mailAddress))
+    throw new Message('login.emailTaken');
   const hash = withoutPassword === true ? '' : await hashPassword(password);
   const acting = checkActor(actor);
   const r = db.prepare('INSERT INTO users (username, password_hash, role, email) VALUES (?, ?, ?, ?)')

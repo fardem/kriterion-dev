@@ -49,7 +49,16 @@ sharp.concurrency(Math.max(1, Math.floor(os.cpus().length / 2)));
    `VARIANTS` KOMMT DAGEGEN NEU HEREIN -- `encodeCommentImage()` holt die Guete
    der Ableitungen von dort, statt sie ein zweites Mal hinzuschreiben. */
 const { makeVariants, VARIANTS, storeImage, IMAGE_STORES, IMAGE_STORE_DEFAULT, isImageStore } = require('./images');
-const { db, DATA_DIR, DB_FILE, keyFromEnv, keyHex, renumberCriteria, method, searchFold, COLUMNS_0241, VALUES_0241 } = require('./db');
+const { db, DATA_DIR, DB_FILE, keyFromEnv, keyHex, renumberCriteria, method, searchFold, COLUMNS_0241, VALUES_0241, emailsDoubled } = require('./db');
+/* DERSELBE TREIBER, EIN ZWEITER GRIFF -- 0.29.0, Befund 1. Die Sicherungsprobe
+   oeffnet eine FREMDE Datei, und das geht nur mit einer eigenen Verbindung;
+   `db` aus der Zeile darueber zeigt auf die laufende Datenbank und wird dabei
+   ausdruecklich nicht angefasst.
+   ER STEHT HIER UND NICHT IN DER ROUTE: ein `require` INNERHALB einer Funktion
+   fiele aus dem Fingerprint heraus -- der wird beim Start aus `require.cache`
+   abgeleitet, und was erst beim ersten Klick geladen wird, steht dort noch
+   nicht drin. Der Pruefstand haelt genau das fest. */
+const Database = require('better-sqlite3-multiple-ciphers');
 const auth = require('./auth');
 const mail = require('./mail');
 
@@ -1894,7 +1903,14 @@ app.get('/api/users', adminOnly, (req, res) => {
     users: auth.listUsers(),
     ich: req.user.id,
     mayRoles: isOwner(req),
-    owner: auth.ownerCount()
+    owner: auth.ownerCount(),
+    /* WELCHE ADRESSEN MEHRFACH VERGEBEN SIND -- 0.29.0, Befund 4. Im
+       Normalfall eine leere Liste: steht der partielle Index, kann es keine
+       geben, und db.js fragt dann gar nicht erst.
+       HIER UND NICHT IN /api/stats: der Ort, an dem man etwas dagegen tut, ist
+       die Karte „Benutzer" -- dort stehen die Zugaenge, die es betrifft. Eine
+       Auskunft neben den Kennzahlen naehme den Weg zum Handeln nicht mit. */
+    emailsDoubled: emailsDoubled()
   });
 });
 
@@ -3836,6 +3852,10 @@ function qComments(itemId, userId, card) {
     // ihm verwehrt ist.
     c.imagesRemoved = c.images_removed;
     delete c.images_removed;
+    // Wie der Eingriffsvermerk darueber: die Spalte heisst in der Datenbank
+    // mit Unterstrich und am Bildschirm ohne (0.29.0, Befund 3).
+    c.dueDate = c.due_date || null;
+    delete c.due_date;
     delete c.user_id;
   }
   return list;
@@ -5768,6 +5788,37 @@ async function encodeAll(files) {
 
 // Bilder kommen zusammen mit dem Text, nicht danach: sonst entstuende bei
 // einem Abbruch ein leerer Kommentar mit Bildern.
+/* ---- DAS FAELLIGKEITSDATUM -- 0.29.0, Befund 3 ------------------------
+   EIN ORT, DER ES ZURECHTRUECKT, und beide Wege (Anlegen und Aendern) rufen
+   ihn. Zwei Stellen, die dasselbe Datum pruefen, liefen auseinander.
+
+   'JJJJ-MM-TT' UND SONST NICHTS. Der Browser schickt genau das aus einem
+   `<input type="date">`; alles andere ist entweder ein Tippfehler oder ein
+   Versuch. GEPRUEFT WIRD DIE FORM UND DER KALENDER: "2026-02-31" hat die
+   richtige Form und gibt es nicht -- `Date.UTC` rechnet daraus den 3. Maerz,
+   und wer das durchliesse, speicherte einen Tag, den niemand gemeint hat.
+
+   LEER HEISST LEER. '' und null nehmen das Datum wieder weg; das ist der
+   Rueckweg, und es gibt keinen zweiten. `undefined` dagegen heisst "nicht
+   gemeint" -- die Umschalter in der Kopfzeile schicken nur ihr eigenes Feld.
+
+   KEINE UHRZEIT UND KEINE ZEITZONE. Ein Tag ist ein Tag; wer daraus einen
+   Zeitpunkt machte, haette am Wirt in Berlin und am Telefon in Istanbul zwei
+   verschiedene. */
+const DUE_FORM = /^\d{4}-\d{2}-\d{2}$/;
+function dueValue(raw) {
+  if (raw === null) return { value: null };
+  const text = String(raw).trim();
+  if (!text) return { value: null };
+  if (!DUE_FORM.test(text)) return { error: 'server.dueInvalid' };
+  const [year, month, day] = text.split('-').map(Number);
+  const d = new Date(Date.UTC(year, month - 1, day));
+  // Der Kalender selbst: schiebt er den Tag, gab es ihn nicht.
+  if (d.getUTCFullYear() !== year || d.getUTCMonth() !== month - 1 || d.getUTCDate() !== day)
+    return { error: 'server.dueInvalid' };
+  return { value: text };
+}
+
 app.post('/api/items/:id/comments', commentImageUpload.array('images', IMAGE_COUNT), async (req, res, next) => {
   try {
     const text = (req.body.text || '').trim();
@@ -5779,9 +5830,15 @@ app.post('/api/items/:id/comments', commentImageUpload.array('images', IMAGE_COU
     if (k.error) return res.status(400).json({ error: t(localeOf(req), k.error, k.values) });
 
     const pinned = req.body.pinned === '1' || req.body.pinned === true;
+    /* DAS DATUM DARF SCHON BEIM ANLEGEN MITKOMMEN -- 0.29.0. Es ist derselbe
+       Weg wie `pinned` und `kind`: ein Feld im Rumpf, und wenn es fehlt, ist
+       es NULL. Der Rumpf kommt hier als Formular (die Bilder haengen daran),
+       also steht auch das Datum als String da. */
+    const due = dueValue(req.body.dueDate === undefined ? null : req.body.dueDate);
+    if (due.error) return res.status(400).json({ error: t(localeOf(req), due.error) });
     // Der Schreibende ist der Verfasser.
-    const fresh = db.prepare('INSERT INTO comments (item_id, text, kind, pinned, user_id) VALUES (?, ?, ?, ?, ?)')
-      .run(req.params.id, text, kindValue(req.body.kind), pinned ? 1 : 0, req.user.id);
+    const fresh = db.prepare('INSERT INTO comments (item_id, text, kind, pinned, user_id, due_date) VALUES (?, ?, ?, ?, ?, ?)')
+      .run(req.params.id, text, kindValue(req.body.kind), pinned ? 1 : 0, req.user.id, due.value);
     if (k.images.length) saveCommentImages(fresh.lastInsertRowid, k.images);
     touch.run(req.params.id);
     res.status(201).json(detail(req.params.id, req.user.id, localeOf(req)));
@@ -5802,8 +5859,20 @@ app.put('/api/comments/:id', (req, res) => {
      Beide Fragen stehen VOR dem ersten UPDATE. */
   if (req.body.text !== undefined && !selfOnly(req, c.user_id))
     return res.status(403).json({ error: t(localeOf(req), DENIED_SELF)});
-  if ((req.body.kind !== undefined || req.body.pinned !== undefined) && !mayChange(req, c.user_id))
+  /* DAS DATUM GEHOERT ZUR ART UND NICHT ZUM TEXT -- 0.29.0: es ist eine
+     Angabe UEBER die Aufgabe und keine Aussage IN ihr, und deshalb darf es
+     dieselbe Runde setzen, die auch die Aufgabenmarke setzt. Wer den Haken in
+     „Offen" druecken darf, darf auch das Datum ruecken. */
+  if ((req.body.kind !== undefined || req.body.pinned !== undefined
+       || req.body.dueDate !== undefined) && !mayChange(req, c.user_id))
     return res.status(403).json({ error: t(localeOf(req), DENIED_SELF)});
+  // GEPRUEFT VOR DEM ERSTEN UPDATE, wie die Rechtefragen darueber: eine
+  // Absage, die den Text schon gewechselt hat, waere schlimmer als keine.
+  let due = null;
+  if (req.body.dueDate !== undefined) {
+    due = dueValue(req.body.dueDate);
+    if (due.error) return res.status(400).json({ error: t(localeOf(req), due.error) });
+  }
 
   if (req.body.text !== undefined) {
     const text = String(req.body.text).trim();
@@ -5817,6 +5886,9 @@ app.put('/api/comments/:id', (req, res) => {
     db.prepare('UPDATE comments SET kind = ? WHERE id = ?').run(kindValue(req.body.kind), c.id);
   if (req.body.pinned !== undefined)
     db.prepare('UPDATE comments SET pinned = ? WHERE id = ?').run(req.body.pinned ? 1 : 0, c.id);
+  // Wie die beiden darueber: keine Bearbeitung des Textes, also kein
+  // „bearbeitet" -- ein gerücktes Datum ist keine geaenderte Aussage.
+  if (due) db.prepare('UPDATE comments SET due_date = ? WHERE id = ?').run(due.value, c.id);
 
   touch.run(c.item_id);
   res.json(detail(c.item_id, req.user.id, localeOf(req)));
@@ -5937,15 +6009,42 @@ app.delete('/api/comments/:id', (req, res) => {
    `kind != 'done'` schriebe, naehme Notizen und Berichte mit.
    SORTIERT WIE DIE UEBERSICHT; die Gruppierung macht die Oberflaeche.
    `mine` haengt an JEDER Zeile -- daran haengt der Haken. */
+/* ---- DIE ORDNUNG SEIT 0.29.0 (Befund 3) ----------------------------------
+   ERST DAS DATUM, DANN DER EINTRAG. Bis hierher kam die Reihenfolge allein
+   von `i.updated_at DESC`, und die Oberflaeche fasste aufeinanderfolgende
+   Zeilen desselben Eintrags zu einer Gruppe zusammen.
+   OHNE DATUM HINTEN, UND ZWAR MIT EINER EIGENEN STUFE: `due_date IS NULL`
+   ordnet vor dem Datum selbst. Ein NULL in SQLite sortiert von sich aus nach
+   VORN -- wer keine Zahl hat, haette damit den niedrigsten Wert statt gar
+   keinen, und die Aufgaben ohne Datum stuenden vor den ueberfaelligen.
+   Dieselbe Regel wie bei den Eintraegen ohne Testtage.
+   DER EINTRAG BLEIBT DIE ZWEITE STUFE: innerhalb desselben Tages stehen die
+   Zeilen eines Eintrags weiterhin beieinander, und die Gruppierung der
+   Oberflaeche greift wie bisher. Ohne diese Stufe zerfiele sie -- derselbe
+   Eintrag stuende dann mehrfach in der Liste (F18).
+   UND `c.item_id` STEHT DAHINTER, NICHT WEIL ES SCHOEN WAERE, SONDERN WEIL DIE
+   ZUSAGE ES GEFUNDEN HAT: `updated_at` ist auf die SEKUNDE genau. Werden zwei
+   Eintraege in derselben Sekunde angefasst -- beim Einspielen die Regel und
+   nicht die Ausnahme --, sind ihre Werte gleich, die Stufe entscheidet nichts
+   mehr, und `c.id` mischt die Zeilen beider Eintraege ineinander. Die
+   Gruppierung zerfiel dann genau in dem Fall, fuer den sie gebaut ist.
+   DIE DREI ZUSTAENDE RECHNET DIE OBERFLAECHE und nicht diese Abfrage:
+   „ueberfaellig" haengt am HEUTIGEN Tag des LESERS, und der Server kennt
+   dessen Zeitzone nicht. Eine Stufe „ueberfaellig" in SQL waere am Telefon in
+   Istanbul eine andere als am Wirt in Berlin. */
 const qOpenTasks = db.prepare(`
-  SELECT c.id, c.text, c.created_at, c.user_id, c.item_id, i.title, i.updated_at
+  SELECT c.id, c.text, c.created_at, c.user_id, c.item_id, c.due_date,
+         i.title, i.updated_at
     FROM comments c JOIN items i ON i.id = c.item_id
    WHERE c.kind = 'task'
-   ORDER BY i.updated_at DESC, c.id`);
+   ORDER BY CASE WHEN c.due_date IS NULL THEN 1 ELSE 0 END,
+            c.due_date,
+            i.updated_at DESC, c.item_id, c.id`);
 app.get('/api/open', (req, res) => {
   const card = authorCard();
   res.json(qOpenTasks.all().map(z => ({
     id: z.id, text: z.text, created_at: z.created_at,
+    dueDate: z.due_date || null,
     item: { id: z.item_id, title: z.title },
     mine: z.user_id === req.user.id,
     author: authorFrom(card, z.user_id)
@@ -6072,7 +6171,16 @@ app.get('/api/stats', adminOnly, (req, res) => {
     // Und die Liste in /api/config ist ausdruecklich abgeschlossen; was
     // dort steht, sieht jeder, der die Adresse kennt. Der Fingerprint nagelt
     // den laufenden Dateisatz fest und geht deshalb nicht vor die Anmeldung.
-    fingerprint: FINGERPRINT,
+    fingerprint: FINGERPRINT.value,
+    /* DIE ACHTZEHN EINZELWERTE -- 0.29.0, Befund 2. Sie fahren auf der
+       vorhandenen lesenden Route mit; ein eigener Weg dafuer liesse
+       `F_ROUTES` wachsen, ohne dass es etwas Neues zu bewachen gaebe.
+       SIE KOSTEN NICHTS: gerechnet wird beim Start, einmal, zusammen mit dem
+       Gesamtwert. Was hier durchgereicht wird, liegt seither im Speicher.
+       WELCHE DAVON ABWEICHT, SAGT DIE INSTANZ NICHT -- sie kann es nicht: der
+       Sollwert steht im Aenderungsprotokoll und nicht im Image. Die Karte
+       zeigt die Liste deshalb auf Verlangen und nicht von selbst (F16). */
+    fingerprintFiles: FINGERPRINT.files,
     /* WAS UNTER DER HAUBE LAEUFT -- abgelesen in db.js, hier nur
        durchgereicht. Die Karte nennt Verfahren und keine Paketversionen: das
        eine sagt, WIE gerechnet wird, das andere, WELCHE Luecke passt.
@@ -6234,7 +6342,12 @@ app.post('/api/images/convert', ownerOnly, secondConfirmNeeded('images'), (req, 
    und aus demselben Grund: eine aeltere Instanz uebergeht ein zusaetzliches
    Feld wortlos, und eine Datei der Nummer 14 traegt es nicht -- dann bleibt
    die Sprache unbekannt, und die Karte fragt einmal nach. */
-const EXCHANGE_FORMAT = 15;
+/* UND SEIT 0.29.0 DAS FAELLIGKEITSDATUM AM KOMMENTAR -- Formatnummer 16
+   (Befund 3). Es steht nur an den Zeilen, die eines tragen, und eine Datei der
+   Nummer 15 traegt es gar nicht -- dann gibt es eben keines einzuspielen.
+   DIE NUMMER IST WEITER EINE AUSSAGE UND KEINE BEDINGUNG: entschieden wird
+   ueber das VORHANDENSEIN des Feldes, wie bei jedem Feld vor ihm. */
+const EXCHANGE_FORMAT = 16;
 
 /* DIE NAMEN JE SPRACHE, WIE SIE IN DIE DATEI GEHEN -- 0.24.3, Bauabschnitt 6a.
    { <sprachkennung>: { <name der grundzeile>: <name in dieser sprache> } }
@@ -6387,10 +6500,17 @@ function entryAsBundle(it, situation) {
                          JOIN rating_criteria c ON c.id = r.criterion_id WHERE r.item_id = ?
                          ORDER BY c.sort_order, c.id, r.user_id`).all(it.id)
       .map(r => ({ name: r.name, value: r.value, author: authorName(r.user_id) })),
-    comments: db.prepare('SELECT id, text, kind, pinned, created_at, updated_at, user_id FROM comments WHERE item_id = ? ORDER BY id')
+    comments: db.prepare('SELECT id, text, kind, pinned, created_at, updated_at, user_id, due_date FROM comments WHERE item_id = ? ORDER BY id')
       .all(it.id).map(c => ({
         text: c.text, kind: c.kind, pinned: !!c.pinned, author: authorName(c.user_id),
         created_at: c.created_at, updated_at: c.updated_at,
+        /* DAS FAELLIGKEITSDATUM -- 0.29.0, Formatnummer 16. Ein Feld, das im
+           Export fehlt, ist beim naechsten Einspielen weg; der Export ist fuer
+           viele die einzige vollstaendige Kopie ausserhalb der Datenbank.
+           NUR WENN EINES DASTEHT -- dieselbe Regel wie „nur Abweichungen" bei
+           den Gewichten: ein `null` in jeder Zeile blaehte die Datei auf und
+           sagte dasselbe wie ein fehlendes Feld. */
+        ...(c.due_date ? { dueDate: c.due_date } : {}),
         // Kommentarbilder folgen dem Schalter der Dateien; ein dritter waere
         // zu viel. Die Merkmale gehen immer mit, sie kosten nichts.
         images: withFiles
@@ -7273,10 +7393,22 @@ async function importInto(payload, userId, mode2, bytesSource = null) {
       for (const c of it.comments || []) {
         // Aeltere Exportdateien kennen kind und pinned nicht -- dann gilt der
         // Kommentar als gewoehnliche Notiz.
-        const simple = db.prepare(`INSERT INTO comments (item_id, text, kind, pinned, created_at, updated_at, user_id)
-                      VALUES (?, ?, ?, ?, COALESCE(?, datetime('now')), ?, ?)`)
+        /* UND DAS FAELLIGKEITSDATUM SEIT 0.29.0 (Formatnummer 16). Es geht
+           durch DIESELBE Pruefung wie am Bildschirm -- dueValue() -- und nicht
+           roh in die Spalte: eine Exportdatei kommt von aussen, und ein
+           „2026-02-31" oder ein „morgen" darin waere ein Tag, den die
+           Oberflaeche nie erlaubt haette.
+           WAS NICHT DURCHGEHT, FAELLT STILL WEG und reisst die Zeile nicht
+           ab: der Kommentar ist die Sache, das Datum eine Angabe daneben.
+           Dieselbe Haltung wie bei einem Testtag ohne Tags eine Handvoll
+           Zeilen weiter oben. Eine Datei der Nummer 15 traegt das Feld gar
+           nicht -- dann bleibt es NULL. */
+        const cDue = c.dueDate === undefined ? { value: null } : dueValue(c.dueDate);
+        const simple = db.prepare(`INSERT INTO comments (item_id, text, kind, pinned, created_at, updated_at, user_id, due_date)
+                      VALUES (?, ?, ?, ?, COALESCE(?, datetime('now')), ?, ?, ?)`)
             .run(id, c.text || '', kindValue(c.kind), c.pinned ? 1 : 0,
-                 c.created_at || null, c.updated_at || null, authorId(c.author));
+                 c.created_at || null, c.updated_at || null, authorId(c.author),
+                 cDue.error ? null : cDue.value);
         stats.comments++;
         (commentImages.get(c) || []).forEach((b2, i) =>
           db.prepare(`INSERT INTO comment_images (comment_id, filename, data, thumb, sort_order)
@@ -8291,6 +8423,109 @@ app.post('/api/backup/cleanup', ownerOnly,
                            ...cleanupPreview(target.filePath, after.keep, after.days) } });
 });
 
+/* ---- DIE SICHERUNGSPROBE -- 0.29.0, Befund 1 --------------------------
+   EINE SICHERUNG OHNE PROBE IST EINE VERMUTUNG. Die Instanz legt sie ueber
+   `VACUUM INTO` an -- vollstaendig, verschluesselt, mit demselben Schluessel
+   wie die laufende Datenbank. Ob eine BESTIMMTE Datei sich wirklich oeffnen
+   laesst, wusste bis hierher niemand, bis jemand sie zurueckspielte.
+
+   POST UND NICHT GET -- die dreiundsiebzigste schreibende Route (F3). Sie
+   schreibt nichts in den Bestand, aber sie OEFFNET eine fremde Datei und
+   kostet Zeit; ein `GET`, das eine Datenbank aufmacht, laedt zum Nachladen
+   ein. Dieselbe Ueberlegung wie bei POST /api/token/check, das auch nur
+   liest.
+
+   DIE NUMMER GEHT UEBER DIE LEITUNG UND NICHT DER DATEINAME (F22). Die Liste
+   in der Karte nummeriert von der juengsten (1) zur aeltesten, und genau diese
+   Nummer kommt zurueck. KEIN WEG DIESER INSTANZ NIMMT EINEN DATEINAMEN
+   ENTGEGEN -- das ist in 0.20.0 fuer das Loeschen entschieden worden
+   (Stolperstein 300), und eine Probe, die es anders haelt, risse das Loch
+   wieder auf, gegen das dort gebaut wurde.
+   AUFGELOEST WIRD MIT backupList(), DERSELBEN FUNKTION, die die Liste baut:
+   eine zweite Nummerierung daneben liefe auseinander, sobald jemand zwischen
+   Zeichnen und Klick eine Kopie ablegt. Der PREIS ist benannt und angenommen
+   -- geschieht genau das, prueft die Probe die Nachbarzeile. Sie gibt deshalb
+   Datum und Groesse der Datei mit zurueck, die sie WIRKLICH geoeffnet hat.
+
+   DIE LAUFENDE DATENBANK WIRD NICHT ANGEFASST. Ein eigener Griff auf eine
+   eigene Datei, `readonly`, und am Ende zu -- `db` aus db.js kommt hier nicht
+   vor. Auch `readonly` ist nicht bloss Zierde: ohne es legte SQLite beim
+   Oeffnen eine WAL neben die Sicherung und aenderte damit den Ordner, den die
+   Aufraeumregel gleich wieder zaehlt.
+
+   DER FREMDE SCHLUESSEL IST EINE AUSKUNFT UND KEIN FEHLER (F4). Wer sie
+   sieht, weiss etwas, das er vorher nicht wusste: seine `.env` passt nicht zu
+   dieser Kopie. Ein 500 mit dem Wortlaut von SQLite sagte dasselbe und saehe
+   aus wie ein Gebrechen der Instanz.
+   UNTERSCHIEDEN WIRD ZWISCHEN "nicht lesbar" UND "keine Sicherung dieser
+   Instanz": eine Datei, die sich oeffnen laesst und `items` nicht kennt, ist
+   etwas anderes als eine, die sich gar nicht oeffnen laesst. Beide Male
+   bleibt die Instanz stehen, aber die beiden Saetze schicken an verschiedene
+   Orte. */
+app.post('/api/backup/check', ownerOnly, (req, res) => {
+  const situation = backupState();
+  if (!situation.input)
+    return res.status(400).json({ error: t(localeOf(req), situation.reason, situation.values) });
+  const target = checkPlace(getSetting('backupPlace', ''));
+  if (target.error)
+    return res.status(400).json({ error: t(localeOf(req), target.error, target.values) });
+  const files = backupList(target.filePath);
+  if (files === null)
+    return res.status(400).json({ error: t(localeOf(req), 'server.backupDirUnreachable') });
+  /* DIE NUMMER WIRD GEPRUEFT UND NICHT GEGLAUBT: `files[nr - 1]` mit einem
+     "0" oder einem "1e3" griffe daneben, und `undefined` faende erst die
+     naechste Zeile. Ganzzahl, ab eins, hoechstens so viele wie da sind. */
+  const nr = Number(req.body && req.body.nr);
+  const file = Number.isInteger(nr) && nr >= 1 && nr <= files.length ? files[nr - 1] : null;
+  if (!file) return res.status(404).json({ error: t(localeOf(req), 'server.backupGone') });
+
+  const full = path.join(target.filePath, file.name);
+  let probe = null;
+  try {
+    probe = new Database(full, { readonly: true });
+    probe.pragma("cipher='sqlcipher'");
+    probe.pragma(`key="x'${keyHex}'"`);
+    /* DER ERSTE GRIFF IST DER, DER DIE ENTSCHEIDUNG FAELLT. Bis hierher hat
+       SQLite die Datei nicht angesehen -- `new Database` oeffnet sie traege,
+       und ein falscher Schluessel faellt erst auf, wenn jemand eine Seite
+       lesen will. Diese Zeile ist dieser Jemand. */
+    probe.prepare('SELECT COUNT(*) AS n FROM sqlite_master').get();
+  } catch {
+    if (probe) { try { probe.close(); } catch {} }
+    return res.json({ ok: false, reason: 'key', at: file.time, bytes: file.bytes, nr });
+  }
+  try {
+    /* VIER ZAHLEN, UND SIE TRAGEN DIE NAMEN DER KARTE „KENNZAHLEN" (F2) --
+       dort stehen Fotos und Videos getrennt, und ein Wort „Bilder" gibt es
+       nicht. Wer die Probe gegen den Bestand haelt, soll nichts im Kopf
+       zusammenrechnen muessen.
+       `photos` TRAEGT BEIDES, Fotos und Videos, unterschieden durch `kind` --
+       dieselbe Bedingung wie in /api/stats, damit die beiden Zahlen dasselbe
+       meinen.
+       GRABSTEINE ZAEHLEN NICHT MIT, wie ueberall sonst: ein geloeschter Zugang
+       ist keiner mehr.
+       „INHALT BIS" IST NICHT DER ZEITPUNKT DER DATEI. Der steht in derselben
+       Zeile schon, und zweimal dasselbe waere Stolperstein 47. Dies hier ist
+       die juengste Aenderung IM Bestand -- die Auskunft, die sagt, ob diese
+       Kopie inhaltlich juenger ist als die davor. */
+    const one = (sql) => probe.prepare(sql).get();
+    const out = {
+      ok: true, nr, at: file.time, bytes: file.bytes,
+      itemCount: one('SELECT COUNT(*) AS n FROM items').n,
+      photoCount: one("SELECT COUNT(*) AS n FROM photos WHERE COALESCE(kind, 'photo') <> 'video'").n,
+      userCount: one("SELECT COUNT(*) AS n FROM users WHERE status <> 'deleted'").n,
+      contentUntil: one('SELECT MAX(updated_at) AS t FROM items').t || null
+    };
+    probe.close();
+    return res.json(out);
+  } catch {
+    try { probe.close(); } catch {}
+    // Sie laesst sich oeffnen und kennt `items` nicht: eine fremde
+    // SQLite-Datei, keine Sicherung dieser Instanz.
+    return res.json({ ok: false, reason: 'foreign', at: file.time, bytes: file.bytes, nr });
+  }
+});
+
 // Einmal beim Start ins Protokoll -- wer den Ort falsch stehen hat, sieht es
 // hier und nicht erst am Knopf.
 {
@@ -8418,6 +8653,19 @@ function filesUnder(directory) {
   return out2;
 }
 
+/* ER LIEFERT SEIT 0.29.0 ZWEI DINGE AUS EINEM LAUF: den Gesamtwert und die
+   achtzehn Einzelwerte. KEIN ZWEITER LESER UND KEINE ZWEITE LISTE -- dieselbe
+   Schleife, dieselbe Reihenfolge, dieselben Bytes (Stolperstein 47). Ein
+   zweiter Durchgang ueber dasselbe Verzeichnis koennte irgendwann etwas
+   anderes sehen als der erste, und dann sagte die Karte, alles stimme, waehrend
+   der Gesamtwert von etwas anderem kaeme.
+   DIE EINZELWERTE SIND ACHT ZEICHEN WIE DER GESAMTWERT -- und wie
+   `sha256sum | cut -c1-8` in der README. Wer die Liste gegen den Handgriff von
+   dort haelt, vergleicht Gleiches mit Gleichem.
+   SIE GEHEN UEBER DEN BLOSSEN INHALT und nicht ueber Name-plus-Inhalt wie der
+   Gesamtwert: dort trennt das Nullzeichen den Namen ab, damit zwei getauschte
+   Dateien auffallen. Hier steht der Name in der Zeile daneben, und ein Wert,
+   den man mit `sha256sum` nicht nachrechnen kann, waere in der Liste nutzlos. */
 function buildFingerprint() {
   const ran = Object.keys(require.cache).filter(f =>
     f.startsWith(__dirname + path.sep) && !f.split(path.sep).includes('node_modules'));
@@ -8433,14 +8681,20 @@ function buildFingerprint() {
     .map(f => path.relative(__dirname, f).split(path.sep).join('/'))
     .sort();
   const h = crypto.createHash('sha256');
+  const files = [];
   for (const rel of list) {
+    const bytes = fs.readFileSync(path.join(__dirname, rel));
     // Der NAME gehoert mit hinein, sonst bliebe der Fingerprint gleich, wenn zwei
     // Dateien ihre Inhalte tauschen oder eine umbenannt wird. Das Nullzeichen
     // trennt, damit sich Name und Inhalt nicht ineinanderschieben koennen.
     h.update(rel); h.update('\0');
-    h.update(fs.readFileSync(path.join(__dirname, rel))); h.update('\0');
+    h.update(bytes); h.update('\0');
+    // DIESELBEN BYTES, EINMAL GELESEN -- der Einzelwert entsteht aus der Puffer,
+    // die der Gesamtwert gerade verarbeitet hat.
+    files.push({ name: rel,
+      hash: crypto.createHash('sha256').update(bytes).digest('hex').slice(0, 8) });
   }
-  return h.digest('hex').slice(0, 8);
+  return { value: h.digest('hex').slice(0, 8), files };
 }
 
 // Beim Start, nach allen require-Aufrufen: erst dann ist require.cache

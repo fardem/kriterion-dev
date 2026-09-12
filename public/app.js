@@ -2880,6 +2880,13 @@ function visibleItems(filter) {
       case 'potential_desc': return (b.potentialRating ?? -1) - (a.potentialRating ?? -1);
       case 'potential_asc':  return (a.potentialRating ?? 99) - (b.potentialRating ?? 99);
       case 'title_asc':   return a.title.localeCompare(b.title, LOCALE);
+      /* SPIEGELBILD, und die Sprache steht auf BEIDEN Seiten -- 0.29.0.
+         `localeCompare` mit vertauschten Seiten und nicht ein negiertes
+         Ergebnis: zwei Titel, die in dieser Sprache gleich einsortieren,
+         liefern 0, und die Negation machte daraus -0. Das ist dieselbe
+         Reihenfolge, aber es liest sich wie eine Aussage ueber eine
+         Gegenrichtung, die es bei Gleichheit nicht gibt. */
+      case 'title_desc':  return b.title.localeCompare(a.title, LOCALE);
       case 'tests_desc':  return byTest(a, b, 'testCount', 'desc');
       case 'tests_asc':   return byTest(a, b, 'testCount', 'asc');
       case 'testavg_desc':return byTest(a, b, 'testAvg', 'desc');
@@ -3881,7 +3888,11 @@ function drawFilters() {
     (MORE_FILTERS_OPEN === null ? f.tagIds.length > 0 : MORE_FILTERS_OPEN);
   if (tagsPossible) {
     const right2 = document.createElement('div');
-    right2.className = 'frow-right frow-right-wide';
+    /* `frow-right-end` SAGT DEM RASTER, DASS ER ANS ZEILENENDE GEHOERT --
+       0.29.0, Befund 6. Auf dem Telefon setzt ihn das in die dritte Spalte,
+       statt ihn ueber die ganze Breite zu spannen; am Schreibtisch aendert die
+       Klasse nichts, dort ordnet weiter `frow-right-wide`. */
+    right2.className = 'frow-right frow-right-wide frow-right-end';
     const toggle = document.createElement('button');
     toggle.className = 'link-btn tag-toggle';
     toggle.id = 'f-weitere';
@@ -3981,7 +3992,8 @@ function drawFilters() {
        hing (`right: 92px`, Befund A). Die Instanz stellt die Schrift von 80 bis
        120 Prozent; jede ausgerechnete Breite kann dabei nur falsch werden. */
     const right = document.createElement('div');
-    right.className = 'frow-right';
+    // Ans Ende SEINER Zeile, wie der Umschalter darueber -- 0.29.0, Befund 6.
+    right.className = 'frow-right frow-right-end';
     if (trimmed || cloudOpen.overview) {
       const m = document.createElement('button');
       m.className = 'link-btn';
@@ -4037,53 +4049,72 @@ function drawFilters() {
      Sprache da. */
   const GENERAL = t('list.sortGroupGeneral');
   const HISTORY = t('list.sortGroupHistory');
+  /* `start` SAGT, WORAUF EIN WECHSEL AUF DIESE GRUNDLAGE LANDET -- 0.29.0, und
+     es steht an JEDER der sieben und nicht nur an der einen, die abweicht: ein
+     stiller Vorgabewert liesse die Ausnahme wie ein Versehen aussehen.
+     SECHS FANGEN OBEN AN ('down'): bei einer Zahl und bei einem Datum ist „das
+     Groesste zuerst" das, wonach gefragt wird -- die neuesten Aenderungen, die
+     beste Bewertung, die meisten Testtage.
+     „TITEL" FAENGT VORN AN ('up'): ein Name wird von A nach Z gelesen, und wer
+     auf „Titel" stellt, sucht das Alphabet und nicht sein Ende. Der Betreiber
+     hat es am 11. September 2026 entschieden, nachdem die Messung gezeigt
+     hatte, dass eine mitwandernde Richtung ihn auf „Z → A" abgesetzt haette --
+     dorthin, wo vor dieser Runde nie jemand landete.
+     GEWECHSELT WIRD DAMIT NUR DIE GRUNDLAGE. Wer die Richtung danach umlegt,
+     behaelt sie, solange er bei dieser Grundlage bleibt -- `start` greift beim
+     WECHSEL und nicht bei jedem Zeichnen. */
   const SORT_BASES = [
     { key: 'updated',  group: GENERAL,      word: () => t('list.sortChanged'),
-      down: 'list.dirNewOld',   up: 'list.dirOldNew' },
-    /* „Titel" KENNT NUR EINE RICHTUNG -- die AUFSTEIGENDE, und sie steht
-       deshalb unter `up` und nicht unter `down`: der gespeicherte Wert heisst
-       seit jeher `title_asc`, und nur den kennt die Sortierung weiter unten.
-       DASS ES BEI DER EINEN BLEIBT, IST ENTSCHIEDEN -- Z nach A waere eine
-       FUNKTION, und eine Funktion ist nach Regel 5.1 mindestens MINOR. Diese
-       Runde ist ein PATCH aus acht Reparaturen; drei Zeilen haetten den
-       Fahrplan ab 0.29.0 um eine Stelle verschoben (Betreiber, 11.9.2026).
-       DER SONDERFALL IST SICHTBAR und nicht versteckt: der Umschalter steht
-       daneben gedaempft. Ein Sonderfall, den man sieht, ist besser als eine
-       gebogene Regel, die man nicht sieht. */
+      down: 'list.dirNewOld',   up: 'list.dirOldNew',  start: 'down' },
+    /* „Titel" KANN SEIT 0.29.0 BEIDE RICHTUNGEN -- und bis dahin nur die eine.
+       DER GRUND FUER DIE EINE WAR DIE NUMMER UND NICHT DIE SACHE: 0.28.1
+       schrieb hierher, Z nach A waere eine FUNKTION und damit nach Regel 5.1
+       mindestens MINOR, und jene Runde war ein PATCH. Der Betreiber hat es am
+       11. September 2026 am laufenden 0.28.1 gemeldet („aber Z bis A kann
+       nicht angewaehlt werden"), und 0.29.0 ist ohnehin MINOR -- damit reisen
+       die drei Zeilen zum Nulltarif mit.
+       `down` UND `up` WIE UEBERALL: der gespeicherte Wert heisst weiter
+       `title_asc`, und `title_desc` kommt dazu. Eine gespeicherte Ansicht aus
+       einer aelteren Fassung traegt `title_asc` und meint damit dasselbe wie
+       vorher.
+       UND DAMIT IST KEINE GRUNDLAGE MEHR EINSPURIG: der gedaempfte Knopf, der
+       Satz „Diese Sortierung hat nur eine Richtung" und die Weiche, die beides
+       trug, sind mit dieser Runde fort. Eine Regel ohne Traeger bleibt nicht
+       stehen. */
     { key: 'title',    group: GENERAL,      word: () => t('list.sortTitle'),
-      down: null,               up: 'list.dirAZ' },
+      down: 'list.dirZA',       up: 'list.dirAZ',     start: 'up' },
     { key: 'rating',   group: V.ratingOne,   word: () => V.ratingOne,
-      down: 'list.dirHighLow',  up: 'list.dirLowHigh' },
+      down: 'list.dirHighLow',  up: 'list.dirLowHigh', start: 'down' },
     /* NUR BEI EINGESCHALTETEM MODUS -- 0.26.0. Eine Sortierung nach einer Zahl,
        die nirgends zu sehen ist, ordnet nach etwas Unsichtbarem. */
     { key: 'potential', group: V.potential,  word: () => V.potential,
-      down: 'list.dirHighLow',  up: 'list.dirLowHigh', only: () => POTENTIAL_MODE },
+      down: 'list.dirHighLow',  up: 'list.dirLowHigh', start: 'down',
+      only: () => POTENTIAL_MODE },
     { key: 'tests',    group: HISTORY,      word: () => V.dayMany,
-      down: 'list.dirManyFew',  up: 'list.dirFewMany' },
+      down: 'list.dirManyFew',  up: 'list.dirFewMany', start: 'down' },
     { key: 'testavg',  group: HISTORY,      word: () => t('list.sortAvg'),
-      down: 'list.dirHighLow',  up: 'list.dirLowHigh' },
+      down: 'list.dirHighLow',  up: 'list.dirLowHigh', start: 'down' },
     { key: 'testlast', group: HISTORY,      word: () => t('list.sortLast'),
-      down: 'list.dirHighLow',  up: 'list.dirLowHigh' }
+      down: 'list.dirHighLow',  up: 'list.dirLowHigh', start: 'down' }
   ].filter(b => !b.only || b.only());
   /* GELESEN WIRD VON HINTEN: die Kennung endet auf `_desc` oder `_asc`, und der
      Rest davor ist die Grundlage. Steht dort etwas Unbekanntes -- eine
      gespeicherte Ansicht aus einer Fassung, die diese nicht kennt --, faellt es
      auf die erste Grundlage und die absteigende Richtung zurueck, genau wie
      `sel.value` es vorher tat. */
-  /* WELCHE RICHTUNG BEI DIESER GRUNDLAGE GILT, wenn jemand die eine oder die
-     andere will. EINE GRUNDLAGE MIT NUR EINER RICHTUNG BEKOMMT IMMER DIESE,
-     und das ist kein Feinschliff: „Titel" kennt nur A → Z, und ein
-     `title_desc` gibt es in der Sortierung gar nicht. Es fiele dort still auf
-     die Vorgabe zurueck, und „Titel" ordnete nach dem Aenderungsdatum --
-     ausgewaehlt, ohne Fehler, und schlicht falsch. Gefunden hat es Zusage 3,
-     die jede der sieben in beide Richtungen faehrt. */
-  const dirOf = (b, wantsUp) => (b.down && b.up) ? wantsUp : !b.down;
-  const twoWays = (b) => !!(b.down && b.up);
+  /* WELCHE RICHTUNG GILT, STEHT IM WERT und in nichts sonst -- 0.29.0.
+     BIS DAHIN STAND HIER EINE WEICHE, und sie hatte ihren Grund: „Titel"
+     kannte nur A → Z, ein `title_desc` gab es in der Sortierung nicht, und es
+     fiele still auf die Vorgabe zurueck -- ausgewaehlt, ohne Fehler, und
+     schlicht falsch. Gefunden hatte das Zusage 3, die jede Grundlage in beide
+     Richtungen faehrt.
+     JETZT KENNT JEDE GRUNDLAGE BEIDE, und die Weiche haette nichts mehr zu
+     entscheiden. Sie faellt samt `twoWays()`, samt dem gedaempften Knopf und
+     samt dem Satz daneben -- eine Regel ohne Traeger bleibt nicht stehen. */
   const sortParts = (value) => {
-    const wantsUp = String(value || '').endsWith('_asc');
     const stem = String(value || '').replace(/_(desc|asc)$/, '');
     const b = SORT_BASES.find(x => x.key === stem) || SORT_BASES[0];
-    return { base: b, asc: dirOf(b, wantsUp) };
+    return { base: b, asc: String(value || '').endsWith('_asc') };
   };
   const groups = [];
   for (const b of SORT_BASES) {
@@ -4104,18 +4135,17 @@ function drawFilters() {
      ER IST BESSER ALS DIE ALTE LISTE UND NICHT NUR KUERZER: dort musste man
      zwei Zeilen nebeneinanderhalten, um zu sehen, welche Richtung gerade galt.
      Hier steht sie an einer Stelle.
-     GEDAEMPFT BEI „TITEL", weil es dort nur eine Richtung gibt (siehe oben).
-     `disabled` und nicht `hidden`: ein Knopf, der verschwindet, laesst die
-     Zeile springen, sobald jemand die Sortierung wechselt. */
+     SEIT 0.29.0 IST ER NIE MEHR GESPERRT. Bis dahin stand er bei „Titel"
+     gedaempft da, weil es dort nur A → Z gab; jetzt kennt jede der sieben
+     Grundlagen beide Richtungen, und ein Zustand, den nichts mehr ausloest,
+     bleibt nicht stehen. */
   const dirBtn = document.createElement('button');
   dirBtn.className = 'btn btn-sm sort-dir';
   dirBtn.id = 'f-sort-dir';
   const drawDir = () => {
     const b = picked.base;
-    const key = picked.asc ? b.up : b.down;
-    dirBtn.textContent = t(key);
-    dirBtn.disabled = !twoWays(b);
-    dirBtn.title = twoWays(b) ? t('list.sortFlip') : t('list.sortOneWay');
+    dirBtn.textContent = t(picked.asc ? b.up : b.down);
+    dirBtn.title = t('list.sortFlip');
   };
   drawDir();
   /* ZUSAMMENGESETZT WIRD HIER UND NUR HIER -- an beiden Bedienelementen
@@ -4128,15 +4158,17 @@ function drawFilters() {
      ordnete; jetzt aendert sie auch, was die Leiste zeigt. */
   sel.onchange = () => {
     const b = SORT_BASES.find(x => x.key === sel.value) || SORT_BASES[0];
-    /* DIE RICHTUNG FAELLT AUF DIE EINE ZURUECK, die die neue Grundlage kennt.
-       „Titel" hat nur A → Z: wer von „Bewertung hoch → niedrig" dorthin
-       wechselt, bekommt `title_asc` und nicht `title_desc` -- letzteres gibt es
-       in der Sortierung nicht, und die Liste ordnete dann still nach dem
-       Aenderungsdatum weiter. */
-    picked = { base: b, asc: dirOf(b, picked.asc) };
+    /* DER WECHSEL NIMMT DIE RICHTUNG DER NEUEN GRUNDLAGE und nicht die der
+       alten -- 0.29.0. Bis dahin wanderte sie mit, und das war richtig,
+       solange sechs der sieben oben anfingen; mit „Titel" in beiden
+       Richtungen waere daraus ein „Z → A" fuer jeden geworden, der aus der
+       Vorgabe („neu → alt") kommt -- also fuer jeden beim ersten Mal.
+       ER GREIFT NUR BEIM WECHSEL: wer danach umlegt, behaelt seine Richtung,
+       solange er bei dieser Grundlage bleibt. */
+    picked = { base: b, asc: b.start === 'up' };
     applySort();
   };
-  dirBtn.onclick = () => { if (!twoWays(picked.base)) return; picked.asc = !picked.asc; applySort(); };
+  dirBtn.onclick = () => { picked.asc = !picked.asc; applySort(); };
   /* BEIDE IN EINEM KASTEN: die Sortierung und ihre Richtung sind EINE
      Einstellung in zwei Bedienelementen, und sie sollen bei einem Umbruch
      nicht auseinanderfallen. Der Kasten ist ausserdem das eine Feld, das die
@@ -4757,15 +4789,50 @@ async function renderOpen() {
     } catch (e) { toast(e.message, true); }
   };
 
+  /* ---- DIE DREI ZUSTÄNDE -- 0.29.0, Befund 3 ----
+     HEUTE IST DER HEUTIGE TAG DES LESERS und nicht der des Servers: „überfällig"
+     entscheidet sich an der Uhr, vor der jemand sitzt. Der Server liefert
+     deshalb das nackte Datum und ordnet nur vor (siehe qOpenTasks); die drei
+     Zustände rechnet diese Zeile.
+     GERECHNET WIRD IN ORTSZEIT UND NICHT ÜBER toISOString(): das gäbe UTC, und
+     östlich von Greenwich wäre „heute" bis zum Vormittag noch „gestern".
+     TEXTVERGLEICH UND KEIN Date: 'JJJJ-MM-TT' ordnet als Text wie im
+     Kalender, und zwei Strings zu vergleichen kann keine Zeitzone
+     verlieren. */
+  const todayKey = (() => {
+    const d = new Date();
+    const pad = (n) => String(n).padStart(2, '0');
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+  })();
+  /* VIER ABSCHNITTE UND NICHT DREI, und der vierte ist kein vierter Zustand:
+     „ohne Datum" ist die Abwesenheit eines Zustands. Er steht hinten und trägt
+     seine eigene Überschrift — unter „Später" wäre er eine Behauptung über
+     etwas, das niemand gesagt hat.
+     EINE ÜBERSCHRIFT STEHT NUR DA, WENN ETWAS DARUNTER STEHT. Wer keine
+     überfälligen Aufgaben hat, soll das Wort „Überfällig" gar nicht erst
+     sehen — dieselbe Überlegung wie bei der fehlenden Null am Zähler. */
+  const dueOf = (z) => !z.dueDate ? 'none'
+    : z.dueDate < todayKey ? 'overdue' : z.dueDate === todayKey ? 'today' : 'later';
+  const SECTIONS = [['overdue', 'list.dueOverdue'], ['today', 'list.dueToday'],
+                    ['later', 'list.dueLater'], ['none', 'list.dueNone']];
+
   function draw() {
     drawView();
     const visible = onlyMy ? rows.filter(z => z.mine) : rows;
-    const groups = [];
-    for (const z of visible) {
-      const last = groups[groups.length - 1];
-      if (last && last.id === z.item.id) last.rows.push(z);
-      else groups.push({ id: z.item.id, title: z.item.title, rows: [z] });
-    }
+    /* DIE GRUPPIERUNG NACH EINTRAG BLEIBT — INNERHALB DES ABSCHNITTS (F18).
+       Der Server ordnet nach Datum, dann nach Eintrag; wer die Abschnitte
+       weglässt und stumpf durchsortiert, bekommt denselben Eintrag mehrfach
+       in der Liste. Die Gruppen entstehen deshalb JE Abschnitt und aus
+       aufeinanderfolgenden Zeilen, wie bisher. */
+    const groupsOf = (list) => {
+      const out = [];
+      for (const z of list) {
+        const last = out[out.length - 1];
+        if (last && last.id === z.item.id) last.rows.push(z);
+        else out.push({ id: z.item.id, title: z.item.title, rows: [z] });
+      }
+      return out;
+    };
 
     // Ein leerer Bildschirm ist eine schlechte Antwort. Und die beiden Fälle
     // sind verschieden: gar nichts offen, oder nichts von mir.
@@ -4779,7 +4846,17 @@ async function renderOpen() {
 
     const box = document.getElementById('open-list');
     box.innerHTML = '';
-    groups.forEach(g => {
+    SECTIONS.forEach(([key, word]) => {
+      const inside = visible.filter(z => dueOf(z) === key);
+      if (!inside.length) return;
+      // Die Überschrift des Abschnitts. Sie trägt die Zahl -- wer drei
+      // überfällige Aufgaben hat, soll das sehen, ohne zu zählen.
+      const section = document.createElement('div');
+      section.className = 'open-section' + (key === 'overdue' ? ' overdue' : '');
+      section.dataset.due = key;
+      section.textContent = `${t(word)} · ${inside.length}`;
+      box.appendChild(section);
+      groupsOf(inside).forEach(g => {
       const boxId = document.createElement('div');
       boxId.className = 'open-group';
       boxId.dataset.item = g.id;
@@ -4818,15 +4895,23 @@ async function renderOpen() {
 
         // Verfasser nur ab zwei Zugängen -- bei einem wiederholte der Name nur,
         // wer ohnehin alles geschrieben hat. Dieselbe Schwelle wie überall.
+        /* DAS FÄLLIGKEITSDATUM AN DER ZEILE -- 0.29.0. Es steht nur da, wenn
+           eines gesetzt ist; im Abschnitt „Ohne Datum" wäre es ohnehin leer.
+           NEBEN DEM VERFASSER UND NICHT STATT SEINER: die beiden sagen
+           Verschiedenes — wer es aufgeschrieben hat und wann es fällig ist.
+           UND NICHT NOCH EINMAL DER ABSCHNITT: „Überfällig" steht in der
+           Überschrift darüber, und ein zweites Wort an jeder Zeile wäre
+           dieselbe Auskunft ein zweites Mal (Stolperstein 47). */
         const when = document.createElement('span');
         when.className = 'open-when';
         when.textContent = (multipleUsers() ? `${authorName(z.author)} · ` : '')
-          + fmtDate(z.created_at);
+          + (z.dueDate ? fmtDay(z.dueDate) : fmtDate(z.created_at));
         el.appendChild(when);
 
         boxId.appendChild(el);
       });
       box.appendChild(boxId);
+      });
     });
   }
 
@@ -5589,7 +5674,10 @@ async function renderDetail(id, termAddress) {
         <div class="block" data-block="kategorie">
           <div class="block-head"><span class="label">${tH('list.category')}</span></div>
           <div class="row-in">
-            <select class="select select-sm" id="cat" style="min-width:148px;padding:9px 11px"></select>
+            ${/* DIE MINDESTBREITE STEHT SEIT 0.29.0 IM STILBLATT und nicht mehr
+                 hier: inline schlug sie jede Regel, auch die des schmalen
+                 Schirms, und genau die braucht sie (Befund 7). */''}
+            <select class="select select-sm" id="cat" style="padding:9px 11px"></select>
             ${mayCategoryCreate() ? `<input class="input input-sm" id="newcat" placeholder="${esc(t('entry.newCategoryHint'))}" style="padding:8px 11px">
             <button class="btn btn-sm" id="newcat-b">${tH('entry.create')}</button>` : ''}
           </div>
@@ -7849,6 +7937,25 @@ async function renderDetail(id, termAddress) {
                        : task ? t('list.setDone')
                                  : t('entry.markTask')
             }">${esc(done ? V.taskDone : V.taskOne)}</button>
+            ${/* ---- DAS FÄLLIGKEITSDATUM -- 0.29.0, Befund 3 ----
+                 NUR AN EINER AUFGABE, und erst, wenn die Marke steht (F20).
+                 Ein Datumsfeld an jedem Vermerk stünde bei den meisten
+                 Kommentaren für nichts da — und die meisten Kommentare sind
+                 Vermerke.
+                 UND NUR AN EINER OFFENEN. An einer erledigten sagte „fällig
+                 am 14.03." nichts mehr; das Datum BLEIBT aber in der Zeile
+                 stehen (die Spalte hängt nicht an `kind`) und steht wieder da,
+                 sobald jemand sie wieder aufmacht.
+                 EIN VERWEIS UND KEIN FELD: ein `<input type="date">` an jeder
+                 Aufgabenzeile wäre in einer Liste von zwölf Kommentaren zwölf
+                 Bedienelemente. Der Verweis trägt das Datum, wenn eines da
+                 ist, und sonst das Wort — geklickt wird daraus das Feld.
+                 DER RÜCKWEG IST DAS LEERE FELD und kein zweites ✕: wer das
+                 Datum im Feld löscht, nimmt es weg. Ein Kreuz daneben wäre ein
+                 zweiter Weg für dieselbe Sache. */''}
+            ${task ? `<button class="link-btn cmt-due${c.dueDate ? ' on' : ''}"
+              title="${esc(t('entry.dueHint'))}">${c.dueDate
+                ? esc(fmtDay(c.dueDate)) : tH('entry.dueSet')}</button>` : ''}
           </span>` : ''}
           <span class="cmt-when">${multipleUsers()
             ? `<span class="cmt-from">${esc(authorName(c.author))}</span> · ` : ''
@@ -7884,6 +7991,28 @@ async function renderDetail(id, termAddress) {
         // nimmt sie wieder zurueck auf Notiz.
         el.querySelector('.kind').onclick = () => flip('kind', report ? 'note' : 'report');
         el.querySelector('.task').onclick = () => flip('kind', taskMore(c.kind));
+        /* AUS DEM VERWEIS WIRD DAS FELD -- 0.29.0. Getauscht wird an Ort und
+           Stelle, damit die Zeile nicht springt; `showPicker()` oeffnet den
+           Kalender gleich mit, sonst muesste man das Feld ein zweites Mal
+           antippen.
+           GESCHRIEBEN WIRD BEI `change` UND NICHT BEI JEDEM ZEICHEN: ein
+           `input` an einem Datumsfeld feuert auch bei halb getippten Jahren
+           („0002-01-01"), und jede davon waere eine Runde zum Server.
+           VERLAESST MAN ES OHNE ZU AENDERN, kommt der Verweis zurueck --
+           `drawComments()` zeichnet ihn ohnehin neu, sobald etwas gespeichert
+           wurde; hier ist es der Weg ohne Speichern. */
+        const dueButton = el.querySelector('.cmt-due');
+        if (dueButton) dueButton.onclick = () => {
+          const field = document.createElement('input');
+          field.type = 'date';
+          field.className = 'input input-sm cmt-due-in';
+          field.value = c.dueDate || '';
+          field.onchange = () => flip('dueDate', field.value || null);
+          field.onblur = () => { if (field.isConnected) drawComments(); };
+          dueButton.replaceWith(field);
+          field.focus();
+          try { field.showPicker(); } catch { /* nicht jeder Browser kann das */ }
+        };
       }
 
       // Bilder als Kacheln unter dem Text; Klick öffnet das vorhandene Vollbild.
@@ -8327,7 +8456,7 @@ const SYS_CARDS = [
     markup: cardMailDelivery,  wireUp: setUpMailDeliveryOut },
 
   { key: 'kennzahlen',   section: 'database', visible: () => ADMIN,
-    markup: cardStats },
+    markup: cardStats,    wireUp: setUpStatsOut },
   { key: 'bildablage',   section: 'database', visible: () => ADMIN,
     markup: cardImageStore,   wireUp: setUpImageStoreOut },
   { key: 'sicherung',    section: 'database', visible: () => OWNER,
@@ -10670,6 +10799,13 @@ function cardUsers() {
         ${more(`<strong>${tH('card.lockNotDelete')}</strong> ${tH('card.lockedUserHint')} ${OWNER
             ? t('card.rolesYouOnly')
             : t('card.rolesOwnerHint')}`)}
+        ${/* DER KASTEN ZU DEN DOPPELTEN ADRESSEN -- 0.29.0, Befund 4. Er ist
+             leer und steht nicht da, solange nichts zu klären ist; gefüllt
+             wird er von drawUsers(), sobald die Liste vom Server da ist.
+             ÜBER DER LISTE, nicht darunter: er sagt etwas über die Zugänge,
+             die gleich folgen, und wer ihn unter einer Liste von zwanzig
+             fände, fände ihn nicht. */''}
+        <div id="user-doubles"></div>
         <div class="manage-list" id="musers"></div>
         ${/* DER KNOPF ZU DEN GRABSTEINEN. Die Zeile steht leer da, solange
              nichts geloescht wurde -- gefuellt wird sie von
@@ -10883,6 +11019,27 @@ function setUpUsersOut() {
     catch (e) { if (box.isConnected) box.innerHTML = `<span class="hint">${esc(e.message)}</span>`; return; }
     if (!box.isConnected) return;
     box.innerHTML = '';
+    /* ---- DIE DOPPELTEN ADRESSEN -- 0.29.0, Befund 4 ----
+       SIE STEHEN NUR DA, WENN ES WELCHE GIBT. Im Normalfall trägt der
+       partielle Index das Schloss, die Liste ist leer, und dieser Kasten
+       zeichnet nichts — eine Zeile „keine doppelten Adressen" wäre eine
+       Auskunft über nichts, dieselbe Überlegung wie bei der fehlenden Null am
+       Zähler „Offen".
+       ER NENNT DIE ADRESSE UND DIE ZUGÄNGE, denn ohne die Namen wüsste
+       niemand, wo er anfassen soll. Beides ist Freitext von außen und geht
+       deshalb durch esc().
+       UND ER SAGT, WAS ZU TUN IST: eine der beiden leeren oder ändern, dann
+       legt der nächste Start den Index von selbst nach. Ohne diesen Satz
+       stünde dort ein Befund ohne Ausweg. */
+    const doubles = doc.getElementById('user-doubles');
+    if (doubles) {
+      const list = Array.isArray(data.emailsDoubled) ? data.emailsDoubled : [];
+      doubles.innerHTML = !list.length ? '' : `<div class="warn-box" style="margin:0 0 12px">
+        <strong>${tH('card.emailsDoubled')}</strong>
+        ${list.map(z => `<div class="kv"><span class="k">${esc(z.address)}</span><span class="v">${
+          esc(z.names || '')}</span></div>`).join('')}
+        <p style="margin:9px 0 0">${tH('card.emailsDoubledHint')}</p></div>`;
+    }
     /* GRABSTEINE STEHEN NICHT MEHR ZWISCHEN DEN LEBENDEN. Sie sind kein
        Zugang, den man verwalten kann -- kein Werkzeug, keine Rolle, kein
        Passwort --, und sie wachsen mit jeder Löschung. Sie stehen deshalb in
@@ -11850,11 +12007,12 @@ function geometryRow(g) {
 }
 
 /* ---- Karte „Kennzahlen" — Abschnitt „Datenbank" ----
-   OHNE BEHANDLER, WIEDER. In 0.19.0 trug sie einen -- der Schalter und der
-   Knopf der Bildablage sassen darin. Sie sind in 0.19.1 in eine eigene Karte
-   gezogen (siehe cardImageStore()), und was hier bleibt, sind Zahlen. Eine
-   leere ausruesten-Funktion daneben waere eine Zeile, die behauptet, es gaebe
-   hier etwas zu tun. */
+   SIE TRAEGT SEIT 0.29.0 WIEDER EINEN BEHANDLER, und zwar genau einen: den
+   Verweis „Dateien zeigen" unter dem Fingerprint (Befund 2). In 0.19.0 trug
+   sie schon einmal einen -- Schalter und Knopf der Bildablage sassen darin --,
+   und der ist in 0.19.1 mit jener Karte fortgezogen (siehe cardImageStore()).
+   Was seither blieb, waren Zahlen; jetzt kommt ein Aufklappen dazu und sonst
+   nichts. */
 function cardStats(fetched) {
   const { stats } = fetched;
   return `<div class="sys-card">
@@ -11902,6 +12060,30 @@ function cardStats(fetched) {
              nebeneinander. */''}
         <div class="kv"><span class="k">${tH('card.version')}</span><span class="v">${esc(stats.version || '—')}</span></div>
         <div class="kv"><span class="k">${tH('card.fingerprint')}</span><span class="v"><code>${esc(stats.fingerprint || '—')}</code></span></div>
+        ${/* ---- DIE ACHTZEHN DATEIEN -- 0.29.0, Befund 2 ----
+             DER FINGERPRINT SAGT NUR, DASS ETWAS ANDERS IST, und nicht, WAS.
+             Der Handgriff dagegen stand bis hierher allein in der README: eine
+             Schleife ueber `sha256sum`, die man von Hand in einen Container
+             tippt. Wer einen abweichenden Wert bemerkt, sitzt aber genauso oft
+             am Telefon, und dort gibt es keine Shell.
+             AUF VERLANGEN UND NICHT VON SELBST, und das ist keine Zierde,
+             sondern die einzige ehrliche Bauform: DIE INSTANZ KENNT KEINEN
+             SOLLWERT. Er steht im Aenderungsprotokoll, auf Papier. Sie kann
+             also gar nicht wissen, ob etwas abweicht -- eine Zeile „alles in
+             Ordnung" waere eine Behauptung ueber etwas, das sie nicht gelesen
+             hat. Solange niemand drueckt, steht hier deshalb nichts.
+             KEIN UEBERFAHRTEXT: auf dem Telefon waere er gar nichts, und genau
+             dort wird die Liste gebraucht (Betreiber, „muss keine extra
+             Zeile").
+             DIE WERTE KOMMEN AUS DERSELBEN SCHLEIFE WIE DER GESAMTWERT und
+             sind wie er acht Zeichen lang -- so wie `sha256sum | cut -c1-8`
+             in der README. Wer die Liste gegen den Handgriff von dort haelt,
+             vergleicht Gleiches mit Gleichem (Stolperstein 47). */''}
+        ${(stats.fingerprintFiles || []).length ? `<div class="kv kv-act">
+          <button class="link-btn" id="fp-files" aria-expanded="false"
+            aria-controls="fp-list">${tH('card.showFiles')}</button></div>
+        <div class="fp-list" id="fp-list" hidden>${stats.fingerprintFiles.map(z =>
+          `<div class="fp-row"><span class="fp-name">${esc(z.name)}</span><code>${esc(z.hash)}</code></div>`).join('')}</div>` : ''}
         ${/* DER KLARTEXTSCHLUESSEL GEHOERT DEM EIGENTUEMER -- 0.22.0 (E13). Der
              Admin sieht stattdessen einen Satz: der Schluessel liegt noch
              neben der Datenbank, und der Eigentuemer sollte das aendern. Der
@@ -11946,6 +12128,26 @@ function cardStats(fetched) {
         <div class="kv"><span class="k">${tH('card.journal')}</span><span class="v">${esc(stats.method.journal || '—')}</span></div>
         <div class="kv"><span class="k">${tH('card.passwords')}</span><span class="v">${esc(stats.method.passwords || '—')}</span></div>` : ''}
       </div>`;
+}
+
+/* DER VERWEIS UNTER DEM FINGERPRINT -- 0.29.0, Befund 2.
+   `hidden` UND NICHT EIN ZWEITES ZEICHNEN: die Liste steht fertig im Baum, und
+   der Klick legt nur um. Sie neu zu bauen hiesse, die achtzehn Zeilen ein
+   zweites Mal aus denselben Daten zusammenzusetzen -- fuer nichts.
+   DER ZUSTAND STEHT AM KNOPF (`aria-expanded`) und nicht in einer Variablen
+   daneben: wer die Karte neu zeichnet, bekommt sie zugeklappt, und das ist
+   richtig -- „Dateien zeigen" ist eine Frage und keine Einstellung. */
+function setUpStatsOut() {
+  const button = document.getElementById('fp-files');
+  const list = document.getElementById('fp-list');
+  // Ohne Liste kein Knopf: die Karte zeichnet beide oder keinen von beiden.
+  if (!button || !list) return;
+  button.onclick = () => {
+    const open = button.getAttribute('aria-expanded') === 'true';
+    button.setAttribute('aria-expanded', String(!open));
+    list.hidden = open;
+    button.textContent = open ? t('card.showFiles') : t('card.hideFiles');
+  };
 }
 
 /* ---- Karte „Bildablage" — Abschnitt „Datenbank" ----
@@ -12450,13 +12652,38 @@ function setUpCleanupOut(fetched) {
        Karte, unter ihr stehen die Zusammenfassung und beide Knoepfe. Ein Ordner
        mit vierzig Kopien schoebe sie sonst aus dem Blick -- dieselbe Ausnahme
        und dieselbe Begruendung wie bei `#ex-part-list`. */
+    /* ---- DIE PROBE JE ZEILE -- 0.29.0, Befund 1 ----
+       „prüfen" UND NICHT „Sicherung prüfen" (F1): die Zeile misst am Telefon
+       366 px und trägt schon Nummer, Datum, Alter und Größe. Das Wort
+       „Sicherung" steht im Kartentitel und in jeder Zeile darüber; ein drittes
+       Mal sagt es nichts dazu und bräuchte eine zweite Zeile.
+       JE ZEILE UND NICHT EINMAL FÜR DIE JÜNGSTE: der Befund heißt „es gibt
+       Sicherungen, die noch nie jemand geöffnet hat", und das ist meistens
+       nicht die jüngste — der traut man ohnehin.
+       ES IST KEIN WIDERSPRUCH ZU STOLPERSTEIN 300. Dort ging es um das
+       LÖSCHEN einer einzelnen Kopie über ihren Dateinamen; hier geht die
+       NUMMER hinaus, die in der Zeile ohnehin steht, und der Weg liest nur.
+       DIE ERGEBNISZEILE STEHT UNTER IHRER ZEILE UND BLEIBT (F22): wer zwei
+       Kopien prüft, sieht beide Ergebnisse nebeneinander und kann sie
+       vergleichen. Gemerkt wird nichts — beim nächsten Zeichnen der Karte ist
+       sie fort. */
     const row = (z) => {
       const mark = z.affected ? `<span class="cleanup-badge remove">${tH('card.deleteLower')}</span>`
                   : z.outdated ? `<span class="cleanup-badge old">${tH('card.oldKey')}</span>` : '';
       return `<div class="mrow">
         <span class="mname">#${z.nr} · ${esc(fmtDate(z.at))}</span>${mark}
-        <span class="mcount">${tH('card.daysAgo', { n: z.daysAgo })} · ${
-          esc(fmtBytes(z.bytes))}</span></div>`;
+        ${/* DIE GRÖSSE STEHT VORN, SEIT DER VERWEIS DANEBEN STEHT — 0.29.0.
+             Gemessen bei 390 px fehlen der Zeile 24 Pixel, und irgendetwas muss
+             weichen. Es ist das ALTER: „vor 0 Tagen" ist dieselbe Auskunft wie
+             das Datum zwei Felder weiter links, nur bequemer. Die Größe ist es
+             nicht — sie steht sonst nirgends.
+             Also läuft der Text von hinten aus: „280,0 KB · vor 0 Ta…" statt
+             „vor 0 Tagen · 280,0…". Beide Male dieselbe Zeile, beide Male
+             derselbe Schnitt — nur trifft er jetzt das Entbehrliche. */''}
+        <span class="mcount">${esc(fmtBytes(z.bytes))} · ${
+          tH('card.daysAgo', { n: z.daysAgo })}</span>
+        <button class="link-btn backup-check" data-nr="${z.nr}">${tH('card.checkBackup')}</button>
+        </div><div class="backup-probe" id="probe-${z.nr}" hidden></div>`;
     };
     const all = Array.isArray(a.files) ? a.files : [];
     const matched = Array.isArray(a.matched) ? a.matched : [];
@@ -12616,6 +12843,44 @@ function setUpCleanupOut(fetched) {
       button.onclick = () => clear('outdated', t('card.deleteOldKeyBackups'),
         t('card.oldKeyBackupsPurge',
           { n: oldCount, bytes: fmtBytes(a.oldBytes || 0) }));
+    });
+
+    /* ---- Die Sicherungsprobe -- 0.29.0, Befund 1 ----
+       KEINE ZWEITE BESTAETIGUNG: sie liest, sie loescht nicht. Die beiden
+       Knoepfe darueber holen eine, weil sie Dateien wegnehmen.
+       DER KNOPF SPERRT SICH WAEHREND DES LAUFS und sagt es. Die Probe oeffnet
+       eine Datei von womoeglich einem Gigabyte; ein zweiter Druck in derselben
+       Sekunde legte einen zweiten Griff auf dieselbe Datei.
+       GEZEICHNET WIRD IN DIE ZEILE UNTER IHRER ZEILE, nicht in einen
+       gemeinsamen Kasten: zwei Proben nebeneinander sind die Auskunft, um
+       derentwillen die Zeile bleibt. */
+    box.querySelectorAll('.backup-check').forEach(button => {
+      button.onclick = async () => {
+        const nr = Number(button.dataset.nr);
+        const out = document.getElementById('probe-' + nr);
+        const word = button.textContent;
+        button.disabled = true;
+        button.textContent = t('card.checkRunning');
+        try {
+          const r = await api('POST', '/api/backup/check', { nr });
+          if (out) {
+            out.hidden = false;
+            /* DREI ANTWORTEN, DREI SAETZE. Ein fremder Schluessel und eine
+               fremde Datei sind KEINE Fehler, sondern Auskuenfte (F4) -- sie
+               stehen deshalb in einem gedaempften Kasten und nicht in Rot.
+               DIE ZAHLEN TRAGEN DIE NAMEN DER KARTE „Kennzahlen", damit der
+               Vergleich ohne Kopfrechnen geht (F2). */
+            out.innerHTML = r.ok
+              ? `<span class="probe-ok">${esc(V.entryMany)} ${r.itemCount} · ${
+                   tH('list.photos')} ${r.photoCount} · ${tH('card.checkUsers')} ${r.userCount}${
+                   r.contentUntil ? ` · ${tH('card.checkUntil')} ${esc(fmtDate(r.contentUntil))}` : ''}</span>`
+              : `<span class="probe-no">${
+                   r.reason === 'key' ? tH('card.checkKeyWrong') : tH('card.checkForeign')}</span>`;
+          }
+        } catch (e) { toast(e.message, true); }
+        button.disabled = false;
+        button.textContent = word;
+      };
     });
   }
 

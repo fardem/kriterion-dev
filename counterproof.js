@@ -2198,10 +2198,10 @@ const REGRESSIONS = [
        Formatnummer steht auf 13, der Rueckbau nimmt sie wie immer um eins
        zurueck. Was er belegt, ist unveraendert -- dass die Nummer mit dem
        Format steigt und nicht stehen bleibt. */
-    nr: '233', name: 'Die Formatnummer bleibt auf 14',
+    nr: '233', name: 'Die Formatnummer bleibt auf 15',
     file: 'server.js',
-    search: "const EXCHANGE_FORMAT = 15;",
-    replacement: "const EXCHANGE_FORMAT = 14;",
+    search: "const EXCHANGE_FORMAT = 16;",
+    replacement: "const EXCHANGE_FORMAT = 15;",
     expected: 'Die Entscheidung wird mitgeschrieben — 0.14.0'
   },
   {
@@ -4060,10 +4060,10 @@ const REGRESSIONS = [
   {
     /* MITGEGANGEN MIT 0.21.0, wie 233 -- derselbe Suchtext, eine andere
        Zusage: dort die Entscheidung, hier die Exportdatei. */
-    nr: '448', name: 'Die Formatnummer bleibt bei 14, obwohl die Erstellungssprache mitgeht',
+    nr: '448', name: 'Die Formatnummer bleibt bei 15, obwohl das Faelligkeitsdatum mitgeht',
     file: 'server.js',
-    search: "const EXCHANGE_FORMAT = 15;",
-    replacement: "const EXCHANGE_FORMAT = 14;",
+    search: "const EXCHANGE_FORMAT = 16;",
+    replacement: "const EXCHANGE_FORMAT = 15;",
     expected: 'Die Exportdatei'
   },
 
@@ -7859,8 +7859,11 @@ const REGRESSIONS = [
     /* MITGEZOGEN MIT 0.28.1 (Stolperstein 201): die Gruppe wird seit der
        Richtungstrennung nicht mehr im Aufbau verzweigt, sondern ueber `only`
        aus der Liste der Grundlagen gefiltert. Dieselbe Sache, andere Stelle. */
-    search: "      down: 'list.dirHighLow',  up: 'list.dirLowHigh', only: () => POTENTIAL_MODE },",
-    replacement: "      down: 'list.dirHighLow',  up: 'list.dirLowHigh', only: () => true },",
+    /* UND MITGEZOGEN MIT 0.29.0: die Grundlage traegt seit dieser Runde auch
+       `start` (Befund 8), und die Zeile ist dabei umgebrochen. Dieselbe Sache,
+       dieselbe Stelle, eine Zeile weiter. */
+    search: "      down: 'list.dirHighLow',  up: 'list.dirLowHigh', start: 'down',\n      only: () => POTENTIAL_MODE },",
+    replacement: "      down: 'list.dirHighLow',  up: 'list.dirLowHigh', start: 'down',\n      only: () => true },",
     expected: 'Der Potenzialmodus — 0.26.0'
   },
   {
@@ -8448,10 +8451,19 @@ const REGRESSIONS = [
        GEFUNDEN hat: `title_desc` gibt es in der Sortierung nicht, und die
        Liste ordnete still nach dem Aenderungsdatum weiter. Ausgewaehlt, ohne
        Fehlermeldung, und schlicht falsch. */
-    nr: '858', name: 'Die einseitige Sortierung bekommt die falsche Endung',
+    /* MITGEZOGEN MIT 0.29.0 (Stolperstein 201), und diesmal hat der Gegenstand
+       gewechselt: `dirOf()` ist mit Befund 8 gefallen -- seit „Titel" beide
+       Richtungen kennt, ist keine Grundlage mehr einspurig, und eine Weiche
+       ohne Fall bleibt nicht stehen.
+       WAS DER RUECKBAU BELEGT, IST DASSELBE GEBLIEBEN: dass der Wechsel der
+       Grundlage die RICHTIGE Richtung nimmt. Er nimmt jetzt die der ALTEN
+       Grundlage statt die der neuen -- genau der Fehler, den `start` verhindert,
+       und er setzt jeden, der aus der Vorgabe „neu → alt" kommt, bei „Titel"
+       auf „Z → A". */
+    nr: '858', name: 'Der Wechsel der Grundlage nimmt die alte Richtung mit',
     file: 'public/app.js',
-    search: "  const dirOf = (b, wantsUp) => (b.down && b.up) ? wantsUp : !b.down;",
-    replacement: "  const dirOf = (b, wantsUp) => wantsUp && !!b.up;",
+    search: "    picked = { base: b, asc: b.start === 'up' };",
+    replacement: "    picked = { base: b, asc: picked.asc };",
     expected: 'Die Sortierung trennt Grundlage und Richtung — 0.28.1'
   },
   {
@@ -8531,7 +8543,10 @@ const REGRESSIONS = [
        fuenf davon waren am Geraet 90 Pixel. */
     nr: '866', name: 'Die Filterzeile wird am Telefon wieder eine Spalte',
     file: 'public/style.css',
-    search: "  .frow { display: grid; grid-template-columns: auto minmax(0, 1fr);",
+    /* MITGEZOGEN MIT 0.29.0: die Zeile traegt seit Befund 6 eine DRITTE Spalte.
+       Was der Rueckbau belegt, ist unveraendert -- dass das Raster die Zeile
+       traegt und nicht eine Spalte. */
+    search: "  .frow { display: grid; grid-template-columns: auto minmax(0, 1fr) auto;",
     replacement: "  .frow { display: flex; flex-direction: column;",
     expected: 'Die Sortierung trennt Grundlage und Richtung — 0.28.1'
   },
@@ -8555,6 +8570,282 @@ const REGRESSIONS = [
     search: "  .pill { padding: 7px 13px; }",
     replacement: "  .pill { padding: 5px 11px; }",
     expected: 'Die Sortierung trennt Grundlage und Richtung — 0.28.1'
+  },
+
+  /* ================================================================
+     0.29.0 — „Worauf man sich verlassen können muss"
+     Acht Bauabschnitte, und jede neue Zusage bekommt ihren Rückbau. */
+
+  /* ---- BA 1: die Sicherungsprobe ---- */
+  {
+    /* SIE ZEIGT AUF DIE LAUFENDE DATENBANK. Der schlimmste Fehler dieser
+       Route: sie oeffnet dann nicht die Kopie, sondern das Original -- und
+       die vier Zahlen stimmen immer, ohne je etwas zu belegen. */
+    nr: '869', name: 'Die Probe oeffnet die laufende Datenbank statt der Kopie',
+    file: 'server.js',
+    search: "  const full = path.join(target.filePath, file.name);",
+    replacement: "  const full = DB_FILE;",
+    expected: 'Die Sicherungsprobe — 0.29.0'
+  },
+  {
+    /* SIE OEFFNET SCHREIBEND. Ohne `readonly` legt SQLite eine WAL neben die
+       Sicherung und aendert damit den Ordner, den die Aufraeumregel zaehlt. */
+    nr: '870', name: 'Die Probe oeffnet die Sicherung schreibend',
+    file: 'server.js',
+    search: "    probe = new Database(full, { readonly: true });",
+    replacement: "    probe = new Database(full);",
+    expected: 'Die Sicherungsprobe — 0.29.0'
+  },
+  {
+    /* DER FREMDE SCHLUESSEL WIRD FUER LESBAR ERKLAERT. Die Karte saegte dann
+       „Eintraege 0", und wer das sieht, haelt seine Sicherung fuer leer statt
+       fuer unlesbar -- die schlimmste der drei moeglichen Antworten.
+       ER WIRFT NICHT MEHR, UND DAS IST EIN FUND DIESER RUNDE: der erste
+       Entwurf ersetzte die Zeile durch ein `throw`, und der Lauf RISS AB
+       (359 s, kein einziger roter Punkt). Eine Gegenprobe, die abreisst,
+       belegt nichts -- sie muss so greifen, dass die Oberflaeche danach noch
+       laeuft. */
+    nr: '871', name: 'Der fremde Schluessel wird fuer lesbar erklaert',
+    file: 'server.js',
+    search: "    return res.json({ ok: false, reason: 'key', at: file.time, bytes: file.bytes, nr });",
+    replacement: "    return res.json({ ok: true, nr, at: file.time, bytes: file.bytes, itemCount: 0, photoCount: 0, userCount: 0, contentUntil: null });",
+    expected: 'Die Sicherungsprobe — 0.29.0'
+  },
+  {
+    /* EINE NUMMER, DIE ES NICHT GIBT, WIRD ZU EINER LEEREN SICHERUNG. Dann
+       antwortet die Probe auf #9999 mit „Eintraege 0" statt mit einer Absage,
+       und wer sich vertippt, haelt eine Kopie fuer leer, die es gar nicht gibt.
+       ER ZIELT AUF DIE ABSAGE UND NICHT AUF DIE ZAHLENPRUEFUNG DAVOR, und das
+       ist ein Fund dieser Runde: der erste Entwurf nahm `Number.isInteger`
+       heraus und blieb STUMM -- `files[9999 - 1]`, `files[0 - 1]` und
+       `files[NaN - 1]` sind alle drei `undefined`, und die Absage kam
+       trotzdem. Ein Griff ohne sichtbare Wirkung belegt nichts. */
+    nr: '872', name: 'Eine Nummer, die es nicht gibt, wird zur leeren Sicherung',
+    file: 'server.js',
+    search: "  if (!file) return res.status(404).json({ error: t(localeOf(req), 'server.backupGone') });",
+    replacement: "  if (!file) return res.json({ ok: true, nr, at: 0, bytes: 0, itemCount: 0, photoCount: 0, userCount: 0, contentUntil: null });",
+    expected: 'Die Sicherungsprobe — 0.29.0'
+  },
+  {
+    /* DIE ZAHLEN KOMMEN AUS DER LAUFENDEN DATENBANK. Sie saehen richtig aus,
+       solange die Kopie frisch ist -- und blieben richtig, wenn die Kopie
+       leer waere. */
+    nr: '873', name: 'Die Probe zaehlt in der laufenden Datenbank',
+    file: 'server.js',
+    search: "      itemCount: one('SELECT COUNT(*) AS n FROM items').n,",
+    replacement: "      itemCount: db.prepare('SELECT COUNT(*) AS n FROM items').get().n,",
+    expected: 'Die Sicherungsprobe — 0.29.0'
+  },
+  {
+    /* SIE GEHOERT DER EIGENTUEMERIN. Die Antwort nennt Datum und Groesse
+       einer Datei auf dem Wirt -- dieselbe Klemme wie die Karte selbst. */
+    nr: '874', name: 'Die Probe steht schon dem Admin offen',
+    file: 'server.js',
+    search: "app.post('/api/backup/check', ownerOnly, (req, res) => {",
+    replacement: "app.post('/api/backup/check', adminOnly, (req, res) => {",
+    expected: 'Die Sicherungsprobe — 0.29.0'
+  },
+
+  /* ---- BA 2: der Fingerprint nennt die Datei ---- */
+  {
+    /* EINE ZWEITE LISTE NEBEN DER ERSTEN. Sie saehe gleich aus und liefe beim
+       naechsten Griff auseinander -- Stolperstein 47, und F6 sagt es
+       ausdruecklich. */
+    nr: '875', name: 'Die Einzelwerte kommen aus einem zweiten Lesevorgang',
+    file: 'server.js',
+    search: "    files.push({ name: rel,\n      hash: crypto.createHash('sha256').update(bytes).digest('hex').slice(0, 8) });",
+    replacement: "    files.push({ name: rel, hash: crypto.createHash('sha256')\n      .update(fs.readFileSync(path.join(__dirname, rel))).digest('hex').slice(0, 8) });",
+    expected: 'Der Fingerprint nennt die Datei — 0.29.0'
+  },
+  {
+    /* DIE LISTE STEHT DAUERHAFT DA. Der Betreiber hat das ausdruecklich nicht
+       gewollt („muss keine extra Zeile"), und achtzehn Zeilen in einer Karte,
+       die ohnehin lang ist, schoeben die Verfahren aus dem Blick. */
+    nr: '876', name: 'Die Dateiliste steht dauerhaft aufgeklappt da',
+    file: 'public/app.js',
+    search: '        <div class="fp-list" id="fp-list" hidden>',
+    replacement: '        <div class="fp-list" id="fp-list">',
+    expected: 'Der Fingerprint nennt die Datei — 0.29.0'
+  },
+
+  /* ---- BA 3: das Faelligkeitsdatum ---- */
+  {
+    /* DER KALENDER WIRD NICHT GEFRAGT. „2026-02-31" hat die richtige Form und
+       gibt es nicht; `Date.UTC` rechnet daraus den 3. Maerz. */
+    nr: '877', name: 'Ein Tag, den es nicht gibt, wird gespeichert',
+    file: 'server.js',
+    search: "  if (d.getUTCFullYear() !== year || d.getUTCMonth() !== month - 1 || d.getUTCDate() !== day)\n    return { error: 'server.dueInvalid' };",
+    replacement: "  if (false) return { error: 'server.dueInvalid' };",
+    expected: 'Das Faelligkeitsdatum — 0.29.0'
+  },
+  {
+    /* OHNE DATUM STEHT WIEDER VORN. Ein NULL sortiert in SQLite von sich aus
+       dorthin -- wer keine Zahl hat, haette damit den niedrigsten Wert statt
+       gar keinen. */
+    nr: '878', name: 'Die Aufgaben ohne Datum stehen wieder vorn',
+    file: 'server.js',
+    search: "   ORDER BY CASE WHEN c.due_date IS NULL THEN 1 ELSE 0 END,\n            c.due_date,",
+    replacement: "   ORDER BY c.due_date,",
+    expected: 'Das Faelligkeitsdatum — 0.29.0'
+  },
+  {
+    /* DIE GRUPPIERUNG ZERFAELLT. Ohne die Stufe auf den Eintrag mischen sich
+       bei gleicher Sekunde die Zeilen zweier Eintraege ineinander, und
+       derselbe Eintrag steht mehrfach in der Liste (F18). */
+    nr: '879', name: 'Die Zeilen zweier Eintraege mischen sich in „Offen"',
+    file: 'server.js',
+    search: "            i.updated_at DESC, c.item_id, c.id`);",
+    replacement: "            i.updated_at DESC, c.id`);",
+    expected: 'Das Faelligkeitsdatum — 0.29.0'
+  },
+  {
+    /* DAS FELD FEHLT IM EXPORT. Ein Feld, das im Export fehlt, ist beim
+       naechsten Einspielen weg -- und der Export ist fuer viele die einzige
+       vollstaendige Kopie ausserhalb der Datenbank. */
+    nr: '880', name: 'Das Faelligkeitsdatum geht nicht mit hinaus',
+    file: 'server.js',
+    search: "        ...(c.due_date ? { dueDate: c.due_date } : {}),\n",
+    replacement: "",
+    expected: 'Das Faelligkeitsdatum — 0.29.0'
+  },
+  {
+    /* DER IMPORT SCHREIBT ROH IN DIE SPALTE. Eine Exportdatei kommt von
+       aussen; ein „morgen" darin waere ein Tag, den die Oberflaeche nie
+       erlaubt haette. */
+    nr: '881', name: 'Der Import schreibt das Datum ungeprueft',
+    file: 'server.js',
+    search: "                 cDue.error ? null : cDue.value);",
+    replacement: "                 c.dueDate || null);",
+    expected: 'Das Faelligkeitsdatum — 0.29.0'
+  },
+  {
+    /* DER MIGRATIONSBLOCK WIRD UEBERSPRUNGEN. Eine Bestandsdatenbank traegt
+       die Spalte dann nie, und jeder Griff auf `due_date` faellt dort um. */
+    nr: '882', name: 'Der zwoelfte Migrationsblock tut nichts',
+    file: 'db.js',
+    search: "  if (columns.includes('due_date')) return 0;",
+    replacement: "  return 0;",
+    expected: 'Das Faelligkeitsdatum — 0.29.0'
+  },
+  {
+    /* ER SETZT EINEN VORGABEWERT NACH. Ein selbst gesetztes Datum an fremder
+       Arbeit ist eine Behauptung, und frisch angelegt und gewandert saehen
+       danach verschieden aus. */
+    nr: '883', name: 'Die Migration erfindet ein Datum fuer den Bestand',
+    file: 'db.js',
+    search: "  db.exec('ALTER TABLE comments ADD COLUMN due_date TEXT');",
+    replacement: "  db.exec('ALTER TABLE comments ADD COLUMN due_date TEXT');\n  db.exec(\"UPDATE comments SET due_date = date('now') WHERE kind = 'task'\");",
+    expected: 'Das Faelligkeitsdatum — 0.29.0'
+  },
+
+  /* ---- BA 4: die Adresse bekommt ihr Schloss ---- */
+  {
+    /* DER INDEX OHNE `WHERE`. Dann ist schon der ZWEITE Zugang ohne Adresse
+       eine Verletzung -- und genau die soll er zulassen. */
+    nr: '884', name: 'Der Index laesst nur EINEN Zugang ohne Adresse zu',
+    file: 'db.js',
+    search: "             ON users(email COLLATE NOCASE) WHERE email IS NOT NULL`);",
+    replacement: "             ON users(email COLLATE NOCASE)`);",
+    expected: 'Die Adresse ist eindeutig — 0.29.0'
+  },
+  {
+    /* OHNE NOCASE. „Anna@Haus.de" und „anna@haus.de" stuenden dann
+       nebeneinander, und der Befund waere nur halb erledigt. */
+    nr: '885', name: 'Der Index unterscheidet Gross- und Kleinschreibung',
+    file: 'db.js',
+    search: "  db.exec(`CREATE UNIQUE INDEX IF NOT EXISTS idx_users_email\n             ON users(email COLLATE NOCASE) WHERE email IS NOT NULL`);",
+    replacement: "  db.exec(`CREATE UNIQUE INDEX IF NOT EXISTS idx_users_email\n             ON users(email) WHERE email IS NOT NULL`);",
+    expected: 'Die Adresse ist eindeutig — 0.29.0'
+  },
+  {
+    /* DER FEHLSCHLAG WIRD VERSCHLUCKT. Die Instanz saehe dann aus, als haette
+       sie ein Schloss, und haette keins -- die schlimmste Antwort auf F10. */
+    nr: '886', name: 'Der fehlgeschlagene Index wird verschwiegen',
+    file: 'db.js',
+    search: "  doubleEmails = db.prepare(qDoubleEmails).all();",
+    replacement: "  doubleEmails = [];",
+    expected: 'Die Adresse ist eindeutig — 0.29.0'
+  },
+  {
+    /* DIE KARTE FRAGT NICHT NACH. Dann bliebe der Warnkasten leer, waehrend
+       zwei gleiche Adressen dastehen. */
+    nr: '887', name: 'Die Karte „Benutzer" meldet keine doppelten Adressen',
+    file: 'db.js',
+    search: "  return present ? [] : db.prepare(qDoubleEmails).all();",
+    replacement: "  return [];",
+    expected: 'Die Adresse ist eindeutig — 0.29.0'
+  },
+
+  /* ---- BA 6 und 7: die beiden Bildschirmbefunde ---- */
+  {
+    /* ALLE VERWEISE IN SPALTE DREI. Der Ruecksetzer der Sortierzeile ist
+       140 px breit und nimmt sie der Sortierwahl daneben -- gemessen bleiben
+       ihr 30 px, und der NAME der Sortierung ist fort (F17). */
+    nr: '888', name: 'Auch der Ruecksetzer der Sortierzeile geht in Spalte drei',
+    file: 'public/style.css',
+    search: "  .frow > .frow-right-end { grid-column: 3; }",
+    replacement: "  .frow > .frow-right { grid-column: 3; }",
+    expected: 'Die Filterzeile und der Kategoriekasten — 0.29.0'
+  },
+  {
+    /* DER UND/ODER-UMSCHALTER ZURUECK IN DIE SPANNE. Zwei Pillen, die 86 px
+       brauchen, spannen dann wieder ueber 362 -- und die Beschriftung „Tags"
+       bleibt allein auf der Zeile darueber stehen. */
+    nr: '889', name: 'Der Und/Oder-Umschalter spannt wieder ueber alle Spalten',
+    file: 'public/style.css',
+    search: "  .frow > .tagmode { grid-column: 2; }",
+    replacement: "  .frow > .tagmode { grid-column: 1 / -1; }",
+    expected: 'Die Filterzeile und der Kategoriekasten — 0.29.0'
+  },
+  {
+    /* DIE FESTE ZAHL STATT DES TEILENS. Sie traegt bei 100 Prozent Schrift und
+       kann bei 80 bis 120 nur falsch werden -- dieselbe Ueberlegung, die im
+       Stilblatt schon dreimal steht. */
+    nr: '890', name: 'Der Kategoriekasten bekommt eine ausgerechnete Breite',
+    file: 'public/style.css',
+    search: "  [data-block=\"kategorie\"] .row-in > #cat,\n  [data-block=\"kategorie\"] .row-in > .input { flex: 1 1 0; min-width: 0; }",
+    replacement: "  [data-block=\"kategorie\"] .row-in > #cat { width: 119px; min-width: 119px; }",
+    expected: 'Die Filterzeile und der Kategoriekasten — 0.29.0'
+  },
+  {
+    /* DER PLATZHALTER WIRD WIEDER LANG. Gemessen sind im schmalen Feld 91 bis
+       106 px Platz; „Neue Kategorie" braucht 124 bis 139 und passt bei keiner
+       Schriftstufe. */
+    nr: '891', name: 'Der Platzhalter der Kategorie wird wieder lang',
+    file: 'public/languages/de.json',
+    search: '  "entry.newCategoryHint": "Name",',
+    replacement: '  "entry.newCategoryHint": "Neue Kategorie",',
+    expected: 'Die Filterzeile und der Kategoriekasten — 0.29.0'
+  },
+
+  /* ---- BA 8: „Titel" kehrt um ---- */
+  {
+    /* „TITEL" WIRD WIEDER EINSPURIG. Der Befund aus dem Betrieb waere damit
+       zurueck: „Z bis A kann nicht angewahlt werden". */
+    nr: '892', name: '„Titel" kennt wieder nur eine Richtung',
+    file: 'public/app.js',
+    search: "      down: 'list.dirZA',       up: 'list.dirAZ',     start: 'up' },",
+    replacement: "      down: null,               up: 'list.dirAZ',     start: 'up' },",
+    expected: '„Titel" kehrt um — 0.29.0'
+  },
+  {
+    /* DER VERGLEICHER KENNT DIE GEGENRICHTUNG NICHT. Der Knopf sagte dann
+       „Z → A", und die Liste ordnete still nach dem Aenderungsdatum weiter --
+       genau der Fehler, den 0.28.1 gefunden hat. */
+    nr: '893', name: 'Der Vergleicher kennt title_desc nicht',
+    file: 'public/app.js',
+    search: "      case 'title_desc':  return b.title.localeCompare(a.title, LOCALE);",
+    replacement: "",
+    expected: '„Titel" kehrt um — 0.29.0'
+  },
+  {
+    /* DER SATZ BLEIBT STEHEN, obwohl ihn nichts mehr ausloest. Eine Regel ohne
+       Traeger bleibt nicht stehen (F21). */
+    nr: '894', name: '„Diese Sortierung hat nur eine Richtung" steht wieder da',
+    file: 'public/languages/de.json',
+    search: '  "list.sortFlip": "Richtung umkehren",',
+    replacement: '  "list.sortFlip": "Richtung umkehren",\n  "list.sortOneWay": "Diese Sortierung hat nur eine Richtung",',
+    expected: '„Titel" kehrt um — 0.29.0'
   }
 ];
 

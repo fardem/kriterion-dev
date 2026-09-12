@@ -1,6 +1,6 @@
 # Projektstand — Kriterion
 
-**Kompakte Übergabe · Revision 81 · Stand 11. September 2026 · gebaut: Version 0.28.1**
+**Kompakte Übergabe · Revision 82 · Stand 11. September 2026 · gebaut: Version 0.29.0**
 
 Dieses Blatt ist der **einzige Ort, an dem steht, was gebaut ist und was
 bindet.** Es genügt, um in einem frischen Chat weiterzuarbeiten, ohne den alten
@@ -478,7 +478,56 @@ weiterhin offen. Daraus folgt die Stellung von `HINTER_PROXY` (Abschnitt 3).
 
 ## 2. Betriebsstand
 
-**Gebaut ist 0.28.1** — **6611 Prüfungen**, **859 Rückbauten in der Liste**
+**Gebaut ist 0.29.0** — *die Zahlen des Prüfstands stehen im Änderungsprotokoll
+0.29.0.* **Am Wirt lief zuletzt 0.28.1, Fingerprint `452d1764`**, vom Betreiber
+am 11. September 2026 bestätigt.
+
+*0.29.0 baut fünf geplante Punkte und **drei** Befunde aus dem Betrieb.* **Der
+Kern ist, woran man erkennt, dass eine Sache wirklich so ist, wie sie dasteht:**
+*eine Sicherung lässt sich jetzt **probeweise öffnen** — an jeder Zeile der
+Liste steht „prüfen", und darunter erscheinen vier Zahlen aus der Kopie selbst,
+ohne dass die laufende Datenbank angefasst wird* (`POST /api/backup/check`, die
+dreiundsiebzigste schreibende Route). **Der Fingerprint nennt auf Verlangen
+jede einzelne Datei** *(achtzehn Werte aus derselben Schleife, die den
+Gesamtwert bildet)*. **Und `users.email` bekommt ein Schloss** — ein partieller
+Index mit `NOCASE`, der mehrere Zugänge ohne Adresse zulässt.
+
+**Die Funktion der Runde ist das Fälligkeitsdatum an der Aufgabe** — *ein Datum
+ohne Uhrzeit, freiwillig, ohne Wecker; „Offen" ordnet danach in vier
+Abschnitten: überfällig · heute · später · ohne Datum.* **Das ist der
+Schemaanteil: eine Spalte an `comments`, der ZWÖLFTE Migrationsblock, und das
+Austauschformat steigt auf 16.** *Es ist die letzte Runde, die das Schema
+anfassen darf.*
+
+**Drei Befunde kamen vom Bildschirm:** *der Umschalter „Tags" stand seit 0.28.1
+allein auf einer Zeile von 366 und steht jetzt am Ende der Kategoriezeile (104
+Pixel weniger Filterleiste, 105 mit gesetztem Tagfilter); der Anlegeknopf der
+Kategorie stand verwaist auf einer zweiten Zeile und steht jetzt neben seinem
+Feld (161 → 110 px); und **„Titel" sortiert endlich auch von Z nach A** — der
+Grund für die eine Richtung war die NUMMER und nicht die Sache, und 0.29.0 ist
+ohnehin MINOR.*
+
+> **DREI ANGABEN DES AUFTRAGS HAT DIE MESSUNG BERICHTIGT, EINE ERSETZT.**
+> *Die dritte Rasterspalte durfte nicht alle Verweise aufnehmen — mit dem
+> Rücksetzer der Sortierzeile darin schrumpft die Sortierwahl auf 30 px und
+> der NAME der Sortierung ist fort. Die Kategorieauswahl hat gar keine
+> Obergrenze und misst bei einem langen Namen 278 statt 148 px. Der gekürzte
+> Platzhalter „Neue Kategorie" passt in das schmalere Feld bei keiner
+> Schriftstufe und heißt deshalb „Name".*
+>
+> **UND „SICHTBAR NUR IM FEHLERFALL" WAR NICHT BAUBAR, WIE ES DASTAND:** *die
+> Installation kennt keinen Sollwert für den Fingerprint — er steht im
+> Änderungsprotokoll, auf Papier. Sie kann gar nicht wissen, ob etwas abweicht;
+> gebaut ist deshalb ein Verweis, der auf Verlangen aufklappt.*
+
+> **DIE FRAGETAFEL IST VOR DER ERSTEN ZEILE BEANTWORTET WORDEN — Regel 11 ist
+> zum DRITTEN Mal in Folge eingehalten.** *Fünfzehn Fragen aus dem Auftrag und
+> **sieben**, die beim Messen aufgefallen sind (F16 bis F22), alle vom
+> Betreiber am 11. September 2026 beantwortet.*
+
+---
+
+**Gebaut war davor 0.28.1** — **6611 Prüfungen**, **859 Rückbauten in der Liste**
 (Abschnitt 8); *die 15 neuen sind **alle gefahren**, **0 STUMM**.* **Am Wirt
 läuft 0.28.1, Fingerprint `452d1764`** *(Abschnitt 8)* — *vom Betreiber am
 11. September 2026 aus seiner Installation gemeldet und damit auf das Byte
@@ -510,10 +559,17 @@ machen sie 33 % des Filterkastens aus, Beschriftungen und Abstände 42 %.*
 zurück); und „Allgemein" und „Verlauf" standen als feste deutsche Wörter im
 Quelltext und damit in jeder Sprache deutsch am Bildschirm.*
 
-**Das Schema ist nicht angefasst**, das Austauschformat bleibt **15**, die Karten
-**19**, `F_ROUTES` **72**, die lesenden Routen **31**. **Die Sprachdateien tragen
-1245 Schlüssel** (1327 flach): *zwölf fallen, siebzehn kommen dazu, drei ändern
-ihren Wortlaut.* Einzelheiten im Änderungsprotokoll 0.28.1.
+**Das Schema war in 0.28.1 nicht angefasst**, das Austauschformat blieb **15**,
+die Karten **19**, `F_ROUTES` **72**, die lesenden Routen **31**. **Die
+Sprachdateien trugen 1245 Schlüssel** (1327 flach): *zwölf fallen, siebzehn
+kommen dazu, drei ändern ihren Wortlaut.* Einzelheiten im Änderungsprotokoll
+0.28.1.
+
+> **MIT 0.29.0 STEHEN DIE ZAHLEN SO:** *Austauschformat **16**, `F_ROUTES`
+> **73**, **zwölf** Migrationsblöcke, die Karten unverändert **19**, die
+> lesenden Routen unverändert **31**.* **Die Sprachdateien tragen 1346
+> Schlüssel flach**: *einer fällt (`list.sortOneWay`), zwanzig kommen dazu,
+> einer ändert seinen Wortlaut.*
 
 > **DIE FRAGETAFEL IST VOR DER ERSTEN ZEILE BEANTWORTET WORDEN — Regel 11 ist
 > zum ZWEITEN Mal in Folge eingehalten.** *Zwölf Fragen, zwölf Antworten, vom
