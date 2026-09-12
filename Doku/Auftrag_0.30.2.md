@@ -104,6 +104,34 @@ sondern eine vorhandene.**
 
 ---
 
+## Die drei Zeichen — nachgesehen am 12. September 2026
+
+**DER BETREIBER SCHLÄGT VOR:** *„ja ein pfeil nach unten oder ein tür symbol..
+offene tür.. dann x zum resetten also tags zurücksetzen.. könnte doch passen?"*
+
+**ZWEI DAVON SIND SCHON ENTSCHIEDEN, WEIL DAS HAUS DIE ZEICHEN FÜHRT — und das
+dritte fällt an einer Kollision, die es nicht gibt, sondern schon gab.**
+
+| | Vorschlag | nachgesehen |
+|---|---|---|
+| **1** | **Pfeil nach unten** für „mehr"/„weniger" | **Ja — und es ist keine neue Form.** *`ICON_STEP_BACK` und `ICON_STEP_FWD` sind derselbe Haken, nur gedreht (`public/app.js:414`). Ein Haken nach unten entsteht aus demselben Helfer `char()` und trägt dieselbe Strichstärke.* **Ein Zeichen, das die Instanz schon zweimal zeigt, muss niemand neu lernen** |
+| **2** | **Offene Tür** für dasselbe | **Nein, und der Grund ist im Haus schon vergeben.** *„Das Haus verlassen" ist die Wendung dieses Projekts für das, was hinausgeht — sie steht im Wortlaut des Exports* *(`card.exportWarning`)*. **Eine Tür ist das Bild dazu.** *An einer Tagwolke sagte sie „hinaus" — und das ist das Gegenteil von „mehr zeigen"* |
+| **3** | **× für „Tags zurücksetzen"** | **Fast — das Haus hat dafür ein besseres, und zwar seit jeher.** *`ICON_RESET` ist der Kreispfeil (`public/app.js:394`) und steht an `.rreset`, dem Rücksetzer der Sternzeile.* **× heißt im Haus „weg": eine Zeile löschen, einen Tag vom Testtag nehmen, eine Ansicht entfernen.** *„Zurücksetzen" ist etwas anderes als „weg", und das Haus unterscheidet die beiden schon mit zwei Zeichen* |
+
+> **DAMIT WÄRE DIE DRITTE SPALTE ZWEI ZEICHEN BREIT statt 116 Pixel Text** —
+> *ein Haken nach unten und ein Kreispfeil.* **Wie viel das wirklich einbringt,
+> ist gemessen und nicht geschätzt** *(BA 1, Punkt 2 und 4 oben)*: **ein
+> Bedienelement am Finger misst rund 32 bis 36 Pixel**, zwei davon also rund 72
+> statt 116. *Und wandern sie nach Spalte 1, muss die Rechnung dort noch einmal
+> aufgehen — „TAGS" misst 63.*
+
+> **UND EINE FRAGE BLEIBT, DIE KEIN ZEICHEN BEANTWORTET:** *derselbe Kasten
+> trägt unten „Filter zurücksetzen (11)" als **Wort**.* **Ein Kasten mit einem
+> Wort-Rücksetzer und einem Zeichen-Rücksetzer sagt dieselbe Sache zweimal
+> verschieden.** *Das gehört auf die Fragetafel.*
+
+---
+
 ## Wie es weitergeht
 
 1. **Der Betreiber sammelt weiter.** *Kommt etwas, wandert es hier unten an.*
@@ -111,3 +139,10 @@ sondern eine vorhandene.**
    erst danach entsteht die Fragetafel.**
 3. **Gebaut wird nichts, bevor jede Frage beantwortet und eingetragen ist**
    *(Regel 11)*.
+
+> **DER BETREIBER SPIELT ERST WIEDER EIN, WENN DIESE RUNDE DA IST** *(12.
+> September 2026: „ich werde die den nur wieder einspielen wenn wir den patch
+> mit dem tagfilter haben")*. **Das hat eine Folge für das Papier von 0.30.1:**
+> *dessen dritte Quelle bleibt offen, und im Feld läuft weiter `a6726a83`.*
+> **Der nächste Stand, der eingespielt wird, ist der dieser Runde** — und er
+> bestätigt dann seinen eigenen Fingerprint, nicht den von 0.30.1.

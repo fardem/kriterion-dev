@@ -26,6 +26,13 @@
 > `194e8984` einspielen.* **Der offene Punkt bleibt damit offen, und er steht
 > hier und nicht als Fußnote.**
 >
+> **UND ER BLEIBT ES AUF ABSEHBARE ZEIT.** *Der Betreiber am 12. September
+> 2026: „ich werde die den nur wieder einspielen wenn wir den patch mit dem
+> tagfilter haben."* **Der nächste Stand, der an den Wirt geht, ist der von
+> 0.30.2** — *er wird dann seinen eigenen Fingerprint bestätigen und nicht
+> diesen.* **Damit ist `194e8984` ein Wert, den zwei Quellen tragen und das Feld
+> nicht mehr einholen wird; das gehört aufgeschrieben und nicht verschwiegen.**
+>
 > **UND ER IST WÄHREND DER RUNDE ZWEIMAL FALSCH DAGESTANDEN — aus demselben
 > Grund.** *Beim ersten Mal war er nach BA 7 gerechnet, und danach kam noch eine
 > Zeile in `public/style.css` (die Kurzform `gap`, die hinter ihrer Ausnahme
