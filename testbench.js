@@ -27123,7 +27123,23 @@ function sweepLeftovers() {
      und „Titel" in beide Richtungen. Vier vorhandene sind MITGEZOGEN und nicht
      ersetzt worden (233, 448, 806, 866), einer hat den Gegenstand gewechselt
      (858: dirOf() ist gefallen, er zielt jetzt auf `start`). */
-  check('Es sind genau 885 Rueckbauten', gpList.length === 885, `${gpList.length}`);
+  /* 885 WURDEN 906 -- 0.30.0, und die EINUNDZWANZIG neuen tragen die Nummern
+     895 bis 915: je einer fuer den Portblick, das Wartefenster und seine
+     Meldung, den Aufraeumer, die Schlusstafel, die Kurve der Anmeldebremse und
+     ihre Verdrahtung, die vier Klammern des Pruefschalters, die beiden festen
+     deutschen Woerter und die Wache darueber, die zweite Einteilung, die vier
+     Farben, das Datum an der erledigten Aufgabe, die Luft der Vokabelkarte,
+     die Klammer von C1a, die Zahl am gefallenen Umschalter und den langen
+     Knopf.
+     FUENF VORHANDENE SIND NACHGEZOGEN und nicht ersetzt worden (604, 605, 636,
+     658, 889): ihre Suchtexte standen nach dieser Runde nicht mehr da. Ein
+     Rueckbau, dessen Suchtext fehlt, ist ein Fund ueber die LISTE -- in 0.29.0
+     waren es fuenf, in dieser Runde wieder.
+     605 HAT DABEI DEN GEGENSTAND GEWECHSELT, ohne die Sache zu wechseln: er
+     setzt jetzt den NAMEN zurueck, der von 0.21.0 bis 0.30.0 im Waechter
+     stand, statt ihn zu halbieren -- und macht damit zwei Zusagen rot statt
+     einer. */
+  check('Es sind genau 906 Rueckbauten', gpList.length === 906, `${gpList.length}`);
   const gpTwice = gpList.map(r => r.nr).filter((n, i, a) => a.indexOf(n) !== i);
   check('Und keine Nummer steht zweimal', gpTwice.length === 0, gpTwice.join(' '));
   /* JEDER GREIFT: der Suchtext kommt in seiner Datei GENAU EINMAL vor. Keinmal
@@ -28326,6 +28342,12 @@ function buildDom(JSDOM, { withoutLanguage = false, settings = { filters: null }
      Runde behaelt damit ihren Gegenstand. Der Einklappzustand der beiden
      Sternkaesten haengt seit 0.21.0 an genau diesem Schalter, und ohne ihn
      waere die Regel gar nicht zu belegen. */
+  /* DIE KOMMENTARE DES BEISPIELEINTRAGS, stellbar seit 0.30.0 -- wie
+     `openInventory` fuer die Ansicht „Offen". Die vier Zustaende des
+     Faelligkeitsdatums lassen sich an der festen Liste nicht stellen: sie
+     braucht vier Aufgaben mit vier verschiedenen Daten, und eine davon
+     erledigt. */
+  commentInventory = null,
   untested = false, openInventory = null, trashInventory = null, backupStatus = null, backupCopies = null, sessionsInventory = null, logInventory = null,
   publicAddress = '', mailStatus = null, mailError = false, ownAddress = 'chefin@beispiel.de',
   tokenThrottle = 0, signup = false, requestsStatus = null, twoFactorState = null, statsExport = null,
@@ -28727,7 +28749,7 @@ function buildDom(JSDOM, { withoutLanguage = false, settings = { filters: null }
       { id: 87, url: 'Handbuch 3000', sort_order: 7,
         created_at: '2026-08-04 13:00:00', mine: false, author: vTomb }
     ],
-    comments: [
+    comments: commentInventory || [
       /* mine und bilderEntfernt an JEDEM Kommentar: der echte Server liefert
          beides seit 0.8.3, und ein Mock, der die Antwort
          vereinfacht, loescht genau die Pruefung, fuer die er gebaut ist.
@@ -52848,18 +52870,27 @@ async function check0300() {
     const dShift = (days) => { const d = new Date(Date.now() + days * 86400000);
       const p = (n) => String(n).padStart(2, '0');
       return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`; };
+    /* VIER AUFGABEN IN VIER ZUSTAENDEN. `mine` an jeder: der Verweis steht
+       nur da, wo jemand ihn auch bedienen darf. `pinned` und `imagesRemoved`
+       gehoeren dazu, weil der echte Server sie an JEDEM Kommentar liefert --
+       ein Mock, der die Antwort vereinfacht, loescht genau die Pruefung,
+       fuer die er gebaut ist. */
+    const dWho = { id: 1, name: 'chefin' };
+    const dRow = (id, kind, text, due) => ({ id, kind, text, dueDate: due, pinned: false,
+      mine: true, imagesRemoved: 0, author: dWho, images: [],
+      created_at: '2026-09-01 09:00:00', updated_at: null });
     const dComments = [
-      { id: 91, kind: 'task', text: 'Gestern', created_at: '2026-09-01 09:00:00', dueDate: dShift(-1), mine: true, author: { id: 1, name: 'chefin' } },
-      { id: 92, kind: 'task', text: 'Heute', created_at: '2026-09-01 09:00:00', dueDate: dToday, mine: true, author: { id: 1, name: 'chefin' } },
-      { id: 93, kind: 'task', text: 'Morgen', created_at: '2026-09-01 09:00:00', dueDate: dShift(1), mine: true, author: { id: 1, name: 'chefin' } },
-      { id: 94, kind: 'done', text: 'Erledigt', created_at: '2026-09-01 09:00:00', dueDate: dShift(-2), mine: true, author: { id: 1, name: 'chefin' } }
+      dRow(91, 'task', 'Gestern', dShift(-1)),
+      dRow(92, 'task', 'Heute', dToday),
+      dRow(93, 'task', 'Morgen', dShift(1)),
+      dRow(94, 'done', 'Erledigt', dShift(-2))
     ];
     /* JSDOM WIRD HIER GEHOLT UND NICHT VORAUSGESETZT: der Prueflauf laeuft
        auch ohne es und sagt das dann deutlich. */
     let JSDOMd;
     try { ({ JSDOM: JSDOMd } = require('jsdom')); } catch { JSDOMd = null; }
     check('jsdom steht fuer die vier Zustaende bereit', !!JSDOMd, 'ohne jsdom keine Oberflaechenprobe');
-    const dDom = buildDom(JSDOMd, { hash: '#/item/1', comments: dComments });
+    const dDom = buildDom(JSDOMd, { hash: '#/item/1', commentInventory: dComments });
     await new Promise(r => setTimeout(r, 200));
     const dSeen = [...dDom.w.document.querySelectorAll('.cmt-due')]
       .map(b => (b.className.match(/due-[a-z]+/) || ['—'])[0]);
