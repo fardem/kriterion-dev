@@ -33812,7 +33812,16 @@ async function checkUi() {
 
   // Die Marke liegt seit 0.24.0 hinter dem Umschalter (Bauabschnitt 0.2).
   await openTagRow(wFilt);
-  [...wFilt.document.querySelectorAll('#filters .pill-tag')].find(b2 => b2.textContent === 'Grün').onclick();
+  /* GEKLAMMERT WIE JEDER GRIFF IN EINEN NACHBAU -- 0.30.0, Stolperstein 161.
+     Ein Rueckbau, der die Tagzeile wegnimmt, soll die Zusagen darunter ROT
+     machen und nicht den Lauf abreissen: eine abgerissene Gegenprobe belegt
+     gar nichts. Gefunden beim ersten gefahrenen Gegenprobenlauf dieser Runde
+     -- Rueckbau 636 riss hier nach 125 Sekunden ab. */
+  const tagPill = (name) => [...wFilt.document.querySelectorAll('#filters .pill-tag')]
+    .find(b2 => b2.textContent === name) || null;
+  check('Die Marke „Grün" steht in der Tagzeile', !!tagPill('Grün'),
+    '(keine Tagzeile oder keine Marke darin)');
+  tagPill('Grün')?.onclick();
   await new Promise(r => setTimeout(r, 20));
   check('Ein Tagfilter greift', equal(visible(), ['Mit Tag']), JSON.stringify(visible()));
 
@@ -33826,11 +33835,12 @@ async function checkUi() {
   check('Nach der Rückkehr steht der Filter noch',
     equal(visible(), ['Mit Tag']), JSON.stringify(visible()));
   check('Und die Marke ist weiterhin hervorgehoben',
-    !![...wFilt.document.querySelectorAll('#filters .pill-tag')]
-      .find(b2 => b2.textContent === 'Grün')?.classList.contains('on'));
+    !!tagPill('Grün')?.classList.contains('on'));
 
   // Auch das Zurücksetzen muss die Momentaufnahme mitführen.
-  [...wFilt.document.querySelectorAll('#filters .pill-tag')].find(b2 => b2.textContent === 'Grün').onclick();
+  check('Und sie steht noch da, um sie wieder aufzuheben', !!tagPill('Grün'),
+    '(die Tagzeile ist bei greifendem Filter verschwunden)');
+  tagPill('Grün')?.onclick();
   await new Promise(r => setTimeout(r, 20));
   wFilt.location.hash = '#/item/1';
   await new Promise(r => setTimeout(r, 80));
@@ -52472,30 +52482,43 @@ async function check0300() {
       wSpan.from === PORT_SPAN_FROM && wSpan.to === PORT_SPAN_TO && wSpan.to > wSpan.from,
       JSON.stringify(wSpan));
     const net = require('net');
-    /* EINE NUMMER AUS DER SPANNE, DIE DIESER LAUF NICHT BENUTZT: die
-       Prueflagen wuerfeln aus Fenstern von 60 Nummern ueber ihren Basen, und
-       zwischen 17600 und 17679 liegt keine davon. */
-    const wPort = PORT_SPAN_TO - 7;
-    const wListener = net.createServer(() => {});
-    await new Promise((done, error) => {
-      wListener.once('error', error);
-      wListener.listen(wPort, '127.0.0.1', done);
-    });
-    const wBusy = cp.foreignPort([]);
+    /* EINE FREIE NUMMER WIRD GESUCHT UND NICHT GESETZT, und das ist die Lehre
+       aus dem ersten gefahrenen Gegenprobenlauf dieser Runde: die Gegenprobe
+       faehrt VIER Spuren nebeneinander, und die oberste reicht mit ihrem
+       Versatz bis an das obere Ende der Spanne. Eine feste Nummer traf dort
+       irgendwann einen laufenden Server, `listen` warf EADDRINUSE, und der
+       ganze Lauf riss ab -- eine abgerissene Gegenprobe belegt gar nichts
+       (Stolperstein 161).
+       GESUCHT WIRD VON OBEN NACH UNTEN, und der Fehlschlag ist ein ROTER PUNKT
+       und kein Abbruch. */
+    const listenOn = async (from, step) => {
+      for (let i = 0; i < 40; i++) {
+        const port = from - i * step;
+        const server = net.createServer(() => {});
+        const ok = await new Promise(done => {
+          server.once('error', () => done(false));
+          server.listen(port, '127.0.0.1', () => done(true));
+        });
+        if (ok) return { server, port };
+        try { server.close(); } catch {}
+      }
+      return { server: null, port: 0 };
+    };
+    const wIn = await listenOn(PORT_SPAN_TO, 1);
+    check('Der Aufbau steht: ein Socket horcht wirklich in der Spanne',
+      !!wIn.server && wIn.port >= PORT_SPAN_FROM && wIn.port <= PORT_SPAN_TO,
+      `Port ${wIn.port}`);
+    const wBusy = wIn.server ? cp.foreignPort([]) : [];
     check('Der Portblick findet einen horchenden Port in der Spanne',
-      wBusy.includes(wPort), `gefunden: ${wBusy.join(' ') || '—'}`);
+      wBusy.includes(wIn.port), `gefunden: ${wBusy.join(' ') || '—'}`);
     /* UND ER SIEHT NICHT AUSSERHALB DER SPANNE NACH. Sonst meldete er jeden
        Dienst des Wirts und waere nach dem zweiten Mal abgeschaltet. */
-    const wOutside = net.createServer(() => {});
-    const wFarPort = PORT_SPAN_TO + 211;
-    await new Promise((done, error) => {
-      wOutside.once('error', error);
-      wOutside.listen(wFarPort, '127.0.0.1', done);
-    });
+    const wOut = await listenOn(PORT_SPAN_TO + 211, -1);
     check('Und einen ausserhalb der Spanne meldet er nicht',
-      !cp.foreignPort([]).includes(wFarPort), `${wFarPort} steht in der Liste`);
-    await new Promise(r => wListener.close(r));
-    await new Promise(r => wOutside.close(r));
+      !!wOut.server && wOut.port > PORT_SPAN_TO &&
+      !cp.foreignPort([]).includes(wOut.port), `Port ${wOut.port}`);
+    if (wIn.server) await new Promise(r => wIn.server.close(r));
+    if (wOut.server) await new Promise(r => wOut.server.close(r));
     fs.rmSync(wDir, { recursive: true, force: true });
   }
 

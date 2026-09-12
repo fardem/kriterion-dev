@@ -563,6 +563,67 @@ fünf, in dieser Runde wieder)*.
 
 ---
 
+## Der Augenschein
+
+**ZEHN LAGEN, UND DIE LETZTEN DREI SIND NEU:** *bisher stand im Augenschein
+nur, was man SIEHT; diese Runde baut zur Hälfte an etwas, das niemand sieht.*
+**Also wird es gefahren.**
+
+| | Lage | Ergebnis |
+|---|---|---|
+| **1** | Die Filter am Telefon aufklappen | **die Tagzeile steht schon offen, 46 px, zwei Rasterzeilen** *(vorher 69 px und drei)* |
+| **2** | Zwei Tags wählen | **„und/Oder" steht unter „TAGS"** *(y = 352 gegen y = 327)*, die Wolke daneben, „mehr" rechts außen |
+| **3** | Ein Eintrag mit **zwei Zugängen** | **Kopfzeile 42 px = EINE Zeile**, mit „⌀ 3,5 gewichtet" und „Wer?" nebeneinander |
+| **4** | Dieselbe Instanz mit **einem** Zugang | **336 px, unverändert** — genau wie vor der Runde *(C1a, wie entschieden)* |
+| **5** | Die Instanz auf **Türkisch** | **„⌀ 3,5 ağırlıklı" und „Kim?"** — kein deutsches Wort mehr, Kopfzeile 42 px |
+| **6** | Eine Aufgabe auf gestern, heute, morgen, eine abgehakt | **vier verschiedene Erscheinungen**: rot · hell und fett · gedämpft · blass und durchgestrichen |
+| **7** | Die Vokabelkarte am Telefon | **1056 statt 1203 px**, und es bricht keine Beschriftung zusätzlich um |
+| **8** | `npm test` fahren | **die Schlusstafel steht da; 279,2 s, 6735 von 6735 grün** |
+| **9** | Einen Lauf anhalten und sofort einen zweiten starten | **er räumt auf und sagt, was er angefasst hat** *(Zusage 4, an einem echt verwaisten Server gefahren)* |
+| **10** | Einen Lauf starten und **daneben** die Gegenprobe | **sie bricht ab und nennt jeden fremden Server mit PID, Port und Verzeichnis** |
+
+> **LAGE 10 IST NICHT NACHGESTELLT, SONDERN PASSIERT.** *Beim ersten
+> Gegenprobenlauf dieser Runde standen fünf Messinstanzen aus der
+> Oberflächenmessung noch offen; der Wächter aus BA 1 hat sie alle fünf
+> gefunden, den Lauf abgebrochen und die Zeile zum Beenden gleich mitgeliefert.*
+> **Genau dafür ist er gebaut — und bis zu dieser Runde hätte er nur die
+> gefunden, deren Befehl auf `server.js` endet.**
+
+---
+
+## Was die Gegenproben an dieser Runde gefunden haben
+
+**ZWEI FUNDE, UND BEIDE AN GEBAUTEM CODE DIESER RUNDE.**
+
+**DER ERSTE IST DER AUFRÄUMER AUS BA 3.** *Er fragte „gehört dieser Prozess zu
+mir?" und räumte weg, was nicht zu ihm gehörte.* **Die Gegenprobe fährt VIER
+Läufe nebeneinander — und jede Spur hat die Server der drei anderen beendet.**
+*Alle sechsundzwanzig Rückbauten meldeten ABGERISSEN nach einer Sekunde.*
+
+> **DAS IST DERSELBE SCHADEN, GEGEN DEN `foreignServer()` GEBAUT IST, nur aus
+> der anderen Richtung:** *dort nimmt ein fremder Lauf die Ports, hier nähme ein
+> fremder Lauf die Prozesse.*
+>
+> **„DER VATER IST FORT" IST DIE ANTWORT AUF BEIDE FÄLLE.** *Die eigenen Kinder
+> haben uns als Vater, die Kinder der Nachbarspur haben ihren eigenen Lauf — und
+> nur ein Rest hängt an der Eins, weil sein Lauf nicht mehr da ist.* **Ein Rest
+> ist kein Server mit einem bestimmten Namen, sondern einer, auf den niemand
+> mehr wartet.**
+
+**DER ZWEITE IST EIN UNGEKLAMMERTER GRIFF, und zwar zweimal derselbe.** *Rückbau
+636 nimmt die Tagzeile bei greifendem Filter weg; zwei Zeilen weiter unten
+griff eine Prüflage ohne Klammer nach einer Marke in genau dieser Zeile und
+riss den Lauf ab.* **Eine abgerissene Gegenprobe belegt gar nichts**
+(Stolperstein 161) — *beide Griffe sind jetzt geklammert und machen eine Zusage
+rot statt den Lauf tot.*
+
+**UND EIN DRITTER AN EINER ZUSAGE DIESER RUNDE:** *die Probe auf den Portblick
+horchte auf einer festen Nummer am oberen Ende der Spanne — genau dort, wo die
+vierte Nebenspur ihre Fenster hat.* **Sie sucht sich die Nummer jetzt und nimmt
+sie nicht.**
+
+---
+
 ## Die Papiere dieser Runde
 
 | Datei | was |
