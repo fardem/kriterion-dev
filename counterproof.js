@@ -9241,7 +9241,7 @@ const REGRESSIONS = [
     file: "public/style.css",
     search: "  .star { font-size: 1.1rem; }",
     replacement: "  .star { font-size: 1.25rem; }",
-    expected: "Der Bewertungskasten und die Vokabelkarte \u2014 0.30.0"
+    expected: "Die Sortierung trennt Grundlage und Richtung \u2014 0.28.1"
   },
   {
     /* VIER ABSTAENDE ZU EINEM PIXEL SIND VIER PIXEL SPALTENBREITE. An zehn
@@ -9250,7 +9250,7 @@ const REGRESSIONS = [
     file: "public/style.css",
     search: "  .stars { gap: 2px; }",
     replacement: "  .stars { gap: 3px; }",
-    expected: "Der Bewertungskasten und die Vokabelkarte \u2014 0.30.0"
+    expected: "Die Sortierung trennt Grundlage und Richtung \u2014 0.28.1"
   }
 ];
 

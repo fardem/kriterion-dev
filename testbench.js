@@ -53321,6 +53321,33 @@ async function check0301() {
     check('Und passt alles hinein, bleibt keine Grenze stehen',
       uEng === false && !uBox.style.maxHeight && !uBox.style.overflow,
       `${uEng} · „${uBox.style.maxHeight}" · „${uBox.style.overflow}"`);
+    /* ---- UND DER AUFBAU RUFT SIE AUCH -- 0.30.1, nachgetragen ----
+       DIE GEGENPROBE HAT ES GEFUNDEN, und das ist ihr Zweck. Rueckbau 926
+       setzt `limitCloud(tagBox, opened ? 0 : 1)` auf `0` -- die Begrenzung
+       faellt damit ganz weg, und KEINE EINZIGE PRUEFUNG wurde rot. Belegt war
+       die Begrenzung selbst; ihr RUF war es nicht.
+       WARUM SIE NICHT AM ERGEBNIS ZU SEHEN IST: jsdom rechnet keine Hoehen,
+       also steigt limitCloud() gleich am Anfang aus und setzt nichts. Am
+       fertigen Dokument ist zwischen „begrenzt" und „nicht begrenzt" kein
+       Unterschied zu messen.
+       DESHALB DER MITSCHREIBER: die Funktion wird gegen eine getauscht, die
+       jeden Ruf notiert und dann die echte ruft. Sie ist eine
+       Funktionsdeklaration auf oberster Ebene und liegt damit am Fenster --
+       der Tausch greift auch fuer die Rufe INNERHALB der Datei.
+       GEZEICHNET WIRD DANACH NEU, und zwar ueber `renderDetail`, wie an jeder
+       anderen Stelle dieses Prueflaufs auch. */
+    const uCalls = [];
+    const uReal = uDom.w.limitCloud;
+    uDom.w.limitCloud = (box, rows) => {
+      uCalls.push({ cls: box && box.className, rows });
+      return uReal(box, rows);
+    };
+    await uDom.w.renderDetail(1);
+    await new Promise(r => setTimeout(r, 250));
+    uDom.w.limitCloud = uReal;
+    check('Und der Aufbau begrenzt die Marken eines Testtags auf EINE Reihe',
+      uCalls.some(c => /(^|\s)ttags(\s|$)/.test(c.cls || '') && c.rows === 1),
+      JSON.stringify(uCalls.slice(0, 8)));
     uDom.w.close();
   }
 
