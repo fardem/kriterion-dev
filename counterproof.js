@@ -8597,22 +8597,33 @@ const REGRESSIONS = [
     expected: 'Die Sicherungsprobe — 0.29.0'
   },
   {
-    /* DER FREMDE SCHLUESSEL WIRD DURCHGEREICHT. Dann steht am Bildschirm ein
-       500 mit dem Wortlaut von SQLite, statt der Auskunft, auf die es
-       ankommt (F4). */
-    nr: '871', name: 'Der fremde Schluessel wird als Fehler durchgereicht',
+    /* DER FREMDE SCHLUESSEL WIRD FUER LESBAR ERKLAERT. Die Karte saegte dann
+       „Eintraege 0", und wer das sieht, haelt seine Sicherung fuer leer statt
+       fuer unlesbar -- die schlimmste der drei moeglichen Antworten.
+       ER WIRFT NICHT MEHR, UND DAS IST EIN FUND DIESER RUNDE: der erste
+       Entwurf ersetzte die Zeile durch ein `throw`, und der Lauf RISS AB
+       (359 s, kein einziger roter Punkt). Eine Gegenprobe, die abreisst,
+       belegt nichts -- sie muss so greifen, dass die Oberflaeche danach noch
+       laeuft. */
+    nr: '871', name: 'Der fremde Schluessel wird fuer lesbar erklaert',
     file: 'server.js',
     search: "    return res.json({ ok: false, reason: 'key', at: file.time, bytes: file.bytes, nr });",
-    replacement: "    throw new Error('nicht lesbar');",
+    replacement: "    return res.json({ ok: true, nr, at: file.time, bytes: file.bytes, itemCount: 0, photoCount: 0, userCount: 0, contentUntil: null });",
     expected: 'Die Sicherungsprobe — 0.29.0'
   },
   {
-    /* DIE NUMMER WIRD GEGLAUBT STATT GEPRUEFT. `files[0 - 1]` ist undefined
-       und faende erst die naechste Zeile; eine Zahl mit Komma greift daneben. */
-    nr: '872', name: 'Die Nummer der Sicherung wird nicht geprueft',
+    /* EINE NUMMER, DIE ES NICHT GIBT, WIRD ZU EINER LEEREN SICHERUNG. Dann
+       antwortet die Probe auf #9999 mit „Eintraege 0" statt mit einer Absage,
+       und wer sich vertippt, haelt eine Kopie fuer leer, die es gar nicht gibt.
+       ER ZIELT AUF DIE ABSAGE UND NICHT AUF DIE ZAHLENPRUEFUNG DAVOR, und das
+       ist ein Fund dieser Runde: der erste Entwurf nahm `Number.isInteger`
+       heraus und blieb STUMM -- `files[9999 - 1]`, `files[0 - 1]` und
+       `files[NaN - 1]` sind alle drei `undefined`, und die Absage kam
+       trotzdem. Ein Griff ohne sichtbare Wirkung belegt nichts. */
+    nr: '872', name: 'Eine Nummer, die es nicht gibt, wird zur leeren Sicherung',
     file: 'server.js',
-    search: "  const file = Number.isInteger(nr) && nr >= 1 && nr <= files.length ? files[nr - 1] : null;",
-    replacement: "  const file = files[nr - 1] || null;",
+    search: "  if (!file) return res.status(404).json({ error: t(localeOf(req), 'server.backupGone') });",
+    replacement: "  if (!file) return res.json({ ok: true, nr, at: 0, bytes: 0, itemCount: 0, photoCount: 0, userCount: 0, contentUntil: null });",
     expected: 'Die Sicherungsprobe — 0.29.0'
   },
   {
