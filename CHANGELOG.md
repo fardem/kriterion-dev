@@ -29,6 +29,20 @@ bleiben in der Form ihrer Zeit.*
 
 *Hier wird mitgeschrieben, während gebaut wird.*
 
+## [0.30.2] - 2026-09-12
+
+> **NICHTS ZU TUN.** Kein Schemaanteil, kein Migrationsblock, das
+> Austauschformat bleibt 16. Einspielen und fertig.
+
+### Behoben
+
+- **Die aufgeklappte Tagwolke setzte jeden Tag auf eine eigene Zeile, sobald ein Tagfilter griff** — auf Deutsch war die Tagzeile dann 845 Pixel hoch. Jetzt sind es 321.
+
+### Geändert
+
+- **„mehr"/„weniger" und „Tags zurücksetzen" sind Zeichen statt Wörter** — ein Haken und der Kreispfeil, beide mit ihrem Wort im Titel. Sie stehen jetzt unter der Beschriftung statt am Zeilenende.
+- **Der Umschalter „und/Oder" steht unter der Klappe** — sichtbar, sobald die Wolke offen ist oder zwei Tags greifen.
+
 ## [0.30.1] - 2026-09-12
 
 > **NICHTS ZU TUN.** Kein Schemaanteil, kein Migrationsblock, das
@@ -43,10 +57,10 @@ bleiben in der Form ihrer Zeit.*
 ### Geändert
 
 - **Das Fälligkeitsdatum färbt nach dem Zustand und nicht mehr nur nach der Frist** — offen blau, überschritten rot, erledigt und Frist gehalten grün. Eine zu spät erledigte Aufgabe bleibt rot.
-- **„TAGS" und „und/Oder" stehen oben in ihrer Zeile** statt in der Mitte und am unteren Ende der Markenwolke.
-- **Die Marken sind am Telefon eine Stufe kleiner** — vier statt drei in der zugeklappten Reihe, und der offene Filterkasten ist 111 Pixel flacher.
+- **„TAGS" und „und/Oder" stehen oben in ihrer Zeile** statt in der Mitte und am unteren Ende der Tagwolke.
+- **Die Tags sind am Telefon eine Stufe kleiner** — vier statt drei in der zugeklappten Reihe, und der offene Filterkasten ist 111 Pixel flacher.
 - **Der Wochentag fällt an einer Testtagzeile weg, wenn der Platz fehlt.**
-- **Eine Testtagzeile ordnet sich nach ihrem Inhalt** — ohne Marken stehen die Sterne rechts; mit Marken rutschen sie in die zweite Zeile; sind es zu viele Marken, steht rechts von ihnen „mehr".
+- **Eine Testtagzeile ordnet sich nach ihrem Inhalt** — ohne Tags stehen die Sterne rechts; mit Tags rutschen sie in die zweite Zeile; sind es zu viele Tags, steht rechts von ihnen „mehr".
 - **Die Sterne sind am Telefon eine Stufe kleiner.**
 - **In den Verwaltungslisten steht nur noch die Zahl** — das Wort steht im Titel der Zelle, und der Name hat wieder Platz.
 - **„Inhalt bis" heißt „Stand von"** *(auf Deutsch; Englisch und Türkisch folgen)*.

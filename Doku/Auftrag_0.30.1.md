@@ -107,9 +107,9 @@ Stand der Sammlung.
 | # | Frage | Vorschlag von Claude | Antwort |
 |---|---|---|---|
 | **F1** | **„dann wäre es 2der 2" — was heißt der Satz?** *Er steht zwischen den beiden Bitten und dem Vorschlag zur Schriftgröße* | **Keiner.** *Er kann „beide zusammen ergeben zwei Zeilen statt zwei" heißen, „zwei von zwei erledigt" — oder etwas Drittes.* **Diese Zeile bitte nur beantworten** |**„erste zeile unter dem tag, aber insgesamt betrachtet wäre es dann die 2 zeile."** *Betreiber, 12. September 2026.* **Gemeint ist die erste Zeile UNTER der Beschriftung, und über den ganzen Kasten gezählt ist das die zweite** — *also genau die Bauform aus F2* |
-| **F2** | **Der Umschalter und/oder rückt unter „TAGS"** *(heute steht er am UNTEREN Ende der Wolke)* | **Ja — und es sind zwei Zeilen Raster.** *Heute spannt die Wolke über beide Rasterzeilen und bestimmt damit die Höhe; der Umschalter sitzt in Zeile 2 und rutscht mit ihr nach unten.* **`grid-template-rows: auto 1fr` und `align-self: start` am Umschalter** — *dann ist Zeile 1 so hoch wie die Beschriftung, und Zeile 2 beginnt unmittelbar darunter* |**UNTER „TAGS", EIGENE ZEILE.** *Betreiber, 12. September 2026.* **Zeile 1 wird nur so hoch wie die Beschriftung, der Umschalter sitzt unmittelbar darunter** — *und die Markenwolke daneben bleibt unberührt. Die Fassung „neben der Beschriftung" fällt an der Breite: sie kostet nach der Messung aus 0.30.0 etwa einen sichtbaren Tag* |
-| **F3** | **Die Marken sollen in der ersten Zeile anfangen.** *Auf dem Bild steht die erste Markenreihe eine Spur tiefer als die Beschriftung daneben* | **Ja — aber zuerst gemessen, woher der Abstand kommt.** *Es kommt entweder aus dem Zeilenabstand des Filterrasters oder aus der Höhe der Beschriftungszeile, und das sind zwei verschiedene Reparaturen.* **Vorgelegt wird die Zahl, dann die Zeile** |**ERST MESSEN, DANN DIE ZEILE.** *Betreiber, 12. September 2026.* *BA 1 legt vor, woher der Abstand kommt — am falschen Ende gezogen verschiebt er die Kategorienzeile darüber mit* **GEMESSEN — UND DIE MESSUNG HAT DIE LESART BERICHTIGT:** *die Marken stehen längst in der ersten Zeile (Wolke und erste Pille beginnen beide bei y = 327, dem oberen Rand der Zeile). Es sind die BESCHRIFTUNG (y = 423) und der UMSCHALTER (y = 545), die absacken* — **zwei Rasterzeilen zu je 212 px, weil die Wolke über beide spannt und die Höhe bestimmt.** *F2 und F3 sind damit eine einzige Reparatur* |
-| **F4** | **Wie viel kleiner werden die Marken?** *Der Betreiber: „eine bis zwei Stufen … natürlich sollten sie noch lesbar sein"* | **Gemessen und vorgelegt, nicht geschätzt — und mit einer dritten Fassung, die er nicht genannt hat.** *Eine Marke trägt heute `.77rem` in **Festschrift** (`--mono`), eine Kategorie `.83rem` in gewöhnlicher Schrift.* **Die Festschrift ist die eigentliche Breite:** dieselbe Zahl Zeichen braucht in ihr spürbar mehr Platz. **Drei Fassungen werden gemessen:** *eine Stufe kleiner · zwei Stufen kleiner · **gleiche Größe, aber ohne Festschrift**.* **Die dritte könnte am meisten bringen und am wenigsten kosten** — sie nimmt aber ein Merkmal weg, an dem man eine Marke von einer Kategorie unterscheidet |**ALLE DREI FASSUNGEN MESSEN UND VORLEGEN.** *Betreiber, 12. September 2026.* **Eine Stufe · zwei Stufen · gleiche Größe ohne Festschrift** — *vorgelegt wird, wie viele Marken je Fassung mehr sichtbar werden, und entschieden wird an der Zahl* **GEMESSEN, VORGELEGT, ENTSCHIEDEN: V1 — eine Stufe.** *Betreiber, 12. September 2026.* *Zugeklappt stehen damit **4 statt 3** Marken in der einen Reihe, die Pille misst 27 statt 34 px, und der offene Filterkasten fällt von **654 auf 543**.* **V3 IST WIDERLEGT** — *die Festschrift allein macht die breiteste Marke um 9 px schmaler und ändert an Reihen und Höhe gar nichts. Der Gewinn steckt im Polster und nicht in der Schrift* |
+| **F2** | **Der Umschalter und/oder rückt unter „TAGS"** *(heute steht er am UNTEREN Ende der Wolke)* | **Ja — und es sind zwei Zeilen Raster.** *Heute spannt die Wolke über beide Rasterzeilen und bestimmt damit die Höhe; der Umschalter sitzt in Zeile 2 und rutscht mit ihr nach unten.* **`grid-template-rows: auto 1fr` und `align-self: start` am Umschalter** — *dann ist Zeile 1 so hoch wie die Beschriftung, und Zeile 2 beginnt unmittelbar darunter* |**UNTER „TAGS", EIGENE ZEILE.** *Betreiber, 12. September 2026.* **Zeile 1 wird nur so hoch wie die Beschriftung, der Umschalter sitzt unmittelbar darunter** — *und die Tagwolke daneben bleibt unberührt. Die Fassung „neben der Beschriftung" fällt an der Breite: sie kostet nach der Messung aus 0.30.0 etwa einen sichtbaren Tag* |
+| **F3** | **Die Tags sollen in der ersten Zeile anfangen.** *Auf dem Bild steht die erste Tagsreihe eine Spur tiefer als die Beschriftung daneben* | **Ja — aber zuerst gemessen, woher der Abstand kommt.** *Es kommt entweder aus dem Zeilenabstand des Filterrasters oder aus der Höhe der Beschriftungszeile, und das sind zwei verschiedene Reparaturen.* **Vorgelegt wird die Zahl, dann die Zeile** |**ERST MESSEN, DANN DIE ZEILE.** *Betreiber, 12. September 2026.* *BA 1 legt vor, woher der Abstand kommt — am falschen Ende gezogen verschiebt er die Kategorienzeile darüber mit* **GEMESSEN — UND DIE MESSUNG HAT DIE LESART BERICHTIGT:** *die Tags stehen längst in der ersten Zeile (Wolke und erste Pille beginnen beide bei y = 327, dem oberen Rand der Zeile). Es sind die BESCHRIFTUNG (y = 423) und der UMSCHALTER (y = 545), die absacken* — **zwei Rasterzeilen zu je 212 px, weil die Wolke über beide spannt und die Höhe bestimmt.** *F2 und F3 sind damit eine einzige Reparatur* |
+| **F4** | **Wie viel kleiner werden die Tags?** *Der Betreiber: „eine bis zwei Stufen … natürlich sollten sie noch lesbar sein"* | **Gemessen und vorgelegt, nicht geschätzt — und mit einer dritten Fassung, die er nicht genannt hat.** *Eine Tag trägt heute `.77rem` in **Festschrift** (`--mono`), eine Kategorie `.83rem` in gewöhnlicher Schrift.* **Die Festschrift ist die eigentliche Breite:** dieselbe Zahl Zeichen braucht in ihr spürbar mehr Platz. **Drei Fassungen werden gemessen:** *eine Stufe kleiner · zwei Stufen kleiner · **gleiche Größe, aber ohne Festschrift**.* **Die dritte könnte am meisten bringen und am wenigsten kosten** — sie nimmt aber ein Merkmal weg, an dem man eine Tag von einer Kategorie unterscheidet |**ALLE DREI FASSUNGEN MESSEN UND VORLEGEN.** *Betreiber, 12. September 2026.* **Eine Stufe · zwei Stufen · gleiche Größe ohne Festschrift** — *vorgelegt wird, wie viele Tags je Fassung mehr sichtbar werden, und entschieden wird an der Zahl* **GEMESSEN, VORGELEGT, ENTSCHIEDEN: V1 — eine Stufe.** *Betreiber, 12. September 2026.* *Zugeklappt stehen damit **4 statt 3** Tags in der einen Reihe, die Pille misst 27 statt 34 px, und der offene Filterkasten fällt von **654 auf 543**.* **V3 IST WIDERLEGT** — *die Festschrift allein macht die breiteste Tag um 9 px schmaler und ändert an Reihen und Höhe gar nichts. Der Gewinn steckt im Polster und nicht in der Schrift* |
 
 ### Die Testtagzeile im Eintrag — Befunde 3 und 4
 
@@ -117,9 +117,9 @@ Stand der Sammlung.
 |---|---|---|---|
 | **F5** | **Der Wochentag fällt weg, wenn kein Platz ist** *(„Dienstag", „Sonntag", „Mittwoch")* | **Ja — über die BREITE und nicht über den Gerätenamen.** *`@container`, wie die Vokabelkarte in 0.30.0.* **Auf einem Ultra, einem Max oder einem Tablet steht er damit weiter da, ohne dass irgendwo ein Gerätename im Quelltext steht** |**AN DER BREITE, ÜBER `@container`.** *Betreiber, 12. September 2026.* **Kein Gerätename im Quelltext** — *auf einem Ultra, einem Max oder einem Tablet steht der Wochentag weiter da* |
 | **F6** | **Fällt er ganz — oder kürzt er auf „Di."?** *Der Betreiber hat „nicht anzeigen" gesagt* | **Ganz.** *Drei Zeichen sparen nur die halbe Breite und bringen dafür eine zweite Schreibweise desselben Tages in die Oberfläche.* **Und das Datum steht daneben — der Wochentag ist die Bequemlichkeit, nicht die Auskunft** |**GANZ WEG.** *Betreiber, 12. September 2026.* *Drei Zeichen sparen nur die halbe Breite und brächten eine zweite Schreibweise desselben Tages in die Oberfläche.* **Das Datum steht daneben** |
-| **F7** | **Die drei Fälle der Testtagzeile** *(keine Marken → Sterne rechts; Marken und es passt nicht → Sterne in Zeile 2; zu viele Marken → „mehr" oder rollbar)* | **Alle drei bauen.** *Der erste ist der eigentliche Fehler: `.ttags` nimmt sich die ganze übrige Breite, **auch wenn gar keine Marke darin steht**, und drückt die Sterne in die zweite Zeile, obwohl neben dem Datum die halbe Zeile frei ist* |**ALLE DREI.** *Betreiber, 12. September 2026.* *Der erste ist der eigentliche Fehler, die beiden anderen sind seine Folgeregeln — und der Handgriff für den dritten (`limitCloud()`) steht schon da* |
+| **F7** | **Die drei Fälle der Testtagzeile** *(keine Tags → Sterne rechts; Tags und es passt nicht → Sterne in Zeile 2; zu viele Tags → „mehr" oder rollbar)* | **Alle drei bauen.** *Der erste ist der eigentliche Fehler: `.ttags` nimmt sich die ganze übrige Breite, **auch wenn gar keine Tag darin steht**, und drückt die Sterne in die zweite Zeile, obwohl neben dem Datum die halbe Zeile frei ist* |**ALLE DREI.** *Betreiber, 12. September 2026.* *Der erste ist der eigentliche Fehler, die beiden anderen sind seine Folgeregeln — und der Handgriff für den dritten (`limitCloud()`) steht schon da* |
 | **F8** | **„Haben Tage datum und sie passen nicht in eine reihe" — ist „MARKEN" gemeint?** | **Ja, so gelesen.** *Sonst wäre der Fall derselbe wie der erste, und die beiden Sätze widersprächen sich.* **Es ist eine Lesart und keine Gewissheit — bitte bestätigen** |**JA, MARKEN.** *Betreiber, 12. September 2026 — er hat den ganzen Absatz neu geschrieben:* „Haben **testtage Tags** und sie passen nicht in eine reihe …". **Die Lesart war richtig und ist jetzt keine Lesart mehr** |
-| **F9** | **Zu viele Marken: ein Knopf „mehr" — oder rollbar?** | **Rollbar, und zwar nur am Telefon.** *Ein Knopf „mehr" ist eine dritte Bedienung an einer Zeile, die schon zwei hat (Marke abräumen, Marke anlegen); rollen ist keine Bedienung.* **Der Preis: rollbar versteckt, dass da noch etwas ist** — dagegen hilft ein angeschnittenes letztes Stück am Rand, und das kostet keine Bedienung |**„MEHR" — und der Vorschlag fällt.** *Der Betreiber hat nicht entschieden, sondern eine Regel gegeben:* „Beides machbar. welches eher in frage kommt, kommt darauf an welche form wir im eintragsview welche benutzt haben." **Der Eintragsview benutzt „mehr"** — *die Tagwolke steht dort auf drei Reihen begrenzt mit „mehr"/„weniger" darunter* (`limitCloud()`, `public/app.js:6895`). **Und der Knopf steht rechts VON DEN MARKEN**, nicht am Zeilenende |
+| **F9** | **Zu viele Tags: ein Knopf „mehr" — oder rollbar?** | **Rollbar, und zwar nur am Telefon.** *Ein Knopf „mehr" ist eine dritte Bedienung an einer Zeile, die schon zwei hat (Tag abräumen, Tag anlegen); rollen ist keine Bedienung.* **Der Preis: rollbar versteckt, dass da noch etwas ist** — dagegen hilft ein angeschnittenes letztes Stück am Rand, und das kostet keine Bedienung |**„MEHR" — und der Vorschlag fällt.** *Der Betreiber hat nicht entschieden, sondern eine Regel gegeben:* „Beides machbar. welches eher in frage kommt, kommt darauf an welche form wir im eintragsview welche benutzt haben." **Der Eintragsview benutzt „mehr"** — *die Tagwolke steht dort auf drei Reihen begrenzt mit „mehr"/„weniger" darunter* (`limitCloud()`, `public/app.js:6895`). **Und der Knopf steht rechts VON DEN MARKEN**, nicht am Zeilenende |
 
 ### Der Bewertungskasten — Befund 5
 
@@ -146,7 +146,7 @@ Stand der Sammlung.
 | **F17** | **Bleibt der Durchstrich am erledigten Datum?** | **Ja.** *Farbe nach Zustand und Durchstrich schließen einander nicht aus, und der Augenschein von 0.30.0 hat den Durchstrich ausdrücklich festgehalten.* **Wer ihn wegnimmt, nimmt einen belegten Zustand weg** |**ER BLEIBT.** *Betreiber, 12. September 2026.* *Die Farbe sagt „gehalten oder gerissen", der Durchstrich sagt „erledigt".* **Ohne ihn wären eine offene und eine spät erledigte Aufgabe beide rot und sonst nichts** |
 | **F18** | **„Datum von Aufgabe soll durch Anklicken editierbar sein" — hat das bei Ihnen NICHT funktioniert?** | **Es ist seit 0.29.0 genau so gebaut**: *der Verweis wird beim Klick zum Datumsfeld und öffnet den Kalender gleich mit; erlaubt ist es dem Verfasser und dem Admin (`manage = mine \|\| ADMIN`).* **Deshalb ist das eine Rückfrage und keine Bestellung:** *ging es nicht — dann ist das ein **Fehler** und die wichtigste Zeile dieser Runde. War es nur nicht auffindbar — dann ist es die Auffindbarkeit, und die ist eine andere Reparatur* |**ERLEDIGT — die Frage fällt.** *Betreiber, 12. September 2026:* „F18 fällt weg wenn du es schon gebaut hast. ehrlich ich habe es nicht probiert sondern angenommen das es nicht so sei." **Es ist seit 0.29.0 gebaut, also ist nichts zu bauen und nichts zu suchen.** *Kein Fehler — eine Annahme* |
 | **F19** | **Soll eine ERLEDIGTE Aufgabe OHNE Datum noch eines bekommen können?** *Der Knopf steht heute bei `task \|\| (done && dueDate)` — an einer erledigten ohne Datum steht gar nichts* | **Ja.** *„Jederzeit editierbar" heißt auch „nachtragbar".* **Der Betreiber nennt den Fall selbst: man verschätzt sich und spricht ein neues Datum ab** — und das kann nach dem Abhaken passieren |**NACHTRAGEN WIRD ERLAUBT.** *Betreiber, 12. September 2026.* *„Jederzeit editierbar" heißt auch „nachtragbar" — und der Fall, den der Betreiber selbst nennt (man verschätzt sich und spricht ein neues Datum ab), tritt oft erst nach dem Abhaken ein* |
-| **F20** | **Das Datum sieht heute NUR, wer es ändern darf** *(Befund 8: der ganze Markenkasten steht hinter `manage`)*. **Soll es jeder sehen, der den Eintrag sehen darf?** | **Ja — sehen ja, ändern nein.** *In der Ansicht „Offen" steht dasselbe Datum schon heute für jeden da; nur am Kommentar selbst fehlt es.* **Eine Frist, die nur ihr Verfasser sieht, ist in einer Installation mit mehreren Zugängen keine Frist** |**SEHEN JA, ÄNDERN NEIN.** *Betreiber, 12. September 2026.* **Die Klemme gehört an die Bedienung und nicht an die Auskunft.** *In der Ansicht „Offen" steht das Datum schon heute für jeden da* |
+| **F20** | **Das Datum sieht heute NUR, wer es ändern darf** *(Befund 8: der ganze Tagkasten steht hinter `manage`)*. **Soll es jeder sehen, der den Eintrag sehen darf?** | **Ja — sehen ja, ändern nein.** *In der Ansicht „Offen" steht dasselbe Datum schon heute für jeden da; nur am Kommentar selbst fehlt es.* **Eine Frist, die nur ihr Verfasser sieht, ist in einer Installation mit mehreren Zugängen keine Frist** |**SEHEN JA, ÄNDERN NEIN.** *Betreiber, 12. September 2026.* **Die Klemme gehört an die Bedienung und nicht an die Auskunft.** *In der Ansicht „Offen" steht das Datum schon heute für jeden da* |
 
 ### Der Wortlaut — Befund 1
 
@@ -186,8 +186,8 @@ Stand der Sammlung.
 
 **Gefahren am 12. September 2026 in echtem Chromium bei 390 × 844,
 `deviceScaleFactor: 3`, `isMobile: true`, Sprache de-DE** — an zwei
-Installationen mit **denselben** Daten: dreißig Marken, drei Kriterien mit
-langen Namen, drei Testtage *(ohne Marken, mit zweien, mit sieben)*, sechs
+Installationen mit **denselben** Daten: dreißig Tags, drei Kriterien mit
+langen Namen, drei Testtage *(ohne Tags, mit zweien, mit sieben)*, sechs
 Aufgaben durch alle Zustände der Farbtafel. **Die eine trägt zwei Zugänge, die
 andere einen** — nur darin unterscheiden sie sich.
 
@@ -199,7 +199,7 @@ andere einen** — nur darin unterscheiden sie sich.
 |---|---|---|
 | die Kategorienzeile endet | 317 | |
 | **die Tagzeile beginnt** | **327** | 433 |
-| **die Markenwolke beginnt** | **327** | 433 |
+| **die Tagwolke beginnt** | **327** | 433 |
 | „TAGS" steht bei | **423** | 18 |
 | „und/Oder" steht bei | **545** | 20 |
 
@@ -212,9 +212,9 @@ andere einen** — nur darin unterscheiden sie sich.
 > **DAMIT SIND F2 UND F3 EINE EINZIGE REPARATUR** — und die beiden Pfeile des
 > Betreibers zeigen auf genau dieselbe Ursache.
 
-### Die fünf Markenfassungen
+### Die fünf Tagfassungen
 
-| Fassung | Marken in der EINEN Reihe *(zugeklappt)* | Pillenhöhe | Wolke offen | Filterkasten offen |
+| Fassung | Tags in der EINEN Reihe *(zugeklappt)* | Pillenhöhe | Wolke offen | Filterkasten offen |
 |---|---|---|---|---|
 | **V0 heute** *(11,55px Festschrift, Polster 7/13)* | **3** | 34 px | 433 | 654 |
 | **V1 eine Stufe** *(10,8px, Polster 4/10)* | **4** | 27 | 321 | **543** |
@@ -224,12 +224,12 @@ andere einen** — nur darin unterscheiden sie sich.
 
 > **V3 IST WIDERLEGT — und zwar die Fassung, von der dieser Auftrag geschrieben
 > hat, sie „könnte am meisten bringen und am wenigsten kosten".** *Die
-> Festschrift allein macht die breiteste Marke um 9 px schmaler und ändert an
+> Festschrift allein macht die breiteste Tag um 9 px schmaler und ändert an
 > Reihen und Höhe **gar nichts**.* **Der Gewinn steckt im Polster und nicht in
 > der Schrift.**
 >
 > **UND V2 KAUFT NICHTS MEHR EIN, WO ES ZÄHLT:** *in der zugeklappten Reihe —
-> dem Normalzustand — stehen auch dort vier Marken und keine fünf.* **Gewählt
+> dem Normalzustand — stehen auch dort vier Tags und keine fünf.* **Gewählt
 > ist V1** *(Betreiber, 12. September 2026)*.
 
 ### Der Bewertungskasten — beide Fassungen, drei Sterngrößen
@@ -312,9 +312,9 @@ bestimmt.*
 
 | | |
 |---|---|
-| **1** | **Die Marken sollen in der ersten Zeile anfangen** und dort richtig ausgerichtet stehen |
+| **1** | **Die Tags sollen in der ersten Zeile anfangen** und dort richtig ausgerichtet stehen |
 | **2** | **Der Umschalter und/oder gehört unmittelbar unter „TAGS"** — also in die erste Zeile, nicht ans untere Ende der Wolke |
-| **3** | **Die Marken dürfen ein bis zwei Stufen kleiner sein als die übrigen Pillen** *(Kategorien)* — es gibt deutlich mehr von ihnen, und so passen mehr hinein. **Grenze: lesbar müssen sie bleiben** |
+| **3** | **Die Tags dürfen ein bis zwei Stufen kleiner sein als die übrigen Pillen** *(Kategorien)* — es gibt deutlich mehr von ihnen, und so passen mehr hinein. **Grenze: lesbar müssen sie bleiben** |
 
 > **DIE UNKLARE STELLE IST AUFGELÖST — der Betreiber am 12. September 2026:**
 > *„erste zeile unter dem tag, aber insgesamt betrachtet wäre es dann die 2
@@ -336,7 +336,7 @@ bestimmt.*
 
 **Was dasteht:** `weekday(day)` *(`public/app.js:224`)* setzt den ausgeschriebenen
 Wochentag in `.tweek` *(`public/app.js:7443`)*, und `.tweek` steht in jeder
-Testtagzeile zwischen Datum und Marken *(`public/style.css:1686`)*. **Auf dem
+Testtagzeile zwischen Datum und Tags *(`public/style.css:1686`)*. **Auf dem
 Bild sind das „Dienstag", „Sonntag", „Mittwoch" — und sie kosten die Breite, an
 der die Zeile umbricht.**
 
@@ -368,20 +368,20 @@ ohne dass irgendwo ein Gerätename im Quelltext steht.*
 > Lesart war richtig, und sie ist jetzt keine Lesart mehr** *(F8)*.
 
 **Was dasteht:** `.trow` ist ein Flexkasten aus Datum (`.tdate`), Wochentag
-(`.tweek`), Markenkasten (`.ttags`, `flex: 1`), Sternen und Papierkorb; schmal
-bekommt er `flex-wrap: wrap` *(`public/style.css:4465`)*. **Der Markenkasten
-nimmt sich die ganze übrige Breite — auch dann, wenn gar keine Marke darin
+(`.tweek`), Tagkasten (`.ttags`, `flex: 1`), Sternen und Papierkorb; schmal
+bekommt er `flex-wrap: wrap` *(`public/style.css:4465`)*. **Der Tagkasten
+nimmt sich die ganze übrige Breite — auch dann, wenn gar keine Tag darin
 steht.** *Deshalb rutschen die Sterne im untersten Beispiel des Bildes
-(31.12.2025, keine Marken) in die zweite Zeile und stehen dort links, obwohl
+(31.12.2025, keine Tags) in die zweite Zeile und stehen dort links, obwohl
 neben dem Datum die halbe Zeile frei ist.*
 
 **Drei Fälle, und sie sind eine Rangfolge:**
 
 | | Fall | Soll |
 |---|---|---|
-| **1** | **Der Tag hat keine Marken** | **Sterne rechts vom Datum und rechtsbündig** — eine Zeile, kein Umbruch |
-| **2** | **Der Tag hat Marken, und Datum + Marken + Sterne passen nicht in eine Zeile** | **Die Sterne rutschen in die zweite Zeile** *(wie im untersten Beispiel)*, die erste trägt dann **nur Datum und Marken** |
-| **3** | **Es sind so viele Marken, dass sie nicht in eine Zeile passen** | **Rechts VON DEN MARKEN ein Knopf „mehr"** — *oder* am Telefon **rollbar** |
+| **1** | **Der Tag hat keine Tags** | **Sterne rechts vom Datum und rechtsbündig** — eine Zeile, kein Umbruch |
+| **2** | **Der Tag hat Tags, und Datum + Tags + Sterne passen nicht in eine Zeile** | **Die Sterne rutschen in die zweite Zeile** *(wie im untersten Beispiel)*, die erste trägt dann **nur Datum und Tags** |
+| **3** | **Es sind so viele Tags, dass sie nicht in eine Zeile passen** | **Rechts VON DEN MARKEN ein Knopf „mehr"** — *oder* am Telefon **rollbar** |
 
 > **FALL 3 TRUG EIN ODER, UND DER BETREIBER HAT DIE ENTSCHEIDUNG NICHT SELBST
 > GETROFFEN, SONDERN EINE REGEL DAFÜR GEGEBEN:** *„Beides machbar. welches eher
@@ -501,7 +501,7 @@ erledigt durchgestrichen* *(`public/style.css:1941–1944`, `dueOf()` in
 > | | blau | grün |
 > |---|---|---|
 > | **die Kante des Kommentars** | `.cmt.task` | `.cmt.done` |
-> | **die Marke „ToDo"** | `.mark.task.on` | `.mark.task.on.done` |
+> | **die Tag „ToDo"** | `.mark.task.on` | `.mark.task.on.done` |
 > | **das Datum** | **— fehlt** | **— fehlt** |
 >
 > *Im Stylesheet steht dazu schon der Satz, der den Befund begründet:* **„Ein
@@ -564,7 +564,7 @@ steht als eigener Befund unten.*
 Feld gemeldet, sondern beim Prüfen der Bitte „durch Anklicken editierbar"
 gefunden*
 
-**Was dasteht:** der ganze Markenkasten einer Kommentarzeile — Anheftung, Art,
+**Was dasteht:** der ganze Tagkasten einer Kommentarzeile — Anheftung, Art,
 Aufgabe **und das Fälligkeitsdatum** — steht hinter einer einzigen Klemme:
 
 ```
@@ -603,8 +603,8 @@ hinter deren Klemme — das Datum braucht nicht nur sie)*.
 
 | | was | hängt an |
 |---|---|---|
-| **BA 1** | **GEMESSEN WIRD ZUERST — und gebaut wird danach.** *Der Messstand aus 0.30.0 wird wiederverwendet: zwei Server an **demselben** Datenverzeichnis, echtes Chromium bei 390 × 844, `deviceScaleFactor: 3`, `isMobile: true`, Sprache de-DE — nur der ausgelieferte Stand unterscheidet sich.* **Vier Zahlen werden vorgelegt, bevor eine Zeile entsteht:** der Abstand über der Markenwolke *(F3)*, die drei Markengrößen *(F4)*, die drei Sterngrößen *(F10)* und beide Fassungen der Sternzeile *(F11)* | F3, F4, F10, F11 |
-| **BA 2** | **Die Tagzeile** — der Umschalter rückt unter die Beschriftung, die Wolke beginnt oben, die Marken werden kleiner | F2, F3, F4 |
+| **BA 1** | **GEMESSEN WIRD ZUERST — und gebaut wird danach.** *Der Messstand aus 0.30.0 wird wiederverwendet: zwei Server an **demselben** Datenverzeichnis, echtes Chromium bei 390 × 844, `deviceScaleFactor: 3`, `isMobile: true`, Sprache de-DE — nur der ausgelieferte Stand unterscheidet sich.* **Vier Zahlen werden vorgelegt, bevor eine Zeile entsteht:** der Abstand über der Tagwolke *(F3)*, die drei Taggrößen *(F4)*, die drei Sterngrößen *(F10)* und beide Fassungen der Sternzeile *(F11)* | F3, F4, F10, F11 |
+| **BA 2** | **Die Tagzeile** — der Umschalter rückt unter die Beschriftung, die Wolke beginnt oben, die Tags werden kleiner | F2, F3, F4 |
 | **BA 3** | **Die Testtagzeile** — der Wochentag fällt bei zu wenig Platz, und die Zeile ordnet sich nach dem, was in ihr steht: drei Fälle, eine Rangfolge | F5 bis F9 |
 | **BA 4** | **Der Bewertungskasten** — kleinere Sterne, und je nach Messung fällt oder bleibt die zweizeilige Sternzeile | F10, F11 |
 | **BA 5** | **Die Zähler der Verwaltungslisten** — **überall nur die Zahl, keine Breitenregel** *(F24)*; das Wort trägt der Titel der Zelle, und wo der Kartentext es nicht selbst nennt, bleibt es stehen | F12, F13, F14, F24 |
@@ -647,9 +647,9 @@ ihrer Schreibweise.**
 | | Zusage |
 |---|---|
 | **1** | **Der Umschalter und/oder steht in derselben Rasterzeile wie die Beschriftung** — geprüft an den gerechneten Rasterangaben und nicht am Vorhandensein der Regel |
-| **2** | **Die Marke trägt eine kleinere Schrift als die Kategorie** — mit der Zahl, die BA 1 gemessen hat, und nicht mit „kleiner als vorher" |
+| **2** | **Die Tag trägt eine kleinere Schrift als die Kategorie** — mit der Zahl, die BA 1 gemessen hat, und nicht mit „kleiner als vorher" |
 | **3** | **Der Wochentag steht breit da und schmal nicht** — zwei Fassungen, dasselbe Dokument |
-| **4** | **Die Testtagzeile in ihren drei Fällen** — ohne Marken, mit Marken und mit zu vielen; jeder Fall eine eigene Prüfung |
+| **4** | **Die Testtagzeile in ihren drei Fällen** — ohne Tags, mit Tags und mit zu vielen; jeder Fall eine eigene Prüfung |
 | **5** | **Der Zähler ist schmal die Zahl und breit der Satz** — und der Titel der Zelle trägt das Wort in beiden Fassungen |
 | **6** | **Die Farbtafel des Datums in allen fünf Fällen** *(offen/später, offen/heute, offen/überfällig, erledigt/gehalten, erledigt/überfällig)* — jede Farbe einzeln |
 | **7** | **Das Datum steht auch da, wo es nicht geändert werden darf** — ein Kommentar eines anderen Zugangs, gelesen ohne Adminrecht, zeigt die Frist und keinen Knopf |
@@ -659,7 +659,7 @@ ihrer Schreibweise.**
 > stumme Gegenprobe ist ein Fund* *(Auflage 1 des Fahrplans)*.
 >
 > **UND JEDER GRIFF IN EIN NACHGEBAUTES DOKUMENT WIRD GEKLEMMT** *(Stolperstein
-> 161)*. **0.30.0 hat dafür neun Stellen bezahlt:** *vier Marken, vier
+> 161)*. **0.30.0 hat dafür neun Stellen bezahlt:** *vier Tags, vier
 > Umschalter und vier Verneinungen ohne Klemme — sie rissen einen Rückbau ab,
 > statt ihn rot zu machen, und eine Verneinung auf ein fehlendes Element ist
 > wahr und damit **still grün**.* **Diese Runde fasst dieselben Zeilen wieder
@@ -675,8 +675,8 @@ Zugang bricht der Name, mit mehreren bricht die Zeile.**
 
 | | Lage |
 |---|---|
-| **1** | **Die Übersicht mit offenem Filter** — die Tagzeile, der Umschalter, die Zahl der sichtbaren Marken |
-| **2** | **Ein Eintrag mit Testtagen** — mit Marken, ohne Marken, mit zu vielen |
+| **1** | **Die Übersicht mit offenem Filter** — die Tagzeile, der Umschalter, die Zahl der sichtbaren Tags |
+| **2** | **Ein Eintrag mit Testtagen** — mit Tags, ohne Tags, mit zu vielen |
 | **3** | **Der Bewertungskasten in beiden Fassungen** — ein Zugang und mehrere |
 | **4** | **Die Kriterienkarte** — schmal und breit, und der Name steht wieder vollständig da |
 | **5** | **Eine Aufgabe durch alle fünf Farbzustände** — angelegt, überfällig, abgehakt, Datum nachgetragen |

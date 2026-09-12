@@ -933,6 +933,21 @@ button { cursor: pointer; background: none; border: none; padding: 0; }
 .select:hover { border-color: var(--line-hover); }
 .link-btn { font-size: .8rem; color: var(--muted); text-decoration: underline; }
 .link-btn:hover { color: var(--accent-text); }
+/* ---- EIN VERWEIS, DER EIN ZEICHEN TRAEGT -- 0.30.2, Befund 1 ----
+   KEIN UNTERSTRICH: er gehoerte unter ein Wort und nicht unter einen Haken.
+   EIN ZIEL FUER DEN FINGER: 30 x 30 Pixel, und das ist kein ausgerechneter
+   Wert -- es ist dasselbe Mass, das `.rreset` am groben Zeiger traegt (32).
+   Zwei davon nebeneinander messen mit ihrem Abstand rund 70 Pixel; das
+   Zeilenende mass vorher bis zu 180 (Deutsch, aufgeklappt, mit Tagfilter).
+   DIE FARBE BLEIBT DIE DES VERWEISES, damit das Zeichen nicht wie ein
+   gewoehnlicher Knopf aussieht: es IST ein Verweis, nur ohne Wort. */
+.link-btn.icon-link {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 30px; height: 30px; padding: 0; border-radius: 7px;
+  text-decoration: none; flex-shrink: 0;
+}
+.link-btn.icon-link:hover { background: var(--surface-2); }
+.link-btn.icon-link .icon { width: 17px; height: 17px; }
 
 /* ---------- Kartenraster ---------- */
 .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 16px; }
@@ -1592,7 +1607,7 @@ mark {
 /* „mehr" AN DER TESTTAGZEILE -- 0.30.1, Befund 4. Es steht RECHTS VON DEN
    MARKEN und darf nicht schrumpfen: ein „mehr", das selbst umbricht, ist
    dasselbe Problem eine Stufe kleiner. Dieselbe Schriftgroesse wie die
-   Marken daneben (.chip-xs), damit es Teil ihrer Reihe bleibt und nicht
+   Tags daneben (.chip-xs), damit es Teil ihrer Reihe bleibt und nicht
    daneben steht wie eine eigene Angabe. */
 .ttag-more { font-size: .68rem; flex-shrink: 0; align-self: center; }
 .ttag-add:hover { color: var(--accent-text); background: var(--surface-2); }
@@ -4120,15 +4135,14 @@ body.login .login-screen { flex: 1 0 auto; min-height: 0; }
   /* WOLKE UND VERWEISE SPANNEN UEBER BEIDE RASTERZEILEN. Ohne das stuende die
      Wolke in Zeile eins und „mehr" darunter -- die Zeile truege drei
      Rasterzeilen statt zweier und waere hoeher als vorher. */
-  .frow-tags > .pills.cloud { grid-row: 1 / span 2; align-self: start; }
-  .frow-tags > .frow-right-end { grid-row: 1 / span 2; align-self: start; }
+  .frow-tags > .pills.cloud { grid-row: 1 / -1; align-self: start; }
   /* ---- BEIDE RASTERZEILEN NACH OBEN -- 0.30.1, Befund 2 (F2, F3) ----
      DER BETREIBER, 12. SEPTEMBER 2026, MIT BILD UND ZWEI PFEILEN: „bitte tag
      in korrekter ausrichtung in die erste zeile und und/oder schaltflaeche
      bitte unmittelbar in die erste zeile unter tags." Auf Rueckfrage praeziser:
      „erste zeile unter dem tag, aber insgesamt betrachtet waere es dann die 2
      zeile."
-     DIE MESSUNG HAT DIE LESART BERICHTIGT (BA 1). Die Marken standen laengst
+     DIE MESSUNG HAT DIE LESART BERICHTIGT (BA 1). Die Tags standen laengst
      in der ersten Zeile -- Wolke und erste Pille beginnen beide am oberen Rand
      der Zeile. Was absackte, waren BESCHRIFTUNG und UMSCHALTER: beide
      Rasterzeilen standen auf `auto`, die Wolke spannt ueber beide und bestimmt
@@ -4145,21 +4159,55 @@ body.login .login-screen { flex: 1 0 auto; min-height: 0; }
      allein, `min-content auto`, und beides zusammen -- die Zeilen blieben bei
      212/212. Ein spannendes Kind verteilt seine Hoehe auf alle `auto`-Zeilen,
      und `min-content` haelt es nicht davon ab. */
-  .frow-tags { grid-template-rows: auto 1fr; }
+  /* ---- DIE ZEILE BEKOMMT IHRE BREITE ZURUECK -- 0.30.2, Befund 1 ----
+     DER BETREIBER, 12. SEPTEMBER 2026, MIT ZWEI BILDERN: „Damit tags mehr
+     platz haben das ‚mehr' und ‚reset' direkt unter dem tag anzeigen. … das
+     bedeutet das ‚und/oder' wandern unter die klappe."
+     GEMESSEN, DREI SPRACHEN, AUFGEKLAPPT UND MIT GESETZTEM TAGFILTER:
+       Deutsch    Zeilenende 180 px, Wolke  92, 26 Reihen, Zeile 845
+       Tuerkisch  Zeilenende 159 px, Wolke 109, 25 Reihen, Zeile 812
+       Englisch   Zeilenende 109 px, Wolke 175, 16 Reihen, Zeile 518
+     DIE DRITTE SPALTE WAR DIE URSACHE. Sie steht auf `auto` und nimmt sich,
+     was ihr Inhalt braucht; die Wolke bekommt den Rest. Sobald ein Tagfilter
+     greift, tritt der Ruecksetzer neben „mehr" -- und aus 38 Pixeln werden
+     180. Der breiteste Tag misst 126; bei 92 Pixeln Wolkenbreite passt kein
+     einziger mehr neben einen zweiten, und die Reihen fallen auf einen Tag
+     zusammen.
+     DIE BEIDEN VERWEISE STEHEN JETZT IN SPALTE 1, UNTER DER BESCHRIFTUNG.
+     Damit faellt die dritte Spalte ganz weg. Spalte 1 waechst dabei NICHT:
+     sie mass 74 Pixel (de), 63 (en), 78 (tr) -- zwei Zeichen brauchen rund 70.
+     DREI RASTERZEILEN STATT ZWEIER: Beschriftung, die zwei Zeichen, der
+     Umschalter. Die erste und die zweite sind so hoch wie ihr Inhalt, die
+     dritte nimmt den Rest -- dieselbe Bauform wie in 0.30.1, nur eine Zeile
+     tiefer. */
+  .frow-tags { grid-template-rows: auto auto 1fr; }
+  .frow-tags > .frow-right-end { grid-column: 1; grid-row: 2;
+    align-self: start; justify-self: start; gap: 4px; }
+  /* ---- UND DER UMSCHALTER GEHT UNTER DIE KLAPPE ----
+     Er steht in der dritten Rasterzeile und ist verborgen, solange die Wolke
+     zugeklappt ist -- so hat der Betreiber es bestellt.
+     MIT EINER AUSNAHME, UND DIE HAT EINEN GRUND AUS DIESEM HAUS: greifen
+     ZWEI oder mehr Tags, dann entscheidet der Umschalter ueber das Ergebnis,
+     und ein Filter, der greift und nicht zu sehen ist, ist genau der Befund,
+     wegen dessen bis 0.30.0 „Tags (2)" am alten Umschalter stand. Die Klasse
+     `tags-live` setzt drawFilters(), und sie steht fuer „offen ODER es haengt
+     etwas daran". */
+  .frow-tags:not(.tags-live) > .tagmode { display: none; }
+  .frow-tags > .tagmode { grid-row: 3; }
   /* ---- DIE MARKEN EINE STUFE KLEINER -- 0.30.1, Befund 2 (F4) ----
      DER BETREIBER: „Tags koennen glaube ich eine bis zwei stufen kleiner als
      die anderen damit mehr rein passt da auch deutlich mehr von denen gibt,
      natuerlich sollten sie noch lesbar sein."
      FUENF FASSUNGEN SIND GEMESSEN, und die Zahl, die zaehlt, ist die der
-     Marken in der EINEN Reihe, die die zugeklappte Wolke zeigt -- das ist der
+     Tags in der EINEN Reihe, die die zugeklappte Wolke zeigt -- das ist der
      Normalzustand. Heute stehen dort DREI, mit dieser Fassung VIER. Zwei
      Stufen kleiner bringen dort keine fuenfte; sie nehmen nur der OFFENEN
      Wolke weitere 61 px und kosten dafuer Schriftgroesse.
      DIE FESTSCHRIFT BLEIBT, UND DAS IST EINE MESSUNG UND KEINE MEINUNG. Der
      Auftrag hatte vermutet, sie sei die eigentliche Breite; sie allein macht
-     die breiteste Marke um neun Pixel schmaler und aendert an Reihen und Hoehe
+     den breitesten Tag um neun Pixel schmaler und aendert an Reihen und Hoehe
      GAR NICHTS. Der Gewinn steckt im Polster. Und sie ist das Merkmal, an dem
-     eine Marke von einer Kategorie zu unterscheiden ist.
+     ein Tag von einer Kategorie zu unterscheiden ist.
      NUR HIER UND NICHT AM SCHREIBTISCH: gemessen ist das Telefon, geaendert
      wird das Telefon. Dort draussen ist der Platz da, und F24 sagt, dass
      gekuerzt werden DARF und nicht MUSS.
@@ -4562,7 +4610,7 @@ body.login .login-screen { flex: 1 0 auto; min-height: 0; }
   .arow .asize, .arow .afrom { order: 2; }
   .arow .asize { margin-left: auto; }
   /* DER ABSTAND FAELLT VON 12 AUF 8 PIXEL -- 0.30.1, Befund 4. Gemessen an der
-     Zeile OHNE Marken, aber MIT Verfasser (ab zwei Zugaengen): Datum 92,
+     Zeile OHNE Tags, aber MIT Verfasser (ab zwei Zugaengen): Datum 92,
      Verfasser 45, Anlegeknopf 29, Sterne 112, Papierkorb 33 -- zusammen 311
      von 344, und vier Abstaende zu 12 machen 359. Der Papierkorb fiel dadurch
      in eine zweite Zeile, und die Zeile mass 81 statt 54 Pixel. Acht Pixel
@@ -4590,28 +4638,28 @@ body.login .login-screen { flex: 1 0 auto; min-height: 0; }
      „Grundbreite null und dann wachsen": er griff sich die ganze uebrige
      Breite, AUCH WENN GAR KEINE MARKE DARIN STAND, und drueckte die Sterne aus
      der Zeile. `1 1 auto` laesst ihm seinen Inhalt als Grundbreite -- ohne
-     Marken ist das der Anlegeknopf, und die Sterne stehen rechts daneben.
+     Tags ist das der Anlegeknopf, und die Sterne stehen rechts daneben.
      WACHSEN DARF ER WEITER: nur so stehen die Sterne rechtsbuendig und nicht
      dicht hinter dem Datum. */
   .trow .tweek { display: none; }
   .trow .ttags { flex: 1 1 auto; }
   /* ---- MIT MARKEN SIEHT DIE ZEILE ANDERS AUS ALS OHNE ----
-     OHNE MARKEN (oben): der Markenkasten traegt nur den Anlegeknopf, waechst
+     OHNE TAGS (oben): der Tagkasten traegt nur den Anlegeknopf, waechst
      in den freien Platz und schiebt die Sterne ans rechte Ende. Eine Zeile,
      kein Umbruch.
-     MIT MARKEN: die erste Zeile traegt Datum und Marken, die zweite die
+     MIT TAGS: die erste Zeile traegt Datum und Tags, die zweite die
      Sterne. Der Umbruch kommt aus einem Stueck ohne Inhalt, das die volle
      Breite verlangt -- `::after` mit `flex-basis: 100%`. Ein Rasterumbau waere
      die Alternative gewesen; er kostete eine zweite Bauform fuer dieselbe
      Zeile.
      UND DIE MARKEN SCHRUMPFEN STATT UMZUBRECHEN (`flex: 1 1 0`): mit ihrer
-     Inhaltsbreite als Grundmass truegen sieben Marken die Zeile vor sich her,
+     Inhaltsbreite als Grundmass truegen sieben Tags die Zeile vor sich her,
      und der Kasten fiele als Ganzes in die zweite -- das Datum stuende dann
      allein in der ersten. Mit Grundmass null nimmt er, was nach dem Datum
      uebrig ist, und was nicht hineinpasst, steht hinter „mehr".
      DER VERFASSER GEHT MIT NACH UNTEN (`order: 2`). „Erste Zeile ist dann nur
      Datum und die Tags" -- so steht es in der Bestellung, und ein Name daneben
-     naehme den Marken genau die Breite, um die es geht. */
+     naehme den Tags genau die Breite, um die es geht. */
   .trow-tags .ttags { flex: 1 1 0; }
   .trow-tags::after { content: ''; flex-basis: 100%; height: 0; order: 1; }
   .trow-tags .tfrom, .trow-tags .stars { order: 2; }

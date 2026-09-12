@@ -9082,8 +9082,8 @@ const REGRESSIONS = [
      Umschalter sacken wieder ab -- gemessen 96 und 218 Pixel tief. */
     nr: "916", name: "Beide Rasterzeilen der Tagzeile teilen sich wieder die Hoehe",
     file: "public/style.css",
-    search: "  .frow-tags { grid-template-rows: auto 1fr; }",
-    replacement: "  .frow-tags { grid-template-rows: auto auto; }",
+    search: "  .frow-tags { grid-template-rows: auto auto 1fr; }",
+    replacement: "  .frow-tags { grid-template-rows: auto auto auto; }",
     expected: "Die Tagzeile rueckt nach oben \u2014 0.30.1"
   },
   {
@@ -9096,9 +9096,9 @@ const REGRESSIONS = [
     expected: "Die Tagzeile rueckt nach oben \u2014 0.30.1"
   },
   {
-    /* GEMESSEN IST DER UNTERSCHIED: drei Marken in der zugeklappten Reihe statt
+    /* GEMESSEN IST DER UNTERSCHIED: drei Tags in der zugeklappten Reihe statt
      vier, und der offene Filterkasten 654 statt 543 Pixel. */
-    nr: "918", name: "Die Marken sind wieder so gross wie vorher",
+    nr: "918", name: "Die Tags sind wieder so gross wie vorher",
     file: "public/style.css",
     search: "  .pill-tag { font-size: .72rem; padding: 4px 10px; }",
     replacement: "  .pill-tag { font-size: .77rem; padding: 7px 13px; }",
@@ -9107,8 +9107,8 @@ const REGRESSIONS = [
   {
     /* SIE IST DAS MERKMAL, AN DEM EINE MARKE VON EINER KATEGORIE ZU
      UNTERSCHEIDEN IST -- und sie bringt an Breite fast nichts (gemessen neun
-     Pixel an der breitesten Marke, keine Reihe, kein Pixel Hoehe). */
-    nr: "919", name: "Die Festschrift der Marken faellt",
+     Pixel am breitesten Tag, keine Reihe, kein Pixel Hoehe). */
+    nr: "919", name: "Die Festschrift der Tags faellt",
     file: "public/style.css",
     search: "  .pill-tag { font-size: .72rem; padding: 4px 10px; }",
     replacement: "  .pill-tag { font-size: .72rem; padding: 4px 10px; font-family: inherit; }",
@@ -9124,7 +9124,7 @@ const REGRESSIONS = [
     expected: "Die Tagzeile rueckt nach oben \u2014 0.30.1"
   },
   {
-    /* ER MISST 51 DER 344 PIXEL. Ohne ihn passt die Zeile ohne Marken in EINE
+    /* ER MISST 51 DER 344 PIXEL. Ohne ihn passt die Zeile ohne Tags in EINE
      Zeile -- gemessen 54 statt 83 Pixel. */
     nr: "921", name: "Der Wochentag bleibt auch am Telefon stehen",
     file: "public/style.css",
@@ -9134,9 +9134,9 @@ const REGRESSIONS = [
   },
   {
     /* `flex: 1 1 0` HEISST „GRUNDBREITE NULL UND DANN WACHSEN": er nimmt sich
-     alles, auch wenn gar keine Marke darin steht, und drueckt die Sterne aus
+     alles, auch wenn gar kein Tag darin steht, und drueckt die Sterne aus
      der Zeile. Genau der Befund des Betreibers. */
-    nr: "922", name: "Der Markenkasten greift sich wieder die ganze Breite",
+    nr: "922", name: "Der Tagkasten greift sich wieder die ganze Breite",
     file: "public/style.css",
     search: "  .trow .ttags { flex: 1 1 auto; }",
     replacement: "  .trow .ttags { flex: 1 1 0; }",
@@ -9144,8 +9144,8 @@ const REGRESSIONS = [
   },
   {
     /* OHNE `flex-basis: 100%` ZWINGT DAS STUECK KEINEN UMBRUCH, und die erste
-     Zeile traegt wieder Datum, Marken UND Sterne. */
-    nr: "923", name: "Mit Marken bricht die Zeile nicht mehr vor den Sternen um",
+     Zeile traegt wieder Datum, Tags UND Sterne. */
+    nr: "923", name: "Mit Tags bricht die Zeile nicht mehr vor den Sternen um",
     file: "public/style.css",
     search: "  .trow-tags::after { content: ''; flex-basis: 100%; height: 0; order: 1; }",
     replacement: "  .trow-tags::after { content: ''; height: 0; order: 1; }",
@@ -9154,7 +9154,7 @@ const REGRESSIONS = [
   {
     /* OHNE DIE KLASSE GREIFT KEINE DER DREI REGELN. Eine Zusage, die nur das
      Stilblatt liest, bliebe hier gruen -- deshalb wird die Klasse gefahren. */
-    nr: "924", name: "Die Zeile sagt nicht mehr, ob sie Marken traegt",
+    nr: "924", name: "Die Zeile sagt nicht mehr, ob sie Tags traegt",
     file: "public/app.js",
     search: "      if ((d.tags || []).length) row.classList.add('trow-tags');",
     replacement: "      if (false) row.classList.add('trow-tags');",
@@ -9163,7 +9163,7 @@ const REGRESSIONS = [
   {
     /* AM ZEILENENDE SAGT ES NICHTS MEHR DARUEBER, WAS DA NOCH KOMMT. Der
      Betreiber hat es ausdruecklich rechts VON DEN MARKEN bestellt. */
-    nr: "925", name: "\u201emehr\" steht hinter den Sternen statt bei den Marken",
+    nr: "925", name: "\u201emehr\" steht hinter den Sternen statt bei den Tags",
     file: "public/app.js",
     search: "        row.append(date, wd, tagBox, more, s, x);",
     replacement: "        row.append(date, wd, tagBox, s, x, more);",
@@ -9172,7 +9172,7 @@ const REGRESSIONS = [
   {
     /* DANN BRECHEN SIEBEN MARKEN DIE ZEILE WIEDER AUF VIER REIHEN AUF --
      gemessen 309 statt 100 Pixel. */
-    nr: "926", name: "Die Marken eines Testtags werden nicht mehr auf eine Reihe begrenzt",
+    nr: "926", name: "Die Tags eines Testtags werden nicht mehr auf eine Reihe begrenzt",
     file: "public/app.js",
     search: "      const trimmed = limitCloud(tagBox, opened ? 0 : 1);",
     replacement: "      const trimmed = limitCloud(tagBox, 0);",
@@ -9215,7 +9215,7 @@ const REGRESSIONS = [
     expected: "Das Faelligkeitsdatum bekommt Farbe \u2014 0.30.0"
   },
   {
-    /* BEFUND 8: der ganze Markenkasten stand hinter „darf aendern", und damit
+    /* BEFUND 8: der ganze Kennzeichenkasten stand hinter „darf aendern", und damit
      sah das Datum nur, wer es auch aendern durfte -- waehrend die Ansicht
      „Offen" es jedem zeigt. */
     nr: "931", name: "Das Faelligkeitsdatum verschwindet wieder hinter der Bedienung",
@@ -9251,6 +9251,81 @@ const REGRESSIONS = [
     search: "  .stars { gap: 2px; }",
     replacement: "  .stars { gap: 3px; }",
     expected: "Die Sortierung trennt Grundlage und Richtung \u2014 0.28.1"
+  },
+  {
+    /* DIE DRITTE SPALTE IST DIE URSACHE DES BEFUNDES. Kommen die Verweise dorthin
+     zurueck, nimmt sie der Wolke wieder bis zu 180 der 366 Pixel. */
+    nr: "935", name: "Die beiden Verweise stehen wieder am Zeilenende",
+    file: "public/style.css",
+    search: "  .frow-tags > .frow-right-end { grid-column: 1; grid-row: 2;\n    align-self: start; justify-self: start; gap: 4px; }",
+    replacement: "  .frow-tags > .frow-right-end { grid-row: 1 / -1; align-self: start; }",
+    expected: "Die Tagzeile traegt Zeichen statt Woerter \u2014 0.30.2"
+  },
+  {
+    /* DANN TEILT ER SICH DIE ZEILE MIT DEN BEIDEN ZEICHEN, und eines von beiden
+     steht nicht mehr da, wo es bestellt ist. */
+    nr: "936", name: "Der Umschalter steht wieder in der zweiten Rasterzeile",
+    file: "public/style.css",
+    search: "  .frow-tags > .tagmode { grid-row: 3; }",
+    replacement: "  .frow-tags > .tagmode { grid-row: 2; }",
+    expected: "Die Tagzeile traegt Zeichen statt Woerter \u2014 0.30.2"
+  },
+  {
+    /* DAS WORT IST UMGEZOGEN UND NICHT GEFALLEN -- in den Titel. Steht es wieder
+     im Text, ist die Zeile so breit wie vorher. */
+    nr: "937", name: "\u201emehr\" steht wieder als Wort statt als Zeichen",
+    file: "public/app.js",
+    search: "      m.title = cloudOpen.overview ? t('list.less') : t('list.more');",
+    replacement: "      m.textContent = cloudOpen.overview ? t('list.less') : t('list.more');",
+    expected: "Die Tagzeile traegt Zeichen statt Woerter \u2014 0.30.2"
+  },
+  {
+    /* EIN KREUZ HEISST IM HAUS „weg" -- eine Zeile loeschen, einen Tag vom
+     Testtag nehmen, eine Ansicht entfernen. „Zuruecksetzen" ist etwas anderes,
+     und das Haus hat dafuer den Kreispfeil. */
+    nr: "938", name: "Der Ruecksetzer nimmt wieder das Kreuz",
+    file: "public/app.js",
+    search: "      c.innerHTML = ICON_RESET;",
+    replacement: "      c.innerHTML = ICON_X;",
+    expected: "Die Tagzeile traegt Zeichen statt Woerter \u2014 0.30.2"
+  },
+  {
+    /* EIN ZEICHEN ALLEIN LIEST KEIN VORLESEPROGRAMM VOR. Der Rueckbau laesst den
+     Titel stehen und nimmt nur die Ansage weg -- die Zusage muss beides
+     verlangen. */
+    nr: "939", name: "Die Zeichen sagen dem Vorleseprogramm nichts mehr",
+    file: "public/app.js",
+    search: "      m.setAttribute('aria-label', m.title);",
+    replacement: "      m.title = m.title;",
+    expected: "Die Tagzeile traegt Zeichen statt Woerter \u2014 0.30.2"
+  },
+  {
+    /* EIN FILTER, DER GREIFT UND NICHT ZU SEHEN IST, ist genau der Befund, wegen
+     dessen bis 0.30.0 „Tags (2)" am alten Umschalter stand. */
+    nr: "940", name: "Der Umschalter bleibt verborgen, auch wenn er greift",
+    file: "public/app.js",
+    search: "    if (cloudOpen.overview || f.tagIds.length > 1) r3.classList.add('tags-live');",
+    replacement: "    if (cloudOpen.overview) r3.classList.add('tags-live');",
+    expected: "Die Tagzeile traegt Zeichen statt Woerter \u2014 0.30.2"
+  },
+  {
+    /* „UNTER DIE KLAPPE" HEISST: im Regelzustand nicht sichtbar. Steht er immer
+     da, ist die Bestellung nicht gebaut. */
+    nr: "941", name: "Der Umschalter steht immer da, auch zugeklappt",
+    file: "public/style.css",
+    search: "  .frow-tags:not(.tags-live) > .tagmode { display: none; }",
+    replacement: "  .frow-tags.tags-live > .tagmode { display: inline-flex; }",
+    expected: "Die Tagzeile traegt Zeichen statt Woerter \u2014 0.30.2"
+  },
+  {
+    /* DREISSIG PIXEL IM QUADRAT SIND DASSELBE MASS, das der Ruecksetzer der
+     Sternzeile am groben Zeiger traegt. Sechzehn sind das Zeichen selbst --
+     und nichts zum Treffen. */
+    nr: "942", name: "Das Zeichen ist kein Ziel mehr fuer den Finger",
+    file: "public/style.css",
+    search: "  width: 30px; height: 30px; padding: 0; border-radius: 7px;",
+    replacement: "  width: 16px; height: 16px; padding: 0; border-radius: 7px;",
+    expected: "Die Tagzeile traegt Zeichen statt Woerter \u2014 0.30.2"
   }
 ];
 

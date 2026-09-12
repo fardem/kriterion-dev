@@ -26458,6 +26458,7 @@ function sweepLeftovers() {
   await check0290();
   await check0300();
   await check0301();
+  await check0302();
 
   /* ---------------------------------------------------------------- */
   /* Der Schlussdurchlauf. Die Gruppen weiter oben pruefen einzelne
@@ -27162,7 +27163,7 @@ function sweepLeftovers() {
      setzt jetzt den NAMEN zurueck, der von 0.21.0 bis 0.30.0 im Waechter
      stand, statt ihn zu halbieren -- und macht damit zwei Zusagen rot statt
      einer. */
-  check('Es sind genau 925 Rueckbauten', gpList.length === 925, `${gpList.length}`);
+  check('Es sind genau 933 Rueckbauten', gpList.length === 933, `${gpList.length}`);
   const gpTwice = gpList.map(r => r.nr).filter((n, i, a) => a.indexOf(n) !== i);
   check('Und keine Nummer steht zweimal', gpTwice.length === 0, gpTwice.join(' '));
   /* JEDER GREIFT: der Suchtext kommt in seiner Datei GENAU EINMAL vor. Keinmal
@@ -28373,8 +28374,8 @@ function buildDom(JSDOM, { withoutLanguage = false, settings = { filters: null }
   commentInventory = null,
   /* DIE TESTTAGE DES BEISPIELEINTRAGS, stellbar seit 0.30.1 -- wie
      `commentInventory` fuer die Kommentare. Die drei Faelle der Testtagzeile
-     (ohne Marken, mit zweien, mit sieben) sind sonst nicht zu fahren: der
-     Vorgabeeintrag traegt genau einen Testtag mit genau einer Marke. */
+     (ohne Tags, mit zweien, mit sieben) sind sonst nicht zu fahren: der
+     Vorgabeeintrag traegt genau einen Testtag mit genau einem Tag. */
   dayInventory = null,
   untested = false, openInventory = null, trashInventory = null, backupStatus = null, backupCopies = null, sessionsInventory = null, logInventory = null,
   publicAddress = '', mailStatus = null, mailError = false, ownAddress = 'chefin@beispiel.de',
@@ -43805,8 +43806,14 @@ async function checkUi() {
   const fZeile2 = [...fzW.document.querySelectorAll('.frow')]
     .find(z => z.querySelector('.eyebrow')?.textContent === 'Tags');
   const fRight = fZeile2?.querySelector('.frow-right');
-  check('Der Verweis sitzt in seinem Kasten',
-    !!fRight && /zurücksetzen/.test(fRight.textContent), fZeile2?.innerHTML.slice(0, 200));
+  /* SEIT 0.30.2 TRAEGT ER EIN ZEICHEN UND KEIN WORT -- das Wort steht im
+     Titel. Geprueft wird deshalb der TITEL und nicht der Text: ein Zeichen
+     ohne Titel liest kein Vorleseprogramm vor, und genau das soll die Zusage
+     verhindern. */
+  check('Der Verweis sitzt in seinem Kasten — und sein Wort im Titel',
+    !!fRight && [...fRight.querySelectorAll('.link-btn')]
+      .some(b => /zurücksetzen/.test(b.getAttribute('title') || '')),
+    fZeile2?.innerHTML.slice(0, 200));
   /* SEIT 0.13.0 STEHT ER HINTER DER WOLKE -- die natuerliche Reihenfolge:
      "mehr" gehoert hinter das, was es aufklappt. Vorher musste er davor
      stehen, weil er die Zeile sonst umbrach; das lag an der selbsttaetigen
@@ -47681,9 +47688,12 @@ async function checkUi() {
        warum „gewichtet" aus der Sprachdatei kommen muss -- „in einer englisch
        oder tuerkisch eingestellten Instanz stand dort deutscher Text". Das
        Wort steht dort als BILD DES PROJEKTS in einem Kommentar und nicht auf
-       dem Bildschirm; genau diesen Unterschied haelt die Zeile fest. */
-    check('In den Kommentaren derselben Datei stehen unveraendert 35 Vorkommen',
-      iAppRaw === 35, `${iAppRaw} Vorkommen`);
+       dem Bildschirm; genau diesen Unterschied haelt die Zeile fest.
+       SECHSUNDDREISSIG SEIT 0.30.2: der Absatz zu den beiden Zeichen an der
+       Tagwolke sagt, dass die Instanz die Schrift von 80 bis 120 Prozent
+       stellt -- auch das ein Bild des Projekts in einem Kommentar. */
+    check('In den Kommentaren derselben Datei stehen unveraendert 36 Vorkommen',
+      iAppRaw === 36, `${iAppRaw} Vorkommen`);
 
     /* DIE EINE ZEILE, DIE BLEIBT, UND SIE STEHT NAMENTLICH DA. server.js
        schreibt „Die Instanz laeuft weiter …" ins Containerprotokoll, wenn
@@ -50814,9 +50824,15 @@ async function checkUi() {
       wfIncluding.w.document.querySelector('#filter-toggle .fcount')?.textContent === '· 1 aktiv',
       JSON.stringify([wfIncluding.w.document.getElementById('filter-zurueck')?.textContent,
                       wfIncluding.w.document.querySelector('#filter-toggle .fcount')?.textContent]));
-    check('Der Rueckweg in der Tagzeile heisst „Tags zurücksetzen"',
-      [...wfIncluding.w.document.querySelectorAll('#f-tagzeile .link-btn')].some(b => b.textContent === 'Tags zurücksetzen'),
-      [...wfIncluding.w.document.querySelectorAll('#f-tagzeile .link-btn')].map(b => b.textContent).join(' | '));
+    /* SEIT 0.30.2 STEHT DAS WORT IM TITEL und nicht mehr im Text -- der
+       Ruecksetzer ist ein Kreispfeil. Der SCHLUESSEL ist derselbe geblieben
+       (`list.resetTags`), und genau das haelt diese Zusage fest: das Wort ist
+       umgezogen und nicht gefallen. */
+    check('Der Rueckweg in der Tagzeile heisst weiterhin „Tags zurücksetzen"',
+      [...wfIncluding.w.document.querySelectorAll('#f-tagzeile .link-btn')]
+        .some(b => b.getAttribute('title') === 'Tags zurücksetzen'),
+      [...wfIncluding.w.document.querySelectorAll('#f-tagzeile .link-btn')]
+        .map(b => `„${b.textContent}"/„${b.getAttribute('title')}"`).join(' | '));
     wfIncluding.w.close();
     /* GIBT ES NICHTS ZU FILTERN, IST DIE ZEILE GANZ WEG. Nachgestellt am 5.
        September 2026 in einem echten Browser: kein Tag mit usage_count > 0 --
@@ -50841,7 +50857,7 @@ async function checkUi() {
     check('Greift ein Filter auf einen Tag ohne Eintraege, steht sie trotzdem da',
       !!wfEmptyIncluding.w.document.getElementById('f-tagzeile')
         && [...wfEmptyIncluding.w.document.querySelectorAll('#f-tagzeile .link-btn')]
-             .some(b => b.textContent === 'Tags zurücksetzen'),
+             .some(b => b.getAttribute('title') === 'Tags zurücksetzen'),
       `Zeile: ${!!wfEmptyIncluding.w.document.getElementById('f-tagzeile')}`);
     wfEmptyIncluding.w.close();
     /* ---- WAS MIT DEM UMSCHALTER GEFALLEN IST ----
@@ -52413,12 +52429,18 @@ async function check0290() {
       /\.frow-tags > \.tagmode \{ grid-column: 1; grid-row: 2;/.test(csNarrow) &&
       !/\.frow > \.tagmode \{ grid-column: 2; \}/.test(csNarrow),
       (csNarrow.match(/\.frow-tags > \.tagmode[^\n]*/) || ['(nicht gefunden)'])[0]);
-    /* UND DIE WOLKE SPANNT UEBER BEIDE RASTERZEILEN. Ohne das stuende „mehr"
-       unter der Wolke, die Zeile truege drei Rasterzeilen statt zweier und
-       waere hoeher als vorher -- also das Gegenteil des Befundes. */
-    check('Und Wolke und Verweise spannen ueber beide Rasterzeilen',
-      /\.frow-tags > \.pills\.cloud \{ grid-row: 1 \/ span 2;/.test(csNarrow) &&
-      /\.frow-tags > \.frow-right-end \{ grid-row: 1 \/ span 2;/.test(csNarrow),
+    /* UND DIE WOLKE SPANNT UEBER ALLE RASTERZEILEN. Ohne das stuende „mehr"
+       unter der Wolke, und die Zeile waere hoeher als vorher -- also das
+       Gegenteil des Befundes.
+       SEIT 0.30.2 SIND ES DREI ZEILEN UND NICHT ZWEI (Beschriftung, die
+       beiden Zeichen, der Umschalter), und die Wolke spannt deshalb ueber
+       `1 / -1` statt ueber `1 / span 2`. Die Zusage bleibt dieselbe -- sie
+       nennt nur nicht mehr die ZAHL der Zeilen, sondern ALLE.
+       UND DER VERWEISKASTEN SPANNT NICHT MEHR MIT: er steht seit 0.30.2 in
+       Spalte EINS, unter der Beschriftung, und die dritte Spalte ist damit
+       ganz weg. */
+    check('Und die Wolke spannt ueber alle Rasterzeilen',
+      /\.frow-tags > \.pills\.cloud \{ grid-row: 1 \/ -1;/.test(csNarrow),
       (csNarrow.match(/\.frow-tags > \.pills\.cloud[^\n]*/) || ['(nicht gefunden)'])[0]);
     /* DER KATEGORIEKASTEN: geteilt statt ausgerechnet. Eine feste Zahl faerbt
        diese Zeile rot -- das Stilblatt verbietet ausgerechnete Breiten bei 80
@@ -53206,8 +53228,13 @@ async function check0301() {
        Beschriftung stand darin 96 px tief, der Umschalter 218.
        GEMESSEN NACHHER: Beschriftung +0, Umschalter +25 -- und das sind genau
        die 18 px der Beschriftung plus die 7 px Zeilenabstand des Rasters. */
-    check('Die erste Rasterzeile der Tagzeile ist so hoch wie ihr Inhalt',
-      /\.frow-tags \{ grid-template-rows: auto 1fr; \}/.test(uNarrow),
+    /* SEIT 0.30.2 SIND ES DREI ZEILEN: Beschriftung, die beiden Zeichen, der
+       Umschalter. Die beiden ersten sind so hoch wie ihr Inhalt, die dritte
+       nimmt den Rest -- dieselbe Bauform wie in 0.30.1, nur eine Zeile
+       tiefer. Die Zusage von 0.30.1 bleibt damit erhalten und wird nicht
+       geloescht (Stolperstein 201). */
+    check('Die ersten Rasterzeilen der Tagzeile sind so hoch wie ihr Inhalt',
+      /\.frow-tags \{ grid-template-rows: auto auto 1fr; \}/.test(uNarrow),
       (uNarrow.match(/\.frow-tags \{[^}]*\}/) || ['(keine Regel)'])[0]);
     /* UND SIE STEHT IM SCHMALEN ABSCHNITT UND NICHT GLOBAL: am Schreibtisch
        ist die Tagzeile einzeilig, und dort gibt es die zweite Rasterzeile gar
@@ -53221,25 +53248,25 @@ async function check0301() {
     /* DIE MARKEN SIND KLEINER ALS DIE KATEGORIEN -- GERECHNET UND NICHT
        ABGESCHRIEBEN. Eine Zahl, die dasteht, kann man vertauschen; eine, die
        unter einer anderen liegen muss, nicht.
-       GEMESSEN: zugeklappt stehen vier Marken in der einen Reihe statt dreier,
+       GEMESSEN: zugeklappt stehen vier Tags in der einen Reihe statt dreier,
        und der offene Filterkasten faellt von 654 auf 543 Pixel. */
     const uPill = Number(((uCss.match(/\.pill \{[^}]*font-size: ([\d.]+)rem/) || [])[1]));
     const uTagWeit = Number(((uCss.match(/\.pill-tag \{ font-family: var\(--mono\); font-size: ([\d.]+)rem; \}/) || [])[1]));
     const uTagSchmal = Number(((uNarrow.match(/\.pill-tag \{ font-size: ([\d.]+)rem; padding: 4px 10px; \}/) || [])[1]));
-    check('Die Marke war schon vorher kleiner als die Kategorie',
+    check('Der Tag war schon vorher kleiner als die Kategorie',
       uTagWeit > 0 && uPill > 0 && uTagWeit < uPill, `${uTagWeit}rem gegen ${uPill}rem`);
     check('Und am Telefon ist sie noch eine Stufe kleiner',
       uTagSchmal > 0 && uTagSchmal < uTagWeit, `${uTagSchmal}rem gegen ${uTagWeit}rem`);
     /* DIE FESTSCHRIFT BLEIBT, UND DAS IST EINE MESSUNG UND KEINE MEINUNG. Der
        Auftrag hatte vermutet, sie sei die eigentliche Breite; sie allein macht
-       die breiteste Marke um neun Pixel schmaler und aendert an Reihen und
+       den breitesten Tag um neun Pixel schmaler und aendert an Reihen und
        Hoehe gar nichts. Der Gewinn steckt im Polster. */
     check('Und sie traegt weiterhin die Festschrift',
       /\.pill-tag \{ font-family: var\(--mono\)/.test(uCss) &&
       !/\.pill-tag \{[^}]*font-family: inherit/.test(uNarrow),
       (uNarrow.match(/\.pill-tag \{[^}]*\}/) || ['(keine Regel)'])[0]);
     /* UND DIE KATEGORIENPILLE IST NICHT MITGEGANGEN: der Befund ist die Zahl
-       der Marken und nicht die Groesse aller Pillen. */
+       der Tags und nicht die Groesse aller Pillen. */
     check('Die Kategorienpille bleibt, wie sie war',
       !/\.pill \{ font-size/.test(uNarrow),
       (uNarrow.match(/\.pill \{[^}]*\}/) || ['(keine Regel)'])[0]);
@@ -53259,13 +53286,13 @@ async function check0301() {
       !/ultra|max phone|iphone|ipad|galaxy/i.test(uCss.replace(/\/\*[\s\S]*?\*\//g, ' ')));
     /* OHNE MARKEN WAECHST DER MARKENKASTEN IN DEN FREIEN PLATZ UND SCHIEBT DIE
        STERNE ANS ENDE. `flex: 1` hiess „Grundbreite null und dann wachsen": er
-       griff sich die ganze uebrige Breite, auch wenn gar keine Marke darin
+       griff sich die ganze uebrige Breite, auch wenn gar kein Tag darin
        stand, und drueckte die Sterne aus der Zeile. */
-    check('Ohne Marken behaelt der Markenkasten seinen Inhalt als Grundmass',
+    check('Ohne Tags behaelt der Tagkasten seinen Inhalt als Grundmass',
       /\.trow \.ttags \{ flex: 1 1 auto; \}/.test(uNarrow));
-    check('Mit Marken schrumpft er, statt die Zeile vor sich herzutragen',
+    check('Mit Tags schrumpft er, statt die Zeile vor sich herzutragen',
       /\.trow-tags \.ttags \{ flex: 1 1 0; \}/.test(uNarrow));
-    check('Und mit Marken bricht die Zeile vor den Sternen um',
+    check('Und mit Tags bricht die Zeile vor den Sternen um',
       /\.trow-tags::after \{ content: ''; flex-basis: 100%; height: 0; order: 1; \}/.test(uNarrow) &&
       /\.trow-tags \.tfrom, \.trow-tags \.stars \{ order: 2; \}/.test(uNarrow));
     /* UND GEFAHREN: drei Testtage, drei Lagen. Eine Zusage, die nur das
@@ -53275,13 +53302,13 @@ async function check0301() {
       { id: 42, day: '2026-08-02', rating: 4, mine: true, author: { id: 1, name: 'chefin' },
         tags: [{ id: 91, name: 'BIOS' }, { id: 92, name: 'Gelb' }] },
       { id: 43, day: '2026-08-03', rating: 2, mine: true, author: { id: 1, name: 'chefin' },
-        tags: [91, 92, 93, 94, 95, 96, 97].map((n, i) => ({ id: n, name: 'Marke' + i })) }
+        tags: [91, 92, 93, 94, 95, 96, 97].map((n, i) => ({ id: n, name: 'Tag' + i })) }
     ];
     const uDom = buildDom(JSDOMu, { hash: '#/item/1', dayInventory: uDays });
     await new Promise(r => setTimeout(r, 200));
     const uRows = [...uDom.w.document.querySelectorAll('.trow')];
     check('Drei Testtage stehen da', uRows.length === 3, String(uRows.length));
-    check('Nur die Zeilen MIT Marken tragen die Klasse',
+    check('Nur die Zeilen MIT Tags tragen die Klasse',
       equal(uRows.map(r => r.classList.contains('trow-tags')), [false, true, true]),
       JSON.stringify(uRows.map(r => r.classList.contains('trow-tags'))));
     /* „MEHR" STEHT RECHTS VON DEN MARKEN UND NICHT AM ZEILENENDE -- so steht
@@ -53291,7 +53318,7 @@ async function check0301() {
     const uOrder = (r) => [...r.children].map(e =>
       ['ttags', 'ttag-more', 'stars', 'tdate', 'tweek', 'tfrom', 'xdel']
         .find(n => e.classList.contains(n)) || e.className.split(' ')[0]);
-    check('Und „mehr" steht zwischen den Marken und den Sternen',
+    check('Und „mehr" steht zwischen den Tags und den Sternen',
       uRows.every(r => {
         const o = uOrder(r);
         return o.indexOf('ttags') >= 0 && o.indexOf('ttag-more') === o.indexOf('ttags') + 1 &&
@@ -53314,7 +53341,7 @@ async function check0301() {
       `${uTrimmed} · ${uBox.style.maxHeight} · ${uBox.style.overflow}`);
     /* UND EINE BEGRENZUNG UEBER NICHTS WIRD WIEDER WEGGENOMMEN: eine feste
        Hoehe an einem Kasten, der ohnehin hineinpasst, stuende der Zeile im
-       Weg, sobald eine Marke ihre Hoehe aendert. */
+       Weg, sobald ein Tag seine Hoehe aendert. */
     Object.defineProperty(uBox, 'scrollHeight', { value: 29, configurable: true });
     const uEng = uDom.w.limitCloud(uBox, 1);
     uDom.w.limitCloud(uBox, 0);
@@ -53345,7 +53372,7 @@ async function check0301() {
     await uDom.w.renderDetail(1);
     await new Promise(r => setTimeout(r, 250));
     uDom.w.limitCloud = uReal;
-    check('Und der Aufbau begrenzt die Marken eines Testtags auf EINE Reihe',
+    check('Und der Aufbau begrenzt die Tags eines Testtags auf EINE Reihe',
       uCalls.some(c => /(^|\s)ttags(\s|$)/.test(c.cls || '') && c.rows === 1),
       JSON.stringify(uCalls.slice(0, 8)));
     uDom.w.close();
@@ -53405,7 +53432,7 @@ async function check0301() {
       created_at: '2026-09-01 09:00:00', updated_at: null });
     const uComments = [uRow(81, 'task', 'Fremde Aufgabe mit Frist', '2026-09-30')];
     /* EIN ZUGANG, DER WEDER VERFASSER NOCH ADMIN IST. Bis 0.30.1 stand der
-       ganze Markenkasten hinter „darf aendern" -- und damit sah das
+       ganze Kennzeichenkasten hinter „darf aendern" -- und damit sah das
        Faelligkeitsdatum nur, wer es auch aendern durfte. Die Ansicht „Offen"
        zeigte dasselbe Datum dagegen jedem. */
     const uFremd = buildDom(JSDOMu, { hash: '#/item/1', commentInventory: uComments,
@@ -53420,7 +53447,7 @@ async function check0301() {
     check('Und es ist ein Text und kein Knopf',
       !!uDue && uDue.tagName === 'SPAN',
       uDue ? uDue.tagName : '(kein Element)');
-    check('Und die Marken daneben stehen nicht da',
+    check('Und die Kennzeichen daneben stehen nicht da',
       !uFremd.w.document.querySelector('.cmt-head .mark'),
       String(uFremd.w.document.querySelectorAll('.cmt-head .mark').length));
     check('Und es traegt trotzdem seinen Zustand',
@@ -53440,6 +53467,155 @@ async function check0301() {
       !!uNach && uNach.tagName === 'BUTTON',
       uNach ? `${uNach.tagName} „${uNach.textContent.trim()}"` : '(kein Element)');
     uEigen.w.close();
+  }
+}
+
+/* =================================================================
+   0.30.2 — „Die Tagzeile bekommt ihre Breite zurück"
+
+   EIN BEFUND, EIN BAUABSCHNITT. Die dritte Rasterspalte der Tagzeile nahm
+   der Wolke bis zu 180 der 366 Pixel, sobald ein Tagfilter griff -- „mehr"
+   und „Tags zurücksetzen" standen dort als WORTE.
+   GEMESSEN AM 12. SEPTEMBER 2026 in echtem Chromium bei 390 x 844, in allen
+   DREI Sprachen, aufgeklappt und mit gesetztem Tagfilter:
+     Deutsch    Zeilenende 180 px, Wolke  92, 26 Reihen, Tagzeile 845
+     Tuerkisch  Zeilenende 159 px, Wolke 109, 25 Reihen, Tagzeile 812
+     Englisch   Zeilenende 109 px, Wolke 175, 16 Reihen, Tagzeile 518
+   NACHHER, dieselbe Lage: Wolke 272 / 268 / 282, Tagzeile 321 / 321 / 289.
+   ================================================================= */
+async function check0302() {
+  const vCss = fs.readFileSync(path.join(__dirname, 'public', 'style.css'), 'utf8');
+  const vApp = fs.readFileSync(path.join(__dirname, 'public', 'app.js'), 'utf8');
+  const vNarrow = (vCss.match(/@media \(max-width: 700px\), \(max-height: 500px\) and \(max-width: 960px\) \{[\s\S]*$/) || [''])[0];
+  let JSDOMv;
+  try { ({ JSDOM: JSDOMv } = require('jsdom')); } catch { JSDOMv = null; }
+
+  group('Die Tagzeile traegt Zeichen statt Woerter — 0.30.2');
+  {
+    check('jsdom steht fuer die Tagzeile bereit', !!JSDOMv, 'ohne jsdom keine Oberflaechenprobe');
+    /* ---- Zusage 1: zwei Zeichen, und beide sind keine neue Form ----
+       `ICON_STEP_BACK` und `ICON_STEP_FWD` sind derselbe Haken, nur gedreht.
+       Der neue zeigt nach unten und nach oben und entsteht aus demselben
+       Helfer -- geprueft wird der Helfer und nicht der Pfad, denn der Pfad
+       darf sich aendern, der Bauweg nicht. */
+    check('Der Haken entsteht aus demselben Helfer wie die vorhandenen',
+      /const ICON_MORE_DOWN = char\(/.test(vApp) && /const ICON_MORE_UP\s+= char\(/.test(vApp),
+      (vApp.match(/const ICON_MORE_[A-Z]+\s*= [^\n]{0,40}/g) || ['(nicht gefunden)']).join(' · '));
+    /* DER RUECKSETZER BEKOMMT KEIN EIGENES ZEICHEN: `ICON_RESET` steht schon
+       an der Sternzeile und heisst dort „zuruecksetzen". Ein Kreuz waere
+       falsch -- es heisst im Haus „weg". */
+    check('Der Ruecksetzer nimmt den Kreispfeil, den es schon gibt',
+      /c\.innerHTML = ICON_RESET;/.test(vApp) && /const ICON_RESET = char\(/.test(vApp));
+    check('Und kein Kreuz — das heisst im Haus „weg"',
+      !/c\.innerHTML = ICON_X;/.test(vApp));
+    /* ---- Zusage 2: das Wort ist umgezogen und nicht gefallen ----
+       Ein Zeichen allein liest kein Vorleseprogramm vor. Die drei Schluessel
+       bleiben stehen und wandern in den Titel. */
+    for (const schluessel of ['list.more', 'list.less', 'list.resetTags']) {
+      const vName = schluessel.split('.')[1];
+      check(`Der Schluessel ${schluessel} steht weiter in allen drei Sprachen`,
+        ['de', 'en', 'tr'].every(sp => {
+          const d = JSON.parse(fs.readFileSync(path.join(__dirname, 'public', 'languages', sp + '.json'), 'utf8'));
+          return typeof d[schluessel] === 'string' && d[schluessel].trim().length > 0;
+        }), vName);
+    }
+    check('Und er steht im TITEL des Verweises, nicht in seinem Text',
+      /m\.title = cloudOpen\.overview \? t\('list\.less'\) : t\('list\.more'\);/.test(vApp) &&
+      /c\.title = t\('list\.resetTags'\);/.test(vApp));
+    check('Und beide sagen ihr Wort auch dem Vorleseprogramm',
+      (vApp.match(/setAttribute\('aria-label', [mc]\.title\)/g) || []).length === 2);
+
+    /* ---- Zusage 3: die dritte Spalte ist weg ---- */
+    check('Die beiden Verweise stehen in Spalte eins, unter der Beschriftung',
+      /\.frow-tags > \.frow-right-end \{ grid-column: 1; grid-row: 2;/.test(vNarrow),
+      (vNarrow.match(/\.frow-tags > \.frow-right-end[^\n]*/) || ['(keine Regel)'])[0]);
+    check('Und die Zeile traegt drei Rasterzeilen',
+      /\.frow-tags \{ grid-template-rows: auto auto 1fr; \}/.test(vNarrow));
+    check('Und der Umschalter steht in der dritten',
+      /\.frow-tags > \.tagmode \{ grid-row: 3; \}/.test(vNarrow));
+    /* ---- UND ZUGEKLAPPT IST ER VERBORGEN -- nachgetragen, 0.30.2 ----
+       DIE GEGENPROBE HAT ES GEFUNDEN, und das ist ihr Zweck. Rueckbau 941
+       macht den Umschalter wieder immer sichtbar, und KEINE EINZIGE PRUEFUNG
+       wurde rot: die Zusagen darueber fragten die KLASSE (`tags-live`) und die
+       RASTERZEILE -- aber nie die Regel, die tatsaechlich verbirgt. Ein
+       Waechter ueber nichts ist gruen (Stolperstein 81).
+       GEFRAGT WIRD DIE VERNEINUNG UND NICHT BLOSS DAS VORKOMMEN DER KLASSE:
+       eine Regel `.frow-tags.tags-live > .tagmode { display: inline-flex; }`
+       nennt beide Namen und verbirgt trotzdem nichts -- genau das ist der
+       Rueckbau. Die Zusage muss deshalb sagen, WORAN die Regel haengt. */
+    check('Und zugeklappt ist er verborgen — die Regel haengt an der Verneinung',
+      /\.frow-tags:not\(\.tags-live\) > \.tagmode \{ display: none; \}/.test(vNarrow),
+      (vNarrow.match(/\.frow-tags[^\n{]*\.tagmode \{[^}]*\}/g) || ['(keine Regel)']).join(' · '));
+    /* DAS ZEICHEN IST EIN ZIEL FUER DEN FINGER und kein Buchstabe: dreissig
+       Pixel im Quadrat, dasselbe Mass, das der Ruecksetzer der Sternzeile am
+       groben Zeiger traegt. */
+    check('Ein Zeichenverweis ist ein Ziel fuer den Finger',
+      /\.link-btn\.icon-link \{[^}]*width: 30px; height: 30px;/.test(vCss),
+      (vCss.match(/\.link-btn\.icon-link \{[^}]*\}/) || ['(keine Regel)'])[0].replace(/\s+/g, ' ').slice(0, 120));
+    check('Und er traegt keinen Unterstrich mehr — der gehoert unter ein Wort',
+      /\.link-btn\.icon-link \{[^}]*text-decoration: none;/.test(vCss));
+
+    /* ---- Zusage 4: der Umschalter geht unter die Klappe ----
+       GEFAHREN UND NICHT GELESEN: drei Lagen, drei Antworten. */
+    const vBau = (tags, klicks) => buildDom(JSDOMv, { tags });
+    const vTags = [
+      { id: 41, name: 'Alu', usage_count: 3, test_usage_count: 0 },
+      { id: 42, name: 'Stahl', usage_count: 2, test_usage_count: 0 },
+      { id: 43, name: 'Holz', usage_count: 1, test_usage_count: 0 }
+    ];
+    const vZu = buildDom(JSDOMv, { tags: vTags });
+    await new Promise(r => setTimeout(r, 120));
+    const vRow = () => vZu.w.document.getElementById('f-tagzeile');
+    check('Zugeklappt und ohne Auswahl ist der Umschalter verborgen',
+      !!vRow() && !vRow().classList.contains('tags-live'),
+      vRow() ? vRow().className : '(keine Zeile)');
+    /* EIN TAG GENUEGT NICHT: der Umschalter entscheidet erst ab zweien ueber
+       das Ergebnis. */
+    vRow()?.querySelector('.pill-tag')?.click();
+    await new Promise(r => setTimeout(r, 120));
+    check('Mit EINEM gewaehlten Tag bleibt er verborgen',
+      !!vRow() && !vRow().classList.contains('tags-live'),
+      vRow() ? vRow().className : '(keine Zeile)');
+    /* AB ZWEIEN GREIFT ER, UND DANN STEHT ER DA -- sonst waere es derselbe
+       Befund, wegen dessen bis 0.30.0 „Tags (2)" am alten Umschalter stand:
+       ein Filter, der greift und nicht zu sehen ist. */
+    [...(vRow()?.querySelectorAll('.pill-tag') || [])].find(b => !b.classList.contains('on'))?.click();
+    await new Promise(r => setTimeout(r, 120));
+    check('Ab ZWEI gewaehlten Tags steht er da — er greift dann',
+      !!vRow() && vRow().classList.contains('tags-live'),
+      vRow() ? vRow().className : '(keine Zeile)');
+    vZu.w.close();
+    /* UND AUFGEKLAPPT STEHT ER IMMER DA.
+       DER GRIFF ZUM AUFKLAPPEN STEHT IN JSDOM NICHT VON SELBST DA: er
+       erscheint nur, wenn limitCloud() meldet, dass etwas abgeschnitten ist --
+       und das kann sie dort nicht, weil jsdom keine Hoehen rechnet. Sie wird
+       deshalb gegen eine getauscht, die „abgeschnitten" sagt; danach wird die
+       Zeile neu gezeichnet, indem ein Tag zweimal gedrueckt wird (an und
+       wieder aus). Die Lage ist dann: nichts gewaehlt, Griff da. */
+    const vAuf = buildDom(JSDOMv, { tags: vTags });
+    await new Promise(r => setTimeout(r, 120));
+    const vAufRow = () => vAuf.w.document.getElementById('f-tagzeile');
+    vAuf.w.limitCloud = () => true;
+    vAufRow()?.querySelector('.pill-tag')?.click();
+    await new Promise(r => setTimeout(r, 120));
+    vAufRow()?.querySelector('.pill-tag.on')?.click();
+    await new Promise(r => setTimeout(r, 120));
+    check('Der Griff zum Aufklappen steht da, sobald etwas abgeschnitten ist',
+      !!vAufRow()?.querySelector('.frow-right-end .link-btn'),
+      vAufRow() ? vAufRow().innerHTML.slice(0, 120) : '(keine Zeile)');
+    vAufRow()?.querySelector('.frow-right-end .link-btn')?.click();
+    await new Promise(r => setTimeout(r, 120));
+    check('Aufgeklappt steht er da, auch ohne Auswahl',
+      !!vAufRow() && vAufRow().classList.contains('tags-live'),
+      vAufRow() ? vAufRow().className : '(keine Zeile)');
+    /* UND DER HAKEN DREHT SICH: nach unten, solange zugeklappt ist, nach oben,
+       wenn offen. Gemessen am Titel, denn der sagt, was der Griff tut. */
+    const vHaken = vAufRow()?.querySelector('.frow-right-end .link-btn');
+    check('Und der Haken zeigt dann nach oben und sagt „weniger"',
+      !!vHaken && vHaken.getAttribute('title') === 'weniger' &&
+      vHaken.innerHTML.includes('M6 14.5L12 8.5l6 6'),
+      vHaken ? `„${vHaken.getAttribute('title')}"` : '(kein Griff)');
+    vAuf.w.close();
   }
 }
 

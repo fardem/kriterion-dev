@@ -3,7 +3,7 @@
 **Sieben Befunde aus dem Betrieb und einer aus dem Nachsehen · 12. September
 2026 · gebaut auf 0.30.0 (`2363b00a`).**
 
-> **FINGERPRINT DIESER RUNDE: `c879a92b`** — gerechnet am gebauten Stand,
+> **FINGERPRINT DIESER RUNDE: `194e8984`** — gerechnet am gebauten Stand,
 > **vor dem Einspielen**. Er deckt `node_modules` nicht ab und hängt an jeder
 > Datei der Liste — auch an einem Kommentar.
 >
@@ -11,19 +11,51 @@
 >
 > | Quelle | Wert |
 > |---|---|
-> | **Am Arbeitsbaum nachgerechnet** *(dieselben achtzehn Dateien)* | **`c879a92b`** |
-> | **Aus dem Server selbst gelesen** *(frisches Datenverzeichnis, `/api/stats`)* | **`c879a92b`** |
-> | **Aus der laufenden Installation gemeldet** | *steht aus — trägt der Betreiber nach* |
+> | **Am Arbeitsbaum nachgerechnet** *(dieselben achtzehn Dateien)* | **`194e8984`** |
+> | **Aus dem Server selbst gelesen** *(frisches Datenverzeichnis, `/api/stats`)* | **`194e8984`** |
+> | **Aus der laufenden Installation gemeldet** *(Betreiber, 12. September 2026)* | **`a6726a83`** |
 >
-> **ZWEI QUELLEN, EIN WERT.** *Die dritte kommt aus dem Feld und steht hier als
-> offener Punkt und nicht als Fußnote.*
+> **ZWEI QUELLEN FÜR DEN AUSGELIEFERTEN WERT — UND DIE DRITTE NENNT EINEN
+> ANDEREN.** *Das ist kein Widerspruch, sondern eine Reihenfolge: der Betreiber
+> hat eingespielt, als `a6726a83` der Stand war, und danach ist der **Wortlaut
+> der Kommentare** berichtigt worden.*
+>
+> **DIE BEIDEN STÄNDE UNTERSCHEIDEN SICH IN KEINER EINZIGEN AUSGEFÜHRTEN
+> ZEILE** — nur in Kommentaren und in den Papieren. *Wer `a6726a83` laufen hat,
+> hat dieselbe Anwendung; wer den Sollwert dieser Runde nachrechnen will, muss
+> `194e8984` einspielen.* **Der offene Punkt bleibt damit offen, und er steht
+> hier und nicht als Fußnote.**
+>
+> **UND ER BLEIBT ES AUF ABSEHBARE ZEIT.** *Der Betreiber am 12. September
+> 2026: „ich werde die den nur wieder einspielen wenn wir den patch mit dem
+> tagfilter haben."* **Der nächste Stand, der an den Wirt geht, ist der von
+> 0.30.2** — *er wird dann seinen eigenen Fingerprint bestätigen und nicht
+> diesen.* **Damit ist `194e8984` ein Wert, den zwei Quellen tragen und das Feld
+> nicht mehr einholen wird; das gehört aufgeschrieben und nicht verschwiegen.**
+>
+> **UND ER IST WÄHREND DER RUNDE ZWEIMAL FALSCH DAGESTANDEN — aus demselben
+> Grund.** *Beim ersten Mal war er nach BA 7 gerechnet, und danach kam noch eine
+> Zeile in `public/style.css` (die Kurzform `gap`, die hinter ihrer Ausnahme
+> stand). Beim zweiten Mal war er gerechnet, und danach ist der **Wortlaut der
+> Kommentare** berichtigt worden.*
+>
+> | | Wert | was danach noch kam |
+> |---|---|---|
+> | zuerst | `c879a92b` | die Kurzform `gap` |
+> | dann | `a6726a83` | der Wortlaut der Kommentare |
+> | **ausgeliefert** | **`194e8984`** | — |
+>
+> **EIN FINGERPRINT HÄNGT AN JEDER DATEI DER LISTE — AUCH AN EINEM KOMMENTAR.**
+> *Wer ihn vor der letzten Änderung rechnet, schreibt einen Wert auf, den
+> niemand mehr nachrechnen kann.* **Er gehört ans Ende einer Runde, hinter die
+> letzte Zeile.**
 
 > **DIE ZAHL, AN DER DIESE RUNDE GEMESSEN IST:**
 >
 > | | Lauf | Gruppen | Prüfungen |
 > |---|---|---|---|
 > | **vorher** *(0.30.0, dieselbe Maschine)* | 271,5 s | 339 | 6741 von 6741 grün |
-> | **nachher** *(0.30.1)* | **287,0 s** | **343** | **6780 von 6780 grün** |
+> | **nachher** *(0.30.1)* | **265,1 s** | **343** | **6780 von 6780 grün** |
 >
 > **39 PRÜFUNGEN UND VIER GRUPPEN MEHR.** *Die Runde hat kein
 > Geschwindigkeitsziel — sie ist Oberfläche —, und die Zahl steht hier, damit
@@ -59,7 +91,7 @@ eingetragen** *(Regel 11, zum fünften Mal in Folge)*.
 | | die Stelle | was daraus wurde |
 |---|---|---|
 | **F1** | *„dann wäre es 2der 2"* | **„erste zeile unter dem tag, aber insgesamt betrachtet wäre es dann die 2 zeile"** — dieselbe Bauform, die F2 vorschlug |
-| **F8** | *„Haben Tage datum und sie passen nicht in eine reihe"* | **der Betreiber hat den ganzen Absatz neu geschrieben:** es sind **Marken** gemeint. Die Lesart war richtig |
+| **F8** | *„Haben Tage datum und sie passen nicht in eine reihe"* | **der Betreiber hat den ganzen Absatz neu geschrieben:** es sind **Tags** gemeint. Die Lesart war richtig |
 | **F18** | *„Datum soll durch Anklicken editierbar sein"* | **erledigt, nicht beantwortet.** *„ehrlich ich habe es nicht probiert sondern angenommen das es nicht so sei"* — **der Handgriff steht seit 0.29.0 da** |
 
 > **F18 IST DER TEURSTE DER DREI GEWESEN, UND ZWAR ZUM NULLTARIF.** *Wäre die
@@ -93,10 +125,10 @@ denselben Daten, einer mit zwei Zugängen und einer mit einem.
 
 | | der Auftrag sagte | gemessen |
 |---|---|---|
-| **die Marken der Tagzeile** *(F3)* | *sie stehen zu tief und müssen in die erste Zeile* | **sie standen längst dort.** *Wolke und erste Pille beginnen beide am oberen Rand. Abgesackt sind **Beschriftung und Umschalter** — beide Rasterzeilen standen auf `auto`, die Wolke spannt über beide und bestimmt die Höhe, also teilten sie sich deren 433 px zu je 212* |
-| **die Festschrift der Marken** *(F4)* | *sie könnte am meisten bringen und am wenigsten kosten* | **sie bringt gar nichts.** *Neun Pixel an der breitesten Marke, keine Reihe weniger, kein Pixel Höhe. Der Gewinn steckt im Polster* |
+| **die Tags der Tagzeile** *(F3)* | *sie stehen zu tief und müssen in die erste Zeile* | **sie standen längst dort.** *Wolke und erste Pille beginnen beide am oberen Rand. Abgesackt sind **Beschriftung und Umschalter** — beide Rasterzeilen standen auf `auto`, die Wolke spannt über beide und bestimmt die Höhe, also teilten sie sich deren 433 px zu je 212* |
+| **die Festschrift der Tags** *(F4)* | *sie könnte am meisten bringen und am wenigsten kosten* | **sie bringt gar nichts.** *Neun Pixel an der breitesten Tag, keine Reihe weniger, kein Pixel Höhe. Der Gewinn steckt im Polster* |
 | **die zweizeilige Sternzeile** *(F11)* | *sie darf fallen, wenn die Messung es hergibt* | **sie gibt es nicht her.** *Einzeilig spart im Vierspalter 35 px und kostet dafür eine Namensspalte von 136 statt 366 px, in der alle drei Namen drei bis vier Zeilen hoch brechen* |
-| **zwei Stufen kleinere Marken** *(F4)* | *— offen* | **sie kaufen nichts ein, wo es zählt.** *In der zugeklappten Reihe — dem Normalzustand — stehen auch dort vier Marken und keine fünf* |
+| **zwei Stufen kleinere Tags** *(F4)* | *— offen* | **sie kaufen nichts ein, wo es zählt.** *In der zugeklappten Reihe — dem Normalzustand — stehen auch dort vier Tags und keine fünf* |
 
 > **PROJEKTSTAND 5.3 BEHÄLT RECHT — ZUM ZWEITEN MAL IN FOLGE, und diesmal gegen
 > einen Vorschlag, der eigens dafür gemessen wurde.** *0.30.0 hat die zweizeilige
@@ -121,8 +153,14 @@ Die erste Zeile bekommt damit die Höhe ihres Inhalts, die zweite den Rest.
 
 | | vorher | nachher |
 |---|---|---|
-| „TAGS" steht | **96 px tief** | **+0** |
-| „und/Oder" steht | **218 px tief** | **+25** *(die 18 px der Beschriftung plus 7 px Zeilenabstand)* |
+| „TAGS" steht | **97 px tief** | **+0** |
+| „und/Oder" steht | **219 px tief** | **+25** *(die 18 px der Beschriftung plus 7 px Zeilenabstand)* |
+| die Zeile misst *(Wolke offen)* | **433 px** | **321** |
+
+*Die Vormessung aus BA 1 nannte 96 und 218 — ein Pixel Rundung an derselben
+Stelle. Die Zahlen hier stammen aus dem Vergleichslauf am **gebauten** Stand,
+alter und neuer Baum nebeneinander, jede Ansicht in einem frisch geladenen
+Fenster.*
 
 **DREI ANDERE FASSUNGEN SIND GEFAHREN UND HABEN NICHTS BEWEGT** — `align-self`
 allein, `min-content auto`, und beides zusammen. *Ein spannendes Kind verteilt
@@ -130,7 +168,7 @@ seine Höhe auf alle `auto`-Zeilen, und `min-content` hält es nicht davon ab.*
 
 **DAZU DIE MARKEN EINE STUFE KLEINER** *(V1: 10,8 px, Polster 4/10)*:
 
-| | Marken in der EINEN Reihe | Pillenhöhe | Filterkasten offen |
+| | Tags in der EINEN Reihe | Pillenhöhe | Filterkasten offen |
 |---|---|---|---|
 | vorher | **3** | 34 px | 654 |
 | nachher | **4** | 27 px | **543** |
@@ -145,23 +183,28 @@ und er ist die Bequemlichkeit und nicht die Auskunft — das Datum steht daneben
 
 | Fall | was geschieht |
 |---|---|
-| **keine Marken** | eine Zeile, die Sterne rechts vom Datum und rechtsbündig |
-| **Marken, und es passt nicht** | die erste Zeile trägt Datum und Marken, die Sterne rutschen darunter |
-| **zu viele Marken** | rechts **von den Marken** steht „mehr" |
+| **keine Tags** | eine Zeile, die Sterne rechts vom Datum und rechtsbündig |
+| **Tags, und es passt nicht** | die erste Zeile trägt Datum und Tags, die Sterne rutschen darunter |
+| **zu viele Tags** | rechts **von den Tags** steht „mehr" |
 
 **DER MARKENKASTEN NAHM SICH VORHER ALLES.** *`flex: 1` heißt „Grundbreite null
 und dann wachsen": er griff sich die ganze übrige Breite, **auch wenn gar keine
-Marke darin stand**, und drückte die Sterne aus der Zeile.*
+Tag darin stand**, und drückte die Sterne aus der Zeile.*
 
-**GEMESSEN AN DREI TESTTAGEN** *(ohne Marken, mit zweien, mit sieben)*:
+**GEMESSEN AN DREI TESTTAGEN** *(ohne Tags, mit zweien, mit sieben)*, **in
+beiden Fassungen**:
 
-| | vorher | nachher |
-|---|---|---|
-| ohne Marken | **83 px** | **54** |
-| mit zwei Marken | **146 px** | **99** |
-| mit sieben Marken | **309 px** | **100** |
+| | vorher *(ein Zugang)* | vorher *(mehrere)* | nachher *(beide)* |
+|---|---|---|---|
+| ohne Tags | **83 px** | 81 | **54** |
+| mit zwei Tags | **146 px** | 119 | **91** |
+| mit sieben Tags | **309 px** | 282 | **92** |
+| **zusammen** | **538** | 482 | **237** |
 
-*538 Pixel für drei Testtage vorher, 253 nachher.*
+> **DIE DRITTE ZEILE IST DIE EIGENTLICHE:** *sieben Tags haben die Zeile
+> vorher auf **309 Pixel** aufgerissen; jetzt misst sie **92** und sagt über
+> „mehr", dass da noch etwas ist.* **Und die beiden Fassungen messen nachher
+> dasselbe** — vorher taten sie es nicht.
 
 > **DER UMBRUCH KOMMT AUS EINEM STÜCK OHNE INHALT** — `::after` mit
 > `flex-basis: 100%`. **Der Träger ist eine Klasse und kein `:has()`:** dieselbe
@@ -237,7 +280,7 @@ sichtbar zu spät.**
    Betreiber nennt den Fall selbst: „Ist ja möglich das man sich verschätzt hat
    und neuen Datum abgesprochen hat." Das kann nach dem Abhaken eintreten.*
 2. **Das Datum sieht jeder, der den Eintrag sieht** *(F20, Befund 8)*. *Der ganze
-   Markenkasten stand hinter „darf ändern" — und damit sah die Frist nur, wer sie
+   Tagkasten stand hinter „darf ändern" — und damit sah die Frist nur, wer sie
    auch ändern durfte, während die Ansicht „Offen" dasselbe Datum jedem zeigt.*
    **Zwei Orte, eine Angabe, zwei Antworten auf die Frage, wer sie sehen darf.**
    *Wer nicht ändern darf, bekommt jetzt einen Text und keinen Knopf: ein Knopf,
@@ -259,7 +302,13 @@ Aufrufort gewesen.** *Die Schuld steht im Fahrplan unter 0.31.0.*
 
 ## Der Prüfstand
 
-**6780 von 6780 grün, 343 Gruppen, 287,0 Sekunden.**
+**6780 von 6780 grün, 343 Gruppen, 265,1 Sekunden.**
+
+> **ZWEI LÄUFE AM SELBEN STAND HABEN 265,1 UND 287,0 SEKUNDEN GEBRAUCHT.**
+> *Die Zahl oben ist die des Schlusslaufs.* **Zweiundzwanzig Sekunden Streuung
+> auf derselben Maschine sind der Grund, warum diese Runde kein
+> Geschwindigkeitsziel trägt** — gemessen wird hier die Oberfläche, nicht der
+> Lauf.
 
 **VIER NEUE GRUPPEN** — die Tagzeile, die Testtagzeile, der Zähler und das
 Datum, das jeder sieht. **DAZU UMGESTELLTE ZUSAGEN IN DREI ALTEN GRUPPEN**
@@ -284,7 +333,7 @@ die Zahl und trägt das Wort im Titel.
 stumm geblieben.**
 
 > **UND EINER HAT TROTZDEM EINE LÜCKE AUFGEDECKT — 926.** *Er nimmt die
-> Begrenzung der Marken eines Testtags auf **eine Reihe** ganz weg, und keine
+> Begrenzung der Tags eines Testtags auf **eine Reihe** ganz weg, und keine
 > einzige Prüfung wurde daraufhin rot.* **Belegt war die Begrenzung SELBST; ihr
 > RUF war es nicht.**
 >
@@ -302,7 +351,7 @@ stumm geblieben.**
 > 0.30.1 eine Zusage, die ihren eigenen Gegenstand nicht abdeckte.*
 >
 > **UND SIE IST NACHGEFAHREN: 926 macht jetzt seine eigene Gruppe rot**
-> *(„Und der Aufbau begrenzt die Marken eines Testtags auf EINE Reihe")*.
+> *(„Und der Aufbau begrenzt die Tags eines Testtags auf EINE Reihe")*.
 > **Damit sind es 24 gefahrene Rückbauten in drei Läufen, 0 stumm** — *21 im
 > ersten, drei im Nachlauf.*
 
@@ -318,6 +367,48 @@ beide erzeugt — nur eben dort.*
 > eine unruhige Lage* — dieselbe Sorte Befund, die 0.30.0 schon einmal geliefert
 > hat *(„der Vater ist fort")*, nur eine Stufe feiner. **Er steht als Punkt 27
 > im Sammelblatt und nicht in dieser Runde.**
+
+---
+
+## Der Augenschein
+
+**Gefahren am 12. September 2026 an beiden Installationen**, in echtem Chromium
+bei 390 × 844 — *und zwar am laufenden Server, nicht an einem nachgebauten
+Dokument.*
+
+**DIE FARBTAFEL IN ALLEN SECHS LAGEN:**
+
+| Aufgabe | Zustand | Farbe | Auszeichnung |
+|---|---|---|---|
+| offen, Datum in der Zukunft | `due-later` | `rgb(77, 157, 224)` — **blau** | — |
+| offen, heute fällig | `due-today` | **blau**, fett | — |
+| offen, Datum überschritten | `due-overdue` | `rgb(240, 85, 92)` — **rot** | — |
+| erledigt, Frist gehalten | `due-done` | `rgb(63, 211, 154)` — **grün** | durchgestrichen |
+| erledigt, Frist gerissen | `due-late` | **rot** | durchgestrichen |
+| erledigt, ohne Datum | — | — | **der Knopf steht da und sagt „Datum"** *(F19)* |
+
+**UND MIT EINEM ZWEITEN ZUGANG GELESEN** *(Befund 8, F20)*: **jede Frist steht
+da, und jede als `SPAN` und nicht als Knopf** — *außer an bert*s eigener
+Aufgabe: dort steht ein `BUTTON` und die drei Tags daneben.* **Die Klemme
+sitzt damit an der Bedienung und nicht an der Auskunft, und sie unterscheidet
+richtig zwischen eigenem und fremdem Kommentar.**
+
+**DIE KRITERIENKARTE:** *„1_Optische Erscheinung_de", „2_Verarbeitungsqualitaet_de",
+„3_Funktionalitaet_de" — **je 150 Pixel Namensspalte, keiner mehr abgeschnitten**,
+der Zähler zeigt „1" und sein Titel „1 Eintrag".*
+
+> **ZWEI MESSFEHLER SIND DABEI AUFGEFALLEN, und beide lagen im Messaufbau und
+> nicht im Gebauten:**
+>
+> | | was schiefging | woran man es sah |
+> |---|---|---|
+> | **1** | *der Aufbau der Prüflage nahm `comments[0]` für den eben angelegten Kommentar — die Liste kommt aber in der Reihenfolge ihres Entstehens.* **Alle sieben Änderungen liefen damit auf denselben Kommentar** | sechs Aufgaben ohne Datum, eine mit dem falschen Zustand |
+> | **2** | *ein Vollbild ändert in Chromium die Fenstermaße.* **Die erste Fassung des Augenscheins hat deshalb andere Höhen gemeldet als der Vergleichslauf daneben** | 42/70/79 gegen 54/91/92 für dieselbe Zeile |
+>
+> **UND EINE DRITTE FALLE WAR SCHON BEKANNT und ist trotzdem wieder
+> aufgemacht worden:** *eine Navigation, die sich nur im Anker unterscheidet,
+> lädt nicht neu.* **0.30.0 hat diese Lehre aufgeschrieben; 0.30.1 hat sie ein
+> zweites Mal bezahlt.** *Jede Messung erzwingt jetzt `about:blank` davor.*
 
 ---
 
