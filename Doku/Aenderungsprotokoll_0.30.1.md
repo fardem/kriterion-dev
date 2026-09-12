@@ -277,7 +277,7 @@ die Zahl und trägt das Wort im Titel.
 | **die fünf Farbzustände** | an fünf Aufgaben, und die fünfte ist der Kern: eine erledigte, deren Frist noch nicht abgelaufen war |
 | **das Datum ohne Recht** | an einem Zugang, der weder Verfasser noch Admin ist |
 
-### Die Gegenproben — 21 gefahren, 0 STUMM, und trotzdem ein Fund
+### Die Gegenproben — 24 gefahren, 0 STUMM, und trotzdem ein Fund
 
 **NEUNZEHN NEUE RÜCKBAUTEN** *(916 bis 934)* **UND ZWEI NACHGEZOGENE** *(909,
 910 — ihre Suchtexte standen nach dieser Runde nicht mehr da)*. **Keiner ist
@@ -300,6 +300,11 @@ stumm geblieben.**
 > **DAS IST DER ZWECK DER GEGENPROBE, und sie hat ihn zum zweiten Mal in zwei
 > Runden erfüllt.** *0.30.0 hat über sie neun ungeklammerte Griffe gefunden;
 > 0.30.1 eine Zusage, die ihren eigenen Gegenstand nicht abdeckte.*
+>
+> **UND SIE IST NACHGEFAHREN: 926 macht jetzt seine eigene Gruppe rot**
+> *(„Und der Aufbau begrenzt die Marken eines Testtags auf EINE Reihe")*.
+> **Damit sind es 24 gefahrene Rückbauten in drei Läufen, 0 stumm** — *21 im
+> ersten, drei im Nachlauf.*
 
 **ZWEI ERWARTUNGEN WAREN FALSCH EINGETRAGEN** *(933, 934)*: die Sternzusagen
 liegen in der Gruppe aus 0.28.1 und nicht in der aus 0.30.0. *Rote Zeilen haben
@@ -308,10 +313,11 @@ beide erzeugt — nur eben dort.*
 > **EINE BEOBACHTUNG AUS DEM LAUF, und sie ist kein Fehler dieser Runde:** *die
 > Gruppe „Der Prüfstand räumt beim Start auf — 0.30.0" wurde in **neun von
 > einundzwanzig** Läufen rot, ohne dass der jeweilige Rückbau etwas mit ihr zu
-> tun hatte.* **Vier Spuren nebeneinander sind für den Aufräumer aus BA 3 immer
-> noch eine unruhige Lage** — dieselbe Sorte Befund, die 0.30.0 schon einmal
-> geliefert hat *(„der Vater ist fort")*, nur eine Stufe feiner. **Er gehört ins
-> Sammelblatt und nicht in diese Runde.**
+> tun hatte* — **und im Nachlauf mit nur drei Spuren in zwei von dreien.**
+> *Mehrere Prüfläufe nebeneinander sind für den Aufräumer aus BA 3 immer noch
+> eine unruhige Lage* — dieselbe Sorte Befund, die 0.30.0 schon einmal geliefert
+> hat *(„der Vater ist fort")*, nur eine Stufe feiner. **Er steht als Punkt 27
+> im Sammelblatt und nicht in dieser Runde.**
 
 ---
 

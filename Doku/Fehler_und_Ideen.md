@@ -1357,8 +1357,11 @@ trennt sie zwar, aber offenbar nicht in jedem Zeitfenster.*
 
 **Was zu tun wäre.** *Die Lage nachstellen und messen, statt zu raten: zwei
 Prüfläufe gleichzeitig starten und sehen, welcher Zweig der Erkennung greift.*
-**Bis dahin ist die Zahl der Spuren der Hebel:** *auf zwei Spuren ist das
-Flackern in keinem der Läufe dieser Runde aufgetreten.*
+
+> **NACHGESEHEN AM 12. SEPTEMBER 2026, UND DIE ERSTE VERMUTUNG WAR FALSCH.**
+> *Der Nachlauf mit **drei** Spuren hat dasselbe Flackern gezeigt — in zwei von
+> drei Läufen.* **Es hängt also nicht an der Vier.** *Wie es bei zwei Spuren
+> aussieht, ist nicht gemessen, und deshalb steht hier keine Zahl dazu.*
 
 **Offene Entscheidungen** — *ob der Aufräumer fremde Wegwerfverzeichnisse
 überhaupt ansehen soll, oder nur die unter seiner eigenen Portbasis.*
