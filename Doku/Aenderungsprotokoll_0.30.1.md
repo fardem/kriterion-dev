@@ -121,8 +121,14 @@ Die erste Zeile bekommt damit die Höhe ihres Inhalts, die zweite den Rest.
 
 | | vorher | nachher |
 |---|---|---|
-| „TAGS" steht | **96 px tief** | **+0** |
-| „und/Oder" steht | **218 px tief** | **+25** *(die 18 px der Beschriftung plus 7 px Zeilenabstand)* |
+| „TAGS" steht | **97 px tief** | **+0** |
+| „und/Oder" steht | **219 px tief** | **+25** *(die 18 px der Beschriftung plus 7 px Zeilenabstand)* |
+| die Zeile misst *(Wolke offen)* | **433 px** | **321** |
+
+*Die Vormessung aus BA 1 nannte 96 und 218 — ein Pixel Rundung an derselben
+Stelle. Die Zahlen hier stammen aus dem Vergleichslauf am **gebauten** Stand,
+alter und neuer Baum nebeneinander, jede Ansicht in einem frisch geladenen
+Fenster.*
 
 **DREI ANDERE FASSUNGEN SIND GEFAHREN UND HABEN NICHTS BEWEGT** — `align-self`
 allein, `min-content auto`, und beides zusammen. *Ein spannendes Kind verteilt
@@ -153,15 +159,20 @@ und er ist die Bequemlichkeit und nicht die Auskunft — das Datum steht daneben
 und dann wachsen": er griff sich die ganze übrige Breite, **auch wenn gar keine
 Marke darin stand**, und drückte die Sterne aus der Zeile.*
 
-**GEMESSEN AN DREI TESTTAGEN** *(ohne Marken, mit zweien, mit sieben)*:
+**GEMESSEN AN DREI TESTTAGEN** *(ohne Marken, mit zweien, mit sieben)*, **in
+beiden Fassungen**:
 
-| | vorher | nachher |
-|---|---|---|
-| ohne Marken | **83 px** | **54** |
-| mit zwei Marken | **146 px** | **99** |
-| mit sieben Marken | **309 px** | **100** |
+| | vorher *(ein Zugang)* | vorher *(mehrere)* | nachher *(beide)* |
+|---|---|---|---|
+| ohne Marken | **83 px** | 81 | **54** |
+| mit zwei Marken | **146 px** | 119 | **91** |
+| mit sieben Marken | **309 px** | 282 | **92** |
+| **zusammen** | **538** | 482 | **237** |
 
-*538 Pixel für drei Testtage vorher, 253 nachher.*
+> **DIE DRITTE ZEILE IST DIE EIGENTLICHE:** *sieben Marken haben die Zeile
+> vorher auf **309 Pixel** aufgerissen; jetzt misst sie **92** und sagt über
+> „mehr", dass da noch etwas ist.* **Und die beiden Fassungen messen nachher
+> dasselbe** — vorher taten sie es nicht.
 
 > **DER UMBRUCH KOMMT AUS EINEM STÜCK OHNE INHALT** — `::after` mit
 > `flex-basis: 100%`. **Der Träger ist eine Klasse und kein `:has()`:** dieselbe
@@ -318,6 +329,48 @@ beide erzeugt — nur eben dort.*
 > eine unruhige Lage* — dieselbe Sorte Befund, die 0.30.0 schon einmal geliefert
 > hat *(„der Vater ist fort")*, nur eine Stufe feiner. **Er steht als Punkt 27
 > im Sammelblatt und nicht in dieser Runde.**
+
+---
+
+## Der Augenschein
+
+**Gefahren am 12. September 2026 an beiden Installationen**, in echtem Chromium
+bei 390 × 844 — *und zwar am laufenden Server, nicht an einem nachgebauten
+Dokument.*
+
+**DIE FARBTAFEL IN ALLEN SECHS LAGEN:**
+
+| Aufgabe | Zustand | Farbe | Auszeichnung |
+|---|---|---|---|
+| offen, Datum in der Zukunft | `due-later` | `rgb(77, 157, 224)` — **blau** | — |
+| offen, heute fällig | `due-today` | **blau**, fett | — |
+| offen, Datum überschritten | `due-overdue` | `rgb(240, 85, 92)` — **rot** | — |
+| erledigt, Frist gehalten | `due-done` | `rgb(63, 211, 154)` — **grün** | durchgestrichen |
+| erledigt, Frist gerissen | `due-late` | **rot** | durchgestrichen |
+| erledigt, ohne Datum | — | — | **der Knopf steht da und sagt „Datum"** *(F19)* |
+
+**UND MIT EINEM ZWEITEN ZUGANG GELESEN** *(Befund 8, F20)*: **jede Frist steht
+da, und jede als `SPAN` und nicht als Knopf** — *außer an bert*s eigener
+Aufgabe: dort steht ein `BUTTON` und die drei Marken daneben.* **Die Klemme
+sitzt damit an der Bedienung und nicht an der Auskunft, und sie unterscheidet
+richtig zwischen eigenem und fremdem Kommentar.**
+
+**DIE KRITERIENKARTE:** *„1_Optische Erscheinung_de", „2_Verarbeitungsqualitaet_de",
+„3_Funktionalitaet_de" — **je 150 Pixel Namensspalte, keiner mehr abgeschnitten**,
+der Zähler zeigt „1" und sein Titel „1 Eintrag".*
+
+> **ZWEI MESSFEHLER SIND DABEI AUFGEFALLEN, und beide lagen im Messaufbau und
+> nicht im Gebauten:**
+>
+> | | was schiefging | woran man es sah |
+> |---|---|---|
+> | **1** | *der Aufbau der Prüflage nahm `comments[0]` für den eben angelegten Kommentar — die Liste kommt aber in der Reihenfolge ihres Entstehens.* **Alle sieben Änderungen liefen damit auf denselben Kommentar** | sechs Aufgaben ohne Datum, eine mit dem falschen Zustand |
+> | **2** | *ein Vollbild ändert in Chromium die Fenstermaße.* **Die erste Fassung des Augenscheins hat deshalb andere Höhen gemeldet als der Vergleichslauf daneben** | 42/70/79 gegen 54/91/92 für dieselbe Zeile |
+>
+> **UND EINE DRITTE FALLE WAR SCHON BEKANNT und ist trotzdem wieder
+> aufgemacht worden:** *eine Navigation, die sich nur im Anker unterscheidet,
+> lädt nicht neu.* **0.30.0 hat diese Lehre aufgeschrieben; 0.30.1 hat sie ein
+> zweites Mal bezahlt.** *Jede Messung erzwingt jetzt `about:blank` davor.*
 
 ---
 
