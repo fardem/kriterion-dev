@@ -108,8 +108,8 @@ Stand der Sammlung.
 |---|---|---|---|
 | **F1** | **„dann wäre es 2der 2" — was heißt der Satz?** *Er steht zwischen den beiden Bitten und dem Vorschlag zur Schriftgröße* | **Keiner.** *Er kann „beide zusammen ergeben zwei Zeilen statt zwei" heißen, „zwei von zwei erledigt" — oder etwas Drittes.* **Diese Zeile bitte nur beantworten** |**„erste zeile unter dem tag, aber insgesamt betrachtet wäre es dann die 2 zeile."** *Betreiber, 12. September 2026.* **Gemeint ist die erste Zeile UNTER der Beschriftung, und über den ganzen Kasten gezählt ist das die zweite** — *also genau die Bauform aus F2* |
 | **F2** | **Der Umschalter und/oder rückt unter „TAGS"** *(heute steht er am UNTEREN Ende der Wolke)* | **Ja — und es sind zwei Zeilen Raster.** *Heute spannt die Wolke über beide Rasterzeilen und bestimmt damit die Höhe; der Umschalter sitzt in Zeile 2 und rutscht mit ihr nach unten.* **`grid-template-rows: auto 1fr` und `align-self: start` am Umschalter** — *dann ist Zeile 1 so hoch wie die Beschriftung, und Zeile 2 beginnt unmittelbar darunter* |**UNTER „TAGS", EIGENE ZEILE.** *Betreiber, 12. September 2026.* **Zeile 1 wird nur so hoch wie die Beschriftung, der Umschalter sitzt unmittelbar darunter** — *und die Markenwolke daneben bleibt unberührt. Die Fassung „neben der Beschriftung" fällt an der Breite: sie kostet nach der Messung aus 0.30.0 etwa einen sichtbaren Tag* |
-| **F3** | **Die Marken sollen in der ersten Zeile anfangen.** *Auf dem Bild steht die erste Markenreihe eine Spur tiefer als die Beschriftung daneben* | **Ja — aber zuerst gemessen, woher der Abstand kommt.** *Es kommt entweder aus dem Zeilenabstand des Filterrasters oder aus der Höhe der Beschriftungszeile, und das sind zwei verschiedene Reparaturen.* **Vorgelegt wird die Zahl, dann die Zeile** |**ERST MESSEN, DANN DIE ZEILE.** *Betreiber, 12. September 2026.* *BA 1 legt vor, woher der Abstand kommt — am falschen Ende gezogen verschiebt er die Kategorienzeile darüber mit* |
-| **F4** | **Wie viel kleiner werden die Marken?** *Der Betreiber: „eine bis zwei Stufen … natürlich sollten sie noch lesbar sein"* | **Gemessen und vorgelegt, nicht geschätzt — und mit einer dritten Fassung, die er nicht genannt hat.** *Eine Marke trägt heute `.77rem` in **Festschrift** (`--mono`), eine Kategorie `.83rem` in gewöhnlicher Schrift.* **Die Festschrift ist die eigentliche Breite:** dieselbe Zahl Zeichen braucht in ihr spürbar mehr Platz. **Drei Fassungen werden gemessen:** *eine Stufe kleiner · zwei Stufen kleiner · **gleiche Größe, aber ohne Festschrift**.* **Die dritte könnte am meisten bringen und am wenigsten kosten** — sie nimmt aber ein Merkmal weg, an dem man eine Marke von einer Kategorie unterscheidet |**ALLE DREI FASSUNGEN MESSEN UND VORLEGEN.** *Betreiber, 12. September 2026.* **Eine Stufe · zwei Stufen · gleiche Größe ohne Festschrift** — *vorgelegt wird, wie viele Marken je Fassung mehr sichtbar werden, und entschieden wird an der Zahl* |
+| **F3** | **Die Marken sollen in der ersten Zeile anfangen.** *Auf dem Bild steht die erste Markenreihe eine Spur tiefer als die Beschriftung daneben* | **Ja — aber zuerst gemessen, woher der Abstand kommt.** *Es kommt entweder aus dem Zeilenabstand des Filterrasters oder aus der Höhe der Beschriftungszeile, und das sind zwei verschiedene Reparaturen.* **Vorgelegt wird die Zahl, dann die Zeile** |**ERST MESSEN, DANN DIE ZEILE.** *Betreiber, 12. September 2026.* *BA 1 legt vor, woher der Abstand kommt — am falschen Ende gezogen verschiebt er die Kategorienzeile darüber mit* **GEMESSEN — UND DIE MESSUNG HAT DIE LESART BERICHTIGT:** *die Marken stehen längst in der ersten Zeile (Wolke und erste Pille beginnen beide bei y = 327, dem oberen Rand der Zeile). Es sind die BESCHRIFTUNG (y = 423) und der UMSCHALTER (y = 545), die absacken* — **zwei Rasterzeilen zu je 212 px, weil die Wolke über beide spannt und die Höhe bestimmt.** *F2 und F3 sind damit eine einzige Reparatur* |
+| **F4** | **Wie viel kleiner werden die Marken?** *Der Betreiber: „eine bis zwei Stufen … natürlich sollten sie noch lesbar sein"* | **Gemessen und vorgelegt, nicht geschätzt — und mit einer dritten Fassung, die er nicht genannt hat.** *Eine Marke trägt heute `.77rem` in **Festschrift** (`--mono`), eine Kategorie `.83rem` in gewöhnlicher Schrift.* **Die Festschrift ist die eigentliche Breite:** dieselbe Zahl Zeichen braucht in ihr spürbar mehr Platz. **Drei Fassungen werden gemessen:** *eine Stufe kleiner · zwei Stufen kleiner · **gleiche Größe, aber ohne Festschrift**.* **Die dritte könnte am meisten bringen und am wenigsten kosten** — sie nimmt aber ein Merkmal weg, an dem man eine Marke von einer Kategorie unterscheidet |**ALLE DREI FASSUNGEN MESSEN UND VORLEGEN.** *Betreiber, 12. September 2026.* **Eine Stufe · zwei Stufen · gleiche Größe ohne Festschrift** — *vorgelegt wird, wie viele Marken je Fassung mehr sichtbar werden, und entschieden wird an der Zahl* **GEMESSEN, VORGELEGT, ENTSCHIEDEN: V1 — eine Stufe.** *Betreiber, 12. September 2026.* *Zugeklappt stehen damit **4 statt 3** Marken in der einen Reihe, die Pille misst 27 statt 34 px, und der offene Filterkasten fällt von **654 auf 543**.* **V3 IST WIDERLEGT** — *die Festschrift allein macht die breiteste Marke um 9 px schmaler und ändert an Reihen und Höhe gar nichts. Der Gewinn steckt im Polster und nicht in der Schrift* |
 
 ### Die Testtagzeile im Eintrag — Befunde 3 und 4
 
@@ -125,8 +125,8 @@ Stand der Sammlung.
 
 | # | Frage | Vorschlag von Claude | Antwort |
 |---|---|---|---|
-| **F10** | **Wie viel kleiner werden die Sterne?** | **Gemessen und als Tafel vorgelegt, so wie die Vokabelkarte in BA 11** — *drei Größen, dieselben Daten, dasselbe Gerät, beide Fassungen (ein Zugang und mehrere).* **Entschieden wird nach der Zahl** |**DREI GRÖSSEN MESSEN UND VORLEGEN.** *Betreiber, 12. September 2026.* *Dieselben Daten, dasselbe Gerät, beide Fassungen — ein Zugang und mehrere.* **0.30.0 hat zweimal bezahlt, was eine ungemessene Annahme an diesem Kasten kostet** |
-| **F11** | **Kippt damit F12 aus 0.30.0?** *Jene Antwort lautete „die zweizeilige Sternzeile bleibt", und der Grund war die Breite der übrigen Spalten — genau die greift dieser Vorschlag an* | **Wenn die Messung es hergibt: ja — aber es ist eine EIGENE Antwort und keine Folge.** *Die zweizeilige Sternzeile steht als Entscheidung im Projektstand (5.3); wer sie zurücknimmt, ändert ein Papier und nicht nur eine Zeile.* **Vorgelegt wird beides nebeneinander: kleinere Sterne MIT zweizeiliger Sternzeile und kleinere Sterne OHNE** |**JA — WENN DIE MESSUNG ES HERGIBT.** *Betreiber, 12. September 2026.* **Vorgelegt werden beide Fassungen nebeneinander:** *kleinere Sterne MIT zweizeiliger Sternzeile und kleinere Sterne OHNE.* **Fällt sie, ändert sich Projektstand 5.3 mit** — und das ist ein Papier und nicht nur eine Zeile |
+| **F10** | **Wie viel kleiner werden die Sterne?** | **Gemessen und als Tafel vorgelegt, so wie die Vokabelkarte in BA 11** — *drei Größen, dieselben Daten, dasselbe Gerät, beide Fassungen (ein Zugang und mehrere).* **Entschieden wird nach der Zahl** |**DREI GRÖSSEN MESSEN UND VORLEGEN.** *Betreiber, 12. September 2026.* *Dieselben Daten, dasselbe Gerät, beide Fassungen — ein Zugang und mehrere.* **0.30.0 hat zweimal bezahlt, was eine ungemessene Annahme an diesem Kasten kostet** **GEMESSEN, VORGELEGT, ENTSCHIEDEN: S1 — eine Stufe** *(1,1rem, Polster 3 px, Abstand 2 px)*. *Betreiber, 12. September 2026.* **Im Einzelzugang wächst die Namensspalte von 186 auf 210 px — das längste Wort misst 200, also bricht „2_Verarbeitungsqualitaet_de" nicht mehr mitten durch** *(Befund 5, Bild 2)*. **Und der Kasten wird dabei kein Pixel höher: 256 vorher, 256 nachher** |
+| **F11** | **Kippt damit F12 aus 0.30.0?** *Jene Antwort lautete „die zweizeilige Sternzeile bleibt", und der Grund war die Breite der übrigen Spalten — genau die greift dieser Vorschlag an* | **Wenn die Messung es hergibt: ja — aber es ist eine EIGENE Antwort und keine Folge.** *Die zweizeilige Sternzeile steht als Entscheidung im Projektstand (5.3); wer sie zurücknimmt, ändert ein Papier und nicht nur eine Zeile.* **Vorgelegt wird beides nebeneinander: kleinere Sterne MIT zweizeiliger Sternzeile und kleinere Sterne OHNE** |**JA — WENN DIE MESSUNG ES HERGIBT.** *Betreiber, 12. September 2026.* **Vorgelegt werden beide Fassungen nebeneinander:** *kleinere Sterne MIT zweizeiliger Sternzeile und kleinere Sterne OHNE.* **Fällt sie, ändert sich Projektstand 5.3 mit** — und das ist ein Papier und nicht nur eine Zeile **DIE MESSUNG SAGT NEIN — SIE BLEIBT.** *Einzeilig spart im Vierspalter 35 px (265 statt 300) und kostet dafür eine Namensspalte von 136 statt 366 px, in der alle drei Namen **drei bis vier Zeilen** hoch brechen.* **Projektstand 5.3 behält recht, und zum zweiten Mal in Folge** — *diesmal gegen einen Vorschlag, der eigens dafür gemessen wurde* |
 
 ### Die Kriterienkarte — Befund 6
 
@@ -179,6 +179,88 @@ Stand der Sammlung.
 > *F14 — er hatte „3x, 10x oder 0x" geschrieben und entscheidet sich für die
 > Zahl ohne Zeichen.* **Das steht hier, weil ein Papier, das nur die letzte
 > Fassung zeigt, den Grund verliert.**
+
+---
+
+## Die Messungen vor der ersten Zeile — BA 1
+
+**Gefahren am 12. September 2026 in echtem Chromium bei 390 × 844,
+`deviceScaleFactor: 3`, `isMobile: true`, Sprache de-DE** — an zwei
+Installationen mit **denselben** Daten: dreißig Marken, drei Kriterien mit
+langen Namen, drei Testtage *(ohne Marken, mit zweien, mit sieben)*, sechs
+Aufgaben durch alle Zustände der Farbtafel. **Die eine trägt zwei Zugänge, die
+andere einen** — nur darin unterscheiden sie sich.
+
+### Die Tagzeile — und was die Messung an der Lesart berichtigt hat
+
+**Bei offener Wolke, also in der Lage des Bildes:**
+
+| | y | Höhe |
+|---|---|---|
+| die Kategorienzeile endet | 317 | |
+| **die Tagzeile beginnt** | **327** | 433 |
+| **die Markenwolke beginnt** | **327** | 433 |
+| „TAGS" steht bei | **423** | 18 |
+| „und/Oder" steht bei | **545** | 20 |
+
+> **DIE MARKEN STANDEN LÄNGST IN DER ERSTEN ZEILE.** *Wolke und erste Pille
+> beginnen beide bei y = 327, also am oberen Rand der Zeile.* **Was absackt,
+> sind die Beschriftung und der Umschalter** — *das Raster hat zwei Zeilen zu je
+> 212 px, weil die Wolke über beide spannt und die Höhe bestimmt; die
+> Beschriftung steht in Zeile 1 mittig, der Umschalter am Anfang von Zeile 2.*
+>
+> **DAMIT SIND F2 UND F3 EINE EINZIGE REPARATUR** — und die beiden Pfeile des
+> Betreibers zeigen auf genau dieselbe Ursache.
+
+### Die fünf Markenfassungen
+
+| Fassung | Marken in der EINEN Reihe *(zugeklappt)* | Pillenhöhe | Wolke offen | Filterkasten offen |
+|---|---|---|---|---|
+| **V0 heute** *(11,55px Festschrift, Polster 7/13)* | **3** | 34 px | 433 | 654 |
+| **V1 eine Stufe** *(10,8px, Polster 4/10)* | **4** | 27 | 321 | **543** |
+| **V2 zwei Stufen** *(10,05px, Polster 3/8)* | **4** | 24 | **260** | 481 |
+| **V3 ohne Festschrift** *(Größe gleich)* | **3** | 34 | 433 | 654 |
+| V4 ohne Festschrift + eine Stufe Polster | 4 | 28 | 335 | 557 |
+
+> **V3 IST WIDERLEGT — und zwar die Fassung, von der dieser Auftrag geschrieben
+> hat, sie „könnte am meisten bringen und am wenigsten kosten".** *Die
+> Festschrift allein macht die breiteste Marke um 9 px schmaler und ändert an
+> Reihen und Höhe **gar nichts**.* **Der Gewinn steckt im Polster und nicht in
+> der Schrift.**
+>
+> **UND V2 KAUFT NICHTS MEHR EIN, WO ES ZÄHLT:** *in der zugeklappten Reihe —
+> dem Normalzustand — stehen auch dort vier Marken und keine fünf.* **Gewählt
+> ist V1** *(Betreiber, 12. September 2026)*.
+
+### Der Bewertungskasten — beide Fassungen, drei Sterngrößen
+
+**Mehrere Zugänge** *(der Vierspalter mit Durchschnittsspalte)*:
+
+| | Block | Sternspalte | Namen |
+|---|---|---|---|
+| **S0 zweizeilig — heute** | **300** | 136 | 366 px, je **eine** Zeile |
+| S1 einzeilig | 265 | 112 | 136 px, **4/3/3** Zeilen |
+| S2 einzeilig | 265 | 92 | 156 px, **4/3/3** Zeilen |
+
+**Ein Zugang** *(der Dreispalter — Befund 5, Bild 2)*:
+
+| | Block | Namensspalte | Namen |
+|---|---|---|---|
+| **S0 — heute** | 256 | 186 | 3/3/2 Zeilen — **„2_Verarbeitungsqualitaet_de" bricht MITTEN DURCH** |
+| **S1 — eine Stufe** | **256** | **210** | 3/3/2 — **kein Mittendurchbruch mehr** |
+| S2 — zwei Stufen | 256 | 230 | 3/3/2, dreißig Pixel Luft |
+| *dieselbe Zeile zweizeilig statt dessen* | 275 | 366 | je eine Zeile — **kostet 19 px mehr** |
+
+> **DER VORSCHLAG DES BETREIBERS TRIFFT AUF DEN PIXEL.** *Das längste Wort misst
+> **200 px**, die Namensspalte heute **186** — deshalb bricht es mitten durch.
+> Eine Stufe kleinere Sterne geben **210**, und der Kasten wird dabei **kein
+> Pixel höher**.*
+>
+> **UND DERSELBE MESSDURCHGANG BEANTWORTET F11 MIT NEIN.** *Die zweizeilige
+> Sternzeile zurückzunehmen spart im Vierspalter 35 Pixel und kostet dafür
+> Namen, die drei bis vier Zeilen hoch brechen.* **Projektstand 5.3 behält
+> recht — zum zweiten Mal in Folge, und diesmal gegen einen Vorschlag, der
+> eigens dafür gemessen wurde.**
 
 ---
 
