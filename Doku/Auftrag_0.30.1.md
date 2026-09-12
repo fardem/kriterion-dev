@@ -8,6 +8,11 @@
 > Bildern aus zwei Installationen.* **Dieses Papier ist aus der Mitschrift
 > entstanden, die währenddessen geführt wurde** — jeder Befund steht mit dem
 > Wortlaut da, in dem er gemeldet wurde.
+>
+> **DIE ZITATE SIND GEGLÄTTET, UND ZWAR AUF ANSAGE** *(Betreiber, 12. September
+> 2026: „ja du kannst glätten")*. **Geglättet heißt: offensichtliche Tippfehler
+> berichtigt — „roz" zu „rot", „vorschebte" zu „vorschwebte".** *Kein Wort ist
+> ersetzt, keine Aussage geschärft, keine Reihenfolge geändert.*
 
 ---
 
@@ -84,15 +89,24 @@ Stand der Sammlung.
 > **DIE SPALTE „VORSCHLAG VON CLAUDE" IST EIN VORSCHLAG UND KEINE ANTWORT.**
 > *Die Spalte „Antwort" ist leer und bleibt es, bis der Betreiber sie füllt.*
 >
-> **DREI FRAGEN SIND RÜCKFRAGEN AN EINEN SATZ und keine Entscheidungen** *(F1,
-> F8, F18)*: **sie werden nicht geraten.** *Ein geratener Satz wird zu einer
-> gebauten Zeile, und die steht dann falsch da.*
+> **DREI FRAGEN WAREN RÜCKFRAGEN AN EINEN SATZ und keine Entscheidungen** *(F1,
+> F8, F18)*: **sie sind nicht geraten, sondern gestellt worden — und am 12.
+> September 2026 alle drei beantwortet.** *Ein geratener Satz wäre zu einer
+> gebauten Zeile geworden, und die stünde dann falsch da.*
+>
+> **EINE VIERTE IST DABEI MITGEFALLEN, und sie zeigt, warum sich Nachfragen
+> lohnt:** *F9 hat der Betreiber nicht entschieden, sondern eine **Regel** dafür
+> gegeben — „welche Form benutzen wir im Eintragsview?".* **Der Quelltext hat
+> geantwortet, und er hat den Vorschlag dieses Papiers widerlegt.**
+
+> **VIER VON DREIUNDZWANZIG SIND BEANTWORTET** *(F1, F8, F9, F18)*, **neunzehn
+> stehen offen.**
 
 ### Die Tagzeile — Befund 2
 
 | # | Frage | Vorschlag von Claude | Antwort |
 |---|---|---|---|
-| **F1** | **„dann wäre es 2der 2" — was heißt der Satz?** *Er steht zwischen den beiden Bitten und dem Vorschlag zur Schriftgröße* | **Keiner.** *Er kann „beide zusammen ergeben zwei Zeilen statt zwei" heißen, „zwei von zwei erledigt" — oder etwas Drittes.* **Diese Zeile bitte nur beantworten** | |
+| **F1** | **„dann wäre es 2der 2" — was heißt der Satz?** *Er steht zwischen den beiden Bitten und dem Vorschlag zur Schriftgröße* | **Keiner.** *Er kann „beide zusammen ergeben zwei Zeilen statt zwei" heißen, „zwei von zwei erledigt" — oder etwas Drittes.* **Diese Zeile bitte nur beantworten** |**„erste zeile unter dem tag, aber insgesamt betrachtet wäre es dann die 2 zeile."** *Betreiber, 12. September 2026.* **Gemeint ist die erste Zeile UNTER der Beschriftung, und über den ganzen Kasten gezählt ist das die zweite** — *also genau die Bauform aus F2* |
 | **F2** | **Der Umschalter und/oder rückt unter „TAGS"** *(heute steht er am UNTEREN Ende der Wolke)* | **Ja — und es sind zwei Zeilen Raster.** *Heute spannt die Wolke über beide Rasterzeilen und bestimmt damit die Höhe; der Umschalter sitzt in Zeile 2 und rutscht mit ihr nach unten.* **`grid-template-rows: auto 1fr` und `align-self: start` am Umschalter** — *dann ist Zeile 1 so hoch wie die Beschriftung, und Zeile 2 beginnt unmittelbar darunter* | |
 | **F3** | **Die Marken sollen in der ersten Zeile anfangen.** *Auf dem Bild steht die erste Markenreihe eine Spur tiefer als die Beschriftung daneben* | **Ja — aber zuerst gemessen, woher der Abstand kommt.** *Es kommt entweder aus dem Zeilenabstand des Filterrasters oder aus der Höhe der Beschriftungszeile, und das sind zwei verschiedene Reparaturen.* **Vorgelegt wird die Zahl, dann die Zeile** | |
 | **F4** | **Wie viel kleiner werden die Marken?** *Der Betreiber: „eine bis zwei Stufen … natürlich sollten sie noch lesbar sein"* | **Gemessen und vorgelegt, nicht geschätzt — und mit einer dritten Fassung, die er nicht genannt hat.** *Eine Marke trägt heute `.77rem` in **Festschrift** (`--mono`), eine Kategorie `.83rem` in gewöhnlicher Schrift.* **Die Festschrift ist die eigentliche Breite:** dieselbe Zahl Zeichen braucht in ihr spürbar mehr Platz. **Drei Fassungen werden gemessen:** *eine Stufe kleiner · zwei Stufen kleiner · **gleiche Größe, aber ohne Festschrift**.* **Die dritte könnte am meisten bringen und am wenigsten kosten** — sie nimmt aber ein Merkmal weg, an dem man eine Marke von einer Kategorie unterscheidet | |
@@ -104,8 +118,8 @@ Stand der Sammlung.
 | **F5** | **Der Wochentag fällt weg, wenn kein Platz ist** *(„Dienstag", „Sonntag", „Mittwoch")* | **Ja — über die BREITE und nicht über den Gerätenamen.** *`@container`, wie die Vokabelkarte in 0.30.0.* **Auf einem Ultra, einem Max oder einem Tablet steht er damit weiter da, ohne dass irgendwo ein Gerätename im Quelltext steht** | |
 | **F6** | **Fällt er ganz — oder kürzt er auf „Di."?** *Der Betreiber hat „nicht anzeigen" gesagt* | **Ganz.** *Drei Zeichen sparen nur die halbe Breite und bringen dafür eine zweite Schreibweise desselben Tages in die Oberfläche.* **Und das Datum steht daneben — der Wochentag ist die Bequemlichkeit, nicht die Auskunft** | |
 | **F7** | **Die drei Fälle der Testtagzeile** *(keine Marken → Sterne rechts; Marken und es passt nicht → Sterne in Zeile 2; zu viele Marken → „mehr" oder rollbar)* | **Alle drei bauen.** *Der erste ist der eigentliche Fehler: `.ttags` nimmt sich die ganze übrige Breite, **auch wenn gar keine Marke darin steht**, und drückt die Sterne in die zweite Zeile, obwohl neben dem Datum die halbe Zeile frei ist* | |
-| **F8** | **„Haben Tage datum und sie passen nicht in eine reihe" — ist „MARKEN" gemeint?** | **Ja, so gelesen.** *Sonst wäre der Fall derselbe wie der erste, und die beiden Sätze widersprächen sich.* **Es ist eine Lesart und keine Gewissheit — bitte bestätigen** | |
-| **F9** | **Zu viele Marken: ein Knopf „mehr" — oder rollbar?** | **Rollbar, und zwar nur am Telefon.** *Ein Knopf „mehr" ist eine dritte Bedienung an einer Zeile, die schon zwei hat (Marke abräumen, Marke anlegen); rollen ist keine Bedienung.* **Der Preis: rollbar versteckt, dass da noch etwas ist** — dagegen hilft ein angeschnittenes letztes Stück am Rand, und das kostet keine Bedienung | |
+| **F8** | **„Haben Tage datum und sie passen nicht in eine reihe" — ist „MARKEN" gemeint?** | **Ja, so gelesen.** *Sonst wäre der Fall derselbe wie der erste, und die beiden Sätze widersprächen sich.* **Es ist eine Lesart und keine Gewissheit — bitte bestätigen** |**JA, MARKEN.** *Betreiber, 12. September 2026 — er hat den ganzen Absatz neu geschrieben:* „Haben **testtage Tags** und sie passen nicht in eine reihe …". **Die Lesart war richtig und ist jetzt keine Lesart mehr** |
+| **F9** | **Zu viele Marken: ein Knopf „mehr" — oder rollbar?** | **Rollbar, und zwar nur am Telefon.** *Ein Knopf „mehr" ist eine dritte Bedienung an einer Zeile, die schon zwei hat (Marke abräumen, Marke anlegen); rollen ist keine Bedienung.* **Der Preis: rollbar versteckt, dass da noch etwas ist** — dagegen hilft ein angeschnittenes letztes Stück am Rand, und das kostet keine Bedienung |**„MEHR" — und der Vorschlag fällt.** *Der Betreiber hat nicht entschieden, sondern eine Regel gegeben:* „Beides machbar. welches eher in frage kommt, kommt darauf an welche form wir im eintragsview welche benutzt haben." **Der Eintragsview benutzt „mehr"** — *die Tagwolke steht dort auf drei Reihen begrenzt mit „mehr"/„weniger" darunter* (`limitCloud()`, `public/app.js:6895`). **Und der Knopf steht rechts VON DEN MARKEN**, nicht am Zeilenende |
 
 ### Der Bewertungskasten — Befund 5
 
@@ -129,7 +143,7 @@ Stand der Sammlung.
 | **F15** | **Das Datum färbt künftig nach dem ZUSTAND und nicht nur nach der Frist:** *offen und in der Zukunft **blau**, überschritten **rot**, erledigt und überschritten **rot**, erledigt und gehalten **grün*** | **Ja, genau so — und es ist kein neuer Farbton.** *Blau für die offene und Grün für die erledigte Aufgabe trägt das Haus schon zweimal: an der Kante des Kommentars (`.cmt.task` / `.cmt.done`) und an der Marke „ToDo" (`.mark.task.on` / `.mark.task.on.done`).* **Das Datum ist die dritte Stelle derselben Sache und die einzige, die nicht mitmacht** | |
 | **F16** | **Was wird aus „heute"?** *0.30.0 hat vier Fristzustände gebaut; „heute" steht fett in Textfarbe, und der Betreiber hat ihn nicht genannt* | **Er bleibt eigen — fett, aber BLAU statt in Textfarbe.** *„Heute" sagt etwas anderes als „irgendwann", und das ist die Fettschrift; die Farbe sagt den Zustand, und der ist „offen".* **So tragen beide Angaben ihren eigenen Träger** | |
 | **F17** | **Bleibt der Durchstrich am erledigten Datum?** | **Ja.** *Farbe nach Zustand und Durchstrich schließen einander nicht aus, und der Augenschein von 0.30.0 hat den Durchstrich ausdrücklich festgehalten.* **Wer ihn wegnimmt, nimmt einen belegten Zustand weg** | |
-| **F18** | **„Datum von Aufgabe soll durch Anklicken editierbar sein" — hat das bei Ihnen NICHT funktioniert?** | **Es ist seit 0.29.0 genau so gebaut**: *der Verweis wird beim Klick zum Datumsfeld und öffnet den Kalender gleich mit; erlaubt ist es dem Verfasser und dem Admin (`manage = mine \|\| ADMIN`).* **Deshalb ist das eine Rückfrage und keine Bestellung:** *ging es nicht — dann ist das ein **Fehler** und die wichtigste Zeile dieser Runde. War es nur nicht auffindbar — dann ist es die Auffindbarkeit, und die ist eine andere Reparatur* | |
+| **F18** | **„Datum von Aufgabe soll durch Anklicken editierbar sein" — hat das bei Ihnen NICHT funktioniert?** | **Es ist seit 0.29.0 genau so gebaut**: *der Verweis wird beim Klick zum Datumsfeld und öffnet den Kalender gleich mit; erlaubt ist es dem Verfasser und dem Admin (`manage = mine \|\| ADMIN`).* **Deshalb ist das eine Rückfrage und keine Bestellung:** *ging es nicht — dann ist das ein **Fehler** und die wichtigste Zeile dieser Runde. War es nur nicht auffindbar — dann ist es die Auffindbarkeit, und die ist eine andere Reparatur* |**ERLEDIGT — die Frage fällt.** *Betreiber, 12. September 2026:* „F18 fällt weg wenn du es schon gebaut hast. ehrlich ich habe es nicht probiert sondern angenommen das es nicht so sei." **Es ist seit 0.29.0 gebaut, also ist nichts zu bauen und nichts zu suchen.** *Kein Fehler — eine Annahme* |
 | **F19** | **Soll eine ERLEDIGTE Aufgabe OHNE Datum noch eines bekommen können?** *Der Knopf steht heute bei `task \|\| (done && dueDate)` — an einer erledigten ohne Datum steht gar nichts* | **Ja.** *„Jederzeit editierbar" heißt auch „nachtragbar".* **Der Betreiber nennt den Fall selbst: man verschätzt sich und spricht ein neues Datum ab** — und das kann nach dem Abhaken passieren | |
 | **F20** | **Das Datum sieht heute NUR, wer es ändern darf** *(Befund 8: der ganze Markenkasten steht hinter `manage`)*. **Soll es jeder sehen, der den Eintrag sehen darf?** | **Ja — sehen ja, ändern nein.** *In der Ansicht „Offen" steht dasselbe Datum schon heute für jeden da; nur am Kommentar selbst fehlt es.* **Eine Frist, die nur ihr Verfasser sieht, ist in einer Installation mit mehreren Zugängen keine Frist** | |
 
@@ -146,9 +160,15 @@ Stand der Sammlung.
 | **F22** | **Die Nummer: PATCH, also 0.30.1?** | **Ja.** *Acht Befunde, kein Schemaanteil, keine neue Spalte — und keiner der acht macht etwas möglich, was die Instanz vorher nicht konnte.* **Der Fahrplan rückt nicht: 0.31.0 bleibt die Sprachdurchsicht, 0.32.0 bleibt der Ruf beim Namen, der Bruch bleibt auf 0.33.0** | |
 | **F23** | **Wird in EINER Runde gebaut — oder trennt sich das Fälligkeitsdatum ab?** *Die Befunde 7 und 8 sind Verhalten, die übrigen sechs sind Platz* | **In einer.** *Sie kommen aus demselben Rundlauf, hängen an derselben Runde und teilen sich die Papiere.* **Zwei Runden für acht Befunde wären zwei Prüfläufe, zwei Änderungsprotokolle und zwei Einspielungen für dieselbe Sache** | |
 
-> **DIE TAFEL IST NOCH NICHT BEANTWORTET.** *Dreiundzwanzig Fragen stehen da,
-> dreiundzwanzig Antwortfelder sind leer.* **Bis sie gefüllt sind, entsteht
-> keine Zeile Code** — das ist Regel 11, und sie gilt zum fünften Mal.
+> **DIE TAFEL IST NOCH NICHT VOLLSTÄNDIG BEANTWORTET.** *Dreiundzwanzig Fragen
+> stehen da, vier sind beantwortet, neunzehn Antwortfelder sind leer.* **Bis sie
+> gefüllt sind, entsteht keine Zeile Code** — das ist Regel 11, und sie gilt zum
+> fünften Mal.
+>
+> **F18 IST DABEI NICHT BEANTWORTET, SONDERN ERLEDIGT** — *dieselbe Sorte
+> Antwort wie F8 in 0.30.0: der Handgriff steht seit 0.29.0 da, der Betreiber
+> hatte ihn nur nicht ausprobiert.* **Es bleibt kein Bauabschnitt und kein
+> Fehler; F19 und F20 daneben bleiben bestehen.**
 
 ---
 
@@ -204,8 +224,12 @@ bestimmt.*
 | **2** | **Der Umschalter und/oder gehört unmittelbar unter „TAGS"** — also in die erste Zeile, nicht ans untere Ende der Wolke |
 | **3** | **Die Marken dürfen ein bis zwei Stufen kleiner sein als die übrigen Pillen** *(Kategorien)* — es gibt deutlich mehr von ihnen, und so passen mehr hinein. **Grenze: lesbar müssen sie bleiben** |
 
-> **EINE STELLE IST UNKLAR UND WIRD NACHGEFRAGT:** *„dann wäre es 2der 2."*
-> **Das wird nicht geraten.** *(F1)*
+> **DIE UNKLARE STELLE IST AUFGELÖST — der Betreiber am 12. September 2026:**
+> *„erste zeile unter dem tag, aber insgesamt betrachtet wäre es dann die 2
+> zeile."* **Gemeint ist die erste Zeile UNTER der Beschriftung „TAGS", und über
+> den ganzen Kasten gezählt ist das die zweite** *(F1)*. *Es ist damit genau die
+> Bauform, die unter F2 vorgeschlagen ist — Zeile 1 so hoch wie die
+> Beschriftung, der Umschalter unmittelbar darunter.*
 
 ---
 
@@ -236,12 +260,20 @@ ohne dass irgendwo ein Gerätename im Quelltext steht.*
 
 **Art: Design** · **Bild 3, dieselben Zeilen**
 
-> **Der Betreiber wörtlich:** *„wenn die tage keine tags haben, rechts von datum
-> und rechts ausgerichtet. Haben Tage datum und sie passen nicht in eine reihe
-> dann rutschen die sterne wie im untersten beispiel in die 2. zeile und erste
-> zeile ist dann nur datum die tags. und sind mehr tags das die nicht in einer
-> reihe dargestellt werden können dann rechts ein mehr button anbieten, oder auf
-> dem handy rollbar machen."*
+> **Der Betreiber wörtlich — in der BERICHTIGTEN Fassung vom 12. September
+> 2026**, mit der er die erste auf Rückfrage selbst ersetzt hat: *„wenn die
+> testtage keine Tags haben, dann können die sterne rechts von testdatum und
+> rechts ausgerichtet werden. Haben testtage Tags und sie passen nicht in eine
+> reihe dann rutschen die sterne wie im untersten beispiel in die 2. Zeile und
+> erste zeile ist dann nur datum die tags. Sind mehr tags das vorhanden so sie
+> nicht in einer reihe dargestellt werden können dann rechts von den Tags ein
+> ‚mehr' button anbieten, oder auf dem handy rollbar machen. Beides machbar.
+> welches eher in frage kommt, kommt darauf an welche form wir im eintragsview
+> welche benutzt haben."*
+>
+> **DIE ERSTE FASSUNG STAND HIER MIT EINER OFFENEN STELLE:** *„Haben Tage datum
+> und sie passen nicht in eine reihe" — gelesen als „haben Tage MARKEN".* **Die
+> Lesart war richtig, und sie ist jetzt keine Lesart mehr** *(F8)*.
 
 **Was dasteht:** `.trow` ist ein Flexkasten aus Datum (`.tdate`), Wochentag
 (`.tweek`), Markenkasten (`.ttags`, `flex: 1`), Sternen und Papierkorb; schmal
@@ -257,13 +289,19 @@ neben dem Datum die halbe Zeile frei ist.*
 |---|---|---|
 | **1** | **Der Tag hat keine Marken** | **Sterne rechts vom Datum und rechtsbündig** — eine Zeile, kein Umbruch |
 | **2** | **Der Tag hat Marken, und Datum + Marken + Sterne passen nicht in eine Zeile** | **Die Sterne rutschen in die zweite Zeile** *(wie im untersten Beispiel)*, die erste trägt dann **nur Datum und Marken** |
-| **3** | **Es sind so viele Marken, dass sie nicht in eine Zeile passen** | **Rechts ein Knopf „mehr"** — *oder* am Telefon **rollbar** |
+| **3** | **Es sind so viele Marken, dass sie nicht in eine Zeile passen** | **Rechts VON DEN MARKEN ein Knopf „mehr"** — *oder* am Telefon **rollbar** |
 
-> **FALL 3 TRÄGT EIN ODER, UND DAS IST EINE ENTSCHEIDUNG UND KEINE
-> Geschmacksfrage.** *Ein Knopf „mehr" ist eine zweite Bedienung an einer Zeile,
-> die schon zwei hat (Marke abräumen, Marke anlegen); rollbar ist keine
-> Bedienung, versteckt aber, dass da noch etwas ist.* **Sie gehört auf die
-> Fragetafel.**
+> **FALL 3 TRUG EIN ODER, UND DER BETREIBER HAT DIE ENTSCHEIDUNG NICHT SELBST
+> GETROFFEN, SONDERN EINE REGEL DAFÜR GEGEBEN:** *„Beides machbar. welches eher
+> in frage kommt, kommt darauf an welche form wir im eintragsview welche benutzt
+> haben."*
+>
+> **DAMIT ENTSCHEIDET DER QUELLTEXT UND NICHT DER GESCHMACK — und er ist
+> eindeutig:** *die Tagwolke des Eintrags ist auf drei Reihen begrenzt und trägt
+> darunter „mehr"/„weniger"* *(`limitCloud(box, cloudOpen.detail ? 0 : 3)`,
+> `public/app.js:6895–6898`)*. **Es wird also „mehr", und der Handgriff dafür
+> steht schon da** *(F9)*. *Gerollt wird in dieser Ansicht nur die Kategorienreihe
+> der ÜBERSICHT, und das ist ein anderer Ort.*
 
 ---
 
@@ -400,16 +438,20 @@ sein und zwar von dem Ersteller oder von dem Admin" — genau so steht es da:*
 `const manage = mine || ADMIN` *(`public/app.js:7914`)*, **und der Datumsknopf
 hängt an `manage`.**
 
-> **DER BETREIBER HAT ES AM SELBEN TAG NOCH EINMAL BESTELLT, und das ist der
-> Grund, warum daraus eine RÜCKFRAGE wird und keine Zeile Code:** *„Datum von
-> Aufgabe soll durch anklicken editierbar sein. Ist ja möglich das man sich
-> verschätzt hat und neuen Datum abgesprochen hat."*
+> **DER BETREIBER HAT ES AM SELBEN TAG NOCH EINMAL BESTELLT, und daraus ist
+> eine RÜCKFRAGE geworden statt einer Zeile Code:** *„Datum von Aufgabe soll
+> durch anklicken editierbar sein. Ist ja möglich das man sich verschätzt hat
+> und neuen Datum abgesprochen hat."*
 >
 > **DER HANDGRIFF STEHT SEIT 0.29.0 UND TUT GENAU DAS:** *aus dem Verweis wird
 > beim Klick ein Datumsfeld, und der Kalender geht gleich mit auf
-> (`showPicker()`).* **Wenn er beim Betreiber nicht ging, ist das ein FEHLER und
-> die wichtigste Zeile dieser Runde** *(F18)* — *und Befund 8 unten ist der
-> erste Ort, an dem danach zu suchen wäre.*
+> (`showPicker()`).*
+>
+> **DIE RÜCKFRAGE IST BEANTWORTET, UND SIE HAT SICH GELOHNT:** *„F18 fällt weg
+> wenn du es schon gebaut hast. ehrlich ich habe es nicht probiert sondern
+> angenommen das es nicht so sei."* **Damit bleibt kein Bauabschnitt und kein
+> Fehler** *(F18)*. *Wäre die Bestellung ungeprüft in den Auftrag gewandert,
+> hätte diese Runde einen Handgriff gebaut, den es seit zwei Runden gibt.*
 
 **ZWEI RESTE BLEIBEN, und beide sind Fragen und keine Bestellungen.** *Der eine:
 der Knopf steht nur bei* `task || (done && c.dueDate)` — **einer erledigten
@@ -453,10 +495,11 @@ Eintrag sieht.* **Das ist dieselbe Trennung, die das Haus an jeder anderen
 Stelle schon zieht** *(Sprachregel S5: was nur die Rolle darüber braucht, steht
 hinter deren Klemme — das Datum braucht nicht nur sie)*.
 
-> **DIESER BEFUND IST DER GRUND, WARUM F18 EINE RÜCKFRAGE IST UND KEINE
-> BESTELLUNG.** *Der Handgriff „anklicken und ändern" steht seit 0.29.0 genau
-> so da. Wenn er beim Betreiber nicht ging, ist das ein Fehler — und dieser hier
-> ist der erste Ort, an dem danach zu suchen wäre.*
+> **DIESER BEFUND IST BEIM PRÜFEN VON F18 AUFGEFALLEN UND STEHT UNABHÄNGIG VON
+> IHM.** *F18 ist erledigt — der Handgriff war da, der Betreiber hatte ihn nur
+> nicht ausprobiert.* **Dieser hier ist geblieben:** *die Klemme sitzt auch
+> dann noch an der Auskunft statt an der Bedienung, wenn mit dem Anklicken alles
+> in Ordnung ist* *(F20)*.
 
 ---
 
@@ -473,7 +516,7 @@ hinter deren Klemme — das Datum braucht nicht nur sie)*.
 | **BA 3** | **Die Testtagzeile** — der Wochentag fällt bei zu wenig Platz, und die Zeile ordnet sich nach dem, was in ihr steht: drei Fälle, eine Rangfolge | F5 bis F9 |
 | **BA 4** | **Der Bewertungskasten** — kleinere Sterne, und je nach Messung fällt oder bleibt die zweizeilige Sternzeile | F10, F11 |
 | **BA 5** | **Die Zähler der Verwaltungslisten** — schmal nur die Zahl, breit der ausgeschriebene Satz | F12, F13, F14 |
-| **BA 6** | **Das Fälligkeitsdatum** — Farbe nach Zustand, nachtragbar an der erledigten Aufgabe, und sichtbar für jeden, der den Eintrag sieht | F15 bis F20 |
+| **BA 6** | **Das Fälligkeitsdatum** — Farbe nach Zustand, nachtragbar an der erledigten Aufgabe, und sichtbar für jeden, der den Eintrag sieht | F15 bis F17, F19, F20 |
 | **BA 7** | **Der Wortlaut** — `card.checkUntil` in drei Sprachen | F21 |
 
 > **BA 1 IST KEIN VORSPIEL, SONDERN DER ABSCHNITT MIT DEM GRÖSSTEN RISIKO.**
@@ -577,8 +620,8 @@ Zugang bricht der Name, mit mehreren bricht die Zeile.**
 
 ## Wie es weitergeht
 
-1. **Die Fragetafel wird beantwortet** — dreiundzwanzig Felder, und drei davon
-   sind Rückfragen an einen Satz *(F1, F8, F18)*.
+1. **Die Fragetafel wird beantwortet** — dreiundzwanzig Felder, **vier davon
+   sind es schon** *(F1, F8, F9, F18)*.
 2. **BA 1 misst und legt vor.** *Vier Zahlen, bevor eine Zeile entsteht.*
 3. **Erst danach wird gebaut**, in der Reihenfolge der Abschnitte.
 
