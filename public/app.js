@@ -7546,7 +7546,7 @@ async function renderDetail(id, termAddress) {
          oben). Gerollt wird nur die KATEGORIENREIHE der Uebersicht, und das
          ist ein anderer Ort.
          EINE REIHE UND NICHT DREI: eine Testtagzeile ist eine ZEILE. Drei
-         Reihen Marken darin waeren derselbe Umbruch, gegen den dieser Befund
+         Reihen Tags darin waeren derselbe Umbruch, gegen den dieser Befund
          gebaut wird.
          RECHTS VON DEN MARKEN UND NICHT AM ZEILENENDE -- so steht es in der
          Bestellung, und es stimmt auch baulich: am Zeilenende stuende er
@@ -7556,9 +7556,9 @@ async function renderDetail(id, termAddress) {
       more.hidden = true;
 
       /* DIE ZEILE SAGT SELBST, OB SIE MARKEN TRAEGT -- 0.30.1, Befund 4.
-         Danach richtet sich ihr Aufbau: ohne Marken steht alles in EINER
-         Zeile und die Sterne rechtsbuendig; mit Marken traegt die erste Zeile
-         Datum und Marken, und die Sterne rutschen darunter.
+         Danach richtet sich ihr Aufbau: ohne Tags steht alles in EINER
+         Zeile und die Sterne rechtsbuendig; mit Tags traegt die erste Zeile
+         Datum und Tags, und die Sterne rutschen darunter.
          EINE KLASSE UND KEIN `:has()`: dieselbe Ueberlegung wie bei
          `frow-tags` in 0.30.0 -- eine Regel, die sich ihren Traeger ueber den
          Inhalt der Zeile zusammensucht, liest sich beim naechsten Stueck in
@@ -7585,7 +7585,7 @@ async function renderDetail(id, termAddress) {
       /* SCHNEIDET SIE NICHTS AB, WIRD SIE WIEDER WEGGENOMMEN. Eine feste
          `max-height` an einem Kasten, der ohnehin hineinpasst, ist eine Grenze
          ueber nichts -- sie belegt nichts und stuende der Zeile im Weg, sobald
-         eine Marke ihre Hoehe aendert (Schriftstufe, laengerer Name).
+         ein Tag seine Hoehe aendert (Schriftstufe, laengerer Name).
          SIE GILT IN JEDER BREITE und nicht nur am Telefon: die Tagwolke des
          Eintrags steht am Schreibtisch ebenso auf drei Reihen begrenzt. Eine
          Regel und nicht zwei. */
@@ -8014,7 +8014,7 @@ async function renderDetail(id, termAddress) {
          Pruefung am Quelltext bindet die Beschriftung an sie. */
       /* ---- DAS DATUM SIEHT JEDER, AENDERN DARF ES NUR, WER DARF -- 0.30.1 ----
          BEFUND 8, aus dem Nachsehen und nicht aus dem Feld: der ganze
-         Markenkasten stand hinter `manage`, und damit sah das
+         Kennzeichenkasten stand hinter `manage`, und damit sah das
          Faelligkeitsdatum nur, wer es auch aendern durfte. Die Ansicht „Offen"
          zeigt dasselbe Datum dagegen jedem, der die Zeile sehen darf
          (renderOpen(), ohne jede Klemme). Zwei Orte, eine Angabe, zwei

@@ -28373,8 +28373,8 @@ function buildDom(JSDOM, { withoutLanguage = false, settings = { filters: null }
   commentInventory = null,
   /* DIE TESTTAGE DES BEISPIELEINTRAGS, stellbar seit 0.30.1 -- wie
      `commentInventory` fuer die Kommentare. Die drei Faelle der Testtagzeile
-     (ohne Marken, mit zweien, mit sieben) sind sonst nicht zu fahren: der
-     Vorgabeeintrag traegt genau einen Testtag mit genau einer Marke. */
+     (ohne Tags, mit zweien, mit sieben) sind sonst nicht zu fahren: der
+     Vorgabeeintrag traegt genau einen Testtag mit genau einem Tag. */
   dayInventory = null,
   untested = false, openInventory = null, trashInventory = null, backupStatus = null, backupCopies = null, sessionsInventory = null, logInventory = null,
   publicAddress = '', mailStatus = null, mailError = false, ownAddress = 'chefin@beispiel.de',
@@ -53221,25 +53221,25 @@ async function check0301() {
     /* DIE MARKEN SIND KLEINER ALS DIE KATEGORIEN -- GERECHNET UND NICHT
        ABGESCHRIEBEN. Eine Zahl, die dasteht, kann man vertauschen; eine, die
        unter einer anderen liegen muss, nicht.
-       GEMESSEN: zugeklappt stehen vier Marken in der einen Reihe statt dreier,
+       GEMESSEN: zugeklappt stehen vier Tags in der einen Reihe statt dreier,
        und der offene Filterkasten faellt von 654 auf 543 Pixel. */
     const uPill = Number(((uCss.match(/\.pill \{[^}]*font-size: ([\d.]+)rem/) || [])[1]));
     const uTagWeit = Number(((uCss.match(/\.pill-tag \{ font-family: var\(--mono\); font-size: ([\d.]+)rem; \}/) || [])[1]));
     const uTagSchmal = Number(((uNarrow.match(/\.pill-tag \{ font-size: ([\d.]+)rem; padding: 4px 10px; \}/) || [])[1]));
-    check('Die Marke war schon vorher kleiner als die Kategorie',
+    check('Der Tag war schon vorher kleiner als die Kategorie',
       uTagWeit > 0 && uPill > 0 && uTagWeit < uPill, `${uTagWeit}rem gegen ${uPill}rem`);
     check('Und am Telefon ist sie noch eine Stufe kleiner',
       uTagSchmal > 0 && uTagSchmal < uTagWeit, `${uTagSchmal}rem gegen ${uTagWeit}rem`);
     /* DIE FESTSCHRIFT BLEIBT, UND DAS IST EINE MESSUNG UND KEINE MEINUNG. Der
        Auftrag hatte vermutet, sie sei die eigentliche Breite; sie allein macht
-       die breiteste Marke um neun Pixel schmaler und aendert an Reihen und
+       den breitesten Tag um neun Pixel schmaler und aendert an Reihen und
        Hoehe gar nichts. Der Gewinn steckt im Polster. */
     check('Und sie traegt weiterhin die Festschrift',
       /\.pill-tag \{ font-family: var\(--mono\)/.test(uCss) &&
       !/\.pill-tag \{[^}]*font-family: inherit/.test(uNarrow),
       (uNarrow.match(/\.pill-tag \{[^}]*\}/) || ['(keine Regel)'])[0]);
     /* UND DIE KATEGORIENPILLE IST NICHT MITGEGANGEN: der Befund ist die Zahl
-       der Marken und nicht die Groesse aller Pillen. */
+       der Tags und nicht die Groesse aller Pillen. */
     check('Die Kategorienpille bleibt, wie sie war',
       !/\.pill \{ font-size/.test(uNarrow),
       (uNarrow.match(/\.pill \{[^}]*\}/) || ['(keine Regel)'])[0]);
@@ -53259,13 +53259,13 @@ async function check0301() {
       !/ultra|max phone|iphone|ipad|galaxy/i.test(uCss.replace(/\/\*[\s\S]*?\*\//g, ' ')));
     /* OHNE MARKEN WAECHST DER MARKENKASTEN IN DEN FREIEN PLATZ UND SCHIEBT DIE
        STERNE ANS ENDE. `flex: 1` hiess „Grundbreite null und dann wachsen": er
-       griff sich die ganze uebrige Breite, auch wenn gar keine Marke darin
+       griff sich die ganze uebrige Breite, auch wenn gar kein Tag darin
        stand, und drueckte die Sterne aus der Zeile. */
-    check('Ohne Marken behaelt der Markenkasten seinen Inhalt als Grundmass',
+    check('Ohne Tags behaelt der Tagkasten seinen Inhalt als Grundmass',
       /\.trow \.ttags \{ flex: 1 1 auto; \}/.test(uNarrow));
-    check('Mit Marken schrumpft er, statt die Zeile vor sich herzutragen',
+    check('Mit Tags schrumpft er, statt die Zeile vor sich herzutragen',
       /\.trow-tags \.ttags \{ flex: 1 1 0; \}/.test(uNarrow));
-    check('Und mit Marken bricht die Zeile vor den Sternen um',
+    check('Und mit Tags bricht die Zeile vor den Sternen um',
       /\.trow-tags::after \{ content: ''; flex-basis: 100%; height: 0; order: 1; \}/.test(uNarrow) &&
       /\.trow-tags \.tfrom, \.trow-tags \.stars \{ order: 2; \}/.test(uNarrow));
     /* UND GEFAHREN: drei Testtage, drei Lagen. Eine Zusage, die nur das
@@ -53275,13 +53275,13 @@ async function check0301() {
       { id: 42, day: '2026-08-02', rating: 4, mine: true, author: { id: 1, name: 'chefin' },
         tags: [{ id: 91, name: 'BIOS' }, { id: 92, name: 'Gelb' }] },
       { id: 43, day: '2026-08-03', rating: 2, mine: true, author: { id: 1, name: 'chefin' },
-        tags: [91, 92, 93, 94, 95, 96, 97].map((n, i) => ({ id: n, name: 'Marke' + i })) }
+        tags: [91, 92, 93, 94, 95, 96, 97].map((n, i) => ({ id: n, name: 'Tag' + i })) }
     ];
     const uDom = buildDom(JSDOMu, { hash: '#/item/1', dayInventory: uDays });
     await new Promise(r => setTimeout(r, 200));
     const uRows = [...uDom.w.document.querySelectorAll('.trow')];
     check('Drei Testtage stehen da', uRows.length === 3, String(uRows.length));
-    check('Nur die Zeilen MIT Marken tragen die Klasse',
+    check('Nur die Zeilen MIT Tags tragen die Klasse',
       equal(uRows.map(r => r.classList.contains('trow-tags')), [false, true, true]),
       JSON.stringify(uRows.map(r => r.classList.contains('trow-tags'))));
     /* „MEHR" STEHT RECHTS VON DEN MARKEN UND NICHT AM ZEILENENDE -- so steht
@@ -53291,7 +53291,7 @@ async function check0301() {
     const uOrder = (r) => [...r.children].map(e =>
       ['ttags', 'ttag-more', 'stars', 'tdate', 'tweek', 'tfrom', 'xdel']
         .find(n => e.classList.contains(n)) || e.className.split(' ')[0]);
-    check('Und „mehr" steht zwischen den Marken und den Sternen',
+    check('Und „mehr" steht zwischen den Tags und den Sternen',
       uRows.every(r => {
         const o = uOrder(r);
         return o.indexOf('ttags') >= 0 && o.indexOf('ttag-more') === o.indexOf('ttags') + 1 &&
@@ -53314,7 +53314,7 @@ async function check0301() {
       `${uTrimmed} · ${uBox.style.maxHeight} · ${uBox.style.overflow}`);
     /* UND EINE BEGRENZUNG UEBER NICHTS WIRD WIEDER WEGGENOMMEN: eine feste
        Hoehe an einem Kasten, der ohnehin hineinpasst, stuende der Zeile im
-       Weg, sobald eine Marke ihre Hoehe aendert. */
+       Weg, sobald ein Tag seine Hoehe aendert. */
     Object.defineProperty(uBox, 'scrollHeight', { value: 29, configurable: true });
     const uEng = uDom.w.limitCloud(uBox, 1);
     uDom.w.limitCloud(uBox, 0);
@@ -53345,7 +53345,7 @@ async function check0301() {
     await uDom.w.renderDetail(1);
     await new Promise(r => setTimeout(r, 250));
     uDom.w.limitCloud = uReal;
-    check('Und der Aufbau begrenzt die Marken eines Testtags auf EINE Reihe',
+    check('Und der Aufbau begrenzt die Tags eines Testtags auf EINE Reihe',
       uCalls.some(c => /(^|\s)ttags(\s|$)/.test(c.cls || '') && c.rows === 1),
       JSON.stringify(uCalls.slice(0, 8)));
     uDom.w.close();
@@ -53405,7 +53405,7 @@ async function check0301() {
       created_at: '2026-09-01 09:00:00', updated_at: null });
     const uComments = [uRow(81, 'task', 'Fremde Aufgabe mit Frist', '2026-09-30')];
     /* EIN ZUGANG, DER WEDER VERFASSER NOCH ADMIN IST. Bis 0.30.1 stand der
-       ganze Markenkasten hinter „darf aendern" -- und damit sah das
+       ganze Kennzeichenkasten hinter „darf aendern" -- und damit sah das
        Faelligkeitsdatum nur, wer es auch aendern durfte. Die Ansicht „Offen"
        zeigte dasselbe Datum dagegen jedem. */
     const uFremd = buildDom(JSDOMu, { hash: '#/item/1', commentInventory: uComments,
@@ -53420,7 +53420,7 @@ async function check0301() {
     check('Und es ist ein Text und kein Knopf',
       !!uDue && uDue.tagName === 'SPAN',
       uDue ? uDue.tagName : '(kein Element)');
-    check('Und die Marken daneben stehen nicht da',
+    check('Und die Kennzeichen daneben stehen nicht da',
       !uFremd.w.document.querySelector('.cmt-head .mark'),
       String(uFremd.w.document.querySelectorAll('.cmt-head .mark').length));
     check('Und es traegt trotzdem seinen Zustand',

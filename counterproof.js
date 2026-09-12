@@ -9096,9 +9096,9 @@ const REGRESSIONS = [
     expected: "Die Tagzeile rueckt nach oben \u2014 0.30.1"
   },
   {
-    /* GEMESSEN IST DER UNTERSCHIED: drei Marken in der zugeklappten Reihe statt
+    /* GEMESSEN IST DER UNTERSCHIED: drei Tags in der zugeklappten Reihe statt
      vier, und der offene Filterkasten 654 statt 543 Pixel. */
-    nr: "918", name: "Die Marken sind wieder so gross wie vorher",
+    nr: "918", name: "Die Tags sind wieder so gross wie vorher",
     file: "public/style.css",
     search: "  .pill-tag { font-size: .72rem; padding: 4px 10px; }",
     replacement: "  .pill-tag { font-size: .77rem; padding: 7px 13px; }",
@@ -9107,8 +9107,8 @@ const REGRESSIONS = [
   {
     /* SIE IST DAS MERKMAL, AN DEM EINE MARKE VON EINER KATEGORIE ZU
      UNTERSCHEIDEN IST -- und sie bringt an Breite fast nichts (gemessen neun
-     Pixel an der breitesten Marke, keine Reihe, kein Pixel Hoehe). */
-    nr: "919", name: "Die Festschrift der Marken faellt",
+     Pixel am breitesten Tag, keine Reihe, kein Pixel Hoehe). */
+    nr: "919", name: "Die Festschrift der Tags faellt",
     file: "public/style.css",
     search: "  .pill-tag { font-size: .72rem; padding: 4px 10px; }",
     replacement: "  .pill-tag { font-size: .72rem; padding: 4px 10px; font-family: inherit; }",
@@ -9124,7 +9124,7 @@ const REGRESSIONS = [
     expected: "Die Tagzeile rueckt nach oben \u2014 0.30.1"
   },
   {
-    /* ER MISST 51 DER 344 PIXEL. Ohne ihn passt die Zeile ohne Marken in EINE
+    /* ER MISST 51 DER 344 PIXEL. Ohne ihn passt die Zeile ohne Tags in EINE
      Zeile -- gemessen 54 statt 83 Pixel. */
     nr: "921", name: "Der Wochentag bleibt auch am Telefon stehen",
     file: "public/style.css",
@@ -9134,9 +9134,9 @@ const REGRESSIONS = [
   },
   {
     /* `flex: 1 1 0` HEISST „GRUNDBREITE NULL UND DANN WACHSEN": er nimmt sich
-     alles, auch wenn gar keine Marke darin steht, und drueckt die Sterne aus
+     alles, auch wenn gar kein Tag darin steht, und drueckt die Sterne aus
      der Zeile. Genau der Befund des Betreibers. */
-    nr: "922", name: "Der Markenkasten greift sich wieder die ganze Breite",
+    nr: "922", name: "Der Tagkasten greift sich wieder die ganze Breite",
     file: "public/style.css",
     search: "  .trow .ttags { flex: 1 1 auto; }",
     replacement: "  .trow .ttags { flex: 1 1 0; }",
@@ -9144,8 +9144,8 @@ const REGRESSIONS = [
   },
   {
     /* OHNE `flex-basis: 100%` ZWINGT DAS STUECK KEINEN UMBRUCH, und die erste
-     Zeile traegt wieder Datum, Marken UND Sterne. */
-    nr: "923", name: "Mit Marken bricht die Zeile nicht mehr vor den Sternen um",
+     Zeile traegt wieder Datum, Tags UND Sterne. */
+    nr: "923", name: "Mit Tags bricht die Zeile nicht mehr vor den Sternen um",
     file: "public/style.css",
     search: "  .trow-tags::after { content: ''; flex-basis: 100%; height: 0; order: 1; }",
     replacement: "  .trow-tags::after { content: ''; height: 0; order: 1; }",
@@ -9154,7 +9154,7 @@ const REGRESSIONS = [
   {
     /* OHNE DIE KLASSE GREIFT KEINE DER DREI REGELN. Eine Zusage, die nur das
      Stilblatt liest, bliebe hier gruen -- deshalb wird die Klasse gefahren. */
-    nr: "924", name: "Die Zeile sagt nicht mehr, ob sie Marken traegt",
+    nr: "924", name: "Die Zeile sagt nicht mehr, ob sie Tags traegt",
     file: "public/app.js",
     search: "      if ((d.tags || []).length) row.classList.add('trow-tags');",
     replacement: "      if (false) row.classList.add('trow-tags');",
@@ -9163,7 +9163,7 @@ const REGRESSIONS = [
   {
     /* AM ZEILENENDE SAGT ES NICHTS MEHR DARUEBER, WAS DA NOCH KOMMT. Der
      Betreiber hat es ausdruecklich rechts VON DEN MARKEN bestellt. */
-    nr: "925", name: "\u201emehr\" steht hinter den Sternen statt bei den Marken",
+    nr: "925", name: "\u201emehr\" steht hinter den Sternen statt bei den Tags",
     file: "public/app.js",
     search: "        row.append(date, wd, tagBox, more, s, x);",
     replacement: "        row.append(date, wd, tagBox, s, x, more);",
@@ -9172,7 +9172,7 @@ const REGRESSIONS = [
   {
     /* DANN BRECHEN SIEBEN MARKEN DIE ZEILE WIEDER AUF VIER REIHEN AUF --
      gemessen 309 statt 100 Pixel. */
-    nr: "926", name: "Die Marken eines Testtags werden nicht mehr auf eine Reihe begrenzt",
+    nr: "926", name: "Die Tags eines Testtags werden nicht mehr auf eine Reihe begrenzt",
     file: "public/app.js",
     search: "      const trimmed = limitCloud(tagBox, opened ? 0 : 1);",
     replacement: "      const trimmed = limitCloud(tagBox, 0);",
@@ -9215,7 +9215,7 @@ const REGRESSIONS = [
     expected: "Das Faelligkeitsdatum bekommt Farbe \u2014 0.30.0"
   },
   {
-    /* BEFUND 8: der ganze Markenkasten stand hinter „darf aendern", und damit
+    /* BEFUND 8: der ganze Kennzeichenkasten stand hinter „darf aendern", und damit
      sah das Datum nur, wer es auch aendern durfte -- waehrend die Ansicht
      „Offen" es jedem zeigt. */
     nr: "931", name: "Das Faelligkeitsdatum verschwindet wieder hinter der Bedienung",

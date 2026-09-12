@@ -557,13 +557,13 @@ wiedersieht, schreibt den Lauf vollständig mit)**.
   laufen zu lassen — ein Flex-Element ist immer ein Rechteck **neben** der
   Wolke, nie eine Aussparung **in** ihr.
   **Was der Umbau kostet:** die Wolke wechselt von `flex` auf `block`, die
-  Marken auf `inline-block` mit `vertical-align: top`; `gap` fällt weg und wird
+  Tags auf `inline-block` mit `vertical-align: top`; `gap` fällt weg und wird
   zu Außenabständen, die letzte Zeile braucht einen Ausgleich; der Kasten
   `.frow-rechts` wandert als erstes Kind **in** die Wolke mit `float: right`;
-  **`begrenzeWolke()` muss die erste Marke suchen statt das erste Kind zu
+  **`begrenzeWolke()` muss den ersten Tag suchen statt das erste Kind zu
   nehmen**; der schmale Schirm braucht eine eigene Antwort, weil `flex: 0 1
   auto` in einem Blockkasten nichts mehr bedeutet.
-  **Was er einbringt:** rund 60 px je Zeile ab der zweiten — etwa eine Marke
+  **Was er einbringt:** rund 60 px je Zeile ab der zweiten — etwa ein Tag
   mehr, zwei mit „zurücksetzen" daneben. **Im Regelzustand null**, denn
   eingeklappt ist die Wolke eine Zeile hoch, und das ist genau die Zeile, neben
   der der Verweis ohnehin steht.
@@ -1254,8 +1254,8 @@ Bezeichner.**
 | ~~`f-status-woher`~~ | **mit 0.28.1 zu `f-status-from` geworden** — die Regel dieser Runde nennt sie, und damit war sie nicht mehr zu halten |
 | `f-abgelehnt` | die Ablehnungspillen der Filterzeile |
 | `f-kat-ohne` | „ohne Kategorie" |
-| `f-tagzeile` | die Markenzeile |
-| `f-weitere` | „mehr" an der Markenwolke |
+| `f-tagzeile` | die Tagzeile |
+| `f-weitere` | „mehr" an der Tagwolke |
 | `filter-zurueck` | der Rücksetzer |
 | `ansicht-neu` | „Ansicht speichern" |
 | `zug-weg-auf` | der Griff am Vergleichsstreifen |
@@ -1340,7 +1340,7 @@ lästig**
 **Was passiert.** *Bei einem Gegenprobenlauf mit **vier** Nebenspuren wurde die
 Prüfgruppe **„Der Prüfstand räumt beim Start auf — 0.30.0"** in **neun von
 einundzwanzig** Läufen rot — und zwar bei Rückbauten, die mit ihr nichts zu tun
-haben* (das Fälligkeitsdatum, die Markengröße, der Zähler). **Rot wurden zwei
+haben* (das Fälligkeitsdatum, die Taggröße, der Zähler). **Rot wurden zwei
 Zusagen:** *„Der Aufräumer findet ihn — am Wegwerfverzeichnis und nicht am
 Namen"* und *„Und er sagt, was er angefasst hat".*
 

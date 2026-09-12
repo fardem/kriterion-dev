@@ -753,7 +753,7 @@ seiner Zeile — und kostet keine eigene mehr.*
 bleibt, weil er weiter 104 Pixel spart.* **Der Befund ist damit gelöst, ohne
 dass ein Bedienelement fällt.**
 
-**Offene Entscheidung:** *der Und/Oder-Umschalter der Marken spannt weiterhin
+**Offene Entscheidung:** *der Und/Oder-Umschalter der Tags spannt weiterhin
 über beide Spalten — 362 px für einen kleinen Schalter. Ob er in die erste
 Spalte neben die Beschriftung gehört, ist zu messen, bevor es entschieden wird.*
 

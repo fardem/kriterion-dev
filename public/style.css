@@ -1592,7 +1592,7 @@ mark {
 /* „mehr" AN DER TESTTAGZEILE -- 0.30.1, Befund 4. Es steht RECHTS VON DEN
    MARKEN und darf nicht schrumpfen: ein „mehr", das selbst umbricht, ist
    dasselbe Problem eine Stufe kleiner. Dieselbe Schriftgroesse wie die
-   Marken daneben (.chip-xs), damit es Teil ihrer Reihe bleibt und nicht
+   Tags daneben (.chip-xs), damit es Teil ihrer Reihe bleibt und nicht
    daneben steht wie eine eigene Angabe. */
 .ttag-more { font-size: .68rem; flex-shrink: 0; align-self: center; }
 .ttag-add:hover { color: var(--accent-text); background: var(--surface-2); }
@@ -4128,7 +4128,7 @@ body.login .login-screen { flex: 1 0 auto; min-height: 0; }
      bitte unmittelbar in die erste zeile unter tags." Auf Rueckfrage praeziser:
      „erste zeile unter dem tag, aber insgesamt betrachtet waere es dann die 2
      zeile."
-     DIE MESSUNG HAT DIE LESART BERICHTIGT (BA 1). Die Marken standen laengst
+     DIE MESSUNG HAT DIE LESART BERICHTIGT (BA 1). Die Tags standen laengst
      in der ersten Zeile -- Wolke und erste Pille beginnen beide am oberen Rand
      der Zeile. Was absackte, waren BESCHRIFTUNG und UMSCHALTER: beide
      Rasterzeilen standen auf `auto`, die Wolke spannt ueber beide und bestimmt
@@ -4151,15 +4151,15 @@ body.login .login-screen { flex: 1 0 auto; min-height: 0; }
      die anderen damit mehr rein passt da auch deutlich mehr von denen gibt,
      natuerlich sollten sie noch lesbar sein."
      FUENF FASSUNGEN SIND GEMESSEN, und die Zahl, die zaehlt, ist die der
-     Marken in der EINEN Reihe, die die zugeklappte Wolke zeigt -- das ist der
+     Tags in der EINEN Reihe, die die zugeklappte Wolke zeigt -- das ist der
      Normalzustand. Heute stehen dort DREI, mit dieser Fassung VIER. Zwei
      Stufen kleiner bringen dort keine fuenfte; sie nehmen nur der OFFENEN
      Wolke weitere 61 px und kosten dafuer Schriftgroesse.
      DIE FESTSCHRIFT BLEIBT, UND DAS IST EINE MESSUNG UND KEINE MEINUNG. Der
      Auftrag hatte vermutet, sie sei die eigentliche Breite; sie allein macht
-     die breiteste Marke um neun Pixel schmaler und aendert an Reihen und Hoehe
+     den breitesten Tag um neun Pixel schmaler und aendert an Reihen und Hoehe
      GAR NICHTS. Der Gewinn steckt im Polster. Und sie ist das Merkmal, an dem
-     eine Marke von einer Kategorie zu unterscheiden ist.
+     ein Tag von einer Kategorie zu unterscheiden ist.
      NUR HIER UND NICHT AM SCHREIBTISCH: gemessen ist das Telefon, geaendert
      wird das Telefon. Dort draussen ist der Platz da, und F24 sagt, dass
      gekuerzt werden DARF und nicht MUSS.
@@ -4562,7 +4562,7 @@ body.login .login-screen { flex: 1 0 auto; min-height: 0; }
   .arow .asize, .arow .afrom { order: 2; }
   .arow .asize { margin-left: auto; }
   /* DER ABSTAND FAELLT VON 12 AUF 8 PIXEL -- 0.30.1, Befund 4. Gemessen an der
-     Zeile OHNE Marken, aber MIT Verfasser (ab zwei Zugaengen): Datum 92,
+     Zeile OHNE Tags, aber MIT Verfasser (ab zwei Zugaengen): Datum 92,
      Verfasser 45, Anlegeknopf 29, Sterne 112, Papierkorb 33 -- zusammen 311
      von 344, und vier Abstaende zu 12 machen 359. Der Papierkorb fiel dadurch
      in eine zweite Zeile, und die Zeile mass 81 statt 54 Pixel. Acht Pixel
@@ -4590,28 +4590,28 @@ body.login .login-screen { flex: 1 0 auto; min-height: 0; }
      „Grundbreite null und dann wachsen": er griff sich die ganze uebrige
      Breite, AUCH WENN GAR KEINE MARKE DARIN STAND, und drueckte die Sterne aus
      der Zeile. `1 1 auto` laesst ihm seinen Inhalt als Grundbreite -- ohne
-     Marken ist das der Anlegeknopf, und die Sterne stehen rechts daneben.
+     Tags ist das der Anlegeknopf, und die Sterne stehen rechts daneben.
      WACHSEN DARF ER WEITER: nur so stehen die Sterne rechtsbuendig und nicht
      dicht hinter dem Datum. */
   .trow .tweek { display: none; }
   .trow .ttags { flex: 1 1 auto; }
   /* ---- MIT MARKEN SIEHT DIE ZEILE ANDERS AUS ALS OHNE ----
-     OHNE MARKEN (oben): der Markenkasten traegt nur den Anlegeknopf, waechst
+     OHNE TAGS (oben): der Tagkasten traegt nur den Anlegeknopf, waechst
      in den freien Platz und schiebt die Sterne ans rechte Ende. Eine Zeile,
      kein Umbruch.
-     MIT MARKEN: die erste Zeile traegt Datum und Marken, die zweite die
+     MIT TAGS: die erste Zeile traegt Datum und Tags, die zweite die
      Sterne. Der Umbruch kommt aus einem Stueck ohne Inhalt, das die volle
      Breite verlangt -- `::after` mit `flex-basis: 100%`. Ein Rasterumbau waere
      die Alternative gewesen; er kostete eine zweite Bauform fuer dieselbe
      Zeile.
      UND DIE MARKEN SCHRUMPFEN STATT UMZUBRECHEN (`flex: 1 1 0`): mit ihrer
-     Inhaltsbreite als Grundmass truegen sieben Marken die Zeile vor sich her,
+     Inhaltsbreite als Grundmass truegen sieben Tags die Zeile vor sich her,
      und der Kasten fiele als Ganzes in die zweite -- das Datum stuende dann
      allein in der ersten. Mit Grundmass null nimmt er, was nach dem Datum
      uebrig ist, und was nicht hineinpasst, steht hinter „mehr".
      DER VERFASSER GEHT MIT NACH UNTEN (`order: 2`). „Erste Zeile ist dann nur
      Datum und die Tags" -- so steht es in der Bestellung, und ein Name daneben
-     naehme den Marken genau die Breite, um die es geht. */
+     naehme den Tags genau die Breite, um die es geht. */
   .trow-tags .ttags { flex: 1 1 0; }
   .trow-tags::after { content: ''; flex-basis: 100%; height: 0; order: 1; }
   .trow-tags .tfrom, .trow-tags .stars { order: 2; }
