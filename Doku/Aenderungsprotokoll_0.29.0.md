@@ -396,7 +396,7 @@ wieder abschreibt.
 
 **UND FÜNF WEITERE HABEN DIE WÄCHTER GEFANGEN, BEVOR SIE INS PAPIER KAMEN:**
 *sechs deutsche Bezeichner in neuem Code (`eine`, `feld`, `heute`, `kopf`,
-`steht`, `zwei`); zweimal „Zeichenkette" statt „String" in Kommentaren;
+`steht`, `zwei`); zweimal das alte Wort für „String" in Kommentaren;
 „Instanz", „Zugänge" und „Kopie" in vier Bildschirmsätzen — alle drei hat das
 Wörterbuch aus 0.22.0 vom Bildschirm genommen; ein alleinstehendes „yedek" im
 Türkischen, wo es „yedekleme" heißt; und ein `CREATE TABLE IF NOT EXISTS`, das
