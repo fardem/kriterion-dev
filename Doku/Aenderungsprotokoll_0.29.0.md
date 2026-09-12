@@ -10,6 +10,14 @@ gebaut auf 0.28.1 (`452d1764`).**
 > **ACHTZEHN DATEIEN, WIE IN DER VORRUNDE.** *Und seit dieser Runde nennt die
 > Karte „Kennzahlen" sie auf Verlangen einzeln — wer den Wert oben nicht
 > wiederfindet, muss die Liste nicht mehr von Hand in einen Container tippen.*
+>
+> | Quelle | Wert |
+> |---|---|
+> | **Am Arbeitsbaum nachgerechnet** *(dieselben achtzehn Dateien)* | **`0336d3a5`** |
+> | **Aus dem Server selbst gelesen** *(frisches Datenverzeichnis, `/api/stats`)* | **`0336d3a5`** |
+>
+> **ZWEI QUELLEN, EIN WERT.** *Die dritte — die Meldung aus der laufenden
+> Installation — kann erst nach dem Einspielen kommen.*
 
 > **DER BETREIBER IM WORTLAUT, 11. September 2026, zum dritten Befund:**
 > *„Achso wenn man nach Titel sortieren lässt sortiert es von A bis Z aber Z
@@ -346,6 +354,27 @@ einmal.**
 > und nicht ersetzt.* **858 hat den Gegenstand gewechselt:** *`dirOf()` ist mit
 > Befund 8 gefallen, und der Rückbau zielt jetzt auf die Zeile, die `start`
 > auswertet — was er belegt, ist dasselbe geblieben.*
+
+### Die Gegenproben sind gefahren
+
+**SECHSUNDZWANZIG, UND ALLE SECHSUNDZWANZIG GREIFEN — 0 STUMM.** *Jede färbt
+genau die Zusage rot, gegen die sie gebaut ist; keine lässt den Lauf stehen.*
+
+> **ZWEI WAREN IM ERSTEN ANLAUF WERTLOS, und beide sind ein Fund über mich und
+> nicht über den Code.**
+>
+> **871 RISS DEN LAUF AB** — *359 Sekunden, kein einziger roter Punkt.* Der
+> erste Entwurf ersetzte die Antwort auf einen fremden Schlüssel durch ein
+> `throw`, und damit war nach der Route Schluss. **Eine Gegenprobe, die
+> abreißt, belegt nichts** — sie muss so greifen, dass die Oberfläche danach
+> noch läuft. *Sie erklärt den fremden Schlüssel jetzt für **lesbar** und
+> antwortet mit „Einträge 0": wer das sieht, hält seine Sicherung für leer
+> statt für unlesbar, und das ist die schlimmste der drei möglichen Antworten.*
+>
+> **872 WAR STUMM.** *Der Entwurf nahm die Zahlenprüfung heraus — und
+> `files[9999 - 1]`, `files[0 - 1]` und `files[NaN - 1]` sind alle drei
+> `undefined`, die Absage kam trotzdem.* **Ein Griff ohne sichtbare Wirkung
+> belegt nichts.** *Sie zielt jetzt auf die **Absage** selbst.*
 
 ### Was der Prüfstand an dieser Runde gefunden hat
 
