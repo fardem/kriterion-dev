@@ -1944,10 +1944,35 @@ mark {
    ZUSTÄNDE, VIER FARBEN — wer zwei davon gleich färbt, hat drei. `--faint` ist
    dieselbe Blässe, die ein leeres Vokabelfeld trägt: eingetragen, aber nicht
    mehr in Kraft. */
+/* ---- UND SEIT 0.30.1 SAGT DIE FARBE DEN ZUSTAND UND NICHT NUR DIE FRIST ----
+   DER BETREIBER, 12. SEPTEMBER 2026: „wenn ein auftrag angelegt ist, und es
+   gibt ein datum fuer die aufgabe dann muss auch das datum in farbe des arts
+   sein. Blau bei unerledigten aufgabe. rot wenn das datum ueberschritten ist
+   … wenn aber ein nicht ueberschrittene aufgabe auf fertig gesetzt wird, muss
+   das datum auch mit gruen werden."
+   ES IST KEIN NEUER FARBTON UND KEINE NEUE REGEL. Blau fuer die offene und
+   Gruen fuer die erledigte Aufgabe traegt das Haus schon zweimal: an der Kante
+   des Kommentars (`.cmt.task` / `.cmt.done`) und an der Marke „ToDo"
+   (`.mark.task.on` / `.mark.task.on.done`). Das Datum war die dritte Stelle
+   derselben Sache und die einzige, die nicht mitmachte. Der Satz, der es
+   begruendet, steht weiter unten schon da: „Ein Bedienelement zeigt den
+   Zustand, den es veraendert."
+   „HEUTE" BLEIBT FETT UND WIRD BLAU (F16). Die Fettschrift sagt „heute", die
+   Farbe sagt „offen" -- zwei Angaben, zwei Traeger. Bis 0.30.0 trug es die
+   gewoehnliche Textfarbe; damit war ein offenes Datum je nach Tag mal blau und
+   mal nicht.
+   DER DURCHSTRICH BLEIBT (F17). Farbe und Strich schliessen einander nicht
+   aus: die Farbe sagt „gehalten oder gerissen", der Strich sagt „erledigt".
+   Ohne ihn waeren eine offene ueberfaellige und eine spaet erledigte Aufgabe
+   beide rot und sonst nichts.
+   ROT SCHLAEGT ERLEDIGT (`due-late`). Das ist die eigentliche Aenderung dieser
+   Runde am Datum: bis 0.30.0 verlor eine gerissene Frist ihre Farbe, sobald
+   jemand abhakte. „Zu spaet fertig" bleibt jetzt sichtbar zu spaet. */
 .cmt-due.due-overdue { color: var(--red); }
-.cmt-due.due-today { color: var(--text); font-weight: 600; }
-.cmt-due.due-later { color: var(--muted); }
-.cmt-due.due-done { color: var(--faint); text-decoration: line-through; }
+.cmt-due.due-today { color: var(--blue); font-weight: 600; }
+.cmt-due.due-later { color: var(--blue); }
+.cmt-due.due-late { color: var(--red); text-decoration: line-through; }
+.cmt-due.due-done { color: var(--green); text-decoration: line-through; }
 .cmt-due-in { width: 9.5em; font-size: .76rem; padding: 2px 6px; }
 .open-section { font-size: .72rem; letter-spacing: .08em; text-transform: uppercase;
   color: var(--muted); margin: 18px 0 7px; }

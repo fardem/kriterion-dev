@@ -87,7 +87,7 @@
   "card.checkForeign": "Lesbar, aber keine Sicherung dieser Installation.",
   "card.checkKeyWrong": "Mit diesem Schlüssel nicht lesbar — die .env gehört nicht zu dieser Sicherung.",
   "card.checkRunning": "prüfe …",
-  "card.checkUntil": "Inhalt bis",
+  "card.checkUntil": "Stand von",
   "card.checkUsers": "Benutzer",
   "card.checkboxHint": "Häkchen: steht zur Auswahl.",
   "card.cleanupAfterBackup": "Nach jeder erfolgreichen Sicherung aufräumen",
