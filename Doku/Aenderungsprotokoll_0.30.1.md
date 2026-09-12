@@ -3,7 +3,7 @@
 **Sieben Befunde aus dem Betrieb und einer aus dem Nachsehen · 12. September
 2026 · gebaut auf 0.30.0 (`2363b00a`).**
 
-> **FINGERPRINT DIESER RUNDE: `c879a92b`** — gerechnet am gebauten Stand,
+> **FINGERPRINT DIESER RUNDE: `a6726a83`** — gerechnet am gebauten Stand,
 > **vor dem Einspielen**. Er deckt `node_modules` nicht ab und hängt an jeder
 > Datei der Liste — auch an einem Kommentar.
 >
@@ -11,19 +11,28 @@
 >
 > | Quelle | Wert |
 > |---|---|
-> | **Am Arbeitsbaum nachgerechnet** *(dieselben achtzehn Dateien)* | **`c879a92b`** |
-> | **Aus dem Server selbst gelesen** *(frisches Datenverzeichnis, `/api/stats`)* | **`c879a92b`** |
+> | **Am Arbeitsbaum nachgerechnet** *(dieselben achtzehn Dateien)* | **`a6726a83`** |
+> | **Aus dem Server selbst gelesen** *(frisches Datenverzeichnis, `/api/stats`)* | **`a6726a83`** |
 > | **Aus der laufenden Installation gemeldet** | *steht aus — trägt der Betreiber nach* |
 >
 > **ZWEI QUELLEN, EIN WERT.** *Die dritte kommt aus dem Feld und steht hier als
 > offener Punkt und nicht als Fußnote.*
+>
+> **UND ER IST WÄHREND DER RUNDE EINMAL FALSCH DAGESTANDEN.** *Gerechnet war er
+> nach BA 7; danach ist an `public/style.css` noch eine Zeile berichtigt worden
+> (die Kurzform `gap`, die hinter ihrer Ausnahme stand), und damit war der Wert
+> im Papier überholt.* **Nachgerechnet und aus beiden Quellen neu bestätigt** —
+> `c879a92b` war der Stand vor jener Zeile, `a6726a83` ist der ausgelieferte.
+> *Ein Fingerprint hängt an jeder Datei der Liste, auch an einem Kommentar; wer
+> ihn vor der letzten Änderung rechnet, schreibt einen Wert auf, den niemand
+> mehr nachrechnen kann.*
 
 > **DIE ZAHL, AN DER DIESE RUNDE GEMESSEN IST:**
 >
 > | | Lauf | Gruppen | Prüfungen |
 > |---|---|---|---|
 > | **vorher** *(0.30.0, dieselbe Maschine)* | 271,5 s | 339 | 6741 von 6741 grün |
-> | **nachher** *(0.30.1)* | **287,0 s** | **343** | **6780 von 6780 grün** |
+> | **nachher** *(0.30.1)* | **265,1 s** | **343** | **6780 von 6780 grün** |
 >
 > **39 PRÜFUNGEN UND VIER GRUPPEN MEHR.** *Die Runde hat kein
 > Geschwindigkeitsziel — sie ist Oberfläche —, und die Zahl steht hier, damit
@@ -270,7 +279,13 @@ Aufrufort gewesen.** *Die Schuld steht im Fahrplan unter 0.31.0.*
 
 ## Der Prüfstand
 
-**6780 von 6780 grün, 343 Gruppen, 287,0 Sekunden.**
+**6780 von 6780 grün, 343 Gruppen, 265,1 Sekunden.**
+
+> **ZWEI LÄUFE AM SELBEN STAND HABEN 265,1 UND 287,0 SEKUNDEN GEBRAUCHT.**
+> *Die Zahl oben ist die des Schlusslaufs.* **Zweiundzwanzig Sekunden Streuung
+> auf derselben Maschine sind der Grund, warum diese Runde kein
+> Geschwindigkeitsziel trägt** — gemessen wird hier die Oberfläche, nicht der
+> Lauf.
 
 **VIER NEUE GRUPPEN** — die Tagzeile, die Testtagzeile, der Zähler und das
 Datum, das jeder sieht. **DAZU UMGESTELLTE ZUSAGEN IN DREI ALTEN GRUPPEN**
