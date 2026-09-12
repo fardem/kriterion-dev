@@ -1744,20 +1744,44 @@ function limitCloud(box, rows) {
 // Speicher: er sagt nichts ueber den Bestand aus und gehoert nicht auf den
 // Server.
 const cloudOpen = { overview: false, detail: false };
-/* OB DIE TAGZEILE OFFEN STEHT -- 0.22.0 (E8), umgebaut in 0.24.0
-   (Bauabschnitt 0.2). Nur fuer die Dauer der Sitzung, wie cloudOpen: keine
-   Einstellung und kein Feld in `filters`.
-   DREI WERTE UND NICHT ZWEI, und der dritte ist der Grund: `null` heisst „der
-   Benutzer hat in dieser Sitzung noch nicht geklickt". Nur dann entscheidet
-   der Aufbau, und er entscheidet nach der Regel aus 0.22.0 -- greift ein
-   Tagfilter, steht die Zeile offen.
-   WARUM NICHT WEITER `MORE_FILTERS_OPEN || f.tagIds.length > 0`: bis 0.24.0
-   trug ein <details> den Zustand, und ein Klick darauf schloss es ohne
-   Neuzeichnen. Jetzt zeichnet der Klick die Leiste neu -- die Oder-Verbindung
-   haette die Zeile im selben Atemzug wieder aufgezogen, und der Knopf saehe
-   kaputt aus. Der Filter wird dabei nicht unsichtbar: seine Zahl steht am
-   Umschalter selbst („Tags (2)"), und genau dafuer ist sie da. */
-let MORE_FILTERS_OPEN = null;
+/* HIER STAND BIS 0.30.0 `MORE_FILTERS_OPEN` -- der Merker, ob die Tagzeile
+   offen steht. Er ist mit dem Umschalter „Tags" gefallen: die Zeile steht
+   seither immer da, sobald die Filter aufgeklappt sind (Betreiber, 12.
+   September 2026), und ein Merker ueber einen Zustand, den es nur noch in
+   einer Fassung gibt, ist ein Feld ohne Leser. */
+
+/* ---- DIE VIER ZUSTÄNDE EINES FÄLLIGKEITSDATUMS -- 0.29.0 (Befund 3),
+   hierher gewandert mit 0.30.0 (Befund 8, F13).
+   HEUTE IST DER HEUTIGE TAG DES LESERS und nicht der des Servers:
+   „ueberfaellig" entscheidet sich an der Uhr, vor der jemand sitzt. Der Server
+   liefert deshalb das nackte Datum und ordnet nur vor (siehe qOpenTasks); die
+   Zustaende rechnet diese Zeile.
+   GERECHNET WIRD IN ORTSZEIT UND NICHT UEBER toISOString(): das gaebe UTC, und
+   oestlich von Greenwich waere „heute" bis zum Vormittag noch „gestern".
+   TEXTVERGLEICH UND KEIN Date: 'JJJJ-MM-TT' ordnet als Text wie im Kalender,
+   und zwei Strings zu vergleichen kann keine Zeitzone verlieren.
+
+   WARUM SIE HIER STEHT UND NICHT MEHR IN renderOpen(): seit 0.30.0 faerbt AUCH
+   DER EINTRAG sein Datum nach diesen Zustaenden -- der Betreiber am 12.
+   September 2026: „Datum feld muss farblich zum todo zugeordnet werden
+   koennen. passend zum status. ob fertig, oder noch offen." Von renderOpen()
+   aus war sie nirgends zu erreichen; eine zweite Einteilung daneben waere
+   genau die zweite Wahrheit, gegen die Stolperstein 47 steht.
+   `todayKey` WIRD BEI JEDEM AUFRUF GERECHNET und nicht einmal beim Laden: eine
+   Seite, die ueber Mitternacht offen bleibt, faerbte sonst bis zum Neuladen
+   nach dem Tag von gestern. */
+const todayKey = () => {
+  const d = new Date();
+  const pad = (n) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+};
+/* `erledigt` GEHT ALS ZWEITES EIN UND NICHT ALS FUENFTER ZUSTAND DER ZEILE:
+   eine erledigte Aufgabe HAT ein Datum und einen Termin -- sie ist nur nicht
+   mehr offen. Ohne diesen Weg stuende eine erledigte, ueberfaellige Aufgabe
+   rot da, und die Farbe sagte etwas, das nicht mehr gilt. */
+const dueOf = (z, doneToo = false) => !z.dueDate ? 'none'
+  : doneToo && (z.kind === 'done' || z.done) ? 'done'
+  : z.dueDate < todayKey() ? 'overdue' : z.dueDate === todayKey() ? 'today' : 'later';
 
 // Wer die Wolke der Detailansicht neu zeichnen kann. Sie laesst sich nur
 // messen, wenn ihr Block offen ist. Modulweit statt als Ereignis am Dokument:
@@ -3842,87 +3866,59 @@ function drawFilters() {
     b.onclick = () => switchCategory(CATEGORY_NONE);
     g2.appendChild(b);
   }
-  /* ---- DER UMSCHALTER DER TAGZEILE -- 0.24.0, Bauabschnitt 0.2.
-     Er sass bis hierher als <summary> eines <details> in einer EIGENEN Zeile
-     zwischen Kategorie und Sortieren (E8 der Runde 0.22.0) -- und kostete
-     damit genau den Platz, den er sparen sollte: zugeklappt eine
-     Beschriftungszeile ANSTELLE der Tagzeile, aufgeklappt beide zusammen,
-     also eine Zeile MEHR als vor 0.22.0. Befund vom 5. September 2026, am
-     Wirt, mit Bild.
-     JETZT AM RECHTEN ENDE DER KATEGORIEZEILE, in derselben Bauform wie
-     „Filter zurücksetzen (n)" in der Sortierzeile: ein link-btn mit Winkel in
-     einem .frow-right-wide, also mit selbsttaetiger Aussenkante. Er belegt in
-     KEINEM der beiden Zustaende eine eigene Zeile. Auf dem Telefon steht die
-     Zeile in der Spalte, und er bricht unter die Kategoriepillen -- das kostet
-     dort eine kurze Zeile, zugeklappt wie aufgeklappt, und immer noch weniger
-     als vorher.
-     KEIN <details> MEHR: die Zusammenfassung eines <details> laesst sich nicht
-     in eine fremde Zeile setzen. Zustand traegt jetzt `aria-expanded`; Enter,
-     Leertaste und Fokusring bringt ein <button> von Haus aus mit.
-     „TAGS" UND NICHT „WEITERE FILTER": dahinter steht allein die Tagzeile, und
-     ein Text sagt, was der Klick tut (S1). Der Betreiber hat den alten Namen
-     selbst als „Weitere Tag-Filter" gelesen -- er versprach mehr, als dahinter
-     lag. Daneben die Zahl der greifenden Tagfilter, wenn es welche gibt.
-     ER STEHT NUR DA, WENN ETWAS DAHINTER IST, und das ist die zweite Haelfte
-     des Befundes („und blendet zusaetzlich nicht die Tags ein"). Nachgestellt
-     am 5. September 2026 in einem echten Browser, beide Schemata: die Tags
-     erscheinen -- SOLANGE welche an einem Eintrag haengen. Haengt keiner,
-     klappt die Zeile auf und zeigt „Noch keine Tags", denn die Wolke filtert
-     auf usage_count > 0. Ein Umschalter fuer eine leere Zeile ist ein
-     Bedienelement fuer nichts -- dieselbe Ueberlegung wie bei der Pille
-     „Ohne" eine Zeile hoeher, und dieselbe wie beim Verweis „mehr" darunter.
-     GREIFT EIN TAGFILTER, STEHT ER TROTZDEM DA: sonst verschwaende der eigene
-     Filter unter der Hand. */
+  /* ---- HIER STAND BIS 0.30.0 DER UMSCHALTER DER TAGZEILE ----
+     Er kam in 0.22.0 (E8) als <summary> eines <details> in einer EIGENEN Zeile
+     und wurde in 0.24.0 zu einem Knopf am rechten Ende der Kategoriezeile.
+     ER IST GEFALLEN, und der Betreiber hat den Grund selbst genannt (12.
+     September 2026, mit Bild): „tag soll grundsaetzlich wenn man filter
+     aufklappt zu sehen sein." Ein Schalter, der beim Aufbau immer schon
+     umgelegt ist, ist ein Wort ueber eine Sache und nicht die Sache.
+     GEMESSEN IST DER PREIS UND ER STEHT IM AUFTRAG: gegen heute AUFGEKLAPPT
+     spart die neue Zeile 27 Pixel; gegen heute ZUGEKLAPPT kostet „immer
+     sichtbar" deren 52. Beides ist wahr, und der uebliche Zustand entscheidet
+     -- wer die Filter aufklappt, will filtern (F9).
+     UND DER BEGRIFF DER ZAHL FAELLT MIT: „Tags (2)" stand am Umschalter, damit
+     ein greifender Filter hinter der zugeklappten Zeile nicht unsichtbar wird.
+     Es gibt keine zugeklappte Zeile mehr; der Satz `list.tagsCount` ist damit
+     ein Satz ohne Leser und in allen drei Sprachdateien gefallen (F9).
+     filterNumber() zaehlt den Tagfilter weiter mit -- daran aendert sich
+     nichts. */
   // Nur Tags mit mindestens einem Eintrag: Tags, die ausschliesslich an
   // Testtagen haengen, lieferten hier null Treffer. Die Suche findet sie
   // trotzdem.
   const filterTags = state.tags.filter(tag => tag.usage_count > 0);
   const tagsPossible = filterTags.length > 0 || f.tagIds.length > 0;
-  /* GREIFT EIN TAGFILTER, STEHT DIE ZEILE BEIM AUFBAU OFFEN -- 0.22.0, und die
-     Regel bleibt woertlich: ein Filter, der die Liste kuerzt und dabei
-     unsichtbar ist, ist ein Fehler und kein Aufraeumen (dieselbe Ueberlegung
-     wie beim abgeleiteten Status, 0.21.1). Und filterNumber() zaehlt ihn weiter
-     mit. „Beim Aufbau" heisst: solange niemand geklickt hat -- danach gilt der
-     Klick, und die Zahl am Umschalter haelt den Filter sichtbar. */
-  const tagsOpen = tagsPossible &&
-    (MORE_FILTERS_OPEN === null ? f.tagIds.length > 0 : MORE_FILTERS_OPEN);
-  if (tagsPossible) {
-    const right2 = document.createElement('div');
-    /* `frow-right-end` SAGT DEM RASTER, DASS ER ANS ZEILENENDE GEHOERT --
-       0.29.0, Befund 6. Auf dem Telefon setzt ihn das in die dritte Spalte,
-       statt ihn ueber die ganze Breite zu spannen; am Schreibtisch aendert die
-       Klasse nichts, dort ordnet weiter `frow-right-wide`. */
-    right2.className = 'frow-right frow-right-wide frow-right-end';
-    const toggle = document.createElement('button');
-    toggle.className = 'link-btn tag-toggle';
-    toggle.id = 'f-weitere';
-    toggle.setAttribute('aria-expanded', String(tagsOpen));
-    if (tagsOpen) toggle.setAttribute('aria-controls', 'f-tagzeile');
-    /* DER TEXT STEHT IN EINEM EIGENEN ELEMENT, und das ist keine Zierde: der
-       link-btn unterstreicht, und ein Strich unter dem Winkel saehe aus wie
-       ein zweiter Winkel. Den Strich traegt deshalb das Wort. */
-    const switchText = document.createElement('span');
-    switchText.textContent = f.tagIds.length ? t('list.tagsCount', { length: f.tagIds.length }) : t('list.tags');
-    toggle.appendChild(switchText);
-    toggle.onclick = () => { MORE_FILTERS_OPEN = !tagsOpen; drawFilters(); };
-    right2.appendChild(toggle);
-    r2.appendChild(g2);
-    r2.appendChild(right2);
-  } else {
-    r2.appendChild(g2);
-  }
+  /* DIE ZEILE STEHT DA, SOBALD ES ETWAS ZU FILTERN GIBT -- 0.30.0 (F9).
+     „Sobald es etwas gibt" ist dieselbe Bedingung wie vorher: entweder haengt
+     ein Tag an einem Eintrag, oder es greift ein Tagfilter. Der eine Fall, in
+     dem beides zusammenfaellt, ist der Filter auf einen Tag, dessen letzter
+     Eintrag gerade weggefallen ist -- dann ist die Wolke leer und die Zeile
+     traegt „Tags zurücksetzen", den Weg heraus.
+     HAENGT KEIN EINZIGER TAG AN EINEM EINTRAG, STEHT SIE GAR NICHT DA. Eine
+     Zeile fuer nichts ist dieselbe Verschwendung wie ein Schalter fuer nichts
+     -- dieselbe Ueberlegung wie bei der Pille „Ohne" eine Zeile hoeher. */
+  const tagsOpen = tagsPossible;
+  r2.appendChild(g2);
 
   // Tags
   if (tagsOpen) {
     const r3 = row(t('list.tags'));
-    /* ZUGEKLAPPT IST DIE ZEILE GANZ WEG und nicht bloss verborgen: eine leere
-       Zeile im Fluss kostete genau den Platz, um den es in diesem Befund geht.
-       Die Kennung haengt am `aria-controls` des Umschalters. */
+    /* GIBT ES NICHTS ZU FILTERN, IST DIE ZEILE GANZ WEG und nicht bloss
+       verborgen: eine leere Zeile im Fluss kostete genau den Platz, um den es
+       in diesem Befund geht. */
     r3.id = 'f-tagzeile';
+    /* `frow-tags` SAGT DEM RASTER, DASS DIES DIE TAGZEILE IST -- 0.30.0 (F9).
+       Auf dem Telefon rueckt „und/Oder" damit UNTER die Beschriftung, und
+       Wolke und „mehr" spannen ueber beide Rasterzeilen. Eine eigene Klasse
+       und kein `:has()`: dieselbe Ueberlegung wie bei `frow-right-end` aus
+       0.29.0 -- eine Regel, die sich ihren Traeger ueber den Inhalt der Zeile
+       zusammensucht, liest sich beim naechsten Filter falsch. */
+    r3.classList.add('frow-tags');
 
-    // Umschalter der Verknuepfung, direkt neben der Beschriftung: er macht
-    // sichtbar, warum ein zweiter Tag das Ergebnis verkleinert. Gedaempft,
-    // solange weniger als zwei Tags gewaehlt sind.
+    // Umschalter der Verknuepfung. Auf dem Telefon steht er UNTER der
+    // Beschriftung und kleiner (0.30.0, F9); am Schreibtisch weiter daneben.
+    // Er macht sichtbar, warum ein zweiter Tag das Ergebnis verkleinert.
+    // Gedaempft, solange weniger als zwei Tags gewaehlt sind.
     const modeBox = document.createElement('div');
     modeBox.className = 'tagmode' + (f.tagIds.length > 1 ? '' : ' idle');
     [['and', t('list.and'), t('list.allTagsHint')],
@@ -4789,21 +4785,9 @@ async function renderOpen() {
     } catch (e) { toast(e.message, true); }
   };
 
-  /* ---- DIE DREI ZUSTÄNDE -- 0.29.0, Befund 3 ----
-     HEUTE IST DER HEUTIGE TAG DES LESERS und nicht der des Servers: „überfällig"
-     entscheidet sich an der Uhr, vor der jemand sitzt. Der Server liefert
-     deshalb das nackte Datum und ordnet nur vor (siehe qOpenTasks); die drei
-     Zustände rechnet diese Zeile.
-     GERECHNET WIRD IN ORTSZEIT UND NICHT ÜBER toISOString(): das gäbe UTC, und
-     östlich von Greenwich wäre „heute" bis zum Vormittag noch „gestern".
-     TEXTVERGLEICH UND KEIN Date: 'JJJJ-MM-TT' ordnet als Text wie im
-     Kalender, und zwei Strings zu vergleichen kann keine Zeitzone
-     verlieren. */
-  const todayKey = (() => {
-    const d = new Date();
-    const pad = (n) => String(n).padStart(2, '0');
-    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
-  })();
+  /* DIE EINTEILUNG STEHT SEIT 0.30.0 GANZ OBEN (`dueOf`, Befund 8): der
+     Eintrag faerbt sein Datum nach derselben Auskunft, und zwei Einteilungen
+     an zwei Orten liefen auseinander (Stolperstein 47). */
   /* VIER ABSCHNITTE UND NICHT DREI, und der vierte ist kein vierter Zustand:
      „ohne Datum" ist die Abwesenheit eines Zustands. Er steht hinten und trägt
      seine eigene Überschrift — unter „Später" wäre er eine Behauptung über
@@ -4811,8 +4795,6 @@ async function renderOpen() {
      EINE ÜBERSCHRIFT STEHT NUR DA, WENN ETWAS DARUNTER STEHT. Wer keine
      überfälligen Aufgaben hat, soll das Wort „Überfällig" gar nicht erst
      sehen — dieselbe Überlegung wie bei der fehlenden Null am Zähler. */
-  const dueOf = (z) => !z.dueDate ? 'none'
-    : z.dueDate < todayKey ? 'overdue' : z.dueDate === todayKey ? 'today' : 'later';
   const SECTIONS = [['overdue', 'list.dueOverdue'], ['today', 'list.dueToday'],
                     ['later', 'list.dueLater'], ['none', 'list.dueNone']];
 
@@ -7016,8 +6998,20 @@ async function renderDetail(id, termAddress) {
         const b = document.createElement('button');
         b.className = 'link-btn weight-open';
         b.id = boxId.button;
+        /* DAS WORT KOMMT AUS DER SPRACHDATEI -- 0.30.0, Befund 10 (F15).
+           BIS HIERHER STAND ES FEST IM QUELLTEXT, und in einer englisch oder
+           tuerkisch eingestellten Instanz stand an dieser Stelle deutscher
+           Text. Es ist der FUENFTE solche Fund in sechs Runden (0.24.3 zwei,
+           0.28.1 zwei), und keiner der drei Waechter konnte ihn sehen: die
+           Restprobe vergleicht die SPRACHDATEI, `SCREEN_BAN` liest die Texte
+           des Moduls, der Bezeichnerwaechter liest NAMEN und keine WERTE. Die
+           Antwort darauf ist nicht dieser Schluessel, sondern die Wache, die
+           seit dieser Runde WERTE liest (Zusage 21).
+           DER ABSTAND STEHT IM CODE UND NICHT IM SATZ: ein Schluessel, dessen
+           Wert mit einem Leerzeichen anfaengt, verliert es beim ersten
+           Nachpflegen. */
         b.textContent = '⌀ ' + number(averageValue, 1) +
-          (weightedCalc ? ' gewichtet' : '');
+          (weightedCalc ? ' ' + t('entry.weighted') : '');
         /* DER TITEL SAGT, WESSEN ZAHL DAS IST -- 0.22.1 (E5). Die Zahl ist
            der Schnitt ueber ALLE, die bewertet haben; die eigenen Sterne
            stehen links in der Zeile. Bis 0.22.0 stand das nirgends, und die
@@ -7942,10 +7936,22 @@ async function renderDetail(id, termAddress) {
                  Ein Datumsfeld an jedem Vermerk stünde bei den meisten
                  Kommentaren für nichts da — und die meisten Kommentare sind
                  Vermerke.
-                 UND NUR AN EINER OFFENEN. An einer erledigten sagte „fällig
-                 am 14.03." nichts mehr; das Datum BLEIBT aber in der Zeile
-                 stehen (die Spalte hängt nicht an `kind`) und steht wieder da,
-                 sobald jemand sie wieder aufmacht.
+                 UND SEIT 0.30.0 AUCH AN EINER ERLEDIGTEN — durchgestrichen
+                 und gedämpft (Befund 8, F13). Bis dahin verschwand es beim
+                 Abhaken: die Spalte behielt es, der Bildschirm zeigte es
+                 nicht. Der Betreiber verlangt ausdrücklich „ob fertig, oder
+                 noch offen" — und eine Angabe, die jemand eingetragen hat,
+                 verschwindet nicht beim Abhaken.
+                 DIE FARBE SAGT DEN ZUSTAND, und es sind vier: überfällig rot,
+                 heute normal und fett, später gedämpft, erledigt gedämpft und
+                 durchgestrichen. Bis 0.30.0 stand ein gesetztes Datum in der
+                 gewöhnlichen Textfarbe — und drei Elemente weiter rechts steht
+                 in derselben Zeile das ERSTELLUNGSDATUM des Kommentars. Zwei
+                 Daten nebeneinander, und keines sagte, welches welches ist.
+                 DIESELBE FARBE WIE `.open-section.overdue`: die Ansicht „Offen"
+                 und der Eintrag sagen dasselbe mit demselben Rot.
+                 UND DIESELBE FUNKTION: `dueOf()` steht seit dieser Runde ganz
+                 oben und wird von beiden Orten gerufen (Stolperstein 47).
                  EIN VERWEIS UND KEIN FELD: ein `<input type="date">` an jeder
                  Aufgabenzeile wäre in einer Liste von zwölf Kommentaren zwölf
                  Bedienelemente. Der Verweis trägt das Datum, wenn eines da
@@ -7953,7 +7959,8 @@ async function renderDetail(id, termAddress) {
                  DER RÜCKWEG IST DAS LEERE FELD und kein zweites ✕: wer das
                  Datum im Feld löscht, nimmt es weg. Ein Kreuz daneben wäre ein
                  zweiter Weg für dieselbe Sache. */''}
-            ${task ? `<button class="link-btn cmt-due${c.dueDate ? ' on' : ''}"
+            ${task || (done && c.dueDate) ? `<button class="link-btn cmt-due${
+              c.dueDate ? ` on due-${dueOf(c, true)}` : ''}"
               title="${esc(t('entry.dueHint'))}">${c.dueDate
                 ? esc(fmtDay(c.dueDate)) : tH('entry.dueSet')}</button>` : ''}
           </span>` : ''}
@@ -11309,8 +11316,14 @@ function setUpRequestsOut(fetched) {
     if (!box || !status) return;
     const doc = box.ownerDocument;
     const state = document.getElementById('signup-state');
+    /* „an" UND „aus" KOMMEN AUS DEM WOERTERBUCH -- 0.30.0, Befund 10. Sie
+       standen fest im Quelltext, und in einer englisch oder tuerkisch
+       eingestellten Instanz stand hier deutscher Text. Gefunden hat sie die
+       Wache aus dieser Runde, die WERTE liest statt NAMEN -- kein Eintrag,
+       sondern ein Waechter (Zusage 21). Die Schluessel gab es schon. */
     if (state) state.innerHTML = status.an
-      ? '<strong class="mail-on">an</strong>' : '<strong class="mail-off">aus</strong>';
+      ? `<strong class="mail-on">${tH('card.on')}</strong>`
+      : `<strong class="mail-off">${tH('card.off')}</strong>`;
     const used = document.getElementById('signup-used');
     if (used) used.textContent = t('card.ofAtMost', { used: status.used, cap: status.cap });
     const toggle = document.getElementById('signup-toggle');
@@ -11670,8 +11683,13 @@ function cardMailDelivery(fetched) {
               wie „Zustand" — der Dialog sagt es jetzt am Feld selbst. */''}
         <p class="desc"><strong>${tH('card.emailOptionalHint')}</strong> ${tH('card.noMailAccountHint')}
           <em>${tH('card.additionally')}</em> ${tH('card.sent')}</p>
+        ${/* „eingerichtet" KAM AUS DEM QUELLTEXT UND SEIN GEGENTEIL AUS DEM
+              WOERTERBUCH — 0.30.0, Befund 10. Dieselbe Zeile, zwei Wege: die
+              Absage las `card.notConfigured`, die Zusage stand fest auf
+              Deutsch da. Gefunden hat es die Wache, die WERTE liest (Zusage
+              21); `card.configured` ist der Schluessel, den es dazu brauchte. */''}
         <div class="kv"><span class="k">${tH('card.state')}</span><span class="v">${mailStatus.configured
-          ? '<strong class="mail-on">eingerichtet</strong>'
+          ? `<strong class="mail-on">${tH('card.configured')}</strong>`
           : `<strong class="mail-off">${tH('card.notConfigured')}</strong>`}</span></div>
         ${/* ---- DIE KARTE ZEIGT, DER DIALOG STELLT EIN — 0.17.3 ----
               BIS 0.17.2 STANDEN HIER NEUN BEDIENELEMENTE in vier verschiedenen

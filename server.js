@@ -60,6 +60,8 @@ const { db, DATA_DIR, DB_FILE, keyFromEnv, keyHex, renumberCriteria, method, sea
    nicht drin. Der Pruefstand haelt genau das fest. */
 const Database = require('better-sqlite3-multiple-ciphers');
 const auth = require('./auth');
+/* DER PRUEFSCHALTER FUER DIE ANSAGE BEIM START -- 0.30.0. */
+const keys = require('./keys');
 const mail = require('./mail');
 
 /* ================= Die Sprachdateien ================= */
@@ -8573,7 +8575,49 @@ app.use((err, req, res, next) => {
    DIE FRAGE, OB ES ETWAS ZU TUN GIBT, BLEIBT HIER. Ohne sie entstuende bei
    jedem Start ein Thread fuer eine leere Liste -- 19 ms fuer die Verbindung
    und 76 ms fuer sharp, fuer nichts. */
+/* ================= EIN BESTANDSLAUF NIMMT DEN SERVER NICHT MIT =============
+   0.30.0, Befund 11 -- und er ist beim Bauen DIESER Runde aufgefallen, an der
+   neuen Meldung aus BA 2 („ein Server, der von selbst endet, ist ein Fund").
+
+   WAS PASSIERT IST: der Prueflauf legt fuer den Teilexport einen Anhang von
+   400 MB an und schreibt ihn UEBER EINE ZWEITE VERBINDUNG in dieselbe Datei.
+   Das dauert sieben bis zwoelf Sekunden, und solange ist die Datenbank
+   gesperrt. Faellt der Zeitzuender dieses Bestandslaufs in dieses Fenster,
+   antwortet SQLite mit SQLITE_BUSY -- die Ausnahme steht in einem `setTimeout`
+   und hat KEINEN Rufer ueber sich. Node beendet den Prozess mit Code 1, und
+   die naechste Anfrage bekommt ECONNREFUSED.
+
+   ES IST KEIN FEHLER DIESER RUNDE, SONDERN EINER, DEN SIE SICHTBAR GEMACHT
+   HAT: der Zuender steht seit 0.19.3 da, und bis 0.30.0 fiel er nur nie in
+   das Fenster. Sichtbar wurde er, weil der Lauf schneller geworden ist -- eine
+   andere Reihenfolge, dasselbe Zeitfenster.
+
+   DIE ANTWORT IST NICHT „laenger warten", SONDERN „nicht sterben". Ein
+   Bestandslauf, der beim Start nicht an die Datenbank kommt, ist kein Grund,
+   die laufende Instanz zu beenden: die Oberflaeche haengt nicht an ihm, und es
+   gibt nichts, was er tut und was nicht beim naechsten Start wieder ansteht.
+   ER SAGT ES UND VERSUCHT ES SPAETER NOCH EINMAL -- ein stiller Ausfall waere
+   die andere Haelfte desselben Fehlers.
+   DIE SCHRANKE STEHT AUCH FUER JEDE ANDERE AUSNAHME und nicht nur fuer
+   SQLITE_BUSY: was hier wirft, ist Bestandspflege, und keine Bestandspflege
+   ist es wert, eine laufende Instanz mitzunehmen. */
+const BACKFILL_RETRY_MS = 30 * 1000;
+let backfillTries = 0;
 function backfillThumbnails() {
+  try { return backfillRun(); }
+  catch (e) {
+    /* DREI VERSUCHE UND DANN RUHE. Eine Schleife, die alle dreissig Sekunden
+       dieselbe Ausnahme ins Protokoll schreibt, ist nach einer Stunde ein
+       Protokoll aus einer einzigen Zeile. */
+    backfillTries++;
+    console.error(`[Kriterion] Das Nachziehen der Kacheln kam nicht an die Datenbank ` +
+      `(${e.code || e.message}) — Versuch ${backfillTries} von 3.` +
+      (backfillTries < 3 ? ` Noch einmal in ${BACKFILL_RETRY_MS / 1000} s.`
+                         : ' Es steht beim naechsten Start wieder an.'));
+    if (backfillTries < 3) setTimeout(backfillThumbnails, BACKFILL_RETRY_MS).unref();
+  }
+}
+function backfillRun() {
   const open = db.prepare(
     "SELECT id FROM photos WHERE (thumb IS NULL OR medium IS NULL) AND kind != 'video'").all();
   if (!open.length) return refreshTiles();
@@ -8730,6 +8774,20 @@ app.listen(PORT, () => {
   const u = auth.getUser();
   console.log(`[Kriterion] Läuft auf Port ${PORT} — ` +
     (u ? `Eigentümer: ${u.username}` : 'noch kein Zugang, Einrichtung im Browser'));
+  /* DER PRUEFSCHALTER SAGT SICH AN -- 0.30.0, F1 und F2. Er senkt die
+     Kostenstufe des Passwortspeichers und die Mailfristen, und beides gehoert
+     in einer Instanz, die jemand benutzt, nicht gesenkt. Ein Schalter, der
+     still wirkt, ist der gefaehrliche Fall: wer ihn versehentlich gesetzt hat,
+     merkt es hier und nicht erst, wenn ein Passwort zu billig gerechnet ist.
+     ER STEHT AN EINER STELLE UND NUR AN DIESER: beim Start des Servers -- also
+     dort, wo ein Mensch zusieht. Ein Hinweis bei jedem Laden von keys.js
+     staende auch in jedem Werkzeuglauf und waere nach dem dritten Mal
+     unsichtbar. */
+  if (keys.testbenchSwitch())
+    console.log(`[Kriterion] PRUEFSCHALTER AKTIV (${keys.TESTBENCH_NAME}) — ` +
+      `scrypt N=${auth.SCRYPT_COST}, Mailfristen ${mail.SEND_MS}/${mail.CONNECT_MS}/` +
+      `${mail.GREETING_MS} ms. NUR FUER DEN PRUEFSTAND — wo jemand damit ` +
+      `arbeitet, gehört er entfernt.`);
   /* Die Betriebsart gehoert ins Protokoll: an ihr haengt, ob die Koepfe des
      Proxys ueberhaupt angesehen werden. Wer sie falsch stehen hat, sieht es
      hier und nicht erst an einer wirkungslosen Anmeldebremse.

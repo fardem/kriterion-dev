@@ -2948,6 +2948,84 @@ ohne Namen in der Protokollzeile, und dass die neue Tabelle sich an einer
 bestehenden Installation beim Start selbst wieder anlegt — **eine Spalte dagegen
 nicht**.
 
+### Wie lange er braucht — und wo die Zeit hingeht
+
+**Der Lauf sagt es am Ende selbst.** Unter dem Schlussblock steht eine
+Schlusstafel: die zehn teuersten Prüfgruppen mit ihrer Zeit und ihrem Anteil,
+darunter die Zeit in den Gruppen und die des ganzen Laufs.
+
+```
+  DIE TEUERSTEN 10 VON 329 GRUPPEN:
+    Der Sprachhelfer und die Ladung — 0.24.0      20.4 s    7.8 %
+    …
+  260.8 s in Gruppen, 261.3 s im ganzen Lauf.
+```
+
+**Die Zeit JE Gruppe steht nur auf Schalter da** — eine Zeile je Gruppe macht
+die Ausgabe um 329 Zeilen länger:
+
+```bash
+TESTBENCH_ZEIT=1 npm test
+```
+
+### Der Prüfschalter — und warum er in einer benutzten Installation nichts zu suchen hat
+
+**Zwei Kosten sind im Betrieb richtig und beim Prüfen sinnlos:** die
+Kostenstufe von `scrypt` (sie rechnet absichtlich lange) und die drei
+Mailfristen (sie warten absichtlich lange). Zusammen sind das rund 75 der
+465 Sekunden eines Laufs — und die Gegenproben zahlen sie **je Rückbau** noch
+einmal.
+
+**Der Prüfstand setzt dafür einen Schalter, und der Schalter trägt einen
+einzigen Namen:**
+
+```
+KRITERION_TESTBENCH=pruefstand:scrypt=1024:mail=40:brake=10
+```
+
+| Einstellung | was sie senkt | Boden |
+|---|---|---|
+| `scrypt=<N>` | die Kostenstufe des Passwortspeichers *(ausgeliefert: 16384)* | 1024, und immer eine Zweierpotenz |
+| `mail=<Teiler>` | alle drei Mailfristen mit **demselben** Teiler *(ausgeliefert: 20 s / 7 s / 7 s)* | 100 ms |
+| `brake=<Teiler>` | die **Wartezeit** der Anmeldebremse — nicht ihre Kurve und nicht ihre Schwellen | 10 ms |
+
+**Was er ausdrücklich NICHT kann:**
+
+* **Eine gewöhnliche Umgebungsvariable greift nicht.** `SCRYPT_N=1024` bewirkt
+  nichts, `KRITERION_TESTBENCH=1` bewirkt nichts. Nur die vollständige Form mit
+  der Marke `pruefstand:` davor wird überhaupt gelesen. Eine Installation soll
+  ihre eigene Anmeldung nicht aus Versehen schwächen können.
+* **Unter den Boden kommt auch er nicht.** Was darunter steht, wird auf ihn
+  gehoben statt abgewiesen.
+* **Er senkt keine Schwelle.** Die Anmeldebremse zählt weiter ab fünf weich und
+  ab zehn hart, und die harte Sperre dauert ihre fünf Minuten. Gesenkt wird
+  allein, wie lange gewartet wird.
+
+**Und er sagt sich an.** Läuft ein Server mit gesetztem Schalter, steht beim
+Start eine Zeile im Protokoll:
+
+```
+[Kriterion] PRUEFSCHALTER AKTIV (KRITERION_TESTBENCH) — scrypt N=1024,
+Mailfristen 500/175/175 ms. NUR FUER DEN PRUEFSTAND — wo jemand damit
+arbeitet, gehört er entfernt.
+```
+
+**Steht diese Zeile in deinem Protokoll, gehört der Schalter aus der `.env`.**
+
+### Ein Papier ist Prüfstoff
+
+**Wer ein Dokument unter `Doku/` ändert, fährt den Prüflauf.** Das ist keine
+Förmlichkeit: der Sprachwächter liest die Papiere mit, und ein einziges Wort aus
+seiner Liste macht den Prüfstand rot. Genau das ist zwischen 0.12.2 und 0.12.3
+passiert — ein Merge brachte ein Wort in `Fehler_und_Ideen.md`, der Zweig war
+danach rot, und niemand hat es bemerkt.
+
+*Der Lauf bei jedem Push fängt es ab: `.github/workflows/pruefstand.yml` hängt
+an `push:` ohne Zweigfilter, also auch an einem Commit, der nur ein Papier
+ändert. Nachgesehen am 12. September 2026 — ein Commit, der nur
+`Doku/Auftrag_0.30.0.md` anfasst, hat den Lauf ausgelöst und ist grün
+durchgelaufen.*
+
 Die Dateien `testbench.js` und `counterproof.js` sind per `.dockerignore`
 ausgeschlossen und landen nicht im Image.
 

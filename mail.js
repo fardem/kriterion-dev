@@ -89,9 +89,19 @@ const HINT_ALWAYS = 'mail.hintAlways';
    Wettlauf ueber dem GANZEN Versand ist eine Frist auf die Gesamtdauer.
    DIE DREI DARUNTER BLEIBEN TROTZDEM STEHEN: sie sind der schnellere Weg und
    nennen den Abschnitt, an dem es klemmte. */
-const SEND_MS = 20 * 1000;
-const CONNECT_MS = 7 * 1000;
-const GREETING_MS = 7 * 1000;
+/* DIE AUSGELIEFERTEN FRISTEN, FESTGENAGELT -- 0.30.0, F2. Eine Frist ist
+   keine Sicherheitsgrenze; eine Instanz, die nach 300 ms aufgibt, verschickt
+   aber keine Mail mehr. Deshalb dieselbe Klammer wie bei der Kostenstufe: nur
+   der Pruefschalter aus keys.js stellt sie kurz, und er stellt alle drei mit
+   DEMSELBEN Teiler -- ihr Verhaeltnis zueinander ist die Sache, die der
+   Prueflauf belegt (Zusagen 10 und 11). */
+const keys = require('./keys');
+const SEND_SHIPPED = 20 * 1000;
+const CONNECT_SHIPPED = 7 * 1000;
+const GREETING_SHIPPED = 7 * 1000;
+const SEND_MS = keys.mailDeadline(SEND_SHIPPED);
+const CONNECT_MS = keys.mailDeadline(CONNECT_SHIPPED);
+const GREETING_MS = keys.mailDeadline(GREETING_SHIPPED);
 
 /* ---- Was in settings liegt ----
    DER MAILZUGANG GEHOERT DEM EIGENTUEMER, NICHT DEM ADMIN, und das ist die
@@ -333,6 +343,7 @@ const mailTest = (locale, values) => mail(locale, 'test', values);
 module.exports = {
   PROVIDERS, HINTS, HINT_ALWAYS, SETTING_KEY,
   SEND_MS, CONNECT_MS, GREETING_MS,
+  SEND_SHIPPED, CONNECT_SHIPPED, GREETING_SHIPPED,
   isAddress, providerOf, forChoice, resolve, state, configured, checkInput, mark,
   send, setTranslator,
   mailInvite, mailReset, mailConfirm, mailTest
