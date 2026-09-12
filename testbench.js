@@ -53533,6 +53533,19 @@ async function check0302() {
       /\.frow-tags \{ grid-template-rows: auto auto 1fr; \}/.test(vNarrow));
     check('Und der Umschalter steht in der dritten',
       /\.frow-tags > \.tagmode \{ grid-row: 3; \}/.test(vNarrow));
+    /* ---- UND ZUGEKLAPPT IST ER VERBORGEN -- nachgetragen, 0.30.2 ----
+       DIE GEGENPROBE HAT ES GEFUNDEN, und das ist ihr Zweck. Rueckbau 941
+       macht den Umschalter wieder immer sichtbar, und KEINE EINZIGE PRUEFUNG
+       wurde rot: die Zusagen darueber fragten die KLASSE (`tags-live`) und die
+       RASTERZEILE -- aber nie die Regel, die tatsaechlich verbirgt. Ein
+       Waechter ueber nichts ist gruen (Stolperstein 81).
+       GEFRAGT WIRD DIE VERNEINUNG UND NICHT BLOSS DAS VORKOMMEN DER KLASSE:
+       eine Regel `.frow-tags.tags-live > .tagmode { display: inline-flex; }`
+       nennt beide Namen und verbirgt trotzdem nichts -- genau das ist der
+       Rueckbau. Die Zusage muss deshalb sagen, WORAN die Regel haengt. */
+    check('Und zugeklappt ist er verborgen — die Regel haengt an der Verneinung',
+      /\.frow-tags:not\(\.tags-live\) > \.tagmode \{ display: none; \}/.test(vNarrow),
+      (vNarrow.match(/\.frow-tags[^\n{]*\.tagmode \{[^}]*\}/g) || ['(keine Regel)']).join(' · '));
     /* DAS ZEICHEN IST EIN ZIEL FUER DEN FINGER und kein Buchstabe: dreissig
        Pixel im Quadrat, dasselbe Mass, das der Ruecksetzer der Sternzeile am
        groben Zeiger traegt. */
