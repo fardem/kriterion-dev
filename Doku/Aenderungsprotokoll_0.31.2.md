@@ -102,7 +102,7 @@ jedes mit seiner britischen Seite, damit es dabei bleibt.*
 | **BA 3** | **Die alten Metaphern** — was die Blacklist fand | **46 Schlüssel**, 52 Treffer |
 | **BA 4** | **Die letzte HTML-Entität** | **1** — *`&lt;number&gt;` ist weg; 0.31.1 hatte sie ausdrücklich nur auf Deutsch genommen* |
 | **BA 5** | **Die vier Briefe** | **4** — *„This inbox is not monitored." (F6), und der Einladungsbrief warnt, statt zu plaudern* |
-| **BA 6** | **DER DURCHGANG** — alle 1197 Schlüssel, jeder gegen seinen deutschen Satz | **160 Schlüssel neu formuliert** (168 Formen); *darin die acht schlicht falschen Sätze, die keine Liste gemeldet hätte* |
+| **BA 6** | **DER DURCHGANG** — alle 1197 Schlüssel, jeder gegen seinen deutschen Satz | **161 Schlüssel neu formuliert** (169 Formen); *darin die acht schlicht falschen Sätze, die keine Liste gemeldet hätte* |
 | **BA 7** | **Prüfstand, Gegenproben, Papiere, Augenschein, Fingerprint** | **zehn Zusagen, zehn Gegenproben** |
 
 ### Die Zahlen
@@ -110,11 +110,11 @@ jedes mit seiner britischen Seite, damit es dabei bleibt.*
 | | vorher | nachher |
 |---|---|---|
 | **Schlüssel je Sprachdatei** | 1197 | **1197** — *diese Runde formuliert, sie räumt nicht* |
-| **Englische Werte geändert** | | **160 Schlüssel, 168 Formen** |
-| *davon `card.`* | | **96** |
+| **Englische Werte geändert** | | **161 Schlüssel, 169 Formen** |
+| *davon `card.`* | | **97** |
 | *davon `server.`* | | **31** |
 | *davon `login.` · `entry.` · `mail.` · `dialog.` · `list.`* | | **11 · 8 · 7 · 5 · 2** |
-| **Zeichen in `en.json`** | 42 537 | **41 900** — *637 weniger* |
+| **Zeichen in `en.json`** | 42 537 | **41 902** — *635 weniger* |
 | **Englisch im Verhältnis zum Deutschen** | 90,8 % | **89,4 %** |
 | **Treffer der Verbotsliste** | 52 in 46 Schlüsseln | **0** |
 | **Werte länger als ihr deutscher** *(ab 40 Zeichen, über 1,15×)* | 7 | **0** |
@@ -271,7 +271,7 @@ Einspielen andere Sätze — und keine andere Funktion.*
 | **`Doku/Fahrplan.md`** | die Zeile 0.31.2 durchgestrichen; **die geplanten Runden rücken nicht** |
 | **`Doku/Fehler_und_Ideen.md`** | **Punkt 28** — das Sammelblatt der Runde, fünf deutsche Funde |
 | **`tools/englischstand.js`** · **`tools/englisch-0312.json`** | **neu** — der Vergleichsstand und sein Werkzeug |
-| **`public/languages/en.json`** | 160 Schlüssel neu formuliert |
+| **`public/languages/en.json`** | 161 Schlüssel neu formuliert |
 | **`testbench.js`** · **`counterproof.js`** | zehn Zusagen, zehn Rückbauten |
 | **`CHANGELOG.md`** | ein Eintrag 0.31.2 |
 | **`package.json`, `package-lock.json`** | 0.31.2 |

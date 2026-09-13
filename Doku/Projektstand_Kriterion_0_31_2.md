@@ -483,7 +483,7 @@ weiterhin offen. Daraus folgt die Stellung von `HINTER_PROXY` (Abschnitt 3).
 dritte von vier Runden der 31er-Strecke; Türkisch ist 0.31.3.*
 
 **ALLE 1197 ENGLISCHEN SCHLÜSSEL SIND GEGEN IHREN DEUTSCHEN SATZ GELESEN
-WORDEN.** *160 sind neu formuliert (168 Formen), `en.json` ist 637 Zeichen kürzer
+WORDEN.** *161 sind neu formuliert (169 Formen), `en.json` ist 635 Zeichen kürzer
 und steht damit bei 89,4 % der deutschen Zeichenzahl.* **Kein deutscher und kein
 türkischer Wert ist dabei angefasst** — *und das ist nachgerechnet und nicht
 behauptet: die beiden deutschen Prüfsummen der Gleichlautprobe sind Zeichen für
@@ -503,7 +503,7 @@ fährt die Probe seit dieser Runde selbst.*
 > benennt ihn in der Tafel `EG_CHANGED_AFTER_0312`; sie ist leer.**
 
 > **ACHT ENGLISCHE SÄTZE WAREN SCHLICHT FALSCH**, und keine Liste hätte sie
-> gemeldet — *„The rows are sorted by 90 days deleted automatically", „your
+> gemeldet — *„The rows are sorted by {word} deleted automatically", „your
 > password is asked for asked for", „the card Backup simpler", „Settings ›
 > Inventory › Weight in", „there are one more session", „Every target is a
 > number", „Configured is /data/backups.", „They will this one time only
