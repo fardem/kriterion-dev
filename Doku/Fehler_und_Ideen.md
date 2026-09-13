@@ -1404,3 +1404,183 @@ Prüfläufe gleichzeitig starten und sehen, welcher Zweig der Erkennung greift.*
 überhaupt ansehen soll, oder nur die unter seiner eigenen Portbasis.*
 
 **Was es anfasst** — `testbench.js`.
+
+
+---
+
+## 28. Fünf deutsche Funde aus dem englischen Durchgang — das Sammelblatt von 0.31.2
+
+**Art: Fehler** *(klein, an den Texten)* **· Herkunft: 0.31.2, aus dem
+Durchgang durch alle 1197 englischen Schlüssel am 13. September 2026 ·
+Einschätzung: empfohlen, aber nicht dringend**
+
+**WOHER SIE KOMMEN.** *Leitplanke L1 jener Runde lautete: **Deutsch ist die
+unveränderliche Basis** — kein deutscher Wert wird angefasst, auch nicht „nur
+kurz", auch nicht, wenn beim Übersetzen auffällt, dass er besser ginge.* **Der
+Betreiber hat es so gesagt: „es kann nur für englisch Vorschläge abgeben etc
+aber nicht mehr am deutsch meckern".** *Was auffiel, geht deshalb hierher und
+nicht in die Datei.*
+
+> **JEDER DIESER FÜNF IST BEIM ÜBERSETZEN AUFGEFALLEN, und keiner beim Lesen des
+> Deutschen.** *Das ist kein Zufall: wer einen Satz in einer zweiten Sprache
+> hinschreiben muss, kann nicht überlesen, worauf er zeigt.*
+
+| # | Fund | wo |
+|---|---|---|
+| **1** | **Der Hinweis zitiert eine Logzeile, die es so nicht gibt.** *`card.restartHint` sagt: im Server-Log „**Schlüssel** aus ENCRYPTION_KEY geladen" prüfen — `keys.js` schreibt aber „**Schluessel** aus ENCRYPTION_KEY geladen." ohne Umlaut.* **Wer die Zeile so sucht, wie sie dasteht, findet sie nicht** | `de.json` · `keys.js:124` |
+| **2** | **Eine Meldung schickt den Benutzer an eine Karte, die es nicht gibt.** *`server.deniedOwnUser`: „Den eigenen Zugang ändert man unter „**Zugang**", nicht hier." — die Karte heißt „**Mein Konto**" (`card.myAccount`), und kein einziger Wert lautet „Zugang"* | `de.json` |
+| **3** | **Ein Feld hat zwei Namen.** *Die Karte beschriftet es „**Mindestens behalten**" (`card.keepAtLeast`), die Fehlermeldung dazu nennt es „**Immer behalten**" (`server.ruleKeep`)* | `de.json` |
+| **4** | **Und das Feld daneben ebenso.** *„**Löschen ab Alter (Tage)**" (`card.deleteFromAge`) gegen „**Erst löschen ab**" (`server.ruleDays`)* | `de.json` |
+| **5** | **Die Vokabelkarte trägt zwei Bauformen.** *Fünf Beschriftungen nennen die Sache und dann die Zahl — „Zeitpunkt, Einzahl", „Sterne nach dem Test, Einzahl", „Kommentar zum Festhalten, Einzahl", „Kommentar zum Abarbeiten, Einzahl" —, **eine nennt nur die Zahl**: „Einzahl" / „Mehrzahl" (`card.itemOne`, `card.itemMany`)* | `de.json` |
+
+**WARUM 3 UND 4 MEHR SIND ALS EINE GESCHMACKSFRAGE:** *die Fehlermeldung soll
+sagen, WELCHES Feld nicht stimmt. Trägt sie einen anderen Namen als die
+Beschriftung darüber, sucht der Benutzer das falsche Feld* — **und auf Englisch
+fällt das sofort auf, weil dort die Großschreibung des Substantivs fehlt, die im
+Deutschen den Namen als Namen markiert.**
+
+> **AUF DER ENGLISCHEN SEITE SIND 3 UND 4 ENTSCHIEDEN WORDEN, und zwar gegen das
+> Deutsche:** *`server.ruleKeep` und `server.ruleDays` zitieren dort die
+> Beschriftung, die wirklich an dem Feld steht — „Keep at least" und „Delete
+> when older than", jeweils in Anführungszeichen.* **Das ist die einzige Stelle
+> der Runde, an der Englisch dem Deutschen nicht folgt, sondern der Oberfläche**
+> — *sie steht deshalb im Änderungsprotokoll 0.31.2 namentlich da.*
+
+**Was zu bauen wäre** — *fünf Werte in `de.json`; bei 1 wahlweise die Logzeile
+in `keys.js` auf den Umlaut bringen.* **Alle fünf sind reine Textänderungen,
+kein Schemaanteil** — *aber sie gehören in eine Runde, die Deutsch anfassen
+DARF, und 0.31.2 war das nicht.*
+
+> **EIN SECHSTER FUND IST NOCH IN DERSELBEN RUNDE GEBAUT WORDEN, und darum steht
+> er hier nicht als Punkt:** *der Betreiber hat am 13. September 2026 „Zugang
+> beantragen" auf **„Zugang anfragen"** bestellt — das ganze Wortfeld sagt in
+> allen drei Sprachen „Anfrage", dieses eine Label war der Ausreisser.* **Damit
+> ist 0.31.2 die Runde, die zwei deutsche Werte anfasst, und sie sagt es** —
+> Änderungsprotokoll 0.31.2, Zusage 1. *Die fünf hier warten weiter.*
+
+**Offene Entscheidungen** — *bei 5: ob „Einzahl/Mehrzahl" zur Form der anderen
+fünf zurückkommt („Eintrag, Einzahl") oder ob die anderen fünf ihre Sache
+verlieren. Die kürzere Form ist in 0.31.0 mit Absicht entstanden — dort hieß es
+noch „Sache, Einzahl", und „Sache" sollte weg.*
+
+**Was es anfasst** — `public/languages/de.json`, dazu `en.json` und `tr.json`
+(dieselben Sätze), bei 1 zusätzlich `keys.js`.
+
+
+---
+
+## 29. Elf deutsche Sätze aus `server.js` stehen auf jeder Oberfläche — auch auf der englischen
+
+**Art: Fehler** *(an der Anwendung; sichtbar für jeden, der nicht Deutsch liest)*
+**· Herkunft: 0.31.2, aus dem Augenschein vom 13. September 2026 ·
+Einschätzung: empfohlen — eine eigene kleine Runde**
+
+**WIE ER GEFUNDEN WURDE.** *Der Augenschein jener Runde hat die Oberfläche auf
+ENGLISCH gelesen — neun Ansichten in echtem Chromium — und in der Karte „Users"
+unter dem Registrierungsschalter das gefunden:*
+
+```
+Switching it on is only possible once mail delivery is set up.
+Es ist kein Mailzugang eingerichtet. Das macht der Eigentümer dieser Installation.
+```
+
+**DER ERSTE SATZ KOMMT AUS `en.json`, DER ZWEITE FEST AUS `server.js`.** *Der
+Server rechnet den GRUND aus, warum diese Instanz nicht verschicken kann, und
+gibt ihn als fertigen deutschen Satz an die Oberfläche.*
+
+### Nachgezählt: elf Sätze, und jeder erreicht den Bildschirm
+
+| wo | wie viele | wer sie liest |
+|---|---|---|
+| **`deliveryReady()`** — warum nicht verschickt werden kann | **3** | die Karte „Users" *(der gefundene Satz)* und die Warnung über dem Schalter |
+| **`sendTokenLink()`** — warum ein Link nicht hinausging | **3** | `card.passLinkByHandEnd` — *„{reason}. Pass the link on manually."* |
+| **`REQUEST_ANSWER`** — die Antwort auf eine Zugangsanfrage | **1** | **jeder, der sich auf der Anmeldeseite meldet** — vor jeder Anmeldung, in jeder Sprache |
+| **Die Vorschau des Aufräumens** — warum gerade keine Sicherung fällt | **4** | die Karte „Sicherung" |
+
+> **DER SCHLIMMSTE VON DEN ELF IST DER EINE AUS `REQUEST_ANSWER`.** *Er steht auf
+> der ANMELDESEITE — dort, wo noch niemand angemeldet ist und die Instanz ihre
+> Vorgabesprache spricht.* **Eine englische Installation antwortet einem
+> englischen Interessenten auf Deutsch**, und zwar im ersten Satz, den sie ihm
+> überhaupt sagt.
+
+### Warum es 0.31.2 nicht reparieren durfte
+
+**JEDER DIESER SÄTZE BRAUCHT EINEN SCHLÜSSEL IN ALLEN DREI SPRACHDATEIEN.** *Der
+Auftrag jener Runde schließt das zweifach aus: **F4** („Ändert sich die Zahl der
+Schlüssel? Nein. 1197 bleibt 1197") und **Leitplanke L1** („kein deutscher Wert
+wird angefasst").* **Eine Runde, die ihre eigene Zusage bricht, um einen Fund
+mitzunehmen, ist keine Reparatur, sondern ein zweiter Fund.**
+
+### Was zu bauen wäre
+
+| | |
+|---|---|
+| **Elf neue Schlüssel** — und ein Teil ist schon da | *„Es ist kein Mailzugang eingerichtet." steht bereits als `mail.noAccount` in allen drei Dateien; `card.addressNeededHint` und `card.withoutServerSetting` decken Teile der PUBLIC_ADDRESS-Sätze. **Erst messen, welche wirklich neu sind** — sonst steht derselbe Satz zweimal in der Datei* |
+| **Die Sätze mit Zahl brauchen Mehrzahlformen** | *„Keine der {n} Sicherungen …", „Alle {n} Sicherungen sind unter den jüngsten {keep}.", „Die älteste ist {n} Tage alt." — heute baut `server.js` die Mehrzahl mit `=== 1 ? 'Sicherung' : 'Sicherungen'` selbst* |
+| **Und ein Wächter, der den nächsten fängt** | *0.31.1 hat für `public/app.js` eine Restprobe (sie zählt die lesbaren Texte gegen eine benannte Liste). **Für `server.js` gibt es keine** — und genau deshalb sind diese elf durchgekommen. Ohne sie ist der zwölfte eine Frage der Zeit* |
+
+> **DIE LOGZEILEN BLEIBEN DEUTSCH, und das ist kein Widerspruch.** *`[Kriterion]
+> …` im Containerprotokoll liest der Betreiber und kein Benutzer; dasselbe gilt
+> für die Meldungen von `keytool` und `usertool`.* **Die Grenze ist nicht die
+> Sprache, sondern der Leser.**
+
+**Offene Entscheidungen** — *ob `'Ohne Titel'` mitkommt: das ist der Titel, den
+ein Import ohne Titel anlegt, und damit ein gespeicherter WERT und keine
+Beschriftung — dieselbe Lage wie bei den drei mitgelieferten Kriterien (Punkt
+23). Wer es mitnimmt, muss sagen, in welcher Sprache ein Import spricht, der
+nachts ohne Benutzer läuft.*
+
+**Was es anfasst** — `server.js`, die drei Sprachdateien, `testbench.js`
+*(der fehlende Wächter)*.
+
+---
+
+## 30. Die Dankseite kommt auch bei leerem Formular
+
+**Art: Fehler** *(an der Anwendung)* **· Herkunft: 0.31.2, vom Betreiber am
+13. September 2026 an der laufenden Installation gesehen · Einschätzung:
+empfohlen — der Betreiber verortet es in 0.32.0**
+
+**WAS ER GESAGT HAT:** *„und der text hier kommt auch wenn ich nichts eingegeben
+habe. das muss vermutlich in die 32'er da das funktionen haben muss die die
+plausibilität der eingaben prüft"*
+
+```
+Danke. Wenn zu diesen Angaben eine Anfrage möglich war, hast du jetzt eine
+E-Mail bekommen — bitte bestätige darin deine Adresse. Danach entscheidet ein Admin.
+```
+
+### Nachgesehen: die Antwort ist Absicht, die leere Eingabe ist es nicht
+
+**DIE EINE ANTWORT FÜR ALLE LAGEN IST EINE SICHERHEITSEIGENSCHAFT UND KEIN
+VERSEHEN.** *`/api/signup` antwortet immer dasselbe — ob der Schalter aus ist, ob
+der Name schon existiert, ob die Adresse schon vergeben ist, ob der Deckel
+erreicht ist.* **Sonst wäre das Formular ein Werkzeug zum Durchprobieren, und
+zwar ein bequemeres als die Anmeldung: es steht ohne Passwort davor.**
+
+> **ABER EIN LEERES FORMULAR FRAGT NICHTS AB.** *Wer nichts eingibt, probiert
+> keinen Namen aus — er hat nur vergessen, etwas einzugeben.* **Die Gleichheit
+> der Antwort muss die EXISTENZ verbergen, nicht die Form:** *ob die Eingabe
+> überhaupt eine Eingabe ist, darf die Seite sagen.*
+
+**HEUTE PRÜFT NIEMAND DIE FORM:** *`showRequest()` schickt `n.value` und
+`m.value` ungeprüft ab, und `auth.createRequest()` verwirft sie still
+(`checkName()` wirft, `mail.isAddress()` sagt nein) — es entsteht nichts, und
+der Benutzer liest trotzdem „Danke".* **Der Datenbestand ist also in Ordnung; nur
+die Auskunft ist falsch.**
+
+**Was zu bauen wäre**
+
+| | |
+|---|---|
+| **Die Form wird VOR dem Absenden geprüft** | *leerer Name, leere Adresse, Adresse ohne `@` — die Sätze dafür gibt es schon: `login.usernameMissing`, `login.emailInvalid`* |
+| **Und der Server prüft dasselbe noch einmal** | *eine Prüfung nur im Browser ist eine Bitte; die Absage bei UNBRAUCHBARER FORM ist dabei die eine Ausnahme von der Gleichheit der Antwort — sie sagt nichts über den Bestand* |
+| **Die Grenze steht in einem Satz im Quelltext** | **Form ist öffentlich, Existenz ist es nicht.** *Ohne diesen Satz nimmt die nächste Runde die Gleichheit der Antwort für eine Umständlichkeit und baut sie weg* |
+
+> **UND EIN ZWEITER GRUND, GENAU HIER HINZUSEHEN:** *derselbe Satz ist einer der
+> elf aus Punkt 29 — er steht fest auf Deutsch in `server.js` und erscheint so
+> auch auf einer englischen Anmeldeseite.* **Wer die Plausibilitätsprüfung baut,
+> hat den Satz ohnehin in der Hand.**
+
+**Was es anfasst** — `public/app.js`, `server.js`, `auth.js`; die drei
+Sprachdateien nur, wenn Punkt 29 mitkommt.

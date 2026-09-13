@@ -9700,6 +9700,139 @@ const REGRESSIONS = [
     replacement: "  \"list.close\": \"Zumachen\",",
     expected: 'Der Quelltext spricht Englisch — die sechs Waechter'
   },
+  /* ---- „Englisch sitzt" -- 0.31.2, zehn Zusagen ----
+     JEDER GREIFT IN DIE DATEN UND NICHT IN DEN WAECHTER. Neun fassen
+     `en.json` an -- die Datei, die diese Runde formuliert --, einer `de.json`
+     und einer den Vergleichsstand.
+     UND JEDER IST SO KLEIN GESCHNITTEN, DASS ER SEINE EIGENE ZUSAGE MELDET
+     und moeglichst keine zweite: der Laengenrueckbau fuegt keinen Satz hinzu,
+     der Satzrueckbau macht aus einem Gedankenstrich einen Punkt und bleibt
+     dabei gleich lang. Ein Rueckbau, der drei Zeilen zugleich rot macht, sagt
+     nicht, welche gefangen hat. */
+  {
+    /* ZUSAGE 1: ein DEUTSCHER Wert wird angefasst. Das ist die tragende
+       Leitplanke der Runde (L1) -- und der einzige Rueckbau hier, der nicht in
+       `en.json` greift. Die Gleichlautprobe rechnet ihre beiden deutschen
+       Summen am Quelltext nach; eine geaenderte Beschriftung faellt damit
+       auf, ohne dass jemand sie gesucht haette.
+       ER MACHT AUCH DIE WORTLAUTPROBE ROT, und das ist richtig so: zwei
+       Wachen ueber dieselbe Zusage duerfen sich nicht widersprechen. */
+    nr: '978', name: 'Ein deutscher Wert aendert sich — Deutsch ist nicht mehr unangetastet',
+    file: 'public/languages/de.json',
+    search: "  \"card.appearance\": \"Darstellung\",",
+    replacement: "  \"card.appearance\": \"Aussehen\",",
+    expected: 'Englisch sitzt — 0.31.2'
+  },
+  {
+    /* ZUSAGE 2: ein Mehrzahlpaar wird auf Englisch zu EINEM Satz. Die
+       Deckungsprobe sieht das nicht -- der Schluessel ist da, und gezaehlt
+       wird er auch; am Bildschirm stuende danach „1 vocabulary words". */
+    nr: '979', name: 'Ein englisches Mehrzahlpaar wird ein einzelner Satz',
+    file: 'public/languages/en.json',
+    search: "  \"card.wordsMissing\": {\n    \"one\": \"1 vocabulary word\",\n    \"other\": \"{n} vocabulary words\"\n  },",
+    replacement: "  \"card.wordsMissing\": \"{n} vocabulary words\",",
+    expected: 'Englisch sitzt — 0.31.2'
+  },
+  {
+    /* ZUSAGE 3: ein Platz faellt aus dem englischen Satz. Der Satz verliert
+       seine Zahl, und niemand sieht es -- ausser dieser Zeile. */
+    nr: '980', name: 'Ein englischer Wert verliert einen Platzhalter',
+    file: 'public/languages/en.json',
+    search: "  \"card.deleteFreesHint\": \"{word} — {bytes} free.\",",
+    replacement: "  \"card.deleteFreesHint\": \"{word} — free.\",",
+    expected: 'Englisch sitzt — 0.31.2'
+  },
+  {
+    /* ZUSAGE 4: die Verbotsliste. Der Schluessel bekommt seinen Denglisch-Satz
+       von vor der Runde zurueck -- Dateien und Ordner „sitzen" nicht. */
+    nr: '981', name: 'Ein englischer Wert traegt wieder ein Wort der Verbotsliste',
+    file: 'public/languages/en.json',
+    search: "  \"card.keyBesideDb\": \"The key is in the same directory as the database\",",
+    replacement: "  \"card.keyBesideDb\": \"The key sits next to the database\",",
+    expected: 'Englisch sitzt — 0.31.2'
+  },
+  {
+    /* ZUSAGE 5: die letzte HTML-Entitaet kommt zurueck. 0.31.1 hat sie nur auf
+       Deutsch herausgenommen und den Grund benannt; wer sie hier wieder
+       hinschreibt, verlangt vom naechsten Uebersetzer, Maskierung zu kennen. */
+    nr: '982', name: 'Ein englischer Wert traegt wieder eine HTML-Entitaet',
+    file: 'public/languages/en.json',
+    search: "appear under “Deleted user” with a number.",
+    replacement: "appear under “Deleted user &lt;number&gt;”.",
+    expected: 'Englisch sitzt — 0.31.2'
+  },
+  {
+    /* ZUSAGE 6: der englische Satz wird laenger als sein deutscher -- und
+       zwar OHNE einen Satz mehr. Genau so kommt der Ballast zurueck, den die
+       Vorlage gefunden hat: nicht als zweiter Satz, sondern als Beiwerk im
+       ersten. */
+    nr: '983', name: 'Ein englischer Satz wird wieder deutlich laenger als sein deutscher',
+    file: 'public/languages/en.json',
+    search: "  \"card.blocksHint\": \"The order of the blocks and their collapsed state apply to all {entryMany}.\",",
+    replacement: "  \"card.blocksHint\": \"The order of the blocks and whether they are collapsed applies to all {entryMany}.\",",
+    expected: 'Englisch sitzt — 0.31.2'
+  },
+  {
+    /* ZUSAGE 7: ein Satz mehr, bei gleicher Laenge. Aus einem Gedankenstrich
+       wird ein Punkt -- der Wert ist danach sogar ein Zeichen kuerzer, und
+       die Laengenzusage bleibt gruen. Nur die Satzzahl faellt auf, und genau
+       das soll sie: die Kuerze steckt nicht in den Zeichen. */
+    nr: '984', name: 'Ein englischer Wert traegt einen Satz mehr als sein deutscher',
+    file: 'public/languages/en.json',
+    search: "  \"server.exportGrew\": \"The export file has passed the limit of {limit} MB. Use the backup — it writes the whole inventory and does not know this limit.\",",
+    replacement: "  \"server.exportGrew\": \"The export file has passed the limit of {limit} MB. Use the backup. It writes the whole inventory and does not know this limit.\",",
+    expected: 'Englisch sitzt — 0.31.2'
+  },
+  {
+    /* ZUSAGE 8: eine US-Schreibung. `_locale` sagt en-GB seit 0.24.3; die
+       Zeile war vor der Runde schon gruen -- dieser Rueckbau zeigt, dass sie
+       auch rot werden kann. Eine Zusage, die nur gruen sein KANN, belegt
+       nichts. */
+    nr: '985', name: 'Ein englischer Wert traegt eine US-Schreibung',
+    file: 'public/languages/en.json',
+    search: "  \"card.themeHint\": \"Colour scheme",
+    replacement: "  \"card.themeHint\": \"Color scheme",
+    expected: 'Englisch sitzt — 0.31.2'
+  },
+  {
+    /* ZUSAGE 9: die Einrueckung des Quelltexts steht wieder im Wert. Am
+       Bildschirm faellt sie nicht auf -- HTML zieht sie zusammen --, und
+       genau deshalb wandert sie ungesehen in jede weitere Uebersetzung mit.
+       Derselbe Rueckbau wie 975, nur auf der englischen Seite. */
+    nr: '986', name: 'Ein englischer Wert traegt wieder die Einrueckung des Quelltexts',
+    file: 'public/languages/en.json',
+    search: "  \"card.storeCaveat\": \"Lossy: about two thirds smaller for photos,",
+    replacement: "  \"card.storeCaveat\": \"Lossy: about two thirds smaller for photos,\\n          ",
+    expected: 'Englisch sitzt — 0.31.2'
+  },
+  {
+    /* ZUSAGE 10: der Vergleichsstand und `en.json` laufen auseinander. DIESER
+       RUECKBAU GREIFT IN DIE VERGLEICHSDATEI und nicht in `en.json`: es geht
+       um die Buchfuehrung selbst. Wer einen englischen Wert anfasst, ohne ihn
+       zu benennen, bekommt genau dieses Bild -- und die Tafel
+       EG_CHANGED_AFTER_0312 ist leer, also faellt es auf. */
+    nr: '987', name: 'Der Vergleichsstand weicht von en.json ab, ohne benannt zu sein',
+    file: 'tools/englisch-0312.json',
+    search: "    \"card.active\": \"active\",",
+    replacement: "    \"card.active\": \"on\",",
+    expected: 'Englisch sitzt — 0.31.2'
+  },
+  {
+    /* ZUSAGE 1, ZWEITE HAELFTE: die bestellte Ausnahme wird zurueckgenommen.
+       SEIT DER BESTELLUNG DES BETREIBERS HAT ZUSAGE 1 ZWEI HAELFTEN -- „kein
+       deutscher Wert ist von mir angefasst" (978) und „genau diese zwei sind es
+       auf Bestellung" (hier). Eine Ausnahme ohne Gegenprobe ist eine
+       Behauptung: sie kann still verschwinden, und niemand merkt es.
+       ER MACHT DREI WACHEN ZUGLEICH ROT, und das ist hier kein Mangel, sondern
+       die Sache selbst: die Pruefsummen dieser Runde, die Tafel
+       DE_ORDERED_0312 und -- weil die Ausnahme der Bildschirmverbotsliste mit
+       dem Satz gewandert ist -- auch das Verbot von „Zugang" fuer Konto. */
+    nr: '988', name: 'Das Label heisst wieder „Zugang beantragen"',
+    file: 'public/languages/de.json',
+    search: "  \"login.requestAccess\": \"Zugang anfragen\",",
+    replacement: "  \"login.requestAccess\": \"Zugang beantragen\",",
+    expected: 'Englisch sitzt — 0.31.2'
+  },
 ];
 
 /* ================= Spuren und Versatz =================
