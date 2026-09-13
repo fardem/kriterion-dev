@@ -27602,7 +27602,15 @@ function sweepLeftovers() {
      davon, weil der Satz ein anderer ist, und 825, weil der Abstand jetzt aus
      einer Klasse kommt. Ein Rueckbau, dessen Suchtext fehlt, ist ein Fund
      ueber die LISTE. */
-  check('Es sind genau 954 Rueckbauten', gpList.length === 954, `${gpList.length}`);
+  /* 954 WURDEN 968 MIT 0.31.1: vierzehn neue fuer die elf Zusagen jener Runde
+     -- Zusage 2 bekommt drei, weil sie drei Sorten Bruchstueck verbietet und
+     ein Rueckbau je Sorte sagt, welche gefangen hat.
+     UND SECHZEHN VORHANDENE SIND NACHGEZOGEN (30, 315, 317, 330, 363, 367,
+     383, 505, 540, 628, 639, 688, 794, 799, 800, 821, 963): ihre Suchtexte
+     standen nach dem Verschmelzen nicht mehr da. Die Zeile darunter hat sie
+     alle sechzehn gemeldet -- sie ist damit selbst der Beleg dafuer, dass ein
+     Rueckbau, der ins Leere greift, auffaellt. */
+  check(`Es sind genau 968 Rueckbauten`, gpList.length === 968, `${gpList.length}`);
   const gpTwice = gpList.map(r => r.nr).filter((n, i, a) => a.indexOf(n) !== i);
   check('Und keine Nummer steht zweimal', gpTwice.length === 0, gpTwice.join(' '));
   /* JEDER GREIFT: der Suchtext kommt in seiner Datei GENAU EINMAL vor. Keinmal
@@ -48181,9 +48189,13 @@ async function checkUi() {
        SIEBENUNDDREISSIG SEIT 0.30.3: der Absatz zur Zahl der Wolkenreihen
        haelt fest, dass die Instanz sich genau EINE Bruecke zwischen Stilblatt
        und Skript haelt -- eine Aussage ueber das Projekt und keine ueber den
-       Bildschirm. */
-    check('In den Kommentaren derselben Datei stehen unveraendert 37 Vorkommen',
-      iAppRaw === 37, `${iAppRaw} Vorkommen`);
+       Bildschirm.
+       NEUNUNDDREISSIG SEIT 0.31.1: zwei Absaetze nennen die beiden Stellen,
+       an denen deutscher Text fest im Quelltext stand -- „in einer englisch
+       eingestellten Instanz stand hier 3 entries und 2 test days". Wieder ein
+       Bild des Projekts in einem Kommentar und nicht auf dem Bildschirm. */
+    check('In den Kommentaren derselben Datei stehen unveraendert 39 Vorkommen',
+      iAppRaw === 39, `${iAppRaw} Vorkommen`);
 
     /* DIE EINE ZEILE, DIE BLEIBT, UND SIE STEHT NAMENTLICH DA. server.js
        schreibt „Die Instanz laeuft weiter …" ins Containerprotokoll, wenn
@@ -50426,7 +50438,15 @@ async function checkUi() {
     const passedMap = new Map();
     for (const file of spSources) {
       const q = fs.readFileSync(path.join(__dirname, file), 'utf8');
-      const call = /(?<![A-Za-z0-9_.$])(?:tH?|new Message|meldung|message)\(\s*(?:[A-Za-z][A-Za-z0-9_.]*(?:\([^()]*\))?\s*,\s*)?'([a-zäöü][A-Za-z0-9]*(?:\.[A-Za-z0-9_]+)+)'/g;
+      /* tMark() UND tMarks() WERDEN MITGELESEN -- 0.31.1. Beide nehmen seit
+         dieser Runde WERTE, und zwar als letztes Argument: ein Satz mit
+         Auszeichnung traegt oft noch eine Zahl („bei {dbBytes} etwa
+         {durationSeconds} Sekunden"), und genau das war bis hierher der Grund,
+         ihn dahinter noch einmal aufzubrechen.
+         OHNE SIE MELDETE DIESER WAECHTER ZEHN PLAETZE ALS UNBEDIENT, die in
+         Wahrheit bedient werden -- eine Wache, die falschen Alarm gibt, wird
+         abgeschaltet, und dann faengt sie auch den echten Fall nicht mehr. */
+      const call = /(?<![A-Za-z0-9_.$])(?:tMarks?|tH?|new Message|meldung|message)\(\s*(?:[A-Za-z][A-Za-z0-9_.]*(?:\([^()]*\))?\s*,\s*)?'([a-zäöü][A-Za-z0-9]*(?:\.[A-Za-z0-9_]+)+)'/g;
       for (const m of q.matchAll(call)) {
         let i = m.index + m[0].length, depth = 1;
         while (i < q.length && depth > 0) {
@@ -50612,11 +50632,24 @@ async function checkUi() {
       // Markup um einen technischen Namen herum
       '<code>PUBLIC_ADDRESS</code>', '<code>ENCRYPTION_KEY</code>',
       '<code>data/</code>', '<code>http://</code>', '<code>public/languages/</code>',
-      '<code>ENCRYPTION_KEY</code>. <strong><code>.env</code>',
       '</p>\n              <code class="keyline" id="keyline">ENCRYPTION_KEY=',
-      '<code>https://</code>).</p>\n        <div class="engine-own" id="engines-own"></div>',
+      /* ZWEI STUECKE SIND MIT 0.31.1 KUERZER GEWORDEN, und beide aus demselben
+         Grund: der Satz drumherum ist EIN Schluessel geworden und klebt nicht
+         mehr am Markup. Aus `<code>ENCRYPTION_KEY</code>. <strong><code>.env`
+         wurde `<code>ENCRYPTION_KEY</code>`, aus `<code>https://</code>).</p>
+         <div class="engine-own"...` wurde `<code>https://</code>`.
+         DER LESER SIEHT DAMIT WENIGER UND NICHT MEHR -- was er vorher mitlas,
+         war die Naht zwischen zwei Schluesseln. */
+      '<code>https://</code>',
       '<code>https://www.google.com/search?q=site%3Aforum.beispiel.de+%s</code>',
-      'https://forum.beispiel.de/suche?q=%s'
+      'https://forum.beispiel.de/suche?q=%s',
+      /* DAS MERKMAL DER ABGELAUFENEN SITZUNG -- 0.31.1, Bauabschnitt 4. Bis
+         0.31.0 wurde dafuer der SATZ „Sitzung abgelaufen" geworfen und an
+         sechs Stellen zurueckverglichen; er stand in drei Sprachdateien,
+         damit ein `===` etwas zu vergleichen hat, und erreichte nie einen
+         Bildschirm. Jetzt steht hier eine Kennung, die keine Sprache hat --
+         und genau deshalb gehoert sie in diese Liste. */
+      'kriterion:session-gone'
     ].sort();
     const tooMany = rest.filter(t => !REST_EXPECTED.includes(t));
     const missing = REST_EXPECTED.filter(t => !rest.includes(t));

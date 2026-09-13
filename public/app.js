@@ -3216,7 +3216,11 @@ const openTotal = () => (state.all || []).reduce((n, i) => n + (Number(i.openTas
    Bewertung heissen in dieser Instanz ueberall so. */
 const newWords = (i) => {
   const k = Number(i.newComments) || 0, b = Number(i.newRatings) || 0;
-  return [k ? t('list.commentCount', { n: k }) : '',
+  /* `of` WIRD AUSDRUECKLICH LEER GEREICHT -- 0.31.1. Der Satz traegt seit dem
+     Verschmelzen einen Platz fuer das „, davon ..." der Uebersichtszeile, und
+     hier gibt es nichts davon zu sagen. Ohne diese Zeile stuende am Bildschirm
+     „3 Kommentare{of}" -- der Pruefstand hat genau das gemeldet. */
+  return [k ? t('list.commentCount', { n: k, of: '' }) : '',
           b ? `${b} ${vRating(b)}` : ''].filter(Boolean).join(' · ');
 };
 
@@ -9926,10 +9930,17 @@ function setUpCriteriaOut(fetched, phase) {
       /* DAS „und" KAM AUS DEM QUELLTEXT -- gefunden beim Bau von BA 3. In einer
          englisch eingestellten Instanz stand hier „3 entries und 2 test days".
          Jetzt traegt jede Sprache den ganzen Satz, und die Bindung mit ihm. */
+      /* DIE WERTE STEHEN AN BEIDEN RUFEN UND NICHT IN EINER VARIABLEN --
+         der Platzhalterwaechter liest die Rufstelle, und ein Wert, der in
+         einem Bezeichner dorthin reist, ist fuer ihn nicht gereicht. Drei
+         Namen zweimal hinzuschreiben ist billiger als eine Ausnahme in einer
+         Liste, die danach jemand pflegen muss. */
       warning: e => {
-        const w = { name: e.name, things: `${e.usage_count} ${vThing(e.usage_count)}`,
-                    times: `${e.test_usage_count} ${vTime(e.test_usage_count)}` };
-        return e.test_usage_count ? t('card.marksGoneToo', w) : t('card.tagDeleteHint', w);
+        const things = `${e.usage_count} ${vThing(e.usage_count)}`;
+        const times = `${e.test_usage_count} ${vTime(e.test_usage_count)}`;
+        return e.test_usage_count
+          ? t('card.marksGoneToo', { name: e.name, things: things, times: times })
+          : t('card.tagDeleteHint', { name: e.name, things: things, times: times });
       }
     },
     crit: {

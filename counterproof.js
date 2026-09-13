@@ -304,8 +304,8 @@ const REGRESSIONS = [
        geblieben: die Frist verschwindet von der Seite. */
     nr: '30', name: 'Die Frist steht nicht mehr auf der Einladungsseite',
     file: 'public/app.js',
-    search: "        ${status.minutes ? `<strong>${tH('login.linkValidMinutes', { n: status.minutes })}</strong> ${tH('login.thenNeedNew')}` : ''}",
-    replacement: "        ${false ? `<strong>${tH('login.linkValidMinutes', { n: stand.minutes })}</strong> ${tH('login.thenNeedNew')}` : ''}",
+    search: "        ${status.minutes ? `${tMark('login.linkValidHint', 'login.linkValidMinutes', { n: status.minutes })}` : ''}",
+    replacement: "        ${false ? `${tMark('login.linkValidHint', 'login.linkValidMinutes', { n: status.minutes })}` : ''}",
     expected: 'Die Einladungsseite in der Oberflaeche'
   },
   /* ---- Die Selbstanmeldung: die immer gleiche Antwort ---- */
@@ -2982,7 +2982,7 @@ const REGRESSIONS = [
        Beitraege" sagt nicht, WAS auf einen wartet. */
     nr: '315', name: 'Die Tafel zaehlt Kommentare und Bewertungen wieder zusammen',
     file: 'public/app.js',
-    search: "  return [k ? t('list.commentCount', { n: k }) : '',\n          b ? `${b} ${vRating(b)}` : ''].filter(Boolean).join(' · ');",
+    search: "  return [k ? t('list.commentCount', { n: k, of: '' }) : '',\n          b ? `${b} ${vRating(b)}` : ''].filter(Boolean).join(' · ');",
     replacement: "  const n = k + b;\n  return `${n} ${n === 1 ? 'neuer Beitrag' : 'neue Beiträge'}`;",
     expected: 'Die Glocke in der Kopfzeile'
   },
@@ -2999,8 +2999,8 @@ const REGRESSIONS = [
     /* EINE FESTE ENDUNG MACHT AUS EINEM KOMMENTAR „1 Kommentare". */
     nr: '317', name: 'Die Tafel schreibt die Mehrzahl auch bei einem Kommentar',
     file: 'public/languages/de.json',
-    search: "\"list.commentCount\": {\n    \"one\": \"{n} Kommentar\",",
-    replacement: "\"list.commentCount\": {\n    \"one\": \"{n} Kommentare\",",
+    search: "\"list.commentCount\": {\n    \"one\": \"{n} Kommentar{of}\",",
+    replacement: "\"list.commentCount\": {\n    \"one\": \"{n} Kommentare{of}\",",
     expected: 'Die Glocke in der Kopfzeile'
   },
   {
@@ -3134,8 +3134,8 @@ const REGRESSIONS = [
   {
     nr: '330', name: 'Der Erklaerkasten verweist wieder auf die Spalte dahinter',
     file: 'public/app.js',
-    search: "${tH('entry.calcFirstAvg')} <strong>${tH('entry.grade')}</strong>${tH('entry.calcThenAvg')}",
-    replacement: "${tH('entry.calcFirstAvg')}${tH('entry.calcThenAvg')}",
+    search: "${tMark('entry.calcStepsHint', 'entry.grade',",
+    replacement: "${tH('entry.calcStepsHint', { word: '',",
     expected: 'Die Rechnung hinter der Kopfzahl'
   },
   /* DIESELBE FRAGE WIE AN DER KRITERIENLISTE, EINE ANSICHT WEITER: passen die
@@ -3318,7 +3318,7 @@ const REGRESSIONS = [
   {
     nr: '363', name: 'Die Begruendung zum fehlenden Adressfeld steht wieder in der Karte',
     file: 'public/languages/de.json',
-    search: "\"card.mailTimeoutHint\": \". Antwortet der Mailserver nicht, bricht der",
+    search: "\"card.testMailGoesHint\": \"Die Testmail geht {word}. Antwortet der Mailserver nicht, bricht der",
     replacement: "\"card.mailTimeoutHint\": \" — es gibt kein Adressfeld daneben, und zwar mit Absicht: ein Knopf, der an eine beliebige Adresse schickt, wäre ein offener Mailverteiler hinter einer Anmeldung. Antwortet der Mailserver nicht, bricht der",
     expected: 'Die Karte „Mailversand“'
   },
@@ -3346,8 +3346,8 @@ const REGRESSIONS = [
   {
     nr: '367', name: 'Die Tafel verspricht wieder die eigenen Beitraege',
     file: 'public/app.js',
-    search: "    <p>${tH('list.newCommentsAnd')} <strong>${tH('list.otherUser')}</strong>${tH('list.sinceLastVisit')}</p>",
-    replacement: "    <p>${tH('list.newCommentsAnd')}, <strong>von allen</strong>. Die eigenen stehen mit da.</p>",
+    search: "    <p>${tMark('list.newCommentsHint', 'list.otherUser')}</p>",
+    replacement: "    <p>${tH('list.newCommentsHint', { word: 'von allen' })}. Die eigenen stehen mit da.</p>",
     expected: 'Die Glocke in der Kopfzeile'
   },
   {
@@ -3460,7 +3460,7 @@ const REGRESSIONS = [
   {
     nr: '383', name: 'Die ausgeschriebene Rechnung steht wieder unter der Tabelle',
     file: 'public/app.js',
-    search: "      <p><strong>${tH('entry.criteriaNoStars')}</strong> ${tH('entry.calcRounding')}",
+    search: "      <p>${tMark('entry.calcRoundingHint', 'entry.criteriaNoStars')}",
     replacement: "      <p><strong>${tH('entry.criteriaNoStars')}</strong> ${tH('entry.calcRounding')} ${esc(gewZahl(weg.summe))} ÷ ${esc(gewZahl(weg.teiler))}",
     expected: 'Die Rechnung hinter der Kopfzahl'
   },
@@ -4656,8 +4656,8 @@ const REGRESSIONS = [
        Nicht-Kommentarzeilen; eine einzige genuegt, damit er anschlaegt. */
     nr: '505', name: 'Eine Stelle im Bildschirmtext sagt wieder „Instanz"',
     file: 'public/languages/de.json',
-    search: "\"card.noMailAccountHint\": \"Ohne Mailzugang zeigt Kriterion",
-    replacement: "\"card.noMailAccountHint\": \"Ohne Mailzugang zeigt die Instanz",
+    search: "\"card.emailOptionalHint\": \"{word} Ohne Mailzugang zeigt Kriterion",
+    replacement: "\"card.emailOptionalHint\": \"{word} Ohne Mailzugang zeigt die Instanz",
     expected: '„Instanz" steht in keinem Bildschirmtext mehr — 0.19.1 und 0.19.3'
   },
 
@@ -5048,8 +5048,8 @@ const REGRESSIONS = [
        schlechter als keine. */
     nr: '540', name: 'Die Fortschrittszeile kennt nur eine Richtung',
     file: 'public/app.js',
-    search: "${d > 0 ? 'mehr' : 'weniger'}",
-    replacement: "mehr",
+    search: "(d > 0 ? t('card.moreBytes', { bytes: fmtBytes(Math.abs(d)) })\n                                : t('card.lessBytes', { bytes: fmtBytes(Math.abs(d)) }))",
+    replacement: "t('card.moreBytes', { bytes: fmtBytes(Math.abs(d)) })",
     expected: 'Die Bildablage in der Oberflaeche'
   },
 
@@ -6089,8 +6089,8 @@ const REGRESSIONS = [
        315). Gezaehlt wird, nicht gesucht: die Zeile traegt kein serverKasten(. */
     nr: '628', name: 'Ein Server-Befehl steht wieder im Fliesstext der Karte Mein Konto',
     file: 'public/languages/de.json',
-    search: "Passwort vergessen? Ein Admin kann einen Link zum Zurücksetzen erzeugen.\"",
-    replacement: "Passwort vergessen? Auf dem Server hilft docker compose exec kriterion node usertool.js passwort <name>.\"",
+    search: "\"card.forgotPasswordHint\": \"Ein vergessenes Passwort setzt du auf dem Server zurück:\",",
+    replacement: "\"card.forgotPasswordHint\": \"Ein vergessenes Passwort setzt du mit docker compose exec kriterion node usertool.js passwort <name> zurück.\",",
     expected: 'Server-Befehle nur im Kasten — 0.22.0'
   },
   {
@@ -6441,8 +6441,8 @@ const REGRESSIONS = [
     // Der Klartextschluessel steht wieder vor jedem Admin (E13).
     nr: '639', name: 'Der Klartextschluessel steht wieder vor dem Admin',
     file: 'public/app.js',
-    search: "          : (OWNER\n            ? `<div class=\"warn-box\"><strong>${tH('card.keyBesideDb')}</strong>",
-    replacement: "          : (ADMIN\n            ? `<div class=\"warn-box\"><strong>${tH('card.keyBesideDb')}</strong>",
+    search: "          : (OWNER\n            ? `<div class=\"warn-box\">${tMark('card.keyBesideHint', 'card.keyBesideDb')}",
+    replacement: "          : (ADMIN\n            ? `<div class=\"warn-box\">${tMark('card.keyBesideHint', 'card.keyBesideDb')}",
     expected: 'Die Rollenweichen — 0.22.0'
   },
   {
@@ -6686,8 +6686,8 @@ const REGRESSIONS = [
        `undefined` und setzt es am Bildschirm ein. */
     nr: '688', name: 'Einer Mehrzahlform fehlt die Einzahl',
     file: 'public/languages/de.json',
-    search: "\"list.commentCount\": {\n    \"one\": \"{n} Kommentar\",\n    \"other\": \"{n} Kommentare\"\n  },",
-    replacement: '"list.commentCount": {\n    "other": "{n} Kommentare"\n  },',
+    search: "\"list.commentCount\": {\n    \"one\": \"{n} Kommentar{of}\",\n    \"other\": \"{n} Kommentare{of}\"\n  },",
+    replacement: '"list.commentCount": {\n    "other": "{n} Kommentare{of}"\n  },',
     expected: 'Die sieben Waechter der Sprachdatei \u2014 0.24.0'
   },
   {
@@ -7764,8 +7764,8 @@ const REGRESSIONS = [
        unsichtbare nimmt, prueft den Waechter und nicht das Auge. */
     nr: '794', name: 'Der Zaehlwert reist wieder unter einem fremden Namen',
     file: 'public/app.js',
-    search: "tH('card.inDays', { n: log.days })",
-    replacement: "tH('card.inDays', { days: log.days })",
+    search: "tMark('card.logKeepsHint', 'card.inDays', { n: log.days })",
+    replacement: "tMark('card.logKeepsHint', 'card.inDays', { days: log.days })",
     expected: 'Ein Satz, den jede Sprache selbst schneidet — 0.25.4'
   },
 
@@ -7814,8 +7814,8 @@ const REGRESSIONS = [
        `gap: 7px` setzt sich zwischen sie: „Mit Fotos (~ 301,5 KB )". */
     nr: '799', name: 'Der Ausfuhrknopf traegt wieder drei Flexkinder',
     file: 'public/app.js',
-    search: '<button class="btn btn-accent btn-sm" id="ex-yes"><span>${tH(\'card.withPhotos\')}<span id="ex-gr-yes">…</span>)</span></button>',
-    replacement: '<button class="btn btn-accent btn-sm" id="ex-yes">${tH(\'card.withPhotos\')}<span id="ex-gr-yes">…</span>)</button>',
+    search: '<button class="btn btn-accent btn-sm" id="ex-yes"><span>${tMarks(\'card.withPhotos\',\n            { word: \'<span id="ex-gr-yes">…</span>\' })}</span></button>',
+    replacement: '<button class="btn btn-accent btn-sm" id="ex-yes">${tMarks(\'card.withPhotos\',\n            { word: \'<span id="ex-gr-yes">…</span>\' })}</button>',
     expected: 'Die kleinen Fehler fallen — 0.26.0'
   },
   {
@@ -7823,7 +7823,7 @@ const REGRESSIONS = [
        der Bezeichner erwischt hat. Am Knopf steht dann „mit Fotos 301,5 KB )". */
     nr: '800', name: 'Der Satz am Ausfuhrknopf macht seine Klammer nicht mehr auf',
     file: 'public/languages/de.json',
-    search: '"card.withPhotos": "Mit Fotos (~",',
+    search: "\"card.withPhotos\": \"Mit Fotos (~{word})\",",
     replacement: '"card.withPhotos": "mit Fotos",',
     expected: 'Die kleinen Fehler fallen — 0.26.0'
   },
@@ -8069,8 +8069,8 @@ const REGRESSIONS = [
        und blieb STUMM, weil ihn keine Zusage las. */
     nr: '821', name: 'Die Karte nennt die Auflage nicht mehr',
     file: 'public/languages/de.json',
-    search: "Verlustbehaftete Kompression spart bei Fotos rund zwei Drittel",
-    replacement: "Verlustbehaftete Kompression spart überall rund zwei Drittel",
+    search: "Verlustbehaftet: bei Fotos rund zwei Drittel kleiner",
+    replacement: "Verlustbehaftet: überall rund zwei Drittel kleiner",
     expected: 'Die Bildablage in der Oberflaeche'
   },
   {
@@ -9539,8 +9539,8 @@ const REGRESSIONS = [
        Du" nennt. Drei Anreden fallen mit EINEM Satz. */
     nr: '963', name: 'Ein Satz verliert seine Anrede und wird zum Infinitiv',
     file: 'public/languages/de.json',
-    search: "  \"card.languageHint\": \"Sprache der Oberfläche, der Meldungen und deiner Mails.\\n          Wirkt sofort und gilt auf jedem Gerät, an dem du dich anmeldest.\",",
-    replacement: "  \"card.languageHint\": \"Sprache der Oberfläche, der Meldungen und der Mails.\\n          Wirkt sofort und gilt auf jedem angemeldeten Gerät.\",",
+    search: "  \"card.languageHint\": \"Sprache der Oberfläche, der Meldungen und deiner Mails. Wirkt sofort und gilt auf jedem Gerät, an dem du dich anmeldest.\",",
+    replacement: "  \"card.languageHint\": \"Sprache der Oberfläche, der Meldungen und der Mails. Wirkt sofort und gilt auf jedem angemeldeten Gerät.\",",
     expected: 'Die Sprachdateien werden gegengelesen — 0.31.0'
   },
 

@@ -110,7 +110,7 @@ Zeile ändern, und dann fällt es auf.*
 | **BA 3** | **Die Bruchstücke ohne Auszeichnung** | **Satzzeichenanfänge, Füllwörter, offene Klammern** |
 | **BA 4** | **Die beiden Schlüssel ohne Leser** | `entry.reportKind`, `dialog.sessionExpired` |
 | **BA 5** | **Stolperstein 47** an vier Stellen | die vier Größen, die vierzehn Vorgabewörter, der Grabstein, die Exportgrenze |
-| **BA 6** | **Die drei Befunde vom Augenschein und fünf Beschriftungen** | die einzigen Stellen, an denen sich TEXT ändert |
+| **BA 6** | **Die drei Befunde vom Augenschein und fünf Beschriftungen** | *hier ändert sich TEXT, und zwar gewollt — der Auftrag nennt BA 6 die einzige solche Stelle; BA 5 und BA 7 sind beim Bauen dazugekommen und stehen in der Wortlautprobe* |
 | **BA 7** | **Der Erklärbärsaft** | vier Karten, `card.resetMailHint` von 277 auf 199 Zeichen |
 | **BA 8** | **Der Weißraum** | 92 Schlüssel verlieren die Einrückung des Quelltexts |
 
@@ -220,7 +220,7 @@ aus — und darum stehen zwei Zahlen da statt einer geschönten.*
 
 ## Was beim Bauen schiefgegangen ist
 
-**VIER FEHLER, UND JEDER IST VON EINER WACHE GEFANGEN WORDEN, BEVOR IHN JEMAND
+**SECHS FEHLER, UND JEDER IST VON EINER WACHE GEFANGEN WORDEN, BEVOR IHN JEMAND
 GESEHEN HAT.** *Sie stehen hier, weil sie beim nächsten Mal wieder passieren.*
 
 | | was | wer es gefangen hat |
@@ -229,7 +229,17 @@ GESEHEN HAT.** *Sie stehen hier, weil sie beim nächsten Mal wieder passieren.*
 | **2** | **EIN NAMENSZUSAMMENSTOSS LÖSCHTE EINEN DIALOGTEXT.** *Der verschmolzenen Zustandszeile gab ich den Namen `card.twoFactorOffHint` — und den trug schon der Bestätigungsdialog* | **die Gleichlautprobe.** *Seither gilt: ein neuer Name darf nur dann schon dastehen, wenn er EINE DER BEIDEN HÄLFTEN ist* |
 | **3** | **`tMark()` REICHTE SEINE WERTE NUR DEM SATZ.** *Am Bildschirm stand „nach **{n}** Tagen"* | **der Prüfstand, im ersten Lauf.** *Die Gleichlautprobe war blind dafür — sie bildet das GEMEINTE nach* |
 | **4** | **ZWEIMAL HABE ICH DIE HAUSREGELN SELBST GEBROCHEN:** *deutsche Bezeichner in `tMarks()` (`marken/namen/satz/stuecke`) und das verbotene Wort „tragen" in `card.nameFreedHint`* | **der Englischwächter und der Sprachwächter** *(Auflage 3)* |
-| **5** | **STOLPERSTEIN 47 RICHTIG GESEHEN, FALSCH GEBAUT.** *Die Schlüsselzahl stand an zwei Stellen; ich habe sie zu EINER Konstante zusammengezogen — und sie in die eine der beiden Gruppen gelegt.* **`check0311()` ist eine eigene Funktion: der ganze Lauf riss mit „LANG_KEY_COUNT is not defined" ab**, und ein abgerissener Lauf belegt nichts *(Stolpersteine 138, 161 und 170)* | **vier Gegenproben zugleich**, jede als `ABGERISSEN`. *Genau dafür ist diese Meldung da — sie unterscheidet „die Zusage hat gehalten" von „es hat gar nichts stattgefunden"* |
+| **5** | **EIN PLATZHALTER STAND AM BILDSCHIRM.** *`list.commentCount` bekam mit dem Verschmelzen einen Platz `{of}` für sein „, davon …" — und die Glocke in der Kopfzeile ruft denselben Schlüssel ein zweites Mal, ohne etwas davon zu sagen.* **Dort stand danach „3 Kommentare{of}"** — *genau der sichtbarste Fehler, den eine Sprachdatei machen kann, und er ist mir beim Verschmelzen entgangen, weil ich nur den einen Ruf gelesen habe* | **der Prüfstand**, vierfach: die Glockentafel prüft Ein- und Mehrzahl an zwei Stellen |
+| **6** | **STOLPERSTEIN 47 RICHTIG GESEHEN, FALSCH GEBAUT.** *Die Schlüsselzahl stand an zwei Stellen; ich habe sie zu EINER Konstante zusammengezogen — und sie in die eine der beiden Gruppen gelegt.* **`check0311()` ist eine eigene Funktion: der ganze Lauf riss mit „LANG_KEY_COUNT is not defined" ab**, und ein abgerissener Lauf belegt nichts *(Stolpersteine 138, 161 und 170)* | **vier Gegenproben zugleich**, jede als `ABGERISSEN`. *Genau dafür ist diese Meldung da — sie unterscheidet „die Zusage hat gehalten" von „es hat gar nichts stattgefunden"* |
+
+> **UND ZWEI WACHEN HABEN DAZUGELERNT, weil die Runde ihnen etwas Neues
+> hingestellt hat:** *der Platzhalterwächter las `t()` und `tH()`, aber nicht
+> `tMark()` und `tMarks()` — beide nehmen seit dieser Runde WERTE, und er
+> meldete zehn Plätze als unbedient, die in Wahrheit bedient werden.* **Eine
+> Wache, die falschen Alarm gibt, wird abgeschaltet — und dann fängt sie auch
+> den echten Fall nicht mehr.** *Der zweite war der `{word}`-Wächter: er las
+> `String(wert)` und machte aus einem Mehrzahlpaar „[object Object]"
+> (Stolperstein 81).*
 
 > **UND EINE BERICHTIGUNG MEINER EIGENEN AUSKUNFT AN DEN BETREIBER.** *Ich hatte
 > gesagt, „Note" und „Bewertung" seien dasselbe.* **Das stimmt nicht:
