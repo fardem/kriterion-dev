@@ -28503,6 +28503,12 @@ const DOM_PROVIDER = [
    lassen sich Anzeige und Nichtanzeige an derselben Prueflage belegen. Ein
    Mock mit lauter Einsen naehme genau die Pruefung weg, fuer die er
    gebaut ist (Stolperstein 90). */
+/* DIESELBE ZUORDNUNG WIE `HINTS` IN mail.js, und sie steht hier, weil der
+   Nachbau den Server nicht fragen kann. Die TEXTE stehen nicht hier. */
+const MAIL_HINT_KEYS = { gmail: 'mail.hintGmail', gmx: 'mail.hintGmx', web: 'mail.hintWebDe' };
+const DE_TEXTS = JSON.parse(fs.readFileSync(
+  path.join(__dirname, 'public', 'languages', 'de.json'), 'utf8'));
+
 function buildDom(JSDOM, { withoutLanguage = false, settings = { filters: null }, hash = '', tags = [], overviewItems = null, setup = false, loggedIn = true, users = null, testDays = null, secondEntry = null, criteriaWeights = [1.5, 1, 0.5], ownValues = [3, 3, 3], withoutRating = false,
   /* ZU WELCHEM KASTEN JEDES DER DREI KRITERIEN GEHOERT, seit 0.21.0. Vorgabe
      sind DREI Nachher-Kriterien -- genau die Lage, in der der Bestand nach der
@@ -28729,13 +28735,18 @@ function buildDom(JSDOM, { withoutLanguage = false, settings = { filters: null }
     server: mailStatus.server || '', port: mailStatus.port || 0, secure: mailStatus.secure === true,
     user: mailStatus.user || '', sender: mailStatus.sender || '',
     passwordSet: Boolean(mailStatus.passwordSet),
-    hint: mailStatus.provider === 'gmx'
-      ? 'GMX verlangt, den Versand über fremde Programme im Konto erst freizuschalten.'
-      : mailStatus.provider === 'gmail'
-        ? 'Gmail verlangt Zwei-Faktor und ein App-Passwort — das Kontopasswort wird abgewiesen.'
-        : '',
-    hintAlways: 'Die Absenderadresse muss zum Konto gehören — über GMX lässt sich nicht ' +
-                  'als fremde Adresse senden.',
+    /* DIE DREI HINWEISE KOMMEN AUS DER SPRACHDATEI UND NICHT AUS DIESER
+       ZEILE -- 0.31.1. Bis hierher standen sie hier ABGESCHRIEBEN, und
+       0.31.1 hat zwei davon geaendert: der Dauerhinweis nannte GMX, obwohl er
+       auch dort steht, wo es kein GMX gibt. Die Abschrift waere stehen
+       geblieben und haette eine Oberflaeche nachgestellt, die es nicht mehr
+       gibt -- Stolperstein 47, und ausgerechnet im Pruefstand.
+       DER NACHBAU BLEIBT EIN NACHBAU: er waehlt denselben Schluessel wie
+       HINTS in mail.js, liest aber den Wert. Was der Server TUT, pruefen die
+       Gruppen am laufenden Server; was hier steht, ist der Text dazu. */
+    hint: MAIL_HINT_KEYS[mailStatus.provider]
+      ? DE_TEXTS[MAIL_HINT_KEYS[mailStatus.provider]] : '',
+    hintAlways: DE_TEXTS['mail.hintAlways'],
     providerList: MAIL_PROVIDER_MOCK,
     configured: Boolean(mailStatus.provider && mailStatus.user &&
                           mailStatus.passwordSet && mailStatus.sender),
