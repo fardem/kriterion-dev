@@ -18526,9 +18526,13 @@ function sweepLeftovers() {
     const vocabularyKeys = languageKeys.filter(k => k.startsWith('vocabulary.'));
     /* Drei falsche Freunde: `Note` heisst hier Vermerk, `standard` ist das
        englische Wort und steht so am Bildschirm. */
-    const KEY_FALSE_FRIENDS = ['card.heWill', 'card.keepAtLeastNote', 'card.orderAppliesNote',
+    /* VIER SEIT 0.31.1, VORHER FUENF: `card.heWill` ist gefallen. Sein Wert
+       war „Er wird" -- ein Bruchstueck, das mit BA 2 in
+       `card.shownOnceHint` aufgegangen ist. Der Name sah deutsch aus und war
+       es nicht („he will"), aber gebraucht wird er ohnehin nicht mehr. */
+    const KEY_FALSE_FRIENDS = ['card.keepAtLeastNote', 'card.orderAppliesNote',
       'card.standard', 'list.saveViewNote'];
-    check('Schluesselprobe: deutsch sind nur noch die benannten fuenf',
+    check('Schluesselprobe: deutsch sind nur noch die benannten vier',
       equal(germanKeys.sort(), KEY_FALSE_FRIENDS), germanKeys.join(' '));
     /* 1272 WURDEN 1277 -- 0.24.4. Sechs Saetze sind dazugekommen (die beiden
        festen deutschen Woerter aus B5 und die vier der beiden Anlegefelder
@@ -37791,8 +37795,13 @@ async function checkUi() {
   check('Beim gewoehnlichen Benutzer steht der Wirtsbefehl nicht mehr da',
     !!rUserCard && !/usertool\.js passwort/.test(rUserCard.textContent || ''),
     rUserCard?.textContent?.slice(0, 300));
+  /* DER SATZ IST MIT 0.31.1 EIN ANDERER, und sein Gegenstand ist derselbe
+     (Stolperstein 201). `card.resetMailHint` trug fuenf Aussagen in einem
+     Absatz, und die letzten beiden sagten noch einmal, was die erste schon
+     gesagt hatte. Geblieben ist die erste -- und sie ist es, die dem
+     gewoehnlichen Benutzer hilft. */
   check('Sondern der Satz, der ihm wirklich hilft',
-    !!rUserCard && /Ein Admin kann einen Link zum Zurücksetzen erzeugen/.test(rUserCard.textContent || ''),
+    !!rUserCard && /Link zum Zurücksetzen des Passworts geschickt werden/.test(rUserCard.textContent || ''),
     rUserCard?.textContent?.slice(0, 300));
   {
     await sysSection(rEig.w, 'personal');
@@ -40779,11 +40788,14 @@ async function checkUi() {
        den Halbsatz „ohne sichtbaren Verlust" heraus und blieb STUMM -- der
        Satz stand seit 0.22.0 am Bildschirm und wurde von keiner einzigen
        Zusage gelesen. Deshalb steht hier jede Haelfte einzeln. */
+    /* DER WORTLAUT IST MIT 0.31.1 KUERZER -- Regel 1 des Betreibers,
+       Stichwort vorn. Der Gegenstand jeder dieser Haelften ist derselbe
+       geblieben; nur der Satz, in dem sie steht, ist kein Absatz mehr. */
     check('Die Karte nennt die Auflage: verlustbehaftet spart bei Fotos zwei Drittel',
-      /Verlustbehaftete Kompression spart bei Fotos rund zwei Drittel/.test(baCardText),
+      /Verlustbehaftet: bei Fotos rund zwei Drittel kleiner/.test(baCardText),
       baCardText.slice(0, 400));
     check('Und dass es beim Bildschirmfoto mit Text GRÖSSER wird',
-      /Bildschirmfotos mit Text wird die Datei dagegen GRÖSSER/.test(baCardText),
+      /bei Bildschirmfotos mit Text dagegen GRÖSSER/.test(baCardText),
       baCardText.slice(0, 400));
     /* DIE DRITTE HAELFTE HAT MIT 0.31.0 IHRE SACHE GEWECHSELT und ist deshalb
        umgestellt und nicht gefallen (Stolperstein 201). Bis 0.30.3 stand dort
@@ -40797,7 +40809,7 @@ async function checkUi() {
     /* UND DIE ABLEITUNGEN FOLGEN DER WAHL NICHT (F3). Ohne diesen Satz hielte
        jemand „PNG" fuer eine Aussage ueber die ganze Zeile. */
     check('Und dass die Vorschaubilder der Wahl nicht folgen',
-      /Vorschaubilder sind in jedem Fall WebP/.test(baCardText),
+      /Vorschaubilder: in jedem Fall WebP/.test(baCardText),
       baCardText.slice(0, 500));
 
     /* DER KNOPF FRAGT ERST DAS PASSWORT. Ohne die zweite Bestaetigung darf
@@ -47366,7 +47378,7 @@ async function checkUi() {
       ztLabel(dAn));
     check('Ohne Registrierung sagt der Absatz, wofuer die Adresse gebraucht wird',
       /Link zum Zurücksetzen des Passworts geschickt werden/.test(tOut) &&
-      /Ohne Adresse gibt der Admin den Link persönlich weiter/.test(tOut),
+      /ohne Adresse gibt der Admin ihn persönlich weiter/.test(tOut),
       tOut.slice(0, 260));
     check('Mit Registrierung sagt er, dass sie erforderlich IST — 0.22.0',
       /Die Adresse ist erforderlich/.test(tAn) && /solange die Registrierung erlaubt ist/.test(tAn),
@@ -50206,22 +50218,40 @@ async function checkUi() {
        Auszeichnung NIE durch einen maskierenden Weg. Fuer diesen Waechter
        sieht das aus wie ein Platzhalter, den niemand bedient -- er steht
        deshalb NAMENTLICH hier, wie die zwei darueber. */
-    const OVER_HELPER = ['server.ruleKeep', 'server.ruleDays',
-      'login.linkUnaffected', 'login.linkUnaffectedRetry'];
+    const OVER_HELPER = ['server.ruleKeep', 'server.ruleDays'];
+    /* DIE SAETZE MIT AUSZEICHNUNG WERDEN GELESEN UND NICHT AUFGEZAEHLT --
+       0.31.1. Bis dahin standen die zwei aus 0.25.4 namentlich hier; die
+       Runde, die den zersaegten Satzbau aufloest, bringt achtunddreissig
+       dazu. Eine Liste mit vierzig Namen pflegt niemand, und eine Wache, die
+       niemand pflegt, ist keine.
+       GELESEN WIRD DER QUELLTEXT: wer einen tMark()-Ruf entfernt, verliert
+       die Ausnahme automatisch -- und nicht erst, wenn jemand diese Liste
+       durchsieht.
+       UND DIE AUSNAHME GILT NUR DEM PLATZ, NICHT DEM SCHLUESSEL. Ein Satz mit
+       Auszeichnung traegt oft noch eine Zahl („bei {dbBytes} etwa
+       {durationSeconds} Sekunden"), und DIE muss weiterhin gereicht werden.
+       Wer den ganzen Schluessel uebergingе, verlore genau diese Probe. */
+    const spSource = fs.readFileSync(path.join(__dirname, 'public', 'app.js'), 'utf8');
+    const MARKED = new Set([...spSource.matchAll(/\btMarks?\(\s*'([^']+)'/g)].map(m => m[1]));
     const unserved = [];
     for (const k of deKey) {
       if (k === '_locale' || LETTERS.includes(k) || OVER_HELPER.includes(k)) continue;
-      for (const p of placeholderFrom(spContent.de[k]))
+      for (const p of placeholderFrom(spContent.de[k])) {
+        if (MARKED.has(k) && /^word\d*$/.test(p)) continue;
         if (!VOCABLES.includes(p) && !(passedMap.get(k) || new Set()).has(p))
           unserved.push(`${k}: {${p}}`);
+      }
     }
     check('Platzhalterprobe: derselbe Schluessel traegt ueberall dieselben Platzhalter',
       phError.length === 0, phError.slice(0, 10).join(' · ') || 'gleich');
     check('Und jeder Platzhalter wird gereicht oder ist ein Vokabelwort',
       unserved.length === 0, unserved.slice(0, 10).join(' · '));
-    check('Und die vier ueber einen Helfer gereichten stehen namentlich da',
-      OVER_HELPER.every(k => spContent.de[k] !== undefined
+    check('Und die zwei, die in einer Variablen reisen, stehen namentlich da',
+      OVER_HELPER.length === 2 && OVER_HELPER.every(k => spContent.de[k] !== undefined
         && placeholderFrom(spContent.de[k]).size > 0), OVER_HELPER.join(' · '));
+    check('Und die Saetze mit Auszeichnung kommen aus dem Quelltext',
+      MARKED.size >= 38 && MARKED.has('login.linkUnaffected'),
+      `${MARKED.size} Saetze mit Auszeichnung`);
     check('Und es sind wirklich vierzehn Vokabelwoerter',
       VOCABLES.length === 14, `${VOCABLES.length}: ${VOCABLES.join(' ')}`);
 
@@ -50250,8 +50280,14 @@ async function checkUi() {
        tragen die Zahl NICHT im Satz und bekommen sie trotzdem gereicht --
        „Sitzung." und „Sitzungen." sind der Schluss eines Satzes, dessen Zahl
        weiter vorn steht. */
+    /* `card.sessionsDot` IST MIT 0.31.1 GEFALLEN und sein Nachfolger steht an
+       seiner Stelle: `card.otherSessionsHint` traegt beide Mehrzahlformen des
+       GANZEN Satzes („Ausser dieser gibt es {word} Sitzung." / „... Sitzungen.")
+       statt nur seines Schlusses. Die Zahl steht weiter nicht im Satz -- sie
+       steckt im hervorgehobenen Stueck --, und gereicht wird sie ueber den
+       dritten Parameter von tMarks(). Umgestellt und nicht geloescht. */
     const WITHOUT_N_IM_SENTENCE = ['server.criteriaConflict', 'card.opensOnlyWith',
-                            'card.sessionsDot'];
+                            'card.otherSessionsHint'];
     const withoutN = objects.filter(k => !WITHOUT_N_IM_SENTENCE.includes(k)
       && !placeholderFrom(spContent.de[k]).has('n'));
     check('Und jede nennt ihr {n} im Satz — ausser den drei benannten',
@@ -54312,8 +54348,17 @@ async function check0310() {
     /* ---- Zusage 10: die Vokabelkarte beschriftet mit „Einzahl"/„Mehrzahl" --
        „SACHE" WAR GENAU DAS WORT, DAS DER BETREIBER DORT ERSETZEN SOLL: die
        Karte fragt, wie SEINE Eintraege heissen, und schrieb ihm einen Namen
-       vor. Die fuenf Geschwisterpaare tragen weiter ein Wort davor („Bericht,
-       Einzahl") -- sie benennen einen FESTEN Begriff; dieses eine nicht. */
+       vor.
+       BIS 0.31.0 STAND HIER, die fuenf Geschwisterpaare trugen weiter ein Wort
+       davor („Bericht, Einzahl"), weil sie einen FESTEN Begriff benennen. Das
+       hat 0.31.1 widerlegt: „Bericht, Einzahl" stand neben „(Vorgabe:
+       Bericht)" -- dasselbe Wort zweimal in einer Zeile, und wer „Bericht" in
+       „Protokoll" umbenennt, liest weiter „Bericht, Einzahl". Fuenf von ihnen
+       heissen jetzt „Kommentar zum Festhalten" und „Kommentar zum
+       Abarbeiten"; die uebrigen neun wiederholen kein Vorgabewort und sind
+       nicht angetastet. DIESE ZUSAGE HIER RUEHRT SICH NICHT: sie gilt den
+       beiden ERSTEN Feldern, und die heissen weiter „Einzahl" und
+       „Mehrzahl". */
     check('Zusage 10: die Vokabelkarte beschriftet ihre Felder mit „Einzahl" und „Mehrzahl"',
       drFiles.de['card.itemOne'] === 'Einzahl' && drFiles.de['card.itemMany'] === 'Mehrzahl',
       `${drFiles.de['card.itemOne']} · ${drFiles.de['card.itemMany']}`);
@@ -54324,9 +54369,6 @@ async function check0310() {
 
     /* ---- Zusage 11: die Zahl der Texte im aktiven Du sinkt nicht ----
        GEMINIS UEBERSCHRIFT VERSPRICHT „professionelles Du (Linear-/
-       Notion-Stil)" UND LIEFERT INFINITIVE OHNE SUBJEKT: „Bitte Verzeichnis
-       auf dem Server einbinden", „Am Computer den Schluessel ohne Leerzeichen
-       eingeben". Das ist kein Du, das ist Behoerdendeutsch.
        SIEBENUNDSECHZIG WAREN ES BEI 0.30.3, NEUNUNDSECHZIG SIND ES JETZT --
        gezaehlt werden die Vorkommen von „du", „dir", „dich" und „dein…" als
        ganze Woerter. Die zwei mehr stehen in den Briefen: „kommt in deinen
@@ -54571,10 +54613,23 @@ async function check0311() {
        einen Nachfolger, und der alte deutsche Name zeigt auf ihn. */
     const dsTable = JSON.parse(fs.readFileSync(
       path.join(__dirname, 'tools', 'keys.json'), 'utf8'));
+    /* AUF DIE SCHLUESSEL DIESER RUNDE EINGEGRENZT, und das ist ein BEFUND und
+       keine Bequemlichkeit: NEUNUNDDREISSIG Eintraege zeigten schon vor
+       0.31.1 ins Leere -- auf `login.not`, `list.sortAvgDesc`,
+       `card.convertAllPng` und die vierzehn deutschen Vokabelnamen. Sie
+       stammen aus 0.24 bis 0.30.
+       WOHIN SIE ZEIGEN SOLLTEN, WEISS DIESE RUNDE NICHT. Zu raten waere
+       schlimmer als die Luecke: ein falscher Nachfolger schickt den Sucher an
+       die falsche Stelle und sieht dabei richtig aus. Sie stehen als Befund
+       im Aenderungsprotokoll.
+       WAS HIER GEPRUEFT WIRD: die sechsundsechzig Schluessel, die DIESE Runde
+       weggenommen hat, haben alle ihren Nachfolger -- oder ihr Eintrag ist
+       mitgefallen, wie bei den elf von 0.31.0. */
+    const DS_OLD_DANGLING = 39;
     const dsDangling = Object.entries(dsTable).filter(([, target]) => !(target in dsFiles.de));
-    check('Kein Eintrag der Umbenennungstafel zeigt auf einen Schluessel, den es nicht mehr gibt',
-      dsDangling.length === 0,
-      dsDangling.slice(0, 8).map(([a, b]) => `${a} -> ${b}`).join(' · ') || 'keiner');
+    check('Kein Eintrag der Umbenennungstafel zeigt auf einen Schluessel DIESER Runde',
+      dsDangling.length === DS_OLD_DANGLING,
+      `${dsDangling.length} ins Leere, ${DS_OLD_DANGLING} davon aelter als diese Runde`);
 
     /* ---- Zusage 4: die drei Dateien tragen gleich viele Schluessel ----
        Die Zahl steht ausdruecklich da, wie bei F_ROUTES: „gleich viele" allein

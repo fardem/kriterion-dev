@@ -1151,7 +1151,7 @@
   "login.recoveryCode": "Wiederherstellungscode",
   "login.repeatPassword": "Passwort wiederholen",
   "login.requestAccess": "Zugang beantragen",
-  "login.requestAccessHint": "Zugang beantragen. Du bestätigst per Mail, danach entscheidet ein Admin.",
+  "login.requestAccessHint": "Zugang beantragen. Du bestätigst deine Adresse per Mail, danach entscheidet ein Admin.",
   "login.requestConfirmedHint": "{word} Die Anfrage liegt jetzt beim Admin. Wird sie freigeschaltet, bekommst du eine zweite E-Mail mit dem Link, über den du dein Passwort setzt.",
   "login.requestFailed": "Die Anfrage konnte gerade nicht gestellt werden.",
   "login.required": "Bitte anmelden, um fortzufahren.",
