@@ -62,6 +62,33 @@ Schemaanteil.**
 | **F18** | **„Zugang" oder „Account"?** | **Zugang.** *Es steht an 30 Stellen so, und zwei Zeilen über dem Satz schon einmal* |
 | **F19** | **Anführungszeichen?** | **Durchgehend „…".** *Gemini hat recht: **34 Texte** öffnen mit `„` und schließen mit einem geraden `"`* |
 | **F20** | **Was kostet die Runde am Prüfstand?** | **Gemessen: der Prüfstand nennt diese Schlüssel 48-mal, die Gegenproben 20-mal.** *Jede Textänderung zieht eine Zusage nach (Stolperstein 201: umstellen, nicht löschen)* |
+| **F21** | **Alle drei Sprachen in EINER Runde?** | **Nein — DREI Runden.** *0.31.0 deutsch, **0.31.1** englisch, **0.31.2** türkisch. Jede mit eigenem Augenschein, eigenem Fingerprint und eigenen Gegenproben; der Betreiber kann Deutsch einspielen und im Feld ansehen, bevor Englisch folgt* |
+| **F22** | **Woraus übersetzen die beiden nächsten Runden?** | **Aus der ABSICHT, nicht aus dem deutschen Satz.** *Das Änderungsprotokoll 0.31.0 trägt für jeden Text, bei dem wörtliches Übersetzen schiefgeht, eine Zeile „was der Satz leisten muss" — geschätzt 15 bis 20 der rund 60* |
+
+---
+
+## Der Befund, der die beiden Folgerunden begründet
+
+**ENGLISCH UND TÜRKISCH SIND WORT FÜR WORT AUS DEM DEUTSCHEN ENTSTANDEN —
+samt seiner Bilder.** *Nachgesehen am 13. September 2026:*
+
+| Schlüssel | was dort heute steht |
+|---|---|
+| `list.pillHint` **tr** | „Üç **haptan** birine tıklamak …" — **„hap" ist die Tablette** |
+| `card.exportPartsHint` **en** | „… {n} files that **leaves the house** — …" |
+| `card.exportPartsHint` **tr** | „… **evden çıkan** {n} dosyaya …" *(„aus dem Haus gehend")* |
+| `card.likeDevice` **tr** | „Cihaz gibi" — *„wie das Gerät", wörtlich* |
+| `list.hitPlace` **tr** | „Bulunan yer" *(„gefundener Ort")* — **auf Englisch steht sauber „Match"** |
+| `card.itemOne` **tr** | „Şey, tekil" — *„Şey" ist eher „Dingsda" als „Sache"* |
+
+> **DIE DEUTSCHE RUNDE TROCKNET DIE QUELLE AUS.** *Sobald „das Haus" und
+> „Pille" aus `de.json` verschwunden sind, kann keine Übersetzung sie mehr
+> erben.* **Das ist der Grund, warum Deutsch zuerst kommt und nicht alle drei
+> zugleich** *(F21)*.
+>
+> **UND EINE FALLE, DIE ES AUF DEUTSCH NICHT GIBT:** *Türkisch kennt **eine**
+> Mehrzahlform. Wo ein Text ein `{one, other}`-Paar trägt, stehen dort heute
+> zwei gleiche Sätze — richtig, aber jede Änderung muss beide treffen.*
 
 ---
 
@@ -201,7 +228,8 @@ mein Vorschlag, **G+C** = Geminis Kürzung mit unserem Wort.*
 | **BA 3** | **Die Anführungszeichen** — 34 Texte, und ein Wächter darüber |
 | **BA 4** | **Der Prüfstand** — die umgestellten Zusagen und die neuen |
 | **BA 5** | **Die Gegenproben** |
-| **BA 6** | **Papiere, Augenschein, Fingerprint** *(als letztes gerechnet)* |
+| **BA 6** | **Die Absichtszeilen** — für jeden Text, bei dem wörtliches Übersetzen schiefgeht, eine Zeile ins Änderungsprotokoll |
+| **BA 7** | **Papiere, Augenschein, Fingerprint** *(als letztes gerechnet)* |
 
 ---
 
@@ -227,6 +255,6 @@ mein Vorschlag, **G+C** = Geminis Kürzung mit unserem Wort.*
 
 | | |
 |---|---|
-| **`en.json` und `tr.json` bekommen keine neuen Texte** | *nur die elf Streichungen. Die Übersetzung der geschärften Sätze ist eine eigene Runde* |
+| **`en.json` und `tr.json` bekommen keine neuen Texte** | *nur die elf Streichungen. Die Übersetzung ist **0.31.1** (englisch) und **0.31.2** (türkisch)* |
 | **Kein Schemaanteil** | *Austauschformat bleibt 16, `F_ROUTES` bleibt 73* |
 | **Keine Oberfläche wird umgebaut** | *diese Runde fasst Wörter an, keine Anordnung* |
