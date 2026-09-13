@@ -54072,6 +54072,30 @@ async function check0310() {
     const drMissing = DR_IN_SCRIPT.filter(v => !drApp.includes(`'${v}'`));
     check('Zusage 2: jeder der acht Werte steht als fester Wert in app.js',
       drMissing.length === 0, drMissing.join(' · ') || 'alle acht');
+    /* UND JEDER RUF TRAEGT IHN -- nicht bloss die Datei irgendwo.
+       DAS IST EIN FUND DER GEGENPROBE 953 UND KEINE Vorsicht: der Rueckbau nahm
+       EINEM `window.open` sein `noopener,noreferrer` weg und blieb STUMM. Der
+       Wert steht dreimal in app.js; eine Zusage, die nur fragt „kommt er vor",
+       ist mit zwei verbleibenden Vorkommen weiterhin gruen -- und der dritte
+       Tab bekaeme Zugriff auf das oeffnende Fenster, ohne dass etwas rot wird.
+       GELESEN WIRD DER RUMPF DES AUFRUFS, mit gezaehlten Klammern: das erste
+       Argument ist selbst ein Ruf (`searchAddress(...)`), und ein Muster bis
+       zur ersten schliessenden Klammer schnitte mitten hinein. */
+    const drOpenCalls = [];
+    for (const m of drApp.matchAll(/window\.open\(/g)) {
+      let i = m.index + m[0].length, depth = 1;
+      while (i < drApp.length && depth > 0) {
+        const c = drApp[i];
+        if (c === '(') depth++; else if (c === ')') depth--;
+        i++;
+      }
+      drOpenCalls.push(drApp.slice(m.index, i));
+    }
+    const drOpenBare = drOpenCalls.filter(z =>
+      !z.includes("'_blank'") || !z.includes("'noopener,noreferrer'"));
+    check('Und JEDER `window.open` traegt beide Werte — alle drei',
+      drOpenCalls.length === 3 && drOpenBare.length === 0,
+      `${drOpenCalls.length} Rufe · ohne: ${drOpenBare.map(z => z.slice(0, 70)).join(' | ') || 'keiner'}`);
     check('Und die Adresse des Teilexports ebenso — mit ihrem alten Gerippe',
       drSkeleton(drApp).includes(drSkeleton('&from={from}&to={to}&part={part}&parts={n}')),
       (drApp.match(/`&from=[^`]*`/) || ['(nicht gefunden)'])[0]);

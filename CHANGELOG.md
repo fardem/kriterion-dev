@@ -37,13 +37,14 @@ bleiben in der Form ihrer Zeit.*
 ### Geändert
 
 - **Die deutschen Texte sind gegengelesen** — rund sechzig Sätze sind kürzer und genauer: „konvertieren" statt „umstellen", „Suchtreffer" statt „Fundstelle", „Video-Vorschaubild" statt „Standbild", „Auto" statt „Wie das Gerät".
-- **Die Fehlermeldungen sagen den Grund knapp und den Ausweg immer** — etwa beim zu großen Export, beim fehlenden Sicherungsordner und bei der Sicherung, die gerade schon läuft.
+- **Die Fehlermeldungen sagen den Grund knapp und den Ausweg immer** — etwa beim zu großen Export, beim fehlenden Sicherungsordner und bei der Sicherung, die in derselben Sekunde schon angelegt wurde.
 - **Die Häkchen für Kategorien und Tags erklären sich vom gesetzten Haken her** — „Mit Häkchen legt jeder neue Kategorien an; ohne Häkchen nur Admins."
 - **Vierunddreißig Texte schlossen ihr Anführungszeichen mit einem geraden `"`** — jetzt durchgehend `„…“`, auf Deutsch und auf Türkisch.
 
 ### Behoben
 
 - **Die Absage an einen unvollständigen Teilexport nannte die falschen Angaben** — sie hieß „braucht von, bis, teil und teile", die Route erwartet seit 0.24.3 `from`, `to`, `part` und `parts`.
+- **Der Hinweis zur eigenen Sprachdatei sagte nicht, dass ein Neustart nötig ist** — jetzt: „legt, hat nach einem Neustart eine Sprache mehr — ohne eine Zeile Programm".
 
 ### Intern
 

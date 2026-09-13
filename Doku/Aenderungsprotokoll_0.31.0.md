@@ -3,13 +3,13 @@
 **Auftrag 0.31.0 · 13. September 2026 · gebaut auf 0.30.3 · MINOR, kein
 Schemaanteil.**
 
-> **FINGERPRINT DIESER RUNDE: `PLATZHALTER`** — gerechnet am gebauten Stand,
+> **FINGERPRINT DIESER RUNDE: `7f4297ff`** — gerechnet am gebauten Stand,
 > **als letztes und hinter der letzten Zeile**.
 >
 > | Quelle | Wert |
 > |---|---|
-> | **Am Arbeitsbaum nachgerechnet** *(achtzehn Dateien)* | **`PLATZHALTER`** |
-> | **Aus dem Server selbst gelesen** *(frisches Datenverzeichnis, `/api/stats`)* | **`PLATZHALTER`** |
+> | **Am Arbeitsbaum nachgerechnet** *(achtzehn Dateien)* | **`7f4297ff`** |
+> | **Aus dem Server selbst gelesen** *(frisches Datenverzeichnis, `/api/stats`)* | **`7f4297ff`** |
 > | **Aus der laufenden Installation gemeldet** | *steht aus* |
 >
 > **ZWEI QUELLEN, EIN WERT.** *Die dritte kommt aus dem Feld, sobald der
@@ -25,10 +25,12 @@ bitte zeile für zeile durch. und sag mir was davon von google gemini falsch ist
 und wir nicht übernehmen sollten."*
 
 **EINUNDSIEBZIG VORSCHLÄGE, JEDER GEGEN DEN QUELLTEXT GEPRÜFT.** *Alle genannten
-Schlüssel gibt es, kein Zitat ist falsch — das ist die gute Nachricht.* **Was
-nicht übernommen wird, steht im Auftrag mit Grund, und jede Ablehnung ist vom
-Betreiber bestätigt.** *Die vier, die am meisten kosteten, wenn sie
-durchgegangen wären:*
+Schlüssel gibt es, und kein ZITAT des Bestands ist falsch — das ist die gute
+Nachricht.* **Falsch sind einzelne VORSCHLÄGE, und zwar sachlich: sie behaupten
+über die Instanz etwas, was nicht stimmt.** *Was nicht übernommen wird, steht im
+Auftrag mit Grund, und jede dortige Ablehnung ist vom Betreiber bestätigt — die
+fünfte unten ist beim Bauen dazugekommen.* **Die fünf, die am meisten kosteten,
+wenn sie durchgegangen wären:**
 
 | Vorschlag | warum nicht |
 |---|---|
@@ -36,6 +38,7 @@ durchgegangen wären:*
 | `login.linkUnaffectedWord` **„nicht" → „unberührt"** | **Das Wort steht HERVORGEHOBEN in zwei Trägersätzen**, und die Hervorhebung sitzt auf der Verneinung. *Mit „unberührt" stünde dort „Dein Link ist davon unberührt betroffen." Gemini nennt nur einen der beiden Sätze* |
 | `card.derivativesWebp` **„niemand archiviert sie"** | **Falsch.** *Die Vorschaubilder liegen als BLOB in der Datenbank, und die Sicherung nimmt sie mit. Richtig ist: sie lassen sich jederzeit neu erzeugen* |
 | `card.catchUpAsk` **„Erfordert vorherige Sicherung"** | **Eine Sicherung wird nicht VERLANGT.** *Sie fehlt nur, wenn man zurück will — „Rückgängig nur mit einer vorher angelegten Sicherung" sagt dasselbe und behauptet nichts* |
+| `card.languagesFileAfter` **„ohne Neustart"** | **Falsch, und erst beim Bauen gefunden** *(Befund 4)*. *`readLanguages()` läuft genau einmal, beim Laden des Moduls — am laufenden Server nachgestellt: die vierte Sprachdatei ist erst nach einem Neustart da. Der Auftrag hatte den Vorschlag übernommen* |
 
 > **UND EINE BERICHTIGUNG MEINER EIGENEN LINIE.** *Der Betreiber, 13. September
 > 2026: „ich kenne keinen Deutschen IT'er der statt konvertieren umstellen
@@ -122,7 +125,8 @@ das schließende `“`, und ein Wächter hält es fest.**
 
 ## Die Befunde der Runde — was der Auftrag nicht kannte
 
-**ZEHN TEXTE SIND GEÄNDERT, DIE IN KEINER TAFEL STEHEN.** *Keiner davon ist eine
+**ZWÖLF BEFUNDE — zehn Texte, die in keiner Tafel stehen, und zwei, an denen
+die Tafel selbst berichtigt ist.** *Keiner davon ist eine
 eigene Entscheidung: jeder ist von einer Entscheidung des Auftrags erzwungen,
 und die Spalte „gezogen von" nennt sie.* **Das Muster ist dasselbe wie bei
 `card.withPhotos` in 0.26.0 — der Auftrag kannte ihn nicht, er ist beim Bauen
@@ -152,6 +156,28 @@ fällt auf".* **Geändert ist das eine Wort und nichts sonst:**
 |---|---|---|
 | `card.backupDirAdvice` | *„sonst **trifft** ein Fehler am Projektordner…"* | *„sonst **zerstört** ein Fehler am Projektordner…"* |
 | `card.backupUnopenableHint` | *„beides darf nicht am selben Ort **liegen**."* | *„beides darf nicht am selben Ort **aufbewahrt werden**."* |
+
+### Zwei, weil der Auftrag sonst eine Unwahrheit gebaut hätte
+
+**BEIDE STEHEN IN DER WORTTAFEL, UND BEIDE SIND NACHGESTELLT WORDEN.** *Die
+Leitplanke L8 sagt: kein erfundener Grund. Sie gilt auch für einen Grund, den
+der Auftrag selbst mitgebracht hat.*
+
+| Schlüssel | Auftrag | gebaut | nachgestellt |
+|---|---|---|---|
+| `card.languagesFileAfter` | *„legt, hat eine Sprache mehr — **ohne Neustart**."* | *„legt, hat **nach einem Neustart** eine Sprache mehr — **ohne eine Zeile Programm**."* | **Am laufenden Server:** *eine vierte Sprachdatei nach `public/languages/` gelegt — der laufende Server kennt sie nicht (`de en tr`), nach einem Neustart kennt er sie (`de en fr tr`).* **`readLanguages()` läuft genau einmal, beim Laden des Moduls** *(`server.js:161`)* |
+| `server.backupConcurrent` | *„Dort **wird** gerade schon eine Sicherung angelegt"* | *„Dort **wurde** gerade schon eine Sicherung angelegt"* | **Am Quelltext:** *der 409 fällt, weil die ZIELDATEI schon da ist* (`server.js:8274`) — *ihr Name trägt Datum und Uhrzeit auf die Sekunde.* **Es läuft nichts; es wurde gerade eine angelegt** |
+
+> **DAS ALTE WORT WAR NICHT BESSER, NUR ANDERS FALSCH.** *„ohne Neubau" meinte:
+> am PROGRAMM ist nichts zu tun — das ist die Zusage aus 0.24.3 und sie stimmt.
+> Gemini hat daraus eine Aussage über den BETRIEB gemacht.* **Der gebaute Satz
+> sagt beides: dass ein Neustart nötig ist, und dass am Programm nichts zu tun
+> bleibt.**
+>
+> **UND DIE README SAGTE ES DIE GANZE ZEIT RICHTIG:** *„Wer eine vierte
+> hineinlegt und **den Container neu startet**, hat eine vierte Sprache."* — der
+> Abschnitt „Eine eigene Sprache dazulegen". **Der Vorschlag widersprach damit
+> nicht nur dem Quelltext, sondern auch dem eigenen Handbuch.**
 
 ### Und einer, der seit 0.24.3 falsch dastand
 
@@ -184,6 +210,8 @@ Route von Hand ruft, wurde damit in die Irre geschickt.**
 > `de.json` verschwunden sind, kann keine Übersetzung sie mehr erben.* **Was
 > unten steht, ist der zweite Teil: für jeden Satz, bei dem wörtliches
 > Übersetzen schiefgeht, eine Zeile, WAS er leisten muss.**
+>
+> **VIERUNDZWANZIG ZEILEN über neunundzwanzig Schlüssel**, in vier Gruppen: *Wörter, die wörtlich falsch werden; Sätze, deren BAU die Übersetzung tragen muss (Fortsetzungen, angehängte Teilsätze, ein Doppelpunkt am Ende); Meldungen, deren Zweck der AUSWEG ist; und die Briefe.* **Der Auftrag hatte fünfzehn bis zwanzig geschätzt** *(F22)*.
 
 ### A · Wörter, die wörtlich falsch werden
 
@@ -204,7 +232,7 @@ Route von Hand ruft, wurde damit in die Irre geschickt.**
 | `card.nothingToDo` | „, {stayed} bereits aktuell" | **EIN ANGEHÄNGTER TEILSATZ**, kein eigener. *Er schließt an „…, 9 Vorschaubilder neu generiert" an und muss dort grammatisch passen — mit Komma vorn und ohne eigenen Punkt* |
 | `card.autoDeleteHint` | „automatisch gelöscht; von Hand geht es nicht." | **DIE FORTSETZUNG EINES SATZES**, der mit „Die Zeilen werden nach {n} Tagen" beginnt und dessen Zahl fett dazwischensteht. *Die Übersetzung muss an genau dieser Bruchstelle andocken; im Türkischen steht das Verb am Ende, und der Bruch liegt damit woanders* |
 | `card.backupUnopenableHint` | „lässt sie sich nicht öffnen — beides darf nicht am selben Ort aufbewahrt werden." | **Ebenso eine Fortsetzung** — vor ihr stehen „Die Sicherung ist verschlüsselt." und „Ohne den Schlüssel aus `.env`" |
-| `card.languagesFileAfter` | „legt, hat eine Sprache mehr — ohne Neustart. …" | **Ebenso** — vor ihr stehen `card.languagesFileBefore` und `<code>public/languages/</code>`. *Der Satz beginnt mitten im Nebensatz („Wer eine Datei nach … legt")* |
+| `card.languagesFileAfter` | „legt, hat nach einem Neustart eine Sprache mehr — ohne eine Zeile Programm. …" | **Ebenso eine Fortsetzung** — vor ihr stehen `card.languagesFileBefore` und `<code>public/languages/</code>`; der Satz beginnt mitten im Nebensatz („Wer eine weitere nach … legt"). **UND ER MACHT ZWEI AUSSAGEN, DIE BEIDE STEHEN BLEIBEN MÜSSEN:** *ein Neustart ist nötig, am Programm ist nichts zu tun.* *Geminis Fassung hatte die erste ins Gegenteil verkehrt* |
 | `card.backupDirAdvice` | „… Einstellung:" | **Der Satz ENDET auf einen Doppelpunkt**, und dahinter setzt der Quelltext `<code>docker-compose.yml</code>`. *Er darf nicht mit einem Punkt schließen* |
 | `card.catchUpBoth` | „Konvertiert {n} PNG-Originale und generiert veraltete JPEG-Vorschaubilder neu." | **Was der KNOPF darüber tut**, in der dritten Person. *Zwei Tätigkeiten in einem Satz: Originale konvertieren, veraltete Vorschaubilder neu generieren.* **Türkisch stellt das Verb ans Ende — aus einem Satz mit zwei Verben werden dort leicht zwei Sätze, und das ist in Ordnung, solange beide Hälften dastehen** |
 | `server.partExportIncomplete` | „Ein Teilexport braucht from, to, part und parts." | **Die vier Namen sind ABFRAGEANGABEN und werden NICHT übersetzt.** *Sie heißen im Server so, und der Satz ist genau dafür da, sie zu nennen* |
@@ -238,12 +266,13 @@ Route von Hand ruft, wurde damit in die Irre geschickt.**
 ## Der Prüfstand
 
 **ELF ZUSAGEN IN EINER NEUEN GRUPPE** — *„Die Sprachdateien werden gegengelesen
-— 0.31.0", vierundzwanzig Prüfungen.*
+— 0.31.0", fünfundzwanzig Prüfungen.* **Der Lauf steht damit bei 6849 von 6849 in
+346 Gruppen** *(0.30.3: 6823 in 345)*.
 
 | | Zusage | wie sie gehalten wird |
 |---|---|---|
 | **1** | Keine der elf Konstanten steht mehr in einer Sprachdatei | *alle drei Dateien werden gefragt* |
-| **2** | Und jede steht als fester Wert im Skript — mit ihrem alten Inhalt | *acht als Literal in `app.js`, die Teilexportadresse über ihr Gerippe, die beiden Abstände als Regel im Stilblatt; dazu: kein Ruf sucht sie noch — auch nicht in `tools/keys.json`* |
+| **2** | Und jede steht als fester Wert im Skript — mit ihrem alten Inhalt | *acht als Literal in `app.js`, die Teilexportadresse über ihr Gerippe, die beiden Abstände als Regel im Stilblatt; dazu: **jeder der drei `window.open` trägt beide Werte** (der Fund der Gegenprobe 953), und kein Ruf sucht die elf noch — auch nicht in `tools/keys.json`* |
 | **3** | Die drei Dateien tragen gleich viele Schlüssel — 1254 | *die Zahl steht ausdrücklich da* |
 | **4** | Kein Text der drei Dateien mischt `„` mit `"` | *und dreißig deutsche Texte tragen das Paar wirklich* |
 | **5** | Die vier Video-Meldungen sagen „Video-Vorschaubild" | *beide Richtungen: das neue Wort steht da, das alte nirgends mehr* |
@@ -301,6 +330,23 @@ der nicht sagt, welche von beiden ihn gefangen hat.*
 | **962** | Die Vokabelkarte schreibt wieder „Sache" vor |
 | **963** | Ein Satz verliert seine Anrede und wird zum Infinitiv |
 
+### Und einer war STUMM — der sechste Befund der Runde
+
+> **953 HAT EINE LÜCKE IN MEINER EIGENEN ZUSAGE GEFUNDEN.** *Der Rückbau nimmt
+> EINEM `window.open` sein `noopener,noreferrer` weg — und keine einzige
+> Prüfung wurde rot.*
+>
+> **DER GRUND:** *Zusage 2 fragte „steht der Wert in `app.js`?", und der Wert
+> steht dort **dreimal**. Zwei verbleibende Vorkommen halten die Zeile grün,
+> während der dritte Tab Zugriff auf das öffnende Fenster bekäme* — **und zwar
+> still: ein `window.open` ohne `noopener` meldet nichts.**
+>
+> **DIE ZUSAGE IST DARAUFHIN GESCHÄRFT:** *sie liest jetzt jeden `window.open`
+> einzeln — mit gezählten Klammern, weil das erste Argument selbst ein Ruf ist
+> (`searchAddress(…)`) — und verlangt beide Werte an allen dreien.* **Das ist
+> genau der Zweck der Gegenproben: eine Prüfung, die grün ist, belegt nichts,
+> solange niemand gezeigt hat, dass sie auch rot werden kann.**
+
 **FÜNF VORHANDENE SIND NACHGEZOGEN und nicht ersetzt worden** *(66, 472, 485,
 821, 825)*: *ihre Suchtexte standen nach dieser Runde nicht mehr da — vier, weil
 der Satz ein anderer ist, und 825, weil der Abstand jetzt aus einer Klasse
@@ -313,7 +359,7 @@ kommt.* **Ein Rückbau, dessen Suchtext fehlt, ist ein Fund über die LISTE.**
 **Gefahren am 13. September 2026 am laufenden Server**, in echtem Chromium
 *(141.0.7390.37, 390 × 844, `deviceScaleFactor: 3`, `isMobile: true`)* — **acht
 Seiten und ein Bestätigungsfenster, alles auf Deutsch, jedes „Mehr"
-aufgeklappt.**
+aufgeklappt — zwanzig neue Sätze gefunden, dreizehn alte nirgends mehr.**
 
 > **ER LIEST DIE SÄTZE VOM BILDSCHIRM UND NICHT AUS DER DATEI.** *Ein Satz, der
 > in `de.json` richtig steht und am Aufrufort nie erscheint, ist für den
@@ -322,7 +368,7 @@ aufgeklappt.**
 > roten Kasten nicht), und ein Eintrag steht im Bestand (sonst gibt es keinen
 > Teilexportplan und damit kein Bestätigungsfenster).*
 
-### Was dasteht — neunzehn von neunzehn
+### Was dasteht — zwanzig von zwanzig
 
 | Ort | was der Bildschirm zeigt |
 |---|---|
@@ -337,12 +383,12 @@ aufgeklappt.**
 | **Sicherheitsprotokoll** | *„Die Zeilen werden nach 180 Tagen automatisch gelöscht; **von Hand geht es nicht**."* |
 | **Kategorien / Tags** | *„**Mit Häkchen legt jeder neue Kategorien an; ohne Häkchen nur Admins.** Vorhandene kann weiterhin jeder auswählen."* — und dasselbe für Tags |
 | **Vokabelkarte** | *„**Einzahl** (Vorgabe: Eintrag)" / „**Mehrzahl** (Vorgabe: Einträge)"* |
-| **Sprachen** | *„… ist die Sprachkennung **nach BCP 47 (z. B. de-DE)**."* |
+| **Sprachen** | *„… legt, hat **nach einem Neustart** eine Sprache mehr — **ohne eine Zeile Programm**. Der vordere Teil des Dateinamens ist die Sprachkennung **nach BCP 47 (z. B. de-DE)**."* |
 | **Teilexport-Fenster** | *„Export bestätigen — **Der Export schreibt den gesamten Bestand in 1 Datei — mit allen Fotos, allen Anhängen und den Namen aller Verfasser.**"* |
 
-### Und was nirgends mehr dasteht — zehn von zehn
+### Und was nirgends mehr dasteht — dreizehn von dreizehn
 
-*„das Haus verlassen" · „Pillen" · „Standbild" · „Fundstelle" · „Wie das Gerät" ·
+*„ohne Neustart." · „wird gerade schon eine Sicherung angelegt" · „von, bis, teil und teile" · „das Haus verlassen" · „Pillen" · „Standbild" · „Fundstelle" · „Wie das Gerät" ·
 „Sache, Einzahl" · „Umstellung läuft" · „nichts wird umkodiert" · „Sicherung
 geschrieben" · „zuletzt gesehen"*
 
@@ -383,5 +429,7 @@ geschrieben" · „zuletzt gesehen"*
 | **`Doku/Aenderungsprotokoll_0.31.0.md`** | dieses Papier, samt den Absichtszeilen für 0.31.1 und 0.31.2 |
 | **`Doku/Projektstand_Kriterion_0_31_0.md`** | `git mv`, **Revision 87** |
 | **`Doku/Fahrplan.md`** | eine Zeile in der Tafel; **die geplanten Runden rücken nicht** |
+| **`README.md`** | vier zitierte Beschriftungen nachgezogen — „Auto", „Vorhandene Bilder konvertieren" (zweimal) und „zuletzt aktiv". *Ein Handbuch, das einen Knopf beim alten Namen nennt, schickt den Leser suchen* |
+| **`Doku/Fehler_und_Ideen.md`** | Punkt 24 nachgezogen: die deutsche Hälfte ist gebaut, offen bleiben `en.json`, `tr.json` und „Note" bei 1 bis 5 Sternen |
 | **`CHANGELOG.md`** | ein Eintrag 0.31.0 |
 | **`package.json`, `package-lock.json`** | 0.31.0 |

@@ -1747,6 +1747,7 @@ Ursache war **eine Datei zu viel** auf dem Wirt (Stolperstein 158).
 
 | Version | Fingerprint | Prüfungen |
 |---|---|---|
+| **0.31.0** | `7f4297ff` *(gerechnet am 13. September 2026 **als letztes und hinter der letzten Zeile**; aus zwei Quellen bestätigt — am Arbeitsbaum über dieselben achtzehn Dateien nachgerechnet und aus dem Server selbst gelesen, **alle achtzehn Einzelwerte gleich**. Die dritte steht aus. Die Runde fasst `public/app.js`, `public/style.css`, die drei Sprachdateien, `server.js` und `package.json` an)* | 6849 |
 | **0.30.3** | `098e85ca` *(am 13. September 2026 **von der laufenden Installation gemeldet — im Feld bestätigt**, genau der Sollwert; **drei Quellen, ein Wert**. Gerechnet am 12. September 2026 **als letztes und hinter der letzten Zeile**, davor aus zwei Quellen bestätigt — am Arbeitsbaum über dieselben achtzehn Dateien nachgerechnet und aus dem Server selbst gelesen, **alle achtzehn Einzelwerte gleich**. Die dritte steht aus. Die Runde fasst `public/app.js`, `public/style.css` und `package.json` an)* | 6823 |
 | **0.30.2** | `3d03be45` *(gerechnet am 12. September 2026 **als letztes und hinter der letzten Zeile** — die Lehre aus 0.30.1; aus zwei Quellen bestätigt, die dritte steht aus)* | 6801 |
 | **0.30.1** | `194e8984` *(gerechnet am 12. September 2026 am gebauten Stand — **vor dem Einspielen**, aus zwei Quellen bestätigt. **Im Feld läuft `a6726a83`** — derselbe Stand vor der Berichtigung des Kommentarwortlauts; keine ausgeführte Zeile unterscheidet die beiden)* | 6780 |
