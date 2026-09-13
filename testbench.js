@@ -18931,11 +18931,37 @@ function sweepLeftovers() {
        auf Befund 10: „an" und „aus" hat sie auch gefunden -- dafuer gab es
        die Schluessel schon (`card.on`, `card.off`). */
     const WORDING_NEW_0300 = ['entry.weighted', 'card.configured'];
+    /* UND VIERUNDVIERZIG MIT 0.31.1 -- die Runde, die die zersaegten Saetze
+       wieder zusammensetzt. Ein verschmolzener Satz bekommt haeufig einen
+       NEUEN Namen: `card.keyFromSetting` und `card.withoutKeyLost` werden
+       `card.keyFromSettingHint`, und der neue Name nennt den ganzen Satz
+       statt seiner ersten Haelfte. Der Stand von 0681d42 kennt ihn nicht --
+       also steht er hier und wird gar nicht erst verglichen. Sein VORGAENGER
+       steht in WORDING_GONE_TEXT_0311 und wird dort abgezogen. */
+    const WORDING_NEW_0311 = [
+      "card.addressRequiredHint", "card.approveRejectHint",
+      "card.backupDirHint", "card.backupDirOutsideHint",
+      "card.backupWhatHint", "card.criteriaOrderHint",
+      "card.deleteFreesHint", "card.engineCheckboxHint",
+      "card.exportOversizeHint", "card.fileContainsHint", "card.freedBytes",
+      "card.internalTitleHint", "card.keyBesideHint",
+      "card.keyFromSettingHint", "card.keyIntoEnvHint", "card.lessBytes",
+      "card.linkForUser", "card.lockInsteadHint", "card.lockedOutCard",
+      "card.logKeepsHint", "card.mergeExplainHint", "card.moreBytes",
+      "card.onlySessionHint", "card.otherSessionsHint", "card.partOrderHint",
+      "card.potentialStarsHint", "card.publicTitleHint",
+      "card.replaceExplainHint", "card.shownOnceHint", "card.signupHint",
+      "card.stayedCurrent", "card.testMailGoesHint", "card.trashKeepsHint",
+      "card.twoFactorStateOff", "card.twoFactorStateOn", "card.usePartsHint",
+      "card.weightExplainHint", "card.withPhotosPlain",
+      "entry.calcRoundingHint", "entry.calcStepsHint",
+      "list.newCommentsHint", "list.tagModeAnd", "login.linkValidHint",
+      "login.requestConfirmedHint"];
     const WORDING_NEW = [...WORDING_NEW_0243, ...WORDING_NEW_0244,
       ...WORDING_NEW_0245, ...WORDING_NEW_0246, ...WORDING_NEW_0250,
       ...WORDING_NEW_0254, ...WORDING_NEW_0260, ...WORDING_NEW_0270,
       ...WORDING_NEW_0280, ...WORDING_NEW_0281, ...WORDING_NEW_0290,
-      ...WORDING_NEW_0300];
+      ...WORDING_NEW_0300, ...WORDING_NEW_0311];
     const wordingMissing = WORDING_NEW.filter(k => LANGUAGE_FILE[k] === undefined);
     check('Die neuen Schluessel dieser Runde stehen wirklich in der Datei',
       wordingMissing.length === 0, wordingMissing.join(' ') || 'alle da');
@@ -19020,6 +19046,116 @@ function sweepLeftovers() {
     const WORDING_GONE_TEXT_0310 = ['_blank', 'noopener,noreferrer', 'image/',
       '10px', '20px', 'docker-compose.yml', '&files=1', 'photos=1', '&videos=1',
       '?size=thumb', '&von={von}&bis={bis}&teil={nr}&teile={n}'];
+    /* UND ACHTUNDNEUNZIG FALLEN MIT 0.31.1 -- der Preis und der Gewinn
+       derselben Sache. Die Runde setzt zersaegte Saetze zusammen: aus
+       „Der Schluessel kommt aus der Server-Einstellung" + `<code>` +
+       „. " + „— ohne Schluessel sind die Daten verloren." wird EIN Satz mit
+       zwei Plaetzen darin. Die HAELFTEN gibt es danach nicht mehr, und ihr
+       WORTLAUT steht hier -- verglichen werden Saetze und keine Namen.
+       IHR TEXT IST DER VON 0681d42 UND NICHT DER VON GESTERN: die Liste wird
+       vom Stand der Abnahme abgezogen, und dort steht er so. Wo eine spaetere
+       Runde den Satz schon geaendert hatte, steht seine ZWISCHENFASSUNG
+       weiterhin in der Liste jener Runde -- sie faellt aus `onlyNow` heraus,
+       weil es den Schluessel nicht mehr gibt, und das geht auf. */
+    const WORDING_GONE_TEXT_0311 = [
+      "(7 Tage gültig, einmal nutzbar).",
+      "(data/encryption.key). Wer das Verzeichnis kopiert, kann alles lesen.",
+      "), dann der Durchschnitt darüber",
+      ", alle übrigen der Reihe nach mit",
+      ", seit du diese Liste zuletzt geöffnet hast.",
+      ", solange die Registrierung erlaubt ist.",
+      ", stünde hier",
+      ". Antwortet der Mailserver nicht, bricht der Versuch nach {sekunden} Sekunden ab.",
+      ". Das",
+      ". Die Reihenfolge gilt in Detailansicht und Vergleich; die Zahl nennt, an wie vielen {sacheMehrzahl} Sterne vergeben sind.",
+      ". Gelöscht werden nur Sicherungen, die Kriterion selbst angelegt hat.",
+      ". Nur zum Weitergeben einzelner {sacheMehrzahl} genügt der Teil, der sie enthält.",
+      ". Vorher wird nachgefragt und das Passwort verlangt.",
+      "100 MB",
+      "200 MB",
+      "300 MB",
+      "50 MB",
+      ": öffnet sich beim Klick auf die Suchzeile.",
+      "; Daten und Exporte bleiben gleich.",
+      "; jeder Teil ist eine vollständige Exportdatei. Für eine Sicherung ist die Karte",
+      "Außer dieser gibt es",
+      "Das",
+      "Der",
+      "Der Schlüssel kommt aus der Server-Einstellung",
+      "Der Sicherungsordner liegt",
+      "Die Anfrage liegt jetzt beim Admin. Wird sie freigeschaltet, bekommst du eine zweite E-Mail mit dem Link, über den du dein Passwort setzt.",
+      "Die Datei enthält",
+      "Die Testmail geht",
+      "Die Zeilen werden nach",
+      "Dies ist die",
+      "Ein gesperrter Benutzer kann sich nicht anmelden, seine Beiträge bleiben.",
+      "Eine Sitzung läuft nach",
+      "Empfohlen ist ein Ordner außerhalb, am besten auf einer anderen Platte — sonst gehen bei einem Fehler am Projektordner Original und Sicherung zugleich verloren. Einstellung:",
+      "Er wird",
+      "Für echten Schutz",
+      "Gelöschte {sacheMehrzahl} bleiben hier",
+      "Gerundet wird nur das Endergebnis.",
+      "Häkchen: steht zur Auswahl.",
+      "Inhalte, {bewertungMehrzahl}, IP-Adresse, Browser.",
+      "Kommt niemand mehr herein, kann der",
+      "Neue Kommentare und {bewertungMehrzahl}",
+      "Nutze",
+      "Ohne Mailzugang zeigt Kriterion Einladungslinks und Links zum Zurücksetzen zum Kopieren an; mit Mailzugang werden sie",
+      "Schlüssel — bewahre ihn in einem Passwort-Manager auf.",
+      "Sitzung abgelaufen",
+      "Sitzung deines Kontos.",
+      "Sitzung.",
+      "Sitzungen.",
+      "Sterne",
+      "Teil 1 mit",
+      "Unbestätigte Anfragen verfallen nach {stunden} Stunden.",
+      "Wer sich auf der Anmeldeseite mit Name und E-Mail meldet und die Adresse bestätigt, erscheint hier. Ein Admin schaltet frei oder lehnt ab.",
+      "Wert in die",
+      "Zeit. Nur an die richtige Person weitergeben.",
+      "abgefragt; danach lädst du jeden Teil einzeln.",
+      "angezeigt.",
+      "automatisch gelöscht; ein Löschen von Hand gibt es nicht.",
+      "behandelt; die Suche startet erst beim Klick.",
+      "bestimmt, wie stark ein Kriterium in den Durchschnitt eingeht; bei 1 zählen alle gleich.",
+      "das Passwort auf dem Server zurücksetzen.",
+      "dem Test: Welche Idee ist als Nächstes dran? Eigener Durchschnitt, unabhängig von „{bewertungEinzahl}\".",
+      "ein.",
+      "einfacher.",
+      "eingeben — jeder gilt nur einmal.",
+      "eintragen — keinen neuen erzeugen, sonst sind die vorhandenen Daten nicht mehr lesbar:",
+      "entfernt die Anfrage; es geht keine Nachricht hinaus.",
+      "erscheint erst nach der Anmeldung — hier gehört die aussagekräftige Bezeichnung hin.",
+      "erst der Durchschnitt je Kriterium über alle Benutzer (Spalte",
+      "frei.",
+      "für den Suchtext (",
+      "für „",
+      "gültig,",
+      "heraus.",
+      "laden",
+      "legt einen Benutzer an und erzeugt den Einladungslink.",
+      "lässt Vorhandenes stehen und fügt die {sacheMehrzahl} hinzu — um Bestände von einem zweiten Gerät zu übernehmen.",
+      "löscht vorher alles Vorhandene — für die Wiederherstellung nach einem Datenverlust.",
+      "muss so dastehen.",
+      "nutzbar, nach dem Öffnen",
+      "oder",
+      "ohne Gewichte käme nach dem Runden ebenfalls",
+      "report",
+      "statt",
+      "steht auf der Anmeldeseite und ist für jeden sichtbar, der die Adresse aufruft. Der",
+      "und ersetzt den Code aus der App.",
+      "und lassen sich wiederherstellen; danach werden sie endgültig gelöscht.",
+      "verschickt.",
+      "vollständige, verschlüsselte Kopie der Datenbank — auch mit dem, was der Export nicht enthält. Lässt sich nur in dieselbe Programmversion zurückspielen.",
+      "zustande kommt",
+      "— bei {dbBytes} etwa {dauerSekunden} Sekunden.",
+      "— bitte ein Passwort wählen.",
+      "— danach brauchst du einen neuen vom Admin.",
+      "— mehr als die Höchstgröße von {string} je Datei (",
+      "— ohne Schlüssel sind die Daten verloren.",
+      "— seit {seit}. Beim Anmelden wird zusätzlich der Zwei-Faktor-Code abgefragt.",
+      "— so bleibt er bei Updates unberührt.",
+      "— zum Anmelden genügt dein Passwort.",
+      "“ — wird nur einmal angezeigt."];
     const WORDING_GONE_0244 = ['{iconWiederher} Wiederherstellen'];
     /* UND DIE VIER STUECKE DES VERNEINUNGSSATZES -- 0.25.4, aus demselben
        Grund wie oben: der Stand von damals kennt sie, der von heute nicht
@@ -19190,15 +19326,22 @@ function sweepLeftovers() {
        Tagzeile, und den gibt es nicht mehr (F9). Der Stand von damals kennt
        ihn, der von heute nicht -- also wird er dort abgezogen. */
     const WORDING_GONE_TEXT_0300 = ['Tags ({length})'];
+    /* BEIDE SEITEN GLEICH BEHANDELT. Der Stand von damals traegt denselben
+       Weissraum; wer nur die eine Seite zusammenzieht, vergleicht zwei
+       verschiedene Schreibweisen desselben Satzes und faerbt alles rot. */
+    const flatten = (v) => String(v).replace(/\n[ \t]+/g, ' ').replace(/[ \t]{2,}/g, ' ');
+    /* UND DIE ABZUGSLISTEN WERDEN MITGEZOGEN -- 0.31.1, und das war ein Fund.
+       Bis hierher wurde vom ROHEN Stand abgezogen und erst danach
+       zusammengezogen: ein Satz, der in der Datei von damals eine Einrueckung
+       trug, liess sich mit seinem zusammengezogenen Wortlaut nicht abziehen
+       und blieb stumm in `onlyThen` stehen. Bei elf Eintraegen fiel das nicht
+       auf; bei achtundneunzig standen zweiunddreissig falsch da. */
     const wordingThen = [...WORDING_GONE_0244, ...WORDING_GONE_TEXT_0254,
       ...WORDING_GONE_TEXT_0260, ...WORDING_GONE_TEXT_0270,
       ...WORDING_GONE_TEXT_0281, ...WORDING_GONE_TEXT_0300,
-      ...WORDING_GONE_TEXT_0310]
-      .reduce((list, sentence) => withoutOne(list, sentence), [...wordingFile.values])
-      /* BEIDE SEITEN GLEICH BEHANDELT. Der Stand von damals traegt denselben
-         Weissraum; wer nur die eine Seite zusammenzieht, vergleicht zwei
-         verschiedene Schreibweisen desselben Satzes und faerbt alles rot. */
-      .map(v => String(v).replace(/\n[ \t]+/g, ' ').replace(/[ \t]{2,}/g, ' ')).sort();
+      ...WORDING_GONE_TEXT_0310, ...WORDING_GONE_TEXT_0311].map(flatten)
+      .reduce((list, sentence) => withoutOne(list, sentence), wordingFile.values.map(flatten))
+      .sort();
     const wordingNow = valuesOf(wordingOld).map(asBefore).sort();
     const onlyThen = wordingThen.filter(x => !wordingNow.includes(x));
     const onlyNow = wordingNow.filter(x => !wordingThen.includes(x));
@@ -19393,6 +19536,42 @@ function sweepLeftovers() {
       'server.ratingBeforeTest', 'server.testedStays', 'server.viewExists'];
     const WORDING_CHANGED_0310 = [...CHANGED_TABLE_0310, ...CHANGED_FORCED_0310,
       ...CHANGED_QUOTE_0310];
+    /* UND ACHTUNDSECHZIG MIT 0.31.1. Sie BEHALTEN ihren Namen und bekommen
+       einen anderen Wortlaut -- meistens, weil die zweite Haelfte ihres
+       Satzes in sie hineingezogen worden ist („Willkommen," + Name +
+       „— bitte ein Passwort waehlen." wird EIN Satz mit `{word}` darin).
+       DREI SIND ETWAS ANDERES, und sie stehen hier nicht anders da, weil die
+       Zeile Saetze zaehlt und keine Gruende -- benannt sind sie trotzdem:
+         card.tagDeleteHint    das „und" zwischen den beiden Zahlen stand fest
+         card.thumbsRefreshed  „mehr" und „weniger" standen fest
+         card.marksGoneToo     traegt den ganzen Satz statt seines Nachsatzes
+       Die ersten beiden sind BEFUNDE dieser Runde: in einer englisch
+       eingestellten Instanz stand dort deutscher Text. Damit aendert sich
+       auch en/tr an genau diesen Stellen -- die einzigen der Runde. */
+    const WORDING_CHANGED_0311 = [
+      "card.aloneOverLimit", "card.cleanupHint", "card.cleanupKeepsHint",
+      "card.configuredIs", "card.confirmOnce", "card.convertFinished",
+      "card.criteriaLabel", "card.derivativesWebp", "card.duringBackupHint",
+      "card.eachAtMost", "card.emailOptional", "card.emailOptionalHint",
+      "card.exportPasswordHint", "card.importHint", "card.includeFiles",
+      "card.includeVideos", "card.languagesUsersHint", "card.linkHolderHint",
+      "card.linkListHint", "card.logHint", "card.marksGoneToo",
+      "card.nameFreedHint", "card.neverSameBackup", "card.newUserHint",
+      "card.noBackupDirCard", "card.noPasswordYet", "card.oldBackupsFreed",
+      "card.opensOnlyWith", "card.ownEnginesHint", "card.passLinkByHandEnd",
+      "card.recoveryCodesHint", "card.reportMany", "card.reportOne",
+      "card.resetMailHint", "card.searchDomainTip", "card.sessionIdleHint",
+      "card.storeCaveat", "card.subDirOptional", "card.tagDeleteHint",
+      "card.taskDone", "card.taskMany", "card.taskOne",
+      "card.thumbsRefreshed", "card.vocabularyHint",
+      "card.vocabularyResetHint", "card.withPhotos", "card.withoutPhotos",
+      "dialog.deleteAlso", "entry.calcHowAvg", "entry.calcIfEqual",
+      "entry.calcNoChange", "entry.edited", "entry.linkInputHint",
+      "entry.weightsWhere", "list.and", "list.commentCount",
+      "list.searchOffline", "list.searchingShort", "list.visibleCount",
+      "login.newPasswordFor", "login.noPhoneHint", "login.requestAccessHint",
+      "login.welcome", "mail.hintAlways", "mail.hintGmx",
+      "server.entryTooBig", "server.exportGrew", "server.exportTooBig"];
     /* FUENFUNDACHTZIG SEIT 0.31.0, VORHER FUENFZEHN -- und die siebzig mehr
        sind die Runde selbst: siebenunddreissig aus der Worttafel, fuenf
        erzwungene Nachzieher und zweiunddreissig, an denen nur das
@@ -19401,8 +19580,29 @@ function sweepLeftovers() {
        zu jedem neuen Wortlaut steht drueben genau ein alter, der verschwunden
        ist. Waere es nicht so, haette diese Runde einen Satz hinzugefuegt oder
        weggenommen -- und beides waere etwas anderes als „gegenlesen". */
-    check('Und genau fuenfundachtzig Saetze sind andere — die fuenfzehn von vorher und die siebzig aus 0.31.0',
-      onlyThen.length === 85 && onlyNow.length === 85 &&
+    /* HUNDERTFUENFUNDVIERZIG UND HUNDERTDREIUNDVIERZIG MIT 0.31.1, vorher
+       fuenfundachtzig und fuenfundachtzig -- und die beiden Zahlen sind zum
+       ersten Mal VERSCHIEDEN. Das hat einen Namen und ist kein Rutsch:
+
+       SECHZIG SAETZE MEHR AUF BEIDEN SEITEN sind die achtundsechzig
+       geaenderten Schluessel (Mehrzahlpaare zaehlen einmal je Zweig, und
+       sechs von ihnen waren schon in einer frueheren Runde geaendert -- ihre
+       Zwischenfassung verlaesst `onlyNow` und ihre neue tritt ein).
+
+       UND ZWEI MEHR AUF DER SEITE VON DAMALS: „E-Mail ist optional." und
+       „und" gab es in der Datei SCHON, unter einem anderen Schluessel. Der
+       alte Wortlaut der beiden verschwindet, der neue ist kein neuer Satz,
+       sondern ein ZWEITES VORKOMMEN -- und eine Liste mit `includes` kann das
+       nicht sehen. Genau dasselbe ist 0.28.1 mit „Titel" passiert und 0.29.0
+       mit „Name"; dort ging es auf, weil ein Mehrzahlpaar aus 0.25.4 die
+       Rechnung auf der anderen Seite ausglich. Hier gleicht sie nichts aus,
+       und darum stehen zwei verschiedene Zahlen da statt einer geschoenten.
+       DIE EIGENTLICHE ABNAHME IST DIE ZEILE DARUNTER: der REST ist Satz fuer
+       Satz derselbe. */
+    check('Und genau hundertfuenfundvierzig Saetze sind andere — die fuenfundachtzig von vorher und die sechzig aus 0.31.1',
+      onlyThen.length === 145 && onlyNow.length === 143 &&
+      WORDING_CHANGED_0311.every(k => LANGUAGE_FILE[k] !== undefined) &&
+      onlyThen.includes('E-Mail (optional)') && !onlyNow.includes('E-Mail ist optional.') &&
       WORDING_CHANGED_0310.every(k => onlyNow.includes(asBefore(LANGUAGE_FILE[k]))
         || Object.values(LANGUAGE_FILE[k]).every(v => onlyNow.includes(asBefore(v)))) &&
       onlyThen.includes('Wer hat bewertet') &&
@@ -19453,8 +19653,15 @@ function sweepLeftovers() {
        UND DIESE ZEILE IST DIE EIGENTLICHE ABNAHME DER RUNDE: was NICHT in der
        Worttafel steht, ist Zeichen fuer Zeichen der Stand von 0681d42 --
        elfhundertzwei Saetze, die niemand angefasst hat. */
+    /* 1102 WURDEN 944 MIT 0.31.1: achtundneunzig Werte sind ganz gefallen
+       (die Haelften der verschmolzenen Saetze) und sechzig Saetze sind andere
+       geworden -- beide stehen auf beiden Seiten nicht mehr im Rest, sondern
+       in den Listen darueber.
+       UND DIESE ZEILE BLEIBT DIE EIGENTLICHE ABNAHME DER RUNDE: was die Runde
+       nicht angefasst hat, ist Zeichen fuer Zeichen der Stand von 0681d42 --
+       neunhundertvierundvierzig Saetze. */
     check('Und sonst kein Zeichen — Satz fuer Satz dieselbe Oberflaeche',
-      equal(restThen, restNow) && restNow.length === 1102,
+      equal(restThen, restNow) && restNow.length === 944,
       `${restThen.filter((x, i) => x !== restNow[i]).length} abweichende von ${restNow.length}`);
 
     /* ---- 6. Die Kuerzeprobe ---------------------------------------------
@@ -54146,6 +54353,16 @@ async function check0310() {
      „du" kann in der Einzahl stehen und in der Mehrzahl fehlen. */
   const drTexts = (j) => Object.entries(j).filter(([k]) => k !== '_locale' && k !== '_name')
     .flatMap(([k, v]) => (typeof v === 'string' ? [v] : Object.values(v)).map(text => [k, text]));
+  /* DIE ZAHL STEHT EINMAL -- Stolperstein 47. Zwei Gruppen fragen sie ab
+     (0.31.0 auf die Deckung der drei Dateien, 0.31.1 auf den Stand nach dem
+     Verschmelzen), und zwei Zahlen an zwei Stellen laufen beim naechsten
+     Handgriff auseinander. Sie wird UMGEDREHT und nicht weggenommen: „gleich
+     viele" allein bliebe gruen, wenn jemand aus allen dreien dasselbe
+     herausnaehme.
+       1254 vor 0.31.1 -- 1197 danach. Die Runde verschmilzt Bruchstuecke zu
+       ganzen Saetzen; ein verschmolzener Satz braucht einen Schluessel statt
+       zwei, und vierundvierzig sind neu dazugekommen. */
+  const LANG_KEY_COUNT = 1197;
 
   group('Die Sprachdateien werden gegengelesen — 0.31.0');
   {
@@ -54241,13 +54458,10 @@ async function check0310() {
        gruen, wenn jemand aus allen dreien dasselbe herausnaehme. */
     const drCounts = Object.fromEntries(
       Object.entries(drFiles).map(([code, file]) => [code, Object.keys(file).length]));
-    /* 1254 WURDEN 1221 MIT 0.31.1, und die Zahl wird UMGEDREHT und nicht
-       aus der Zusage genommen: „gleich viele" allein bliebe gruen, wenn
-       jemand aus allen dreien dasselbe herausnaehme. Der Gegenstand dieser
-       Zusage ist die DECKUNG der drei Dateien -- die haelt weiter, nur auf
-       einer anderen Zahl. */
-    check('Zusage 3: die drei Dateien tragen gleich viele Schluessel — 1221',
-      Object.values(drCounts).every(n => n === 1221),
+    /* DER GEGENSTAND DIESER ZUSAGE IST DIE DECKUNG DER DREI DATEIEN -- die
+       haelt weiter, nur auf einer anderen Zahl. Sie steht oben, einmal. */
+    check(`Zusage 3: die drei Dateien tragen gleich viele Schluessel — ${LANG_KEY_COUNT}`,
+      Object.values(drCounts).every(n => n === LANG_KEY_COUNT),
       Object.entries(drCounts).map(([c, n]) => `${c}: ${n}`).join(' · '));
 
     /* ---- Zusage 4: kein Text mischt „ mit einem geraden " ----
@@ -54431,17 +54645,114 @@ async function check0311() {
        automatisch und nicht erst, wenn jemand diese Liste pflegt. */
     const dsWordKeys = new Set();
     for (const m of dsCode.matchAll(/\btMark\(\s*'[^']+'\s*,\s*'([^']+)'/g)) dsWordKeys.add(m[1]);
+    /* UND DIE FUELLUNGEN VON tMarks() SIND AUCH WELCHE. Der zweite Helfer
+       nimmt sein Stueck als fertigen Text und nicht als Schluessel; steht
+       dort ein `tH('entry.calcEquals')`, ist das derselbe Wortschluessel wie
+       beim einteiligen Ruf. Gelesen wird wieder aus dem QUELLTEXT. */
+    for (const m of dsCode.matchAll(/\bword\d*:\s*[^,}]*?\bt[H]?\(\s*'([^']+)'/g)) dsWordKeys.add(m[1]);
     check('Die Wortschluessel kommen aus dem Quelltext und nicht aus einer Liste',
       dsWordKeys.size >= 30 && dsWordKeys.has('login.linkUnaffectedWord'),
       `${dsWordKeys.size} Wortschluessel`);
 
+    /* ZWEI SORTEN STEHEN WEITERHIN MIT EINEM TRENNER ODER EINEM EINZELNEN WORT
+       DA, und keine von beiden ist ein Bruchstueck. Die Zusage hiess bis zum
+       Bau von BA 3 nur „kein Wert faengt mit einem Satzzeichen an", und sie
+       war damit ZU GROB: sie haette „— keine —" aus einer Auswahlliste
+       einkassiert und den Nachsatz eines Satzes gleich mit.
+
+       DAS ANSCHLUSSSTUECK fuellt einen BENANNTEN PLATZ eines anderen Satzes.
+       Wo sein Trenner sitzt, entscheidet dann der SATZ und nicht der
+       Quelltext -- und genau das wird geprueft: der Elternsatz muss den Platz
+       wirklich tragen, und der Ruf muss das Stueck wirklich dort einsetzen.
+       Faellt der Platz weg, faellt die Ausnahme mit ihm.
+
+       DIE EIGENSTAENDIGE BESCHRIFTUNG ist ein Bedienelement und kein Satzteil:
+       ein Eintrag einer Auswahlliste, die Beschriftung eines Filterknopfes,
+       das Zustandswort einer Kennzeile, das Bindewort einer Aufzaehlung. Sie
+       steht NAMENTLICH da, mit ihrem Ort.
+
+       UND DIE TAFEL IST GESCHLOSSEN: was nicht darin steht, ist ein Fund --
+       und was darin steht und keines mehr ist, faellt genauso auf. Eine
+       Ausnahmeliste, die nur in eine Richtung prueft, waechst. */
+    const DS_JOINED = {
+      'card.createdFrom':        ['card.fileContainsHint',   'from'],
+      'card.freedBytes':         ['card.convertFinished',    'freed'],
+      'card.lessBytes':          ['card.thumbsRefreshed',    'change'],
+      'card.moreBytes':          ['card.thumbsRefreshed',    'change'],
+      'card.notDeleted':         ['card.backupsDeleted',     'extra'],
+      'card.skipped':            ['card.thumbsRefreshed',    'skipped'],
+      'card.stayedCurrent':      ['card.convertFinished',    'stayed'],
+      'dialog.withForeignPosts': ['dialog.deleteAlso',       'extra'],
+      'entry.calcAllEqual':      ['entry.calcStepsHint',     'extra'],
+      'entry.calcWithWeight':    ['entry.calcStepsHint',     'extra'],
+      'entry.withAllImages':     ['entry.commentDeleteHint', 'extra'],
+      'list.ofWhich':            ['list.commentCount',       'of']
+    };
+    const DS_STANDALONE = {
+      'card.more':        'Beschriftung des Aufklappers',
+      'card.noDelivery':  'Eintrag der Versandauswahl',
+      'card.off':         'Zustandswort einer Kennzeile',
+      'card.on':          'Zustandswort einer Kennzeile',
+      'entry.none':       'Eintrag der Kategorieauswahl',
+      'list.and':         'Bindewort einer Aufzaehlung',
+      'list.less':        'Beschriftung des Tagwolkenknopfes',
+      'list.more':        'Beschriftung des Tagwolkenknopfes',
+      'list.or':          'Beschriftung eines Filterknopfes',
+      'list.tagModeAnd':  'Beschriftung eines Filterknopfes',
+      'list.without':     'Beschriftung eines Filterknopfes'
+    };
+
     const dsFirst = (v) => String(typeof v === 'string' ? v : Object.values(v)[0]).trim();
+    const dsAusnahme = new Set([...Object.keys(DS_JOINED), ...Object.keys(DS_STANDALONE)]);
     const dsFragmentStart = Object.entries(dsFiles.de)
-      .filter(([k]) => !k.startsWith('_') && !dsWordKeys.has(k))
+      .filter(([k]) => !k.startsWith('_') && !dsWordKeys.has(k) && !dsAusnahme.has(k))
       .filter(([, v]) => /^[.,;:—–)“”]/.test(dsFirst(v)));
-    check('Kein deutscher Wert faengt mit einem Satzzeichen an',
+    check('Kein deutscher Wert faengt mit einem Satzzeichen an — ausser den benannten',
       dsFragmentStart.length === 0,
       dsFragmentStart.map(([k, v]) => `${k}: ${JSON.stringify(dsFirst(v))}`).join(' · ') || 'keiner');
+
+    /* DER BEWEIS FUER JEDES ANSCHLUSSSTUECK: der Elternsatz traegt den Platz,
+       und der Ruf setzt das Stueck dort ein. Gesucht wird im Quelltext ab dem
+       Namen des Elternsatzes -- der Ruf steht mit seinen Werten daneben. */
+    const dsLoose = [];
+    for (const [k, [parent, slot]] of Object.entries(DS_JOINED)) {
+      const eltern = dsFiles.de[parent];
+      const zweige = eltern === undefined ? []
+        : (typeof eltern === 'string' ? [eltern] : Object.values(eltern));
+      if (!zweige.length || !zweige.every(v => v.includes(`{${slot}}`))) { dsLoose.push(`${k}: ${parent} ohne {${slot}}`); continue; }
+      const ab = dsCode.indexOf(`${Q}${parent}${Q}`);
+      const ruf = ab < 0 ? '' : dsCode.slice(ab, ab + 400);
+      if (!ruf.includes(`${slot}:`) || !ruf.includes(`${Q}${k}${Q}`)) dsLoose.push(`${k}: nicht an ${parent}.${slot} gesetzt`);
+    }
+    check('Und jedes Anschlussstueck haengt wirklich an seinem Satz',
+      dsLoose.length === 0, dsLoose.join(' · ') || `alle ${Object.keys(DS_JOINED).length}`);
+
+    /* UND KEINE AUSNAHME STEHT UMSONST DA. Ein Eintrag, dessen Wert kein
+       Satzzeichen mehr traegt oder den niemand mehr ruft, ist eine Erinnerung
+       und keine Ausnahme -- er faellt hier auf. */
+    const dsStale = [...dsAusnahme].filter(k => !(k in dsFiles.de))
+      .concat([...dsAusnahme].filter(k => k in dsFiles.de && !dsCode.includes(`${Q}${k}${Q}`)));
+    check('Und keine Ausnahme steht umsonst in der Tafel',
+      dsStale.length === 0, dsStale.join(' ') || `${dsAusnahme.size} benannt`);
+
+    /* DIE DRITTE SORTE: DAS BLOSSE FUELLWORT. Ein Schluessel, dessen ganzer
+       Wert ein Funktionswort ist, traegt keine Aussage -- er traegt ein
+       Scharnier, das im Quelltext zwischen zwei andere Stuecke geschraubt
+       wird. Gesucht wird eine GESCHLOSSENE KLASSE und keine Wortlaenge: „Name",
+       „Suche" und „Standard" sind einzelne Woerter und trotzdem Beschriftungen.
+       Ausgenommen sind wieder die Wortschluessel und die benannten
+       Beschriftungen -- „an", „aus" und „Oder" SIND Bedienelemente. */
+    const DS_FUNCTION_WORDS = new Set(['und', 'oder', 'ohne', 'mit', 'von', 'aus', 'an', 'in',
+      'auf', 'für', 'zu', 'der', 'die', 'das', 'den', 'dem', 'ein', 'eine', 'einen',
+      'einem', 'einer', 'nicht', 'kein', 'keine', 'auch', 'noch', 'dann', 'so', 'als',
+      'wie', 'bis', 'je', 'nur', 'schon', 'gleich', 'frei', 'mehr', 'weniger']);
+    const dsFiller = Object.entries(dsFiles.de)
+      .filter(([k]) => !k.startsWith('_') && !dsWordKeys.has(k) && !dsAusnahme.has(k))
+      .filter(([, v]) => (typeof v === 'string' ? [v] : Object.values(v))
+        .some(x => DS_FUNCTION_WORDS.has(String(x).trim().replace(/[.,;:!?]$/, '').toLowerCase())));
+    check('Kein deutscher Wert ist ein blosses Fuellwort',
+      dsFiller.length === 0,
+      dsFiller.map(([k, v]) => `${k}: ${JSON.stringify(dsFirst(v))}`).join(' · ') || 'keiner');
 
     /* EINE UNPAARIGE KLAMMER IST DER SCHAERFSTE FALL: der Uebersetzer bekommt
        einen Satz, der mit „(" endet, und soll raten, was folgt. */
@@ -54479,7 +54790,18 @@ async function check0311() {
        `{word}` ohne Ruf zeigt am Bildschirm „{word}" -- der sichtbarste
        Fehler, den eine Sprachdatei machen kann. */
     const dsMarkSentences = [...dsCode.matchAll(/\btMarks?\(\s*'([^']+)'/g)].map(m => m[1]);
-    const dsNoSlot = dsMarkSentences.filter(k => !String(dsFiles.de[k] || '').includes('{word}'));
+    /* JEDER ZWEIG EINZELN -- Stolperstein 81. Bis zum Bau von BA 3 stand hier
+       `String(dsFiles.de[k])`, und ein Schluessel mit Ein- und Mehrzahl wurde
+       dabei zu „[object Object]": die Wache kannte nur die eine Gestalt und
+       meldete `card.opensOnlyWith` und `card.otherSessionsHint` als Satz ohne
+       Platz, obwohl beide Zweige ihren `{word}` tragen. */
+    const dsBranches = (k) => {
+      const v = dsFiles.de[k];
+      if (v === undefined) return [];
+      return typeof v === 'string' ? [v] : Object.values(v);
+    };
+    const dsNoSlot = dsMarkSentences
+      .filter(k => !dsBranches(k).length || !dsBranches(k).every(v => v.includes('{word}')));
     check('Jeder tMark-Satz traegt seinen Platz',
       dsNoSlot.length === 0, dsNoSlot.join(' ') || 'alle');
     /* Die vier Schluessel mit `{word}` als gewoehnlichem Platzhalter stehen
@@ -54636,8 +54958,8 @@ async function check0311() {
        bliebe gruen, wenn jemand aus allen dreien dasselbe herausnaehme. */
     const dsCounts = Object.fromEntries(['de', 'en', 'tr']
       .map(c => [c, Object.keys(dsFiles[c]).length]));
-    check('Die drei Dateien tragen gleich viele Schluessel — 1221',
-      dsCounts.de === 1221 && dsCounts.en === 1221 && dsCounts.tr === 1221,
+    check(`Die drei Dateien tragen gleich viele Schluessel — ${LANG_KEY_COUNT}`,
+      ['de', 'en', 'tr'].every(c => dsCounts[c] === LANG_KEY_COUNT),
       JSON.stringify(dsCounts));
     check('Und in derselben Folge',
       ['en', 'tr'].every(c => JSON.stringify(Object.keys(dsFiles[c])) ===
