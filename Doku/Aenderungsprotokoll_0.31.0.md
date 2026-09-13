@@ -448,7 +448,7 @@ geschrieben" · „zuletzt gesehen"*
 
 | | |
 |---|---|
-| **`Doku/Auftrag_0.31.0.md`** | acht Leitplanken, zweiundzwanzig Fragen, sieben Bauabschnitte |
+| **`Doku/Auftrag_0.31.0.md`** | acht Leitplanken, zweiundzwanzig Fragen, sieben Bauabschnitte *(mit dem Auftrag zu 0.31.1 weggefallen — es liegt immer nur einer im Repo)* |
 | **`Doku/I18N_CLEANUP_DE.md`** | die Vorlage von Google Gemini — **bleibt liegen**, sie ist der Gegenstand, gegen den geprüft wurde |
 | **`Doku/Aenderungsprotokoll_0.31.0.md`** | dieses Papier, samt den Absichtszeilen für 0.31.1 und 0.31.2 |
 | **`Doku/Projektstand_Kriterion_0_31_0.md`** | `git mv`, **Revision 87** |

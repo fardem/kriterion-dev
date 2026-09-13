@@ -249,6 +249,44 @@ GESEHEN HAT.** *Sie stehen hier, weil sie beim nächsten Mal wieder passieren.*
 
 ---
 
+## Vierzehn Gegenproben — jede gefahren
+
+**EINE PRÜFUNG, DIE GRÜN IST, BELEGT NICHTS, solange niemand gezeigt hat, dass
+sie auch rot werden kann.** *Jede Zusage der Runde bekommt darum einen Rückbau:
+die geprüfte Sache wird in einer `git archive`-Kopie probeweise zurückgebaut,
+und festgehalten wird, WELCHE Prüfungen daraufhin namentlich rot werden.*
+**Ein Rückbau, der keine einzige rot macht, ist ein FUND — nicht ein Erfolg.**
+
+| Nr. | was zurückgebaut wird | für Zusage |
+|---|---|---|
+| **964** | die Gleichlautprobe nennt ihre eigene Blindstelle nicht mehr | 1 |
+| **965** | ein Satz fängt wieder mit dem Punkt seines Vorgängers an | 2 *(Satzzeichen)* |
+| **966** | ein Schlüssel trägt wieder ein bloßes Füllwort | 2 *(Füllwort)* |
+| **967** | ein Wert öffnet wieder eine Klammer, die er nicht schließt | 2 *(Klammer)* |
+| **968** | ein Anschlussstück hängt an keinem Satz mehr | 2 *(die Tafel)* |
+| **969** | ein Vergleich steht wieder neben einem Textruf | 3 |
+| **970** | die türkische Datei trägt einen Schlüssel weniger | 4 |
+| **971** | ein Satz mit Hervorhebung verliert seinen Platz | 5 |
+| **972** | eine Vokabelbeschriftung nennt wieder ihr Vorgabewort | 6 |
+| **973** | eine Exportgröße steht wieder in der Sprachdatei | 7 |
+| **974** | ein deutscher Wert trägt wieder eine HTML-Entität | 8 |
+| **975** | ein Wert trägt wieder die Einrückung des Quelltexts | 9 |
+| **976** | ein Eintrag der Umbenennungstafel zeigt wieder ins Leere | 10 |
+| **977** | ein unberührter Satz ändert sein Wort | 11 |
+
+> **JEDER GREIFT IN DIE DATEN UND NICHT IN DEN WÄCHTER.** *Eine Gegenprobe, die
+> die Prüfung selbst umbaut, belegt nur, dass man Prüfungen abschalten kann.*
+> **Zusage 2 bekommt vier, weil sie drei Sorten Bruchstück verbietet und die
+> Ausnahmetafel dazu** — *ein Rückbau je Sorte sagt, welche gefangen hat.*
+
+> **UND SECHZEHN ÄLTERE MUSSTEN NACHGEZOGEN WERDEN:** *ihre Suchtexte standen
+> nach dem Verschmelzen nicht mehr da.* **Gemeldet hat sie die Zusage „Jeder
+> Suchtext kommt in seiner Datei genau einmal vor" — alle sechzehn auf einmal.**
+> *Sie ist damit selbst der Beleg dafür, dass ein Rückbau, der ins Leere greift,
+> auffällt statt still zu sein.*
+
+---
+
 ## Ein Fund, der nicht in dieser Runde repariert wird
 
 **NEUNUNDDREISSIG EINTRÄGE DER UMBENENNUNGSTAFEL ZEIGTEN SCHON VOR DIESER RUNDE
@@ -290,8 +328,10 @@ keinen, und dann steht dort auch keiner.**
 | | |
 |---|---|
 | **`Doku/Auftrag_0.31.1.md`** | sechs Leitplanken, zwölf Fragen, acht Bauabschnitte, elf Zusagen |
+| **`Doku/Auftrag_0.31.0.md`** | **weggefallen** — *es liegt immer nur einer im Repo; was dort stand, steht im Änderungsprotokoll 0.31.0* |
+| **`Doku/I18N_CLEANUP_DE.md`** | **bleibt liegen** — *die Vorlage von Google Gemini ist der Gegenstand, gegen den 0.31.2 und 0.31.3 noch prüfen* |
 | **`Doku/Aenderungsprotokoll_0.31.1.md`** | dieses Papier |
-| **`Doku/Projektstand_Kriterion_0_31_1.md`** | `git mv`, **Revision 88** |
+| **`Doku/Projektstand_Kriterion_0_31_1.md`** | `git mv`, **Revision 88** — *und **Regel S12** in Abschnitt 5.6: „Ein Schlüssel trägt einen ganzen Satz, nie ein Wort ohne seinen Satz"* |
 | **`Doku/Fahrplan.md`** | die Zeile 0.31.1 durchgestrichen; **die geplanten Runden rücken nicht** |
 | **`Doku/Fehler_und_Ideen.md`** | Punkt 24 nachgezogen |
 | **`tools/gleichlaut.js`** | **neu** — das Werkzeug dieser Runde |
