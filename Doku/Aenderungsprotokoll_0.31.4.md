@@ -377,8 +377,64 @@ stand bei 6951; die Runde legt 39 Prüfungen dazu.*
 > |---|---|
 > | **`entry.added` war übersehen** | *Die Zeile, die jede Zählerstelle zählt, hat es gemeldet: sieben Rufe von `counted()` statt acht.* **Gegenprobe 1004 hält sie** |
 > | **Die Selbstprobe der neuen Bildschirmprobe** | *„AFTER_NUMBER one · Eintrag / Einträge" — die Sätze türkisch, die Vokabelwörter deutsch.* **Die Prüflage muss den Vokabelsatz des Lesers mitgeben, so wie der Server es tut**, *und die Zeile darunter war dabei grün: deutsche Mehrzahlen enden nicht auf `-ler`* |
-> | **Mein Wortgebrauch** | *„Zeichenkette" steht im Haus als* **„String"** *da — der Wächter über die Fachwörter hat drei Kommentare gemeldet. Und beim Berichtigen habe ich seine eigene Vorschrift mitersetzt* (`['Zeichenkette', 'String']` *wurde* `['String', 'String']`)*: genau davor warnt der Kommentar an dieser Liste* |
+> | **Mein Wortgebrauch** | *Das Wort für eine Zeichenfolge heißt im Haus* **`String`** — *der Wächter über die Fachwörter hat drei Kommentare gemeldet. Und beim Berichtigen habe ich seine eigene Vorschrift mitersetzt* (`['Zeichenkette', 'String']` *wurde* `['String', 'String']`, *und damit war die halbe Anwendung verboten*)*: genau davor warnt der Kommentar an dieser Liste.* **Dieses Papier steht unter demselben Wächter — das gesuchte Wort darf hier nur in Backticks vorkommen** |
 > | **Die sechs Prüfsummen** | *zweimal — die Runde baut in `public/app.js`, und die Gleichlautprobe liest den ganzen Quelltext* |
+
+---
+
+## Die Gegenproben sind gefahren — 0 STUMM
+
+**ZWÖLF GEGEN DEN GEBAUTEN STAND** *(`git archive HEAD`, vier Nebenspuren)* —
+**die acht neuen und die vier, die diese Runde anfasst.** *Jede hat ihre
+erwartete Gruppe rot gemacht; keine blieb stumm.*
+
+| Rückbau | rot | erwartete Gruppe |
+|---|---|---|
+| **689** *(`plural` statt `counted`)* | 11 | *Die sieben Wächter der Sprachdatei — 0.24.0* |
+| **793** *(das Anführungszeichen bleibt offen)* | 7 | *Ein Satz, den jede Sprache selbst schneidet — 0.25.4* |
+| **994** *(der Satz wird wieder länger)* | 4 | *Türkisch sitzt — 0.31.3* |
+| **997** *(das Vokabelwort verliert seine Mehrzahl)* | 8 | *Türkisch sitzt — 0.31.3* |
+| **1002** *(Deutsch bekommt die türkische Regel)* | **24** | *Nach einer Zahl die Einzahl — 0.31.4* |
+| **1003** *(Türkisch verliert sie)* | 9 | *dieselbe* |
+| **1004** *(eine Zählerstelle greift zu `plural()`)* | 11 | *dieselbe* |
+| **1005** *(`counted()` liest die Locale)* | 10 | *dieselbe* |
+| **1006** *(ein Satz mit `her` fällt zurück)* | 9 | *dieselbe* |
+| **1007** *(die Krücke „listesi" kommt zurück)* | 6 | *dieselbe* |
+| **1008** *(die Zahl kommt vor die Mehrzahl der Vorschau)* | 10 | *dieselbe* |
+| **1009** *(die Vorschau fragt den Leser)* | 7 | *dieselbe* |
+
+> **1002 IST DER TEUERSTE, und das ist die Sache selbst:** *wer Deutsch die
+> türkische Stellungsregel gibt, macht aus „3 Einträge" ein „3 Eintrag" —* **24
+> rote Punkte**, *und keine einzige deutsche Zeile des Prüfstands prüft Werte
+> dafür: sie prüfen Wortlaute, nicht Stellungen.* **Der Schutz ist EIN Wort in
+> der Datei, und dieser Rückbau ist der Beleg, dass es bewacht wird.**
+>
+> **1009 IST DER FEINSTE:** *er lässt die Vorschau die Sprache des LESERS fragen
+> statt der gezeigten.* **Für einen türkischen Leser ändert er gar nichts** —
+> *falsch wird er genau in dem Fall, für den die Karte gebaut ist. Sieben rote
+> Punkte, und einer davon nennt ihn beim Namen.*
+
+> ### UND DER LAUF HAT EINEN FEHLER VON MIR GEFUNDEN, der keiner Gegenprobe gehört
+>
+> **IN JEDER DER ZWÖLF STAND DERSELBE ROTE PUNKT:** *„Die Dokumente ebenso" aus
+> der Gruppe „Der Sprachwächter".* **Zwölfmal dasselbe heißt: es liegt nicht an
+> den Rückbauten, sondern am gebauten Stand** — *und so war es.*
+>
+> *Der Wächter über die Fachwörter liest nicht nur den Quelltext, sondern auch
+> die Papiere.* **Und dieses Papier erklärt genau diesen Wächter** — *es nannte
+> das verbotene Wort in Anführungszeichen, um zu erzählen, dass es verboten
+> ist.* **In Backticks hätte er es stehen lassen;** *in Prosa nicht, und zu
+> Recht: er kann nicht unterscheiden, ob ein Wort benutzt oder besprochen
+> wird.*
+>
+> *Berichtigt, und der Satz steht jetzt so da, dass er dasselbe sagt, ohne das
+> Wort zu benutzen.* **Jede der zwölf Zahlen oben trägt diesen einen Punkt
+> noch mit** — *ein Lauf danach zeigte je einen weniger. Die Zahlen sind
+> gemessen und nicht gerechnet, deshalb bleiben sie stehen.*
+>
+> **DIE LEHRE IST DIE VON STOLPERSTEIN 47, eine Ebene höher:** *ein Papier über
+> einen Wächter steht unter diesem Wächter. Der Prüfstand hat es bemerkt, weil
+> zwölf unabhängige Läufe dasselbe sagten.*
 
 ---
 
