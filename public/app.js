@@ -11291,10 +11291,13 @@ function setUpUsersOut() {
     // Sonst baut ihn der Browser wie bisher.
     const address = d.link || buildInviteUrl(d.token);
     box.innerHTML = `<div class="warn-box user-linkbox" style="margin:12px 0 0">
-      <strong>${d.purpose === 'reset' ? t('card.resetLink') : t('card.inviteLink')}
-      ${tH('card.forQuote')}${esc(d.username || '')}${tH('card.shownOnce')}</strong>
-      ${tH('card.linkHolderHint')} <strong>${d.days || 7} ${tH('card.days')}</strong> ${tH('card.valid')}
-      <strong>${tH('card.once')}</strong> ${tH('card.usableAfterOpen')} <strong>${d.minutes || 15} ${tH('card.minutes')}</strong> ${tH('card.linkCarefulHint')}
+      <strong>${tMarks('card.linkForUser', {
+        word: d.purpose === 'reset' ? tH('card.resetLink') : tH('card.inviteLink') },
+        { name: d.username || '' })}</strong>
+      ${tMarks('card.linkHolderHint', {
+        word:  `<strong>${d.days || 7} ${tH('card.days')}</strong>`,
+        word2: `<strong>${tH('card.once')}</strong>`,
+        word3: `<strong>${d.minutes || 15} ${tH('card.minutes')}</strong>` })}
       <div class="user-link-row"><input class="input input-sm" id="user-link-field" readonly
         value="${esc(address)}"><button class="btn btn-sm" id="user-link-copy">${tH('card.copy')}</button></div>
       <p class="user-link-origin" id="user-link-origin">${tH('card.linkPointsTo')}
@@ -11563,8 +11566,9 @@ function cardRequests(fetched) {
   return `<div class="sys-card wide">
         <h3>${tH('card.requests')}</h3>
         <p class="desc">${tMark('card.signupHint', 'card.signupLabel')}${requests.an ? '' : ` <strong>${tH('card.signupOffNow')}</strong>`}</p>
-        ${more(`${tH('card.requestExpiryHint', { hours: requests.hours })} <strong>${tH('card.approve')}</strong>
-          ${tH('card.createsUserLink')} <strong>${tH('card.reject')}</strong> ${tH('card.rejectQuiet')}`)}
+        ${more(tMarks('card.approveRejectHint', {
+          word:  `<strong>${tH('card.approve')}</strong>`,
+          word2: `<strong>${tH('card.reject')}</strong>` }, { hours: requests.hours }))}
         <div class="kv"><span class="k">${tH('card.signup')}</span><span class="v" id="signup-state">${
           requests.an ? `<strong class="mail-on">${tH('card.on')}</strong>`
                       : `<strong class="mail-off">${tH('card.off')}</strong>`
@@ -12410,10 +12414,14 @@ function cardStats(fetched) {
              neben der Datenbank, und der Eigentuemer sollte das aendern. Der
              Befehl steht im Kasten „Auf dem Server" (Regel S5). */''}
         <div style="margin-top:14px">${stats.keyFromEnv
-          ? `<div class="ok-box">${tH('card.keyFromSetting')} <code>ENCRYPTION_KEY</code>. <strong><code>.env</code> ${tH('card.and')} <code>data/</code> ${tH('card.neverSameBackup')}</strong> ${tH('card.withoutKeyLost')}</div>`
+          ? `<div class="ok-box">${tMarks('card.keyFromSettingHint', {
+              word: '<code>ENCRYPTION_KEY</code>',
+              word2: `<strong>${tMarks('card.neverSameBackup',
+                { word: '<code>.env</code>', word2: '<code>data/</code>' })}</strong>` })}</div>`
           : (OWNER
             ? `<div class="warn-box">${tMark('card.keyBesideHint', 'card.keyBesideDb')}
-              <p style="margin:9px 0 6px">${tH('card.forRealProtection')} <strong>${tH('card.thisOne')}</strong> ${tH('card.valueInto')} <code>.env</code> ${tH('card.enterKeyHint')}</p>
+              <p style="margin:9px 0 6px">${tMarks('card.keyIntoEnvHint', {
+                word: `<strong>${tH('card.thisOne')}</strong>`, word2: '<code>.env</code>' })}</p>
               <code class="keyline" id="keyline">ENCRYPTION_KEY=${esc(stats.keyHex || '')}</code>
               ${serverBox(t('card.restartHint'), 'docker compose up -d')}
             </div>`
@@ -13521,7 +13529,18 @@ function askImport(file, limits) {
       return;
     }
     bd.innerHTML = `<div class="modal"><h2>${tH('card.import')}</h2>
-      <p>${tH('card.fileContains')} <strong>${info.count} ${esc(vThing(info.count))}</strong>${info.withPhotos ? ` <strong>${tH('card.withPhotos')}</strong>` : tH('card.withoutPhotosPlain')}${info.title ? tH('card.createdFrom', { title: info.title }) : ''}${info.date ? tH('card.onDate', { date: fmtDate(info.date.replace('T',' ').slice(0,19)) }) : ''}.</p>
+      <p>${tMarks('card.fileContainsHint', {
+        word: `<strong>${info.count} ${esc(vThing(info.count))}</strong>` }, {
+        /* EIGENE BESCHRIFTUNG STATT DER GELIEHENEN -- 0.31.1. Bis hierher
+           stand hier `card.withPhotos`, und das ist die Beschriftung des
+           EXPORTKNOPFES: „Mit Fotos (~" mit einer offenen Klammer, die der
+           Quelltext dort schliesst. Im Dialog schloss sie niemand, und es
+           stand „Die Datei enthaelt 12 Eintraege Mit Fotos (~, erstellt aus
+           ...". Das Gegenstueck „ ohne Fotos" gab es laengst als eigenen
+           Schluessel; jetzt gibt es beide. */
+        rest: info.withPhotos ? t('card.withPhotosPlain') : t('card.withoutPhotosPlain'),
+        from: info.title ? t('card.createdFrom', { title: info.title }) : '',
+        when: info.date ? t('card.onDate', { date: fmtDate(info.date.replace('T',' ').slice(0,19)) }) : '' })}</p>
       <p>${tH('card.importQuestion')}</p>
       <div class="warn-box">${tMark('card.replaceExplainHint', 'card.replace')}<br><br>
         ${tMark('card.mergeExplainHint', 'card.merge')}</div>
