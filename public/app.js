@@ -13377,11 +13377,15 @@ function setUpExportOut(fetched) {
       // wer ihn hat, kommt mit dem zweiten Knopf nicht davon.
       const alsoWithout = withoutPhotos > ex.warnFrom;
       boxId.innerHTML = `<div class="warn-box" style="margin:12px 0 0">
-        <strong>${tH('card.exportWithPhotos', { withPhotos: fmtBytes(withPhotos) })}</strong> ${tH('card.overMaxSize', { string: fmtBytes(ex.string) })}${alsoWithout
-          ? t('card.sizeWithoutPhotos', { withoutPhotos: fmtBytes(withoutPhotos) })
-          : t('card.withoutPhotosSize', { withoutPhotos: fmtBytes(withoutPhotos) })}).
-        <p style="margin:9px 0 0">${tH('card.uses')} <strong>${tH('card.exportPartsQuoted')}</strong>${tH('card.partCompleteEnd')}
-        <strong>${tH('card.backup')}</strong> ${tH('card.simpler')}</p></div>`;
+        ${tMarks('card.exportOverMaxHint',
+          { word: `<strong>${tH('card.exportWithPhotos', { withPhotos: fmtBytes(withPhotos) })}</strong>` },
+          { string: fmtBytes(ex.string),
+            rest: alsoWithout
+              ? t('card.sizeWithoutPhotos', { withoutPhotos: fmtBytes(withoutPhotos) })
+              : t('card.withoutPhotosSize', { withoutPhotos: fmtBytes(withoutPhotos) }) })}
+        <p style="margin:9px 0 0">${tMarks('card.usePartsHint', {
+          word: `<strong>${tH('card.exportPartsQuoted')}</strong>`,
+          word2: `<strong>${tH('card.backup')}</strong>` })}</p></div>`;
     });
   }
 
@@ -13439,9 +13443,10 @@ function setUpExportOut(fetched) {
       ${/* DER EINSPIELWEG GEHOERT AN DIE KARTE UND NICHT IN DIE DOKUMENTATION.
            Wer fuenf Dateien vor sich hat, muss ohne Nachschlagen wissen, in
            welcher Reihenfolge und mit welchem Knopf sie hineingehen. */''}
-      <p class="hint hint-sm" style="margin:10px 2px 0"><strong>${tH('card.toImport')}</strong>
-        ${tH('card.partWith')} <strong>${tH('card.replace')}</strong>${tH('card.restInOrder')}
-        <strong>${tH('card.merge')}</strong>${tH('card.shareSingleHint')}</p>` : ''}`;
+      <p class="hint hint-sm" style="margin:10px 2px 0">${tMarks('card.partOrderHint', {
+        word:  `<strong>${tH('card.toImport')}</strong>`,
+        word2: `<strong>${tH('card.replace')}</strong>`,
+        word3: `<strong>${tH('card.merge')}</strong>` })}</p>` : ''}`;
 
     /* GEFRAGT WIRD EINMAL, GEPRUEFT WIRD JE TEIL. Ohne das muesste das Passwort
        je Datei getippt werden -- bei fünf Teilen fünfmal. */
