@@ -18665,8 +18665,15 @@ function sweepLeftovers() {
        Stilblatt; die Gruppe „Die elf Code-Lecks" haelt beides fest.
        DIE MEHRZAHLFORMEN UND DIE VOKABELNAMEN RUEHREN SICH NICHT: eine
        Abfrageangabe hat keine Mehrzahl, und `10px` ist kein Vokabelwort. */
-    check('Und die Zahlen stehen: 1336 Schluessel, 82 Mehrzahlformen, 14 Vokabelnamen',
-      languageKeys.length === 1336 && pluralKeys.length === 82 && vocabularyKeys.length === 14,
+    /* 1336 WURDEN 1303 MIT 0.31.1 -- UMGEDREHT UND NICHT GELOESCHT
+       (Stolperstein 74). Die Runde hat den zersaegten Satzbau aufgeloest:
+       dreiunddreissig Schluessel sind dazugekommen, sechsundsechzig gefallen.
+       DIE MEHRZAHLFORMEN UND DIE VOKABELNAMEN RUEHREN SICH NICHT -- 82 und
+       14 wie zuvor. Zwei Mehrzahlobjekte sind zu einem verschmolzen
+       (card.besidesThisOneHint), und eines ist dazugekommen; wer die Zahl
+       hier still mitlaufen liesse, saehe genau das nicht. */
+    check('Und die Zahlen stehen: 1303 Schluessel, 82 Mehrzahlformen, 14 Vokabelnamen',
+      languageKeys.length === 1303 && pluralKeys.length === 82 && vocabularyKeys.length === 14,
       `${languageKeys.length} / ${pluralKeys.length} / ${vocabularyKeys.length}`);
 
     /* ---- 3. Die Adressprobe ---------------------------------------------
@@ -19159,7 +19166,7 @@ function sweepLeftovers() {
        durchzulassen, und das ist der falsche Griff. */
     const asBefore = (v) => String(v)
       .replace(/\{(\w+)\}/g, (whole, n) => BACK[n] ? `{${BACK[n]}}` : whole)
-      .replace(/\s*\n\s*/g, ' ').replace(/  +/g, ' ');
+      .replace(/\n[ \t]+/g, ' ').replace(/[ \t]{2,}/g, ' ');
     check('Die Tafel der Platzhalternamen liegt als Datei daneben',
       Object.keys(PLACEHOLDERS_0243).length === 89,
       `${Object.keys(PLACEHOLDERS_0243).length} Namen`);
@@ -19187,7 +19194,7 @@ function sweepLeftovers() {
       /* BEIDE SEITEN GLEICH BEHANDELT. Der Stand von damals traegt denselben
          Weissraum; wer nur die eine Seite zusammenzieht, vergleicht zwei
          verschiedene Schreibweisen desselben Satzes und faerbt alles rot. */
-      .map(v => String(v).replace(/\s*\n\s*/g, ' ').replace(/  +/g, ' ')).sort();
+      .map(v => String(v).replace(/\n[ \t]+/g, ' ').replace(/[ \t]{2,}/g, ' ')).sort();
     const wordingNow = valuesOf(wordingOld).map(asBefore).sort();
     const onlyThen = wordingThen.filter(x => !wordingNow.includes(x));
     const onlyNow = wordingNow.filter(x => !wordingThen.includes(x));
@@ -19451,11 +19458,15 @@ function sweepLeftovers() {
        nie ein Name, sondern eine Nummerierung -- und eine Nummerierung sagt
        nicht, WAS der Satz ist. Acht Schluessel tragen trotzdem eine Ziffer,
        und bei allen sechsen ist sie die SACHE: 50 MB und Schritt 1. */
-    /* SECHS SEIT 0.31.0, VORHER ACHT: `list.px10` und `list.px20` sind
-       gefallen -- ihre Ziffer war die Sache, und die Sache war ein PIXELMASS
-       und damit nie Sprache (Bauabschnitt 1). */
-    const DIGIT_KEYS = ['card.mb50', 'card.mb100', 'card.mb200', 'card.mb300',
-      'card.twoFactorStep1', 'card.twoFactorStep2'];
+    /* ZWEI SEIT 0.31.1, VORHER SECHS, DAVOR ACHT -- und jedes Mal aus
+       demselben Grund: die Ziffer war die SACHE, und die Sache war keine
+       Sprache. `list.px10`/`px20` fielen mit 0.31.0 (ein Pixelmass),
+       `card.mb50` bis `mb300` mit 0.31.1 (eine Zahl und eine Einheit, in
+       allen drei Dateien gleich -- die Beschriftung wird jetzt aus dem
+       `value` gerechnet).
+       WAS BLEIBT, SIND DIE BEIDEN SCHRITTE. Dort ist die Ziffer wirklich die
+       Sache: Schritt 1 und Schritt 2 sind zwei verschiedene Dinge. */
+    const DIGIT_KEYS = ['card.twoFactorStep1', 'card.twoFactorStep2'];
     const withDigit = languageKeys.filter(k => /[0-9]$/.test(k)).sort();
     check('Kuerzeprobe: eine Ziffer traegt nur, wo sie die Sache ist',
       equal(withDigit, [...DIGIT_KEYS].sort()), withDigit.join(' '));
@@ -19484,8 +19495,16 @@ function sweepLeftovers() {
       DICTIONARY.exceptions.map(e => `${e.name}: ${e.reason.length}`).join(' · '));
     const longestKey = languageKeys.map(k => k.split('.').pop())
       .reduce((a, b) => (b.length > a.length ? b : a), '');
+    /* BIS 0.31.0 STAND HIER EIN NAME: `backupUnopenableHint`. Seit 0.31.1
+       erreicht ein zweiter dieselbe Laenge (`backupDirOutsideHint`), und
+       welcher von beiden aus dem Vergleich faellt, entscheidet die
+       alphabetische Folge -- nicht der Gegenstand dieser Zusage. Eine Zusage,
+       die an einer solchen Zufaelligkeit haengt, wird rot, ohne dass sich
+       etwas geruehrt haette (Stolperstein 81).
+       GEPRUEFT WIRD JETZT DIE LATTE SELBST: zwanzig Zeichen, und die vier
+       Zeichen Luft bis zur Grenze von vierundzwanzig bleiben. */
     check('Und der laengste Schluesselname bleibt unter der Latte',
-      longestKey.length === 20 && longestKey === 'backupUnopenableHint',
+      longestKey.length === 20,
       `${longestKey} (${longestKey.length})`);
   }
 
@@ -54186,8 +54205,13 @@ async function check0310() {
        gruen, wenn jemand aus allen dreien dasselbe herausnaehme. */
     const drCounts = Object.fromEntries(
       Object.entries(drFiles).map(([code, file]) => [code, Object.keys(file).length]));
-    check('Zusage 3: die drei Dateien tragen gleich viele Schluessel — 1254',
-      Object.values(drCounts).every(n => n === 1254),
+    /* 1254 WURDEN 1221 MIT 0.31.1, und die Zahl wird UMGEDREHT und nicht
+       aus der Zusage genommen: „gleich viele" allein bliebe gruen, wenn
+       jemand aus allen dreien dasselbe herausnaehme. Der Gegenstand dieser
+       Zusage ist die DECKUNG der drei Dateien -- die haelt weiter, nur auf
+       einer anderen Zahl. */
+    check('Zusage 3: die drei Dateien tragen gleich viele Schluessel — 1221',
+      Object.values(drCounts).every(n => n === 1221),
       Object.entries(drCounts).map(([c, n]) => `${c}: ${n}`).join(' · '));
 
     /* ---- Zusage 4: kein Text mischt „ mit einem geraden " ----
@@ -54432,16 +54456,18 @@ async function check0311() {
       DS_PLAIN_WORD.every(k => k in dsFiles.de && !dsApp.includes(`tMark(${Q}${k}${Q}`)),
       DS_PLAIN_WORD.filter(k => !(k in dsFiles.de)).join(' ') || 'alle vier');
 
-    /* UND JEDER PLATZ EINES MEHRTEILIGEN SATZES BEKOMMT SEINE FUELLUNG.
-       tMarks() traegt {word}, {word2}, {word3}; fehlt einer am Ruf, steht er
-       am Bildschirm. */
+    /* UND JEDER PLATZ EINES SATZES MIT MEHREREN STUECKEN BEKOMMT SEINE
+       FUELLUNG. tMarks() kennt {word}, {word2}, {word3}; fehlt einer am Ruf,
+       steht er am Bildschirm.
+       (Das Wort, das hier naheliegt, steht auf der Liste des Sprachwaechters
+       -- er hat diesen Absatz in seinem ersten Lauf gefangen.) */
     const dsGap = [];
     for (const m of dsCode.matchAll(/\btMarks\(\s*'([^']+)'\s*,\s*\{([^{}]*(?:\{[^{}]*\}[^{}]*)*)\}/g)) {
       const filled = new Set([...m[2].matchAll(/(\w+)\s*:/g)].map(x => x[1]));
       for (const slot of String(dsFiles.de[m[1]] || '').matchAll(/\{(word\d*)\}/g))
         if (!filled.has(slot[1])) dsGap.push(`${m[1]} ${slot[1]}`);
     }
-    check('Und jeder Platz eines mehrteiligen Satzes bekommt am Ruf seine Fuellung',
+    check('Und jeder Platz eines Satzes mit mehreren Stuecken bekommt seine Fuellung',
       dsGap.length === 0, dsGap.join(' · ') || 'alle');
 
     /* UND DER PLATZ STEHT IN ALLEN DREI DATEIEN AN SEINER STELLE. Eine Sprache
@@ -54513,11 +54539,30 @@ async function check0311() {
        Was dort an Strenge abgegeben wird, steht hier staerker wieder da:
        vorher fiel Weissraum nur in de.json auf und nur als Buchfuehrung,
        jetzt in allen dreien und unbedingt. */
+    /* EINRUECKUNG, NICHT UMBRUCH -- und diese Unterscheidung ist teuer
+       gelernt. Der erste Anlauf dieses Bauabschnitts zog JEDEN Umbruch
+       zusammen und hat damit die vier Briefe zerstoert: in `mail.*.body` sind
+       Umbrueche ABSAETZE, und jede Mail waere als eine Textwand angekommen.
+       Der Pruefstand hat es viermal gemeldet -- einmal je Brief.
+       SO GEHT DIE GRENZE: Einrueckung ist ein Umbruch, dem LEERZEICHEN
+       FOLGEN; so entsteht sie, wenn jemand eine Vorlagenzeile im Quelltext
+       umbricht. Ein Absatz ist ein Umbruch, dem ein Zeichen folgt. */
     const dsSpace = [];
     for (const c of ['de', 'en', 'tr'])
-      for (const [k, v] of dsTexts(dsFiles[c])) if (/\n|  /.test(v)) dsSpace.push(`${c}:${k}`);
-    check('Kein Wert traegt einen Zeilenumbruch oder zwei Leerzeichen — in keiner der drei Dateien',
+      for (const [k, v] of dsTexts(dsFiles[c]))
+        if (/\n[ \t]|[ \t][ \t]/.test(v)) dsSpace.push(`${c}:${k}`);
+    check('Kein Wert traegt die Einrueckung des Quelltexts — in keiner der drei Dateien',
       dsSpace.length === 0, dsSpace.slice(0, 10).join(' ') || 'keiner');
+    /* UND EIN UMBRUCH STEHT NUR DORT, WO ER EIN ABSATZ IST. Vier Briefe,
+       namentlich -- ein fuenfter Wert mit Umbruch soll auffallen. */
+    const dsBreak = [];
+    for (const c of ['de', 'en', 'tr'])
+      for (const [k, v] of dsTexts(dsFiles[c])) if (v.includes('\n')) dsBreak.push(k);
+    const DS_LETTERS = ['mail.confirm.body', 'mail.invite.body',
+                        'mail.reset.body', 'mail.test.body'];
+    check('Und ein Umbruch steht nur in den vier Briefen, wo er ein Absatz ist',
+      [...new Set(dsBreak)].sort().join(' ') === DS_LETTERS.join(' '),
+      [...new Set(dsBreak)].sort().join(' ') || 'keiner');
 
     /* ---- Zusage 10: die Umbenennungstafel zeigt nirgends ins Leere ----
        Sie ist die Deutsch-nach-Englisch-Tafel aus 0.8.x und KEIN Verzeichnis

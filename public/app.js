@@ -7440,7 +7440,7 @@ async function renderDetail(id, termAddress) {
            offen, ueber WEN der erste geht. Genau das war die Frage aus dem
            Betrieb. Zwei Woerter, und sie stehen dort, wo die Zahl ohnehin
            erklaert wird. */''}
-      <p><strong>${tH('entry.calcTwoSteps')}</strong> ${tMark('entry.calcTwoStepsHint', 'entry.grade')}${withWeight
+      <p><strong>${tH('entry.calcTwoSteps')}</strong> ${tMark('entry.calcStepsHint', 'entry.grade')}${withWeight
           ? t('entry.calcWithWeight')
           : t('entry.calcAllEqual')}.</p>
       <div class="calc" id="calc">
@@ -9436,7 +9436,7 @@ function setUpSessionsOut(fetched) {
        zuverlaessig nichts tut, sieht aus wie ein Fehler. */
     if (!foot) return;
     foot.innerHTML = other
-      ? `<p class="desc" style="margin:10px 0 8px">${tMarks('card.besidesThisOneHint',
+      ? `<p class="desc" style="margin:10px 0 8px">${tMarks('card.otherSessionsHint',
           { word: `<strong>${tH('card.moreSessions', { n: other })}</strong>` }, { n: other })}
           ${tH('card.sessionIdleHint', { days: d.days || 30 })}</p>
          <button class="btn btn-sm" id="sessions-all">${tH('card.endOtherSessions')}</button>`
@@ -9726,7 +9726,7 @@ function cardCriteria(phase) {
         ${before ? `<p class="desc">${tMark('card.potentialStarsHint', 'card.before')}
              ${ADMIN ? t('card.criteriaHint') : t('card.listAdminHint')}</p>
            ${ADMIN ? more(`${tH('card.criteriaTip')} <em>${tH('card.wanted')}</em> ${tH('card.weight')}
-             <em>${tH('card.use')}</em>, ${tMark('card.criteriaTipEndHint', 'card.feasibility')}`) : ''}`
+             <em>${tH('card.use')}</em>, ${tMark('card.criteriaOrderHint', 'card.feasibility')}`) : ''}`
           : `<p class="desc">${ADMIN
           ? t('card.criteriaHintDelete')
           : tH('card.criteriaAdminHint')}</p>
@@ -11107,7 +11107,7 @@ function cardUsers() {
   return `<div class="sys-card wide">
         <h3>${tH('card.user')}</h3>
         <p class="desc">${tH('card.usersHint')}</p>
-        ${more(`${tMark('card.lockInsteadCardHint', 'card.lockNotDelete')} ${OWNER
+        ${more(`${tMark('card.lockInsteadHint', 'card.lockNotDelete')} ${OWNER
             ? t('card.rolesYouOnly')
             : t('card.rolesOwnerHint')}`)}
         ${/* DER KASTEN ZU DEN DOPPELTEN ADRESSEN -- 0.29.0, Befund 4. Er ist
@@ -11156,7 +11156,7 @@ function cardUsers() {
               ihm hilft der Name dessen, der es kann. */''}
         ${OWNER
           ? `<div style="margin-top:16px">${serverBox(t('card.lockedOutHint'), 'docker compose exec kriterion node usertool.js passwort <name>')}</div>`
-          : `<p class="desc" style="margin:16px 0 0">${tMark('card.lockedOutHintCard', 'card.owner')}</p>`}
+          : `<p class="desc" style="margin:16px 0 0">${tMark('card.lockedOutCard', 'card.owner')}</p>`}
       </div>`;
 }
 function setUpUsersOut() {
@@ -12412,7 +12412,7 @@ function cardStats(fetched) {
         <div style="margin-top:14px">${stats.keyFromEnv
           ? `<div class="ok-box">${tH('card.keyFromSetting')} <code>ENCRYPTION_KEY</code>. <strong><code>.env</code> ${tH('card.and')} <code>data/</code> ${tH('card.neverSameBackup')}</strong> ${tH('card.withoutKeyLost')}</div>`
           : (OWNER
-            ? `<div class="warn-box">${tMark('card.keyBesideDbHint', 'card.keyBesideDb')}
+            ? `<div class="warn-box">${tMark('card.keyBesideHint', 'card.keyBesideDb')}
               <p style="margin:9px 0 6px">${tH('card.forRealProtection')} <strong>${tH('card.thisOne')}</strong> ${tH('card.valueInto')} <code>.env</code> ${tH('card.enterKeyHint')}</p>
               <code class="keyline" id="keyline">ENCRYPTION_KEY=${esc(stats.keyHex || '')}</code>
               ${serverBox(t('card.restartHint'), 'docker compose up -d')}
@@ -13377,7 +13377,7 @@ function setUpExportOut(fetched) {
       // wer ihn hat, kommt mit dem zweiten Knopf nicht davon.
       const alsoWithout = withoutPhotos > ex.warnFrom;
       boxId.innerHTML = `<div class="warn-box" style="margin:12px 0 0">
-        ${tMarks('card.exportOverMaxHint',
+        ${tMarks('card.exportOversizeHint',
           { word: `<strong>${tH('card.exportWithPhotos', { withPhotos: fmtBytes(withPhotos) })}</strong>` },
           { string: fmtBytes(ex.string),
             rest: alsoWithout
@@ -13523,8 +13523,8 @@ function askImport(file, limits) {
     bd.innerHTML = `<div class="modal"><h2>${tH('card.import')}</h2>
       <p>${tH('card.fileContains')} <strong>${info.count} ${esc(vThing(info.count))}</strong>${info.withPhotos ? ` <strong>${tH('card.withPhotos')}</strong>` : tH('card.withoutPhotosPlain')}${info.title ? tH('card.createdFrom', { title: info.title }) : ''}${info.date ? tH('card.onDate', { date: fmtDate(info.date.replace('T',' ').slice(0,19)) }) : ''}.</p>
       <p>${tH('card.importQuestion')}</p>
-      <div class="warn-box">${tMark('card.importReplaceExplainHint', 'card.replace')}<br><br>
-        ${tMark('card.importMergeExplainHint', 'card.merge')}</div>
+      <div class="warn-box">${tMark('card.replaceExplainHint', 'card.replace')}<br><br>
+        ${tMark('card.mergeExplainHint', 'card.merge')}</div>
       <div class="modal-acts">
         <button class="btn btn-ghost" data-cancel>${tH('dialog.cancel')}</button>
         <button class="btn" data-merge>${tH('card.merge')}</button>
