@@ -1,6 +1,6 @@
 # Projektstand — Kriterion
 
-**Kompakte Übergabe · Revision 90 · Stand 13. September 2026 · gebaut: Version 0.31.3**
+**Kompakte Übergabe · Revision 91 · Stand 13. September 2026 · gebaut: Version 0.31.4**
 
 Dieses Blatt ist der **einzige Ort, an dem steht, was gebaut ist und was
 bindet.** Es genügt, um in einem frischen Chat weiterzuarbeiten, ohne den alten
@@ -478,7 +478,53 @@ weiterhin offen. Daraus folgt die Stellung von `HINTER_PROXY` (Abschnitt 3).
 
 ## 2. Betriebsstand
 
-**Gebaut ist 0.31.3** — *die Zahlen des Prüfstands stehen im Änderungsprotokoll
+**Gebaut ist 0.31.4** — *die Zahlen des Prüfstands stehen im Änderungsprotokoll
+0.31.4.* **0.31.4 löst den Zielkonflikt auf, den 0.31.3 gemessen hat:** *hinter
+einer Zahl steht auf Türkisch die Einzahl, sonst die Mehrzahl — und die
+Sprachdatei sagt das selbst, im Kopfschlüssel `_afterNumber`.*
+
+> ## DIE REGEL GEHÖRT DER SPRACHE, UND SEIT 0.31.4 STEHT SIE AUCH DORT
+>
+> **`Intl.PluralRules` KANN ES NICHT WISSEN:** *sie wählt nach dem **Wert** von
+> `n`, das Türkische nach der **Stellung** — steht ein Zahlwort davor oder
+> nicht. `select(3)` ist `other`, und das heißt dort nicht „hänge `-lar` an".*
+> **Die Auskunft, die der Code bräuchte, sieht die Schnittstelle nie.**
+>
+> **ALSO SAGT SIE DIE DATEI:** `"_afterNumber": "one"` *in `tr.json`,*
+> `"plural"` *in `de.json` und `en.json` — das Verhalten von vorher. Fehlt der
+> Schlüssel, gilt `plural`: eine vierte Sprachdatei scheitert daran nicht
+> (0.24.0).* **`counted()` neben `plural()`, an acht Zählerstellen.**
+>
+> **FÜR DEUTSCH UND ENGLISCH ÄNDERT SICH KEIN WORT** — *am zweiten Gang der
+> Gleichlautprobe nachgesehen: dort kommen und gehen ausschließlich
+> Quelltextwörter. Die sechs Prüfsummen sind trotzdem andere, weil die Probe
+> den ganzen Quelltext liest und die Runde in `app.js` baut.*
+>
+> **DIE FÜNF TÜRKISCHEN VOKABELMEHRZAHLEN HEISSEN JETZT** `Öğeler`,
+> `Test günleri`, `Raporlar`, `Görevler`, `Değerlendirmeler` — *und
+> „3 yorumlar", „3 dosyalar", „3 Videolar" sind weg.* **1197 → 1198
+> Schlüssel.**
+>
+> **EINE PROBE LIEST DEN FERTIGEN BILDSCHIRMSATZ UND NICHT DIE DATEI** *(Auftrag
+> F8)*: `app.js` läuft dabei wirklich, mit den echten Sprachdateien, und
+> dreizehn Zählerstellen werden mit 0, 1, 2, 3, 11, 21 und 100 ausgefüllt —
+> **91 gerenderte Sätze.** *Sie musste so gebaut werden, weil „3 yorumlar" in
+> KEINER Datei steht: `countWord` setzt Zahl und Wort aus zwei Schlüsseln
+> zusammen. **Drei der acht Gegenproben fängt nur sie.***
+>
+> **UND DER AUGENSCHEIN HAT DABEI EINEN BEFUND GEMACHT, den kein Muster über
+> eine Datei findet:** *die Vorschau der Karte „Vokabular" setzte die Mehrzahl
+> selbst hinter eine Zahl — „7 Öğeler", als Zahl in einem String, ohne
+> `plural()` und ohne `counted()`.* **Sie fragt jetzt die Stellungsregel der
+> GEZEIGTEN Sprache** — *die Karte pflegt die Wörter einer anderen Sprache als
+> die, in der sie dasteht; ein Blick auf die Sprache des Lesers hätte
+> ausgerechnet den Fall des Betreibers verfehlt.* **Der Server nennt die Regel
+> dafür je Sprache in seiner Sprachtafel** (`languageEntries()`, Feld
+> `afterNumber`), *abgeleitet aus `_afterNumber` der Datei.* **Auf Deutsch und
+> Englisch steht weiter „7 Einträge".**
+
+**Was 0.31.3 gebaut hat, gilt unverändert weiter:** *die Zahlen des
+Prüfstands jener Runde stehen im Änderungsprotokoll
 0.31.3.* **0.31.3 bringt das Türkische auf den Stand des Deutschen** — *die
 LETZTE der vier Runden der 31er-Strecke, und die schwerste der drei Sprachen:
 Türkisch ist agglutinierend und SOV, ein Satz, der dem deutschen Wort für Wort
@@ -1856,6 +1902,7 @@ Ursache war **eine Datei zu viel** auf dem Wirt (Stolperstein 158).
 
 | Version | Fingerprint | Prüfungen |
 |---|---|---|
+| **0.31.4** | `85521c1b` *(gerechnet am 13. September 2026 **als letztes und hinter der letzten Zeile**; aus zwei Quellen bestätigt — am Arbeitsbaum über dieselben achtzehn Dateien nachgerechnet und aus dem Server selbst gelesen, **alle achtzehn Einzelwerte gleich**. Die dritte steht aus. Die Runde fasst `public/app.js`, `server.js`, die drei Sprachdateien, `testbench.js`, `counterproof.js` und `package.json` an)* | 6990 |
 | **0.31.3** | `68cd1c14` *(gerechnet am 13. September 2026 **als letztes und hinter der letzten Zeile**; aus zwei Quellen bestätigt — am Arbeitsbaum über dieselben achtzehn Dateien nachgerechnet und aus dem Server selbst gelesen, **alle achtzehn Einzelwerte gleich**. Die dritte steht aus. Die Runde fasst `public/languages/tr.json`, `testbench.js`, `counterproof.js`, `tools/` und `package.json` an)* | 6951 |
 | **0.31.2** | `0745f9bd` *(gerechnet am 13. September 2026 **als letztes und hinter der letzten Zeile**; **am selben Tag von der laufenden Installation gemeldet — im Feld bestätigt, genau der Sollwert; drei Quellen, ein Wert**. Am Arbeitsbaum über dieselben achtzehn Dateien nachgerechnet und aus dem Server selbst gelesen, **alle achtzehn Einzelwerte gleich**. Die Runde fasst `public/languages/en.json`, zwei Werte in `de.json` und `package.json` an — mehr nicht)* | 6905 |
 | **0.31.1** | `47cfba37` *(gerechnet am 13. September 2026 **als letztes und hinter der letzten Zeile**; aus zwei Quellen bestätigt — am Arbeitsbaum über dieselben achtzehn Dateien nachgerechnet und aus dem Server selbst gelesen, **alle achtzehn Einzelwerte gleich**. Die dritte steht aus. Die Runde fasst `public/app.js`, die drei Sprachdateien und `package.json` an)* | 6877 |

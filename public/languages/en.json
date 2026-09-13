@@ -1,4 +1,5 @@
 {
+  "_afterNumber": "plural",
   "_locale": "en-GB",
   "_name": "English",
   "card.accountHint": "Username, email address and password of your account.",

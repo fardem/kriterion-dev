@@ -29,6 +29,26 @@ bleiben in der Form ihrer Zeit.*
 
 *Hier wird mitgeschrieben, während gebaut wird.*
 
+## [0.31.4] - 2026-09-13
+
+> **NICHTS ZU TUN.** Kein Schemaanteil, kein Migrationsblock, das
+> Austauschformat bleibt 16. Einspielen und fertig.
+
+### Geändert
+
+- **Auf Türkisch heißt es jetzt „3 Öğe" und „Öğeler"** — hinter einer Zahl die Einzahl, sonst die Mehrzahl. Das ist die Regel der Sprache: nach einem Zahlwort trägt das Substantiv im Türkischen keine Mehrzahlendung, ohne Zahl sehr wohl. Die Vokabelwörter heißen in der Mehrzahl jetzt **Öğeler, Test günleri, Raporlar, Görevler, Değerlendirmeler** — wer eigene Wörter einträgt, trägt beide Formen ein wie bisher.
+- **„3 yorumlar", „3 dosyalar", „3 Videolar" sind weg** — auch die fünf festen Wortpaare standen hinter einer Zahl in der Mehrzahl.
+- **Die Vorschau in „Vokabular" zeigt die Mehrzahl jetzt so, wie die gezeigte Sprache sie schreibt** — auf Türkisch stand dort „7 Öğeler", eine Stelle, die es am Bildschirm nicht gibt. Auf Deutsch und Englisch steht weiter „7 Einträge".
+- **Für Deutsch und Englisch ändert sich kein Wort.** Beide Sprachdateien sagen `"_afterNumber": "plural"`, und das ist genau das Verhalten von vorher.
+
+### Intern
+
+- **Eine Sprachdatei sagt jetzt selbst, welche Form hinter einer Zahl steht** — der neue Kopfschlüssel `_afterNumber` neben `_locale` und `_name`. `Intl.PluralRules` kann es nicht wissen: sie wählt nach dem Wert der Zahl, das Türkische nach ihrer Anwesenheit. Fehlt der Schlüssel, gilt `plural` — eine vierte Sprachdatei scheitert daran nicht.
+- **`counted()` neben `plural()`** — acht Stellen, an denen eine Zahl und ein Wort nebeneinander stehen, gehen jetzt durch sie.
+- **Elf Zusagen und acht Gegenproben** für die neue Regel; die Wächter von 0.24.4 und 0.31.3 haben sich mitgedreht.
+- **Eine Probe liest den fertigen Bildschirmsatz und nicht die Datei** — `app.js` läuft dabei wirklich, mit den echten Sprachdateien, und dreizehn Zählerstellen werden mit 0, 1, 2, 3, 11, 21 und 100 ausgefüllt. Drei der acht Rückbauten fängt nur sie.
+- **Die Sprachtafel des Servers nennt je Sprache ihre Stellungsregel** — das braucht die Karte „Vokabular": sie pflegt die Wörter einer anderen Sprache als die, in der sie dasteht.
+
 ## [0.31.3] - 2026-09-13
 
 > **NICHTS ZU TUN.** Kein Schemaanteil, kein Migrationsblock, das

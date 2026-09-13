@@ -1639,11 +1639,26 @@ yedekleme — 0.25.1)*, `counterproof.js`.
 
 ---
 
-## 32. Am Bildschirm steht „3 yorumlar" — die Mehrzahl hinter einer Zahl, aus zwei Schlüsseln zusammengesetzt
+## 32. ~~Am Bildschirm steht „3 yorumlar"~~ — **GEBAUT in 0.31.4**
 
 **Art: Fehler** *(an der türkischen Oberfläche)* **· Herkunft: 0.31.3, beim
 AUGENSCHEIN gefunden — kein Blick in die Sprachdatei findet ihn ·
-Einschätzung: eine Entscheidung des Betreibers, kein Handgriff**
+ERLEDIGT: 0.31.4, und zwar auf Weg B**
+
+> **DER BETREIBER HAT AM 13. SEPTEMBER 2026 ENTSCHIEDEN, im Wortlaut:**
+> *„Dann machen da so das an den Stellen wo ein Zahl steht das Wort für
+> Einzahlig kommt für die anderen der Mehrzlige und dort trage ich dann z. B.
+> Ögeler ein"*
+>
+> **GEBAUT IST ES ÜBER EINEN KOPFSCHLÜSSEL IN DER SPRACHDATEI** —
+> `_afterNumber`, neben `_locale` und `_name`. *Ein fünfzehnter Vokabelplatz
+> war dafür nicht nötig: die beiden Plätze gab es schon, es fehlte nur die
+> Auskunft, welchen eine Stelle mit Zahl davor nehmen muss.* **Punkt 19 bleibt
+> damit abgelehnt und ist trotzdem erledigt.**
+>
+> *Das Änderungsprotokoll 0.31.4 trägt die Einzelheiten. Was unten steht, ist
+> der Befund, wie er vorlag — er bleibt stehen, weil er erklärt, warum der Weg
+> der richtige war.*
 
 ### Was dasteht
 
