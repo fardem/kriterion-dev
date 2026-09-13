@@ -4897,7 +4897,7 @@ async function renderOpen() {
   app.innerHTML = `<div class="shell">
     ${subhead()}
     <h1 class="page-title">${tH('list.openTasks')}</h1>
-    <p class="hint" id="open-hint" style="margin:0 0 ${multipleUsers() ? t('list.px10') : t('list.px20')}"></p>
+    <p class="hint page-hint${multipleUsers() ? ' above-pills' : ''}" id="open-hint"></p>
     ${multipleUsers() ? `<div class="pills" id="open-view" style="margin:0 0 20px"></div>` : ''}
     <div id="open-list"></div>
   </div>`;
@@ -5097,7 +5097,7 @@ async function renderCompare() {
   app.innerHTML = `<div class="shell">
     ${subhead()}
     <h1 class="page-title">${tH('list.compare')}</h1>
-    <p class="hint" id="cmp-hint" style="margin:0 0 ${multipleUsers() ? t('list.px10') : t('list.px20')}"></p>
+    <p class="hint page-hint${multipleUsers() ? ' above-pills' : ''}" id="cmp-hint"></p>
     ${multipleUsers() ? `<div class="pills" id="cmp-view" style="margin:0 0 20px"></div>` : ''}
     <div class="cmp-grid" id="cg" style="grid-template-columns:repeat(auto-fit,minmax(264px,1fr))"></div>
   </div>`;
@@ -5252,7 +5252,7 @@ let lightboxOpen = false;
    -- und damit genau das Verhalten bis 0.19.4, nicht `?v=undefined`. */
 function imageSource(p, filesize) {
   if (p.source === 'comment')
-    return `/api/comment-images/${p.id}/raw${filesize === 'thumb' ? t('list.thumbQuery') : ''}`;
+    return `/api/comment-images/${p.id}/raw${filesize === 'thumb' ? '?size=thumb' : ''}`;
   if (!filesize) return `/api/photos/${p.id}/raw`;
   const f = Number(p.thumbLength);
   const version = filesize === 'thumb' && Number.isFinite(f) ? `&v=${f}` : '';
@@ -7838,7 +7838,7 @@ async function renderDetail(id, termAddress) {
           // kippen -- .sname steht deshalb im ignore von makeSortable.
           s.onclick = (e) => {
             e.stopPropagation();
-            window.open(searchAddress(a.template, l.url), t('entry.targetBlank'), t('entry.linkRel'));
+            window.open(searchAddress(a.template, l.url), '_blank', 'noopener,noreferrer');
           };
           nameBox.appendChild(s);
         });
@@ -7858,13 +7858,13 @@ async function renderDetail(id, termAddress) {
       makeSortable(row, {
         axis: 'y', selector: '.lrow', ignore: '.xdel, .sname',
         onClick: () => {
-          if (!search) return window.open(l.url, t('entry.targetBlank'), t('entry.linkRel'));
+          if (!search) return window.open(l.url, '_blank', 'noopener,noreferrer');
           // Ohne gueltigen Standard wird nicht ersatzweise woanders gesucht --
           // die Zeile sagt dann, dass nichts eingestellt ist.
           if (!isDefault) return toast(ADMIN
             ? t('entry.noSearchEngineHint')
             : t('entry.noSearchEngine'), true);
-          window.open(searchAddress(isDefault.template, l.url), t('entry.targetBlank'), t('entry.linkRel'));
+          window.open(searchAddress(isDefault.template, l.url), '_blank', 'noopener,noreferrer');
         },
         onDrop: async (children) => {
           try {
@@ -8367,7 +8367,7 @@ async function renderDetail(id, termAddress) {
     });
   }
   const takeImages = (files) => {
-    const images = files.filter(f => f.type.startsWith(t('entry.imagePrefix')));
+    const images = files.filter(f => f.type.startsWith('image/'));
     if (!images.length) return;
     if (newImages.length + images.length > 6) return toast(t('entry.imageCapHint'), true);
     newImages = [...newImages, ...images];
@@ -12666,6 +12666,16 @@ function setUpImageStoreOut(fetched) {
 }
 
 
+/* DER NAME DER COMPOSE-DATEI -- 0.31.0, Bauabschnitt 1.
+   ER STAND BIS 0.30.3 ALS `card.composeFile` IN DEN SPRACHDATEIEN, und in
+   allen dreien las er sich gleich: „docker-compose.yml". Ein Text, der in drei
+   Sprachen gleich lautet, ist kein Text -- es ist der Name einer Datei, und
+   Dateinamen werden nicht uebersetzt (Regel S8, dieselbe, nach der
+   `public/languages/` schon immer hier steht und nicht dort).
+   ALS KONSTANTE UND NICHT ALS LITERAL IM SATZ: so steht der Name EINMAL da,
+   und der Rest der Vorlage bleibt Auszeichnung. */
+const COMPOSE_FILE = 'docker-compose.yml';
+
 /* ---- Karte „Sicherung" — Abschnitt „Datenbank" ---- */
 function cardBackup() {
   return `<div class="sys-card">
@@ -12751,7 +12761,7 @@ function setUpBackupOut(fetched) {
        Der grüne Fall sagt nicht "alles gut", sondern was daran gut ist:
        sonst liest ihn beim nächsten Umbau niemand mehr. */
     const situation = d.inWorkDir
-      ? `<div class="warn-box" id="backup-place" style="margin:0 0 12px"><strong>${tH('card.backupDirInProject')}</strong> ${tH('card.backupDirAdvice')} <code>${tH('card.composeFile')}</code>.</div>`
+      ? `<div class="warn-box" id="backup-place" style="margin:0 0 12px"><strong>${tH('card.backupDirInProject')}</strong> ${tH('card.backupDirAdvice')} <code>${COMPOSE_FILE}</code>.</div>`
       : `<div class="ok-box" id="backup-place" style="margin:0 0 12px">${tH('card.backupDirIs')}
            <strong>${tH('card.outsideProject')}</strong> ${tH('card.untouchedByUpdates')}</div>`;
     box.innerHTML = `
@@ -13254,8 +13264,8 @@ function setUpExportOut(fetched) {
 
   // Dateien haben einen eigenen Schalter mit Vorgabe aus: bei 50 MB je Datei
   // waere die Exportdatei sonst schnell unhandlich.
-  const withFiles = () => (document.getElementById('ex-files')?.checked ? t('card.filesQuery') : '') +
-                           (document.getElementById('ex-videos')?.checked ? t('card.videosQuery') : '');
+  const withFiles = () => (document.getElementById('ex-files')?.checked ? '&files=1' : '') +
+                           (document.getElementById('ex-videos')?.checked ? '&videos=1' : '');
   /* DER EXPORT BLEIBT EINE NAVIGATION -- die Datei laeuft damit an der Platte
      vorbei statt vollstaendig im Speicher zu stehen. Die zweite Bestaetigung
      steht deshalb DAVOR und nicht darin: sie holt die Freigabe, danach faehrt
@@ -13308,7 +13318,7 @@ function setUpExportOut(fetched) {
      genau deshalb gibt es hier kein neues Format und keinen zweiten Leser.
      GESCHNITTEN WIRD AM SERVER und nicht hier: dort liegen die Groessen, und
      eine zweite Rechnung in der Oberflaeche liefe irgendwann auseinander. */
-  const partSwitch = () => t('card.photosQuery') + withFiles();
+  const partSwitch = () => 'photos=1' + withFiles();
   async function drawPartPlan() {
     const boxId = document.getElementById('ex-plan-out');
     if (!boxId) return;
@@ -13378,7 +13388,7 @@ function setUpExportOut(fetched) {
     boxId.querySelectorAll('.ex-part-load').forEach(k => {
       k.onclick = () => {
         window.location = `/api/export?${partSwitch()}` +
-          t('card.partQuery', { from: k.dataset.from, to: k.dataset.to, part: k.dataset.nr, n: n });
+          `&from=${k.dataset.from}&to=${k.dataset.to}&part=${k.dataset.nr}&parts=${n}`;
         k.disabled = true;
         k.innerHTML = `${ICON_CHECK} ${tH('card.partLoaded')}`;
       };

@@ -1358,6 +1358,20 @@ mark {
 .hint-sm { font-size: .8rem; }
 .input-sm { font-size: .87rem; }
 .select-sm { font-size: .9rem; }
+/* DER ABSTAND UNTER DEM HINWEIS EINER LISTENSEITE -- 0.31.0, Bauabschnitt 1.
+   ER STAND BIS 0.30.3 IN DEN SPRACHDATEIEN: `list.px10` und `list.px20` trugen
+   „10px" und „20px", und der Aufrufort waehlte inline zwischen ihnen
+   (`style="margin:0 0 ${…}"`). In allen drei Dateien stand dreimal dasselbe --
+   ein Abstand ist keine Sprache, sondern ein Mass.
+   UND EINE KONSTANTE IM SKRIPT WAERE DERSELBE FEHLER AN ANDERER STELLE
+   GEWESEN (Auftrag 0.31.0, F2): sie stuende dann inline am Knoten und damit
+   ausserhalb des Stilblatts -- unerreichbar fuer jede spaetere Regel, genau
+   wie die Schriftgroessen drei Zeilen darueber vor 0.22.0.
+   ZEHN PIXEL, WENN EINE PILLENREIHE FOLGT, sonst zwanzig: bei mehreren
+   Zugaengen steht der Umschalter „meine/alle" zwischen Hinweis und Liste und
+   bringt seinen eigenen Abstand mit. Beide Masse sind die alten. */
+.page-hint { margin: 0 0 20px; }
+.page-hint.above-pills { margin-bottom: 10px; }
 .row-in { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
 .row-in .input { flex: 1; min-width: 145px; }
 /* ---- Die Auswahl der Kategorie im Eintrag -- 0.29.0, Befund 7 ----

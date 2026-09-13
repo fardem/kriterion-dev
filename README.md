@@ -992,7 +992,7 @@ verfällt von selbst.
 
 Die Karte **„Meine Sitzungen"** in den Einstellungen steht **jedem**, auch ohne
 Rolle. Sie zeigt, wo dein Konto überall angemeldet ist — wann angemeldet, wann
-zuletzt gesehen, und welche davon die gerade benutzte ist. Der Knopf **„Alle
+zuletzt aktiv, und welche davon die gerade benutzte ist. Der Knopf **„Alle
 anderen Sitzungen beenden"** wirft alle übrigen hinaus; die eigene bleibt.
 
 **Was die Karte nicht kann, und sie sagt es selbst:** sie kennt **kein Gerät**.
@@ -2371,7 +2371,7 @@ sieht** — in „Einstellungen → Persönlich → Darstellung", drei Stufen:
 |---|---|
 | **Hell** | die helle Oberfläche, immer |
 | **Dunkel** | die dunkle, immer — **die Vorgabe** |
-| **Wie das Gerät** | folgt der Einstellung des Betriebssystems und wechselt mit ihr, ohne Neuladen |
+| **Auto** | folgt der Einstellung des Betriebssystems und wechselt mit ihr, ohne Neuladen |
 
 **Wer nichts einstellt, bekommt dunkel.** Die Einstellung gehört dem Zugang und
 nicht der Installation: zwei Leute an derselben Installation können
@@ -2559,7 +2559,7 @@ nennt** *(„Das Einfügen über die Zwischenablage führt zu erheblich größer
 Dateien.")*. Was daraus folgt, entscheidet jeder selbst — die Anwendung gibt
 dazu keinen Rat.
 
-**Daneben steht der Knopf „Vorhandene Bilder umstellen"** für den vorhandenen
+**Daneben steht der Knopf „Vorhandene Bilder konvertieren"** für den vorhandenen
 Bestand — er fragt vorher das Passwort und sagt, was er tut: die alte Fassung
 ist danach weg, und zurück führt nur eine vorher angelegte Sicherung des
 Datenverzeichnisses. **Das Umschalten allein rührt den Bestand nicht an**; wer
@@ -2577,7 +2577,7 @@ sind neu gesetzt und nicht übernommen — `thumb` auf Qualität 82, `medium` au
 dieselbe Zahl bedeutet in JPEG und WebP nicht dasselbe. Gemessen an drei
 Bildarten spart das bei der Kachel 52 / 5 / 6 % und bei der mittleren
 9 / 27 / 30 % — bei durchweg **kleinerer** Abweichung als vorher.
-**Der Knopf „Vorhandene Bilder umstellen" zieht beide Hälften in einem
+**Der Knopf „Vorhandene Bilder konvertieren" zieht beide Hälften in einem
 Durchgang nach:** die Originale nach dem gewählten Verfahren und jede Ableitung,
 die noch JPEG ist.
 

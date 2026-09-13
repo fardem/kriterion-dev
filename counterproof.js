@@ -648,8 +648,8 @@ const REGRESSIONS = [
     /* DIE ZEILE STEHT ZWEIMAL -- in der Einladung und in der Ruecksetzung.
        Genommen wird die der EINLADUNG; die naechsten Zeilen machen sie
        eindeutig. */
-    search: "Danach brauchst du einen neuen Link vom Admin.\\n\\nWer diesen Link hat, kommt herein",
-    replacement: "\\nWer diesen Link hat, kommt herein",
+    search: "Danach brauchst du einen neuen Link vom Admin.\\n\\nWer diesen Link hat, kommt in deinen Zugang",
+    replacement: "\\nWer diesen Link hat, kommt in deinen Zugang",
     expected: 'Der Mailversand: das echte SMTP-Gespraech'
   },
   /* ---- Die Marke der Instanz ---- */
@@ -4303,8 +4303,8 @@ const REGRESSIONS = [
        ein Rueckbau an der Einzahl blieb deshalb STUMM. */
     nr: '472', name: 'Der Dialog sagt nicht mehr, dass es dauern kann',
     file: 'public/languages/de.json',
-    search: "werden umgestellt, die Originale ersetzt (danach etwa {after}). Dabei wird jedes Vorschaubild angesehen und, wo es noch JPEG ist, aus dem Original neu gerechnet. Rückgängig nur mit einer vorher angelegten Sicherung. Dauer: Minuten bis Stunden.\"",
-    replacement: "werden umgestellt, die Originale ersetzt (danach etwa {after}). Dabei wird jedes Vorschaubild angesehen und, wo es noch JPEG ist, aus dem Original neu gerechnet. Rückgängig nur mit einer vorher angelegten Sicherung.\"",
+    search: "werden konvertiert, die Originale ersetzt (danach etwa {after}). Veraltete JPEG-Vorschaubilder werden dabei neu generiert. Rückgängig nur mit einer vorher angelegten Sicherung. Dauer: Minuten bis Stunden.\"",
+    replacement: "werden konvertiert, die Originale ersetzt (danach etwa {after}). Veraltete JPEG-Vorschaubilder werden dabei neu generiert. Rückgängig nur mit einer vorher angelegten Sicherung.\"",
     expected: 'Die Bildablage in der Oberflaeche'
   },
   {
@@ -4443,9 +4443,12 @@ const REGRESSIONS = [
   {
     /* DER DIALOG SAGT NICHT MEHR, DASS DIE UMWANDLUNG NAHEZU VERLUSTFREI IST.
        Wer das nicht liest, haelt den Knopf fuer eine Verschlechterung. */
-    nr: '485', name: 'Der Dialog sagt nicht mehr, dass es nahezu verlustfrei ist',
+    /* DER SUCHTEXT IST MIT 0.31.0 MITGEWANDERT: aus „kein sichtbarer Verlust"
+       ist „verlustfrei" geworden (Worttafel B). Der Rueckbau ist derselbe
+       geblieben -- er nimmt dem Satz weiterhin die Aussage ueber die Guete. */
+    nr: '485', name: 'Der Dialog sagt nicht mehr, dass es verlustfrei ist',
     file: 'public/languages/de.json',
-    search: "\"card.storeLosslessHint\": \"Vorgabe — kein sichtbarer Verlust, gemessen rund zwei Drittel kleiner\",",
+    search: "\"card.storeLosslessHint\": \"Vorgabe — verlustfrei, gemessen rund zwei Drittel kleiner\",",
     replacement: "\"card.storeLosslessHint\": \"Vorgabe — gemessen rund zwei Drittel kleiner\",",
     expected: 'Die Bildablage in der Oberflaeche'
   },
@@ -8066,8 +8069,8 @@ const REGRESSIONS = [
        und blieb STUMM, weil ihn keine Zusage las. */
     nr: '821', name: 'Die Karte nennt die Auflage nicht mehr',
     file: 'public/languages/de.json',
-    search: "Zur Auflage: Verlustbehaftet lohnt sich nur bei Fotos",
-    replacement: "Zur Auflage: Verlustbehaftet lohnt sich immer",
+    search: "Verlustbehaftete Kompression spart bei Fotos rund zwei Drittel",
+    replacement: "Verlustbehaftete Kompression spart überall rund zwei Drittel",
     expected: 'Die Bildablage in der Oberflaeche'
   },
   {
@@ -8126,8 +8129,12 @@ const REGRESSIONS = [
        dass sie eine halbe traegt. */
     nr: '825', name: 'Der Vergleich behaelt seine alte Rueckzeile',
     file: 'public/app.js',
-    search: "    ${subhead()}\n    <h1 class=\"page-title\">${tH('list.compare')}</h1>\n    <p class=\"hint\" id=\"cmp-hint\" style=\"margin:0 0 ${multipleUsers() ? t('list.px10') : t('list.px20')}\"></p>\n    ${multipleUsers() ? `<div class=\"pills\" id=\"cmp-view\" style=\"margin:0 0 20px\"></div>` : ''}\n    <div class=\"cmp-grid\" id=\"cg\" style=\"grid-template-columns:repeat(auto-fit,minmax(264px,1fr))\"></div>\n  </div>`;\n  wireSubhead();",
-    replacement: "    <a href=\"#/\" class=\"back\">${tH('list.backToList')}</a>\n    <h1 class=\"page-title\">${tH('list.compare')}</h1>\n    <p class=\"hint\" id=\"cmp-hint\" style=\"margin:0 0 ${multipleUsers() ? t('list.px10') : t('list.px20')}\"></p>\n    ${multipleUsers() ? `<div class=\"pills\" id=\"cmp-view\" style=\"margin:0 0 20px\"></div>` : ''}\n    <div class=\"cmp-grid\" id=\"cg\" style=\"grid-template-columns:repeat(auto-fit,minmax(264px,1fr))\"></div>\n  </div>`;",
+    /* NACHGEZOGEN IN 0.31.0: der Abstand unter dem Hinweis kommt seit dieser
+       Runde aus der Klasse `.page-hint` und nicht mehr aus zwei Werten der
+       Sprachdatei. Der Rueckbau ist derselbe geblieben -- er nimmt der Seite
+       ihre gemeinsame Kopfzeile --, nur sein Suchtext ist mitgewandert. */
+    search: "    ${subhead()}\n    <h1 class=\"page-title\">${tH('list.compare')}</h1>\n    <p class=\"hint page-hint${multipleUsers() ? ' above-pills' : ''}\" id=\"cmp-hint\"></p>\n    ${multipleUsers() ? `<div class=\"pills\" id=\"cmp-view\" style=\"margin:0 0 20px\"></div>` : ''}\n    <div class=\"cmp-grid\" id=\"cg\" style=\"grid-template-columns:repeat(auto-fit,minmax(264px,1fr))\"></div>\n  </div>`;\n  wireSubhead();",
+    replacement: "    <a href=\"#/\" class=\"back\">${tH('list.backToList')}</a>\n    <h1 class=\"page-title\">${tH('list.compare')}</h1>\n    <p class=\"hint page-hint${multipleUsers() ? ' above-pills' : ''}\" id=\"cmp-hint\"></p>\n    ${multipleUsers() ? `<div class=\"pills\" id=\"cmp-view\" style=\"margin:0 0 20px\"></div>` : ''}\n    <div class=\"cmp-grid\" id=\"cg\" style=\"grid-template-columns:repeat(auto-fit,minmax(264px,1fr))\"></div>\n  </div>`;",
     expected: 'Die gemeinsame Kopfzeile und das Blaettern — 0.28.0'
   },
   {
@@ -9410,7 +9417,132 @@ const REGRESSIONS = [
     search: "  .frow-tags.tags-deep > .tagmode { grid-row: 3; }",
     replacement: "  .frow-tags > .tagmode { grid-row: 3; }",
     expected: "Die zugeklappte Tagzeile fuellt ihre Hoehe \u2014 0.30.3"
-  }
+  },
+  /* ---- 0.31.0: „Die Sprachdateien werden gegengelesen" ----
+     ZWOELF RUECKBAUTEN FUER ELF ZUSAGEN. Jeder nimmt genau EINE Sache zurueck
+     -- ein Rueckbau, der zwei Zusagen zugleich trifft, sagt nicht mehr,
+     welche von beiden ihn gefangen hat. */
+  {
+    /* ZUSAGE 1: ein Code-Leck kehrt in die deutsche Datei zurueck. Es faellt
+       damit doppelt auf -- an der Zusage selbst UND an der Deckungsprobe, der
+       `de.json` dann einen Schluessel mehr traegt als die beiden anderen.
+       GENAU DAS IST DER GRUND, WARUM DIE SCHLUESSEL NICHT WARTEN KONNTEN. */
+    nr: '952', name: 'Ein Code-Leck steht wieder in der deutschen Sprachdatei',
+    file: 'public/languages/de.json',
+    search: "  \"entry.testedFirstHint\": ",
+    replacement: "  \"entry.targetBlank\": \"_blank\",\n  \"entry.testedFirstHint\": ",
+    expected: 'Die Sprachdateien werden gegengelesen — 0.31.0'
+  },
+  {
+    /* ZUSAGE 2: der Wert ist zwar aus der Sprachdatei heraus, steht aber
+       nirgends mehr. Ein `window.open` ohne `noopener` bleibt STILL -- der
+       neue Tab bekaeme Zugriff auf das oeffnende Fenster, und niemand saehe
+       es. Genau deshalb prueft die Zusage den INHALT und nicht die Wegnahme. */
+    nr: '953', name: 'Der geoeffnete Tab bekommt sein `noopener` nicht mehr',
+    file: 'public/app.js',
+    search: "          if (!search) return window.open(l.url, '_blank', 'noopener,noreferrer');",
+    replacement: "          if (!search) return window.open(l.url, '_blank');",
+    expected: 'Die Sprachdateien werden gegengelesen — 0.31.0'
+  },
+  {
+    /* ZUSAGE 2, DIE ANDERE HAELFTE: der Abstand steht wieder inline am Knoten
+       -- diesmal als Konstante im Skript statt als Wert der Sprachdatei. Das
+       ist genau der Fehler an anderer Stelle, vor dem F2 warnt: aus dem
+       Stilblatt ist er danach wieder unerreichbar. */
+    nr: '954', name: 'Der Abstand der Listenseite steht wieder inline am Knoten',
+    file: 'public/app.js',
+    search: "    <p class=\"hint page-hint${multipleUsers() ? ' above-pills' : ''}\" id=\"open-hint\"></p>",
+    replacement: "    <p class=\"hint\" id=\"open-hint\" style=\"margin:0 0 ${multipleUsers() ? '10px' : '20px'}\"></p>",
+    expected: 'Die Sprachdateien werden gegengelesen — 0.31.0'
+  },
+  {
+    /* ZUSAGE 3: eine Datei traegt einen Schluessel weniger. Er faellt nur aus
+       `en.json` -- und genau so faellt in einer echten Uebersetzungsrunde
+       einer heraus. */
+    nr: '955', name: 'Die englische Datei traegt einen Schluessel weniger',
+    file: 'public/languages/en.json',
+    search: "  \"card.active\": \"active\",\n",
+    replacement: "",
+    expected: 'Die Sprachdateien werden gegengelesen — 0.31.0'
+  },
+  {
+    /* ZUSAGE 4: EIN gerades Zeichen schleicht sich wieder ein. Am Bildschirm
+       steht danach „Bosch" mit zwei verschiedenen Anfuehrungszeichen, und
+       genau das sieht niemand, der nicht danach sucht. */
+    nr: '956', name: 'Ein Text schliesst wieder mit einem geraden Anfuehrungszeichen',
+    file: 'public/languages/de.json',
+    search: "  \"entry.titleDeleteHint\": \"„{title}“ wird gelöscht.\",",
+    replacement: "  \"entry.titleDeleteHint\": \"„{title}\\\" wird gelöscht.\",",
+    expected: 'Die Sprachdateien werden gegengelesen — 0.31.0'
+  },
+  {
+    /* ZUSAGE 5: EINE der vier Meldungen faellt zurueck auf „Standbild". Vier
+       Meldungen ueber dieselbe Sache mit zwei Woertern dafuer -- das ist der
+       Zustand, den diese Runde beendet. */
+    nr: '957', name: 'Eine der vier Video-Meldungen sagt wieder „Standbild"',
+    file: 'public/languages/de.json',
+    search: "  \"server.videoStill\": \"Video und Video-Vorschaubild gehören zusammen\",",
+    replacement: "  \"server.videoStill\": \"Video und Standbild gehören zusammen\",",
+    expected: 'Die Sprachdateien werden gegengelesen — 0.31.0'
+  },
+  {
+    /* ZUSAGE 6: „gruppiert" wird „sortiert" -- Geminis Vorschlag, und er ist
+       falsch: die Ansicht gruppiert wirklich. Ein Wort, das die Oberflaeche
+       nicht mehr beschreibt, ist kein kuerzeres, sondern ein falsches. */
+    nr: '958', name: '„gruppiert nach" heisst wieder „sortiert nach"',
+    file: 'public/languages/de.json',
+    search: "offen, gruppiert nach ",
+    replacement: "offen, sortiert nach ",
+    expected: 'Die Sprachdateien werden gegengelesen — 0.31.0'
+  },
+  {
+    /* ZUSAGE 7: das hervorgehobene Wort wird „unberührt" -- und der
+       Traegersatz liest danach „Dein Link ist davon unberührt betroffen". */
+    nr: '959', name: 'Das hervorgehobene Wort des Verneinungssatzes heisst „unberührt"',
+    file: 'public/languages/de.json',
+    search: "  \"login.linkUnaffectedWord\": \"nicht\",",
+    replacement: "  \"login.linkUnaffectedWord\": \"unberührt\",",
+    expected: 'Die Sprachdateien werden gegengelesen — 0.31.0'
+  },
+  {
+    /* ZUSAGE 8: der Export verlaesst wieder „das Haus". Das Bild ist die
+       Quelle, aus der „files that leaves the house" und „evden çıkan"
+       entstanden sind -- solange es hier steht, erbt es jede Uebersetzung. */
+    nr: '960', name: 'Der Export verlaesst wieder „das Haus"',
+    file: 'public/languages/de.json',
+    search: "in {n} Dateien — mit allen Fotos",
+    replacement: "in {n} Dateien, die das Haus verlassen — mit allen Fotos",
+    expected: 'Die Sprachdateien werden gegengelesen — 0.31.0'
+  },
+  {
+    /* ZUSAGE 9: der Hinweis nennt die Knoepfe wieder „Pillen". Im Code heisst
+       die Klasse weiter `pill` -- der Rueckbau fasst sie nicht an, und genau
+       das ist der Unterschied, den die Zusage haelt. */
+    nr: '961', name: 'Der Filterhinweis nennt die Knoepfe wieder „Pillen"',
+    file: 'public/languages/de.json',
+    search: "  \"list.pillHint\": \"Ein Klick auf einen der drei Knöpfe setzt den Filter.\",",
+    replacement: "  \"list.pillHint\": \"Ein Klick auf eine der drei Pillen setzt den Filter.\",",
+    expected: 'Die Sprachdateien werden gegengelesen — 0.31.0'
+  },
+  {
+    /* ZUSAGE 10: die Vokabelkarte schreibt dem Betreiber wieder „Sache" vor
+       -- ausgerechnet an dem Feld, an dem er sein eigenes Wort eintraegt. */
+    nr: '962', name: 'Die Vokabelkarte schreibt wieder „Sache" vor',
+    file: 'public/languages/de.json',
+    search: "  \"card.itemOne\": \"Einzahl\",",
+    replacement: "  \"card.itemOne\": \"Sache, Einzahl\",",
+    expected: 'Die Sprachdateien werden gegengelesen — 0.31.0'
+  },
+  {
+    /* ZUSAGE 11: ein Satz verliert seine Anrede und wird zum Infinitiv ohne
+       Subjekt -- genau die Sorte Satz, die Geminis Vorlage „professionelles
+       Du" nennt. Drei Anreden fallen mit EINEM Satz. */
+    nr: '963', name: 'Ein Satz verliert seine Anrede und wird zum Infinitiv',
+    file: 'public/languages/de.json',
+    search: "  \"card.languageHint\": \"Sprache der Oberfläche, der Meldungen und deiner Mails.\\n          Wirkt sofort und gilt auf jedem Gerät, an dem du dich anmeldest.\",",
+    replacement: "  \"card.languageHint\": \"Sprache der Oberfläche, der Meldungen und der Mails.\\n          Wirkt sofort und gilt auf jedem angemeldeten Gerät.\",",
+    expected: 'Die Sprachdateien werden gegengelesen — 0.31.0'
+  },
 ];
 
 /* ================= Spuren und Versatz =================

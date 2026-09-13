@@ -6892,10 +6892,16 @@ app.get('/api/export', ownerOnly, secondConfirmNeeded('export'), (req, res) => {
      stillschweigend alles. */
   const number = (w) => { const n = Number(w); return Number.isInteger(n) && n > 0 ? n : null; };
   const from = number(req.query.from), to = number(req.query.to);
-  /* DIE VIER ABFRAGEANGABEN HEISSEN NOCH DEUTSCH, und das ist kein
-     Uebersehen: die Oberflaeche baut sie aus `card.partQuery` -- einem WERT
-     der Sprachdatei --, und die Werte der Sprachdatei bleiben in dieser Runde
-     unangetastet. Sie ziehen mit, sobald der Satz selbst wandert. */
+  /* DIE VIER ABFRAGEANGABEN STEHEN SEIT 0.31.0 FEST IN DER OBERFLAECHE.
+     BIS 0.30.3 BAUTE SIE `card.partQuery` -- ein WERT der Sprachdatei, und in
+     allen drei Dateien derselbe: „&from={from}&to={to}&part={part}&parts={n}".
+     Ein Text, der in drei Sprachen gleich lautet, ist kein Text, sondern eine
+     Route -- und eine Route, die in der Uebersetzung liegt, kann jede Hand
+     aendern, die den Aufrufort nie gesehen hat. Sie steht jetzt dort, wo sie
+     gebaut wird (public/app.js), und hier, wo sie beantwortet wird.
+     DER ABSATZ SAGTE BIS DAHIN „heissen noch deutsch", und das stimmte seit
+     0.24.3 nicht mehr: die Namen sind dort englisch geworden, der Absatz ist
+     stehen geblieben. */
   const part = number(req.query.part), parts = number(req.query.parts);
   const asPart = from !== null || to !== null || part !== null || parts !== null;
   if (asPart && (from === null || to === null || part === null || parts === null))
