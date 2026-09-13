@@ -103,8 +103,32 @@ function tH(key, values = {}) {
    dafuer, dass die Auszeichnung NIE durch einen maskierenden Weg laeuft: wer
    hier einen Wert vom Benutzer einsetzen wollte, muesste diese Zeile aendern,
    und dann faellt es auf. */
-const tMark = (key, wordKey) => tH(key, { word: '\u0001' })
+/* SEIT 0.31.1 NIMMT ER AUCH WERTE. Ein Satz mit Hervorhebung traegt oft noch
+   eine Zahl oder ein Vokabelwort („bei {dbBytes} etwa {durationSeconds}
+   Sekunden"); bis hierher war genau das der Grund, ihn hinter der
+   Hervorhebung noch einmal aufzubrechen. Der dritte Parameter ist optional --
+   alle Rufe von 0.25.4 bis 0.31.0 bleiben unveraendert gueltig. */
+const tMark = (key, wordKey, values) => tH(key, { ...values, word: '\u0001' })
   .replace('\u0001', `<strong>${tH(wordKey)}</strong>`);
+
+/* DASSELBE MUSTER, ABER DAS HERVORGEHOBENE IST KEIN SCHLUESSEL -- 0.31.1.
+   tMark() holt sein Wort aus der Sprachdatei. An 27 Stellen steht dort aber
+   ein WERT: ein Benutzername, eine Zahl, ein Satz mit eigenem Argument
+   („noch 3 Minuten"). Bis 0.31.1 war das der Grund, den Satz DRUMHERUM in
+   Bruchstuecke zu zersaegen -- der Aufruf musste ja irgendwo aufgemacht
+   werden.
+
+   JETZT BLEIBT DER SATZ EIN SCHLUESSEL mit {word} darin, und nur die FUELLUNG
+   kommt von aussen. Die Sprache entscheidet weiterhin, WO die Hervorhebung
+   sitzt; sie entscheidet nur nicht mehr, WAS drinsteht.
+
+   DER SATZ WIRD NICHT MASKIERT, DIE FUELLUNG MUSS ES SCHON SEIN. Sie kommt
+   fertig vom Rufer, und der ist dafuer zustaendig -- dieselbe Teilung wie in
+   tH(). Wer hier einen rohen Benutzerwert einsetzt, tut es sichtbar an seiner
+   eigenen Zeile und nicht versteckt in dieser. */
+const tMarkText = (key, html, values) =>
+  tH(key, { ...values, word: '\u0001' })
+    .replace('\u0001', `<strong>${html}</strong>`);
 
 /* ZWEI FORMEN, UND DIE ZAHL WAEHLT -- ueber Intl.PluralRules und nicht ueber
    `n === 1`. Der Vergleich waere die deutsche Regel, festgeschrieben im Code;
@@ -1021,8 +1045,7 @@ function showSecondFactor(ticket, errMsg) {
       <input class="input" id="two-factor-code" inputmode="text" autocomplete="one-time-code"
         autocapitalize="characters" spellcheck="false" maxlength="16"></div>
     <button class="btn btn-accent" id="two-factor-send">${tH('login.signIn')}</button>
-    <p class="sub" style="margin:14px 0 0">${tH('login.noPhoneHint')}
-      <strong>${tH('login.recoveryCode')}</strong> ${tH('login.codeOnceHint')}</p>
+    <p class="sub" style="margin:14px 0 0">${tMark('login.noPhoneHint', 'login.recoveryCode')}</p>
   </div></div>`;
   document.title = TITLE_PUBLIC;
   const c = document.getElementById('two-factor-code'), b = document.getElementById('two-factor-send');
@@ -1158,8 +1181,7 @@ async function showConfirm(key) {
   function draw(good, message, again) {
     app.innerHTML = `<div class="login-screen"><div class="login-card">
       ${BRAND_LINE()}
-      ${good ? `<p class="sub" id="confirm-ok"><strong>${tH('login.confirmed')}</strong>
-        ${tH('login.requestPending')}</p>`
+      ${good ? `<p class="sub" id="confirm-ok">${tMark('login.requestConfirmedHint', 'login.confirmed')}</p>`
         : `<div class="login-error">${esc(message)}</div>
         ${again ? `<p class="sub">${tMark('login.linkUnaffected', 'login.linkUnaffectedWord')}</p><button class="btn btn-accent" id="confirm-again">${tH('login.tryAgain')}</button>`
           : ''}`}
@@ -1255,7 +1277,7 @@ async function showInvite(key) {
             die Mail im Postfach lag. Wer sie hier nicht liest, erfährt sie
             erst an der Absage, und dann ist es zu spät. */''}
       <p class="sub" style="margin:0 0 4px">${tH('login.minChars', { min: min })}
-        ${status.minutes ? `<strong>${tH('login.linkValidMinutes', { n: status.minutes })}</strong> ${tH('login.thenNeedNew')}` : ''}
+        ${status.minutes ? `${tMark('login.linkValidHint', 'login.linkValidMinutes', { n: status.minutes })}` : ''}
         <br>${tH('login.logoutHint')}</p>
       <button class="btn btn-accent" id="eb">${tH('dialog.setPassword')}</button>
     </div></div>`;
@@ -3227,7 +3249,7 @@ function showBellPanel() {
   const bd = document.createElement('div');
   bd.className = 'backdrop';
   bd.innerHTML = `<div class="modal bell-panel" id="bell-modal"><h2>${tH('list.news')}</h2>
-    <p>${tH('list.newCommentsAnd')} <strong>${tH('list.otherUser')}</strong>${tH('list.sinceLastVisit')}</p>
+    <p>${tMark('list.newCommentsHint', 'list.otherUser')}</p>
     <div class="manage-list" id="bell-list"></div>
     <div class="modal-acts"><button class="btn btn-ghost" data-no>${tH('list.close')}</button></div></div>`;
   document.body.appendChild(bd);
@@ -7430,7 +7452,7 @@ async function renderDetail(id, termAddress) {
       ${/* ZWEI SAETZE FUER JEDEN, DER DRITTE NUR FUER DEN ADMIN -- 0.22.0. Wo
            die Gewichte eingestellt werden, liest nur, wer dorthin kommt
            (Regel S5). */''}
-      <p><strong>${tH('entry.criteriaNoStars')}</strong> ${tH('entry.calcRounding')}${ADMIN ? ` ${tH('entry.weightsWhere')}
+      <p>${tMark('entry.calcRoundingHint', 'entry.criteriaNoStars')}${ADMIN ? ` ${tH('entry.weightsWhere')}
         <strong>${esc(boxId.phase === 'before' ? t('entry.criteriaPotential') : t('entry.criteriaRating'))}</strong> ${tH('entry.calcIn')}` : ''}</p>
       ${/* WAS DIE GEWICHTUNG AENDERT, IN EINEM SATZ. Sind beide Zahlen gleich,
            steht genau das da -- zweimal dieselbe Zahl hinzuschreiben waere
@@ -9097,7 +9119,7 @@ function cardUser(fetched) {
         <div class="field"><label>${tH('card.repeatNewPassword')}</label>
           <input class="input" id="acc-new2" type="password" autocomplete="new-password"></div>
         <p class="desc" style="margin:0 0 10px">${SIGNUP
-          ? `<strong>${tH('card.addressRequired')}</strong>${tH('card.whileSignupOn')} `
+          ? `${tMark('card.addressRequiredHint', 'card.addressRequired')} `
           : ''}${tH('card.resetMailHint')}</p>
         ${serverBox(t('card.forgotPasswordHint'), 'docker compose exec kriterion node usertool.js passwort <name>')}
         <button class="btn btn-accent btn-sm" id="acc-save" style="margin-top:10px">${tH('dialog.save')}</button>
@@ -9160,7 +9182,7 @@ function setUpUserOut(fetched) {
     if (!box || !status) return;
     box.innerHTML = status.an ? `
       <div class="two-factor-state two-factor-on">
-        <strong>${tH('card.twoFactorIsOn')}</strong> ${tH('card.twoFactorSinceHint', { since: fmtDate(status.since) })}
+        ${tMark('card.twoFactorStateOn', 'card.twoFactorIsOn', { since: fmtDate(status.since) })}
         <div class="two-factor-count">${tH('card.recoveryCodes')}
           <strong>${tH('card.codesLeft', { codesLeft: status.codesOpen, codesTotal: status.codesTotal })}</strong>${status.codesOpen <= 2
             ? ` — <strong>${tH('card.codesRunningOut')}</strong>` : ''}</div>
@@ -9169,7 +9191,7 @@ function setUpUserOut(fetched) {
         <button class="btn btn-sm" id="two-factor-new">${tH('card.newRecoveryCodes')}</button>
         <button class="btn btn-ghost btn-sm" id="two-factor-off">${tH('card.twoFactorOff')}</button>
       </div>` : `
-      <div class="two-factor-state two-factor-off"><strong>${tH('card.twoFactorIsOff')}</strong> ${tH('card.passwordEnoughHint')}</div>
+      <div class="two-factor-state two-factor-off">${tMark('card.twoFactorStateOff', 'card.twoFactorIsOff')}</div>
       <p class="desc" style="margin:8px 0 10px">${tH('card.twoFactorHint')}</p>
       <button class="btn btn-sm" id="two-factor-on">${tH('card.twoFactorOn')}</button>`;
 
@@ -9369,7 +9391,7 @@ function setUpSessionsOut(fetched) {
           tH('card.moreSessions', { n: other })}</strong> ${tH('card.sessionsDot', { n: other })}
           ${tH('card.sessionExpiresIn')} ${d.days || 30} ${tH('card.sessionIdleHint')}</p>
          <button class="btn btn-sm" id="sessions-all">${tH('card.endOtherSessions')}</button>`
-      : `<p class="desc" style="margin:10px 0 0">${tH('card.thisIsThe')} <strong>${tH('card.only')}</strong> ${tH('card.sessionOfAccount')}</p>`;
+      : `<p class="desc" style="margin:10px 0 0">${tMark('card.onlySessionHint', 'card.only')}</p>`;
     const all = doc.getElementById('sessions-all');
     if (all) all.onclick = async () => {
       if (!await confirmBox(t('card.endSessionsAsk'), t('card.thisSessionStays'), t('card.end'))) return;
@@ -9652,10 +9674,10 @@ function cardCriteria(phase) {
         <h3>${esc(before ? V.potential : V.ratingOne)}${tH('card.criteriaLabel')}</h3>
         ${/* EIN SATZ AN DER KARTE, DIE FOLGEN HINTER „Mehr" (Konzept 4.5) -- und der
              Benutzer liest nur, was er tun kann (Regel S5). */''}
-        ${before ? `<p class="desc">${tH('card.stars')} <strong>${tH('card.before')}</strong> ${tH('card.potentialHint')}
+        ${before ? `<p class="desc">${tMark('card.potentialStarsHint', 'card.before')}
              ${ADMIN ? t('card.criteriaHint') : t('card.listAdminHint')}</p>
            ${ADMIN ? more(`${tH('card.criteriaTip')} <em>${tH('card.wanted')}</em> ${tH('card.weight')}
-             <em>${tH('card.use')}</em>, <em>${tH('card.feasibility')}</em>${tH('card.orderAppliesHint')}`) : ''}`
+             <em>${tH('card.use')}</em>, ${tMark('card.criteriaTipEndHint', 'card.feasibility')}`) : ''}`
           : `<p class="desc">${ADMIN
           ? t('card.criteriaHintDelete')
           : tH('card.criteriaAdminHint')}</p>
@@ -9685,7 +9707,7 @@ function cardCriteria(phase) {
              `card.setByAdmin` FAELLT DAMIT NAMENTLICH WEG, in allen drei
              Sprachdateien; `card.weightSystemDefault` steht an seiner Stelle,
              an derselben Zeile in allen dreien. Die Zahl der Saetze bleibt. */''}
-        <p class="desc" style="margin:10px 0 0">${tH('card.the')} <strong>${tH('entry.weight')}</strong> ${tH('card.weightHint')} ${ADMIN
+        <p class="desc" style="margin:10px 0 0">${tMark('card.weightExplainHint', 'entry.weight')} ${ADMIN
             ? t('card.weightRangeHint')
             : t('card.weightSystemDefault')}</p>
         <!-- Ein Textfeld MIT Vorschlagsliste, kein Auswahlfeld: feste Stufen decken 0,2 bis 2 nicht
@@ -10276,7 +10298,7 @@ function setUpCriteriaOut(fetched, phase) {
 function cardVocabulary() {
   return `<div class="sys-card">
         <h3>${tH('card.vocabulary')}</h3>
-        <p class="desc">${tH('card.vocabularyHint')} <strong>${tH('card.labelOnlyHint')}</strong>${tH('card.dataStaysSame')}</p>
+        <p class="desc">${tMark('card.vocabularyHint', 'card.labelOnlyHint')}</p>
         ${/* VIERZEHN FELDER AUS EINER TABELLE -- 0.22.0. Bis 0.21.1 standen die
              zwoelf Felder dreimal im Quelltext: hier als Markup, in vFields()
              als Leser und in setUpVocabularyOut() als Liste der Kennungen.
@@ -10749,8 +10771,7 @@ function cardLinks() {
         <p class="desc">${tH('card.linkRowsHint')}</p>
         <div class="pills" id="lrows"></div>
 
-        <p class="desc sys-part">${tH('card.linkListHint')}
-          <strong>${tH('card.search')}</strong> ${tH('card.searchOnClick')}</p>
+        <p class="desc sys-part">${tMark('card.linkListHint', 'card.search')}</p>
         <p class="desc" style="margin:0 0 8px">${tH('card.engineCountHint')}</p>
         <div class="pills" id="snames"></div>
       </div>`;
@@ -10803,7 +10824,7 @@ function setUpLinksOut() {
 function cardSearchProvider() {
   return `<div class="sys-card">
         <h3>${tH('card.searchEngines')}</h3>
-        <p class="desc">${tH('card.checkboxHint')} <strong>${tH('card.standard')}</strong>${tH('card.opensOnClick')}</p>
+        <p class="desc">${tMark('card.engineCheckboxHint', 'card.standard')}</p>
         ${more(t('card.searchUsersHint'))}
         <div class="engine-list" id="engines"></div>
 
@@ -10916,8 +10937,7 @@ function setUpSearchProviderOut() {
 function cardTrash() {
   return `<div class="sys-card">
         <h3>${tH('card.trash')}</h3>
-        <p class="desc">${tH('card.deletedStayHere')} <strong>${tH('card.trashDays', { trashDays: TRASH_DAYS })}</strong>
-          ${tH('card.restorableHint')}
+        <p class="desc">${tMark('card.trashKeepsHint', 'card.trashDays', { trashDays: TRASH_DAYS })}
           ${OWNER ? '' : t('card.trashOwnerHint')}</p>
         <div class="manage-list" id="mtrash"></div>
       </div>`;
@@ -11038,7 +11058,7 @@ function cardUsers() {
   return `<div class="sys-card wide">
         <h3>${tH('card.user')}</h3>
         <p class="desc">${tH('card.usersHint')}</p>
-        ${more(`<strong>${tH('card.lockNotDelete')}</strong> ${tH('card.lockedUserHint')} ${OWNER
+        ${more(`${tMark('card.lockInsteadCardHint', 'card.lockNotDelete')} ${OWNER
             ? t('card.rolesYouOnly')
             : t('card.rolesOwnerHint')}`)}
         ${/* DER KASTEN ZU DEN DOPPELTEN ADRESSEN -- 0.29.0, Befund 4. Er ist
@@ -11054,7 +11074,7 @@ function cardUsers() {
              drawTombstoneButton(), sobald die Liste vom Server da ist. */''}
         <div class="row-in" id="user-remove-row" style="margin-top:8px"></div>
 
-        <p class="desc" style="margin:16px 0 8px">${tH('card.newUserHint')} <strong>${tH('card.inviteLink')}</strong> ${tH('card.linkValidHint')}</p>
+        <p class="desc" style="margin:16px 0 8px">${tMark('card.newUserHint', 'card.inviteLink')}</p>
         <div class="user-new">
           <input class="input input-sm" id="user-name" placeholder="${esc(t('login.username'))}"
             autocomplete="off" autocapitalize="off" spellcheck="false">
@@ -11087,8 +11107,7 @@ function cardUsers() {
               ihm hilft der Name dessen, der es kann. */''}
         ${OWNER
           ? `<div style="margin-top:16px">${serverBox(t('card.lockedOutHint'), 'docker compose exec kriterion node usertool.js passwort <name>')}</div>`
-          : `<p class="desc" style="margin:16px 0 0">${tH('card.lockedOutOwner')}
-               <strong>${tH('card.owner')}</strong> ${tH('card.resetOnServer')}</p>`}
+          : `<p class="desc" style="margin:16px 0 0">${tMark('card.lockedOutHintCard', 'card.owner')}</p>`}
       </div>`;
 }
 function setUpUsersOut() {
@@ -11494,7 +11513,7 @@ function cardRequests(fetched) {
   const { requests } = fetched;
   return `<div class="sys-card wide">
         <h3>${tH('card.requests')}</h3>
-        <p class="desc"><strong>${tH('card.signupLabel')}</strong> ${tH('card.signupFlowHint')}${requests.an ? '' : ` <strong>${tH('card.signupOffNow')}</strong>`}</p>
+        <p class="desc">${tMark('card.signupHint', 'card.signupLabel')}${requests.an ? '' : ` <strong>${tH('card.signupOffNow')}</strong>`}</p>
         ${more(`${tH('card.requestExpiryHint', { hours: requests.hours })} <strong>${tH('card.approve')}</strong>
           ${tH('card.createsUserLink')} <strong>${tH('card.reject')}</strong> ${tH('card.rejectQuiet')}`)}
         <div class="kv"><span class="k">${tH('card.signup')}</span><span class="v" id="signup-state">${
@@ -11623,8 +11642,8 @@ function cardLog(fetched) {
   const { log } = fetched;
   return `<div class="sys-card wide">
         <h3>${tH('card.securityLog')}</h3>
-        <p class="desc">${tH('card.logHint')} <strong>${tH('card.notIncluded')}</strong> ${tH('card.logContentHint')}</p>
-        <p class="desc">${tH('card.rowsSortedBy')} <strong>${tH('card.inDays', { n: log.days })}</strong> ${tH('card.autoDeleteHint')}</p>
+        <p class="desc">${tMark('card.logHint', 'card.notIncluded')}</p>
+        <p class="desc">${tMark('card.logKeepsHint', 'card.inDays', { n: log.days })}</p>
         ${/* DIE FILTERLEISTE. Sie steht VOR der Liste, wie jede Filterreihe in
              dieser Instanz -- man waehlt, bevor man liest. Gezeichnet wird sie
              aus einer geschlossenen Liste; die Auswahl geht an den Server,
@@ -11965,7 +11984,7 @@ function cardMailDelivery(fetched) {
             mailStatus.configured ? tH('card.change') : tH('card.setUp')}</button>
           <button class="btn btn-sm" id="mail-test">${tH('card.testMailToMe')}</button>
         </div>
-        <p class="desc" style="margin:10px 0 0">${tH('card.testMailGoes')} <strong>${tH('card.ownAddressOnly')}</strong>${tH('card.mailTimeoutHint', { seconds: mailStatus.seconds })}</p>
+        <p class="desc" style="margin:10px 0 0">${tMark('card.testMailGoesHint', 'card.ownAddressOnly', { seconds: mailStatus.seconds })}</p>
         <div id="mail-result"></div>
       </div>`;
 }
@@ -12344,7 +12363,7 @@ function cardStats(fetched) {
         <div style="margin-top:14px">${stats.keyFromEnv
           ? `<div class="ok-box">${tH('card.keyFromSetting')} <code>ENCRYPTION_KEY</code>. <strong><code>.env</code> ${tH('card.and')} <code>data/</code> ${tH('card.neverSameBackup')}</strong> ${tH('card.withoutKeyLost')}</div>`
           : (OWNER
-            ? `<div class="warn-box"><strong>${tH('card.keyBesideDb')}</strong> ${tH('card.keyFileCopy')}
+            ? `<div class="warn-box">${tMark('card.keyBesideDbHint', 'card.keyBesideDb')}
               <p style="margin:9px 0 6px">${tH('card.forRealProtection')} <strong>${tH('card.thisOne')}</strong> ${tH('card.valueInto')} <code>.env</code> ${tH('card.enterKeyHint')}</p>
               <code class="keyline" id="keyline">ENCRYPTION_KEY=${esc(stats.keyHex || '')}</code>
               ${serverBox(t('card.restartHint'), 'docker compose up -d')}
@@ -12680,7 +12699,7 @@ const COMPOSE_FILE = 'docker-compose.yml';
 function cardBackup() {
   return `<div class="sys-card">
         <h3>${tH('card.backup')}</h3>
-        <p class="desc"><strong>${tH('card.backupLabel')}</strong> ${tH('card.backupHint')}</p>
+        <p class="desc">${tMark('card.backupWhatHint', 'card.backupLabel')}</p>
         ${/* DER HINWEIS AUF DEN SCHLUESSEL GEHOERT AN DEN KNOPF, nicht in die
              Dokumentation: die Kopie ist ohne .env wertlos. Das ist dieselbe
              Falle, die die README ausfuehrlich beschreibt -- hier steht sie an
@@ -12761,9 +12780,8 @@ function setUpBackupOut(fetched) {
        Der grüne Fall sagt nicht "alles gut", sondern was daran gut ist:
        sonst liest ihn beim nächsten Umbau niemand mehr. */
     const situation = d.inWorkDir
-      ? `<div class="warn-box" id="backup-place" style="margin:0 0 12px"><strong>${tH('card.backupDirInProject')}</strong> ${tH('card.backupDirAdvice')} <code>${COMPOSE_FILE}</code>.</div>`
-      : `<div class="ok-box" id="backup-place" style="margin:0 0 12px">${tH('card.backupDirIs')}
-           <strong>${tH('card.outsideProject')}</strong> ${tH('card.untouchedByUpdates')}</div>`;
+      ? `<div class="warn-box" id="backup-place" style="margin:0 0 12px">${tMark('card.backupDirHint', 'card.backupDirInProject')} <code>${COMPOSE_FILE}</code>.</div>`
+      : `<div class="ok-box" id="backup-place" style="margin:0 0 12px">${tMark('card.backupDirOutsideHint', 'card.outsideProject')}</div>`;
     box.innerHTML = `
       ${situation}
       <div class="field"><label>${tH('card.backupDir')}</label>
@@ -12774,7 +12792,7 @@ function setUpBackupOut(fetched) {
       <div class="sys-part"></div>
       ${status}
       ${change}
-      <p class="desc" style="margin:0 0 10px">${tH('card.duringBackupHint')} <strong>${tH('card.brieflyOffline')}</strong> ${tH('card.backupDurationHint', { dbBytes: fmtBytes(d.dbBytes), durationSeconds: d.durationSeconds })}</p>
+      <p class="desc" style="margin:0 0 10px">${tMark('card.duringBackupHint', 'card.brieflyOffline', { dbBytes: fmtBytes(d.dbBytes), durationSeconds: d.durationSeconds })}</p>
       <button class="btn btn-accent btn-sm" id="backup-run">${tH('card.backupNow')}</button>`;
 
     document.getElementById('backup-dir-save').onclick = async () => {
@@ -12863,7 +12881,7 @@ function cardCleanup() {
              Bildschirm zu viel. Aus dem Betrieb: „der Text vom GUI muss so kurz
              wie moeglich sein und dennoch muss zu verstehen sein, was gemeint
              ist." */''}
-        <p class="desc">${tH('card.cleanupHint')} <strong>${tH('card.finally')}</strong>${tH('card.cleanupScopeHint')}</p>
+        <p class="desc">${tMark('card.cleanupHint', 'card.finally')}</p>
         <div id="cleanup-box"></div>
       </div>`;
 }
@@ -13235,8 +13253,7 @@ function cardExport(fetched) {
              wo sie war: in askImport(). */''}
         <div class="sys-part"></div>
         <h4 class="sys-sub">${tH('card.import')}</h4>
-        <p class="desc">${tH('card.importHint')}
-          <strong>${tH('card.replaceInventory')}</strong>${tH('card.asksFirstHint')}</p>
+        <p class="desc">${tMark('card.importHint', 'card.replaceInventory')}</p>
         <label class="drop drop-quiet" id="imp-drop"><input type="file" id="imp" accept="application/json,.json">
           ${tH('card.pickExportFile')}</label>
       </div>`;
@@ -13445,8 +13462,8 @@ function askImport(file, limits) {
     bd.innerHTML = `<div class="modal"><h2>${tH('card.import')}</h2>
       <p>${tH('card.fileContains')} <strong>${info.count} ${esc(vThing(info.count))}</strong>${info.withPhotos ? ` <strong>${tH('card.withPhotos')}</strong>` : tH('card.withoutPhotosPlain')}${info.title ? tH('card.createdFrom', { title: info.title }) : ''}${info.date ? tH('card.onDate', { date: fmtDate(info.date.replace('T',' ').slice(0,19)) }) : ''}.</p>
       <p>${tH('card.importQuestion')}</p>
-      <div class="warn-box"><strong>${tH('card.replace')}</strong> ${tH('card.importWipeFirst')}<br><br>
-        <strong>${tH('card.merge')}</strong> ${tH('card.importKeepsHint')}</div>
+      <div class="warn-box">${tMark('card.importReplaceExplainHint', 'card.replace')}<br><br>
+        ${tMark('card.importMergeExplainHint', 'card.merge')}</div>
       <div class="modal-acts">
         <button class="btn btn-ghost" data-cancel>${tH('dialog.cancel')}</button>
         <button class="btn" data-merge>${tH('card.merge')}</button>

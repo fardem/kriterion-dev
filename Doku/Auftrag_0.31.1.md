@@ -97,7 +97,7 @@ Schemaanteil.**
 | **7** | **Keine Zahl steht zweimal.** *Die vier Größen kommen aus ihrem `value`, und `card.vocabularyResetHint` zählt nichts mehr auf* |
 | **8** | **Kein Wert trägt eine HTML-Entität** |
 | **9** | **Kein Wert trägt einen Zeilenumbruch oder zwei Leerzeichen** — in keiner der drei Dateien |
-| **10** | **Die Umbenennungstafel kennt jeden gefallenen Schlüssel** *(`tools/keys.json`)* |
+| **10** | **Kein Eintrag der Umbenennungstafel zeigt ins Leere** *(`tools/keys.json`)*. *Sie ist die Deutsch-nach-Englisch-Tafel aus 0.8.x und kein Verzeichnis der Wanderungen; 0.31.0 hat die elf ersatzlos gestrichenen Schlüssel daraus ENTFERNT.* **Hier ist es anders: ein verschmolzener Schlüssel hat einen Nachfolger**, und der alte deutsche Name zeigt ab jetzt auf ihn |
 | **11** | **Die Wortlautprobe ist vollständig nachgeführt** — jede Wegnahme, jede Änderung mit ihrer Begründung |
 
 **Jede Zusage bekommt ihre Gegenprobe, und jede wird GEFAHREN.** *Eine stumme
