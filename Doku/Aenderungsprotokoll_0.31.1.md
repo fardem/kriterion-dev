@@ -287,6 +287,31 @@ und festgehalten wird, WELCHE Prüfungen daraufhin namentlich rot werden.*
 
 ---
 
+## Der Augenschein — am laufenden Server, in echtem Chromium
+
+**ER FRAGT ETWAS ANDERES ALS DER VON 0.31.0.** *Jene Runde hat Wörter geändert
+und wollte sie am Bildschirm wiedersehen.* **Diese Runde hat die ABLAGE der
+Sätze angefasst und verspricht, dass sich am Bildschirm nichts ändert** — *also
+lautet die Frage: steht jeder verschmolzene Satz vollständig da, und steht
+nirgends ein Platzhalter offen?*
+
+| gefragt | Ergebnis |
+|---|---|
+| **Ein offener Platzhalter irgendwo?** *(gesucht wird das MUSTER `{name}`, keine Liste — ein neuer Satz mit einem neuen Platz soll hier auffallen)* | **keiner** — auf zwölf Ansichten und zwei Fenstern |
+| **Eine sichtbare Naht?** *(neun Marken, jede genau das, was dastand, solange der Satz zersägt war: `(~,` · `&lt;` · `Einträge Mit Fotos` · `{word}` · `Sitzung abgelaufen` · `Eintrag/Einträge` …)* | **keine** |
+| **Stehen die verschmolzenen Sätze ganz da?** *(gesucht wird ein Stück, das die Naht ÜBERQUERT — steht nur eine Hälfte da, greift die Suche daneben, und genau das soll sie)* | **fünfzehn von zwanzig** |
+
+> **DIE FÜNF UNGESEHENEN SIND KEIN BEFUND, SONDERN DIE GRENZE DER PROBE.**
+> *Sie stehen an Stellen, die ein Seitenaufruf nicht erreicht: der Teilexport
+> mit einem echten Schnitt, die Warnung mit dem Schlüssel neben der Datenbank,
+> das Löschfenster eines Benutzers und der Hinweis am Einladungslink.* **Alle
+> fünf fährt der Prüfstand in seinen eigenen Gruppen, und die sind grün.**
+> *Was der Augenschein leistet und der Prüfstand nicht, ist der Rundumblick: er
+> liest, was WIRKLICH auf der Seite steht, und nicht, was eine Zusage
+> nachfragt.*
+
+---
+
 ## Ein Fund, der nicht in dieser Runde repariert wird
 
 **NEUNUNDDREISSIG EINTRÄGE DER UMBENENNUNGSTAFEL ZEIGTEN SCHON VOR DIESER RUNDE
