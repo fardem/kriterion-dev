@@ -13,10 +13,10 @@ Schemaanteil.**
 > |---|---|
 > | **Am Arbeitsbaum nachgerechnet** *(achtzehn Dateien)* | **`0745f9bd`** |
 > | **Aus dem Server selbst gelesen** *(frisches Datenverzeichnis, `/api/stats`)* | **`0745f9bd`** |
-> | **Aus der laufenden Installation gemeldet** | *steht aus* |
+> | **Aus der laufenden Installation gemeldet** *(Betreiber, 13. September 2026)* | **`0745f9bd`** |
 >
-> **ZWEI QUELLEN, EIN WERT** — *alle achtzehn Einzelwerte gleich.* **Die dritte
-> kommt aus dem Feld, sobald der Betreiber eingespielt hat.**
+> **DREI QUELLEN, EIN WERT — im Feld bestätigt.** *Alle achtzehn Einzelwerte
+> gleich, und die laufende Installation meldet genau den Sollwert.*
 
 ---
 
@@ -416,8 +416,10 @@ Einspielen andere Sätze — und keine andere Funktion.*
 
 | | |
 |---|---|
-| **`Doku/Auftrag_0.31.2.md`** | *bleibt liegen, bis der Auftrag zu 0.31.3 kommt — es liegt immer nur einer im Repo* |
-| **`Doku/I18N_GENERATE_EN.md`** | **bleibt liegen** — *die Vorlage ist der Gegenstand, gegen den geprüft wurde; 0.31.3 liest sie für Türkisch noch einmal* |
+| **`Doku/Auftrag_0.31.2.md`** | **weggefallen mit dem Auftrag zu 0.31.3** — *es liegt immer nur einer im Repo; was dort stand, steht in diesem Papier* |
+| **`Doku/Auftrag_0.31.3.md`** | **neu** — „Türkisch sitzt": sieben Leitplanken, elf Fragen, zehn Bauabschnitte, dreizehn Zusagen |
+| **`Doku/I18N_GENERATE_TR.md`** | **neu** — *die Vorlage für Türkisch, verbatim daneben; fünf Stolperfallen, alle nachgemessen im Auftrag 0.31.3* |
+| **`Doku/I18N_GENERATE_EN.md`** | **bleibt liegen** — *die Vorlage ist der Gegenstand, gegen den geprüft wurde* |
 | **`Doku/Aenderungsprotokoll_0.31.2.md`** | dieses Papier |
 | **`Doku/Projektstand_Kriterion_0_31_2.md`** | `git mv`, **Revision 89** |
 | **`Doku/Fahrplan.md`** | die Zeile 0.31.2 durchgestrichen; **die geplanten Runden rücken nicht** |
