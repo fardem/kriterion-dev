@@ -15275,6 +15275,21 @@ keine mehr.*
 
 ## 12. Arbeitsweise für die Fortsetzung
 
+- **Das deutsche Ergebnis ist die unveränderliche Basis — seit 0.31.0.**
+  *Der Betreiber am 13. September 2026:* „das deutsche was hier erarbeitet wird,
+  wird für Gemini unveränderliche Basis werden. es kann nur für englisch
+  Vorschläge abgeben etc aber nicht mehr am deutsch meckern das verbiete ich."
+
+  > **WAS EINE FREMDE HAND DARF:** *für `en.json` und `tr.json` Vorschläge
+  > machen, Code-Lecks und Tippfehler melden, Listen liefern.* **WAS SIE NICHT
+  > DARF:** *den deutschen Wortlaut noch einmal aufmachen.* **Er ist in 0.31.0
+  > Zeile für Zeile entschieden worden, mit dem Quelltext daneben.**
+
+  **DER GRUND STEHT IM AUFTRAG 0.31.0:** *von 71 Vorschlägen einer fremden Hand
+  waren vier sachlich falsch und elf nahmen einem Satz seinen Sinn — gefunden
+  nur, weil jede Zeile gegen den Quelltext geprüft wurde.* **Eine zweite Runde
+  desselben Streits kostet dieselbe Arbeit noch einmal und bringt nichts.**
+
 - **Vor dem Bauen besprechen.** Änderungswünsche erst durchdenken, Rückfragen
   stellen, Entscheidungen ausdrücklich bestätigen lassen, dann umsetzen. Wenn
   am Entwurf etwas unstimmig wirkt, wird es **vorher** gesagt und nicht

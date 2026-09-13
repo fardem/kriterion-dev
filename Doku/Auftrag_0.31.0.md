@@ -111,6 +111,23 @@ FÜR DIE SCHLÜSSEL NICHT** — *und zwar nachgesehen, nicht vermutet:*
 hätten `en.json` und `tr.json` je „11 zu viel" — sofort, nicht in 0.31.1.*
 **Deshalb: Schlüssel zusammen, Texte einzeln.**
 
+**UND DAS DEUTSCHE ERGEBNIS IST DANACH UNVERÄNDERLICH.** *Der Betreiber am 13.
+September 2026:* „das deutsche was hier erarbeitet wird, wird für Gemini
+unveränderliche Basis werden. es kann nur für englisch Vorschläge abgeben etc
+aber nicht mehr am deutsch meckern das verbiete ich."
+
+> **DIE REGEL STEHT AB SOFORT IN ABSCHNITT 12 DES PROJEKTSTANDS.** *Was eine
+> fremde Hand darf: für `en.json` und `tr.json` Vorschläge machen, Code-Lecks
+> und Tippfehler melden. Was sie nicht darf: den deutschen Wortlaut noch einmal
+> aufmachen.*
+>
+> **UND DIE ZWEI WORTENTSCHEIDUNGEN DIESER RUNDE STANDEN LÄNGST IM HAUS:**
+> *Abschnitt 12 sagt seit 0.8.60, der Maßstab sei „das Wort, das ein
+> deutschsprachiger Entwickler im Gespräch benutzen würde" — genau die
+> Begründung des Betreibers für „konvertieren" (L4).* **Und „Bereich" ist dort
+> ausdrücklich für den HTTP-Range reserviert** — *Geminis „Kasten → Bereich"
+> hätte ein vergebenes Wort besetzt (F8).*
+
 > **UND WAS GEMINI FÜR DEN NÄCHSTEN AUFTRAG BRAUCHT, IST NICHT NUR DAS FERTIGE
 > `de.json`.** *Bekommt es nur die deutschen Sätze, übersetzt es wieder Wörter
 > — genau das hat „hap" und „files that leaves the house" erzeugt.* **Es
