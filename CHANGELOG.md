@@ -29,6 +29,22 @@ bleiben in der Form ihrer Zeit.*
 
 *Hier wird mitgeschrieben, während gebaut wird.*
 
+## [0.31.1] - 2026-09-13
+
+> **NICHTS ZU TUN.** Kein Schemaanteil, kein Migrationsblock, das
+> Austauschformat bleibt 16. Einspielen und fertig.
+
+### Behoben
+
+- **In einer englisch oder türkisch eingestellten Instanz stand an zwei Stellen deutscher Text** — „3 entries **und** 2 test days" in der Warnung vor dem Löschen eines Tags, „2,1 MB **weniger**" in der Zeile über die neu erzeugten Vorschaubilder.
+- **Der Importdialog lieh sich die Beschriftung des Exportknopfes** — es stand „Die Datei enthält 12 Einträge **Mit Fotos (~**, erstellt aus …", mit einer Klammer, die nie zuging.
+
+### Intern
+
+- **Ein Schlüssel trägt einen ganzen Satz und nicht mehr ein Wort ohne ihn** — 101 Bruchstücke sind in ihren Satz gezogen, 44 Schlüssel sind neu; jede Sprachdatei trägt 1197 statt 1254 Schlüssel. **Am Bildschirm ändert sich dabei kein Zeichen.** Wer eine eigene Sprachdatei pflegt, übersetzt ab jetzt ganze Sätze statt Hälften — und entscheidet selbst, wo die Hervorhebung darin sitzt.
+- **Zwei Schlüssel führten Programmablauf statt Text** — ein übersetzter „Sitzung abgelaufen"-Satz entschied über eine Verzweigung; jetzt tut es ein Merkmal im Quelltext.
+- **Die vier Exportgrößen und die vierzehn Vorgabewörter standen doppelt** — als Wert UND als Satz in drei Sprachdateien; die Beschriftung wird jetzt gerechnet.
+
 ## [0.31.0] - 2026-09-13
 
 > **NICHTS ZU TUN.** Kein Schemaanteil, kein Migrationsblock, das

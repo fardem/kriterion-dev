@@ -1010,6 +1010,11 @@ Sprachdateien an und keine Tabelle.
 
 ## 0.31.1 — „Deutsch sitzt"
 
+> **GEBAUT AM 13. SEPTEMBER 2026** — *Änderungsprotokoll 0.31.1.* **1254
+> Schlüssel sind 1197 geworden, in allen drei Dateien**, und am Bildschirm hat
+> sich kein Zeichen geändert. *Was unten steht, ist der Befund, aus dem der
+> Auftrag entstanden ist; was daraus geworden ist, steht im Änderungsprotokoll.*
+
 **Aus dem Rundlauf mit 0.31.0, am 13. September 2026.** Der Betreiber hat die
 Runde am laufenden Server angesehen, sieben Befunde gemeldet und die Richtung
 vorgegeben: *„gehe die deutsche sprache sorgfältig durch und mach kein
