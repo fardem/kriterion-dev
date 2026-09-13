@@ -1,6 +1,6 @@
 # Projektstand — Kriterion
 
-**Kompakte Übergabe · Revision 87 · Stand 13. September 2026 · gebaut: Version 0.31.0**
+**Kompakte Übergabe · Revision 88 · Stand 13. September 2026 · gebaut: Version 0.31.1**
 
 Dieses Blatt ist der **einzige Ort, an dem steht, was gebaut ist und was
 bindet.** Es genügt, um in einem frischen Chat weiterzuarbeiten, ohne den alten
@@ -478,17 +478,31 @@ weiterhin offen. Daraus folgt die Stellung von `HINTER_PROXY` (Abschnitt 3).
 
 ## 2. Betriebsstand
 
-**Gebaut ist 0.31.0** — *die Zahlen des Prüfstands stehen im Änderungsprotokoll
-0.31.0.* **0.31.0 liest die Sprachdateien gegen** — *die erste von drei Runden;
-Englisch ist 0.31.1, Türkisch 0.31.2.* **Drei Dinge sind geschehen.** *Elf
-Schlüssel trugen keinen Text, sondern eine Konstante — `entry.targetBlank` hieß
-in allen drei Dateien `_blank` —; sie stehen jetzt fest im Skript bzw. als
-Klasse im Stilblatt, und aus 1265 Schlüsseln sind in JEDER Datei 1254 geworden.*
-**Neunundvierzig deutsche Texte sind geschärft** *(„konvertieren" statt
-„umstellen", „Suchtreffer" statt „Fundstelle", „Video-Vorschaubild" statt
-„Standbild", „Auto" statt „Wie das Gerät"; „das Haus verlassen" und „Pille"
-fallen ersatzlos)*, **und vierunddreißig Texte schließen ihr
-Anführungszeichen jetzt typografisch** *(auf Deutsch und auf Türkisch)*.
+**Gebaut ist 0.31.1** — *die Zahlen des Prüfstands stehen im Änderungsprotokoll
+0.31.1.* **0.31.1 setzt die zersägten deutschen Sätze wieder zusammen** — *die
+zweite von vier Runden der 31er-Strecke; Englisch ist 0.31.2, Türkisch 0.31.3.*
+
+**EIN SCHLÜSSEL TRÄGT EINEN GANZEN SATZ, nie ein Wort ohne ihn.** *Bis 0.31.0
+stand `A <strong>B</strong> C` als DREI Schlüssel da und wurde im Aufruf wieder
+zusammengeklebt — im Deutschen geht das auf, im Türkischen nicht: dort verneint
+ein Suffix im Verb.* **Aus 1254 Schlüsseln sind in JEDER Datei 1197 geworden**
+*(101 sind gefallen — 95 Hälften, die jetzt in ihrem Satz stehen, die vier
+Exportgrößen und die beiden Schlüssel ohne Leser; 44 sind neu, 68 haben einen
+anderen Wortlaut)*.
+
+> **DER WORTLAUT ÄNDERT SICH NICHT — nur seine Ablage.** *Was am Bildschirm
+> steht, steht danach Zeichen für Zeichen genauso da, in allen drei Sprachen.*
+> **Und das ist kein Versprechen, sondern eine Rechnung:** *`tools/gleichlaut.js`
+> liest den ganzen Quelltext, ersetzt jeden Textruf durch seinen Wert und
+> rechnet je Sprache zwei Prüfsummen; die Wortlautprobe des Prüfstands hält
+> neunhundertvierundvierzig Sätze Zeichen für Zeichen gegen den Stand der
+> Abnahme von 0.24.0.*
+
+**ZWEI BEFUNDE SIND NEBENBEI GEFALLEN, und beide sind älter als die Runde:**
+*das „und" zwischen den beiden Zahlen der Tagwarnung und die Wörter „mehr" und
+„weniger" in der Vorschaubildzeile standen FEST im Quelltext.* **In einer
+englisch eingestellten Instanz stand dort deutscher Text** — *„3 entries und 2
+test days", „2.1 MB weniger".*
 
 > **DIE VORLAGE KAM NICHT AUS DIESEM HAUS.** *Der Betreiber hat
 > `Doku/I18N_CLEANUP_DE.md` von Google Gemini schreiben lassen; einundsiebzig
@@ -498,7 +512,8 @@ Anführungszeichen jetzt typografisch** *(auf Deutsch und auf Türkisch)*.
 **Am Wirt läuft 0.30.3, Fingerprint `098e85ca`** *(Abschnitt 8)* — *vom
 Betreiber am 13. September 2026 aus seiner Installation gemeldet und damit auf
 das Byte bestätigt.* **Drei Quellen, ein Wert, zum sechsten Mal.** *Der
-Fingerprint von 0.31.0 aus dem Feld steht aus.*
+Fingerprint von 0.31.0 (`7f4297ff`) und 0.31.1 (`47cfba37`) aus dem Feld steht
+aus.*
 
 **0.30.0 hat an zwei Enden gebaut, und beide Enden waren dieselbe Sache: Zeit,
 in der niemand etwas sieht.** *Der Prüflauf fällt von 464,4 auf 271,5 Sekunden —
@@ -1747,6 +1762,7 @@ Ursache war **eine Datei zu viel** auf dem Wirt (Stolperstein 158).
 
 | Version | Fingerprint | Prüfungen |
 |---|---|---|
+| **0.31.1** | `47cfba37` *(gerechnet am 13. September 2026 **als letztes und hinter der letzten Zeile**; aus zwei Quellen bestätigt — am Arbeitsbaum über dieselben achtzehn Dateien nachgerechnet und aus dem Server selbst gelesen, **alle achtzehn Einzelwerte gleich**. Die dritte steht aus. Die Runde fasst `public/app.js`, die drei Sprachdateien und `package.json` an)* | 6877 |
 | **0.31.0** | `7f4297ff` *(gerechnet am 13. September 2026 **als letztes und hinter der letzten Zeile**; aus zwei Quellen bestätigt — am Arbeitsbaum über dieselben achtzehn Dateien nachgerechnet und aus dem Server selbst gelesen, **alle achtzehn Einzelwerte gleich**. Die dritte steht aus. Die Runde fasst `public/app.js`, `public/style.css`, die drei Sprachdateien, `server.js` und `package.json` an)* | 6849 |
 | **0.30.3** | `098e85ca` *(am 13. September 2026 **von der laufenden Installation gemeldet — im Feld bestätigt**, genau der Sollwert; **drei Quellen, ein Wert**. Gerechnet am 12. September 2026 **als letztes und hinter der letzten Zeile**, davor aus zwei Quellen bestätigt — am Arbeitsbaum über dieselben achtzehn Dateien nachgerechnet und aus dem Server selbst gelesen, **alle achtzehn Einzelwerte gleich**. Die dritte steht aus. Die Runde fasst `public/app.js`, `public/style.css` und `package.json` an)* | 6823 |
 | **0.30.2** | `3d03be45` *(gerechnet am 12. September 2026 **als letztes und hinter der letzten Zeile** — die Lehre aus 0.30.1; aus zwei Quellen bestätigt, die dritte steht aus)* | 6801 |
@@ -5519,7 +5535,7 @@ G3 hat das mit dem Milchglas vorgeführt, Stolperstein 314.)*
   — sie ist strenger als AA, und sie stand schon
   (`Doku/Farbkonzept_0_23_0.md`).*
 
-#### Sprachregeln S1 bis S10 — seit 0.22.0 geschriebene Regel, S8 seit 0.24.0, S9 seit 0.24.1, S10 seit 0.24.3
+#### Sprachregeln S1 bis S12 — seit 0.22.0 geschriebene Regel, S8 seit 0.24.0, S9 seit 0.24.1, S10 seit 0.24.3, S11 seit 0.24.4, S12 seit 0.31.1
 
 *(Konzept, Abschnitt 4.2 und 4.3. Das Wörterbuch mit den sechzehn
 Entscheidungen E1 bis E16 steht im Änderungsprotokoll 0.22.0; die Verbotsliste
@@ -5690,6 +5706,42 @@ liest jeden Text in Anführungszeichen und Backticks von `public/app.js` und jed
   > `tr.json` liegt vollständig da, die fünf Regeln sind gefahren, der
   > Augenschein ist gefahren. **Was aussteht, ist das Durchgehen der
   > Wörterliste** — allen voran `Parola` gegen `Şifre` (F3).
+
+- **S12 · Ein Schlüssel trägt einen ganzen Satz, nie ein Wort ohne seinen
+  Satz.** *(seit 0.31.1.)* **Die Hervorhebung sitzt als `{word}` DARIN — wo,
+  entscheidet die Sprache.**
+
+  ```js
+  //  bis 0.31.0                                  ab 0.31.1
+  `${tH('a')} <strong>${tH('b')}</strong> ${tH('c')}`   tMark('a', 'b')
+  ```
+
+  **DER GRUND STEHT IN S11 UND IST DORT SCHON EINMAL TEUER GEWESEN.** *Bis
+  0.25.3 stand „Dein Link ist davon **nicht** betroffen — er gilt weiter." als
+  drei Schlüssel da.* **Im Deutschen geht das auf, im Englischen auch. Im
+  Türkischen nicht:** *dort verneint ein Suffix im Verb und kein eigenes
+  Wörtchen davor, und aus den drei sauber übersetzten Stücken wurde „Bağlantın
+  bundan değil etkilendi" — kein Satz, sondern Kauderwelsch, und er stand so
+  seit 0.24.3 im Programm.* **Ein zersägter Satz ist nicht eine schlechtere
+  Übersetzung, sondern eine, die der Übersetzer gar nicht retten kann.**
+
+  | | Regel | woran sie hängt |
+  |---|---|---|
+  | **A** | **Ein Wert ist ein Satz oder ein Satzteil mit eigener Aussage** — kein Satzzeichenanfang, kein bloßes Funktionswort, keine unpaarige Klammer | *ein Bruchstück verlangt vom Übersetzer, die Naht zu erraten* |
+  | **B** | **Zwei Ausnahmen, und beide stehen NAMENTLICH im Prüfstand** — das **Anschlussstück**, das einen benannten Platz eines anderen Satzes füllt, und die **eigenständige Beschriftung** (Auswahleintrag, Filterknopf, Zustandswort, Bindewort) | *und die Tafel ist in BEIDE Richtungen geschlossen: ein neues Bruchstück fällt auf, und eine Ausnahme, die keine mehr ist, ebenso* |
+  | **C** | **Die Füllung kommt maskiert herein, der Satz nie** — `tMark()`/`tMarks()` gehen über ein Steuerzeichen | *die Auszeichnung läuft damit NIE durch den maskierenden Weg; wer dort einen Benutzerwert einsetzen wollte, müsste die Helferzeile ändern* |
+  | **D** | **Kein Programmablauf läuft durch die Sprachdatei** — kein `===` neben einem `t()`-Ruf | *eine Verzweigung, die durch einen Satz läuft, den jemand übersetzen darf, ist keine Verzweigung, sondern eine Wette* |
+
+  **DIE ABNAHME DER RUNDE WAR, DASS SICH AM BILDSCHIRM KEIN ZEICHEN ÄNDERT**,
+  und sie ist gerechnet worden: `tools/gleichlaut.js` liest den ganzen
+  Quelltext, ersetzt jeden Textruf durch seinen Wert und rechnet je Sprache
+  zwei Prüfsummen. *Das Werkzeug nennt in seinem eigenen Kopf, wofür es blind
+  ist — es führt den Code nicht aus, es bildet nach, was die Helfer tun
+  SOLLEN.* **Genau dort ist beim Bauen ein Fehler durchgerutscht, den der
+  Prüfstand im ersten Lauf gefangen hat.**
+
+  *Vierzehn Gegenproben halten die Regel, eine je Zusage der Runde; die
+  vollständige Liste steht im Änderungsprotokoll 0.31.1.*
 
 #### Farbe und Marke
 

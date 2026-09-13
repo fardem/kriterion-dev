@@ -1,0 +1,369 @@
+# Änderungsprotokoll 0.31.1 — „Deutsch sitzt"
+
+**Auftrag 0.31.1 · 13. September 2026 · gebaut auf 0.31.0 · PATCH, kein
+Schemaanteil.**
+
+> **FINGERPRINT DIESER RUNDE: `47cfba37`** — gerechnet am gebauten
+> Stand, **als letztes und hinter der letzten Zeile**.
+>
+> | Quelle | Wert |
+> |---|---|
+> | **Am Arbeitsbaum nachgerechnet** *(achtzehn Dateien)* | **`47cfba37`** |
+> | **Aus dem Server selbst gelesen** *(frisches Datenverzeichnis, `/api/stats`)* | **`47cfba37`** |
+> | **Aus der laufenden Installation gemeldet** | *steht aus* |
+>
+> **ZWEI QUELLEN, EIN WERT** — *alle achtzehn Einzelwerte gleich.* **Die dritte
+> kommt aus dem Feld, sobald der Betreiber eingespielt hat.**
+
+---
+
+## Die Runde ist bestellt worden, nachdem sie schon gemessen war
+
+**DER BETREIBER HAT 0.31.0 AM LAUFENDEN SERVER ANGESEHEN** und gesagt: *„gehe
+die deutsche sprache sorgfältig durch und mach kein schnellschuss. deutsch muss
+sitzen. von dem aus gehen wir in die anderen sprachen."*
+
+**DARAUF SIND ALLE 1254 SCHLÜSSEL GELESEN WORDEN**, jeder gegen seine
+Aufrufstelle. *Der Befund: zweihundertelf Bruchstücke in hundertdreißig Zeilen —
+Schlüssel, die kein Text sind, sondern eine Naht.*
+
+```
+  ${t('card.keyFromSetting')} <code>${name}</code>${t('card.theDot')} …
+```
+
+**IM DEUTSCHEN GEHT DAS AUF. IM TÜRKISCHEN NICHT.** *Das hat 0.25.4 einmal
+teuer gelernt: dort verneint ein Suffix im Verb und kein eigenes Wörtchen davor,
+und aus drei sauber übersetzten Stücken wurde „Bağlantın bundan değil etkilendi"
+— kein Satz, sondern Kauderwelsch, und er stand seit 0.24.3 im Programm.*
+
+---
+
+## Die tragende Leitplanke, und sie ist bewiesen
+
+> **DER WORTLAUT ÄNDERT SICH NICHT.** *Was am Bildschirm steht, steht danach
+> Zeichen für Zeichen genauso da — in allen drei Sprachen.* **Die Runde fasst
+> die ABLAGE der Sätze an, nicht ihren Text.**
+
+**OHNE BEWEIS WÄRE DAS GESCHWÄTZ**, und darum ist das erste Stück dieser Runde
+kein Satz, sondern ein Werkzeug.
+
+### `tools/gleichlaut.js` — die Gleichlautprobe
+
+**SIE LIEST DEN GANZEN QUELLTEXT, ersetzt jeden Textruf durch seinen Wert und
+rechnet je Sprache zwei Prüfsummen** *(Einzahl und Mehrzahl getrennt — stellte
+sie eine Mehrzahl als `{eins|andere}` dar, wäre sie für genau den Handgriff
+dieser Runde blind)*. **Sie hängt an keiner Zeilennummer: verschmelzen drei
+Schlüssel zu einem, kommt dieselbe Summe heraus.**
+
+| sie wirft weg | warum |
+|---|---|
+| **Kommentare** | ein neuer Absatz Erklärung ist kein Bildschirmtext |
+| **die Helfer selbst** | wer `tMark()` umbaut, ändert nicht, was dasteht |
+| **Markup** | **ersatzlos, nicht auf ein Leerzeichen** — ein `</strong>` trennt im Browser keine Wörter |
+| **Vorlagenklammern** | drei Rufe nebeneinander tragen drei `${ }`, ein verschmolzener nur eines |
+| **Weißraum** | Form, kein Text |
+
+**JEDER DIESER PUNKTE IST AN EINEM FEHLALARM GELERNT WORDEN**, und der erste war
+der teuerste: *die Probe meldete einen Verlust am eigenen Kommentar.* **Eine
+Probe, die falschen Alarm gibt, wird abgeschaltet — und dann fängt sie auch den
+echten Verlust nicht mehr.**
+
+> **UND SIE NENNT, WOFÜR SIE BLIND IST.** *Sie führt den Code nicht aus; sie
+> BILDET NACH, was `tH()` und `tMark()` tun SOLLEN.* **Genau deshalb konnte sie
+> nicht sehen, dass `tMark()` seine Werte an den Satz reichte, aber nicht an das
+> hervorgehobene Wort** — *am Bildschirm stand „Die Zeilen werden nach **{n}**
+> Tagen automatisch gelöscht", und diese Probe meldete sechs von sechs Summen
+> gleich.* **Der Prüfstand hat es im ersten Lauf gefangen, weil er einen echten
+> Server befragt statt einen Quelltext zu lesen.** *Ein Werkzeug, dem jemand mehr
+> zutraut, als es kann, ist schlimmer als keines — darum steht der Satz in seinem
+> eigenen Kopf.*
+
+---
+
+## Was gebaut ist
+
+### Die beiden Helfer
+
+```js
+const tMark  = (key, wordKey, values) => …   // EIN Stück, und es ist ein Schlüssel
+const tMarks = (key, parts, values)   => …   // MEHRERE Stücke, und sie sind Werte
+```
+
+**`tMark()` GIBT SEINE WERTE SEIT DIESER RUNDE AN BEIDE** — an den Satz UND an
+das hervorgehobene Wort. *Der dritte Parameter ist neu und optional; alle Rufe
+von 0.25.4 bis 0.31.0 bleiben unverändert gültig.*
+
+**`tMarks()` IST GANZ NEU**, und zwar aus zwei Gründen in einem Werkzeug: *ein
+Satz nennt drei Beispiele* (der Kriterien-Tipp hebt „Wunsch", „Nutzen" und
+„Machbarkeit" hervor — bis hierher der Grund, ihn in SECHS Schlüssel zu zersägen,
+von denen einer `(Gewicht 1,5),` hieß), *und an siebenundzwanzig Stellen ist das
+Stück kein Schlüssel, sondern ein Wert* — ein Benutzername, eine Zahl, ein
+Mehrzahlsatz mit eigenem Argument.
+
+**DIE AUSZEICHNUNG LÄUFT NIE DURCH DEN MASKIERENDEN WEG.** *Beide gehen über ein
+Steuerzeichen; wer hier einen Wert vom Benutzer einsetzen wollte, müsste die
+Zeile ändern, und dann fällt es auf.*
+
+### Die acht Bauabschnitte
+
+| | was | Ergebnis |
+|---|---|---|
+| **BA 1** | **Das Muster von 0.25.4 auf die reinen Auszeichnungen** | **32 zersägte Sätze** werden ganze Sätze |
+| **BA 2** | **Die Ketten** — Zeilen mit mehr als einer Hervorhebung | **6**, jede von Hand entworfen; der Titelsatz zerfällt in zwei |
+| **BA 3** | **Die Bruchstücke ohne Auszeichnung** | **Satzzeichenanfänge, Füllwörter, offene Klammern** |
+| **BA 4** | **Die beiden Schlüssel ohne Leser** | `entry.reportKind`, `dialog.sessionExpired` |
+| **BA 5** | **Stolperstein 47** an vier Stellen | die vier Größen, die vierzehn Vorgabewörter, der Grabstein, die Exportgrenze |
+| **BA 6** | **Die drei Befunde vom Augenschein und fünf Beschriftungen** | *hier ändert sich TEXT, und zwar gewollt — der Auftrag nennt BA 6 die einzige solche Stelle; BA 5 und BA 7 sind beim Bauen dazugekommen und stehen in der Wortlautprobe* |
+| **BA 7** | **Der Erklärbärsaft** | vier Karten, `card.resetMailHint` von 277 auf 199 Zeichen |
+| **BA 8** | **Der Weißraum** | 92 Schlüssel verlieren die Einrückung des Quelltexts |
+
+### Die Zahlen
+
+| | vorher | nachher |
+|---|---|---|
+| **Schlüssel je Sprachdatei** | 1254 | **1197** |
+| *davon gefallen* | | **101** — *95 Hälften, die jetzt in ihrem Satz stehen; dazu die vier Exportgrößen (BA 5) und die zwei Schlüssel ohne Leser (BA 4)* |
+| *davon neu* | | **44** *(ein verschmolzener Satz bekommt oft einen neuen Namen)* |
+| *davon anderer Wortlaut* | | **68** |
+| **Bruchstücke** | 211 | **23 benannte**, und jedes ist eines mit Grund |
+| **Prüfungen im Prüfstand** | 6849 | **6877** — *und alle 6877 grün* |
+| **Rückbauten in den Gegenproben** | 954 | **968** — *vierzehn neue, und **0 STUMM*** |
+
+---
+
+## Zwei Befunde, und beide sind älter als die Runde
+
+**DEUTSCH STAND FEST IM QUELLTEXT — an zwei Stellen, und beide sind beim Bauen
+von BA 3 aufgefallen.**
+
+| Stelle | was in einer englischen Instanz dastand |
+|---|---|
+| **Die Tagwarnung** | *„The tag „Reise" is removed everywhere. Affected: 3 entries **und** 2 test days"* — das Bindewort stand fest zwischen zwei `t()`-Rufen |
+| **Die Vorschaubildzeile** | *„Thumbnails renewed: 7 of 12 checked — 2,1 MB **weniger**."* — `d > 0 ? 'mehr' : 'weniger'` |
+
+**JETZT TRÄGT JEDE SPRACHE DEN GANZEN SATZ**, und die Bindung mit ihm. *Der
+Schlusspunkt gehört ebenfalls dem Satz statt der Zeile.* **Das sind die einzigen
+beiden Stellen der Runde, an denen sich `en.json` und `tr.json` inhaltlich
+ändern** — alles andere dort ist mechanisch verklebt.
+
+> **UND EIN DRITTER, AUS BA 3 SELBST:** *der Importdialog lieh sich
+> `card.withPhotos` vom Exportknopf.* **Dort lautet der Wert „Mit Fotos (~" —
+> mit einer offenen Klammer, die der Quelltext am Knopf schließt.** *Im Dialog
+> schloss sie niemand, und es stand „Die Datei enthält **12 Einträge Mit Fotos
+> (~**, erstellt aus …".* **Das Gegenstück „ ohne Fotos" gab es längst als
+> eigenen Schlüssel; jetzt gibt es beide.**
+
+---
+
+## Was die Wachen dieser Runde halten
+
+| | Zusage | wie sie geprüft wird |
+|---|---|---|
+| **1** | **Die Gleichlautprobe liegt als Werkzeug daneben** | *und sie nennt ihre eigene Blindstelle* |
+| **2** | **Kein Schlüssel ist mehr ein bloßes Bruchstück** | **drei Sorten, drei Zeilen** — Satzzeichenanfang, Füllwort, unpaarige Klammer |
+| **3** | **Kein Programmablauf läuft durch die Sprachdatei** | kein `===` neben einem `t(`-Ruf — *das Muster, nicht die beiden Namen* |
+| **4** | **Die drei Dateien tragen gleich viele Schlüssel, in derselben Folge** | **1197**, und die Zahl steht an EINER Stelle |
+| **5** | **Jeder `{word}` hat seinen Ruf, jeder Ruf seinen `{word}`** | beide Richtungen; die zweite ist die wichtigere |
+| **6** | **Keine Vokabelbeschriftung nennt ihr eigenes Vorgabewort** | *sonst steht das Wort zweimal da — und das eine ist gerade das, was der Benutzer auswechselt* |
+| **7** | **Keine Zahl steht zweimal** | die vier Größen kommen aus ihrem `value` |
+| **8** | **Kein DEUTSCHER Wert trägt eine HTML-Entität** | *en/tr tragen sie noch — sie herauszunehmen hieße, ihre Sätze neu zu formulieren, und das ist 0.31.2 und 0.31.3* |
+| **9** | **Kein Wert trägt die Einrückung des Quelltexts** | *in keiner der drei Dateien; ein Umbruch steht nur in den vier Briefen, wo er ein Absatz ist* |
+| **10** | **Kein Eintrag der Umbenennungstafel zeigt auf einen Schlüssel DIESER Runde** | **92 umgehängt, 6 gestrichen** |
+| **11** | **Die Wortlautprobe ist vollständig nachgeführt** | drei Listen, und jede sagt, welche Runde was getan hat |
+
+### Zusage 2 hieß zuerst etwas Gröberes
+
+**„KEIN WERT FÄNGT MIT EINEM SATZZEICHEN AN" HÄTTE „— keine —" AUS EINER
+AUSWAHLLISTE EINKASSIERT** und den Nachsatz eines Satzes gleich mit. *Sie sagt
+jetzt, was sie meint, und die Ausnahmen stehen NAMENTLICH da:*
+
+| Sorte | was sie ist | wie viele |
+|---|---|---|
+| **Anschlussstück** | füllt einen **benannten Platz** eines anderen Satzes. *Wo sein Trenner sitzt, entscheidet dann der SATZ und nicht der Quelltext* | **12** |
+| **Eigenständige Beschriftung** | ein Bedienelement und kein Satzteil: *Eintrag einer Auswahlliste, Filterknopf, Zustandswort einer Kennzeile, Bindewort einer Aufzählung* | **11** |
+
+**DAS ANSCHLUSSSTÜCK WIRD NACHGEPRÜFT UND NICHT GEGLAUBT:** *der Elternsatz muss
+den Platz wirklich tragen, und der Ruf muss das Stück wirklich dort einsetzen.*
+**Fällt der Platz weg, fällt die Ausnahme mit ihm.** *Und die Tafel ist in beide
+Richtungen geschlossen — was nicht darin steht, ist ein Fund, und was darin steht
+und keines mehr ist, fällt genauso auf.* **Eine Ausnahmeliste, die nur in eine
+Richtung prüft, wächst.**
+
+---
+
+## Die Wortlautprobe — und was sie an sich selbst gefunden hat
+
+**SIE HÄLT DIE DEUTSCHE DATEI GEGEN DEN STAND DER ABNAHME VON 0.24.0**
+(`0681d42`), Satz für Satz. *Diese Runde hat ihr drei Listen hinzugefügt:*
+
+| Liste | | warum eine EIGENE Liste |
+|---|---|---|
+| `WORDING_NEW_0311` | **44 Schlüssel** | *der Stand von damals kennt sie nicht* |
+| `WORDING_GONE_TEXT_0311` | **98 Wortlaute** | *die Hälften; ihr Schlüssel ist gefallen, also steht ihr TEXT da und nicht ihr Name* |
+| `WORDING_CHANGED_0311` | **68 Schlüssel** | *sie behalten ihren Namen und bekommen einen anderen Wortlaut* |
+
+> **UND SIE HAT EINEN RECHENFEHLER IN SICH SELBST GEMELDET.** *Sie zog die
+> Abzugslisten vom ROHEN Stand ab und zog erst danach den Weißraum zusammen — ein
+> Satz, der in der Datei von damals eine Einrückung trug, ließ sich mit seinem
+> zusammengezogenen Wortlaut nicht abziehen und blieb stumm stehen.* **Bei elf
+> Einträgen fiel das nicht auf; bei achtundneunzig standen zweiunddreißig falsch
+> da.** *Jetzt wird auf BEIDEN Seiten erst zusammengezogen und dann abgezogen.*
+
+**UND ZUM ERSTEN MAL SIND IHRE BEIDEN ZAHLEN VERSCHIEDEN: 145 damals gegen 143
+heute.** *„E-Mail ist optional." und „und" gab es in der Datei SCHON, unter einem
+anderen Schlüssel — der neue Wortlaut ist kein neuer Satz, sondern ein ZWEITES
+Vorkommen, und eine Liste mit `includes` kann das nicht sehen.* **Dasselbe ist
+0.28.1 mit „Titel" passiert und 0.29.0 mit „Name"; dort glich ein Mehrzahlpaar
+aus 0.25.4 die Rechnung auf der anderen Seite aus.** *Hier gleicht sie nichts
+aus — und darum stehen zwei Zahlen da statt einer geschönten.*
+
+> **DIE EIGENTLICHE ABNAHME IST DIE ZEILE DARUNTER:**
+> **neunhundertvierundvierzig Sätze, Zeichen für Zeichen der Stand von
+> `0681d42`** — *Sätze, die niemand angefasst hat.*
+
+---
+
+## Was beim Bauen schiefgegangen ist
+
+**SECHS FEHLER, UND JEDER IST VON EINER WACHE GEFANGEN WORDEN, BEVOR IHN JEMAND
+GESEHEN HAT.** *Sie stehen hier, weil sie beim nächsten Mal wieder passieren.*
+
+| | was | wer es gefangen hat |
+|---|---|---|
+| **1** | **BA 8 ZERSTÖRTE DIE VIER BRIEFE.** *Mein Weißraumschnitt nahm die `\n\n` der Absätze mit; jede Mail wäre als eine Wand Text angekommen* | **der Prüfstand** — *und MEIN EIGENER BEWEIS WAR SCHULD: ich hatte `app.js` und `server.js` auf weißraumtreue Stellen durchgesehen, aber die Briefe gehen durch `mail.js`* |
+| **2** | **EIN NAMENSZUSAMMENSTOSS LÖSCHTE EINEN DIALOGTEXT.** *Der verschmolzenen Zustandszeile gab ich den Namen `card.twoFactorOffHint` — und den trug schon der Bestätigungsdialog* | **die Gleichlautprobe.** *Seither gilt: ein neuer Name darf nur dann schon dastehen, wenn er EINE DER BEIDEN HÄLFTEN ist* |
+| **3** | **`tMark()` REICHTE SEINE WERTE NUR DEM SATZ.** *Am Bildschirm stand „nach **{n}** Tagen"* | **der Prüfstand, im ersten Lauf.** *Die Gleichlautprobe war blind dafür — sie bildet das GEMEINTE nach* |
+| **4** | **ZWEIMAL HABE ICH DIE HAUSREGELN SELBST GEBROCHEN:** *deutsche Bezeichner in `tMarks()` (`marken/namen/satz/stuecke`) und das verbotene Wort „tragen" in `card.nameFreedHint`* | **der Englischwächter und der Sprachwächter** *(Auflage 3)* |
+| **5** | **EIN PLATZHALTER STAND AM BILDSCHIRM.** *`list.commentCount` bekam mit dem Verschmelzen einen Platz `{of}` für sein „, davon …" — und die Glocke in der Kopfzeile ruft denselben Schlüssel ein zweites Mal, ohne etwas davon zu sagen.* **Dort stand danach „3 Kommentare{of}"** — *genau der sichtbarste Fehler, den eine Sprachdatei machen kann, und er ist mir beim Verschmelzen entgangen, weil ich nur den einen Ruf gelesen habe* | **der Prüfstand**, vierfach: die Glockentafel prüft Ein- und Mehrzahl an zwei Stellen |
+| **6** | **STOLPERSTEIN 47 RICHTIG GESEHEN, FALSCH GEBAUT.** *Die Schlüsselzahl stand an zwei Stellen; ich habe sie zu EINER Konstante zusammengezogen — und sie in die eine der beiden Gruppen gelegt.* **`check0311()` ist eine eigene Funktion: der ganze Lauf riss mit „LANG_KEY_COUNT is not defined" ab**, und ein abgerissener Lauf belegt nichts *(Stolpersteine 138, 161 und 170)* | **vier Gegenproben zugleich**, jede als `ABGERISSEN`. *Genau dafür ist diese Meldung da — sie unterscheidet „die Zusage hat gehalten" von „es hat gar nichts stattgefunden"* |
+
+> **UND ZWEI WACHEN HABEN DAZUGELERNT, weil die Runde ihnen etwas Neues
+> hingestellt hat:** *der Platzhalterwächter las `t()` und `tH()`, aber nicht
+> `tMark()` und `tMarks()` — beide nehmen seit dieser Runde WERTE, und er
+> meldete zehn Plätze als unbedient, die in Wahrheit bedient werden.* **Eine
+> Wache, die falschen Alarm gibt, wird abgeschaltet — und dann fängt sie auch
+> den echten Fall nicht mehr.** *Der zweite war der `{word}`-Wächter: er las
+> `String(wert)` und machte aus einem Mehrzahlpaar „[object Object]"
+> (Stolperstein 81).*
+
+> **UND EINE BERICHTIGUNG MEINER EIGENEN AUSKUNFT AN DEN BETREIBER.** *Ich hatte
+> gesagt, „Note" und „Bewertung" seien dasselbe.* **Das stimmt nicht:
+> `test_days.rating` ist EINE Zahl je Testtag, `ratings.value` eine je Kriterium.
+> Zwei Tabellen.** *Die Berichtigung steht im Fahrplan, damit sie nicht
+> wiederkommt.*
+
+---
+
+## Vierzehn Gegenproben — jede gefahren
+
+**EINE PRÜFUNG, DIE GRÜN IST, BELEGT NICHTS, solange niemand gezeigt hat, dass
+sie auch rot werden kann.** *Jede Zusage der Runde bekommt darum einen Rückbau:
+die geprüfte Sache wird in einer `git archive`-Kopie probeweise zurückgebaut,
+und festgehalten wird, WELCHE Prüfungen daraufhin namentlich rot werden.*
+**Ein Rückbau, der keine einzige rot macht, ist ein FUND — nicht ein Erfolg.**
+
+| Nr. | was zurückgebaut wird | für Zusage |
+|---|---|---|
+| **964** | die Gleichlautprobe nennt ihre eigene Blindstelle nicht mehr | 1 |
+| **965** | ein Satz fängt wieder mit dem Punkt seines Vorgängers an | 2 *(Satzzeichen)* |
+| **966** | ein Schlüssel trägt wieder ein bloßes Füllwort | 2 *(Füllwort)* |
+| **967** | ein Wert öffnet wieder eine Klammer, die er nicht schließt | 2 *(Klammer)* |
+| **968** | ein Anschlussstück hängt an keinem Satz mehr | 2 *(die Tafel)* |
+| **969** | ein Vergleich steht wieder neben einem Textruf | 3 |
+| **970** | die türkische Datei trägt einen Schlüssel weniger | 4 |
+| **971** | ein Satz mit Hervorhebung verliert seinen Platz | 5 |
+| **972** | eine Vokabelbeschriftung nennt wieder ihr Vorgabewort | 6 |
+| **973** | eine Exportgröße steht wieder in der Sprachdatei | 7 |
+| **974** | ein deutscher Wert trägt wieder eine HTML-Entität | 8 |
+| **975** | ein Wert trägt wieder die Einrückung des Quelltexts | 9 |
+| **976** | ein Eintrag der Umbenennungstafel zeigt wieder ins Leere | 10 |
+| **977** | ein unberührter Satz ändert sein Wort | 11 |
+
+> **JEDER GREIFT IN DIE DATEN UND NICHT IN DEN WÄCHTER.** *Eine Gegenprobe, die
+> die Prüfung selbst umbaut, belegt nur, dass man Prüfungen abschalten kann.*
+> **Zusage 2 bekommt vier, weil sie drei Sorten Bruchstück verbietet und die
+> Ausnahmetafel dazu** — *ein Rückbau je Sorte sagt, welche gefangen hat.*
+
+> **UND SECHZEHN ÄLTERE MUSSTEN NACHGEZOGEN WERDEN:** *ihre Suchtexte standen
+> nach dem Verschmelzen nicht mehr da.* **Gemeldet hat sie die Zusage „Jeder
+> Suchtext kommt in seiner Datei genau einmal vor" — alle sechzehn auf einmal.**
+> *Sie ist damit selbst der Beleg dafür, dass ein Rückbau, der ins Leere greift,
+> auffällt statt still zu sein.*
+
+---
+
+## Der Augenschein — am laufenden Server, in echtem Chromium
+
+**ER FRAGT ETWAS ANDERES ALS DER VON 0.31.0.** *Jene Runde hat Wörter geändert
+und wollte sie am Bildschirm wiedersehen.* **Diese Runde hat die ABLAGE der
+Sätze angefasst und verspricht, dass sich am Bildschirm nichts ändert** — *also
+lautet die Frage: steht jeder verschmolzene Satz vollständig da, und steht
+nirgends ein Platzhalter offen?*
+
+| gefragt | Ergebnis |
+|---|---|
+| **Ein offener Platzhalter irgendwo?** *(gesucht wird das MUSTER `{name}`, keine Liste — ein neuer Satz mit einem neuen Platz soll hier auffallen)* | **keiner** — auf zwölf Ansichten und zwei Fenstern |
+| **Eine sichtbare Naht?** *(neun Marken, jede genau das, was dastand, solange der Satz zersägt war: `(~,` · `&lt;` · `Einträge Mit Fotos` · `{word}` · `Sitzung abgelaufen` · `Eintrag/Einträge` …)* | **keine** |
+| **Stehen die verschmolzenen Sätze ganz da?** *(gesucht wird ein Stück, das die Naht ÜBERQUERT — steht nur eine Hälfte da, greift die Suche daneben, und genau das soll sie)* | **fünfzehn von zwanzig** |
+
+> **DIE FÜNF UNGESEHENEN SIND KEIN BEFUND, SONDERN DIE GRENZE DER PROBE.**
+> *Sie stehen an Stellen, die ein Seitenaufruf nicht erreicht: der Teilexport
+> mit einem echten Schnitt, die Warnung mit dem Schlüssel neben der Datenbank,
+> das Löschfenster eines Benutzers und der Hinweis am Einladungslink.* **Alle
+> fünf fährt der Prüfstand in seinen eigenen Gruppen, und die sind grün.**
+> *Was der Augenschein leistet und der Prüfstand nicht, ist der Rundumblick: er
+> liest, was WIRKLICH auf der Seite steht, und nicht, was eine Zusage
+> nachfragt.*
+
+---
+
+## Ein Fund, der nicht in dieser Runde repariert wird
+
+**NEUNUNDDREISSIG EINTRÄGE DER UMBENENNUNGSTAFEL ZEIGTEN SCHON VOR DIESER RUNDE
+INS LEERE** *(`tools/keys.json`, aus 0.24 bis 0.30 — darunter `login.not`,
+`list.sortAvgDesc` und die vierzehn deutschen Vokabelnamen)*. **Sie bleiben
+stehen und sind gezählt.** *Einen Nachfolger zu raten wäre schlimmer als die
+Lücke: die Tafel übersetzt den alten deutschen Namen, und ein falsches Ziel
+schickt den Rufer an die falsche Zeile.*
+
+**WAS DIESE RUNDE GEBROCHEN HAT, IST DAGEGEN NACHGEZOGEN: zweiundneunzig
+Einträge zeigen auf ihren Nachfolger**, und sechs sind **ersatzlos gestrichen**
+— *`dialog.sitzungAbgelaufen` und `eintrag.report` (die beiden Schlüssel ohne
+Leser, BA 4) und `karte.mB` bis `karte.mB4` (die vier Exportgrößen, BA 5).*
+**Ein verschmolzener Schlüssel hat einen Nachfolger; ein gestrichener hat
+keinen, und dann steht dort auch keiner.**
+
+---
+
+## Was diese Runde NICHT gebaut hat
+
+| | |
+|---|---|
+| **Kein englischer und kein türkischer Satz ist neu formuliert** | *ihre Hälften sind MECHANISCH verklebt, in genau der Reihenfolge, in der der Quelltext sie verklebt hat. Ausnahme sind die zwei Stellen, an denen Deutsch im Quelltext stand* |
+| **„Note" bleibt stehen** | *sie wird in **0.32.0** das fünfzehnte Vokabelwort — kein Schema, keine Migration, kein Formatwechsel, aber zwölf Zusagen halten die Zahl vierzehn fest* |
+| **Keine Anordnung ist angefasst** | *diese Runde fasst Sätze an, keine Oberfläche* |
+| **Kein Schemaanteil** | *Austauschformat bleibt 16, `F_ROUTES` bleibt 73* |
+
+---
+
+## Nichts zu tun beim Einspielen
+
+**Kein Schemaanteil, kein Migrationsblock, das Austauschformat bleibt 16,
+`F_ROUTES` bleibt 73.**
+
+---
+
+## Die Papiere
+
+| | |
+|---|---|
+| **`Doku/Auftrag_0.31.1.md`** | sechs Leitplanken, zwölf Fragen, acht Bauabschnitte, elf Zusagen |
+| **`Doku/Auftrag_0.31.0.md`** | **weggefallen** — *es liegt immer nur einer im Repo; was dort stand, steht im Änderungsprotokoll 0.31.0* |
+| **`Doku/I18N_CLEANUP_DE.md`** | **bleibt liegen** — *die Vorlage von Google Gemini ist der Gegenstand, gegen den 0.31.2 und 0.31.3 noch prüfen* |
+| **`Doku/Aenderungsprotokoll_0.31.1.md`** | dieses Papier |
+| **`Doku/Projektstand_Kriterion_0_31_1.md`** | `git mv`, **Revision 88** — *und **Regel S12** in Abschnitt 5.6: „Ein Schlüssel trägt einen ganzen Satz, nie ein Wort ohne seinen Satz"* |
+| **`Doku/Fahrplan.md`** | die Zeile 0.31.1 durchgestrichen; **die geplanten Runden rücken nicht** |
+| **`Doku/Fehler_und_Ideen.md`** | Punkt 24 nachgezogen |
+| **`tools/gleichlaut.js`** | **neu** — das Werkzeug dieser Runde |
+| **`CHANGELOG.md`** | ein Eintrag 0.31.1 |
+| **`package.json`, `package-lock.json`** | 0.31.1 |

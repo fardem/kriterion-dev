@@ -1219,13 +1219,24 @@ sondern damit derselbe Bericht nicht ein zweites Mal geglaubt wird.
 > Anführungszeichen** *(deutsch und türkisch)*. **Was daraus geworden ist, steht
 > im Änderungsprotokoll 0.31.0 und nach Regel 2 nicht mehr hier.**
 >
+> **UND DIE SATZ-STÜCKELUNG IST AUFGELÖST — 0.31.1, am 13. September 2026.**
+> *Der stärkste Punkt aus allen drei Berichten war der türkische Verneinungssatz,
+> und er kam nicht aus der Liste, sondern aus der Prüfung: der Satz muss im
+> QUELLTEXT anders geschnitten werden.* **Genau das ist geschehen — 95
+> Bruchstücke sind in ihren Satz gezogen, jede Sprachdatei trägt 1197 statt 1254
+> Schlüssel, und am Bildschirm hat sich kein Zeichen geändert.** *Wer eine
+> Sprachdatei pflegt, übersetzt ab jetzt ganze Sätze und entscheidet selbst, wo
+> die Hervorhebung darin sitzt.* **Zwei Stellen mit festem Deutsch im Quelltext
+> sind dabei aufgefallen** *(„und", „mehr"/„weniger")* — **sie standen in einer
+> englischen Instanz auf Deutsch da.**
+>
 > **WAS VON PUNKT 24 OFFEN BLEIBT — und zwar genau dreierlei:**
 >
 > | | |
 > |---|---|
-> | **`en.json`** | die englischen Sätze, **0.31.1**. *Heute steht dort „files that **leaves the house**" — Wort für Wort aus dem Deutschen, samt seiner Bilder* |
-> | **`tr.json`** | die türkischen, **0.31.2**. *„hap" für die Filterpille, „Cihaz gibi" für „Wie das Gerät", „Bulunan yer" für die Fundstelle — und das Zeichenpaar `„…“` statt `“…”`* |
-> | **„Note" bei 1 bis 5 Sternen** *(Gruppe 2)* | **unverändert offen.** *`entry.grade` und `server.gradeRange` sagen weiter „Note", und bei Schulnoten ist 1 das Beste. 0.31.0 hat sie nicht angefasst: der Auftrag nennt sie nicht, und das Wort steht in **allen drei** Dateien — es ist damit keine deutsche Wortwahl, sondern eine Entscheidung über den Begriff selbst* |
+> | **`en.json`** | die englischen Sätze, **0.31.2**. *Heute steht dort „files that **leaves the house**" — Wort für Wort aus dem Deutschen, samt seiner Bilder.* **0.31.1 hat es leichter gemacht: zu übersetzen sind jetzt ganze Sätze statt Hälften** |
+> | **`tr.json`** | die türkischen, **0.31.3**. *„hap" für die Filterpille, „Cihaz gibi" für „Wie das Gerät", „Bulunan yer" für die Fundstelle — und das Zeichenpaar `„…“` statt `“…”`* |
+> | **„Note" bei 1 bis 5 Sternen** *(Gruppe 2)* | **entschieden am 13. September 2026 und im Fahrplan unter 0.32.0.** *Sie wird das **fünfzehnte Vokabelwort** — der Betreiber: „da das ja je nach nicht eine Note sondern Ergebnis sein kann, Tageswert, Tagesschnitt, Experiment — was auch immer."* **Kein Schema, keine Migration, kein Formatwechsel — aber eine FUNKTION, und die spränge eine Sprachrunde von PATCH auf MINOR** |
 >
 > **UND EINE REGEL IST DAZUGEKOMMEN, die künftige Berichte betrifft** *(Abschnitt
 > 12 des Projektstands)*: **der deutsche Wortlaut ist ab 0.31.0 unveränderliche

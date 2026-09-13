@@ -152,10 +152,10 @@ Sprachumschalter baut, hat damit ein Muster und braucht kein neues.**
 | ~~**0.30.2**~~ | ~~Die Tagzeile bekommt ihre Breite zurück~~ | **GEBAUT am 12. September 2026** — Änderungsprotokoll 0.30.2. *Ein Befund aus dem Rundlauf mit 0.30.1; **PATCH**, kein Schemaanteil. Die dritte Rasterspalte nahm der Tagwolke bis zu 180 der 366 Pixel — auf Deutsch fiel die Tagzeile von 845 auf 321* | nein | — |
 | ~~**0.30.3**~~ | ~~Die zugeklappte Tagzeile füllt, was sie ohnehin kostet~~ | **GEBAUT am 12. September 2026** — Änderungsprotokoll 0.30.3. *Ein Befund aus dem Rundlauf mit 0.30.2; **PATCH**, kein Schemaanteil. Die zugeklappte Zeile ließ fünfunddreißig Pixel leer, weil die Beschriftungsspalte ihre Höhe verlangt und die Wolke daneben nur eine Reihe zeigte — jetzt zwei, und bei wenigen Tags fällt die Anordnung ganz weg* | nein | — |
 | ~~**0.31.0**~~ | ~~Die Sprachdateien werden gegengelesen — deutsch~~ | **GEBAUT am 13. September 2026** — Änderungsprotokoll 0.31.0. *Elf Code-Lecks raus (aus allen drei Dateien: 1265 → 1254), neunundvierzig deutsche Texte geschärft, vierunddreißig Anführungszeichen berichtigt (deutsch und türkisch). **MINOR**, kein Schemaanteil. Die Vorlage kam von Google Gemini und ist Zeile für Zeile gegen den Quelltext geprüft worden; das Änderungsprotokoll trägt die Absichtszeilen für 0.31.2 und 0.31.3* | nein | — |
-| **0.31.1** | **Deutsch sitzt** | **Der Durchgang durch alle 1254 deutschen Schlüssel, 13.9.2026.** **211 Bruchstücke** in 130 Zeilen werden zu ganzen Sätzen; dazu ein Schlüssel, der Programmablauf führt (`entry.reportKind`), vier Stellen Stolperstein 47 und die vierzehn Vokabelbeschriftungen auf EINE Regel. *Der Wortlaut ändert sich nicht — nur seine Ablage* | nein | — |
-| **0.31.2** | **… englisch** | `en.json` übersetzt die ABSICHT der deutschen Sätze, nicht ihre Wörter. *Heute steht dort „files that leaves the house“* | nein | — |
-| **0.31.3** | **… türkisch** | `tr.json` ebenso. *Heute steht dort „hap“ — die Tablette — für die Filterpille.* **Sie fährt zuletzt, und das ist der Grund für 0.31.1:** an ihr ist das Zersägen schon einmal zerbrochen | nein | — |
-| **0.32.0** | **Der Ruf beim Namen** | `@name` in Notiz, Bericht und Aufgabe — hervorgehoben, und der Genannte bekommt eine Glocke *(bestellt 12.9.2026)*. **Dazu am 13.9.2026: die Glocke muss unterscheiden können, „Filter folgt der Sortierung“ wird herausgearbeitet, und zwei Befunde aus der Filterzeile** *(„+ Ansicht speichern“ wird Text statt Pille; der „Mehr“-Aufklapper wird breitenabhängig)* | **offen** | — |
+| ~~**0.31.1**~~ | ~~Deutsch sitzt~~ | **GEBAUT am 13. September 2026** — Änderungsprotokoll 0.31.1. *Der Durchgang durch alle 1254 deutschen Schlüssel; **1254 → 1197** in allen drei Dateien: 101 Schlüssel sind gefallen (95 Hälften, die vier Exportgrößen, die zwei ohne Leser), 44 sind neu, 68 haben einen anderen Wortlaut. **PATCH**, kein Schemaanteil.* **Der Wortlaut ändert sich nicht — nur seine Ablage**, und die Gleichlautprobe (`tools/gleichlaut.js`) belegt es. *Zwei Befunde nebenbei: „und", „mehr" und „weniger" standen fest im Quelltext und erschienen in einer englischen Instanz auf Deutsch* | nein | — |
+| **0.31.2** | **… englisch** | `en.json` übersetzt die ABSICHT der deutschen Sätze, nicht ihre Wörter. *Heute steht dort „files that leaves the house“.* **0.31.1 hat es leichter gemacht: zu übersetzen sind jetzt ganze Sätze statt Hälften, und wo die Hervorhebung sitzt, entscheidet die Sprache selbst.** *Zwei Dinge warten schon dort — `card.vocabularyResetHint` zählt auf Englisch weiter alle vierzehn Vorgabewörter auf, und die HTML-Entitäten stehen noch in `card.nameFreedHint` und seinen Geschwistern* | nein | — |
+| **0.31.3** | **… türkisch** | `tr.json` ebenso. *Heute steht dort „hap“ — die Tablette — für die Filterpille.* **Sie fährt zuletzt, und sie war der Grund für 0.31.1:** *an ihr ist das Zersägen schon einmal zerbrochen — „Bağlantın bundan değil etkilendi“ war keine Verneinung, sondern Kauderwelsch.* **Das kann jetzt nicht mehr passieren: ein Schlüssel trägt einen ganzen Satz** *(Regel S12)* | nein | — |
+| **0.32.0** | **Der Ruf beim Namen** | `@name` in Notiz, Bericht und Aufgabe — hervorgehoben, und der Genannte bekommt eine Glocke *(bestellt 12.9.2026)*. **Dazu am 13.9.2026: die Glocke muss unterscheiden können, „Filter folgt der Sortierung“ wird herausgearbeitet, und zwei Befunde aus der Filterzeile** *(„+ Ansicht speichern“ wird Text statt Pille; der „Mehr“-Aufklapper wird breitenabhängig)*. **Dazu „Note" als fünfzehntes Vokabelwort** *(entschieden 13.9.2026 — kein Schema, keine Migration, aber zwölf Zusagen halten die Zahl vierzehn)* | **offen** | — |
 | **0.33.0** | **Bereinigung — der Bruch** | **zwölf** Migrationsblöcke raus *(0.29.0 hat den zwölften gebracht)*, **dazu die JPEG-Vorschaubilder des Bestandslaufs** *(entschieden 13.9.2026)*, Struktur festgeschrieben, **kein Rückweg** | **ja** | — |
 | **0.33.x** | **Die Kommentare werden knapp** | 16.281 von 54.822 Zeilen sind Kommentar | nein | — |
 | **0.34.0** | **Der Prüfstand bekommt ein Verzeichnis** | `testbench.js` in Module — **und damit erst der echte Teillauf** | nein | — |
@@ -1010,6 +1010,11 @@ Sprachdateien an und keine Tabelle.
 
 ## 0.31.1 — „Deutsch sitzt"
 
+> **GEBAUT AM 13. SEPTEMBER 2026** — *Änderungsprotokoll 0.31.1.* **1254
+> Schlüssel sind 1197 geworden, in allen drei Dateien**, und am Bildschirm hat
+> sich kein Zeichen geändert. *Was unten steht, ist der Befund, aus dem der
+> Auftrag entstanden ist; was daraus geworden ist, steht im Änderungsprotokoll.*
+
 **Aus dem Rundlauf mit 0.31.0, am 13. September 2026.** Der Betreiber hat die
 Runde am laufenden Server angesehen, sieben Befunde gemeldet und die Richtung
 vorgegeben: *„gehe die deutsche sprache sorgfältig durch und mach kein
@@ -1399,6 +1404,90 @@ knopf“. **Gemessen am laufenden Server, an allen acht Stellen:**
 > überall, am Rechner fällt er dort weg, wo der Text ohnehin in eine Zeile
 > geht.* **Die Zahl, ab der er sich lohnt, gehört in den Quelltext und nicht in
 > die Sprachdatei — sie ist keine Sprache.**
+
+### Und „Note" wird ein Vokabelwort — entschieden am 13. September 2026
+
+**SIE STAND SEIT 0.31.0 OFFEN und ist jetzt entschieden — mit der Nummer
+hierher.** *Der Betreiber:* „Mir wäre lieber A, also daraus Vokabel zu machen.
+Da das ja je nach nicht eine Note sondern Ergebnis sein kann, Tageswert,
+Tagesschnitt, Experiment — was auch immer."
+
+**DER BEFUND, DER SIE AUSGELÖST HAT.** *In der Detailansicht steht im Block
+`{dayMany}` (`public/app.js:7627`):*
+
+```
+[ Datum ]   Note:  ★ ★ ★ ★ ★   [ Hinzufügen ]
+```
+
+| | |
+|---|---|
+| **1** | **„Note" trägt eine Richtung, und es ist die falsche.** *Eine deutsche Note läuft abwärts — die **1** ist die beste. Sterne laufen aufwärts.* **`server.gradeRange` sagt wörtlich „Die Note muss zwischen 1 und 5 liegen"**, und wer das als Schulnote liest, hält die 5 für fast das Schlechteste. Gemeint ist das Beste |
+| **2** | **Es ist die einzige Zahl im Programm ohne Vokabelwort.** *Die Blockkopfzeile nennt `V.dayMany`, der Nachbarblock `V.ratingOne` — beide umbenennbar. „Note:" steht fest in der Sprachdatei. Wer „Testtag" in „Messung" umbenennt, liest weiter „Note:"* |
+
+> **EINE BERICHTIGUNG, DAMIT SIE NICHT WIEDERKOMMT.** *Beim ersten Vortrag ist
+> behauptet worden, „Note" und „Bewertung" seien dieselbe Sache unter zwei
+> Namen.* **Das ist falsch.** *Es sind zwei Tabellen:* `test_days.rating` ist
+> **eine** Zahl für einen ganzen Testtag und heißt „Note"; `ratings.value` ist
+> ein Wert **je Kriterium** und trägt das Vokabelwort `ratingOne`
+> („Bewertung"). **Sie gehören nicht zusammen.**
+
+### Was es kostet — am Quelltext nachgesehen, nicht geschätzt
+
+**DREI SACHEN, DIE MAN ERWARTEN WÜRDE, FALLEN WEG:**
+
+| | |
+|---|---|
+| **Schema** | **keins.** Das Vokabular liegt als JSON unter `settings.vocabulary` und nicht als Spalten |
+| **Migration** | **keine.** `vocabulary()` (`server.js:2387`) läuft über die Schlüssel der **Sprachdatei** und nicht über das Gespeicherte — ein fünfzehntes Wort erscheint in jeder bestehenden Installation von selbst mit seiner Vorgabe, weil das Gespeicherte dafür keinen Eintrag hat und durchfällt |
+| **Austauschformat** | **unberührt.** Der Export trägt das Vokabular gar nicht; `EXCHANGE_FORMAT` bleibt **16** |
+
+**WAS ES WIRKLICH ANFASST:**
+
+| | |
+|---|---|
+| Sprachdateien | **zwei** Schlüssel je Datei: das Wort und seine Beschriftung in der Vokabelkarte |
+| `public/app.js` | `VOCABULARY_FIELDS` bekommt `v15`; **zehn** Schlüssel mit „Note" an **zwölf** Rufen |
+| `server.js` | einer — `server.gradeRange` |
+| **Der Prüfstand** | **zwölf Zusagen halten die Zahl VIERZEHN fest**, dazu 37 Stellen, die „vierzehn" in Prosa sagen |
+
+> **DIE ZWÖLF SIND DER EIGENTLICHE AUFWAND, und sie werden GEDREHT und nicht
+> entfernt.** *0.22.0 hat dieselbe Zahl schon einmal von zwölf auf vierzehn
+> gedreht und es ausdrücklich notiert: **„umgedreht mit 0.22.0 und nicht
+> gelöscht (Stolperstein 74)"**. Eine Zahl, die still wächst, fällt sonst
+> niemandem auf.*
+
+**MEHRZAHLFORM BRAUCHT ES NICHT.** *Alle zehn Stellen stehen im Singular — ein
+Wort statt eines Paares, anders als bei den sechs Paaren davor.*
+
+### Die eine Stelle, die dabei umformuliert werden MUSS
+
+**EIN FREIES WORT DULDET KEIN ADJEKTIV VOR SICH.** *Heute steht:*
+
+> `list.sortLast` = **„Letzte Note"**
+
+*Mit einem gewählten Wort wird daraus „Letzt**er** Tageswert", „Letzt**es**
+Ergebnis", „Letzt**es** Experiment" — das Geschlecht wechselt mit dem Wort, und
+die Sprachdatei kann es nicht wissen.* **Die Sortierbeschriftung wird
+artikellos**, etwa „Zuletzt: {wort}".
+
+> **DIESE STELLE GIBT ES SCHON EINMAL, und sie bleibt als Befund stehen:**
+> `server.entryTooBig` sagt **„Dieser {entryOne} ist als Datei zu groß"** — wer
+> „Eintrag" in „Maschine" umbenennt, liest „Dieser Maschine".
+> *Gegengeprüft und NICHT betroffen ist `entry.deleteHint` („Dieses {word} wird
+> endgültig gelöscht"): dort stehen nur „Foto" und „Video", beide sächlich und
+> beide feste Beschriftungen.*
+
+### Warum hierher und nicht in die 31er
+
+| | |
+|---|---|
+| **1** | **Es ist keine Sprachpflege, sondern eine Funktion.** *Der Benutzer bekommt ein neues Feld in einer Karte.* **Die 31er-Strecke ist ausdrücklich Sprache** — 0.31.1 spränge von PATCH auf MINOR |
+| **2** | **Diese Runde ist ohnehin MINOR und hat Schemaanteil offen.** *Das fünfzehnte Wort kostet hier in Versionsbegriffen **nichts extra*** |
+| **3** | **Es muss vor 0.33.0 liegen**, und das tut es. *Nach dem Bruch ist die Struktur festgeschrieben* |
+| **4** | **Und es macht 0.31.2 und 0.31.3 keine Doppelarbeit.** *Ein Vokabelwort bringt seine drei Vorgaben immer gleichzeitig mit — es entsteht nichts, was zweimal geschrieben würde* |
+
+**DAMIT HAT 0.31.1 KEINE OFFENE FRAGE MEHR.** *F12 jenes Auftrags ist
+gestrichen und zeigt hierher.*
 
 ### Was diese Runde daran zu klären hat
 

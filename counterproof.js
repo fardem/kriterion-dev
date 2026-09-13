@@ -304,8 +304,8 @@ const REGRESSIONS = [
        geblieben: die Frist verschwindet von der Seite. */
     nr: '30', name: 'Die Frist steht nicht mehr auf der Einladungsseite',
     file: 'public/app.js',
-    search: "        ${status.minutes ? `<strong>${tH('login.linkValidMinutes', { n: status.minutes })}</strong> ${tH('login.thenNeedNew')}` : ''}",
-    replacement: "        ${false ? `<strong>${tH('login.linkValidMinutes', { n: stand.minutes })}</strong> ${tH('login.thenNeedNew')}` : ''}",
+    search: "        ${status.minutes ? `${tMark('login.linkValidHint', 'login.linkValidMinutes', { n: status.minutes })}` : ''}",
+    replacement: "        ${false ? `${tMark('login.linkValidHint', 'login.linkValidMinutes', { n: status.minutes })}` : ''}",
     expected: 'Die Einladungsseite in der Oberflaeche'
   },
   /* ---- Die Selbstanmeldung: die immer gleiche Antwort ---- */
@@ -2982,7 +2982,7 @@ const REGRESSIONS = [
        Beitraege" sagt nicht, WAS auf einen wartet. */
     nr: '315', name: 'Die Tafel zaehlt Kommentare und Bewertungen wieder zusammen',
     file: 'public/app.js',
-    search: "  return [k ? t('list.commentCount', { n: k }) : '',\n          b ? `${b} ${vRating(b)}` : ''].filter(Boolean).join(' · ');",
+    search: "  return [k ? t('list.commentCount', { n: k, of: '' }) : '',\n          b ? `${b} ${vRating(b)}` : ''].filter(Boolean).join(' · ');",
     replacement: "  const n = k + b;\n  return `${n} ${n === 1 ? 'neuer Beitrag' : 'neue Beiträge'}`;",
     expected: 'Die Glocke in der Kopfzeile'
   },
@@ -2999,8 +2999,8 @@ const REGRESSIONS = [
     /* EINE FESTE ENDUNG MACHT AUS EINEM KOMMENTAR „1 Kommentare". */
     nr: '317', name: 'Die Tafel schreibt die Mehrzahl auch bei einem Kommentar',
     file: 'public/languages/de.json',
-    search: "\"list.commentCount\": {\n    \"one\": \"{n} Kommentar\",",
-    replacement: "\"list.commentCount\": {\n    \"one\": \"{n} Kommentare\",",
+    search: "\"list.commentCount\": {\n    \"one\": \"{n} Kommentar{of}\",",
+    replacement: "\"list.commentCount\": {\n    \"one\": \"{n} Kommentare{of}\",",
     expected: 'Die Glocke in der Kopfzeile'
   },
   {
@@ -3134,8 +3134,8 @@ const REGRESSIONS = [
   {
     nr: '330', name: 'Der Erklaerkasten verweist wieder auf die Spalte dahinter',
     file: 'public/app.js',
-    search: "${tH('entry.calcFirstAvg')} <strong>${tH('entry.grade')}</strong>${tH('entry.calcThenAvg')}",
-    replacement: "${tH('entry.calcFirstAvg')}${tH('entry.calcThenAvg')}",
+    search: "${tMark('entry.calcStepsHint', 'entry.grade',",
+    replacement: "${tH('entry.calcStepsHint', { word: '',",
     expected: 'Die Rechnung hinter der Kopfzahl'
   },
   /* DIESELBE FRAGE WIE AN DER KRITERIENLISTE, EINE ANSICHT WEITER: passen die
@@ -3318,7 +3318,7 @@ const REGRESSIONS = [
   {
     nr: '363', name: 'Die Begruendung zum fehlenden Adressfeld steht wieder in der Karte',
     file: 'public/languages/de.json',
-    search: "\"card.mailTimeoutHint\": \". Antwortet der Mailserver nicht, bricht der",
+    search: "\"card.testMailGoesHint\": \"Die Testmail geht {word}. Antwortet der Mailserver nicht, bricht der",
     replacement: "\"card.mailTimeoutHint\": \" — es gibt kein Adressfeld daneben, und zwar mit Absicht: ein Knopf, der an eine beliebige Adresse schickt, wäre ein offener Mailverteiler hinter einer Anmeldung. Antwortet der Mailserver nicht, bricht der",
     expected: 'Die Karte „Mailversand“'
   },
@@ -3346,8 +3346,8 @@ const REGRESSIONS = [
   {
     nr: '367', name: 'Die Tafel verspricht wieder die eigenen Beitraege',
     file: 'public/app.js',
-    search: "    <p>${tH('list.newCommentsAnd')} <strong>${tH('list.otherUser')}</strong>${tH('list.sinceLastVisit')}</p>",
-    replacement: "    <p>${tH('list.newCommentsAnd')}, <strong>von allen</strong>. Die eigenen stehen mit da.</p>",
+    search: "    <p>${tMark('list.newCommentsHint', 'list.otherUser')}</p>",
+    replacement: "    <p>${tH('list.newCommentsHint', { word: 'von allen' })}. Die eigenen stehen mit da.</p>",
     expected: 'Die Glocke in der Kopfzeile'
   },
   {
@@ -3460,7 +3460,7 @@ const REGRESSIONS = [
   {
     nr: '383', name: 'Die ausgeschriebene Rechnung steht wieder unter der Tabelle',
     file: 'public/app.js',
-    search: "      <p><strong>${tH('entry.criteriaNoStars')}</strong> ${tH('entry.calcRounding')}",
+    search: "      <p>${tMark('entry.calcRoundingHint', 'entry.criteriaNoStars')}",
     replacement: "      <p><strong>${tH('entry.criteriaNoStars')}</strong> ${tH('entry.calcRounding')} ${esc(gewZahl(weg.summe))} ÷ ${esc(gewZahl(weg.teiler))}",
     expected: 'Die Rechnung hinter der Kopfzahl'
   },
@@ -4656,8 +4656,8 @@ const REGRESSIONS = [
        Nicht-Kommentarzeilen; eine einzige genuegt, damit er anschlaegt. */
     nr: '505', name: 'Eine Stelle im Bildschirmtext sagt wieder „Instanz"',
     file: 'public/languages/de.json',
-    search: "\"card.noMailAccountHint\": \"Ohne Mailzugang zeigt Kriterion",
-    replacement: "\"card.noMailAccountHint\": \"Ohne Mailzugang zeigt die Instanz",
+    search: "\"card.emailOptionalHint\": \"{word} Ohne Mailzugang zeigt Kriterion",
+    replacement: "\"card.emailOptionalHint\": \"{word} Ohne Mailzugang zeigt die Instanz",
     expected: '„Instanz" steht in keinem Bildschirmtext mehr — 0.19.1 und 0.19.3'
   },
 
@@ -5048,8 +5048,8 @@ const REGRESSIONS = [
        schlechter als keine. */
     nr: '540', name: 'Die Fortschrittszeile kennt nur eine Richtung',
     file: 'public/app.js',
-    search: "${d > 0 ? 'mehr' : 'weniger'}",
-    replacement: "mehr",
+    search: "(d > 0 ? t('card.moreBytes', { bytes: fmtBytes(Math.abs(d)) })\n                                : t('card.lessBytes', { bytes: fmtBytes(Math.abs(d)) }))",
+    replacement: "t('card.moreBytes', { bytes: fmtBytes(Math.abs(d)) })",
     expected: 'Die Bildablage in der Oberflaeche'
   },
 
@@ -6089,8 +6089,8 @@ const REGRESSIONS = [
        315). Gezaehlt wird, nicht gesucht: die Zeile traegt kein serverKasten(. */
     nr: '628', name: 'Ein Server-Befehl steht wieder im Fliesstext der Karte Mein Konto',
     file: 'public/languages/de.json',
-    search: "Passwort vergessen? Ein Admin kann einen Link zum Zurücksetzen erzeugen.\"",
-    replacement: "Passwort vergessen? Auf dem Server hilft docker compose exec kriterion node usertool.js passwort <name>.\"",
+    search: "\"card.forgotPasswordHint\": \"Ein vergessenes Passwort setzt du auf dem Server zurück:\",",
+    replacement: "\"card.forgotPasswordHint\": \"Ein vergessenes Passwort setzt du mit docker compose exec kriterion node usertool.js passwort <name> zurück.\",",
     expected: 'Server-Befehle nur im Kasten — 0.22.0'
   },
   {
@@ -6441,8 +6441,8 @@ const REGRESSIONS = [
     // Der Klartextschluessel steht wieder vor jedem Admin (E13).
     nr: '639', name: 'Der Klartextschluessel steht wieder vor dem Admin',
     file: 'public/app.js',
-    search: "          : (OWNER\n            ? `<div class=\"warn-box\"><strong>${tH('card.keyBesideDb')}</strong>",
-    replacement: "          : (ADMIN\n            ? `<div class=\"warn-box\"><strong>${tH('card.keyBesideDb')}</strong>",
+    search: "          : (OWNER\n            ? `<div class=\"warn-box\">${tMark('card.keyBesideHint', 'card.keyBesideDb')}",
+    replacement: "          : (ADMIN\n            ? `<div class=\"warn-box\">${tMark('card.keyBesideHint', 'card.keyBesideDb')}",
     expected: 'Die Rollenweichen — 0.22.0'
   },
   {
@@ -6686,8 +6686,8 @@ const REGRESSIONS = [
        `undefined` und setzt es am Bildschirm ein. */
     nr: '688', name: 'Einer Mehrzahlform fehlt die Einzahl',
     file: 'public/languages/de.json',
-    search: "\"list.commentCount\": {\n    \"one\": \"{n} Kommentar\",\n    \"other\": \"{n} Kommentare\"\n  },",
-    replacement: '"list.commentCount": {\n    "other": "{n} Kommentare"\n  },',
+    search: "\"list.commentCount\": {\n    \"one\": \"{n} Kommentar{of}\",\n    \"other\": \"{n} Kommentare{of}\"\n  },",
+    replacement: '"list.commentCount": {\n    "other": "{n} Kommentare{of}"\n  },',
     expected: 'Die sieben Waechter der Sprachdatei \u2014 0.24.0'
   },
   {
@@ -7764,8 +7764,8 @@ const REGRESSIONS = [
        unsichtbare nimmt, prueft den Waechter und nicht das Auge. */
     nr: '794', name: 'Der Zaehlwert reist wieder unter einem fremden Namen',
     file: 'public/app.js',
-    search: "tH('card.inDays', { n: log.days })",
-    replacement: "tH('card.inDays', { days: log.days })",
+    search: "tMark('card.logKeepsHint', 'card.inDays', { n: log.days })",
+    replacement: "tMark('card.logKeepsHint', 'card.inDays', { days: log.days })",
     expected: 'Ein Satz, den jede Sprache selbst schneidet — 0.25.4'
   },
 
@@ -7814,8 +7814,8 @@ const REGRESSIONS = [
        `gap: 7px` setzt sich zwischen sie: „Mit Fotos (~ 301,5 KB )". */
     nr: '799', name: 'Der Ausfuhrknopf traegt wieder drei Flexkinder',
     file: 'public/app.js',
-    search: '<button class="btn btn-accent btn-sm" id="ex-yes"><span>${tH(\'card.withPhotos\')}<span id="ex-gr-yes">…</span>)</span></button>',
-    replacement: '<button class="btn btn-accent btn-sm" id="ex-yes">${tH(\'card.withPhotos\')}<span id="ex-gr-yes">…</span>)</button>',
+    search: '<button class="btn btn-accent btn-sm" id="ex-yes"><span>${tMarks(\'card.withPhotos\',\n            { word: \'<span id="ex-gr-yes">…</span>\' })}</span></button>',
+    replacement: '<button class="btn btn-accent btn-sm" id="ex-yes">${tMarks(\'card.withPhotos\',\n            { word: \'<span id="ex-gr-yes">…</span>\' })}</button>',
     expected: 'Die kleinen Fehler fallen — 0.26.0'
   },
   {
@@ -7823,7 +7823,7 @@ const REGRESSIONS = [
        der Bezeichner erwischt hat. Am Knopf steht dann „mit Fotos 301,5 KB )". */
     nr: '800', name: 'Der Satz am Ausfuhrknopf macht seine Klammer nicht mehr auf',
     file: 'public/languages/de.json',
-    search: '"card.withPhotos": "Mit Fotos (~",',
+    search: "\"card.withPhotos\": \"Mit Fotos (~{word})\",",
     replacement: '"card.withPhotos": "mit Fotos",',
     expected: 'Die kleinen Fehler fallen — 0.26.0'
   },
@@ -8069,8 +8069,8 @@ const REGRESSIONS = [
        und blieb STUMM, weil ihn keine Zusage las. */
     nr: '821', name: 'Die Karte nennt die Auflage nicht mehr',
     file: 'public/languages/de.json',
-    search: "Verlustbehaftete Kompression spart bei Fotos rund zwei Drittel",
-    replacement: "Verlustbehaftete Kompression spart überall rund zwei Drittel",
+    search: "Verlustbehaftet: bei Fotos rund zwei Drittel kleiner",
+    replacement: "Verlustbehaftet: überall rund zwei Drittel kleiner",
     expected: 'Die Bildablage in der Oberflaeche'
   },
   {
@@ -9539,9 +9539,166 @@ const REGRESSIONS = [
        Du" nennt. Drei Anreden fallen mit EINEM Satz. */
     nr: '963', name: 'Ein Satz verliert seine Anrede und wird zum Infinitiv',
     file: 'public/languages/de.json',
-    search: "  \"card.languageHint\": \"Sprache der Oberfläche, der Meldungen und deiner Mails.\\n          Wirkt sofort und gilt auf jedem Gerät, an dem du dich anmeldest.\",",
-    replacement: "  \"card.languageHint\": \"Sprache der Oberfläche, der Meldungen und der Mails.\\n          Wirkt sofort und gilt auf jedem angemeldeten Gerät.\",",
+    search: "  \"card.languageHint\": \"Sprache der Oberfläche, der Meldungen und deiner Mails. Wirkt sofort und gilt auf jedem Gerät, an dem du dich anmeldest.\",",
+    replacement: "  \"card.languageHint\": \"Sprache der Oberfläche, der Meldungen und der Mails. Wirkt sofort und gilt auf jedem angemeldeten Gerät.\",",
     expected: 'Die Sprachdateien werden gegengelesen — 0.31.0'
+  },
+
+  /* ---- 0.31.1: „Deutsch sitzt" ----
+     DREIZEHN RUECKBAUTEN FUER ELF ZUSAGEN. Zusage 2 bekommt DREI, weil sie
+     drei Sorten Bruchstueck verbietet und ein Rueckbau je Sorte sagt, welche
+     davon gefangen hat.
+     JEDER GREIFT IN DIE DATEN UND NICHT IN DEN WAECHTER. Eine Gegenprobe, die
+     die Pruefung selbst umbaut, belegt nur, dass man Pruefungen abschalten
+     kann. */
+  {
+    /* ZUSAGE 1: das Werkzeug verschweigt, wofuer es blind ist. Die Probe
+       selbst bleibt heil -- und genau das ist der Fall, vor dem die Zusage
+       warnt: ein Werkzeug, dem jemand mehr zutraut, als es kann. */
+    nr: '964', name: 'Die Gleichlautprobe nennt ihre eigene Blindstelle nicht mehr',
+    file: 'tools/gleichlaut.js',
+    search: "   WOFUER SIE BLIND IST, UND DAS GEHOERT HIERHER:\n   SIE FUEHRT DEN CODE NICHT AUS.",
+    replacement: "   SIE BILDET NACH.",
+    expected: 'Deutsch sitzt — 0.31.1'
+  },
+  {
+    /* ZUSAGE 2, ERSTE SORTE: ein Wert faengt wieder mit einem Satzzeichen an.
+       Genau so stand er vor der Runde da -- der Punkt gehoerte dem Quelltext
+       und nicht dem Satz. */
+    nr: '965', name: 'Ein Satz faengt wieder mit dem Punkt des Vorgaengers an',
+    file: 'public/languages/de.json',
+    search: "  \"card.subDirOptional\": \"Optional ein vorhandener Unterordner:\",",
+    replacement: "  \"card.subDirOptional\": \". Optional ein vorhandener Unterordner:\",",
+    expected: 'Deutsch sitzt — 0.31.1'
+  },
+  {
+    /* ZUSAGE 2, ZWEITE SORTE: ein Schluessel traegt nur noch ein Funktionswort.
+       Gewaehlt ist einer, den DIESE Runde eingefuehrt hat -- die Wortlautprobe
+       vergleicht ihn gar nicht erst, und der Rueckbau trifft damit wirklich
+       nur die eine Zusage. */
+    nr: '966', name: 'Ein Schluessel traegt wieder ein blosses Fuellwort',
+    file: 'public/languages/de.json',
+    search: "  \"card.withPhotosPlain\": \" mit Fotos\",",
+    replacement: "  \"card.withPhotosPlain\": \"und\",",
+    expected: 'Deutsch sitzt — 0.31.1'
+  },
+  {
+    /* ZUSAGE 2, DRITTE SORTE: die Klammer geht auf und der Uebersetzer soll
+       raten, was folgt. Die schliessende stuende wieder im Quelltext. */
+    nr: '967', name: 'Ein Wert oeffnet wieder eine Klammer, die er nicht schliesst',
+    file: 'public/languages/de.json',
+    search: "  \"card.includeFiles\": \"Angehängte Dateien mitnehmen (+{size})\",",
+    replacement: "  \"card.includeFiles\": \"Angehängte Dateien mitnehmen (+\",",
+    expected: 'Deutsch sitzt — 0.31.1'
+  },
+  {
+    /* ZUSAGE 2, DIE ANDERE HAELFTE: ein Anschlussstueck verliert seinen Platz.
+       Der Satz bleibt lesbar, der Nachsatz faellt lautlos vom Bildschirm --
+       „dann der Durchschnitt darueber." ohne die Angabe, ob gewichtet wird.
+       Die Ausnahmetafel darf das nicht decken, und sie tut es nicht. */
+    nr: '968', name: 'Ein Anschlussstueck haengt an keinem Satz mehr',
+    file: 'public/languages/de.json',
+    search: "dann der Durchschnitt darüber{extra}.",
+    replacement: "dann der Durchschnitt darüber.",
+    expected: 'Deutsch sitzt — 0.31.1'
+  },
+  {
+    /* ZUSAGE 3: der Ablauf haengt wieder an der Sprache. Der Vergleich ist
+       auf Deutsch wahr und auf Englisch falsch -- und niemand sieht es, weil
+       die Zeile nichts anzeigt, sondern etwas ENTSCHEIDET. */
+    nr: '969', name: 'Ein Vergleich steht wieder neben einem Textruf',
+    file: 'public/app.js',
+    search: "    if (state) state.innerHTML = status.an",
+    replacement: "    if (state && t('card.on') !== t('card.off')) state.innerHTML = status.an",
+    expected: 'Deutsch sitzt — 0.31.1'
+  },
+  {
+    /* ZUSAGE 4: eine Datei traegt einen Schluessel weniger -- diesmal die
+       tuerkische. So faellt in einer echten Uebersetzungsrunde einer heraus,
+       und die Deckung der drei Dateien ist der Gegenstand der Zusage. */
+    nr: '970', name: 'Die tuerkische Datei traegt einen Schluessel weniger',
+    file: 'public/languages/tr.json',
+    search: "  \"card.active\": \"etkin\",\n",
+    replacement: "",
+    expected: 'Deutsch sitzt — 0.31.1'
+  },
+  {
+    /* ZUSAGE 5: ein tMark-Satz verliert seinen Platz. Am Bildschirm stuende
+       danach „Willkommen, — bitte ein Passwort waehlen." -- ohne den Namen,
+       fuer den die Zeile da ist. */
+    nr: '971', name: 'Ein Satz mit Hervorhebung verliert seinen Platz',
+    file: 'public/languages/de.json',
+    search: "  \"login.welcome\": \"Willkommen, {word} — bitte ein Passwort wählen.\",",
+    replacement: "  \"login.welcome\": \"Willkommen, — bitte ein Passwort wählen.\",",
+    expected: 'Deutsch sitzt — 0.31.1'
+  },
+  {
+    /* ZUSAGE 6: eine Vokabelbeschriftung nennt ihr eigenes Vorgabewort. Wer
+       „Eintrag" durch „Gerät" ersetzt, liest daneben weiterhin „Eintrag" --
+       die Beschriftung nennt genau das, was der Benutzer gerade auswechselt
+       (L5). */
+    nr: '972', name: 'Eine Vokabelbeschriftung nennt wieder ihr Vorgabewort',
+    file: 'public/languages/de.json',
+    search: "  \"card.itemOne\": \"Einzahl\",",
+    replacement: "  \"card.itemOne\": \"Einzahl (Vorgabe: Eintrag)\",",
+    expected: 'Deutsch sitzt — 0.31.1'
+  },
+  {
+    /* ZUSAGE 7: eine Zahl steht wieder zweimal -- einmal als `value` am
+       Auswahlfeld und einmal als Satz in drei Sprachdateien, obwohl „50 MB"
+       in allen dreien gleich lautet (Stolperstein 47).
+       ER FAELLT DOPPELT AUF -- an dieser Zusage UND an der Deckungsprobe, der
+       `de.json` dann einen Schluessel mehr traegt als die beiden anderen. Das
+       ist keine Unschaerfe, sondern die Sache selbst: eine Zahl, die in einer
+       Sprachdatei steht, ist in DREI Dateien zu pflegen. */
+    nr: '973', name: 'Eine Exportgroesse steht wieder in der Sprachdatei',
+    file: 'public/languages/de.json',
+    search: "  \"card.mergeExplainHint\":",
+    replacement: "  \"card.mb50\": \"50 MB\",\n  \"card.mergeExplainHint\":",
+    expected: 'Deutsch sitzt — 0.31.1'
+  },
+  {
+    /* ZUSAGE 8: ein deutscher Wert traegt wieder eine HTML-Entitaet. Der
+       Uebersetzer muesste Maskierung kennen, um den Satz zu verstehen -- und
+       wer sie nicht kennt, schreibt spitze Klammern hin, die im Browser
+       verschwinden. */
+    nr: '974', name: 'Ein deutscher Wert traegt wieder eine HTML-Entitaet',
+    file: 'public/languages/de.json',
+    search: "steht künftig unter „Gelöschter Benutzer {number}“.",
+    replacement: "steht künftig unter „Gelöschter Benutzer &lt;{number}&gt;“.",
+    expected: 'Deutsch sitzt — 0.31.1'
+  },
+  {
+    /* ZUSAGE 9: die Einrueckung des Quelltexts steht wieder im Wert. Am
+       Bildschirm faellt sie nicht auf -- HTML zieht sie zusammen --, und
+       genau deshalb wandert sie ungesehen in jede Uebersetzung mit. */
+    nr: '975', name: 'Ein Wert traegt wieder die Einrueckung des Quelltexts',
+    file: 'public/languages/de.json',
+    search: "\"card.storeCaveat\": \"Verlustbehaftet: bei Fotos rund zwei Drittel kleiner,",
+    replacement: "\"card.storeCaveat\": \"Verlustbehaftet: bei Fotos rund zwei Drittel kleiner,\\n          ",
+    expected: 'Deutsch sitzt — 0.31.1'
+  },
+  {
+    /* ZUSAGE 10: ein Eintrag der Umbenennungstafel zeigt wieder ins Leere.
+       Die Tafel uebersetzt den alten deutschen Namen; zeigt sie auf einen
+       Schluessel, den es nicht mehr gibt, findet der Rufer nichts und merkt
+       es nicht. */
+    nr: '976', name: 'Ein Eintrag der Umbenennungstafel zeigt wieder ins Leere',
+    file: 'tools/keys.json',
+    search: "  \"karte.laden\": \"card.confirmOnce\",",
+    replacement: "  \"karte.laden\": \"card.loadLower\",",
+    expected: 'Deutsch sitzt — 0.31.1'
+  },
+  {
+    /* ZUSAGE 11: ein Satz, den DIESE Runde nicht angefasst hat, aendert sein
+       Wort. Er steht in keiner der drei Listen -- und muss deshalb Zeichen
+       fuer Zeichen der von 0681d42 sein. Faellt diese Zeile nicht, ist die
+       ganze Buchfuehrung der Runde eine Behauptung. */
+    nr: '977', name: 'Ein unberuehrter Satz aendert sein Wort',
+    file: 'public/languages/de.json',
+    search: "  \"list.close\": \"Schließen\",",
+    replacement: "  \"list.close\": \"Zumachen\",",
+    expected: 'Der Quelltext spricht Englisch — die sechs Waechter'
   },
 ];
 
