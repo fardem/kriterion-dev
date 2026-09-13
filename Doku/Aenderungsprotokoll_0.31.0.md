@@ -330,6 +330,25 @@ der nicht sagt, welche von beiden ihn gefangen hat.*
 | **962** | Die Vokabelkarte schreibt wieder „Sache" vor |
 | **963** | Ein Satz verliert seine Anrede und wird zum Infinitiv |
 
+**GEFAHREN AM 13. SEPTEMBER 2026, drei Nebenspuren, je rund fünf Minuten:
+ELF ROT, EINER STUMM.** *Jede der elf Zusagen wird von ihrem eigenen Rückbau
+gefangen — und keine von einem fremden:*
+
+| Nr. | rote Punkte | die Zusage, die ihn fängt |
+|---|---|---|
+| **952** | **11** | Zusage 1 *(und die Deckungsprobe gleich mit — genau der Grund, warum die Schlüssel nicht warten konnten)* |
+| **953** | **STUMM**, nach dem Schärfen **1** | *siehe unten — der sechste Befund der Runde* |
+| **954** | 3 | Zusage 2, die Hälfte im Stilblatt |
+| **955** | 4 | Zusage 3 |
+| **956** | 3 | Zusage 4 |
+| **957** | 6 | Zusage 5 |
+| **958** | 5 | Zusage 6 |
+| **959** | **1** | Zusage 7 — *und nur sie: `login.linkUnaffectedWord` ist ein Schlüssel aus 0.25.4 und steht damit nicht in der Wortlautprobe. **Eine einzige Zusage trägt diesen Satz, und sie trägt ihn allein*** |
+| **960** | 5 | Zusage 8 |
+| **961** | 3 | Zusage 9 |
+| **962** | 3 | Zusage 10 |
+| **963** | **1** | Zusage 11 — *drei Anreden fallen mit einem Satz, und 69 werden 66* |
+
 ### Und einer war STUMM — der sechste Befund der Runde
 
 > **953 HAT EINE LÜCKE IN MEINER EIGENEN ZUSAGE GEFUNDEN.** *Der Rückbau nimmt
@@ -346,6 +365,11 @@ der nicht sagt, welche von beiden ihn gefangen hat.*
 > (`searchAddress(…)`) — und verlangt beide Werte an allen dreien.* **Das ist
 > genau der Zweck der Gegenproben: eine Prüfung, die grün ist, belegt nichts,
 > solange niemand gezeigt hat, dass sie auch rot werden kann.**
+>
+> **UND DANACH NOCH EINMAL GEFAHREN — 953 IST ROT:** *„Und JEDER `window.open`
+> trägt beide Werte — alle drei" fällt, 6847 von 6849 bestanden.* **0 STUMM.**
+> *Ein Rückbau, der stumm bleibt, ist kein Ergebnis — er ist eine offene Frage,
+> und sie ist hiermit beantwortet.*
 
 **FÜNF VORHANDENE SIND NACHGEZOGEN und nicht ersetzt worden** *(66, 472, 485,
 821, 825)*: *ihre Suchtexte standen nach dieser Runde nicht mehr da — vier, weil
