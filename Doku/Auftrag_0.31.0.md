@@ -92,6 +92,34 @@ samt seiner Bilder.** *Nachgesehen am 13. September 2026:*
 
 ---
 
+## Wer den nächsten Auftrag schreibt
+
+**DER BETREIBER HAT EINEN ARBEITSTEILIGEN WEG VOR** *(13. September 2026)*:
+*„Gemini hat da vorgesehen dass ich mit dir de mache, dann zeige ich ihm de
+und er baut daraus den Auftrag für eng usw."*
+
+**DAS GEHT, UND ES ERKLÄRT GEMINIS SATZ „Lösche aus `de.json`":** *es dachte
+die Streichungen als Teil der späteren Aufträge.* **FÜR DIE TEXTE STIMMT DAS,
+FÜR DIE SCHLÜSSEL NICHT** — *und zwar nachgesehen, nicht vermutet:*
+
+| Ort | was er prüft |
+|---|---|
+| `testbench.js:5988` | „tr.json trägt dieselben Schlüssel wie de.json — **in derselben Folge**" |
+| `testbench.js:49841` | „jede Datei trägt **genau** die Schlüssel von de.json" — meldet „n fehlen, n zu viel" |
+
+**Beide werden im SELBEN Lauf rot.** *Nähme 0.31.0 die elf nur aus `de.json`,
+hätten `en.json` und `tr.json` je „11 zu viel" — sofort, nicht in 0.31.1.*
+**Deshalb: Schlüssel zusammen, Texte einzeln.**
+
+> **UND WAS GEMINI FÜR DEN NÄCHSTEN AUFTRAG BRAUCHT, IST NICHT NUR DAS FERTIGE
+> `de.json`.** *Bekommt es nur die deutschen Sätze, übersetzt es wieder Wörter
+> — genau das hat „hap" und „files that leaves the house" erzeugt.* **Es
+> braucht die Absichtszeilen aus BA 6 dazu** *(F22)*: was der Satz leisten muss.
+> **Was daraus zurückkommt, wird hier Zeile für Zeile gegen den Quelltext
+> geprüft** — so wie diese Runde entstanden ist.
+
+---
+
 ## Phase 1 — Die elf Code-Lecks
 
 **DER BEWEIS STEHT IN DEN ANDEREN ZWEI SPRACHDATEIEN:** *`entry.targetBlank`
