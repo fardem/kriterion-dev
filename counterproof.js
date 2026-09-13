@@ -7746,11 +7746,17 @@ const REGRESSIONS = [
        ER GREIFT AN EINER EINZIGEN DATEI, obwohl alle drei betroffen waren:
        der Waechter sieht jede Datei einzeln an, und eine offene reicht.
        Wer den Rueckbau ueberlebt, hat einen Waechter, der nur die Mehrheit
-       fragt. */
+       fragt.
+       MIT 0.31.3 IST DAS PAAR EIN TUERKISCHES -- die tuerkische Typografie kennt
+       das deutsche nicht, und 0.31.3 hat es in `tr.json` umgestellt (F3, 68
+       Schluessel). Der Suchtext ist mitgezogen; der Pruefstand hat ihn mit null
+       Treffern gemeldet, und das ist wieder der Beleg, dass ein Rueckbau, der
+       ins Leere greift, auffaellt. Der Waechter von 0.25.4 zaehlt ohnehin alle
+       drei Zeichen und bleibt unberuehrt. */
     nr: '793', name: 'Das Anfuehrungszeichen am Tagzeichen bleibt wieder offen',
     file: 'public/languages/tr.json',
-    search: '"entry.tagQuote": "Etiket \u201e{name}\u201c",',
-    replacement: '"entry.tagQuote": "Etiket \u201e{name}",',
+    search: '"entry.tagQuote": "Etiket \u201c{name}\u201d",',
+    replacement: '"entry.tagQuote": "Etiket \u201c{name}",',
     expected: 'Ein Satz, den jede Sprache selbst schneidet — 0.25.4'
   },
   {
@@ -9832,6 +9838,177 @@ const REGRESSIONS = [
     search: "  \"login.requestAccess\": \"Zugang anfragen\",",
     replacement: "  \"login.requestAccess\": \"Zugang beantragen\",",
     expected: 'Englisch sitzt — 0.31.2'
+  },
+  /* ---- „Tuerkisch sitzt" -- 0.31.3, dreizehn Zusagen ----
+     JEDER GREIFT IN DIE DATEN UND NICHT IN DEN WAECHTER. Elf fassen `tr.json`
+     an -- die Datei, die diese Runde formuliert --, einer `en.json` und einer
+     den Vergleichsstand.
+     UND JEDER IST SO KLEIN GESCHNITTEN, DASS ER SEINE EIGENE ZUSAGE MELDET:
+     der Laengenrueckbau fuegt keinen Satz hinzu, der Satzrueckbau macht aus
+     einem Gedankenstrich einen Punkt und bleibt dabei gleich lang, und der
+     Verbotswort-Rueckbau ist ausdruecklich KUERZER als sein deutscher Satz.
+     ZWEI VON IHNEN MACHEN ABSICHTLICH AUCH EINEN AELTEREN WAECHTER ROT, und
+     das ist bei beiden die Sache selbst: 989 faellt zugleich in „Englisch
+     sitzt" (Englisch ist jetzt Basis fuer zwei Runden) und 997 in die
+     Vokabelprobe von 0.24.4 (die Entscheidung des Betreibers steht an beiden
+     Orten). Zwei Wachen ueber dieselbe Zusage duerfen sich nicht
+     widersprechen. */
+  {
+    /* ZUSAGE 1: ein ENGLISCHER Wert wird angefasst. Seit dieser Runde ist
+       Englisch die zweite unveraenderliche Basis (Leitplanke L1), und die
+       Gleichlautprobe rechnet ihre beiden englischen Summen am Quelltext nach.
+       DER DEUTSCHE HALBTEIL STEHT SCHON DA -- Gegenprobe 978 aus 0.31.2 fasst
+       `de.json` an und macht seit dieser Runde BEIDE Gruppen rot. Hier geht es
+       um die Haelfte, die 0.31.3 dazugelegt hat. */
+    nr: '989', name: 'Ein englischer Wert aendert sich — Englisch ist die zweite Basis',
+    file: 'public/languages/en.json',
+    search: "  \"card.active\": \"active\",",
+    replacement: "  \"card.active\": \"on\",",
+    expected: 'Tuerkisch sitzt — 0.31.3'
+  },
+  {
+    /* ZUSAGE 2: ein Mehrzahlpaar wird auf Tuerkisch zu EINEM Satz. Die
+       Deckungsprobe sieht das nicht -- der Schluessel ist da, und gezaehlt
+       wird er auch; am Bildschirm stuende danach bei n = 1 ein `⟦…⟧`. */
+    nr: '990', name: 'Ein tuerkisches Mehrzahlpaar wird ein einzelner Satz',
+    file: 'public/languages/tr.json',
+    search: "  \"card.wordsMissing\": {\n    \"one\": \"1 sözcük\",\n    \"other\": \"{n} sözcük\"\n  },",
+    replacement: "  \"card.wordsMissing\": \"{n} sözcük\",",
+    expected: 'Tuerkisch sitzt — 0.31.3'
+  },
+  {
+    /* ZUSAGE 3: ein Platz faellt aus dem tuerkischen Satz. Im Tuerkischen
+       WANDERT die Stelle eines Platzes mit der Grammatik (L5) -- und genau
+       deshalb braucht diese Zusage ihre Gegenprobe: eine Runde, die Plaetze
+       umstellt, kann einen dabei verlieren, und der Satz verliert seine Zahl. */
+    nr: '991', name: 'Ein tuerkischer Wert verliert einen Platzhalter',
+    file: 'public/languages/tr.json',
+    search: "  \"card.deleteFreesHint\": \"{word} — {bytes} boş.\",",
+    replacement: "  \"card.deleteFreesHint\": \"{word} — boş.\",",
+    expected: 'Tuerkisch sitzt — 0.31.3'
+  },
+  {
+    /* ZUSAGE 4: die Verbotsliste -- UND ZWAR MIT ANGEKLEBTER ENDUNG. Das ist
+       die Lehre aus Leitplanke L4 als Gegenprobe: „hap" steht in der Datei
+       nicht nackt, sondern als „haptan". Ein Waechter mit `\b` bliebe hier
+       gruen, weil zwischen einem Leerzeichen und einem tuerkischen Buchstaben
+       fuer JavaScript keine Wortgrenze steht.
+       UND DER SATZ IST KUERZER ALS SEIN DEUTSCHER, damit nur Zusage 4 faellt
+       und nicht die Laenge mit. */
+    nr: '992', name: 'Ein tuerkischer Wert traegt wieder „haptan" — mit angeklebter Endung',
+    file: 'public/languages/tr.json',
+    search: "  \"list.pillHint\": \"Üç düğmeden birine tıklamak filtreyi ayarlar.\",",
+    replacement: "  \"list.pillHint\": \"Üç haptan birine tıklamak filtreyi ayarlar.\",",
+    expected: 'Tuerkisch sitzt — 0.31.3'
+  },
+  {
+    /* ZUSAGE 5: ein deutsches Anfuehrungszeichen kommt zurueck. 0.31.0 hat das
+       Paar in `tr.json` nur GESCHLOSSEN und die Frage vertagt; diese Runde hat
+       sie entschieden (F3), und ohne diese Zeile koennte der naechste
+       Uebersetzer das deutsche Paar wieder hinschreiben, ohne dass es
+       auffaellt -- im Browser sieht `„…“` nicht falsch aus, es ist nur keine
+       tuerkische Typografie. */
+    nr: '993', name: 'Ein tuerkischer Wert traegt wieder ein deutsches Anfuehrungszeichen',
+    file: 'public/languages/tr.json',
+    search: "  \"card.approveAsk\": \"“{username}” onaylansın mı?\",",
+    replacement: "  \"card.approveAsk\": \"„{username}“ onaylansın mı?\",",
+    expected: 'Tuerkisch sitzt — 0.31.3'
+  },
+  {
+    /* ZUSAGE 6: der tuerkische Satz wird deutlich laenger als sein deutscher
+       -- und zwar OHNE einen Satz mehr. Genau so kommt der Ballast zurueck,
+       den die Vorlage gefunden hat: nicht als zweiter Satz, sondern als
+       Beiwerk im ersten. */
+    nr: '994', name: 'Ein tuerkischer Satz wird wieder deutlich laenger als sein deutscher',
+    file: 'public/languages/tr.json',
+    search: "  \"card.blocksHint\": \"Blokların sırası ve açık mı kapalı mı olduğu her {entryMany} için geçerlidir.\",",
+    replacement: "  \"card.blocksHint\": \"Blokların sırası ve açık mı yoksa kapalı mı olduğu her {entryMany} için geçerlidir.\",",
+    expected: 'Tuerkisch sitzt — 0.31.3'
+  },
+  {
+    /* ZUSAGE 7: ein Satz mehr, bei gleicher Laenge. Aus einem Gedankenstrich
+       wird ein Punkt -- der Wert ist danach sogar ein Zeichen kuerzer, und die
+       Laengenzusage bleibt gruen. Nur die Satzzahl faellt auf: die Kuerze
+       steckt nicht in den Zeichen. */
+    nr: '995', name: 'Ein tuerkischer Wert traegt einen Satz mehr als sein deutscher',
+    file: 'public/languages/tr.json',
+    search: "  \"server.exportGrew\": \"Dışa aktarma dosyası {limit} MB sınırını aştı. Yedeklemeyi kullan — o bütün veriyi yazar ve bu sınırı tanımaz.\",",
+    replacement: "  \"server.exportGrew\": \"Dışa aktarma dosyası {limit} MB sınırını aştı. Yedeklemeyi kullan. O bütün veriyi yazar ve bu sınırı tanımaz.\",",
+    expected: 'Tuerkisch sitzt — 0.31.3'
+  },
+  {
+    /* ZUSAGE 8: die letzte HTML-Entitaet kommt zurueck. Sie stand in allen drei
+       Dateien an DERSELBEN Stelle und ist in drei Runden gefallen -- 0.31.1
+       auf Deutsch, 0.31.2 auf Englisch, 0.31.3 auf Tuerkisch. Wer sie wieder
+       hinschreibt, verlangt vom naechsten Uebersetzer, Maskierung zu kennen. */
+    nr: '996', name: 'Ein tuerkischer Wert traegt wieder eine HTML-Entitaet',
+    file: 'public/languages/tr.json',
+    search: "katkıları bundan sonra “Silinen kullanıcı” adıyla ve bir numarayla görünür.",
+    replacement: "katkıları bundan sonra “Silinen kullanıcı &lt;numara&gt;” altında görünür.",
+    expected: 'Tuerkisch sitzt — 0.31.3'
+  },
+  {
+    /* ZUSAGE 9: DER WICHTIGSTE RUECKBAU DIESER RUNDE, und er baut genau das
+       ein, was die Vorlage verlangt hat.
+       `vocabulary.entryMany` bekommt sein -ler. Die Vorlage nennt das die
+       Reparatur eines „fatalen Plural-Bugs"; gemessen ist es der Bug: der
+       Platz wird an vierundzwanzig Stellen hinter einer Zahl gelesen, und dort
+       steht danach „3 Öğeler". Das ist kein Tuerkisch.
+       ER MACHT ZWEI WACHEN ROT, und das ist die Sache selbst: die Entscheidung
+       des Betreibers vom 8. September 2026 steht seit 0.24.4 im Pruefstand
+       („T2: die fuenf Vokabelpaare tragen auf Tuerkisch dasselbe Wort") und
+       seit dieser Runde ein zweites Mal, mit der Messung daneben. */
+    nr: '997', name: 'Ein Vokabelwort bekommt seine Mehrzahl — „3 Öğeler"',
+    file: 'public/languages/tr.json',
+    search: "  \"vocabulary.entryMany\": \"Öğe\",",
+    replacement: "  \"vocabulary.entryMany\": \"Öğeler\",",
+    expected: 'Tuerkisch sitzt — 0.31.3'
+  },
+  {
+    /* ZUSAGE 10: eine Mehrzahl hinter einer Zahl. DIE GEGENLEITPLANKE ZUR
+       VORLAGE (L7) -- und der Rueckbau greift in die MEHRZAHLFORM eines
+       Paares, dessen beide Formen denselben Satz tragen. Genau dort greift
+       jemand hin, der die 28 gleichen Paare fuer einen Fehler haelt. */
+    nr: '998', name: 'Eine Mehrzahl steht hinter einer Zahl — „{n} yedeklemeler"',
+    file: 'public/languages/tr.json',
+    search: "  \"card.backupsDeleted\": {\n    \"one\": \"{n} yedekleme silindi ({bytes} boşaldı){extra}\",\n    \"other\": \"{n} yedekleme silindi ({bytes} boşaldı){extra}\"\n  },",
+    replacement: "  \"card.backupsDeleted\": {\n    \"one\": \"{n} yedekleme silindi ({bytes} boşaldı){extra}\",\n    \"other\": \"{n} yedeklemeler silindi ({bytes} boşaldı){extra}\"\n  },",
+    expected: 'Tuerkisch sitzt — 0.31.3'
+  },
+  {
+    /* ZUSAGE 11: die eine siz-Form kommt zurueck. Sie stand wirklich so da --
+       `card.emailsDoubledHint` war der einzige hoefliche Wert unter 78
+       vertrauten --, und sie ist nicht als Fehler zu sehen, sondern nur im
+       Vergleich: eine Oberflaeche, die zwischen sen und siz wechselt, liest
+       sich wie zwei Programme. */
+    nr: '999', name: 'Ein tuerkischer Wert spricht den Benutzer wieder hoeflich an',
+    file: 'public/languages/tr.json',
+    search: "Birini değiştir ya da boşalt — bir sonraki başlatmada",
+    replacement: "Birini değiştirin ya da boşaltın — bir sonraki başlatmada",
+    expected: 'Tuerkisch sitzt — 0.31.3'
+  },
+  {
+    /* ZUSAGE 12: die Einrueckung des Quelltexts steht wieder im Wert. Am
+       Bildschirm faellt sie nicht auf -- HTML zieht sie zusammen --, und genau
+       deshalb wandert sie ungesehen in jede weitere Uebersetzung mit.
+       Derselbe Rueckbau wie 975 und 986, nur auf der tuerkischen Seite. */
+    nr: '1000', name: 'Ein tuerkischer Wert traegt wieder die Einrueckung des Quelltexts',
+    file: 'public/languages/tr.json',
+    search: "  \"card.storeCaveat\": \"Kayıplı: fotoğraflarda yaklaşık üçte iki daha küçük,",
+    replacement: "  \"card.storeCaveat\": \"Kayıplı: fotoğraflarda yaklaşık üçte iki daha küçük,\\n          ",
+    expected: 'Tuerkisch sitzt — 0.31.3'
+  },
+  {
+    /* ZUSAGE 13: der Vergleichsstand und `tr.json` laufen auseinander. DIESER
+       RUECKBAU GREIFT IN DIE VERGLEICHSDATEI und nicht in `tr.json`: es geht um
+       die Buchfuehrung selbst. Wer einen tuerkischen Wert anfasst, ohne ihn zu
+       benennen, bekommt genau dieses Bild -- und die Tafel
+       TR_CHANGED_AFTER_0313 ist leer, also faellt es auf. */
+    nr: '1001', name: 'Der Vergleichsstand weicht von tr.json ab, ohne benannt zu sein',
+    file: 'tools/tuerkisch-0313.json',
+    search: "    \"card.active\": \"etkin\",",
+    replacement: "    \"card.active\": \"açık\",",
+    expected: 'Tuerkisch sitzt — 0.31.3'
   },
 ];
 

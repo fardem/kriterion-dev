@@ -26896,6 +26896,7 @@ function sweepLeftovers() {
   await check0310();
   await check0311();
   await check0312();
+  await check0313();
 
   /* ---------------------------------------------------------------- */
   /* Der Schlussdurchlauf. Die Gruppen weiter oben pruefen einzelne
@@ -27641,7 +27642,13 @@ function sweepLeftovers() {
      aelteren Rueckbaus. Der eine, der einen englischen Wert traf, war meiner
      eigenen (983): sein Suchtext ist mit dem Satz nachgezogen, den der
      Pruefstand in derselben Stunde gemeldet hat. */
-  check(`Es sind genau 979 Rueckbauten`, gpList.length === 979, `${gpList.length}`);
+  /* UND 979 WURDEN 992 MIT 0.31.3: dreizehn neue, einer je Zusage jener Runde
+     (989 bis 1001). EINE VORHANDENE MUSSTE NACHGEZOGEN WERDEN -- 793: sie sucht
+     `entry.tagQuote` mit dem DEUTSCHEN Anfuehrungszeichenpaar, und 0.31.3 hat
+     es in `tr.json` zu `“…”` gemacht. Die Zeile darunter hat sie gemeldet, mit
+     Datei und null Treffern -- wieder der Beleg, dass ein Rueckbau, der ins
+     Leere greift, auffaellt. */
+  check(`Es sind genau 992 Rueckbauten`, gpList.length === 992, `${gpList.length}`);
   const gpTwice = gpList.map(r => r.nr).filter((n, i, a) => a.indexOf(n) !== i);
   check('Und keine Nummer steht zweimal', gpTwice.length === 0, gpTwice.join(' '));
   /* JEDER GREIFT: der Suchtext kommt in seiner Datei GENAU EINMAL vor. Keinmal
@@ -54454,7 +54461,9 @@ async function check0303() {
    Sprachdateien nachgeprueft worden, und was nicht uebernommen wurde, steht
    mit Grund im Auftrag.
    DIE ELF CODE-LECKS FALLEN AUS ALLEN DREI DATEIEN ZUGLEICH, die Texte nur
-   aus der deutschen: Englisch ist 0.31.1, Tuerkisch 0.31.2. Der Grund steht
+   aus der deutschen: Englisch ist 0.31.2, Tuerkisch 0.31.3 (die Nummern hier
+   standen bis 0.31.3 eine Runde zu frueh -- 0.31.1 ist dazwischengekommen und
+   hat die zersaegten Saetze zusammengesetzt). Der Grund steht
    im Auftrag (F21) und ist gemessen -- die Deckungsprobe verlangt in jeder
    Datei dieselben Schluessel, also koennen die SCHLUESSEL nicht warten; die
    TEXTE koennen es sehr wohl.
@@ -54594,7 +54603,12 @@ async function check0310() {
        wieder ein, und am Bildschirm steht „Tag „Werkzeug" statt „Werkzeug“.
        DIE TUERKISCHE DATEI BEKOMMT DAMIT KEINEN NEUEN TEXT: dasselbe Wort,
        dasselbe Zeichenpaar, nur richtig geschlossen. Dass das Paar dort am
-       Ende `“…”` heissen muss, ist die Sache von 0.31.2. */
+       Ende `“…”` heissen muss, ist die Sache von 0.31.3 -- und dort ist es
+       entschieden und gebaut (F3, 68 Schluessel).
+       BIS 0.31.3 STAND HIER 0.31.2. Die Nummer stammte aus der Zeit vor
+       0.31.1, als die Strecke noch drei Runden hatte statt vier; 0.31.2 hat
+       Englisch gemacht. Ein Kommentar, der auf die falsche Runde zeigt, ist
+       schlimmer als keiner -- er sieht wie Buchfuehrung aus. */
     const drMixed = [];
     for (const [code, file] of Object.entries(drFiles))
       for (const [k, text] of drTexts(file))
@@ -54667,10 +54681,13 @@ async function check0310() {
        sieht, ist eine runde Schaltflaeche und keine Arznei.
        IM CODE BLEIBT `pill` -- die Klasse heisst weiter so, und das ist der
        Unterschied, um den es geht: drinnen ein Bild, draussen eine Sache.
-       GEFRAGT WIRD DIE DEUTSCHE DATEI. `en.json` traegt „leaves the house"
-       und `tr.json` „hap" bis heute -- sie sind 0.31.1 und 0.31.2, und der
-       Auftrag sagt ausdruecklich, warum: solange die Quelle das Bild traegt,
-       erbt es jede Uebersetzung neu. */
+       GEFRAGT WIRD DIE DEUTSCHE DATEI, und das bleibt so. Als diese Zusage
+       entstand, trug `en.json` noch „leaves the house" und `tr.json` „hap";
+       der Auftrag sagte, warum: solange die Quelle das Bild traegt, erbt es
+       jede Uebersetzung neu. BEIDE SIND SEITDEM GEFALLEN -- 0.31.2 auf
+       Englisch, 0.31.3 auf Tuerkisch --, und jede der beiden Runden haelt ihre
+       eigene Verbotsliste. Diese Zeile fragt weiter nur Deutsch: sie ist die
+       Wache ueber die QUELLE. */
     const drHouse = drTexts(drFiles.de).filter(([, t]) => /[Hh]aus\b/.test(t));
     check('Zusage 8: kein deutscher Text sagt „das Haus"',
       drHouse.length === 0, drHouse.map(([k]) => k).join(' · ') || 'keiner');
@@ -55465,5 +55482,526 @@ async function check0312() {
     const egStale = Object.keys(EG_CHANGED_AFTER_0312).filter(k => !egDiff.includes(k));
     check('Und kein Eintrag der Tafel benennt einen Unterschied, den es nicht gibt',
       egStale.length === 0, egStale.join(' ') || 'keine Karteileiche');
+  }
+}
+
+/* =================================================================
+   0.31.3 — „Tuerkisch sitzt"
+
+   DREIZEHN ZUSAGEN UEBER EINE EINZIGE DATEI, und es ist die letzte der vier
+   Runden der 31er-Strecke: 0.31.0 hat die Sprachdateien gegengelesen, 0.31.1
+   hat die zersaegten Saetze zusammengesetzt, 0.31.2 hat Englisch auf den Stand
+   des Deutschen gebracht. Diese Runde formuliert `tr.json` neu und faellt
+   dabei keinen Schluessel; DEUTSCH UND ENGLISCH sind jetzt ZWEI
+   unveraenderliche Basen und werden in Zusage 1 nachgerechnet, nicht
+   behauptet.
+
+   DIE VORLAGE KAM VON AUSSEN -- `Doku/I18N_GENERATE_TR.md`, von Google Gemini
+   geschrieben, fuenf Stolperfallen. Sie ist NACHGEMESSEN und nicht uebernommen,
+   und bei ZWEI ihrer Vorschlaege sagt diese Runde ausdruecklich nein. Beide
+   Male steht eine ENTSCHEIDUNG DES BETREIBERS dagegen, und beide Male ist sie
+   schon ein Waechter:
+
+     STOLPERFALLE 2 -- „die fuenf Vokabelmehrzahlen brauchen ihr -ler/-lar" --
+     WIRD NICHT GEBAUT. Die Entscheidung vom 8. September 2026 (Woerterbuch
+     TR-S4; Fehler und Ideen, Punkt 19: „abgelehnt, nicht vertagt") gibt jedem
+     Vokabelwort GENAU EINEN Mehrzahlplatz, und der wird an zwei Orten gelesen.
+     Zusage 9 misst nach, an wie vielen davon eine ZAHL davorsteht -- dort
+     stuende danach „3 Öğeler", und das ist kein Tuerkisch. Die Zusage steht
+     deshalb UMGEKEHRT da: die fuenf Paare tragen dasselbe Wort.
+
+     STOLPERFALLE 5.2 -- „Yedek ist natuerlicher als Yedekleme" -- WIRD NICHT
+     GEBAUT. Der Betreiber am 10. September 2026: „immer nur das wort
+     yedekleme". Der Waechter dazu steht seit 0.25.1 im Pruefstand.
+
+   DIE VERBOTSLISTE WIRD HIER EIN WAECHTER UND KEIN MERKZETTEL (Leitplanke L4),
+   UND SIE LIEST WORTSTAEMME. Das ist der Unterschied zu 0.31.2 und beim Messen
+   dieses Auftrags gelernt: Tuerkisch klebt seine Endungen an -- „hap" steht als
+   „haptan", „sabit resim" als „sabit resmi". UND `\b` TAUGT DAFUER NICHT:
+   fuer JavaScript sind Ş, ş, ğ, ı, ç, ö und ü keine Wortzeichen, also steht
+   zwischen einem Leerzeichen und einem „Ş" gar keine Wortgrenze. Eine erste
+   Messung mit `\b` uebersah fuenf von 26 Treffern und meldete „Şey" mit null.
+   Hier steht darum ein Blick zurueck (`(?<![\p{L}\p{N}_])`) und die Endung
+   bleibt frei.
+
+   WOFUER KEINE ZEILE HIER BLIND SEIN KANN: ob ein tuerkischer Satz GUT ist.
+   Das entscheidet kein Muster, das entscheidet der Leser -- und der ist der
+   Betreiber selbst (Auftrag, F2). Diese Zusagen halten die MESSBAREN Seiten
+   fest, und jede einzelne ist an einem Befund dieser Runde gelernt.
+   ================================================================= */
+/* DIE VIER PRUEFSUMMEN DER BASIS, gemessen am gebauten Stand dieser Runde --
+   DE_UNTOUCHED steht schon oben bei 0.31.2 und wird hier WEITERBENUTZT und
+   nicht abgeschrieben: zwei Zahlen an zwei Orten laufen auseinander.
+   DIE BEIDEN TUERKISCHEN STEHEN IN BEIDEN RICHTUNGEN DA -- der Stand VOR
+   dieser Runde und der danach. Ohne den ersten waere „die Runde hat Tuerkisch
+   angefasst" eine Behauptung; ohne den zweiten koennte jemand die Datei
+   zurueckdrehen, und niemand saehe es. */
+const EN_UNTOUCHED = { one: '2f8e5b3abe58f9fd', other: '39489ec6ae18020b' };
+const TR_BEFORE_0313 = { one: '5fec71b10c0dfa3c', other: '18b07eda589b5120' };
+const TR_AFTER_0313 = { one: '5c7195db1751c7bf', other: 'fc1be627c6fdee47' };
+
+async function check0313() {
+  const tgRead = (code) => JSON.parse(fs.readFileSync(
+    path.join(__dirname, 'public', 'languages', `${code}.json`), 'utf8'));
+  const tgFiles = { de: tgRead('de'), en: tgRead('en'), tr: tgRead('tr') };
+  /* JEDES PAAR MIT SEINER FORM -- dieselbe Bauform wie in 0.31.2: ein
+     Mehrzahlsatz kann in der Einzahl sitzen und in der Mehrzahl auseinander-
+     laufen. */
+  const tgPairs = [];
+  for (const [k, dv] of Object.entries(tgFiles.de)) {
+    if (k.startsWith('_')) continue;
+    const tv = tgFiles.tr[k];
+    if (typeof dv === 'string') tgPairs.push([k, '', String(dv), typeof tv === 'string' ? tv : '']);
+    else for (const f of Object.keys(dv))
+      tgPairs.push([`${k}/${f}`, f, String(dv[f]),
+        tv && typeof tv === 'object' && tv[f] !== undefined ? String(tv[f]) : '']);
+  }
+  /* DIE PLAETZE FALLEN VOR JEDER WORTPRUEFUNG HERAUS. `{thing}` ist das
+     Vokabelwort des Betreibers und kein tuerkischer Satzteil. */
+  const tgBare = (v) => String(v).replace(/\{[A-Za-z0-9_]+\}/g, ' ');
+
+  group('Tuerkisch sitzt — 0.31.3');
+  {
+    /* ---- Zusage 1: Deutsch UND Englisch sind unangetastet ---------------
+       NACHGERECHNET UND NICHT BEHAUPTET, und diesmal fuer ZWEI Sprachen. Die
+       Gleichlautprobe von 0.31.1 setzt jeden Textruf im Quelltext durch seinen
+       Wert; ihre vier Summen fuer de und en muessen nach dieser Runde dieselben
+       sein wie davor -- und die beiden tuerkischen ANDERE. */
+    const tgOut = path.join(os.tmpdir(), `kriterion-gleichlaut-tr-${process.pid}.json`);
+    const tgRun = spawnSync(process.execPath, ['tools/gleichlaut.js', tgOut],
+      { cwd: __dirname, encoding: 'utf8' });
+    const tgSums = {};
+    for (const line of String(tgRun.stdout || '').split('\n')) {
+      const m = line.match(/^(de|en|tr)\/(one|other)\s+([0-9a-f]{16})/);
+      if (m) tgSums[`${m[1]}/${m[2]}`] = m[3];
+    }
+    fs.rmSync(tgOut, { force: true });
+    check('Zusage 1: die Gleichlautprobe laeuft und nennt ihre sechs Summen',
+      Object.keys(tgSums).length === 6,
+      `${Object.keys(tgSums).length} Summen · ${String(tgRun.stderr || '').slice(0, 200)}`);
+    check(`Und die beiden deutschen sind unveraendert — ${DE_UNTOUCHED.one} · ${DE_UNTOUCHED.other}`,
+      tgSums['de/one'] === DE_UNTOUCHED.one && tgSums['de/other'] === DE_UNTOUCHED.other,
+      `de/one ${tgSums['de/one']} · de/other ${tgSums['de/other']}`);
+    check(`Und die beiden englischen auch — ${EN_UNTOUCHED.one} · ${EN_UNTOUCHED.other}`,
+      tgSums['en/one'] === EN_UNTOUCHED.one && tgSums['en/other'] === EN_UNTOUCHED.other,
+      `en/one ${tgSums['en/one']} · en/other ${tgSums['en/other']}`);
+    /* UND DIE GEGENRICHTUNG. Haelt Zusage 1, ohne dass sich Tuerkisch bewegt
+       hat, dann hat die Runde nichts getan -- dieselbe Zeile wie in 0.31.2,
+       nur mit BEIDEN Zahlen statt einer: der alte Stand darf nicht
+       zurueckkommen, und der neue muss dastehen. */
+    check('Und die beiden tuerkischen sind NICHT die von 0.31.2 — die Runde hat Tuerkisch angefasst',
+      tgSums['tr/one'] !== TR_BEFORE_0313.one && tgSums['tr/other'] !== TR_BEFORE_0313.other,
+      `0.31.2: ${TR_BEFORE_0313.one} · ${TR_BEFORE_0313.other}`);
+    check(`Und sie sind die dieser Runde — ${TR_AFTER_0313.one} · ${TR_AFTER_0313.other}`,
+      tgSums['tr/one'] === TR_AFTER_0313.one && tgSums['tr/other'] === TR_AFTER_0313.other,
+      `tr/one ${tgSums['tr/one']} · tr/other ${tgSums['tr/other']}`);
+    /* UND DER ENGLISCHE VERGLEICHSSTAND VON 0.31.2 STIMMT WEITER. Die
+       Pruefsumme haengt an `public/app.js` UND an `en.json`; diese Zeile
+       nennt die Datei selbst, damit ein Handgriff an einem einzelnen
+       englischen Wert namentlich auffaellt und nicht nur als andere Summe. */
+    const tgEnPrint = path.join(__dirname, 'tools', 'englisch-0312.json');
+    const tgEnFile = fs.existsSync(tgEnPrint)
+      ? (JSON.parse(fs.readFileSync(tgEnPrint, 'utf8')).values || {}) : {};
+    const tgEnDiff = Object.keys(tgFiles.en)
+      .filter(k => JSON.stringify(tgEnFile[k]) !== JSON.stringify(tgFiles.en[k]));
+    check('Und kein englischer Wert weicht vom Vergleichsstand von 0.31.2 ab',
+      tgEnDiff.length === 0, tgEnDiff.slice(0, 8).join(' ') || 'alle 1197 gleich');
+
+    /* ---- Zusage 2: gleich viele Schluessel, dieselbe Folge, dieselbe Gestalt */
+    const tgCounts = Object.fromEntries(['de', 'en', 'tr']
+      .map(c => [c, Object.keys(tgFiles[c]).length]));
+    check(`Zusage 2: die drei Dateien tragen gleich viele Schluessel — ${LANG_KEY_COUNT}`,
+      ['de', 'en', 'tr'].every(c => tgCounts[c] === LANG_KEY_COUNT), JSON.stringify(tgCounts));
+    check('Und in derselben Folge',
+      ['en', 'tr'].every(c => JSON.stringify(Object.keys(tgFiles[c])) ===
+                              JSON.stringify(Object.keys(tgFiles.de))), 'Folge geprueft');
+    const tgShape = Object.keys(tgFiles.de).filter(k =>
+      (typeof tgFiles.de[k] === 'string') !== (typeof tgFiles.tr[k] === 'string'));
+    check('Und jeder tuerkische Wert hat die Gestalt seines deutschen — ein Mehrzahlpaar bleibt eines',
+      tgShape.length === 0, tgShape.join(' ') || 'gleiche Gestalt');
+
+    /* ---- Zusage 3: jeder Platzhalter steht gleich -----------------------
+       BEIDE RICHTUNGEN. Im Tuerkischen wandert die STELLE eines Platzes mit
+       der Grammatik (Leitplanke L5) -- der Platz selbst nicht. Diese Runde hat
+       genau davon gelebt: „Şu: {word} ancak…" wurde „{word} ancak…", und
+       `entry.weightsWhere` hat seinen Platz aus dem Satzende an seine Stelle
+       geholt. Waere die Zusage blind, waere dabei ein Platz verschwunden. */
+    const tgPlaces = (v) => new Set([...String(v).matchAll(/\{([A-Za-z0-9_]+)\}/g)].map(m => m[1]));
+    const tgPlaceOff = [];
+    for (const [name, , de, tr] of tgPairs) {
+      const want = tgPlaces(de), got = tgPlaces(tr);
+      if ([...want].some(p => !got.has(p)) || [...got].some(p => !want.has(p)))
+        tgPlaceOff.push(`${name}: de {${[...want].join(' ')}} tr {${[...got].join(' ')}}`);
+    }
+    check('Zusage 3: jeder Platzhalter des deutschen Satzes steht auch im tuerkischen — und keiner mehr',
+      tgPlaceOff.length === 0, tgPlaceOff.slice(0, 6).join(' · ') || 'alle gleich');
+
+    /* ---- Zusage 4: die Verbotsliste, und sie liest STAEMME --------------
+       ELF MUSTER, JEDES MIT SEINEM GRUND. Gemessen waren es vor der Runde
+       26 Treffer in 23 Schluesseln.
+       DER WORTANFANG IST GEBUNDEN, DAS WORTENDE NICHT: `hap` findet „haptan",
+       `sabit res` findet „sabit resmi". Und gebunden wird mit einem Blick
+       zurueck und nicht mit `\b` -- der Grund steht im Kopf dieser Gruppe.
+       ZEHN DER ELF STEHEN IN DER VORLAGE, das elfte („Şu:") ist der
+       Grammatik-Kollaps selbst: der Uebersetzer wusste nicht, wohin mit dem
+       deutschen Artikel, und hat vier Saetzen ein „Dieses da:" vorangestellt.
+       WAS NICHT HIER STEHT, IST „kilit … devreye girer": die Vorlage fuehrt es,
+       gemessen war es EIN Wert, und ein Muster dafuer musste ueber einen halben
+       Satz hinweglesen. Der Wert ist neu formuliert, und Zusage 11 haelt
+       dieselbe Stelle -- er trug auch die einzige siz-Form der Datei. */
+    const TR_STEM = (s) => new RegExp(`(?<![\\p{L}\\p{N}_])${s}`, 'u');
+    const TR_FORBIDDEN = [
+      [TR_STEM('hap'),                'hap — Kopfschmerztablette; CSS-Jargon fuer einen Knopf'],
+      [TR_STEM('evden\\s+çık'),       'evden çıkan — woertlich „das Haus verlassend", im Deutschen laengst gestrichen'],
+      [TR_STEM('[Ss]abit\\s+res'),    'sabit resim — Standbild aus dem Schnittraum; es heisst kapak resmi'],
+      [TR_STEM('Şey'),                'Şey — Slang fuer die Codevariable $thing; es heisst Tekil/Çoğul'],
+      [TR_STEM('[Cc]ihaz\\s+gibi'),   'Cihaz gibi — klingt nach einer Geraeteeigenschaft; die Karte sagt „Otomatik"'],
+      [TR_STEM('Çalışma\\s'),         'Çalışma — der deutsche „Lauf" als Person; im Tuerkischen steht dort das Passiv'],
+      [TR_STEM('yanında\\s+dur'),     'yanında duruyor — Dateien stehen nicht nebeneinander, sie liegen im Verzeichnis'],
+      [TR_STEM('son\\s+görülme'),     'son görülme — woertlich aus „last seen"; es heisst son etkinlik'],
+      [TR_STEM('içeri\\s+gir'),       'içeri girer — Kneipenton fuer den Zugang zu einem Konto'],
+      [TR_STEM('[Kk]imse\\s+okum'),   'Kimse okumaz — zu flapsig fuer einen Transaktionsbrief'],
+      [TR_STEM('Şu:'),                'Şu: — der deutsche Artikel als „Dieses da:"; der Grammatik-Kollaps selbst']
+    ];
+    /* ERST DER LESER SELBST: ein Waechter, dessen Muster nichts finden KANN,
+       ist gruen und sagt nichts. Geprueft wird an Saetzen, die WIRKLICH in der
+       Datei standen -- und ausdruecklich an den ANGEKLEBTEN Endungen. */
+    check('Der Leser der Verbotsliste findet, was vor dieser Runde dastand',
+      TR_FORBIDDEN.filter(([rx]) =>
+        rx.test(tgBare('Üç haptan birine tıklamak filtreyi kendisi ayarlar.')) ||
+        rx.test(tgBare('Yalnızca sabit resmi olan videoya izin verilir')) ||
+        rx.test(tgBare('Şey, tekil')) ||
+        rx.test(tgBare('Anahtar veritabanının yanında duruyor')) ||
+        rx.test(tgBare('Şu: {word} giriş sayfasında durur'))).length === 5,
+      'der Leser sieht die alten Saetze nicht mehr');
+    /* UND ER FAENGT DIE ENDUNG UND NICHT NUR DAS NACKTE WORT. Das ist die
+       Lehre, die Leitplanke L4 verschaerft hat: mit `\b` waeren „haptan" und
+       „sabit resmi" durchgegangen, und „Şey" gar nicht erst gefunden worden. */
+    check('Und er faengt die angeklebte Endung — mit `\\b` waeren fuenf Treffer durchgegangen',
+      TR_FORBIDDEN[0][0].test('haptan') && TR_FORBIDDEN[2][0].test('sabit resmi') &&
+      TR_FORBIDDEN[3][0].test('Şey, tekil') && !/\bŞey\b/.test('Şey, tekil'),
+      'der Stammleser liest wie ein Wortleser');
+    /* UND ER FAERBT SICH NICHT AM HARMLOSEN WORT. „hap" steckt in keinem
+       tuerkischen Alltagswort dieser Datei, „Çalışma" schon -- als Nomen
+       („Arbeit") waere es erlaubt; verboten ist der LAUF als Satzgegenstand,
+       also das Wort mit einem Verb dahinter. Dieselbe Sorgfalt wie beim
+       Platzhalter: ein Waechter, der Richtiges meldet, wird abgeschaltet. */
+    check('Und er faerbt sich an einem Platzhalter NICHT — `{thing}` ist das Vokabelwort',
+      !TR_FORBIDDEN.some(([rx]) => rx.test(tgBare('{items} {thing}, {photos} fotoğraf'))),
+      'ein Platz faerbt den Waechter');
+    check('Und es sind wirklich elf Muster, jedes mit seinem Grund',
+      TR_FORBIDDEN.length === 11 && TR_FORBIDDEN.every(([, why]) => why.length > 20),
+      `${TR_FORBIDDEN.length} Muster`);
+    const tgForbidden = [];
+    for (const [name, , , tr] of tgPairs)
+      for (const [rx, why] of TR_FORBIDDEN)
+        if (rx.test(tgBare(tr))) tgForbidden.push(`${name} (${rx.source}: ${why})`);
+    check('Zusage 4: kein tuerkischer Wert traegt ein Wort der Verbotsliste',
+      tgForbidden.length === 0, tgForbidden.slice(0, 8).join(' · ') || 'keiner');
+
+    /* ---- Zusage 5: die Anfuehrungszeichen sind tuerkisch ----------------
+       `„…“` GIBT ES IN DER TUERKISCHEN TYPOGRAFIE NICHT. 0.31.0 hat das Paar
+       in `tr.json` ausdruecklich nur GESCHLOSSEN und die Frage vertagt; diese
+       Runde entscheidet sie (Auftrag, F3) und stellt 68 Schluessel um.
+       DREI ZEILEN UND NICHT EINE: kein deutsches Zeichen mehr, kein gerader
+       Ersatz (`"` waere die billige Loesung und im Fliesstext falsch), und
+       PAARWEISE geschlossen. Die dritte ist die, die 0.25.4 an
+       `entry.tagQuote` teuer gelernt hat: am Bildschirm stand „Tag „Werkzeug". */
+    const tgGerman = tgPairs.filter(([, , , tr]) => /[„]/.test(tr));
+    check('Zusage 5: kein tuerkischer Wert traegt ein deutsches Anfuehrungszeichen',
+      tgGerman.length === 0, tgGerman.map(([n]) => n).join(' ') || 'keiner');
+    const tgStraight = tgPairs.filter(([, , , tr]) => /"/.test(tr));
+    check('Und keinen geraden Ersatz — `“…”` und nicht `\\"…\\"`',
+      tgStraight.length === 0, tgStraight.map(([n]) => n).join(' ') || 'keiner');
+    const tgUnpaired = tgPairs.filter(([, , , tr]) =>
+      (String(tr).match(/“/g) || []).length !== (String(tr).match(/”/g) || []).length);
+    check('Und jedes Paar ist geschlossen — so viele `“` wie `”`',
+      tgUnpaired.length === 0, tgUnpaired.map(([n]) => n).join(' ') || 'alle geschlossen');
+    /* UND ES GIBT SIE UEBERHAUPT. Ohne diese Zeile waeren die drei darueber
+       auch dann gruen, wenn jemand alle Anfuehrungszeichen der Datei loeschte
+       (Stolperstein 81). */
+    const TR_QUOTED = 60;
+    const tgQuoted = tgPairs.filter(([, , , tr]) => /“/.test(tr));
+    check(`Und die Datei traegt wirklich tuerkische Paare — mehr als ${TR_QUOTED}`,
+      tgQuoted.length > TR_QUOTED, `${tgQuoted.length} Formen mit „“…”"`);
+
+    /* ---- Zusage 6: kein tuerkischer Wert ist deutlich laenger -----------
+       DIESELBE DECKE WIE BEI ENGLISCH (Auftrag, F8): ab vierzig Zeichen
+       hoechstens 1,15x. Tuerkisch spart durch seine Endungen und zahlt bei
+       Hoeflichkeitsformen; 90,7 % im Ganzen zeigt, dass die Decke haelt.
+       VIERUNDVIERZIG WERTE LAGEN VOR DER RUNDE DARUEBER, `card.vocabularyResetHint`
+       mit 2,84x an der Spitze -- es zaehlte alle vierzehn Vokabelwoerter auf,
+       wo der deutsche Satz „Alle Wörter dieser Karte" sagt. */
+    const TR_LONG_FROM = 40, TR_LONG_MAX = 1.15;
+    const tgTooLong = tgPairs
+      .filter(([, , de, tr]) => de.length >= TR_LONG_FROM && tr.length > de.length * TR_LONG_MAX)
+      .map(([n, , de, tr]) => `${n} ${(tr.length / de.length).toFixed(2)}x (de ${de.length} tr ${tr.length})`);
+    check(`Zusage 6: kein tuerkischer Wert ab ${TR_LONG_FROM} Zeichen ist mehr als ${TR_LONG_MAX}x so lang wie sein deutscher`,
+      tgTooLong.length === 0, tgTooLong.slice(0, 8).join(' · ') || 'keiner');
+
+    /* ---- Zusage 7: nicht mehr Saetze als der deutsche -----------------
+       SECHS TUERKISCHE WERTE TRUGEN MEHR SAETZE als ihr deutscher, und es
+       waren genau die sechs, die auf Englisch auch zu viele hatten.
+       DIE ABKUERZUNGEN FALLEN VORHER HERAUS, und die TUERKISCHEN GEHOEREN
+       DAZU: „örn." (zum Beispiel) und „vb." (und so weiter) zaehlten sonst als
+       Satzende. UND WIEDER OHNE `\b`: „örn." beginnt mit einem ö, und dort ist
+       fuer JavaScript keine Wortgrenze -- derselbe Fehlgriff wie bei der
+       Verbotsliste, an derselben Stelle gelernt. */
+    const TR_SHORTHAND = /(?:z\. ?B\.|bzw\.|usw\.|ggf\.|u\. ?a\.|vgl\.|Nr\.|ca\.|örn\.|vb\.|bkz\.)/g;
+    const tgSentences = (v) => (tgBare(String(v).replace(TR_SHORTHAND, 'x'))
+      .match(/[.!?](?=\s|$)/g) || []).length;
+    check('Der Satzzaehler sieht die Abkuerzung nicht als Satzende — auch die tuerkische',
+      tgSentences('Zwei Wörter, z. B. drei. Und noch einer.') === 2 &&
+      tgSentences('Dosya adı BCP 47 etiketidir (örn. de-DE). İkinci cümle.') === 2,
+      `${tgSentences('Zwei Wörter, z. B. drei. Und noch einer.')} und ${tgSentences('Dosya adı BCP 47 etiketidir (örn. de-DE). İkinci cümle.')}`);
+    const tgMoreSentences = tgPairs
+      .filter(([, , de, tr]) => tgSentences(tr) > tgSentences(de))
+      .map(([n, , de, tr]) => `${n} (de ${tgSentences(de)} tr ${tgSentences(tr)})`);
+    check('Zusage 7: kein tuerkischer Wert traegt mehr Saetze als sein deutscher',
+      tgMoreSentences.length === 0, tgMoreSentences.slice(0, 8).join(' · ') || 'keiner');
+
+    /* ---- Zusage 8: keine HTML-Entitaet ---------------------------------
+       DIE LETZTE DER DREI. 0.31.1 hat sie auf Deutsch genommen, 0.31.2 auf
+       Englisch, und beide Male war es dieselbe Stelle: `card.nameFreedHint`
+       schrieb „&lt;numara&gt;" nach. Der Grund ist derselbe: eine Entitaet in
+       einem Wert verlangt vom Uebersetzer, Maskierung zu kennen. */
+    const tgEntity = tgPairs.filter(([, , , tr]) => /&[a-z]+;|&#\d+;/i.test(tr));
+    check('Zusage 8: kein tuerkischer Wert traegt eine HTML-Entitaet',
+      tgEntity.length === 0, tgEntity.map(([n]) => n).join(' ') || 'keiner');
+
+    /* ---- Zusage 9: die fuenf Vokabelmehrzahlen tragen DASSELBE Wort ----
+       HIER STEHT DIE ZUSAGE UMGEKEHRT, WIE DER AUFTRAG SIE VORGESCHLAGEN HAT,
+       und der Grund ist gemessen und nicht gemeint.
+       DER AUFTRAG (BA 6, Zusage 9) wollte den fuenf Mehrzahlwoertern ihr
+       -ler/-lar geben, weil die Vorlage es als „fatalen Plural-Bug" fuehrt.
+       DAS WAERE DER FEHLER GEWESEN, und zwar dreifach:
+         ERSTENS bricht es Leitplanke L7 DESSELBEN Auftrags -- nach einer Zahl
+         bleibt im Tuerkischen die Einzahl.
+         ZWEITENS nimmt es eine Entscheidung des Betreibers vom 8. September
+         2026 zurueck (Woerterbuch TR-S4), und die ist „abgelehnt, nicht
+         vertagt" (Fehler und Ideen, Punkt 19).
+         DRITTENS steht sie seit 0.24.4 als Waechter im Pruefstand („T2: die
+         fuenf Vokabelpaare tragen auf Tuerkisch dasselbe Wort").
+       WAS DIE VORLAGE NICHT SEHEN KONNTE, UND DIESE ZEILE MISST ES: das
+       Vokabelwort hat je EINEN Mehrzahlplatz, und der Code stellt ihm an
+       achtzehn Stellen eine ZAHL voran (`${n} ${vThing(n)}`), die Sprachdatei
+       an weiteren sechs (`{length} {thing}`). Vierundzwanzig Stellen lesen
+       also „3 Öğeler", sobald jemand die Vorlage befolgt.
+       DIE ZAHL STEHT HIER UND WIRD NACHGERECHNET. Waere sie null, waere die
+       Begruendung der Vorlage richtig und diese Zusage falsch. */
+    const TR_VOC_PAIRS = [['entryOne', 'entryMany'], ['dayOne', 'dayMany'],
+      ['reportOne', 'reportMany'], ['taskOne', 'taskMany'], ['ratingOne', 'ratingMany']];
+    const tgApart = TR_VOC_PAIRS.filter(([one, many]) =>
+      tgFiles.tr['vocabulary.' + one] !== tgFiles.tr['vocabulary.' + many]);
+    check('Zusage 9: die fuenf Vokabelpaare tragen auf Tuerkisch dasselbe Wort',
+      tgApart.length === 0 && TR_VOC_PAIRS.length === 5,
+      tgApart.map(([o, m]) => `${tgFiles.tr['vocabulary.' + o]} / ${tgFiles.tr['vocabulary.' + m]}`)
+        .join(' · ') || 'alle fuenf gleich');
+    check('Und auf Deutsch und Englisch sind sie verschieden — die Regel gilt je Sprache',
+      TR_VOC_PAIRS.every(([one, many]) =>
+        tgFiles.de['vocabulary.' + one] !== tgFiles.de['vocabulary.' + many] &&
+        tgFiles.en['vocabulary.' + one] !== tgFiles.en['vocabulary.' + many]),
+      'eine der beiden Basen zieht die Formen zusammen');
+    const TR_COUNTED_IN_CODE = 18, TR_COUNTED_IN_FILE = 6;
+    const tgApp = fs.readFileSync(path.join(__dirname, 'public', 'app.js'), 'utf8')
+      .replace(/\/\*[\s\S]*?\*\//g, ' ').replace(/^[ \t]*\/\/.*$/gm, ' ');
+    const tgInCode = (tgApp.match(
+      /\$\{[^{}]*\}\s+\$\{(?:esc\()?(?:vThing|vTime|vReport|vTask|vRating)\(/g) || []).length;
+    const TR_NUM = ['n', 'length', 'count', 'items', 'entries', 'usage_count',
+      'test_usage_count', 'visible', 'votes', 'open', 'testCount'];
+    const TR_VOC_PLACE = ['thing', 'things', 'dayWord', 'task', 'report', 'rating', 'entryWord'];
+    const tgNumThenWord = new RegExp(
+      `\\{(?:${TR_NUM.join('|')})\\}[^{]{0,3}\\{(?:${TR_VOC_PLACE.join('|')})\\}`);
+    const tgInFile = tgPairs.filter(([, , , tr]) => tgNumThenWord.test(tr)).length;
+    check(`Und das Vokabelwort steht wirklich hinter einer Zahl — ${TR_COUNTED_IN_CODE} Stellen im Quelltext, ${TR_COUNTED_IN_FILE} in der Datei`,
+      tgInCode === TR_COUNTED_IN_CODE && tgInFile === TR_COUNTED_IN_FILE,
+      `Quelltext ${tgInCode} · Datei ${tgInFile}`);
+    /* UND DER LESER WUERDE EINEN VERSTOSS FINDEN. Ohne diese Zeile waere die
+       Messung darueber auch mit einem kaputten Muster gruen. */
+    check('Und der Leser der Datei trennt Einzahl und Mehrzahl nicht — er sucht die Nachbarschaft',
+      tgNumThenWord.test('{length} {thing} yan yana kondu.') &&
+      !tgNumThenWord.test('her {thing} için geçerlidir'),
+      'der Leser sieht die Nachbarschaft nicht');
+
+    /* ---- Zusage 10: keine Mehrzahl hinter einer Zahl ------------------
+       DIE GEGENLEITPLANKE ZUR VORLAGE (L7), und sie gilt fuer BEIDE Formen
+       jedes Paares: „{n} dosya" und nie „{n} dosyalar". Gemessen war sie vor
+       der Runde schon gruen -- kein einziger Wert schrieb „{n} …-ler" --, und
+       genau deshalb steht sie hier: 28 Mehrzahlpaare tragen in beiden Formen
+       denselben Satz, und das ist korrektes Tuerkisch und kein Bug. Wer sie
+       „reparierte", baute den Fehler ein.
+       DERSELBE LESER WIE IN 0.24.4, und die Zeichenklasse nennt die
+       tuerkischen Buchstaben ausdruecklich -- `\\w` kennt sie nicht. */
+    const TR_LETTERS = 'A-Za-zÇĞİÖŞÜçğıöşü';
+    const tgCounted = new RegExp(
+      `(?:\\{n\\}|(?:^|[^${TR_LETTERS}0-9])[0-9]+)\\s+[${TR_LETTERS}]*(?:ler|lar)(?![${TR_LETTERS}])`);
+    const tgPlural = tgPairs.filter(([, , , tr]) => tgCounted.test(tr)).map(([n]) => n);
+    check('Zusage 10: keine Mehrzahl steht hinter einer Zahl — „{n} dosya", nie „{n} dosyalar"',
+      tgPlural.length === 0, tgPlural.join(' ') || 'keine');
+    check('Und der Leser wuerde einen Verstoss finden',
+      tgCounted.test('3 yorumlar') && tgCounted.test('{n} dosyalar') && !tgCounted.test('3 yorum'),
+      'der Leser trennt Einzahl und Mehrzahl nicht');
+    /* UND DIE ZWEITE HAELFTE DER ZUSAGE, die der Augenschein dieser Runde
+       gefunden hat und die KEIN Blick in die Sprachdatei findet.
+       `countWord(n, einzahl, mehrzahl)` setzt im QUELLTEXT eine Zahl vor ein
+       Wort, das aus ZWEI Schluesseln kommt: `${n} ${plural(n, a, b)}`. In der
+       Datei steht damit nirgends „{n} …lar" -- am Bildschirm aber sehr wohl:
+       bei drei Kommentaren „3 yorumlar", bei drei Dateien „3 dosyalar".
+       FUENF PAARE SIND BETROFFEN, ELF STELLEN. Das sechste Paar, das dort
+       gelesen wird, ist ein VOKABELPAAR (`ratingOne`/`ratingMany`) -- und es
+       ist richtig, weil die Entscheidung des Betreibers vom 8. September 2026
+       genau dort schon gegriffen hat. Die fuenf hier sind nie nachgezogen
+       worden.
+       WARUM DIESE RUNDE SIE NICHT AENDERT: dieselben fuenf Schluessel stehen
+       als BLOCKUEBERSCHRIFT ueber ihren Listen („YORUMLAR", „DOSYALAR",
+       „BAĞLANTILAR"), und dort ist die Mehrzahl richtig. Es ist derselbe
+       Zielkonflikt wie bei den Vokabelwoertern, und den hat der Betreiber
+       entschieden und nicht der Uebersetzer. Der Befund steht als Punkt 32 im
+       Sammelblatt.
+       GEZAEHLT WIRD ER TROTZDEM, UND ZWAR HIER: eine Zahl, die niemand
+       nachrechnet, verschwindet. Wird eines der fuenf Paare nachgezogen, faellt
+       diese Zeile auf -- und wer ein SECHSTES Paar hinzufuegt, faellt auch auf. */
+    const TR_COUNTED_PAIRS = [['dialog.comment', 'dialog.comments'],
+      ['dialog.link', 'dialog.links'], ['dialog.file', 'dialog.files'],
+      ['list.photo', 'list.photos'], ['list.video', 'list.videos']];
+    const tgCountCalls = /countWord\([^,]+,\s*(?:t\('([^']+)'\)|V\.(\w+))\s*,\s*(?:t\('([^']+)'\)|V\.(\w+))\)/g;
+    const tgPairsInCode = new Set();
+    let tgCall, tgCallCount = 0;
+    while ((tgCall = tgCountCalls.exec(tgApp)) !== null) {
+      tgCallCount++;
+      if (tgCall[1] && tgCall[3]) tgPairsInCode.add(`${tgCall[1]}/${tgCall[3]}`);
+    }
+    const TR_COUNTWORD_CALLS = 14;
+    check(`Der Zaehlerhelfer steht wirklich im Quelltext — ${TR_COUNTWORD_CALLS} Rufe`,
+      tgCallCount === TR_COUNTWORD_CALLS, `${tgCallCount} Rufe`);
+    const tgStillPlural = TR_COUNTED_PAIRS.filter(([, many]) =>
+      new RegExp(`[${TR_LETTERS}]*(?:ler|lar)$`).test(String(tgFiles.tr[many])));
+    check('Und die fuenf Paare hinter einem Zaehler tragen ihre Mehrzahl noch — Punkt 32, dem Betreiber vorgelegt',
+      tgStillPlural.length === 5 && tgPairsInCode.size === 5,
+      `${tgStillPlural.length} von 5 · im Quelltext ${tgPairsInCode.size} Paare: ${[...tgPairsInCode].join(' ')}`);
+    /* UND DAS VOKABELPAAR AN DERSELBEN STELLE IST RICHTIG. Diese Zeile ist der
+       Beleg dafuer, dass die Entscheidung von 0.24.4 greift, wo sie gilt --
+       und dass die fuenf oben wirklich eine Luecke sind und keine zweite
+       Meinung. */
+    check('Und das Vokabelpaar an derselben Stelle ist richtig — die Entscheidung von 0.24.4 greift',
+      tgFiles.tr['vocabulary.ratingOne'] === tgFiles.tr['vocabulary.ratingMany'],
+      `${tgFiles.tr['vocabulary.ratingOne']} / ${tgFiles.tr['vocabulary.ratingMany']}`);
+    /* UND DIE GROSSSCHREIBUNG IST NACHGEZOGEN -- der eine Handgriff, der keinen
+       Zielkonflikt hat: `dialog.links` stand als „Bağlantılar" da, waehrend
+       `dialog.files` und `dialog.comments` klein geschrieben sind. Am
+       Bildschirm las sich das als „3 Bağlantılar" mitten im Satz; die
+       Blockueberschrift macht das Stilblatt ohnehin gross (TR-S1). */
+    check('Und die drei Mehrzahlwoerter der Bloecke sind gleich geschrieben — klein',
+      ['dialog.links', 'dialog.files', 'dialog.comments']
+        .every(k => /^[a-zçğıöşü]/.test(String(tgFiles.tr[k]))),
+      ['dialog.links', 'dialog.files', 'dialog.comments']
+        .map(k => `${k}: ${tgFiles.tr[k]}`).join(' · '));
+
+    /* ---- Zusage 11: die Anrede ist durchgehend dieselbe ---------------
+       sen UND NICHT siz (Auftrag, F4). Das Deutsche duzt in 44 Werten, und die
+       tuerkische Datei folgte ihm in 78 -- bis auf GENAU EINEN:
+       `card.emailsDoubledHint` sagte „değiştirin ya da boşaltın". Eine
+       Oberflaeche, die zwischen vertraut und hoeflich wechselt, liest sich wie
+       zwei Programme.
+       GESUCHT WIRD DIE HOEFLICHE BEFEHLSFORM und nicht „siz" als Wort: die
+       Endung -in/-ın/-un/-ün an einem Verb ist das Zeichen, und sie ist es
+       auch mit dem angehaengten -iz. NAMENTLICH UND NICHT ALLGEMEIN: dieselbe
+       Endung traegt der Genitiv jedes Substantivs („dosyanın"), und ein
+       Waechter, der „dosyanın" meldet, ist nach einem Tag abgeschaltet.
+       SIEBENUNDZWANZIG VERBEN, UND DIE LISTE IST AN DER DATEI GEMESSEN: jedes
+       einzelne ist gegen alle 1197 Werte gehalten worden, und keines meldet
+       einen richtigen Satz. `yap`, `et`, `ver`, `bul` und `iste` stehen dabei,
+       weil sie die haeufigsten Verben einer Oberflaeche sind -- ein Waechter,
+       der „yapınız" nicht faende, waere die halbe Wache.
+       `verme` STEHT VOR `ver`, und das ist die Form der Vorlage: „vermeyiniz".
+       UND DIE VIER BRIEFE GEHEN DEN DRITTEN WEG (F5): sie reden niemanden an.
+       Die Vorlage schlug „Bu iletiye yanıt vermeyiniz" vor -- das ist siz und
+       braeche diese Zusage; das Deutsche sagt „Antworten darauf liest
+       niemand", also sagt das Tuerkische „yanıtlar okunmaz". */
+    const TR_POLITE_VERBS = ['değiştir', 'boşalt', 'gir', 'yanıtla', 'kullan', 'tıkla',
+      'seç', 'aç', 'kapat', 'yaz', 'oku', 'bekle', 'dene', 'kaydet', 'sil', 'ekle',
+      'ayarla', 'gönder', 'verme', 'ver', 'yükle', 'kopyala', 'başlat', 'yap', 'et',
+      'bul', 'iste'];
+    /* DAS PUFFER-`y` GEHOERT DAZU, und es ist an dieser Zeile gelernt: die
+       tuerkische Grammatik schiebt zwischen Vokal und Endung ein `y` ein --
+       „vermeyiniz" ist `verme` + **y** + `iniz`, nicht `verme` + `iniz`. Der
+       erste Entwurf ohne das `y` fand die Form der VORLAGE nicht, und genau
+       die ist der Grund fuer F5. Der Pruefstand hat es im ersten Lauf
+       gemeldet, an der eigenen Selbstprobe. */
+    const tgPolite = new RegExp(
+      `(?<![\\p{L}\\p{N}_])(?:${TR_POLITE_VERBS.join('|')})y?(?:in|ın|un|ün)(?:iz|ız)?(?![\\p{L}])`, 'u');
+    check('Der Leser der Anrede findet die hoefliche Befehlsform — und nicht den Genitiv',
+      tgPolite.test('Birini değiştirin ya da boşaltın') && tgPolite.test('yanıt vermeyiniz') &&
+      !tgPolite.test('dosyanın adı') && !tgPolite.test('Birini değiştir ya da boşalt'),
+      'der Leser trennt Anrede und Genitiv nicht');
+    const tgSiz = tgPairs.filter(([, , , tr]) => tgPolite.test(tr)).map(([n]) => n);
+    check('Zusage 11: kein tuerkischer Wert spricht den Benutzer hoeflich an — sen, durchgehend',
+      tgSiz.length === 0, tgSiz.join(' ') || 'keiner');
+    /* UND `lütfen` STEHT NIRGENDS -- Woerterbuch TR-S2. „Bitte" steht 21-mal
+       in `de.json`, und keine dieser Stellen wird eine Hoeflichkeitsfloskel.
+       Die Zeile war vor dieser Runde schon gruen und steht hier, damit sie es
+       bleibt: diese Runde schreibt 151 Formen neu, und `lütfen` ist der Griff,
+       zu dem ein Uebersetzer bei „Bitte" zuerst greift. */
+    const tgPlease = tgPairs.filter(([, , , tr]) => /lütfen/i.test(tr)).map(([n]) => n);
+    check('Und `lütfen` steht in keinem tuerkischen Wert — TR-S2',
+      tgPlease.length === 0, tgPlease.join(' ') || 'keiner');
+
+    /* ---- Zusage 12: kein Weissraum aus dem Quelltext ------------------
+       DIESELBE HAELFTE WIE IN 0.31.2, jetzt auf Tuerkisch: wer einen langen
+       Satz im Quelltext umbricht, legt die Einrueckung in den Wert, und am
+       Bildschirm faellt sie nicht auf -- HTML zieht sie zusammen. */
+    const tgSpace = tgPairs.filter(([, , , tr]) => /\n[ \t]|[ \t][ \t]/.test(tr));
+    check('Zusage 12: kein tuerkischer Wert traegt die Einrueckung des Quelltexts',
+      tgSpace.length === 0, tgSpace.map(([n]) => n).join(' ') || 'keiner');
+    const TR_LETTERS_KEYS = ['mail.confirm.body', 'mail.invite.body', 'mail.reset.body', 'mail.test.body'];
+    const tgBreak = [...new Set(tgPairs.filter(([, , , tr]) => tr.includes('\n')).map(([n]) => n))];
+    check('Und ein Umbruch steht nur in den vier Briefen, wo er ein Absatz ist',
+      tgBreak.sort().join(' ') === TR_LETTERS_KEYS.join(' '), tgBreak.join(' ') || 'keiner');
+    check('Und jeder der vier Briefe traegt seine Leerzeilen',
+      TR_LETTERS_KEYS.every(k => String(tgFiles.tr[k]).includes('\n\n')),
+      TR_LETTERS_KEYS.filter(k => !String(tgFiles.tr[k]).includes('\n\n')).join(' ') || 'alle vier');
+    /* UND SIE SCHLIESSEN UNPERSOENLICH (F5). Die Zeile steht namentlich da,
+       weil sie die Entscheidung IST: nicht „vermeyiniz" (siz, braeche Zusage
+       11) und nicht „kimse okumaz" (Kneipenton, Zusage 4), sondern das
+       Passiv. */
+    const TR_LETTER_END = 'Bu ileti otomatik olarak gönderilmiştir; yanıtlar okunmaz.';
+    const tgEnd = TR_LETTERS_KEYS.filter(k => !String(tgFiles.tr[k]).endsWith(TR_LETTER_END));
+    check('Und jeder der vier Briefe schliesst unpersoenlich — F5',
+      tgEnd.length === 0, tgEnd.join(' ') || 'alle vier');
+
+    /* ---- Zusage 13: der tuerkische Stand liegt als Vergleichsdatei daneben
+       DIESELBE BAUFORM WIE FUER ENGLISCH IN 0.31.2 (Auftrag, F10). Fuer
+       Deutsch gibt es eine Abnahme (0681d42), fuer Englisch den
+       Vergleichsstand von 0.31.2 -- fuer Tuerkisch ist DIESE Runde die
+       Abnahme. Was sie hinterlaesst, sind 1197 Schluessel mit ihrem Wert.
+       UND DIE TAFEL DARUNTER IST DER EIGENTLICHE WAECHTER. Sie ist LEER, und
+       solange sie das ist, muss jeder tuerkische Wert Zeichen fuer Zeichen der
+       dieser Runde sein. Einen Vergleichsstand still nachzuziehen ist damit
+       ein roter Punkt. */
+    const tgPrintFile = path.join(__dirname, 'tools', 'tuerkisch-0313.json');
+    check('Zusage 13: der tuerkische Stand liegt als Vergleichsdatei daneben',
+      fs.existsSync(tgPrintFile), 'tools/tuerkisch-0313.json');
+    const tgFile = fs.existsSync(tgPrintFile)
+      ? JSON.parse(fs.readFileSync(tgPrintFile, 'utf8')) : {};
+    const tgPrint = tgFile.values || {};
+    check('Und sie nennt ihre Runde und ihr Werkzeug',
+      tgFile.round === '0.31.3' && /tuerkischstand\.js/.test(String(tgFile._hinweis)),
+      `${tgFile.round} · ${String(tgFile._hinweis || '').slice(0, 60)}`);
+    check('Und das Werkzeug, das sie schreibt, liegt daneben',
+      fs.existsSync(path.join(__dirname, 'tools', 'tuerkischstand.js')),
+      'tools/tuerkischstand.js');
+    check(`Und sie traegt dieselben Schluessel wie tr.json — ${LANG_KEY_COUNT}`,
+      JSON.stringify(Object.keys(tgPrint)) === JSON.stringify(Object.keys(tgFiles.tr)),
+      `${Object.keys(tgPrint).length} im Vergleichsstand, ${Object.keys(tgFiles.tr).length} in tr.json`);
+    const TR_CHANGED_AFTER_0313 = {};
+    const tgDiff = Object.keys(tgFiles.tr)
+      .filter(k => JSON.stringify(tgPrint[k]) !== JSON.stringify(tgFiles.tr[k]));
+    check('Und jeder tuerkische Wert ist Zeichen fuer Zeichen der des Vergleichsstands — ausser den benannten',
+      tgDiff.join(' ') === Object.keys(TR_CHANGED_AFTER_0313).join(' '),
+      tgDiff.slice(0, 8).join(' ') || 'alle gleich');
+    /* UND DIE TAFEL IST IN BEIDE RICHTUNGEN GESCHLOSSEN -- 0.31.1, Zusage 2. */
+    const tgStale = Object.keys(TR_CHANGED_AFTER_0313).filter(k => !tgDiff.includes(k));
+    check('Und kein Eintrag der Tafel benennt einen Unterschied, den es nicht gibt',
+      tgStale.length === 0, tgStale.join(' ') || 'keine Karteileiche');
   }
 }

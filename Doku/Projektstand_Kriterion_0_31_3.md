@@ -1,6 +1,6 @@
 # Projektstand — Kriterion
 
-**Kompakte Übergabe · Revision 89 · Stand 13. September 2026 · gebaut: Version 0.31.2**
+**Kompakte Übergabe · Revision 90 · Stand 13. September 2026 · gebaut: Version 0.31.3**
 
 Dieses Blatt ist der **einzige Ort, an dem steht, was gebaut ist und was
 bindet.** Es genügt, um in einem frischen Chat weiterzuarbeiten, ohne den alten
@@ -478,28 +478,75 @@ weiterhin offen. Daraus folgt die Stellung von `HINTER_PROXY` (Abschnitt 3).
 
 ## 2. Betriebsstand
 
-**Gebaut ist 0.31.2** — *die Zahlen des Prüfstands stehen im Änderungsprotokoll
-0.31.2.* **0.31.2 bringt das Englische auf den Stand des Deutschen** — *die
-dritte von vier Runden der 31er-Strecke; Türkisch ist 0.31.3.*
+**Gebaut ist 0.31.3** — *die Zahlen des Prüfstands stehen im Änderungsprotokoll
+0.31.3.* **0.31.3 bringt das Türkische auf den Stand des Deutschen** — *die
+LETZTE der vier Runden der 31er-Strecke, und die schwerste der drei Sprachen:
+Türkisch ist agglutinierend und SOV, ein Satz, der dem deutschen Wort für Wort
+folgt, ist dort keine Übersetzung.*
 
-**ALLE 1197 ENGLISCHEN SCHLÜSSEL SIND GEGEN IHREN DEUTSCHEN SATZ GELESEN
-WORDEN.** *161 sind neu formuliert (169 Formen), `en.json` ist 635 Zeichen kürzer
-und steht damit bei 89,4 % der deutschen Zeichenzahl.* **Kein türkischer Wert ist
-angefasst, und von den deutschen genau zwei** — *„Zugang beantragen" heißt auf
-Bestellung des Betreibers „**Zugang anfragen**" (`login.requestAccess` und sein
-Hinweis); das ganze Wortfeld sagt in allen drei Sprachen „Anfrage", dieses eine
-Label war der Ausreißer.* **Beides ist nachgerechnet und nicht behauptet:** *die
-Gleichlautprobe nennt die beiden deutschen Prüfsummen dieser Runde
-(`7c1fe1a927f158f9` / `0b443d44733cc668`), belegt, dass sie ANDERE sind als die
-von 0.31.1, und der Prüfstand hält die beiden bestellten Werte Zeichen für
-Zeichen — dazu 943 Sätze, die Zeichen für Zeichen der Stand der Abnahme von
-0.24.0 sind.*
+**ALLE 1197 TÜRKISCHEN SCHLÜSSEL SIND GEGEN IHREN DEUTSCHEN SATZ GELESEN
+WORDEN.** *192 Schlüssel sind neu formuliert (202 Formen, davon 50 nur das
+Anführungszeichen), `tr.json` ist 1419 Zeichen kürzer und steht damit bei 90,7 %
+der deutschen Zeichenzahl.* **Kein deutscher und kein englischer Wert ist
+angefasst** — *nachgerechnet und nicht behauptet: die vier Prüfsummen der
+Gleichlautprobe für `de` und `en` sind Zeichen für Zeichen dieselben
+(`7c1fe1a927f158f9` / `0b443d44733cc668` · `2f8e5b3abe58f9fd` /
+`39489ec6ae18020b`), die beiden türkischen andere; dazu hält der
+Vergleichsstand von 0.31.2 alle 1197 englischen Werte.*
 
-> **DIE VERBOTSLISTE IST EIN WÄCHTER UND KEIN MERKZETTEL.** *Dreizehn Muster,
-> jedes mit seinem Grund — vorher 52 Treffer in 46 Schlüsseln, jetzt keiner.*
-> **Dazu prüft die Gruppe „Englisch sitzt — 0.31.2" Länge, Satzzahl, Plätze,
-> Gestalt, Entitäten, Weißraum und en-GB:** *zehn Zusagen, neunundzwanzig
-> Prüfungen, elf Gegenproben.*
+> ## ZWEI VORSCHLÄGE DER VORLAGE SIND ABGELEHNT — und beide Male steht eine Entscheidung des Betreibers dagegen
+>
+> **DIE FÜNF VOKABELMEHRZAHLEN BEKOMMEN KEIN `-ler`/`-lar`.** *Die Vorlage nennt
+> es einen „fatalen Plural-Bug"; gemessen ist es der Bug: jedes Vokabelwort hat
+> GENAU EINEN Mehrzahlplatz, und der wird an* **24 Stellen hinter einer Zahl
+> gelesen** *(18 im Quelltext über `${n} ${vThing(n)}` und seine vier
+> Geschwister, 6 in der Sprachdatei über `{length} {thing}` und Verwandte).*
+> **Dort stünde danach „3 Öğeler", und das ist kein Türkisch** — *die
+> Entscheidung des Betreibers vom 8. September 2026 (Wörterbuch TR-S4;
+> Punkt 19: „abgelehnt, nicht vertagt") steht seit 0.24.4 als Wächter da, und
+> seit 0.31.3 ein zweites Mal mit der Messung daneben.*
+>
+> **UND „Yedekleme" BLEIBT „Yedekleme"** *(Betreiber, 10. September 2026:
+> „immer nur das wort yedekleme"; Wächter seit 0.25.1).*
+
+**DIE ZAHLEN DER RUNDE:** | | vorher | nachher |
+|---|---|---|
+| **Werte über 1,15× ab 40 Zeichen** | 44 | **0** |
+| **Werte mit mehr Sätzen als ihr deutscher** | 6 | **0** |
+| **Treffer der Verbotsliste** | 26 in 23 Schlüsseln | **0** |
+| **Deutsche Anführungszeichen** | 67 | **0** *(68 Schlüssel auf `“…”` umgestellt)* |
+| **HTML-Entitäten** | 1 | **0** |
+| **siz-Formen** | 1 | **0** |
+
+> **DIE VERBOTSLISTE IST EIN WÄCHTER UND KEIN MERKZETTEL — UND ER LIEST
+> WORTSTÄMME.** *Elf Muster, jedes mit seinem Grund.* **`\b` taugt für Türkisch
+> nicht:** *für JavaScript sind `Ş`, `ş`, `ğ`, `ı`, `ç`, `ö` und `ü` keine
+> Wortzeichen — zwischen einem Leerzeichen und einem „Ş" steht gar keine
+> Wortgrenze —, und die Endung klebt an („hap" steht als „haptan", „sabit
+> resim" als „sabit resmi"). Die erste Messung mit `\b` übersah fünf von 26
+> Treffern.* **Dazu prüft die Gruppe „Tuerkisch sitzt — 0.31.3" Länge,
+> Satzzahl, Plätze, Gestalt, Entitäten, Weißraum, Anführungszeichen, Anrede und
+> die Mehrzahl hinter einer Zahl:** *dreizehn Zusagen, dreizehn Gegenproben
+> (989–1001).*
+>
+> **UND DER TÜRKISCHE STAND LIEGT ALS VERGLEICHSDATEI DANEBEN** —
+> `tools/tuerkisch-0313.json`, erzeugt von `tools/tuerkischstand.js`, Tafel
+> `TR_CHANGED_AFTER_0313` leer.
+
+> ## DER AUGENSCHEIN HAT EINEN FUND GEMACHT, DEN KEIN WÄCHTER ÜBER EINE DATEI MACHEN KANN
+>
+> **Am Bildschirm stand „3 yorumlar"** — *die Mehrzahl hinter einer Zahl, also
+> genau das, was L7 und Zusage 10 verbieten.* **In der Datei ist die Zusage
+> gehalten**: *kein Wert schreibt „{n} …lar". Die Zahl und das Wort kommen aus
+> zwei Quellen, und `countWord(n, einzahl, mehrzahl)` setzt sie im **Quelltext**
+> zusammen.* **Fünf Paare, elf Stellen** — *und das sechste Paar an derselben
+> Stelle ist richtig, weil es ein Vokabelpaar ist.*
+>
+> **0.31.3 ändert sie NICHT:** *dieselben Schlüssel stehen als Blocküberschrift
+> über ihren Listen, und dort ist die Mehrzahl richtig. Es ist derselbe
+> Zielkonflikt wie bei den Vokabelwörtern — und den entscheidet der Betreiber
+> (Punkt 32, mit drei Wegen und einem Vorschlag).* **Gezählt wird er trotzdem:
+> Zusage 10 hat seit dieser Runde eine zweite Hälfte.**
 
 > **UND DER ENGLISCHE STAND LIEGT ALS VERGLEICHSDATEI DANEBEN** —
 > `tools/englisch-0312.json`, erzeugt von `tools/englischstand.js`. *Für Deutsch
@@ -558,8 +605,9 @@ test days", „2.1 MB weniger".*
 **Am Wirt läuft 0.31.2, Fingerprint `0745f9bd`** *(Abschnitt 8)* — *vom
 Betreiber am 13. September 2026 aus seiner Installation gemeldet und damit auf
 das Byte bestätigt.* **Drei Quellen, ein Wert, zum siebten Mal.** *Der
-Fingerprint von 0.31.0 (`7f4297ff`) und 0.31.1 (`47cfba37`) aus dem Feld steht
-aus — beide sind übersprungen worden, weil 0.31.2 am selben Tag folgte.*
+Fingerprint von 0.31.0 (`7f4297ff`), 0.31.1 (`47cfba37`) und 0.31.3
+(`1a07761b`) aus dem Feld steht aus — die ersten beiden sind
+übersprungen worden, weil 0.31.2 am selben Tag folgte.*
 
 **0.30.0 hat an zwei Enden gebaut, und beide Enden waren dieselbe Sache: Zeit,
 in der niemand etwas sieht.** *Der Prüflauf fällt von 464,4 auf 271,5 Sekunden —
@@ -1808,6 +1856,7 @@ Ursache war **eine Datei zu viel** auf dem Wirt (Stolperstein 158).
 
 | Version | Fingerprint | Prüfungen |
 |---|---|---|
+| **0.31.3** | `1a07761b` *(gerechnet am 13. September 2026 **als letztes und hinter der letzten Zeile**; aus zwei Quellen bestätigt — am Arbeitsbaum über dieselben achtzehn Dateien nachgerechnet und aus dem Server selbst gelesen, **alle achtzehn Einzelwerte gleich**. Die dritte steht aus. Die Runde fasst `public/languages/tr.json`, `testbench.js`, `counterproof.js`, `tools/` und `package.json` an)* | 6951 |
 | **0.31.2** | `0745f9bd` *(gerechnet am 13. September 2026 **als letztes und hinter der letzten Zeile**; **am selben Tag von der laufenden Installation gemeldet — im Feld bestätigt, genau der Sollwert; drei Quellen, ein Wert**. Am Arbeitsbaum über dieselben achtzehn Dateien nachgerechnet und aus dem Server selbst gelesen, **alle achtzehn Einzelwerte gleich**. Die Runde fasst `public/languages/en.json`, zwei Werte in `de.json` und `package.json` an — mehr nicht)* | 6905 |
 | **0.31.1** | `47cfba37` *(gerechnet am 13. September 2026 **als letztes und hinter der letzten Zeile**; aus zwei Quellen bestätigt — am Arbeitsbaum über dieselben achtzehn Dateien nachgerechnet und aus dem Server selbst gelesen, **alle achtzehn Einzelwerte gleich**. Die dritte steht aus. Die Runde fasst `public/app.js`, die drei Sprachdateien und `package.json` an)* | 6877 |
 | **0.31.0** | `7f4297ff` *(gerechnet am 13. September 2026 **als letztes und hinter der letzten Zeile**; aus zwei Quellen bestätigt — am Arbeitsbaum über dieselben achtzehn Dateien nachgerechnet und aus dem Server selbst gelesen, **alle achtzehn Einzelwerte gleich**. Die dritte steht aus. Die Runde fasst `public/app.js`, `public/style.css`, die drei Sprachdateien, `server.js` und `package.json` an)* | 6849 |
@@ -5803,6 +5852,23 @@ liest jeden Text in Anführungszeichen und Backticks von `public/app.js` und jed
   >
   > *Der Leser für Englisch ist der Betreiber selbst (0.24.3, F5); für 0.31.2
   > ist die Frage gestellt und **steht noch aus**.*
+  >
+  > **UND FÜR TÜRKISCH GILT SEIT 0.31.3 DERSELBE MASSSTAB — mit vier Zeilen
+  > mehr, die es nur dort braucht:** *die Anführungszeichen sind `“…”` und nicht
+  > `„…“` (F3; das deutsche Paar gibt es in der türkischen Typografie nicht),
+  > die Anrede ist durchgehend **sen** (F4; eine siz-Form ist ein Fund), **nach
+  > einer Zahl steht die Einzahl** (L7, TR-S4 — „3 dosya", nie „3 dosyalar"),
+  > und die vier Briefe reden niemanden an (F5).* **Messbar gemacht ist das in
+  > dreizehn Zusagen** *(Gruppe „Tuerkisch sitzt — 0.31.3")*.
+  >
+  > **UND EINE REGEL ÜBER JEDEN WÄCHTER, DER TÜRKISCH LIEST:** *er kommt ohne
+  > `\b` aus.* **Für JavaScript sind `Ş`, `ş`, `ğ`, `ı`, `ç`, `ö` und `ü` keine
+  > Wortzeichen** — *eine Wortgrenze steht dort, wo keine ist, und fehlt dort,
+  > wo eine ist. Gebunden wird der Wortanfang mit einem Blick zurück
+  > (`(?<![\p{L}\p{N}_])`), und die Endung bleibt frei: Türkisch klebt sie an.*
+  >
+  > *Der Leser für Türkisch ist der Betreiber selbst (0.24.4, F2: „das bin
+  > ich"); für 0.31.3 **steht die Durchsicht aus**.*
 
 #### Farbe und Marke
 

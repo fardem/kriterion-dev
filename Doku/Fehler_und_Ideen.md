@@ -1584,3 +1584,137 @@ die Auskunft ist falsch.**
 
 **Was es anfasst** — `public/app.js`, `server.js`, `auth.js`; die drei
 Sprachdateien nur, wenn Punkt 29 mitkommt.
+
+---
+
+## 31. Der `yedek`-Wächter von 0.25.1 sieht die Konsonantenerweichung nicht
+
+**Art: Fehler** *(am Prüfstand)* **· Herkunft: 0.31.3, beim Durchgang durch
+`tr.json` gefunden · Einschätzung: klein, und er gehört der Runde, die den
+Wächter von 0.25.1 das nächste Mal anfasst**
+
+**DIE ENTSCHEIDUNG DES BETREIBERS VOM 10. SEPTEMBER 2026 LAUTET:** *„immer nur
+das wort yedekleme"* — **und der Wächter dazu steht seit 0.25.1 im Prüfstand:**
+
+```js
+const ydBad = ydFlat.filter(([, v]) => /\byedek(ler|leri|le|tir)?\b/i.test(v));
+check('Kein alleinstehendes „yedek" mehr — es heisst ueberall yedekleme', …);
+```
+
+### Was er nicht findet
+
+**TÜRKISCH ERWEICHT DEN AUSLAUT, WENN EINE VOKALENDUNG FOLGT:** *aus `yedek`
+wird im Dativ* **`yedeğe`**, *im Akkusativ* **`yedeği`**, *im Genitiv*
+**`yedeğin`**. **Das `k` ist dann ein `ğ`, und der Wächter sucht ein `k`.**
+
+**GEMESSEN AM STAND VON 0.31.2:** *ein Wert stand so da und ist ihm dreißig
+Runden lang entgangen —*
+
+| Schlüssel | was dastand |
+|---|---|
+| `card.neverSameBackup` | *„{word} ve {word2} asla aynı **yedeğe** koyma"* |
+
+> **DER WERT IST IN 0.31.3 BERICHTIGT** *(„asla aynı **yedeklemeye** koyma")* —
+> **das Loch im Wächter ist es nicht.** *Es wäre der Wächter einer anderen Runde,
+> und eine Runde, die „Türkisch sitzt" heißt, fasst ihn nicht nebenbei an.*
+
+### Was zu bauen wäre
+
+| | |
+|---|---|
+| **Der Stamm liest beide Auslaute** | `/(?<![\p{L}])yede[kğ](?!leme)[\p{L}]*/u` — *findet `yedek`, `yedeğe`, `yedeği`, `yedekler`, `yedekle` und lässt `yedekleme`, `yedeklemeden`, `yedeklemeler` in Ruhe* |
+| **Und die Wortgrenze fällt ganz weg** | *`\b` steht dort heute vorn und hinten. Vorn geht es noch gut — `y` ist ein Wortzeichen —, **hinten nicht**: nach `yedeği` folgt ein `i`, und das ist eines. Dieselbe Lehre wie die Verbotsliste von 0.31.3, nur an einer anderen Stelle* |
+| **Die Gegenprobe 787 bekommt eine Schwester** | *sie setzt heute „Son yedekleme" auf „Son yedek". Eine zweite setzt sie auf „Son yedeğe" — und ist heute **stumm*** |
+
+**Was es anfasst** — `testbench.js` *(Gruppe „Backup" heisst auf Tuerkisch
+yedekleme — 0.25.1)*, `counterproof.js`.
+
+> **UND DER ALLGEMEINE SATZ DAHINTER IST DER EIGENTLICHE ERTRAG:** **jeder
+> Wächter, der türkischen Text liest, muss ohne `\b` auskommen.** *Für
+> JavaScript sind `Ş`, `ş`, `ğ`, `ı`, `ç`, `ö` und `ü` keine Wortzeichen; eine
+> Wortgrenze steht dort, wo keine ist, und fehlt dort, wo eine ist.* **0.31.3
+> hat das an seiner eigenen Verbotsliste gelernt** *(fünf von 26 Treffern
+> übersehen, „Şey" mit null gemeldet)* **— dieser Punkt ist derselbe Fehler in
+> einem älteren Wächter.**
+
+---
+
+## 32. Am Bildschirm steht „3 yorumlar" — die Mehrzahl hinter einer Zahl, aus zwei Schlüsseln zusammengesetzt
+
+**Art: Fehler** *(an der türkischen Oberfläche)* **· Herkunft: 0.31.3, beim
+AUGENSCHEIN gefunden — kein Blick in die Sprachdatei findet ihn ·
+Einschätzung: eine Entscheidung des Betreibers, kein Handgriff**
+
+### Was dasteht
+
+**TÜRKISCH SETZT NACH EINER ZAHL DIE EINZAHL** — *„3 dosya", nicht „3
+dosyalar". Das ist Regel **TR-S4** des Wörterbuchs, Leitplanke **L7** des
+Auftrags 0.31.3 und Zusage 10 seines Wächters.*
+
+**IN DER SPRACHDATEI IST SIE GEHALTEN: kein einziger Wert schreibt „{n} …lar".**
+*Am Bildschirm steht sie trotzdem* — **weil die Zahl und das Wort aus zwei
+verschiedenen Quellen kommen:**
+
+```js
+const countWord = (n, einzahl, mehrzahl) => (n ? [`${n} ${plural(n, einzahl, mehrzahl)}`] : []);
+…
+...countWord(b.comments, t('dialog.comment'), t('dialog.comments')),
+```
+
+*`plural(3, 'yorum', 'yorumlar')` wählt für `tr` die Form `other` — und das ist
+`yorumlar`.* **Am Bildschirm steht „3 yorumlar".**
+
+### Nachgezählt: fünf Paare, elf Stellen
+
+| Paar | Einzahl | Mehrzahl | am Bildschirm |
+|---|---|---|---|
+| `dialog.comment` / `dialog.comments` | yorum | yorumlar | **„3 yorumlar"** |
+| `dialog.link` / `dialog.links` | bağlantı | bağlantılar | **„3 bağlantılar"** |
+| `dialog.file` / `dialog.files` | dosya | dosyalar | **„3 dosyalar"** |
+| `list.photo` / `list.photos` | Fotoğraf | Fotoğraflar | **„3 Fotoğraflar"** |
+| `list.video` / `list.videos` | Video | Videolar | **„3 Videolar"** |
+
+> **UND DAS SECHSTE PAAR AN DERSELBEN STELLE IST RICHTIG.** *`countWord` wird
+> auch mit `V.ratingOne` / `V.ratingMany` gerufen — und dort steht in beiden
+> Formen dasselbe Wort, weil die Entscheidung des Betreibers vom 8. September
+> 2026 genau dort gegriffen hat (TR-S4).* **Die fünf oben sind nie nachgezogen
+> worden: sie sind keine zweite Meinung, sondern eine Lücke.**
+
+### Warum 0.31.3 es nicht repariert hat
+
+**DIESELBEN FÜNF SCHLÜSSEL STEHEN ALS BLOCKÜBERSCHRIFT ÜBER IHREN LISTEN** —
+*„YORUMLAR", „DOSYALAR", „BAĞLANTILAR" —, und **dort ist die Mehrzahl
+richtig**.* Ein Schlüssel, zwei Orte, zwei Wahrheiten: **es ist derselbe
+Zielkonflikt wie bei den vierzehn Vokabelwörtern**, und den hat der Betreiber
+entschieden und nicht der Übersetzer *(Wörterbuch TR-S4, Kasten; Punkt 19)*.
+
+### Was zu entscheiden wäre
+
+| Weg | was er kostet |
+|---|---|
+| **A · Wie bei den Vokabelwörtern** *(Mehrzahl = Einzahl)* | **Die elf Zählerstellen werden richtig** — *„3 yorum", „3 dosya".* **Drei Blocküberschriften werden Einzahl** — *„YORUM" statt „YORUMLAR". Genau der Preis, den der Betreiber am 8.9.2026 für die fünf Vokabelbeschriftungen schon bezahlt hat* |
+| **B · Ein eigener Schlüssel je Ort** | *fünf neue Schlüssel in **allen drei** Dateien — dieselbe Runde, die Punkt 19 abgelehnt hat, nur an anderer Stelle* |
+| **C · `countWord` nimmt für `tr` die Einzahl** | *eine Sprachentscheidung im **Quelltext**. Das Projekt hält sie ausdrücklich in der **Datei** („die Datei sagt es, nicht der Code", TR-S4) — dieser Weg bricht mit dem Grundsatz* |
+
+> **DER VORSCHLAG IST A**, *aus demselben Grund wie 2026: die Zählerstellen sind
+> die Mehrheit (elf gegen drei), und eine falsche Grammatik mitten im Satz wiegt
+> schwerer als eine Einzahl in einer Überschrift, die das Stilblatt ohnehin in
+> Großbuchstaben setzt.* **Der Betreiber entscheidet.**
+
+**Was es anfasst** — nur `public/languages/tr.json`; `de.json` und `en.json`
+bleiben, wie sie sind *(dort ist die Mehrzahl richtig)*.
+
+> **EIN HANDGRIFF OHNE ZIELKONFLIKT IST IN 0.31.3 SCHON GEMACHT:**
+> *`dialog.links` stand als* **„Bağlantılar"** *mit großem B da, während
+> `dialog.files` und `dialog.comments` klein geschrieben sind — am Bildschirm
+> las sich das mitten im Satz als „3 Bağlantılar".* **Jetzt „bağlantılar"**
+> *(TR-S1; die Blocküberschrift setzt das Stilblatt ohnehin groß).* **Der
+> Wächter hält die drei seither auf einer Linie.**
+
+> **WIE ER GEFUNDEN WURDE, und das ist der eigentliche Ertrag dieses Punktes:**
+> *nicht von einem Muster über die Datei — dort ist nichts zu finden —, sondern
+> vom **Augenschein**: ein echter Browser, eine echte Instanz auf `tr-TR`, und
+> der Blick auf die Karte „Sayılar".* **Ein Wächter über eine Datei kann nicht
+> sehen, was der Quelltext aus zwei Werten zusammensetzt.** *0.31.3 hat ihn
+> deshalb zählen gelernt (Zusage 10, zweite Hälfte): die elf Stellen stehen als
+> Zahl im Prüfstand, und wer eine zwölfte hinzufügt, fällt auf.*

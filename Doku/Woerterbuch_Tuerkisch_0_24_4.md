@@ -195,7 +195,7 @@ Eigentümer stattdessen einträgt, steht in der Datenbank.*
 | Mein Konto | My account | **Hesabım** | |
 | Benutzer | User | **Kullanıcı** | |
 | Sitzung | Session | **Oturum** | |
-| Passwort | Password | **Parola** | ***offen (F3)***: `Parola` (Microsoft, Apple) oder `Şifre` (Google) — beide üblich; **der Betreiber entscheidet — er ist der Leser (F2)** |
+| Passwort | Password | **Parola** | ***offen (F3)***: `Parola` (Microsoft, Apple) oder `Şifre` (Google) — beide üblich; **der Betreiber entscheidet — er ist der Leser (F2)**. *Gemessen in 0.31.3: `Parola` steht **63-mal** in `tr.json`, `şifre` als Wort für das Passwort **kein einziges Mal** — die Vorkommen von `şifreleme` und `şifresiz` meinen die **Verschlüsselung**. Die beiden Wörter stehen also schon getrennt (S3), und eine Entscheidung für `Şifre` müsste beide wieder zusammenführen* |
 | Zweiter Faktor · Code | Two-factor · Code | **İki adımlı doğrulama · Kod** | `2FA` bleibt `2FA` |
 | Registrierung / Anfrage / beantragen | Registration / Request / request | **Kayıt olma / Başvuru / başvur** | *dieselbe Dreiheit wie im Deutschen: das Verfahren, die einzelne Anfrage, die Handlung* |
 | Einladungslink | Invitation link | **Davet bağlantısı** | |
@@ -293,6 +293,13 @@ Rechts-nach-links, keine zweite Schrift, keine eigene Zahlformatierung.*
 * **`Parola` gegen `Şifre`** *(F3)* — der Vorschlag steht, die Entscheidung
   gehört dem Betreiber, und der ist seit dem 8. September 2026 auch der Leser
   *(F2)*.
+  > **0.31.3 HAT NACHGEMESSEN UND NICHT ENTSCHIEDEN.** *Der Durchgang durch
+  > alle 1197 Schlüssel hat `Parola` 63-mal gefunden und `Şifre` für das
+  > Passwort gar nicht; `şifreleme` und `şifresiz` meinen die Verschlüsselung
+  > und sind ein anderes Wort.* **Die Frage ist damit nicht beantwortet, aber
+  > sie hat einen Preis bekommen:** *wer `Şifre` wählt, führt zwei heute
+  > getrennte Sachen unter einem Wort zusammen — Passwort und Verschlüsselung
+  > (Regel S3).*
 * **Die Länge am Telefon** *(T4)* — Wörterbuchfragen sind Wortfragen; ob ein
   Satz in eine Pille passt, sagt der Augenschein.
 * **Regionen.** `tr-TR` ist die Locale in der Datei, nicht ein zweiter

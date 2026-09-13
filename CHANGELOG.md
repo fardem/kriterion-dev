@@ -29,6 +29,35 @@ bleiben in der Form ihrer Zeit.*
 
 *Hier wird mitgeschrieben, während gebaut wird.*
 
+## [0.31.3] - 2026-09-13
+
+> **NICHTS ZU TUN.** Kein Schemaanteil, kein Migrationsblock, das
+> Austauschformat bleibt 16. Einspielen und fertig.
+
+### Geändert
+
+- **Die türkischen Texte sind gegengelesen** — alle 1197 Schlüssel, jeder gegen seinen deutschen Satz; 192 Schlüssel sind neu formuliert, `tr.json` ist 1419 Zeichen kürzer. Kein deutscher und kein englischer Wert ist dabei angefasst.
+- **Die Anführungszeichen sind türkisch** — `“…”` statt `„…“`, in 68 Schlüsseln. Das deutsche Paar gibt es in der türkischen Typografie nicht; 0.31.0 hatte es dort nur geschlossen.
+- **Die deutschen Entwicklerbilder sind heraus** — „Otomatik" statt „Cihaz gibi" (wie das Gerät), „son etkinlik" statt „son görülme", „kapak resmi" statt „sabit resim" (Standbild), „düğme" statt „hap" (Tablette), „Tekil/Çoğul" statt „Şey, tekil/çoğul", „veritabanıyla aynı dizinde" statt „yanında duruyor".
+- **Die vier Briefe sagen am Ende, was Sache ist** — „Bu ileti otomatik olarak gönderilmiştir; yanıtlar okunmaz." statt „Buna gelen yanıtları kimse okumaz."; der Einladungsbrief warnt mit „hesabına erişir" statt „içeri girer".
+- **Vierundvierzig türkische Karten trugen noch den alten Entwicklerroman** — der türkische Rücksetzhinweis zählte alle vierzehn Vokabelwörter auf, wo die deutsche Karte seit 0.31.1 „Alle Wörter dieser Karte" sagt.
+- **Die Anrede ist durchgehend vertraut** — ein einziger Wert siezte („değiştirin ya da boşaltın"); jetzt duzt die ganze Oberfläche, wie das Deutsche auch.
+
+### Behoben
+
+- **Elf türkische Sätze waren grammatisch zerfallen** — „Ağırlıkları Ayarlar › Veriler › altında ayarlarsın {word} girer", „Satırlar şuna göre sıralanır: {word} otomatik olarak silinir" (es heißt gelöscht, nicht sortiert), „geçen şu süreden sonra {days} gün sonra", „Şunu yapacak: {word} gösterildi", „⌀ nasıl {word} oluştuğu". Das Verb stand mitten im Satz, wo es im Türkischen ans Ende gehört.
+- **Acht türkische Sätze waren schlicht falsch** — zwei Karten ließen die halbe deutsche Aussage weg („Mit Häkchen legt jeder neue Kategorien an" fehlte ganz), ein Hinweis nannte GMX, wo der deutsche „viele Anbieter" sagt, „Her hedef bir numaradır" statt „muss eine Zahl sein", und ein Erklärtext brach mitten im Satz ab („Bu sayının nasıl").
+- **Ein Einschub saß an der falschen Stelle** — „parolan bir kez{extra} istenir" ergab „dein Passwort einmal und der Zwei-Faktor-Code wird abgefragt"; jetzt steht er hinter „parolan".
+- **„Noch nicht eingeschätzt" und „noch nicht bewertet" hießen beide gleich** — jetzt „henüz tahmin edilmedi" und „henüz değerlendirilmedi".
+- **Die letzte HTML-Entität in einem Wert ist weg** — „Silinen kullanıcı &lt;numara&gt;"; 0.31.1 hatte sie auf Deutsch genommen, 0.31.2 auf Englisch.
+- **„3 Bağlantılar" heißt mitten im Satz jetzt klein** — das Wort stand als einziges der drei Blockwörter groß da; die Überschrift über der Liste setzt das Stilblatt ohnehin in Großbuchstaben.
+
+### Intern
+
+- **Die Verbotsliste der türkischen Übersetzung ist ein Wächter im Prüfstand** — elf Muster, und er liest Wortstämme statt ganzer Wörter: Türkisch klebt seine Endungen an, „hap" steht als „haptan". Dreizehn Zusagen, dreizehn Gegenproben.
+- **Der türkische Stand liegt als Vergleichsdatei daneben** — `tools/tuerkisch-0313.json`, wie `tools/englisch-0312.json` für Englisch.
+- **Zwei Vorschläge der Vorlage sind abgelehnt** — die Mehrzahl der Vokabelwörter bleibt gleich der Einzahl (nach einer Zahl steht im Türkischen der Singular, und der Platz wird an 24 Stellen hinter einer Zahl gelesen), und „Yedekleme" bleibt „Yedekleme". Beides sind Entscheidungen des Betreibers vom 8. und 10. September 2026.
+
 ## [0.31.2] - 2026-09-13
 
 > **NICHTS ZU TUN.** Kein Schemaanteil, kein Migrationsblock, das
