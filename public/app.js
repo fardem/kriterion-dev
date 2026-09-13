@@ -111,24 +111,35 @@ function tH(key, values = {}) {
 const tMark = (key, wordKey, values) => tH(key, { ...values, word: '\u0001' })
   .replace('\u0001', `<strong>${tH(wordKey)}</strong>`);
 
-/* DASSELBE MUSTER, ABER DAS HERVORGEHOBENE IST KEIN SCHLUESSEL -- 0.31.1.
-   tMark() holt sein Wort aus der Sprachdatei. An 27 Stellen steht dort aber
-   ein WERT: ein Benutzername, eine Zahl, ein Satz mit eigenem Argument
-   („noch 3 Minuten"). Bis 0.31.1 war das der Grund, den Satz DRUMHERUM in
-   Bruchstuecke zu zersaegen -- der Aufruf musste ja irgendwo aufgemacht
-   werden.
+/* MEHRERE STUECKE IN EINEM SATZ, UND SIE MUESSEN KEINE SCHLUESSEL SEIN --
+   0.31.1. tMark() traegt genau EINES, und es muss aus der Sprachdatei kommen.
+   Beides reicht nicht:
 
-   JETZT BLEIBT DER SATZ EIN SCHLUESSEL mit {word} darin, und nur die FUELLUNG
-   kommt von aussen. Die Sprache entscheidet weiterhin, WO die Hervorhebung
-   sitzt; sie entscheidet nur nicht mehr, WAS drinsteht.
+   EIN SATZ NENNT DREI BEISPIELE. Der Kriterien-Tipp hebt „Wunsch", „Nutzen"
+   und „Machbarkeit" hervor; bis hierher war genau das der Grund, ihn in SECHS
+   Schluessel zu zersaegen, von denen einer „(Gewicht 1,5)," hiess.
 
-   DER SATZ WIRD NICHT MASKIERT, DIE FUELLUNG MUSS ES SCHON SEIN. Sie kommt
-   fertig vom Rufer, und der ist dafuer zustaendig -- dieselbe Teilung wie in
-   tH(). Wer hier einen rohen Benutzerwert einsetzt, tut es sichtbar an seiner
-   eigenen Zeile und nicht versteckt in dieser. */
-const tMarkText = (key, html, values) =>
-  tH(key, { ...values, word: '\u0001' })
-    .replace('\u0001', `<strong>${html}</strong>`);
+   UND MANCHMAL IST DAS STUECK KEIN SCHLUESSEL, sondern ein Wert: ein
+   Benutzername, eine Zahl, ein Mehrzahlsatz mit eigenem Argument. Auch dort
+   musste der Satz drumherum aufgebrochen werden, weil der Ruf ja irgendwo
+   aufgemacht werden musste.
+
+   JETZT BLEIBT DER SATZ EIN SCHLUESSEL mit {word}, {word2}, {word3} darin, und
+   die Fuellungen kommen fertig herein. Die Sprache entscheidet weiterhin, WO
+   die Stuecke sitzen und in welcher Reihenfolge -- sie entscheidet nur nicht
+   mehr, WAS drinsteht.
+
+   DERSELBE UMWEG UEBER DAS STEUERZEICHEN wie in tMark(), und aus demselben
+   Grund: die Auszeichnung laeuft NIE durch den maskierenden Weg. Die FUELLUNG
+   muss der Rufer maskiert hereingeben -- dieselbe Teilung wie in tH(), und sie
+   steht sichtbar an seiner Zeile statt versteckt in dieser. */
+const tMarks = (key, stuecke, values) => {
+  const namen = Object.keys(stuecke), marken = {};
+  namen.forEach((n, i) => { marken[n] = `\u0001${i}\u0001`; });
+  let satz = tH(key, { ...values, ...marken });
+  namen.forEach((n, i) => { satz = satz.replace(`\u0001${i}\u0001`, stuecke[n]); });
+  return satz;
+};
 
 /* ZWEI FORMEN, UND DIE ZAHL WAEHLT -- ueber Intl.PluralRules und nicht ueber
    `n === 1`. Der Vergleich waere die deutsche Regel, festgeschrieben im Code;
@@ -7397,7 +7408,7 @@ async function renderDetail(id, termAddress) {
            offen, ueber WEN der erste geht. Genau das war die Frage aus dem
            Betrieb. Zwei Woerter, und sie stehen dort, wo die Zahl ohnehin
            erklaert wird. */''}
-      <p><strong>${tH('entry.calcTwoSteps')}</strong> ${tH('entry.calcFirstAvg')} <strong>${tH('entry.grade')}</strong>${tH('entry.calcThenAvg')}${withWeight
+      <p><strong>${tH('entry.calcTwoSteps')}</strong> ${tMark('entry.calcTwoStepsHint', 'entry.grade')}${withWeight
           ? t('entry.calcWithWeight')
           : t('entry.calcAllEqual')}.</p>
       <div class="calc" id="calc">
@@ -8909,7 +8920,7 @@ function cardTitle(fetched) {
   const { titles } = fetched;
   return `<div class="sys-card">
         <h3>${tH('list.title')}</h3>
-        <p class="desc">${tH('card.theMasc')} <strong>${tH('card.publicTitle')}</strong> ${tH('card.titleBeforeHint')} <strong>${tH('card.internalTitles')}</strong> ${tH('card.titleAfterHint')}</p>
+        <p class="desc">${tMark('card.publicTitleHint', 'card.publicTitle')} ${tMark('card.internalTitleHint', 'card.internalTitles')}</p>
         <div class="field"><label>${tH('card.titleBeforeLogin')}</label>
           <input class="input" id="tp" value="${esc(titles.publicTitle)}"></div>
         <div class="field"><label>${tH('card.titleAfterLogin')}</label>
@@ -9247,7 +9258,7 @@ function setUpUserOut(fetched) {
     box.innerHTML = `
       <div class="warn-box two-factor-setup">
         <strong>${tH('card.twoFactorStep1')}</strong>
-        ${tH('card.heWill')} <strong>${tH('card.onlyThisOnce')}</strong> ${tH('card.shown')}
+        ${tMark('card.shownOnceHint', 'card.onlyThisOnce')}
         <div class="two-factor-key" id="two-factor-secret">${esc(d.groups)}</div>
         <div class="row-in" style="margin:8px 0 0">
           <button class="btn btn-sm" id="two-factor-copy">${tH('card.copyKey')}</button>
@@ -9297,7 +9308,7 @@ function setUpUserOut(fetched) {
     boxId.className = 'warn-box two-factor-codebox';
     boxId.id = 'two-factor-codebox';
     boxId.innerHTML = `<strong>${tH('card.yourRecoveryCodes', { length: codes.length })}</strong>
-      ${tH('card.recoveryCodesHint')} <strong>${tH('card.once')}</strong> ${tH('card.replacesAppCode')}
+      ${tMark('card.recoveryCodesHint', 'card.once')}
       <div class="two-factor-codes">${codes.map(c => `<span>${esc(c)}</span>`).join('')}</div>
       ${/* DER SERVER-BEFEHL STAND HIER BIS 0.21.1 FUER JEDEN BENUTZER (Stolperstein
            315). Jetzt: ein Satz fuer alle, der Kasten nur fuer den Eigentuemer. */''}
@@ -9387,9 +9398,9 @@ function setUpSessionsOut(fetched) {
        zuverlaessig nichts tut, sieht aus wie ein Fehler. */
     if (!foot) return;
     foot.innerHTML = other
-      ? `<p class="desc" style="margin:10px 0 8px">${tH('card.besidesThisOne')} <strong>${
-          tH('card.moreSessions', { n: other })}</strong> ${tH('card.sessionsDot', { n: other })}
-          ${tH('card.sessionExpiresIn')} ${d.days || 30} ${tH('card.sessionIdleHint')}</p>
+      ? `<p class="desc" style="margin:10px 0 8px">${tMarks('card.besidesThisOneHint',
+          { word: `<strong>${tH('card.moreSessions', { n: other })}</strong>` }, { n: other })}
+          ${tH('card.sessionIdleHint', { days: d.days || 30 })}</p>
          <button class="btn btn-sm" id="sessions-all">${tH('card.endOtherSessions')}</button>`
       : `<p class="desc" style="margin:10px 0 0">${tMark('card.onlySessionHint', 'card.only')}</p>`;
     const all = doc.getElementById('sessions-all');
