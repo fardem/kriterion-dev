@@ -944,7 +944,7 @@ steht ab Werk auf **aus**.
 **Der Weg, vom Formular bis zum Passwort:**
 
 1. **Anfrage.** Auf der Anmeldeseite steht unter „Anmelden" ein zweiter Knopf:
-   **„Zugang beantragen"**, darüber die Frage „Noch keinen Zugang?". Das Formular
+   **„Zugang anfragen"**, darüber die Frage „Noch keinen Zugang?". Das Formular
    dahinter hat zwei Felder — Benutzername und E-Mail-Adresse — und **kein
    Passwortfeld**.
 2. **Bestätigungsmail.** Die Installation schickt einen kurzen Link an die

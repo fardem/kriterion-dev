@@ -281,8 +281,9 @@ deutscher Wert ist von mir angefasst" (**978**) und „genau diese zwei sind es 
 Bestellung" (**988**).* **Eine Ausnahme ohne Gegenprobe ist eine Behauptung** —
 *sie kann still verschwinden, und niemand merkt es.*
 
-**DIE ERSTEN ZEHN SIND GEFAHREN — drei Nebenspuren, je Rückbau ein voller
-Prüflauf, `0 STUMM`.** *Jeder hat SEINE Zusage namentlich rot gemacht.*
+**ALLE ELF SIND GEFAHREN — je Rückbau ein voller Prüflauf, `0 STUMM`.** *Jeder
+hat SEINE Zusage namentlich rot gemacht.* **Die ersten zehn auf drei
+Nebenspuren, die elfte einzeln, nachdem die Bestellung gebaut war.**
 
 | Nr. | was zurückgebaut wird | für Zusage | was namentlich rot wurde |
 |---|---|---|---|
@@ -296,13 +297,13 @@ Prüflauf, `0 STUMM`.** *Jeder hat SEINE Zusage namentlich rot gemacht.*
 | **985** | ein englischer Wert trägt eine US-Schreibung | 8 | *„Zusage 8: … US-Schreibung — en-GB steht in `_locale`"* |
 | **986** | ein englischer Wert trägt wieder die Einrückung des Quelltexts | 9 | **beide Zeilen der Zusage** — dazu die Zwillingszeile aus 0.31.1, die alle drei Dateien prüft |
 | **987** | der Vergleichsstand weicht von `en.json` ab, ohne benannt zu sein | 10 | *„Und jeder englische Wert ist Zeichen für Zeichen der des Vergleichsstands — außer den benannten"* |
-| **988** | das Label heißt wieder „Zugang beantragen" | 1 *(zweite Hälfte)* | **drei Wachen zugleich, und das ist hier die Sache selbst:** *die Prüfsummen dieser Runde, die Tafel `DE_ORDERED_0312` und — weil die Ausnahme der Bildschirmverbotsliste mit dem Satz gewandert ist — das Verbot von „Zugang" für Konto* |
+| **988** | das Label heißt wieder „Zugang beantragen" | 1 *(zweite Hälfte)* | **beide neuen Zeilen der Zusage** — *„Und die beiden deutschen sind die dieser Runde" und „Und die beiden bestellten Werte stehen Zeichen für Zeichen da". Dazu **drei weitere Wachen**: die Wortlautprobe (zwei Zeilen) und der Bildschirmtext-Wächter, weil die Ausnahme „Zugang" mit dem Satz gewandert ist. **Fünf rote Punkte für einen zurückgenommenen Satz*** |
 
 ### Drei Zeilen standen in JEDEM Lauf rot, und keine davon ist der Rückbau
 
 | | was | warum |
 |---|---|---|
-| **1** | **„Die Dokumente ebenso"** *(Sprachwächter)* | **MEIN EIGENES PAPIER.** *Das Änderungsprotokoll trug „`Abdruck`" ohne Backticks, während die Gegenproben liefen — dieselbe Wache, die schon meine Kommentarzeilen gemeldet hatte, meldete nun den Text darüber.* **Sie stand also VOR jedem Rückbau schon rot**, und das ist beim Lesen der Tabelle zu wissen |
+| **1** | **„Die Dokumente ebenso"** *(Sprachwächter)* — **und bei der elften, nach der Berichtigung, ist sie grün** | **MEIN EIGENES PAPIER.** *Das Änderungsprotokoll trug „`Abdruck`" ohne Backticks, während die Gegenproben liefen — dieselbe Wache, die schon meine Kommentarzeilen gemeldet hatte, meldete nun den Text darüber.* **Sie stand also VOR jedem Rückbau schon rot**, und das ist beim Lesen der Tabelle zu wissen |
 | **2** | **„Jeder Suchtext kommt in seiner Datei genau einmal vor"** | *der Rückbau ersetzt in der Kopie genau diesen Suchtext — die Zeile ist damit die Spur des Eingriffs und kein Befund* |
 | **3** | **Der Aufräumer des Prüfstands** *(bei 983 und 984)* | *Punkt 27 im Sammelblatt: er flackert auf mehreren Spuren, „rund die Hälfte, gleich welche Spurenzahl". Hier zweimal von zehn* |
 
