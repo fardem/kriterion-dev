@@ -486,8 +486,9 @@ zweite von vier Runden der 31er-Strecke; Englisch ist 0.31.2, Türkisch 0.31.3.*
 stand `A <strong>B</strong> C` als DREI Schlüssel da und wurde im Aufruf wieder
 zusammengeklebt — im Deutschen geht das auf, im Türkischen nicht: dort verneint
 ein Suffix im Verb.* **Aus 1254 Schlüsseln sind in JEDER Datei 1197 geworden**
-*(101 Bruchstücke sind in ihre Sätze gezogen, 44 Schlüssel sind neu, 68 haben
-einen anderen Wortlaut)*.
+*(101 sind gefallen — 95 Hälften, die jetzt in ihrem Satz stehen, die vier
+Exportgrößen und die beiden Schlüssel ohne Leser; 44 sind neu, 68 haben einen
+anderen Wortlaut)*.
 
 > **DER WORTLAUT ÄNDERT SICH NICHT — nur seine Ablage.** *Was am Bildschirm
 > steht, steht danach Zeichen für Zeichen genauso da, in allen drei Sprachen.*

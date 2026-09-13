@@ -1222,7 +1222,7 @@ sondern damit derselbe Bericht nicht ein zweites Mal geglaubt wird.
 > **UND DIE SATZ-STÜCKELUNG IST AUFGELÖST — 0.31.1, am 13. September 2026.**
 > *Der stärkste Punkt aus allen drei Berichten war der türkische Verneinungssatz,
 > und er kam nicht aus der Liste, sondern aus der Prüfung: der Satz muss im
-> QUELLTEXT anders geschnitten werden.* **Genau das ist geschehen — 101
+> QUELLTEXT anders geschnitten werden.* **Genau das ist geschehen — 95
 > Bruchstücke sind in ihren Satz gezogen, jede Sprachdatei trägt 1197 statt 1254
 > Schlüssel, und am Bildschirm hat sich kein Zeichen geändert.** *Wer eine
 > Sprachdatei pflegt, übersetzt ab jetzt ganze Sätze und entscheidet selbst, wo

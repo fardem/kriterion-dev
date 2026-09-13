@@ -119,7 +119,7 @@ Zeile ändern, und dann fällt es auf.*
 | | vorher | nachher |
 |---|---|---|
 | **Schlüssel je Sprachdatei** | 1254 | **1197** |
-| *davon gefallen* | | **101** *(Hälften, die jetzt in ihrem Satz stehen)* |
+| *davon gefallen* | | **101** — *95 Hälften, die jetzt in ihrem Satz stehen; dazu die vier Exportgrößen (BA 5) und die zwei Schlüssel ohne Leser (BA 4)* |
 | *davon neu* | | **44** *(ein verschmolzener Satz bekommt oft einen neuen Namen)* |
 | *davon anderer Wortlaut* | | **68** |
 | **Bruchstücke** | 211 | **23 benannte**, und jedes ist eines mit Grund |

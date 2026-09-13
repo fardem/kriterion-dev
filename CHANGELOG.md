@@ -41,7 +41,7 @@ bleiben in der Form ihrer Zeit.*
 
 ### Intern
 
-- **Ein Schlüssel trägt einen ganzen Satz und nicht mehr ein Wort ohne ihn** — 101 Bruchstücke sind in ihren Satz gezogen, 44 Schlüssel sind neu; jede Sprachdatei trägt 1197 statt 1254 Schlüssel. **Am Bildschirm ändert sich dabei kein Zeichen.** Wer eine eigene Sprachdatei pflegt, übersetzt ab jetzt ganze Sätze statt Hälften — und entscheidet selbst, wo die Hervorhebung darin sitzt.
+- **Ein Schlüssel trägt einen ganzen Satz und nicht mehr ein Wort ohne ihn** — 95 Hälften sind in ihren Satz gezogen, 44 Schlüssel sind neu; jede Sprachdatei trägt 1197 statt 1254 Schlüssel. **Am Bildschirm ändert sich dabei kein Zeichen.** Wer eine eigene Sprachdatei pflegt, übersetzt ab jetzt ganze Sätze statt Hälften — und entscheidet selbst, wo die Hervorhebung darin sitzt.
 - **Zwei Schlüssel führten Programmablauf statt Text** — ein übersetzter „Sitzung abgelaufen"-Satz entschied über eine Verzweigung; jetzt tut es ein Merkmal im Quelltext.
 - **Die vier Exportgrößen und die vierzehn Vorgabewörter standen doppelt** — als Wert UND als Satz in drei Sprachdateien; die Beschriftung wird jetzt gerechnet.
 
