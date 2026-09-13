@@ -512,7 +512,8 @@ test days", „2.1 MB weniger".*
 **Am Wirt läuft 0.30.3, Fingerprint `098e85ca`** *(Abschnitt 8)* — *vom
 Betreiber am 13. September 2026 aus seiner Installation gemeldet und damit auf
 das Byte bestätigt.* **Drei Quellen, ein Wert, zum sechsten Mal.** *Der
-Fingerprint von 0.31.0 und 0.31.1 aus dem Feld steht aus.*
+Fingerprint von 0.31.0 (`7f4297ff`) und 0.31.1 (`47cfba37`) aus dem Feld steht
+aus.*
 
 **0.30.0 hat an zwei Enden gebaut, und beide Enden waren dieselbe Sache: Zeit,
 in der niemand etwas sieht.** *Der Prüflauf fällt von 464,4 auf 271,5 Sekunden —
@@ -1761,6 +1762,7 @@ Ursache war **eine Datei zu viel** auf dem Wirt (Stolperstein 158).
 
 | Version | Fingerprint | Prüfungen |
 |---|---|---|
+| **0.31.1** | `47cfba37` *(gerechnet am 13. September 2026 **als letztes und hinter der letzten Zeile**; aus zwei Quellen bestätigt — am Arbeitsbaum über dieselben achtzehn Dateien nachgerechnet und aus dem Server selbst gelesen, **alle achtzehn Einzelwerte gleich**. Die dritte steht aus. Die Runde fasst `public/app.js`, die drei Sprachdateien und `package.json` an)* | 6877 |
 | **0.31.0** | `7f4297ff` *(gerechnet am 13. September 2026 **als letztes und hinter der letzten Zeile**; aus zwei Quellen bestätigt — am Arbeitsbaum über dieselben achtzehn Dateien nachgerechnet und aus dem Server selbst gelesen, **alle achtzehn Einzelwerte gleich**. Die dritte steht aus. Die Runde fasst `public/app.js`, `public/style.css`, die drei Sprachdateien, `server.js` und `package.json` an)* | 6849 |
 | **0.30.3** | `098e85ca` *(am 13. September 2026 **von der laufenden Installation gemeldet — im Feld bestätigt**, genau der Sollwert; **drei Quellen, ein Wert**. Gerechnet am 12. September 2026 **als letztes und hinter der letzten Zeile**, davor aus zwei Quellen bestätigt — am Arbeitsbaum über dieselben achtzehn Dateien nachgerechnet und aus dem Server selbst gelesen, **alle achtzehn Einzelwerte gleich**. Die dritte steht aus. Die Runde fasst `public/app.js`, `public/style.css` und `package.json` an)* | 6823 |
 | **0.30.2** | `3d03be45` *(gerechnet am 12. September 2026 **als letztes und hinter der letzten Zeile** — die Lehre aus 0.30.1; aus zwei Quellen bestätigt, die dritte steht aus)* | 6801 |

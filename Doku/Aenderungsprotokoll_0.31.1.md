@@ -3,14 +3,17 @@
 **Auftrag 0.31.1 · 13. September 2026 · gebaut auf 0.31.0 · PATCH, kein
 Schemaanteil.**
 
-> **FINGERPRINT DIESER RUNDE: `FINGERPRINT_0311`** — gerechnet am gebauten
+> **FINGERPRINT DIESER RUNDE: `47cfba37`** — gerechnet am gebauten
 > Stand, **als letztes und hinter der letzten Zeile**.
 >
 > | Quelle | Wert |
 > |---|---|
-> | **Am Arbeitsbaum nachgerechnet** | **`FINGERPRINT_0311`** |
-> | **Aus dem Server selbst gelesen** *(frisches Datenverzeichnis, `/api/stats`)* | **`FINGERPRINT_0311`** |
+> | **Am Arbeitsbaum nachgerechnet** *(achtzehn Dateien)* | **`47cfba37`** |
+> | **Aus dem Server selbst gelesen** *(frisches Datenverzeichnis, `/api/stats`)* | **`47cfba37`** |
 > | **Aus der laufenden Installation gemeldet** | *steht aus* |
+>
+> **ZWEI QUELLEN, EIN WERT** — *alle achtzehn Einzelwerte gleich.* **Die dritte
+> kommt aus dem Feld, sobald der Betreiber eingespielt hat.**
 
 ---
 
@@ -123,6 +126,8 @@ Zeile ändern, und dann fällt es auf.*
 | *davon neu* | | **44** *(ein verschmolzener Satz bekommt oft einen neuen Namen)* |
 | *davon anderer Wortlaut* | | **68** |
 | **Bruchstücke** | 211 | **23 benannte**, und jedes ist eines mit Grund |
+| **Prüfungen im Prüfstand** | 6849 | **6877** — *und alle 6877 grün* |
+| **Rückbauten in den Gegenproben** | 954 | **968** — *vierzehn neue, und **0 STUMM*** |
 
 ---
 
