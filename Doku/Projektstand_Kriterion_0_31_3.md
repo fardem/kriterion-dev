@@ -485,8 +485,8 @@ Türkisch ist agglutinierend und SOV, ein Satz, der dem deutschen Wort für Wort
 folgt, ist dort keine Übersetzung.*
 
 **ALLE 1197 TÜRKISCHEN SCHLÜSSEL SIND GEGEN IHREN DEUTSCHEN SATZ GELESEN
-WORDEN.** *192 Schlüssel sind neu formuliert (202 Formen, davon 50 nur das
-Anführungszeichen), `tr.json` ist 1419 Zeichen kürzer und steht damit bei 90,7 %
+WORDEN.** *195 Schlüssel sind neu formuliert (205 Formen, davon 50 nur das
+Anführungszeichen), `tr.json` ist 1406 Zeichen kürzer und steht damit bei 90,8 %
 der deutschen Zeichenzahl.* **Kein deutscher und kein englischer Wert ist
 angefasst** — *nachgerechnet und nicht behauptet: die vier Prüfsummen der
 Gleichlautprobe für `de` und `en` sind Zeichen für Zeichen dieselben
@@ -606,7 +606,7 @@ test days", „2.1 MB weniger".*
 Betreiber am 13. September 2026 aus seiner Installation gemeldet und damit auf
 das Byte bestätigt.* **Drei Quellen, ein Wert, zum siebten Mal.** *Der
 Fingerprint von 0.31.0 (`7f4297ff`), 0.31.1 (`47cfba37`) und 0.31.3
-(`1a07761b`) aus dem Feld steht aus — die ersten beiden sind
+(`68cd1c14`) aus dem Feld steht aus — die ersten beiden sind
 übersprungen worden, weil 0.31.2 am selben Tag folgte.*
 
 **0.30.0 hat an zwei Enden gebaut, und beide Enden waren dieselbe Sache: Zeit,
@@ -1122,7 +1122,7 @@ Kachel zog die 225 auf ihre Breite hoch.*
 > **IM FELD BESTÄTIGT am 3. September 2026.** An der laufenden Installation
 > nachgesehen (13 Einträge, 89 Fotos, 368,7 MB): **jede Fotozeile trägt einen
 > `thumb` mit 512 auf der kurzen Kante, aus dem Original gerechnet** —
-> Sky-Watcher `4032 × 3024` → `512 × 683`, Hohem `6192 × 4128` → `768 × 512`.
+> Sky-Watcher `4032 × 3024` → `512 × 683`, Hohem `6195 × 4128` → `768 × 512`.
 > *Der Verdacht, die Ableitung ziehe von einer kleineren Variante, ist damit
 > widerlegt.* **Und derselbe Blick hat den Befund geliefert, aus dem 0.19.5
 > entstanden ist:** die eine Kachel mit `zoom = 235` war trotzdem unscharf.
@@ -1808,7 +1808,7 @@ Reihe.
 **IM FELD BESTÄTIGT WAR DAVOR 0.12.2** — Fingerprint **`e30a19c1`**, derselbe wie am
 Branch. *Der Dateisatz auf dem Wirt ist damit genau der, der gemeint war —
 einen Befund wie bei 0.9.1, wo sich eine Datei zu viel gezeigt hat, gibt es
-nicht.* **Davor war es 0.12.0** mit `192734a2`.
+nicht.* **Davor war es 0.12.0** mit `195734a2`.
 
 > **0.12.4 IST IM FELD BESTÄTIGT — 28. August 2026.** Die laufende Instanz
 > meldete **`ca991cf5`**, der Branch maß dasselbe. *Damit stand fest, dass auf
@@ -1856,7 +1856,7 @@ Ursache war **eine Datei zu viel** auf dem Wirt (Stolperstein 158).
 
 | Version | Fingerprint | Prüfungen |
 |---|---|---|
-| **0.31.3** | `1a07761b` *(gerechnet am 13. September 2026 **als letztes und hinter der letzten Zeile**; aus zwei Quellen bestätigt — am Arbeitsbaum über dieselben achtzehn Dateien nachgerechnet und aus dem Server selbst gelesen, **alle achtzehn Einzelwerte gleich**. Die dritte steht aus. Die Runde fasst `public/languages/tr.json`, `testbench.js`, `counterproof.js`, `tools/` und `package.json` an)* | 6951 |
+| **0.31.3** | `68cd1c14` *(gerechnet am 13. September 2026 **als letztes und hinter der letzten Zeile**; aus zwei Quellen bestätigt — am Arbeitsbaum über dieselben achtzehn Dateien nachgerechnet und aus dem Server selbst gelesen, **alle achtzehn Einzelwerte gleich**. Die dritte steht aus. Die Runde fasst `public/languages/tr.json`, `testbench.js`, `counterproof.js`, `tools/` und `package.json` an)* | 6951 |
 | **0.31.2** | `0745f9bd` *(gerechnet am 13. September 2026 **als letztes und hinter der letzten Zeile**; **am selben Tag von der laufenden Installation gemeldet — im Feld bestätigt, genau der Sollwert; drei Quellen, ein Wert**. Am Arbeitsbaum über dieselben achtzehn Dateien nachgerechnet und aus dem Server selbst gelesen, **alle achtzehn Einzelwerte gleich**. Die Runde fasst `public/languages/en.json`, zwei Werte in `de.json` und `package.json` an — mehr nicht)* | 6905 |
 | **0.31.1** | `47cfba37` *(gerechnet am 13. September 2026 **als letztes und hinter der letzten Zeile**; aus zwei Quellen bestätigt — am Arbeitsbaum über dieselben achtzehn Dateien nachgerechnet und aus dem Server selbst gelesen, **alle achtzehn Einzelwerte gleich**. Die dritte steht aus. Die Runde fasst `public/app.js`, die drei Sprachdateien und `package.json` an)* | 6877 |
 | **0.31.0** | `7f4297ff` *(gerechnet am 13. September 2026 **als letztes und hinter der letzten Zeile**; aus zwei Quellen bestätigt — am Arbeitsbaum über dieselben achtzehn Dateien nachgerechnet und aus dem Server selbst gelesen, **alle achtzehn Einzelwerte gleich**. Die dritte steht aus. Die Runde fasst `public/app.js`, `public/style.css`, die drei Sprachdateien, `server.js` und `package.json` an)* | 6849 |
@@ -1916,11 +1916,11 @@ Ursache war **eine Datei zu viel** auf dem Wirt (Stolperstein 158).
 | 0.12.3 | `0d04b540` | 3954 |
 | 0.12.2 | `e30a19c1` | 3856 |
 | 0.12.1 | `2e3f2e0b` | 3851 |
-| 0.12.0 | `192734a2` | 3848 |
+| 0.12.0 | `195734a2` | 3848 |
 | 0.11.0 | `74c44ec0` | 3815 |
 | 0.10.0 | `dc8c16f7` | 3676 |
 | 0.9.1 | `3cf1b093` | 3451 |
-| 0.9.0 | `82dc8550` | 3192 |
+| 0.9.0 | `82dc8550` | 3195 |
 | 0.8.91 | `a810f529` | 3010 |
 | 0.8.90 | `aeb336bf` | 2909 |
 | 0.8.80 | `a835ac92` | 2661 |
@@ -8422,7 +8422,7 @@ Version, in der sie entstanden sind.*
     geschlossene Liste baut, muss damit rechnen, dass ein Aufruf danebengreift.
     *Ein stiller Verlust ist der schlechtere Ausgang als ein Fehler.*
 
-192. **Ein Rückbau, der ins Leere greift, sieht aus wie einer, der nichts
+195. **Ein Rückbau, der ins Leere greift, sieht aus wie einer, der nichts
     bewirkt — und fällt nur im vollen Lauf auf.** Drei Suchtexte waren über
     fünf Runden veraltet, weil der Quelltext daneben sich geändert hatte. Der
     Gegenprobentreiber meldet das zwar, aber erst nach zwanzig Stunden. **DIE
@@ -9612,7 +9612,7 @@ Version, in der sie entstanden sind.*
     dekodiert sonst gleich in 1/2, 1/4 oder 1/8 der Maße; mit einem Zuschnitt
     davor muss es das ganze Bild dekodieren. **Der Zuschnitt kostet damit das
     DEKODIEREN und nicht das Kodieren — und der teuerste Fall ist der WEITESTE
-    Ausschnitt, nicht der engste.** *Gemessen an einem 6192 × 4128: 247,0 ms
+    Ausschnitt, nicht der engste.** *Gemessen an einem 6195 × 4128: 247,0 ms
     bei `zoom` 100 gegen 155,1 ms bei `zoom` 400; ohne Zuschnitt 189,2 ms.*
     **Wer die Kosten eines Zuschnitts nach der Größe des Ausschnitts schätzt,
     schätzt in die falsche Richtung.**
@@ -10666,7 +10666,7 @@ Rückbauten.*
 > sie sagt nichts darüber, ob ein Rückbau eine Prüfung *rot* macht. Sie sagt
 > nur, dass er überhaupt noch etwas anfasst. *Drei taten es fünf Runden lang
 > nicht, und das fiel niemandem auf, weil der volle Lauf so lange aussteht
-> (Stolperstein 192).*
+> (Stolperstein 195).*
 
 > **DIE FILTERLEISTE UND DIE KATEGORIEZEILE PRÜFT DER AUFBAU UND NICHT DIE
 > HÖHE.** `jsdom` rechnet kein Layout; die 229 px vorher und die 154 px nachher
@@ -11594,7 +11594,7 @@ dieselbe Angabe halten nur eine aktuell (Stolperstein 47). Hier steht, was
   rechten Rand reichen* —, eine Kachel lange drücken und verschieben, dann am
   großen Bild den Papierkorb drücken.
 - ~~**Der Fingerprint der laufenden Instanz ist zu vergleichen.**~~ **ERLEDIGT:**
-  die Instanz ist eingespielt und meldet **`192734a2`** — denselben Wert, den der
+  die Instanz ist eingespielt und meldet **`195734a2`** — denselben Wert, den der
   Branch misst. *0.11.0 ist dabei übersprungen worden; sie war nie im Feld, und
   ihr Sollwert `74c44ec0` bleibt nur als Zeile in der Tabelle stehen.*
 - **DER VOLLE GEGENPROBENLAUF STEHT SEIT ZWÖLF RUNDEN AUS.** Jetzt **300**
@@ -11622,7 +11622,7 @@ dieselbe Angabe halten nur eine aktuell (Stolperstein 47). Hier steht, was
   Runde.*
   *Was 0.13.0 daran geändert hat, ist der billige Teil: der Prüfstand rechnet bei
   jedem Lauf nach, dass jeder Rückbau in seiner Datei überhaupt noch greift —
-  drei taten es fünf Runden lang nicht (Stolperstein 192).*
+  drei taten es fünf Runden lang nicht (Stolperstein 195).*
 - **DIE GEGENPROBEN ZU 0.12.0, 0.12.1 UND 0.12.2 SIND AUF DIE NEUEN ZUSAGEN
   BESCHRÄNKT.** Sechs Rückbauten in 0.12.0, zwei in 0.12.1 und fünf in 0.12.2
   decken die tragenden davon ab, **und keiner blieb stumm**; **der volle Lauf

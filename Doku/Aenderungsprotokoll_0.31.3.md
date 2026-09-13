@@ -3,13 +3,13 @@
 **Auftrag 0.31.3 · 13. September 2026 · gebaut auf 0.31.2 · PATCH, kein
 Schemaanteil.**
 
-> **FINGERPRINT DIESER RUNDE: `1a07761b`** — gerechnet am gebauten Stand,
+> **FINGERPRINT DIESER RUNDE: `68cd1c14`** — gerechnet am gebauten Stand,
 > **als letztes und hinter der letzten Zeile**.
 >
 > | Quelle | Wert |
 > |---|---|
-> | **Am Arbeitsbaum nachgerechnet** *(achtzehn Dateien)* | **`1a07761b`** |
-> | **Aus dem Server selbst gelesen** *(frisches Datenverzeichnis, `/api/stats`)* | **`1a07761b`** |
+> | **Am Arbeitsbaum nachgerechnet** *(achtzehn Dateien)* | **`68cd1c14`** |
+> | **Aus dem Server selbst gelesen** *(frisches Datenverzeichnis, `/api/stats`)* | **`68cd1c14`** |
 > | **Aus der laufenden Installation gemeldet** *(Betreiber)* | *steht aus* |
 >
 > **ZWEI QUELLEN, EIN WERT — alle achtzehn Einzelwerte gleich.** *Die dritte
@@ -118,8 +118,8 @@ Prüfsummen:*
 | **de/other** | `0b443d44733cc668` | **`0b443d44733cc668`** *(gleich)* |
 | **en/one** | `2f8e5b3abe58f9fd` | **`2f8e5b3abe58f9fd`** *(gleich)* |
 | **en/other** | `39489ec6ae18020b` | **`39489ec6ae18020b`** *(gleich)* |
-| **tr/one** | `5fec71b10c0dfa3c` | **`5c7195db1751c7bf`** |
-| **tr/other** | `18b07eda589b5120` | **`fc1be627c6fdee47`** |
+| **tr/one** | `5fec71b10c0dfa3c` | **`982dbdef208b62e3`** |
+| **tr/other** | `18b07eda589b5120` | **`73a0c9117b20dad6`** |
 
 > **DIE VIER ZAHLEN DES AUFTRAGS STIMMEN ALLE VIER** — *zum ersten Mal in dieser
 > Strecke; 0.31.2 musste zwei berichtigen.*
@@ -139,11 +139,11 @@ Prüfsummen:*
 | | vorher | nachher |
 |---|---|---|
 | **Schlüssel** | 1197 | **1197** *(F6 gehalten)* |
-| **Geänderte Schlüssel** | — | **192** *(202 Formen)* |
+| **Geänderte Schlüssel** | — | **195** *(205 Formen)* |
 | **davon nur das Anführungszeichen** | — | **50 Formen** |
-| **wirklich neu formuliert** | — | **152 Formen** |
-| **Zeichen in `tr.json`** | 43 927 | **42 508** *(−1419)* |
-| **Verhältnis zum Deutschen** | 93,8 % | **90,7 %** |
+| **wirklich neu formuliert** | — | **155 Formen** |
+| **Zeichen in `tr.json`** | 43 927 | **42 521** *(−1419)* |
+| **Verhältnis zum Deutschen** | 93,8 % | **90,8 %** |
 | **Werte über 1,15× ab 40 Zeichen** | **44** | **0** |
 | **Werte mit mehr Sätzen als ihr deutscher** | **6** | **0** |
 | **Treffer der Verbotsliste** | **26 in 23 Schlüsseln** | **0** |
@@ -334,7 +334,7 @@ gefahren.**
 > Zusage dürfen sich nicht widersprechen.**
 
 **DREI ZEILEN HALTEN AUSSERDEM, WAS SCHON GRÜN WAR** — *damit es grün bleibt,
-während 152 Formen neu geschrieben werden:* `lütfen` *steht in keinem Wert*
+während 155 Formen neu geschrieben werden:* `lütfen` *steht in keinem Wert*
 (TR-S2, „Bitte" steht 21-mal in `de.json`), *die Plätze stehen alle gleich, und
 die vier Briefe tragen ihre Leerzeilen.*
 
@@ -434,6 +434,74 @@ von dreien.**
 `dialog.comments` klein geschrieben sind — mitten im Satz las sich das als „3
 Bağlantılar".* **Jetzt „bağlantılar"** *(TR-S1; die Blocküberschrift setzt das
 Stilblatt ohnehin in Großbuchstaben).*
+
+---
+
+## Die Nachlese: der Betreiber hat die Regel diktiert, und drei Stellen sind nachgezogen
+
+**AM 13. SEPTEMBER 2026, nach dem ersten Durchgang, hat der Betreiber die Regel
+im Wortlaut hingeschrieben:**
+
+> **„Öğeler wird dann verwendet wenn man ohne Zahl sagen möchte, dass das
+> Mehrzahl [ist]: *o öğeleri sileceğim* — *üç öğeyi sileceğim*, *orada üç öğe
+> var*, *orada öğeler var*."**
+
+**NACHRECHERCHIERT, UND SIE STIMMT AUF JEDER EBENE:**
+
+| Quelle | Befund |
+|---|---|
+| **TDK** *(Türk Dil Kurumu)* | *„Sayı sıfatının peşinden gelen isim çoğul eki almaz"* — nach einem Zahlwort kein `-ler`/`-lar`; dasselbe nach `çok`, `birkaç`, `kaç` |
+| **Göksel & Kerslake**, *Turkish: A Comprehensive Grammar* | dieselbe Regel, **eine Ausnahme**: geschlossene, „wohlbekannte" Gruppen und Eigennamen — *Kırk Haramiler*, *Yedi Cüceler*. Für eine Oberfläche ohne Belang |
+| **Sağ**, *The semantics of Turkish numeral constructions* | formal: *„Turkish numerals strictly reject co-occurrence with plural nouns."* Der nackte Singular ist **zahlneutral** — deshalb ist er ohne Zahl richtig und mit Zahl zwingend |
+| **Unicode CLDR** | für genau diesen Fall: *„1 elma", „123 elma" — but when the number is omitted, „elmalar"* |
+
+> ## WAS DIE RECHERCHE ÜBER DIE ANGABE HINAUS BRINGT — und es ist die Wurzel beider offenen Punkte
+>
+> **`Intl.PluralRules('tr').select(n)` WÄHLT NACH DEM WERT VON `n`. Die
+> türkische Regel hängt nicht am Wert, sondern an der STELLUNG** — *steht ein
+> Zahlwort davor oder nicht.* `select(3)` gibt `other`, und das ist als
+> CLDR-Kategorie richtig, heißt im Türkischen aber **nicht** „hänge `-lar` an".
+> **Die Auskunft, die der Code bräuchte, sieht die Schnittstelle nie.**
+
+### Nachgemessen, wo der eine Mehrzahlplatz gelesen wird
+
+| | Stellen |
+|---|---|
+| **mit Zahl davor** *(„3 öğe")* | **25** — 18 im Quelltext, 7 in der Datei |
+| **ohne Zahl** *(„öğeler")* | **34** — 28 Sätze, 6 bloße Beschriftungen |
+
+**DAMIT IST DIE ZAHLLOSE SEITE HEUTE IN DER MEHRHEIT — 2026 stand es
+umgekehrt.** *Die 28 Sätze lesen sich trotzdem nicht falsch: 0.24.4 hat zwölf
+davon eigens um die Einzahl herum umgeschrieben, und an den übrigen verlangt das
+Türkische die Einzahl ohnehin — nach* `her` *und* `kaç`, *in der Verneinung und
+im generischen Satz.* **Rund neunzehn der achtundzwanzig wären mit „öğeler"
+FALSCH.**
+
+### Drei Stellen sind nachgezogen
+
+*Die, an denen die Einzahl weder verlangt noch zahlneutral war, sondern
+schlicht schwach:*
+
+| Schlüssel | vorher | jetzt |
+|---|---|---|
+| `list.openTasks` *(Seitentitel über der Liste)* | „Açık **Görev**" | **„Açık {taskMany} listesi"** |
+| `list.noCategory` *(Titel der Filterpille)* | „Kategorisiz **Öğe**" | **„Kategorisiz {entryMany} listesi"** |
+| `list.newCommentsHint` | „Yeni **yorumlar** ve Değerlendirme" *(erstes Glied Mehrzahl, zweites Einzahl)* | **„Yeni yorum ve {ratingMany} …"** *(beide zahlneutral, die Reihung ist eben)* |
+
+> **DER HANDGRIFF IST DERSELBE, DEN 0.24.4 ZWÖLFMAL GEMACHT HAT:** *ein festes
+> Kopfwort neben dem Platzhalter trägt, was der Platzhalter nicht tragen darf.*
+> **`listesi` ist dabei mit Absicht gewählt und nicht `kayıtları`:** *es trägt
+> jedes Vokabelwort des Betreibers — „Açık Model listesi", „Kategorisiz Kayıt
+> listesi" —, während `kayıtları` bei einem Betreiber, der sein Wort „Kayıt"
+> nennt, „Kayıt kayıtları" ergäbe.* **An der T1-Probe mit drei Vokalen
+> nachgesehen.**
+
+### Zwei Stellen bleiben — und jede hat ihren Grund
+
+| | |
+|---|---|
+| **`card.timelineHint`** *(„{dayMany} zaman çizgisi")* | **kein Befund, mein Fehlurteil.** *`X zaman çizgisi` ist eine Substantivkette, und in ihr steht das erste Glied im Türkischen IMMER in der Einzahl — „Test günü zaman çizgisi" ist richtig* |
+| **Die sechs bloßen Beschriftungen im Quelltext** *(„TEST GÜNÜ" über der Liste)* | **die Datei kann sie nicht beheben.** *Dort steht das Vokabelwort nackt, ohne Nachbarn, an den sich ein Kopfwort hängen ließe. Sie brauchen einen Platz je Stellung — Punkt 32, Weg B* |
 
 ---
 

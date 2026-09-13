@@ -36,7 +36,7 @@ bleiben in der Form ihrer Zeit.*
 
 ### Geändert
 
-- **Die türkischen Texte sind gegengelesen** — alle 1197 Schlüssel, jeder gegen seinen deutschen Satz; 192 Schlüssel sind neu formuliert, `tr.json` ist 1419 Zeichen kürzer. Kein deutscher und kein englischer Wert ist dabei angefasst.
+- **Die türkischen Texte sind gegengelesen** — alle 1197 Schlüssel, jeder gegen seinen deutschen Satz; 195 Schlüssel sind neu formuliert, `tr.json` ist 1406 Zeichen kürzer. Kein deutscher und kein englischer Wert ist dabei angefasst.
 - **Die Anführungszeichen sind türkisch** — `“…”` statt `„…“`, in 68 Schlüsseln. Das deutsche Paar gibt es in der türkischen Typografie nicht; 0.31.0 hatte es dort nur geschlossen.
 - **Die deutschen Entwicklerbilder sind heraus** — „Otomatik" statt „Cihaz gibi" (wie das Gerät), „son etkinlik" statt „son görülme", „kapak resmi" statt „sabit resim" (Standbild), „düğme" statt „hap" (Tablette), „Tekil/Çoğul" statt „Şey, tekil/çoğul", „veritabanıyla aynı dizinde" statt „yanında duruyor".
 - **Die vier Briefe sagen am Ende, was Sache ist** — „Bu ileti otomatik olarak gönderilmiştir; yanıtlar okunmaz." statt „Buna gelen yanıtları kimse okumaz."; der Einladungsbrief warnt mit „hesabına erişir" statt „içeri girer".
@@ -50,6 +50,7 @@ bleiben in der Form ihrer Zeit.*
 - **Ein Einschub saß an der falschen Stelle** — „parolan bir kez{extra} istenir" ergab „dein Passwort einmal und der Zwei-Faktor-Code wird abgefragt"; jetzt steht er hinter „parolan".
 - **„Noch nicht eingeschätzt" und „noch nicht bewertet" hießen beide gleich** — jetzt „henüz tahmin edilmedi" und „henüz değerlendirilmedi".
 - **Die letzte HTML-Entität in einem Wert ist weg** — „Silinen kullanıcı &lt;numara&gt;"; 0.31.1 hatte sie auf Deutsch genommen, 0.31.2 auf Englisch.
+- **Drei Stellen sagen jetzt eine Mehrzahl, wo sie eine meinen** — „Açık Görev listesi" statt „Açık Görev" als Seitentitel, „Kategorisiz Öğe listesi" als Titel der Filterpille, und in „Neue Kommentare und {Bewertungen}" stehen beide Glieder wieder auf derselben Zahl. Ein festes Kopfwort trägt die Mehrzahl — an ein Vokabelwort darf sie nicht angehängt werden, weil sein letzter Vokal die Endung bestimmt und den kennt nur der Betreiber.
 - **„3 Bağlantılar" heißt mitten im Satz jetzt klein** — das Wort stand als einziges der drei Blockwörter groß da; die Überschrift über der Liste setzt das Stilblatt ohnehin in Großbuchstaben.
 
 ### Intern
@@ -1493,7 +1494,7 @@ lässt damit die ganze Anlage offen. Das ändert sich.
   Zeilen bleiben **180 Tage** stehen und werden danach von selbst geräumt.
 - **`OEFFENTLICHE_ADRESSE` in der `.env` — optional.** Den Einladungslink baut
   bisher der Browser aus der Adresse, an der du gerade stehst. Wer über
-  `http://192.168.1.50:3100` arbeitet und einen Link nach draußen gibt, gibt
+  `http://195.168.1.50:3100` arbeitet und einen Link nach draußen gibt, gibt
   einen Link ins Leere. Ist die Zeile gesetzt, baut der Server den Link; der
   Kasten sagt darunter, **woher** die Adresse kam.
 

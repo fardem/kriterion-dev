@@ -1696,10 +1696,32 @@ entschieden und nicht der Übersetzer *(Wörterbuch TR-S4, Kasten; Punkt 19)*.
 | **B · Ein eigener Schlüssel je Ort** | *fünf neue Schlüssel in **allen drei** Dateien — dieselbe Runde, die Punkt 19 abgelehnt hat, nur an anderer Stelle* |
 | **C · `countWord` nimmt für `tr` die Einzahl** | *eine Sprachentscheidung im **Quelltext**. Das Projekt hält sie ausdrücklich in der **Datei** („die Datei sagt es, nicht der Code", TR-S4) — dieser Weg bricht mit dem Grundsatz* |
 
-> **DER VORSCHLAG IST A**, *aus demselben Grund wie 2026: die Zählerstellen sind
-> die Mehrheit (elf gegen drei), und eine falsche Grammatik mitten im Satz wiegt
-> schwerer als eine Einzahl in einer Überschrift, die das Stilblatt ohnehin in
-> Großbuchstaben setzt.* **Der Betreiber entscheidet.**
+> **DER VORSCHLAG WAR A UND IST JETZT B.** *Die Korrektur steht hier und nicht
+> stillschweigend im Text: A repariert die elf Zählerstellen und macht dafür
+> drei Überschriften falsch — es verschiebt den Fehler, es behebt ihn nicht.*
+>
+> **DIE RECHERCHE VOM 13. SEPTEMBER 2026 HAT DEN AUSSCHLAG GEGEBEN**, und der
+> Betreiber hat die Regel im Wortlaut diktiert: *„o öğeleri sileceğim" — „üç
+> öğeyi sileceğim", „orada üç öğe var", „orada öğeler var".* **Türkisch braucht
+> BEIDE Formen**, und zwar nicht nach dem Wert der Zahl, sondern nach ihrer
+> Anwesenheit:
+>
+> | Quelle | Befund |
+> |---|---|
+> | **TDK** | *„Sayı sıfatının peşinden gelen isim çoğul eki almaz"* — auch nach `çok`, `birkaç`, `kaç` |
+> | **Göksel & Kerslake**, *Turkish: A Comprehensive Grammar* | dieselbe Regel; Ausnahme nur bei Eigennamen und geschlossenen Gruppen (*Kırk Haramiler*) |
+> | **Sağ**, *The semantics of Turkish numeral constructions* | *„Turkish numerals strictly reject co-occurrence with plural nouns"*; der nackte Singular ist zahlneutral |
+> | **Unicode CLDR** | *„1 elma", „123 elma" — but when the number is omitted, „elmalar"* |
+>
+> **UND DARAUS FOLGT DER EIGENTLICHE SATZ DIESES PUNKTES:**
+> `Intl.PluralRules('tr').select(n)` **wählt nach dem WERT von `n`, die
+> türkische Regel hängt an der STELLUNG.** *`select(3)` gibt `other` — als
+> CLDR-Kategorie richtig, im Türkischen aber kein Auftrag, `-lar` anzuhängen.*
+> **Die Auskunft, die der Code bräuchte, sieht die Schnittstelle nie** — und
+> deshalb kann ein einziger Platz es prinzipiell nicht richtig machen, in keine
+> der beiden Richtungen.
+>
+> **Der Betreiber entscheidet — aber A ist kein Vorschlag mehr.**
 
 **Was es anfasst** — nur `public/languages/tr.json`; `de.json` und `en.json`
 bleiben, wie sie sind *(dort ist die Mehrzahl richtig)*.

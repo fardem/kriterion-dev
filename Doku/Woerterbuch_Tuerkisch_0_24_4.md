@@ -119,6 +119,33 @@ repariert.*
   > statt „TEST GÜNÜ". *Der Betreiber kennt den Preis und hat so entschieden;
   > die Mehrheit der Stellen wiegt schwerer als fünf Überschriften.*
   >
+  > ## NACHGEMESSEN IN 0.31.3 — die Mehrheit hat sich gedreht
+  > **Die Entscheidung von 2026 stand auf einer Mehrheit: 30 Zählerstellen
+  > gegen 27 Satzschlüssel.** *Am Stand von 0.31.3 nachgezählt:*
+  >
+  > | | Stellen |
+  > |---|---|
+  > | **mit Zahl davor** *(„3 öğe" — Einzahl zwingend)* | **25** — 18 im Quelltext, 7 in der Datei |
+  > | **ohne Zahl** *(„öğeler" — Mehrzahl natürlich)* | **34** — 28 Sätze, 6 bloße Beschriftungen |
+  >
+  > **DIE ZAHLLOSE SEITE IST JETZT DIE GRÖSSERE.** *Das kippt die Entscheidung
+  > nicht von selbst — rund neunzehn der achtundzwanzig Sätze verlangen die
+  > Einzahl ohnehin (nach `her`, nach `kaç`, in der Verneinung, im generischen
+  > Satz), und zwölf weitere sind 2026 eigens um sie herum geschrieben worden.*
+  > **Aber die Grundlage, auf der 2026 entschieden wurde, ist es nicht mehr.**
+  >
+  > **UND DIE REGEL SELBST IST NACHRECHERCHIERT** *(0.31.3)*: TDK
+  > („sayı sıfatının peşinden gelen isim çoğul eki almaz"), Göksel & Kerslake
+  > (*Turkish: A Comprehensive Grammar*, Ausnahme nur bei Eigennamen wie
+  > *Kırk Haramiler*), Sağ (*„Turkish numerals strictly reject co-occurrence
+  > with plural nouns"*) und die CLDR-Daten selbst: *„1 elma", „123 elma" —
+  > ohne Zahl „elmalar".* **Der Betreiber hat sie am 13.9.2026 im Wortlaut
+  > diktiert, und sie stimmt.**
+  >
+  > **WAS DARAUS FOLGT, STEHT IN PUNKT 32:** *`Intl.PluralRules` wählt nach dem
+  > WERT der Zahl, das Türkische nach ihrer ANWESENHEIT. Ein Platz kann beides
+  > nicht tragen — in keine der beiden Richtungen.*
+
   > ***Die Alternative wäre kein besseres Wort gewesen, sondern ein
   > fünfzehnter Vokabelplatz*** („Mehrzahl nach einer Zahl") — eine eigene
   > Runde, ein Feld mehr in jeder Sprache, ein Wanderungsschritt für jeden

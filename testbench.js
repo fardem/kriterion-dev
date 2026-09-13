@@ -55538,7 +55538,7 @@ async function check0312() {
    zurueckdrehen, und niemand saehe es. */
 const EN_UNTOUCHED = { one: '2f8e5b3abe58f9fd', other: '39489ec6ae18020b' };
 const TR_BEFORE_0313 = { one: '5fec71b10c0dfa3c', other: '18b07eda589b5120' };
-const TR_AFTER_0313 = { one: '5c7195db1751c7bf', other: 'fc1be627c6fdee47' };
+const TR_AFTER_0313 = { one: '982dbdef208b62e3', other: '73a0c9117b20dad6' };
 
 async function check0313() {
   const tgRead = (code) => JSON.parse(fs.readFileSync(
