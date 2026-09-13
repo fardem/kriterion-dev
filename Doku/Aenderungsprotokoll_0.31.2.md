@@ -250,7 +250,7 @@ GESEHEN HAT.** *Sie stehen hier, weil sie beim nächsten Mal wieder passieren.*
 
 | | Zusage | wie sie geprüft wird |
 |---|---|---|
-| **1** | **Deutsch ist unangetastet** | *die Gleichlautprobe wird GEFAHREN, ihre beiden deutschen Summen stehen im Code; dazu die Gegenrichtung — die englischen müssen ANDERE sein* |
+| **1** | **Deutsch ist unangetastet — außer den zwei bestellten Werten** | *die Gleichlautprobe wird GEFAHREN; **drei Zeilen**: die Summen dieser Runde, der Beleg, dass sie ANDERE sind als die von 0.31.1, und die zwei Werte Zeichen für Zeichen (`DE_ORDERED_0312`). Dazu die Gegenrichtung — die englischen Summen müssen ANDERE sein* |
 | **2** | **Gleich viele Schlüssel, dieselbe Folge, dieselbe Gestalt** | **1197**, und **ein Mehrzahlpaar bleibt eines** — *die Deckungsprobe sähe das nicht; am Bildschirm stünde „1 vocabulary words"* |
 | **3** | **Jeder Platzhalter steht gleich** | beide Richtungen, auf Englisch eingegrenzt |
 | **4** | **Kein englischer Wert trägt ein Wort der Verbotsliste** | **13 Muster**, jedes mit Grund — *und zwei Zeilen prüfen den LESER selbst: er findet die alten Sätze, und er färbt sich an `{thing}` nicht* |
