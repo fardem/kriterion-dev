@@ -50464,6 +50464,23 @@ async function checkUi() {
         for (const n of (m[2] || '').matchAll(/([A-Za-z_][A-Za-z0-9_]*)\s*:/g)) passedMap.get(m[1]).add(n[1]);
       }
     }
+    /* UND DAS WORT BEKOMMT DIESELBEN WERTE WIE SEIN SATZ -- 0.31.1.
+       `tMark(satz, wort, werte)` reicht sie an BEIDE; das musste es, weil das
+       hervorgehobene Stueck an drei Stellen selbst ein Satz mit Zahl ist
+       („{n} Tagen", „{trashDays} Tage"). Der Leser oben sieht nur den ERSTEN
+       Namen im Ruf und schriebe die Werte allein dem Satz gut -- der
+       Wortschluessel staende dann als unbedient da, obwohl am Bildschirm die
+       Zahl steht. GENAU DAS HAT DIESE ZEILE GEMELDET, und sie hatte recht:
+       drei Wortschluessel, drei Zahlen. */
+    for (const file of spSources) {
+      const q = fs.readFileSync(path.join(__dirname, file), 'utf8');
+      for (const m of q.matchAll(/\btMark\(\s*'([^']+)'\s*,\s*'([^']+)'/g)) {
+        const vom = passedMap.get(m[1]);
+        if (!vom) continue;
+        if (!passedMap.has(m[2])) passedMap.set(m[2], new Set());
+        for (const name of vom) passedMap.get(m[2]).add(name);
+      }
+    }
     /* ZWEI SCHLUESSEL REISEN IN EINER VARIABLEN -- `pruefeRegelwert(wert,
        spanne, was)` bekommt den Namen gereicht und baut die Werte selbst.
        Sie stehen NAMENTLICH hier und nicht als Regel: wer einen dritten so
