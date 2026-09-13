@@ -1404,3 +1404,57 @@ Prüfläufe gleichzeitig starten und sehen, welcher Zweig der Erkennung greift.*
 überhaupt ansehen soll, oder nur die unter seiner eigenen Portbasis.*
 
 **Was es anfasst** — `testbench.js`.
+
+
+---
+
+## 28. Fünf deutsche Funde aus dem englischen Durchgang — das Sammelblatt von 0.31.2
+
+**Art: Fehler** *(klein, an den Texten)* **· Herkunft: 0.31.2, aus dem
+Durchgang durch alle 1197 englischen Schlüssel am 13. September 2026 ·
+Einschätzung: empfohlen, aber nicht dringend**
+
+**WOHER SIE KOMMEN.** *Leitplanke L1 jener Runde lautete: **Deutsch ist die
+unveränderliche Basis** — kein deutscher Wert wird angefasst, auch nicht „nur
+kurz", auch nicht, wenn beim Übersetzen auffällt, dass er besser ginge.* **Der
+Betreiber hat es so gesagt: „es kann nur für englisch Vorschläge abgeben etc
+aber nicht mehr am deutsch meckern".** *Was auffiel, geht deshalb hierher und
+nicht in die Datei.*
+
+> **JEDER DIESER FÜNF IST BEIM ÜBERSETZEN AUFGEFALLEN, und keiner beim Lesen des
+> Deutschen.** *Das ist kein Zufall: wer einen Satz in einer zweiten Sprache
+> hinschreiben muss, kann nicht überlesen, worauf er zeigt.*
+
+| # | Fund | wo |
+|---|---|---|
+| **1** | **Der Hinweis zitiert eine Logzeile, die es so nicht gibt.** *`card.restartHint` sagt: im Server-Log „**Schlüssel** aus ENCRYPTION_KEY geladen" prüfen — `keys.js` schreibt aber „**Schluessel** aus ENCRYPTION_KEY geladen." ohne Umlaut.* **Wer die Zeile so sucht, wie sie dasteht, findet sie nicht** | `de.json` · `keys.js:124` |
+| **2** | **Eine Meldung schickt den Benutzer an eine Karte, die es nicht gibt.** *`server.deniedOwnUser`: „Den eigenen Zugang ändert man unter „**Zugang**", nicht hier." — die Karte heißt „**Mein Konto**" (`card.myAccount`), und kein einziger Wert lautet „Zugang"* | `de.json` |
+| **3** | **Ein Feld hat zwei Namen.** *Die Karte beschriftet es „**Mindestens behalten**" (`card.keepAtLeast`), die Fehlermeldung dazu nennt es „**Immer behalten**" (`server.ruleKeep`)* | `de.json` |
+| **4** | **Und das Feld daneben ebenso.** *„**Löschen ab Alter (Tage)**" (`card.deleteFromAge`) gegen „**Erst löschen ab**" (`server.ruleDays`)* | `de.json` |
+| **5** | **Die Vokabelkarte trägt zwei Bauformen.** *Fünf Beschriftungen nennen die Sache und dann die Zahl — „Zeitpunkt, Einzahl", „Sterne nach dem Test, Einzahl", „Kommentar zum Festhalten, Einzahl", „Kommentar zum Abarbeiten, Einzahl" —, **eine nennt nur die Zahl**: „Einzahl" / „Mehrzahl" (`card.itemOne`, `card.itemMany`)* | `de.json` |
+
+**WARUM 3 UND 4 MEHR SIND ALS EINE GESCHMACKSFRAGE:** *die Fehlermeldung soll
+sagen, WELCHES Feld nicht stimmt. Trägt sie einen anderen Namen als die
+Beschriftung darüber, sucht der Benutzer das falsche Feld* — **und auf Englisch
+fällt das sofort auf, weil dort die Großschreibung des Substantivs fehlt, die im
+Deutschen den Namen als Namen markiert.**
+
+> **AUF DER ENGLISCHEN SEITE SIND 3 UND 4 ENTSCHIEDEN WORDEN, und zwar gegen das
+> Deutsche:** *`server.ruleKeep` und `server.ruleDays` zitieren dort die
+> Beschriftung, die wirklich an dem Feld steht — „Keep at least" und „Delete
+> when older than", jeweils in Anführungszeichen.* **Das ist die einzige Stelle
+> der Runde, an der Englisch dem Deutschen nicht folgt, sondern der Oberfläche**
+> — *sie steht deshalb im Änderungsprotokoll 0.31.2 namentlich da.*
+
+**Was zu bauen wäre** — *fünf Werte in `de.json`; bei 1 wahlweise die Logzeile
+in `keys.js` auf den Umlaut bringen.* **Alle fünf sind reine Textänderungen,
+kein Schemaanteil** — *aber sie gehören in eine Runde, die Deutsch anfassen
+DARF, und 0.31.2 war das nicht.*
+
+**Offene Entscheidungen** — *bei 5: ob „Einzahl/Mehrzahl" zur Form der anderen
+fünf zurückkommt („Eintrag, Einzahl") oder ob die anderen fünf ihre Sache
+verlieren. Die kürzere Form ist in 0.31.0 mit Absicht entstanden — dort hieß es
+noch „Sache, Einzahl", und „Sache" sollte weg.*
+
+**Was es anfasst** — `public/languages/de.json`, dazu `en.json` und `tr.json`
+(dieselben Sätze), bei 1 zusätzlich `keys.js`.

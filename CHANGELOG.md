@@ -29,6 +29,31 @@ bleiben in der Form ihrer Zeit.*
 
 *Hier wird mitgeschrieben, während gebaut wird.*
 
+## [0.31.2] - 2026-09-13
+
+> **NICHTS ZU TUN.** Kein Schemaanteil, kein Migrationsblock, das
+> Austauschformat bleibt 16. Einspielen und fertig.
+
+### Geändert
+
+- **Die englischen Texte sind gegengelesen** — alle 1197 Schlüssel, jeder gegen seinen deutschen Satz. Kein deutscher und kein türkischer Wert ist dabei angefasst.
+- **Sieben englische Karten trugen noch den alten Entwicklerroman** — die deutsche Fassung war in 0.31.0 und 0.31.1 gekürzt worden, die englische nicht: „Lossy: about two thirds smaller for photos, but LARGER for screenshots with text." statt vier Sätzen über Kanten und Bytes.
+- **Denglisch und wörtlich Übersetztes ist heraus** — „Backup created" statt „Backup written", „Auto" statt „Like the device", „video thumbnail" statt „still image", „manually" statt „by hand", „buttons" statt „pills", „Singular/Plural" statt „Thing, singular/plural", „is located in" statt „sits next to".
+- **Die vier Briefe sagen am Ende, was Sache ist** — „This inbox is not monitored." statt „Nobody reads replies to it."; der Einladungsbrief warnt mit „Anyone with this link can get into your account" statt „Whoever has this link gets in".
+- **Wo eine Bitte im Deutschen steht, steht sie jetzt auch im Englischen** — „Please enter your password." statt „Enter your password.", an achtundzwanzig Stellen — und nur dort, wo das Deutsche sie hat.
+
+### Behoben
+
+- **Acht englische Sätze waren schlicht falsch** — „The rows are sorted by 90 days deleted automatically" (es heißt gelöscht, nicht sortiert), „Before the export your password is asked for asked for", „For a backup, the card Backup simpler" (ohne „is"), „You set the weights under Settings › Inventory › Weight in", „Besides this one there are one more session", „Every target is a number" (statt „must be"), „Configured is /data/backups.", „They will this one time only shown."
+- **Ein englischer Hinweis nannte GMX, wo der deutsche „viele Anbieter" sagt** — und der GMX-Hinweis selbst ließ die zweite Hälfte weg.
+- **Der englische Rücksetzhinweis zählte vierzehn Vokabelwörter auf** — die deutsche Karte tut das seit 0.31.1 nicht mehr.
+- **Die letzte HTML-Entität in einem Wert ist weg** — „Deleted user &lt;number&gt;" wurde zu „Deleted user" mit einer Nummer; 0.31.1 hatte sie nur auf Deutsch genommen.
+
+### Intern
+
+- **Die Verbotsliste der englischen Übersetzung ist ein Wächter im Prüfstand** — dreizehn Muster, jedes mit seinem Grund; dazu Länge, Satzzahl, Plätze, Entitäten und en-GB. Zehn Zusagen, zehn Gegenproben.
+- **Der englische Stand liegt als Vergleichsdatei daneben** (`tools/englisch-0312.json`) — wer einen englischen Wert anfasst, benennt ihn; für Deutsch tut das seit 0.24.0 die Wortlautprobe.
+
 ## [0.31.1] - 2026-09-13
 
 > **NICHTS ZU TUN.** Kein Schemaanteil, kein Migrationsblock, das

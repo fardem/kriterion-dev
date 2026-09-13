@@ -26877,6 +26877,7 @@ function sweepLeftovers() {
   await check0303();
   await check0310();
   await check0311();
+  await check0312();
 
   /* ---------------------------------------------------------------- */
   /* Der Schlussdurchlauf. Die Gruppen weiter oben pruefen einzelne
@@ -27610,7 +27611,15 @@ function sweepLeftovers() {
      standen nach dem Verschmelzen nicht mehr da. Die Zeile darunter hat sie
      alle sechzehn gemeldet -- sie ist damit selbst der Beleg dafuer, dass ein
      Rueckbau, der ins Leere greift, auffaellt. */
-  check(`Es sind genau 968 Rueckbauten`, gpList.length === 968, `${gpList.length}`);
+  /* UND 968 WURDEN 978 MIT 0.31.2: zehn neue, einer je Zusage jener Runde.
+     KEINE VORHANDENE MUSSTE NACHGEZOGEN WERDEN, und das ist eine Aussage ueber
+     die Runde und nicht ueber die Liste: 0.31.1 hat sechzehn Suchtexte
+     gebrochen, weil sie die ABLAGE der deutschen Saetze angefasst hat -- diese
+     hier fasst nur englische WERTE an, und die stehen in keinem Suchtext eines
+     aelteren Rueckbaus. Der eine, der einen englischen Wert traf, war meiner
+     eigenen (983): sein Suchtext ist mit dem Satz nachgezogen, den der
+     Pruefstand in derselben Stunde gemeldet hat. */
+  check(`Es sind genau 978 Rueckbauten`, gpList.length === 978, `${gpList.length}`);
   const gpTwice = gpList.map(r => r.nr).filter((n, i, a) => a.indexOf(n) !== i);
   check('Und keine Nummer steht zweimal', gpTwice.length === 0, gpTwice.join(' '));
   /* JEDER GREIFT: der Suchtext kommt in seiner Datei GENAU EINMAL vor. Keinmal
@@ -55064,5 +55073,341 @@ async function check0311() {
     check('Und sie nennt ihre eigene Blindstelle — sie fuehrt den Code nicht aus',
       /WOFUER SIE BLIND IST/.test(dsToolText) && /FUEHRT DEN CODE NICHT AUS/.test(dsToolText),
       dsToolText ? 'Blindstelle benannt' : 'Datei fehlt');
+  }
+}
+
+/* =================================================================
+   0.31.2 — „Englisch sitzt"
+
+   ZEHN ZUSAGEN UEBER EINE EINZIGE DATEI. Die Runde formuliert `en.json` neu
+   und faellt dabei keinen Schluessel; der deutsche Stand ist die
+   unveraenderliche Basis und wird in Zusage 1 nachgerechnet, nicht
+   behauptet.
+
+   DIE VORLAGE KAM VON AUSSEN -- `Doku/I18N_GENERATE_EN.md`, von Google Gemini
+   geschrieben, vier Stolperfallen. Sie ist NACHGEMESSEN und nicht uebernommen:
+   ihre Stolperfalle 1 (die Plaetze) war schon gruen, ihre Stolperfalle 2
+   nannte fuenf Schluessel, gemessen sind es sieben, und eine Zeile ihrer
+   Verbotsliste hat null Treffer. Was nicht uebernommen wurde, steht mit Grund
+   im Auftrag.
+
+   DIE VERBOTSLISTE WIRD HIER EIN WAECHTER UND KEIN MERKZETTEL (Leitplanke L4).
+   Eine Verbotsliste in einem Papier verblasst; eine im Pruefstand wird rot.
+   Sie ist das erste Stueck der Runde gewesen, damit sie beim Bauen schon rot
+   steht und nicht erst am Ende -- dieselbe Reihenfolge wie bei der
+   Gleichlautprobe in 0.31.1.
+
+   WOFUER KEINE ZEILE HIER BLIND SEIN KANN: ob ein englischer Satz GUT ist.
+   Das entscheidet kein Muster, das entscheidet der Augenschein und der Leser.
+   Diese Zusagen halten die MESSBAREN Seiten fest -- Laenge, Satzzahl, Plaetze,
+   verbotene Woerter, Entitaeten -- und jede einzelne ist an einem Befund
+   dieser Runde gelernt und nicht erfunden.
+   ================================================================= */
+/* DIE BEIDEN DEUTSCHEN PRUEFSUMMEN DER GLEICHLAUTPROBE, gemessen am gebauten
+   Stand von 0.31.1 (`git archive HEAD` in eine frische Kopie, dann
+   `node tools/gleichlaut.js`). SIE SIND DER BEWEIS FUER LEITPLANKE L1 --
+   „Deutsch ist die unveraenderliche Basis" -- und stehen deshalb im Code und
+   nicht im Papier: eine Zusage, die niemand nachrechnet, ist eine Behauptung.
+   SIE HAENGEN AUCH AN `public/app.js`, und das ist kein Mangel, sondern der
+   Gegenstand: die Probe misst, was am BILDSCHIRM steht, und dorthin kommt der
+   deutsche Satz durch den Quelltext. Wer app.js anfasst, rechnet die beiden
+   Zahlen neu und schreibt sie hierher -- wie die Wortlautprobe ihre Listen je
+   Runde nachfuehrt.
+   DER AUFTRAG NENNT ZWEI ANDERE WERTE (bbd86a64161af49e / 70b5fb78ad2832b1).
+   Die sind am gebauten Stand nicht nachzumessen -- weder am Arbeitsbaum noch
+   an einer frischen Kopie von HEAD; das Werkzeug rechnet die beiden hier. Was
+   die Runde halten kann, ist der GEMESSENE Stand, und der steht hier. */
+const DE_UNTOUCHED = { one: '91b86c5affcba789', other: '07fc3ccdc8a27a03' };
+
+async function check0312() {
+  const egRead = (code) => JSON.parse(fs.readFileSync(
+    path.join(__dirname, 'public', 'languages', `${code}.json`), 'utf8'));
+  const egFiles = { de: egRead('de'), en: egRead('en'), tr: egRead('tr') };
+  /* JEDES PAAR MIT SEINER FORM. Jede Zusage dieser Runde stellt Englisch gegen
+     Deutsch, und zwar Form gegen Form: ein Mehrzahlsatz kann in der Einzahl
+     sitzen und in der Mehrzahl auseinanderlaufen. */
+  const egPairs = [];
+  for (const [k, dv] of Object.entries(egFiles.de)) {
+    if (k.startsWith('_')) continue;
+    const ev = egFiles.en[k];
+    if (typeof dv === 'string') egPairs.push([k, '', String(dv), typeof ev === 'string' ? ev : '']);
+    else for (const f of Object.keys(dv))
+      egPairs.push([`${k}/${f}`, f, String(dv[f]),
+        ev && typeof ev === 'object' && ev[f] !== undefined ? String(ev[f]) : '']);
+  }
+  /* DIE PLAETZE FALLEN VOR JEDER WORTPRUEFUNG HERAUS. `{thing}` ist das
+     Vokabelwort des Betreibers und kein englischer Satzteil -- eine
+     Verbotsliste, die „Thing" sucht, faende sonst genau den Platz, der dort
+     stehen MUSS, und waere nach einem Tag abgeschaltet. */
+  const egBare = (v) => String(v).replace(/\{[A-Za-z0-9_]+\}/g, ' ');
+
+  group('Englisch sitzt — 0.31.2');
+  {
+    /* ---- Zusage 1: Deutsch ist unangetastet -----------------------------
+       NACHGERECHNET UND NICHT BEHAUPTET. Die Gleichlautprobe von 0.31.1 setzt
+       jeden Textruf im Quelltext durch seinen Wert; ihre beiden deutschen
+       Summen muessen nach dieser Runde dieselben sein wie davor.
+       SIE WIRD WIRKLICH GEFAHREN, mit einem eigenen Ausgabepfad im
+       Systemtemp. Ein Werkzeug, das nur daliegt, belegt nichts -- 0.31.1 hat
+       es bei sich selbst so gehalten und genau diese Luecke benannt. */
+    const egOut = path.join(os.tmpdir(), `kriterion-gleichlaut-${process.pid}.json`);
+    const egRun = spawnSync(process.execPath, ['tools/gleichlaut.js', egOut],
+      { cwd: __dirname, encoding: 'utf8' });
+    const egSums = {};
+    for (const line of String(egRun.stdout || '').split('\n')) {
+      const m = line.match(/^(de|en|tr)\/(one|other)\s+([0-9a-f]{16})/);
+      if (m) egSums[`${m[1]}/${m[2]}`] = m[3];
+    }
+    fs.rmSync(egOut, { force: true });
+    /* ERST DER LAUF SELBST. Eine Probe, die abreisst, ist keine gruene Probe
+       -- sie ist gar keine (Stolpersteine 138, 161 und 170). */
+    check('Zusage 1: die Gleichlautprobe laeuft und nennt ihre sechs Summen',
+      Object.keys(egSums).length === 6,
+      `${Object.keys(egSums).length} Summen · ${String(egRun.stderr || '').slice(0, 200)}`);
+    check(`Und die beiden deutschen sind die von 0.31.1 — ${DE_UNTOUCHED.one} · ${DE_UNTOUCHED.other}`,
+      egSums['de/one'] === DE_UNTOUCHED.one && egSums['de/other'] === DE_UNTOUCHED.other,
+      `de/one ${egSums['de/one']} · de/other ${egSums['de/other']}`);
+    /* UND DIE ENGLISCHEN SIND ES NICHT. Diese Zeile ist die Gegenrichtung und
+       genauso wichtig: haelt Zusage 1, ohne dass sich Englisch bewegt hat,
+       dann hat die Runde nichts getan. */
+    check('Und die beiden englischen sind es NICHT — die Runde hat Englisch angefasst',
+      egSums['en/one'] !== '45fa40be3b0b6145' && egSums['en/other'] !== '24f9083c0610df9d',
+      `en/one ${egSums['en/one']} · en/other ${egSums['en/other']}`);
+
+    /* ---- Zusage 2: gleich viele Schluessel, dieselbe Folge, dieselbe Gestalt
+       DIE ZAHL STEHT AN EINER STELLE (LANG_KEY_COUNT, Stolperstein 47). Was
+       diese Runde dazulegt, ist die GESTALT: ein Mehrzahlpaar auf Deutsch muss
+       auf Englisch ein Mehrzahlpaar sein. Ein Uebersetzer, der es zu einem
+       Satz zusammenzieht, nimmt der Einzahl ihren Satz -- und am Bildschirm
+       steht „1 Einträge". Die Deckungsprobe sieht das nicht: der Schluessel
+       ist da, und gezaehlt wird er auch. */
+    const egCounts = Object.fromEntries(['de', 'en', 'tr']
+      .map(c => [c, Object.keys(egFiles[c]).length]));
+    check(`Zusage 2: die drei Dateien tragen gleich viele Schluessel — ${LANG_KEY_COUNT}`,
+      ['de', 'en', 'tr'].every(c => egCounts[c] === LANG_KEY_COUNT), JSON.stringify(egCounts));
+    check('Und in derselben Folge',
+      ['en', 'tr'].every(c => JSON.stringify(Object.keys(egFiles[c])) ===
+                              JSON.stringify(Object.keys(egFiles.de))), 'Folge geprueft');
+    const egShape = Object.keys(egFiles.de).filter(k =>
+      (typeof egFiles.de[k] === 'string') !== (typeof egFiles.en[k] === 'string'));
+    check('Und jeder englische Wert hat die Gestalt seines deutschen — ein Mehrzahlpaar bleibt eines',
+      egShape.length === 0, egShape.join(' ') || 'gleiche Gestalt');
+
+    /* ---- Zusage 3: jeder Platzhalter steht gleich -----------------------
+       BEIDE RICHTUNGEN, und die zweite ist die wichtigere: ein Platz, der
+       weggefallen ist, nimmt dem Satz seine Zahl; einer, der dazugekommen
+       ist, steht woertlich am Bildschirm („3 Kommentare{of}" -- 0.31.1).
+       DIE ALLGEMEINE PLATZHALTERPROBE PRUEFT DASSELBE UEBER ALLE DREI
+       DATEIEN. Hier steht sie trotzdem noch einmal, auf Englisch eingegrenzt:
+       diese Runde formuliert englische Saetze um, und die Zusage gehoert zu
+       ihr. Eine Zusage, die ihre Gegenprobe nicht namentlich rot macht, ist
+       Buchfuehrung von einer anderen Runde. */
+    const egPlaces = (v) => new Set([...String(v).matchAll(/\{([A-Za-z0-9_]+)\}/g)].map(m => m[1]));
+    const egPlaceOff = [];
+    for (const [name, , de, en] of egPairs) {
+      const want = egPlaces(de), got = egPlaces(en);
+      if ([...want].some(p => !got.has(p)) || [...got].some(p => !want.has(p)))
+        egPlaceOff.push(`${name}: de {${[...want].join(' ')}} en {${[...got].join(' ')}}`);
+    }
+    check('Zusage 3: jeder Platzhalter des deutschen Satzes steht auch im englischen — und keiner mehr',
+      egPlaceOff.length === 0, egPlaceOff.slice(0, 6).join(' · ') || 'alle gleich');
+
+    /* ---- Zusage 4: die Verbotsliste ------------------------------------
+       DREIZEHN MUSTER, UND JEDES MIT SEINEM GRUND. Die Vorlage hat sie
+       aufgeschrieben; hier stehen sie als Wache, weil ein aufgeschriebenes
+       Verbot beim naechsten Satz vergessen ist. Gemessen waren es 36 Treffer
+       in 33 Schluesseln.
+       DIE VIERZEHNTE ZEILE DER VORLAGE -- die US-Schreibung -- STEHT NICHT
+       HIER, SONDERN IN ZUSAGE 8. Sie hatte null Treffer und ist damit kein
+       Befund dieser Runde, sondern eine Leitplanke ueber alle kommenden:
+       `_locale` sagt en-GB seit 0.24.3. */
+    const EG_FORBIDDEN = [
+      [/leaves? the house/i,  'das Haus verlassen — deutsches Idiom, im Deutschen laengst gestrichen'],
+      [/\bthe run\b/i,        '„der Lauf" — deutsches Entwicklerdenken, kein Satzgegenstand'],
+      [/backup written/i,     'Denglisch — eine Sicherung wird erstellt und nicht geschrieben'],
+      [/\bsits?\b/i,          'Dateien und Ordner sitzen nicht — sie liegen (is located in)'],
+      [/\bthings?\b/i,        '„Sache" als Verlegenheitswort — es heisst item oder entry'],
+      [/\bpills?\b/i,         'CSS-Jargon fuer einen Knopf'],
+      [/still image/i,        'Fernseh- und Schnittbegriff — es heisst video thumbnail'],
+      [/\bby hand\b/i,        'woertlich aus „von Hand" — es heisst manually'],
+      [/like the device/i,    'woertlich aus „wie das Gerät" — die Karte sagt „Auto"'],
+      [/\bposts?\b/i,         'Kriterion ist kein Forum — es heisst contribution oder entry'],
+      [/nobody reads/i,       'zu flapsig fuer einen Transaktionsbrief'],
+      [/\bwhoever\b/i,        'woertlich aus „wer …, der …" — es heisst anyone who'],
+      [/already current/i,    'holpriges Englisch — es heisst already up to date']
+    ];
+    /* ERST DER LESER SELBST: ein Waechter, dessen Muster nichts finden KANN,
+       ist gruen und sagt nichts. Dieselbe Bauform wie beim Sprachwaechter --
+       geprueft wird an einem Satz, der wirklich in der Datei stand. */
+    check('Der Leser der Verbotsliste findet, was vor dieser Runde dastand',
+      EG_FORBIDDEN.filter(([rx]) => rx.test(egBare('The key sits next to the database')) ||
+        rx.test(egBare('Thing, singular')) ||
+        rx.test(egBare('A click on one of the three pills sets the filter itself.'))).length === 3,
+      'der Leser sieht die alten Saetze nicht mehr');
+    check('Und er faerbt sich an einem Platzhalter NICHT — `{thing}` ist das Vokabelwort',
+      !EG_FORBIDDEN.some(([rx]) => rx.test(egBare('{items} {thing}, {photos} photos'))),
+      'ein Platz faerbt den Waechter');
+    check('Und es sind wirklich dreizehn Muster, jedes mit seinem Grund',
+      EG_FORBIDDEN.length === 13 && EG_FORBIDDEN.every(([, why]) => why.length > 20),
+      `${EG_FORBIDDEN.length} Muster`);
+    const egForbidden = [];
+    for (const [name, , , en] of egPairs)
+      for (const [rx, why] of EG_FORBIDDEN)
+        if (rx.test(egBare(en))) egForbidden.push(`${name} (${rx.source}: ${why})`);
+    check('Zusage 4: kein englischer Wert traegt ein Wort der Verbotsliste',
+      egForbidden.length === 0,
+      egForbidden.slice(0, 8).join(' · ') || 'keiner');
+
+    /* ---- Zusage 5: keine HTML-Entitaet ---------------------------------
+       0.31.1 HAT DIESE ZUSAGE AUSDRUECKLICH NUR AUF DEUTSCH GEGEBEN -- ihre
+       Zusage 8 war eine Runde lang bewusst halb, weil die Entitaet aus
+       `card.nameFreedHint` nur mit einem neu formulierten Satz herauskommt.
+       Das ist diese Runde. Der Grund ist derselbe: eine Entitaet in einem
+       Wert verlangt vom Uebersetzer, Maskierung zu kennen -- und wer sie
+       nicht kennt, schreibt spitze Klammern hin, die im Browser verschwinden. */
+    const egEntity = egPairs.filter(([, , , en]) => /&[a-z]+;|&#\d+;/i.test(en));
+    check('Zusage 5: kein englischer Wert traegt eine HTML-Entitaet',
+      egEntity.length === 0, egEntity.map(([n]) => n).join(' ') || 'keiner');
+
+    /* ---- Zusage 6: kein englischer Wert ist deutlich laenger -----------
+       NUR IN EINE RICHTUNG, und das ist die Entscheidung des Auftrags (F7):
+       Englisch braucht fuer dieselbe Aussage regelmaessig weniger Zeichen als
+       Deutsch, also darf es kuerzer sein und soll es oft. Eine Zusage „gleich
+       lang" waere falsch und nach drei Saetzen abgeschaltet.
+       AB VIERZIG ZEICHEN, und darunter gar nicht: „vor" wird „before" und ist
+       damit doppelt so lang -- an einem Wort sagt das Verhaeltnis nichts. Ein
+       SATZ dagegen, der auf Englisch ein Sechstel laenger ist, traegt Ballast,
+       und genau der war der Befund der Vorlage.
+       FUENFZEHN PROZENT, und nicht fuenf: die Grenze soll den Roman fangen und
+       nicht den Artikel. Gemessen waren es vor der Runde sieben Werte mit mehr
+       als 1,15 -- zweieinhalbfach der laengste. */
+    const EG_LONG_FROM = 40, EG_LONG_MAX = 1.15;
+    const egTooLong = egPairs
+      .filter(([, , de, en]) => de.length >= EG_LONG_FROM && en.length > de.length * EG_LONG_MAX)
+      .map(([n, , de, en]) => `${n} ${(en.length / de.length).toFixed(2)}x (de ${de.length} en ${en.length})`);
+    check(`Zusage 6: kein englischer Wert ab ${EG_LONG_FROM} Zeichen ist mehr als ${EG_LONG_MAX}x so lang wie sein deutscher`,
+      egTooLong.length === 0, egTooLong.slice(0, 8).join(' · ') || 'keiner');
+
+    /* ---- Zusage 7: nicht mehr Saetze als der deutsche -----------------
+       DIE KUERZE STECKT NICHT IN DEN ZEICHEN, SONDERN IN DEN SAETZEN. Sechs
+       englische Werte trugen vor dieser Runde einen Satz mehr als ihr
+       deutscher -- `card.resetMailHint` sogar drei; das ist der
+       Erklaerbaersaft, den 0.31.1 auf Deutsch weggenommen hat (BA 7).
+       DIE ABKUERZUNGEN FALLEN VORHER HERAUS, und zwar NAMENTLICH: „z. B." mit
+       seinem Leerzeichen zaehlte sonst als ZWEI Satzenden und „e.g." als
+       eines -- der deutsche Satz duerfte dann zwei Saetze mehr tragen, und die
+       Zusage waere in genau den drei Karten blind, in denen sie etwas sagt. */
+    const EG_SHORTHAND = /\b(?:z\. ?B\.|bzw\.|usw\.|ggf\.|u\. ?a\.|vgl\.|Nr\.|ca\.|e\.g\.|i\.e\.|etc\.|approx\.)/g;
+    const egSentences = (v) => (egBare(String(v).replace(EG_SHORTHAND, 'x'))
+      .match(/[.!?](?=\s|$)/g) || []).length;
+    check('Der Satzzaehler sieht die Abkuerzung nicht als Satzende',
+      egSentences('Zwei Wörter, z. B. drei. Und noch einer.') === 2 &&
+      egSentences('Two words, e.g. three. And one more.') === 2,
+      `${egSentences('Zwei Wörter, z. B. drei. Und noch einer.')} und ${egSentences('Two words, e.g. three. And one more.')}`);
+    const egMoreSentences = egPairs
+      .filter(([, , de, en]) => egSentences(en) > egSentences(de))
+      .map(([n, , de, en]) => `${n} (de ${egSentences(de)} en ${egSentences(en)})`);
+    check('Zusage 7: kein englischer Wert traegt mehr Saetze als sein deutscher',
+      egMoreSentences.length === 0, egMoreSentences.slice(0, 8).join(' · ') || 'keiner');
+
+    /* ---- Zusage 8: en-GB, und zwar durchgehend ------------------------
+       `_locale` SAGT ES SEIT 0.24.3, und heute ist die Zeile schon gruen --
+       sie steht hier, damit sie es bleibt. Die Vorlage hat die US-Schreibung
+       als dreizehnte Zeile ihrer Verbotsliste gefuehrt; gemessen hatte sie
+       null Treffer, und eine Verbotszeile ohne Treffer ist keine Arbeit,
+       sondern eine Leitplanke.
+       SECHZEHN PAARE, JEDES MIT SEINER BRITISCHEN SEITE. Eine Regel „kein
+       -ize" waere billiger und falsch: `size` traegt dieselben drei
+       Buchstaben, und ein Waechter, der „Size of the inventory" meldet, ist
+       nach einem Tag abgeschaltet. */
+    const EG_US = [['color', 'colour'], ['colors', 'colours'], ['colored', 'coloured'],
+      ['favorite', 'favourite'], ['favorites', 'favourites'], ['behavior', 'behaviour'],
+      ['organize', 'organise'], ['organized', 'organised'], ['optimize', 'optimise'],
+      ['customize', 'customise'], ['recognize', 'recognise'], ['analyze', 'analyse'],
+      ['catalog', 'catalogue'], ['center', 'centre'], ['canceled', 'cancelled'],
+      ['gray', 'grey']];
+    check('Die Tafel der US-Schreibungen nennt zu jeder ihre britische Seite',
+      EG_US.length === 16 && EG_US.every(([us, uk]) => us && uk && us !== uk),
+      `${EG_US.length} Paare`);
+    const egUs = [];
+    for (const [name, , , en] of egPairs)
+      for (const [us, uk] of EG_US)
+        if (new RegExp(`\\b${us}\\b`, 'i').test(en)) egUs.push(`${name}: ${us} → ${uk}`);
+    check('Zusage 8: kein englischer Wert traegt eine US-Schreibung — en-GB steht in `_locale`',
+      egUs.length === 0 && egFiles.en._locale === 'en-GB',
+      egUs.slice(0, 6).join(' · ') || `keine · ${egFiles.en._locale}`);
+
+    /* ---- Zusage 9: kein Weissraum aus dem Quelltext -------------------
+       0.31.1 HAT IHN IN ALLEN DREI DATEIEN GENOMMEN, und die Zeile dort gilt
+       weiter. Hier steht die englische Haelfte noch einmal fuer sich, weil
+       diese Runde englische Werte NEU SCHREIBT: wer einen langen Satz im
+       Quelltext umbricht, legt die Einrueckung in den Wert, und am Bildschirm
+       faellt sie nicht auf -- HTML zieht sie zusammen. Sie wandert dann
+       ungesehen in jede weitere Uebersetzung mit. */
+    const egSpace = egPairs.filter(([, , , en]) => /\n[ \t]|[ \t][ \t]/.test(en));
+    check('Zusage 9: kein englischer Wert traegt die Einrueckung des Quelltexts',
+      egSpace.length === 0, egSpace.map(([n]) => n).join(' ') || 'keiner');
+    const EG_LETTERS = ['mail.confirm.body', 'mail.invite.body', 'mail.reset.body', 'mail.test.body'];
+    const egBreak = [...new Set(egPairs.filter(([, , , en]) => en.includes('\n')).map(([n]) => n))];
+    check('Und ein Umbruch steht nur in den vier Briefen, wo er ein Absatz ist',
+      egBreak.sort().join(' ') === EG_LETTERS.join(' '), egBreak.join(' ') || 'keiner');
+    /* UND DIE ABSAETZE STEHEN IN JEDEM BRIEF. Der Prueflauf von 0.31.1 hat
+       genau hier vier rote Punkte gehabt: ein Weissraumschnitt nahm den
+       Briefen ihre Leerzeilen, und jede Mail waere als eine Wand Text
+       angekommen. Auf Englisch schreibt DIESE Runde die Briefe neu. */
+    check('Und jeder der vier Briefe traegt seine Leerzeilen',
+      EG_LETTERS.every(k => String(egFiles.en[k]).includes('\n\n')),
+      EG_LETTERS.filter(k => !String(egFiles.en[k]).includes('\n\n')).join(' ') || 'alle vier');
+
+    /* ---- Zusage 10: der englische Stand liegt als Vergleichsdatei daneben
+       ES GIBT KEINE ABNAHME FUER ENGLISCH. Die deutsche Wortlautprobe haelt
+       den Stand von 0681d42 fest, weil es ihn gibt; fuer Englisch ist DIESE
+       Runde die Abnahme (Auftrag, F9). Was sie hinterlaesst, ist ein
+       Vergleichsstand: 1197 Schluessel, jeder mit seinem Wert.
+       DER AUFTRAG NENNT IHN ANDERS -- `Abdruckdatei` --, UND DAS WORT GEHT
+       NICHT. Der Sprachwaechter fuehrt `Abdruck` auf seiner Liste, und dort
+       heisst es Fingerprint; er hat meine drei Kommentarzeilen im ersten Lauf
+       gemeldet, mit Datei und Zeilennummer.
+       Ein Waechter, der die eigene Vorschrift der Runde anmeckert, hat recht:
+       zwei Namen fuer zwei Sachen sind besser als einer fuer beide.
+       UND DIE TAFEL DARUNTER IST DER EIGENTLICHE WAECHTER. Sie ist LEER, und
+       solange sie das ist, muss jeder englische Wert Zeichen fuer Zeichen der
+       dieser Runde sein. Wer Englisch anfasst, schreibt den Schluessel mit
+       seinem Grund hinein -- dieselbe Bauform wie die drei Listen der
+       Wortlautprobe. EINEN VERGLEICHSSTAND STILL NACHZUZIEHEN ist damit
+       keine Moeglichkeit mehr, sondern ein roter Punkt. */
+    const egPrintFile = path.join(__dirname, 'tools', 'englisch-0312.json');
+    check('Zusage 10: der englische Stand liegt als Vergleichsdatei daneben',
+      fs.existsSync(egPrintFile), 'tools/englisch-0312.json');
+    const egFile = fs.existsSync(egPrintFile)
+      ? JSON.parse(fs.readFileSync(egPrintFile, 'utf8')) : {};
+    const egPrint = egFile.values || {};
+    /* UND SIE SAGT, WAS SIE IST UND WOHER SIE KOMMT. Eine Datei mit 1197
+       Zeilen und ohne einen Satz darueber wird beim naechsten Handgriff von
+       Hand gepflegt -- und dann ist sie eine zweite Wahrheit. Dieselbe Bauform
+       wie bei der deutschen Wortlautprobe (`_hinweis` in
+       tools/wording-0681d42.json). */
+    check('Und sie nennt ihre Runde und ihr Werkzeug',
+      egFile.round === '0.31.2' && /englischstand\.js/.test(String(egFile._hinweis)),
+      `${egFile.round} · ${String(egFile._hinweis || '').slice(0, 60)}`);
+    check('Und das Werkzeug, das sie schreibt, liegt daneben',
+      fs.existsSync(path.join(__dirname, 'tools', 'englischstand.js')),
+      'tools/englischstand.js');
+    check(`Und sie traegt dieselben Schluessel wie en.json — ${LANG_KEY_COUNT}`,
+      JSON.stringify(Object.keys(egPrint)) === JSON.stringify(Object.keys(egFiles.en)),
+      `${Object.keys(egPrint).length} im Vergleichsstand, ${Object.keys(egFiles.en).length} in en.json`);
+    const EG_CHANGED_AFTER_0312 = {};
+    const egDiff = Object.keys(egFiles.en)
+      .filter(k => JSON.stringify(egPrint[k]) !== JSON.stringify(egFiles.en[k]));
+    check('Und jeder englische Wert ist Zeichen fuer Zeichen der des Vergleichsstands — ausser den benannten',
+      egDiff.join(' ') === Object.keys(EG_CHANGED_AFTER_0312).join(' '),
+      egDiff.slice(0, 8).join(' ') || 'alle gleich');
+    /* UND DIE TAFEL IST IN BEIDE RICHTUNGEN GESCHLOSSEN -- 0.31.1, Zusage 2.
+       Ein Eintrag, der keinen Unterschied mehr benennt, ist eine
+       Karteileiche: er behauptet eine Aenderung, die es nicht gibt, und
+       deckt beim naechsten Mal eine, die es gibt. */
+    const egStale = Object.keys(EG_CHANGED_AFTER_0312).filter(k => !egDiff.includes(k));
+    check('Und kein Eintrag der Tafel benennt einen Unterschied, den es nicht gibt',
+      egStale.length === 0, egStale.join(' ') || 'keine Karteileiche');
   }
 }

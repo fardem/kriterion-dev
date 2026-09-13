@@ -1,6 +1,6 @@
 # Projektstand — Kriterion
 
-**Kompakte Übergabe · Revision 88 · Stand 13. September 2026 · gebaut: Version 0.31.1**
+**Kompakte Übergabe · Revision 89 · Stand 13. September 2026 · gebaut: Version 0.31.2**
 
 Dieses Blatt ist der **einzige Ort, an dem steht, was gebaut ist und was
 bindet.** Es genügt, um in einem frischen Chat weiterzuarbeiten, ohne den alten
@@ -478,9 +478,40 @@ weiterhin offen. Daraus folgt die Stellung von `HINTER_PROXY` (Abschnitt 3).
 
 ## 2. Betriebsstand
 
-**Gebaut ist 0.31.1** — *die Zahlen des Prüfstands stehen im Änderungsprotokoll
-0.31.1.* **0.31.1 setzt die zersägten deutschen Sätze wieder zusammen** — *die
-zweite von vier Runden der 31er-Strecke; Englisch ist 0.31.2, Türkisch 0.31.3.*
+**Gebaut ist 0.31.2** — *die Zahlen des Prüfstands stehen im Änderungsprotokoll
+0.31.2.* **0.31.2 bringt das Englische auf den Stand des Deutschen** — *die
+dritte von vier Runden der 31er-Strecke; Türkisch ist 0.31.3.*
+
+**ALLE 1197 ENGLISCHEN SCHLÜSSEL SIND GEGEN IHREN DEUTSCHEN SATZ GELESEN
+WORDEN.** *160 sind neu formuliert (168 Formen), `en.json` ist 637 Zeichen kürzer
+und steht damit bei 89,4 % der deutschen Zeichenzahl.* **Kein deutscher und kein
+türkischer Wert ist dabei angefasst** — *und das ist nachgerechnet und nicht
+behauptet: die beiden deutschen Prüfsummen der Gleichlautprobe sind Zeichen für
+Zeichen dieselben (`91b86c5affcba789` / `07fc3ccdc8a27a03`), und der Prüfstand
+fährt die Probe seit dieser Runde selbst.*
+
+> **DIE VERBOTSLISTE IST EIN WÄCHTER UND KEIN MERKZETTEL.** *Dreizehn Muster,
+> jedes mit seinem Grund — vorher 52 Treffer in 46 Schlüsseln, jetzt keiner.*
+> **Dazu prüft die Gruppe „Englisch sitzt — 0.31.2" Länge, Satzzahl, Plätze,
+> Gestalt, Entitäten, Weißraum und en-GB:** *zehn Zusagen, sechsundzwanzig
+> Prüfungen, zehn Gegenproben.*
+
+> **UND DER ENGLISCHE STAND LIEGT ALS VERGLEICHSDATEI DANEBEN** —
+> `tools/englisch-0312.json`, erzeugt von `tools/englischstand.js`. *Für Deutsch
+> gibt es eine Abnahme (`0681d42`) und die Wortlautprobe hält sie; für Englisch
+> gab es keine — diese Runde IST sie.* **Wer einen englischen Wert anfasst,
+> benennt ihn in der Tafel `EG_CHANGED_AFTER_0312`; sie ist leer.**
+
+> **ACHT ENGLISCHE SÄTZE WAREN SCHLICHT FALSCH**, und keine Liste hätte sie
+> gemeldet — *„The rows are sorted by 90 days deleted automatically", „your
+> password is asked for asked for", „the card Backup simpler", „Settings ›
+> Inventory › Weight in", „there are one more session", „Every target is a
+> number", „Configured is /data/backups.", „They will this one time only
+> shown."* **Sie sind aufgefallen, weil jeder Satz einmal neben seinem deutschen
+> gestanden hat.**
+
+**0.31.1 SETZT DIE ZERSÄGTEN DEUTSCHEN SÄTZE WIEDER ZUSAMMEN** — *die zweite von
+vier Runden der 31er-Strecke.*
 
 **EIN SCHLÜSSEL TRÄGT EINEN GANZEN SATZ, nie ein Wort ohne ihn.** *Bis 0.31.0
 stand `A <strong>B</strong> C` als DREI Schlüssel da und wurde im Aufruf wieder
@@ -512,8 +543,8 @@ test days", „2.1 MB weniger".*
 **Am Wirt läuft 0.30.3, Fingerprint `098e85ca`** *(Abschnitt 8)* — *vom
 Betreiber am 13. September 2026 aus seiner Installation gemeldet und damit auf
 das Byte bestätigt.* **Drei Quellen, ein Wert, zum sechsten Mal.** *Der
-Fingerprint von 0.31.0 (`7f4297ff`) und 0.31.1 (`47cfba37`) aus dem Feld steht
-aus.*
+Fingerprint von 0.31.0 (`7f4297ff`), 0.31.1 (`47cfba37`) und 0.31.2
+(`69ff6248`) aus dem Feld steht aus.*
 
 **0.30.0 hat an zwei Enden gebaut, und beide Enden waren dieselbe Sache: Zeit,
 in der niemand etwas sieht.** *Der Prüflauf fällt von 464,4 auf 271,5 Sekunden —
@@ -1762,6 +1793,7 @@ Ursache war **eine Datei zu viel** auf dem Wirt (Stolperstein 158).
 
 | Version | Fingerprint | Prüfungen |
 |---|---|---|
+| **0.31.2** | `69ff6248` *(gerechnet am 13. September 2026 **als letztes und hinter der letzten Zeile**; aus zwei Quellen bestätigt — am Arbeitsbaum über dieselben achtzehn Dateien nachgerechnet und aus dem Server selbst gelesen, **alle achtzehn Einzelwerte gleich**. Die dritte steht aus. Die Runde fasst `public/languages/en.json` und `package.json` an — mehr nicht)* | 6903 |
 | **0.31.1** | `47cfba37` *(gerechnet am 13. September 2026 **als letztes und hinter der letzten Zeile**; aus zwei Quellen bestätigt — am Arbeitsbaum über dieselben achtzehn Dateien nachgerechnet und aus dem Server selbst gelesen, **alle achtzehn Einzelwerte gleich**. Die dritte steht aus. Die Runde fasst `public/app.js`, die drei Sprachdateien und `package.json` an)* | 6877 |
 | **0.31.0** | `7f4297ff` *(gerechnet am 13. September 2026 **als letztes und hinter der letzten Zeile**; aus zwei Quellen bestätigt — am Arbeitsbaum über dieselben achtzehn Dateien nachgerechnet und aus dem Server selbst gelesen, **alle achtzehn Einzelwerte gleich**. Die dritte steht aus. Die Runde fasst `public/app.js`, `public/style.css`, die drei Sprachdateien, `server.js` und `package.json` an)* | 6849 |
 | **0.30.3** | `098e85ca` *(am 13. September 2026 **von der laufenden Installation gemeldet — im Feld bestätigt**, genau der Sollwert; **drei Quellen, ein Wert**. Gerechnet am 12. September 2026 **als letztes und hinter der letzten Zeile**, davor aus zwei Quellen bestätigt — am Arbeitsbaum über dieselben achtzehn Dateien nachgerechnet und aus dem Server selbst gelesen, **alle achtzehn Einzelwerte gleich**. Die dritte steht aus. Die Runde fasst `public/app.js`, `public/style.css` und `package.json` an)* | 6823 |
@@ -5742,6 +5774,20 @@ liest jeden Text in Anführungszeichen und Backticks von `public/app.js` und jed
 
   *Vierzehn Gegenproben halten die Regel, eine je Zusage der Runde; die
   vollständige Liste steht im Änderungsprotokoll 0.31.1.*
+
+  > **UND FÜR ENGLISCH GILT SEIT 0.31.2 EIN MASSSTAB NEBEN S12:** *übersetzt
+  > wird die ABSICHT und nicht die Wortstellung — dieselbe Stimme, dieselbe
+  > Kürze, und was auf Deutsch in einem Satz steht, steht auf Englisch in
+  > einem.* **Messbar gemacht ist das in zehn Zusagen** *(Gruppe „Englisch
+  > sitzt — 0.31.2")*: **dreizehn verbotene Muster, keine HTML-Entität, kein
+  > Wert ab vierzig Zeichen mehr als 1,15× so lang wie sein deutscher, keiner
+  > mit mehr Sätzen, en-GB durchgehend** — *und der Stand liegt als
+  > Vergleichsdatei daneben (`tools/englisch-0312.json`).* **Kürzer DARF
+  > Englisch sein und soll es oft** (Auftrag 0.31.2, F7) — *geprüft wird nur
+  > die andere Richtung.*
+  >
+  > *Der Leser für Englisch ist der Betreiber selbst (0.24.3, F5); für 0.31.2
+  > ist die Frage gestellt und **steht noch aus**.*
 
 #### Farbe und Marke
 
