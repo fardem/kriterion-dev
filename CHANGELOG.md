@@ -52,7 +52,7 @@ bleiben in der Form ihrer Zeit.*
 
 ### Intern
 
-- **Die Verbotsliste der englischen Übersetzung ist ein Wächter im Prüfstand** — dreizehn Muster, jedes mit seinem Grund; dazu Länge, Satzzahl, Plätze, Entitäten und en-GB. Zehn Zusagen, zehn Gegenproben.
+- **Die Verbotsliste der englischen Übersetzung ist ein Wächter im Prüfstand** — dreizehn Muster, jedes mit seinem Grund; dazu Länge, Satzzahl, Plätze, Entitäten und en-GB. Zehn Zusagen, elf Gegenproben.
 - **Der englische Stand liegt als Vergleichsdatei daneben** (`tools/englisch-0312.json`) — wer einen englischen Wert anfasst, benennt ihn; für Deutsch tut das seit 0.24.0 die Wortlautprobe.
 
 ## [0.31.1] - 2026-09-13

@@ -132,13 +132,13 @@ jedes mit seiner britischen Seite, damit es dabei bleibt.*
 
 | | was | Ergebnis |
 |---|---|---|
-| **BA 1** | **Die Blacklist wird ein Wächter** — *zuerst gebaut, damit er beim Bauen schon rot steht* | **13 Muster**, jedes mit seinem Grund; dazu die neun übrigen Zusagen. **26 Prüfungen** |
+| **BA 1** | **Die Blacklist wird ein Wächter** — *zuerst gebaut, damit er beim Bauen schon rot steht* | **13 Muster**, jedes mit seinem Grund; dazu die neun übrigen Zusagen. **29 Prüfungen** |
 | **BA 2** | **Der Ballast** — sieben Werte, länger als ihr deutscher | **7**, und `card.vocabularyResetHint` fiel von 160 auf 51 Zeichen |
 | **BA 3** | **Die alten Metaphern** — was die Blacklist fand | **46 Schlüssel**, 52 Treffer |
 | **BA 4** | **Die letzte HTML-Entität** | **1** — *`&lt;number&gt;` ist weg; 0.31.1 hatte sie ausdrücklich nur auf Deutsch genommen* |
 | **BA 5** | **Die vier Briefe** | **4** — *„This inbox is not monitored." (F6), und der Einladungsbrief warnt, statt zu plaudern* |
 | **BA 6** | **DER DURCHGANG** — alle 1197 Schlüssel, jeder gegen seinen deutschen Satz | **161 Schlüssel neu formuliert** (169 Formen); *darin die acht schlicht falschen Sätze, die keine Liste gemeldet hätte* |
-| **BA 7** | **Prüfstand, Gegenproben, Papiere, Augenschein, Fingerprint** | **zehn Zusagen, zehn Gegenproben** |
+| **BA 7** | **Prüfstand, Gegenproben, Papiere, Augenschein, Fingerprint** | **zehn Zusagen, elf Gegenproben, 6905 grüne Punkte** |
 
 ### Die Zahlen
 
@@ -269,15 +269,20 @@ ist damit keine Möglichkeit mehr, sondern ein roter Punkt.**
 
 ---
 
-## Zehn Gegenproben
+## Elf Gegenproben für zehn Zusagen
 
 **EINE PRÜFUNG, DIE GRÜN IST, BELEGT NICHTS, solange niemand gezeigt hat, dass
 sie auch rot werden kann.** *Jede Zusage bekommt einen Rückbau in einer
 `git archive`-Kopie; festgehalten wird, WELCHE Prüfungen daraufhin namentlich rot
 werden.* **Ein Rückbau, der keine einzige rot macht, ist ein FUND.**
 
-**ALLE ZEHN SIND GEFAHREN — drei Nebenspuren, je Rückbau ein voller Prüflauf,
-`0 STUMM`.** *Jeder hat SEINE Zusage namentlich rot gemacht.*
+**ZUSAGE 1 BEKOMMT ZWEI, seit der Betreiber zwei Werte bestellt hat:** *„kein
+deutscher Wert ist von mir angefasst" (**978**) und „genau diese zwei sind es auf
+Bestellung" (**988**).* **Eine Ausnahme ohne Gegenprobe ist eine Behauptung** —
+*sie kann still verschwinden, und niemand merkt es.*
+
+**DIE ERSTEN ZEHN SIND GEFAHREN — drei Nebenspuren, je Rückbau ein voller
+Prüflauf, `0 STUMM`.** *Jeder hat SEINE Zusage namentlich rot gemacht.*
 
 | Nr. | was zurückgebaut wird | für Zusage | was namentlich rot wurde |
 |---|---|---|---|
@@ -291,6 +296,7 @@ werden.* **Ein Rückbau, der keine einzige rot macht, ist ein FUND.**
 | **985** | ein englischer Wert trägt eine US-Schreibung | 8 | *„Zusage 8: … US-Schreibung — en-GB steht in `_locale`"* |
 | **986** | ein englischer Wert trägt wieder die Einrückung des Quelltexts | 9 | **beide Zeilen der Zusage** — dazu die Zwillingszeile aus 0.31.1, die alle drei Dateien prüft |
 | **987** | der Vergleichsstand weicht von `en.json` ab, ohne benannt zu sein | 10 | *„Und jeder englische Wert ist Zeichen für Zeichen der des Vergleichsstands — außer den benannten"* |
+| **988** | das Label heißt wieder „Zugang beantragen" | 1 *(zweite Hälfte)* | **drei Wachen zugleich, und das ist hier die Sache selbst:** *die Prüfsummen dieser Runde, die Tafel `DE_ORDERED_0312` und — weil die Ausnahme der Bildschirmverbotsliste mit dem Satz gewandert ist — das Verbot von „Zugang" für Konto* |
 
 ### Drei Zeilen standen in JEDEM Lauf rot, und keine davon ist der Rückbau
 

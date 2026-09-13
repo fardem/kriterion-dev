@@ -27629,7 +27629,11 @@ function sweepLeftovers() {
      standen nach dem Verschmelzen nicht mehr da. Die Zeile darunter hat sie
      alle sechzehn gemeldet -- sie ist damit selbst der Beleg dafuer, dass ein
      Rueckbau, der ins Leere greift, auffaellt. */
-  /* UND 968 WURDEN 978 MIT 0.31.2: zehn neue, einer je Zusage jener Runde.
+  /* UND 968 WURDEN 979 MIT 0.31.2: zehn neue, einer je Zusage jener Runde --
+     und ein elfter, weil Zusage 1 nach der Bestellung des Betreibers ZWEI
+     Haelften hat: „kein deutscher Wert ist angefasst" (978) und „genau diese
+     zwei sind es auf Bestellung" (988). Eine Ausnahme ohne Gegenprobe ist eine
+     Behauptung.
      KEINE VORHANDENE MUSSTE NACHGEZOGEN WERDEN, und das ist eine Aussage ueber
      die Runde und nicht ueber die Liste: 0.31.1 hat sechzehn Suchtexte
      gebrochen, weil sie die ABLAGE der deutschen Saetze angefasst hat -- diese
@@ -27637,7 +27641,7 @@ function sweepLeftovers() {
      aelteren Rueckbaus. Der eine, der einen englischen Wert traf, war meiner
      eigenen (983): sein Suchtext ist mit dem Satz nachgezogen, den der
      Pruefstand in derselben Stunde gemeldet hat. */
-  check(`Es sind genau 978 Rueckbauten`, gpList.length === 978, `${gpList.length}`);
+  check(`Es sind genau 979 Rueckbauten`, gpList.length === 979, `${gpList.length}`);
   const gpTwice = gpList.map(r => r.nr).filter((n, i, a) => a.indexOf(n) !== i);
   check('Und keine Nummer steht zweimal', gpTwice.length === 0, gpTwice.join(' '));
   /* JEDER GREIFT: der Suchtext kommt in seiner Datei GENAU EINMAL vor. Keinmal

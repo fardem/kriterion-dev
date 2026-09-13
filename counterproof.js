@@ -9817,6 +9817,22 @@ const REGRESSIONS = [
     replacement: "    \"card.active\": \"on\",",
     expected: 'Englisch sitzt — 0.31.2'
   },
+  {
+    /* ZUSAGE 1, ZWEITE HAELFTE: die bestellte Ausnahme wird zurueckgenommen.
+       SEIT DER BESTELLUNG DES BETREIBERS HAT ZUSAGE 1 ZWEI HAELFTEN -- „kein
+       deutscher Wert ist von mir angefasst" (978) und „genau diese zwei sind es
+       auf Bestellung" (hier). Eine Ausnahme ohne Gegenprobe ist eine
+       Behauptung: sie kann still verschwinden, und niemand merkt es.
+       ER MACHT DREI WACHEN ZUGLEICH ROT, und das ist hier kein Mangel, sondern
+       die Sache selbst: die Pruefsummen dieser Runde, die Tafel
+       DE_ORDERED_0312 und -- weil die Ausnahme der Bildschirmverbotsliste mit
+       dem Satz gewandert ist -- auch das Verbot von „Zugang" fuer Konto. */
+    nr: '988', name: 'Das Label heisst wieder „Zugang beantragen"',
+    file: 'public/languages/de.json',
+    search: "  \"login.requestAccess\": \"Zugang anfragen\",",
+    replacement: "  \"login.requestAccess\": \"Zugang beantragen\",",
+    expected: 'Englisch sitzt — 0.31.2'
+  },
 ];
 
 /* ================= Spuren und Versatz =================
