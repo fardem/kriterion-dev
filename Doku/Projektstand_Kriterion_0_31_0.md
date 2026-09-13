@@ -1,6 +1,6 @@
 # Projektstand — Kriterion
 
-**Kompakte Übergabe · Revision 86 · Stand 12. September 2026 · gebaut: Version 0.30.3**
+**Kompakte Übergabe · Revision 87 · Stand 13. September 2026 · gebaut: Version 0.31.0**
 
 Dieses Blatt ist der **einzige Ort, an dem steht, was gebaut ist und was
 bindet.** Es genügt, um in einem frischen Chat weiterzuarbeiten, ohne den alten
@@ -478,19 +478,27 @@ weiterhin offen. Daraus folgt die Stellung von `HINTER_PROXY` (Abschnitt 3).
 
 ## 2. Betriebsstand
 
-**Gebaut ist 0.30.3** — *die Zahlen des Prüfstands stehen im Änderungsprotokoll
-0.30.3.* **0.30.3 ist der Rundlauf zu 0.30.2 und fasst dieselbe Zeile noch
-einmal an: die Tagzeile, und zwar zugeklappt.** *Seit 0.30.2 stehen die beiden
-Zeichen unter der Beschriftung; Spalte 1 verlangt damit 62 Pixel, ob die Wolke
-sie braucht oder nicht — eine Wolkenreihe misst 27, und fünfunddreißig Pixel
-standen leer.* **Die Wolke zeigt dort jetzt ZWEI Reihen und füllt, was die Zeile
-ohnehin kostet** *(sieben sichtbare Tags statt vier, bei gleicher Höhe)*; **und
-wo sie keine zweite Reihe hat — ein junger Bestand —, fällt die Anordnung ganz
-weg und die Zeile misst 27 statt 62.**
+**Gebaut ist 0.31.0** — *die Zahlen des Prüfstands stehen im Änderungsprotokoll
+0.31.0.* **0.31.0 liest die Sprachdateien gegen** — *die erste von drei Runden;
+Englisch ist 0.31.1, Türkisch 0.31.2.* **Drei Dinge sind geschehen.** *Elf
+Schlüssel trugen keinen Text, sondern eine Konstante — `entry.targetBlank` hieß
+in allen drei Dateien `_blank` —; sie stehen jetzt fest im Skript bzw. als
+Klasse im Stilblatt, und aus 1265 Schlüsseln sind in JEDER Datei 1254 geworden.*
+**Neunundvierzig deutsche Texte sind geschärft** *(„konvertieren" statt
+„umstellen", „Suchtreffer" statt „Fundstelle", „Video-Vorschaubild" statt
+„Standbild", „Auto" statt „Wie das Gerät"; „das Haus verlassen" und „Pille"
+fallen ersatzlos)*, **und vierunddreißig Texte schließen ihr
+Anführungszeichen jetzt typografisch** *(auf Deutsch und auf Türkisch)*.
+
+> **DIE VORLAGE KAM NICHT AUS DIESEM HAUS.** *Der Betreiber hat
+> `Doku/I18N_CLEANUP_DE.md` von Google Gemini schreiben lassen; einundsiebzig
+> Vorschläge, jeder gegen den Quelltext geprüft.* **Was nicht übernommen wurde,
+> steht im Auftrag 0.31.0 mit Grund.**
 
 **Am Wirt läuft 0.30.3, Fingerprint `098e85ca`** *(Abschnitt 8)* — *vom
 Betreiber am 13. September 2026 aus seiner Installation gemeldet und damit auf
-das Byte bestätigt.* **Drei Quellen, ein Wert, zum sechsten Mal.**
+das Byte bestätigt.* **Drei Quellen, ein Wert, zum sechsten Mal.** *Der
+Fingerprint von 0.31.0 aus dem Feld steht aus.*
 
 **0.30.0 hat an zwei Enden gebaut, und beide Enden waren dieselbe Sache: Zeit,
 in der niemand etwas sieht.** *Der Prüflauf fällt von 464,4 auf 271,5 Sekunden —

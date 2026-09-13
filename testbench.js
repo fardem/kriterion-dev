@@ -2979,7 +2979,7 @@ function sweepLeftovers() {
   const locked = await call('PUT', `/api/items/${object.id}`, { tested: false });
   check('Sperrmeldung benutzt das eigene Vokabular',
     locked.status === 409 && /1 Sitzung /.test(locked.content.error) &&
-    /„Geprüft"/.test(locked.content.error), locked.content.error);
+    /„Geprüft“/.test(locked.content.error), locked.content.error);
   check('Sperrmeldung bleibt bei der Einzahl grammatisch richtig',
     / ist,/.test(locked.content.error), locked.content.error);
   await call('POST', `/api/items/${object.id}/test-days`, { day: '2026-08-02', rating: 4 });
@@ -18658,8 +18658,15 @@ function sweepLeftovers() {
                 standen. Gefunden hat sie die Wache, die WERTE liest (F15).
        DIE MEHRZAHLFORMEN UND DIE VOKABELNAMEN RUEHREN SICH NICHT: „gewichtet"
        hat keine Mehrzahl, und „eingerichtet" ist kein Vokabelwort. */
-    check('Und die Zahlen stehen: 1347 Schluessel, 82 Mehrzahlformen, 14 Vokabelnamen',
-      languageKeys.length === 1347 && pluralKeys.length === 82 && vocabularyKeys.length === 14,
+    /* 1336 SEIT 0.31.0 -- 1347 minus elf, und die elf haben einen gemeinsamen
+       Namen: sie waren nie Sprache (Bauabschnitt 1). `entry.targetBlank` hiess
+       auf Deutsch `_blank`, auf Englisch `_blank` und auf Tuerkisch `_blank`.
+       Sie stehen seit dieser Runde fest im Skript bzw. als Klasse im
+       Stilblatt; die Gruppe „Die elf Code-Lecks" haelt beides fest.
+       DIE MEHRZAHLFORMEN UND DIE VOKABELNAMEN RUEHREN SICH NICHT: eine
+       Abfrageangabe hat keine Mehrzahl, und `10px` ist kein Vokabelwort. */
+    check('Und die Zahlen stehen: 1336 Schluessel, 82 Mehrzahlformen, 14 Vokabelnamen',
+      languageKeys.length === 1336 && pluralKeys.length === 82 && vocabularyKeys.length === 14,
       `${languageKeys.length} / ${pluralKeys.length} / ${vocabularyKeys.length}`);
 
     /* ---- 3. Die Adressprobe ---------------------------------------------
@@ -18964,6 +18971,44 @@ function sweepLeftovers() {
        DER SCHLUESSEL DARF NICHT MEHR DASTEHEN -- sonst zoege die Zeile
        darunter einen Satz ab, den es noch gibt, und die Rechnung ginge
        zufaellig auf. */
+    /* UND ELF FALLEN MIT 0.31.0 -- Bauabschnitt 1, und alle elf aus DEMSELBEN
+       Grund: sie waren nie Sprache. `entry.targetBlank` hiess auf Deutsch
+       `_blank`, auf Englisch `_blank` und auf Tuerkisch `_blank`; ein Text,
+       der in drei Sprachen gleich lautet, ist kein Text, sondern eine
+       Konstante, die durch die Uebersetzung reist.
+         entry.targetBlank   `_blank` -- wohin ein Link aufgeht
+         entry.linkRel       `noopener,noreferrer` -- was der neue Tab nicht darf
+         entry.imagePrefix   `image/` -- woran ein Bild erkannt wird
+         list.px10/px20      `10px`/`20px` -- ein Abstand, jetzt eine Klasse
+         card.composeFile    `docker-compose.yml` -- ein Dateiname
+         card.filesQuery     `&files=1`      die vier Stuecke der Exportadresse
+         card.photosQuery    `photos=1`
+         card.videosQuery    `&videos=1`
+         card.partQuery      `&from=…&to=…&part=…&parts=…`
+         list.thumbQuery     `?size=thumb` -- die Groesse eines Kommentarbildes
+       SIE STEHEN IN KEINER SPRACHDATEI MEHR -- alle drei werden gefragt, und
+       das ist hier nicht bloss Sorgfalt: die Deckungsprobe verlangt in JEDER
+       Datei dieselben Schluessel. Elf nur aus `de.json` zu nehmen faerbte den
+       Lauf sofort rot und nicht erst in 0.31.1. */
+    const WORDING_GONE_0310 = ['entry.targetBlank', 'entry.linkRel', 'entry.imagePrefix',
+      'list.px10', 'list.px20', 'card.composeFile', 'card.filesQuery', 'card.photosQuery',
+      'card.videosQuery', 'list.thumbQuery', 'card.partQuery'];
+    const goneStill11 = [];
+    for (const code of ['de', 'en', 'tr']) {
+      const file = JSON.parse(fs.readFileSync(
+        path.join(__dirname, 'public', 'languages', `${code}.json`), 'utf8'));
+      for (const k of WORDING_GONE_0310) if (file[k] !== undefined) goneStill11.push(`${code}/${k}`);
+    }
+    check('Und die elf Schluessel, die 0.31.0 wegnimmt, stehen in keiner Datei mehr',
+      goneStill11.length === 0, goneStill11.join(' ') || 'alle elf weg');
+    /* IHR WORTLAUT WIRD AUS DEM STAND VON DAMALS ABGEZOGEN, wie bei jeder
+       Wegnahme davor. `card.partQuery` steht dabei mit seinem Wert von
+       0681d42 da und nicht mit dem von gestern: damals hiessen die vier
+       Angaben deutsch (`&von=…`), seit 0.24.3 englisch. Verglichen wird gegen
+       die ABNAHME, also gilt der Wortlaut der Abnahme. */
+    const WORDING_GONE_TEXT_0310 = ['_blank', 'noopener,noreferrer', 'image/',
+      '10px', '20px', 'docker-compose.yml', '&files=1', 'photos=1', '&videos=1',
+      '?size=thumb', '&von={von}&bis={bis}&teil={nr}&teile={n}'];
     const WORDING_GONE_0244 = ['{iconWiederher} Wiederherstellen'];
     /* UND DIE VIER STUECKE DES VERNEINUNGSSATZES -- 0.25.4, aus demselben
        Grund wie oben: der Stand von damals kennt sie, der von heute nicht
@@ -19113,7 +19158,8 @@ function sweepLeftovers() {
     const WORDING_GONE_TEXT_0300 = ['Tags ({length})'];
     const wordingThen = [...WORDING_GONE_0244, ...WORDING_GONE_TEXT_0254,
       ...WORDING_GONE_TEXT_0260, ...WORDING_GONE_TEXT_0270,
-      ...WORDING_GONE_TEXT_0281, ...WORDING_GONE_TEXT_0300]
+      ...WORDING_GONE_TEXT_0281, ...WORDING_GONE_TEXT_0300,
+      ...WORDING_GONE_TEXT_0310]
       .reduce((list, sentence) => withoutOne(list, sentence), [...wordingFile.values]).sort();
     const wordingNow = valuesOf(wordingOld).map(asBefore).sort();
     const onlyThen = wordingThen.filter(x => !wordingNow.includes(x));
@@ -19131,21 +19177,26 @@ function sweepLeftovers() {
        aus dem Stand von damals abgezogen. Die beiden NEUEN Schluessel stehen
        in WORDING_NEW und zaehlen hier ohnehin nicht mit. Der Abstand zwischen
        beiden Listen bleibt deshalb bei zwei. */
+    /* 1200 WURDEN 1189 -- 0.31.0, und AUF BEIDEN SEITEN sind es elf weniger:
+       die elf Code-Lecks fallen aus der Datei von heute und werden gleich-
+       zeitig aus dem Stand von damals abgezogen (WORDING_GONE_TEXT_0310).
+       Der Abstand zwischen beiden Listen bleibt deshalb bei zwei. */
     check('Wortlautprobe: zwei Saetze mehr als bei der Abnahme, und beide sind Mehrzahlpaare',
-      wordingNow.length === wordingThen.length + 2 && wordingNow.length === 1200,
+      wordingNow.length === wordingThen.length + 2 && wordingNow.length === 1189,
       `${wordingThen.length} damals, ${wordingNow.length} heute (ohne die ` +
-      `${WORDING_NEW.length} neuen und die sechs weggenommenen)`);
+      `${WORDING_NEW.length} neuen und die siebzehn weggenommenen)`);
     /* ZWEI SAETZE SIND ANDERE, UND BEIDE SIND BENANNT.
        `server.backupDirNotSet` NENNT die Umgebungsvariable, und die heisst
        seit 0.24.1 anders -- der Satz musste mitziehen, weil er sonst auf etwas
        zeigte, das es nicht mehr gibt.
-       `card.partQuery` IST KEIN SATZ, SONDERN EIN WEG: „&von=…&bis=…&teil=…"
-       ist die Abfrage, die die Oberflaeche baut. Seit 0.24.3 heissen die vier
-       Angaben englisch (F7), und der Wert der Datei ist damit ein anderer.
-       Ein Wert, den kein Mensch liest, ist keine Ausnahme von „am Bildschirm
-       aendert sich kein Wort" -- er steht hier trotzdem, weil er in derselben
-       Datei liegt und sonst stillschweigend durchginge. */
-    const WORDING_CHANGED_0243 = ['server.backupDirNotSet', 'card.partQuery'];
+       `card.partQuery` STAND BIS 0.30.3 HIER DANEBEN und steht seit 0.31.0
+       nicht mehr: „&von=…&bis=…&teil=…" war kein Satz, sondern ein WEG, und
+       genau deshalb ist der Schluessel mit Bauabschnitt 1 ganz gefallen. Er
+       wird jetzt vom Stand von damals abgezogen (WORDING_GONE_TEXT_0310) und
+       nicht mehr als geaendert gefuehrt -- eine Liste, die auf einen
+       Schluessel zeigt, den es nicht mehr gibt, faerbte die Zeile darunter
+       rot, und zwar zu Recht. */
+    const WORDING_CHANGED_0243 = ['server.backupDirNotSet'];
     /* UND DREI MIT 0.25.4, jeder mit seinem Grund:
          `entry.tagQuote`        oeffnete ein Anfuehrungszeichen und schloss es
                                  nie -- am Bildschirm stand „Tag „Werkzeug".
@@ -19242,8 +19293,80 @@ function sweepLeftovers() {
        in WORDING_NEW_0300. Nur der WORTLAUT eines bleibenden Schluessels
        gehoert in diese Liste -- und das ist `entry.whoRated`. */
     const WORDING_CHANGED_0300 = ['entry.whoRated'];
-    check('Und genau fuenfzehn Saetze sind andere — die vierzehn von vorher und der eine aus 0.30.0',
-      onlyThen.length === 15 && onlyNow.length === 15 &&
+    /* UND VIERUNDSIEBZIG MIT 0.31.0 -- die Runde, die die Sprachdateien
+       gegenliest. Sie stehen in DREI Listen, weil drei verschiedene Gruende
+       sie bewegt haben; eine gemeinsame Liste verloere genau diese Auskunft.
+
+       SIEBENUNDDREISSIG AUS DER WORTTAFEL (Bauabschnitt 2, Tafeln A bis E).
+       Das ist die Entscheidung der Runde: „konvertieren" statt „umstellen",
+       „Suchtreffer" statt „Fundstelle", „Video-Vorschaubild" statt
+       „Standbild", „Auto" statt „Wie das Gerät", und die Fehlermeldungen
+       sagen den Grund knapp und den Ausweg immer.
+       ZWOELF WEITERE DER TAFEL STEHEN HIER NICHT, und das ist kein
+       Uebersehen: sie sind Schluessel, die eine spaetere Runde erst
+       eingefuehrt hat (`card.storeCaveat` und Geschwister aus 0.27.0,
+       `card.languagesFileAfter` aus 0.24.3, `card.emailsDoubledHint` aus
+       0.29.0, `server.nameOriginalStays` aus 0.25.0). Sie stehen in
+       WORDING_NEW und werden dort gar nicht erst verglichen -- der Stand von
+       0681d42 kennt sie nicht.
+
+       FUENF ERZWUNGENE NACHZIEHER (Befund 1 der Runde). Der Auftrag nennt sie
+       nicht; seine eigenen Entscheidungen ziehen sie: `card.convertProgress`
+       heisst „Konvertierung läuft — …", und `card.convertRunning`,
+       `card.convertFinished` und `card.convertDone` sind DIESELBE Zeile
+       (`id="convert-running"`) in ihren anderen Zustaenden -- sie haetten
+       sonst „Umstellung" gesagt, waehrend eine Sekunde spaeter
+       „Konvertierung" dastand. `server.convertRunning` ist die Absage an
+       denselben Lauf, `card.themeHint` zitiert die Beschriftung, die F3 in
+       „Auto" umbenennt.
+       ZWEI WEITERE NACHZIEHER STEHEN HIER NICHT, aus demselben Grund wie
+       oben: `card.catchUpStore` und `card.derivativesAsk` sind Schluessel aus
+       0.27.0 und stehen in WORDING_NEW.
+
+       ZWEIUNDDREISSIG WEGEN DES ANFUEHRUNGSZEICHENS (Bauabschnitt 3). An
+       ihnen aendert sich KEIN Wort -- nur das schliessende Zeichen ist aus
+       einem geraden `"` ein typografisches `“` geworden. Sie stehen trotzdem
+       hier und nicht in einer Sammelzeile: verglichen werden Saetze Zeichen
+       fuer Zeichen, und ein Zeichen ist ein Zeichen. */
+    const CHANGED_TABLE_0310 = [
+      'list.pillHint', 'entry.jumpToInput', 'card.fontSizeHint', 'card.likeDevice',
+      'list.hitPlace', 'card.calculating', 'card.convertProgress',
+      'server.videoNeedsStill', 'server.videoStill', 'server.stillNoPreview',
+      'server.stillNotImage', 'card.exportPartsHint', 'card.backupWritten',
+      'card.backupWrittenFile', 'card.keyBesideDb', 'card.keyStillBeside',
+      'server.backupInDataDir', 'card.backupDirAdvice', 'card.itemOne', 'card.itemMany',
+      'card.cleanupAfterBackup', 'card.backupUnopenableHint', 'card.autoDeleteHint',
+      'server.exportGrew', 'server.backupDirGone', 'server.backupDirNotSet',
+      'server.backupConcurrent', 'server.targetNotNumber', 'server.partExportIncomplete',
+      'mail.invite.body', 'mail.confirm.body', 'mail.test.body',
+      'card.adminOnlyCategory', 'card.adminOnlyTag', 'card.lastSeen', 'card.linkUsed',
+      'card.allCodesUsed'];
+    const CHANGED_FORCED_0310 = ['card.themeHint', 'card.convertRunning',
+      'card.convertFinished', 'card.convertDone', 'server.convertRunning'];
+    const CHANGED_QUOTE_0310 = [
+      'card.categoryDeleteHint', 'card.createdFrom', 'card.criterionDeleteHint',
+      'card.exportPartsQuoted', 'card.openAppHint', 'card.potentialHint', 'card.purgeHint',
+      'card.restored', 'card.searchUsersHint', 'card.setTo', 'card.tagDeleteHint',
+      'dialog.deleteAlso', 'dialog.deleteUserAsk', 'dialog.nameFreedHint',
+      'dialog.postsOfOthers', 'entry.fileDeleteHint', 'entry.ratingRemoveHint',
+      'entry.searchFor', 'entry.searchForAt', 'entry.starsRemoved', 'entry.testedFirstHint',
+      'entry.titleDeleteHint', 'entry.tooBig', 'entry.unmarkReport', 'list.emptyHint',
+      'list.removedFromList', 'list.setDone', 'list.viewExists', 'server.imageUnreadable',
+      'server.ratingBeforeTest', 'server.testedStays', 'server.viewExists'];
+    const WORDING_CHANGED_0310 = [...CHANGED_TABLE_0310, ...CHANGED_FORCED_0310,
+      ...CHANGED_QUOTE_0310];
+    /* FUENFUNDACHTZIG SEIT 0.31.0, VORHER FUENFZEHN -- und die siebzig mehr
+       sind die Runde selbst: siebenunddreissig aus der Worttafel, fuenf
+       erzwungene Nachzieher und zweiunddreissig, an denen nur das
+       schliessende Anfuehrungszeichen umgezogen ist (WORDING_CHANGED_0310).
+       AUF BEIDEN SEITEN DIESELBE ZAHL, und das ist die eigentliche Auskunft:
+       zu jedem neuen Wortlaut steht drueben genau ein alter, der verschwunden
+       ist. Waere es nicht so, haette diese Runde einen Satz hinzugefuegt oder
+       weggenommen -- und beides waere etwas anderes als „gegenlesen". */
+    check('Und genau fuenfundachtzig Saetze sind andere — die fuenfzehn von vorher und die siebzig aus 0.31.0',
+      onlyThen.length === 85 && onlyNow.length === 85 &&
+      WORDING_CHANGED_0310.every(k => onlyNow.includes(asBefore(LANGUAGE_FILE[k]))
+        || Object.values(LANGUAGE_FILE[k]).every(v => onlyNow.includes(asBefore(v)))) &&
       onlyThen.includes('Wer hat bewertet') &&
       WORDING_CHANGED_0300.every(k => onlyNow.includes(asBefore(LANGUAGE_FILE[k]))) &&
       onlyThen.some(x => x.startsWith('Neue Kategorie')) &&
@@ -19258,7 +19381,7 @@ function sweepLeftovers() {
       onlyThen.includes('mit Fotos') &&
       pluralValues.every(v => onlyNow.includes(v)) &&
       onlyThen.some(x => x.includes('SICHERUNG_DIR')) &&
-      onlyThen.some(x => x.includes('&von=')) &&
+      !onlyThen.some(x => x.includes('&von=')) &&
       onlyThen.includes('Tag „{name}') &&
       onlyThen.includes('{tage} Tagen') &&
       onlyThen.includes('Der Link gilt noch {minuten} Minuten'),
@@ -19284,22 +19407,28 @@ function sweepLeftovers() {
     const restThen = onlyThen.reduce(withoutOne, wordingThen);
     const restNow = [...WORDING_DOUBLED_0281, ...WORDING_DOUBLED_0290].reduce(withoutOne,
       onlyNow.reduce(withoutOne, wordingNow));
-    /* 1183 SEIT 0.30.0, vorher 1185: `list.tagsCount` ist ganz gefallen, und
-       „Wer hat bewertet" ist durch „Wer?" ersetzt -- der alte Wortlaut steht
-       auf beiden Seiten nicht mehr im Rest, sondern in den Listen darueber.
+    /* 1102 SEIT 0.31.0, vorher 1183: elf Werte sind ganz gefallen (die
+       Code-Lecks) und siebzig Saetze sind andere geworden -- beide stehen auf
+       beiden Seiten nicht mehr im Rest, sondern in den Listen darueber.
        Die Zahl steht ausdruecklich da: ein Vergleich ohne sie bliebe gruen,
-       wenn beide Listen zugleich schrumpfen. */
+       wenn beide Listen zugleich schrumpfen.
+       UND DIESE ZEILE IST DIE EIGENTLICHE ABNAHME DER RUNDE: was NICHT in der
+       Worttafel steht, ist Zeichen fuer Zeichen der Stand von 0681d42 --
+       elfhundertzwei Saetze, die niemand angefasst hat. */
     check('Und sonst kein Zeichen — Satz fuer Satz dieselbe Oberflaeche',
-      equal(restThen, restNow) && restNow.length === 1183,
+      equal(restThen, restNow) && restNow.length === 1102,
       `${restThen.filter((x, i) => x !== restNow[i]).length} abweichende von ${restNow.length}`);
 
     /* ---- 6. Die Kuerzeprobe ---------------------------------------------
        KEIN SCHLUESSEL TRAEGT EINE ANGEHAENGTE ZIFFER. Aus `hinweis2` wurde
        nie ein Name, sondern eine Nummerierung -- und eine Nummerierung sagt
        nicht, WAS der Satz ist. Acht Schluessel tragen trotzdem eine Ziffer,
-       und bei allen achten ist sie die SACHE: 50 MB, Schritt 1, 10 Pixel. */
+       und bei allen sechsen ist sie die SACHE: 50 MB und Schritt 1. */
+    /* SECHS SEIT 0.31.0, VORHER ACHT: `list.px10` und `list.px20` sind
+       gefallen -- ihre Ziffer war die Sache, und die Sache war ein PIXELMASS
+       und damit nie Sprache (Bauabschnitt 1). */
     const DIGIT_KEYS = ['card.mb50', 'card.mb100', 'card.mb200', 'card.mb300',
-      'card.twoFactorStep1', 'card.twoFactorStep2', 'list.px10', 'list.px20'];
+      'card.twoFactorStep1', 'card.twoFactorStep2'];
     const withDigit = languageKeys.filter(k => /[0-9]$/.test(k)).sort();
     check('Kuerzeprobe: eine Ziffer traegt nur, wo sie die Sache ist',
       equal(withDigit, [...DIGIT_KEYS].sort()), withDigit.join(' '));
@@ -26460,6 +26589,7 @@ function sweepLeftovers() {
   await check0301();
   await check0302();
   await check0303();
+  await check0310();
 
   /* ---------------------------------------------------------------- */
   /* Der Schlussdurchlauf. Die Gruppen weiter oben pruefen einzelne
@@ -27173,7 +27303,19 @@ function sweepLeftovers() {
      DREI VORHANDENE SIND NACHGEZOGEN und nicht ersetzt worden (916, 935, 936):
      die drei Regeln der Tagzeile nennen seit dieser Runde ihren Traeger, und
      die Suchtexte sind mitgewandert. */
-  check('Es sind genau 942 Rueckbauten', gpList.length === 942, `${gpList.length}`);
+  /* 942 WURDEN 954 -- 0.31.0, und die ZWOELF neuen tragen die Nummern 952 bis
+     963: je einer fuer die elf Zusagen der Runde, und zwei fuer die zweite,
+     weil sie zwei Haelften hat (der Wert im Skript und der Abstand im
+     Stilblatt).
+     JEDER NIMMT GENAU EINE SACHE ZURUECK. Einer, der zwei Zusagen zugleich
+     traefe, saehe in der Tabelle aus wie ein starker Beleg und waere in
+     Wahrheit einer, der nicht sagt, welche von beiden ihn gefangen hat.
+     FUENF VORHANDENE SIND NACHGEZOGEN und nicht ersetzt worden (66, 472, 485,
+     821, 825): ihre Suchtexte standen nach dieser Runde nicht mehr da -- vier
+     davon, weil der Satz ein anderer ist, und 825, weil der Abstand jetzt aus
+     einer Klasse kommt. Ein Rueckbau, dessen Suchtext fehlt, ist ein Fund
+     ueber die LISTE. */
+  check('Es sind genau 954 Rueckbauten', gpList.length === 954, `${gpList.length}`);
   const gpTwice = gpList.map(r => r.nr).filter((n, i, a) => a.indexOf(n) !== i);
   check('Und keine Nummer steht zweimal', gpTwice.length === 0, gpTwice.join(' '));
   /* JEDER GREIFT: der Suchtext kommt in seiner Datei GENAU EINMAL vor. Keinmal
@@ -38725,7 +38867,7 @@ async function checkUi() {
   check('Jede Zeile nennt, wann angemeldet wurde',
     /angemeldet 20\.08\.2026/.test(msuText[0]), msuText[0]);
   check('Und wann zuletzt zugegriffen wurde',
-    /zuletzt gesehen 24\.08\.2026/.test(msuText[0]), msuText[0]);
+    /zuletzt aktiv 24\.08\.2026/.test(msuText[0]), msuText[0]);
   check('Die eigene ist markiert',
     msuRows.filter(r => r.classList.contains('session-mine')).length === 1,
     msuRows.map(r => r.className).join(' · '));
@@ -39145,7 +39287,7 @@ async function checkUi() {
     check('Die Karte nennt die Frist',
       /180 Tage/.test(spText(d)), spText(d).replace(/\s+/g, ' ').slice(0, 200));
     check('Und sagt, dass es keinen anderen Weg hinaus gibt',
-      /ein Löschen von Hand gibt es nicht/.test(spText(d)),
+      /von Hand geht es nicht/.test(spText(d)),
       spText(d).replace(/\s+/g, ' ').slice(0, 260));
     check('Sie sagt ausdruecklich, dass sie kein Aenderungsverlauf ist',
       /Nicht\s+enthalten: Inhalte, Bewertungen/.test(spText(d)), spText(d).replace(/\s+/g, ' ').slice(0, 260));
@@ -40414,7 +40556,8 @@ async function checkUi() {
        Verneinung darueber auch dann gruen, wenn der ganze Absatz verschwaende
        (Stolperstein 81). */
     check('Der Satz zum Schluessel neben der Datenbank bleibt dagegen stehen — 0.22.0',
-      /liegt (noch )?neben der Datenbank/.test(card?.textContent || ''),
+      /liegt (weiterhin im Datenbankverzeichnis|im selben Verzeichnis wie die Datenbank)/
+        .test(card?.textContent || ''),
       card?.textContent?.replace(/\s+/g, ' ').slice(-260));
     /* UND DIE BEGRUENDUNG STEHT DAFUER IN DER README (Stolperstein 81, wieder
        herum: erst das Vorhandensein am neuen Ort, dann die Verneinung am
@@ -40528,8 +40671,8 @@ async function checkUi() {
        Namen ohne einen Satz dazu ist eine Wahl ins Blaue. */
     const storeText = (k) => storeRows.find(z => z.getAttribute('data-store') === k)
       ?.textContent.replace(/\s+/g, ' ') || '';
-    check('„PNG" sagt, dass nichts umkodiert wird',
-      /nichts wird umkodiert/.test(storeText('png')), storeText('png'));
+    check('„PNG" sagt, dass nicht konvertiert wird',
+      /keine Konvertierung/.test(storeText('png')), storeText('png'));
     check('„WebP verlustfrei" nennt sich die Vorgabe',
       /WebP verlustfrei/.test(storeText('webp-lossless')) &&
       /Vorgabe/.test(storeText('webp-lossless')), storeText('webp-lossless'));
@@ -40560,17 +40703,25 @@ async function checkUi() {
        den Halbsatz „ohne sichtbaren Verlust" heraus und blieb STUMM -- der
        Satz stand seit 0.22.0 am Bildschirm und wurde von keiner einzigen
        Zusage gelesen. Deshalb steht hier jede Haelfte einzeln. */
-    check('Die Karte nennt die Auflage: verlustbehaftet lohnt bei Fotos',
-      /Verlustbehaftet lohnt sich nur bei Fotos/.test(baCardText), baCardText.slice(0, 400));
-    check('Und dass es beim Bildschirmfoto mit Text GRÖSSER wird',
-      /Bildschirmfoto mit Text ist es dagegen ein Vielfaches GRÖSSER/.test(baCardText),
+    check('Die Karte nennt die Auflage: verlustbehaftet spart bei Fotos zwei Drittel',
+      /Verlustbehaftete Kompression spart bei Fotos rund zwei Drittel/.test(baCardText),
       baCardText.slice(0, 400));
-    check('Und dass die Bytes den Weg des Bildes nicht verraten',
-      /lässt sich seinen Bytes nicht ansehen/.test(baCardText), baCardText.slice(0, 400));
+    check('Und dass es beim Bildschirmfoto mit Text GRÖSSER wird',
+      /Bildschirmfotos mit Text wird die Datei dagegen GRÖSSER/.test(baCardText),
+      baCardText.slice(0, 400));
+    /* DIE DRITTE HAELFTE HAT MIT 0.31.0 IHRE SACHE GEWECHSELT und ist deshalb
+       umgestellt und nicht gefallen (Stolperstein 201). Bis 0.30.3 stand dort
+       die HERLEITUNG -- „Woher ein PNG kommt, laesst sich seinen Bytes nicht
+       ansehen"; jetzt steht dort die WIRKUNG, und das ist die Regel des
+       Betreibers vom 11. September 2026: „letztlich zaehlt nur welche
+       auswirkung es hat". Die Zusage liest weiterhin die dritte Haelfte -- nur
+       eben die, die dasteht. */
+    check('Und dass die Wahl fuer alles gilt, was hereinkommt',
+      /Die Wahl gilt für alles, was hereinkommt/.test(baCardText), baCardText.slice(0, 400));
     /* UND DIE ABLEITUNGEN FOLGEN DER WAHL NICHT (F3). Ohne diesen Satz hielte
        jemand „PNG" fuer eine Aussage ueber die ganze Zeile. */
     check('Und dass die Vorschaubilder der Wahl nicht folgen',
-      /Vorschaubilder folgen der Wahl nicht: sie sind immer WebP/.test(baCardText),
+      /Vorschaubilder sind in jedem Fall WebP/.test(baCardText),
       baCardText.slice(0, 500));
 
     /* DER KNOPF FRAGT ERST DAS PASSWORT. Ohne die zweite Bestaetigung darf
@@ -40606,7 +40757,7 @@ async function checkUi() {
        ausgerechnet die, die auch dann anfaellt, wenn kein einziges PNG mehr
        dasteht. */
     check('Und dass die Vorschaubilder dabei mitgehen — 0.27.0',
-      /jedes Vorschaubild angesehen und, wo es noch JPEG ist, aus dem Original neu gerechnet/
+      /Veraltete JPEG-Vorschaubilder werden dabei neu generiert/
         .test(dialogText.replace(/\s+/g, ' ')),
       dialogText.replace(/\s+/g, ' ').slice(0, 400));
     check('Und dass nur eine vorher angelegte Sicherung zurueckfuehrt',
@@ -40691,7 +40842,7 @@ async function checkUi() {
       baEmpty.w.document.getElementById('convert-run')?.disabled === false,
       String(baEmpty.w.document.getElementById('convert-run')?.disabled));
     check('Und die Karte sagt, was er dann tut',
-      /Vorschaubild an — was noch JPEG ist, wird neu gerechnet\. Die Originale bleiben unberührt/
+      /Generiert veraltete JPEG-Vorschaubilder neu\. Die Originale bleiben unberührt/
         .test((baCard(baEmpty)?.textContent || '').replace(/\s+/g, ' ')),
       (baCard(baEmpty)?.textContent || '').replace(/\s+/g, ' ').slice(-260));
     baEmpty.w.close();
@@ -40721,9 +40872,9 @@ async function checkUi() {
        uebersetzten Stuecken -- eine englische Oberflaeche las „Conversion
        done: 7 von 12 umgewandelt". Gefunden beim Umbau dieser Zeile. */
     check('Nach einem Lauf sagt die Zeile, was herauskam',
-      /11 von 12 Originalen umgestellt/.test(doneRow) &&
-      /9 Vorschaubilder neu gerechnet/.test(doneRow) &&
-      /an 1 war nichts zu tun/.test(doneRow) &&
+      /11 von 12 Originalen konvertiert/.test(doneRow) &&
+      /9 Vorschaubilder neu generiert/.test(doneRow) &&
+      /1 bereits aktuell/.test(doneRow) &&
       /4,0 MB gespart/.test(doneRow), doneRow);
     /* UND DIE ZEILE DES ZWEITEN LAUFS STEHT NICHT DA, wenn keiner lief. Ohne
        diese Gegenlage waere „sie steht da" nicht von „sie steht immer da" zu
@@ -40883,7 +41034,8 @@ async function checkUi() {
       /Empfohlen ist ein Ordner außerhalb/.test(box?.textContent || ''), box?.textContent);
     check('Er nennt den Grund und nicht nur das Urteil',
       /anderen Platte/.test(box?.textContent || '') &&
-      /Original und\s+Sicherung zugleich verloren/.test(box?.textContent || ''), box?.textContent);
+      /zerstört ein Fehler am Projektordner Original und\s+Sicherung zugleich/
+        .test(box?.textContent || ''), box?.textContent);
     check('Und er sagt, WO es umgestellt wird',
       /docker-compose\.yml/.test(box?.textContent || ''), box?.textContent);
     /* DIE KARTE BLEIBT BENUTZBAR. Der Kasten ist eine Auskunft, keine
@@ -42322,8 +42474,8 @@ async function checkUi() {
   tuField.value = 'bosch';
   tuField.dispatchEvent(new tu.Event('input'));
   await waitSearch(tu);
-  check('Eine unbekannte Quelle heisst „Fundstelle" und faellt nicht weg',
-    tu.document.querySelector('.find-source')?.textContent === 'Fundstelle:',
+  check('Eine unbekannte Quelle heisst „Suchtreffer" und faellt nicht weg',
+    tu.document.querySelector('.find-source')?.textContent === 'Suchtreffer:',
     tu.document.querySelector('.find-source')?.textContent);
   const tuText = tu.document.querySelector('.find-text');
   check('Aus Markup im Ausschnitt entsteht kein Element',
@@ -50075,6 +50227,21 @@ async function checkUi() {
       '(max-width: 700px), (max-height: 500px) and (max-width: 960px)',
       // Stuecke einer Adresse
       '?entries=', '&posts=', '?gruppe=', '&days=', '&target=',
+      /* UND NEUN WEITERE SEIT 0.31.0, Bauabschnitt 1. Sie standen bis 0.30.3
+         als WERTE in den drei Sprachdateien -- `card.filesQuery`,
+         `card.photosQuery`, `card.videosQuery`, `list.thumbQuery`,
+         `card.partQuery`, `entry.linkRel` und `card.composeFile` --, und in
+         allen drei Dateien lasen sie sich gleich. Ein Text, der in drei
+         Sprachen gleich lautet, ist kein Text.
+         SIE STEHEN JETZT DA, WO SIE HINGEHOEREN: in dieser Liste, zwischen
+         den anderen Stuecken einer Adresse und den anderen technischen Namen.
+         Genau das ist ihr Zweck -- sie ist das Verzeichnis dessen, was ein
+         Mensch am Bildschirm NICHT liest.
+         `&to=` FEHLT HIER, UND ZWAR ZU RECHT: der Filter verlangt drei
+         Buchstaben am Stueck, und „to" hat zwei. */
+      '&files=1', '&videos=1', 'photos=1', '?size=thumb',
+      '&from=', '&part=', '&parts=',
+      'noopener,noreferrer', 'docker-compose.yml',
       /* DIE BEIDEN ENDUNGEN DES GESPEICHERTEN SORTIERWERTES -- 0.28.1. `f.sort`
          heisst `updated_desc` oder `title_asc`; die Endung wird beim Zeichnen
          abgeschnitten und beim Waehlen wieder angehaengt. Sie ist eine
@@ -50105,9 +50272,18 @@ async function checkUi() {
     ].sort();
     const tooMany = rest.filter(t => !REST_EXPECTED.includes(t));
     const missing = REST_EXPECTED.filter(t => !rest.includes(t));
-    check('Restprobe: weniger als sechzig lesbare Texte in app.js',
-      rest.length < 60, `${rest.length} verschiedene, ${restPlaces.length} Stellen`);
-    check('Und es sind genau die fuenfzig benannten',
+    /* SIEBZIG SEIT 0.31.0, VORHER SECHZIG -- und der Abstand zur Liste bleibt
+       derselbe. Die Liste ist mit Bauabschnitt 1 von fuenfzig auf
+       neunundfuenfzig gewachsen, weil neun feste Werte aus den Sprachdateien
+       hierher gezogen sind; eine Schranke bei sechzig waere danach eine
+       Stolperschwelle fuer den naechsten begruendeten Eintrag und keine
+       Schranke mehr.
+       DIE EIGENTLICHE SCHRANKE IST DIE ZEILE DARUNTER: sie vergleicht Stueck
+       fuer Stueck und faellt bei EINEM unbenannten Text. Diese hier haelt nur
+       die Groessenordnung -- und dass der Leser ueberhaupt etwas findet. */
+    check('Restprobe: weniger als siebzig lesbare Texte in app.js',
+      rest.length < 70, `${rest.length} verschiedene, ${restPlaces.length} Stellen`);
+    check('Und es sind genau die neunundfuenfzig benannten',
       tooMany.length === 0 && missing.length === 0,
       `zu viel: ${tooMany.slice(0, 8).map(t => JSON.stringify(t.slice(0, 40))).join(' · ')} · fehlt: ${missing.slice(0, 8).map(t => JSON.stringify(t.slice(0, 40))).join(' · ')}`);
     // Und der Filter wirft nicht alles weg: ein deutscher Satz geht durch.
@@ -50542,12 +50718,12 @@ async function checkUi() {
     const blP = blW.userDeleteDialog('bert', 2, blStatus);
     await new Promise(r => setTimeout(r, 20));
     const blDialog = blW.document.getElementById('delete-user');
-    check('Das Loeschfenster fuer einen Benutzer ist EIN Fenster mit Titel „Benutzer „x" löschen?"',
-      blDialog?.querySelector('h2')?.textContent === 'Benutzer „bert" löschen?',
+    check('Das Loeschfenster fuer einen Benutzer ist EIN Fenster mit Titel „Benutzer „x“ löschen?"',
+      blDialog?.querySelector('h2')?.textContent === 'Benutzer „bert“ löschen?',
       JSON.stringify(blDialog?.querySelector('h2')?.textContent));
     check('Es traegt zwei Haekchen mit den Zahlen vom Server',
       !!blDialog?.querySelector('#bl-entries') && !!blDialog?.querySelector('#bl-posts') &&
-      /5 Einträge von „bert" mitlöschen — samt 3 fremden Beiträgen daran/.test(blDialog?.textContent || '') &&
+      /5 Einträge von „bert“ mitlöschen — samt 3 fremden Beiträgen daran/.test(blDialog?.textContent || '') &&
       /2 Kommentare, 1 Bewertung/.test(blDialog?.textContent || ''),
       (blDialog?.textContent || '').replace(/\s+/g, ' ').slice(0, 300));
     check('Und den Satz zum Sperren als Alternative',
@@ -50736,8 +50912,8 @@ async function checkUi() {
       stCalls[0].body?.criterionId === 7 && !stDom.sent.some(g => g.method === 'DELETE'),
       JSON.stringify(stCalls));
     const stToast = stDoc.querySelector('.toast');
-    check('Die Meldung sagt „Sterne bei „Zuerst" entfernt" und traegt den Knopf „Rückgängig"',
-      /^Sterne bei „Zuerst" entfernt/.test(stToast?.textContent || '') &&
+    check('Die Meldung sagt „Sterne bei „Zuerst“ entfernt" und traegt den Knopf „Rückgängig"',
+      /^Sterne bei „Zuerst“ entfernt/.test(stToast?.textContent || '') &&
       stToast?.querySelector('.toast-btn')?.textContent === 'Rückgängig' &&
       stToast?.classList.contains('with-btn'),
       JSON.stringify(stToast?.textContent));
@@ -53834,3 +54010,236 @@ async function check0303() {
   }
 }
 
+/* =================================================================
+   0.31.0 — „Die Sprachdateien werden gegengelesen"
+
+   DREI BAUABSCHNITTE AM TEXT, UND ELF ZUSAGEN DARUEBER. Die Vorlage kam von
+   aussen (Doku/I18N_CLEANUP_DE.md, von Google Gemini geschrieben); jede ihrer
+   Zeilen ist gegen `de.json`, gegen den Quelltext und gegen die beiden anderen
+   Sprachdateien nachgeprueft worden, und was nicht uebernommen wurde, steht
+   mit Grund im Auftrag.
+   DIE ELF CODE-LECKS FALLEN AUS ALLEN DREI DATEIEN ZUGLEICH, die Texte nur
+   aus der deutschen: Englisch ist 0.31.1, Tuerkisch 0.31.2. Der Grund steht
+   im Auftrag (F21) und ist gemessen -- die Deckungsprobe verlangt in jeder
+   Datei dieselben Schluessel, also koennen die SCHLUESSEL nicht warten; die
+   TEXTE koennen es sehr wohl.
+   ================================================================= */
+async function check0310() {
+  const drRead = (code) => JSON.parse(fs.readFileSync(
+    path.join(__dirname, 'public', 'languages', `${code}.json`), 'utf8'));
+  const drFiles = { de: drRead('de'), en: drRead('en'), tr: drRead('tr') };
+  const drApp = fs.readFileSync(path.join(__dirname, 'public', 'app.js'), 'utf8');
+  const drCss = fs.readFileSync(path.join(__dirname, 'public', 'style.css'), 'utf8');
+  /* JEDER WERT MIT SEINEM SCHLUESSEL, und ein Mehrzahlpaar zaehlt zweimal:
+     „du" kann in der Einzahl stehen und in der Mehrzahl fehlen. */
+  const drTexts = (j) => Object.entries(j).filter(([k]) => k !== '_locale' && k !== '_name')
+    .flatMap(([k, v]) => (typeof v === 'string' ? [v] : Object.values(v)).map(text => [k, text]));
+
+  group('Die Sprachdateien werden gegengelesen — 0.31.0');
+  {
+    /* ---- Zusage 1: keine der elf Konstanten steht mehr in einer Sprachdatei
+       IN KEINER DER DREI, und das ist keine Sorgfaltsgeste: zwei Waechter
+       verlangen in jeder Datei dieselben Schluessel, und zwar in derselben
+       Folge. Elf nur aus `de.json` zu nehmen faerbte den Lauf SOFORT rot --
+       `en.json` und `tr.json` haetten dann je „11 zu viel". */
+    const DR_LEAKS = ['entry.targetBlank', 'entry.linkRel', 'entry.imagePrefix',
+      'list.px10', 'list.px20', 'card.composeFile', 'card.filesQuery', 'card.photosQuery',
+      'card.videosQuery', 'list.thumbQuery', 'card.partQuery'];
+    const drLeft = [];
+    for (const [code, file] of Object.entries(drFiles))
+      for (const k of DR_LEAKS) if (file[k] !== undefined) drLeft.push(`${code}/${k}`);
+    check('Zusage 1: keine der elf Konstanten steht mehr in einer Sprachdatei — in keiner der drei',
+      drLeft.length === 0, drLeft.join(' · ') || 'alle elf aus allen dreien weg');
+    // Und es sind wirklich elf -- eine Liste, die schrumpft, belegt weniger.
+    check('Und es sind wirklich elf', DR_LEAKS.length === 11, `${DR_LEAKS.length}`);
+
+    /* ---- Zusage 2: und jede steht als fester Wert im Skript ----
+       MIT IHREM ALTEN INHALT, Zeichen fuer Zeichen. Eine Wegnahme, bei der
+       der Wert unterwegs verloren geht, waere kein Umzug, sondern ein Fehler
+       -- und zwar einer, den erst der Betrieb fände: ein `window.open` ohne
+       `noopener` bleibt still.
+       ZWEI GEHEN NICHT INS SKRIPT, SONDERN INS STILBLATT: `10px` und `20px`
+       waren ein ABSTAND. Eine Konstante im Skript waere derselbe Fehler an
+       anderer Stelle gewesen (Auftrag, F2) -- sie stuende dann inline am
+       Knoten und damit ausserhalb jeder Regel.
+       DER TEILEXPORT WIRD UEBER SEIN GERIPPE GEPRUEFT: die Oberflaeche baut
+       die Adresse heute aus einer Vorlage (`&from=${…}`), der alte Wert trug
+       Platzhalter in geschweiften Klammern (`&from={from}`). Was in Klammern
+       steht, faellt fuer den Vergleich heraus -- was bleibt, ist der Weg. */
+    const drSkeleton = (x) => String(x).replace(/\$?\{[^}]*\}/g, '{}');
+    const DR_IN_SCRIPT = ['_blank', 'noopener,noreferrer', 'image/', 'docker-compose.yml',
+      '&files=1', 'photos=1', '&videos=1', '?size=thumb'];
+    const drMissing = DR_IN_SCRIPT.filter(v => !drApp.includes(`'${v}'`));
+    check('Zusage 2: jeder der acht Werte steht als fester Wert in app.js',
+      drMissing.length === 0, drMissing.join(' · ') || 'alle acht');
+    check('Und die Adresse des Teilexports ebenso — mit ihrem alten Gerippe',
+      drSkeleton(drApp).includes(drSkeleton('&from={from}&to={to}&part={part}&parts={n}')),
+      (drApp.match(/`&from=[^`]*`/) || ['(nicht gefunden)'])[0]);
+    /* UND DIE BEIDEN ABSTAENDE STEHEN IM STILBLATT -- als Klasse und nicht
+       als zweite Konstante. Geprueft wird die REGEL und nicht der Absatz
+       darueber: der Kommentar an ihr nennt die alten Schluessel. */
+    const drRules = drCss.replace(/\/\*[\s\S]*?\*\//g, ' ');
+    check('Und die beiden Abstaende stehen als Klasse im Stilblatt',
+      /\.page-hint \{ margin: 0 0 20px; \}/.test(drRules) &&
+      /\.page-hint\.above-pills \{ margin-bottom: 10px; \}/.test(drRules),
+      (drRules.match(/\.page-hint[^\n]*/g) || ['(keine Regel)']).join(' | '));
+    check('Und beide Listenseiten tragen die Klasse statt eines inline gesetzten Masses',
+      (drApp.match(/class="hint page-hint\$\{multipleUsers\(\) \? ' above-pills' : ''\}"/g) || []).length === 2 &&
+      !/margin:0 0 \$\{multipleUsers\(\)/.test(drApp),
+      (drApp.match(/class="hint page-hint[^"]*"/g) || ['(keine Stelle)']).join(' | '));
+    /* UND KEIN RUF SUCHT DIE ELF NOCH -- weder im Auslieferungsverzeichnis
+       noch in der Umbenennungstafel. Gelesen wird der CODE und nicht der
+       Kommentar: die Absaetze an den alten Stellen erklaeren, warum die
+       Schluessel gefallen sind, und nennen sie dabei. */
+    const drBare = (file) => fs.readFileSync(path.join(__dirname, file), 'utf8')
+      .replace(/\/\*[\s\S]*?\*\//g, ' ').replace(/^\s*\/\/.*$/gm, ' ');
+    const drNames = fs.readFileSync(path.join(__dirname, 'tools', 'keys.json'), 'utf8');
+    const drCalled = DR_LEAKS.filter(k =>
+      ['public/app.js', 'server.js', 'auth.js', 'mail.js'].some(f => drBare(f).includes(k))
+      || drNames.includes(k));
+    check('Und kein Ruf sucht die elf noch — auch nicht in der Umbenennungstafel',
+      drCalled.length === 0, drCalled.join(' · ') || 'kein Ruf mehr');
+
+    /* ---- Zusage 3: die drei Dateien tragen gleich viele Schluessel ----
+       1254, und die Zahl steht ausdruecklich da: „gleich viele" allein bliebe
+       gruen, wenn jemand aus allen dreien dasselbe herausnaehme. */
+    const drCounts = Object.fromEntries(
+      Object.entries(drFiles).map(([code, file]) => [code, Object.keys(file).length]));
+    check('Zusage 3: die drei Dateien tragen gleich viele Schluessel — 1254',
+      Object.values(drCounts).every(n => n === 1254),
+      Object.entries(drCounts).map(([c, n]) => `${c}: ${n}`).join(' · '));
+
+    /* ---- Zusage 4: kein Text mischt „ mit einem geraden " ----
+       DREIUNDDREISSIG SCHLUESSEL, VIERUNDDREISSIG TEXTE haben in dieser Runde
+       ihr schliessendes Zeichen bekommen -- auf Deutsch und auf Tuerkisch
+       (`en.json` hatte keinen einzigen). Der Waechter haelt es danach fest:
+       ein gerades Zeichen schleicht sich sonst beim naechsten Satz unbemerkt
+       wieder ein, und am Bildschirm steht „Tag „Werkzeug" statt „Werkzeug“.
+       DIE TUERKISCHE DATEI BEKOMMT DAMIT KEINEN NEUEN TEXT: dasselbe Wort,
+       dasselbe Zeichenpaar, nur richtig geschlossen. Dass das Paar dort am
+       Ende `“…”` heissen muss, ist die Sache von 0.31.2. */
+    const drMixed = [];
+    for (const [code, file] of Object.entries(drFiles))
+      for (const [k, text] of drTexts(file))
+        if (text.includes('„') && text.includes('"')) drMixed.push(`${code}/${k}`);
+    check('Zusage 4: kein Text der drei Dateien mischt „ mit einem geraden "',
+      drMixed.length === 0, drMixed.slice(0, 10).join(' · ') || 'keiner');
+    /* UND DAS PAAR IST WIRKLICH DA -- ohne diese Zeile bliebe die Zusage auch
+       dann gruen, wenn jemand alle Anfuehrungszeichen entfernte. */
+    const drPairs = drTexts(drFiles.de).filter(([, t]) => t.includes('„') && t.includes('“'));
+    check('Und dreissig deutsche Texte tragen das Paar wirklich',
+      drPairs.length >= 30, `${drPairs.length} Texte mit „…“`);
+
+    /* ---- Zusage 5: die vier Video-Meldungen sagen „Video-Vorschaubild" ----
+       „Standbild" IST TECHNISCH RICHTIG UND FUER DEN BENUTZER OHNE BELANG
+       (Auftrag, F10) -- und „Video-Vorschaubild" trifft die Sache genauer:
+       das Bild liegt in denselben Spalten `thumb`/`medium` wie jedes andere
+       Vorschaubild, nur mit `kind = 'video'`.
+       BEIDE RICHTUNGEN, wie immer: dass das neue Wort dasteht, UND dass das
+       alte nirgends mehr steht. Eine Zusage, die nur den einen Ausgang kennt,
+       bliebe gruen, wenn beide Saetze nebeneinanderstuenden. */
+    const DR_VIDEO = ['server.videoNeedsStill', 'server.videoStill',
+      'server.stillNoPreview', 'server.stillNotImage'];
+    check('Zusage 5: die vier Video-Meldungen sagen „Video-Vorschaubild"',
+      DR_VIDEO.every(k => String(drFiles.de[k]).includes('Video-Vorschaubild')),
+      DR_VIDEO.map(k => `${k}: ${drFiles.de[k]}`).join(' · '));
+    const drStill = drTexts(drFiles.de).filter(([, t]) => /Standbild/.test(t));
+    check('Und keine sagt „Standbild" — kein deutscher Text tut es mehr',
+      drStill.length === 0, drStill.map(([k]) => k).join(' · ') || 'keiner');
+
+    /* ---- Zusage 6: „gruppiert nach" steht weiter da ----
+       GEMINI WOLLTE „sortiert nach", UND DAS WAERE FALSCH GEWESEN: die
+       Ansicht gruppiert wirklich -- `groupsOf()` fasst aufeinanderfolgende
+       Zeilen desselben Eintrags zu EINER Gruppe zusammen. Ein Wort, das die
+       Oberflaeche nicht mehr beschreibt, ist kein kuerzeres Wort, sondern ein
+       falsches (Auftrag, F9).
+       GEPRUEFT WIRD BEIDES: der Satz und die Sache dahinter. */
+    check('Zusage 6: „gruppiert nach" steht weiter da',
+      /gruppiert nach/.test(String(drFiles.de['list.openGroupedBy'])),
+      String(drFiles.de['list.openGroupedBy']));
+    check('Und die Ansicht gruppiert wirklich — groupsOf() fasst zusammen',
+      /const groupsOf = \(list\) => \{/.test(drApp) && /groupsOf\(inside\)\.forEach/.test(drApp),
+      (drApp.match(/groupsOf[^\n]*/g) || ['(nicht gefunden)']).slice(0, 2).join(' | '));
+
+    /* ---- Zusage 7: `login.linkUnaffectedWord` ist „nicht" ----
+       GEMINI WOLLTE „unberührt", UND DAS BRICHT DEN SATZ: das Wort steht
+       HERVORGEHOBEN in zwei Traegersaetzen („Dein Link ist davon {word}
+       betroffen"), und die Hervorhebung sitzt auf der VERNEINUNG. Mit
+       „unberührt" stuende dort „Dein Link ist davon unberührt betroffen".
+       BEIDE TRAEGERSAETZE WERDEN GEFRAGT -- Gemini nennt nur einen. */
+    check('Zusage 7: `login.linkUnaffectedWord` ist „nicht"',
+      drFiles.de['login.linkUnaffectedWord'] === 'nicht',
+      JSON.stringify(drFiles.de['login.linkUnaffectedWord']));
+    check('Und beide Traegersaetze tragen es',
+      ['login.linkUnaffected', 'login.linkUnaffectedRetry']
+        .every(k => String(drFiles.de[k]).includes('{word}')),
+      ['login.linkUnaffected', 'login.linkUnaffectedRetry']
+        .map(k => `${k}: ${drFiles.de[k]}`).join(' · '));
+    /* UND DIE AUSZEICHNUNG LAEUFT WEITER UEBER tMark() -- das `{word}` wird
+       gegen ein Steuerzeichen getauscht und danach mit <strong> umschlossen.
+       Ohne diese Zeile bliebe die Zusage gruen, wenn jemand die Hervorhebung
+       entfernte und das Wort als gewoehnlichen Wert reichte. */
+    check('Und die Hervorhebung sitzt auf ihm',
+      (drApp.match(/tMark\('login\.linkUnaffected(Retry)?', 'login\.linkUnaffectedWord'\)/g) || []).length === 2,
+      (drApp.match(/tMark\([^)]*\)/g) || ['(kein Ruf)']).join(' | '));
+
+    /* ---- Zusage 8 und 9: die beiden Bilder des Projekts fallen ----
+       „Das Haus verlassen" UND „Pille" SIND HAUSWOERTER, und beide haben am
+       Bildschirm nichts zu suchen (Leitplanke L7 und Frage F7). Wer Export
+       drueckt, weiss, dass es das System verlaesst; und was der Benutzer
+       sieht, ist eine runde Schaltflaeche und keine Arznei.
+       IM CODE BLEIBT `pill` -- die Klasse heisst weiter so, und das ist der
+       Unterschied, um den es geht: drinnen ein Bild, draussen eine Sache.
+       GEFRAGT WIRD DIE DEUTSCHE DATEI. `en.json` traegt „leaves the house"
+       und `tr.json` „hap" bis heute -- sie sind 0.31.1 und 0.31.2, und der
+       Auftrag sagt ausdruecklich, warum: solange die Quelle das Bild traegt,
+       erbt es jede Uebersetzung neu. */
+    const drHouse = drTexts(drFiles.de).filter(([, t]) => /[Hh]aus\b/.test(t));
+    check('Zusage 8: kein deutscher Text sagt „das Haus"',
+      drHouse.length === 0, drHouse.map(([k]) => k).join(' · ') || 'keiner');
+    const drPill = drTexts(drFiles.de).filter(([, t]) => /Pille|Pillen/.test(t));
+    check('Zusage 9: kein deutscher Text sagt „Pille"',
+      drPill.length === 0, drPill.map(([k]) => k).join(' · ') || 'keiner');
+    check('Und die Klasse `pill` bleibt — im Stilblatt und im Quelltext',
+      /\.pill \{/.test(drRules) && /class="pills"/.test(drApp),
+      (drRules.match(/\.pill \{[^}]{0,40}/) || ['(keine Regel)'])[0]);
+
+    /* ---- Zusage 10: die Vokabelkarte beschriftet mit „Einzahl"/„Mehrzahl" --
+       „SACHE" WAR GENAU DAS WORT, DAS DER BETREIBER DORT ERSETZEN SOLL: die
+       Karte fragt, wie SEINE Eintraege heissen, und schrieb ihm einen Namen
+       vor. Die fuenf Geschwisterpaare tragen weiter ein Wort davor („Bericht,
+       Einzahl") -- sie benennen einen FESTEN Begriff; dieses eine nicht. */
+    check('Zusage 10: die Vokabelkarte beschriftet ihre Felder mit „Einzahl" und „Mehrzahl"',
+      drFiles.de['card.itemOne'] === 'Einzahl' && drFiles.de['card.itemMany'] === 'Mehrzahl',
+      `${drFiles.de['card.itemOne']} · ${drFiles.de['card.itemMany']}`);
+    check('Und die Karte liest sie wirklich an ihren beiden ersten Feldern',
+      /\['v1', 'entryOne', \(\) => t\('card\.itemOne'\)\], \['v2', 'entryMany', \(\) => t\('card\.itemMany'\)\]/
+        .test(drApp),
+      (drApp.match(/\['v1'[^\n]*/) || ['(nicht gefunden)'])[0]);
+
+    /* ---- Zusage 11: die Zahl der Texte im aktiven Du sinkt nicht ----
+       GEMINIS UEBERSCHRIFT VERSPRICHT „professionelles Du (Linear-/
+       Notion-Stil)" UND LIEFERT INFINITIVE OHNE SUBJEKT: „Bitte Verzeichnis
+       auf dem Server einbinden", „Am Computer den Schluessel ohne Leerzeichen
+       eingeben". Das ist kein Du, das ist Behoerdendeutsch.
+       SIEBENUNDSECHZIG WAREN ES BEI 0.30.3, NEUNUNDSECHZIG SIND ES JETZT --
+       gezaehlt werden die Vorkommen von „du", „dir", „dich" und „dein…" als
+       ganze Woerter. Die zwei mehr stehen in den Briefen: „kommt in deinen
+       Zugang" und „dass die Adresse dir gehört".
+       DIE SCHRANKE STEHT AUF NEUNUNDSECHZIG UND NICHT AUF SIEBENUNDSECHZIG,
+       und das ist Absicht: bei siebenundsechzig duerfte die naechste Runde
+       den Gewinn dieser hier stillschweigend wieder hergeben. Wer die Zahl
+       senkt, soll hier vorbeikommen muessen. */
+    const DR_YOU = /\b[Dd](?:u|ir|ich|ein(?:e|er|em|en|es)?)\b/g;
+    const drYou = drTexts(drFiles.de)
+      .reduce((n, [, t]) => n + (t.match(DR_YOU) || []).length, 0);
+    check('Zusage 11: die Zahl der Texte im aktiven Du sinkt nicht — 69, vorher 67',
+      drYou >= 69, `${drYou} Vorkommen von du/dir/dich/dein…`);
+    /* UND DER ZAEHLER ZAEHLT WIRKLICH DAS DU -- ohne diese Zeile bliebe die
+       Zusage gruen, wenn das Muster an jedem Wort griffe. */
+    check('Und der Zaehler trennt die Anrede vom Wortstueck',
+      ('Setz dein Passwort, du'.match(DR_YOU) || []).length === 2 &&
+      ('Dublette, Reduktion, Individuum'.match(DR_YOU) || []).length === 0,
+      JSON.stringify('Dublette, Reduktion, Individuum'.match(DR_YOU)));
+  }
+}

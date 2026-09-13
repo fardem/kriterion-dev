@@ -1211,6 +1211,27 @@ kann, und jede davon ändert alle drei Dateien zugleich.* **Die zwei falschen
 Diagnosen** *(Gruppe 1)* bleiben ebenfalls aufgeschrieben — nicht als Arbeit,
 sondern damit derselbe Bericht nicht ein zweites Mal geglaubt wird.
 
+> **DIE DEUTSCHE HÄLFTE IST GEBAUT — 0.31.0, am 13. September 2026.** *Gruppe 3
+> ist für `de.json` entschieden und gebaut: „das Haus verlassen", „Sache",
+> „Standbild", „Wie das Gerät" und „Pille" stehen dort nicht mehr, „Sicherung
+> geschrieben" heißt „Sicherung erstellt", und die Mailtexte tragen den Satz des
+> Betreibers.* **Dazu elf Code-Lecks aus allen drei Dateien und vierunddreißig
+> Anführungszeichen** *(deutsch und türkisch)*. **Was daraus geworden ist, steht
+> im Änderungsprotokoll 0.31.0 und nach Regel 2 nicht mehr hier.**
+>
+> **WAS VON PUNKT 24 OFFEN BLEIBT — und zwar genau dreierlei:**
+>
+> | | |
+> |---|---|
+> | **`en.json`** | die englischen Sätze, **0.31.1**. *Heute steht dort „files that **leaves the house**" — Wort für Wort aus dem Deutschen, samt seiner Bilder* |
+> | **`tr.json`** | die türkischen, **0.31.2**. *„hap" für die Filterpille, „Cihaz gibi" für „Wie das Gerät", „Bulunan yer" für die Fundstelle — und das Zeichenpaar `„…“` statt `“…”`* |
+> | **„Note" bei 1 bis 5 Sternen** *(Gruppe 2)* | **unverändert offen.** *`entry.grade` und `server.gradeRange` sagen weiter „Note", und bei Schulnoten ist 1 das Beste. 0.31.0 hat sie nicht angefasst: der Auftrag nennt sie nicht, und das Wort steht in **allen drei** Dateien — es ist damit keine deutsche Wortwahl, sondern eine Entscheidung über den Begriff selbst* |
+>
+> **UND EINE REGEL IST DAZUGEKOMMEN, die künftige Berichte betrifft** *(Abschnitt
+> 12 des Projektstands)*: **der deutsche Wortlaut ist ab 0.31.0 unveränderliche
+> Basis.** *Der Betreiber am 13. September 2026: „es kann nur für englisch
+> Vorschläge abgeben etc aber nicht mehr am deutsch meckern das verbiete ich."*
+
 > **SIE HAT EINE NUMMER: 0.31.0 — „Die Sprachen werden gegengelesen"**, am
 > 10. September 2026 in den Fahrplan gesetzt. **Unmittelbar vor dem Bruch**,
 > weil sie die letzte Runde ist, die den Wortlaut der Oberfläche und den
