@@ -32610,10 +32610,20 @@ async function checkUi() {
          zaehlte die beiden Gewichtsstellen mit -- vier statt zwei. Eine Zahl,
          die von einer fremden Funktion mit abhaengt, sagt nichts ueber die
          eigene. */
-      const vsRufe = (vsQuelle.match(/\btMark\(/g) || []).length;
+      /* BIS 0.31.0 STAND HIER `vsRufe === 2` -- die beiden Rufe, die 0.25.4
+         angelegt hat. Das war eine Zahl, die von der GANZEN Datei abhing und
+         nicht von dieser Zusage: 0.31.1 loest den zersaegten Satzbau auf und
+         bringt achtunddreissig weitere tMark()-Stellen mit. Die Zusage waere
+         rot geworden, ohne dass ihr Gegenstand sich geruehrt haette -- genau
+         der stille Fehlschluss aus Stolperstein 81.
+         GEPRUEFT WIRD JETZT DER GEGENSTAND SELBST: die beiden Rufe DIESER
+         Runde stehen namentlich da, und die alte Zusammensetzung nicht. */
+      const vsEigene = ["tMark('login.linkUnaffected', 'login.linkUnaffectedWord')",
+                        "tMark('login.linkUnaffectedRetry', 'login.linkUnaffectedWord')"];
+      const vsFehlt = vsEigene.filter(r => !vsQuelle.includes(r));
       check('Und der Ruf, der drei Stücke zusammensetzte, ist weg',
-        !/login\.yourLinkAffected|login\.not'/.test(vsQuelle) && vsRufe === 2,
-        `tMark-Stellen: ${vsRufe}`);
+        !/login\.yourLinkAffected|login\.not'/.test(vsQuelle) && vsFehlt.length === 0,
+        vsFehlt.length ? `fehlt: ${vsFehlt.join(' · ')}` : 'beide Rufe stehen namentlich');
 
       /* ---- DAS ANFUEHRUNGSZEICHEN, DAS NIE GESCHLOSSEN WURDE ------------
          `entry.tagQuote` geht unveraendert in ein `title`; am Bildschirm
@@ -32662,8 +32672,16 @@ async function checkUi() {
          und nicht nur beim allgemeinen Platzhalterwaechter: der Befund ist
          diese Runde, und wer ihn zurueckbaut, soll unter seinem Namen
          auffallen und nicht unter einem fremden. */
+      /* SEIT 0.31.1 GEHT DER WERT DURCH tMark() -- beide Saetze tragen dort
+         eine Hervorhebung, und der Zaehlwert reist im dritten Parameter mit.
+         DIE ZUSAGE IST DIESELBE GEBLIEBEN, ihre Formulierung nicht: gesucht
+         wird jetzt der SCHLUESSEL mit `{ n:` dahinter, gleich ob er als
+         erstes Argument von tH() oder als zweites von tMark() steht. Wer die
+         alte Form festschriebe, haette eine Zusage, die am Umbau ihrer
+         Umgebung zerbricht und nicht an ihrem eigenen Gegenstand
+         (Stolperstein 201). */
       const vsGereicht = (vsQuelle.match(
-        /tH\('(?:card\.inDays|login\.linkValidMinutes)',\s*\{\s*n:/g) || []).length;
+        /(?:card\.inDays|login\.linkValidMinutes)',\s*\{\s*n:/g) || []).length;
       check('Und beide Stellen reichen den Zählwert unter dem Namen n',
         vsGereicht === 2, `${vsGereicht} von 2`);
     }

@@ -133,12 +133,12 @@ const tMark = (key, wordKey, values) => tH(key, { ...values, word: '\u0001' })
    Grund: die Auszeichnung laeuft NIE durch den maskierenden Weg. Die FUELLUNG
    muss der Rufer maskiert hereingeben -- dieselbe Teilung wie in tH(), und sie
    steht sichtbar an seiner Zeile statt versteckt in dieser. */
-const tMarks = (key, stuecke, values) => {
-  const namen = Object.keys(stuecke), marken = {};
-  namen.forEach((n, i) => { marken[n] = `\u0001${i}\u0001`; });
-  let satz = tH(key, { ...values, ...marken });
-  namen.forEach((n, i) => { satz = satz.replace(`\u0001${i}\u0001`, stuecke[n]); });
-  return satz;
+const tMarks = (key, parts, values) => {
+  const names = Object.keys(parts), marks = {};
+  names.forEach((n, i) => { marks[n] = `\u0001${i}\u0001`; });
+  let sentence = tH(key, { ...values, ...marks });
+  names.forEach((n, i) => { sentence = sentence.replace(`\u0001${i}\u0001`, parts[n]); });
+  return sentence;
 };
 
 /* ZWEI FORMEN, UND DIE ZAHL WAEHLT -- ueber Intl.PluralRules und nicht ueber
@@ -4033,7 +4033,12 @@ function drawFilters() {
     // Gedaempft, solange weniger als zwei Tags gewaehlt sind.
     const modeBox = document.createElement('div');
     modeBox.className = 'tagmode' + (f.tagIds.length > 1 ? '' : ' idle');
-    [['and', t('list.and'), t('list.allTagsHint')],
+    /* DIE BESCHRIFTUNG IST NICHT DAS BINDEWORT -- 0.31.1. Bis hierher las
+       dieser Knopf `list.and`, und derselbe Schluessel bindet in
+       `list.ofWhich` eine Aufzaehlung zusammen („3 Berichte und 2 Aufgaben").
+       Ein Bindewort steht klein und mit Leerzeichen, eine Beschriftung gross
+       und ohne -- also stand hier „ und " neben „Oder". */
+    [['and', t('list.tagModeAnd'), t('list.allTagsHint')],
      ['or', t('list.or'), t('list.anyTagHint')]]
       .forEach(([value, text, explanation]) => {
         const b = document.createElement('button');
