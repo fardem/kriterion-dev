@@ -151,11 +151,12 @@ Sprachumschalter baut, hat damit ein Muster und braucht kein neues.**
 | ~~**0.30.1**~~ | ~~Was der Rundlauf mit 0.30.0 gefunden hat~~ | **GEBAUT am 12. September 2026** — Änderungsprotokoll 0.30.1. *Acht Befunde aus dem Rundlauf, sieben davon Oberfläche; **PATCH**, kein Schemaanteil. Die Fragetafel trug vierundzwanzig Fragen — drei davon Rückfragen an einen Satz, und eine Messung hat zwei Annahmen des Auftrags widerlegt* | nein | — |
 | ~~**0.30.2**~~ | ~~Die Tagzeile bekommt ihre Breite zurück~~ | **GEBAUT am 12. September 2026** — Änderungsprotokoll 0.30.2. *Ein Befund aus dem Rundlauf mit 0.30.1; **PATCH**, kein Schemaanteil. Die dritte Rasterspalte nahm der Tagwolke bis zu 180 der 366 Pixel — auf Deutsch fiel die Tagzeile von 845 auf 321* | nein | — |
 | ~~**0.30.3**~~ | ~~Die zugeklappte Tagzeile füllt, was sie ohnehin kostet~~ | **GEBAUT am 12. September 2026** — Änderungsprotokoll 0.30.3. *Ein Befund aus dem Rundlauf mit 0.30.2; **PATCH**, kein Schemaanteil. Die zugeklappte Zeile ließ fünfunddreißig Pixel leer, weil die Beschriftungsspalte ihre Höhe verlangt und die Wolke daneben nur eine Reihe zeigte — jetzt zwei, und bei wenigen Tags fällt die Anordnung ganz weg* | nein | — |
-| ~~**0.31.0**~~ | ~~Die Sprachdateien werden gegengelesen — deutsch~~ | **GEBAUT am 13. September 2026** — Änderungsprotokoll 0.31.0. *Elf Code-Lecks raus (aus allen drei Dateien: 1265 → 1254), neunundvierzig deutsche Texte geschärft, vierunddreißig Anführungszeichen berichtigt (deutsch und türkisch). **MINOR**, kein Schemaanteil. Die Vorlage kam von Google Gemini und ist Zeile für Zeile gegen den Quelltext geprüft worden; das Änderungsprotokoll trägt die Absichtszeilen für 0.31.1 und 0.31.2* | nein | — |
-| **0.31.1** | **… englisch** | `en.json` übersetzt die ABSICHT der deutschen Sätze, nicht ihre Wörter. *Heute steht dort „files that leaves the house“* | nein | — |
-| **0.31.2** | **… türkisch** | `tr.json` ebenso. *Heute steht dort „hap“ — die Tablette — für die Filterpille* | nein | — |
-| **0.32.0** | **Der Ruf beim Namen** | `@name` in Notiz, Bericht und Aufgabe — hervorgehoben, und der Genannte bekommt eine Glocke *(bestellt 12.9.2026)* | **offen** | — |
-| **0.33.0** | **Bereinigung — der Bruch** | **elf** Migrationsblöcke raus *(0.27.0 hat den elften gebracht)*, Struktur festgeschrieben, **kein Rückweg** | **ja** | — |
+| ~~**0.31.0**~~ | ~~Die Sprachdateien werden gegengelesen — deutsch~~ | **GEBAUT am 13. September 2026** — Änderungsprotokoll 0.31.0. *Elf Code-Lecks raus (aus allen drei Dateien: 1265 → 1254), neunundvierzig deutsche Texte geschärft, vierunddreißig Anführungszeichen berichtigt (deutsch und türkisch). **MINOR**, kein Schemaanteil. Die Vorlage kam von Google Gemini und ist Zeile für Zeile gegen den Quelltext geprüft worden; das Änderungsprotokoll trägt die Absichtszeilen für 0.31.2 und 0.31.3* | nein | — |
+| **0.31.1** | **Deutsch sitzt** | **Der Durchgang durch alle 1254 deutschen Schlüssel, 13.9.2026.** **211 Bruchstücke** in 130 Zeilen werden zu ganzen Sätzen; dazu ein Schlüssel, der Programmablauf führt (`entry.reportKind`), vier Stellen Stolperstein 47 und die vierzehn Vokabelbeschriftungen auf EINE Regel. *Der Wortlaut ändert sich nicht — nur seine Ablage* | nein | — |
+| **0.31.2** | **… englisch** | `en.json` übersetzt die ABSICHT der deutschen Sätze, nicht ihre Wörter. *Heute steht dort „files that leaves the house“* | nein | — |
+| **0.31.3** | **… türkisch** | `tr.json` ebenso. *Heute steht dort „hap“ — die Tablette — für die Filterpille.* **Sie fährt zuletzt, und das ist der Grund für 0.31.1:** an ihr ist das Zersägen schon einmal zerbrochen | nein | — |
+| **0.32.0** | **Der Ruf beim Namen** | `@name` in Notiz, Bericht und Aufgabe — hervorgehoben, und der Genannte bekommt eine Glocke *(bestellt 12.9.2026)*. **Dazu am 13.9.2026: die Glocke muss unterscheiden können, „Filter folgt der Sortierung“ wird herausgearbeitet, und zwei Befunde aus der Filterzeile** *(„+ Ansicht speichern“ wird Text statt Pille; der „Mehr“-Aufklapper wird breitenabhängig)* | **offen** | — |
+| **0.33.0** | **Bereinigung — der Bruch** | **zwölf** Migrationsblöcke raus *(0.29.0 hat den zwölften gebracht)*, **dazu die JPEG-Vorschaubilder des Bestandslaufs** *(entschieden 13.9.2026)*, Struktur festgeschrieben, **kein Rückweg** | **ja** | — |
 | **0.33.x** | **Die Kommentare werden knapp** | 16.281 von 54.822 Zeilen sind Kommentar | nein | — |
 | **0.34.0** | **Der Prüfstand bekommt ein Verzeichnis** | `testbench.js` in Module — **und damit erst der echte Teillauf** | nein | — |
 | **0.35.0** | **Code-Effizienz** | Leichen und ineffizienter Code | offen | — |
@@ -1007,6 +1008,252 @@ Sprachdateien an und keine Tabelle.
 
 ---
 
+## 0.31.1 — „Deutsch sitzt"
+
+**Aus dem Rundlauf mit 0.31.0, am 13. September 2026.** Der Betreiber hat die
+Runde am laufenden Server angesehen, sieben Befunde gemeldet und die Richtung
+vorgegeben: *„gehe die deutsche sprache sorgfältig durch und mach kein
+schnellschuss. deutsch muss sitzen. von dem aus gehen wir in die anderen
+sprachen."*
+
+**DARAUF IST DIE GANZE DATEI GELESEN WORDEN** — alle 1254 Schlüssel, jeder
+gegen seine Aufrufstelle. *Was dabei herauskam, steht unten; es ist mehr, als
+die Fragetafel von 0.31.0 vermutet hat, und an einer Stelle ist es ein Fehler
+und keine Geschmacksfrage.*
+
+**SIE SCHIEBT ENGLISCH UND TÜRKISCH UM EINE NUMMER.** *Das ist keine
+Verzögerung, sondern die billigere Reihenfolge:* **211 der 1254 Schlüssel sind
+Bruchstücke, die in dieser Runde verschwinden.** Wer sie vorher übersetzt,
+schreibt zweihundert Sätze, die es danach nicht mehr gibt — und das Türkische
+ist genau die Sprache, an der das Zersägen schon einmal zerbrochen ist.
+
+### I · Der zersägte Satzbau — gemessen und nicht geschätzt
+
+| | |
+|---|---|
+| **211 Schlüssel** | von 1254 — jeder sechste |
+| **130 Zeilen** | in `public/app.js` |
+| **wo** | `card` 171 · `entry` 24 · `list` 8 · `login` 7 · `dialog` 1 — **die Karten tragen es fast allein** |
+
+**Drei Sorten, und keine davon ist Auslegung:**
+
+| | was | Zahl | Beispiel |
+|---|---|---|---|
+| **1** | fängt mit einem **Satzzeichen** an | **42** | `card.theDot` = *„. Das"* — ein Punkt und ein Artikel als übersetzbarer Schlüssel |
+| **2** | ist ein **blosses Füllwort** | **13** | `card.and` = *„und"*, `card.theMasc` = *„Der"*, `card.or` = *„oder"* |
+| **3** | fängt klein an **und wird verklebt** | **61** | `card.valid` = *„gültig,"*, `entry.calcOut` = *„heraus."* |
+
+**UND ZEHN WERTE TRAGEN EINE UNPAARIGE KLAMMER.** *Die Klammer öffnet in einem
+Schlüssel und schließt in einem anderen:* `card.withPhotos` = „Mit Fotos (~",
+`card.forSearchText` = „für den Suchtext (", `card.noBackupDirCard` = „Es ist
+kein Sicherungsordner eingerichtet (siehe Karte". **Ein Übersetzer bekommt
+einen Satz, der mit einer offenen Klammer endet, und soll raten, was folgt.**
+
+> **DER SCHÄRFSTE FALL IST DAS ANFÜHRUNGSZEICHENPAAR SELBST.**
+> `card.forQuote` = **„für „"** und `card.shownOnce` = **„" — wird nur einmal
+> angezeigt."** stehen in `public/app.js:11227` um einen Benutzernamen herum.
+> *Das öffnende und das schließende Zeichen eines Paares liegen in zwei
+> verschiedenen Schlüsseln* — und Englisch schreibt `“…”`, Türkisch wieder
+> anders. **Was hier zersägt ist, ist nicht einmal ein Satz, sondern ein
+> Satzzeichen.**
+
+**DER WEG IST GEBAUT UND ERPROBT.** *`tMark()` (`public/app.js:106`) trägt seit
+0.25.4 genau diesen Fall:* ein ganzer Satz mit `{word}`-Platzhalter, die
+Hervorhebung über ein Steuerzeichen eingesetzt. **86 der 106 Nähte sind reine
+Auszeichnung und fallen damit ohne einen einzigen neuen Gedanken.** *Die
+übrigen zwanzig tragen einen eingesetzten Wert, ein `<code>`-Stück oder blossen
+Text und brauchen je einen Platzhalter mehr.*
+
+> **DER DEUTSCHE WORTLAUT ÄNDERT SICH DABEI NICHT UM EIN ZEICHEN.** Es ändert
+> sich nur, auf wie viele Schlüssel er verteilt ist. **Abschnitt 12 ist damit
+> nicht berührt** — das deutsche Ergebnis bleibt unveränderliche Basis; die
+> Runde fasst seine ABLAGE an und nicht seinen Wortlaut.
+
+### II · Zwei Schlüssel führen Programmablauf durch die Sprachdatei — und einer ist ein Fehler
+
+**`entry.reportKind` = „report".** *In `public/app.js` stehen zwei Zeilen
+untereinander, und sie machen denselben Vergleich verschieden:*
+
+```
+8344    kind.classList.toggle('on', newKind === 'report');
+8345    kind.title = newKind === t('entry.reportKind') ? ... : ...;
+```
+
+**Zeile 8344 vergleicht den Datenbankwert gegen sich selbst. Zeile 8345
+vergleicht ihn gegen einen SPRACHWERT.** *Und `newKind` ist ein reiner
+Datenwert:* er startet auf `'note'` (8336), wird zwischen `'report'` und
+`'note'` umgeschaltet (8380) und geht als `fd.append('kind', newKind)` an den
+Server (8416). **In derselben Funktion stehen fünf weitere Vergleiche — 8343,
+8347, 8348, 8352, 8380 — und alle fünf prüfen gegen ein Literal.** *Einer von
+sechs läuft durch die Sprachdatei; das ist kein Entwurf, sondern ein
+Verrutscher.*
+
+**HEUTE GEHT ES AUF, und genau das ist die Gefahr.** *Der Schlüssel steht in
+allen drei Dateien auf „report" — er ist einer von dreizehn, deren Wert sich in
+`de`, `en` und `tr` deckt.* **Wer die deutsche Datei liest, sieht ein
+englisches Wort ohne erkennbaren Grund und übersetzt es — und die Beschriftung
+des Knopfes dreht sich stumm um.** *Der Schlüssel hat keinen Leser; er
+existiert nur für diesen einen Vergleich und gehört gelöscht.*
+
+**`dialog.sessionExpired` ist dieselbe Sorte, eine Stufe milder.** *Er wird an
+zwei Stellen geworfen (`306`, `1617`) und an sechs zurückverglichen.* **Ein
+Sprachwechsel zwischen Wurf und Fang lässt jeden dieser sechs Vergleiche
+danebengreifen** — eng, aber echt, und aus demselben Grund falsch: **eine
+Verzweigung läuft durch einen Satz, den jemand übersetzen darf.**
+
+### III · Stolperstein 47 — vier Stellen, an denen dieselbe Sache zweimal steht
+
+| | was doppelt steht | wo |
+|---|---|---|
+| **1** | **Die vierzehn Vorgabewörter.** `card.vocabularyResetHint` zählt sie in Prosa auf — *„Eintrag/Einträge, Getestet/Ungetestet, …"* — und nennt dazu die Zahl „vierzehn". Dieselben vierzehn stehen als Daten unter `vocabulary.*` | eine Vorgabe ändern, und der Hinweis lügt |
+| **2** | **Die Höchstgrößen.** `card.mb50` bis `card.mb300` tragen die Zahl als Text; daneben steht im Quelltext `value="52428800"` | `public/app.js:13215` ff. |
+| **3** | **Der Grabstein.** `card.nameFreedHint` schreibt *„Gelöschter Benutzer &lt;Nummer&gt;"* von Hand nach — **samt HTML-Entitäten im Wert, in allen drei Dateien** —, obwohl `list.deletedUser` = „Gelöschter Benutzer {id}" danebensteht und `dialog.nameFreedHint` es zwei Zeilen weiter richtig mit `{number}` macht | drei Fassungen einer Beschriftung |
+| **4** | **Die Begründung der Exportgrenze.** *„Eine Exportdatei ist ein einziger Text, und der kann nicht größer als {limit} MB werden"* steht wörtlich zweimal (`server.exportTooBig`, `server.entryTooBig`), und `server.exportGrew` gibt für dieselbe Grenze eine **dritte, andere** Begründung: *„da sie im Arbeitsspeicher erzeugt wird"* | drei Meldungen, drei Erklärungen, eine Grenze |
+
+### IV · Die vierzehn Vokabelbeschriftungen folgen drei verschiedenen Regeln
+
+**Sie stehen untereinander in einer Karte, und keine zwei sind nach demselben
+Muster gebaut:**
+
+| Regel | Beispiel | was daran nicht geht |
+|---|---|---|
+| **bar** | `card.itemOne` = *„Einzahl"* | sagt nicht, wovon |
+| **Name + Form** | `card.reportOne` = *„Bericht, Einzahl"* | **daneben steht schon „(Vorgabe: Bericht)"** — dasselbe Wort zweimal in einer Zeile. Und wer „Bericht" in „Protokoll" umbenennt, liest weiter „Bericht, Einzahl" |
+| **Beschreibung** | `card.dayOne` = *„Zeitpunkt, Einzahl"*, `card.testedYes` = *„Merkmal erfüllt"*, `card.ratingOne` = *„Sterne nach dem Test, Einzahl"* | beschreibt statt zu benennen — und „Zeitpunkt" ist für einen Testtag das falsche Wort |
+
+> **DIE REGEL, DIE FEHLT, IST EINE EINZIGE:** *die Beschriftung benennt das
+> FACH, nie das WORT* — denn das Wort ist gerade das, was der Benutzer
+> auswechselt, und die Vorgabe steht ohnehin schon daneben.
+
+### V · „Note" bei fünf Sternen
+
+**`entry.gradeLabel` = „Note:" steht in `public/app.js:7582` unmittelbar neben
+einem Sternfeld.** *Drei Sachen stoßen sich daran zugleich:*
+
+| | |
+|---|---|
+| **1** | **Eine deutsche Note läuft andersherum.** Bei einer Schulnote ist die **1** die beste; hier sind **fünf** Sterne das Beste. `server.gradeRange` sagt wörtlich *„Die Note muss zwischen 1 und 5 liegen."* |
+| **2** | **Dieselbe Sache heißt zweimal verschieden.** Das Vokabular nennt sie `vocabulary.ratingOne` = *„Bewertung"*; die Detailansicht nennt sie *„Note"* |
+| **3** | **Und nur eine der beiden ist umbenennbar.** „Bewertung" ist ein Vokabelwort und lässt sich auswechseln — „Note" steht fest und bleibt stehen, wenn der Benutzer die andere Hälfte umbenennt |
+
+**Das ist die eine offene ENTSCHEIDUNG dieser Runde**, und sie gehört dem
+Betreiber: *fällt „Note" ganz weg zugunsten des Vokabelworts, oder bleibt sie
+und wird zum Vokabelwort gemacht?*
+
+### VI · Was sauber ist — und ausdrücklich hier steht
+
+**Ein Durchgang, der nur Befunde nennt, sagt nicht, wie weit er gegangen ist.**
+*Diese fünf sind geprüft und in Ordnung:*
+
+| | |
+|---|---|
+| **Platzhalter** | **114 verschiedene, jeder einzelne an seiner Aufrufstelle geliefert** — mit gezählten Klammern über Zeilengrenzen hinweg nachgesehen, **kein einziger Fehlgriff** |
+| **Anführungszeichen** | nach 0.31.0 bleibt genau **ein** unpaariges Paar: das zersägte aus Abschnitt I |
+| **Anrede** | **kein Siezen** — die sechs Treffer auf „Sie" sind alle die dritte Person Mehrzahl |
+| **Zeichen** | **kein gerader Apostroph, kein Bindestrich an Gedankenstrichstelle** |
+| **Mehrzahl** | 41 Schlüssel tragen beide Formen; die 18 Werte mit einer Zahl ohne Mehrzahlform sind alle begründet (eingeklammerte Zähler, oder ein Vokabelwort trägt die Form) |
+
+### VII · Und eine Kosmetik, die keine ist
+
+**92 deutsche SCHLÜSSEL tragen die Einrückung des Quelltexts mit sich** —
+*93 Werte, weil einer der Schlüssel beide Mehrzahlformen betrifft* —
+`"…gelten\n          für alle {entryMany}."` *Am Bildschirm fällt sie nicht auf;
+HTML zieht solchen Weißraum zusammen, und keiner dieser Werte landet in einem
+Attribut, einem Dialog oder im Server.* **Aber die drei Dateien sind sich darin
+längst uneins: Deutsch 93 Werte, Englisch 101, Türkisch 4.** *Nur vier Schlüssel
+tragen sie in allen dreien.* **Der türkische Übersetzer hat sie einfach
+weggelassen — und nichts ist passiert.** *Damit ist erwiesen, dass sie niemand
+braucht; sie ist Rest aus dem Umzug der Sätze ins JSON.*
+
+> **SIE FÄLLT IN DIESER RUNDE MIT**, weil dieselben Zeilen ohnehin angefasst
+> werden. **Der Preis steht dazu:** die Wortlautprobe sieht 88 geänderte Werte
+> und braucht ihre Buchführung — *das ist der Grund, sie JETZT zu erledigen und
+> nicht in einer Runde, die nichts anderes daran tut.*
+
+### VIII · Der Erklärbärsaft — die drei Regeln sind noch nicht angewendet
+
+**0.31.0 hat die beiden genannten Schlüssel angefasst, aber an ihrem INHALT:**
+*`card.derivativesWebp` sagte „niemand archiviert sie“ — das war schlicht
+falsch, die Vorschaubilder liegen als BLOB in der Datenbank und fahren in jeder
+Sicherung mit. `card.storeCaveat` bekam seine Hervorhebung zurück.* **Die drei
+Regeln, die der Betreiber am 11. September 2026 mit einer fertigen Fassung
+geliefert hat — Stichwort vorn, eine Aussage je Zeile, Herleitung raus — sind
+auf KEINE Karte angewendet worden.** *Sie stehen in der Tafel zu 0.31.0 und
+warten hier.*
+
+**Regel 3 — die Herleitung ist weg, die Auswirkung bleibt — trifft sechs
+Stellen:**
+
+| Schlüssel | die Herleitung, die dort steht |
+|---|---|
+| `card.storeCaveat` | *„der Kodierer kann mit harten Kanten nichts anfangen“* |
+| `card.derivativesWebp` | *„Sie sind bereits verlustbehaftet und lassen sich jederzeit neu erzeugen“* |
+| `server.exportTooBig` | *„Eine Exportdatei ist ein einziger Text“* |
+| `server.entryTooBig` | **derselbe Satz noch einmal** — siehe Abschnitt III |
+| `server.exportGrew` | *„da sie im Arbeitsspeicher erzeugt wird“* — eine **dritte** Begründung für dieselbe Grenze |
+| `card.languagesUsersHint` | *„sie lässt sich deshalb nicht aus dem Vorrat nehmen“* |
+
+**Regel 1 und 2 — Stichwort vorn, eine Aussage je Zeile — haben ihren
+deutlichsten Fall in `card.resetMailHint`:**
+
+> *„An diese Adresse kann ein Link zum Zurücksetzen des Passworts geschickt
+> werden. Ohne Adresse gibt der Admin den Link persönlich weiter. Nach einem
+> Passwortwechsel werden alle anderen Sitzungen abgemeldet. Passwort vergessen?
+> Ein Admin kann einen Link zum Zurücksetzen erzeugen.“*
+
+**Fünf Aussagen, 307 Zeichen, EIN Absatz** (`public/app.js:9101`) — der längste
+Hinweis der ganzen Datei. **Und die letzte Aussage sagt noch einmal, was die
+erste schon gesagt hat.** *Wer wissen will, was ein Passwortwechsel mit seinen
+Sitzungen macht, liest vier Sätze, die ihn nichts angehen.*
+
+### IX · Und was von Gruppe 3 übrig ist — weniger, als dort steht
+
+**Die Fragetafel von 0.31.0 führt sieben Hauswörter als offene Entscheidungen.
+Am 13. September 2026 sind alle sieben im Bestand nachgeschlagen worden, und
+das Ergebnis ist ein anderes:**
+
+| Wort | im Deutschen | im Englischen |
+|---|---|---|
+| **„Das Haus verlassen“** | **weg** — 0.31.0 hat es abgeräumt | **steht noch**: `card.exportPartsHint` sagt *„one file that leaves the house“* |
+| **„Sache“** | **weg** | **weg** |
+| **„Standbild“** | **weg** — heißt jetzt „Video-Vorschaubild“ | **steht noch**, an **vier** Schlüsseln: `server.stillNoPreview`, `stillNotImage`, `videoNeedsStill`, `videoStill` |
+| **„Wie das Gerät“** | **weg** — heißt jetzt „Auto“ | **steht noch**: `card.likeDevice` = *„Like the device“* |
+| **„Pille“ / „hap“** | **war nie auf dem Bildschirm** — der Hausbegriff lebt nur in den Kommentaren von `public/app.js` | dort ebenfalls nicht |
+| **„von Hand“** | **bleibt** — sechs Stellen, und es ist gewöhnliches Deutsch und kein Bild | — |
+| **„Note“** | **offen** — siehe Abschnitt V, und es ist die **einzige** Entscheidung, die hier noch aussteht | — |
+
+> **DAMIT IST GRUPPE 3 NICHT MEHR, WAS SIE WAR.** *Der Fahrplan führt sie als
+> „rund fünfzehn Entscheidungen, von denen jede alle drei Dateien zugleich
+> ändert“ — tatsächlich sind sie im Deutschen **schon gefallen**, in 0.31.0.*
+> **Übrig bleibt EINE deutsche Entscheidung („Note“) und sechs englische
+> Schlüssel, die dem Deutschen nachziehen müssen.** *Die sechs sind keine
+> Entscheidung mehr, sondern Arbeit — und sie gehören damit in 0.31.2 und nicht
+> hierher.*
+
+### X · Drei Befunde vom Augenschein, die noch nicht gebaut sind
+
+**Sie sind am 13. September 2026 mit dem Betreiber Frage für Frage
+durchgegangen und entschieden worden.** *Vier Schlüssel, drei Befunde — gebaut
+ist keiner davon, weil 0.31.0 zu dem Zeitpunkt schon abgeschlossen war.*
+
+| | Schlüssel | warum |
+|---|---|---|
+| **1** | `entry.linkInputHint` | **Der Platzhalter passt nicht ins Feld.** *Gemessen am laufenden Server: der Text misst **270 Pixel**, das Feld ist **211** breit — er steht schon heute abgeschnitten da.* Der Nachbar (`entry.tagInputHint`, 193 Pixel) passt auf den Punkt |
+| **2** | `login.requestAccessHint` | *Der Betreiber:* „irgendwie kurz formulieren. schlag mal was prägnentes vor“. **Der Satz nennt zwei Schritte in voller Länge, wo einer schon aus dem Wort „bestätigen“ folgt** |
+| **3** | `mail.hintAlways` **und** `mail.hintGmx` | **Der GMX-Hinweis steht immer da — auch, wenn GMX gar nicht gewählt ist.** *Der Betreiber:* „z.b. ind er türkei gibt es kein gmx … die dneken sich ja und!“ **Entschieden: der Dauerhinweis wird allgemein, die Anbietersache wandert zum Anbieter** — wo sie ohnehin schon steht und nur erscheint, wenn sie jemanden angeht |
+
+> **DER DRITTE IST DER LEHRREICHE.** *Ein Hinweis, der immer steht, darf nur
+> sagen, was immer gilt.* **Sobald er einen Anbieter nennt, ist er für alle
+> anderen Rauschen** — und `mail.hintGmx` gibt es bereits, samt der Bedingung,
+> unter der er erscheint.
+
+### Was die Runde anfasst
+
+`public/app.js`, die drei Sprachdateien, `tools/keys.json`, der Prüfstand und
+die Gegenproben. **Kein Schemaanteil.**
+
+---
+
 ## 0.32.0 — „Der Ruf beim Namen"
 
 **BESTELLT AM 12. SEPTEMBER 2026, WÄHREND 0.30.0 GESCHRIEBEN WURDE.**
@@ -1066,13 +1313,115 @@ nicht den Namen — und das ist ein Schemaschritt.**
 > *Hier steht nur, dass sie ansteht — und dass sie VOR 0.33.0 fällt, weil
 > danach keine Spalte mehr dazukommt.*
 
+### Die Glocke muss unterscheiden können — entschieden am 13. September 2026
+
+> **DER BETREIBER, WÄHREND 0.31.0 DURCHGESPROCHEN WURDE:** *„bitte für 32.0 wo
+> der @name dazu kommt soll die glocke diese unterscheidung machen können"*
+
+**DAMIT FÄLLT FRAGE 3 DER TAFEL UNTEN SCHON HIER.** *Die Glocke bekommt die
+Unterscheidung — ob als zwei Zahlen am Symbol oder als eine Zahl über einer
+geteilten Tafel, entscheidet die Runde; dass unterschieden wird, entscheidet sie
+nicht mehr.*
+
+**DER BEFUND, DER DAZU GEFÜHRT HAT, IST GRÖSSER ALS DER RUF — und er ist am 13.
+September 2026 am laufenden Stand nachgesehen:** *die Glocke zeigt heute alles,
+was im GANZEN Bestand neu ist. `qNewComments` (`server.js:4634`) filtert einzig
+auf `user_id IS NOT ?` — das eigene Zutun fällt heraus, sonst nichts.* **Der
+Betreiber hat gefragt, warum er die Kommentare anderer überhaupt sieht, und ob
+er unterscheiden kann, was unter seinen Einträgen steht und was allgemein neu
+ist.** *Er kann es nicht. Der Bestand ist gemeinsam, die Glocke ist es auch, und
+der Satz im Fenster sagt das nicht.*
+
+| | was daraus für diese Runde folgt |
+|---|---|
+| **1** | **Der Ruf ist die eine Hälfte** — `@name` gilt EINEM, und er gehört sichtbar getrennt von dem, was jeden angeht |
+| **2** | **Die andere Hälfte ist schon da und ungetrennt** — was unter MEINEN Einträgen geschieht, steht heute zwischen allem anderen. `items.user_id` trägt den Anleger, die Abfrage nutzt ihn nicht |
+| **3** | **Der Satz im Glockenfenster bekommt seinen endgültigen Wortlaut HIER** — *„Neue Kommentare und {ratingMany} anderer Benutzer, seit du diese Liste zuletzt geöffnet hast."* ist sachlich richtig und beantwortet die Frage nicht, die sich der Leser stellt. **0.31.0 hat ihn ausdrücklich stehen lassen**, weil er in dieser Runde ohnehin ersetzt wird — zweimal zu schreiben, was einmal reicht, wäre die teurere Runde |
+
+> **UND DIE WARNUNG WEITER UNTEN GILT UNVERÄNDERT:** *keine zweite Wahrheit neben
+> der Glocke (Stolperstein 47).* **Unterscheiden heißt nicht zweimal zählen** —
+> dieselbe Ableitung, nach Herkunft getrennt.
+
+### Und „Filter folgt der Sortierung“ wird herausgearbeitet — dazugekommen am 13. September 2026
+
+> **DER BETREIBER, WÄHREND 0.31.0 DURCHGESPROCHEN WURDE:** *„die ‚funktion
+> filter folgt der sortierung' herausarbeiten auch ins 0.32.0 nicht mehr in
+> 31er"*
+
+**DIE FUNKTION GIBT ES SEIT 0.21.1, UND SIE IST FAST UNSICHTBAR.** *Wer nach
+`{ratingOne}` sortiert, fragt „was war gut?" — und das haben nur getestete
+Einträge beantwortet; wer nach `{potential}` sortiert, fragt „was mache ich als
+Nächstes?", und das fragt sich nur an Ungetesteten.* **Die Sortierung setzt den
+Statusfilter deshalb als VORGABE.** *Am 13. September 2026 am Stand
+nachgesehen:*
+
+| | wie es heute steht |
+|---|---|
+| **Die Tafel** | `SORT_STATUS` — `rating_*` → Getestet, `potential_*` → Ungetestet. Jede andere Sortierung fasst den Status nicht an |
+| **Die eine Stelle** | `statusOutSort()` (`public/app.js:2458`); Liste und Leiste fragen sie und rechnen nicht je selbst |
+| **Was man davon SIEHT** | **ein Wort** — „folgt der Sortierung", neben den Statuspillen und am zugeklappten Schalter. Sonst nichts |
+| **Gezählt wird sie nicht** | `filterNumber()` lässt sie ausdrücklich aus: die Farbe der Zahl sagt „du hast etwas eingestellt", und eingestellt hat das niemand |
+
+**DIE HARTE KANTE IST `STATUS_BY_HAND`** *(`public/app.js:2424`)*: **ein einziger
+Klick auf eine Statuspille schaltet die Ableitung für die GANZE SITZUNG ab** —
+nicht nur für diese eine Sortierung. *Zurück kommt sie allein über „Filter
+zurücksetzen" (`public/app.js:4418`), und dass dieser Knopf auch die Automatik
+zurückholt, steht nirgends.* **Eine kleine Handlung mit einer großen,
+unsichtbaren Folge.**
+
+### Und zwei Befunde aus der Filterzeile — entschieden am 13. September 2026
+
+**Beide stammen aus dem Augenschein zu 0.31.0, und beide sind KEINE Sprache.**
+*Sie fahren hier und nicht in der 31er, weil diese Runde die Filterzeile ohnehin
+in der Hand hat — zweimal dieselbe Zeile anzufassen wäre die teurere Reihenfolge.*
+
+**1 · „+ Ansicht speichern“ sieht aus wie eine gespeicherte Ansicht.** *Der
+Betreiber:* „Ansicht speichern wirkt wie ein auswahl eines gespeicherten
+ansicht. den am besten nur als text … nicht als (pillen)schaltfläche“.
+**Er hat recht, und der Quelltext sagt warum:** `public/app.js:4363` gibt dem
+Knopf `className = 'pill'` und hängt ihn in **dieselbe** Zeile wie die
+gespeicherten Ansichten. *Eine Pille neben Pillen liest sich als eine von
+ihnen.* **Entschieden: er wird `.link-btn`** (`public/style.css:934`) — *und das
+führende „+“ bleibt, denn es ist das einzige Zeichen, das ihn heute schon als
+Befehl und nicht als Auswahl ausweist.*
+
+**2 · Der „Mehr“-Aufklapper lohnt sich nicht auf jeder Breite.** *Der Betreiber:*
+„wenn dder satz von mehr nur eine einzige satz ist brauchen wir kein mehr
+knopf“. **Gemessen am laufenden Server, an allen acht Stellen:**
+
+| | was der Aufklapper spart |
+|---|---|
+| **am Telefon** | **42 bis 82 Pixel — an allen acht.** Er lohnt sich überall |
+| **am Rechner** | **42 bis 62 Pixel an sechs** — und **1 bzw. 21 Pixel an den beiden kurzen** |
+
+> **EIN KNOPF, DER EINEN PIXEL SPART, KOSTET MEHR, ALS ER BRINGT.**
+> *Entschieden: der Aufklapper wird breitenabhängig — am Telefon bleibt er
+> überall, am Rechner fällt er dort weg, wo der Text ohnehin in eine Zeile
+> geht.* **Die Zahl, ab der er sich lohnt, gehört in den Quelltext und nicht in
+> die Sprachdatei — sie ist keine Sprache.**
+
+### Was diese Runde daran zu klären hat
+
+| | Frage |
+|---|---|
+| **1** | **Gilt die Handwahl je SORTIERUNG oder für die ganze Sitzung?** *Heute für die Sitzung. Je Sortierung wäre das, was ein Mensch erwartet — kostet aber einen Merker je Sortierung statt eines einzigen* |
+| **2** | **Sagt die Oberfläche, wie man zurückkommt?** *Heute nicht. „Filter zurücksetzen" holt die Automatik mit zurück, und das weiß niemand* |
+| **3** | **Reicht EIN Wort?** *„folgt der Sortierung" sagt, DASS abgeleitet wird, aber nicht WAS — dass gerade nur Getestete in der Liste stehen, erfährt man nur, indem man sie zählt* |
+| **4** | **Was ist mit den gespeicherten Ansichten?** *Eine Ansicht trägt eine Filterstellung UND eine Sortierung — welche gewinnt beim Anwenden?* |
+
+> **WARUM SIE HIERHER GEHÖRT UND NICHT IN DIE 31er:** *die 31er fassen Wörter an,
+> keine Wirkung.* **Was hier ansteht, ist Verhalten** — wann eine Ableitung
+> greift, wie lange eine Handwahl gilt und wie man aus ihr herausfindet. *Ein
+> Wort daran zu ändern, ohne das Verhalten zu klären, machte die Auskunft
+> genauer und die Sache nicht besser.*
+
 ### Was die Runde zu entscheiden hat
 
 | | Frage |
 |---|---|
 | **1** | **Wer darf gerufen werden?** *Jeder Zugang — oder nur, wer diesen Eintrag überhaupt sehen darf?* **Ein Ruf an jemanden, der die Sache nicht sehen darf, ist eine Auskunft über einen Eintrag, den es für ihn nicht gibt** |
 | **2** | **Wie wird getippt?** *Freier Text mit `@` — oder eine Auswahl, die beim `@` aufgeht?* **Freier Text bedeutet Tippfehler, die still ins Leere rufen** |
-| **3** | **Zeigt die Glocke ZWEI Zahlen** *(„neu" und „genannt")* **oder eine?** *Zwei Zahlen an einem Symbol sind zwei Sachen an einem Ort; eine Zahl verwischt den Unterschied, den der Betreiber gerade will* |
+| **3** | ~~**Zeigt die Glocke ZWEI Zahlen oder eine?**~~ **DASS sie unterscheidet, ist am 13. September 2026 entschieden** *(siehe oben)*. *Offen bleibt nur die FORM: zwei Zahlen am Symbol, oder eine Zahl über einer geteilten Tafel.* **Zwei Zahlen an einem Symbol sind zwei Sachen an einem Ort; eine Zahl über einer getrennten Tafel sagt dasselbe mit einem Zähler** |
 | **4** | **Was geschieht bei der Umbenennung?** *(siehe oben — der einzige Punkt mit möglichem Schemaanteil)* |
 | **5** | **Nur die Glocke — oder auch eine Mail?** **Vorschlag: nur die Glocke.** *Der Betreiber hat die Glocke genannt, und eine Mail je Ruf ist eine Entscheidung mit ganz anderen Folgen* |
 | **6** | **Wie sieht der Ruf im BEARBEITENMODUS aus?** *Dort steht der Rohtext im Textfeld — `@bert` bleibt `@bert`, und das ist richtig so* |
@@ -1118,9 +1467,60 @@ Weiteres:** er schreibt die Struktur fest und sagt alten Beständen ab.
 
 **Unverändert gegenüber dem alten Plan; neu ist allein die Nummer.**
 
-Migrationscode raus — **zehn Blöcke** (der zehnte ist mit 0.25.0 dazugekommen) —, die Datenbankstruktur festgeschrieben,
+Migrationscode raus — **zwölf Blöcke** (der zwölfte ist mit 0.29.0 dazugekommen:
+das Fälligkeitsdatum an der Aufgabe) —, die Datenbankstruktur festgeschrieben,
 **Absage an zu alte Datenbanken. Ab hier gibt es keinen Rückweg auf ältere
 Fassungen.** *Ein Bruch — solange die erste Zahl 0 ist, läuft er über MINOR.*
+
+> **DIE ZAHL STAND BIS ZUM 13. SEPTEMBER 2026 AN DREI ORTEN VERSCHIEDEN DA:**
+> *hier „zehn", in der Tafel oben „elf", und im Prüfstand die richtige.* **Der
+> Prüfstand hat sie die ganze Zeit gehalten** — `check('Es gibt genau zwoelf
+> Migrationsfunktionen')`, und er zählt sie AUS DEN MARKEN heraus und nicht aus
+> den Funktionsnamen (Stolperstein 156). *Gefunden beim Durchsprechen von
+> 0.31.0; zwei Orte für dieselbe Zahl sind einer zu viel (Stolperstein 47), und
+> hier waren es drei.*
+
+### Und die JPEG-Vorschaubilder fallen mit — entschieden am 13. September 2026
+
+> **DER BETREIBER:** *„wenn diese funktion nur deswegen existiert weil vorher die
+> vorschaubilder mit jpg gemacht wurden und wir nun seit einiger zeit webp
+> nutzen muss der code dafür und auch dieser hinweis nach dem … migrationsrunde
+> raus"*
+
+**ER HAT RECHT, UND ES IST NACHGESEHEN.** *`images.js:135` sagt es im Klartext:
+„BIS 0.26.0 WAREN SIE JPEG". Seit 0.27.0 sind die Vorschaubilder WebP.* **Der
+Bestandslauf prüft in `batchrun.js:189`:**
+
+```js
+const fresh = (isJpeg(z.thumb) || isJpeg(z.medium))
+  ? await makeVariants(z.data, cropFrom(z)) : null;
+```
+
+**Diese Hälfte des Knopfes kann nur in einer Installation greifen, die VOR 0.27.0
+Fotos hochgeladen hat.** *In einer frischen Instanz ist sie toter Code — und sie
+ist damit Migrationsschuld wie ein Migrationsblock, nur ohne Marke.*
+
+**DER KNOPF BEHÄLT SEINE ERSTE HÄLFTE.** *Originale nach einem Wechsel des
+Ablageverfahrens umstellen — das ist dauerhaft sinnvoll und fällt nicht.*
+
+| was fällt | wo |
+|---|---|
+| die `isJpeg`-Abfrage und der zweite Zweig des Laufs | `batchrun.js` |
+| der Zähler `derived` und seine Hälfte des Fertigsatzes | `batchrun.js`, `public/app.js` |
+| „Ohne PNG bleibt der Knopf bedienbar — die Vorschaubilder bleiben" | `public/app.js`, Prüfstand |
+| fünf Sprachschlüssel bzw. ihre zweite Hälfte | `card.catchUpBoth`, `card.catchUpDerivatives`, `card.catchUpAsk`, `card.derivativesAsk`, `card.convertCounts` — **in allen drei Dateien** |
+
+> **UND DER WIDERSPRUCH AN DER KARTE VERSCHWINDET DAMIT VON SELBST.** *Heute
+> sagt sie oben „Die Vorschaubilder sind in jedem Fall WebP" und unten
+> „Generiert veraltete JPEG-Vorschaubilder neu". Beides stimmt — aber nur, wer
+> die Geschichte kennt, sieht keinen Widerspruch, und die Geschichte gehört
+> nach Regel 5.6 nicht an den Bildschirm.*
+>
+> **DIE BEDINGUNG FÜR DAS WEGNEHMEN IST DIESELBE WIE BEI JEDEM
+> MIGRATIONSBLOCK:** *jede Installation muss den Lauf EINMAL gefahren haben.
+> Wer ihn nie gefahren hat, behält JPEG-Vorschaubilder für immer — sie
+> funktionieren weiter, sie sind nur größer.* **Das gehört in die Fragetafel
+> jener Runde und ist vor dem Wegnehmen zu klären.**
 
 **0.33.x — „Die Kommentare werden knapp".** Fast dreißig Prozent des Quelltextes
 sind Kommentar. **Was das Offensichtliche wiederholt, geht; was eine
