@@ -148,6 +148,26 @@ const tMarks = (key, parts, values) => {
   return sentence;
 };
 
+/* DAS MERKMAL DER ABGELAUFENEN SITZUNG -- 0.31.1, und es ist ein BEFUND und
+   keine Verbesserung. Bis hierher stand hier `t('dialog.sessionExpired')`:
+   der Wurf trug einen UEBERSETZTEN SATZ, und sechs Fangstellen verglichen
+   dagegen.
+
+   DER SATZ HATTE KEINEN LESER. Geworfen wird er unmittelbar hinter
+   showLogin(), also nimmt die Anmeldeseite ohnehin den Bildschirm; jede der
+   sechs Fangstellen UNTERDRUECKT ihn danach. „Sitzung abgelaufen" ist nie
+   irgendwo erschienen -- der Schluessel stand in drei Sprachdateien, damit ein
+   `===` etwas zu vergleichen hat.
+
+   UND ER WAR DABEI ZERBRECHLICH: wechselt die Sprache zwischen Wurf und Fang,
+   greift jeder dieser sechs Vergleiche daneben. Eine Verzweigung, die durch
+   einen Satz laeuft, den jemand uebersetzen darf, ist keine Verzweigung,
+   sondern eine Wette.
+
+   `server.sessionExpired` ist ein ANDERER Schluessel, wird wirklich angezeigt
+   (`showLogin(j.error || ...)`) und bleibt. */
+const SESSION_GONE = 'kriterion:session-gone';
+
 /* ZWEI FORMEN, UND DIE ZAHL WAEHLT -- ueber Intl.PluralRules und nicht ueber
    `n === 1`. Der Vergleich waere die deutsche Regel, festgeschrieben im Code;
    die Regel gehoert aber der Sprache (Konzept 4.3).
@@ -345,7 +365,7 @@ async function api(method, url, body, isForm = false) {
     else { opts.headers['Content-Type'] = 'application/json'; opts.body = JSON.stringify(body); }
   }
   const res = await fetch(url, opts);
-  if (res.status === 401) { showLogin(); throw new Error(t('dialog.sessionExpired')); }
+  if (res.status === 401) { showLogin(); throw new Error(SESSION_GONE); }
   if (!res.ok) {
     let m = t('error.serverStatus', { status: res.status });
     try { const j = await res.json(); if (j.error) m = j.error; } catch {}
@@ -1654,7 +1674,7 @@ function pickImages(finished) {
 async function sendForm(path, form) {
   const a = await fetch(path, { method: 'POST', body: form, credentials: 'same-origin' });
   const data = await a.json().catch(() => ({}));
-  if (a.status === 401) { showLogin(); throw new Error(t('dialog.sessionExpired')); }
+  if (a.status === 401) { showLogin(); throw new Error(SESSION_GONE); }
   if (!a.ok) throw new Error(data.error || t('entry.uploadFailed'));
   return data;
 }
@@ -2834,7 +2854,7 @@ async function runSearch() {
     state.searchRunning = false; state.searchError = false;
   } catch (e) {
     if (run !== searchRun) return;
-    if (e.message === t('dialog.sessionExpired')) return;   // die Anmeldeseite kommt
+    if (e.message === SESSION_GONE) return;   // die Anmeldeseite kommt
     // Stehen bleibt, was da ist. Die Zaehlzeile sagt es.
     state.searchRunning = false; state.searchError = true;
   }
@@ -3051,7 +3071,7 @@ async function start() {
   // zweiten Klick und der Direkteinstieg auf einen Eintrag zeigt das
   // Vorgabevokabular.
   try { await loadSettings(); }
-  catch (e) { if (e.message === t('dialog.sessionExpired')) return; }
+  catch (e) { if (e.message === SESSION_GONE) return; }
   route();
 }
 /* Welche Ansicht zuletzt stand -- gebraucht wird das fuer genau eine Frage:
@@ -3526,7 +3546,7 @@ async function renderList() {
   if (!app.firstElementChild)
     app.innerHTML = `<div class="shell"><p class="hint" style="padding-top:44px">${tH('list.loading')}</p></div>`;
   try { await loadAll(); }
-  catch (e) { if (e.message !== t('dialog.sessionExpired')) app.innerHTML = `<div class="shell"><p class="hint">${esc(e.message)}</p></div>`; return; }
+  catch (e) { if (e.message !== SESSION_GONE) app.innerHTML = `<div class="shell"><p class="hint">${esc(e.message)}</p></div>`; return; }
 
   app.innerHTML = `<div class="shell">
     <div class="masthead">
@@ -4924,7 +4944,7 @@ async function renderOpen() {
   let rows;
   try { rows = await api('GET', '/api/open'); }
   catch (e) {
-    if (e.message !== t('dialog.sessionExpired'))
+    if (e.message !== SESSION_GONE)
       app.innerHTML = `<div class="shell"><p class="hint">${esc(e.message)}</p></div>`;
     return;
   }
@@ -5716,7 +5736,7 @@ async function renderDetail(id, termAddress) {
       api('GET', `/api/items/${id}`), api('GET', '/api/product-categories'), api('GET', '/api/tags')
     ]);
   } catch (e) {
-    if (e.message !== t('dialog.sessionExpired')) {
+    if (e.message !== SESSION_GONE) {
       app.innerHTML = `<div class="shell">${subhead()}<p class="hint">${tH('server.entryUnknown')}</p></div>`;
       wireSubhead({ term });
     }
@@ -8387,7 +8407,13 @@ async function renderDetail(id, termAddress) {
     const kind = document.getElementById('ckind');
     kind.classList.toggle('on', newKind === 'report');
     kind.textContent = V.reportOne;
-    kind.title = newKind === t('entry.reportKind') ? t('entry.unmarkReport') : t('entry.markReport');
+    /* GEGEN DAS LITERAL UND NICHT GEGEN DIE SPRACHDATEI -- 0.31.1. Eine Zeile
+       darueber steht derselbe Vergleich schon richtig, und in dieser Funktion
+       stehen sechs davon: fuenf pruefen gegen ein Literal, genau einer lief
+       durch entry.reportKind. Der Schluessel trug in allen drei Dateien
+       „report" -- wer ihn uebersetzt haette, haette die Beschriftung des
+       Knopfes stumm umgedreht. */
+    kind.title = newKind === 'report' ? t('entry.unmarkReport') : t('entry.markReport');
     const taskBtn = document.getElementById('ctask');
     const finished = newKind === 'done';
     taskBtn.classList.toggle('on', newKind === 'task' || finished);
@@ -8830,7 +8856,7 @@ async function renderSystem({ keepScroll = false } = {}) {
       OWNER ? api('GET', '/api/mail') : null,
       ADMIN ? api('GET', '/api/requests') : null
     ]);
-  } catch (e) { if (e.message !== t('dialog.sessionExpired')) toast(e.message, true); return; }
+  } catch (e) { if (e.message !== SESSION_GONE) toast(e.message, true); return; }
   // Die Frist kommt vom Server, auch hier. Die Karte rechnet sie nicht nach.
   if (fetched.trash && fetched.trash.days) TRASH_DAYS = fetched.trash.days;
 

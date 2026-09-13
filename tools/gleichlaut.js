@@ -119,7 +119,12 @@ const app=ohneKommentar(fs.readFileSync(process.env.APP || 'public/app.js','utf8
    noch nicht kannte, den halben Kopf weg. */
 const ohneHelfer = t => { const raus=[]; let tiefe=null;
   for (const z of t.split('\n')) {
-    if (tiefe===null && /^const tMark\w* = /.test(z)) tiefe=0;
+    /* UND DAS SITZUNGSMERKMAL AUS 0.31.1. `kriterion:session-gone` ist eine
+       MARKE und keine Sprache -- sie steht im Quelltext, weil sie dort
+       hingehoert. Bis 0.31.1 stand an ihrer Stelle ein uebersetzter Satz, und
+       genau deshalb faellt sie hier auf: die Probe liest den ganzen
+       Quelltext, und eine neue Konstante sieht aus wie neuer Text. */
+    if (tiefe===null && /^const (tMark\w*|SESSION_GONE) = /.test(z)) tiefe=0;
     if (tiefe!==null) {
       for (const ch of z) { if ('({['.includes(ch)) tiefe++; else if (')}]'.includes(ch)) tiefe--; }
       if (tiefe<=0 && /[;}]\s*$/.test(z)) tiefe=null;
