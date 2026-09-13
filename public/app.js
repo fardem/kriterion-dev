@@ -11520,7 +11520,7 @@ function setUpUsersOut() {
     const bd = doc.createElement('div');
     bd.className = 'backdrop';
     bd.innerHTML = `<div class="modal" id="tombstone-modal"><h2>${tH('card.deletedUsers')}</h2>
-      <p>${tH('card.nameFreedHint')} <strong>${tH('card.locks')}</strong>.</p>
+      <p>${tMark('card.nameFreedHint', 'card.locks')}</p>
       <div class="manage-list" id="tombstone-list"></div>
       <div class="modal-acts"><button class="btn btn-ghost" data-no>${tH('list.close')}</button></div></div>`;
     doc.body.appendChild(bd);
@@ -13278,11 +13278,18 @@ function cardExport(fetched) {
             <button class="btn btn-sm" id="ex-plan">${tH('card.exportInParts')}</button>
             <label class="hint hint-sm" style="display:flex;align-items:baseline;gap:6px">
               ${tH('card.atMost')}
+              ${/* DIE BESCHRIFTUNG KOMMT AUS DEM WERT -- 0.31.1. Bis hierher
+                    standen die vier Zahlen ZWEIMAL da: einmal als
+                    `value="52428800"` und einmal als Schluessel `card.mb50`
+                    mit dem Text „50 MB". Zwei Orte fuer eine Sache, und einer
+                    davon in drei Sprachdateien, obwohl „50 MB" in allen
+                    dreien gleich lautet (Stolperstein 47).
+                    EINE ZAHL UND EINE EINHEIT SIND KEINE SPRACHE. Wer eine
+                    fuenfte Groesse dazustellt, schreibt sie jetzt einmal. */''}
               <select class="input input-sm" id="ex-target" style="width:auto">
-                <option value="52428800">${tH('card.mb50')}</option>
-                <option value="104857600">${tH('card.mb100')}</option>
-                <option value="209715200">${tH('card.mb200')}</option>
-                <option value="314572800" selected>${tH('card.mb300')}</option>
+                ${[52428800, 104857600, 209715200, 314572800].map(v =>
+                  `<option value="${v}"${v === 314572800 ? ' selected' : ''}>${
+                    v / 1048576} MB</option>`).join('')}
               </select>
               ${tH('card.perFile')}
             </label>

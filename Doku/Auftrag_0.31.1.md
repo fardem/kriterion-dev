@@ -95,7 +95,7 @@ Schemaanteil.**
 | **5** | **Jeder `{word}`-Platzhalter hat seinen `tMark()`-Ruf** — und jeder `tMark()`-Ruf einen Wert mit `{word}` darin |
 | **6** | **Die vierzehn Vokabelbeschriftungen nennen kein Vorgabewort.** *Keine von ihnen enthält den Wert, den sie setzt* |
 | **7** | **Keine Zahl steht zweimal.** *Die vier Größen kommen aus ihrem `value`, und `card.vocabularyResetHint` zählt nichts mehr auf* |
-| **8** | **Kein Wert trägt eine HTML-Entität** |
+| **8** | **Kein DEUTSCHER Wert trägt eine HTML-Entität.** *`card.nameFreedHint` schrieb `&lt;Nummer&gt;` von Hand nach.* **Englisch und Türkisch tragen sie noch** — sie herauszunehmen hieße, ihre Sätze neu zu formulieren, und das ist 0.31.2 und 0.31.3 *(L3)*. *Eine Zusage, die eine Runde lang rot steht, ist keine* |
 | **9** | **Kein Wert trägt einen Zeilenumbruch oder zwei Leerzeichen** — in keiner der drei Dateien |
 | **10** | **Kein Eintrag der Umbenennungstafel zeigt ins Leere** *(`tools/keys.json`)*. *Sie ist die Deutsch-nach-Englisch-Tafel aus 0.8.x und kein Verzeichnis der Wanderungen; 0.31.0 hat die elf ersatzlos gestrichenen Schlüssel daraus ENTFERNT.* **Hier ist es anders: ein verschmolzener Schlüssel hat einen Nachfolger**, und der alte deutsche Name zeigt ab jetzt auf ihn |
 | **11** | **Die Wortlautprobe ist vollständig nachgeführt** — jede Wegnahme, jede Änderung mit ihrer Begründung |

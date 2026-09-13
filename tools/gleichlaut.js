@@ -150,3 +150,33 @@ fs.writeFileSync(process.argv[2], JSON.stringify(raus));
 const cr=require('crypto');
 for (const k of Object.keys(raus))
   console.log(k.padEnd(10), cr.createHash('sha256').update(raus[k]).digest('hex').slice(0,16), raus[k].length+' Zeichen');
+
+/* ZWEITER GANG: WAS GENAU IST ANDERS -- `node tools/gleichlaut.js <neu> <alt>`
+
+   EINE PROBE, DIE NUR ROT WIRD, KOSTET DEN LESER DIE HALBE ARBEIT. Beim Bau
+   von 0.31.1 ist dieselbe Wortliste sechsmal von Hand nachgerechnet worden,
+   bis sie hier stand -- sie sagt, welche Woerter die Oberflaeche VERLASSEN
+   haben und welche DAZUGEKOMMEN sind, je Sprache.
+
+   SIE SIEHT AUCH QUELLTEXT. Die Probe liest die ganze Datei, also taucht eine
+   neue Konstante oder ein umgebauter Ausdruck in der Liste auf. Das ist kein
+   Mangel, sondern der Preis dafuer, dass sie NICHT unterscheiden kann, was ein
+   Mensch sieht -- und genau deshalb faellt ihr auch nichts durch. Wer die
+   Liste liest, ordnet ein; wer nur eine Ampel liest, raet. */
+if (process.argv[3]) {
+  const alt = JSON.parse(fs.readFileSync(process.argv[3], 'utf8'));
+  let anders = 0;
+  for (const key of Object.keys(raus)) {
+    const a = alt[key].split(' '), b = raus[key].split(' ');
+    const sa = new Set(a), sb = new Set(b);
+    const gone = [...new Set(a.filter(w => w.length > 3 && !sb.has(w)))];
+    const came = [...new Set(b.filter(w => w.length > 3 && !sa.has(w)))];
+    if (!gone.length && !came.length) { console.log(key.padEnd(10) + 'gleich'); continue; }
+    anders++;
+    console.log(key.padEnd(10) + `raus ${gone.length} · rein ${came.length}`);
+    if (gone.length) console.log('   RAUS  ' + gone.join(' '));
+    if (came.length) console.log('   REIN  ' + came.join(' '));
+  }
+  console.log(anders ? `\n${anders} von ${Object.keys(raus).length} Proben mit Unterschied — einordnen.`
+                     : `\nAlle ${Object.keys(raus).length} Proben wortgleich.`);
+}
