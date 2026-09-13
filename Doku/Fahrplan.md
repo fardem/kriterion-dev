@@ -154,8 +154,8 @@ Sprachumschalter baut, hat damit ein Muster und braucht kein neues.**
 | ~~**0.31.0**~~ | ~~Die Sprachdateien werden gegengelesen — deutsch~~ | **GEBAUT am 13. September 2026** — Änderungsprotokoll 0.31.0. *Elf Code-Lecks raus (aus allen drei Dateien: 1265 → 1254), neunundvierzig deutsche Texte geschärft, vierunddreißig Anführungszeichen berichtigt (deutsch und türkisch). **MINOR**, kein Schemaanteil. Die Vorlage kam von Google Gemini und ist Zeile für Zeile gegen den Quelltext geprüft worden; das Änderungsprotokoll trägt die Absichtszeilen für 0.31.1 und 0.31.2* | nein | — |
 | **0.31.1** | **… englisch** | `en.json` übersetzt die ABSICHT der deutschen Sätze, nicht ihre Wörter. *Heute steht dort „files that leaves the house“* | nein | — |
 | **0.31.2** | **… türkisch** | `tr.json` ebenso. *Heute steht dort „hap“ — die Tablette — für die Filterpille* | nein | — |
-| **0.32.0** | **Der Ruf beim Namen** | `@name` in Notiz, Bericht und Aufgabe — hervorgehoben, und der Genannte bekommt eine Glocke *(bestellt 12.9.2026)* | **offen** | — |
-| **0.33.0** | **Bereinigung — der Bruch** | **elf** Migrationsblöcke raus *(0.27.0 hat den elften gebracht)*, Struktur festgeschrieben, **kein Rückweg** | **ja** | — |
+| **0.32.0** | **Der Ruf beim Namen** | `@name` in Notiz, Bericht und Aufgabe — hervorgehoben, und der Genannte bekommt eine Glocke *(bestellt 12.9.2026)*. **Dazu am 13.9.2026: die Glocke muss unterscheiden können, und „Filter folgt der Sortierung" wird herausgearbeitet** | **offen** | — |
+| **0.33.0** | **Bereinigung — der Bruch** | **zwölf** Migrationsblöcke raus *(0.29.0 hat den zwölften gebracht)*, **dazu die JPEG-Vorschaubilder des Bestandslaufs** *(entschieden 13.9.2026)*, Struktur festgeschrieben, **kein Rückweg** | **ja** | — |
 | **0.33.x** | **Die Kommentare werden knapp** | 16.281 von 54.822 Zeilen sind Kommentar | nein | — |
 | **0.34.0** | **Der Prüfstand bekommt ein Verzeichnis** | `testbench.js` in Module — **und damit erst der echte Teillauf** | nein | — |
 | **0.35.0** | **Code-Effizienz** | Leichen und ineffizienter Code | offen | — |
@@ -1066,13 +1066,84 @@ nicht den Namen — und das ist ein Schemaschritt.**
 > *Hier steht nur, dass sie ansteht — und dass sie VOR 0.33.0 fällt, weil
 > danach keine Spalte mehr dazukommt.*
 
+### Die Glocke muss unterscheiden können — entschieden am 13. September 2026
+
+> **DER BETREIBER, WÄHREND 0.31.0 DURCHGESPROCHEN WURDE:** *„bitte für 32.0 wo
+> der @name dazu kommt soll die glocke diese unterscheidung machen können"*
+
+**DAMIT FÄLLT FRAGE 3 DER TAFEL UNTEN SCHON HIER.** *Die Glocke bekommt die
+Unterscheidung — ob als zwei Zahlen am Symbol oder als eine Zahl über einer
+geteilten Tafel, entscheidet die Runde; dass unterschieden wird, entscheidet sie
+nicht mehr.*
+
+**DER BEFUND, DER DAZU GEFÜHRT HAT, IST GRÖSSER ALS DER RUF — und er ist am 13.
+September 2026 am laufenden Stand nachgesehen:** *die Glocke zeigt heute alles,
+was im GANZEN Bestand neu ist. `qNewComments` (`server.js:4634`) filtert einzig
+auf `user_id IS NOT ?` — das eigene Zutun fällt heraus, sonst nichts.* **Der
+Betreiber hat gefragt, warum er die Kommentare anderer überhaupt sieht, und ob
+er unterscheiden kann, was unter seinen Einträgen steht und was allgemein neu
+ist.** *Er kann es nicht. Der Bestand ist gemeinsam, die Glocke ist es auch, und
+der Satz im Fenster sagt das nicht.*
+
+| | was daraus für diese Runde folgt |
+|---|---|
+| **1** | **Der Ruf ist die eine Hälfte** — `@name` gilt EINEM, und er gehört sichtbar getrennt von dem, was jeden angeht |
+| **2** | **Die andere Hälfte ist schon da und ungetrennt** — was unter MEINEN Einträgen geschieht, steht heute zwischen allem anderen. `items.user_id` trägt den Anleger, die Abfrage nutzt ihn nicht |
+| **3** | **Der Satz im Glockenfenster bekommt seinen endgültigen Wortlaut HIER** — *„Neue Kommentare und {ratingMany} anderer Benutzer, seit du diese Liste zuletzt geöffnet hast."* ist sachlich richtig und beantwortet die Frage nicht, die sich der Leser stellt. **0.31.0 hat ihn ausdrücklich stehen lassen**, weil er in dieser Runde ohnehin ersetzt wird — zweimal zu schreiben, was einmal reicht, wäre die teurere Runde |
+
+> **UND DIE WARNUNG WEITER UNTEN GILT UNVERÄNDERT:** *keine zweite Wahrheit neben
+> der Glocke (Stolperstein 47).* **Unterscheiden heißt nicht zweimal zählen** —
+> dieselbe Ableitung, nach Herkunft getrennt.
+
+### Und „Filter folgt der Sortierung" wird herausgearbeitet — dazugekommen am 13. September 2026
+
+> **DER BETREIBER, WÄHREND 0.31.0 DURCHGESPROCHEN WURDE:** *„die ‚funktion
+> filter folgt der sortierung' herausarbeiten auch ins 0.32.0 nicht mehr in
+> 31er"*
+
+**DIE FUNKTION GIBT ES SEIT 0.21.1, UND SIE IST FAST UNSICHTBAR.** *Wer nach
+`{ratingOne}` sortiert, fragt „was war gut?" — und das haben nur getestete
+Einträge beantwortet; wer nach `{potential}` sortiert, fragt „was mache ich als
+Nächstes?", und das fragt sich nur an Ungetesteten.* **Die Sortierung setzt den
+Statusfilter deshalb als VORGABE.** *Am 13. September 2026 am Stand
+nachgesehen:*
+
+| | wie es heute steht |
+|---|---|
+| **Die Tafel** | `SORT_STATUS` — `rating_*` → Getestet, `potential_*` → Ungetestet. Jede andere Sortierung fasst den Status nicht an |
+| **Die eine Stelle** | `statusOutSort()` (`public/app.js:2458`); Liste und Leiste fragen sie und rechnen nicht je selbst |
+| **Was man davon SIEHT** | **ein Wort** — „folgt der Sortierung", neben den Statuspillen und am zugeklappten Schalter. Sonst nichts |
+| **Gezählt wird sie nicht** | `filterNumber()` lässt sie ausdrücklich aus: die Farbe der Zahl sagt „du hast etwas eingestellt", und eingestellt hat das niemand |
+
+**DIE HARTE KANTE IST `STATUS_BY_HAND`** *(`public/app.js:2424`)*: **ein einziger
+Klick auf eine Statuspille schaltet die Ableitung für die GANZE SITZUNG ab** —
+nicht nur für diese eine Sortierung. *Zurück kommt sie allein über „Filter
+zurücksetzen" (`public/app.js:4418`), und dass dieser Knopf auch die Automatik
+zurückholt, steht nirgends.* **Eine kleine Handlung mit einer großen,
+unsichtbaren Folge.**
+
+### Was diese Runde daran zu klären hat
+
+| | Frage |
+|---|---|
+| **1** | **Gilt die Handwahl je SORTIERUNG oder für die ganze Sitzung?** *Heute für die Sitzung. Je Sortierung wäre das, was ein Mensch erwartet — kostet aber einen Merker je Sortierung statt eines einzigen* |
+| **2** | **Sagt die Oberfläche, wie man zurückkommt?** *Heute nicht. „Filter zurücksetzen" holt die Automatik mit zurück, und das weiß niemand* |
+| **3** | **Reicht EIN Wort?** *„folgt der Sortierung" sagt, DASS abgeleitet wird, aber nicht WAS — dass gerade nur Getestete in der Liste stehen, erfährt man nur, indem man sie zählt* |
+| **4** | **Was ist mit den gespeicherten Ansichten?** *Eine Ansicht trägt eine Filterstellung UND eine Sortierung — welche gewinnt beim Anwenden?* |
+
+> **WARUM SIE HIERHER GEHÖRT UND NICHT IN DIE 31er:** *die 31er fassen Wörter an,
+> keine Wirkung.* **Was hier ansteht, ist Verhalten** — wann eine Ableitung
+> greift, wie lange eine Handwahl gilt und wie man aus ihr herausfindet. *Ein
+> Wort daran zu ändern, ohne das Verhalten zu klären, machte die Auskunft
+> genauer und die Sache nicht besser.*
+
 ### Was die Runde zu entscheiden hat
 
 | | Frage |
 |---|---|
 | **1** | **Wer darf gerufen werden?** *Jeder Zugang — oder nur, wer diesen Eintrag überhaupt sehen darf?* **Ein Ruf an jemanden, der die Sache nicht sehen darf, ist eine Auskunft über einen Eintrag, den es für ihn nicht gibt** |
 | **2** | **Wie wird getippt?** *Freier Text mit `@` — oder eine Auswahl, die beim `@` aufgeht?* **Freier Text bedeutet Tippfehler, die still ins Leere rufen** |
-| **3** | **Zeigt die Glocke ZWEI Zahlen** *(„neu" und „genannt")* **oder eine?** *Zwei Zahlen an einem Symbol sind zwei Sachen an einem Ort; eine Zahl verwischt den Unterschied, den der Betreiber gerade will* |
+| **3** | ~~**Zeigt die Glocke ZWEI Zahlen oder eine?**~~ **DASS sie unterscheidet, ist am 13. September 2026 entschieden** *(siehe oben)*. *Offen bleibt nur die FORM: zwei Zahlen am Symbol, oder eine Zahl über einer geteilten Tafel.* **Zwei Zahlen an einem Symbol sind zwei Sachen an einem Ort; eine Zahl über einer getrennten Tafel sagt dasselbe mit einem Zähler** |
 | **4** | **Was geschieht bei der Umbenennung?** *(siehe oben — der einzige Punkt mit möglichem Schemaanteil)* |
 | **5** | **Nur die Glocke — oder auch eine Mail?** **Vorschlag: nur die Glocke.** *Der Betreiber hat die Glocke genannt, und eine Mail je Ruf ist eine Entscheidung mit ganz anderen Folgen* |
 | **6** | **Wie sieht der Ruf im BEARBEITENMODUS aus?** *Dort steht der Rohtext im Textfeld — `@bert` bleibt `@bert`, und das ist richtig so* |
@@ -1118,9 +1189,60 @@ Weiteres:** er schreibt die Struktur fest und sagt alten Beständen ab.
 
 **Unverändert gegenüber dem alten Plan; neu ist allein die Nummer.**
 
-Migrationscode raus — **zehn Blöcke** (der zehnte ist mit 0.25.0 dazugekommen) —, die Datenbankstruktur festgeschrieben,
+Migrationscode raus — **zwölf Blöcke** (der zwölfte ist mit 0.29.0 dazugekommen:
+das Fälligkeitsdatum an der Aufgabe) —, die Datenbankstruktur festgeschrieben,
 **Absage an zu alte Datenbanken. Ab hier gibt es keinen Rückweg auf ältere
 Fassungen.** *Ein Bruch — solange die erste Zahl 0 ist, läuft er über MINOR.*
+
+> **DIE ZAHL STAND BIS ZUM 13. SEPTEMBER 2026 AN DREI ORTEN VERSCHIEDEN DA:**
+> *hier „zehn", in der Tafel oben „elf", und im Prüfstand die richtige.* **Der
+> Prüfstand hat sie die ganze Zeit gehalten** — `check('Es gibt genau zwoelf
+> Migrationsfunktionen')`, und er zählt sie AUS DEN MARKEN heraus und nicht aus
+> den Funktionsnamen (Stolperstein 156). *Gefunden beim Durchsprechen von
+> 0.31.0; zwei Orte für dieselbe Zahl sind einer zu viel (Stolperstein 47), und
+> hier waren es drei.*
+
+### Und die JPEG-Vorschaubilder fallen mit — entschieden am 13. September 2026
+
+> **DER BETREIBER:** *„wenn diese funktion nur deswegen existiert weil vorher die
+> vorschaubilder mit jpg gemacht wurden und wir nun seit einiger zeit webp
+> nutzen muss der code dafür und auch dieser hinweis nach dem … migrationsrunde
+> raus"*
+
+**ER HAT RECHT, UND ES IST NACHGESEHEN.** *`images.js:135` sagt es im Klartext:
+„BIS 0.26.0 WAREN SIE JPEG". Seit 0.27.0 sind die Vorschaubilder WebP.* **Der
+Bestandslauf prüft in `batchrun.js:189`:**
+
+```js
+const fresh = (isJpeg(z.thumb) || isJpeg(z.medium))
+  ? await makeVariants(z.data, cropFrom(z)) : null;
+```
+
+**Diese Hälfte des Knopfes kann nur in einer Installation greifen, die VOR 0.27.0
+Fotos hochgeladen hat.** *In einer frischen Instanz ist sie toter Code — und sie
+ist damit Migrationsschuld wie ein Migrationsblock, nur ohne Marke.*
+
+**DER KNOPF BEHÄLT SEINE ERSTE HÄLFTE.** *Originale nach einem Wechsel des
+Ablageverfahrens umstellen — das ist dauerhaft sinnvoll und fällt nicht.*
+
+| was fällt | wo |
+|---|---|
+| die `isJpeg`-Abfrage und der zweite Zweig des Laufs | `batchrun.js` |
+| der Zähler `derived` und seine Hälfte des Fertigsatzes | `batchrun.js`, `public/app.js` |
+| „Ohne PNG bleibt der Knopf bedienbar — die Vorschaubilder bleiben" | `public/app.js`, Prüfstand |
+| fünf Sprachschlüssel bzw. ihre zweite Hälfte | `card.catchUpBoth`, `card.catchUpDerivatives`, `card.catchUpAsk`, `card.derivativesAsk`, `card.convertCounts` — **in allen drei Dateien** |
+
+> **UND DER WIDERSPRUCH AN DER KARTE VERSCHWINDET DAMIT VON SELBST.** *Heute
+> sagt sie oben „Die Vorschaubilder sind in jedem Fall WebP" und unten
+> „Generiert veraltete JPEG-Vorschaubilder neu". Beides stimmt — aber nur, wer
+> die Geschichte kennt, sieht keinen Widerspruch, und die Geschichte gehört
+> nach Regel 5.6 nicht an den Bildschirm.*
+>
+> **DIE BEDINGUNG FÜR DAS WEGNEHMEN IST DIESELBE WIE BEI JEDEM
+> MIGRATIONSBLOCK:** *jede Installation muss den Lauf EINMAL gefahren haben.
+> Wer ihn nie gefahren hat, behält JPEG-Vorschaubilder für immer — sie
+> funktionieren weiter, sie sind nur größer.* **Das gehört in die Fragetafel
+> jener Runde und ist vor dem Wegnehmen zu klären.**
 
 **0.33.x — „Die Kommentare werden knapp".** Fast dreißig Prozent des Quelltextes
 sind Kommentar. **Was das Offensichtliche wiederholt, geht; was eine
