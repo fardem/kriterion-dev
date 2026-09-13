@@ -1080,12 +1080,20 @@ untereinander, und sie machen denselben Vergleich verschieden:*
 ```
 
 **Zeile 8344 vergleicht den Datenbankwert gegen sich selbst. Zeile 8345
-vergleicht ihn gegen einen SPRACHWERT.** *Heute geht das auf, weil der
-Schlüssel in allen drei Dateien auf „report" steht — er ist einer von dreizehn,
-deren Wert sich in `de`, `en` und `tr` deckt.* **Genau das ist die Falle: wer
-die deutsche Datei liest, sieht ein englisches Wort ohne Grund und übersetzt es
-— und die Beschriftung des Knopfes dreht sich stumm um.** *Der Schlüssel hat
-keinen Leser; er existiert nur für diesen Vergleich und gehört gelöscht.*
+vergleicht ihn gegen einen SPRACHWERT.** *Und `newKind` ist ein reiner
+Datenwert:* er startet auf `'note'` (8336), wird zwischen `'report'` und
+`'note'` umgeschaltet (8380) und geht als `fd.append('kind', newKind)` an den
+Server (8416). **In derselben Funktion stehen fünf weitere Vergleiche — 8343,
+8347, 8348, 8352, 8380 — und alle fünf prüfen gegen ein Literal.** *Einer von
+sechs läuft durch die Sprachdatei; das ist kein Entwurf, sondern ein
+Verrutscher.*
+
+**HEUTE GEHT ES AUF, und genau das ist die Gefahr.** *Der Schlüssel steht in
+allen drei Dateien auf „report" — er ist einer von dreizehn, deren Wert sich in
+`de`, `en` und `tr` deckt.* **Wer die deutsche Datei liest, sieht ein
+englisches Wort ohne erkennbaren Grund und übersetzt es — und die Beschriftung
+des Knopfes dreht sich stumm um.** *Der Schlüssel hat keinen Leser; er
+existiert nur für diesen einen Vergleich und gehört gelöscht.*
 
 **`dialog.sessionExpired` ist dieselbe Sorte, eine Stufe milder.** *Er wird an
 zwei Stellen geworfen (`306`, `1617`) und an sechs zurückverglichen.* **Ein
