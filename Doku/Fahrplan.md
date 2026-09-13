@@ -1155,11 +1155,12 @@ und wird zum Vokabelwort gemacht?*
 
 ### VII · Und eine Kosmetik, die keine ist
 
-**92 deutsche Werte tragen die Einrückung des Quelltexts mit sich** —
+**92 deutsche SCHLÜSSEL tragen die Einrückung des Quelltexts mit sich** —
+*93 Werte, weil einer der Schlüssel beide Mehrzahlformen betrifft* —
 `"…gelten\n          für alle {entryMany}."` *Am Bildschirm fällt sie nicht auf;
 HTML zieht solchen Weißraum zusammen, und keiner dieser Werte landet in einem
 Attribut, einem Dialog oder im Server.* **Aber die drei Dateien sind sich darin
-längst uneins: Deutsch 93, Englisch 101, Türkisch 4.** *Nur vier Schlüssel
+längst uneins: Deutsch 93 Werte, Englisch 101, Türkisch 4.** *Nur vier Schlüssel
 tragen sie in allen dreien.* **Der türkische Übersetzer hat sie einfach
 weggelassen — und nichts ist passiert.** *Damit ist erwiesen, dass sie niemand
 braucht; sie ist Rest aus dem Umzug der Sätze ins JSON.*
