@@ -133,7 +133,7 @@ von BA 3 aufgefallen.**
 
 | Stelle | was in einer englischen Instanz dastand |
 |---|---|
-| **Die Tagwarnung** | *„The tag „Reise" is removed everywhere. Affected: 3 entries **und** 2 test days"* — das Bindewort stand als Zeichenkette zwischen zwei `t()`-Rufen |
+| **Die Tagwarnung** | *„The tag „Reise" is removed everywhere. Affected: 3 entries **und** 2 test days"* — das Bindewort stand fest zwischen zwei `t()`-Rufen |
 | **Die Vorschaubildzeile** | *„Thumbnails renewed: 7 of 12 checked — 2,1 MB **weniger**."* — `d > 0 ? 'mehr' : 'weniger'` |
 
 **JETZT TRÄGT JEDE SPRACHE DEN GANZEN SATZ**, und die Bindung mit ihm. *Der
@@ -229,6 +229,7 @@ GESEHEN HAT.** *Sie stehen hier, weil sie beim nächsten Mal wieder passieren.*
 | **2** | **EIN NAMENSZUSAMMENSTOSS LÖSCHTE EINEN DIALOGTEXT.** *Der verschmolzenen Zustandszeile gab ich den Namen `card.twoFactorOffHint` — und den trug schon der Bestätigungsdialog* | **die Gleichlautprobe.** *Seither gilt: ein neuer Name darf nur dann schon dastehen, wenn er EINE DER BEIDEN HÄLFTEN ist* |
 | **3** | **`tMark()` REICHTE SEINE WERTE NUR DEM SATZ.** *Am Bildschirm stand „nach **{n}** Tagen"* | **der Prüfstand, im ersten Lauf.** *Die Gleichlautprobe war blind dafür — sie bildet das GEMEINTE nach* |
 | **4** | **ZWEIMAL HABE ICH DIE HAUSREGELN SELBST GEBROCHEN:** *deutsche Bezeichner in `tMarks()` (`marken/namen/satz/stuecke`) und das verbotene Wort „tragen" in `card.nameFreedHint`* | **der Englischwächter und der Sprachwächter** *(Auflage 3)* |
+| **5** | **STOLPERSTEIN 47 RICHTIG GESEHEN, FALSCH GEBAUT.** *Die Schlüsselzahl stand an zwei Stellen; ich habe sie zu EINER Konstante zusammengezogen — und sie in die eine der beiden Gruppen gelegt.* **`check0311()` ist eine eigene Funktion: der ganze Lauf riss mit „LANG_KEY_COUNT is not defined" ab**, und ein abgerissener Lauf belegt nichts *(Stolpersteine 138, 161 und 170)* | **vier Gegenproben zugleich**, jede als `ABGERISSEN`. *Genau dafür ist diese Meldung da — sie unterscheidet „die Zusage hat gehalten" von „es hat gar nichts stattgefunden"* |
 
 > **UND EINE BERICHTIGUNG MEINER EIGENEN AUSKUNFT AN DEN BETREIBER.** *Ich hatte
 > gesagt, „Note" und „Bewertung" seien dasselbe.* **Das stimmt nicht:

@@ -54372,6 +54372,22 @@ async function check0303() {
    Datei dieselben Schluessel, also koennen die SCHLUESSEL nicht warten; die
    TEXTE koennen es sehr wohl.
    ================================================================= */
+/* DIE ZAHL DER SCHLUESSEL JE SPRACHDATEI STEHT EINMAL -- Stolperstein 47.
+   ZWEI GRUPPEN FRAGEN SIE AB: 0.31.0 auf die Deckung der drei Dateien, 0.31.1
+   auf den Stand nach dem Verschmelzen. Zwei Zahlen an zwei Stellen laufen beim
+   naechsten Handgriff auseinander.
+   SIE STEHT AUF MODULEBENE UND NICHT IN EINER DER BEIDEN GRUPPEN, und das ist
+   beim Bauen von 0.31.1 gelernt worden: zuerst stand sie in `check0310()`, und
+   `check0311()` ist eine EIGENE Funktion -- der Lauf riss mit „LANG_KEY_COUNT
+   is not defined" ab, und ein abgerissener Lauf belegt nichts (Stolpersteine
+   138, 161 und 170). Vier Gegenproben haben es zugleich gemeldet.
+   SIE WIRD UMGEDREHT UND NICHT WEGGENOMMEN: „gleich viele" allein bliebe
+   gruen, wenn jemand aus allen dreien dasselbe herausnaehme.
+     1254 vor 0.31.1 -- 1197 danach. Die Runde verschmilzt Bruchstuecke zu
+     ganzen Saetzen; ein verschmolzener Satz braucht einen Schluessel statt
+     zwei, und vierundvierzig sind neu dazugekommen. */
+const LANG_KEY_COUNT = 1197;
+
 async function check0310() {
   const drRead = (code) => JSON.parse(fs.readFileSync(
     path.join(__dirname, 'public', 'languages', `${code}.json`), 'utf8'));
@@ -54382,16 +54398,6 @@ async function check0310() {
      „du" kann in der Einzahl stehen und in der Mehrzahl fehlen. */
   const drTexts = (j) => Object.entries(j).filter(([k]) => k !== '_locale' && k !== '_name')
     .flatMap(([k, v]) => (typeof v === 'string' ? [v] : Object.values(v)).map(text => [k, text]));
-  /* DIE ZAHL STEHT EINMAL -- Stolperstein 47. Zwei Gruppen fragen sie ab
-     (0.31.0 auf die Deckung der drei Dateien, 0.31.1 auf den Stand nach dem
-     Verschmelzen), und zwei Zahlen an zwei Stellen laufen beim naechsten
-     Handgriff auseinander. Sie wird UMGEDREHT und nicht weggenommen: „gleich
-     viele" allein bliebe gruen, wenn jemand aus allen dreien dasselbe
-     herausnaehme.
-       1254 vor 0.31.1 -- 1197 danach. Die Runde verschmilzt Bruchstuecke zu
-       ganzen Saetzen; ein verschmolzener Satz braucht einen Schluessel statt
-       zwei, und vierundvierzig sind neu dazugekommen. */
-  const LANG_KEY_COUNT = 1197;
 
   group('Die Sprachdateien werden gegengelesen — 0.31.0');
   {

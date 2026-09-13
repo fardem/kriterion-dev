@@ -5532,7 +5532,7 @@ G3 hat das mit dem Milchglas vorgeführt, Stolperstein 314.)*
   — sie ist strenger als AA, und sie stand schon
   (`Doku/Farbkonzept_0_23_0.md`).*
 
-#### Sprachregeln S1 bis S10 — seit 0.22.0 geschriebene Regel, S8 seit 0.24.0, S9 seit 0.24.1, S10 seit 0.24.3
+#### Sprachregeln S1 bis S12 — seit 0.22.0 geschriebene Regel, S8 seit 0.24.0, S9 seit 0.24.1, S10 seit 0.24.3, S11 seit 0.24.4, S12 seit 0.31.1
 
 *(Konzept, Abschnitt 4.2 und 4.3. Das Wörterbuch mit den sechzehn
 Entscheidungen E1 bis E16 steht im Änderungsprotokoll 0.22.0; die Verbotsliste
@@ -5703,6 +5703,42 @@ liest jeden Text in Anführungszeichen und Backticks von `public/app.js` und jed
   > `tr.json` liegt vollständig da, die fünf Regeln sind gefahren, der
   > Augenschein ist gefahren. **Was aussteht, ist das Durchgehen der
   > Wörterliste** — allen voran `Parola` gegen `Şifre` (F3).
+
+- **S12 · Ein Schlüssel trägt einen ganzen Satz, nie ein Wort ohne seinen
+  Satz.** *(seit 0.31.1.)* **Die Hervorhebung sitzt als `{word}` DARIN — wo,
+  entscheidet die Sprache.**
+
+  ```js
+  //  bis 0.31.0                                  ab 0.31.1
+  `${tH('a')} <strong>${tH('b')}</strong> ${tH('c')}`   tMark('a', 'b')
+  ```
+
+  **DER GRUND STEHT IN S11 UND IST DORT SCHON EINMAL TEUER GEWESEN.** *Bis
+  0.25.3 stand „Dein Link ist davon **nicht** betroffen — er gilt weiter." als
+  drei Schlüssel da.* **Im Deutschen geht das auf, im Englischen auch. Im
+  Türkischen nicht:** *dort verneint ein Suffix im Verb und kein eigenes
+  Wörtchen davor, und aus den drei sauber übersetzten Stücken wurde „Bağlantın
+  bundan değil etkilendi" — kein Satz, sondern Kauderwelsch, und er stand so
+  seit 0.24.3 im Programm.* **Ein zersägter Satz ist nicht eine schlechtere
+  Übersetzung, sondern eine, die der Übersetzer gar nicht retten kann.**
+
+  | | Regel | woran sie hängt |
+  |---|---|---|
+  | **A** | **Ein Wert ist ein Satz oder ein Satzteil mit eigener Aussage** — kein Satzzeichenanfang, kein bloßes Funktionswort, keine unpaarige Klammer | *ein Bruchstück verlangt vom Übersetzer, die Naht zu erraten* |
+  | **B** | **Zwei Ausnahmen, und beide stehen NAMENTLICH im Prüfstand** — das **Anschlussstück**, das einen benannten Platz eines anderen Satzes füllt, und die **eigenständige Beschriftung** (Auswahleintrag, Filterknopf, Zustandswort, Bindewort) | *und die Tafel ist in BEIDE Richtungen geschlossen: ein neues Bruchstück fällt auf, und eine Ausnahme, die keine mehr ist, ebenso* |
+  | **C** | **Die Füllung kommt maskiert herein, der Satz nie** — `tMark()`/`tMarks()` gehen über ein Steuerzeichen | *die Auszeichnung läuft damit NIE durch den maskierenden Weg; wer dort einen Benutzerwert einsetzen wollte, müsste die Helferzeile ändern* |
+  | **D** | **Kein Programmablauf läuft durch die Sprachdatei** — kein `===` neben einem `t()`-Ruf | *eine Verzweigung, die durch einen Satz läuft, den jemand übersetzen darf, ist keine Verzweigung, sondern eine Wette* |
+
+  **DIE ABNAHME DER RUNDE WAR, DASS SICH AM BILDSCHIRM KEIN ZEICHEN ÄNDERT**,
+  und sie ist gerechnet worden: `tools/gleichlaut.js` liest den ganzen
+  Quelltext, ersetzt jeden Textruf durch seinen Wert und rechnet je Sprache
+  zwei Prüfsummen. *Das Werkzeug nennt in seinem eigenen Kopf, wofür es blind
+  ist — es führt den Code nicht aus, es bildet nach, was die Helfer tun
+  SOLLEN.* **Genau dort ist beim Bauen ein Fehler durchgerutscht, den der
+  Prüfstand im ersten Lauf gefangen hat.**
+
+  *Vierzehn Gegenproben halten die Regel, eine je Zusage der Runde; die
+  vollständige Liste steht im Änderungsprotokoll 0.31.1.*
 
 #### Farbe und Marke
 
