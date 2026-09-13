@@ -12426,13 +12426,13 @@ function cardStats(fetched) {
              neben der Datenbank, und der Eigentuemer sollte das aendern. Der
              Befehl steht im Kasten „Auf dem Server" (Regel S5). */''}
         <div style="margin-top:14px">${stats.keyFromEnv
-          ? `<div class="ok-box">${tMarks('card.keyFromSettingHint', {
+          ? `<div class="ok-box">${tMarks('card.keyFromSetting', {
               word: '<code>ENCRYPTION_KEY</code>',
               word2: `<strong>${tMarks('card.neverSameBackup',
                 { word: '<code>.env</code>', word2: '<code>data/</code>' })}</strong>` })}</div>`
           : (OWNER
             ? `<div class="warn-box">${tMark('card.keyBesideHint', 'card.keyBesideDb')}
-              <p style="margin:9px 0 6px">${tMarks('card.keyIntoEnvHint', {
+              <p style="margin:9px 0 6px">${tMarks('card.keyIntoEnv', {
                 word: `<strong>${tH('card.thisOne')}</strong>`, word2: '<code>.env</code>' })}</p>
               <code class="keyline" id="keyline">ENCRYPTION_KEY=${esc(stats.keyHex || '')}</code>
               ${serverBox(t('card.restartHint'), 'docker compose up -d')}

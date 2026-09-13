@@ -9543,6 +9543,163 @@ const REGRESSIONS = [
     replacement: "  \"card.languageHint\": \"Sprache der Oberfläche, der Meldungen und der Mails.\\n          Wirkt sofort und gilt auf jedem angemeldeten Gerät.\",",
     expected: 'Die Sprachdateien werden gegengelesen — 0.31.0'
   },
+
+  /* ---- 0.31.1: „Deutsch sitzt" ----
+     DREIZEHN RUECKBAUTEN FUER ELF ZUSAGEN. Zusage 2 bekommt DREI, weil sie
+     drei Sorten Bruchstueck verbietet und ein Rueckbau je Sorte sagt, welche
+     davon gefangen hat.
+     JEDER GREIFT IN DIE DATEN UND NICHT IN DEN WAECHTER. Eine Gegenprobe, die
+     die Pruefung selbst umbaut, belegt nur, dass man Pruefungen abschalten
+     kann. */
+  {
+    /* ZUSAGE 1: das Werkzeug verschweigt, wofuer es blind ist. Die Probe
+       selbst bleibt heil -- und genau das ist der Fall, vor dem die Zusage
+       warnt: ein Werkzeug, dem jemand mehr zutraut, als es kann. */
+    nr: '964', name: 'Die Gleichlautprobe nennt ihre eigene Blindstelle nicht mehr',
+    file: 'tools/gleichlaut.js',
+    search: "   WOFUER SIE BLIND IST, UND DAS GEHOERT HIERHER:\n   SIE FUEHRT DEN CODE NICHT AUS.",
+    replacement: "   SIE BILDET NACH.",
+    expected: 'Deutsch sitzt — 0.31.1'
+  },
+  {
+    /* ZUSAGE 2, ERSTE SORTE: ein Wert faengt wieder mit einem Satzzeichen an.
+       Genau so stand er vor der Runde da -- der Punkt gehoerte dem Quelltext
+       und nicht dem Satz. */
+    nr: '965', name: 'Ein Satz faengt wieder mit dem Punkt des Vorgaengers an',
+    file: 'public/languages/de.json',
+    search: "  \"card.subDirOptional\": \"Optional ein vorhandener Unterordner:\",",
+    replacement: "  \"card.subDirOptional\": \". Optional ein vorhandener Unterordner:\",",
+    expected: 'Deutsch sitzt — 0.31.1'
+  },
+  {
+    /* ZUSAGE 2, ZWEITE SORTE: ein Schluessel traegt nur noch ein Funktionswort.
+       Gewaehlt ist einer, den DIESE Runde eingefuehrt hat -- die Wortlautprobe
+       vergleicht ihn gar nicht erst, und der Rueckbau trifft damit wirklich
+       nur die eine Zusage. */
+    nr: '966', name: 'Ein Schluessel traegt wieder ein blosses Fuellwort',
+    file: 'public/languages/de.json',
+    search: "  \"card.withPhotosPlain\": \" mit Fotos\",",
+    replacement: "  \"card.withPhotosPlain\": \"und\",",
+    expected: 'Deutsch sitzt — 0.31.1'
+  },
+  {
+    /* ZUSAGE 2, DRITTE SORTE: die Klammer geht auf und der Uebersetzer soll
+       raten, was folgt. Die schliessende stuende wieder im Quelltext. */
+    nr: '967', name: 'Ein Wert oeffnet wieder eine Klammer, die er nicht schliesst',
+    file: 'public/languages/de.json',
+    search: "  \"card.includeFiles\": \"Angehängte Dateien mitnehmen (+{size})\",",
+    replacement: "  \"card.includeFiles\": \"Angehängte Dateien mitnehmen (+\",",
+    expected: 'Deutsch sitzt — 0.31.1'
+  },
+  {
+    /* ZUSAGE 2, DIE ANDERE HAELFTE: ein Anschlussstueck verliert seinen Platz.
+       Der Satz bleibt lesbar, der Nachsatz faellt lautlos vom Bildschirm --
+       „dann der Durchschnitt darueber." ohne die Angabe, ob gewichtet wird.
+       Die Ausnahmetafel darf das nicht decken, und sie tut es nicht. */
+    nr: '968', name: 'Ein Anschlussstueck haengt an keinem Satz mehr',
+    file: 'public/languages/de.json',
+    search: "dann der Durchschnitt darüber{extra}.",
+    replacement: "dann der Durchschnitt darüber.",
+    expected: 'Deutsch sitzt — 0.31.1'
+  },
+  {
+    /* ZUSAGE 3: der Ablauf haengt wieder an der Sprache. Der Vergleich ist
+       auf Deutsch wahr und auf Englisch falsch -- und niemand sieht es, weil
+       die Zeile nichts anzeigt, sondern etwas ENTSCHEIDET. */
+    nr: '969', name: 'Ein Vergleich steht wieder neben einem Textruf',
+    file: 'public/app.js',
+    search: "    if (state) state.innerHTML = status.an",
+    replacement: "    if (state && t('card.on') !== t('card.off')) state.innerHTML = status.an",
+    expected: 'Deutsch sitzt — 0.31.1'
+  },
+  {
+    /* ZUSAGE 4: eine Datei traegt einen Schluessel weniger -- diesmal die
+       tuerkische. So faellt in einer echten Uebersetzungsrunde einer heraus,
+       und die Deckung der drei Dateien ist der Gegenstand der Zusage. */
+    nr: '970', name: 'Die tuerkische Datei traegt einen Schluessel weniger',
+    file: 'public/languages/tr.json',
+    search: "  \"card.active\": \"etkin\",\n",
+    replacement: "",
+    expected: 'Deutsch sitzt — 0.31.1'
+  },
+  {
+    /* ZUSAGE 5: ein tMark-Satz verliert seinen Platz. Am Bildschirm stuende
+       danach „Willkommen, — bitte ein Passwort waehlen." -- ohne den Namen,
+       fuer den die Zeile da ist. */
+    nr: '971', name: 'Ein Satz mit Hervorhebung verliert seinen Platz',
+    file: 'public/languages/de.json',
+    search: "  \"login.welcome\": \"Willkommen, {word} — bitte ein Passwort wählen.\",",
+    replacement: "  \"login.welcome\": \"Willkommen, — bitte ein Passwort wählen.\",",
+    expected: 'Deutsch sitzt — 0.31.1'
+  },
+  {
+    /* ZUSAGE 6: eine Vokabelbeschriftung nennt ihr eigenes Vorgabewort. Wer
+       „Eintrag" durch „Gerät" ersetzt, liest daneben weiterhin „Eintrag" --
+       die Beschriftung nennt genau das, was der Benutzer gerade auswechselt
+       (L5). */
+    nr: '972', name: 'Eine Vokabelbeschriftung nennt wieder ihr Vorgabewort',
+    file: 'public/languages/de.json',
+    search: "  \"card.itemOne\": \"Einzahl\",",
+    replacement: "  \"card.itemOne\": \"Einzahl (Vorgabe: Eintrag)\",",
+    expected: 'Deutsch sitzt — 0.31.1'
+  },
+  {
+    /* ZUSAGE 7: eine Zahl steht wieder zweimal -- einmal als `value` am
+       Auswahlfeld und einmal als Satz in drei Sprachdateien, obwohl „50 MB"
+       in allen dreien gleich lautet (Stolperstein 47).
+       ER FAELLT DOPPELT AUF -- an dieser Zusage UND an der Deckungsprobe, der
+       `de.json` dann einen Schluessel mehr traegt als die beiden anderen. Das
+       ist keine Unschaerfe, sondern die Sache selbst: eine Zahl, die in einer
+       Sprachdatei steht, ist in DREI Dateien zu pflegen. */
+    nr: '973', name: 'Eine Exportgroesse steht wieder in der Sprachdatei',
+    file: 'public/languages/de.json',
+    search: "  \"card.mergeExplainHint\":",
+    replacement: "  \"card.mb50\": \"50 MB\",\n  \"card.mergeExplainHint\":",
+    expected: 'Deutsch sitzt — 0.31.1'
+  },
+  {
+    /* ZUSAGE 8: ein deutscher Wert traegt wieder eine HTML-Entitaet. Der
+       Uebersetzer muesste Maskierung kennen, um den Satz zu verstehen -- und
+       wer sie nicht kennt, schreibt spitze Klammern hin, die im Browser
+       verschwinden. */
+    nr: '974', name: 'Ein deutscher Wert traegt wieder eine HTML-Entitaet',
+    file: 'public/languages/de.json',
+    search: "steht künftig unter „Gelöschter Benutzer {number}“.",
+    replacement: "steht künftig unter „Gelöschter Benutzer &lt;{number}&gt;“.",
+    expected: 'Deutsch sitzt — 0.31.1'
+  },
+  {
+    /* ZUSAGE 9: die Einrueckung des Quelltexts steht wieder im Wert. Am
+       Bildschirm faellt sie nicht auf -- HTML zieht sie zusammen --, und
+       genau deshalb wandert sie ungesehen in jede Uebersetzung mit. */
+    nr: '975', name: 'Ein Wert traegt wieder die Einrueckung des Quelltexts',
+    file: 'public/languages/de.json',
+    search: "\"card.storeCaveat\": \"Verlustbehaftet: bei Fotos rund zwei Drittel kleiner,",
+    replacement: "\"card.storeCaveat\": \"Verlustbehaftet: bei Fotos rund zwei Drittel kleiner,\\n          ",
+    expected: 'Deutsch sitzt — 0.31.1'
+  },
+  {
+    /* ZUSAGE 10: ein Eintrag der Umbenennungstafel zeigt wieder ins Leere.
+       Die Tafel uebersetzt den alten deutschen Namen; zeigt sie auf einen
+       Schluessel, den es nicht mehr gibt, findet der Rufer nichts und merkt
+       es nicht. */
+    nr: '976', name: 'Ein Eintrag der Umbenennungstafel zeigt wieder ins Leere',
+    file: 'tools/keys.json',
+    search: "  \"karte.laden\": \"card.confirmOnce\",",
+    replacement: "  \"karte.laden\": \"card.loadLower\",",
+    expected: 'Deutsch sitzt — 0.31.1'
+  },
+  {
+    /* ZUSAGE 11: ein Satz, den DIESE Runde nicht angefasst hat, aendert sein
+       Wort. Er steht in keiner der drei Listen -- und muss deshalb Zeichen
+       fuer Zeichen der von 0681d42 sein. Faellt diese Zeile nicht, ist die
+       ganze Buchfuehrung der Runde eine Behauptung. */
+    nr: '977', name: 'Ein unberuehrter Satz aendert sein Wort',
+    file: 'public/languages/de.json',
+    search: "  \"list.close\": \"Schließen\",",
+    replacement: "  \"list.close\": \"Zumachen\",",
+    expected: 'Der Quelltext spricht Englisch — die sechs Waechter'
+  },
 ];
 
 /* ================= Spuren und Versatz =================

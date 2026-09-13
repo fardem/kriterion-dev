@@ -18669,15 +18669,17 @@ function sweepLeftovers() {
        Stilblatt; die Gruppe „Die elf Code-Lecks" haelt beides fest.
        DIE MEHRZAHLFORMEN UND DIE VOKABELNAMEN RUEHREN SICH NICHT: eine
        Abfrageangabe hat keine Mehrzahl, und `10px` ist kein Vokabelwort. */
-    /* 1336 WURDEN 1303 MIT 0.31.1 -- UMGEDREHT UND NICHT GELOESCHT
+    /* 1336 WURDEN 1279 MIT 0.31.1 -- UMGEDREHT UND NICHT GELOESCHT
        (Stolperstein 74). Die Runde hat den zersaegten Satzbau aufgeloest:
-       dreiunddreissig Schluessel sind dazugekommen, sechsundsechzig gefallen.
+       vierundvierzig Schluessel sind dazugekommen, hunderteins gefallen. Die
+       Zahl zaehlt Namen UND Zweige -- ein Mehrzahlpaar steht mit drei
+       Eintraegen darin, dem Namen und seinen beiden Zweigen.
        DIE MEHRZAHLFORMEN UND DIE VOKABELNAMEN RUEHREN SICH NICHT -- 82 und
-       14 wie zuvor. Zwei Mehrzahlobjekte sind zu einem verschmolzen
-       (card.besidesThisOneHint), und eines ist dazugekommen; wer die Zahl
-       hier still mitlaufen liesse, saehe genau das nicht. */
-    check('Und die Zahlen stehen: 1303 Schluessel, 82 Mehrzahlformen, 14 Vokabelnamen',
-      languageKeys.length === 1303 && pluralKeys.length === 82 && vocabularyKeys.length === 14,
+       14 wie zuvor. Wer die Zahl hier still mitlaufen liesse, saehe genau das
+       nicht: die Runde fasst die ABLAGE der Saetze an, und ein Mehrzahlpaar,
+       das dabei flach wird, waere ein Verlust. */
+    check('Und die Zahlen stehen: 1279 Schluessel, 82 Mehrzahlformen, 14 Vokabelnamen',
+      languageKeys.length === 1279 && pluralKeys.length === 82 && vocabularyKeys.length === 14,
       `${languageKeys.length} / ${pluralKeys.length} / ${vocabularyKeys.length}`);
 
     /* ---- 3. Die Adressprobe ---------------------------------------------
@@ -18878,8 +18880,15 @@ function sweepLeftovers() {
       'card.storeCaveat', 'card.derivativesWebp',
       'card.catchUpStore', 'card.catchUpBoth', 'card.catchUpDerivatives',
       'card.catchUpAsk', 'card.derivativesAsk',
-      'card.convertCounts', 'card.nothingToDo',
       'entry.clipboardLarger', 'server.imageStoreUnknown'];
+    /* ZWEI STANDEN BIS 0.31.1 HIER DANEBEN: `card.convertCounts` und
+       `card.nothingToDo`. Beide sind mit 0.31.1 in `card.convertFinished`
+       hineingezogen worden -- aus drei Bruchstuecken ist ein Satz mit zwei
+       Plaetzen geworden. Sie stehen in keiner Sprachdatei mehr, und die
+       Zeile darunter faengt genau das: eine Liste, die einen Schluessel
+       nennt, den es nicht mehr gibt, ist eine Erinnerung und keine
+       Buchfuehrung. Ein GONE-Eintrag braucht es nicht -- der Stand von
+       0681d42 kennt sie ohnehin nicht, sie sind Schluessel aus 0.27.0. */
     /* UND ZWEI MIT 0.28.0: die Titel der beiden Blaetterpfeile in der
        Kopfzeile. Mehr Saetze braucht diese Runde nicht -- der Rueckweg behaelt
        seinen (`list.backToList`), und die Kopfzeile leiht sich alles andere
@@ -18934,7 +18943,7 @@ function sweepLeftovers() {
     /* UND VIERUNDVIERZIG MIT 0.31.1 -- die Runde, die die zersaegten Saetze
        wieder zusammensetzt. Ein verschmolzener Satz bekommt haeufig einen
        NEUEN Namen: `card.keyFromSetting` und `card.withoutKeyLost` werden
-       `card.keyFromSettingHint`, und der neue Name nennt den ganzen Satz
+       `card.keyFromSetting`, und der neue Name nennt den ganzen Satz
        statt seiner ersten Haelfte. Der Stand von 0681d42 kennt ihn nicht --
        also steht er hier und wird gar nicht erst verglichen. Sein VORGAENGER
        steht in WORDING_GONE_TEXT_0311 und wird dort abgezogen. */
@@ -18945,7 +18954,7 @@ function sweepLeftovers() {
       "card.deleteFreesHint", "card.engineCheckboxHint",
       "card.exportOversizeHint", "card.fileContainsHint", "card.freedBytes",
       "card.internalTitleHint", "card.keyBesideHint",
-      "card.keyFromSettingHint", "card.keyIntoEnvHint", "card.lessBytes",
+      "card.keyFromSetting", "card.keyIntoEnv", "card.lessBytes",
       "card.linkForUser", "card.lockInsteadHint", "card.lockedOutCard",
       "card.logKeepsHint", "card.mergeExplainHint", "card.moreBytes",
       "card.onlySessionHint", "card.otherSessionsHint", "card.partOrderHint",
@@ -19362,10 +19371,19 @@ function sweepLeftovers() {
        die elf Code-Lecks fallen aus der Datei von heute und werden gleich-
        zeitig aus dem Stand von damals abgezogen (WORDING_GONE_TEXT_0310).
        Der Abstand zwischen beiden Listen bleibt deshalb bei zwei. */
-    check('Wortlautprobe: zwei Saetze mehr als bei der Abnahme, und beide sind Mehrzahlpaare',
-      wordingNow.length === wordingThen.length + 2 && wordingNow.length === 1189,
+    /* 1189 WURDEN 1089 MIT 0.31.1, UND DIE BEIDEN ZAHLEN SIND GLEICH GEWORDEN.
+       Die zwei Saetze mehr waren die beiden Mehrzahlpaare aus 0.25.4: `{n}
+       Tage` steht flach mit zwei Werten da, wo damals einer stand. Sie sind
+       noch da und zaehlen weiter zwei -- nur steht ihnen jetzt auf der Seite
+       von damals dieselbe Zahl gegenueber, weil 0.31.1 achtundneunzig
+       Haelften abzieht und vierundvierzig neue Schluessel gar nicht erst
+       vergleicht. DIE GLEICHHEIT IST DAMIT KEIN ZUFALL, SONDERN DAS ERGEBNIS
+       ZWEIER GEGENGERECHNETER LISTEN -- und die Zeile sagt beide Zahlen, statt
+       nur „gleich viele". */
+    check('Wortlautprobe: gleich viele Saetze wie bei der Abnahme — 1089',
+      wordingNow.length === wordingThen.length && wordingNow.length === 1089,
       `${wordingThen.length} damals, ${wordingNow.length} heute (ohne die ` +
-      `${WORDING_NEW.length} neuen und die siebzehn weggenommenen)`);
+      `${WORDING_NEW.length} neuen und die weggenommenen)`);
     /* ZWEI SAETZE SIND ANDERE, UND BEIDE SIND BENANNT.
        `server.backupDirNotSet` NENNT die Umgebungsvariable, und die heisst
        seit 0.24.1 anders -- der Satz musste mitziehen, weil er sonst auf etwas
@@ -19515,18 +19533,29 @@ function sweepLeftovers() {
       'server.videoNeedsStill', 'server.videoStill', 'server.stillNoPreview',
       'server.stillNotImage', 'card.exportPartsHint', 'card.backupWritten',
       'card.backupWrittenFile', 'card.keyBesideDb', 'card.keyStillBeside',
-      'server.backupInDataDir', 'card.backupDirAdvice', 'card.itemOne', 'card.itemMany',
-      'card.cleanupAfterBackup', 'card.backupUnopenableHint', 'card.autoDeleteHint',
+      'server.backupInDataDir', 'card.itemOne', 'card.itemMany',
+      'card.cleanupAfterBackup', 'card.backupUnopenableHint',
       'server.exportGrew', 'server.backupDirGone', 'server.backupDirNotSet',
       'server.backupConcurrent', 'server.targetNotNumber', 'server.partExportIncomplete',
       'mail.invite.body', 'mail.confirm.body', 'mail.test.body',
       'card.adminOnlyCategory', 'card.adminOnlyTag', 'card.lastSeen', 'card.linkUsed',
       'card.allCodesUsed'];
+    /* DREI STANDEN BIS 0.31.1 HIER DANEBEN und stehen jetzt nicht mehr:
+       `card.backupDirAdvice` und `card.autoDeleteHint` aus der Tafel,
+       `card.potentialHint` aus dem Anfuehrungszeichen. Alle drei sind mit
+       0.31.1 GANZ gefallen -- ihr Satz ist in seinen Nachbarn hineingezogen
+       worden. Ihr Wortlaut von 0681d42 wird jetzt vom Stand von damals
+       abgezogen (WORDING_GONE_TEXT_0311) und nicht mehr als geaendert
+       gefuehrt.
+       DERSELBE GRIFF WIE BEI `card.partQuery` IN 0.31.0, und aus demselben
+       Grund: eine Liste, die auf einen Schluessel zeigt, den es nicht mehr
+       gibt, bricht die Zeile darunter ab -- `Object.values(undefined)`. Genau
+       das ist beim Bauen passiert. */
     const CHANGED_FORCED_0310 = ['card.themeHint', 'card.convertRunning',
       'card.convertFinished', 'card.convertDone', 'server.convertRunning'];
     const CHANGED_QUOTE_0310 = [
       'card.categoryDeleteHint', 'card.createdFrom', 'card.criterionDeleteHint',
-      'card.exportPartsQuoted', 'card.openAppHint', 'card.potentialHint', 'card.purgeHint',
+      'card.exportPartsQuoted', 'card.openAppHint', 'card.purgeHint',
       'card.restored', 'card.searchUsersHint', 'card.setTo', 'card.tagDeleteHint',
       'dialog.deleteAlso', 'dialog.deleteUserAsk', 'dialog.nameFreedHint',
       'dialog.postsOfOthers', 'entry.fileDeleteHint', 'entry.ratingRemoveHint',
