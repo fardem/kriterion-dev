@@ -163,7 +163,7 @@ beiden Stellen der Runde, an denen sich `en.json` und `tr.json` inhaltlich
 | **7** | **Keine Zahl steht zweimal** | die vier Größen kommen aus ihrem `value` |
 | **8** | **Kein DEUTSCHER Wert trägt eine HTML-Entität** | *en/tr tragen sie noch — sie herauszunehmen hieße, ihre Sätze neu zu formulieren, und das ist 0.31.2 und 0.31.3* |
 | **9** | **Kein Wert trägt die Einrückung des Quelltexts** | *in keiner der drei Dateien; ein Umbruch steht nur in den vier Briefen, wo er ein Absatz ist* |
-| **10** | **Kein Eintrag der Umbenennungstafel zeigt auf einen Schlüssel DIESER Runde** | **33 umgehängt** |
+| **10** | **Kein Eintrag der Umbenennungstafel zeigt auf einen Schlüssel DIESER Runde** | **92 umgehängt, 6 gestrichen** |
 | **11** | **Die Wortlautprobe ist vollständig nachgeführt** | drei Listen, und jede sagt, welche Runde was getan hat |
 
 ### Zusage 2 hieß zuerst etwas Gröberes
@@ -256,8 +256,14 @@ INS LEERE** *(`tools/keys.json`, aus 0.24 bis 0.30 — darunter `login.not`,
 `list.sortAvgDesc` und die vierzehn deutschen Vokabelnamen)*. **Sie bleiben
 stehen und sind gezählt.** *Einen Nachfolger zu raten wäre schlimmer als die
 Lücke: die Tafel übersetzt den alten deutschen Namen, und ein falsches Ziel
-schickt den Rufer an die falsche Zeile.* **Die dreiunddreißig, die DIESE Runde
-gebrochen hat, zeigen wieder auf ihren Nachfolger.**
+schickt den Rufer an die falsche Zeile.*
+
+**WAS DIESE RUNDE GEBROCHEN HAT, IST DAGEGEN NACHGEZOGEN: zweiundneunzig
+Einträge zeigen auf ihren Nachfolger**, und sechs sind **ersatzlos gestrichen**
+— *`dialog.sitzungAbgelaufen` und `eintrag.report` (die beiden Schlüssel ohne
+Leser, BA 4) und `karte.mB` bis `karte.mB4` (die vier Exportgrößen, BA 5).*
+**Ein verschmolzener Schlüssel hat einen Nachfolger; ein gestrichener hat
+keinen, und dann steht dort auch keiner.**
 
 ---
 
