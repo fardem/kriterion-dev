@@ -9079,11 +9079,14 @@ const REGRESSIONS = [
   {
     /* DIE GANZE REPARATUR STECKT IN EINER ZEILE. Auf `auto auto` teilen sich
      beide Zeilen die Hoehe der spannenden Wolke, und Beschriftung und
-     Umschalter sacken wieder ab -- gemessen 96 und 218 Pixel tief. */
+     Umschalter sacken wieder ab -- gemessen 96 und 218 Pixel tief.
+     NACHGEZOGEN IN 0.30.3: die Regel nennt seit dieser Runde ihren Traeger.
+     Der Rueckbau ist derselbe geblieben, nur sein Suchtext ist mitgewandert
+     -- ein Rueckbau, dessen Suchtext fehlt, waere ein Fund ueber die LISTE. */
     nr: "916", name: "Beide Rasterzeilen der Tagzeile teilen sich wieder die Hoehe",
     file: "public/style.css",
-    search: "  .frow-tags { grid-template-rows: auto auto 1fr; }",
-    replacement: "  .frow-tags { grid-template-rows: auto auto auto; }",
+    search: "  .frow-tags.tags-deep { grid-template-rows: auto auto 1fr; }",
+    replacement: "  .frow-tags.tags-deep { grid-template-rows: auto auto auto; }",
     expected: "Die Tagzeile rueckt nach oben \u2014 0.30.1"
   },
   {
@@ -9257,8 +9260,8 @@ const REGRESSIONS = [
      zurueck, nimmt sie der Wolke wieder bis zu 180 der 366 Pixel. */
     nr: "935", name: "Die beiden Verweise stehen wieder am Zeilenende",
     file: "public/style.css",
-    search: "  .frow-tags > .frow-right-end { grid-column: 1; grid-row: 2;\n    align-self: start; justify-self: start; gap: 4px; }",
-    replacement: "  .frow-tags > .frow-right-end { grid-row: 1 / -1; align-self: start; }",
+    search: "  .frow-tags.tags-deep > .frow-right-end { grid-column: 1; grid-row: 2;\n    align-self: start; justify-self: start; gap: 4px; }",
+    replacement: "  .frow-tags.tags-deep > .frow-right-end { grid-row: 1 / -1; align-self: start; }",
     expected: "Die Tagzeile traegt Zeichen statt Woerter \u2014 0.30.2"
   },
   {
@@ -9266,8 +9269,8 @@ const REGRESSIONS = [
      steht nicht mehr da, wo es bestellt ist. */
     nr: "936", name: "Der Umschalter steht wieder in der zweiten Rasterzeile",
     file: "public/style.css",
-    search: "  .frow-tags > .tagmode { grid-row: 3; }",
-    replacement: "  .frow-tags > .tagmode { grid-row: 2; }",
+    search: "  .frow-tags.tags-deep > .tagmode { grid-row: 3; }",
+    replacement: "  .frow-tags.tags-deep > .tagmode { grid-row: 2; }",
     expected: "Die Tagzeile traegt Zeichen statt Woerter \u2014 0.30.2"
   },
   {
@@ -9326,6 +9329,87 @@ const REGRESSIONS = [
     search: "  width: 30px; height: 30px; padding: 0; border-radius: 7px;",
     replacement: "  width: 16px; height: 16px; padding: 0; border-radius: 7px;",
     expected: "Die Tagzeile traegt Zeichen statt Woerter \u2014 0.30.2"
+  },
+  {
+    /* EINE REIHE LAESST FUENFUNDDREISSIG PIXEL LEER -- genau der Befund der
+     Runde. Die Hoehe ist bezahlt, ob die Wolke sie fuellt oder nicht. */
+    nr: "943", name: "Die zugeklappte Wolke zeigt wieder EINE Reihe",
+    file: "public/app.js",
+    search: "    const cloudLimit = getComputedStyle(r3).display === 'grid' ? 2 : 1;",
+    replacement: "    const cloudLimit = 1;",
+    expected: "Die zugeklappte Tagzeile fuellt ihre Hoehe \u2014 0.30.3"
+  },
+  {
+    /* AM SCHREIBTISCH GIBT ES KEIN LOCH ZU FUELLEN: dort steht die Zeile als
+     Flexzeile, und zwei Reihen waeren rund 33 Pixel fuer nichts. */
+    nr: "944", name: "Die zwei Reihen gelten auch am Schreibtisch",
+    file: "public/app.js",
+    search: "getComputedStyle(r3).display === 'grid' ? 2 : 1;",
+    replacement: "2;",
+    expected: "Die zugeklappte Tagzeile fuellt ihre Hoehe \u2014 0.30.3"
+  },
+  {
+    /* BEI EINEM JUNGEN BESTAND GIBT ES KEINE ZWEITE REIHE ZU ZEIGEN. Gilt die
+     Anordnung trotzdem, steht das Loch wieder da. */
+    nr: "945", name: "Die Anordnung von 0.30.2 gilt wieder immer",
+    file: "public/app.js",
+    search: "    if (cloudRows(g3) > 1) r3.classList.add('tags-deep');",
+    replacement: "    r3.classList.add('tags-deep');",
+    expected: "Die zugeklappte Tagzeile fuellt ihre Hoehe \u2014 0.30.3"
+  },
+  {
+    /* UND DER ANDERE AUSGANG DERSELBEN BEDINGUNG: bei zwei Reihen soll sie
+     greifen. Eine Zusage, die nur einen der beiden kennt, bliebe hier gruen. */
+    nr: "946", name: "Die Anordnung greift erst ab drei Reihen",
+    file: "public/app.js",
+    search: "if (cloudRows(g3) > 1) r3.classList",
+    replacement: "if (cloudRows(g3) > 2) r3.classList",
+    expected: "Die zugeklappte Tagzeile fuellt ihre Hoehe \u2014 0.30.3"
+  },
+  {
+    /* DER ABSTAND ZWISCHEN DEN REIHEN GEHOERT IN DIE RECHNUNG: ohne ihn zaehlt
+     der Zaehler bei dreissig Reihen sechsunddreissig. */
+    nr: "947", name: "Der Reihenzaehler rechnet ohne den Abstand",
+    file: "public/app.js",
+    search: "  return Math.round((box.scrollHeight + CLOUD_GAP) / (height + CLOUD_GAP));",
+    replacement: "  return Math.round(box.scrollHeight / height);",
+    expected: "Die zugeklappte Tagzeile fuellt ihre Hoehe \u2014 0.30.3"
+  },
+  {
+    /* ZWEI LESER, EINE MESSUNG (Stolperstein 47). Misst der Zaehler selbst,
+     laufen die beiden beim naechsten Griff an der Pille auseinander. */
+    nr: "948", name: "Der Reihenzaehler misst wieder selbst",
+    file: "public/app.js",
+    search: "function cloudRows(box) {\n  const height = cloudLine(box);",
+    replacement: "function cloudRows(box) {\n  const first = box.firstElementChild;\n  const height = first ? first.offsetHeight || 0 : 0;",
+    expected: "Die zugeklappte Tagzeile fuellt ihre Hoehe \u2014 0.30.3"
+  },
+  {
+    /* `scrollHeight` MISST DEN VOLLEN INHALT, `clientHeight` nur das Sichtbare.
+     Hinter einer Begrenzung ist das der Unterschied zwischen zwei und einer. */
+    nr: "949", name: "Der Reihenzaehler sieht nur, was nicht abgeschnitten ist",
+    file: "public/app.js",
+    search: "  return Math.round((box.scrollHeight + CLOUD_GAP)",
+    replacement: "  return Math.round((box.clientHeight + CLOUD_GAP)",
+    expected: "Die zugeklappte Tagzeile fuellt ihre Hoehe \u2014 0.30.3"
+  },
+  {
+    /* OHNE TRAEGER BLEIBT DIE DRITTE RASTERZEILE STEHEN, auch wo die Wolke sie
+     nicht fuellt -- und damit das Loch. */
+    nr: "950", name: "Die dritte Rasterzeile gilt wieder ohne Bedingung",
+    file: "public/style.css",
+    search: "  .frow-tags { grid-template-rows: auto 1fr; }",
+    replacement: "  .frow-tags { grid-template-rows: auto auto 1fr; }",
+    expected: "Die zugeklappte Tagzeile fuellt ihre Hoehe \u2014 0.30.3"
+  },
+  {
+    /* UND DER UMSCHALTER OHNE TRAEGER STUENDE IMMER IN DER DRITTEN -- in einer
+     Zeile, die nur zwei hat. */
+    nr: "951", name: "Der Umschalter nennt seinen Traeger nicht mehr",
+    file: "public/style.css",
+    search: "  .frow-tags.tags-deep > .tagmode { grid-row: 3; }",
+    replacement: "  .frow-tags > .tagmode { grid-row: 3; }",
+    expected: "Die zugeklappte Tagzeile fuellt ihre Hoehe \u2014 0.30.3"
   }
 ];
 

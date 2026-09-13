@@ -29,6 +29,16 @@ bleiben in der Form ihrer Zeit.*
 
 *Hier wird mitgeschrieben, während gebaut wird.*
 
+## [0.30.3] - 2026-09-12
+
+> **NICHTS ZU TUN.** Kein Schemaanteil, kein Migrationsblock, das
+> Austauschformat bleibt 16. Einspielen und fertig.
+
+### Behoben
+
+- **Die zugeklappte Tagzeile ließ am Telefon fünfunddreißig Pixel leer** — rechts neben dem Haken stand nichts. Jetzt zeigt die Wolke dort zwei Reihen statt einer: sieben sichtbare Tags statt vier, bei gleicher Höhe.
+- **Bei wenigen Tags blieb die Zeile trotzdem 62 Pixel hoch** — jetzt 27, und die Zeichen stehen wieder am Zeilenende.
+
 ## [0.30.2] - 2026-09-12
 
 > **NICHTS ZU TUN.** Kein Schemaanteil, kein Migrationsblock, das
