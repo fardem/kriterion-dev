@@ -36,7 +36,8 @@ bleiben in der Form ihrer Zeit.*
 
 ### Geändert
 
-- **Die englischen Texte sind gegengelesen** — alle 1197 Schlüssel, jeder gegen seinen deutschen Satz. Kein deutscher und kein türkischer Wert ist dabei angefasst.
+- **Die englischen Texte sind gegengelesen** — alle 1197 Schlüssel, jeder gegen seinen deutschen Satz. Kein türkischer Wert ist dabei angefasst, und von den deutschen nur die beiden unten.
+- **Auf der Anmeldeseite heißt es „Zugang anfragen" statt „Zugang beantragen"** — das ganze Wortfeld sagt in allen drei Sprachen „Anfrage" („Anfrage abschicken", „Offene Anfragen", „angefragt …"); dieses eine Label war der Ausreißer. *Englisch („Request access") und Türkisch („Erişim başvurusu") sagten es schon so.*
 - **Sieben englische Karten trugen noch den alten Entwicklerroman** — die deutsche Fassung war in 0.31.0 und 0.31.1 gekürzt worden, die englische nicht: „Lossy: about two thirds smaller for photos, but LARGER for screenshots with text." statt drei Sätzen über Kanten und Bytes.
 - **Denglisch und wörtlich Übersetztes ist heraus** — „Backup created" statt „Backup written", „Auto" statt „Like the device", „video thumbnail" statt „still image", „manually" statt „by hand", „buttons" statt „pills", „Singular/Plural" statt „Thing, singular/plural", „is located in" statt „sits next to".
 - **Die vier Briefe sagen am Ende, was Sache ist** — „This inbox is not monitored." statt „Nobody reads replies to it."; der Einladungsbrief warnt mit „Anyone with this link can get into your account" statt „Whoever has this link gets in".

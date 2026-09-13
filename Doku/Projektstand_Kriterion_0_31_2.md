@@ -484,11 +484,16 @@ dritte von vier Runden der 31er-Strecke; Türkisch ist 0.31.3.*
 
 **ALLE 1197 ENGLISCHEN SCHLÜSSEL SIND GEGEN IHREN DEUTSCHEN SATZ GELESEN
 WORDEN.** *161 sind neu formuliert (169 Formen), `en.json` ist 635 Zeichen kürzer
-und steht damit bei 89,4 % der deutschen Zeichenzahl.* **Kein deutscher und kein
-türkischer Wert ist dabei angefasst** — *und das ist nachgerechnet und nicht
-behauptet: die beiden deutschen Prüfsummen der Gleichlautprobe sind Zeichen für
-Zeichen dieselben (`91b86c5affcba789` / `07fc3ccdc8a27a03`), und der Prüfstand
-fährt die Probe seit dieser Runde selbst.*
+und steht damit bei 89,4 % der deutschen Zeichenzahl.* **Kein türkischer Wert ist
+angefasst, und von den deutschen genau zwei** — *„Zugang beantragen" heißt auf
+Bestellung des Betreibers „**Zugang anfragen**" (`login.requestAccess` und sein
+Hinweis); das ganze Wortfeld sagt in allen drei Sprachen „Anfrage", dieses eine
+Label war der Ausreißer.* **Beides ist nachgerechnet und nicht behauptet:** *die
+Gleichlautprobe nennt die beiden deutschen Prüfsummen dieser Runde
+(`7c1fe1a927f158f9` / `0b443d44733cc668`), belegt, dass sie ANDERE sind als die
+von 0.31.1, und der Prüfstand hält die beiden bestellten Werte Zeichen für
+Zeichen — dazu 943 Sätze, die Zeichen für Zeichen der Stand der Abnahme von
+0.24.0 sind.*
 
 > **DIE VERBOTSLISTE IST EIN WÄCHTER UND KEIN MERKZETTEL.** *Dreizehn Muster,
 > jedes mit seinem Grund — vorher 52 Treffer in 46 Schlüsseln, jetzt keiner.*
@@ -509,6 +514,16 @@ fährt die Probe seit dieser Runde selbst.*
 > number", „Configured is /data/backups.", „They will this one time only
 > shown."* **Sie sind aufgefallen, weil jeder Satz einmal neben seinem deutschen
 > gestanden hat.**
+
+> **UND DER AUGENSCHEIN HAT EINEN FUND HINTERLASSEN, DER GRÖSSER IST ALS DIE
+> RUNDE:** *auf einer englischen Oberfläche steht deutscher Text — **elf Sätze**,
+> die fest in `server.js` stehen und nicht in einer Sprachdatei* (warum eine
+> Instanz nicht verschicken kann, warum ein Link nicht hinausging, die Antwort
+> auf eine Zugangsanfrage, warum gerade keine Sicherung fällt). **Sie sind NICHT
+> repariert:** *jeder braucht einen Schlüssel in allen drei Dateien, und F4 des
+> Auftrags hält die Zahl bei 1197.* **Sie stehen als Punkt 29 im Sammelblatt** —
+> *mit Ort, Zahl und Leser, und mit dem fehlenden Wächter: für `public/app.js`
+> gibt es eine Restprobe, für `server.js` keine.*
 
 **0.31.1 SETZT DIE ZERSÄGTEN DEUTSCHEN SÄTZE WIEDER ZUSAMMEN** — *die zweite von
 vier Runden der 31er-Strecke.*
@@ -544,7 +559,7 @@ test days", „2.1 MB weniger".*
 Betreiber am 13. September 2026 aus seiner Installation gemeldet und damit auf
 das Byte bestätigt.* **Drei Quellen, ein Wert, zum sechsten Mal.** *Der
 Fingerprint von 0.31.0 (`7f4297ff`), 0.31.1 (`47cfba37`) und 0.31.2
-(`69ff6248`) aus dem Feld steht aus.*
+(`0745f9bd`) aus dem Feld steht aus.*
 
 **0.30.0 hat an zwei Enden gebaut, und beide Enden waren dieselbe Sache: Zeit,
 in der niemand etwas sieht.** *Der Prüflauf fällt von 464,4 auf 271,5 Sekunden —
@@ -1793,7 +1808,7 @@ Ursache war **eine Datei zu viel** auf dem Wirt (Stolperstein 158).
 
 | Version | Fingerprint | Prüfungen |
 |---|---|---|
-| **0.31.2** | `69ff6248` *(gerechnet am 13. September 2026 **als letztes und hinter der letzten Zeile**; aus zwei Quellen bestätigt — am Arbeitsbaum über dieselben achtzehn Dateien nachgerechnet und aus dem Server selbst gelesen, **alle achtzehn Einzelwerte gleich**. Die dritte steht aus. Die Runde fasst `public/languages/en.json` und `package.json` an — mehr nicht)* | 6903 |
+| **0.31.2** | `0745f9bd` *(gerechnet am 13. September 2026 **als letztes und hinter der letzten Zeile**; aus zwei Quellen bestätigt — am Arbeitsbaum über dieselben achtzehn Dateien nachgerechnet und aus dem Server selbst gelesen, **alle achtzehn Einzelwerte gleich**. Die dritte steht aus. Die Runde fasst `public/languages/en.json`, zwei Werte in `de.json` und `package.json` an — mehr nicht)* | 6903 |
 | **0.31.1** | `47cfba37` *(gerechnet am 13. September 2026 **als letztes und hinter der letzten Zeile**; aus zwei Quellen bestätigt — am Arbeitsbaum über dieselben achtzehn Dateien nachgerechnet und aus dem Server selbst gelesen, **alle achtzehn Einzelwerte gleich**. Die dritte steht aus. Die Runde fasst `public/app.js`, die drei Sprachdateien und `package.json` an)* | 6877 |
 | **0.31.0** | `7f4297ff` *(gerechnet am 13. September 2026 **als letztes und hinter der letzten Zeile**; aus zwei Quellen bestätigt — am Arbeitsbaum über dieselben achtzehn Dateien nachgerechnet und aus dem Server selbst gelesen, **alle achtzehn Einzelwerte gleich**. Die dritte steht aus. Die Runde fasst `public/app.js`, `public/style.css`, die drei Sprachdateien, `server.js` und `package.json` an)* | 6849 |
 | **0.30.3** | `098e85ca` *(am 13. September 2026 **von der laufenden Installation gemeldet — im Feld bestätigt**, genau der Sollwert; **drei Quellen, ein Wert**. Gerechnet am 12. September 2026 **als letztes und hinter der letzten Zeile**, davor aus zwei Quellen bestätigt — am Arbeitsbaum über dieselben achtzehn Dateien nachgerechnet und aus dem Server selbst gelesen, **alle achtzehn Einzelwerte gleich**. Die dritte steht aus. Die Runde fasst `public/app.js`, `public/style.css` und `package.json` an)* | 6823 |

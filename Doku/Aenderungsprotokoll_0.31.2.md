@@ -3,13 +3,16 @@
 **Auftrag 0.31.2 · 13. September 2026 · gebaut auf 0.31.1 · PATCH, kein
 Schemaanteil.**
 
-> **FINGERPRINT DIESER RUNDE: `69ff6248`** — gerechnet am gebauten Stand, **als
-> letztes und hinter der letzten Zeile**.
+> **FINGERPRINT DIESER RUNDE: `0745f9bd`** — gerechnet am gebauten Stand, **als
+> letztes und hinter der letzten Zeile**. *Zweimal ist er in dieser Runde noch
+> gefallen, nachdem er schon dastand: `69ff6248` mit dem Nahtfund
+> (`card.applyLower` heißt jetzt „instead." statt „apply."), `f75618a2` mit den
+> zwei bestellten deutschen Werten.* **Genau dafür steht er zuletzt.**
 >
 > | Quelle | Wert |
 > |---|---|
-> | **Am Arbeitsbaum nachgerechnet** *(achtzehn Dateien)* | **`69ff6248`** |
-> | **Aus dem Server selbst gelesen** *(frisches Datenverzeichnis, `/api/stats`)* | **`69ff6248`** |
+> | **Am Arbeitsbaum nachgerechnet** *(achtzehn Dateien)* | **`0745f9bd`** |
+> | **Aus dem Server selbst gelesen** *(frisches Datenverzeichnis, `/api/stats`)* | **`0745f9bd`** |
 > | **Aus der laufenden Installation gemeldet** | *steht aus* |
 >
 > **ZWEI QUELLEN, EIN WERT** — *alle achtzehn Einzelwerte gleich.* **Die dritte
@@ -35,23 +38,55 @@ neben den Messungen und kein Gesetz.**
 
 ---
 
-## Die tragende Leitplanke, und sie ist nachgerechnet
+## Die tragende Leitplanke, und sie hat eine Ausnahme mit Namen
 
-> **DEUTSCH IST DIE UNVERÄNDERLICHE BASIS.** *Kein deutscher Wert ist angefasst
-> worden — auch nicht „nur kurz", auch nicht da, wo beim Übersetzen auffiel,
-> dass er besser ginge.* **Was auffiel, steht im Sammelblatt** (`Fehler und
-> Ideen`, Punkt 28) — *fünf Funde, und alle fünf sind beim ÜBERSETZEN
-> aufgefallen und nicht beim Lesen des Deutschen.*
+> **DEUTSCH IST DIE UNVERÄNDERLICHE BASIS.** *Kein deutscher Wert ist von MIR
+> angefasst worden — auch nicht „nur kurz", auch nicht da, wo beim Übersetzen
+> auffiel, dass er besser ginge.* **Was auffiel, steht im Sammelblatt**
+> (`Fehler und Ideen`, Punkt 28) — *fünf Funde, und alle fünf sind beim
+> ÜBERSETZEN aufgefallen und nicht beim Lesen des Deutschen.*
 
-**DIE GLEICHLAUTPROBE VON 0.31.1 RECHNET ES NACH**, und der Prüfstand fährt sie
-seit dieser Runde selbst:
+**UND ZWEI DEUTSCHE WERTE HAT DER BETREIBER WÄHREND DER RUNDE BESTELLT.** *Am
+13. September 2026, als der Prüfstand schon grün war:* **„vorne beim login statt
+‚Zugang beantragen' lieber ‚Zugang anfragen'".** *Die Frage, ob das in diese
+Runde gehört oder in die nächste, ist ihm gestellt worden — mit dem Preis
+daneben —, und er hat entschieden:* **jetzt.**
+
+| Schlüssel | vorher | jetzt |
+|---|---|---|
+| `login.requestAccess` | „Zugang beantragen" | **„Zugang anfragen"** |
+| `login.requestAccessHint` | „**Zugang beantragen.** Du bestätigst deine Adresse per Mail …" | **„Zugang anfragen.** …" |
+
+> **DER GRUND IST GEMESSEN UND KEINE GESCHMACKSFRAGE:** *das ganze Wortfeld sagt
+> in **allen drei Sprachen** „Anfrage" — `login.sendRequest` („Anfrage
+> abschicken" · „Send request" · „Başvuruyu gönder"), `card.openRequests`,
+> `card.requestedAt`, `login.requestFailed`.* **Dieses eine Label war der
+> Ausreißer.** *An `en.json` und `tr.json` war deshalb nichts zu tun: „request"
+> IST die Anfrage (der Antrag wäre „application"), und `başvuru` ebenso — so hat
+> der Betreiber es auch entschieden.*
+>
+> **UND DAS CHANGELOG HAT DEN KNOPF SCHON BEI SEINER EINFÜHRUNG SO GENANNT.**
+> *0.11.0, 27. August 2026: „Ein zweiter Knopf auf der Anmeldeseite — **‚Zugang
+> anfragen'**."* **Das Papier sagte „anfragen", der Bildschirm sagte
+> „beantragen", und keine Runde dazwischen hat es gemerkt** — *der beste Beleg
+> dafür, dass diese Bestellung eine Berichtigung ist und keine Geschmacksfrage.*
+
+**DIE GLEICHLAUTPROBE RECHNET BEIDES NACH**, und der Prüfstand fährt sie seit
+dieser Runde selbst — **drei Zeilen statt einer:** *die Summen dieser Runde, der
+Beleg, dass sie ANDERE sind als die von 0.31.1, und die beiden bestellten Werte
+Zeichen für Zeichen.*
 
 | | vor der Runde | nach der Runde |
 |---|---|---|
-| **de/one** | `91b86c5affcba789` | **`91b86c5affcba789`** |
-| **de/other** | `07fc3ccdc8a27a03` | **`07fc3ccdc8a27a03`** |
-| **en/one** | `45fa40be3b0b6145` | `c7d3ff9b1c9513e4` |
-| **en/other** | `24f9083c0610df9d` | `c0ade9349e423f47` |
+| **de/one** | `91b86c5affcba789` | **`7c1fe1a927f158f9`** *(zwei bestellte Werte)* |
+| **de/other** | `07fc3ccdc8a27a03` | **`0b443d44733cc668`** *(dieselben zwei)* |
+| **en/one** | `45fa40be3b0b6145` | `2f8e5b3abe58f9fd` |
+| **en/other** | `24f9083c0610df9d` | `39489ec6ae18020b` |
+
+> **EINE ZUSAGE MIT EINER AUSNAHME OHNE NAMEN WÄRE EIN LECK.** *Darum steht die
+> Ausnahme im Code (`DE_ORDERED_0312`) und nicht in einer Fußnote: der Lauf
+> prüft, dass **genau diese zwei** Werte so dastehen — und dass sonst kein
+> deutscher anders ist als der Stand von 0681d42 (**943 Sätze**, Wortlautprobe).*
 
 > **UND DIE GEGENRICHTUNG STEHT ALS EIGENE ZEILE IM PRÜFSTAND:** *die beiden
 > englischen Summen müssen ANDERE sein.* **Hielte Zusage 1, ohne dass sich
@@ -82,7 +117,7 @@ Nachricht wie bei `I18N_CLEANUP_DE.md` in 0.31.0.**
 
 | | die Vorlage sagt | gemessen |
 |---|---|---|
-| **Stolperfalle 1** *(Platzhalter)* | *„Größtes Risiko!"* | **Kein Risiko, sondern eine gehaltene Zusage** — *die Plätze standen in allen drei Dateien schon gleich, **0 Abweichungen**, und seit 0.31.1 hält das ein Wächter.* **Ihr Punkt bleibt trotzdem richtig:** *der Satzbau muss den Platz tragen können, und genau daran sind in dieser Runde acht englische Sätze gescheitert (siehe unten)* |
+| **Stolperfalle 1** *(Platzhalter)* | *„Größtes Risiko!"* | **Kein Risiko, sondern eine gehaltene Zusage** — *die Plätze standen in allen drei Dateien schon gleich, **0 Abweichungen**, und seit 0.31.1 hält das ein Wächter.* **Ihr Punkt bleibt trotzdem richtig, und zwar mehr, als sie wusste:** *der Satzbau muss den Platz tragen können — daran sind in dieser Runde fünf englische Sätze gescheitert, und dazu eine NAHT über drei Schlüssel (siehe unten)* |
 | **Stolperfalle 2** *(Ballast)* | fünf Schlüssel | **Sieben** — *es fehlten `card.vocabularyResetHint` (Englisch war **2,5×** so lang), `card.fontSizeHint` und `server.entryTooBig`* |
 | **Stolperfalle 3** *(Metaphern)* | sechs Beispiele | **Alle sechs waren da, und alle sechs sind weg** |
 | **Stolperfalle 4** *(Blacklist)* | dreizehn Zeilen | **52 Treffer in 46 Schlüsseln** — *mehr als die 36 des Auftrags, weil der Wächter die MUSTER prüft und nicht die Beispielsätze: `whoever` traf neunmal, `posts` siebenmal, `sits` achtmal* |
@@ -121,6 +156,7 @@ jedes mit seiner britischen Seite, damit es dabei bleibt.*
 | **Werte mit mehr Sätzen als ihr deutscher** | 6 | **0** |
 | **HTML-Entitäten** | 1 | **0** |
 | **„Bitte" im Deutschen / „please" im Englischen** | 28 / 0 | **28 / 28** |
+| **Deutsche Werte geändert** | | **2** — *beide auf Bestellung, beide namentlich im Prüfstand* |
 
 ---
 
@@ -147,6 +183,29 @@ das ist der eigentliche Ertrag von BA 6.*
 > Satz:** *„it only says „yes, that is me"" stand für „er bestätigt nur, dass die
 > Adresse dir gehört".*
 
+### Und eine Naht, die auf Englisch nicht aufgeht
+
+**SIE IST DER NEUNTE FUND, und sie steht hier gesondert, weil kein einzelner
+Wert falsch war.** *Drei Schlüssel und ein `<code>` bilden EINEN Satz:*
+
+```
+de:  «Der Schlüssel liegt weiterhin im Datenbankverzeichnis» «(data/encryption.key).
+     Der Eigentümer sollte ihn in die Server-Einstellung» ENCRYPTION_KEY «übernehmen.»
+en:  «The key is still in the database directory» «(data/encryption.key). The owner
+     should move it into the server setting» ENCRYPTION_KEY «apply.»
+```
+
+**IM DEUTSCHEN GEHT DAS AUF, WEIL DAS VERB AM ENDE STEHT.** *Im Englischen steht
+es vorn — und das Schlussstück fiel als „apply." hinter den Schlüsselnamen.*
+**`card.applyLower` heißt jetzt „instead."**, und der Satz liest sich zusammen:
+*„The owner should move it into the server setting ENCRYPTION_KEY instead."*
+
+> **GEFUNDEN AN ALLEN NÄHTEN AUF EINMAL UND NICHT AN DIESER EINEN.** *Fünfzehn
+> Zeilen in `public/app.js` setzen zwei oder mehr Textrufe in EINE Vorlage; sie
+> sind mit ihren englischen Werten gerendert und gelesen worden.* **Die übrigen
+> vierzehn gehen auf** — *und `server.js`, `auth.js` und `mail.js` tragen keine
+> einzige solche Zeile.*
+
 ---
 
 ## Eine Stelle, an der Englisch dem Deutschen NICHT folgt
@@ -167,15 +226,16 @@ hieße, dem Benutzer beim Suchen zuzusehen.**
 
 ## Was beim Bauen schiefgegangen ist
 
-**VIER FEHLER, UND JEDER IST VON EINER WACHE GEFANGEN WORDEN, BEVOR IHN JEMAND
+**FÜNF FEHLER, UND JEDER IST VON EINER WACHE GEFANGEN WORDEN, BEVOR IHN JEMAND
 GESEHEN HAT.** *Sie stehen hier, weil sie beim nächsten Mal wieder passieren.*
 
 | | was | wer es gefangen hat |
 |---|---|---|
-| **1** | **DIE RUNDE HAT IHR EIGENES WORT VERBOTEN.** *Der Auftrag nennt die Vergleichsdatei „Abdruckdatei"; ich habe das Wort in drei Kommentarzeilen übernommen* | **der Sprachwächter** — *`Abdruck` steht auf seiner Liste, dort heißt es Fingerprint. Er meldete Datei und Zeilennummer; die Sache heißt jetzt **Vergleichsstand**, und das zitierte Wort steht in Backticks* |
+| **1** | **DIE RUNDE HAT IHR EIGENES WORT VERBOTEN.** *Der Auftrag nennt die Vergleichsdatei anders — `Abdruckdatei` —, und ich habe das Wort in drei Kommentarzeilen übernommen* | **der Sprachwächter** — *`Abdruck` steht auf seiner Liste, dort heißt es Fingerprint. Er meldete Datei und Zeilennummer; die Sache heißt jetzt **Vergleichsstand**, und das zitierte Wort steht in Backticks* |
 | **2** | **MEIN ERSTER ENGLISCHER SATZ NAHM EINER PRÜFUNG IHR SUCHWORT.** *`card.blocksHint` hieß bei mir „Block order and collapsed state apply to all {entryMany}." — die Sprachprobe des Lesers (0.24.4, B9) sucht den Hinweis über `/Blöcke|blocks/i` und fand ihn nicht* | **der Prüfstand, zwei rote Punkte im ersten vollen Lauf.** *Geändert habe ich den SATZ und nicht die Probe: „The order of the blocks and their collapsed state apply to all {entryMany}." — eine Probe, die man der eigenen Formulierung anpasst, belegt nichts mehr* |
 | **3** | **ZUSAGE 6 WURDE AN MEINEM EIGENEN SATZ ROT.** *Meine erste Fassung von `card.fileTooBig` war 72 Zeichen lang, die Decke liegt bei 70* | **der eigene Wächter, im selben Lauf.** *Die Naht ist jetzt dort geteilt, wo das Deutsche sie teilt — der englische Satz läuft über beide Schlüssel und liest sich zusammengesetzt richtig* |
-| **4** | **DIE VORLAGE HAT IHREN EIGENEN SATZ ZU LANG VORGESCHLAGEN.** *Ihr Vorschlag für `entry.calcIfEqual` lag bei 1,20×, mein erster Nachbau bei 1,17×* | **derselbe Wächter.** *„statt" wurde „, not" statt „instead of" — 1,08× |
+| **4** | **DIE VORLAGE HAT IHREN EIGENEN SATZ ZU LANG VORGESCHLAGEN.** *Ihr Vorschlag für `entry.calcIfEqual` lag bei 1,20×, mein erster Nachbau bei 1,17×* | **derselbe Wächter.** *„statt" wurde „, not" und nicht „instead of" — damit 1,08×* |
+| **5** | **UND DASSELBE WORT EIN ZWEITES MAL** — *diesmal nicht im Kommentar, sondern in DIESEM Papier: die Zeile über Fehler 1 nannte `Abdruckdatei` ohne Backticks* | **derselbe Sprachwächter, und er hat es während der Gegenprobenläufe getan.** *Alle zehn Läufe zeigten „Die Dokumente ebenso" rot — nicht wegen ihres Rückbaus, sondern wegen meines Papiers. **Ein Wächter, der Code und Prosa mit derselben Liste liest, fängt auch den Autor.*** |
 
 > **UND EINE MESSUNG HAT ZWEI STELLEN GEFUNDEN, DIE KEIN LESEN GEFUNDEN HÄTTE.**
 > *Nachdem alle „Bitte"-Sätze übersetzt waren, habe ich gezählt statt geglaubt:
@@ -216,18 +276,34 @@ sie auch rot werden kann.** *Jede Zusage bekommt einen Rückbau in einer
 `git archive`-Kopie; festgehalten wird, WELCHE Prüfungen daraufhin namentlich rot
 werden.* **Ein Rückbau, der keine einzige rot macht, ist ein FUND.**
 
-| Nr. | was zurückgebaut wird | für Zusage |
+**ALLE ZEHN SIND GEFAHREN — drei Nebenspuren, je Rückbau ein voller Prüflauf,
+`0 STUMM`.** *Jeder hat SEINE Zusage namentlich rot gemacht.*
+
+| Nr. | was zurückgebaut wird | für Zusage | was namentlich rot wurde |
+|---|---|---|---|
+| **978** | ein deutscher Wert ändert sich | 1 | *„Und die beiden deutschen sind die von 0.31.1"* — **dazu die Wortlautprobe und vier Zeilen der Systembereichsprobe**, weil der Rückbau eine Kartenbeschriftung umbenennt |
+| **979** | ein englisches Mehrzahlpaar wird ein einzelner Satz | 2 | *„Und jeder englische Wert hat die Gestalt seines deutschen"* — dazu Zusage 3, denn die verschmolzene Einzahl verliert ihren Platz |
+| **980** | ein englischer Wert verliert einen Platzhalter | 3 | *„Zusage 3 …"* — **und die Platzhalterprobe von 0.24.0**: zwei Wachen über eine Zusage, und sie widersprechen sich nicht |
+| **981** | ein englischer Wert trägt wieder ein Wort der Verbotsliste | 4 | *„Zusage 4: kein englischer Wert trägt ein Wort der Verbotsliste"* |
+| **982** | ein englischer Wert trägt wieder eine HTML-Entität | 5 | *„Zusage 5: kein englischer Wert trägt eine HTML-Entität"* |
+| **983** | ein englischer Satz wird wieder deutlich länger als sein deutscher | 6 | *„Zusage 6: … mehr als 1.15x so lang …"* |
+| **984** | ein englischer Wert trägt einen Satz mehr | 7 | *„Zusage 7: … mehr Sätze als sein deutscher"* — **und Zusage 6 bleibt grün**, genau wie geplant: der Rückbau ist ein Zeichen kürzer |
+| **985** | ein englischer Wert trägt eine US-Schreibung | 8 | *„Zusage 8: … US-Schreibung — en-GB steht in `_locale`"* |
+| **986** | ein englischer Wert trägt wieder die Einrückung des Quelltexts | 9 | **beide Zeilen der Zusage** — dazu die Zwillingszeile aus 0.31.1, die alle drei Dateien prüft |
+| **987** | der Vergleichsstand weicht von `en.json` ab, ohne benannt zu sein | 10 | *„Und jeder englische Wert ist Zeichen für Zeichen der des Vergleichsstands — außer den benannten"* |
+
+### Drei Zeilen standen in JEDEM Lauf rot, und keine davon ist der Rückbau
+
+| | was | warum |
 |---|---|---|
-| **978** | ein deutscher Wert ändert sich | 1 |
-| **979** | ein englisches Mehrzahlpaar wird ein einzelner Satz | 2 |
-| **980** | ein englischer Wert verliert einen Platzhalter | 3 |
-| **981** | ein englischer Wert trägt wieder ein Wort der Verbotsliste | 4 |
-| **982** | ein englischer Wert trägt wieder eine HTML-Entität | 5 |
-| **983** | ein englischer Satz wird wieder deutlich länger als sein deutscher | 6 |
-| **984** | ein englischer Wert trägt einen Satz mehr | 7 |
-| **985** | ein englischer Wert trägt eine US-Schreibung | 8 |
-| **986** | ein englischer Wert trägt wieder die Einrückung des Quelltexts | 9 |
-| **987** | der Vergleichsstand weicht von `en.json` ab, ohne benannt zu sein | 10 |
+| **1** | **„Die Dokumente ebenso"** *(Sprachwächter)* | **MEIN EIGENES PAPIER.** *Das Änderungsprotokoll trug „`Abdruck`" ohne Backticks, während die Gegenproben liefen — dieselbe Wache, die schon meine Kommentarzeilen gemeldet hatte, meldete nun den Text darüber.* **Sie stand also VOR jedem Rückbau schon rot**, und das ist beim Lesen der Tabelle zu wissen |
+| **2** | **„Jeder Suchtext kommt in seiner Datei genau einmal vor"** | *der Rückbau ersetzt in der Kopie genau diesen Suchtext — die Zeile ist damit die Spur des Eingriffs und kein Befund* |
+| **3** | **Der Aufräumer des Prüfstands** *(bei 983 und 984)* | *Punkt 27 im Sammelblatt: er flackert auf mehreren Spuren, „rund die Hälfte, gleich welche Spurenzahl". Hier zweimal von zehn* |
+
+> **DASS DIESE DREI DASTEHEN, IST KEIN MANGEL DES TREIBERS, SONDERN SEIN
+> ENTWURF:** *er meldet, was WIRKLICH rot wurde, und nicht, was jemand erwartet
+> hat.* **Ein Treiber, der nur die erwartete Zeile zeigte, hätte den Fund am
+> eigenen Papier verschluckt.**
 
 > **JEDER GREIFT IN DIE DATEN UND NICHT IN DEN WÄCHTER**, und jeder ist so klein
 > geschnitten, dass er SEINE Zusage meldet und möglichst keine zweite: *der
@@ -240,11 +316,80 @@ werden.* **Ein Rückbau, der keine einzige rot macht, ist ein FUND.**
 
 ---
 
+## Der Augenschein — am laufenden Server, in echtem Chromium
+
+**Gefahren am 13. September 2026** *(Chromium 141.0.7390.37, 390 × 844,
+`deviceScaleFactor: 3`, `isMobile: true`, `locale: en-GB`)* — **neun Ansichten,
+jedes `<details>` aufgeklappt, alles auf Englisch.**
+
+> **ER FRAGT ETWAS ANDERES ALS DER VON 0.31.1.** *Jene Runde hat die ABLAGE der
+> Sätze angefasst und wollte belegen, dass sich am Bildschirm nichts ändert.*
+> **Diese Runde hat die Sätze selbst angefasst** — *also lautet die Frage: steht
+> das Neue wirklich da, ist das Alte wirklich weg, und spricht die Oberfläche
+> durchgehend Englisch?*
+
+**ZWEI LAGEN SIND DAFÜR EIGENS HERGESTELLT WORDEN:** *der Sicherungsordner liegt
+IM Projektordner (sonst zeichnet die Karte den roten Kasten nicht), und ein
+Eintrag steht im Bestand (sonst gibt es keine Kachel und keine Detailansicht).*
+
+| gefragt | Ergebnis |
+|---|---|
+| **Ein offener Platzhalter irgendwo?** *(gesucht wird das MUSTER `{name}`, keine Liste)* | **keiner** |
+| **Ein Wort der Verbotsliste am Bildschirm?** *(dieselben dreizehn Muster wie im Prüfstand, Plätze vorher herausgenommen)* | **keines** |
+| **Stehen die neuen Sätze wirklich da?** *(neunundzwanzig Marken, von „Thumbnails: always WebP" bis „as per BCP 47 (e.g. de-DE)")* | **siebenundzwanzig von neunundzwanzig** |
+| **Ist das Alte wirklich weg?** *(neunzehn Marken: „leaves the house", „Like the device", „pills", „still image", „Thing, singular", „Backup written", „sits next to", „by hand", „already current", „Whoever has", „posts stay", „The run converts", „nobody archives", „yes, that is me", „asked for asked for", „sorted by", „Weight in.", „User name" …)* | **keine einzige steht noch da** |
+
+> **DIE ZWEI UNGESEHENEN SIND KEIN BEFUND, SONDERN DIE GRENZE DER PROBE.**
+> *„Clicking one of the three buttons sets the filter." steht nur in einer
+> Instanz mit mehr als einem Benutzer, und „As of" erst, nachdem eine Sicherung
+> geprüft wurde.* **Beide fährt der Prüfstand in seinen eigenen Gruppen.**
+
+---
+
+## Ein Fund, und er ist größer als diese Runde
+
+**DER AUGENSCHEIN HAT AUF EINER ENGLISCHEN OBERFLÄCHE DEUTSCHEN TEXT GEFUNDEN**
+— *in der Karte „Users", unter dem Registrierungsschalter:*
+
+```
+Switching it on is only possible once mail delivery is set up.
+Es ist kein Mailzugang eingerichtet. Das macht der Eigentümer dieser Installation.
+```
+
+**ER STEHT NICHT IN EINER SPRACHDATEI, SONDERN FEST IN `server.js`.** *Nachgezählt
+sind es **elf Sätze**, und jeder von ihnen erreicht den Bildschirm:*
+
+| wo | wie viele | wer sie liest |
+|---|---|---|
+| **`deliveryReady()`** — warum diese Instanz nicht verschicken kann | **3** | die Karte „Users" *(genau der gefundene Satz)* und die Warnung darüber |
+| **`sendTokenLink()`** — warum ein Link nicht hinausging | **3** | `card.passLinkByHandEnd` — *„{reason}. Pass the link on manually."* |
+| **`REQUEST_ANSWER`** — die Antwort auf eine Zugangsanfrage | **1** | **jeder, der sich auf der Anmeldeseite meldet**, vor jeder Anmeldung |
+| **Die Vorschau des Aufräumens** — warum gerade nichts fällt | **4** | die Karte „Sicherung" |
+
+> **DAS IST DIESELBE SORTE BEFUND WIE DIE ZWEI VON 0.31.1** *(„3 entries **und**
+> 2 test days", „2,1 MB **weniger**")* — **nur größer:** *dort waren es zwei
+> Bindewörter, hier sind es elf ganze Sätze.*
+
+**WARUM SIE IN DIESER RUNDE NICHT REPARIERT WERDEN:** *jeder dieser Sätze
+braucht einen Schlüssel in **allen drei** Sprachdateien, und der Auftrag
+schließt das ausdrücklich aus* (**F4: „1197 bleibt 1197"**, und Leitplanke L1
+verbietet jeden Handgriff an `de.json`). **Eine Runde, die ihre eigene Zusage
+bricht, um einen Fund mitzunehmen, ist keine Reparatur, sondern ein zweiter
+Fund.** *Sie stehen als **Punkt 29** im Sammelblatt, mit Ort, Zahl und Leser.*
+
+> **UND EIN ZWÖLFTER, DER KEIN TEXT DER OBERFLÄCHE IST:** *ein Import ohne Titel
+> legt den Eintrag unter `'Ohne Titel'` an — das ist ein gespeicherter WERT und
+> keine Beschriftung, und es ist damit die gleiche Lage wie bei den drei
+> mitgelieferten Kriterien (Punkt 23).*
+
+---
+
 ## Was diese Runde NICHT gebaut hat
 
 | | |
 |---|---|
-| **Kein deutscher und kein türkischer Wert ist angefasst** | *Türkisch ist 0.31.3. Die fünf deutschen Funde stehen im Sammelblatt und warten auf eine Runde, die Deutsch anfassen darf* |
+| **Kein türkischer Wert ist angefasst** | *Türkisch ist 0.31.3* |
+| **Und kein deutscher außer den zwei bestellten** | *die fünf Funde aus Punkt 28 warten weiter auf eine Runde, die Deutsch anfassen darf; `tr.json` und `en.json` brauchten für die Bestellung nichts* |
 | **Kein Schlüssel ist gefallen und keiner neu** | **1197 bleibt 1197** |
 | **Keine Anordnung, kein Schemaanteil** | *Austauschformat bleibt 16, `F_ROUTES` bleibt 73* |
 | **„Note" bleibt stehen** | *sie wird in **0.32.0** das fünfzehnte Vokabelwort; auf Englisch heißt sie weiterhin „score"* |
@@ -272,6 +417,7 @@ Einspielen andere Sätze — und keine andere Funktion.*
 | **`Doku/Fehler_und_Ideen.md`** | **Punkt 28** — das Sammelblatt der Runde, fünf deutsche Funde |
 | **`tools/englischstand.js`** · **`tools/englisch-0312.json`** | **neu** — der Vergleichsstand und sein Werkzeug |
 | **`public/languages/en.json`** | 161 Schlüssel neu formuliert |
+| **`public/languages/de.json`** | **zwei Werte** — „Zugang anfragen", auf Bestellung des Betreibers |
 | **`testbench.js`** · **`counterproof.js`** | zehn Zusagen, zehn Rückbauten |
 | **`CHANGELOG.md`** | ein Eintrag 0.31.2 |
 | **`package.json`, `package-lock.json`** | 0.31.2 |

@@ -19601,6 +19601,17 @@ function sweepLeftovers() {
       "login.newPasswordFor", "login.noPhoneHint", "login.requestAccessHint",
       "login.welcome", "mail.hintAlways", "mail.hintGmx",
       "server.entryTooBig", "server.exportGrew", "server.exportTooBig"];
+    /* UND EINER MIT 0.31.2 -- der einzige deutsche Wert, den jene Runde
+       angefasst hat, und zwar auf Bestellung des Betreibers am 13. September
+       2026: „Zugang beantragen" heisst „Zugang anfragen". Das ganze Wortfeld
+       sagt in allen drei Sprachen „Anfrage" (`login.sendRequest`,
+       `card.openRequests`, „Send request", „Başvuruyu gönder") -- dieses eine
+       Label war der Ausreisser.
+       `login.requestAccessHint` STEHT SCHON IN DER LISTE VON 0.31.1 und kommt
+       hier NICHT ein zweites Mal: sein Wortlaut aendert sich erneut, aber die
+       Zeile zaehlt Schluessel und nicht Handgriffe -- er ist gegen 0681d42
+       einmal anders, nicht zweimal. */
+    const WORDING_CHANGED_0312 = ["login.requestAccess"];
     /* FUENFUNDACHTZIG SEIT 0.31.0, VORHER FUENFZEHN -- und die siebzig mehr
        sind die Runde selbst: siebenunddreissig aus der Worttafel, fuenf
        erzwungene Nachzieher und zweiunddreissig, an denen nur das
@@ -19628,9 +19639,12 @@ function sweepLeftovers() {
        und darum stehen zwei verschiedene Zahlen da statt einer geschoenten.
        DIE EIGENTLICHE ABNAHME IST DIE ZEILE DARUNTER: der REST ist Satz fuer
        Satz derselbe. */
-    check('Und genau hundertfuenfundvierzig Saetze sind andere — die fuenfundachtzig von vorher und die sechzig aus 0.31.1',
-      onlyThen.length === 145 && onlyNow.length === 143 &&
+    check('Und genau hundertsechsundvierzig Saetze sind andere — die hundertfuenfundvierzig von vorher und der eine aus 0.31.2',
+      onlyThen.length === 146 && onlyNow.length === 144 &&
       WORDING_CHANGED_0311.every(k => LANGUAGE_FILE[k] !== undefined) &&
+      WORDING_CHANGED_0312.every(k => LANGUAGE_FILE[k] !== undefined
+        && onlyNow.includes(asBefore(LANGUAGE_FILE[k]))) &&
+      onlyThen.includes('Zugang beantragen') && !onlyNow.includes('Zugang beantragen') &&
       onlyThen.includes('E-Mail (optional)') && !onlyNow.includes('E-Mail ist optional.') &&
       WORDING_CHANGED_0310.every(k => onlyNow.includes(asBefore(LANGUAGE_FILE[k]))
         || Object.values(LANGUAGE_FILE[k]).every(v => onlyNow.includes(asBefore(v)))) &&
@@ -19689,8 +19703,12 @@ function sweepLeftovers() {
        UND DIESE ZEILE BLEIBT DIE EIGENTLICHE ABNAHME DER RUNDE: was die Runde
        nicht angefasst hat, ist Zeichen fuer Zeichen der Stand von 0681d42 --
        neunhundertvierundvierzig Saetze. */
+    /* 944 WURDEN 943 MIT 0.31.2: ein einziger Satz mehr steht in den Listen
+       darueber statt im Rest -- „Zugang beantragen", vom Betreiber bestellt.
+       DIE ZEILE BLEIBT DIE EIGENTLICHE ABNAHME: was niemand bestellt hat, ist
+       Zeichen fuer Zeichen der Stand von 0681d42. */
     check('Und sonst kein Zeichen — Satz fuer Satz dieselbe Oberflaeche',
-      equal(restThen, restNow) && restNow.length === 944,
+      equal(restThen, restNow) && restNow.length === 943,
       `${restThen.filter((x, i) => x !== restNow[i]).length} abweichende von ${restNow.length}`);
 
     /* ---- 6. Die Kuerzeprobe ---------------------------------------------
@@ -20454,12 +20472,12 @@ function sweepLeftovers() {
       'eines der drei Muster greift nicht');
     check('Und laesst die benannten Ausnahmen durch',
       screenViolations([{ text: 'Die Note muss zwischen 1 und 5 liegen.', row: 1 },
-                            { text: 'Zugang beantragen', row: 1 }, { text: 'Noch keinen Zugang?', row: 1 },
+                            { text: 'Zugang anfragen', row: 1 }, { text: 'Noch keinen Zugang?', row: 1 },
                             { text: 'Prüfsumme (Fingerprint)', row: 1 },
                             { text: 'verschlüsselte Kopie der Datenbank', row: 1 },
                             { text: '/api/items/1/ratings', row: 1 }]).length === 0,
       JSON.stringify(screenViolations([{ text: 'Die Note muss zwischen 1 und 5 liegen.', row: 1 },
-                            { text: 'Zugang beantragen', row: 1 }, { text: 'Noch keinen Zugang?', row: 1 },
+                            { text: 'Zugang anfragen', row: 1 }, { text: 'Noch keinen Zugang?', row: 1 },
                             { text: 'Prüfsumme (Fingerprint)', row: 1 },
                             { text: 'verschlüsselte Kopie der Datenbank', row: 1 },
                             { text: '/api/items/1/ratings', row: 1 }])));
@@ -30738,8 +30756,14 @@ function serverTextsFrom(src) {
    Zahlenbereiche und Daten gewoehnliches Deutsch („zwischen 1 und 5 liegen",
    „in der Zukunft liegen") und nur fuer „gespeichert sein" verboten; „Kopie
    der Datenbank" ist die Erklaerung der Sicherung aus dem Woerterbuch selbst.
-   „Zugang" bleibt allein in „Zugang beantragen" und „Noch keinen Zugang?" --
-   dort meint es den Zutritt, nicht die Person (E2, E3). */
+   „Zugang" bleibt allein in „Zugang anfragen" und „Noch keinen Zugang?" --
+   dort meint es den Zutritt, nicht die Person (E2, E3).
+   DIE ERSTE AUSNAHME HIESS BIS 0.31.2 „Zugang beantragen". Der Betreiber hat
+   das Label am 13. September 2026 auf „anfragen" bestellt: das ganze Wortfeld
+   sagt in allen drei Sprachen „Anfrage" -- `login.sendRequest`,
+   `card.openRequests`, „Send request", „Başvuruyu gönder" --, und dieses eine
+   Label war der Ausreisser. DIE AUSNAHME WANDERT MIT DEM SATZ, sonst faengt
+   die Liste genau den Satz, fuer den sie die Ausnahme traegt. */
 const SCREEN_BAN = [
   [/\bträgt\b|\btrifft\b|\btragen\b/, 'trägt/trifft (für gilt)'],
   [/\bfallen\b|\bfällt\b/, 'fallen/fällt (für enden)'],
@@ -30757,7 +30781,7 @@ const SCREEN_BAN = [
   [/\bBoden\b|\bSchere\b|\bDeckel\b|\bPille\b|\bKiste\b|\bKlemme\b|\bWächter\b|Stolperstein|Rückbau|Bestandslauf|Migrationsblock|Austauschformat/, 'ein Bild des Projekts'],
   [/Fingerprint(?!\))/, 'Fingerprint ohne Erklärung'],
   [/Systembereich|Selbstanmeldung|Suchanbieter|Startanbieter|Bildablage|\bStimmen?\b|Gesamtschnitt|Sicherungsort|Zielort|Verwaltungsbereich|Rücksetzlink|Wunsch-Benutzername|Zugänge\b|Bewertungskriterien|Freigeben|Freigegeben|unwiderruflich|stillgelegt|Alles anzeigen|Kopien?\b(?!\s+der\s+Datenbank)/, 'ein Wort, das das Wörterbuch ersetzt hat'],
-  [/\bZugangs?\b(?! beantragen)(?!\?)/, 'Zugang (für Benutzer/Konto)'],
+  [/\bZugangs?\b(?! anfragen)(?!\?)/, 'Zugang (für Benutzer/Konto)'],
   [/\b0\.\d+\.\d+\b/, 'eine Versionsnummer'],
 ];
 // Adressen und Selektoren sind kein Bildschirmtext: '/api/items', '#/system', '.thumb'.
@@ -55104,20 +55128,35 @@ async function check0311() {
    dieser Runde gelernt und nicht erfunden.
    ================================================================= */
 /* DIE BEIDEN DEUTSCHEN PRUEFSUMMEN DER GLEICHLAUTPROBE, gemessen am gebauten
-   Stand von 0.31.1 (`git archive HEAD` in eine frische Kopie, dann
-   `node tools/gleichlaut.js`). SIE SIND DER BEWEIS FUER LEITPLANKE L1 --
-   „Deutsch ist die unveraenderliche Basis" -- und stehen deshalb im Code und
-   nicht im Papier: eine Zusage, die niemand nachrechnet, ist eine Behauptung.
+   Stand dieser Runde. SIE SIND DER BEWEIS FUER LEITPLANKE L1 -- „Deutsch ist
+   die unveraenderliche Basis" -- und stehen deshalb im Code und nicht im
+   Papier: eine Zusage, die niemand nachrechnet, ist eine Behauptung.
    SIE HAENGEN AUCH AN `public/app.js`, und das ist kein Mangel, sondern der
    Gegenstand: die Probe misst, was am BILDSCHIRM steht, und dorthin kommt der
    deutsche Satz durch den Quelltext. Wer app.js anfasst, rechnet die beiden
    Zahlen neu und schreibt sie hierher -- wie die Wortlautprobe ihre Listen je
    Runde nachfuehrt.
    DER AUFTRAG NENNT ZWEI ANDERE WERTE (bbd86a64161af49e / 70b5fb78ad2832b1).
-   Die sind am gebauten Stand nicht nachzumessen -- weder am Arbeitsbaum noch
-   an einer frischen Kopie von HEAD; das Werkzeug rechnet die beiden hier. Was
-   die Runde halten kann, ist der GEMESSENE Stand, und der steht hier. */
-const DE_UNTOUCHED = { one: '91b86c5affcba789', other: '07fc3ccdc8a27a03' };
+   Die sind am gebauten Stand von 0.31.1 nicht nachzumessen -- weder am
+   Arbeitsbaum noch an einer frischen Kopie von HEAD; das Werkzeug rechnet die
+   beiden hier. Was die Runde halten kann, ist der GEMESSENE Stand.
+
+   UND DIE ZUSAGE HAT EINE AUSNAHME, DIE DER BETREIBER WAEHREND DER RUNDE
+   BESTELLT HAT -- zwei deutsche Werte, und sie stehen unten NAMENTLICH da:
+   „Zugang beantragen" heisst jetzt „Zugang anfragen". Der Grund ist gemessen
+   und keine Geschmacksfrage: das ganze Wortfeld sagt in allen drei Sprachen
+   „Anfrage" (`login.sendRequest`, `card.openRequests`, `card.requestedAt`,
+   „Send request", „Başvuruyu gönder"); dieses eine Label war der Ausreisser.
+   EINE AUSNAHME MIT NAMEN IST EINE ENTSCHEIDUNG, eine ohne waere ein Leck:
+   darum stehen hier DREI Zahlen statt einer -- der Stand von 0.31.1, der Stand
+   dieser Runde, und die beiden Werte selbst Zeichen fuer Zeichen. */
+const DE_UNTOUCHED = { one: '7c1fe1a927f158f9', other: '0b443d44733cc668' };
+const DE_BEFORE_0312 = { one: '91b86c5affcba789', other: '07fc3ccdc8a27a03' };
+const DE_ORDERED_0312 = {
+  'login.requestAccess': 'Zugang anfragen',
+  'login.requestAccessHint':
+    'Zugang anfragen. Du bestätigst deine Adresse per Mail, danach entscheidet ein Admin.'
+};
 
 async function check0312() {
   const egRead = (code) => JSON.parse(fs.readFileSync(
@@ -55164,9 +55203,22 @@ async function check0312() {
     check('Zusage 1: die Gleichlautprobe laeuft und nennt ihre sechs Summen',
       Object.keys(egSums).length === 6,
       `${Object.keys(egSums).length} Summen · ${String(egRun.stderr || '').slice(0, 200)}`);
-    check(`Und die beiden deutschen sind die von 0.31.1 — ${DE_UNTOUCHED.one} · ${DE_UNTOUCHED.other}`,
+    check(`Und die beiden deutschen sind die dieser Runde — ${DE_UNTOUCHED.one} · ${DE_UNTOUCHED.other}`,
       egSums['de/one'] === DE_UNTOUCHED.one && egSums['de/other'] === DE_UNTOUCHED.other,
       `de/one ${egSums['de/one']} · de/other ${egSums['de/other']}`);
+    /* UND SIE SIND ANDERE ALS DIE VON 0.31.1 -- weil der Betreiber zwei Werte
+       bestellt hat. DIESE ZEILE IST DIE EHRLICHE HAELFTE DER ZUSAGE: sie sagt,
+       dass Deutsch NICHT unberuehrt ist, und die Zeile darunter sagt, wo. Ohne
+       beide waere „Deutsch ist unangetastet" eine halbe Zusage -- und eine
+       halbe ist keine. */
+    check('Und sie sind ANDERE als die von 0.31.1 — der Betreiber hat zwei Werte bestellt',
+      egSums['de/one'] !== DE_BEFORE_0312.one && egSums['de/other'] !== DE_BEFORE_0312.other,
+      `0.31.1: ${DE_BEFORE_0312.one} · ${DE_BEFORE_0312.other}`);
+    const egOrdered = Object.entries(DE_ORDERED_0312)
+      .filter(([k, v]) => String(egFiles.de[k]) !== v);
+    check('Und die beiden bestellten Werte stehen Zeichen fuer Zeichen da — und sonst kein deutscher',
+      egOrdered.length === 0 && Object.keys(DE_ORDERED_0312).length === 2,
+      egOrdered.map(([k]) => `${k}: ${JSON.stringify(egFiles.de[k])}`).join(' · ') || 'beide'); 
     /* UND DIE ENGLISCHEN SIND ES NICHT. Diese Zeile ist die Gegenrichtung und
        genauso wichtig: haelt Zusage 1, ohne dass sich Englisch bewegt hat,
        dann hat die Runde nichts getan. */
