@@ -357,7 +357,7 @@ keinen, und dann steht dort auch keiner.**
 
 | | |
 |---|---|
-| **`Doku/Auftrag_0.31.1.md`** | sechs Leitplanken, zwölf Fragen, acht Bauabschnitte, elf Zusagen |
+| **`Doku/Auftrag_0.31.1.md`** | sechs Leitplanken, zwölf Fragen, acht Bauabschnitte, elf Zusagen *(mit dem Auftrag zu 0.31.2 weggefallen — es liegt immer nur einer im Repo)* |
 | **`Doku/Auftrag_0.31.0.md`** | **weggefallen** — *es liegt immer nur einer im Repo; was dort stand, steht im Änderungsprotokoll 0.31.0* |
 | **`Doku/I18N_CLEANUP_DE.md`** | **bleibt liegen** — *die Vorlage von Google Gemini ist der Gegenstand, gegen den 0.31.2 und 0.31.3 noch prüfen* |
 | **`Doku/Aenderungsprotokoll_0.31.1.md`** | dieses Papier |
