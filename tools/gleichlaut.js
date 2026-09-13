@@ -35,7 +35,20 @@
    JEDER DIESER SECHS PUNKTE IST AN EINEM FEHLALARM GELERNT WORDEN, und der
    erste war der teuerste: die Probe meldete einen Verlust am eigenen
    Kommentar. EINE PROBE, DIE FALSCHEN ALARM GIBT, WIRD ABGESCHALTET -- und
-   dann faengt sie auch den echten Verlust nicht mehr. */
+   dann faengt sie auch den echten Verlust nicht mehr.
+   WOFUER SIE BLIND IST, UND DAS GEHOERT HIERHER:
+   SIE FUEHRT DEN CODE NICHT AUS. Sie BILDET NACH, was tH() und tMark() tun
+   sollen -- und genau deshalb kann sie nicht sehen, wenn der Code etwas
+   anderes tut als das Gemeinte. In 0.31.1 ist das passiert: tMark() reichte
+   seine Werte an den Satz, aber nicht an das hervorgehobene Wort, und am
+   Bildschirm stand „Die Zeilen werden nach {n} Tagen automatisch geloescht".
+   DIESE PROBE HIER MELDETE SECHS VON SECHS SUMMEN GLEICH -- sie hatte die
+   Werte ja auf das ganze Ergebnis gesetzt, also so, wie es sein SOLLTE.
+   Der Pruefstand hat den Fehler im ersten Lauf gefangen, weil er einen
+   echten Server befragt statt einen Quelltext zu lesen.
+   SIE ERSETZT DEN PRUEFSTAND ALSO NICHT. Sie beantwortet eine engere Frage:
+   steht nach dem Umbau derselbe Text in den Dateien? Ob er auch dasselbe
+   ERGIBT, sagt nur ein Lauf. */
 const fs=require('fs');
 const L={}; for (const c of ['de','en','tr']) L[c]=JSON.parse(fs.readFileSync((process.env.LANGDIR || 'public/languages')+'/'+c+'.json','utf8'));
 

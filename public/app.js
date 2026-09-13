@@ -108,8 +108,15 @@ function tH(key, values = {}) {
    Sekunden"); bis hierher war genau das der Grund, ihn hinter der
    Hervorhebung noch einmal aufzubrechen. Der dritte Parameter ist optional --
    alle Rufe von 0.25.4 bis 0.31.0 bleiben unveraendert gueltig. */
+/* DIE WERTE GEHEN AN BEIDE -- an den Satz UND an das hervorgehobene Wort.
+   0.31.1 hat es zuerst nur dem Satz gereicht, und der Pruefstand hat es
+   binnen einer Runde gemeldet: das Wort ist an drei Stellen selbst ein Satz
+   mit Zahl („{n} Tagen", „{trashDays} Tage"), und am Bildschirm stand
+   „Die Zeilen werden nach {n} Tagen automatisch geloescht". EIN PLATZHALTER,
+   DER AM BILDSCHIRM STEHENBLEIBT, IST DER SICHTBARSTE FEHLER, DEN EINE
+   SPRACHDATEI MACHEN KANN -- und er entstand hier im Code, nicht dort. */
 const tMark = (key, wordKey, values) => tH(key, { ...values, word: '\u0001' })
-  .replace('\u0001', `<strong>${tH(wordKey)}</strong>`);
+  .replace('\u0001', `<strong>${tH(wordKey, values)}</strong>`);
 
 /* MEHRERE STUECKE IN EINEM SATZ, UND SIE MUESSEN KEINE SCHLUESSEL SEIN --
    0.31.1. tMark() traegt genau EINES, und es muss aus der Sprachdatei kommen.
