@@ -488,10 +488,9 @@ ohnehin kostet** *(sieben sichtbare Tags statt vier, bei gleicher Höhe)*; **und
 wo sie keine zweite Reihe hat — ein junger Bestand —, fällt die Anordnung ganz
 weg und die Zeile misst 27 statt 62.**
 
-**Am Wirt läuft 0.30.2** — *vom Betreiber am 12. September 2026 mit drei Bildern
-aus seiner Installation belegt; **der Fingerprint aus dem Feld steht aus** und
-wird nachgetragen.* **0.30.0 davor war auf das Byte bestätigt** *(`2363b00a`,
-drei Quellen, ein Wert — Abschnitt 8)*.
+**Am Wirt läuft 0.30.3, Fingerprint `098e85ca`** *(Abschnitt 8)* — *vom
+Betreiber am 13. September 2026 aus seiner Installation gemeldet und damit auf
+das Byte bestätigt.* **Drei Quellen, ein Wert, zum sechsten Mal.**
 
 **0.30.0 hat an zwei Enden gebaut, und beide Enden waren dieselbe Sache: Zeit,
 in der niemand etwas sieht.** *Der Prüflauf fällt von 464,4 auf 271,5 Sekunden —
@@ -1740,7 +1739,7 @@ Ursache war **eine Datei zu viel** auf dem Wirt (Stolperstein 158).
 
 | Version | Fingerprint | Prüfungen |
 |---|---|---|
-| **0.30.3** | `098e85ca` *(gerechnet am 12. September 2026 **als letztes und hinter der letzten Zeile**; aus zwei Quellen bestätigt — am Arbeitsbaum über dieselben achtzehn Dateien nachgerechnet und aus dem Server selbst gelesen, **alle achtzehn Einzelwerte gleich**. Die dritte steht aus. Die Runde fasst `public/app.js`, `public/style.css` und `package.json` an)* | 6823 |
+| **0.30.3** | `098e85ca` *(am 13. September 2026 **von der laufenden Installation gemeldet — im Feld bestätigt**, genau der Sollwert; **drei Quellen, ein Wert**. Gerechnet am 12. September 2026 **als letztes und hinter der letzten Zeile**, davor aus zwei Quellen bestätigt — am Arbeitsbaum über dieselben achtzehn Dateien nachgerechnet und aus dem Server selbst gelesen, **alle achtzehn Einzelwerte gleich**. Die dritte steht aus. Die Runde fasst `public/app.js`, `public/style.css` und `package.json` an)* | 6823 |
 | **0.30.2** | `3d03be45` *(gerechnet am 12. September 2026 **als letztes und hinter der letzten Zeile** — die Lehre aus 0.30.1; aus zwei Quellen bestätigt, die dritte steht aus)* | 6801 |
 | **0.30.1** | `194e8984` *(gerechnet am 12. September 2026 am gebauten Stand — **vor dem Einspielen**, aus zwei Quellen bestätigt. **Im Feld läuft `a6726a83`** — derselbe Stand vor der Berichtigung des Kommentarwortlauts; keine ausgeführte Zeile unterscheidet die beiden)* | 6780 |
 | **0.30.0** | `2363b00a` *(am 12. September 2026 von der laufenden Installation gemeldet — **im Feld bestätigt**, genau der Sollwert; drei Quellen, ein Wert)* | 6741 |
@@ -15275,6 +15274,21 @@ keine mehr.*
 ---
 
 ## 12. Arbeitsweise für die Fortsetzung
+
+- **Das deutsche Ergebnis ist die unveränderliche Basis — seit 0.31.0.**
+  *Der Betreiber am 13. September 2026:* „das deutsche was hier erarbeitet wird,
+  wird für Gemini unveränderliche Basis werden. es kann nur für englisch
+  Vorschläge abgeben etc aber nicht mehr am deutsch meckern das verbiete ich."
+
+  > **WAS EINE FREMDE HAND DARF:** *für `en.json` und `tr.json` Vorschläge
+  > machen, Code-Lecks und Tippfehler melden, Listen liefern.* **WAS SIE NICHT
+  > DARF:** *den deutschen Wortlaut noch einmal aufmachen.* **Er ist in 0.31.0
+  > Zeile für Zeile entschieden worden, mit dem Quelltext daneben.**
+
+  **DER GRUND STEHT IM AUFTRAG 0.31.0:** *von 71 Vorschlägen einer fremden Hand
+  waren vier sachlich falsch und elf nahmen einem Satz seinen Sinn — gefunden
+  nur, weil jede Zeile gegen den Quelltext geprüft wurde.* **Eine zweite Runde
+  desselben Streits kostet dieselbe Arbeit noch einmal und bringt nichts.**
 
 - **Vor dem Bauen besprechen.** Änderungswünsche erst durchdenken, Rückfragen
   stellen, Entscheidungen ausdrücklich bestätigen lassen, dann umsetzen. Wenn
