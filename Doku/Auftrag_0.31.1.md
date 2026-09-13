@@ -60,7 +60,7 @@ Schemaanteil.**
 | **F9** | **Wie steht es mit der dreifachen Begründung der Exportgrenze?** | **Einmal, und als Auswirkung.** *`server.exportTooBig` und `server.entryTooBig` sagten wörtlich dasselbe, `server.exportGrew` etwas Drittes über denselben Sachverhalt.* **Was zählt, ist: die Grenze ist erreicht, und die Sicherung kennt sie nicht** |
 | **F10** | **Und `card.resetMailHint` mit seinen fünf Aussagen?** | **Er wird geteilt.** *Fünf Aussagen in 307 Zeichen in einem Absatz, und die letzte sagt noch einmal, was die erste gesagt hat.* **Die Wiederholung fällt, der Rest bekommt seine Zeile** — nach den drei Regeln des Betreibers vom 11. September |
 | **F11** | **Fällt der Weißraum aus den 92 Schlüsseln mit?** | **Ja.** *Dieselben Zeilen werden ohnehin angefasst, und Türkisch trägt ihn bei vier von 92 — er ist erwiesenermaßen entbehrlich.* **Die Wortlautprobe bekommt ihre Buchführung dafür** |
-| **F12** | **„Note" bei fünf Sternen?** | **OFFEN — das ist die einzige Frage, die diese Runde nicht selbst beantwortet.** *Sie gehört dem Betreiber. **Empfehlung:** „Note" fällt zugunsten des Vokabelworts — eine deutsche Note läuft andersherum (1 ist die beste, hier sind fünf Sterne das Beste), und „Bewertung" ist umbenennbar, „Note" nicht.* **Bis zur Entscheidung bleibt das Wort unangetastet** |
+| ~~**F12**~~ | ~~**„Note" bei fünf Sternen?**~~ | **ENTSCHIEDEN AM 13. SEPTEMBER 2026 — und sie fährt NICHT hier.** *Der Betreiber:* „Mir wäre lieber A, also daraus Vokabel zu machen. Da das ja je nach nicht eine Note sondern Ergebnis sein kann, Tageswert, Tagesschnitt, Experiment — was auch immer." **„Note" wird das fünfzehnte Vokabelwort, und das ist eine FUNKTION und keine Sprachpflege** — sie spränge diese Runde von PATCH auf MINOR. *Sie steht im Fahrplan unter **0.32.0**, mit ihrer Kostenrechnung: kein Schema, keine Migration, kein Formatwechsel — aber zwölf Zusagen des Prüfstands, die die Zahl vierzehn festhalten.* **DAMIT HAT DIESE RUNDE KEINE OFFENE FRAGE MEHR** |
 
 ---
 
@@ -110,7 +110,7 @@ ist ein Fund — 0.31.0 hat das teuer gelernt.*
 - **Kein englischer und kein türkischer Satz wird neu formuliert.** *Das sind
   0.31.2 und 0.31.3, und sie haben es nach dieser Runde leichter: sie
   übersetzen ganze Sätze statt Bruchstücke.*
-- **„Note" bleibt stehen**, bis der Betreiber entscheidet *(F12)*.
+- **„Note" bleibt stehen** — sie wird in **0.32.0** das fünfzehnte Vokabelwort *(F12, dort entschieden)*.
 - **Keine Anordnung wird angefasst.** *Diese Runde fasst Sätze an, keine
   Oberfläche.*
 - **Die Papiere behalten ihre Anführungszeichen.** *Dass sie dieselbe
