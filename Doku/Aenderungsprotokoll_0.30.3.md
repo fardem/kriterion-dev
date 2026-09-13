@@ -10,11 +10,14 @@
 > |---|---|
 > | **Am Arbeitsbaum nachgerechnet** *(achtzehn Dateien)* | **`098e85ca`** |
 > | **Aus dem Server selbst gelesen** *(frisches Datenverzeichnis, `/api/stats`)* | **`098e85ca`** |
-> | **Aus der laufenden Installation gemeldet** | *steht aus — trägt der Betreiber nach* |
+> | **Aus der laufenden Installation gemeldet** | **`098e85ca`** *(13. September 2026)* |
 >
-> **AM WIRT LÄUFT 0.30.2** — *der Betreiber hat sie eingespielt und am selben
-> Tag mit drei Bildern hingesehen. Der Befund dieser Runde ist das, was er dort
-> gesehen hat.*
+> **DREI QUELLEN, EIN WERT.** *Der Betreiber hat 0.30.3 eingespielt und den
+> Wert am 13. September 2026 aus seiner Installation gemeldet — damit ist das
+> Eingespielte auf das Byte dasselbe wie das Gebaute.*
+>
+> **UND DER BEFUND DIESER RUNDE KAM AUS DEM FELD:** *er hatte 0.30.2 eingespielt
+> und am selben Tag mit drei Bildern hingesehen.*
 
 ---
 
