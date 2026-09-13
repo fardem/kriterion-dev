@@ -19136,7 +19136,30 @@ function sweepLeftovers() {
     const PLACEHOLDERS_0243 = JSON.parse(fs.readFileSync(
       path.join(__dirname, 'tools', 'placeholders-0243.json'), 'utf8'));
     const BACK = Object.fromEntries(Object.entries(PLACEHOLDERS_0243).map(([de, en]) => [en, de]));
-    const asBefore = (v) => String(v).replace(/\{(\w+)\}/g, (whole, n) => BACK[n] ? `{${BACK[n]}}` : whole);
+    /* UND DER WEISSRAUM WIRD ZUSAMMENGEZOGEN -- 0.31.1, und das ist eine
+       LOCKERUNG mit einem Tausch daneben.
+
+       BIS 0.31.0 TRUGEN 95 WERTE DIE EINRUECKUNG DES QUELLTEXTS mit sich:
+       `"...gelten\n          fuer alle {entryMany}."` -- Rest aus dem Umzug
+       der Saetze ins JSON. Am Bildschirm faellt sie nicht auf; HTML zieht
+       solchen Weissraum zusammen, und KEINER dieser Werte landet in einem
+       Attribut, einem Dialog, einer Meldung oder im Server (nachgesehen,
+       Stelle fuer Stelle). Die drei Dateien waren sich darin ohnehin uneins:
+       Deutsch 93 Werte, Englisch 101, Tuerkisch 4.
+
+       DIESE ZEILE ZAEHLTE IHN ALS WORTLAUT. Ein Waechter, der unsichtbaren
+       Weissraum fuer eine Aenderung am Satz haelt, verlangt fuer jede
+       Aufraeumung fuenfundneunzig Zeilen Buchfuehrung -- und verleitet dazu,
+       gar nicht aufzuraeumen.
+
+       DER TAUSCH: er zieht ihn zusammen, und Zusage 9 der Runde verbietet ihn
+       GANZ -- in allen drei Dateien, nicht nur in dieser einen Probe. Was hier
+       an Strenge abgegeben wird, steht dort staerker wieder da. Ohne diesen
+       zweiten Teil waere es eine Lockerung, um die eigene Aenderung
+       durchzulassen, und das ist der falsche Griff. */
+    const asBefore = (v) => String(v)
+      .replace(/\{(\w+)\}/g, (whole, n) => BACK[n] ? `{${BACK[n]}}` : whole)
+      .replace(/\s*\n\s*/g, ' ').replace(/  +/g, ' ');
     check('Die Tafel der Platzhalternamen liegt als Datei daneben',
       Object.keys(PLACEHOLDERS_0243).length === 89,
       `${Object.keys(PLACEHOLDERS_0243).length} Namen`);
@@ -19160,7 +19183,11 @@ function sweepLeftovers() {
       ...WORDING_GONE_TEXT_0260, ...WORDING_GONE_TEXT_0270,
       ...WORDING_GONE_TEXT_0281, ...WORDING_GONE_TEXT_0300,
       ...WORDING_GONE_TEXT_0310]
-      .reduce((list, sentence) => withoutOne(list, sentence), [...wordingFile.values]).sort();
+      .reduce((list, sentence) => withoutOne(list, sentence), [...wordingFile.values])
+      /* BEIDE SEITEN GLEICH BEHANDELT. Der Stand von damals traegt denselben
+         Weissraum; wer nur die eine Seite zusammenzieht, vergleicht zwei
+         verschiedene Schreibweisen desselben Satzes und faerbt alles rot. */
+      .map(v => String(v).replace(/\s*\n\s*/g, ' ').replace(/  +/g, ' ')).sort();
     const wordingNow = valuesOf(wordingOld).map(asBefore).sort();
     const onlyThen = wordingThen.filter(x => !wordingNow.includes(x));
     const onlyNow = wordingNow.filter(x => !wordingThen.includes(x));
@@ -26590,6 +26617,7 @@ function sweepLeftovers() {
   await check0302();
   await check0303();
   await check0310();
+  await check0311();
 
   /* ---------------------------------------------------------------- */
   /* Der Schlussdurchlauf. Die Gruppen weiter oben pruefen einzelne
@@ -54294,5 +54322,240 @@ async function check0310() {
       ('Setz dein Passwort, du'.match(DR_YOU) || []).length === 2 &&
       ('Dublette, Reduktion, Individuum'.match(DR_YOU) || []).length === 0,
       JSON.stringify('Dublette, Reduktion, Individuum'.match(DR_YOU)));
+  }
+}
+
+/* ================= DEUTSCH SITZT -- 0.31.1 =================
+   ELF ZUSAGEN. Die Runde hat den zersaegten Satzbau aufgeloest: bis 0.31.0
+   wurde ein Satz in mehrere Schluessel geteilt und im Aufruf wieder
+   zusammengesetzt. Im Deutschen ging das auf; im Tuerkischen nicht, und das
+   war seit 0.24.3 im Programm.
+
+   WAS DIE RUNDE VERSPROCHEN HAT: der Wortlaut bleibt. Was am Bildschirm
+   stand, steht danach genauso da -- ausser an den Stellen, die das
+   Aenderungsprotokoll NAMENTLICH auffuehrt. Gefahren ist das mit
+   tools/gleichlaut.js; hier stehen die Eigenschaften, die DAUERHAFT gelten
+   sollen. */
+async function check0311() {
+  const dsRead = (code) => JSON.parse(fs.readFileSync(
+    path.join(__dirname, 'public', 'languages', `${code}.json`), 'utf8'));
+  const dsFiles = { de: dsRead('de'), en: dsRead('en'), tr: dsRead('tr') };
+  const dsApp = fs.readFileSync(path.join(__dirname, 'public', 'app.js'), 'utf8');
+  /* KOMMENTARE WEG: die Absaetze an den umgebauten Stellen NENNEN die
+     gefallenen Schluessel und erklaeren, warum sie gefallen sind. Wer den
+     Code liest, sucht Rufe -- nicht Erinnerungen. Derselbe Schnitt wie bei
+     Zusage 1 von 0.31.0. */
+  const dsCode = dsApp.replace(/\/\*[\s\S]*?\*\//g, ' ').replace(/^[ \t]*\/\/.*$/gm, ' ');
+  const dsTexts = (j) => Object.entries(j).filter(([k]) => k !== '_locale' && k !== '_name')
+    .flatMap(([k, v]) => (typeof v === 'string' ? [v] : Object.values(v)).map(text => [k, text]));
+  const Q = String.fromCharCode(39);
+
+  group('Deutsch sitzt — 0.31.1');
+  {
+    /* ---- Zusage 2: kein Schluessel ist mehr ein blosses Bruchstueck ----
+       DREI SORTEN, und jede war vor der Runde da. Gezaehlt wird auf dem
+       DEUTSCHEN Stand: er ist die unveraenderliche Basis (Abschnitt 12), und
+       en/tr ziehen in 0.31.2 und 0.31.3 nach.
+
+       DIE WORTSCHLUESSEL SIND AUSGENOMMEN, und zwar NAMENTLICH und nicht ueber
+       eine Eigenschaft: ein `{word}`-Fueller IST per Entwurf ein einzelnes
+       Wort („nicht", „einmal", „vor"), und wer ihn mitzaehlte, bekaeme eine
+       Zusage, die ihr eigenes Muster verbietet. Gelesen werden sie aus dem
+       QUELLTEXT -- wer einen tMark()-Ruf entfernt, verliert die Ausnahme
+       automatisch und nicht erst, wenn jemand diese Liste pflegt. */
+    const dsWordKeys = new Set();
+    for (const m of dsCode.matchAll(/\btMark\(\s*'[^']+'\s*,\s*'([^']+)'/g)) dsWordKeys.add(m[1]);
+    check('Die Wortschluessel kommen aus dem Quelltext und nicht aus einer Liste',
+      dsWordKeys.size >= 30 && dsWordKeys.has('login.linkUnaffectedWord'),
+      `${dsWordKeys.size} Wortschluessel`);
+
+    const dsFirst = (v) => String(typeof v === 'string' ? v : Object.values(v)[0]).trim();
+    const dsFragmentStart = Object.entries(dsFiles.de)
+      .filter(([k]) => !k.startsWith('_') && !dsWordKeys.has(k))
+      .filter(([, v]) => /^[.,;:—–)“”]/.test(dsFirst(v)));
+    check('Kein deutscher Wert faengt mit einem Satzzeichen an',
+      dsFragmentStart.length === 0,
+      dsFragmentStart.map(([k, v]) => `${k}: ${JSON.stringify(dsFirst(v))}`).join(' · ') || 'keiner');
+
+    /* EINE UNPAARIGE KLAMMER IST DER SCHAERFSTE FALL: der Uebersetzer bekommt
+       einen Satz, der mit „(" endet, und soll raten, was folgt. */
+    const dsBracket = Object.entries(dsFiles.de).filter(([k]) => !k.startsWith('_'))
+      .filter(([, v]) => (typeof v === 'string' ? [v] : Object.values(v))
+        .some(x => (String(x).match(/\(/g) || []).length !== (String(x).match(/\)/g) || []).length));
+    check('Kein deutscher Wert traegt eine unpaarige Klammer',
+      dsBracket.length === 0, dsBracket.map(([k]) => k).join(' ') || 'keiner');
+
+    /* ---- Zusage 3: kein Programmablauf laeuft durch die Sprachdatei ----
+       ZWEI SCHLUESSEL TATEN ES, und beide waren unsichtbar:
+         entry.reportKind = „report" wurde gegen einen DATENBANKWERT
+           verglichen -- eine Zeile darueber stand derselbe Vergleich gegen
+           ein Literal. Wer den Schluessel uebersetzt haette, haette die
+           Beschriftung des Knopfes stumm umgedreht.
+         dialog.sessionExpired = „Sitzung abgelaufen" wurde geworfen und an
+           sechs Stellen zurueckverglichen -- und nie angezeigt.
+       GESUCHT WIRD DAS MUSTER UND NICHT DIE BEIDEN NAMEN: ein dritter
+       Schluessel derselben Sorte soll unter dieser Zusage auffallen und nicht
+       erst, wenn jemand ihn zufaellig liest. */
+    const dsFlowCompare = [...dsCode.matchAll(/[!=]==\s*t\(\s*'([^']+)'/g)].map(m => m[1])
+      .concat([...dsCode.matchAll(/t\(\s*'([^']+)'\s*\)\s*[!=]==/g)].map(m => m[1]));
+    check('Kein Vergleich steht neben einem Textruf — der Ablauf haengt nicht an der Sprache',
+      dsFlowCompare.length === 0, dsFlowCompare.join(' · ') || 'keiner');
+    check('Und die beiden Schluessel, die es taten, stehen in keiner Datei mehr',
+      ['entry.reportKind', 'dialog.sessionExpired']
+        .every(k => !(k in dsFiles.de) && !(k in dsFiles.en) && !(k in dsFiles.tr)),
+      ['entry.reportKind', 'dialog.sessionExpired'].filter(k => k in dsFiles.de).join(' ') || 'beide weg');
+    check('Und das Merkmal, das an ihre Stelle getreten ist, steht im Quelltext',
+      /const SESSION_GONE = /.test(dsApp) && (dsCode.match(/SESSION_GONE/g) || []).length >= 8,
+      `${(dsCode.match(/SESSION_GONE/g) || []).length} Stellen`);
+
+    /* ---- Zusage 5: jeder Platz hat seinen Satz und jeder Satz seinen Platz ----
+       BEIDE RICHTUNGEN, und die zweite ist die wichtigere: ein Satz mit
+       `{word}` ohne Ruf zeigt am Bildschirm „{word}" -- der sichtbarste
+       Fehler, den eine Sprachdatei machen kann. */
+    const dsMarkSentences = [...dsCode.matchAll(/\btMarks?\(\s*'([^']+)'/g)].map(m => m[1]);
+    const dsNoSlot = dsMarkSentences.filter(k => !String(dsFiles.de[k] || '').includes('{word}'));
+    check('Jeder tMark-Satz traegt seinen Platz',
+      dsNoSlot.length === 0, dsNoSlot.join(' ') || 'alle');
+    /* Die vier Schluessel mit `{word}` als gewoehnlichem Platzhalter stehen
+       NAMENTLICH da: `{word}` traegt dort „Foto" oder „Video" und hat mit dem
+       Muster von 0.25.4 nichts zu tun. Eine Doppelbelegung des Namens, aelter
+       als diese Runde -- sie faellt hier auf, damit sie nicht waechst. */
+    const DS_PLAIN_WORD = ['entry.deleteHint', 'entry.deleteWord',
+                           'entry.deleteWordAsk', 'entry.whoRatedWord'];
+    const dsOrphan = Object.keys(dsFiles.de)
+      .filter(k => String(dsFiles.de[k]).includes('{word}'))
+      .filter(k => !DS_PLAIN_WORD.includes(k))
+      .filter(k => !dsApp.includes(`tMark(${Q}${k}${Q}`) && !dsApp.includes(`tMarks(${Q}${k}${Q}`));
+    check('Und jeder Satz mit einem Platz hat seinen Ruf — sonst stuende „{word}" am Bildschirm',
+      dsOrphan.length === 0, dsOrphan.join(' ') || 'keiner');
+    check('Und die vier mit gewoehnlichem {word} sind es wirklich',
+      DS_PLAIN_WORD.every(k => k in dsFiles.de && !dsApp.includes(`tMark(${Q}${k}${Q}`)),
+      DS_PLAIN_WORD.filter(k => !(k in dsFiles.de)).join(' ') || 'alle vier');
+
+    /* UND JEDER PLATZ EINES MEHRTEILIGEN SATZES BEKOMMT SEINE FUELLUNG.
+       tMarks() traegt {word}, {word2}, {word3}; fehlt einer am Ruf, steht er
+       am Bildschirm. */
+    const dsGap = [];
+    for (const m of dsCode.matchAll(/\btMarks\(\s*'([^']+)'\s*,\s*\{([^{}]*(?:\{[^{}]*\}[^{}]*)*)\}/g)) {
+      const filled = new Set([...m[2].matchAll(/(\w+)\s*:/g)].map(x => x[1]));
+      for (const slot of String(dsFiles.de[m[1]] || '').matchAll(/\{(word\d*)\}/g))
+        if (!filled.has(slot[1])) dsGap.push(`${m[1]} ${slot[1]}`);
+    }
+    check('Und jeder Platz eines mehrteiligen Satzes bekommt am Ruf seine Fuellung',
+      dsGap.length === 0, dsGap.join(' · ') || 'alle');
+
+    /* UND DER PLATZ STEHT IN ALLEN DREI DATEIEN AN SEINER STELLE. Eine Sprache
+       ohne `{word}` verlaere die Hervorhebung stumm -- der Satz stuende da,
+       das hervorgehobene Stueck nicht. */
+    const dsSlotMismatch = Object.keys(dsFiles.de).filter(k => ['en', 'tr']
+      .some(c => String(dsFiles.de[k]).includes('{word}') !== String(dsFiles[c][k]).includes('{word}')));
+    check('Und jeder Platz steht in allen drei Dateien',
+      dsSlotMismatch.length === 0, dsSlotMismatch.join(' ') || 'alle drei gleich');
+
+    /* ---- Zusage 6: keine Beschriftung nennt ihr eigenes Vorgabewort ----
+       „Bericht, Einzahl" stand neben „(Vorgabe: Bericht)" -- dasselbe Wort
+       zweimal in einer Zeile. Und wer „Bericht" in „Protokoll" umbenennt,
+       liest weiter „Bericht, Einzahl": die Beschriftung eines Feldes, das
+       gerade zum Umbenennen da ist, trug den alten Namen.
+       NEUN DER VIERZEHN SIND NICHT ANGETASTET -- sie wiederholen kein
+       Vorgabewort und folgen nur verschiedenen Stilen. Diese Zusage sucht den
+       FEHLER und nicht den Geschmack. */
+    const dsVocabLabel = { entryOne: 'itemOne', entryMany: 'itemMany',
+      testedYes: 'testedYes', testedNo: 'testedNo', dayOne: 'dayOne', dayMany: 'dayMany',
+      reportOne: 'reportOne', reportMany: 'reportMany', taskOne: 'taskOne',
+      taskMany: 'taskMany', taskDone: 'taskDone', potential: 'potential',
+      ratingOne: 'ratingOne', ratingMany: 'ratingMany' };
+    const dsEcho = Object.entries(dsVocabLabel).filter(([vocab, label]) => {
+      const word = String(dsFiles.de[`vocabulary.${vocab}`] || '').toLowerCase();
+      const text = String(dsFiles.de[`card.${label}`] || '').toLowerCase();
+      return word && text.includes(word);
+    }).map(([v]) => v);
+    check('Keine deutsche Vokabelbeschriftung nennt ihr eigenes Vorgabewort',
+      dsEcho.length === 0, dsEcho.join(' ') || 'keine');
+    check('Und es sind wirklich vierzehn Felder, die geprueft werden',
+      Object.keys(dsVocabLabel).length === 14 &&
+      Object.keys(dsVocabLabel).every(v => `vocabulary.${v}` in dsFiles.de),
+      `${Object.keys(dsVocabLabel).length}`);
+
+    /* ---- Zusage 7: keine Zahl steht zweimal ----
+       Die vier Groessen standen als `value="52428800"` UND als Schluessel mit
+       dem Text „50 MB" -- in drei Dateien, obwohl „50 MB" in allen dreien
+       gleich lautet. Und card.vocabularyResetHint zaehlte die vierzehn
+       Vorgabewoerter in Prosa auf, die in derselben Karte darueber stehen. */
+    check('Die vier Exportgroessen stehen nicht mehr in den Sprachdateien',
+      ['card.mb50', 'card.mb100', 'card.mb200', 'card.mb300']
+        .every(k => !(k in dsFiles.de) && !(k in dsFiles.en) && !(k in dsFiles.tr)),
+      ['card.mb50', 'card.mb100', 'card.mb200', 'card.mb300'].filter(k => k in dsFiles.de).join(' ') || 'keine');
+    check('Und die Beschriftung wird aus dem Wert gerechnet',
+      /\/ 1048576\} MB<\/option>/.test(dsApp),
+      /1048576/.test(dsApp) ? 'gerechnet' : 'nicht gefunden');
+    check('Und der Ruecksetzhinweis zaehlt die Vorgabewoerter nicht mehr auf',
+      !/Eintrag\/Eintr/.test(String(dsFiles.de['card.vocabularyResetHint'])) &&
+      !/vierzehn/i.test(String(dsFiles.de['card.vocabularyResetHint'])),
+      JSON.stringify(dsFiles.de['card.vocabularyResetHint']));
+
+    /* ---- Zusage 8: kein deutscher Wert traegt eine HTML-Entitaet ----
+       card.nameFreedHint schrieb „Geloeschter Benutzer &lt;Nummer&gt;" nach.
+       Zwei Fehler in einem: ein Uebersetzer muesste Maskierung kennen, und
+       die Beschriftung steht schon als list.deletedUser daneben.
+       AUF DEUTSCH EINGEGRENZT, und das steht hier statt in einer Fussnote:
+       en und tr tragen die Entitaeten noch, und sie herauszunehmen hiesse,
+       ihre Saetze neu zu formulieren -- das ist 0.31.2 und 0.31.3. Eine
+       Zusage, die eine Runde lang rot steht, ist keine. */
+    const dsEntity = dsTexts(dsFiles.de).filter(([, v]) => /&[a-z]+;|&#\d+;/i.test(v));
+    check('Kein deutscher Wert traegt eine HTML-Entitaet',
+      dsEntity.length === 0, dsEntity.map(([k]) => k).join(' ') || 'keiner');
+
+    /* ---- Zusage 9: kein Wert traegt Weissraum aus dem Quelltext ----
+       UND DIESE GILT FUER ALLE DREI. Sie ist der Tausch fuer die Lockerung an
+       der Wortlautprobe: die zieht den Weissraum seit dieser Runde zusammen,
+       statt ihn als Wortlaut zu zaehlen -- und hier ist er GANZ verboten.
+       Was dort an Strenge abgegeben wird, steht hier staerker wieder da:
+       vorher fiel Weissraum nur in de.json auf und nur als Buchfuehrung,
+       jetzt in allen dreien und unbedingt. */
+    const dsSpace = [];
+    for (const c of ['de', 'en', 'tr'])
+      for (const [k, v] of dsTexts(dsFiles[c])) if (/\n|  /.test(v)) dsSpace.push(`${c}:${k}`);
+    check('Kein Wert traegt einen Zeilenumbruch oder zwei Leerzeichen — in keiner der drei Dateien',
+      dsSpace.length === 0, dsSpace.slice(0, 10).join(' ') || 'keiner');
+
+    /* ---- Zusage 10: die Umbenennungstafel zeigt nirgends ins Leere ----
+       Sie ist die Deutsch-nach-Englisch-Tafel aus 0.8.x und KEIN Verzeichnis
+       der Wanderungen. 0.31.0 hat die elf ersatzlos gestrichenen Schluessel
+       daraus ENTFERNT; hier ist es anders -- ein verschmolzener Schluessel hat
+       einen Nachfolger, und der alte deutsche Name zeigt auf ihn. */
+    const dsTable = JSON.parse(fs.readFileSync(
+      path.join(__dirname, 'tools', 'keys.json'), 'utf8'));
+    const dsDangling = Object.entries(dsTable).filter(([, target]) => !(target in dsFiles.de));
+    check('Kein Eintrag der Umbenennungstafel zeigt auf einen Schluessel, den es nicht mehr gibt',
+      dsDangling.length === 0,
+      dsDangling.slice(0, 8).map(([a, b]) => `${a} -> ${b}`).join(' · ') || 'keiner');
+
+    /* ---- Zusage 4: die drei Dateien tragen gleich viele Schluessel ----
+       Die Zahl steht ausdruecklich da, wie bei F_ROUTES: „gleich viele" allein
+       bliebe gruen, wenn jemand aus allen dreien dasselbe herausnaehme. */
+    const dsCounts = Object.fromEntries(['de', 'en', 'tr']
+      .map(c => [c, Object.keys(dsFiles[c]).length]));
+    check('Die drei Dateien tragen gleich viele Schluessel — 1221',
+      dsCounts.de === 1221 && dsCounts.en === 1221 && dsCounts.tr === 1221,
+      JSON.stringify(dsCounts));
+    check('Und in derselben Folge',
+      ['en', 'tr'].every(c => JSON.stringify(Object.keys(dsFiles[c])) ===
+                              JSON.stringify(Object.keys(dsFiles.de))),
+      'Folge geprueft');
+
+    /* ---- Zusage 1: die Gleichlautprobe steht als Werkzeug daneben ----
+       SIE IST KEINE PRUEFUNG UND SOLL KEINE SEIN: sie braucht einen ZWEITEN
+       Stand zum Vergleichen, und den hat ein Lauf nicht. Was hier geprueft
+       wird, ist, dass es sie GIBT und dass sie ihre eigene Blindstelle nennt
+       -- ein Werkzeug, dem jemand mehr zutraut, als es kann, ist schlimmer
+       als keines. */
+    const dsTool = path.join(__dirname, 'tools', 'gleichlaut.js');
+    check('Die Gleichlautprobe liegt als Werkzeug daneben',
+      fs.existsSync(dsTool), 'tools/gleichlaut.js');
+    const dsToolText = fs.existsSync(dsTool) ? fs.readFileSync(dsTool, 'utf8') : '';
+    check('Und sie nennt ihre eigene Blindstelle — sie fuehrt den Code nicht aus',
+      /WOFUER SIE BLIND IST/.test(dsToolText) && /FUEHRT DEN CODE NICHT AUS/.test(dsToolText),
+      dsToolText ? 'Blindstelle benannt' : 'Datei fehlt');
   }
 }
