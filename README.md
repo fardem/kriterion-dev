@@ -1253,30 +1253,12 @@ es zwei, beide in den Einstellungen einstellbar:
   mit den aktiven Filtern vorn; der Rest klappt auf. Tags, die nur an Testtagen
   hängen, stehen nicht darin — dort lieferten sie null Treffer. Die Suche
   findet sie trotzdem.
-- **Die Sortierung gibt den Statusfilter vor.** Wer nach **Bewertung** sortiert,
-  fragt „was war gut?" — und das haben nur getestete Einträge beantwortet; der
-  Filter steht dann auf **Getestet**. Wer nach **Potenzial** sortiert, fragt
-  „was mache ich als Nächstes?" — das fragt sich nur an Ideen, und der Filter
-  steht auf **Ungetestet**. *Jede andere Sortierung fasst den Filter nicht an;
-  auch die drei nach Testverlauf nicht.*
-  **Die Rangordnung: die Sortierung entscheidet die Vorgabe, die Handwahl
-  schlägt sie.** Ein Klick auf eine der drei Statuspillen gilt — auch gegen die
-  Vorgabe und über einen Wechsel der Sortierung hinweg. *Eine gespeicherte
-  Ansicht ebenso: wer „Potenzial" und „alles anzeigen" zusammen gemerkt hat,
-  bekommt beides zurück.* **Der Weg zurück in die Vorgabe ist „Filter
-  zurücksetzen".**
-  **Man sieht es:** die vorgegebene Pille ist gestrichelt statt ausgefüllt, und
-  daneben steht *„folgt der Sortierung: Ungetestet"* — das Wort sagt auch, WAS
-  gerade abgeleitet wird; eingeklappt sagt der Filterschalter dasselbe.
-  *Gespeichert wird die Vorgabe nicht* — geschrieben wird immer die gewählte
-  Stellung, und ein Neuladen rechnet sie aus der Sortierung neu aus. **Der
-  Filterzähler zählt sie nicht mit:** eingestellt hat sie niemand.
-  **Und man sieht auch, wenn sie abgeschaltet ist.** Ein Klick auf eine
-  Statuspille beendet die Ableitung **für die ganze Sitzung** — nicht nur für
-  diese eine Sortierung. Dann steht neben den Pillen *„von Hand gewählt"*, und
-  der Satz dazu nennt den Weg zurück: **„Filter zurücksetzen" holt die Vorgabe
-  wieder.** *Ein unsichtbarer Automatismus ist ein Fehler — und seine
-  unsichtbare Abschaltung ist derselbe Fehler von der anderen Seite.*
+- **Die Sortierung fasst den Statusfilter nicht an.** Was in der Statuszeile
+  steht, hast du gesetzt — nichts anderes. *Eine Zeit lang war das anders:
+  „Bewertung" gab **Getestet** vor, „Potenzial" gab **Ungetestet** vor. Das ist
+  ausgebaut, und der Grund war eine Sackgasse — „Filter zurücksetzen" holte die
+  Vorgabe zurück, die Liste blieb gefiltert, und weil eine Vorgabe nicht
+  mitzählt, verschwand dabei der Knopf „Filter zurücksetzen" gleich mit.*
 - **Mehrere Kategorien zugleich**: ein Klick nimmt eine dazu,
   ein zweiter nimmt sie wieder heraus, **„Alle"** räumt die Auswahl weg. **Es
   ist immer ein Oder** — ein Eintrag trägt genau eine Kategorie, ein „und" wäre
@@ -1458,10 +1440,17 @@ es zwei, beide in den Einstellungen einstellbar:
   die Stelle. So sind alle vier Zustände unterscheidbar, ohne dass sich die
   Zeichen überlagern, und ein Bericht behält seine Kante auch dann, wenn er
   angepinnt wird.
-- **Der Blockkopf zählt**: „12 Kommentare, davon 3 Berichte und 5 Aufgaben
-  (2 Erledigt)". Die Zahlen hinter dem „davon" sind **Teilmengen**, keine
-  Summanden — das Erledigte steckt in den Aufgaben. Gruppen mit null fallen
-  weg. Der Satz bleibt auch eingeklappt stehen.
+- **Der Blockkopf zählt — kurz und in Zeichen**: **12 · ⚑3 · ☐3 · ☑2**.
+  Die Fahne ist der Bericht, das leere Kästchen die offene Aufgabe, das Häkchen
+  das Erledigte; jedes in der Farbe, die es am Kommentar auch trägt. **Der
+  volle Satz steht am Mauszeiger:** „12 Kommentare · 3 Berichte · 5 Aufgaben
+  (3 offen)". *Die Zahlen sind* **Teilmengen** *und keine Summanden — eine
+  Notiz wird gar nicht genannt, und das Erledigte steckt in den Aufgaben.
+  Deshalb stehen dort Mittelpunkte und kein Pluszeichen.* Gruppen mit null
+  fallen weg; die Zeile bleibt auch eingeklappt stehen.
+  *Früher stand dort ein ganzer Satz. Er passte am Telefon in keiner der drei
+  Sprachen — und jede Form, die das Vokabelwort zeigt, lässt sich durch ein
+  längeres eigenes Wort wieder sprengen.*
 - **Adressen im Kommentartext werden anklickbar.** Erkannt wird nur
   ausdrücklich Geschriebenes: `http://`, `https://` und `www.` ohne Schema. Ein
   blankes `beispiel.de` bleibt Text — anders als in der Linkliste, wo ein Wort
@@ -2083,8 +2072,9 @@ sie hätte ihm nichts zu sagen, was er nicht selbst getan hat.
 „7 neue Beiträge". **Bei nur einer Art steht auch nur eine Angabe da** —
 „0 Bewertungen" wäre eine Auskunft über nichts, dieselbe Regel wie beim Zähler
 „Offen" weiter unten. **Was davon dich markiert, steht daneben:** „3
-Kommentare, davon 1 an mich gerichtet" — *eine Teilmenge und keine zweite
-Zahl; addiert wird sie nirgends.*
+Kommentare · **@1**" — *dasselbe Zeichen wie die Markierung im Kommentartext,
+und der volle Satz am Mauszeiger. Eine Teilmenge und keine zweite Zahl;
+addiert wird sie nirgends.*
 
 **Darunter steht, von wem** — und zwar **nur zu den Kommentaren**. *Ein
 Kommentar trägt seinen Verfasser am Eintrag ohnehin sichtbar; eine Bewertung
@@ -2139,13 +2129,12 @@ ein Fehler und keine Ansicht. Die Sortierung zählt nicht mit — sie nimmt nich
 weg, sie ordnet nur. **Der Zustand ist Ansichtszustand und keine Einstellung:**
 beim nächsten Aufruf steht wieder die Vorgabe.
 
-**Eine Ausnahme steht daneben, und zwar in Worten:** gibt die Sortierung den
-Statusfilter vor (Bewertung → Getestet, Potenzial → Ungetestet), nimmt *die*
-sehr wohl etwas weg. Sie **zählt trotzdem nicht mit** — eingestellt hat sie
-niemand —, aber der Schalter sagt sie an: *„· folgt der Sortierung: Ungetestet"*.
-So bleibt die Regel, dass eine unvollständige Liste nie ohne sichtbaren Grund
-dasteht. **Und wer sie von Hand abgeschaltet hat, liest dort „· von Hand
-gewählt"** — auch das ist ein sichtbarer Grund.
+**Früher stand daneben eine Ausnahme:** gab die Sortierung den Statusfilter
+vor, nahm *die* sehr wohl etwas weg und zählte trotzdem nicht mit; der Schalter
+sagte sie in Worten an. **Es gibt sie nicht mehr** — was etwas wegnimmt, hat
+jemand gesetzt, und was jemand gesetzt hat, zählt mit und lässt sich
+zurücksetzen. *Die Regel dahinter bleibt: eine unvollständige Liste steht nie
+ohne sichtbaren Grund da.*
 
 Auf einem Tablett steht der Schalter ebenfalls da, die Filter fangen dort aber
 **offen** an. Dort ist Platz, und was vorher sichtbar war, soll nicht ohne Not

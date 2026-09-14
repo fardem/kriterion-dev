@@ -488,6 +488,18 @@ const ICON_LINK = char('<path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1
 const ICON_KEY = char('<circle cx="8" cy="15.5" r="4"/><path d="M11 12.5L20 3.5"/><path d="M17 6.5l2.5 2.5"/><path d="M14.5 9l2 2"/>');
 const ICON_LOCK = char('<circle cx="12" cy="12" r="8.5"/><path d="M6 6l12 12"/>');
 const ICON_PIN = char('<path d="M9 4h6l-1 6 2.5 2v2h-9v-2l2.5-2z"/><path d="M12 14v6.5"/>');
+/* DAS ZEICHEN DES BERICHTS -- 0.32.1. Es gab bisher keines: der Bericht war
+   ueberall ein WORT („Bericht", „Rapor"), und in der Zaehlzeile ist dafuer
+   kein Platz mehr. EINE FAHNE, und zwar aus demselben Satz wie die anderen --
+   24er Raster, Strich 1,8, kein Zeichensatz.
+   WARUM UEBERHAUPT EIN ZEICHEN: Gestaltungsregel G1 sagt, Zustandsmarken
+   werden AUS FORM gebaut und nicht aus Farbe. Eine nackte Zahl in Orange
+   waere eine Marke aus Farbe -- wer sie nicht sieht, liest eine Zahl ohne
+   Bedeutung. Die Fahne traegt den Sinn, die Farbe verstaerkt ihn nur.
+   ☐ UND ☑ GIBT ES SCHON (ICON_BOX, ICON_BOX_CHECK) und sie bedeuten dort
+   dasselbe: offen und erledigt. Ein zweites Zeichen fuer dieselbe Sache waere
+   eine zweite Wahrheit. */
+const ICON_REPORT = char('<path d="M5 21V4.5"/><path d="M5 5.5h10.5l-1.6 3.2 1.6 3.3H5"/>');
 /* DAS ZEICHEN „Eintrag entfernen" -- 0.25.0 (F5). Ein Radierer, und
    ausdruecklich NICHT das Kreuz daneben: das loescht die ZEILE samt allem, was
    an ihr haengt; dieser hier raeumt einen NAMEN weg, und die Zeile bleibt
@@ -1470,44 +1482,88 @@ function sortBlocks() {
   });
 }
 
-/* Die Zahlen am Kommentarblock. GEBILDET AN EINEM ORT: derselbe Satz steht
-   aufgeklappt wie eingeklappt in der Kopfzeile.
+/* DIE ZAHLEN AM KOMMENTARBLOCK -- 0.32.1 NEU GEBAUT, und der Grund ist
+   gemessen. Bis 0.32.0 stand dort ein SATZ:
 
        12 Kommentare, davon 3 Berichte und 5 Aufgaben (3 offen)
 
-   DAVON, nicht Mittelpunkte: die Zahlen dahinter sind TEILMENGEN, keine
-   Summanden. Die Klammer nistet die zweite Ebene ein -- das Erledigte steckt
-   IN den Aufgaben, sonst schrumpfte die Zahl beim Abhaken.
+   ER PASST AM TELEFON NICHT. Gemessen an der echten Kopfzeile (`.label` plus
+   Luecke plus `.hint`, Stilblatt) bei 390 Bildpunkten Fenster: Deutsch 490,
+   Englisch 435, Tuerkisch 401 -- nutzbar sind 358. In ALLEN DREI Sprachen
+   reisst die Zeile, im Deutschen um 132 Bildpunkte.
+   UND ER LIESS SICH NICHT DURCH KUERZEN RETTEN. Eine Aufzaehlung mit
+   Mittelpunkten ohne das Wort „Kommentare" passt gerade eben (Deutsch 341
+   von 358) -- aber der Betreiber darf die Vokabeln umbenennen, und mit
+   „Protokolle" und „Arbeitsauftraege" reisst sie wieder (390). JEDE Form, die
+   das Vokabelwort ZEIGT, laesst sich vom Vokabular selbst sprengen.
+
+   ALSO ZAHL UND ZEICHEN:
+
+       12 · ⚑3 · ☐3 · ☑2
+
+   DREI GRUENDE, WARUM ES ZEICHEN SIND UND NICHT NUR FARBIGE ZAHLEN:
+     1. Gestaltungsregel G1 -- „Rollen- und Zustandsmarken werden aus FORM
+        gebaut, nicht aus Farbe". Eine Zahl, deren Sinn nur in ihrer Farbe
+        steckt, ist fuer jeden Farbfehlsichtigen eine Zahl ohne Sinn, und ein
+        Vorleseprogramm liest „zwoelf drei drei zwei".
+     2. Die Zahlen ergeben NICHT die Summe, und ein Pluszeichen behauptete
+        das Gegenteil. Eine Notiz (`kind: 'note'`) wird nicht genannt -- sie
+        ist der Zustand ohne Markierung. Vier Kommentare koennen 1 Bericht
+        und 3 Notizen sein; „4 (1)" waere eine Rechnung, die nicht aufgeht.
+     3. Ein Zeichen ist in allen drei Sprachen dasselbe. Damit faellt an
+        dieser Stelle JEDE Grammatik weg -- und mit ihr `list.ofWhich`, das
+        auf Tuerkisch „, bunun {parts} kadarı" hiess: eine Klammer um eine
+        Aufzaehlung, die zur Laufzeit beliebig lang wird.
+
+   DER VOLLE SATZ BLEIBT IM `title`. Wer den Mauszeiger daraufhaelt oder
+   vorlesen laesst, bekommt die Woerter -- und zwar als AUFZAEHLUNG mit
+   Mittelpunkten und nicht als Satz: „12 Kommentare · 3 Berichte · 5 Aufgaben
+   (3 offen)". Eine Aufzaehlung aus „Zahl + Wort" braucht in keiner der drei
+   Sprachen eine Fuge, ein „davon" schon.
+
+   GEBILDET AN EINEM ORT: derselbe Inhalt steht aufgeklappt wie eingeklappt.
    DIE OFFENEN STEHEN VORAN, denn danach wird im Alltag gefragt. Sie werden
    ABGEZOGEN und nicht gezaehlt: `tasks - finished` kann nicht von der Summe
    abweichen, eine zweite Zaehlung ueber `kind = 'task'` schon.
-   DIE KLAMMER ERSCHEINT NUR, WENN ETWAS ERLEDIGT IST. Sonst stuende dort
-   "5 Aufgaben (5 offen)" -- eine Zahl, die nichts hinzufuegt, weil die davor
-   schon dasselbe sagt. SEIT 0.22.0 NENNT SIE NUR DIE OFFENEN: „2 Erledigt"
-   war ein Vokabelwort mit grossem Anfangsbuchstaben mitten im Satz, und die
-   Zahl der Erledigten ist die Differenz, die jeder im Kopf hat.
-   Eine Gruppe mit null verschwindet ganz, und ohne Kommentare bleibt der
-   Hinweis leer.
+   DAS ERLEDIGTE STECKT IN DEN AUFGABEN -- im `title` nistet es die Klammer
+   ein, in der Kurzform stehen ☐ und ☑ nebeneinander. Beide Male schrumpft
+   die Zahl der Aufgaben beim Abhaken nicht.
+   DIE KLAMMER IM title ERSCHEINT NUR, WENN ETWAS ERLEDIGT IST. Sonst stuende
+   dort "5 Aufgaben (5 offen)" -- eine Zahl, die nichts hinzufuegt.
    DIE NOTIZ BLEIBT UNGENANNT: sie ist der Zustand ohne Markierung.
    DIE ANPINNUNG STEHT NICHT IN DER ZEILE: sie ist die zweite, unabhaengige
    Achse, und zwei Achsen in einer Zeile sind nicht mehr lesbar.
-   "Kommentar" ist eine FESTE Beschriftung und kein zwoelftes Vokabelwort --
-   anders als Sache und Zeitpunkt verschiebt es sich nicht mit dem Gegenstand. */
+   "Kommentar" ist eine FESTE Beschriftung und kein sechzehntes Vokabelwort --
+   anders als Sache und Zeitpunkt verschiebt es sich nicht mit dem Gegenstand.
+
+   ZURUECK KOMMEN ZWEI STUECKE UND NICHT EIN STRING: `html` fuer den
+   Bildschirm, `text` fuer den `title`. Ein Rufer, der nur den Text will,
+   nimmt `text` -- so gibt es keine zweite Stelle, die dieselben Zahlen noch
+   einmal zusammensetzt. */
+const countMark = (kind, icon, number, word) =>
+  `<span class="cnum" data-kind="${kind}"${word ? ` title="${esc(word)}"` : ''}>${icon}${number}</span>`;
+
 function commentNumbers(comments) {
   const list = comments || [];
   const n = list.length;
-  if (!n) return '';
+  if (!n) return { html: '', text: '' };
   const count = (...kinds) => list.filter(c => kinds.includes(c.kind)).length;
   const reports = count('report');
   // Erledigtes zaehlt MIT zu den Aufgaben, nicht daneben.
   const tasks = count('task', 'done');
   const finished = count('done');
-  const parts = [];
-  if (reports) parts.push(`${reports} ${vReport(reports)}`);
-  if (tasks) parts.push(`${tasks} ${vTask(tasks)}`
-    + (finished ? t('list.openCount', { n: tasks - finished }) : ''));
-  return t('list.commentCount', { n: n,
-    of: parts.length ? t('list.ofWhich', { parts: parts.join(` ${t('list.and')} `) }) : '' });
+  const open = tasks - finished;
+  const marks = [String(n)];
+  const words = [t('list.commentCount', { n: n })];
+  if (reports) {
+    marks.push(countMark('report', ICON_REPORT, reports));
+    words.push(`${reports} ${vReport(reports)}`);
+  }
+  if (open) marks.push(countMark('task', ICON_BOX, open));
+  if (finished) marks.push(countMark('done', ICON_BOX_CHECK, finished));
+  if (tasks) words.push(`${tasks} ${vTask(tasks)}`
+    + (finished ? t('list.openCount', { n: open }) : ''));
+  return { html: marks.join(' · '), text: words.join(' · ') };
 }
 
 // Kurzfassung des Inhalts für die eingeklappte Kopfzeile.
@@ -2567,109 +2623,45 @@ const FILTER_DEFAULT = { categoryIds: [], tagIds: [], tagMode: 'and', tested: 'a
                          rejected: 'all', favorite: false,
                          sort: 'updated_desc' };
 
-/* ================= DIE SORTIERUNG GIBT DEN STATUS VOR -- 0.21.1 =================
-   EINE SORTIERUNG BEANTWORTET EINE FRAGE, ABER DIE LISTE ZEIGT NICHT DIE MENGE,
-   IN DER DIESE FRAGE SICH STELLT. Wer nach Bewertung sortiert, fragt „was war
-   gut?" -- und das haben nur getestete Eintraege beantwortet. Wer nach
-   Potenzial sortiert, fragt „was mache ich als Naechstes?" -- und das fragt
-   sich nur an Ideen. Beide Male stand die andere Haelfte des Bestands mit in
-   der Liste und fuellte sie auf.
+/* ========== DIE SORTIERUNG GAB DEN STATUS VOR -- 0.21.1 bis 0.32.0 ==========
+   AUSGEBAUT MIT 0.32.1, auf Entscheidung des Betreibers, und der Grund ist
+   eine SACKGASSE und keine Geschmacksfrage.
 
-   DIE SORTIERUNG ENTSCHEIDET DIE VORGABE, DIE HANDWAHL SCHLAEGT SIE. Das ist
-   Stolperstein 303 eine Ansicht weiter -- dort entschied der ZUSTAND eines
-   Eintrags die Vorgabe und die Einstellung nicht; hier entscheidet die
-   Sortierung, und die ausdrueckliche Wahl gewinnt. Dieselbe Bauform, dasselbe
-   Verhaeltnis.
+   WAS ES WAR. Vier Sortierungen gaben den Statusfilter vor: nach Bewertung
+   sortieren hiess „nur getestete", nach Potenzial sortieren hiess „nur
+   ungetestete". Eine Handwahl schlug die Vorgabe; ein Merker `STATUS_BY_HAND`
+   hielt fest, dass jemand geklickt hatte.
 
-   VIER REGELN, UND KEINE DAVON IST VERHANDELBAR:
-   (1) VORGABE STATT BEFEHL. Nur die vier Sortierungen dieser Tabelle geben
-       etwas vor. Jede andere laesst den Filter in Ruhe -- sie hat keine
-       Vorgabe, nicht die Vorgabe „alles".
-   (2) EINE HANDWAHL HAELT. Ein Klick auf eine der drei Statuspillen gilt, auch
-       gegen die Vorgabe und ueber einen Wechsel der Sortierung hinweg.
-   (3) DIE ABLEITUNG WIRD NICHT GESPEICHERT. saveFilters() schreibt weiterhin
-       die GEWAEHLTE Stellung, nicht die abgeleitete. Wuerde sie mitfahren,
-       stuende nach dem Neuladen ein Filter da, den niemand gesetzt hat -- und
-       wer die Sortierung zuruecknimmt, bliebe auf ihm sitzen, ohne zu wissen,
-       woher er kommt. Ein gesetztes Feld, das niemand gesetzt hat, ist
-       Stolperstein 304 von der anderen Seite gelesen.
-   (4) ES STEHT DRAN. Die abgeleitete Pille sieht anders aus als eine
-       angeklickte, und daneben steht, woher sie kommt. Ein unsichtbarer
-       Automatismus ist ein Fehler, auch wenn er richtig raet.
+   WARUM ES WEG MUSSTE. „Filter zuruecksetzen" setzte den Merker zurueck --
+   ausdruecklich, mit Begruendung: er heisst ja „zuruecksetzen", und die
+   Handwahl ist eine Filterstellung. Danach griff die Ableitung wieder, die
+   Statuspille stand angewaehlt da, und die Liste war gefiltert. ABER
+   filterNumber() zaehlte die Ableitung nicht als gesetzten Filter -- die
+   Ruhestellung war ja genau sie --, also VERSCHWAND DER KNOPF „Filter
+   zuruecksetzen". Es war gefiltert, es sah gefiltert aus, und es gab keinen
+   Weg mehr heraus ausser einer Sortierung, die man gar nicht wechseln wollte.
+   Der Kommentar an `statusIdle()` behauptete sogar, dieser Weg zurueck sei
+   der eine, den es gibt. Er war es nicht mehr, sobald die Ruhestellung selbst
+   filterte.
 
-   NUR IN EINE RICHTUNG. Ein Klick auf „Ungetestet" stellt die Sortierung NICHT
-   auf Potenzial um: zwei Bedienelemente, die sich gegenseitig verstellen, sind
-   ein Kreis, und man kommt aus ihm nicht mehr heraus (Stolperstein 312).
+   WAS STATTDESSEN GILT: der Statusfilter ist das, was dasteht, und sonst
+   nichts. `statusEffective(f)` ist `f.tested` -- eine Zeile, kein Merker,
+   keine Tabelle, keine zweite Wahrheit ueber denselben Filter.
 
-   DIE VERLAUFSSORTIERUNGEN (tests_*, testavg_*, testlast_*) STEHEN
-   AUSDRUECKLICH NICHT HIER. Sie setzen „getestet" logisch genauso voraus --
-   aber sie sind eine eigene Gruppe im Auswahlfeld, und diese Runde fasst zwei
-   Gruppen an, nicht drei. title_asc ebenfalls nicht: ein Titel sagt nichts
-   ueber den Teststatus. */
-const SORT_STATUS = {
-  rating_desc: 'tested',      rating_asc: 'tested',
-  potential_desc: 'untested', potential_asc: 'untested'
-};
+   WAS MIT VERSCHWUNDEN IST: `SORT_STATUS`, `STATUS_BY_HAND`, `defaultClosed`,
+   `statusOutSort`, `statusIdle` und die drei Saetze `list.followsSort`,
+   `list.statusByHand`, `list.byHandHint`. Die Zeilen stehen umgedreht und
+   nicht geloescht: wer in einem Papier von 0.21.1 bis 0.32.0 von „Filter
+   folgt der Sortierung" liest, findet hier, was daraus geworden ist.
 
-/* DER ZWEITE, UNGESPEICHERTE MERKER NEBEN state.filters -- dieselbe Machart wie
-   BLICK weiter oben, und aus demselben Grund daneben statt darin: was in
-   state.filters steht, geht durch saveFilters() hinaus und ist damit
-   gespeichert. Hier steht nur, OB jemand die Statuspille selbst gewaehlt hat.
-   ER UEBERLEBT KEIN NEULADEN, und das ist gewollt: eine frisch aufgebaute Seite
-   hat niemanden, der geklickt haette, also gilt wieder die Vorgabe der
-   Sortierung. Er ueberlebt aber den Wechsel in einen Eintrag und zurueck --
-   drawFilters() zeichnet neu, das Modul bleibt stehen.
-   EINE ANGEWANDTE GESPEICHERTE ANSICHT SETZT IHN EBENFALLS: sie ist eine
-   ausdrueckliche Wahl, genau wie ein Klick auf eine Pille. */
-let STATUS_BY_HAND = false;
+   `statusEffective` BLEIBT ALS NAME STEHEN, obwohl es jetzt nur noch ein Feld
+   liest. Die Liste (visibleItems) und die Leiste (drawFilters,
+   drawFilterSwitch) fragen weiter DIESELBE Stelle -- zwei Rechenwege fuer
+   dieselbe Frage liefen schon einmal auseinander (Stolperstein 47), und eine
+   Funktion, die heute schlicht ist, ist der billigste Schutz davor, dass
+   morgen wieder zwei daraus werden. */
+const statusEffective = (f) => f.tested;
 
-/* GEFRAGT WIRD MIT hasOwnProperty UND NICHT MIT EINEM GEWOEHNLICHEN ZUGRIFF.
-   `f.sort` kommt aus einer gespeicherten Stellung, und die kann jeden Text
-   tragen -- eine Ansicht aus einer aelteren Fassung ebenso wie einen Wert, den
-   jemand von Hand hineingeschrieben hat. Traefe er einen Namen VOM PROTOTYP
-   (`constructor`, `toString`, `valueOf`), gaebe der gewoehnliche Zugriff eine
-   FUNKTION zurueck: sie ist wahr, die Ableitung griffe also -- und weil eine
-   Funktion weder 'tested' noch 'untested' ist, fiele der Statusfilter STILL
-   ganz weg, samt der gespeicherten Wahl.
-   EIN UNBEKANNTER WERT DARF NICHTS WEGNEHMEN. Dieselbe Regel steht in
-   visibleItems() schon am Schluessel `abgelehnt`, und sie gilt hier genauso. */
-/* UND BEI AUSGESCHALTETEM MODUS FAELLT DIE KOPPLUNG DER BEIDEN
-   POTENZIALSORTIERUNGEN MIT -- 0.26.0, Antwort auf F4. Eine Kopplung auf eine
-   Sortierung, die es im Auswahlfeld gar nicht gibt, ist toter Code; sie
-   koennte nur noch aus einer GESPEICHERTEN Ansicht heraus greifen und stellte
-   dann den Statusfilter auf „nicht getestet", ohne dass jemand etwas
-   ausgewaehlt haette.
-   NUR BEI AUSGESCHALTETEM MODUS. Bei eingeschaltetem bleibt sie, wie sie ist
-   -- der Betreiber hat die weitergehende Lesart ausdruecklich nicht gewaehlt.
-   DIE TAFEL BLEIBT VOLLSTAENDIG STEHEN: gefiltert wird beim LESEN und nicht
-   beim Anlegen. Eine Tafel, die je nach Schalter anders aussieht, waere zwei
-   Tafeln. */
-const defaultClosed = (sort) =>
-  Object.prototype.hasOwnProperty.call(SORT_STATUS, sort)
-    ? ((!POTENTIAL_MODE && /^potential_/.test(sort)) ? null : SORT_STATUS[sort])
-    : null;
-
-/* DIE EINE STELLE, AN DER AUS SORTIERUNG UND HANDWAHL EINE VORGABE WIRD.
-   Sie liefert den abgeleiteten Wert oder null -- null heisst „hier leitet
-   nichts ab", und das ist etwas anderes als „alles anzeigen".
-   ZWEI RECHENWEGE FUER DIESELBE FRAGE LIEFEN AUSEINANDER (Stolperstein 47):
-   deshalb fragen die Liste (visibleItems) und die Leiste (drawFilters,
-   drawFilterSwitch) DIESE Funktion und rechnen nicht je selbst. */
-const statusOutSort = (sort) => STATUS_BY_HAND ? null : defaultClosed(sort);
-
-// Was am Ende wirklich filtert: die Ableitung, sonst die gewaehlte Stellung.
-const statusEffective = (f) => statusOutSort(f.sort) || f.tested;
-
-/* WORAUF DIE STATUSZEILE VON SELBST STEHT -- die Ruhestellung. Sie fragt die
-   Tabelle OHNE Ruecksicht auf die Handwahl: „was zeigte die Leiste hier, haette
-   niemand geklickt?"
-   SIE IST DER MASSSTAB FUER filterNumber(), und dafuer wird sie gebraucht. Vor
-   0.21.1 war die Ruhestellung immer `all`; seit dieser Runde haengt sie an der
-   Sortierung, und ohne diese Zeile faende ein Mensch aus einer Handwahl, die
-   „alles anzeigen" heisst, nicht mehr in die Automatik zurueck: `all` ist der
-   alte Vorgabewert, die Zahl bliebe null, der Ruecksetzer stuende nicht da --
-   und einen zweiten Weg heraus gibt es nicht. */
-const statusIdle = (f) => defaultClosed(f.sort) || FILTER_DEFAULT.tested;
 const state = {
   items: [], categories: [], tags: [], criteria: [],
   filters: { ...FILTER_DEFAULT },
@@ -3059,13 +3051,13 @@ async function viewDelete(name) {
    GESUCHT WIRD OHNE Debounce: es ist ein Klick und kein Tippen. */
 function applyView(a) {
   state.filters = filterNormal(a.filters);
-  /* EINE GESPEICHERTE ANSICHT IST EINE AUSDRUECKLICHE WAHL UND SCHLAEGT DIE
-     ABLEITUNG -- 0.21.1, wie eine Handwahl und aus demselben Grund. Sie traegt
-     `sort` und `tested` ZUSAMMEN; wuerde die Sortierung darin den Status
-     ueberschreiben, aenderte sich das Verhalten vorhandener Ansichten still,
-     und das ist genau das, was ein PATCH nicht tun darf. Wer „Potenzial" und
-     „alles anzeigen" zusammen gespeichert hat, bekommt beides zurueck. */
-  STATUS_BY_HAND = true;
+  /* HIER STAND BIS 0.32.0 `STATUS_BY_HAND = true` -- eine gespeicherte Ansicht
+     war eine ausdrueckliche Wahl und schlug die Ableitung der Sortierung. Seit
+     die Ableitung ausgebaut ist, gibt es nichts mehr zu schlagen: `filters`
+     traegt `sort` und `tested` zusammen, und beide gelten so, wie sie
+     gespeichert wurden. Wer „Potenzial" und „alles anzeigen" zusammen
+     gespeichert hat, bekommt weiterhin beides zurueck -- nur jetzt, weil es
+     dasteht, und nicht, weil ein Merker eine Vorgabe abwehrt. */
   state.search = typeof a.q === 'string' ? a.q : '';
   const field = document.getElementById('q');
   if (field) field.value = state.search;
@@ -3373,19 +3365,22 @@ const openTotal = () => (state.all || []).reduce((n, i) => n + (Number(i.openTas
    Bewertung heissen in dieser Instanz ueberall so. */
 const newWords = (i) => {
   const k = Number(i.newComments) || 0, b = Number(i.newRatings) || 0;
-  /* `of` WIRD AUSDRUECKLICH LEER GEREICHT -- 0.31.1. Der Satz traegt seit dem
-     Verschmelzen einen Platz fuer das „, davon ..." der Uebersichtszeile, und
-     hier gibt es nichts davon zu sagen. Ohne diese Zeile stuende am Bildschirm
-     „3 Kommentare{of}" -- der Pruefstand hat genau das gemeldet. */
-  /* UND SEIT 0.32.0 STEHT IM PLATZ FUER „, davon …" WIRKLICH ETWAS -- die
-     Zahl der Kommentare, die MICH markieren. Sie ist die TEILMENGE von `k`
-     und wird nirgends dazugezaehlt; „3 Kommentare, davon 1 an mich
-     gerichtet" sagt genau das. Ohne Markierung bleibt der Platz leer, wie
-     seit 0.31.1. */
+  /* DIE MARKIERUNG STEHT ALS ZEICHEN DANEBEN UND NICHT MEHR IM SATZ --
+     0.32.1. Bis dahin hiess es „3 Kommentare, davon 1 an mich gerichtet",
+     gebaut aus `list.commentCount` mit einem Platz `{of}`, in den
+     `list.ofWhich` hineinlief. Dieser Platz ist weg, und mit ihm die
+     tuerkische Klammer „, bunun … kadarı".
+     HIER BLEIBT DAS WORT „Kommentare" STEHEN, anders als im Blockkopf: dort
+     heisst der Block schon so, hier steht keine Ueberschrift daneben.
+     `@` UND KEIN NEUES ZEICHEN: die Markierung heisst im Kommentartext
+     `@name`, und sie traegt dort seit 0.32.0 dasselbe Blau. Wer `@1` sieht,
+     hat das Zeichen schon einmal gesehen.
+     SIE IST WEITER DIE TEILMENGE von `k` und wird nirgends dazugezaehlt --
+     deshalb steht sie hinter einem Mittelpunkt und nicht hinter einem Plus. */
   const marked = markedCount(i);
-  return [k ? t('list.commentCount', { n: k, of: marked
-            ? t('list.ofWhich', { parts: t('list.markedCount', { n: marked }) }) : '' }) : '',
-          b ? `${b} ${vRating(b)}` : ''].filter(Boolean).join(' · ');
+  return [k ? esc(t('list.commentCount', { n: k })) : '',
+          marked ? countMark('marked', '@', marked, t('list.markedCount', { n: marked })) : '',
+          b ? esc(`${b} ${vRating(b)}`) : ''].filter(Boolean).join(' · ');
 };
 
 /* VON WEM -- 0.17.0. Wer an einem Eintrag war, gehoert neben die Zahl: „3
@@ -3506,7 +3501,10 @@ function showBellPanel() {
       a.innerHTML = `<span class="mname"></span><span class="mcount"></span>
         <span class="bell-from"></span>`;
       a.querySelector('.mname').textContent = it.title;
-      a.querySelector('.mcount').textContent = newWords(it);
+      /* HTML UND NICHT TEXT -- newWords() traegt seit 0.32.1 das Zeichen der
+         Markierung. Was hineingeht, ist maskiert: die Woerter dort, die
+         Zahlen sind Zahlen. */
+      a.querySelector('.mcount').innerHTML = newWords(it);
       a.querySelector('.bell-from').textContent = newFromWords(it);
       a.onclick = () => zu();
       box.appendChild(a);
@@ -3966,18 +3964,17 @@ function listKeys(e) {
 function filterNumber() {
   const f = state.filters, v = FILTER_DEFAULT;
   let n = 0;
-  /* GEZAEHLT WIRD DIE ABWEICHUNG VON DER RUHESTELLUNG UND NICHT MEHR VON `all`
-     -- 0.21.1. Beides fiel bis dahin zusammen; seit die Sortierung eine Vorgabe
-     macht, sind es zwei Dinge.
-     DREI LAGEN, UND ALLE DREI FALLEN RICHTIG AUS:
-     die Ableitung greift und niemand hat geklickt -> Ruhestellung, zaehlt NICHT
-     (die Begruendung steht oben);
-     jemand hat „Alle" gegen die Ableitung geklickt -> weicht ab,
-     zaehlt EINS -- und genau darueber steht der Ruecksetzer wieder da, der der
-     einzige Weg zurueck in die Automatik ist;
-     keine Ableitung im Spiel -> die Ruhestellung IST `all`, und die Zeile zaehlt
-     wie vor dieser Runde. */
-  if (statusEffective(f) !== statusIdle(f)) n++;
+  /* GEZAEHLT WIRD WIEDER DIE ABWEICHUNG VON DER VORGABE -- 0.32.1, und damit
+     steht hier dieselbe Zeile wie vor 0.21.1. Zwischen den beiden Runden war
+     der Massstab die RUHESTELLUNG: was die Leiste zeigte, haette niemand
+     geklickt. Solange die Sortierung eine Vorgabe machte, waren das zwei
+     Dinge -- und genau daran ist die Sache zerbrochen: eine Ruhestellung, die
+     selbst filtert, zaehlt sich nicht mit, also verschwand der Ruecksetzer,
+     und die Liste blieb gefiltert ohne Weg heraus.
+     JETZT IST DIE RUHESTELLUNG WIEDER `all`, also faellt beides zusammen: was
+     nicht `all` ist, hat jemand gesetzt, und was jemand gesetzt hat, laesst
+     sich zuruecksetzen. */
+  if (f.tested !== v.tested) n++;
   // Die Ablehnung zaehlt EIGENS mit und nicht mit dem Teststatus zusammen: sie
   // ist ein zweites Merkmal, und beide zugleich verkleinern die Menge zweimal.
   if (f.rejected !== v.rejected) n++;
@@ -4003,27 +4000,19 @@ function drawFilterSwitch() {
   if (!button || !box) return;
   const n = filterNumber();
   const zu = box.classList.contains('closed');
-  /* UND EINGEKLAPPT STEHT AUCH DIE ABLEITUNG DRAN -- 0.21.1. Das Wort neben den
-     Statuspillen ist dann nicht zu sehen, und der Schalter ist der einzige
-     Ort, der fuer die zugeklappte Leiste noch spricht. Regel 4 gilt auch hier.
-     ALS WORT UND NICHT ALS ZAHL: filterNumber() zaehlt die Ableitung
-     ausdruecklich nicht mit (die Begruendung steht dort), und `aktiv` bleibt
-     deshalb an der Zahl haengen -- die Farbe sagt „du hast etwas eingestellt",
-     und eingestellt hat das niemand. */
-  /* UND HIER STEHT SEIT 0.32.0 DASSELBE WIE NEBEN DEN PILLEN -- Wort UND
-     Wert. Regel 4 gilt an beiden Orten, und zwei verschiedene Fassungen
-     desselben Satzes liefen beim naechsten Griff auseinander. */
-  const derived = statusOutSort(state.filters.sort);
-  const from = derived ? t('list.followsSort',
-    { status: derived === 'tested' ? V.testedYes : V.testedNo })
-    : ((STATUS_BY_HAND && defaultClosed(state.filters.sort)) ? t('list.statusByHand') : '');
-  /* AUS DER SPRACHDATEI UND NICHT AUS DEM QUELLTEXT -- 0.24.4 (B5). Bis
+  /* HIER STAND BIS 0.32.0 AUCH DIE ABLEITUNG DER SORTIERUNG -- eingeklappt war
+     das Wort neben den Statuspillen nicht zu sehen, und der Schalter war der
+     einzige Ort, der fuer die zugeklappte Leiste noch sprach. Mit der
+     Ableitung faellt der Zusatz weg: es gibt nichts mehr zu melden, was
+     niemand eingestellt hat. Was jetzt hier steht, hat jemand gesetzt, und
+     dann steht die Zahl dafuer da.
+     AUS DER SPRACHDATEI UND NICHT AUS DEM QUELLTEXT -- 0.24.4 (B5). Bis
      0.24.3 stand hier `${n} aktiv` fest verdrahtet: kein Satz, sondern ein
      Wort neben einer Zahl, und deshalb durch jeden Waechter der Runde 0.24.3
      gefallen -- der Bildschirmtext-Waechter prueft die Verbotsliste und nicht
      die Sprache. Auf Englisch stand es deutsch da. */
   button.querySelector('.fcount').textContent =
-    [n ? t('list.filtersActive', { n }) : '', from].filter(Boolean).map(s => `· ${s}`).join(' ');
+    n ? `· ${t('list.filtersActive', { n })}` : '';
   button.classList.toggle('active', n > 0);
   button.setAttribute('aria-expanded', zu ? 'false' : 'true');
   button.title = zu ? t('list.showFilters') : t('list.hideFilters');
@@ -4062,27 +4051,16 @@ function drawFilters() {
   // selbst aus dem Vokabular kommt.
   const r1 = row(t('list.status'));
   const g1 = document.createElement('div'); g1.className = 'pills';
-  /* WAS DIE SORTIERUNG GERADE VORGIBT -- 0.21.1, oder null. Gefragt wird
-     dieselbe Funktion, die auch visibleItems() fragt: die Leiste soll nicht
-     ihre eigene Rechnung ueber dieselbe Menge fuehren (Stolperstein 47). */
-  const fallback = statusOutSort(f.sort);
+  /* GENAU EINE PILLE IST MARKIERT, UND SIE SAGT: „so steht die Liste gerade
+     da". Seit 0.32.1 ist das wieder schlicht die gewaehlte Stellung -- bis
+     0.32.0 konnte hier eine ABGELEITETE Pille stehen (`pill-derived`), die
+     galt, ohne dass jemand sie angeklickt hatte. Genau daran ist die Sache
+     zerbrochen; die Begruendung steht oben bei `statusEffective`. */
   [['all',t('list.all')],['tested',V.testedYes],['untested',V.testedNo]].forEach(([v,l]) => {
     const b = document.createElement('button');
-    /* GENAU EINE PILLE IST MARKIERT, UND SIE SAGT IMMER DASSELBE: „so steht die
-       Liste gerade da". Greift die Ableitung, ist es ihre -- die gespeicherte
-       Stellung wirkt in diesem Augenblick nicht, und sie als gesetzt zu
-       zeichnen waere eine Falschaussage ueber die gezeigte Menge.
-       ZWEI VERSCHIEDENE KLASSEN UND NICHT EINE MIT ZUSATZ: `on` heisst
-       „angeklickt", `pill-derived` heisst „gilt, aber nicht von deiner
-       Hand". Gleich aussehen duerfen sie nicht (Regel 4). */
-    b.className = 'pill' + (fallback ? (fallback === v ? ' pill-derived' : '')
-                                    : (f.tested === v ? ' on' : ''));
+    b.className = 'pill' + (f.tested === v ? ' on' : '');
     b.textContent = l;
-    if (fallback === v) b.title = t('list.sortDefaultHint');
-    /* EIN KLICK IST EINE HANDWAHL, AUCH AUF DIE ABGELEITETE PILLE. Sie ist kein
-       toter Knopf: wer sie drueckt, hat sich entschieden, und die Ableitung
-       endet -- sonst kaeme niemand mehr aus ihr heraus (Stolperstein 312). */
-    b.onclick = () => { f.tested = v; STATUS_BY_HAND = true; redraw(); };
+    b.onclick = () => { f.tested = v; redraw(); };
     g1.appendChild(b);
   });
   // Eigener Umschalter, kein vierter Wert der Reihe davor: die drei oben sind
@@ -4107,45 +4085,13 @@ function drawFilters() {
      0.13.0, wo sie 75 px flacher wurde. */
   r1.appendChild(g1);
 
-  /* UND DANEBEN STEHT, WOHER DIE STELLUNG KOMMT -- 0.21.1, Regel 4. Ein
-     unsichtbarer Automatismus ist ein Fehler, auch wenn er richtig raet.
-     DASSELBE BAUTEIL WIE „Ablehnung" UND „Ansichten": eine zweite Beschriftung
-     ohne eigene Spalte, in derselben Zeile. Sie steht NUR da, solange die
-     Ableitung greift -- eine Auskunft ueber nichts ist dieselbe Falle wie eine
-     Null am Zaehler „Offen".
-     DER KLARTEXT NENNT AUCH DEN WEG HINAUS. Das Wort allein sagt, woher es
-     kommt; wie man es wieder loswird, gehoert daneben. */
-  /* UND DANEBEN STEHT AUCH, WAS ABGELEITET WIRD -- 0.32.0, Bauabschnitt 9.
-     Bis 0.31.4 stand dort nur „folgt der Sortierung": das sagte, DASS
-     abgeleitet wird, aber nicht WAS -- dass gerade nur Getestete in der Liste
-     stehen, erfuhr man allein, indem man sie zaehlte (Fahrplan, Frage 3).
-     DAS WORT KOMMT AUS DEM VOKABULAR und wird nicht zusammengesetzt: es ist
-     dasselbe, das auch an der abgeleiteten Pille steht. */
-  if (fallback) {
-    const from = secondLabel(r1, t('list.followsSort',
-      { status: fallback === 'tested' ? V.testedYes : V.testedNo }));
-    from.id = 'f-status-from';
-    from.title = t('list.pillHint');
-  }
-  /* UND DIE HARTE KANTE BEKOMMT IHREN SATZ -- 0.32.0, Bauabschnitt 9.
-     EIN EINZIGER KLICK AUF EINE STATUSPILLE SCHALTET DIE ABLEITUNG FUER DIE
-     GANZE SITZUNG AB -- nicht nur fuer diese eine Sortierung --, und bis
-     0.31.4 stand das nirgends. Zurueck kommt sie allein ueber „Filter
-     zuruecksetzen", und dass dieser Knopf auch die Automatik zurueckholt,
-     wusste ebenfalls niemand. Eine kleine Handlung mit einer grossen,
-     unsichtbaren Folge; ein unsichtbarer Automatismus ist ein Fehler, und
-     seine unsichtbare ABSCHALTUNG ist derselbe Fehler von der anderen Seite.
-     SIE STEHT NUR DA, WO SIE ETWAS BEWIRKT: bei einer Sortierung, die
-     ueberhaupt etwas vorgibt. Bei „Titel" gibt es keine Ableitung, also auch
-     keine abgeschaltete -- eine Auskunft ueber nichts ist dieselbe Falle wie
-     eine Null am Zaehler.
-     `defaultClosed` UND NICHT `statusOutSort`: gefragt ist die Ruhestellung,
-     also „was gaebe diese Sortierung vor, haette niemand geklickt". */
-  if (!fallback && STATUS_BY_HAND && defaultClosed(f.sort)) {
-    const byHand = secondLabel(r1, t('list.statusByHand'));
-    byHand.id = 'f-status-byhand';
-    byHand.title = t('list.byHandHint');
-  }
+  /* HIER STANDEN BIS 0.32.0 ZWEI ZUSATZBESCHRIFTUNGEN: „folgt der Sortierung:
+     Getestet" (0.21.1, Regel 4) und „von Hand gewaehlt" (0.32.0, BA 9). Beide
+     erklaerten eine Ableitung, die es seit 0.32.1 nicht mehr gibt -- und die
+     zweite erklaerte ausgerechnet den Zustand, in dem die Sackgasse zuschnappte.
+     WAS DAVON BLEIBT, IST DIE REGEL DAHINTER: ein unsichtbarer Automatismus ist
+     ein Fehler, auch wenn er richtig raet. Der billigste Weg, ihr zu genuegen,
+     ist kein Automatismus. */
 
   /* ---- Die Ablehnung: ZWEITE GRUPPE DERSELBEN ZEILE ----
      KEINE EIGENE ZEILE. Die Zeile heisst "Status", und die Ablehnung ist einer
@@ -4284,10 +4230,14 @@ function drawFilters() {
     const modeBox = document.createElement('div');
     modeBox.className = 'tagmode' + (f.tagIds.length > 1 ? '' : ' idle');
     /* DIE BESCHRIFTUNG IST NICHT DAS BINDEWORT -- 0.31.1. Bis hierher las
-       dieser Knopf `list.and`, und derselbe Schluessel bindet in
-       `list.ofWhich` eine Aufzaehlung zusammen („3 Berichte und 2 Aufgaben").
-       Ein Bindewort steht klein und mit Leerzeichen, eine Beschriftung gross
-       und ohne -- also stand hier „ und " neben „Oder". */
+       dieser Knopf `list.and`, und derselbe Schluessel band in der Zaehlzeile
+       des Kommentarblocks eine Aufzaehlung zusammen („3 Berichte und 2
+       Aufgaben"). Ein Bindewort steht klein und mit Leerzeichen, eine
+       Beschriftung gross und ohne -- also stand hier „ und " neben „Oder".
+       DAS BINDEWORT SELBST IST MIT 0.32.1 GEFALLEN: die Zaehlzeile bindet
+       nichts mehr zusammen, sie zaehlt mit Mittelpunkten auf. Der Schluessel
+       hatte danach keinen einzigen Rufer mehr, und ein Schluessel ohne Rufer
+       ist eine Leiche -- die Verwendungsprobe haette ihn gemeldet. */
     [['and', t('list.tagModeAnd'), t('list.allTagsHint')],
      ['or', t('list.or'), t('list.anyTagHint')]]
       .forEach(([value, text, explanation]) => {
@@ -4710,11 +4660,12 @@ function drawFilters() {
          DIE SORTIERUNG WIRD MITGEGEBEN UND NICHT ZURUECKGESETZT, obwohl sie in
          der Vorgabe steht: sie zaehlt auch nicht mit. */
       state.filters = filterNormal({ sort: state.filters.sort });
-      /* UND DIE HANDWAHL FAELLT MIT -- 0.21.1. Er heisst „Filter
-         zuruecksetzen", und die Handwahl ist eine Filterstellung: danach folgt
-         der Statusfilter wieder der Sortierung. Das ist zugleich der Weg
-         zurueck IN die Automatik, und es gibt keinen zweiten. */
-      STATUS_BY_HAND = false;
+      /* HIER STAND BIS 0.32.0 `STATUS_BY_HAND = false` -- „Filter
+         zuruecksetzen" setzte auch die Handwahl zurueck, und danach folgte der
+         Statusfilter wieder der Sortierung. DAS WAR DIE SACKGASSE: der Knopf
+         hat gefiltert statt zurueckgesetzt, und weil die Ableitung nicht
+         mitzaehlte, verschwand er anschliessend selbst. Jetzt setzt er
+         zurueck, und was danach dasteht, ist die Vorgabe. */
       redraw();
     };
     right5.appendChild(bBack);
@@ -6763,7 +6714,7 @@ async function renderDetail(id, termAddress) {
       tile.innerHTML = `<img src="${imageSource(p, 'thumb')}" alt="">` +
         (isVideo(p) ? `<span class="play-badge">▶</span>` : '') +
         (length ? `<span class="duration">${length}</span>` : '') +
-        `<span class="num">${i + 1}</span><span class="del" title="${esc(t('entry.deleteWord', { word: word }))}">${ICON_X}</span>`;
+        `<span class="num">${i + 1}</span><span class="del" title="${esc(t(isVideo(p) ? 'entry.deleteVideo' : 'entry.deletePhoto'))}">${ICON_X}</span>`;
       tile.querySelector('.del').onclick = async (e) => {
         e.stopPropagation();
         if (!await confirmBox(t('entry.deleteWordAsk', { word: word }), t('entry.deleteHint', { word: word }))) return;
@@ -8384,10 +8335,18 @@ async function renderDetail(id, termAddress) {
   /* ---- Kommentare ---- */
   function drawComments() {
     const box = document.getElementById('cmts');
-    // Der Hinweis steht in der Kopfzeile und bleibt damit auch eingeklappt
-    // sichtbar -- eingeklappt ist gerade der Moment, in dem man nicht
-    // hineinsieht. Gebildet wird er an einem Ort, oben bei commentNumbers().
-    document.getElementById('ccount').textContent = commentNumbers(item.comments);
+    /* Der Hinweis steht in der Kopfzeile und bleibt damit auch eingeklappt
+       sichtbar -- eingeklappt ist gerade der Moment, in dem man nicht
+       hineinsieht. Gebildet wird er an einem Ort, oben bei commentNumbers().
+       SEIT 0.32.1 IST ER HTML UND NICHT TEXT: er traegt die drei Zeichen.
+       `innerHTML` IST HIER UNBEDENKLICH, und das ist nachgerechnet und nicht
+       gehofft: commentNumbers() setzt aus ZAHLEN und den eigenen SVG-Zeichen
+       zusammen -- kein Stueck davon kommt vom Benutzer. Der volle Satz geht
+       ueber `title`, und der laeuft ueber textContent-Weg (Attribut). */
+    const counts = commentNumbers(item.comments);
+    const ccount = document.getElementById('ccount');
+    ccount.innerHTML = counts.html;
+    ccount.title = counts.text;
     box.innerHTML = item.comments.length ? '' : emptyState(t('entry.noCommentsYet'));
     item.comments.forEach(c => {
       const report = c.kind === 'report', task = c.kind === 'task',
