@@ -1,6 +1,6 @@
 # Auftrag 0.33.0 — „Bereinigung — der Bruch"
 
-**Geschrieben am 14. September 2026 · gebaut auf 0.32.1 · MINOR — und trotzdem
+**Geschrieben am 14. September 2026, abgenommen am selben Abend · gebaut auf 0.32.1 · MINOR — und trotzdem
 DER BRUCH: die Runde legt nichts dazu, sie nimmt weg, was einen Rückweg
 offenhält.** *Solange die erste Zahl 0 ist, läuft ein Bruch über MINOR.*
 
@@ -366,7 +366,7 @@ sechs Dateien, nach dem Muster der Restprobe für `server.js` aus 0.32.0.*
 
 ## Die Fragetafel — vor der ersten Zeile zu beantworten
 
-**Stand 14. September 2026, 21 Uhr: SECHS FRAGEN SIND ENTSCHIEDEN** — *F2 (alle achtzehn fallen) · F7 (Bestandslauf gefahren) · F5 (englisch) · F6 (jede Spalte einzeln) · F9 (die Übersetzung fällt) · F14 (das volle Paket)*. **ACHT SIND ENTSCHIEDEN** — *F2 · F4 · F5 · F6 · F7 · F9 · F14 · F15*. **Offen ist allein F16** *(steigt das Austauschformat auf 17)*.
+**Stand 14. September 2026, 21 Uhr: SECHS FRAGEN SIND ENTSCHIEDEN** — *F2 (alle achtzehn fallen) · F7 (Bestandslauf gefahren) · F5 (englisch) · F6 (jede Spalte einzeln) · F9 (die Übersetzung fällt) · F14 (das volle Paket)*. **ALLE SECHZEHN SIND BEANTWORTET — der Auftrag ist vollständig.** *Neun hat der Betreiber am 14. September 2026 entschieden (F2 · F4 · F5 · F6 · F7 · F9 · F14 · F15 · F16), die übrigen tragen den Vorschlag mit seiner Begründung und sind unwidersprochen geblieben.* **Es steht keine Frage mehr zwischen diesem Papier und dem ersten Handgriff.**
 
 | # | Frage | Vorschlag |
 |---|---|---|
@@ -385,7 +385,7 @@ sechs Dateien, nach dem Muster der Restprobe für `server.js` aus 0.32.0.*
 | **F13** | **Die Marken sagen „ENTFAELLT MIT 1.0" und meinen diese Runde — was wird daraus?** | **Mit dem Block fällt seine Marke.** *Was nach F2 stehen bleibt, bekommt eine berichtigte Marke — und der Prüfstand hält danach fest, dass in `db.js` keine Ankündigung auf 1.0 mehr steht, zu der es keinen Block mehr gibt* |
 | **F14** | **Schreibt die Datenbank künftig auf, mit welcher Fassung sie läuft?** | **ENTSCHIEDEN — DAS VOLLE PAKET.** *Zwei Zeilen in `settings` (womit zuletzt geöffnet · womit angelegt), die **Programmfassung** neben der Formatnummer in die Exportdatei, und die **Formatnummer wird beim Einspielen endlich GELESEN** — sie wird seit sechzehn Fassungen geschrieben und nie geprüft* |
 | **F15** | **Was tritt an die Stelle der gefallenen Übersetzung?** | **ENTSCHIEDEN AM 14.9.2026 — DER IMPORT WEIST EINE DATEI MIT FORMATNUMMER ≤ 13 AB.** *Und das muss so grob sein, weil die Zahl den Umbau nicht markiert:* **0.24.1 hat die Felder umbenannt, ohne die Formatnummer zu heben** — *0.24.0 und 0.24.2 tragen beide die **13**, erst 0.24.3 hebt auf 14.* **Eine 0.24.2-Datei fällt damit mit ab, und das ist die richtige Richtung:** *abweisen ist laut, stillschweigend falsch einspielen ist leise.* *Ohne sie verlöre ein Foto aus einer alten Datei still seine Art und seine Dauer — die Felder hießen `art` und `dauer`, und nach F9 liest sie niemand mehr.* **UND SIE IST DIE EINZIGE ABWEISUNG DER RUNDE — sie liegt an der DATEI und nicht am START:** *eine Datei, die nicht hereinkommt, sperrt niemanden aus seiner Anwendung aus* |
-| **F16** | **Steigt das Austauschformat auf 17?** | **VORSCHLAG: JA — und das widerspricht dem, was oben unter L5 und in der Antragsbeschreibung stand.** *Solange die Runde nur WEGNAHM, blieb 16 richtig. **F14 legt aber ein Feld DAZU** — die Programmfassung neben der Formatnummer —, und das Haus hat die Zahl für jede Felderweiterung gehoben:* **13 → 14** *(0.24.3, die Sprachfassungen der Namen)*, **14 → 15** *(0.25.0, die Erstellungssprache)*, **15 → 16**. *Eine ältere Instanz übergeht das zusätzliche Feld wortlos, wie seinerzeit `criteriaGewichte` — die Zahl ist nicht die Lesbarkeit, sie ist die AUSSAGE, welche Felder zu erwarten sind.* **Zu bestätigen** |
+| **F16** | **Steigt das Austauschformat auf 17?** | **ENTSCHIEDEN AM 14.9.2026 — JA, 17.** *Solange die Runde nur WEGNAHM, blieb 16 richtig; **F14 legt aber ein Feld DAZU** — die Programmfassung neben der Formatnummer.* **Das Haus hat die Zahl für jede Felderweiterung gehoben:** *13 → 14 (0.24.3, die Sprachfassungen der Namen), 14 → 15 (0.25.0, die Erstellungssprache), 15 → 16.* *Eine ältere Instanz übergeht das zusätzliche Feld wortlos, wie seinerzeit `criteriaGewichte` — die Zahl sagt nicht, was noch lesbar ist, sondern welche Felder zu erwarten sind.* **Und sie steht an EINER Stelle** *(`server.js:6572`)*, *von der aus beide Schreibstellen und die Abweisung aus F15 rechnen* |
 
 ---
 
@@ -420,7 +420,7 @@ sechs Dateien, nach dem Muster der Restprobe für `server.js` aus 0.32.0.*
 | **8** | **Die erste Hälfte des Knopfes tut, was sie tat** — *Originale werden weiter umgestellt* |
 | **9** | **Die drei Sprachdateien tragen gleich viele Schlüssel, in derselben Folge und derselben Gestalt** — *und die neue Zahl steht an EINER Stelle* |
 | **10** | **Jede Änderung an den Sprachdateien steht in ihrer Tafel** *(L7)* |
-| **11** | **Die 28 Tabellen sind 28** — *und das Austauschformat steht auf der Zahl, die F16 setzt, an allen Stellen zugleich* |
+| **11** | **Die 28 Tabellen sind 28, und das Austauschformat steht auf 17** — *an EINER Stelle gesetzt, und beide Schreibstellen wie die Abweisung aus F15 rechnen von dort* |
 | **12** | **Kein Papier nennt einen Migrationsblock, den es nicht mehr gibt** — *README, CHANGELOG, Projektstand und Fahrplan werden mitgezogen* |
 | **13** | **Die Datenbank sagt, mit welcher Fassung sie zuletzt lief — und mit welcher sie angelegt wurde** |
 | **14** | **Die Exportdatei trägt die Programmfassung neben der Formatnummer** — *und der Import LIEST die Formatnummer: eine Datei mit ≤ 13 wird abgewiesen und nicht still falsch eingespielt* |
@@ -436,7 +436,7 @@ ein — und wenn keine Prüfung davon rot wird, ist der Hinweis nicht belegt.**
 
 ## Was ausdrücklich NICHT gebaut wird
 
-- **Kein Bruch an der Exportdatei.** *Wer eine Sicherung von gestern hat, spielt sie morgen ein. **Die Formatnummer steigt aber auf 17** (F16), weil F14 ein Feld dazulegt — und eine Datei mit ≤ 13 wird künftig abgewiesen (F15), weil ihre Feldnamen seit 0.24.1 andere sind und niemand sie mehr übersetzt.*
+- **Kein Bruch an der Exportdatei ab 14.** *Wer eine Sicherung von gestern hat, spielt sie morgen ein.* **Die Formatnummer steigt auf 17** *(F16)*, *weil F14 ein Feld dazulegt — und eine Datei mit ≤ 13 wird abgewiesen* *(F15)*, *weil ihre Feldnamen seit 0.24.1 andere sind und sie nach F9 niemand mehr übersetzt.*
 - **Kein Merker in der Datenbank.** *Er fehlte genau dort, wo er gebraucht würde.*
 - **`tools/dictionary.json` fällt nicht.** *Der Import lebt davon.*
 - **Keine gekürzten Kommentare.** *Das ist 0.33.x und kommt DANACH.*
