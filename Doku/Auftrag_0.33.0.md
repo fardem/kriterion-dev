@@ -257,12 +257,44 @@ Runde steht draußen niemand unter 0.33.0 — die Absage träfe also nie jemande
 > standen.* **Sie ersetzt 928 Zeilen durch etwa zwanzig**, und sie ist das
 > einzige Stück dieser Runde, das DAZUKOMMT.
 
+### Und ihr fehlt eine Hälfte — der Befund des Betreibers vom 14. September 2026
+
+> *„Prüft das System beim Einspielen, mit welcher Version die Datenbank
+> betrieben wurde? … Generell für die Zukunft wäre es gut, wenn direkt
+> erkennbar wäre, mit welcher Version das betrieben wurde."*
+
+**NEIN, AN KEINER DER DREI STELLEN — nachgesehen und nicht vermutet:**
+
+| wo | was dort steht |
+|---|---|
+| **die Datenbank** | **nichts.** *Kein `user_version`, keine Zeile in `settings`; der Start schreibt genau zwei Vorgaben, und keine davon ist eine Fassung* |
+| **die Exportdatei** | `version: 16` — **aber das ist die FORMATNUMMER und nicht die Programmfassung** *(`server.js:6809`, `:7031`)*, **und der Import liest sie nie.** *Er prüft, ob die Datei JSON ist und ob `items` ein Feld ist* *(`server.js:7773–7777`)* — **mehr nicht** |
+| **die Sicherung** | *eine Kopie der verschlüsselten Datenbankdatei — sie erbt dieselbe Lücke* |
+
+**ER HAT DAMIT DIE ANDERE HÄLFTE DER ABSAGE BENANNT, und die beiden gehören
+zusammen:**
+
+> **DIE PROBE AUF `sqlite_master` BEANTWORTET „IST ES VOLLSTÄNDIG?"** — *sie kann
+> sagen, dass eine Spalte fehlt.* **EIN STEMPEL BEANTWORTET „WAS IST ES?"** —
+> *er kann sagen, dass die Datenbank zuletzt unter 0.19.0 lief und deshalb über
+> 0.32.1 zu gehen hat.* **Ohne ihn kennt die Absage nur das Symptom und nicht
+> die Diagnose.**
+
+**UND EIN STEMPEL WIRKT NUR NACH VORN.** *Eine Datenbank, die nie einen getragen
+hat, bekommt ihn nicht rückwirkend* — **genau deshalb ersetzt er die Probe
+nicht, sondern ergänzt sie.** *Die Probe deckt die Vergangenheit ab, der Stempel
+die Zukunft; nach 0.33.0 wird die Probe mit jedem Jahr weniger gebraucht und
+der Stempel mehr.*
+
+**Was er kostet:** *eine Zeile in `settings`, beim Start geschrieben, wenn sie
+fehlt oder eine andere Fassung nennt.* **Zu entscheiden ist F14.**
+
 ---
 
 ## Die Fragetafel — vor der ersten Zeile zu beantworten
 
 **Stand 14. September 2026, 20 Uhr: F2 und F7 sind vom Betreiber entschieden**
-*(alle achtzehn fallen · der Bestandslauf ist mit PNG und mit den Vorschaubildern gefahren)*. **Offen sind noch F5** *(Sprache der Absage)*, **F6** *(wie weit sie zurückreicht)* **und F9** *(die Übersetzung alter Exportdateien)*.
+*(alle achtzehn fallen · der Bestandslauf ist mit PNG und mit den Vorschaubildern gefahren)*. **Offen sind noch F5** *(Sprache der Absage)*, **F6** *(wie weit sie zurückreicht)*, **F9** *(die Übersetzung alter Exportdateien)* **und die neue F14** *(der Versionsstempel, vom Betreiber am selben Abend angeregt)*.
 
 | # | Frage | Vorschlag |
 |---|---|---|
@@ -279,6 +311,7 @@ Runde steht draußen niemand unter 0.33.0 — die Absage träfe also nie jemande
 | **F11** | **Die acht Rückbauten auf Migrationszeilen?** | **Sie werden auf die Absage umgehängt.** *Wer sie stilllegt, muss eine Prüfung rot machen — sonst ist die Absage nicht belegt* |
 | **F12** | **Kommt 0.33.x (Kommentare kürzen) mit?** | **Nein, und der Grund steht im Fahrplan:** *diese Runde löscht ganze Blöcke samt ihren Kommentaren. **Wer vorher schneidet, schneidet zweimal*** |
 | **F13** | **Die Marken sagen „ENTFAELLT MIT 1.0" und meinen diese Runde — was wird daraus?** | **Mit dem Block fällt seine Marke.** *Was nach F2 stehen bleibt, bekommt eine berichtigte Marke — und der Prüfstand hält danach fest, dass in `db.js` keine Ankündigung auf 1.0 mehr steht, zu der es keinen Block mehr gibt* |
+| **F14** | **Schreibt die Datenbank künftig auf, mit welcher Fassung sie läuft?** | **VORSCHLAG: JA, und zwar zwei Zeilen statt einer.** *`settings` bekommt die Fassung, mit der zuletzt geöffnet wurde, und die, mit der die Datenbank ANGELEGT wurde — die erste beim Start nachgezogen, die zweite einmal und nie wieder.* **Die Absage liest die erste und sagt damit, WAS sie abweist und nicht nur, dass etwas fehlt.** *Zwei Zeilen sind hier keine zweite Wahrheit, sondern zwei verschiedene Aussagen (Stolperstein 47 verlangt einen Ort JE Aussage, nicht eine Aussage insgesamt).* **Dazu der Vorschlag, die Exportdatei die Programmfassung neben der Formatnummer tragen zu lassen** — *und die Formatnummer beim Einspielen endlich zu LESEN: sie wird seit sechzehn Fassungen geschrieben und nie geprüft.* **Zu entscheiden** |
 
 ---
 
