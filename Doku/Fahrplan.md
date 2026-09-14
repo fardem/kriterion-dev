@@ -156,7 +156,7 @@ Sprachumschalter baut, hat damit ein Muster und braucht kein neues.**
 | ~~**0.31.2**~~ | ~~… englisch — „Englisch sitzt“~~ | **GEBAUT am 13. September 2026** — Änderungsprotokoll 0.31.2. *Der Durchgang durch alle 1197 englischen Schlüssel, jeder gegen seinen deutschen Satz: **161** englische Werte sind neu formuliert, 635 Zeichen weniger; kein türkischer Wert ist angefasst und von den deutschen genau zwei — „Zugang anfragen" statt „Zugang beantragen", vom Betreiber während der Runde bestellt. **PATCH**, kein Schemaanteil.* **Die Gleichlautprobe rechnet beides nach** — *die beiden deutschen Prüfsummen dieser Runde stehen im Prüfstand, samt dem Beleg, dass sie ANDERE sind als die von 0.31.1, und samt den zwei bestellten Werten Zeichen für Zeichen.* *Die Verbotsliste der Vorlage ist ein Wächter im Prüfstand geworden (dreizehn Muster), dazu Länge, Satzzahl, Plätze, Entitäten und en-GB: zehn Zusagen, elf Gegenproben.* **Der englische Stand liegt als Vergleichsdatei daneben** *(`tools/englisch-0312.json`)* | nein | — |
 | ~~**0.31.3**~~ | ~~… türkisch — „Türkisch sitzt“~~ | **GEBAUT am 13. September 2026** — Änderungsprotokoll 0.31.3. *Der Durchgang durch alle 1197 türkischen Schlüssel, jeder gegen seinen deutschen Satz: **195** Schlüssel neu formuliert (205 Formen, davon 50 nur das Anführungszeichen), `tr.json` ist 1406 Zeichen kürzer und steht bei 90,8 % der deutschen Zeichenzahl. Kein deutscher und kein englischer Wert ist angefasst — vier Prüfsummen der Gleichlautprobe nachgerechnet. **PATCH**, kein Schemaanteil.* **Die Verbotsliste ist ein Wächter geworden, und er liest WORTSTÄMME** — *`\b` taugt für Türkisch nicht: `Ş`, `ş`, `ğ`, `ı`, `ç`, `ö`, `ü` sind für JavaScript keine Wortzeichen, und die Endung klebt an („haptan", „sabit resmi"). Elf Muster, vorher 26 Treffer in 23 Schlüsseln, jetzt keiner.* **ZWEI VORSCHLÄGE DER VORLAGE SIND ABGELEHNT, und beide Male steht eine Entscheidung des Betreibers dagegen:** *die fünf Vokabelmehrzahlen bekommen KEIN `-ler`/`-lar` — der Platz wird an **24 Stellen** hinter einer Zahl gelesen (18 im Quelltext, 6 in der Datei), und dort stünde danach „3 Öğeler" (TR-S4, 8.9.2026; Punkt 19: „abgelehnt, nicht vertagt") —, und „Yedekleme" bleibt „Yedekleme" (10.9.2026, Wächter seit 0.25.1).* *Dreizehn Zusagen, dreizehn Gegenproben (989–1001); der türkische Stand liegt als Vergleichsdatei daneben (`tools/tuerkisch-0313.json`)* | nein | — |
 | ~~**0.31.4**~~ | ~~Nach einer Zahl die Einzahl, sonst die Mehrzahl~~ | **GEBAUT am 13. September 2026** — Änderungsprotokoll 0.31.4. *Der Zielkonflikt aus Punkt 32, vom Betreiber am 13.9.2026 entschieden: „an den Stellen wo eine Zahl steht das Wort für Einzahl, für die anderen das Mehrzahlige".* **Eine Sprachdatei sagt seit dieser Runde selbst, welche Form hinter einer Zahl steht** — *der Kopfschlüssel `_afterNumber` neben `_locale` und `_name`; `Intl.PluralRules` kann es nicht wissen, weil sie nach dem WERT der Zahl wählt und das Türkische nach ihrer ANWESENHEIT.* `counted()` **an acht Zählerstellen**; *die fünf türkischen Vokabelmehrzahlen bekommen ihr `-ler`/`-lar` (Öğeler, Test günleri, Raporlar, Görevler, Değerlendirmeler), fünf Sätze bekommen ausdrücklich die Einzahl (nach `her` und vor `sayısı`), drei Krücken aus 0.31.3 fallen weg.* **Für Deutsch und Englisch ändert sich kein Wort** — *beide sagen `plural`, und `counted()` fällt dann Zeichen für Zeichen auf `plural()` zurück; am zweiten Gang der Gleichlautprobe nachgesehen.* **MINOR** *(1197 → 1198 Schlüssel)*. *Elf Zusagen, acht Gegenproben (1002–1009, dazu das umgedrehte 997); drei Wächter haben sich gedreht und keiner ist gelöscht.* **Der Augenschein hat dabei einen Befund gemacht, den kein Muster über eine Datei findet:** *die Vorschau der Karte „Vokabular" setzte die Mehrzahl selbst hinter eine Zahl („7 Öğeler") — ohne `plural()`, ohne `counted()`, als Zahl in einem String. Sie fragt jetzt die Stellungsregel der GEZEIGTEN Sprache, die der Server in seiner Sprachtafel mitschickt; auf Deutsch steht weiter „7 Einträge"* | nein | — |
-| **0.32.0** | **Der Ruf beim Namen** | `@name` in Notiz, Bericht und Aufgabe — hervorgehoben, und der Genannte bekommt eine Glocke *(bestellt 12.9.2026)*. **Dazu am 13.9.2026: die Glocke muss unterscheiden können, „Filter folgt der Sortierung“ wird herausgearbeitet, und zwei Befunde aus der Filterzeile** *(„+ Ansicht speichern“ wird Text statt Pille; der „Mehr“-Aufklapper wird breitenabhängig)*. **Dazu „Note" als fünfzehntes Vokabelwort** *(entschieden 13.9.2026 — kein Schema, keine Migration, aber zwölf Zusagen halten die Zahl vierzehn)* | **offen** | — |
+| **0.32.0** | **Einen anderen markieren** | `@name` in Notiz, Bericht und Aufgabe — hervorgehoben, und der Markierte bekommt eine Glocke *(bestellt 12.9.2026)*. **Dazu am 13.9.2026: die Glocke muss unterscheiden können, „Filter folgt der Sortierung“ wird herausgearbeitet, und zwei Befunde aus der Filterzeile** *(„+ Ansicht speichern“ wird Text statt Pille; der „Mehr“-Aufklapper wird breitenabhängig)*. **Dazu „Note" als fünfzehntes Vokabelwort** *(entschieden 13.9.2026 — kein Schema, keine Migration, aber zwölf Zusagen halten die Zahl vierzehn)* | **offen** | — |
 | **0.33.0** | **Bereinigung — der Bruch** | **zwölf** Migrationsblöcke raus *(0.29.0 hat den zwölften gebracht)*, **dazu die JPEG-Vorschaubilder des Bestandslaufs** *(entschieden 13.9.2026)*, Struktur festgeschrieben, **kein Rückweg** | **ja** | — |
 | **0.33.x** | **Die Kommentare werden knapp** | 16.281 von 54.822 Zeilen sind Kommentar | nein | — |
 | **0.34.0** | **Der Prüfstand bekommt ein Verzeichnis** | `testbench.js` in Module — **und damit erst der echte Teillauf** | nein | — |
@@ -1260,7 +1260,7 @@ die Gegenproben. **Kein Schemaanteil.**
 
 ---
 
-## 0.32.0 — „Der Ruf beim Namen"
+## 0.32.0 — „Einen anderen markieren"
 
 **BESTELLT AM 12. SEPTEMBER 2026, WÄHREND 0.30.0 GESCHRIEBEN WURDE.**
 *Der Betreiber wörtlich:* **„pack bitte ins roadmap, eventuell in den 0.32.0,
@@ -1277,47 +1277,53 @@ die an ihrer eigenen Runde hängen müsste.*
 
 | | |
 |---|---|
-| **1** | **`@name` in einem Kommentar nennt einen Zugang.** *Die vier Arten sind dieselben, die der Betreiber genannt hat und die die Instanz kennt: **Notiz, Bericht, Aufgabe, erledigte Aufgabe** (`kind`).* **Eine fünfte Stelle gibt es nicht** |
-| **2** | **Der Ruf steht deutlich da** — hervorgehoben wie ein Treffer der Suche, aber als eigene Sache erkennbar |
-| **3** | **Der Genannte bekommt eine Glocke** — und zwar **er**, nicht jeder |
+| **1** | **`@name` in einem Kommentar MARKIERT einen Zugang.** *Die vier Arten sind dieselben, die der Betreiber genannt hat und die die Instanz kennt: **Notiz, Bericht, Aufgabe, erledigte Aufgabe** (`kind`).* **Eine fünfte Stelle gibt es nicht** |
+| **2** | **Die Markierung steht deutlich da** — hervorgehoben wie ein Treffer der Suche, aber als eigene Sache erkennbar |
+| **3** | **Der Markierte bekommt eine Glocke** — und zwar **er**, nicht jeder |
+| **4** | **Ein gelöschter Zugang steht in Klammern** — *„Gelöschter Benutzer 7"; das Programm baut diesen Text schon* |
 
 ### Was daran NICHT trivial ist — drei Sachen, und die dritte entscheidet über die Nummer
 
 **ERSTENS: DIE GLOCKE IST HEUTE NICHT PERSÖNLICH.** *Sie zählt, was an einem
 Eintrag neu ist, den man sehen darf — `bellNew()` summiert `newComments` und
 `newRatings` über alle Einträge (`public/app.js:3040`), und der Bezugspunkt ist
-eine persönliche Einstellung (`bellSeen`, `server.js:2613`).* **Ein Ruf ist
-etwas anderes: er gilt EINEM.** *Die Glocke bekommt damit zum ersten Mal eine
+eine persönliche Einstellung (`bellSeen`, `server.js:2613`).* **Eine Markierung ist
+etwas anderes: sie gilt EINEM.** *Die Glocke bekommt damit zum ersten Mal eine
 zweite Art Eintrag — und die Frage, ob sie zwei Zahlen zeigt oder eine, ist
 keine Kleinigkeit.*
 
 **ZWEITENS: DER TEXT WIRD NICHT NACHBEARBEITET.** *Seit 0.18.0 entsteht der
 Kommentartext als **echte Knoten** und nie als String —
-`buildCommentNodes(splitCommentText(text, term))` (`public/app.js:7979`).* **Der
-Ruf ist ein VIERTES Stück dieser Zerlegung** und kein `replace()` über das
-Ergebnis. *Wer das umdreht, holt sich Markup in einen Text, der ausdrücklich
+`buildCommentNodes(splitCommentText(text, term))` (`public/app.js:7979`).* **Die
+Markierung ist ein VIERTES Stück dieser Zerlegung** und kein `replace()` über
+das Ergebnis. *Wer das umdreht, holt sich Markup in einen Text, der ausdrücklich
 keines tragen darf.*
 
-**DRITTENS — UND HIER LIEGT DER HAKEN: WAS PASSIERT BEI EINER UMBENENNUNG?**
-*Ein Ruf, der als `@bert` im Text steht, zeigt nach der Umbenennung auf
-niemanden mehr.* **Wer das abfangen will, muss die ZUGANGSNUMMER speichern und
-nicht den Namen — und das ist ein Schemaschritt.**
+**DRITTENS — UND HIER LIEGT DER HAKEN: WAS PASSIERT, WENN DER ZUGANG WEG IST?**
+*Eine Markierung, die als `@bert` im Text steht, trägt einen NAMEN.* **Und ein
+gelöschter Name wird FREIGEGEBEN** — *`card.deleteUserHint` sagt es wörtlich:
+„der Name wird frei".*
 
-> **UND EIN SCHEMASCHRITT KOLLIDIERT MIT DEM, WAS 0.29.0 ANGEKÜNDIGT HAT:**
-> *„Dies ist die letzte Runde, die das Schema anfassen darf."* **Der Bruch auf
-> 0.33.0 steht unmittelbar dahinter.**
+> **DER PREIS IST DAMIT NICHT „ZEIGT AUF NIEMANDEN", SONDERN „ZEIGT AUF DEN
+> FALSCHEN".** *Ein zweiter Mensch kann den Namen längst tragen, und niemand
+> sieht es.* **Genau deshalb schickt der Server den Grabsteinnamen seit 0.24.4
+> nicht mehr hinaus** *(`authorCard()`, `server.js:3816`: „Er ist freigegeben
+> und kann laengst einem anderen Menschen gehoeren")*, **und die Oberfläche
+> baut aus der NUMMER „Gelöschter Benutzer 7"** *(`authorName()`,
+> `public/app.js:2044` → `list.deletedUser`)*.
 >
-> **ES GIBT EINEN WEG OHNE SCHEMA, und er ist zu prüfen, bevor die Runde
-> anfängt:** *`bellSeen` ist ein Zeitstempel je Zugang, `comments` trägt
-> `created_at` und den Text.* **„Kommentare, die neuer sind als mein Bezugspunkt
-> und meinen Namen rufen" ist eine ABFRAGE und keine Tabelle** — *dieselbe
-> Bauform, aus der die Glocke heute schon besteht: abgeleitet, nicht
-> gespeichert.* **Dann kostet der Ruf keine Spalte, und die Umbenennung ist der
-> Preis dafür.**
+> **EIN WEG OHNE SCHEMA IST GEPRÜFT UND VERWORFEN** *(14. September 2026)*:
+> *„Kommentare, die neuer sind als mein Bezugspunkt und meinen Namen tragen"
+> wäre eine ABFRAGE und keine Tabelle — dieselbe Bauform, aus der die Glocke
+> heute besteht.* **Sie scheitert an zwei Stellen:** *der freigegebene Name
+> zeigt auf den Falschen, und „Gelöschter Benutzer 7" ist aus einem Namen gar
+> nicht zu bilden — der Schlüssel verlangt die Nummer.*
 >
-> **DIE ENTSCHEIDUNG GEHÖRT IN DIE FRAGETAFEL JENER RUNDE und nicht hierher.**
-> *Hier steht nur, dass sie ansteht — und dass sie VOR 0.33.0 fällt, weil
-> danach keine Spalte mehr dazukommt.*
+> **ALSO DIE ZUGANGSNUMMER, UND DAS IST EIN SCHEMASCHRITT.** *Er kollidiert mit
+> dem, was 0.29.0 angekündigt hat — „Dies ist die letzte Runde, die das Schema
+> anfassen darf" —, und **genau deshalb fällt er in 0.32.0**: der Bruch auf
+> 0.33.0 steht unmittelbar dahinter, und danach kommt keine Spalte mehr dazu.*
+> **Die Bestätigung gehört in die Fragetafel jener Runde** *(F2)*.
 
 ### Die Glocke muss unterscheiden können — entschieden am 13. September 2026
 
@@ -1329,7 +1335,7 @@ Unterscheidung — ob als zwei Zahlen am Symbol oder als eine Zahl über einer
 geteilten Tafel, entscheidet die Runde; dass unterschieden wird, entscheidet sie
 nicht mehr.*
 
-**DER BEFUND, DER DAZU GEFÜHRT HAT, IST GRÖSSER ALS DER RUF — und er ist am 13.
+**DER BEFUND, DER DAZU GEFÜHRT HAT, IST GRÖSSER ALS DIE MARKIERUNG — und er ist am 13.
 September 2026 am laufenden Stand nachgesehen:** *die Glocke zeigt heute alles,
 was im GANZEN Bestand neu ist. `qNewComments` (`server.js:4634`) filtert einzig
 auf `user_id IS NOT ?` — das eigene Zutun fällt heraus, sonst nichts.* **Der
@@ -1340,7 +1346,7 @@ der Satz im Fenster sagt das nicht.*
 
 | | was daraus für diese Runde folgt |
 |---|---|
-| **1** | **Der Ruf ist die eine Hälfte** — `@name` gilt EINEM, und er gehört sichtbar getrennt von dem, was jeden angeht |
+| **1** | **Die Markierung ist die eine Hälfte** — `@name` gilt EINEM, und sie gehört sichtbar getrennt von dem, was jeden angeht |
 | **2** | **Die andere Hälfte ist schon da und ungetrennt** — was unter MEINEN Einträgen geschieht, steht heute zwischen allem anderen. `items.user_id` trägt den Anleger, die Abfrage nutzt ihn nicht |
 | **3** | **Der Satz im Glockenfenster bekommt seinen endgültigen Wortlaut HIER** — *„Neue Kommentare und {ratingMany} anderer Benutzer, seit du diese Liste zuletzt geöffnet hast."* ist sachlich richtig und beantwortet die Frage nicht, die sich der Leser stellt. **0.31.0 hat ihn ausdrücklich stehen lassen**, weil er in dieser Runde ohnehin ersetzt wird — zweimal zu schreiben, was einmal reicht, wäre die teurere Runde |
 
@@ -1509,12 +1515,13 @@ gestrichen und zeigt hierher.*
 
 | | Frage |
 |---|---|
-| **1** | **Wer darf gerufen werden?** *Jeder Zugang — oder nur, wer diesen Eintrag überhaupt sehen darf?* **Ein Ruf an jemanden, der die Sache nicht sehen darf, ist eine Auskunft über einen Eintrag, den es für ihn nicht gibt** |
-| **2** | **Wie wird getippt?** *Freier Text mit `@` — oder eine Auswahl, die beim `@` aufgeht?* **Freier Text bedeutet Tippfehler, die still ins Leere rufen** |
+| **1** | **Wer darf markiert werden?** *Jeder Zugang — oder nur, wer diesen Eintrag überhaupt sehen darf?* **Eine Markierung auf jemanden, der die Sache nicht sehen darf, ist eine Auskunft über einen Eintrag, den es für ihn nicht gibt** |
+| **2** | **Wie wird getippt?** *Freier Text mit `@` — oder eine Auswahl, die beim `@` aufgeht?* **Freier Text bedeutet Tippfehler, die still ins Leere zeigen** |
 | **3** | ~~**Zeigt die Glocke ZWEI Zahlen oder eine?**~~ **DASS sie unterscheidet, ist am 13. September 2026 entschieden** *(siehe oben)*. *Offen bleibt nur die FORM: zwei Zahlen am Symbol, oder eine Zahl über einer geteilten Tafel.* **Zwei Zahlen an einem Symbol sind zwei Sachen an einem Ort; eine Zahl über einer getrennten Tafel sagt dasselbe mit einem Zähler** |
-| **4** | **Was geschieht bei der Umbenennung?** *(siehe oben — der einzige Punkt mit möglichem Schemaanteil)* |
-| **5** | **Nur die Glocke — oder auch eine Mail?** **Vorschlag: nur die Glocke.** *Der Betreiber hat die Glocke genannt, und eine Mail je Ruf ist eine Entscheidung mit ganz anderen Folgen* |
-| **6** | **Wie sieht der Ruf im BEARBEITENMODUS aus?** *Dort steht der Rohtext im Textfeld — `@bert` bleibt `@bert`, und das ist richtig so* |
+| **4** | ~~**Was geschieht bei der Umbenennung?**~~ **AM 14. SEPTEMBER 2026 GEKLÄRT: es wird die ZUGANGSNUMMER gespeichert** *(siehe oben — der gelöschte Name wird freigegeben und zeigt sonst auf den Falschen).* *Die Bestätigung steht als F2 im Auftrag 0.32.0* |
+| **4a** | **Und ein gelöschter Zugang?** **„Gelöschter Benutzer 7", in Klammern** *(Betreiber, 14.9.2026)* — *das Programm baut diesen Text seit 0.24.4 aus der Nummer (`list.deletedUser`)* |
+| **5** | **Nur die Glocke — oder auch eine Mail?** **Vorschlag: nur die Glocke.** *Der Betreiber hat die Glocke genannt, und eine Mail je Markierung ist eine Entscheidung mit ganz anderen Folgen* |
+| **6** | **Wie sieht die Markierung im BEARBEITENMODUS aus?** *Dort steht der Rohtext im Textfeld — `@bert` bleibt `@bert`, und das ist richtig so* |
 
 > **WAS SIE NICHT WERDEN DARF: eine zweite Wahrheit neben der Glocke.**
 > *Stolperstein 47 gilt hier besonders, weil zwei Zähler über dieselbe Sache

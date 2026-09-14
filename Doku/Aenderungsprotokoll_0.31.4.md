@@ -4,13 +4,14 @@
 Schemaanteil am Austauschformat.**
 
 > **FINGERPRINT DIESER RUNDE: `85521c1b`** — gerechnet am gebauten Stand,
-> **als letztes und hinter der letzten Zeile**.
+> **als letztes und hinter der letzten Zeile**. **Am 14. September 2026 aus dem
+> Feld bestätigt: drei Quellen, ein Wert.**
 >
 > | Quelle | Wert |
 > |---|---|
 > | **Am Arbeitsbaum nachgerechnet** *(achtzehn Dateien)* | **`85521c1b`** |
 > | **Aus dem Server selbst gelesen** *(frisches Datenverzeichnis, `/api/stats`)* | **`85521c1b`** |
-> | **Aus der laufenden Installation gemeldet** *(Betreiber)* | *steht aus* |
+> | **Aus der laufenden Installation gemeldet** *(Betreiber, 14. September 2026)* | **`85521c1b`** |
 
 ---
 
