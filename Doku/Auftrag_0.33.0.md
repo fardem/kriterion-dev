@@ -31,8 +31,8 @@ offenhält.** *Solange die erste Zahl 0 ist, läuft ein Bruch über MINOR.*
 > achtzehn Blöcke holen einen Bestand nach, den es draußen nicht gibt: jede
 > Fassung unter 0.33.0 ist auf genau zwei Maschinen gelaufen, und beide sind
 > heute aktuell.* **Es gibt keine fremde Datenbank zu schützen — es gibt nur
-> die Annahme, dass es keine gibt.** *Und genau deshalb fällt die Absage aus
-> Strang 3 nicht mit weg, sondern wird gebaut:* **sie ist der Unterschied
+> die Annahme, dass es keine gibt.** *Und genau deshalb fällt der Hinweis aus
+> Strang 3 nicht mit weg, sondern wird gebaut:* **er ist der Unterschied
 > zwischen „wir glauben es" und „das Programm sieht nach".**
 
 ---
@@ -111,8 +111,9 @@ benutzt:**
 
 **UND DIE NUMMER BLEIBT TROTZDEM 0.33.0 — der Grund steht in der Bedeutung von
 1.0 selbst.** *„Die Zusage" heißt: ab hier wird Abwärtskompatibilität
-ZUGESICHERT.* **Diese Runde tut das Gegenteil — sie weist alte Datenbanken ab.**
-*Ein 1.0, dessen erste Handlung eine Absage ist, wäre das falsche Signal.*
+ZUGESICHERT.* **Diese Runde tut das Gegenteil — sie schneidet den Weg von alten
+Datenbanken herauf ab und weist alte Exportdateien zurück** *(F15)*.
+*Ein 1.0, dessen erste Handlung ein Abschneiden ist, wäre das falsche Signal.*
 **Solange die erste Zahl 0 ist, darf gebrochen werden, und genau dafür ist sie
 da: der Bruch gehört VOR die Zusage und nicht in sie.**
 
@@ -131,7 +132,7 @@ gar nicht mehr erreicht.** *Zwei Orte für dieselbe Aussage sind einer zu viel
 |---|---|---|
 | **L1** | **UMGEDREHT UND NICHT GELÖSCHT.** *Zu jedem Block, der fällt, gehört eine Prüfgruppe, die heute belegt, dass er läuft. Sie wird UMGEDREHT und belegt danach, dass er fort ist — und dass eine Datenbank, die ihn gebraucht hätte, ABGEWIESEN wird* | Stolperstein 74; so gebaut in 0.32.1 an „Filter folgt der Sortierung" |
 | **L2** | **DIE ZAHL DER BLÖCKE STEHT AN EINER STELLE.** *Heute steht sie an dreien und stand bis 13.9.2026 an dreien VERSCHIEDEN da. Nach dieser Runde steht sie im Prüfstand und sonst nirgends* | Stolperstein 47 |
-| **L3** | **KEIN ABSTURZ ALS ABSAGE.** *Wer eine zu alte Datenbank öffnet, bekommt einen SATZ und keinen Stapelabzug. Er muss daraus lesen können, über welche Fassung er zuerst gehen muss* | `keys.js`, `warnKeyBesideData()` als Vorbild |
+| **L3** | **KEIN ABBRUCH UND KEIN STAPELABZUG.** *Wer eine unvollständige Datenbank öffnet, bekommt einen SATZ — und die Instanz startet trotzdem.* **Eine Prüfung, die sich irren kann, darf niemanden aussperren** *(entschieden 14.9.2026)* | `keys.js`, `warnKeyBesideData()` als Vorbild |
 | **L4** | **DIE ABSAGE FRAGT DEN BESTAND UND KEINEN MERKER.** *Jeder Block hier fragt heute `sqlite_master` und ist deshalb beliebig oft fahrbar. Ein Merker wäre eine zweite Wahrheit — und er fehlte genau in der Datenbank, um die es geht* | `db.js:942`, Stolperstein 47 |
 | **L5** | **DER BRUCH GILT DER DATENBANK UND NICHT DER EXPORTDATEI.** *Eine Datei von gestern muss morgen noch lesbar sein.* **Die FORMATNUMMER darf trotzdem steigen** *(F16)* — *sie sagt, welche Felder zu erwarten sind, und nicht, was noch gelesen wird* | `server.js:6572` |
 | **L6** | **KEIN SCHLÜSSEL FÄLLT NUR IN EINER SPRACHE.** *Die Deckungsprobe verlangt in allen drei Dateien dieselben Schlüssel in derselben Folge* | 0.24.0 |
@@ -221,7 +222,7 @@ Mehrzahl)* · `card.derivativesAsk` *(fällt ganz)* · `card.convertFinished`
 
 ---
 
-## Strang 3 — Die Absage an zu alte Datenbanken
+## Strang 3 — Der Hinweis auf eine unvollständige Datenbank
 
 **Das ist der Teil, der heute nicht existiert, und er ist das eigentliche
 Neue an dieser Runde.** *Nachgesehen: `db.js` kennt keinen Versionsmerker,
@@ -234,23 +235,50 @@ ohne Widerspruch und ohne die drei Spalten, die jede Ablehnung braucht.*
 **DAS IST DER GEFÄHRLICHSTE AUGENBLICK DER GANZEN STRECKE, und er ist still.**
 *Nicht der Absturz ist die Gefahr, sondern der Start, der gelingt.*
 
-**Der Vorschlag** *(F4)*: **gefragt wird der Bestand selbst, wie die Blöcke es
-tun** — *ein Handvoll Proben auf `sqlite_master` nach den Spalten und Tabellen,
-die die achtzehn Blöcke angelegt hätten.* **Fehlt eine, öffnet die Instanz
-nicht,** und im Protokoll steht ein Kasten in derselben Form wie der Schlüsselhinweis
-von `keys.js` (`warnKeyBesideData()`): *was fehlt, seit welcher Fassung es fehlt, und über welche
-Fassung zuerst zu gehen ist.*
+**Gefragt wird der Bestand selbst, wie die Blöcke es tun** *(F4)* — *eine Probe
+je Spalte und Tabelle, die einer der achtzehn Blöcke angelegt hätte* **(F6)**.
+**Fehlt eine, steht im Protokoll ein Kasten** in derselben Form wie der
+Schlüsselhinweis von `keys.js` (`warnKeyBesideData()`): *welche Spalte fehlt,
+seit welcher Fassung, und über welche Fassung zuerst zu gehen wäre.*
+
+### Und sie bricht NICHT ab — entschieden am 14. September 2026
+
+> **DER BETREIBER HAT MEINEN VORSCHLAG GEKIPPT, und er hat recht behalten:**
+> *„Es wird nie eine Datenbank, Sicherung oder Exportdatei vor 0.33.0
+> eingespielt werden. Und du beharrst dennoch auf alte Versionen."*
+
+**MEIN ERSTER ENTWURF WAR EINE HARTE ABSAGE: die Instanz öffnet nicht.** *Dagegen
+steht ein Argument, das ich selbst übersehen hatte und das unter der
+Voraussetzung dieser Runde entscheidet:*
+
+| | harte Absage | Hinweis im Protokoll |
+|---|---|---|
+| **wehrt ab** | den leisen Fehler | **denselben leisen Fehler** |
+| **kostet bei einem FEHLALARM** | **die Instanz startet nicht mehr** — *und der Betreiber kommt an seine eigene Datenbank nicht heran* | *eine Zeile im Protokoll, die nicht stimmt* |
+| **Wahrscheinlichkeit des Falls, den sie abwehrt** | **null** *(Voraussetzung der Runde)* | null |
+
+> **DAS VERHÄLTNIS IST SCHIEF, UND DAMIT IST ES ENTSCHIEDEN.** *Eine Absage
+> wehrt ein Risiko ab, das es nach der Voraussetzung nicht gibt — und bringt
+> dafür ein Risiko mit, das es sehr wohl gibt: meine Probe könnte sich irren.*
+> **Ein Hinweis kann sich genauso irren und kostet dann nichts.**
+
+**WAS BLEIBT, IST DER GRUND, WARUM ÜBERHAUPT ETWAS BLEIBT:** *Kriterion ist
+darauf gebaut, dass Fehler LAUT sind — der Fingerprint schreit, wenn eine Datei
+nicht mitgekommen ist, die Gegenproben schreien, wenn eine Prüfung nichts
+prüft.* **Dieser eine Fehler wäre leise: die Datenbank öffnet, die Seiten gehen
+auf, und irgendwo fehlen Zahlen.** *Ein Hinweis macht ihn laut, ohne je
+jemanden auszusperren.*
 
 ### Und sie wird gebaut, OBWOHL es niemanden gibt, den sie schützt
 
 **Das ist kein Widerspruch, sondern der Grund.** *Nach der Voraussetzung dieser
-Runde steht draußen niemand unter 0.33.0 — die Absage träfe also nie jemanden.*
-**Genau deshalb gehört sie gebaut und nicht weggelassen:**
+Runde steht draußen niemand unter 0.33.0 — der Hinweis erschiene also nie.*
+**Genau deshalb gehört er gebaut und nicht weggelassen:**
 
-| ohne Absage | mit Absage |
+| ohne Hinweis | mit Hinweis |
 |---|---|
 | **„Wir glauben, dass es keine alte Datenbank gibt."** *Eine Annahme, die niemand nachsehen kann und die mit jedem Jahr unsicherer wird* | **„Das Programm sieht nach."** *Aus der Annahme wird eine Prüfung, die bei jedem Start läuft* |
-| ein Start, der GELINGT und danach still falsch rechnet | ein Start, der nicht gelingt und sagt, warum |
+| ein Start, der gelingt und danach still falsch rechnet | ein Start, der gelingt und SAGT, was fehlt |
 
 > **SIE KOSTET WENIGER, ALS SIE AUSSIEHT** — *eine Handvoll Proben auf
 > `sqlite_master`, gestellt an derselben Stelle, an der bisher achtzehn Blöcke
@@ -277,7 +305,7 @@ zusammen:**
 > **DIE PROBE AUF `sqlite_master` BEANTWORTET „IST ES VOLLSTÄNDIG?"** — *sie kann
 > sagen, dass eine Spalte fehlt.* **EIN STEMPEL BEANTWORTET „WAS IST ES?"** —
 > *er kann sagen, dass die Datenbank zuletzt unter 0.19.0 lief und deshalb über
-> 0.32.1 zu gehen hat.* **Ohne ihn kennt die Absage nur das Symptom und nicht
+> 0.32.1 zu gehen hat.* **Ohne ihn kennt der Hinweis nur das Symptom und nicht
 > die Diagnose.**
 
 **UND EIN STEMPEL WIRKT NUR NACH VORN.** *Eine Datenbank, die nie einen getragen
@@ -338,25 +366,25 @@ sechs Dateien, nach dem Muster der Restprobe für `server.js` aus 0.32.0.*
 
 ## Die Fragetafel — vor der ersten Zeile zu beantworten
 
-**Stand 14. September 2026, 21 Uhr: SECHS FRAGEN SIND ENTSCHIEDEN** — *F2 (alle achtzehn fallen) · F7 (Bestandslauf gefahren) · F5 (englisch) · F6 (jede Spalte einzeln) · F9 (die Übersetzung fällt) · F14 (das volle Paket)*. **Offen sind allein F15 und F16** — *und beide sind erst durch die Entscheidungen von eben entstanden: F15 aus F9, F16 aus F14.*
+**Stand 14. September 2026, 21 Uhr: SECHS FRAGEN SIND ENTSCHIEDEN** — *F2 (alle achtzehn fallen) · F7 (Bestandslauf gefahren) · F5 (englisch) · F6 (jede Spalte einzeln) · F9 (die Übersetzung fällt) · F14 (das volle Paket)*. **ACHT SIND ENTSCHIEDEN** — *F2 · F4 · F5 · F6 · F7 · F9 · F14 · F15*. **Offen ist allein F16** *(steigt das Austauschformat auf 17)*.
 
 | # | Frage | Vorschlag |
 |---|---|---|
 | **F1** | **Die Nummer?** | **0.33.0, MINOR.** *Ein Bruch, aber die erste Zahl ist 0* |
 | **F2** | **Fallen die sechs Blöcke der 0.24er Sprachrunde mit?** | **ENTSCHIEDEN AM 14.9.2026 — JA, alle achtzehn.** *Der Betreiber: „alles was für die Migration von den Zwischenschritten notwendig war, kann weg."* **Damit fallen 928 von 2146 Zeilen aus `db.js`** — *die sechs vor `db.exec(SCHEMA)` und die zwölf dahinter, und die Grenze selbst fällt mit* |
 | **F3** | **Fällt die Zählprüfung, oder wird sie umgedreht?** | **UMGEDREHT.** *„Es gibt genau zwoelf Migrationsfunktionen" wird „Es gibt keine" — und sie zählt danach über BEIDE Markenformen, damit ein neuer Block auffällt, gleich in welcher Schreibweise* |
-| **F4** | **Wie sagt die Instanz ab?** | **Sie fragt `sqlite_master` und öffnet nicht.** *Kein Merker (L4), kein Absturz (L3)* |
-| **F5** | **In welcher Sprache steht die Absage?** | **ENTSCHIEDEN AM 14.9.2026 — ENGLISCH.** *Und der Betreiber hat dabei mehr entschieden als die Absage:* **„Das ist blöd, dass die noch auf Deutsch sind. Die müssen englisch werden."** *Damit ist das Protokoll als Ganzes gemeint — siehe Strang 4* |
-| **F6** | **Wie weit zurück reicht die Absage?** | **ENTSCHIEDEN — JEDE SPALTE EINZELN, und die Absage benennt, WELCHE fehlt.** *Eine Probe je Spalte und Tabelle, die einer der achtzehn Blöcke angelegt hätte. Rund zwanzig Zeilen statt fünf — und die Diagnose statt des Symptoms* |
+| **F4** | **Wie meldet die Instanz eine unvollständige Datenbank?** | **ENTSCHIEDEN — sie fragt `sqlite_master` und SCHREIBT EINEN HINWEIS; sie öffnet trotzdem.** *Kein Merker (L4), kein Abbruch (L3). Der erste Entwurf war eine harte Absage; der Betreiber hat sie am 14.9.2026 gekippt, und die Begründung steht in Strang 3* |
+| **F5** | **In welcher Sprache steht der Hinweis?** | **ENTSCHIEDEN AM 14.9.2026 — ENGLISCH.** *Und der Betreiber hat dabei mehr entschieden als die Absage:* **„Das ist blöd, dass die noch auf Deutsch sind. Die müssen englisch werden."** *Damit ist das Protokoll als Ganzes gemeint — siehe Strang 4* |
+| **F6** | **Wie weit zurück reicht die Probe?** | **ENTSCHIEDEN — JEDE SPALTE EINZELN, und die Absage benennt, WELCHE fehlt.** *Eine Probe je Spalte und Tabelle, die einer der achtzehn Blöcke angelegt hätte. Rund zwanzig Zeilen statt fünf — und die Diagnose statt des Symptoms* |
 | **F7** | **Was ist die BEDINGUNG, die vorher erfüllt sein muss?** | **ERFÜLLT, und zwar gemeldet und nicht angenommen.** *Der Betreiber am 14.9.2026: „Bestandslauf habe ich mit PNG gemacht und auch mit den Vorschaubildern."* **Beide Hälften des Knopfes sind auf der einen echten Installation gefahren** — *es liegt kein JPEG-Vorschaubild mehr, das der fallende Zweig noch erwischen müsste.* **Und für die Datenbankhälfte trägt die Voraussetzung der Runde:** *unter 0.33.0 hat nie jemand anders gestanden* |
 | **F8** | ~~**Steigt das Austauschformat mit?**~~ | **ÜBERHOLT DURCH F16.** *Als diese Zeile geschrieben wurde, nahm die Runde nur weg. F14 legt ein Feld dazu — die Frage steht jetzt dort und lautet anders* |
 | **F9** | **Fällt die Übersetzung ALTER EXPORTDATEIEN mit?** | **ENTSCHIEDEN — JA, SIE FÄLLT.** *`DICTIONARY` fällt damit GANZ aus `db.js`, `COLUMNS_0241`/`VALUES_0241` gehen nicht mehr hinaus, und `server.js:7207`/`:7218` fallen mit; `tools/dictionary.json` bleibt als Datei, der Prüfstand liest sie selbst (`testbench.js:18825`).* **ABER SIE DARF NICHT ERSATZLOS FALLEN — siehe F15** |
 | **F10** | **Die acht Prüfgruppen?** | **UMGEDREHT, nicht gelöscht** *(L1)*. *Sie legen weiter eine alte Datenbank an — und belegen danach die Absage* |
-| **F11** | **Die acht Rückbauten auf Migrationszeilen?** | **Sie werden auf die Absage umgehängt.** *Wer sie stilllegt, muss eine Prüfung rot machen — sonst ist die Absage nicht belegt* |
+| **F11** | **Die acht Rückbauten auf Migrationszeilen?** | **Sie werden auf den Hinweis umgehängt.** *Wer ihn stilllegt, muss eine Prüfung rot machen — sonst ist er nicht belegt* |
 | **F12** | **Kommt 0.33.x (Kommentare kürzen) mit?** | **Nein, und der Grund steht im Fahrplan:** *diese Runde löscht ganze Blöcke samt ihren Kommentaren. **Wer vorher schneidet, schneidet zweimal*** |
 | **F13** | **Die Marken sagen „ENTFAELLT MIT 1.0" und meinen diese Runde — was wird daraus?** | **Mit dem Block fällt seine Marke.** *Was nach F2 stehen bleibt, bekommt eine berichtigte Marke — und der Prüfstand hält danach fest, dass in `db.js` keine Ankündigung auf 1.0 mehr steht, zu der es keinen Block mehr gibt* |
 | **F14** | **Schreibt die Datenbank künftig auf, mit welcher Fassung sie läuft?** | **ENTSCHIEDEN — DAS VOLLE PAKET.** *Zwei Zeilen in `settings` (womit zuletzt geöffnet · womit angelegt), die **Programmfassung** neben der Formatnummer in die Exportdatei, und die **Formatnummer wird beim Einspielen endlich GELESEN** — sie wird seit sechzehn Fassungen geschrieben und nie geprüft* |
-| **F15** | **Was tritt an die Stelle der gefallenen Übersetzung?** | **VORSCHLAG: DER IMPORT WEIST EINE DATEI MIT FORMATNUMMER ≤ 13 AB.** *Und das muss so grob sein, weil die Zahl den Umbau nicht markiert:* **0.24.1 hat die Felder umbenannt, ohne die Formatnummer zu heben** — *0.24.0 und 0.24.2 tragen beide die **13**, und aus der Zahl allein ist nicht zu sehen, welche der beiden es ist* *(erst 0.24.3 hebt auf 14)*. **Eine 0.24.2-Datei fällt damit mit ab, und das ist die richtige Richtung:** *abweisen ist laut, stillschweigend falsch einspielen ist leise.* *Ohne diese Abweisung verlöre ein Foto aus einer alten Datei still seine Art und seine Dauer — die Felder hießen `art` und `dauer`, und niemand läse sie mehr.* **Zu bestätigen** |
+| **F15** | **Was tritt an die Stelle der gefallenen Übersetzung?** | **ENTSCHIEDEN AM 14.9.2026 — DER IMPORT WEIST EINE DATEI MIT FORMATNUMMER ≤ 13 AB.** *Und das muss so grob sein, weil die Zahl den Umbau nicht markiert:* **0.24.1 hat die Felder umbenannt, ohne die Formatnummer zu heben** — *0.24.0 und 0.24.2 tragen beide die **13**, erst 0.24.3 hebt auf 14.* **Eine 0.24.2-Datei fällt damit mit ab, und das ist die richtige Richtung:** *abweisen ist laut, stillschweigend falsch einspielen ist leise.* *Ohne sie verlöre ein Foto aus einer alten Datei still seine Art und seine Dauer — die Felder hießen `art` und `dauer`, und nach F9 liest sie niemand mehr.* **UND SIE IST DIE EINZIGE ABWEISUNG DER RUNDE — sie liegt an der DATEI und nicht am START:** *eine Datei, die nicht hereinkommt, sperrt niemanden aus seiner Anwendung aus* |
 | **F16** | **Steigt das Austauschformat auf 17?** | **VORSCHLAG: JA — und das widerspricht dem, was oben unter L5 und in der Antragsbeschreibung stand.** *Solange die Runde nur WEGNAHM, blieb 16 richtig. **F14 legt aber ein Feld DAZU** — die Programmfassung neben der Formatnummer —, und das Haus hat die Zahl für jede Felderweiterung gehoben:* **13 → 14** *(0.24.3, die Sprachfassungen der Namen)*, **14 → 15** *(0.25.0, die Erstellungssprache)*, **15 → 16**. *Eine ältere Instanz übergeht das zusätzliche Feld wortlos, wie seinerzeit `criteriaGewichte` — die Zahl ist nicht die Lesbarkeit, sie ist die AUSSAGE, welche Felder zu erwarten sind.* **Zu bestätigen** |
 
 ---
@@ -365,7 +393,7 @@ sechs Dateien, nach dem Muster der Restprobe für `server.js` aus 0.32.0.*
 
 | | was | Frage |
 |---|---|---|
-| **BA 1** | **Die Absage zuerst** — *sie wird gebaut und geprüft, BEVOR ein Block fällt. Solange beides steht, kann jede Prüfgruppe beides gegeneinander halten* | F4, F6 |
+| **BA 1** | **Der Hinweis zuerst** — *sie wird gebaut und geprüft, BEVOR ein Block fällt. Solange beides steht, kann jede Prüfgruppe beides gegeneinander halten* | F4, F6 |
 | **BA 2** | **Die zwölf gezählten Blöcke fallen** — samt ihren Aufrufen und den zehn Namen im `module.exports` | F3 |
 | **BA 3** | **Die sechs der 0.24er Runde fallen** — *samt der Grenze `db.exec(SCHEMA)`, die sie von den zwölf trennte; `tools/dictionary.json` bleibt als Datei* | F2 ✓, F9 |
 | **BA 4** | **Die acht Prüfgruppen werden umgedreht** — *dieselbe alte Datenbank, das umgekehrte Ergebnis* | F10 |
@@ -384,10 +412,10 @@ sechs Dateien, nach dem Muster der Restprobe für `server.js` aus 0.32.0.*
 | **1** | **Es gibt keine Migrationsfunktion mehr** — *gezählt über BEIDE Markenformen, damit die Lücke, die diesen Auftrag ausgelöst hat, nicht wiederkommt* |
 | **1b** | **Und keine Marke ohne Block** — *in `db.js` steht kein „ENTFAELLT MIT 1.0" mehr, hinter dem nichts mehr liegt* |
 | **2** | **`db.exec(SCHEMA)` steht als erste Anweisung nach der Grundausstattung** — *die Grenze ist nicht verschoben, sie ist fort* |
-| **3** | **Eine Datenbank ohne die neueste Spalte wird ABGEWIESEN** — *und zwar mit einem Satz, der die Fassung nennt, über die zuerst zu gehen ist* |
-| **4** | **Eine vollständige Datenbank öffnet unverändert** — *die Absage ist eine Absage und keine Hürde* |
-| **5** | **Die Absage fragt keinen Merker** — *kein Wert in `settings`, keine `user_version`; sie fragt `sqlite_master`* |
-| **6** | **Die Instanz stirbt nicht, sie sagt ab** — *kein Stapelabzug im Protokoll* |
+| **3** | **Einer Datenbank, der eine Spalte fehlt, wird sie BENANNT** — *mit einem Satz, der sagt, WELCHE fehlt und über welche Fassung zuerst zu gehen wäre* |
+| **4** | **Auch die unvollständige öffnet** — *der Hinweis ist ein Hinweis und keine Sperre; eine Prüfung, die sich irren kann, sperrt niemanden aus* |
+| **5** | **Die Probe fragt keinen Merker** — *kein Wert in `settings`, keine `user_version`; sie fragt `sqlite_master`* |
+| **6** | **Die Instanz stirbt nicht und sperrt nicht** — *kein Stapelabzug und kein Abbruch* |
 | **7** | **Der Bestandslauf kennt kein JPEG mehr** — *`isJpeg` steht nirgends, der Zähler `derived` steht nirgends* |
 | **8** | **Die erste Hälfte des Knopfes tut, was sie tat** — *Originale werden weiter umgestellt* |
 | **9** | **Die drei Sprachdateien tragen gleich viele Schlüssel, in derselben Folge und derselben Gestalt** — *und die neue Zahl steht an EINER Stelle* |
@@ -402,7 +430,7 @@ sechs Dateien, nach dem Muster der Restprobe für `server.js` aus 0.32.0.*
 *Eine stumme ist ein Fund; 0.32.0 hat das mit 1023 bewiesen und 0.32.1 mit acht
 Rückbauten bestätigt, die alle WIEDER EINBAUEN, was die Runde ausgebaut hat.*
 **Diese Runde ist von derselben Art: ihre Rückbauten bauen die Blöcke wieder
-ein — und wenn keine Prüfung davon rot wird, ist die Absage nicht belegt.**
+ein — und wenn keine Prüfung davon rot wird, ist der Hinweis nicht belegt.**
 
 ---
 
