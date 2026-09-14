@@ -3,6 +3,11 @@
 **Drei Befunde des Betreibers · 14. September 2026 · gebaut auf 0.32.0 · MINOR,
 kein Schemaanteil an der Datenbank und keiner am Austauschformat.**
 
+> **FINGERPRINT DIESER RUNDE: `24899ab8`** — *gerechnet am gebauten Stand, als
+> letztes und hinter der letzten Zeile; achtzehn Dateien, `Doku/` und
+> `testbench.js` ausdrücklich nicht darunter.* **Der Stand davor war
+> `319d9c8a`.**
+
 > **DIE RUNDE SCHRUMPFT, UND DAS IST IHR VORZEICHEN.** *Sie nimmt eine Bauweise
 > zurück statt eine hinzuzufügen: sechs Schlüssel fallen, neun Rückbauten
 > fallen, eine ganze Prüfgruppe dreht sich um.* **1215 → 1209 Schlüssel,
@@ -330,3 +335,46 @@ Quelltext, aus dem die Probe liest.*
 | **Strang 2 setzt den Platzhalter nur an zwei von fünf Stellen ein** | *begründet oben: „Diesen `{entryOne}`" ist der deutsche Artikel-Fehler und damit derselbe wie die türkische Endung. An den drei übrigen Stellen fällt das Wort ersatzlos weg* |
 | **Siebzehn Rückbauten sind gelöscht und nicht umgedreht** | *Stolperstein 74 verlangt „umdrehen statt löschen" — umdrehen lässt sich aber nur ein Gegenstand, den es gibt. Was sie belegt haben, steht als Absatz in `app.js` bei `statusEffective`* |
 | **Die Kurzform zeigt das Vokabelwort gar nicht mehr** | *das ist der Preis dafür, dass sie sich nicht sprengen lässt. Das Wort steht im `title` und geht damit an Mauszeiger und Vorleseprogramm* |
+
+
+---
+
+## Die Gegenproben sind gefahren — 0 STUMM
+
+**ACHT GEGEN DEN GEBAUTEN STAND** *(`git archive HEAD`, drei Nebenspuren)* —
+**und alle acht bauen WIEDER EIN, was diese Runde ausgebaut hat.**
+
+| Rückbau | rot | wo |
+|---|---|---|
+| **1027** *(der Statusfilter folgt wieder der Sortierung)* | **21** | *neun Gruppen — die teuerste der Runde* |
+| **1028** *(die Filterzahl misst wieder gegen eine Ruhestellung)* | 6 | *„Und er zählt als EIN gesetzter Filter"* |
+| **1029** *(die Zählzeile setzt wieder ein Wort neben die Zahl)* | 11 | *„Die Kurzform trägt kein Vokabelwort"* |
+| **1030** *(die Zahl trägt nur noch Farbe, kein Zeichen)* | 5 | *„Jedes Zeichen ist ein SVG" — **G1*** |
+| **1031** *(der Hinweis wird wieder ein Satz)* | **22** | *sieben Gruppen* |
+| **1032** *(der türkische Löschbefehl hängt wieder am Platzhalter)* | 4 | *„Kein türkischer Befehl hinter einem Platzhalter"* |
+| **1033** *(die türkische Fragepartikel hängt wieder am Platzhalter)* | 3 | *„Kein harmonierendes Anhängsel hinter einem Platzhalter"* |
+| **1034** *(das fünfzehnte Vokabelwort steht wieder fest im Satz)* | 8 | *„Kein Vokabelwort steht fest in einem Satz"* |
+
+**0 STUMM · 0 ABGERISSEN.**
+
+> **1027 IST DIE TEUERSTE, und das ist die Sache selbst:** *die Ableitung
+> greift in neun Gruppen, von den Favoriten über den Potenzialmodus bis zu den
+> Gleichlautsummen. Genau deshalb ließ sie sich nicht „ein bisschen"
+> abschalten — sie musste ganz heraus.*
+
+---
+
+## Der Augenschein — echtes Chromium, drei Sprachen
+
+| | Kurzform | `title` |
+|---|---|---|
+| **de @ 1280 px** | `6 · ⚑1 · ☐1 · ☑1` | „6 Kommentare · 1 Bericht · 2 Aufgaben (1 offen)" |
+| **tr @ 390 px** | `6 · ⚑1 · ☐1 · ☑1` | „6 yorum · 1 Rapor · 2 Görev (1 açık)" |
+| **en @ 390 px** | `6 · ⚑1 · ☐1 · ☑1` | „6 comments · 1 Report · 2 Tasks (1 open)" |
+
+**Drei SVG-Zeichen, drei `data-kind`-Felder, drei Farben** —
+`rgb(255,122,26)` · `rgb(77,157,224)` · `rgb(63,211,154)`. **116 Bildpunkte
+breit** *(von 358 nutzbaren am Telefon).* **Keine abgeleitete Pille, kein
+Vermerk „folgt der Sortierung", kein Fehler im Serverprotokoll.**
+
+**DER PRÜFSTAND IST GRÜN: 7017 von 7017, kein einziger roter Punkt.**
