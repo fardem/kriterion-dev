@@ -358,6 +358,7 @@ GEFUNDEN** — *und das ist der eigentliche Beleg dafür, dass sie greifen.*
 | **Der `yedeği`-Wert** | `card.checkForeign` trug auf Türkisch „bu uygulamanın **yedeği** değil" — *die Konsonantenerweichung, die der Wächter von 0.25.1 dreißig Runden lang nicht sah.* **Der berichtigte Stamm hat ihn gefunden; gebaut** |
 | **Die Startzeile des Sicherungsorts** | `[Kriterion] Sicherungsort: aus — server.backupDirNotSet` — *ein SCHLÜSSEL im Containerprotokoll statt eines Satzes.* **Nicht gebaut** — *es ist kein Bildschirmtext; steht als Punkt 33 im Sammelblatt* |
 | **Der Grund eines gescheiterten Versands** | *steht in der Sprache des EMPFÄNGERS und wird vom ADMIN gelesen.* **Nicht gebaut** — *es ist kein fester Satz, sondern ein übersetzter in der Sprache des Falschen; Punkt 34* |
+| **Gegenprobe 1023 blieb STUMM** | *sie nimmt die Übersetzung des Anbieternamens aus* `server.js` *heraus — danach ginge „Eigener Server" wieder fest auf Deutsch an einen englischen Leser.* **Kein einziger Punkt wurde rot.** *Der Grund gehört aufgeschrieben:* **ein Wächter über den QUELLTEXT sieht nur seine Datei.** *Die Restprobe liest* `server.js`*, und der Name steht dort gar nicht — er steht in* `mail.js` *und wird nur durchgereicht.* **Gebaut** — *drei Zeilen fragen jetzt den laufenden Server in drei Sprachen* |
 | **Gegenprobe 1014 riss den Prüflauf ab** | *sie nimmt das fünfzehnte Vokabelwort aus der Karte — und das ist genau der Fall, für den die neue Zeile gebaut ist. Die Zeile wurde rot, und danach fasste die NÄCHSTE Zeile dasselbe Feld mit* `fields[n].value` *an und stürzte an* `null.value` *ab.* **Ein abgerissener Lauf belegt nichts** *(Stolpersteine 138, 161, 170).* **Gebaut** — *die beiden Zeilen darunter fragen jetzt mit* `?.`*, werden also ihrerseits rot* |
 | **Gegenprobe 330 zerbricht `public/app.js`** | *sie meldet ABGERISSEN statt ROT, und zwar schon vor dieser Runde.* **Nicht gebaut** — *sie gehört dem Gegenprobentreiber; Punkt 35. Alle 1017 Rückbauten sind dafür einmal von Hand nachgerechnet: **sie ist die einzige*** |
 
@@ -450,6 +451,79 @@ Bildschirmtext erzeugt, fällt nur hier auf.**
 
 ---
 
+## Die Gegenproben sind gefahren — und zwei davon sind Befunde
+
+**SIEBZEHN GEGEN DEN GEBAUTEN STAND** *(`git archive HEAD`, drei Nebenspuren,
+rund 5½ Minuten je Rückbau).* **Beim ersten Lauf wurde eine STUMM und eine
+riss ab. Beide sind nachgebessert; der zweite Lauf ist sauber.**
+
+| Rückbau | rot | wo |
+|---|---|---|
+| **1010** *(die Glocke zählt jeden neuen Kommentar als Markierung)* | 1 | *Einen anderen markieren — 0.32.0* |
+| **1011** *(die Markierung wird zur Fundstelle der Suche)* | 1 | *Links im Kommentartext* |
+| **1012** *(die Markierung gilt wieder jedem)* | 1 | *Einen anderen markieren* |
+| **1013** *(die Markierung schickt den Namen statt der Nummer)* | 1 | *dieselbe* |
+| **1014** *(das fünfzehnte Vokabelwort fällt aus der Karte)* | **14** | *Favorit · Die Karte sagt, wo Arbeit liegt · die sieben Wächter · zwei Gleichlautgruppen* |
+| **1015** *(die Migrationstafel von 0.24.3 erfindet ein fünfzehntes Wort)* | 1 | *Die deutschen Reste in gespeicherten Werten — 0.24.3* |
+| **1016** *(ein Vokabelwort wird wieder zusammengesetzt)* | 4 | *Die Serverseite spricht aus der Datei — Zusage 7* |
+| **1017** *(ein fester deutscher Satz kommt in `server.js` zurück)* | 4 | *Die sieben Wächter — **die Restprobe*** |
+| **1018** *(der Server prüft die Form der Zugangsanfrage nicht mehr)* | 1 | *Die Selbstanmeldung — Zusage 9* |
+| **1019** *(der englische Vergleichsstand weicht ab, ohne benannt zu sein)* | 2 | *Englisch sitzt · Türkisch sitzt* |
+| **1020** *(der `yedek`-Wächter bekommt seine Wortgrenzen zurück)* | 3 | *„Backup" heißt auf Türkisch yedekleme — **und L4*** |
+| **1021** *(ein erweichtes „yedeğe" bleibt im Türkischen stehen)* | 3 | *dieselbe · Türkisch sitzt* |
+| **1022** *(die harte Kante von `STATUS_BY_HAND` wird wieder unsichtbar)* | 6 | *Die Sortierung gibt den Status vor — Zusage 13* |
+| **1023** *(der Anbietername geht wieder fest auf Deutsch hinaus)* | **1** *(vorher **STUMM**)* | *Der Mailzugang: wer ihn setzen darf* |
+| **1024** *(der „Mehr"-Aufklapper fragt die Breite nicht mehr)* | 5 | *Server-Befehle nur im Kasten* |
+| **1025** *(die Messung der Aufklapper läuft gar nicht mehr)* | 6 | *dieselbe* |
+| **1026** *(der eingerichtete Anbieter heißt in der Karte wieder fest deutsch)* | 3 | *Der Mailzugang: wer ihn setzen darf* |
+
+**0 STUMM · 0 ABGERISSEN.**
+
+### 1023 war der teuerste Befund der Runde — und er gehört dem Wächter selbst
+
+> **DER RÜCKBAU NIMMT GENAU DAS ZURÜCK, WAS DIESE RUNDE GEBAUT HAT,** *und kein
+> Punkt wurde rot. Ohne die Gegenprobe stünde im Prüfstand eine Zeile, die
+> sagt, dass der Anbietername übersetzt wird, und niemand hätte gemerkt, dass
+> sie nichts prüft.*
+>
+> **DER GRUND IST DER WÄCHTER, NICHT DIE SACHE.** *Die Restprobe, die
+> Bauabschnitt 5 verlangt hat, liest den QUELLTEXT von `server.js` und sucht
+> darin nach deutschen Sätzen. „Eigener Server" steht nicht in `server.js` —
+> er steht in `mail.js` und kommt von dort als WERT herein.* **Ein Wächter
+> über den Quelltext sieht nur seine Datei; was durch sie hindurchgereicht
+> wird, sieht nur eine Probe am Bildschirmtext.** *Das ist Stolperstein 47 von
+> der anderen Seite: eine Wahrheit an einem Ort heißt auch, dass man sie dort
+> nachsieht, wo sie AUSGEHT, und nicht dort, wo sie durchgeht.*
+>
+> **GEBAUT SIND DREI ZEILEN AM LAUFENDEN SERVER,** *dreimal derselbe Cookie und
+> drei verschiedene `Accept-Language`: der Name ohne Marke kommt in der Sprache
+> des Lesers („Eigener Server" · „Own server" · „Kendi sunucu"), die fünf
+> Marken heißen überall gleich — GMX heißt in jeder Sprache GMX —, und
+> dasselbe gilt für die ZEILE der Karte „Mailversand" und nicht nur für die
+> Auswahlliste.* **Es sind zwei Stellen in `server.js` mit derselben
+> Entscheidung, und 1023 traf nur die eine.** *Die zweite hat deshalb ihren
+> eigenen Rückbau bekommen — **1026** —, sonst wäre sie beim nächsten Lauf
+> genauso stumm geblieben, nur unbemerkt.*
+
+### 1014 riss ab, statt rot zu werden — und ein abgerissener Lauf belegt nichts
+
+> **DER RÜCKBAU NIMMT DAS FÜNFZEHNTE VOKABELFELD AUS DER KARTE,** *also genau
+> den Fall, für den die neue Zeile gebaut ist. Sie wurde auch rot — und danach
+> fasste die NÄCHSTE Zeile dasselbe Feld mit `fields[n].value` an und stürzte
+> an `null.value` ab. Der Lauf brach mitten in der Oberflächenprüfung ab:*
+> **ABGERISSEN statt rot — nach 121 von 335 Sekunden, und alles dahinter
+> ungefahren** *(Stolpersteine 138, 161, 170).*
+>
+> **DIE ZEILE DARÜBER SAGT BEREITS, WELCHES FELD FEHLT; die beiden darunter
+> dürfen daran nicht sterben, sondern müssen ihrerseits rot werden.** *Sie
+> fragen jetzt mit `?.` — dann steht dort `undefined` statt eines Absturzes,
+> und `undefined === ''` ist falsch, also rot.* **Aus einem abgerissenen Lauf
+> sind vierzehn rote Punkte geworden,** *und das ist der Unterschied zwischen
+> „da ist etwas kaputt" und „hier, genau diese vierzehn Zusagen hängen an dem
+> einen Feld".*
+
+---
+
 ## Die Zahlen
 
 | | vorher | jetzt |
@@ -461,6 +535,9 @@ Bildschirmtext erzeugt, fällt nur hier auf.**
 | **Tabellen der Datenbank** | 27 | **28** |
 | **Austauschformat** | 16 | **16** |
 | **Rückbauten** | 1000 | **1017** |
+| **Prüfungen im Prüfstand** | 6990 | **7043** |
+
+**DER PRÜFSTAND IST GRÜN: 7043 von 7043, kein einziger roter Punkt** — *gefahren am festgeschriebenen Stand, ohne einen Handgriff daneben.*
 
 ---
 
