@@ -31627,7 +31627,12 @@ async function checkUi() {
      die still waechst, faellt sonst niemandem auf. */
   check('Fuenfzehn Vokabelfelder stehen bereit — 0.32.0', fields.every(Boolean),
     fields.map((f, n) => f ? '' : `v${n + 1} fehlt`).filter(Boolean).join(' '));
-  check('Felder sind vorbelegt', fields[0].value === 'Maschine' && fields[5].value === 'Sitzungen');
+  /* UND ALLES DARUNTER FRAGT MIT `?.` -- 0.32.0, aus der Gegenprobe 1014
+     gelernt. Ein Rueckbau, der ein Feld aus der Tafel nimmt, liess die Zeilen
+     hier an `null.value` ABREISSEN statt rot zu werden -- und ein abgerissener
+     Lauf belegt nichts (Stolpersteine 138, 161 und 170). Die Zeile darueber
+     sagt, WELCHES Feld fehlt; die darunter duerfen daran nicht sterben. */
+  check('Felder sind vorbelegt', fields[0]?.value === 'Maschine' && fields[5]?.value === 'Sitzungen');
   /* WAS NICHT EINGETRAGEN IST, STEHT ALS LEERES FELD DA -- 0.24.4, und das
      ist eine ANDERE Zusicherung als bis 0.24.3. Dort trugen diese acht Felder
      die VORGABE als Wert, und das sah richtig aus: „Bericht" stand da, also
@@ -31644,8 +31649,8 @@ async function checkUi() {
      eingetragen". */
   const empties = [6, 7, 8, 9, 10, 11, 12, 13, 14];
   check('Und was nicht eingetragen ist, steht leer da — 0.24.4',
-    empties.every(n => fields[n].value === ''),
-    empties.map(n => `v${n + 1}=${JSON.stringify(fields[n].value)}`).join(' '));
+    empties.every(n => fields[n]?.value === ''),
+    empties.map(n => `v${n + 1}=${JSON.stringify(fields[n]?.value)}`).join(' '));
   /* UND DIE VORGABE STEHT TROTZDEM DA, nur eben als Hinweis und nicht als
      Wert. Ohne diese Zeile bliebe die daruber auch dann gruen, wenn die Karte
      die Vorgabe gar nicht mehr naennte -- und dann wuesste niemand mehr, was
