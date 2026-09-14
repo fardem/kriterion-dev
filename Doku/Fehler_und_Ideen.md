@@ -1408,7 +1408,18 @@ Prüfläufe gleichzeitig starten und sehen, welcher Zweig der Erkennung greift.*
 
 ---
 
-## 28. Fünf deutsche Funde aus dem englischen Durchgang — das Sammelblatt von 0.31.2
+## 28. ~~Fünf deutsche Funde aus dem englischen Durchgang~~ — **GEBAUT in 0.32.0**
+
+> **ERLEDIGT MIT 0.32.0, alle fünf** *(F9 jener Runde)*. *`card.restartHint`
+> zitiert die Logzeile jetzt so, wie `keys.js` sie schreibt („Schluessel");
+> `server.deniedOwnUser` schickt an „Mein Konto"; `server.ruleKeep` und
+> `server.ruleDays` zitieren die Beschriftung, die wirklich an dem Feld steht —
+> **Deutsch folgt hier der Oberfläche und nicht dem Wortlaut**, dieselbe
+> Entscheidung, die auf der englischen Seite in 0.31.2 schon gefallen ist; und
+> die Vokabelkarte trägt nur noch EINE Bauform („Das Bewertete, Einzahl").*
+> **Die Einzelheiten stehen im Änderungsprotokoll 0.32.0.** *Der Befund bleibt
+> als Überschrift stehen, weil der Quelltext ihn unter dieser Nummer zitiert.*
+
 
 **Art: Fehler** *(klein, an den Texten)* **· Herkunft: 0.31.2, aus dem
 Durchgang durch alle 1197 englischen Schlüssel am 13. September 2026 ·
@@ -1469,7 +1480,17 @@ noch „Sache, Einzahl", und „Sache" sollte weg.*
 
 ---
 
-## 29. Elf deutsche Sätze aus `server.js` stehen auf jeder Oberfläche — auch auf der englischen
+## 29. ~~Elf deutsche Sätze aus `server.js` stehen auf jeder Oberfläche~~ — **GEBAUT in 0.32.0, und es waren zwölf**
+
+> **ERLEDIGT MIT 0.32.0** *(F6 und F7)*. *Neun Schlüssel für elf Sätze — zwei
+> waren Wiederholungen —, dazu drei Mehrzahlpaare für die Vorschau des
+> Aufräumens.* **UND DER WÄCHTER, DEN F7 VERLANGT HAT, HAT DEN ZWÖLFTEN
+> GEFUNDEN:** *„Eigener Server" stand fest in der Anbieterliste von `mail.js`
+> und erschien in der Auswahl des Mailzugangs und in der Karte „Mailversand".*
+> **Der Auftrag hatte geschrieben: „Ohne sie ist der zwölfte eine Frage der
+> Zeit." Sie war es nicht einmal eine Runde lang.** *Der Befund bleibt als
+> Überschrift stehen, weil der Quelltext ihn unter dieser Nummer zitiert.*
+
 
 **Art: Fehler** *(an der Anwendung; sichtbar für jeden, der nicht Deutsch liest)*
 **· Herkunft: 0.31.2, aus dem Augenschein vom 13. September 2026 ·
@@ -1535,7 +1556,15 @@ nachts ohne Benutzer läuft.*
 
 ---
 
-## 30. Die Dankseite kommt auch bei leerem Formular
+## 30. ~~Die Dankseite kommt auch bei leerem Formular~~ — **GEBAUT in 0.32.0**
+
+> **ERLEDIGT MIT 0.32.0** *(F8)*. *Browser und Server prüfen jetzt beide die
+> FORM — leerer Name, leere Adresse, Zeichenfolge ohne `@` —, und der Satz, der
+> die Grenze zieht, steht an beiden Stellen im Quelltext:* **Form ist
+> öffentlich, Existenz ist es nicht.** *Am Bestand ändert sich nichts; falsch
+> war allein die Auskunft. Der Befund bleibt als Überschrift stehen, weil der
+> Quelltext ihn unter dieser Nummer zitiert.*
+
 
 **Art: Fehler** *(an der Anwendung)* **· Herkunft: 0.31.2, vom Betreiber am
 13. September 2026 an der laufenden Installation gesehen · Einschätzung:
@@ -1587,7 +1616,19 @@ Sprachdateien nur, wenn Punkt 29 mitkommt.
 
 ---
 
-## 31. Der `yedek`-Wächter von 0.25.1 sieht die Konsonantenerweichung nicht
+## 31. ~~Der `yedek`-Wächter von 0.25.1 sieht die Konsonantenerweichung nicht~~ — **GEBAUT in 0.32.0, und er hat im ersten Lauf einen Wert gefunden**
+
+> **ERLEDIGT MIT 0.32.0** *(F10)*. *Der Stamm liest jetzt beide Auslaute und
+> kommt ohne `\b` aus; die Gegenprobe 787 hat ihre Schwester bekommen (1021,
+> „Son yedeğe").* **UND DER BERICHTIGTE WÄCHTER HAT IM ERSTEN LAUF EINEN WERT
+> GEFUNDEN, der dreißig Runden lang dastand:** *`card.checkForeign` sagte „bu
+> uygulamanın **yedeği** değil" — jetzt „yedeklemesi".* **Die allgemeine Zeile
+> dahinter ist selbst ein Wächter geworden:** *kein Muster über türkischen Text
+> arbeitet mit einer Wortgrenze, und er liest die `/…/`-Literale von
+> `testbench.js` und `counterproof.js` über die Zerlegung aus
+> `tools/segments.js`.* *Der Befund bleibt als Überschrift stehen, weil der
+> Quelltext ihn unter dieser Nummer zitiert.*
+
 
 **Art: Fehler** *(am Prüfstand)* **· Herkunft: 0.31.3, beim Durchgang durch
 `tr.json` gefunden · Einschätzung: klein, und er gehört der Runde, die den
@@ -1755,3 +1796,113 @@ bleiben, wie sie sind *(dort ist die Mehrzahl richtig)*.
 > sehen, was der Quelltext aus zwei Werten zusammensetzt.** *0.31.3 hat ihn
 > deshalb zählen gelernt (Zusage 10, zweite Hälfte): die elf Stellen stehen als
 > Zahl im Prüfstand, und wer eine zwölfte hinzufügt, fällt auf.*
+
+---
+
+## 33. Die Startzeile nennt einen Schlüssel statt eines Satzes
+
+**Art: Fehler** *(am Containerprotokoll, klein)* **· Herkunft: 0.32.0, beim
+Bauen der Restprobe für `server.js` gesehen · Einschätzung: klein, und er
+gehört der Runde, die `backupState()` das nächste Mal anfasst**
+
+**WAS DASTEHT**, auf jeder Installation ohne Sicherungsordner:
+
+```
+[Kriterion] Sicherungsort: aus — server.backupDirNotSet
+```
+
+**DER GRUND IST SEIT 0.24.0 EIN SCHLÜSSEL UND KEIN SATZ** *(`backupState()`,
+Bauabschnitt 2 jener Runde)* — **und das ist richtig so**: er reist mit seinen
+Werten, und wer ihn ZEIGT, übersetzt ihn dort, wo die Anfrage in der Hand
+liegt. *Die Karte „Sicherung" tut das auch.* **Die Startzeile tut es nicht:**
+sie schreibt `situation.reason` roh ins Protokoll.
+
+> **ES IST KEIN BILDSCHIRMTEXT, und deshalb steht der Punkt hier und nicht in
+> einer Runde.** *Das Containerprotokoll liest der Betreiber, und ein Schlüssel
+> darin ist unschön, aber nicht falsch* — **die Grenze ist nicht die Sprache,
+> sondern der Leser** *(Punkt 29).* *Trotzdem sagt die Zeile weniger, als sie
+> könnte: „aus — es ist kein Sicherungsordner eingerichtet" wäre dieselbe Zeile
+> mit einer Auskunft darin.*
+
+**Was zu bauen wäre** — *eine Zeile: `t(languageDefault(), situation.reason,
+situation.values)` statt `situation.reason`.* **Zu entscheiden ist nur, in
+welcher Sprache ein Protokoll spricht** — *die Vorgabesprache der Installation
+ist der naheliegende Wert, und sie ist dieselbe, die `compareLocale()` schon
+nimmt.*
+
+**Was es anfasst** — `server.js` *(eine Zeile)*, `testbench.js`
+*(die Zeile, die den Text der Startmeldung prüft)*.
+
+---
+
+## 34. Der Grund eines gescheiterten Versands steht in der Sprache des Empfängers
+
+**Art: Fehler** *(an der Anwendung; sichtbar für jeden Admin, der nicht die
+Sprache seines Gegenübers liest)* **· Herkunft: 0.32.0, beim Übersetzen der elf
+Sätze aus Punkt 29 gesehen · Einschätzung: klein, aber echt**
+
+**`sendTokenLink()` HAT MIT 0.32.0 DIE SPRACHE DES LESERS BEKOMMEN** — *die
+drei Gründe, warum gar nicht erst verschickt wurde, stehen seither in der
+Sprache des Admins, der sie in seiner Karte liest.* **Der vierte Grund nicht:**
+
+```js
+const e = await mail.send(locale, account, target.email, letter.subject, letter.text);
+return e.ok ? { delivery: 'ok', deliveryReason: '' }
+            : { delivery: 'fehlgeschlagen', deliveryReason: e.reason };
+```
+
+**`locale` IST HIER DIE SPRACHE DES EMPFÄNGERS** *(`languageOf(token.id)` —
+und das ist für den BRIEF genau richtig, Konzept 4.6)*. **`e.reason` entsteht
+mit derselben Locale** *(`shortReason(locale, e)` in `mail.js`)* — **und landet
+in der Karte des ADMINS.** *Ein deutscher Admin, der einen türkischen Kollegen
+einlädt, liest den Grund auf Türkisch.*
+
+> **ES IST DERSELBE FEHLER WIE DIE ELF AUS PUNKT 29, nur eine Ebene tiefer:**
+> *nicht ein fester Satz in der falschen Sprache, sondern ein übersetzter in
+> der Sprache des Falschen.* **Die Restprobe kann ihn nicht sehen** — *sie liest
+> feste Texte, und dieser ist keiner.*
+
+**Was zu bauen wäre** — *`shortReason()` gibt einen SCHLÜSSEL zurück statt
+eines Satzes, wie `deliveryReady()` es seit 0.32.0 tut; `mail.send()` reicht
+ihn durch, und `sendTokenLink()` übersetzt ihn mit `readerLocale`.* **Der Brief
+bleibt in der Sprache des Empfängers** — *es geht allein um den Grund daneben.*
+
+**Was es anfasst** — `mail.js` *(`shortReason`, `send`)*, `server.js`
+*(`sendTokenLink`)*, `testbench.js`.
+
+---
+
+## 35. Eine Gegenprobe reißt die Datei ab, statt eine Prüfung rot zu machen
+
+**Art: Fehler** *(am Gegenprobentreiber)* **· Herkunft: 0.32.0, beim Nachrechnen
+aller Rückbauten gefunden · Einschätzung: klein, und er gehört der Runde, die
+`counterproof.js` das nächste Mal anfasst**
+
+**GEGENPROBE 330** *(„Der Erklärkasten verweist wieder auf die Spalte
+dahinter")* **setzt**
+
+```js
+${tMark('entry.calcStepsHint', 'entry.grade',      →  ${tH('entry.calcStepsHint', { word: '',
+```
+
+— **und lässt die schließende Klammer des Rufs unverändert stehen.** *Daraus
+wird `${tH(…, { word: '', { extra: … })}`, und `public/app.js` lässt sich
+danach nicht mehr laden.* **Der Treiber meldet ABGERISSEN und nicht ROT.**
+
+> **EIN RÜCKBAU, DER DIE DATEI ZERBRICHT, BELEGT NICHTS.** *Er zeigt nicht, dass
+> die Prüfung greift — er zeigt, dass ein Syntaxfehler alles rot macht.*
+> **Stolpersteine 138, 161 und 170 sagen genau das**, und der Kommentar der
+> Wortlautprobe zitiert sie selbst.
+
+**NACHGEMESSEN AM 14. SEPTEMBER 2026:** *er war schon vor 0.32.0 so — der Stand
+von 0.31.4 zerbricht an demselben Griff.* **Er ist der EINZIGE von 1014**; alle
+anderen ergeben ladbare Dateien.
+
+**Was zu bauen wäre** — *entweder der Ersatz schließt die Klammer selbst, oder
+der Suchtext nimmt den ganzen Ruf mit.* **Und dazu ein Wächter:** *jeder
+Rückbau, der eine `.js`-Datei anfasst, muss eine Datei hinterlassen, die
+`node --check` besteht* — *dieselbe Prüfung, die dieser Punkt von Hand gemacht
+hat, einmal im Prüfstand.*
+
+**Was es anfasst** — `counterproof.js` *(ein Eintrag)*, `testbench.js`
+*(der Wächter)*.

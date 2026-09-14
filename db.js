@@ -413,6 +413,36 @@ CREATE TABLE IF NOT EXISTS comment_images (
 CREATE INDEX IF NOT EXISTS idx_comment_images_comment ON comment_images(comment_id);
 CREATE INDEX IF NOT EXISTS idx_comments_item ON comments(item_id);
 
+-- WEN EIN KOMMENTAR MARKIERT -- 0.32.0, Bauabschnitt 2.
+-- DIE ZUGANGSNUMMER UND NICHT DER NAME, und das ist die eine Entscheidung
+-- dieser Tabelle (Auftrag 0.32.0, F2). Ein „@bert" im Text traegt einen NAMEN,
+-- und ein geloeschter Name wird FREIGEGEBEN ("card.deleteUserHint": „der Name
+-- wird frei"). Wer die Markierung aus dem Text ableitete, zeigte nach der
+-- Freigabe nicht auf niemanden, sondern auf DEN FALSCHEN -- ein zweiter Mensch
+-- kann den Namen laengst tragen, und niemand saehe es. Dazu kommt: „Geloeschter
+-- Benutzer 7" ist aus einem Namen gar nicht zu bilden, list.deletedUser
+-- verlangt die NUMMER.
+-- EINE VERKNUEPFUNG UND KEINE SPALTE AN comments, obwohl der Auftrag „Spalte"
+-- sagt: gemeint ist dort „gespeichert statt abgeleitet", und das ist der Kern.
+-- Ein Kommentar markiert aber MEHRERE („@anna @bert schaut mal"), und eine
+-- Spalte truege genau einen davon. Dieselbe Bauform wie item_tags: zwei
+-- Nummern, ein zusammengesetzter Schluessel.
+-- handle STEHT DANEBEN UND IST NICHT DIE WAHRHEIT. Er sagt, WIE die
+-- Markierung im Text geschrieben steht -- der Browser muss das „@bert" im
+-- Rohtext wiederfinden, um daraus einen Knoten zu machen. WAS angezeigt wird,
+-- kommt immer aus der Nummer (authorCard) und nie aus dieser Spalte; sonst
+-- stuende der Grabsteinname wieder am Bildschirm.
+-- EIN ZUGANG STEHT JE KOMMENTAR EINMAL DARIN, auch wer zweimal genannt wird:
+-- die Glocke sagt, DASS jemand markiert ist, nicht wie oft.
+CREATE TABLE IF NOT EXISTS comment_mentions (
+  comment_id INTEGER NOT NULL REFERENCES comments(id) ON DELETE CASCADE,
+  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  handle TEXT NOT NULL,
+  PRIMARY KEY (comment_id, user_id)
+);
+-- Die Glocke fragt „was ist neu und markiert MICH" -- also nach user_id.
+CREATE INDEX IF NOT EXISTS idx_comment_mentions_user ON comment_mentions(user_id);
+
 CREATE TABLE IF NOT EXISTS tags (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   name TEXT NOT NULL UNIQUE COLLATE NOCASE,
@@ -1313,7 +1343,13 @@ const FILTER_FIELDS_0243 = [['favorit', 'favorite']];
 const FILTER_VALUES_0243 = [['sort', 'potenzial_desc', 'potential_desc'],
                             ['sort', 'potenzial_asc',  'potential_asc']];
 /* DIE VIERZEHN VOKABELNAMEN. Dieselbe Reihenfolge wie VOCABULARY_FIELDS in
-   app.js -- v1 bis v14 --, damit sich beide Listen nebeneinander lesen. */
+   app.js -- v1 bis v14 --, damit sich beide Listen nebeneinander lesen.
+   UND SIE BLEIBT BEI VIERZEHN -- 0.32.0. Jene Runde legt mit `grade` ein
+   fuenfzehntes Vokabelwort an, und VOCABULARY_FIELDS in app.js waechst
+   deshalb auf v15. DIESE TAFEL WAECHST NICHT MIT: sie uebersetzt die ALTEN
+   deutschen Namen von 0.24.3 (`sacheEinzahl` -> `entryOne`), und „Note" hatte
+   nie einen solchen Namen. Eine fuenfzehnte Zeile hier waere eine erfundene
+   Vergangenheit -- ein Bestand aus 0.24.2 traegt sie nicht. */
 const VOCABULARY_FIELDS_0243 = [
   ['sacheEinzahl', 'entryOne'],       ['sacheMehrzahl', 'entryMany'],
   ['merkmalJa', 'testedYes'],         ['merkmalNein', 'testedNo'],

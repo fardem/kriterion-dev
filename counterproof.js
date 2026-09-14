@@ -61,8 +61,8 @@ const REGRESSIONS = [
   {
     nr: '01', name: 'Der Token entsteht erst NACH dem Versand',
     file: 'server.js',
-    search: "    const v = await sendTokenLink(target, token);",
-    replacement: "    const v = await sendTokenLink(ziel, token); if (v.versand !== 'ok') throw new Error('Versand fehlgeschlagen');",
+    search: "    const v = await sendTokenLink(target, token, localeOf(req));",
+    replacement: "    const v = await sendTokenLink(target, token, localeOf(req)); if (v.delivery !== 'ok') throw new Error('Versand fehlgeschlagen');",
     expected: 'Der Mailversand: das Offline-Prinzip in beide Richtungen'
   },
   {
@@ -82,7 +82,7 @@ const REGRESSIONS = [
   {
     nr: '04', name: 'Der Grund faellt weg -- "aus" steht ohne Auskunft da',
     file: 'server.js',
-    search: "    return { delivery: 'aus', deliveryReason: 'Es ist kein Mailzugang eingerichtet.' };",
+    search: "    return { delivery: 'aus', deliveryReason: t(readerLocale, 'mail.noAccount') };",
     replacement: "    return { versand: 'aus' };",
     expected: 'Der Mailversand: das Offline-Prinzip in beide Richtungen'
   },
@@ -312,8 +312,8 @@ const REGRESSIONS = [
   {
     nr: '31', name: 'Die Antwort verraet, dass still verworfen wurde',
     file: 'server.js',
-    search: "  res.json(REQUEST_ANSWER);",
-    replacement: "  res.json(klartext ? REQUEST_ANSWER : { ok: false, error: 'Name oder Adresse ist schon vergeben.' });",
+    search: "  res.json(requestAnswer(localeOf(req)));",
+    replacement: "  res.json(plain ? requestAnswer(localeOf(req)) : { ok: false, error: 'Name oder Adresse ist schon vergeben.' });",
     expected: 'Die Selbstanmeldung: die immer gleiche Antwort'
   },
   {
@@ -423,8 +423,8 @@ const REGRESSIONS = [
   {
     nr: '44', name: 'Der Schalter laesst sich ohne oeffentliche Adresse einschalten',
     file: 'server.js',
-    search: "      'Der Eigentümer dieser Installation drückt sie in der Karte „Mailversand“.' };\n  if (!PUBLIC.address)",
-    replacement: "      'Der Eigentümer dieser Installation drückt sie in der Karte „Mailversand“.' };\n  if (false)",
+    search: "  if (!mailTestState(raw)) return { ok: false, key: 'server.noTestMail' };\n  if (!PUBLIC.address)",
+    replacement: "  if (!mailTestState(raw)) return { ok: false, key: 'server.noTestMail' };\n  if (false)",
     expected: 'Die Selbstanmeldung: der Schalter braucht drei Dinge'
   },
   {
@@ -2730,8 +2730,8 @@ const REGRESSIONS = [
        Bedingung also wieder HERAUS statt hinein. */
     nr: '286', name: 'Die Glocke zaehlt die eigenen Kommentare wieder mit',
     file: 'server.js',
-    search: "  `SELECT item_id, user_id, COUNT(*) AS n FROM comments\n    WHERE created_at > ? AND user_id IS NOT ? GROUP BY item_id, user_id`);",
-    replacement: "  `SELECT item_id, user_id, COUNT(*) AS n FROM comments\n    WHERE created_at > ? AND user_id IS NOT NULL GROUP BY item_id, user_id`);",
+    search: "    WHERE c.created_at > ? AND c.user_id IS NOT ?\n    GROUP BY c.item_id, c.user_id`);",
+    replacement: "    WHERE c.created_at > ? AND c.user_id IS NOT NULL\n    GROUP BY c.item_id, c.user_id`);",
     expected: 'Die Glocke: was mit der Liste mitreist'
   },
   {
@@ -2781,8 +2781,8 @@ const REGRESSIONS = [
        WEG -- das ist der halbe Gewinn der Tafel. */
     nr: '292', name: 'Die Zeilen der Tafel fuehren nicht mehr zum Eintrag',
     file: 'public/app.js',
-    search: "    a.href = `#/item/${it.id}`;\n    a.dataset.mid = String(it.id);",
-    replacement: "    a.href = '#/';\n    a.dataset.mid = String(it.id);",
+    search: "      a.href = `#/item/${it.id}`;\n      a.dataset.mid = String(it.id);",
+    replacement: "      a.href = '#/';\n      a.dataset.mid = String(it.id);",
     expected: 'Die Glocke in der Kopfzeile'
   },
   {
@@ -2982,8 +2982,8 @@ const REGRESSIONS = [
        Beitraege" sagt nicht, WAS auf einen wartet. */
     nr: '315', name: 'Die Tafel zaehlt Kommentare und Bewertungen wieder zusammen',
     file: 'public/app.js',
-    search: "  return [k ? t('list.commentCount', { n: k, of: '' }) : '',\n          b ? `${b} ${vRating(b)}` : ''].filter(Boolean).join(' · ');",
-    replacement: "  const n = k + b;\n  return `${n} ${n === 1 ? 'neuer Beitrag' : 'neue Beiträge'}`;",
+    search: "  const marked = markedCount(i);",
+    replacement: "  const marked = markedCount(i);\n  { const n = k + b; return `${n} ${n === 1 ? 'neuer Beitrag' : 'neue Beiträge'}`; }",
     expected: 'Die Glocke in der Kopfzeile'
   },
   {
@@ -3043,8 +3043,8 @@ const REGRESSIONS = [
        (Stolperstein 235). Der Anker gehoert an die tragende Zusage. */
     nr: '321', name: 'Die Abfrage gruppiert nicht mehr nach Verfasser',
     file: 'server.js',
-    search: "    WHERE created_at > ? AND user_id IS NOT ? GROUP BY item_id, user_id`);",
-    replacement: "    WHERE created_at > ? AND user_id IS NOT ? GROUP BY item_id`);",
+    search: "    GROUP BY c.item_id, c.user_id`);",
+    replacement: "    GROUP BY c.item_id`);",
     expected: 'Die Glocke: was mit der Liste mitreist'
   },
   {
@@ -3330,10 +3330,14 @@ const REGRESSIONS = [
     expected: 'Die Klammer steht erst ab zwei Stimmen — 0.17.2'
   },
   {
+    /* DER SUCHTEXT IST MIT 0.32.0 EIN ANDERER: die Abfrage ist eine Spalte
+       breiter geworden (der LEFT JOIN auf die Markierungen), und der
+       Rueckbau greift jetzt an der WHERE-Zeile mit ihrem Tabellenkuerzel.
+       DIE SACHE IST DIESELBE GEBLIEBEN -- die eigene Hand zaehlt nicht. */
     nr: '365', name: 'Die Glocke meldet wieder die eigenen Kommentare',
     file: 'server.js',
-    search: "    WHERE created_at > ? AND user_id IS NOT ? GROUP BY item_id, user_id`);",
-    replacement: "    WHERE created_at > ? AND (user_id IS NOT ? OR 1) GROUP BY item_id, user_id`);",
+    search: "    WHERE c.created_at > ? AND c.user_id IS NOT ?",
+    replacement: "    WHERE c.created_at > ? AND (c.user_id IS NOT ? OR 1)",
     expected: 'Die Glocke: was mit der Liste mitreist'
   },
   {
@@ -3344,10 +3348,14 @@ const REGRESSIONS = [
     expected: 'Die Glocke: was mit der Liste mitreist'
   },
   {
+    /* DER SATZ IM GLOCKENFENSTER HAT MIT 0.32.0 SEINEN ENDGUELTIGEN WORTLAUT
+       BEKOMMEN (F4) und traegt kein hervorgehobenes Wort mehr -- er nennt die
+       drei Herkuenfte, nach denen die Tafel jetzt trennt. DER RUECKBAU BLEIBT
+       DERSELBE: er verspricht dem Leser wieder die eigenen Beitraege. */
     nr: '367', name: 'Die Tafel verspricht wieder die eigenen Beitraege',
     file: 'public/app.js',
-    search: "    <p>${tMark('list.newCommentsHint', 'list.otherUser')}</p>",
-    replacement: "    <p>${tH('list.newCommentsHint', { word: 'von allen' })}. Die eigenen stehen mit da.</p>",
+    search: "    <p>${tH('list.newCommentsHint')}</p>",
+    replacement: "    <p>${tH('list.newCommentsHint')} Die eigenen stehen mit da.</p>",
     expected: 'Die Glocke in der Kopfzeile'
   },
   {
@@ -3425,7 +3433,7 @@ const REGRESSIONS = [
   {
     nr: '378', name: 'Die Anbieterliste kommt wieder ohne Hinweise und feste Werte',
     file: 'server.js',
-    search: "    providerList: mail.forChoice().map(a =>\n      ({ ...a, hint: a.hint ? t(localeOf(req), a.hint) : '' })),",
+    search: "    providerList: mail.forChoice().map(a =>\n      ({ ...a, name: a.nameKey ? t(localeOf(req), a.nameKey) : a.name,\n         hint: a.hint ? t(localeOf(req), a.hint) : '' })),",
     replacement: "    anbieterListe: mail.PROVIDERS.map(a => ({ schluessel: a.schluessel, name: a.name })),",
     expected: 'Der Mailversand: das echte SMTP-Gespraech'
   },
@@ -3743,8 +3751,8 @@ const REGRESSIONS = [
   {
     nr: '417', name: 'Die Hervorhebung erreicht den Kommentartext nicht mehr',
     file: 'public/app.js',
-    search: "        .appendChild(buildCommentNodes(splitCommentText(c.text, term)));",
-    replacement: "        .appendChild(baueKommentarknoten(zerlegeKommentartext(c.text)));",
+    search: "        .appendChild(buildCommentNodes(splitCommentText(c.text, term, c.mentions)));",
+    replacement: "        .appendChild(buildCommentNodes(splitCommentText(c.text, '', c.mentions)));",
     expected: 'Der Suchbegriff in der Adresse'
   },
   {
@@ -5934,8 +5942,8 @@ const REGRESSIONS = [
        wenn er richtig raet -- niemand erfuehre, warum die Liste kuerzer ist. */
     nr: '617', name: 'Neben den Statuspillen steht nicht mehr, woher sie kommen',
     file: 'public/app.js',
-    search: "  if (fallback) {\n    const from = secondLabel(r1, t('list.followsSort'));",
-    replacement: "  if (false) {\n    const woher = zweiteBeschriftung(r1, t('list.followsSort'));",
+    search: "  if (fallback) {\n    const from = secondLabel(r1, t('list.followsSort',",
+    replacement: "  if (false) {\n    const from = secondLabel(r1, t('list.followsSort',",
     expected: 'Die Sortierung gibt den Status vor — 0.21.1'
   },
   {
@@ -6009,8 +6017,8 @@ const REGRESSIONS = [
        genau dann nirgends dran, wenn man sie am wenigsten sieht. */
     nr: '621', name: 'Der eingeklappte Filterschalter sagt nichts von der Ableitung',
     file: 'public/app.js',
-    search: "  const from = statusOutSort(state.filters.sort) ? t('list.followsSort') : '';",
-    replacement: "  const woher = '';",
+    search: "  const from = derived ? t('list.followsSort',",
+    replacement: "  const from = '' ? t('list.followsSort',",
     expected: 'Die Sortierung gibt den Status vor — 0.21.1'
   },
 
@@ -6248,7 +6256,7 @@ const REGRESSIONS = [
        auf der Liste stehen. Dann fuehrt die Liste eine Ausnahme fuer nichts. */
     nr: '679', name: 'Eine Altlast ist behoben und steht doch noch auf der Liste',
     file: 'public/languages/de.json',
-    search: '  "server.deniedOwnUser": "Den eigenen Zugang ändert man unter „Zugang“, nicht hier.",',
+    search: '  "server.deniedOwnUser": "Den eigenen Zugang ändert man unter „Mein Konto“, nicht hier.",',
     replacement: '  "server.deniedOwnUser": "Das eigene Konto ändert man an anderer Stelle.",',
     expected: 'Der Bildschirmtext-Waechter'
   },
@@ -9526,8 +9534,8 @@ const REGRESSIONS = [
        das ist der Unterschied, den die Zusage haelt. */
     nr: '961', name: 'Der Filterhinweis nennt die Knoepfe wieder „Pillen"',
     file: 'public/languages/de.json',
-    search: "  \"list.pillHint\": \"Ein Klick auf einen der drei Knöpfe setzt den Filter.\",",
-    replacement: "  \"list.pillHint\": \"Ein Klick auf eine der drei Pillen setzt den Filter.\",",
+    search: "  \"list.pillHint\": \"Ein Klick auf einen der drei Knöpfe schaltet die Vorgabe der Sortierung für diese Sitzung ab; „Filter zurücksetzen“ holt sie zurück.\",",
+    replacement: "  \"list.pillHint\": \"Ein Klick auf eine der drei Pillen schaltet die Vorgabe der Sortierung für diese Sitzung ab.\",",
     expected: 'Die Sprachdateien werden gegengelesen — 0.31.0'
   },
   {
@@ -9535,7 +9543,7 @@ const REGRESSIONS = [
        -- ausgerechnet an dem Feld, an dem er sein eigenes Wort eintraegt. */
     nr: '962', name: 'Die Vokabelkarte schreibt wieder „Sache" vor',
     file: 'public/languages/de.json',
-    search: "  \"card.itemOne\": \"Einzahl\",",
+    search: "  \"card.itemOne\": \"Das Bewertete, Einzahl\",",
     replacement: "  \"card.itemOne\": \"Sache, Einzahl\",",
     expected: 'Die Sprachdateien werden gegengelesen — 0.31.0'
   },
@@ -9645,8 +9653,8 @@ const REGRESSIONS = [
        (L5). */
     nr: '972', name: 'Eine Vokabelbeschriftung nennt wieder ihr Vorgabewort',
     file: 'public/languages/de.json',
-    search: "  \"card.itemOne\": \"Einzahl\",",
-    replacement: "  \"card.itemOne\": \"Einzahl (Vorgabe: Eintrag)\",",
+    search: "  \"card.itemOne\": \"Das Bewertete, Einzahl\",",
+    replacement: "  \"card.itemOne\": \"Das Bewertete, Einzahl (Vorgabe: Eintrag)\",",
     expected: 'Deutsch sitzt — 0.31.1'
   },
   {
@@ -9897,8 +9905,8 @@ const REGRESSIONS = [
        und nicht die Laenge mit. */
     nr: '992', name: 'Ein tuerkischer Wert traegt wieder „haptan" — mit angeklebter Endung',
     file: 'public/languages/tr.json',
-    search: "  \"list.pillHint\": \"Üç düğmeden birine tıklamak filtreyi ayarlar.\",",
-    replacement: "  \"list.pillHint\": \"Üç haptan birine tıklamak filtreyi ayarlar.\",",
+    search: "  \"list.pillHint\": \"Üç düğmeden birine tıklamak, sıralamanın varsayılanını bu oturum için kapatır; “Filtreleri sıfırla” onu geri getirir.\",",
+    replacement: "  \"list.pillHint\": \"Üç haptan birine tıklamak, sıralamanın varsayılanını bu oturum için kapatır.\",",
     expected: 'Tuerkisch sitzt — 0.31.3'
   },
   {
@@ -10116,6 +10124,175 @@ const REGRESSIONS = [
     search: "(afterNumberOf(namesLanguage()) === 'one' ? esc(word) : `${n} ${esc(word)}`);",
     replacement: "(AFTER_NUMBER === 'one' ? esc(word) : `${n} ${esc(word)}`);",
     expected: 'Nach einer Zahl die Einzahl — 0.31.4'
+  },
+
+  /* ================= 0.32.0 — „Einen anderen markieren" ================
+     DREIZEHN ZUSAGEN, DREIZEHN RUECKBAUTEN. Jeder nimmt genau EINE davon
+     zurueck; was daraufhin rot wird, steht im Aenderungsprotokoll. */
+  {
+    /* ZUSAGE 1: die Glocke rechnet EINMAL. Der Rueckbau macht aus der
+       Teilmenge eine zweite Zaehlung -- `marked` zaehlt dann JEDEN neuen
+       Kommentar und nicht nur die, die mich markieren. Am Bildschirm stuende
+       „3 Kommentare, davon 3 an mich gerichtet" an einem Eintrag, in dem
+       niemand markiert ist. */
+    nr: '1010', name: 'Die Glocke zaehlt jeden neuen Kommentar als Markierung',
+    file: 'server.js',
+    search: "          SUM(CASE WHEN m.comment_id IS NULL THEN 0 ELSE 1 END) AS marked",
+    replacement: "          COUNT(*) AS marked",
+    expected: 'Einen anderen markieren — 0.32.0'
+  },
+  {
+    /* ZUSAGE 2: die Markierung entsteht als KNOTEN. Der Rueckbau macht aus dem
+       eigenen Element ein `<mark>` -- am Bildschirm dieselbe Farbe wie eine
+       Fundstelle der Suche, und in einem Kommentar mit Treffern nicht mehr
+       auseinanderzuhalten. */
+    nr: '1011', name: 'Die Markierung wird zur Fundstelle der Suche',
+    file: 'public/app.js',
+    search: "    const at = document.createElement('span');\n    at.className = 'mention';",
+    replacement: "    const at = document.createElement('mark');\n    at.className = '';",
+    expected: 'Der Kommentartext: Links, Hervorhebung und Markierung'
+  },
+  {
+    /* ZUSAGE 3: die Markierung gilt EINEM. Der Rueckbau nimmt die Bedingung am
+       JOIN weg -- danach markiert jeder Kommentar jeden, und die Glocke des
+       Unbeteiligten meldet eine Markierung, die ihn nichts angeht. */
+    nr: '1012', name: 'Die Markierung gilt wieder jedem',
+    file: 'server.js',
+    search: "     LEFT JOIN comment_mentions m ON m.comment_id = c.id AND m.user_id = ?",
+    replacement: "     LEFT JOIN comment_mentions m ON m.comment_id = c.id AND (m.user_id = ? OR 1)",
+    expected: 'Einen anderen markieren — 0.32.0'
+  },
+  {
+    /* ZUSAGE 4: der Grabsteinname geht nicht hinaus. Der Rueckbau schickt
+       statt des Verfasserobjekts den `handle` mit -- und damit stuende der
+       freigegebene Name wieder am Bildschirm. */
+    nr: '1013', name: 'Die Markierung schickt den Namen statt der Nummer',
+    file: 'server.js',
+    search: "    markedPer.get(z.comment_id).push({ handle: z.handle, author: authorFrom(card, z.user_id) });",
+    replacement: "    markedPer.get(z.comment_id).push({ handle: z.handle, author: { id: z.user_id, name: z.handle, deleted: false } });",
+    expected: 'Einen anderen markieren — 0.32.0'
+  },
+  {
+    /* ZUSAGE 6: es sind fuenfzehn Vokabelwoerter. Der Rueckbau nimmt das
+       fuenfzehnte aus der Karte -- die Sprachdatei kennt es weiter, die Karte
+       zeigt es nicht mehr, und niemand kann es umbenennen. */
+    nr: '1014', name: 'Das fuenfzehnte Vokabelwort faellt aus der Karte',
+    file: 'public/app.js',
+    search: "  ['v15', 'grade', () => t('card.grade')]",
+    replacement: "",
+    expected: 'Oberflaeche'
+  },
+  {
+    /* ZUSAGE 6, ANDERSHERUM: die Migrationstafel von 0.24.3 bekommt eine
+       fuenfzehnte Zeile. „Note" hatte nie einen deutschen Namen -- der
+       Rueckbau erfindet eine Vergangenheit. */
+    nr: '1015', name: 'Die Migrationstafel von 0.24.3 erfindet ein fuenfzehntes Wort',
+    file: 'db.js',
+    search: "  ['bewertungEinzahl', 'ratingOne'],  ['bewertungMehrzahl', 'ratingMany']",
+    replacement: "  ['bewertungEinzahl', 'ratingOne'],  ['bewertungMehrzahl', 'ratingMany'],\n  ['note', 'grade']",
+    expected: 'Der Bestand aus 0.24.3'
+  },
+  {
+    /* ZUSAGE 7: kein Vokabelwort steht zusammengesetzt. Der Rueckbau klebt das
+       neue Wort an ein anderes -- „Durchschnittsnote" ist genau der Fehler,
+       den L6 seit 0.21.0 verbietet. */
+    nr: '1016', name: 'Ein Vokabelwort wird wieder zusammengesetzt',
+    file: 'public/languages/de.json',
+    search: "  \"list.sortAvg\": \"Durchschnitt: {grade}\",",
+    replacement: "  \"list.sortAvg\": \"Durchschnitts{grade}\",",
+    expected: 'Die Sprachdatei ist die Quelle'
+  },
+  {
+    /* ZUSAGE 8: kein fester deutscher Satz in den Serverdateien. Der Rueckbau
+       schreibt einen der elf zurueck -- genau den, mit dem Punkt 29 angefangen
+       hat. */
+    nr: '1017', name: 'Ein fester deutscher Satz kommt in server.js zurueck',
+    file: 'server.js',
+    search: "  if (!mail.configured(raw)) return { ok: false, key: 'server.noAccountOwner' };",
+    replacement: "  if (!mail.configured(raw)) return { ok: false, key: 'Es ist kein Mailzugang eingerichtet. Das macht der Eigentuemer dieser Installation.' };",
+    expected: 'Die Sprachdatei ist die Quelle'
+  },
+  {
+    /* ZUSAGE 9: die Zugangsanfrage weist eine leere Form ab. Der Rueckbau
+       nimmt die Pruefung im SERVER weg -- die im Browser bleibt stehen, und
+       genau das ist die Lage, gegen die Punkt 30 argumentiert: eine Pruefung
+       nur im Browser ist eine Bitte. */
+    nr: '1018', name: 'Der Server prueft die Form der Zugangsanfrage nicht mehr',
+    file: 'server.js',
+    search: "  if (!mail.isAddress(address))\n    return res.status(400).json({ error: t(localeOf(req), 'login.emailInvalid') });",
+    replacement: "",
+    expected: 'Die Selbstanmeldung: die immer gleiche Antwort'
+  },
+  {
+    /* ZUSAGE 10: jede Aenderung an den drei Sprachdateien steht in ihrer
+       Tafel. DIESER RUECKBAU GREIFT IN DIE VERGLEICHSDATEI und nicht in
+       `en.json`: es geht um die Buchfuehrung selbst. */
+    nr: '1019', name: 'Der englische Vergleichsstand weicht ab, ohne benannt zu sein',
+    file: 'tools/englisch-0312.json',
+    search: "    \"card.active\": \"active\",",
+    replacement: "    \"card.active\": \"on\",",
+    expected: 'Englisch steht auf dem Stand des Deutschen — 0.31.2'
+  },
+  {
+    /* ZUSAGE 11: kein Waechter ueber tuerkischen Text arbeitet mit `\b`. Der
+       Rueckbau setzt den Stamm von 0.25.1 zurueck -- er findet `yedeğe` nicht,
+       und die allgemeine Zeile daneben faellt ebenfalls auf. */
+    nr: '1020', name: 'Der `yedek`-Waechter bekommt seine Wortgrenzen zurueck',
+    file: 'testbench.js',
+    search: "      const YEDEK_STEM = /(?<![\\p{L}])yede[kğ](?!leme)[\\p{L}]*/iu;",
+    replacement: "      const YEDEK_STEM = /\\byedek(ler|leri|le|tir)?\\b/i;",
+    expected: '„Backup" heisst auf Tuerkisch yedekleme — 0.25.1'
+  },
+  {
+    /* UND DIE SCHWESTER DER GEGENPROBE 787, die Punkt 31 verlangt hat: sie
+       setzt „Son yedekleme" auf „Son yedeğe" statt auf „Son yedek". BIS
+       0.31.4 WAR SIE STUMM -- der Waechter suchte ein `k`. */
+    nr: '1021', name: 'Ein erweichtes „yedeğe" bleibt im Tuerkischen stehen',
+    file: 'public/languages/tr.json',
+    search: "\"card.lastBackup\": \"Son yedekleme\"",
+    replacement: "\"card.lastBackup\": \"Son yedeğe\"",
+    expected: '„Backup" heisst auf Tuerkisch yedekleme — 0.25.1'
+  },
+  {
+    /* ZUSAGE 13: „Filter folgt der Sortierung" ist sichtbar, und
+       `STATUS_BY_HAND` sagt, was es tut. Der Rueckbau nimmt den Satz zur
+       Handwahl weg -- die Ableitung schaltet sich dann wieder still ab, und
+       niemand findet aus ihr heraus. */
+    nr: '1022', name: 'Die harte Kante von STATUS_BY_HAND wird wieder unsichtbar',
+    file: 'public/app.js',
+    search: "  if (!fallback && STATUS_BY_HAND && defaultClosed(f.sort)) {",
+    replacement: "  if (false) {",
+    expected: 'Die Sortierung gibt den Status vor — 0.21.1'
+  },
+  {
+    /* UND DER ZWOELFTE SATZ, den die Restprobe gefunden hat: „Eigener Server"
+       geht wieder ohne Schluessel an den Bildschirm. */
+    nr: '1023', name: 'Der Anbietername geht wieder fest auf Deutsch hinaus',
+    file: 'server.js',
+    search: "      ({ ...a, name: a.nameKey ? t(localeOf(req), a.nameKey) : a.name,",
+    replacement: "      ({ ...a, name: a.name,",
+    expected: 'Der Bildschirmtext-Waechter — 0.22.0'
+  },
+  {
+    /* UND DER AUFKLAPPER „MEHR" SCHLAEGT WIEDER OHNE MESSUNG ZU -- 0.32.0,
+       BA 10. Der Rueckbau nimmt die Breitenfrage weg: danach liefe die
+       Messung auch am Telefon, wo jeder der acht Aufklapper 67 bis 107
+       Bildpunkte spart. */
+    nr: '1024', name: 'Der „Mehr"-Aufklapper fragt die Breite nicht mehr',
+    file: 'public/app.js',
+    search: "  if (!root || isNarrow()) return;",
+    replacement: "  if (!root) return;",
+    expected: 'Server-Befehle nur im Kasten — 0.22.0'
+  },
+  {
+    /* UND DIE MESSUNG LAEUFT GAR NICHT MEHR. Ohne den Ruf bliebe der
+       Aufklapper an jeder der acht Stellen stehen -- auch dort, wo er eine
+       Zeile kostet und eine Zeile spart. */
+    nr: '1025', name: 'Die Messung der Aufklapper laeuft gar nicht mehr',
+    file: 'public/app.js',
+    search: "  trimMore(app);",
+    replacement: "",
+    expected: 'Server-Befehle nur im Kasten — 0.22.0'
   },
 ];
 

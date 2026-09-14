@@ -146,7 +146,7 @@ Rollenvergabe, der Mailzugang und der Schlüsselwert; alles Weitere steht unter
 | **Titel der Installation** | Einstellungen › Installation, Karte „Titel" | zwei frei wählbare Titel: einer über der Anmeldeseite, einer in der Anwendung |
 | **Bewertung: Kriterien** | Einstellungen › Bestand, Karte „Bewertung: Kriterien" | Name, Reihenfolge, Gewicht — sie erscheinen an jedem Eintrag |
 | **Potenzial: Kriterien** | Einstellungen › Bestand, Karte „Potenzial: Kriterien" | dasselbe für den Kasten *vor* dem Test — zwei oder drei reichen |
-| **Vokabular** | Einstellungen › Bestand, Karte „Vokabular" | vierzehn Wörter der Oberfläche umbenennen, etwa „Eintrag" → „Modell" |
+| **Vokabular** | Einstellungen › Bestand, Karte „Vokabular" | fünfzehn Wörter der Oberfläche umbenennen, etwa „Eintrag" → „Modell" |
 | **Weitere Benutzer** | Einstellungen › Benutzer, Karte „Benutzer" | anlegen oder über einen Einladungslink einladen |
 | **Mailversand** | Einstellungen › Benutzer, Karte „Mailversand" | nur für Einladungslinks und Links zum Zurücksetzen; ohne ihn läuft alles weiter |
 | **Sicherungsordner** | `docker-compose.yml` | Vorgabe liegt im Projektordner; die empfohlene Lage ist daneben — siehe „Sichern" |
@@ -946,7 +946,11 @@ steht ab Werk auf **aus**.
 1. **Anfrage.** Auf der Anmeldeseite steht unter „Anmelden" ein zweiter Knopf:
    **„Zugang anfragen"**, darüber die Frage „Noch keinen Zugang?". Das Formular
    dahinter hat zwei Felder — Benutzername und E-Mail-Adresse — und **kein
-   Passwortfeld**.
+   Passwortfeld**. **Geprüft wird die FORM, und zwar an beiden Enden:** ein
+   leeres Feld und eine Zeichenfolge ohne `@` werden abgewiesen, im Browser
+   und noch einmal im Server. *Über den Bestand sagt diese Absage nichts —
+   ob ein Name frei ist, erfährt man daraus nicht:* **Form ist öffentlich,
+   Existenz ist es nicht.**
 2. **Bestätigungsmail.** Die Installation schickt einen kurzen Link an die
    angegebene Adresse. Er **öffnet keinen Zugang und setzt kein Passwort**; wer
    ihn anklickt, sagt nur „ja, das bin ich". Er gilt **24 Stunden**.
@@ -1262,10 +1266,17 @@ es zwei, beide in den Einstellungen einstellbar:
   bekommt beides zurück.* **Der Weg zurück in die Vorgabe ist „Filter
   zurücksetzen".**
   **Man sieht es:** die vorgegebene Pille ist gestrichelt statt ausgefüllt, und
-  daneben steht *„folgt der Sortierung"*; eingeklappt sagt es der Filterschalter.
+  daneben steht *„folgt der Sortierung: Ungetestet"* — das Wort sagt auch, WAS
+  gerade abgeleitet wird; eingeklappt sagt der Filterschalter dasselbe.
   *Gespeichert wird die Vorgabe nicht* — geschrieben wird immer die gewählte
   Stellung, und ein Neuladen rechnet sie aus der Sortierung neu aus. **Der
   Filterzähler zählt sie nicht mit:** eingestellt hat sie niemand.
+  **Und man sieht auch, wenn sie abgeschaltet ist.** Ein Klick auf eine
+  Statuspille beendet die Ableitung **für die ganze Sitzung** — nicht nur für
+  diese eine Sortierung. Dann steht neben den Pillen *„von Hand gewählt"*, und
+  der Satz dazu nennt den Weg zurück: **„Filter zurücksetzen" holt die Vorgabe
+  wieder.** *Ein unsichtbarer Automatismus ist ein Fehler — und seine
+  unsichtbare Abschaltung ist derselbe Fehler von der anderen Seite.*
 - **Mehrere Kategorien zugleich**: ein Klick nimmt eine dazu,
   ein zweiter nimmt sie wieder heraus, **„Alle"** räumt die Auswahl weg. **Es
   ist immer ein Oder** — ein Eintrag trägt genau eine Kategorie, ein „und" wäre
@@ -1273,7 +1284,9 @@ es zwei, beide in den Einstellungen einstellbar:
   **„Ohne"** mit eigener Zahl: Einträge, die keiner Kategorie zugeordnet sind
   und über keine einzelne Kategorie zu finden wären.
 - **„Filter zurücksetzen" steht rechts in der Sortierzeile**, neben „+ Ansicht
-  speichern" — und nur dann, wenn wirklich etwas gesetzt ist. Er nennt die
+  speichern" — und nur dann, wenn wirklich etwas gesetzt ist. *Beide sind Text
+  und keine Pille:* **eine Pille neben den Pillen der gespeicherten Ansichten
+  läse sich als eine von ihnen.** Er nennt die
   Zahl: *„Filter zurücksetzen (3)"*. Ein Klick stellt Status, Ablehnung,
   Favoriten, Kategorien und Tags auf „alles zeigen" zurück.
   **Der Suchbegriff bleibt stehen** — er hat sein eigenes Kreuz im Suchfeld —,
@@ -1413,6 +1426,25 @@ es zwei, beide in den Einstellungen einstellbar:
   *„Überfällig" rechnet sich am heutigen Tag dessen, der hinsieht, und nicht am
   Tag des Servers.* Das Datum geht in den Export mit (**Austauschformat 16**)
   und kommt beim Einspielen wieder zurück.
+  **Einen anderen markieren:** wer `@name` in einen Kommentar schreibt,
+  **markiert** diesen Zugang. Die Stelle steht hervorgehoben da, und der
+  Markierte bekommt eine Glocke — **er, nicht jeder.** Die Markierung wirkt in
+  allen vier Arten: Notiz, Bericht, Aufgabe und erledigte Aufgabe.
+  **Ein Name, den es nicht gibt, wird gar keine Markierung** — `@bret` bleibt
+  gewöhnlicher Text, und genau daran siehst du, dass der Griff danebengegangen
+  ist. Eine E-Mail-Adresse im Text (`bert@beispiel.de`) ist ebenfalls keine:
+  vor dem `@` steht dort ein Name.
+  **Gespeichert wird die Zugangsnummer und nicht der Name.** Wer umbenannt
+  wird, steht danach unter seinem **heutigen** Namen da; wer gelöscht wird,
+  als **„Gelöschter Benutzer 7"** — der alte Name wird freigegeben und könnte
+  längst einem anderen gehören. *Im Bearbeitenmodus steht der Rohtext, und dort
+  bleibt `@bert` schlicht `@bert`.*
+  **Ein Name mit Leerzeichen lässt sich nicht markieren** — das Muster braucht
+  einen Trenner, und ein halb erratener Name wäre schlimmer als keiner.
+  **Der Export trägt die Markierung als `@name` im Kommentartext mit**; beim
+  Einspielen löst die Zielinstanz sie gegen ihre eigenen Namen neu auf. *Eine
+  Zugangsnummer bedeutet dort etwas anderes — deshalb steht sie nicht in der
+  Datei (**Austauschformat 16**, unverändert).*
   Ein erledigtes Todo verlässt die Spitze und reiht sich nach Alter bei den
   Notizen ein — es bleibt aber als erledigt gekennzeichnet und wird nicht
   wieder zur Notiz. Der Berichtsknopf daneben bleibt ein gewöhnlicher
@@ -2027,6 +2059,19 @@ dazugekommen. Die beiden Zeichen werden nirgends vertauscht.
 etwas hinzugekommen ist, und **jede Zeile führt zu ihrem Eintrag**.
 Eine Meldung, die man nicht anspringen kann, wäre eine Mitteilung ohne Weg.
 
+**Die Tafel ist nach Herkunft geteilt — drei Abschnitte:**
+
+| | |
+|---|---|
+| **An mich gerichtet** | Einträge, unter denen ein neuer Kommentar dich mit `@name` **markiert** |
+| **Meine Einträge** | was unter Einträgen geschieht, die **dir gehören** |
+| **Alles andere** | der Rest — der Bestand ist gemeinsam, und was darin neu ist, geht alle an |
+
+**Eine Zeile steht in genau einem Abschnitt**, und zwar im obersten, der auf
+sie zutrifft. **Am Zeichen selbst bleibt es bei einem Punkt und einer Zahl**:
+zwei Zahlen an einem Zeichen wären zwei Auskünfte an einem Ort. Die
+Unterscheidung steht in der Tafel, gezählt wird einmal.
+
 **Was die Glocke verspricht:** **Kommentare** und **Bewertungen** seit dem
 letzten Öffnen der Tafel — **von den anderen. Die eigenen meldet sie nicht.**
 *Eine Glocke ist eine Nachricht von jemand anderem; über die eigene Hand
@@ -2037,7 +2082,9 @@ sie hätte ihm nichts zu sagen, was er nicht selbst getan hat.
 **Und jede Zeile sagt, WAS neu ist:** „3 Kommentare · 4 Bewertungen" statt
 „7 neue Beiträge". **Bei nur einer Art steht auch nur eine Angabe da** —
 „0 Bewertungen" wäre eine Auskunft über nichts, dieselbe Regel wie beim Zähler
-„Offen" weiter unten.
+„Offen" weiter unten. **Was davon dich markiert, steht daneben:** „3
+Kommentare, davon 1 an mich gerichtet" — *eine Teilmenge und keine zweite
+Zahl; addiert wird sie nirgends.*
 
 **Darunter steht, von wem** — und zwar **nur zu den Kommentaren**. *Ein
 Kommentar trägt seinen Verfasser am Eintrag ohnehin sichtbar; eine Bewertung
@@ -2095,8 +2142,10 @@ beim nächsten Aufruf steht wieder die Vorgabe.
 **Eine Ausnahme steht daneben, und zwar in Worten:** gibt die Sortierung den
 Statusfilter vor (Bewertung → Getestet, Potenzial → Ungetestet), nimmt *die*
 sehr wohl etwas weg. Sie **zählt trotzdem nicht mit** — eingestellt hat sie
-niemand —, aber der Schalter sagt sie an: *„· folgt der Sortierung"*. So bleibt
-die Regel, dass eine unvollständige Liste nie ohne sichtbaren Grund dasteht.
+niemand —, aber der Schalter sagt sie an: *„· folgt der Sortierung: Ungetestet"*.
+So bleibt die Regel, dass eine unvollständige Liste nie ohne sichtbaren Grund
+dasteht. **Und wer sie von Hand abgeschaltet hat, liest dort „· von Hand
+gewählt"** — auch das ist ein sichtbarer Grund.
 
 Auf einem Tablett steht der Schalter ebenfalls da, die Filter fangen dort aber
 **offen** an. Dort ist Platz, und was vorher sichtbar war, soll nicht ohne Not
@@ -2269,12 +2318,15 @@ docker compose logs kriterion | grep '\[languages\]'
 
 Kriterion nennt seine Gegenstände von Haus aus „Eintrag", das Merkmal
 „Getestet/Ungetestet" und die Zeitpunkte „Testtag/Testtage". Wer etwas anderes
-sammelt, ändert diese vierzehn Wörter in den Einstellungen — aus „3 Einträge"
+sammelt, ändert diese fünfzehn Wörter in den Einstellungen — aus „3 Einträge"
 wird „3 Maschinen", aus „+ Testtag eintragen" wird „+ Sitzung eintragen".
 **Das zwölfte ist „Potenzial"**, der Name des ersten Sternkastens; wer lieber
 „Erwartung" oder „Einschätzung" sagt, stellt es dort um. **Das dreizehnte und
 vierzehnte sind „Bewertung" und „Bewertungen"** — sie ändern den Kastenkopf,
 die Sortierung, den Vergleich, die Kachel und die Karte der Kriterien.
+**Das fünfzehnte ist „Note"** — die Zahl, die an einem Testtag steht. Wer
+Tageswerte, Ergebnisse oder Messungen sammelt, schreibt es dort um; die
+Sortierungen „Durchschnitt: Note" und „Zuletzt: Note" gehen mit.
 
 **Ein Wort aus dem Vokabular wird nirgends zu einem Wort verbaut.** Kriterion
 schreibt „Potenzial: Kriterien" und „Potenzial (hoch → niedrig)", nie
@@ -2298,11 +2350,11 @@ hält sich an dieselbe Regel:
 - **Unsicher:** jede Einzahl mit Artikel oder Beiwort — „ein neuer Eintrag"
   wird zu „ein neuer Maschine".
 
-Leere Felder fallen auf die Vorgabe zurück, ein Knopf stellt alle vierzehn
+Leere Felder fallen auf die Vorgabe zurück, ein Knopf stellt alle fünfzehn
 zurück. Eine Probe unter den Feldern zeigt vor dem Speichern, wie die Wörter in
 echten Textbausteinen aussehen.
 
-**Die vierzehn Wörter gibt es je Sprache.** Über den Feldern steht eine
+**Die fünfzehn Wörter gibt es je Sprache.** Über den Feldern steht eine
 Sprachzeile, sobald mehr als eine Sprache freigegeben ist; der Eigentümer
 pflegt die englischen Wörter, während seine eigene Oberfläche deutsch bleibt.
 **In den Feldern steht, was für diese Sprache eingetragen ist — und sonst

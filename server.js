@@ -486,15 +486,23 @@ const linkInfo = (plain) => PUBLIC.address
    START: ein Startabbruch braeche jede vorhandene Installation. Ohne sie wird
    nicht verschickt, die Karte sagt warum, und der Browser des Admins baut den
    Link beim Kopieren weiter selbst. */
-async function sendTokenLink(target, token) {
+/* DIE DREI GRUENDE SIND SCHLUESSEL UND KEINE SAETZE -- 0.32.0, Bauabschnitt 4.
+   Bis 0.31.4 standen sie fest auf Deutsch hier und gingen als fertiger Satz an
+   die Oberflaeche; `card.passLinkByHandEnd` setzte sie in „{reason}. Pass the
+   link on manually." ein, und auf einer englischen Instanz stand dort deutscher
+   Text (Punkt 29 des Sammelblatts).
+   UEBERSETZT WIRD MIT DER SPRACHE DES LESERS UND NICHT DER DES EMPFAENGERS:
+   diesen Grund liest der ADMIN in seiner Karte. Der BRIEF geht weiter in der
+   Sprache des Empfaengers -- zwei Leser, zwei Sprachen, und die Zeile unten
+   sagt es an Ort und Stelle. */
+async function sendTokenLink(target, token, readerLocale) {
   const account = mail.resolve(getSetting(mail.SETTING_KEY, null));
   if (!mail.configured(account))
-    return { delivery: 'aus', deliveryReason: 'Es ist kein Mailzugang eingerichtet.' };
+    return { delivery: 'aus', deliveryReason: t(readerLocale, 'mail.noAccount') };
   if (!PUBLIC.address)
-    return { delivery: 'aus', deliveryReason:
-      'Ohne PUBLIC_ADDRESS in der .env wird nicht verschickt — der Server wüsste nicht, worauf der Link zeigen soll.' };
+    return { delivery: 'aus', deliveryReason: t(readerLocale, 'server.noPublicAddress') };
   if (!target.email)
-    return { delivery: 'aus', deliveryReason: 'Für diesen Zugang ist keine E-Mail-Adresse hinterlegt.' };
+    return { delivery: 'aus', deliveryReason: t(readerLocale, 'server.noUserAddress') };
   const values2 = {
     title: getSetting('title_public', 'Bewertungskatalog'),
     username: target.username, link: `${PUBLIC.address}/#/invite/${token.plain}`,
@@ -535,18 +543,25 @@ function mailTestState(raw) {
    traegt nicht: DIE TESTMAIL ENTHAELT KEINEN LINK und geht auch ohne
    PUBLIC_ADDRESS durch -- die Marke waere gruen, und die
    Bestaetigungsmail ginge nie hinaus. Der Grund steht daneben. */
+/* DER GRUND IST EIN SCHLUESSEL UND KEIN SATZ -- 0.32.0, Bauabschnitt 4. Er
+   war der Fund, mit dem Punkt 29 angefangen hat: in der Karte „Users" stand
+   auf einer englischen Instanz „Switching it on is only possible once mail
+   delivery is set up." und darunter, fest aus server.js, „Es ist kein
+   Mailzugang eingerichtet. Das macht der Eigentümer dieser Installation."
+   DIE FUNKTION UEBERSETZT NICHT SELBST. Sie weiss nicht, wer liest; das weiss
+   erst der Weg, der die Anfrage in der Hand hat -- dieselbe Bauform wie
+   `Message` in auth.js (0.24.0, Bauabschnitt 1). */
 function deliveryReady() {
   const raw = getSetting(mail.SETTING_KEY, null);
-  if (!mail.configured(raw))
-    return { ok: false, reason: 'Es ist kein Mailzugang eingerichtet. Das macht der Eigentümer dieser Installation.' };
-  if (!mailTestState(raw))
-    return { ok: false, reason: 'Seit der letzten Änderung am Mailzugang ist keine Testmail durchgekommen. ' +
-      'Der Eigentümer dieser Installation drückt sie in der Karte „Mailversand“.' };
-  if (!PUBLIC.address)
-    return { ok: false, reason:
-      'Ohne PUBLIC_ADDRESS in der .env wird nicht verschickt — der Server wüsste nicht, worauf der Link zeigen soll.' };
-  return { ok: true, reason: '' };
+  if (!mail.configured(raw)) return { ok: false, key: 'server.noAccountOwner' };
+  if (!mailTestState(raw)) return { ok: false, key: 'server.noTestMail' };
+  if (!PUBLIC.address) return { ok: false, key: 'server.noPublicAddress' };
+  return { ok: true, key: '' };
 }
+/* UND DIE EINE STELLE, DIE DARAUS EINEN SATZ MACHT. Zwei Stellen, die
+   denselben Schluessel uebersetzen, liefen auseinander; ein leerer Grund
+   bleibt ein leerer String und wird nicht zu `⟦⟧`. */
+const deliveryWhy = (b, locale) => (b.key ? t(locale, b.key) : '');
 
 /* ---- Die Bestaetigungsmail der Selbstanmeldung -------------------------
    DER DRITTE MAILANLASS. Sie traegt einen Link OHNE Passwortkraft: wer ihn
@@ -1387,9 +1402,22 @@ app.post('/api/token/redeem', async (req, res) => {
    zwar ein bequemeres als die Anmeldung: es steht ohne Passwort davor.
    SIE IST WAHR IN JEDEM DIESER FAELLE -- "wir haben dir eine Mail geschickt"
    waere in fuenf von sechs Lagen gelogen. */
-const REQUEST_ANSWER = { ok: true, message:
-  'Danke. Wenn zu diesen Angaben eine Anfrage möglich war, hast du jetzt eine E-Mail ' +
-  'bekommen — bitte bestätige darin deine Adresse. Danach entscheidet ein Admin.' };
+/* SIE IST EINE FUNKTION UND KEINE KONSTANTE -- 0.32.0, Bauabschnitt 4, und
+   das aendert an ihrer Zusage nichts: Byte fuer Byte DIESELBE Antwort fuer
+   jede Lage, nur eben in der Sprache dessen, der sie liest. Bis 0.31.4 stand
+   sie fest auf Deutsch da und war damit der schlimmste der elf Saetze aus
+   Punkt 29 -- sie steht auf der ANMELDESEITE, wo noch niemand angemeldet ist:
+   eine englische Installation antwortete einem englischen Interessenten auf
+   Deutsch, im ersten Satz, den sie ihm ueberhaupt sagt.
+   DIE GLEICHHEIT BLEIBT DIE SICHERHEITSEIGENSCHAFT. Die Sprache haengt am
+   LESER (localeOf) und nicht am Bestand; aus ihr laesst sich nichts darueber
+   ablesen, ob der Name frei war.
+   UND EINE PRUEFUNG STEHT SEIT 0.32.0 DAVOR (Bauabschnitt 6). Die fuenf Lagen
+   oben sind unveraendert: sie sagen etwas ueber den BESTAND und antworten
+   deshalb gleich. Die FORM tut das nicht -- „Form ist oeffentlich, Existenz
+   ist es nicht" --, und eine leere Eingabe bekommt darum eine Absage statt
+   eines „Danke". Die Begruendung steht in der Route. */
+const requestAnswer = (locale) => ({ ok: true, message: t(locale, 'server.signupThanks') });
 
 app.post('/api/signup', async (req, res) => {
   if (!await tokenThrottleFree(req, res)) return;
@@ -1400,8 +1428,27 @@ app.post('/api/signup', async (req, res) => {
      entsteht nichts. Keine Zeile, keine Mail. */
   const an = getSetting('signup', false) === true;
   const { name, address } = req.body || {};
+  /* FORM IST OEFFENTLICH, EXISTENZ IST ES NICHT -- 0.32.0, Bauabschnitt 6.
+     DIESER SATZ IST DIE GRENZE, und er steht hier, damit die naechste Runde
+     die Gleichheit der Antwort nicht fuer eine Umstaendlichkeit haelt und
+     wegbaut. Die eine Antwort verbirgt, WER hier einen Zugang hat; sie muss
+     nicht verbergen, OB die Eingabe ueberhaupt eine Eingabe ist.
+     DIE ABSAGE SAGT NICHTS UEBER DEN BESTAND: sie faellt bei leerem Namen und
+     bei einer Zeichenfolge ohne `@` -- an beidem ist keine Zeile der
+     Datenbank beteiligt, und dieselbe Absage bekaeme jeder mit derselben
+     Eingabe. DIE BREMSE GREIFT VORHER (tokenThrottleFree), sie ist also auch
+     kein schnellerer Weg zum Durchprobieren.
+     BIS 0.31.4 LAS DER BENUTZER HIER „Danke": `auth.createRequest()` verwarf
+     die leere Eingabe still, es entstand nichts, und die Auskunft war falsch
+     (Punkt 30 des Sammelblatts). Der BESTAND war in Ordnung, nur die Auskunft
+     nicht -- und deshalb aendert diese Runde nichts am Verwerfen, sondern nur
+     an dem, was davor gesagt wird. */
+  if (!String(name ?? '').trim())
+    return res.status(400).json({ error: t(localeOf(req), 'login.usernameMissing') });
+  if (!mail.isAddress(address))
+    return res.status(400).json({ error: t(localeOf(req), 'login.emailInvalid') });
   const plain = an ? auth.createRequest(name, address) : null;
-  res.json(REQUEST_ANSWER);
+  res.json(requestAnswer(localeOf(req)));
   /* ERST DIE ANTWORT, DANN DER VERSAND (Begruendung bei
      sendConfirm): ein Weg, der auf den Mailserver wartet, waere an
      der Uhr von einem still verworfenen zu unterscheiden.
@@ -1955,7 +2002,7 @@ app.post('/api/users', adminOnly, async (req, res) => {
     const token = auth.createToken(created.id, 'invite', req.user.id);
     /* ERST DER TOKEN, DANN DER VERSAND, und die Reihenfolge ist die ganze
        Zusage: der Link steht in der Antwort, egal was der Mailserver sagt. */
-    const v = await sendTokenLink({ username: created.username, email: created.email }, token);
+    const v = await sendTokenLink({ username: created.username, email: created.email }, token, localeOf(req));
     res.json({ ...created, token: token.plain, purpose: token.purpose, days: token.days,
                minutes: auth.TOKEN_DEADLINE_MINUTES, ...linkInfo(token.plain), ...v });
   } catch (e) { return res.status(400).json({ error: errorText(req, e) }); }
@@ -1978,7 +2025,7 @@ app.post('/api/users/:id/token', adminOnly, async (req, res) => {
     const token = auth.createToken(target.id, purpose, req.user.id);
     // Erst der Token, dann der Versand -- dieselbe Reihenfolge wie am Anlegen,
     // und aus demselben Grund.
-    const v = await sendTokenLink(target, token);
+    const v = await sendTokenLink(target, token, localeOf(req));
     res.json({ id: token.id, username: token.username, token: token.plain,
                purpose: token.purpose, days: token.days, minutes: auth.TOKEN_DEADLINE_MINUTES,
                withoutPassword: token.withoutPassword,
@@ -2065,14 +2112,23 @@ function mailCard(req) {
   const state = mail.state(raw);
   return {
     ...state,
+    /* UND DER NAME DES GEWAEHLTEN ANBIETERS EBENSO -- 0.32.0, Bauabschnitt 5.
+       Die Karte „Mailversand" zeigt ihn (`mailProviderRow`), und „Eigener
+       Server" stand dort bis 0.31.4 in jeder Sprache deutsch. */
+    providerName: state.providerNameKey
+      ? t(localeOf(req), state.providerNameKey) : state.providerName,
     // Auch die beiden Hinweise am gewaehlten Anbieter sind Schluessel.
     hint: state.hint ? t(localeOf(req), state.hint) : '',
     hintAlways: t(localeOf(req), state.hintAlways),
     /* SAMT HINWEIS UND DEN DREI FESTEN WERTEN JE ANBIETER -- seit 0.17.3.
        Der Dialog wechselt mit der Auswahl beides, und beides steht in mail.js;
        zwei Ausfertigungen liefen auseinander (Stolperstein 102). */
+    /* UND DER EINE ANBIETERNAME, DER KEINE MARKE IST -- 0.32.0, Bauabschnitt 5.
+       `nameKey` traegt nur „Eigener Server"; die fuenf Marken heissen in jeder
+       Sprache gleich und bleiben, wie sie sind. */
     providerList: mail.forChoice().map(a =>
-      ({ ...a, hint: a.hint ? t(localeOf(req), a.hint) : '' })),
+      ({ ...a, name: a.nameKey ? t(localeOf(req), a.nameKey) : a.name,
+         hint: a.hint ? t(localeOf(req), a.hint) : '' })),
     configured: mail.configured(raw),
     // Der ZUSTAND der oeffentlichen Adresse, nicht die Adresse selbst -- die
     // steht in der Karte "Zugaenge", wo der Link entsteht.
@@ -2152,11 +2208,11 @@ app.post('/api/mail/test', ownerOnly, async (req, res) => {
    DER SCHALTER LEGT SICH NIE VON SELBST UM: einschalten geht nur bei
    bereitem Versand, AUSSCHALTEN GEHT IMMER. Geht der Versand spaeter kaputt,
    bleibt er an und die Karte sagt es rot. */
-function requestCard() {
+function requestCard(locale) {
   const b = deliveryReady();
   return {
     an: getSetting('signup', false) === true,
-    deliveryReady: b.ok, deliveryReason: b.reason,
+    deliveryReady: b.ok, deliveryReason: deliveryWhy(b, locale),
     requests: auth.listRequests(),
     cap: auth.REQUEST_CAP, used: auth.countRequests(),
     hours: auth.REQUEST_HOURS
@@ -2169,7 +2225,7 @@ app.get('/api/requests', adminOnly, (req, res) => {
   // raeumeTokensAuf() -- eine Instanz, die monatelang durchlaeuft, raeumte
   // sonst monatelang nicht auf. Hauswirtschaft, keine Benutzerhandlung.
   auth.cleanupRequests();
-  res.json(requestCard());
+  res.json(requestCard(localeOf(req)));
 });
 
 app.put('/api/signup/toggle', adminOnly, (req, res) => {
@@ -2180,10 +2236,10 @@ app.put('/api/signup/toggle', adminOnly, (req, res) => {
   if (an) {
     const b = deliveryReady();
     if (!b.ok) return res.status(400).json({ error:
-      t(localeOf(req), 'server.signupNeedsMail', { reason: b.reason })});
+      t(localeOf(req), 'server.signupNeedsMail', { reason: deliveryWhy(b, localeOf(req)) })});
   }
   putSetting.run('signup', JSON.stringify(an));
-  res.json(requestCard());
+  res.json(requestCard(localeOf(req)));
 });
 
 /* Die Freischaltung. AUS DER ANFRAGE WIRD EIN ZUGANG MIT DER ROLLE 'user' --
@@ -2206,10 +2262,10 @@ app.post('/api/requests/:id/approve', adminOnly, async (req, res) => {
      dieser Zugang aus einer SELBSTANMELDUNG kam und nicht aus der Hand des
      Admins. */
   auth.log('request.approve', { actor: req.user.id, target: created.id });
-  const v = await sendTokenLink({ username: created.username, email: created.email }, token);
+  const v = await sendTokenLink({ username: created.username, email: created.email }, token, localeOf(req));
   res.json({ ...created, token: token.plain, purpose: token.purpose, days: token.days,
              minutes: auth.TOKEN_DEADLINE_MINUTES, ...linkInfo(token.plain), ...v,
-             ...requestCard() });
+             ...requestCard(localeOf(req)) });
 });
 
 /* Die Ablehnung. DIE ZEILE IST WEG, UND ES ENTSTEHT NICHTS -- kein Zugang,
@@ -2223,7 +2279,7 @@ app.delete('/api/requests/:id', adminOnly, (req, res) => {
     return res.status(404).json({ error: t(localeOf(req), 'server.requestUnknown')});
   auth.removeRequest(a.id);
   auth.log('request.reject', { actor: req.user.id });
-  res.json({ ok: true, ...requestCard() });
+  res.json({ ok: true, ...requestCard(localeOf(req)) });
 });
 
 /* ---- Titel (nach der Anmeldung) ---- */
@@ -2390,7 +2446,7 @@ function vocabulary(locale) {
   const own = perLanguage[read] || {};
   /* DER ZUERST ANGELEGTE Satz -- und LEERE werden dabei uebergangen. Seit ein
      Satz nur noch traegt, was eingetragen wurde, kann der erste leer sein
-     (alle vierzehn Felder geraeumt). Ein leerer erster Satz naehme Rueckfall 2
+     (alle fuenfzehn Felder geraeumt). Ein leerer erster Satz naehme Rueckfall 2
      jede Wirkung, obwohl daneben ein voller zweiter steht. */
   const first = Object.values(perLanguage).find(
     w => w && typeof w === 'object' && Object.values(w).some(v => typeof v === 'string' && v.trim())) || {};
@@ -2417,7 +2473,7 @@ const vocabularyAll = () =>
      vocabularies        was ein Leser DIESER Sprache saehe -- samt Rueckfall.
                          Die Vorschau unter den Feldern rechnet damit.
      vocabulariesOwn     was fuer diese Sprache EINGETRAGEN ist, und sonst
-                         nichts. Die vierzehn Felder zeigen genau das; ein
+                         nichts. Die fuenfzehn Felder zeigen genau das; ein
                          leeres Feld heisst „nichts eingetragen" und wird
                          beim Speichern auch als nichts zurueckgeschrieben.
                          OHNE DIESE TAFEL schriebe die Karte den Rueckfall der
@@ -2683,7 +2739,7 @@ app.get('/api/settings', (req, res) => res.json({
      Karte braucht alle. */
   vocabularies: vocabularyAll(),
   /* UND ZWEI TAFELN DANEBEN -- 0.24.4. `vocabulariesOwn` traegt, was
-     EINGETRAGEN ist (die vierzehn Felder zeigen genau das), `vocabularyDefaults`
+     EINGETRAGEN ist (die fuenfzehn Felder zeigen genau das), `vocabularyDefaults`
      die Vorgabe je Sprachdatei (der Hinweis darunter). Beide stehen neben
      `vocabularies` und ersetzen es nicht: die Vorschau rechnet weiter mit dem
      Satz, den ein Leser DIESER Sprache saehe. */
@@ -2867,7 +2923,7 @@ app.put('/api/settings', (req, res) => {
      Saetze, die niemand je zu sehen bekaeme. */
   if (req.body.vocabulary !== undefined) {
     /* EINE FLACHE FORM IM RUMPF MEINT DIE SPRACHE DES RUFERS und nicht die
-       der Installation: wer vierzehn Woerter ohne Sprachkennung schickt, meint
+       der Installation: wer fuenfzehn Woerter ohne Sprachkennung schickt, meint
        den Satz, den er gerade vor sich hat. Beim gespeicherten Wert ist es
        umgekehrt -- der stammt aus einer Zeit, in der es nur eine Sprache gab,
        und die war die der Installation. Zwei Deutungen, zwei Stellen, und
@@ -2893,7 +2949,7 @@ app.put('/api/settings', (req, res) => {
          DIE UEBRIGEN SPRACHEN BLEIBEN STEHEN: geschrieben wird ueber das
          vorhandene Objekt, und die Karte schickt immer nur die eine, die
          gerade offen ist. Innerhalb DIESER Sprache ersetzt der Rumpf den
-         ganzen Satz -- die Karte schickt alle vierzehn Felder, und ein
+         ganzen Satz -- die Karte schickt alle fuenfzehn Felder, und ein
          geraeumtes Feld soll geraeumt bleiben. */
       for (const k of Object.keys(vocabularyDefault(code))) {
         const v = typeof words[k] === 'string' ? words[k].trim().slice(0, 40) : '';
@@ -3097,7 +3153,7 @@ app.put('/api/settings', (req, res) => {
                 `F_ROUTES` steigt dabei nicht -- es sind zwei Felder mehr in
                 einer Antwort, die es laengst gibt.
                 NUR WENN DIE SPRACHFRAGE BERUEHRT WAR: dieser Weg schreibt auch
-                Filter, Ansichten und vierzehn Vokabelwoerter, und keiner dieser
+                Filter, Ansichten und fuenfzehn Vokabelwoerter, und keiner dieser
                 Rufer braucht zwei Namenstafeln in der Antwort.
                 UND NUR FUER DEN ADMIN, wie beim Lesen (F3 der Runde 0.24.5) --
                 wer den Umschalter nicht sieht, bekommt auch die Tafel nicht. */
@@ -3824,6 +3880,97 @@ function authorCard() {
 }
 const authorFrom = (card, id) => (id == null ? null : (card.get(id) || null));
 
+/* ---- DIE MARKIERUNG: `@name` im Kommentartext -- 0.32.0, Bauabschnitt 2 ----
+   VOM BETREIBER BESTELLT am 12. September 2026: „das mit dem in kommentaren,
+   berichten und notizen, aufgaben das man ein user markieren kann mit
+   @username". ES HEISST MARKIEREN und nicht rufen, nennen oder erwaehnen
+   (Betreiber, 14.9.2026) -- das Wort steht so in der Oberflaeche, in den
+   Schluesselnamen und in jedem Papier dieser Runde.
+
+   DER SERVER LOEST AUF UND NICHT DER BROWSER, und das ist keine Bequemlichkeit:
+   die Zuordnung Name -> Nummer ist eine Aussage ueber den Bestand und muss
+   an der Stelle fallen, an der geschrieben wird. Faende der Browser sie beim
+   ANZEIGEN, zeigte dieselbe Zeile morgen auf jemand anderen -- genau der
+   Fehler, den die gespeicherte Nummer verhindert (F2).
+
+   WAS EIN HANDGRIFF IST: `@` und dahinter Buchstaben, Ziffern, `_`, `.`, `-`.
+   DAS LETZTE ZEICHEN IST NIE `.` ODER `-` -- sonst verschluckte „@bert." den
+   Punkt am Satzende und fande niemanden mehr.
+   UND DAS `@` DARF KEINEN NAMEN VOR SICH HABEN: „bert@beispiel.de" ist eine
+   Adresse und keine Markierung. Der Blick zurueck steht als Ausschluss und
+   NICHT als `\b` -- fuer JavaScript sind `ş`, `ğ`, `ı`, `ç`, `ö`, `ü` keine
+   Wortzeichen, eine Wortgrenze stuende dort, wo keine ist (Leitplanke L4,
+   die Lehre aus 0.31.3).
+   EIN NAME MIT LEERZEICHEN LAESST SICH NICHT MARKIEREN, und das gehoert
+   gesagt: `checkName()` erlaubt ihn, dieses Muster findet ihn nicht. Ein
+   Trenner MUSS im Muster stehen, sonst verschluckte „@anna schau mal" den
+   ganzen Satz -- und ein halb erratener Name waere schlimmer als keiner. */
+const MENTION_RX = /(?<![\p{L}\p{N}_.@-])@([\p{L}\p{N}](?:[\p{L}\p{N}_.-]*[\p{L}\p{N}_])?)/gu;
+
+/* DIE NAMENSTAFEL -- einmal je Schreibvorgang, nicht je Handgriff.
+   KLEIN GESCHRIEBEN MIT DER VERGLEICHSSPRACHE und nicht mit der des
+   Schreibenden: sonst waeren „İstanbul" und „istanbul" fuer den einen
+   derselbe Zugang und fuer den anderen zwei (T3). Dieselbe Regel wie ueberall
+   sonst, wo getippter Text verglichen wird.
+   GRABSTEINE STEHEN NICHT DARIN. Ein geloeschter Zugang heisst `deleted-7`,
+   und wer das tippt, meint keinen Menschen -- er zitiert einen Grabstein.
+   BESTEHENDE MARKIERUNGEN AUF IHN BLEIBEN: sie tragen seine NUMMER. */
+const mentionTable = () => {
+  const table = new Map();
+  for (const u of qAuthorRows.all()) {
+    if (u.status === 'deleted') continue;
+    table.set(String(u.username).trim().toLocaleLowerCase(compareLocale()), u.id);
+  }
+  return table;
+};
+
+/* WEN DIESER TEXT MARKIERT -- eine Liste aus { userId, handle }, je Zugang
+   EINMAL. Wer zweimal genannt wird, steht einmal darin: die Glocke sagt,
+   DASS jemand markiert ist, nicht wie oft.
+   WAS NIEMANDEN TRIFFT, FAELLT STILL HERAUS -- und das ist die Antwort auf
+   „freier Text bedeutet Tippfehler, die still ins Leere zeigen" (Fahrplan).
+   Sie zeigen nicht ins Leere: `@bret` wird gar nicht erst eine Markierung,
+   bleibt gewoehnlicher Text und sieht am Bildschirm auch so aus. Wer seinen
+   Griff danebensetzt, SIEHT es -- an der fehlenden Hervorhebung. */
+function mentionsIn(text) {
+  const table = mentionTable();
+  const out = new Map();
+  MENTION_RX.lastIndex = 0;
+  let hit;
+  while ((hit = MENTION_RX.exec(String(text ?? ''))) !== null) {
+    const handle = hit[1];
+    const id = table.get(handle.toLocaleLowerCase(compareLocale()));
+    if (id != null && !out.has(id)) out.set(id, { userId: id, handle });
+  }
+  return [...out.values()];
+}
+
+const qMentionsClear = db.prepare('DELETE FROM comment_mentions WHERE comment_id = ?');
+const qMentionsAdd = db.prepare(
+  'INSERT OR IGNORE INTO comment_mentions (comment_id, user_id, handle) VALUES (?, ?, ?)');
+/* NEU GESCHRIEBEN UND NICHT ERGAENZT. Wer `@bert` aus seinem Text
+   herausnimmt, hat ihn nicht mehr markiert -- eine Zeile, die stehen bliebe,
+   waere eine Markierung ohne Text. Beide Wege (Anlegen und Aendern) rufen
+   DIESE Funktion; zwei Stellen, die dasselbe aufloesen, liefen auseinander. */
+function setMentions(commentId, text) {
+  const found = mentionsIn(text);
+  qMentionsClear.run(commentId);
+  for (const m of found) qMentionsAdd.run(commentId, m.userId, m.handle);
+  return found;
+}
+
+/* UND DIE GEGENRICHTUNG: was ein Kommentar markiert, als Angabe an der
+   Antwort. Einmal je Eintrag gefragt und nicht je Kommentar -- dieselbe
+   Bauform wie qCommentImages eine Zeile hoeher, nur gebuendelt.
+   DER NAME KOMMT AUS DER NUMMER UND NIE AUS `handle` (Leitplanke L9): ein
+   Grabstein traegt `{ id, name: null, deleted: true }`, und die Oberflaeche
+   bildet daraus „Geloeschter Benutzer 7". Wer hier `handle` hinausschickte,
+   stellte den freigegebenen Namen wieder an den Bildschirm. */
+const qMentionsOfItem = db.prepare(
+  `SELECT m.comment_id, m.user_id, m.handle FROM comment_mentions m
+     JOIN comments c ON c.id = m.comment_id
+    WHERE c.item_id = ? ORDER BY m.comment_id, m.user_id`);
+
 /* UND DIE GEGENRICHTUNG -- 0.24.4 (B6 B). Aus einem NAMEN wird ein Verfasser.
    Gebraucht wird sie genau dort, wo kein Zugangsschluessel mehr dasteht: im
    Papierkorb. Die Zeile liegt dort als Paket im Austauschformat, und dieses
@@ -3855,11 +4002,27 @@ function authorByName(card, name) {
 function qComments(itemId, userId, card) {
   if (userId == null) throw new Error('qComments() ohne Benutzer aufgerufen');
   const list = qCommentsRaw.all(itemId);
+  /* DIE MARKIERUNGEN EINMAL FUER DEN GANZEN EINTRAG -- 0.32.0. Eine Abfrage
+     und nicht eine je Kommentar; dieselbe Ueberlegung wie bei qOpenPerEntry
+     und den neuen Kommentaren der Uebersicht. */
+  const markedPer = new Map();
+  for (const z of qMentionsOfItem.all(itemId)) {
+    if (!markedPer.has(z.comment_id)) markedPer.set(z.comment_id, []);
+    markedPer.get(z.comment_id).push({ handle: z.handle, author: authorFrom(card, z.user_id) });
+  }
   for (const c of list) {
     c.pinned = !!c.pinned;
     c.images = qCommentImages.all(c.id);
     c.mine = c.user_id === userId;
     c.author = authorFrom(card, c.user_id);
+    /* WEN DIESER KOMMENTAR MARKIERT -- 0.32.0, Bauabschnitt 2. Das Feld steht
+       IMMER da, auch leer: „niemand markiert" und „das Feld kennt diese
+       Fassung nicht" sind zwei Lagen, und ein fehlendes Feld machte aus der
+       ersten die zweite.
+       JE MARKIERUNG ZWEI ANGABEN: `handle` sagt, wie sie im ROHTEXT steht --
+       nur damit findet die Zerlegung sie wieder --, `author` ist das
+       Verfasserobjekt aus der NUMMER. Angezeigt wird immer `author`. */
+    c.mentions = markedPer.get(c.id) || [];
     // Der Eingriffsvermerk. Eine EIGENE Angabe neben dem Text, nie in ihm --
     // ein Admin, der in ein fremdes Textfeld schriebe, taete genau das, was
     // ihm verwehrt ist.
@@ -4641,9 +4804,24 @@ const qOpenPerEntry = db.prepare(
    das ist die Antwort auf dieselbe Frage, und diesmal die richtige.
    DER BEZUGSPUNKT WIRD TROTZDEM WEITER GESETZT (siehe glockeGesehen): sonst
    staute sich beim ersten fremden Beitrag alles seit Wochen auf. */
+/* UND SEIT 0.32.0 SAGT DIESELBE ABFRAGE AUCH, WAS DAVON MICH MARKIERT --
+   Bauabschnitt 1, Zusage 1. DIE GLOCKE RECHNET EINMAL: kein zweiter Weg, keine
+   zweite Zahl neben der ersten. Der `LEFT JOIN` macht die Abfrage EINE Spalte
+   breiter und nicht zwei Abfragen daraus -- dieselbe Ueberlegung wie beim
+   GROUP BY nach Eintrag UND Verfasser eine Runde davor.
+   UNTERSCHEIDEN HEISST NICHT ZWEIMAL ZAEHLEN (Stolperstein 47): `n` bleibt die
+   ganze Zahl, `marked` ist die TEILMENGE davon, die mich markiert. Eine Summe
+   der beiden waere die zweite Wahrheit, und sie wird nirgends gebildet.
+   DER JOIN STEHT IN DER ON-BEDINGUNG UND NICHT IM WHERE: im WHERE machte er
+   aus dem LEFT JOIN einen INNER, und die Abfrage lieferte nur noch die
+   markierten Kommentare -- die Glocke verloere alles andere. */
 const qNewComments = db.prepare(
-  `SELECT item_id, user_id, COUNT(*) AS n FROM comments
-    WHERE created_at > ? AND user_id IS NOT ? GROUP BY item_id, user_id`);
+  `SELECT c.item_id AS item_id, c.user_id AS user_id, COUNT(*) AS n,
+          SUM(CASE WHEN m.comment_id IS NULL THEN 0 ELSE 1 END) AS marked
+     FROM comments c
+     LEFT JOIN comment_mentions m ON m.comment_id = c.id AND m.user_id = ?
+    WHERE c.created_at > ? AND c.user_id IS NOT ?
+    GROUP BY c.item_id, c.user_id`);
 const qNewRatings = db.prepare(
   `SELECT item_id, user_id, COUNT(*) AS n FROM ratings
     WHERE set_at IS NOT NULL AND set_at > ? AND value > 0 AND user_id IS NOT ?
@@ -4692,6 +4870,10 @@ app.get('/api/items', (req, res) => {
      (Stolperstein 47). Gebildet wird sie in der Oberflaeche, an einer Stelle. */
   const reference = bellSeen(req.user.id);
   const newCommentsPer = new Map(), newRatingsPer = new Map(), newFromPer = new Map();
+  /* DIE VIERTE KARTE -- 0.32.0: wie viele der neuen Kommentare MICH markieren.
+     Sie steht neben den drei anderen und ist keine vierte Abfrage: gefuellt
+     wird sie aus derselben Zeile wie newCommentsPer. */
+  const newMarkedPer = new Map();
   if (reference) {
     /* WER EINEN KOMMENTAR GESCHRIEBEN HAT -- je Eintrag eine Menge von
        Zugangsnummern. Eine Nummer, die zweimal vorkommt, steht einmal darin:
@@ -4729,8 +4911,11 @@ app.get('/api/items', (req, res) => {
        `IS NOT` UND NICHT `!=`: eine herrenlose Zeile traegt `user_id = NULL`,
        und `NULL != 1` ist in SQL weder wahr noch falsch, sondern NULL -- die
        Zeile fiele stillschweigend heraus. `IS NOT` vergleicht auch NULL. */
-    for (const z of qNewComments.all(reference, req.user.id)) {
+    for (const z of qNewComments.all(req.user.id, reference, req.user.id)) {
       newCommentsPer.set(z.item_id, (newCommentsPer.get(z.item_id) || 0) + z.n);
+      /* WAS DAVON MICH MARKIERT -- aus DERSELBEN Zeile und nicht aus einer
+         zweiten Abfrage (Zusage 1). */
+      if (z.marked) newMarkedPer.set(z.item_id, (newMarkedPer.get(z.item_id) || 0) + z.marked);
       actor(z.item_id, z.user_id);
     }
     for (const z of qNewRatings.all(reference, req.user.id))
@@ -4817,6 +5002,15 @@ app.get('/api/items', (req, res) => {
   for (const it of rows) {
     it.rejected = !!it.rejected; it.tested = !!it.tested;
     it.author = authorFrom(card, it.user_id);
+    /* WEM DER EINTRAG GEHOERT, ALS JA/NEIN -- 0.32.0, Bauabschnitt 1. Die
+       Detailansicht sagt es seit jeher (`it.mine` in detail()); die Uebersicht
+       brauchte es bis dahin nicht. Jetzt braucht es die Glocke: sie trennt
+       „unter MEINEN {entryMany}" von „alles andere", und die Oberflaeche kennt
+       ihre eigene Nummer nicht -- sie darf sie auch nicht kennen.
+       ALS JA/NEIN UND NICHT ALS NUMMER: eine nackte Zugangsnummer geht aus
+       keiner Antwort hinaus, und aus einem Grabstein liesse sich ohnehin
+       nichts zurueckrechnen. Dieselbe Rechnung wie am Kommentar. */
+    it.mine = it.user_id === req.user.id;
     delete it.user_id;
     it.favorite = myPins.has(it.id);
     const ph = photosPer.get(it.id) || [];
@@ -4887,6 +5081,10 @@ app.get('/api/items', (req, res) => {
     if (reference) it.newComments = newCommentsPer.get(it.id) || 0;
     if (reference) it.newRatings = newRatingsPer.get(it.id) || 0;
     if (reference) it.newFrom = [...(newFromPer.get(it.id) || [])].map(uid => authorFrom(card, uid));
+    /* DIE VIERTE ANGABE, UND SIE STEHT MIT DEN DREI ANDEREN ODER GAR NICHT --
+       0.32.0. Sie ist eine TEILMENGE von `newComments` und keine Zahl daneben:
+       „3 neu, davon 1 an mich gerichtet". Eine Summe bildet niemand. */
+    if (reference) it.newMarked = newMarkedPer.get(it.id) || 0;
   }
   res.json(rows);
 });
@@ -5852,6 +6050,11 @@ app.post('/api/items/:id/comments', commentImageUpload.array('images', IMAGE_COU
     // Der Schreibende ist der Verfasser.
     const fresh = db.prepare('INSERT INTO comments (item_id, text, kind, pinned, user_id, due_date) VALUES (?, ?, ?, ?, ?, ?)')
       .run(req.params.id, text, kindValue(req.body.kind), pinned ? 1 : 0, req.user.id, due.value);
+    /* DIE MARKIERUNGEN ENTSTEHEN MIT DEM TEXT -- 0.32.0. Der Text ist die
+       Quelle, die Nummern sind das Ergebnis; beides in einem Zug, sonst gaebe
+       es einen Augenblick, in dem ein Kommentar `@bert` sagt und niemanden
+       markiert. */
+    setMentions(fresh.lastInsertRowid, text);
     if (k.images.length) saveCommentImages(fresh.lastInsertRowid, k.images);
     touch.run(req.params.id);
     res.status(201).json(detail(req.params.id, req.user.id, localeOf(req)));
@@ -5891,6 +6094,12 @@ app.put('/api/comments/:id', (req, res) => {
     const text = String(req.body.text).trim();
     if (!text) return res.status(400).json({ error: t(localeOf(req), 'server.textMissing')});
     db.prepare(`UPDATE comments SET text = ?, updated_at = datetime('now') WHERE id = ?`).run(text, c.id);
+    /* UND SIE WERDEN NEU AUFGELOEST -- 0.32.0. Wer `@bert` herausnimmt, hat
+       ihn nicht mehr markiert; wer `@carla` dazuschreibt, markiert sie ab
+       jetzt. NUR BEIM TEXT: ein umgelegter Haken in „Offen" oder ein
+       geruecktes Datum aendert die Aussage nicht und damit auch nicht, wen
+       sie markiert. */
+    setMentions(c.id, text);
   }
   // Eine Aenderung der Merkmale ist keine Bearbeitung des Textes und setzt
   // deshalb kein "bearbeitet" -- sonst stuende das an jedem angepinnten
@@ -7428,6 +7637,15 @@ async function importInto(payload, userId, mode2, bytesSource = null) {
             .run(id, c.text || '', kindValue(c.kind), c.pinned ? 1 : 0,
                  c.created_at || null, c.updated_at || null, authorId(c.author),
                  cDue.error ? null : cDue.value);
+        /* UND DIE MARKIERUNGEN WERDEN IN DIESER INSTANZ NEU AUFGELOEST --
+           0.32.0, F13. Das Austauschformat bleibt 16 und traegt KEINE
+           Zugangsnummern: sie bedeuten in einer fremden Instanz etwas anderes
+           (die Begruendung steht seit 0.24.4 an authorByName()). Die
+           Markierung steht als `@bert` ohnehin im Kommentartext -- also
+           entsteht sie hier aus dem Text, gegen die Namen DIESER Instanz.
+           WEN ES HIER NICHT GIBT, WIRD NICHT MARKIERT, und der Text sagt es
+           trotzdem: `@bert` bleibt stehen, nur eben als gewoehnlicher Text. */
+        setMentions(simple.lastInsertRowid, c.text || '');
         stats.comments++;
         (commentImages.get(c) || []).forEach((b2, i) =>
           db.prepare(`INSERT INTO comment_images (comment_id, filename, data, thumb, sort_order)
@@ -8084,7 +8302,16 @@ const cleanupRow = (d, now) => ({
    nennt die Zahl, um die es geht.
    DIE KOPIEN VON VOR DEM WECHSEL STEHEN GETRENNT, mit eigener Zahl und
    Summe: sie sind nicht entbehrlich, sondern etwas anderes. */
-function cleanupPreview(filePath, keep, days) {
+/* DIE VIER GRUENDE SIND SCHLUESSEL UND KEINE SAETZE -- 0.32.0, Bauabschnitt 4.
+   Sie standen bis 0.31.4 fest auf Deutsch hier und erreichten ueber die Karte
+   „Sicherung" jeden Bildschirm, auch den englischen (Punkt 29 des
+   Sammelblatts).
+   UND DIE MEHRZAHL KOMMT JETZT AUS DER SPRACHDATEI. Bis dahin baute diese
+   Funktion sie selbst -- `files.length === 1 ? 'Sicherung' : 'Sicherungen'`,
+   dreimal im selben Block. Eine Mehrzahlregel im Quelltext ist eine Regel je
+   Sprache an einer Stelle, die nur eine kennt; `t()` waehlt die Form ueber
+   `pluralOf(locale)` und beachtet dabei `_afterNumber` (0.31.4). */
+function cleanupPreview(filePath, keep, days, locale) {
   const files = backupList(filePath);
   if (files === null) return { reachable: false, files: [], matched: [], bytes: 0, reason: '' };
   const mark = changeMark();
@@ -8094,20 +8321,18 @@ function cleanupPreview(filePath, keep, days) {
   const matched = ruleHit(files, keep, days, now, mark ? mark.ms : null);
   let reason = '';
   if (!matched.length) {
-    if (!files.length) reason = 'Hier gibt es noch keine Sicherung.';
+    if (!files.length) reason = t(locale, 'server.cleanupNoBackups');
     else if (!usable.length)
-      reason = `Keine der ${files.length} ${files.length === 1 ? 'Sicherung' : 'Sicherungen'} ` +
-              'stammt von nach dem Schlüsselwechsel.';
+      reason = t(locale, 'server.backupsBeforeKey', { n: files.length });
     else if (usable.length <= keep)
-      reason = `Alle ${usable.length} ${usable.length === 1 ? 'Sicherung' : 'Sicherungen'} ` +
-              `sind unter den jüngsten ${keep}.`;
+      reason = t(locale, 'server.cleanupAllYoungest', { n: usable.length, keep: keep });
     else {
       // Die AELTESTE der Kopien, die der Boden nicht mehr deckt -- sie ist die,
       // die als naechste faellt, und ihr Alter ist die Auskunft, auf die es
       // ankommt.
       const next2 = usable[usable.length - 1];
       const from2 = Math.max(0, Math.floor((now - next2.time) / DAY_MS));
-      reason = `Die älteste ist ${from2} ${from2 === 1 ? 'Tag' : 'Tage'} alt.`;
+      reason = t(locale, 'server.cleanupOldestAge', { n: from2 });
     }
   }
   /* DIE VOLLSTAENDIGE LISTE, JUENGSTE ZUERST UND NUMMERIERT. Sie ist die
@@ -8255,7 +8480,7 @@ app.get('/api/backup', ownerOnly, (req, res) => {
   res.json({ configured: true, root: situation.root, place, filePath: target.filePath,
              inWorkDir: situation.inWorkDir,
              dbBytes, durationSeconds: duration, ...lastBackup(target.filePath),
-             cleanup: { ...rule, ...cleanupPreview(target.filePath, keep, days) } });
+             cleanup: { ...rule, ...cleanupPreview(target.filePath, keep, days, localeOf(req)) } });
 });
 
 /* Der Ort ist eine Einstellung der INSTANZ und gehoert damit in settings, nicht
@@ -8439,7 +8664,7 @@ app.post('/api/backup/cleanup', ownerOnly,
              ...lastBackup(target.filePath),
              cleanup: { ...after,
                            limits: { keep: CLEANUP_KEEP, days: CLEANUP_DAYS },
-                           ...cleanupPreview(target.filePath, after.keep, after.days) } });
+                           ...cleanupPreview(target.filePath, after.keep, after.days, localeOf(req)) } });
 });
 
 /* ---- DIE SICHERUNGSPROBE -- 0.29.0, Befund 1 --------------------------

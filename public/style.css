@@ -71,6 +71,11 @@
      entfernt als jede andere Wahl; Rot scheidet aus, es gehoert dem
      Zerstoeren. */
   --blue: #4d9de0;
+  /* UND SEINE ZERLEGUNG -- 0.32.0. Die Markierung eines Zugangs braucht
+     dieselbe leise Flaeche, die --accent-dim der Fundstelle gibt; gebaut wird
+     sie nach demselben Muster, `rgba(var(--x-rgb), …)`. */
+  --blue-rgb: 77,157,224;
+  --blue-dim: rgba(var(--blue-rgb), .16);
   /* Gold leiser, nach dem Muster von --accent-line. Voll gesaettigt ist Gold
      die Farbe der Sterne; ein ganzer Rahmen davon zoege mehr Aufmerksamkeit
      auf sich als die Bewertung selbst. */
@@ -328,6 +333,8 @@
   --star-off: #d3dae1;
 
   --blue: #1d6eb6;
+  --blue-rgb: 29,110,182;
+  --blue-dim: rgba(var(--blue-rgb), .11);
   --green: #0c7a54;
   --green-rgb: 12,122,84;
   --green-dim: rgba(var(--green-rgb), .10);
@@ -430,6 +437,8 @@
   --gold-rgb: 255,197,49;
   --star-off: #3a424a;
   --blue: #4d9de0;
+  --blue-rgb: 77,157,224;
+  --blue-dim: rgba(var(--blue-rgb), .16);
   --green: #3fd39a;
   --green-rgb: 63,211,154;
   --red: #f0555c;
@@ -933,6 +942,19 @@ button { cursor: pointer; background: none; border: none; padding: 0; }
 .select:hover { border-color: var(--line-hover); }
 .link-btn { font-size: .8rem; color: var(--muted); text-decoration: underline; }
 .link-btn:hover { color: var(--accent-text); }
+/* DER ABSTAND VOR „+ Ansicht speichern" — 0.32.0, Bauabschnitt 10. Er steht
+   am Ende der Pillenreihe der gespeicherten Ansichten und ist seit dieser
+   Runde ein TEXT und keine Pille mehr; ohne Abstand klebte er an der letzten
+   Pille. DIESELBEN 14 PIXEL WIE `.pill-sep` eine Reihe darüber — derselbe
+   Zweck, dieselbe Zahl.
+   NUR, WENN LINKS ETWAS STEHT: in einer leeren Ansichtenzeile fängt er die
+   Reihe an, und ein Einzug ohne Nachbar ist eine Lücke ohne Grund. */
+.link-btn-sep { margin-left: 14px; }
+/* UND EIN „MEHR"-TEXT, DER SEINEN AUFKLAPPER NICHT MEHR BRAUCHT — 0.32.0.
+   Er steht am Rechner dort, wo der Satz ohnehin in eine Zeile geht; die
+   Bedingung rechnet `more()` aus. DERSELBE ABSTAND WIE `.more` weiter unten,
+   damit die Karte an beiden Formen gleich aussieht. */
+.more-plain { margin: -6px 0 14px; }
 /* ---- EIN VERWEIS, DER EIN ZEICHEN TRAEGT -- 0.30.2, Befund 1 ----
    KEIN UNTERSTRICH: er gehoerte unter ein Wort und nicht unter einen Haken.
    EIN ZIEL FUER DEN FINGER: 30 x 30 Pixel, und das ist kein ausgerechneter
@@ -1117,6 +1139,23 @@ button { cursor: pointer; background: none; border: none; padding: 0; }
    drei Abschriften derselben Regel liefen auseinander. */
 mark {
   background: var(--accent-dim); color: var(--accent-text-hi);
+  border-radius: 3px; padding: 0 1px;
+}
+/* DIE MARKIERUNG EINES ZUGANGS — 0.32.0. „@bert" steht deutlich da, und zwar
+   HERVORGEHOBEN WIE EIN TREFFER DER SUCHE, ABER ALS EIGENE SACHE ERKENNBAR
+   (Fahrplan, Punkt 2): dieselbe Bauform wie `mark` — leise Fläche, runde
+   Ecken, kein Fettdruck —, aber in Blau statt Orange.
+   BLAU UND NICHT ORANGE, und das ist keine Geschmacksfrage: Orange ist in
+   dieser Instanz das Signal „hier, das ist gemeint" der SUCHE. Stünde die
+   Markierung in derselben Farbe, wäre in einem Kommentar mit Suchtreffern
+   nicht mehr zu sehen, was gefunden und was markiert ist. Blau trägt hier
+   schon die Aufgabe (`.mark.task.on`) — beide sagen „das geht jemanden an".
+   KEINE EIGENE SCHRIFTSTÄRKE UND KEIN EIGENER GRAD: ein Name mitten im Satz
+   soll den Satz nicht zerreißen.
+   SIE STEHT NUR IM ANGEZEIGTEN TEXT UND NIE IM TEXTFELD. Im Bearbeitenmodus
+   steht der Rohtext, und dort bleibt `@bert` schlicht `@bert`. */
+.mention {
+  background: var(--blue-dim); color: var(--blue);
   border-radius: 3px; padding: 0 1px;
 }
 .card-tags { display: flex; flex-wrap: wrap; gap: 4px; }
@@ -2750,6 +2789,23 @@ body.lb-open { overflow: hidden; }
    KEINE NEUE FARBE: --faint traegt in dieser Instanz jede Nebenangabe. */
 .mrow.bell-row { flex-wrap: wrap; row-gap: 2px; }
 .bell-row .bell-from { flex-basis: 100%; font-size: .76rem; color: var(--faint); }
+/* DIE DREI ABSCHNITTE DER TAFEL — 0.32.0, F3. EINE ZAHL AM SYMBOL, EINE
+   GETEILTE TAFEL DARUNTER: zwei Zahlen an einem Zeichen wären zwei Wahrheiten
+   an einem Ort, drei Überschriften über einer Liste sind eine Gliederung.
+   EINE ÜBERSCHRIFT UND KEINE PILLE: sie ist nichts zum Anklicken, sondern
+   sagt, wovon die Zeilen darunter handeln. Dieselbe Machart wie die
+   Abschnittsköpfe in „Offen" — klein, gedämpft, gesperrt.
+   DIE ERSTE STEHT OHNE ABSTAND NACH OBEN. Ein Kasten, der mit einer Lücke
+   anfängt, sieht aus, als fehlte darüber etwas. */
+.bell-head {
+  font-size: .72rem; letter-spacing: .06em; text-transform: uppercase;
+  color: var(--faint); padding: 12px 0 4px;
+}
+.bell-head:first-child { padding-top: 2px; }
+/* UND DER ERSTE ABSCHNITT TRÄGT DIE FARBE DER MARKIERUNG. „An mich gerichtet"
+   ist dieselbe Sache wie das `@bert` im Text; wer beides in derselben Farbe
+   sieht, braucht den Zusammenhang nicht erklärt zu bekommen. */
+.bell-head[data-origin="marked"] { color: var(--blue); }
 /* BREITER ALS EIN GEWOEHNLICHES FENSTER, seit 0.17.3: die Tabelle hat vier
    Spalten, und der Fliesstext darunter bricht auf 540 Pixeln zu oft um. Jeder
    gesparte Umbruch ist eine Zeile weniger im Kasten -- und der Kasten rollte
