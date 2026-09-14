@@ -133,7 +133,7 @@ gar nicht mehr erreicht.** *Zwei Orte für dieselbe Aussage sind einer zu viel
 | **L2** | **DIE ZAHL DER BLÖCKE STEHT AN EINER STELLE.** *Heute steht sie an dreien und stand bis 13.9.2026 an dreien VERSCHIEDEN da. Nach dieser Runde steht sie im Prüfstand und sonst nirgends* | Stolperstein 47 |
 | **L3** | **KEIN ABSTURZ ALS ABSAGE.** *Wer eine zu alte Datenbank öffnet, bekommt einen SATZ und keinen Stapelabzug. Er muss daraus lesen können, über welche Fassung er zuerst gehen muss* | `keys.js`, `warnKeyBesideData()` als Vorbild |
 | **L4** | **DIE ABSAGE FRAGT DEN BESTAND UND KEINEN MERKER.** *Jeder Block hier fragt heute `sqlite_master` und ist deshalb beliebig oft fahrbar. Ein Merker wäre eine zweite Wahrheit — und er fehlte genau in der Datenbank, um die es geht* | `db.js:942`, Stolperstein 47 |
-| **L5** | **DAS AUSTAUSCHFORMAT RÜHRT SICH NICHT.** *Es bleibt 16. Der Bruch ist einer an der DATENBANK; eine Exportdatei von gestern muss morgen noch lesbar sein* | `server.js:6572` |
+| **L5** | **DER BRUCH GILT DER DATENBANK UND NICHT DER EXPORTDATEI.** *Eine Datei von gestern muss morgen noch lesbar sein.* **Die FORMATNUMMER darf trotzdem steigen** *(F16)* — *sie sagt, welche Felder zu erwarten sind, und nicht, was noch gelesen wird* | `server.js:6572` |
 | **L6** | **KEIN SCHLÜSSEL FÄLLT NUR IN EINER SPRACHE.** *Die Deckungsprobe verlangt in allen drei Dateien dieselben Schlüssel in derselben Folge* | 0.24.0 |
 | **L7** | **JEDE ÄNDERUNG AN DEN SPRACHDATEIEN STEHT IN IHRER TAFEL.** *Wortlautprobe gegen `0681d42`, `EG_CHANGED_AFTER_0312`, `TR_CHANGED_AFTER_0313` — und die Bücher von 0.32.1 sind frisch* | 0.31.2 Zusage 10, 0.31.3 |
 | **L8** | **DIE README SPRICHT VON DER LAGE UND NICHT VON DER GESCHICHTE.** *Was in dieser Runde fällt, fällt auch aus der Anleitung — der Satz „Wer von einer Fassung vor 0.14.0 kommt, sichert pflichtgemäß" beschreibt danach einen Weg, den es nicht mehr gibt* | Regel 5.6 |
@@ -291,10 +291,54 @@ fehlt oder eine andere Fassung nennt.* **Zu entscheiden ist F14.**
 
 ---
 
+## Strang 4 — Das Protokoll spricht englisch
+
+**DAZUGEKOMMEN AM 14. SEPTEMBER 2026, aus der Antwort auf F5:**
+
+> *„Englisch. Aber mit Konsole meinst du das Log, oder? Das ist blöd, dass die
+> noch auf Deutsch sind. Die müssen englisch werden."*
+
+**ER HAT RECHT, UND ES IST DIE LETZTE DEUTSCHE ECKE DES HAUSES.** *0.31.0 hat
+elf Code-Lecks aus den Sprachdateien geholt, 0.32.0 zwölf feste deutsche Sätze
+aus `server.js` — beide Male ging es um das, was den BILDSCHIRM erreicht.*
+**Das Containerprotokoll ist nie angefasst worden, weil es keinen Bildschirm
+erreicht.** *Es erreicht aber den, der die Anwendung betreibt, und der muss
+nicht deutsch können.*
+
+### Gezählt und nicht geschätzt
+
+| Datei | deutsch | von |
+|---|---|---|
+| `server.js` | **22** | 30 |
+| `db.js` | **21** | 22 |
+| `batchrun.js` | **7** | 8 |
+| `auth.js` | **5** | 7 |
+| `keys.js` | **3** | 3 |
+| `images.js` | 0 | 1 |
+| **zusammen** | **58** | **71** |
+
+> **UND ES IST BILLIGER ALS JEDE FRÜHERE SPRACHRUNDE, weil es KEINE Sprachdatei
+> anfasst.** *Ein Satz im Protokoll ist kein Bildschirmtext: er bekommt keinen
+> Schlüssel, keine Mehrzahlform und keine drei Fassungen. **Er wird übersetzt
+> und bleibt eine Zeichenfolge im Quelltext.*** **Die Deckungsprobe, die
+> Wortlautprobe und die sechs Gleichlautsummen bleiben dadurch unberührt** —
+> *und das ist der Grund, warum dieser Strang in dieselbe Runde passt.*
+
+**EIN TEIL FÄLLT OHNEHIN MIT.** *Von den 21 deutschen Ansagen in `db.js` gehören
+die meisten den achtzehn Blöcken* („Tabellen umbenannt (Migration auf 0.24.1)",
+„items um rejected_at … ergaenzt") — **sie verschwinden mit Strang 1 und sind
+nicht zu übersetzen, sondern zu löschen.** *Was übrig bleibt, ist die Arbeit.*
+
+**Und ein Wächter gehört dazu:** *eine Restprobe über die Konsolenansagen der
+sechs Dateien, nach dem Muster der Restprobe für `server.js` aus 0.32.0.*
+**Ohne ihn ist der neunundfünfzigste deutsche Satz eine Frage der Zeit** —
+*genau so, wie es bei den Bildschirmsätzen der zwölfte war.*
+
+---
+
 ## Die Fragetafel — vor der ersten Zeile zu beantworten
 
-**Stand 14. September 2026, 20 Uhr: F2 und F7 sind vom Betreiber entschieden**
-*(alle achtzehn fallen · der Bestandslauf ist mit PNG und mit den Vorschaubildern gefahren)*. **Offen sind noch F5** *(Sprache der Absage)*, **F6** *(wie weit sie zurückreicht)*, **F9** *(die Übersetzung alter Exportdateien)* **und die neue F14** *(der Versionsstempel, vom Betreiber am selben Abend angeregt)*.
+**Stand 14. September 2026, 21 Uhr: SECHS FRAGEN SIND ENTSCHIEDEN** — *F2 (alle achtzehn fallen) · F7 (Bestandslauf gefahren) · F5 (englisch) · F6 (jede Spalte einzeln) · F9 (die Übersetzung fällt) · F14 (das volle Paket)*. **Offen sind allein F15 und F16** — *und beide sind erst durch die Entscheidungen von eben entstanden: F15 aus F9, F16 aus F14.*
 
 | # | Frage | Vorschlag |
 |---|---|---|
@@ -302,16 +346,18 @@ fehlt oder eine andere Fassung nennt.* **Zu entscheiden ist F14.**
 | **F2** | **Fallen die sechs Blöcke der 0.24er Sprachrunde mit?** | **ENTSCHIEDEN AM 14.9.2026 — JA, alle achtzehn.** *Der Betreiber: „alles was für die Migration von den Zwischenschritten notwendig war, kann weg."* **Damit fallen 928 von 2146 Zeilen aus `db.js`** — *die sechs vor `db.exec(SCHEMA)` und die zwölf dahinter, und die Grenze selbst fällt mit* |
 | **F3** | **Fällt die Zählprüfung, oder wird sie umgedreht?** | **UMGEDREHT.** *„Es gibt genau zwoelf Migrationsfunktionen" wird „Es gibt keine" — und sie zählt danach über BEIDE Markenformen, damit ein neuer Block auffällt, gleich in welcher Schreibweise* |
 | **F4** | **Wie sagt die Instanz ab?** | **Sie fragt `sqlite_master` und öffnet nicht.** *Kein Merker (L4), kein Absturz (L3)* |
-| **F5** | **In welcher Sprache steht die Absage?** | **Vorschlag: Deutsch, im Containerprotokoll, wie jede andere Startansage.** *Sie erreicht keinen Bildschirm und keinen angemeldeten Menschen — sie erreicht den Betreiber am Wirt. **Ein Sprachschlüssel dafür wäre der erste, den niemand je in der Oberfläche sieht.*** **Zu bestätigen** |
-| **F6** | **Wie weit zurück reicht die Absage?** | **Vorschlag: bis zur ältesten Spalte, die ein Block angelegt hätte.** *Eine gröbere Grenze verweigerte Datenbanken, die vollständig sind* |
+| **F5** | **In welcher Sprache steht die Absage?** | **ENTSCHIEDEN AM 14.9.2026 — ENGLISCH.** *Und der Betreiber hat dabei mehr entschieden als die Absage:* **„Das ist blöd, dass die noch auf Deutsch sind. Die müssen englisch werden."** *Damit ist das Protokoll als Ganzes gemeint — siehe Strang 4* |
+| **F6** | **Wie weit zurück reicht die Absage?** | **ENTSCHIEDEN — JEDE SPALTE EINZELN, und die Absage benennt, WELCHE fehlt.** *Eine Probe je Spalte und Tabelle, die einer der achtzehn Blöcke angelegt hätte. Rund zwanzig Zeilen statt fünf — und die Diagnose statt des Symptoms* |
 | **F7** | **Was ist die BEDINGUNG, die vorher erfüllt sein muss?** | **ERFÜLLT, und zwar gemeldet und nicht angenommen.** *Der Betreiber am 14.9.2026: „Bestandslauf habe ich mit PNG gemacht und auch mit den Vorschaubildern."* **Beide Hälften des Knopfes sind auf der einen echten Installation gefahren** — *es liegt kein JPEG-Vorschaubild mehr, das der fallende Zweig noch erwischen müsste.* **Und für die Datenbankhälfte trägt die Voraussetzung der Runde:** *unter 0.33.0 hat nie jemand anders gestanden* |
-| **F8** | **Steigt das Austauschformat mit?** | **Nein, es bleibt 16** *(L5)* |
-| **F9** | **Fällt die Übersetzung ALTER EXPORTDATEIEN mit?** | **VORSCHLAG: NEIN — und das ist die eine Stelle, an der ich die Voraussetzung der Runde NICHT durchschlagen lasse.** *`server.js:52` holt `COLUMNS_0241` und `VALUES_0241` aus `db.js`; `server.js:7207`/`:7218` übersetzen damit beim EINLESEN eine Exportdatei von vor 0.24.1 — „die Paare kommen aus DERSELBEN Liste wie der Migrationsblock und nicht aus einer zweiten".* **Eine Datenbank liegt auf EINER Maschine und ist mit ihr aktuell geworden; eine Exportdatei ist eine DATEI — sie liegt in einer Sicherung und überlebt die Maschine.** *Es kostet `DICTIONARY` samt den beiden Tafeln, rund fünfzehn Zeilen, und keinen einzigen Migrationsblock.* **Wer sagt, dass auch keine solche Datei mehr existiert, kann sie fallen lassen** — *dann fällt `DICTIONARY` ganz aus `db.js`, und der Prüfstand liest die Datei ohnehin selbst (`testbench.js:18825`).* **Zu bestätigen** |
+| **F8** | ~~**Steigt das Austauschformat mit?**~~ | **ÜBERHOLT DURCH F16.** *Als diese Zeile geschrieben wurde, nahm die Runde nur weg. F14 legt ein Feld dazu — die Frage steht jetzt dort und lautet anders* |
+| **F9** | **Fällt die Übersetzung ALTER EXPORTDATEIEN mit?** | **ENTSCHIEDEN — JA, SIE FÄLLT.** *`DICTIONARY` fällt damit GANZ aus `db.js`, `COLUMNS_0241`/`VALUES_0241` gehen nicht mehr hinaus, und `server.js:7207`/`:7218` fallen mit; `tools/dictionary.json` bleibt als Datei, der Prüfstand liest sie selbst (`testbench.js:18825`).* **ABER SIE DARF NICHT ERSATZLOS FALLEN — siehe F15** |
 | **F10** | **Die acht Prüfgruppen?** | **UMGEDREHT, nicht gelöscht** *(L1)*. *Sie legen weiter eine alte Datenbank an — und belegen danach die Absage* |
 | **F11** | **Die acht Rückbauten auf Migrationszeilen?** | **Sie werden auf die Absage umgehängt.** *Wer sie stilllegt, muss eine Prüfung rot machen — sonst ist die Absage nicht belegt* |
 | **F12** | **Kommt 0.33.x (Kommentare kürzen) mit?** | **Nein, und der Grund steht im Fahrplan:** *diese Runde löscht ganze Blöcke samt ihren Kommentaren. **Wer vorher schneidet, schneidet zweimal*** |
 | **F13** | **Die Marken sagen „ENTFAELLT MIT 1.0" und meinen diese Runde — was wird daraus?** | **Mit dem Block fällt seine Marke.** *Was nach F2 stehen bleibt, bekommt eine berichtigte Marke — und der Prüfstand hält danach fest, dass in `db.js` keine Ankündigung auf 1.0 mehr steht, zu der es keinen Block mehr gibt* |
-| **F14** | **Schreibt die Datenbank künftig auf, mit welcher Fassung sie läuft?** | **VORSCHLAG: JA, und zwar zwei Zeilen statt einer.** *`settings` bekommt die Fassung, mit der zuletzt geöffnet wurde, und die, mit der die Datenbank ANGELEGT wurde — die erste beim Start nachgezogen, die zweite einmal und nie wieder.* **Die Absage liest die erste und sagt damit, WAS sie abweist und nicht nur, dass etwas fehlt.** *Zwei Zeilen sind hier keine zweite Wahrheit, sondern zwei verschiedene Aussagen (Stolperstein 47 verlangt einen Ort JE Aussage, nicht eine Aussage insgesamt).* **Dazu der Vorschlag, die Exportdatei die Programmfassung neben der Formatnummer tragen zu lassen** — *und die Formatnummer beim Einspielen endlich zu LESEN: sie wird seit sechzehn Fassungen geschrieben und nie geprüft.* **Zu entscheiden** |
+| **F14** | **Schreibt die Datenbank künftig auf, mit welcher Fassung sie läuft?** | **ENTSCHIEDEN — DAS VOLLE PAKET.** *Zwei Zeilen in `settings` (womit zuletzt geöffnet · womit angelegt), die **Programmfassung** neben der Formatnummer in die Exportdatei, und die **Formatnummer wird beim Einspielen endlich GELESEN** — sie wird seit sechzehn Fassungen geschrieben und nie geprüft* |
+| **F15** | **Was tritt an die Stelle der gefallenen Übersetzung?** | **VORSCHLAG: DER IMPORT WEIST EINE DATEI MIT FORMATNUMMER ≤ 13 AB.** *Und das muss so grob sein, weil die Zahl den Umbau nicht markiert:* **0.24.1 hat die Felder umbenannt, ohne die Formatnummer zu heben** — *0.24.0 und 0.24.2 tragen beide die **13**, und aus der Zahl allein ist nicht zu sehen, welche der beiden es ist* *(erst 0.24.3 hebt auf 14)*. **Eine 0.24.2-Datei fällt damit mit ab, und das ist die richtige Richtung:** *abweisen ist laut, stillschweigend falsch einspielen ist leise.* *Ohne diese Abweisung verlöre ein Foto aus einer alten Datei still seine Art und seine Dauer — die Felder hießen `art` und `dauer`, und niemand läse sie mehr.* **Zu bestätigen** |
+| **F16** | **Steigt das Austauschformat auf 17?** | **VORSCHLAG: JA — und das widerspricht dem, was oben unter L5 und in der Antragsbeschreibung stand.** *Solange die Runde nur WEGNAHM, blieb 16 richtig. **F14 legt aber ein Feld DAZU** — die Programmfassung neben der Formatnummer —, und das Haus hat die Zahl für jede Felderweiterung gehoben:* **13 → 14** *(0.24.3, die Sprachfassungen der Namen)*, **14 → 15** *(0.25.0, die Erstellungssprache)*, **15 → 16**. *Eine ältere Instanz übergeht das zusätzliche Feld wortlos, wie seinerzeit `criteriaGewichte` — die Zahl ist nicht die Lesbarkeit, sie ist die AUSSAGE, welche Felder zu erwarten sind.* **Zu bestätigen** |
 
 ---
 
@@ -324,8 +370,10 @@ fehlt oder eine andere Fassung nennt.* **Zu entscheiden ist F14.**
 | **BA 3** | **Die sechs der 0.24er Runde fallen** — *samt der Grenze `db.exec(SCHEMA)`, die sie von den zwölf trennte; `tools/dictionary.json` bleibt als Datei* | F2 ✓, F9 |
 | **BA 4** | **Die acht Prüfgruppen werden umgedreht** — *dieselbe alte Datenbank, das umgekehrte Ergebnis* | F10 |
 | **BA 5** | **Die JPEG-Hälfte des Bestandslaufs fällt** — *vier bis fünf Schlüssel in drei Sprachen, und der Widerspruch an der Karte verschwindet von selbst* | Strang 2 |
-| **BA 6** | **Die Papiere** — README *(zwei Migrationsabsätze, der JPEG-Satz)*, CHANGELOG, Projektstand, Fahrplan, Änderungsprotokoll | L8 |
-| **BA 7** | **Prüfstand, Gegenproben, Augenschein, Fingerprint** | |
+| **BA 6** | **Der Versionsstempel** — *zwei Zeilen in `settings`, die Programmfassung in die Exportdatei, und der Import LIEST die Formatnummer und weist ≤ 13 ab* | F14, F15 |
+| **BA 7** | **Das Protokoll spricht englisch** — *58 Ansagen in sechs Dateien, abzüglich derer, die mit Strang 1 ohnehin fallen; dazu die Restprobe* | Strang 4 |
+| **BA 8** | **Die Papiere** — README *(zwei Migrationsabsätze, der JPEG-Satz)*, CHANGELOG, Projektstand, Fahrplan, Änderungsprotokoll | L8 |
+| **BA 9** | **Prüfstand, Gegenproben, Augenschein, Fingerprint** | |
 
 ---
 
@@ -344,10 +392,13 @@ fehlt oder eine andere Fassung nennt.* **Zu entscheiden ist F14.**
 | **8** | **Die erste Hälfte des Knopfes tut, was sie tat** — *Originale werden weiter umgestellt* |
 | **9** | **Die drei Sprachdateien tragen gleich viele Schlüssel, in derselben Folge und derselben Gestalt** — *und die neue Zahl steht an EINER Stelle* |
 | **10** | **Jede Änderung an den Sprachdateien steht in ihrer Tafel** *(L7)* |
-| **11** | **Die 28 Tabellen sind 28, und das Austauschformat ist 16** |
+| **11** | **Die 28 Tabellen sind 28** — *und das Austauschformat steht auf der Zahl, die F16 setzt, an allen Stellen zugleich* |
 | **12** | **Kein Papier nennt einen Migrationsblock, den es nicht mehr gibt** — *README, CHANGELOG, Projektstand und Fahrplan werden mitgezogen* |
+| **13** | **Die Datenbank sagt, mit welcher Fassung sie zuletzt lief — und mit welcher sie angelegt wurde** |
+| **14** | **Die Exportdatei trägt die Programmfassung neben der Formatnummer** — *und der Import LIEST die Formatnummer: eine Datei mit ≤ 13 wird abgewiesen und nicht still falsch eingespielt* |
+| **15** | **Keine Konsolenansage der sechs ausgelieferten Dateien spricht noch deutsch** — *und eine Restprobe hält es fest, wie die für `server.js` aus 0.32.0* |
 
-**DREIZEHN ZUSAGEN, und jede bekommt ihre Gegenprobe — jede wird GEFAHREN.**
+**SECHZEHN ZUSAGEN, und jede bekommt ihre Gegenprobe — jede wird GEFAHREN.**
 *Eine stumme ist ein Fund; 0.32.0 hat das mit 1023 bewiesen und 0.32.1 mit acht
 Rückbauten bestätigt, die alle WIEDER EINBAUEN, was die Runde ausgebaut hat.*
 **Diese Runde ist von derselben Art: ihre Rückbauten bauen die Blöcke wieder
@@ -357,7 +408,7 @@ ein — und wenn keine Prüfung davon rot wird, ist die Absage nicht belegt.**
 
 ## Was ausdrücklich NICHT gebaut wird
 
-- **Kein Schritt am Austauschformat.** *Es bleibt 16. Der Bruch gilt der DATENBANK, nicht der Exportdatei — wer eine Sicherung von gestern hat, spielt sie morgen ein.*
+- **Kein Bruch an der Exportdatei.** *Wer eine Sicherung von gestern hat, spielt sie morgen ein. **Die Formatnummer steigt aber auf 17** (F16), weil F14 ein Feld dazulegt — und eine Datei mit ≤ 13 wird künftig abgewiesen (F15), weil ihre Feldnamen seit 0.24.1 andere sind und niemand sie mehr übersetzt.*
 - **Kein Merker in der Datenbank.** *Er fehlte genau dort, wo er gebraucht würde.*
 - **`tools/dictionary.json` fällt nicht.** *Der Import lebt davon.*
 - **Keine gekürzten Kommentare.** *Das ist 0.33.x und kommt DANACH.*
