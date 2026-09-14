@@ -271,7 +271,18 @@ function languageEntries() {
   const std = languageDefault();
   return LANGUAGE_CODES.map(code => ({
     code, name: languageName(code),
-    isDefault: code === std, active: pool.includes(code)
+    isDefault: code === std, active: pool.includes(code),
+    /* UND IHRE STELLUNGSREGEL -- 0.31.4. `_afterNumber` sagt, welche Form
+       hinter einer ZAHL steht: `one` im Tuerkischen, `plural` sonst. Sie steht
+       hier, weil die Karte „Vokabular" die Woerter einer FREMDEN Sprache
+       pflegt -- der Eigentuemer liest Deutsch und traegt Tuerkisch ein. Die
+       Vorschau dort braucht die Regel DER GEZEIGTEN Sprache; die des Lesers
+       (`AFTER_NUMBER` im Browser) waere genau dort die falsche.
+       DIESELBE ENGE PRUEFUNG WIE IM BROWSER: nur die beiden bekannten Werte
+       zaehlen, alles andere faellt auf `plural` und damit auf das Verhalten
+       von vor 0.31.4. Eine hineingelegte Sprachdatei soll an einem Tippfehler
+       in einem Kopfschluessel nicht zerbrechen. */
+    afterNumber: LANGUAGES[code]._afterNumber === 'one' ? 'one' : 'plural'
   }));
 }
 

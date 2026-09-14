@@ -6695,7 +6695,7 @@ const REGRESSIONS = [
        wieder zwei Saetze, statt Intl.PluralRules zu fragen. */
     nr: '689', name: 'Eine Mehrzahl waehlt ihre Form wieder ueber `=== 1 ?`',
     file: 'public/app.js',
-    search: "const vThing = (n) => plural(n, V.entryOne, V.entryMany);",
+    search: "const vThing = (n) => counted(n, V.entryOne, V.entryMany);",
     replacement: 'const vThing = (n) => (n === 1 ? V.entryOne : V.entryMany);',
     expected: 'Die sieben Waechter der Sprachdatei \u2014 0.24.0'
   },
@@ -7746,11 +7746,17 @@ const REGRESSIONS = [
        ER GREIFT AN EINER EINZIGEN DATEI, obwohl alle drei betroffen waren:
        der Waechter sieht jede Datei einzeln an, und eine offene reicht.
        Wer den Rueckbau ueberlebt, hat einen Waechter, der nur die Mehrheit
-       fragt. */
+       fragt.
+       MIT 0.31.3 IST DAS PAAR EIN TUERKISCHES -- die tuerkische Typografie kennt
+       das deutsche nicht, und 0.31.3 hat es in `tr.json` umgestellt (F3, 68
+       Schluessel). Der Suchtext ist mitgezogen; der Pruefstand hat ihn mit null
+       Treffern gemeldet, und das ist wieder der Beleg, dass ein Rueckbau, der
+       ins Leere greift, auffaellt. Der Waechter von 0.25.4 zaehlt ohnehin alle
+       drei Zeichen und bleibt unberuehrt. */
     nr: '793', name: 'Das Anfuehrungszeichen am Tagzeichen bleibt wieder offen',
     file: 'public/languages/tr.json',
-    search: '"entry.tagQuote": "Etiket \u201e{name}\u201c",',
-    replacement: '"entry.tagQuote": "Etiket \u201e{name}",',
+    search: '"entry.tagQuote": "Etiket \u201c{name}\u201d",',
+    replacement: '"entry.tagQuote": "Etiket \u201c{name}",',
     expected: 'Ein Satz, den jede Sprache selbst schneidet — 0.25.4'
   },
   {
@@ -9832,6 +9838,284 @@ const REGRESSIONS = [
     search: "  \"login.requestAccess\": \"Zugang anfragen\",",
     replacement: "  \"login.requestAccess\": \"Zugang beantragen\",",
     expected: 'Englisch sitzt — 0.31.2'
+  },
+  /* ---- „Tuerkisch sitzt" -- 0.31.3, dreizehn Zusagen ----
+     JEDER GREIFT IN DIE DATEN UND NICHT IN DEN WAECHTER. Elf fassen `tr.json`
+     an -- die Datei, die diese Runde formuliert --, einer `en.json` und einer
+     den Vergleichsstand.
+     UND JEDER IST SO KLEIN GESCHNITTEN, DASS ER SEINE EIGENE ZUSAGE MELDET:
+     der Laengenrueckbau fuegt keinen Satz hinzu, der Satzrueckbau macht aus
+     einem Gedankenstrich einen Punkt und bleibt dabei gleich lang, und der
+     Verbotswort-Rueckbau ist ausdruecklich KUERZER als sein deutscher Satz.
+     ZWEI VON IHNEN MACHEN ABSICHTLICH AUCH EINEN AELTEREN WAECHTER ROT, und
+     das ist bei beiden die Sache selbst: 989 faellt zugleich in „Englisch
+     sitzt" (Englisch ist jetzt Basis fuer zwei Runden) und 997 in die
+     Vokabelprobe von 0.24.4 (die Entscheidung des Betreibers steht an beiden
+     Orten). Zwei Wachen ueber dieselbe Zusage duerfen sich nicht
+     widersprechen. */
+  {
+    /* ZUSAGE 1: ein ENGLISCHER Wert wird angefasst. Seit dieser Runde ist
+       Englisch die zweite unveraenderliche Basis (Leitplanke L1), und die
+       Gleichlautprobe rechnet ihre beiden englischen Summen am Quelltext nach.
+       DER DEUTSCHE HALBTEIL STEHT SCHON DA -- Gegenprobe 978 aus 0.31.2 fasst
+       `de.json` an und macht seit dieser Runde BEIDE Gruppen rot. Hier geht es
+       um die Haelfte, die 0.31.3 dazugelegt hat. */
+    nr: '989', name: 'Ein englischer Wert aendert sich — Englisch ist die zweite Basis',
+    file: 'public/languages/en.json',
+    search: "  \"card.active\": \"active\",",
+    replacement: "  \"card.active\": \"on\",",
+    expected: 'Tuerkisch sitzt — 0.31.3'
+  },
+  {
+    /* ZUSAGE 2: ein Mehrzahlpaar wird auf Tuerkisch zu EINEM Satz. Die
+       Deckungsprobe sieht das nicht -- der Schluessel ist da, und gezaehlt
+       wird er auch; am Bildschirm stuende danach bei n = 1 ein `⟦…⟧`. */
+    nr: '990', name: 'Ein tuerkisches Mehrzahlpaar wird ein einzelner Satz',
+    file: 'public/languages/tr.json',
+    search: "  \"card.wordsMissing\": {\n    \"one\": \"1 sözcük\",\n    \"other\": \"{n} sözcük\"\n  },",
+    replacement: "  \"card.wordsMissing\": \"{n} sözcük\",",
+    expected: 'Tuerkisch sitzt — 0.31.3'
+  },
+  {
+    /* ZUSAGE 3: ein Platz faellt aus dem tuerkischen Satz. Im Tuerkischen
+       WANDERT die Stelle eines Platzes mit der Grammatik (L5) -- und genau
+       deshalb braucht diese Zusage ihre Gegenprobe: eine Runde, die Plaetze
+       umstellt, kann einen dabei verlieren, und der Satz verliert seine Zahl. */
+    nr: '991', name: 'Ein tuerkischer Wert verliert einen Platzhalter',
+    file: 'public/languages/tr.json',
+    search: "  \"card.deleteFreesHint\": \"{word} — {bytes} boş.\",",
+    replacement: "  \"card.deleteFreesHint\": \"{word} — boş.\",",
+    expected: 'Tuerkisch sitzt — 0.31.3'
+  },
+  {
+    /* ZUSAGE 4: die Verbotsliste -- UND ZWAR MIT ANGEKLEBTER ENDUNG. Das ist
+       die Lehre aus Leitplanke L4 als Gegenprobe: „hap" steht in der Datei
+       nicht nackt, sondern als „haptan". Ein Waechter mit `\b` bliebe hier
+       gruen, weil zwischen einem Leerzeichen und einem tuerkischen Buchstaben
+       fuer JavaScript keine Wortgrenze steht.
+       UND DER SATZ IST KUERZER ALS SEIN DEUTSCHER, damit nur Zusage 4 faellt
+       und nicht die Laenge mit. */
+    nr: '992', name: 'Ein tuerkischer Wert traegt wieder „haptan" — mit angeklebter Endung',
+    file: 'public/languages/tr.json',
+    search: "  \"list.pillHint\": \"Üç düğmeden birine tıklamak filtreyi ayarlar.\",",
+    replacement: "  \"list.pillHint\": \"Üç haptan birine tıklamak filtreyi ayarlar.\",",
+    expected: 'Tuerkisch sitzt — 0.31.3'
+  },
+  {
+    /* ZUSAGE 5: ein deutsches Anfuehrungszeichen kommt zurueck. 0.31.0 hat das
+       Paar in `tr.json` nur GESCHLOSSEN und die Frage vertagt; diese Runde hat
+       sie entschieden (F3), und ohne diese Zeile koennte der naechste
+       Uebersetzer das deutsche Paar wieder hinschreiben, ohne dass es
+       auffaellt -- im Browser sieht `„…“` nicht falsch aus, es ist nur keine
+       tuerkische Typografie. */
+    nr: '993', name: 'Ein tuerkischer Wert traegt wieder ein deutsches Anfuehrungszeichen',
+    file: 'public/languages/tr.json',
+    search: "  \"card.approveAsk\": \"“{username}” onaylansın mı?\",",
+    replacement: "  \"card.approveAsk\": \"„{username}“ onaylansın mı?\",",
+    expected: 'Tuerkisch sitzt — 0.31.3'
+  },
+  {
+    /* ZUSAGE 6: der tuerkische Satz wird deutlich laenger als sein deutscher
+       -- und zwar OHNE einen Satz mehr. Genau so kommt der Ballast zurueck,
+       den die Vorlage gefunden hat: nicht als zweiter Satz, sondern als
+       Beiwerk im ersten. */
+    nr: '994', name: 'Ein tuerkischer Satz wird wieder deutlich laenger als sein deutscher',
+    file: 'public/languages/tr.json',
+    search: "  \"card.blocksHint\": \"Blokların sırası ve açık mı kapalı mı olduğu her {entryOne} için geçerlidir.\",",
+    replacement: "  \"card.blocksHint\": \"Blokların sırası ve açık mı yoksa kapalı mı olduğu her {entryOne} için geçerlidir.\",",
+    expected: 'Tuerkisch sitzt — 0.31.3'
+  },
+  {
+    /* ZUSAGE 7: ein Satz mehr, bei gleicher Laenge. Aus einem Gedankenstrich
+       wird ein Punkt -- der Wert ist danach sogar ein Zeichen kuerzer, und die
+       Laengenzusage bleibt gruen. Nur die Satzzahl faellt auf: die Kuerze
+       steckt nicht in den Zeichen. */
+    nr: '995', name: 'Ein tuerkischer Wert traegt einen Satz mehr als sein deutscher',
+    file: 'public/languages/tr.json',
+    search: "  \"server.exportGrew\": \"Dışa aktarma dosyası {limit} MB sınırını aştı. Yedeklemeyi kullan — o bütün veriyi yazar ve bu sınırı tanımaz.\",",
+    replacement: "  \"server.exportGrew\": \"Dışa aktarma dosyası {limit} MB sınırını aştı. Yedeklemeyi kullan. O bütün veriyi yazar ve bu sınırı tanımaz.\",",
+    expected: 'Tuerkisch sitzt — 0.31.3'
+  },
+  {
+    /* ZUSAGE 8: die letzte HTML-Entitaet kommt zurueck. Sie stand in allen drei
+       Dateien an DERSELBEN Stelle und ist in drei Runden gefallen -- 0.31.1
+       auf Deutsch, 0.31.2 auf Englisch, 0.31.3 auf Tuerkisch. Wer sie wieder
+       hinschreibt, verlangt vom naechsten Uebersetzer, Maskierung zu kennen. */
+    nr: '996', name: 'Ein tuerkischer Wert traegt wieder eine HTML-Entitaet',
+    file: 'public/languages/tr.json',
+    search: "katkıları bundan sonra “Silinen kullanıcı” adıyla ve bir numarayla görünür.",
+    replacement: "katkıları bundan sonra “Silinen kullanıcı &lt;numara&gt;” altında görünür.",
+    expected: 'Tuerkisch sitzt — 0.31.3'
+  },
+  {
+    /* ZUSAGE 9: DIESER RUECKBAU HAT SICH MIT SEINER ZUSAGE GEDREHT -- 0.31.4.
+       BIS 0.31.3 BAUTE ER EIN, WAS DIE VORLAGE VERLANGTE: `entryMany` bekam
+       sein -ler, und damit stand an vierundzwanzig Stellen „3 Öğeler". Das war
+       der Bug, nicht die Reparatur.
+       SEIT 0.31.4 NIMMT `counted()` HINTER EINER ZAHL DIE EINZAHL, und die
+       Mehrzahl kostet dort nichts mehr -- der Betreiber hat sie am 13.9.2026
+       bestellt. Der Rueckbau nimmt sie jetzt WEG: „Öğeler" wird wieder „Öğe",
+       und damit verlieren die vierunddreissig zahllosen Stellen ihre Mehrzahl.
+       ER MACHT ZWEI WACHEN ROT, und das ist die Sache selbst: die
+       Sprachentscheidung steht seit 0.24.4 im Pruefstand und seit 0.31.3 ein
+       zweites Mal, mit der Messung daneben. */
+    nr: '997', name: 'Ein Vokabelwort verliert seine Mehrzahl wieder — „Öğeler" wird „Öğe"',
+    file: 'public/languages/tr.json',
+    search: "  \"vocabulary.entryMany\": \"Öğeler\",",
+    replacement: "  \"vocabulary.entryMany\": \"Öğe\",",
+    expected: 'Tuerkisch sitzt — 0.31.3'
+  },
+  {
+    /* ZUSAGE 10: eine Mehrzahl hinter einer Zahl. DIE GEGENLEITPLANKE ZUR
+       VORLAGE (L7) -- und der Rueckbau greift in die MEHRZAHLFORM eines
+       Paares, dessen beide Formen denselben Satz tragen. Genau dort greift
+       jemand hin, der die 28 gleichen Paare fuer einen Fehler haelt. */
+    nr: '998', name: 'Eine Mehrzahl steht hinter einer Zahl — „{n} yedeklemeler"',
+    file: 'public/languages/tr.json',
+    search: "  \"card.backupsDeleted\": {\n    \"one\": \"{n} yedekleme silindi ({bytes} boşaldı){extra}\",\n    \"other\": \"{n} yedekleme silindi ({bytes} boşaldı){extra}\"\n  },",
+    replacement: "  \"card.backupsDeleted\": {\n    \"one\": \"{n} yedekleme silindi ({bytes} boşaldı){extra}\",\n    \"other\": \"{n} yedeklemeler silindi ({bytes} boşaldı){extra}\"\n  },",
+    expected: 'Tuerkisch sitzt — 0.31.3'
+  },
+  {
+    /* ZUSAGE 11: die eine siz-Form kommt zurueck. Sie stand wirklich so da --
+       `card.emailsDoubledHint` war der einzige hoefliche Wert unter 78
+       vertrauten --, und sie ist nicht als Fehler zu sehen, sondern nur im
+       Vergleich: eine Oberflaeche, die zwischen sen und siz wechselt, liest
+       sich wie zwei Programme. */
+    nr: '999', name: 'Ein tuerkischer Wert spricht den Benutzer wieder hoeflich an',
+    file: 'public/languages/tr.json',
+    search: "Birini değiştir ya da boşalt — bir sonraki başlatmada",
+    replacement: "Birini değiştirin ya da boşaltın — bir sonraki başlatmada",
+    expected: 'Tuerkisch sitzt — 0.31.3'
+  },
+  {
+    /* ZUSAGE 12: die Einrueckung des Quelltexts steht wieder im Wert. Am
+       Bildschirm faellt sie nicht auf -- HTML zieht sie zusammen --, und genau
+       deshalb wandert sie ungesehen in jede weitere Uebersetzung mit.
+       Derselbe Rueckbau wie 975 und 986, nur auf der tuerkischen Seite. */
+    nr: '1000', name: 'Ein tuerkischer Wert traegt wieder die Einrueckung des Quelltexts',
+    file: 'public/languages/tr.json',
+    search: "  \"card.storeCaveat\": \"Kayıplı: fotoğraflarda yaklaşık üçte iki daha küçük,",
+    replacement: "  \"card.storeCaveat\": \"Kayıplı: fotoğraflarda yaklaşık üçte iki daha küçük,\\n          ",
+    expected: 'Tuerkisch sitzt — 0.31.3'
+  },
+  {
+    /* ZUSAGE 13: der Vergleichsstand und `tr.json` laufen auseinander. DIESER
+       RUECKBAU GREIFT IN DIE VERGLEICHSDATEI und nicht in `tr.json`: es geht um
+       die Buchfuehrung selbst. Wer einen tuerkischen Wert anfasst, ohne ihn zu
+       benennen, bekommt genau dieses Bild -- und die Tafel
+       TR_CHANGED_AFTER_0313 ist leer, also faellt es auf. */
+    nr: '1001', name: 'Der Vergleichsstand weicht von tr.json ab, ohne benannt zu sein',
+    file: 'tools/tuerkisch-0313.json',
+    search: "    \"card.active\": \"etkin\",",
+    replacement: "    \"card.active\": \"açık\",",
+    expected: 'Tuerkisch sitzt — 0.31.3'
+  },
+  /* ---- „Nach einer Zahl die Einzahl" -- 0.31.4, fuenf Rueckbauten ----
+     DIE UEBRIGEN ZUSAGEN JENER RUNDE HABEN SCHON EINEN: Zusage 6 faellt mit
+     997 (das Vokabelwort verliert seine Mehrzahl), Zusage 8 mit 990, Zusage 10
+     mit 991. Hier stehen die fuenf, die sonst keiner traefe. */
+  {
+    /* ZUSAGE 1: DEUTSCH WIRD MITGERISSEN. Die Forderung des Betreibers war
+       ausdruecklich „das darf sich bei deutsch und englisch nicht negativ
+       auswirken" -- und der Schutz ist EIN Wort in der Datei. Wer es umstellt,
+       macht aus „3 Einträge" ein „3 Eintrag", und keine deutsche Zeile des
+       Pruefstands saehe es: sie pruefen Werte, nicht Stellungen. */
+    nr: '1002', name: 'Deutsch bekommt die tuerkische Stellungsregel',
+    file: 'public/languages/de.json',
+    search: "  \"_afterNumber\": \"plural\",",
+    replacement: "  \"_afterNumber\": \"one\",",
+    expected: 'Nach einer Zahl die Einzahl — 0.31.4'
+  },
+  {
+    /* ZUSAGE 2: TUERKISCH VERLIERT SIE. Der Gegenzug zum vorigen -- und der
+       teurere: ohne ihn stuende an fuenfunddreissig Stellen wieder „3
+       Öğeler", und zwar erst am Bildschirm. */
+    nr: '1003', name: 'Tuerkisch verliert seine Stellungsregel',
+    file: 'public/languages/tr.json',
+    search: "  \"_afterNumber\": \"one\",",
+    replacement: "  \"_afterNumber\": \"plural\",",
+    expected: 'Nach einer Zahl die Einzahl — 0.31.4'
+  },
+  {
+    /* ZUSAGE 5: EINE ZAEHLERSTELLE GREIFT WIEDER ZU `plural()`. Das ist der
+       Rueckfall, den die naechste Runde aus Versehen macht -- sie baut eine
+       neue Zaehlerstelle und nimmt den Helfer, der ueberall sonst steht.
+       GENAU AN DIESER ZEILE IST ER BEIM BAUEN VON 0.31.4 EINMAL PASSIERT:
+       `entry.added` ist uebersehen worden und vom Waechter gefunden. */
+    nr: '1004', name: 'Eine Zaehlerstelle greift wieder zu `plural()`',
+    file: 'public/app.js',
+    search: "const vTask = (n) => counted(n, V.taskOne, V.taskMany);",
+    replacement: "const vTask = (n) => plural(n, V.taskOne, V.taskMany);",
+    expected: 'Nach einer Zahl die Einzahl — 0.31.4'
+  },
+  {
+    /* ZUSAGE 7: `counted()` LIEST DIE LOCALE STATT DER DATEI. Das ist die
+       billige Loesung, die Leitplanke L1 verbietet -- eine Liste von Sprachen
+       im Code. Sie SIEHT richtig aus und tut fuer Tuerkisch sogar dasselbe;
+       falsch ist, dass die naechste Sprache dann wieder den Code braucht. */
+    nr: '1005', name: '`counted()` entscheidet an der Locale statt an der Datei',
+    file: 'public/app.js',
+    search: "  return AFTER_NUMBER === 'one' ? one : plural(n, one, other);",
+    replacement: "  return LOCALE.startsWith('tr') ? one : plural(n, one, other);",
+    expected: 'Nach einer Zahl die Einzahl — 0.31.4'
+  },
+  {
+    /* ZUSAGE 11: EIN SATZ FAELLT AUF DIE MEHRZAHLFORM ZURUECK. `her` verlangt
+       im Tuerkischen die Einzahl, auch ohne Zahl davor -- „her öğeler için"
+       ist falsch. Der Rueckbau macht genau den Handgriff, den jemand macht,
+       der die Regel nicht kennt und die Formen fuer austauschbar haelt. */
+    nr: '1006', name: 'Ein Satz mit `her` faellt auf die Mehrzahlform zurueck',
+    file: 'public/languages/tr.json',
+    search: "olduğu her {entryOne} için geçerlidir.",
+    replacement: "olduğu her {entryMany} için geçerlidir.",
+    expected: 'Nach einer Zahl die Einzahl — 0.31.4'
+  },
+  {
+    /* ZUSAGE 5 UND 6 AM GERENDERTEN TEXT: DIE KRUECKE KOMMT ZURUECK. 0.31.3
+       hatte „Açık {taskMany}" nicht zur Verfuegung -- `taskMany` war damals
+       dasselbe Wort wie `taskOne`, und der Satz haette „Açık Görev" gelesen.
+       Der Handgriff von damals war, „listesi" anzuhaengen: „Açık Görev
+       listesi" -- grammatisch richtig, aber eine Kruecke um ein fehlendes
+       Wort herum.
+       KEIN BLICK IN DIE DATEI FINDET IHN WIEDER: „Açık {taskMany} listesi"
+       verstoesst gegen keine Verbotsliste, traegt jeden Platzhalter des
+       deutschen Satzes und liest sich sauber. Falsch ist er erst im Vergleich
+       mit dem, was ab 0.31.4 moeglich ist -- und das sieht nur die Probe am
+       GERENDERTEN Text. Sie ist der einzige Waechter, der hier rot wird. */
+    nr: '1007', name: 'Die Kruecke „listesi" kommt hinter das Vokabelwort zurueck',
+    file: 'public/languages/tr.json',
+    search: "  \"list.openTasks\": \"Açık {taskMany}\",",
+    replacement: "  \"list.openTasks\": \"Açık {taskMany} listesi\",",
+    expected: 'Nach einer Zahl die Einzahl — 0.31.4'
+  },
+  {
+    /* ZUSAGE 5, FUENFTER SCHRITT: DIE ZAHL KOMMT IN DIE VORSCHAU ZURUECK.
+       GENAU SO STAND ES BIS 0.31.3 DA, und der Augenschein dieser Runde hat es
+       gefunden: „7 Öğeler" in der Karte, in die der Eigentuemer seine Woerter
+       eintraegt. Es ist der teuerste der Rueckbauten dieser Runde, weil er am
+       Quelltext voellig harmlos aussieht -- eine Zahl in einer String,
+       kein `plural()`, kein `counted()`, kein Vokabelzaehler. Die vier ersten
+       Schritte von Zusage 5 sehen ihn nicht; der fuenfte sieht ihn. */
+    nr: '1008', name: 'Die Vorschau der Vokabelkarte setzt wieder eine Zahl vor die Mehrzahl',
+    file: 'public/app.js',
+    search: "</span><span>${many(7, sm)}</span>",
+    replacement: "</span><span>7 ${esc(sm)}</span>",
+    expected: 'Nach einer Zahl die Einzahl — 0.31.4'
+  },
+  {
+    /* ZUSAGE 5, FUENFTER SCHRITT, DIE FEINE HAELFTE: die Vorschau fragt die
+       Sprache DES LESERS statt der GEZEIGTEN. Dieser Rueckbau ist der
+       gefaehrlichste der Runde, weil er gruen aussieht: ein tuerkischer Leser
+       saehe dieselbe Vorschau wie vorher. Falsch wird er genau in dem Fall,
+       fuer den die Karte gebaut ist -- der Eigentuemer liest Deutsch und
+       pflegt die tuerkischen Woerter, und dann stuende dort wieder
+       „7 Öğeler". Genau so hat der Augenschein den Befund gefunden. */
+    nr: '1009', name: 'Die Vorschau fragt die Sprache des LESERS statt der gezeigten',
+    file: 'public/app.js',
+    search: "(afterNumberOf(namesLanguage()) === 'one' ? esc(word) : `${n} ${esc(word)}`);",
+    replacement: "(AFTER_NUMBER === 'one' ? esc(word) : `${n} ${esc(word)}`);",
+    expected: 'Nach einer Zahl die Einzahl — 0.31.4'
   },
 ];
 

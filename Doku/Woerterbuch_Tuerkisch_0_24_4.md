@@ -119,6 +119,33 @@ repariert.*
   > statt „TEST GÜNÜ". *Der Betreiber kennt den Preis und hat so entschieden;
   > die Mehrheit der Stellen wiegt schwerer als fünf Überschriften.*
   >
+  > ## NACHGEMESSEN IN 0.31.3 — die Mehrheit hat sich gedreht
+  > **Die Entscheidung von 2026 stand auf einer Mehrheit: 30 Zählerstellen
+  > gegen 27 Satzschlüssel.** *Am Stand von 0.31.3 nachgezählt:*
+  >
+  > | | Stellen |
+  > |---|---|
+  > | **mit Zahl davor** *(„3 öğe" — Einzahl zwingend)* | **25** — 18 im Quelltext, 7 in der Datei |
+  > | **ohne Zahl** *(„öğeler" — Mehrzahl natürlich)* | **34** — 28 Sätze, 6 bloße Beschriftungen |
+  >
+  > **DIE ZAHLLOSE SEITE IST JETZT DIE GRÖSSERE.** *Das kippt die Entscheidung
+  > nicht von selbst — rund neunzehn der achtundzwanzig Sätze verlangen die
+  > Einzahl ohnehin (nach `her`, nach `kaç`, in der Verneinung, im generischen
+  > Satz), und zwölf weitere sind 2026 eigens um sie herum geschrieben worden.*
+  > **Aber die Grundlage, auf der 2026 entschieden wurde, ist es nicht mehr.**
+  >
+  > **UND DIE REGEL SELBST IST NACHRECHERCHIERT** *(0.31.3)*: TDK
+  > („sayı sıfatının peşinden gelen isim çoğul eki almaz"), Göksel & Kerslake
+  > (*Turkish: A Comprehensive Grammar*, Ausnahme nur bei Eigennamen wie
+  > *Kırk Haramiler*), Sağ (*„Turkish numerals strictly reject co-occurrence
+  > with plural nouns"*) und die CLDR-Daten selbst: *„1 elma", „123 elma" —
+  > ohne Zahl „elmalar".* **Der Betreiber hat sie am 13.9.2026 im Wortlaut
+  > diktiert, und sie stimmt.**
+  >
+  > **WAS DARAUS FOLGT, STEHT IN PUNKT 32:** *`Intl.PluralRules` wählt nach dem
+  > WERT der Zahl, das Türkische nach ihrer ANWESENHEIT. Ein Platz kann beides
+  > nicht tragen — in keine der beiden Richtungen.*
+
   > ***Die Alternative wäre kein besseres Wort gewesen, sondern ein
   > fünfzehnter Vokabelplatz*** („Mehrzahl nach einer Zahl") — eine eigene
   > Runde, ein Feld mehr in jeder Sprache, ein Wanderungsschritt für jeden
@@ -195,7 +222,7 @@ Eigentümer stattdessen einträgt, steht in der Datenbank.*
 | Mein Konto | My account | **Hesabım** | |
 | Benutzer | User | **Kullanıcı** | |
 | Sitzung | Session | **Oturum** | |
-| Passwort | Password | **Parola** | ***offen (F3)***: `Parola` (Microsoft, Apple) oder `Şifre` (Google) — beide üblich; **der Betreiber entscheidet — er ist der Leser (F2)** |
+| Passwort | Password | **Parola** | ***offen (F3)***: `Parola` (Microsoft, Apple) oder `Şifre` (Google) — beide üblich; **der Betreiber entscheidet — er ist der Leser (F2)**. *Gemessen in 0.31.3: `Parola` steht **63-mal** in `tr.json`, `şifre` als Wort für das Passwort **kein einziges Mal** — die Vorkommen von `şifreleme` und `şifresiz` meinen die **Verschlüsselung**. Die beiden Wörter stehen also schon getrennt (S3), und eine Entscheidung für `Şifre` müsste beide wieder zusammenführen* |
 | Zweiter Faktor · Code | Two-factor · Code | **İki adımlı doğrulama · Kod** | `2FA` bleibt `2FA` |
 | Registrierung / Anfrage / beantragen | Registration / Request / request | **Kayıt olma / Başvuru / başvur** | *dieselbe Dreiheit wie im Deutschen: das Verfahren, die einzelne Anfrage, die Handlung* |
 | Einladungslink | Invitation link | **Davet bağlantısı** | |
@@ -293,6 +320,13 @@ Rechts-nach-links, keine zweite Schrift, keine eigene Zahlformatierung.*
 * **`Parola` gegen `Şifre`** *(F3)* — der Vorschlag steht, die Entscheidung
   gehört dem Betreiber, und der ist seit dem 8. September 2026 auch der Leser
   *(F2)*.
+  > **0.31.3 HAT NACHGEMESSEN UND NICHT ENTSCHIEDEN.** *Der Durchgang durch
+  > alle 1197 Schlüssel hat `Parola` 63-mal gefunden und `Şifre` für das
+  > Passwort gar nicht; `şifreleme` und `şifresiz` meinen die Verschlüsselung
+  > und sind ein anderes Wort.* **Die Frage ist damit nicht beantwortet, aber
+  > sie hat einen Preis bekommen:** *wer `Şifre` wählt, führt zwei heute
+  > getrennte Sachen unter einem Wort zusammen — Passwort und Verschlüsselung
+  > (Regel S3).*
 * **Die Länge am Telefon** *(T4)* — Wörterbuchfragen sind Wortfragen; ob ein
   Satz in eine Pille passt, sagt der Augenschein.
 * **Regionen.** `tr-TR` ist die Locale in der Datei, nicht ein zweiter

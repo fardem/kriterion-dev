@@ -29,6 +29,56 @@ bleiben in der Form ihrer Zeit.*
 
 *Hier wird mitgeschrieben, während gebaut wird.*
 
+## [0.31.4] - 2026-09-13
+
+> **NICHTS ZU TUN.** Kein Schemaanteil, kein Migrationsblock, das
+> Austauschformat bleibt 16. Einspielen und fertig.
+
+### Geändert
+
+- **Auf Türkisch heißt es jetzt „3 Öğe" und „Öğeler"** — hinter einer Zahl die Einzahl, sonst die Mehrzahl. Das ist die Regel der Sprache: nach einem Zahlwort trägt das Substantiv im Türkischen keine Mehrzahlendung, ohne Zahl sehr wohl. Die Vokabelwörter heißen in der Mehrzahl jetzt **Öğeler, Test günleri, Raporlar, Görevler, Değerlendirmeler** — wer eigene Wörter einträgt, trägt beide Formen ein wie bisher.
+- **„3 yorumlar", „3 dosyalar", „3 Videolar" sind weg** — auch die fünf festen Wortpaare standen hinter einer Zahl in der Mehrzahl.
+- **Die Vorschau in „Vokabular" zeigt die Mehrzahl jetzt so, wie die gezeigte Sprache sie schreibt** — auf Türkisch stand dort „7 Öğeler", eine Stelle, die es am Bildschirm nicht gibt. Auf Deutsch und Englisch steht weiter „7 Einträge".
+- **Für Deutsch und Englisch ändert sich kein Wort.** Beide Sprachdateien sagen `"_afterNumber": "plural"`, und das ist genau das Verhalten von vorher.
+
+### Intern
+
+- **Eine Sprachdatei sagt jetzt selbst, welche Form hinter einer Zahl steht** — der neue Kopfschlüssel `_afterNumber` neben `_locale` und `_name`. `Intl.PluralRules` kann es nicht wissen: sie wählt nach dem Wert der Zahl, das Türkische nach ihrer Anwesenheit. Fehlt der Schlüssel, gilt `plural` — eine vierte Sprachdatei scheitert daran nicht.
+- **`counted()` neben `plural()`** — acht Stellen, an denen eine Zahl und ein Wort nebeneinander stehen, gehen jetzt durch sie.
+- **Elf Zusagen und acht Gegenproben** für die neue Regel; die Wächter von 0.24.4 und 0.31.3 haben sich mitgedreht.
+- **Eine Probe liest den fertigen Bildschirmsatz und nicht die Datei** — `app.js` läuft dabei wirklich, mit den echten Sprachdateien, und dreizehn Zählerstellen werden mit 0, 1, 2, 3, 11, 21 und 100 ausgefüllt. Drei der acht Rückbauten fängt nur sie.
+- **Die Sprachtafel des Servers nennt je Sprache ihre Stellungsregel** — das braucht die Karte „Vokabular": sie pflegt die Wörter einer anderen Sprache als die, in der sie dasteht.
+
+## [0.31.3] - 2026-09-13
+
+> **NICHTS ZU TUN.** Kein Schemaanteil, kein Migrationsblock, das
+> Austauschformat bleibt 16. Einspielen und fertig.
+
+### Geändert
+
+- **Die türkischen Texte sind gegengelesen** — alle 1197 Schlüssel, jeder gegen seinen deutschen Satz; 195 Schlüssel sind neu formuliert, `tr.json` ist 1406 Zeichen kürzer. Kein deutscher und kein englischer Wert ist dabei angefasst.
+- **Die Anführungszeichen sind türkisch** — `“…”` statt `„…“`, in 68 Schlüsseln. Das deutsche Paar gibt es in der türkischen Typografie nicht; 0.31.0 hatte es dort nur geschlossen.
+- **Die deutschen Entwicklerbilder sind heraus** — „Otomatik" statt „Cihaz gibi" (wie das Gerät), „son etkinlik" statt „son görülme", „kapak resmi" statt „sabit resim" (Standbild), „düğme" statt „hap" (Tablette), „Tekil/Çoğul" statt „Şey, tekil/çoğul", „veritabanıyla aynı dizinde" statt „yanında duruyor".
+- **Die vier Briefe sagen am Ende, was Sache ist** — „Bu ileti otomatik olarak gönderilmiştir; yanıtlar okunmaz." statt „Buna gelen yanıtları kimse okumaz."; der Einladungsbrief warnt mit „hesabına erişir" statt „içeri girer".
+- **Vierundvierzig türkische Karten trugen noch den alten Entwicklerroman** — der türkische Rücksetzhinweis zählte alle vierzehn Vokabelwörter auf, wo die deutsche Karte seit 0.31.1 „Alle Wörter dieser Karte" sagt.
+- **Die Anrede ist durchgehend vertraut** — ein einziger Wert siezte („değiştirin ya da boşaltın"); jetzt duzt die ganze Oberfläche, wie das Deutsche auch.
+
+### Behoben
+
+- **Elf türkische Sätze waren grammatisch zerfallen** — „Ağırlıkları Ayarlar › Veriler › altında ayarlarsın {word} girer", „Satırlar şuna göre sıralanır: {word} otomatik olarak silinir" (es heißt gelöscht, nicht sortiert), „geçen şu süreden sonra {days} gün sonra", „Şunu yapacak: {word} gösterildi", „⌀ nasıl {word} oluştuğu". Das Verb stand mitten im Satz, wo es im Türkischen ans Ende gehört.
+- **Acht türkische Sätze waren schlicht falsch** — zwei Karten ließen die halbe deutsche Aussage weg („Mit Häkchen legt jeder neue Kategorien an" fehlte ganz), ein Hinweis nannte GMX, wo der deutsche „viele Anbieter" sagt, „Her hedef bir numaradır" statt „muss eine Zahl sein", und ein Erklärtext brach mitten im Satz ab („Bu sayının nasıl").
+- **Ein Einschub saß an der falschen Stelle** — „parolan bir kez{extra} istenir" ergab „dein Passwort einmal und der Zwei-Faktor-Code wird abgefragt"; jetzt steht er hinter „parolan".
+- **„Noch nicht eingeschätzt" und „noch nicht bewertet" hießen beide gleich** — jetzt „henüz tahmin edilmedi" und „henüz değerlendirilmedi".
+- **Die letzte HTML-Entität in einem Wert ist weg** — „Silinen kullanıcı &lt;numara&gt;"; 0.31.1 hatte sie auf Deutsch genommen, 0.31.2 auf Englisch.
+- **Drei Stellen sagen jetzt eine Mehrzahl, wo sie eine meinen** — „Açık Görev listesi" statt „Açık Görev" als Seitentitel, „Kategorisiz Öğe listesi" als Titel der Filterpille, und in „Neue Kommentare und {Bewertungen}" stehen beide Glieder wieder auf derselben Zahl. Ein festes Kopfwort trägt die Mehrzahl — an ein Vokabelwort darf sie nicht angehängt werden, weil sein letzter Vokal die Endung bestimmt und den kennt nur der Betreiber.
+- **„3 Bağlantılar" heißt mitten im Satz jetzt klein** — das Wort stand als einziges der drei Blockwörter groß da; die Überschrift über der Liste setzt das Stilblatt ohnehin in Großbuchstaben.
+
+### Intern
+
+- **Die Verbotsliste der türkischen Übersetzung ist ein Wächter im Prüfstand** — elf Muster, und er liest Wortstämme statt ganzer Wörter: Türkisch klebt seine Endungen an, „hap" steht als „haptan". Dreizehn Zusagen, dreizehn Gegenproben.
+- **Der türkische Stand liegt als Vergleichsdatei daneben** — `tools/tuerkisch-0313.json`, wie `tools/englisch-0312.json` für Englisch.
+- **Zwei Vorschläge der Vorlage sind abgelehnt** — die Mehrzahl der Vokabelwörter bleibt gleich der Einzahl (nach einer Zahl steht im Türkischen der Singular, und der Platz wird an 24 Stellen hinter einer Zahl gelesen), und „Yedekleme" bleibt „Yedekleme". Beides sind Entscheidungen des Betreibers vom 8. und 10. September 2026.
+
 ## [0.31.2] - 2026-09-13
 
 > **NICHTS ZU TUN.** Kein Schemaanteil, kein Migrationsblock, das
@@ -1464,7 +1514,7 @@ lässt damit die ganze Anlage offen. Das ändert sich.
   Zeilen bleiben **180 Tage** stehen und werden danach von selbst geräumt.
 - **`OEFFENTLICHE_ADRESSE` in der `.env` — optional.** Den Einladungslink baut
   bisher der Browser aus der Adresse, an der du gerade stehst. Wer über
-  `http://192.168.1.50:3100` arbeitet und einen Link nach draußen gibt, gibt
+  `http://195.168.1.50:3100` arbeitet und einen Link nach draußen gibt, gibt
   einen Link ins Leere. Ist die Zeile gesetzt, baut der Server den Link; der
   Kasten sagt darunter, **woher** die Adresse kam.
 

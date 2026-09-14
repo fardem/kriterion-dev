@@ -42,6 +42,19 @@ let LANGUAGE_DEFAULT = 'en';
 /* EINMAL GEBAUT UND NICHT JE AUFRUF. `new Intl.PluralRules(...)` je Text waere
    bei 46 Mehrzahlstellen und jedem Neuzeichnen eine gut sichtbare Rechnung. */
 let PLURAL = new Intl.PluralRules(LOCALE);
+/* WELCHE FORM HINTER EINER ZAHL STEHT -- 0.31.4, und die Auskunft kommt aus der
+   SPRACHDATEI und nicht von hier. `Intl.PluralRules` waehlt nach dem WERT von
+   n; im Tuerkischen haengt die Form nicht am Wert, sondern an der STELLUNG --
+   steht eine Zahl davor oder nicht. `select(3)` ist dort `other`, und das
+   heisst NICHT „haenge -lar an": „3 öğe" ist richtig, „3 öğeler" ist falsch
+   (TDK; Göksel & Kerslake; Sağ, „Turkish numerals strictly reject
+   co-occurrence with plural nouns").
+   DIE AUSKUNFT, DIE DER CODE BRAEUCHTE, SIEHT DIE SCHNITTSTELLE NIE -- also
+   sagt sie die Datei, in `_afterNumber`. `plural` heisst „die Zahl waehlt, wie
+   bisher"; `one` heisst „hinter einer Zahl immer die Einzahl".
+   VORGABE IST `plural`: eine vierte Sprachdatei, die jemand hineinlegt (0.24.0),
+   darf daran nicht scheitern. */
+let AFTER_NUMBER = 'plural';
 
 // Den Satz nachschlagen -- in der gewaehlten Sprache, sonst in der Vorgabe.
 function languageSentence(key, values) {
@@ -178,6 +191,19 @@ function plural(n, one, other) {
   return PLURAL.select(Number(n) || 0) === 'one' ? one : other;
 }
 
+/* DASSELBE, ABER MIT EINER ZAHL DAVOR -- 0.31.4.
+   `plural()` gilt ueberall dort, wo die Form allein von der Zahl abhaengt.
+   `counted()` gilt dort, wo die Zahl SICHTBAR DAVORSTEHT -- `${n} ${wort}`.
+   Fuer Deutsch und Englisch ist das dasselbe; fuer das Tuerkische nicht, und
+   deshalb steht hier eine zweite Funktion und keine Bedingung im Aufrufer.
+   WER SIE NEHMEN MUSS: jede Stelle, die eine Zahl und ein Wort NEBENEINANDER
+   setzt. Wer das Wort ohne Zahl schreibt, nimmt weiter die Form, die sein Satz
+   verlangt -- und die waehlt der Satz in der Sprachdatei, ueber `{entryOne}`
+   oder `{entryMany}`. */
+function counted(n, one, other) {
+  return AFTER_NUMBER === 'one' ? one : plural(n, one, other);
+}
+
 /* DIE DATEI HOLEN. Sie liegt unter public/ und kommt damit ueber
    express.static -- keine neue Route, ETag und 304 wie app.js selbst, und der
    Fingerprint deckt sie ab, ohne dass jemand daran denkt (Konzept 3.3). */
@@ -200,6 +226,10 @@ async function loadLanguage(code) {
   LANGUAGE = code;
   LOCALE = data._locale;
   PLURAL = new Intl.PluralRules(LOCALE);
+  /* NUR DIE BEIDEN BEKANNTEN WERTE ZAEHLEN; alles andere -- auch ein Tippfehler
+     -- faellt auf `plural` und damit auf das Verhalten von vor 0.31.4. Eine
+     Sprachdatei soll an einem falschen Wort nicht zerbrechen. */
+  AFTER_NUMBER = data._afterNumber === 'one' ? 'one' : 'plural';
   TEXTS = data;
   /* UND DIE VORGABE DES VOKABULARS -- 0.24.0. Sie ist Oberflaeche und kein
      Inhalt: bis der Server seinen Satz schickt, beschriftet sie den Bildschirm
@@ -880,7 +910,7 @@ function newPasswordDialog(title, sentence) {
    Liefert { entries, posts } oder null bei Abbruch. */
 function userDeleteDialog(name, number, b) {
   return new Promise(resolve => {
-    const countWord = (n, singular, more) => (n ? [`${n} ${plural(n, singular, more)}`] : []);
+    const countWord = (n, singular, more) => (n ? [`${n} ${counted(n, singular, more)}`] : []);
     const foreignCount = (b.foreignComments || 0) + (b.foreignRatings || 0) + (b.foreignTestDays || 0)
       + (b.foreignLinks || 0) + (b.foreignFiles || 0);
     const posts = [
@@ -1973,7 +2003,7 @@ const weightText = (g) => number(Math.round(Number(g) * 100) / 100, 0, 2);
    laesst sich das Mittel der Zeilenwerte nicht mehr im Kopf nachrechnen. */
 const weightMark = (g) => (Number(g) === 1 || g == null ? '' : '×' + weightText(g));
 
-const vThing = (n) => plural(n, V.entryOne, V.entryMany);
+const vThing = (n) => counted(n, V.entryOne, V.entryMany);
 /* ---- DER ZAEHLER EINER VERWALTUNGSZEILE -- 0.30.1, Befund 6 ----
    IN DER ZEILE STEHT DIE ZAHL, IM TITEL DAS WORT (F14). Der Betreiber, 12.
    September 2026, mit Bild: „Wir verlieren so viel Platz um Eintraege zu
@@ -1994,10 +2024,10 @@ const vThing = (n) => plural(n, V.entryOne, V.entryMany);
    Sprachdatei, kein neues Wort, das uebersetzt werden muesste. */
 const countCell = (short, long) =>
   `<span class="mcount" title="${esc(long)}">${esc(short)}</span>`;
-const vTime = (n) => plural(n, V.dayOne, V.dayMany);
-const vReport = (n) => plural(n, V.reportOne, V.reportMany);
-const vTask = (n) => plural(n, V.taskOne, V.taskMany);
-const vRating = (n) => plural(n, V.ratingOne, V.ratingMany);
+const vTime = (n) => counted(n, V.dayOne, V.dayMany);
+const vReport = (n) => counted(n, V.reportOne, V.reportMany);
+const vTask = (n) => counted(n, V.taskOne, V.taskMany);
+const vRating = (n) => counted(n, V.ratingOne, V.ratingMany);
 
 /* Aus dem Verfasserobjekt des Servers wird die Beschriftung -- GENAU HIER und
    nirgends sonst, damit die Karte "Zugaenge" und die Beitraege im Eintrag
@@ -6630,9 +6660,13 @@ async function renderDetail(id, termAddress) {
         finished++;
       }
       drawViewer(); drawThumbs();
-      // „1 Foto", „1 Video", sonst „3 Dateien" -- „Element" sagt niemand.
+      /* „1 Foto", „1 Video", sonst „3 Dateien" -- „Element" sagt niemand.
+         UND `counted` UND NICHT `plural` -- 0.31.4: `entry.added` setzt das Wort
+         unmittelbar hinter die Zahl („{count} {what} eklendi"), und damit gilt
+         dort die Stellungsregel. Diese Zeile ist beim Bauen von 0.31.4
+         uebersehen und vom Waechter darunter gefunden worden. */
       if (finished) toast(t('entry.added', { count: finished,
-        what: plural(finished, videos.length ? t('list.video') : t('list.photo'),
+        what: counted(finished, videos.length ? t('list.video') : t('list.photo'),
           videos.length ? (images.length ? t('dialog.files') : t('list.videos')) : t('list.photos')) }));
     } catch (err) {
       toast(err.message, true);
@@ -8509,7 +8543,7 @@ async function renderDetail(id, termAddress) {
     try { b = await api('GET', `/api/items/${id}/inventory`); }
     catch (e) { return toast(e.message, true); }
 
-    const countWord = (n, one, more) => (n ? [`${n} ${plural(n, one, more)}`] : []);
+    const countWord = (n, one, more) => (n ? [`${n} ${counted(n, one, more)}`] : []);
     // Fotos und Dateien haengen am Eintrag und gehoeren seinem Verfasser. Ein
     // Link kann fremd sein und steht deshalb bei den Beitraegen, nicht hier.
     const content = [
@@ -10456,6 +10490,16 @@ const baseNamesLanguage = () => (LANGUAGES.find(a => a.isDefault) || {}).code ||
    sagt einem Betreiber nichts, „Türkçe" alles. */
 const languageNameOf = (code) =>
   ((LANGUAGES.find(a => a.code === code) || {}).name) || code;
+/* WELCHE FORM EINE SPRACHE HINTER EINER ZAHL NIMMT -- 0.31.4. Das ist DIESELBE
+   Auskunft wie `AFTER_NUMBER`, aber fuer eine ANDERE Sprache als die des
+   Lesers: die Karte „Vokabular" pflegt die Woerter der Sprache, die der
+   Eigentuemer gerade zeigt, und ihre Vorschau muss deren Regel folgen. Wer
+   Deutsch liest und Tuerkisch eintraegt, saehe sonst „7 Öğeler" -- eine
+   Stelle, die es am tuerkischen Bildschirm nicht gibt (Augenschein 0.31.4).
+   DER SERVER SCHICKT SIE IN DER SPRACHTAFEL MIT (`languageEntries()` dort);
+   fehlt sie, gilt `plural` -- das Verhalten von vor 0.31.4. */
+const afterNumberOf = (code) =>
+  (((LANGUAGES.find(a => a.code === code) || {}).afterNumber) === 'one' ? 'one' : 'plural');
 /* DIE LISTE IN DER GEZEIGTEN SPRACHE -- 0.24.5, und seit 0.25.0 RECHNET SIE
    NICHT MEHR MIT.
 
@@ -10730,19 +10774,42 @@ function setUpVocabularyOut() {
     const potentialWord = w.potential.trim() || e.potential;
     const rateOne = w.ratingOne.trim() || e.ratingOne;
     const rateMany = w.ratingMany.trim() || e.ratingMany;
+    /* DIE MEHRZAHL IN DER VORSCHAU: MIT ZAHL, WO DIE ZAHL SIE WAEHLT -- und
+       OHNE, wo die Sprache hinter einer Zahl die Einzahl verlangt (0.31.4).
+       DER AUGENSCHEIN DIESER RUNDE HAT DEN GRUND GELIEFERT. Bis 0.31.3 stand
+       hier fest „7 ${sm}", „3 ${zm}", „2 ${bm}", „4 ${at}", „2 ${rateMany}" --
+       eine Zahl und unmittelbar dahinter die Mehrzahlform. Auf Tuerkisch las
+       sich das als „7 Öğeler": eine Stelle, die es am Bildschirm seit dieser
+       Runde nicht mehr gibt. DIE KARTE LEHRTE DAMIT DAS GEGENTEIL DER REGEL --
+       wer „Öğeler" eintippt, schloss daraus, sein Mehrzahlwort erscheine
+       hinter Zahlen. Es erscheint dort nie.
+       GEFRAGT IST DIE GEZEIGTE SPRACHE UND NICHT DIE DES LESERS. Das ist der
+       ganze Witz dieser Stelle: die Karte pflegt die Woerter der Sprache, die
+       der Eigentuemer gerade zeigt (`namesLanguage()`). Ein Blick auf
+       `AFTER_NUMBER` haette ausgerechnet SEINEN Fall verfehlt -- er liest
+       Deutsch und traegt Tuerkisch ein, und die Vorschau stuende wieder auf
+       „7 Öğeler". Der Server schickt die Regel je Sprache in der Sprachtafel
+       mit; `afterNumberOf()` liest sie dort.
+       UND FUER DEUTSCH UND ENGLISCH AENDERT SICH DAMIT NICHTS: dort waehlt
+       weiter die Zahl, und in der Vorschau steht weiter „7 Einträge".
+       DIE EINZAHL BEHAELT IHRE ZAHL IN JEDER SPRACHE: „1 Test günü" ist
+       ueberall richtig und zeigt genau die Stelle, um die es dieser Runde
+       ging. */
+    const many = (n, word) =>
+      (afterNumberOf(namesLanguage()) === 'one' ? esc(word) : `${n} ${esc(word)}`);
     document.getElementById('vpreview').innerHTML =
       `<span class="label">${tH('card.preview')}</span>
-       <span>+ ${esc(entryWord)}</span><span>${tH('card.delete', { entryWord: entryWord })}</span><span>7 ${esc(sm)}</span>
+       <span>+ ${esc(entryWord)}</span><span>${tH('card.delete', { entryWord: entryWord })}</span><span>${many(7, sm)}</span>
        <span>${esc(ja)} / ${esc(no)}</span>
-       <span>1 ${esc(z1)}</span><span>3 ${esc(zm)}</span>
-       <span>${tH('card.markAs', { reportWord: reportWord })}</span><span>2 ${esc(bm)}</span>
-       <span>${tH('card.markAs', { reportWord: a1 })}</span><span>4 ${esc(at)}</span>
+       <span>1 ${esc(z1)}</span><span>${many(3, zm)}</span>
+       <span>${tH('card.markAs', { reportWord: reportWord })}</span><span>${many(2, bm)}</span>
+       <span>${tH('card.markAs', { reportWord: a1 })}</span><span>${many(4, at)}</span>
        <span>${tH('card.setTo', { doneWord: doneWord })}</span>
        ${/* DIE PROBE ZEIGT DAS WORT SO, WIE ES SPAETER STEHT -- getrennt und
             nie verbaut. Wer „Erwartung" eintippt, sieht hier „Erwartung:
             Kriterien" und nicht „Erwartungkriterien". */''}
        <span>${tH('card.criteriaPotential', { potentialWord: potentialWord })}</span><span>${tH('card.sortPotentialDesc', { potentialWord: potentialWord })}</span>
-       <span>${tH('card.criteriaPotential', { potentialWord: rateOne })}</span><span>${tH('card.sortPotentialDesc', { potentialWord: rateOne })}</span><span>2 ${esc(rateMany)}</span>`;
+       <span>${tH('card.criteriaPotential', { potentialWord: rateOne })}</span><span>${tH('card.sortPotentialDesc', { potentialWord: rateOne })}</span><span>${many(2, rateMany)}</span>`;
   }
   /* DER UMSCHALTER. Er zeichnet NUR die Karte neu und nicht die Seite: die
      Oberflaeche bleibt in der Sprache ihres Lesers, waehrend der Eigentuemer
