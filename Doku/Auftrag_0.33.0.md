@@ -67,6 +67,44 @@ mitfallen, entscheidet der Betreiber* **(F2)**. *Sie sind teurer als die zwölf 
 sie hängen an `tools/dictionary.json`, und dieselbe Datei übersetzt beim Import
 alte Exportdateien.*
 
+### Und die Marke sagt selbst, was diese Runde ist
+
+> **DER BETREIBER AM 14. SEPTEMBER 2026:** *„Die 0.33.0 ist quasi die 1.0."*
+
+**ER HAT RECHT, UND DER QUELLTEXT SAGT ES WÖRTLICH.** *Jede der achtzehn Marken
+heißt* **„ENTFAELLT MIT 1.0"** *— und keine sagt „entfällt mit 0.33.0".* **Sie
+sind geschrieben worden, bevor der Fahrplan die Bereinigung nach vorn zog**, und
+sie sind seither stehen geblieben. *Die Arbeit, die dieser Auftrag beschreibt,
+ist wortwörtlich die Arbeit, die der Quelltext dem 1.0 zugeschrieben hat.*
+
+**Was von 1.0 danach noch übrig ist — und es merkt niemand, der die Anwendung
+benutzt:**
+
+| Runde | was sie tut | merkt der Bestand etwas davon? |
+|---|---|---|
+| **0.33.x** | die Kommentare werden knapp *(16.281 von 54.822 Zeilen)* | **nein** |
+| **0.34.0** | `testbench.js` wird ein Verzeichnis | **nein** — sie liegt nicht einmal im Image |
+| **0.35.0** | Leichen und ineffizienter Code | **nein**, wenn sie sauber gemacht ist |
+| **1.0.0** | **die Zusage** — Abwärtskompatibilität, feste Schnittstelle, dazu Vorgabewerte und Tastaturbedienung beim Sortieren | eine Zusage ist kein Handgriff |
+
+> **AUS DER SICHT DESSEN, DER DIE ANWENDUNG BETREIBT, IST 0.33.0 DIE LETZTE
+> RUNDE, DIE AN SEINEN DATEN ETWAS ÄNDERT.** *Alles danach ist Hausarbeit am
+> Quelltext und ein Versprechen.*
+
+**UND DIE NUMMER BLEIBT TROTZDEM 0.33.0 — der Grund steht in der Bedeutung von
+1.0 selbst.** *„Die Zusage" heißt: ab hier wird Abwärtskompatibilität
+ZUGESICHERT.* **Diese Runde tut das Gegenteil — sie weist alte Datenbanken ab.**
+*Ein 1.0, dessen erste Handlung eine Absage ist, wäre das falsche Signal.*
+**Solange die erste Zahl 0 ist, darf gebrochen werden, und genau dafür ist sie
+da: der Bruch gehört VOR die Zusage und nicht in sie.**
+
+**WAS DARAUS FÜR DEN BAU FOLGT, IST ABER ARBEIT:** *achtzehn Marken sagen einen
+Satz, der nach dieser Runde nicht mehr stimmt.* **Fällt ein Block, fällt seine
+Marke mit ihm — bleibt einer stehen** *(F2)*, **muss seine Marke berichtigt
+werden, sonst steht in `db.js` eine Ankündigung auf eine Fassung, die den Block
+gar nicht mehr erreicht.** *Zwei Orte für dieselbe Aussage sind einer zu viel
+(Stolperstein 47), und hier ist der zweite Ort der Quelltext selbst.*
+
 ---
 
 ## 0. Die Leitplanken — vor der ersten Zeile beschlossen
@@ -203,6 +241,7 @@ Fassung zuerst zu gehen ist.*
 | **F10** | **Die acht Prüfgruppen?** | **UMGEDREHT, nicht gelöscht** *(L1)*. *Sie legen weiter eine alte Datenbank an — und belegen danach die Absage* |
 | **F11** | **Die acht Rückbauten auf Migrationszeilen?** | **Sie werden auf die Absage umgehängt.** *Wer sie stilllegt, muss eine Prüfung rot machen — sonst ist die Absage nicht belegt* |
 | **F12** | **Kommt 0.33.x (Kommentare kürzen) mit?** | **Nein, und der Grund steht im Fahrplan:** *diese Runde löscht ganze Blöcke samt ihren Kommentaren. **Wer vorher schneidet, schneidet zweimal*** |
+| **F13** | **Die Marken sagen „ENTFAELLT MIT 1.0" und meinen diese Runde — was wird daraus?** | **Mit dem Block fällt seine Marke.** *Was nach F2 stehen bleibt, bekommt eine berichtigte Marke — und der Prüfstand hält danach fest, dass in `db.js` keine Ankündigung auf 1.0 mehr steht, zu der es keinen Block mehr gibt* |
 
 ---
 
@@ -225,6 +264,7 @@ Fassung zuerst zu gehen ist.*
 | | Zusage |
 |---|---|
 | **1** | **Es gibt keine Migrationsfunktion mehr** — *gezählt über BEIDE Markenformen, damit die Lücke, die diesen Auftrag ausgelöst hat, nicht wiederkommt* |
+| **1b** | **Und keine Marke ohne Block** — *in `db.js` steht kein „ENTFAELLT MIT 1.0" mehr, hinter dem nichts mehr liegt* |
 | **2** | **`db.exec(SCHEMA)` steht als erste Anweisung nach der Grundausstattung** — *die Grenze ist nicht verschoben, sie ist fort* |
 | **3** | **Eine Datenbank ohne die neueste Spalte wird ABGEWIESEN** — *und zwar mit einem Satz, der die Fassung nennt, über die zuerst zu gehen ist* |
 | **4** | **Eine vollständige Datenbank öffnet unverändert** — *die Absage ist eine Absage und keine Hürde* |
@@ -237,7 +277,7 @@ Fassung zuerst zu gehen ist.*
 | **11** | **Die 28 Tabellen sind 28, und das Austauschformat ist 16** |
 | **12** | **Kein Papier nennt einen Migrationsblock, den es nicht mehr gibt** — *README, CHANGELOG, Projektstand und Fahrplan werden mitgezogen* |
 
-**ZWÖLF ZUSAGEN, und jede bekommt ihre Gegenprobe — jede wird GEFAHREN.**
+**DREIZEHN ZUSAGEN, und jede bekommt ihre Gegenprobe — jede wird GEFAHREN.**
 *Eine stumme ist ein Fund; 0.32.0 hat das mit 1023 bewiesen und 0.32.1 mit acht
 Rückbauten bestätigt, die alle WIEDER EINBAUEN, was die Runde ausgebaut hat.*
 **Diese Runde ist von derselben Art: ihre Rückbauten bauen die Blöcke wieder
