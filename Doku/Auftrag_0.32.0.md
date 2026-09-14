@@ -1,4 +1,4 @@
-# Auftrag 0.32.0 — „Der Ruf beim Namen"
+# Auftrag 0.32.0 — „Einen anderen markieren"
 
 **Geschrieben am 14. September 2026 · gebaut auf 0.31.4 · MINOR — die Runde legt
 Schlüssel dazu, aber keinen Schemaanteil am Austauschformat.**
@@ -15,7 +15,7 @@ Schlüssel dazu, aber keinen Schemaanteil am Austauschformat.**
 >
 > | | Strang | woher |
 > |---|---|---|
-> | **1** | **Der Ruf beim Namen** — `@name`, hervorgehoben, mit Glocke | *vom Betreiber bestellt am 12.9.2026; die Glocke soll unterscheiden können (13.9.2026)* |
+> | **1** | **Einen anderen markieren** — `@name`, hervorgehoben, mit Glocke | *vom Betreiber bestellt am 12.9.2026; die Glocke soll unterscheiden können (13.9.2026); **das Wort ist seins** (14.9.2026)* |
 > | **2** | **Das fünfzehnte Vokabelwort** — „Note" | *entschieden am 13.9.2026* |
 > | **3** | **Was die Sprachrunden hinterlassen haben** | *vier Punkte im Sammelblatt, alle gemessen und keiner geraten* |
 >
@@ -32,12 +32,14 @@ Schlüssel dazu, aber keinen Schemaanteil am Austauschformat.**
 | # | Regel | woher |
 |---|---|---|
 | **L1** | **KEINE ZWEITE WAHRHEIT NEBEN DER GLOCKE.** *Unterscheiden heißt nicht zweimal zählen: dieselbe Ableitung, nach Herkunft getrennt* | Stolperstein 47; Fahrplan, 0.32.0 |
-| **L2** | **DER RUF IST EIN VIERTES STÜCK DER ZERLEGUNG UND KEIN `replace()`.** *Seit 0.18.0 entsteht der Kommentartext als echte Knoten und nie als String. Wer das umdreht, holt Markup in einen Text, der ausdrücklich keines tragen darf* | 0.18.0, `buildCommentNodes()` |
+| **L2** | **DIE MARKIERUNG IST EIN VIERTES STÜCK DER ZERLEGUNG UND KEIN `replace()`.** *Seit 0.18.0 entsteht der Kommentartext als echte Knoten und nie als String. Wer das umdreht, holt Markup in einen Text, der ausdrücklich keines tragen darf* | 0.18.0, `buildCommentNodes()` |
 | **L3** | **WAS DIESE RUNDE AN DEN SPRACHDATEIEN ÄNDERT, WIRD BENANNT.** *Drei Buchführungen sind gebaut und leer — die Wortlautprobe gegen `0681d42` (deutsch, 943 Sätze), `EG_CHANGED_AFTER_0312` (englisch), `TR_CHANGED_AFTER_0313` (türkisch).* **Sie werden gefüllt und nicht umgangen** | 0.31.2 Zusage 10, 0.31.3 |
 | **L4** | **JEDER WÄCHTER, DER TÜRKISCHEN TEXT LIEST, KOMMT OHNE `\b` AUS.** *Für JavaScript sind `ş`, `ğ`, `ı`, `ç`, `ö`, `ü` keine Wortzeichen — eine Wortgrenze steht dort, wo keine ist, und fehlt, wo eine ist* | **Punkt 31**, die Lehre aus 0.31.3 |
 | **L5** | **KEIN NEUER SCHLÜSSEL OHNE ALLE DREI SPRACHEN.** *Die Deckungsprobe verlangt in jeder Datei dieselben Schlüssel in derselben Folge; ein Satz, der nur auf Deutsch dasteht, färbt den Lauf sofort rot* | 0.24.0 |
 | **L6** | **EIN VOKABELWORT STEHT NIE ZUSAMMENGESETZT.** *„Erwartungkriterien" hätte kein Fugen-s* | 0.21.0 |
 | **L7** | **DIE ZAHL VIERZEHN STEHT AN NEUN STELLEN IM PRÜFSTAND — sie wird an allen zugleich fünfzehn**, oder sie wird an keiner | Stolperstein 47 |
+| **L8** | **ES HEISST MARKIEREN.** *Nicht „rufen", nicht „nennen", nicht „erwähnen" — wer einen anderen mit `@` in einen Text setzt, MARKIERT ihn.* **Das Wort steht so in der Oberfläche, in den Schlüsselnamen und in jedem Papier dieser Runde** | Betreiber, 14.9.2026 |
+| **L9** | **DER GRABSTEINNAME GEHT NICHT HINAUS.** *Seit 0.24.4 schickt `authorCard()` den Namen eines gelöschten Zugangs nicht mit — er ist freigegeben und kann längst einem anderen gehören. Die Oberfläche bildet aus der NUMMER „Gelöschter Benutzer 7".* **Eine Markierung ist davon keine Ausnahme** | `server.js:3816`, `list.deletedUser` |
 
 > **DER STAND VOR DER RUNDE, gemessen am 14. September 2026** *(`node tools/gleichlaut.js`)*:
 >
@@ -55,20 +57,47 @@ Schlüssel dazu, aber keinen Schemaanteil am Austauschformat.**
 
 ---
 
-## Strang 1 — Der Ruf beim Namen
+## Strang 1 — Einen anderen markieren
 
-**WAS GEBAUT WIRD, STEHT IM FAHRPLAN** *(Abschnitt „0.32.0 — Der Ruf beim
-Namen")*, und es wird hier nicht abgeschrieben. **Was dieser Auftrag dazulegt,
+**WAS GEBAUT WIRD, STEHT IM FAHRPLAN** *(Abschnitt „0.32.0 — Einen anderen
+markieren")*, und es wird hier nicht abgeschrieben. **Was dieser Auftrag dazulegt,
 sind die drei Entscheidungen, die der Fahrplan ausdrücklich dieser Runde
 überlässt** — *sie stehen unten in der Fragetafel (F2, F3, F4)*:
 
 | | die Sache | warum sie hier entschieden wird |
 |---|---|---|
-| **1** | **Spalte oder Ableitung** | *Ein Ruf, der als `@bert` im Text steht, zeigt nach einer Umbenennung auf niemanden. Wer das abfangen will, speichert die ZUGANGSNUMMER — und das ist ein Schemaschritt.* **0.29.0 hat angekündigt, die letzte Runde am Schema zu sein; der Bruch auf 0.33.0 steht dahinter.** *Fällt die Entscheidung nicht hier, fällt sie gar nicht mehr* |
+| **1** | **Spalte oder Ableitung** | *Eine Markierung, die als `@bert` im Text steht, trägt einen NAMEN — und der Name eines gelöschten Zugangs wird freigegeben.* **Sie zeigt dann nicht auf niemanden, sondern auf jemand anderen.** *Wer das abfangen will, speichert die ZUGANGSNUMMER — und das ist ein Schemaschritt.* **0.29.0 hat angekündigt, die letzte Runde am Schema zu sein; der Bruch auf 0.33.0 steht dahinter.** *Fällt die Entscheidung nicht hier, fällt sie gar nicht mehr* |
 | **2** | **Wie die Glocke unterscheidet** | *Zwei Zahlen am Symbol oder eine Zahl über einer geteilten Tafel.* **Dass unterschieden wird, ist entschieden** *(Betreiber, 13.9.2026)* |
 | **3** | **Der Satz im Glockenfenster** | *0.31.0 hat ihn ausdrücklich stehen lassen, weil diese Runde ihn ohnehin ersetzt.* **Er bekommt hier seinen endgültigen Wortlaut — in allen drei Sprachen** |
 
-> **UND DER BEFUND HINTER DER GLOCKE IST GRÖSSER ALS DER RUF:** *sie zeigt heute
+### Der Grabstein — der Befund, der F2 gekippt hat
+
+**DAS PROGRAMM KANN DIE SACHE SCHON, und zwar seit 0.24.4.** *Am 14. September
+2026 nachgemessen:*
+
+| | gemessen |
+|---|---|
+| **Ein gelöschter Zugang bleibt als Zeile stehen** | *Der Benutzername wird `deleted-<nr>`, `status` wird `deleted`* |
+| **Sein Name wird FREIGEGEBEN** | `card.deleteUserHint` sagt es wörtlich: *„… wird gelöscht;* ***der Name wird frei****."* |
+| **Der Server schickt den Grabsteinnamen nicht mit** | `authorCard()`, `server.js:3816` — *„Er ist freigegeben und kann laengst einem anderen Menschen gehoeren"* |
+| **Die Oberfläche baut ihn aus der NUMMER** | `authorName()`, `public/app.js:2044` → `list.deletedUser` = **„Gelöschter Benutzer {id}"** |
+
+> **UND DARAN ZERBRICHT MEIN EIGENER VORSCHLAG.** *Ich hatte für F2 die
+> Ableitung über den NAMEN vorgeschlagen und den Preis „zeigt nach einer
+> Umbenennung auf niemanden" genannt.* **Der Preis ist ein anderer und er ist
+> höher:** *der freigegebene Name kann einem ZWEITEN MENSCHEN gehören — eine
+> Markierung auf `@bert` zeigt dann auf den Falschen, und niemand sieht es.*
+> **Dazu kommt: „Gelöschter Benutzer 7" ist aus einem Namen gar nicht zu
+> bilden.** *Der Schlüssel verlangt die Nummer.* **Also die Spalte.**
+
+**DIE ANZEIGEREGEL IST DAMIT NICHT NEU, SONDERN GILT SCHON** *(Betreiber,
+14.9.2026: „wenn der User gelöscht ist, wird einfach in Klammern (gelöschter
+User x) angezeigt")*. **Die Runde erfindet sie nicht — sie zieht die Markierung
+unter die Regel, die für jeden Verfasser längst gilt.**
+
+---
+
+> **UND DER BEFUND HINTER DER GLOCKE IST GRÖSSER ALS DIE MARKIERUNG:** *sie zeigt heute
 > alles, was im ganzen Bestand neu ist; `qNewComments` filtert einzig auf
 > `user_id IS NOT ?`.* **Was unter MEINEN Einträgen geschieht, steht zwischen
 > allem anderen** — *`items.user_id` trägt den Anleger, die Abfrage nutzt ihn
@@ -171,7 +200,7 @@ Wächter ist es nicht.*
 | # | Frage | Vorschlag |
 |---|---|---|
 | **F1** | **Die Nummer?** | **0.32.0, MINOR.** *Die Installation kann danach etwas, was sie vorher nicht konnte* |
-| **F2** | **Der Ruf: Spalte oder Ableitung?** | **Ableitung, keine Spalte.** *„Kommentare, die neuer sind als mein Bezugspunkt und meinen Namen rufen" ist eine ABFRAGE — dieselbe Bauform, aus der die Glocke heute schon besteht. **Der Preis ist die Umbenennung:** ein Ruf auf einen umbenannten Zugang zeigt danach auf niemanden.* **Zu bestätigen — nach 0.33.0 kommt keine Spalte mehr dazu** |
+| **F2** | **Die Markierung: Spalte oder Ableitung?** | **SPALTE — die Zugangsnummer, nicht der Name.** *Ich habe hier zuerst die Ableitung vorgeschlagen; **der Befund vom 14.9.2026 kippt sie** (unten, „Der Grabstein"). Ein gelöschter Name wird FREIGEGEBEN und kann längst einem anderen Menschen gehören — eine Markierung, die nur `@bert` im Text trägt, zeigt danach auf den Falschen und nicht auf niemanden. Und „Gelöschter Benutzer 7" ist aus einem Namen gar nicht zu bilden: `list.deletedUser` braucht die NUMMER.* **Das ist ein Schemaschritt, und 0.33.0 steht dahinter** |
 | **F3** | **Wie unterscheidet die Glocke?** | **Eine Zahl, eine geteilte Tafel.** *Zwei Zahlen am Symbol wären zwei Wahrheiten am selben Ort (L1); die Tafel darunter trennt nach Herkunft: **an mich gerichtet** · **unter meinen {entryMany}** · **alles andere*** |
 | **F4** | **Der Satz im Glockenfenster?** | *Er wird ersetzt und in allen drei Sprachen neu geschrieben — Wortlaut nach F3* |
 | **F5** | **Wie heißt das fünfzehnte Vokabelwort im Schlüssel?** | **`vocabulary.grade`** *(ein Wort, kein Paar)*, **Beschriftung `card.grade`**, **Karte `v15`** |
@@ -182,6 +211,7 @@ Wächter ist es nicht.*
 | **F10** | **Der `yedek`-Wächter und die Wortgrenzen?** | **Ja** — *`testbench.js` und `counterproof.js`; die Gegenprobe 787 bekommt ihre Schwester* |
 | **F11** | **Die drei mitgelieferten Kriterien auf Deutsch** *(Punkt 23)* | **Vorschlag: NUR für neue Installationen**, nicht als Migration — *ein gespeicherter Wert gehört dem Bestand, und wer ihn umbenennt, benennt fremde Daten um.* **Zu entscheiden** |
 | **F12** | **`'Ohne Titel'` beim Import ohne Titel** | **Vorschlag: bleibt.** *Es ist ein gespeicherter WERT und keine Beschriftung — dieselbe Lage wie bei den Kriterien. **Wer es mitnimmt, muss sagen, in welcher Sprache ein Import spricht, der nachts ohne Benutzer läuft*** |
+| **F13** | **Steigt das Austauschformat mit?** | **Vorschlag: nein, es bleibt 16.** *Eine Zugangsnummer bedeutet in einer FREMDEN Instanz etwas anderes — das steht seit 0.24.4 an `authorByName()` und ist der Grund, warum der Export den Verfasser als NAMEN trägt. Die Markierung steht als `@bert` ohnehin im Kommentartext; eine Nummer daneben wäre in der Fremde falsch, und der Import löst den Namen dort neu auf.* **Zu bestätigen** |
 
 ---
 
@@ -190,7 +220,7 @@ Wächter ist es nicht.*
 | | was | Umfang |
 |---|---|---|
 | **BA 1** | **Die Glocke wird persönlich** — *die Ableitung trennt nach Herkunft, die Tafel zeigt es, und es gibt weiterhin EINE Rechnung* | F3 |
-| **BA 2** | **Der Ruf** — `@name` als viertes Stück der Zerlegung, hervorgehoben, und der Genannte bekommt seine Zeile in der Tafel | F2 |
+| **BA 2** | **Die Markierung** — `@name` als viertes Stück der Zerlegung, hervorgehoben, und der Markierte bekommt seine Zeile in der Tafel. **Ein gelöschter Zugang steht als „Gelöschter Benutzer 7"** | F2 |
 | **BA 3** | **Das fünfzehnte Vokabelwort** — zehn Schlüssel, die Karte, die neun Prüfungen, die README | Strang 2 |
 | **BA 4** | **Die elf Sätze aus `server.js`** — Schlüssel in drei Sprachen, und die Mehrzahlformen dort, wo eine Zahl davorsteht | F6 |
 | **BA 5** | **Die Restprobe für `server.js`** — *und sie zerlegt Vorlagen an ihren Einsetzstellen* | F7 |
@@ -208,27 +238,28 @@ Wächter ist es nicht.*
 | | Zusage |
 |---|---|
 | **1** | **Die Glocke rechnet EINMAL.** *Die getrennten Zahlen kommen aus derselben Ableitung; keine zweite Abfrage, keine zweite Wahrheit* |
-| **2** | **Der Ruf entsteht als Knoten und nie als String** — *kein `replace()` über das Ergebnis der Zerlegung* |
-| **3** | **Der Ruf gilt EINEM** — *wer nicht gerufen ist, bekommt seine Glocke davon nicht* |
-| **4** | **Die drei Dateien tragen gleich viele Schlüssel, in derselben Folge und derselben Gestalt** — *die neue Zahl steht an EINER Stelle* |
-| **5** | **Es sind fünfzehn Vokabelwörter** — *an allen neun Stellen, und die Migrationstafel von 0.24.3 hat weiterhin vierzehn Zeilen* |
-| **6** | **Kein Vokabelwort steht zusammengesetzt** |
-| **7** | **Kein fester deutscher Satz in `server.js` erreicht mehr den Bildschirm** — *und die Restprobe dafür zerlegt Vorlagen* |
-| **8** | **Die Zugangsanfrage weist eine leere Form ab — und sonst nichts.** *Die Antwort bleibt für jede ausgefüllte Form dieselbe* |
-| **9** | **Jede Änderung an den drei Sprachdateien steht in ihrer Tafel** — *Wortlautprobe, `EG_CHANGED_AFTER_0312`, `TR_CHANGED_AFTER_0313`* |
-| **10** | **Kein Wächter über türkischen Text arbeitet mit `\b`** — *und `yedeğe` wird gefunden* |
-| **11** | **Die Verbotslisten der drei Sprachen bleiben leer** — *dreizehn Muster englisch, elf türkisch, und die deutschen Wächter dazu* |
-| **12** | **„Filter folgt der Sortierung" ist sichtbar, und `STATUS_BY_HAND` sagt, was es tut** |
+| **2** | **Die Markierung entsteht als Knoten und nie als String** — *kein `replace()` über das Ergebnis der Zerlegung* |
+| **3** | **Die Markierung gilt EINEM** — *wer nicht markiert ist, bekommt seine Glocke davon nicht* |
+| **4** | **Der Grabsteinname geht auch hier nicht hinaus** — *eine Markierung auf einen gelöschten Zugang zeigt „Gelöschter Benutzer 7" und nie den freigegebenen Namen* |
+| **5** | **Die drei Dateien tragen gleich viele Schlüssel, in derselben Folge und derselben Gestalt** — *die neue Zahl steht an EINER Stelle* |
+| **6** | **Es sind fünfzehn Vokabelwörter** — *an allen neun Stellen, und die Migrationstafel von 0.24.3 hat weiterhin vierzehn Zeilen* |
+| **7** | **Kein Vokabelwort steht zusammengesetzt** |
+| **8** | **Kein fester deutscher Satz in `server.js` erreicht mehr den Bildschirm** — *und die Restprobe dafür zerlegt Vorlagen* |
+| **9** | **Die Zugangsanfrage weist eine leere Form ab — und sonst nichts.** *Die Antwort bleibt für jede ausgefüllte Form dieselbe* |
+| **10** | **Jede Änderung an den drei Sprachdateien steht in ihrer Tafel** — *Wortlautprobe, `EG_CHANGED_AFTER_0312`, `TR_CHANGED_AFTER_0313`* |
+| **11** | **Kein Wächter über türkischen Text arbeitet mit `\b`** — *und `yedeğe` wird gefunden* |
+| **12** | **Die Verbotslisten der drei Sprachen bleiben leer** — *dreizehn Muster englisch, elf türkisch, und die deutschen Wächter dazu* |
+| **13** | **„Filter folgt der Sortierung" ist sichtbar, und `STATUS_BY_HAND` sagt, was es tut** |
 
-**Jede Zusage bekommt ihre Gegenprobe, und jede wird GEFAHREN.** *Eine stumme
-ist ein Fund — 0.31.2 hat es mit elf bestätigt, 0.31.3 mit dreizehn, 0.31.4 mit
-zwölf, und jedes Mal `0 STUMM`.*
+**DREIZEHN ZUSAGEN, und jede bekommt ihre Gegenprobe — jede wird GEFAHREN.**
+*Eine stumme ist ein Fund: 0.31.2 hat es mit elf bestätigt, 0.31.3 mit dreizehn,
+0.31.4 mit zwölf, und jedes Mal `0 STUMM`.*
 
 ---
 
 ## Was ausdrücklich NICHT gebaut wird
 
-- **Kein Schemaanteil am Austauschformat.** *Es bleibt 16.* **Ob der Ruf eine SPALTE bekommt, entscheidet F2** — *und das ist die einzige Stelle, an der diese Runde das Schema überhaupt berühren könnte.*
+- **Kein Schritt am Austauschformat.** *Es bleibt 16* *(`EXCHANGE_FORMAT`, `server.js:6363`)* — **so der Vorschlag zu F13.** *Die SPALTE aus F2 ist ein Schritt am Schema der DATENBANK, und das ist etwas anderes.*
 - **Keine zweite Glocke.** *Unterscheiden heißt trennen, nicht verdoppeln.*
 - **Kein türkischer und kein englischer Satz wird umformuliert, der nicht zu einem der Stränge gehört.** *0.31.2 und 0.31.3 sind abgenommen; ihre Vergleichsstände sind der Beweis, und diese Runde fasst sie nur da an, wo sie etwas dazulegt.*
 - **Die drei mitgelieferten Kriterien und `'Ohne Titel'`** — *nur, wenn F11 und F12 es sagen.*
