@@ -3,6 +3,11 @@
 **Geschrieben am 14. September 2026 · gebaut auf 0.31.4 · MINOR — die Runde legt
 Schlüssel dazu, aber keinen Schemaanteil am Austauschformat.**
 
+> **UND DER BODEN IST GEPRÜFT UND NICHT ANGENOMMEN:** *der Wirt meldet am
+> 14. September 2026 den Fingerprint `85521c1b`* — **genau den Sollwert von
+> 0.31.4, aus drei Quellen derselbe Wert.** *Diese Runde setzt auf einem
+> Dateisatz auf, von dem auf das Byte feststeht, welcher er ist.*
+
 > **DIE 31er-STRECKE IST ZU ENDE, und sie hat drei Sprachen auf denselben Stand
 > gebracht** — *0.31.0 gegengelesen, 0.31.1 die zersägten Sätze zusammengesetzt,
 > 0.31.2 Englisch, 0.31.3 Türkisch, 0.31.4 die Mehrzahlregel dahinter.* **Diese

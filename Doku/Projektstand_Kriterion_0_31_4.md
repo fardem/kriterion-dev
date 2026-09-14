@@ -648,12 +648,14 @@ test days", „2.1 MB weniger".*
 > Vorschläge, jeder gegen den Quelltext geprüft.* **Was nicht übernommen wurde,
 > steht im Auftrag 0.31.0 mit Grund.**
 
-**Am Wirt läuft 0.31.2, Fingerprint `0745f9bd`** *(Abschnitt 8)* — *vom
-Betreiber am 13. September 2026 aus seiner Installation gemeldet und damit auf
-das Byte bestätigt.* **Drei Quellen, ein Wert, zum siebten Mal.** *Der
-Fingerprint von 0.31.0 (`7f4297ff`), 0.31.1 (`47cfba37`) und 0.31.3
-(`68cd1c14`) aus dem Feld steht aus — die ersten beiden sind
-übersprungen worden, weil 0.31.2 am selben Tag folgte.*
+**Am Wirt läuft 0.31.4, Fingerprint `85521c1b`** *(Abschnitt 8)* — *vom
+Betreiber am 14. September 2026 aus seiner Installation gemeldet und damit auf
+das Byte bestätigt.* **Drei Quellen, ein Wert, zum achten Mal** — *nicht in
+Folge: 0.31.3 liegt dazwischen und ist im Feld nie gesehen worden.* **Der Wirt
+steht damit auf dem Stand, auf dem 0.32.0 aufsetzt.** *Der Fingerprint von
+0.31.0 (`7f4297ff`), 0.31.1 (`47cfba37`) und 0.31.3 (`68cd1c14`) aus dem Feld
+steht weiter aus — alle drei sind übersprungen worden, weil die nächste Runde
+kurz darauf folgte.*
 
 **0.30.0 hat an zwei Enden gebaut, und beide Enden waren dieselbe Sache: Zeit,
 in der niemand etwas sieht.** *Der Prüflauf fällt von 464,4 auf 271,5 Sekunden —
@@ -1902,7 +1904,7 @@ Ursache war **eine Datei zu viel** auf dem Wirt (Stolperstein 158).
 
 | Version | Fingerprint | Prüfungen |
 |---|---|---|
-| **0.31.4** | `85521c1b` *(gerechnet am 13. September 2026 **als letztes und hinter der letzten Zeile**; aus zwei Quellen bestätigt — am Arbeitsbaum über dieselben achtzehn Dateien nachgerechnet und aus dem Server selbst gelesen, **alle achtzehn Einzelwerte gleich**. Die dritte steht aus. Die Runde fasst `public/app.js`, `server.js`, die drei Sprachdateien, `testbench.js`, `counterproof.js` und `package.json` an)* | 6990 |
+| **0.31.4** | `85521c1b` *(gerechnet am 13. September 2026 **als letztes und hinter der letzten Zeile**; **am 14. September 2026 von der laufenden Installation gemeldet — im Feld bestätigt, genau der Sollwert; drei Quellen, ein Wert**. Am Arbeitsbaum über dieselben achtzehn Dateien nachgerechnet und aus dem Server selbst gelesen, **alle achtzehn Einzelwerte gleich**. Die Runde fasst `public/app.js`, `server.js`, die drei Sprachdateien, `testbench.js`, `counterproof.js` und `package.json` an)* | 6990 |
 | **0.31.3** | `68cd1c14` *(gerechnet am 13. September 2026 **als letztes und hinter der letzten Zeile**; aus zwei Quellen bestätigt — am Arbeitsbaum über dieselben achtzehn Dateien nachgerechnet und aus dem Server selbst gelesen, **alle achtzehn Einzelwerte gleich**. Die dritte steht aus. Die Runde fasst `public/languages/tr.json`, `testbench.js`, `counterproof.js`, `tools/` und `package.json` an)* | 6951 |
 | **0.31.2** | `0745f9bd` *(gerechnet am 13. September 2026 **als letztes und hinter der letzten Zeile**; **am selben Tag von der laufenden Installation gemeldet — im Feld bestätigt, genau der Sollwert; drei Quellen, ein Wert**. Am Arbeitsbaum über dieselben achtzehn Dateien nachgerechnet und aus dem Server selbst gelesen, **alle achtzehn Einzelwerte gleich**. Die Runde fasst `public/languages/en.json`, zwei Werte in `de.json` und `package.json` an — mehr nicht)* | 6905 |
 | **0.31.1** | `47cfba37` *(gerechnet am 13. September 2026 **als letztes und hinter der letzten Zeile**; aus zwei Quellen bestätigt — am Arbeitsbaum über dieselben achtzehn Dateien nachgerechnet und aus dem Server selbst gelesen, **alle achtzehn Einzelwerte gleich**. Die dritte steht aus. Die Runde fasst `public/app.js`, die drei Sprachdateien und `package.json` an)* | 6877 |
