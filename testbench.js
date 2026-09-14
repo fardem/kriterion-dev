@@ -7073,6 +7073,171 @@ function sweepLeftovers() {
   await SE1.stop();
   fs.rmSync(levelEDir, { recursive: true, force: true });
 
+  /* ================= Endungen, Woerter und Zahlen — 0.32.1 ==============
+     DREI WAECHTER AUS DREI BEFUNDEN DES BETREIBERS, und alle drei fragen die
+     SPRACHDATEIEN und nicht den Bildschirm: was hier steht, erreicht jeden
+     Bildschirm, und ein Fund in einer Datei ist billiger als einer im Betrieb.
+
+     DER ERSTE BEFUND WAR „Öğe sil" UNTER EINEM EINTRAG. Richtig heisst es
+     „Öğeyi sil" -- Tuerkisch verlangt am bestimmten Objekt die Endung `-(y)I`.
+     ALLE FESTEN SUBSTANTIVE DER DATEI TRUGEN SIE („Dosyayı sil", „Resmi sil",
+     „Kullanıcıyı sil"); sie fehlte ausschliesslich dort, wo ein PLATZHALTER
+     stand. Der Grund ist keine Nachlaessigkeit, sondern eine Unmoeglichkeit:
+     die Endung haengt am Wort, das der Betreiber eintraegt, und ein fester
+     Satz kann nur eine tragen.
+     AUSRECHNEN LAESST SIE SICH NICHT. Gemessen an der verbreitetsten
+     Bibliothek dafuer (affixi, TypeScript): zehn von zwoelf richtig, und die
+     beiden falschen sind „Öğe" -> „Öğeni" statt „Öğeyi" und
+     „Değerlendirme" -> „Değerlendirmeni". Ihr Akkusativ haengt an jedes
+     vokalendende Wort ein `-n-`; das ist nach einem Possessiv richtig („Test
+     günü" -> „Test gününü") und sonst falsch, UND AUS DEN BUCHSTABEN IST DER
+     UNTERSCHIED NICHT ZU SEHEN.
+     ALSO WIRD UMSCHIFFT: der Satz wird so gebaut, dass die Endung auf ein
+     FESTES Wort faellt („{entryOne} kaydını sil"). Das ist die Kruecke, die
+     die Fachwelt dafuer kennt, und `dialog.deleteAlso` benutzt sie im Haus
+     schon. Diese Gruppe haelt fest, dass sie ueberall benutzt wird. */
+  group('Endungen, Woerter und Zahlen — 0.32.1');
+  {
+    const spFiles = {};
+    for (const code of ['de', 'en', 'tr'])
+      spFiles[code] = JSON.parse(fs.readFileSync(
+        path.join(__dirname, 'public', 'languages', `${code}.json`), 'utf8'));
+    /* Jeden Wert flach, mit seinem Namen -- ein Mehrzahlpaar steht mit beiden
+       Zweigen da. Sonst sieht der Waechter die Einzahl nicht. */
+    const spValues = (file) => {
+      const out = [];
+      for (const [k, v] of Object.entries(file)) {
+        if (k.startsWith('_')) continue;
+        if (typeof v === 'string') out.push([k, v]);
+        else if (v && typeof v === 'object')
+          for (const [form, sentence] of Object.entries(v)) out.push([`${k}.${form}`, sentence]);
+      }
+      return out;
+    };
+    const VOC = ['entryOne', 'entryMany', 'dayOne', 'dayMany', 'ratingOne', 'ratingMany',
+      'reportOne', 'reportMany', 'taskOne', 'taskMany', 'taskDone', 'grade',
+      'potential', 'testedYes', 'testedNo', 'thing', 'word', 'name', 'username'];
+
+    /* ---- 1. KEINE BEFEHLSFORM UNMITTELBAR HINTER EINEM PLATZHALTER ----
+       „{entryOne} sil" ist der Fall: Platzhalter, Leerzeichen, Befehlsform.
+       Ein bestimmtes Objekt braucht davor die Endung, und die kann dort nicht
+       stehen. Die Liste nennt die Befehlsformen, die in dieser Oberflaeche
+       ueberhaupt vorkommen -- eine allgemeine Regel ueber „alle tuerkischen
+       Verben" waere keine Pruefung, sondern ein Woerterbuch. */
+    const TR_IMPERATIVE = ['sil', 'aç', 'kapat', 'kaydet', 'seç', 'değiştir', 'kaldır',
+      'göster', 'gizle', 'kopyala', 'taşı', 'yükle', 'indir', 'gönder', 'ayarla',
+      'sıfırla', 'onayla', 'temizle', 'boşalt', 'başlat', 'durdur', 'ata'];
+    /* `çıkar` STEHT AUSDRUECKLICH NICHT IN DER LISTE. Es ist zwar eine
+       Befehlsform („nimm heraus"), aber im Haus steht es an einer Stelle als
+       dritte Person Gegenwart: „…{word} çıkar." heisst dort „…kommt {word}
+       heraus". Ein Waechter, der jedes zweite Wort anmeckert, wird
+       abgeschaltet. */
+    /* UND EINE STELLE IST BENANNT AUSGENOMMEN. `card.confirmOnce` heisst
+       „Bir kez onayla, sonra {word} yükle" -- der Platzhalter traegt dort
+       `card.partOrAll`, und DAS steht schon im Akkusativ („parçayı",
+       „{n} parçanın tamamını"). Die Endung ist also da, sie steht nur im
+       eingesetzten Stueck statt im Satz. Genau dafuer ist eine benannte
+       Ausnahme da und kein aufgeweichtes Muster. */
+    const TR_OBJECT_EXCEPT = ['card.confirmOnce'];
+    const trObject = new RegExp(
+      `\\{(?:${VOC.join('|')})\\}[”"']?\\s+(?:${TR_IMPERATIVE.join('|')})(?=$|[\\s.,;:!?)])`, 'u');
+    const trHits = spValues(spFiles.tr)
+      .filter(([k]) => !TR_OBJECT_EXCEPT.includes(k.split('.').slice(0, 2).join('.')))
+      .filter(([, v]) => trObject.test(v));
+    check('Zusage: kein tuerkischer Befehl steht unmittelbar hinter einem Platzhalter — 0.32.1',
+      trHits.length === 0, trHits.map(([k, v]) => `${k}: ${v}`).join(' · ') || 'keiner');
+    /* UND DER LESER LIEST WIRKLICH. Ohne diese Zeile bliebe die daruber auch
+       dann gruen, wenn das Muster gar nicht zuendete (Stolperstein 81). */
+    check('Und der Waechter wuerde „{entryOne} sil" finden',
+      trObject.test('{entryOne} sil') && trObject.test('“{potential}” aç')
+      && !trObject.test('{entryOne} kaydını sil'),
+      'das Muster zuendet nicht');
+
+    /* ---- 2. KEIN ANHAENGSEL HINTER EINEM PLATZHALTER ----
+       Die Fragepartikel und das Klitikon „de/da" richten sich nach dem
+       LETZTEN VOKAL des Wortes davor. Steht dort ein Platzhalter, ist der
+       letzte Vokal unbekannt: „{potential} mı" war auf „Potansiyel" falsch
+       (dort gehoert „mi" hin), und „{word} de" war auf „Kurtarma kodu" falsch
+       (dort gehoert „da" hin). BEIDE STANDEN SO IN DER DATEI. */
+    const trClitic = new RegExp(`\\{\\w+\\}[”"']?\\s+(?:m[ıiuü]|d[ae]|ki)(?=$|[\\s.,;:!?)])`, 'u');
+    const trClitics = spValues(spFiles.tr).filter(([, v]) => trClitic.test(v));
+    check('Zusage: kein harmonierendes Anhaengsel steht hinter einem Platzhalter — 0.32.1',
+      trClitics.length === 0, trClitics.map(([k, v]) => `${k}: ${v}`).join(' · ') || 'keines');
+    check('Und der Waechter wuerde „{potential} mı" finden',
+      trClitic.test('{potential} mı') && trClitic.test('{word} de girebilirsin')
+      && !trClitic.test('Bunlar da birlikte gider: {what}.'),
+      'das Muster zuendet nicht');
+
+    /* ---- 3. KEIN VOKABELWORT STEHT FEST IN EINEM SATZ ----
+       DER ZWEITE BEFUND, und er trifft ALLE DREI SPRACHEN: „unten Datum und
+       Note eintragen" stand so in de.json, obwohl „Note" seit 0.32.0 das
+       fuenfzehnte Vokabelwort ist. Wer es umbenennt, las weiter „Note".
+       GEPRUEFT WIRD GEGEN DIE VORGABEN DER DATEI SELBST und nicht gegen eine
+       abgeschriebene Liste (Stolperstein 47): die Woerter stehen unter
+       `vocabulary.`, und von dort kommen sie.
+       DREI AUSNAHMEN, UND JEDE HAT IHREN GRUND -- sie stehen namentlich hier
+       und nicht als Muster, damit eine vierte auffaellt. */
+    const VOC_EXCEPT = {
+      'card.nameFallback': 'die ZEILE der Namenskarte, nicht die Vokabel',
+      'card.nameRemove': 'dieselbe Zeile',
+      'card.nameRemoveAsk': 'dieselbe Zeile',
+      'card.nameRemoved': 'dieselbe Zeile',
+      'server.nameOriginalStays': 'dieselbe Zeile',
+      'card.lastTestedOk': 'die TESTMAIL, nicht der Teststatus',
+      'card.vocabularyResetHint': 'die Karte zaehlt die Vorgabewoerter ausdruecklich auf',
+      'card.itemOne': 'die Beschriftung des Vokabelfelds selbst',
+      'card.itemMany': 'dieselbe Karte',
+      'card.dayOne': 'dieselbe Karte', 'card.dayMany': 'dieselbe Karte',
+      'card.reportOne': 'dieselbe Karte', 'card.reportMany': 'dieselbe Karte',
+      'card.taskOne': 'dieselbe Karte', 'card.taskMany': 'dieselbe Karte',
+      'card.taskDone': 'dieselbe Karte', 'card.ratingOne': 'dieselbe Karte',
+      'card.ratingMany': 'dieselbe Karte', 'card.potential': 'dieselbe Karte',
+      'card.testedYes': 'dieselbe Karte', 'card.testedNo': 'dieselbe Karte',
+      'card.grade': 'dieselbe Karte',
+      /* UND ZWEI IM ENGLISCHEN, wo das Vokabelwort ein gewoehnliches Wort
+         ist: „Done" und „Entry" heissen dort auch das, was sie heissen. Auf
+         Deutsch und Tuerkisch faellt das nicht an -- „Erledigt" und „Öğe"
+         stehen nirgends sonst. */
+      'card.convertFinished': 'englisch „Conversion done" — kein Vokabelwort',
+      'card.languageComplete': 'englisch „every row has an entry" — die ZEILE der Namenskarte',
+      /* UND ZWEI, DIE NUR IN EINER SPRACHE ANFALLEN -- sie stehen deshalb MIT
+         ihrer Sprache davor und blenden den Waechter nicht in den anderen
+         beiden aus. In beiden Faellen ist es das VERB und nicht das
+         Substantiv, und ein Verb laesst sich nicht umbenennen. */
+      'en/error.serverStatus': 'englisch „The server reports an error" — das Verb',
+      'tr/server.ratingBeforeTest': 'tuerkisch „değerlendirme yapılmaz" — das Verbalnomen von „bewerten"'
+    };
+    const vocLeaks = [];
+    for (const code of ['de', 'en', 'tr']) {
+      const words = Object.entries(spFiles[code])
+        .filter(([k]) => k.startsWith('vocabulary.'))
+        .map(([, v]) => String(v))
+        .filter(w => w.length >= 4);
+      const rx = new RegExp(`\\b(${words.map(w => w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|')})\\b`, 'iu');
+      for (const [k, v] of spValues(spFiles[code])) {
+        if (k.startsWith('vocabulary.')) continue;
+        const plain = k.split('.').slice(0, 2).join('.');
+        if (VOC_EXCEPT[plain] !== undefined || VOC_EXCEPT[`${code}/${plain}`] !== undefined) continue;
+        /* DIE PLATZHALTERNAMEN SIND KEIN TEXT. `{done} of {total}` traegt
+           kein englisches Wort „done" -- es ist der NAME des Platzes, und
+           der erreicht keinen Bildschirm. Ohne diese Zeile meldete der
+           Waechter sechs Stellen, an denen nichts steht. */
+        const m = rx.exec(String(v).replace(/\{\w+\}/g, ' '));
+        if (m) vocLeaks.push(`${code}/${k}: „${m[1]}"`);
+      }
+    }
+    check('Zusage: kein Vokabelwort steht fest in einem Satz — 0.32.1',
+      vocLeaks.length === 0, vocLeaks.slice(0, 8).join(' · ') || 'keines');
+    /* UND JEDE AUSNAHME IST EINE ECHTE. Eine Ausnahme, die nichts mehr deckt,
+       deckt beim naechsten Mal etwas anderes -- dieselbe Regel wie an den
+       Tafeln der Vergleichsstaende. */
+    const vocStale = Object.keys(VOC_EXCEPT)
+      .map(k => k.includes('/') ? k.split('/')[1] : k)
+      .filter(k => spFiles.de[k] === undefined);
+    check('Und jede benannte Ausnahme steht wirklich in der Datei',
+      vocStale.length === 0, vocStale.join(' ') || 'keine Karteileiche');
+  }
+
   /* ---------------------------------------------------------------- */
   group('Verfasser in Export und Import');
 
@@ -18953,6 +19118,26 @@ function sweepLeftovers() {
        die Mehrzahl selbst -- `files.length === 1 ? 'Sicherung' : 'Sicherungen'`
        --, und eine Mehrzahlregel im Quelltext ist eine Regel je Sprache an
        einer Stelle, die nur eine kennt. */
+    /* 1303 WURDEN 1297 MIT 0.32.1 -- SECHS FALLEN, KEINER KOMMT DAZU, und das
+       ist fuer eine Runde, die etwas AUFRAEUMT, das erwartete Vorzeichen:
+         −1  `list.ofWhich` -- das „, davon ..." der Zaehlzeile. Die Zeile
+             baut keinen Satz mehr, sondern zaehlt mit Zeichen auf; auf
+             Tuerkisch war es eine Klammer („, bunun {parts} kadarı") um eine
+             Aufzaehlung, die zur Laufzeit beliebig lang wird.
+         −1  `list.and` -- das Bindewort dieser Aufzaehlung. Ohne sie hatte es
+             keinen einzigen Rufer mehr.
+         −3  `list.followsSort`, `list.statusByHand`, `list.byHandHint` --
+             die drei Saetze der Filterableitung, die diese Runde ausbaut.
+         −2  `list.pillHint` und `list.sortDefaultHint` -- die beiden
+             Erklaerungen an der abgeleiteten Statuspille; sie sind mit ihr
+             gefallen.
+         +1/−1 `entry.deleteWord` wird zu `entry.deletePhoto` und
+             `entry.deleteVideo`. ZWEI feste Schluessel statt eines mit
+             Platzhalter: auf Tuerkisch braucht „Fotoğraf" den Akkusativ `-ı`
+             und „Video" das `-yu`, und ein fester Satz kann nur eine von
+             beiden Endungen tragen.
+       DIE MEHRZAHLFORMEN UND DIE VOKABELNAMEN RUEHREN SICH NICHT: keiner der
+       sechs war ein Paar, und keiner ein Vokabelwort. */
     /* 1279 WURDEN 1280 MIT 0.31.4: `_afterNumber` kommt dazu. Er traegt keinen
        Satz -- er sagt, welche FORM hinter einer Zahl steht.
        1336 WURDEN 1279 MIT 0.31.1 -- UMGEDREHT UND NICHT GELOESCHT
@@ -18964,8 +19149,8 @@ function sweepLeftovers() {
        14 wie zuvor. Wer die Zahl hier still mitlaufen liesse, saehe genau das
        nicht: die Runde fasst die ABLAGE der Saetze an, und ein Mehrzahlpaar,
        das dabei flach wird, waere ein Verlust. */
-    check('Und die Zahlen stehen: 1303 Schluessel, 88 Mehrzahlformen, 15 Vokabelnamen',
-      languageKeys.length === 1303 && pluralKeys.length === 88 && vocabularyKeys.length === 15,
+    check('Und die Zahlen stehen: 1297 Schluessel, 88 Mehrzahlformen, 15 Vokabelnamen',
+      languageKeys.length === 1297 && pluralKeys.length === 88 && vocabularyKeys.length === 15,
       `${languageKeys.length} / ${pluralKeys.length} / ${vocabularyKeys.length}`);
 
     /* ---- 3. Die Adressprobe ---------------------------------------------
@@ -19282,12 +19467,37 @@ function sweepLeftovers() {
       'server.noUserAddress', 'server.signupThanks', 'server.cleanupNoBackups',
       'server.backupsBeforeKey', 'server.cleanupAllYoungest', 'server.cleanupOldestAge',
       'mail.ownServer', 'list.statusByHand', 'list.byHandHint'];
+    /* UND ZWEI MIT 0.32.1 -- und es sind KEINE neuen Saetze, sondern ein
+       geteilter: `entry.deleteWord` („{word} löschen") wird zu
+       `entry.deletePhoto` und `entry.deleteVideo`.
+       DER GRUND IST TUERKISCH. Der Platzhalter traegt genau zwei Woerter,
+       „Fotoğraf" und „Video", und beide brauchen als direktes Objekt eine
+       ENDUNG: „Fotoğraf-ı sil" und „Video-yu sil". Welche, haengt vom letzten
+       Vokal und vom letzten Buchstaben ab -- ein fester Satz kann nur eine von
+       beiden tragen. Zwei feste Schluessel koennen beide.
+       DIESELBE BAUFORM STEHT SCHON DANEBEN: `entry.deleteFile` heisst
+       „Dosyayı sil" und `entry.deleteImage` „Resmi sil", beide fest und beide
+       richtig. Das Teilen ist keine Ausnahme, sondern die Praxis der Datei. */
+    const WORDING_NEW_0321 = ['entry.deletePhoto', 'entry.deleteVideo'];
+    /* UND ACHT SCHLUESSEL FALLEN MIT 0.32.1 -- sechs von ihnen gab es schon
+       bei der Abnahme, zwei sind erst in 0.32.0 entstanden und schon wieder
+       weg. SIE STEHEN IN EINER LISTE UND WERDEN VON `WORDING_NEW` ABGEZOGEN,
+       statt aus den Listen der frueheren Runden herausgestrichen zu werden:
+       die Buchfuehrung soll sagen, WELCHE Runde einen Satz gebracht und
+       welche ihn wieder genommen hat. Ein herausgestrichener Eintrag saehe
+       aus, als haette es ihn nie gegeben. */
+    const WORDING_GONE_0321 = [
+      'list.ofWhich', 'list.and',                      // die Zaehlzeile baut keinen Satz mehr
+      'list.followsSort', 'list.statusByHand', 'list.byHandHint',   // die Filterableitung
+      'list.pillHint', 'list.sortDefaultHint',          // ihre beiden Erklaerungen
+      'entry.deleteWord'];                              // in zwei feste geteilt
     const WORDING_NEW = [...WORDING_NEW_0243, ...WORDING_NEW_0244,
       ...WORDING_NEW_0245, ...WORDING_NEW_0246, ...WORDING_NEW_0250,
       ...WORDING_NEW_0254, ...WORDING_NEW_0260, ...WORDING_NEW_0270,
       ...WORDING_NEW_0280, ...WORDING_NEW_0281, ...WORDING_NEW_0290,
       ...WORDING_NEW_0300, ...WORDING_NEW_0311, ...WORDING_NEW_0314,
-      ...WORDING_NEW_0320];
+      ...WORDING_NEW_0320, ...WORDING_NEW_0321]
+      .filter(k => !WORDING_GONE_0321.includes(k));
     const wordingMissing = WORDING_NEW.filter(k => LANGUAGE_FILE[k] === undefined);
     check('Die neuen Schluessel dieser Runde stehen wirklich in der Datei',
       wordingMissing.length === 0, wordingMissing.join(' ') || 'alle da');
@@ -19610,6 +19820,31 @@ function sweepLeftovers() {
        Runde davor -- sonst stuende „anderer Benutzer" fuer immer in `onlyThen`
        und faerbte die Rechnung. */
     const WORDING_GONE_TEXT_0320 = ['anderer Benutzer'];
+    /* UND DIE ACHT VON 0.32.1 -- gepruefte Zugehoerigkeit: die Zeile darunter
+       haelt fest, dass keiner der acht in einer der drei Dateien mehr steht.
+       SECHS WORTLAUTE UND NICHT ACHT: `list.statusByHand` und
+       `list.byHandHint` sind erst in 0.32.0 entstanden. Den Stand von damals
+       gab es ohne sie, also ist dort auch nichts abzuziehen -- sie fallen
+       ueber `WORDING_GONE_0321` aus `WORDING_NEW` und damit aus der Rechnung.
+       DIE WORTLAUTE SIND DIE VON DAMALS UND NICHT DIE VON GESTERN: „folgt der
+       Sortierung" hatte bis 0.31.4 keinen Wert dahinter, und `list.and` stand
+       bei der Abnahme mit Leerzeichen da (" und "). Wer hier den heutigen
+       Wortlaut abzoege, traefe nichts und liesse den alten stehen. */
+    const WORDING_GONE_TEXT_0321 = [
+      ', davon {teile}',
+      ' und ',
+      'folgt der Sortierung',
+      'Ein Klick auf eine der drei Pillen setzt den Filter selbst.',
+      'Vorgabe der Sortierung — ein Klick macht daraus deine eigene Wahl.',
+      '{wort} löschen'];
+    const goneStill13 = [];
+    for (const code of ['de', 'en', 'tr']) {
+      const file = JSON.parse(fs.readFileSync(
+        path.join(__dirname, 'public', 'languages', `${code}.json`), 'utf8'));
+      for (const k of WORDING_GONE_0321) if (file[k] !== undefined) goneStill13.push(`${code}/${k}`);
+    }
+    check('Und die acht Schluessel, die 0.32.1 wegnimmt, stehen in keiner Datei mehr',
+      goneStill13.length === 0, goneStill13.join(' ') || 'in allen dreien weg');
     const wordingOld = Object.fromEntries(Object.entries(LANGUAGE_FILE)
       .filter(([k]) => !WORDING_NEW.includes(k)));
     /* DIE PLATZHALTERNAMEN ZIEHEN MIT IHREM SATZ UM -- 0.24.3, F7. Aus
@@ -19684,7 +19919,7 @@ function sweepLeftovers() {
       ...WORDING_GONE_TEXT_0260, ...WORDING_GONE_TEXT_0270,
       ...WORDING_GONE_TEXT_0281, ...WORDING_GONE_TEXT_0300,
       ...WORDING_GONE_TEXT_0310, ...WORDING_GONE_TEXT_0311,
-      ...WORDING_GONE_TEXT_0320].map(flatten)
+      ...WORDING_GONE_TEXT_0320, ...WORDING_GONE_TEXT_0321].map(flatten)
       .reduce((list, sentence) => withoutOne(list, sentence), wordingFile.values.map(flatten))
       .sort();
     const wordingNow = valuesOf(wordingOld).map(asBefore).sort();
@@ -19721,8 +19956,13 @@ function sweepLeftovers() {
        ersetzt ihn) und wird im selben Zug aus dem Stand von damals abgezogen
        (WORDING_GONE_TEXT_0320). Die achtzehn NEUEN Schluessel der Runde stehen
        in WORDING_NEW und werden hier gar nicht erst verglichen. */
-    check('Wortlautprobe: gleich viele Saetze wie bei der Abnahme — 1088',
-      wordingNow.length === wordingThen.length && wordingNow.length === 1088,
+    /* 1088 WURDEN 1082 MIT 0.32.1, UND DIE BEIDEN ZAHLEN BLEIBEN GLEICH: sechs
+       Saetze fallen aus der Datei von heute und werden im selben Zug aus dem
+       Stand von damals abgezogen (WORDING_GONE_TEXT_0321). Die zwei NEUEN
+       Schluessel der Runde stehen in WORDING_NEW und werden gar nicht erst
+       verglichen. */
+    check('Wortlautprobe: gleich viele Saetze wie bei der Abnahme — 1082',
+      wordingNow.length === wordingThen.length && wordingNow.length === 1082,
       `${wordingThen.length} damals, ${wordingNow.length} heute (ohne die ` +
       `${WORDING_NEW.length} neuen und die weggenommenen)`);
     /* ZWEI SAETZE SIND ANDERE, UND BEIDE SIND BENANNT.
@@ -19868,8 +20108,12 @@ function sweepLeftovers() {
        einem geraden `"` ein typografisches `“` geworden. Sie stehen trotzdem
        hier und nicht in einer Sammelzeile: verglichen werden Saetze Zeichen
        fuer Zeichen, und ein Zeichen ist ein Zeichen. */
+    /* `list.pillHint` STAND HIER BIS 0.32.0 AN ERSTER STELLE und ist mit
+       0.32.1 gefallen -- er erklaerte die Filterableitung, und die gibt es
+       nicht mehr. Ein Eintrag, der auf einen Schluessel zeigt, den es nicht
+       mehr gibt, faerbte die Zeile darunter rot, und zwar zu Recht. */
     const CHANGED_TABLE_0310 = [
-      'list.pillHint', 'entry.jumpToInput', 'card.fontSizeHint', 'card.likeDevice',
+      'entry.jumpToInput', 'card.fontSizeHint', 'card.likeDevice',
       'list.hitPlace', 'card.calculating', 'card.convertProgress',
       'server.videoNeedsStill', 'server.videoStill', 'server.stillNoPreview',
       'server.stillNotImage', 'card.exportPartsHint', 'card.backupWritten',
@@ -19937,7 +20181,15 @@ function sweepLeftovers() {
       "card.vocabularyResetHint", "card.withPhotos", "card.withoutPhotos",
       "dialog.deleteAlso", "entry.calcHowAvg", "entry.calcIfEqual",
       "entry.calcNoChange", "entry.edited", "entry.linkInputHint",
-      "entry.weightsWhere", "list.and", "list.commentCount",
+      /* `list.and` UND `list.commentCount` STANDEN HIER BIS 0.32.0. 0.31.1 hat
+         beiden etwas beigegeben -- dem Bindewort die Leerzeichen genommen,
+         dem Zaehlsatz den Platz `{of}` gegeben. 0.32.1 nimmt das Bindewort
+         ganz (die Zaehlzeile bindet nichts mehr zusammen) und gibt dem
+         Zaehlsatz seinen Wortlaut von der Abnahme zurueck. Ein Eintrag, der
+         auf einen gefallenen Schluessel zeigt, bricht die Zeile ab; einer,
+         der einen Unterschied benennt, den es nicht mehr gibt, deckt beim
+         naechsten Mal einen, den es gibt. */
+      "entry.weightsWhere",
       "list.searchOffline", "list.searchingShort", "list.visibleCount",
       "login.newPasswordFor", "login.noPhoneHint", "login.requestAccessHint",
       "login.welcome", "mail.hintAlways", "mail.hintGmx",
@@ -19999,8 +20251,11 @@ function sweepLeftovers() {
       'entry.grade', 'entry.gradeLabel', 'entry.calcGradeWeight',
       'entry.gradeReplaced', 'list.lastGrade', 'list.gradeLong',
       'list.gradeShort', 'server.gradeRange',
-      'card.restartHint', 'server.deniedOwnUser', 'server.ruleKeep', 'server.ruleDays',
-      'list.followsSort'];
+      'card.restartHint', 'server.deniedOwnUser', 'server.ruleKeep', 'server.ruleDays'];
+    /* `list.followsSort` STAND HIER BIS 0.32.0 als vierzehnter -- 0.32.0 hat
+       ihm den WERT beigegeben („folgt der Sortierung: Getestet"). 0.32.1 hat
+       ihn ganz genommen; er steht jetzt in WORDING_GONE_0321, und sein
+       Wortlaut von damals wird oben abgezogen. */
     /* FUENFUNDACHTZIG SEIT 0.31.0, VORHER FUENFZEHN -- und die siebzig mehr
        sind die Runde selbst: siebenunddreissig aus der Worttafel, fuenf
        erzwungene Nachzieher und zweiunddreissig, an denen nur das
@@ -20032,12 +20287,46 @@ function sweepLeftovers() {
        Seite, und sie haben Namen: WORDING_CHANGED_0320. Der Abstand von zwei
        bleibt, und das ist die eigentliche Auskunft: zu jedem neuen Wortlaut
        steht drueben genau ein alter, der verschwunden ist. */
-    check('Und genau hundertneunundfuenfzig Saetze sind andere — die hundertsechsundvierzig von vorher und die dreizehn aus 0.32.0',
-      onlyThen.length === 159 && onlyNow.length === 157 &&
+    /* 159 UND 157 WURDEN 157 UND 155 MIT 0.32.1 -- ZWEI WENIGER auf jeder
+       Seite, und das ist zum ersten Mal seit 0.31.1 die Richtung nach unten.
+       Sie rechnen sich so:
+         −2  `list.followsSort` und `list.pillHint` sind ganz gefallen. Ihr
+             Wortlaut von damals wird jetzt abgezogen (WORDING_GONE_TEXT_0321)
+             statt als geaendert gefuehrt.
+         −2  `list.commentCount` steht wieder GENAU so da wie bei der Abnahme:
+             „{n} Kommentar" / „{n} Kommentare". 0.31.1 hatte ihm den Platz
+             `{of}` fuer das „, davon ..." beigegeben, und 0.32.1 nimmt ihn
+             wieder weg -- ein Mehrzahlpaar zaehlt flach zwei, also zwei auf
+             jeder Seite. EIN SATZ, DER ZURUECKKOMMT, IST KEIN GEAENDERTER.
+         +1  `entry.noDaysYet` sagt jetzt `{grade}` statt „Note" -- das
+             fuenfzehnte Vokabelwort stand seit 0.32.0 da und in diesem einen
+             Satz trotzdem fest.
+         +1  `server.deniedEntry` nennt den Eintrag nicht mehr beim Wort.
+       `server.ratingBeforeTest` AENDERT SICH EBENFALLS, zaehlt hier aber
+       nicht: er stand schon in CHANGED_QUOTE_0310 und war damit auf beiden
+       Seiten bereits gezaehlt. Die Zeile zaehlt SAETZE und keine Handgriffe.
+       `card.potentialModeHint` UND `entry.dueHint` ZAEHLEN GAR NICHT MIT: sie
+       sind nach der Abnahme entstanden und stehen in WORDING_NEW -- was dort
+       steht, wird hier nicht verglichen. */
+    const WORDING_CHANGED_0321 = [
+      'entry.noDaysYet', 'server.deniedEntry', 'server.ratingBeforeTest'];
+    check('Und genau hundertsiebenundfuenfzig Saetze sind andere — die hundertneunundfuenfzig von 0.32.0 minus die zwei, die 0.32.1 zurueckholt',
+      onlyThen.length === 157 && onlyNow.length === 155 &&
+      WORDING_CHANGED_0321.every(k => LANGUAGE_FILE[k] !== undefined
+        && onlyNow.includes(asBefore(LANGUAGE_FILE[k]))) &&
+      /* UND DER EINE, DER ZURUECKKOMMT, STEHT AUF KEINER DER BEIDEN SEITEN
+         MEHR: `list.commentCount` ist Zeichen fuer Zeichen der von damals. */
+      Object.values(LANGUAGE_FILE['list.commentCount'])
+        .every(v => !onlyNow.includes(asBefore(v)) && !onlyThen.includes(asBefore(v))) &&
+      !onlyThen.includes('Ein Klick auf eine der drei Pillen setzt den Filter selbst.') &&
       WORDING_CHANGED_0320.every(k => LANGUAGE_FILE[k] !== undefined
         && onlyNow.includes(asBefore(LANGUAGE_FILE[k]))) &&
-      onlyThen.includes('folgt der Sortierung') && onlyThen.includes('Note') &&
-      !onlyNow.includes('folgt der Sortierung') &&
+      /* „folgt der Sortierung" STAND BIS 0.32.0 IN `onlyThen` -- 0.32.0 hatte
+         ihm den Wert beigegeben. 0.32.1 nimmt den Schluessel ganz, und sein
+         Wortlaut von damals wird abgezogen: er darf jetzt auf KEINER der
+         beiden Seiten mehr stehen. */
+      !onlyThen.includes('folgt der Sortierung') &&
+      !onlyNow.includes('folgt der Sortierung') && onlyThen.includes('Note') &&
       WORDING_CHANGED_0311.every(k => LANGUAGE_FILE[k] !== undefined) &&
       WORDING_CHANGED_0312.every(k => LANGUAGE_FILE[k] !== undefined
         && onlyNow.includes(asBefore(LANGUAGE_FILE[k]))) &&
@@ -20109,8 +20398,16 @@ function sweepLeftovers() {
        Benutzer"). DIE ZEILE BLEIBT DIE EIGENTLICHE ABNAHME: was diese Runde
        nicht angefasst hat, ist Zeichen fuer Zeichen der Stand von 0681d42 --
        neunhundertneunundzwanzig Saetze. */
+    /* 929 WURDEN 925 MIT 0.32.1: vier Saetze sind ganz gefallen, ohne dass
+       ein anderer an ihre Stelle traete -- `list.and`, `list.ofWhich`,
+       `list.sortDefaultHint` und `entry.deleteWord`. Die beiden uebrigen der
+       Runde (`list.followsSort`, `list.pillHint`) standen schon vorher in den
+       Listen darueber und nicht im Rest.
+       DIE ZEILE BLEIBT DIE EIGENTLICHE ABNAHME: was diese Runde nicht
+       angefasst hat, ist Zeichen fuer Zeichen der Stand von 0681d42 --
+       neunhundertfuenfundzwanzig Saetze. */
     check('Und sonst kein Zeichen — Satz fuer Satz dieselbe Oberflaeche',
-      equal(restThen, restNow) && restNow.length === 929,
+      equal(restThen, restNow) && restNow.length === 925,
       `${restThen.filter((x, i) => x !== restNow[i]).length} abweichende von ${restNow.length}`);
 
     /* ---- 6. Die Kuerzeprobe ---------------------------------------------
@@ -28088,7 +28385,24 @@ function sweepLeftovers() {
      drei Sprachen -- und 1026 nimmt dieselbe Uebersetzung an der ZWEITEN
      Stelle weg, in der Anzeige dessen, was eingerichtet ist. Macht SIEBZEHN
      neue und 1017 im Ganzen. */
-  check(`Es sind genau 1017 Rueckbauten`, gpList.length === 1017, `${gpList.length}`);
+  /* UND 1017 WURDEN 1008 MIT 0.32.1 -- ZUM ERSTEN MAL WENIGER, und das gehoert
+     zu einer Runde, die etwas AUSBAUT:
+       −17  606 bis 623, 807 und 1022 bauten die Filterableitung zurueck. Sie
+            greifen ins Leere, seit es die Ableitung nicht mehr gibt, und ein
+            Rueckbau, der ins Leere greift, ist wertlos -- die Selbstprobe
+            „jeder Suchtext kommt genau einmal vor" haette sie gemeldet.
+            GELOESCHT UND NICHT UMGEDREHT: was sie zurueckbauten, existiert
+            nicht mehr; umdrehen liesse sich nur ein Gegenstand, den es gibt.
+            Was sie belegt haben, steht als Absatz in app.js bei
+            `statusEffective` -- dort ist es nachlesbar, und dort gehoert es
+            hin (Stolperstein 74 im Geist, nicht im Buchstaben).
+       +8   1027 bis 1034 bauen sie WIEDER EIN -- und das ist die richtige
+            Richtung fuer einen Ausbau: nicht „nimm weg, was da ist", sondern
+            „bring zurueck, was weg sein soll". Dazu die Zaehlzeile (Wort
+            statt Zahl, Farbe ohne Zeichen, Satz statt Aufzaehlung) und die
+            drei Sprachfunde (die tuerkische Endung, die Fragepartikel, das
+            fest eingebaute Vokabelwort). */
+  check(`Es sind genau 1008 Rueckbauten`, gpList.length === 1008, `${gpList.length}`);
   const gpTwice = gpList.map(r => r.nr).filter((n, i, a) => a.indexOf(n) !== i);
   check('Und keine Nummer steht zweimal', gpTwice.length === 0, gpTwice.join(' '));
   /* JEDER GREIFT: der Suchtext kommt in seiner Datei GENAU EINMAL vor. Keinmal
@@ -31545,17 +31859,24 @@ async function checkUi() {
   const wVok = vokDom.w;
   await new Promise(r => setTimeout(r, 80));
   const kzVok = wVok.document.getElementById('ccount');
+  /* SEIT 0.32.1 STEHT DAS VOKABULAR IM `title` UND NICHT MEHR AM BILDSCHIRM
+     -- die Kopfzeile zeigt Zahl und Zeichen. GEPRUEFT WIRD TROTZDEM, DASS ES
+     MITGEHT: wer sein Wort umbenennt, muss es im Hinweis wiederfinden, sonst
+     waere die Umbenennung an dieser Stelle wirkungslos. Und die Kurzform
+     daneben darf das Wort GERADE NICHT tragen -- das ist ihr Zweck. */
   check('Die Zahlen am Kommentarblock folgen dem Vokabular',
-    kzVok?.textContent === '6 Kommentare, davon 1 Notat und 2 ToDo’s (1 offen)',
-    kzVok ? kzVok.textContent : '(kein Hinweis)');
+    kzVok?.title === '6 Kommentare · 1 Notat · 2 ToDo’s (1 offen)',
+    kzVok ? kzVok.title : '(kein Hinweis)');
+  check('Und die Kurzform daneben traegt kein einziges Wort',
+    /^[\d\s·]+$/.test(kzVok?.textContent || 'x'), kzVok ? kzVok.textContent : '(kein Hinweis)');
   check('„Kommentar" bleibt dabei fest',
-    /^6 Kommentare/.test(kzVok?.textContent || '') &&
-    wVok.commentNumbers([{ kind: 'note' }]) === '1 Kommentar',
-    wVok.commentNumbers([{ kind: 'note' }]));
+    /^6 Kommentare/.test(kzVok?.title || '') &&
+    wVok.commentNumbers([{ kind: 'note' }]).text === '1 Kommentar',
+    wVok.commentNumbers([{ kind: 'note' }]).text);
   check('Und die Einzahl kommt ebenfalls aus dem Vokabular',
-    wVok.commentNumbers([{ kind: 'report' }, { kind: 'task' }])
-      === '2 Kommentare, davon 1 Notat und 1 ToDo',
-    wVok.commentNumbers([{ kind: 'report' }, { kind: 'task' }]));
+    wVok.commentNumbers([{ kind: 'report' }, { kind: 'task' }]).text
+      === '2 Kommentare · 1 Notat · 1 ToDo',
+    wVok.commentNumbers([{ kind: 'report' }, { kind: 'task' }]).text);
   wVok.close();
 
   /* ---- Der Favoritenknopf, mit einem wirklich zugestellten Klick ----
@@ -33988,20 +34309,23 @@ async function checkUi() {
   /* Der eigentliche Fall aus dem Betrieb: ein Favorit ohne Wertung darf bei
      absteigender Bewertung NICHT nach oben.
 
-     UMGEDREHT MIT 0.21.1 UND NICHT GELOESCHT (Stolperstein 74). „Bewertung
-     hoch nach niedrig" gibt seit dieser Runde „Getestet" vor, und der Favorit
-     ohne Wertung (id 3) ist UNGETESTET -- er faellt aus der Liste, und die
-     Zusage haette ihren Gegenstand verloren. Die Lage stellt ihn deshalb
-     ausdruecklich her: EIN KLICK AUF „Alle" (bis 0.21.1 „Alles anzeigen") ist eine Handwahl und
-     schlaegt die Vorgabe, danach steht wieder der ganze Bestand da und die
-     Frage nach der REIHENFOLGE ist wieder zu stellen.
-     UND DIE VORGABE SELBST WIRD DABEI MITBELEGT: vor dem Klick zeigt dieselbe
-     Lage nur die getesteten. Ohne diese Zeile bliebe unbelegt, dass der Klick
-     ueberhaupt etwas zu schlagen hatte (Stolperstein 224). */
+     ZWISCHEN 0.21.1 UND 0.32.0 STAND HIER EIN UMWEG (Stolperstein 74):
+     „Bewertung hoch nach niedrig" gab damals „Getestet" vor, der Favorit ohne
+     Wertung (id 3) ist UNGETESTET und fiel aus der Liste -- die Zusage haette
+     ihren Gegenstand verloren. Die Lage musste ihn deshalb ueber einen Klick
+     auf „Alle" erst zurueckholen.
+     MIT 0.32.1 IST DER UMWEG WEG, weil die Vorgabe weg ist: die Sortierung
+     filtert nicht mehr, also steht der ganze Bestand von selbst da. Die
+     ZUSAGE SELBST IST UNVERAENDERT -- ein Favorit ohne Wertung darf bei
+     absteigender Bewertung nicht nach oben --, und sie wird jetzt gerade
+     heraus gestellt. DIE ZEILE ZUM KLICK BLEIBT TROTZDEM: ein Klick auf
+     „Alle" darf an der Reihenfolge nichts aendern, und das ist nach dem
+     Ausbau eine eigene Frage. */
   const favValue = await favBuild({ tested: 'all', favorite: false, sort: 'rating_desc' });
   const favVorClickable = favTitleFrom(favValue);
-  check('Bei Bewertungssortierung steht ohne Handwahl nur Getestetes da — 0.21.1',
-    equal(favVorClickable, ['Gamma mit Wertung', 'Beta mit Wertung']),
+  check('Bei Bewertungssortierung steht der ganze Bestand da — 0.32.1',
+    equal(favVorClickable,
+      ['Alpha mit Wertung', 'Gamma mit Wertung', 'Beta mit Wertung', 'Zeta ohne Wertung']),
     JSON.stringify(favVorClickable));
   // Die erste Pille „Alle" im Dokument ist die der Statusreihe; die der
   // Ablehnung steht dahinter im Aufklapper.
@@ -34675,21 +34999,25 @@ async function checkUi() {
   rating.querySelector('.block-head').onclick({ target: rating.querySelector('.bgrip') });
   check('Der Griff klappt nicht mit ein', rating.classList.contains('closed') === before);
 
-  /* DERSELBE VOLLE SATZ AUCH EINGEKLAPPT -- eingeklappt ist gerade der Moment,
-     in dem man nicht hineinsieht. Der Hinweis steht in der Kopfzeile und bleibt
+  /* DIESELBEN ZAHLEN AUCH EINGEKLAPPT -- eingeklappt ist gerade der Moment,
+     in dem man nicht hineinsieht. Sie stehen in der Kopfzeile und bleiben
      deshalb von selbst stehen; die Kurzfassung daneben bleibt leer, sonst
-     stuende derselbe Satz zweimal in einer Zeile. Und eine leere Kurzfassung
-     erzeugt KEINE leere Klammer: "()" waere eine Klammer um nichts. */
+     stuenden dieselben Zahlen zweimal in einer Zeile. Und eine leere
+     Kurzfassung erzeugt KEINE leere Klammer: "()" waere eine Klammer um
+     nichts. SEIT 0.32.1 STEHT DORT DIE KURZFORM und im `title` der volle
+     Satz -- beides wird gestellt. */
   comments.querySelector('.block-head').onclick({ target: comments.querySelector('.label') });
   await new Promise(r => setTimeout(r, 20));
   check('Der Kommentarblock laesst sich einklappen', comments.classList.contains('closed'));
   check('Eingeklappt steht dort keine leere Klammer',
     comments.querySelector('.bsum').textContent === '',
     `"${comments.querySelector('.bsum').textContent}"`);
-  check('Und derselbe volle Satz steht weiterhin in der Kopfzeile',
-    comments.querySelector('#ccount')?.textContent
-      === '6 Kommentare, davon 1 Bericht und 2 Aufgaben (1 offen)',
-    comments.querySelector('#ccount')?.textContent);
+  check('Und dieselben Zahlen stehen weiterhin in der Kopfzeile',
+    comments.querySelector('#ccount')?.textContent === '6 · 1 · 1 · 1'
+      && comments.querySelector('#ccount')?.title
+        === '6 Kommentare · 1 Bericht · 2 Aufgaben (1 offen)',
+    `${comments.querySelector('#ccount')?.textContent} · title `
+      + `"${comments.querySelector('#ccount')?.title}"`);
   // Wieder aufklappen, damit die Gruppen darunter denselben Aufbau vorfinden.
   comments.querySelector('.block-head').onclick({ target: comments.querySelector('.label') });
   await new Promise(r => setTimeout(r, 20));
@@ -34702,9 +35030,9 @@ async function checkUi() {
      andere alles wegnimmt. */
   check('Der Kommentarblock zaehlt in seinem Hinweis, nicht in der Kurzfassung',
     wb.blockSummary('kommentare', { comments: [{ kind: 'note' }, { kind: 'report' }] }) === '' &&
-    wb.commentNumbers([{ kind: 'note' }, { kind: 'report' }]) === '2 Kommentare, davon 1 Bericht',
+    wb.commentNumbers([{ kind: 'note' }, { kind: 'report' }]).text === '2 Kommentare · 1 Bericht',
     `Kurzfassung "${wb.blockSummary('kommentare', { comments: [{ kind: 'note' }] })}", ` +
-    `Hinweis "${wb.commentNumbers([{ kind: 'note' }, { kind: 'report' }])}"`);
+    `Hinweis "${wb.commentNumbers([{ kind: 'note' }, { kind: 'report' }]).text}"`);
 
   // Zusammenfassung nennt echte Zahlen
   check('Zusammenfassung kürzt die Beschreibung',
@@ -36677,70 +37005,128 @@ async function checkUi() {
   await new Promise(r => setTimeout(r, 90));
   const kCount = kzDom.w.document.getElementById('ccount');
   check('Der Kommentarblock traegt seine Zahlen in der Kopfzeile',
-    !!kCount && kCount.textContent === '6 Kommentare, davon 1 Bericht und 2 Aufgaben (1 offen)',
-    kCount ? kCount.textContent : '(kein Hinweis)');
+    !!kCount && kCount.textContent === '6 · 1 · 1 · 1'
+      && kCount.title === '6 Kommentare · 1 Bericht · 2 Aufgaben (1 offen)',
+    kCount ? `${kCount.textContent} · title "${kCount.title}"` : '(kein Hinweis)');
   check('Und zwar dort, wo Links und Dateien ihren auch tragen',
     !!kCount && !!kCount.closest('.block-head') &&
     kCount.closest('.block')?.dataset.block === 'kommentare',
     kCount ? kCount.parentElement?.className : '(kein Hinweis)');
   kzDom.w.close();
 
-  // Gebildet an EINEM Ort. Die Randfaelle unmittelbar an der Funktion, nicht
-  // ueber sechs aufgebaute Kommentarlagen.
-  const kz = (...kinds) => wb.commentNumbers(kinds.map(k => ({ kind: k })));
-  check('Bei null Kommentaren bleibt der Hinweis ganz leer, wie bei den Links',
-    kz() === '' && wb.commentNumbers(null) === '' && wb.commentNumbers(undefined) === '',
-    JSON.stringify([kz(), wb.commentNumbers(null)]));
+  /* GEBILDET AN EINEM ORT, und seit 0.32.1 kommen ZWEI STUECKE zurueck:
+     `html` fuer den Bildschirm (Zahl und Zeichen) und `text` fuer den
+     `title` (die Woerter). BEIDE WERDEN HIER GESTELLT -- eine Kurzform, die
+     etwas anderes sagt als ihr title, waeren zwei Wahrheiten ueber dieselbe
+     Zahl, und niemand saehe es. Die Randfaelle stehen unmittelbar an der
+     Funktion und nicht ueber sechs aufgebaute Kommentarlagen. */
+  const kz = (...kinds) => wb.commentNumbers(kinds.map(k => ({ kind: k }))).text;
+  const kzH = (...kinds) => wb.commentNumbers(kinds.map(k => ({ kind: k }))).html;
+  /* Die Zeichen aus der Kurzform herausnehmen: was bleibt, sind die Zahlen
+     und ihre Mittelpunkte. So laesst sich die Kurzform pruefen, ohne ein
+     SVG Zeichen fuer Zeichen abzuschreiben -- das waere eine zweite
+     Ausfertigung des Bildes und liefe beim ersten Nachschliff auseinander. */
+  const kzZ = (...kinds) => kzH(...kinds).replace(/<svg[\s\S]*?<\/svg>/g, '')
+                                         .replace(/<[^>]+>/g, '');
+  const leer = wb.commentNumbers(null);
+  check('Bei null Kommentaren bleibt beides ganz leer, wie bei den Links',
+    kz() === '' && kzH() === '' && leer.html === '' && leer.text === ''
+      && wb.commentNumbers(undefined).html === '',
+    JSON.stringify([kz(), kzH(), leer]));
   check('Ein einzelner Kommentar steht in der Einzahl',
-    kz('note') === '1 Kommentar', kz('note'));
-  check('Nur Notizen: das „davon" faellt ganz weg',
-    kz('note', 'note', 'note') === '3 Kommentare', kz('note', 'note', 'note'));
+    kz('note') === '1 Kommentar' && kzZ('note') === '1', `${kz('note')} · ${kzZ('note')}`);
+  check('Nur Notizen: es bleibt bei der einen Zahl',
+    kz('note', 'note', 'note') === '3 Kommentare' && kzZ('note', 'note', 'note') === '3',
+    `${kz('note', 'note', 'note')} · ${kzZ('note', 'note', 'note')}`);
+  /* DER MITTELPUNKT STATT „, davon" -- 0.32.1. Eine Aufzaehlung aus „Zahl +
+     Wort" braucht in keiner der drei Sprachen eine Fuge; „davon" brauchte auf
+     Tuerkisch eine Klammer um die ganze Aufzaehlung („, bunun … kadarı"). */
   check('Eine Gruppe mit null verschwindet ganz',
-    kz('note', 'report') === '2 Kommentare, davon 1 Bericht', kz('note', 'report'));
+    kz('note', 'report') === '2 Kommentare · 1 Bericht' && kzZ('note', 'report') === '2 · 1',
+    `${kz('note', 'report')} · ${kzZ('note', 'report')}`);
   check('Ohne Erledigte faellt die Klammer weg',
-    kz('note', 'task', 'task') === '3 Kommentare, davon 2 Aufgaben', kz('note', 'task', 'task'));
+    kz('note', 'task', 'task') === '3 Kommentare · 2 Aufgaben'
+      && kzZ('note', 'task', 'task') === '3 · 2',
+    `${kz('note', 'task', 'task')} · ${kzZ('note', 'task', 'task')}`);
   /* DIE KLAMMER NENNT SEIT 0.22.0 NUR DIE OFFENEN: „1 Erledigt" war ein
      Vokabelwort mit grossem Anfangsbuchstaben mitten im Satz (Anlage B, Z.
      883). Die Zahl der Erledigten ist die Differenz. Umgedreht, nicht
-     geloescht (Stolperstein 74). */
+     geloescht (Stolperstein 74).
+     IN DER KURZFORM STEHEN BEIDE NEBENEINANDER (☐ und ☑) -- dort kostet die
+     zweite Zahl kein Wort, und ein leeres neben einem gefuellten Kaestchen
+     sagt „offen" und „erledigt" ohne jede Sprache. */
   check('Das Erledigte steckt IN den Aufgaben, nicht daneben',
-    kz('task', 'task', 'done') === '3 Kommentare, davon 3 Aufgaben (2 offen)',
-    kz('task', 'task', 'done'));
+    kz('task', 'task', 'done') === '3 Kommentare · 3 Aufgaben (2 offen)'
+      && kzZ('task', 'task', 'done') === '3 · 2 · 1',
+    `${kz('task', 'task', 'done')} · ${kzZ('task', 'task', 'done')}`);
   check('Ein erledigtes Todo allein ist immer noch eine Aufgabe',
-    kz('done') === '1 Kommentar, davon 1 Aufgabe (0 offen)', kz('done'));
-  check('Zwei Gruppen werden mit „und" verbunden, nicht mit einem Mittelpunkt',
+    kz('done') === '1 Kommentar · 1 Aufgabe (0 offen)' && kzZ('done') === '1 · 1',
+    `${kz('done')} · ${kzZ('done')}`);
+  check('Zwei Gruppen werden mit einem Mittelpunkt verbunden, nicht mit „und"',
     kz('report', 'report', 'task', 'done', 'note')
-      === '5 Kommentare, davon 2 Berichte und 2 Aufgaben (1 offen)',
+      === '5 Kommentare · 2 Berichte · 2 Aufgaben (1 offen)'
+      && !/ und /.test(kz('report', 'report', 'task', 'done', 'note')),
     kz('report', 'report', 'task', 'done', 'note'));
   /* --- 0.12.3: die Zahl, nach der im Alltag gefragt wird ---
-     ABGEZOGEN UND NICHT GEZAEHLT: `aufgaben - done` kann von der Summe
+     ABGEZOGEN UND NICHT GEZAEHLT: `tasks - finished` kann von der Summe
      nicht abweichen, eine zweite Zaehlung ueber kind='task' schon. Die
      Prueflage haelt beides zusammen fest. */
   check('Die offenen Aufgaben stehen in der Klammer, die erledigten nicht mehr — 0.22.0',
-    /\(3 offen\)/.test(kz('task', 'task', 'task', 'done', 'done')) && !/Erledigt/.test(kz('task', 'task', 'task', 'done', 'done')),
+    /\(3 offen\)/.test(kz('task', 'task', 'task', 'done', 'done'))
+      && !/Erledigt/.test(kz('task', 'task', 'task', 'done', 'done')),
     kz('task', 'task', 'task', 'done', 'done'));
   check('Offen und die Zahl davor ergeben die erledigten',
-    kz('task', 'task', 'task', 'done', 'done') === '5 Kommentare, davon 5 Aufgaben (3 offen)',
-    kz('task', 'task', 'task', 'done', 'done'));
+    kz('task', 'task', 'task', 'done', 'done') === '5 Kommentare · 5 Aufgaben (3 offen)'
+      && kzZ('task', 'task', 'task', 'done', 'done') === '5 · 3 · 2',
+    `${kz('task', 'task', 'task', 'done', 'done')} · ${kzZ('task', 'task', 'task', 'done', 'done')}`);
   check('Ohne Erledigte steht kein „(5 offen)" da — die Zahl davor sagt es schon',
-    kz('task', 'task', 'task') === '3 Kommentare, davon 3 Aufgaben',
-    kz('task', 'task', 'task'));
+    kz('task', 'task', 'task') === '3 Kommentare · 3 Aufgaben'
+      && kzZ('task', 'task', 'task') === '3 · 3',
+    `${kz('task', 'task', 'task')} · ${kzZ('task', 'task', 'task')}`);
   check('Bei einem einzigen greift ueberall die Einzahl',
-    kz('report', 'task') === '2 Kommentare, davon 1 Bericht und 1 Aufgabe',
+    kz('report', 'task') === '2 Kommentare · 1 Bericht · 1 Aufgabe',
     kz('report', 'task'));
   check('Die NOTIZ bleibt ungenannt — sie ist der Zustand ohne Markierung',
-    !/Notiz/i.test(kz('note', 'note', 'report')), kz('note', 'note', 'report'));
+    !/Notiz/i.test(kz('note', 'note', 'report')) && kzZ('note', 'note', 'report') === '3 · 1',
+    `${kz('note', 'note', 'report')} · ${kzZ('note', 'note', 'report')}`);
   check('Und die ANPINNUNG steht nicht in der Zeile: zweite, unabhaengige Achse',
-    wb.commentNumbers([{ kind: 'note', pinned: true }, { kind: 'note', pinned: false }])
+    wb.commentNumbers([{ kind: 'note', pinned: true }, { kind: 'note', pinned: false }]).text
       === '2 Kommentare',
-    wb.commentNumbers([{ kind: 'note', pinned: true }, { kind: 'note', pinned: false }]));
-  /* Die Summe der Teilmengen darf die Gesamtzahl nicht ueberschreiten -- das
-     ist der Sinn von "davon". Waeren es Summanden, ergaebe die Prueflage
-     1 + 2 + 1 = 4 von 3. */
+    wb.commentNumbers([{ kind: 'note', pinned: true }, { kind: 'note', pinned: false }]).text);
+  /* Die Summe der Teilmengen darf die Gesamtzahl nicht ueberschreiten -- sie
+     sind TEILMENGEN und keine Summanden. Waeren es Summanden, ergaebe die
+     Prueflage 1 + 2 + 1 = 4 von 3.
+     GENAU DARUM STEHT IN DER KURZFORM KEIN PLUSZEICHEN: eine Notiz wird gar
+     nicht genannt, und drei Kommentare koennen 1 Bericht und 2 Notizen sein.
+     „3 (1)" waere eine Rechnung, die nicht aufgeht. */
   check('Die Teilmengen bleiben Teilmengen',
     (() => { const t = kz('report', 'task', 'done').match(/\d+/g).map(Number);
              return t[0] === 3 && t[1] === 1 && t[2] === 2 && t[3] === 1; })(),
     kz('report', 'task', 'done'));
+  check('Und die Kurzform behauptet keine Summe — kein Pluszeichen, nur Mittelpunkte',
+    !/\+/.test(kzH('report', 'task', 'done', 'note')),
+    kzZ('report', 'task', 'done', 'note'));
+  /* ---- ZUSAGE: DIE KURZFORM TRAEGT KEIN WORT -------------------------------
+     Das ist der Grund, aus dem sie gebaut ist. Jede Form, die das Vokabelwort
+     ZEIGT, laesst sich vom Vokabular selbst sprengen: gemessen bei 390
+     Bildpunkten reisst die Aufzaehlung mit Woertern, sobald der Betreiber
+     „Protokolle" und „Arbeitsauftraege" eintraegt. Die Kurzform kann das
+     nicht, weil in ihr kein Wort steht. */
+  check('Zusage: die Kurzform traegt kein Vokabelwort — nur Zahlen und Zeichen',
+    /^[\d\s·]+$/.test(kzZ('report', 'report', 'task', 'done', 'note')),
+    kzZ('report', 'report', 'task', 'done', 'note'));
+  /* UND JEDE ZAHL TRAEGT IHRE ART ALS DATENFELD, nicht nur eine Farbe.
+     Gestaltungsregel G1: Zustandsmarken werden aus FORM gebaut und nicht aus
+     Farbe. Das Datenfeld ist der Haken, an dem im Stilblatt Zeichen und Farbe
+     haengen -- und der Beleg, dass die Bedeutung nicht allein in der Farbe
+     steckt. */
+  const kzArten = (...kinds) => [...kzH(...kinds).matchAll(/data-kind="(\w+)"/g)].map(m => m[1]);
+  check('Jede Zahl der Kurzform nennt ihre Art — Bericht, offen, erledigt',
+    kzArten('report', 'task', 'done').join(' ') === 'report task done',
+    kzArten('report', 'task', 'done').join(' ') || 'keine');
+  check('Und jedes Zeichen ist ein SVG und kein Schriftzeichen',
+    (kzH('report', 'task', 'done').match(/<svg/g) || []).length === 3,
+    `${(kzH('report', 'task', 'done').match(/<svg/g) || []).length} Zeichen`);
 
   /* --- Fuenf Faelle, drei Antworten ------------------------------------
      Der Bildschirm bietet nicht mehr an, was der Server abweist. Die drei
@@ -46435,15 +46821,16 @@ async function checkUi() {
       [...zkSort.options].find(o => o.value === 'potential')?.textContent === 'Potenzial',
       JSON.stringify([...zkSort.options].find(o => o.value === 'potential')?.textContent));
     const zkTitle = () => [...zkUeb.w.document.querySelectorAll('.card-title')].map(t => t.textContent);
-    /* UMGEDREHT MIT 0.21.1 UND NICHT GELOESCHT (Stolperstein 74). Die
-       Potenzialsortierung gibt seit dieser Runde „Ungetestet" vor: „Geprueft"
-       faellt aus der Liste, und die Zusage stand vorher auf Platz DREI von
-       drei. Sie fragt jetzt nach dem LETZTEN Platz -- das war immer die
-       eigentliche Aussage („Eintraege ohne Zahl stehen hinten"), die feste Drei
-       war nur ihre damalige Schreibweise.
-       DIE VORGABE SELBST BEKOMMT DABEI IHRE EIGENE ZEILE, sonst bliebe die
-       gekuerzte Liste unerklaert und ein Fehler in der Ableitung saehe aus wie
-       eine Sortierung. */
+    /* ZWEIMAL UMGEDREHT UND NIE GELOESCHT (Stolperstein 74). 0.21.1 gab der
+       Potenzialsortierung die Vorgabe „Ungetestet": „Geprueft" fiel aus der
+       Liste, und die Zusage stand vorher auf Platz DREI von drei. Sie fragt
+       seither nach dem LETZTEN Platz -- das war immer die eigentliche Aussage
+       („Eintraege ohne Zahl stehen hinten"), die feste Drei war nur ihre
+       damalige Schreibweise.
+       0.32.1 NIMMT DIE VORGABE WIEDER WEG, und damit stehen wieder alle drei
+       da. DIE ZEILE DARUEBER BLEIBT und dreht sich mit: sie belegt jetzt, dass
+       die Sortierung NICHTS mehr wegnimmt -- sonst saehe ein Rueckfall in die
+       Ableitung aus wie eine Sortierung, und niemand faende ihn. */
     /* MITGEZOGEN MIT 0.28.1 (Stolperstein 201): die Richtung wird nicht mehr im
        Auswahlfeld GEWAEHLT, sondern am Umschalter daneben GEKLICKT. Die Zusagen
        darunter fragen dieselbe Sache wie vorher -- was die Sortierung mit den
@@ -46456,8 +46843,8 @@ async function checkUi() {
     const zkDir = () => zkUeb.w.document.getElementById('f-sort-dir');
     if (zkFeld()) { zkFeld().value = 'potential'; zkFeld().onchange(); }
     await new Promise(r => setTimeout(r, 60));
-    check('Nach Potenzial sortiert stehen nur noch die Ungetesteten da — 0.21.1',
-      equal(zkTitle(), ['Idee', 'Blanko']), JSON.stringify(zkTitle()));
+    check('Nach Potenzial sortiert steht der ganze Bestand da — 0.32.1',
+      equal(zkTitle(), ['Geprueft', 'Idee', 'Blanko']), JSON.stringify(zkTitle()));
     check('Nach Potenzial absteigend stehen Eintraege ohne Zahl hinten',
       zkTitle()[zkTitle().length - 1] === 'Blanko', JSON.stringify(zkTitle()));
     /* DER UMSCHALTER SAGT DIE KONKRETE RICHTUNG und nicht „absteigend“. Stuende
@@ -49295,8 +49682,18 @@ async function checkUi() {
     d.w.close();
   }
 
-  /* ================= Die Sortierung gibt den Status vor — 0.21.1 ========= */
-  group('Die Sortierung gibt den Status vor — 0.21.1');
+  /* ========= Die Sortierung gibt den Status NICHT mehr vor — 0.32.1 ======
+     0.21.1 HAT SIE GEBAUT, 0.32.1 BAUT SIE AUS -- auf Entscheidung des
+     Betreibers, und der Grund ist eine Sackgasse: „Filter zuruecksetzen"
+     holte die Ableitung zurueck, die Liste blieb gefiltert, und der
+     Ruecksetzer verschwand dabei selbst. Die Begruendung im Ganzen steht in
+     app.js bei `statusEffective`.
+     DIE GRUPPE BLEIBT UND WIRD UMGEDREHT (Stolperstein 74). Sie belegt jetzt
+     das Gegenteil dessen, was sie 0.21.1 belegt hat -- und ZWEI ihrer Zusagen
+     gelten unveraendert weiter: die Handwahl wirkt, und ein Wechsel der
+     Sortierung laesst sie in Ruhe. Nur kommt das zweite jetzt daher, dass es
+     gar nichts mehr gibt, was sie stoeren koennte. */
+  group('Die Sortierung gibt den Status NICHT mehr vor — 0.32.1');
 
   /* DER BEFUND: eine Sortierung beantwortet eine Frage, aber die Liste zeigte
      nicht die Menge, in der diese Frage sich stellt. Wer nach Bewertung
@@ -49388,388 +49785,156 @@ async function checkUi() {
   const ksDefault = { categoryIds: [], tagIds: [], tagMode: 'and', tested: 'all',
                       rejected: 'all', favorite: false, sort: 'updated_desc' };
 
-  /* ---- 1. DIE VORGABE GREIFT ---- */
+  /* ---- 1. DIE SORTIERUNG FILTERT NICHT MEHR ---- */
   {
     const d = await ksBuild({ ...ksDefault, sort: 'potential_desc' });
-    check('Nach Potenzial absteigend stehen nur die ungetesteten Eintraege da',
-      equal(ksTitle(d), ['Idee schwach', 'Idee stark']), JSON.stringify(ksTitle(d)));
-    d.w.close();
-  }
-  {
-    const d = await ksBuild({ ...ksDefault, sort: 'potential_asc' });
-    check('Und aufsteigend ebenso — beide Richtungen fragen dasselbe',
-      equal(ksTitle(d), ['Idee schwach', 'Idee stark']), JSON.stringify(ksTitle(d)));
+    check('Nach Potenzial absteigend stehen alle vier Eintraege da — 0.32.1',
+      equal(ksTitle(d), ksAll), JSON.stringify(ksTitle(d)));
+    check('Und genau die Pille „Alle" ist markiert, keine andere',
+      ksPill(d, 'Alle')?.classList.contains('on') === true
+      && ![...d.w.document.querySelectorAll('#filters .pill.on')]
+           .some(b => b.textContent.trim() === 'Ungetestet'),
+      [...d.w.document.querySelectorAll('#filters .pill.on')].map(b => b.textContent).join(' '));
+    /* KEINE PILLE GILT MEHR, OHNE ANGEKLICKT ZU SEIN. `pill-derived` war das
+       Zeichen dafuer -- gestrichelter Rahmen, „gilt, aber nicht von deiner
+       Hand". Es darf nirgends mehr auftauchen, auch nicht im Stilblatt. */
+    check('Keine Pille traegt mehr das Zeichen der Ableitung',
+      d.w.document.querySelectorAll('.pill-derived').length === 0,
+      `${d.w.document.querySelectorAll('.pill-derived').length} Stueck`);
+    check('Und die Leiste sagt nirgends, dass sie einer Sortierung folgt',
+      !/folgt der Sortierung|von Hand gewählt/.test(d.w.document.body.textContent),
+      d.w.document.querySelector('#filter-toggle .fcount')?.textContent || '(leer)');
     d.w.close();
   }
   {
     const d = await ksBuild({ ...ksDefault, sort: 'rating_desc' });
-    check('Nach Bewertung absteigend stehen nur die getesteten da',
-      equal(ksTitle(d), ['Geprüft gut', 'Geprüft mau']), JSON.stringify(ksTitle(d)));
-    d.w.close();
-  }
-  {
-    const d = await ksBuild({ ...ksDefault, sort: 'rating_asc' });
-    check('Und aufsteigend ebenso',
-      equal(ksTitle(d), ['Geprüft gut', 'Geprüft mau']), JSON.stringify(ksTitle(d)));
-    d.w.close();
-  }
-
-  /* ---- 2. UND DIE GEGENLAGE ----
-     JEDE ANDERE SORTIERUNG LAESST DEN FILTER IN RUHE. Ohne diese Zeilen bliebe
-     gruen, wer ALLEN Sortierungen eine Vorgabe gibt -- die Zusagen darueber
-     saehen genauso aus. */
-  {
-    const d = await ksBuild({ ...ksDefault, sort: 'updated_desc' });
-    check('„Zuletzt geändert" laesst die Menge, wie sie ist',
-      equal(ksTitle(d), ksAll), JSON.stringify(ksTitle(d)));
-    d.w.close();
-  }
-  {
-    const d = await ksBuild({ ...ksDefault, sort: 'title_asc' });
-    check('Und die Titelsortierung ebenso — ein Titel sagt nichts ueber den Teststatus',
-      equal(ksTitle(d), ksAll), JSON.stringify(ksTitle(d)));
-    d.w.close();
-  }
-  {
-    /* DIE VERLAUFSSORTIERUNGEN SIND AUSDRUECKLICH NICHT MITGENOMMEN
-       (Abschnitt 5 des Auftrags). Sie setzen „getestet" logisch genauso
-       voraus, sind aber eine eigene Gruppe im Auswahlfeld -- diese Runde fasst
-       zwei Gruppen an, nicht drei. Das steht hier als ZUSAGE und nicht nur als
-       Kommentar: wer sie spaeter mitnimmt, macht hier rot und entscheidet es
-       damit ausdruecklich. */
-    const d = await ksBuild({ ...ksDefault, sort: 'testavg_desc' });
-    check('Die Verlaufssortierungen koppeln ausdruecklich NICHT',
+    check('Nach Bewertung absteigend ebenfalls alle vier',
       equal(ksTitle(d), ksAll), JSON.stringify(ksTitle(d)));
     d.w.close();
   }
 
+  /* ---- 2. DIE SACKGASSE, DIE DIESE RUNDE AUFMACHT --------------------------
+     DER BEFUND DES BETREIBERS, und er ist der Grund fuer den Ausbau: wer
+     gefiltert hatte und „Filter zuruecksetzen" drueckte, bekam bei Sortierung
+     „Potenzial" oder „Bewertung" die ABLEITUNG zurueck. Die Statuspille stand
+     angewaehlt da, die Liste war gefiltert -- und weil filterNumber() die
+     Ableitung nicht mitzaehlte, VERSCHWAND DER RUECKSETZER. Es war gefiltert,
+     es sah gefiltert aus, und es gab keinen Weg mehr heraus.
+     DIE PRUEFLAGE FAEHRT GENAU DIESEN WEG: filtern, zuruecksetzen, nachsehen.
+     Vor 0.32.1 waeren danach zwei Eintraege uebrig gewesen. */
   {
-    /* EIN UNBEKANNTER SORTIERWERT NIMMT NICHTS WEG -- und zwar auch dann nicht,
-       wenn er zufaellig ein Name VOM PROTOTYP ist. `f.sort` kommt aus einer
-       gespeicherten Stellung und kann jeden Text tragen; ein gewoehnlicher
-       Zugriff auf die Vorgabetabelle gaebe bei `constructor` eine FUNKTION
-       zurueck, die Ableitung gaelte als greifend, und weil eine Funktion weder
-       'tested' noch 'untested' ist, fiele der Statusfilter STILL ganz weg --
-       samt der gespeicherten Wahl.
-       GEPRUEFT WIRD DESHALB AN EINER LAGE MIT GESETZTEM STATUS: bliebe der
-       Filter weg, staenden vier Eintraege da statt zwei. Eine Lage mit
-       `tested: 'all'` koennte den Unterschied nicht zeigen (Stolperstein 224). */
-    const d = await ksBuild({ ...ksDefault, tested: 'tested', sort: 'constructor' });
-    check('Ein Sortierwert vom Prototyp gibt keine Vorgabe her',
-      !d.w.document.getElementById('f-status-from'),
-      d.w.document.getElementById('f-status-from')?.textContent);
-    check('Und er nimmt der gespeicherten Wahl nichts weg',
-      equal(ksTitle(d), ['Geprüft gut', 'Geprüft mau']), JSON.stringify(ksTitle(d)));
-    d.w.close();
-  }
-
-  /* ---- 3. DIE HANDWAHL SCHLAEGT SIE ----
-     DAS IST DIE ZEILE, AN DER DIE GANZE RUNDE HAENGT. */
-  {
-    const d = await ksBuild({ ...ksDefault, sort: 'potential_desc' });
-    check('Der Aufbau steht: vor dem Klick greift die Vorgabe',
-      ksTitle(d).length === 2, JSON.stringify(ksTitle(d)));
-    await ksClickable(d, ksPill(d, 'Alle'));
-    check('Ein Klick auf „Alle" schlaegt die Vorgabe',
-      equal(ksTitle(d), ksAll), JSON.stringify(ksTitle(d)));
-    // UND SIE HAELT UEBER EINEN WECHSEL DER SORTIERUNG HINWEG. Ohne diese
-    // Zeile belegte die vorige nur den Augenblick des Klicks.
-    check('Der Wechsel der Sortierung geht ueberhaupt', await ksSort(d, 'rating_desc'));
-    check('Und danach zeigt die Liste weiter alles',
-      equal(ksTitle(d), ksAll), JSON.stringify(ksTitle(d)));
-    await ksSort(d, 'potential_asc');
-    check('Auch beim naechsten Wechsel',
-      equal(ksTitle(d), ksAll), JSON.stringify(ksTitle(d)));
-    /* UND DIE GEGENRICHTUNG DER HANDWAHL: sie muss auch eine ENGERE Stellung
-       halten koennen, nicht nur „alles". Ohne diese Zeile bliebe gruen, wer
-       die Ableitung schon bei jedem Klick auf die erste Pille abschaltet. */
-    await ksClickable(d, ksPill(d, 'Getestet'));
-    check('Auch eine engere Handwahl haelt gegen die Sortierung',
-      equal(ksTitle(d), ['Geprüft gut', 'Geprüft mau']), JSON.stringify(ksTitle(d)));
-    /* UND KEINE KOPPLUNG IN DIE ANDERE RICHTUNG: ein Klick auf eine Statuspille
-       stellt die Sortierung NICHT um. Zwei Bedienelemente, die sich gegenseitig
-       verstellen, sind ein Kreis (Stolperstein 312). */
-    check('Ein Klick auf eine Statuspille laesst die Sortierung stehen',
-      ksShown(d) === 'potential · niedrig → hoch', ksShown(d));
-    d.w.close();
-  }
-
-  /* ---- 4. DIE ABLEITUNG WIRD NICHT GESPEICHERT ----
-     GEPRUEFT AM GESENDETEN RUMPF UND NICHT AN DER LISTE. Die Liste zeigt
-     dasselbe, ob der Wert abgeleitet oder geschrieben ist -- der Unterschied
-     steht nur in dem, was hinausgeht. */
-  {
-    const d = await ksBuild({ ...ksDefault, sort: 'updated_desc' });
-    const start = d.sent.length;
-    await ksSort(d, 'potential_desc');
-    const outcome = ksSetting(d, start);
-    check('Der Wechsel der Sortierung schreibt ueberhaupt etwas', !!outcome,
-      JSON.stringify(d.sent.slice(start).map(x => `${x.method} ${x.url}`)));
-    check('Und der gesendete Rumpf traegt die gewaehlte Stellung, nicht die abgeleitete',
-      outcome?.tested === 'all', JSON.stringify(outcome));
-    check('Die neue Sortierung faehrt dabei mit',
-      outcome?.sort === 'potential_desc', JSON.stringify(outcome?.sort));
-    /* UND NACH EINER HANDWAHL STEHT DER GEWAEHLTE WERT DA -- ohne diese Zeile
-       bliebe gruen, wer `tested` gar nicht mehr hinausschickt. */
-    const ab2 = d.sent.length;
-    await ksClickable(d, ksPill(d, 'Getestet'));
-    check('Eine Handwahl dagegen faehrt hinaus',
-      ksSetting(d, ab2)?.tested === 'tested', JSON.stringify(ksSetting(d, ab2)));
-    d.w.close();
-  }
-
-  /* ---- 5. UND SIE UEBERLEBT KEIN NEULADEN ----
-     Ein frisch gebautes Fenster mit DERSELBEN gespeicherten Stellung zeigt
-     dieselbe Menge: die Ableitung wird neu gerechnet und nicht aus einem
-     geschriebenen Feld gelesen. Der Merker selbst faengt bei jedem Aufbau
-     wieder bei „niemand hat geklickt" an. */
-  {
-    /* GESTELLT WIRD DIE LAGE WIRKLICH: erst ein Fenster, in dem jemand von Hand
-       „Alles anzeigen" waehlt, dann ein ZWEITES mit genau der Stellung, die
-       daraufhin gespeichert wurde. Ohne das erste Fenster belegte das zweite
-       nur, dass die Vorgabe greift -- und nicht, dass sie eine ueberlebende
-       Handwahl gerade NICHT vorfindet (Stolperstein 224). */
-    const before = await ksBuild({ ...ksDefault, sort: 'potential_desc' });
-    await ksClickable(before, ksPill(before, 'Alle'));
-    check('Der Aufbau steht: im ersten Fenster gilt die Handwahl',
-      equal(ksTitle(before), ksAll), JSON.stringify(ksTitle(before)));
-    const saved = ksSetting(before);
-    check('Und die gespeicherte Stellung traegt genau dieses „alles"',
-      saved?.tested === 'all' && saved?.sort === 'potential_desc',
-      JSON.stringify(saved));
-    before.w.close();
-    // DAS ZWEITE WINDOW IST DAS NEULADEN. Der Merker faengt wieder bei
-    // „niemand hat geklickt" an, die Ableitung wird neu gerechnet.
-    const d = await ksBuild(saved);
-    check('Ein frisch gebautes Fenster mit derselben Stellung zeigt dieselbe Menge wie vorher',
-      equal(ksTitle(d), ['Idee schwach', 'Idee stark']), JSON.stringify(ksTitle(d)));
-    check('Und die Handwahl des anderen Fensters wirkt nicht nach',
-      !!d.w.document.getElementById('f-status-from'),
-      '(kein Wort — die Ableitung greift nicht)');
-    d.w.close();
-  }
-
-  /* ---- 6. EINE GESPEICHERTE ANSICHT SCHLAEGT SIE ----
-     UND ZWAR EINE, DIE VOR DIESER RUNDE GESPEICHERT WORDEN WAERE: „Potenzial"
-     und „alles anzeigen" zusammen. Sonst aenderte sich das Verhalten
-     vorhandener Ansichten still, und das ist genau das, was ein PATCH nicht
-     tun darf. */
-  {
-    const d = await ksBuild({ ...ksDefault, sort: 'updated_desc' },
-      { views: [{ name: 'Alle Ideen', q: '',
-                      filters: { ...ksDefault, tested: 'all', sort: 'potential_desc' } }] });
-    // Die Pille traegt ihr Loeschkreuz IM Knopf -- der Name steht davor.
-    const ksViewPill = () => [...d.w.document.querySelectorAll('#filters .pill')]
-      .find(b => b.textContent.replace('✕', '').trim() === 'Alle Ideen');
-    const view = ksViewPill();
-    check('Die gespeicherte Ansicht steht in der Leiste', !!view,
-      JSON.stringify([...d.w.document.querySelectorAll('#filters .pill')].map(b => b.textContent)));
-    await ksClickable(d, view);
-    check('Sie stellt ihre Sortierung wirklich ein',
-      ksShown(d) === 'potential · hoch → niedrig', ksShown(d));
-    check('Und ihr „alles anzeigen" schlaegt die Vorgabe der Sortierung',
-      equal(ksTitle(d), ksAll), JSON.stringify(ksTitle(d)));
-    // UND SIE GILT WEITER ALS DIE AKTIVE ANSICHT -- eine Ableitung, die sich
-    // dazwischenschriebe, liesse die Pille sofort wieder ungesetzt aussehen.
-    check('Und sie steht danach als die geltende Ansicht da',
-      ksViewPill()?.classList.contains('on'), ksViewPill()?.className);
-    d.w.close();
-  }
-
-  /* ---- 7. DER RUECKSETZER STELLT DIE AUTOMATIK WIEDER HER ----
-     Er heisst „Filter zuruecksetzen", und die Handwahl ist eine
-     Filterstellung. Es ist der einzige Weg zurueck in die Vorgabe. */
-  {
-    const d = await ksBuild({ ...ksDefault, sort: 'potential_desc' });
-    await ksClickable(d, ksPill(d, 'Alle'));
-    check('Der Aufbau steht: nach der Handwahl ist die Vorgabe aus',
-      equal(ksTitle(d), ksAll), JSON.stringify(ksTitle(d)));
-    /* UND DER RUECKSETZER STEHT DA. Die Handwahl weicht von der Ruhestellung ab
-       -- sie zeigt „alles", wo die Sortierung „Ungetestet" vorgaebe --, und
-       genau darum zaehlt sie. Ohne diese Zeile faende niemand aus einer
-       Handwahl, die „Alles anzeigen" heisst, in die Automatik zurueck: es gibt
-       keinen zweiten Weg. */
-    const back = d.w.document.getElementById('filter-zurueck');
-    check('Und der Ruecksetzer steht da — die Handwahl weicht von der Ruhestellung ab',
-      back?.textContent === 'Filter zurücksetzen (1)', JSON.stringify(back?.textContent));
-    await ksClickable(d, back);
-    check('Nach dem Zuruecksetzen folgt der Status wieder der Sortierung',
-      equal(ksTitle(d), ['Idee schwach', 'Idee stark']), JSON.stringify(ksTitle(d)));
-    check('Und die Sortierung selbst bleibt dabei stehen',
-      ksShown(d) === 'potential · hoch → niedrig', ksShown(d));
-    // UND DER KNOPF IST DANACH WEG: die Ruhestellung ist wieder erreicht, und
-    // ein Knopf, der nichts mehr zu tun hat, steht nicht da.
-    check('Und danach ist der Ruecksetzer selbst wieder weg',
-      !d.w.document.getElementById('filter-zurueck'),
-      d.w.document.getElementById('filter-zurueck')?.textContent);
-    check('Und das Wort steht wieder neben den Pillen',
-      !!d.w.document.getElementById('f-status-from'), '(kein Wort)');
-    d.w.close();
-  }
-
-  /* ---- 8. ES STEHT DRAN ----
-     Ein unsichtbarer Automatismus ist ein Fehler, auch wenn er richtig raet. */
-  {
-    const d = await ksBuild({ ...ksDefault, sort: 'potential_desc' });
-    const word = d.w.document.getElementById('f-status-from');
-    /* UND SEIT 0.32.0 STEHT AUCH DA, WAS ABGELEITET WIRD -- Bauabschnitt 9.
-       Bis 0.31.4 sagte das Wort, DASS abgeleitet wird, aber nicht WAS: dass
-       gerade nur Ungetestete in der Liste stehen, erfuhr man allein, indem man
-       sie zaehlte (Fahrplan, Frage 3). Das Wort kommt aus dem VOKABULAR. */
-    check('Neben den Statuspillen steht, woher die Stellung kommt — und was sie ist',
-      word?.textContent === 'folgt der Sortierung: Ungetestet',
-      JSON.stringify(word?.textContent));
-    check('Und es ist eine zweite Beschriftung ohne eigene Spalte',
-      word?.classList.contains('eyebrow-with'), word?.className);
-    check('Es steht in derselben Zeile wie die Statuspillen',
-      word?.closest('.frow') === ksPill(d, 'Alle')?.closest('.frow'),
-      word?.closest('.frow')?.querySelector('.eyebrow')?.textContent);
-    /* DIE ABGELEITETE PILLE IST VON EINER GEWAEHLTEN ZU UNTERSCHEIDEN -- und
-       zwar an einer EIGENEN Klasse und nicht an derselben mit Zusatz. */
-    const derived = ksPill(d, 'Ungetestet');
-    check('Die abgeleitete Pille traegt ihre eigene Marke',
-      derived?.classList.contains('pill-derived'), derived?.className);
-    check('Und sie sieht ausdruecklich nicht aus wie eine angeklickte',
-      !derived?.classList.contains('on'), derived?.className);
-    // SEIT 0.22.0 HEISST DIE PILLE IN JEDER FILTERGRUPPE „Alle" (Woerterbuch);
-    // gefragt wird deshalb die ERSTE Pillengruppe der Statusreihe -- die
-    // Ablehnungsgruppe steht seit E8 in derselben Reihe, mit ihrem eigenen „Alle".
-    const ksStatusRow = [...d.w.document.querySelectorAll('#filters .frow')]
-      .find(r => r.querySelector('.eyebrow')?.textContent.trim() === 'Status');
-    check('Auch keine andere Pille steht dabei als gewaehlt da',
-      ![...(ksStatusRow?.querySelector('.pills')?.querySelectorAll('.pill') || [])]
-        .some(b => ['Alle', 'Getestet', 'Ungetestet'].includes(b.textContent.trim())
-                   && b.classList.contains('on')),
-      JSON.stringify([...d.w.document.querySelectorAll('#filters .pill')]
-        .map(b => `${b.textContent.trim()}:${b.className}`)));
-    check('Und sie sagt im Klartext, was ein Klick daraus macht',
-      /eigene Wahl/.test(derived?.title || ''), derived?.title);
-    /* DAS STILBLATT GIBT IHR DIE FARBE DER WAHL OHNE DEREN FUELLGRUND. Im DOM
-       laesst sich das ohne Layoutberechnung nicht sehen -- geprueft wird
-       deshalb am Stilblatt, wie bei den Loeschkreuzen und dem Favoritenstern. */
-    check('Das Stilblatt zeichnet sie gestrichelt statt gefuellt',
-      /border-style: dashed/.test(regel123('.pill-derived')) &&
-      !/background:/.test(regel123('.pill-derived')),
-      regel123('.pill-derived') || '(keine Regel)');
-    /* UND SIE IST NICHT GEDAEMPFT: ein Klick darauf ist weiterhin eine
-       Handwahl, sie darf also nicht wie ein toter Knopf aussehen. */
-    check('Und sie ist nicht gedaempft wie eine wirkungslose Pille',
-      !/opacity/.test(regel123('.pill-derived')), regel123('.pill-derived'));
-    check('Anklickbar bleibt sie', derived?.disabled !== true, String(derived?.disabled));
-    await ksClickable(d, derived);
-    check('Und ein Klick darauf ist eine Handwahl und beendet die Vorgabe',
-      !d.w.document.getElementById('f-status-from') &&
-      ksPill(d, 'Ungetestet')?.classList.contains('on'),
-      `${d.w.document.getElementById('f-status-from')?.textContent} · ${ksPill(d, 'Ungetestet')?.className}`);
-    /* ---- ZUSAGE 13 DER RUNDE 0.32.0: DIE HARTE KANTE SAGT, WAS SIE TUT ----
-       EIN EINZIGER KLICK AUF EINE STATUSPILLE SCHALTET DIE VORGABE FUER DIE
-       GANZE SITZUNG AB -- nicht nur fuer diese eine Sortierung --, und bis
-       0.31.4 stand das NIRGENDS. Zurueck kommt sie allein ueber „Filter
-       zuruecksetzen", und dass dieser Knopf auch die Automatik zurueckholt,
-       wusste ebenfalls niemand (Fahrplan, Fragen 1 und 2).
-       EIN UNSICHTBARER AUTOMATISMUS IST EIN FEHLER -- und seine unsichtbare
-       ABSCHALTUNG ist derselbe Fehler von der anderen Seite. */
-    const byHand = d.w.document.getElementById('f-status-byhand');
-    check('Zusage 13: nach der Handwahl steht da, dass sie eine ist',
-      byHand?.textContent === 'von Hand gewählt', JSON.stringify(byHand?.textContent));
-    check('Und der Satz dazu nennt die Sitzung und den Weg zurueck',
-      /Sitzung/.test(byHand?.title || '') && /zurücksetzen/.test(byHand?.title || ''),
-      byHand?.title);
-    check('Und der eingeklappte Schalter sagt dasselbe',
-      d.w.document.querySelector('#filter-toggle .fcount')?.textContent
-        === '· von Hand gewählt',
-      JSON.stringify(d.w.document.querySelector('#filter-toggle .fcount')?.textContent));
-    d.w.close();
-  }
-  {
-    /* UND OHNE ABLEITUNG STEHT AUCH DER SATZ ZUR HANDWAHL NICHT DA -- 0.32.0.
-       Bei „Zuletzt geaendert" gibt die Sortierung nichts vor; es gibt dort
-       also auch keine abgeschaltete Vorgabe, und eine Auskunft darueber waere
-       dieselbe Falle wie eine Null am Zaehler „Offen". */
-    const d = await ksBuild({ ...ksDefault, sort: 'updated_desc' });
-    await ksClickable(d, ksPill(d, 'Getestet'));
-    check('Ohne Vorgabe steht auch nach einer Handwahl kein Wort da',
-      !d.w.document.getElementById('f-status-byhand') &&
-      !d.w.document.getElementById('f-status-from'),
-      `${d.w.document.getElementById('f-status-byhand')?.textContent}`);
-    d.w.close();
-  }
-  {
-    // UND OHNE ABLEITUNG STEHT DAS WORT NICHT DA. Eine Auskunft, die immer
-    // dasteht, ist dieselbe Auskunft ueber nichts wie eine Null am Zaehler.
-    const d = await ksBuild({ ...ksDefault, sort: 'updated_desc' });
-    check('Ohne Ableitung steht das Wort nicht da',
-      !d.w.document.getElementById('f-status-from'),
-      d.w.document.getElementById('f-status-from')?.textContent);
-    check('Und eine von Hand gesetzte Pille zeichnet sich wie immer',
-      ksPill(d, 'Alle')?.classList.contains('on') &&
-      !ksPill(d, 'Alle')?.classList.contains('pill-derived'),
-      ksPill(d, 'Alle')?.className);
-    d.w.close();
-  }
-  {
-    /* UND DER WECHSEL DER SORTIERUNG ZIEHT DIE LEISTE MIT. Bis 0.21.1 zeichnete
-       `sel.onchange` nur die LISTE neu -- eine Sortierung ordnete ja bloss.
-       Jetzt gibt sie den Statusfilter vor, und die Statuspillen stehen eine
-       Zeile weiter oben: bliebe die Leiste stehen, zeigte sie eine Stellung,
-       die nicht mehr gilt, waehrend die Liste darunter schon die neue zeigt.
-       GEPRUEFT AM WECHSEL UND NICHT AN ZWEI GEBAUTEN LAGEN: nur so ist das
-       Neuzeichnen ueberhaupt im Spiel (Stolperstein 308). */
-    const d = await ksBuild({ ...ksDefault, sort: 'updated_desc' });
-    check('Der Aufbau steht: vorher steht kein Wort da',
-      !d.w.document.getElementById('f-status-from'), '(das Wort steht schon da)');
-    await ksSort(d, 'potential_desc');
-    check('Nach dem Wechsel der Sortierung steht das Wort da',
-      !!d.w.document.getElementById('f-status-from'), '(kein Wort)');
-    check('Und die abgeleitete Pille ist mitgezogen',
-      ksPill(d, 'Ungetestet')?.classList.contains('pill-derived'),
-      ksPill(d, 'Ungetestet')?.className);
-    check('Und „Alle" steht nicht mehr als gewaehlt da',
-      !ksPill(d, 'Alle')?.classList.contains('on'),
-      ksPill(d, 'Alle')?.className);
-    d.w.close();
-  }
-
-  /* ---- 9. WAS filterZahl() ZAEHLT ----
-     DIE ENTSCHEIDUNG DIESER RUNDE: die Ableitung zaehlt NICHT mit. Sie ist
-     baulich und nicht kosmetisch -- dieselbe Zahl traegt der Ruecksetzer, und
-     der steht nur da, solange sie groesser als null ist. Zaehlte die Ableitung
-     mit, stuende er auch ohne gesetzten Filter da, und ein Druck darauf
-     stellte die Ableitung gerade wieder her: derselbe Knopf mit derselben Zahl,
-     und niemand kaeme heraus.
-     GEPRUEFT IN BEIDE RICHTUNGEN, sonst belegt die Zahl nichts. */
-  {
-    const d = await ksBuild({ ...ksDefault, sort: 'potential_desc' });
-    check('Der Aufbau steht: die Ableitung greift wirklich',
-      ksTitle(d).length === 2, JSON.stringify(ksTitle(d)));
-    check('Sie zaehlt trotzdem nicht als gesetzter Filter',
-      !d.w.document.getElementById('filter-zurueck'),
-      d.w.document.getElementById('filter-zurueck')?.textContent);
-    check('Und der Schalter faerbt sich nicht als „etwas eingestellt"',
-      !d.w.document.getElementById('filter-toggle')?.classList.contains('active'),
-      d.w.document.getElementById('filter-toggle')?.className);
-    /* GESAGT WIRD SIE TROTZDEM, nur in Worten statt in einer Zahl: eingeklappt
-       ist das Wort neben den Pillen nicht zu sehen, und der Schalter ist dann
-       der einzige Ort, der noch spricht. Regel 4 gilt an beiden Orten. */
-    check('Der Schalter sagt sie stattdessen im Wort — und nennt denselben Wert',
-      d.w.document.querySelector('#filter-toggle .fcount')?.textContent
-        === '· folgt der Sortierung: Ungetestet',
-      JSON.stringify(d.w.document.querySelector('#filter-toggle .fcount')?.textContent));
-    d.w.close();
-  }
-  {
-    /* UND DIE ANDERE RICHTUNG: ein WIRKLICH gesetzter Filter zaehlt weiter,
-       und zwar EINS und nicht zwei -- die Ableitung steht daneben und schiebt
-       die Zahl nicht hoch. */
     const d = await ksBuild({ ...ksDefault, favorite: true, sort: 'potential_desc' });
-    check('Ein wirklich gesetzter Filter zaehlt weiter',
+    check('Die Prueflage ist wirklich gefiltert, bevor sie zuruecksetzt',
+      ksTitle(d).length === 0 || ksTitle(d).length < ksAll.length,
+      JSON.stringify(ksTitle(d)));
+    const back = d.w.document.getElementById('filter-zurueck');
+    check('Und der Ruecksetzer steht da, solange etwas gesetzt ist', !!back,
+      back ? back.textContent : '(kein Knopf)');
+    await ksClickable(d, back);
+    check('Nach „Filter zuruecksetzen" stehen wieder alle vier da — keine Sackgasse',
+      equal(ksTitle(d), ksAll), JSON.stringify(ksTitle(d)));
+    check('Und der Ruecksetzer ist weg, weil wirklich nichts mehr gesetzt ist',
+      !d.w.document.getElementById('filter-zurueck'),
+      d.w.document.getElementById('filter-zurueck')?.textContent || 'weg');
+    check('Und der Schalter zaehlt keinen einzigen Filter mehr',
+      (d.w.document.querySelector('#filter-toggle .fcount')?.textContent || '') === '',
+      JSON.stringify(d.w.document.querySelector('#filter-toggle .fcount')?.textContent));
+    d.w.close();
+  }
+
+  /* ---- 3. EINE HANDWAHL WIRKT, ZAEHLT UND LAESST SICH ZURUECKNEHMEN ---- */
+  {
+    const d = await ksBuild({ ...ksDefault, sort: 'potential_desc' });
+    await ksClickable(d, ksPill(d, 'Ungetestet'));
+    check('Ein Klick auf „Ungetestet" filtert wirklich',
+      equal(ksTitle(d), ['Idee schwach', 'Idee stark']), JSON.stringify(ksTitle(d)));
+    check('Und er zaehlt als EIN gesetzter Filter',
       d.w.document.getElementById('filter-zurueck')?.textContent === 'Filter zurücksetzen (1)',
       JSON.stringify(d.w.document.getElementById('filter-zurueck')?.textContent));
-    check('Und die Ableitung schiebt die Zahl nicht hoch',
-      d.w.document.querySelector('#filter-toggle .fcount')?.textContent
-        === '· 1 aktiv · folgt der Sortierung: Ungetestet',
-      JSON.stringify(d.w.document.querySelector('#filter-toggle .fcount')?.textContent));
+    /* GESPEICHERT WIRD DIE GEWAEHLTE STELLUNG. Bis 0.32.0 schrieb
+       saveFilters() ausdruecklich NICHT die abgeleitete -- die Unterscheidung
+       ist mit der Ableitung weggefallen, und was dasteht, steht auch in der
+       Einstellung. */
+    check('Und die Einstellung traegt genau diese Wahl',
+      ksSetting(d)?.tested === 'untested', JSON.stringify(ksSetting(d)?.tested));
+    await ksClickable(d, d.w.document.getElementById('filter-zurueck'));
+    check('Zuruecksetzen holt „Alle" zurueck', equal(ksTitle(d), ksAll), JSON.stringify(ksTitle(d)));
     d.w.close();
+  }
+
+  /* ---- 4. EIN WECHSEL DER SORTIERUNG LAESST DEN STATUS IN RUHE ----
+     Das ist der Kern des Ausbaus: die beiden Bedienelemente sind wieder
+     unabhaengig. Vor 0.21.1 war es so, zwischen 0.21.1 und 0.32.0 nicht, und
+     seit 0.32.1 wieder. */
+  {
+    const d = await ksBuild({ ...ksDefault, tested: 'tested', sort: 'updated_desc' });
+    check('Vor dem Wechsel steht die gewaehlte Stellung',
+      equal(ksTitle(d), ['Geprüft gut', 'Geprüft mau']), JSON.stringify(ksTitle(d)));
+    await ksSort(d, 'potential_desc');
+    check('Nach dem Wechsel auf Potenzial steht sie unveraendert da',
+      equal(ksTitle(d), ['Geprüft gut', 'Geprüft mau']), JSON.stringify(ksTitle(d)));
+    check('Und die Pille „Getestet" ist weiterhin die markierte',
+      ksPill(d, 'Getestet')?.classList.contains('on') === true,
+      [...d.w.document.querySelectorAll('#filters .pill.on')].map(b => b.textContent).join(' '));
+    d.w.close();
+  }
+
+  /* ---- 5. EINE GESPEICHERTE ANSICHT GILT SO, WIE SIE DASTEHT ----
+     Bis 0.32.0 setzte applyView() `STATUS_BY_HAND = true`, damit die
+     gespeicherte Stellung die Ableitung SCHLAEGT. Ohne Ableitung gibt es
+     nichts zu schlagen -- und das Ergebnis ist dasselbe: wer „Potenzial" und
+     „alles anzeigen" zusammen gespeichert hat, bekommt beides zurueck. */
+  {
+    const d = await ksBuild({ ...ksDefault, sort: 'potential_desc' },
+      { views: [{ id: 7, name: 'Alles nach Potenzial', q: '',
+                  filters: { ...ksDefault, sort: 'potential_desc', tested: 'all' } }] });
+    const view = [...d.w.document.querySelectorAll('#filters .pill')]
+      .find(b => b.textContent.trim() === 'Alles nach Potenzial');
+    check('Die gespeicherte Ansicht steht in der Leiste', !!view,
+      view ? view.textContent : '(keine)');
+    await ksClickable(d, view);
+    check('Und nach dem Anwenden stehen alle vier da',
+      equal(ksTitle(d), ksAll), JSON.stringify(ksTitle(d)));
+    d.w.close();
+  }
+
+  /* ---- 6. UND DER AUSBAU IST WIRKLICH EIN AUSBAU ----
+     GEPRUEFT AM QUELLTEXT UND NICHT NUR AM BILDSCHIRM: ein Merker, der
+     stehenbleibt und nur nirgends mehr gefragt wird, ist toter Code, und der
+     naechste Griff belebt ihn. Die Namen stehen in Kommentaren weiter da --
+     umgedreht und nicht geloescht (Stolperstein 74) --, also wird der
+     Quelltext OHNE Kommentare gelesen. */
+  {
+    const appOhne = fs.readFileSync(path.join(__dirname, 'public', 'app.js'), 'utf8')
+      .replace(/(^|[^A-Za-z0-9_"'`])\/\*[\s\S]*?\*\//g, '$1 ')
+      .replace(/(^|[^:])\/\/[^\n]*/g, '$1 ');
+    const reste = ['SORT_STATUS', 'STATUS_BY_HAND', 'defaultClosed', 'statusOutSort', 'statusIdle']
+      .filter(n => new RegExp(`\\b${n}\\b`).test(appOhne));
+    check('Kein Rest der Ableitung steht mehr im Quelltext — 0.32.1',
+      reste.length === 0, reste.join(' ') || 'keiner');
+    check('Und `statusEffective` liest nur noch das Feld',
+      /const statusEffective = \(f\) => f\.tested;/.test(appOhne),
+      (appOhne.match(/const statusEffective =[^\n]*/) || ['(fehlt)'])[0]);
+    /* UND DIE DREI SAETZE SIND AUS ALLEN DREI DATEIEN. Ein Satz ohne Rufer ist
+       eine Leiche; die Verwendungsprobe faende ihn, aber sie sagt nicht, dass
+       er zu DIESER Sache gehoerte. */
+    const sortSaetze = ['list.followsSort', 'list.statusByHand', 'list.byHandHint',
+                        'list.pillHint', 'list.sortDefaultHint'];
+    const nochDa = [];
+    for (const code of ['de', 'en', 'tr']) {
+      const file = JSON.parse(fs.readFileSync(
+        path.join(__dirname, 'public', 'languages', `${code}.json`), 'utf8'));
+      for (const k of sortSaetze) if (file[k] !== undefined) nochDa.push(`${code}/${k}`);
+    }
+    check('Und die fuenf Saetze der Ableitung stehen in keiner Sprachdatei mehr',
+      nochDa.length === 0, nochDa.join(' ') || 'in allen dreien weg');
+    /* UND IM STILBLATT AUCH NICHT. `.pill-derived` war ihr Aussehen; eine
+       Klasse ohne Traeger ist derselbe tote Code eine Datei weiter. */
+    const cssOhne = fs.readFileSync(path.join(__dirname, 'public', 'style.css'), 'utf8')
+      .replace(/\/\*[\s\S]*?\*\//g, ' ');
+    check('Und das Stilblatt kennt `.pill-derived` nicht mehr',
+      !/\.pill-derived/.test(cssOhne) && !/#f-status-from/.test(cssOhne),
+      (cssOhne.match(/\.pill-derived[^\n]*/) || ['weg'])[0]);
   }
 
   /* ================= Die acht Reparaturen — 0.28.1 ====================== */
@@ -49991,9 +50156,12 @@ async function checkUi() {
        UND SEIT 0.30.0 STEHT „und/Oder" IN SPALTE EINS, in der ZWEITEN
        Rasterzeile -- also unter der Beschriftung und nicht mehr neben ihr
        (Befund 6, F9). Bis 0.29.0 stand er in Spalte zwei und nahm der Wolke
-       die erste Zeile weg; genau das sieht der Betreiber am Bild. */
+       die erste Zeile weg; genau das sieht der Betreiber am Bild.
+       UND SEIT 0.32.1 IST ES NUR NOCH EINER: der Vermerk „folgt der
+       Sortierung" (`#f-status-from`) ist mit der Filterableitung gefallen.
+       Die Regel trifft jetzt allein den Ruecksetzer der Sortierzeile. */
     check('Und was zu keinem Paar gehoert, spannt ueber alle Spalten',
-      /\.frow > #f-status-from, \.frow > \.frow-right \{ grid-column: 1 \/ -1; \}/.test(soCss) &&
+      /\.frow > \.frow-right \{ grid-column: 1 \/ -1; \}/.test(soCss) &&
       /\.frow > \.frow-right-end \{ grid-column: 3; \}/.test(soCss) &&
       /\.frow-tags > \.tagmode \{ grid-column: 1; grid-row: 2;/.test(soCss),
       '(die Spanne oder eine der beiden Spaltenzuweisungen fehlt)');
@@ -50278,23 +50446,24 @@ async function checkUi() {
       pmSortValues(pmOff).join(' '));
 
     /* ---- 3. DIE KOPPLUNG (F4) ----------------------------------------
-       `potential_desc` stellt den Statusfilter auf „nicht getestet". Faellt
-       die Gruppe weg, faellt die Kopplung mit -- sie koennte sonst nur noch
-       aus einer GESPEICHERTEN Ansicht heraus greifen und den Filter stellen,
-       ohne dass jemand etwas ausgewaehlt haette.
-       GEPRUEFT AN DER GESPEICHERTEN STELLUNG, denn genau die ist der Fall,
-       der uebrigbleibt: das Auswahlfeld bietet die Sortierung ja nicht mehr
-       an. */
+       `potential_desc` stellte den Statusfilter auf „nicht getestet". 0.26.0
+       hat diese Kopplung fallen lassen, WENN der Schalter aus ist -- sie
+       konnte sonst nur noch aus einer GESPEICHERTEN Ansicht heraus greifen
+       und den Filter stellen, ohne dass jemand etwas ausgewaehlt haette.
+       MIT 0.32.1 IST SIE IN BEIDEN LAGEN GEFALLEN, weil die Ableitung als
+       Ganzes ausgebaut ist. Die beiden Zeilen bleiben stehen und drehen sich
+       mit: sie belegen jetzt, dass die gespeicherte Sortierung den Status
+       WEDER mit noch ohne Schalter anfasst. Ein Rueckfall faende hier eine
+       rote Zeile -- und das ist der Grund, sie nicht zu streichen. */
     const pmSaved = async (mode) => await pmBuild(
       { potentialMode: mode, filters: { sort: 'potential_desc' } });
     const pmOnSaved = await pmSaved(true);
     const pmOffSaved = await pmSaved(false);
     const pmTitles = (d) => [...d.w.document.querySelectorAll('.card .card-title')]
       .map(e => e.textContent).sort();
-    check('Mit Schalter stellt die gespeicherte Sortierung den Status auf „nicht getestet"',
-      equal(pmTitles(pmOnSaved), ['Idee schwach', 'Idee stark']),
-      pmTitles(pmOnSaved).join(' · '));
-    check('Ohne Schalter stellt sie ihn nicht mehr — die Kopplung ist gefallen',
+    check('Mit Schalter stellt die gespeicherte Sortierung den Status NICHT — 0.32.1',
+      equal(pmTitles(pmOnSaved), ksAll), pmTitles(pmOnSaved).join(' · '));
+    check('Ohne Schalter ebenso wenig — die Kopplung ist ganz gefallen',
       equal(pmTitles(pmOffSaved), ksAll), pmTitles(pmOffSaved).join(' · '));
 
     /* ---- 4. DER STERNKASTEN AM EINTRAG -------------------------------
@@ -53962,7 +54131,7 @@ async function check0290() {
       (csNarrow.match(/\.frow \{ display: grid;[^\n]*/) || ['(nicht gefunden)'])[0]);
     check('Und der Umschalter steht am Ende SEINER Zeile',
       /\.frow > \.frow-right-end \{ grid-column: 3; \}/.test(csNarrow) &&
-      /\.frow > #f-status-from, \.frow > \.frow-right \{ grid-column: 1 \/ -1; \}/.test(csNarrow),
+      /\.frow > \.frow-right \{ grid-column: 1 \/ -1; \}/.test(csNarrow),
       'die Spaltenzuweisung fehlt oder trifft alle Verweise');
     /* DER RUECKSETZER DER SORTIERZEILE BLEIBT DRAUSSEN, und das ist der Kern
        von F17: mit ihm in Spalte 3 schrumpft die Sortierwahl auf 30 px, und
@@ -55413,8 +55582,13 @@ async function check0303() {
      Die achtzehn stehen namentlich in WORDING_NEW_0320, der eine in
      WORDING_GONE_0320 (`list.otherUser`) -- und ihre drei Herkuenfte sind das
      fuenfzehnte Vokabelwort, die geteilte Glockentafel und die zwoelf
-     deutschen Saetze aus den Serverdateien. */
-const LANG_KEY_COUNT = 1215;
+     deutschen Saetze aus den Serverdateien.
+     1215 VOR 0.32.1 -- 1209 DANACH: acht fallen, zwei kommen dazu. Die acht
+     stehen namentlich in WORDING_GONE_0321, die zwei in WORDING_NEW_0321.
+     ES IST DIE ERSTE RUNDE, DIE SCHRUMPFT, seit 0.31.1 -- und aus demselben
+     Grund: sie nimmt eine Bauweise zurueck (dort den zersaegten Satzbau, hier
+     die Zaehlzeile als Satz und die Filterableitung). */
+const LANG_KEY_COUNT = 1209;
 
 async function check0310() {
   const drRead = (code) => JSON.parse(fs.readFileSync(
@@ -55773,16 +55947,21 @@ async function check0311() {
       'dialog.withForeignPosts': ['dialog.deleteAlso',       'extra'],
       'entry.calcAllEqual':      ['entry.calcStepsHint',     'extra'],
       'entry.calcWithWeight':    ['entry.calcStepsHint',     'extra'],
-      'entry.withAllImages':     ['entry.commentDeleteHint', 'extra'],
-      'list.ofWhich':            ['list.commentCount',       'of']
+      'entry.withAllImages':     ['entry.commentDeleteHint', 'extra']
     };
+    /* `list.ofWhich` STAND HIER BIS 0.32.0 -- der Satz „, davon ..." lief in
+       den Platz `{of}` von `list.commentCount`. Beide sind mit 0.32.1
+       gefallen: die Zaehlzeile baut keinen Satz mehr. */
     const DS_STANDALONE = {
       'card.more':        'Beschriftung des Aufklappers',
       'card.noDelivery':  'Eintrag der Versandauswahl',
       'card.off':         'Zustandswort einer Kennzeile',
       'card.on':          'Zustandswort einer Kennzeile',
       'entry.none':       'Eintrag der Kategorieauswahl',
-      'list.and':         'Bindewort einer Aufzaehlung',
+      /* `list.and` STAND HIER BIS 0.32.0 als „Bindewort einer Aufzaehlung".
+         Die Aufzaehlung, die es band, war die Zaehlzeile des
+         Kommentarblocks; sie zaehlt seit 0.32.1 mit Mittelpunkten auf, und
+         das Bindewort hatte danach keinen Rufer mehr. */
       'list.less':        'Beschriftung des Tagwolkenknopfes',
       'list.more':        'Beschriftung des Tagwolkenknopfes',
       'list.or':          'Beschriftung eines Filterknopfes',
@@ -55896,7 +56075,10 @@ async function check0311() {
        NAMENTLICH da: `{word}` traegt dort „Foto" oder „Video" und hat mit dem
        Muster von 0.25.4 nichts zu tun. Eine Doppelbelegung des Namens, aelter
        als diese Runde -- sie faellt hier auf, damit sie nicht waechst. */
-    const DS_PLAIN_WORD = ['entry.deleteHint', 'entry.deleteWord',
+    /* `entry.deleteWord` STAND HIER BIS 0.32.0 -- er ist mit 0.32.1 in
+       `entry.deletePhoto` und `entry.deleteVideo` geteilt, und beide tragen
+       gar keinen Platzhalter mehr. */
+    const DS_PLAIN_WORD = ['entry.deleteHint',
                            'entry.deleteWordAsk', 'entry.whoRatedWord'];
     const dsOrphan = Object.keys(dsFiles.de)
       .filter(k => String(dsFiles.de[k]).includes('{word}'))
@@ -56159,7 +56341,7 @@ async function check0311() {
    seine Tafel zu schreiben, faellt an den Tafeln auf; wer QUELLTEXT aendert,
    der Bildschirmtext erzeugt, faellt nur hier auf.
      0f38b9157739b492 / bc6542b1f0e28bd6 -- 0.31.4, der Stand vor dieser Runde */
-const DE_UNTOUCHED = { one: '1d5ff81dda51392a', other: '642d3a9967e12f42' };
+const DE_UNTOUCHED = { one: '6ff26921e11674ff', other: 'e1428e2484415619' };
 const DE_BEFORE_0312 = { one: '91b86c5affcba789', other: '07fc3ccdc8a27a03' };
 const DE_ORDERED_0312 = {
   'login.requestAccess': 'Zugang anfragen',
@@ -56176,35 +56358,39 @@ const EG_CHANGED_AFTER_0312_SHARED = {
   "card.grade": "0.32.0: seine Beschriftung in der Vokabelkarte",
   "card.itemMany": "0.32.0: Punkt 28, Fund 5 — dieselbe Sache in der Mehrzahl",
   "card.itemOne": "0.32.0: Punkt 28, Fund 5 — die Beschriftung nennt wieder ihre Sache",
+  "card.potentialModeHint": "0.32.1: „in the entry\" wird „in the detail view\" — das Vokabelwort stand fest im Satz",
   "card.restartHint": "0.32.0: Punkt 28, Fund 1 — die zitierte Logzeile heisst „Schluessel\"",
   "entry.calcGradeWeight": "0.32.0: „Score × weight\" wird `{grade} × weight`",
+  "entry.deletePhoto": "0.32.1: aus `entry.deleteWord` geteilt — „Delete photo\"",
+  "entry.deleteVideo": "0.32.1: aus `entry.deleteWord` geteilt — „Delete video\"",
+  "entry.dueHint": "0.32.1: „Due date\" ohne „of the task\" — das Vokabelwort stand fest im Satz",
   "entry.grade": "0.32.0: der Spaltenkopf der Rechnung wird `{grade}`",
   "entry.gradeLabel": "0.32.0: die Beschriftung am Sternkasten des Zeitpunkts",
   "entry.gradeReplaced": "0.32.0: die Meldung nach dem Ersetzen",
+  "entry.noDaysYet": "0.32.1: „a score\" wird `{grade}` — das fuenfzehnte Vokabelwort",
   "list.bellMine": "0.32.0: die Ueberschrift „My {entryMany}\"",
   "list.bellOther": "0.32.0: die Ueberschrift „Everything else\"",
   "list.bellToMe": "0.32.0: die Ueberschrift „Addressed to me\"",
-  "list.byHandHint": "0.32.0: und der Satz dazu — „Reset filters\" holt die Vorgabe zurueck",
-  "list.followsSort": "0.32.0: „follows the sorting: {status}\" — jetzt mit dem Wert",
+  "list.commentCount": "0.32.1: der Platz `{of}` faellt weg — die Zaehlzeile baut keinen Satz mehr",
   "list.gradeLong": "0.32.0: die Vorlesefassung eines Punktes der Zeitleiste",
   "list.gradeShort": "0.32.0: seine kurze Fassung",
   "list.lastGrade": "0.32.0: die Zeile der Kachel",
   "list.markedCount": "0.32.0: das „, of which 1 addressed to me\" an der Zeile",
   "list.newCommentsHint": "0.32.0: der Satz im Glockenfenster, nach Herkunft getrennt (F4)",
-  "list.pillHint": "0.32.0: der Satz nennt die Abschaltung und den Weg zurueck",
   "list.sortAvg": "0.32.0: artikellos — „Average: {grade}\" statt „Average score\"",
   "list.sortLast": "0.32.0: artikellos — „Last: {grade}\" statt „Last score\"",
-  "list.statusByHand": "0.32.0: „chosen by hand\" neben den Statuspillen",
   "mail.ownServer": "0.32.0: der zwoelfte Satz — „Own server\" in der Anbieterliste",
   "server.backupsBeforeKey": "0.32.0: Punkt 29 — Grund 2, jetzt mit Mehrzahlform",
   "server.cleanupAllYoungest": "0.32.0: Punkt 29 — Grund 3, jetzt mit Mehrzahlform",
   "server.cleanupNoBackups": "0.32.0: Punkt 29 — die Vorschau des Aufraeumens, Grund 1",
   "server.cleanupOldestAge": "0.32.0: Punkt 29 — Grund 4, jetzt mit Mehrzahlform",
+  "server.deniedEntry": "0.32.1: „this entry\" faellt weg — das Vokabelwort stand fest im Satz",
   "server.gradeRange": "0.32.0: die Absage des Servers nennt das Vokabelwort",
   "server.noAccountOwner": "0.32.0: Punkt 29 — der Grund, warum nicht verschickt werden kann",
   "server.noPublicAddress": "0.32.0: Punkt 29 — ohne PUBLIC_ADDRESS wird nicht verschickt",
   "server.noTestMail": "0.32.0: Punkt 29 — seit dem Wechsel kam keine Testmail durch",
   "server.noUserAddress": "0.32.0: Punkt 29 — am Konto haengt keine Adresse",
+  "server.ratingBeforeTest": "0.32.1: „this entry\" faellt weg, „untested\" wird `{testedNo}`",
   "server.signupThanks": "0.32.0: Punkt 29 — die eine Antwort der Zugangsanfrage",
   "vocabulary.grade": "0.32.0: das fuenfzehnte Vokabelwort — „Score\""
 };
@@ -56502,8 +56688,9 @@ async function check0312() {
     /* UND ACHTZEHN MIT 0.32.0. Sie stehen namentlich hier, alphabetisch wie in
        der Datei -- jede Runde, die einen Schluessel anlegt, traegt ihn ein. */
     const EG_ADDED_AFTER_0312 = ['_afterNumber',
-      'card.grade', 'list.bellMine', 'list.bellOther', 'list.bellToMe',
-      'list.byHandHint', 'list.markedCount', 'list.statusByHand', 'mail.ownServer',
+      'card.grade', 'entry.deletePhoto', 'entry.deleteVideo',
+      'list.bellMine', 'list.bellOther', 'list.bellToMe',
+      'list.markedCount', 'mail.ownServer',
       'server.backupsBeforeKey', 'server.cleanupAllYoungest', 'server.cleanupNoBackups',
       'server.cleanupOldestAge', 'server.noAccountOwner', 'server.noPublicAddress',
       'server.noTestMail', 'server.noUserAddress', 'server.signupThanks',
@@ -56511,7 +56698,13 @@ async function check0312() {
     /* UND EINER IST GEFALLEN -- `list.otherUser`. Der Satz des Glockenfensters
        traegt seit 0.32.0 kein hervorgehobenes Wort mehr (F4); ein Schluessel,
        den niemand ruft, bleibt nicht stehen. */
-    const EG_GONE_AFTER_0312 = ['list.otherUser'];
+    /* UND SIEBEN MIT 0.32.1 -- sechs, die 0.32.1 ausbaut, und der geteilte
+       `entry.deleteWord`. Die zwei Schluessel, die 0.32.0 angelegt und 0.32.1
+       schon wieder genommen hat (`list.statusByHand`, `list.byHandHint`),
+       stehen HIER NICHT: den Vergleichsstand von 0.31.2 gab es ohne sie, also
+       ist dort auch nichts verlorengegangen. */
+    const EG_GONE_AFTER_0312 = ['entry.deleteWord', 'list.and', 'list.followsSort',
+      'list.ofWhich', 'list.otherUser', 'list.pillHint', 'list.sortDefaultHint'];
     const egAdded = Object.keys(egFiles.en).filter(k => !(k in egPrint));
     const egLost = Object.keys(egPrint).filter(k => !(k in egFiles.en));
     check(`Und sie traegt die Schluessel von en.json — bis auf die benannten neuen (${EG_ADDED_AFTER_0312.length}) und den einen gefallenen`,
@@ -56593,12 +56786,12 @@ async function check0312() {
 /* 9cfb555855459a0c / 98295846dd0ac5a4 -- 0.31.3
    2f8e5b3abe58f9fd / 39489ec6ae18020b -- vor 0.31.3; derselbe Grund wie oben.
    597dfc60b7a1fa63 / 6558810bf793704a -- 0.31.4, der Stand vor 0.32.0 */
-const EN_UNTOUCHED = { one: '66de41e32bb706d9', other: '55936a4de6cb5b6d' };
+const EN_UNTOUCHED = { one: '97f89e94bcb911f2', other: '81d826369839a242' };
 const TR_BEFORE_0313 = { one: '5fec71b10c0dfa3c', other: '18b07eda589b5120' };
 /* bbaca227348609dc / 73d9f1ea0298d519 -- der Stand VOR der Berichtigung an der
    Vorschau der Vokabelkarte, die der Augenschein von 0.31.3 verlangt hat.
    a7f3cd4bf8992f90 / e26a1dca46c545da -- 0.31.4, der Stand vor 0.32.0 */
-const TR_AFTER_0313 = { one: 'd66b8778279f5ec1', other: '245369c1748d81d4' };
+const TR_AFTER_0313 = { one: 'f3a2034e18783412', other: '5ef5cbd1132e5562' };
 
 async function check0313() {
   const tgRead = (code) => JSON.parse(fs.readFileSync(
@@ -57109,14 +57302,18 @@ async function check0313() {
        englischen Seite -- L5 verlangt es: kein neuer Schluessel ohne alle drei
        Sprachen, und die Deckungsprobe faerbte den Lauf sofort rot. */
     const TR_ADDED_AFTER_0313 = ['_afterNumber',
-      'card.grade', 'list.bellMine', 'list.bellOther', 'list.bellToMe',
-      'list.byHandHint', 'list.markedCount', 'list.statusByHand', 'mail.ownServer',
+      'card.grade', 'entry.deletePhoto', 'entry.deleteVideo',
+      'list.bellMine', 'list.bellOther', 'list.bellToMe',
+      'list.markedCount', 'mail.ownServer',
       'server.backupsBeforeKey', 'server.cleanupAllYoungest', 'server.cleanupNoBackups',
       'server.cleanupOldestAge', 'server.noAccountOwner', 'server.noPublicAddress',
       'server.noTestMail', 'server.noUserAddress', 'server.signupThanks',
       'vocabulary.grade'];
     /* UND EINER IST GEFALLEN -- derselbe wie drueben: `list.otherUser`. */
-    const TR_GONE_AFTER_0313 = ['list.otherUser'];
+    /* UND SIEBEN MIT 0.32.1 -- dieselben wie im englischen Stand daneben, und
+       aus demselben Grund. */
+    const TR_GONE_AFTER_0313 = ['entry.deleteWord', 'list.and', 'list.followsSort',
+      'list.ofWhich', 'list.otherUser', 'list.pillHint', 'list.sortDefaultHint'];
     const tgAdded = Object.keys(tgFiles.tr).filter(k => !(k in tgPrint));
     const tgLost = Object.keys(tgPrint).filter(k => !(k in tgFiles.tr));
     check(`Und sie traegt die Schluessel von tr.json — bis auf die benannten neuen (${TR_ADDED_AFTER_0313.length}) und den einen gefallenen`,
@@ -57150,7 +57347,7 @@ async function check0313() {
       'list.showAll':           '0.31.4: Substantivkette — das erste Glied steht in der Einzahl',
       'list.openTasks':         '0.31.4: die Kruecke „listesi" faellt — „Açık Görevler"',
       'list.noCategory':        '0.31.4: die Kruecke „listesi" faellt — „Kategorisiz Öğeler"',
-      'list.newCommentsHint':   '0.32.0: der Satz im Glockenfenster, nach Herkunft getrennt (F4)',
+      'list.newCommentsHint':   '0.32.0: der Satz im Glockenfenster, nach Herkunft getrennt (F4); 0.32.1: „sana ait {entryMany}" statt „senin" — ohne Besitzendung',
       /* UND DREIUNDDREISSIG MIT 0.32.0 -- dieselben Schluessel wie auf der
          englischen Seite und aus denselben Gruenden. Die Tafel traegt sie
          alphabetisch wie die Datei; die Zeile darunter vergleicht sortiert. */
@@ -57170,7 +57367,7 @@ async function check0313() {
       'card.itemMany':            '0.32.0: Punkt 28, Fund 5 — dieselbe Sache in der Mehrzahl',
       'card.restartHint':         '0.32.0: Punkt 28, Fund 1 — die zitierte Logzeile heisst „Schluessel"',
       'list.bellToMe':            '0.32.0: die Ueberschrift „Bana yönelik"',
-      'list.bellMine':            '0.32.0: die Ueberschrift „Benim {entryMany}"',
+      'list.bellMine':            '0.32.0: die Ueberschrift; 0.32.1: „Bana ait {entryMany}" statt „Benim {entryMany}" — ohne Besitzendung',
       'list.bellOther':           '0.32.0: die Ueberschrift „Diğer her şey"',
       'list.markedCount':         '0.32.0: das „, bunun 1 bana yönelik kadarı" an der Zeile',
       'server.noAccountOwner':    '0.32.0: Punkt 29 — der Grund, warum nicht verschickt werden kann',
@@ -57183,10 +57380,42 @@ async function check0313() {
       'server.cleanupAllYoungest':'0.32.0: Punkt 29 — Grund 3, jetzt mit Mehrzahlform',
       'server.cleanupOldestAge':  '0.32.0: Punkt 29 — Grund 4, jetzt mit Mehrzahlform',
       'mail.ownServer':           '0.32.0: der zwoelfte Satz — „Kendi sunucu" in der Anbieterliste',
-      'list.followsSort':         '0.32.0: „sıralamaya uyar: {status}" — jetzt mit dem Wert',
-      'list.pillHint':            '0.32.0: der Satz nennt die Abschaltung und den Weg zurueck',
-      'list.statusByHand':        '0.32.0: „elle seçildi" neben den Statuspillen',
-      'list.byHandHint':          '0.32.0: und der Satz dazu — „Filtreleri sıfırla" holt die Vorgabe zurueck',
+      /* VIER STANDEN HIER BIS 0.32.0 und stehen jetzt nicht mehr:
+         `list.followsSort`, `list.pillHint`, `list.statusByHand` und
+         `list.byHandHint`. Alle vier gehoerten der Filterableitung, und die
+         ist mit 0.32.1 ausgebaut -- ein Eintrag, der auf einen Schluessel
+         zeigt, den es nicht mehr gibt, ist eine Karteileiche.
+
+         UND ACHTZEHN KOMMEN MIT 0.32.1 DAZU. Dreizehn davon sind der
+         eigentliche Gegenstand der Runde: TUERKISCH BRAUCHT AM VOKABELWORT
+         EINE ENDUNG, und die haengt vom Wort ab, das der Betreiber eintraegt
+         -- „Öğe" wird „Öğeyi", „Rapor" wird „Raporu", „Test günü" wird „Test
+         gününü". AUSRECHNEN LAESST SIE SICH NICHT: die beste Bibliothek
+         (affixi) haengt an jedes vokalendende Wort ein `-n-` und macht aus
+         „Öğe" ein „Öğeni" -- richtig nach einem Possessiv, falsch sonst, und
+         aus den Buchstaben ist das nicht zu sehen.
+         ALSO WIRD DER SATZ SO GEBAUT, DASS DIE ENDUNG AUF EIN FESTES WORT
+         FAELLT („{entryOne} kaydını sil"). Das ist die Krücke, die die
+         Fachwelt dafuer kennt, und `dialog.deleteAlso` benutzt sie im Haus
+         schon seit 0.31.3. */
+      'entry.deleteEntry':        '0.32.1: „{entryOne} kaydını sil" — der Akkusativ faellt auf „kayıt"',
+      'entry.deleteDay':          '0.32.1: „{dayOne} kaydını sil" — derselbe Griff',
+      'card.potentialModeLabel':  '0.32.1: „modunu aç" — der Akkusativ faellt auf „mod"',
+      'server.criterionKindFixed':'0.32.1: „ya … ya da …" statt der Fragepartikel hinter dem Platzhalter',
+      'login.noPhoneHint':        '0.32.1: „Bunun yerine" — das Klitikon haengt nicht mehr am Platzhalter',
+      'entry.alsoGoes':           '0.32.1: „Bunlar da birlikte gider: {what}." — die Partikel steht vor der Aufzaehlung',
+      'dialog.postsOfOthers':     '0.32.1: „kullanıcısının" — der Genitiv faellt auf „kullanıcı"',
+      'card.linkHolderUser':      '0.32.1: „kullanıcısının parolasını" — wie beim Nachbarn card.oldPasswordValid; „Bağlantıyı alan" haelt die Laenge',
+      'card.rejectRequestAsk':    '0.32.1: „kullanıcısının başvurusu" — derselbe Griff',
+      'card.createdFrom':         '0.32.1: „kaydından" statt „öğesinden" — „öğe" stand fest im Satz',
+      'entry.deletePhoto':        '0.32.1: „Fotoğrafı sil" — aus entry.deleteWord geteilt',
+      'entry.deleteVideo':        '0.32.1: „Videoyu sil" — die andere Haelfte, andere Endung',
+      'list.commentCount':        '0.32.1: der Platz {of} faellt weg — die Zaehlzeile baut keinen Satz mehr',
+      'entry.noDaysYet':          '0.32.1: „puan" wird {grade} — das fuenfzehnte Vokabelwort',
+      'server.deniedEntry':       '0.32.1: „Bunu yalnızca oluşturan değiştirebilir" — ohne „kayıt"',
+      'server.ratingBeforeTest':  '0.32.1: „burada {testedNo} yazıyor" — Vokabelwort statt fester Text',
+      'card.potentialModeHint':   '0.32.1: „ayrıntı görünümünde" statt „kayıtta" — das Vokabelwort stand fest im Satz',
+      'entry.dueHint':            '0.32.1: „Son tarih" ohne „Görevin" — das Vokabelwort stand fest im Satz',
       /* UND EIN FUND DER RUNDE SELBST -- Punkt 31 des Sammelblatts. Der
          berichtigte `yedek`-Waechter hat ihn im ersten Lauf gefunden: „bu
          uygulamanın yedeği değil" traegt die Konsonantenerweichung, und der

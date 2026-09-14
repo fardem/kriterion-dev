@@ -890,24 +890,14 @@ button { cursor: pointer; background: none; border: none; padding: 0; }
    "Gold ist Bewertung und Favorit, Orange ist Art und Bedienung", und ein
    Filterknopf ist Bedienung. Der Stern steht im Text, nicht in der Farbe. */
 .pill-sep { margin-left: 14px; }
-/* DIE PILLE, DIE AUS DER SORTIERUNG KOMMT -- 0.21.1.
-   SIE WIRKT UND IST TROTZDEM NICHT GEWAEHLT, und genau das muss sie zeigen:
-   die Farbe der Wahl (Orange, wie jedes Bedienelement), aber NICHT ihren
-   Fuellgrund. Gefuellt saehe sie aus wie angeklickt und behauptete eine
-   Einstellung, die niemand vorgenommen hat; gedaempft (`.pill.blank`) saehe sie
-   aus wie ein toter Knopf, und sie ist keiner -- ein Klick darauf ist eine
-   Handwahl und beendet die Vorgabe.
-   DER GESTRICHELTE RAHMEN IST DAS ZEICHEN: derselbe Umriss, andere Linie.
-   KEINE NEUE FARBE -- `--accent` steht schon fuer Bedienung, und Gold bliebe
-   der Bewertung. */
-.pill-derived {
-  border-color: var(--accent); border-style: dashed;
-  color: var(--accent-text); font-weight: 620;
-}
-/* Unter dem Zeiger behaelt sie ihre Farbe: `.pill:hover` weiter oben zieht
-   sonst auf die gewoehnliche Textfarbe zurueck, und die Pille saehe beim
-   Ueberfahren aus wie jede andere. */
-.pill-derived:hover { border-color: var(--accent); color: var(--accent-text); }
+/* HIER STAND BIS 0.32.0 `.pill-derived` -- die Statuspille, die aus der
+   SORTIERUNG kam: gestrichelter Rahmen statt gefuellt, weil sie wirkte, ohne
+   gewaehlt zu sein. Mit dem Ausbau der Ableitung in 0.32.1 gibt es keine
+   Stellung mehr, die gilt, ohne dass jemand sie gesetzt hat -- und damit auch
+   nichts mehr zu unterscheiden.
+   WAS BLEIBT, IST DIE REGEL DAHINTER: was anders wirkt, muss anders aussehen.
+   Sie steht hier aufgeschrieben und nicht geloescht, damit die naechste Runde
+   sie nicht noch einmal herleiten muss. */
 .pill .n { opacity: .55; margin-left: 4px; font-size: .7rem; }
 /* DER PUNKT AN EINER VOLLSTÄNDIGEN SPRACHPILLE — 0.25.0. Er sagt „für jede
    Zeile ist etwas eingetragen"; wo etwas fehlt, steht stattdessen die ZAHL
@@ -1158,6 +1148,26 @@ mark {
   background: var(--blue-dim); color: var(--blue);
   border-radius: 3px; padding: 0 1px;
 }
+
+/* DIE ZAHLEN AM KOMMENTARBLOCK — 0.32.1. „12 · ⚑3 · ☐3 · ☑2" statt eines
+   Satzes; der Grund steht bei commentNumbers() in app.js und ist gemessen.
+   DAS ZEICHEN TRÄGT DEN SINN, DIE FARBE VERSTÄRKT IHN NUR — Gestaltungsregel
+   G1: „Rollen- und Zustandsmarken werden aus FORM gebaut, nicht aus Farbe".
+   Wer die Farben nicht unterscheiden kann, liest weiterhin Fahne, leeres
+   Kästchen und Häkchen; wer sie sieht, liest es schneller.
+   ES KOMMT KEINE FARBE DAZU, und das ist derselbe Grundsatz G1: Orange trägt
+   hier schon die Art (`.cmt.report`), Blau die Aufgabe (`.cmt.task`), Grün
+   das Erledigte (`.cmt.done`), und das Blau der Markierung ist das der
+   `.mention` von 0.32.0. Jede dieser vier Stellen zeigt dieselbe Sache wie
+   die Zeile, in der sie steht.
+   `white-space: nowrap` HÄLT ZAHL UND ZEICHEN ZUSAMMEN: bricht die Zeile,
+   dann zwischen den Gruppen und nie mitten in einer. */
+.cnum { white-space: nowrap; }
+.cnum .icon { vertical-align: -.13em; margin-right: 2px; }
+.cnum[data-kind="report"] { color: var(--accent); }
+.cnum[data-kind="task"]   { color: var(--blue); }
+.cnum[data-kind="done"]   { color: var(--green); }
+.cnum[data-kind="marked"] { color: var(--blue); }
 .card-tags { display: flex; flex-wrap: wrap; gap: 4px; }
 .card-test {
   display: flex; align-items: center; gap: 7px;
@@ -4157,10 +4167,12 @@ body.login .login-screen { flex: 1 0 auto; min-height: 0; }
   .frow > .eyebrow, .frow > .eyebrow-with { grid-column: 1; min-width: 0;
     margin-left: 0; margin-top: 0; }
   .frow > .pills, .frow > .select, .frow > .sort-pair { grid-column: 2; min-width: 0; }
-  /* WAS ZU KEINEM PAAR GEHOERT, spannt ueber alle Spalten: der Vermerk unter
-     den Statuspillen und der Ruecksetzer der Sortierzeile. Stuenden sie in
-     Spalte eins, waeren sie so schmal wie das laengste Beschriftungswort. */
-  .frow > #f-status-from, .frow > .frow-right { grid-column: 1 / -1; }
+  /* WAS ZU KEINEM PAAR GEHOERT, spannt ueber alle Spalten: der Ruecksetzer der
+     Sortierzeile. Stuende er in Spalte eins, waere er so schmal wie das
+     laengste Beschriftungswort.
+     BIS 0.32.0 STAND HIER AUCH `#f-status-from` -- der Vermerk „folgt der
+     Sortierung" unter den Statuspillen. Er ist mit der Ableitung gefallen. */
+  .frow > .frow-right { grid-column: 1 / -1; }
   /* ---- DIE DRITTE SPALTE -- 0.29.0, Befund 6 ----
      0.28.1 HAT DAS RASTER GEBAUT UND DABEI EINEN FEHLER GEMACHT: alle Verweise
      am Zeilenende bekamen `grid-column: 1 / -1`. Fuer den Vermerk „folgt der

@@ -1906,3 +1906,81 @@ hat, einmal im Prüfstand.*
 
 **Was es anfasst** — `counterproof.js` *(ein Eintrag)*, `testbench.js`
 *(der Wächter)*.
+
+---
+
+## 36. Der Genitiv am Namen fehlt an zwei türkischen Stellen
+
+**Art: Fehler** *(Türkisch)* **· Herkunft: 0.32.1, beim Durchgang durch die
+Endungen gefunden · Einschätzung: klein**
+
+**ZWEI STELLEN SIND IN 0.32.1 BERICHTIGT WORDEN** *(`dialog.postsOfOthers`,
+`card.linkHolderUser`)*, **eine dritte steht als Grenzfall noch da:**
+
+```
+card.marksGoneToo   “{name}” etiketi …
+card.tagDeleteHint  “{name}” etiketi …
+```
+
+*Das ist eine Apposition („der Tag namens X") und damit vertretbar; der
+Nachbar* `dialog.deleteUserAsk` *macht es genauso („{name}" kullanıcısı").*
+**Ob ein türkischer Leser hier den Genitiv erwartet, ist eine Frage an den
+Betreiber und nicht an einen Wächter** — *deshalb steht es hier und nicht als
+Prüfung.*
+
+**Was es anfasst** — `public/languages/tr.json` *(zwei Werte)*.
+
+---
+
+## 37. Der deutsche Artikel ist dasselbe Problem wie die türkische Endung
+
+**Art: Idee** *(Sprache, alle Runden)* **· Herkunft: 0.32.1, beim Bauen von
+Strang 2 aufgefallen · Einschätzung: mittel, und sie hat keinen Anlass**
+
+**„Diesen `{entryOne}`" IST RICHTIG FÜR „Eintrag" UND FALSCH FÜR „Bewertung".**
+*Der deutsche Artikel richtet sich nach dem Geschlecht des Wortes, und das Wort
+trägt der Betreiber ein — genau wie im Türkischen die Endung.* **0.32.1 ist dem
+ausgewichen:** *an drei Stellen ist das Vokabelwort ersatzlos aus dem Satz
+gefallen, statt als Platzhalter hineinzukommen.*
+
+**Es stehen aber noch Sätze da, die es nicht konnten:**
+
+```
+server.entryTooBig   „Dieser {entryOne} ist als Datei zu groß …"
+entry.deleteHint     „Dieses {word} wird endgültig gelöscht."
+```
+
+*Beide sind für die Vorgabewörter richtig („Dieser Eintrag", „Dieses Foto") und
+für ein umbenanntes womöglich falsch.*
+
+> **DIE SAUBERE LÖSUNG WÄRE DIESELBE WIE FÜR TÜRKISCH UND IST DIESELBE
+> ENTSCHEIDUNG:** *ein drittes Feld je Vokabelwort (das Geschlecht), oder den
+> Artikel vermeiden.* **Der Betreiber hat ein drittes Feld für Türkisch
+> abgelehnt** *(14.9.2026)*, **und dieselbe Begründung trägt hier: jede Sprache
+> hat zwei Felder, Einzahl und Mehrzahl.**
+
+**Was zu bauen wäre, wenn überhaupt** — *die beiden Sätze umformulieren, so wie
+Strang 2 es mit den drei anderen gemacht hat.* **Ein Wächter dafür ist teuer:**
+*er müsste die deutschen Artikel kennen und wüsste trotzdem nicht, welches Wort
+der Betreiber einträgt.*
+
+**Was es anfasst** — die drei Sprachdateien *(zwei Werte)*.
+
+---
+
+## 38. Die Kurzform der Zählzeile hat keine Entsprechung in der Kachel
+
+**Art: Idee** *(Oberfläche)* **· Herkunft: 0.32.1 · Einschätzung: klein**
+
+**DER BLOCKKOPF ZÄHLT SEIT 0.32.1 IN ZEICHEN** *(„12 · ⚑3 · ☐3 · ☑2")*, **die
+Kachel in der Übersicht weiterhin in Worten** *(„3 Kommentare · 4
+Bewertungen")*. *Das ist gewollt — in der Kachel steht keine Überschrift
+daneben, die sagt, wovon die Rede ist.*
+
+**Die Frage bleibt trotzdem offen:** *auf dem Telefon ist die Kachel der
+engste Ort der ganzen Anwendung, und dort steht die längste Fassung.* **Gemessen
+ist das noch nicht** — *0.32.1 hat die Kopfzeile gemessen, nicht die Kachel.*
+
+**Was zu bauen wäre** — *erst messen, dann entscheiden.*
+
+**Was es anfasst** — `public/app.js` *(eine Funktion)*, `public/style.css`.

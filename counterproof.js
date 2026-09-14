@@ -1662,8 +1662,8 @@ const REGRESSIONS = [
        statt der offenen. */
     nr: '180', name: 'Die Klammer nennt die Gesamtzahl statt der offenen',
     file: 'public/app.js',
-    search: "    + (finished ? t('list.openCount', { n: tasks - finished }) : ''));",
-    replacement: "    + (fertig ? t('list.openCount', { n: aufgaben }) : ''));",
+    search: "    + (finished ? t('list.openCount', { n: open }) : ''));",
+    replacement: "    + (finished ? t('list.openCount', { n: tasks }) : ''));",
     expected: 'Kommentare in der Oberflaeche'
   },
   {
@@ -2991,16 +2991,16 @@ const REGRESSIONS = [
        nichts -- dieselbe Regel wie am Knopf „Offen". */
     nr: '316', name: 'Die Tafel schreibt auch die Null hin',
     file: 'public/app.js',
-    search: "b ? `${b} ${vRating(b)}` : ''].filter(Boolean).join(' · ');",
-    replacement: "`${b} ${vBewertung(b)}`].join(' · ');",
+    search: "          b ? esc(`${b} ${vRating(b)}`) : ''].filter(Boolean).join(' · ');",
+    replacement: "          esc(`${b} ${vRating(b)}`)].join(' · ');",
     expected: 'Die Glocke in der Kopfzeile'
   },
   {
     /* EINE FESTE ENDUNG MACHT AUS EINEM KOMMENTAR „1 Kommentare". */
     nr: '317', name: 'Die Tafel schreibt die Mehrzahl auch bei einem Kommentar',
     file: 'public/languages/de.json',
-    search: "\"list.commentCount\": {\n    \"one\": \"{n} Kommentar{of}\",",
-    replacement: "\"list.commentCount\": {\n    \"one\": \"{n} Kommentare{of}\",",
+    search: "\"list.commentCount\": {\n    \"one\": \"{n} Kommentar\",",
+    replacement: "\"list.commentCount\": {\n    \"one\": \"{n} Kommentare\",",
     expected: 'Die Glocke in der Kopfzeile'
   },
   {
@@ -5814,49 +5814,6 @@ const REGRESSIONS = [
 
   /* ---- 0.21.1: die Sortierung gibt den Status vor ---- */
   {
-    /* DIE TABELLE IST DIE GANZE ENTSCHEIDUNG. Ohne sie leitet keine Sortierung
-       mehr etwas ab, und die Runde ist wirkungslos -- die Liste sieht
-       aus wie vor 0.21.1. */
-    nr: '606', name: 'Keine Sortierung gibt mehr einen Status vor',
-    file: 'public/app.js',
-    search: "const SORT_STATUS = {\n" +
-           "  rating_desc: 'tested',      rating_asc: 'tested',\n" +
-           "  potential_desc: 'untested', potential_asc: 'untested'\n" +
-           "};",
-    replacement: "const SORT_STATUS = {};",
-    expected: 'Die Sortierung gibt den Status vor — 0.21.1'
-  },
-  {
-    /* NUR DIE HAELFTE DER TABELLE. Ohne diesen Rueckbau bliebe gruen, wer nur
-       die Bewertungsseite baut -- die Potenzialseite ist die, aus der der
-       Befund ueberhaupt kam. */
-    nr: '607', name: 'Nur die Bewertung gibt vor, das Potenzial nicht mehr',
-    file: 'public/app.js',
-    search: "  potential_desc: 'untested', potential_asc: 'untested'\n",
-    replacement: "",
-    expected: 'Die Sortierung gibt den Status vor — 0.21.1'
-  },
-  {
-    /* UND DIE GEGENRICHTUNG: eine Sortierung, die ausdruecklich NICHT koppeln
-       soll, koppelt doch. Ein Titel sagt nichts ueber den Teststatus. */
-    nr: '608', name: 'Die Titelsortierung koppelt mit',
-    file: 'public/app.js',
-    search: "const SORT_STATUS = {\n",
-    replacement: "const SORT_STATUS = {\n  title_asc: 'tested',\n",
-    expected: 'Die Sortierung gibt den Status vor — 0.21.1'
-  },
-  {
-    /* DIE VERLAUFSSORTIERUNGEN SIND AUSDRUECKLICH DRAUSSEN (Abschnitt 5 des
-       Auftrags). Sie setzen „getestet" logisch genauso voraus, sind aber eine
-       eigene Gruppe im Auswahlfeld -- diese Runde fasst zwei Gruppen an, nicht
-       drei. Ohne diesen Rueckbau waere das eine Behauptung im Kommentar. */
-    nr: '609', name: 'Die Verlaufssortierungen koppeln mit',
-    file: 'public/app.js',
-    search: "const SORT_STATUS = {\n  rating_desc:",
-    replacement: "const SORT_STATUS = {\n  testavg_desc: 'tested', testavg_asc: 'tested',\n  tests_desc: 'tested', tests_asc: 'tested',\n  rating_desc:",
-    expected: 'Die Sortierung gibt den Status vor — 0.21.1'
-  },
-  {
     /* DIE LISTE LIEST WIEDER UNMITTELBAR DIE GEWAEHLTE STELLUNG. Die eine
        Lesestelle faellt damit weg, und die ganze Ableitung wirkt nirgends
        mehr -- der groesste Rueckbau dieser Runde. */
@@ -5864,26 +5821,6 @@ const REGRESSIONS = [
     file: 'public/app.js',
     search: "  const status = statusEffective(f);",
     replacement: "  const status = f.tested;",
-    expected: 'Die Sortierung gibt den Status vor — 0.21.1'
-  },
-  {
-    /* DIE HANDWAHL WIRD NICHT MEHR GEMERKT. Der Klick stellt zwar `tested`,
-       aber die Ableitung schlaegt ihn beim naechsten Zeichnen sofort wieder --
-       genau der Kreis, aus dem niemand mehr herauskaeme (Stolperstein 312). */
-    nr: '611', name: 'Ein Klick auf eine Statuspille gilt nicht mehr als Handwahl',
-    file: 'public/app.js',
-    search: "    b.onclick = () => { f.tested = v; STATUS_BY_HAND = true; redraw(); };",
-    replacement: "    b.onclick = () => { f.tested = v; redraw(); };",
-    expected: 'Die Sortierung gibt den Status vor — 0.21.1'
-  },
-  {
-    /* DIE RANGORDNUNG KIPPT: die Ableitung fragt nicht mehr, ob jemand
-       gewaehlt hat, und schlaegt damit JEDE ausdrueckliche Wahl -- die
-       Handwahl, die gespeicherte Ansicht und den Ruecksetzer zugleich. */
-    nr: '612', name: 'Die Ableitung schlaegt die Handwahl statt umgekehrt',
-    file: 'public/app.js',
-    search: "const statusOutSort = (sort) => STATUS_BY_HAND ? null : defaultClosed(sort);",
-    replacement: "const statusOutSort = (sort) => vorgabeZu(sort);",
     expected: 'Die Sortierung gibt den Status vor — 0.21.1'
   },
   {
@@ -5915,110 +5852,6 @@ const REGRESSIONS = [
     file: 'public/app.js',
     search: "  const applySort = () => { f.sort = picked.base.key + (picked.asc ? '_asc' : '_desc'); redraw(); };",
     replacement: "  const applySort = () => { f.sort = picked.base.key + (picked.asc ? '_asc' : '_desc'); saveFilters(); drawBody(); };",
-    expected: 'Die Sortierung gibt den Status vor — 0.21.1'
-  },
-  {
-    /* EINE GESPEICHERTE ANSICHT IST KEINE AUSDRUECKLICHE WAHL MEHR. Wer
-       „Potenzial" und „alles anzeigen" zusammen gespeichert hat, bekommt sie
-       nicht mehr zurueck -- und genau das darf ein PATCH nicht tun. */
-    nr: '615', name: 'Eine gespeicherte Ansicht schlaegt die Ableitung nicht mehr',
-    file: 'public/app.js',
-    search: "  STATUS_BY_HAND = true;\n  state.search = typeof a.q === 'string' ? a.q : '';",
-    replacement: "  state.search = typeof a.q === 'string' ? a.q : '';",
-    expected: 'Die Sortierung gibt den Status vor — 0.21.1'
-  },
-  {
-    /* DER WEG ZURUECK IN DIE AUTOMATIK FAELLT WEG. Der Ruecksetzer raeumt die
-       Filter, aber die Handwahl bleibt stehen -- und es gibt keinen zweiten
-       Weg heraus. */
-    nr: '616', name: 'Der Ruecksetzer stellt die Automatik nicht wieder her',
-    file: 'public/app.js',
-    search: "      STATUS_BY_HAND = false;\n      redraw();",
-    replacement: "      redraw();",
-    expected: 'Die Sortierung gibt den Status vor — 0.21.1'
-  },
-  {
-    /* DAS WORT FAELLT WEG. Ein unsichtbarer Automatismus ist ein Fehler, auch
-       wenn er richtig raet -- niemand erfuehre, warum die Liste kuerzer ist. */
-    nr: '617', name: 'Neben den Statuspillen steht nicht mehr, woher sie kommen',
-    file: 'public/app.js',
-    search: "  if (fallback) {\n    const from = secondLabel(r1, t('list.followsSort',",
-    replacement: "  if (false) {\n    const from = secondLabel(r1, t('list.followsSort',",
-    expected: 'Die Sortierung gibt den Status vor — 0.21.1'
-  },
-  {
-    /* DIE ABGELEITETE PILLE SIEHT AUS WIE EINE ANGEKLICKTE. Sie behauptet
-       damit eine Einstellung, die niemand vorgenommen hat. */
-    nr: '618', name: 'Die abgeleitete Pille zeichnet sich wie eine gewaehlte',
-    file: 'public/app.js',
-    search: "    b.className = 'pill' + (fallback ? (fallback === v ? ' pill-derived' : '')\n" +
-           "                                    : (f.tested === v ? ' on' : ''));",
-    replacement: "    b.className = 'pill' + ((vorgabe ? vorgabe === v : f.tested === v) ? ' on' : '');",
-    expected: 'Die Sortierung gibt den Status vor — 0.21.1'
-  },
-  {
-    /* UND DASSELBE AM STILBLATT: die Klasse steht noch da, aber sie sieht aus
-       wie die gewaehlte. Ein Unterschied, der nur im Markup steht und nicht am
-       Bildschirm, ist keiner. */
-    nr: '619', name: 'Das Stilblatt gibt der abgeleiteten Pille den Fuellgrund der gewaehlten',
-    file: 'public/style.css',
-    search: "  border-color: var(--accent); border-style: dashed;",
-    replacement: "  border-color: var(--accent); background: var(--accent);",
-    expected: 'Die Sortierung gibt den Status vor — 0.21.1'
-  },
-  {
-    /* DIE ABLEITUNG ZAEHLT WIEDER ALS GESETZTER FILTER -- die andere Haelfte
-       der Entscheidung aus Abschnitt 2. Der Ruecksetzer stuende dann auch ohne
-       gesetzten Filter da, und ein Druck darauf stellte die Ableitung gerade
-       wieder her: derselbe Knopf mit derselben Zahl. */
-    nr: '620', name: 'Die Ableitung zaehlt als gesetzter Filter mit',
-    file: 'public/app.js',
-    search: "  if (statusEffective(f) !== statusIdle(f)) n++;",
-    replacement: "  if (statusEffective(f) !== statusRuhestellung(f)) n++;\n" +
-            "  if (statusOutSort(f.sort)) n++;",
-    expected: 'Die Sortierung gibt den Status vor — 0.21.1'
-  },
-  {
-    /* DIE RUHESTELLUNG IST WIEDER FEST `all` -- der Stand vor 0.21.1, als beides
-       zusammenfiel. Die Zahl ist dann in einer Lage falsch, und zwar in der
-       teuersten: wer bei „Potenzial" ausdruecklich „Alles anzeigen" klickt,
-       weicht von der Ruhestellung ab, aber nicht von `all`. Der Ruecksetzer
-       stuende nicht da, und einen zweiten Weg zurueck in die Automatik gibt es
-       nicht. */
-    /* DIE TABELLE WIRD WIEDER GEWOEHNLICH GEFRAGT. Eine gespeicherte Sortierung,
-       die einen Namen vom Prototyp traegt (`constructor`, `toString`), liefert
-       dann eine FUNKTION: die Ableitung gilt als greifend, und weil eine
-       Funktion weder 'tested' noch 'untested' ist, faellt der Statusfilter
-       still ganz weg -- samt der gespeicherten Wahl. */
-    /* SEIT 0.26.0 STEHT IN DERSELBEN ABLEITUNG DIE KLEMME DES
-       POTENZIALMODUS (F4). Der Rueckbau geht mit (Stolperstein 201) und
-       nimmt weiterhin GENAU die Prototypfrage heraus -- die Klemme bleibt
-       stehen, sonst faerbte er zwei Sachen auf einmal rot. */
-    nr: '623', name: 'Die Vorgabetabelle wird ohne Ruecksicht auf den Prototyp gefragt',
-    file: 'public/app.js',
-    search: "  Object.prototype.hasOwnProperty.call(SORT_STATUS, sort)\n" +
-           "    ? ((!POTENTIAL_MODE && /^potential_/.test(sort)) ? null : SORT_STATUS[sort])\n" +
-           "    : null;",
-    replacement: "  (SORT_STATUS[sort]\n" +
-           "    ? ((!POTENTIAL_MODE && /^potential_/.test(sort)) ? null : SORT_STATUS[sort])\n" +
-           "    : null);",
-    expected: 'Die Sortierung gibt den Status vor — 0.21.1'
-  },
-  {
-    nr: '622', name: 'Die Ruhestellung der Statuszeile ist wieder fest „alles"',
-    file: 'public/app.js',
-    search: "  if (statusEffective(f) !== statusIdle(f)) n++;",
-    replacement: "  if (f.tested !== v.tested) n++;",
-    expected: 'Die Sortierung gibt den Status vor — 0.21.1'
-  },
-  {
-    /* UND DER EINGEKLAPPTE SCHALTER SCHWEIGT. Er ist der einzige Ort, der fuer
-       die zugeklappte Leiste noch spricht -- ohne ihn stuende die Ableitung
-       genau dann nirgends dran, wenn man sie am wenigsten sieht. */
-    nr: '621', name: 'Der eingeklappte Filterschalter sagt nichts von der Ableitung',
-    file: 'public/app.js',
-    search: "  const from = derived ? t('list.followsSort',",
-    replacement: "  const from = '' ? t('list.followsSort',",
     expected: 'Die Sortierung gibt den Status vor — 0.21.1'
   },
 
@@ -6694,8 +6527,8 @@ const REGRESSIONS = [
        `undefined` und setzt es am Bildschirm ein. */
     nr: '688', name: 'Einer Mehrzahlform fehlt die Einzahl',
     file: 'public/languages/de.json',
-    search: "\"list.commentCount\": {\n    \"one\": \"{n} Kommentar{of}\",\n    \"other\": \"{n} Kommentare{of}\"\n  },",
-    replacement: '"list.commentCount": {\n    "other": "{n} Kommentare{of}"\n  },',
+    search: "\"list.commentCount\": {\n    \"one\": \"{n} Kommentar\",\n    \"other\": \"{n} Kommentare\"\n  },",
+    replacement: '"list.commentCount": {\n    "other": "{n} Kommentare"\n  },',
     expected: 'Die sieben Waechter der Sprachdatei \u2014 0.24.0'
   },
   {
@@ -7902,16 +7735,6 @@ const REGRESSIONS = [
        dieselbe Stelle, eine Zeile weiter. */
     search: "      down: 'list.dirHighLow',  up: 'list.dirLowHigh', start: 'down',\n      only: () => POTENTIAL_MODE },",
     replacement: "      down: 'list.dirHighLow',  up: 'list.dirLowHigh', start: 'down',\n      only: () => true },",
-    expected: 'Der Potenzialmodus — 0.26.0'
-  },
-  {
-    /* DIE KOPPLUNG GREIFT WIEDER -- eine gespeicherte Sortierung stellt den
-       Statusfilter auf „nicht getestet", ohne dass jemand etwas gewaehlt hat
-       und ohne dass die Sortierung ueberhaupt noch angeboten wuerde. */
-    nr: '807', name: 'Die Kopplung der Potenzialsortierung greift wieder',
-    file: 'public/app.js',
-    search: "    ? ((!POTENTIAL_MODE && /^potential_/.test(sort)) ? null : SORT_STATUS[sort])",
-    replacement: "    ? SORT_STATUS[sort]",
     expected: 'Der Potenzialmodus — 0.26.0'
   },
   {
@@ -9534,8 +9357,8 @@ const REGRESSIONS = [
        das ist der Unterschied, den die Zusage haelt. */
     nr: '961', name: 'Der Filterhinweis nennt die Knoepfe wieder „Pillen"',
     file: 'public/languages/de.json',
-    search: "  \"list.pillHint\": \"Ein Klick auf einen der drei Knöpfe schaltet die Vorgabe der Sortierung für diese Sitzung ab; „Filter zurücksetzen“ holt sie zurück.\",",
-    replacement: "  \"list.pillHint\": \"Ein Klick auf eine der drei Pillen schaltet die Vorgabe der Sortierung für diese Sitzung ab.\",",
+    search: "  \"card.exportWritesHint\": \"Schreibt den gesamten Bestand in eine Datei; die erwartete Größe steht an den Knöpfen.\",",
+    replacement: "  \"card.exportWritesHint\": \"Schreibt den gesamten Bestand in eine Datei; die erwartete Größe steht an den Pillen.\",",
     expected: 'Die Sprachdateien werden gegengelesen — 0.31.0'
   },
   {
@@ -9905,8 +9728,8 @@ const REGRESSIONS = [
        und nicht die Laenge mit. */
     nr: '992', name: 'Ein tuerkischer Wert traegt wieder „haptan" — mit angeklebter Endung',
     file: 'public/languages/tr.json',
-    search: "  \"list.pillHint\": \"Üç düğmeden birine tıklamak, sıralamanın varsayılanını bu oturum için kapatır; “Filtreleri sıfırla” onu geri getirir.\",",
-    replacement: "  \"list.pillHint\": \"Üç haptan birine tıklamak, sıralamanın varsayılanını bu oturum için kapatır.\",",
+    search: "  \"card.exportWritesHint\": \"Bütün veriyi bir dosyaya yazar; beklenen boyut düğmelerin üzerinde gösterilir.\",",
+    replacement: "  \"card.exportWritesHint\": \"Bütün veriyi bir dosyaya yazar; beklenen boyut hapların üzerinde gösterilir.\",",
     expected: 'Tuerkisch sitzt — 0.31.3'
   },
   {
@@ -10254,17 +10077,6 @@ const REGRESSIONS = [
     expected: '„Backup" heisst auf Tuerkisch yedekleme — 0.25.1'
   },
   {
-    /* ZUSAGE 13: „Filter folgt der Sortierung" ist sichtbar, und
-       `STATUS_BY_HAND` sagt, was es tut. Der Rueckbau nimmt den Satz zur
-       Handwahl weg -- die Ableitung schaltet sich dann wieder still ab, und
-       niemand findet aus ihr heraus. */
-    nr: '1022', name: 'Die harte Kante von STATUS_BY_HAND wird wieder unsichtbar',
-    file: 'public/app.js',
-    search: "  if (!fallback && STATUS_BY_HAND && defaultClosed(f.sort)) {",
-    replacement: "  if (false) {",
-    expected: 'Die Sortierung gibt den Status vor — 0.21.1'
-  },
-  {
     /* UND DER ZWOELFTE SATZ, den die Restprobe gefunden hat: „Eigener Server"
        geht wieder ohne Schluessel an den Bildschirm. */
     nr: '1023', name: 'Der Anbietername geht wieder fest auf Deutsch hinaus',
@@ -10307,6 +10119,89 @@ const REGRESSIONS = [
       ? t(localeOf(req), state.providerNameKey) : state.providerName,`,
     replacement: "    providerName: state.providerName,",
     expected: 'Der Mailzugang: wer ihn setzen darf'
+  },
+  /* ---- 0.32.1: die Ableitung, die Zaehlzeile und die tuerkischen Endungen ----
+     SIEBZEHN RUECKBAUTEN SIND MIT DIESER RUNDE GEFALLEN (606 bis 623, 807 und
+     1022). Sie bauten die Filterableitung zurueck, und die gibt es nicht mehr
+     -- ein Rueckbau, der ins Leere greift, ist wertlos, und die Selbstprobe
+     „jeder Suchtext kommt genau einmal vor" haette ihn gemeldet.
+     AN IHRE STELLE TRETEN ZWEI, DIE SIE WIEDER EINBAUEN. Das ist die richtige
+     Richtung fuer einen Ausbau: nicht „nimm weg, was da ist", sondern „bring
+     zurueck, was weg sein soll". */
+  {
+    /* DIE ABLEITUNG KEHRT ZURUECK -- die eine Zeile, die den ganzen Unterschied
+       macht. Danach filtert die Sortierung wieder mit. */
+    nr: '1027', name: 'Der Statusfilter folgt wieder der Sortierung',
+    file: 'public/app.js',
+    search: "const statusEffective = (f) => f.tested;",
+    replacement: "const SORT_STATUS = { rating_desc: 'tested', rating_asc: 'tested',\n"
+      + "  potential_desc: 'untested', potential_asc: 'untested' };\n"
+      + "const statusEffective = (f) => SORT_STATUS[f.sort] || f.tested;",
+    expected: 'Die Sortierung gibt den Status NICHT mehr vor — 0.32.1'
+  },
+  {
+    /* UND DIE SACKGASSE KEHRT MIT ZURUECK: `filterNumber()` misst wieder
+       gegen eine RUHESTELLUNG statt gegen die Vorgabe. Allein macht dieser
+       Rueckbau den Ruecksetzer noch nicht unsichtbar -- dafuer braucht es
+       auch 1027 --, aber er nimmt die Zeile weg, die ihn sichtbar haelt. */
+    nr: '1028', name: 'Die Filterzahl misst wieder gegen eine Ruhestellung',
+    file: 'public/app.js',
+    search: "  if (f.tested !== v.tested) n++;",
+    replacement: "  if (f.tested !== (/^(rating|potential)_/.test(f.sort) ? f.tested : v.tested)) n++;",
+    expected: 'Die Sortierung gibt den Status NICHT mehr vor — 0.32.1'
+  },
+  {
+    /* DIE KURZFORM BEKOMMT EIN WORT ZURUECK. Genau das ist der Grund, aus dem
+       sie gebaut ist: ein Wort laesst sich vom Vokabular sprengen. */
+    nr: '1029', name: 'Die Zaehlzeile setzt wieder ein Wort neben die Zahl',
+    file: 'public/app.js',
+    search: "    marks.push(countMark('report', ICON_REPORT, reports));",
+    replacement: "    marks.push(countMark('report', ICON_REPORT, `${reports} ${vReport(reports)}`));",
+    expected: 'Der Kommentarblock zaehlt'
+  },
+  {
+    /* UND DAS ZEICHEN FAELLT WEG -- die Zahl traegt ihre Bedeutung dann allein
+       in der Farbe. Gestaltungsregel G1 verbietet genau das. */
+    nr: '1030', name: 'Die Zahl der Berichte traegt nur noch Farbe, kein Zeichen',
+    file: 'public/app.js',
+    search: "    marks.push(countMark('report', ICON_REPORT, reports));",
+    replacement: "    marks.push(countMark('report', '', reports));",
+    expected: 'Der Kommentarblock zaehlt'
+  },
+  {
+    /* DER VOLLE SATZ IM title WIRD WIEDER EIN SATZ -- mit „, davon" statt
+       Mittelpunkten. Auf Tuerkisch war das die Klammer um die Aufzaehlung. */
+    nr: '1031', name: 'Der Hinweis der Zaehlzeile wird wieder ein Satz',
+    file: 'public/app.js',
+    search: "  return { html: marks.join(' · '), text: words.join(' · ') };",
+    replacement: "  return { html: marks.join(' · '), text: words[0] + ', davon ' + words.slice(1).join(' und ') };",
+    expected: 'Der Kommentarblock zaehlt'
+  },
+  {
+    /* DIE TUERKISCHE ENDUNG FAELLT WEG -- der gemeldete Fehler selbst. */
+    nr: '1032', name: 'Der tuerkische Loeschbefehl haengt wieder am Platzhalter',
+    file: 'public/languages/tr.json',
+    search: '"entry.deleteEntry": "{entryOne} kaydını sil"',
+    replacement: '"entry.deleteEntry": "{entryOne} sil"',
+    expected: 'Endungen, Woerter und Zahlen — 0.32.1'
+  },
+  {
+    /* UND DIE FRAGEPARTIKEL HAENGT WIEDER AM PLATZHALTER. Sie richtet sich
+       nach dem letzten Vokal des Wortes davor, und der ist unbekannt. */
+    nr: '1033', name: 'Die tuerkische Fragepartikel haengt wieder am Platzhalter',
+    file: 'public/languages/tr.json',
+    search: '"server.criterionKindFixed": "Bir ölçüt ya “{potential}” ya da “{ratingOne}” kutusuna aittir; sonradan değişmez."',
+    replacement: '"server.criterionKindFixed": "Bir ölçütün {potential} mı yoksa {ratingOne} kutusuna mı ait olduğu sonradan değiştirilemez."',
+    expected: 'Endungen, Woerter und Zahlen — 0.32.1'
+  },
+  {
+    /* UND DAS VOKABELWORT STEHT WIEDER FEST IM SATZ -- der zweite Befund,
+       und er trifft alle drei Sprachen. */
+    nr: '1034', name: 'Das fuenfzehnte Vokabelwort steht wieder fest im deutschen Satz',
+    file: 'public/languages/de.json',
+    search: '"entry.noDaysYet": "Noch keine {dayMany} — unten Datum und {grade} eintragen."',
+    replacement: '"entry.noDaysYet": "Noch keine {dayMany} — unten Datum und Note eintragen."',
+    expected: 'Endungen, Woerter und Zahlen — 0.32.1'
   },
 ];
 

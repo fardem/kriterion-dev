@@ -29,6 +29,23 @@ bleiben in der Form ihrer Zeit.*
 
 *Hier wird mitgeschrieben, während gebaut wird.*
 
+## [0.32.1] - 2026-09-14
+
+> **NICHTS ZU TUN.** Kein Schemaanteil, kein Migrationsblock, das
+> Austauschformat bleibt 16. Einspielen und fertig.
+
+### Geändert
+
+- **Auf Türkisch stand unter einem Eintrag „Öğe sil" — richtig ist „Öğeyi sil".** Türkisch verlangt am bestimmten Objekt eine Endung, und die hängt am Wort, das du im Vokabular einträgst: „Öğe" wird „Öğeyi", „Rapor" wird „Raporu", „Test günü" wird „Test gününü". Ausrechnen lässt sich das nicht. **Dreizehn türkische Sätze sind deshalb so umgebaut, dass die Endung auf ein festes Wort fällt** — „{entryOne} kaydını sil" —, und zwei Wächter finden den nächsten Fall.
+- **Die Zahlen am Kommentarblock sind kurz geworden:** statt „12 Kommentare, davon 3 Berichte und 5 Aufgaben (3 offen)" steht dort **12 · ⚑3 · ☐3 · ☑2** — Fahne für Bericht, leeres Kästchen für offen, Häkchen für erledigt, jedes in seiner Farbe. **Der volle Satz steht am Mauszeiger.** Der Grund ist gemessen: der Satz passte am Telefon in keiner der drei Sprachen, im Deutschen fehlten 132 Bildpunkte. Auf Türkisch war er obendrein falsch gebaut („bunun … kadarı" heißt „so viel davon").
+- **„Filter folgt der Sortierung" ist ausgebaut.** Wer nach Bewertung oder Potenzial sortierte, bekam ungefragt einen Statusfilter dazu — und „Filter zurücksetzen" holte ihn zurück, statt ihn wegzunehmen. Weil dieser Filter nicht mitzählte, verschwand danach auch der Knopf „Filter zurücksetzen": gefiltert, und kein Weg heraus. **Der Statusfilter ist jetzt genau das, was dasteht.**
+- **Fünf Sätze nannten ein Vokabelwort fest beim Namen** — „unten Datum und **Note** eintragen", „dieser **Eintrag** steht auf **ungetestet**", „Fälligkeitsdatum der **Aufgabe**". Wer die Wörter umbenennt, las sie trotzdem. Jetzt nicht mehr.
+
+### Intern
+
+- **1215 → 1209 Schlüssel** je Sprachdatei; **1017 → 1008 Rückbauten**. Die erste Runde seit 0.31.1, die schrumpft — sie nimmt Bauweisen zurück.
+- Drei neue Wächter über die Sprachdateien: keine Befehlsform und kein harmonierendes Anhängsel hinter einem Platzhalter, und kein Vokabelwort fest in einem Satz.
+
 ## [0.32.0] - 2026-09-14
 
 > **NICHTS ZU TUN — aber die Datenbank bekommt eine Tabelle.** `comment_mentions`
