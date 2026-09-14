@@ -19,6 +19,22 @@ offenhält.** *Solange die erste Zahl 0 ist, läuft ein Bruch über MINOR.*
 > anfassen darf.* **Das war 0.32.0** *(`comment_mentions`, 27 Tabellen wurden
 > 28)*, **und 0.32.1 hat nur noch Sätze angefasst. Es steht nichts mehr davor.**
 
+> **UND DIE VORAUSSETZUNG, AUF DER DIE GANZE RUNDE STEHT — vom Betreiber am
+> 14. September 2026, nachdem er den Auftrag gelesen hatte:**
+>
+> *„Heute geht es darum, dass jemand entweder ganz frisch nach einem Download
+> von Kriterion anfängt oder bereits 0.33.0 und darüber hat. Alles darunter
+> wird ein normaler User nie zu Gesicht bekommen. Das war unser beider
+> Entwicklungsarbeit."*
+>
+> **DAS IST DIE AUSSAGE, DIE DEN BRUCH ÜBERHAUPT ERST BILLIG MACHT.** *Die
+> achtzehn Blöcke holen einen Bestand nach, den es draußen nicht gibt: jede
+> Fassung unter 0.33.0 ist auf genau zwei Maschinen gelaufen, und beide sind
+> heute aktuell.* **Es gibt keine fremde Datenbank zu schützen — es gibt nur
+> die Annahme, dass es keine gibt.** *Und genau deshalb fällt die Absage aus
+> Strang 3 nicht mit weg, sondern wird gebaut:* **sie ist der Unterschied
+> zwischen „wir glauben es" und „das Programm sieht nach".**
+
 ---
 
 ## Der Befund, der diesen Auftrag über den Fahrplan hebt
@@ -62,10 +78,12 @@ Betroffene.*
 > verloren, aber unsichtbar — der schlimmste aller Ausgänge.*** **Wer hier
 > wegnimmt, darf diese Grenze nicht verschieben.**
 
-**WAS DARAUS FOLGT, IST EINE FRAGE UND KEINE ANSAGE:** *ob die sechs
-mitfallen, entscheidet der Betreiber* **(F2)**. *Sie sind teurer als die zwölf —
-sie hängen an `tools/dictionary.json`, und dieselbe Datei übersetzt beim Import
-alte Exportdateien.*
+**UND DER BETREIBER HAT ENTSCHIEDEN — am 14. September 2026, ohne Zögern:**
+*„Ja, alles was für die Migration von den Zwischenschritten notwendig war, kann
+weg."* **ALLE ACHTZEHN FALLEN, die sechs der 0.24er Runde eingeschlossen**
+*(F2)*. *Sie sind teurer als die zwölf — sie hängen an
+`tools/dictionary.json`, und dieselbe Datei übersetzt beim Import alte
+Exportdateien —, aber ein Bruch, der die Hälfte stehen lässt, wäre keiner.*
 
 ### Und die Marke sagt selbst, was diese Runde ist
 
@@ -223,21 +241,40 @@ nicht,** und im Protokoll steht ein Kasten in derselben Form wie der Schlüsselh
 von `keys.js` (`warnKeyBesideData()`): *was fehlt, seit welcher Fassung es fehlt, und über welche
 Fassung zuerst zu gehen ist.*
 
+### Und sie wird gebaut, OBWOHL es niemanden gibt, den sie schützt
+
+**Das ist kein Widerspruch, sondern der Grund.** *Nach der Voraussetzung dieser
+Runde steht draußen niemand unter 0.33.0 — die Absage träfe also nie jemanden.*
+**Genau deshalb gehört sie gebaut und nicht weggelassen:**
+
+| ohne Absage | mit Absage |
+|---|---|
+| **„Wir glauben, dass es keine alte Datenbank gibt."** *Eine Annahme, die niemand nachsehen kann und die mit jedem Jahr unsicherer wird* | **„Das Programm sieht nach."** *Aus der Annahme wird eine Prüfung, die bei jedem Start läuft* |
+| ein Start, der GELINGT und danach still falsch rechnet | ein Start, der nicht gelingt und sagt, warum |
+
+> **SIE KOSTET WENIGER, ALS SIE AUSSIEHT** — *eine Handvoll Proben auf
+> `sqlite_master`, gestellt an derselben Stelle, an der bisher achtzehn Blöcke
+> standen.* **Sie ersetzt 928 Zeilen durch etwa zwanzig**, und sie ist das
+> einzige Stück dieser Runde, das DAZUKOMMT.
+
 ---
 
 ## Die Fragetafel — vor der ersten Zeile zu beantworten
 
+**Stand 14. September 2026, 20 Uhr: F2 und F7 sind vom Betreiber entschieden**
+*(alle achtzehn fallen · der Bestandslauf ist mit PNG und mit den Vorschaubildern gefahren)*. **Offen sind noch F5** *(Sprache der Absage)*, **F6** *(wie weit sie zurückreicht)* **und F9** *(die Übersetzung alter Exportdateien)*.
+
 | # | Frage | Vorschlag |
 |---|---|---|
 | **F1** | **Die Nummer?** | **0.33.0, MINOR.** *Ein Bruch, aber die erste Zahl ist 0* |
-| **F2** | **Fallen die sechs Blöcke der 0.24er Sprachrunde mit?** | **Vorschlag: JA, und in derselben Runde.** *Sie sagen dasselbe „ENTFAELLT MIT 1.0" wie die zwölf, und ein Bruch, der die Hälfte stehen lässt, ist kein Bruch.* **Der Preis steht dagegen:** *sie hängen an `tools/dictionary.json`, und dieselbe Datei übersetzt beim Import alte Exportdateien — die Datei bleibt, nur ihr Leser in `db.js` fällt.* **Zu entscheiden** |
+| **F2** | **Fallen die sechs Blöcke der 0.24er Sprachrunde mit?** | **ENTSCHIEDEN AM 14.9.2026 — JA, alle achtzehn.** *Der Betreiber: „alles was für die Migration von den Zwischenschritten notwendig war, kann weg."* **Damit fallen 928 von 2146 Zeilen aus `db.js`** — *die sechs vor `db.exec(SCHEMA)` und die zwölf dahinter, und die Grenze selbst fällt mit* |
 | **F3** | **Fällt die Zählprüfung, oder wird sie umgedreht?** | **UMGEDREHT.** *„Es gibt genau zwoelf Migrationsfunktionen" wird „Es gibt keine" — und sie zählt danach über BEIDE Markenformen, damit ein neuer Block auffällt, gleich in welcher Schreibweise* |
 | **F4** | **Wie sagt die Instanz ab?** | **Sie fragt `sqlite_master` und öffnet nicht.** *Kein Merker (L4), kein Absturz (L3)* |
 | **F5** | **In welcher Sprache steht die Absage?** | **Vorschlag: Deutsch, im Containerprotokoll, wie jede andere Startansage.** *Sie erreicht keinen Bildschirm und keinen angemeldeten Menschen — sie erreicht den Betreiber am Wirt. **Ein Sprachschlüssel dafür wäre der erste, den niemand je in der Oberfläche sieht.*** **Zu bestätigen** |
 | **F6** | **Wie weit zurück reicht die Absage?** | **Vorschlag: bis zur ältesten Spalte, die ein Block angelegt hätte.** *Eine gröbere Grenze verweigerte Datenbanken, die vollständig sind* |
-| **F7** | **Was ist die BEDINGUNG, die vorher erfüllt sein muss?** | **Jede Installation muss einmal mit einer Fassung ≥ 0.32.1 gestartet sein** — *und die JPEG-Hälfte verlangt zusätzlich, den Bestandslauf EINMAL gefahren zu haben.* **Wer ihn nie gefahren hat, behält JPEG-Vorschaubilder für immer; sie funktionieren weiter, sie sind nur größer.** *Das ist keine technische Frage, sondern eine an den Betreiber: **gibt es Installationen, auf die das zutrifft?*** |
+| **F7** | **Was ist die BEDINGUNG, die vorher erfüllt sein muss?** | **ERFÜLLT, und zwar gemeldet und nicht angenommen.** *Der Betreiber am 14.9.2026: „Bestandslauf habe ich mit PNG gemacht und auch mit den Vorschaubildern."* **Beide Hälften des Knopfes sind auf der einen echten Installation gefahren** — *es liegt kein JPEG-Vorschaubild mehr, das der fallende Zweig noch erwischen müsste.* **Und für die Datenbankhälfte trägt die Voraussetzung der Runde:** *unter 0.33.0 hat nie jemand anders gestanden* |
 | **F8** | **Steigt das Austauschformat mit?** | **Nein, es bleibt 16** *(L5)* |
-| **F9** | **Fällt `tools/dictionary.json` mit?** | **NEIN — und das ist am Quelltext nachgesehen, nicht vermutet.** *`server.js:52` holt `COLUMNS_0241` und `VALUES_0241` aus `db.js`, und `server.js:7207`/`:7218` übersetzen damit beim EINLESEN eine Exportdatei von vor 0.24.1 — „die Paare kommen aus DERSELBEN Liste wie der Migrationsblock und nicht aus einer zweiten".* **Das sind zwei verschiedene Versprechen:** *eine Datenbank liegt HIER und kann einmal durch eine neuere Fassung gefahren werden; eine Exportdatei ist im Umlauf und kommt, von wo sie will.* **Also fallen die sechs Funktionen, und `DICTIONARY` samt den beiden Tafeln bleibt stehen** — rund fünfzehn Zeilen. *Der Kommentar an `server.js:7205` sagt ausdrücklich „ZU 1.0 FAELLT DAS WEG, so wie die Migrationsblöcke" — **und genau das ist nach F13 zu berichtigen: dieses Stück fällt eben NICHT mit dem Bruch, sondern erst mit 1.0*** |
+| **F9** | **Fällt die Übersetzung ALTER EXPORTDATEIEN mit?** | **VORSCHLAG: NEIN — und das ist die eine Stelle, an der ich die Voraussetzung der Runde NICHT durchschlagen lasse.** *`server.js:52` holt `COLUMNS_0241` und `VALUES_0241` aus `db.js`; `server.js:7207`/`:7218` übersetzen damit beim EINLESEN eine Exportdatei von vor 0.24.1 — „die Paare kommen aus DERSELBEN Liste wie der Migrationsblock und nicht aus einer zweiten".* **Eine Datenbank liegt auf EINER Maschine und ist mit ihr aktuell geworden; eine Exportdatei ist eine DATEI — sie liegt in einer Sicherung und überlebt die Maschine.** *Es kostet `DICTIONARY` samt den beiden Tafeln, rund fünfzehn Zeilen, und keinen einzigen Migrationsblock.* **Wer sagt, dass auch keine solche Datei mehr existiert, kann sie fallen lassen** — *dann fällt `DICTIONARY` ganz aus `db.js`, und der Prüfstand liest die Datei ohnehin selbst (`testbench.js:18825`).* **Zu bestätigen** |
 | **F10** | **Die acht Prüfgruppen?** | **UMGEDREHT, nicht gelöscht** *(L1)*. *Sie legen weiter eine alte Datenbank an — und belegen danach die Absage* |
 | **F11** | **Die acht Rückbauten auf Migrationszeilen?** | **Sie werden auf die Absage umgehängt.** *Wer sie stilllegt, muss eine Prüfung rot machen — sonst ist die Absage nicht belegt* |
 | **F12** | **Kommt 0.33.x (Kommentare kürzen) mit?** | **Nein, und der Grund steht im Fahrplan:** *diese Runde löscht ganze Blöcke samt ihren Kommentaren. **Wer vorher schneidet, schneidet zweimal*** |
@@ -251,7 +288,7 @@ Fassung zuerst zu gehen ist.*
 |---|---|---|
 | **BA 1** | **Die Absage zuerst** — *sie wird gebaut und geprüft, BEVOR ein Block fällt. Solange beides steht, kann jede Prüfgruppe beides gegeneinander halten* | F4, F6 |
 | **BA 2** | **Die zwölf gezählten Blöcke fallen** — samt ihren Aufrufen und den zehn Namen im `module.exports` | F3 |
-| **BA 3** | **Die sechs der 0.24er Runde fallen** — *nur wenn F2 es sagt; `tools/dictionary.json` bleibt* | F2, F9 |
+| **BA 3** | **Die sechs der 0.24er Runde fallen** — *samt der Grenze `db.exec(SCHEMA)`, die sie von den zwölf trennte; `tools/dictionary.json` bleibt als Datei* | F2 ✓, F9 |
 | **BA 4** | **Die acht Prüfgruppen werden umgedreht** — *dieselbe alte Datenbank, das umgekehrte Ergebnis* | F10 |
 | **BA 5** | **Die JPEG-Hälfte des Bestandslaufs fällt** — *vier bis fünf Schlüssel in drei Sprachen, und der Widerspruch an der Karte verschwindet von selbst* | Strang 2 |
 | **BA 6** | **Die Papiere** — README *(zwei Migrationsabsätze, der JPEG-Satz)*, CHANGELOG, Projektstand, Fahrplan, Änderungsprotokoll | L8 |
