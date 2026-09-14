@@ -15074,6 +15074,40 @@ function sweepLeftovers() {
     check('Und in derselben Folge wie in mail.js',
       rAnbList.map(a => a.key).join(',') === 'gmx,web,gmail,strato,ionos,eigen',
       rAnbList.map(a => a.key).join(','));
+    /* UND DER EINE NAME, DER KEINE MARKE IST, KOMMT IN DER SPRACHE DES LESERS
+       -- 0.32.0, Bauabschnitt 5. „Eigener Server" war der ZWOELFTE feste
+       deutsche Satz dieser Runde; die Restprobe hat ihn gefunden, und seither
+       traegt der Eintrag einen Schluessel statt eines Wortes.
+         DIESE ZEILEN STEHEN HIER, WEIL DIE GEGENPROBE 1023 STUMM BLIEB. Sie
+       baut die Uebersetzung in server.js zurueck -- und kein einziger Punkt
+       wurde rot. Der Grund ist lehrreich: die Restprobe liest den QUELLTEXT
+       von server.js, und dort steht der Name gar nicht. Er steht in mail.js
+       und kommt von dort als Wert herein. EIN WAECHTER UEBER DEN QUELLTEXT
+       SIEHT NUR SEINE DATEI; was durch sie hindurchgereicht wird, sieht nur
+       eine Probe am BILDSCHIRMTEXT (Stolperstein 47 von der anderen Seite:
+       eine Wahrheit an einem Ort heisst auch, dass man sie dort nachsieht,
+       wo sie AUSGEHT, und nicht dort, wo sie durchgeht).
+         GEFRAGT WIRD DESHALB DER LAUFENDE SERVER, dreimal mit demselben
+       Cookie und drei verschiedenen `Accept-Language`. Die fuenf Marken
+       heissen in jeder Sprache gleich -- die zweite Zeile haelt das fest,
+       damit die naechste Runde sie nicht „uebersetzt". */
+    const mailKarte = async (sprache) => {
+      const a = await fetch(`${RA.S.base}/api/mail`,
+        { headers: { cookie: RA.S.cookieValue(), 'accept-language': sprache } });
+      return await a.json();
+    };
+    const anbieterEigen = (liste) => (liste || []).find(a => a.key === 'eigen')?.name;
+    const anbEn = (await mailKarte('en')).providerList || [];
+    const anbTr = (await mailKarte('tr')).providerList || [];
+    check('Der Anbietername ohne Marke kommt in der Sprache des Lesers — 0.32.0',
+      anbieterEigen(rAnbList) === 'Eigener Server' && anbieterEigen(anbEn) === 'Own server'
+        && anbieterEigen(anbTr) === 'Kendi sunucu',
+      JSON.stringify([anbieterEigen(rAnbList), anbieterEigen(anbEn), anbieterEigen(anbTr)]));
+    check('Und die fuenf Marken heissen in jeder Sprache gleich',
+      ['gmx', 'web', 'gmail', 'strato', 'ionos'].every(k =>
+        anbEn.find(a => a.key === k)?.name === rAnbList.find(a => a.key === k)?.name &&
+        anbTr.find(a => a.key === k)?.name === rAnbList.find(a => a.key === k)?.name),
+      anbEn.filter(a => a.key !== 'eigen').map(a => a.name).join(','));
     const rAnbGmx = rAnbList.find(a => a.key === 'gmx');
     check('Jeder Eintrag traegt Server, Port und Verschluesselung',
       rAnbList.every(a => typeof a.server === 'string' && typeof a.port === 'number'
@@ -15096,6 +15130,27 @@ function sweepLeftovers() {
     check('Und aus der Liste kommt kein Geheimnis heraus',
       !rAnbList.some(a => 'password' in a || 'user' in a),
       JSON.stringify(Object.keys(rAnbList[0] || {})));
+    /* UND DIESELBE BESCHREIBUNG EIN ZWEITES MAL -- in der ZEILE der Karte.
+       `providerList` ist die AUSWAHL, `providerName` ist die ANZEIGE dessen,
+       was eingerichtet IST; app.js setzt daraus die Zeile „Anbieter" der
+       Karte „Mailversand". Es sind zwei Stellen in server.js mit derselben
+       Entscheidung, und die Gegenprobe 1023 traf nur die eine -- also steht
+       hier die zweite Zeile mit ihrer eigenen Gegenprobe 1026.
+       DER ZUGANG WIRD DAFUER AUF 'eigen' GESETZT: bei einer Marke stuende
+       dort „GMX", und daran waere nichts zu sehen. Das geschieht am ENDE der
+       Gruppe -- danach werden die Prueflagen beendet, und niemand liest den
+       Zugang mehr. */
+    await mailFree(RA.S);
+    const rEigen = await RA.S.call('PUT', '/api/mail',
+      { provider: 'eigen', server: 'mail.beispiel.de', port: 465, secure: true,
+        user: 'a@beispiel.de', password: MAIL_SECRET, sender: 'a@beispiel.de' });
+    const nEigenDe = (await mailKarte('de')).providerName;
+    const nEigenEn = (await mailKarte('en')).providerName;
+    const nEigenTr = (await mailKarte('tr')).providerName;
+    check('Und der eingerichtete Anbieter heisst in der Karte ebenso — 0.32.0',
+      rEigen.status === 200 && nEigenDe === 'Eigener Server' &&
+      nEigenEn === 'Own server' && nEigenTr === 'Kendi sunucu',
+      JSON.stringify([rEigen.status, nEigenDe, nEigenEn, nEigenTr]));
 
     for (const l of [E, F, X, St, Sw, Tr, O, H, T]) await l.stop();
     // A ist oben beim Neustart schon gestoppt worden -- endKind fragt
@@ -28013,7 +28068,7 @@ function sweepLeftovers() {
      `counted()`), und 1009 laesst dieselbe Vorschau die Sprache DES LESERS
      fragen statt der gezeigten -- der feinste der drei, weil er fuer einen
      tuerkischen Leser gar nichts aendert. */
-  /* UND 1000 WURDEN 1016 MIT 0.32.0: sechzehn neue (1010 bis 1025), und ACHT
+  /* UND 1000 WURDEN 1017 MIT 0.32.0: siebzehn neue (1010 bis 1026), und ACHT
      vorhandene sind nachgezogen -- 01, 04, 31, 44 und 378 (die Serverdateien
      tragen ihre Saetze jetzt als Schluessel), 286 und 321 (die Glockenabfrage
      ist eine Spalte breiter), 292, 315, 417, 617 und 621 (die Tafel ist
@@ -28025,9 +28080,15 @@ function sweepLeftovers() {
      hat: sie setzt „Son yedekleme" auf „Son yedeğe" statt auf „Son yedek" --
      und war bis 0.31.4 STUMM, weil der Waechter ein `k` suchte.
      UND ZWEI DAZU FUER DEN AUFKLAPPER (1024, 1025): er fragt die Breite nicht
-     mehr, und die Messung laeuft gar nicht mehr. Macht SECHZEHN neue und 1016
-     im Ganzen. */
-  check(`Es sind genau 1016 Rueckbauten`, gpList.length === 1016, `${gpList.length}`);
+     mehr, und die Messung laeuft gar nicht mehr.
+     UND EINER NACHGEREICHT (1026), weil 1023 STUMM BLIEB. 1023 nimmt die
+     Uebersetzung des Anbieternamens aus der AUSWAHLLISTE, und es wurde kein
+     Punkt rot: die Restprobe liest den Quelltext von server.js, und der Name
+     steht in mail.js. Der Pruefstand fragt seither den laufenden Server in
+     drei Sprachen -- und 1026 nimmt dieselbe Uebersetzung an der ZWEITEN
+     Stelle weg, in der Anzeige dessen, was eingerichtet ist. Macht SIEBZEHN
+     neue und 1017 im Ganzen. */
+  check(`Es sind genau 1017 Rueckbauten`, gpList.length === 1017, `${gpList.length}`);
   const gpTwice = gpList.map(r => r.nr).filter((n, i, a) => a.indexOf(n) !== i);
   check('Und keine Nummer steht zweimal', gpTwice.length === 0, gpTwice.join(' '));
   /* JEDER GREIFT: der Suchtext kommt in seiner Datei GENAU EINMAL vor. Keinmal

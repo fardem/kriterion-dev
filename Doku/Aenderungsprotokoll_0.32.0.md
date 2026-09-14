@@ -331,16 +331,19 @@ ist nicht die Regel, sondern dass sie dasteht.*
 | **5** | Die drei Dateien tragen gleich viele Schlüssel, in derselben Folge | Deckungsprobe, **1215** |
 | **6** | Es sind fünfzehn Vokabelwörter — und die Migrationstafel von 0.24.3 hat weiterhin vierzehn Zeilen | elf Stellen |
 | **7** | Kein Vokabelwort steht zusammengesetzt | **neu gebaut**, über alle drei Dateien |
-| **8** | Kein fester deutscher Satz in den Serverdateien erreicht den Bildschirm | **die Restprobe, neu gebaut** |
+| **8** | Kein fester deutscher Satz in den Serverdateien erreicht den Bildschirm | **die Restprobe, neu gebaut** — *dazu drei Zeilen am laufenden Server, die die Gegenprobe 1023 nachgereicht hat* |
 | **9** | Die Zugangsanfrage weist eine leere Form ab — und sonst nichts | Gruppe „Die Selbstanmeldung" |
 | **10** | Jede Änderung an den drei Sprachdateien steht in ihrer Tafel | Wortlautprobe · `EG_CHANGED_AFTER_0312` · `TR_CHANGED_AFTER_0313` |
 | **11** | Kein Wächter über türkischen Text arbeitet mit `\b` | **neu gebaut**, über die Muster von `testbench.js` und `counterproof.js` |
 | **12** | Die Verbotslisten der drei Sprachen bleiben leer | die drei Sprachgruppen |
 | **13** | „Filter folgt der Sortierung" ist sichtbar, und `STATUS_BY_HAND` sagt, was es tut | Gruppe „Die Sortierung gibt den Status vor" |
 
-**VIERZEHN GEGENPROBEN — 1010 bis 1023.** *Je eine für jede Zusage, und drei
+**SIEBZEHN GEGENPROBEN — 1010 bis 1026.** *Je eine für jede Zusage, und drei
 dazu: die Migrationstafel von 0.24.3, die Schwester der Gegenprobe 787, die
-Punkt 31 verlangt hat, und der zwölfte deutsche Satz.*
+Punkt 31 verlangt hat, und der zwölfte deutsche Satz. Zwei gehören dem
+„Mehr"-Aufklapper: einmal, dass er die Breite nicht mehr fragt, und einmal,
+dass die Messung gar nicht erst läuft.* **Die siebzehnte ist nachgereicht —
+sie ist die Antwort auf die eine, die stumm blieb; unten steht, warum.**
 
 ---
 
@@ -354,9 +357,9 @@ GEFUNDEN** — *und das ist der eigentliche Beleg dafür, dass sie greifen.*
 | **Der zwölfte deutsche Satz** | **„Eigener Server"** in der Anbieterliste von `mail.js` — *er erschien in der Auswahl des Mailzugangs und in der Zeile der Karte „Mailversand", auf Englisch und Türkisch deutsch.* **Die Restprobe hat ihn gefunden; gebaut** |
 | **Der `yedeği`-Wert** | `card.checkForeign` trug auf Türkisch „bu uygulamanın **yedeği** değil" — *die Konsonantenerweichung, die der Wächter von 0.25.1 dreißig Runden lang nicht sah.* **Der berichtigte Stamm hat ihn gefunden; gebaut** |
 | **Die Startzeile des Sicherungsorts** | `[Kriterion] Sicherungsort: aus — server.backupDirNotSet` — *ein SCHLÜSSEL im Containerprotokoll statt eines Satzes.* **Nicht gebaut** — *es ist kein Bildschirmtext; steht als Punkt 33 im Sammelblatt* |
-| **Die Startzeile des Sicherungsorts** | `[Kriterion] Sicherungsort: aus — server.backupDirNotSet` — *ein SCHLÜSSEL im Containerprotokoll statt eines Satzes.* **Nicht gebaut** — *es ist kein Bildschirmtext; steht als Punkt 33 im Sammelblatt* |
 | **Der Grund eines gescheiterten Versands** | *steht in der Sprache des EMPFÄNGERS und wird vom ADMIN gelesen.* **Nicht gebaut** — *es ist kein fester Satz, sondern ein übersetzter in der Sprache des Falschen; Punkt 34* |
-| **Gegenprobe 330 zerbricht `public/app.js`** | *sie meldet ABGERISSEN statt ROT, und zwar schon vor dieser Runde.* **Nicht gebaut** — *sie gehört dem Gegenprobentreiber; Punkt 35. Alle 1014 Rückbauten sind dafür einmal von Hand nachgerechnet: **sie ist die einzige*** |
+| **Gegenprobe 1014 riss den Prüflauf ab** | *sie nimmt das fünfzehnte Vokabelwort aus der Karte — und das ist genau der Fall, für den die neue Zeile gebaut ist. Die Zeile wurde rot, und danach fasste die NÄCHSTE Zeile dasselbe Feld mit* `fields[n].value` *an und stürzte an* `null.value` *ab.* **Ein abgerissener Lauf belegt nichts** *(Stolpersteine 138, 161, 170).* **Gebaut** — *die beiden Zeilen darunter fragen jetzt mit* `?.`*, werden also ihrerseits rot* |
+| **Gegenprobe 330 zerbricht `public/app.js`** | *sie meldet ABGERISSEN statt ROT, und zwar schon vor dieser Runde.* **Nicht gebaut** — *sie gehört dem Gegenprobentreiber; Punkt 35. Alle 1017 Rückbauten sind dafür einmal von Hand nachgerechnet: **sie ist die einzige*** |
 
 ---
 
@@ -457,7 +460,7 @@ Bildschirmtext erzeugt, fällt nur hier auf.**
 | **Vokabelnamen** | 14 | **15** |
 | **Tabellen der Datenbank** | 27 | **28** |
 | **Austauschformat** | 16 | **16** |
-| **Rückbauten** | 1000 | **1014** |
+| **Rückbauten** | 1000 | **1017** |
 
 ---
 

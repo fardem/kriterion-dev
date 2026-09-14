@@ -10294,6 +10294,20 @@ const REGRESSIONS = [
     replacement: "",
     expected: 'Server-Befehle nur im Kasten — 0.22.0'
   },
+  {
+    /* UND DIE ZWEITE STELLE DESSELBEN SATZES -- 0.32.0, nachgereicht.
+       1023 nimmt die Uebersetzung aus der AUSWAHLLISTE; dieser hier nimmt sie
+       aus der ANZEIGE dessen, was eingerichtet ist. Es sind zwei Stellen in
+       server.js mit derselben Entscheidung, und ein Rueckbau je Stelle ist
+       die einzige Art, beide zu belegen: 1023 blieb an der einen stumm, und
+       die andere waere dabei gar nicht aufgefallen. */
+    nr: '1026', name: 'Der eingerichtete Anbieter heisst in der Karte wieder fest deutsch',
+    file: 'server.js',
+    search: `    providerName: state.providerNameKey
+      ? t(localeOf(req), state.providerNameKey) : state.providerName,`,
+    replacement: "    providerName: state.providerName,",
+    expected: 'Der Mailzugang: wer ihn setzen darf'
+  },
 ];
 
 /* ================= Spuren und Versatz =================
