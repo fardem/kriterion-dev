@@ -213,8 +213,8 @@ const REGRESSIONS = [
   {
     nr: '19', name: 'Das Mailpasswort geht in die Kontrollausgabe',
     file: 'server.js',
-    search: "        `(${z.secure ? 'TLS' : 'STARTTLS'}), Absender ${z.sender}.` +",
-    replacement: "        `(${z.secure ? 'TLS' : 'STARTTLS'}), Absender ${z.absender}, Passwort ${mail.resolve(roh).passwort}.` +",
+    search: "        `(${z.secure ? 'TLS' : 'STARTTLS'}), sender ${z.sender}.` +",
+    replacement: "        `(${z.secure ? 'TLS' : 'STARTTLS'}), sender ${z.sender}, password ${mail.resolve(roh).passwort}.` +",
     expected: 'Der Mailversand: das Passwort steht nirgends'
   },
   /* ---- Die Anbietervorlagen ---- */
@@ -2050,55 +2050,6 @@ const REGRESSIONS = [
   },
   /* ---- 0.14.0: die drei Spalten und der Migrationsblock ---- */
   {
-    nr: '219', name: 'Der Migrationsblock laeuft gar nicht mehr',
-    file: 'db.js',
-    search: "migration0140();\n// ENDE MIGRATION 0.14.0",
-    replacement: "// migration0140();\n// ENDE MIGRATION 0.14.0",
-    expected: 'MIGRATION 0.14.0 — ENTFAELLT MIT 1.0'
-  },
-  {
-    /* STOLPERSTEIN 108: der Block fragt sich als GANZES ab. Ein Bestand, dem
-       nur die zweite oder dritte Spalte fehlt, bleibt damit fuer immer
-       zerrissen -- und genau das ist der Riss, den eine frueher abgebrochene
-       Fassung hinterlaesst. */
-    nr: '220', name: 'Der Migrationsblock fragt nur noch die erste Spalte ab',
-    file: 'db.js',
-    search: "  const missing = [];\n  if (!columns.includes('rejected_at')) missing.push(['rejected_at', 'ALTER TABLE items ADD COLUMN rejected_at TEXT']);",
-    replacement: "  const fehlend = [];\n  if (spalten.includes('rejected_at')) return 0;\n  fehlend.push(['rejected_at', 'ALTER TABLE items ADD COLUMN rejected_at TEXT']);",
-    expected: 'MIGRATION 0.14.0 — ENTFAELLT MIT 1.0'
-  },
-  {
-    /* Die Transaktion faellt weg. Am unveraenderten Stand aendert das nichts
-       am Ergebnis -- der Waechter ueber den Quelltext haelt sie fest, denn
-       ohne sie ueberlebt bei einem Abbruch die erste Spalte allein. */
-    nr: '221', name: 'Die drei ALTER TABLE laufen nicht mehr in einer Transaktion',
-    file: 'db.js',
-    search: "  db.transaction(() => { for (const [, sql] of missing) db.exec(sql); })();",
-    replacement: "  for (const [, sql] of fehlend) db.exec(sql);",
-    expected: 'MIGRATION 0.14.0 — ENTFAELLT MIT 1.0'
-  },
-  {
-    /* EIN NACHGESCHOBENES UPDATE ERFINDET ANGABEN. "Abgelehnt am Tag der
-       Einspielung von dem, der eingespielt hat" ist die schlimmste davon --
-       und sie saehe aus wie eine echte. */
-    nr: '222', name: 'Die Migration traegt erfundene Angaben in den Bestand',
-    file: 'db.js',
-    search: "  const n = db.prepare('SELECT COUNT(*) AS n FROM items WHERE rejected = 1').get().n;\n  console.log(`[Kriterion] items um ${enumeration} ergaenzt `",
-    replacement: "  db.exec(\"UPDATE items SET rejected_at = datetime('now') WHERE rejected = 1\");\n" +
-      "  const n = db.prepare('SELECT COUNT(*) AS n FROM items WHERE rejected = 1').get().n;\n  console.log(`[Kriterion] items um ${aufzaehlung} ergaenzt `",
-    expected: 'MIGRATION 0.14.0 — ENTFAELLT MIT 1.0'
-  },
-  {
-    /* Die nachgeruestete Spalte verliert ihren Fremdschluessel. Ein entfernter
-       Zugang laesst danach eine Nummer stehen, die auf niemanden mehr zeigt --
-       und die migrierte Instanz verhaelt sich anders als die frische. */
-    nr: '223', name: 'Die nachgeruestete Spalte bekommt keinen Fremdschluessel',
-    file: 'db.js',
-    search: "    'ALTER TABLE items ADD COLUMN rejected_by INTEGER REFERENCES users(id) ON DELETE SET NULL']);",
-    replacement: "    'ALTER TABLE items ADD COLUMN rejected_by INTEGER']);",
-    expected: 'MIGRATION 0.14.0 — ENTFAELLT MIT 1.0'
-  },
-  {
     /* Die DDL verliert die drei Spalten. Eine FRISCHE Instanz bekaeme sie dann
        ueber den Migrationsblock -- und zu 1.0, wenn er wegfaellt, gar nicht
        mehr. Genau dafuer steht die Gegenlage der frischen Instanz. */
@@ -2200,7 +2151,7 @@ const REGRESSIONS = [
        Format steigt und nicht stehen bleibt. */
     nr: '233', name: 'Die Formatnummer bleibt auf 15',
     file: 'server.js',
-    search: "const EXCHANGE_FORMAT = 16;",
+    search: "const EXCHANGE_FORMAT = 17;",
     replacement: "const EXCHANGE_FORMAT = 15;",
     expected: 'Die Entscheidung wird mitgeschrieben — 0.14.0'
   },
@@ -4056,21 +4007,11 @@ const REGRESSIONS = [
     expected: 'Fokuspunkt der Vorschau'
   },
   {
-    /* DIE MIGRATION LEGT DIE SPALTE NICHT AN. Eine Instanz aus 0.18.1 stuerbe
-       danach an jedem Zugriff auf photos.zoom -- die DDL greift nur bei einer
-       fehlenden TABELLE, nie bei einer fehlenden SPALTE (Stolperstein 13). */
-    nr: '447', name: 'Der achte Migrationsblock ruestet die Spalte nicht nach',
-    file: 'db.js',
-    search: "  db.exec('ALTER TABLE photos ADD COLUMN zoom REAL NOT NULL DEFAULT 100');",
-    replacement: "  // db.exec('ALTER TABLE photos ADD COLUMN zoom REAL NOT NULL DEFAULT 100');",
-    expected: 'MIGRATION 0.19.0 — ENTFAELLT MIT 1.0'
-  },
-  {
     /* MITGEGANGEN MIT 0.21.0, wie 233 -- derselbe Suchtext, eine andere
        Zusage: dort die Entscheidung, hier die Exportdatei. */
     nr: '448', name: 'Die Formatnummer bleibt bei 15, obwohl das Faelligkeitsdatum mitgeht',
     file: 'server.js',
-    search: "const EXCHANGE_FORMAT = 16;",
+    search: "const EXCHANGE_FORMAT = 17;",
     replacement: "const EXCHANGE_FORMAT = 15;",
     expected: 'Die Exportdatei'
   },
@@ -4140,14 +4081,19 @@ const REGRESSIONS = [
        mehr, dass die PNG-Fassung danach weg ist. */
     nr: '455', name: 'Der Dialog sagt nicht mehr, was verloren geht',
     file: 'public/app.js',
-    search: "        both ? t('card.catchUpAsk', { n: png.count, bytes: fmtBytes(png.bytes),",
-    replacement: "        both ? `${png.count} PNG-Fotos werden umgestellt.` || t('card.catchUpAsk', { n: png.count, bytes: fmtBytes(png.bytes),",
+    search: "        t('card.catchUpAsk', { n: png.count, bytes: fmtBytes(png.bytes),",
+    replacement: "        `${png.count} PNG-Fotos werden umgestellt.` || t('card.catchUpAsk', { n: png.count, bytes: fmtBytes(png.bytes),",
     expected: 'Die Bildablage in der Oberflaeche'
   },
   {
+    /* UMGEDREHT MIT 0.33.0: bis 0.32.1 war der Knopf AUCH ohne PNG bedienbar,
+       weil die Ableitungen eine zweite Haelfte waren. Sie ist gefallen, und
+       der Knopf ist wieder das, was er bis 0.26.0 war -- tot, solange nichts
+       umzustellen ist. Der Rueckbau belebt ihn und laesst ihn damit eine
+       Frage ohne Gegenstand oeffnen, fuer die er ein Passwort verlangt. */
     nr: '456', name: 'Der Knopf bleibt bedienbar, obwohl kein PNG mehr dasteht',
     file: 'public/app.js',
-    search: "id=\"convert-run\"${running ? ' disabled' : ''}",
+    search: "id=\"convert-run\"${running || !(png && IMAGE_STORE !== 'png') ? ' disabled' : ''}",
     replacement: "id=\"convert-run\"${''}",
     expected: 'Die Bildablage in der Oberflaeche'
   },
@@ -4311,8 +4257,8 @@ const REGRESSIONS = [
        ein Rueckbau an der Einzahl blieb deshalb STUMM. */
     nr: '472', name: 'Der Dialog sagt nicht mehr, dass es dauern kann',
     file: 'public/languages/de.json',
-    search: "werden konvertiert, die Originale ersetzt (danach etwa {after}). Veraltete JPEG-Vorschaubilder werden dabei neu generiert. Rückgängig nur mit einer vorher angelegten Sicherung. Dauer: Minuten bis Stunden.\"",
-    replacement: "werden konvertiert, die Originale ersetzt (danach etwa {after}). Veraltete JPEG-Vorschaubilder werden dabei neu generiert. Rückgängig nur mit einer vorher angelegten Sicherung.\"",
+    search: "werden konvertiert, die Originale ersetzt (danach etwa {after}). Rückgängig nur mit einer vorher angelegten Sicherung. Dauer: Minuten bis Stunden.\"",
+    replacement: "werden konvertiert, die Originale ersetzt (danach etwa {after}). Rückgängig nur mit einer vorher angelegten Sicherung.\"",
     expected: 'Die Bildablage in der Oberflaeche'
   },
   {
@@ -4391,7 +4337,7 @@ const REGRESSIONS = [
        der Abfrage hilft dagegen (Stolperstein 279). */
     nr: '480', name: 'Der Index auf photos(art) faellt weg',
     file: 'db.js',
-    search: "db.exec('CREATE INDEX IF NOT EXISTS idx_photos_kind ON photos(kind)');",
+    search: "tryIndex('idx_photos_kind',\n  'CREATE INDEX IF NOT EXISTS idx_photos_kind ON photos(kind)');",
     replacement: "",
     expected: 'Die Bildablage: PNG kommt herein, WebP geht in die Tabelle'
   },
@@ -4478,8 +4424,8 @@ const REGRESSIONS = [
        gemessen 6,3 statt 1,6 ms bei 400 Fotos. */
     nr: '488', name: 'Der deckende Index fuer die Uebersicht faellt weg',
     file: 'db.js',
-    search: "db.exec(`CREATE INDEX IF NOT EXISTS idx_photos_tile",
-    replacement: "db.exec(`SELECT 1 -- (",
+    search: "tryIndex('idx_photos_tile', `CREATE INDEX IF NOT EXISTS idx_photos_tile",
+    replacement: "tryIndex('idx_photos_tile', `SELECT 1 -- (",
     expected: 'Die Bildablage: PNG kommt herein, WebP geht in die Tabelle'
   },
   {
@@ -4796,8 +4742,8 @@ const REGRESSIONS = [
        Offengebliebenes benannt. */
     nr: '516', name: 'Das Nachziehen gibt seine Seiten nicht frei',
     file: 'batchrun.js',
-    search: "  reclaim();\n  report(status);\n  console.log(`[Kriterion] Kacheln erneuert:",
-    replacement: "  melde(stand);\n  console.log(`[Kriterion] Kacheln erneuert:",
+    search: "  reclaim();\n  report(status);\n  console.log(`[Kriterion] Tiles renewed:",
+    replacement: "  melde(stand);\n  console.log(`[Kriterion] Tiles renewed:",
     expected: '(erwartet STUMM — die Wirkung ist eine Dateigroesse, und die waechst in dieser Runde ohnehin)'
   },
   {
@@ -5200,7 +5146,7 @@ const REGRESSIONS = [
        nichts wirft. */
     nr: '552', name: 'Das Aufraeumen reisst die gelungene Sicherung mit',
     file: 'server.js',
-    search: "    console.error('[Kriterion] Das Aufräumen nach der Sicherung ist gescheitert:', e.message);\n" +
+    search: "    console.error('[Kriterion] Clearing up after the backup failed:', e.message);\n" +
            "    cleaned = { removed: 0, notDeleted: 0, bytes: 0, failed: true };\n" +
            "  }",
     replacement: "    throw e;\n" +
@@ -5508,27 +5454,6 @@ const REGRESSIONS = [
     file: 'server.js',
     search: '  SELECT c.id, c.name, c.language, c.sort_order, c.weight, c.phase, c.created_at,',
     replacement: '  SELECT c.id, c.name, c.language, c.sort_order, c.weight, c.created_at,',
-    expected: 'Zwei Kaesten, zwei Durchschnitte — 0.21.0'
-  },
-  {
-    /* DIE SPALTE BEKOMMT EINE ANDERE VORGABE. Der Bestand stuende nach dem
-       Einspielen im Kasten „before", und saemtliche Gesamtschnitte waeren
-       still weg -- der teuerste denkbare Fehler dieser Runde. */
-    nr: '580', name: 'Die Migration stellt den Bestand auf vorher',
-    file: 'db.js',
-    search: '  db.exec("ALTER TABLE rating_criteria ADD COLUMN phase TEXT NOT NULL DEFAULT \'after\'");',
-    replacement: '  db.exec("ALTER TABLE rating_criteria ADD COLUMN phase TEXT NOT NULL DEFAULT \'before\'");',
-    expected: 'Zwei Kaesten, zwei Durchschnitte — 0.21.0'
-  },
-  {
-    /* DER MIGRATIONSBLOCK LAEUFT NICHT MEHR. Eine Datenbank aus 0.20.1 traegt
-       die Spalte nicht -- CREATE TABLE IF NOT EXISTS ruehrt eine vorhandene
-       Tabelle nicht an (Stolperstein 13) --, und die Installation kaeme nicht
-       hoch. */
-    nr: '581', name: 'Der Migrationsblock 0.21.0 wird nicht mehr gerufen',
-    file: 'db.js',
-    search: '\nmigration0210();',
-    replacement: '\n// migration0210();',
     expected: 'Zwei Kaesten, zwei Durchschnitte — 0.21.0'
   },
   {
@@ -6657,66 +6582,6 @@ const REGRESSIONS = [
      ein Stueck weg -- und jeder muss die Gruppe rot machen, sonst belegt sie
      nichts. */
   {
-    nr: '702', name: 'Die eigenen Suchmaschinen stehen nicht mehr in der Liste der Formen',
-    file: 'db.js',
-    search: "  { key: 'searchOwn',  each: true,  pairs: { vorlage: 'template' } },\n",
-    replacement: '',
-    expected: 'Die gespeicherten Formen ziehen mit — 0.24.2'
-  },
-  {
-    nr: '703', name: 'Die Liste der eigenen Suchmaschinen gilt wieder als ein einzelnes Gebilde',
-    file: 'db.js',
-    search: "{ key: 'searchOwn',  each: true,",
-    replacement: "{ key: 'searchOwn',  each: false,",
-    expected: 'Die gespeicherten Formen ziehen mit — 0.24.2'
-  },
-  {
-    nr: '704', name: 'Der Absender des Mailzugangs zieht nicht mit',
-    file: 'db.js',
-    search: "passwort: 'password', absender: 'sender' } },",
-    replacement: "passwort: 'password' } },",
-    expected: 'Die gespeicherten Formen ziehen mit — 0.24.2'
-  },
-  {
-    nr: '705', name: 'Die Marke des Mailtests zieht nicht mit',
-    file: 'db.js',
-    search: "pairs: { marke: 'mark', am: 'at' } }",
-    replacement: "pairs: { am: 'at' } }",
-    expected: 'Die gespeicherten Formen ziehen mit — 0.24.2'
-  },
-  {
-    nr: '706', name: 'Der Block meldet sich auch, wenn er nichts getan hat',
-    file: 'db.js',
-    search: '  if (!counted.length) return 0;',
-    replacement: "  if (!counted.length) counted.push('(nichts)');",
-    expected: 'Die gespeicherten Formen ziehen mit — 0.24.2'
-  },
-  {
-    nr: '707', name: 'Bei zwei Namen gewinnt wieder der alte',
-    file: 'db.js',
-    search: '        if (!Object.prototype.hasOwnProperty.call(out, fresh)) out[fresh] = out[old];',
-    replacement: '        out[fresh] = out[old];',
-    expected: 'Die gespeicherten Formen ziehen mit — 0.24.2'
-  },
-  {
-    nr: '708', name: 'Der Block greift nach dem Vokabular, das deutsch bleiben soll',
-    file: 'db.js',
-    search: "  { key: 'mailtestOk', each: false, pairs: { marke: 'mark', am: 'at' } }",
-    replacement: "  { key: 'mailtestOk', each: false, pairs: { marke: 'mark', am: 'at' } },\n" +
-      "  { key: 'vocabulary', each: false, pairs: { sacheEinzahl: 'thingSingular' } }",
-    expected: 'Die gespeicherten Formen ziehen mit — 0.24.2'
-  },
-  {
-    nr: '709', name: 'Der Schluessel des Mailzugangs ist verschrieben',
-    file: 'db.js',
-    search: "{ key: 'mailzugang', each: false,",
-    replacement: "{ key: 'mailZugang', each: false,",
-    expected: 'Die gespeicherten Formen ziehen mit — 0.24.2'
-  },
-  /* ---- 0.24.3: die zweite Sprache ---- */
-  /* DIE DREI KLAMMERN AM VERZEICHNIS (F6). Jede einzeln zurueckgebaut: eine
-     Klammer, die nur gemeinsam mit den anderen greift, ist keine. */
-  {
     nr: '710', name: 'Eine Datei mit kaputtem JSON nimmt den Server wieder mit',
     file: 'server.js',
     search: "    } catch (e) {\n      languageSkip(file, `sie laesst sich nicht lesen (${e.message})`);\n      continue;\n    }",
@@ -6742,7 +6607,7 @@ const REGRESSIONS = [
   {
     nr: '713', name: 'Die uebergangene Datei wird nicht mehr genannt',
     file: 'server.js',
-    search: "const languageSkip = (file, why) => console.error(\n  `[languages] ${file} zaehlt nicht als Sprache: ${why}`);",
+    search: "const languageSkip = (file, why) => console.error(\n  `[languages] ${file} does not count as a language: ${why}`);",
     replacement: "const languageSkip = (file, why) => file && why;",
     expected: 'Die Fremddatei und der Dateiname — 0.24.3'
   },
@@ -6820,94 +6685,6 @@ const REGRESSIONS = [
   },
   /* DIE GESPEICHERTEN WERTE (F7). Der zweite Migrationsblock dieser Runde --
      und die vier Faelle, an denen ein Bestand etwas verloere. */
-  {
-    nr: '720', name: 'Das Vokabular steht nicht mehr in der Tafel der gespeicherten Namen',
-    file: 'db.js',
-    search: "  { table: 'settings', key: 'vocabulary',",
-    replacement: "  { table: 'settings', key: 'vocabularyNichtMehr',",
-    expected: 'Die deutschen Reste in gespeicherten Werten — 0.24.3'
-  },
-  {
-    nr: '721', name: 'Der Block sieht das Vokabular nur auf der oberen Stufe an',
-    file: 'db.js',
-    search: "    reach: (v) => [v, ...Object.values(v || {})],",
-    replacement: "    reach: (v) => [v],",
-    expected: 'Die deutschen Reste in gespeicherten Werten — 0.24.3'
-  },
-  {
-    nr: '722', name: 'Die gespeicherten Ansichten tragen ihren Filter weiter deutsch',
-    file: 'db.js',
-    search: "    reach: (v) => (Array.isArray(v) ? v.map(a => a && a.filters) : []),",
-    replacement: "    reach: () => [],",
-    expected: 'Die deutschen Reste in gespeicherten Werten — 0.24.3'
-  },
-  {
-    nr: '723', name: 'Die beiden Sortierwerte ziehen nicht mit',
-    file: 'db.js',
-    search: "const FILTER_VALUES_0243 = [['sort', 'potenzial_desc', 'potential_desc'],",
-    replacement: "const FILTER_VALUES_0243 = [['sort', 'potenzial_desc', 'potenzial_desc'],",
-    expected: 'Die deutschen Reste in gespeicherten Werten — 0.24.3'
-  },
-  {
-    nr: '724', name: 'Der Einklappzustand der Bloecke bleibt liegen',
-    file: 'db.js',
-    search: "    fields: [['seite', 'side'], ['unten', 'bottom'], ['zu', 'closed']], values: [] },",
-    replacement: "    fields: [['seite', 'side'], ['unten', 'bottom']], values: [] },",
-    expected: 'Die deutschen Reste in gespeicherten Werten — 0.24.3'
-  },
-  {
-    nr: '725', name: 'Der Block meldet sich auch beim zweiten Start',
-    file: 'db.js',
-    search: "      if (!touched.length) continue;",
-    replacement: "      if (!touched.length) touched.push('(nichts)');",
-    expected: 'Die deutschen Reste in gespeicherten Werten — 0.24.3'
-  },
-  {
-    nr: '726', name: 'Bei zwei Namen gewinnt wieder der alte -- in den gespeicherten Werten',
-    file: 'db.js',
-    search: "          if (!Object.prototype.hasOwnProperty.call(o, fresh)) o[fresh] = o[old];",
-    replacement: "          o[fresh] = o[old];",
-    expected: 'Die deutschen Reste in gespeicherten Werten — 0.24.3'
-  },
-  /* UND DER BLOCK, DER MEHR ANFASST ALS BESCHLOSSEN. Er ist die Gegenlage zu
-     allen sechs darueber: ein Migrationsblock, der zu viel tut, richtet
-     denselben Schaden an wie einer, der zu wenig tut. */
-  {
-    nr: '727', name: 'Der Block greift nach den Blocknamen, die deutsch bleiben sollen',
-    file: 'db.js',
-    search: "const FILTER_FIELDS_0243 = [['favorit', 'favorite']];",
-    replacement: "const FILTER_FIELDS_0243 = [['favorit', 'favorite'], ['kategorie', 'category']];",
-    expected: 'Die deutschen Reste in gespeicherten Werten — 0.24.3'
-  },
-  /* UND DIE VORGABESPRACHE DES BESTANDS (F2). Drei Rueckbauten, weil drei
-     Dinge zusammen die Zusage tragen: dass der Block ueberhaupt schreibt,
-     dass er die richtige Sprache schreibt, und dass er eine FRISCHE
-     Installation nicht anfasst. */
-  {
-    nr: '728', name: 'Der Bestand bekommt keine Vorgabesprache mehr geschrieben',
-    file: 'db.js',
-    search: "  db.prepare('INSERT INTO settings (key, value) VALUES (?, ?)')\n    .run('languageDefault', JSON.stringify(LANGUAGE_BEFORE_0243));",
-    replacement: "  if (false) db.prepare('INSERT INTO settings (key, value) VALUES (?, ?)')\n    .run('languageDefault', JSON.stringify(LANGUAGE_BEFORE_0243));",
-    expected: 'Der Bestand behaelt Deutsch — 0.24.3'
-  },
-  {
-    nr: '729', name: 'Auch eine frische Installation bekommt die Vorgabesprache geschrieben',
-    file: 'db.js',
-    search: "  const grown = db.prepare('SELECT COUNT(*) AS n FROM users').get().n > 0;\n  if (!grown) return 0;",
-    replacement: "  const grown = true;\n  if (!grown) return 0;",
-    expected: 'Der Bestand behaelt Deutsch — 0.24.3'
-  },
-  {
-    nr: '730', name: 'Der Block schreibt bei jedem Start neu und ueberfaehrt die Wahl',
-    file: 'db.js',
-    search: "  if (db.prepare(\"SELECT 1 FROM settings WHERE key = 'languageDefault'\").get()) return 0;",
-    replacement: "  db.prepare(\"DELETE FROM settings WHERE key = 'languageDefault'\").run();",
-    expected: 'Der Bestand behaelt Deutsch — 0.24.3'
-  },
-  /* UND DIE SPRACHFASSUNGEN IN DER DATEI (F8c). Zwei Rueckbauten: einer
-     nimmt sie dem Export weg, der andere dem Import. Ein Export, der etwas
-     mitnimmt, das der Import nicht wieder hineinlegt, ist ein halber Weg --
-     und ein Import ohne Export haette nie etwas zu tun. */
   {
     nr: '731', name: 'Der Export nimmt die Sprachfassungen der Namen nicht mit',
     file: 'server.js',
@@ -7189,46 +6966,6 @@ const REGRESSIONS = [
      Kette am Server, die Adminkarte, das Vokabular und den Beipack. Jeder
      nimmt EINE Zusage weg -- und keiner von ihnen hatte vor dieser Runde
      etwas, worauf er haette zeigen koennen. */
-  {
-    /* DIE STUFE MELDET SICH NICHT MEHR. Ein Migrationsblock, der still laeuft,
-       ist von einem, der gar nicht laeuft, nicht zu unterscheiden -- und der
-       Betreiber erfaehrt nicht, wie viele Namen auf die Nachfrage warten.
-
-       WARUM NICHT „nur EINE der beiden Spalten": das ist gefahren worden und
-       REISST DEN LAUF AB. Eine halb nachgeruestete Datenbank bekommt der
-       Server gar nicht mehr auf -- `qCriteria` fragt `c.language`, und das
-       Vorbereiten der Abfrage scheitert beim Start. **Ein abgerissener
-       Rueckbau belegt nichts** (Stolperstein 161), und deshalb steht hier der
-       Rueckbau, der dieselbe Stelle anfasst und den Lauf stehen laesst. */
-    nr: '760', name: 'Die Datenbankstufe meldet sich nicht',
-    file: 'db.js',
-    search: "  console.log(`[Kriterion] ${missing.join(' und ')} um language ergaenzt (Migration auf 0.25.0); ` +",
-    replacement: "  if (false) console.log(`[Kriterion] ${missing.join(' und ')} (0.25.0); ` +",
-    expected: 'Die Datenbankstufe 0.25.0'
-  },
-  {
-    /* UND DIE ANTWORT AUF F2: der Block FUELLT, statt nachzufragen. Genau das
-       ist die Behauptung, die diese Runde beseitigt -- eine Instanz, deren
-       Vorgabe heute `tr` ist, bekaeme einen ganzen Satz Zeilen, die „auf
-       Tuerkisch" heissen und es nicht sind. */
-    nr: '761', name: 'Die Migration traegt die Vorgabesprache ein, statt nachzufragen',
-    file: 'db.js',
-    search: "  for (const table of missing) db.exec(`ALTER TABLE ${table} ADD COLUMN language TEXT`);",
-    replacement: "  for (const table of missing) {\n" +
-      "    db.exec(`ALTER TABLE ${table} ADD COLUMN language TEXT`);\n" +
-      "    db.exec(`UPDATE ${table} SET language = 'de'`);\n  }",
-    expected: 'Die Datenbankstufe 0.25.0'
-  },
-  {
-    /* UND DIE GRUNDAUSSTATTUNG SAGT NICHT MEHR, IN WELCHER SPRACHE SIE STEHT.
-       Die drei mitgelieferten Kriterien sind deutsch; ohne den Vermerk faellt
-       eine frische Installation fuer sie in den vierten Schritt der Kette. */
-    nr: '762', name: 'Die mitgelieferten Kriterien bekommen keine Sprache',
-    file: 'db.js',
-    search: "  for (const c of seedCriteria) insertCriterion.run(c, SEED_LANGUAGE);",
-    replacement: "  for (const c of seedCriteria) insertCriterion.run(c, null);",
-    expected: 'Die Datenbankstufe 0.25.0'
-  },
   {
     /* DIE KETTE: eine neue Kategorie entsteht wieder OHNE Sprachvermerk. Ab
        dieser Runde soll das nicht mehr vorkommen -- und die Zeile faellt
@@ -7879,17 +7616,6 @@ const REGRESSIONS = [
     expected: 'Die Bildablage: PNG kommt herein, WebP geht in die Tabelle'
   },
   {
-    /* ZUSAGE 7: der Bestandslauf zieht Originale UND Ableitungen. Der
-       Rueckbau laesst die zweite Haelfte aus -- der Lauf saehe jede Zeile an
-       und taete an den meisten nichts, und die groessere Haelfte des
-       Bildbestands bliebe JPEG. */
-    nr: '819', name: 'Der Bestandslauf laesst die Ableitungen aus',
-    file: 'batchrun.js',
-    search: "        const fresh = (isJpeg(z.thumb) || isJpeg(z.medium))\n          ? await makeVariants(z.data, cropFrom(z)) : null;",
-    replacement: "        const fresh = null;",
-    expected: 'Die Bildablage: PNG kommt herein, WebP geht in die Tabelle'
-  },
-  {
     /* ZUSAGE 8: Umschalten allein ruehrt den Bestand nicht an (F5). Der
        Rueckbau haengt den Lauf ans Umschalten -- wer die Wahl PROBIERT,
        bekaeme 500 MB umkodiert, und zwar ohne die zweite Bestaetigung. */
@@ -7911,17 +7637,6 @@ const REGRESSIONS = [
     expected: 'Die Bildablage in der Oberflaeche'
   },
   {
-    /* ZUSAGE 10: die Migration uebersetzt BEIDE alten Stellungen. Der
-       Rueckbau laesst eine Richtung falsch abbiegen -- eine Installation, die
-       das Haekchen ausdruecklich AUS hatte, legte danach als WebP ab, und
-       niemand haette es bestellt. */
-    nr: '822', name: 'Die Migration biegt eine Richtung falsch ab',
-    file: 'db.js',
-    search: "const IMAGE_STORE_FROM_0190 = { true: 'webp-lossless', false: 'png' };",
-    replacement: "const IMAGE_STORE_FROM_0190 = { true: 'webp-lossless', false: 'webp-lossless' };",
-    expected: 'Die Datenbankstufe 0.27.0'
-  },
-  {
     /* ZUSAGE 11: `convertImages` steht nach der Migration NIRGENDS mehr. Der
        Rueckbau laesst den alten Schluessel stehen -- danach stuenden ZWEI
        Zeilen ueber dieselbe Frage in derselben Tabelle, und beim naechsten
@@ -7937,19 +7652,6 @@ const REGRESSIONS = [
     replacement: "          ${tH('entry.photoOrderHint')}</p>",
     expected: 'Der Eintrag am Bildschirm'
   },
-  {
-    nr: '823', name: 'Der alte Schluessel bleibt stehen',
-    file: 'db.js',
-    search: "    db.prepare(\"DELETE FROM settings WHERE key = 'convertImages'\").run();",
-    replacement: "    void 0;",
-    expected: 'Die Datenbankstufe 0.27.0'
-  },
-
-  /* ================= 0.28.0 — „Das Telefon bekommt Recht" =================
-     SECHZEHN RUECKBAUTEN ZU SIEBEN BAUABSCHNITTEN. Jeder nimmt genau EINE
-     Zusage ins Visier; wo ein Rueckbau zwei rot macht, steht das daneben. */
-
-  /* ---- BA 1: die gemeinsame Kopfzeile ---- */
   {
     /* DER UMBAU GING UEBER VIER AUFBAUTEN, und genau das ist die Gefahr: eine
        Zusage, die nur an renderDetail() haengt, bliebe gruen, wenn
@@ -8583,27 +8285,6 @@ const REGRESSIONS = [
     replacement: "                 c.dueDate || null);",
     expected: 'Das Faelligkeitsdatum — 0.29.0'
   },
-  {
-    /* DER MIGRATIONSBLOCK WIRD UEBERSPRUNGEN. Eine Bestandsdatenbank traegt
-       die Spalte dann nie, und jeder Griff auf `due_date` faellt dort um. */
-    nr: '882', name: 'Der zwoelfte Migrationsblock tut nichts',
-    file: 'db.js',
-    search: "  if (columns.includes('due_date')) return 0;",
-    replacement: "  return 0;",
-    expected: 'Das Faelligkeitsdatum — 0.29.0'
-  },
-  {
-    /* ER SETZT EINEN VORGABEWERT NACH. Ein selbst gesetztes Datum an fremder
-       Arbeit ist eine Behauptung, und frisch angelegt und gewandert saehen
-       danach verschieden aus. */
-    nr: '883', name: 'Die Migration erfindet ein Datum fuer den Bestand',
-    file: 'db.js',
-    search: "  db.exec('ALTER TABLE comments ADD COLUMN due_date TEXT');",
-    replacement: "  db.exec('ALTER TABLE comments ADD COLUMN due_date TEXT');\n  db.exec(\"UPDATE comments SET due_date = date('now') WHERE kind = 'task'\");",
-    expected: 'Das Faelligkeitsdatum — 0.29.0'
-  },
-
-  /* ---- BA 4: die Adresse bekommt ihr Schloss ---- */
   {
     /* DER INDEX OHNE `WHERE`. Dann ist schon der ZWEITE Zugang ohne Adresse
        eine Verletzung -- und genau die soll er zulassen. */
@@ -10006,16 +9687,6 @@ const REGRESSIONS = [
     expected: 'Oberflaeche'
   },
   {
-    /* ZUSAGE 6, ANDERSHERUM: die Migrationstafel von 0.24.3 bekommt eine
-       fuenfzehnte Zeile. „Note" hatte nie einen deutschen Namen -- der
-       Rueckbau erfindet eine Vergangenheit. */
-    nr: '1015', name: 'Die Migrationstafel von 0.24.3 erfindet ein fuenfzehntes Wort',
-    file: 'db.js',
-    search: "  ['bewertungEinzahl', 'ratingOne'],  ['bewertungMehrzahl', 'ratingMany']",
-    replacement: "  ['bewertungEinzahl', 'ratingOne'],  ['bewertungMehrzahl', 'ratingMany'],\n  ['note', 'grade']",
-    expected: 'Der Bestand aus 0.24.3'
-  },
-  {
     /* ZUSAGE 7: kein Vokabelwort steht zusammengesetzt. Der Rueckbau klebt das
        neue Wort an ein anderes -- „Durchschnittsnote" ist genau der Fehler,
        den L6 seit 0.21.0 verbietet. */
@@ -10202,6 +9873,199 @@ const REGRESSIONS = [
     search: '"entry.noDaysYet": "Noch keine {dayMany} — unten Datum und {grade} eintragen."',
     replacement: '"entry.noDaysYet": "Noch keine {dayMany} — unten Datum und Note eintragen."',
     expected: 'Endungen, Woerter und Zahlen — 0.32.1'
+  },
+  /* ================= 0.33.0 — der Bruch ==================================
+     ALLE RUECKBAUTEN DIESER RUNDE GEHEN IN EINE RICHTUNG: sie bauen WIEDER
+     EIN, was die Runde ausgebaut hat. Das ist die richtige Richtung fuer eine
+     Runde, die wegnimmt -- nicht „nimm weg, was da ist", sondern „bring
+     zurueck, was weg sein soll" (dieselbe Ueberlegung wie bei 1027 bis 1034
+     in 0.32.1).
+     UND WENN KEINE PRUEFUNG DAVON ROT WIRD, IST DER HINWEIS NICHT BELEGT.
+     Genau das sagt Frage F11 des Auftrags: die acht Rueckbauten auf
+     Migrationszeilen werden auf den Hinweis UMGEHAENGT. Sie stehen hier. */
+  {
+    /* DER KASTEN ERSCHEINT GAR NICHT MEHR. Der Ruf faellt weg, und eine
+       unvollstaendige Datenbank oeffnet wieder ohne Widerspruch -- genau der
+       leise Fehler, gegen den diese Runde gebaut ist. */
+    nr: '1035', name: 'Der Hinweis auf eine unvollstaendige Datenbank wird nicht mehr gerufen',
+    file: 'db.js',
+    search: 'warnIncompleteDatabase(incompleteDatabase());',
+    replacement: '// warnIncompleteDatabase(incompleteDatabase());',
+    expected: 'Der Hinweis auf einen unvollstaendigen Bestand — 0.33.0'
+  },
+  {
+    /* ER ERSCHEINT, ABER OHNE DIE NAMEN. „Etwas fehlt" ohne zu sagen WAS ist
+       das Symptom statt der Diagnose -- und Frage F6 hat ausdruecklich die
+       Diagnose bestellt. */
+    nr: '1036', name: 'Der Kasten nennt die fehlende Spalte nicht mehr beim Namen',
+    file: 'db.js',
+    search: "    : `    ${f.place.padEnd(22)} added in ${f.since}` +",
+    replacement: "    : `    something is missing` +",
+    expected: 'Der Hinweis auf einen unvollstaendigen Bestand — 0.33.0'
+  },
+  {
+    /* UND DIE PROBE SIEHT NUR NOCH EINE SPALTE AN. Fuenf Zeilen statt zwanzig
+       waeren billiger gewesen und naennten das Symptom; F6 hat die Diagnose
+       entschieden, und das heisst: JEDE Spalte einzeln. */
+    nr: '1037', name: 'Die Probe fragt nur noch eine einzige Spalte ab',
+    file: 'db.js',
+    search: "  for (const [table, column, old, since] of REQUIRED_COLUMNS) {",
+    replacement: "  for (const [table, column, old, since] of REQUIRED_COLUMNS.slice(0, 1)) {",
+    expected: 'Der Hinweis auf einen unvollstaendigen Bestand — 0.33.0'
+  },
+  {
+    /* UND SIE SIEHT DIE ALTEN TABELLENNAMEN NICHT MEHR. Das ist der
+       schlimmste Fall von allen: die DDL legt daneben eine leere neue an, die
+       Zeilen liegen unveraendert im alten Namen -- nicht verloren, aber
+       unsichtbar. */
+    nr: '1038', name: 'Die Probe uebersieht eine Tabelle unter ihrem alten Namen',
+    file: 'db.js',
+    search: "  for (const [old, fresh] of LEGACY_TABLES)",
+    replacement: "  for (const [old, fresh] of [])",
+    expected: 'Der Hinweis auf einen unvollstaendigen Bestand — 0.33.0'
+  },
+  {
+    /* AUS DEM HINWEIS WIRD DIE HARTE ABSAGE -- mein erster Entwurf, und der
+       Betreiber hat ihn am 14. September 2026 gekippt (F4, Leitplanke L3).
+       Eine Probe, die sich irren kann, darf niemanden aussperren. */
+    nr: '1039', name: 'Aus dem Hinweis wird ein Abbruch — die Instanz oeffnet nicht mehr',
+    file: 'db.js',
+    search: 'function warnIncompleteDatabase(findings) {\n  if (!isMainThread || !findings.length) return;',
+    replacement: 'function warnIncompleteDatabase(findings) {\n  if (!isMainThread || !findings.length) return;\n' +
+      "  throw new Error('Diese Datenbank ist unvollstaendig.');",
+    expected: 'Der Hinweis auf einen unvollstaendigen Bestand — 0.33.0'
+  },
+  {
+    /* UND DIE PROBE FRAGT WIEDER EINEN MERKER. Er fehlte genau in der
+       Datenbank, um die es geht -- eine aus 0.13.0 traegt keinen, und die
+       Probe saehe von da an nichts mehr (Leitplanke L4). */
+    nr: '1040', name: 'Die Probe fragt einen Merker statt des Bestands',
+    file: 'db.js',
+    search: "function incompleteDatabase() {\n  const tables = new Set(db.prepare(\"SELECT name FROM sqlite_master WHERE type = 'table'\")",
+    replacement: "function incompleteDatabase() {\n  if (!db.prepare(\"SELECT 1 FROM settings WHERE key = 'schemaIncomplete'\").get()) return [];\n" +
+      "  const tables = new Set(db.prepare(\"SELECT name FROM sqlite_master WHERE type = 'table'\")",
+    expected: 'Der Hinweis auf einen unvollstaendigen Bestand — 0.33.0'
+  },
+  {
+    /* DIE BEIDEN INDIZES VERLIEREN IHRE KLAMMER. Eine Datenbank ohne
+       `photos.zoom` traefe hier auf „no such column" -- und die Instanz kaeme
+       nicht hoch. Das waere die harte Absage an einer Stelle, an der sie
+       niemand bestellt hat: nicht als Entscheidung, sondern als Absturz. */
+    nr: '1041', name: 'Die Indizes auf nachgeruestete Spalten fallen wieder hart',
+    file: 'db.js',
+    search: "const tryIndex = (name, sql) => {\n  try { db.exec(sql); } catch (e) {",
+    replacement: "const tryIndex = (name, sql) => {\n  { db.exec(sql); } if (false) { const e = {};",
+    expected: 'Der Hinweis auf einen unvollstaendigen Bestand — 0.33.0'
+  },
+  {
+    /* UND DAS AUFFANGNETZ FRAGT NICHT MEHR NACH `user_id`. `links` und
+       `attachments` haben ihre Spalte bis 0.32.1 aus zwei Bloecken bekommen;
+       ohne die Frage stirbt der Start an einem `db.prepare`. */
+    nr: '1042', name: 'Das Auffangnetz uebergeht eine fehlende Spalte nicht mehr',
+    file: 'db.js',
+    search: "    if (!db.prepare(`PRAGMA table_info(${table})`).all().some(c => c.name === 'user_id')) {\n      counts[table] = 0;\n      continue;\n    }",
+    replacement: "",
+    expected: 'Der Hinweis auf einen unvollstaendigen Bestand — 0.33.0'
+  },
+  {
+    /* UND DIE GRUNDAUSSTATTUNG FRAGT NICHT MEHR NACH `language`. Dieselbe
+       Klemme wie am Auffangnetz darueber, nur eine Tabelle weiter: ein
+       `db.prepare` ueber eine Spalte, die es nicht gibt, scheitert beim
+       VORBEREITEN und damit beim Start. */
+    nr: '1043', name: 'Die Grundausstattung fragt nicht mehr nach der Sprachspalte',
+    file: 'db.js',
+    search: "const insertCriterion = db.prepare(seedHasLanguage\n  ? 'INSERT OR IGNORE INTO rating_criteria (name, language) VALUES (?, ?)'\n  : 'INSERT OR IGNORE INTO rating_criteria (name) VALUES (?)');",
+    replacement: "const insertCriterion = db.prepare('INSERT OR IGNORE INTO rating_criteria (name, language) VALUES (?, ?)');",
+    expected: 'Der Hinweis auf einen unvollstaendigen Bestand — 0.33.0'
+  },
+  {
+    /* DIE ABWEISUNG ZU ALTER DATEIEN FAELLT. Eine Datei von vor 0.24.1 kaeme
+       damit wieder herein -- und ihre Fotos verloeren still ihre Art und ihre
+       Dauer, weil niemand die Feldnamen mehr uebersetzt (F9, F15). */
+    nr: '1044', name: 'Der Import liest die Formatnummer nicht mehr',
+    file: 'server.js',
+    search: "  if (!Number.isFinite(fileFormat) || fileFormat < EXCHANGE_FORMAT_MIN) {",
+    replacement: "  if (false) {",
+    expected: 'Die Exportdatei'
+  },
+  {
+    /* UND DIE UNTERGRENZE RUTSCHT AUF 13. Das ist der Fund, der die grobe
+       Grenze ueberhaupt noetig macht: 0.24.1 hat die Felder umbenannt, OHNE
+       die Formatnummer zu heben -- 0.24.0 und 0.24.2 tragen beide die 13. */
+    nr: '1045', name: 'Die aelteste gelesene Formatnummer rutscht auf 13',
+    file: 'server.js',
+    search: 'const EXCHANGE_FORMAT_MIN = 14;',
+    replacement: 'const EXCHANGE_FORMAT_MIN = 13;',
+    expected: 'Die Exportdatei'
+  },
+  {
+    /* DIE PROGRAMMFASSUNG FAELLT AUS DER EXPORTDATEI. Die Datei sagte damit
+       wieder nur, WELCHE FELDER zu erwarten sind, und nicht, WAS sie
+       geschrieben hat -- genau die Luecke, die der Betreiber am
+       14. September 2026 benannt hat (F14). */
+    nr: '1046', name: 'Die Exportdatei nennt die Programmfassung nicht mehr',
+    file: 'server.js',
+    search: "           appVersion: VERSION,\n           criteria: critRows.map(c => c.name), criteriaWeights, criteriaPhase,",
+    replacement: "           criteria: critRows.map(c => c.name), criteriaWeights, criteriaPhase,",
+    expected: 'Die Namen je Sprache in der Exportdatei — 0.24.3'
+  },
+  {
+    /* DER STEMPEL WIRD AUCH IN EINEN GEWACHSENEN BESTAND GESCHRIEBEN. Eine
+       Datenbank aus 0.19.0 truege danach „angelegt mit 0.33.0" -- eine
+       ERFINDUNG ueber fremde Arbeit, und niemand saehe sie je wieder. */
+    nr: '1047', name: 'Der Stempel behauptet, ein gewachsener Bestand sei neu angelegt',
+    file: 'db.js',
+    search: "  if (!grown) setDefault.run('versionCreated', JSON.stringify(APP_VERSION));",
+    replacement: "  setDefault.run('versionCreated', JSON.stringify(APP_VERSION));",
+    expected: 'Der Stempel der Datenbank — 0.33.0'
+  },
+  {
+    /* UND DIE ZEILE „ZULETZT GEOEFFNET" WANDERT NICHT MEHR MIT. Sie stuende
+       fuer immer auf der Fassung, unter der sie entstanden ist -- und der
+       Stempel saehe richtig aus und waere falsch. */
+    nr: '1048', name: 'Die Zeile „zuletzt geoeffnet" bleibt stehen',
+    file: 'db.js',
+    search: "    db.prepare(\"UPDATE settings SET value = ? WHERE key = 'versionLastOpened'\")\n      .run(JSON.stringify(APP_VERSION));",
+    replacement: "    void 0;",
+    expected: 'Der Stempel der Datenbank — 0.33.0'
+  },
+  {
+    /* DIE JPEG-HAELFTE DES BESTANDSLAUFS KOMMT ZURUECK. Sie kann seit 0.27.0
+       nur in einer Installation greifen, die VOR jener Runde Fotos
+       hochgeladen hat -- in einer frischen Instanz ist sie toter Code. */
+    nr: '1049', name: 'Der Bestandslauf fasst die Ableitungen wieder an',
+    file: 'batchrun.js',
+    search: "  const write = db.prepare(\n    'UPDATE photos SET mime_type = ?, data = ? WHERE id = ?');",
+    replacement: "  const write = db.prepare(\n    'UPDATE photos SET mime_type = ?, data = ?, thumb = thumb, medium = medium WHERE id = ?');",
+    expected: 'Die Bildablage: PNG kommt herein, WebP geht in die Tabelle'
+  },
+  {
+    /* UND DER FERTIGSATZ ZAEHLT WIEDER ABLEITUNGEN. Eine Zahl, die nie wieder
+       steigt, ist eine Auskunft ueber nichts. */
+    nr: '1050', name: 'Der Fertigsatz des Laufs zaehlt wieder Ableitungen',
+    file: 'public/languages/de.json',
+    search: '"card.convertFinished": "Konvertierung fertig: {converted} von {total} Originalen konvertiert{stayed}{freed}."',
+    replacement: '"card.convertFinished": "Konvertierung fertig: {converted} von {total} Originalen konvertiert, {derived} Vorschaubilder neu generiert{stayed}{freed}."',
+    expected: 'Die Bildablage in der Oberflaeche'
+  },
+  {
+    /* UND EINE KONSOLENANSAGE SPRICHT WIEDER DEUTSCH. Das Containerprotokoll
+       erreicht den, der die Anwendung BETREIBT, und der muss nicht deutsch
+       koennen (Strang 4). Der Waechter dagegen ist die Restprobe. */
+    nr: '1051', name: 'Eine Konsolenansage spricht wieder deutsch',
+    file: 'server.js',
+    search: "  console.log(`[Kriterion] Running on port ${PORT} -- ` +",
+    replacement: "  console.log(`[Kriterion] Laeuft auf Port ${PORT} -- ` +",
+    expected: 'Die Restprobe der Konsolenansagen — 0.33.0'
+  },
+  {
+    /* UND DER SCHLUESSELHINWEIS EBENSO -- er ist der halbe Bildschirm, den
+       jeder Betreiber einmal liest. */
+    nr: '1052', name: 'Der Schluesselhinweis spricht wieder deutsch',
+    file: 'keys.js',
+    search: "    '  CAUTION: the key sits NEXT TO the database, as\\n' +",
+    replacement: "    '  ACHTUNG: Der Schluessel liegt NEBEN der Datenbank, als\\n' +",
+    expected: 'Die Restprobe der Konsolenansagen — 0.33.0'
   },
 ];
 

@@ -66,14 +66,13 @@
   "card.brieflyOffline": "kısa süre erişilemez",
   "card.calculating": "Hesaplanıyor …",
   "card.catchUpAsk": {
-    "one": "{n} PNG fotoğraf ({bytes}) dönüştürülür ve özgün dosya değiştirilir (sonrasında yaklaşık {after}). Eski JPEG küçük resimler bu sırada yeniden oluşturulur. Geri alma yalnızca önceden alınmış bir yedeklemeyle mümkündür. Süre: dakikalar ile saatler arası.",
-    "other": "{n} PNG fotoğraf ({bytes}) dönüştürülür ve özgün dosyalar değiştirilir (sonrasında yaklaşık {after}). Eski JPEG küçük resimler bu sırada yeniden oluşturulur. Geri alma yalnızca önceden alınmış bir yedeklemeyle mümkündür. Süre: dakikalar ile saatler arası."
+    "one": "{n} PNG fotoğraf ({bytes}) dönüştürülür, özgün dosya değiştirilir (sonrasında yaklaşık {after}). Geri alma yalnızca önceden alınmış bir yedeklemeyle olur. Süre: dakikalar ile saatler arası.",
+    "other": "{n} PNG fotoğraf ({bytes}) dönüştürülür, özgün dosyalar değiştirilir (sonrasında yaklaşık {after}). Geri alma yalnızca önceden alınmış bir yedeklemeyle olur. Süre: dakikalar ile saatler arası."
   },
   "card.catchUpBoth": {
-    "one": "{n} PNG özgün dosya dönüştürülür, eski JPEG küçük resimler yeniden oluşturulur.",
-    "other": "{n} PNG özgün dosya dönüştürülür, eski JPEG küçük resimler yeniden oluşturulur."
+    "one": "{n} PNG özgün dosya dönüştürülür.",
+    "other": "{n} PNG özgün dosya dönüştürülür."
   },
-  "card.catchUpDerivatives": "Eski JPEG küçük resimler yeniden oluşturulur. Özgün dosyalara dokunulmaz.",
   "card.catchUpStore": "Mevcut görselleri dönüştür",
   "card.categories": "Kategoriler",
   "card.categoriesAdminHint": "Bütün kategoriler. Yönetici değiştirebilir.",
@@ -104,7 +103,7 @@
   "card.confirmImport": "İçe aktarmayı onayla",
   "card.confirmOnce": "Bir kez onayla, sonra {word} yükle",
   "card.convertDone": "Dönüştürme tamamlandı",
-  "card.convertFinished": "Dönüştürme bitti: {total} özgün dosyadan {converted} tanesi dönüştürüldü, {derived} küçük resim yeniden oluşturuldu{stayed}{freed}.",
+  "card.convertFinished": "Dönüştürme bitti: {total} özgün dosyadan {converted} tanesi dönüştürüldü{stayed}{freed}.",
   "card.convertPatienceHint": "Çok fotoğraf varsa bu bir süre alabilir. Pencereyi kapatma.",
   "card.convertProgress": "Dönüştürme sürüyor — {total} dosyadan {done} işlendi …",
   "card.convertRunning": "Dönüştürme sürüyor —",
@@ -163,7 +162,6 @@
   "card.deleteTagAsk": "Etiket silinsin mi?",
   "card.deleteUserHint": "“{username}” siliniyor; ad yeniden serbest kalır. Bu geri alınamaz.",
   "card.deliveryFailed": "Gönderim başarısız",
-  "card.derivativesAsk": "Eski JPEG küçük resimler yeniden oluşturulur. Özgün dosyalara dokunulmaz. Geri alma yalnızca önceden alınmış bir yedeklemeyle mümkündür. Süre: dakikalar ile saatler arası.",
   "card.derivativesWebp": "Küçük resimler: her durumda WebP, bu seçimden etkilenmez.",
   "card.duringBackupHint": "Yedekleme sürerken Kriterion {word} — {dbBytes} boyutunda yaklaşık {durationSeconds} saniye.",
   "card.eachAtMost": "{word}, her biri en çok {targetSize}.",
@@ -534,7 +532,7 @@
   "card.resetLink": "Sıfırlama bağlantısı",
   "card.resetLinkAsk": "Sıfırlama bağlantısı oluşturulsun mu?",
   "card.resetMailHint": "Bu adrese parola sıfırlama bağlantısı gönderilebilir; adres yoksa yönetici bağlantıyı elden verir. Parola değişiminden sonra diğer bütün oturumlar kapatılır.",
-  "card.restartHint": "Sonra yeniden başlat, sunucu günlüğünde “Schluessel aus ENCRYPTION_KEY geladen” ara — ancak ondan sonra data/encryption.key dosyasını sil:",
+  "card.restartHint": "Sonra yeniden başlat, sunucu günlüğünde “Key loaded from ENCRYPTION_KEY” ara — ancak ondan sonra data/encryption.key dosyasını sil:",
   "card.restore": "Geri yükle",
   "card.restored": "“{instanceTitle}” geri yüklendi.",
   "card.restoreDefaults": "Varsayılanlara dön",
@@ -1237,6 +1235,7 @@
   "server.exportGrew": "Dışa aktarma dosyası {limit} MB sınırını aştı. Yedeklemeyi kullan — o bütün veriyi yazar ve bu sınırı tanımaz.",
   "server.exportInvalid": "Dosya geçerli bir dışa aktarma değil.",
   "server.exportTooBig": "Bu dışa aktarma yaklaşık {mb} MB olurdu ve {limit} MB sınırının üstünde. Yedeklemeyi kullan — o bütün veriyi yazar ve bu sınırı tanımaz.",
+  "server.exportTooOld": "Bu dosya çok eski: numarası {format}, okunan en eski numara {oldest}. Alanları hâlâ eski adları taşıyor ve artık kimse onları çevirmiyor. Hiçbir şey içe aktarılmadı.",
   "server.fileCap": "{entryOne} başına en çok {cap} dosya.",
   "server.fileGone": "Bu dosya artık yok.",
   "server.fileNotText": "Bu dosya metin olarak okunamıyor.",

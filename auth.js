@@ -114,8 +114,8 @@ function fromEnv(name, oldName) {
   if (String(value ?? '').trim() !== '') return value;
   const old = process.env[oldName];
   if (String(old ?? '').trim() !== '') {
-    console.warn(`[Kriterion] ${oldName} heisst jetzt ${name} — der alte Name ` +
-      'wird noch gelesen. Bitte in der .env nachziehen.');
+    console.warn(`[Kriterion] ${oldName} is called ${name} now -- the old name ` +
+      'is still read. Please update your .env.');
     return old;
   }
   return value;
@@ -634,17 +634,17 @@ function removeUser(userId, options = {}, actor) {
 // Zeile in der .env stehen hat, muss es erfahren -- der Start bricht nicht ab,
 // sagt es aber laut.
 if (process.env.AUTH_RESET) {
-  console.warn('[Kriterion] AUTH_RESET wird seit Version 0.8.0 nicht mehr ausgefuehrt und ist ' +
-    'wirkungslos. Die Zeile kann aus der .env entfernt werden. Passwort vergessen: ' +
+  console.warn('[Kriterion] AUTH_RESET has not been carried out since version 0.8.0 and ' +
+    'has no effect. The line can be removed from .env. Forgotten password: ' +
     'docker compose exec kriterion node usertool.js passwort <name> -- ' +
-    'Zugang entfernen: node usertool.js entfernen <name>.');
+    'remove an account: node usertool.js entfernen <name>.');
 }
 
 // AUTH_USER/AUTH_PASSWORD werden nicht mehr gelesen. Der erste Zugang entsteht
 // ueber die Einrichtungsseite; wer die Zeilen noch in der .env hat, erfaehrt es.
 if (process.env.AUTH_USER || process.env.AUTH_PASSWORD) {
-  console.warn('[Kriterion] AUTH_USER/AUTH_PASSWORD werden nicht mehr gelesen und koennen ' +
-    'aus der .env entfernt werden. Der erste Zugang entsteht ueber die Einrichtungsseite.');
+  console.warn('[Kriterion] AUTH_USER/AUTH_PASSWORD are no longer read and can be ' +
+    'removed from .env. The first account is created on the setup page.');
 }
 
 // --- Bremse gegen Durchprobieren ---------------------------------------
@@ -951,8 +951,8 @@ const tokenHash = (raw) => crypto.createHash('sha256').update(String(raw)).diges
 const delTokensOld = db.prepare("DELETE FROM tokens WHERE expires_at < datetime('now', ?)");
 function cleanupTokens() {
   const n = delTokensOld.run(`-${TOKEN_TRACE_DAYS} days`).changes;
-  if (n) console.log(`[Kriterion] Token: ${n} Zeile(n) laenger als ` +
-    `${TOKEN_TRACE_DAYS} Tage abgelaufen und entfernt.`);
+  if (n) console.log(`[Kriterion] Tokens: ${n} row(s) expired for more than ` +
+    `${TOKEN_TRACE_DAYS} days and removed.`);
   return n;
 }
 
@@ -1085,8 +1085,8 @@ const delRequestsOld = db.prepare(
   "DELETE FROM requests WHERE confirmed_at IS NULL AND created_at < datetime('now', ?)");
 function cleanupRequests() {
   const n = delRequestsOld.run(`-${REQUEST_HOURS} hours`).changes;
-  if (n) console.log(`[Kriterion] Selbstanmeldung: ${n} unbestaetigte Anfrage(n) aelter als ` +
-    `${REQUEST_HOURS} Stunden entfernt.`);
+  if (n) console.log(`[Kriterion] Sign-up: ${n} unconfirmed request(s) older than ` +
+    `${REQUEST_HOURS} hours removed.`);
   return n;
 }
 
@@ -1306,7 +1306,7 @@ function log(event, { actor = null, target = null, detail = null } = {}) {
     };
     insertLog.run(event, nr(actor), nr(target), detail);
   } catch (e) {
-    console.error('[Kriterion] Sicherheitsprotokoll:', e.message);
+    console.error('[Kriterion] Security log:', e.message);
   }
 }
 
@@ -1319,8 +1319,8 @@ function log(event, { actor = null, target = null, detail = null } = {}) {
 const delLogOld = db.prepare("DELETE FROM security_log WHERE at < datetime('now', ?)");
 function cleanupLog() {
   const n = delLogOld.run(`-${LOG_DAYS} days`).changes;
-  if (n) console.log(`[Kriterion] Sicherheitsprotokoll: ${n} Zeile(n) aelter als ` +
-    `${LOG_DAYS} Tage entfernt.`);
+  if (n) console.log(`[Kriterion] Security log: ${n} row(s) older than ` +
+    `${LOG_DAYS} days removed.`);
   return n;
 }
 

@@ -12604,12 +12604,11 @@ function switchRow(u) {
   if (u.running)
     return `<p class="hint hint-sm" style="margin:8px 2px 0" id="convert-running">${tH('card.convertRunning')} ` +
            `${tH('card.progressOf', { done: u.done, total: u.total })}</p>`;
-  /* DER FERTIGSATZ NENNT BEIDE HAELFTEN -- 0.27.0. Bis 0.26.0 stand hier
-     „N von M umgewandelt", und M waren die PNG: eine Zahl, ein Sinn. Der Lauf
-     sieht jetzt jede Fotozeile an und tut an ihr ZWEIERLEI, also sagt der Satz
-     beides -- wie viele ORIGINALE umgestellt und wie viele ABLEITUNGEN neu
-     gerechnet wurden. Eine Summe daraus waere kuerzer und falsch: an einer
-     Zeile kann beides, eines oder nichts geschehen sein.
+  /* DER FERTIGSATZ NENNT WIEDER EINE HAELFTE -- 0.33.0. Von 0.27.0 bis 0.32.1
+     nannte er zwei: umgestellte ORIGINALE und neu gerechnete ABLEITUNGEN. Die
+     zweite Haelfte des Laufs ist gefallen, und mit ihr die Zahl -- ein Satz,
+     der „0 Vorschaubilder neu generiert" meldete, weil es gar keine mehr zu
+     generieren gibt, waere eine Auskunft ueber nichts.
      UND ER STEHT GANZ IN DER SPRACHDATEI. Bis 0.26.0 klebte „von" und
      „umgewandelt" als deutscher Text im Quelltext zwischen zwei uebersetzten
      Stuecken -- eine englische Oberflaeche las „Conversion done: 7 von 12
@@ -12618,7 +12617,7 @@ function switchRow(u) {
      koennen WEGFALLEN, und genau das war der Grund, den Satz drumherum
      aufzubrechen. Jetzt kommen sie als Werte herein, die leer sein duerfen. */
   return `<p class="hint hint-sm" style="margin:8px 2px 0" id="convert-running">${
-    tH('card.convertFinished', { converted: u.converted, derived: u.derived || 0, total: u.total,
+    tH('card.convertFinished', { converted: u.converted, total: u.total,
       stayed: u.stayed ? t('card.stayedCurrent', { stayed: u.stayed }) : '',
       freed: u.freed > 0 ? t('card.freedBytes', { freed: fmtBytes(u.freed) }) : '' })}</p>`;
 }
@@ -12889,19 +12888,20 @@ function cardImageStore(fetched) {
              hielte jemand „PNG" für eine Aussage über die ganze Zeile. */''}
         <p class="hint hint-sm" style="margin:6px 2px 0">${tH('card.derivativesWebp')}</p>
         <div class="row-in" style="margin-top:12px">
-          <button class="btn btn-sm" id="convert-run"${running ? ' disabled' : ''}>${tH('card.catchUpStore')}</button>
+          <button class="btn btn-sm" id="convert-run"${running || !(png && IMAGE_STORE !== 'png') ? ' disabled' : ''}>${tH('card.catchUpStore')}</button>
         </div>
-        ${/* WAS DER KNOPF ANFASST, HÄNGT AN DER WAHL — und die Zeile darunter
-             sagt es, statt den Knopf tot zu stellen. Bis 0.26.0 war er
-             abgeschaltet, sobald kein PNG mehr dalag; seit 0.27.0 hat er auch
-             dann etwas zu tun, denn die Ableitungen sind eine zweite Hälfte.
-             ER IST NUR NOCH WÄHREND EINES LAUFS TOT: da sagt der Server dem
-             zweiten Ruf ohnehin ab, und ein Knopf, der zuverlässig eine Absage
-             erzeugt, sieht aus wie ein Fehler. */''}
-        ${running ? '' : `<p class="hint hint-sm" style="margin:6px 2px 0">${
-          png && IMAGE_STORE !== 'png'
-            ? tH('card.catchUpBoth', { n: png })
-            : tH('card.catchUpDerivatives')}</p>`}
+        ${/* UND DIE ZEILE DARUNTER SAGT, WAS ER ANFASST — sie steht nur da,
+             wenn es etwas zu sagen gibt. Bis 0.26.0 war der Knopf
+             abgeschaltet, sobald kein PNG mehr dalag; 0.27.0 hat ihn wieder
+             belebt, weil die Ableitungen eine zweite Hälfte waren.
+             SEIT 0.33.0 IST DIESE HÄLFTE FORT, UND DAMIT AUCH IHR GRUND. Der
+             Knopf ist wieder das, was er bis 0.26.0 war: tot, solange nichts
+             umzustellen ist. Ein Knopf, der zuverlässig eine Frage ohne
+             Gegenstand öffnet — und dafür ein Passwort verlangt —, sieht aus
+             wie ein Fehler. */''}
+        ${running || !(png && IMAGE_STORE !== 'png') ? '' :
+          `<p class="hint hint-sm" style="margin:6px 2px 0">${
+            tH('card.catchUpBoth', { n: png })}</p>`}
         ${switchRow(stats.conversion)}
         ${geometryRow(stats.geometry)}` : ''}
       </div>`;
@@ -13027,24 +13027,19 @@ function setUpImageStoreOut(fetched) {
          KEINE RESTLAUFZEIT IN DER FORTSCHRITTSZEILE, aus demselben Grund: sie
          waere aus dem gemessenen Takt zwar ehrlich zu rechnen, aber sie kostet
          eine Anzeige, die bei jedem Umlauf springt. */
-      /* UND DIE ZAHL IN SEINEM SATZ NENNT BEIDE HAELFTEN -- 0.27.0. Der Lauf
-         zieht Originale UND Ableitungen in einem Durchgang; ein Dialog, der
-         nur die PNG nennte, verschwiege die Haelfte dessen, was gleich
-         geschieht -- und ausgerechnet die, die auch dann anfaellt, wenn kein
-         einziges PNG mehr dasteht.
-         WIE VIELE ABLEITUNGEN NOCH JPEG SIND, STEHT NICHT DA, und das ist
-         keine Nachlaessigkeit: die Frage ist in SQL zu teuer (die
-         1338-ms-Klasse, siehe qConvertRows in server.js), und geraten wird
-         hier nichts. Der Satz sagt deshalb, was ANGESEHEN wird -- so, wie der
-         Lauf es auch zaehlt.
-         BEI DER WAHL „PNG" FAELLT DIE ERSTE HAELFTE WEG, und der Dialog sagt
-         dann auch nur die zweite: ein Satz ueber Bytes, die niemand anfasst,
-         ist eine Unwahrheit im Bestaetigungsfenster. */
-      const both = png.count && IMAGE_STORE !== 'png';
+      /* UND DIE ZAHL IN SEINEM SATZ NENNT DIE EINE HAELFTE -- 0.33.0. Von
+         0.27.0 bis 0.32.1 nannte er zwei, denn der Lauf zog Originale UND
+         Ableitungen in einem Durchgang; bei der Wahl „PNG" fiel die erste weg
+         und der Dialog sagte nur die zweite. DIE ZWEITE IST GEFALLEN, und
+         damit faellt die Fallunterscheidung mit ihr: es gibt nur noch einen
+         Satz, weil es nur noch eine Sache gibt, die geschieht.
+         DASS HIER NICHTS MEHR ABZUFANGEN IST, HAENGT AM KNOPF und nicht an
+         einer Abfrage: er ist tot, solange nichts umzustellen ist. Eine
+         Absage an dieser Stelle waere ein zweiter Ort fuer dieselbe
+         Entscheidung (Stolperstein 47). */
       const ok = await secondConfirm('images', null, t('card.catchUpStore'),
-        both ? t('card.catchUpAsk', { n: png.count, bytes: fmtBytes(png.bytes),
-                                      after: fmtBytes(Math.round(png.bytes * 0.37)) })
-             : t('card.derivativesAsk'));
+        t('card.catchUpAsk', { n: png.count, bytes: fmtBytes(png.bytes),
+                               after: fmtBytes(Math.round(png.bytes * 0.37)) }));
       if (!ok) return;
       try { await api('POST', '/api/images/convert', {}); }
       catch (e) { return toast(e.message, true); }

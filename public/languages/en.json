@@ -66,14 +66,13 @@
   "card.brieflyOffline": "briefly not reachable",
   "card.calculating": "Calculating …",
   "card.catchUpAsk": {
-    "one": "{n} PNG photo ({bytes}) is converted and the original replaced (about {after} afterwards). Outdated JPEG thumbnails are regenerated on the way. Undo only with a backup made beforehand. Duration: minutes to hours.",
-    "other": "{n} PNG photos ({bytes}) are converted and the originals replaced (about {after} afterwards). Outdated JPEG thumbnails are regenerated on the way. Undo only with a backup made beforehand. Duration: minutes to hours."
+    "one": "{n} PNG photo ({bytes}) is converted and the original replaced (about {after} afterwards). Undo only with a backup made beforehand. Duration: minutes to hours.",
+    "other": "{n} PNG photos ({bytes}) are converted and the originals replaced (about {after} afterwards). Undo only with a backup made beforehand. Duration: minutes to hours."
   },
   "card.catchUpBoth": {
-    "one": "Converts {n} PNG original and regenerates outdated JPEG thumbnails.",
-    "other": "Converts {n} PNG originals and regenerates outdated JPEG thumbnails."
+    "one": "Converts {n} PNG original.",
+    "other": "Converts {n} PNG originals."
   },
-  "card.catchUpDerivatives": "Regenerates outdated JPEG thumbnails. The originals stay untouched.",
   "card.catchUpStore": "Convert existing images",
   "card.categories": "Categories",
   "card.categoriesAdminHint": "All categories. The admin can change them.",
@@ -104,7 +103,7 @@
   "card.confirmImport": "Confirm import",
   "card.confirmOnce": "Confirm once, then load {word}",
   "card.convertDone": "Conversion finished",
-  "card.convertFinished": "Conversion done: {converted} of {total} originals converted, {derived} thumbnails regenerated{stayed}{freed}.",
+  "card.convertFinished": "Conversion done: {converted} of {total} originals converted{stayed}{freed}.",
   "card.convertPatienceHint": "With many photos this can take a while. Please do not close the window.",
   "card.convertProgress": "Conversion running — {done} of {total} processed …",
   "card.convertRunning": "Conversion running —",
@@ -163,7 +162,6 @@
   "card.deleteTagAsk": "Delete tag?",
   "card.deleteUserHint": "“{username}” is deleted; the name becomes available again. This cannot be undone.",
   "card.deliveryFailed": "Delivery failed",
-  "card.derivativesAsk": "Outdated JPEG thumbnails are regenerated. The originals stay untouched. Undo only with a backup made beforehand. Duration: minutes to hours.",
   "card.derivativesWebp": "Thumbnails: always WebP, unaffected by this choice.",
   "card.duringBackupHint": "While the backup runs, Kriterion is {word} — with {dbBytes} about {durationSeconds} seconds.",
   "card.eachAtMost": "{word}, each at most {targetSize}.",
@@ -534,7 +532,7 @@
   "card.resetLink": "Reset link",
   "card.resetLinkAsk": "Create a reset link?",
   "card.resetMailHint": "A link for resetting the password can be sent to this address; without an address the admin passes it on in person. After a password change every other session is signed out.",
-  "card.restartHint": "Then restart and check the server log for “Schluessel aus ENCRYPTION_KEY geladen” — only then delete data/encryption.key:",
+  "card.restartHint": "Then restart and check the server log for “Key loaded from ENCRYPTION_KEY” — only then delete data/encryption.key:",
   "card.restore": "Restore",
   "card.restored": "“{instanceTitle}” restored.",
   "card.restoreDefaults": "Reset to defaults",
@@ -1237,6 +1235,7 @@
   "server.exportGrew": "The export file has passed the limit of {limit} MB. Use the backup — it writes the whole inventory and does not know this limit.",
   "server.exportInvalid": "The file is not a valid export.",
   "server.exportTooBig": "This export would be around {mb} MB and thus over the limit of {limit} MB. Use the backup — it writes the whole inventory and does not know this limit.",
+  "server.exportTooOld": "This file is too old: it has number {format}, the oldest one read is {oldest}. Its fields still carry the old names, and nothing translates them any more. Nothing was imported.",
   "server.fileCap": "At most {cap} files per {entryOne}.",
   "server.fileGone": "This file no longer exists.",
   "server.fileNotText": "This file cannot be read as text.",
