@@ -1147,6 +1147,16 @@ function showSecondFactor(ticket, errMsg) {
   c.focus();
 }
 
+/* DIE FORM EINER ADRESSE -- 0.32.0, Bauabschnitt 6. Zeichen fuer Zeichen
+   dasselbe Muster wie `ADDRESS_PATTERN` in mail.js: zwei Stellen, die
+   „gueltige Adresse" verschieden beantworten, waeren eine Falle -- der
+   Browser liesse durch, was der Server abweist, oder umgekehrt.
+   ES IST EINE ZWEITE ABSCHRIFT UND KEINE ZWEITE WAHRHEIT: die eine Wahrheit
+   steht im Server, und der Pruefstand haelt beide Zeilen Zeichen fuer Zeichen
+   gegeneinander. Ohne diese Abschrift muesste der Browser fuer die Form eine
+   Anfrage stellen -- und genau dann waere sie keine Vorpruefung mehr. */
+const ADDRESS_FORM = /^[^\s@]+@[^\s@.]+(\.[^\s@.]+)+$/;
+
 /* Die Selbstanmeldung: das Formular und die Antwort darauf.
 
    ZWEI FELDER UND KEIN PASSWORT. Das Passwort wählt der Anfragende später
@@ -1176,7 +1186,31 @@ function showRequest(errMsg, values = {}) {
   const n = document.getElementById('req-name'), m = document.getElementById('req-mail'),
         b = document.getElementById('req-send');
   document.getElementById('req-back').onclick = (e) => { e.preventDefault(); showLogin(); };
+  /* FORM IST OEFFENTLICH, EXISTENZ IST ES NICHT -- 0.32.0, Bauabschnitt 6.
+     DIESER SATZ IST DIE GRENZE, und er steht hier, damit die naechste Runde
+     die Gleichheit der Antwort nicht fuer eine Umstaendlichkeit haelt und
+     wegbaut: /api/signup antwortet in JEDER Lage dasselbe -- ob der Name frei
+     war, ob er vergeben war, ob die Adresse schon an einem Zugang haengt, ob
+     der Deckel erreicht ist, ob der Schalter aus ist. Sonst waere das
+     Formular ein Werkzeug zum Durchprobieren, und zwar ein bequemeres als die
+     Anmeldung: es steht ohne Passwort davor.
+     ABER EIN LEERES FORMULAR FRAGT NICHTS AB. Wer nichts eingibt, probiert
+     keinen Namen aus -- er hat vergessen, etwas einzugeben, und las bis
+     0.31.4 trotzdem „Danke" (Punkt 30 des Sammelblatts, vom Betreiber am
+     13. September 2026 an der laufenden Installation gesehen).
+     GEPRUEFT WIRD DIE FORM UND NICHT DER BESTAND: ist das Feld leer, traegt
+     die Adresse kein `@`. Ueber diese Auskunft laesst sich nichts darueber
+     erfahren, WER hier einen Zugang hat.
+     UND DER SERVER PRUEFT DASSELBE NOCH EINMAL -- eine Pruefung nur im
+     Browser ist eine Bitte. */
+  const formFault = () => {
+    if (!String(n.value).trim()) return t('login.usernameMissing');
+    if (!ADDRESS_FORM.test(String(m.value).trim())) return t('login.emailInvalid');
+    return '';
+  };
   const submit = async () => {
+    const fault = formFault();
+    if (fault) return showRequest(fault, { name: n.value, address: m.value });
     b.disabled = true; b.textContent = t('login.sending');
     try {
       const res = await fetch('/api/signup', {
@@ -1955,7 +1989,7 @@ let redrawCloud = null;
    SEIT 0.24.0 STEHT SIE NUR NOCH AN EINER STELLE: in der Sprachdatei, unter
    `vokabular.`. Diese Zeile faengt leer an und wird gefuellt, sobald die Datei
    da ist (loadLanguage) -- ein Wort hier haette beim Laden der Datei noch
-   keinen Text. Seit 0.24.3 kommt auch die LISTE der vierzehn Namen aus der
+   keinen Text. Seit 0.24.3 kommt auch die LISTE der Namen aus der
    Datei -- vocabularyDefault() leitet sie aus dem Vorsatz `vocabulary.` ab,
    Zeichen fuer Zeichen wie server.js. Eine zweite Aufzaehlung im Quelltext
    gibt es nicht mehr (Stolperstein 47). */
@@ -2059,7 +2093,7 @@ let SEARCH_PROVIDERS = [];      // alle neun Plaetze, wie der Server sie liefert
    Liste als Rueckfall: welche Sprachen es gibt, weiss allein das Verzeichnis
    auf dem Server. Jeder Eintrag traegt { code, name, isDefault, active }. */
 let LANGUAGES = [];
-/* DIE VIERZEHN WOERTER JE SPRACHE, { <kennung>: { ...vierzehn } } -- 0.24.3.
+/* DIE FUENFZEHN WOERTER JE SPRACHE, { <kennung>: { ...fuenfzehn } } -- 0.24.3.
    Sie stehen NEBEN `V` und ersetzen es nicht: `V` ist der eine Satz, mit dem
    die Oberflaeche sich beschriftet, und der gehoert dem Leser. Diese Tafel
    braucht allein die Karte „Vokabular", um umschalten zu koennen. */
@@ -2069,7 +2103,7 @@ let VOCABULARIES = {};
      VOCABULARIES          was ein Leser dieser Sprache SAEHE (samt Rueckfall)
                            -- damit rechnet die Vorschau unter den Feldern.
      VOCABULARIES_OWN      was fuer diese Sprache EINGETRAGEN ist. Die
-                           vierzehn Felder zeigen genau das, und ein leeres
+                           fuenfzehn Felder zeigen genau das, und ein leeres
                            Feld heisst „nichts eingetragen".
      VOCABULARY_DEFAULTS   die Vorgabe aus der Sprachdatei je Sprache -- der
                            Hinweis „(Vorgabe: …)" unter jedem Feld.
@@ -2120,7 +2154,7 @@ let NAMES_SHOWN = null;
 
    JETZT LIEGT ALLES SCHON DA. `GET /api/settings` liefert dem Admin die Namen
    ALLER Sprachen auf einmal, und die Pille schaltet OERTLICH um -- dieselbe
-   Bauform wie `VOCABULARIES_OWN` bei den vierzehn Vokabelwoertern. Ein Abruf,
+   Bauform wie `VOCABULARIES_OWN` bei den fuenfzehn Vokabelwoertern. Ein Abruf,
    den es nicht gibt, kann die falsche Sprache nicht mitbringen; ein
    Zwischenspeicher, den es nicht gibt, kann nicht veralten.
 
@@ -2253,10 +2287,74 @@ function splitAtTerm(text, term, rest = {}) {
 // &amp; jede Abfragezeichenfolge.
 // DIE LINKS WERDEN ZUERST GESUCHT UND DER BEGRIFF DANACH: umgekehrt zerschnitte
 // eine Fundstelle die Adresse, bevor sie ueberhaupt als eine erkannt waere.
-function splitCommentText(raw, term) {
+/* DIE MARKIERUNG IST DAS VIERTE STUECK DER ZERLEGUNG -- 0.32.0, Leitplanke
+   L2. Seit 0.18.0 entsteht der Kommentartext als echte KNOTEN und nie als
+   String; ein `replace()` ueber das Ergebnis holte Markup in einen Text, der
+   ausdruecklich keines tragen darf. Also wird die Markierung genauso
+   zerlegt wie Link und Fundstelle -- ein Stueck mehr, kein Handgriff hinterher.
+
+   WELCHE `@…` EINE MARKIERUNG SIND, SAGT DER SERVER UND NICHT DIESES MUSTER.
+   Er hat die Namenstafel und hat beim Schreiben aufgeloest; hier steht nur
+   noch, WO im Rohtext die Stelle sitzt. `@bret` -- ein Tippfehler -- steht in
+   keiner Liste, bleibt gewoehnlicher Text, und genau daran SIEHT man, dass er
+   niemanden getroffen hat.
+   GESUCHT WIRD OHNE `\b` (Leitplanke L4): fuer JavaScript sind `ş`, `ğ`, `ı`
+   keine Wortzeichen. Verglichen wird stattdessen Zeichen fuer Zeichen gegen
+   den Handgriff, den der Server nennt, und das Zeichen dahinter darf kein
+   Namenszeichen sein -- sonst truege `@anna` in „@annabelle" eine Markierung,
+   die niemand geschrieben hat. */
+const MENTION_TAIL = /[\p{L}\p{N}_.-]/u;
+
+/* DIE MARKIERUNGEN EINES ROHTEXTES, ALS STUECKE. Sie laufen VOR der Suche und
+   NACH den Links durch dieselbe Kette wie jede andere Zerlegung.
+   DER ANGEZEIGTE NAME KOMMT AUS DEM VERFASSEROBJEKT UND NIE AUS DEM TEXT
+   (Leitplanke L9): ein geloeschter Zugang steht als „Gelöschter Benutzer 7"
+   da, ein umbenannter unter seinem HEUTIGEN Namen. Der freigegebene Name
+   geht nicht hinaus -- der Server schickt ihn seit 0.24.4 gar nicht mit. */
+function splitAtMention(raw, marks, term, rest) {
+  const text = String(raw ?? '');
+  const list = (marks || []).filter(m => m && m.handle);
+  if (!list.length) return splitAtTerm(text, term, rest);
+  const pieces = [];
+  let from = 0, i = 0;
+  while (i < text.length) {
+    if (text[i] !== '@') { i++; continue; }
+    /* KEIN NAMENSZEICHEN VOR DEM `@`: „bert@beispiel.de" ist eine Adresse.
+       Dieselbe Bedingung wie im Muster des Servers, nur ausgeschrieben. */
+    if (i > 0 && MENTION_TAIL.test(text[i - 1])) { i++; continue; }
+    /* DER LAENGSTE HANDGRIFF ZUERST -- sonst truege „@anna" die Markierung,
+       wo „@annabelle" steht und beide Namen vergeben sind. */
+    /* KLEIN GESCHRIEBEN MIT DER VERGLEICHSSPRACHE und nicht mit der des
+       Lesers -- dieselbe Regel wie im Server (T3): sonst waeren „İstanbul"
+       und „istanbul" fuer den einen derselbe Zugang und fuer den anderen
+       zwei. Sie greift, wenn derselbe Zugang zweimal mit verschiedener
+       Gross- und Kleinschreibung im Text steht: gespeichert ist dann nur EIN
+       Handgriff, und die zweite Stelle wird ueber ihn gefunden. */
+    const hit = list.filter(m => text.slice(i + 1, i + 1 + m.handle.length)
+        .toLocaleLowerCase(compareLocale()) === String(m.handle).toLocaleLowerCase(compareLocale()))
+      .sort((a, b) => b.handle.length - a.handle.length)[0];
+    const after = hit ? text[i + 1 + hit.handle.length] : '';
+    if (!hit || (after && MENTION_TAIL.test(after))) { i++; continue; }
+    if (i > from) for (const s of splitAtTerm(text.slice(from, i), term, rest)) pieces.push(s);
+    pieces.push({ ...rest, text: '@' + authorName(hit.author), mention: true });
+    from = i = i + 1 + hit.handle.length;
+  }
+  if (from < text.length)
+    for (const s of splitAtTerm(text.slice(from), term, rest)) pieces.push(s);
+  return pieces;
+}
+
+function splitCommentText(raw, term, marks) {
   const text = String(raw ?? '');
   const pieces = [];
-  const take = (raw2, rest) => { for (const s of splitAtTerm(raw2, term, rest)) pieces.push(s); };
+  /* IN EINER ADRESSE WIRD NICHT MARKIERT. Ein `@` in einer URL gehoert zur
+     Adresse; wer dort eine Markierung faende, zerschnitte den Link. Deshalb
+     geht das Stueck mit `target` den alten Weg -- dieselbe Ueberlegung, aus
+     der die Links VOR dem Begriff gesucht werden. */
+  const take = (raw2, rest) => {
+    const out = rest.target ? splitAtTerm(raw2, term, rest) : splitAtMention(raw2, marks, term, rest);
+    for (const s of out) pieces.push(s);
+  };
   let last = 0, matched;
   COMMENT_LINK.lastIndex = 0;
   while ((matched = COMMENT_LINK.exec(text)) !== null) {
@@ -2282,6 +2380,18 @@ function splitCommentText(raw, term) {
    0.5.4 haengt nicht daran, dass jemand das Maskieren nicht vergisst. */
 function pieceNode(s) {
   const text = String(s?.text ?? '');
+  /* DIE MARKIERUNG IST HERVORGEHOBEN WIE EIN TREFFER DER SUCHE UND DOCH ALS
+     EIGENE SACHE ERKENNBAR -- 0.32.0: ein eigenes Element mit eigener Klasse,
+     nicht `<mark>`. Zwei verschiedene Sachen in einem Element waeren am
+     Bildschirm dasselbe und in einem Vorleseprogramm auch.
+     UEBER textContent WIE ALLES HIER: Markup kann auf diesem Weg gar nicht
+     entstehen, und das ist der ganze Punkt. */
+  if (s?.mention) {
+    const at = document.createElement('span');
+    at.className = 'mention';
+    at.textContent = text;
+    return at;
+  }
   if (!s?.matched) return document.createTextNode(text);
   const m = document.createElement('mark');
   m.textContent = text;
@@ -3232,6 +3342,23 @@ function route() {
    doppelt. */
 const freshCount = (i) => (Number(i.newComments) || 0) + (Number(i.newRatings) || 0);
 const bellNew = () => (state.all || []).reduce((n, i) => n + freshCount(i), 0);
+/* WIE VIELE DAVON MICH MARKIEREN -- 0.32.0, Bauabschnitt 1. Es ist eine
+   TEILMENGE von `newComments` und keine Zahl daneben: der Server liefert sie
+   aus DERSELBEN Abfrage, und hier wird sie gelesen und nicht gerechnet.
+   SIE GEHT NIE IN EINE SUMME EIN. `bellNew()` bleibt die eine Zahl der Glocke;
+   waere die Markierung ein zweiter Summand, zaehlte die Glocke denselben
+   Kommentar zweimal (Stolperstein 47, Leitplanke L1). */
+const markedCount = (i) => Number(i.newMarked) || 0;
+
+/* WOHER EINE MELDUNG KOMMT -- die drei Herkuenfte der Tafel, 0.32.0 (F3).
+   EINE ZEILE STEHT IN GENAU EINEM ABSCHNITT, und zwar im staerksten, der auf
+   sie zutrifft: eine Markierung schlaegt den eigenen Eintrag, der eigene
+   Eintrag schlaegt „alles andere". Eine Zeile in zwei Abschnitten waere
+   dieselbe Sache an zwei Orten -- und die Zahlen darueber liefen auseinander.
+   DIE REIHENFOLGE IST DIE DER DRINGLICHKEIT und nicht die des Alphabets:
+   was an MICH gerichtet ist, steht oben. */
+const bellOrigin = (i) =>
+  markedCount(i) ? 'marked' : (i.mine ? 'mine' : 'other');
 const openTotal = () => (state.all || []).reduce((n, i) => n + (Number(i.openTasks) || 0), 0);
 
 /* WAS DORT NEU IST, IN WORTEN -- 0.17.0. „7 neue Beitraege" liess offen, ob
@@ -3250,7 +3377,14 @@ const newWords = (i) => {
      Verschmelzen einen Platz fuer das „, davon ..." der Uebersichtszeile, und
      hier gibt es nichts davon zu sagen. Ohne diese Zeile stuende am Bildschirm
      „3 Kommentare{of}" -- der Pruefstand hat genau das gemeldet. */
-  return [k ? t('list.commentCount', { n: k, of: '' }) : '',
+  /* UND SEIT 0.32.0 STEHT IM PLATZ FUER „, davon …" WIRKLICH ETWAS -- die
+     Zahl der Kommentare, die MICH markieren. Sie ist die TEILMENGE von `k`
+     und wird nirgends dazugezaehlt; „3 Kommentare, davon 1 an mich
+     gerichtet" sagt genau das. Ohne Markierung bleibt der Platz leer, wie
+     seit 0.31.1. */
+  const marked = markedCount(i);
+  return [k ? t('list.commentCount', { n: k, of: marked
+            ? t('list.ofWhich', { parts: t('list.markedCount', { n: marked }) }) : '' }) : '',
           b ? `${b} ${vRating(b)}` : ''].filter(Boolean).join(' · ');
 };
 
@@ -3313,6 +3447,16 @@ function drawHeadCounts() {
    eine Oberflaeche sagt, WAS IST, nicht, warum sie so gebaut ist
    (Projektstand 5.6). Die Grenze gilt unveraendert -- gestrichen ist ihre
    Begruendung an der Oberflaeche, nicht die Grenze. */
+/* DIE DREI ABSCHNITTE DER TAFEL -- 0.32.0, F3. EINE ZAHL AM SYMBOL, EINE
+   GETEILTE TAFEL DARUNTER: zwei Zahlen an einem Symbol waeren zwei Wahrheiten
+   an einem Ort (Leitplanke L1), und der Betreiber hat am 13. September 2026
+   entschieden, DASS unterschieden wird -- nicht, dass doppelt gezaehlt wird.
+   DIE UEBERSCHRIFT STEHT NUR DA, WO EINE ZEILE DARUNTER STEHT. Ein leerer
+   Abschnitt waere eine Auskunft ueber nichts -- dieselbe Regel wie die
+   fehlende Null am Knopf „Offen". */
+const BELL_SECTIONS = [['marked', 'list.bellToMe'], ['mine', 'list.bellMine'],
+                       ['other', 'list.bellOther']];
+
 function showBellPanel() {
   /* SORTIERT NACH DER SUMME und nicht nach einem der beiden Teile: ein Eintrag
      mit vier neuen Bewertungen stuende sonst unter einem mit einem Kommentar. */
@@ -3321,7 +3465,7 @@ function showBellPanel() {
   const bd = document.createElement('div');
   bd.className = 'backdrop';
   bd.innerHTML = `<div class="modal bell-panel" id="bell-modal"><h2>${tH('list.news')}</h2>
-    <p>${tMark('list.newCommentsHint', 'list.otherUser')}</p>
+    <p>${tH('list.newCommentsHint')}</p>
     <div class="manage-list" id="bell-list"></div>
     <div class="modal-acts"><button class="btn btn-ghost" data-no>${tH('list.close')}</button></div></div>`;
   document.body.appendChild(bd);
@@ -3338,26 +3482,35 @@ function showBellPanel() {
   const box = bd.querySelector('#bell-list');
   if (!rows.length) {
     box.innerHTML = `<span class="hint">${tH('list.noNewsDot')}</span>`;
-  } else for (const it of rows) {
-    /* EIN LINK UND KEIN KNOPF: er traegt eine Adresse, laesst sich kopieren
-       und in einem neuen Fenster oeffnen. Geschlossen wird die Tafel trotzdem
-       von Hand -- ein Wechsel der Ansicht raeumt sie nicht mit weg. */
-    const a = document.createElement('a');
-    a.className = 'mrow bell-row';
-    a.href = `#/item/${it.id}`;
-    a.dataset.mid = String(it.id);
-    /* DREI STUECKE: der Titel, WAS dort neu ist, und VON WEM. Die dritte
-       Angabe steht in einer eigenen Zeile darunter -- oben, worum es geht,
-       darunter, wer: dieselbe Aufteilung wie an der Zeile einer Anmeldung.
-       ALLE DREI WERDEN GESETZT UND NICHT ZUSAMMENGEBAUT: Titel und Namen sind
-       freier Text. */
-    a.innerHTML = `<span class="mname"></span><span class="mcount"></span>
-      <span class="bell-from"></span>`;
-    a.querySelector('.mname').textContent = it.title;
-    a.querySelector('.mcount').textContent = newWords(it);
-    a.querySelector('.bell-from').textContent = newFromWords(it);
-    a.onclick = () => zu();
-    box.appendChild(a);
+  } else for (const [origin, headKey] of BELL_SECTIONS) {
+    const part = rows.filter(i => bellOrigin(i) === origin);
+    if (!part.length) continue;
+    const head = document.createElement('div');
+    head.className = 'bell-head';
+    head.dataset.origin = origin;
+    head.textContent = t(headKey);
+    box.appendChild(head);
+    for (const it of part) {
+      /* EIN LINK UND KEIN KNOPF: er traegt eine Adresse, laesst sich kopieren
+         und in einem neuen Fenster oeffnen. Geschlossen wird die Tafel trotzdem
+         von Hand -- ein Wechsel der Ansicht raeumt sie nicht mit weg. */
+      const a = document.createElement('a');
+      a.className = 'mrow bell-row';
+      a.href = `#/item/${it.id}`;
+      a.dataset.mid = String(it.id);
+      /* DREI STUECKE: der Titel, WAS dort neu ist, und VON WEM. Die dritte
+         Angabe steht in einer eigenen Zeile darunter -- oben, worum es geht,
+         darunter, wer: dieselbe Aufteilung wie an der Zeile einer Anmeldung.
+         ALLE DREI WERDEN GESETZT UND NICHT ZUSAMMENGEBAUT: Titel und Namen sind
+         freier Text. */
+      a.innerHTML = `<span class="mname"></span><span class="mcount"></span>
+        <span class="bell-from"></span>`;
+      a.querySelector('.mname').textContent = it.title;
+      a.querySelector('.mcount').textContent = newWords(it);
+      a.querySelector('.bell-from').textContent = newFromWords(it);
+      a.onclick = () => zu();
+      box.appendChild(a);
+    }
   }
 
   /* DER STRICH WIRD BEIM OEFFNEN NACHGEZOGEN, nicht beim Schliessen: wer die
@@ -3372,6 +3525,10 @@ function showBellPanel() {
     if (it.newComments) it.newComments = 0;
     if (it.newRatings) it.newRatings = 0;
     if (it.newFrom) it.newFrom = [];
+    // Die vierte Angabe geht mit den drei anderen -- 0.32.0. Bliebe sie
+    // stehen, sagte die naechste Tafel „davon 1 an mich gerichtet" ueber
+    // einen Kommentar, den man gerade gesehen hat.
+    if (it.newMarked) it.newMarked = 0;
   }
   drawHeadCounts();
 }
@@ -3853,7 +4010,13 @@ function drawFilterSwitch() {
      ausdruecklich nicht mit (die Begruendung steht dort), und `aktiv` bleibt
      deshalb an der Zahl haengen -- die Farbe sagt „du hast etwas eingestellt",
      und eingestellt hat das niemand. */
-  const from = statusOutSort(state.filters.sort) ? t('list.followsSort') : '';
+  /* UND HIER STEHT SEIT 0.32.0 DASSELBE WIE NEBEN DEN PILLEN -- Wort UND
+     Wert. Regel 4 gilt an beiden Orten, und zwei verschiedene Fassungen
+     desselben Satzes liefen beim naechsten Griff auseinander. */
+  const derived = statusOutSort(state.filters.sort);
+  const from = derived ? t('list.followsSort',
+    { status: derived === 'tested' ? V.testedYes : V.testedNo })
+    : ((STATUS_BY_HAND && defaultClosed(state.filters.sort)) ? t('list.statusByHand') : '');
   /* AUS DER SPRACHDATEI UND NICHT AUS DEM QUELLTEXT -- 0.24.4 (B5). Bis
      0.24.3 stand hier `${n} aktiv` fest verdrahtet: kein Satz, sondern ein
      Wort neben einer Zahl, und deshalb durch jeden Waechter der Runde 0.24.3
@@ -3952,10 +4115,36 @@ function drawFilters() {
      Null am Zaehler „Offen".
      DER KLARTEXT NENNT AUCH DEN WEG HINAUS. Das Wort allein sagt, woher es
      kommt; wie man es wieder loswird, gehoert daneben. */
+  /* UND DANEBEN STEHT AUCH, WAS ABGELEITET WIRD -- 0.32.0, Bauabschnitt 9.
+     Bis 0.31.4 stand dort nur „folgt der Sortierung": das sagte, DASS
+     abgeleitet wird, aber nicht WAS -- dass gerade nur Getestete in der Liste
+     stehen, erfuhr man allein, indem man sie zaehlte (Fahrplan, Frage 3).
+     DAS WORT KOMMT AUS DEM VOKABULAR und wird nicht zusammengesetzt: es ist
+     dasselbe, das auch an der abgeleiteten Pille steht. */
   if (fallback) {
-    const from = secondLabel(r1, t('list.followsSort'));
+    const from = secondLabel(r1, t('list.followsSort',
+      { status: fallback === 'tested' ? V.testedYes : V.testedNo }));
     from.id = 'f-status-from';
     from.title = t('list.pillHint');
+  }
+  /* UND DIE HARTE KANTE BEKOMMT IHREN SATZ -- 0.32.0, Bauabschnitt 9.
+     EIN EINZIGER KLICK AUF EINE STATUSPILLE SCHALTET DIE ABLEITUNG FUER DIE
+     GANZE SITZUNG AB -- nicht nur fuer diese eine Sortierung --, und bis
+     0.31.4 stand das nirgends. Zurueck kommt sie allein ueber „Filter
+     zuruecksetzen", und dass dieser Knopf auch die Automatik zurueckholt,
+     wusste ebenfalls niemand. Eine kleine Handlung mit einer grossen,
+     unsichtbaren Folge; ein unsichtbarer Automatismus ist ein Fehler, und
+     seine unsichtbare ABSCHALTUNG ist derselbe Fehler von der anderen Seite.
+     SIE STEHT NUR DA, WO SIE ETWAS BEWIRKT: bei einer Sortierung, die
+     ueberhaupt etwas vorgibt. Bei „Titel" gibt es keine Ableitung, also auch
+     keine abgeschaltete -- eine Auskunft ueber nichts ist dieselbe Falle wie
+     eine Null am Zaehler.
+     `defaultClosed` UND NICHT `statusOutSort`: gefragt ist die Ruhestellung,
+     also „was gaebe diese Sortierung vor, haette niemand geklickt". */
+  if (!fallback && STATUS_BY_HAND && defaultClosed(f.sort)) {
+    const byHand = secondLabel(r1, t('list.statusByHand'));
+    byHand.id = 'f-status-byhand';
+    byHand.title = t('list.byHandHint');
   }
 
   /* ---- Die Ablehnung: ZWEITE GRUPPE DERSELBEN ZEILE ----
@@ -4459,7 +4648,18 @@ function drawFilters() {
   });
   if (VIEWS.length < VIEWS_CAP) {
     const bNew = document.createElement('button');
-    bNew.className = 'pill' + (VIEWS.length ? ' pill-sep' : '');
+    /* EIN TEXT UND KEINE PILLE -- 0.32.0, Bauabschnitt 10. Der Betreiber
+       (13.9.2026): „Ansicht speichern wirkt wie ein auswahl eines
+       gespeicherten ansicht. den am besten nur als text … nicht als
+       (pillen)schaltfläche".
+       ER HAT RECHT, UND DER QUELLTEXT SAGTE WARUM: der Knopf trug `pill` und
+       hing in DERSELBEN Zeile wie die gespeicherten Ansichten -- eine Pille
+       neben Pillen liest sich als eine von ihnen. Jetzt traegt er `.link-btn`
+       wie „Filter zuruecksetzen" am anderen Ende derselben Zeile: dieselbe
+       Sorte Bedienung, dieselbe Gestalt.
+       DAS FUEHRENDE „+" BLEIBT. Es ist das einzige Zeichen, das ihn schon
+       heute als Befehl und nicht als Auswahl ausweist. */
+    bNew.className = 'link-btn' + (VIEWS.length ? ' link-btn-sep' : '');
     bNew.id = 'ansicht-neu';
     bNew.textContent = t('list.saveView');
     bNew.title = t('list.saveViewHint');
@@ -8314,8 +8514,11 @@ async function renderDetail(id, termAddress) {
          Stueck der Zerlegung und kein Nachbearbeiten des Ergebnisses: aus
          `<mark>` wird hier ein Element mit textContent und niemals ein
          String. Ohne Begriff aendert sich an dieser Zeile nichts. */
+      /* UND DIE MARKIERUNG IST DAS VIERTE STUECK -- 0.32.0 (L2). Welche
+         Stellen es sind, sagt der Server (`c.mentions`); der Rohtext im
+         Bearbeitenmodus bleibt unberuehrt, dort steht `@bert` als `@bert`. */
       el.querySelector('.cmt-body')
-        .appendChild(buildCommentNodes(splitCommentText(c.text, term)));
+        .appendChild(buildCommentNodes(splitCommentText(c.text, term, c.mentions)));
 
       const flip = async (field, value) => {
         try { item = await api('PUT', `/api/comments/${c.id}`, { [field]: value }); drawComments(); }
@@ -8724,7 +8927,62 @@ function serverBox(sentence, command) {
    zu entscheiden. Immer eingeklappt beim Aufbau, keine Einstellung dafuer.
    Kein Tooltip: ein Finger kann nicht ueberfahren. Der Inhalt kommt fertig
    als Markup, wie der Rest der Karte. */
-const more = (html) => `<details class="more"><summary>${tH('card.more')}</summary><div class="more-text">${html}</div></details>`;
+/* „MEHR" WIRD BREITENABHAENGIG -- 0.32.0, Bauabschnitt 10, und der Grund ist
+   GEMESSEN und nicht geschaetzt. Der Betreiber (13.9.2026): „wenn dder satz von
+   mehr nur eine einzige satz ist brauchen wir kein mehr knopf".
+   EIN AUFKLAPPER KOSTET SEINE EIGENE ZEILE und spart die Hoehe seines Inhalts.
+   Ist der Inhalt EINE Zeile, kostet er mehr, als er bringt -- am 14. September
+   2026 an allen acht Stellen im Browser nachgemessen:
+
+     am Telefon (390 px)   spart er 67 bis 107 Bildpunkte. Er lohnt sich ueberall.
+     am Rechner (1280 px)  spart er 46 bis 87 an sieben -- und 26 an EINER,
+                           und 26 ist genau eine Zeile.
+
+   DIE ZAHL IST DESHALB KEINE ZEICHENZAHL. Der erste Entwurf dieser Runde hat
+   es mit einer versucht (120 Zeichen) und daran gelernt: die acht Texte messen
+   140 bis 239 Zeichen, und die KUERZESTEN sind nicht die, die sich am wenigsten
+   lohnen -- es kommt auf die Breite der KARTE an, und die schmale traegt
+   denselben Satz in doppelt so vielen Zeilen. Eine Zeichenzahl haette die
+   falschen zwei erwischt.
+   GEMESSEN WIRD DESHALB AM GEZEICHNETEN, in trimMore() unten. */
+const more = (html) =>
+  `<details class="more"><summary>${tH('card.more')}</summary><div class="more-text">${html}</div></details>`;
+
+/* UND DIE MESSUNG SELBST -- sie laeuft NACH dem Zeichnen und nicht davor:
+   wie viele Zeilen ein Satz braucht, weiss erst der Browser.
+   DERSELBE ZWEITE WEG WIE BEI DER TAGWOLKE: dort wird der Knopf „mehr" auch
+   erst eingeblendet, wenn gemessen ist, dass es etwas aufzuklappen gibt.
+   AM TELEFON WIRD GAR NICHT ERST GEMESSEN. Dort lohnt sich der Aufklapper an
+   jeder der acht Stellen, und eine Messung, deren Ergebnis feststeht, ist
+   Arbeit ohne Wirkung.
+   EINE ZEILE ODER MEHR -- die Schranke ist die Zeilenhoehe des Inhalts selbst
+   und keine Zahl aus dem Quelltext. Eineinhalb davon lassen Rundung und
+   Aussenabstand Platz, ohne zwei Zeilen durchzulassen.
+   GEMESSEN WIRD MIT GEOEFFNETEM AUFKLAPPER und danach wieder geschlossen: ein
+   `<details>` ohne `open` hat einen Inhalt ohne Hoehe. Beides geschieht in
+   DEMSELBEN Durchlauf, bevor der Browser zeichnet -- zu sehen ist davon
+   nichts. */
+function trimMore(root) {
+  if (!root || isNarrow()) return;
+  for (const box of [...root.querySelectorAll('details.more')]) {
+    const text = box.querySelector('.more-text');
+    if (!text) continue;
+    const wasOpen = box.open;
+    box.open = true;
+    const line = parseFloat(getComputedStyle(text).lineHeight) || 0;
+    const high = text.getBoundingClientRect().height;
+    box.open = wasOpen;
+    if (!line || high > line * 1.5) continue;
+    /* AUS DEM AUFKLAPPER WIRD EIN ABSATZ, und der Inhalt wandert als KNOTEN
+       hinueber -- nicht als String. `innerHTML` haette denselben Text noch
+       einmal durch den Parser geschickt; hier wird umgehaengt, was schon
+       dasteht. */
+    const plain = document.createElement('p');
+    plain.className = 'desc more-plain';
+    while (text.firstChild) plain.appendChild(text.firstChild);
+    box.replaceWith(plain);
+  }
+}
 
 /* „GESPEICHERT" -- ein Muster fuer alle Felder der Einstellungen (Woerterbuch):
    der Toast, und die Karte, in der gespeichert wurde, zeigt es 400 ms lang am
@@ -8987,6 +9245,12 @@ async function renderSystem({ keepScroll = false } = {}) {
      nach dem Verdrahten: vorher waere die Seite noch die Ladezeile hoch, und
      ein gesetzter scrollTop verpuffte an einer Seite ohne Hoehe. */
   if (keepScroll && side && scrollBefore) side.scrollTop = scrollBefore;
+
+  /* UND DIE AUFKLAPPER, DIE SICH NICHT LOHNEN, FALLEN WEG -- 0.32.0,
+     Bauabschnitt 10. NACH dem Zeichnen und nach dem Verdrahten, aus demselben
+     Grund wie die Bildlaufstellung eine Zeile hoeher: vorher haette der Inhalt
+     keine Hoehe, und die Messung maesse nichts. */
+  trimMore(app);
 }
 
 
@@ -9081,7 +9345,7 @@ function setUpLanguagesOut() {
 
      SIE ZAEHLT, WAS DER NEUEN VORGABESPRACHE FEHLT: Namen aus beiden Tafeln
      und Vokabelwoerter. Beides steht schon da -- die Tafeln kommen aus
-     derselben Antwort (`takeNames`), die vierzehn Woerter aus
+     derselben Antwort (`takeNames`), die fuenfzehn Woerter aus
      `VOCABULARIES_OWN`. Ein zweiter Abruf waere ein Weg, den jemand pflegen
      muss.
 
@@ -10397,8 +10661,8 @@ function cardVocabulary() {
   return `<div class="sys-card">
         <h3>${tH('card.vocabulary')}</h3>
         <p class="desc">${tMark('card.vocabularyHint', 'card.labelOnlyHint')}</p>
-        ${/* VIERZEHN FELDER AUS EINER TABELLE -- 0.22.0. Bis 0.21.1 standen die
-             zwoelf Felder dreimal im Quelltext: hier als Markup, in vFields()
+        ${/* FUENFZEHN FELDER AUS EINER TABELLE -- 0.22.0, und seit 0.32.0 sind
+             es fuenfzehn. Bis 0.21.1 standen die zwoelf Felder dreimal im Quelltext: hier als Markup, in vFields()
              als Leser und in setUpVocabularyOut() als Liste der Kennungen.
              Wer ein Wort ergaenzte, musste es dreimal ergaenzen -- genau so
              ist beim Bauen von 0.21.0 das Feld fuer „Potenzial" zunaechst
@@ -10406,8 +10670,8 @@ function cardVocabulary() {
              die drei Stellen lesen sie.
              JEDER FELDNAME NENNT DIE VORGABE: „Sache, Einzahl" allein sagte
              einem Admin nicht, welches Wort er da umbenennt. */''}
-        ${/* DIE SPRACHZEILE UEBER DEN VIERZEHN FELDERN -- 0.24.3, F3. EINE
-              Karte, kein zweiter Ort: sie zeigt die vierzehn Felder der
+        ${/* DIE SPRACHZEILE UEBER DEN FELDERN -- 0.24.3, F3. EINE
+              Karte, kein zweiter Ort: sie zeigt die fuenfzehn Felder der
               GEWAEHLTEN Sprache, und ein Umschalter darueber wechselt sie.
               Sie steht nur da, wenn es ueberhaupt etwas zu wechseln gibt. */''}
         ${LANGUAGES.filter(a => a.active).length > 1
@@ -10425,7 +10689,7 @@ function cardVocabulary() {
               Bauabschnitt 4. Dieselbe Zusage wie an den Namenskarten: „Rahmen
               an allen Kacheln mit fehlenden Zellen, AUCH AM VOKABULAR" (der
               Betreiber, 9. September 2026).
-              AN DER ABLAGE AENDERT SICH NICHTS. Die vierzehn Woerter kennen
+              AN DER ABLAGE AENDERT SICH NICHTS. Die fuenfzehn Woerter kennen
               keine Grundzeile, ihre Tafeln tragen je Sprache nur
               Eingetragenes, und der Rueckfall auf die Vorgabe der Sprachdatei
               bleibt, wie er ist. Es ist eine Frage der Darstellung. */''}
@@ -10442,7 +10706,7 @@ function cardVocabulary() {
       </div>`;
 }
 /* DIE TABELLE DER VOKABELFELDER: Kennung, Schluessel, Beschriftung. Die
-   Kennungen v1 bis v14 bleiben in der Reihenfolge, in der die Woerter dazu-
+   Kennungen v1 bis v15 bleiben in der Reihenfolge, in der die Woerter dazu-
    gekommen sind -- der Pruefstand spricht die Felder darueber an.
    vocabularyDefault() liest die Vorgabe aus der geladenen Sprachdatei, weil die
    Karte sie NENNEN muss („Vorgabe: Eintrag") und der Server sie nur beim
@@ -10470,7 +10734,17 @@ const VOCABULARY_FIELDS = [
   /* UND DAS PAAR FUER DEN ERSTEN -- 0.22.0 (E14): Kastenkopf, Sortierung,
      Vergleich, Kachel, Karte, Glocke und Loeschdialoge lesen es. */
   ['v13', 'ratingOne', () => t('card.ratingOne')],
-  ['v14', 'ratingMany', () => t('card.ratingMany')]
+  ['v14', 'ratingMany', () => t('card.ratingMany')],
+  /* UND DAS FUENFZEHNTE -- 0.32.0, Strang 2. „Note" war die EINZIGE Zahl im
+     Programm ohne Vokabelwort: der Blockkopf darueber nennt `V.dayMany`, der
+     Nachbarblock `V.ratingOne`, und dazwischen stand ein festes Wort.
+     EIN WORT UND KEIN PAAR -- wie `potential`: kein einziger Wert schreibt
+     „Noten", das Wort steht an allen zehn Stellen in der Einzahl.
+     UND DIE RICHTUNG IST DER GRUND, NICHT DIE UMBENENNBARKEIT: eine deutsche
+     Note laeuft abwaerts -- die 1 ist die beste --, Sterne laufen aufwaerts.
+     Wer „Die Note muss zwischen 1 und 5 liegen" als Schulnote liest, haelt die
+     5 fuer fast das Schlechteste. Gemeint ist das Beste. */
+  ['v15', 'grade', () => t('card.grade')]
 ];
 /* WELCHE SPRACHE DIE KARTEN „KATEGORIEN" UND „KRITERIEN" GERADE ZEIGEN.
    Sie ist die des Lesers, solange niemand umschaltet -- und nur eine aus dem

@@ -29,6 +29,40 @@ bleiben in der Form ihrer Zeit.*
 
 *Hier wird mitgeschrieben, während gebaut wird.*
 
+## [0.32.0] - 2026-09-14
+
+> **NICHTS ZU TUN — aber die Datenbank bekommt eine Tabelle.** `comment_mentions`
+> legt sich beim ersten Start von selbst an; bestehende Kommentare bleiben
+> unberührt. Kein Migrationsblock, das Austauschformat bleibt 16. Eine Sicherung
+> vor dem Einspielen ist wie immer die ruhigere Wahl.
+
+### Hinzugefügt
+
+- **`@name` markiert einen Zugang** — in Notizen, Berichten, Aufgaben und erledigten Aufgaben. Die Stelle steht hervorgehoben da, und der Markierte bekommt eine Glocke: er, nicht jeder.
+- **Ein Name, den es nicht gibt, wird gar keine Markierung** — `@bret` bleibt gewöhnlicher Text, und `bert@beispiel.de` ist eine Adresse und keine Markierung.
+- **Gespeichert wird die Zugangsnummer und nicht der Name.** Wer umbenannt wird, steht danach unter seinem heutigen Namen; wer gelöscht wird, als „Gelöschter Benutzer 7".
+- **Die Glocke trennt jetzt nach Herkunft** — drei Abschnitte in der Tafel: **An mich gerichtet · Meine Einträge · Alles andere**. Am Zeichen bleibt es bei einem Punkt.
+- **Jede Zeile sagt, was davon dich markiert** — „3 Kommentare, davon 1 an mich gerichtet".
+- **„Note" ist das fünfzehnte Vokabelwort.** Wer Tageswerte, Ergebnisse oder Messungen sammelt, benennt es in „Vokabular" um; die Sortierungen heißen jetzt „Durchschnitt: Note" und „Zuletzt: Note".
+
+### Geändert
+
+- **Zwölf deutsche Sätze aus dem Server stehen jetzt in den Sprachdateien** — auf einer englischen oder türkischen Installation standen sie bisher deutsch am Bildschirm: der Grund, warum nicht verschickt werden kann; die Antwort auf eine Zugangsanfrage; die vier Gründe in der Vorschau des Aufräumens; und „Eigener Server" in der Auswahl des Mailzugangs.
+- **Die Zugangsanfrage weist ein leeres Formular ab** — bisher las auch der „Danke", der gar nichts eingegeben hatte. Über den Bestand sagt die Absage nichts.
+- **Neben den Statuspillen steht jetzt auch, WAS abgeleitet wird** — „folgt der Sortierung: Ungetestet" statt nur „folgt der Sortierung".
+- **Und es steht da, wenn die Ableitung abgeschaltet ist** — ein Klick auf eine Statuspille schaltet sie für die ganze Sitzung ab; das sagt jetzt „von Hand gewählt", und der Hinweis nennt „Filter zurücksetzen" als Weg zurück.
+- **„+ Ansicht speichern" ist ein Text und keine Pille mehr** — neben Pillen las es sich wie eine gespeicherte Ansicht.
+- **Der Aufklapper „Mehr" fällt am Rechner dort weg, wo der Text ohnehin in eine Zeile geht.** Am Telefon bleibt er überall.
+- **Vier deutsche Sätze sind berichtigt:** der Hinweis zum Schlüsselwechsel zitiert die Logzeile jetzt so, wie sie wirklich dasteht; „Den eigenen Zugang ändert man unter …" schickt an „Mein Konto"; und die beiden Fehlermeldungen zur Aufräumregel nennen die Felder so, wie die Karte sie beschriftet.
+- **Auf Türkisch:** „bu uygulamanın yedeği değil" heißt jetzt „yedeklemesi" — es heißt überall yedekleme.
+
+### Intern
+
+- Die Datenbank trägt **28 Tabellen** statt 27; `comment_mentions` verknüpft einen Kommentar mit den Zugängen, die er markiert.
+- **1198 → 1215 Schlüssel** je Sprachdatei.
+- Ein **Wächter für die Serverdateien** zählt jetzt, was dort an deutschem Text übrig ist — er hat den zwölften Satz noch in derselben Runde gefunden.
+- Kein Wächter über türkischen Text arbeitet mehr mit einer Wortgrenze; auch das ist ein Wächter geworden.
+
 ## [0.31.4] - 2026-09-13
 
 > **NICHTS ZU TUN.** Kein Schemaanteil, kein Migrationsblock, das

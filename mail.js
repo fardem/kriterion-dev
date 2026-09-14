@@ -58,7 +58,18 @@ const PROVIDERS = [
   { key: 'gmail',  name: 'Gmail',         server: 'smtp.gmail.com',     port: 465, secure: true },
   { key: 'strato', name: 'Strato',        server: 'smtp.strato.de',     port: 465, secure: true },
   { key: 'ionos',  name: 'IONOS',         server: 'smtp.ionos.de',      port: 587, secure: false },
-  { key: 'eigen',  name: 'Eigener Server', server: '',                  port: 587, secure: false }
+  /* DER EINE NAME, DER KEINE MARKE IST -- 0.32.0, Bauabschnitt 5. „GMX",
+     „Gmail", „Strato" heissen in jeder Sprache so; „Eigener Server" ist eine
+     BESCHREIBUNG und stand bis 0.31.4 fest auf Deutsch in der Auswahlliste des
+     Mailzugangs -- auf Englisch und Tuerkisch also deutsch am Bildschirm.
+     ER IST DER ZWOELFTE SATZ AUS PUNKT 29, und gefunden hat ihn der Waechter,
+     den F7 dieser Runde verlangt hat: „Ohne sie ist der zwoelfte eine Frage
+     der Zeit." Sie war es nicht einmal eine Runde lang.
+     `nameKey` STEHT NEBEN `name` UND ERSETZT ES NICHT: die fuenf Marken haben
+     keinen und brauchen keinen. Uebersetzt wird dort, wo die Anfrage in der
+     Hand liegt (server.js, providerList) -- mail.js weiss nicht, wer liest. */
+  { key: 'eigen',  name: 'Eigener Server', nameKey: 'mail.ownServer',
+    server: '',                  port: 587, secure: false }
 ];
 
 /* DREI HINWEISE GEHOEREN AN DEN BILDSCHIRM, und sie stehen hier statt in
@@ -143,7 +154,7 @@ const providerOf = (key) => PROVIDERS.find(a => a.key === key) || null;
    Anleitung des Anbieters; das PASSWORT kommt hier so wenig heraus wie in
    state(). */
 const forChoice = () => PROVIDERS.map(a => ({
-  key: a.key, name: a.name,
+  key: a.key, name: a.name, nameKey: a.nameKey || '',
   server: a.server, port: a.port, secure: a.secure,
   hint: HINTS[a.key] || ''
 }));
@@ -172,7 +183,11 @@ function state(raw) {
   const z = resolve(raw);
   const v = providerOf(z.provider);
   return {
+    /* UND DER NAME DES GEWAEHLTEN ANBIETERS TRAEGT SEINEN SCHLUESSEL MIT --
+       0.32.0, Bauabschnitt 5. „Eigener Server" ist eine Beschreibung und keine
+       Marke; server.js setzt daraus den Satz des Lesers. */
     provider: z.provider, providerName: v ? v.name : '',
+    providerNameKey: (v && v.nameKey) || '',
     server: z.server, port: z.port, secure: z.secure,
     user: z.user, sender: z.sender,
     passwordSet: Boolean(z.password),

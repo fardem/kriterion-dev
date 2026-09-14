@@ -70,7 +70,7 @@ const sharp = require('sharp');
    Kommentar ist keine Benennung, und ein Weg in einer Erzaehlung ist keine
    Adresse. Er ist WERKZEUG und wird nicht ausgeliefert -- deshalb steht er
    hier und nicht in einer Serverdatei. */
-const { zerlege, CODE, TEXT, KOMMENTAR } = require('./tools/segments.js');
+const { zerlege, CODE, TEXT, KOMMENTAR, REGEX } = require('./tools/segments.js');
 
 /* DIE FRISTEN, MIT DENEN DIE SERVER DIESES LAUFS WIRKLICH RECHNEN -- 0.30.0.
    GELESEN AUS mail.js SELBST und nicht danebengeschrieben: die Prueflagen des
@@ -2815,8 +2815,8 @@ function sweepLeftovers() {
      stand hier „zwoelf, nicht mehr". Die Zahl steht ausdruecklich, wie bei
      F_ROUTES -- ein Wort, das still dazukommt oder verschwindet, faellt sonst
      niemandem auf. */
-  check('Das Vokabular hat vierzehn Woerter, nicht mehr — 0.22.0',
-    Object.keys(fallback.vocabulary).length === 14,
+  check('Das Vokabular hat fuenfzehn Woerter, nicht mehr — 0.32.0',
+    Object.keys(fallback.vocabulary).length === 15,
     `${Object.keys(fallback.vocabulary).length}: ${Object.keys(fallback.vocabulary).join(', ')}`);
   check('Und das zwoelfte ist das Wort fuer den Potenzialkasten',
     fallback.vocabulary.potential === 'Potenzial', JSON.stringify(fallback.vocabulary.potential));
@@ -2844,12 +2844,12 @@ function sweepLeftovers() {
   // Geprueft wird am SERVER, nicht gegen die clientseitige Vorgabe: ein
   // Wort, das der Server nicht kennt, taucht in der Karte trotzdem auf,
   // laesst sich aber nicht speichern -- und nur diese Pruefung saehe es.
-  check('Der Server kennt alle vierzehn Vokabeln',
+  check('Der Server kennt alle fuenfzehn Vokabeln',
     ['entryOne', 'entryMany', 'testedYes', 'testedNo',
      'dayOne', 'dayMany', 'reportOne', 'reportMany',
      'taskOne', 'taskMany', 'taskDone',
-     'potential', 'ratingOne', 'ratingMany'].every(k => k in fallback.vocabulary) &&
-    Object.keys(fallback.vocabulary).length === 14,
+     'potential', 'ratingOne', 'ratingMany', 'grade'].every(k => k in fallback.vocabulary) &&
+    Object.keys(fallback.vocabulary).length === 15,
     JSON.stringify(Object.keys(fallback.vocabulary)));
   /* UND DAS ZWOELFTE LAESST SICH SETZEN -- 0.21.0. Die Zeile darueber sagt
      nur, dass der Schluessel BEKANNT ist; ohne diese bliebe sie auch dann
@@ -5913,10 +5913,11 @@ function sweepLeftovers() {
       d.close();
     }
     const abRead = await bfRead('de');
-    check('Ein Bestand aus 0.24.3 laeuft an — die vierzehn Woerter stehen danach da',
+    check('Ein Bestand aus 0.24.3 laeuft an — die fuenfzehn Woerter stehen danach da',
       abRead.vocabulary.entryOne === 'Maschine' && abRead.vocabulary.entryMany === 'Maschinen' &&
       abRead.vocabulary.dayOne === 'Testtag' && abRead.vocabulary.ratingMany === 'Bewertungen' &&
-      Object.keys(abRead.vocabulary).length === 14,
+      abRead.vocabulary.grade === 'Note' &&
+      Object.keys(abRead.vocabulary).length === 15,
       JSON.stringify(abRead.vocabulary));
     /* UND DIE KARTE ZEIGT SIE ALS EINGETRAGEN -- weil sie es aus Sicht der
        Ablage sind. Das ist die Kehrseite der Entscheidung oben, und sie
@@ -6093,21 +6094,33 @@ function sweepLeftovers() {
   }
 
   /* ================= Die Zahl der Tabellen — 0.24.3 =====================
-     SIEBENUNDZWANZIG SEIT DIESER RUNDE, vorher fuenfundzwanzig:
+     SIEBENUNDZWANZIG SEIT JENER RUNDE, vorher fuenfundzwanzig:
      `criterion_names` und `category_names` sind dazugekommen. Die ZAHL steht
      ausdruecklich da -- eine Tabelle, die still dazukommt oder verschwindet,
-     faellt sonst niemandem auf (dieselbe Ueberlegung wie bei F_ROUTES). */
+     faellt sonst niemandem auf (dieselbe Ueberlegung wie bei F_ROUTES).
+     ACHTUNDZWANZIG SEIT 0.32.0 -- UMGEDREHT UND NICHT GELOESCHT (Stolperstein
+     74): `comment_mentions` ist dazugekommen, die Verknuepfung zwischen einem
+     Kommentar und den Zugaengen, die er markiert. Es ist der eine Schemaschritt
+     dieser Runde, und er faellt hierher, weil 0.29.0 angekuendigt hat, die
+     letzte Runde am Schema zu sein und der Bruch auf 0.33.0 unmittelbar
+     dahintersteht (Auftrag 0.32.0, F2). */
   {
     const tzDb = open(path.join(DATA, 'katalog.sqlite'));
     const tzTables = tzDb.prepare(
       "SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%'")
       .all().map(z => z.name).sort();
     tzDb.close();
-    check('Die Datenbank traegt genau siebenundzwanzig Tabellen',
-      tzTables.length === 27, `${tzTables.length}: ${tzTables.join(' ')}`);
-    check('Und die beiden neuen dieser Runde stehen darunter',
+    check('Die Datenbank traegt genau achtundzwanzig Tabellen',
+      tzTables.length === 28, `${tzTables.length}: ${tzTables.join(' ')}`);
+    check('Und die beiden neuen aus 0.24.3 stehen darunter',
       tzTables.includes('criterion_names') && tzTables.includes('category_names'),
       tzTables.join(' '));
+    /* UND DIE EINE NEUE AUS 0.32.0 -- sie steht ohne Migrationsblock da:
+       `CREATE TABLE IF NOT EXISTS` legt eine fehlende TABELLE bei jedem Start
+       an; nur eine fehlende SPALTE an einer vorhandenen Tabelle braeuchte
+       einen (Stolperstein 13). */
+    check('Und die eine neue aus 0.32.0 auch — comment_mentions',
+      tzTables.includes('comment_mentions'), tzTables.join(' '));
   }
 
   /* ---------------------------------------------------------------- */
@@ -6930,6 +6943,132 @@ function sweepLeftovers() {
   check('Eine erledigte Aufgabe faellt aus beiden Zahlen',
     glAfter === (await eCall('cookie-e-eins', 'GET', '/api/open')).content.length &&
     glAfter < glOpen.length, `${glAfter} gegen ${glOpen.length}`);
+
+  /* ================= Einen anderen markieren — 0.32.0 ==================
+     BESTELLT AM 12. SEPTEMBER 2026 vom Betreiber: „das mit dem in kommentaren,
+     berichten und notizen, aufgaben das man ein user markieren kann mit
+     @username so das er deutlich hervorgehoben wird und auch eine
+     benachrichtigung in der glocke bekommt."
+     GEPRUEFT WIRD AN DER LAUFENDEN INSTANZ und nicht am Quelltext: ob der
+     Server einen Namen wirklich in eine NUMMER aufloest, sagt nur eine
+     Antwort. Der Quelltext steht daneben und beantwortet die andere Haelfte
+     (Zusage 2, weiter unten bei der Oberflaeche). */
+  group('Einen anderen markieren — 0.32.0');
+
+  /* ZUSAGE 3: DIE MARKIERUNG GILT EINEM. Der Kommentar nennt `zwei` und
+     niemanden sonst -- also bekommt `zwei` seine Glocke und `drei` nicht.
+     GESCHRIEBEN WIRD VON `eins`, damit die eigene Hand bei beiden Lesern
+     ausfaellt (`user_id IS NOT ?`): so misst die Zeile die Markierung und
+     nicht den Verfasser. */
+  await eCall('cookie-e-zwei', 'PUT', '/api/settings', { bellSeen: 1 });
+  await eCall('cookie-e-drei', 'PUT', '/api/settings', { bellSeen: 1 });
+  await new Promise(r => setTimeout(r, 1100));
+  const mkPost = await eCall('cookie-e-eins', 'POST', '/api/items/1/comments',
+    { text: 'Schau mal @zwei, und @gibtesnicht auch — post@beispiel.de' });
+  check('Markierprobe: der Kommentar entsteht',
+    mkPost.status === 201, `Status ${mkPost.status}`);
+  const mkComment = (mkPost.content?.comments || [])
+    .find(c => /Schau mal/.test(c.text));
+  /* DAS FELD STEHT IMMER DA, AUCH LEER -- „niemand markiert" und „das Feld
+     kennt diese Fassung nicht" sind zwei Lagen. */
+  check('Jeder Kommentar traegt das Feld — auch der ohne Markierung',
+    (mkPost.content?.comments || []).every(c => Array.isArray(c.mentions)),
+    JSON.stringify((mkPost.content?.comments || []).map(c => c.mentions)));
+  check('Und genau EINER ist markiert — der Tippfehler und die Adresse nicht',
+    mkComment?.mentions?.length === 1 && mkComment.mentions[0].handle === 'zwei',
+    JSON.stringify(mkComment?.mentions));
+  /* DER NAME KOMMT AUS DER NUMMER. Das Verfasserobjekt ist dasselbe wie
+     ueberall sonst -- `{ id, name, deleted }` --, und `handle` steht daneben
+     und ist nicht die Wahrheit. */
+  check('Und er traegt das Verfasserobjekt aus der Nummer',
+    mkComment?.mentions?.[0]?.author?.name === 'zwei' &&
+    mkComment.mentions[0].author.deleted === false &&
+    typeof mkComment.mentions[0].author.id === 'number',
+    JSON.stringify(mkComment?.mentions?.[0]));
+  check('Zusage 3: der Markierte bekommt seine Glocke',
+    (await glEntry('cookie-e-zwei', 1))?.newMarked === 1,
+    JSON.stringify((await glEntry('cookie-e-zwei', 1))?.newMarked));
+  check('Und wer nicht markiert ist, bekommt sie davon nicht',
+    (await glEntry('cookie-e-drei', 1))?.newMarked === 0 &&
+    (await glEntry('cookie-e-drei', 1))?.newComments === 1,
+    JSON.stringify([(await glEntry('cookie-e-drei', 1))?.newMarked,
+                    (await glEntry('cookie-e-drei', 1))?.newComments]));
+  /* ZUSAGE 1: DIE GLOCKE RECHNET EINMAL. `newMarked` ist eine TEILMENGE von
+     `newComments` und keine Zahl daneben; eine Summe bildet niemand.
+     WAERE ES EINE ZWEITE WAHRHEIT, stuende hier irgendwann `newMarked >
+     newComments` -- und genau das kann der LEFT JOIN nicht. */
+  check('Zusage 1: die markierten sind eine Teilmenge der neuen und keine Zahl daneben',
+    (await glList('cookie-e-zwei')).every(i =>
+      (i.newMarked || 0) <= (i.newComments || 0)),
+    JSON.stringify((await glList('cookie-e-zwei'))
+      .map(i => `${i.id}: ${i.newMarked}/${i.newComments}`)));
+  /* UND DAS FELD FAELLT MIT DEN DREI ANDEREN WEG, wenn es keinen Bezugspunkt
+     gibt -- vier Angaben, die gemeinsam dastehen oder gar nicht. */
+  const mkNoRef = (await eCall('cookie-e-drei', 'GET', '/api/items')).content;
+  check('Und die vierte Angabe steht mit den drei anderen oder gar nicht',
+    mkNoRef.every(i => ('newComments' in i) === ('newMarked' in i)),
+    JSON.stringify(mkNoRef.map(i => [i.newComments, i.newMarked])));
+  /* UND DIE HERKUNFT DER ZWEITEN HAELFTE: `mine` sagt, wem der Eintrag
+     gehoert. Ohne sie koennte die Tafel „unter MEINEN {entryMany}" nicht von
+     „alles andere" trennen -- und die Oberflaeche kennt ihre eigene Nummer
+     nicht und darf sie auch nicht kennen. */
+  check('Und die Uebersicht sagt, wem der Eintrag gehoert — als Ja/Nein',
+    (await glList('cookie-e-eins')).every(i => i.mine === true) &&
+    (await glList('cookie-e-zwei')).every(i => i.mine === false) &&
+    (await glList('cookie-e-eins')).every(i => !('user_id' in i)),
+    JSON.stringify((await glList('cookie-e-zwei')).map(i => i.mine)));
+
+  /* DIE MARKIERUNG WIRD NEU AUFGELOEST, WENN DER TEXT SICH AENDERT. Wer
+     `@zwei` herausnimmt, hat ihn nicht mehr markiert -- eine Zeile, die stehen
+     bliebe, waere eine Markierung ohne Text. */
+  const mkEdit = await eCall('cookie-e-eins', 'PUT', `/api/comments/${mkComment.id}`,
+    { text: 'Doch lieber @drei' });
+  const mkAfter = (mkEdit.content?.comments || []).find(c => c.id === mkComment.id);
+  check('Ein geaenderter Text loest die Markierung neu auf',
+    mkAfter?.mentions?.length === 1 && mkAfter.mentions[0].handle === 'drei',
+    JSON.stringify(mkAfter?.mentions));
+  /* UND EIN UMGELEGTER HAKEN AENDERT SIE NICHT: das Datum und die Art sind
+     Angaben UEBER die Aussage und keine Aussage. */
+  await eCall('cookie-e-eins', 'PUT', `/api/comments/${mkComment.id}`, { kind: 'task' });
+  const mkKind = ((await eCall('cookie-e-eins', 'GET', '/api/items/1')).content?.comments || [])
+    .find(c => c.id === mkComment.id);
+  check('Und ein umgelegter Haken laesst sie in Ruhe',
+    mkKind?.mentions?.length === 1 && mkKind.mentions[0].handle === 'drei',
+    JSON.stringify(mkKind?.mentions));
+
+  /* ZUSAGE 4: DER GRABSTEINNAME GEHT AUCH HIER NICHT HINAUS. Seit 0.24.4
+     schickt `authorCard()` den Namen eines geloeschten Zugangs nicht mit -- er
+     ist freigegeben und kann laengst einem anderen Menschen gehoeren. Eine
+     Markierung ist davon keine Ausnahme: die Antwort traegt `name: null` und
+     `deleted: true`, und die Oberflaeche bildet daraus „Geloeschter Benutzer 3".
+     DER GRABSTEIN ENTSTEHT HIER VON HAND IN DER DATENBANK -- die Verwaltung
+     dieser Instanz ist nicht der Pruefgegenstand, und `drei` hat kein
+     Passwort, ueber das sich der Weg gehen liesse. */
+  {
+    const d = open(path.join(levelEDir, 'katalog.sqlite'));
+    d.prepare("UPDATE users SET username = 'deleted-3', status = 'deleted' WHERE id = 3").run();
+    d.close();
+    const mkTomb = ((await eCall('cookie-e-eins', 'GET', '/api/items/1')).content?.comments || [])
+      .find(c => c.id === mkComment.id);
+    check('Zusage 4: eine Markierung auf einen geloeschten Zugang zeigt keinen Namen',
+      mkTomb?.mentions?.length === 1 && mkTomb.mentions[0].author?.name === null &&
+      mkTomb.mentions[0].author?.deleted === true && mkTomb.mentions[0].author?.id === 3,
+      JSON.stringify(mkTomb?.mentions));
+    /* UND DER GRABSTEINNAME STEHT AUCH NICHT IM `handle`. Er traegt, was im
+       ROHTEXT steht -- „drei" --, und der Rohtext ist das, was der Verfasser
+       geschrieben hat. Der FREIGEGEBENE Name (`deleted-3`) geht nirgends
+       hinaus; ohne diese Zeile bliebe offen, ob die Antwort ihn nachtraegt. */
+    check('Und `deleted-3` steht in keiner Angabe der Antwort',
+      !JSON.stringify(mkTomb?.mentions).includes('deleted-3'),
+      JSON.stringify(mkTomb?.mentions));
+    /* UND EIN GRABSTEIN LAESST SICH NICHT MEHR MARKIEREN: wer `@deleted-3`
+       tippt, meint keinen Menschen, er zitiert einen Grabstein. */
+    const mkNew = await eCall('cookie-e-eins', 'POST', '/api/items/1/comments',
+      { text: 'Und @deleted-3 dazu' });
+    const mkNewComment = (mkNew.content?.comments || []).find(c => /@deleted-3/.test(c.text));
+    check('Und ein Grabstein laesst sich nicht neu markieren',
+      mkNewComment?.mentions?.length === 0, JSON.stringify(mkNewComment?.mentions));
+  }
 
   await SE1.stop();
   fs.rmSync(levelEDir, { recursive: true, force: true });
@@ -14935,6 +15074,40 @@ function sweepLeftovers() {
     check('Und in derselben Folge wie in mail.js',
       rAnbList.map(a => a.key).join(',') === 'gmx,web,gmail,strato,ionos,eigen',
       rAnbList.map(a => a.key).join(','));
+    /* UND DER EINE NAME, DER KEINE MARKE IST, KOMMT IN DER SPRACHE DES LESERS
+       -- 0.32.0, Bauabschnitt 5. „Eigener Server" war der ZWOELFTE feste
+       deutsche Satz dieser Runde; die Restprobe hat ihn gefunden, und seither
+       traegt der Eintrag einen Schluessel statt eines Wortes.
+         DIESE ZEILEN STEHEN HIER, WEIL DIE GEGENPROBE 1023 STUMM BLIEB. Sie
+       baut die Uebersetzung in server.js zurueck -- und kein einziger Punkt
+       wurde rot. Der Grund ist lehrreich: die Restprobe liest den QUELLTEXT
+       von server.js, und dort steht der Name gar nicht. Er steht in mail.js
+       und kommt von dort als Wert herein. EIN WAECHTER UEBER DEN QUELLTEXT
+       SIEHT NUR SEINE DATEI; was durch sie hindurchgereicht wird, sieht nur
+       eine Probe am BILDSCHIRMTEXT (Stolperstein 47 von der anderen Seite:
+       eine Wahrheit an einem Ort heisst auch, dass man sie dort nachsieht,
+       wo sie AUSGEHT, und nicht dort, wo sie durchgeht).
+         GEFRAGT WIRD DESHALB DER LAUFENDE SERVER, dreimal mit demselben
+       Cookie und drei verschiedenen `Accept-Language`. Die fuenf Marken
+       heissen in jeder Sprache gleich -- die zweite Zeile haelt das fest,
+       damit die naechste Runde sie nicht „uebersetzt". */
+    const mailKarte = async (sprache) => {
+      const a = await fetch(`${RA.S.base}/api/mail`,
+        { headers: { cookie: RA.S.cookieValue(), 'accept-language': sprache } });
+      return await a.json();
+    };
+    const anbieterEigen = (liste) => (liste || []).find(a => a.key === 'eigen')?.name;
+    const anbEn = (await mailKarte('en')).providerList || [];
+    const anbTr = (await mailKarte('tr')).providerList || [];
+    check('Der Anbietername ohne Marke kommt in der Sprache des Lesers — 0.32.0',
+      anbieterEigen(rAnbList) === 'Eigener Server' && anbieterEigen(anbEn) === 'Own server'
+        && anbieterEigen(anbTr) === 'Kendi sunucu',
+      JSON.stringify([anbieterEigen(rAnbList), anbieterEigen(anbEn), anbieterEigen(anbTr)]));
+    check('Und die fuenf Marken heissen in jeder Sprache gleich',
+      ['gmx', 'web', 'gmail', 'strato', 'ionos'].every(k =>
+        anbEn.find(a => a.key === k)?.name === rAnbList.find(a => a.key === k)?.name &&
+        anbTr.find(a => a.key === k)?.name === rAnbList.find(a => a.key === k)?.name),
+      anbEn.filter(a => a.key !== 'eigen').map(a => a.name).join(','));
     const rAnbGmx = rAnbList.find(a => a.key === 'gmx');
     check('Jeder Eintrag traegt Server, Port und Verschluesselung',
       rAnbList.every(a => typeof a.server === 'string' && typeof a.port === 'number'
@@ -14957,6 +15130,27 @@ function sweepLeftovers() {
     check('Und aus der Liste kommt kein Geheimnis heraus',
       !rAnbList.some(a => 'password' in a || 'user' in a),
       JSON.stringify(Object.keys(rAnbList[0] || {})));
+    /* UND DIESELBE BESCHREIBUNG EIN ZWEITES MAL -- in der ZEILE der Karte.
+       `providerList` ist die AUSWAHL, `providerName` ist die ANZEIGE dessen,
+       was eingerichtet IST; app.js setzt daraus die Zeile „Anbieter" der
+       Karte „Mailversand". Es sind zwei Stellen in server.js mit derselben
+       Entscheidung, und die Gegenprobe 1023 traf nur die eine -- also steht
+       hier die zweite Zeile mit ihrer eigenen Gegenprobe 1026.
+       DER ZUGANG WIRD DAFUER AUF 'eigen' GESETZT: bei einer Marke stuende
+       dort „GMX", und daran waere nichts zu sehen. Das geschieht am ENDE der
+       Gruppe -- danach werden die Prueflagen beendet, und niemand liest den
+       Zugang mehr. */
+    await mailFree(RA.S);
+    const rEigen = await RA.S.call('PUT', '/api/mail',
+      { provider: 'eigen', server: 'mail.beispiel.de', port: 465, secure: true,
+        user: 'a@beispiel.de', password: MAIL_SECRET, sender: 'a@beispiel.de' });
+    const nEigenDe = (await mailKarte('de')).providerName;
+    const nEigenEn = (await mailKarte('en')).providerName;
+    const nEigenTr = (await mailKarte('tr')).providerName;
+    check('Und der eingerichtete Anbieter heisst in der Karte ebenso — 0.32.0',
+      rEigen.status === 200 && nEigenDe === 'Eigener Server' &&
+      nEigenEn === 'Own server' && nEigenTr === 'Kendi sunucu',
+      JSON.stringify([rEigen.status, nEigenDe, nEigenEn, nEigenTr]));
 
     for (const l of [E, F, X, St, Sw, Tr, O, H, T]) await l.stop();
     // A ist oben beim Neustart schon gestoppt worden -- endKind fragt
@@ -15074,26 +15268,64 @@ function sweepLeftovers() {
       gBroken?.deliveryReady === false && /Testmail/.test(gBroken?.deliveryReason || ''),
       JSON.stringify([gBroken?.deliveryReady, gBroken?.deliveryReason]));
 
-    /* FUENF LAGEN, UND VERGLICHEN WIRD DER ROHE ANTWORTKOERPER -- nicht ein
+    /* VIER LAGEN, UND VERGLICHEN WIRD DER ROHE ANTWORTKOERPER -- nicht ein
        Feld daraus. Ein Vergleich auf `ok === true` bliebe gruen, wenn daneben
-       ein Feld auftauchte, das die Lage verriete. */
+       ein Feld auftauchte, das die Lage verriete.
+       FUENF WAREN ES BIS 0.31.4 -- UMGEDREHT UND NICHT GELOESCHT (Stolperstein
+       74). „unbrauchbare Adresse" ist mit 0.32.0 aus dieser Reihe
+       herausgenommen und steht unten in einer eigenen: FORM IST OEFFENTLICH,
+       EXISTENZ IST ES NICHT (Bauabschnitt 6, Punkt 30 des Sammelblatts).
+       Die vier hier sind die Lagen, die etwas ueber den BESTAND sagen wuerden
+       -- ob der Name frei ist, ob die Adresse vergeben ist, ob schon eine
+       Anfrage offen steht --, und sie antworten Byte fuer Byte gleich. Eine
+       Zeichenfolge ohne `@` sagt darueber nichts. */
     const gCases = [
       ['unbekannter Name', { name: 'neuling', address: 'neuling@beispiel.de' }],
       ['bekannter Name', { name: 'bert', address: 'ganz-anders@beispiel.de' }],
       ['bekannte Adresse', { name: 'ganz-anders', address: 'bert@beispiel.de' }],
-      ['unbrauchbare Adresse', { name: 'dritter', address: 'keine-adresse' }],
       ['schon offene Anfrage', { name: 'neuling', address: 'neuling@beispiel.de' }]
     ];
     const gE = [];
     for (const [event, body] of gCases) gE.push([event, await regRaw(gA.S, '/api/signup', body)]);
     const REG_RESPONSE = gE[0][1].raw;
-    check('Alle fuenf Lagen antworten mit demselben Statuscode',
+    check('Alle vier Lagen antworten mit demselben Statuscode',
       gE.every(([, e]) => e.status === 200), gE.map(([w, e]) => `${w}: ${e.status}`).join(' · '));
     check('Und mit demselben Rumpf -- Byte fuer Byte',
       gE.every(([, e]) => e.raw === REG_RESPONSE),
       gE.map(([w, e]) => `${w}: ${e.raw.length} Zeichen`).join(' · '));
+    /* ---- DIE FORM WIRD GEPRUEFT, DER BESTAND NICHT -- 0.32.0, BA 6 -------
+       ZUSAGE 9: die Zugangsanfrage weist eine leere Form ab -- und sonst
+       nichts. Bis 0.31.4 las auch der, der GAR NICHTS eingegeben hatte,
+       „Danke" (der Betreiber am 13. September 2026 an der laufenden
+       Installation). Der BESTAND war dabei in Ordnung -- `createRequest()`
+       verwarf still --, nur die Auskunft war falsch.
+       DREI LAGEN DER FORM, UND JEDE BEKOMMT EINE ABSAGE: leerer Name, leere
+       Adresse, Zeichenfolge ohne `@`. Ueber keine davon laesst sich etwas
+       ueber den Bestand erfahren; dieselbe Eingabe bekaeme jeder. */
+    const gForm = [];
+    for (const [event, body] of [
+      ['leerer Name', { name: '  ', address: 'wer@beispiel.de' }],
+      ['leere Adresse', { name: 'dritter', address: '' }],
+      ['Adresse ohne @', { name: 'dritter', address: 'keine-adresse' }]])
+      gForm.push([event, await regRaw(gA.S, '/api/signup', body)]);
+    check('Die unbrauchbare Form wird abgewiesen — und sonst nichts (Zusage 9)',
+      gForm.every(([, e]) => e.status === 400),
+      gForm.map(([w, e]) => `${w}: ${e.status}`).join(' · '));
+    /* UND DIE ABSAGE SAGT, WAS FEHLT -- sie ist der ganze Gewinn der Zusage.
+       Eine Absage ohne Grund waere dieselbe Auskunft ueber nichts wie das
+       „Danke" von vorher. */
+    check('Und sie sagt, was an der Form fehlt',
+      /Benutzernamen|username|kullanıcı/i.test(gForm[0][1].raw) &&
+      /Adresse|address|adres/i.test(gForm[1][1].raw) &&
+      /Adresse|address|adres/i.test(gForm[2][1].raw),
+      gForm.map(([w, e]) => `${w}: ${e.raw.slice(0, 60)}`).join(' · '));
+    /* UND SIE LEGT NICHTS AN. Eine Absage, die die Zeile trotzdem schriebe,
+       waere schlimmer als keine -- der Deckel fuellte sich mit Unbrauchbarem. */
+    check('Und keine der drei legt eine Anfrage an',
+      regSql(gA.dir, "SELECT username FROM requests WHERE username = 'dritter'").length === 0,
+      JSON.stringify(regSql(gA.dir, 'SELECT username FROM requests')));
     /* ERST DER GEGENSTAND (Stolperstein 81): ein leerer Rumpf waere in allen
-       fuenf Lagen gleich und belegte nichts. */
+       vier Lagen gleich und belegte nichts. */
     check('Der Rumpf sagt ueberhaupt etwas -- und nennt den naechsten Schritt',
       /E-Mail/.test(REG_RESPONSE) && /Admin/.test(REG_RESPONSE), REG_RESPONSE.slice(0, 160));
     check('Und er verraet in keiner Lage, welche es war',
@@ -15107,7 +15339,7 @@ function sweepLeftovers() {
        ein Vielfaches dessen, was diese Route braucht (gemessen: unter zehn
        Millisekunden), und ein Vierzigstel dessen, was ein wartender Versand
        kostete. */
-    check('Keine der fuenf Lagen wartet auf den Mailserver',
+    check('Keine der vier Lagen wartet auf den Mailserver',
       gE.every(([, e]) => e.ms < 500), gE.map(([w, e]) => `${w}: ${Math.round(e.ms)} ms`).join(' · '));
     /* UND DIE GEGENLAGE ZUR MESSUNG SELBST: der troepfelnde Empfaenger muss
        ueberhaupt gehalten haben. Haette er sofort abgesagt, waere "keine
@@ -18059,9 +18291,18 @@ function sweepLeftovers() {
     Object.values(JSON.parse(fs.readFileSync(
       path.join(__dirname, 'public', 'languages', 'de.json'), 'utf8')))
       .flatMap(v => (typeof v === 'string' ? [v] : Object.values(v))).join('\u0000');
+  /* UND DIE ZEILE, DIE SIE ZITIERT, STEHT SO IM PROTOKOLL -- 0.32.0, Punkt 28
+     Fund 1. Bis 0.31.4 schrieb die Karte „Schlüssel aus ENCRYPTION_KEY
+     geladen" mit Umlaut, `keys.js` schreibt „Schluessel" ohne -- wer die Zeile
+     so sucht, wie sie dastand, fand sie nicht. Gesucht wird deshalb der
+     WORTLAUT DES PROTOKOLLS und nicht der schoenere. */
   check('Die Kennzahlenkarte sagt dafuer „Server-Log"',
-    /im Server-Log „Schlüssel aus ENCRYPTION_KEY geladen/.test(protAppAndTexts),
+    /im Server-Log „Schluessel aus ENCRYPTION_KEY geladen/.test(protAppAndTexts),
     'die Karte nennt das Server-Log nicht');
+  check('Und sie zitiert die Zeile Zeichen fuer Zeichen, wie keys.js sie schreibt',
+    fs.readFileSync(path.join(__dirname, 'keys.js'), 'utf8')
+      .includes('Schluessel aus ENCRYPTION_KEY geladen'),
+    'keys.js schreibt die Zeile anders');
   /* DIE GEGENPROBE ZUM WAECHTER SELBST: er darf nicht deshalb gruen sein, weil
      er gar keinen Code mehr liest (Stolperstein 106) -- und er darf das lange
      Wort nicht mitzaehlen, sonst waere die Entscheidung wertlos. */
@@ -18688,6 +18929,30 @@ function sweepLeftovers() {
        Stilblatt; die Gruppe „Die elf Code-Lecks" haelt beides fest.
        DIE MEHRZAHLFORMEN UND DIE VOKABELNAMEN RUEHREN SICH NICHT: eine
        Abfrageangabe hat keine Mehrzahl, und `10px` ist kein Vokabelwort. */
+    /* 1280 WURDEN 1303 MIT 0.32.0, DIE MEHRZAHLFORMEN 82 WURDEN 88 UND DIE
+       VOKABELNAMEN 14 WURDEN 15 -- und alle drei Zahlen haben einen Namen:
+         +2  Strang 2: `vocabulary.grade` und seine Beschriftung `card.grade`.
+             Das fuenfzehnte Vokabelwort -- „Note" war die einzige Zahl im
+             Programm ohne eines.
+         +5  Bauabschnitt 1: `list.bellToMe`, `list.bellMine`,
+             `list.bellOther`, `list.markedCount` -- die geteilte Tafel der
+             Glocke (F3) -- minus `list.otherUser`, dessen Satz die Runde
+             ersetzt hat (F4).
+         +9  Bauabschnitt 4: die elf deutschen Saetze aus server.js. NEUN
+             Schluessel fuer elf Saetze -- zwei sind Wiederholungen
+             (`mail.noAccount` stand schon da, `server.noPublicAddress` deckt
+             zwei Stellen). DREI davon sind MEHRZAHLPAARE und zaehlen flach
+             mit je zwei Zweigen: die drei Gruende der Aufraeumvorschau.
+         +1  Bauabschnitt 5: `mail.ownServer` -- der ZWOELFTE deutsche Satz,
+             gefunden von der Restprobe, die F7 verlangt hat.
+         +3  Bauabschnitt 9: `list.statusByHand` und `list.byHandHint` -- die
+             harte Kante von `STATUS_BY_HAND` bekommt ihren Satz; dazu bleibt
+             `list.followsSort` und nennt jetzt auch den WERT.
+       DIE MEHRZAHLFORMEN WACHSEN UM SECHS: drei neue Paare der
+       Aufraeumvorschau, je zwei Zweige. Bis 0.31.4 baute `cleanupPreview()`
+       die Mehrzahl selbst -- `files.length === 1 ? 'Sicherung' : 'Sicherungen'`
+       --, und eine Mehrzahlregel im Quelltext ist eine Regel je Sprache an
+       einer Stelle, die nur eine kennt. */
     /* 1279 WURDEN 1280 MIT 0.31.4: `_afterNumber` kommt dazu. Er traegt keinen
        Satz -- er sagt, welche FORM hinter einer Zahl steht.
        1336 WURDEN 1279 MIT 0.31.1 -- UMGEDREHT UND NICHT GELOESCHT
@@ -18699,8 +18964,8 @@ function sweepLeftovers() {
        14 wie zuvor. Wer die Zahl hier still mitlaufen liesse, saehe genau das
        nicht: die Runde fasst die ABLAGE der Saetze an, und ein Mehrzahlpaar,
        das dabei flach wird, waere ein Verlust. */
-    check('Und die Zahlen stehen: 1280 Schluessel, 82 Mehrzahlformen, 14 Vokabelnamen',
-      languageKeys.length === 1280 && pluralKeys.length === 82 && vocabularyKeys.length === 14,
+    check('Und die Zahlen stehen: 1303 Schluessel, 88 Mehrzahlformen, 15 Vokabelnamen',
+      languageKeys.length === 1303 && pluralKeys.length === 88 && vocabularyKeys.length === 15,
       `${languageKeys.length} / ${pluralKeys.length} / ${vocabularyKeys.length}`);
 
     /* ---- 3. Die Adressprobe ---------------------------------------------
@@ -18993,11 +19258,36 @@ function sweepLeftovers() {
        die WERTE der Datei, und ein Wert, den es bei der Abnahme nicht gab,
        muesste sonst als „anderer Satz" gezaehlt werden. */
     const WORDING_NEW_0314 = ['_afterNumber'];
+    /* UND ACHTZEHN MIT 0.32.0 -- dieselbe Regel, eine Runde spaeter, und wieder
+       in einer EIGENEN Liste: sie ist die Buchfuehrung darueber, welche Runde
+       welchen Satz gebracht hat.
+         STRANG 2     `vocabulary.grade` und `card.grade` -- das fuenfzehnte
+                      Vokabelwort und seine Beschriftung in der Karte.
+         BA 1 (F3/F4) `list.bellToMe`, `list.bellMine`, `list.bellOther` --
+                      die drei Ueberschriften der geteilten Glockentafel --
+                      und `list.markedCount`, das „, davon 1 an mich
+                      gerichtet" an der Zeile.
+         BA 4 (F6)    die neun Schluessel fuer die elf deutschen Saetze aus
+                      server.js. NEUN FUER ELF: `mail.noAccount` stand schon
+                      da, und `server.noPublicAddress` deckt zwei Stellen.
+         BA 5 (F7)    `mail.ownServer` -- der ZWOELFTE. Die Restprobe, die F7
+                      verlangt hat, hat ihn noch in derselben Runde gefunden:
+                      „Eigener Server" stand fest in der Anbieterliste.
+         BA 9         `list.statusByHand` und `list.byHandHint` -- die harte
+                      Kante von `STATUS_BY_HAND` bekommt ihren Satz. */
+    const WORDING_NEW_0320 = [
+      'vocabulary.grade', 'card.grade',
+      'list.bellToMe', 'list.bellMine', 'list.bellOther', 'list.markedCount',
+      'server.noAccountOwner', 'server.noTestMail', 'server.noPublicAddress',
+      'server.noUserAddress', 'server.signupThanks', 'server.cleanupNoBackups',
+      'server.backupsBeforeKey', 'server.cleanupAllYoungest', 'server.cleanupOldestAge',
+      'mail.ownServer', 'list.statusByHand', 'list.byHandHint'];
     const WORDING_NEW = [...WORDING_NEW_0243, ...WORDING_NEW_0244,
       ...WORDING_NEW_0245, ...WORDING_NEW_0246, ...WORDING_NEW_0250,
       ...WORDING_NEW_0254, ...WORDING_NEW_0260, ...WORDING_NEW_0270,
       ...WORDING_NEW_0280, ...WORDING_NEW_0281, ...WORDING_NEW_0290,
-      ...WORDING_NEW_0300, ...WORDING_NEW_0311, ...WORDING_NEW_0314];
+      ...WORDING_NEW_0300, ...WORDING_NEW_0311, ...WORDING_NEW_0314,
+      ...WORDING_NEW_0320];
     const wordingMissing = WORDING_NEW.filter(k => LANGUAGE_FILE[k] === undefined);
     check('Die neuen Schluessel dieser Runde stehen wirklich in der Datei',
       wordingMissing.length === 0, wordingMissing.join(' ') || 'alle da');
@@ -19299,9 +19589,27 @@ function sweepLeftovers() {
       "Durchschnittsnote (niedrig → hoch)",
       "Letzte Note (hoch → niedrig)",
       "Letzte Note (niedrig → hoch)"];
-    check('Und der Schluessel, den diese Runde wegnimmt, steht wirklich nicht mehr da',
+    check('Und der Schluessel, den 0.24.4 wegnimmt, steht wirklich nicht mehr da',
       LANGUAGE_FILE['card.restoreIcon'] === undefined,
       JSON.stringify(LANGUAGE_FILE['card.restoreIcon']));
+    /* UND EINER MIT 0.32.0: `list.otherUser` -- „anderer Benutzer". Er war das
+       hervorgehobene Wort im Satz des Glockenfensters, und diesen Satz ersetzt
+       die Runde (F4): die Tafel trennt jetzt nach HERKUNFT, und „von anderen
+       Benutzern" steht nicht mehr als eigenes Stueck darin. Ein Schluessel,
+       den niemand mehr ruft, bleibt nicht stehen. */
+    const WORDING_GONE_0320 = ['list.otherUser'];
+    const goneStill12 = [];
+    for (const code of ['de', 'en', 'tr']) {
+      const file = JSON.parse(fs.readFileSync(
+        path.join(__dirname, 'public', 'languages', `${code}.json`), 'utf8'));
+      for (const k of WORDING_GONE_0320) if (file[k] !== undefined) goneStill12.push(`${code}/${k}`);
+    }
+    check('Und der Schluessel, den 0.32.0 wegnimmt, steht in keiner Datei mehr',
+      goneStill12.length === 0, goneStill12.join(' ') || 'in allen dreien weg');
+    /* SEIN WORTLAUT WIRD AUS DEM STAND VON DAMALS ABGEZOGEN, wie bei jeder
+       Runde davor -- sonst stuende „anderer Benutzer" fuer immer in `onlyThen`
+       und faerbte die Rechnung. */
+    const WORDING_GONE_TEXT_0320 = ['anderer Benutzer'];
     const wordingOld = Object.fromEntries(Object.entries(LANGUAGE_FILE)
       .filter(([k]) => !WORDING_NEW.includes(k)));
     /* DIE PLATZHALTERNAMEN ZIEHEN MIT IHREM SATZ UM -- 0.24.3, F7. Aus
@@ -19375,7 +19683,8 @@ function sweepLeftovers() {
     const wordingThen = [...WORDING_GONE_0244, ...WORDING_GONE_TEXT_0254,
       ...WORDING_GONE_TEXT_0260, ...WORDING_GONE_TEXT_0270,
       ...WORDING_GONE_TEXT_0281, ...WORDING_GONE_TEXT_0300,
-      ...WORDING_GONE_TEXT_0310, ...WORDING_GONE_TEXT_0311].map(flatten)
+      ...WORDING_GONE_TEXT_0310, ...WORDING_GONE_TEXT_0311,
+      ...WORDING_GONE_TEXT_0320].map(flatten)
       .reduce((list, sentence) => withoutOne(list, sentence), wordingFile.values.map(flatten))
       .sort();
     const wordingNow = valuesOf(wordingOld).map(asBefore).sort();
@@ -19407,8 +19716,13 @@ function sweepLeftovers() {
        vergleicht. DIE GLEICHHEIT IST DAMIT KEIN ZUFALL, SONDERN DAS ERGEBNIS
        ZWEIER GEGENGERECHNETER LISTEN -- und die Zeile sagt beide Zahlen, statt
        nur „gleich viele". */
-    check('Wortlautprobe: gleich viele Saetze wie bei der Abnahme — 1089',
-      wordingNow.length === wordingThen.length && wordingNow.length === 1089,
+    /* 1089 WURDEN 1088 MIT 0.32.0, UND DIE BEIDEN ZAHLEN BLEIBEN GLEICH: „anderer
+       Benutzer" faellt aus der Datei von heute (der Satz des Glockenfensters
+       ersetzt ihn) und wird im selben Zug aus dem Stand von damals abgezogen
+       (WORDING_GONE_TEXT_0320). Die achtzehn NEUEN Schluessel der Runde stehen
+       in WORDING_NEW und werden hier gar nicht erst verglichen. */
+    check('Wortlautprobe: gleich viele Saetze wie bei der Abnahme — 1088',
+      wordingNow.length === wordingThen.length && wordingNow.length === 1088,
       `${wordingThen.length} damals, ${wordingNow.length} heute (ohne die ` +
       `${WORDING_NEW.length} neuen und die weggenommenen)`);
     /* ZWEI SAETZE SIND ANDERE, UND BEIDE SIND BENANNT.
@@ -19639,6 +19953,54 @@ function sweepLeftovers() {
        Zeile zaehlt Schluessel und nicht Handgriffe -- er ist gegen 0681d42
        einmal anders, nicht zweimal. */
     const WORDING_CHANGED_0312 = ["login.requestAccess"];
+    /* UND DREIZEHN MIT 0.32.0. Sie haben drei Herkuenfte, und jede steht im
+       Auftrag dieser Runde:
+
+       ACHT AUS STRANG 2 -- „Note" wird das fuenfzehnte Vokabelwort, und wo das
+       Wort fest im Satz stand, steht jetzt `{grade}`:
+         entry.grade · entry.gradeLabel · entry.calcGradeWeight ·
+         entry.gradeReplaced · list.lastGrade · list.gradeLong ·
+         list.gradeShort · server.gradeRange
+       ZWEI WEITERE DERSELBEN SACHE STEHEN HIER NICHT: `list.sortAvg` und
+       `list.sortLast` sind Schluessel aus 0.28.1 und stehen in
+       WORDING_NEW_0281 -- der Stand von 0681d42 kennt sie gar nicht. Ihre
+       Beschriftung wird dabei ARTIKELLOS („Durchschnitt: {grade}", „Zuletzt:
+       {grade}"): ein freies Wort duldet kein Adjektiv vor sich, und
+       „Durchschnittsnote" waere ausserdem ein zusammengesetztes Vokabelwort
+       (Leitplanke L6).
+
+       VIER AUS PUNKT 28 des Sammelblatts -- die deutschen Funde aus dem
+       englischen Durchgang von 0.31.2, die dort nicht angefasst werden
+       durften („kein deutscher Wert wird angefasst"):
+         card.restartHint      zitierte eine Logzeile, die es so nicht gibt --
+                               „Schlüssel" gegen keys.js: „Schluessel"
+         server.deniedOwnUser  schickte an eine Karte „Zugang", die es nicht
+                               gibt -- sie heisst „Mein Konto"
+         server.ruleKeep       nannte das Feld „Immer behalten", die Karte
+                               beschriftet es „Mindestens behalten"
+         server.ruleDays       nannte es „Erst löschen ab", die Karte
+                               „Löschen ab Alter"
+       BEI 3 UND 4 FOLGT DEUTSCH DER OBERFLAECHE UND NICHT DEM WORTLAUT --
+       dieselbe Entscheidung, die auf der englischen Seite in 0.31.2 schon
+       gefallen ist („Keep at least", „Delete when older than", in
+       Anfuehrungszeichen).
+       FUND 5 JENES PUNKTES STEHT NICHT HIER: `card.itemOne` und
+       `card.itemMany` tragen seit dieser Runde wieder ihre Sache („Das
+       Bewertete, Einzahl") -- sie sind gegen 0681d42 aber schon einmal anders
+       gewesen und stehen deshalb in CHANGED_TABLE_0310. Die Zeile zaehlt
+       SCHLUESSEL und keine Handgriffe.
+
+       UND EINER AUS BAUABSCHNITT 9:
+         list.followsSort      sagt jetzt auch, WAS abgeleitet wird („folgt
+                               der Sortierung: Getestet") und nicht nur, DASS.
+       `list.pillHint` GEHOERT DAZU UND STEHT AUS DEMSELBEN GRUND NICHT HIER:
+       er ist seit 0.31.0 anders und bleibt in CHANGED_TABLE_0310. */
+    const WORDING_CHANGED_0320 = [
+      'entry.grade', 'entry.gradeLabel', 'entry.calcGradeWeight',
+      'entry.gradeReplaced', 'list.lastGrade', 'list.gradeLong',
+      'list.gradeShort', 'server.gradeRange',
+      'card.restartHint', 'server.deniedOwnUser', 'server.ruleKeep', 'server.ruleDays',
+      'list.followsSort'];
     /* FUENFUNDACHTZIG SEIT 0.31.0, VORHER FUENFZEHN -- und die siebzig mehr
        sind die Runde selbst: siebenunddreissig aus der Worttafel, fuenf
        erzwungene Nachzieher und zweiunddreissig, an denen nur das
@@ -19666,8 +20028,16 @@ function sweepLeftovers() {
        und darum stehen zwei verschiedene Zahlen da statt einer geschoenten.
        DIE EIGENTLICHE ABNAHME IST DIE ZEILE DARUNTER: der REST ist Satz fuer
        Satz derselbe. */
-    check('Und genau hundertsechsundvierzig Saetze sind andere — die hundertfuenfundvierzig von vorher und der eine aus 0.31.2',
-      onlyThen.length === 146 && onlyNow.length === 144 &&
+    /* 146 UND 144 WURDEN 159 UND 157 MIT 0.32.0 -- dreizehn mehr auf jeder
+       Seite, und sie haben Namen: WORDING_CHANGED_0320. Der Abstand von zwei
+       bleibt, und das ist die eigentliche Auskunft: zu jedem neuen Wortlaut
+       steht drueben genau ein alter, der verschwunden ist. */
+    check('Und genau hundertneunundfuenfzig Saetze sind andere — die hundertsechsundvierzig von vorher und die dreizehn aus 0.32.0',
+      onlyThen.length === 159 && onlyNow.length === 157 &&
+      WORDING_CHANGED_0320.every(k => LANGUAGE_FILE[k] !== undefined
+        && onlyNow.includes(asBefore(LANGUAGE_FILE[k]))) &&
+      onlyThen.includes('folgt der Sortierung') && onlyThen.includes('Note') &&
+      !onlyNow.includes('folgt der Sortierung') &&
       WORDING_CHANGED_0311.every(k => LANGUAGE_FILE[k] !== undefined) &&
       WORDING_CHANGED_0312.every(k => LANGUAGE_FILE[k] !== undefined
         && onlyNow.includes(asBefore(LANGUAGE_FILE[k]))) &&
@@ -19734,8 +20104,13 @@ function sweepLeftovers() {
        darueber statt im Rest -- „Zugang beantragen", vom Betreiber bestellt.
        DIE ZEILE BLEIBT DIE EIGENTLICHE ABNAHME: was niemand bestellt hat, ist
        Zeichen fuer Zeichen der Stand von 0681d42. */
+    /* 943 WURDEN 929 MIT 0.32.0: dreizehn Saetze mehr stehen in den Listen
+       darueber statt im Rest, und einer ist ganz gefallen („anderer
+       Benutzer"). DIE ZEILE BLEIBT DIE EIGENTLICHE ABNAHME: was diese Runde
+       nicht angefasst hat, ist Zeichen fuer Zeichen der Stand von 0681d42 --
+       neunhundertneunundzwanzig Saetze. */
     check('Und sonst kein Zeichen — Satz fuer Satz dieselbe Oberflaeche',
-      equal(restThen, restNow) && restNow.length === 943,
+      equal(restThen, restNow) && restNow.length === 929,
       `${restThen.filter((x, i) => x !== restNow[i]).length} abweichende von ${restNow.length}`);
 
     /* ---- 6. Die Kuerzeprobe ---------------------------------------------
@@ -20145,6 +20520,11 @@ function sweepLeftovers() {
     shortRun(`require('./db'); console.log('gelaufen');`, drDirectory);
 
     const drVocabularyAfter = drSetting('vocabulary');
+    /* VIERZEHN, UND SIE BLEIBEN VIERZEHN -- 0.32.0. Jene Runde legt ein
+       fuenfzehntes Vokabelwort an (`grade`), und VOCABULARY_FIELDS_0243 in
+       db.js waechst trotzdem nicht mit: die Tafel uebersetzt die ALTEN
+       deutschen Namen von 0.24.3, und „Note" hatte nie einen solchen Namen.
+       Eine fuenfzehnte Zeile dort waere eine erfundene Vergangenheit. */
     check('Die vierzehn Vokabeln tragen danach englische Namen',
       drVocabularyAfter.entryOne === 'Maschine' && drVocabularyAfter.entryMany === 'Maschinen' &&
       drVocabularyAfter.testedYes === 'Geprüft' && drVocabularyAfter.testedNo === 'Ungeprüft' &&
@@ -27688,7 +28068,27 @@ function sweepLeftovers() {
      `counted()`), und 1009 laesst dieselbe Vorschau die Sprache DES LESERS
      fragen statt der gezeigten -- der feinste der drei, weil er fuer einen
      tuerkischen Leser gar nichts aendert. */
-  check(`Es sind genau 1000 Rueckbauten`, gpList.length === 1000, `${gpList.length}`);
+  /* UND 1000 WURDEN 1017 MIT 0.32.0: siebzehn neue (1010 bis 1026), und ACHT
+     vorhandene sind nachgezogen -- 01, 04, 31, 44 und 378 (die Serverdateien
+     tragen ihre Saetze jetzt als Schluessel), 286 und 321 (die Glockenabfrage
+     ist eine Spalte breiter), 292, 315, 417, 617 und 621 (die Tafel ist
+     geteilt, der Kommentartext hat ein viertes Stueck, das Wort neben den
+     Statuspillen nennt seinen Wert) sowie 679, 961, 962, 972 und 992 (die
+     berichtigten Werte der Sprachdateien).
+     DREIZEHN DER VIERZEHN GEHOEREN JE EINER ZUSAGE DER RUNDE; die vierzehnte
+     ist die SCHWESTER der Gegenprobe 787, die Punkt 31 ausdruecklich verlangt
+     hat: sie setzt „Son yedekleme" auf „Son yedeğe" statt auf „Son yedek" --
+     und war bis 0.31.4 STUMM, weil der Waechter ein `k` suchte.
+     UND ZWEI DAZU FUER DEN AUFKLAPPER (1024, 1025): er fragt die Breite nicht
+     mehr, und die Messung laeuft gar nicht mehr.
+     UND EINER NACHGEREICHT (1026), weil 1023 STUMM BLIEB. 1023 nimmt die
+     Uebersetzung des Anbieternamens aus der AUSWAHLLISTE, und es wurde kein
+     Punkt rot: die Restprobe liest den Quelltext von server.js, und der Name
+     steht in mail.js. Der Pruefstand fragt seither den laufenden Server in
+     drei Sprachen -- und 1026 nimmt dieselbe Uebersetzung an der ZWEITEN
+     Stelle weg, in der Anzeige dessen, was eingerichtet ist. Macht SIEBZEHN
+     neue und 1017 im Ganzen. */
+  check(`Es sind genau 1017 Rueckbauten`, gpList.length === 1017, `${gpList.length}`);
   const gpTwice = gpList.map(r => r.nr).filter((n, i, a) => a.indexOf(n) !== i);
   check('Und keine Nummer steht zweimal', gpTwice.length === 0, gpTwice.join(' '));
   /* JEDER GREIFT: der Suchtext kommt in seiner Datei GENAU EINMAL vor. Keinmal
@@ -31253,8 +31653,17 @@ async function checkUi() {
      Sortierliste das Vorgabewort zurueckbekaeme. */
   const sortWorte = [...w2.document.querySelectorAll('#f-sort option')]
     .map(o => `${o.value}=${o.textContent}`);
-  check('Sortierung nennt Zeitpunkte und Note',
-    sortWorte.includes('tests=Sitzungen') && sortWorte.includes('testlast=Letzte Note'),
+  /* UND SEIT 0.32.0 IST „Note" DORT EIN VOKABELWORT -- Strang 2. Aus „Letzte
+     Note" ist „Zuletzt: {grade}" geworden, denn EIN FREIES WORT DULDET KEIN
+     ADJEKTIV VOR SICH: mit einem gewaehlten Wort wuerde daraus „Letzter
+     Tageswert", „Letztes Ergebnis" -- das Geschlecht wechselt mit dem Wort,
+     und die Sprachdatei kann es nicht wissen. Die Beschriftung ist deshalb
+     artikellos. Dasselbe an der Nachbarzeile: aus „Durchschnittsnote" (ein
+     ZUSAMMENGESETZTES Wort, und das darf ein Vokabelwort nie sein --
+     Leitplanke L6) ist „Durchschnitt: {grade}" geworden. */
+  check('Sortierung nennt Zeitpunkte und die Note artikellos — 0.32.0',
+    sortWorte.includes('tests=Sitzungen') && sortWorte.includes('testlast=Zuletzt: Note')
+    && sortWorte.includes('testavg=Durchschnitt: Note'),
     JSON.stringify(sortWorte));
   check('Karte zaehlt Zeitpunkte in der Mehrzahl', textList.includes('2 Sitzungen'));
 
@@ -31271,12 +31680,20 @@ async function checkUi() {
   await new Promise(r => setTimeout(r, 60));
   await sysSection(w3, 'inventory');
 
-  const fields = ['v1','v2','v3','v4','v5','v6','v7','v8','v9','v10','v11','v12','v13','v14']
+  const fields = ['v1','v2','v3','v4','v5','v6','v7','v8','v9','v10','v11','v12','v13','v14','v15']
     .map(id => w3.document.getElementById(id));
-  // VIERZEHN SEIT 0.22.0 (E14); umgedreht, nicht geloescht (Stolperstein 74).
-  check('Vierzehn Vokabelfelder stehen bereit — 0.22.0', fields.every(Boolean),
+  /* VIERZEHN SEIT 0.22.0 (E14), FUENFZEHN SEIT 0.32.0; umgedreht, nicht
+     geloescht (Stolperstein 74). 0.22.0 hat dieselbe Zahl schon einmal von
+     zwoelf auf vierzehn gedreht und es ausdruecklich notiert -- eine Zahl,
+     die still waechst, faellt sonst niemandem auf. */
+  check('Fuenfzehn Vokabelfelder stehen bereit — 0.32.0', fields.every(Boolean),
     fields.map((f, n) => f ? '' : `v${n + 1} fehlt`).filter(Boolean).join(' '));
-  check('Felder sind vorbelegt', fields[0].value === 'Maschine' && fields[5].value === 'Sitzungen');
+  /* UND ALLES DARUNTER FRAGT MIT `?.` -- 0.32.0, aus der Gegenprobe 1014
+     gelernt. Ein Rueckbau, der ein Feld aus der Tafel nimmt, liess die Zeilen
+     hier an `null.value` ABREISSEN statt rot zu werden -- und ein abgerissener
+     Lauf belegt nichts (Stolpersteine 138, 161 und 170). Die Zeile darueber
+     sagt, WELCHES Feld fehlt; die darunter duerfen daran nicht sterben. */
+  check('Felder sind vorbelegt', fields[0]?.value === 'Maschine' && fields[5]?.value === 'Sitzungen');
   /* WAS NICHT EINGETRAGEN IST, STEHT ALS LEERES FELD DA -- 0.24.4, und das
      ist eine ANDERE Zusicherung als bis 0.24.3. Dort trugen diese acht Felder
      die VORGABE als Wert, und das sah richtig aus: „Bericht" stand da, also
@@ -31291,10 +31708,10 @@ async function checkUi() {
      und der wird zwei Zeilen weiter geprueft. Ein leeres Feld ist damit keine
      Auslassung, sondern eine Aussage: „fuer diese Sprache ist nichts
      eingetragen". */
-  const empties = [6, 7, 8, 9, 10, 11, 12, 13];
+  const empties = [6, 7, 8, 9, 10, 11, 12, 13, 14];
   check('Und was nicht eingetragen ist, steht leer da — 0.24.4',
-    empties.every(n => fields[n].value === ''),
-    empties.map(n => `v${n + 1}=${JSON.stringify(fields[n].value)}`).join(' '));
+    empties.every(n => fields[n]?.value === ''),
+    empties.map(n => `v${n + 1}=${JSON.stringify(fields[n]?.value)}`).join(' '));
   /* UND DIE VORGABE STEHT TROTZDEM DA, nur eben als Hinweis und nicht als
      Wert. Ohne diese Zeile bliebe die daruber auch dann gruen, wenn die Karte
      die Vorgabe gar nicht mehr naennte -- und dann wuesste niemand mehr, was
@@ -31311,14 +31728,20 @@ async function checkUi() {
   check('Das Wort für den Potenzialkasten steht da', !!fields[11], 'v12 fehlt');
   check('Das Paar für die Bewertung steht da — 0.22.0',
     !!fields[12] && !!fields[13], 'v13/v14 fehlt');
+  /* UND DAS FUENFZEHNTE SEIT 0.32.0 -- das Wort fuer die Zahl am Zeitpunkt.
+     EIN WORT UND KEIN PAAR, wie `potential`: kein Wert schreibt „Noten". */
+  check('Das Wort für die Zahl am Zeitpunkt steht da — 0.32.0',
+    !!fields[14] && /Vorgabe: Note/.test(
+      (w3.document.querySelector('label[for=v15]') || {}).textContent || ''),
+    'v15 fehlt');
   /* JEDES FELD NENNT SEINE VORGABE -- 0.22.0: „Sache, Einzahl" allein sagte
      nicht, was dort steht, wenn man das Feld leert. */
   check('Und jede Beschriftung nennt die Vorgabe',
-    [...w3.document.querySelectorAll('label[for^="v"]')].filter(l => /^v\d+$/.test(l.htmlFor)).length === 14 &&
+    [...w3.document.querySelectorAll('label[for^="v"]')].filter(l => /^v\d+$/.test(l.htmlFor)).length === 15 &&
     [...w3.document.querySelectorAll('label[for^="v"]')].filter(l => /^v\d+$/.test(l.htmlFor))
       .every(l => /Vorgabe: /.test(l.textContent)),
     [...w3.document.querySelectorAll('label[for^="v"]')].map(l => l.textContent.trim()).join(' | '));
-  check('Keine weiteren Felder', !w3.document.getElementById('v15'));
+  check('Keine weiteren Felder', !w3.document.getElementById('v16'));
   check('Probe zeigt die aktuellen Woerter',
     w3.document.getElementById('vpreview').textContent.includes('+ Maschine'));
   fields[0].value = 'Objekt';
@@ -31465,7 +31888,7 @@ async function checkUi() {
         /blocks/i.test(spHint()), spHint());
       /* UND DIE VIERZEHN WOERTER GEHEN MIT. Das ist der Befund: bis 0.24.3
          war die Zeile darueber gruen und diese hier rot. */
-      check('Und die vierzehn Vokabelwoerter gehen mit — 0.24.4 (B9)',
+      check('Und die fuenfzehn Vokabelwoerter gehen mit — 0.24.4 (B9)',
         /Entries/.test(spHint()) && !/Einträge/.test(spHint()), spHint());
     }
     wSp.close();
@@ -32316,7 +32739,7 @@ async function checkUi() {
 
     /* ---- DIE KACHEL „VOKABULAR" MIT DENSELBEN ZUSAGEN — 0.25.0 --------
        *„Das gilt natürlich auch für Vokabular."* -- der Betreiber,
-       9. September 2026. An der KETTE dort aendert sich nichts: die vierzehn
+       9. September 2026. An der KETTE dort aendert sich nichts: die fuenfzehn
        Woerter kennen keine Grundzeile, ihre Tafeln tragen je Sprache nur
        Eingetragenes, und der Rueckfall auf die Vorgabe der Sprachdatei bleibt,
        wie er ist. Es ist eine Frage der Darstellung und nicht der Ablage. */
@@ -32330,11 +32753,12 @@ async function checkUi() {
       const wVg = vgDom.w;
       await new Promise(r => setTimeout(r, 80));
       await sysSection(wVg, 'inventory');
-      /* VIERZEHN WOERTER, EINES EINGETRAGEN: Deutsch fehlen dreizehn, den
-         beiden anderen alle vierzehn. Kein Punkt an einer einzigen Pille --
-         und genau das ist die Lage einer frischen Installation. */
+      /* FUENFZEHN WOERTER SEIT 0.32.0, EINES EINGETRAGEN: Deutsch fehlen
+         vierzehn, den beiden anderen alle fuenfzehn. Kein Punkt an einer
+         einzigen Pille -- und genau das ist die Lage einer frischen
+         Installation. */
       check('Vokabelprobe: Punkt und Zahl stehen auch an der Kachel „Vokabular"',
-        axMarks(wVg, 'vlang') === 'Deutsch:13 English:14 Türkçe:14',
+        axMarks(wVg, 'vlang') === 'Deutsch:14 English:15 Türkçe:15',
         axMarks(wVg, 'vlang'));
       check('Und die Kachel traegt den Rahmen, solange der gezeigten Sprache etwas fehlt',
         axFramed(wVg, 'vlang'), 'kein Rahmen an der Kachel „Vokabular"');
@@ -32355,7 +32779,7 @@ async function checkUi() {
     {
       const vfWords = Object.fromEntries(['entryOne', 'entryMany', 'testedYes', 'testedNo',
         'dayOne', 'dayMany', 'reportOne', 'reportMany', 'taskOne', 'taskMany', 'taskDone',
-        'potential', 'ratingOne', 'ratingMany'].map(k => [k, 'X']));
+        'potential', 'ratingOne', 'ratingMany', 'grade'].map(k => [k, 'X']));
       const vfDom = buildDom(JSDOM, {
         settings: { filters: null, language: 'de', languages: axLanguages('de'),
                     vocabulariesOwn: { de: vfWords, en: vfWords, tr: vfWords } },
@@ -32392,16 +32816,16 @@ async function checkUi() {
         return note ? (note.textContent || '').trim() : '';
       };
       check('Ansageprobe: mit der deutschen Vorgabe steht schon eine Ansage da',
-        anNote().includes('Deutsch') && /13/.test(anNote()), JSON.stringify(anNote()));
+        anNote().includes('Deutsch') && /14/.test(anNote()), JSON.stringify(anNote()));
       await axSetDefault(wAn, 'tr');
       /* NACH DEM WECHSEL: Tuerkisch fehlen vier Namen (die Zeile 21 in beiden
          Kriterienkarten und die Kategorie 21 -- alles, was nur deutsch da ist)
-         und alle vierzehn Vokabelwoerter. Gezaehlt wird aus den Tafeln, die
+         und alle fuenfzehn Vokabelwoerter. Gezaehlt wird aus den Tafeln, die
          der Wechsel mitgebracht hat; ohne das rechnete die Ansage mit einer
          neuen Vorgabe auf einer alten Tafel (Befund E3 der Runde 0.24.6, an
          einer neuen Stelle). */
       check('Und nach dem Wechsel nennt sie die neue Vorgabesprache und beide Zahlen',
-        anNote().includes('Türkçe') && /4/.test(anNote()) && /14/.test(anNote()),
+        anNote().includes('Türkçe') && /4/.test(anNote()) && /15/.test(anNote()),
         JSON.stringify(anNote()));
       wAn.close();
     }
@@ -32410,7 +32834,7 @@ async function checkUi() {
     {
       const avWords = Object.fromEntries(['entryOne', 'entryMany', 'testedYes', 'testedNo',
         'dayOne', 'dayMany', 'reportOne', 'reportMany', 'taskOne', 'taskMany', 'taskDone',
-        'potential', 'ratingOne', 'ratingMany'].map(k => [k, 'X']));
+        'potential', 'ratingOne', 'ratingMany', 'grade'].map(k => [k, 'X']));
       const avDom = buildDom(JSDOM, {
         settings: { filters: null, language: 'de',
                     languages: [{ code: 'de', name: 'Deutsch', isDefault: true, active: true }],
@@ -32850,8 +33274,27 @@ async function checkUi() {
        Wortlauts, und der steht in der Sprachdatei. Ein Waechter ueber alle
        Saetze faengt auch den, der in einem Jahr dazukommt -- eine Probe an
        einer einzelnen Karte faenge ihn nicht.
-       `yedekleme` UND `yedeklemeden` SIND NICHT BETROFFEN: hinter `yedek`
-       steht dort ein Wortzeichen, und die Wortgrenze fehlt. */
+       `yedekleme` UND `yedeklemeden` SIND NICHT BETROFFEN: dahinter geht das
+       Wort weiter, und der Stamm allein steht nicht da.
+
+       OHNE `\b`, UND ZWAR SEIT 0.32.0 (Punkt 31 des Sammelblatts, Leitplanke
+       L4). Der Waechter von 0.25.1 las `/\byedek(ler|leri|le|tir)?\b/` und
+       war an ZWEI Stellen blind:
+         DIE KONSONANTENERWEICHUNG. Tuerkisch erweicht den Auslaut vor einer
+         Vokalendung: aus `yedek` wird `yedeğe`, `yedeği`, `yedeğin`. Der
+         Waechter suchte ein `k` und fand das `ğ` nicht -- ein Wert stand so
+         dreissig Runden lang da (`card.neverSameBackup`, in 0.31.3
+         berichtigt).
+         UND DIE WORTGRENZE SELBST. Fuer JavaScript sind `ş`, `ğ`, `ı`, `ç`,
+         `ö`, `ü` KEINE Wortzeichen: hinter `yedeği` folgt ein `i`, das ist
+         eines -- aber hinter `yedeğ` steht ein `ğ`, und dort steht eine
+         Wortgrenze, wo keine ist. Ein Waechter ueber tuerkischen Text kommt
+         deshalb ohne `\b` aus; das ist die allgemeine Lehre und nicht die
+         Ausnahme dieser Stelle.
+       WAS DER NEUE STAMM LIEST: `yedek` und `yedeğ` mit allem, was an Endung
+       folgt -- und `yedekleme…` bleibt ausdruecklich ausgenommen. Vorn steht
+       ein Ausschluss statt einer Grenze (kein Buchstabe davor), hinten gar
+       nichts: was nach dem Stamm kommt, ist gerade das Gesuchte. */
     group('„Backup" heisst auf Tuerkisch yedekleme — 0.25.1');
     {
       const ydFlat = [];
@@ -32869,10 +33312,60 @@ async function checkUi() {
       const ydGood = ydFlat.filter(([, v]) => /yedekleme/i.test(v));
       check('Aufbau: die tuerkische Datei spricht wirklich von Sicherungen',
         ydGood.length >= 40, `${ydGood.length} Saetze mit „yedekleme"`);
-      const ydBad = ydFlat.filter(([, v]) => /\byedek(ler|leri|le|tir)?\b/i.test(v));
+      const YEDEK_STEM = /(?<![\p{L}])yede[kğ](?!leme)[\p{L}]*/iu;
+      const ydBad = ydFlat.filter(([, v]) => YEDEK_STEM.test(v));
       check('Kein alleinstehendes „yedek" mehr — es heisst ueberall yedekleme',
         ydBad.length === 0,
         ydBad.map(([k, v]) => `${k}: ${v}`).join(' · ') || 'keins');
+      /* UND DER WAECHTER FINDET WIRKLICH BEIDE AUSLAUTE. Ohne diese Zeile
+         bliebe die darueber auch dann gruen, wenn das Muster gar nichts mehr
+         faende -- und genau so ist die Erweichung dreissig Runden lang
+         durchgekommen (Stolperstein 81). */
+      check('Und der Waechter sieht die Konsonantenerweichung — `yedeğe` faellt auf',
+        YEDEK_STEM.test('asla aynı yedeğe koyma') && YEDEK_STEM.test('Son yedek') &&
+        YEDEK_STEM.test('yedeği al') && YEDEK_STEM.test('yedekler') &&
+        !YEDEK_STEM.test('Son yedekleme') && !YEDEK_STEM.test('yedeklemeden sonra') &&
+        !YEDEK_STEM.test('yedeklemeler'),
+        'der Stamm liest zu viel oder zu wenig');
+      /* UND DIE ALLGEMEINE ZEILE DAZU -- 0.32.0, Leitplanke L4: KEIN Waechter
+         ueber tuerkischen Text arbeitet mit `\b`. Gelesen wird der Quelltext
+         dieser Datei und der der Gegenproben; gesucht wird die Wortgrenze in
+         der Nachbarschaft eines tuerkischen Wortstamms.
+         NAMENTLICH UND NICHT ALS REGEL „nirgends ein \b": die Datei prueft
+         auch deutschen und englischen Text, und dort ist die Wortgrenze
+         richtig. Was hier zaehlt, sind die Muster ueber tuerkische Woerter. */
+      const TR_GUARD_WORDS = ['yedek', 'yedeğ', 'görev', 'öğe', 'değerlendirme',
+        'şey', 'günlük', 'yorum'];
+      /* GELESEN WERDEN DIE MUSTER SELBST und nicht die Datei als Text: die
+         Zerlegung aus tools/segments.js liefert jedes `/…/`-Literal einzeln,
+         und damit faellt aus, was in einem KOMMENTAR oder in einer
+         Zeichenfolge steht. Ohne sie meldete diese Zeile den Waechter von
+         0.25.1, der zwei Absaetze weiter oben als abgeloestes Beispiel
+         zitiert wird -- ein Fehlalarm, und ein Fehlalarm macht eine Probe
+         wertlos. */
+      const trGuardBad = [];
+      for (const file of ['testbench.js', 'counterproof.js'])
+        for (const part of zerlege(fs.readFileSync(path.join(__dirname, file), 'utf8'), file)) {
+          if (part.kind !== REGEX || !part.wert.includes('\\b')) continue;
+          const low = part.wert.toLowerCase();
+          if (TR_GUARD_WORDS.some(w => low.includes(w))) trGuardBad.push(`${file}: ${part.wert}`);
+        }
+      /* EINE AUSNAHME, UND SIE IST DER BEWEIS SELBST. `/\bŞey\b/` steht in der
+         Zeile, die ZEIGT, dass die Wortgrenze versagt -- sie prueft
+         ausdruecklich `!/\bŞey\b/.test('Şey, tekil')`. Ein Gegenbeispiel ist
+         kein Waechter; naehme man es heraus, verschwaende der Beleg. */
+      const TR_GUARD_NAMED = ['/\\bŞey\\b/'];
+      const trGuardLeft = trGuardBad.filter(x => !TR_GUARD_NAMED.some(a => x.endsWith(a)));
+      check('Kein Waechter ueber tuerkischen Text arbeitet mit einer Wortgrenze — 0.32.0 (L4)',
+        trGuardLeft.length === 0, trGuardLeft.slice(0, 4).join(' · ') || 'keiner');
+      /* UND DER LESER FINDET WIRKLICH ETWAS. Ohne diese Zeile waere die Zeile
+         darueber auch dann gruen, wenn die Zerlegung kein einziges Muster
+         lieferte (Stolperstein 81) -- und die eine Ausnahme muss auch wirklich
+         dastehen, sonst ist sie eine Karteileiche. */
+      check('Und der Leser findet das eine benannte Gegenbeispiel',
+        trGuardBad.length === TR_GUARD_NAMED.length &&
+        TR_GUARD_NAMED.every(a => trGuardBad.some(x => x.endsWith(a))),
+        trGuardBad.join(' · ') || 'keins');
     }
 
     /* ================= Zwei Felder in einer Zeile stehen auf einer Linie ===
@@ -36469,6 +36962,85 @@ async function checkUi() {
     wb.splitCommentText('Vor https://a.de/x, mitte www.b.de. Ende')
       .every(s => !s.matched),
     JSON.stringify(wb.splitCommentText('Vor https://a.de/x, mitte www.b.de. Ende')));
+
+  /* ---- ZUSAGE 2 DER RUNDE 0.32.0: DIE MARKIERUNG IST DAS VIERTE STUECK ----
+     SEIT 0.18.0 ENTSTEHT DER KOMMENTARTEXT ALS ECHTE KNOTEN UND NIE ALS
+     STRING. Leitplanke L2 verlangt, dass die Markierung ein VIERTES Stueck
+     DIESER Zerlegung wird und kein `replace()` ueber ihr Ergebnis: wer das
+     umdreht, holt Markup in einen Text, der ausdruecklich keines tragen darf.
+     WELCHE `@…` EINE MARKIERUNG SIND, SAGT DER SERVER. Die Zerlegung bekommt
+     seine Liste gereicht und sucht nicht selbst -- ein Tippfehler steht in
+     keiner Liste und bleibt gewoehnlicher Text. */
+  const marks = [{ handle: 'bert', author: { id: 2, name: 'bert', deleted: false } }];
+  const mentionPieces = wb.splitCommentText('Hallo @bert und @bret', '', marks);
+  check('Markierprobe: `@bert` wird ein eigenes Stueck, `@bret` nicht',
+    mentionPieces.filter(s => s.mention).length === 1 &&
+    mentionPieces.filter(s => s.mention)[0].text === '@bert' &&
+    mentionPieces.map(s => s.text).join('').includes('@bret'),
+    JSON.stringify(mentionPieces));
+  /* UND OHNE LISTE ENTSTEHT KEIN EINZIGES VIERTES STUECK -- der Rohtext bleibt
+     Rohtext. Ohne diese Zeile bliebe offen, ob das Muster doch selbst sucht. */
+  check('Und ohne die Liste des Servers entsteht kein viertes Stueck',
+    wb.splitCommentText('Hallo @bert und @bret', '').every(s => !s.mention),
+    JSON.stringify(wb.splitCommentText('Hallo @bert und @bret', '')));
+  /* DER ANGEZEIGTE NAME KOMMT AUS DER NUMMER UND NIE AUS DEM TEXT (L9): ein
+     geloeschter Zugang steht als „Gelöschter Benutzer 7" da, ein umbenannter
+     unter seinem HEUTIGEN Namen. Der Rohtext sagt beide Male `@bert`. */
+  const tombMarks = [{ handle: 'bert', author: { id: 7, name: null, deleted: true } }];
+  const tombPieces = wb.splitCommentText('Hallo @bert', '', tombMarks);
+  check('Zusage 4, an der Oberflaeche: ein Grabstein steht als „Gelöschter Benutzer 7"',
+    tombPieces.filter(s => s.mention)[0]?.text === '@Gelöschter Benutzer 7',
+    JSON.stringify(tombPieces));
+  const renamedPieces = wb.splitCommentText('Hallo @bert', '',
+    [{ handle: 'bert', author: { id: 2, name: 'bertram', deleted: false } }]);
+  check('Und ein umbenannter Zugang steht unter seinem heutigen Namen',
+    renamedPieces.filter(s => s.mention)[0]?.text === '@bertram',
+    JSON.stringify(renamedPieces));
+  /* EINE ADRESSE IST KEINE MARKIERUNG, und ein laengerer Name gewinnt gegen
+     den kuerzeren -- sonst truege `@anna` die Markierung, wo `@annabelle`
+     steht und beide Namen vergeben sind. */
+  check('Eine Adresse bleibt eine Adresse — `bert@beispiel.de` wird nicht markiert',
+    wb.splitCommentText('Schreib an bert@beispiel.de', '', marks)
+      .every(s => !s.mention),
+    JSON.stringify(wb.splitCommentText('Schreib an bert@beispiel.de', '', marks)));
+  const twoNames = [{ handle: 'anna', author: { id: 3, name: 'anna', deleted: false } },
+                    { handle: 'annabelle', author: { id: 4, name: 'annabelle', deleted: false } }];
+  check('Und der laengere Name gewinnt gegen den kuerzeren',
+    wb.splitCommentText('Hallo @annabelle', '', twoNames)
+      .filter(s => s.mention)[0]?.text === '@annabelle',
+    JSON.stringify(wb.splitCommentText('Hallo @annabelle', '', twoNames)));
+  /* UND AM KNOTEN: ein eigenes Element mit eigener Klasse, ueber textContent
+     gesetzt. `<mark>` waere dasselbe Element wie eine Fundstelle der Suche --
+     zwei verschiedene Sachen an einem Ort. */
+  const mentionNode = build(wb.splitCommentText('Hallo @bert', '', marks));
+  check('Zusage 2: die Markierung entsteht als Knoten und nie als String',
+    mentionNode.querySelectorAll('.mention').length === 1 &&
+    mentionNode.querySelector('.mention')?.tagName === 'SPAN' &&
+    mentionNode.querySelectorAll('mark').length === 0,
+    mentionNode.querySelector('.mention')?.outerHTML);
+  /* UND MARKUP IM ROHTEXT BLEIBT TEXT -- die Zusage aus 0.5.4, jetzt mit dem
+     vierten Stueck im Spiel. */
+  const mentionEvil = build(wb.splitCommentText('<b>x</b> @bert', '', marks));
+  check('Und Markup im Rohtext bleibt auch daneben Text',
+    mentionEvil.querySelectorAll('b').length === 0 &&
+    mentionEvil.textContent === '<b>x</b> @bert',
+    mentionEvil.textContent);
+  /* UND DIE ZERLEGUNG VERLIERT AUCH HIER KEIN ZEICHEN -- ausser dort, wo der
+     angezeigte Name ausdruecklich ein anderer ist als der geschriebene. */
+  check('Und die Zerlegung verliert und erfindet kein Zeichen',
+    wb.splitCommentText('Vor @bert mitte https://a.de/x Ende', '', marks)
+      .map(s => s.text).join('') === 'Vor @bert mitte https://a.de/x Ende',
+    JSON.stringify(wb.splitCommentText('Vor @bert mitte https://a.de/x Ende', '', marks)
+      .map(s => s.text)));
+  /* UND DAS STILBLATT GIBT IHR EINE EIGENE FARBE. Orange ist das Signal der
+     SUCHE; stuende die Markierung in derselben Farbe, waere in einem Kommentar
+     mit Treffern nicht mehr zu sehen, was gefunden und was markiert ist. */
+  const cssMention = fs.readFileSync(path.join(__dirname, 'public', 'style.css'), 'utf8')
+    .replace(/\s+/g, ' ');
+  check('Und das Stilblatt gibt ihr eine eigene Farbe — nicht die der Suche',
+    /\.mention \{[^}]*background: var\(--blue-dim\)[^}]*\}/.test(cssMention) &&
+    /\.mention \{[^}]*color: var\(--blue\)[^}]*\}/.test(cssMention),
+    (cssMention.match(/\.mention \{[^}]*\}/) || ['(keine Regel)'])[0]);
 
   // Aussehen laesst sich hier nur am Stylesheet pruefen (Abschnitt 7).
   const cssK = fs.readFileSync(path.join(__dirname, 'public', 'style.css'), 'utf8').replace(/\s+/g, ' ');
@@ -43268,9 +43840,20 @@ async function checkUi() {
      Ansicht sucht, sucht sie dort, wo die Filter stehen. Es bleibt bei
      zwanzig Karten im Systembereich. */
   check('Die Ansichten stehen in der Filterzeile', !!ansRow(), 'keine Zeile „Ansichten"');
-  check('Und die Zeile steht auch leer da, mit dem Knopf zum Speichern',
-    ansPills().length === 1 && /Ansicht speichern/.test(ansPills()[0]),
-    JSON.stringify(ansPills()));
+  /* UND DER KNOPF IST SEIT 0.32.0 KEINE PILLE MEHR -- Bauabschnitt 10. Der
+     Betreiber (13.9.2026): „Ansicht speichern wirkt wie ein auswahl eines
+     gespeicherten ansicht. den am besten nur als text … nicht als
+     (pillen)schaltfläche". Eine Pille neben Pillen liest sich als eine von
+     ihnen; jetzt traegt er `.link-btn` wie „Filter zuruecksetzen" am anderen
+     Ende derselben Zeile. DIE ZEILE IST DAMIT LEER AN PILLEN, solange keine
+     Ansicht gespeichert ist -- und genau das haelt diese Zeile fest. */
+  const ansSaveButton = () => ansRow()?.querySelector('#ansicht-neu');
+  check('Und die Zeile steht auch leer da, mit dem Knopf zum Speichern — als Text, nicht als Pille',
+    ansPills().length === 0 && !!ansSaveButton()
+    && /Ansicht speichern/.test(ansSaveButton().textContent)
+    && ansSaveButton().classList.contains('link-btn')
+    && !ansSaveButton().classList.contains('pill'),
+    `${JSON.stringify(ansPills())} · ${ansSaveButton()?.className}`);
 
   // Erst etwas einstellen, damit die Ansicht auch etwas zu merken hat.
   const ansFav = ansW.document.getElementById('f-fav');
@@ -47321,8 +47904,15 @@ async function checkUi() {
        ERST DAS VORHANDENSEIN, DANN DIE VERNEINUNG (Stolperstein 81): ein
        ersatzloses Loeschen des Absatzes bliebe sonst gruen. */
     const glSentence = (panel?.textContent || '').replace(/\s+/g, ' ');
-    check('Sie sagt, dass sie die Beitraege der ANDEREN meldet',
-      /Neue Kommentare und Bewertungen anderer Benutzer/.test(glSentence), glSentence.slice(0, 200));
+    /* SEIT 0.32.0 SAGT ER MEHR -- F4. Er nennt die drei Herkuenfte, nach denen
+       die Tafel darunter trennt: an dich gerichtet, deine {entryMany}, alles
+       andere. Bis 0.31.4 stand dort „Neue Kommentare und {ratingMany} anderer
+       Benutzer, seit du diese Liste zuletzt geoeffnet hast" -- sachlich
+       richtig und ohne Antwort auf die Frage, die sich der Leser stellt. */
+    check('Sie sagt, dass sie die Beitraege der ANDEREN meldet — und nach welcher Herkunft',
+      /Was andere seit deinem letzten Besuch eingetragen haben/.test(glSentence)
+      && /an dich gerichtet/.test(glSentence) && /alles andere/.test(glSentence),
+      glSentence.slice(0, 200));
     check('Und sie verspricht nicht mehr die eigenen mit',
       !/von allen/.test(glSentence) && !/eigenen stehen mit da/.test(glSentence),
       glSentence.slice(0, 200));
@@ -49022,8 +49612,13 @@ async function checkUi() {
   {
     const d = await ksBuild({ ...ksDefault, sort: 'potential_desc' });
     const word = d.w.document.getElementById('f-status-from');
-    check('Neben den Statuspillen steht, woher die Stellung kommt',
-      word?.textContent === 'folgt der Sortierung', JSON.stringify(word?.textContent));
+    /* UND SEIT 0.32.0 STEHT AUCH DA, WAS ABGELEITET WIRD -- Bauabschnitt 9.
+       Bis 0.31.4 sagte das Wort, DASS abgeleitet wird, aber nicht WAS: dass
+       gerade nur Ungetestete in der Liste stehen, erfuhr man allein, indem man
+       sie zaehlte (Fahrplan, Frage 3). Das Wort kommt aus dem VOKABULAR. */
+    check('Neben den Statuspillen steht, woher die Stellung kommt — und was sie ist',
+      word?.textContent === 'folgt der Sortierung: Ungetestet',
+      JSON.stringify(word?.textContent));
     check('Und es ist eine zweite Beschriftung ohne eigene Spalte',
       word?.classList.contains('eyebrow-with'), word?.className);
     check('Es steht in derselben Zeile wie die Statuspillen',
@@ -49066,6 +49661,37 @@ async function checkUi() {
       !d.w.document.getElementById('f-status-from') &&
       ksPill(d, 'Ungetestet')?.classList.contains('on'),
       `${d.w.document.getElementById('f-status-from')?.textContent} · ${ksPill(d, 'Ungetestet')?.className}`);
+    /* ---- ZUSAGE 13 DER RUNDE 0.32.0: DIE HARTE KANTE SAGT, WAS SIE TUT ----
+       EIN EINZIGER KLICK AUF EINE STATUSPILLE SCHALTET DIE VORGABE FUER DIE
+       GANZE SITZUNG AB -- nicht nur fuer diese eine Sortierung --, und bis
+       0.31.4 stand das NIRGENDS. Zurueck kommt sie allein ueber „Filter
+       zuruecksetzen", und dass dieser Knopf auch die Automatik zurueckholt,
+       wusste ebenfalls niemand (Fahrplan, Fragen 1 und 2).
+       EIN UNSICHTBARER AUTOMATISMUS IST EIN FEHLER -- und seine unsichtbare
+       ABSCHALTUNG ist derselbe Fehler von der anderen Seite. */
+    const byHand = d.w.document.getElementById('f-status-byhand');
+    check('Zusage 13: nach der Handwahl steht da, dass sie eine ist',
+      byHand?.textContent === 'von Hand gewählt', JSON.stringify(byHand?.textContent));
+    check('Und der Satz dazu nennt die Sitzung und den Weg zurueck',
+      /Sitzung/.test(byHand?.title || '') && /zurücksetzen/.test(byHand?.title || ''),
+      byHand?.title);
+    check('Und der eingeklappte Schalter sagt dasselbe',
+      d.w.document.querySelector('#filter-toggle .fcount')?.textContent
+        === '· von Hand gewählt',
+      JSON.stringify(d.w.document.querySelector('#filter-toggle .fcount')?.textContent));
+    d.w.close();
+  }
+  {
+    /* UND OHNE ABLEITUNG STEHT AUCH DER SATZ ZUR HANDWAHL NICHT DA -- 0.32.0.
+       Bei „Zuletzt geaendert" gibt die Sortierung nichts vor; es gibt dort
+       also auch keine abgeschaltete Vorgabe, und eine Auskunft darueber waere
+       dieselbe Falle wie eine Null am Zaehler „Offen". */
+    const d = await ksBuild({ ...ksDefault, sort: 'updated_desc' });
+    await ksClickable(d, ksPill(d, 'Getestet'));
+    check('Ohne Vorgabe steht auch nach einer Handwahl kein Wort da',
+      !d.w.document.getElementById('f-status-byhand') &&
+      !d.w.document.getElementById('f-status-from'),
+      `${d.w.document.getElementById('f-status-byhand')?.textContent}`);
     d.w.close();
   }
   {
@@ -49125,8 +49751,9 @@ async function checkUi() {
     /* GESAGT WIRD SIE TROTZDEM, nur in Worten statt in einer Zahl: eingeklappt
        ist das Wort neben den Pillen nicht zu sehen, und der Schalter ist dann
        der einzige Ort, der noch spricht. Regel 4 gilt an beiden Orten. */
-    check('Der Schalter sagt sie stattdessen im Wort',
-      d.w.document.querySelector('#filter-toggle .fcount')?.textContent === '· folgt der Sortierung',
+    check('Der Schalter sagt sie stattdessen im Wort — und nennt denselben Wert',
+      d.w.document.querySelector('#filter-toggle .fcount')?.textContent
+        === '· folgt der Sortierung: Ungetestet',
       JSON.stringify(d.w.document.querySelector('#filter-toggle .fcount')?.textContent));
     d.w.close();
   }
@@ -49139,7 +49766,8 @@ async function checkUi() {
       d.w.document.getElementById('filter-zurueck')?.textContent === 'Filter zurücksetzen (1)',
       JSON.stringify(d.w.document.getElementById('filter-zurueck')?.textContent));
     check('Und die Ableitung schiebt die Zahl nicht hoch',
-      d.w.document.querySelector('#filter-toggle .fcount')?.textContent === '· 1 aktiv · folgt der Sortierung',
+      d.w.document.querySelector('#filter-toggle .fcount')?.textContent
+        === '· 1 aktiv · folgt der Sortierung: Ungetestet',
       JSON.stringify(d.w.document.querySelector('#filter-toggle .fcount')?.textContent));
     d.w.close();
   }
@@ -50354,17 +50982,49 @@ async function checkUi() {
       /mail\.setTranslator\(t\);/.test(sdSrv) &&
       /auth\.setTranslator\(\(req, key, values\) =>/.test(sdSrv),
       `mail: ${/mail\.setTranslator/.test(sdSrv)} · auth: ${/auth\.setTranslator/.test(sdSrv)}`);
-    /* DIE VORGABEN DER VIERZEHN VOKABELWOERTER KOMMEN AUS DER DATEI -- eine
+    /* DIE VORGABEN DER FUENFZEHN VOKABELWOERTER KOMMEN AUS DER DATEI -- eine
        Vorgabe, ein Ort (Stolperstein 47). Bis 0.24.0 standen sie zweimal im
        Quelltext. */
     const sdVok = Object.keys(sdDe).filter(k => k.startsWith('vocabulary.'));
-    check('Die vierzehn Vokabelvorgaben stehen in der Sprachdatei',
-      sdVok.length === 14 && sdDe['vocabulary.entryOne'] === 'Eintrag',
+    check('Die fuenfzehn Vokabelvorgaben stehen in der Sprachdatei',
+      sdVok.length === 15 && sdDe['vocabulary.entryOne'] === 'Eintrag'
+        && sdDe['vocabulary.grade'] === 'Note',
       `${sdVok.length} Wörter: ${sdVok.map(k => k.slice(10)).join(' ')}`);
     // Im Server steht sie nicht mehr; die zweite Ausfertigung in app.js faellt
     // mit Bauabschnitt 3, und die Zeile dazu steht in dessen Gruppe.
     check('Und im Server steht keine zweite Liste mehr',
       !/VOKABULAR_VORGABE/.test(sdSrv), `VOKABULAR_VORGABE in server.js: ${/VOKABULAR_VORGABE/.test(sdSrv)}`);
+    /* ---- ZUSAGE 7 DER RUNDE 0.32.0: KEIN VOKABELWORT STEHT ZUSAMMENGESETZT --
+       EIN FREIES WORT DARF NIE IN EIN ANDERES VERBAUT WERDEN (Leitplanke L6,
+       seit 0.21.0): „Potenzialkriterien" liest sich harmlos, und wer
+       „Potenzial" in „Erwartung" umbenennt, liest „Erwartungkriterien" -- ohne
+       Fugen-s, und niemand hat es geschrieben.
+       GEPRUEFT WIRD AN ALLEN DREI DATEIEN und nicht nur an der deutschen: die
+       Regel gilt der FORM, und ein tuerkisches `{entryMany}ler` waere derselbe
+       Fehler.
+       EIN BUCHSTABE UNMITTELBAR DAVOR ODER DAHINTER IST DER FUND. Ein
+       Doppelpunkt, ein Komma, ein Leerzeichen, ein Anfuehrungszeichen sind
+       keiner -- „Zuletzt: {grade}" ist gerade die richtige Form. */
+    const VOC_NAMES = sdVok.map(k => k.slice('vocabulary.'.length));
+    const sdGlued = [];
+    for (const code of ['de', 'en', 'tr']) {
+      const file = JSON.parse(fs.readFileSync(
+        path.join(__dirname, 'public', 'languages', `${code}.json`), 'utf8'));
+      for (const [k, v] of Object.entries(file))
+        for (const text of (typeof v === 'string' ? [v] : Object.values(v)))
+          for (const name of VOC_NAMES)
+            if (new RegExp(`\\p{L}\\{${name}\\}|\\{${name}\\}\\p{L}`, 'u').test(String(text)))
+              sdGlued.push(`${code}/${k}: ${String(text).slice(0, 50)}`);
+    }
+    check('Zusage 7: kein Vokabelwort steht zusammengesetzt — in keiner der drei Dateien',
+      sdGlued.length === 0, sdGlued.slice(0, 6).join(' · ') || 'keines');
+    /* UND DER LESER FINDET WIRKLICH ETWAS. Ohne diese Zeile waere die Zeile
+       darueber auch dann gruen, wenn das Muster gar nichts mehr faende
+       (Stolperstein 81) -- gestellt am Beispiel, das L6 selbst nennt. */
+    check('Und der Leser faende „{potential}kriterien" — das Beispiel aus L6',
+      /\p{L}\{potential\}|\{potential\}\p{L}/u.test('Die {potential}kriterien') &&
+      !/\p{L}\{grade\}|\{grade\}\p{L}/u.test('Zuletzt: {grade}'),
+      'der Leser trennt Fuge und Trennzeichen nicht');
   }
 
   /* ================= Die sieben Waechter der Sprachdatei — 0.24.0 =========
@@ -50453,7 +51113,7 @@ async function checkUi() {
     const LETTERS = ['confirm', 'invite', 'reset', 'test']
       .flatMap(kind => [`mail.${kind}.subject`, `mail.${kind}.body`]);
     for (const k of LETTERS) called.add(k);
-    /* DIE VIERZEHN VOKABELVORGABEN WERDEN AUS DEM VORSATZ ABGELEITET und nicht
+    /* DIE FUENFZEHN VOKABELVORGABEN WERDEN AUS DEM VORSATZ ABGELEITET und nicht
        einzeln gerufen -- 0.24.3, Bauabschnitt 6. server.js und app.js filtern
        beide `vocabulary.` aus der geladenen Datei; eine zweite Aufzaehlung im
        Quelltext gaebe es nur, damit dieser Waechter sie findet, und genau die
@@ -50466,7 +51126,7 @@ async function checkUi() {
     const derivesBoth = ["public/app.js", "server.js"].every(f =>
       /startsWith\(VOCABULARY_PREFIX\)/.test(fs.readFileSync(path.join(__dirname, f), 'utf8')));
     check('Beide Seiten leiten die Vokabelvorgaben aus dem Vorsatz ab',
-      derivesBoth && VOCABULARY_DERIVED.length === 14,
+      derivesBoth && VOCABULARY_DERIVED.length === 15,
       `${VOCABULARY_DERIVED.length} Schluessel · beide Seiten: ${derivesBoth}`);
     /* `_locale` UND `_name` SIND KEIN TEXT, SONDERN DER KOPF DER DATEI: sie
        sagen, welche Locale die Sprache hat und wie sie in ihrer eigenen
@@ -50633,8 +51293,8 @@ async function checkUi() {
     check('Und die Saetze mit Auszeichnung kommen aus dem Quelltext',
       MARKED.size >= 38 && MARKED.has('login.linkUnaffected'),
       `${MARKED.size} Saetze mit Auszeichnung`);
-    check('Und es sind wirklich vierzehn Vokabelwoerter',
-      VOCABLES.length === 14, `${VOCABLES.length}: ${VOCABLES.join(' ')}`);
+    check('Und es sind wirklich fuenfzehn Vokabelwoerter',
+      VOCABLES.length === 15, `${VOCABLES.length}: ${VOCABLES.join(' ')}`);
 
     /* ---- 4. Mehrzahlprobe ----------------------------------------------
        WAS EIN OBJEKT IST, IST EINE MEHRZAHLFORM -- und traegt genau `one`
@@ -50861,6 +51521,153 @@ async function checkUi() {
     check('Und jede der drei Ausnahmen steht wirklich in der Datei',
       REST_GERMAN_NAMED.every(t => rest.includes(t)),
       REST_GERMAN_NAMED.filter(t => !rest.includes(t)).join(' · '));
+
+    /* ---- 5c. DIE RESTPROBE FUER server.js -- 0.32.0 (F7) -----------------
+       FUER app.js GIBT ES SIE SEIT 0.24.0; FUER DIE DREI SERVERDATEIEN GAB ES
+       KEINE -- und genau deshalb sind elf deutsche Saetze durchgekommen, die
+       jeden Bildschirm erreichten, auch den englischen (Punkt 29 des
+       Sammelblatts). Der Augenschein von 0.31.2 hat sie gefunden, kein
+       Waechter.
+       DER WAECHTER DER RUNDE 0.24.0 LAS NUR, WAS HINTER `error:` STAND
+       (serverTextsFrom). Alles andere in server.js galt als „keine
+       Bildschirmsprache" -- und alle elf standen woanders: in
+       `deliveryReady()`, in `sendTokenLink()`, in `REQUEST_ANSWER`, in der
+       Vorschau des Aufraeumens.
+       SIE ZERLEGT VORLAGEN AN IHREN `${…}`-STELLEN (Punkt 26): screenTextsFrom
+       liefert jedes Stueck zwischen zwei Einsetzstellen einzeln. Ein Leser,
+       der die Vorlage als EINEN Text ansieht, sieht die Stuecke nicht -- und
+       so sind 0.28.1 zwei feste Woerter im Sortierfeld durchgerutscht.
+
+       DIE GRENZE IST NICHT DIE SPRACHE, SONDERN DER LESER. Zwei Sorten Text
+       bleiben ausdruecklich deutsch und werden deshalb VOR dem Lesen
+       weggeschnitten:
+         `console.log/warn/error` -- das Containerprotokoll liest der
+             Betreiber und kein Benutzer.
+         `db.prepare`             -- SQL ist keine Sprache.
+       GESCHNITTEN WIRD DER GANZE RUF mit gezaehlten Klammern und nicht bis
+       zum Zeilenende: eine Meldung kann ueber drei Zeilen gehen, und ein
+       Schnitt am Zeilenende liesse ihre Fortsetzung stehen.
+
+       GEFRAGT WIRD DANN NACH DER SPRACHE UND NICHT NACH EINER LISTE -- wie in
+       der verschaerften Restprobe darueber: traegt der uebrige Text ein
+       deutsches Wortstueck? Die Worttafel ist `tools/dictionary.json` und nur
+       die. Ein Waechter, der eine Liste vergleicht, liesse den zwoelften genau
+       so durch wie der von 0.24.0 die elf. */
+    const serverCalls = (src, names) => {
+      let out = '', i = 0;
+      const rx = new RegExp(`\\b(?:${names.join('|')})\\s*\\(`, 'g');
+      let m;
+      while ((m = rx.exec(src)) !== null) {
+        if (m.index < i) continue;
+        out += src.slice(i, m.index);
+        let j = m.index + m[0].length, depth = 1, q = null;
+        while (j < src.length && depth > 0) {
+          const c = src[j];
+          if (q) { if (c === '\\') { j += 2; continue; } if (c === q) q = null; j++; continue; }
+          if (c === "'" || c === '"' || c === '`') { q = c; j++; continue; }
+          if (c === '(') depth++; else if (c === ')') depth--;
+          j++;
+        }
+        i = j; rx.lastIndex = j;
+      }
+      return out + src.slice(i);
+    };
+    const SERVER_QUIET = ['console\\.log', 'console\\.error', 'console\\.warn',
+                          'db\\.prepare', 'd\\.prepare'];
+    const serverRest = [];
+    for (const file of ['server.js', 'auth.js', 'mail.js']) {
+      const raw = fs.readFileSync(path.join(__dirname, file), 'utf8');
+      for (const piece of screenTextsFrom(serverCalls(raw, SERVER_QUIET)))
+        if (restGerman(piece.text).length) serverRest.push(piece.text.trim());
+    }
+    const serverLeft = [...new Set(serverRest)].sort();
+    /* DIE LISTE. Sie ist die Abnahme des Bauabschnitts in einer Zeile: was in
+       den drei Serverdateien an deutschem Text uebrig ist, steht namentlich
+       hier -- und KEINES davon erreicht einen Bildschirm.
+       VIER SORTEN, UND JEDE HAT IHREN GRUND. */
+    const SERVER_REST_NAMED = [
+      /* 1 · PROGRAMMIERFEHLER. `throw new Error(...)` an einer Stelle, die
+         ein Aufrufer falsch benutzt hat -- sie beendet die Anfrage mit 500
+         und steht im Protokoll, nie in einer Antwort. Wer sie liest, liest
+         einen Stapelabzug. */
+      'detail() ohne Benutzer aufgerufen', 'qComments() ohne Benutzer aufgerufen',
+      'qTestDays() ohne Benutzer aufgerufen', 'stimmenJeKriterium() ohne Benutzer aufgerufen',
+      'testTageJeEintrag() ohne Benutzer aufgerufen', "') ohne Benutzer aufgerufen",
+      "' ist persoenlich und gehoert nicht in die globale Tabelle", '" nicht',
+      '_locale fehlt im Kopf der Datei', 'der vordere Teil ist keine Sprachkennung nach BCP 47',
+      'sie laesst sich nicht lesen (', 'sie traegt kein Objekt',
+      'Das Beenden braucht den angemeldeten Benutzer.',
+      'Dieser Vorgang braucht den Handelnden — eine Nummer oder VOM_WIRT.',
+      'Ein Ausweis braucht einen Zugang.', 'Ein Zugangswechsel braucht den angemeldeten Benutzer.',
+      'Eine Freigabe braucht die Sitzung.', 'Eine Sitzung braucht einen Benutzer.',
+      'Eine Sitzungsliste braucht den angemeldeten Benutzer.',
+      'Unbekannter Vorgang:', 'Unbekanntes Merkmal:',
+      /* 2 · DER BILDSCHIRM DES WIRTS. Die sechs Saetze der PUBLIC_ADDRESS-Probe
+         landen ausschliesslich in `console.warn` -- auth.js sagt es an Ort und
+         Stelle: „der Satz darin ist der eine Text dieser Datei, der auf dem
+         BILDSCHIRM DES WIRTS landet". Sie stehen hier, weil sie NICHT in einem
+         `console.…` stehen, sondern in einem Rueckgabewert, der dort endet. */
+      'Das ist keine vollständige Adresse.', 'Nur http:// und https:// sind möglich.',
+      'Es fehlt der Rechnername.', 'Zugangsdaten gehören nicht in die Adresse.',
+      'Eine Abfrage (?) ist nicht erlaubt.', 'Ein Fragment (#) ist nicht erlaubt.',
+      /* Und der Anbietername fuer das Protokoll. Am BILDSCHIRM steht seit
+         0.32.0 `mail.ownServer`; dieser String ist der Wert, den die
+         Startzeile im Container nennt. */
+      'Eigener Server',
+      /* 3 · ALTE DEUTSCHE NAMEN AUS DER .env. Sie werden GELESEN und nie
+         geschrieben -- eine Installation von vor 0.24.1 traegt sie in ihrer
+         Datei, und wer sie hier entfernte, naehme ihr den Start. */
+      'SICHERUNG_DIR', 'OEFFENTLICHE_ADRESSE',
+      /* 4 · GESPEICHERTE WERTE UND BEZEICHNER. Ein Blockname wie `kategorie`
+         steht in der Ablage jedes Benutzers, ein Dateiname wie `bild.jpg` in
+         der Datenbank, und `Ohne Titel` ist der Titel, den ein Import ohne
+         Titel ANLEGT -- ein WERT und keine Beschriftung (F12: er bleibt; wer
+         ihn mitnimmt, muesste sagen, in welcher Sprache ein Import spricht,
+         der nachts ohne Benutzer laeuft). Dieselbe Lage wie bei den drei
+         mitgelieferten Kriterien (Punkt 23). */
+      'Ohne Titel', 'Model Bewertungen', 'bild.jpg', 'bild-', 'foto-', 'standbild',
+      '-teil-', '-von-', 'aus', 'eigen', 'unbekannt', 'wieder', 'wirt', 'note',
+      'beschreibung', 'bewertung', 'datei', 'dateien', 'einstellung',
+      'kategorie', 'kommentare', 'potenzial', 'testtage'
+    ];
+    const serverTooMany = serverLeft.filter(t => !SERVER_REST_NAMED.includes(t));
+    const serverMissing = SERVER_REST_NAMED.filter(t => !serverLeft.includes(t));
+    check('Restprobe server.js: kein fester deutscher Satz erreicht mehr den Bildschirm — 0.32.0',
+      serverTooMany.length === 0,
+      serverTooMany.slice(0, 6).map(t => JSON.stringify(t.slice(0, 50))).join(' · '));
+    /* UND JEDER BENANNTE STEHT WIRKLICH DA. Eine Ausnahme fuer einen Text, den
+       es nicht mehr gibt, ist eine Karteileiche -- und deckt beim naechsten
+       Mal etwas anderes mit ab (Stolperstein 81). */
+    check('Und jeder der benannten Reste steht wirklich in einer der drei Dateien',
+      serverMissing.length === 0,
+      serverMissing.slice(0, 6).map(t => JSON.stringify(t.slice(0, 50))).join(' · '));
+    /* UND DER WAECHTER FAENGT DIE ELF WIRKLICH. Ohne diese Zeile waere die
+       Zeile darueber auch dann gruen, wenn der Schnitt die halbe Datei
+       wegnaehme. Geprueft wird an genau den Saetzen, die 0.32.0 entfernt hat
+       -- gestellt und nicht aus der Datei gelesen. */
+    const SERVER_REST_GONE = [
+      'Es ist kein Mailzugang eingerichtet. Das macht der Eigentümer dieser Installation.',
+      'Für diesen Zugang ist keine E-Mail-Adresse hinterlegt.',
+      'Danke. Wenn zu diesen Angaben eine Anfrage möglich war, hast du jetzt eine E-Mail ',
+      'Hier gibt es noch keine Sicherung.'];
+    check('Und der Leser faengt die elf Saetze von 0.31.4 — gestellt und nachgemessen',
+      SERVER_REST_GONE.every(t => restGerman(t).length > 0) &&
+      SERVER_REST_GONE.every(t => !serverLeft.includes(t)),
+      SERVER_REST_GONE.filter(t => serverLeft.includes(t)).join(' · ') || 'keiner mehr da');
+    /* UND DER SCHNITT SCHNEIDET WIRKLICH. Ein Waechter, dessen Schnitt ins
+       Leere greift, laesst alles stehen und meldet trotzdem nichts -- weil die
+       Liste dann eben lang ist. Gefragt wird an einem gestellten Fall. */
+    /* GESCHNITTEN WIRD BIS ZUR SCHLIESSENDEN KLAMMER und nicht bis zum
+       Strichpunkt: der bleibt stehen, und das ist richtig so -- er gehoert
+       nicht zum Ruf. Was zaehlt, ist, dass KEIN Text des Rufs uebrig bleibt
+       und der Text DAHINTER unangetastet steht. */
+    check('Und der Schnitt nimmt Protokollzeilen und SQL heraus, aber nicht den Rest',
+      serverCalls("console.log('Ein Satz'); x = 'Zweiter Satz';", SERVER_QUIET)
+        === "; x = 'Zweiter Satz';" &&
+      serverCalls("db.prepare(`SELECT eintrag FROM t`); y = 'Dritter';", SERVER_QUIET)
+        === "; y = 'Dritter';" &&
+      serverCalls("console.log('a', f('b')); z = 1;", SERVER_QUIET) === "; z = 1;",
+      JSON.stringify(serverCalls("console.log('Ein Satz'); x = 'Zweiter Satz';", SERVER_QUIET)));
 
     /* ---- 5b. Die Zeichenprobe -- 0.24.4 (B6 A) --------------------------
        KEIN `ICON_` GEHT DURCH t() ODER tH(). tH() maskiert jeden eingesetzten
@@ -51294,6 +52101,59 @@ async function checkUi() {
     check('Der Kasten selbst prueft die Rolle — nicht jede Karte fuer sich',
       /function serverBox\(sentence, command\) \{\s*\n\s*if \(!OWNER\) return '';/.test(appRaw),
       (appRaw.match(/function serverBox[\s\S]{0,120}/) || ['(nicht gefunden)'])[0]);
+
+    /* ---- DER AUFKLAPPER „MEHR" WIRD BREITENABHAENGIG -- 0.32.0, BA 10 ----
+       WAS HIER GEPRUEFT WERDEN KANN UND WAS NICHT, und das gehoert gesagt:
+       jsdom RECHNET KEIN LAYOUT. `getBoundingClientRect()` gibt dort ueberall
+       null, und eine Messung, die auf Hoehen beruht, misst nichts. DIE ZAHLEN
+       DER RUNDE KOMMEN DESHALB AUS DEM AUGENSCHEIN -- echtes Chromium, 390 und
+       1280 Bildpunkte, alle acht Stellen -- und stehen im Aenderungsprotokoll.
+       WAS DIESE ZEILEN HALTEN, IST DIE BAUFORM: `more()` baut weiterhin genau
+       EINE Gestalt, die Messung laeuft NACH dem Zeichnen, sie faellt am
+       schmalen Schirm ganz aus, und ohne Layout aendert sie nichts.
+       OHNE DIESE VIER ZEILEN LIESSE SICH DER GANZE HANDGRIFF ENTFERNEN, ohne
+       dass ein Punkt rot wuerde. */
+    check('`more()` baut genau eine Gestalt — den Aufklapper',
+      /const more = \(html\) =>\s*\n\s*`<details class="more">/.test(appRaw),
+      (appRaw.match(/const more = \(html\)[\s\S]{0,80}/) || ['(nicht gefunden)'])[0]);
+    check('Und die Messung laeuft NACH dem Zeichnen und faellt am Telefon aus',
+      /function trimMore\(root\) \{\s*\n\s*if \(!root \|\| isNarrow\(\)\) return;/.test(appRaw) &&
+      /\n  trimMore\(app\);\n\}/.test(appRaw),
+      (appRaw.match(/function trimMore[\s\S]{0,120}/) || ['(nicht gefunden)'])[0]);
+    /* UND DIE SCHRANKE IST DIE ZEILENHOEHE DES INHALTS und keine Zahl aus dem
+       Quelltext. Der erste Entwurf der Runde hat es mit einer Zeichenzahl
+       versucht; sie haette die falschen zwei Stellen erwischt, weil es auf die
+       Breite der KARTE ankommt und nicht auf die Laenge des Satzes. */
+    check('Und die Schranke ist die Zeilenhoehe des Inhalts, keine Zahl',
+      /parseFloat\(getComputedStyle\(text\)\.lineHeight\)/.test(appRaw) &&
+      !/MORE_ONE_LINE/.test(appRaw),
+      (appRaw.match(/const line = [\s\S]{0,90}/) || ['(nicht gefunden)'])[0]);
+    /* UND OHNE LAYOUT AENDERT SIE NICHTS. Das ist die Gegenprobe zur Messung
+       selbst: eine Fassung, die ohne gemessene Hoehe zuschlaegt, riss am
+       schmalen Schirm jeden Aufklapper weg. */
+    {
+      /* DIE KARTEN MIT AUFKLAPPERN STEHEN IM ABSCHNITT „Bestand" -- vier von
+         den acht. „Persoenlich" traegt keinen, und eine Lage ohne Gegenstand
+         belegte nichts (Stolperstein 81). */
+      const tmDom = buildDom(JSDOM, { settings: { filters: null } });
+      await new Promise(r => setTimeout(r, 60));
+      await sysSection(tmDom.w, 'inventory');
+      await new Promise(r => setTimeout(r, 60));
+      const tmOpen = tmDom.w.document.querySelectorAll('details.more').length;
+      const tmFlat = tmDom.w.document.querySelectorAll('.more-plain').length;
+      check('Und ohne gemessene Hoehe bleibt jeder Aufklapper stehen',
+        tmOpen > 0 && tmFlat === 0, `${tmOpen} Aufklapper, ${tmFlat} flach`);
+      tmDom.w.close();
+    }
+    /* UND DAS STILBLATT KENNT DIE ZWEITE GESTALT. Ohne Regel saehe der Absatz
+       anders aus als der Aufklapper, den er ersetzt -- und die Karte truege
+       je nach Breite zwei verschiedene Abstaende. */
+    const cssMore = fs.readFileSync(path.join(__dirname, 'public', 'style.css'), 'utf8')
+      .replace(/\s+/g, ' ');
+    check('Und das Stilblatt gibt ihm denselben Abstand wie dem Aufklapper',
+      /\.more-plain \{ margin: -6px 0 14px; \}/.test(cssMore) &&
+      /\.more \{ margin: -6px 0 14px; \}/.test(cssMore),
+      (cssMore.match(/\.more-plain \{[^}]*\}/) || ['(keine Regel)'])[0]);
     /* UND AM BILDSCHIRM: der Benutzer und der Admin sehen keinen einzigen
        Kasten, die Eigentuemerin drei -- Mein Konto, Benutzer, Kennzahlen. */
     const skRoles = async (roles) => {
@@ -54548,8 +55408,13 @@ async function check0303() {
      zwei, und vierundvierzig sind neu dazugekommen.
      1197 VOR 0.31.4 -- 1198 DANACH, und der eine ist kein Satz: `_afterNumber`
      sagt, welche Form hinter einer Zahl steht. Er steht neben `_locale` und
-     `_name` und erreicht keinen Bildschirm. */
-const LANG_KEY_COUNT = 1198;
+     `_name` und erreicht keinen Bildschirm.
+     1198 VOR 0.32.0 -- 1215 DANACH: achtzehn kommen dazu und einer faellt.
+     Die achtzehn stehen namentlich in WORDING_NEW_0320, der eine in
+     WORDING_GONE_0320 (`list.otherUser`) -- und ihre drei Herkuenfte sind das
+     fuenfzehnte Vokabelwort, die geteilte Glockentafel und die zwoelf
+     deutschen Saetze aus den Serverdateien. */
+const LANG_KEY_COUNT = 1215;
 
 async function check0310() {
   const drRead = (code) => JSON.parse(fs.readFileSync(
@@ -54776,11 +55641,28 @@ async function check0310() {
        „Protokoll" umbenennt, liest weiter „Bericht, Einzahl". Fuenf von ihnen
        heissen jetzt „Kommentar zum Festhalten" und „Kommentar zum
        Abarbeiten"; die uebrigen neun wiederholen kein Vorgabewort und sind
-       nicht angetastet. DIESE ZUSAGE HIER RUEHRT SICH NICHT: sie gilt den
-       beiden ERSTEN Feldern, und die heissen weiter „Einzahl" und
-       „Mehrzahl". */
-    check('Zusage 10: die Vokabelkarte beschriftet ihre Felder mit „Einzahl" und „Mehrzahl"',
-      drFiles.de['card.itemOne'] === 'Einzahl' && drFiles.de['card.itemMany'] === 'Mehrzahl',
+       nicht angetastet.
+       UMGEDREHT MIT 0.32.0 UND NICHT GELOESCHT (Stolperstein 74). Bis 0.31.4
+       stand hier: „sie gilt den beiden ERSTEN Feldern, und die heissen weiter
+       „Einzahl" und „Mehrzahl"." DER ENGLISCHE DURCHGANG VON 0.31.2 HAT
+       WIDERSPROCHEN (Punkt 28, Fund 5): die Vokabelkarte trug damit ZWEI
+       Bauformen -- fuenf Beschriftungen nannten die Sache und dann die Zahl
+       („Zeitpunkt, Einzahl"), eine nur die Zahl. Auf Englisch faellt das
+       sofort auf, weil dort die Grossschreibung des Substantivs fehlt, die im
+       Deutschen den Namen als Namen markiert.
+       WAS BLEIBT, IST DER GRUND DER ALTEN ZUSAGE: „Sache" war genau das Wort,
+       das der Betreiber dort ersetzen soll. Die Beschriftung nennt deshalb
+       NICHT das Vorgabewort („Eintrag, Einzahl" waere derselbe Fehler wie
+       „Bericht, Einzahl"), sondern das, WORUM es geht: „Das Bewertete". */
+    check('Zusage 10: die Vokabelkarte beschriftet ihre beiden ersten Felder wie die anderen — 0.32.0',
+      drFiles.de['card.itemOne'] === 'Das Bewertete, Einzahl'
+      && drFiles.de['card.itemMany'] === 'Das Bewertete, Mehrzahl',
+      `${drFiles.de['card.itemOne']} · ${drFiles.de['card.itemMany']}`);
+    /* UND SIE NENNT DAS VORGABEWORT AUSDRUECKLICH NICHT -- das ist der Kern
+       der alten Zusage, und er gilt unveraendert. */
+    check('Und sie nennt dabei ihr eigenes Vorgabewort nicht',
+      !/Eintrag/i.test(drFiles.de['card.itemOne'])
+      && !/Einträge/i.test(drFiles.de['card.itemMany']),
       `${drFiles.de['card.itemOne']} · ${drFiles.de['card.itemMany']}`);
     check('Und die Karte liest sie wirklich an ihren beiden ersten Feldern',
       /\['v1', 'entryOne', \(\) => t\('card\.itemOne'\)\], \['v2', 'entryMany', \(\) => t\('card\.itemMany'\)\]/
@@ -55053,14 +55935,14 @@ async function check0311() {
        zweimal in einer Zeile. Und wer „Bericht" in „Protokoll" umbenennt,
        liest weiter „Bericht, Einzahl": die Beschriftung eines Feldes, das
        gerade zum Umbenennen da ist, trug den alten Namen.
-       NEUN DER VIERZEHN SIND NICHT ANGETASTET -- sie wiederholen kein
+       ZEHN DER FUENFZEHN SIND NICHT ANGETASTET -- sie wiederholen kein
        Vorgabewort und folgen nur verschiedenen Stilen. Diese Zusage sucht den
        FEHLER und nicht den Geschmack. */
     const dsVocabLabel = { entryOne: 'itemOne', entryMany: 'itemMany',
       testedYes: 'testedYes', testedNo: 'testedNo', dayOne: 'dayOne', dayMany: 'dayMany',
       reportOne: 'reportOne', reportMany: 'reportMany', taskOne: 'taskOne',
       taskMany: 'taskMany', taskDone: 'taskDone', potential: 'potential',
-      ratingOne: 'ratingOne', ratingMany: 'ratingMany' };
+      ratingOne: 'ratingOne', ratingMany: 'ratingMany', grade: 'grade' };
     const dsEcho = Object.entries(dsVocabLabel).filter(([vocab, label]) => {
       const word = String(dsFiles.de[`vocabulary.${vocab}`] || '').toLowerCase();
       const text = String(dsFiles.de[`card.${label}`] || '').toLowerCase();
@@ -55068,8 +55950,8 @@ async function check0311() {
     }).map(([v]) => v);
     check('Keine deutsche Vokabelbeschriftung nennt ihr eigenes Vorgabewort',
       dsEcho.length === 0, dsEcho.join(' ') || 'keine');
-    check('Und es sind wirklich vierzehn Felder, die geprueft werden',
-      Object.keys(dsVocabLabel).length === 14 &&
+    check('Und es sind wirklich fuenfzehn Felder, die geprueft werden',
+      Object.keys(dsVocabLabel).length === 15 &&
       Object.keys(dsVocabLabel).every(v => `vocabulary.${v}` in dsFiles.de),
       `${Object.keys(dsVocabLabel).length}`);
 
@@ -55152,7 +56034,12 @@ async function check0311() {
        im Aenderungsprotokoll.
        WAS HIER GEPRUEFT WIRD: die sechsundsechzig Schluessel, die DIESE Runde
        weggenommen hat, haben alle ihren Nachfolger -- oder ihr Eintrag ist
-       mitgefallen, wie bei den elf von 0.31.0. */
+       mitgefallen, wie bei den elf von 0.31.0.
+       UND EINER IST MIT 0.32.0 MITGEFALLEN: `liste.andererBenutzer` zeigte auf
+       `list.otherUser`, und den gibt es nicht mehr (F4). Ein Nachfolger liesse
+       sich nicht benennen -- das hervorgehobene Wort ist im neuen Satz gar
+       nicht mehr enthalten --, also faellt der Eintrag, wie die elf von
+       0.31.0. DIE ZAHL DARUNTER BLEIBT DESHALB BEI 39. */
     const DS_OLD_DANGLING = 39;
     const dsDangling = Object.entries(dsTable).filter(([, target]) => !(target in dsFiles.de));
     check('Kein Eintrag der Umbenennungstafel zeigt auf einen Schluessel DIESER Runde',
@@ -55259,13 +56146,67 @@ async function check0311() {
    Stellungsregel der GEZEIGTEN Sprache, und am Browser steht deutsch wieder
    „7 Einträge" und tuerkisch „Öğeler".
      e026e2cf4acfaf08 / 467fb77110922665 -- 0.31.3
-     7c1fe1a927f158f9 / 0b443d44733cc668 -- vor 0.31.3 */
-const DE_UNTOUCHED = { one: '0f38b9157739b492', other: 'bc6542b1f0e28bd6' };
+     7c1fe1a927f158f9 / 0b443d44733cc668 -- vor 0.31.3
+
+   UND MIT 0.32.0 BEWEGEN SICH ALLE SECHS, und das ist der Unterschied zu
+   0.31.2 und 0.31.3: DORT WAR DIE UNVERAENDERLICHKEIT DIE ZUSAGE, HIER IST ES
+   DIE BUCHFUEHRUNG. Jede Aenderung an den drei Sprachdateien steht namentlich
+   in ihrer Tafel -- die Wortlautprobe gegen 0681d42, EG_CHANGED_AFTER_0312,
+   TR_CHANGED_AFTER_0313 --, und was nicht darin steht, ist ein Fund
+   (Leitplanke L3, Zusage 10 dieser Runde).
+   DIE SUMMEN BLEIBEN TROTZDEM STEHEN UND WERDEN NICHT ABGESCHAFFT: sie sind
+   der zweite Blick auf dieselbe Frage. Wer einen Wert aendert, ohne ihn in
+   seine Tafel zu schreiben, faellt an den Tafeln auf; wer QUELLTEXT aendert,
+   der Bildschirmtext erzeugt, faellt nur hier auf.
+     0f38b9157739b492 / bc6542b1f0e28bd6 -- 0.31.4, der Stand vor dieser Runde */
+const DE_UNTOUCHED = { one: '1d5ff81dda51392a', other: '642d3a9967e12f42' };
 const DE_BEFORE_0312 = { one: '91b86c5affcba789', other: '07fc3ccdc8a27a03' };
 const DE_ORDERED_0312 = {
   'login.requestAccess': 'Zugang anfragen',
   'login.requestAccessHint':
     'Zugang anfragen. Du bestätigst deine Adresse per Mail, danach entscheidet ein Admin.'
+};
+
+/* DIE TAFEL DER ENGLISCHEN AENDERUNGEN -- sie steht auf MODULEBENE, weil
+   zwei Gruppen sie lesen: 0.31.2 misst gegen ihren eigenen Vergleichsstand,
+   0.31.3 misst denselben Stand noch einmal von ihrer Seite aus. Zwei Listen
+   ueber dieselbe Frage liefen auseinander (Stolperstein 47). */
+const EG_CHANGED_AFTER_0312_SHARED = {
+  "_afterNumber": "0.31.4: der Mechanismus — fuer Englisch `plural`, also das Verhalten von vorher",
+  "card.grade": "0.32.0: seine Beschriftung in der Vokabelkarte",
+  "card.itemMany": "0.32.0: Punkt 28, Fund 5 — dieselbe Sache in der Mehrzahl",
+  "card.itemOne": "0.32.0: Punkt 28, Fund 5 — die Beschriftung nennt wieder ihre Sache",
+  "card.restartHint": "0.32.0: Punkt 28, Fund 1 — die zitierte Logzeile heisst „Schluessel\"",
+  "entry.calcGradeWeight": "0.32.0: „Score × weight\" wird `{grade} × weight`",
+  "entry.grade": "0.32.0: der Spaltenkopf der Rechnung wird `{grade}`",
+  "entry.gradeLabel": "0.32.0: die Beschriftung am Sternkasten des Zeitpunkts",
+  "entry.gradeReplaced": "0.32.0: die Meldung nach dem Ersetzen",
+  "list.bellMine": "0.32.0: die Ueberschrift „My {entryMany}\"",
+  "list.bellOther": "0.32.0: die Ueberschrift „Everything else\"",
+  "list.bellToMe": "0.32.0: die Ueberschrift „Addressed to me\"",
+  "list.byHandHint": "0.32.0: und der Satz dazu — „Reset filters\" holt die Vorgabe zurueck",
+  "list.followsSort": "0.32.0: „follows the sorting: {status}\" — jetzt mit dem Wert",
+  "list.gradeLong": "0.32.0: die Vorlesefassung eines Punktes der Zeitleiste",
+  "list.gradeShort": "0.32.0: seine kurze Fassung",
+  "list.lastGrade": "0.32.0: die Zeile der Kachel",
+  "list.markedCount": "0.32.0: das „, of which 1 addressed to me\" an der Zeile",
+  "list.newCommentsHint": "0.32.0: der Satz im Glockenfenster, nach Herkunft getrennt (F4)",
+  "list.pillHint": "0.32.0: der Satz nennt die Abschaltung und den Weg zurueck",
+  "list.sortAvg": "0.32.0: artikellos — „Average: {grade}\" statt „Average score\"",
+  "list.sortLast": "0.32.0: artikellos — „Last: {grade}\" statt „Last score\"",
+  "list.statusByHand": "0.32.0: „chosen by hand\" neben den Statuspillen",
+  "mail.ownServer": "0.32.0: der zwoelfte Satz — „Own server\" in der Anbieterliste",
+  "server.backupsBeforeKey": "0.32.0: Punkt 29 — Grund 2, jetzt mit Mehrzahlform",
+  "server.cleanupAllYoungest": "0.32.0: Punkt 29 — Grund 3, jetzt mit Mehrzahlform",
+  "server.cleanupNoBackups": "0.32.0: Punkt 29 — die Vorschau des Aufraeumens, Grund 1",
+  "server.cleanupOldestAge": "0.32.0: Punkt 29 — Grund 4, jetzt mit Mehrzahlform",
+  "server.gradeRange": "0.32.0: die Absage des Servers nennt das Vokabelwort",
+  "server.noAccountOwner": "0.32.0: Punkt 29 — der Grund, warum nicht verschickt werden kann",
+  "server.noPublicAddress": "0.32.0: Punkt 29 — ohne PUBLIC_ADDRESS wird nicht verschickt",
+  "server.noTestMail": "0.32.0: Punkt 29 — seit dem Wechsel kam keine Testmail durch",
+  "server.noUserAddress": "0.32.0: Punkt 29 — am Konto haengt keine Adresse",
+  "server.signupThanks": "0.32.0: Punkt 29 — die eine Antwort der Zugangsanfrage",
+  "vocabulary.grade": "0.32.0: das fuenfzehnte Vokabelwort — „Score\""
 };
 
 async function check0312() {
@@ -55558,15 +56499,31 @@ async function check0312() {
     /* DER VERGLEICHSSTAND WAECHST NICHT MIT -- er haelt den Stand von 0.31.2.
        0.31.4 hat allen drei Dateien `_afterNumber` in den Kopf gelegt; der
        Schluessel steht deshalb NAMENTLICH hier und nicht still in der Datei. */
-    const EG_ADDED_AFTER_0312 = ['_afterNumber'];
+    /* UND ACHTZEHN MIT 0.32.0. Sie stehen namentlich hier, alphabetisch wie in
+       der Datei -- jede Runde, die einen Schluessel anlegt, traegt ihn ein. */
+    const EG_ADDED_AFTER_0312 = ['_afterNumber',
+      'card.grade', 'list.bellMine', 'list.bellOther', 'list.bellToMe',
+      'list.byHandHint', 'list.markedCount', 'list.statusByHand', 'mail.ownServer',
+      'server.backupsBeforeKey', 'server.cleanupAllYoungest', 'server.cleanupNoBackups',
+      'server.cleanupOldestAge', 'server.noAccountOwner', 'server.noPublicAddress',
+      'server.noTestMail', 'server.noUserAddress', 'server.signupThanks',
+      'vocabulary.grade'];
+    /* UND EINER IST GEFALLEN -- `list.otherUser`. Der Satz des Glockenfensters
+       traegt seit 0.32.0 kein hervorgehobenes Wort mehr (F4); ein Schluessel,
+       den niemand ruft, bleibt nicht stehen. */
+    const EG_GONE_AFTER_0312 = ['list.otherUser'];
     const egAdded = Object.keys(egFiles.en).filter(k => !(k in egPrint));
     const egLost = Object.keys(egPrint).filter(k => !(k in egFiles.en));
-    check(`Und sie traegt die Schluessel von en.json — bis auf die benannten neuen (${EG_ADDED_AFTER_0312.length})`,
-      egAdded.join(' ') === EG_ADDED_AFTER_0312.join(' ') && egLost.length === 0,
+    check(`Und sie traegt die Schluessel von en.json — bis auf die benannten neuen (${EG_ADDED_AFTER_0312.length}) und den einen gefallenen`,
+      egAdded.sort().join(' ') === [...EG_ADDED_AFTER_0312].sort().join(' ')
+      && egLost.join(' ') === EG_GONE_AFTER_0312.join(' '),
       `neu ${egAdded.join(' ') || 'keiner'} · verloren ${egLost.join(' ') || 'keiner'}`);
-    const EG_CHANGED_AFTER_0312 = {
-      '_afterNumber': '0.31.4: der Mechanismus — fuer Englisch `plural`, also das Verhalten von vorher'
-    };
+    /* DIE TAFEL STEHT IN DER REIHENFOLGE DER DATEI und nicht in der der
+       Runden: die Zeile darunter vergleicht die Schluessel als FOLGE, damit
+       ein Eintrag nicht doppelt oder an der falschen Stelle stehen kann.
+       JEDER TRAEGT SEINE RUNDE UND SEINEN GRUND -- eine Liste ohne Gruende
+       waere eine Liste und keine Buchfuehrung. */
+    const EG_CHANGED_AFTER_0312 = EG_CHANGED_AFTER_0312_SHARED;
     const egDiff = Object.keys(egFiles.en)
       .filter(k => JSON.stringify(egPrint[k]) !== JSON.stringify(egFiles.en[k]));
     check('Und jeder englische Wert ist Zeichen fuer Zeichen der des Vergleichsstands — ausser den benannten',
@@ -55634,12 +56591,14 @@ async function check0312() {
    angefasst" eine Behauptung; ohne den zweiten koennte jemand die Datei
    zurueckdrehen, und niemand saehe es. */
 /* 9cfb555855459a0c / 98295846dd0ac5a4 -- 0.31.3
-   2f8e5b3abe58f9fd / 39489ec6ae18020b -- vor 0.31.3; derselbe Grund wie oben. */
-const EN_UNTOUCHED = { one: '597dfc60b7a1fa63', other: '6558810bf793704a' };
+   2f8e5b3abe58f9fd / 39489ec6ae18020b -- vor 0.31.3; derselbe Grund wie oben.
+   597dfc60b7a1fa63 / 6558810bf793704a -- 0.31.4, der Stand vor 0.32.0 */
+const EN_UNTOUCHED = { one: '66de41e32bb706d9', other: '55936a4de6cb5b6d' };
 const TR_BEFORE_0313 = { one: '5fec71b10c0dfa3c', other: '18b07eda589b5120' };
 /* bbaca227348609dc / 73d9f1ea0298d519 -- der Stand VOR der Berichtigung an der
-   Vorschau der Vokabelkarte, die der Augenschein dieser Runde verlangt hat. */
-const TR_AFTER_0313 = { one: 'a7f3cd4bf8992f90', other: 'e26a1dca46c545da' };
+   Vorschau der Vokabelkarte, die der Augenschein von 0.31.3 verlangt hat.
+   a7f3cd4bf8992f90 / e26a1dca46c545da -- 0.31.4, der Stand vor 0.32.0 */
+const TR_AFTER_0313 = { one: 'd66b8778279f5ec1', other: '245369c1748d81d4' };
 
 async function check0313() {
   const tgRead = (code) => JSON.parse(fs.readFileSync(
@@ -55680,7 +56639,7 @@ async function check0313() {
     check('Zusage 1: die Gleichlautprobe laeuft und nennt ihre sechs Summen',
       Object.keys(tgSums).length === 6,
       `${Object.keys(tgSums).length} Summen · ${String(tgRun.stderr || '').slice(0, 200)}`);
-    check(`Und die beiden deutschen sind unveraendert — ${DE_UNTOUCHED.one} · ${DE_UNTOUCHED.other}`,
+    check(`Und die beiden deutschen sind die des gebauten Stands — ${DE_UNTOUCHED.one} · ${DE_UNTOUCHED.other}`,
       tgSums['de/one'] === DE_UNTOUCHED.one && tgSums['de/other'] === DE_UNTOUCHED.other,
       `de/one ${tgSums['de/one']} · de/other ${tgSums['de/other']}`);
     check(`Und die beiden englischen auch — ${EN_UNTOUCHED.one} · ${EN_UNTOUCHED.other}`,
@@ -55706,12 +56665,19 @@ async function check0313() {
     /* `_afterNumber` IST SEIT 0.31.4 DABEI und steht namentlich da: er ist der
        einzige englische Schluessel, den der Vergleichsstand von 0.31.2 nicht
        kennt, und sein Wert (`plural`) ist genau das Verhalten von vorher. */
-    const TG_EN_ADDED = ['_afterNumber'];
+    /* UND SEIT 0.32.0 STEHT DIE TAFEL EINEN STOCK HOEHER. Jene Runde fasst
+       Englisch an -- das fuenfzehnte Vokabelwort, die geteilte Glockentafel,
+       die zwoelf Saetze aus den Serverdateien --, und WELCHE Schluessel das
+       sind, steht namentlich in EG_CHANGED_AFTER_0312 (die Gruppe 0.31.2, ein
+       Stueck weiter oben). Diese Zeile hier liest dieselbe Tafel statt eine
+       zweite danebenzustellen: zwei Listen ueber dieselbe Frage liefen beim
+       naechsten Handgriff auseinander (Stolperstein 47). */
+    const tgEnNamed = Object.keys(EG_CHANGED_AFTER_0312_SHARED);
     const tgEnDiff = Object.keys(tgFiles.en)
       .filter(k => JSON.stringify(tgEnFile[k]) !== JSON.stringify(tgFiles.en[k]));
-    check('Und kein englischer Wert weicht vom Vergleichsstand von 0.31.2 ab — ausser dem benannten neuen',
-      tgEnDiff.join(' ') === TG_EN_ADDED.join(' '),
-      tgEnDiff.filter(k => !TG_EN_ADDED.includes(k)).slice(0, 8).join(' ') || 'alle 1197 gleich');
+    check('Und kein englischer Wert weicht vom Vergleichsstand von 0.31.2 ab — ausser den benannten',
+      tgEnDiff.join(' ') === tgEnNamed.join(' '),
+      tgEnDiff.filter(k => !tgEnNamed.includes(k)).slice(0, 8).join(' ') || 'alle gleich');
 
     /* ---- Zusage 2: gleich viele Schluessel, dieselbe Folge, dieselbe Gestalt */
     const tgCounts = Object.fromEntries(['de', 'en', 'tr']
@@ -56139,19 +57105,37 @@ async function check0313() {
     /* DER VERGLEICHSSTAND WAECHST NICHT MIT. Er haelt den Stand von 0.31.3
        fest; was seitdem dazugekommen ist, steht NAMENTLICH in der Tafel
        darunter -- und `_afterNumber` ist der einzige NEUE Schluessel. */
-    const TR_ADDED_AFTER_0313 = ['_afterNumber'];
+    /* UND ACHTZEHN MIT 0.32.0, Schluessel fuer Schluessel dieselben wie auf der
+       englischen Seite -- L5 verlangt es: kein neuer Schluessel ohne alle drei
+       Sprachen, und die Deckungsprobe faerbte den Lauf sofort rot. */
+    const TR_ADDED_AFTER_0313 = ['_afterNumber',
+      'card.grade', 'list.bellMine', 'list.bellOther', 'list.bellToMe',
+      'list.byHandHint', 'list.markedCount', 'list.statusByHand', 'mail.ownServer',
+      'server.backupsBeforeKey', 'server.cleanupAllYoungest', 'server.cleanupNoBackups',
+      'server.cleanupOldestAge', 'server.noAccountOwner', 'server.noPublicAddress',
+      'server.noTestMail', 'server.noUserAddress', 'server.signupThanks',
+      'vocabulary.grade'];
+    /* UND EINER IST GEFALLEN -- derselbe wie drueben: `list.otherUser`. */
+    const TR_GONE_AFTER_0313 = ['list.otherUser'];
     const tgAdded = Object.keys(tgFiles.tr).filter(k => !(k in tgPrint));
     const tgLost = Object.keys(tgPrint).filter(k => !(k in tgFiles.tr));
-    check(`Und sie traegt die Schluessel von tr.json — bis auf die benannten neuen (${TR_ADDED_AFTER_0313.length})`,
-      tgAdded.join(' ') === TR_ADDED_AFTER_0313.join(' ') && tgLost.length === 0,
+    check(`Und sie traegt die Schluessel von tr.json — bis auf die benannten neuen (${TR_ADDED_AFTER_0313.length}) und den einen gefallenen`,
+      tgAdded.sort().join(' ') === [...TR_ADDED_AFTER_0313].sort().join(' ')
+      && tgLost.join(' ') === TR_GONE_AFTER_0313.join(' '),
       `neu ${tgAdded.join(' ') || 'keiner'} · verloren ${tgLost.join(' ') || 'keiner'}`);
     /* DIE TAFEL WAR IN 0.31.3 LEER, UND SIE IST ES SEIT 0.31.4 NICHT MEHR --
        genau dafuer ist sie gebaut: „Wer Tuerkisch anfasst, schreibt den
        Schluessel mit seinem Grund hinein."
-       VIERZEHN EINTRAEGE, UND SIE ERZAEHLEN DIE RUNDE: fuenf Vokabelmehrzahlen
-       bekommen ihr -ler/-lar (der Betreiber, 13.9.2026), fuenf Saetze waehlen
-       die Einzahlform, weil ihre Grammatik sie verlangt, drei Kruecken aus
-       0.31.3 fallen weg, und `_afterNumber` ist der Mechanismus selbst. */
+       VIERZEHN EINTRAEGE MIT 0.31.4, UND SIE ERZAEHLEN JENE RUNDE: fuenf
+       Vokabelmehrzahlen bekommen ihr -ler/-lar (der Betreiber, 13.9.2026),
+       fuenf Saetze waehlen die Einzahlform, weil ihre Grammatik sie verlangt,
+       drei Kruecken aus 0.31.3 fallen weg, und `_afterNumber` ist der
+       Mechanismus selbst.
+       SIEBENUNDVIERZIG MIT 0.32.0 -- dreiunddreissig mehr, und `list.newCommentsHint`
+       wechselt seinen Grund: der Satz des Glockenfensters wird ersetzt (F4),
+       also steht dort jetzt die neue Runde. DIE ZAHL WAECHST UND WIRD NICHT
+       GELOESCHT (Stolperstein 74): wer sie still mitlaufen liesse, saehe nicht
+       mehr, welche Runde welchen tuerkischen Wert angefasst hat. */
     const TR_CHANGED_AFTER_0313 = {
       '_afterNumber':           '0.31.4: der Mechanismus — hinter einer Zahl die Einzahl',
       'vocabulary.entryMany':   '0.31.4: Öğeler — die Mehrzahl kostet nichts mehr',
@@ -56166,7 +57150,49 @@ async function check0313() {
       'list.showAll':           '0.31.4: Substantivkette — das erste Glied steht in der Einzahl',
       'list.openTasks':         '0.31.4: die Kruecke „listesi" faellt — „Açık Görevler"',
       'list.noCategory':        '0.31.4: die Kruecke „listesi" faellt — „Kategorisiz Öğeler"',
-      'list.newCommentsHint':   '0.31.4: beide Glieder wieder Mehrzahl — „Yeni yorumlar ve …"'
+      'list.newCommentsHint':   '0.32.0: der Satz im Glockenfenster, nach Herkunft getrennt (F4)',
+      /* UND DREIUNDDREISSIG MIT 0.32.0 -- dieselben Schluessel wie auf der
+         englischen Seite und aus denselben Gruenden. Die Tafel traegt sie
+         alphabetisch wie die Datei; die Zeile darunter vergleicht sortiert. */
+      'vocabulary.grade':         '0.32.0: das fuenfzehnte Vokabelwort — „Puan"',
+      'card.grade':               '0.32.0: seine Beschriftung in der Vokabelkarte',
+      'entry.grade':              '0.32.0: der Spaltenkopf der Rechnung wird {grade}',
+      'entry.gradeLabel':         '0.32.0: die Beschriftung am Sternkasten des Zeitpunkts',
+      'entry.calcGradeWeight':    '0.32.0: „Puan × ağırlık" wird {grade} × ağırlık',
+      'entry.gradeReplaced':      '0.32.0: die Meldung nach dem Ersetzen',
+      'list.lastGrade':           '0.32.0: die Zeile der Kachel',
+      'list.gradeLong':           '0.32.0: die Vorlesefassung eines Punktes der Zeitleiste',
+      'list.gradeShort':          '0.32.0: seine kurze Fassung',
+      'list.sortAvg':             '0.32.0: artikellos — „Ortalama: {grade}"',
+      'list.sortLast':            '0.32.0: artikellos — „Son: {grade}"',
+      'server.gradeRange':        '0.32.0: die Absage des Servers nennt das Vokabelwort',
+      'card.itemOne':             '0.32.0: Punkt 28, Fund 5 — die Beschriftung nennt wieder ihre Sache',
+      'card.itemMany':            '0.32.0: Punkt 28, Fund 5 — dieselbe Sache in der Mehrzahl',
+      'card.restartHint':         '0.32.0: Punkt 28, Fund 1 — die zitierte Logzeile heisst „Schluessel"',
+      'list.bellToMe':            '0.32.0: die Ueberschrift „Bana yönelik"',
+      'list.bellMine':            '0.32.0: die Ueberschrift „Benim {entryMany}"',
+      'list.bellOther':           '0.32.0: die Ueberschrift „Diğer her şey"',
+      'list.markedCount':         '0.32.0: das „, bunun 1 bana yönelik kadarı" an der Zeile',
+      'server.noAccountOwner':    '0.32.0: Punkt 29 — der Grund, warum nicht verschickt werden kann',
+      'server.noTestMail':        '0.32.0: Punkt 29 — seit dem Wechsel kam keine Testmail durch',
+      'server.noPublicAddress':   '0.32.0: Punkt 29 — ohne PUBLIC_ADDRESS wird nicht verschickt',
+      'server.noUserAddress':     '0.32.0: Punkt 29 — am Konto haengt keine Adresse',
+      'server.signupThanks':      '0.32.0: Punkt 29 — die eine Antwort der Zugangsanfrage',
+      'server.cleanupNoBackups':  '0.32.0: Punkt 29 — die Vorschau des Aufraeumens, Grund 1',
+      'server.backupsBeforeKey':  '0.32.0: Punkt 29 — Grund 2, jetzt mit Mehrzahlform',
+      'server.cleanupAllYoungest':'0.32.0: Punkt 29 — Grund 3, jetzt mit Mehrzahlform',
+      'server.cleanupOldestAge':  '0.32.0: Punkt 29 — Grund 4, jetzt mit Mehrzahlform',
+      'mail.ownServer':           '0.32.0: der zwoelfte Satz — „Kendi sunucu" in der Anbieterliste',
+      'list.followsSort':         '0.32.0: „sıralamaya uyar: {status}" — jetzt mit dem Wert',
+      'list.pillHint':            '0.32.0: der Satz nennt die Abschaltung und den Weg zurueck',
+      'list.statusByHand':        '0.32.0: „elle seçildi" neben den Statuspillen',
+      'list.byHandHint':          '0.32.0: und der Satz dazu — „Filtreleri sıfırla" holt die Vorgabe zurueck',
+      /* UND EIN FUND DER RUNDE SELBST -- Punkt 31 des Sammelblatts. Der
+         berichtigte `yedek`-Waechter hat ihn im ersten Lauf gefunden: „bu
+         uygulamanın yedeği değil" traegt die Konsonantenerweichung, und der
+         Waechter von 0.25.1 suchte ein `k`. Er stand dreissig Runden lang so
+         da -- genau wie der Wert, den 0.31.3 berichtigt hat. */
+      'card.checkForeign':        '0.32.0: Punkt 31 — „yedeği" wird „yedeklemesi"'
     };
     const tgDiff = Object.keys(tgFiles.tr)
       .filter(k => JSON.stringify(tgPrint[k]) !== JSON.stringify(tgFiles.tr[k]));
@@ -56177,7 +57203,7 @@ async function check0313() {
        und ohne Begruendung ist eine Liste und keine Buchfuehrung. */
     check('Und jeder Eintrag der Tafel nennt seinen Grund',
       Object.values(TR_CHANGED_AFTER_0313).every(g => g.length > 15),
-      Object.entries(TR_CHANGED_AFTER_0313).filter(([, g]) => g.length <= 15).map(([k]) => k).join(' ') || 'alle vierzehn');
+      Object.entries(TR_CHANGED_AFTER_0313).filter(([, g]) => g.length <= 15).map(([k]) => k).join(' ') || 'alle benannt');
     /* UND DIE TAFEL IST IN BEIDE RICHTUNGEN GESCHLOSSEN -- 0.31.1, Zusage 2. */
     const tgStale = Object.keys(TR_CHANGED_AFTER_0313).filter(k => !tgDiff.includes(k));
     check('Und kein Eintrag der Tafel benennt einen Unterschied, den es nicht gibt',
@@ -56565,7 +57591,7 @@ async function check0314() {
          Gewinn der Runde; ohne diese Zeile waere sie auch dann gruen, wenn
          jemand alle fuenf Mehrzahlen aus `tr.json` loeschte. */
       const AN_MANY_ON_SCREEN = [['list.openTasks', 'taskMany'],
-        ['list.noCategory', 'entryMany'], ['list.newCommentsHint', 'ratingMany']];
+        ['list.noCategory', 'entryMany'], ['list.newCommentsHint', 'entryMany']];
       const anMissing = AN_MANY_ON_SCREEN.filter(([key, voc]) =>
         !anSay(`t('${key}')`).includes(String(anFiles.tr['vocabulary.' + voc])));
       check('Zusage 6, am gerenderten Text: ohne Zahl steht die Mehrzahl da — „Açık Görevler"',
