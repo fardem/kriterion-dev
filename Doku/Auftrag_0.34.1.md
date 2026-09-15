@@ -122,6 +122,13 @@ Drei Probleme in beiden:
 - **README** — was das Programm ist, Voraussetzungen, Installation,
   Konfiguration, Betrieb. Kein Projektverlauf.
 
+**Der Maßstab für beide: lesen, wissen, verstehen.**
+
+- Kein Erklärbär, kein Jargon, keine Nebenschauplätze.
+- Ein technisches System wird sachlich beschrieben, nicht erklärt.
+- Wer die README liest, soll danach das Programm betreiben können — nicht
+  seine Geschichte kennen.
+
 Keine Prozentzahl für beide. Sie sind Prosa, hier zählt die Regel.
 
 ---
