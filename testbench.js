@@ -14923,10 +14923,34 @@ function sweepLeftovers() {
     await A.S.stop();
     const A2 = startFurtherServer(A.dir, { PUBLIC_ADDRESS: 'https://kriterion.beispiel.de' }, 6370);
     await A2.ready;
+    /* DER ANBIETERNAME STEHT SEIT 0.33.1 AUF ENGLISCH. Befund aus dem
+       Betrieb, gemeldet vom Betreiber am 15. September 2026: im sonst
+       englischen Containerprotokoll der eingespielten 0.33.0 stand
+       „Mail delivery: Eigener Server via smtp.strato.de:587". Die Karte setzt
+       den Schluessel `mail.ownServer` seit 0.32.0 in der Sprache des Lesers
+       ein; die Protokollzeile nahm bis 0.33.1 den Rohwert aus `mail.js`.
+       DIESE ZUSAGE IST UMGEDREHT UND NICHT GELOESCHT (Stolperstein 201): sie
+       stand auf „Eigener Server", sie steht jetzt auf „Own server". Was sie
+       traegt, ist unveraendert -- dass die Zeile nach einem Neustart Anbieter,
+       Server und Absender nennt.
+       UND SIE IST DIE LAUFZEITPROBE ZUM BEFUND: hier startet ein echter
+       Server mit eingerichtetem Zugang, und gelesen wird, was er WIRKLICH
+       schreibt. Die Restprobe 5d kann das nicht -- sie liest den Quelltext
+       der Konsolenrufe, und dort steht an jener Stelle eine Einsetzung. Ein
+       zweiter Server eigens dafuer waere daneben ueberfluessig gewesen: er
+       haette dieselbe Lage noch einmal aufgebaut und dafuer eine
+       vierundsechzigste Portbasis gebraucht. */
     check('Nach einem Neustart nennt die Startzeile Anbieter, Server und Absender',
-      /Mail delivery: Eigener Server via 127\.0\.0\.1:/.test(A2.log()) &&
+      /Mail delivery: Own server via 127\.0\.0\.1:/.test(A2.log()) &&
       /instanz@beispiel\.de/.test(A2.log()),
       A2.log().split('\n').filter(z => /Mail delivery/.test(z)).join(' | ') || '(keine Zeile)');
+    /* UND DAS DEUTSCHE WORT STEHT NIRGENDS IN SEINER AUSGABE. Die Zeile
+       darueber bliebe gruen, wenn daneben noch einmal „Eigener Server"
+       erschiene: sie fragt nach einem Treffer und nicht nach der Abwesenheit
+       des anderen (Stolperstein 81). */
+    check('Und „Eigener Server" steht nirgends in seiner Ausgabe — 0.33.1',
+      !/Eigener Server/.test(A2.log()),
+      A2.log().split('\n').filter(z => /Eigener/.test(z)).join(' | ') || '(kein Treffer)');
     check('Und das Passwort steht auch dort nicht',
       !A2.log().includes(MAIL_SECRET), 'das Geheimnis steht im Protokoll');
     await A2.stop();
@@ -18597,10 +18621,16 @@ function sweepLeftovers() {
      DAS ZITIERTE WORT STEHT IN BACKTICKS, sonst faenge der Waechter seine
      eigene Begruendung -- er liest Kommentare und laesst zitierten Code in
      Ruhe. */
+  /* UND mail.js SEIT 0.33.1, aus demselben Grund wie images.js und
+     batchrun.js darueber: die Datei traegt 181 deutsche Kommentarzeilen und
+     stand ausserhalb jeder Sprachpruefung. Aufgefallen ist sie nicht durch
+     ein abgelegtes Wort, sondern ueber den Anbieternamen im Protokoll -- beim
+     Nachsehen, welche Waechter die Datei ueberhaupt ansehen, war die Antwort
+     „dieser nicht". Beim Aufnehmen war sie sauber: null Treffer. */
   const LANGUAGE_SOURCES = ['server.js', 'db.js', 'auth.js', 'attachments.js', 'keys.js',
                           'usertool.js', 'keytool.js', 'twofactor.js', 'testbench.js',
                           'counterproof.js', 'public/app.js',
-                          'images.js', 'batchrun.js'];
+                          'images.js', 'batchrun.js', 'mail.js'];
   const languageSource = LANGUAGE_SOURCES.flatMap(n => {
     const p = path.join(__dirname, n);
     return fs.existsSync(p)
@@ -18630,8 +18660,8 @@ function sweepLeftovers() {
      noch die halbe Anwendung an. Genau das ist beim Bauen dieser Gruppe an
      einer Gegenprobe aufgefallen -- der Rueckbau auf eine einzige Datei blieb
      stumm. Dieselbe Ueberlegung wie bei der Zahl in F_ROUTES. */
-  check('Der Sprachwaechter sieht alle dreizehn Quelltextdateien an',
-    LANGUAGE_SOURCES.length === 13 &&
+  check('Der Sprachwaechter sieht alle vierzehn Quelltextdateien an',
+    LANGUAGE_SOURCES.length === 14 &&
     LANGUAGE_SOURCES.every(n => fs.existsSync(path.join(__dirname, n))),
     `${LANGUAGE_SOURCES.length} Dateien, fehlend: ` +
     JSON.stringify(LANGUAGE_SOURCES.filter(n => !fs.existsSync(path.join(__dirname, n)))));
@@ -26963,8 +26993,17 @@ function sweepLeftovers() {
             DAS IST DIE RICHTUNG FUER EINE RUNDE, DIE WEGNIMMT: nicht „nimm
             weg, was da ist", sondern „bring zurueck, was weg sein soll" --
             und wenn davon keine Pruefung rot wird, ist der Hinweis nicht
-            belegt (Frage F11). */
-  check(`Es sind genau 990 Rueckbauten`, gpList.length === 990, `${gpList.length}`);
+            belegt (Frage F11).
+       +4  1053 bis 1056 — 0.33.1, ein Befund aus dem Betrieb. Sie bringen den
+            rohen Anbieternamen ins Protokoll zurueck, jagen umgekehrt auch
+            eine Marke durch den Schluessel, nehmen den englischen Namen aus
+            der Sprachdatei und werfen mail.js wieder aus dem Sprachwaechter.
+            ZWEI VON IHNEN HABEN BEIM ERSTEN LAUF INS LEERE GEGRIFFEN, und der
+            Grund gehoert hierher: der Treiber patcht eine Kopie aus
+            `git archive HEAD` und nicht den Arbeitsstand. Wer einen Rueckbau
+            auf eine Zeile setzt, die noch nicht committet ist, bekommt
+            „RUECKBAU GESCHEITERT" und keinen Fund. */
+  check(`Es sind genau 994 Rueckbauten`, gpList.length === 994, `${gpList.length}`);
   const gpTwice = gpList.map(r => r.nr).filter((n, i, a) => a.indexOf(n) !== i);
   check('Und keine Nummer steht zweimal', gpTwice.length === 0, gpTwice.join(' '));
   /* JEDER GREIFT: der Suchtext kommt in seiner Datei GENAU EINMAL vor. Keinmal
@@ -50437,7 +50476,17 @@ async function checkUi() {
        SECHS DATEIEN, UND ES SIND DIE AUSGELIEFERTEN: was in `usertool.js`
        oder `keytool.js` steht, laeuft auf dem Wirt und auf Zuruf -- dort sitzt
        ein Mensch, der den Befehl getippt hat, und er hat die README auf
-       Deutsch gelesen. `mail.js` traegt keine einzige Konsolenansage. */
+       Deutsch gelesen. `mail.js` traegt keine einzige Konsolenansage.
+
+       UND GENAU DARAN HAT DIESE PROBE IHRE GRENZE -- 0.33.1, Befund aus dem
+       Betrieb. `mail.js` sagt selbst nichts, aber es LIEFERT einen Wert, den
+       server.js ausgibt: der Anbietername „Eigener Server" stand im sonst
+       englischen Protokoll. Im Quelltext des Konsolenrufs steht an jener
+       Stelle eine Einsetzung, kein deutsches Wort, und eine Probe, die Text
+       liest, sieht durch eine Einsetzung nicht hindurch. WAS DIESE PROBE
+       NICHT FINDEN KANN, MUSS GEBAUT UND GELESEN WERDEN: die Zusage „Nach
+       einem Neustart nennt die Startzeile Anbieter, Server und Absender"
+       liest die Ausgabe eines echten Servers mit eingerichtetem Zugang. */
     const CONSOLE_FILES = ['server.js', 'db.js', 'auth.js', 'keys.js',
                            'batchrun.js', 'images.js'];
     /* ZWEI WOERTER FALLEN AUS DER FRAGE, und beide sind BEFEHLE und keine
@@ -50700,6 +50749,52 @@ async function checkUi() {
      UND DIE ANDERE HAELFTE: das dunkle Schema aendert keinen Bildpunkt. Die
      drei neuen Variablen tragen dort GENAU die Werte, die die vier Regeln
      vorher gelesen haben. */
+  /* ================= Der Anbietername ohne Marke -- 0.33.1 ===============
+     DIE LAUFZEITPROBE ZU DIESEM BEFUND STEHT WOANDERS: „Nach einem Neustart
+     nennt die Startzeile Anbieter, Server und Absender" liest die Ausgabe
+     eines echten Servers mit eingerichtetem Zugang. Hier steht der ZWEITE
+     Zweig derselben Zeile, und er braucht keinen Server.
+
+     `mail.js` fuehrt zu jedem Anbieter einen Namen und NUR DORT, WO ES EINEN
+     GIBT, einen Schluessel dazu: „Gmail", „Strato", „GMX" und „IONOS" heissen
+     in jeder Sprache so und tragen keinen; „Eigener Server" ist eine
+     Beschreibung und traegt `mail.ownServer`.
+
+     WARUM DER ZWEIG EIGENS GEPRUEFT WIRD: ein Fix, der JEDEN Namen durch
+     einen Schluessel jagte, machte aus „Strato" einen leeren String -- die
+     Zeile im Protokoll hiesse dann „Mail delivery:  via smtp.strato.de:587".
+     Die Laufzeitprobe faende das nicht, sie faehrt auf „eigen". */
+  group('Der Anbietername im Containerprotokoll — 0.33.1');
+  {
+    const mailModule = require('./mail.js');
+    /* GEFRAGT WIRD mail.js SELBST und keine hier abgeschriebene Liste: eine
+       zweite Fassung der Namen koennte anders lauten als die, die der Server
+       ausgibt (Stolperstein 47). `state()` nimmt ein OBJEKT und keinen Text
+       -- `resolve()` prueft `typeof raw === 'object'` und faellt sonst
+       stillschweigend auf den leeren Zugang zurueck. */
+    const nameOf = (provider) => {
+      const z = mailModule.state({ provider, server: 'smtp.beispiel.de', port: 587,
+                                   user: 'a@beispiel.de', password: 'x',
+                                   sender: 'a@beispiel.de' });
+      return { name: z.providerName, key: z.providerNameKey };
+    };
+    const own = nameOf('eigen');
+    const brand = nameOf('strato');
+    check('„Eigener Server" traegt einen Schluessel',
+      own.name === 'Eigener Server' && own.key === 'mail.ownServer',
+      JSON.stringify(own));
+    check('Eine Marke traegt keinen Schluessel und behaelt ihren Namen',
+      brand.name === 'Strato' && brand.key === '',
+      JSON.stringify(brand));
+    /* UND DER SCHLUESSEL FUEHRT WIRKLICH ZU EINEM ENGLISCHEN WORT. Ohne diese
+       Zeile bliebe die Gruppe gruen, wenn `mail.ownServer` aus der englischen
+       Sprachdatei fiele -- der Server saehe dann den Schluessel selbst. */
+    const ownEnglish = JSON.parse(fs.readFileSync(
+      path.join(__dirname, 'public/languages/en.json'), 'utf8'))['mail.ownServer'];
+    check('Und der Schluessel steht auf Englisch in der Sprachdatei',
+      ownEnglish === 'Own server', JSON.stringify(ownEnglish));
+  }
+
   group('Die Zeitleiste im hellen Schema — 0.24.0');
   {
     const zlRaw = fs.readFileSync(path.join(__dirname, 'public', 'style.css'), 'utf8')

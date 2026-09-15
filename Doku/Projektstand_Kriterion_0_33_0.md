@@ -1,6 +1,6 @@
 # Projektstand — Kriterion
 
-**Kompakte Übergabe · Revision 92 · Stand 14. September 2026 · gebaut: Version 0.33.0**
+**Kompakte Übergabe · Revision 93 · Stand 15. September 2026 · gebaut: Version 0.33.1**
 
 > **REVISION 92 IST DER BRUCH.** *Was dieses Blatt über MIGRATIONSBLÖCKE sagt,
 > gilt ab hier nur noch als Geschichte: mit 0.33.0 sind alle achtzehn gefallen,
@@ -4064,6 +4064,13 @@ Datenbankstruktur erst festschreiben und den Rückweg abschneiden — genau das,
 was nach 1.0.0 die Zwei kosten würde. *Die Null ist hier keine Bescheidenheit,
 sondern eine Aussage: verlass dich noch nicht darauf.* **Sobald sie festliegt,
 kommt 1.0.0 — und nicht später.**
+
+> **ÜBERHOLT AM 15. SEPTEMBER 2026.** *Vorgabe des Betreibers:* **es wird kein
+> 1.0.0 geben.** *Was als 1.0 geplant war, ist mit* **0.33.0** *erreicht. Der
+> Absatz darüber bleibt als Herleitung des damaligen Stands stehen; die
+> Schlussfolgerung „sobald sie festliegt, kommt 1.0.0" gilt nicht mehr.* **Die
+> Null bleibt, und sie ist keine Vorstufe mehr.** *Die Regel steht in*
+> `CLAUDE.md`*, Abschnitt 3.*
 
 #### Das Changelog folgt Keep a Changelog 1.1.0 (ab 0.10.0)
 
@@ -11951,6 +11958,61 @@ hochkam.* **Nach beiden Nachbesserungen: 0 STUMM, 0 ABGERISSEN.**
 **Fingerprint `9083d8c7`** *(davor `24899ab8`)*. **Prüfstand 6858 von 6858,
 achtzehn Gegenproben, 0 stumm.**
 
+### 0.33.1 — „Der Anbietername im Containerprotokoll"
+
+**PATCH · 15. September 2026** *(Änderungsprotokoll 0.33.1).* **Ein Befund aus
+dem Betrieb:** *der Betreiber hat 0.33.0 eingespielt und das Protokoll
+geschickt — darin stand* `Mail delivery: Eigener Server via smtp.strato.de:587`,
+*deutsch in einer englischen Zeile.* **`mail.js` führt zu jedem Anbieter einen
+Namen und, wo es einen gibt, einen Schlüssel dazu** *(Marken heißen in jeder
+Sprache so und tragen keinen; „Eigener Server" ist eine Beschreibung und trägt
+`mail.ownServer`)*; **die Karte setzte den Schlüssel seit 0.32.0 ein, die
+Protokollzeile nahm den Rohwert.** *Sie setzt ihn jetzt auf ENGLISCH — das
+Containerprotokoll fragt niemanden, welche Sprache eingestellt ist. Am
+Bildschirm ändert sich kein Wort.*
+
+**DER EIGENTLICHE FUND IST, WARUM KEINE PRÜFUNG IHN GESEHEN HAT.** *Die
+Restprobe 5d, eigens in 0.33.0 für das Containerprotokoll gebaut, liest den
+QUELLTEXT der Konsolenaufrufe. Dort stand an jener Stelle eine Einsetzung und
+kein deutsches Wort; das Deutsche kam erst zur Laufzeit herein.* **Ein Wächter,
+der Text liest, sieht durch eine Einsetzung nicht hindurch** — *der Kommentar
+von 5d sagt das jetzt und zeigt auf die Stelle, die es kann.*
+
+**Die Zusage ist umgedreht und nicht gelöscht** *(Stolperstein 201)*: sie stand
+auf „Eigener Server" und steht auf „Own server". **Sie startet seit 0.32.0
+ohnehin einen echten Server mit eingerichtetem Zugang und liest dessen
+Startausgabe** — *ein zweiter Server eigens dafür wäre die falsche Antwort
+gewesen, und der Prüfstand hat es vorhergesagt: der erste Entwurf nahm die
+Portbasis 7360, und der Kommentar an der Portregel nennt genau diese Zahl als
+die, die die Spanne über den Versatz hebt.* **Drei weitere Prüfungen daneben
+brauchen keinen Server** *(der Schlüssel am eigenen Server, die Marke ohne
+Schlüssel, der englische Name in der Sprachdatei)*.
+
+**Dazu `mail.js` in den Sprachwächter** *(13 → 14 Dateien; 181 deutsche
+Kommentarzeilen, und die Datei stand außerhalb jeder Sprachprüfung — dieselbe
+Lücke wie bei `images.js` und `batchrun.js` vor 0.19.3. Beim Aufnehmen sauber:
+null Treffer)* **und `npm audit fix`** *(`express` 4.22.2 → 4.22.3, `qs` 6.15.3
+→ 6.16.0, eine doppelte verschachtelte Fassung entfernt; zwei mittelschwere
+Schwachstellen vorher, null nachher — der Punkt stammt aus der
+Sicherheitsdurchsicht desselben Tages und stand dort als „gehört in den
+nächsten Patch")*.
+
+**Vier Gegenproben (1053–1056), 0 STUMM.** *Zwei davon haben beim ersten Lauf
+INS LEERE GEGRIFFEN, und der Grund gehört aufgeschrieben: der Treiber patcht
+eine Kopie aus `git archive HEAD` und nicht den Arbeitsstand. Wer einen Rückbau
+auf eine frische Zeile setzt, committet zuerst — der Hinweis steht jetzt neben
+der Zahl der Rückbauten im Prüfstand.*
+
+> **EINE BEOBACHTUNG, DIE NICHT ZU DIESER RUNDE GEHÖRT.** *Rückbau 1055 macht
+> in beiden Läufen zusätzlich zwei Prüfungen in „Der Prüfstand räumt beim Start
+> auf — 0.30.0" rot. Der Rückbau fasst nur `en.json` an, ein Zusammenhang ist
+> nicht zu sehen; beide Läufe fuhren auf zwei Spuren, und der Prüfstand allein
+> gefahren ist grün.* **Die Ursache ist nicht untersucht — beim nächsten
+> Gegenprobenlauf ist darauf zu achten.**
+
+**Fingerprint `38949534`** *(davor `9083d8c7`)*. **Prüfstand 6862 von 6862,
+994 Rückbauten, vier gefahren, 0 stumm.**
+
 ### 0.24.4 — „Türkisch, und die Kacheln sagen die Wahrheit"
 
 **PATCH — dieselbe benannte Abweichung von 5.1, und mit dieser Runde endet sie
@@ -14284,8 +14346,8 @@ hängt am Inhalt der Datei, nicht an der Versionsnummer.*
 > *Zum zweiten Mal dieselbe Frage, zum zweiten Mal dieselbe Antwort — **eine
 > Regel, die man beim zweiten Mal wieder anwendet, ist eine Regel; eine, die
 > man beim zweiten Mal umgeht, war nie eine.***
-| **1.0.0** | **Die Zusage** | Abwärtskompatibilität wird zugesichert, die öffentliche Schnittstelle aus Abschnitt 5 steht fest. Dazu die Vorgabewerte und die Tastaturbedienung beim Sortieren | — | — |
-| **danach** | Große Dateien bis 2 GB | Teil II des Videopapiers. *MINOR nach 1.0.0* | ja | — |
+| ~~**1.0.0**~~ | ~~Die Zusage~~ | **GESTRICHEN am 15. September 2026** — Vorgabe des Betreibers: es wird kein 1.0.0 geben, was als 1.0 geplant war ist mit **0.33.0** erreicht. *Die zwei offenen Punkte — Vorgabewerte und Tastaturbedienung beim Sortieren — stehen im Fahrplan als eigene Zeile ohne Nummer.* | — | — |
+| **danach** | Große Dateien bis 2 GB | Teil II des Videopapiers. *MINOR* | ja | — |
 
 **VERÖFFENTLICHEN UND DIE EINS SIND ZWEI VERSCHIEDENE DINGE, und SemVer trennt
 sie.** Die Instanz darf mit **jeder** Nummer herausgehen. Was 1.0.0 hinzufügt,

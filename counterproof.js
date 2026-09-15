@@ -5791,7 +5791,7 @@ const REGRESSIONS = [
        batchrun.js stand ein Wort aus der Sperrliste, und niemand sah es. */
     nr: 'W14', name: 'Die Dateiliste des Sprachwaechters verliert die neuen Dateien',
     file: 'testbench.js',
-    search: "                          'images.js', 'batchrun.js'];",
+    search: "                          'images.js', 'batchrun.js', 'mail.js'];",
     replacement: "                          ];",
     expected: 'Der Sprachwaechter'
   },
@@ -10068,6 +10068,55 @@ const REGRESSIONS = [
     search: "    '  CAUTION: the key sits NEXT TO the database, as\\n' +",
     replacement: "    '  ACHTUNG: Der Schluessel liegt NEBEN der Datenbank, als\\n' +",
     expected: 'Die sieben Waechter der Sprachdatei — 0.24.0'
+  },
+
+  /* ---- 0.33.1 · Der Anbietername im Containerprotokoll ------------------
+     VIER RUECKBAUTEN ZU EINEM BEFUND AUS DEM BETRIEB. Der Betreiber hat am
+     15. September 2026 das Protokoll der eingespielten 0.33.0 geschickt;
+     darin stand „Mail delivery: Eigener Server via smtp.strato.de:587" --
+     deutsch in einer englischen Zeile. */
+  {
+    /* DER RUECKBAU DES BEFUNDS SELBST: die Zeile nimmt wieder den Rohwert.
+       ER MUSS ZWEI PUNKTE ROT MACHEN und nicht nur einen -- den Treffer auf
+       „Own server" UND die Frage nach der Abwesenheit von „Eigener Server".
+       Eine Zusage, die nur den einen traegt, uebersaehe eine Zeile, die
+       beides nebeneinander schriebe. */
+    nr: '1053', name: 'Die Protokollzeile nimmt wieder den rohen Anbieternamen',
+    file: 'server.js',
+    search: "      const providerShown = z.providerNameKey\n        ? t('en', z.providerNameKey) : z.providerName;",
+    replacement: "      const providerShown = z.providerName;",
+    expected: 'Der Mailversand: das Passwort steht nirgends'
+  },
+  {
+    /* UND DER ANDERE ZWEIG: wer JEDEN Namen durch den Schluessel jagt, macht
+       aus „Strato" einen leeren String. Die Laufzeitprobe faende das nicht,
+       sie faehrt auf „eigen" -- dafuer steht die Gruppe ohne Server. */
+    nr: '1054', name: 'Die Protokollzeile jagt auch Marken durch den Schluessel',
+    file: 'mail.js',
+    search: "  { key: 'strato', name: 'Strato',        server: 'smtp.strato.de',     port: 465, secure: true },",
+    replacement: "  { key: 'strato', name: 'Strato', nameKey: 'mail.ownServer', server: 'smtp.strato.de', port: 465, secure: true },",
+    expected: 'Der Anbietername im Containerprotokoll — 0.33.1'
+  },
+  {
+    /* DER SCHLUESSEL FAELLT AUS DER ENGLISCHEN SPRACHDATEI. Ohne die dritte
+       Zusage der Gruppe bliebe das gruen: der Server saehe dann den
+       Schluessel selbst im Protokoll stehen, und niemand faende es. */
+    nr: '1055', name: 'Der englische Name des eigenen Servers faellt weg',
+    file: 'public/languages/en.json',
+    search: '"mail.ownServer": "Own server"',
+    replacement: '"mail.ownServer": "Eigener Server"',
+    expected: 'Der Anbietername im Containerprotokoll — 0.33.1'
+  },
+  {
+    /* UND mail.js FAELLT WIEDER AUS DEM SPRACHWAECHTER. W14 nimmt alle drei
+       neuen Dateien zugleich; dieser nimmt nur die eine, die 0.33.1
+       eingetragen hat -- sonst bliebe unbelegt, dass gerade SIE gesehen wird
+       (Stolperstein 156: gezaehlt wird, was gemeint ist). */
+    nr: '1056', name: 'Der Sprachwaechter verliert mail.js wieder',
+    file: 'testbench.js',
+    search: "'images.js', 'batchrun.js', 'mail.js'];",
+    replacement: "'images.js', 'batchrun.js'];",
+    expected: 'Der Sprachwaechter'
   },
 ];
 

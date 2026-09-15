@@ -9127,7 +9127,22 @@ app.listen(PORT, () => {
     const raw = getSetting(mail.SETTING_KEY, null);
     const z = mail.state(raw);
     if (mail.configured(raw)) {
-      console.log(`[Kriterion] Mail delivery: ${z.providerName} via ${z.server}:${z.port} ` +
+      /* DER ANBIETERNAME KOMMT HIER AUF ENGLISCH -- 0.33.1.
+         `mail.js` fuehrt zu jedem Anbieter einen Namen und, wo es einen gibt,
+         einen Schluessel dazu: „Gmail" und „Strato" heissen in jeder Sprache
+         so und tragen keinen, „Eigener Server" ist eine Beschreibung und
+         traegt `mail.ownServer`. Der Bildschirm setzt den Schluessel in der
+         Sprache des Lesers ein; DIESE ZEILE SETZT IHN AUF ENGLISCH, weil das
+         Containerprotokoll seit 0.33.0 englisch spricht und niemanden fragt,
+         welche Sprache der Betreiber eingestellt hat.
+         BIS 0.33.1 STAND HIER `z.providerName` ROH: im englischen Protokoll
+         erschien „Eigener Server", gemeldet vom Betreiber aus dem Betrieb.
+         Die Restprobe 5d konnte es nicht sehen -- sie liest den Quelltext der
+         Konsolenrufe, und dort stand eine Einsetzung und kein deutsches Wort.
+         Die Pruefung dazu baut die Zeile deshalb, statt sie zu lesen. */
+      const providerShown = z.providerNameKey
+        ? t('en', z.providerNameKey) : z.providerName;
+      console.log(`[Kriterion] Mail delivery: ${providerShown} via ${z.server}:${z.port} ` +
         `(${z.secure ? 'TLS' : 'STARTTLS'}), sender ${z.sender}.` +
         (PUBLIC.address ? '' : ' Without PUBLIC_ADDRESS nothing is sent all the same.'));
     } else {
