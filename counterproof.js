@@ -2050,14 +2050,16 @@ const REGRESSIONS = [
   },
   /* ---- 0.14.0: die drei Spalten und der Migrationsblock ---- */
   {
-    /* Die DDL verliert die drei Spalten. Eine FRISCHE Instanz bekaeme sie dann
-       ueber den Migrationsblock -- und zu 1.0, wenn er wegfaellt, gar nicht
-       mehr. Genau dafuer steht die Gegenlage der frischen Instanz. */
+    /* Die DDL verliert die drei Spalten. Bis 0.32.1 bekaeme eine FRISCHE
+       Instanz sie dann ueber den Migrationsblock; SEIT 0.33.0 gar nicht mehr,
+       denn den Block gibt es nicht. DIESER RUECKBAU IST DAMIT SCHAERFER
+       GEWORDEN, ohne dass jemand ihn angefasst haette -- und genau dafuer
+       stand von Anfang an die Gegenlage der frischen Instanz. */
     nr: '224', name: 'Die drei Spalten stehen nicht mehr in der DDL',
     file: 'db.js',
     search: "  rejected_at TEXT,\n  rejected_reason TEXT,",
     replacement: "",
-    expected: 'MIGRATION 0.14.0 — ENTFAELLT MIT 1.0'
+    expected: 'Der Hinweis auf einen unvollstaendigen Bestand — 0.33.0'
   },
   /* ---- 0.14.0: die Klemme an der Begruendung ---- */
   {
@@ -9986,7 +9988,7 @@ const REGRESSIONS = [
     file: 'server.js',
     search: "  if (!Number.isFinite(fileFormat) || fileFormat < EXCHANGE_FORMAT_MIN) {",
     replacement: "  if (false) {",
-    expected: 'Die Exportdatei'
+    expected: 'Der Rueckfall der Namen — 0.24.3'
   },
   {
     /* UND DIE UNTERGRENZE RUTSCHT AUF 13. Das ist der Fund, der die grobe
@@ -9996,7 +9998,7 @@ const REGRESSIONS = [
     file: 'server.js',
     search: 'const EXCHANGE_FORMAT_MIN = 14;',
     replacement: 'const EXCHANGE_FORMAT_MIN = 13;',
-    expected: 'Die Exportdatei'
+    expected: 'Der Rueckfall der Namen — 0.24.3'
   },
   {
     /* DIE PROGRAMMFASSUNG FAELLT AUS DER EXPORTDATEI. Die Datei sagte damit
@@ -10007,7 +10009,7 @@ const REGRESSIONS = [
     file: 'server.js',
     search: "           appVersion: VERSION,\n           criteria: critRows.map(c => c.name), criteriaWeights, criteriaPhase,",
     replacement: "           criteria: critRows.map(c => c.name), criteriaWeights, criteriaPhase,",
-    expected: 'Die Namen je Sprache in der Exportdatei — 0.24.3'
+    expected: 'Der Rueckfall der Namen — 0.24.3'
   },
   {
     /* DER STEMPEL WIRD AUCH IN EINEN GEWACHSENEN BESTAND GESCHRIEBEN. Eine
@@ -10056,7 +10058,7 @@ const REGRESSIONS = [
     file: 'server.js',
     search: "  console.log(`[Kriterion] Running on port ${PORT} -- ` +",
     replacement: "  console.log(`[Kriterion] Laeuft auf Port ${PORT} -- ` +",
-    expected: 'Die Restprobe der Konsolenansagen — 0.33.0'
+    expected: 'Die sieben Waechter der Sprachdatei — 0.24.0'
   },
   {
     /* UND DER SCHLUESSELHINWEIS EBENSO -- er ist der halbe Bildschirm, den
@@ -10065,7 +10067,7 @@ const REGRESSIONS = [
     file: 'keys.js',
     search: "    '  CAUTION: the key sits NEXT TO the database, as\\n' +",
     replacement: "    '  ACHTUNG: Der Schluessel liegt NEBEN der Datenbank, als\\n' +",
-    expected: 'Die Restprobe der Konsolenansagen — 0.33.0'
+    expected: 'Die sieben Waechter der Sprachdatei — 0.24.0'
   },
 ];
 
