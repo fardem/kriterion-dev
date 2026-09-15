@@ -18,6 +18,12 @@ Pull-Request-Beschreibungen, Code-Kommentare und Dokumentation.
   Ergebnisse und Zahlen, auf die es ankommt.
 - **Erzählform.** Kein Spannungsbogen, keine Pointe, keine rhetorischen Fragen.
 
+### Anrede
+
+**Wir duzen uns.** Der Betreiber duzt Claude, Claude duzt zurück — in
+Chat-Antworten. Dokumentation und Commit-Nachrichten bleiben sachlich und
+kommen ohne direkte Anrede aus.
+
 ### Stattdessen
 
 - Kurze Sätze, ein Sachverhalt pro Satz.
