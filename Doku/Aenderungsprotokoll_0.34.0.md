@@ -349,18 +349,53 @@ die den Prüfstand selbst zurückbauen — die vierzehn auf `testbench.js` und d
 | 299 | `test/selfcheck.js` | 10 |
 | 605 | `counterproof.js` | 5 |
 | W13, W14, 1056 | `test/source.js` | 4, 2, 2 |
-| W2 | `test/firstlogin.js` | 3 |
+| W2 | `test/firstlogin.js` | 4 |
 | W5, W6, 896, 897, 898, 899 | `test/frame.js` | 3, 2, 2, 2, 2, 5 |
 | 907 | `test/release_030.js` | 3 |
 | 1020 | `test/ui_overview.js` | 6 |
 
-W2 ist dabei der Beleg für einen neuen Weg: der Rückbau macht das Modul
-`erstanmeldung` unbrauchbar, und der Treiber meldet das als roten Punkt —
-„Das Modul erstanmeldung ist abgebrochen: starteWeiterenServer is not defined".
-Ein Modul, das nicht startet, läuft nicht als leerer Lauf durch.
-
 Die übrigen 983 Rückbauten sind nicht gefahren worden. Sie fassen Dateien an,
 die diese Runde nicht berührt hat.
+
+### Nachgetragen: zwei Ersatztexte trugen alte Namen
+
+Die Zahl für W2 stand zuerst auf 3 und ist auf **4** berichtigt. Der Grund: bei
+der Umbenennung der Module ist der Suchtext des Rückbaus auf die neuen Namen
+gezogen worden, sein Ersatztext nicht.
+
+| | Text |
+|---|---|
+| `search` | `  const B = startFurtherServer(freshDir, {}, 5130);` |
+| `replacement` vorher | `  const B = starteWeiterenServer(frischDir, {}, 4000);` |
+| `replacement` jetzt | `  const B = startFurtherServer(freshDir, {}, 4000);` |
+
+`starteWeiterenServer` und `frischDir` gibt es seit der Umbenennung nicht mehr.
+Das Modul brach deshalb beim Laden ab, statt mit der Portbasis 4000 zu starten:
+„Das Modul firstlogin ist abgebrochen: starteWeiterenServer is not defined".
+Der Abbruch machte auch die erwartete Prüfgruppe rot, und damit meldete die
+Gegenprobe Erfolg — der Rückbau war rot aus dem falschen Grund. Die Portbasis
+4000 hat er nie gesetzt.
+
+W5 hat denselben Fehler in einer Zeile, die auskommentiert wird:
+`  // SMTP_LAGEN.push(lage);` statt `  // SMTP_CASES.push(state);`. Dort ändert
+er am Ablauf nichts, die Zahl bleibt 3.
+
+Beide Ersatztexte stehen jetzt auf den heutigen Namen. Nachgefahren am
+15. September 2026, zwei Nebenspuren, je 353 Sekunden:
+
+| Rückbau | bestanden | rot | rot in der erwarteten Gruppe |
+|---|---:|---:|---|
+| W2 | 6861 von 6865 | 4 | „Keine Portbasis deckt eine Nummer, die fetch() nicht anwaehlt" |
+| W5 | 6862 von 6865 | 3 | „Der Lauf hat seine Portbasen vermerkt" |
+
+Vor der Berichtigung lief W2 über 6820 Prüfungen statt 6865: die 45 Prüfungen
+des abgebrochenen Moduls wurden nicht erreicht. Dass der Treiber einen solchen
+Abbruch als roten Punkt meldet und nicht als leeren Lauf, stimmt und bleibt —
+belegt hat es hier aber ein Rückbau, der etwas anderes prüfen sollte.
+
+Gefunden über eine Durchsicht aller 14 Rückbauten auf Prüfstandsdateien: jeder
+Name im Ersatztext, der in keiner Datei des Prüfstands vorkommt, ist ein
+Treffer. Zwei von 14, beide oben genannt.
 
 ---
 
