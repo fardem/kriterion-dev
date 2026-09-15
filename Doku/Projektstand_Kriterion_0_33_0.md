@@ -11906,7 +11906,7 @@ Weggenommenen tritt.*
 | | vorher | nachher |
 |---|---|---|
 | **Migrationsblöcke** | 18 *(nicht 12 — siehe unten)* | **0** |
-| **Zeilen in `db.js`** | 2146 | **1352** |
+| **Zeilen in `db.js`** | 2145 | **1473** |
 | **Schlüssel je Sprachdatei** | 1209 | **1208** |
 | **Prüfungen** | 7017 | **6858** |
 | **Rückbauten** | 1008 | **990** |

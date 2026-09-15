@@ -14,7 +14,7 @@ die Runde legt nichts dazu, sie nimmt weg, was einen Rückweg offenhält.**
 >
 > | | vorher | nachher |
 > |---|---|---|
-> | **Zeilen in `db.js`** | 2146 | **1352** |
+> | **Zeilen in `db.js`** | 2145 | **1473** |
 > | **Migrationsblöcke** | 18 | **0** |
 > | **Schlüssel je Sprachdatei** | 1209 | **1208** |
 > | **Prüfungen** | 7017 | **6858** |
@@ -80,8 +80,15 @@ worden:** *er liest jetzt BEIDE Markenformen, und zwar in demselben Muster.*
 
 ## Strang 1 · Die achtzehn Blöcke fallen
 
-**928 von 2146 Zeilen aus `db.js` — 43 Prozent der Datei.** *Dazu zehn Namen im
-`module.exports`, die nur hinausgingen, weil der Prüfstand sie einzeln fuhr.*
+**945 Zeilen aus `db.js` — der Block von Zeile 923 bis 1867.** *Dazu zehn
+Namen im `module.exports`, die nur hinausgingen, weil der Prüfstand sie einzeln
+fuhr.*
+
+> **GEMESSEN UND NICHT GESCHÄTZT: die Datei geht von 2145 auf 1473 Zeilen.**
+> *Der Auftrag rechnete mit 928 Zeilen und einer Datei von 2146; nachgezählt am
+> gebauten Stand sind es 945 gefallene Zeilen, und dazu kommt, was an ihre
+> Stelle getreten ist — die Probe, der Stempel und die drei Klammern gegen den
+> Abbruch. Unterm Strich:* **983 Zeilen weg, 311 dazu.**
 
 ### Die Grenze ist nicht verschoben, sie ist fort
 

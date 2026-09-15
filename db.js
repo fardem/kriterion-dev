@@ -91,10 +91,10 @@ CREATE TABLE IF NOT EXISTS product_categories (
   -- verschob damit den ganzen Bestand von einer Namenstafel in die andere --
   -- kein Datenverlust, eine falsche Zuordnung (Befund A1).
   -- NULL IST ERLAUBT UND BEDEUTET ETWAS: „in welcher Sprache dieser Name
-  -- geschrieben ist, weiss niemand". Das ist der Zustand des Bestands nach dem
-  -- Einspielen von 0.25.0 -- die Migration fuellt NICHTS (F2), und die Karte
-  -- bietet einen Knopf zum Zuordnen an. Das System behauptet nie etwas
-  -- Falsches.
+  -- geschrieben ist, weiss niemand". Das war der Zustand eines Bestands, der
+  -- die Spalte nachgeruestet bekam -- der Block von 0.25.0 fuellte sie
+  -- ausdruecklich NICHT (F2 jener Runde), und die Karte bietet bis heute einen
+  -- Knopf zum Zuordnen an. Das System behauptet nie etwas Falsches.
   -- AB 0.25.0 ENTSTEHT KEINE ZEILE MEHR OHNE SPRACHVERMERK: der Anlegeweg
   -- traegt die Sprache des Rufers ein, der Import die der Datei.
   language TEXT,
@@ -281,10 +281,10 @@ CREATE TABLE IF NOT EXISTS rating_criteria (
   -- die Menge der Werte stuende sonst zweimal, hier und in PHASEN im Server,
   -- und die zweite meldete sich nicht als Absage mit Meldung, sondern als
   -- abgebrochene Schreibung. PHASEN steht genau einmal, in server.js.
-  -- DEFAULT 'after', und die Bestandszeilen bekommen ihn aus dem DEFAULT,
-  -- nicht aus einem UPDATE (Migration 0.21.0): jeder andere Wert aenderte beim
-  -- Einspielen still saemtliche Gesamtschnitte. Was heute Kriterium ist, ist
-  -- Bewertungskriterium.
+  -- DEFAULT 'after', und jede Zeile bekommt ihn aus dem DEFAULT und nicht aus
+  -- einem UPDATE -- so hat es 0.21.0 beim Nachruesten gehalten, und der Grund
+  -- gilt unveraendert: jeder andere Wert aenderte still saemtliche
+  -- Gesamtschnitte. Was heute Kriterium ist, ist Bewertungskriterium.
   -- UNIQUE(name) BLEIBT GLOBAL und wandert nicht auf (name, phase): ein Name,
   -- ein Kasten. Die Einschraenkung zu aendern hiesse Tabellenneubau (SQLite
   -- kennt kein ALTER CONSTRAINT), und „Wunsch" in beiden Kaesten waere fuer
@@ -1279,12 +1279,13 @@ function ownerId() {
 // --- Auffangnetz: kein Bestand ohne Benutzer ---
 // Alles, was niemandem gehoert, faellt an den Eigentuemer -- auch eine
 // Linkzeile und eine Datei.
-// DAS IST NICHT DIESELBE REGEL WIE IN DEN MIGRATIONEN DARUEBER, und beide
-// stehen bewusst nebeneinander: die Migration beantwortet einmalig, wem die
-// Links eines BESTEHENDEN Eintrags gehoeren (seinem Verfasser), das Netz
-// beantwortet fortlaufend, wem eine Zeile zufaellt, die ihren Verfasser
-// VERLOREN hat (dem Eigentuemer, wie ueberall sonst). Verschiedene
-// Zeitpunkte, verschiedene Fragen. Im Normalbetrieb
+// ES WAR NICHT DIESELBE REGEL WIE IN DEN MIGRATIONSBLOECKEN, die bis 0.32.1
+// darueber standen, und beide standen bewusst nebeneinander: die Bloecke von
+// 0.8.30 und 0.8.31 beantworteten EINMALIG, wem die Links und Dateien eines
+// BESTEHENDEN Eintrags gehoeren (seinem Verfasser), das Netz beantwortet
+// FORTLAUFEND, wem eine Zeile zufaellt, die ihren Verfasser VERLOREN hat (dem
+// Eigentuemer, wie ueberall sonst). Verschiedene Zeitpunkte, verschiedene
+// Fragen -- und seit 0.33.0 gibt es nur noch die zweite. Im Normalbetrieb
 // entsteht so etwas nicht (geloeschte Zugaenge bleiben als Grabstein stehen);
 // das Netz faengt Fehlerfaelle. ZWEI AUFRUFSTELLEN, beide noetig: hier beim
 // Start und in auth.js nach legeErstenBenutzerAn() -- beim Start einer leeren

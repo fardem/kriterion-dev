@@ -44,7 +44,7 @@ bleiben in der Form ihrer Zeit.*
 
 ### Entfernt
 
-- **Achtzehn Migrationsblöcke sind weg** — 928 von 2146 Zeilen aus `db.js`. Sie rüsteten seit 0.8.3 fehlende Spalten, Tabellen- und Feldnamen nach; eine Datenbank, die je unter 0.32.1 gelaufen ist, braucht keinen davon.
+- **Achtzehn Migrationsblöcke sind weg** — `db.js` geht von 2145 auf 1473 Zeilen. Sie rüsteten seit 0.8.3 fehlende Spalten, Tabellen- und Feldnamen nach; eine Datenbank, die je unter 0.32.1 gelaufen ist, braucht keinen davon.
 - **Die zweite Hälfte von „Vorhandene Bilder konvertieren" ist weg.** Sie rechnete Vorschaubilder neu, die noch JPEG waren — seit 0.27.0 entsteht keines mehr. Die erste Hälfte bleibt: Originale werden weiter umgestellt. **Liegt kein PNG mehr da, ist der Knopf wieder tot.**
 - **Der Import übersetzt keine alten Feldnamen mehr.** Ersatzlos wäre das still gefährlich, deshalb die Abweisung im Kasten oben.
 
