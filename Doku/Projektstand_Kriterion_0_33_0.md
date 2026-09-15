@@ -1,6 +1,6 @@
 # Projektstand — Kriterion
 
-**Kompakte Übergabe · Revision 93 · Stand 15. September 2026 · gebaut: Version 0.33.1**
+**Kompakte Übergabe · Revision 94 · Stand 15. September 2026 · gebaut: Version 0.33.2**
 
 > **REVISION 92 IST DER BRUCH.** *Was dieses Blatt über MIGRATIONSBLÖCKE sagt,
 > gilt ab hier nur noch als Geschichte: mit 0.33.0 sind alle achtzehn gefallen,
@@ -12012,6 +12012,51 @@ der Zahl der Rückbauten im Prüfstand.*
 
 **Fingerprint `38949534`** *(davor `9083d8c7`)*. **Prüfstand 6862 von 6862,
 994 Rückbauten, vier gefahren, 0 stumm.**
+
+### 0.33.2 — „Elf deutsche Sätze und ein roher Schlüssel"
+
+**PATCH · 15. September 2026** *(Änderungsprotokoll 0.33.2).* **Der zweite
+Befund aus dem Betrieb am selben Tag:** *im Protokoll der eingespielten 0.33.1
+stand* `Backup location: off -- server.backupDirNotSet` — *ein interner
+Schlüssel statt eines Satzes, und der Betreiber hätte gerade diese Auskunft
+gebraucht: sein* `BACKUP_DIR` *war beim Umstellen der* `.env` *verlorengegangen,
+die Sicherungen liefen nicht.*
+
+**Nachgesehen wurden alle 38 Konsolenaufrufe der sechs ausgelieferten Dateien,
+die einen Wert einsetzen.** *Drei geben Deutsch oder einen Schlüssel aus: die
+Sicherungszeile (ein Schlüssel, fünf mögliche Gründe), die PUBLIC_ADDRESS-Probe
+(sechs deutsche Sätze aus* `auth.js`*) und* `languageSkip` *(fünf Gründe).*
+**Alle drei sind derselbe Fall wie der Anbietername in 0.33.1: der Rahmen der
+Zeile ist englisch, der eingesetzte Wert nicht.** *Die Sicherungszeile
+übersetzt ihren Grund jetzt auf Englisch und gibt die Werte mit — drei der fünf
+Gründe nennen den Ordner. Die elf Sätze sind englisch und bleiben
+schlüssellos.*
+
+**UND SIE WAREN KEIN VERSEHEN VON 0.33.0.** *Sie standen namentlich in*
+`SERVER_REST_NAMED`*, der Liste des erlaubten deutschen Rests, mit der
+Begründung „sie landen auf dem Bildschirm des Wirts". Diese Begründung war
+richtig, solange das Protokoll deutsch sprach; seit 0.33.0 verlangt sie das
+Gegenteil.* **Die Ausnahme ist trotzdem stehengeblieben, weil eine benannte
+Ausnahme aussieht wie eine entschiedene.** *Die Regel daraus:* **wer eine
+Voraussetzung ändert, liest die Ausnahmen noch einmal, die auf ihr stehen.**
+*Eine Liste benannter Ausnahmen ist keine Abnahme, sondern eine Sammlung von
+Behauptungen mit Datum.*
+
+**Und zum zweiten Mal dieselbe Antwort auf die Frage, warum keine Prüfung es
+gesehen hat — diesmal belegt statt vermutet:** *die Restprobe 5d liest die
+Konsolenaufrufe und findet dort eine Einsetzung; die Restprobe 5c schneidet die
+Aufrufe weg, SAH die elf Sätze und ließ sie durch, weil sie benannt waren.*
+**Beide Proben haben getan, was sie sollen. Die Lücke lag zwischen ihnen.**
+
+**Die Zusage „Der Start sagt es im Protokoll" hat den Fehler festgenagelt** —
+*sie fragte nach dem rohen Schlüssel — und ist umgedreht (Stolperstein 201).
+Drei neue stehen daneben, darunter zwei auf die mitgereisten Werte.* **Die
+Prüflage dafür läuft auf der Portbasis 4360, die der Server davor freigibt** —
+*eine eigene Basis wäre die falsche Antwort, und 0.33.1 ist genau daran einmal
+hängengeblieben.* **Dazu zwei vorhandene Rückbauten nachgezogen (710 und 711).**
+
+**Fingerprint `d6dbb696`** *(davor `38949534`)*. **Prüfstand 6865 von 6865,
+998 Rückbauten, vier gefahren, 0 stumm.**
 
 ### 0.24.4 — „Türkisch, und die Kacheln sagen die Wahrheit"
 
