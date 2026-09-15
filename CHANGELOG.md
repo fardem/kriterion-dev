@@ -29,6 +29,21 @@ bleiben in der Form ihrer Zeit.*
 
 *Hier wird mitgeschrieben, während gebaut wird.*
 
+## [0.33.1] - 2026-09-15
+
+### Behoben
+
+- **Der Anbietername des Mailversands stand deutsch im englischen Protokoll.** Die Startzeile lautete „Mail delivery: Eigener Server via …"; sie lautet jetzt „Own server". Betroffen war nur „Eigener Server" — Gmail, Strato, GMX und IONOS heißen in jeder Sprache so. **Am Bildschirm ändert sich nichts**: dort steht der Name weiter in der Sprache des Lesers.
+
+### Sicherheit
+
+- **Zwei mittelschwere Schwachstellen in einer mitgelieferten Bibliothek sind weg** (`qs`, über `express`). `npm audit` meldet jetzt keine mehr.
+
+### Intern
+
+- `mail.js` steht jetzt im Sprachwächter des Prüfstands (13 → 14 Dateien). Die Datei war bis dahin aus seinem Blick.
+- Prüfstand 6858 → 6862, Rückbauten 990 → 994. Vier Gegenproben gefahren, **0 stumm**.
+
 ## [0.33.0] - 2026-09-14
 
 > **WER VON EINER FASSUNG VOR 0.33.0 KOMMT, GEHT ZUERST ÜBER 0.32.1.** Bis

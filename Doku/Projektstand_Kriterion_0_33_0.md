@@ -1,6 +1,6 @@
 # Projektstand — Kriterion
 
-**Kompakte Übergabe · Revision 92 · Stand 14. September 2026 · gebaut: Version 0.33.0**
+**Kompakte Übergabe · Revision 93 · Stand 15. September 2026 · gebaut: Version 0.33.1**
 
 > **REVISION 92 IST DER BRUCH.** *Was dieses Blatt über MIGRATIONSBLÖCKE sagt,
 > gilt ab hier nur noch als Geschichte: mit 0.33.0 sind alle achtzehn gefallen,
@@ -11957,6 +11957,61 @@ hochkam.* **Nach beiden Nachbesserungen: 0 STUMM, 0 ABGERISSEN.**
 
 **Fingerprint `9083d8c7`** *(davor `24899ab8`)*. **Prüfstand 6858 von 6858,
 achtzehn Gegenproben, 0 stumm.**
+
+### 0.33.1 — „Der Anbietername im Containerprotokoll"
+
+**PATCH · 15. September 2026** *(Änderungsprotokoll 0.33.1).* **Ein Befund aus
+dem Betrieb:** *der Betreiber hat 0.33.0 eingespielt und das Protokoll
+geschickt — darin stand* `Mail delivery: Eigener Server via smtp.strato.de:587`,
+*deutsch in einer englischen Zeile.* **`mail.js` führt zu jedem Anbieter einen
+Namen und, wo es einen gibt, einen Schlüssel dazu** *(Marken heißen in jeder
+Sprache so und tragen keinen; „Eigener Server" ist eine Beschreibung und trägt
+`mail.ownServer`)*; **die Karte setzte den Schlüssel seit 0.32.0 ein, die
+Protokollzeile nahm den Rohwert.** *Sie setzt ihn jetzt auf ENGLISCH — das
+Containerprotokoll fragt niemanden, welche Sprache eingestellt ist. Am
+Bildschirm ändert sich kein Wort.*
+
+**DER EIGENTLICHE FUND IST, WARUM KEINE PRÜFUNG IHN GESEHEN HAT.** *Die
+Restprobe 5d, eigens in 0.33.0 für das Containerprotokoll gebaut, liest den
+QUELLTEXT der Konsolenaufrufe. Dort stand an jener Stelle eine Einsetzung und
+kein deutsches Wort; das Deutsche kam erst zur Laufzeit herein.* **Ein Wächter,
+der Text liest, sieht durch eine Einsetzung nicht hindurch** — *der Kommentar
+von 5d sagt das jetzt und zeigt auf die Stelle, die es kann.*
+
+**Die Zusage ist umgedreht und nicht gelöscht** *(Stolperstein 201)*: sie stand
+auf „Eigener Server" und steht auf „Own server". **Sie startet seit 0.32.0
+ohnehin einen echten Server mit eingerichtetem Zugang und liest dessen
+Startausgabe** — *ein zweiter Server eigens dafür wäre die falsche Antwort
+gewesen, und der Prüfstand hat es vorhergesagt: der erste Entwurf nahm die
+Portbasis 7360, und der Kommentar an der Portregel nennt genau diese Zahl als
+die, die die Spanne über den Versatz hebt.* **Drei weitere Prüfungen daneben
+brauchen keinen Server** *(der Schlüssel am eigenen Server, die Marke ohne
+Schlüssel, der englische Name in der Sprachdatei)*.
+
+**Dazu `mail.js` in den Sprachwächter** *(13 → 14 Dateien; 181 deutsche
+Kommentarzeilen, und die Datei stand außerhalb jeder Sprachprüfung — dieselbe
+Lücke wie bei `images.js` und `batchrun.js` vor 0.19.3. Beim Aufnehmen sauber:
+null Treffer)* **und `npm audit fix`** *(`express` 4.22.2 → 4.22.3, `qs` 6.15.3
+→ 6.16.0, eine doppelte verschachtelte Fassung entfernt; zwei mittelschwere
+Schwachstellen vorher, null nachher — der Punkt stammt aus der
+Sicherheitsdurchsicht desselben Tages und stand dort als „gehört in den
+nächsten Patch")*.
+
+**Vier Gegenproben (1053–1056), 0 STUMM.** *Zwei davon haben beim ersten Lauf
+INS LEERE GEGRIFFEN, und der Grund gehört aufgeschrieben: der Treiber patcht
+eine Kopie aus `git archive HEAD` und nicht den Arbeitsstand. Wer einen Rückbau
+auf eine frische Zeile setzt, committet zuerst — der Hinweis steht jetzt neben
+der Zahl der Rückbauten im Prüfstand.*
+
+> **EINE BEOBACHTUNG, DIE NICHT ZU DIESER RUNDE GEHÖRT.** *Rückbau 1055 macht
+> in beiden Läufen zusätzlich zwei Prüfungen in „Der Prüfstand räumt beim Start
+> auf — 0.30.0" rot. Der Rückbau fasst nur `en.json` an, ein Zusammenhang ist
+> nicht zu sehen; beide Läufe fuhren auf zwei Spuren, und der Prüfstand allein
+> gefahren ist grün.* **Die Ursache ist nicht untersucht — beim nächsten
+> Gegenprobenlauf ist darauf zu achten.**
+
+**Fingerprint `38949534`** *(davor `9083d8c7`)*. **Prüfstand 6862 von 6862,
+994 Rückbauten, vier gefahren, 0 stumm.**
 
 ### 0.24.4 — „Türkisch, und die Kacheln sagen die Wahrheit"
 
