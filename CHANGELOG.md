@@ -29,6 +29,17 @@ bleiben in der Form ihrer Zeit.*
 
 *Hier wird mitgeschrieben, während gebaut wird.*
 
+## [0.33.2] - 2026-09-15
+
+### Behoben
+
+- **Die Zeile über den Sicherungsort nannte einen internen Schlüssel statt eines Satzes.** Im Protokoll stand „Backup location: off -- server.backupDirNotSet". Jetzt steht dort, was zu tun ist: „No backup folder is set up. The docker-compose.yml mounts it and names it as BACKUP_DIR — the two belong together." Der Ordnername wird mitgenannt, wo der Grund ihn kennt.
+- **Elf deutsche Sätze standen noch im englischen Protokoll.** Sechs davon prüfen die öffentliche Adresse („Das ist keine vollständige Adresse."), fünf begründen, warum eine Sprachdatei übergangen wurde. Beide Gruppen sind jetzt englisch. **Am Bildschirm ändert sich nichts** — keiner dieser Sätze erreicht ihn.
+
+### Intern
+
+- Prüfstand 6862 → 6865, Rückbauten 994 → 998. Vier Gegenproben gefahren, **0 stumm**.
+
 ## [0.33.1] - 2026-09-15
 
 ### Behoben

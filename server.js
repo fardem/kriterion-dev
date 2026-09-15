@@ -117,6 +117,14 @@ const LANGUAGE_NAME = /^[a-z]{2,3}(?:-[A-Z][a-z]{3})?(?:-(?:[A-Z]{2}|[0-9]{3}))?
 /* EINE ZEILE INS CONTAINERPROTOKOLL, und die Datei zaehlt nicht. Sie geht auf
    stderr und nicht auf stdout: es ist eine Lage, die jemand richten muss, und
    kein Betriebsvermerk. */
+/* DIE BEGRUENDUNG IST SEIT 0.33.2 ENGLISCH, und nicht nur der Rahmen um sie
+   herum. Bis dahin stand hier ein englischer Satz mit einem deutschen Grund
+   dahinter -- der Rahmen war uebersetzt, der eingesetzte Wert nicht.
+   DIE RESTPROBE 5d KONNTE DAS NICHT SEHEN: sie liest die Konsolenrufe, und
+   hier steht eine Einsetzung. Gesehen hat es die Restprobe 5c, die den Ruf
+   WEGSCHNEIDET und fragt, was uebrig bleibt -- die fuenf Gruende standen bei
+   ihr namentlich als erlaubter Rest. Erlaubt waren sie, solange das Protokoll
+   deutsch sprach. */
 const languageSkip = (file, why) => console.error(
   `[languages] ${file} does not count as a language: ${why}`);
 
@@ -126,23 +134,23 @@ function readLanguages() {
     if (!file.endsWith('.json')) continue;
     const code = file.slice(0, -'.json'.length);
     if (!LANGUAGE_NAME.test(code)) {
-      languageSkip(file, 'der vordere Teil ist keine Sprachkennung nach BCP 47');
+      languageSkip(file, 'the leading part is not a language tag under BCP 47');
       continue;
     }
     let texts;
     try {
       texts = JSON.parse(fs.readFileSync(path.join(LANGUAGE_DIR, file), 'utf8'));
     } catch (e) {
-      languageSkip(file, `sie laesst sich nicht lesen (${e.message})`);
+      languageSkip(file, `it cannot be read (${e.message})`);
       continue;
     }
     // Ein Array ist auch ein Objekt -- und traegt trotzdem keine Schluessel.
     if (!texts || typeof texts !== 'object' || Array.isArray(texts)) {
-      languageSkip(file, 'sie traegt kein Objekt');
+      languageSkip(file, 'it does not carry an object');
       continue;
     }
     if (typeof texts._locale !== 'string') {
-      languageSkip(file, '_locale fehlt im Kopf der Datei');
+      languageSkip(file, '_locale is missing from the head of the file');
       continue;
     }
     /* DIE LOCALE WIRD AN Intl GEHALTEN UND NICHT AN EINEM MUSTER GEMESSEN:
@@ -151,7 +159,7 @@ function readLanguages() {
        unten und nahm den Server mit. */
     try { new Intl.PluralRules(texts._locale); }
     catch {
-      languageSkip(file, `Intl kennt die Locale "${texts._locale}" nicht`);
+      languageSkip(file, `Intl does not know the locale "${texts._locale}"`);
       continue;
     }
     out[code] = texts;
@@ -8829,9 +8837,22 @@ app.post('/api/backup/check', ownerOnly, (req, res) => {
 
 // Einmal beim Start ins Protokoll -- wer den Ort falsch stehen hat, sieht es
 // hier und nicht erst am Knopf.
+/* DER GRUND WIRD UEBERSETZT UND NICHT ROH HINGESCHRIEBEN -- 0.33.2.
+   `backupState()` gibt seit 0.24.0 einen SCHLUESSEL zurueck und keinen Satz;
+   wer ihn zeigt, uebersetzt ihn dort, wo die Anfrage in der Hand liegt. Diese
+   Zeile hat ihn bis 0.33.2 roh ausgegeben: im Protokoll stand
+   `off -- server.backupDirNotSet`, und das sagt dem Betreiber nichts.
+   AUF ENGLISCH UND NICHT IN DER SPRACHE DES LESERS, aus demselben Grund wie
+   beim Anbieternamen in 0.33.1: das Containerprotokoll fragt niemanden,
+   welche Sprache eingestellt ist.
+   DIE WERTE REISEN MIT: drei der fuenf Gruende nennen den Ordner, und ohne
+   sie stuende dort `{folder}`.
+   Gemeldet vom Betreiber am 15. September 2026 aus dem Betrieb. */
 {
   const situation = backupState();
-  console.log('[Kriterion] Backup location: ' + (situation.input ? situation.root : `off -- ${situation.reason}`));
+  console.log('[Kriterion] Backup location: ' + (situation.input
+    ? situation.root
+    : `off -- ${t('en', situation.reason, situation.values)}`));
 }
 
 app.get('/api/health', (req, res) => res.json({ ok: true }));

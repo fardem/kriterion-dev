@@ -9218,9 +9218,43 @@ function sweepLeftovers() {
       (await (await fetch(SD.base + '/api/backup', { method: 'POST',
         headers: { cookie: 'kriterion_session=cookie-sd-anna' } })).json()
       ).error?.includes('Datenverzeichnis'), 'keine sprechende Absage');
+    /* DIESE ZUSAGE HAT DEN FEHLER FESTGENAGELT und ist deshalb UMGEDREHT
+       und nicht geloescht (Stolperstein 201). Sie fragte nach dem rohen
+       SCHLUESSEL `backupInDataDir` im Protokoll -- also genau nach dem, was
+       0.33.2 als Befund behebt: der Betreiber las dort
+       `off -- server.backupDirNotSet` und konnte damit nichts anfangen.
+       SIE FRAGT JETZT NACH DEM SATZ, den ein Mensch lesen kann. Was sie
+       traegt, ist unveraendert: dass der Start den Grund nennt. */
     check('Der Start sagt es im Protokoll',
-      /Backup location: off -- .*backupInDataDir/.test(SD.log()), SD.log().slice(0, 500));
+      /Backup location: off -- The backup folder must not be inside the data directory/
+        .test(SD.log()), SD.log().slice(0, 500));
+    /* UND KEIN SCHLUESSEL STEHT MEHR DARIN. Die Zeile darueber bliebe gruen,
+       wenn daneben noch einmal der rohe Schluessel erschiene (Stolperstein 81).
+       Gefragt wird nach der Form `server.` + Wort, denn so sehen alle fuenf
+       Gruende aus. */
+    check('Und kein roher Schluessel steht mehr in seiner Ausgabe — 0.33.2',
+      !/Backup location:[^\n]*server\.[a-zA-Z]/.test(SD.log()),
+      SD.log().split('\n').filter(z => /Backup location/.test(z)).join(' | '));
     await SD.stop();
+
+    /* UND DIE WERTE REISEN MIT -- 0.33.2. Drei der fuenf Gruende nennen den
+       Ordner. Setzte jemand den Ruf auf `t('en', situation.reason)` OHNE
+       `situation.values`, stuende im Protokoll woertlich `{folder}` -- und die
+       Zusage darueber bliebe gruen, denn IHR Grund traegt keine Werte.
+       DIESELBE PORTBASIS WIE SD, und sie ist frei: SD ist beendet, und 4360
+       ist im ganzen Lauf sonst nirgends vergeben. Eine eigene Basis waere die
+       falsche Antwort -- der Waechter ueber die Spanne aller Basen sagt warum,
+       und 0.33.1 ist genau daran einmal haengengeblieben. */
+    const goneDirectory = path.join(dDir, 'gibt-es-nicht');
+    const SF = startFurtherServer(dDir, { BACKUP_DIR: goneDirectory }, 4360);
+    await SF.ready;
+    const sfRow = SF.log().split('\n').filter(z => /Backup location/.test(z)).join(' | ');
+    check('Und ein fehlender Ordner steht mit seinem Namen im Protokoll — 0.33.2',
+      /Backup location: off -- The backup folder .*gibt-es-nicht.* does not exist/.test(SF.log()),
+      sfRow || '(keine Zeile)');
+    check('Und keine Platzhalterklammer bleibt darin stehen — 0.33.2',
+      !/\{folder\}/.test(sfRow), sfRow);
+    await SF.stop();
     fs.rmSync(dDir, { recursive: true, force: true });
   }
 
@@ -26994,6 +27028,10 @@ function sweepLeftovers() {
             weg, was da ist", sondern „bring zurueck, was weg sein soll" --
             und wenn davon keine Pruefung rot wird, ist der Hinweis nicht
             belegt (Frage F11).
+       +4  1057 bis 1060 — 0.33.2, der zweite Befund aus dem Betrieb. Sie
+            schreiben den rohen Schluessel in die Sicherungszeile zurueck,
+            nehmen dem Grund seine Werte, und machen je einen der elf Saetze
+            wieder deutsch, die diese Runde uebersetzt hat.
        +4  1053 bis 1056 — 0.33.1, ein Befund aus dem Betrieb. Sie bringen den
             rohen Anbieternamen ins Protokoll zurueck, jagen umgekehrt auch
             eine Marke durch den Schluessel, nehmen den englischen Namen aus
@@ -27003,7 +27041,7 @@ function sweepLeftovers() {
             `git archive HEAD` und nicht den Arbeitsstand. Wer einen Rueckbau
             auf eine Zeile setzt, die noch nicht committet ist, bekommt
             „RUECKBAU GESCHEITERT" und keinen Fund. */
-  check(`Es sind genau 994 Rueckbauten`, gpList.length === 994, `${gpList.length}`);
+  check(`Es sind genau 998 Rueckbauten`, gpList.length === 998, `${gpList.length}`);
   const gpTwice = gpList.map(r => r.nr).filter((n, i, a) => a.indexOf(n) !== i);
   check('Und keine Nummer steht zweimal', gpTwice.length === 0, gpTwice.join(' '));
   /* JEDER GREIFT: der Suchtext kommt in seiner Datei GENAU EINMAL vor. Keinmal
@@ -50379,26 +50417,31 @@ async function checkUi() {
       'detail() ohne Benutzer aufgerufen', 'qComments() ohne Benutzer aufgerufen',
       'qTestDays() ohne Benutzer aufgerufen', 'stimmenJeKriterium() ohne Benutzer aufgerufen',
       'testTageJeEintrag() ohne Benutzer aufgerufen', "') ohne Benutzer aufgerufen",
-      "' ist persoenlich und gehoert nicht in die globale Tabelle", '" nicht',
-      '_locale fehlt im Kopf der Datei', 'der vordere Teil ist keine Sprachkennung nach BCP 47',
-      'sie laesst sich nicht lesen (', 'sie traegt kein Objekt',
+      "' ist persoenlich und gehoert nicht in die globale Tabelle",
+      /* DIE FUENF GRUENDE VON `languageSkip` STANDEN HIER BIS 0.33.2 --
+         „_locale fehlt im Kopf der Datei" und die vier daneben. Sie gehen in
+         eine Konsolenzeile, deren Rahmen seit 0.33.0 englisch ist; der Grund
+         darin war es nicht. Sie sind jetzt englisch und deshalb fort. */
       'Das Beenden braucht den angemeldeten Benutzer.',
       'Dieser Vorgang braucht den Handelnden — eine Nummer oder VOM_WIRT.',
       'Ein Ausweis braucht einen Zugang.', 'Ein Zugangswechsel braucht den angemeldeten Benutzer.',
       'Eine Freigabe braucht die Sitzung.', 'Eine Sitzung braucht einen Benutzer.',
       'Eine Sitzungsliste braucht den angemeldeten Benutzer.',
       'Unbekannter Vorgang:', 'Unbekanntes Merkmal:',
-      /* 2 · DER BILDSCHIRM DES WIRTS. Die sechs Saetze der PUBLIC_ADDRESS-Probe
-         landen ausschliesslich in `console.warn` -- auth.js sagt es an Ort und
-         Stelle: „der Satz darin ist der eine Text dieser Datei, der auf dem
-         BILDSCHIRM DES WIRTS landet". Sie stehen hier, weil sie NICHT in einem
-         `console.…` stehen, sondern in einem Rueckgabewert, der dort endet. */
-      'Das ist keine vollständige Adresse.', 'Nur http:// und https:// sind möglich.',
-      'Es fehlt der Rechnername.', 'Zugangsdaten gehören nicht in die Adresse.',
-      'Eine Abfrage (?) ist nicht erlaubt.', 'Ein Fragment (#) ist nicht erlaubt.',
-      /* Und der Anbietername fuer das Protokoll. Am BILDSCHIRM steht seit
-         0.32.0 `mail.ownServer`; dieser String ist der Wert, den die
-         Startzeile im Container nennt. */
+      /* 2 · DER BILDSCHIRM DES WIRTS -- UND DIESE SORTE IST MIT 0.33.2 FAST
+         LEER GEWORDEN. Hier standen die sechs Saetze der PUBLIC_ADDRESS-Probe
+         („Das ist keine vollständige Adresse." und fuenf weitere). Ihr Grund
+         war: sie landen ausschliesslich auf dem Bildschirm des Wirts.
+         SEIT 0.33.0 SPRICHT DIESER BILDSCHIRM ENGLISCH -- derselbe Grund
+         verlangt seither das Gegenteil, und die Ausnahme ist stehengeblieben,
+         weil eine benannte Ausnahme aussieht wie eine entschiedene.
+         GEMELDET HAT ES DER BETRIEB und keine Pruefung. Sie stehen NICHT in
+         einem `console.…`, sondern in einem Rueckgabewert, der dort endet:
+         die Restprobe 5d sieht sie deshalb nie, und 5c sah sie als erlaubt an.
+         Was bleibt, ist der Anbietername aus `mail.js`. Am BILDSCHIRM steht
+         seit 0.32.0 `mail.ownServer`, und seit 0.33.1 setzt auch die
+         Startzeile den Schluessel ein -- dieser String ist der Wert, an dem
+         der Schluessel haengt, und er bleibt, wo er steht. */
       'Eigener Server',
       /* 3 · ALTE DEUTSCHE NAMEN AUS DER .env. Sie werden GELESEN und nie
          geschrieben -- eine Installation von vor 0.24.1 traegt sie in ihrer
