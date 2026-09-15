@@ -14,7 +14,7 @@ die Runde legt nichts dazu, sie nimmt weg, was einen Rückweg offenhält.**
 >
 > | | vorher | nachher |
 > |---|---|---|
-> | **Zeilen in `db.js`** | 2145 | **1473** |
+> | **Zeilen in `db.js`** | 2145 | **1474** |
 > | **Migrationsblöcke** | 18 | **0** |
 > | **Schlüssel je Sprachdatei** | 1209 | **1208** |
 > | **Prüfungen** | 7017 | **6858** |
@@ -84,11 +84,18 @@ worden:** *er liest jetzt BEIDE Markenformen, und zwar in demselben Muster.*
 Namen im `module.exports`, die nur hinausgingen, weil der Prüfstand sie einzeln
 fuhr.*
 
-> **GEMESSEN UND NICHT GESCHÄTZT: die Datei geht von 2145 auf 1473 Zeilen.**
+> **GEMESSEN UND NICHT GESCHÄTZT: die Datei geht von 2145 auf 1474 Zeilen.**
 > *Der Auftrag rechnete mit 928 Zeilen und einer Datei von 2146; nachgezählt am
 > gebauten Stand sind es 945 gefallene Zeilen, und dazu kommt, was an ihre
 > Stelle getreten ist — die Probe, der Stempel und die drei Klammern gegen den
-> Abbruch. Unterm Strich:* **983 Zeilen weg, 311 dazu.**
+> Abbruch. Unterm Strich:* **997 Zeilen weg, 326 dazu.**
+>
+> **UND DIE MESSUNG WAR BEIM ERSTEN MAL EINEN SCHRITT ZU FRÜH.** *Hier stand
+> 1473, und 983 weg, 311 dazu. Das war richtig gemessen — nur an dem Stand VOR
+> dem Griff, der die Zahl hinschrieb: derselbe Griff hat drei Kommentare in
+> `db.js` umgeschrieben (15 Zeilen hin, 14 her) und die eigene Messung damit
+> um eine Zeile überholt.* **Wer misst, misst zuletzt.** *Die Zahlen oben sind
+> am fertigen Zweig gegen `main` genommen: 2145 − 997 + 326 = 1474.*
 
 ### Die Grenze ist nicht verschoben, sie ist fort
 
