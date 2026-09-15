@@ -14877,6 +14877,18 @@ aus derselben Frage: *sagt der Text, was ist, oder erzählt er?*
 | `testbench.js` | 32.964 | 9.071 | 28 % |
 | *(alle zwölf)* | **54.822** | **16.281** | **30 %** |
 
+> **NACHGEMESSEN AM 15. SEPTEMBER 2026: 36.144 von 96.241 Zeilen, also 38 %.**
+> Die Tabelle darüber ist der Stand vom 31. August und bleibt als Befund jenes
+> Tages stehen; die vollständige neue Tabelle je Datei steht im Fahrplan beim
+> Eintrag 0.33.x. **Beide Zahlen stehen damit an genau einer Stelle, und die
+> ältere sagt, dass sie älter ist** (Stolperstein 47).
+>
+> *Zwei Dinge sind an der alten Tabelle zusätzlich zu wissen:* sie zählte
+> **zwölf** Dateien, die neue zählt **dreizehn**, und welche zwölf es waren,
+> ist nicht mehr feststellbar — die Git-Historie reicht nur bis zum
+> 7. September 2026 zurück. *Und* `zweifaktor.js` *heißt seit der englischen
+> Runde* `twofactor.js`; *unter dem alten Namen gibt es die Datei nicht mehr.*
+
 **DIE REGEL, UND SIE IST DIESELBE WIE BEI DER README UND BEIM CHANGELOG:**
 
 | geht | bleibt |

@@ -159,7 +159,7 @@ Sprachumschalter baut, hat damit ein Muster und braucht kein neues.**
 | ~~**0.32.0**~~ | ~~Einen anderen markieren~~ | **GEBAUT am 14. September 2026** — Änderungsprotokoll 0.32.0. *Drei Stränge in einer Runde.* **`@name` markiert einen Zugang** *(bestellt 12.9.2026)* — *als **viertes Stück der Zerlegung** und nie als `replace()`; gespeichert wird die **Zugangsnummer** in der neuen Verknüpfung `comment_mentions`, weil ein gelöschter Name FREIGEGEBEN wird und sonst auf den Falschen zeigte (F2). **Der eine Schemaschritt der Runde — 27 Tabellen werden 28**, und er fällt hierher, weil der Bruch auf 0.33.0 unmittelbar dahintersteht.* **Die Glocke unterscheidet** *(13.9.2026)*: *eine Zahl, eine geteilte Tafel — **an mich gerichtet · meine {entryMany} · alles andere** —, und sie rechnet EINMAL: `marked` kommt als Teilmenge aus derselben Abfrage (F3, Leitplanke L1).* **„Note" wird das fünfzehnte Vokabelwort** *(`vocabulary.grade`, Karte `v15`; die Sortierbeschriftungen werden artikellos — „Zuletzt: {grade}", „Durchschnitt: {grade}" —, und die Migrationstafel von 0.24.3 bleibt bei vierzehn Zeilen).* **Und Strang 3 räumt vier Punkte des Sammelblatts ab** *(28, 29, 30, 31)*: *die elf deutschen Sätze aus `server.js` bekommen neun Schlüssel in drei Sprachen, die **Restprobe für die Serverdateien** ist gebaut — **und hat im ersten Lauf den ZWÖLFTEN gefunden** („Eigener Server") —, die Zugangsanfrage prüft die FORM an beiden Enden („Form ist öffentlich, Existenz ist es nicht"), und der `yedek`-Wächter kommt ohne `\b` aus — **auch er hat im ersten Lauf einen Wert gefunden, der dreißig Runden lang dastand**. **MINOR** *(1198 → 1215 Schlüssel)*. *Dreizehn Zusagen, **siebzehn Gegenproben (1010–1026)**; drei neue Wächter, und keiner ist gelöscht.* **Der Gegenprobenlauf hat selbst zwei Befunde gemacht:** *1023 blieb **STUMM** — die Restprobe liest den QUELLTEXT von `server.js`, und „Eigener Server" steht in `mail.js` und wird nur durchgereicht; der Prüfstand fragt seither den laufenden Server in drei Sprachen, an beiden Stellen, und 1026 ist die zweite davon. Und 1014 **riss den Lauf ab** statt rot zu werden: zwei Zeilen fassten das fehlende Vokabelfeld ohne `?.` an. Nach beiden Nachbesserungen: **0 STUMM, 0 ABGERISSEN** — und der Prüfstand **7043 von 7043**, Fingerprint `319d9c8a`* | **ja** *(Datenbank)* | — |
 | ~~**0.32.1**~~ | ~~Die Endung, das Wort und die Zahl~~ | **GEBAUT am 14. September 2026** — Änderungsprotokoll 0.32.1. *Drei Befunde des Betreibers, und alle drei nehmen eine Bauweise ZURÜCK — die erste schrumpfende Runde seit 0.31.1 (1215 → 1209 Schlüssel, 1017 → 1008 Rückbauten).* **Türkisch braucht am bestimmten Objekt eine Endung** *(„Öğe sil" → „Öğeyi sil"), und sie hängt am Wort, das der Betreiber einträgt.* **Ausrechnen lässt sie sich nicht** — *nachgemessen an der verbreitetsten Bibliothek dafür (affixi): zehn von zwölf richtig, und die beiden falschen sind „Öğe" → „Öğeni" und „Değerlendirme" → „Değerlendirmeni". Sie hängt das `-n-` an jedes vokalendende Wort; nach einem Possessiv richtig, sonst falsch, und aus den Buchstaben ist das nicht zu sehen.* **Also wird umschifft: dreizehn türkische Sätze bauen den Satz so, dass die Endung auf ein FESTES Wort fällt** *(„{entryOne} kaydını sil") — die Krücke, die auch die Fachwelt kennt; i18next führt genau unseren Fall als Issue #1685 und hat ihn ungelöst geschlossen, und Mozilla Fluent löst ihn nur, indem ein Mensch jede Form einträgt.* **Zwei neue Wächter finden den nächsten Fall** *(keine Befehlsform und kein harmonierendes Anhängsel hinter einem Platzhalter).* **Die Zählzeile baut keinen Satz mehr** — *„12 · ⚑3 · ☐3 · ☑2" statt „12 Kommentare, davon …"; gemessen in echtem Chromium passte der Satz am Telefon in KEINER der drei Sprachen (DE −132 px), und jede Form mit Wort lässt sich durch ein längeres eigenes Vokabelwort wieder sprengen. Das Zeichen trägt den Sinn, die Farbe verstärkt ihn nur (G1); der volle Satz steht im `title`. `list.ofWhich` fällt — auf Türkisch war es „, bunun {parts} kadarı", eine Klammer um eine Aufzählung.* **Und „Filter folgt der Sortierung" ist ausgebaut** *(Entscheidung des Betreibers): „Filter zurücksetzen" holte die Vorgabe zurück, die Liste blieb gefiltert, und weil eine Vorgabe nicht mitzählt, verschwand der Rücksetzer gleich mit — eine Sackgasse. Fünf Sätze, `.pill-derived` und siebzehn Rückbauten fallen mit; die Prüfgruppe von 0.21.1 ist umgedreht.* **Dazu fünf Sätze, die ein Vokabelwort fest beim Namen nannten** *(darunter „Note" — ein Versäumnis von 0.32.0 selbst).* **MINOR.** *Zehn Zusagen, acht Gegenproben (1027–1034) — **0 STUMM**; drei neue Wächter. Prüfstand **7017 von 7017**, Fingerprint `24899ab8`* | nein | — |
 | ~~**0.33.0**~~ | ~~Bereinigung — der Bruch~~ | **GEBAUT am 14. September 2026** — Änderungsprotokoll 0.33.0. *Und der erste Befund der Runde war der Zähler selbst:* **es waren ACHTZEHN Blöcke und nicht zwölf.** *Die sechs der Sprachrunde 0.24.x trugen ihre Absage im BLOCKKOMMENTAR statt auf einer eigenen Kommentarzeile — das Muster fand sie nicht, und dieses Papier hat die falsche Zahl von ihm übernommen (Stolperstein 156, diesmal am Zähler selbst).* **Alle achtzehn sind gefallen** *(Entscheidung des Betreibers, 14.9.2026: „alles was für die Migration von den Zwischenschritten notwendig war, kann weg")* — **945 Zeilen aus `db.js`** *(die Datei geht von 2145 auf 1474)*, samt zehn Namen im `module.exports`; **die Grenze `db.exec(SCHEMA)` ist nicht verschoben, sie ist fort.** *An ihre Stelle tritt eine Probe auf den Bestand: sie fragt `sqlite_master` und keinen Merker, nennt jede fehlende Spalte samt ihrer Fassung und dem Weg herauf —* **und sie SPERRT NIEMANDEN AUS** *(der erste Entwurf war eine harte Absage; der Betreiber hat sie gekippt: „Es wird nie eine Datenbank, Sicherung oder Exportdatei vor 0.33.0 eingespielt werden")*. **Der umgedrehte Prüfstand hat drei Abbruchstellen gefunden, die der Auftrag nicht kannte** — *die beiden Indizes auf `photos`, das Auffangnetz und die Grundausstattung stürben ohne Klammer an einer fehlenden Spalte, und zwar an einem `db.prepare`, das schon beim VORBEREITEN scheitert: die gekippte Absage als Absturz.* **Dazu der Stempel** *(zwei Zeilen in `settings`; ein gewachsener Bestand bekommt „angelegt mit" NICHT nachgetragen)*, **das Austauschformat 16 → 17** *(die Programmfassung kommt neben die Formatnummer)* **und die eine Abweisung der Runde: eine Datei mit Nummer ≤ 13 kommt nicht mehr herein** *(sie liegt an der DATEI und nicht am START)*. **Die JPEG-Hälfte des Bestandslaufs ist mitgefallen**, und **das Containerprotokoll spricht englisch** *(58 Ansagen in sechs Dateien, samt Restprobe)*. **MINOR** *(1209 → 1208 Schlüssel, 1008 → 990 Rückbauten, Prüfstand 7017 → 6858)*. *Fünfzehn Zusagen, achtzehn Gegenproben (1035–1052); sechsunddreißig alte sind gelöscht und nicht umgedreht — umdrehen ließe sich nur ein Gegenstand, den es gibt.* **Der Gegenprobenlauf hat selbst zwei Befunde gemacht, und beide sitzen an der PRÜFUNG:** *1042 blieb **STUMM** — `assignInventory()` kehrt vor seiner Schleife um, wenn es keinen Eigentümer gibt, und die Prüflage hatte keinen; sie stellt jetzt einen gewachsenen Bestand nach. Und die erste Fassung der umgedrehten Prüfgruppe **RISS den Lauf AB** statt rot zu werden, wenn ein Start nicht hochkam (derselbe Fehler wie an 1014 in 0.32.0). Nach beiden Nachbesserungen: **0 STUMM, 0 ABGERISSEN**. Fingerprint `9083d8c7`* | **ja** *(Datenbank)* | — |
-| **0.33.x** | **Die Kommentare werden knapp** | 16.281 von 54.822 Zeilen sind Kommentar. **Dazu CHANGELOG.md und README.md**: Altlasten entfernen, kürzen, sachliche Sprache ohne Metaphern (`CLAUDE.md`, Abschnitt 1) | nein | — |
+| **0.33.x** | **Die Kommentare werden knapp** | **36.144 von 96.241 Zeilen sind Kommentar (38 %)** — nachgemessen am 15. September 2026. **Dazu CHANGELOG.md und README.md**: Altlasten entfernen, kürzen, sachliche Sprache ohne Metaphern (`CLAUDE.md`, Abschnitt 1) | nein | — |
 | **0.34.0** | **Der Prüfstand bekommt ein Verzeichnis** | `testbench.js` in Module — **und damit erst der echte Teillauf** | nein | — |
 | **0.35.0** | **Code-Effizienz** | Leichen und ineffizienter Code | offen | — |
 | **1.0.0** | **Die Zusage** | Abwärtskompatibilität zugesichert, Schnittstelle steht fest | — | — |
@@ -1662,11 +1662,62 @@ Ablageverfahrens umstellen — das ist dauerhaft sinnvoll und fällt nicht.*
 > funktionieren weiter, sie sind nur größer.* **Das gehört in die Fragetafel
 > jener Runde und ist vor dem Wegnehmen zu klären.**
 
-**0.33.x — „Die Kommentare werden knapp".** Fast dreißig Prozent des Quelltextes
-sind Kommentar. **Was das Offensichtliche wiederholt, geht; was eine
-ENTSCHEIDUNG trägt, wandert vorher in den Projektstand und bleibt als Zeiger
-stehen.** *Nach der Bereinigung und nicht davor — sie löscht ganze Blöcke samt
-ihren Kommentaren, und wer vorher schneidet, schneidet zweimal.*
+**0.33.x — „Die Kommentare werden knapp".** **38 % des Quelltextes sind
+Kommentar.** Was der Code eine Zeile weiter selbst sagt, wird entfernt. Was eine
+Entscheidung begründet, wandert vorher in den Projektstand und bleibt als
+Verweis stehen. Die Runde läuft nach 0.33.0 und nicht davor: die Bereinigung hat
+ganze Blöcke samt ihren Kommentaren entfernt.
+
+**Nachgemessen am 15. September 2026**, mit derselben Funktion, die
+`testbench.js` dafür benutzt (`onlyComments`), über die 13 Dateien aus
+`LANGUAGE_SOURCES`:
+
+| Datei | Zeilen | davon Kommentar | Anteil |
+|---|---:|---:|---:|
+| `testbench.js` | 56.649 | 19.908 | 35 % |
+| `public/app.js` | 13.985 | 5.468 | 39 % |
+| `counterproof.js` | 10.583 | 3.171 | 30 % |
+| `server.js` | 9.146 | 4.876 | **53 %** |
+| `auth.js` | 1.841 | 865 | 47 % |
+| `db.js` | 1.474 | 572 | 39 % |
+| `images.js` | 634 | 476 | **75 %** |
+| `batchrun.js` | 489 | 310 | **63 %** |
+| `attachments.js` | 364 | 154 | 42 % |
+| `keytool.js` | 324 | 70 | 22 % |
+| `keys.js` | 275 | 117 | 43 % |
+| `usertool.js` | 254 | 51 | 20 % |
+| `twofactor.js` | 223 | 106 | 48 % |
+| **alle 13** | **96.241** | **36.144** | **38 %** |
+
+**Die bisherige Zahl im Plan war 16.281 von 54.822 Zeilen, also 30 %.** Sie
+wurde am 31. August 2026 über zwölf Dateien gemessen und stand hier unverändert
+über fünf Runden. Seitdem ist das Projekt um 41.419 Zeilen gewachsen, und der
+Kommentaranteil ist von 30 % auf 38 % gestiegen. Die beiden Messungen sind nicht
+exakt vergleichbar: die alte zählte zwölf Dateien, die neue dreizehn, und welche
+zwölf es waren, lässt sich nicht mehr feststellen — die Git-Historie dieses
+Repositories reicht nur bis zum 7. September 2026 zurück.
+
+**Die drei Dateien mit dem höchsten Anteil sind `images.js` (75 %),
+`batchrun.js` (63 %) und `server.js` (53 %).** Dort fängt die Runde an.
+
+### Dazu: die Zeilenverweise im Fahrplan stimmen nicht mehr
+
+**Alle 24 Verweise der Form `datei.js:1234` in diesem Dokument zeigen auf die
+falsche Zeile** — geprüft am 15. September 2026. Beispiel: `buildDom()` steht
+nicht mehr in `testbench.js:27055`, sondern in Zeile 28161.
+
+Die Ursache ist nicht ein Fehler beim Schreiben. Eine Zeilennummer veraltet bei
+jeder Runde, die oberhalb der Stelle etwas einfügt. Der Verweis ist damit als
+Bauform ungeeignet.
+
+**Vorschlag für diese Runde:** Zeilennummern durch Funktions- oder
+Konstantennamen ersetzen (`buildDom()` in `testbench.js` statt
+`testbench.js:27055`). Ein Name veraltet erst, wenn die Sache selbst umbenannt
+wird, und dann fällt es beim Suchen auf.
+
+**Nicht in dieser Runde geändert:** die 23 übrigen Verweise stehen in
+abgeschlossenen Einträgen mit Datum. Ob sie mit umgestellt werden, entscheidet
+der Betreiber.
 
 ### Dazu in derselben Runde: CHANGELOG.md und README.md
 
@@ -1706,8 +1757,9 @@ zweimal geschrieben.
 
 ## 0.34.0 — „Der Prüfstand bekommt ein Verzeichnis"
 
-**`testbench.js` ist EINE Datei mit über 43.000 Zeilen**, `counterproof.js`
-daneben über 7000. **Sie wird aufgeteilt: ein Verzeichnis `test/`, ein Modul je
+**`testbench.js` ist EINE Datei mit 56.649 Zeilen**, `counterproof.js`
+daneben 10.583 *(gemessen am 15. September 2026; der Plan nannte hier bis dahin
+über 43.000 und über 7000 — Stand vor 0.33.0)*. **Sie wird aufgeteilt: ein Verzeichnis `test/`, ein Modul je
 Sachgebiet**, der Rahmen als gemeinsames Stück daneben.
 
 **NEU IN DIESER FASSUNG DES PLANS:** *die Aufteilung ist ab jetzt nicht nur
@@ -1739,7 +1791,7 @@ größte Teil davon läuft in fünfzig Megabyte.* **Wer hier Prüfungen löschte
 nähme die Schwelle weg und rührte die Ursache nicht an.**
 
 **DIE URSACHE STEHT IN DER ZWEITEN HÄLFTE: 196 vollständige Browserfenster.**
-*`buildDom()` (`testbench.js:27055`) baut je ein ganzes Fenster; 184 davon
+*`buildDom()` (`testbench.js`, am 15. September 2026 in Zeile 28161) baut je ein ganzes Fenster; 184 davon
 werden geschlossen — der Speicher kommt trotzdem nicht wieder herunter.* **Rund
 zehn Megabyte je Fenster, und das ist genau die Kurve oben.**
 
