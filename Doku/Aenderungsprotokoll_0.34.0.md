@@ -110,15 +110,15 @@ Der erste Anlauf hatte deutsche Namen. Siehe Befund 4.
 Jedes Modul hat denselben Aufbau:
 
 ```js
-const H = require('./rahmen.js');
+const H = require('./frame.js');
 
-async function laufen() {
+async function run() {
   const { fs, path, group, check, … } = H;
   … der Abschnitt, unverändert …
 }
 
-module.exports = laufen;
-if (require.main === module) H.alleine(laufen, __filename);
+module.exports = run;
+if (require.main === module) H.standalone(run, __filename);
 ```
 
 Der Rumpf steht in einer Funktion, und die Namen des Rahmens werden dort
