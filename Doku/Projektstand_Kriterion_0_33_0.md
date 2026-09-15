@@ -1,6 +1,6 @@
 # Projektstand — Kriterion
 
-**Kompakte Übergabe · Revision 94 · Stand 15. September 2026 · gebaut: Version 0.33.2**
+**Kompakte Übergabe · Revision 95 · Stand 15. September 2026 · gebaut: Version 0.34.0**
 
 > **REVISION 92 IST DER BRUCH.** *Was dieses Blatt über MIGRATIONSBLÖCKE sagt,
 > gilt ab hier nur noch als Geschichte: mit 0.33.0 sind alle achtzehn gefallen,
@@ -453,12 +453,15 @@ Node.js/Express, verschlüsselte SQLite-Datenbank (SQLCipher über
 `better-sqlite3-multiple-ciphers`), `sharp` für die Bildvarianten, Frontend
 ohne Framework, Auslieferung per Docker.
 
-**20 Dateien.** Darin `testbench.js` — der Prüfstand, läuft über `npm test` —,
+**20 Dateien im Wurzelverzeichnis, dazu 19 unter `test/`.** Darin
+`testbench.js` — der Treiber des Prüfstands, läuft über `npm test`; die
+Prüflagen selbst liegen seit 0.34.0 in `test/`, ein Modul je Sachgebiet, dazu
+die zwei Rahmen `test/frame.js` und `test/dom.js` —,
 `anhaenge.js` mit sämtlichen Auslieferungsregeln für angehängte Dateien
 (Abschnitt 5a) und `zugang.js`, der Befehl auf dem Wirt für Passwort und
 Zugänge. Dazu `counterproof.js` (der Gegenprobentreiber, läuft eigens und nicht
 über `npm test`) sowie `schluessel.sh` und `schluessel.js` — der
-Schlüsselwechsel, ebenfalls auf dem Wirt. **Keine dieser drei steht im
+Schlüsselwechsel, ebenfalls auf dem Wirt. **Keine dieser drei und kein Modul unter `test/` steht im
 Fingerprint**: der Server lädt sie nicht und liefert sie nicht aus.
 
 **Das Projekt heißt „Kriterion", die Datenbankdatei weiterhin
@@ -12058,6 +12061,59 @@ hängengeblieben.* **Dazu zwei vorhandene Rückbauten nachgezogen (710 und 711).
 **Fingerprint `d6dbb696`** *(davor `38949534`)*. **Prüfstand 6865 von 6865,
 998 Rückbauten, vier gefahren, 0 stumm.**
 
+### 0.34.0 — „Der Prüfstand bekommt ein Verzeichnis"
+
+**MINOR · 15. September 2026** *(Änderungsprotokoll 0.34.0).* Die Runde ändert
+am Programm nichts. Sie teilt den Prüfstand auf.
+
+**Der Grund war der Speicher und nicht die Zahl der Prüfungen.** Der Lauf starb
+am 11. September zweimal auf dem Standardläufer an der Heap-Grenze. Gemessen am
+15. September vor dem Bauen: die ersten viereinhalb Minuten laufen in unter
+100 MB, danach steigt der Speicher auf **2842 MB** und fällt nicht zurück. Die
+Ursache sind 210 jsdom-Fenster aus `buildDom()`, deren Speicher nach
+`w.close()` nicht zurückkommt.
+
+**Der Aufbau.** `testbench.js` ist der Treiber mit **446 Zeilen**. Er startet je
+Modul einen Prozess, sammelt dessen Zahlen über eine Meldedatei ein und schreibt
+den Schlussblock. Daneben liegen zwei Rahmen — `test/frame.js` (Zählung,
+`group()`/`check()`, Portbasen, Serverstart, SMTP-Empfänger, Rufer) und
+`test/dom.js` (`buildDom()` und die Helfer am Fenster) — und **17 Module**, ein
+Sachgebiet je Datei.
+
+**Der Quelltext ist Zeile für Zeile umgezogen.** Jedes Modul legt seinen Rumpf
+in eine Funktion und holt die Namen des Rahmens dort herein, `__dirname` und
+`require` eingeschlossen. Damit greifen die Suchtexte der 998 Rückbauten weiter.
+
+| | vorher | nachher |
+|---|---:|---:|
+| Prüfungen | 6865 | **6865** |
+| Laufzeit | 356 s | **332 bis 353 s** |
+| Spitze des Treiberprozesses | 2842 MB | **85 MB** |
+| größter einzelner Prozess | 2842 MB | **1024 MB** |
+| Teillauf über ein Modul | 356 s | **14 s** |
+
+**Der Teillauf ist echt geworden.** Der Treiber liest die Gruppennamen aus dem
+Quelltext jedes Moduls und startet nur die passenden. Ein Filter ohne Treffer
+bleibt rot. Bis 0.33.2 nahm der Filter nur die Ausgabe weg.
+
+**Der Notnagel im Workflow ist gestrichen.** Ein voller Lauf mit der Heap-Grenze
+des Standardläufers (2081 MB) ist grün durchgelaufen.
+
+**Der Rundlauf bleibt ein Modul** mit 21.854 Zeilen und 176 Gruppen. Seine
+Gruppen arbeiten an einem Bestand, den die Gruppen davor angelegt haben; ein
+Schnitt mittendrin verschöbe die Zusagen auf einen anderen Bestand. Das ist ein
+Befund für eine spätere Runde und steht im Änderungsprotokoll, Abschnitt 4.
+
+**Mitgezogen:** `counterproof.js` liest `OFFSET_LEVEL` und die Portspanne aus
+`test/frame.js`, `foreignServer()` erkennt `test/<name>.js`, die 14 Rückbauten
+auf `testbench.js` zeigen auf ihre neuen Dateien, `.dockerignore` nennt `test`,
+und die Wächter, die „den Prüfstand" lesen, gehen über `pruefstandDateien()`.
+
+**Fingerprint `af69ce33`** *(davor `d6dbb696`)*. Er ändert sich an genau einer
+Stelle: `package.json` trägt die Versionsnummer. Kein Byte Anwendungscode ist
+angefasst. **Prüfstand 6865 von 6865, Prüfung für Prüfung dieselben.
+998 Rückbauten, fünfzehn gefahren, 0 stumm.**
+
 ### 0.24.4 — „Türkisch, und die Kacheln sagen die Wahrheit"
 
 **PATCH — dieselbe benannte Abweichung von 5.1, und mit dieser Runde endet sie
@@ -14950,7 +15006,7 @@ nicht hier.
 
 ---
 
-### 0.33.x — „Die Kommentare werden knapp" · *PATCH* *(stand hier bis zum 4. September 2026 als 0.23.x, bis zum 5. September 2026 als 0.26.x, bis zum 15. September 2026 als 0.28.x)*
+### 0.34.1 — „Die Kommentare werden knapp" · *PATCH* *(stand hier bis zum 4. September 2026 als 0.23.x, bis zum 5. September 2026 als 0.26.x, bis zum 15. September 2026 als 0.28.x und danach als 0.33.x)*
 
 > **DIESE ÜBERSCHRIFT HIESS BIS ZUM 3. SEPTEMBER 2026 „0.21.x", während die
 > Tabelle in Abschnitt 10 schon „0.22.x" trug.** *Zwei Tabellen über dieselbe
@@ -14969,6 +15025,11 @@ nicht hier.
 > Betreibers, ob das Kürzen der Kommentare auf 0.34.0 geschoben worden sei —
 > es ist nicht geschoben, aber die falsche Nummer hier hat die Frage
 > verdient.*
+>
+> **UND AM 15. SEPTEMBER 2026 IST SIE NOCH EINMAL GERÜCKT, auf 0.34.1.** *An
+> jenem Tag ist 0.34.0 gebaut worden; eine 0.33.x danach gibt es nicht. Der
+> Auftrag dazu heißt seit demselben Tag `Doku/Auftrag_0.34.1.md`, und Fahrplan
+> und Projektstand stehen jetzt beide auf dieser Nummer.*
 
 *(Neu am 31. August 2026. **Keine geplante Nummer, sondern die nächste freie
 PATCH-Zahl nach der Bereinigung** — dieselbe Bauform wie die 0.12.x-Zeile im
@@ -14997,7 +15058,7 @@ aus derselben Frage: *sagt der Text, was ist, oder erzählt er?*
 > **NACHGEMESSEN AM 15. SEPTEMBER 2026: 36.144 von 96.241 Zeilen, also 38 %.**
 > Die Tabelle darüber ist der Stand vom 31. August und bleibt als Befund jenes
 > Tages stehen; die vollständige neue Tabelle je Datei steht im Fahrplan beim
-> Eintrag 0.33.x. **Beide Zahlen stehen damit an genau einer Stelle, und die
+> Eintrag 0.34.1. **Beide Zahlen stehen damit an genau einer Stelle, und die
 > ältere sagt, dass sie älter ist** (Stolperstein 47).
 >
 > *Zwei Dinge sind an der alten Tabelle zusätzlich zu wissen:* sie zählte
