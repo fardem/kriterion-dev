@@ -83,7 +83,47 @@ verbrauchte sie 15.763 Zeilen — mehr als das ganze Budget. **Sie liegt bei
 
 ---
 
-## 3. Der Beleg
+## 3. Der Befund aus 0.34.0 — der Namenswächter sieht den Prüfstand nicht
+
+Nachgetragen am 15. September 2026, nach dem Bauen von 0.34.0.
+
+Der Wächter „Der Quelltext spricht Englisch" liest eine feste Liste von **13
+ausgelieferten Dateien**:
+
+```js
+const SHIPPED = ['server.js', 'auth.js', 'db.js', 'mail.js', 'keys.js',
+  'attachments.js', 'images.js', 'batchrun.js', 'usertool.js', 'twofactor.js',
+  'keytool.js', 'public/app.js', 'public/theme.js'];
+```
+
+`testbench.js` steht nicht darauf, `counterproof.js` nicht, `test/` erst recht
+nicht. **Regel S9 gilt für den ganzen Code** — 0.24.1 hat 678 Bezeichner allein
+im Prüfstand umbenannt —, aber seit jener Runde hält keine Prüfung die Regel
+dort fest.
+
+Aufgefallen ist es daran, dass 0.34.0 seine 19 neuen Dateien zuerst deutsch
+benannt hat: `rahmen.js`, `rundlauf.js`, `oberflaeche_*.js`. **17 von 19
+Dateinamen waren deutsch, und der Lauf blieb grün.** Der Betreiber hat es beim
+Lesen gefunden, nicht der Prüfstand. Umbenannt ist es; der blinde Fleck ist
+geblieben.
+
+Derselbe Fall wie `mail.js` in 0.33.1: eine Datei außerhalb jedes
+Wächterblicks, und gefunden nicht durch eine Prüfung, sondern durch einen
+Menschen.
+
+**Was diese Runde damit zu tun hat:** sie nagelt ohnehin Zahlen je Datei fest
+und geht dafür durch jede Datei des Projekts. Die Liste des Namenswächters
+gehört in derselben Runde nachgezogen — der Prüfstand liest dann seine eigenen
+Dateien mit.
+
+**Zu klären ist dabei:** die Liste heißt `SHIPPED`, und der Prüfstand wird
+nicht ausgeliefert. Entweder bekommt der Wächter eine zweite Liste neben der
+ersten, oder die erste wird umbenannt. Eine Liste, deren Name etwas anderes
+sagt als ihr Inhalt, ist der Anfang des nächsten blinden Flecks.
+
+---
+
+## 4. Der Beleg
 
 Heute bewacht **eine** Zeile die Kommentare:
 
@@ -105,7 +145,7 @@ Damit fällt jede spätere Erosion auf — und jedes Anwachsen.
 
 ---
 
-## 4. CHANGELOG und README
+## 5. CHANGELOG und README
 
 Drei Probleme in beiden:
 
@@ -133,7 +173,7 @@ Keine Prozentzahl für beide. Sie sind Prosa, hier zählt die Regel.
 
 ---
 
-## 5. Fragetafel
+## 6. Fragetafel
 
 | Nr | Frage |
 |---|---|
@@ -143,15 +183,18 @@ Keine Prozentzahl für beide. Sie sind Prosa, hier zählt die Regel.
 | **F4** | Die Kommentarblöcke der 998 Rückbauten sind Zusagen und bleiben — als Stichpunkte. Bestätigen? |
 | **F5** | Rund 300 Stolpersteinverweise sind feste Grundlast. Mitgezählt? |
 | **F6** | Kommentare, die 0.34.0 gerade erst schreibt: gleich in knapper Form? |
+| **F7** | Bekommt der Namenswächter eine zweite Liste neben `SHIPPED`, oder wird `SHIPPED` umbenannt? *Siehe Abschnitt 3.* |
+| **F8** | Zählt die Namensprobe über den Prüfstand die 110 benannten deutschen Bezeichner mit, die 0.24.1 stehengelassen hat — und stehen sie dann namentlich da wie dort? |
 
 ---
 
-## 6. Bauabschnitte
+## 7. Bauabschnitte
 
 | BA | Inhalt | Umfang |
 |---|---|---:|
 | **0** | Messen am Stand nach 0.34.0 | — |
 | **1** | Zahl je Datei im Prüfstand festnageln, **vor** dem Kürzen | — |
+| **1a** | Den Namenswächter auf den Prüfstand ausdehnen (Abschnitt 3, F7 und F8) | — |
 | **2** | Kleine Dateien: `twofactor`, `keys`, `mail`, `attachments`, `images`, `batchrun`, `keytool` | −1.098 |
 | **3** | `server.js`, `auth.js`, `db.js` | −4.816 |
 | **4** | `public/app.js` | −3.339 |
@@ -162,7 +205,7 @@ Keine Prozentzahl für beide. Sie sind Prosa, hier zählt die Regel.
 
 ---
 
-## 7. Zusagen an den Prüfstand
+## 8. Zusagen an den Prüfstand
 
 1. Die Zahl der Prüfungen steht vorher und nachher gleich.
 2. Kein Prüfungsname und kein Gruppenname ändert sich.
@@ -171,11 +214,13 @@ Keine Prozentzahl für beide. Sie sind Prosa, hier zählt die Regel.
 4. Anteil über alles **≤ 20 %**, als `check`.
 5. Keine Datei über **30 %**.
 6. Jede Datei hat ihre eigene Zahl.
+6a. Der Namenswächter sieht den Prüfstand. Ein deutscher Dateiname unter
+   `test/` macht namentlich eine Prüfung rot.
 7. Der Fingerprint ändert sich — erwartet.
 
 ---
 
-## 8. Nicht gebaut wird
+## 9. Nicht gebaut wird
 
 - Keine Zeile Code. Nur Kommentare und die zwei Papiere.
 - Kein Stolpersteinverweis fällt.

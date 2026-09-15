@@ -297,10 +297,15 @@ alle vierzehn Quelltextdateien an" nagelt die Zahl namentlich fest. Die Module
 kommen über `benchFiles()` dazu, also über das Verzeichnis und nicht über
 eine Liste. Damit sieht der Wächter sie — aber eine Zahl, die eine still
 verschwundene Datei auffallen ließe, gibt es für sie nicht. Eine Zahl je Datei
-zu setzen ist Gegenstand von 0.34.1, Abschnitt 3.
+zu setzen ist Gegenstand von 0.34.1, Abschnitt 4.
 
 **Befund 2 — der Teillauf über den Rundlauf kostet weiterhin den Rundlauf.**
 Siehe Abschnitt 4.
+
+**Befund 3 — `keychange` braucht 819 MB und baut kein einziges Fenster.**
+Der Schlüsselwechsel kopiert Datenbanken. Damit ist er nach
+`ui_export` (1024 MB) das zweitteuerste Modul, ohne dass jsdom im
+Spiel wäre. Gemessen, nicht untersucht; hier war nur der Umzug Gegenstand.
 
 **Befund 4 — die neuen Dateien hatten zuerst deutsche Namen, und kein Wächter
 hat es gemerkt.** 17 von 19 Dateinamen und neun neue Bezeichner waren deutsch —
@@ -310,13 +315,23 @@ Prüfstand. Der Grund: der Namenswächter liest eine feste Liste von **13
 ausgelieferten Dateien**; `testbench.js` steht nicht darauf, `test/` erst recht
 nicht. Derselbe Fall wie `mail.js` in 0.33.1 — eine Datei außerhalb jedes
 Wächterblicks. Umbenannt ist es, **der Wächter sieht den Prüfstand weiterhin
-nicht.** Die Liste gehört mit in die Runde, die die Zahlen je Datei festnagelt:
-0.34.1.
+nicht.** Entschieden vom Betreiber am selben Tag: das wird hier nicht mehr
+nachgezogen, sondern in 0.34.1 — die Runde geht ohnehin durch jede Datei. Der
+Befund steht dort als Abschnitt 3, mit zwei Fragen (F7, F8), einem
+Bauabschnitt (1a) und einer Zusage (6a).
 
-**Befund 3 — `keychange` braucht 819 MB und baut kein einziges Fenster.**
-Der Schlüsselwechsel kopiert Datenbanken. Damit ist er nach
-`ui_export` (1024 MB) das zweitteuerste Modul, ohne dass jsdom im
-Spiel wäre. Gemessen, nicht untersucht; hier war nur der Umzug Gegenstand.
+**Befund 5 — ein fehlendes `await` hat erst der Umzug sichtbar gemacht.**
+`test/ui_translator.js` beendete den Server der Fremddateilage mit
+`endKind(ffKind);` — ohne `await`. Die Zeile steht seit 0.24.3 so da. In einer
+einzigen Datei fiel sie nie auf: zwischen ihr und der Schlussprüfung lagen
+Minuten, und das Kind war längst beendet. Seit dem Umzug endet das Modul
+unmittelbar danach, die Meldung an den Treiber wird sofort genommen, und der
+Server steht darin als offen. **Die Zusage „Und jeder einzelne von ihnen ist
+beendet" wurde rot** — nicht immer, sondern je nachdem, wie der Zeitpunkt fiel.
+
+Der Umzug hat den Fehler nicht gemacht, er hat ihn aufgedeckt. Dieselbe Sorte
+Zeile steht noch an einer zweiten Stelle (`test/roundtrip.js`, drei `stop()`
+vor der letzten Gruppe); beide tragen jetzt `await`.
 
 ---
 

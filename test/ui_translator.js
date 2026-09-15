@@ -470,7 +470,13 @@ async function run() {
     check('Und die Seite kommt heraus',
       ffPage.includes('<div id="app"'), `${ffPage.length} Zeichen`);
 
-    endKind(ffKind);
+    /* MIT await -- 0.34.0. Ohne es laeuft das Modul weiter, waehrend das Kind
+       noch endet, und die Meldung an den Treiber nimmt einen Server auf, der
+       gerade erst beendet WIRD. In einer einzigen Datei fiel das nie auf: bis
+       zur Schlusspruefung lagen Minuten. Seit dem Umzug endet das Modul
+       unmittelbar danach, und die Zusage „Und jeder einzelne von ihnen ist
+       beendet" wurde rot. Die Zeile stand seit 0.24.3 ohne await da. */
+    await endKind(ffKind);
     fs.rmSync(ffData, { recursive: true, force: true });
     fs.rmSync(ffCopy, { recursive: true, force: true });
   }

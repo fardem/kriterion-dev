@@ -21772,7 +21772,11 @@ async function sendImport(object, mode, withoutShare = false) {
     equal(phBl.content.blocks.side, ['kategorie', 'tags', 'potenzial', 'bewertung']),
     JSON.stringify(phBl.content.blocks.side));
 
-  PH.stop(); PHA.stop(); PHN.stop();
+  /* MIT await -- 0.34.0, aus demselben Grund wie in test/ui_translator.js:
+     ein nicht abgewartetes Ende laesst den Server in der Meldung an den
+     Treiber als offen erscheinen. Hier liegt zwar noch eine ganze Gruppe
+     dahinter; die Zeile ist trotzdem dieselbe Sorte. */
+  await PH.stop(); await PHA.stop(); await PHN.stop();
   fs.rmSync(phDir, { recursive: true, force: true });
   fs.rmSync(phOldDir, { recursive: true, force: true });
   fs.rmSync(phFreshDir, { recursive: true, force: true });
