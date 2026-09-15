@@ -162,6 +162,7 @@ Sprachumschalter baut, hat damit ein Muster und braucht kein neues.**
 | **0.33.x** | **Die Kommentare werden knapp** | **36.144 von 96.241 Zeilen sind Kommentar (38 %)** — nachgemessen am 15. September 2026. **Dazu CHANGELOG.md und README.md**: Altlasten entfernen, kürzen, sachliche Sprache ohne Metaphern (`CLAUDE.md`, Abschnitt 1) | nein | — |
 | **0.34.0** | **Der Prüfstand bekommt ein Verzeichnis** | `testbench.js` in Module — **und damit erst der echte Teillauf** | nein | — |
 | **0.35.0** | **Code-Effizienz** | Leichen und ineffizienter Code | offen | — |
+| **0.36.0** | **Sicherheit** | Fünf Lücken aus der Durchsicht vom 15. September 2026: CSRF-Token, Anmeldesperre übersteht keinen Neustart, 199 `innerHTML`-Stellen ungeprüft, Abhängigkeiten ohne Automatik. **Nach 0.35.0, damit die Durchsicht den Code sieht, der bleibt** | offen | — |
 | **1.0.0** | **Die Zusage** | Abwärtskompatibilität zugesichert, Schnittstelle steht fest | — | — |
 | *danach* | *Große Dateien bis 2 GB* | **ausdrücklich draußen** — siehe unten | ja | — |
 
@@ -1811,6 +1812,80 @@ Speicher beim Ende zurück; eine einzige Datei kann das nicht.*
 Leichen und ineffizienten Code durchgehen und verbessern. **Nach der Bereinigung
 und nach der Aufteilung**, damit sie keinen toten Code mitschleppt und in
 Modulen arbeiten kann.
+
+## 0.36.0 — „Sicherheit"
+
+Der Betreiber hat am 15. September 2026 gefragt, ob Kriterion von Grund auf
+sicher gebaut ist oder ob man hinsehen muss. Die Durchsicht an jenem Tag hat
+beides ergeben: der Bau ist sicherheitsbewusst, und es bleiben fünf Punkte.
+
+### Warum die Runde hier steht
+
+- **Nach 0.35.0**, damit die Durchsicht den Code sieht, der bleibt. Eine
+  Effizienzrunde schreibt Stellen um; eine Sicherheitsdurchsicht davor wäre
+  danach zum Teil ungültig.
+- **Nach 0.34.0**, damit die neuen Prüfungen gleich in die Modulstruktur gehen
+  und nicht in eine Datei, die danach aufgeteilt wird.
+- **Nicht zusammen mit 0.35.0.** Wer Laufzeit und Sicherheit im selben
+  Durchgang gegeneinander abwägt, entscheidet im Zweifel für die Laufzeit.
+
+**Der Hebel, wenn es früher sein soll:** BA 4, die Durchsicht der
+`innerHTML`-Stellen, hängt an keiner der beiden Runden davor. `public/app.js`
+wird von der Aufteilung des Prüfstands nicht berührt. BA 4 lässt sich als
+eigener Patch vorziehen, ohne die Reihenfolge zu ändern.
+
+### Was am 15. September 2026 vorgefunden wurde
+
+Die Durchsicht war eine Lesung des Quelltextes. Es wurde nichts ausgeführt und
+nichts angegriffen.
+
+| Bereich | Stand |
+|---|---|
+| Anmeldepflicht | `app.use('/api', auth.requireAuth)` — alle 104 Routen sind standardmäßig zu; darauf 23 `adminOnly`, 16 `ownerOnly`, 8 `entryAuthorOnly` |
+| Passwörter | scrypt, 16 Byte Zufallssalz, `timingSafeEqual`, Dummy-Hash gegen Zeitmessung bei unbekanntem Namen |
+| Sitzungen | 32 Byte Zufall; Cookie mit `HttpOnly`, `SameSite=Lax`, `Secure` hinter Proxy |
+| SQL | durchgehend gebundene Parameter; zusammengesetztes SQL setzt nur feste Literale aus dem Quelltext ein |
+| CSP | `script-src 'self'`, `frame-ancestors 'none'`, `base-uri 'none'`, `form-action 'none'`; `unsafe-inline` nur bei `style-src` |
+| Uploads | 30 MB Grenze; Typ über `sharp` am Inhalt geprüft, SVG ausdrücklich ausgeschlossen |
+| Auslieferung | `Content-Disposition`, eigene CSP je Typ, Inline nur für eine Positivliste, Typ aus den ersten Bytes |
+| Anmeldesperre | ab 5 Versuchen verzögerte Antwort, ab 10 Versuchen 5 Minuten Sperre je IP |
+| Datenbank | verschlüsselt (SQLCipher) |
+
+**Das ist der Ausgangspunkt, und er ist gut.** Die Runde baut keinen Schutz von
+null auf, sondern schließt Lücken in einem vorhandenen.
+
+### Die Bauabschnitte
+
+| BA | Sache | Warum |
+|---|---|---|
+| **1** | **CSRF-Token für alle schreibenden Routen** | Der Schutz ruht heute allein auf `SameSite=Lax`. Das deckt POST, PUT und DELETE von fremden Seiten ab, ist aber eine einzige Verteidigungslinie |
+| **2** | **Die Anmeldesperre übersteht einen Neustart** | `const attempts = new Map()` liegt im Arbeitsspeicher. Ein Neustart setzt den Zähler zurück, und wer das weiß, wartet darauf. **Braucht eine Tabelle — daher Schema: offen** |
+| **3** | **Sperre auch je Benutzername** | Die harte Sperre greift nur je IP. Verteiltes Raten gegen **einen** Namen wird nicht erkannt. Die Einschränkung steht heute schon als Kommentar in `auth.js` |
+| **4** | **Die 199 `innerHTML`-Stellen in `public/app.js` einzeln durchgehen** | Es gibt `esc()`, und die CSP fängt viel ab. Ob jede Stelle Benutzertext wirklich durch `esc()` schickt, ist nicht geprüft. **Das ist der größte Posten der Runde** |
+| **5** | **Abhängigkeiten regelmäßig prüfen** | Das `npm audit fix` einer früheren Runde war ein Einzelfall. Vorschlag: ein Lauf im vorhandenen Workflow, der bei einem Fund rot wird |
+
+### Was NICHT in dieser Runde liegt
+
+**`npm audit` meldet heute zwei mittelschwere Schwachstellen** in `qs`,
+eingeschleppt über `express`, behebbar mit `npm audit fix` (nur das Lockfile
+bewegt sich). **Das wartet nicht auf 0.36.0.** Eine bekannte Schwachstelle drei
+Runden liegen zu lassen wäre falsch; sie gehört in den nächsten Patch.
+
+### Offene Fragen für die Fragetafel jener Runde
+
+1. **Wo liegt der CSRF-Token?** Eigenes Cookie plus Kopfzeile, oder im
+   Sitzungseintrag in der Datenbank. Die zweite Form kostet eine Abfrage je
+   schreibender Anfrage.
+2. **Was passiert mit offenen Sitzungen beim Einspielen der Runde?** Ein
+   Token, den alte Sitzungen nicht haben, meldet alle ab. Das ist vertretbar,
+   muss aber entschieden und angesagt sein.
+3. **Wie weit geht BA 4?** Alle 199 Stellen, oder zuerst die, die
+   Benutzertext führen. Die Zahl je Art ist vor dem Bau zu messen.
+4. **Wird die Sperre je Benutzername zur Auskunft?** Wer „dieser Name ist
+   gesperrt" zu sehen bekommt, weiß, dass es den Namen gibt. Die Antwort muss
+   gleich aussehen wie bei einem unbekannten Namen.
+
+---
 
 ## 1.0.0 — „Die Zusage"
 

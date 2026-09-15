@@ -63,7 +63,16 @@ Thread.
   wenn er nicht offensichtlich ist.
 - Einen Pull Request nur anlegen, wenn er verlangt wurde.
 
-## 3. Zahlen
+## 3. Versionen
+
+**Es wird kein 1.0.0 geben.** Was ursprünglich als 1.0 geplant war, ist mit
+**0.33.0** erreicht. Die Zeile „1.0.0 — Die Zusage" steht noch im Fahrplan und
+ist überholt.
+
+Daraus folgt: **1.0.0 ist kein Stichtag und kein Argument.** Eine Runde wird
+nicht damit begründet, dass sie „vor 1.0.0" liegen müsse.
+
+## 4. Zahlen
 
 Gemessene Zahlen in der Dokumentation werden am fertigen Stand gemessen, nicht
 an einem Zwischenstand. Wird eine bereits veröffentlichte Zahl korrigiert, steht
