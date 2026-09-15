@@ -4,15 +4,15 @@
  * der Papierkorb im Vollbild, der Zugangstext, das Stilblatt und die
  * Sortierung.
  *
- * Eigener Prozess, eigener Speicher. Der Rahmen steht in test/rahmen.js.
+ * Eigener Prozess, eigener Speicher. Der Rahmen steht in test/frame.js.
  */
-const H = require('./rahmen.js');
+const H = require('./frame.js');
 const D = require('./dom.js');
 const {
   buildDom, waitSearch, sysSection, css123, regel123, withoutMedia
 } = D;
 
-async function laufen() {
+async function run() {
   const {
    fs, path, attachments, TEXT, KOMMENTAR, readmeFlat, __dirname, FILTER,
    group, check, equal, open
@@ -3423,5 +3423,5 @@ async function laufen() {
   }
 }
 
-module.exports = laufen;
-if (require.main === module) H.alleine(laufen, __filename);
+module.exports = run;
+if (require.main === module) H.standalone(run, __filename);

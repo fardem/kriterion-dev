@@ -3,11 +3,11 @@
  * Die Umstellung der Bildablage faehrt in einem eigenen Thread -- an einer
  * echten, verschluesselten Instanz und ohne Server dazwischen.
  *
- * Eigener Prozess, eigener Speicher. Der Rahmen steht in test/rahmen.js.
+ * Eigener Prozess, eigener Speicher. Der Rahmen steht in test/frame.js.
  */
-const H = require('./rahmen.js');
+const H = require('./frame.js');
 
-async function laufen() {
+async function run() {
   const {
    fs, os, path, crypto, execFileSync, Worker, Database, sharp, __dirname,
    require, group, check, equal, open
@@ -599,5 +599,5 @@ async function checkBatchRun() {
   await checkBatchRun();
 }
 
-module.exports = laufen;
-if (require.main === module) H.alleine(laufen, __filename);
+module.exports = run;
+if (require.main === module) H.standalone(run, __filename);

@@ -3,19 +3,19 @@
  * Das mitwachsende Feld, die Einrichtungsseite, die Kacheln und ihr Leser,
  * die Sprachpillen, die Zeitleiste, die Tagwolken und die offenen Aufgaben.
  *
- * Eigener Prozess, eigener Speicher. Der Rahmen steht in test/rahmen.js.
+ * Eigener Prozess, eigener Speicher. Der Rahmen steht in test/frame.js.
  */
-const H = require('./rahmen.js');
+const H = require('./frame.js');
 const D = require('./dom.js');
 const {
   placeConfirm, buildDom, openTagRow, waitSearch, sysSection, pillName,
   pillMark
 } = D;
 
-async function laufen() {
+async function run() {
   const {
    fs, path, zerlege, KOMMENTAR, REGEX, __dirname, require, FILTER, group,
-   check, equal, setField, open, names, pruefstandDateien
+   check, equal, setField, open, names, benchFiles
   } = H;
 
   group('Oberflaeche');
@@ -2106,7 +2106,7 @@ async function laufen() {
          zitiert wird -- ein Fehlalarm, und ein Fehlalarm macht eine Probe
          wertlos. */
       const trGuardBad = [];
-      for (const file of [...pruefstandDateien(), 'counterproof.js'])
+      for (const file of [...benchFiles(), 'counterproof.js'])
         for (const part of zerlege(fs.readFileSync(path.join(__dirname, file), 'utf8'), file)) {
           if (part.kind !== REGEX || !part.wert.includes('\\b')) continue;
           const low = part.wert.toLowerCase();
@@ -3373,5 +3373,5 @@ async function laufen() {
   nsStays.w.close();
 }
 
-module.exports = laufen;
-if (require.main === module) H.alleine(laufen, __filename);
+module.exports = run;
+if (require.main === module) H.standalone(run, __filename);

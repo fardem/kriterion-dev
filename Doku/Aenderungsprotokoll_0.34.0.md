@@ -60,7 +60,7 @@ einen Prozess, sammelt dessen Zahlen ein und schreibt den Schlussblock.
 
 Daneben stehen zwei Rahmen:
 
-- **`test/rahmen.js`** (1078 Zeilen) — die Zählung, `group()` und `check()`,
+- **`test/frame.js`** (1078 Zeilen) — die Zählung, `group()` und `check()`,
   der Schlussblock, die Zeitmessung, die Portbasen, der Start eines Servers,
   der SMTP-Empfänger, die Rufer, das Aufräumen.
 - **`test/dom.js`** (2172 Zeilen) — `buildDom()` und die Helfer, die an einem
@@ -73,26 +73,37 @@ Zwei Rahmen und nicht einer: nur die Module, die Fenster bauen, brauchen
 
 | Modul | Zeilen | Gruppen | Sekunden | Spitze |
 |---|---:|---:|---:|---:|
-| `test/rundlauf.js` | 21.854 | 176 | 108 | 463 MB |
-| `test/quelltext.js` | 3.813 | 8 | 6 | 175 MB |
-| `test/oberflaeche_uebersicht.js` | 3.378 | 19 | 24 | 521 MB |
-| `test/oberflaeche_eintrag.js` | 3.658 | 17 | 14 | 421 MB |
-| `test/oberflaeche_system.js` | 4.505 | 22 | 33 | 791 MB |
-| `test/oberflaeche_bestand.js` | 1.738 | 11 | 14 | 337 MB |
-| `test/oberflaeche_export.js` | 2.528 | 14 | 39 | 1024 MB |
-| `test/oberflaeche_stil.js` | 3.428 | 20 | 15 | 480 MB |
-| `test/oberflaeche_sprachhelfer.js` | 590 | 3 | 24 | 215 MB |
-| `test/oberflaeche_sprache.js` | 1.751 | 9 | 16 | 291 MB |
-| `test/erstanmeldung.js` | 211 | 5 | 3 | 93 MB |
-| `test/bestandslauf.js` | 604 | 1 | 4 | 170 MB |
-| `test/schluesselwechsel.js` | 549 | 7 | 14 | 819 MB |
-| `test/stand_029.js` | 416 | 5 | 2 | 97 MB |
-| `test/stand_030.js` | 1.326 | 16 | 15 | 258 MB |
-| `test/stand_031.js` | 2.447 | 5 | 3 | 185 MB |
-| `test/pruefstand.js` | 1.183 | 5 | 3 | 93 MB |
+| `test/roundtrip.js` | 21.854 | 176 | 108 | 463 MB |
+| `test/source.js` | 3.813 | 8 | 6 | 175 MB |
+| `test/ui_overview.js` | 3.378 | 19 | 24 | 521 MB |
+| `test/ui_entry.js` | 3.658 | 17 | 14 | 421 MB |
+| `test/ui_system.js` | 4.505 | 22 | 33 | 791 MB |
+| `test/ui_inventory.js` | 1.738 | 11 | 14 | 337 MB |
+| `test/ui_export.js` | 2.528 | 14 | 39 | 1024 MB |
+| `test/ui_style.js` | 3.428 | 20 | 15 | 480 MB |
+| `test/ui_translator.js` | 590 | 3 | 24 | 215 MB |
+| `test/ui_language.js` | 1.751 | 9 | 16 | 291 MB |
+| `test/firstlogin.js` | 211 | 5 | 3 | 93 MB |
+| `test/batchrun.js` | 604 | 1 | 4 | 170 MB |
+| `test/keychange.js` | 549 | 7 | 14 | 819 MB |
+| `test/release_029.js` | 416 | 5 | 2 | 97 MB |
+| `test/release_030.js` | 1.326 | 16 | 15 | 258 MB |
+| `test/release_031.js` | 2.447 | 5 | 3 | 185 MB |
+| `test/selfcheck.js` | 1.183 | 5 | 3 | 93 MB |
 
 343 Gruppen liegen in Modulen, 4 im Treiber — zwei davon gehören zur
 Selbstprobe des Rahmens und laufen nur mit `TESTBENCH_PROBE`.
+
+### Woher die Namen kommen
+
+S9 gilt auch hier: jeder Name im Code ist englisch, jeder Kommentar bleibt
+deutsch. Die Dateinamen kommen aus dem Namenswörterbuch des Projekts, wo es ein
+Wortpaar gibt — `rahmen → frame`, `quelltext → source`, `oberflaeche → ui`,
+`bestand → inventory`, `stil → style` —, sonst aus den Funktionsnamen, die
+0.24.1 schon englisch gemacht hat: `checkFirstLogin` → `firstlogin.js`,
+`checkBatchRun` → `batchrun.js`, `checkKeyChange` → `keychange.js`.
+
+Der erste Anlauf hatte deutsche Namen. Siehe Befund 4.
 
 ### Der Quelltext ist Zeile für Zeile umgezogen
 
@@ -124,13 +135,13 @@ der 998 Rückbauten weiter greifen.
 |---|---|
 | **F1** | Ein Prozess je Modul. Nur der gibt den Speicher zurück. |
 | **F2** | 17 Module, geschnitten an den Nähten, die die Datei schon hatte. |
-| **F3** | Zwei Rahmen: `test/rahmen.js` allgemein, `test/dom.js` für die Fenster. |
-| **F4** | Jedes Modul schreibt seine Zahlen in eine Datei, deren Weg in `PRUEFSTAND_MELDUNG` steht. Der Treiber summiert. Ein Modul ohne Meldung ist ein roter Punkt und kein leerer Lauf. |
+| **F3** | Zwei Rahmen: `test/frame.js` allgemein, `test/dom.js` für die Fenster. |
+| **F4** | Jedes Modul schreibt seine Zahlen in eine Datei, deren Weg in `TESTBENCH_REPORT` steht. Der Treiber summiert. Ein Modul ohne Meldung ist ein roter Punkt und kein leerer Lauf. |
 | **F5** | Je Modul wird gemessen, welche Server offen blieben; der Treiber hält die Zusage über alle zusammen. |
 | **F6** | Die Module laufen nacheinander. Damit bleiben alle 63 Portbasen, wie sie sind, und die Spanne wächst nicht. |
 | **F7** | Die 14 Rückbauten zeigen auf ihre neuen Dateien. Ihre Suchtexte sind unverändert. |
 | **F8** | `foreignServer()` erkennt zusätzlich `test/<name>.js`. |
-| **F9** | `node testbench.js <Filter>` bleibt. Zusätzlich läuft jedes Modul allein: `node test/quelltext.js`. |
+| **F9** | `node testbench.js <Filter>` bleibt. Zusätzlich läuft jedes Modul allein: `node test/source.js`. |
 | **F10** | Der Notnagel fällt. Siehe Abschnitt 6. |
 | **F11** | Keine Messung im echten Browser. Keine neue Abhängigkeit. Die Frage bleibt offen und steht weiter in `Doku/Fehler_und_Ideen.md`. |
 | **F12** | `counterproof.js` wird nicht aufgeteilt. |
@@ -140,7 +151,7 @@ der 998 Rückbauten weiter greifen.
 
 ## 4. Warum der Rundlauf ein Modul bleibt
 
-`test/rundlauf.js` hat 21.854 Zeilen und 176 Gruppen. Das ist kein Sachgebiet,
+`test/roundtrip.js` hat 21.854 Zeilen und 176 Gruppen. Das ist kein Sachgebiet,
 und es ist trotzdem ein Modul.
 
 Seine Gruppen bauen aufeinander auf. Sie arbeiten an **einem** Bestand: die
@@ -153,8 +164,8 @@ vom Gegenstand trennt, bleibt grün und belegt nichts.
 Gemessen hat der Rundlauf **463 MB** Spitze und **108 Sekunden**. Er ist weder
 das Speicherproblem noch der teuerste Teil. Herausgelöst sind aus ihm die
 Blöcke, die keinen Hauptserver anfassen: die Wächter über den Quelltext
-(`test/quelltext.js`) und der Prüfstand über sich selbst
-(`test/pruefstand.js`).
+(`test/source.js`) und der Prüfstand über sich selbst
+(`test/selfcheck.js`).
 
 **Befund für eine spätere Runde:** ein echter Teillauf über „Rechte" oder
 „Papierkorb" kostet weiterhin die Zeit des Rundlaufs, weil diese Gruppen dort
@@ -215,7 +226,7 @@ abgelesen.
 |---|---:|---:|
 | Treiberprozess | **2842 MB** | **85 MB** |
 | alle Prozesse zusammen | 3188 MB | 1379 MB |
-| größter einzelner Prozess | 2842 MB | **1024 MB** (`oberflaeche_export`) |
+| größter einzelner Prozess | 2842 MB | **1024 MB** (`ui_export`) |
 
 Die Zusage der Runde lautete: der Speicher eines Moduls kommt nach seinem Ende
 zurück. Sie ist eingehalten. Der Treiber liegt über den ganzen Lauf bei 85 MB,
@@ -235,7 +246,7 @@ beliebig.
 ## 7. Was mitgezogen ist
 
 **`counterproof.js`.** `offsetLevel()` und `portSpan()` lesen `OFFSET_LEVEL`,
-`PORT_SPAN_FROM` und `PORT_SPAN_TO` jetzt aus `test/rahmen.js`. Fehlt die
+`PORT_SPAN_FROM` und `PORT_SPAN_TO` jetzt aus `test/frame.js`. Fehlt die
 Zeile, bricht der Treiber ab — das war schon so und bleibt so.
 
 **`foreignServer()`.** Das Muster erkennt zusätzlich ein Modul unter `test/`:
@@ -244,7 +255,7 @@ Zeile, bricht der Treiber ab — das war schon so und bleibt so.
 /(^|\/)(server\.js|testbench\.js|test\/[a-z0-9_]+\.js)$/
 ```
 
-Ein liegengebliebenes `node test/rundlauf.js` belegt genauso Ports wie ein
+Ein liegengebliebenes `node test/roundtrip.js` belegt genauso Ports wie ein
 liegengebliebenes `testbench.js`. Die Zusage, die dieses Muster zitiert, und
 der Rückbau 605, der es zurückbaut, sind mitgezogen.
 
@@ -252,19 +263,19 @@ der Rückbau 605, der es zurückbaut, sind mitgezogen.
 
 | Rückbau | neue Datei |
 |---|---|
-| 121, W13, W14, 1056 | `test/quelltext.js` |
-| 299 | `test/pruefstand.js` |
-| W2 | `test/erstanmeldung.js` |
-| W5, W6, 896, 897, 898, 899 | `test/rahmen.js` |
-| 907 | `test/stand_030.js` |
-| 1020 | `test/oberflaeche_uebersicht.js` |
+| 121, W13, W14, 1056 | `test/source.js` |
+| 299 | `test/selfcheck.js` |
+| W2 | `test/firstlogin.js` |
+| W5, W6, 896, 897, 898, 899 | `test/frame.js` |
+| 907 | `test/release_030.js` |
+| 1020 | `test/ui_overview.js` |
 
 Kein Suchtext ist geändert worden. Das ist der Grund für den Aufbau aus
 Abschnitt 2.
 
 **Die Wächter, die „den Prüfstand" lesen.** Drei Stellen lasen bisher
 `testbench.js` als eine Datei. Sie lesen jetzt alle Dateien des Prüfstands über
-`pruefstandDateien()` — eine Liste an einer Stelle statt drei nebeneinander:
+`benchFiles()` — eine Liste an einer Stelle statt drei nebeneinander:
 
 - die Zahl der Stellen, die einen Server starten (weiterhin **5**),
 - der Sprachwächter über die Kommentare,
@@ -283,7 +294,7 @@ rechnet damit nach, der Rundlauf startet damit seine Server.
 **Befund 1 — die Zahl der Sprachdateien ist festgenagelt, die der Module nicht.**
 `LANGUAGE_SOURCES` zählt 14 Dateien, und die Prüfung „Der Sprachwächter sieht
 alle vierzehn Quelltextdateien an" nagelt die Zahl namentlich fest. Die Module
-kommen über `pruefstandDateien()` dazu, also über das Verzeichnis und nicht über
+kommen über `benchFiles()` dazu, also über das Verzeichnis und nicht über
 eine Liste. Damit sieht der Wächter sie — aber eine Zahl, die eine still
 verschwundene Datei auffallen ließe, gibt es für sie nicht. Eine Zahl je Datei
 zu setzen ist Gegenstand von 0.34.1, Abschnitt 3.
@@ -291,9 +302,20 @@ zu setzen ist Gegenstand von 0.34.1, Abschnitt 3.
 **Befund 2 — der Teillauf über den Rundlauf kostet weiterhin den Rundlauf.**
 Siehe Abschnitt 4.
 
-**Befund 3 — `schluesselwechsel` braucht 819 MB und baut kein einziges Fenster.**
+**Befund 4 — die neuen Dateien hatten zuerst deutsche Namen, und kein Wächter
+hat es gemerkt.** 17 von 19 Dateinamen und neun neue Bezeichner waren deutsch —
+gegen S9 und gegen die Regel in `CLAUDE.md`, dass neue Begriffe dieser Art nicht
+erfunden werden. Aufgefallen ist es dem Betreiber beim Lesen, nicht dem
+Prüfstand. Der Grund: der Namenswächter liest eine feste Liste von **13
+ausgelieferten Dateien**; `testbench.js` steht nicht darauf, `test/` erst recht
+nicht. Derselbe Fall wie `mail.js` in 0.33.1 — eine Datei außerhalb jedes
+Wächterblicks. Umbenannt ist es, **der Wächter sieht den Prüfstand weiterhin
+nicht.** Die Liste gehört mit in die Runde, die die Zahlen je Datei festnagelt:
+0.34.1.
+
+**Befund 3 — `keychange` braucht 819 MB und baut kein einziges Fenster.**
 Der Schlüsselwechsel kopiert Datenbanken. Damit ist er nach
-`oberflaeche_export` (1024 MB) das zweitteuerste Modul, ohne dass jsdom im
+`ui_export` (1024 MB) das zweitteuerste Modul, ohne dass jsdom im
 Spiel wäre. Gemessen, nicht untersucht; hier war nur der Umzug Gegenstand.
 
 ---
@@ -308,14 +330,14 @@ die den Prüfstand selbst zurückbauen — die vierzehn auf `testbench.js` und d
 
 | Rückbau | Datei | rot |
 |---|---|---:|
-| 121 | `test/quelltext.js` | 3 |
-| 299 | `test/pruefstand.js` | 10 |
+| 121 | `test/source.js` | 3 |
+| 299 | `test/selfcheck.js` | 10 |
 | 605 | `counterproof.js` | 5 |
-| W13, W14, 1056 | `test/quelltext.js` | 4, 2, 2 |
-| W2 | `test/erstanmeldung.js` | 3 |
-| W5, W6, 896, 897, 898, 899 | `test/rahmen.js` | 3, 2, 2, 2, 2, 5 |
-| 907 | `test/stand_030.js` | 3 |
-| 1020 | `test/oberflaeche_uebersicht.js` | 6 |
+| W13, W14, 1056 | `test/source.js` | 4, 2, 2 |
+| W2 | `test/firstlogin.js` | 3 |
+| W5, W6, 896, 897, 898, 899 | `test/frame.js` | 3, 2, 2, 2, 2, 5 |
+| 907 | `test/release_030.js` | 3 |
+| 1020 | `test/ui_overview.js` | 6 |
 
 W2 ist dabei der Beleg für einen neuen Weg: der Rückbau macht das Modul
 `erstanmeldung` unbrauchbar, und der Treiber meldet das als roten Punkt —

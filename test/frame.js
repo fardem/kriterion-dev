@@ -268,8 +268,8 @@ function endBlock() {
        Pruefungen eines nicht gestarteten Moduls hat niemand gezaehlt. Ohne
        diese Zeile liese sich „338 uebergangen (15 Pruefungen)" so lesen, als
        stuenden in den uebergangenen Gruppen fuenfzehn Pruefungen. */
-    if (moduleStill)
-      console.log(`  ${moduleStill} Module sind gar nicht erst gestartet — ` +
+    if (skippedGroupCount)
+      console.log(`  ${skippedGroupCount} Module sind gar nicht erst gestartet — ` +
                   `ihre Pruefungen sind in der Zahl oben NICHT enthalten.`);
     if (stillFailed)
       console.log(`  DARIN ${stillFailed} GESCHEITERT — hier nicht angezeigt. ` +
@@ -921,7 +921,7 @@ function sweepLeftovers() {
    DER RUNDLAUF RUFT DAS NICHT: er richtet mit seinen eigenen Zeilen ein, und
    die tragen die Zusagen. Zwei Aufbauten hintereinander bekaemen beim zweiten
    „schon eingerichtet" zu hoeren. */
-async function hauptserverBereit() {
+async function mainServerReady() {
   await startServer();
   await call('POST', '/api/setup', { user: USER, password: PASSWORD });
   await call('POST', '/api/login', { user: USER, password: PASSWORD });
@@ -937,7 +937,7 @@ async function hauptserverBereit() {
    GELESEN WIRD DAS VERZEICHNIS UND NICHT EINE AUFZAEHLUNG: ein neues Modul
    ist damit von selbst dabei. Eine Aufzaehlung muesste jemand nachziehen, und
    genau das wird vergessen. */
-function pruefstandDateien() {
+function benchFiles() {
   const wo = path.join(__dirname, 'test');
   const module = fs.existsSync(wo)
     ? fs.readdirSync(wo).filter(n => n.endsWith('.js')).sort().map(n => 'test/' + n)
@@ -949,72 +949,72 @@ function pruefstandDateien() {
    Jedes Modul laeuft als eigener Prozess. Seine Zahlen muessen deshalb zum
    Treiber zurueck: die Zaehlung, die Zeittafel und die Liste der Server, die
    es gestartet hat. Geschrieben wird in eine Datei, deren Weg in
-   PRUEFSTAND_MELDUNG steht -- nicht auf die Ausgabe: counterproof.js liest die
+   TESTBENCH_REPORT steht -- nicht auf die Ausgabe: counterproof.js liest die
    Ausgabe und erkennt Gruppen an "── " und rote Punkte an zwei Leerzeichen vor
    einem Kreuz. Eine Meldezeile dazwischen waere eine dritte Sorte Zeile. */
-const MELDEWEG = process.env.PRUEFSTAND_MELDUNG || '';
+const REPORT_PATH = process.env.TESTBENCH_REPORT || '';
 
-function zaehlerStand() {
+function counters() {
   /* DIE PRUEFLAGEN KOMMEN MIT IHREN BASEN ZURUECK und nicht als blosse Zahl:
      der Waechter „Die Portbasen und der Versatz" rechnet ueber die Basen, die
      der Lauf WIRKLICH benutzt hat. Eine Zahl allein liesse ihn nach dem Umzug
      nur noch den Rest sehen, der im Treiber geblieben ist -- und eine Basis,
      die nur ein Modul vergibt, waere von keinem Waechter mehr gesehen
      (Stolperstein 139).
-     OB EIN SERVER OFFEN IST, WIRD HIER GEMESSEN und nicht spaeter: modulLauf()
+     OB EIN SERVER OFFEN IST, WIRD HIER GEMESSEN und nicht spaeter: moduleRun()
      raeumt gleich danach auf, und danach ist jeder beendet. */
   return {
     passedCount, failed, skipped, stillPassed, stillFailed, groupsShown, groupsStill,
-    zeiten: TIMES,
-    faelle: CASES.map(l => ({ base: l.base, port: l.port, pid: l.kind.pid,
-      offen: l.kind.exitCode === null && l.kind.signalCode === null })),
+    times: TIMES,
+    cases: CASES.map(l => ({ base: l.base, port: l.port, pid: l.kind.pid,
+      open: l.kind.exitCode === null && l.kind.signalCode === null })),
     smtp: SMTP_CASES.map(l => ({ base: l.base, port: l.port, kind: l.kind,
-      offen: l.server.listening }))
+      open: l.server.listening }))
   };
 }
 
 /* NIMMT DIE ZAHLEN EINES MODULS AUF. Gerufen wird das vom Treiber, und zwar
    in genau diese Zaehler -- der Schlussblock liest dieselben Namen wie in
    einem einzigen Prozess, und es gibt keine zweite Rechnung daneben. */
-function zaehlerDazu(z) {
+function addCounters(z) {
   passedCount += z.passedCount; failed += z.failed; skipped += z.skipped;
   stillPassed += z.stillPassed; stillFailed += z.stillFailed;
   groupsShown += z.groupsShown; groupsStill += z.groupsStill;
-  for (const r of z.zeiten || []) TIMES.push(r);
+  for (const r of z.times || []) TIMES.push(r);
 }
 
 /* GRUPPEN, DIE GAR NICHT ERST GESTARTET WURDEN. Ein Teillauf startet nur die
    Module, die er zeigt; die uebrigen Gruppen hat niemand gefahren. Sie zaehlen
    trotzdem als uebergangen, sonst behauptete der Schlussblock eines Teillaufs,
    es gaebe nur die Gruppen der gestarteten Module. */
-let moduleStill = 0;
-function uebergangenDazu(zahl) { groupsStill += zahl; moduleStill++; }
+let skippedGroupCount = 0;
+function addSkippedGroups(zahl) { groupsStill += zahl; skippedGroupCount++; }
 /* WIE VIELE MODULE DIESER LAUF AUSGELASSEN HAT. Der Treiber fragt danach:
    zwei seiner Gruppen rechnen ueber ALLE Module und koennen in einem Teillauf
    nichts belegen. */
-const moduleAusgelassen = () => moduleStill;
+const skippedModules = () => skippedGroupCount;
 
 /* DER LAUF EINES EINZELNEN MODULS. Er endet immer an derselben Stelle: die
    Meldung wird geschrieben, das Wegwerfverzeichnis entfernt, der Rueckgabewert
    folgt dem Gezeigten. Bricht das Modul ab, geht die Ursache mit -- dieselbe
    Kette wie im Treiber, denn ein `cause` kann selbst eines tragen. */
-async function modulLauf(lauf, name) {
-  let abbruch = '';
+async function moduleRun(lauf, name) {
+  let abort = '';
   try {
     await lauf();
   } catch (e) {
     const chain = [];
     for (let z = e, step = 0; z && step < 5; z = z.cause, step++)
       chain.push(`${z.code ? `[${z.code}] ` : ''}${z.message || z}`);
-    abbruch = chain.join('  <-  ');
-    console.error(`\nModul ${name} abgebrochen:`, abbruch);
+    abort = chain.join('  <-  ');
+    console.error(`\nModul ${name} abgebrochen:`, abort);
     if (e && e.stack) console.error(e.stack.split('\n').slice(1, 4).join('\n'));
   }
   closeTime();
-  const stand = zaehlerStand();
-  stand.abbruch = abbruch;
-  stand.modul = name;
-  if (MELDEWEG) { try { fs.writeFileSync(MELDEWEG, JSON.stringify(stand)); } catch {} }
+  const report = counters();
+  report.abort = abort;
+  report.moduleName = name;
+  if (REPORT_PATH) { try { fs.writeFileSync(REPORT_PATH, JSON.stringify(report)); } catch {} }
   /* DER HAUPTSERVER GEHOERT DAZU. Er haengt nicht in CASES -- er wird nicht
      ueber startFurtherServer gestartet --, und ein Modul, das ihn stehen
      liesse, hielte seinen Prozess am Leben und seinen Port besetzt. */
@@ -1022,20 +1022,20 @@ async function modulLauf(lauf, name) {
   for (const l of CASES) { try { l.kind.kill(); } catch {} }
   for (const l of SMTP_CASES) { try { l.server.close(); } catch {} }
   fs.rmSync(DATA, { recursive: true, force: true });
-  process.exit(abbruch ? 1 : (failed ? 1 : 0));
+  process.exit(abort ? 1 : (failed ? 1 : 0));
 }
 
-/* EIN MODUL, DAS FUER SICH GEFAHREN WIRD. `node test/quelltext.js` soll
+/* EIN MODUL, DAS FUER SICH GEFAHREN WIRD. `node test/source.js` soll
    dasselbe tun wie der Treiber mit diesem einen Modul -- sonst waere das
    Verzeichnis eine Ablage und kein Weg. Ohne Treiber steht auch der
    Schlussblock, sonst endete der Lauf ohne Zahl. */
-function alleine(lauf, datei) {
+function standalone(lauf, datei) {
   const name = nodePath.basename(datei, '.js');
-  if (!MELDEWEG) {
-    const eigen = async () => { await lauf(); endBlock(); };
-    return modulLauf(eigen, name);
+  if (!REPORT_PATH) {
+    const own = async () => { await lauf(); endBlock(); };
+    return moduleRun(own, name);
   }
-  return modulLauf(lauf, name);
+  return moduleRun(lauf, name);
 }
 
 return {
@@ -1056,7 +1056,7 @@ return {
   SMTP_CASES,
   smtpEmpfaenger, READY_TRIES, READY_STEP, readyFailure, startFurtherServer,
   call, names, confirmNeeded, includingShare, callF, shareMain,
-  leftovers, sweepLeftovers, parentOf, ourOwn, pruefstandDateien,
+  leftovers, sweepLeftovers, parentOf, ourOwn, benchFiles,
   /* was sich waehrend des Laufs aendert und deshalb nicht zerlegt werden darf */
   get cookie() { return cookie; },
   set cookie(v) { cookie = v; },
@@ -1071,7 +1071,7 @@ return {
   get stillPassed() { return stillPassed; },
   get stillFailed() { return stillFailed; },
   /* der Weg der Module */
-  zaehlerStand, zaehlerDazu, uebergangenDazu, moduleAusgelassen, modulLauf, alleine,
-  hauptserverBereit
+  counters, addCounters, addSkippedGroups, skippedModules, moduleRun, standalone,
+  mainServerReady
 };
 })(ROOT, createRequire(nodePath.join(ROOT, 'package.json')));

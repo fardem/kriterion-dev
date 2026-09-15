@@ -4,16 +4,16 @@
  * Sitzungen, Sicherheitsprotokoll, Mailversand, Papierkorb, Bildablage und
  * die Sicherung.
  *
- * Eigener Prozess, eigener Speicher. Der Rahmen steht in test/rahmen.js.
+ * Eigener Prozess, eigener Speicher. Der Rahmen steht in test/frame.js.
  */
-const H = require('./rahmen.js');
+const H = require('./frame.js');
 const D = require('./dom.js');
 const {
   DOM_PASSWORD, placeConfirm, confirmImDom, buildDom, sysSection,
   sysPass
 } = D;
 
-async function laufen() {
+async function run() {
   const {
    fs, os, path, sharp, TEXT, readmeFlat, __dirname, require, group, check,
    equal, setField, PORT, shortRun
@@ -4500,5 +4500,5 @@ async function laufen() {
   }
 }
 
-module.exports = laufen;
-if (require.main === module) H.alleine(laufen, __filename);
+module.exports = run;
+if (require.main === module) H.standalone(run, __filename);

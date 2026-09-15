@@ -7,11 +7,11 @@
  * Eigene Server in eigenen Verzeichnissen -- der Hauptbestand wird nicht
  * beruehrt.
  *
- * Eigener Prozess, eigener Speicher. Der Rahmen steht in test/rahmen.js.
+ * Eigener Prozess, eigener Speicher. Der Rahmen steht in test/frame.js.
  */
-const H = require('./rahmen.js');
+const H = require('./frame.js');
 
-async function laufen() {
+async function run() {
   const {
    fs, os, path, BRAKE_STEP, group, check, open, startFurtherServer
   } = H;
@@ -206,5 +206,5 @@ async function checkFirstLogin() {
   await checkFirstLogin();
 }
 
-module.exports = laufen;
-if (require.main === module) H.alleine(laufen, __filename);
+module.exports = run;
+if (require.main === module) H.standalone(run, __filename);

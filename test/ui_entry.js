@@ -3,15 +3,15 @@
  * Bloecke anordnen, Dateien und Links, Kommentare, Videos am Bildschirm,
  * der Fokuspunkt und die fuenf Gesten am Ausschnitt.
  *
- * Eigener Prozess, eigener Speicher. Der Rahmen steht in test/rahmen.js.
+ * Eigener Prozess, eigener Speicher. Der Rahmen steht in test/frame.js.
  */
-const H = require('./rahmen.js');
+const H = require('./frame.js');
 const D = require('./dom.js');
 const {
   DOM_PROVIDER, buildDom, openTagRow, sysSection
 } = D;
 
-async function laufen() {
+async function run() {
   const {
    fs, path, attachments, TEXT, __dirname, group, check, equal, setField,
    open
@@ -3653,5 +3653,5 @@ async function laufen() {
   wb.close();
 }
 
-module.exports = laufen;
-if (require.main === module) H.alleine(laufen, __filename);
+module.exports = run;
+if (require.main === module) H.standalone(run, __filename);

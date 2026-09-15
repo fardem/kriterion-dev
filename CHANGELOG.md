@@ -41,7 +41,7 @@ der Kriterion betreibt, ändert sich nichts — die Zeilen hier stehen unter
 - **Der Speicher des Prüflaufs fällt von 2842 MB auf 85 MB im Treiber**, der größte einzelne Prozess liegt bei 1024 MB. Der Grund war nie die Zahl der Prüfungen, sondern 210 jsdom-Fenster, deren Speicher nicht zurückkam.
 - **Die Speichergrenze im Prüflauf-Workflow ist gestrichen.** Ein vollständiger Lauf mit der Heap-Grenze des Standardläufers (2081 MB) läuft grün durch.
 - **Ein Teillauf startet nur noch die Module, die er zeigt.** `node testbench.js Schluesselwechsel` braucht 14 Sekunden statt 350. Bis 0.33.2 nahm der Filter nur die Ausgabe weg, nicht die Arbeit.
-- **Jedes Modul lässt sich allein fahren**: `node test/quelltext.js`.
+- **Jedes Modul lässt sich allein fahren**: `node test/source.js`.
 - Prüfstand 6865 → 6865, Prüfung für Prüfung dieselben. Rückbauten 998 → 998; die 14 auf `testbench.js` zeigen auf ihre neuen Dateien. Fünfzehn Gegenproben gefahren, **0 stumm**.
 
 ## [0.33.2] - 2026-09-15

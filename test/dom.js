@@ -6,17 +6,17 @@
  * Suche, die Karten des Systembereichs, der Leser der Bildschirmtexte und
  * drei Leser des Stilblatts.
  *
- * ER STEHT NEBEN test/rahmen.js UND NICHT DARIN -- 0.34.0, F3. Nur die
+ * ER STEHT NEBEN test/frame.js UND NICHT DARIN -- 0.34.0, F3. Nur die
  * Module, die Fenster bauen, brauchen ihn. Geteilt wird er trotzdem:
  * buildDom() rufen die acht Module der Oberflaeche, der Rundlauf und die
  * Staende 0.30 und 0.31 -- zwei Fassungen waeren zwei Wahrheiten
  * (Stolperstein 47).
  *
  * DER RUMPF LIEGT IN EINER KLAMMER, aus demselben Grund wie in
- * test/rahmen.js: die Datei liegt in test/, ihr Quelltext spricht aber vom
+ * test/frame.js: die Datei liegt in test/, ihr Quelltext spricht aber vom
  * Wurzelverzeichnis.
  */
-const H = require('./rahmen.js');
+const H = require('./frame.js');
 
 module.exports = (function (__dirname, require) {
 const {

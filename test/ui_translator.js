@@ -3,23 +3,23 @@
  * Der Sprachhelfer und die Ladung, die Fremddatei und der Dateiname, und
  * die Serverseite, die aus der Datei spricht.
  *
- * Eigener Prozess, eigener Speicher. Der Rahmen steht in test/rahmen.js.
+ * Eigener Prozess, eigener Speicher. Der Rahmen steht in test/frame.js.
  */
-const H = require('./rahmen.js');
+const H = require('./frame.js');
 const D = require('./dom.js');
 const {
   buildDom
 } = D;
 
-async function laufen() {
+async function run() {
   const {
    fs, os, path, spawn, zerlege, CODE, TEXT, __dirname, require, group,
    check, equal, KEY, PORT_OFFSET, PORT, PASSWORD, endKind, CASES,
    LANGUAGE_BASE, call
   } = H;
   /* Dieses Modul ruft den Hauptserver. Es startet ihn fuer sich --
-     siehe hauptserverBereit() in test/rahmen.js. */
-  await H.hauptserverBereit();
+     siehe mainServerReady() in test/frame.js. */
+  await H.mainServerReady();
   /* DIESES MODUL BAUT FENSTER. Fehlt jsdom, sagt es das und haelt an. Die
      Zahl der uebersprungenen Pruefungen steht EINMAL im ersten Modul der
      Oberflaeche und nicht in jedem -- sonst zaehlte ein Lauf ohne jsdom sie
@@ -585,5 +585,5 @@ async function laufen() {
   }
 }
 
-module.exports = laufen;
-if (require.main === module) H.alleine(laufen, __filename);
+module.exports = run;
+if (require.main === module) H.standalone(run, __filename);

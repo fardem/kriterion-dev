@@ -3087,7 +3087,7 @@ ihre Zahlen ein und schreibt den Schlussblock.
 ```bash
 npm test                              # alles
 node testbench.js Rechte              # nur die Module mit „Rechte" im Gruppennamen
-node test/quelltext.js                # ein Modul allein
+node test/source.js                # ein Modul allein
 ```
 
 Ein gefilterter Lauf startet nur die Module, auf die der Filter passt, und sagt

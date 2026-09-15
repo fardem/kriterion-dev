@@ -10,15 +10,15 @@
  * Schnitt mittendrin verschoebe die Zusagen auf einen anderen Bestand, und
  * das waere kein Umzug mehr, sondern ein Neubau (Leitplanke L3).
  *
- * Eigener Prozess, eigener Speicher. Der Rahmen steht in test/rahmen.js.
+ * Eigener Prozess, eigener Speicher. Der Rahmen steht in test/frame.js.
  */
-const H = require('./rahmen.js');
+const H = require('./frame.js');
 const D = require('./dom.js');
 const {
   buildDom
 } = D;
 
-async function laufen() {
+async function run() {
   const {
    fs, os, path, crypto, spawn, execFileSync, Worker, Database,
    attachments, sharp, zerlege, CODE, TEXT, KOMMENTAR, MAIL_TIMES,
@@ -613,7 +613,7 @@ async function sendImport(object, mode, withoutShare = false) {
      gelaufen: drei Gegenproben griffen gleichzeitig nach 6100, zwei bekamen
      ihn nicht, und ihre Server endeten sofort. Vermerkt wird sie trotzdem in
      PRUEFLAGEN, damit beide Waechter am Ende auch sie ansehen.
-     DIE ZAHL SELBST STEHT SEIT 0.34.0 IM RAHMEN (test/rahmen.js): der Treiber
+     DIE ZAHL SELBST STEHT SEIT 0.34.0 IM RAHMEN (test/frame.js): der Treiber
      rechnet mit ihr nach, und zwei Zahlen an zwei Orten liefen auseinander. */
   let fingerprintPort = FINGERPRINT_BASE;
   async function fingerprintOut(directory) {
@@ -21849,5 +21849,5 @@ async function sendImport(object, mode, withoutShare = false) {
   end.close();
 }
 
-module.exports = laufen;
-if (require.main === module) H.alleine(laufen, __filename);
+module.exports = run;
+if (require.main === module) H.standalone(run, __filename);

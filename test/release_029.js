@@ -3,18 +3,18 @@
  * Der Fingerprint nennt die Datei, das Faelligkeitsdatum, die eindeutige
  * Adresse, die Filterzeile und die Umkehr der Sortierung nach Titel.
  *
- * Eigener Prozess, eigener Speicher. Der Rahmen steht in test/rahmen.js.
+ * Eigener Prozess, eigener Speicher. Der Rahmen steht in test/frame.js.
  */
-const H = require('./rahmen.js');
+const H = require('./frame.js');
 
-async function laufen() {
+async function run() {
   const {
    fs, os, path, crypto, CODE, KOMMENTAR, __dirname, require, group, check,
    equal, PASSWORD, open, shortRun, shortRunAll, call, names
   } = H;
   /* Dieses Modul ruft den Hauptserver. Es startet ihn fuer sich --
-     siehe hauptserverBereit() in test/rahmen.js. */
-  await H.hauptserverBereit();
+     siehe mainServerReady() in test/frame.js. */
+  await H.mainServerReady();
 
 /* ======================================================================
    0.29.0 — „Worauf man sich verlassen können muss"
@@ -391,7 +391,7 @@ async function check0290() {
       return [f['list.sortOneWay'] === undefined, f['list.dirZA']];
     });
     check('„Diese Sortierung hat nur eine Richtung" steht in keiner Sprachdatei mehr',
-      tiKeys.every(([weg]) => weg), JSON.stringify(tiKeys));
+      tiKeys.every(([where]) => where), JSON.stringify(tiKeys));
     check('Und „Z → A" steht in allen dreien',
       tiKeys.every(([, wort]) => wort === 'Z → A'), JSON.stringify(tiKeys));
     /* GEFAHREN UND NICHT GELESEN: die Sortierung selbst, am laufenden Server.
@@ -411,5 +411,5 @@ async function check0290() {
   await check0290();
 }
 
-module.exports = laufen;
-if (require.main === module) H.alleine(laufen, __filename);
+module.exports = run;
+if (require.main === module) H.standalone(run, __filename);

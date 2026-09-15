@@ -3,16 +3,16 @@
  * Die sieben Waechter der Sprachdatei, der Anbietername, die Zeitleiste im
  * hellen Schema, die festen Farben, die Server-Befehle und die Rollenweichen.
  *
- * Eigener Prozess, eigener Speicher. Der Rahmen steht in test/rahmen.js.
+ * Eigener Prozess, eigener Speicher. Der Rahmen steht in test/frame.js.
  */
-const H = require('./rahmen.js');
+const H = require('./frame.js');
 const D = require('./dom.js');
 const {
   buildDom, sysSection, screenTextsFrom, serverTextsFrom, sysPass,
   css123, regel123
 } = D;
 
-async function laufen() {
+async function run() {
   const {
    fs, os, path, zerlege, CODE, TEXT, KOMMENTAR, __dirname, require,
    FILTER, group, check, equal, shortRun, call, names
@@ -1746,5 +1746,5 @@ async function laufen() {
     rwUserB.w.close(); rwAdmB.w.close();
   }}
 
-module.exports = laufen;
-if (require.main === module) H.alleine(laufen, __filename);
+module.exports = run;
+if (require.main === module) H.standalone(run, __filename);

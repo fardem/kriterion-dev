@@ -1111,7 +1111,7 @@ const REGRESSIONS = [
   },
   {
     nr: '121', name: 'F_ROUTEN kennt den zweiten Schritt der Anmeldung nicht',
-    file: 'test/quelltext.js',
+    file: 'test/source.js',
     search: "    ['POST',   '/api/login/second',                'offen'],",
     replacement: "",
     expected: 'Der Waechter ueber den Quelltext'
@@ -2785,7 +2785,7 @@ const REGRESSIONS = [
     /* EIN WERKZEUG, DAS SEINEN EIGENEN FUND NICHT SEHEN KANN, IST SCHLIMMER
        ALS KEINES (Stolperstein 213). */
     nr: '299', name: 'Die Groessenmessung findet gar nichts mehr',
-    file: 'test/pruefstand.js',
+    file: 'test/selfcheck.js',
     search: "    return found.sort((a, b) => b.rows - a.rows || a.name.localeCompare(b.name));",
     replacement: "    return [];",
     expected: 'Die Groesse der Funktionen wird gemessen'
@@ -5791,7 +5791,7 @@ const REGRESSIONS = [
        ueber sie schweigt. GENAU DAS IST IN DIESER RUNDE PASSIERT: in
        batchrun.js stand ein Wort aus der Sperrliste, und niemand sah es. */
     nr: 'W14', name: 'Die Dateiliste des Sprachwaechters verliert die neuen Dateien',
-    file: 'test/quelltext.js',
+    file: 'test/source.js',
     search: "                          'images.js', 'batchrun.js', 'mail.js'];",
     replacement: "                          ];",
     expected: 'Der Sprachwaechter'
@@ -5802,7 +5802,7 @@ const REGRESSIONS = [
        davon sein wird. Ein Waechter, dem ein Wort fehlt, sieht aus wie einer,
        der nichts zu beanstanden hat. */
     nr: 'W13', name: 'Die Sprachliste verliert ihren juengsten Eintrag',
-    file: 'test/quelltext.js',
+    file: 'test/source.js',
     search: "    ['Faden', 'Thread']\n  ];",
     replacement: "  ];",
     expected: 'Der Sprachwaechter'
@@ -6373,14 +6373,14 @@ const REGRESSIONS = [
   },
   {
     nr: 'W2', name: 'Eine Portbasis liegt wieder auf der gesperrten 4045',
-    file: 'test/erstanmeldung.js',
+    file: 'test/firstlogin.js',
     search: '  const B = startFurtherServer(freshDir, {}, 5130);',
     replacement: '  const B = starteWeiterenServer(frischDir, {}, 4000);',
     expected: 'Die Portbasen und der Versatz'
   },
   {
     nr: 'W5', name: 'Der SMTP-Empfaenger wird nicht mehr vermerkt',
-    file: 'test/rahmen.js',
+    file: 'test/frame.js',
     search: '  SMTP_CASES.push(state);',
     replacement: '  // SMTP_LAGEN.push(lage);',
     expected: 'Die Portbasen und der Versatz'
@@ -6393,7 +6393,7 @@ const REGRESSIONS = [
        (Stolperstein 138). So bleibt der Lauf ganz, die Empfaenger horchen
        weiter, und genau der Waechter faerbt sich, der dafuer da ist. */
     nr: 'W6', name: 'Der SMTP-Empfaenger hoert nicht auf zu horchen',
-    file: 'test/rahmen.js',
+    file: 'test/frame.js',
     search: '    server.close(() => r());',
     replacement: '    r();',
     expected: 'Keine Prueflage laesst ihren Server zurueck'
@@ -8424,7 +8424,7 @@ const REGRESSIONS = [
        schwerer Nebenlast reisst der Lauf dann wieder ab, statt eine Pruefung
        namentlich rot zu faerben. */
     nr: '896', name: "Das Wartefenster steht wieder auf zwoelf Sekunden",
-    file: 'test/rahmen.js',
+    file: 'test/frame.js',
     search: "const READY_TRIES = 300;",
     replacement: "const READY_TRIES = 120;",
     expected: "Das Wartefenster und seine Meldung — 0.30.0"
@@ -8433,7 +8433,7 @@ const REGRESSIONS = [
     /* DIE TEURERE HAELFTE DES BEFUNDES. Der Lauf startet 78 Server;
        „Zweitserver nicht erreichbar" schickt auf eine Suche durch alle. */
     nr: '897', name: "Die Meldung des Zweitservers nennt ihn nicht mehr",
-    file: 'test/rahmen.js',
+    file: 'test/frame.js',
     search: "  `Zweitserver nicht erreichbar: Portbasis ${portBase}, Port ${port}, ` +\n  `Verzeichnis ${dataDirectory} -- ${READY_TRIES * READY_STEP / 1000} s gewartet\\n${log}`;",
     replacement: "  `Zweitserver nicht erreichbar -- ${READY_TRIES * READY_STEP / 1000} s gewartet\\n${log}`;",
     expected: "Das Wartefenster und seine Meldung — 0.30.0"
@@ -8443,7 +8443,7 @@ const REGRESSIONS = [
        deshalb sieht die Zusage hinterher nach, ob der Prozess wirklich fort
        ist -- und nicht nur, ob der Aufraeumer gerufen wurde. */
     nr: '898', name: "Der Aufraeumer beim Start beendet nichts mehr",
-    file: 'test/rahmen.js',
+    file: 'test/frame.js',
     search: "  for (const z of found) { try { process.kill(z.pid, 'SIGKILL'); } catch {} }",
     replacement: "  for (const z of found) { /* nicht beenden */ }",
     expected: "Der Pruefstand raeumt beim Start auf — 0.30.0"
@@ -8452,7 +8452,7 @@ const REGRESSIONS = [
     /* OHNE DIESE ZAHL IST JEDE BESCHLEUNIGUNG GERATEN. Eine leere Tafel sagt
        genauso wenig wie gar keine -- und sieht aus wie eine. */
     nr: '899', name: "Die Schlusstafel bleibt leer",
-    file: 'test/rahmen.js',
+    file: 'test/frame.js',
     search: "  const worst = [...rows].sort((a, b) => b.ms - a.ms).slice(0, top);",
     replacement: "  const worst = [];",
     expected: "Die Schlusstafel sagt, wo die Zeit hingeht — 0.30.0"
@@ -8526,7 +8526,7 @@ const REGRESSIONS = [
     /* EIN SIEB, DAS ALLES DURCHLAESST, IST KEIN SIEB. Die Wache waere danach
        gruen und blind -- deshalb prueft die Zusage das Sieb selbst. */
     nr: '907', name: "Die neue Wache schaut an jeder Kennung vorbei",
-    file: 'test/stand_030.js',
+    file: 'test/release_030.js',
     search: "    const isName = (t) => /^[a-z0-9][a-z0-9._#/-]*$/.test(t.trim()) || /^#\\//.test(t.trim());",
     replacement: "    const isName = (t) => true;",
     expected: "Kein deutscher Bildschirmsatz sitzt fest — die neue Wache — 0.30.0"
@@ -9735,7 +9735,7 @@ const REGRESSIONS = [
        Rueckbau setzt den Stamm von 0.25.1 zurueck -- er findet `yedeğe` nicht,
        und die allgemeine Zeile daneben faellt ebenfalls auf. */
     nr: '1020', name: 'Der `yedek`-Waechter bekommt seine Wortgrenzen zurueck',
-    file: 'test/oberflaeche_uebersicht.js',
+    file: 'test/ui_overview.js',
     search: "      const YEDEK_STEM = /(?<![\\p{L}])yede[kğ](?!leme)[\\p{L}]*/iu;",
     replacement: "      const YEDEK_STEM = /\\byedek(ler|leri|le|tir)?\\b/i;",
     expected: '„Backup" heisst auf Tuerkisch yedekleme — 0.25.1'
@@ -10114,7 +10114,7 @@ const REGRESSIONS = [
        eingetragen hat -- sonst bliebe unbelegt, dass gerade SIE gesehen wird
        (Stolperstein 156: gezaehlt wird, was gemeint ist). */
     nr: '1056', name: 'Der Sprachwaechter verliert mail.js wieder',
-    file: 'test/quelltext.js',
+    file: 'test/source.js',
     search: "'images.js', 'batchrun.js', 'mail.js'];",
     replacement: "'images.js', 'batchrun.js'];",
     expected: 'Der Sprachwaechter'
@@ -10171,15 +10171,15 @@ const REGRESSIONS = [
 
 /* ================= Spuren und Versatz =================
    Der Versatz je Nebenspur steht im RAHMEN DES PRUEFSTANDS (OFFSET_LEVEL,
-   test/rahmen.js) und wird von dort gelesen -- der Waechter, der ihn
+   test/frame.js) und wird von dort gelesen -- der Waechter, der ihn
    nachrechnet, liegt im Pruefstand, und zwei
    Zahlen an zwei Orten laufen auseinander. Faellt die Zeile weg, bricht der
    Treiber ab, statt still auf einen Vorgabewert zu fallen. */
 function offsetLevel() {
-  const t = fs.readFileSync(path.join(__dirname, 'test', 'rahmen.js'), 'utf8');
+  const t = fs.readFileSync(path.join(__dirname, 'test', 'frame.js'), 'utf8');
   const m = t.match(/^const OFFSET_LEVEL = (\d+);$/m);
   if (!m) {
-    console.error('In test/rahmen.js steht keine Zeile "const OFFSET_LEVEL = <Zahl>;".');
+    console.error('In test/frame.js steht keine Zeile "const OFFSET_LEVEL = <Zahl>;".');
     console.error('Ohne sie faehrt der Treiber keine Nebenspuren.');
     process.exit(1);
   }
@@ -10238,7 +10238,7 @@ function processesUnder(dirPath) {
    -- eigene Kinder gibt es zu diesem Zeitpunkt noch keine.
 
    DIE MODULE SIND SEIT 0.34.0 DABEI (F8). Der Pruefstand ist in test/
-   aufgeteilt; ein liegengebliebenes `node test/rundlauf.js` belegt genauso
+   aufgeteilt; ein liegengebliebenes `node test/roundtrip.js` belegt genauso
    Ports wie ein liegengebliebenes testbench.js -- es startet ja welche. Ein
    Muster, das nur die beiden alten Namen kennt, saehe nach dem Umzug genau
    den Fall nicht mehr, fuer den es diesen Waechter gibt.
@@ -10302,11 +10302,11 @@ function foreignServer() {
    Abhaengigkeit, kein `ss`, kein `lsof` -- dieselbe Auskunft wie bei
    processesUnder() und aus derselben Quelle. */
 function portSpan() {
-  const t = fs.readFileSync(path.join(__dirname, 'test', 'rahmen.js'), 'utf8');
+  const t = fs.readFileSync(path.join(__dirname, 'test', 'frame.js'), 'utf8');
   const from = t.match(/^const PORT_SPAN_FROM = (\d+);$/m);
   const to = t.match(/^const PORT_SPAN_TO = (\d+);$/m);
   if (!from || !to) {
-    console.error('In test/rahmen.js fehlt PORT_SPAN_FROM oder PORT_SPAN_TO.');
+    console.error('In test/frame.js fehlt PORT_SPAN_FROM oder PORT_SPAN_TO.');
     console.error('Ohne die Spanne kann die Gegenprobe die Ports nicht ansehen.');
     process.exit(1);
   }

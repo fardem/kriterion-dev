@@ -456,7 +456,7 @@ ohne Framework, Auslieferung per Docker.
 **20 Dateien im Wurzelverzeichnis, dazu 19 unter `test/`.** Darin
 `testbench.js` — der Treiber des Prüfstands, läuft über `npm test`; die
 Prüflagen selbst liegen seit 0.34.0 in `test/`, ein Modul je Sachgebiet, dazu
-die zwei Rahmen `test/rahmen.js` und `test/dom.js` —,
+die zwei Rahmen `test/frame.js` und `test/dom.js` —,
 `anhaenge.js` mit sämtlichen Auslieferungsregeln für angehängte Dateien
 (Abschnitt 5a) und `zugang.js`, der Befehl auf dem Wirt für Passwort und
 Zugänge. Dazu `counterproof.js` (der Gegenprobentreiber, läuft eigens und nicht
@@ -12075,7 +12075,7 @@ Ursache sind 210 jsdom-Fenster aus `buildDom()`, deren Speicher nach
 
 **Der Aufbau.** `testbench.js` ist der Treiber mit **446 Zeilen**. Er startet je
 Modul einen Prozess, sammelt dessen Zahlen über eine Meldedatei ein und schreibt
-den Schlussblock. Daneben liegen zwei Rahmen — `test/rahmen.js` (Zählung,
+den Schlussblock. Daneben liegen zwei Rahmen — `test/frame.js` (Zählung,
 `group()`/`check()`, Portbasen, Serverstart, SMTP-Empfänger, Rufer) und
 `test/dom.js` (`buildDom()` und die Helfer am Fenster) — und **17 Module**, ein
 Sachgebiet je Datei.
@@ -12105,7 +12105,7 @@ Schnitt mittendrin verschöbe die Zusagen auf einen anderen Bestand. Das ist ein
 Befund für eine spätere Runde und steht im Änderungsprotokoll, Abschnitt 4.
 
 **Mitgezogen:** `counterproof.js` liest `OFFSET_LEVEL` und die Portspanne aus
-`test/rahmen.js`, `foreignServer()` erkennt `test/<name>.js`, die 14 Rückbauten
+`test/frame.js`, `foreignServer()` erkennt `test/<name>.js`, die 14 Rückbauten
 auf `testbench.js` zeigen auf ihre neuen Dateien, `.dockerignore` nennt `test`,
 und die Wächter, die „den Prüfstand" lesen, gehen über `pruefstandDateien()`.
 

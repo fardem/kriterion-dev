@@ -6,20 +6,20 @@
  * 
  * Er startet keinen Server und oeffnet keine Datenbank -- er liest Dateien.
  *
- * Eigener Prozess, eigener Speicher. Der Rahmen steht in test/rahmen.js.
+ * Eigener Prozess, eigener Speicher. Der Rahmen steht in test/frame.js.
  */
-const H = require('./rahmen.js');
+const H = require('./frame.js');
 const D = require('./dom.js');
 const {
   screenTextsFrom, serverTextsFrom, SCREEN_BAN, isAddress,
   screenViolations
 } = D;
 
-async function laufen() {
+async function run() {
   const {
    fs, os, path, attachments, sharp, zerlege, CODE, TEXT, KOMMENTAR,
    __dirname, require, group, check, equal, open, shortRun, shortRunAll,
-   call, names, pruefstandDateien
+   call, names, benchFiles
   } = H;
 
   /* ---------------------------------------------------------------- */
@@ -1404,11 +1404,11 @@ async function laufen() {
                           'images.js', 'batchrun.js', 'mail.js'];
   /* UND DIE MODULE DES PRUEFSTANDS DAZU -- 0.34.0. Die Liste oben nennt
      vierzehn Dateien und ist damit festgenagelt; die Module sind seit dem
-     Umzug dazugekommen und werden ueber pruefstandDateien() gelesen. Ohne sie
+     Umzug dazugekommen und werden ueber benchFiles() gelesen. Ohne sie
      blieben nach dem Umzug 20 000 Kommentarzeilen ausserhalb jeder
      Sprachpruefung -- genau der Fall, der bei mail.js in 0.33.1 aufgefallen
      ist. testbench.js faellt heraus: es steht schon in der Liste oben. */
-  const LANGUAGE_MODULES = pruefstandDateien().filter(n => n !== 'testbench.js');
+  const LANGUAGE_MODULES = benchFiles().filter(n => n !== 'testbench.js');
   const languageSource = [...LANGUAGE_SOURCES, ...LANGUAGE_MODULES].flatMap(n => {
     const p = path.join(__dirname, n);
     return fs.existsSync(p)
@@ -3808,5 +3808,5 @@ async function laufen() {
   }
 }
 
-module.exports = laufen;
-if (require.main === module) H.alleine(laufen, __filename);
+module.exports = run;
+if (require.main === module) H.standalone(run, __filename);

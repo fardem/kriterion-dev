@@ -3,15 +3,15 @@
  * Der Export in Teilen, die nachziehende Anzeige, die Filterleiste, die
  * Kategoriezeile, die Marke, die Sternreihe und das Raster.
  *
- * Eigener Prozess, eigener Speicher. Der Rahmen steht in test/rahmen.js.
+ * Eigener Prozess, eigener Speicher. Der Rahmen steht in test/frame.js.
  */
-const H = require('./rahmen.js');
+const H = require('./frame.js');
 const D = require('./dom.js');
 const {
   buildDom, openTagRow, sysSection, css123, regel123, withoutMedia
 } = D;
 
-async function laufen() {
+async function run() {
   const {
    fs, os, path, attachments, sharp, CODE, KOMMENTAR, __dirname, require,
    FILTER, group, check, equal, open, startFurtherServer
@@ -2523,5 +2523,5 @@ async function laufen() {
   }
 }
 
-module.exports = laufen;
-if (require.main === module) H.alleine(laufen, __filename);
+module.exports = run;
+if (require.main === module) H.standalone(run, __filename);

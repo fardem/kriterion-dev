@@ -4,19 +4,19 @@
  * Skript auf dem Wirt ist ausfuehrbar, die berichtigten Behauptungen stehen
  * nirgends mehr, und die Compose-Datei wird nicht ueberschrieben.
  *
- * Eigener Prozess, eigener Speicher. Der Rahmen steht in test/rahmen.js.
+ * Eigener Prozess, eigener Speicher. Der Rahmen steht in test/frame.js.
  */
-const H = require('./rahmen.js');
+const H = require('./frame.js');
 
-async function laufen() {
+async function run() {
   const {
    fs, path, execFileSync, attachments, sharp, CODE, KOMMENTAR, REGEX,
    readmeFlat, __dirname, require, group, check, equal, PORT, open,
-   pruefstandDateien
+   benchFiles
   } = H;
   /* Dieses Modul ruft den Hauptserver. Es startet ihn fuer sich --
-     siehe hauptserverBereit() in test/rahmen.js. */
-  await H.hauptserverBereit();
+     siehe mainServerReady() in test/frame.js. */
+  await H.mainServerReady();
 
   /* ================= Die Gegenproben greifen — 0.13.0 ==================
      EIN RUECKBAU, DER INS LEERE GREIFT, SIEHT AUS WIE EINER, DER NICHTS
@@ -941,7 +941,7 @@ async function laufen() {
      Schreiben der Papiere gesucht werden muessen. */
   const flFiles = ['public/app.js', 'server.js', 'auth.js', 'db.js', 'attachments.js',
                      'twofactor.js', 'usertool.js', 'keytool.js', 'mail.js', 'keys.js',
-                     ...pruefstandDateien(), 'counterproof.js'];
+                     ...benchFiles(), 'counterproof.js'];
   const flStatus = new Map();
   console.log('');
   console.log('  ── Die laengsten Funktionen je Datei ──────────────────────');
@@ -1178,5 +1178,5 @@ async function laufen() {
   }
 }
 
-module.exports = laufen;
-if (require.main === module) H.alleine(laufen, __filename);
+module.exports = run;
+if (require.main === module) H.standalone(run, __filename);

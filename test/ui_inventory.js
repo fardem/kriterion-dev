@@ -3,15 +3,15 @@
  * Das Gewicht am Eintrag und im Systembereich, der Vergleich, die Suche,
  * die Hervorhebung und die gespeicherten Ansichten.
  *
- * Eigener Prozess, eigener Speicher. Der Rahmen steht in test/rahmen.js.
+ * Eigener Prozess, eigener Speicher. Der Rahmen steht in test/frame.js.
  */
-const H = require('./rahmen.js');
+const H = require('./frame.js');
 const D = require('./dom.js');
 const {
   buildDom, waitSearch, sysSection
 } = D;
 
-async function laufen() {
+async function run() {
   const {
    fs, path, attachments, TEXT, KOMMENTAR, __dirname, group, check, equal
   } = H;
@@ -1733,5 +1733,5 @@ async function laufen() {
 
 }
 
-module.exports = laufen;
-if (require.main === module) H.alleine(laufen, __filename);
+module.exports = run;
+if (require.main === module) H.standalone(run, __filename);

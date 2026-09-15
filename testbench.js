@@ -5,7 +5,7 @@
  *
  * DIE PRUEFLAGEN LIEGEN IN test/, ein Modul je Sachgebiet — 0.34.0. Diese
  * Datei startet sie, sammelt ihre Zahlen ein und schreibt den Schlussblock.
- * Der gemeinsame Rahmen steht in test/rahmen.js, der Rahmen der
+ * Der gemeinsame Rahmen steht in test/frame.js, der Rahmen der
  * Oberflaechenpruefungen in test/dom.js.
  *
  * WARUM JE EIN PROZESS: buildDom() baut ein vollstaendiges jsdom-Fenster,
@@ -21,12 +21,12 @@
  * Wegwerfverzeichnissen; der Bestand unter data/ wird nicht angefasst.
  * Die Oberflaechenpruefungen brauchen jsdom:  npm install
  */
-const H = require('./test/rahmen.js');
+const H = require('./test/frame.js');
 const {
   fs, os, path, spawn, spawnSync, FILTER, group, check, endBlock, returnValue,
   equal, CASES, SMTP_CASES, SMTP_BASE, SMTP_WIDTH, LANGUAGE_BASE, LANGUAGE_WIDTH,
   FINGERPRINT_BASE, PORT_WIDTH, PORT_OFFSET, MAIN_BASE, MAIN_WIDTH,
-  OFFSET_LEVEL, OFFSET_TRACES, endKind, sweepLeftovers, pruefstandDateien
+  OFFSET_LEVEL, OFFSET_TRACES, endKind, sweepLeftovers, benchFiles
 } = H;
 
 /* ================= EIN MODUL FAEHRT ALS EIGENER PROZESS -- 0.34.0 =========
@@ -48,33 +48,33 @@ const {
 
    DER FILTER GEHT MIT: ein gestartetes Modul filtert seine eigenen Gruppen
    genau so, wie es frueher der eine Lauf getan hat. */
-const MELDEORDNER = fs.mkdtempSync(path.join(os.tmpdir(), 'kriterion-meldung-'));
-const MODULLAGE = [];
+const REPORT_DIR = fs.mkdtempSync(path.join(os.tmpdir(), 'kriterion-meldung-'));
+const REPORTS = [];
 
-function modulFahren(name) {
-  const weg = path.join(MELDEORDNER, name + '.json');
+function runModule(name) {
+  const where = path.join(REPORT_DIR, name + '.json');
   const r = spawnSync(process.execPath,
     [path.join('test', name + '.js'), ...(FILTER ? [FILTER] : [])],
     { cwd: __dirname, stdio: 'inherit',
-      env: { ...process.env, PRUEFSTAND_MELDUNG: weg } });
+      env: { ...process.env, TESTBENCH_REPORT: where } });
   /* KEINE MELDUNG IST EIN FUND UND KEIN LEERER LAUF. Ein Modul, das gar nicht
      erst startet, liefe sonst als "null Pruefungen" durch, und der Lauf bliebe
      gruen -- genau der stille Fehlschluss aus Stolperstein 81. */
-  let stand = null;
-  try { stand = JSON.parse(fs.readFileSync(weg, 'utf8')); } catch {}
-  if (!stand) {
+  let report = null;
+  try { report = JSON.parse(fs.readFileSync(where, 'utf8')); } catch {}
+  if (!report) {
     console.log(`\n  ✗ Das Modul ${name} hat keine Zahlen gemeldet` +
       `\n      Rueckgabewert ${r.status}, Signal ${r.signal}`);
-    H.zaehlerDazu({ passedCount: 0, failed: 1, skipped: 0, stillPassed: 0,
-                    stillFailed: 0, groupsShown: 0, groupsStill: 0, zeiten: [] });
-    MODULLAGE.push({ modul: name, faelle: [], smtp: [],
-                     abbruch: `kein Ergebnis (Code ${r.status}, Signal ${r.signal})` });
+    H.addCounters({ passedCount: 0, failed: 1, skipped: 0, stillPassed: 0,
+                    stillFailed: 0, groupsShown: 0, groupsStill: 0, times: [] });
+    REPORTS.push({ moduleName: name, cases: [], smtp: [],
+                     abort: `kein Ergebnis (Code ${r.status}, Signal ${r.signal})` });
     return;
   }
-  H.zaehlerDazu(stand);
-  MODULLAGE.push(stand);
-  if (stand.abbruch)
-    console.log(`\n  ✗ Das Modul ${name} ist abgebrochen: ${stand.abbruch}`);
+  H.addCounters(report);
+  REPORTS.push(report);
+  if (report.abort)
+    console.log(`\n  ✗ Das Modul ${name} ist abgebrochen: ${report.abort}`);
 }
 
 /* ================= DIE MODULE UND IHRE REIHENFOLGE =================
@@ -86,23 +86,23 @@ function modulFahren(name) {
    sie rechnen ueber ALLE Module -- die Portbasen und die Server, die keiner
    zurueckgelassen haben darf. Ein Modul kann das nicht sagen. */
 const MODULE = [
-  'rundlauf',
-  'quelltext',
-  'oberflaeche_uebersicht',
-  'oberflaeche_eintrag',
-  'oberflaeche_system',
-  'oberflaeche_bestand',
-  'oberflaeche_export',
-  'oberflaeche_stil',
-  'oberflaeche_sprachhelfer',
-  'oberflaeche_sprache',
-  'erstanmeldung',
-  'bestandslauf',
-  'schluesselwechsel',
-  'stand_029',
-  'stand_030',
-  'stand_031',
-  'pruefstand'
+  'roundtrip',
+  'source',
+  'ui_overview',
+  'ui_entry',
+  'ui_system',
+  'ui_inventory',
+  'ui_export',
+  'ui_style',
+  'ui_translator',
+  'ui_language',
+  'firstlogin',
+  'batchrun',
+  'keychange',
+  'release_029',
+  'release_030',
+  'release_031',
+  'selfcheck'
 ];
 
 /* WELCHE GRUPPEN EIN MODUL TRAEGT -- gelesen aus seinem Quelltext und nicht
@@ -110,7 +110,7 @@ const MODULE = [
    (Stolperstein 47); der Quelltext ist die Gruppe selbst.
    GEBRAUCHT WIRD DAS FUER DEN TEILLAUF: ein Modul, auf dessen Gruppen der
    Filter nicht passt, wird gar nicht erst gestartet. */
-function gruppenVon(name) {
+function groupsOf(name) {
   const text = fs.readFileSync(path.join(__dirname, 'test', name + '.js'), 'utf8');
   return [...text.matchAll(/^\s*group\('(.+)'\);\s*$/gm)].map(m => m[1]);
 }
@@ -150,15 +150,15 @@ if (process.env.TESTBENCH_PROBE) {
   }
 
   for (const name of MODULE) {
-    const gruppen = gruppenVon(name);
+    const groups = groupsOf(name);
     /* DER TEILLAUF: ein Modul ohne passende Gruppe startet nicht. Seine
        Gruppen zaehlen trotzdem als uebergangen -- sonst behauptete der
        Schlussblock, es gaebe nur die Gruppen der gestarteten Module. */
-    if (FILTER && !gruppen.some(g => g.toLowerCase().includes(FILTER.toLowerCase()))) {
-      H.uebergangenDazu(gruppen.length);
+    if (FILTER && !groups.some(g => g.toLowerCase().includes(FILTER.toLowerCase()))) {
+      H.addSkippedGroups(groups.length);
       continue;
     }
-    modulFahren(name);
+    runModule(name);
   }
 
   /* ================= DIE BEIDEN LETZTEN GRUPPEN =================
@@ -170,16 +170,16 @@ if (process.env.TESTBENCH_PROBE) {
      Zusage: er wird nach dem dritten Mal ueberlesen.
      DIE GRUPPE STEHT TROTZDEM DA, damit die Zahl der Gruppen in beiden
      Laeufen dieselbe ist -- sie sagt nur, warum sie nichts rechnet. */
-  const vollstaendig = !H.moduleAusgelassen();
-  const nurTeillauf = '  … uebersprungen: ein Teillauf startet nicht alle Module, ' +
+  const complete = !H.skippedModules();
+  const partialHint = '  … uebersprungen: ein Teillauf startet nicht alle Module, ' +
     'und diese Gruppe rechnet ueber alle.';
   /* DIE BEIDEN LISTEN STEHEN VOR BEIDEN GRUPPEN: die eine rechnet mit den
      Basen, die andere zaehlt die Server. Innerhalb einer Gruppe erklaert
      reichten sie nicht bis zur naechsten. */
-  const pbLagen = [...CASES.map(l => ({ base: l.base, port: l.port })),
-                   ...MODULLAGE.flatMap(m => m.faelle || [])];
+  const pbCases = [...CASES.map(l => ({ base: l.base, port: l.port })),
+                   ...REPORTS.flatMap(m => m.cases || [])];
   const pbSmtp = [...SMTP_CASES.map(l => ({ base: l.base, port: l.port, kind: l.kind })),
-                  ...MODULLAGE.flatMap(m => m.smtp || [])];
+                  ...REPORTS.flatMap(m => m.smtp || [])];
 
   /* ================= Der Pruefstand ueber sich selbst =================
      Zwei Waechter, und beide sind aus 0.8.90 heraus entstanden: dort haben
@@ -188,7 +188,7 @@ if (process.env.TESTBENCH_PROBE) {
      stehen am ENDE, weil beide erst dann etwas zu sagen haben. */
 
   group('Die Portbasen und der Versatz');
-  if (!vollstaendig) console.log(nurTeillauf);
+  if (!complete) console.log(partialHint);
   else {
 
   /* DIE SPERRLISTE VON fetch(). Sie steht in der Fetch-Spezifikation als "bad
@@ -219,7 +219,7 @@ if (process.env.TESTBENCH_PROBE) {
   const pbWidth = (base) => base === FINGERPRINT_BASE ? 10
     : base === SMTP_BASE ? SMTP_WIDTH
     : base === LANGUAGE_BASE ? LANGUAGE_WIDTH : PORT_WIDTH;
-  const pbBases = [...new Set([...pbLagen.map(l => l.base),
+  const pbBases = [...new Set([...pbCases.map(l => l.base),
                                ...pbSmtp.map(l => l.base)])].sort((a, b) => a - b);
   /* ERST DER GEGENSTAND (Stolperstein 81): ein Waechter ueber null Basen ist
      gruen und belegt nichts. Die ZAHL ausdruecklich, wie bei F_ROUTES -- eine
@@ -272,8 +272,8 @@ if (process.env.TESTBENCH_PROBE) {
      haben war, und rund ein Fuenftel dessen, was die dicht gepackten Basen
      zwischen 4380 und 4440 sich seit je teilen. */
   check('Der Lauf hat seine Portbasen vermerkt',
-    pbBases.length === 63 && pbLagen.length >= 60,
-    `${pbBases.length} Basen aus ${pbLagen.length} Prueflagen: ${pbBases.join(' ')}`);
+    pbBases.length === 63 && pbCases.length >= 60,
+    `${pbBases.length} Basen aus ${pbCases.length} Prueflagen: ${pbBases.join(' ')}`);
   // Und der Empfaenger selbst ist wirklich gelaufen: eine Liste ohne
   // Eintraege machte die Rechnung darueber wahr, ohne etwas zu belegen
   // (Stolperstein 81).
@@ -297,7 +297,7 @@ if (process.env.TESTBENCH_PROBE) {
      Startstelle in testbench.js; jetzt liegen zwei im Rahmen und die uebrigen
      in den Modulen. Wer nur die eine Datei laese, zaehlte drei statt fuenf --
      und meldete einen Fehler, wo keiner ist. */
-  const pbStarts = pruefstandDateien().reduce((n, d) =>
+  const pbStarts = benchFiles().reduce((n, d) =>
     n + (fs.readFileSync(path.join(__dirname, d), 'utf8')
       .match(/spawn\(process\.execPath, \['server\.js'\]/g) || []).length, 0);
   /* VIER SEIT 0.24.0: dazu die Lage, die einen Server OHNE Sprachdatei
@@ -361,7 +361,7 @@ if (process.env.TESTBENCH_PROBE) {
 
   }
   group('Keine Prueflage laesst ihren Server zurueck');
-  if (!vollstaendig) console.log(nurTeillauf);
+  if (!complete) console.log(partialHint);
   else {
 
   /* IN 0.8.90 HABEN ZWEI LAGEN IHRE SERVER ZURUECKGELASSEN, und aufgefallen
@@ -400,12 +400,12 @@ if (process.env.TESTBENCH_PROBE) {
      alle zusammen -- sonst belegte sie nur noch den Rest, der nicht umgezogen
      ist. DER NAME DES MODULS STEHT DABEI: ein liegengebliebener Server ist
      erst dann zu finden, wenn man weiss, wer ihn gestartet hat. */
-  const wlAll = pbLagen.length;
+  const wlAll = pbCases.length;
   const wlOpen = [
     ...CASES.filter(l => l.kind.exitCode === null && l.kind.signalCode === null)
       .map(l => `Basis ${l.base}, Port ${l.port}, PID ${l.kind.pid}`),
-    ...MODULLAGE.flatMap(m => (m.faelle || []).filter(l => l.offen)
-      .map(l => `${m.modul}: Basis ${l.base}, Port ${l.port}, PID ${l.pid}`))];
+    ...REPORTS.flatMap(m => (m.cases || []).filter(l => l.open)
+      .map(l => `${m.moduleName}: Basis ${l.base}, Port ${l.port}, PID ${l.pid}`))];
   check(`Der Lauf hat ${wlAll} eigene Server gestartet`,
     wlAll >= 35, `${wlAll} Prueflagen`);
   check('Und jeder einzelne von ihnen ist beendet',
@@ -417,15 +417,15 @@ if (process.env.TESTBENCH_PROBE) {
      dasselbe Fehlerbild wie ein zurueckgelassener Server, nur ohne PID. */
   const wlSmtp = [
     ...SMTP_CASES.filter(l => l.server.listening).map(l => `Port ${l.port} (${l.kind})`),
-    ...MODULLAGE.flatMap(m => (m.smtp || []).filter(l => l.offen)
-      .map(l => `${m.modul}: Port ${l.port} (${l.kind})`))];
+    ...REPORTS.flatMap(m => (m.smtp || []).filter(l => l.open)
+      .map(l => `${m.moduleName}: Port ${l.port} (${l.kind})`))];
   check('Und kein SMTP-Empfaenger horcht noch',
     wlSmtp.length === 0, wlSmtp.join(' · '));
   }
   /* ---------------------------------------------------------------- */
   endBlock();
 
-  fs.rmSync(MELDEORDNER, { recursive: true, force: true });
+  fs.rmSync(REPORT_DIR, { recursive: true, force: true });
   process.exit(returnValue());
 })().catch(e => {
   /* DIE URSACHE GEHOERT DAZU -- 0.30.0, BA 2. „Prueflauf abgebrochen: fetch
@@ -440,6 +440,6 @@ if (process.env.TESTBENCH_PROBE) {
     chain.push(`${z.code ? `[${z.code}] ` : ''}${z.message || z}`);
   console.error('\nPrueflauf abgebrochen:', chain.join('  <-  '));
   if (e && e.stack) console.error(e.stack.split('\n').slice(1, 4).join('\n'));
-  fs.rmSync(MELDEORDNER, { recursive: true, force: true });
+  fs.rmSync(REPORT_DIR, { recursive: true, force: true });
   process.exit(1);
 });

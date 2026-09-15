@@ -4,11 +4,11 @@
  * Geprueft wird jede Lage, in der er NICHT laufen darf -- und in jeder,
  * dass die Instanz danach unangetastet ist.
  *
- * Eigener Prozess, eigener Speicher. Der Rahmen steht in test/rahmen.js.
+ * Eigener Prozess, eigener Speicher. Der Rahmen steht in test/frame.js.
  */
-const H = require('./rahmen.js');
+const H = require('./frame.js');
 
-async function laufen() {
+async function run() {
   const {
    fs, os, path, crypto, spawnSync, execFileSync, Database, __dirname,
    require, group, check, equal
@@ -544,5 +544,5 @@ function checkKeyChange() {
   await checkKeyChange();
 }
 
-module.exports = laufen;
-if (require.main === module) H.alleine(laufen, __filename);
+module.exports = run;
+if (require.main === module) H.standalone(run, __filename);

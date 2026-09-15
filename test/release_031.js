@@ -3,22 +3,22 @@
  * Die Sprachdateien werden gegengelesen, und die drei Sprachen sitzen:
  * Deutsch, Englisch, Tuerkisch. Dazu die Einzahl nach einer Zahl.
  *
- * Eigener Prozess, eigener Speicher. Der Rahmen steht in test/rahmen.js.
+ * Eigener Prozess, eigener Speicher. Der Rahmen steht in test/frame.js.
  */
-const H = require('./rahmen.js');
+const H = require('./frame.js');
 const D = require('./dom.js');
 const {
   buildDom, waitSearch
 } = D;
 
-async function laufen() {
+async function run() {
   const {
    fs, os, path, spawnSync, CODE, TEXT, __dirname, require, group, check,
    open, call
   } = H;
   /* Dieses Modul ruft den Hauptserver. Es startet ihn fuer sich --
-     siehe hauptserverBereit() in test/rahmen.js. */
-  await H.hauptserverBereit();
+     siehe mainServerReady() in test/frame.js. */
+  await H.mainServerReady();
 
 /* =================================================================
    0.31.0 — „Die Sprachdateien werden gegengelesen"
@@ -2442,5 +2442,5 @@ async function check0314() {
   await check0314();
 }
 
-module.exports = laufen;
-if (require.main === module) H.alleine(laufen, __filename);
+module.exports = run;
+if (require.main === module) H.standalone(run, __filename);
