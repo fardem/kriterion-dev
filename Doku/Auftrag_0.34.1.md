@@ -78,8 +78,41 @@ verbrauchte sie 15.763 Zeilen — mehr als das ganze Budget. **Sie liegt bei
 - Quelltext danach: rund **75.500 Zeilen**.
 - `usertool.js` ist am Ziel, `keytool.js` 6 Zeilen darüber. Beleg, dass 20 %
   erreichbar sind.
-- **Die Tabelle wird nach 0.34.0 neu gemessen.** Dann heißt `testbench.js`
-  anders und steht in mehreren Dateien.
+- **Die Tabelle oben ist der Stand vom 15. September 2026 VOR dem Umzug** und
+  bleibt als solcher stehen. `testbench.js` gibt es so nicht mehr.
+
+### Nachgemessen am 15. September 2026, nach 0.34.0
+
+Über 33 Dateien: die 20 des Prüfstands, `counterproof.js` und die zwölf
+ausgelieferten. Gemessen mit `tools/segments.js`, also demselben Zerleger, den
+die Wächter benutzen.
+
+| Datei | Zeilen | Kommentar | Anteil | Ziel 20 % |
+|---|---:|---:|---:|---:|
+| `test/roundtrip.js` | 21.858 | 6.488 | 30 % | 4.372 |
+| `public/app.js` | 13.986 | 6.279 | **45 %** | 2.797 |
+| `server.js` | 9.183 | 4.908 | **53 %** | 1.837 |
+| `counterproof.js` | 10.689 | 3.219 | 30 % | 2.138 |
+| `test/source.js` | 3.813 | 2.046 | **54 %** | 763 |
+| `test/ui_style.js` | 3.428 | 1.314 | 38 % | 686 |
+| `test/ui_system.js` | 4.505 | 1.245 | 28 % | 901 |
+| `test/release_031.js` | 2.447 | 1.181 | **48 %** | 489 |
+| `test/ui_overview.js` | 3.378 | 1.119 | 33 % | 676 |
+| `test/dom.js` | 2.172 | 983 | **45 %** | 434 |
+| `test/ui_export.js` | 2.528 | 969 | 38 % | 506 |
+| `test/ui_entry.js` | 3.658 | 926 | 25 % | 732 |
+| **alle 33** | **97.805** | **37.538** | **38 %** | **19.561** |
+
+**Zu kürzen für 20 %: 17.977 Zeilen.**
+
+Der Anteil über alles ist derselbe geblieben — 38 % vorher, 38 % nachher. Der
+Umzug hat weder Kommentare weggenommen noch welche hinzugefügt, die ins Gewicht
+fielen; er hat sie nur auf 20 Dateien verteilt. Die absolute Zahl steigt von
+36.504 auf 37.538, weil 0.34.0 seine eigenen Entscheidungen begründet hat und
+weil jede der 20 Dateien einen Kopf trägt.
+
+**Die fünf teuersten Dateien stellen 22.940 der 37.538 Zeilen.** Dort liegt die
+Runde.
 
 ---
 
@@ -222,7 +255,16 @@ Keine Prozentzahl für beide. Sie sind Prosa, hier zählt die Regel.
 
 ## 9. Nicht gebaut wird
 
-- Keine Zeile Code. Nur Kommentare und die zwei Papiere.
+- **Keine Zeile Anwendungscode** — nichts, was Kriterion tut, ändert sich.
+  Keine Route, keine Abfrage, kein Feld, kein Schema, kein Austauschformat,
+  keine Schwelle. Jede Anweisung in `server.js`, `auth.js`, `db.js`,
+  `public/app.js` und den übrigen ausgelieferten Dateien steht hinterher Zeichen
+  für Zeichen da, wo sie vorher stand. Was dort fällt, sind Kommentarzeilen —
+  deshalb ändert sich der Fingerprint (Abschnitt 8, Punkt 7).
+- **Der Prüfstand ist davon ausgenommen, und zwar ausdrücklich.** Die Zahl je
+  Datei (BA 1) und der Namenswächter über `test/` (BA 1a) sind neue
+  `check`-Zeilen. Ohne sie hätte die Runde keinen Beleg: eine Kürzung, die
+  niemand nachhält, ist von einer Erosion nicht zu unterscheiden.
 - Kein Stolpersteinverweis fällt.
 - Keine Zusage an den Prüfstand fällt, auch nicht ihre Begründung.
 - Kein Kommentar fällt, dessen Voraussetzung nicht geprüft ist.
