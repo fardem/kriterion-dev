@@ -26993,8 +26993,17 @@ function sweepLeftovers() {
             DAS IST DIE RICHTUNG FUER EINE RUNDE, DIE WEGNIMMT: nicht „nimm
             weg, was da ist", sondern „bring zurueck, was weg sein soll" --
             und wenn davon keine Pruefung rot wird, ist der Hinweis nicht
-            belegt (Frage F11). */
-  check(`Es sind genau 990 Rueckbauten`, gpList.length === 990, `${gpList.length}`);
+            belegt (Frage F11).
+       +4  1053 bis 1056 — 0.33.1, ein Befund aus dem Betrieb. Sie bringen den
+            rohen Anbieternamen ins Protokoll zurueck, jagen umgekehrt auch
+            eine Marke durch den Schluessel, nehmen den englischen Namen aus
+            der Sprachdatei und werfen mail.js wieder aus dem Sprachwaechter.
+            ZWEI VON IHNEN HABEN BEIM ERSTEN LAUF INS LEERE GEGRIFFEN, und der
+            Grund gehoert hierher: der Treiber patcht eine Kopie aus
+            `git archive HEAD` und nicht den Arbeitsstand. Wer einen Rueckbau
+            auf eine Zeile setzt, die noch nicht committet ist, bekommt
+            „RUECKBAU GESCHEITERT" und keinen Fund. */
+  check(`Es sind genau 994 Rueckbauten`, gpList.length === 994, `${gpList.length}`);
   const gpTwice = gpList.map(r => r.nr).filter((n, i, a) => a.indexOf(n) !== i);
   check('Und keine Nummer steht zweimal', gpTwice.length === 0, gpTwice.join(' '));
   /* JEDER GREIFT: der Suchtext kommt in seiner Datei GENAU EINMAL vor. Keinmal
