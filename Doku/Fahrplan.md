@@ -161,8 +161,8 @@ Sprachumschalter baut, hat damit ein Muster und braucht kein neues.**
 | ~~**0.33.0**~~ | ~~Bereinigung — der Bruch~~ | **GEBAUT am 14. September 2026** — Änderungsprotokoll 0.33.0. *Und der erste Befund der Runde war der Zähler selbst:* **es waren ACHTZEHN Blöcke und nicht zwölf.** *Die sechs der Sprachrunde 0.24.x trugen ihre Absage im BLOCKKOMMENTAR statt auf einer eigenen Kommentarzeile — das Muster fand sie nicht, und dieses Papier hat die falsche Zahl von ihm übernommen (Stolperstein 156, diesmal am Zähler selbst).* **Alle achtzehn sind gefallen** *(Entscheidung des Betreibers, 14.9.2026: „alles was für die Migration von den Zwischenschritten notwendig war, kann weg")* — **945 Zeilen aus `db.js`** *(die Datei geht von 2145 auf 1474)*, samt zehn Namen im `module.exports`; **die Grenze `db.exec(SCHEMA)` ist nicht verschoben, sie ist fort.** *An ihre Stelle tritt eine Probe auf den Bestand: sie fragt `sqlite_master` und keinen Merker, nennt jede fehlende Spalte samt ihrer Fassung und dem Weg herauf —* **und sie SPERRT NIEMANDEN AUS** *(der erste Entwurf war eine harte Absage; der Betreiber hat sie gekippt: „Es wird nie eine Datenbank, Sicherung oder Exportdatei vor 0.33.0 eingespielt werden")*. **Der umgedrehte Prüfstand hat drei Abbruchstellen gefunden, die der Auftrag nicht kannte** — *die beiden Indizes auf `photos`, das Auffangnetz und die Grundausstattung stürben ohne Klammer an einer fehlenden Spalte, und zwar an einem `db.prepare`, das schon beim VORBEREITEN scheitert: die gekippte Absage als Absturz.* **Dazu der Stempel** *(zwei Zeilen in `settings`; ein gewachsener Bestand bekommt „angelegt mit" NICHT nachgetragen)*, **das Austauschformat 16 → 17** *(die Programmfassung kommt neben die Formatnummer)* **und die eine Abweisung der Runde: eine Datei mit Nummer ≤ 13 kommt nicht mehr herein** *(sie liegt an der DATEI und nicht am START)*. **Die JPEG-Hälfte des Bestandslaufs ist mitgefallen**, und **das Containerprotokoll spricht englisch** *(58 Ansagen in sechs Dateien, samt Restprobe)*. **MINOR** *(1209 → 1208 Schlüssel, 1008 → 990 Rückbauten, Prüfstand 7017 → 6858)*. *Fünfzehn Zusagen, achtzehn Gegenproben (1035–1052); sechsunddreißig alte sind gelöscht und nicht umgedreht — umdrehen ließe sich nur ein Gegenstand, den es gibt.* **Der Gegenprobenlauf hat selbst zwei Befunde gemacht, und beide sitzen an der PRÜFUNG:** *1042 blieb **STUMM** — `assignInventory()` kehrt vor seiner Schleife um, wenn es keinen Eigentümer gibt, und die Prüflage hatte keinen; sie stellt jetzt einen gewachsenen Bestand nach. Und die erste Fassung der umgedrehten Prüfgruppe **RISS den Lauf AB** statt rot zu werden, wenn ein Start nicht hochkam (derselbe Fehler wie an 1014 in 0.32.0). Nach beiden Nachbesserungen: **0 STUMM, 0 ABGERISSEN**. Fingerprint `9083d8c7`* | **ja** *(Datenbank)* | — |
 | ~~**0.33.2**~~ | ~~Elf deutsche Sätze und ein roher Schlüssel~~ | **GEBAUT am 15. September 2026** — Änderungsprotokoll 0.33.2. *Der zweite Befund aus dem Betrieb, am selben Tag gemeldet:* **„Backup location: off -- server.backupDirNotSet"** — *ein interner Schlüssel statt eines Satzes.* **Drei Stellen geben Deutsch oder einen Schlüssel aus, und alle drei sind derselbe Fall wie der Anbietername in 0.33.1:** *der Rahmen der Zeile ist englisch, der eingesetzte Wert nicht. Die Sicherungszeile übersetzt ihren Grund jetzt und gibt die Werte mit; die sechs Sätze der PUBLIC_ADDRESS-Probe und die fünf Gründe an `languageSkip` sind englisch.* **UND SIE WAREN KEIN VERSEHEN VON 0.33.0:** *sie standen namentlich in `SERVER_REST_NAMED`, der Liste des erlaubten deutschen Rests, mit der Begründung „sie landen auf dem Bildschirm des Wirts". Seit 0.33.0 spricht dieser Bildschirm englisch — dieselbe Begründung verlangt seither das Gegenteil, und die Ausnahme ist stehengeblieben,* **weil eine benannte Ausnahme aussieht wie eine entschiedene.** *Die Zusage „Der Start sagt es im Protokoll" fragte nach dem rohen Schlüssel und ist umgedreht (Stolperstein 201); drei neue stehen daneben, darunter eine auf die mitgereisten Werte. Die Prüflage dafür läuft auf der Portbasis 4360, die der Server davor freigibt — eine eigene Basis wäre die falsche Antwort, und 0.33.1 ist genau daran einmal hängengeblieben.* **PATCH** *(Prüfstand 6862 → 6865, Rückbauten 994 → 998).* *Vier Gegenproben (1057–1060), **0 STUMM**. Fingerprint `d6dbb696`* | nein | — |
 | ~~**0.33.1**~~ | ~~Der Anbietername im Containerprotokoll~~ | **GEBAUT am 15. September 2026** — Änderungsprotokoll 0.33.1. *Ein Befund aus dem Betrieb, gemeldet vom Betreiber aus dem Protokoll der eingespielten 0.33.0:* **„Mail delivery: Eigener Server via smtp.strato.de:587" — deutsch in einer englischen Zeile.** *`mail.js` führt zu jedem Anbieter einen Namen und, wo es einen gibt, einen Schlüssel; die Karte setzt den Schlüssel seit 0.32.0 in der Sprache des Lesers ein, die Protokollzeile nahm den Rohwert.* **Der eigentliche Fund ist aber, warum keine Prüfung ihn gesehen hat:** *die Restprobe 5d liest den QUELLTEXT der Konsolenrufe, und dort stand an jener Stelle eine Einsetzung. Das Deutsche kam erst zur Laufzeit herein — ein Wächter, der Text liest, sieht durch eine Einsetzung nicht hindurch.* **Die Zusage ist umgedreht und nicht gelöscht** *(Stolperstein 201); sie startet einen echten Server und liest, was er wirklich schreibt.* **Dazu `mail.js` in den Sprachwächter** *(13 → 14 Dateien; die Datei trägt 181 deutsche Kommentarzeilen und stand außerhalb jeder Sprachprüfung — beim Aufnehmen sauber, null Treffer)* **und `npm audit fix`** *(zwei mittelschwere Schwachstellen in `qs` über `express`, jetzt null)*. **PATCH** *(Prüfstand 6858 → 6862, Rückbauten 990 → 994).* *Vier Gegenproben (1053–1056), **0 STUMM** — zwei griffen beim ersten Lauf ins Leere, weil der Treiber eine Kopie aus `git archive HEAD` patcht und nicht den Arbeitsstand. Fingerprint `38949534`* | nein | — |
-| **0.33.x** | **Die Kommentare werden knapp** | **36.504 von 96.886 Zeilen sind Kommentar (38 %)** — nachgemessen am 15. September 2026, nach 0.33.2. **Dazu CHANGELOG.md und README.md**: Altlasten entfernen, kürzen, sachliche Sprache ohne Metaphern (`CLAUDE.md`, Abschnitt 1) | nein | — |
-| **0.34.0** | **Der Prüfstand bekommt ein Verzeichnis** | `testbench.js` in Module — **und damit erst der echte Teillauf** | nein | — |
+| **0.34.1** | **Die Kommentare werden knapp** | **36.504 von 96.886 Zeilen sind Kommentar (38 %)** — nachgemessen am 15. September 2026, nach 0.33.2; die Tabelle wird nach 0.34.0 neu gemessen, weil `testbench.js` jetzt in `test/` liegt. **Dazu CHANGELOG.md und README.md**: Altlasten entfernen, kürzen, sachliche Sprache ohne Metaphern (`CLAUDE.md`, Abschnitt 1) | nein | — |
+| ~~**0.34.0**~~ | ~~Der Prüfstand bekommt ein Verzeichnis~~ | **GEBAUT am 15. September 2026** — Änderungsprotokoll 0.34.0. Aus `testbench.js` mit 56.787 Zeilen sind 17 Module unter `test/` geworden, dazu zwei Rahmen (`test/rahmen.js`, `test/dom.js`); `testbench.js` ist der Treiber mit 446 Zeilen und startet je Modul einen Prozess. **Der Speicher des Treibers fällt von 2842 MB auf 85 MB**, der größte einzelne Prozess liegt bei 1024 MB. Der Notnagel im Workflow ist gestrichen: ein voller Lauf mit der Heap-Grenze des Standardläufers (2081 MB) ist grün durchgelaufen. **Der Teillauf startet nur die Module, die er zeigt** — 14 s statt 350 s über ein Modul. Keine Zusicherung ist gefallen: **6865 vorher, 6865 nachher**, Prüfung für Prüfung dieselben, kein Prüfungs- und kein Gruppenname geändert. Der Rundlauf bleibt ein Modul mit 176 Gruppen — seine Gruppen bauen auf einem Bestand auf, ein Schnitt mittendrin wäre ein Neubau (Befund, Abschnitt 4 des Protokolls). Fünfzehn Gegenproben gefahren, **0 stumm**. Fingerprint `af69ce33` (davor `d6dbb696`) — er ändert sich allein durch die Versionsnummer in `package.json`, kein Byte Anwendungscode ist angefasst | nein | — |
 | **0.35.0** | **Code-Effizienz** | Leichen und ineffizienter Code | offen | — |
 | **0.36.0** | **Sicherheit** | Fünf Lücken aus der Durchsicht vom 15. September 2026: CSRF-Token, Anmeldesperre übersteht keinen Neustart, 199 `innerHTML`-Stellen ungeprüft, Abhängigkeiten ohne Automatik. **Nach 0.35.0, damit die Durchsicht den Code sieht, der bleibt** | offen | — |
 | ~~**1.0.0**~~ | ~~Die Zusage~~ | **GESTRICHEN am 15. September 2026** — Vorgabe des Betreibers: es wird kein 1.0.0 geben, was als 1.0 geplant war ist mit **0.33.0** erreicht. Die zwei offenen Punkte des Eintrags stehen in der Zeile darunter | — | — |
@@ -1666,15 +1666,20 @@ Ablageverfahrens umstellen — das ist dauerhaft sinnvoll und fällt nicht.*
 > funktionieren weiter, sie sind nur größer.* **Das gehört in die Fragetafel
 > jener Runde und ist vor dem Wegnehmen zu klären.**
 
-**0.33.x — „Die Kommentare werden knapp".** **38 % des Quelltextes sind
-Kommentar.** Was der Code eine Zeile weiter selbst sagt, wird entfernt. Was eine
+**0.34.1 — „Die Kommentare werden knapp".** *(Stand hier bis zum 15. September
+2026 als 0.33.x. Mit dem Bauen von 0.34.0 ist eine 0.33.x nicht mehr möglich,
+und der Auftrag dazu heißt seit dem 15. September `Doku/Auftrag_0.34.1.md`.
+Zwei Papiere über dieselbe Runde dürfen nicht zwei Nummern tragen —
+Stolperstein 47.)* **38 % des Quelltextes sind Kommentar.** Was der Code eine Zeile weiter selbst sagt, wird entfernt. Was eine
 Entscheidung begründet, wandert vorher in den Projektstand und bleibt als
 Verweis stehen. Die Runde läuft nach 0.33.0 und nicht davor: die Bereinigung hat
 ganze Blöcke samt ihren Kommentaren entfernt.
 
 **Nachgemessen am 15. September 2026 nach 0.33.2**, mit derselben Funktion,
-die `testbench.js` dafür benutzt (`onlyComments`), über die **14** Dateien aus
-`LANGUAGE_SOURCES`:
+die der Prüfstand dafür benutzt (`onlyComments`), über die **14** Dateien aus
+`LANGUAGE_SOURCES`. **Die Tabelle ist mit 0.34.0 überholt:** `testbench.js`
+liegt seit dem Umzug in `test/`, und die Zeilen verteilen sich auf 20 Dateien.
+Sie wird zu Beginn von 0.34.1 neu gemessen:
 
 | Datei | Zeilen | davon Kommentar | Anteil |
 |---|---:|---:|---:|
@@ -1793,6 +1798,23 @@ zweimal geschrieben.
 ---
 
 ## 0.34.0 — „Der Prüfstand bekommt ein Verzeichnis"
+
+> **GEBAUT am 15. September 2026.** Der Abschnitt darunter ist der Plan von
+> vorher und bleibt zum Nachlesen stehen. Was gebaut wurde, steht im
+> Änderungsprotokoll 0.34.0.
+>
+> | | Plan | gebaut |
+> |---|---|---|
+> | Dateien | ein Modul je Sachgebiet | 17 Module, zwei Rahmen, ein Treiber |
+> | Prüfungen | bleibt gleich | 6865 → **6865** |
+> | Speicher | kommt nach dem Modul zurück | 2842 MB → **85 MB** im Treiber |
+> | Teillauf | an der Zeit gemessen | 350 s → **14 s** über ein Modul |
+> | Notnagel | fällt, wenn die Messung es trägt | **gestrichen** |
+>
+> **Die Zahlen im Abschnitt darunter sind die vom 11. September 2026** (6497
+> Prüfungen, 50.210 Zeilen, 196 Fenster). Am 15. September, vor dem Bauen,
+> waren es **6865 Prüfungen, 56.787 Zeilen und 210 Fenster** — drei Runden
+> später. Gemessen wurde die Runde an den neuen Zahlen.
 
 **`testbench.js` ist EINE Datei mit 56.649 Zeilen**, `counterproof.js`
 daneben 10.583 *(gemessen am 15. September 2026; der Plan nannte hier bis dahin
@@ -1983,7 +2005,7 @@ wird."*
 | | Bedingung |
 |---|---|
 | **Erwähnungen im Kommentar** (`@name`) | **Der Betreiber hat gefragt, warum nicht — und die Idee ist gut. Es scheitert an zwei Dingen, und beide sind größer als die Erwähnung selbst.** *(1)* **Wer wen sehen darf, ist ungeklärt:** `@name` verlangt eine Namensvervollständigung über alle Zugänge, und die Zugangsliste steht heute hinter dem Admin — **eine Erwähnung machte aus ihr eine Auskunft für jeden.** *(2)* **Die Glocke kann kein Ziel tragen:** sie führt einen Zeitstempel und keine Tabelle. „Diese Meldung gilt dir" wäre eine Angabe **je Meldung** — genau die Tabelle, die 0.16.0 ausdrücklich nicht gebaut hat. *Eine Erwähnung ohne Lesestand je Meldung räumt sich beim Öffnen der Tafel selbst mit weg.* **Was sie also wirklich ist: eine eigene MINOR-Runde mit Schemaanteil — und die müsste vor 0.33.0 liegen.** *Sie steht damit nicht auf „nie", sondern auf „nicht in dieser Strecke, es sei denn, sie verdrängt eine der fünf".* |
-| **Eine Messung im echten Browser** | **Der Weg ist gefunden** — Chromium über das DevTools-Protokoll, den Client bringt Node seit v22 mit, **keine neue Abhängigkeit.** *Offen ist nicht das Werkzeug, sondern ob es in den Baum gehört: ein Lauf, der einen Browser startet, braucht Chromium auf der Maschine, und die hat nicht jeder.* **Entschieden wird es beim Auftrag von 0.34.0**, wo der Prüfstand ohnehin auf den Tisch kommt |
+| **Eine Messung im echten Browser** | **Der Weg ist gefunden** — Chromium über das DevTools-Protokoll, den Client bringt Node seit v22 mit, **keine neue Abhängigkeit.** *Offen ist nicht das Werkzeug, sondern ob es in den Baum gehört: ein Lauf, der einen Browser startet, braucht Chromium auf der Maschine, und die hat nicht jeder.* **Entschieden am 15. September 2026 beim Bauen von 0.34.0: nein.** Die Runde hat keine neue Abhängigkeit aufgenommen. Der Grund ist der Speicher gewesen, und der ist ohne Browser gelöst; ein Lauf, der Chromium startet, verlangt Chromium auf der Maschine, und die hat nicht jeder. Die Frage bleibt offen und steht weiter hier |
 | **Der angepinnte Block kann zur Wand werden** | **Beobachten, nicht bauen.** *Wenn es im Betrieb stört, ist die Antwort NICHT eine Einschränkung des Anpinnens, sondern eine zweite Sortierstufe innerhalb des Blocks* |
 | **Ein abgerissener Prüflauf von 0.9.1** | **Nicht wegerklärt, sondern nicht wiederholt.** *Wer ihn wiedersieht, schreibt den Lauf vollständig mit* |
 

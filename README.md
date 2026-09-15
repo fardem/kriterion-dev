@@ -3080,7 +3080,20 @@ an `push:` ohne Zweigfilter, also auch an einem Commit, der nur ein Papier
 `Doku/Auftrag_0.30.0.md` anfasst, hat den Lauf ausgelöst und ist grün
 durchgelaufen.*
 
-Die Dateien `testbench.js` und `counterproof.js` sind per `.dockerignore`
+Der Prüfstand liegt in `test/`, ein Modul je Sachgebiet; jedes Modul läuft als
+eigener Prozess. `testbench.js` ist der Treiber: er startet die Module, sammelt
+ihre Zahlen ein und schreibt den Schlussblock.
+
+```bash
+npm test                              # alles
+node testbench.js Rechte              # nur die Module mit „Rechte" im Gruppennamen
+node test/quelltext.js                # ein Modul allein
+```
+
+Ein gefilterter Lauf startet nur die Module, auf die der Filter passt, und sagt
+am Ende ausdrücklich, dass er kein vollständiger Beleg ist.
+
+`testbench.js`, `counterproof.js` und `test/` sind per `.dockerignore`
 ausgeschlossen und landen nicht im Image.
 
 **Die Gegenproben laufen über `counterproof.js`** — ein eigener Aufruf, nicht Teil

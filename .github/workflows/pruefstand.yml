@@ -87,7 +87,7 @@ jobs:
       # eine einzige Datei kann das nicht.
       #
       # GEMESSEN AM 15. SEPTEMBER 2026, nach dem Umzug: der Treiber liegt bei
-      # 85 MB, der groesste einzelne Modulprozess bei 1056 MB. Ein voller Lauf
+      # 85 MB, der groesste einzelne Modulprozess bei 1024 MB. Ein voller Lauf
       # MIT der Grenze des Standardlaeufers (2081 MB) ist gruen durchgelaufen
       # -- 6865 von 6865 Pruefungen. Deshalb faellt die Zeile hier, und nicht
       # auf Verdacht.

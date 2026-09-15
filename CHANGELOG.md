@@ -29,6 +29,21 @@ bleiben in der Form ihrer Zeit.*
 
 *Hier wird mitgeschrieben, während gebaut wird.*
 
+## [0.34.0] - 2026-09-15
+
+*Diese Runde ändert am Programm nichts. Sie teilt den Prüfstand auf. Für den,
+der Kriterion betreibt, ändert sich nichts — die Zeilen hier stehen unter
+„Intern".*
+
+### Intern
+
+- **Der Prüfstand liegt in `test/`, ein Modul je Sachgebiet.** Aus einer Datei mit 56.787 Zeilen sind 17 Module und zwei Rahmen geworden; `testbench.js` ist der Treiber und hat 446 Zeilen. Jedes Modul läuft als eigener Prozess.
+- **Der Speicher des Prüflaufs fällt von 2842 MB auf 85 MB im Treiber**, der größte einzelne Prozess liegt bei 1024 MB. Der Grund war nie die Zahl der Prüfungen, sondern 210 jsdom-Fenster, deren Speicher nicht zurückkam.
+- **Die Speichergrenze im Prüflauf-Workflow ist gestrichen.** Ein vollständiger Lauf mit der Heap-Grenze des Standardläufers (2081 MB) läuft grün durch.
+- **Ein Teillauf startet nur noch die Module, die er zeigt.** `node testbench.js Schluesselwechsel` braucht 14 Sekunden statt 350. Bis 0.33.2 nahm der Filter nur die Ausgabe weg, nicht die Arbeit.
+- **Jedes Modul lässt sich allein fahren**: `node test/quelltext.js`.
+- Prüfstand 6865 → 6865, Prüfung für Prüfung dieselben. Rückbauten 998 → 998; die 14 auf `testbench.js` zeigen auf ihre neuen Dateien. Fünfzehn Gegenproben gefahren, **0 stumm**.
+
 ## [0.33.2] - 2026-09-15
 
 ### Behoben

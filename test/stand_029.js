@@ -42,12 +42,16 @@ async function check0290() {
     /* DIESELBE LISTE WIE DER GESAMTWERT -- und nicht eine zweite daneben
        (F6, Stolperstein 47). Gepruefte Eigenschaften: es sind genau die
        Dateien, ueber die der Fingerprint geht, sie stehen in derselben
-       Reihenfolge, und testbench.js und Doku/ sind NICHT dabei. */
+       Reihenfolge, und testbench.js und Doku/ sind NICHT dabei.
+       UND test/ SEIT 0.34.0: der Pruefstand liegt dort, ein Modul je
+       Sachgebiet. Der Server laedt keines davon -- die Zeile sagt es
+       trotzdem ausdruecklich, denn eine Datei, die niemand nennt, faellt
+       auch niemandem auf, wenn sie eines Tages doch dasteht. */
     check('Es sind genau die ausgelieferten und ausgefuehrten Dateien',
       fpFiles.some(z => z.name === 'server.js') &&
       fpFiles.some(z => z.name === 'public/app.js') &&
       fpFiles.some(z => z.name === 'batchrun.js') &&
-      !fpFiles.some(z => /^(testbench\.js|Doku\/|usertool\.js|keytool)/.test(z.name)),
+      !fpFiles.some(z => /^(testbench\.js|test\/|Doku\/|usertool\.js|keytool)/.test(z.name)),
       fpFiles.map(z => z.name).join(' · '));
     check('Und sie stehen sortiert, wie der Gesamtwert sie liest',
       equal(fpFiles.map(z => z.name), [...fpFiles.map(z => z.name)].sort()),
