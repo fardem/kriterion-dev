@@ -6586,14 +6586,14 @@ const REGRESSIONS = [
   {
     nr: '710', name: 'Eine Datei mit kaputtem JSON nimmt den Server wieder mit',
     file: 'server.js',
-    search: "    } catch (e) {\n      languageSkip(file, `sie laesst sich nicht lesen (${e.message})`);\n      continue;\n    }",
+    search: "    } catch (e) {\n      languageSkip(file, `it cannot be read (${e.message})`);\n      continue;\n    }",
     replacement: "    } catch (e) { throw e; }",
     expected: 'Die Fremddatei und der Dateiname — 0.24.3'
   },
   {
     nr: '711', name: 'Eine unbrauchbare _locale nimmt den Server wieder mit',
     file: 'server.js',
-    search: "    try { new Intl.PluralRules(texts._locale); }\n    catch {\n      languageSkip(file, `Intl kennt die Locale \"${texts._locale}\" nicht`);\n      continue;\n    }",
+    search: "    try { new Intl.PluralRules(texts._locale); }\n    catch {\n      languageSkip(file, `Intl does not know the locale \"${texts._locale}\"`);\n      continue;\n    }",
     replacement: "    new Intl.PluralRules(texts._locale);",
     expected: 'Die Fremddatei und der Dateiname — 0.24.3'
   },
@@ -10117,6 +10117,54 @@ const REGRESSIONS = [
     search: "'images.js', 'batchrun.js', 'mail.js'];",
     replacement: "'images.js', 'batchrun.js'];",
     expected: 'Der Sprachwaechter'
+  },
+
+  /* ---- 0.33.2 · Elf deutsche Saetze und ein roher Schluessel ------------
+     VIER RUECKBAUTEN ZU EINEM ZWEITEN BEFUND AUS DEM BETRIEB. Der Betreiber
+     hat am 15. September 2026 das Protokoll der eingespielten 0.33.1
+     geschickt; darin stand `Backup location: off -- server.backupDirNotSet`.
+     ALLE DREI STELLEN SIND DERSELBE FALL WIE DER ANBIETERNAME IN 0.33.1:
+     der Rahmen der Zeile ist englisch, der eingesetzte Wert nicht. */
+  {
+    /* DER BEFUND SELBST: die Zeile schreibt den Schluessel wieder roh hin.
+       ER MUSS ZWEI PUNKTE ROT MACHEN -- den Treffer auf den englischen Satz
+       UND die Frage, ob noch ein roher Schluessel dasteht. */
+    nr: '1057', name: 'Die Sicherungszeile schreibt den Schluessel wieder roh hin',
+    file: 'server.js',
+    search: "  console.log('[Kriterion] Backup location: ' + (situation.input\n    ? situation.root\n    : `off -- ${t('en', situation.reason, situation.values)}`));",
+    replacement: "  console.log('[Kriterion] Backup location: ' + (situation.input ? situation.root : `off -- ${situation.reason}`));",
+    expected: 'Die Sicherungsprobe — 0.29.0'
+  },
+  {
+    /* UND DIE WERTE FALLEN WEG. Drei der fuenf Gruende nennen den Ordner;
+       ohne die Werte stuende dort woertlich die Platzhalterklammer. Die
+       Zusage auf den Satz allein faende das nicht -- ihr Grund traegt keine
+       Werte, und genau dafuer gibt es die zweite Prueflage. */
+    nr: '1058', name: 'Der Grund der Sicherungszeile reist ohne seine Werte',
+    file: 'server.js',
+    search: "`off -- ${t('en', situation.reason, situation.values)}`",
+    replacement: "`off -- ${t('en', situation.reason)}`",
+    expected: 'Die Sicherungsprobe — 0.29.0'
+  },
+  {
+    /* EINER DER SECHS SAETZE DER PUBLIC_ADDRESS-PROBE WIRD WIEDER DEUTSCH.
+       Sie stehen in einem RUECKGABEWERT und nicht in einem Konsolenruf --
+       die Restprobe 5d sieht sie nie, 5c schon. */
+    nr: '1059', name: 'Die PUBLIC_ADDRESS-Probe antwortet wieder auf Deutsch',
+    file: 'auth.js',
+    search: "problem: 'The host name is missing.' };",
+    replacement: "problem: 'Es fehlt der Rechnername.' };",
+    expected: 'Die sieben Waechter der Sprachdatei — 0.24.0'
+  },
+  {
+    /* UND EINER DER FUENF GRUENDE VON `languageSkip` EBENSO. Dieselbe
+       Bauform: der Rahmen der Konsolenzeile ist englisch, der Grund kommt
+       als Wert herein. */
+    nr: '1060', name: 'Der Grund einer uebergangenen Sprachdatei wird wieder deutsch',
+    file: 'server.js',
+    search: "languageSkip(file, 'it does not carry an object');",
+    replacement: "languageSkip(file, 'sie traegt kein Objekt');",
+    expected: 'Die sieben Waechter der Sprachdatei — 0.24.0'
   },
 ];
 

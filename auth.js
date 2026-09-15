@@ -184,21 +184,30 @@ const cookieName = (req) => viaProxy(req) ? COOKIE_SECURE : COOKIE_NAME;
    landet und nicht am Bildschirm des Benutzers -- er hat keinen Schluessel in
    der Sprachdatei und soll auch keinen bekommen. Der Waechter ueber die drei
    Serverdateien verlangt hinter dem Absagefeld einen Schluessel; hier stuende
-   einer falsch. */
+   einer falsch.
+   UND GENAU DESHALB SIND DIE SECHS SAETZE SEIT 0.33.2 ENGLISCH. Der Satz
+   darueber war bis dahin die Begruendung, sie deutsch zu lassen: sie landen
+   auf dem Bildschirm des Wirts. Seit 0.33.0 spricht dieser Bildschirm
+   englisch -- dieselbe Begruendung verlangt jetzt das Gegenteil. Sie
+   bekommen trotzdem keinen Schluessel: einen Text zu uebersetzen, den nur das
+   Containerprotokoll sieht, hiesse ihn drei Mal zu pflegen.
+   GEMELDET HAT ES DER BETRIEB und keine Pruefung: sie standen bei der
+   Restprobe 5c namentlich als erlaubter Rest, weil sie in einem
+   RUECKGABEWERT stehen und nicht in einem Konsolenruf. */
 function checkPublicAddress(raw) {
   const value = String(raw || '').trim();
   if (!value) return { address: '', set: false };
   let u;
   try { u = new URL(value); }
-  catch { return { address: '', set: true, problem: 'Das ist keine vollständige Adresse.' }; }
+  catch { return { address: '', set: true, problem: 'That is not a complete address.' }; }
   if (u.protocol !== 'http:' && u.protocol !== 'https:')
-    return { address: '', set: true, problem: 'Nur http:// und https:// sind möglich.' };
+    return { address: '', set: true, problem: 'Only http:// and https:// are possible.' };
   if (!u.hostname)
-    return { address: '', set: true, problem: 'Es fehlt der Rechnername.' };
+    return { address: '', set: true, problem: 'The host name is missing.' };
   if (u.username || u.password)
-    return { address: '', set: true, problem: 'Zugangsdaten gehören nicht in die Adresse.' };
-  if (u.search) return { address: '', set: true, problem: 'Eine Abfrage (?) ist nicht erlaubt.' };
-  if (u.hash) return { address: '', set: true, problem: 'Ein Fragment (#) ist nicht erlaubt.' };
+    return { address: '', set: true, problem: 'Credentials do not belong in the address.' };
+  if (u.search) return { address: '', set: true, problem: 'A query (?) is not allowed.' };
+  if (u.hash) return { address: '', set: true, problem: 'A fragment (#) is not allowed.' };
   // Ohne abschliessenden Schraegstrich, damit der Link genau eine Form hat.
   const address = (u.origin + u.pathname).replace(/\/+$/, '');
   return { address, set: true };
