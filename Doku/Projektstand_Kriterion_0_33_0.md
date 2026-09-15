@@ -11941,7 +11941,15 @@ der Runde (Formatnummer ≤ 13 kommt nicht mehr herein — sie liegt an der DATE
 und nicht am START), die JPEG-Hälfte des Bestandslaufs, und das
 Containerprotokoll spricht englisch.*
 
-**Fingerprint `308655c9`** *(davor `24899ab8`)*. **Prüfstand 6858 von 6858.**
+**UND ZWEI BEFUNDE KAMEN AUS DER GEGENPROBE, beide an der PRÜFUNG und nicht am
+Gebauten.** *1042 blieb **STUMM**: `assignInventory()` kehrt vor seiner Schleife
+um, wenn es keinen Eigentümer gibt, und die Prüflage hatte keinen — sie stellt
+jetzt einen gewachsenen Bestand nach. Und die erste Fassung der umgedrehten
+Prüfgruppe **RISS den Lauf AB** statt rot zu werden, wenn ein Start nicht
+hochkam.* **Nach beiden Nachbesserungen: 0 STUMM, 0 ABGERISSEN.**
+
+**Fingerprint `9083d8c7`** *(davor `24899ab8`)*. **Prüfstand 6858 von 6858,
+achtzehn Gegenproben, 0 stumm.**
 
 ### 0.24.4 — „Türkisch, und die Kacheln sagen die Wahrheit"
 

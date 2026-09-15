@@ -63,6 +63,7 @@ bleiben in der Form ihrer Zeit.*
 
 - **1209 → 1208 Schlüssel** je Sprachdatei; **1008 → 990 Rückbauten**; Prüfstand 7017 → 6858. Die Runde legt nichts dazu, sie nimmt weg.
 - Neu: eine Restprobe über die Konsolenansagen der sechs ausgelieferten Dateien.
+- Achtzehn Gegenproben gefahren, **0 stumm** — zwei Befunde kamen dabei heraus, beide an der Prüfung selbst.
 
 ## [0.32.1] - 2026-09-14
 

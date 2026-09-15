@@ -4,7 +4,7 @@
 die Runde legt nichts dazu, sie nimmt weg, was einen Rückweg offenhält.**
 *Solange die erste Zahl 0 ist, läuft ein Bruch über MINOR.*
 
-> **FINGERPRINT DIESER RUNDE: `308655c9`** — *gerechnet am gebauten Stand, als
+> **FINGERPRINT DIESER RUNDE: `9083d8c7`** — *gerechnet am gebauten Stand, als
 > letztes und hinter der letzten Zeile; achtzehn Dateien, `Doku/` und
 > `testbench.js` ausdrücklich nicht darunter.* **Der Stand davor war
 > `24899ab8`.**
@@ -349,6 +349,39 @@ Protokoll „Schluessel" ohne)*.
 > **DAS IST DIE RICHTUNG FÜR EINE RUNDE, DIE WEGNIMMT:** *nicht „nimm weg, was
 > da ist", sondern „bring zurück, was weg sein soll".* **Und wenn davon keine
 > Prüfung rot wird, ist der Hinweis nicht belegt** *(F11)*.
+
+### Der Lauf, und was er gefunden hat
+
+**ACHTZEHN GEFAHREN, EINER STUMM — und der eine ist der Ertrag.**
+
+| | |
+|---|---|
+| **erster Lauf** | 17 machen Prüfungen rot *(1 bis 10 Punkte, jeder in seiner Gruppe)*, **1042 bleibt STUMM** |
+| **nach der Reparatur** | **0 STUMM** |
+
+**1042 NIMMT DEM AUFFANGNETZ DIE FRAGE NACH `user_id` WEG**, und es wurde kein
+Punkt rot. *Der Grund saß in meiner Prüflage und nicht im Rückbau:*
+`assignInventory()` **kehrt VOR seiner Schleife zurück, wenn es gar keinen
+Eigentümer gibt** — *und eine frisch angelegte Datenbank hat keinen.* **Die
+Zeile, um die es geht, wurde nie erreicht.**
+
+> **EINE DATENBANK OHNE JEDEN ZUGANG IST AUCH KEIN GEWACHSENER BESTAND.** *Die
+> Prüflage legt jetzt erst an, setzt dann einen Eigentümer und nimmt danach die
+> Spalte — sie ist damit nicht nur schärfer, sondern richtiger: sie stellt nach,
+> was draußen stünde.* **Nachgemessen an einer gestellten Lage:** *mit der Frage
+> kommt die Instanz hoch und nennt `links.user_id`, ohne sie endet der Start mit
+> Rückgabewert 1.*
+
+**UND EIN ZWEITER FUND KAM AUS DEMSELBEN LAUF, noch vor dem ersten:** *die erste
+Fassung der umgedrehten Prüfgruppe WARF, wenn ein Start nicht hochkam — und riss
+damit jeden Gegenprobenlauf ab, statt eine Zeile rot zu färben.* **Ein
+abgerissener Lauf belegt nichts** *(derselbe Fehler wie an Rückbau 1014 in
+0.32.0).* `uhRun` *liefert seither ein Paar aus* `ok` *und* `out`; **ein toter
+Start ist eine rote Prüfung.**
+
+> **BEIDE FUNDE SIND AN DER PRÜFUNG UND NICHT AM GEBAUTEN** — *und genau dafür
+> gibt es die Gegenprobe.* **Eine Prüfung, die grün ist, belegt nichts, solange
+> niemand gezeigt hat, dass sie auch rot werden kann.**
 
 ---
 
