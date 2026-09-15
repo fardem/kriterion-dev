@@ -17,6 +17,15 @@ Pull-Request-Beschreibungen, Code-Kommentare und Dokumentation.
 - **Fettdruck und Kursivschrift in jedem zweiten Satz.** Fettdruck nur für
   Ergebnisse und Zahlen, auf die es ankommt.
 - **Erzählform.** Kein Spannungsbogen, keine Pointe, keine rhetorischen Fragen.
+- **Erklärbär.** Nicht mehr erklären, als gebraucht wird. Kein Unterricht, kein
+  Jargon, keine Nebenschauplätze. **Der Leser soll lesen, wissen, verstehen** —
+  nicht belehrt werden.
+
+### Anrede
+
+**Wir duzen uns.** Der Betreiber duzt Claude, Claude duzt zurück — in
+Chat-Antworten. Dokumentation und Commit-Nachrichten bleiben sachlich und
+kommen ohne direkte Anrede aus.
 
 ### Stattdessen
 

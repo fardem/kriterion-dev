@@ -924,8 +924,8 @@ sie verworfen hat, ist in einem halben Jahr nicht mehr zu beurteilen (Stolperste
   Runde aufschreibt: ein zweites Schema ist nur zu bauen, wenn feststeht, was jede Farbe
   bedeutet.*
 * **Die Listenansicht (N11), Fälligkeitsdaten an Aufgaben, die Wortgrenzensuche** — Sammelblatt.
-* **Die Kommentare im Quelltext** („Die Kommentare werden knapp", 0.28.x — bis zum 5. September
-  2026 0.26.x) — dort liegt der
+* **Die Kommentare im Quelltext** („Die Kommentare werden knapp", 0.33.x — bis zum 15. September
+  2026 0.28.x, bis zum 5. September 2026 0.26.x) — dort liegt der
   Ursprung des Kumpeltons, und dort bleibt er, bis die Bereinigung sie schneidet. *Diese
   Runde fasst keinen Kommentar an, der nicht an einem geänderten Text hängt.*
 

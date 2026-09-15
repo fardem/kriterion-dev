@@ -14950,7 +14950,7 @@ nicht hier.
 
 ---
 
-### 0.28.x — „Die Kommentare werden knapp" · *PATCH* *(stand hier bis zum 4. September 2026 als 0.23.x, bis zum 5. September 2026 als 0.26.x)*
+### 0.33.x — „Die Kommentare werden knapp" · *PATCH* *(stand hier bis zum 4. September 2026 als 0.23.x, bis zum 5. September 2026 als 0.26.x, bis zum 15. September 2026 als 0.28.x)*
 
 > **DIESE ÜBERSCHRIFT HIESS BIS ZUM 3. SEPTEMBER 2026 „0.21.x", während die
 > Tabelle in Abschnitt 10 schon „0.22.x" trug.** *Zwei Tabellen über dieselbe
@@ -14959,6 +14959,16 @@ nicht hier.
 > stehen jetzt auf 0.23.x.** *Seit dem 3. September 2026 auf 0.26.x, seit dem
 > 5. September 2026 auf 0.28.x — die PATCH-Zahl folgt der Bereinigung, wohin
 > die geht.*
+>
+> **UND GENAU DAS IST AM 15. SEPTEMBER 2026 NICHT GESCHEHEN.** *Die Bereinigung
+> ist als* **0.33.0** *gebaut worden, der Fahrplan führt die Kommentarrunde
+> seither als* **0.33.x** *— diese Überschrift blieb auf 0.28.x stehen.*
+> **Damit trugen zwei Papiere über dieselbe Runde zwei Nummern, und die Regel
+> darüber ist genau die, die das verbietet** *(Stolperstein 47).* **Die
+> Überschrift steht jetzt auf 0.33.x.** *Aufgefallen ist es durch die Frage des
+> Betreibers, ob das Kürzen der Kommentare auf 0.34.0 geschoben worden sei —
+> es ist nicht geschoben, aber die falsche Nummer hier hat die Frage
+> verdient.*
 
 *(Neu am 31. August 2026. **Keine geplante Nummer, sondern die nächste freie
 PATCH-Zahl nach der Bereinigung** — dieselbe Bauform wie die 0.12.x-Zeile im

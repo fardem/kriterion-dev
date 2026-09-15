@@ -161,7 +161,7 @@ Sprachumschalter baut, hat damit ein Muster und braucht kein neues.**
 | ~~**0.33.0**~~ | ~~Bereinigung — der Bruch~~ | **GEBAUT am 14. September 2026** — Änderungsprotokoll 0.33.0. *Und der erste Befund der Runde war der Zähler selbst:* **es waren ACHTZEHN Blöcke und nicht zwölf.** *Die sechs der Sprachrunde 0.24.x trugen ihre Absage im BLOCKKOMMENTAR statt auf einer eigenen Kommentarzeile — das Muster fand sie nicht, und dieses Papier hat die falsche Zahl von ihm übernommen (Stolperstein 156, diesmal am Zähler selbst).* **Alle achtzehn sind gefallen** *(Entscheidung des Betreibers, 14.9.2026: „alles was für die Migration von den Zwischenschritten notwendig war, kann weg")* — **945 Zeilen aus `db.js`** *(die Datei geht von 2145 auf 1474)*, samt zehn Namen im `module.exports`; **die Grenze `db.exec(SCHEMA)` ist nicht verschoben, sie ist fort.** *An ihre Stelle tritt eine Probe auf den Bestand: sie fragt `sqlite_master` und keinen Merker, nennt jede fehlende Spalte samt ihrer Fassung und dem Weg herauf —* **und sie SPERRT NIEMANDEN AUS** *(der erste Entwurf war eine harte Absage; der Betreiber hat sie gekippt: „Es wird nie eine Datenbank, Sicherung oder Exportdatei vor 0.33.0 eingespielt werden")*. **Der umgedrehte Prüfstand hat drei Abbruchstellen gefunden, die der Auftrag nicht kannte** — *die beiden Indizes auf `photos`, das Auffangnetz und die Grundausstattung stürben ohne Klammer an einer fehlenden Spalte, und zwar an einem `db.prepare`, das schon beim VORBEREITEN scheitert: die gekippte Absage als Absturz.* **Dazu der Stempel** *(zwei Zeilen in `settings`; ein gewachsener Bestand bekommt „angelegt mit" NICHT nachgetragen)*, **das Austauschformat 16 → 17** *(die Programmfassung kommt neben die Formatnummer)* **und die eine Abweisung der Runde: eine Datei mit Nummer ≤ 13 kommt nicht mehr herein** *(sie liegt an der DATEI und nicht am START)*. **Die JPEG-Hälfte des Bestandslaufs ist mitgefallen**, und **das Containerprotokoll spricht englisch** *(58 Ansagen in sechs Dateien, samt Restprobe)*. **MINOR** *(1209 → 1208 Schlüssel, 1008 → 990 Rückbauten, Prüfstand 7017 → 6858)*. *Fünfzehn Zusagen, achtzehn Gegenproben (1035–1052); sechsunddreißig alte sind gelöscht und nicht umgedreht — umdrehen ließe sich nur ein Gegenstand, den es gibt.* **Der Gegenprobenlauf hat selbst zwei Befunde gemacht, und beide sitzen an der PRÜFUNG:** *1042 blieb **STUMM** — `assignInventory()` kehrt vor seiner Schleife um, wenn es keinen Eigentümer gibt, und die Prüflage hatte keinen; sie stellt jetzt einen gewachsenen Bestand nach. Und die erste Fassung der umgedrehten Prüfgruppe **RISS den Lauf AB** statt rot zu werden, wenn ein Start nicht hochkam (derselbe Fehler wie an 1014 in 0.32.0). Nach beiden Nachbesserungen: **0 STUMM, 0 ABGERISSEN**. Fingerprint `9083d8c7`* | **ja** *(Datenbank)* | — |
 | ~~**0.33.2**~~ | ~~Elf deutsche Sätze und ein roher Schlüssel~~ | **GEBAUT am 15. September 2026** — Änderungsprotokoll 0.33.2. *Der zweite Befund aus dem Betrieb, am selben Tag gemeldet:* **„Backup location: off -- server.backupDirNotSet"** — *ein interner Schlüssel statt eines Satzes.* **Drei Stellen geben Deutsch oder einen Schlüssel aus, und alle drei sind derselbe Fall wie der Anbietername in 0.33.1:** *der Rahmen der Zeile ist englisch, der eingesetzte Wert nicht. Die Sicherungszeile übersetzt ihren Grund jetzt und gibt die Werte mit; die sechs Sätze der PUBLIC_ADDRESS-Probe und die fünf Gründe an `languageSkip` sind englisch.* **UND SIE WAREN KEIN VERSEHEN VON 0.33.0:** *sie standen namentlich in `SERVER_REST_NAMED`, der Liste des erlaubten deutschen Rests, mit der Begründung „sie landen auf dem Bildschirm des Wirts". Seit 0.33.0 spricht dieser Bildschirm englisch — dieselbe Begründung verlangt seither das Gegenteil, und die Ausnahme ist stehengeblieben,* **weil eine benannte Ausnahme aussieht wie eine entschiedene.** *Die Zusage „Der Start sagt es im Protokoll" fragte nach dem rohen Schlüssel und ist umgedreht (Stolperstein 201); drei neue stehen daneben, darunter eine auf die mitgereisten Werte. Die Prüflage dafür läuft auf der Portbasis 4360, die der Server davor freigibt — eine eigene Basis wäre die falsche Antwort, und 0.33.1 ist genau daran einmal hängengeblieben.* **PATCH** *(Prüfstand 6862 → 6865, Rückbauten 994 → 998).* *Vier Gegenproben (1057–1060), **0 STUMM**. Fingerprint `d6dbb696`* | nein | — |
 | ~~**0.33.1**~~ | ~~Der Anbietername im Containerprotokoll~~ | **GEBAUT am 15. September 2026** — Änderungsprotokoll 0.33.1. *Ein Befund aus dem Betrieb, gemeldet vom Betreiber aus dem Protokoll der eingespielten 0.33.0:* **„Mail delivery: Eigener Server via smtp.strato.de:587" — deutsch in einer englischen Zeile.** *`mail.js` führt zu jedem Anbieter einen Namen und, wo es einen gibt, einen Schlüssel; die Karte setzt den Schlüssel seit 0.32.0 in der Sprache des Lesers ein, die Protokollzeile nahm den Rohwert.* **Der eigentliche Fund ist aber, warum keine Prüfung ihn gesehen hat:** *die Restprobe 5d liest den QUELLTEXT der Konsolenrufe, und dort stand an jener Stelle eine Einsetzung. Das Deutsche kam erst zur Laufzeit herein — ein Wächter, der Text liest, sieht durch eine Einsetzung nicht hindurch.* **Die Zusage ist umgedreht und nicht gelöscht** *(Stolperstein 201); sie startet einen echten Server und liest, was er wirklich schreibt.* **Dazu `mail.js` in den Sprachwächter** *(13 → 14 Dateien; die Datei trägt 181 deutsche Kommentarzeilen und stand außerhalb jeder Sprachprüfung — beim Aufnehmen sauber, null Treffer)* **und `npm audit fix`** *(zwei mittelschwere Schwachstellen in `qs` über `express`, jetzt null)*. **PATCH** *(Prüfstand 6858 → 6862, Rückbauten 990 → 994).* *Vier Gegenproben (1053–1056), **0 STUMM** — zwei griffen beim ersten Lauf ins Leere, weil der Treiber eine Kopie aus `git archive HEAD` patcht und nicht den Arbeitsstand. Fingerprint `38949534`* | nein | — |
-| **0.33.x** | **Die Kommentare werden knapp** | **36.144 von 96.241 Zeilen sind Kommentar (38 %)** — nachgemessen am 15. September 2026. **Dazu CHANGELOG.md und README.md**: Altlasten entfernen, kürzen, sachliche Sprache ohne Metaphern (`CLAUDE.md`, Abschnitt 1) | nein | — |
+| **0.33.x** | **Die Kommentare werden knapp** | **36.504 von 96.886 Zeilen sind Kommentar (38 %)** — nachgemessen am 15. September 2026, nach 0.33.2. **Dazu CHANGELOG.md und README.md**: Altlasten entfernen, kürzen, sachliche Sprache ohne Metaphern (`CLAUDE.md`, Abschnitt 1) | nein | — |
 | **0.34.0** | **Der Prüfstand bekommt ein Verzeichnis** | `testbench.js` in Module — **und damit erst der echte Teillauf** | nein | — |
 | **0.35.0** | **Code-Effizienz** | Leichen und ineffizienter Code | offen | — |
 | **0.36.0** | **Sicherheit** | Fünf Lücken aus der Durchsicht vom 15. September 2026: CSRF-Token, Anmeldesperre übersteht keinen Neustart, 199 `innerHTML`-Stellen ungeprüft, Abhängigkeiten ohne Automatik. **Nach 0.35.0, damit die Durchsicht den Code sieht, der bleibt** | offen | — |
@@ -1672,26 +1672,34 @@ Entscheidung begründet, wandert vorher in den Projektstand und bleibt als
 Verweis stehen. Die Runde läuft nach 0.33.0 und nicht davor: die Bereinigung hat
 ganze Blöcke samt ihren Kommentaren entfernt.
 
-**Nachgemessen am 15. September 2026**, mit derselben Funktion, die
-`testbench.js` dafür benutzt (`onlyComments`), über die 13 Dateien aus
+**Nachgemessen am 15. September 2026 nach 0.33.2**, mit derselben Funktion,
+die `testbench.js` dafür benutzt (`onlyComments`), über die **14** Dateien aus
 `LANGUAGE_SOURCES`:
 
 | Datei | Zeilen | davon Kommentar | Anteil |
 |---|---:|---:|---:|
-| `testbench.js` | 56.649 | 19.908 | 35 % |
+| `testbench.js` | 56.787 | 20.007 | 35 % |
 | `public/app.js` | 13.985 | 5.468 | 39 % |
-| `counterproof.js` | 10.583 | 3.171 | 30 % |
-| `server.js` | 9.146 | 4.876 | **53 %** |
-| `auth.js` | 1.841 | 865 | 47 % |
+| `counterproof.js` | 10.680 | 3.210 | 30 % |
+| `server.js` | 9.182 | 4.908 | **53 %** |
+| `auth.js` | 1.850 | 874 | 47 % |
 | `db.js` | 1.474 | 572 | 39 % |
 | `images.js` | 634 | 476 | **75 %** |
 | `batchrun.js` | 489 | 310 | **63 %** |
+| `mail.js` | 365 | 181 | 50 % |
 | `attachments.js` | 364 | 154 | 42 % |
 | `keytool.js` | 324 | 70 | 22 % |
 | `keys.js` | 275 | 117 | 43 % |
 | `usertool.js` | 254 | 51 | 20 % |
 | `twofactor.js` | 223 | 106 | 48 % |
-| **alle 13** | **96.241** | **36.144** | **38 %** |
+| **alle 14** | **96.886** | **36.504** | **38 %** |
+
+> **DIE ERSTE FASSUNG DIESER TABELLE ZÄHLTE DREIZEHN DATEIEN UND WAR DAMIT
+> SCHON BEIM SCHREIBEN UNVOLLSTÄNDIG** *(96.241 Zeilen, 36.144 Kommentar).*
+> `mail.js` *kam mit 0.33.1 in* `LANGUAGE_SOURCES` — *die Datei stand bis dahin
+> außerhalb jeder Sprachprüfung und fehlte deshalb auch in der Messung. Sie
+> trägt 365 Zeilen, davon 181 Kommentar.* **Der Rest der Bewegung sind 0.33.1
+> und 0.33.2 selbst.**
 
 **Die bisherige Zahl im Plan war 16.281 von 54.822 Zeilen, also 30 %.** Sie
 wurde am 31. August 2026 über zwölf Dateien gemessen und stand hier unverändert
@@ -1703,6 +1711,31 @@ Repositories reicht nur bis zum 7. September 2026 zurück.
 
 **Die drei Dateien mit dem höchsten Anteil sind `images.js` (75 %),
 `batchrun.js` (63 %) und `server.js` (53 %).** Dort fängt die Runde an.
+
+### Zwei Auflagen aus 0.33.1 und 0.33.2
+
+Beide Patches kamen aus dem Betrieb, und beide haben etwas gelernt, das diese
+Runde betrifft.
+
+**1. Eine benannte Ausnahme ist keine entschiedene.** 0.33.2 hat elf deutsche
+Sätze aus dem Containerprotokoll geholt, die namentlich in `SERVER_REST_NAMED`
+standen — mit einer Begründung, die 0.33.0 selbst umgestoßen hatte. Wer beim
+Bauen die Liste las, fand zu jedem Eintrag einen Grund und ging weiter.
+
+> **Für diese Runde heißt das:** sie kürzt Kommentare, und Kommentare sind der
+> Ort, an dem solche Begründungen stehen. **Ein Kommentar, der eine Ausnahme
+> trägt, ist kein Kandidat zum Kürzen, bevor jemand geprüft hat, ob seine
+> Voraussetzung noch gilt.** Das ist genau die Art Zeile, die in den
+> Projektstand wandert und als Verweis stehen bleibt.
+
+**2. Was eine Textprobe grundsätzlich nicht sehen kann.** 0.33.1 und 0.33.2
+haben dieselbe Lücke zweimal getroffen: die Restproben lesen den Quelltext, und
+was zur Laufzeit als Wert hereinkommt, sehen sie nicht.
+
+> **Für diese Runde heißt das:** die Wächter, die nach dem Kürzen noch grün
+> sind, belegen weniger, als sie zu belegen scheinen. **Wer einen Kommentar
+> entfernt, der eine Zusage begründet, prüft am gebauten Stand und nicht an der
+> grünen Zahl.**
 
 ### Dazu: die Zeilenverweise im Fahrplan stimmen nicht mehr
 
