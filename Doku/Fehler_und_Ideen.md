@@ -1824,11 +1824,17 @@ sie schreibt `situation.reason` roh ins Protokoll.
 > könnte: „aus — es ist kein Sicherungsordner eingerichtet" wäre dieselbe Zeile
 > mit einer Auskunft darin.*
 
-**Was zu bauen wäre** — *eine Zeile: `t(languageDefault(), situation.reason,
-situation.values)` statt `situation.reason`.* **Zu entscheiden ist nur, in
-welcher Sprache ein Protokoll spricht** — *die Vorgabesprache der Installation
-ist der naheliegende Wert, und sie ist dieselbe, die `compareLocale()` schon
-nimmt.*
+> **DIE OFFENE FRAGE IST MIT 0.33.0 ENTSCHIEDEN — der Punkt selbst bleibt.**
+> *Jene Runde hat das ganze Containerprotokoll auf ENGLISCH gebracht (Strang 4,
+> Antwort des Betreibers auf F5: „Das ist blöd, dass die noch auf Deutsch sind.
+> Die müssen englisch werden"), und die Zeile heißt seither* `Backup location:
+> off -- server.backupDirNotSet`. **Der Schlüssel steht also weiter roh da**, und
+> genau das ist dieser Punkt. *Was nicht mehr zu entscheiden ist: die Sprache.*
+
+**Was zu bauen wäre** — *eine Zeile:* `t('en', situation.reason,
+situation.values)` *statt* `situation.reason`. **Die Sprache steht seit 0.33.0
+fest** — *ein Protokoll spricht englisch, unabhängig von der Vorgabesprache der
+Installation: es liest der Betreiber und kein Benutzer.*
 
 **Was es anfasst** — `server.js` *(eine Zeile)*, `testbench.js`
 *(die Zeile, die den Text der Startmeldung prüft)*.

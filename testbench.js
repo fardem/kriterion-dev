@@ -1693,7 +1693,7 @@ function sweepLeftovers() {
     Array.isArray(exported.content.items) && 'ratings' in exported.content.items[0] && 'testDays' in exported.content.items[0]);
 
   // Alte Exportdatei ohne das neue Feld: muss weiterhin laufen.
-  const oldFile = { exported_at: new Date().toISOString(), title: 'Alt', version: 4, items: [
+  const oldFile = { exported_at: new Date().toISOString(), title: 'Alt', version: 14, items: [
     { title: 'Aus alter Datei', ratings: [{ name: 'Nur hier', value: 3 }] }
   ]};
   const imOld = await sendImport(oldFile, 'merge');
@@ -1703,7 +1703,7 @@ function sweepLeftovers() {
   check('Nummerierung nach dem Import lueckenlos', equal(afterOld.map(c => c.sort_order), [0, 1, 2, 3]));
 
   // Neue Exportdatei mit Reihenfolge, ersetzend eingespielt.
-  const newFile = { exported_at: new Date().toISOString(), title: 'Neu', version: 5,
+  const newFile = { exported_at: new Date().toISOString(), title: 'Neu', version: 14,
     criteria: ['Zuerst', 'Dann', 'Zuletzt'],
     items: [{ title: 'Eingespielt', ratings: [{ name: 'Zuletzt', value: 5 }] }] };
   const imFresh = await sendImport(newFile, 'replace');
@@ -1730,7 +1730,7 @@ function sweepLeftovers() {
      die Unterscheidung ueberhaupt stattfindet. */
   const gewTarget = gewAfterOld.find(c => c.name === 'Zuerst');
   await call('PUT', `/api/criteria/${gewTarget.id}`, { name: 'Zuerst', weight: 1.5 });
-  const gewFile = { exported_at: new Date().toISOString(), title: 'Mit Gewichten', version: 9,
+  const gewFile = { exported_at: new Date().toISOString(), title: 'Mit Gewichten', version: 14,
     criteria: ['Zuerst', 'Ganz neu'],
     criteriaWeights: { 'Zuerst': 0.5, 'Ganz neu': 1.8 },
     items: [{ title: 'Mit Gewichten', ratings: [] }] };
@@ -1748,7 +1748,7 @@ function sweepLeftovers() {
      Drei Sorten Unfug nebeneinander: ueber der Grenze, negativ und gar keine
      Zahl. Und ein gueltiges daneben, sonst bliebe offen, ob ueberhaupt noch
      etwas ankommt. */
-  const gewCrooked = { exported_at: new Date().toISOString(), title: 'Krumm', version: 9,
+  const gewCrooked = { exported_at: new Date().toISOString(), title: 'Krumm', version: 14,
     criteria: ['Zu schwer', 'Negativ', 'Kein Wert', 'Sauber'],
     criteriaWeights: { 'Zu schwer': 9, 'Negativ': -1, 'Kein Wert': 'viel', 'Sauber': 1.2 },
     items: [{ title: 'Krumme Datei', ratings: [] }] };
@@ -1767,9 +1767,13 @@ function sweepLeftovers() {
     JSON.stringify(gewImCrooked.content?.weightsDropped));
   check('Bei einer sauberen Datei bleibt die Liste leer',
     equal(gewIm.content?.weightsDropped, []), JSON.stringify(gewIm.content?.weightsDropped));
+  /* UND DAS PROTOKOLL NENNT SIE EBENFALLS -- auf ENGLISCH seit 0.33.0
+     (Strang 4). Der Satz ist derselbe geblieben, die Sprache nicht: das
+     Containerprotokoll erreicht den, der die Anwendung BETREIBT, und der muss
+     nicht deutsch koennen. */
   check('Das Protokoll nennt sie ebenfalls',
-    /ungueltiges Gewicht auf 1,0 zurueckgesetzt/.test(output),
-    (output.match(/.*Gewicht auf 1,0.*/) || ['(nichts im Protokoll)'])[0]);
+    /invalid weight reset to 1\.0/.test(output),
+    (output.match(/.*weight reset.*/) || ['(nichts im Protokoll)'])[0]);
 
   /* Ein RUNDLAUF: Gewichte setzen, exportieren, in dieselbe Instanz ersetzend
      einspielen. Der ersetzende Import loescht items, Kategorien und Tags --
@@ -3076,7 +3080,7 @@ function sweepLeftovers() {
     `Eintrag=${afterRemove.usage_count}, Testtag=${afterRemove.test_usage_count}`);
   await call('DELETE', `/api/items/${tt.id}`);
 
-  const importFile = { version: 5, title: 'T', items: [{ title: 'Mit Tagtag',
+  const importFile = { version: 14, title: 'T', items: [{ title: 'Mit Tagtag',
     testDays: [{ day: '2026-06-01', rating: 5, tags: ['Sonne', 'Wind'] },
                { day: '2026-06-02', rating: 4 }] }] };
   const impT = await sendImport(importFile, 'merge');
@@ -3273,7 +3277,7 @@ function sweepLeftovers() {
     JSON.stringify(lkOut.links));
   await call('DELETE', `/api/items/${lk.id}`);
 
-  const lkImp = await sendImport({ version: 5, title: 'L', items: [{ title: 'Eingespielte Links',
+  const lkImp = await sendImport({ version: 14, title: 'L', items: [{ title: 'Eingespielte Links',
     links: ['https://alt.example/pfad', 'beispiel.de', 'Ein Suchtext', '', '  '] }] }, 'merge');
   check('Import mit gemischten Zeilen gelingt', lkImp.status === 200);
   const lkFresh = (await call('GET', '/api/items')).content.find(i => i.title === 'Eingespielte Links');
@@ -3626,7 +3630,7 @@ function sweepLeftovers() {
 
   /* Zuweisung beim Einspielen ohne Verfasserangabe: alles faellt an den
      Einspielenden. */
-  const bImp = await sendImport({ version: 5, title: 'B', items: [{
+  const bImp = await sendImport({ version: 14, title: 'B', items: [{
     title: 'Bestand: eingespielt',
     testDays: [{ day: '2024-06-06', rating: 4 }],
     comments: [{ text: 'eingespielter Kommentar' }] }] }, 'merge');
@@ -3727,7 +3731,7 @@ function sweepLeftovers() {
      Eintrag, Kommentar, Testtag und Bewertung. In die Spalte zu schreiben
      waere hier besonders tueckisch: eine Ueberfuehrung schoebe den Favoriten
      beim naechsten Start dem Eigentuemer zu statt dem Einspielenden. */
-  await sendImport({ items: [{ title: 'Eingespielt favorisiert', favorite: true },
+  await sendImport({ version: 14, items: [{ title: 'Eingespielt favorisiert', favorite: true },
                               { title: 'Eingespielt schlicht', favorite: false }] }, 'merge');
   const p4 = open(path.join(DATA, 'katalog.sqlite'));
   const pImp = p4.prepare(`SELECT i.id, i.favorite,
@@ -4575,8 +4579,14 @@ function sweepLeftovers() {
      LEER HEISST LEER: hat niemand etwas uebersetzt, steht ein leeres Objekt
      in der Datei. Das ist eine Angabe und kein fehlendes Feld. */
   const rnFile = (await callF('GET', '/api/export?photos=0')).content;
-  check('Die Exportdatei traegt die Formatnummer 16',
-    rnFile?.version === 16, JSON.stringify(rnFile?.version));
+  check('Die Exportdatei traegt die Formatnummer 17',
+    rnFile?.version === 17, JSON.stringify(rnFile?.version));
+  /* UND DIE PROGRAMMFASSUNG DANEBEN -- 0.33.0, F14. `version` sagt, WELCHE
+     FELDER zu erwarten sind; `appVersion` sagt, WAS die Datei geschrieben hat.
+     Zwei Fragen, zwei Felder. Bis 0.32.1 beantwortete die Datei nur die erste. */
+  check('Und die Programmfassung daneben — 0.33.0',
+    rnFile?.appVersion === require('./package.json').version,
+    JSON.stringify(rnFile?.appVersion));
   check('Und sie traegt beide Namenstafeln, je Sprache geordnet',
     rnFile?.criteriaNames?.de?.['Rueckfallkriterium'] === 'Deutscher Name' &&
     rnFile?.categoryNames?.de?.['Rueckfallkategorie'] === 'Deutsche Kategorie',
@@ -4717,15 +4727,38 @@ function sweepLeftovers() {
     rnFind(await rnRead('en', '/api/criteria'), rnCriterion.id)?.name === 'Rueckfallkriterium',
     JSON.stringify(rnFind(await rnRead('en', '/api/criteria'), rnCriterion.id)));
 
-  /* EINE DATEI AUS FORMAT 13 LAESST SICH WEITERHIN EINSPIELEN -- sie kennt
-     die beiden Tafeln gar nicht, und ein fehlendes Feld ist kein Fehler. */
-  const rnOld = await sendImport({ exported_at: new Date().toISOString(), title: 'Dreizehn',
-    version: 13, items: [] }, 'merge');
-  check('Eine Datei aus Format 13 spielt sich weiterhin ein',
+  /* EINE DATEI AUS FORMAT 14 LAESST SICH WEITERHIN EINSPIELEN -- sie kennt
+     die beiden Tafeln gar nicht, und ein fehlendes Feld ist kein Fehler.
+     BIS 0.32.1 STAND HIER DIE 13, UND DIE ZEILE IST UMGEDREHT WORDEN -- 0.33.0,
+     Frage F15. Die 14 ist seither die aelteste Nummer, die noch hereinkommt;
+     eine 13 traegt die Feldnamen von vor 0.24.1, und seit jener Runde
+     uebersetzt sie niemand mehr. Die Gegenlage steht zwei Zeilen tiefer. */
+  const rnOld = await sendImport({ exported_at: new Date().toISOString(), title: 'Vierzehn',
+    version: 14, items: [] }, 'merge');
+  check('Eine Datei aus Format 14 spielt sich weiterhin ein',
     rnOld.status === 200, `Status ${rnOld.status}: ${JSON.stringify(rnOld.content)}`);
   check('Und die vorhandene Uebersetzung bleibt dabei stehen',
     rnFind(await rnRead('de', '/api/criteria'), rnCriterion.id)?.name === 'Deutscher Name',
     JSON.stringify(rnFind(await rnRead('de', '/api/criteria'), rnCriterion.id)));
+  /* UND EINE AUS FORMAT 13 KOMMT NICHT MEHR HEREIN. Sie wird ABGEWIESEN und
+     nicht still falsch eingespielt: ihre Fotos truegen `art` und `dauer`, und
+     ohne Uebersetzung verloeren sie beim Einlesen ihre Art und ihre Dauer.
+     Abweisen ist laut, stillschweigend falsch einspielen ist leise. */
+  const rnTooOld = await sendImport({ exported_at: new Date().toISOString(), title: 'Dreizehn',
+    version: 13, items: [{ title: 'Aus Format 13' }] }, 'merge');
+  check('Eine Datei aus Format 13 wird abgewiesen — 0.33.0',
+    rnTooOld.status === 400, `Status ${rnTooOld.status}: ${JSON.stringify(rnTooOld.content)}`);
+  /* UND DIE ABSAGE SAGT, WARUM: die Nummer der Datei und die aelteste, die
+     noch gelesen wird. Ein „geht nicht" ohne beides waere eine Sackgasse. */
+  check('Und die Absage nennt beide Nummern',
+    /13/.test(rnTooOld.content.error || '') && /14/.test(rnTooOld.content.error || ''),
+    JSON.stringify(rnTooOld.content));
+  /* UND SIE FAELLT VOR DER ERSTEN SCHREIBUNG. Der Eintrag aus der Datei darf
+     nirgends stehen -- eine Absage nach halbem Schreiben waere keine. */
+  const rnStill = (await call('GET', '/api/items')).content;
+  check('Und aus der abgewiesenen Datei ist nichts angelegt worden',
+    !rnStill.some(z => z.title === 'Aus Format 13'),
+    JSON.stringify(rnStill.map(z => z.title)));
 
   /* OHNE SPRACHANGABE MEINT DER SCHREIBWEG DIE GRUNDZEILE -- und nicht die
      Sprache des Lesers. Geprueft mit einem deutschen Kopf: der Ruf liest
@@ -5387,239 +5420,98 @@ function sweepLeftovers() {
   KT.stop();
   fs.rmSync(ktDirectory, { recursive: true, force: true });
 
-  /* ================= Die Datenbankstufe 0.25.0 =========================
-     DER MIGRATIONSBLOCK MIT GEGENPROBE (F8). Ein Bestand aus 0.24.6 hinein,
-     die beiden Spalten heraus -- und zweimal starten ist still, wie bei den
-     neun davor.
+  /* ================= Die Datenbankstufen 0.25.0 und 0.27.0 ==============
+     BIS 0.32.1 STANDEN HIER ZWEI GRUPPEN, die ihre Migrationsblöcke an
+     echten Altbestaenden fuhren: 0.25.0 nahm die beiden `language`-Spalten
+     wieder weg und sah zu, wie ein Start sie nachruestete; 0.27.0 schrieb
+     `convertImages` in vier Ausgangslagen und sah zu, wie daraus `imageStore`
+     wurde.
 
-     DER BESTAND AUS 0.24.6 WIRD HERGESTELLT, INDEM DIE SPALTE WIEDER FAELLT.
-     Das ist genau die Lage, die der Block vorfindet: `CREATE TABLE IF NOT
-     EXISTS` ruehrt eine vorhandene Tabelle nicht an (Stolperstein 13), und
-     ohne den Block bliebe sie weg. */
-  group('Die Datenbankstufe 0.25.0');
+     BEIDE BLOECKE SIND MIT 0.33.0 GEFALLEN, und die Gruppen sind UMGEDREHT
+     und nicht geloescht (Leitplanke L1, Frage F10). Was von ihnen bleibt, ist
+     die HAELFTE, DIE WEITER GILT:
+       0.25.0  die beiden Spalten stehen in der DDL, und eine frische Instanz
+               bekommt sie von dort. Dass eine unvollstaendige Datenbank sie
+               NICHT mehr nachgeruestet bekommt und dafuer im Protokoll
+               benannt wird, faehrt die Gruppe „Der Hinweis auf einen
+               unvollstaendigen Bestand" -- an genau derselben Prueflage.
+       0.27.0  `convertImages` steht in KEINER Zeile Code mehr, und seit
+               dieser Runde auch nicht mehr in `db.js`. Das war bis 0.32.1
+               die eine erlaubte Ausnahme -- der Block musste den alten Namen
+               nennen, er uebersetzte ihn ja. Es gibt ihn nicht mehr, also
+               gibt es die Ausnahme auch nicht mehr.
+     DIE ZAHL DER SCHLUESSEL BLEIBT DABEI BEI SIEBEN: das Ergebnis von 0.27.0
+     ist geblieben, nur der Weg dorthin ist fort. */
+  group('Die Datenbankstufen 0.25.0 und 0.27.0 — umgedreht');
   {
-    const mgDirectory = fs.mkdtempSync(path.join(os.tmpdir(), 'kriterion-stufe-'));
-    const mgFile = path.join(mgDirectory, 'katalog.sqlite');
-    const mgColumns = (table) => {
-      const d = open(mgFile);
+    const stDir = fs.mkdtempSync(path.join(os.tmpdir(), 'kriterion-stufe-'));
+    const stFile = path.join(stDir, 'katalog.sqlite');
+    const stColumns = (table) => {
+      const d = open(stFile);
       const r = d.prepare(`PRAGMA table_info(${table})`).all().map(c => c.name);
       d.close(); return r;
     };
-    /* EIN ERSTER START LEGT DIE DATENBANK AN -- mit der Spalte aus der DDL. */
-    shortRun(`require('./db'); console.log('da');`, mgDirectory);
-    check('Der Aufbau steht: eine frische Datenbank traegt die Spalte aus der DDL',
-      mgColumns('product_categories').includes('language') &&
-      mgColumns('rating_criteria').includes('language'),
-      JSON.stringify([mgColumns('product_categories'), mgColumns('rating_criteria')]));
-    /* UND DIE MITGELIEFERTEN KRITERIEN SAGEN, IN WELCHER SPRACHE SIE STEHEN.
-       Sie sind deutsch, und ab dieser Runde steht das auch da -- eine Zeile
-       ohne Sprachvermerk entsteht nicht mehr. */
-    const mgSeed = (() => {
-      const d = open(mgFile);
+    shortRun(`require('./db'); console.log('da');`, stDir);
+    check('Eine frische Datenbank traegt beide language-Spalten aus der DDL',
+      stColumns('product_categories').includes('language') &&
+      stColumns('rating_criteria').includes('language'),
+      JSON.stringify([stColumns('product_categories'), stColumns('rating_criteria')]));
+    /* UND DIE MITGELIEFERTEN KRITERIEN SAGEN WEITER, IN WELCHER SPRACHE SIE
+       STEHEN. Sie sind deutsch, und eine Zeile ohne Sprachvermerk entsteht
+       nach wie vor nicht -- daran hat der Wegfall des Blocks nichts
+       geaendert. */
+    const stSeed = (() => {
+      const d = open(stFile);
       const r = d.prepare('SELECT name, language FROM rating_criteria ORDER BY sort_order').all();
       d.close(); return r;
     })();
     check('Und die drei mitgelieferten Kriterien tragen ihre Sprache',
-      mgSeed.length === 3 && mgSeed.every(z => z.language === 'de'),
-      JSON.stringify(mgSeed));
-    /* JETZT DER BESTAND AUS 0.24.6: die beiden Spalten fallen. */
-    {
-      const d = open(mgFile);
-      d.exec('ALTER TABLE product_categories DROP COLUMN language');
-      d.exec('ALTER TABLE rating_criteria DROP COLUMN language');
-      d.prepare('INSERT INTO product_categories (name) VALUES (?)').run('Bestandskategorie');
-      d.close();
-    }
-    check('Ein Bestand aus 0.24.6 steht: beide Spalten sind weg',
-      !mgColumns('product_categories').includes('language') &&
-      !mgColumns('rating_criteria').includes('language'),
-      JSON.stringify([mgColumns('product_categories'), mgColumns('rating_criteria')]));
-    const mgFirst = shortRunAll(`require('./db'); console.log('da');`, mgDirectory);
-    check('Ein Start ruestet beide Spalten nach',
-      mgColumns('product_categories').includes('language') &&
-      mgColumns('rating_criteria').includes('language'),
-      JSON.stringify([mgColumns('product_categories'), mgColumns('rating_criteria')]));
-    /* UND ER MELDET SICH, wie die neun vor ihm -- mit der Zahl der Namen, die
-       auf die Nachfrage warten. */
-    check('Und er meldet sich, mit der Zahl der Namen ohne Sprachangabe',
-      /Migration auf 0\.25\.0/.test(mgFirst) && /ohne Sprachangabe/.test(mgFirst),
-      JSON.stringify(mgFirst.split('\n').filter(z => /0\.25\.0/.test(z))));
-    /* DER BLOCK FUELLT NICHTS -- F2, die Entscheidung des Betreibers vom
-       9. September 2026: *„nichts -- und einmal nachfragen."* Eine Zeile, die
-       vor dem Einspielen dastand, hat danach `language IS NULL`, und das
-       System behauptet nichts.
-       DAS IST DIE ZUSAGE DIESER RUNDE UND NICHT EIN NEBENSATZ: haette der
-       Block die Vorgabesprache eingetragen, waere die falsche Zuordnung aus
-       A1 fuer immer festgeschrieben -- und niemand saehe es je wieder. */
-    const mgAfter = (() => {
-      const d = open(mgFile);
-      const r = d.prepare('SELECT name, language FROM product_categories ORDER BY id').all();
-      const c = d.prepare('SELECT name, language FROM rating_criteria ORDER BY id').all();
-      d.close(); return { cats: r, crits: c };
-    })();
-    check('Und er fuellt NICHTS — jede Bestandszeile steht ohne Sprachvermerk da',
-      mgAfter.cats.every(z => z.language === null) &&
-      mgAfter.crits.every(z => z.language === null),
-      JSON.stringify([mgAfter.cats, mgAfter.crits]));
-    /* UND ZWEIMAL STARTEN IST STILL, wie bei den neun davor: gefragt wird die
-       Tabelle selbst -- traegt sie die Spalte schon? --, nicht ein Merker. */
-    const mgSecond = shortRunAll(`require('./db'); console.log('da');`, mgDirectory);
-    check('Und ein zweiter Start ist still',
-      !/Migration auf 0\.25\.0/.test(mgSecond),
-      JSON.stringify(mgSecond.split('\n').filter(z => /0\.25\.0/.test(z))));
-    /* UND DIE GEGENPROBE ZUR MELDUNG: sie stand beim ERSTEN Start wirklich da.
-       Ohne diese Zeile waere „der zweite ist still" auch dann gruen, wenn der
-       Block gar nichts meldete (Stolperstein 106). */
-    check('Und die Meldung stand beim ersten Start wirklich da',
-      mgFirst.split('\n').some(z => /Migration auf 0\.25\.0/.test(z)),
-      JSON.stringify(mgFirst.split('\n').slice(0, 4)));
-    fs.rmSync(mgDirectory, { recursive: true, force: true });
-  }
+      stSeed.length === 3 && stSeed.every(z => z.language === 'de'),
+      JSON.stringify(stSeed));
+    /* UND KEIN START MELDET MEHR EINE MIGRATION. Bis 0.32.1 sagte ein Bestand
+       aus 0.24.6 beim ersten Start „Migration auf 0.25.0"; diesen Satz gibt es
+       nicht mehr, und zwar in keiner Sprache. */
+    const stSay = shortRunAll(`require('./db'); console.log('da');`, stDir);
+    check('Und kein Start meldet noch eine Migration',
+      !/Migration auf 0\.2[57]\.0/i.test(stSay) && !/migration on 0\.2[57]\.0/i.test(stSay),
+      JSON.stringify(stSay.split('\n').filter(z => /0\.2[57]\.0/.test(z))));
+    fs.rmSync(stDir, { recursive: true, force: true });
 
-  /* ================= Die Datenbankstufe 0.27.0 =========================
-     ZUSAGE 10 UND ZUSAGE 11 DES AUFTRAGS -- und sie sind der teure Teil
-     dieser Runde. Aus einem Ja/Nein wird ein Wert aus dreien, und JEDE
-     bestehende Installation traegt heute das Ja/Nein.
-
-     GEPRUEFT WIRD AN ECHTEN ALTBESTAENDEN und nicht an einer Behauptung ueber
-     den Quelltext: drei Datenbanken, drei Ausgangslagen, drei Antworten.
-       `convertImages` = true   -> `imageStore` = 'webp-lossless'
-       `convertImages` = false  -> `imageStore` = 'png'
-       gar keine Zeile          -> gar keine Zeile (die Vorgabe greift beim Lesen)
-     DIE DRITTE IST DIE, DIE MAN FALSCH MACHT. Wer sie „der Vollstaendigkeit
-     halber" mit der Vorgabe fuellte, schriebe eine ENTSCHEIDUNG in eine
-     Instanz, in der nie jemand eine getroffen hat. */
-  group('Die Datenbankstufe 0.27.0');
-  {
-    const stKey = (dir) => {
-      const d = open(path.join(dir, 'katalog.sqlite'));
-      const r = d.prepare("SELECT key, value FROM settings WHERE key IN ('convertImages', 'imageStore')")
-        .all();
-      d.close();
-      return Object.fromEntries(r.map(z => [z.key, z.value]));
-    };
-    /* EINE INSTANZ AUS 0.26.0 WIRD HERGESTELLT, INDEM DIE ALTE ZEILE
-       GESCHRIEBEN WIRD. Genau die Lage findet der Block vor. */
-    const stBuild = (old) => {
-      const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'kriterion-0270-'));
-      shortRun(`require('./db'); console.log('da');`, dir);
-      if (old !== null) {
-        const d = open(path.join(dir, 'katalog.sqlite'));
-        d.prepare('INSERT INTO settings (key, value) VALUES (?, ?)')
-          .run('convertImages', JSON.stringify(old));
-        d.close();
-      }
-      return dir;
-    };
-    for (const [old, wanted, word] of [[true, 'webp-lossless', 'an'], [false, 'png', 'aus']]) {
-      const dir = stBuild(old);
-      check(`Ein Bestand aus 0.26.0 mit dem Haekchen ${word} steht`,
-        stKey(dir).convertImages === JSON.stringify(old) && stKey(dir).imageStore === undefined,
-        JSON.stringify(stKey(dir)));
-      const say = shortRunAll(`require('./db'); console.log('da');`, dir);
-      const after = stKey(dir);
-      check(`Und ein Start uebersetzt „${word}" nach „${wanted}"`,
-        after.imageStore === JSON.stringify(wanted), JSON.stringify(after));
-      /* ZUSAGE 11 AN DER DATENBANK: der alte Schluessel faellt in DEMSELBEN
-         Griff. Zwei Zeilen ueber dieselbe Frage in derselben Tabelle waeren
-         eine zweite Wahrheit (Stolperstein 47), und beim naechsten Griff
-         waere nicht zu sagen, welche gilt. */
-      check('Und der alte Schluessel ist dabei gefallen',
-        after.convertImages === undefined, JSON.stringify(after));
-      check('Und der Block meldet sich',
-        /Migration auf 0\.27\.0/.test(say),
-        JSON.stringify(say.split('\n').filter(z => /0\.27\.0/.test(z))));
-      /* UND ZWEIMAL STARTEN IST STILL: gefragt wird die Zeile selbst, nicht
-         ein Merker. Ein zweiter Lauf findet kein `convertImages` mehr. */
-      const again = shortRunAll(`require('./db'); console.log('da');`, dir);
-      check('Und ein zweiter Start ist still',
-        !/Migration auf 0\.27\.0/.test(again),
-        JSON.stringify(again.split('\n').filter(z => /0\.27\.0/.test(z))));
-      check('Und die Wahl steht danach unveraendert da',
-        stKey(dir).imageStore === JSON.stringify(wanted), JSON.stringify(stKey(dir)));
-      fs.rmSync(dir, { recursive: true, force: true });
-    }
-    /* DIE DRITTE RICHTUNG: NICHTS GESPEICHERT HEISST NICHTS GESCHRIEBEN.
-       Ohne diese Probe bliebe gruen, wer die Vorgabe eintraegt -- und damit
-       jeder spaeteren Aenderung der Vorgabe die Wirkung naehme. */
-    {
-      const dir = stBuild(null);
-      const say = shortRunAll(`require('./db'); console.log('da');`, dir);
-      check('Ohne alte Zeile schreibt der Block gar nichts',
-        Object.keys(stKey(dir)).length === 0, JSON.stringify(stKey(dir)));
-      check('Und er meldet sich auch nicht',
-        !/Migration auf 0\.27\.0/.test(say),
-        JSON.stringify(say.split('\n').filter(z => /0\.27\.0/.test(z))));
-      fs.rmSync(dir, { recursive: true, force: true });
-    }
-    /* UND DIE VIERTE LAGE, DIE ES GEBEN KANN: eine Instanz, die 0.27.0 schon
-       gesehen hat und noch einmal auf 0.26.0 lief. Dort schriebe die alte
-       Fassung wieder `convertImages` -- die neue Wahl ist dann die JUENGERE
-       Aussage, und sie zu ueberschreiben hiesse, eine Wahl aus dreien mit
-       einem Haekchen zu erschlagen. */
-    {
-      const dir = stBuild(true);
-      {
-        const d = open(path.join(dir, 'katalog.sqlite'));
-        d.prepare('INSERT INTO settings (key, value) VALUES (?, ?)')
-          .run('imageStore', JSON.stringify('webp-lossy'));
-        d.close();
-      }
-      shortRunAll(`require('./db'); console.log('da');`, dir);
-      const after = stKey(dir);
-      check('Eine vorhandene Wahl gewinnt gegen das alte Haekchen',
-        after.imageStore === JSON.stringify('webp-lossy'), JSON.stringify(after));
-      check('Und das alte Haekchen faellt trotzdem',
-        after.convertImages === undefined, JSON.stringify(after));
-      fs.rmSync(dir, { recursive: true, force: true });
-    }
-    /* ZUSAGE 11 AM QUELLTEXT: `convertImages` steht NIRGENDS MEHR -- nicht in
-       der Antwort, nicht in OWNER_KEYS, nicht als Ableitung.
-       GESUCHT WIRD IM CODE UND NICHT IN DEN KOMMENTAREN. Der Migrationsblock
-       MUSS den alten Namen nennen -- er uebersetzt ihn ja --, und die
-       Herleitungen ueber den Stellen nennen ihn ebenfalls: ein Satz, der
+    /* ZUSAGE 11 VON 0.27.0, JETZT OHNE AUSNAHME: `convertImages` steht in
+       keiner Zeile Code mehr -- und db.js ist nicht laenger ausgenommen.
+       GESUCHT WIRD IM CODE UND NICHT IN DEN KOMMENTAREN. Ein Satz, der
        erklaert, was weggefallen ist, ist keine zweite Wahrheit, sondern das
        Gegenteil davon (Stolperstein 201). Was NICHT mehr dastehen darf, ist
        eine Zeile, die ihn LIEST oder SCHREIBT. */
-    {
-      const noComments = (file) => fs.readFileSync(path.join(__dirname, file), 'utf8')
-        .replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/[^\n]*/g, '');
-      const stLeft = [];
-      for (const file of ['server.js', 'public/app.js', 'images.js', 'batchrun.js']) {
-        const code = noComments(file);
-        if (/convertImages/.test(code))
-          stLeft.push(`${file}: ${(code.match(/[^\n]*convertImages[^\n]*/) || [''])[0].trim()}`);
-      }
-      check('`convertImages` steht in keiner Zeile Code mehr',
-        stLeft.length === 0, stLeft.join(' · ') || 'nirgends');
-      /* UND IN db.js STEHT ER GENAU DORT, WO ER HINGEHOERT: im
-         Migrationsblock, der ihn uebersetzt und loescht -- und sonst
-         nirgends. Ohne diese Zeile bliebe gruen, wer ihn andernorts wieder
-         liest, solange er ihn nicht `convertImages` nennt. */
-      const stDb = noComments('db.js');
-      const stDbLines = (stDb.match(/[^\n]*convertImages[^\n]*/g) || []);
-      /* DREI ZEILEN UND NICHT ZWEI, und die dritte gehoert dazu: der Block
-         SAGT dem Betreiber, was er uebersetzt hat. Eine Migration, die eine
-         gespeicherte Entscheidung umschreibt und dabei schweigt, waere die
-         schlechtere. Sie steht hier NAMENTLICH, damit eine vierte auffaellt. */
-      check('Und in db.js nur im Migrationsblock, der ihn wegnimmt',
-        stDbLines.length === 3 &&
-        stDbLines.filter(z => /SELECT value FROM settings/.test(z)).length === 1 &&
-        stDbLines.filter(z => /DELETE FROM settings/.test(z)).length === 1 &&
-        stDbLines.filter(z => /convertImages = \$\{on\}/.test(z)).length === 1,
-        stDbLines.map(z => z.trim()).join(' · '));
-      /* UND DIE RECHTEZEILE TRAEGT DEN NEUEN NAMEN UND BLEIBT BEI SIEBEN.
-         Einer geht, einer kommt -- eine unveraenderte Zahl sieht sonst aus
-         wie ein vergessener Eintrag. */
-      const stOwner = (fs.readFileSync(path.join(__dirname, 'server.js'), 'utf8')
-        .match(/const OWNER_KEYS = \[([\s\S]*?)\];/) || [, ''])[1];
-      const stOwnerKeys = (stOwner.match(/'[^']+'/g) || []).map(x => x.slice(1, -1));
-      check('OWNER_KEYS traegt `imageStore` und nicht mehr `convertImages`',
-        stOwnerKeys.includes('imageStore') && !stOwnerKeys.includes('convertImages'),
-        stOwnerKeys.join(' · '));
-      check('Und es bleiben genau sieben Schluessel', stOwnerKeys.length === 7,
-        `${stOwnerKeys.length}: ${stOwnerKeys.join(' · ')}`);
+    const noComments = (file) => fs.readFileSync(path.join(__dirname, file), 'utf8')
+      .replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/[^\n]*/g, '');
+    const stLeft = [];
+    for (const file of ['server.js', 'public/app.js', 'images.js', 'batchrun.js', 'db.js']) {
+      const code = noComments(file);
+      if (/convertImages/.test(code))
+        stLeft.push(`${file}: ${(code.match(/[^\n]*convertImages[^\n]*/) || [''])[0].trim()}`);
     }
+    check('`convertImages` steht in keiner Zeile Code mehr — db.js eingeschlossen',
+      stLeft.length === 0, stLeft.join(' · ') || 'nirgends');
+    /* UND DER WAECHTER FAENDE IHN WIRKLICH. Ohne diese Zeile waere die darueber
+       auch dann gruen, wenn der Kommentarschnitt die halbe Datei wegnaehme
+       (Stolperstein 81). */
+    check('Und der Waechter faende ihn — gestellt und nachgemessen',
+      /convertImages/.test(
+        "const x = getSetting('convertImages', true); /* convertImages */".
+          replace(/\/\*[\s\S]*?\*\//g, '')),
+      'der Schnitt nimmt zu viel weg');
+    /* UND DAS ERGEBNIS VON 0.27.0 STEHT UNVERAENDERT DA. Der Weg ist fort,
+       die Wahl ist geblieben -- eine Rechtezeile, die den alten Namen wieder
+       traegt, faellt hier auf. */
+    const stOwner = (fs.readFileSync(path.join(__dirname, 'server.js'), 'utf8')
+      .match(/const OWNER_KEYS = \[([\s\S]*?)\];/) || [, ''])[1];
+    const stOwnerKeys = (stOwner.match(/'[^']+'/g) || []).map(x => x.slice(1, -1));
+    check('OWNER_KEYS traegt `imageStore` und nicht mehr `convertImages`',
+      stOwnerKeys.includes('imageStore') && !stOwnerKeys.includes('convertImages'),
+      stOwnerKeys.join(' · '));
+    check('Und es bleiben genau sieben Schluessel', stOwnerKeys.length === 7,
+      `${stOwnerKeys.length}: ${stOwnerKeys.join(' · ')}`);
   }
 
   /* ================= Der Beipack — 0.25.0 (F7) ==========================
@@ -5945,7 +5837,7 @@ function sweepLeftovers() {
     await call('PUT', `/api/criteria/${exCrit.id}`, { name: 'Üç dilli', language: 'tr' });
     const exFile = (await callF('GET', '/api/export?photos=0')).content;
     check('Ein Export traegt alle drei Sprachfassungen',
-      exFile?.version === 16 &&
+      exFile?.version === 17 &&
       exFile?.criteriaNames?.de?.['Dreisprachig'] === 'Dreisprachig DE' &&
       exFile?.criteriaNames?.tr?.['Dreisprachig'] === 'Üç dilli',
       JSON.stringify([exFile?.version, exFile?.criteriaNames?.de?.['Dreisprachig'],
@@ -6547,7 +6439,7 @@ function sweepLeftovers() {
   await gSet('Preis', 1); await gSet('Kundendienst', 1);
   const eOneF = includingShare((m, p, k) => eCall('cookie-e-eins', m, p, k), eWord);
   const gOut = (await eOneF('GET', '/api/export?photos=0')).content;
-  check('Die Formatnummer steht auf 16', gOut?.version === 16, JSON.stringify(gOut?.version));
+  check('Die Formatnummer steht auf 17', gOut?.version === 17, JSON.stringify(gOut?.version));
   check('criteria bleibt eine Liste von Namen',
     Array.isArray(gOut?.criteria) && gOut.criteria.every(n => typeof n === 'string'),
     JSON.stringify(gOut?.criteria));
@@ -7409,7 +7301,7 @@ function sweepLeftovers() {
     e2Entry?.comments?.find(c => c.text === 'Kommentar ohne Verfasser')?.author === null &&
     'author' in (e2Entry?.comments?.find(c => c.text === 'Kommentar ohne Verfasser') || {}),
     JSON.stringify(e2Entry?.comments?.find(c => c.text === 'Kommentar ohne Verfasser')));
-  check('Die Formatnummer der Datei steht auf 16', e2Out?.version === 16, JSON.stringify(e2Out?.version));
+  check('Die Formatnummer der Datei steht auf 17', e2Out?.version === 17, JSON.stringify(e2Out?.version));
 
   /* Der sechste Traeger steht nur in einem Export MIT Dateien -- deshalb ein
      zweiter Ruf. Dieselben drei Lagen wie an der Linkzeile, und die herrenlose
@@ -7530,7 +7422,7 @@ function sweepLeftovers() {
      die Schreibweise koennte dann gar nicht scheitern, egal ob COLLATE
      NOCASE wirkt oder nicht. Der Grossbuchstabenname ist deshalb
      'BERT'. */
-  const e2Foreign = await e2Import('cookie-e2-anna', { version: 6, title: 'F', items: [{
+  const e2Foreign = await e2Import('cookie-e2-anna', { version: 14, title: 'F', items: [{
     title: 'Fremde Namen',
     author: 'BERT',
     comments: [{ text: 'von unbekannt', author: 'dora' },
@@ -7592,7 +7484,7 @@ function sweepLeftovers() {
     JSON.stringify(e2AfterForeign));
 
   /* --- Aeltere Datei, die gar keinen Verfasser kennt --- */
-  const e2Old = await e2Import('cookie-e2-anna', { version: 5, title: 'A', items: [{
+  const e2Old = await e2Import('cookie-e2-anna', { version: 14, title: 'A', items: [{
     title: 'Alte Datei',
     comments: [{ text: 'alt und ohne Verfasser' }],
     ratings: [{ name: 'Optik', value: 4 }],
@@ -7620,7 +7512,7 @@ function sweepLeftovers() {
      Eintragsverfasser" von "der Link faellt an den Einspielenden"
      unterscheidbar. Waere der Eintrag annas, waere die Pruefung gruen, ohne
      etwas zu belegen. */
-  const e2LinkOld = await e2Import('cookie-e2-anna', { version: 6, title: 'L6', items: [{
+  const e2LinkOld = await e2Import('cookie-e2-anna', { version: 14, title: 'L6', items: [{
     title: 'Links ohne Verfasser', author: 'bert',
     links: ['https://sechs.example/eins', 'Suchtext aus sechs'] }] }, 'merge');
   check('Eine Datei der Formatnummer 6 laesst sich einspielen',
@@ -7640,7 +7532,7 @@ function sweepLeftovers() {
 
   /* Die neue Form daneben, mit denselben drei Lagen wie am Kommentar: ein
      bekannter Name, ein unbekannter, gar keine Angabe. */
-  const e2LinkFresh = await e2Import('cookie-e2-anna', { version: 7, title: 'L7', items: [{
+  const e2LinkFresh = await e2Import('cookie-e2-anna', { version: 14, title: 'L7', items: [{
     title: 'Links mit Verfasser', author: 'bert',
     links: [{ url: 'https://sieben.example/carla', author: 'carla' },
             { url: 'https://sieben.example/dora', author: 'dora' },
@@ -7683,7 +7575,7 @@ function sweepLeftovers() {
      so ist "faellt an den Eintragsverfasser" von "faellt an den Einspielenden"
      zu unterscheiden. */
   const e2Bytes = Buffer.from('inhalt').toString('base64');
-  const e2FileOld = await e2Import('cookie-e2-anna', { version: 7, title: 'D7', items: [{
+  const e2FileOld = await e2Import('cookie-e2-anna', { version: 14, title: 'D7', items: [{
     title: 'Dateien ohne Verfasser', author: 'bert',
     attachments: [{ filename: 'alt.txt', mime_type: 'text/plain', data_base64: e2Bytes }] }] }, 'merge');
   check('Eine Datei ohne Verfasserfeld laesst sich einspielen',
@@ -7697,7 +7589,7 @@ function sweepLeftovers() {
     e2FileOldRows.length === 1 && e2FileOldRows[0].username === 'bert',
     JSON.stringify(e2FileOldRows));
 
-  const e2FileFresh = await e2Import('cookie-e2-anna', { version: 8, title: 'D8', items: [{
+  const e2FileFresh = await e2Import('cookie-e2-anna', { version: 14, title: 'D8', items: [{
     title: 'Dateien mit Verfasser', author: 'bert',
     attachments: [
       { filename: 'von-carla.txt', mime_type: 'text/plain', author: 'carla', data_base64: e2Bytes },
@@ -7823,7 +7715,7 @@ function sweepLeftovers() {
 
   /* Ein Video, dessen Standbild sich nicht durch sharp lesen laesst, wird
      uebergangen und genannt -- dieselbe Regel wie beim Hochladen. */
-  const e2VidBroken = await e2Import('cookie-e2-anna', { version: 10, title: 'K', items: [{
+  const e2VidBroken = await e2Import('cookie-e2-anna', { version: 14, title: 'K', items: [{
     title: 'Mit kaputtem Standbild',
     photos: [{ kind: 'video', duration: 3, mime_type: 'video/mp4',
                data_base64: MP4().toString('base64'),
@@ -7839,7 +7731,7 @@ function sweepLeftovers() {
      Entschieden wird ueber das Vorhandensein der Felder, nicht ueber die
      Formatnummer -- die ist im Projekt eine Aussage, keine Bedingung.
      Die Datei nennt hier ausdruecklich version 9, also die von vorher. */
-  const e2VidOld = await e2Import('cookie-e2-anna', { version: 9, title: 'A9', items: [{
+  const e2VidOld = await e2Import('cookie-e2-anna', { version: 14, title: 'A9', items: [{
     title: 'Aus einer Datei ohne art',
     photos: [{ mime_type: 'image/png', data_base64: PNG_BASE64 }]
   }] }, 'merge');
@@ -8478,7 +8370,7 @@ function sweepLeftovers() {
       pkRows('SELECT id FROM trash WHERE id = ?', idFresh).length === 0,
       JSON.stringify(pkRows('SELECT id, title, deleted_at FROM trash')));
     check('Und sagt es im Protokoll',
-      /Papierkorb: \d+ Zeile\(n\) aelter als 30 Tage entfernt/.test(PK2.log()),
+      /Trash: \d+ row\(s\) older than 30 days removed/.test(PK2.log()),
       PK2.log().slice(-400));
     await PK2.stop();
     // Aufraeumen fuer die Lagen darunter.
@@ -8688,7 +8580,7 @@ function sweepLeftovers() {
     // Dieselbe Nummer wie beim vollen Export: ein Einzelexport ist ein
     // vollstaendiges Paket mit einem Eintrag darin, kein halbes.
     check('Die Formatnummer ist dieselbe wie beim vollen Export',
-      singleExport.content?.version === 16 && full.content?.version === 16,
+      singleExport.content?.version === 17 && full.content?.version === 17,
       JSON.stringify([singleExport.content?.version, full.content?.version]));
     check('Der Umschlag traegt dieselben Felder wie beim vollen Export',
       equal(Object.keys(singleExport.content || {}).sort(), Object.keys(full.content || {}).sort()),
@@ -9296,10 +9188,10 @@ function sweepLeftovers() {
      und unmittelbar nach dem Start ist die Zeile womoeglich noch gar nicht
      angekommen. Hier liegt der ganze Verkehr der Gruppe dazwischen. */
   check('Der Start nennt den Sicherungsort im Protokoll',
-    /\[Kriterion\] Sicherungsort: /.test(SI.log()), SI.log().slice(0, 400));
+    /\[Kriterion\] Backup location: /.test(SI.log()), SI.log().slice(0, 400));
   check('Und jede geschriebene Sicherung steht ebenfalls darin',
-    (SI.log().match(/\[Kriterion\] Sicherung geschrieben: /g) || []).length >= 3,
-    (SI.log().match(/\[Kriterion\] Sicherung geschrieben: .*/g) || []).join(' · '));
+    (SI.log().match(/\[Kriterion\] Backup written: /g) || []).length >= 3,
+    (SI.log().match(/\[Kriterion\] Backup written: .*/g) || []).join(' · '));
   await SI.stop();
 
   /* --- DER SICHERUNGSORT DARF NICHT IM DATENVERZEICHNIS LIEGEN. Eine eigene
@@ -9327,7 +9219,7 @@ function sweepLeftovers() {
         headers: { cookie: 'kriterion_session=cookie-sd-anna' } })).json()
       ).error?.includes('Datenverzeichnis'), 'keine sprechende Absage');
     check('Der Start sagt es im Protokoll',
-      /Sicherungsort: aus — .*backupInDataDir/.test(SD.log()), SD.log().slice(0, 500));
+      /Backup location: off -- .*backupInDataDir/.test(SD.log()), SD.log().slice(0, 500));
     await SD.stop();
     fs.rmSync(dDir, { recursive: true, force: true });
   }
@@ -10030,7 +9922,7 @@ function sweepLeftovers() {
        liegt noch alles da" auch dann wahr, wenn das Loeschen nur gescheitert
        ist. */
     check('Und der Aufruf ist dabei gar nicht erst gelaufen',
-      !/Alte Sicherungen entfernt/.test(AU.log().slice(vorFailLog)) &&
+      !/Old backups removed/.test(AU.log().slice(vorFailLog)) &&
       !/nicht entfernt/.test(AU.log().slice(vorFailLog)),
       AU.log().slice(vorFailLog).trim() || '(nichts neu)');
     for (const n of auLock) fs.rmSync(path.join(auFolder, n), { force: true });
@@ -10055,10 +9947,10 @@ function sweepLeftovers() {
       ok.content?.ok === true && /^kriterion-.+\.sqlite$/.test(ok.content?.file || '') &&
       ok.content?.bytes > 0, JSON.stringify(ok.content?.file));
     check('Die Zeile im Containerprotokoll nennt Zahl und freigegebene Bytes',
-      /\[Kriterion\] Alte Sicherungen entfernt: 3 \(\d+ Bytes frei\)\./.test(AU.log()),
-      (AU.log().match(/\[Kriterion\] Alte Sicherungen entfernt.*/g) || []).join(' · '));
+      /\[Kriterion\] Old backups removed: 3 \(\d+ bytes freed\)\./.test(AU.log()),
+      (AU.log().match(/\[Kriterion\] Old backups removed.*/g) || []).join(' · '));
     check('Und sie nennt keinen Dateinamen und keinen Pfad',
-      !(AU.log().match(/\[Kriterion\] Alte Sicherungen entfernt.*/g) || [])
+      !(AU.log().match(/\[Kriterion\] Old backups removed.*/g) || [])
         .some(z => z.includes('kriterion-') || z.includes(auFolder)),
       (AU.log().match(/\[Kriterion\] Alte Sicherungen entfernt.*/g) || []).join(' · '));
   }
@@ -10845,7 +10737,7 @@ function sweepLeftovers() {
     });
     return { status: a.status, content: await a.json().catch(() => null) };
   };
-  const fForeignFile = { version: 6, title: 'F', items: [{
+  const fForeignFile = { version: 14, title: 'F', items: [{
     title: 'Untergeschoben', author: 'bert',
     comments: [{ text: 'das hat bert nie geschrieben', author: 'bert' }] }] };
   const fEntryNumber = () => fRows('SELECT id FROM items').length;
@@ -11932,7 +11824,7 @@ function sweepLeftovers() {
   const agCallF = includingShare((m, p, k) => agCall('cookie-ag-anna', m, p, k), AG_WORD);
   const agFile = (await agCallF('GET', '/api/export?fotos=0')).content;
   const agPackage = agFile?.items?.find(i => i.title === 'Berts Saege');
-  check('Die Formatnummer der Datei steht auf 16', agFile?.version === 16,
+  check('Die Formatnummer der Datei steht auf 17', agFile?.version === 17,
     JSON.stringify(agFile?.version));
   check('Die Datei traegt Datum, Grund und den NAMEN des Ablehnenden',
     agPackage?.rejected_at === agBefore.rejected_at &&
@@ -12017,7 +11909,7 @@ function sweepLeftovers() {
      jedem Formatsprung davor: die drei Felder fehlen dann und bleiben LEER.
      Und der Ablehnende faellt ausdruecklich NICHT an den Einspielenden --
      sonst waere jeder eingespielte Eintrag von ihm abgelehnt. ---- */
-  const agOldFile = { version: 10, title: 'Alt', criteria: [], items: [
+  const agOldFile = { version: 14, title: 'Alt', criteria: [], items: [
     { title: 'Aus Nummer zehn', rejected: true, tested: false, author: 'carla' },
     { title: 'Offen aus Nummer zehn', rejected: false, tested: false, author: 'carla' }] };
   const agzOld = await agzImport(agOldFile);
@@ -13748,7 +13640,7 @@ function sweepLeftovers() {
     return { status: a.status, content: await a.json().catch(() => null) };
   };
   m = prMark();
-  await prImport(prAnna, PR_ANNA, { version: 10, title: 'P', items: [{ title: 'Aus der Datei' }] }, 'merge');
+  await prImport(prAnna, PR_ANNA, { version: 14, title: 'P', items: [{ title: 'Aus der Datei' }] }, 'merge');
   check('Ein Import schreibt eine Zeile mit der Betriebsart',
     equal(prSince(m).map(z => [z.event, z.actor, z.detail]), [['import', 1, 'merge']]),
     JSON.stringify(prSince(m)));
@@ -13903,7 +13795,7 @@ function sweepLeftovers() {
       raRows("SELECT COUNT(*) n FROM security_log WHERE at > datetime('now', '-180 days')")[0].n === 1,
       JSON.stringify(raRows('SELECT id, at FROM security_log')));
     check('Der Start sagt es auch im Protokoll des Containers',
-      /Sicherheitsprotokoll: 1 Zeile\(n\) aelter als 180 Tage entfernt/.test(RA.log()),
+      /Security log: 1 row\(s\) older than 180 days removed/.test(RA.log()),
       RA.log().split('\n').filter(z => /Sicherheits/.test(z)).join(' | ') || '(keine Zeile)');
     await RA.stop();
     fs.rmSync(raDir, { recursive: true, force: true });
@@ -14076,7 +13968,7 @@ function sweepLeftovers() {
       `--${limit}\r\nContent-Disposition: form-data; name="${name}"` +
       (fileName ? `; filename="${fileName}"\r\nContent-Type: application/json` : '') +
       `\r\n\r\n${value}\r\n`;
-    const bundle = { version: 10, title: 'Z', items: [] };
+    const bundle = { version: 14, title: 'Z', items: [] };
     const a = await fetch(ZB.base + '/api/import', {
       method: 'POST',
       headers: { cookie: `kriterion_session=${zbAnna}`,
@@ -14227,7 +14119,7 @@ function sweepLeftovers() {
       `--${limit}\r\nContent-Disposition: form-data; name="${name}"` +
       (fileName ? `; filename="${fileName}"\r\nContent-Type: application/json` : '') +
       `\r\n\r\n${value}\r\n`;
-    const bundle = { version: 10, title: 'Z', items: [{ title: 'Aus der Datei' }] };
+    const bundle = { version: 14, title: 'Z', items: [{ title: 'Aus der Datei' }] };
     const body = part('mode', 'merge') + part('file', JSON.stringify(bundle), 'export.json') +
       `--${limit}--\r\n`;
     const a = await fetch(ZB.base + '/api/import', {
@@ -14493,7 +14385,7 @@ function sweepLeftovers() {
     check('Der Schluessel steht trotzdem in der Antwort -- daraus baut der Browser',
       /^[0-9a-f]{64}$/.test(withoutPhotos.fresh.content?.token || ''), JSON.stringify(withoutPhotos.fresh.content?.token));
     check('Der Start sagt, dass sie nicht gesetzt ist',
-      /Oeffentliche Adresse: nicht gesetzt/.test(withoutPhotos.S.log()),
+      /Public address: not set/.test(withoutPhotos.S.log()),
       withoutPhotos.S.log().split('\n').filter(z => /Adresse/.test(z)).join(' | ') || '(keine Zeile)');
     /* DIE ADRESSE STEHT NICHT IN /api/config, und das gehoert geprueft: der
        Endpunkt liegt VOR der Anmeldung und darf ueber die Instanz nichts
@@ -14510,7 +14402,7 @@ function sweepLeftovers() {
     check('Und sagt, woher die Adresse kam',
       withPhotos.fresh.content?.linkSource === 'einstellung', JSON.stringify(withPhotos.fresh.content?.linkSource));
     check('Der Start nennt die Adresse im Protokoll des Containers',
-      /Oeffentliche Adresse: https:\/\/kriterion\.beispiel\.de —/.test(withPhotos.S.log()),
+      /Public address: https:\/\/kriterion\.beispiel\.de --/.test(withPhotos.S.log()),
       withPhotos.S.log().split('\n').filter(z => /Adresse/.test(z)).join(' | ') || '(keine Zeile)');
     const includingCfg = await withPhotos.S.call('GET', '/api/config');
     check('Die Adresse steht NICHT in /api/config',
@@ -14537,7 +14429,7 @@ function sweepLeftovers() {
     check('Ein unbrauchbarer Wert bricht den Start nicht ab',
       broken.fresh.status === 200, `Status ${broken.fresh.status}`);
     check('Er wird aber laut gemeldet',
-      /PUBLIC_ADDRESS ist unbrauchbar/.test(broken.S.log()),
+      /PUBLIC_ADDRESS is unusable/.test(broken.S.log()),
       broken.S.log().split('\n').filter(z => /ADRESSE/.test(z)).join(' | ') || '(keine Zeile)');
     check('Und der Rueckfall ist der Browserweg',
       broken.fresh.content?.link === null && broken.fresh.content?.linkSource === 'browser',
@@ -14549,7 +14441,7 @@ function sweepLeftovers() {
     const contradiction = await oaMake(
       { BEHIND_PROXY: '1', PUBLIC_ADDRESS: 'http://kriterion.beispiel.de' }, 4880);
     check('http hinter einem Proxy wird gewarnt, nicht abgewiesen',
-      /Hinter einem Proxy und trotzdem http/.test(contradiction.S.log()),
+      /Behind a proxy and still http/.test(contradiction.S.log()),
       contradiction.S.log().split('\n').filter(z => /Proxy/.test(z)).join(' | '));
     check('Und die Adresse gilt trotzdem',
       contradiction.fresh.content?.linkSource === 'einstellung',
@@ -15015,11 +14907,11 @@ function sweepLeftovers() {
     check('Und in keiner Zeile des Containerprotokolls',
       !A.S.log().includes(MAIL_SECRET), 'das Geheimnis steht im Protokoll');
     check('Der Start nennt den Mailversand trotzdem',
-      /Mailversand: /.test(A.S.log()),
-      A.S.log().split('\n').filter(z => /Mailversand/.test(z)).join(' | ') || '(keine Zeile)');
+      /Mail delivery: /.test(A.S.log()),
+      A.S.log().split('\n').filter(z => /Mail delivery/.test(z)).join(' | ') || '(keine Zeile)');
     check('Und sagt an einer Instanz ohne Zugang, dass keiner eingerichtet ist',
-      /Mailversand: nicht eingerichtet/.test(emptyA.S.log()),
-      emptyA.S.log().split('\n').filter(z => /Mailversand/.test(z)).join(' | ') || '(keine Zeile)');
+      /Mail delivery: not set up/.test(emptyA.S.log()),
+      emptyA.S.log().split('\n').filter(z => /Mail delivery/.test(z)).join(' | ') || '(keine Zeile)');
     /* UND DIE ZEILE AN EINER INSTANZ, DIE MIT ZUGANG STARTET. Sie wird beim
        START geschrieben, also sagt sie an einem Server, der vor dem Eintragen
        hochgekommen ist, zu Recht "nicht eingerichtet" -- geprueft werden muss
@@ -15032,9 +14924,9 @@ function sweepLeftovers() {
     const A2 = startFurtherServer(A.dir, { PUBLIC_ADDRESS: 'https://kriterion.beispiel.de' }, 6370);
     await A2.ready;
     check('Nach einem Neustart nennt die Startzeile Anbieter, Server und Absender',
-      /Mailversand: Eigener Server über 127\.0\.0\.1:/.test(A2.log()) &&
+      /Mail delivery: Eigener Server via 127\.0\.0\.1:/.test(A2.log()) &&
       /instanz@beispiel\.de/.test(A2.log()),
-      A2.log().split('\n').filter(z => /Mailversand/.test(z)).join(' | ') || '(keine Zeile)');
+      A2.log().split('\n').filter(z => /Mail delivery/.test(z)).join(' | ') || '(keine Zeile)');
     check('Und das Passwort steht auch dort nicht',
       !A2.log().includes(MAIL_SECRET), 'das Geheimnis steht im Protokoll');
     await A2.stop();
@@ -17295,50 +17187,30 @@ function sweepLeftovers() {
       } catch { tAfter = ['(Start gescheitert)']; }
       check('Eine fehlende SPALTE traegt CREATE TABLE IF NOT EXISTS NICHT nach',
         !tAfter.includes('last_counter'), JSON.stringify(tAfter));
-      /* UND DIE ZAHL DER MARKIERTEN BLOECKE STEHT FEST. Ein weiterer mit
-         anderem Wortlaut waere eine zweite Schreibweise fuer dieselbe Sache.
-         ELF SEIT 0.27.0, vorher zehn: die Runde uebersetzt `convertImages` in
-         `imageStore` und loescht den alten Schluessel.
-         ACHT SEIT 0.19.0, vorher sieben: `photos` bekommt mit `zoom` die
-         dritte Angabe zum Ausschnitt, und ohne sie gaebe es fuer den engeren
-         Ausschnitt keinen Ort. (Der siebte kam mit 0.16.0 und gab den
-         Bewertungen mit `set_at` einen Zeitpunkt.) */
+      /* UND ES STEHT KEINE MARKE MEHR DA -- 0.33.0. Bis 0.32.1 hiess diese
+         Zeile „Es sind genau zwoelf markierte Migrationsbloecke"; sie ist
+         UMGEDREHT und nicht geloescht (Leitplanke L1). Die Prueflage darueber
+         ist dieselbe geblieben und wiegt jetzt sogar schwerer: eine fehlende
+         SPALTE traegt `CREATE TABLE IF NOT EXISTS` nicht nach, und seit dem
+         Wegfall der achtzehn Bloecke gibt es keine zweite Stelle mehr, die es
+         taete. Genau darum steht der Kasten aus `incompleteDatabase()` da.
+         GEZAEHLT WIRD UEBER BEIDE MARKENFORMEN, denn die einzeilige war es,
+         die zwoelf sah, wo achtzehn standen -- die sechs Bloecke der
+         Sprachrunde 0.24.x trugen ihre Absage im Blockkommentar. Die
+         ausfuehrliche Herleitung steht beim Waechter ueber den Quelltext. */
       const tSource = fs.readFileSync(path.join(__dirname, 'db.js'), 'utf8');
-      /* GEZAEHLT WERDEN DIE VERSCHIEDENEN MARKEN UND NICHT IHRE VORKOMMEN:
-         jede steht zweimal in db.js -- einmal ueber dem Block und einmal an
-         der Stelle, die ihn aufruft. Eine Zaehlung der Vorkommen saehe zehn
-         und meldete stumm die falsche Zahl (Stolperstein 156: gezaehlt wird,
-         was gemeint ist, nicht was dasteht). */
       const tBlocks = [...new Set(
-        (tSource.match(/MIGRATION [0-9.]+x? — ENTFAELLT MIT 1\.0/g) || []))];
-      check('Es sind genau zwoelf markierte Migrationsbloecke',
-        tBlocks.length === 12, `${tBlocks.length}: ${tBlocks.join(' · ')}`);
-      check('Und alle zwoelf tragen denselben Wortlaut der Marke',
-        tBlocks.every(m => / — ENTFAELLT MIT 1\.0$/.test(m)), tBlocks.join(' · '));
-      /* UND DER NEUNTE HEISST 0.21.0. Ohne diese Zeile bliebe die Zahl auch
-         dann gruen, wenn jemand einen Block gegen einen anderen tauscht --
-         die Menge stimmte, die Sache waere eine andere. */
-      check('Und der achte gehoert zu 0.19.0',
-        tBlocks.includes('MIGRATION 0.19.0 — ENTFAELLT MIT 1.0') &&
-        /function migration0190\(/.test(tSource), tBlocks.join(' · '));
-      check('Und der neunte gehoert zu 0.21.0',
-        tBlocks.includes('MIGRATION 0.21.0 — ENTFAELLT MIT 1.0') &&
-        /function migration0210\(/.test(tSource), tBlocks.join(' · '));
-      /* UND DER ZEHNTE HEISST 0.25.0 -- die Spalte `language` an den beiden
-         Grundtabellen. Sie steht in der DDL, und `CREATE TABLE IF NOT EXISTS`
-         ruehrt eine vorhandene Tabelle nicht an (Stolperstein 13); ein Bestand
-         aus 0.24.6 traegt sie deshalb nur ueber diesen Block. */
-      check('Und der zehnte gehoert zu 0.25.0',
-        tBlocks.includes('MIGRATION 0.25.0 — ENTFAELLT MIT 1.0') &&
-        /function migration0250Language\(/.test(tSource), tBlocks.join(' · '));
-      /* UND DER ELFTE HEISST 0.27.0 -- die Uebersetzung des Haekchens
-         `convertImages` in die Wahl `imageStore`. Er ruestet keine Spalte
-         nach, sondern schreibt eine Einstellungszeile um und loescht die alte;
-         markiert ist er trotzdem, denn er faellt mit dem Bruch wie die zehn
-         davor. */
-      check('Und der elfte gehoert zu 0.27.0',
-        tBlocks.includes('MIGRATION 0.27.0 — ENTFAELLT MIT 1.0') &&
-        /function migration0270ImageStore\(/.test(tSource), tBlocks.join(' · '));
+        (tSource.match(
+          /MIGRATION [0-9.]+x?\s*—[^\n]*\n?\s*(?:\*|\/\/)?\s*ENTFAELLT MIT 1\.0/g) || []))];
+      check('Es steht keine markierte Migration mehr in db.js — 0.33.0',
+        tBlocks.length === 0, `${tBlocks.length}: ${tBlocks.join(' · ')}`);
+      /* UND KEINE DER ACHTZEHN FUNKTIONEN. Ohne diese Zeile bliebe die
+         darueber gruen, wenn jemand einen Block ohne Marke wieder anlegt --
+         und genau das waere der schlimmere Fall: ein Block, den keine
+         Buchfuehrung kennt. */
+      check('Und keine der achtzehn Funktionen',
+        !/function migration\w+\s*\(/.test(tSource),
+        (tSource.match(/function migration\w+/g) || []).join(' · ') || 'keine'); 
       check('Und es gibt keinen Block fuer 0.10.0',
         !/MIGRATION 0\.10/.test(tSource) && !/migration0100/.test(tSource));
       /* UND KEINEN FUER 0.11.0. Die Runde braucht keinen: die Volltextsuche
@@ -18197,58 +18069,97 @@ function sweepLeftovers() {
   /* KEIN BLOCK FUER EINE TABELLE. Die Probe aus der Gruppe "Der Papierkorb:
      die Tabelle legt sich selbst an" hat es hergegeben: CREATE TABLE IF NOT
      EXISTS legt eine fehlende TABELLE bei jedem Start an -- eine SPALTE
-     dagegen nicht, und nur dafuer gibt es Migrationsbloecke.
-     ACHT SEIT 0.19.0, vorher sieben: die Runde ruestet `zoom` an photos nach
-     -- ohne die Spalte gaebe es fuer den engeren Ausschnitt keinen Ort. (Der
-     siebte kam mit 0.16.0 und ruestete `set_at` an ratings nach.) Wer
-     einen neunten anlegt, wird hier namentlich rot -- und muss sagen, welche
-     SPALTE er nachruestet. */
+     dagegen nicht, und nur dafuer gab es Migrationsbloecke.
+
+     UND SEIT 0.33.0 GIBT ES KEINEN EINZIGEN MEHR. Die Zeile hiess bis 0.32.1
+     „Es gibt genau zwoelf Migrationsfunktionen"; sie ist UMGEDREHT und nicht
+     geloescht (Leitplanke L1, Frage F3). Wer einen neuen Block anlegt, wird
+     hier namentlich rot -- und muss sagen, warum das Haus nach dem Bruch
+     wieder einen braucht.
+
+     GEZAEHLT WIRD UEBER BEIDE MARKENFORMEN, und DAS ist der eigentliche Grund,
+     warum diese Zeile ueberhaupt umgebaut wurde. Bis 0.32.1 zaehlte sie nur
+     die einzeilige Form
+
+         // MIGRATION 0.21.0 — ENTFAELLT MIT 1.0
+
+     und fand damit zwoelf. Es waren ACHTZEHN: die sechs Bloecke der
+     Sprachrunde 0.24.x trugen ihre Absage im BLOCKKOMMENTAR, auf einer eigenen
+     Zeile darunter. Der Fahrplan hat die falsche Zahl uebernommen, und keiner
+     der beiden hat es gemerkt -- Stolperstein 156 in Reinform, nur dass diesmal
+     der ZAEHLER der Betroffene war. Die Form, die sie uebersah, ist deshalb
+     jetzt mitgezaehlt. */
   const fDbSource = fs.readFileSync(path.join(__dirname, 'db.js'), 'utf8');
-  /* GEZAEHLT WIRD AUS DEN MARKEN HERAUS -- 0.25.0. Bis 0.24.6 stand hier ein
-     Muster ueber die FUNKTIONSNAMEN (`migration0?\d+\(`), und das ging genau
-     so lange gut, wie jeder markierte Block einen reinen Zahlennamen trug. Der
-     zehnte heisst `migration0250Language` und traegt seinen Gegenstand im
-     Namen -- das Muster faende ihn nicht, und die Zahl bliebe stumm bei neun
-     (Stolperstein 156: gezaehlt wird, was gemeint ist, nicht was dasteht).
-     JETZT SAGT DIE MARKE, WELCHE FUNKTION ES GEBEN MUSS: aus „MIGRATION 0.25.0"
-     wird `migration0250`, und der Name darf danach weitergehen. Damit ist die
-     Frage wieder die, um die es geht -- eine Marke ohne Block waere eine
-     Ankuendigung, die nichts tut. */
-  const fMarkNumbers = [...new Set((fDbSource.match(/MIGRATION [0-9.]+x? — ENTFAELLT MIT 1\.0/g) || []))]
-    .map(m => m.replace(/^MIGRATION /, '').replace(/x? — .*$/, '').replace(/\./g, ''));
-  const fMigrations = fMarkNumbers.filter(nr =>
-    new RegExp(`function migration${nr}[A-Za-z]*\\(`).test(fDbSource));
-  check('Es gibt genau zwoelf Migrationsfunktionen', fMigrations.length === 12,
-    fMigrations.join(' · '));
-  /* DER ELFTE GEHOERT ZU 0.27.0 -- und er ist der erste markierte Block, der
-     keine SPALTE nachruestet, sondern eine EINSTELLUNGSZEILE uebersetzt:
-     `convertImages` (ja/nein) wird `imageStore` (einer aus dreien). Der Absatz
-     darueber gilt damit nicht mehr wortwoertlich, und das steht hier statt
-     stillschweigend: markiert ist ein Block, der ZU 1.0 WEGFAELLT, und das
-     tut dieser wie jeder andere. Ohne diese Zeile bliebe die Zahl auch dann
-     gruen, wenn jemand einen Block gegen einen anderen tauscht. */
-  check('Und der elfte gehoert zu 0.27.0 -- aus dem Haekchen wird die Wahl',
-    fMarkNumbers.includes('0270') &&
-    /function migration0270ImageStore\(/.test(fDbSource), fMarkNumbers.join(' · '));
-  /* DER ZWOELFTE GEHOERT ZU 0.29.0 -- das Faelligkeitsdatum an der Aufgabe
-     (Befund 3), und er ist der LETZTE vor dem Bruch auf 0.33.0: diese Runde
-     ist die letzte, die das Schema anfassen darf.
-     ER RUESTET WIEDER EINE SPALTE NACH, wie die neun vor 0.25.0 -- und ohne
-     nachgeschobenes UPDATE: `ALTER TABLE ... ADD COLUMN` setzt jede
-     Bestandszeile auf NULL, und NULL ist hier die richtige Aussage. Ein
-     Vorgabewert waere eine Behauptung ueber fremde Arbeit. */
-  check('Und der zwoelfte gehoert zu 0.29.0 -- das Faelligkeitsdatum',
-    fMarkNumbers.includes('0290') && /function migration0290\(/.test(fDbSource) &&
-    /ALTER TABLE comments ADD COLUMN due_date TEXT/.test(fDbSource),
-    fMarkNumbers.join(' · '));
-  check('Und er setzt keinen Vorgabewert nach',
-    !/UPDATE comments SET due_date/.test(fDbSource),
-    (fDbSource.match(/UPDATE comments SET due_date[^\n]*/) || ['(keiner — richtig)'])[0]);
-  check('Und zu jedem markierten Block gehoert eine Funktion',
-    fMigrations.length === fMarkNumbers.length,
-    `${fMigrations.length} von ${fMarkNumbers.length}: ${fMarkNumbers.join(' · ')}`);
-  check('Und keine davon heisst migration0870',
-    !fDbSource.includes('migration0870'), 'migration0870 steht in db.js');
+  /* BEIDE FORMEN IN EINEM MUSTER: die Marke und ihre Absage duerfen durch
+     Weissraum und einen Kommentarstrich getrennt sein, und mehr nicht. */
+  const fMarkNumbers = [...new Set(
+    (fDbSource.match(/MIGRATION [0-9.]+x?\s*—[^\n]*\n?\s*(?:\*|\/\/)?\s*ENTFAELLT MIT 1\.0/g) || [])
+      .map(m => (m.match(/MIGRATION ([0-9.]+)/) || [])[1])
+      .filter(Boolean).map(nr => nr.replace(/\.$/, '').replace(/\./g, '')))];
+  const fMigrations = [...new Set([...(fDbSource.match(/function (migration\w+)\s*\(/g) || [])
+    .map(m => (m.match(/function (migration\w+)/) || [])[1])])];
+  check('Es gibt keine Migrationsfunktion mehr — 0.33.0',
+    fMigrations.length === 0, fMigrations.join(' · ') || 'keine');
+  /* UND KEINE MARKE OHNE BLOCK. Eine Ankuendigung auf eine Fassung, die den
+     Block gar nicht mehr erreicht, ist der zweite Ort fuer dieselbe Aussage
+     (Stolperstein 47) -- und hier ist der zweite Ort der Quelltext selbst. */
+  check('Und keine Marke „ENTFAELLT MIT 1.0", hinter der nichts mehr liegt',
+    fMarkNumbers.length === 0, fMarkNumbers.join(' · ') || 'keine');
+  /* UND DER ZAEHLER FAENGT BEIDE FORMEN WIRKLICH. Ohne diese Zeile waeren die
+     beiden darueber auch dann gruen, wenn das Muster gar nichts traefe -- sie
+     pruefen ja Abwesenheit (Stolperstein 81). Gefragt wird an gestellten
+     Marken und nicht an der Datei: genau die zwei Schreibweisen, die bis
+     0.32.1 in db.js nebeneinander standen. */
+  const fMarkShapes = (text) => (text.match(
+    /MIGRATION [0-9.]+x?\s*—[^\n]*\n?\s*(?:\*|\/\/)?\s*ENTFAELLT MIT 1\.0/g) || []).length;
+  check('Und der Zaehler faengt BEIDE Markenformen — gestellt und nachgemessen',
+    fMarkShapes('// MIGRATION 0.21.0 — ENTFAELLT MIT 1.0\n') === 1 &&
+    fMarkShapes('/* ====== MIGRATION 0.24.1 — DIE NAMEN DES BESTANDS =====\n' +
+                '   ENTFAELLT MIT 1.0.\n') === 1 &&
+    fMarkShapes('// hier steht nichts dergleichen\n') === 0,
+    `${fMarkShapes('// MIGRATION 0.21.0 — ENTFAELLT MIT 1.0\n')} / ` +
+    `${fMarkShapes('/* ====== MIGRATION 0.24.1 — X =====\n   ENTFAELLT MIT 1.0.\n')}`);
+  /* UND DER FUNKTIONSZAEHLER FAENGT AUCH EINEN NAMEN MIT GEGENSTAND. Der
+     zehnte Block hiess `migration0250Language`; ein Muster ueber reine
+     Zahlennamen faende ihn nicht, und die Abwesenheitsprobe bliebe gruen,
+     obwohl ein Block dastuende. */
+  const fFunctionShapes = (text) =>
+    (text.match(/function (migration\w+)\s*\(/g) || []).length;
+  check('Und der Funktionszaehler faengt auch einen Namen mit Gegenstand',
+    fFunctionShapes('function migration0290() {') === 1 &&
+    fFunctionShapes('function migration0250Language() {') === 1 &&
+    fFunctionShapes('function renumberCriteria() {') === 0,
+    `${fFunctionShapes('function migration0250Language() {')}`);
+  /* UND DIE SPALTEN, DIE SIE NACHGERUESTET HABEN, STEHEN WEITER IN DER DDL.
+     Das ist die Zusage, die den Wegfall ueberhaupt erst traegt: eine frische
+     Instanz bekommt sie aus dem Schema. Gefahren wird sie in der Gruppe „Der
+     Hinweis auf einen unvollstaendigen Bestand"; hier steht der Quelltext. */
+  check('Und die nachgeruesteten Spalten stehen weiter in der DDL',
+    /due_date TEXT/.test(fDbSource) && /zoom REAL NOT NULL DEFAULT 100/.test(fDbSource) &&
+    /rejected_reason TEXT/.test(fDbSource) && /weight REAL NOT NULL DEFAULT 1/.test(fDbSource),
+    'eine der vier fehlt im Schema');
+  /* UND db.exec(SCHEMA) STEHT ALS ERSTE ANWEISUNG NACH DER GRUNDAUSSTATTUNG --
+     Zusage 2. Bis 0.32.1 lagen sechs Bloecke DAVOR, weil
+     `CREATE TABLE IF NOT EXISTS` eine vorhandene Tabelle nicht anfasst und
+     `ALTER TABLE ... RENAME TO` sonst an einem Namen gescheitert waere, den es
+     schon gibt. DIE GRENZE IST NICHT VERSCHOBEN, SIE IST FORT. */
+  check('db.exec(SCHEMA) steht unmittelbar hinter der Faltung der Suche',
+    /db\.function\('kkl'[^\n]*\);\s*\n+db\.exec\(SCHEMA\);/.test(fDbSource),
+    (fDbSource.match(/db\.function\('kkl'[^\n]*\);[\s\S]{0,200}/) || [''])[0].slice(0, 200));
+  /* UND db.js LIEST DAS NAMENSWOERTERBUCH NICHT MEHR -- Frage F9. Es bleibt
+     als DATEI (der Import lebt davon und der Pruefstand liest es selbst), aber
+     die Datenbank hat mit ihm nichts mehr zu tun. */
+  /* GELESEN WIRD CODE UND NICHT DER KOMMENTAR DANEBEN: die Probe in db.js
+     ERKLAERT in ihrem Kopf, warum sie ihre Tafel selbst traegt und nicht aus
+     jener Datei liest -- ein Satz darueber, was weggefallen ist, ist keine
+     zweite Wahrheit, sondern das Gegenteil davon (Stolperstein 201). */
+  const fDbCode = fDbSource.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/[^\n]*/g, '');
+  check('Und db.js liest tools/dictionary.json nicht mehr',
+    !/dictionary\.json/.test(fDbCode),
+    (fDbCode.match(/[^\n]*dictionary\.json[^\n]*/) || ['(liest es nicht — richtig)'])[0]);
+  check('Und die Datei gibt es trotzdem noch',
+    fs.existsSync(path.join(__dirname, 'tools', 'dictionary.json')),
+    'tools/dictionary.json fehlt');
   check('Der Papierkorb steht als vollstaendige DDL im Schema',
     fDbSource.includes('CREATE TABLE IF NOT EXISTS trash (') &&
     fDbSource.includes('CREATE TABLE IF NOT EXISTS trash_bytes ('),
@@ -18395,8 +18306,35 @@ function sweepLeftovers() {
      das deutsche SUBSTANTIV. `db.backup()` ist ein Bezeichner und die Message
      "backup is not supported ..." ein Zitat aus SQLite -- beides ist Code und
      keine Sprache, dieselbe Trennlinie wie beim Sprachwaechter, der Backticks
-     ueberspringt. */
-  const backupCount = (text) => (text.match(/\bBackup\b/g) || []).length;
+     ueberspringt.
+     UND SEIT 0.33.0 FAELLT DAS CONTAINERPROTOKOLL AUS DER FRAGE -- Strang 4.
+     Es spricht seit jener Runde ENGLISCH, und dort ist „Backup" nicht das
+     deutsche Substantiv, sondern schlicht das richtige Wort; am Satzanfang
+     steht es gross. DIE REGEL SELBST BLEIBT UNANGETASTET: sie gilt der
+     Sprache, die ein BENUTZER liest, und die heisst weiter „Sicherung".
+     GESCHNITTEN WIRD DER GANZE RUF mit gezaehlten Klammern und nicht bis zum
+     Zeilenende -- dieselbe Bauform wie bei der Restprobe fuer server.js, und
+     aus demselben Grund: eine Meldung kann ueber drei Zeilen gehen. */
+  const withoutConsole = (src) => {
+    let out = '', i = 0;
+    const rx = /\bconsole\.(?:log|warn|error)\s*\(/g;
+    let m;
+    while ((m = rx.exec(src)) !== null) {
+      if (m.index < i) continue;
+      out += src.slice(i, m.index);
+      let j = m.index + m[0].length, depth = 1, q = null;
+      while (j < src.length && depth > 0) {
+        const c = src[j];
+        if (q) { if (c === '\\') { j += 2; continue; } if (c === q) q = null; j++; continue; }
+        if (c === "'" || c === '"' || c === '`') { q = c; j++; continue; }
+        if (c === '(') depth++; else if (c === ')') depth--;
+        j++;
+      }
+      i = j; rx.lastIndex = j;
+    }
+    return out + src.slice(i);
+  };
+  const backupCount = (text) => (withoutConsole(text).match(/\bBackup\b/g) || []).length;
   const fBackup = BACKUP_FILES
     .map(d => [d, backupCount(fs.readFileSync(path.join(__dirname, d), 'utf8'))])
     .filter(([, n]) => n > 0);
@@ -18407,6 +18345,13 @@ function sweepLeftovers() {
   check('Den Bezeichner db.backup() laesst er dagegen in Ruhe',
     backupCount('  try { await d.backup(ziel); } catch {}') === 0,
     'der Waechter faerbt sich am Bezeichner');
+  /* UND DER SCHNITT SCHNEIDET WIRKLICH NUR DEN RUF. Ein Waechter, dessen
+     Schnitt zu viel wegnaehme, liesse jedes „Backup" durch und meldete
+     trotzdem nichts (Stolperstein 106). Gefragt wird an einem gestellten
+     Fall, der beides in EINER Zeile traegt. */
+  check('Und der Schnitt nimmt nur den Konsolenruf, nicht die Zeile daneben',
+    backupCount("console.log('Backup written'); // Das gehoert ins Backup.") === 1,
+    'der Schnitt nimmt zu viel oder zu wenig weg');
 
   /* SICHERHEITSPROTOKOLL ODER PROTOKOLL -- eines von beiden, und durchgehalten.
      "Protokoll" IST IM PROJEKT VERGEBEN: so heisst docker compose logs, im
@@ -18458,16 +18403,30 @@ function sweepLeftovers() {
       .flatMap(v => (typeof v === 'string' ? [v] : Object.values(v))).join('\u0000');
   /* UND DIE ZEILE, DIE SIE ZITIERT, STEHT SO IM PROTOKOLL -- 0.32.0, Punkt 28
      Fund 1. Bis 0.31.4 schrieb die Karte „Schlüssel aus ENCRYPTION_KEY
-     geladen" mit Umlaut, `keys.js` schreibt „Schluessel" ohne -- wer die Zeile
+     geladen" mit Umlaut, `keys.js` schrieb „Schluessel" ohne -- wer die Zeile
      so sucht, wie sie dastand, fand sie nicht. Gesucht wird deshalb der
-     WORTLAUT DES PROTOKOLLS und nicht der schoenere. */
+     WORTLAUT DES PROTOKOLLS und nicht der schoenere.
+     UND SEIT 0.33.0 IST DIESER WORTLAUT ENGLISCH: „Key loaded from
+     ENCRYPTION_KEY". Das Containerprotokoll spricht seit jener Runde englisch
+     (Strang 4), und die Karte zitiert weiter, was WIRKLICH DASTEHT -- in allen
+     drei Sprachdateien derselbe Wortlaut, denn zitiert wird eine Zeile und
+     nicht ein Satz. Genau dafuer gibt es diese Pruefung: sie ist beim
+     Uebersetzen des Protokolls rot geworden. */
   check('Die Kennzahlenkarte sagt dafuer „Server-Log"',
-    /im Server-Log „Schluessel aus ENCRYPTION_KEY geladen/.test(protAppAndTexts),
+    /im Server-Log „Key loaded from ENCRYPTION_KEY/.test(protAppAndTexts),
     'die Karte nennt das Server-Log nicht');
   check('Und sie zitiert die Zeile Zeichen fuer Zeichen, wie keys.js sie schreibt',
     fs.readFileSync(path.join(__dirname, 'keys.js'), 'utf8')
-      .includes('Schluessel aus ENCRYPTION_KEY geladen'),
+      .includes('Key loaded from ENCRYPTION_KEY'),
     'keys.js schreibt die Zeile anders');
+  /* UND ALLE DREI SPRACHDATEIEN ZITIEREN DIESELBE ZEILE. Ein Zitat, das in
+     einer Datei mitwandert und in den beiden anderen stehen bleibt, schickt
+     zwei von drei Lesern auf die Suche nach einem Satz, den es nicht gibt. */
+  const protQuoted = ['de', 'en', 'tr'].filter(code => !JSON.parse(fs.readFileSync(
+    path.join(__dirname, 'public', 'languages', `${code}.json`), 'utf8'))['card.restartHint']
+      .includes('Key loaded from ENCRYPTION_KEY'));
+  check('Und alle drei Sprachdateien zitieren dieselbe Zeile',
+    protQuoted.length === 0, protQuoted.join(' · ') || 'alle drei');
   /* DIE GEGENPROBE ZUM WAECHTER SELBST: er darf nicht deshalb gruen sein, weil
      er gar keinen Code mehr liest (Stolperstein 106) -- und er darf das lange
      Wort nicht mitzaehlen, sonst waere die Entscheidung wertlos. */
@@ -18767,19 +18726,29 @@ function sweepLeftovers() {
      Fassungen; fuer ihn ist jede davon eine Auskunft ueber nichts. Ein
      Handbuch sagt, WAS IST -- nicht, seit wann (Projektstand 5.6).
      DIE REGEL IST NICHT „KEINE NUMMER", SONDERN: die Nummer bleibt, wo sie
-     eine HANDLUNG bestimmt, und geht, wo sie nur erzaehlt. Drei Faelle
-     bestimmen eine Handlung, und sie stehen hier namentlich:
-       0.14.0  die Sicherungspflicht beim Sprung ueber diese Datenbankstufe
-               -- und die Zeile, die dabei woertlich im Protokoll steht
-       0.8.30  eine zweite woertliche Protokollzeile, als Beispiel dafuer,
-               wie so eine Zeile aussieht
+     eine HANDLUNG bestimmt, und geht, wo sie nur erzaehlt.
+
+     MIT 0.33.0 SIND ES ANDERE NUMMERN GEWORDEN, und das ist die Regel bei der
+     Arbeit: die beiden Nummern von 0.17.2 bestimmten eine Handlung, SOLANGE es
+     Migrationsbloecke gab. `0.14.0` trug die Sicherungspflicht beim Sprung
+     ueber jene Datenbankstufe, `0.8.30` stand als woertliche Protokollzeile
+     daneben — **beide Handlungen gibt es nicht mehr**, und was bliebe, waere
+     Erzaehlung. Sie sind deshalb aus der README gefallen und nicht bloss
+     umgeschrieben worden.
+     DREI FAELLE BESTIMMEN HEUTE EINE HANDLUNG, und sie stehen hier namentlich:
+       0.33.0  der Bruch -- wer von einer aelteren Fassung kommt, hat einen
+               Zwischenschritt zu tun
+       0.32.1  genau dieser Zwischenschritt: die letzte Fassung, die den Weg
+               herauf noch kannte. Sie steht zweimal da -- am Einspielweg und
+               an der abgewiesenen Exportdatei, und beide Male IST sie die
+               Handlung
        0.8.0   die aelteste Datenbank, die noch uebernommen wird
      GEZAEHLT WIRD DIE ZAHL UND NICHT NUR DIE MENGE DER NUMMERN. Eine Menge
      bliebe auch dann gruen, wenn jemand zwanzig neue „seit 0.14.0" ergaenzte
      -- dieselbe Ueberlegung wie bei der Zahl in F_ROUTES. */
   const readmeRaw = fs.readFileSync(path.join(__dirname, 'README.md'), 'utf8');
   const readmeNumbers = readmeRaw.match(/\b0\.\d+\.\d+\b/g) || [];
-  const README_NUMBERS = ['0.14.0', '0.8.30', '0.8.0'];
+  const README_NUMBERS = ['0.33.0', '0.32.1', '0.8.0'];
   check('Die README nennt ueberhaupt noch die Nummern, die eine Handlung bestimmen',
     README_NUMBERS.every(v => readmeNumbers.includes(v)),
     JSON.stringify(README_NUMBERS.filter(v => !readmeNumbers.includes(v))));
@@ -18789,17 +18758,27 @@ function sweepLeftovers() {
   check('Es sind genau sechs Nennungen und keine mehr',
     readmeNumbers.length === 6, `${readmeNumbers.length}: ${readmeNumbers.join(' ')}`);
   /* UND JEDE EINZELNE STEHT DA, WEIL SIE ETWAS BESTIMMT. Die Zahl allein
-     saehe nicht, wenn jemand die Sicherungspflicht gegen sechs neue
+     saehe nicht, wenn jemand den Zwischenschritt gegen sechs neue
      Erzaehlsaetze taeuschte. */
-  check('Die Sicherungspflicht vor der Datenbankstufe steht ausdruecklich da',
-    /VOR 0\.14\.0 KOMMT, SICHERT PFLICHTGEMÄSS/.test(readmeRaw),
-    'die Pflichtzeile fehlt');
+  check('Der Zwischenschritt ueber die letzte migrierende Fassung steht ausdruecklich da',
+    /WER VON EINER FASSUNG VOR 0\.33\.0 KOMMT, GEHT ZUERST ÜBER 0\.32\.1/.test(readmeRaw),
+    'die Zeile des Zwischenschritts fehlt');
   check('Und die aelteste Datenbank, die noch uebernommen wird',
     /Datenbank aus Version 0\.8\.0 oder neuer/.test(readmeRaw),
     'die Untergrenze fehlt');
-  check('Und beide woertlichen Protokollzeilen stehen als Zitat da',
-    /Migration auf 0\.14\.0\)/.test(readmeRaw) && /Migration auf 0\.8\.30\)/.test(readmeRaw),
-    'eine der beiden Protokollzeilen fehlt');
+  /* UND DIE ZWEITE STELLE, AN DER 0.32.1 EINE HANDLUNG BESTIMMT: eine
+     Exportdatei, die zu alt ist, geht denselben Weg wie eine zu alte
+     Datenbank -- ueber dieselbe Fassung. */
+  check('Und der Weg fuer eine abgewiesene Exportdatei nennt dieselbe Fassung',
+    /in eine Fassung bis 0\.32\.1 ein und exportiert sie dort neu/.test(readmeRaw),
+    'der Weg fuer die Datei fehlt');
+  /* UND KEINE PROTOKOLLZEILE EINER MIGRATION STEHT MEHR ALS ZITAT DA. Bis
+     0.32.1 standen zwei davon in der README, als Beispiel dafuer, wie so eine
+     Zeile aussieht -- sie beschreiben einen Vorgang, den es nicht mehr gibt.
+     DIE ZEILE IST UMGEDREHT und nicht geloescht (Zusage 12). */
+  check('Und keine Protokollzeile einer Migration steht mehr als Zitat da',
+    !/Migration auf 0\.\d+\.\d+\)/.test(readmeRaw),
+    (readmeRaw.match(/[^\n]*Migration auf 0\.\d+\.\d+\)[^\n]*/) || ['(keine — richtig)'])[0]);
   /* DIE GEGENPROBE AM WAECHTER SELBST: er findet eine Nummer wirklich, und
      er faerbt sich nicht an einer Zahl, die keine Version ist. */
   check('Der Waechter wuerde eine Nummer wirklich finden',
@@ -18879,51 +18858,54 @@ function sweepLeftovers() {
        EINE AUSNAHME, DIE NIEMAND MEHR BRAUCHT, IST EINE KARTEILEICHE, und der
        Waechter sagt es: die Zeile „jeder benannte steht wirklich im Code"
        weiter unten wuerde jeden uebriggebliebenen Namen melden. */
-    /* DIE ALTEN NAMEN DES BESTANDS -- seit 0.24.2. Sechs Feldnamen, die in
-       0.24.0 IN einem gespeicherten Wert standen: `vorlage` an den eigenen
-       Suchmaschinen, die vier Felder des Mailzugangs, `marke` am Beleg der
-       Testmail. Sie sind KEINE Benennung dieser Fassung, sondern der
-       GEGENSTAND einer Migration -- dieselbe Lage wie bei den drei alten
-       Adressen in OLD_ADDRESSES: eine Uebersetzungstafel muss sagen duerfen,
-       was sie uebersetzt.
-       `am` UND `name` STEHEN NICHT DABEI: `am` ist im Woerterbuch kein Wort,
-       und `name` heisst in beiden Sprachen so. */
-    const OLD_STORED_NAMES = ['absender', 'anbieter', 'benutzer', 'marke', 'passwort', 'vorlage'];
-    const NAMED = [...FALSE_FRIENDS, ...OLD_STORED_NAMES].sort();
+    /* DIE ALTEN NAMEN DES BESTANDS STANDEN HIER VON 0.24.2 BIS 0.32.1: sechs
+       Feldnamen, die in 0.24.0 IN einem gespeicherten Wert standen -- `vorlage`
+       an den eigenen Suchmaschinen, die vier Felder des Mailzugangs, `marke`
+       am Beleg der Testmail. Sie waren keine Benennung jener Fassungen, sondern
+       der GEGENSTAND einer Migration: SHAPES_0242 in db.js schrieb sie als
+       EIGENSCHAFTSNAMEN, und eine Uebersetzungstafel muss nennen duerfen, was
+       sie uebersetzt.
+       SIE SIND MIT 0.33.0 GEFALLEN, ohne dass jemand eine Zeile an ihnen
+       geaendert haette: die Tafel, die sie nannte, ist mit ihrem Block
+       verschwunden. EINE AUSNAHME, DIE NIEMAND MEHR BRAUCHT, IST EINE
+       KARTEILEICHE -- und dass hier keine stehen bleibt, sagt die Zeile
+       „jeder benannte steht wirklich im Code" weiter unten.
+       UND DIE GEGENPROBE DAZU STEHT IN DER GRUPPE „Die gespeicherten Namen der
+       0.24er Runde — umgedreht": dort wird nachgesehen, dass SHAPES_0242 und
+       STORED_0243 wirklich fort sind. Ohne sie waere dieser Absatz nur eine
+       Behauptung ueber eine Liste, die kuerzer geworden ist. */
+    const NAMED = [...FALSE_FRIENDS].sort();
     const germanNames = [...identifiers].filter(isGerman).sort();
     check('Namensprobe: kein deutscher Bezeichner ausser den benannten',
       equal(germanNames, NAMED),
       `zu viel: ${germanNames.filter(n => !NAMED.includes(n)).join(' ') || '—'} · fehlt: ${NAMED.filter(n => !germanNames.includes(n)).join(' ') || '—'}`);
     /* DIE ZAHL STEHT AUSDRUECKLICH DA. Ohne sie waere die Liste oben eine
        Selbstbestaetigung: wer einen Namen hinzufuegt, macht sie wieder gruen. */
-    /* ZWOELF SEIT 0.24.3, vorher 116. Die 104 Grenzen sind gefallen (F7); was
-       bleibt, sind die sechs falschen Freunde -- englische Woerter, die das
-       Woerterbuch als deutsche kennt -- und die sechs alten Feldnamen, die
-       eine Uebersetzungstafel NENNEN muss, um sie zu uebersetzen. */
-    check('Und es sind genau zwoelf — sechs falsche Freunde und sechs alte Feldnamen',
-      germanNames.length === 12 && FALSE_FRIENDS.length === 6 &&
-      OLD_STORED_NAMES.length === 6,
-      `${germanNames.length} deutsch, ${FALSE_FRIENDS.length} falsche Freunde, ` +
-      `${OLD_STORED_NAMES.length} alte Feldnamen`);
-    /* UND DIE SECHS STEHEN NUR AN EINER STELLE. Ohne diese Zeile waere die
-       Ausnahme ein Freibrief: wer morgen eine Veraenderliche `vorlage` nennt,
-       waere gruen, weil der Name schon einmal erlaubt wurde. Gesucht wird je
-       Datei und in db.js OHNE die Liste der Formen -- was dann noch uebrig
-       ist, ist eine Benennung und keine Uebersetzung. */
+    /* SECHS SEIT 0.33.0, von 0.24.3 bis 0.32.1 zwoelf, davor 116. Die 104
+       Grenzen sind mit 0.24.3 gefallen (F7), die sechs alten Feldnamen mit dem
+       Bruch; was bleibt, sind die sechs falschen Freunde -- englische Woerter,
+       die das Woerterbuch als deutsche kennt. DIE ZAHL STEHT AUSDRUECKLICH DA:
+       ohne sie waere die Liste oben eine Selbstbestaetigung. */
+    check('Und es sind genau sechs — die falschen Freunde und sonst nichts',
+      germanNames.length === 6 && FALSE_FRIENDS.length === 6,
+      `${germanNames.length} deutsch, ${FALSE_FRIENDS.length} falsche Freunde`);
+    /* UND DIE SECHS ALTEN FELDNAMEN STEHEN IN KEINER ZEILE CODE MEHR -- auch
+       nicht in db.js, das bis 0.32.1 die einzige erlaubte Stelle war. Ohne
+       diese Zeile bliebe der Wegfall der Ausnahme eine Buchung ohne Deckung:
+       die Liste waere kuerzer, und die Namen staenden weiter da. */
+    const OLD_STORED_NAMES = ['absender', 'anbieter', 'benutzer', 'marke', 'passwort', 'vorlage'];
     const oldElsewhere = [];
     for (const f of SHIPPED) {
       const code = zerlege(readShipped(f), f).filter(p => p.kind === CODE)
         .map(p => p.wert).join('\n');
-      const rest = f === 'db.js'
-        ? code.replace(/const SHAPES_0242 = \[[\s\S]*?\n\];/, '') : code;
       for (const n of OLD_STORED_NAMES)
-        if (new RegExp(`(^|[^A-Za-z0-9_$])${n}(?![A-Za-z0-9_$])`).test(rest))
+        if (new RegExp(`(^|[^A-Za-z0-9_$])${n}(?![A-Za-z0-9_$])`).test(code))
           oldElsewhere.push(`${f}: ${n}`);
     }
-    check('Und die sechs alten Feldnamen stehen nur in SHAPES_0242',
+    check('Und keiner der sechs alten Feldnamen steht noch in einer Zeile Code',
       oldElsewhere.length === 0, oldElsewhere.join(' · '));
-    // Und der Leser wuerde sie anderswo wirklich finden -- an einem gestellten Fall.
-    check('Der Leser wuerde einen alten Feldnamen anderswo melden',
+    // Und der Leser wuerde sie wirklich finden -- an einem gestellten Fall.
+    check('Der Leser wuerde einen alten Feldnamen melden',
       /(^|[^A-Za-z0-9_$])vorlage(?![A-Za-z0-9_$])/.test('const vorlage = 1;') &&
       !/(^|[^A-Za-z0-9_$])vorlage(?![A-Za-z0-9_$])/.test('const searchTemplate = 1;'),
       'der Leser trennt Benennung und Namensteil nicht');
@@ -19149,8 +19131,14 @@ function sweepLeftovers() {
        14 wie zuvor. Wer die Zahl hier still mitlaufen liesse, saehe genau das
        nicht: die Runde fasst die ABLAGE der Saetze an, und ein Mehrzahlpaar,
        das dabei flach wird, waere ein Verlust. */
-    check('Und die Zahlen stehen: 1297 Schluessel, 88 Mehrzahlformen, 15 Vokabelnamen',
-      languageKeys.length === 1297 && pluralKeys.length === 88 && vocabularyKeys.length === 15,
+    /* UND SEIT 0.33.0 SIND ES EINER WENIGER: `card.catchUpDerivatives` und
+       `card.derivativesAsk` fallen mit der JPEG-Haelfte des Bestandslaufs,
+       `server.exportTooOld` kommt mit der Abweisung zu alter Dateien dazu --
+       zwei hin, einer her. DIE MEHRZAHLFORMEN UND DIE VOKABELNAMEN RUEHREN
+       SICH NICHT: die beiden gefallenen waren einfache Saetze, und der neue
+       ist auch einer. */
+    check('Und die Zahlen stehen: 1296 Schluessel, 88 Mehrzahlformen, 15 Vokabelnamen',
+      languageKeys.length === 1296 && pluralKeys.length === 88 && vocabularyKeys.length === 15,
       `${languageKeys.length} / ${pluralKeys.length} / ${vocabularyKeys.length}`);
 
     /* ---- 3. Die Adressprobe ---------------------------------------------
@@ -19479,6 +19467,13 @@ function sweepLeftovers() {
        „Dosyayı sil" und `entry.deleteImage` „Resmi sil", beide fest und beide
        richtig. Das Teilen ist keine Ausnahme, sondern die Praxis der Datei. */
     const WORDING_NEW_0321 = ['entry.deletePhoto', 'entry.deleteVideo'];
+    /* UND EINER MIT 0.33.0: `server.exportTooOld`. Er ist die eine Abweisung
+       des Bruchs (F15) -- eine Exportdatei mit Formatnummer 13 oder aelter
+       traegt die Feldnamen von vor 0.24.1, und seit dieser Runde uebersetzt
+       sie niemand mehr. Der Satz nennt BEIDE Nummern: die der Datei und die
+       aelteste, die noch hereinkommt. Ein „geht nicht" ohne beides waere eine
+       Sackgasse. */
+    const WORDING_NEW_0330 = ['server.exportTooOld'];
     /* UND ACHT SCHLUESSEL FALLEN MIT 0.32.1 -- sechs von ihnen gab es schon
        bei der Abnahme, zwei sind erst in 0.32.0 entstanden und schon wieder
        weg. SIE STEHEN IN EINER LISTE UND WERDEN VON `WORDING_NEW` ABGEZOGEN,
@@ -19491,13 +19486,23 @@ function sweepLeftovers() {
       'list.followsSort', 'list.statusByHand', 'list.byHandHint',   // die Filterableitung
       'list.pillHint', 'list.sortDefaultHint',          // ihre beiden Erklaerungen
       'entry.deleteWord'];                              // in zwei feste geteilt
+    /* UND ZWEI FALLEN MIT 0.33.0 -- die JPEG-Haelfte des Bestandslaufs.
+       `card.catchUpDerivatives` sagte, was der Knopf tut, wenn nur noch
+       Ableitungen anstehen, `card.derivativesAsk` fragte danach. Beide
+       beschreiben eine Haelfte, die es nicht mehr gibt: seit 0.27.0 entsteht
+       kein JPEG-Vorschaubild mehr, und was den Zweig noch haette treffen
+       koennen, ist auf der einen echten Installation laengst gefahren
+       worden (F7). Sie werden ABGEZOGEN und nicht aus WORDING_NEW_0270
+       herausgestrichen: die Buchfuehrung soll sagen, WELCHE Runde einen Satz
+       gebracht und welche ihn wieder genommen hat. */
+    const WORDING_GONE_0330 = ['card.catchUpDerivatives', 'card.derivativesAsk'];
     const WORDING_NEW = [...WORDING_NEW_0243, ...WORDING_NEW_0244,
       ...WORDING_NEW_0245, ...WORDING_NEW_0246, ...WORDING_NEW_0250,
       ...WORDING_NEW_0254, ...WORDING_NEW_0260, ...WORDING_NEW_0270,
       ...WORDING_NEW_0280, ...WORDING_NEW_0281, ...WORDING_NEW_0290,
       ...WORDING_NEW_0300, ...WORDING_NEW_0311, ...WORDING_NEW_0314,
-      ...WORDING_NEW_0320, ...WORDING_NEW_0321]
-      .filter(k => !WORDING_GONE_0321.includes(k));
+      ...WORDING_NEW_0320, ...WORDING_NEW_0321, ...WORDING_NEW_0330]
+      .filter(k => !WORDING_GONE_0321.includes(k) && !WORDING_GONE_0330.includes(k));
     const wordingMissing = WORDING_NEW.filter(k => LANGUAGE_FILE[k] === undefined);
     check('Die neuen Schluessel dieser Runde stehen wirklich in der Datei',
       wordingMissing.length === 0, wordingMissing.join(' ') || 'alle da');
@@ -20496,55 +20501,53 @@ function sweepLeftovers() {
       'der Leser sieht die gestellte Luecke nicht');
   }
 
-  /* ================= Die gespeicherten Formen ziehen mit — 0.24.2 =========
-     DIE LUECKE, DIE 0.24.1 GELASSEN HAT, UND DIE PROBE, DIE SIE NICHT FAND.
-     Der Bestandslauf der Runde 0.24.1 hat die Tabelle `settings` NIE GEFUELLT
-     -- und was nicht dasteht, kann keine Migration verlieren. Der Lauf war
-     gruen und hat ueber diese Klasse nichts ausgesagt.
+  /* ========= Die gespeicherten Namen der 0.24er Runde — umgedreht =========
+     HIER STANDEN BIS 0.32.1 DREI GRUPPEN, und sie fuhren die drei
+     Migrationsblöcke der Sprachrunde an echten Altbestaenden: 0.24.2 zog die
+     Feldnamen in `searchOwn`, `mailzugang` und `mailtestOk` nach, 0.24.3 die
+     fuenf Namen und zwei Sortierwerte in `blocks`, `filters`, `views` und
+     `vocabulary`, und ein dritter schrieb einem gewachsenen Bestand seine
+     Vorgabesprache ausdruecklich hin.
 
-     GEPRUEFT WIRD AN EINEM ECHTEN BESTAND UND NICHT AM QUELLTEXT. Ein Waechter,
-     der nur nachliest, ob SHAPES_0242 dasteht, waere gruen, sobald die Liste
-     dasteht -- und sagte nichts darueber, ob sie greift. Deshalb: eine
-     Datenbank, von Hand auf den Stand 0.24.0 gesetzt (ALTE Schluessel, ALTE
-     Feldnamen darin), EIN Start, und danach liest der Quelltext selbst.
+     ALLE DREI SIND MIT 0.33.0 GEFALLEN -- es waren drei der SECHS, die der
+     Auftrag „nicht gezaehlt" nennt: ihre Absage stand im BLOCKKOMMENTAR und
+     nicht auf einer eigenen Kommentarzeile, und genau deshalb hat der Zaehler
+     sie nie gesehen.
 
-     UND DIE GEGENLAGE STEHT DANEBEN: vier Werte, die sich NICHT aendern
-     duerfen. Ein Block, der alles anfasst, waere schlimmer als einer, der
-     nichts tut. */
-  group('Die gespeicherten Formen ziehen mit — 0.24.2');
+     WAS BLEIBT, IST DIE HAELFTE, DIE NIE AN DER MIGRATION HING: liest der
+     Quelltext wirklich die NEUEN Namen? Das war die eigentliche Zusage jener
+     Runden -- 0.24.1 ist daran gescheitert, dass umbenannt und nicht
+     nachgelesen wurde, und der Betreiber fand es im Betrieb. Diese Frage ist
+     vom Wegfall der Bloecke voellig unberuehrt, und sie bleibt darum stehen.
+
+     UND EINE ZWEITE HAELFTE KOMMT DAZU: eine frische Installation bekommt
+     KEINE Vorgabesprache mehr geschrieben und spricht damit Englisch. Bis
+     0.32.1 war das die Gegenlage zum Block; jetzt ist es der einzige Fall,
+     den es noch gibt -- der Block, der einem gewachsenen Bestand Deutsch
+     hinschrieb, ist fort.
+
+     GEPRUEFT WIRD WEITER AN EINER ECHTEN INSTANZ und nicht nur am Quelltext:
+     eine Datenbank, EIN Start, und danach steht da, was dasteht. */
+  group('Die gespeicherten Namen der 0.24er Runde — umgedreht');
   {
     const gfDirectory = fs.mkdtempSync(path.join(os.tmpdir(), 'kriterion-formen-'));
     const gfFile = path.join(gfDirectory, 'katalog.sqlite');
     shortRun(`require('./db'); console.log('angelegt');`, gfDirectory);
 
-    /* DIE MARKE WIRD HIER GERECHNET WIE 0.24.0 SIE GERECHNET HAT: ein Hash
-       ueber die WERTE des Zugangs in fester Reihenfolge. Genau deshalb muss
-       mail.mark() nach dem Umbenennen dieselbe Zahl liefern -- und genau das
-       haelt die Probe „Die Marke des Mailtests gilt weiter" fest. */
+    /* DER GESTELLTE BESTAND IST DERSELBE GEBLIEBEN: eine Instanz auf dem
+       Stand 0.24.0, mit den ALTEN Schluesseln und den ALTEN Feldnamen darin.
+       NUR DIE ZUSAGE IST DIE UMGEKEHRTE -- es zieht nichts mehr um. */
     const gfAccess = { anbieter: 'eigen', server: 'mail.beispiel.de', port: 465, secure: true,
                        benutzer: 'anna@beispiel.de', passwort: 'geheim',
                        absender: 'anna@beispiel.de' };
-    const gfMark = crypto.createHash('sha256').update(JSON.stringify(
-      [gfAccess.anbieter, gfAccess.server, gfAccess.port, gfAccess.secure,
-       gfAccess.benutzer, gfAccess.passwort, gfAccess.absender])).digest('hex').slice(0, 16);
     const gfOwn = [{ name: 'Ladies-Forum', vorlage: 'https://ladies.forum/suche?q=%s' }, null,
                    { name: 'Zweites Forum', vorlage: 'https://zwei.beispiel.de/?q=%s' }];
-    const gfPool = ['startpage', 'eigen1', 'ddg', 'eigen3'];
-    const gfVocabulary = { entryOne: 'Modell', entryMany: 'Modelle' };
-    const gfBlocks = { side: ['tags', 'kategorie'], bottom: [], closed: ['links'] };
     {
       const d = open(gfFile);
       const put = d.prepare('INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)');
       put.run('sucheEigene', JSON.stringify(gfOwn));
-      put.run('sucheAktiv', JSON.stringify(gfPool));
       put.run('mailzugang', JSON.stringify(gfAccess));
-      put.run('mailtestOk', JSON.stringify({ marke: gfMark, am: '2026-09-01 10:00:00' }));
-      put.run('vokabular', JSON.stringify(gfVocabulary));
-      d.prepare('INSERT INTO users (username, password_hash, role, status) VALUES (?,?,?,?)')
-        .run('formanna', 'x', 'owner', 'active');
-      d.prepare('INSERT OR REPLACE INTO user_settings (user_id, key, value) VALUES (?,?,?)')
-        .run(d.prepare("SELECT id FROM users WHERE username = 'formanna'").get().id,
-             'bloecke', JSON.stringify(gfBlocks));
+      put.run('mailtestOk', JSON.stringify({ marke: 'abc', am: '2026-09-01 10:00:00' }));
       d.close();
     }
     const gfSetting = (k) => {
@@ -20553,158 +20556,43 @@ function sweepLeftovers() {
       d.close();
       return r ? JSON.parse(r.value) : null;
     };
-    /* ERST DER GEGENSTAND SELBST. Ohne diese Zeile belegte alles Weitere nur,
-       dass eine Datenbank dasteht -- und nicht, dass sie den Stand traegt, um
-       den es geht. */
     check('Der gestellte Bestand traegt die alten Feldnamen',
       (gfSetting('sucheEigene') || [])[0]?.vorlage === 'https://ladies.forum/suche?q=%s' &&
-      gfSetting('mailzugang')?.anbieter === 'eigen' && gfSetting('mailtestOk')?.marke === gfMark,
-      JSON.stringify(gfSetting('mailzugang')));
+      gfSetting('mailzugang')?.anbieter === 'eigen' && gfSetting('mailtestOk')?.marke === 'abc',
+      JSON.stringify([gfSetting('sucheEigene'), gfSetting('mailzugang')]));
+    const gfSay = shortRunAll(`require('./db'); console.log('gestartet');`, gfDirectory);
+    /* UND EIN START ZIEHT NICHTS MEHR NACH -- das ist die umgedrehte Zusage.
+       WAS DABEI NICHT GESCHIEHT, IST DER EIGENTLICHE PUNKT: nichts wird
+       WEGGEWORFEN. Die Zeilen liegen unveraendert da, und der Quelltext liest
+       an ihnen vorbei -- genau der Befund von 0.24.1, nur dass es nach der
+       Voraussetzung dieser Runde keine solche Instanz mehr gibt. */
+    check('Ein Start zieht die alten Feldnamen nicht mehr nach',
+      (gfSetting('sucheEigene') || [])[0]?.template === undefined &&
+      gfSetting('mailzugang')?.provider === undefined,
+      JSON.stringify([gfSetting('sucheEigene'), gfSetting('mailzugang')]));
+    check('Und er wirft dabei nichts weg — die Zeilen liegen unveraendert da',
+      (gfSetting('sucheEigene') || [])[0]?.vorlage === 'https://ladies.forum/suche?q=%s' &&
+      gfSetting('mailzugang')?.passwort === 'geheim' &&
+      gfSetting('mailtestOk')?.am === '2026-09-01 10:00:00',
+      JSON.stringify([gfSetting('sucheEigene'), gfSetting('mailzugang'),
+                      gfSetting('mailtestOk')]));
+    check('Und er sagt kein Wort mehr ueber Feldnamen',
+      !/Feldnamen|field name/i.test(gfSay), gfSay.replace(/\n/g, ' · ').slice(0, 300));
+    /* UND DIE INSTANZ KOMMT DABEI HOCH. Ein Bestand mit alten Feldnamen ist
+       nach dieser Runde ein UNGELESENER Bestand und kein toter -- Leitplanke
+       L3 gilt auch hier. */
+    check('Und die Instanz kommt trotzdem hoch', /gestartet/.test(gfSay),
+      gfSay.replace(/\n/g, ' · ').slice(0, 300));
+    fs.rmSync(gfDirectory, { recursive: true, force: true });
 
-    // EIN Start -- und in ihm laufen beide Bloecke hintereinander.
-    shortRun(`require('./db'); console.log('gelaufen');`, gfDirectory);
-
-    const gfOwnAfter = gfSetting('searchOwn');
-    check('Die eigenen Suchmaschinen tragen danach `template`',
-      Array.isArray(gfOwnAfter) && gfOwnAfter.length === 3 &&
-      gfOwnAfter[0].template === 'https://ladies.forum/suche?q=%s' &&
-      gfOwnAfter[2].template === 'https://zwei.beispiel.de/?q=%s',
-      JSON.stringify(gfOwnAfter));
-    check('Und `vorlage` steht an keinem der drei Plaetze mehr',
-      (gfOwnAfter || []).every(e => !e || !('vorlage' in e)), JSON.stringify(gfOwnAfter));
-    /* DER GERAEUMTE PLATZ BLEIBT GERAEUMT. `null` ist kein Objekt, und ein
-       Block, der daraus `{}` machte, ergaebe einen halben Anbieter -- den
-       weist der Schreibweg mit 400 ab, aber gelesen wird er trotzdem. */
-    check('Und der geraeumte zweite Platz bleibt null',
-      gfOwnAfter[1] === null, JSON.stringify(gfOwnAfter[1]));
-    check('Und die Namen stehen unveraendert daneben',
-      gfOwnAfter[0].name === 'Ladies-Forum' && gfOwnAfter[2].name === 'Zweites Forum',
-      JSON.stringify(gfOwnAfter.map(e => e && e.name)));
-
-    const gfAccessAfter = gfSetting('mailzugang');
-    check('Der Mailzugang traegt danach die vier englischen Felder',
-      gfAccessAfter.provider === 'eigen' && gfAccessAfter.user === 'anna@beispiel.de' &&
-      gfAccessAfter.password === 'geheim' && gfAccessAfter.sender === 'anna@beispiel.de',
-      JSON.stringify({ ...gfAccessAfter, password: '***' }));
-    check('Und keines der vier deutschen steht mehr da',
-      !['anbieter', 'benutzer', 'passwort', 'absender'].some(k => k in gfAccessAfter),
-      Object.keys(gfAccessAfter).join(' · '));
-    /* DREI FELDER HIESSEN SCHON VORHER SO und duerfen deshalb nicht angefasst
-       werden. Stuenden sie in der Liste, waere die Liste eine Behauptung
-       ueber 0.24.1, die nicht stimmt. */
-    check('Und server, port und sicher stehen unveraendert',
-      gfAccessAfter.server === 'mail.beispiel.de' && gfAccessAfter.port === 465 &&
-      gfAccessAfter.secure === true, JSON.stringify(gfAccessAfter));
-
-    const gfTestAfter = gfSetting('mailtestOk');
-    check('Der Beleg der Testmail traegt danach `mark` und `at`',
-      gfTestAfter.mark === gfMark && gfTestAfter.at === '2026-09-01 10:00:00',
-      JSON.stringify(gfTestAfter));
-    check('Und weder `marke` noch `am` stehen mehr da',
-      !('marke' in gfTestAfter) && !('am' in gfTestAfter),
-      Object.keys(gfTestAfter).join(' · '));
-
-    /* JETZT LIEST DER QUELLTEXT SELBST -- und das ist die eigentliche Probe.
-       Alles darueber belegt, was in der Zeile STEHT; diese hier belegt, dass
-       der Server es auch SIEHT. Gefragt wird im Kind, weil db.js beim Laden
-       eine Datenbank oeffnet. */
-    const gfSeen = JSON.parse(shortRun(
-      `const { db } = require('./db'); const mail = require('./mail');` +
-      `const get = (k) => { const r = db.prepare('SELECT value FROM settings WHERE key = ?').get(k);` +
-      ` return r ? JSON.parse(r.value) : null; };` +
-      `const access = get('mailzugang'), test = get('mailtestOk');` +
-      `const own = get('searchOwn') || [];` +
-      `const ok = (v) => typeof v === 'string' && /^https?:\\/\\/[^\\s]+$/i.test(v) && v.includes('%s');` +
-      `console.log(JSON.stringify({` +
-      ` slots: own.map(e => (e && e.name && ok(e.template)) ? e.name : null),` +
-      ` configured: mail.configured(access),` +
-      ` markMatches: Boolean(test && test.mark && test.mark === mail.mark(access)),` +
-      ` testedAt: test ? (test.at ?? null) : null }));`,
-      gfDirectory));
-    check('Der Quelltext sieht die beiden eigenen Suchmaschinen wieder',
-      equal(gfSeen.slots, ['Ladies-Forum', null, 'Zweites Forum']), JSON.stringify(gfSeen.slots));
-    check('Und der Mailzugang gilt wieder als eingerichtet',
-      gfSeen.configured === true, JSON.stringify(gfSeen.configured));
-    /* DIE MARKE DES MAILTESTS GILT WEITER. Sie haengt an den WERTEN und nicht
-       an den Namen -- deshalb wird sie umbenannt und nicht geloescht. Eine
-       geloeschte Marke hiesse „teste noch einmal", und dazu gibt es keinen
-       Anlass: es hat sich am Zugang nichts geaendert. */
-    check('Die Marke des Mailtests gilt weiter',
-      gfSeen.markMatches === true, `gespeichert ${gfMark}`);
-    check('Und „zuletzt getestet" steht wieder da',
-      gfSeen.testedAt === '2026-09-01 10:00:00', JSON.stringify(gfSeen.testedAt));
-
-    /* DIE GEGENLAGE: DREI WERTE, DIE SICH IN DIESEM BLOCK NICHT AENDERN
-       DUERFEN. `searchOn` ist eine flache Liste von Schluesseln und war schon
-       0.24.1 kein Fall; `vocabulary` und `blocks` stehen hier ABSICHTLICH
-       schon mit englischen Namen da -- der Block 0.24.3 eine Gruppe weiter
-       unten nimmt sie sich vor, und was dort schon englisch heisst, darf auch
-       er nicht mehr anfassen. Ein Block, der alles anfasst, waere schlimmer
-       als einer, der nichts tut. */
-    check('Der Vorrat der Suchmaschinen bleibt Zeichen fuer Zeichen stehen',
-      equal(gfSetting('searchOn'), gfPool), JSON.stringify(gfSetting('searchOn')));
-    check('Das Vokabular bleibt Zeichen fuer Zeichen stehen',
-      JSON.stringify(gfSetting('vocabulary')) === JSON.stringify(gfVocabulary),
-      JSON.stringify(gfSetting('vocabulary')));
-    check('Und die Bloecke des Benutzers bleiben Zeichen fuer Zeichen stehen',
-      (() => { const d = open(gfFile);
-        const r = d.prepare("SELECT value FROM user_settings WHERE key = 'blocks'").get();
-        d.close(); return r && r.value === JSON.stringify(gfBlocks); })(),
-      'die Bloecke sind angefasst worden');
-
-    /* WIEDERHOLBAR UND STUMM. Gefragt wird die Zeile selbst und nicht ein
-       Merker -- ein zweiter Start findet nichts mehr. */
-    const gfSecond = shortRunAll(`require('./db'); console.log('fertig');`, gfDirectory);
-    check('Der zweite Start sagt nichts mehr ueber Feldnamen',
-      !/Migration auf 0\.24\.2/.test(gfSecond), gfSecond.replace(/\n/g, ' · '));
-    check('Und er laesst die Werte, wie sie sind',
-      JSON.stringify(gfSetting('searchOwn')) === JSON.stringify(gfOwnAfter) &&
-      JSON.stringify(gfSetting('mailtestOk')) === JSON.stringify(gfTestAfter),
-      JSON.stringify(gfSetting('searchOwn')));
-
-    /* DER HALBE FALL: eine Zeile, die BEIDE Namen traegt. Sie kann nur von
-       Hand entstehen -- aber ein Migrationsblock trifft im Feld genau das,
-       was er fuer unmoeglich haelt. DER NEUE NAME GEWINNT, weil der Quelltext
-       ihn liest; der alte faellt weg, damit nicht zwei Wahrheiten
-       nebeneinander liegenbleiben. */
-    {
-      const d = open(gfFile);
-      d.prepare("UPDATE settings SET value = ? WHERE key = 'mailtestOk'")
-        .run(JSON.stringify({ marke: 'alt', mark: 'neu', am: 'gestern' }));
-      d.close();
-    }
-    shortRun(`require('./db'); console.log('gelaufen');`, gfDirectory);
-    const gfBoth = gfSetting('mailtestOk');
-    check('Traegt eine Zeile beide Namen, gewinnt der neue',
-      gfBoth.mark === 'neu' && !('marke' in gfBoth), JSON.stringify(gfBoth));
-    check('Und der alleinstehende alte Name zieht trotzdem um',
-      gfBoth.at === 'gestern' && !('am' in gfBoth), JSON.stringify(gfBoth));
-
-    /* UND EINE FRISCHE INSTANZ SAGT NICHTS. Sie traegt keine dieser Zeilen,
-       also gibt es nichts umzubenennen -- eine Meldung waere dort eine
-       Behauptung ueber einen Bestand, den es nicht gibt. */
-    {
-      const gfFresh = fs.mkdtempSync(path.join(os.tmpdir(), 'kriterion-frisch-'));
-      const gfFirst = shortRunAll(`require('./db'); console.log('fertig');`, gfFresh);
-      check('Eine frische Instanz meldet keine Feldnamen',
-        !/Migration auf 0\.24\.2/.test(gfFirst), gfFirst.replace(/\n/g, ' · '));
-      fs.rmSync(gfFresh, { recursive: true, force: true });
-    }
-
-    /* ZULETZT DIE LISTE GEGEN DEN QUELLTEXT, DER SIE LIEST. Bis hierher steht
-       fest, dass die Migration tut, was sie sagt. Offen bleibt, ob sie das
-       Richtige sagt: ein Ziel, das der Quelltext gar nicht liest, waere ein
-       Umbenennen ins Leere. Genau daran ist 0.24.1 gescheitert. */
-    const gfDb = fs.readFileSync(path.join(__dirname, 'db.js'), 'utf8');
-    const gfList = (gfDb.match(/const SHAPES_0242 = \[[\s\S]*?\n\];/) || [''])[0];
-    check('Es gibt die Liste der Formen ueberhaupt', gfList.length > 200,
-      `${gfList.length} Zeichen`);
-    check('Und sie nennt genau die drei Schluessel',
-      equal((gfList.match(/key: '([A-Za-z]+)'/g) || []).map(x => x.slice(6, -1)),
-        ['searchOwn', 'mailzugang', 'mailtestOk']),
-      (gfList.match(/key: '([A-Za-z]+)'/g) || []).join(' · '));
+    /* ZULETZT DIE ZIELE GEGEN DEN QUELLTEXT, DER SIE LIEST -- und DIESE
+       Haelfte ist unveraendert geblieben. Ein Ziel, das der Quelltext gar
+       nicht liest, waere ein Umbenennen ins Leere; genau daran ist 0.24.1
+       gescheitert, und der Waechter dagegen bleibt stehen, auch wenn die
+       Migration fort ist. */
     const gfMail = fs.readFileSync(path.join(__dirname, 'mail.js'), 'utf8');
     const gfServer = fs.readFileSync(path.join(__dirname, 'server.js'), 'utf8');
+    const gfApp = fs.readFileSync(path.join(__dirname, 'public', 'app.js'), 'utf8');
     const gfEmpty = (gfMail.match(/const EMPTY = \{[^}]*\}/) || [''])[0];
     check('Die vier Ziele des Mailzugangs stehen wirklich in mail.js',
       ['provider', 'user', 'password', 'sender'].every(n =>
@@ -20714,378 +20602,63 @@ function sweepLeftovers() {
     check('Und die beiden Ziele des Mailtests stehen wirklich in server.js',
       /test\.mark === mail\.mark\(raw\)/.test(gfServer) && /test \? test\.at : null/.test(gfServer),
       'server.js liest test.mark/test.at nicht');
-    /* UND DER LESER WUERDE EIN FALSCHES ZIEL WIRKLICH MELDEN -- an einem
-       gestellten Fall, damit die vier Zeilen darueber nicht bloss deshalb
-       gruen sind, weil der Ausdruck ueberall passt. */
-    check('Der Leser wuerde ein Ziel melden, das nirgends gelesen wird',
-      !new RegExp(`(^|[^A-Za-z])vorlage:`).test(gfEmpty) &&
-      !/typeof e\.muster === 'string'/.test(gfServer),
-      'der Leser trifft auch Namen, die nicht dastehen');
-
-    fs.rmSync(gfDirectory, { recursive: true, force: true });
-  }
-
-  /* ========= Die deutschen Reste in gespeicherten Werten — 0.24.3 =========
-     DIE ZWEITE MIGRATION DIESER RUNDE, und sie steht hier, weil Frage F7 vom
-     Betreiber GEGEN den Vorschlag des Auftrags entschieden worden ist: der
-     deutsche Rest aus 0.24.1 faellt ganz, auch was in der Datenbank steht.
-
-     DIESELBE BAUFORM WIE DIE GRUPPE DARUEBER, und aus demselben Grund: an
-     einem ECHTEN Bestand und nicht am Quelltext. Ein Waechter, der nachliest,
-     ob STORED_0243 dasteht, waere gruen, sobald die Liste dasteht -- und
-     sagte nichts darueber, ob sie greift (Stolperstein 325).
-
-     DER TEUERSTE FALL STEHT ZUERST: das Vokabular. Vierzehn Woerter, die der
-     Eigentuemer eingetragen hat, liegen unter Namen, die 0.24.1 im Quelltext
-     uebersetzt hat -- und vocabulary() laeuft ueber die VORGABEN und liest zu
-     jedem Namen den gespeicherten Wert. Ohne diesen Block faellt jedes der
-     vierzehn Woerter still auf die Vorgabe zurueck.
-
-     UND DIE GEGENLAGE STEHT DANEBEN: die BLOCKNAMEN (`kategorie`, `bewertung`,
-     `potenzial` und die uebrigen) sind ausdruecklich NICHT Gegenstand dieser
-     Runde -- die Entscheidung nennt die BEREICHE (`seite`, `unten`, `zu`) und
-     nicht die Bloecke darin. Ein Block, der mehr anfasst als beschlossen,
-     waere schlimmer als einer, der nichts tut. */
-  group('Die deutschen Reste in gespeicherten Werten — 0.24.3');
-  {
-    const drDirectory = fs.mkdtempSync(path.join(os.tmpdir(), 'kriterion-reste-'));
-    const drFile = path.join(drDirectory, 'katalog.sqlite');
-    shortRun(`require('./db'); console.log('angelegt');`, drDirectory);
-
-    /* DER GESTELLTE BESTAND: eine Installation auf dem Stand 0.24.2, in der
-       jemand gearbeitet hat. Vierzehn eigene Vokabeln, ein Mailzugang mit
-       `sicher`, geschobene Bloecke, ein Filter mit `favorit` und einer
-       Potenzialsortierung, und zwei gespeicherte Ansichten, die denselben
-       Filter noch einmal tragen. */
-    const drVocabulary = {
-      sacheEinzahl: 'Maschine', sacheMehrzahl: 'Maschinen',
-      merkmalJa: 'Geprüft', merkmalNein: 'Ungeprüft',
-      zeitpunktEinzahl: 'Prüftag', zeitpunktMehrzahl: 'Prüftage',
-      berichtEinzahl: 'Protokoll', berichtMehrzahl: 'Protokolle',
-      aufgabeEinzahl: 'Auftrag', aufgabeMehrzahl: 'Aufträge',
-      aufgabeErledigt: 'Abgearbeitet', potenzial: 'Erwartung',
-      bewertungEinzahl: 'Wertung', bewertungMehrzahl: 'Wertungen'
-    };
-    const drAccess = { provider: 'eigen', server: 'mail.beispiel.de', port: 465,
-                       sicher: true, user: 'olaf@beispiel.de', password: 'geheim',
-                       sender: 'olaf@beispiel.de' };
-    const drBlocks = { seite: ['bewertung', 'kategorie', 'tags', 'potenzial'],
-                       unten: ['kommentare', 'beschreibung', 'testtage', 'links', 'dateien'],
-                       zu: ['links', 'dateien'] };
-    const drFilters = { categoryIds: [], tagIds: [], tagMode: 'and', tested: 'all',
-                        rejected: 'all', favorit: true, sort: 'potenzial_desc' };
-    const drViews = [{ name: 'Meine Favoriten', q: '',
-                       filters: { ...drFilters, sort: 'potenzial_asc' } },
-                     { name: 'Alles', q: 'bohr', filters: null }];
-    {
-      const d = open(drFile);
-      d.prepare('INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)')
-        .run('vocabulary', JSON.stringify(drVocabulary));
-      d.prepare('INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)')
-        .run('mailzugang', JSON.stringify(drAccess));
-      d.prepare('INSERT INTO users (username, password_hash, role, status) VALUES (?,?,?,?)')
-        .run('restolaf', 'x', 'owner', 'active');
-      const drId = d.prepare("SELECT id FROM users WHERE username = 'restolaf'").get().id;
-      const put = d.prepare('INSERT OR REPLACE INTO user_settings (user_id, key, value) VALUES (?,?,?)');
-      put.run(drId, 'blocks', JSON.stringify(drBlocks));
-      put.run(drId, 'filters', JSON.stringify(drFilters));
-      put.run(drId, 'views', JSON.stringify(drViews));
-      d.close();
-    }
-    const drSetting = (k) => {
-      const d = open(drFile);
-      const r = d.prepare('SELECT value FROM settings WHERE key = ?').get(k);
-      d.close();
-      return r ? JSON.parse(r.value) : null;
-    };
-    const drOwn = (k) => {
-      const d = open(drFile);
-      const r = d.prepare('SELECT value FROM user_settings WHERE key = ?').get(k);
-      d.close();
-      return r ? JSON.parse(r.value) : null;
-    };
-    /* ERST DER GEGENSTAND SELBST -- sonst belegte alles Weitere nur, dass eine
-       Datenbank dasteht, und nicht, dass sie den Stand traegt, um den es geht. */
-    check('Der gestellte Bestand traegt die deutschen Namen',
-      drSetting('vocabulary')?.sacheEinzahl === 'Maschine' &&
-      drSetting('mailzugang')?.sicher === true &&
-      equal(drOwn('blocks')?.zu, ['links', 'dateien']) &&
-      drOwn('filters')?.favorit === true && drOwn('filters')?.sort === 'potenzial_desc',
-      JSON.stringify(drOwn('filters')));
-
-    // EIN Start -- und in ihm laufen alle drei Bloecke hintereinander.
-    shortRun(`require('./db'); console.log('gelaufen');`, drDirectory);
-
-    const drVocabularyAfter = drSetting('vocabulary');
-    /* VIERZEHN, UND SIE BLEIBEN VIERZEHN -- 0.32.0. Jene Runde legt ein
-       fuenfzehntes Vokabelwort an (`grade`), und VOCABULARY_FIELDS_0243 in
-       db.js waechst trotzdem nicht mit: die Tafel uebersetzt die ALTEN
-       deutschen Namen von 0.24.3, und „Note" hatte nie einen solchen Namen.
-       Eine fuenfzehnte Zeile dort waere eine erfundene Vergangenheit. */
-    check('Die vierzehn Vokabeln tragen danach englische Namen',
-      drVocabularyAfter.entryOne === 'Maschine' && drVocabularyAfter.entryMany === 'Maschinen' &&
-      drVocabularyAfter.testedYes === 'Geprüft' && drVocabularyAfter.testedNo === 'Ungeprüft' &&
-      drVocabularyAfter.dayOne === 'Prüftag' && drVocabularyAfter.dayMany === 'Prüftage' &&
-      drVocabularyAfter.reportOne === 'Protokoll' && drVocabularyAfter.reportMany === 'Protokolle' &&
-      drVocabularyAfter.taskOne === 'Auftrag' && drVocabularyAfter.taskMany === 'Aufträge' &&
-      drVocabularyAfter.taskDone === 'Abgearbeitet' && drVocabularyAfter.potential === 'Erwartung' &&
-      drVocabularyAfter.ratingOne === 'Wertung' && drVocabularyAfter.ratingMany === 'Wertungen',
-      JSON.stringify(drVocabularyAfter));
-    check('Und keiner der vierzehn deutschen steht mehr da',
-      Object.keys(drVocabularyAfter).every(k => !(k in drVocabulary)),
-      Object.keys(drVocabularyAfter).join(' · '));
-    /* UND ES SIND WIRKLICH VIERZEHN. Ohne diese Zeile bliebe offen, ob der
-       Block dreizehn umbenannt und einen liegen gelassen hat. */
-    check('Und es sind genau vierzehn',
-      Object.keys(drVocabularyAfter).length === 14,
-      `${Object.keys(drVocabularyAfter).length}`);
-
-    const drAccessAfter = drSetting('mailzugang');
-    check('Der Mailzugang traegt danach `secure`',
-      drAccessAfter.secure === true && !('sicher' in drAccessAfter),
-      Object.keys(drAccessAfter).join(' · '));
-    check('Und die uebrigen sechs Felder stehen unveraendert',
-      drAccessAfter.provider === 'eigen' && drAccessAfter.server === 'mail.beispiel.de' &&
-      drAccessAfter.port === 465 && drAccessAfter.user === 'olaf@beispiel.de' &&
-      drAccessAfter.password === 'geheim' && drAccessAfter.sender === 'olaf@beispiel.de',
-      JSON.stringify({ ...drAccessAfter, password: '***' }));
-
-    const drBlocksAfter = drOwn('blocks');
-    check('Die drei Bereiche der Bloecke heissen danach side, bottom und closed',
-      equal(drBlocksAfter.side, drBlocks.seite) &&
-      equal(drBlocksAfter.bottom, drBlocks.unten) &&
-      equal(drBlocksAfter.closed, drBlocks.zu),
-      JSON.stringify(drBlocksAfter));
-    check('Und keiner der drei deutschen Bereiche steht mehr da',
-      !['seite', 'unten', 'zu'].some(k => k in drBlocksAfter),
-      Object.keys(drBlocksAfter).join(' · '));
-    /* DIE BLOCKNAMEN DARIN BLEIBEN DEUTSCH. Die Entscheidung nennt die
-       BEREICHE, nicht die Bloecke -- und `kategorie` als Blockname steht auch
-       in BLOCK_DEFAULT, im Markup als data-block und in der Vorgabeliste des
-       Servers. Ein Umbenennen dort waere eine vierte Baustelle. */
-    check('Die Blocknamen darin bleiben, wie sie sind',
-      drBlocksAfter.side.includes('kategorie') && drBlocksAfter.side.includes('potenzial') &&
-      drBlocksAfter.bottom.includes('testtage'), JSON.stringify(drBlocksAfter.side));
-
-    const drFiltersAfter = drOwn('filters');
-    check('Der Filter traegt danach `favorite`',
-      drFiltersAfter.favorite === true && !('favorit' in drFiltersAfter),
-      JSON.stringify(drFiltersAfter));
-    check('Und die Sortierung heisst `potential_desc`',
-      drFiltersAfter.sort === 'potential_desc', JSON.stringify(drFiltersAfter.sort));
-    check('Und die uebrigen Felder des Filters stehen unveraendert',
-      drFiltersAfter.tagMode === 'and' && drFiltersAfter.tested === 'all' &&
-      drFiltersAfter.rejected === 'all', JSON.stringify(drFiltersAfter));
-
-    /* DIE GESPEICHERTEN ANSICHTEN TRAGEN DENSELBEN FILTER NOCH EINMAL. Wer
-       sie vergisst, hat den laufenden Filter umgestellt und die Ansichten
-       stehen gelassen -- und genau die sind der Grund, warum jemand sie
-       gespeichert hat. */
-    const drViewsAfter = drOwn('views');
-    check('Auch der Filter in den gespeicherten Ansichten zieht mit',
-      drViewsAfter[0].filters.favorite === true &&
-      !('favorit' in drViewsAfter[0].filters) &&
-      drViewsAfter[0].filters.sort === 'potential_asc',
-      JSON.stringify(drViewsAfter[0].filters));
-    check('Und Name und Suchbegriff der Ansicht bleiben stehen',
-      drViewsAfter[0].name === 'Meine Favoriten' && drViewsAfter[1].q === 'bohr',
-      JSON.stringify(drViewsAfter.map(a => [a.name, a.q])));
-    /* EINE ANSICHT OHNE FILTER IST KEIN FEHLER: `filters: null` heisst „nur
-       der Suchbegriff". Ein Block, der daraus `{}` machte, gaebe ihr einen
-       leeren Filter, und der ist etwas anderes als keiner. */
-    check('Und eine Ansicht ohne Filter bleibt ohne Filter',
-      drViewsAfter[1].filters === null, JSON.stringify(drViewsAfter[1]));
-
-    /* JETZT LIEST DER QUELLTEXT SELBST -- und das ist die eigentliche Probe.
-       Alles darueber belegt, was in der Zeile STEHT; diese hier belegt, dass
-       der Server es auch SIEHT. Ohne sie waere ein Umbenennen ins Leere
-       moeglich, und genau daran ist 0.24.1 gescheitert. */
-    const drSeen = JSON.parse(shortRun(
-      `const { db } = require('./db'); const mail = require('./mail');` +
-      `const get = (k) => { const r = db.prepare('SELECT value FROM settings WHERE key = ?').get(k);` +
-      ` return r ? JSON.parse(r.value) : null; };` +
-      `console.log(JSON.stringify({ words: get('vocabulary'),` +
-      ` configured: mail.configured(get('mailzugang')),` +
-      ` secure: mail.state(get('mailzugang')).secure }));`,
-      drDirectory));
-    check('Der Quelltext sieht die vierzehn eigenen Woerter wieder',
-      drSeen.words.entryOne === 'Maschine' && drSeen.words.potential === 'Erwartung' &&
-      drSeen.words.ratingMany === 'Wertungen', JSON.stringify(drSeen.words));
-    check('Und der Mailzugang gilt weiter als eingerichtet und verschluesselt',
-      drSeen.configured === true && drSeen.secure === true, JSON.stringify(drSeen));
-
-    /* WIEDERHOLBAR UND STUMM. Gefragt wird die Zeile selbst und nicht ein
-       Merker -- ein zweiter Start findet nichts mehr. */
-    const drSecond = shortRunAll(`require('./db'); console.log('fertig');`, drDirectory);
-    check('Der zweite Start sagt nichts mehr ueber gespeicherte Namen',
-      !/gespeicherte Namen umbenannt/.test(drSecond), drSecond.replace(/\n/g, ' · '));
-    check('Und er laesst die Werte, wie sie sind',
-      JSON.stringify(drSetting('vocabulary')) === JSON.stringify(drVocabularyAfter) &&
-      JSON.stringify(drOwn('filters')) === JSON.stringify(drFiltersAfter),
-      JSON.stringify(drOwn('filters')));
-
-    /* DIE NEUE FORM DES VOKABULARS -- ein Satz JE SPRACHE, seit Bauabschnitt 6
-       dieser Runde. Die Namen stehen dort eine Stufe tiefer, und der Block
-       muss beide Stufen ansehen. Ohne diese Zeilen zoege ein Bestand mit, der
-       nie gespeichert hat, und einer, der einmal gespeichert hat, nicht. */
-    {
-      const d = open(drFile);
-      d.prepare("UPDATE settings SET value = ? WHERE key = 'vocabulary'")
-        .run(JSON.stringify({ de: { sacheEinzahl: 'Anlage', potenzial: 'Aussicht' },
-                              en: { entryOne: 'Machine' } }));
-      d.close();
-    }
-    shortRun(`require('./db'); console.log('gelaufen');`, drDirectory);
-    const drDeep = drSetting('vocabulary');
-    check('Auch in der Form je Sprache ziehen die Namen mit',
-      drDeep.de.entryOne === 'Anlage' && drDeep.de.potential === 'Aussicht' &&
-      !('sacheEinzahl' in drDeep.de), JSON.stringify(drDeep));
-    check('Und die Sprachkennungen darueber bleiben unangetastet',
-      equal(Object.keys(drDeep), ['de', 'en']) && drDeep.en.entryOne === 'Machine',
-      JSON.stringify(Object.keys(drDeep)));
-
-    /* DER HALBE FALL: eine Zeile, die BEIDE Namen traegt. DER NEUE GEWINNT,
-       weil der Quelltext ihn liest -- dieselbe Regel wie in SHAPES_0242, und
-       aus demselben Grund. */
-    {
-      const d = open(drFile);
-      d.prepare("UPDATE user_settings SET value = ? WHERE key = 'filters'")
-        .run(JSON.stringify({ favorit: false, favorite: true, sort: 'potenzial_asc' }));
-      d.close();
-    }
-    shortRun(`require('./db'); console.log('gelaufen');`, drDirectory);
-    const drBoth = drOwn('filters');
-    check('Traegt ein Filter beide Namen, gewinnt der neue',
-      drBoth.favorite === true && !('favorit' in drBoth), JSON.stringify(drBoth));
-    check('Und der Sortierwert zieht dabei trotzdem um',
-      drBoth.sort === 'potential_asc', JSON.stringify(drBoth.sort));
-
-    /* UND EINE FRISCHE INSTANZ SAGT NICHTS. Sie traegt keine dieser Zeilen --
-       eine Meldung waere dort eine Behauptung ueber einen Bestand, den es
-       nicht gibt. */
-    {
-      const drFresh = fs.mkdtempSync(path.join(os.tmpdir(), 'kriterion-reste-frisch-'));
-      const drFirst = shortRunAll(`require('./db'); console.log('fertig');`, drFresh);
-      check('Eine frische Instanz meldet keine gespeicherten Namen',
-        !/gespeicherte Namen umbenannt/.test(drFirst), drFirst.replace(/\n/g, ' · '));
-      fs.rmSync(drFresh, { recursive: true, force: true });
-    }
-
-    /* ZULETZT DIE LISTE GEGEN DEN QUELLTEXT, DER SIE LIEST. Bis hierher steht
-       fest, dass die Migration tut, was sie sagt. Offen bleibt, ob sie das
-       Richtige sagt: ein Ziel, das der Quelltext gar nicht liest, waere ein
-       Umbenennen ins Leere. */
-    const drDb = fs.readFileSync(path.join(__dirname, 'db.js'), 'utf8');
-    const drList = (drDb.match(/const STORED_0243 = \[[\s\S]*?\n\];/) || [''])[0];
-    check('Es gibt die Liste der gespeicherten Namen ueberhaupt',
-      drList.length > 200, `${drList.length} Zeichen`);
-    check('Und sie nennt genau die fuenf Schluessel',
-      equal((drList.match(/key: '([A-Za-z]+)'/g) || []).map(x => x.slice(6, -1)),
-        ['mailzugang', 'blocks', 'filters', 'views', 'vocabulary']),
-      (drList.match(/key: '([A-Za-z]+)'/g) || []).join(' · '));
-    /* UND DIE TAFEL STEHT ALS ZEICHENFOLGEN-PAARE. SHAPES_0242 eine Runde
-       davor schreibt Eigenschaftsnamen -- und braucht deshalb bis heute eine
-       Ausnahmeliste im Waechter (OLD_STORED_NAMES). Diese hier nicht: gesucht
-       wird ueber die Tafel UND die beiden Listen daneben, auf die sie zeigt. */
-    const drTables = drList +
-      (drDb.match(/const FILTER_FIELDS_0243 = \[[\s\S]*?\];/) || [''])[0] +
-      (drDb.match(/const FILTER_VALUES_0243 = \[[\s\S]*?\];/) || [''])[0] +
-      (drDb.match(/const VOCABULARY_FIELDS_0243 = \[[\s\S]*?\n\];/) || [''])[0];
-    check('Und die Tafel nennt ihre alten Namen als Zeichenfolgen',
-      /\['sicher', 'secure'\]/.test(drTables) && /\['seite', 'side'\]/.test(drTables) &&
-      /\['favorit', 'favorite'\]/.test(drTables) &&
-      /\['sacheEinzahl', 'entryOne'\]/.test(drTables) &&
-      !/\bsicher:/.test(drTables) && !/\bfavorit:/.test(drTables),
-      (drTables.match(/\['[a-zA-Z_]+', '[a-zA-Z_]+'\]/g) || []).slice(0, 4).join(' · '));
-    /* UND ES SIND WIRKLICH FUENF FELDNAMEN UND ZWEI WERTE PLUS DIE VIERZEHN
-       VOKABELN. Ohne die Zahl waere die Liste eine Selbstbestaetigung. */
-    check('Und es sind fuenf Feldnamen, zwei Sortierwerte und vierzehn Vokabeln',
-      (drTables.match(/\['[a-zA-Z_]+', '[a-zA-Z_]+'\]/g) || []).length === 19 &&
-      (drTables.match(/\['sort',\s*'[a-z_]+',\s*'[a-z_]+'\]/g) || []).length === 2,
-      `${(drTables.match(/\['[a-zA-Z_]+', '[a-zA-Z_]+'\]/g) || []).length} Paare`);
-    const drServer = fs.readFileSync(path.join(__dirname, 'server.js'), 'utf8');
-    const drApp = fs.readFileSync(path.join(__dirname, 'public', 'app.js'), 'utf8');
     check('Die drei Ziele der Bereiche stehen wirklich in server.js',
-      /side: sortArea\(g\.side, BLOCK_DEFAULT\.side\)/.test(drServer) &&
-      /bottom: sortArea\(g\.bottom, BLOCK_DEFAULT\.bottom\)/.test(drServer) &&
-      /closed: \(Array\.isArray\(g\.closed\)/.test(drServer),
+      /side: sortArea\(g\.side, BLOCK_DEFAULT\.side\)/.test(gfServer) &&
+      /bottom: sortArea\(g\.bottom, BLOCK_DEFAULT\.bottom\)/.test(gfServer) &&
+      /closed: \(Array\.isArray\(g\.closed\)/.test(gfServer),
       'server.js liest side/bottom/closed nicht');
     check('Und die Ziele des Filters wirklich in app.js',
-      /f\.favorite = f\.favorite === true;/.test(drApp) &&
-      /case 'potential_desc':/.test(drApp) && /case 'potential_asc':/.test(drApp),
+      /f\.favorite = f\.favorite === true;/.test(gfApp) &&
+      /case 'potential_desc':/.test(gfApp) && /case 'potential_asc':/.test(gfApp),
       'app.js liest favorite/potential_* nicht');
-    /* UND DER LESER WUERDE EIN FALSCHES ZIEL WIRKLICH MELDEN -- an einem
-       gestellten Fall, damit die Zeilen darueber nicht bloss deshalb gruen
-       sind, weil der Ausdruck ueberall passt. */
+    /* UND DER LESER WUERDE EIN FALSCHES ZIEL WIRKLICH MELDEN -- an gestellten
+       Faellen, damit die Zeilen darueber nicht bloss deshalb gruen sind, weil
+       der Ausdruck ueberall passt. */
     check('Der Leser wuerde ein Ziel melden, das nirgends gelesen wird',
-      !/f\.favorit = f\.favorit === true;/.test(drApp) &&
-      !/case 'potenzial_desc':/.test(drApp),
+      !new RegExp(`(^|[^A-Za-z])vorlage:`).test(gfEmpty) &&
+      !/typeof e\.muster === 'string'/.test(gfServer) &&
+      !/f\.favorit = f\.favorit === true;/.test(gfApp) &&
+      !/case 'potenzial_desc':/.test(gfApp),
       'der Leser trifft auch Namen, die nicht dastehen');
-
-    fs.rmSync(drDirectory, { recursive: true, force: true });
+    /* UND DIE DREI TAFELN GIBT ES NICHT MEHR. Sie waren der Grund, warum der
+       Namenswaechter bis 0.32.1 eine Ausnahmeliste fuer sechs deutsche
+       Bezeichner brauchte (`vorlage`, `anbieter`, `benutzer`, `passwort`,
+       `absender`, `marke`, allesamt aus SHAPES_0242). Mit den Bloecken faellt
+       die Ausnahme -- und dass sie wirklich faellt, haelt die Namensprobe
+       weiter unten fest. */
+    const gfDb = fs.readFileSync(path.join(__dirname, 'db.js'), 'utf8');
+    check('Und die drei Tafeln der 0.24er Runde stehen nicht mehr in db.js',
+      !/SHAPES_0242|STORED_0243|VOCABULARY_FIELDS_0243|FILTER_FIELDS_0243/.test(gfDb),
+      (gfDb.match(/SHAPES_0242|STORED_0243|VOCABULARY_FIELDS_0243|FILTER_FIELDS_0243/g) || [])
+        .join(' · ') || 'keine mehr da');
   }
 
-  /* ========= Der Bestand behaelt Deutsch — 0.24.3, F2 ====================
-     EINE FRISCHE INSTALLATION STARTET AUF ENGLISCH, EIN BESTAND NICHT. Bis
-     0.24.2 stand die Vorgabesprache als Konstante im Quelltext; ab dieser
-     Runde steht sie in `settings`, und die Auslieferung gibt Englisch vor.
-     Ohne diesen Block spraeche eine laufende Instanz nach dem Einspielen
-     ploetzlich Englisch -- und „am Bildschirm aendert sich kein Wort" waere
-     zum ersten Mal in dieser Reihe gebrochen, ohne dass es jemand bestellt
-     haette.
-
-     UND ES MUSS EIN GESCHRIEBENER WERT SEIN, KEIN ABGELEITETER. „Kein
-     Eintrag UND es gibt Zugaenge, also Deutsch" traegt nicht: eine FRISCH auf
-     Englisch eingerichtete Installation hat im Augenblick der Einrichtung
-     noch keinen Zugang und danach einen -- sie kippte in genau dem
-     Augenblick auf Deutsch, in dem der erste Mensch sein Konto anlegt.
-     DIE FRAGE LAESST SICH NUR BEIM HOCHKOMMEN STELLEN, und genau das prueft
-     diese Gruppe: an drei Datenbanken, die sich in EINER Sache
-     unterscheiden. */
-  group('Der Bestand behaelt Deutsch — 0.24.3');
+  /* ========= Die Vorgabesprache — 0.24.3, umgedreht ======================
+     DER BLOCK SCHRIEB EINEM GEWACHSENEN BESTAND SEINE SPRACHE HIN: gab es
+     schon Zugaenge, als diese Fassung zum ersten Mal hochkam, blieb es bei
+     Deutsch; eine frische Installation startete auf Englisch. Er ist mit
+     0.33.0 gefallen, und was bleibt, ist die Auslieferung: WER NICHTS
+     EINGESTELLT HAT, SPRICHT ENGLISCH.
+     DASS DAS FUER EINEN GEWACHSENEN BESTAND DIE AENDERUNG IST, GEHOERT
+     GESAGT: eine Instanz, die vor 0.24.3 deutsch lief und ihre Zeile bekommen
+     hat, behaelt sie -- die Zeile steht ja. Nur eine, die sie NIE bekommen
+     hat, spraeche jetzt Englisch. Nach der Voraussetzung dieser Runde gibt es
+     keine solche: unter 0.33.0 hat nie jemand anders gestanden. */
+  group('Die Vorgabesprache — 0.24.3, umgedreht');
   {
-    const bdSetting = (directory, k) => {
-      const d = open(path.join(directory, 'katalog.sqlite'));
-      const r = d.prepare('SELECT value FROM settings WHERE key = ?').get(k);
+    const bdSetting = (dir, key) => {
+      const d = open(path.join(dir, 'katalog.sqlite'));
+      const r = d.prepare('SELECT value FROM settings WHERE key = ?').get(key);
       d.close();
       return r ? JSON.parse(r.value) : null;
     };
-
-    /* ERSTENS: EIN BESTAND. Eine Datenbank mit einem Zugang darin -- so sieht
-       jede Installation aus, in der schon einmal jemand gearbeitet hat. */
-    const bdOld = fs.mkdtempSync(path.join(os.tmpdir(), 'kriterion-bestand-'));
-    shortRun(`require('./db'); console.log('angelegt');`, bdOld);
-    {
-      const d = open(path.join(bdOld, 'katalog.sqlite'));
-      d.prepare('INSERT INTO users (username, password_hash, role, status) VALUES (?,?,?,?)')
-        .run('bestandsanna', 'x', 'owner', 'active');
-      d.prepare("DELETE FROM settings WHERE key = 'languageDefault'").run();
-      d.close();
-    }
-    check('Der gestellte Bestand traegt einen Zugang und keine Vorgabesprache',
-      bdSetting(bdOld, 'languageDefault') === null,
-      JSON.stringify(bdSetting(bdOld, 'languageDefault')));
-    const bdRun = shortRunAll(`require('./db'); console.log('gelaufen');`, bdOld);
-    check('Der Bestand bekommt Deutsch ausdruecklich in die Ablage geschrieben',
-      bdSetting(bdOld, 'languageDefault') === 'de',
-      JSON.stringify(bdSetting(bdOld, 'languageDefault')));
-    /* UND ER SAGT ES. Ein Migrationsblock, der eine Vorgabe setzt, ohne es zu
-       melden, laesst den Betreiber im Ungewissen, warum seine Installation
-       weiter Deutsch spricht -- und ob das Absicht war. */
-    check('Und er sagt es, samt der Zusage, dass sich nichts aendert',
-      /Vorgabesprache/.test(bdRun) && /kein Wort/.test(bdRun),
-      bdRun.replace(/\n/g, ' · '));
-
-    /* ZWEITENS: EINE FRISCHE INSTALLATION. Dieselbe Fassung, dieselbe
-       Migration -- nur ohne Zugang. Sie darf nichts geschrieben bekommen und
-       spricht damit Englisch. */
     const bdFresh = fs.mkdtempSync(path.join(os.tmpdir(), 'kriterion-frisch-de-'));
     const bdFirst = shortRunAll(`require('./db'); console.log('fertig');`, bdFresh);
     check('Eine frische Installation bekommt keine Vorgabesprache geschrieben',
       bdSetting(bdFresh, 'languageDefault') === null,
       JSON.stringify(bdSetting(bdFresh, 'languageDefault')));
     check('Und sie sagt auch nichts darueber',
-      !/Vorgabesprache/.test(bdFirst), bdFirst.replace(/\n/g, ' · '));
+      !/Vorgabesprache|default language/i.test(bdFirst), bdFirst.replace(/\n/g, ' · '));
     /* UND DER QUELLTEXT LIEST DARAUS WIRKLICH ENGLISCH. Bis hierher steht
        fest, was in der Zeile STEHT -- diese Zeile belegt, was daraus wird. */
     const bdSeen = shortRun(
@@ -21094,41 +20667,161 @@ function sweepLeftovers() {
       `console.log(r ? r.value : 'nichts');`, bdFresh);
     check('Und der Quelltext findet dort nichts, faellt also auf Englisch',
       bdSeen.trim() === 'nichts', bdSeen.trim());
-
-    /* DRITTENS: WER SIE SCHON GESETZT HAT, BEHAELT SIE. Ein zweiter Lauf ist
-       stumm, und wer spaeter auf Englisch stellt, bekommt sie beim naechsten
-       Start nicht zurueck auf Deutsch. */
-    const bdSecond = shortRunAll(`require('./db'); console.log('fertig');`, bdOld);
-    check('Der zweite Start sagt nichts mehr ueber die Vorgabesprache',
-      !/Vorgabesprache/.test(bdSecond), bdSecond.replace(/\n/g, ' · '));
+    /* UND EINE INSTANZ MIT ZUGAENGEN BEKOMMT SIE EBENFALLS NICHT MEHR -- das
+       ist die umgedrehte Zusage. Bis 0.32.1 stand danach `"de"` in der
+       Ablage; jetzt steht dort nichts, und das ist die Auslieferung. */
     {
-      const d = open(path.join(bdOld, 'katalog.sqlite'));
-      d.prepare("UPDATE settings SET value = ? WHERE key = 'languageDefault'").run('"en"');
+      const d = open(path.join(bdFresh, 'katalog.sqlite'));
+      d.prepare("INSERT INTO users (username, password_hash, role, status) VALUES (?,?,?,?)")
+        .run('sprachanna', 'x', 'owner', 'active');
       d.close();
     }
-    shortRun(`require('./db'); console.log('gelaufen');`, bdOld);
-    check('Und eine ausdrueckliche Umstellung auf Englisch haelt',
-      bdSetting(bdOld, 'languageDefault') === 'en',
-      JSON.stringify(bdSetting(bdOld, 'languageDefault')));
-
-    /* UND DIE GEGENLAGE ZUM GEZAEHLTEN: GELOESCHTE ZUGAENGE ZAEHLEN MIT. Die
-       Frage ist nicht, wer sich anmelden kann, sondern ob hier schon einmal
-       jemand gearbeitet hat -- und ein Grabstein beweist genau das. */
-    const bdTomb = fs.mkdtempSync(path.join(os.tmpdir(), 'kriterion-grabstein-'));
-    shortRun(`require('./db'); console.log('angelegt');`, bdTomb);
+    const bdGrown = shortRunAll(`require('./db'); console.log('fertig');`, bdFresh);
+    check('Und auch eine Instanz mit Zugaengen bekommt sie nicht mehr',
+      bdSetting(bdFresh, 'languageDefault') === null,
+      JSON.stringify(bdSetting(bdFresh, 'languageDefault')));
+    check('Und auch darueber sagt der Start nichts',
+      !/Vorgabesprache|default language/i.test(bdGrown), bdGrown.replace(/\n/g, ' · '));
+    /* UND WER SIE GESETZT HAT, BEHAELT SIE. Das ist die Haelfte, die weiter
+       gilt: eine Instanz, die Deutsch eingestellt hat, bekommt es beim
+       naechsten Start nicht weggenommen -- weder von einem Block noch von
+       seinem Wegfall. */
     {
-      const d = open(path.join(bdTomb, 'katalog.sqlite'));
-      d.prepare('INSERT INTO users (username, password_hash, role, status) VALUES (?,?,?,?)')
-        .run('deleted-7', 'x', 'user', 'deleted');
-      d.prepare("DELETE FROM settings WHERE key = 'languageDefault'").run();
+      const d = open(path.join(bdFresh, 'katalog.sqlite'));
+      d.prepare('INSERT INTO settings (key, value) VALUES (?, ?)')
+        .run('languageDefault', JSON.stringify('de'));
       d.close();
     }
-    shortRun(`require('./db'); console.log('gelaufen');`, bdTomb);
-    check('Auch ein Bestand, in dem nur noch ein Grabstein steht, behaelt Deutsch',
-      bdSetting(bdTomb, 'languageDefault') === 'de',
-      JSON.stringify(bdSetting(bdTomb, 'languageDefault')));
+    shortRunAll(`require('./db'); console.log('fertig');`, bdFresh);
+    check('Und eine ausdrueckliche Einstellung haelt ueber den Start',
+      bdSetting(bdFresh, 'languageDefault') === 'de',
+      JSON.stringify(bdSetting(bdFresh, 'languageDefault')));
+    fs.rmSync(bdFresh, { recursive: true, force: true });
+  }
 
-    for (const d of [bdOld, bdFresh, bdTomb]) fs.rmSync(d, { recursive: true, force: true });
+  /* ================= Der Stempel der Datenbank — 0.33.0 ==================
+     ZUSAGE 13 UND 14 DES AUFTRAGS, und beide gehen auf denselben Befund des
+     Betreibers vom 14. September 2026: *„Prueft das System beim Einspielen,
+     mit welcher Version die Datenbank betrieben wurde? … Generell fuer die
+     Zukunft waere es gut, wenn direkt erkennbar waere, mit welcher Version
+     das betrieben wurde."*
+
+     NACHGESEHEN UND NICHT VERMUTET: an keiner der drei Stellen stand etwas.
+     In der Datenbank kein `user_version` und keine Zeile in `settings`; in
+     der Exportdatei nur die FORMATNUMMER, und der Import las sie nie; die
+     Sicherung ist eine Kopie der Datei und erbt dieselbe Luecke.
+
+     ER BEANTWORTET EINE ANDERE FRAGE ALS DIE PROBE AUF `sqlite_master`, und
+     die beiden gehoeren deshalb zusammen: die Probe sagt „IST ES
+     VOLLSTAENDIG?", der Stempel sagt „WAS IST ES?". Ohne ihn kennt der
+     Hinweis nur das Symptom und nicht die Diagnose.
+
+     UND ER WIRKT NUR NACH VORN. Eine Datenbank, die nie einen getragen hat,
+     bekommt ihn nicht rueckwirkend -- deshalb ERSETZT er die Probe nicht,
+     sondern ergaenzt sie. */
+  group('Der Stempel der Datenbank — 0.33.0');
+  {
+    const stVersion = require('./package.json').version;
+    const stDir = fs.mkdtempSync(path.join(os.tmpdir(), 'kriterion-stempel-'));
+    const stRead = (dir, key) => {
+      const d = open(path.join(dir, 'katalog.sqlite'));
+      const r = d.prepare('SELECT value FROM settings WHERE key = ?').get(key);
+      d.close();
+      return r ? JSON.parse(r.value) : null;
+    };
+    shortRun(`require('./db'); console.log('da');`, stDir);
+    /* EINE FRISCHE DATENBANK TRAEGT BEIDE ZEILEN. Sie IST in diesem Augenblick
+       angelegt worden, und die Aussage ist wahr. */
+    check('Eine frische Datenbank sagt, womit sie angelegt wurde',
+      stRead(stDir, 'versionCreated') === stVersion,
+      JSON.stringify(stRead(stDir, 'versionCreated')));
+    check('Und womit sie zuletzt geoeffnet wurde',
+      stRead(stDir, 'versionLastOpened') === stVersion,
+      JSON.stringify(stRead(stDir, 'versionLastOpened')));
+    /* UND DER ZWEITE START AENDERT NICHTS UND SAGT NICHTS. Beide Schreibungen
+       sind beliebig oft fahrbar und im Normalfall stumm -- dieselbe Bauform
+       wie renumberCriteria() daneben. */
+    const stSecond = shortRunAll(`require('./db'); console.log('da');`, stDir);
+    check('Ein zweiter Start aendert nichts und sagt nichts darueber',
+      stRead(stDir, 'versionCreated') === stVersion &&
+      stRead(stDir, 'versionLastOpened') === stVersion &&
+      !/last ran under/.test(stSecond),
+      stSecond.replace(/\n/g, ' · ').slice(0, 200));
+    /* DER WECHSEL WIRD GESAGT, UND ZWAR NUR ER. „Laeuft weiter unter derselben
+       Fassung" bei jedem Start waere Gerede; ein Wechsel ist eine Nachricht. */
+    {
+      const d = open(path.join(stDir, 'katalog.sqlite'));
+      d.prepare("UPDATE settings SET value = ? WHERE key = 'versionLastOpened'")
+        .run(JSON.stringify('0.19.0'));
+      d.close();
+    }
+    const stMoved = shortRunAll(`require('./db'); console.log('da');`, stDir);
+    check('Ein Wechsel der Fassung wird gesagt — mit beiden Zahlen',
+      /last ran under 0\.19\.0/.test(stMoved) && stMoved.includes(stVersion),
+      stMoved.replace(/\n/g, ' · ').slice(0, 260));
+    check('Und die Zeile steht danach auf der laufenden Fassung',
+      stRead(stDir, 'versionLastOpened') === stVersion,
+      JSON.stringify(stRead(stDir, 'versionLastOpened')));
+    /* UND „ANGELEGT MIT" RUEHRT SICH DABEI NICHT. Sie steht EINMAL da und wird
+       nie wieder angefasst -- sonst saehe jede Datenbank so aus, als waere sie
+       gestern entstanden. */
+    check('Und „angelegt mit" ruehrt sich dabei nicht',
+      stRead(stDir, 'versionCreated') === stVersion,
+      JSON.stringify(stRead(stDir, 'versionCreated')));
+    fs.rmSync(stDir, { recursive: true, force: true });
+
+    /* UND EIN GEWACHSENER BESTAND BEKOMMT „ANGELEGT MIT" GAR NICHT. Das ist
+       der teure Teil dieses Stempels und der Grund, warum er nicht einfach
+       ein `INSERT OR IGNORE` bei jedem Start ist: eine Datenbank aus 0.19.0
+       truege damit „angelegt mit 0.33.0", und das waere eine ERFINDUNG ueber
+       fremde Arbeit. EINE FEHLENDE ZEILE IST DIE RICHTIGE ANTWORT und heisst
+       „aelter als der Stempel". */
+    const stGrown = fs.mkdtempSync(path.join(os.tmpdir(), 'kriterion-stempel-alt-'));
+    shortRun(`require('./db'); console.log('da');`, stGrown);
+    {
+      const d = open(path.join(stGrown, 'katalog.sqlite'));
+      d.prepare('DELETE FROM settings WHERE key IN (?, ?)')
+        .run('versionCreated', 'versionLastOpened');
+      d.prepare("INSERT INTO users (username, password_hash, role, status) VALUES (?,?,?,?)")
+        .run('stempelanna', 'x', 'owner', 'active');
+      d.close();
+    }
+    shortRunAll(`require('./db'); console.log('da');`, stGrown);
+    check('Ein gewachsener Bestand bekommt „angelegt mit" NICHT nachgetragen',
+      stRead(stGrown, 'versionCreated') === null,
+      JSON.stringify(stRead(stGrown, 'versionCreated')));
+    check('Aber „zuletzt geoeffnet" bekommt er sehr wohl',
+      stRead(stGrown, 'versionLastOpened') === stVersion,
+      JSON.stringify(stRead(stGrown, 'versionLastOpened')));
+    fs.rmSync(stGrown, { recursive: true, force: true });
+
+    /* UND DER STEMPEL IST KEIN MERKER FUER DIE PROBE. Das ist die Grenze
+       zwischen den beiden, und sie steht hier, weil sie leicht verwischt:
+       `incompleteDatabase()` liest ihn NICHT -- sie fragt `sqlite_master`
+       (Leitplanke L4, Zusage 5). Gelesen wird der Quelltext der Probe. */
+    const stDb = fs.readFileSync(path.join(__dirname, 'db.js'), 'utf8');
+    const stProbe = stDb.slice(stDb.indexOf('function incompleteDatabase()'),
+                               stDb.indexOf('function warnIncompleteDatabase('));
+    check('Die Probe liest den Stempel nicht — sie fragt sqlite_master',
+      /sqlite_master/.test(stProbe) && !/version(Created|LastOpened)/.test(stProbe) &&
+      !/user_version/.test(stProbe),
+      stProbe.slice(0, 200));
+    /* UND DIE EXPORTDATEI TRAEGT DIE PROGRAMMFASSUNG NEBEN DER FORMATNUMMER --
+       Zusage 14. Zwei Fragen, zwei Felder: `version` sagt, WELCHE FELDER zu
+       erwarten sind, `appVersion` sagt, WAS die Datei geschrieben hat. */
+    const stServer = fs.readFileSync(path.join(__dirname, 'server.js'), 'utf8');
+    check('Und die Programmfassung geht an beiden Schreibstellen mit hinaus',
+      (stServer.match(/appVersion: VERSION/g) || []).length === 2,
+      `${(stServer.match(/appVersion: VERSION/g) || []).length} Stellen`);
+    /* UND DIE FORMATNUMMER STEHT AN EINER STELLE, von der aus beide
+       Schreibstellen UND die Abweisung rechnen -- Zusage 11. */
+    check('Die Formatnummer steht genau einmal als Zahl im Quelltext',
+      (stServer.match(/EXCHANGE_FORMAT = \d+/g) || []).length === 1 &&
+      /const EXCHANGE_FORMAT = 17;/.test(stServer),
+      (stServer.match(/EXCHANGE_FORMAT = \d+/g) || []).join(' · '));
+    check('Und die aelteste gelesene daneben, unter ihr',
+      /const EXCHANGE_FORMAT_MIN = 14;/.test(stServer) && 14 < 17,
+      (stServer.match(/EXCHANGE_FORMAT_MIN = \d+/g) || []).join(' · '));
   }
 
   /* ================= Der Bildschirmtext-Waechter — 0.22.0 =================
@@ -22223,1451 +21916,271 @@ function sweepLeftovers() {
     fs.rmSync(zjDir, { recursive: true, force: true });
   }
 
-
   /* ================================================================
-     MIGRATION 0.8.3 — ENTFAELLT MIT 1.0
-     Eigener Abschnitt nach der Bauregel: was mit dem Migrationscode
-     verschwindet, steht beieinander und traegt dieselbe Marke.
-     ================================================================ */
-  group('MIGRATION 0.8.3 — ENTFAELLT MIT 1.0');
+     DER HINWEIS AUF EINEN UNVOLLSTAENDIGEN BESTAND — 0.33.0
 
-  /* Nachgestellt statt behauptet: der zugesicherte Bestand ist eine Datenbank
-     aus 0.8.0 bis 0.8.2 -- dieselbe Instanz, nur ohne die neue Spalte. Und mit
-     einer Zeile darin: eine leere Tabelle bewiese nichts ueber die Vorgabe. */
-  const uDir = fs.mkdtempSync(path.join(os.tmpdir(), 'kriterion-migration083-'));
-  const uSecondDir = fs.mkdtempSync(path.join(os.tmpdir(), 'kriterion-frisch083-'));
-  const uRun = (directory) => require('child_process')
-    .execFileSync(process.execPath, ['-e', "require('./db');"], {
+     HIER STANDEN BIS 0.32.1 ACHT PRUEFGRUPPEN mit zusammen 1441 Zeilen und
+     121 Pruefungen, eine je Migrationsblock: jede legte eine Datenbank im
+     alten Zustand an, rief ihren Block und sah nach, was danach dastand.
+
+     SIE SIND UMGEDREHT UND NICHT GELOESCHT -- Leitplanke L1 des Auftrags
+     0.33.0, Frage F10. DIE PRUEFLAGE IST DIESELBE GEBLIEBEN: eine Datenbank,
+     der eine Spalte fehlt. NUR DIE ZUSAGE IST DIE UMGEKEHRTE: es gibt keinen
+     Block mehr, der sie nachruestet -- und die Instanz SAGT ES und oeffnet
+     trotzdem.
+
+     GELOESCHT HAETTE 121 PRUEFUNGEN GEKOSTET, ohne eine einzige neue zu
+     bringen. Umgedreht pruefen sie genau die neue Zusage, und sie pruefen sie
+     an DERSELBEN Lage, an der sie bis gestern die alte geprueft haben. Das
+     ist der ganze Wert dieser Gruppe: die Prueflage ist nicht erfunden,
+     sondern geerbt.
+
+     EINE GRUPPE STATT ACHT, und die Tafel darin ist der Grund. Acht Gruppen
+     trugen acht Marken „ENTFAELLT MIT 1.0" -- und genau diese Marken gibt es
+     nach dieser Runde nicht mehr. Was uebrig bleibt, ist EINE Frage, achtzehn
+     Mal gestellt, und die stellt eine Tafel besser als acht Abschnitte.
+
+     DIE TAFEL STEHT HIER UND NICHT IN `db.js`. Sie ist die ZUSAGE, und db.js
+     traegt ihre ERFUELLUNG; eine Pruefung, die ihre Erwartung aus dem
+     Geprueften liest, ist gruen, wenn beide dasselbe vergessen (Stolperstein
+     47, von der gefaehrlichen Seite). Wer in db.js eine Zeile aus
+     REQUIRED_COLUMNS streicht, wird hier namentlich rot.
+     ================================================================ */
+  group('Der Hinweis auf einen unvollstaendigen Bestand — 0.33.0');
+
+  /* DIE ACHTZEHN SPALTEN, DIE DIE ACHTZEHN BLOECKE NACHGERUESTET HAETTEN --
+     jede mit der Fassung, deren Block sie gebracht haette. Dieselben Angaben,
+     die der Kasten nennen muss: WELCHE Spalte und SEIT WANN. */
+  const uhTable = [
+    ['comments',           'images_removed',  '0.8.3'],
+    ['links',              'user_id',         '0.8.30'],
+    ['attachments',        'user_id',         '0.8.31'],
+    ['rating_criteria',    'weight',          '0.8.40'],
+    ['photos',             'kind',            '0.8.50'],
+    ['photos',             'duration',        '0.8.50'],
+    ['items',              'rejected_at',     '0.14.0'],
+    ['items',              'rejected_reason', '0.14.0'],
+    ['items',              'rejected_by',     '0.14.0'],
+    ['ratings',            'set_at',          '0.16.0'],
+    ['photos',             'zoom',            '0.19.0'],
+    ['rating_criteria',    'phase',           '0.21.0'],
+    ['tokens',             'purpose',         '0.24.1'],
+    ['tokens',             'expires_at',      '0.24.1'],
+    ['tokens',             'used_at',         '0.24.1'],
+    ['product_categories', 'language',        '0.25.0'],
+    ['rating_criteria',    'language',        '0.25.0'],
+    ['comments',           'due_date',        '0.29.0']
+  ];
+  /* UND DIE SECHS TABELLEN, DIE 0.24.1 UMBENANNT HAT. Ihr Fall ist der
+     schlimmste: die DDL legt daneben eine leere neue an, und die Zeilen
+     liegen unveraendert im alten Namen -- nicht verloren, aber unsichtbar. */
+  const uhTables = [
+    ['anfragen', 'requests'], ['sicherheitsprotokoll', 'security_log'],
+    ['papierkorb', 'trash'], ['papierkorb_bytes', 'trash_bytes'],
+    ['zweifaktor', 'two_factor'], ['zweifaktor_codes', 'two_factor_codes']
+  ];
+
+  const uhDir = fs.mkdtempSync(path.join(os.tmpdir(), 'kriterion-hinweis-'));
+  const uhFreshDir = fs.mkdtempSync(path.join(os.tmpdir(), 'kriterion-hinweis-frisch-'));
+  /* GEFAHREN UND NICHT GELESEN: die Instanz wird wirklich hochgezogen, wie in
+     den acht Gruppen davor. Ein Waechter ueber den Quelltext saehe nicht, ob
+     der Start ueberhaupt durchkommt -- und genau das ist hier die Zusage. */
+  /* GELESEN WERDEN BEIDE KANAELE, und das ist keine Bequemlichkeit: der
+     Kasten geht ueber `console.warn` und damit auf STDERR -- genau wie der
+     Schluesselhinweis in keys.js, dessen Form er hat. Eine Probe, die nur
+     stdout liest, saehe ihn nie und waere gruen, weil sie nichts findet.
+     UND EIN FEHLSCHLAG WIRFT NICHT -- er wird GEMELDET. Das ist der Fund des
+     ersten Gegenprobenlaufs dieser Runde: die erste Fassung warf bei einem
+     Rueckgabewert ungleich null eine Ausnahme, und damit RISS jeder Rueckbau,
+     der den Start umbringt, den ganzen Prueflauf AB, statt eine Zeile rot zu
+     faerben. Ein abgerissener Lauf belegt nichts (Stolperstein 138, und
+     derselbe Fehler wie an Rueckbau 1014 in 0.32.0).
+     GELIEFERT WIRD DESHALB EIN PAAR: `ok` sagt, ob die Instanz hochkam, `out`
+     traegt BEIDE Kanaele -- der Kasten geht ueber `console.warn` und damit auf
+     STDERR, genau wie der Schluesselhinweis in keys.js, dessen Form er hat.
+     Eine Probe, die nur stdout liest, saehe ihn nie. */
+  const uhRun = (directory) => {
+    const r = require('child_process').spawnSync(process.execPath, ['-e', "require('./db');"], {
       cwd: __dirname, encoding: 'utf8',
       env: { ...process.env, DATA_DIR: directory, ENCRYPTION_KEY: KEY }
     });
-  const aroundColumns = (directory) => {
+    return { ok: r.status === 0, out: `${r.stdout || ''}${r.stderr || ''}` };
+  };
+  const uhColumns = (directory, table) => {
     const d = open(path.join(directory, 'katalog.sqlite'));
-    const s = d.prepare('PRAGMA table_info(comments)').all().map(c => c.name);
+    const s = d.prepare(`PRAGMA table_info(${table})`).all().map(c => c.name);
     d.close();
     return s;
   };
-
-  uRun(uDir);
-  {
-    const d = open(path.join(uDir, 'katalog.sqlite'));
-    d.prepare("INSERT INTO users (username, password_hash) VALUES ('alt', 'x')").run();
-    d.prepare("INSERT INTO items (title, user_id) VALUES ('Alter Eintrag', 1)").run();
-    d.prepare("INSERT INTO comments (item_id, text, user_id) VALUES (1, 'Alter Kommentar', 1)").run();
-    /* Tabellenneubau statt ALTER TABLE ... DROP COLUMN: SQLite prueft nach dem
-       Entfernen den verbliebenen DDL-Text, und der endet hier mit einem
-       Kommentar hinter dem letzten Komma -- "incomplete input". Ausserhalb
-       jeder Transaktion, sonst waere das PRAGMA ein stiller No-op
-       (Stolperstein 12); und das DROP TABLE ist bei eingeschalteten
-       Fremdschluesseln ein DELETE mit Kaskade. */
+  /* EINE SPALTE ENTFERNEN, OHNE `ALTER TABLE ... DROP COLUMN`. Der geht hier
+     nicht: SQLite prueft danach den verbliebenen DDL-Text, und der endet in
+     mehreren Tabellen mit einem Kommentar hinter dem letzten Komma --
+     „incomplete input". Dieselbe Klemme hatten die acht Gruppen davor, und
+     sie haben sie mit einem Tabellenneubau geloest. HIER STEHT ER EINMAL
+     STATT ACHTMAL, und er baut die neue Form aus PRAGMA table_info: so
+     traegt sie Typ, NOT NULL und Vorgabewert der echten Tabelle und keine
+     abgeschriebene Fassung, die beim naechsten Schemaschritt veraltet.
+     AUSSERHALB JEDER TRANSAKTION, sonst waere das PRAGMA ein stiller No-op
+     (Stolperstein 12); und das DROP TABLE ist bei eingeschalteten
+     Fremdschluesseln ein DELETE mit Kaskade. */
+  const uhDropColumn = (directory, table, column) => {
+    const d = open(path.join(directory, 'katalog.sqlite'));
     d.pragma('foreign_keys = OFF');
-    d.exec(`
-      CREATE TABLE comments_082 (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        item_id INTEGER NOT NULL REFERENCES items(id) ON DELETE CASCADE,
-        text TEXT NOT NULL,
-        kind TEXT NOT NULL DEFAULT 'note',
-        pinned INTEGER NOT NULL DEFAULT 0,
-        created_at TEXT NOT NULL DEFAULT (datetime('now')),
-        updated_at TEXT,
-        user_id INTEGER REFERENCES users(id) ON DELETE SET NULL
-      );
-      INSERT INTO comments_082 (id, item_id, text, kind, pinned, created_at, updated_at, user_id)
-        SELECT id, item_id, text, kind, pinned, created_at, updated_at, user_id FROM comments;
-      DROP TABLE comments;
-      ALTER TABLE comments_082 RENAME TO comments;
-    `);
+    const kept = d.prepare(`PRAGMA table_info(${table})`).all().filter(c => c.name !== column);
+    /* DER VORGABEWERT GEHT IN KLAMMERN, und das ist kein Schoenheitsgriff:
+       `PRAGMA table_info` liefert `datetime('now')` OHNE die aeusseren
+       Klammern, und SQLite nimmt einen AUSDRUCK als Vorgabe nur geklammert an
+       -- `DEFAULT datetime('now')` ist ein Syntaxfehler. Geklammert geht
+       beides, auch ein blosses `DEFAULT (0)`. */
+    const shape = kept.map(c => `${c.name} ${c.type}${c.pk ? ' PRIMARY KEY' : ''}` +
+      (c.notnull ? ' NOT NULL' : '') +
+      (c.dflt_value === null ? '' : ` DEFAULT (${c.dflt_value})`)).join(', ');
+    const names = kept.map(c => c.name).join(', ');
+    d.exec(`CREATE TABLE ${table}__alt (${shape});
+            INSERT INTO ${table}__alt (${names}) SELECT ${names} FROM ${table};
+            DROP TABLE ${table};
+            ALTER TABLE ${table}__alt RENAME TO ${table};`);
     d.close();
-  }
-  check('Die Prueflage traegt die Spalte wirklich nicht',
-    !aroundColumns(uDir).includes('images_removed'), aroundColumns(uDir).join(', '));
-
-  const uOutput = uRun(uDir);
-  check('Die Migration ergaenzt die Spalte im Bestand',
-    aroundColumns(uDir).includes('images_removed'), aroundColumns(uDir).join(', '));
-  check('Er sagt im Protokoll, was er getan hat',
-    /images_removed/.test(uOutput), JSON.stringify(uOutput.trim()));
-  const uValue = () => {
-    const d = open(path.join(uDir, 'katalog.sqlite'));
-    const z = d.prepare('SELECT text, images_removed FROM comments').all();
-    d.close();
-    return z;
   };
-  check('Die Bestandszeile steht auf der Vorgabe null und behaelt ihren Text',
-    uValue().length === 1 && uValue()[0].images_removed === 0 &&
-    uValue()[0].text === 'Alter Kommentar', JSON.stringify(uValue()));
-
-  // Wiederholbar und dann stumm: db.js laeuft bei JEDEM Start.
-  const uSecondly = uRun(uDir);
-  check('Ein zweiter Lauf ergaenzt nichts mehr und bleibt stumm',
-    !/images_removed/.test(uSecondly), JSON.stringify(uSecondly.trim()));
-  check('Und die Zeile ist dabei unangetastet geblieben',
-    uValue().length === 1 && uValue()[0].images_removed === 0, JSON.stringify(uValue()));
-
-  /* Die frische Instanz bekommt die Spalte aus der DDL, nicht aus der Migration.
-     Ohne diese Gegenlage bliebe offen, ob die DDL sie ueberhaupt traegt --
-     und zu 1.0 faellt die Migration weg, die Spalte muss bleiben. */
-  const uFresh = uRun(uSecondDir);
-  check('Eine frische Instanz traegt die Spalte ohne Migration',
-    aroundColumns(uSecondDir).includes('images_removed') && !/images_removed/.test(uFresh),
-    `${aroundColumns(uSecondDir).includes('images_removed')} / ${JSON.stringify(uFresh.trim())}`);
-  fs.rmSync(uDir, { recursive: true, force: true });
-  fs.rmSync(uSecondDir, { recursive: true, force: true });
-
-  /* ================================================================
-     MIGRATION 0.8.30 — ENTFAELLT MIT 1.0
-     Eigener Abschnitt nach der Bauregel: was mit dem Migrationscode
-     verschwindet, steht beieinander und traegt dieselbe Marke.
-     ================================================================ */
-  group('MIGRATION 0.8.30 — ENTFAELLT MIT 1.0');
-
-  /* Nachgestellt statt behauptet: der zugesicherte Bestand ist eine Datenbank
-     aus 0.8.0 bis 0.8.20 -- dieselbe Instanz, nur ohne die neue Spalte an
-     links. Und mit Linkzeilen darin: eine leere Tabelle bewiese nichts.
-
-     DIE INSTANZ IST SO GEBAUT, DASS DIE FALSCHE ANTWORT AUFFAELLT. Der Eintrag
-     gehoert BERT, Eigentuemerin ist CHEFIN (kleinste Nummer, ueber die
-     Startregel). Fielen die Bestandszeilen an den Eigentuemer statt an den
-     Eintragsverfasser, stuende dort chefin -- und genau das waere still
-     falsch: bis 0.8.20 WAREN die Links eines Eintrags die Sache seines
-     Verfassers.
-     Die dritte Zeile haengt an einem Eintrag, der selbst herrenlos ist. Sie
-     kann die Migration nicht fuellen; sie faellt danach dem Auffangnetz zu, und
-     das ist die zweite, andere Regel. */
-  const u30Dir = fs.mkdtempSync(path.join(os.tmpdir(), 'kriterion-migration0830-'));
-  const u30FreshDir = fs.mkdtempSync(path.join(os.tmpdir(), 'kriterion-frisch0830-'));
-  const u30Columns = (directory) => {
+  /* UND DIE PRUEFLAGE BEKOMMT EINEN EIGENTUEMER -- der Fund des
+     Gegenprobenlaufs dieser Runde. Rueckbau 1042 nimmt dem Auffangnetz die
+     Frage nach `user_id` weg, und er blieb STUMM: `assignInventory()` kehrt
+     VOR seiner Schleife zurueck, wenn es gar keinen Eigentuemer gibt
+     (`owner == null`), und eine frisch angelegte Datenbank hat keinen. Die
+     Schleife, in der das `db.prepare` steht, wurde also nie erreicht.
+     EINE DATENBANK OHNE JEDEN ZUGANG IST AUCH KEIN GEWACHSENER BESTAND. Die
+     Prueflage ist damit nicht nur schaerfer, sondern richtiger: sie stellt
+     nach, was draussen stuende. */
+  const uhGrow = (directory) => {
     const d = open(path.join(directory, 'katalog.sqlite'));
-    const sp = d.prepare('PRAGMA table_info(links)').all().map(c => c.name);
+    d.prepare("INSERT INTO users (username, password_hash, role, status) VALUES (?,?,?,?)")
+      .run('hinweisanna', 'x', 'owner', 'active');
     d.close();
-    return sp;
   };
-  const u30Rows = () => {
-    const d = open(path.join(u30Dir, 'katalog.sqlite'));
-    const z = d.prepare(`SELECT l.url, u.username FROM links l
-                         LEFT JOIN users u ON u.id = l.user_id ORDER BY l.id`).all();
-    d.close();
-    return z;
-  };
-
-  uRun(u30Dir);
-  {
-    const d = open(path.join(u30Dir, 'katalog.sqlite'));
-    d.prepare("INSERT INTO users (username, password_hash) VALUES ('chefin', 'x')").run();
-    d.prepare("INSERT INTO users (username, password_hash) VALUES ('bert', 'x')").run();
-    d.prepare("INSERT INTO items (title, user_id) VALUES ('Berts Eintrag', 2)").run();
-    d.prepare("INSERT INTO items (title, user_id) VALUES ('Ohne Verfasser', NULL)").run();
-    /* Tabellenneubau statt ALTER TABLE ... DROP COLUMN, aus demselben Grund
-       wie beim Migration 0.8.3 darueber: SQLite prueft nach dem Entfernen den
-       verbliebenen DDL-Text. Ausserhalb jeder Transaktion, sonst waere das
-       PRAGMA ein stiller No-op (Stolperstein 12); das DROP TABLE ist bei
-       eingeschalteten Fremdschluesseln ein DELETE mit Kaskade. */
+  const uhRenameTable = (directory, fresh, old) => {
+    const d = open(path.join(directory, 'katalog.sqlite'));
     d.pragma('foreign_keys = OFF');
-    d.exec(`
-      CREATE TABLE links_0820 (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        item_id INTEGER NOT NULL REFERENCES items(id) ON DELETE CASCADE,
-        url TEXT NOT NULL,
-        sort_order INTEGER NOT NULL DEFAULT 0,
-        created_at TEXT NOT NULL DEFAULT (datetime('now'))
-      );
-      INSERT INTO links_0820 (item_id, url, sort_order) VALUES
-        (1, 'https://berts-erster.test', 0),
-        (1, 'https://berts-zweiter.test', 1),
-        (2, 'https://an-herrenlosem.test', 0);
-      DROP TABLE links;
-      ALTER TABLE links_0820 RENAME TO links;
-    `);
-    d.close();
-  }
-  check('Die Prueflage traegt die Spalte wirklich nicht',
-    !u30Columns(u30Dir).includes('user_id'), u30Columns(u30Dir).join(', '));
-
-  const u30Output = uRun(u30Dir);
-  check('Die Migration ergaenzt die Spalte im Bestand',
-    u30Columns(u30Dir).includes('user_id'), u30Columns(u30Dir).join(', '));
-  check('Er sagt im Protokoll, was er getan hat',
-    /links um user_id ergaenzt/.test(u30Output), JSON.stringify(u30Output.trim()));
-
-  /* DER KERN DIESES ABSCHNITTS. Beide Zeilen an berts Eintrag gehoeren bert --
-     nicht chefin. Waere hier der Eigentuemer eingesetzt worden, machte der
-     Migration aus berts Links stillschweigend fremde. */
-  check('Die Bestandszeilen fallen an den Verfasser ihres Eintrags',
-    equal(u30Rows().filter(z => /berts-/.test(z.url)).map(z => z.username), ['bert', 'bert']),
-    JSON.stringify(u30Rows()));
-  check('Und ausdruecklich nicht an den Eigentuemer',
-    u30Rows().filter(z => /berts-/.test(z.url)).every(z => z.username !== 'chefin'),
-    JSON.stringify(u30Rows()));
-  /* Die zweite Regel, am selben Lauf: was die Migration nicht fuellen kann --
-     ein Link an einem herrenlosen Eintrag --, faengt assignInventory() auf, und
-     dort ist der Eigentuemer die eingefuehrte Antwort. Zwei Regeln fuer zwei
-     Zeitpunkte, und beide sind hier zu sehen. */
-  check('Was die Migration nicht fuellen kann, faengt das Auffangnetz auf',
-    u30Rows().find(z => /herrenlosem/.test(z.url))?.username === 'chefin',
-    JSON.stringify(u30Rows()));
-  check('Danach steht keine Linkzeile mehr ohne Benutzer',
-    u30Rows().every(z => z.username != null), JSON.stringify(u30Rows()));
-
-  // Wiederholbar und dann stumm: db.js laeuft bei JEDEM Start.
-  const u30Secondly = uRun(u30Dir);
-  check('Ein zweiter Lauf ergaenzt nichts mehr und bleibt stumm',
-    !/links um user_id ergaenzt/.test(u30Secondly), JSON.stringify(u30Secondly.trim()));
-  check('Und die Zeilen sind dabei unangetastet geblieben',
-    equal(u30Rows().map(z => z.username), ['bert', 'bert', 'chefin']),
-    JSON.stringify(u30Rows()));
-
-  /* Die frische Instanz bekommt die Spalte aus der DDL, nicht aus der Migration.
-     Ohne diese Gegenlage bliebe offen, ob die DDL sie ueberhaupt traegt --
-     und zu 1.0 faellt die Migration weg, die Spalte muss bleiben. */
-  const u30Fresh = uRun(u30FreshDir);
-  check('Eine frische Instanz traegt die Spalte ohne Migration',
-    u30Columns(u30FreshDir).includes('user_id') && !/links um user_id ergaenzt/.test(u30Fresh),
-    `${u30Columns(u30FreshDir).includes('user_id')} / ${JSON.stringify(u30Fresh.trim())}`);
-  /* Der Index ist mit dem Tabellenneubau verschwunden und legt sich beim Start
-     selbst nach -- der Unterschied zwischen einem Index und einer Spalte,
-     nachgestellt statt geglaubt (wie 0.8.20 an sessions). */
-  {
-    const d = open(path.join(u30Dir, 'katalog.sqlite'));
-    const idx = d.prepare("SELECT name FROM sqlite_master WHERE type = 'index' AND tbl_name = 'links'")
-      .all().map(z => z.name);
-    d.close();
-    check('Der Index auf links liegt danach wieder da',
-      idx.includes('idx_links_item'), idx.join(', '));
-  }
-  fs.rmSync(u30Dir, { recursive: true, force: true });
-  fs.rmSync(u30FreshDir, { recursive: true, force: true });
-
-  /* ================================================================
-     MIGRATION 0.8.31 — ENTFAELLT MIT 1.0
-     Dieselbe Bauform wie der Abschnitt darueber, an attachments.
-     ================================================================ */
-  group('MIGRATION 0.8.31 — ENTFAELLT MIT 1.0');
-
-  /* Wieder so eingerichtet, dass die falsche Antwort auffaellt: der Eintrag
-     gehoert bert, Eigentuemerin ist chefin. Und wieder eine dritte Zeile an
-     einem herrenlosen Eintrag, die die Migration nicht fuellen kann. */
-  const u31Dir = fs.mkdtempSync(path.join(os.tmpdir(), 'kriterion-migration0831-'));
-  const u31FreshDir = fs.mkdtempSync(path.join(os.tmpdir(), 'kriterion-frisch0831-'));
-  const u31Columns = (directory) => {
-    const d = open(path.join(directory, 'katalog.sqlite'));
-    const sp = d.prepare('PRAGMA table_info(attachments)').all().map(c => c.name);
-    d.close();
-    return sp;
-  };
-  const u31Rows = () => {
-    const d = open(path.join(u31Dir, 'katalog.sqlite'));
-    const z = d.prepare(`SELECT a.filename, u.username FROM attachments a
-                         LEFT JOIN users u ON u.id = a.user_id ORDER BY a.id`).all();
-    d.close();
-    return z;
-  };
-
-  uRun(u31Dir);
-  {
-    const d = open(path.join(u31Dir, 'katalog.sqlite'));
-    d.prepare("INSERT INTO users (username, password_hash) VALUES ('chefin', 'x')").run();
-    d.prepare("INSERT INTO users (username, password_hash) VALUES ('bert', 'x')").run();
-    d.prepare("INSERT INTO items (title, user_id) VALUES ('Berts Eintrag', 2)").run();
-    d.prepare("INSERT INTO items (title, user_id) VALUES ('Ohne Verfasser', NULL)").run();
-    // Tabellenneubau statt DROP COLUMN, aus denselben Gruenden wie oben.
-    d.pragma('foreign_keys = OFF');
-    d.exec(`
-      CREATE TABLE attachments_0830 (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        item_id INTEGER NOT NULL REFERENCES items(id) ON DELETE CASCADE,
-        filename TEXT NOT NULL,
-        mime_type TEXT NOT NULL DEFAULT '',
-        size INTEGER NOT NULL DEFAULT 0,
-        data BLOB NOT NULL,
-        sort_order INTEGER NOT NULL DEFAULT 0,
-        created_at TEXT NOT NULL DEFAULT (datetime('now'))
-      );
-      INSERT INTO attachments_0830 (item_id, filename, size, data, sort_order) VALUES
-        (1, 'berts-erste.txt', 3, x'616263', 0),
-        (1, 'berts-zweite.txt', 3, x'616263', 1),
-        (2, 'an-herrenlosem.txt', 3, x'616263', 0);
-      DROP TABLE attachments;
-      ALTER TABLE attachments_0830 RENAME TO attachments;
-    `);
-    d.close();
-  }
-  check('Die Prueflage traegt die Spalte wirklich nicht',
-    !u31Columns(u31Dir).includes('user_id'), u31Columns(u31Dir).join(', '));
-
-  const u31Output = uRun(u31Dir);
-  check('Die Migration ergaenzt die Spalte im Bestand',
-    u31Columns(u31Dir).includes('user_id'), u31Columns(u31Dir).join(', '));
-  check('Er sagt im Protokoll, was er getan hat',
-    /attachments um user_id ergaenzt/.test(u31Output), JSON.stringify(u31Output.trim()));
-  check('Die Bestandsdateien fallen an den Verfasser ihres Eintrags',
-    equal(u31Rows().filter(z => /^berts-/.test(z.filename)).map(z => z.username), ['bert', 'bert']),
-    JSON.stringify(u31Rows()));
-  check('Und ausdruecklich nicht an den Eigentuemer',
-    u31Rows().filter(z => /^berts-/.test(z.filename)).every(z => z.username !== 'chefin'),
-    JSON.stringify(u31Rows()));
-  check('Was die Migration nicht fuellen kann, faengt das Auffangnetz auf',
-    u31Rows().find(z => /herrenlosem/.test(z.filename))?.username === 'chefin',
-    JSON.stringify(u31Rows()));
-  check('Danach steht keine Datei mehr ohne Benutzer',
-    u31Rows().every(z => z.username != null), JSON.stringify(u31Rows()));
-
-  const u31Secondly = uRun(u31Dir);
-  check('Ein zweiter Lauf ergaenzt nichts mehr und bleibt stumm',
-    !/attachments um user_id ergaenzt/.test(u31Secondly), JSON.stringify(u31Secondly.trim()));
-  check('Und die Zeilen sind dabei unangetastet geblieben',
-    equal(u31Rows().map(z => z.username), ['bert', 'bert', 'chefin']),
-    JSON.stringify(u31Rows()));
-
-  const u31Fresh = uRun(u31FreshDir);
-  check('Eine frische Instanz traegt die Spalte ohne Migration',
-    u31Columns(u31FreshDir).includes('user_id') && !/attachments um user_id ergaenzt/.test(u31Fresh),
-    `${u31Columns(u31FreshDir).includes('user_id')} / ${JSON.stringify(u31Fresh.trim())}`);
-  {
-    const d = open(path.join(u31Dir, 'katalog.sqlite'));
-    const idx = d.prepare("SELECT name FROM sqlite_master WHERE type = 'index' AND tbl_name = 'attachments'")
-      .all().map(z => z.name);
-    d.close();
-    check('Der Index auf attachments liegt danach wieder da',
-      idx.includes('idx_attachments_item'), idx.join(', '));
-  }
-  /* ALLE MIGRATIONEN IN EINEM LAUF -- die Lage, die im Betrieb wirklich vorkommt:
-     wer von 0.8.20 auf 0.8.40 geht, faehrt sie hintereinander. Ohne diese
-     Probe bliebe offen, ob sie sich gegenseitig stoeren.
-     Erweitert statt verdoppelt: kommt eine Stufe dazu, kommt sie hier hinein. */
-  {
-    const uBoth = fs.mkdtempSync(path.join(os.tmpdir(), 'kriterion-migration-beide-'));
-    uRun(uBoth);
-    const d = open(path.join(uBoth, 'katalog.sqlite'));
-    d.prepare("INSERT INTO users (username, password_hash) VALUES ('chefin', 'x')").run();
-    d.prepare("INSERT INTO users (username, password_hash) VALUES ('bert', 'x')").run();
-    d.prepare("INSERT INTO items (title, user_id) VALUES ('Berts Eintrag', 2)").run();
-    d.pragma('foreign_keys = OFF');
-    d.exec(`
-      CREATE TABLE links_0820 (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        item_id INTEGER NOT NULL REFERENCES items(id) ON DELETE CASCADE,
-        url TEXT NOT NULL, sort_order INTEGER NOT NULL DEFAULT 0,
-        created_at TEXT NOT NULL DEFAULT (datetime('now')));
-      INSERT INTO links_0820 (item_id, url, sort_order) VALUES (1, 'https://beides.test', 0);
-      DROP TABLE links;
-      ALTER TABLE links_0820 RENAME TO links;
-      CREATE TABLE attachments_0820 (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        item_id INTEGER NOT NULL REFERENCES items(id) ON DELETE CASCADE,
-        filename TEXT NOT NULL, mime_type TEXT NOT NULL DEFAULT '',
-        size INTEGER NOT NULL DEFAULT 0, data BLOB NOT NULL,
-        sort_order INTEGER NOT NULL DEFAULT 0,
-        created_at TEXT NOT NULL DEFAULT (datetime('now')));
-      INSERT INTO attachments_0820 (item_id, filename, size, data, sort_order)
-        VALUES (1, 'beides.txt', 3, x'616263', 0);
-      DROP TABLE attachments;
-      ALTER TABLE attachments_0820 RENAME TO attachments;
-      CREATE TABLE rating_criteria_0820 (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        name TEXT NOT NULL UNIQUE, sort_order INTEGER NOT NULL DEFAULT 0,
-        created_at TEXT NOT NULL DEFAULT (datetime('now')));
-      INSERT INTO rating_criteria_0820 (name, sort_order) VALUES ('Beides', 0);
-      DROP TABLE rating_criteria;
-      ALTER TABLE rating_criteria_0820 RENAME TO rating_criteria;
-      CREATE TABLE photos_0820 (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        item_id INTEGER NOT NULL REFERENCES items(id) ON DELETE CASCADE,
-        mime_type TEXT NOT NULL, data BLOB NOT NULL, thumb BLOB, medium BLOB,
-        focus_x REAL NOT NULL DEFAULT 50, focus_y REAL NOT NULL DEFAULT 50,
-        sort_order INTEGER NOT NULL DEFAULT 0,
-        created_at TEXT NOT NULL DEFAULT (datetime('now')));
-      INSERT INTO photos_0820 (item_id, mime_type, data, sort_order)
-        VALUES (1, 'image/png', x'89504e470d0a1a0a', 0);
-      DROP TABLE photos;
-      ALTER TABLE photos_0820 RENAME TO photos;
-    `);
-    d.close();
-    const uBothOut = uRun(uBoth);
-    check('Ein Sprung von 0.8.20 faehrt ALLE Migrationen in einem Start',
-      /links um user_id ergaenzt/.test(uBothOut) &&
-      /attachments um user_id ergaenzt/.test(uBothOut) &&
-      /rating_criteria um weight ergaenzt/.test(uBothOut) &&
-      /photos um kind und duration ergaenzt/.test(uBothOut),
-      JSON.stringify(uBothOut.trim()));
-    const d2 = open(path.join(uBoth, 'katalog.sqlite'));
-    const uBothRows = [
-      d2.prepare(`SELECT u.username FROM links l LEFT JOIN users u ON u.id = l.user_id`).get()?.username,
-      d2.prepare(`SELECT u.username FROM attachments a LEFT JOIN users u ON u.id = a.user_id`).get()?.username
-    ];
-    let uBothWeight = [], uBothPhotos = [];
-    try { uBothWeight = d2.prepare('SELECT name, weight FROM rating_criteria').all(); }
-    catch { /* die Spalte fehlt -- die Pruefung darauf wird rot */ }
-    try { uBothPhotos = d2.prepare('SELECT kind, duration FROM photos').all(); }
-    catch { /* dieselbe Abfangung, aus demselben Grund */ }
-    d2.close();
-    check('Und beide Zeilen landen beim Verfasser ihres Eintrags',
-      equal(uBothRows, ['bert', 'bert']), JSON.stringify(uBothRows));
-    check('Und das Kriterium traegt danach das Vorgabegewicht',
-      uBothWeight.length === 1 && uBothWeight[0].weight === 1,
-      JSON.stringify(uBothWeight));
-    check('Und das Foto traegt danach die Vorgabeart',
-      uBothPhotos.length === 1 && uBothPhotos[0].kind === 'image' && uBothPhotos[0].duration === null,
-      JSON.stringify(uBothPhotos));
-    fs.rmSync(uBoth, { recursive: true, force: true });
-  }
-  fs.rmSync(u31Dir, { recursive: true, force: true });
-  fs.rmSync(u31FreshDir, { recursive: true, force: true });
-
-  /* ================================================================
-     MIGRATION 0.8.40 — ENTFAELLT MIT 1.0
-     Eigener Abschnitt nach der Bauregel: was mit dem Migrationscode
-     verschwindet, steht beieinander und traegt dieselbe Marke.
-     ================================================================ */
-  group('MIGRATION 0.8.40 — ENTFAELLT MIT 1.0');
-
-  /* Nachgestellt statt behauptet: der zugesicherte Bestand ist eine Datenbank
-     aus 0.8.0 bis 0.8.31 -- dieselbe Instanz, nur ohne die Spalte weight an
-     rating_criteria. Und mit Kriterien darin: eine leere Tabelle bewiese
-     nichts ueber die Vorgabe (Stolperstein 81).
-
-     KEINE FRAGE NACH EINEM VERFASSER, anders als in den beiden Abschnitten
-     darueber: ein Gewicht kann nicht herrenlos werden. Die Prueflage traegt
-     trotzdem Bewertungen an den Kriterien -- daran haengt die eigentliche
-     Zusicherung dieser Runde: die Migration darf keine angezeigte Zahl
-     veraendern. */
-  const u40Dir = fs.mkdtempSync(path.join(os.tmpdir(), 'kriterion-migration0840-'));
-  const u40FreshDir = fs.mkdtempSync(path.join(os.tmpdir(), 'kriterion-frisch0840-'));
-  const u40Columns = (directory) => {
-    const d = open(path.join(directory, 'katalog.sqlite'));
-    const sp = d.prepare('PRAGMA table_info(rating_criteria)').all().map(c => c.name);
-    d.close();
-    return sp;
-  };
-  /* Faengt den Fall ab, dass die Spalte gar nicht da ist: ohne das reisst eine
-     Gegenprobe, die die Migration zurueckbaut, den ganzen Lauf ab und nennt
-     KEINEN einzigen Namen (Stolperstein 103). Eine leere Liste macht die
-     Pruefungen darunter rot, und das ist die Auskunft, die gebraucht wird. */
-  const u40Rows = () => {
-    const d = open(path.join(u40Dir, 'katalog.sqlite'));
-    let z = [];
-    try { z = d.prepare('SELECT name, weight FROM rating_criteria ORDER BY sort_order, id').all(); }
-    catch { /* die Spalte fehlt -- die Pruefungen darunter werden rot */ }
-    d.close();
-    return z;
-  };
-
-  uRun(u40Dir);
-  {
-    const d = open(path.join(u40Dir, 'katalog.sqlite'));
-    d.prepare("INSERT INTO users (username, password_hash) VALUES ('chefin', 'x')").run();
-    d.prepare("INSERT INTO items (title, user_id) VALUES ('Bestandseintrag', 1)").run();
-    /* Tabellenneubau statt ALTER TABLE ... DROP COLUMN, aus demselben Grund
-       wie in den Abschnitten darueber: SQLite prueft nach dem Entfernen den
-       verbliebenen DDL-Text, und der endet hier mit einem Kommentar hinter dem
-       letzten Komma. Ausserhalb jeder Transaktion, sonst waere das PRAGMA ein
-       stiller No-op (Stolperstein 12); das DROP TABLE ist bei eingeschalteten
-       Fremdschluesseln ein DELETE mit Kaskade -- deshalb entstehen die
-       Bewertungen erst danach. */
-    d.pragma('foreign_keys = OFF');
-    d.exec(`
-      CREATE TABLE rating_criteria_0831 (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        name TEXT NOT NULL UNIQUE,
-        sort_order INTEGER NOT NULL DEFAULT 0,
-        created_at TEXT NOT NULL DEFAULT (datetime('now'))
-      );
-      INSERT INTO rating_criteria_0831 (name, sort_order) VALUES
-        ('Optik', 0), ('Haptik', 1), ('Preis', 2);
-      DROP TABLE rating_criteria;
-      ALTER TABLE rating_criteria_0831 RENAME TO rating_criteria;
-      INSERT INTO ratings (item_id, criterion_id, value, user_id) VALUES
-        (1, 1, 5, 1), (1, 2, 2, 1), (1, 3, 4, 1);
-    `);
-    d.close();
-  }
-  check('Die Prueflage traegt die Spalte wirklich nicht',
-    !u40Columns(u40Dir).includes('weight'), u40Columns(u40Dir).join(', '));
-  /* Und sie traegt wirklich Kriterien -- ohne diese Zeile stuende der Beleg
-     unten auf null Zeilen und bliebe gruen, ohne etwas zu belegen
-     (Stolperstein 81). Eigene Abfrage, weil u40Rows() die Spalte weight
-     liest, die es hier noch nicht gibt. */
-  {
-    const d = open(path.join(u40Dir, 'katalog.sqlite'));
-    const n = d.prepare('SELECT COUNT(*) AS n FROM rating_criteria').get().n;
-    const b = d.prepare('SELECT COUNT(*) AS n FROM ratings WHERE value > 0').get().n;
-    d.close();
-    check('Und sie traegt drei Kriterien mit Bewertungen daran', n === 3 && b === 3,
-      `${n} Kriterien, ${b} Bewertungen`);
-  }
-
-  const u40Output = uRun(u40Dir);
-  check('Die Migration ergaenzt die Spalte im Bestand',
-    u40Columns(u40Dir).includes('weight'), u40Columns(u40Dir).join(', '));
-  check('Er sagt im Protokoll, was er getan hat',
-    /rating_criteria um weight ergaenzt/.test(u40Output), JSON.stringify(u40Output.trim()));
-
-  /* DER KERN DIESES ABSCHNITTS. Jeder andere Wert als 1,0 aenderte beim
-     Einspielen still saemtliche Gesamtschnitte. Erst auf Vorhandensein, dann
-     auf die Eigenschaft -- bei null Zeilen bliebe every() gruen und belegte
-     nichts (Stolperstein 81). */
-  check('Die drei Bestandszeilen stehen auf 1,0',
-    u40Rows().length === 3 && u40Rows().every(z => z.weight === 1),
-    JSON.stringify(u40Rows()));
-  /* Und die Vorgabe kommt aus dem DEFAULT der Spalte, nicht aus einem
-     nachgeschobenen UPDATE: db.js schreibt nach dem ALTER TABLE nichts mehr
-     an diese Tabelle. Nachgestellt am Quelltext, nicht geglaubt. */
-  {
-    const u40Source = fs.readFileSync(path.join(__dirname, 'db.js'), 'utf8');
-    const u40Block = u40Source.slice(u40Source.indexOf('// MIGRATION 0.8.40'),
-                                     u40Source.indexOf('// ENDE MIGRATION 0.8.40'));
-    check('Die Vorgabe kommt aus dem DEFAULT, nicht aus einem UPDATE',
-      u40Block.includes('DEFAULT 1.0') && !/UPDATE\s+rating_criteria/i.test(u40Block),
-      JSON.stringify(u40Block.slice(0, 80)));
-    /* assignInventory() wird ausdruecklich NICHT angefasst: dort geht es um
-       user_id und um die Frage, wem eine herrenlose Zeile gehoert. Ein Gewicht
-       kann nicht herrenlos werden. Der Waechter haelt fest, dass die Tabelle
-       dort nicht auftaucht. */
-    const u40Catch = u40Source.slice(u40Source.indexOf('function assignInventory'),
-                                       u40Source.indexOf('assignInventory();'));
-    check('Das Auffangnetz kennt rating_criteria nicht',
-      !u40Catch.includes('rating_criteria'), 'rating_criteria steht in assignInventory()');
-  }
-
-  /* Der eigentliche Beleg der Runde, an derselben Instanz: der Gesamtschnitt
-     nach der Migration ist derselbe, den die Rechnung ohne Gewichte ergaebe.
-     (5 + 2 + 4) / 3 = 3,67 -> 3,7. Hier von Hand nachgerechnet statt aus dem
-     Server geholt: eine fest hingeschriebene Zahl belegte weniger. */
-  {
-    const d = open(path.join(u40Dir, 'katalog.sqlite'));
-    // Wieder abgefangen, aus demselben Grund wie bei u40Rows().
-    let rows = [];
-    try {
-      rows = d.prepare(`SELECT r.value * 1.0 AS w, c.weight FROM ratings r
-                          JOIN rating_criteria c ON c.id = r.criterion_id
-                          WHERE r.item_id = 1 AND r.value > 0`).all();
-    } catch { /* die Spalte fehlt -- die Pruefung darunter wird rot */ }
-    d.close();
-    const unweighted = rows.length
-      ? Math.round((rows.reduce((s2, z) => s2 + z.w, 0) / rows.length) * 10) / 10 : null;
-    let za = 0, ne = 0;
-    for (const z of rows) { za += z.w * z.weight; ne += z.weight; }
-    const weighted = ne ? Math.round((za / ne) * 10) / 10 : null;
-    check('Nach der Migration rechnet die Gewichtung dasselbe wie vorher',
-      rows.length === 3 && weighted === unweighted && weighted === 3.7,
-      `${weighted} gegen ${unweighted}`);
-  }
-
-  // Wiederholbar und dann stumm: db.js laeuft bei JEDEM Start.
-  const u40Secondly = uRun(u40Dir);
-  check('Ein zweiter Lauf ergaenzt nichts mehr und bleibt stumm',
-    !/rating_criteria um weight ergaenzt/.test(u40Secondly), JSON.stringify(u40Secondly.trim()));
-  check('Und die Zeilen sind dabei unangetastet geblieben',
-    equal(u40Rows().map(z => `${z.name}:${z.weight}`), ['Optik:1', 'Haptik:1', 'Preis:1']),
-    JSON.stringify(u40Rows()));
-  /* Ein von Hand gesetztes Gewicht ueberlebt jeden weiteren Start -- sonst
-     stellte der naechste Neustand alles wieder auf die Vorgabe. */
-  {
-    const d = open(path.join(u40Dir, 'katalog.sqlite'));
-    // Abgefangen wie jede andere Lesestelle: fehlt die Spalte, wird die
-    // Pruefung darunter rot, statt den Lauf abzureissen (Stolperstein 103).
-    try { d.prepare("UPDATE rating_criteria SET weight = 1.5 WHERE name = 'Optik'").run(); }
-    catch { /* die Spalte fehlt */ }
-    d.close();
-  }
-  uRun(u40Dir);
-  check('Ein gesetztes Gewicht ueberlebt den naechsten Start',
-    u40Rows().find(z => z.name === 'Optik')?.weight === 1.5, JSON.stringify(u40Rows()));
-
-  /* Die frische Instanz bekommt die Spalte aus der DDL, nicht aus der Migration.
-     Ohne diese Gegenlage bliebe offen, ob die DDL sie ueberhaupt traegt --
-     und zu 1.0 faellt die Migration weg, die Spalte muss bleiben. */
-  const u40Fresh = uRun(u40FreshDir);
-  check('Eine frische Instanz traegt die Spalte ohne Migration',
-    u40Columns(u40FreshDir).includes('weight') &&
-    !/rating_criteria um weight ergaenzt/.test(u40Fresh),
-    `${u40Columns(u40FreshDir).includes('weight')} / ${JSON.stringify(u40Fresh.trim())}`);
-  /* Und sie ist genauso gebaut wie die migrierte: NOT NULL mit Vorgabe 1,0 und
-     ohne CHECK. Waeren die beiden verschieden gebaut, waere das genau die
-     Abweichung, die 0.6.0 als Fehler erkannt hat. */
-  /* Nachgesehen wird das VERHALTEN, nicht der DDL-Text: das Wort CHECK steht
-     im Kommentar an der Spalte, und ein Waechter ueber den Text faerbte sich
-     daran. Ein Wert ausserhalb der Spanne muss direkt in der Datenbank
-     durchgehen -- die Gueltigkeit steht im Server, an genau einer Stelle, und
-     nicht ein zweites Mal im Schema. */
-  const u40Build = (directory) => {
-    const d = open(path.join(directory, 'katalog.sqlite'));
-    const sp = d.prepare('PRAGMA table_info(rating_criteria)').all().find(c => c.name === 'weight');
-    // Fehlt die Spalte ganz, kommt hier 'keine Spalte' heraus -- und die
-    // Pruefungen darunter werden rot, statt den Lauf abzureissen.
-    const attempt = (sql) => {
-      try { d.prepare(sql).run(); return 'geht durch'; }
-      catch (e) { return /no such column/i.test(e.message) ? 'keine Spalte' : 'abgewiesen'; }
-    };
-    const fromOutside = attempt(
-      'UPDATE rating_criteria SET weight = 9 WHERE id = (SELECT MIN(id) FROM rating_criteria)');
-    if (fromOutside === 'geht durch') attempt('UPDATE rating_criteria SET weight = 1 WHERE weight = 9');
-    const empty = attempt(
-      'UPDATE rating_criteria SET weight = NULL WHERE id = (SELECT MIN(id) FROM rating_criteria)');
-    d.close();
-    return { notnull: sp?.notnull, fallback: String(sp?.dflt_value), fromOutside, empty };
-  };
-  const u40BuildMigrated = u40Build(u40Dir), u40BuildFresh = u40Build(u40FreshDir);
-  check('Migrierte und frische Instanz bauen die Spalte gleich',
-    equal(u40BuildMigrated, u40BuildFresh),
-    `${JSON.stringify(u40BuildMigrated)} gegen ${JSON.stringify(u40BuildFresh)}`);
-  check('Sie ist NOT NULL mit Vorgabe 1.0',
-    u40BuildFresh.notnull === 1 && u40BuildFresh.fallback === '1.0' &&
-    u40BuildFresh.empty === 'abgewiesen', JSON.stringify(u40BuildFresh));
-  /* KEIN CHECK -- und zwar nicht, weil SQLite keinen nachruesten koennte
-     (ADD COLUMN nimmt einen an, das ist nachgestellt), sondern weil die Spanne
-     dann zweimal stuende: hier und in WEIGHT_MIN/WEIGHT_MAX. Zwei Stellen
-     fuer dieselbe Grenze laufen auseinander. */
-  check('Und sie traegt keinen CHECK -- die Grenze steht allein im Server',
-    u40BuildFresh.fromOutside === 'geht durch', JSON.stringify(u40BuildFresh.fromOutside));
-  fs.rmSync(u40Dir, { recursive: true, force: true });
-  fs.rmSync(u40FreshDir, { recursive: true, force: true });
-
-  /* ================================================================
-     MIGRATION 0.8.50 — ENTFAELLT MIT 1.0
-     Eigener Abschnitt nach der Bauregel: was mit dem Migrationscode
-     verschwindet, steht beieinander und traegt dieselbe Marke.
-     ================================================================ */
-  group('MIGRATION 0.8.50 — ENTFAELLT MIT 1.0');
-
-  /* Nachgestellt statt behauptet: der zugesicherte Bestand ist eine Datenbank
-     aus 0.8.0 bis 0.8.40 -- dieselbe Instanz, nur ohne kind und duration an photos.
-     UND MIT FOTOS DARIN: eine leere Tabelle bewiese nichts ueber die Vorgabe
-     (Stolperstein 81).
-     KEINE FRAGE NACH EINEM VERFASSER, wie schon bei 0.8.40: ein Foto gehoert
-     seinem Eintrag, nicht einem Verfasser -- Fotos sind kein Traeger. Die
-     Frage ist gestellt und verneint, und der Waechter weiter unten haelt es
-     fest. */
-  const u50Dir = fs.mkdtempSync(path.join(os.tmpdir(), 'kriterion-migration0850-'));
-  const u50FreshDir = fs.mkdtempSync(path.join(os.tmpdir(), 'kriterion-frisch0850-'));
-  const u50Columns = (directory) => {
-    const d = open(path.join(directory, 'katalog.sqlite'));
-    const sp = d.prepare('PRAGMA table_info(photos)').all().map(c => c.name);
-    d.close();
-    return sp;
-  };
-  /* Abgefangen wie jede Lesestelle auf eine neue Spalte: fehlt sie, werden die
-     Pruefungen darunter rot, statt den Lauf abzureissen und KEINEN Namen zu
-     nennen (Stolperstein 103; in 0.8.40 hat genau das zugeschlagen). */
-  const u50Rows = (directory = u50Dir) => {
-    const d = open(path.join(directory, 'katalog.sqlite'));
-    let z = [];
-    try { z = d.prepare('SELECT id, kind, duration FROM photos ORDER BY sort_order, id').all(); }
-    catch { /* eine der Spalten fehlt -- die Pruefungen darunter werden rot */ }
-    d.close();
-    return z;
-  };
-  /* Eine Instanz aus 0.8.40 nachbauen: Tabellenneubau statt
-     ALTER TABLE ... DROP COLUMN, aus demselben Grund wie in den Abschnitten
-     darueber -- SQLite prueft nach dem Entfernen den verbliebenen DDL-Text,
-     und der traegt hier Kommentare. Ausserhalb jeder Transaktion, sonst waere
-     das PRAGMA ein stiller No-op (Stolperstein 12).
-     `which` sagt, welche der beiden Spalten die Prueflage NICHT hat -- damit
-     laesst sich belegen, dass jede EINZELN nachgeruestet wird. */
-  const u50Regression = (directory, which) => {
-    const d = open(path.join(directory, 'katalog.sqlite'));
-    const extraEnv = [
-      which.includes('kind') ? '' : "kind TEXT NOT NULL DEFAULT 'image',",
-      which.includes('duration') ? '' : 'duration INTEGER,'
-    ].join(' ');
-    d.pragma('foreign_keys = OFF');
-    d.exec(`
-      CREATE TABLE photos_0840 (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        item_id INTEGER NOT NULL REFERENCES items(id) ON DELETE CASCADE,
-        mime_type TEXT NOT NULL,
-        data BLOB NOT NULL,
-        thumb BLOB,
-        medium BLOB,
-        ${extraEnv}
-        focus_x REAL NOT NULL DEFAULT 50,
-        focus_y REAL NOT NULL DEFAULT 50,
-        sort_order INTEGER NOT NULL DEFAULT 0,
-        created_at TEXT NOT NULL DEFAULT (datetime('now'))
-      );
-      INSERT INTO photos_0840 (item_id, mime_type, data, sort_order)
-        VALUES (1, 'image/png', x'89504e470d0a1a0a', 0),
-               (1, 'image/jpeg', x'ffd8ffe000104a46', 1);
-      DROP TABLE photos;
-      ALTER TABLE photos_0840 RENAME TO photos;
-      CREATE INDEX IF NOT EXISTS idx_photos_item ON photos(item_id, sort_order);
-    `);
+    d.exec(`ALTER TABLE ${fresh} RENAME TO ${old}`);
     d.close();
   };
 
-  uRun(u50Dir);
-  {
-    const d = open(path.join(u50Dir, 'katalog.sqlite'));
-    d.prepare("INSERT INTO users (username, password_hash) VALUES ('chefin', 'x')").run();
-    d.prepare("INSERT INTO items (title, user_id) VALUES ('Bestandseintrag', 1)").run();
-    d.close();
-  }
-  u50Regression(u50Dir, ['kind', 'duration']);
-  check('Die Prueflage traegt beide Spalten wirklich nicht',
-    !u50Columns(u50Dir).includes('kind') && !u50Columns(u50Dir).includes('duration'),
-    u50Columns(u50Dir).join(', '));
-  /* Und sie traegt wirklich Fotos -- ohne diese Zeile stuende der Beleg unten
-     auf null Zeilen und bliebe gruen, ohne etwas zu belegen (Stolperstein 81).
-     Eigene Abfrage, weil u50Rows() Spalten liest, die es hier nicht gibt. */
-  {
-    const d = open(path.join(u50Dir, 'katalog.sqlite'));
-    const n = d.prepare('SELECT COUNT(*) AS n FROM photos').get().n;
-    d.close();
-    check('Und sie traegt zwei Fotos', n === 2, `${n} Fotos`);
-  }
-
-  const u50Output = uRun(u50Dir);
-  check('Die Migration ergaenzt beide Spalten im Bestand',
-    u50Columns(u50Dir).includes('kind') && u50Columns(u50Dir).includes('duration'),
-    u50Columns(u50Dir).join(', '));
-  check('Er sagt im Protokoll, was er getan hat',
-    /photos um kind und duration ergaenzt/.test(u50Output), JSON.stringify(u50Output.trim()));
-
-  /* DER KERN DIESES ABSCHNITTS. Jeder andere Wert als 'image' machte aus jedem
-     vorhandenen Foto still ein Video -- und die Auslieferung boete danach
-     Ranges an einer Datei an, die keine ist. duration bleibt NULL: ein Foto hat
-     keine Dauer. Erst auf Vorhandensein, dann auf die Eigenschaft. */
-  check('Die beiden Bestandszeilen stehen auf bild, ohne Dauer',
-    u50Rows().length === 2 && u50Rows().every(z => z.kind === 'image' && z.duration === null),
-    JSON.stringify(u50Rows()));
-  /* Und die Vorgabe kommt aus dem DEFAULT der Spalte, nicht aus einem
-     nachgeschobenen UPDATE: db.js schreibt nach dem ALTER TABLE nichts mehr an
-     diese Tabelle. Nachgestellt am Quelltext, nicht geglaubt. */
-  {
-    const u50Source = fs.readFileSync(path.join(__dirname, 'db.js'), 'utf8');
-    const u50Block = u50Source.slice(u50Source.indexOf('// MIGRATION 0.8.50'),
-                                     u50Source.indexOf('// ENDE MIGRATION 0.8.50'));
-    check('Die Vorgabe kommt aus dem DEFAULT, nicht aus einem UPDATE',
-      u50Block.includes("DEFAULT 'image'") && !/UPDATE\s+photos/i.test(u50Block),
-      JSON.stringify(u50Block.slice(0, 80)));
-    /* JEDE SPALTE WIRD EINZELN GEFRAGT. Ein Block, der beim Vorhandensein von
-       kind zurueckkehrt, liesse duration fehlen, wenn ein Lauf dazwischen
-       abgebrochen ist -- nachgemessen: zwei ALTER TABLE sind zwei Anweisungen,
-       und scheitert die zweite, bleibt die erste stehen. */
-    check('Der Block fragt jede Spalte einzeln ab',
-      (u50Block.match(/columns\.includes\(/g) || []).length === 2,
-      `${(u50Block.match(/columns\.includes\(/g) || []).length} Abfragen`);
-    /* assignInventory() wird ausdruecklich NICHT angefasst: dort geht es um
-       user_id und um die Frage, wem eine herrenlose Zeile gehoert. Ein Foto
-       gehoert seinem Eintrag, nicht einem Verfasser. */
-    const u50Catch = u50Source.slice(u50Source.indexOf('function assignInventory'),
-                                       u50Source.indexOf('assignInventory();'));
-    check('Das Auffangnetz kennt photos nicht',
-      !u50Catch.includes('photos'), 'photos steht in assignInventory()');
-  }
-
-  // Wiederholbar und dann stumm: db.js laeuft bei JEDEM Start.
-  const u50Secondly = uRun(u50Dir);
-  check('Ein zweiter Lauf ergaenzt nichts mehr und bleibt stumm',
-    !/photos um /.test(u50Secondly), JSON.stringify(u50Secondly.trim()));
-  check('Und die Zeilen sind dabei unangetastet geblieben',
-    u50Rows().length === 2 && u50Rows().every(z => z.kind === 'image'),
-    JSON.stringify(u50Rows()));
-
-  /* JEDE DER BEIDEN SPALTEN WIRD EINZELN NACHGERUESTET -- nachgestellt, nicht
-     nur am Quelltext gelesen. Das ist der zerrissene Stand, den ein Block mit
-     einer einzigen Abfrage fuer immer stehen liesse. */
-  for (const [missing, outside] of [[['kind'], 'duration'], [['duration'], 'kind']]) {
-    const dir = fs.mkdtempSync(path.join(os.tmpdir(), `kriterion-u50-${missing[0]}-`));
-    uRun(dir);
-    {
-      const d = open(path.join(dir, 'katalog.sqlite'));
-      d.prepare("INSERT INTO users (username, password_hash) VALUES ('chefin', 'x')").run();
-      d.prepare("INSERT INTO items (title, user_id) VALUES ('Halb', 1)").run();
+  /* DIE GEGENLAGE ZUERST: eine frische Instanz bekommt jede Spalte aus der
+     DDL, und sie sagt dazu KEIN Wort. Ohne diese Zeile bliebe offen, ob die
+     Spalten ueberhaupt noch im Schema stehen -- und genau das ist nach dem
+     Wegfall der achtzehn Bloecke die Stelle, an der alles haengt. */
+  const uhFresh = uhRun(uhFreshDir);
+  check('Eine frische Instanz kommt ueberhaupt hoch',
+    uhFresh.ok, uhFresh.out.trim().slice(-300));
+  const uhFreshMissing = uhTable.filter(([table, column]) =>
+    !uhColumns(uhFreshDir, table).includes(column));
+  check('Eine frische Instanz traegt alle achtzehn Spalten aus der DDL',
+    uhFreshMissing.length === 0,
+    uhFreshMissing.map(([t, c]) => `${t}.${c}`).join(' · ') || 'alle da');
+  check('Und sie sagt dabei kein Wort ueber eine unvollstaendige Datenbank',
+    !/incomplete/i.test(uhFresh.out), JSON.stringify(uhFresh.out.trim()));
+  check('Und sie legt keinen Merker dafuer an — die Probe fragt den Bestand',
+    (() => {
+      const d = open(path.join(uhFreshDir, 'katalog.sqlite'));
+      const marker = d.prepare(
+        "SELECT COUNT(*) AS n FROM settings WHERE key LIKE '%migration%' OR key LIKE '%schema%'").get().n;
+      const userVersion = d.pragma('user_version', { simple: true });
       d.close();
+      return marker === 0 && userVersion === 0;
+    })(), 'ein Merker steht da');
+
+  /* UND JETZT DIE ACHTZEHN PRUEFLAGEN, EINE JE SPALTE. Je Lage: die Spalte
+     wegnehmen, die Instanz hochziehen, und drei Dinge festhalten --
+       1. SIE WAECHST NICHT NACH   es gibt keinen Block mehr
+       2. SIE WIRD BENANNT         mit Namen und mit ihrer Fassung
+       3. DIE INSTANZ KOMMT HOCH   kein Abbruch, kein Stapelabzug
+     DIE DRITTE IST DIE, DIE DEN BETREIBER SCHUETZT (Leitplanke L3): eine
+     Probe, die sich irren kann, darf niemanden aussperren. execFileSync wirft
+     bei einem Rueckgabewert ungleich null -- der Lauf kaeme gar nicht bis zur
+     naechsten Zeile, und das ist die schaerfste Form dieser Zusage. */
+  const uhMissed = [], uhUnnamed = [], uhNoVersion = [], uhDead = [];
+  for (const [table, column, since] of uhTable) {
+    fs.rmSync(uhDir, { recursive: true, force: true });
+    fs.mkdirSync(uhDir, { recursive: true });
+    uhRun(uhDir);
+    uhGrow(uhDir);
+    uhDropColumn(uhDir, table, column);
+    const run = uhRun(uhDir);
+    if (!run.ok) {
+      uhDead.push(`${table}.${column}: ${run.out.trim().split('\n').pop()}`);
+      continue;
     }
-    u50Regression(dir, missing);
-    check(`Die halbe Prueflage traegt ${outside}, aber nicht ${missing[0]}`,
-      u50Columns(dir).includes(outside) && !u50Columns(dir).includes(missing[0]),
-      u50Columns(dir).join(', '));
-    const output = uRun(dir);
-    check(`Die Migration ruestet ${missing[0]} einzeln nach`,
-      u50Columns(dir).includes(missing[0]) &&
-      new RegExp(`photos um ${missing[0]} ergaenzt`).test(output),
-      `${u50Columns(dir).join(', ')} / ${JSON.stringify(output.trim())}`);
-    check(`Und die Bestandszeilen stehen danach richtig da (${missing[0]} fehlte)`,
-      u50Rows(dir).length === 2 &&
-      u50Rows(dir).every(z => z.kind === 'image' && z.duration === null),
-      JSON.stringify(u50Rows(dir)));
-    fs.rmSync(dir, { recursive: true, force: true });
+    if (uhColumns(uhDir, table).includes(column)) uhMissed.push(`${table}.${column}`);
+    if (!run.out.includes(`${table}.${column}`)) uhUnnamed.push(`${table}.${column}`);
+    if (!new RegExp(`${table}\\.${column}\\b[^\\n]*${since.replace(/\./g, '\\.')}`).test(run.out))
+      uhNoVersion.push(`${table}.${column} (${since})`);
   }
+  check('Keine der achtzehn Spalten waechst noch nach — es gibt keinen Block mehr',
+    uhMissed.length === 0, uhMissed.join(' · ') || 'keine');
+  check('Jede fehlende Spalte wird im Protokoll BENANNT',
+    uhUnnamed.length === 0, uhUnnamed.join(' · ') || 'alle benannt');
+  check('Und neben ihrem Namen steht die Fassung, die sie gebracht haette',
+    uhNoVersion.length === 0, uhNoVersion.join(' · ') || 'alle mit Fassung');
+  check('Und die Instanz kommt in jedem der achtzehn Faelle hoch',
+    uhDead.length === 0, uhDead.join(' · ') || 'alle achtzehn oben');
 
-  /* Die frische Instanz bekommt die Spalten aus der DDL, nicht aus der Migration.
-     Ohne diese Gegenlage bliebe offen, ob die DDL sie ueberhaupt traegt -- und
-     zu 1.0 faellt die Migration weg, die Spalten muessen bleiben. */
-  const u50Fresh = uRun(u50FreshDir);
-  check('Eine frische Instanz traegt beide Spalten ohne Migration',
-    u50Columns(u50FreshDir).includes('kind') && u50Columns(u50FreshDir).includes('duration') &&
-    !/photos um /.test(u50Fresh),
-    `${u50Columns(u50FreshDir).join(', ')} / ${JSON.stringify(u50Fresh.trim())}`);
-  /* Und migrierte und frische Instanz bauen die Spalten gleich. Nachgesehen
-     wird das VERHALTEN, nicht der DDL-Text: das Wort CHECK steht im Kommentar
-     an der Spalte, und ein Waechter ueber den Text faerbte sich daran
-     (Stolperstein 106). Eine dritte Art muss direkt in der Datenbank
-     durchgehen -- die Menge der erlaubten Werte steht im Server, an einer
-     Stelle, und nicht ein zweites Mal im Schema. */
-  const u50Build = (directory) => {
-    const d = open(path.join(directory, 'katalog.sqlite'));
-    const sp = d.prepare('PRAGMA table_info(photos)').all();
-    const kind = sp.find(c => c.name === 'kind'), duration = sp.find(c => c.name === 'duration');
-    const attempt = (sql) => {
-      try { d.prepare(sql).run(); return 'geht durch'; }
-      catch (e) { return /no such column/i.test(e.message) ? 'keine Spalte' : 'abgewiesen'; }
-    };
-    d.prepare("INSERT INTO items (id, title) VALUES (900, 'Bauprobe') ON CONFLICT(id) DO NOTHING").run();
-    const thirdKind = attempt(
-      "INSERT INTO photos (item_id, mime_type, data, kind) VALUES (900, 'x', x'00', 'dritte')");
-    const empty = attempt(
-      "INSERT INTO photos (item_id, mime_type, data, kind) VALUES (900, 'x', x'00', NULL)");
-    d.prepare('DELETE FROM photos WHERE item_id = 900').run();
-    d.prepare('DELETE FROM items WHERE id = 900').run();
-    d.close();
-    return { kindNotnull: kind?.notnull, kindDefault: String(kind?.dflt_value),
-             durationNotnull: duration?.notnull, thirdKind, empty };
-  };
-  const u50BuildMigrated = u50Build(u50Dir), u50BuildFresh = u50Build(u50FreshDir);
-  check('Migrierte und frische Instanz bauen die Spalten gleich',
-    equal(u50BuildMigrated, u50BuildFresh),
-    `${JSON.stringify(u50BuildMigrated)} gegen ${JSON.stringify(u50BuildFresh)}`);
-  check('kind ist NOT NULL mit Vorgabe image, duration darf leer bleiben',
-    u50BuildFresh.kindNotnull === 1 && u50BuildFresh.kindDefault === "'image'" &&
-    u50BuildFresh.durationNotnull === 0 && u50BuildFresh.empty === 'abgewiesen',
-    JSON.stringify(u50BuildFresh));
-  /* KEIN CHECK -- und zwar nicht, weil SQLite keinen nachruesten koennte
-     (Stolperstein 107: ADD COLUMN nimmt einen an), sondern weil die Menge der
-     erlaubten Werte dann zweimal stuende. Zwei Stellen fuer dieselbe Liste
-     laufen auseinander. */
-  check('Und kind traegt keinen CHECK -- die Menge steht allein im Server',
-    u50BuildFresh.thirdKind === 'geht durch', JSON.stringify(u50BuildFresh.thirdKind));
-  /* ZWEI INDIZES AUF photos SEIT 0.19.2, und der zweite widerlegt einen Satz,
-     der bis dahin hier stand: „ein Index ueber kind bringt nichts -- die Zeilen
-     je Eintrag sind einstellig, und gefiltert wird nirgends nach Art."
+  /* DER KASTEN NENNT AUSSERDEM DEN WEG HERAUS. Ein Hinweis, der sagt, was
+     fehlt, aber nicht, was zu tun ist, ist eine Beunruhigung. Gefragt wird an
+     EINER gestellten Lage -- die achtzehn darueber haben schon gezeigt, dass
+     der Kasten ueberhaupt erscheint. */
+  fs.rmSync(uhDir, { recursive: true, force: true });
+  fs.mkdirSync(uhDir, { recursive: true });
+  uhRun(uhDir);
+  uhGrow(uhDir);
+  uhDropColumn(uhDir, 'photos', 'zoom');
+  const uhOut = uhRun(uhDir).out;
+  check('Der Kasten sagt, dass die Datenbank unvollstaendig ist',
+    /this database is incomplete/i.test(uhOut), JSON.stringify(uhOut.trim().slice(0, 200)));
+  check('Und ueber welche Fassung zuerst zu gehen waere',
+    /0\.32\.1/.test(uhOut), JSON.stringify(uhOut.trim().slice(0, 400)));
+  check('Und dass die Instanz trotzdem startet',
+    /starts anyway/i.test(uhOut), JSON.stringify(uhOut.trim().slice(0, 400)));
+  /* UND ER STEHT IN DERSELBEN FORM WIE DER SCHLUESSELHINWEIS AUS keys.js --
+     das Vorbild, das der Auftrag nennt. Wer eines der beiden kennt, liest das
+     andere ohne Anlauf. */
+  check('Und er traegt den Rahmen des Schluesselhinweises',
+    /-{60,}/.test(uhOut) && /WARNING/.test(uhOut), JSON.stringify(uhOut.trim().slice(0, 120)));
+  /* UND KEIN STAPELABZUG. Der Betreiber sieht einen Kasten und keine
+     Ausnahme -- Zusage 6 des Auftrags. */
+  check('Und nirgends ein Stapelabzug',
+    !/\bat .*\.js:\d+/.test(uhOut), JSON.stringify(uhOut.trim().slice(0, 300)));
 
-     BEIDE HAELFTEN WAREN FALSCH. Gefiltert wird sehr wohl nach Art -- die
-     Bestandskarte tut es bei jedem Zeichnen --, und die Zeilen je EINTRAG sind
-     nicht der Massstab: die Abfrage laeuft ueber die ganze TABELLE. Und der
-     Gewinn kommt nicht vom Filtern, sondern daraus, dass `kind` HINTER drei
-     Blobs steht: aus dem Satz gelesen kostet sie 1338,8 ms, aus dem Index
-     0,1 ms (Stolperstein 279).
-
-     GEPRUEFT WIRD HIER BEIDES: dass der alte Index den Tabellenneubau der
-     Prueflage ueberlebt hat, und dass der neue wirklich angelegt wurde --
-     an einer Datenbank, die aus 0.8.40 hochmigriert ist. GENAU DA WAERE ER
-     BEINAHE GESCHEITERT: `photos.kind` gibt es dort erst nach migration0850(),
-     und ein CREATE INDEX in der DDL liefe ins Leere (Stolperstein 281). */
-  {
-    const d = open(path.join(u50FreshDir, 'katalog.sqlite'));
-    const idx = d.prepare("SELECT name FROM sqlite_master WHERE type = 'index' AND tbl_name = 'photos'")
-      .all().map(z => z.name);
-    d.close();
-    check('Die migrierte Datenbank traegt beide Indizes auf photos',
-      idx.includes('idx_photos_item') && idx.includes('idx_photos_kind'), idx.join(', '));
-  }
-  fs.rmSync(u50Dir, { recursive: true, force: true });
-  fs.rmSync(u50FreshDir, { recursive: true, force: true });
-
-  /* ================================================================
-     MIGRATION 0.14.0 — ENTFAELLT MIT 1.0
-     Eigener Abschnitt nach der Bauregel: was mit dem Migrationscode
-     verschwindet, steht beieinander und traegt dieselbe Marke.
-     DIE ERSTE SCHEMA-RUNDE SEIT 0.8.50, und der Block ruestet DREI Spalten
-     nach -- damit gilt Stolperstein 108 zum zweiten Mal, und diesmal mit
-     Transaktion.
-     ================================================================ */
-  group('MIGRATION 0.14.0 — ENTFAELLT MIT 1.0');
-
-  /* Nachgestellt statt behauptet: der zugesicherte Bestand ist eine Datenbank
-     aus 0.8.0 bis 0.13.2 -- dieselbe Instanz, nur ohne die drei Spalten an
-     items.
-     UND MIT EINTRAEGEN DARIN, davon einer ABGELEHNT: eine leere Tabelle
-     bewiese nichts darueber, was mit dem Bestand geschieht (Stolperstein 81)
-     -- und, wie diese Runde nachgemessen hat, nicht einmal etwas darueber, ob
-     das ALTER TABLE ueberhaupt durchgeht (Stolperstein 202). */
-  const u14Dir = fs.mkdtempSync(path.join(os.tmpdir(), 'kriterion-migration0140-'));
-  const u14FreshDir = fs.mkdtempSync(path.join(os.tmpdir(), 'kriterion-frisch0140-'));
-  const u14New = ['rejected_at', 'rejected_reason', 'rejected_by'];
-  const u14Columns = (directory) => {
-    const d = open(path.join(directory, 'katalog.sqlite'));
-    const sp = d.prepare('PRAGMA table_info(items)').all().map(c => c.name);
-    d.close();
-    return sp;
-  };
-  /* Abgefangen wie jede Lesestelle auf eine neue Spalte: fehlt sie, werden die
-     Pruefungen darunter rot, statt den Lauf abzureissen und KEINEN Namen zu
-     nennen (Stolperstein 103). */
-  const u14Rows = (directory = u14Dir) => {
-    const d = open(path.join(directory, 'katalog.sqlite'));
-    let z = [];
-    try {
-      z = d.prepare('SELECT id, title, rejected, rejected_at, rejected_reason, rejected_by FROM items ORDER BY id').all();
-    } catch { /* eine der Spalten fehlt -- die Pruefungen darunter werden rot */ }
-    d.close();
-    return z;
-  };
-  /* Eine Instanz aus 0.13.2 nachbauen: Tabellenneubau statt
-     ALTER TABLE ... DROP COLUMN, aus demselben Grund wie in den Abschnitten
-     darueber -- SQLite prueft nach dem Entfernen den verbliebenen DDL-Text,
-     und der traegt hier Kommentare (Stolperstein 106). Ausserhalb jeder
-     Transaktion, sonst waere das PRAGMA ein stiller No-op (Stolperstein 12).
-     `which` sagt, welche der drei Spalten die Prueflage NICHT hat -- damit
-     laesst sich belegen, dass jede EINZELN nachgeruestet wird. */
-  const u14Regression = (directory, which) => {
-    const d = open(path.join(directory, 'katalog.sqlite'));
-    const extraEnv = [
-      which.includes('rejected_at') ? '' : 'rejected_at TEXT,',
-      which.includes('rejected_reason') ? '' : 'rejected_reason TEXT,',
-      which.includes('rejected_by') ? '' : 'rejected_by INTEGER REFERENCES users(id) ON DELETE SET NULL,'
-    ].join(' ');
-    d.pragma('foreign_keys = OFF');
-    d.exec(`
-      CREATE TABLE items_0132 (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        title TEXT NOT NULL,
-        description TEXT NOT NULL DEFAULT '',
-        rejected INTEGER NOT NULL DEFAULT 0,
-        ${extraEnv}
-        tested INTEGER NOT NULL DEFAULT 0,
-        favorite INTEGER NOT NULL DEFAULT 0,
-        product_category_id INTEGER REFERENCES product_categories(id) ON DELETE SET NULL,
-        created_at TEXT NOT NULL DEFAULT (datetime('now')),
-        updated_at TEXT NOT NULL DEFAULT (datetime('now')),
-        user_id INTEGER REFERENCES users(id) ON DELETE SET NULL
-      );
-      INSERT INTO items_0132 (title, rejected, user_id)
-        VALUES ('Abgelehnter Altbestand', 1, 1), ('Offener Altbestand', 0, 1);
-      DROP TABLE items;
-      ALTER TABLE items_0132 RENAME TO items;
-    `);
-    d.close();
-  };
-
-  uRun(u14Dir);
-  {
-    const d = open(path.join(u14Dir, 'katalog.sqlite'));
-    d.prepare("INSERT INTO users (username, password_hash) VALUES ('chefin', 'x')").run();
-    d.close();
-  }
-  u14Regression(u14Dir, u14New);
-  check('Die Prueflage traegt keine der drei Spalten',
-    u14New.every(n => !u14Columns(u14Dir).includes(n)), u14Columns(u14Dir).join(', '));
-  /* Und sie traegt wirklich Eintraege, davon einen abgelehnten -- ohne diese
-     Zeile stuende der Beleg unten auf null Zeilen und bliebe gruen, ohne etwas
-     zu belegen (Stolperstein 81). Eigene Abfrage, weil u14Rows() Spalten
-     liest, die es hier noch nicht gibt. */
-  {
-    const d = open(path.join(u14Dir, 'katalog.sqlite'));
-    const z = d.prepare('SELECT COUNT(*) AS n, SUM(rejected) AS rejectedCount FROM items').get();
-    d.close();
-    check('Und sie traegt zwei Eintraege, davon einen abgelehnten',
-      z.n === 2 && z.rejectedCount === 1, JSON.stringify(z));
-  }
-
-  const u14Output = uRun(u14Dir);
-  check('Die Migration ergaenzt alle drei Spalten im Bestand',
-    u14New.every(n => u14Columns(u14Dir).includes(n)), u14Columns(u14Dir).join(', '));
-  check('Er sagt im Protokoll, was er getan hat',
-    /items um rejected_at, rejected_reason und rejected_by ergaenzt/.test(u14Output),
-    JSON.stringify(u14Output.trim()));
-  check('Und er nennt dabei, wie viele Ablehnungen ohne Angaben dastehen',
-    /1 bereits abgelehnte Eintrag steht ohne Datum, Grund und Verfasser da/.test(u14Output),
-    JSON.stringify(u14Output.trim()));
-
-  /* DER KERN DIESES ABSCHNITTS. Die Bestandszeilen bleiben, und die drei
-     Spalten bleiben LEER -- auch an dem Eintrag, der schon abgelehnt war.
-     Ein nachgeschobenes UPDATE erfaende hier Angaben, die diese Instanz nicht
-     hat; "abgelehnt am Tag der Einspielung" waere die schlimmste davon. */
-  check('Beide Bestandszeilen sind noch da',
-    u14Rows().length === 2, JSON.stringify(u14Rows().map(z => z.title)));
-  check('Und alle drei Spalten stehen leer -- auch am abgelehnten Eintrag',
-    u14Rows().length === 2 &&
-    u14Rows().every(z => z.rejected_at === null && z.rejected_reason === null && z.rejected_by === null),
-    JSON.stringify(u14Rows()));
-  check('Das Merkmal rejected selbst ist unangetastet geblieben',
-    u14Rows().map(z => z.rejected).join(',') === '1,0', JSON.stringify(u14Rows().map(z => z.rejected)));
-
-  /* Nachgestellt am Quelltext: kein UPDATE an items im Block, und die drei
-     ALTER TABLE laufen in EINER Transaktion (Stolperstein 108). */
-  {
-    const u14Source = fs.readFileSync(path.join(__dirname, 'db.js'), 'utf8');
-    const u14Block = u14Source.slice(u14Source.indexOf('// MIGRATION 0.14.0'),
-                                     u14Source.indexOf('// ENDE MIGRATION 0.14.0'));
-    check('Der Block schiebt kein UPDATE nach',
-      !/UPDATE\s+items/i.test(u14Block), JSON.stringify(u14Block.slice(0, 80)));
-    check('Der Block fragt jede Spalte einzeln ab',
-      (u14Block.match(/columns\.includes\(/g) || []).length === 3,
-      `${(u14Block.match(/columns\.includes\(/g) || []).length} Abfragen`);
-    check('Und die drei ALTER TABLE laufen in EINER Transaktion',
-      /db\.transaction\(/.test(u14Block) &&
-      (u14Block.match(/ALTER TABLE items ADD COLUMN/g) || []).length === 3,
-      JSON.stringify((u14Block.match(/db\.transaction\([^\n]*/g) || []).join(' | ')));
-    /* assignInventory() wird ausdruecklich NICHT angefasst: dort geht es um
-       user_id und um die Frage, wem eine herrenlose Zeile gehoert.
-       rejected_by ist keine Eigentumsangabe, sondern der Name unter einer
-       Entscheidung -- sie dem Eigentuemer zuzuschieben setzte seinen Namen
-       unter eine fremde Aussage. */
-    const u14Catch = u14Source.slice(u14Source.indexOf('function assignInventory'),
-                                       u14Source.indexOf('assignInventory();'));
-    check('Das Auffangnetz kennt rejected_by nicht',
-      !u14Catch.includes('rejected_by'), 'rejected_by steht in assignInventory()');
-  }
-
-  // Wiederholbar und dann stumm: db.js laeuft bei JEDEM Start.
-  const u14Secondly = uRun(u14Dir);
-  check('Ein zweiter Lauf ergaenzt nichts mehr und bleibt stumm',
-    !/items um /.test(u14Secondly), JSON.stringify(u14Secondly.trim()));
-  check('Und die Zeilen sind dabei unangetastet geblieben',
-    u14Rows().length === 2 &&
-    u14Rows().every(z => z.rejected_at === null && z.rejected_by === null),
-    JSON.stringify(u14Rows()));
-
-  /* JEDE DER DREI SPALTEN WIRD EINZELN NACHGERUESTET -- nachgestellt, nicht
-     nur am Quelltext gelesen. Das ist der zerrissene Stand, den ein Block mit
-     einer einzigen Abfrage fuer immer stehen liesse. */
-  for (const missing of u14New) {
-    const outside = u14New.filter(n => n !== missing);
-    const dir = fs.mkdtempSync(path.join(os.tmpdir(), `kriterion-u14-${missing}-`));
-    uRun(dir);
-    {
-      const d = open(path.join(dir, 'katalog.sqlite'));
-      d.prepare("INSERT INTO users (username, password_hash) VALUES ('chefin', 'x')").run();
-      d.close();
+  /* DIE ZWEITE HAELFTE DER PROBE: EINE TABELLE UNTER IHREM ALTEN NAMEN.
+     Hier heilt die DDL nichts -- sie legt daneben eine leere neue an, und
+     genau das macht den Fall so still. Der Kasten muss ihn deshalb nennen. */
+  const uhTableMissed = [];
+  for (const [old, fresh] of uhTables) {
+    fs.rmSync(uhDir, { recursive: true, force: true });
+    fs.mkdirSync(uhDir, { recursive: true });
+    uhRun(uhDir);
+    uhGrow(uhDir);
+    uhRenameTable(uhDir, fresh, old);
+    const run2 = uhRun(uhDir);
+    if (!run2.ok) {
+      uhTableMissed.push(`${old}: Start abgebrochen (${run2.out.trim().split('\n').pop()})`);
+      continue;
     }
-    u14Regression(dir, [missing]);
-    check(`Die halbe Prueflage traegt ${outside.join(' und ')}, aber nicht ${missing}`,
-      outside.every(n => u14Columns(dir).includes(n)) && !u14Columns(dir).includes(missing),
-      u14Columns(dir).join(', '));
-    const output = uRun(dir);
-    check(`Die Migration ruestet ${missing} einzeln nach`,
-      u14Columns(dir).includes(missing) && new RegExp(`items um ${missing} ergaenzt`).test(output),
-      `${u14Columns(dir).join(', ')} / ${JSON.stringify(output.trim())}`);
-    check(`Und die Bestandszeilen stehen danach richtig da (${missing} fehlte)`,
-      u14Rows(dir).length === 2 &&
-      u14Rows(dir).every(z => z.rejected_at === null && z.rejected_reason === null && z.rejected_by === null),
-      JSON.stringify(u14Rows(dir)));
-    fs.rmSync(dir, { recursive: true, force: true });
+    if (!run2.out.includes(old) || !run2.out.includes(fresh))
+      uhTableMissed.push(`${old} → ${fresh} nicht benannt`);
   }
+  check('Eine Tabelle unter ihrem alten Namen wird mit BEIDEN Namen benannt',
+    uhTableMissed.length === 0, uhTableMissed.join(' · ') || 'alle sechs benannt');
 
-  /* Die frische Instanz bekommt die Spalten aus der DDL, nicht aus der
-     Migration. Ohne diese Gegenlage bliebe offen, ob die DDL sie ueberhaupt
-     traegt -- und zu 1.0 faellt die Migration weg, die Spalten muessen
-     bleiben. */
-  const u14Fresh = uRun(u14FreshDir);
-  check('Eine frische Instanz traegt alle drei Spalten ohne Migration',
-    u14New.every(n => u14Columns(u14FreshDir).includes(n)) && !/items um /.test(u14Fresh),
-    `${u14Columns(u14FreshDir).join(', ')} / ${JSON.stringify(u14Fresh.trim())}`);
+  /* UND DER WAECHTER FAENGT WIRKLICH ETWAS. Ohne diese Zeile waeren die
+     Zeilen darueber auch dann gruen, wenn die Probe gar nichts faende -- sie
+     pruefen ja Abwesenheit. Gefragt wird an der Probe selbst, mit einer
+     Datenbank, der NICHTS fehlt. */
+  const { incompleteDatabase: uhProbe } = require('./db');
+  check('Die Probe gibt es, und an dieser Instanz findet sie nichts',
+    typeof uhProbe === 'function' && uhProbe().length === 0,
+    JSON.stringify(uhProbe ? uhProbe() : 'die Probe fehlt'));
 
-  /* DER FREMDSCHLUESSEL, UND ZWAR AM VERHALTEN. Ein REFERENCES in einem
-     ALTER TABLE ... ADD COLUMN ist nicht selbstverstaendlich dasselbe wie
-     eines in der DDL (Stolperstein 105 stellt genau diese Frage fuer die
-     Vorgabe). Nachgemessen wird deshalb, was SQLite TUT: dass der Schluessel
-     dasteht, dass ON DELETE SET NULL greift und dass eine unbekannte Nummer
-     abgewiesen wird -- in der migrierten wie in der frischen Instanz. */
-  const u14Fk = (directory) => {
-    const d = open(path.join(directory, 'katalog.sqlite'));
-    d.pragma('foreign_keys = ON');
-    const entry = d.prepare('PRAGMA foreign_key_list(items)').all().find(f => f.from === 'rejected_by');
-    let set = null, foreign = 'angenommen';
-    try {
-      d.prepare("INSERT INTO users (id, username, password_hash) VALUES (777, 'fkprobe', 'x')").run();
-      d.prepare("INSERT INTO items (id, title, rejected, rejected_by) VALUES (777, 'FK-Probe', 1, 777)").run();
-      d.prepare('DELETE FROM users WHERE id = 777').run();
-      set = d.prepare('SELECT rejected_by FROM items WHERE id = 777').get().rejected_by;
-      try { d.prepare('UPDATE items SET rejected_by = 999 WHERE id = 777').run(); }
-      catch { foreign = 'abgewiesen'; }
-      d.prepare('DELETE FROM items WHERE id = 777').run();
-    } catch (e) { foreign = `Prueflage gescheitert: ${e.message}`; }
-    d.close();
-    return { target: entry?.table, beiDeletion: entry?.on_delete, afterDemRemove: set, foreign };
-  };
-  const u14FkMigrated = u14Fk(u14Dir), u14FkFresh = u14Fk(u14FreshDir);
-  check('Migrierte und frische Instanz verhalten sich am Fremdschluessel gleich',
-    equal(u14FkMigrated, u14FkFresh),
-    `${JSON.stringify(u14FkMigrated)} gegen ${JSON.stringify(u14FkFresh)}`);
-  check('rejected_by zeigt auf users und gibt beim Loeschen frei',
-    u14FkMigrated.target === 'users' && u14FkMigrated.beiDeletion === 'SET NULL',
-    JSON.stringify(u14FkMigrated));
-  check('Ein entfernter Zugang laesst die Ablehnung stehen und nimmt nur den Namen mit',
-    u14FkMigrated.afterDemRemove === null, JSON.stringify(u14FkMigrated));
-  check('Und eine Nummer, die es nicht gibt, wird abgewiesen',
-    u14FkMigrated.foreign === 'abgewiesen', JSON.stringify(u14FkMigrated.foreign));
-
-  /* STOLPERSTEIN 202, IN DIESER RUNDE NACHGEMESSEN UND NEU: die Absage aus
-     Stolperstein 105 haengt daran, ob die Tabelle ZEILEN HAT. An einer leeren
-     geht dasselbe ALTER TABLE durch. Das steht hier und nicht nur im Papier,
-     denn daraus folgt die Bauform der Prueflagen darueber: eine Migration, die
-     nur an einer leeren Tabelle gefahren wird, ist gar nicht gefahren. */
-  {
-    const d = open(path.join(u14FreshDir, 'katalog.sqlite'));
-    const attempt = (sql) => { try { d.exec(sql); return 'geht'; } catch (e) { return e.message; } };
-    d.exec('CREATE TABLE p202_leer (id INTEGER PRIMARY KEY)');
-    d.exec('CREATE TABLE p202_voll (id INTEGER PRIMARY KEY)');
-    d.prepare('INSERT INTO p202_voll (id) VALUES (1)').run();
-    const column = ' ADD COLUMN v INTEGER NOT NULL DEFAULT 0 REFERENCES users(id) ON DELETE SET NULL';
-    const empty = attempt('ALTER TABLE p202_leer' + column);
-    const full = attempt('ALTER TABLE p202_voll' + column);
-    d.exec('DROP TABLE p202_leer; DROP TABLE p202_voll');
-    d.close();
-    check('An einer LEEREN Tabelle nimmt SQLite die Vorgabe am Fremdschluessel an',
-      empty === 'geht', JSON.stringify(empty));
-    check('An einer Tabelle MIT Zeilen weist es dieselbe Anweisung ab',
-      /Cannot add a REFERENCES column with non-NULL default value/.test(full), JSON.stringify(full));
-  }
-
-  fs.rmSync(u14Dir, { recursive: true, force: true });
-  fs.rmSync(u14FreshDir, { recursive: true, force: true });
-
-  /* ================================================================
-     MIGRATION 0.16.0 — ENTFAELLT MIT 1.0
-     Eigener Abschnitt nach der Bauregel: was mit dem Migrationscode
-     verschwindet, steht beieinander und traegt dieselbe Marke.
-     EINE SPALTE, UND SIE HAT KEINEN VORGABEWERT -- das ist die Aussage dieses
-     Blocks und nicht seine Bequemlichkeit (Stolperstein 219): eine Zeile ohne
-     Zeitpunkt heisst „die Instanz weiss nicht, wann das war". Ein fester Wert
-     liesse den ganzen Altbestand gleich alt aussehen, `datetime('now')` liesse
-     ihn brandneu aussehen -- und die Glocke laeutete beim ersten Start fuer
-     alles.
-     ================================================================ */
-  group('MIGRATION 0.16.0 — ENTFAELLT MIT 1.0');
-
-  const u16Dir = fs.mkdtempSync(path.join(os.tmpdir(), 'kriterion-migration0160-'));
-  const u16FreshDir = fs.mkdtempSync(path.join(os.tmpdir(), 'kriterion-frisch0160-'));
-  const u16Columns = (directory) => {
-    const d = open(path.join(directory, 'katalog.sqlite'));
-    const sp = d.prepare('PRAGMA table_info(ratings)').all().map(c => c.name);
-    d.close();
-    return sp;
-  };
-  /* Abgefangen wie jede Lesestelle auf eine neue Spalte: fehlt sie, werden die
-     Pruefungen darunter rot, statt den Lauf abzureissen (Stolperstein 103). */
-  const u16Rows = (directory = u16Dir) => {
-    const d = open(path.join(directory, 'katalog.sqlite'));
-    let z = [];
-    try { z = d.prepare('SELECT id, value, set_at FROM ratings ORDER BY id').all(); }
-    catch { /* die Spalte fehlt -- die Pruefungen darunter werden rot */ }
-    d.close();
-    return z;
-  };
-  /* Eine Instanz aus 0.15.1 nachbauen: Tabellenneubau statt
-     ALTER TABLE ... DROP COLUMN, aus demselben Grund wie in den Abschnitten
-     darueber (Stolperstein 106). Ausserhalb jeder Transaktion, sonst waere das
-     PRAGMA ein stiller No-op (Stolperstein 12).
-     UND MIT BEWERTUNGEN DARIN: eine leere Tabelle bewiese nichts darueber, was
-     mit dem Bestand geschieht (Stolperstein 81) -- und nicht einmal etwas
-     darueber, ob das ALTER TABLE ueberhaupt durchgeht (Stolperstein 202). */
-  const u16Regression = (directory) => {
-    const d = open(path.join(directory, 'katalog.sqlite'));
-    d.pragma('foreign_keys = OFF');
-    d.exec(`
-      CREATE TABLE ratings_0151 (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        item_id INTEGER NOT NULL REFERENCES items(id) ON DELETE CASCADE,
-        criterion_id INTEGER NOT NULL REFERENCES rating_criteria(id) ON DELETE CASCADE,
-        value INTEGER NOT NULL DEFAULT 0,
-        user_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
-        UNIQUE(item_id, criterion_id, user_id)
-      );
-      INSERT INTO ratings_0151 (item_id, criterion_id, value, user_id)
-        SELECT item_id, criterion_id, value, user_id FROM ratings;
-      DROP TABLE ratings;
-      ALTER TABLE ratings_0151 RENAME TO ratings;
-    `);
-    d.close();
-  };
-
-  uRun(u16Dir);
-  {
-    const d = open(path.join(u16Dir, 'katalog.sqlite'));
-    d.prepare("INSERT INTO users (username, password_hash) VALUES ('chefin', 'x')").run();
-    d.prepare("INSERT INTO items (title, user_id) VALUES ('Altbestand', 1)").run();
-    const k = d.prepare('SELECT id FROM rating_criteria ORDER BY id').all();
-    d.prepare('INSERT INTO ratings (item_id, criterion_id, value, user_id) VALUES (1, ?, 4, 1)').run(k[0].id);
-    d.prepare('INSERT INTO ratings (item_id, criterion_id, value, user_id) VALUES (1, ?, 2, 1)').run(k[1].id);
-    d.close();
-  }
-  u16Regression(u16Dir);
-  check('Die Prueflage traegt die Spalte set_at nicht',
-    !u16Columns(u16Dir).includes('set_at'), u16Columns(u16Dir).join(', '));
-  /* Und sie traegt wirklich Bewertungen -- ohne diese Zeile stuende der Beleg
-     unten auf null Zeilen und bliebe gruen (Stolperstein 81). */
-  {
-    const d = open(path.join(u16Dir, 'katalog.sqlite'));
-    const z = d.prepare('SELECT COUNT(*) AS n FROM ratings').get();
-    d.close();
-    check('Und sie traegt zwei Bewertungen', z.n === 2, JSON.stringify(z));
-  }
-
-  const u16Output = uRun(u16Dir);
-  check('Die Migration ergaenzt set_at im Bestand',
-    u16Columns(u16Dir).includes('set_at'), u16Columns(u16Dir).join(', '));
-  check('Er sagt im Protokoll, was er getan hat',
-    /ratings um set_at ergaenzt \(Migration auf 0\.16\.0\)/.test(u16Output),
-    JSON.stringify(u16Output.trim()));
-  check('Und er nennt dabei, wie viele Bewertungen ohne Zeitpunkt dastehen',
-    /2 vorhandene Bewertungen stehen ohne Zeitpunkt da/.test(u16Output),
-    JSON.stringify(u16Output.trim()));
-
-  /* DER KERN DIESES ABSCHNITTS. Die Bestandszeilen bleiben, und die Spalte
-     bleibt LEER. Ein nachgeschobenes UPDATE erfaende hier einen Zeitpunkt,
-     den diese Instanz nicht hat -- „bewertet am Tag der Einspielung" waere die
-     schlimmste Variante davon. */
-  check('Beide Bewertungen sind noch da mit ihren Werten',
-    u16Rows().length === 2 && u16Rows().map(z => z.value).join(',') === '4,2',
-    JSON.stringify(u16Rows()));
-  check('Und set_at steht an beiden leer',
-    u16Rows().length === 2 && u16Rows().every(z => z.set_at === null),
-    JSON.stringify(u16Rows()));
-
-  /* Nachgestellt am Quelltext: kein UPDATE an ratings im Block, und kein
-     Vorgabewert am ALTER TABLE. */
-  {
-    const u16Source = fs.readFileSync(path.join(__dirname, 'db.js'), 'utf8');
-    const u16Block = u16Source.slice(u16Source.indexOf('// MIGRATION 0.16.0'),
-                                     u16Source.indexOf('// ENDE MIGRATION 0.16.0'));
-    check('Der Block schiebt kein UPDATE nach',
-      !/UPDATE\s+ratings/i.test(u16Block), JSON.stringify(u16Block.slice(0, 80)));
-    check('Und das ALTER TABLE traegt keinen Vorgabewert',
-      /ALTER TABLE ratings ADD COLUMN set_at TEXT'/.test(u16Block) &&
-      !/DEFAULT/i.test(u16Block), JSON.stringify(
-        (u16Block.match(/ALTER TABLE[^']*/) || [''])[0]));
-    /* UND DIE DDL EBENSO WENIG -- sonst saehe eine frisch angelegte Instanz
-       anders aus als eine migrierte, und ein eingespielter Bestand bekaeme
-       stillschweigend „gerade eben" als Zeitpunkt. */
-    const u16Anf = u16Source.indexOf('CREATE TABLE IF NOT EXISTS ratings (');
-    /* Bis zum schliessenden „);" DIESER Tabelle -- nicht bis zur naechsten
-       benannten Tabelle: welche als naechste kaeme, ist Zufall der Reihenfolge,
-       und stuende sie im Schema weiter oben, waere der Ausschnitt leer. */
-    const u16Ddl = u16Source.slice(u16Anf, u16Source.indexOf('\n);', u16Anf));
-    check('Auch die DDL gibt set_at keinen Vorgabewert',
-      /set_at TEXT,/.test(u16Ddl) && !/set_at TEXT DEFAULT/.test(u16Ddl),
-      JSON.stringify((u16Ddl.match(/set_at[^\n]*/) || [''])[0]));
-  }
-
-  // Wiederholbar und dann stumm: db.js laeuft bei JEDEM Start.
-  const u16Secondly = uRun(u16Dir);
-  check('Ein zweiter Lauf ergaenzt nichts mehr und bleibt stumm',
-    !/ratings um /.test(u16Secondly), JSON.stringify(u16Secondly.trim()));
-  check('Und die Zeilen sind dabei unangetastet geblieben',
-    u16Rows().length === 2 && u16Rows().every(z => z.set_at === null),
-    JSON.stringify(u16Rows()));
-
-  /* Die frische Instanz bekommt die Spalte aus der DDL, nicht aus der
-     Migration -- und beide sehen danach GLEICH aus. Zu 1.0 faellt die
-     Migration weg, die Spalte muss bleiben. */
-  const u16Fresh = uRun(u16FreshDir);
-  check('Eine frische Instanz traegt set_at ohne Migration',
-    u16Columns(u16FreshDir).includes('set_at') && !/ratings um /.test(u16Fresh),
-    `${u16Columns(u16FreshDir).join(', ')} / ${JSON.stringify(u16Fresh.trim())}`);
-  check('Und migriert wie frisch tragen dieselben Spalten in derselben Reihenfolge',
-    equal(u16Columns(u16Dir), u16Columns(u16FreshDir)),
-    `${u16Columns(u16Dir).join(', ')} gegen ${u16Columns(u16FreshDir).join(', ')}`);
-  /* UND BEIDE HABEN DENSELBEN VORGABEWERT: keinen. Nachgemessen am Verhalten
-     und nicht am Text -- eine eingefuegte Zeile ohne Angabe traegt NULL. */
-  const u16Default = (directory) => {
-    const d = open(path.join(directory, 'katalog.sqlite'));
-    let value = 'Prueflage gescheitert';
-    try {
-      d.pragma('foreign_keys = OFF');
-      d.prepare('INSERT INTO ratings (id, item_id, criterion_id, value) VALUES (9001, 9001, 9001, 3)').run();
-      value = d.prepare('SELECT set_at FROM ratings WHERE id = 9001').get().set_at;
-      d.prepare('DELETE FROM ratings WHERE id = 9001').run();
-    } catch (e) { value = `Prueflage gescheitert: ${e.message}`; }
-    d.close();
-    return value;
-  };
-  check('Eine Zeile ohne Angabe traegt in beiden Instanzen NULL',
-    u16Default(u16Dir) === null && u16Default(u16FreshDir) === null,
-    `${JSON.stringify(u16Default(u16Dir))} gegen ${JSON.stringify(u16Default(u16FreshDir))}`);
-
-  fs.rmSync(u16Dir, { recursive: true, force: true });
-  fs.rmSync(u16FreshDir, { recursive: true, force: true });
-
-  /* ================================================================
-     MIGRATION 0.19.0 — ENTFAELLT MIT 1.0
-     DER ACHTE BLOCK: photos bekommt `zoom`, die dritte Angabe zum Ausschnitt.
-     ER IST DER GEGENFALL ZU 0.16.0, und deshalb steht er unmittelbar daneben:
-     dort war jeder nachgetragene Wert eine ERFINDUNG (die Instanz weiss nicht,
-     wann eine alte Bewertung entstand), hier weiss sie es -- jedes vorhandene
-     Foto stand bisher auf „so weit wie moeglich", und genau das bedeutet 100.
-     **Die Vorgabe traegt also keine Behauptung, sondern den bisherigen
-     Zustand.** Geprueft wird das an beiden Enden: die Bestandszeilen stehen
-     danach auf 100, UND der Wert kommt aus dem DEFAULT und nicht aus einem
-     nachgeschobenen UPDATE. */
-  group('MIGRATION 0.19.0 — ENTFAELLT MIT 1.0');
-
-  const u19Dir = fs.mkdtempSync(path.join(os.tmpdir(), 'kriterion-migration0190-'));
-  const u19FreshDir = fs.mkdtempSync(path.join(os.tmpdir(), 'kriterion-frisch0190-'));
-  const u19Columns = (directory) => {
-    const d = open(path.join(directory, 'katalog.sqlite'));
-    const sp = d.prepare('PRAGMA table_info(photos)').all().map(c => c.name);
-    d.close();
-    return sp;
-  };
-  /* Abgefangen wie jede Lesestelle auf eine neue Spalte: fehlt sie, werden die
-     Pruefungen darunter rot, statt den Lauf abzureissen (Stolperstein 103). */
-  const u19Rows = (directory = u19Dir) => {
-    const d = open(path.join(directory, 'katalog.sqlite'));
-    let z = [];
-    try { z = d.prepare('SELECT id, focus_x, focus_y, zoom FROM photos ORDER BY id').all(); }
-    catch { /* die Spalte fehlt -- die Pruefungen darunter werden rot */ }
-    d.close();
-    return z;
-  };
-  /* Eine Instanz aus 0.18.1 nachbauen: Tabellenneubau statt
-     ALTER TABLE ... DROP COLUMN, aus demselben Grund wie in den Abschnitten
-     darueber (Stolperstein 106). Ausserhalb jeder Transaktion, sonst waere das
-     PRAGMA ein stiller No-op (Stolperstein 12).
-     UND MIT FOTOS DARIN, davon eines mit VERSCHOBENEM Fokuspunkt: eine leere
-     Tabelle bewiese nichts darueber, was mit dem Bestand geschieht
-     (Stolperstein 81) -- und nicht einmal etwas darueber, ob das ALTER TABLE
-     mit seiner Vorgabe ueberhaupt durchgeht (Stolperstein 202, und genau dort
-     ist die Vorgabe die Frage). */
-  const u19Regression = (directory) => {
-    const d = open(path.join(directory, 'katalog.sqlite'));
-    d.pragma('foreign_keys = OFF');
-    d.exec(`
-      CREATE TABLE photos_0181 (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        item_id INTEGER NOT NULL REFERENCES items(id) ON DELETE CASCADE,
-        mime_type TEXT NOT NULL,
-        data BLOB NOT NULL,
-        thumb BLOB,
-        medium BLOB,
-        kind TEXT NOT NULL DEFAULT 'image',
-        duration INTEGER,
-        focus_x REAL NOT NULL DEFAULT 50,
-        focus_y REAL NOT NULL DEFAULT 50,
-        sort_order INTEGER NOT NULL DEFAULT 0,
-        created_at TEXT NOT NULL DEFAULT (datetime('now'))
-      );
-      INSERT INTO photos_0181 (id, item_id, mime_type, data, thumb, medium, kind, duration,
-                               focus_x, focus_y, sort_order, created_at)
-        SELECT id, item_id, mime_type, data, thumb, medium, kind, duration,
-               focus_x, focus_y, sort_order, created_at FROM photos;
-      DROP TABLE photos;
-      ALTER TABLE photos_0181 RENAME TO photos;
-      CREATE INDEX IF NOT EXISTS idx_photos_item ON photos(item_id, sort_order);
-    `);
-    d.close();
-  };
-
-  uRun(u19Dir);
-  {
-    const d = open(path.join(u19Dir, 'katalog.sqlite'));
-    d.prepare("INSERT INTO users (username, password_hash) VALUES ('chefin', 'x')").run();
-    d.prepare("INSERT INTO items (title, user_id) VALUES ('Altbestand', 1)").run();
-    const raw = Buffer.from(PNG_BASE64, 'base64');
-    d.prepare(`INSERT INTO photos (item_id, mime_type, data, focus_x, focus_y, sort_order)
-               VALUES (1, 'image/png', ?, 50, 50, 0)`).run(raw);
-    d.prepare(`INSERT INTO photos (item_id, mime_type, data, focus_x, focus_y, sort_order)
-               VALUES (1, 'image/png', ?, 20, 80, 1)`).run(raw);
-    d.close();
-  }
-  u19Regression(u19Dir);
-  check('Die Prueflage traegt die Spalte zoom nicht',
-    !u19Columns(u19Dir).includes('zoom'), u19Columns(u19Dir).join(', '));
-  /* Und sie traegt wirklich Fotos -- ohne diese Zeile stuende der Beleg unten
-     auf null Zeilen und bliebe gruen (Stolperstein 81). */
-  {
-    const d = open(path.join(u19Dir, 'katalog.sqlite'));
-    const z = d.prepare('SELECT COUNT(*) AS n FROM photos').get();
-    d.close();
-    check('Und sie traegt zwei Fotos', z.n === 2, JSON.stringify(z));
-  }
-
-  const u19Output = uRun(u19Dir);
-  check('Die Migration ergaenzt zoom im Bestand',
-    u19Columns(u19Dir).includes('zoom'), u19Columns(u19Dir).join(', '));
-  check('Er sagt im Protokoll, was er getan hat',
-    /photos um zoom ergaenzt \(Migration auf 0\.19\.0\)/.test(u19Output),
-    JSON.stringify(u19Output.trim()));
-  check('Und er nennt dabei, wie viele Fotos auf dem weitesten Ausschnitt stehen',
-    /2 vorhandene Fotos stehen auf dem weitesten Ausschnitt/.test(u19Output),
-    JSON.stringify(u19Output.trim()));
-
-  /* DER KERN DIESES ABSCHNITTS. Die Bestandszeilen behalten ihren Fokuspunkt,
-     und der neue Wert bedeutet genau das, was bis 0.18.1 galt. */
-  check('Beide Fotos sind noch da mit ihren Fokuspunkten',
-    u19Rows().length === 2 &&
-    u19Rows().map(z => `${z.focus_x}/${z.focus_y}`).join(',') === '50/50,20/80',
-    JSON.stringify(u19Rows()));
-  check('Und zoom steht an beiden auf dem weitesten Ausschnitt',
-    u19Rows().length === 2 && u19Rows().every(z => z.zoom === 100),
-    JSON.stringify(u19Rows()));
-
-  /* Nachgestellt am Quelltext: kein UPDATE an photos im Block, und die Vorgabe
-     steht am ALTER TABLE -- sie ist hier ausdruecklich GEWOLLT, anders als bei
-     0.16.0. Beide Blöcke stehen nebeneinander, und wer den einen fuer den
-     anderen abschreibt, baut den falschen. */
-  {
-    const u19Source = fs.readFileSync(path.join(__dirname, 'db.js'), 'utf8');
-    const u19Block = u19Source.slice(u19Source.indexOf('// MIGRATION 0.19.0'),
-                                     u19Source.indexOf('// ENDE MIGRATION 0.19.0'));
-    check('Der Block schiebt kein UPDATE nach',
-      !/UPDATE\s+photos/i.test(u19Block), JSON.stringify(u19Block.slice(0, 80)));
-    check('Und das ALTER TABLE traegt die Vorgabe 100',
-      /ALTER TABLE photos ADD COLUMN zoom REAL NOT NULL DEFAULT 100'/.test(u19Block),
-      JSON.stringify((u19Block.match(/ALTER TABLE[^']*/) || [''])[0]));
-    /* UND DIE DDL TRAEGT DIESELBE -- sonst saehe eine frisch angelegte Instanz
-       anders aus als eine migrierte. */
-    const u19Anf = u19Source.indexOf('CREATE TABLE IF NOT EXISTS photos (');
-    const u19Ddl = u19Source.slice(u19Anf, u19Source.indexOf('\n);', u19Anf));
-    /* GELESEN WERDEN DIE SPALTENZEILEN und nicht der ganze Ausschnitt: der
-       Kommentar ueber der Spalte nennt ihren Namen ebenfalls, und ein
-       match(/zoom.../) griffe ihn statt der Zeile, um die es geht. */
-    const u19DdlColumns = u19Ddl.split('\n').map(z => z.trim())
-      .filter(z => z && !z.startsWith('--') && !z.startsWith('CREATE'));
-    check('Auch die DDL gibt zoom die Vorgabe 100',
-      u19DdlColumns.some(z => /^zoom REAL NOT NULL DEFAULT 100$/.test(z)),
-      JSON.stringify(u19DdlColumns.filter(z => z.startsWith('zoom'))));
-    /* UND SIE STEHT DORT ALS LETZTE SPALTE, und das ist keine Formfrage:
-       ALTER TABLE ADD COLUMN haengt eine Spalte IMMER HINTEN AN. Stuende sie
-       in der DDL an ihrem inhaltlich richtigen Platz -- neben focus_y --,
-       traege eine frische Instanz sie dort und eine migrierte am Ende
-       (Stolperstein 273). Die Pruefung zwei Zeilen tiefer faende das auch,
-       aber erst nach zwei Serverstarts; diese hier sagt, WARUM es so ist,
-       und sie faellt dem auf, der die Spalte spaeter „aufraeumt". */
-    check('Und zoom ist die LETZTE Spalte der DDL',
-      u19DdlColumns[u19DdlColumns.length - 1] === 'zoom REAL NOT NULL DEFAULT 100',
-      JSON.stringify(u19DdlColumns[u19DdlColumns.length - 1]));
-  }
-
-  // Wiederholbar und dann stumm: db.js laeuft bei JEDEM Start.
-  const u19Secondly = uRun(u19Dir);
-  check('Ein zweiter Lauf ergaenzt nichts mehr und bleibt stumm',
-    !/photos um zoom/.test(u19Secondly), JSON.stringify(u19Secondly.trim()));
-  check('Und die Zeilen sind dabei unangetastet geblieben',
-    u19Rows().length === 2 && u19Rows().every(z => z.zoom === 100),
-    JSON.stringify(u19Rows()));
-
-  /* Die frische Instanz bekommt die Spalte aus der DDL, nicht aus der
-     Migration -- und beide sehen danach GLEICH aus. Zu 1.0 faellt die
-     Migration weg, die Spalte muss bleiben. */
-  const u19Fresh = uRun(u19FreshDir);
-  check('Eine frische Instanz traegt zoom ohne Migration',
-    u19Columns(u19FreshDir).includes('zoom') && !/photos um zoom/.test(u19Fresh),
-    `${u19Columns(u19FreshDir).join(', ')} / ${JSON.stringify(u19Fresh.trim())}`);
-  check('Und migriert wie frisch tragen dieselben Spalten in derselben Reihenfolge',
-    equal(u19Columns(u19Dir), u19Columns(u19FreshDir)),
-    `${u19Columns(u19Dir).join(', ')} gegen ${u19Columns(u19FreshDir).join(', ')}`);
-  /* UND BEIDE HABEN DENSELBEN VORGABEWERT: 100. Nachgemessen am VERHALTEN und
-     nicht am Text -- eine eingefuegte Zeile ohne Angabe traegt ihn. */
-  const u19Default = (directory) => {
-    const d = open(path.join(directory, 'katalog.sqlite'));
-    let value = 'Prueflage gescheitert';
-    try {
-      d.pragma('foreign_keys = OFF');
-      d.prepare(`INSERT INTO photos (id, item_id, mime_type, data) VALUES (9001, 9001, 'x', x'00')`).run();
-      value = d.prepare('SELECT zoom FROM photos WHERE id = 9001').get().zoom;
-      d.prepare('DELETE FROM photos WHERE id = 9001').run();
-    } catch (e) { value = `Prueflage gescheitert: ${e.message}`; }
-    d.close();
-    return value;
-  };
-  check('Eine Zeile ohne Angabe traegt in beiden Instanzen 100',
-    u19Default(u19Dir) === 100 && u19Default(u19FreshDir) === 100,
-    `${JSON.stringify(u19Default(u19Dir))} gegen ${JSON.stringify(u19Default(u19FreshDir))}`);
-
-  fs.rmSync(u19Dir, { recursive: true, force: true });
-  fs.rmSync(u19FreshDir, { recursive: true, force: true });
+  fs.rmSync(uhDir, { recursive: true, force: true });
+  fs.rmSync(uhFreshDir, { recursive: true, force: true });
 
   /* ---------------------------------------------------------------- */
   group('Anordnung der Blöcke');
@@ -23797,7 +22310,7 @@ function sweepLeftovers() {
   check('Und den engeren Ausschnitt mit', outPhoto.zoom === 180, String(outPhoto.zoom));
   await call('DELETE', `/api/items/${fp.id}`);
 
-  const impF = await sendImport({ version: 5, title: 'F', items: [
+  const impF = await sendImport({ version: 14, title: 'F', items: [
     { title: 'Mit Fokus', photos: [{ mime_type: 'image/png', focus_x: 30, focus_y: 90,
         zoom: 220, data_base64: PNG_BASE64 }] },
     { title: 'Ohne Fokus', photos: [{ mime_type: 'image/png', data_base64: PNG_BASE64 }] },
@@ -24160,7 +22673,7 @@ function sweepLeftovers() {
      verlaengerte ausgerechnet das Wiederherstellen. Die Folge -- eine alte
      Sicherung bringt PNG zurueck -- ist gewollt, und der Knopf ist die
      Antwort darauf. */
-  const baImpResponse = await sendImport({ version: 12, title: 'B', items: [
+  const baImpResponse = await sendImport({ version: 14, title: 'B', items: [
     { title: 'Eingespieltes PNG',
       photos: [{ mime_type: 'image/png', data_base64: templatePNG.toString('base64') }] }
   ]}, 'merge');
@@ -24262,24 +22775,25 @@ function sweepLeftovers() {
   check('Und dabei unversehrt geblieben',
     afterBytes.length > 0 && (await largestDeviation(templatePNG, afterBytes)) <= 2,
     `${afterBytes.length} Bytes`);
-  /* ---- ZUSAGE 7: DER LAUF ZIEHT ORIGINALE UND ABLEITUNGEN ----
-     BIS 0.26.0 STAND HIER DAS GEGENTEIL: „thumb und medium werden NICHT neu
-     gerechnet -- sie sind aus demselben Bild entstanden und bleiben gueltig."
-     DAS GALT, SOLANGE BEIDE JPEG WAREN (Stolperstein 201: der Satz ist
-     umgedreht, nicht geloescht). Seit 0.27.0 sind die Ableitungen WebP, und
-     eine JPEG-Ableitung ist damit genau das, was der Lauf nachzuziehen hat.
-     GEPRUEFT AM EINGESPIELTEN BILD: der Import rechnet seine Ableitungen mit
-     der Fassung, die gerade laeuft -- die Zeile ist also nicht der Beweis
-     allein. Deshalb steht darunter die Probe an einer Zeile, deren Ableitung
-     von Hand auf JPEG gesetzt wurde. */
+  /* ---- ZUSAGE 7, UMGEDREHT: DER LAUF ZIEHT NUR NOCH ORIGINALE ----
+     DIESE ZEILE HAT SCHON EINMAL IHR VORZEICHEN GEWECHSELT. Bis 0.26.0 hiess
+     sie „thumb und medium werden NICHT neu gerechnet"; 0.27.0 hat sie
+     umgedreht, weil die Ableitungen von da an WebP waren und eine
+     JPEG-Ableitung damit nachzuziehen war. SEIT 0.33.0 STEHT SIE WIEDER AUF
+     IHRER ERSTEN SEITE -- und der Grund ist ein anderer als damals: nicht
+     „es lohnt nicht", sondern „es gibt nichts mehr zu ziehen". Seit 0.27.0
+     entsteht kein JPEG-Vorschaubild mehr, und der Bestandslauf ist auf der
+     einen echten Installation mit beiden Haelften gefahren worden (F7).
+     DASS DIE ABLEITUNG EINES FRISCH EINGESPIELTEN BILDES WEBP IST, BLEIBT
+     TROTZDEM WAHR -- nur kommt sie jetzt vom Import und nicht vom Lauf. */
   check('Die Ableitungen sind danach WebP', isWebpBytes(
     (await imageRaw(afterPhoto.id, '?size=thumb')).bytes));
   /* UND DAS IST DIE EIGENTLICHE PROBE: eine Zeile, deren Ableitungen
      ausdruecklich JPEG sind -- so, wie eine Instanz aus 0.26.0 sie traegt.
      VON HAND IN DIE DATENBANK GESCHRIEBEN und nicht ueber den Server erzeugt:
      der Server dieser Fassung KANN kein JPEG mehr ableiten, und eine Probe,
-     die den Altbestand nicht nachstellt, prueft die Migration nicht.
-     BEIDE SPALTEN, denn der Lauf fragt beide -- und er rechnet beide neu. */
+     die den Altbestand nicht nachstellt, prueft nichts.
+     DIE PRUEFLAGE IST DIESELBE GEBLIEBEN, DIE ZUSAGE IST DIE UMGEKEHRTE. */
   {
     /* DIE JPEG-ABLEITUNGEN WERDEN HIER GEBAUT UND NICHT VOM SERVER GEHOLT --
        der KANN seit dieser Runde keine mehr. Dieselbe Kiste wie makeVariants()
@@ -24322,12 +22836,26 @@ function sweepLeftovers() {
       await new Promise(r => setTimeout(r, 50));
     }
     check('Und er laeuft aus', s2 && s2.running === false, JSON.stringify(s2));
-    check('Er hat mindestens ein Ableitungspaar neu gerechnet',
-      s2 && s2.derived >= 1, JSON.stringify(s2));
-    check('Und die JPEG-Ableitungen sind danach WebP -- beide',
-      isWebpBytes((await imageRaw(oldRow.id, '?size=thumb')).bytes) &&
-      isWebpBytes((await imageRaw(oldRow.id, '?size=medium')).bytes),
+    /* ER ZAEHLT KEINE ABLEITUNGEN MEHR -- die vierte Zahl ist mit ihrer
+       Haelfte gefallen. Ein Feld, das nie wieder steigt, waere eine Auskunft
+       ueber nichts; dass es GAR NICHT MEHR DA IST, ist die Zusage. */
+    check('Der Stand nennt keine Ableitungen mehr — 0.33.0',
+      s2 && s2.derived === undefined, JSON.stringify(s2));
+    /* UND DIE JPEG-ABLEITUNGEN LIEGEN DANACH UNVERAENDERT DA. Das ist die
+       umgedrehte Zusage, und sie ist schaerfer als „er rechnet sie neu": ein
+       Lauf, der eine Ableitung ANFASST, waere nach dieser Runde ein Lauf, der
+       etwas tut, wofuer es keinen Grund mehr gibt. */
+    check('Und die JPEG-Ableitungen liegen unveraendert da -- beide',
+      (await imageRaw(oldRow.id, '?size=thumb')).bytes.equals(jpegThumb) &&
+      (await imageRaw(oldRow.id, '?size=medium')).bytes.equals(jpegMedium),
       (await imageRaw(oldRow.id, '?size=thumb')).bytes.slice(0, 12).toString('hex'));
+    /* UND DIE ERSTE HAELFTE TUT, WAS SIE TAT -- Zusage 8 des Auftrags 0.33.0.
+       An DIESER Zeile hatte sie nichts zu tun (das Original ist schon WebP);
+       dass sie ueberhaupt noch arbeitet, steht an der Zeile darueber, wo ein
+       PNG umgestellt worden ist. Hier zaehlt der Lauf sie deshalb unter
+       `stayed` -- und das ist der richtige Platz. */
+    check('Und der Lauf hat sie als „nichts zu tun" gezaehlt',
+      s2 && s2.stayed >= 1 && s2.converted === 0, JSON.stringify(s2));
     /* UND DAS ORIGINAL DIESER ZEILE IST DABEI BYTE-GENAU DASSELBE GEBLIEBEN.
        Ohne diese Zeile bliebe gruen, wer das schon umgestellte Original zur
        Sicherheit noch einmal durch den Kodierer schickt -- eine zweite Runde
@@ -24544,13 +23072,27 @@ function sweepLeftovers() {
     check('Und sie nennt kein hex(substr(...)) mehr',
       !/qConvertRows = db\.prepare\([\s\S]{0,200}?hex\(substr/.test(serverSource),
       (serverSource.match(/qConvertRows = db\.prepare\([\s\S]{0,200}/) || [''])[0]);
-    /* UND DIE FRAGE NACH DEN BYTES STEHT IM THREAD. Ohne diese Zeile bliebe
-       gruen, wer die Auswahl weitet und die Pruefung dabei vergisst -- dann
-       rechnete der Lauf jede Ableitung neu, bei jedem Druck. */
+    /* UND DIE FRAGE NACH DEN BYTES STEHT NICHT MEHR IM THREAD -- 0.33.0.
+       Bis 0.32.1 stand hier `isJpeg`, und die Zeile hielt fest, dass sie die
+       ersten drei Bytes liest. SIE IST UMGEDREHT und nicht geloescht: die
+       zweite Haelfte des Laufs ist mit jener Runde gefallen, und mit ihr die
+       einzige Frage, die sie brauchte.
+       WAS BLEIBT, IST DIE ZUSAGE DARUEBER: der Lauf fasst eine ABLEITUNG gar
+       nicht mehr an. Sein UPDATE nennt `mime_type` und `data` und sonst
+       nichts -- wer `thumb` oder `medium` wieder hineinschreibt, wird hier
+       rot. */
     const batchSource = fs.readFileSync(path.join(__dirname, 'batchrun.js'), 'utf8');
-    check('Der Thread fragt die Ableitung an ihren ersten Bytes',
-      /const isJpeg = \(b\) =>[\s\S]{0,160}?0xff[\s\S]{0,40}?0xd8[\s\S]{0,40}?0xff/.test(batchSource),
-      (batchSource.match(/const isJpeg = [^\n]*/) || ['(nicht gefunden)'])[0]);
+    const batchCode = batchSource.split('\n')
+      .filter(z => { const t = z.trim();
+        return t && !t.startsWith('//') && !t.startsWith('*') && !t.startsWith('/*'); })
+      .join('\n');
+    check('Der Thread fragt keine Ableitung mehr an ihren ersten Bytes',
+      !/isJpeg/.test(batchCode),
+      (batchCode.match(/[^\n]*isJpeg[^\n]*/) || ['(steht nicht mehr da — richtig)'])[0]);
+    check('Und der Bestandslauf schreibt nur noch mime_type und data',
+      /UPDATE photos SET mime_type = \?, data = \? WHERE id = \?/.test(batchCode) &&
+      !/UPDATE photos SET mime_type = \?, data = \?, thumb/.test(batchCode),
+      (batchCode.match(/UPDATE photos SET mime_type[^\n]*/) || ['(nicht gefunden)'])[0]);
     /* DIE ZUORDNUNG mime_type -> SCHLUESSEL STEHT AN EINER STELLE. Zwei
        Tabellen ueber dieselbe Sache duerfen sich nicht widersprechen
        (Stolperstein 47) -- die Oberflaeche kennt nur noch Schluessel und Namen. */
@@ -25119,7 +23661,7 @@ function sweepLeftovers() {
        der Pruefstand wegsieht (Stolperstein 274). */
     {
       const raw = await quartered(1200, 900);
-      const imp = await sendImport({ version: 12, title: 'Zuschnittprobe', items: [
+      const imp = await sendImport({ version: 14, title: 'Zuschnittprobe', items: [
         { title: 'Eingespielt mit Ausschnitt',
           photos: [{ mime_type: 'image/png', focus_x: 0, focus_y: 0, zoom: 400,
                      data_base64: raw.toString('base64') }] }
@@ -25292,7 +23834,7 @@ function sweepLeftovers() {
     onOut.comments.filter(c => c.kind === 'task').length === 3,
     JSON.stringify(onOut.comments.map(c => c.kind)));
   await call('DELETE', `/api/items/${ag.id}`);
-  const onImp = await sendImport({ version: 5, title: 'A', items: [{ title: 'Eingespielte Aufgaben',
+  const onImp = await sendImport({ version: 14, title: 'A', items: [{ title: 'Eingespielte Aufgaben',
     comments: [{ text: 'Eine Aufgabe', kind: 'task' },
                { text: 'Etwas Unbekanntes', kind: 'vielleicht' }] }] }, 'merge');
   check('Eine eingespielte Aufgabe bleibt eine', onImp.status === 200);
@@ -25313,7 +23855,7 @@ function sweepLeftovers() {
     outKm.comments.some(c => c.pinned === true), JSON.stringify(outKm.comments.map(c => [c.kind, c.pinned])));
   await call('DELETE', `/api/items/${km.id}`);
 
-  const impK = await sendImport({ version: 5, title: 'K', items: [{ title: 'Alte Kommentare',
+  const impK = await sendImport({ version: 14, title: 'K', items: [{ title: 'Alte Kommentare',
     comments: [{ text: 'Ohne Angaben' }, { text: 'Mit Angaben', kind: 'report', pinned: true }] }] }, 'merge');
   check('Import mit und ohne Angaben gelingt', impK.status === 200 && impK.content.comments === 2);
   const oldK = (await call('GET', '/api/items')).content.find(i => i.title === 'Alte Kommentare');
@@ -25440,7 +23982,7 @@ function sweepLeftovers() {
   check('Mit dem Kommentar verschwinden seine Bilder',
     (await bResponse(imagesBefore[1].id)).status === 404);
 
-  const impB = await sendImport({ version: 5, title: 'B', items: [{ title: 'Eingespielt mit Bild',
+  const impB = await sendImport({ version: 14, title: 'B', items: [{ title: 'Eingespielt mit Bild',
     comments: [{ text: 'Hat ein Bild', images: [{ filename: 'a.png', data_base64: PNG_BASE64 }] }] }] }, 'merge');
   check('Import spielt Kommentarbilder ein', impB.status === 200);
   const impItem = (await call('GET', '/api/items')).content.find(i => i.title === 'Eingespielt mit Bild');
@@ -25542,7 +24084,7 @@ function sweepLeftovers() {
   // wirkliche Weg fuehrt ueber den Import, wo ein solcher Name im JSON
   // problemlos steht. Genau der wird hier geprueft.
   const badName = 'a"b\r\nX-Eingeschleust: ja.txt';
-  await sendImport({ version: 5, title: 'B', items: [{ title: 'Boeser Name',
+  await sendImport({ version: 14, title: 'B', items: [{ title: 'Boeser Name',
     attachments: [{ filename: badName, mime_type: 'text/plain',
                     data_base64: Buffer.from('harmlos').toString('base64') }] }] }, 'merge');
   const bnItem = (await call('GET', '/api/items')).content.find(i => i.title === 'Boeser Name');
@@ -25570,7 +24112,7 @@ function sweepLeftovers() {
   check('Pfadangaben beim Hochladen werden abgeschnitten',
     pathName.content.attachments.some(x => x.filename === 'passwd'),
     JSON.stringify(pathName.content.attachments.map(x => x.filename)));
-  await sendImport({ version: 5, title: 'P', items: [{ title: 'Pfadname',
+  await sendImport({ version: 14, title: 'P', items: [{ title: 'Pfadname',
     attachments: [{ filename: '../../../etc/shadow', mime_type: 'text/plain',
                     data_base64: Buffer.from('x').toString('base64') }] }] }, 'merge');
   const pfItem = (await call('GET', '/api/items')).content.find(i => i.title === 'Pfadname');
@@ -26118,8 +24660,8 @@ function sweepLeftovers() {
     check('Und das Nachruesten tut am Foto daneben weiterhin seine Arbeit',
       bfRows[1]?.t > 0 && bfRows[1]?.m > 0, JSON.stringify(bfRows[1]));
     check('Das Protokoll spricht auch von nur einem Foto',
-      /Erzeuge Vorschaubilder für 1 Foto\(s\)/.test(BF.log()),
-      JSON.stringify((BF.log().match(/Erzeuge Vorschaubilder[^\n]*/) || ['(keine Zeile)'])[0]));
+      /Creating thumbnails for 1 photo\(s\)/.test(BF.log()),
+      JSON.stringify((BF.log().match(/Creating thumbnails[^\n]*/) || ['(keine Zeile)'])[0]));
     fs.rmSync(bfDir, { recursive: true, force: true });
   }
 
@@ -26227,7 +24769,7 @@ function sweepLeftovers() {
      ist: der Server stolpert beim Durchgehen. Vorher kam das als 400 samt der
      inneren Message zurueck -- jetzt als 500 mit festem Text. */
   const fhBroken = await sendImport(
-    { version: 5, title: 'T', items: [{ title: 'Kaputt', photos: 5 }] }, 'merge');
+    { version: 14, title: 'T', items: [{ title: 'Kaputt', photos: 5 }] }, 'merge');
   check('Ein Fehler des Servers kommt als 500', fhBroken.status === 500,
     `${fhBroken.status}: ${JSON.stringify(fhBroken.content)}`);
   check('Und verraet nichts ueber sein Inneres',
@@ -26348,7 +24890,7 @@ function sweepLeftovers() {
   check('Gelöschte Datei ist nicht mehr abrufbar',
     (await head(afterName['notiz.txt'].id)).status === 404);
 
-  const impA = await sendImport({ version: 5, title: 'A', items: [{ title: 'Mit Datei',
+  const impA = await sendImport({ version: 14, title: 'A', items: [{ title: 'Mit Datei',
     attachments: [{ filename: 'wieder.txt', mime_type: 'text/plain',
                     data_base64: Buffer.from('eingespielt').toString('base64') }] }] }, 'merge');
   check('Import spielt Dateien ein', impA.status === 200 && impA.content.attachments === 1,
@@ -27187,95 +25729,93 @@ function sweepLeftovers() {
     return { status: a.status, content: await a.json().catch(() => null) };
   };
 
-  /* --- Die Migration ---------------------------------------------------
-     ZWEIMAL HINTEREINANDER, und beim zweiten Mal stumm: der Block fragt
-     PRAGMA table_info und keinen Merker. Gefahren wird er auf einer Datei,
-     der die Spalte VORHER genommen wurde -- ohne diesen Schritt liefe die
-     Pruefung ueber eine Tabelle, die die Spalte ohnehin schon aus der DDL
-     hat, und belegte nichts (Stolperstein 102). */
+  /* --- Die Migration, umgedreht ---------------------------------------
+     BIS 0.32.1 STAND HIER DIE PROBE AUF DEN BLOCK 0.21.0: eine Datei, der die
+     Spalte `phase` von Hand genommen wurde, zweimal geoeffnet -- beim ersten
+     Mal ruestete der Block sie nach und sagte es, beim zweiten Mal war er
+     stumm. Rueckbau 581 haengt an dieser Gruppe.
+
+     DER BLOCK IST MIT 0.33.0 GEFALLEN, und die Gruppe ist UMGEDREHT und nicht
+     geloescht (Leitplanke L1). DIE PRUEFLAGE IST DIESELBE GEBLIEBEN, Zeile
+     fuer Zeile; nur die Zusage ist die umgekehrte:
+       die Spalte waechst NICHT mehr nach,
+       die Instanz sagt es und kommt trotzdem hoch,
+       und `migration0210` gibt es nicht mehr -- weder in db.js noch hinaus.
+     WAS UNVERAENDERT WEITERGILT: eine FRISCHE Datenbank traegt die Spalte aus
+     der DDL, und ihre Bestandszeilen stehen auf 'after'. Das war immer die
+     eigentliche Zusage; der Block war nur der Weg dorthin fuer eine
+     Datenbank, die es nach der Voraussetzung dieser Runde nicht mehr gibt. */
   {
     const phMigDir = fs.mkdtempSync(path.join(os.tmpdir(), 'kriterion-phase-mig-'));
     shortRun(`require('./db'); console.log('da');`, phMigDir);
     const d1 = open(path.join(phMigDir, 'katalog.sqlite'));
     d1.prepare("INSERT INTO rating_criteria (name, sort_order) VALUES ('Alt eins', 0)").run();
     d1.prepare("INSERT INTO rating_criteria (name, sort_order) VALUES ('Alt zwei', 1)").run();
+    /* UND DIE BESTANDSZEILEN STEHEN SCHON JETZT AUF 'after' -- aus dem DEFAULT
+       der Spalte und nicht aus einem UPDATE. Das ist die Haelfte, die den
+       Wegfall des Blocks ueberlebt: eine frische Datenbank bekommt die Spalte
+       aus der DDL, und jede Zeile darin steht auf 'after'. */
+    const phFreshRows = d1.prepare(
+      "SELECT name, phase FROM rating_criteria WHERE name LIKE 'Alt %' ORDER BY sort_order").all();
     // Die Spalte wieder herausnehmen -- SQLite kann das seit 3.35.
     d1.exec('ALTER TABLE rating_criteria DROP COLUMN phase');
     const before = d1.prepare('PRAGMA table_info(rating_criteria)').all().map(c => c.name);
     d1.close();
+    check('Eine frische Datenbank traegt die Spalte aus der DDL, mit Vorgabe nachher',
+      phFreshRows.length === 2 && phFreshRows.every(z => z.phase === 'after'),
+      JSON.stringify(phFreshRows));
     check('Die Prueflage traegt die Spalte phase wirklich nicht',
       !before.includes('phase'), before.join(', '));
 
-    /* DER ERSTE LAUF IST DAS BLOSSE OEFFNEN DER DATEI -- db.js fuehrt seine
-       Bloecke beim require aus, so wie beim Start der Installation. Ein
-       ausdruecklicher Aufruf DANACH kaeme zu spaet und saehe die Spalte schon
-       (er gaebe 0 zurueck, und die Zeile belegte nichts). Deshalb steht in
-       beiden Laeufen dasselbe: einmal oeffnen, dann fragen. */
-    /* DIE MELDUNG WIRD EINGEFANGEN UND IN EINER ZEILE ZURUECKGEGEBEN --
-       shortRun() liefert nur die LETZTE Zeile der Ausgabe, und die Message des
-       Blocks steht davor. Eingefangen wird VOR dem require: db.js fuehrt seine
-       Bloecke beim Laden aus, so wie beim Start der Installation.
-       UND DAS EINFANGEN WIRD ZWEIGETEILT -- das ist der Fund des Rueckbaus 581.
-       Der erste Anlauf legte beides in DENSELBEN Topf: was beim Oeffnen
-       geschah und was der ausdrueckliche Aufruf danach tat. Damit blieb die
-       Gruppe auch dann gruen, wenn `migration0210();` in db.js gar nicht mehr
-       gerufen wurde -- der Aufruf HIER holte die Migration nach, und die
-       Message stand im Topf. Der Rueckbau war STUMM.
-       JETZT SAGT `OEFFNEN`, was das blosse Laden der Datei getan hat, und
-       `DANACH`, was der ausdrueckliche Aufruf noch fand. Nur das erste belegt,
-       dass der Block beim Start einer Installation wirklich laeuft. */
-    const migRun = () => shortRun(
-      `const echt = console.log; let g = ''; console.log = (...a) => { g += a.join(' ') + ' | '; };` +
-      `require('./db'); const beimOpen = g; g = '';` +
-      `const { migration0210 } = require('./db'); const n = migration0210();` +
-      `console.log = echt; console.log('ERG:' + n + ' OEFFNEN:' + JSON.stringify(beimOpen) +` +
-      `' DANACH:' + JSON.stringify(g));`, phMigDir);
-    const first = migRun();
-    const second = migRun();
+    /* GEFAHREN WIRD DAS BLOSSE OEFFNEN, wie bisher: db.js fuehrt aus, was es
+       auszufuehren hat, beim require -- so wie beim Start der Installation.
+       GELESEN WERDEN BEIDE KANAELE: der Kasten geht ueber `console.warn` und
+       damit auf stderr. Eine Probe, die nur stdout liest, saehe ihn nie. */
+    const phOpen = () => {
+      const r = require('child_process').spawnSync(
+        process.execPath, ['-e', "require('./db'); console.log('OBEN');"], {
+          cwd: __dirname, encoding: 'utf8',
+          env: { ...process.env, DATA_DIR: phMigDir, ENCRYPTION_KEY: KEY }
+        });
+      return { status: r.status, out: `${r.stdout || ''}${r.stderr || ''}` };
+    };
+    const first = phOpen();
+    const second = phOpen();
     const d2 = open(path.join(phMigDir, 'katalog.sqlite'));
-    const after = d2.prepare("SELECT name, phase FROM rating_criteria WHERE name LIKE 'Alt %' ORDER BY sort_order").all();
+    const phStill = d2.prepare('PRAGMA table_info(rating_criteria)').all().map(c => c.name);
     const allAfter = d2.prepare('SELECT COUNT(*) n FROM rating_criteria').get().n;
     d2.close();
-    /* DER ERSTE LAUF LEGT SIE AN UND SAGT ES. Die Zeile nennt die Zahl der
-       Kriterien, die auf 'after' stehen -- ohne sie bliebe der Betreiber
-       im Unklaren darueber, was der Block angefasst hat. */
-    /* DAS BLOSSE OEFFNEN DER DATEI RUESTET DIE SPALTE NACH UND SAGT ES -- der
-       Block wird beim Laden gerufen, so wie beim Start der Installation. Die
-       Zeile nennt die Zahl der Kriterien, die auf 'after' stehen; ohne sie
-       bliebe der Betreiber im Unklaren darueber, was der Block angefasst hat.
-       GEPRUEFT WIRD AN `OEFFNEN` UND NICHT AN DER GANZEN AUSGABE: sonst
-       genuegte der ausdrueckliche Aufruf eine Zeile tiefer, und ein
-       weggefallener Aufruf in db.js faellt nicht mehr auf (Rueckbau 581). */
-    const migOpen = (t) => (t.match(/OEFFNEN:("(?:[^"\\]|\\.)*")/) || ['', '""'])[1];
-    check('Schon das Oeffnen der Datei ruestet die Spalte nach und sagt es',
-      /rating_criteria um phase ergaenzt \(Migration auf 0\.21\.0\)/.test(migOpen(first)) &&
-      /5 Kriterien stehen auf 'after'/.test(migOpen(first)), first.slice(-500));
-    /* UND DER AUSDRUECKLICHE AUFRUF DANACH FINDET NICHTS MEHR -- er gibt 0
-       zurueck und schweigt. Das ist die Wiederholbarkeit innerhalb EINES
-       Laufs: der Block fragt PRAGMA table_info und keinen Merker. */
-    check('Und der ausdrueckliche Aufruf danach findet nichts mehr',
-      /ERG:0 /.test(first) && /DANACH:""/.test(first), first.slice(-500));
-    /* UND DIE BESTANDSZEILEN STEHEN AUF 'after' -- aus dem DEFAULT und
-       nicht aus einem UPDATE. Jeder andere Wert aenderte beim Einspielen
-       still saemtliche Gesamtschnitte. */
-    /* DIE PRUEFLAGE TRAEGT FUENF KRITERIEN: die drei der Grundausstattung, die
-       db.js in eine frische Datei legt, und die beiden hier angelegten. Auf
-       'after' muessen ALLE stehen -- gezaehlt wird darum beides, die zwei
-       benannten und die Gesamtzahl. */
-    check('Der Bestand steht danach auf nachher',
-      allAfter === 5 && after.length === 2 && after.every(z => z.phase === 'after'),
-      `${allAfter} Kriterien, davon ${JSON.stringify(after)}`);
-    /* DER ZWEITE LAUF IST STUMM -- auch schon beim Oeffnen. Er gibt 0 zurueck
-       und schreibt keine Zeile ueber die Spalte: der Block ist wiederholbar,
-       nicht nur einmalig.
-       GEFRAGT WIRD NACH DER MELDUNG UND NICHT NACH EINER LEEREN AUSGABE:
-       db.js sagt bei JEDEM Oeffnen, woher es seinen Schluessel hat, und diese
-       Zeile steht auch im zweiten Lauf da. `OEFFNEN:""` waere also eine
-       Bedingung, die nie zutrifft -- und eine Pruefung, die immer rot ist,
-       wird angepasst statt gelesen. */
-    check('Der zweite Lauf ist stumm und aendert nichts',
-      /ERG:0/.test(second) && !/um phase ergaenzt/.test(second) &&
-      !/um phase ergaenzt/.test(migOpen(second)), second.slice(-500));
+    /* DAS OEFFNEN RUESTET DIE SPALTE NICHT MEHR NACH -- das ist die umgedrehte
+       Zusage, und sie ist der Grund fuer den Kasten zwei Zeilen tiefer. */
+    check('Das Oeffnen der Datei ruestet die Spalte NICHT mehr nach',
+      !phStill.includes('phase'), phStill.join(', '));
+    check('Sondern benennt sie im Protokoll, samt ihrer Fassung',
+      /rating_criteria\.phase/.test(first.out) && /0\.21\.0/.test(first.out),
+      first.out.trim().slice(-400));
+    /* UND DIE INSTANZ KOMMT TROTZDEM HOCH -- Leitplanke L3, und hier ist sie
+       gefahren und nicht behauptet: der Prozess endet mit 0, und die Zeile
+       hinter dem require steht in der Ausgabe. */
+    check('Und die Instanz kommt trotzdem hoch',
+      first.status === 0 && /OBEN/.test(first.out), `Status ${first.status}`);
+    /* UND DIE ZEILEN SIND DABEI UNANGETASTET GEBLIEBEN. Ein Hinweis, der
+       nebenher etwas repariert, waere kein Hinweis mehr -- und was er
+       reparierte, waere geraten. */
+    check('Und die Kriterien stehen unveraendert da',
+      allAfter === 5, `${allAfter} Kriterien`);
+    /* UND DER ZWEITE LAUF SAGT DASSELBE. Der Kasten ist keine einmalige
+       Meldung: er fragt bei JEDEM Start den Bestand, und solange die Spalte
+       fehlt, steht er da. Eine Meldung, die beim zweiten Mal verschwaende,
+       waere ein Merker -- und genau den soll es nicht geben (L4). */
+    check('Und der zweite Lauf sagt dasselbe — der Hinweis ist kein Merker',
+      second.status === 0 && /rating_criteria\.phase/.test(second.out),
+      second.out.trim().slice(-400));
+    /* UND `migration0210` GIBT ES NICHT MEHR -- weder als Funktion noch als
+       Ausgang. Rueckbau 581 haengt seit 0.33.0 an dieser Zeile: wer den
+       Block wieder einbaut, macht sie rot. */
+    const phDb = fs.readFileSync(path.join(__dirname, 'db.js'), 'utf8');
+    check('Und migration0210 gibt es weder in db.js noch am Ausgang',
+      !/migration0210/.test(phDb) && require('./db').migration0210 === undefined,
+      (phDb.match(/[^\n]*migration0210[^\n]*/) || ['(steht nicht mehr da — richtig)'])[0]);
     fs.rmSync(phMigDir, { recursive: true, force: true });
   }
 
@@ -27502,7 +26042,7 @@ function sweepLeftovers() {
 
   /* --- Das Austauschformat --------------------------------------------- */
   const phEx = await phExport(PH);
-  check('Die Formatnummer steht auf 16', phEx.version === 16, `${phEx.version}`);
+  check('Die Formatnummer steht auf 17', phEx.version === 17, `${phEx.version}`);
   /* NUR ABWEICHUNGEN, wie bei den Gewichten: ein Nachher-Kriterium taucht in
      criteriaPhase gar nicht auf. Eine Datei ohne Vorher-Kriterien sieht damit
      aus wie bisher, plus einer Formatnummer. */
@@ -27517,7 +26057,7 @@ function sweepLeftovers() {
   const PHA = startFurtherServer(phOldDir, {}, 7240);
   await PHA.ready;
   await PHA.call('POST', '/api/setup', { user: 'anna', password: PH_WORD });
-  const phOldResponse = await sendImportAn(PHA, { version: 12, title: 'Alt',
+  const phOldResponse = await sendImportAn(PHA, { version: 14, title: 'Alt',
     criteria: ['Aus alter Datei'], items: [{ title: 'Alt', ratings: [{ name: 'Aus alter Datei', value: 3 }] }] });
   check('Eine Datei aus Format 12 spielt sich ein',
     phOldResponse.status === 200, `${phOldResponse.status} ${JSON.stringify(phOldResponse.content)}`);
@@ -27541,7 +26081,7 @@ function sweepLeftovers() {
     return z;
   };
   const phVor = phVorRows();
-  const phConflict = await sendImportAn(PHA, { version: 13, title: 'Streit',
+  const phConflict = await sendImportAn(PHA, { version: 14, title: 'Streit',
     criteria: ['Aus alter Datei'], criteriaPhase: { 'Aus alter Datei': 'before' },
     items: [{ title: 'Streit', ratings: [{ name: 'Aus alter Datei', value: 5 }] }] });
   check('Ein Namenskonflikt ueber die Kaesten hinweg weist ab',
@@ -27633,7 +26173,7 @@ function sweepLeftovers() {
   const endCriteria = (await call('GET', '/api/criteria')).content;
   await call('PUT', `/api/items/${fillItem.id}/ratings`,
     { criterionId: endCriteria[0].id, value: 4 });
-  await sendImport({ version: 5, title: 'S', items: [
+  await sendImport({ version: 14, title: 'S', items: [
     // Formatnummer 5: die Linkzeile ist eine nackte String ohne
     // Verfasser -- sie muss trotzdem eine user_id bekommen.
     { title: 'Schluss eins', testDays: [{ day: '2024-07-08', rating: 3 }],
@@ -28402,7 +26942,29 @@ function sweepLeftovers() {
             statt Zahl, Farbe ohne Zeichen, Satz statt Aufzaehlung) und die
             drei Sprachfunde (die tuerkische Endung, die Fragepartikel, das
             fest eingebaute Vokabelwort). */
-  check(`Es sind genau 1008 Rueckbauten`, gpList.length === 1008, `${gpList.length}`);
+  /* UND 1008 WURDEN 990 MIT 0.33.0 -- zum zweiten Mal weniger, und diesmal
+     ist das Wegnehmen die Sache selbst:
+       −36  219 bis 223, 447, 580, 581, 702 bis 709, 720 bis 730, 760 bis 762,
+            819, 822, 823, 882, 883 und 1015 bauten Migrationsbloecke zurueck.
+            Es gibt sie nicht mehr, und ein Rueckbau, der ins Leere greift,
+            ist wertlos -- die Selbstprobe „jeder Suchtext kommt genau einmal
+            vor" hat sie namentlich gemeldet.
+            GELOESCHT UND NICHT UMGEDREHT, aus demselben Grund wie die
+            siebzehn in 0.32.1: umdrehen liesse sich nur ein Gegenstand, den
+            es gibt. Was sie belegt haben, steht jetzt in der Gruppe „Der
+            Hinweis auf einen unvollstaendigen Bestand" -- an DERSELBEN
+            Prueflage, nur mit der umgekehrten Zusage.
+       +18  1035 bis 1052 bauen WIEDER EIN, was diese Runde ausgebaut hat:
+            den Hinweis samt seiner Probe, die weiche Klammer um die beiden
+            Indizes, die beiden Abfragen, die eine fehlende Spalte
+            uebergehen, die Abweisung zu alter Dateien, die Programmfassung in
+            der Exportdatei, den Stempel der Datenbank, die JPEG-Haelfte des
+            Bestandslaufs und zwei deutsche Konsolenansagen.
+            DAS IST DIE RICHTUNG FUER EINE RUNDE, DIE WEGNIMMT: nicht „nimm
+            weg, was da ist", sondern „bring zurueck, was weg sein soll" --
+            und wenn davon keine Pruefung rot wird, ist der Hinweis nicht
+            belegt (Frage F11). */
+  check(`Es sind genau 990 Rueckbauten`, gpList.length === 990, `${gpList.length}`);
   const gpTwice = gpList.map(r => r.nr).filter((n, i, a) => a.indexOf(n) !== i);
   check('Und keine Nummer steht zweimal', gpTwice.length === 0, gpTwice.join(' '));
   /* JEDER GREIFT: der Suchtext kommt in seiner Datei GENAU EINMAL vor. Keinmal
@@ -29159,7 +27721,7 @@ async function checkFirstLogin() {
   const C = startFurtherServer(freshDir, { AUTH_RESET: '1' }, 4100);
   await C.ready;
   check('Der Start sagt laut, dass AUTH_RESET wirkungslos ist',
-    /AUTH_RESET wird seit Version 0\.8\.0 nicht mehr ausgefuehrt/.test(C.log()));
+    /AUTH_RESET has not been carried out since version 0\.8\.0/.test(C.log()));
   // Still weglassen waere falsch: wer die Zeile in seiner .env stehen hat,
   // muss den neuen Weg erfahren, und zwar ohne nachzuschlagen.
   check('Und nennt den Weg, der an seine Stelle tritt',
@@ -42125,13 +40687,18 @@ async function checkUi() {
       dialogText.replace(/\s+/g, ' ').slice(0, 300));
     check('Und dass die Originale ersetzt werden — 0.22.0',
       /die Originale ersetzt \(danach etwa/.test(dialogText), dialogText.replace(/\s+/g, ' ').slice(0, 300));
-    /* UND DASS DIE ZWEITE HAELFTE MITGEHT -- 0.27.0. Der Lauf zieht Originale
-       UND Vorschaubilder in einem Durchgang; ein Dialog, der nur die PNG
-       naennte, verschwiege die Haelfte dessen, was gleich geschieht. Und
-       ausgerechnet die, die auch dann anfaellt, wenn kein einziges PNG mehr
-       dasteht. */
-    check('Und dass die Vorschaubilder dabei mitgehen — 0.27.0',
-      /Veraltete JPEG-Vorschaubilder werden dabei neu generiert/
+    /* UND DASS DIE ZWEITE HAELFTE NICHT MEHR MITGEHT -- 0.33.0. Von 0.27.0 bis
+       0.32.1 stand im Dialog „Veraltete JPEG-Vorschaubilder werden dabei neu
+       generiert"; die Haelfte, die er ansagte, ist gefallen. EIN DIALOG, DER
+       ETWAS ANSAGT, WAS NICHT GESCHIEHT, IST SCHLIMMER ALS EINER, DER ES
+       VERSCHWEIGT -- er steht vor einem unwiderruflichen Griff. */
+    /* GEFRAGT WIRD AM SATZ DES DIALOGS UND NICHT AM GANZEN SEITENTEXT: die
+       Karte darunter sagt weiterhin „Vorschaubilder: in jedem Fall WebP, von
+       dieser Wahl unberuehrt", und das ist der Satz, der nach dieser Runde
+       ohne Widerspruch dasteht. Was fallen musste, ist die Ansage im
+       BESTAETIGUNGSFENSTER, dass sie dabei neu generiert werden. */
+    check('Und dass die Vorschaubilder NICHT mehr mitgehen — 0.33.0',
+      !/JPEG-Vorschaubilder werden dabei neu generiert/
         .test(dialogText.replace(/\s+/g, ' ')),
       dialogText.replace(/\s+/g, ' ').slice(0, 400));
     check('Und dass nur eine vorher angelegte Sicherung zurueckfuehrt',
@@ -42201,22 +40768,27 @@ async function checkUi() {
     baEig.w.close();
 
     /* ---- DIE DREI GEGENLAGEN ---- */
-    /* KEIN PNG MEHR DA -- UND DER KNOPF BLEIBT BEDIENBAR. UMGEDREHT MIT
-       0.27.0, und der Grund ist der ganze Punkt der Runde: bis 0.26.0 hatte
-       der Lauf nichts zu tun, sobald kein PNG mehr dalag, und der Knopf war
-       tot. Seit dieser Runde hat er eine ZWEITE Haelfte -- die Vorschaubilder
-       --, und die faellt unabhaengig davon an. Ein toter Knopf verspraeche
-       hier, es gaebe nichts zu tun, und das waere unwahr.
-       DIE ZEILE DARUNTER SAGT DANN AUCH ETWAS ANDERES: nicht mehr „kein PNG
-       da", sondern was der Lauf statt dessen tut. */
+    /* KEIN PNG MEHR DA -- UND DER KNOPF IST WIEDER TOT. DIESE ZEILE HAT SCHON
+       EINMAL IHR VORZEICHEN GEWECHSELT: bis 0.26.0 war der Knopf abgeschaltet,
+       sobald kein PNG mehr dalag; 0.27.0 hat ihn belebt, weil die
+       Vorschaubilder eine ZWEITE Haelfte waren, die unabhaengig davon anfiel.
+       SEIT 0.33.0 IST DIESE HAELFTE FORT, UND DAMIT AUCH IHR GRUND. Ein
+       bedienbarer Knopf verspraeche jetzt, es gaebe etwas zu tun -- und
+       verlangte fuer diese Unwahrheit ein Passwort.
+       UND DIE ZEILE DARUNTER STEHT DANN GAR NICHT: ein Satz ueber nichts ist
+       keine Auskunft. Was BLEIBT, ist der Satz ueber die Vorschaubilder --
+       „in jedem Fall WebP, von dieser Wahl unberuehrt". Er ist der Satz, der
+       danach ohne Widerspruch dasteht. */
     const baEmpty = await pkSystem({ isAdmin: true, isOwner: true },
       { statsImageFormats: { webp: { count: 9, bytes: 65536 } } });
     await sysSection(baEmpty.w, 'database');
-    check('Ohne PNG bleibt der Knopf bedienbar — die Vorschaubilder bleiben',
-      baEmpty.w.document.getElementById('convert-run')?.disabled === false,
+    check('Ohne PNG ist der Knopf wieder tot — 0.33.0',
+      baEmpty.w.document.getElementById('convert-run')?.disabled === true,
       String(baEmpty.w.document.getElementById('convert-run')?.disabled));
-    check('Und die Karte sagt, was er dann tut',
-      /Generiert veraltete JPEG-Vorschaubilder neu\. Die Originale bleiben unberührt/
+    check('Und die Karte sagt nichts mehr ueber Vorschaubilder, die anstuenden',
+      !/Generiert veraltete JPEG-Vorschaubilder/
+        .test((baCard(baEmpty)?.textContent || '').replace(/\s+/g, ' ')) &&
+      /Vorschaubilder: in jedem Fall WebP/
         .test((baCard(baEmpty)?.textContent || '').replace(/\s+/g, ' ')),
       (baCard(baEmpty)?.textContent || '').replace(/\s+/g, ' ').slice(-260));
     baEmpty.w.close();
@@ -42234,20 +40806,23 @@ async function checkUi() {
 
     // Ein Lauf ist durch: die Zeile sagt, was herauskam.
     const baDone = await pkSystem({ isAdmin: true, isOwner: true },
-      { statsSwitch: { running: false, total: 12, done: 12, converted: 11, derived: 9,
+      { statsSwitch: { running: false, total: 12, done: 12, converted: 11,
                        stayed: 1, freed: 4194304 } });
     await sysSection(baDone.w, 'database');
     const doneRow = baDone.w.document.getElementById('convert-running')?.textContent || '';
-    /* DER FERTIGSATZ NENNT SEIT 0.27.0 BEIDE HAELFTEN. Eine Summe daraus waere
-       kuerzer und falsch: an einer Zeile kann beides geschehen sein, eines
-       oder nichts.
+    /* DER FERTIGSATZ NENNT SEIT 0.33.0 WIEDER EINE HAELFTE. Von 0.27.0 bis
+       0.32.1 nannte er zwei -- umgestellte Originale und neu gerechnete
+       Vorschaubilder --, und eine Summe daraus waere kuerzer und falsch
+       gewesen. Die zweite Zahl ist mit ihrer Haelfte gefallen: ein Satz, der
+       „0 Vorschaubilder neu generiert" meldete, weil es gar keine mehr zu
+       generieren gibt, waere eine Auskunft ueber nichts.
        UND ER STEHT GANZ IN DER SPRACHDATEI. Bis 0.26.0 klebten „von" und
        „umgewandelt" als deutscher Text im Quelltext zwischen zwei
        uebersetzten Stuecken -- eine englische Oberflaeche las „Conversion
        done: 7 von 12 umgewandelt". Gefunden beim Umbau dieser Zeile. */
     check('Nach einem Lauf sagt die Zeile, was herauskam',
       /11 von 12 Originalen konvertiert/.test(doneRow) &&
-      /9 Vorschaubilder neu generiert/.test(doneRow) &&
+      !/Vorschaubilder neu generiert/.test(doneRow) &&
       /1 bereits aktuell/.test(doneRow) &&
       /4,0 MB gespart/.test(doneRow), doneRow);
     /* UND DIE ZEILE DES ZWEITEN LAUFS STEHT NICHT DA, wenn keiner lief. Ohne
@@ -44877,7 +43452,7 @@ async function checkUi() {
   // Jeder Teil traegt dieselbe Nummer wie ein voller Export -- ein Teil ist ein
   // vollstaendiges Paket mit weniger Eintraegen darin, kein halbes.
   check('Und jeder Teil traegt die Formatnummer des vollen Exports',
-    tlPackages.every(p => p.version === 16), JSON.stringify(tlPackages.map(p => p.version)));
+    tlPackages.every(p => p.version === 17), JSON.stringify(tlPackages.map(p => p.version)));
   check('Zusammen tragen die Teile jeden Eintrag genau einmal',
     tlPackages.reduce((n, p) => n + p.items.length, 0) === 6 &&
     new Set(tlPackages.flatMap(p => p.items.map(i => i.title))).size === 6,
@@ -49258,16 +47833,19 @@ async function checkUi() {
     check('In den Kommentaren derselben Datei stehen unveraendert 39 Vorkommen',
       iAppRaw === 39, `${iAppRaw} Vorkommen`);
 
-    /* DIE EINE ZEILE, DIE BLEIBT, UND SIE STEHT NAMENTLICH DA. server.js
-       schreibt „Die Instanz laeuft weiter …" ins Containerprotokoll, wenn
-       PUBLIC_ADDRESS unbrauchbar ist. Das ist eine Zeile fuer den
-       BETREIBER und keine Bildschirmmeldung; sie bleibt, und sie bleibt
-       gezaehlt -- eine Ausnahme ohne Zahl deckte den naechsten echten Treffer
-       mit zu. */
+    /* UND IN server.js BLEIBT SEIT 0.33.0 KEINE EINZIGE MEHR. Bis 0.32.1 stand
+       dort genau eine: „Die Instanz laeuft weiter …", die Zeile fuer den
+       BETREIBER, wenn PUBLIC_ADDRESS unbrauchbar ist. Sie war die eine
+       benannte Ausnahme -- eine Zeile fuers Containerprotokoll und keine
+       Bildschirmmeldung.
+       DAS PROTOKOLL SPRICHT SEIT DIESER RUNDE ENGLISCH (Strang 4), und damit
+       loest sich die Ausnahme von selbst auf: dieselbe Zeile heisst jetzt
+       „The instance keeps running …". DIE PRUEFUNG WIRD DESHALB SCHAERFER UND
+       NICHT WEGGENOMMEN -- aus „genau eine" wird „keine". */
     const iServer = screenRows('server.js');
-    check('In server.js bleibt genau eine Zeile — die Protokollzeile fuer den Betreiber',
-      iServer.length === 1 && /Die Instanz laeuft weiter/.test(iServer[0][1]),
-      iServer.map(([n, z]) => `${n}: ${z.trim()}`).join(' · '));
+    check('In server.js bleibt keine Zeile mehr — auch die des Betreibers nicht',
+      iServer.length === 0,
+      iServer.map(([n, z]) => `${n}: ${z.trim()}`).join(' · ') || 'keine');
   }
 
   /* ---- 5. Die Zeile einer Sitzung steht gerade ---- */
@@ -50956,7 +49534,7 @@ async function checkUi() {
     check('Ohne eine einzige Sprachdatei startet der Server trotzdem',
       spStart.code === null, `Rueckgabe ${spStart.code}`);
     check('Und er sagt namentlich, welche fehlt',
-      /\[languages\][^\n]*en\.json fehlt/.test(spStart.prot),
+      /\[languages\][^\n]*en\.json is missing/.test(spStart.prot),
       spStart.prot.split('\n').find(z => /\[languages\]/.test(z)) || '(kein Wort davon)');
     fs.rmSync(spCopy, { recursive: true, force: true });
   }
@@ -51837,6 +50415,116 @@ async function checkUi() {
         === "; y = 'Dritter';" &&
       serverCalls("console.log('a', f('b')); z = 1;", SERVER_QUIET) === "; z = 1;",
       JSON.stringify(serverCalls("console.log('Ein Satz'); x = 'Zweiter Satz';", SERVER_QUIET)));
+
+    /* ---- 5d. DIE RESTPROBE FUER DAS CONTAINERPROTOKOLL -- 0.33.0 --------
+       DIE LETZTE DEUTSCHE ECKE DES HAUSES. 0.31.0 hat elf Code-Lecks aus den
+       Sprachdateien geholt, 0.32.0 zwoelf feste deutsche Saetze aus server.js
+       -- beide Male ging es um das, was den BILDSCHIRM erreicht. Das
+       Containerprotokoll ist nie angefasst worden, weil es keinen Bildschirm
+       erreicht. ES ERREICHT ABER DEN, DER DIE ANWENDUNG BETREIBT, und der muss
+       nicht deutsch koennen (der Betreiber am 14.9.2026, Antwort auf F5).
+
+       DIESE PROBE IST DAS SPIEGELBILD DER 5c DARUEBER. Jene schneidet die
+       Konsolenrufe WEG und fragt, was uebrig bleibt; diese liest GENAU sie.
+       Zusammen decken die beiden jede Zeichenfolge der Serverdateien ab.
+
+       GEFRAGT WIRD NACH DER SPRACHE UND NICHT NACH EINER LISTE -- wie bei
+       5a und 5c: traegt der Ruf ein deutsches Wortstueck? Die Worttafel ist
+       `tools/dictionary.json` und nur die. Ein Waechter, der eine Liste
+       vergleicht, liesse den neunundfuenfzigsten genau so durch wie der von
+       0.24.0 die elf.
+
+       SECHS DATEIEN, UND ES SIND DIE AUSGELIEFERTEN: was in `usertool.js`
+       oder `keytool.js` steht, laeuft auf dem Wirt und auf Zuruf -- dort sitzt
+       ein Mensch, der den Befehl getippt hat, und er hat die README auf
+       Deutsch gelesen. `mail.js` traegt keine einzige Konsolenansage. */
+    const CONSOLE_FILES = ['server.js', 'db.js', 'auth.js', 'keys.js',
+                           'batchrun.js', 'images.js'];
+    /* ZWEI WOERTER FALLEN AUS DER FRAGE, und beide sind BEFEHLE und keine
+       Saetze -- dieselbe Ausnahme, die REST_GERMAN_NAMED weiter oben fuer die
+       zwei Serverbefehle macht:
+         `passwort`  steht in `node usertool.js passwort <name>`, dem Weg, den
+                     die Zeile ueber AUTH_RESET nennt. Er heisst so, und wer
+                     ihn uebersetzte, naenne einen Befehl, den es nicht gibt.
+         `rand`      steht in `openssl rand -hex 32`. Im Woerterbuch ist es
+                     der deutsche „Rand"; auf der Kommandozeile ist es das
+                     englische „random".
+       UND EINS IST EIN FALSCHER FREUND: `will` ist im Woerterbuch das deutsche
+       Vollverb und im Englischen das Hilfsverb. Es steht hier vorsorglich
+       nicht drin -- die Saetze dieser Runde kommen ohne es aus, und eine
+       Ausnahme, die auf nichts zeigt, ist eine Karteileiche (Stolperstein 81).
+       Wer sie braucht, traegt sie ein und schreibt den Grund daneben. */
+    const CONSOLE_COMMAND_WORDS = ['passwort', 'rand'];
+    /* GELESEN WIRD DER GANZE RUF mit gezaehlten Klammern -- eine Meldung kann
+       ueber drei Zeilen gehen, und ein Schnitt am Zeilenende liesse ihre
+       Fortsetzung stehen. Dieselbe Bauform wie serverCalls() darueber, nur
+       andersherum: dort faellt der Ruf weg, hier bleibt nur er. */
+    const consoleCalls = (src) => {
+      const out = [];
+      const rx = /\bconsole\.(?:log|warn|error)\s*\(/g;
+      let m;
+      while ((m = rx.exec(src)) !== null) {
+        let j = m.index + m[0].length, depth = 1, q = null;
+        while (j < src.length && depth > 0) {
+          const c = src[j];
+          if (q) { if (c === '\\') { j += 2; continue; } if (c === q) q = null; j++; continue; }
+          if (c === "'" || c === '"' || c === '`') { q = c; j++; continue; }
+          if (c === '(') depth++; else if (c === ')') depth--;
+          j++;
+        }
+        out.push({ row: src.slice(0, m.index).split('\n').length,
+                   text: src.slice(m.index, j) });
+        rx.lastIndex = j;
+      }
+      return out;
+    };
+    /* DIE EINSETZSTELLEN FALLEN WEG, bevor gefragt wird: in `${counts.items}`
+       steht ein BEZEICHNER und kein Satz. Genau so macht es die Restprobe fuer
+       app.js, wenn sie Vorlagen an ihren `${…}`-Stellen zerlegt. */
+    const consoleGerman = (text) =>
+      restGerman(String(text).replace(/\$\{[^}]*\}/g, ' '))
+        .filter(w => !CONSOLE_COMMAND_WORDS.includes(w.toLowerCase()));
+    const consoleLeft = [];
+    let consoleSeen = 0;
+    for (const file of CONSOLE_FILES) {
+      const raw = fs.readFileSync(path.join(__dirname, file), 'utf8');
+      for (const call of consoleCalls(raw)) {
+        consoleSeen++;
+        const words = consoleGerman(call.text);
+        if (words.length)
+          consoleLeft.push(`${file}:${call.row} → ${[...new Set(words)].join(',')}`);
+      }
+    }
+    /* ERST DAS VORHANDENSEIN, DANN DIE EIGENSCHAFT (Stolperstein 81): ohne
+       Rufe bliebe jede Verneinung darauf wahr und belegte nichts. */
+    check('Der Waechter findet die Konsolenansagen der sechs Dateien ueberhaupt',
+      consoleSeen > 50, `${consoleSeen} Rufe`);
+    check('Restprobe: keine Konsolenansage der sechs Dateien spricht noch deutsch — 0.33.0',
+      consoleLeft.length === 0, consoleLeft.slice(0, 8).join(' · ') || 'keine');
+    /* UND DER WAECHTER FAENGT SIE WIRKLICH. Ohne diese Zeile waere die darueber
+       auch dann gruen, wenn der Leser gar nichts mehr ansaehe. Gefragt wird an
+       gestellten Faellen -- zwei Saetze, die diese Runde uebersetzt hat, und
+       ihre englischen Fassungen daneben. */
+    check('Und der Waechter faengt einen deutschen Ruf — gestellt und nachgemessen',
+      consoleGerman("console.log('[Kriterion] Sicherung geschrieben: x');").length > 0 &&
+      consoleGerman("console.log('[Kriterion] Laeuft auf Port 3000');").length > 0 &&
+      consoleGerman("console.log('[Kriterion] Backup written: x');").length === 0 &&
+      consoleGerman("console.log('[Kriterion] Running on port 3000');").length === 0,
+      JSON.stringify(consoleGerman("console.log('[Kriterion] Sicherung geschrieben: x');")));
+    /* UND ER FAERBT SICH NICHT AN EINEM BEZEICHNER IN EINER EINSETZSTELLE.
+       `${counts.testtage}` waere sonst ein deutscher Satz, und der Waechter
+       meldete eine Sprache, wo eine Benennung steht. */
+    check('Und er faerbt sich nicht an einem Bezeichner in einer Einsetzstelle',
+      consoleGerman('console.log(`[Kriterion] rows: ${counts.testtage}`);').length === 0,
+      'der Waechter liest die Einsetzstelle mit');
+    /* UND DIE BEIDEN BEFEHLSWOERTER ZEIGEN WIRKLICH AUF ETWAS. Eine Ausnahme
+       fuer ein Wort, das nirgends mehr steht, ist eine Karteileiche. */
+    const consoleRaw = CONSOLE_FILES
+      .map(f => consoleCalls(fs.readFileSync(path.join(__dirname, f), 'utf8'))
+        .map(c => c.text).join('\n')).join('\n');
+    check('Und beide Befehlswoerter stehen wirklich in einer Konsolenansage',
+      CONSOLE_COMMAND_WORDS.every(w => new RegExp(`\\b${w}\\b`).test(consoleRaw)),
+      CONSOLE_COMMAND_WORDS.filter(w => !new RegExp(`\\b${w}\\b`).test(consoleRaw)).join(' · '));
 
     /* ---- 5b. Die Zeichenprobe -- 0.24.4 (B6 A) --------------------------
        KEIN `ICON_` GEHT DURCH t() ODER tH(). tH() maskiert jeden eingesetzten
@@ -53078,7 +51766,7 @@ function checkKeyChange() {
     ['-e', "require('./db'); console.log('fertig');"],
     { cwd: __dirname, encoding: 'utf8', env: swEnvironment(a4.dir, envFresh) }), '');
   check('Der Start meldet die Herkunft des Schluessels',
-    /Schluessel aus ENCRYPTION_KEY geladen/.test(startOut), startOut.slice(0, 200));
+    /Key loaded from ENCRYPTION_KEY/.test(startOut), startOut.slice(0, 200));
   check('Und nennt dabei WEDER den alten NOCH den neuen Wert',
     startOut !== '' && !startOut.includes(envOld) &&
     (envFresh === '' || !startOut.includes(envFresh)), startOut);
@@ -54085,8 +52773,8 @@ async function check0290() {
       /INDEX 0/.test(emStart) && !/Error/.test(emStart),
       emStart.split('\n').slice(-4).join(' | '));
     check('Das Containerprotokoll nennt sie',
-      /Die Adresse bleibt ohne Schloss: doppelt@haus\.de \(2\)/.test(emStart),
-      emStart.split('\n').filter(z => /Schloss/.test(z)).join(' | ') || '(keine Zeile)');
+      /The address stays without a lock: doppelt@haus\.de \(2\)/.test(emStart),
+      emStart.split('\n').filter(z => /without a lock/.test(z)).join(' | ') || '(keine Zeile)');
     check('Und die Karte „Benutzer" bekommt Adresse und Zugaenge',
       /GEMELDET \[\{"address":"doppelt@haus\.de","n":2,"names":"eins, zwei"\}\]/.test(emStart),
       (emStart.match(/GEMELDET .*/) || ['(nichts gemeldet)'])[0]);
@@ -55587,8 +54275,15 @@ async function check0303() {
      stehen namentlich in WORDING_GONE_0321, die zwei in WORDING_NEW_0321.
      ES IST DIE ERSTE RUNDE, DIE SCHRUMPFT, seit 0.31.1 -- und aus demselben
      Grund: sie nimmt eine Bauweise zurueck (dort den zersaegten Satzbau, hier
-     die Zaehlzeile als Satz und die Filterableitung). */
-const LANG_KEY_COUNT = 1209;
+     die Zaehlzeile als Satz und die Filterableitung).
+     1209 VOR 0.33.0 -- 1208 DANACH: zwei fallen, einer kommt dazu. Die zwei
+     stehen namentlich in WORDING_GONE_0330 (`card.catchUpDerivatives` und
+     `card.derivativesAsk` -- die JPEG-Haelfte des Bestandslaufs), der eine in
+     WORDING_NEW_0330 (`server.exportTooOld` -- die eine Abweisung des Bruchs).
+     SIE SCHRUMPFT ZUM ZWEITEN MAL IN FOLGE, und das ist diesmal die Sache
+     selbst: diese Runde legt nichts dazu, sie nimmt weg, was einen Rueckweg
+     offenhaelt. */
+const LANG_KEY_COUNT = 1208;
 
 async function check0310() {
   const drRead = (code) => JSON.parse(fs.readFileSync(
@@ -56340,8 +55035,9 @@ async function check0311() {
    der zweite Blick auf dieselbe Frage. Wer einen Wert aendert, ohne ihn in
    seine Tafel zu schreiben, faellt an den Tafeln auf; wer QUELLTEXT aendert,
    der Bildschirmtext erzeugt, faellt nur hier auf.
-     0f38b9157739b492 / bc6542b1f0e28bd6 -- 0.31.4, der Stand vor dieser Runde */
-const DE_UNTOUCHED = { one: '6ff26921e11674ff', other: 'e1428e2484415619' };
+     0f38b9157739b492 / bc6542b1f0e28bd6 -- 0.31.4, der Stand vor dieser Runde
+     6ff26921e11674ff / e1428e2484415619 -- 0.32.1, der Stand vor 0.33.0 */
+const DE_UNTOUCHED = { one: 'daa0c9094f2c2305', other: '77128aef244a5976' };
 const DE_BEFORE_0312 = { one: '91b86c5affcba789', other: '07fc3ccdc8a27a03' };
 const DE_ORDERED_0312 = {
   'login.requestAccess': 'Zugang anfragen',
@@ -56355,11 +55051,14 @@ const DE_ORDERED_0312 = {
    ueber dieselbe Frage liefen auseinander (Stolperstein 47). */
 const EG_CHANGED_AFTER_0312_SHARED = {
   "_afterNumber": "0.31.4: der Mechanismus — fuer Englisch `plural`, also das Verhalten von vorher",
+  "card.catchUpAsk": "0.33.0: der Dialog nennt die Vorschaubilder nicht mehr — die zweite Haelfte des Laufs ist gefallen",
+  "card.catchUpBoth": "0.33.0: die Zeile unter dem Knopf ebenso — sie sagt nur noch, was mit den Originalen geschieht",
+  "card.convertFinished": "0.33.0: der Fertigsatz nennt keine neu gerechneten Vorschaubilder mehr",
   "card.grade": "0.32.0: seine Beschriftung in der Vokabelkarte",
   "card.itemMany": "0.32.0: Punkt 28, Fund 5 — dieselbe Sache in der Mehrzahl",
   "card.itemOne": "0.32.0: Punkt 28, Fund 5 — die Beschriftung nennt wieder ihre Sache",
   "card.potentialModeHint": "0.32.1: „in the entry\" wird „in the detail view\" — das Vokabelwort stand fest im Satz",
-  "card.restartHint": "0.32.0: Punkt 28, Fund 1 — die zitierte Logzeile heisst „Schluessel\"",
+  "card.restartHint": "0.33.0: die zitierte Logzeile heisst jetzt englisch „Key loaded from ENCRYPTION_KEY\" — das Protokoll spricht englisch (0.32.0, Punkt 28, Fund 1 hatte sie auf „Schluessel\" gebracht)",
   "entry.calcGradeWeight": "0.32.0: „Score × weight\" wird `{grade} × weight`",
   "entry.deletePhoto": "0.32.1: aus `entry.deleteWord` geteilt — „Delete photo\"",
   "entry.deleteVideo": "0.32.1: aus `entry.deleteWord` geteilt — „Delete video\"",
@@ -56385,6 +55084,7 @@ const EG_CHANGED_AFTER_0312_SHARED = {
   "server.cleanupNoBackups": "0.32.0: Punkt 29 — die Vorschau des Aufraeumens, Grund 1",
   "server.cleanupOldestAge": "0.32.0: Punkt 29 — Grund 4, jetzt mit Mehrzahlform",
   "server.deniedEntry": "0.32.1: „this entry\" faellt weg — das Vokabelwort stand fest im Satz",
+  "server.exportTooOld": "0.33.0: neu — die eine Abweisung des Bruchs, eine Datei mit Formatnummer 13 oder aelter kommt nicht mehr herein",
   "server.gradeRange": "0.32.0: die Absage des Servers nennt das Vokabelwort",
   "server.noAccountOwner": "0.32.0: Punkt 29 — der Grund, warum nicht verschickt werden kann",
   "server.noPublicAddress": "0.32.0: Punkt 29 — ohne PUBLIC_ADDRESS wird nicht verschickt",
@@ -56687,14 +55387,18 @@ async function check0312() {
        Schluessel steht deshalb NAMENTLICH hier und nicht still in der Datei. */
     /* UND ACHTZEHN MIT 0.32.0. Sie stehen namentlich hier, alphabetisch wie in
        der Datei -- jede Runde, die einen Schluessel anlegt, traegt ihn ein. */
+    /* UND EINER MIT 0.33.0: `server.exportTooOld`, die eine Abweisung des
+       Bruchs. Eine Exportdatei mit Formatnummer 13 oder aelter traegt die
+       Feldnamen von vor 0.24.1, und seit jener Runde uebersetzt sie niemand
+       mehr -- sie kommt gar nicht erst herein, und der Satz sagt warum. */
     const EG_ADDED_AFTER_0312 = ['_afterNumber',
       'card.grade', 'entry.deletePhoto', 'entry.deleteVideo',
       'list.bellMine', 'list.bellOther', 'list.bellToMe',
       'list.markedCount', 'mail.ownServer',
       'server.backupsBeforeKey', 'server.cleanupAllYoungest', 'server.cleanupNoBackups',
-      'server.cleanupOldestAge', 'server.noAccountOwner', 'server.noPublicAddress',
-      'server.noTestMail', 'server.noUserAddress', 'server.signupThanks',
-      'vocabulary.grade'];
+      'server.cleanupOldestAge', 'server.exportTooOld', 'server.noAccountOwner',
+      'server.noPublicAddress', 'server.noTestMail', 'server.noUserAddress',
+      'server.signupThanks', 'vocabulary.grade'];
     /* UND EINER IST GEFALLEN -- `list.otherUser`. Der Satz des Glockenfensters
        traegt seit 0.32.0 kein hervorgehobenes Wort mehr (F4); ein Schluessel,
        den niemand ruft, bleibt nicht stehen. */
@@ -56703,7 +55407,12 @@ async function check0312() {
        schon wieder genommen hat (`list.statusByHand`, `list.byHandHint`),
        stehen HIER NICHT: den Vergleichsstand von 0.31.2 gab es ohne sie, also
        ist dort auch nichts verlorengegangen. */
-    const EG_GONE_AFTER_0312 = ['entry.deleteWord', 'list.and', 'list.followsSort',
+    /* UND ZWEI MIT 0.33.0: `card.catchUpDerivatives` und `card.derivativesAsk`
+       -- die JPEG-Haelfte des Bestandslaufs. Sie beschreiben eine Haelfte, die
+       es nicht mehr gibt. DIE FOLGE IST DIE DER DATEI und nicht die der
+       Runden: die Zeile darunter vergleicht die Schluessel als FOLGE. */
+    const EG_GONE_AFTER_0312 = ['card.catchUpDerivatives', 'card.derivativesAsk',
+      'entry.deleteWord', 'list.and', 'list.followsSort',
       'list.ofWhich', 'list.otherUser', 'list.pillHint', 'list.sortDefaultHint'];
     const egAdded = Object.keys(egFiles.en).filter(k => !(k in egPrint));
     const egLost = Object.keys(egPrint).filter(k => !(k in egFiles.en));
@@ -56785,13 +55494,15 @@ async function check0312() {
    zurueckdrehen, und niemand saehe es. */
 /* 9cfb555855459a0c / 98295846dd0ac5a4 -- 0.31.3
    2f8e5b3abe58f9fd / 39489ec6ae18020b -- vor 0.31.3; derselbe Grund wie oben.
-   597dfc60b7a1fa63 / 6558810bf793704a -- 0.31.4, der Stand vor 0.32.0 */
-const EN_UNTOUCHED = { one: '97f89e94bcb911f2', other: '81d826369839a242' };
+   597dfc60b7a1fa63 / 6558810bf793704a -- 0.31.4, der Stand vor 0.32.0
+   97f89e94bcb911f2 / 81d826369839a242 -- 0.32.1, der Stand vor 0.33.0 */
+const EN_UNTOUCHED = { one: 'caa4b814e75f8263', other: 'f224721465ac0d35' };
 const TR_BEFORE_0313 = { one: '5fec71b10c0dfa3c', other: '18b07eda589b5120' };
 /* bbaca227348609dc / 73d9f1ea0298d519 -- der Stand VOR der Berichtigung an der
    Vorschau der Vokabelkarte, die der Augenschein von 0.31.3 verlangt hat.
-   a7f3cd4bf8992f90 / e26a1dca46c545da -- 0.31.4, der Stand vor 0.32.0 */
-const TR_AFTER_0313 = { one: 'f3a2034e18783412', other: '5ef5cbd1132e5562' };
+   a7f3cd4bf8992f90 / e26a1dca46c545da -- 0.31.4, der Stand vor 0.32.0
+   f3a2034e18783412 / 5ef5cbd1132e5562 -- 0.32.1, der Stand vor 0.33.0 */
+const TR_AFTER_0313 = { one: 'ab6bdf35499f7cf9', other: 'ad34f68137acaa2b' };
 
 async function check0313() {
   const tgRead = (code) => JSON.parse(fs.readFileSync(
@@ -57301,18 +56012,24 @@ async function check0313() {
     /* UND ACHTZEHN MIT 0.32.0, Schluessel fuer Schluessel dieselben wie auf der
        englischen Seite -- L5 verlangt es: kein neuer Schluessel ohne alle drei
        Sprachen, und die Deckungsprobe faerbte den Lauf sofort rot. */
+    /* UND EINER MIT 0.33.0 -- derselbe wie drueben: `server.exportTooOld`. L6
+       verlangt es: kein Schluessel faellt und keiner kommt nur in einer
+       Sprache. */
     const TR_ADDED_AFTER_0313 = ['_afterNumber',
       'card.grade', 'entry.deletePhoto', 'entry.deleteVideo',
       'list.bellMine', 'list.bellOther', 'list.bellToMe',
       'list.markedCount', 'mail.ownServer',
       'server.backupsBeforeKey', 'server.cleanupAllYoungest', 'server.cleanupNoBackups',
-      'server.cleanupOldestAge', 'server.noAccountOwner', 'server.noPublicAddress',
-      'server.noTestMail', 'server.noUserAddress', 'server.signupThanks',
-      'vocabulary.grade'];
+      'server.cleanupOldestAge', 'server.exportTooOld', 'server.noAccountOwner',
+      'server.noPublicAddress', 'server.noTestMail', 'server.noUserAddress',
+      'server.signupThanks', 'vocabulary.grade'];
     /* UND EINER IST GEFALLEN -- derselbe wie drueben: `list.otherUser`. */
     /* UND SIEBEN MIT 0.32.1 -- dieselben wie im englischen Stand daneben, und
        aus demselben Grund. */
-    const TR_GONE_AFTER_0313 = ['entry.deleteWord', 'list.and', 'list.followsSort',
+    /* UND ZWEI MIT 0.33.0, wieder dieselben: die JPEG-Haelfte des
+       Bestandslaufs nimmt in allen drei Dateien dieselben zwei Saetze mit. */
+    const TR_GONE_AFTER_0313 = ['card.catchUpDerivatives', 'card.derivativesAsk',
+      'entry.deleteWord', 'list.and', 'list.followsSort',
       'list.ofWhich', 'list.otherUser', 'list.pillHint', 'list.sortDefaultHint'];
     const tgAdded = Object.keys(tgFiles.tr).filter(k => !(k in tgPrint));
     const tgLost = Object.keys(tgPrint).filter(k => !(k in tgFiles.tr));
@@ -57335,6 +56052,11 @@ async function check0313() {
        mehr, welche Runde welchen tuerkischen Wert angefasst hat. */
     const TR_CHANGED_AFTER_0313 = {
       '_afterNumber':           '0.31.4: der Mechanismus — hinter einer Zahl die Einzahl',
+      'card.catchUpAsk':        '0.33.0: der Dialog nennt die Vorschaubilder nicht mehr — und „mümkündür" wird „olur", damit er unter der Laengenlatte bleibt',
+      'card.catchUpBoth':       '0.33.0: die Zeile unter dem Knopf sagt nur noch, was mit den Originalen geschieht',
+      'card.convertFinished':   '0.33.0: der Fertigsatz nennt keine neu gerechneten Vorschaubilder mehr',
+      'card.restartHint':       '0.33.0: die zitierte Logzeile heisst jetzt englisch „Key loaded from ENCRYPTION_KEY"',
+      'server.exportTooOld':    '0.33.0: neu — die eine Abweisung des Bruchs, eine Datei mit Formatnummer 13 oder aelter kommt nicht mehr herein',
       'vocabulary.entryMany':   '0.31.4: Öğeler — die Mehrzahl kostet nichts mehr',
       'vocabulary.dayMany':     '0.31.4: Test günleri',
       'vocabulary.reportMany':  '0.31.4: Raporlar',

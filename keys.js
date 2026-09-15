@@ -121,7 +121,7 @@ function loadKey(dataDir) {
     if (!HEX_PATTERN.test(clean)) {
       throw new Error('ENCRYPTION_KEY muss genau 64 Hex-Zeichen lang sein (erzeugen mit: openssl rand -hex 32)');
     }
-    if (isMainThread) console.log('[Kriterion] Schluessel aus ENCRYPTION_KEY geladen.');
+    if (isMainThread) console.log('[Kriterion] Key loaded from ENCRYPTION_KEY.');
     return { hex: clean.toLowerCase(), fromEnv: true };
   }
 
@@ -134,7 +134,7 @@ function loadKey(dataDir) {
 
   const hex = crypto.randomBytes(32).toString('hex');
   fs.writeFileSync(keyPath, hex, { mode: 0o600 });
-  if (isMainThread) console.log('[Kriterion] Neuer Schluessel erzeugt.');
+  if (isMainThread) console.log('[Kriterion] New key created.');
   warnKeyBesideData();
   return { hex, fromEnv: false };
 }
@@ -144,15 +144,16 @@ function warnKeyBesideData() {
   console.warn(
     '\n' +
     '  ------------------------------------------------------------------\n' +
-    '  ACHTUNG: Der Schluessel liegt als data/encryption.key NEBEN der\n' +
-    '  Datenbank. Wer das Verzeichnis data kopiert, kopiert ihn mit und\n' +
-    '  kann alles lesen -- die Verschluesselung schuetzt dann nicht.\n' +
+    '  CAUTION: the key sits NEXT TO the database, as\n' +
+    '  data/encryption.key. Whoever copies the data directory copies the\n' +
+    '  key along with it and can read everything -- the encryption then\n' +
+    '  protects nothing.\n' +
     '\n' +
-    '  Fuer echten Schutz einen eigenen Schluessel erzeugen:\n' +
+    '  For real protection, create your own key:\n' +
     '      openssl rand -hex 32\n' +
-    '  und als ENCRYPTION_KEY in die .env eintragen.\n' +
-    '  Danach gilt: .env und data/ NICHT in dieselbe Sicherung legen.\n' +
-    '  Ohne den Schluessel sind alle Daten endgueltig verloren.\n' +
+    '  and put it into .env as ENCRYPTION_KEY.\n' +
+    '  After that: never keep .env and data/ in the same backup.\n' +
+    '  Without the key, all data is lost for good.\n' +
     '  ------------------------------------------------------------------\n'
   );
 }

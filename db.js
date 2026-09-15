@@ -2,6 +2,12 @@ const fs = require('fs');
 const path = require('path');
 const Database = require('better-sqlite3-multiple-ciphers');
 const { loadKey } = require('./keys');
+/* IM NEBEN-THREAD BLEIBT DER KASTEN STILL -- dieselbe Ueberlegung wie in
+   keys.js: der Bestandslauf oeffnet dieselbe Datei aus seinem eigenen Thread
+   und faehrt damit alles hier ein zweites Mal. Was doppelt LAEUFT, ist
+   nachgewiesen harmlos (siehe der Kasten weiter unten); was doppelt SPRICHT,
+   ist Gerede. Seit 0.33.0 hat diese Datei genau eine solche Ansage. */
+const { isMainThread } = require('worker_threads');
 
 const DATA_DIR = process.env.DATA_DIR || path.join(__dirname, 'data');
 if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
@@ -85,10 +91,10 @@ CREATE TABLE IF NOT EXISTS product_categories (
   -- verschob damit den ganzen Bestand von einer Namenstafel in die andere --
   -- kein Datenverlust, eine falsche Zuordnung (Befund A1).
   -- NULL IST ERLAUBT UND BEDEUTET ETWAS: „in welcher Sprache dieser Name
-  -- geschrieben ist, weiss niemand". Das ist der Zustand des Bestands nach dem
-  -- Einspielen von 0.25.0 -- die Migration fuellt NICHTS (F2), und die Karte
-  -- bietet einen Knopf zum Zuordnen an. Das System behauptet nie etwas
-  -- Falsches.
+  -- geschrieben ist, weiss niemand". Das war der Zustand eines Bestands, der
+  -- die Spalte nachgeruestet bekam -- der Block von 0.25.0 fuellte sie
+  -- ausdruecklich NICHT (F2 jener Runde), und die Karte bietet bis heute einen
+  -- Knopf zum Zuordnen an. Das System behauptet nie etwas Falsches.
   -- AB 0.25.0 ENTSTEHT KEINE ZEILE MEHR OHNE SPRACHVERMERK: der Anlegeweg
   -- traegt die Sprache des Rufers ein, der Import die der Datei.
   language TEXT,
@@ -275,10 +281,10 @@ CREATE TABLE IF NOT EXISTS rating_criteria (
   -- die Menge der Werte stuende sonst zweimal, hier und in PHASEN im Server,
   -- und die zweite meldete sich nicht als Absage mit Meldung, sondern als
   -- abgebrochene Schreibung. PHASEN steht genau einmal, in server.js.
-  -- DEFAULT 'after', und die Bestandszeilen bekommen ihn aus dem DEFAULT,
-  -- nicht aus einem UPDATE (Migration 0.21.0): jeder andere Wert aenderte beim
-  -- Einspielen still saemtliche Gesamtschnitte. Was heute Kriterium ist, ist
-  -- Bewertungskriterium.
+  -- DEFAULT 'after', und jede Zeile bekommt ihn aus dem DEFAULT und nicht aus
+  -- einem UPDATE -- so hat es 0.21.0 beim Nachruesten gehalten, und der Grund
+  -- gilt unveraendert: jeder andere Wert aenderte still saemtliche
+  -- Gesamtschnitte. Was heute Kriterium ist, ist Bewertungskriterium.
   -- UNIQUE(name) BLEIBT GLOBAL und wandert nicht auf (name, phase): ein Name,
   -- ein Kasten. Die Einschraenkung zu aendern hiesse Tabellenneubau (SQLite
   -- kennt kein ALTER CONSTRAINT), und „Wunsch" in beiden Kaesten waere fuer
@@ -832,10 +838,12 @@ CREATE TABLE IF NOT EXISTS trash_bytes (
 
      db.exec(SCHEMA)              CREATE TABLE/INDEX IF NOT EXISTS -- beim
                                   zweiten Mal geschieht nichts.
-     die acht Migrationsblöcke    jeder fragt zuerst, ob die Spalte schon da
-                                  ist, und kehrt sonst wortlos zurueck. Beim
-                                  zweiten Mal ist sie es immer, denn der
-                                  Haupt-Thread war zuerst da.
+     incompleteDatabase()         sie LIEST nur -- sqlite_master und
+                                  PRAGMA table_info. Ein Leser schadet nie
+                                  zweimal. Bis 0.32.1 standen hier die
+                                  achtzehn Migrationsbloecke; jeder fragte
+                                  zuerst, ob die Spalte schon da war, und
+                                  kehrte sonst wortlos zurueck.
      die beiden CREATE INDEX      IF NOT EXISTS.
      das Auffangnetz              UPDATE ... AND NOT EXISTS (... eigentuemer)
      assignInventory()             UPDATE OR IGNORE ... WHERE user_id IS NULL
@@ -844,8 +852,9 @@ CREATE TABLE IF NOT EXISTS trash_bytes (
    EIN VACUUM WAERE ES NICHT, und genau deshalb steht keines hier: es liegt in
    maintainStorage() in server.js und bleibt im Haupt-Thread.
    WAS TROTZDEM ZWEIMAL SCHADET, IST DAS GEREDE: die Ansagen an den Betreiber
-   -- allen voran der halbe Bildschirm Schluesselhinweis -- haelt keys.js im
-   Neben-Thread zurueck. Das ist der eine Schalter dieser Runde.
+   -- der halbe Bildschirm Schluesselhinweis und seit 0.33.0 der Kasten ueber
+   eine unvollstaendige Datenbank -- halten keys.js und die Probe weiter unten
+   im Neben-Thread zurueck.
    WER HIER ETWAS ERGAENZT, PRUEFT ES GEGEN DIESE LISTE. Eine Zeile, die beim
    zweiten Lauf etwas anderes tut als beim ersten, faellt nicht auf: sie faellt
    dem Bestandslauf zur Last, und der laeuft still im Hintergrund. */
@@ -920,951 +929,156 @@ const searchFold = (s) => (s === null || s === undefined ? ''
    umschaltet. */
 db.function('kkl', { deterministic: true }, searchFold);
 
-/* ================= MIGRATION 0.24.1 — DIE NAMEN DES BESTANDS ==============
-   ENTFAELLT MIT 1.0.
-
-   SECHS TABELLEN, SECHSUNDZWANZIG SPALTEN UND VIERUNDFUENFZIG WERTE heissen
-   ab dieser Runde englisch. Ein Schemaname ist kein Inhalt, sondern Code --
-   und `db.js` waere sonst der eine Ort, an dem Deutsch stehen bliebe.
-
-   SIE STEHT VOR `db.exec(SCHEMA)` UND NICHT DAHINTER, und das ist keine
-   Geschmacksfrage: die DDL legt `trash` mit `CREATE TABLE IF NOT EXISTS` an.
-   Liefe sie zuerst, staende neben dem vollen `papierkorb` ein leeres `trash`,
-   und `ALTER TABLE papierkorb RENAME TO trash` scheiterte an einem Namen, den
-   es schon gibt. Die Zeilen waeren nicht verloren, aber unsichtbar -- der
-   schlimmste aller Ausgaenge.
-
-   DIE LISTE STEHT IN `tools/dictionary.json` UND NUR DORT (Auftrag,
-   Bauabschnitt 6): dieselbe Datei, aus der das Namenswoerterbuch entsteht und
-   aus der der Import alte Exportdateien uebersetzt. Zwei Listen ueber
-   dieselbe Sache laufen auseinander.
-
-   WIEDERHOLBAR UND IM NORMALFALL STUMM, wie jeder Block hier: gefragt wird
-   der Bestand selbst (`sqlite_master`), nicht ein Merker. Beim zweiten Lauf
-   -- und den gibt es, der Bestandslauf oeffnet dieselbe Datei aus seinem
-   Thread -- ist jede Tabelle laengst umbenannt, und der Block kehrt wortlos
-   zurueck. */
-const DICTIONARY = JSON.parse(fs.readFileSync(path.join(__dirname, 'tools', 'dictionary.json'), 'utf8'));
-
-/* DIE INDIZES DER UMBENANNTEN TABELLEN. `ALTER TABLE … RENAME TO` nimmt sie
-   mit, laesst ihnen aber ihren alten NAMEN -- und die DDL legt gleich darauf
-   denselben Index ein zweites Mal unter dem neuen an. Zwei Indizes ueber
-   dieselben Spalten sind kein Fehler, aber doppelte Arbeit bei jedem
-   Schreiben. Sie fallen deshalb hier weg; die DDL baut sie neu auf. */
-const OLD_INDEXES = Object.keys(DICTIONARY.indexes);
-
-function migration0241Tables() {
-  const da = new Set(db.prepare("SELECT name FROM sqlite_master WHERE type = 'table'")
-    .all().map(z => z.name));
-  const move = Object.entries(DICTIONARY.tables).filter(([old, fresh]) => da.has(old) && !da.has(fresh));
-  /* DIE INDIZES FALLEN IN JEDEM FALL, auch wenn keine Tabelle mehr umzuziehen
-     ist: `idx_photos_art` und `idx_photos_kachel` haengen an Tabellen, die
-     ihren Namen behalten -- nur die Indizes selbst heissen deutsch. */
-  const oldIndexes = db.prepare("SELECT name FROM sqlite_master WHERE type = 'index'")
-    .all().map(z => z.name).filter(n => OLD_INDEXES.includes(n));
-  if (!move.length && !oldIndexes.length) return 0;
-  db.transaction(() => {
-    for (const old of oldIndexes) db.exec(`DROP INDEX IF EXISTS ${old}`);
-    for (const [old, fresh] of move) db.exec(`ALTER TABLE ${old} RENAME TO ${fresh}`);
-  })();
-  if (!move.length) {
-    console.log(`[Kriterion] ${oldIndexes.length} ${oldIndexes.length === 1 ? 'Index' : 'Indizes'} ` +
-      `umbenannt (Migration auf 0.24.1): ${oldIndexes.join(', ')}.`);
-    return oldIndexes.length;
-  }
-  console.log(`[Kriterion] ${move.length} ${move.length === 1 ? 'Tabelle' : 'Tabellen'} umbenannt ` +
-    `(Migration auf 0.24.1): ${move.map(([a, b]) => `${a} → ${b}`).join(', ')}.`);
-  return move.length;
-}
-migration0241Tables();
-
-/* DIE SPALTEN, UNMITTELBAR HINTER DEN TABELLEN UND VOR ALLEM ANDEREN.
-   ZWEI GRUENDE FUER GENAU DIESE STELLE:
-
-   ERSTENS DIE DDL: `CREATE TABLE IF NOT EXISTS` ruehrt eine vorhandene
-   Tabelle nicht an -- eine frische Instanz bekommt die neuen Namen aus dem
-   Schema, eine vorhandene aus diesem Block. Beide sehen danach gleich aus.
-
-   ZWEITENS DIE AELTEREN MIGRATIONSBLOECKE, und das ist der schaerfere Grund:
-   `migration0160()` fragt, ob `ratings` die Spalte `set_at` traegt, und legt
-   sie sonst an. Liefe sie VOR dieser Umbenennung, saehe sie in einem Bestand
-   aus 0.16.0 nur das alte `gesetzt_am`, legte `set_at` ein ZWEITES Mal daneben
-   -- und diese Umbenennung scheiterte danach an einem Namen, den es schon
-   gibt. Dieselbe Falle steht an `zoom`, `phase`, `kind` und `duration`.
-
-   `ALTER TABLE … RENAME COLUMN` kann SQLite seit 3.25 und zieht dabei jeden
-   Index, jeden Fremdschluessel und jede Sicht mit. */
-function migration0241Columns() {
-  const tables = new Set(db.prepare("SELECT name FROM sqlite_master WHERE type = 'table'")
-    .all().map(z => z.name));
-  const move = [];
-  for (const [place, fresh] of Object.entries(DICTIONARY.columns)) {
-    const [table, old] = place.split('.');
-    if (!tables.has(table)) continue;
-    const columns = db.prepare(`PRAGMA table_info(${table})`).all().map(c => c.name);
-    if (columns.includes(old) && !columns.includes(fresh)) move.push([table, old, fresh]);
-  }
-  if (!move.length) return 0;
-  db.transaction(() => {
-    for (const [table, old, fresh] of move)
-      db.exec(`ALTER TABLE ${table} RENAME COLUMN ${old} TO ${fresh}`);
-  })();
-  console.log(`[Kriterion] ${move.length} ${move.length === 1 ? 'Spalte' : 'Spalten'} umbenannt ` +
-    `(Migration auf 0.24.1): ${move.map(([t, a, b]) => `${t}.${a} → ${b}`).join(', ')}.`);
-  return move.length;
-}
-migration0241Columns();
-
-/* DIE PAARE BLEIBEN ERREICHBAR, UND ZWAR GENAU DIESE. Eine Exportdatei ist
-   ein Abzug des Bestands: eine Datei von vor 0.24.1 traegt an ihren Fotos
-   `art` und `dauer`, weil die Spalten so hiessen. Der Import in server.js
-   uebersetzt sie beim Einlesen -- und nimmt die Paare von HIER, nicht aus
-   einer zweiten Liste. Zwei Listen laufen auseinander, sobald eine wandert. */
-const COLUMNS_0241 = DICTIONARY.columns;
-
-/* DIE WERTE, ALS DRITTES UND LETZTES. Ein Name im Schema ist Code; ein Wert
-   IN einer Zeile ist es genauso, sobald der Quelltext ihn vergleicht --
-   `z.event === 'zugang.status'` waere sonst der Ort, an dem Deutsch
-   stehenbliebe (F2).
-
-   ZWEIUNDSECHZIG PAARE: achtundfuenfzig in neun Spalten, drei am Schema und
-   eines am Grabstein -- alle aus derselben Liste, aus der der
-   Quelltext liest. Eine zweite Liste hier waere die eine Stelle, an der
-   Umbenennung und Vergleich auseinanderlaufen koennten, ohne dass es jemand
-   merkt: der Vergleich griffe einfach nie mehr.
-
-   JEDES `UPDATE` FRAGT VORHER NACH SEINER SPALTE. Ein Bestand aus 0.8.0
-   traegt `photos.kind` noch nicht -- die Spalte kommt erst aus
-   migration0850() weiter unten, und die legt sie gleich mit dem neuen
-   Vorgabewert an. Ohne die Frage brach der Block dort ab, bevor er die
-   uebrigen acht Spalten erreicht haette.
-
-   DER GRABSTEIN IST EIN WERT WIE JEDER ANDERE: `geloescht-7` steht als
-   Benutzername in users und wird `deleted-7`. Die Oberflaeche zeigt ihn
-   ohnehin nie -- sie bildet aus der NUMMER „Gelöschter Benutzer 7".
-
-   DAS SCHEMA IN user_settings STEHT ALS JSON: der Wert ist `"dunkel"` mit
-   Anfuehrungszeichen und nicht `dunkel`. Deshalb steht dieses eine Paar
-   eigens da und nicht in der Schleife darueber.
-
-   WIEDERHOLBAR UND IM NORMALFALL STUMM, wie die beiden Bloecke darueber:
-   gefragt wird die Zeile selbst, nicht ein Merker. */
-const VALUE_COLUMNS_0241 = [
-  ['security_log',    'event',    DICTIONARY.values.event],
-  ['security_log',    'detail',   DICTIONARY.values.detail],
-  ['users',           'role',     DICTIONARY.values.role],
-  ['users',           'status',   DICTIONARY.values.userStatus],
-  ['rating_criteria', 'phase',    DICTIONARY.values.phase],
-  ['photos',          'kind',     DICTIONARY.values.photoKind],
-  ['tokens',          'purpose',  DICTIONARY.values.tokenPurpose],
-  ['settings',        'key',      DICTIONARY.values.setting],
-  ['user_settings',   'key',      DICTIONARY.values.userSetting]
-];
-function migration0241Values() {
-  const tables = new Set(db.prepare("SELECT name FROM sqlite_master WHERE type = 'table'")
-    .all().map(z => z.name));
-  let n = 0;
-  const counted = [];
-  for (const [table, column, pairs] of VALUE_COLUMNS_0241) {
-    if (!tables.has(table)) continue;
-    const columns = db.prepare(`PRAGMA table_info(${table})`).all().map(c => c.name);
-    if (!columns.includes(column)) continue;
-    const set = db.prepare(`UPDATE ${table} SET ${column} = ? WHERE ${column} = ?`);
-    for (const [old, fresh] of Object.entries(pairs)) {
-      const r = set.run(fresh, old);
-      if (r.changes) { n += r.changes; counted.push(`${table}.${column} ${old} → ${fresh} (${r.changes})`); }
-    }
-  }
-  // Das Schema steht als JSON-String in user_settings.
-  if (tables.has('user_settings')) {
-    const set = db.prepare(
-      "UPDATE user_settings SET value = ? WHERE key = 'theme' AND value = ?");
-    for (const [old, fresh] of Object.entries(DICTIONARY.values.theme)) {
-      const r = set.run(JSON.stringify(fresh), JSON.stringify(old));
-      if (r.changes) { n += r.changes; counted.push(`user_settings.theme ${old} → ${fresh} (${r.changes})`); }
-    }
-  }
-  // Der Grabstein: sein Name traegt seine eigene Nummer und wird daraus gebaut.
-  if (tables.has('users')) {
-    const r = db.prepare(
-      "UPDATE users SET username = 'deleted-' || id WHERE username = 'geloescht-' || id").run();
-    if (r.changes) { n += r.changes; counted.push(`users.username geloescht- → deleted- (${r.changes})`); }
-  }
-  if (!n) return 0;
-  console.log(`[Kriterion] ${n} Werte umbenannt (Migration auf 0.24.1): ${counted.join(', ')}.`);
-  return 1;
-}
-migration0241Values();
-
-/* AUCH DIE WERTE BLEIBEN ERREICHBAR -- aus demselben Grund wie die Spalten
-   darueber: eine Exportdatei von vor 0.24.1 traegt `bild` an ihren Fotos und
-   `vorher` an ihren Kriterien, und der Import uebersetzt beides beim
-   Einlesen. */
-const VALUES_0241 = DICTIONARY.values;
-// ENDE MIGRATION 0.24.1 (Tabellen, Spalten und Werte)
-
-/* ================= MIGRATION 0.24.2 — DIE GESPEICHERTEN FORMEN ===========
-   DER BLOCK DARUEBER HAT DIE SCHLUESSEL UMBENANNT, NICHT DIE NAMEN DARIN.
-   `settings.value` ist fuer die Datenbank ein String; was in ihm steht, ist
-   fuer sie ohne Form. Fuer den Quelltext ist es aber sehr wohl eine Form: er
-   liest `e.template`, `z.provider`, `test.mark`. Ein Bestand aus 0.24.0 traegt
-   dort `vorlage`, `anbieter`, `marke` -- die ZEILE war nach 0.24.1 richtig
-   benannt, ihr INHALT nicht.
-
-   DER BEFUND AUS DEM BETRIEB vom 7. September 2026, drei Sachen an einem Tag:
-   die eigenen Suchmaschinen des Eigentuemers standen nicht mehr in der Karte,
-   der Mailzugang galt als nicht eingerichtet, und der Beleg der letzten
-   Testmail zaehlte nicht mehr. Verloren war nichts -- die Zeilen lagen
-   unveraendert da, und der Quelltext las an ihnen vorbei.
-
-   DREI GEBILDE UND KEIN VIERTES. Nachgezaehlt wurden alle dreizehn
-   Schreibstellen nach `settings` und `user_settings` in 0.24.0: was dort als
-   Zahl, Wahrheitswert oder Zeichenfolge liegt, hat keine Feldnamen; `blocks`
-   (seite/unten/zu), `views` ({name, q, filters}), `filters` und `vocabulary`
-   tragen Namen, die in 0.24.1 ausdruecklich deutsch geblieben sind; `searchOn`
-   ist eine flache Liste von Schluesseln, und die heissen unveraendert
-   `google` bis `ecosia` und `eigen1` bis `eigen3`. Bleiben diese drei.
-
-   DIE MARKE DES MAILTESTS BLEIBT GUELTIG. Sie ist ein Hash ueber die WERTE
-   des Zugangs in fester Reihenfolge, nicht ueber ihre Namen -- nach dem
-   Umbenennen rechnet mail.mark() dieselbe Zahl wie mail.marke() davor. Deshalb
-   wird hier umbenannt und nicht geloescht: eine geloeschte Marke hiesse "teste
-   noch einmal", und das waere eine Aufforderung, die niemand verdient hat.
-
-   NACH DEM BLOCK DARUEBER UND VOR db.exec(SCHEMA). Die Reihenfolge ist keine
-   Geschmacksfrage: gesucht wird die Zeile unter ihrem NEUEN Schluessel
-   (`searchOwn`), und den gibt es erst, nachdem migration0241Values() gelaufen
-   ist. Ein Bestand aus 0.24.0 durchlaeuft beide Bloecke in einem einzigen
-   Start.
-
-   WIEDERHOLBAR UND IM NORMALFALL STUMM, wie jeder Block davor: gefragt wird
-   die Zeile selbst -- traegt sie den alten Namen? --, nicht ein Merker. Ein
-   zweiter Lauf findet nichts mehr und sagt nichts. */
-const SHAPES_0242 = [
-  // Drei Plaetze, jeder entweder null oder { name, vorlage }.
-  { key: 'searchOwn',  each: true,  pairs: { vorlage: 'template' } },
-  /* Der Schluessel HEISST weiter `mailzugang` -- mail.js traegt ihn als
-     SETTING_KEY unveraendert, weil ein Schluessel in der Ablage kein Name im
-     Quelltext ist. Umbenannt werden nur die vier Felder, die 0.24.1 angefasst
-     hat; `server`, `port` und `sicher` hiessen schon vorher so. */
-  { key: 'mailzugang', each: false, pairs: { anbieter: 'provider', benutzer: 'user',
-                                             passwort: 'password', absender: 'sender' } },
-  { key: 'mailtestOk', each: false, pairs: { marke: 'mark', am: 'at' } }
-];
-function migration0242Shapes() {
-  const tables = new Set(db.prepare("SELECT name FROM sqlite_master WHERE type = 'table'")
-    .all().map(z => z.name));
-  if (!tables.has('settings')) return 0;
-  const read = db.prepare('SELECT value FROM settings WHERE key = ?');
-  const write = db.prepare('UPDATE settings SET value = ? WHERE key = ?');
-  const counted = [];
-  for (const { key, each, pairs } of SHAPES_0242) {
-    const row = read.get(key);
-    if (!row) continue;
-    let value;
-    /* EINE UNLESBARE ZEILE WIRD UEBERGANGEN UND NICHT VERWORFEN. Sie ist der
-       einzige Ort, an dem der Zugang noch stehen koennte; ein Migrationsblock,
-       der sie wegwirft, weil er sie nicht versteht, richtet den Schaden an,
-       den er verhindern soll. */
-    try { value = JSON.parse(row.value); } catch { continue; }
-    const touched = [];
-    const rename = (o) => {
-      if (!o || typeof o !== 'object' || Array.isArray(o)) return o;
-      const out = { ...o };
-      for (const [old, fresh] of Object.entries(pairs)) {
-        if (!Object.prototype.hasOwnProperty.call(out, old)) continue;
-        /* TRAEGT DIE ZEILE SCHON DEN NEUEN NAMEN, GILT DER. Der Quelltext
-           liest ihn, also ist er der Wert, der in Kraft ist -- der alte faellt
-           weg, damit nicht zwei Wahrheiten nebeneinander liegenbleiben. */
-        if (!Object.prototype.hasOwnProperty.call(out, fresh)) out[fresh] = out[old];
-        delete out[old];
-        touched.push(`${key}.${old} → ${fresh}`);
-      }
-      return out;
-    };
-    const fresh = each
-      ? (Array.isArray(value) ? value.map(rename) : value)
-      : rename(value);
-    if (!touched.length) continue;
-    write.run(JSON.stringify(fresh), key);
-    counted.push(...new Set(touched));
-  }
-  if (!counted.length) return 0;
-  console.log(`[Kriterion] ${counted.length} Feldnamen in gespeicherten Werten ` +
-    `umbenannt (Migration auf 0.24.2): ${counted.join(', ')}.`);
-  return 1;
-}
-migration0242Shapes();
-// ENDE MIGRATION 0.24.2 (die Feldnamen in gespeicherten Werten)
-
-/* ============ MIGRATION 0.24.3 — DIE VORGABESPRACHE DES BESTANDS ==========
-
-   DER BESTAND BEHAELT DEUTSCH, EINE FRISCHE INSTALLATION STARTET AUF ENGLISCH
-   -- Frage F2 des Auftrags 0.24.3, vom Betreiber am 7. September 2026
-   entschieden.
-
-   Bis 0.24.2 stand die Vorgabesprache als `const LANGUAGE_DEFAULT = 'de'` im
-   Quelltext. Ab 0.24.3 steht sie in `settings`, und die Auslieferung gibt
-   Englisch vor. Ohne diesen Block spraeche eine laufende Instanz nach dem
-   Einspielen ploetzlich Englisch -- und „am Bildschirm aendert sich kein Wort"
-   waere zum ersten Mal in dieser Reihe gebrochen, ohne dass es jemand bestellt
-   haette.
-
-   UND ES MUSS EIN GESCHRIEBENER WERT SEIN, KEIN ABGELEITETER. Die naechste
-   Ueberlegung waere „kein `language` in settings UND es gibt Zugaenge, also
-   Deutsch", beim LESEN abgeleitet und ohne Migrationscode -- so, wie es diese
-   Datei an mehreren Stellen macht. Sie traegt hier nicht: eine FRISCH auf
-   Englisch eingerichtete Installation hat im Augenblick der Einrichtung noch
-   keinen Zugang und danach einen. Sie kippte in genau dem Augenblick auf
-   Deutsch, in dem der erste Mensch sein Konto anlegt.
-
-   DIE FRAGE IST DESHALB „gab es SCHON Zugaenge, als diese Fassung zum ersten
-   Mal hochkam" -- und die laesst sich nur beim Hochkommen stellen.
-
-   VOR db.exec(SCHEMA), wie die beiden Bloecke darueber: existiert die Tabelle
-   `users` an dieser Stelle noch nicht, ist es eine frische Installation, und
-   es gibt nichts zu schuetzen.
-
-   WIEDERHOLBAR UND IM NORMALFALL STUMM: gefragt wird die Zeile selbst -- steht
-   schon eine Vorgabesprache da? --, nicht ein Merker. Ein zweiter Lauf findet
-   sie und sagt nichts. Und wer die Sprache spaeter auf Englisch stellt,
-   bekommt sie beim naechsten Start nicht zurueck auf Deutsch: dann STEHT eine
-   da.
-
-   ZU 1.0 FAELLT DER BLOCK WEG, wie jeder andere hier -- dann ist Englisch die
-   Vorgabe fuer alle, und wer Deutsch will, hat es eingestellt. */
-const LANGUAGE_BEFORE_0243 = 'de';
-function migration0243Language() {
-  const tables = new Set(db.prepare("SELECT name FROM sqlite_master WHERE type = 'table'")
-    .all().map(z => z.name));
-  // Keine der beiden Tabellen? Dann ist hier nichts gewachsen.
-  if (!tables.has('settings') || !tables.has('users')) return 0;
-  // Steht schon eine Vorgabe da, ist die Frage beantwortet -- von wem auch immer.
-  if (db.prepare("SELECT 1 FROM settings WHERE key = 'languageDefault'").get()) return 0;
-  /* GEZAEHLT WERDEN ALLE ZEILEN, AUCH GELOESCHTE ZUGAENGE. Die Frage ist nicht,
-     wer sich anmelden kann, sondern ob hier schon einmal jemand gearbeitet hat
-     -- und ein geloeschter Zugang beweist genau das. */
-  const grown = db.prepare('SELECT COUNT(*) AS n FROM users').get().n > 0;
-  if (!grown) return 0;
-  /* DER SCHLUESSEL HEISST `languageDefault` UND NICHT `language`: `language`
-     ist der PERSOENLICHE Schluessel in user_settings (Bauabschnitt 3), und
-     PUT /api/settings entscheidet ueber den Namen im Rumpf, ob ein Wert dem
-     Benutzer oder der Installation gehoert. Zwei Sachen, zwei Namen. */
-  db.prepare('INSERT INTO settings (key, value) VALUES (?, ?)')
-    .run('languageDefault', JSON.stringify(LANGUAGE_BEFORE_0243));
-  console.log(`[Kriterion] Die Vorgabesprache dieser Installation steht jetzt ` +
-    `ausdruecklich auf "${LANGUAGE_BEFORE_0243}" (Migration auf 0.24.3) — ` +
-    `am Bildschirm aendert sich damit kein Wort.`);
-  return 1;
-}
-migration0243Language();
-// ENDE MIGRATION 0.24.3 (die Vorgabesprache des Bestands)
-
-/* ====== MIGRATION 0.24.3 — DIE DEUTSCHEN RESTE IN GESPEICHERTEN WERTEN =====
-
-   DER ZWEITE BLOCK DIESER RUNDE, und das ist keine Nachlaessigkeit, sondern
-   die Frage F7: der Betreiber hat am 7. September 2026 GEGEN den Vorschlag
-   des Auftrags entschieden. Der deutsche Rest aus 0.24.1 faellt ganz -- auch
-   das, was in der Datenbank steht. Der Vorschlag lautete "nur, was mit einem
-   WERT der Sprachdatei umzieht"; die Entscheidung lautet "alles".
-
-   WAS 0.24.1 LIEGEN LIESS UND WARUM. Der Umbenenner von 0.24.1 fasst
-   ausschliesslich CODE-Abschnitte an -- Zeichenfolgen und Kommentare bleiben
-   unberuehrt, und das ist richtig so: eine Zeichenfolge kann ein Satz an der
-   Oberflaeche sein. Die fuenf Namen hier standen aber BEIDES: als Bezeichner
-   im Quelltext (dort wurden sie uebersetzt) und als Schluessel in einem
-   gespeicherten JSON-Objekt (dort nicht). Seit dem Umbenennen liest der
-   Quelltext `side` und in der Ablage steht `seite` -- die Einstellung ist
-   damit nicht falsch, sie ist UNSICHTBAR. Das ist Stolperstein 324 mit
-   umgekehrtem Vorzeichen: nicht die Form hat sich geaendert, sondern der
-   Name darin.
-
-   FUENF FELDNAMEN UND ZWEI WERTE:
-     `sicher`   im Mailzugang            -> `secure`
-     `seite`    in den Bloecken          -> `side`
-     `unten`    in den Bloecken          -> `bottom`
-     `zu`       in den Bloecken          -> `closed`
-     `favorit`  im Filter                -> `favorite`
-     die VIERZEHN Vokabelnamen           -> `sacheEinzahl` -> `entryOne` und so
-                                            fort; die Tafel steht unten
-     `potenzial_desc` / `potenzial_asc`  -> `potential_desc` / `potential_asc`
-                (die beiden Sortierwerte, und sie stehen als WERT und nicht
-                als Name -- deshalb die zweite Spalte der Tafel)
-
-   DAS VOKABULAR IST DER TEURE FALL. Die vierzehn Woerter, die der Eigentuemer
-   selbst eingetragen hat, liegen unter denselben Namen, die 0.24.1 im
-   Quelltext uebersetzt hat -- und `vocabulary()` in server.js laeuft ueber
-   die VORGABEN und liest zu jedem Namen den gespeicherten Wert. Traegt die
-   Ablage `sacheEinzahl` und der Quelltext fragt nach `entryOne`, faellt JEDES
-   der vierzehn Woerter auf die Vorgabe zurueck: aus „Maschine" wird wieder
-   „Eintrag", stumm, an jeder Beschriftung zugleich. Kein Fehler, keine
-   Meldung -- nur ein Bestand, der ueber Nacht wieder Vorgabe spricht.
-
-   ES WIRD ZWEIMAL HINGESEHEN: EINE STUFE TIEF UND EINE TIEFER. Bis 0.24.2 lag
-   unter `vocabulary` ein FLACHES Objekt mit den vierzehn Woertern; seit
-   Bauabschnitt 6 dieser Runde liegt dort ein Objekt JE SPRACHE, und die
-   vierzehn stehen eine Stufe tiefer. Beide Formen koennen dastehen -- die
-   flache wird beim LESEN gedeutet und nicht umgeschrieben --, also fasst die
-   Tafel beide an. Was auf der falschen Stufe steht, traegt die Namen nicht
-   und bleibt unberuehrt.
-
-   DIE ANSICHTEN TRAGEN DENSELBEN FILTER NOCH EINMAL. `views` ist eine LISTE
-   von { name, q, filters }, und jedes `filters` darin ist dasselbe Objekt wie
-   unter `filters`. Wer das vergisst, hat den laufenden Filter umgestellt und
-   die acht gespeicherten Ansichten stehen gelassen -- und genau die sind der
-   Grund, warum jemand sie gespeichert hat.
-
-   DIE TAFEL STEHT ALS ZEICHENFOLGEN-PAARE UND NICHT ALS EIGENSCHAFTSNAMEN.
-   SHAPES_0242 eine Runde davor schreibt `{ vorlage: 'template' }` -- und
-   genau dafuer braucht der Pruefstand seither eine Ausnahmeliste
-   (OLD_STORED_NAMES), weil `vorlage` dort ein deutscher BEZEICHNER ist. Ein
-   Paar `['seite', 'side']` sagt dasselbe und ist eine Zeichenfolge; eine
-   Uebersetzungstafel muss nennen duerfen, was sie uebersetzt, ohne es zu
-   HEISSEN. Die Ausnahmeliste waechst dadurch nicht.
-
-   VOR db.exec(SCHEMA), wie jeder Block hier. Und NACH migration0241Values():
-   gesucht werden die Zeilen unter ihren NEUEN Schluesseln (`blocks`, `views`,
-   `filters`), und die gibt es erst, nachdem 0.24.1 die Schluesselnamen selbst
-   uebersetzt hat. Ein Bestand aus 0.24.0 durchlaeuft beide in einem Start.
-
-   WIEDERHOLBAR UND IM NORMALFALL STUMM: gefragt wird die Zeile selbst --
-   traegt sie den alten Namen? --, nicht ein Merker. Ein zweiter Lauf findet
-   nichts mehr und sagt nichts.
-
-   EINE UNLESBARE ZEILE WIRD UEBERGANGEN UND NICHT VERWORFEN -- dieselbe Regel
-   wie in SHAPES_0242, und aus demselben Grund.
-
-   TRAEGT DIE ZEILE SCHON DEN NEUEN NAMEN, GILT DER: der Quelltext liest ihn,
-   also ist er der Wert, der in Kraft ist. Der alte faellt weg, damit nicht
-   zwei Wahrheiten nebeneinander liegenbleiben. */
-const FILTER_FIELDS_0243 = [['favorit', 'favorite']];
-// Feld, alter Wert, neuer Wert. Der einzige Platz, an dem 0.24.3 einen WERT
-// und nicht einen Namen umschreibt.
-const FILTER_VALUES_0243 = [['sort', 'potenzial_desc', 'potential_desc'],
-                            ['sort', 'potenzial_asc',  'potential_asc']];
-/* DIE VIERZEHN VOKABELNAMEN. Dieselbe Reihenfolge wie VOCABULARY_FIELDS in
-   app.js -- v1 bis v14 --, damit sich beide Listen nebeneinander lesen.
-   UND SIE BLEIBT BEI VIERZEHN -- 0.32.0. Jene Runde legt mit `grade` ein
-   fuenfzehntes Vokabelwort an, und VOCABULARY_FIELDS in app.js waechst
-   deshalb auf v15. DIESE TAFEL WAECHST NICHT MIT: sie uebersetzt die ALTEN
-   deutschen Namen von 0.24.3 (`sacheEinzahl` -> `entryOne`), und „Note" hatte
-   nie einen solchen Namen. Eine fuenfzehnte Zeile hier waere eine erfundene
-   Vergangenheit -- ein Bestand aus 0.24.2 traegt sie nicht. */
-const VOCABULARY_FIELDS_0243 = [
-  ['sacheEinzahl', 'entryOne'],       ['sacheMehrzahl', 'entryMany'],
-  ['merkmalJa', 'testedYes'],         ['merkmalNein', 'testedNo'],
-  ['zeitpunktEinzahl', 'dayOne'],     ['zeitpunktMehrzahl', 'dayMany'],
-  ['berichtEinzahl', 'reportOne'],    ['berichtMehrzahl', 'reportMany'],
-  ['aufgabeEinzahl', 'taskOne'],      ['aufgabeMehrzahl', 'taskMany'],
-  ['aufgabeErledigt', 'taskDone'],    ['potenzial', 'potential'],
-  ['bewertungEinzahl', 'ratingOne'],  ['bewertungMehrzahl', 'ratingMany']
-];
-const STORED_0243 = [
-  /* `reach` sagt, WO in dem geparsten Wert die Objekte liegen, die die Tafel
-     anfasst. Zwei Formen kommen vor: der Wert selbst ist das Objekt, oder er
-     ist eine Liste, und in jedem Glied steckt eines. */
-  { table: 'settings',      key: 'mailzugang', reach: (v) => [v],
-    fields: [['sicher', 'secure']], values: [] },
-  { table: 'user_settings', key: 'blocks',     reach: (v) => [v],
-    fields: [['seite', 'side'], ['unten', 'bottom'], ['zu', 'closed']], values: [] },
-  { table: 'user_settings', key: 'filters',    reach: (v) => [v],
-    fields: FILTER_FIELDS_0243, values: FILTER_VALUES_0243 },
-  { table: 'user_settings', key: 'views',
-    reach: (v) => (Array.isArray(v) ? v.map(a => a && a.filters) : []),
-    fields: FILTER_FIELDS_0243, values: FILTER_VALUES_0243 },
-  /* Beide Stufen zugleich: das Objekt selbst (die flache Form bis 0.24.2) und
-     jedes Objekt darin (ein Satz je Sprache seit Bauabschnitt 6). */
-  { table: 'settings', key: 'vocabulary',
-    reach: (v) => [v, ...Object.values(v || {})],
-    fields: VOCABULARY_FIELDS_0243, values: [] }
-];
-function migration0243Stored() {
-  const tables = new Set(db.prepare("SELECT name FROM sqlite_master WHERE type = 'table'")
-    .all().map(z => z.name));
-  let n = 0;
-  const counted = [];
-  for (const { table, key, reach, fields, values } of STORED_0243) {
-    if (!tables.has(table)) continue;
-    /* GELESEN WIRD ZEILENWEISE UND NICHT EINMAL: `settings` traegt einen Wert
-       je Schluessel, `user_settings` einen JE BENUTZER. Ein UPDATE ueber alle
-       Zeilen zugleich schriebe jedem denselben Filter. */
-    const rows = db.prepare(`SELECT rowid AS at, value FROM ${table} WHERE key = ?`).all(key);
-    if (!rows.length) continue;
-    const write = db.prepare(`UPDATE ${table} SET value = ? WHERE rowid = ?`);
-    for (const row of rows) {
-      let value;
-      try { value = JSON.parse(row.value); } catch { continue; }
-      const touched = [];
-      for (const o of reach(value)) {
-        if (!o || typeof o !== 'object' || Array.isArray(o)) continue;
-        for (const [old, fresh] of fields) {
-          if (!Object.prototype.hasOwnProperty.call(o, old)) continue;
-          if (!Object.prototype.hasOwnProperty.call(o, fresh)) o[fresh] = o[old];
-          delete o[old];
-          touched.push(`${old} → ${fresh}`);
-        }
-        for (const [field, old, fresh] of values) {
-          if (o[field] !== old) continue;
-          o[field] = fresh;
-          touched.push(`${field}: ${old} → ${fresh}`);
-        }
-      }
-      if (!touched.length) continue;
-      write.run(JSON.stringify(value), row.at);
-      n += touched.length;
-      counted.push(`${table}.${key} ${touched.join(', ')}`);
-    }
-  }
-  if (!n) return 0;
-  console.log(`[Kriterion] ${n} gespeicherte Namen umbenannt (Migration auf 0.24.3): ` +
-    `${counted.join(' · ')}.`);
-  return 1;
-}
-migration0243Stored();
-// ENDE MIGRATION 0.24.3 (die deutschen Reste in gespeicherten Werten)
-
-
-
 db.exec(SCHEMA);
 
-// MIGRATION 0.8.3 — ENTFAELLT MIT 1.0
-// Die Spalte images_removed steht in der DDL, aber CREATE TABLE IF NOT EXISTS
-// ruehrt eine VORHANDENE Tabelle nicht an (Stolperstein 13). Ein Bestand aus
-// 0.8.0 bis 0.8.2 traegt comments ohne diese Spalte; die Vorgabe 0 greift nur
-// dort, wo die Spalte ueberhaupt existiert.
-// Einmalig, wiederholbar und im Normalfall stumm. Zu 1.0 faellt dieser Block
-// weg, die Spalte in der DDL bleibt.
-function migration083() {
-  const columns = db.prepare('PRAGMA table_info(comments)').all().map(c => c.name);
-  if (columns.includes('images_removed')) return 0;
-  db.exec('ALTER TABLE comments ADD COLUMN images_removed INTEGER NOT NULL DEFAULT 0');
-  console.log('[Kriterion] comments um images_removed ergaenzt (Migration auf 0.8.3).');
-  return 1;
-}
-migration083();
-// ENDE MIGRATION 0.8.3
+/* ================= DIE PROBE AUF EINEN UNVOLLSTAENDIGEN BESTAND ==========
+   SIE STEHT DA, WO BIS 0.33.0 ACHTZEHN MIGRATIONSBLOECKE STANDEN, und sie ist
+   das einzige Stueck jener Runde, das DAZUKAM. Die achtzehn haben einen
+   Bestand nachgeruestet, der ihnen fehlte; sie sind gefallen, und damit faellt
+   ihre Gutmuetigkeit weg: eine Datenbank aus 0.13.0 oeffnete danach ohne
+   Widerspruch und ohne die drei Spalten, die jede Ablehnung braucht.
 
-// MIGRATION 0.8.30 — ENTFAELLT MIT 1.0
-// Die Spalte user_id steht in der DDL, aber CREATE TABLE IF NOT EXISTS ruehrt
-// eine VORHANDENE Tabelle nicht an (Stolperstein 13). Ein Bestand aus 0.8.0
-// bis 0.8.20 traegt links ohne diese Spalte.
-// DIE BESTANDSZEILEN FALLEN AN DEN EINTRAGSVERFASSER, NICHT AN DEN
-// EIGENTUEMER -- und das ist etwas anderes als die Regel im Auffangnetz
-// weiter unten. Bis zu dieser Version WAREN die Links eines Eintrags die
-// Sache seines Verfassers; sie ihm zu nehmen und dem Eigentuemer zu geben,
-// machte aus seinen Links stillschweigend fremde. Das Auffangnetz beantwortet
-// eine andere Frage zu einem anderen Zeitpunkt: wem eine Zeile zufaellt, die
-// SPAETER herrenlos wird. Zwei Zeitpunkte, zwei Regeln, kein Widerspruch.
-// Einmalig, wiederholbar und im Normalfall stumm. Zu 1.0 faellt dieser Block
-// weg, die Spalte in der DDL bleibt.
-function migration0830() {
-  const columns = db.prepare('PRAGMA table_info(links)').all().map(c => c.name);
-  if (columns.includes('user_id')) return 0;
-  db.exec('ALTER TABLE links ADD COLUMN user_id INTEGER REFERENCES users(id) ON DELETE SET NULL');
-  const n = db.prepare(
-    'UPDATE links SET user_id = (SELECT user_id FROM items WHERE items.id = links.item_id)' +
-    ' WHERE user_id IS NULL'
-  ).run().changes;
-  console.log(`[Kriterion] links um user_id ergaenzt (Migration auf 0.8.30); ` +
-    `${n} Linkzeilen dem Verfasser ihres Eintrags zugeordnet.`);
-  return 1;
-}
-migration0830();
-// ENDE MIGRATION 0.8.30
+   DAS IST DER GEFAEHRLICHSTE AUGENBLICK DER GANZEN STRECKE, UND ER IST STILL.
+   Nicht der Absturz ist die Gefahr, sondern der Start, der gelingt: die
+   Datenbank oeffnet, die Seiten gehen auf, und irgendwo fehlen Zahlen.
+   Kriterion ist darauf gebaut, dass Fehler LAUT sind -- der Fingerprint
+   schreit, wenn eine Datei nicht mitgekommen ist. Dieser eine Fehler waere
+   leise. Die Probe macht ihn laut.
 
-// MIGRATION 0.8.31 — ENTFAELLT MIT 1.0
-// Dieselbe Sache wie eine Version zuvor, nur an attachments: die Spalte steht
-// in der DDL, aber CREATE TABLE IF NOT EXISTS ruehrt eine VORHANDENE Tabelle
-// nicht an (Stolperstein 13). Ein Bestand aus 0.8.0 bis 0.8.30 traegt
-// attachments ohne user_id.
-// DIE BESTANDSZEILEN FALLEN AN DEN EINTRAGSVERFASSER, aus demselben Grund wie
-// bei den Links: bis zu dieser Version WAREN die Dateien eines Eintrags die
-// Sache seines Verfassers. Das Auffangnetz weiter unten beantwortet eine
-// andere Frage zu einem anderen Zeitpunkt -- dort gilt der Eigentuemer.
-// Einmalig, wiederholbar und im Normalfall stumm. Zu 1.0 faellt dieser Block
-// weg, die Spalte in der DDL bleibt.
-function migration0831() {
-  const columns = db.prepare('PRAGMA table_info(attachments)').all().map(c => c.name);
-  if (columns.includes('user_id')) return 0;
-  db.exec('ALTER TABLE attachments ADD COLUMN user_id INTEGER REFERENCES users(id) ON DELETE SET NULL');
-  const n = db.prepare(
-    'UPDATE attachments SET user_id = (SELECT user_id FROM items WHERE items.id = attachments.item_id)' +
-    ' WHERE user_id IS NULL'
-  ).run().changes;
-  console.log(`[Kriterion] attachments um user_id ergaenzt (Migration auf 0.8.31); ` +
-    `${n} Dateien dem Verfasser ihres Eintrags zugeordnet.`);
-  return 1;
-}
-migration0831();
-// ENDE MIGRATION 0.8.31
+   SIE SPERRT NIEMANDEN AUS -- Leitplanke L3, und der Betreiber hat den ersten
+   Entwurf am 14. September 2026 gekippt. Eine harte Absage wehrte ein Risiko
+   ab, das es nach der Voraussetzung dieser Runde gar nicht gibt (unter 0.33.0
+   hat nie jemand anders gestanden), und braechte dafuer eines mit, das es sehr
+   wohl gibt: DIESE PROBE KANN SICH IRREN. Ein Hinweis, der sich irrt, kostet
+   eine Zeile im Protokoll; eine Absage, die sich irrt, kostet dem Betreiber
+   den Zugang zu seiner eigenen Datenbank.
 
-// MIGRATION 0.8.40 — ENTFAELLT MIT 1.0
-// Die Spalte weight steht in der DDL, aber CREATE TABLE IF NOT EXISTS ruehrt
-// eine VORHANDENE Tabelle nicht an (Stolperstein 13). Ein Bestand aus 0.8.0
-// bis 0.8.31 traegt rating_criteria ohne diese Spalte.
-// DIE BESTANDSZEILEN BEKOMMEN 1,0, und zwar aus dem DEFAULT der Spalte, nicht
-// aus einem nachgeschobenen UPDATE: ALTER TABLE ... ADD COLUMN mit NOT NULL
-// DEFAULT fuellt die vorhandenen Zeilen selbst. Jeder andere Wert aenderte
-// beim Einspielen still saemtliche Gesamtschnitte.
-// KEINE FRAGE NACH EINEM EIGENTUEMER, anders als bei den beiden Migrationen
-// darueber: ein Gewicht kann nicht herrenlos werden, es hat einen
-// NOT-NULL-Vorgabewert. Das Auffangnetz weiter unten geht diese Spalte
-// deshalb nichts an.
-// Einmalig, wiederholbar und im Normalfall stumm. Zu 1.0 faellt dieser Block
-// weg, die Spalte in der DDL bleibt.
-function migration0840() {
-  const columns = db.prepare('PRAGMA table_info(rating_criteria)').all().map(c => c.name);
-  if (columns.includes('weight')) return 0;
-  db.exec('ALTER TABLE rating_criteria ADD COLUMN weight REAL NOT NULL DEFAULT 1.0');
-  const n = db.prepare('SELECT COUNT(*) AS n FROM rating_criteria').get().n;
-  console.log(`[Kriterion] rating_criteria um weight ergaenzt (Migration auf 0.8.40); ` +
-    `${n} Kriterien stehen auf dem Vorgabegewicht 1,0.`);
-  return 1;
-}
-migration0840();
-// ENDE MIGRATION 0.8.40
+   SIE FRAGT DEN BESTAND UND KEINEN MERKER -- Leitplanke L4, dieselbe Haltung,
+   die jeder der achtzehn Bloecke hatte. Ein Merker in der Datenbank waere eine
+   zweite Wahrheit (Stolperstein 47), und er fehlte genau in der Datenbank, um
+   die es geht: eine aus 0.13.0 traegt keinen. `sqlite_master` und
+   `PRAGMA table_info` sind der Bestand selbst.
 
-// MIGRATION 0.8.50 — ENTFAELLT MIT 1.0
-// Die Spalten kind und duration stehen in der DDL, aber CREATE TABLE IF NOT EXISTS
-// ruehrt eine VORHANDENE Tabelle nicht an (Stolperstein 13). Ein Bestand aus
-// 0.8.0 bis 0.8.40 traegt photos ohne diese Spalten.
-// DIE BESTANDSZEILEN BEKOMMEN 'image', und zwar aus dem DEFAULT der Spalte,
-// nicht aus einem nachgeschobenen UPDATE: ALTER TABLE ... ADD COLUMN mit
-// NOT NULL DEFAULT fuellt die vorhandenen Zeilen selbst. duration bleibt dabei
-// NULL, und das ist richtig -- ein Foto hat keine Dauer.
-// JEDE SPALTE WIRD EINZELN GEFRAGT, nicht der Block als Ganzes. Zwei
-// ALTER TABLE sind zwei Anweisungen: scheitert die zweite, bleibt die erste
-// stehen. Ein Block, der beim Vorhandensein von kind zurueckkehrt, liesse duration
-// dann fuer immer fehlen. So heilt der naechste Start den zerrissenen Stand.
-// KEINE FRAGE NACH EINEM VERFASSER, wie schon bei 0.8.40: ein Foto gehoert
-// seinem Eintrag, nicht einem Verfasser. Das Auffangnetz weiter unten geht
-// diese Tabelle deshalb nichts an.
-// Einmalig, wiederholbar und im Normalfall stumm. Zu 1.0 faellt dieser Block
-// weg, die Spalten in der DDL bleiben.
-function migration0850() {
-  const columns = db.prepare('PRAGMA table_info(photos)').all().map(c => c.name);
-  const missing = [];
-  if (!columns.includes('kind')) {
-    db.exec("ALTER TABLE photos ADD COLUMN kind TEXT NOT NULL DEFAULT 'image'");
-    missing.push('kind');
-  }
-  if (!columns.includes('duration')) {
-    db.exec('ALTER TABLE photos ADD COLUMN duration INTEGER');
-    missing.push('duration');
-  }
-  if (!missing.length) return 0;
-  const n = db.prepare('SELECT COUNT(*) AS n FROM photos').get().n;
-  console.log(`[Kriterion] photos um ${missing.join(' und ')} ergaenzt (Migration auf 0.8.50); ` +
-    `${n} Zeilen stehen auf der Vorgabeart 'bild'.`);
-  return 1;
-}
-migration0850();
-// ENDE MIGRATION 0.8.50
+   SIE STEHT HINTER db.exec(SCHEMA), und das ist keine Ordnungsfrage: die DDL
+   legt eine fehlende TABELLE bei jedem Start an. Was DANACH noch fehlt, ist
+   eine SPALTE -- und nur die kann die DDL nicht heilen (Stolperstein 13). Ein
+   Lauf davor meldete jede frische Instanz als unvollstaendig.
 
+   VIER DER ACHTZEHN BLOECKE HABEN HIER NICHTS ZU SUCHEN, und das ist kein
+   Vergessen: 0.24.2 und 0.24.3 haben Feldnamen IN gespeicherten Werten
+   uebersetzt, 0.24.3 eine Vorgabesprache geschrieben und 0.27.0 eine
+   Einstellungszeile. Keiner von ihnen hat eine Spalte oder eine Tabelle
+   angelegt, und F6 sagt, was gefragt wird: eine Probe je SPALTE und TABELLE.
 
-// MIGRATION 0.14.0 — ENTFAELLT MIT 1.0
-// Die Spalten rejected_at, rejected_reason und rejected_by stehen in der DDL,
-// aber CREATE TABLE IF NOT EXISTS ruehrt eine VORHANDENE Tabelle nicht an
-// (Stolperstein 13). Ein Bestand aus 0.8.0 bis 0.13.2 traegt items ohne sie.
-// KEIN NACHGESCHOBENES UPDATE, und das ist entschieden und nicht vergessen:
-// eine Ablehnung aus einem Bestand vor dieser Version hat kein Datum, keinen
-// Grund und keinen Verfasser -- diese Instanz weiss sie nicht. Jeder gesetzte
-// Wert waere erfunden, und "abgelehnt am Tag der Einspielung von dem, der
-// eingespielt hat" waere die schlimmste Erfindung von allen. Die drei bleiben
-// leer, und die Marke zeigt dann genau so viel, wie bekannt ist.
-// JEDE SPALTE WIRD EINZELN GEFRAGT, nicht der Block als Ganzes (Stolperstein
-// 108). Ein Block, der beim Vorhandensein der ersten zurueckkehrt, liesse die
-// zweite und dritte fuer immer fehlen.
-// UND DIE DREI ALTER TABLE LAUFEN IN EINER TRANSAKTION. Ohne sie ueberlebt bei
-// einem Abbruch die erste Spalte, und die uebrigen fehlen. Die Transaktion
-// verhindert den Riss, die Einzelabfrage ueberlebt ihn -- nur das Zweite hilft
-// gegen einen Riss, der in einer frueheren Version entstanden ist.
-// rejected_by TRAEGT SEINEN FREMDSCHLUESSEL AUCH ALS NACHRUESTUNG: SQLite
-// schreibt die Spaltendefinition samt REFERENCES in den Schematext, und
-// ON DELETE SET NULL greift danach wie in der DDL -- nachgemessen, nicht
-// abgeschrieben. Was NICHT geht, ist eine Vorgabe ungleich NULL daneben
-// (Stolperstein 105); hier steht keine, und deshalb geht es.
-// Einmalig, wiederholbar und im Normalfall stumm. Zu 1.0 faellt dieser Block
-// weg, die Spalten in der DDL bleiben.
-function migration0140() {
-  const columns = db.prepare('PRAGMA table_info(items)').all().map(c => c.name);
-  const missing = [];
-  if (!columns.includes('rejected_at')) missing.push(['rejected_at', 'ALTER TABLE items ADD COLUMN rejected_at TEXT']);
-  if (!columns.includes('rejected_reason')) missing.push(['rejected_reason', 'ALTER TABLE items ADD COLUMN rejected_reason TEXT']);
-  if (!columns.includes('rejected_by')) missing.push(['rejected_by',
-    'ALTER TABLE items ADD COLUMN rejected_by INTEGER REFERENCES users(id) ON DELETE SET NULL']);
-  if (!missing.length) return 0;
-  db.transaction(() => { for (const [, sql] of missing) db.exec(sql); })();
-  // "a, b und c" statt "a und b und c" -- bei drei Namen liest sich das
-  // andere wie ein Fehler in der Zeile.
-  const names = missing.map(f => f[0]);
-  const enumeration = names.length > 1
-    ? `${names.slice(0, -1).join(', ')} und ${names[names.length - 1]}` : names[0];
-  const n = db.prepare('SELECT COUNT(*) AS n FROM items WHERE rejected = 1').get().n;
-  console.log(`[Kriterion] items um ${enumeration} ergaenzt ` +
-    `(Migration auf 0.14.0); ${n} bereits abgelehnte ${n === 1 ? 'Eintrag steht' : 'Eintraege stehen'} ` +
-    `ohne Datum, Grund und Verfasser da.`);
-  return 1;
-}
-migration0140();
-// ENDE MIGRATION 0.14.0
+   IM NEBEN-THREAD BLEIBT SIE STILL, wie der Schluesselhinweis in keys.js: der
+   Bestandslauf oeffnet dieselbe Datei aus seinem eigenen Thread und braechte
+   den Kasten bei jedem Lauf ein zweites Mal. Wer ihn einmal gelesen hat, liest
+   ihn beim zweiten Mal nicht besser.
 
-// MIGRATION 0.16.0 — ENTFAELLT MIT 1.0
-/* DIE BEWERTUNGEN BEKOMMEN EINEN ZEITPUNKT. Bis 0.15.1 trug eine Bewertung
-   ihren Wert und ihren Verfasser, aber kein Wann -- und damit war „hat seit
-   meinem letzten Blick jemand bewertet?" nicht zu beantworten. Die Glocke aus
-   0.16.0 stellt genau diese Frage.
-   OHNE VORGABEWERT UND OHNE NACHTRAGEN: die vorhandenen Zeilen bekommen NULL
-   und behalten es. Ein nachgetragener Zeitpunkt waere erfunden -- entweder
-   saehe alles gleich alt aus (ein fester Wert) oder alles brandneu
-   (datetime('now')), und die Glocke laeutete beim ersten Start fuer den ganzen
-   Bestand. Was die Instanz nicht weiss, behauptet sie nicht.
-   WIEDERHOLBAR UND IM NORMALFALL STUMM, wie jeder Block hier: gefragt wird
-   PRAGMA table_info, nicht ein Merker. */
-function migration0160() {
-  const columns = db.prepare('PRAGMA table_info(ratings)').all().map(c => c.name);
-  if (columns.includes('set_at')) return 0;
-  db.exec('ALTER TABLE ratings ADD COLUMN set_at TEXT');
-  const n = db.prepare('SELECT COUNT(*) AS n FROM ratings WHERE value > 0').get().n;
-  console.log(`[Kriterion] ratings um set_at ergaenzt (Migration auf 0.16.0); ` +
-    `${n} vorhandene ${n === 1 ? 'Bewertung steht' : 'Bewertungen stehen'} ohne Zeitpunkt da ` +
-    `und bleiben fuer die Glocke unsichtbar.`);
-  return 1;
-}
-migration0160();
-// ENDE MIGRATION 0.16.0
+   ENGLISCH, WIE DAS GANZE PROTOKOLL SEIT 0.33.0 -- F5. Wer eine Instanz
+   betreibt, muss nicht deutsch koennen. */
 
-// MIGRATION 0.19.0 — ENTFAELLT MIT 1.0
-/* DER AUSSCHNITT BEKOMMT EIN DRITTES MASS. Bis 0.18.1 trug ein Foto zwei
-   Prozentwerte -- wohin das quadratische Fenster rutscht --, aber keinen
-   dafuer, wie eng es sitzt. `zoom` ist dieser dritte Wert.
-   MIT VORGABE, ANDERS ALS set_at AUS 0.16.0, und der Unterschied ist
-   keine Geschmacksfrage: dort waere jeder nachgetragene Zeitpunkt eine
-   ERFINDUNG gewesen (die Instanz weiss nicht, wann eine alte Bewertung
-   entstand). Hier weiss sie es: jedes vorhandene Foto stand bisher auf
-   „so weit wie moeglich", und genau das bedeutet 100. Die Vorgabe traegt
-   also keine Behauptung, sondern den bisherigen Zustand.
-   DAS GEHT AUCH TECHNISCH: ALTER TABLE ADD COLUMN nimmt in SQLite eine
-   KONSTANTE Vorgabe an -- 100 ist eine, datetime('now') waere keine
-   (Stolperstein 105).
-   WIEDERHOLBAR UND IM NORMALFALL STUMM, wie jeder Block hier: gefragt wird
-   PRAGMA table_info, nicht ein Merker. */
-function migration0190() {
-  const columns = db.prepare('PRAGMA table_info(photos)').all().map(c => c.name);
-  if (columns.includes('zoom')) return 0;
-  db.exec('ALTER TABLE photos ADD COLUMN zoom REAL NOT NULL DEFAULT 100');
-  const n = db.prepare("SELECT COUNT(*) AS n FROM photos WHERE kind != 'video'").get().n;
-  console.log(`[Kriterion] photos um zoom ergaenzt (Migration auf 0.19.0); ` +
-    `${n} vorhandene ${n === 1 ? 'Foto steht' : 'Fotos stehen'} auf dem weitesten ` +
-    `Ausschnitt und sehen damit aus wie bisher.`);
-  return 1;
-}
-migration0190();
-// ENDE MIGRATION 0.19.0
+/* DIE SECHS TABELLEN, DIE 0.24.1 UMBENANNT HAT. Steht eine von ihnen noch
+   unter ihrem alten Namen da, ist der Fall der SCHLIMMSTE von allen: die DDL
+   hat daneben eine leere neue angelegt, die Zeilen liegen unveraendert im
+   alten Namen -- nicht verloren, aber unsichtbar.
+   DIE LISTE STEHT HIER UND NICHT IN `tools/dictionary.json`: jene Datei
+   uebersetzt Namen, diese Tafel nennt einen Befund. Seit 0.33.0 liest `db.js`
+   das Woerterbuch nicht mehr -- es ist die Sache des Imports geblieben. */
+const LEGACY_TABLES = [
+  ['anfragen', 'requests'], ['sicherheitsprotokoll', 'security_log'],
+  ['papierkorb', 'trash'], ['papierkorb_bytes', 'trash_bytes'],
+  ['zweifaktor', 'two_factor'], ['zweifaktor_codes', 'two_factor_codes']
+];
 
-// MIGRATION 0.21.0 — ENTFAELLT MIT 1.0
-/* DAS KRITERIUM BEKOMMT SEINEN KASTEN. Die Spalte phase steht in der DDL,
-   aber CREATE TABLE IF NOT EXISTS ruehrt eine VORHANDENE Tabelle nicht an
-   (Stolperstein 13) -- ein Bestand aus 0.8.40 bis 0.20.1 traegt
-   rating_criteria ohne sie. Deshalb ueberhaupt dieser Block.
-   DIE BESTANDSZEILEN BEKOMMEN 'after', und zwar aus dem DEFAULT der Spalte,
-   nicht aus einem nachgeschobenen UPDATE: ALTER TABLE ... ADD COLUMN mit
-   NOT NULL DEFAULT fuellt die vorhandenen Zeilen selbst. Dieselbe Regel wie
-   bei weight in Migration 0.8.40, und derselbe Grund: jeder andere Wert
-   aenderte beim Einspielen still saemtliche Gesamtschnitte. Was heute
-   Kriterium ist, ist Bewertungskriterium. Punkt.
-   DIE VORGABE TRAEGT DAMIT KEINE BEHAUPTUNG, SONDERN DEN BISHERIGEN ZUSTAND
-   -- dieselbe Ueberlegung wie bei zoom in 0.19.0 und ausdruecklich nicht die
-   von set_at in 0.16.0, wo jeder nachgetragene Wert eine Erfindung
-   gewesen waere.
-   'after' IST EINE KONSTANTE Vorgabe, und nur solche nimmt ALTER TABLE ADD
-   COLUMN in SQLite an (Stolperstein 105).
-   Einmalig, wiederholbar und im Normalfall stumm: gefragt wird PRAGMA
-   table_info, nicht ein Merker. Zu 1.0 faellt der Block weg, die Spalte in der
-   DDL bleibt. */
-function migration0210() {
-  const columns = db.prepare('PRAGMA table_info(rating_criteria)').all().map(c => c.name);
-  if (columns.includes('phase')) return 0;
-  db.exec("ALTER TABLE rating_criteria ADD COLUMN phase TEXT NOT NULL DEFAULT 'after'");
-  const n = db.prepare("SELECT COUNT(*) AS n FROM rating_criteria WHERE phase = 'after'").get().n;
-  console.log(`[Kriterion] rating_criteria um phase ergaenzt (Migration auf 0.21.0); ` +
-    `${n} ${n === 1 ? 'Kriterium steht' : 'Kriterien stehen'} auf 'after' und ` +
-    `${n === 1 ? 'zaehlt' : 'zaehlen'} damit weiter in die Bewertung.`);
-  return 1;
-}
-migration0210();
-// ENDE MIGRATION 0.21.0
+/* JEDE SPALTE EINZELN UND MIT IHRER FASSUNG -- F6. Fuenf Zeilen statt zwanzig
+   waeren billiger und naennten das Symptom; so steht die Diagnose da.
+   VIER ANGABEN JE ZEILE: Tabelle, Spalte, der Name, unter dem 0.24.1 sie
+   vorgefunden haette (oder null), und die Fassung, deren Block sie gebracht
+   haette. DER ALTE NAME IST DIE GENAUERE DIAGNOSE: steht er da, fehlt nicht
+   die Spalte, sondern die Umbenennung -- zwei verschiedene Wege herauf.
+   TABELLEN, DIE 0.24.1 SELBST UMBENANNT HAT, STEHEN HIER NICHT: ihre Spalten
+   kann die Probe erst sehen, wenn die Tabelle da ist, und solange die alte
+   daneben liegt, meldet die Tafel darueber den schaerferen Befund. */
+const REQUIRED_COLUMNS = [
+  ['comments',           'images_removed',  null,             '0.8.3'],
+  ['links',              'user_id',         null,             '0.8.30'],
+  ['attachments',        'user_id',         null,             '0.8.31'],
+  ['rating_criteria',    'weight',          'gewicht',        '0.8.40'],
+  ['photos',             'kind',            'art',            '0.8.50'],
+  ['photos',             'duration',        'dauer',          '0.8.50'],
+  ['items',              'rejected_at',     null,             '0.14.0'],
+  ['items',              'rejected_reason', 'rejected_grund', '0.14.0'],
+  ['items',              'rejected_by',     'rejected_von',   '0.14.0'],
+  ['ratings',            'set_at',          'gesetzt_am',     '0.16.0'],
+  ['photos',             'zoom',            null,             '0.19.0'],
+  ['rating_criteria',    'phase',           null,             '0.21.0'],
+  ['tokens',             'purpose',         'zweck',          '0.24.1'],
+  ['tokens',             'expires_at',      'ablauf',         '0.24.1'],
+  ['tokens',             'used_at',         'benutzt_am',     '0.24.1'],
+  ['product_categories', 'language',        null,             '0.25.0'],
+  ['rating_criteria',    'language',        null,             '0.25.0'],
+  ['comments',           'due_date',        null,             '0.29.0']
+];
 
-// MIGRATION 0.25.0 — ENTFAELLT MIT 1.0
-/* ====== DER NAME BEKOMMT SEINE SPRACHE ===================================
+/* DIE LETZTE FASSUNG, DIE DEN WEG HERAUF NOCH KANNTE. Sie steht an EINER
+   Stelle: der Kasten nennt sie, und die Zeile darunter rechnet mit ihr.
+   Eine zweite Angabe daneben liefe beim naechsten Mal von ihr weg. */
+const LAST_MIGRATING_VERSION = '0.32.1';
 
-   ZWEI SPALTEN, EIN BLOCK, KEIN RUECKSCHREIBEN. `product_categories.language`
-   und `rating_criteria.language` sagen, IN WELCHER SPRACHE der Name der
-   Grundzeile geschrieben ist. Bis 0.24.6 stand das nirgends -- `baseLanguage()`
-   schrieb die Zeile derjenigen Sprache zu, die GERADE Vorgabe ist, und damit
-   war die Frage „existiert fuer die Vorgabesprache ein Eintrag?" nicht
-   wahrheitsgemaess zu beantworten (Befund A1 des Auftrags 0.25.0).
-
-   DER BLOCK FUELLT NICHTS -- Frage F2, vom Betreiber am 9. September 2026
-   entschieden: *„nichts -- und einmal nachfragen."* Er legt die beiden Spalten
-   an und laesst sie leer.
-
-   WARUM NICHT DIE VORGABESPRACHE EINTRAGEN: das waere genau die Behauptung,
-   die diese Runde beseitigt. Eine Instanz, deren Vorgabe heute `tr` ist,
-   waehrend der Bestand deutsch eingetragen wurde, bekaeme damit einen ganzen
-   Satz Zeilen, die „auf Tuerkisch" heissen und es nicht sind -- und niemand
-   saehe es je wieder. NULL heisst „weiss niemand", und das stimmt. Die Karte
-   fragt EINMAL nach und traegt danach ein, was der Eigentuemer sagt.
-
-   HINTER db.exec(SCHEMA), wie jeder ADD-COLUMN-Block hier: die DDL ruehrt mit
-   `IF NOT EXISTS` eine vorhandene Tabelle nicht an (Stolperstein 13). Eine
-   frische Datenbank bekommt die Spalte aus der DDL, eine gewachsene hier.
-
-   WIEDERHOLBAR UND IM NORMALFALL STUMM: gefragt wird die Tabelle selbst --
-   traegt sie die Spalte schon? --, nicht ein Merker. Ein zweiter Lauf findet
-   sie und sagt nichts.
-
-   BEIDE TABELLEN IN EINEM BLOCK UND NICHT IN ZWEIEN: es ist EINE Aussage
-   ueber den Bestand („die Namen wissen jetzt, in welcher Sprache sie
-   geschrieben sind"), und zwei Meldungen darueber waeren zweimal dieselbe.
-   Gezaehlt wird trotzdem je Tabelle -- die Meldung sagt, wie viele Zeilen auf
-   die Nachfrage warten.
-
-   ZU 1.0 FAELLT DER BLOCK WEG, die Spalten in der DDL bleiben. */
-function migration0250Language() {
-  const missing = [];
-  for (const table of ['product_categories', 'rating_criteria']) {
-    const columns = db.prepare(`PRAGMA table_info(${table})`).all().map(c => c.name);
-    if (!columns.includes('language')) missing.push(table);
-  }
-  if (!missing.length) return 0;
-  for (const table of missing) db.exec(`ALTER TABLE ${table} ADD COLUMN language TEXT`);
-  /* GEZAEHLT WIRD UEBER BEIDE TABELLEN UND NICHT NUR UEBER DIE ERGAENZTEN:
-     die Zahl in der Meldung ist die Antwort auf „wie viel Arbeit wartet in der
-     Karte", und darauf antwortet der ganze Bestand. */
-  const n = db.prepare('SELECT COUNT(*) AS n FROM product_categories WHERE language IS NULL').get().n +
-            db.prepare('SELECT COUNT(*) AS n FROM rating_criteria WHERE language IS NULL').get().n;
-  console.log(`[Kriterion] ${missing.join(' und ')} um language ergaenzt (Migration auf 0.25.0); ` +
-    `${n} ${n === 1 ? 'Name steht' : 'Namen stehen'} ohne Sprachangabe da — ` +
-    `die Karte „Kategorien" fragt einmal nach.`);
-  return 1;
-}
-migration0250Language();
-// ENDE MIGRATION 0.25.0 (der Name bekommt seine Sprache)
-
-// MIGRATION 0.27.0 — ENTFAELLT MIT 1.0
-/* ====== AUS DEM HAEKCHEN WIRD DIE WAHL =====================================
-
-   DER TEURE TEIL DIESER RUNDE IST NICHT DAS KODIEREN, SONDERN DIESER BLOCK.
-   Seit 0.19.0 traegt jede gewachsene Installation `convertImages` als `true`
-   oder `false`; ab 0.27.0 heisst der Schluessel `imageStore` und traegt einen
-   Wert aus DREIEN. Ein Ja/Nein wird zu einem von drei Namen, und beide alten
-   Stellungen haben genau eine richtige Uebersetzung:
-
-     convertImages = true   ->  imageStore = 'webp-lossless'
-     convertImages = false  ->  imageStore = 'png'
-     nichts gespeichert     ->  nichts geschrieben (die Vorgabe greift beim Lesen)
-
-   DIE DRITTE ZEILE IST DIE, DIE MAN FALSCH MACHT. Wer sie „der Vollstaendigkeit
-   halber" mit der Vorgabe fuellte, schriebe eine ENTSCHEIDUNG in eine Instanz,
-   in der nie jemand eine getroffen hat -- und naehme damit jeder spaeteren
-   Aenderung der Vorgabe die Wirkung. Ein fehlender Wert IST eine Aussage
-   („niemand hat gewaehlt"), und `imageStore()` in server.js beantwortet sie
-   beim Lesen. Dieselbe Haltung wie bei `backupCleanup` und den beiden
-   Anlegen-Schaltern.
-
-   UND DER ALTE SCHLUESSEL FAELLT -- Frage F1, und das ist der eigentliche
-   Grund fuer den Block. Uebersetzen allein waere billiger: man liesse
-   `convertImages` stehen und schriebe `imageStore` daneben. Danach stuenden
-   ZWEI Zeilen ueber dieselbe Frage in derselben Tabelle, und beim naechsten
-   Griff waere nicht zu sagen, welche gilt (Stolperstein 47). Eine Zeile, die
-   nach der Migration noch dastuende, waere eine zweite Wahrheit -- also faellt
-   sie in DEMSELBEN Griff, in dem die neue entsteht.
-
-   IN EINER TRANSAKTION, UND ZWAR AUSDRUECKLICH: zwischen dem Schreiben der
-   neuen und dem Loeschen der alten Zeile gibt es einen Augenblick, in dem
-   beide dastehen. Er darf keinen Absturz ueberleben.
-
-   TRAEGT DIE INSTANZ SCHON EINEN `imageStore`, GEWINNT ER -- und der alte
-   Schluessel faellt trotzdem. Das ist der Weg zurueck aus einem Stand, der
-   0.27.0 schon gesehen hat und noch einmal auf 0.26.0 lief: dort schriebe die
-   alte Fassung wieder `convertImages`, und die neue Wahl waere die juengere
-   Aussage. Sie zu ueberschreiben hiesse, eine Wahl mit einem Haekchen zu
-   erschlagen.
-
-   WIEDERHOLBAR UND IM NORMALFALL STUMM: gefragt werden die Zeilen selbst,
-   nicht ein Merker. Ein zweiter Lauf findet kein `convertImages` mehr und
-   sagt nichts.
-
-   HINTER db.exec(SCHEMA), wie die Bloecke darueber: `settings` muss dasein.
-   Sie ist keine nachgeruestete Spalte, sondern eine Tabelle aus der DDL --
-   `CREATE TABLE IF NOT EXISTS` legt sie bei jedem Start an, wenn sie fehlt.
-
-   ZU 1.0 FAELLT DER BLOCK WEG. Dann gibt es `convertImages` seit sieben
-   Runden nicht mehr, und was dann noch eine solche Zeile traegt, hat sie von
-   Hand bekommen. */
-const IMAGE_STORE_FROM_0190 = { true: 'webp-lossless', false: 'png' };
-function migration0270ImageStore() {
+function incompleteDatabase() {
   const tables = new Set(db.prepare("SELECT name FROM sqlite_master WHERE type = 'table'")
     .all().map(z => z.name));
-  if (!tables.has('settings')) return 0;
-  const old = db.prepare("SELECT value FROM settings WHERE key = 'convertImages'").get();
-  if (!old) return 0;
-  /* GELESEN WIE JEDE ANDERE EINSTELLUNGSZEILE: der Wert steht als JSON da
-     (`true` / `false`). Was sich nicht lesen laesst oder etwas anderes ist als
-     die beiden, gilt als „an" -- das war die Vorgabe des Haekchens, und ein
-     unlesbarer Rest darf die Ablage nicht auf PNG umlegen. */
-  let on = true;
-  try { on = JSON.parse(old.value) !== false; } catch { on = String(old.value) !== 'false'; }
-  const wanted = IMAGE_STORE_FROM_0190[on];
-  const present = db.prepare("SELECT value FROM settings WHERE key = 'imageStore'").get();
-  db.transaction(() => {
-    if (!present)
-      db.prepare('INSERT INTO settings (key, value) VALUES (?, ?)')
-        .run('imageStore', JSON.stringify(wanted));
-    db.prepare("DELETE FROM settings WHERE key = 'convertImages'").run();
-  })();
-  console.log(`[Kriterion] Die Bildablage steht jetzt als Wahl da: ` +
-    `convertImages = ${on} → imageStore = "${present ? JSON.parse(present.value) : wanted}" ` +
-    `(Migration auf 0.27.0)${present ? ' — die vorhandene Wahl blieb stehen' : ''}; ` +
-    `der alte Schluessel ist gefallen. Am Bildschirm aendert sich damit nichts ` +
-    `an der Ablage — nur die Karte zeigt drei Verfahren statt eines Haekchens.`);
-  return 1;
+  const findings = [];
+  for (const [old, fresh] of LEGACY_TABLES)
+    if (tables.has(old))
+      findings.push({ place: old, fresh, since: '0.24.1', kind: 'table' });
+  for (const [table, column, old, since] of REQUIRED_COLUMNS) {
+    /* FEHLT DIE TABELLE, FEHLT KEINE SPALTE. Die DDL legt jede an, die zum
+       Schema gehoert; was hier trotzdem fehlte, gehoert nicht dazu, und eine
+       Meldung darueber waere ein Fehlalarm. */
+    if (!tables.has(table)) continue;
+    const columns = db.prepare(`PRAGMA table_info(${table})`).all().map(c => c.name);
+    if (columns.includes(column)) continue;
+    findings.push({ place: `${table}.${column}`, since, kind: 'column',
+                    old: old && columns.includes(old) ? `${table}.${old}` : null });
+  }
+  return findings;
 }
-migration0270ImageStore();
-// ENDE MIGRATION 0.27.0 (aus dem Haekchen wird die Wahl)
 
-// MIGRATION 0.29.0 — ENTFAELLT MIT 1.0
-/* DAS FAELLIGKEITSDATUM AN DER AUFGABE -- Befund 3, und der ZWOELFTE
-   Migrationsblock. Die Spalte steht in der DDL, aber ein
-   CREATE TABLE IF NOT EXISTS ruehrt eine VORHANDENE Tabelle nicht an
-   (Stolperstein 13): ein aelterer Bestand traegt `comments` ohne sie.
-
-   OHNE VORGABEWERT UND OHNE NACHGESCHOBENES UPDATE. `ALTER TABLE ... ADD
-   COLUMN` setzt jede Bestandszeile auf NULL, und NULL ist hier die richtige
-   Aussage: diese Aufgaben hatten nie ein Datum, und eines zu erfinden waere
-   eine Behauptung ueber fremde Arbeit. Frisch angelegt und gewandert sehen
-   damit gleich aus.
-
-   WIEDERHOLBAR UND IM NORMALFALL STUMM: gefragt wird die Tabelle selbst und
-   kein Merker. Ein zweiter Start findet die Spalte und sagt nichts.
-
-   HINTER db.exec(SCHEMA), wie jeder ADD-COLUMN-Block hier: die DDL legt die
-   Tabelle an, wenn sie fehlt, und erst danach ist etwas zu ergaenzen.
-
-   DIE ZAHL IM SATZ IST DIE DER AUFGABEN UND NICHT DIE DER KOMMENTARE: sie
-   sagt, wie viele Zeilen das neue Feld ueberhaupt benutzen koennen. */
-function migration0290() {
-  const columns = db.prepare('PRAGMA table_info(comments)').all().map(c => c.name);
-  if (columns.includes('due_date')) return 0;
-  db.exec('ALTER TABLE comments ADD COLUMN due_date TEXT');
-  const n = db.prepare("SELECT COUNT(*) AS n FROM comments WHERE kind = 'task'").get().n;
-  console.log(`[Kriterion] comments um due_date ergaenzt (Migration auf 0.29.0); ` +
-    `${n} ${n === 1 ? 'Aufgabe steht' : 'Aufgaben stehen'} weiterhin ohne Faelligkeitsdatum da.`);
-  return 1;
+/* DER KASTEN. Dieselbe Form wie warnKeyBesideData() in keys.js -- und das ist
+   kein Zufall, sondern das Vorbild, das der Auftrag nennt: derselbe Rahmen,
+   dieselbe Breite, dieselbe Haltung. Wer eines der beiden kennt, liest das
+   andere ohne Anlauf.
+   ER SAGT, WAS ZU TUN IST, und nicht nur, was falsch ist. Ein Hinweis, der
+   den Weg nicht nennt, ist eine Beunruhigung. */
+function warnIncompleteDatabase(findings) {
+  if (!isMainThread || !findings.length) return;
+  const rows = findings.map(f => f.kind === 'table'
+    ? `    ${f.place.padEnd(22)} renamed to ${f.fresh} in ${f.since};\n` +
+      `    ${''.padEnd(22)} its rows are invisible to this version`
+    : `    ${f.place.padEnd(22)} added in ${f.since}` +
+      (f.old ? `; still present as ${f.old}` : ''));
+  console.warn(
+    '\n' +
+    '  ------------------------------------------------------------------\n' +
+    '  WARNING: this database is incomplete. It is missing parts that\n' +
+    '  earlier versions added while starting up. Kriterion 0.33.0 removed\n' +
+    '  those upgrade steps, so they never run again:\n' +
+    '\n' +
+    rows.join('\n') + '\n' +
+    '\n' +
+    `  To repair it, open this database once with Kriterion ${LAST_MIGRATING_VERSION} --\n` +
+    '  the last version that still carried the upgrade steps -- let it\n' +
+    '  start, shut it down, and come back here.\n' +
+    '\n' +
+    '  THIS INSTANCE STARTS ANYWAY. Nothing is blocked and nothing is\n' +
+    '  changed; but every page that reads one of the parts above fails\n' +
+    '  until the database has been through that version.\n' +
+    '  ------------------------------------------------------------------\n'
+  );
 }
-migration0290();
-// ENDE MIGRATION 0.29.0 (das Faelligkeitsdatum an der Aufgabe)
+warnIncompleteDatabase(incompleteDatabase());
 
 /* ================= DIE INDIZES AUF NACHGERUESTETE SPALTEN =================
    SIE STEHEN HIER UNTEN UND NICHT IN DER DDL, und der Grund ist ein Befund des
@@ -1872,24 +1086,38 @@ migration0290();
 
    EIN INDEX AUF EINER NACHGERUESTETEN SPALTE GEHOERT HINTER IHRE MIGRATION
    (Stolperstein 281). `CREATE TABLE IF NOT EXISTS` ruehrt eine vorhandene
-   Tabelle nicht an (Stolperstein 13): eine Datenbank aus 0.8.40 traegt
-   `photos.kind` erst, nachdem migration0850() gelaufen ist, und `photos.zoom`
-   erst nach migration0190(). Ein CREATE INDEX weiter oben scheitert dort mit
+   Tabelle nicht an (Stolperstein 13): eine Datenbank aus 0.8.40 trug
+   `photos.kind` erst, nachdem migration0850() gelaufen war, und `photos.zoom`
+   erst nach migration0190(). Ein CREATE INDEX weiter oben scheiterte dort mit
    „no such column" -- beim OEFFNEN der Datei, also bevor der Server ueberhaupt
    startet. Kein Fehlerbild, keine halbe Funktion: die Anwendung kommt nicht
    hoch.
-
-   DESHALB STEHEN SIE HIER UNTEN UND NICHT JE HINTER IHRER EIGENEN MIGRATION:
-   die Reihenfolge muesste sonst bei jeder neuen Migration nachgezogen werden,
-   und ein Index, der zwei nachgeruestete Spalten nennt, haette gar keinen
-   richtigen Platz. **Hinter der letzten Migration ist jede Spalte da.**
    *Gefunden hat das der Pruefstand: der erste Anlauf stellte den einen Index in
    die DDL (scheiterte an `kind` aus 0.8.40), der zweite hinter migration0850()
    -- und scheiterte am `zoom` aus 0.19.0.*
 
-   ZU 1.0 FALLEN DIE MIGRATIONSBLOECKE WEG, die Spalten in der DDL bleiben --
-   dann duerfen diese Zeilen mit nach oben. Der Satz steht hier, damit sie beim
-   Aufraeumen nicht uebersehen werden.
+   UND SEIT 0.33.0 IST GENAU DAS DER GRUND, WARUM SIE EINE KLAMMER TRAGEN.
+   Die Bloecke, hinter denen sie standen, sind gefallen; die Spalten stehen
+   weiter in der DDL, aber die DDL heilt eine fehlende SPALTE nicht. Eine
+   unvollstaendige Datenbank hat damit KEINE Stelle mehr, an der `zoom`
+   nachwaechst -- und ohne die Klammer traefe sie hier auf „no such column"
+   und die Instanz kaeme nicht hoch. DAS WAERE DIE HARTE ABSAGE, DIE DER
+   BETREIBER AM 14. SEPTEMBER 2026 AUSDRUECKLICH GEKIPPT HAT (F4, Leitplanke
+   L3), nur an einer Stelle, an der sie niemand bestellt hat: nicht als
+   Entscheidung, sondern als Absturz.
+   DER KASTEN DARUEBER HAT DEN BEFUND SCHON GENANNT, und die Zeile hier nennt
+   nur noch die Folge. Ein Index, der nicht entsteht, kostet Geschwindigkeit
+   und keine Auskunft -- die Abfragen laufen ohne ihn, nur langsamer. Sie
+   entstehen beim naechsten Start von selbst, sobald die Datenbank ueber die
+   Fassung gegangen ist, die der Kasten nennt.
+   DIESELBE BAUFORM WIE AM `idx_users_email` weiter unten, und aus demselben
+   Grund: ein stiller Fehlschlag waere die schlimmste Antwort.
+
+   SIE BLEIBEN HIER UNTEN UND WANDERN NICHT IN DIE DDL. Bis 0.32.1 stand an
+   dieser Stelle der Satz „zu 1.0 duerfen diese Zeilen mit nach oben" -- er
+   ist mit den Bloecken hinfaellig geworden, und zwar ins Gegenteil: in der
+   DDL truege `db.exec(SCHEMA)` den Fehlschlag, und DER ist nicht zu klammern,
+   ohne das ganze Schema mitzuklammern.
 
    KEINE VON BEIDEN IST EINE DATENBANKSTUFE: kein Migrationsblock, keine
    Spalte, keine neue Formatnummer. */
@@ -1914,7 +1142,19 @@ migration0290();
 
    Beim ersten Start nach dem Einspielen baut SQLite ihn einmal auf --
    gemessen 1,4 s bei 312 MB, danach steht er. */
-db.exec('CREATE INDEX IF NOT EXISTS idx_photos_kind ON photos(kind)');
+/* WAS EIN INDEX BRAUCHT, DER SICH AN EINER UNVOLLSTAENDIGEN DATENBANK NICHT
+   ANLEGEN LAESST -- 0.33.0. Er wird versucht, er faellt weich, und er sagt es
+   in EINER Zeile. Der Kasten weiter oben hat schon gesagt, WAS fehlt. */
+const tryIndex = (name, sql) => {
+  try { db.exec(sql); } catch (e) {
+    if (isMainThread)
+      console.warn(`[Kriterion] Index ${name} not created: ${e.message} -- ` +
+        'see the warning above; queries run without it, only slower.');
+  }
+};
+
+tryIndex('idx_photos_kind',
+  'CREATE INDEX IF NOT EXISTS idx_photos_kind ON photos(kind)');
 
 /* WOZU DER ZWEITE: `/api/items` holt je Eintrag die Fotoliste; jede dieser
    Zeilen traegt focus_x, focus_y, zoom, sort_order, created_at, kind und duration
@@ -1946,7 +1186,7 @@ db.exec('CREATE INDEX IF NOT EXISTS idx_photos_kind ON photos(kind)');
    WER IN DER UEBERSICHT EINE SPALTE ERGAENZT, ergaenzt sie AUCH HIER. Die
    Abfrage fuehrt ihre Liste als PHOTO_SPALTEN an einer Stelle, und eine
    Pruefung haelt beide gegeneinander. */
-db.exec(`CREATE INDEX IF NOT EXISTS idx_photos_tile
+tryIndex('idx_photos_tile', `CREATE INDEX IF NOT EXISTS idx_photos_tile
            ON photos(item_id, sort_order, id, mime_type, focus_x, focus_y, zoom, created_at, kind, duration)`);
 
 /* ---- DIE ADRESSE IST EINDEUTIG -- 0.29.0, Befund 4 ----
@@ -1994,9 +1234,9 @@ try {
              ON users(email COLLATE NOCASE) WHERE email IS NOT NULL`);
 } catch {
   doubleEmails = db.prepare(qDoubleEmails).all();
-  console.log('[Kriterion] Die Adresse bleibt ohne Schloss: ' +
+  console.log('[Kriterion] The address stays without a lock: ' +
     doubleEmails.map(z => `${z.address} (${z.n})`).join(', ') +
-    ' -- mehrfach vergeben. Die Karte „Benutzer" nennt sie.');
+    ' -- used more than once. The "Users" card names them.');
 }
 /* SIE WIRD BEI JEDEM ABRUF NEU GEFRAGT UND NICHT GEMERKT: wer die Doppelung
    aufloest, soll die Karte sauber sehen, ohne den Server neu zu starten --
@@ -2023,8 +1263,8 @@ function emailsDoubled() {
     "      SELECT 1 FROM users WHERE role = 'admin' AND status != 'deleted')))" +
     " AND NOT EXISTS (SELECT 1 FROM users WHERE role = 'owner')"
   ).run().changes;
-  if (n) console.log('[Kriterion] Die Instanz hatte keinen Eigentuemer; der aelteste ' +
-    'berechtigte Zugang ist es jetzt (role=eigentuemer).');
+  if (n) console.log('[Kriterion] This instance had no owner; the oldest ' +
+    'privileged account is the owner now (role=owner).');
 }
 
 // WEM herrenloser Bestand zufaellt, steht an genau einer Stelle -- hier. Die
@@ -2039,12 +1279,13 @@ function ownerId() {
 // --- Auffangnetz: kein Bestand ohne Benutzer ---
 // Alles, was niemandem gehoert, faellt an den Eigentuemer -- auch eine
 // Linkzeile und eine Datei.
-// DAS IST NICHT DIESELBE REGEL WIE IN DEN MIGRATIONEN DARUEBER, und beide
-// stehen bewusst nebeneinander: die Migration beantwortet einmalig, wem die
-// Links eines BESTEHENDEN Eintrags gehoeren (seinem Verfasser), das Netz
-// beantwortet fortlaufend, wem eine Zeile zufaellt, die ihren Verfasser
-// VERLOREN hat (dem Eigentuemer, wie ueberall sonst). Verschiedene
-// Zeitpunkte, verschiedene Fragen. Im Normalbetrieb
+// ES WAR NICHT DIESELBE REGEL WIE IN DEN MIGRATIONSBLOECKEN, die bis 0.32.1
+// darueber standen, und beide standen bewusst nebeneinander: die Bloecke von
+// 0.8.30 und 0.8.31 beantworteten EINMALIG, wem die Links und Dateien eines
+// BESTEHENDEN Eintrags gehoeren (seinem Verfasser), das Netz beantwortet
+// FORTLAUFEND, wem eine Zeile zufaellt, die ihren Verfasser VERLOREN hat (dem
+// Eigentuemer, wie ueberall sonst). Verschiedene Zeitpunkte, verschiedene
+// Fragen -- und seit 0.33.0 gibt es nur noch die zweite. Im Normalbetrieb
 // entsteht so etwas nicht (geloeschte Zugaenge bleiben als Grabstein stehen);
 // das Netz faengt Fehlerfaelle. ZWEI AUFRUFSTELLEN, beide noetig: hier beim
 // Start und in auth.js nach legeErstenBenutzerAn() -- beim Start einer leeren
@@ -2060,6 +1301,20 @@ function assignInventory() {
     return { items: 0, comments: 0, test_days: 0, ratings: 0, links: 0, attachments: 0 };
   }
   for (const table of ['items', 'comments', 'test_days', 'ratings', 'links', 'attachments']) {
+    /* EINE TABELLE OHNE `user_id` WIRD UEBERGANGEN -- 0.33.0. `links` und
+       `attachments` haben ihre Spalte bis 0.32.1 aus den Bloecken 0.8.30 und
+       0.8.31 bekommen; die sind gefallen, und eine unvollstaendige Datenbank
+       traegt sie deshalb nicht mehr nach. OHNE DIESE ZEILE STUERBE DER START
+       GENAU DORT, und zwar an einem `db.prepare`, das an der fehlenden Spalte
+       scheitert -- also an einem Abbruch, den Leitplanke L3 ausschliesst und
+       den der Kasten weiter oben schon angekuendigt hat.
+       GEFRAGT WIRD DIE TABELLE SELBST, wie ueberall in dieser Datei. Und es
+       ist keine Notloesung, sondern die Sache: was es nicht gibt, laesst sich
+       niemandem zuordnen. */
+    if (!db.prepare(`PRAGMA table_info(${table})`).all().some(c => c.name === 'user_id')) {
+      counts[table] = 0;
+      continue;
+    }
     const n = db.prepare(
       `UPDATE OR IGNORE ${table} SET user_id = ? WHERE user_id IS NULL`
     ).run(owner).changes;
@@ -2067,9 +1322,9 @@ function assignInventory() {
     sum += n;
   }
   if (sum) {
-    console.log('[Kriterion] Bestand ohne Benutzer dem Eigentuemer zugeordnet: ' +
-      `${counts.items} Eintraege, ${counts.comments} Kommentare, ${counts.test_days} Testtage, ` +
-      `${counts.ratings} Bewertungen, ${counts.links} Links, ${counts.attachments} Dateien.`);
+    console.log('[Kriterion] Inventory without an account assigned to the owner: ' +
+      `${counts.items} entries, ${counts.comments} comments, ${counts.test_days} test days, ` +
+      `${counts.ratings} ratings, ${counts.links} links, ${counts.attachments} files.`);
   }
   return counts;
 }
@@ -2086,10 +1341,22 @@ assignInventory();
    und wer sie liest, sieht die Sprache. Der Vermerk sagt, was dasteht. */
 const SEED_LANGUAGE = 'de';
 const seedCriteria = ['Optische Erscheinung', 'Verarbeitungsqualität', 'Funktionalität'];
-const insertCriterion = db.prepare(
-  'INSERT OR IGNORE INTO rating_criteria (name, language) VALUES (?, ?)');
+/* OHNE `language` WIRD NUR DER NAME GESETZT -- 0.33.0, und aus demselben
+   Grund wie am Auffangnetz darueber: die Spalte kam bis 0.32.1 aus dem Block
+   0.25.0, der gefallen ist. Ein `db.prepare` ueber eine Spalte, die es nicht
+   gibt, scheitert beim VORBEREITEN und damit beim Start -- an einer Zeile, die
+   in einer unvollstaendigen Datenbank ohnehin nichts anzulegen haette.
+   ES IST KEIN VERLUST: die drei mitgelieferten Kriterien stehen auf Deutsch,
+   und ohne die Spalte gibt es keinen Ort, an dem das stuende. Der Kasten
+   weiter oben hat den Befund schon genannt. */
+const seedHasLanguage = db.prepare('PRAGMA table_info(rating_criteria)')
+  .all().some(c => c.name === 'language');
+const insertCriterion = db.prepare(seedHasLanguage
+  ? 'INSERT OR IGNORE INTO rating_criteria (name, language) VALUES (?, ?)'
+  : 'INSERT OR IGNORE INTO rating_criteria (name) VALUES (?)');
 if (db.prepare('SELECT COUNT(*) n FROM rating_criteria').get().n === 0) {
-  for (const c of seedCriteria) insertCriterion.run(c, SEED_LANGUAGE);
+  for (const c of seedCriteria)
+    if (seedHasLanguage) insertCriterion.run(c, SEED_LANGUAGE); else insertCriterion.run(c);
 }
 
 // Reihenfolge der Kriterien lueckenlos durchnummerieren; reihenfolgetreu und
@@ -2107,6 +1374,81 @@ const setDefault = db.prepare('INSERT OR IGNORE INTO settings (key, value) VALUE
 setDefault.run('title_public', JSON.stringify('Bewertungskatalog'));
 setDefault.run('title_app', JSON.stringify('Model Bewertungen'));
 
+/* ================= DER STEMPEL: WOMIT DIESE DATENBANK LAEUFT ==============
+   0.33.0, Frage F14. DER BEFUND DES BETREIBERS vom 14. September 2026:
+   *„Prueft das System beim Einspielen, mit welcher Version die Datenbank
+   betrieben wurde? … Generell fuer die Zukunft waere es gut, wenn direkt
+   erkennbar waere, mit welcher Version das betrieben wurde."*
+
+   NACHGESEHEN UND NICHT VERMUTET: an keiner der drei Stellen stand etwas. In
+   der Datenbank kein `user_version` und keine Zeile in `settings`; in der
+   Exportdatei nur die FORMATNUMMER, die der Import nie las; die Sicherung ist
+   eine Kopie der Datei und erbt dieselbe Luecke.
+
+   ER BEANTWORTET EINE ANDERE FRAGE ALS DIE PROBE WEITER OBEN, und die beiden
+   gehoeren deshalb zusammen: die Probe auf `sqlite_master` sagt „IST ES
+   VOLLSTAENDIG?" -- sie kann nennen, welche Spalte fehlt. DER STEMPEL SAGT
+   „WAS IST ES?" -- er kann sagen, dass die Datenbank zuletzt unter 0.19.0
+   lief. Ohne ihn kennt der Hinweis nur das Symptom und nicht die Diagnose.
+
+   UND ER WIRKT NUR NACH VORN. Eine Datenbank, die nie einen getragen hat,
+   bekommt ihn nicht rueckwirkend -- genau deshalb ERSETZT er die Probe nicht,
+   sondern ergaenzt sie. Die Probe deckt die Vergangenheit ab, der Stempel die
+   Zukunft; nach 0.33.0 wird die Probe mit jedem Jahr weniger gebraucht und
+   der Stempel mehr.
+
+   ZWEI ZEILEN UND NICHT EINE, weil es zwei Aussagen sind:
+     `versionCreated`   womit sie ANGELEGT wurde. Sie steht EINMAL da und wird
+                        nie wieder angefasst.
+     `versionLastOpened` womit sie zuletzt geoeffnet wurde. Sie wandert mit.
+
+   `versionCreated` WIRD NUR IN EINER WIRKLICH FRISCHEN DATENBANK GESCHRIEBEN,
+   und das ist der ganze Aufwand dieses Blocks. Die naheliegende Fassung waere
+   `INSERT OR IGNORE` bei jedem Start -- sie truege in eine Datenbank aus
+   0.19.0 beim ersten Start unter 0.33.0 die Zeile „angelegt mit 0.33.0" ein,
+   und das waere eine ERFINDUNG ueber fremde Arbeit. Dieselbe Ueberlegung wie
+   seinerzeit an `set_at` in 0.16.0 und an `rejected_at` in 0.14.0: was die
+   Instanz nicht weiss, behauptet sie nicht. EINE FEHLENDE ZEILE IST DIE
+   RICHTIGE ANTWORT und heisst „aelter als der Stempel".
+
+   GEFRAGT WIRD NACH BESTAND UND NICHT NACH EINEM MERKER -- dieselbe Haltung
+   wie ueberall in dieser Datei. „Gab es hier schon einmal Arbeit?" beantworten
+   `users` und `items`; beide sind leer, solange niemand die Einrichtung im
+   Browser durchlaufen hat. GEZAEHLT WERDEN AUCH GELOESCHTE ZUGAENGE, wie
+   seinerzeit in migration0243Language(): die Frage ist nicht, wer sich
+   anmelden kann, sondern ob hier schon einmal jemand gearbeitet hat.
+
+   BEIDE SCHREIBUNGEN SIND BELIEBIG OFT FAHRBAR und im Normalfall stumm: die
+   erste laeuft ins `OR IGNORE`, die zweite schreibt nur, wo der Wert abweicht
+   -- dieselbe Bauform wie renumberCriteria() darunter. Der Bestandslauf
+   oeffnet dieselbe Datei aus seinem Thread und richtet damit nichts an.
+
+   ER STEHT ALS JSON WIE JEDE ANDERE EINSTELLUNGSZEILE: `"0.33.0"` mit
+   Anfuehrungszeichen. Eine Zeile, die anders gelesen werden muss als ihre
+   Nachbarn, ist eine Falle fuer den naechsten Leser. */
+const APP_VERSION = require('./package.json').version;
+{
+  const grown = db.prepare('SELECT COUNT(*) AS n FROM users').get().n > 0 ||
+                db.prepare('SELECT COUNT(*) AS n FROM items').get().n > 0;
+  if (!grown) setDefault.run('versionCreated', JSON.stringify(APP_VERSION));
+  const before = db.prepare("SELECT value FROM settings WHERE key = 'versionLastOpened'").get();
+  if (!before) {
+    db.prepare('INSERT INTO settings (key, value) VALUES (?, ?)')
+      .run('versionLastOpened', JSON.stringify(APP_VERSION));
+  } else if (before.value !== JSON.stringify(APP_VERSION)) {
+    db.prepare("UPDATE settings SET value = ? WHERE key = 'versionLastOpened'")
+      .run(JSON.stringify(APP_VERSION));
+    /* GESAGT WIRD NUR DER WECHSEL, und nur er ist eine Nachricht. „Laeuft
+       weiter unter derselben Fassung" bei jedem Start waere Gerede. */
+    if (isMainThread) {
+      let from = null;
+      try { from = JSON.parse(before.value); } catch { from = String(before.value); }
+      console.log(`[Kriterion] This database last ran under ${from}; ` +
+        `it now carries ${APP_VERSION}.`);
+    }
+  }
+}
+
 renumberCriteria();
 
 // keyHex wandert mit, damit der Systembereich den vorhandenen Wert zum
@@ -2120,26 +1462,13 @@ module.exports = { db, DATA_DIR, DB_FILE, keyFromEnv: key.fromEnv, keyHex: key.h
                    // damit die NADEL dieselbe Funktion ruft wie der Heuhaufen und
                    // nicht eine zweite, die dasselbe tut.
                    searchFold,
-                   COLUMNS_0241, VALUES_0241,
                    changeKey, method,
                    renumberCriteria, assignInventory, ownerId,
-                   // MIGRATION 0.8.3 — ENTFAELLT MIT 1.0
-                   migration083,
-                   // MIGRATION 0.8.30 — ENTFAELLT MIT 1.0
-                   migration0830,
-                   // MIGRATION 0.8.31 — ENTFAELLT MIT 1.0
-                   migration0831,
-                   // MIGRATION 0.8.40 — ENTFAELLT MIT 1.0
-                   migration0840,
-                   // MIGRATION 0.8.50 — ENTFAELLT MIT 1.0
-                   migration0850,
-                   // MIGRATION 0.14.0 — ENTFAELLT MIT 1.0
-                   migration0140,
-                   // MIGRATION 0.16.0 — ENTFAELLT MIT 1.0
-                   migration0160,
-                   // MIGRATION 0.19.0 — ENTFAELLT MIT 1.0
-                   migration0190,
-                   // MIGRATION 0.21.0 — ENTFAELLT MIT 1.0
-                   migration0210,
-                   // MIGRATION 0.25.0 — ENTFAELLT MIT 1.0
-                   migration0250Language };
+                   /* WAS EINE UNVOLLSTAENDIGE DATENBANK VERMISSEN LAESST --
+                      0.33.0. Sie geht hinaus, damit der Pruefstand die Probe
+                      an einer gestellten Lage fragen kann, ohne die Instanz
+                      dafuer starten zu muessen. DIE ZEHN MIGRATIONSNAMEN, die
+                      bis 0.32.1 an dieser Stelle standen, gingen aus genau
+                      demselben Grund hinaus -- und sind mit ihren Bloecken
+                      gefallen. */
+                   incompleteDatabase };

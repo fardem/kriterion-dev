@@ -66,14 +66,13 @@
   "card.brieflyOffline": "kurz nicht erreichbar",
   "card.calculating": "Berechnung läuft …",
   "card.catchUpAsk": {
-    "one": "{n} PNG-Foto ({bytes}) wird konvertiert, das Original ersetzt (danach etwa {after}). Veraltete JPEG-Vorschaubilder werden dabei neu generiert. Rückgängig nur mit einer vorher angelegten Sicherung. Dauer: Minuten bis Stunden.",
-    "other": "{n} PNG-Fotos ({bytes}) werden konvertiert, die Originale ersetzt (danach etwa {after}). Veraltete JPEG-Vorschaubilder werden dabei neu generiert. Rückgängig nur mit einer vorher angelegten Sicherung. Dauer: Minuten bis Stunden."
+    "one": "{n} PNG-Foto ({bytes}) wird konvertiert, das Original ersetzt (danach etwa {after}). Rückgängig nur mit einer vorher angelegten Sicherung. Dauer: Minuten bis Stunden.",
+    "other": "{n} PNG-Fotos ({bytes}) werden konvertiert, die Originale ersetzt (danach etwa {after}). Rückgängig nur mit einer vorher angelegten Sicherung. Dauer: Minuten bis Stunden."
   },
   "card.catchUpBoth": {
-    "one": "Konvertiert {n} PNG-Original und generiert veraltete JPEG-Vorschaubilder neu.",
-    "other": "Konvertiert {n} PNG-Originale und generiert veraltete JPEG-Vorschaubilder neu."
+    "one": "Konvertiert {n} PNG-Original.",
+    "other": "Konvertiert {n} PNG-Originale."
   },
-  "card.catchUpDerivatives": "Generiert veraltete JPEG-Vorschaubilder neu. Die Originale bleiben unberührt.",
   "card.catchUpStore": "Vorhandene Bilder konvertieren",
   "card.categories": "Kategorien",
   "card.categoriesAdminHint": "Alle Kategorien. Ändern kann sie der Admin.",
@@ -104,7 +103,7 @@
   "card.confirmImport": "Import bestätigen",
   "card.confirmOnce": "Einmal bestätigen, dann {word} laden",
   "card.convertDone": "Konvertierung abgeschlossen",
-  "card.convertFinished": "Konvertierung fertig: {converted} von {total} Originalen konvertiert, {derived} Vorschaubilder neu generiert{stayed}{freed}.",
+  "card.convertFinished": "Konvertierung fertig: {converted} von {total} Originalen konvertiert{stayed}{freed}.",
   "card.convertPatienceHint": "Bei vielen Fotos kann das eine Weile dauern. Bitte das Fenster nicht schließen.",
   "card.convertProgress": "Konvertierung läuft — {done} von {total} bearbeitet …",
   "card.convertRunning": "Konvertierung läuft —",
@@ -163,7 +162,6 @@
   "card.deleteTagAsk": "Tag löschen?",
   "card.deleteUserHint": "„{username}“ wird gelöscht; der Name wird frei. Das lässt sich nicht rückgängig machen.",
   "card.deliveryFailed": "Versand fehlgeschlagen",
-  "card.derivativesAsk": "Veraltete JPEG-Vorschaubilder werden neu generiert. Die Originale bleiben unberührt. Rückgängig nur mit einer vorher angelegten Sicherung. Dauer: Minuten bis Stunden.",
   "card.derivativesWebp": "Vorschaubilder: in jedem Fall WebP, von dieser Wahl unberührt.",
   "card.duringBackupHint": "Während der Sicherung ist Kriterion {word} — bei {dbBytes} etwa {durationSeconds} Sekunden.",
   "card.eachAtMost": "{word}, je höchstens {targetSize}.",
@@ -534,7 +532,7 @@
   "card.resetLink": "Link zum Zurücksetzen",
   "card.resetLinkAsk": "Link zum Zurücksetzen erzeugen?",
   "card.resetMailHint": "An diese Adresse kann ein Link zum Zurücksetzen des Passworts geschickt werden; ohne Adresse gibt der Admin ihn persönlich weiter. Nach einem Passwortwechsel werden alle anderen Sitzungen abgemeldet.",
-  "card.restartHint": "Danach neu starten und im Server-Log „Schluessel aus ENCRYPTION_KEY geladen“ prüfen — erst dann data/encryption.key löschen:",
+  "card.restartHint": "Danach neu starten und im Server-Log „Key loaded from ENCRYPTION_KEY“ prüfen — erst dann data/encryption.key löschen:",
   "card.restore": "Wiederherstellen",
   "card.restored": "„{instanceTitle}“ wiederhergestellt.",
   "card.restoreDefaults": "Auf Vorgaben zurücksetzen",
@@ -1237,6 +1235,7 @@
   "server.exportGrew": "Die Exportdatei hat die Grenze von {limit} MB überschritten. Nimm die Sicherung — sie schreibt den ganzen Bestand und kennt diese Grenze nicht.",
   "server.exportInvalid": "Die Datei ist kein gültiger Export.",
   "server.exportTooBig": "Dieser Export wäre rund {mb} MB groß und damit über der Grenze von {limit} MB. Nimm die Sicherung — sie schreibt den ganzen Bestand und kennt diese Grenze nicht.",
+  "server.exportTooOld": "Diese Datei ist zu alt: Sie hat die Nummer {format}, gelesen wird ab {oldest}. Ihre Felder heißen noch anders, und niemand übersetzt sie mehr. Es wurde nichts eingespielt.",
   "server.fileCap": "Höchstens {cap} Dateien je {entryOne}.",
   "server.fileGone": "Diese Datei gibt es nicht mehr.",
   "server.fileNotText": "Diese Datei lässt sich nicht als Text lesen.",

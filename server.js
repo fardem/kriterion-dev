@@ -49,7 +49,7 @@ sharp.concurrency(Math.max(1, Math.floor(os.cpus().length / 2)));
    `VARIANTS` KOMMT DAGEGEN NEU HEREIN -- `encodeCommentImage()` holt die Guete
    der Ableitungen von dort, statt sie ein zweites Mal hinzuschreiben. */
 const { makeVariants, VARIANTS, storeImage, IMAGE_STORES, IMAGE_STORE_DEFAULT, isImageStore } = require('./images');
-const { db, DATA_DIR, DB_FILE, keyFromEnv, keyHex, renumberCriteria, method, searchFold, COLUMNS_0241, VALUES_0241, emailsDoubled } = require('./db');
+const { db, DATA_DIR, DB_FILE, keyFromEnv, keyHex, renumberCriteria, method, searchFold, emailsDoubled } = require('./db');
 /* DERSELBE TREIBER, EIN ZWEITER GRIFF -- 0.29.0, Befund 1. Die Sicherungsprobe
    oeffnet eine FREMDE Datei, und das geht nur mit einer eigenen Verbindung;
    `db` aus der Zeile darueber zeigt auf die laufende Datenbank und wird dabei
@@ -118,7 +118,7 @@ const LANGUAGE_NAME = /^[a-z]{2,3}(?:-[A-Z][a-z]{3})?(?:-(?:[A-Z]{2}|[0-9]{3}))?
    stderr und nicht auf stdout: es ist eine Lage, die jemand richten muss, und
    kein Betriebsvermerk. */
 const languageSkip = (file, why) => console.error(
-  `[languages] ${file} zaehlt nicht als Sprache: ${why}`);
+  `[languages] ${file} does not count as a language: ${why}`);
 
 function readLanguages() {
   const out = {};
@@ -163,8 +163,8 @@ const LANGUAGES = readLanguages();
    Pillenreihe in jeder Ansicht dieselbe Reihenfolge hat. */
 const LANGUAGE_CODES = Object.keys(LANGUAGES);
 if (!LANGUAGES[LANGUAGE_FALLBACK]) console.error(
-  `[languages] ${LANGUAGE_FALLBACK}.json fehlt oder zaehlt nicht -- der ` +
-  `Rueckfall zeigt stattdessen auf ${LANGUAGE_CODES[0] || '(keine Sprache)'}.`);
+  `[languages] ${LANGUAGE_FALLBACK}.json is missing or does not count -- the ` +
+  `fallback points at ${LANGUAGE_CODES[0] || '(no language)'} instead.`);
 
 /* WORAUF JEDER RUECKFALL ZEIGT. Im Normalfall die Auslieferungssprache; fehlt
    sie, die erste Datei, die es gibt. GIBT ES GAR KEINE, ist das Ergebnis
@@ -1013,7 +1013,7 @@ function startBatchThread(task, rows, done, store) {
   w.on('message', (m) => { if (m && m.kind === 'status') batchStates[task] = m.status; });
   w.on('error', (e) => {
     if (batchStates[task]) batchStates[task].running = false;
-    console.error(`[Kriterion] Bestandslauf (${task}) abgebrochen:`, e.message);
+    console.error(`[Kriterion] Inventory run (${task}) aborted:`, e.message);
   });
   w.on('exit', () => { batchThreads.delete(w); if (done) done(); });
   return w;
@@ -3861,7 +3861,7 @@ const qCommentImages = db.prepare(
 /* --- Aus einer Nummer wird ein Verfasser ----------------------------------
    EIN Ort, der das tut; die Gegenrichtung steht im Import.
    Geliefert wird ein OBJEKT und nicht der blosse Name: ein Grabstein traegt
-   geloescht-<nr>, und die Oberflaeche bildet daraus "Geloeschter Benutzer 7".
+   deleted-<nr>, und die Oberflaeche bildet daraus "Geloeschter Benutzer 7".
    Eine HERRENLOSE Zeile bekommt ausdruecklich null -- das Feld fehlt nie,
    sonst waere "kein Verfasser" von "Feld unbekannt" nicht zu unterscheiden.
    Die Karte wird EINMAL je Anfrage gebaut und durchgereicht. */
@@ -3978,14 +3978,17 @@ const qMentionsOfItem = db.prepare(
    einer fremden Instanz etwas anderes (die Begruendung steht am Export).
    DER GRABSTEIN WIRD AM NAMEN ERKANNT und nicht in der Karte gesucht: sein
    Name geht dort ausdruecklich nicht hinaus (siehe authorCard()), und
-   `deleted-7` ist ohnehin die Auskunft selbst. `geloescht-7` aus einer
-   aelteren Datei geht ueber denselben Uebersetzer wie beim Import.
+   `deleted-7` ist ohnehin die Auskunft selbst. Bis 0.32.1 ging ein
+   `geloescht-7` aus einer aelteren Datei hier ueber denselben Uebersetzer wie
+   beim Import; seit 0.33.0 kommt eine solche Datei gar nicht mehr herein
+   (EXCHANGE_FORMAT_MIN), und der Papierkorb schreibt seit 0.24.1 nur noch
+   `deleted-`.
    WER NICHT MEHR ZU FINDEN IST, BEKOMMT null -- dieselbe Antwort wie eine
    herrenlose Zeile, und die Oberflaeche schreibt „kein Verfasser". Ein
    erfundenes Objekt mit dem Rohnamen waere eine Behauptung ueber einen
    Zugang, den es nicht gibt. */
 function authorByName(card, name) {
-  const clean = String(authorFromFile(name) ?? '').trim();
+  const clean = String(name ?? '').trim();
   if (!clean) return null;
   const tomb = /^deleted-(\d+)$/i.exec(clean);
   if (tomb) return { id: Number(tomb[1]), name: null, deleted: true };
@@ -5531,7 +5534,7 @@ function refreshTile(id, done) {
      kein Termin. Ohne unref() haengt ein Herunterfahren bis zu 15 Sekunden. */
   clock.unref?.();
   try { startBatchThread('crop', [{ id: Number(id) }], once); }
-  catch (e) { console.error('[Kriterion] Kachel nicht erneuert:', e.message); once(); }
+  catch (e) { console.error('[Kriterion] Tile not renewed:', e.message); once(); }
 }
 
 /* Ausschnitt eines Fotos. Drei Zahlen -- und seit 0.19.5 eine neue Kachel
@@ -6503,10 +6506,14 @@ app.post('/api/images/convert', ownerOnly, secondConfirmNeeded('images'), (req, 
   if (batchStates.conversion && batchStates.conversion.running)
     return res.status(409).json({ error: t(localeOf(req), 'server.convertRunning')});
   const rows = qConvertRows.all();
+  /* DREI ZAHLEN STATT VIER SEIT 0.33.0: `derived` zaehlte die neu gerechneten
+     Ableitungspaare, und die zweite Haelfte des Laufs ist mit jener Runde
+     gefallen. Der Anfangsstand hat genau die Felder, die der Thread meldet --
+     ein viertes hier waere eine Zahl, die nie wieder steigt. */
   batchStates.conversion = { running: true, total: rows.length, done: 0,
-                                 converted: 0, derived: 0, stayed: 0, freed: 0 };
-  console.log(`[Kriterion] Bestandslauf gestartet: ${rows.length} Fotozeilen ` +
-    `werden angesehen; das Verfahren der Ablage ist "${imageStore()}".`);
+                                 converted: 0, stayed: 0, freed: 0 };
+  console.log(`[Kriterion] Inventory run started: ${rows.length} photo row(s) ` +
+    `are looked at; the storage method is "${imageStore()}".`);
   res.status(202).json(batchState('conversion'));
   /* DIE ANTWORT IST SCHON HINAUS, WENN DER THREAD ANFAENGT -- seit 0.19.3
      laeuft die Schleife nicht mehr hier, sondern in batchrun.js. Was der
@@ -6566,10 +6573,49 @@ app.post('/api/images/convert', ownerOnly, secondConfirmNeeded('images'), (req, 
    die Sprache unbekannt, und die Karte fragt einmal nach. */
 /* UND SEIT 0.29.0 DAS FAELLIGKEITSDATUM AM KOMMENTAR -- Formatnummer 16
    (Befund 3). Es steht nur an den Zeilen, die eines tragen, und eine Datei der
-   Nummer 15 traegt es gar nicht -- dann gibt es eben keines einzuspielen.
-   DIE NUMMER IST WEITER EINE AUSSAGE UND KEINE BEDINGUNG: entschieden wird
-   ueber das VORHANDENSEIN des Feldes, wie bei jedem Feld vor ihm. */
-const EXCHANGE_FORMAT = 16;
+   Nummer 15 traegt es gar nicht -- dann gibt es eben keines einzuspielen. */
+/* UND SEIT 0.33.0 DIE PROGRAMMFASSUNG NEBEN DER FORMATNUMMER -- Nummer 17,
+   Frage F16 jener Runde. Solange die Bereinigung nur WEGNAHM, blieb 16
+   richtig; F14 legt aber ein Feld DAZU, und das Haus hat die Zahl fuer jede
+   Felderweiterung gehoben: 13 → 14 (0.24.3, die Sprachfassungen der Namen),
+   14 → 15 (0.25.0, die Erstellungssprache), 15 → 16 (0.29.0). Eine aeltere
+   Instanz uebergeht das zusaetzliche Feld wortlos, wie seinerzeit
+   `criteriaGewichte`.
+
+   UND DIE NUMMER IST SEIT DERSELBEN RUNDE NICHT MEHR NUR EINE AUSSAGE. Sie
+   wird seit sechzehn Fassungen geschrieben und war nie gelesen worden; seit
+   0.33.0 liest der Import sie und weist eine Datei ab, die zu alt ist. Der
+   Grund steht an EXCHANGE_FORMAT_MIN darunter.
+   AN ALLEM UEBRIGEN AENDERT DAS NICHTS: innerhalb der lesbaren Spanne
+   entscheidet weiter das VORHANDENSEIN der Felder und nie die Nummer -- nur
+   so bleiben aeltere Dateien lesbar, ohne dass irgendwo eine
+   Fallunterscheidung nach Nummer steht. Sie steht an genau einer Stelle. */
+const EXCHANGE_FORMAT = 17;
+
+/* DIE AELTESTE DATEI, DIE NOCH HEREINKOMMT -- 0.33.0, Frage F15.
+   WARUM ES EINE UNTERGRENZE GIBT. Bis 0.32.1 uebersetzte der Import die
+   Feldnamen einer Datei von vor 0.24.1 beim Einlesen (`art` → `kind`,
+   `dauer` → `duration`) und hielt dafuer `tools/dictionary.json` in `db.js`.
+   Diese Uebersetzung ist mit den Migrationsbloecken gefallen -- und sie darf
+   NICHT ERSATZLOS fallen: ohne sie verloere ein Foto aus einer solchen Datei
+   still seine Art und seine Dauer. Abweisen ist laut, stillschweigend falsch
+   einspielen ist leise.
+
+   WARUM 14 UND NICHT 15 ODER 17. Die Zahl markiert den Umbau nicht: 0.24.1 hat
+   die Felder umbenannt, OHNE die Formatnummer zu heben -- 0.24.0 und 0.24.2
+   tragen beide die 13, erst 0.24.3 hebt auf 14. Eine 0.24.2-Datei faellt damit
+   mit ab, und das ist die richtige Richtung.
+
+   SIE LIEGT AN DER DATEI UND NICHT AM START. Eine Datei, die nicht
+   hereinkommt, sperrt niemanden aus seiner Anwendung aus -- das ist der
+   Unterschied zu der harten Absage, die der Betreiber fuer die DATENBANK
+   gekippt hat (Leitplanke L3), und der Grund, warum diese eine bleiben darf.
+
+   SIE STEHT NEBEN DER NUMMER, VON DER SIE SPRICHT: zwei verschiedene Aussagen
+   ueber dasselbe Format gehoeren nebeneinander und nicht an zwei Orte. Eine
+   Untergrenze ueber der Nummer selbst waere unsinnig, und der Pruefstand
+   haelt genau das fest. */
+const EXCHANGE_FORMAT_MIN = 14;
 
 /* DIE NAMEN JE SPRACHE, WIE SIE IN DIE DATEI GEHEN -- 0.24.3, Bauabschnitt 6a.
    { <sprachkennung>: { <name der grundzeile>: <name in dieser sprache> } }
@@ -6807,6 +6853,14 @@ function exportEnvelope(items) {
   const criteriaPhase = {};
   for (const c of critRows) if (c.phase !== 'after') criteriaPhase[c.name] = c.phase;
   return { exported_at: new Date().toISOString(), title, version: EXCHANGE_FORMAT,
+           /* WOMIT GESCHRIEBEN -- 0.33.0, F14. `version` sagt, WELCHE FELDER zu
+              erwarten sind; `appVersion` sagt, WAS die Datei geschrieben hat.
+              Das sind zwei Fragen, und bis 0.32.1 beantwortete die Datei nur
+              die erste: der Betreiber hat am 14. September 2026 nachgesehen
+              und die Luecke benannt. Sie wird geschrieben und nicht gelesen --
+              wer eine Datei in der Hand hat, soll ihr ansehen koennen, woher
+              sie kommt. */
+           appVersion: VERSION,
            criteria: critRows.map(c => c.name), criteriaWeights, criteriaPhase,
            criteriaNames: exchangeCriterionNames(),
            criteriaLanguages: exchangeCriterionLanguages(),
@@ -7029,6 +7083,9 @@ function exchangeEnvelopeFrame() {
   const title = getSetting('title_app', 'Kriterion');
   const critRows = db.prepare('SELECT name, weight, phase FROM rating_criteria ORDER BY sort_order, id').all();
   return JSON.stringify({ exported_at: new Date().toISOString(), title, version: EXCHANGE_FORMAT,
+                          // Wie am Umschlag darueber -- der Rahmen misst, was
+                          // der Umschlag KOSTET, und dieses Feld kostet mit.
+                          appVersion: VERSION,
                           criteria: critRows.map(c => c.name),
                           criteriaWeights: Object.fromEntries(
                             critRows.filter(c => c.weight !== 1).map(c => [c.name, c.weight])),
@@ -7194,48 +7251,48 @@ const importUpload = multer({ storage: multer.memoryStorage(), limits: { fileSiz
    ASYNCHRON, und das hat einen Grund: die Bildvarianten entstehen ueber sharp
    und muessen VOR der Transaktion fertig sein. In der Transaktion darf nichts
    Langsames und nichts Asynchrones mehr passieren. */
-/* EINE DATEI VON VOR 0.24.1 TRAEGT DIE ALTEN FELDNAMEN AN IHREN FOTOS. Sie
-   ist ein Abzug des Bestands, und der hiess bis 0.24.0 `art` und `dauer`.
-   UEBERSETZT WIRD BEIM EINLESEN UND AN GENAU EINER STELLE -- alles dahinter
-   kennt nur die neuen Namen; eine Fallunterscheidung je Feld waere dieselbe
-   Frage an sechs Orten. Die Paare kommen aus DERSELBEN Liste wie der
-   Migrationsblock (db.COLUMNS_0241) und nicht aus einer zweiten.
-   DER NEUE NAME GEWINNT, wenn eine Datei beide traegt: eine solche Datei gibt
-   es nicht, und falls doch, ist das Neuere die Aussage dieser Instanz.
-   ZU 1.0 FAELLT DAS WEG, so wie die Migrationsblöcke -- dann ist keine Datei
-   mehr im Umlauf, die die alten Namen traegt. */
-const PHOTO_FIELDS_0240 = Object.entries(COLUMNS_0241)
-  .filter(([place]) => place.startsWith('photos.'))
-  .map(([place, fresh]) => [place.slice('photos.'.length), fresh]);
-/* UND DIE WERTE EBENSO. Eine Datei von vorher traegt `bild` an ihren Fotos
-   und `vorher` an ihren Kriterien. Beim Foto waere das Uebergehen still
-   folgenlos ('bild' ist ohnehin nicht 'video'); bei der Phase waere es ein
-   Schaden: ein unbekannter Wert faellt auf PHASE_DEFAULT, und ein Kriterium
-   aus dem Potenzialkasten landete beim Einspielen im Bewertungskasten. Auch
-   hier kommen die Paare aus db.VALUES_0241 und nicht aus einer zweiten
-   Liste. */
-const valueFromFile = (group, value) =>
-  (Object.prototype.hasOwnProperty.call(VALUES_0241[group], value)
-    ? VALUES_0241[group][value] : value);
+/* ================= WAS HIER BIS 0.32.1 STAND, UND WARUM ES FORT IST =======
+   DREI UEBERSETZER FUER EINE DATEI VON VOR 0.24.1: `photoFromFile` holte
+   `art` und `dauer` auf `kind` und `duration`, `valueFromFile` die Werte
+   (`bild`, `vorher`), `authorFromFile` den Grabstein (`geloescht-7`). Alle
+   drei lasen ihre Paare aus `tools/dictionary.json`, und genau dafuer hielt
+   `db.js` jene Datei bis 0.32.1 offen.
 
-function photoFromFile(p) {
-  const z = { ...p };
-  for (const [old, fresh] of PHOTO_FIELDS_0240)
-    if (z[fresh] === undefined && z[old] !== undefined) z[fresh] = z[old];
-  if (z.kind !== undefined) z.kind = valueFromFile('photoKind', z.kind);
-  return z;
-}
+   SIE SIND MIT DEN MIGRATIONSBLOECKEN GEFALLEN -- Frage F9 des Auftrags
+   0.33.0. Eine Uebersetzung stehen zu lassen, deren Gegenstueck in der
+   Datenbank nicht mehr existiert, waere die halbe Bereinigung gewesen.
 
-/* DER GRABSTEIN IN EINER AELTEREN DATEI. Sein Name ist der Schluessel, unter
-   dem der Import den Verfasser wiederfindet; ohne die Uebersetzung fiele
-   jeder Beitrag eines entfernten Zugangs auf „kein Verfasser" zurueck. */
-const authorFromFile = (name) => {
-  const s2 = String(name ?? '');
-  const m = /^geloescht-(\d+)$/i.exec(s2);
-  return m ? `deleted-${m[1]}` : name;
-};
+   UND SIE SIND NICHT ERSATZLOS GEFALLEN, und DAS ist der Punkt: an ihre
+   Stelle tritt EXCHANGE_FORMAT_MIN weiter oben. Ohne sie verloere ein Foto
+   aus einer solchen Datei still seine Art und seine Dauer -- mit ihr kommt
+   die Datei gar nicht erst herein, und der Einspielende liest, warum.
+   Abweisen ist laut, stillschweigend falsch einspielen ist leise. */
 
 async function importInto(payload, userId, mode2, bytesSource = null) {
+  /* ---- DIE EINE ABWEISUNG DIESER RUNDE -- 0.33.0, F15 -------------------
+     SIE STEHT VOR DER ERSTEN ZEILE ARBEIT, nicht erst vor der Transaktion:
+     eine Datei, die nicht hereinkommt, soll auch nicht erst hundert
+     Bildvarianten kosten.
+
+     SIE STEHT IN importInto UND NICHT AN DER ROUTE, und das ist Absicht:
+     der Papierkorb geht denselben Weg (`/api/trash/:id/restore`), und seine
+     Pakete sind Exportumschlaege wie jeder andere. Zwei Orte fuer dieselbe
+     Regel waeren einer zu viel (Stolperstein 47). Ein Paket, das diese
+     Instanz selbst geschrieben hat, traegt immer die laufende Nummer -- die
+     Abweisung kann es gar nicht treffen, und die Zeile bliebe liegen, wenn
+     sie es doch taete.
+
+     EINE FEHLENDE NUMMER GILT ALS ZU ALT. Jede Datei, die dieses Haus je
+     geschrieben hat, traegt sie; was keine traegt, ist kein Umschlag von
+     hier, und „im Zweifel laut" ist die Regel des Hauses. */
+  const fileFormat = Number(payload && payload.version);
+  if (!Number.isFinite(fileFormat) || fileFormat < EXCHANGE_FORMAT_MIN) {
+    const e = new Message('server.exportTooOld',
+                          { format: Number.isFinite(fileFormat) ? fileFormat : '?',
+                            oldest: EXCHANGE_FORMAT_MIN });
+    e.denial = true;
+    throw e;
+  }
   // Ableitungen vorab erzeugen: das geht nicht innerhalb einer Transaktion,
   // weil es asynchron ist.
   const prepared = [];
@@ -7249,7 +7306,7 @@ async function importInto(payload, userId, mode2, bytesSource = null) {
   for (const it of payload.items) {
     const photos = [];
     for (const pRaw of it.photos || []) {
-      const p = photoFromFile(pRaw);
+      const p = pRaw;
       /* ENTSCHIEDEN WIRD UEBER DAS VORHANDENSEIN DER FELDER, nicht ueber die
          Formatnummer -- die ist im Projekt eine Aussage, keine Bedingung.
          Eine Datei ohne kind an ihren Fotos ist eine aeltere, und alles darin
@@ -7352,7 +7409,7 @@ async function importInto(payload, userId, mode2, bytesSource = null) {
   let assigned = 0;
   const qByName = db.prepare('SELECT id FROM users WHERE username = ?');
   const authorId = (name) => {
-    const clean = String(authorFromFile(name == null ? '' : name)).trim();
+    const clean = String(name == null ? '' : name).trim();
     if (!clean) return userId;
     let id = nameStore.get(clean);
     if (id === undefined) {
@@ -7398,7 +7455,7 @@ async function importInto(payload, userId, mode2, bytesSource = null) {
   if (rawPhases && typeof rawPhases === 'object' && !Array.isArray(rawPhases)) {
     for (const [name, raw] of Object.entries(rawPhases)) {
       const clean = String(name || '').trim();
-      const value = valueFromFile('phase', raw);
+      const value = raw;
       if (!clean || !PHASES.includes(value)) continue;
       filePhases.set(clean.toLocaleLowerCase(compareLocale()), value);
     }
@@ -7726,15 +7783,15 @@ async function importInto(payload, userId, mode2, bytesSource = null) {
      fehlenden Zugaenge anlegen und noch einmal einspielen. */
   const unknown = [...unknownNames].sort();
   if (unknown.length)
-    console.log(`[Kriterion] Import: unbekannte Verfasser dem Einspielenden zugeordnet ` +
-                `(${unknown.length}): ${unknown.join(', ')}`);
+    console.log(`[Kriterion] Import: unknown authors assigned to the importing ` +
+                `account (${unknown.length}): ${unknown.join(', ')}`);
   /* Dieselbe Bauform eine Zeile tiefer: ein Gewicht, das die Spanne
      verlaesst, bricht nichts ab und verschwindet auch nicht wortlos. Es
      steht in der Antwort UND im Protokoll -- die Antwort fuer den Pruefstand
      und die Abfrage von Hand, das Protokoll fuer den Betrieb. */
   const dropped = [...weightsDropped].sort();
   if (dropped.length)
-    console.log(`[Kriterion] Import: ungueltiges Gewicht auf 1,0 zurueckgesetzt ` +
+    console.log(`[Kriterion] Import: invalid weight reset to 1.0 ` +
                 `(${dropped.length}): ${dropped.join(', ')}`);
   /* Und dieselbe Bauform ein drittes Mal, an den Videos. Ein Export ohne den
      Videoschalter enthaelt ihre Daten nicht; das darf nicht still bleiben,
@@ -7742,11 +7799,11 @@ async function importInto(payload, userId, mode2, bytesSource = null) {
      Hauptbild. Antwort UND Protokoll -- die Antwort fuer den Pruefstand und
      die Abfrage von Hand, das Protokoll fuer den Betrieb. */
   if (videosWithoutFile)
-    console.log(`[Kriterion] Import: ${videosWithoutFile} Video(s) waren nicht in der Datei ` +
-                `enthalten und wurden uebergangen.`);
+    console.log(`[Kriterion] Import: ${videosWithoutFile} video(s) were not contained ` +
+                `in the file and were skipped.`);
   if (videosUnreadable)
-    console.log(`[Kriterion] Import: ${videosUnreadable} Video(s) ohne lesbares Standbild ` +
-                `uebergangen.`);
+    console.log(`[Kriterion] Import: ${videosUnreadable} video(s) without a readable ` +
+                `still image skipped.`);
   return { ok: true, mode: mode2, ...stats,
            authorAssigned: assigned, authorUnknown: unknown,
            weightsDropped: dropped, videosWithoutFile, videosUnreadable, newIds };
@@ -7825,8 +7882,8 @@ const delTrashOld = db.prepare(
    bleibt unberuehrt. Die Bytes fallen ueber ON DELETE CASCADE mit. */
 function cleanupTrash() {
   const n = delTrashOld.run(`-${TRASH_DAYS} days`).changes;
-  if (n) console.log(`[Kriterion] Papierkorb: ${n} Zeile(n) aelter als ` +
-    `${TRASH_DAYS} Tage entfernt.`);
+  if (n) console.log(`[Kriterion] Trash: ${n} row(s) older than ` +
+    `${TRASH_DAYS} days removed.`);
   return n;
 }
 // Erste Aufrufstelle: der Start. Die zweite steht an GET /api/trash.
@@ -8409,7 +8466,7 @@ function removeBackups(folder, names) {
       removed++; bytes += st.size;
     } catch (e) {
       stayed.push(short);
-      console.error(`[Kriterion] Sicherung ${short} nicht entfernt: ${e.message}`);
+      console.error(`[Kriterion] Backup ${short} not removed: ${e.message}`);
     }
   }
   return { removed, bytes, stayed };
@@ -8526,7 +8583,7 @@ app.post('/api/backup', ownerOnly, (req, res) => {
     fs.renameSync(becoming, file);
   } catch (e) {
     try { if (fs.existsSync(becoming)) fs.unlinkSync(becoming); } catch {}
-    console.error('[Kriterion] Sicherung gescheitert:', e.message);
+    console.error('[Kriterion] Backup failed:', e.message);
     // Fester Text wie ueberall bei einem Fehler DES SERVERS: ein SQL-Fehler
     // nennt Pfade und Tabellen, und die gehoeren ins Protokoll, nicht in die
     // Antwort.
@@ -8535,8 +8592,8 @@ app.post('/api/backup', ownerOnly, (req, res) => {
   const ms = Date.now() - t0;
   let bytes = 0;
   try { bytes = fs.statSync(file).size; } catch {}
-  console.log(`[Kriterion] Sicherung geschrieben: ${path.basename(file)} ` +
-    `(${bytes} Bytes, ${ms} ms).`);
+  console.log(`[Kriterion] Backup written: ${path.basename(file)} ` +
+    `(${bytes} bytes, ${ms} ms).`);
   // Eine vollstaendige Kopie, die das Haus verlaesst -- dieselbe Zeile wie der
   // Export. Der Pfad steht NICHT in der Zeile: das Protokoll haelt Vorgaenge
   // fest, keine Orte auf dem Wirt.
@@ -8569,9 +8626,9 @@ app.post('/api/backup', ownerOnly, (req, res) => {
         const out2 = removeBackups(target.filePath, matched.map(d => d.name));
         cleaned = { removed: out2.removed, notDeleted: out2.stayed.length, bytes: out2.bytes };
         if (out2.removed) {
-          console.log(`[Kriterion] Alte Sicherungen entfernt: ${out2.removed} ` +
-            `(${out2.bytes} Bytes frei)` +
-            `${out2.stayed.length ? `, ${out2.stayed.length} nicht` : ''}.`);
+          console.log(`[Kriterion] Old backups removed: ${out2.removed} ` +
+            `(${out2.bytes} bytes freed)` +
+            `${out2.stayed.length ? `, ${out2.stayed.length} kept` : ''}.`);
           logRemoved(req.user.id, out2.removed);
         }
       }
@@ -8579,7 +8636,7 @@ app.post('/api/backup', ownerOnly, (req, res) => {
   } catch (e) {
     // Die Sicherung ist gelungen; dieser Fehler ist eine Angabe daneben und
     // darf die Antwort nicht in eine Absage verwandeln.
-    console.error('[Kriterion] Das Aufräumen nach der Sicherung ist gescheitert:', e.message);
+    console.error('[Kriterion] Clearing up after the backup failed:', e.message);
     cleaned = { removed: 0, notDeleted: 0, bytes: 0, failed: true };
   }
   res.json({ ok: true, file: path.basename(file), filePath: target.filePath, bytes, ms,
@@ -8646,8 +8703,8 @@ app.post('/api/backup/cleanup', ownerOnly,
   }
   const out2 = removeBackups(target.filePath, matched.map(d => d.name));
   if (out2.removed) {
-    console.log(`[Kriterion] Alte Sicherungen entfernt (${kind}): ${out2.removed} ` +
-      `(${out2.bytes} Bytes frei)${out2.stayed.length ? `, ${out2.stayed.length} nicht` : ''}.`);
+    console.log(`[Kriterion] Old backups removed (${kind}): ${out2.removed} ` +
+      `(${out2.bytes} bytes freed)${out2.stayed.length ? `, ${out2.stayed.length} kept` : ''}.`);
     /* NUR DIE ZAHL INS SICHERHEITSPROTOKOLL. Kein Freitext, kein Dateiname,
        kein Pfad -- das Protokoll haelt Vorgaenge fest, keine Orte auf dem Wirt
        (dieselbe Regel wie beim `backup`-Eintrag daneben). DIE
@@ -8774,7 +8831,7 @@ app.post('/api/backup/check', ownerOnly, (req, res) => {
 // hier und nicht erst am Knopf.
 {
   const situation = backupState();
-  console.log('[Kriterion] Sicherungsort: ' + (situation.input ? situation.root : `aus — ${situation.reason}`));
+  console.log('[Kriterion] Backup location: ' + (situation.input ? situation.root : `off -- ${situation.reason}`));
 }
 
 app.get('/api/health', (req, res) => res.json({ ok: true }));
@@ -8852,10 +8909,10 @@ function backfillThumbnails() {
        dieselbe Ausnahme ins Protokoll schreibt, ist nach einer Stunde ein
        Protokoll aus einer einzigen Zeile. */
     backfillTries++;
-    console.error(`[Kriterion] Das Nachziehen der Kacheln kam nicht an die Datenbank ` +
-      `(${e.code || e.message}) — Versuch ${backfillTries} von 3.` +
-      (backfillTries < 3 ? ` Noch einmal in ${BACKFILL_RETRY_MS / 1000} s.`
-                         : ' Es steht beim naechsten Start wieder an.'));
+    console.error(`[Kriterion] Bringing the tiles up to date could not reach the ` +
+      `database (${e.code || e.message}) -- attempt ${backfillTries} of 3.` +
+      (backfillTries < 3 ? ` Trying again in ${BACKFILL_RETRY_MS / 1000} s.`
+                         : ' It is due again on the next start.'));
     if (backfillTries < 3) setTimeout(backfillThumbnails, BACKFILL_RETRY_MS).unref();
   }
 }
@@ -8905,7 +8962,7 @@ function maintainStorage() {
     db.pragma('auto_vacuum = INCREMENTAL');
     db.exec('VACUUM');
     db.pragma('wal_checkpoint(TRUNCATE)');
-    console.log('[Kriterion] Automatische Speicherfreigabe eingerichtet.');
+    console.log('[Kriterion] Automatic storage reclaim set up.');
   } else {
     const free = db.pragma('freelist_count', { simple: true });
     const page = db.pragma('page_size', { simple: true });
@@ -9014,8 +9071,8 @@ app.listen(PORT, () => {
   // damit keinen angemeldeten Benutzer. Gemeint ist der Eigentuemer, und so
   // steht es auch in der Zeile.
   const u = auth.getUser();
-  console.log(`[Kriterion] Läuft auf Port ${PORT} — ` +
-    (u ? `Eigentümer: ${u.username}` : 'noch kein Zugang, Einrichtung im Browser'));
+  console.log(`[Kriterion] Running on port ${PORT} -- ` +
+    (u ? `owner: ${u.username}` : 'no account yet, set it up in the browser'));
   /* DER PRUEFSCHALTER SAGT SICH AN -- 0.30.0, F1 und F2. Er senkt die
      Kostenstufe des Passwortspeichers und die Mailfristen, und beides gehoert
      in einer Instanz, die jemand benutzt, nicht gesenkt. Ein Schalter, der
@@ -9026,40 +9083,40 @@ app.listen(PORT, () => {
      staende auch in jedem Werkzeuglauf und waere nach dem dritten Mal
      unsichtbar. */
   if (keys.testbenchSwitch())
-    console.log(`[Kriterion] PRUEFSCHALTER AKTIV (${keys.TESTBENCH_NAME}) — ` +
-      `scrypt N=${auth.SCRYPT_COST}, Mailfristen ${mail.SEND_MS}/${mail.CONNECT_MS}/` +
-      `${mail.GREETING_MS} ms. NUR FUER DEN PRUEFSTAND — wo jemand damit ` +
-      `arbeitet, gehört er entfernt.`);
+    console.log(`[Kriterion] TEST SWITCH ACTIVE (${keys.TESTBENCH_NAME}) -- ` +
+      `scrypt N=${auth.SCRYPT_COST}, mail timeouts ${mail.SEND_MS}/${mail.CONNECT_MS}/` +
+      `${mail.GREETING_MS} ms. FOR THE TEST BENCH ONLY -- where anyone works ` +
+      `with this instance, it belongs removed.`);
   /* Die Betriebsart gehoert ins Protokoll: an ihr haengt, ob die Koepfe des
      Proxys ueberhaupt angesehen werden. Wer sie falsch stehen hat, sieht es
      hier und nicht erst an einer wirkungslosen Anmeldebremse.
      SIE NENNT SEIT 0.13.0 BEIDE WEGE: Cookiename, Secure und HSTS haengen
      nicht mehr an ihr, sondern an der einzelnen Anfrage. Eine Zeile, die eine
      Buendelung behauptet, die es nicht mehr gibt, waere schlechter als keine. */
-  console.log(`[Kriterion] Hinter Proxy: ${auth.BEHIND_PROXY ? 'an' : 'aus'} — ` +
+  console.log(`[Kriterion] Behind proxy: ${auth.BEHIND_PROXY ? 'on' : 'off'} -- ` +
     (auth.BEHIND_PROXY
-      ? 'X-Forwarded-For und X-Forwarded-Proto werden gelesen; über HTTPS gilt ' +
-        `${auth.COOKIE_SECURE} mit Secure und HSTS, über das Heimnetz ${auth.COOKIE_NAME}`
-      : `kein Kopf wird gelesen, jede Anfrage gilt als Klartext: ${auth.COOKIE_NAME} ohne Secure`));
+      ? 'X-Forwarded-For and X-Forwarded-Proto are read; over HTTPS that means ' +
+        `${auth.COOKIE_SECURE} with Secure and HSTS, over the home network ${auth.COOKIE_NAME}`
+      : `no header is read, every request counts as plain: ${auth.COOKIE_NAME} without Secure`));
   /* Die oeffentliche Adresse gehoert ins Protokoll: an ihr haengt, welchen
      Link ein Empfaenger bekommt. Wer sie falsch stehen hat, sieht es hier und
      nicht erst am toten Link beim Empfaenger. */
   if (PUBLIC.problem) {
-    console.warn(`[Kriterion] PUBLIC_ADDRESS ist unbrauchbar: ${PUBLIC.problem} ` +
-      'Die Instanz laeuft weiter; den Einladungslink baut wie bisher der Browser des Admins.');
+    console.warn(`[Kriterion] PUBLIC_ADDRESS is unusable: ${PUBLIC.problem} ` +
+      'The instance keeps running; the invitation link is built by the admin browser, as before.');
   } else if (PUBLIC.address) {
-    console.log(`[Kriterion] Oeffentliche Adresse: ${PUBLIC.address} — ` +
-      'Einladungslinks werden damit gebaut.');
+    console.log(`[Kriterion] Public address: ${PUBLIC.address} -- ` +
+      'invitation links are built from it.');
     if (auth.BEHIND_PROXY && PUBLIC.address.startsWith('http://')) {
       // Widerspruch, aber kein Verlust: ein falscher Link ist ein toter Link.
       // Eine Absage waere hier haerter als der Schaden.
-      console.warn('[Kriterion] Hinter einem Proxy und trotzdem http:// in ' +
-        'PUBLIC_ADDRESS — verschickte Links fuehren dann am Proxy vorbei ' +
-        'und ohne HTTPS ins Haus.');
+      console.warn('[Kriterion] Behind a proxy and still http:// in ' +
+        'PUBLIC_ADDRESS -- links sent out then lead past the proxy and into ' +
+        'the house without HTTPS.');
     }
   } else {
-    console.log('[Kriterion] Oeffentliche Adresse: nicht gesetzt — ' +
-      'den Einladungslink baut der Browser des Admins.');
+    console.log('[Kriterion] Public address: not set -- ' +
+      'the invitation link is built by the admin browser.');
   }
   /* Der Mailversand gehoert ins Protokoll, in derselben Form wie die Adresse
      darueber: wer ihn eingerichtet glaubt und es nicht ist, sieht es hier.
@@ -9070,12 +9127,12 @@ app.listen(PORT, () => {
     const raw = getSetting(mail.SETTING_KEY, null);
     const z = mail.state(raw);
     if (mail.configured(raw)) {
-      console.log(`[Kriterion] Mailversand: ${z.providerName} über ${z.server}:${z.port} ` +
-        `(${z.secure ? 'TLS' : 'STARTTLS'}), Absender ${z.sender}.` +
-        (PUBLIC.address ? '' : ' Ohne PUBLIC_ADDRESS wird trotzdem nicht verschickt.'));
+      console.log(`[Kriterion] Mail delivery: ${z.providerName} via ${z.server}:${z.port} ` +
+        `(${z.secure ? 'TLS' : 'STARTTLS'}), sender ${z.sender}.` +
+        (PUBLIC.address ? '' : ' Without PUBLIC_ADDRESS nothing is sent all the same.'));
     } else {
-      console.log('[Kriterion] Mailversand: nicht eingerichtet — Einladungs- und ' +
-        'Ruecksetzlinks stehen wie bisher im Verwaltungsbereich zum Kopieren.');
+      console.log('[Kriterion] Mail delivery: not set up -- invitation and reset ' +
+        'links are there to copy in the admin area, as before.');
     }
   }
   /* DAS NACHRUESTEN, DAS NACHZIEHEN UND DIE SPEICHERPFLEGE, 1500 ms nach dem

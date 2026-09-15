@@ -158,10 +158,11 @@ Sprachumschalter baut, hat damit ein Muster und braucht kein neues.**
 | ~~**0.31.4**~~ | ~~Nach einer Zahl die Einzahl, sonst die Mehrzahl~~ | **GEBAUT am 13. September 2026** — Änderungsprotokoll 0.31.4. *Der Zielkonflikt aus Punkt 32, vom Betreiber am 13.9.2026 entschieden: „an den Stellen wo eine Zahl steht das Wort für Einzahl, für die anderen das Mehrzahlige".* **Eine Sprachdatei sagt seit dieser Runde selbst, welche Form hinter einer Zahl steht** — *der Kopfschlüssel `_afterNumber` neben `_locale` und `_name`; `Intl.PluralRules` kann es nicht wissen, weil sie nach dem WERT der Zahl wählt und das Türkische nach ihrer ANWESENHEIT.* `counted()` **an acht Zählerstellen**; *die fünf türkischen Vokabelmehrzahlen bekommen ihr `-ler`/`-lar` (Öğeler, Test günleri, Raporlar, Görevler, Değerlendirmeler), fünf Sätze bekommen ausdrücklich die Einzahl (nach `her` und vor `sayısı`), drei Krücken aus 0.31.3 fallen weg.* **Für Deutsch und Englisch ändert sich kein Wort** — *beide sagen `plural`, und `counted()` fällt dann Zeichen für Zeichen auf `plural()` zurück; am zweiten Gang der Gleichlautprobe nachgesehen.* **MINOR** *(1197 → 1198 Schlüssel)*. *Elf Zusagen, acht Gegenproben (1002–1009, dazu das umgedrehte 997); drei Wächter haben sich gedreht und keiner ist gelöscht.* **Der Augenschein hat dabei einen Befund gemacht, den kein Muster über eine Datei findet:** *die Vorschau der Karte „Vokabular" setzte die Mehrzahl selbst hinter eine Zahl („7 Öğeler") — ohne `plural()`, ohne `counted()`, als Zahl in einem String. Sie fragt jetzt die Stellungsregel der GEZEIGTEN Sprache, die der Server in seiner Sprachtafel mitschickt; auf Deutsch steht weiter „7 Einträge"* | nein | — |
 | ~~**0.32.0**~~ | ~~Einen anderen markieren~~ | **GEBAUT am 14. September 2026** — Änderungsprotokoll 0.32.0. *Drei Stränge in einer Runde.* **`@name` markiert einen Zugang** *(bestellt 12.9.2026)* — *als **viertes Stück der Zerlegung** und nie als `replace()`; gespeichert wird die **Zugangsnummer** in der neuen Verknüpfung `comment_mentions`, weil ein gelöschter Name FREIGEGEBEN wird und sonst auf den Falschen zeigte (F2). **Der eine Schemaschritt der Runde — 27 Tabellen werden 28**, und er fällt hierher, weil der Bruch auf 0.33.0 unmittelbar dahintersteht.* **Die Glocke unterscheidet** *(13.9.2026)*: *eine Zahl, eine geteilte Tafel — **an mich gerichtet · meine {entryMany} · alles andere** —, und sie rechnet EINMAL: `marked` kommt als Teilmenge aus derselben Abfrage (F3, Leitplanke L1).* **„Note" wird das fünfzehnte Vokabelwort** *(`vocabulary.grade`, Karte `v15`; die Sortierbeschriftungen werden artikellos — „Zuletzt: {grade}", „Durchschnitt: {grade}" —, und die Migrationstafel von 0.24.3 bleibt bei vierzehn Zeilen).* **Und Strang 3 räumt vier Punkte des Sammelblatts ab** *(28, 29, 30, 31)*: *die elf deutschen Sätze aus `server.js` bekommen neun Schlüssel in drei Sprachen, die **Restprobe für die Serverdateien** ist gebaut — **und hat im ersten Lauf den ZWÖLFTEN gefunden** („Eigener Server") —, die Zugangsanfrage prüft die FORM an beiden Enden („Form ist öffentlich, Existenz ist es nicht"), und der `yedek`-Wächter kommt ohne `\b` aus — **auch er hat im ersten Lauf einen Wert gefunden, der dreißig Runden lang dastand**. **MINOR** *(1198 → 1215 Schlüssel)*. *Dreizehn Zusagen, **siebzehn Gegenproben (1010–1026)**; drei neue Wächter, und keiner ist gelöscht.* **Der Gegenprobenlauf hat selbst zwei Befunde gemacht:** *1023 blieb **STUMM** — die Restprobe liest den QUELLTEXT von `server.js`, und „Eigener Server" steht in `mail.js` und wird nur durchgereicht; der Prüfstand fragt seither den laufenden Server in drei Sprachen, an beiden Stellen, und 1026 ist die zweite davon. Und 1014 **riss den Lauf ab** statt rot zu werden: zwei Zeilen fassten das fehlende Vokabelfeld ohne `?.` an. Nach beiden Nachbesserungen: **0 STUMM, 0 ABGERISSEN** — und der Prüfstand **7043 von 7043**, Fingerprint `319d9c8a`* | **ja** *(Datenbank)* | — |
 | ~~**0.32.1**~~ | ~~Die Endung, das Wort und die Zahl~~ | **GEBAUT am 14. September 2026** — Änderungsprotokoll 0.32.1. *Drei Befunde des Betreibers, und alle drei nehmen eine Bauweise ZURÜCK — die erste schrumpfende Runde seit 0.31.1 (1215 → 1209 Schlüssel, 1017 → 1008 Rückbauten).* **Türkisch braucht am bestimmten Objekt eine Endung** *(„Öğe sil" → „Öğeyi sil"), und sie hängt am Wort, das der Betreiber einträgt.* **Ausrechnen lässt sie sich nicht** — *nachgemessen an der verbreitetsten Bibliothek dafür (affixi): zehn von zwölf richtig, und die beiden falschen sind „Öğe" → „Öğeni" und „Değerlendirme" → „Değerlendirmeni". Sie hängt das `-n-` an jedes vokalendende Wort; nach einem Possessiv richtig, sonst falsch, und aus den Buchstaben ist das nicht zu sehen.* **Also wird umschifft: dreizehn türkische Sätze bauen den Satz so, dass die Endung auf ein FESTES Wort fällt** *(„{entryOne} kaydını sil") — die Krücke, die auch die Fachwelt kennt; i18next führt genau unseren Fall als Issue #1685 und hat ihn ungelöst geschlossen, und Mozilla Fluent löst ihn nur, indem ein Mensch jede Form einträgt.* **Zwei neue Wächter finden den nächsten Fall** *(keine Befehlsform und kein harmonierendes Anhängsel hinter einem Platzhalter).* **Die Zählzeile baut keinen Satz mehr** — *„12 · ⚑3 · ☐3 · ☑2" statt „12 Kommentare, davon …"; gemessen in echtem Chromium passte der Satz am Telefon in KEINER der drei Sprachen (DE −132 px), und jede Form mit Wort lässt sich durch ein längeres eigenes Vokabelwort wieder sprengen. Das Zeichen trägt den Sinn, die Farbe verstärkt ihn nur (G1); der volle Satz steht im `title`. `list.ofWhich` fällt — auf Türkisch war es „, bunun {parts} kadarı", eine Klammer um eine Aufzählung.* **Und „Filter folgt der Sortierung" ist ausgebaut** *(Entscheidung des Betreibers): „Filter zurücksetzen" holte die Vorgabe zurück, die Liste blieb gefiltert, und weil eine Vorgabe nicht mitzählt, verschwand der Rücksetzer gleich mit — eine Sackgasse. Fünf Sätze, `.pill-derived` und siebzehn Rückbauten fallen mit; die Prüfgruppe von 0.21.1 ist umgedreht.* **Dazu fünf Sätze, die ein Vokabelwort fest beim Namen nannten** *(darunter „Note" — ein Versäumnis von 0.32.0 selbst).* **MINOR.** *Zehn Zusagen, acht Gegenproben (1027–1034) — **0 STUMM**; drei neue Wächter. Prüfstand **7017 von 7017**, Fingerprint `24899ab8`* | nein | — |
-| **0.33.0** | **Bereinigung — der Bruch** | **zwölf** Migrationsblöcke raus *(0.29.0 hat den zwölften gebracht)*, **dazu die JPEG-Vorschaubilder des Bestandslaufs** *(entschieden 13.9.2026)*, Struktur festgeschrieben, **kein Rückweg** | **ja** | — |
-| **0.33.x** | **Die Kommentare werden knapp** | 16.281 von 54.822 Zeilen sind Kommentar | nein | — |
+| ~~**0.33.0**~~ | ~~Bereinigung — der Bruch~~ | **GEBAUT am 14. September 2026** — Änderungsprotokoll 0.33.0. *Und der erste Befund der Runde war der Zähler selbst:* **es waren ACHTZEHN Blöcke und nicht zwölf.** *Die sechs der Sprachrunde 0.24.x trugen ihre Absage im BLOCKKOMMENTAR statt auf einer eigenen Kommentarzeile — das Muster fand sie nicht, und dieses Papier hat die falsche Zahl von ihm übernommen (Stolperstein 156, diesmal am Zähler selbst).* **Alle achtzehn sind gefallen** *(Entscheidung des Betreibers, 14.9.2026: „alles was für die Migration von den Zwischenschritten notwendig war, kann weg")* — **945 Zeilen aus `db.js`** *(die Datei geht von 2145 auf 1474)*, samt zehn Namen im `module.exports`; **die Grenze `db.exec(SCHEMA)` ist nicht verschoben, sie ist fort.** *An ihre Stelle tritt eine Probe auf den Bestand: sie fragt `sqlite_master` und keinen Merker, nennt jede fehlende Spalte samt ihrer Fassung und dem Weg herauf —* **und sie SPERRT NIEMANDEN AUS** *(der erste Entwurf war eine harte Absage; der Betreiber hat sie gekippt: „Es wird nie eine Datenbank, Sicherung oder Exportdatei vor 0.33.0 eingespielt werden")*. **Der umgedrehte Prüfstand hat drei Abbruchstellen gefunden, die der Auftrag nicht kannte** — *die beiden Indizes auf `photos`, das Auffangnetz und die Grundausstattung stürben ohne Klammer an einer fehlenden Spalte, und zwar an einem `db.prepare`, das schon beim VORBEREITEN scheitert: die gekippte Absage als Absturz.* **Dazu der Stempel** *(zwei Zeilen in `settings`; ein gewachsener Bestand bekommt „angelegt mit" NICHT nachgetragen)*, **das Austauschformat 16 → 17** *(die Programmfassung kommt neben die Formatnummer)* **und die eine Abweisung der Runde: eine Datei mit Nummer ≤ 13 kommt nicht mehr herein** *(sie liegt an der DATEI und nicht am START)*. **Die JPEG-Hälfte des Bestandslaufs ist mitgefallen**, und **das Containerprotokoll spricht englisch** *(58 Ansagen in sechs Dateien, samt Restprobe)*. **MINOR** *(1209 → 1208 Schlüssel, 1008 → 990 Rückbauten, Prüfstand 7017 → 6858)*. *Fünfzehn Zusagen, achtzehn Gegenproben (1035–1052); sechsunddreißig alte sind gelöscht und nicht umgedreht — umdrehen ließe sich nur ein Gegenstand, den es gibt.* **Der Gegenprobenlauf hat selbst zwei Befunde gemacht, und beide sitzen an der PRÜFUNG:** *1042 blieb **STUMM** — `assignInventory()` kehrt vor seiner Schleife um, wenn es keinen Eigentümer gibt, und die Prüflage hatte keinen; sie stellt jetzt einen gewachsenen Bestand nach. Und die erste Fassung der umgedrehten Prüfgruppe **RISS den Lauf AB** statt rot zu werden, wenn ein Start nicht hochkam (derselbe Fehler wie an 1014 in 0.32.0). Nach beiden Nachbesserungen: **0 STUMM, 0 ABGERISSEN**. Fingerprint `9083d8c7`* | **ja** *(Datenbank)* | — |
+| **0.33.x** | **Die Kommentare werden knapp** | **36.144 von 96.241 Zeilen sind Kommentar (38 %)** — nachgemessen am 15. September 2026. **Dazu CHANGELOG.md und README.md**: Altlasten entfernen, kürzen, sachliche Sprache ohne Metaphern (`CLAUDE.md`, Abschnitt 1) | nein | — |
 | **0.34.0** | **Der Prüfstand bekommt ein Verzeichnis** | `testbench.js` in Module — **und damit erst der echte Teillauf** | nein | — |
 | **0.35.0** | **Code-Effizienz** | Leichen und ineffizienter Code | offen | — |
+| **0.36.0** | **Sicherheit** | Fünf Lücken aus der Durchsicht vom 15. September 2026: CSRF-Token, Anmeldesperre übersteht keinen Neustart, 199 `innerHTML`-Stellen ungeprüft, Abhängigkeiten ohne Automatik. **Nach 0.35.0, damit die Durchsicht den Code sieht, der bleibt** | offen | — |
 | **1.0.0** | **Die Zusage** | Abwärtskompatibilität zugesichert, Schnittstelle steht fest | — | — |
 | *danach* | *Große Dateien bis 2 GB* | **ausdrücklich draußen** — siehe unten | ja | — |
 
@@ -1586,22 +1587,39 @@ Weiteres:** er schreibt die Struktur fest und sagt alten Beständen ab.
 
 ---
 
-## 0.33.0 — „Bereinigung — der Bruch"
+## 0.33.0 — „Bereinigung — der Bruch" — **GEBAUT am 14. September 2026**
 
-**Unverändert gegenüber dem alten Plan; neu ist allein die Nummer.**
+> **DIE ZAHL WAR FALSCH, UND ZWAR ÜBERALL: ES WAREN ACHTZEHN.** *Dieses Papier
+> sagte „zwölf", die Tafel oben sagte „zwölf", und der Prüfstand hielt
+> `check('Es gibt genau zwoelf Migrationsfunktionen')` — **alle drei zählten
+> dasselbe Muster**, die einzeilige Marke `// MIGRATION 0.21.0 — ENTFAELLT MIT
+> 1.0`.* **Die sechs Blöcke der Sprachrunde 0.24.x tragen ihre Absage im
+> BLOCKKOMMENTAR**, auf einer eigenen Zeile darunter — *und das Muster fand sie
+> nicht.* **Stolperstein 156 in Reinform, nur diesmal war der ZÄHLER der
+> Betroffene.** *Der Zähler ist deshalb nicht bloß umgedreht, sondern zuerst
+> berichtigt worden: er liest jetzt BEIDE Formen, und die Gegenprobe steht
+> gestellt daneben.*
 
-Migrationscode raus — **zwölf Blöcke** (der zwölfte ist mit 0.29.0 dazugekommen:
-das Fälligkeitsdatum an der Aufgabe) —, die Datenbankstruktur festgeschrieben,
-**Absage an zu alte Datenbanken. Ab hier gibt es keinen Rückweg auf ältere
-Fassungen.** *Ein Bruch — solange die erste Zahl 0 ist, läuft er über MINOR.*
+Migrationscode raus — **achtzehn Blöcke, 945 Zeilen** *(`db.js` geht von
+2145 auf 1474)* —, die
+Datenbankstruktur festgeschrieben, **kein Rückweg auf ältere Fassungen.**
+*Ein Bruch — solange die erste Zahl 0 ist, läuft er über MINOR.*
 
-> **DIE ZAHL STAND BIS ZUM 13. SEPTEMBER 2026 AN DREI ORTEN VERSCHIEDEN DA:**
-> *hier „zehn", in der Tafel oben „elf", und im Prüfstand die richtige.* **Der
-> Prüfstand hat sie die ganze Zeit gehalten** — `check('Es gibt genau zwoelf
-> Migrationsfunktionen')`, und er zählt sie AUS DEN MARKEN heraus und nicht aus
-> den Funktionsnamen (Stolperstein 156). *Gefunden beim Durchsprechen von
-> 0.31.0; zwei Orte für dieselbe Zahl sind einer zu viel (Stolperstein 47), und
-> hier waren es drei.*
+> **UND DIE ABSAGE IST KEINE GEWORDEN.** *Der erste Entwurf ließ die Instanz
+> nicht öffnen; der Betreiber hat ihn am 14. September 2026 gekippt.* **Was
+> gebaut ist, ist ein HINWEIS:** *ein Kasten im Protokoll, der jede fehlende
+> Spalte samt ihrer Fassung nennt — und die Instanz startet trotzdem.* **Eine
+> Probe, die sich irren kann, darf niemanden aussperren.** *Die einzige
+> Abweisung der Runde liegt an der Exportdatei und nicht am Start.*
+
+> **WAS DER GEBAUTE STAND AUSSERDEM GEBRACHT HAT — und es stand in keinem
+> Auftrag:** *die Blöcke wegzunehmen genügt nicht.* **An drei Stellen stirbt der
+> Start an einer fehlenden Spalte**, und zwar an einem `db.prepare`, das schon
+> beim VORBEREITEN scheitert: *die beiden Indizes auf `photos`, das Auffangnetz
+> (`links.user_id`, `attachments.user_id`) und die Grundausstattung
+> (`rating_criteria.language`).* **Das wäre die gekippte Absage gewesen — nicht
+> als Entscheidung, sondern als Absturz.** *Gefunden hat es der umgedrehte
+> Prüfstand, an derselben Prüflage, die bis 0.32.1 den Block belegt hat.*
 
 ### Und die JPEG-Vorschaubilder fallen mit — entschieden am 13. September 2026
 
@@ -1645,18 +1663,104 @@ Ablageverfahrens umstellen — das ist dauerhaft sinnvoll und fällt nicht.*
 > funktionieren weiter, sie sind nur größer.* **Das gehört in die Fragetafel
 > jener Runde und ist vor dem Wegnehmen zu klären.**
 
-**0.33.x — „Die Kommentare werden knapp".** Fast dreißig Prozent des Quelltextes
-sind Kommentar. **Was das Offensichtliche wiederholt, geht; was eine
-ENTSCHEIDUNG trägt, wandert vorher in den Projektstand und bleibt als Zeiger
-stehen.** *Nach der Bereinigung und nicht davor — sie löscht ganze Blöcke samt
-ihren Kommentaren, und wer vorher schneidet, schneidet zweimal.*
+**0.33.x — „Die Kommentare werden knapp".** **38 % des Quelltextes sind
+Kommentar.** Was der Code eine Zeile weiter selbst sagt, wird entfernt. Was eine
+Entscheidung begründet, wandert vorher in den Projektstand und bleibt als
+Verweis stehen. Die Runde läuft nach 0.33.0 und nicht davor: die Bereinigung hat
+ganze Blöcke samt ihren Kommentaren entfernt.
+
+**Nachgemessen am 15. September 2026**, mit derselben Funktion, die
+`testbench.js` dafür benutzt (`onlyComments`), über die 13 Dateien aus
+`LANGUAGE_SOURCES`:
+
+| Datei | Zeilen | davon Kommentar | Anteil |
+|---|---:|---:|---:|
+| `testbench.js` | 56.649 | 19.908 | 35 % |
+| `public/app.js` | 13.985 | 5.468 | 39 % |
+| `counterproof.js` | 10.583 | 3.171 | 30 % |
+| `server.js` | 9.146 | 4.876 | **53 %** |
+| `auth.js` | 1.841 | 865 | 47 % |
+| `db.js` | 1.474 | 572 | 39 % |
+| `images.js` | 634 | 476 | **75 %** |
+| `batchrun.js` | 489 | 310 | **63 %** |
+| `attachments.js` | 364 | 154 | 42 % |
+| `keytool.js` | 324 | 70 | 22 % |
+| `keys.js` | 275 | 117 | 43 % |
+| `usertool.js` | 254 | 51 | 20 % |
+| `twofactor.js` | 223 | 106 | 48 % |
+| **alle 13** | **96.241** | **36.144** | **38 %** |
+
+**Die bisherige Zahl im Plan war 16.281 von 54.822 Zeilen, also 30 %.** Sie
+wurde am 31. August 2026 über zwölf Dateien gemessen und stand hier unverändert
+über fünf Runden. Seitdem ist das Projekt um 41.419 Zeilen gewachsen, und der
+Kommentaranteil ist von 30 % auf 38 % gestiegen. Die beiden Messungen sind nicht
+exakt vergleichbar: die alte zählte zwölf Dateien, die neue dreizehn, und welche
+zwölf es waren, lässt sich nicht mehr feststellen — die Git-Historie dieses
+Repositories reicht nur bis zum 7. September 2026 zurück.
+
+**Die drei Dateien mit dem höchsten Anteil sind `images.js` (75 %),
+`batchrun.js` (63 %) und `server.js` (53 %).** Dort fängt die Runde an.
+
+### Dazu: die Zeilenverweise im Fahrplan stimmen nicht mehr
+
+**Alle 24 Verweise der Form `datei.js:1234` in diesem Dokument zeigen auf die
+falsche Zeile** — geprüft am 15. September 2026. Beispiel: `buildDom()` steht
+nicht mehr in `testbench.js:27055`, sondern in Zeile 28161.
+
+Die Ursache ist nicht ein Fehler beim Schreiben. Eine Zeilennummer veraltet bei
+jeder Runde, die oberhalb der Stelle etwas einfügt. Der Verweis ist damit als
+Bauform ungeeignet.
+
+**Vorschlag für diese Runde:** Zeilennummern durch Funktions- oder
+Konstantennamen ersetzen (`buildDom()` in `testbench.js` statt
+`testbench.js:27055`). Ein Name veraltet erst, wenn die Sache selbst umbenannt
+wird, und dann fällt es beim Suchen auf.
+
+**Nicht in dieser Runde geändert:** die 23 übrigen Verweise stehen in
+abgeschlossenen Einträgen mit Datum. Ob sie mit umgestellt werden, entscheidet
+der Betreiber.
+
+### Dazu in derselben Runde: CHANGELOG.md und README.md
+
+Beide Dateien sind über 33 Versionen mitgewachsen. Sie haben drei Probleme:
+
+1. **Altlasten.** Sie beschreiben Stände, Migrationen und Bauweisen, die es
+   nicht mehr gibt. Beispiel: die 18 Migrationsblöcke, die 0.33.0 aus `db.js`
+   entfernt hat, kommen in beiden Dateien noch vor.
+2. **Länge.** Derselbe Sachverhalt steht an mehreren Stellen. Das CHANGELOG
+   erzählt je Version eine Geschichte statt aufzulisten, was sich geändert hat.
+3. **Sprache.** Metaphern und Bilder statt der Sache. Wer das Projekt nicht
+   kennt, versteht die Texte nicht.
+
+**Zielzustand:**
+
+- **CHANGELOG.md** — je Version eine Liste: was wurde hinzugefügt, geändert,
+  entfernt. Keine Erzählung, keine Bewertung. Alte Einträge werden gekürzt,
+  nicht gelöscht: Versionsnummer, Datum und Änderung bleiben nachlesbar. Was an
+  Begründung erhalten bleiben muss, steht im Änderungsprotokoll der jeweiligen
+  Runde und wird von dort verlinkt.
+- **README.md** — was das Programm ist, welche Voraussetzungen es hat, wie man
+  es installiert, konfiguriert und betreibt. Kein Projektverlauf; der steht im
+  Projektstand.
+
+**Sprachregel für alles, was in dieser Runde angefasst wird:** sachliches
+Deutsch, normale Fachbegriffe, keine Metaphern, kein Slang, kein Jargon. Die
+Regel und die Gegenüberstellung stehen in `CLAUDE.md` im Wurzelverzeichnis
+(Vorgabe des Betreibers, 15.9.2026).
+
+**Offene Frage für die Fragetafel jener Runde:** die Eigennamen `Prüfstand`,
+`Gegenprobe`, `Rückbau` und `Stolperstein` sind selbst Bilder. Sie stehen in
+Dateinamen und in über 6800 Testnamen. Ob sie bleiben oder in einer eigenen
+Runde umbenannt werden, ist vor dem Umschreiben zu entscheiden — sonst wird
+zweimal geschrieben.
 
 ---
 
 ## 0.34.0 — „Der Prüfstand bekommt ein Verzeichnis"
 
-**`testbench.js` ist EINE Datei mit über 43.000 Zeilen**, `counterproof.js`
-daneben über 7000. **Sie wird aufgeteilt: ein Verzeichnis `test/`, ein Modul je
+**`testbench.js` ist EINE Datei mit 56.649 Zeilen**, `counterproof.js`
+daneben 10.583 *(gemessen am 15. September 2026; der Plan nannte hier bis dahin
+über 43.000 und über 7000 — Stand vor 0.33.0)*. **Sie wird aufgeteilt: ein Verzeichnis `test/`, ein Modul je
 Sachgebiet**, der Rahmen als gemeinsames Stück daneben.
 
 **NEU IN DIESER FASSUNG DES PLANS:** *die Aufteilung ist ab jetzt nicht nur
@@ -1688,7 +1792,7 @@ größte Teil davon läuft in fünfzig Megabyte.* **Wer hier Prüfungen löschte
 nähme die Schwelle weg und rührte die Ursache nicht an.**
 
 **DIE URSACHE STEHT IN DER ZWEITEN HÄLFTE: 196 vollständige Browserfenster.**
-*`buildDom()` (`testbench.js:27055`) baut je ein ganzes Fenster; 184 davon
+*`buildDom()` (`testbench.js`, am 15. September 2026 in Zeile 28161) baut je ein ganzes Fenster; 184 davon
 werden geschlossen — der Speicher kommt trotzdem nicht wieder herunter.* **Rund
 zehn Megabyte je Fenster, und das ist genau die Kurve oben.**
 
@@ -1708,6 +1812,80 @@ Speicher beim Ende zurück; eine einzige Datei kann das nicht.*
 Leichen und ineffizienten Code durchgehen und verbessern. **Nach der Bereinigung
 und nach der Aufteilung**, damit sie keinen toten Code mitschleppt und in
 Modulen arbeiten kann.
+
+## 0.36.0 — „Sicherheit"
+
+Der Betreiber hat am 15. September 2026 gefragt, ob Kriterion von Grund auf
+sicher gebaut ist oder ob man hinsehen muss. Die Durchsicht an jenem Tag hat
+beides ergeben: der Bau ist sicherheitsbewusst, und es bleiben fünf Punkte.
+
+### Warum die Runde hier steht
+
+- **Nach 0.35.0**, damit die Durchsicht den Code sieht, der bleibt. Eine
+  Effizienzrunde schreibt Stellen um; eine Sicherheitsdurchsicht davor wäre
+  danach zum Teil ungültig.
+- **Nach 0.34.0**, damit die neuen Prüfungen gleich in die Modulstruktur gehen
+  und nicht in eine Datei, die danach aufgeteilt wird.
+- **Nicht zusammen mit 0.35.0.** Wer Laufzeit und Sicherheit im selben
+  Durchgang gegeneinander abwägt, entscheidet im Zweifel für die Laufzeit.
+
+**Der Hebel, wenn es früher sein soll:** BA 4, die Durchsicht der
+`innerHTML`-Stellen, hängt an keiner der beiden Runden davor. `public/app.js`
+wird von der Aufteilung des Prüfstands nicht berührt. BA 4 lässt sich als
+eigener Patch vorziehen, ohne die Reihenfolge zu ändern.
+
+### Was am 15. September 2026 vorgefunden wurde
+
+Die Durchsicht war eine Lesung des Quelltextes. Es wurde nichts ausgeführt und
+nichts angegriffen.
+
+| Bereich | Stand |
+|---|---|
+| Anmeldepflicht | `app.use('/api', auth.requireAuth)` — alle 104 Routen sind standardmäßig zu; darauf 23 `adminOnly`, 16 `ownerOnly`, 8 `entryAuthorOnly` |
+| Passwörter | scrypt, 16 Byte Zufallssalz, `timingSafeEqual`, Dummy-Hash gegen Zeitmessung bei unbekanntem Namen |
+| Sitzungen | 32 Byte Zufall; Cookie mit `HttpOnly`, `SameSite=Lax`, `Secure` hinter Proxy |
+| SQL | durchgehend gebundene Parameter; zusammengesetztes SQL setzt nur feste Literale aus dem Quelltext ein |
+| CSP | `script-src 'self'`, `frame-ancestors 'none'`, `base-uri 'none'`, `form-action 'none'`; `unsafe-inline` nur bei `style-src` |
+| Uploads | 30 MB Grenze; Typ über `sharp` am Inhalt geprüft, SVG ausdrücklich ausgeschlossen |
+| Auslieferung | `Content-Disposition`, eigene CSP je Typ, Inline nur für eine Positivliste, Typ aus den ersten Bytes |
+| Anmeldesperre | ab 5 Versuchen verzögerte Antwort, ab 10 Versuchen 5 Minuten Sperre je IP |
+| Datenbank | verschlüsselt (SQLCipher) |
+
+**Das ist der Ausgangspunkt, und er ist gut.** Die Runde baut keinen Schutz von
+null auf, sondern schließt Lücken in einem vorhandenen.
+
+### Die Bauabschnitte
+
+| BA | Sache | Warum |
+|---|---|---|
+| **1** | **CSRF-Token für alle schreibenden Routen** | Der Schutz ruht heute allein auf `SameSite=Lax`. Das deckt POST, PUT und DELETE von fremden Seiten ab, ist aber eine einzige Verteidigungslinie |
+| **2** | **Die Anmeldesperre übersteht einen Neustart** | `const attempts = new Map()` liegt im Arbeitsspeicher. Ein Neustart setzt den Zähler zurück, und wer das weiß, wartet darauf. **Braucht eine Tabelle — daher Schema: offen** |
+| **3** | **Sperre auch je Benutzername** | Die harte Sperre greift nur je IP. Verteiltes Raten gegen **einen** Namen wird nicht erkannt. Die Einschränkung steht heute schon als Kommentar in `auth.js` |
+| **4** | **Die 199 `innerHTML`-Stellen in `public/app.js` einzeln durchgehen** | Es gibt `esc()`, und die CSP fängt viel ab. Ob jede Stelle Benutzertext wirklich durch `esc()` schickt, ist nicht geprüft. **Das ist der größte Posten der Runde** |
+| **5** | **Abhängigkeiten regelmäßig prüfen** | Das `npm audit fix` einer früheren Runde war ein Einzelfall. Vorschlag: ein Lauf im vorhandenen Workflow, der bei einem Fund rot wird |
+
+### Was NICHT in dieser Runde liegt
+
+**`npm audit` meldet heute zwei mittelschwere Schwachstellen** in `qs`,
+eingeschleppt über `express`, behebbar mit `npm audit fix` (nur das Lockfile
+bewegt sich). **Das wartet nicht auf 0.36.0.** Eine bekannte Schwachstelle drei
+Runden liegen zu lassen wäre falsch; sie gehört in den nächsten Patch.
+
+### Offene Fragen für die Fragetafel jener Runde
+
+1. **Wo liegt der CSRF-Token?** Eigenes Cookie plus Kopfzeile, oder im
+   Sitzungseintrag in der Datenbank. Die zweite Form kostet eine Abfrage je
+   schreibender Anfrage.
+2. **Was passiert mit offenen Sitzungen beim Einspielen der Runde?** Ein
+   Token, den alte Sitzungen nicht haben, meldet alle ab. Das ist vertretbar,
+   muss aber entschieden und angesagt sein.
+3. **Wie weit geht BA 4?** Alle 199 Stellen, oder zuerst die, die
+   Benutzertext führen. Die Zahl je Art ist vor dem Bau zu messen.
+4. **Wird die Sperre je Benutzername zur Auskunft?** Wer „dieser Name ist
+   gesperrt" zu sehen bekommt, weiß, dass es den Namen gibt. Die Antwort muss
+   gleich aussehen wie bei einem unbekannten Namen.
+
+---
 
 ## 1.0.0 — „Die Zusage"
 

@@ -29,6 +29,42 @@ bleiben in der Form ihrer Zeit.*
 
 *Hier wird mitgeschrieben, während gebaut wird.*
 
+## [0.33.0] - 2026-09-14
+
+> **WER VON EINER FASSUNG VOR 0.33.0 KOMMT, GEHT ZUERST ÜBER 0.32.1.** Bis
+> dahin rüstete der Start jede fehlende Spalte selbst nach; diese Runde nimmt
+> die achtzehn Blöcke heraus, die das taten. Einmal mit 0.32.1 öffnen,
+> hochkommen lassen, anhalten — danach steht alles, was 0.33.0 erwartet.
+> **Eine Sicherung davor ist Pflicht.**
+>
+> **UND EINE EXPORTDATEI MIT AUSTAUSCHFORMAT 13 ODER ÄLTER KOMMT NICHT MEHR
+> HEREIN.** Sie trägt an ihren Fotos noch die alten Feldnamen. Wer eine solche
+> Datei hat, spielt sie in eine Fassung bis 0.32.1 ein und exportiert sie dort
+> neu. Eine Datei ab 14 ist unberührt.
+
+### Entfernt
+
+- **Achtzehn Migrationsblöcke sind weg** — `db.js` geht von 2145 auf 1474 Zeilen. Sie rüsteten seit 0.8.3 fehlende Spalten, Tabellen- und Feldnamen nach; eine Datenbank, die je unter 0.32.1 gelaufen ist, braucht keinen davon.
+- **Die zweite Hälfte von „Vorhandene Bilder konvertieren" ist weg.** Sie rechnete Vorschaubilder neu, die noch JPEG waren — seit 0.27.0 entsteht keines mehr. Die erste Hälfte bleibt: Originale werden weiter umgestellt. **Liegt kein PNG mehr da, ist der Knopf wieder tot.**
+- **Der Import übersetzt keine alten Feldnamen mehr.** Ersatzlos wäre das still gefährlich, deshalb die Abweisung im Kasten oben.
+
+### Hinzugefügt
+
+- **Die Instanz sagt, wenn ihrer Datenbank etwas fehlt.** Steht im Protokoll ein Kasten „this database is incomplete", nennt er jede fehlende Spalte, die Fassung, die sie gebracht hätte, und die Fassung, über die zuerst zu gehen wäre. **Sie startet trotzdem** — er ist ein Hinweis und keine Sperre. Der Kasten kommt bei jedem Start, solange etwas fehlt.
+- **Die Datenbank schreibt auf, mit welcher Fassung sie läuft** — zwei Zeilen in den Einstellungen: womit angelegt und womit zuletzt geöffnet. Ein gewachsener Bestand bekommt „angelegt mit" nicht nachgetragen; was die Installation nicht weiß, behauptet sie nicht.
+- **Die Exportdatei nennt die Programmfassung** neben der Formatnummer.
+
+### Geändert
+
+- **Das Containerprotokoll spricht englisch.** Wer eine Installation betreibt, muss nicht deutsch können. Am Bildschirm ändert sich kein Wort.
+- **Austauschformat 16 → 17**, weil die Programmfassung dazukommt. Eine ältere Installation übergeht das Feld wortlos.
+
+### Intern
+
+- **1209 → 1208 Schlüssel** je Sprachdatei; **1008 → 990 Rückbauten**; Prüfstand 7017 → 6858. Die Runde legt nichts dazu, sie nimmt weg.
+- Neu: eine Restprobe über die Konsolenansagen der sechs ausgelieferten Dateien.
+- Achtzehn Gegenproben gefahren, **0 stumm** — zwei Befunde kamen dabei heraus, beide an der Prüfung selbst.
+
 ## [0.32.1] - 2026-09-14
 
 > **NICHTS ZU TUN.** Kein Schemaanteil, kein Migrationsblock, das

@@ -256,19 +256,20 @@ auch nachdem der Wert in die `.env` umgezogen ist. Dagegen hilft nur ein
 > die Sicherung Empfehlung und nicht Pflicht. *Wer sie mitnimmt, tut nichts Falsches; die Zeile steht unten
 > ohnehin im Rezept.*
 >
-> **WER VON EINER FASSUNG VOR 0.14.0 KOMMT, SICHERT PFLICHTGEMÄSS.**
-> Der Sprung führt über die Datenbankstufe 0.14.0 hinweg: sie rüstet drei
-> Spalten an `items` nach (`rejected_at`, `rejected_grund`, `rejected_von`), und
-> ihr Migrationsblock läuft beim ersten Start mit. **Ohne die Kopie gibt es
-> danach keinen Rückweg.** *Im Protokoll steht dann einmalig die Zeile „items um
-> rejected_at, rejected_grund und rejected_von ergaenzt (Migration auf 0.14.0)"
-> samt der Zahl der Ablehnungen, die von nun an ohne Datum, Grund und Verfasser
-> dastehen — das ist gewollt: diese Installation weiß nicht, wann und von wem sie
-> getroffen wurden.*
+> **WER VON EINER FASSUNG VOR 0.33.0 KOMMT, GEHT ZUERST ÜBER 0.32.1.**
+> Bis dahin rüstete der Start jede fehlende Spalte selbst nach; heute tut er es
+> nicht mehr, und es gibt keine andere Stelle, an der eine alte Datenbank
+> nachwächst. *Der Weg ist deshalb: einmal mit 0.32.1 öffnen, hochkommen lassen,
+> wieder anhalten — danach steht alles, was gebraucht wird.*
 >
-> **Niemand wird abgemeldet, und einzustellen ist nichts.** *Auch keine
-> gespeicherte Ansicht geht verloren: eine ältere Ansicht kennt den Filter
-> „abgelehnt" nicht und fällt auf „Alle" zurück.*
+> **Und die Instanz sagt es, wenn etwas fehlt.** *Steht im Protokoll ein Kasten
+> „this database is incomplete", nennt er jede fehlende Spalte samt der Fassung,
+> die sie gebracht hätte, und die Fassung, über die zuerst zu gehen wäre.*
+> **Sie startet trotzdem** — der Kasten ist ein Hinweis und keine Sperre —,
+> *aber jede Seite, die eine der genannten Spalten liest, scheitert, bis die
+> Datenbank über jene Fassung gegangen ist.*
+>
+> **Niemand wird abgemeldet, und einzustellen ist nichts.**
 
 **Der Weg ersetzt das Verzeichnis, statt darüber zu kopieren.** Bestand
 (`data/`), Schlüssel (`.env`) und Sicherungen ziehen von Hand mit:
@@ -399,10 +400,13 @@ Neuladen (Strg+Umschalt+R) räumt den Zwischenspeicher weg.
 ### Wenn eine Version die Datenbank anfasst
 
 **Eine fehlende Tabelle legt der Start selbst an**, dafür braucht es nichts.
-**Rüstet eine Version eine Spalte nach, sagt sie es im Protokoll** — etwa
-„links um user_id ergaenzt (Migration auf 0.8.30)". Die Zeile kommt genau
-einmal; beim nächsten Start ist sie weg, und das ist richtig so. Wer mehrere
-Versionen auf einmal überspringt, sieht entsprechend mehrere Zeilen.
+**Eine fehlende SPALTE dagegen nicht.** Was der Start statt dessen tut, ist
+nachsehen: fehlt eine, schreibt er einen Kasten ins Protokoll, der sie beim
+Namen nennt — mit der Fassung, die sie gebracht hätte, und der Fassung, über
+die zuerst zu gehen wäre. **Die Zeile kommt bei JEDEM Start**, solange die
+Spalte fehlt: sie fragt den Bestand und keinen Merker, und ein Hinweis, der
+beim zweiten Mal verschwände, wäre einer. **Die Anwendung startet trotzdem** —
+aber jede Seite, die eine der genannten Spalten liest, scheitert.
 
 **Ein Downgrade ist dann keine reine Dateikopie mehr** — deshalb die Sicherung
 davor. Eine ältere Fassung sieht zusätzliche Tabellen und Spalten gar nicht an;
@@ -1406,7 +1410,7 @@ es zwei, beide in den Einstellungen einstellbar:
   nach Eintrag erhalten.* **Es gibt keine Benachrichtigung, keinen Wecker und
   keine Mail** — die Glocke trägt einen Zeitstempel und keine Tabelle.
   *„Überfällig" rechnet sich am heutigen Tag dessen, der hinsieht, und nicht am
-  Tag des Servers.* Das Datum geht in den Export mit (**Austauschformat 16**)
+  Tag des Servers.* Das Datum geht in den Export mit (**Austauschformat 17**)
   und kommt beim Einspielen wieder zurück.
   **Einen anderen markieren:** wer `@name` in einen Kommentar schreibt,
   **markiert** diesen Zugang. Die Stelle steht hervorgehoben da, und der
@@ -1426,7 +1430,7 @@ es zwei, beide in den Einstellungen einstellbar:
   **Der Export trägt die Markierung als `@name` im Kommentartext mit**; beim
   Einspielen löst die Zielinstanz sie gegen ihre eigenen Namen neu auf. *Eine
   Zugangsnummer bedeutet dort etwas anderes — deshalb steht sie nicht in der
-  Datei (**Austauschformat 16**, unverändert).*
+  Datei (**Austauschformat 17**).*
   Ein erledigtes Todo verlässt die Spitze und reiht sich nach Alter bei den
   Notizen ein — es bleibt aber als erledigt gekennzeichnet und wird nicht
   wieder zur Notiz. Der Berichtsknopf daneben bleibt ein gewöhnlicher
@@ -1788,11 +1792,19 @@ Listen.
 - **Import** einer Exportdatei, wahlweise *ersetzen* oder *zusammenführen* —
   ebenfalls nur für den Eigentümer, und zwar in beiden Fällen: eine
   Exportdatei kann Beiträge **unter fremdem Namen** anlegen.
-  **Das Austauschformat trägt die Nummer 11** — darin stehen auch Datum, Grund
-  und Verfasser einer Ablehnung; der Verfasser wandert als **Name** hinaus, nie
-  als Zugangsnummer. **Eine Datei der Nummer 10 (und jeder älteren)
-  lässt sich weiterhin einspielen**: die drei Felder fehlen dann und bleiben
-  leer. *Ein fehlender Ablehnender fällt dabei ausdrücklich **nicht** an den
+  **Das Austauschformat trägt die Nummer 17.** Sie sagt, welche Felder zu
+  erwarten sind; die **Programmfassung** steht daneben, damit einer Datei
+  anzusehen ist, was sie geschrieben hat.
+  **Gelesen wird ab Nummer 14, und alles Ältere wird abgewiesen:** eine solche
+  Datei trägt an ihren Fotos noch andere Feldnamen, und übersetzt werden sie
+  nicht mehr. *Die Grenze liegt bei 14 und nicht bei 13, weil die Umbenennung
+  seinerzeit ohne Hebung der Nummer lief — zwei Fassungen tragen beide die 13.*
+  **Abgewiesen wird die DATEI und nicht der Start:** wer eine solche Datei hat,
+  spielt sie in eine Fassung bis 0.32.1 ein und exportiert sie dort neu.
+  **Innerhalb der lesbaren Spanne entscheidet weiter, welche Felder dastehen,
+  und nie die Nummer** — eine Datei der Nummer 14 kennt Datum, Grund und
+  Verfasser einer Ablehnung schon; fehlt eines der Felder, bleibt es leer.
+  *Ein fehlender Ablehnender fällt dabei ausdrücklich **nicht** an den
   Einspielenden — ein Eintrag, den niemand abgelehnt hat, hat keinen
   Ablehnenden.*
   Der Vorgang läuft in einem Zug; bricht er ab, bleibt der Bestand unverändert.
@@ -2618,9 +2630,10 @@ sind neu gesetzt und nicht übernommen — `thumb` auf Qualität 82, `medium` au
 dieselbe Zahl bedeutet in JPEG und WebP nicht dasselbe. Gemessen an drei
 Bildarten spart das bei der Kachel 52 / 5 / 6 % und bei der mittleren
 9 / 27 / 30 % — bei durchweg **kleinerer** Abweichung als vorher.
-**Der Knopf „Vorhandene Bilder konvertieren" zieht beide Hälften in einem
-Durchgang nach:** die Originale nach dem gewählten Verfahren und jede Ableitung,
-die noch JPEG ist.
+**Der Knopf „Vorhandene Bilder konvertieren" zieht die Originale nach**, nach
+dem gewählten Verfahren. **Die Vorschaubilder fasst er nicht an** — sie sind
+ohnehin schon WebP. **Liegt kein PNG mehr da oder ist „PNG" gewählt, ist der
+Knopf tot:** es gibt dann nichts umzustellen.
 
 **Ein Video zählt voll.** Es wird nicht umkodiert, sondern unverändert
 abgelegt; dazu kommen die beiden Varianten seines Standbilds. Bei 20 MB je
@@ -2839,8 +2852,8 @@ Start eine leere Neuinstallation vermuten.
   (Vorrat, eigene, Standard), die beiden Schalter, wer neue
   Tags und Kategorien anlegen darf, und das **Verfahren der Bildablage**
   (`imageStore`, ein Wert aus dreien; eine ältere Fassung trug hier ein
-  Ja/Nein unter anderem Namen — ein Migrationsblock übersetzt beide alten
-  Stellungen und nimmt den alten Schlüssel weg).
+  Ja/Nein unter anderem Namen — eine solche Zeile bleibt heute unbeachtet
+  stehen und wird nicht mehr gelesen).
   Sache des Admins — das Verfahren der Bildablage allerdings nur des
   **Eigentümers**: es bestimmt, wie die ganze Installation künftig ablegt, und
   liegt damit in derselben Zeile wie Export, Sicherung und Schlüssel
