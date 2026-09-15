@@ -22042,6 +22042,21 @@ function sweepLeftovers() {
             ALTER TABLE ${table}__alt RENAME TO ${table};`);
     d.close();
   };
+  /* UND DIE PRUEFLAGE BEKOMMT EINEN EIGENTUEMER -- der Fund des
+     Gegenprobenlaufs dieser Runde. Rueckbau 1042 nimmt dem Auffangnetz die
+     Frage nach `user_id` weg, und er blieb STUMM: `assignInventory()` kehrt
+     VOR seiner Schleife zurueck, wenn es gar keinen Eigentuemer gibt
+     (`owner == null`), und eine frisch angelegte Datenbank hat keinen. Die
+     Schleife, in der das `db.prepare` steht, wurde also nie erreicht.
+     EINE DATENBANK OHNE JEDEN ZUGANG IST AUCH KEIN GEWACHSENER BESTAND. Die
+     Prueflage ist damit nicht nur schaerfer, sondern richtiger: sie stellt
+     nach, was draussen stuende. */
+  const uhGrow = (directory) => {
+    const d = open(path.join(directory, 'katalog.sqlite'));
+    d.prepare("INSERT INTO users (username, password_hash, role, status) VALUES (?,?,?,?)")
+      .run('hinweisanna', 'x', 'owner', 'active');
+    d.close();
+  };
   const uhRenameTable = (directory, fresh, old) => {
     const d = open(path.join(directory, 'katalog.sqlite'));
     d.pragma('foreign_keys = OFF');
@@ -22087,6 +22102,7 @@ function sweepLeftovers() {
     fs.rmSync(uhDir, { recursive: true, force: true });
     fs.mkdirSync(uhDir, { recursive: true });
     uhRun(uhDir);
+    uhGrow(uhDir);
     uhDropColumn(uhDir, table, column);
     const run = uhRun(uhDir);
     if (!run.ok) {
@@ -22114,6 +22130,7 @@ function sweepLeftovers() {
   fs.rmSync(uhDir, { recursive: true, force: true });
   fs.mkdirSync(uhDir, { recursive: true });
   uhRun(uhDir);
+  uhGrow(uhDir);
   uhDropColumn(uhDir, 'photos', 'zoom');
   const uhOut = uhRun(uhDir).out;
   check('Der Kasten sagt, dass die Datenbank unvollstaendig ist',
@@ -22140,6 +22157,7 @@ function sweepLeftovers() {
     fs.rmSync(uhDir, { recursive: true, force: true });
     fs.mkdirSync(uhDir, { recursive: true });
     uhRun(uhDir);
+    uhGrow(uhDir);
     uhRenameTable(uhDir, fresh, old);
     const run2 = uhRun(uhDir);
     if (!run2.ok) {
