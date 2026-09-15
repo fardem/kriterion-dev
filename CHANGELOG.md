@@ -43,6 +43,7 @@ der Kriterion betreibt, ändert sich nichts — die Zeilen hier stehen unter
 - **Ein Teillauf startet nur noch die Module, die er zeigt.** `node testbench.js Schluesselwechsel` braucht 14 Sekunden statt 350. Bis 0.33.2 nahm der Filter nur die Ausgabe weg, nicht die Arbeit.
 - **Jedes Modul lässt sich allein fahren**: `node test/source.js`.
 - Prüfstand 6865 → 6865, Prüfung für Prüfung dieselben. Rückbauten 998 → 998; die 14 auf `testbench.js` zeigen auf ihre neuen Dateien. Fünfzehn Gegenproben gefahren, **0 stumm**.
+- Nachgetragen: die Ersatztexte der Rückbauten **W2 und W5** trugen noch die Namen von vor der Umbenennung. W2 prüfte damit nicht mehr, was sein Name sagt — er war rot, weil das Modul abbrach, nicht weil die Portbasis falsch lag. Beide berichtigt und nachgefahren; W2 steht jetzt auf 4 roten Prüfungen statt 3.
 
 ## [0.33.2] - 2026-09-15
 

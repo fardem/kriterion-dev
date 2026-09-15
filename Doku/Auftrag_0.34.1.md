@@ -154,6 +154,43 @@ nicht ausgeliefert. Entweder bekommt der Wächter eine zweite Liste neben der
 ersten, oder die erste wird umbenannt. Eine Liste, deren Name etwas anderes
 sagt als ihr Inhalt, ist der Anfang des nächsten blinden Flecks.
 
+### Zweiter Befund: die Ersatztexte der Rückbauten liest niemand
+
+Nachgetragen am 15. September 2026, beim Nachfahren der Gegenprobe W2.
+
+Ein Rückbau besteht aus `search` und `replacement`. Beide sind Strings. Die
+Umbenennung in 0.34.0 hat die Suchtexte mitgezogen — sie müssen auf die Datei
+passen, sonst bricht der Lauf ab —, die Ersatztexte nicht. Bei W2 und W5 blieben
+die alten Namen stehen:
+
+```js
+search:      '  const B = startFurtherServer(freshDir, {}, 5130);',
+replacement: '  const B = starteWeiterenServer(frischDir, {}, 4000);',
+```
+
+W2 hat danach nicht mehr geprüft, was sein Name sagt. Statt die Portbasis auf
+4000 zu setzen, brach das Modul beim Laden ab. Rot war er trotzdem, und rot in
+der erwarteten Prüfgruppe — die Gegenprobe meldete Erfolg. Berichtigt und
+nachgefahren ist beides; der Beleg steht in
+`Doku/Aenderungsprotokoll_0.34.0.md`, Abschnitt 9.
+
+**Der Namenswächter aus dem ersten Befund hätte das nicht gefunden.** Er liest
+Bezeichner im Code, und `replacement` ist ein String. Es braucht eine eigene
+Prüfung: jeder Name in einem Ersatztext, der in der Zieldatei und im Rahmen
+nirgends vorkommt, ist ein Fehler. Die Durchsicht kostet Sekunden — sie liest
+Dateien, sie fährt keine Läufe.
+
+**Zwei von 14 Rückbauten auf Prüfstandsdateien waren betroffen.** Über alle 998
+Rückbauten, gehalten gegen die Namen aller 44 JS- und HTML-Dateien des Projekts
+(28.407 verschiedene), bleibt nach der Berichtigung **kein Treffer**. Diese
+zweite Durchsicht ist die schwächere von beiden: sie weiß nur, dass ein Name im
+Projekt vorkommt, nicht, dass er in dieser Datei erreichbar ist. Der Wächter
+sollte je Datei prüfen.
+
+Ein zweiter Fall liegt daneben und ist nicht dasselbe: ein Rückbau, dessen
+Suchtext nicht mehr passt, fällt sofort auf. Ein Rückbau, dessen Ersatztext
+nicht mehr passt, fällt gar nicht auf, solange irgendetwas rot wird.
+
 ---
 
 ## 4. Der Beleg

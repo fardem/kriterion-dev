@@ -6375,14 +6375,14 @@ const REGRESSIONS = [
     nr: 'W2', name: 'Eine Portbasis liegt wieder auf der gesperrten 4045',
     file: 'test/firstlogin.js',
     search: '  const B = startFurtherServer(freshDir, {}, 5130);',
-    replacement: '  const B = starteWeiterenServer(frischDir, {}, 4000);',
+    replacement: '  const B = startFurtherServer(freshDir, {}, 4000);',
     expected: 'Die Portbasen und der Versatz'
   },
   {
     nr: 'W5', name: 'Der SMTP-Empfaenger wird nicht mehr vermerkt',
     file: 'test/frame.js',
     search: '  SMTP_CASES.push(state);',
-    replacement: '  // SMTP_LAGEN.push(lage);',
+    replacement: '  // SMTP_CASES.push(state);',
     expected: 'Die Portbasen und der Versatz'
   },
   {
