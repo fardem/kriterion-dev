@@ -18726,19 +18726,29 @@ function sweepLeftovers() {
      Fassungen; fuer ihn ist jede davon eine Auskunft ueber nichts. Ein
      Handbuch sagt, WAS IST -- nicht, seit wann (Projektstand 5.6).
      DIE REGEL IST NICHT „KEINE NUMMER", SONDERN: die Nummer bleibt, wo sie
-     eine HANDLUNG bestimmt, und geht, wo sie nur erzaehlt. Drei Faelle
-     bestimmen eine Handlung, und sie stehen hier namentlich:
-       0.14.0  die Sicherungspflicht beim Sprung ueber diese Datenbankstufe
-               -- und die Zeile, die dabei woertlich im Protokoll steht
-       0.8.30  eine zweite woertliche Protokollzeile, als Beispiel dafuer,
-               wie so eine Zeile aussieht
+     eine HANDLUNG bestimmt, und geht, wo sie nur erzaehlt.
+
+     MIT 0.33.0 SIND ES ANDERE NUMMERN GEWORDEN, und das ist die Regel bei der
+     Arbeit: die beiden Nummern von 0.17.2 bestimmten eine Handlung, SOLANGE es
+     Migrationsbloecke gab. `0.14.0` trug die Sicherungspflicht beim Sprung
+     ueber jene Datenbankstufe, `0.8.30` stand als woertliche Protokollzeile
+     daneben — **beide Handlungen gibt es nicht mehr**, und was bliebe, waere
+     Erzaehlung. Sie sind deshalb aus der README gefallen und nicht bloss
+     umgeschrieben worden.
+     DREI FAELLE BESTIMMEN HEUTE EINE HANDLUNG, und sie stehen hier namentlich:
+       0.33.0  der Bruch -- wer von einer aelteren Fassung kommt, hat einen
+               Zwischenschritt zu tun
+       0.32.1  genau dieser Zwischenschritt: die letzte Fassung, die den Weg
+               herauf noch kannte. Sie steht zweimal da -- am Einspielweg und
+               an der abgewiesenen Exportdatei, und beide Male IST sie die
+               Handlung
        0.8.0   die aelteste Datenbank, die noch uebernommen wird
      GEZAEHLT WIRD DIE ZAHL UND NICHT NUR DIE MENGE DER NUMMERN. Eine Menge
      bliebe auch dann gruen, wenn jemand zwanzig neue „seit 0.14.0" ergaenzte
      -- dieselbe Ueberlegung wie bei der Zahl in F_ROUTES. */
   const readmeRaw = fs.readFileSync(path.join(__dirname, 'README.md'), 'utf8');
   const readmeNumbers = readmeRaw.match(/\b0\.\d+\.\d+\b/g) || [];
-  const README_NUMBERS = ['0.14.0', '0.8.30', '0.8.0'];
+  const README_NUMBERS = ['0.33.0', '0.32.1', '0.8.0'];
   check('Die README nennt ueberhaupt noch die Nummern, die eine Handlung bestimmen',
     README_NUMBERS.every(v => readmeNumbers.includes(v)),
     JSON.stringify(README_NUMBERS.filter(v => !readmeNumbers.includes(v))));
@@ -18748,17 +18758,27 @@ function sweepLeftovers() {
   check('Es sind genau sechs Nennungen und keine mehr',
     readmeNumbers.length === 6, `${readmeNumbers.length}: ${readmeNumbers.join(' ')}`);
   /* UND JEDE EINZELNE STEHT DA, WEIL SIE ETWAS BESTIMMT. Die Zahl allein
-     saehe nicht, wenn jemand die Sicherungspflicht gegen sechs neue
+     saehe nicht, wenn jemand den Zwischenschritt gegen sechs neue
      Erzaehlsaetze taeuschte. */
-  check('Die Sicherungspflicht vor der Datenbankstufe steht ausdruecklich da',
-    /VOR 0\.14\.0 KOMMT, SICHERT PFLICHTGEMÄSS/.test(readmeRaw),
-    'die Pflichtzeile fehlt');
+  check('Der Zwischenschritt ueber die letzte migrierende Fassung steht ausdruecklich da',
+    /WER VON EINER FASSUNG VOR 0\.33\.0 KOMMT, GEHT ZUERST ÜBER 0\.32\.1/.test(readmeRaw),
+    'die Zeile des Zwischenschritts fehlt');
   check('Und die aelteste Datenbank, die noch uebernommen wird',
     /Datenbank aus Version 0\.8\.0 oder neuer/.test(readmeRaw),
     'die Untergrenze fehlt');
-  check('Und beide woertlichen Protokollzeilen stehen als Zitat da',
-    /Migration auf 0\.14\.0\)/.test(readmeRaw) && /Migration auf 0\.8\.30\)/.test(readmeRaw),
-    'eine der beiden Protokollzeilen fehlt');
+  /* UND DIE ZWEITE STELLE, AN DER 0.32.1 EINE HANDLUNG BESTIMMT: eine
+     Exportdatei, die zu alt ist, geht denselben Weg wie eine zu alte
+     Datenbank -- ueber dieselbe Fassung. */
+  check('Und der Weg fuer eine abgewiesene Exportdatei nennt dieselbe Fassung',
+    /in eine Fassung bis 0\.32\.1 ein und exportiert sie dort neu/.test(readmeRaw),
+    'der Weg fuer die Datei fehlt');
+  /* UND KEINE PROTOKOLLZEILE EINER MIGRATION STEHT MEHR ALS ZITAT DA. Bis
+     0.32.1 standen zwei davon in der README, als Beispiel dafuer, wie so eine
+     Zeile aussieht -- sie beschreiben einen Vorgang, den es nicht mehr gibt.
+     DIE ZEILE IST UMGEDREHT und nicht geloescht (Zusage 12). */
+  check('Und keine Protokollzeile einer Migration steht mehr als Zitat da',
+    !/Migration auf 0\.\d+\.\d+\)/.test(readmeRaw),
+    (readmeRaw.match(/[^\n]*Migration auf 0\.\d+\.\d+\)[^\n]*/) || ['(keine — richtig)'])[0]);
   /* DIE GEGENPROBE AM WAECHTER SELBST: er findet eine Nummer wirklich, und
      er faerbt sich nicht an einer Zahl, die keine Version ist. */
   check('Der Waechter wuerde eine Nummer wirklich finden',
@@ -21969,17 +21989,22 @@ function sweepLeftovers() {
      Kasten geht ueber `console.warn` und damit auf STDERR -- genau wie der
      Schluesselhinweis in keys.js, dessen Form er hat. Eine Probe, die nur
      stdout liest, saehe ihn nie und waere gruen, weil sie nichts findet.
-     UND EIN FEHLSCHLAG WIRFT WEITER: spawnSync meldet ihn im `status`, und
-     die Zeile darunter macht daraus dieselbe Ausnahme, die execFileSync
-     geworfen haette. Die Zusage „die Instanz kommt hoch" haengt daran. */
+     UND EIN FEHLSCHLAG WIRFT NICHT -- er wird GEMELDET. Das ist der Fund des
+     ersten Gegenprobenlaufs dieser Runde: die erste Fassung warf bei einem
+     Rueckgabewert ungleich null eine Ausnahme, und damit RISS jeder Rueckbau,
+     der den Start umbringt, den ganzen Prueflauf AB, statt eine Zeile rot zu
+     faerben. Ein abgerissener Lauf belegt nichts (Stolperstein 138, und
+     derselbe Fehler wie an Rueckbau 1014 in 0.32.0).
+     GELIEFERT WIRD DESHALB EIN PAAR: `ok` sagt, ob die Instanz hochkam, `out`
+     traegt BEIDE Kanaele -- der Kasten geht ueber `console.warn` und damit auf
+     STDERR, genau wie der Schluesselhinweis in keys.js, dessen Form er hat.
+     Eine Probe, die nur stdout liest, saehe ihn nie. */
   const uhRun = (directory) => {
     const r = require('child_process').spawnSync(process.execPath, ['-e', "require('./db');"], {
       cwd: __dirname, encoding: 'utf8',
       env: { ...process.env, DATA_DIR: directory, ENCRYPTION_KEY: KEY }
     });
-    if (r.status !== 0)
-      throw new Error(`Start mit ${r.status}: ${String(r.stderr || '').trim().slice(0, 200)}`);
-    return `${r.stdout || ''}${r.stderr || ''}`;
+    return { ok: r.status === 0, out: `${r.stdout || ''}${r.stderr || ''}` };
   };
   const uhColumns = (directory, table) => {
     const d = open(path.join(directory, 'katalog.sqlite'));
@@ -22028,14 +22053,16 @@ function sweepLeftovers() {
      DDL, und sie sagt dazu KEIN Wort. Ohne diese Zeile bliebe offen, ob die
      Spalten ueberhaupt noch im Schema stehen -- und genau das ist nach dem
      Wegfall der achtzehn Bloecke die Stelle, an der alles haengt. */
-  const uhFreshOut = uhRun(uhFreshDir);
+  const uhFresh = uhRun(uhFreshDir);
+  check('Eine frische Instanz kommt ueberhaupt hoch',
+    uhFresh.ok, uhFresh.out.trim().slice(-300));
   const uhFreshMissing = uhTable.filter(([table, column]) =>
     !uhColumns(uhFreshDir, table).includes(column));
   check('Eine frische Instanz traegt alle achtzehn Spalten aus der DDL',
     uhFreshMissing.length === 0,
     uhFreshMissing.map(([t, c]) => `${t}.${c}`).join(' · ') || 'alle da');
   check('Und sie sagt dabei kein Wort ueber eine unvollstaendige Datenbank',
-    !/incomplete/i.test(uhFreshOut), JSON.stringify(uhFreshOut.trim()));
+    !/incomplete/i.test(uhFresh.out), JSON.stringify(uhFresh.out.trim()));
   check('Und sie legt keinen Merker dafuer an — die Probe fragt den Bestand',
     (() => {
       const d = open(path.join(uhFreshDir, 'katalog.sqlite'));
@@ -22061,12 +22088,14 @@ function sweepLeftovers() {
     fs.mkdirSync(uhDir, { recursive: true });
     uhRun(uhDir);
     uhDropColumn(uhDir, table, column);
-    let out = '';
-    try { out = uhRun(uhDir); }
-    catch (e) { uhDead.push(`${table}.${column}: ${e.message}`); continue; }
+    const run = uhRun(uhDir);
+    if (!run.ok) {
+      uhDead.push(`${table}.${column}: ${run.out.trim().split('\n').pop()}`);
+      continue;
+    }
     if (uhColumns(uhDir, table).includes(column)) uhMissed.push(`${table}.${column}`);
-    if (!out.includes(`${table}.${column}`)) uhUnnamed.push(`${table}.${column}`);
-    if (!new RegExp(`${table}\\.${column}\\b[^\\n]*${since.replace(/\./g, '\\.')}`).test(out))
+    if (!run.out.includes(`${table}.${column}`)) uhUnnamed.push(`${table}.${column}`);
+    if (!new RegExp(`${table}\\.${column}\\b[^\\n]*${since.replace(/\./g, '\\.')}`).test(run.out))
       uhNoVersion.push(`${table}.${column} (${since})`);
   }
   check('Keine der achtzehn Spalten waechst noch nach — es gibt keinen Block mehr',
@@ -22086,7 +22115,7 @@ function sweepLeftovers() {
   fs.mkdirSync(uhDir, { recursive: true });
   uhRun(uhDir);
   uhDropColumn(uhDir, 'photos', 'zoom');
-  const uhOut = uhRun(uhDir);
+  const uhOut = uhRun(uhDir).out;
   check('Der Kasten sagt, dass die Datenbank unvollstaendig ist',
     /this database is incomplete/i.test(uhOut), JSON.stringify(uhOut.trim().slice(0, 200)));
   check('Und ueber welche Fassung zuerst zu gehen waere',
@@ -22112,10 +22141,12 @@ function sweepLeftovers() {
     fs.mkdirSync(uhDir, { recursive: true });
     uhRun(uhDir);
     uhRenameTable(uhDir, fresh, old);
-    let out2 = '';
-    try { out2 = uhRun(uhDir); }
-    catch (e) { uhTableMissed.push(`${old}: Start abgebrochen (${e.message})`); continue; }
-    if (!out2.includes(old) || !out2.includes(fresh))
+    const run2 = uhRun(uhDir);
+    if (!run2.ok) {
+      uhTableMissed.push(`${old}: Start abgebrochen (${run2.out.trim().split('\n').pop()})`);
+      continue;
+    }
+    if (!run2.out.includes(old) || !run2.out.includes(fresh))
       uhTableMissed.push(`${old} → ${fresh} nicht benannt`);
   }
   check('Eine Tabelle unter ihrem alten Namen wird mit BEIDEN Namen benannt',

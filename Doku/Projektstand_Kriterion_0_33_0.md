@@ -1,6 +1,12 @@
 # Projektstand — Kriterion
 
-**Kompakte Übergabe · Revision 91 · Stand 13. September 2026 · gebaut: Version 0.31.4**
+**Kompakte Übergabe · Revision 92 · Stand 14. September 2026 · gebaut: Version 0.33.0**
+
+> **REVISION 92 IST DER BRUCH.** *Was dieses Blatt über MIGRATIONSBLÖCKE sagt,
+> gilt ab hier nur noch als Geschichte: mit 0.33.0 sind alle achtzehn gefallen,
+> und es gibt keinen mehr.* **Die Zahlen in den Abschnitten älterer Runden
+> bleiben stehen, wie sie waren** — *sie sagen, was DAMALS galt, und rückwärts
+> wandert nichts.* **Was JETZT gilt, steht in Abschnitt 9 unter 0.33.0.**
 
 Dieses Blatt ist der **einzige Ort, an dem steht, was gebaut ist und was
 bindet.** Es genügt, um in einem frischen Chat weiterzuarbeiten, ohne den alten
@@ -11890,6 +11896,52 @@ trotzdem — *es ist die Stelle, an der ein Fehler still bleibt und trotzdem all
 in `CHANGELOG.md` (für den Betreiber) und in ihrem Änderungsprotokoll (Rohstoff,
 unverändert). *Die tragenden Entscheidungen dahinter leben in Abschnitt 5
 weiter.*
+
+### 0.33.0 — „Bereinigung — der Bruch" · 14. September 2026
+
+**DIE RUNDE, DIE NICHTS DAZULEGT.** *Sie nimmt weg, was einen Rückweg
+offenhält — und der einzige Zuwachs ist die Probe, die an die Stelle des
+Weggenommenen tritt.*
+
+| | vorher | nachher |
+|---|---|---|
+| **Migrationsblöcke** | 18 *(nicht 12 — siehe unten)* | **0** |
+| **Zeilen in `db.js`** | 2146 | **1352** |
+| **Schlüssel je Sprachdatei** | 1209 | **1208** |
+| **Prüfungen** | 7017 | **6858** |
+| **Rückbauten** | 1008 | **990** |
+| **Austauschformat** | 16 | **17** |
+| **Tabellen** | 28 | **28** |
+
+**DER ERSTE BEFUND WAR DER ZÄHLER SELBST: es waren ACHTZEHN und nicht zwölf.**
+*Fahrplan und Prüfstand zählten dieselbe einzeilige Marke; die sechs Blöcke der
+Sprachrunde 0.24.x trugen ihre Absage im BLOCKKOMMENTAR, und das Muster fand
+sie nicht.* **Stolperstein 156, diesmal am Zähler.** *Er liest jetzt beide
+Formen, und die Gegenprobe steht gestellt daneben.*
+
+**WAS AN IHRE STELLE GETRETEN IST:** *eine Probe auf `sqlite_master` und
+`PRAGMA table_info` — eine je Spalte und Tabelle, die einer der achtzehn Blöcke
+angelegt hätte.* **Sie nennt, was fehlt, seit welcher Fassung, und über welche
+Fassung zuerst zu gehen wäre — und sie sperrt niemanden aus.** *Der erste
+Entwurf war eine harte Absage; der Betreiber hat sie am 14. September 2026
+gekippt: eine Probe, die sich irren kann, darf niemanden aussperren.*
+
+**UND DREI ABBRUCHSTELLEN, DIE DER AUFTRAG NICHT KANNTE.** *Die Blöcke
+wegzunehmen genügt nicht: die beiden Indizes auf `photos`, das Auffangnetz
+(`links.user_id`, `attachments.user_id`) und die Grundausstattung
+(`rating_criteria.language`) stürben an einem `db.prepare`, das schon beim
+VORBEREITEN scheitert.* **Das wäre die gekippte Absage gewesen — nicht als
+Entscheidung, sondern als Absturz.** *Gefunden hat es der umgedrehte Prüfstand,
+an derselben Prüflage, die bis 0.32.1 den Block belegt hat.*
+
+**DAZU:** *der Stempel in `settings` (womit angelegt · womit zuletzt geöffnet;
+ein gewachsener Bestand bekommt „angelegt mit" NICHT nachgetragen), die
+Programmfassung neben der Formatnummer in der Exportdatei, die eine Abweisung
+der Runde (Formatnummer ≤ 13 kommt nicht mehr herein — sie liegt an der DATEI
+und nicht am START), die JPEG-Hälfte des Bestandslaufs, und das
+Containerprotokoll spricht englisch.*
+
+**Fingerprint `308655c9`** *(davor `24899ab8`)*. **Prüfstand 6858 von 6858.**
 
 ### 0.24.4 — „Türkisch, und die Kacheln sagen die Wahrheit"
 
