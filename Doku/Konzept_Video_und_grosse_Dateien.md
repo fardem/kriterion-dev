@@ -64,6 +64,14 @@ Auslieferung und Hochladen —, und jeder einzelne davon zieht eigenen Code nach
 sich. *Wer beides in einem Zug baut, baut zwei Dinge gleichzeitig und hat
 hinterher an keinem eine klare Regel.*
 
+> **ÜBERHOLT AM 15. SEPTEMBER 2026: es wird kein 1.0.0 geben** *(Vorgabe des
+> Betreibers; was als 1.0 geplant war, ist mit 0.33.0 erreicht).* **Der Absatz
+> darunter bleibt stehen, weil seine Unterscheidung weiter gilt:** *Teil I
+> änderte eine vorhandene Tabelle, Teil II legt nur Neues daneben. Nur die
+> Einordnung „vor" und „nach der Zusage" trägt nicht mehr.* **Teil II bleibt
+> draußen, und der Grund steht im Fahrplan: der Betreiber ist nicht überzeugt,
+> dass es gut gelingt.**
+
 **Warum Teil II nach 1.0.0 liegt.** Ab 1.0 wird Abwärtskompatibilität
 **zugesichert**. Teil I änderte `photos` — die Tabelle, in der jeder vorhandene
 Bestand liegt —, und so etwas gehört **vor** die Zusage. Teil II legt dagegen

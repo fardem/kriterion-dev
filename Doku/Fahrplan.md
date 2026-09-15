@@ -163,7 +163,8 @@ Sprachumschalter baut, hat damit ein Muster und braucht kein neues.**
 | **0.34.0** | **Der Prüfstand bekommt ein Verzeichnis** | `testbench.js` in Module — **und damit erst der echte Teillauf** | nein | — |
 | **0.35.0** | **Code-Effizienz** | Leichen und ineffizienter Code | offen | — |
 | **0.36.0** | **Sicherheit** | Fünf Lücken aus der Durchsicht vom 15. September 2026: CSRF-Token, Anmeldesperre übersteht keinen Neustart, 199 `innerHTML`-Stellen ungeprüft, Abhängigkeiten ohne Automatik. **Nach 0.35.0, damit die Durchsicht den Code sieht, der bleibt** | offen | — |
-| **1.0.0** | **Die Zusage** | Abwärtskompatibilität zugesichert, Schnittstelle steht fest | — | — |
+| ~~**1.0.0**~~ | ~~Die Zusage~~ | **GESTRICHEN am 15. September 2026** — Vorgabe des Betreibers: es wird kein 1.0.0 geben, was als 1.0 geplant war ist mit **0.33.0** erreicht. Die zwei offenen Punkte des Eintrags stehen in der Zeile darunter | — | — |
+| *ohne Nummer* | **Vorgabewerte und Tastaturbedienung beim Sortieren** | die zwei Punkte aus dem gestrichenen 1.0.0-Eintrag. Keine Abhängigkeit, keine feste Reihenfolge | nein | — |
 | *danach* | *Große Dateien bis 2 GB* | **ausdrücklich draußen** — siehe unten | ja | — |
 
 ---
@@ -1887,10 +1888,27 @@ Runden liegen zu lassen wäre falsch; sie gehört in den nächsten Patch.
 
 ---
 
-## 1.0.0 — „Die Zusage"
+## ~~1.0.0 — „Die Zusage"~~ — gestrichen am 15. September 2026
 
-Abwärtskompatibilität wird zugesichert, die öffentliche Schnittstelle steht
-fest. Dazu die Vorgabewerte und die Tastaturbedienung beim Sortieren.
+**Es wird kein 1.0.0 geben.** Vorgabe des Betreibers vom 15. September 2026:
+was als 1.0 geplant war, ist mit **0.33.0** erreicht.
+
+Der Eintrag lautete: *„Abwärtskompatibilität wird zugesichert, die öffentliche
+Schnittstelle steht fest. Dazu die Vorgabewerte und die Tastaturbedienung beim
+Sortieren."*
+
+**Was entfällt:** die Zusage als eigene Runde. Die Nummer hing an einer
+Bedingung, die im Projektstand in Abschnitt 5 steht: *„Sobald die Schnittstelle
+festliegt, kommt 1.0.0."* Diese Bedingung wird nicht mehr geführt.
+
+**Was nicht entfällt:** die zwei Punkte, die der Eintrag mitgetragen hat — die
+Vorgabewerte und die Tastaturbedienung beim Sortieren. Sie stehen jetzt als
+eigene Zeile in der Tabelle oben, ohne Nummer und ohne Abhängigkeit.
+
+**Folge für die Begründung von Runden:** „vor 1.0.0" ist kein Argument mehr.
+Wo es bisher eine Reihenfolge getragen hat, muss ein anderer Grund stehen. Die
+Regel steht in `CLAUDE.md`, Abschnitt 3. Der Eintrag 0.36.0 „Sicherheit" war
+zuerst mit „vor 1.0.0" begründet und ist am selben Tag berichtigt worden.
 
 ---
 
@@ -1903,8 +1921,12 @@ außen vor, weil ich da noch nicht voll überzeugt bin, dass es gut gelingen
 wird."*
 
 **Das Papier bleibt** (`Doku/Konzept_Video_und_grosse_Dateien.md`, Teil II) und
-**bekommt keine Nummer.** *Es steht nach 1.0.0 und ist damit kein Teil dieser
-Strecke.*
+**bekommt keine Nummer.** *Es ist kein Teil dieser Strecke.*
+
+> **BERICHTIGT AM 15. SEPTEMBER 2026.** *Hier stand „Es steht nach 1.0.0".
+> Diese Einordnung fällt mit dem gestrichenen 1.0.0-Eintrag weg.* **Der
+> Grund, warum Teil II draußen bleibt, ist der Satz des Betreibers darüber und
+> nicht eine Versionsnummer.**
 
 ### Abgelehnt — geprüft, entschieden, und hier steht warum
 

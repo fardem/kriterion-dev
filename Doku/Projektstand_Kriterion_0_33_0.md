@@ -4065,6 +4065,13 @@ was nach 1.0.0 die Zwei kosten würde. *Die Null ist hier keine Bescheidenheit,
 sondern eine Aussage: verlass dich noch nicht darauf.* **Sobald sie festliegt,
 kommt 1.0.0 — und nicht später.**
 
+> **ÜBERHOLT AM 15. SEPTEMBER 2026.** *Vorgabe des Betreibers:* **es wird kein
+> 1.0.0 geben.** *Was als 1.0 geplant war, ist mit* **0.33.0** *erreicht. Der
+> Absatz darüber bleibt als Herleitung des damaligen Stands stehen; die
+> Schlussfolgerung „sobald sie festliegt, kommt 1.0.0" gilt nicht mehr.* **Die
+> Null bleibt, und sie ist keine Vorstufe mehr.** *Die Regel steht in*
+> `CLAUDE.md`*, Abschnitt 3.*
+
 #### Das Changelog folgt Keep a Changelog 1.1.0 (ab 0.10.0)
 
 **Beschlossen nach 0.9.1.** `https://keepachangelog.com/de/1.1.0/`.
@@ -14284,8 +14291,8 @@ hängt am Inhalt der Datei, nicht an der Versionsnummer.*
 > *Zum zweiten Mal dieselbe Frage, zum zweiten Mal dieselbe Antwort — **eine
 > Regel, die man beim zweiten Mal wieder anwendet, ist eine Regel; eine, die
 > man beim zweiten Mal umgeht, war nie eine.***
-| **1.0.0** | **Die Zusage** | Abwärtskompatibilität wird zugesichert, die öffentliche Schnittstelle aus Abschnitt 5 steht fest. Dazu die Vorgabewerte und die Tastaturbedienung beim Sortieren | — | — |
-| **danach** | Große Dateien bis 2 GB | Teil II des Videopapiers. *MINOR nach 1.0.0* | ja | — |
+| ~~**1.0.0**~~ | ~~Die Zusage~~ | **GESTRICHEN am 15. September 2026** — Vorgabe des Betreibers: es wird kein 1.0.0 geben, was als 1.0 geplant war ist mit **0.33.0** erreicht. *Die zwei offenen Punkte — Vorgabewerte und Tastaturbedienung beim Sortieren — stehen im Fahrplan als eigene Zeile ohne Nummer.* | — | — |
+| **danach** | Große Dateien bis 2 GB | Teil II des Videopapiers. *MINOR* | ja | — |
 
 **VERÖFFENTLICHEN UND DIE EINS SIND ZWEI VERSCHIEDENE DINGE, und SemVer trennt
 sie.** Die Instanz darf mit **jeder** Nummer herausgehen. Was 1.0.0 hinzufügt,
