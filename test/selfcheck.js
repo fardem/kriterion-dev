@@ -985,18 +985,18 @@ async function run() {
       ['server.js', 5128],
       ['auth.js', 911],
       ['db.js', 467],
-      ['mail.js', 193],
-      ['keys.js', 122],
+      ['mail.js', 72],
+      ['keys.js', 45],
       ['attachments.js', 156],
-      ['images.js', 537],
-      ['batchrun.js', 349],
+      ['images.js', 37],
+      ['batchrun.js', 57],
       ['usertool.js', 51],
-      ['twofactor.js', 116],
+      ['twofactor.js', 47],
       ['keytool.js', 70],
       ['public/app.js', 6419],
-      ['public/theme.js', 45],
+      ['public/theme.js', 5],
     ];
-    const COMMENT_TOTAL = { comment: 38405, code: 59654 };
+    const COMMENT_TOTAL = { comment: 37306, code: 59651 };
     check('Der Waechter sieht alle vierunddreissig Dateien',
       crAll.each.length === 34 && COMMENT_ROWS.length === 34,
       `${crAll.each.length} gemessen, ${COMMENT_ROWS.length} genannt`);

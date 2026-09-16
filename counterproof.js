@@ -4726,8 +4726,8 @@ const REGRESSIONS = [
        saehe waehrend des ganzen Laufs dieselbe Null. */
     nr: '515', name: 'Das Nachziehen meldet seinen Stand erst am Ende',
     file: 'batchrun.js',
-    search: "    status.done++;\n    report(status);\n    /* DIESELBEN 30 ms WIE IN DEN ANDEREN BEIDEN SCHLEIFEN.",
-    replacement: "    stand.done++;\n    /* DIESELBEN 30 ms WIE IN DEN ANDEREN BEIDEN SCHLEIFEN.",
+    search: "    status.done++;\n    report(status);\n    // Dieselben 30 ms wie in den anderen Schleifen: sie halten die Maschine",
+    replacement: "    stand.done++;\n    // Dieselben 30 ms wie in den anderen Schleifen: sie halten die Maschine",
     expected: 'Der Bestandslauf faehrt in einem eigenen Thread — 0.19.3'
   },
   {

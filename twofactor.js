@@ -1,46 +1,21 @@
 const crypto = require('crypto');
 
-/* ================= Der zweite Faktor — die reine Rechnung =================
-
-   TOTP NACH RFC 6238. Ein Code entsteht auf dem Telefon aus einem Geheimnis
-   und der Uhr, OHNE NETZ -- die Instanz verschickt fuer den zweiten Faktor
-   nichts, weder Code noch Nachricht.
-
-   DIESE DATEI KENNT KEINE DATENBANK. Sie rechnet: Base32 hin und zurueck,
-   HMAC ueber einen Zaehler, der Vergleich ueber ein Fenster. Alles, was eine
-   Zeile hat, steht in auth.js -- dieselbe Teilung wie mail.js daneben.
-   KEINE NEUE ABHAENGIGKEIT: TOTP ist HMAC-SHA1 ueber einen Zaehler.
-
-   DIE VIER KENNWERTE STEHEN FEST, UND DAS IST DIE WICHTIGSTE FESSEL DIESER
-   DATEI. SHA-256 statt SHA-1, acht Ziffern statt sechs, sechzig Sekunden
-   statt dreissig -- jedes davon ist fuer sich das bessere Verfahren, und
-   jedes wird von Google Authenticator STILLSCHWEIGEND FALSCH oder gar nicht
-   gelesen. Wer davon abweicht, sperrt genau die App aus, fuer die gebaut
-   wird. Dieselben vier Werte sind die Vorgabe in jedem anderen Pruefgeraet --
-   die Bindung gilt dem Standard, nicht einem Anbieter. */
+/* Der zweite Faktor: TOTP nach RFC 6238, die reine Rechnung. Diese Datei
+   kennt keine Datenbank -- alles, was eine Zeile hat, steht in auth.js.
+   Die vier Kennwerte stehen fest, weil Google Authenticator jede Abweichung
+   stillschweigend falsch oder gar nicht liest. */
 const ALGORITHM = 'sha1';
 const DIGITS = 6;
 const STEP_SECONDS = 30;
-/* WIE WEIT DIE UHREN AUSEINANDERLAUFEN DUERFEN. Ein Fenster nach vorn und
-   eines zurueck, also je dreissig Sekunden. Zwei waeren bequemer und kosteten
-   die Haelfte der Zusage: ein mitgelesener Code waere zweieinhalb Minuten
-   wert statt anderthalb. */
+// Ein Fenster nach vorn und eines zurueck, also je dreissig Sekunden.
 const WINDOW = 1;
 
-/* Die Laenge des Geheimnisses in Bytes. RFC 4226 verlangt mindestens 16 und
-   empfiehlt 20 -- die Ausgabelaenge von SHA-1. 20 Bytes sind ausserdem die
-   Laenge, die glatt in 32 Base32-Zeichen aufgeht: kein Fuellzeichen, keine
-   Frage, ob das Gleichheitszeichen mitgetippt werden muss. */
+/* Die Laenge des Geheimnisses in Bytes. RFC 4226 empfiehlt 20; die gehen
+   glatt in 32 Base32-Zeichen auf, also ohne Fuellzeichen. */
 const SECRET_BYTES = 20;
 
-/* ---- Base32, RFC 4648 ----
-   WARUM BASE32 UND NICHT HEXADEZIMAL WIE BEIM TOKEN: weil das Geheimnis hier
-   ABGETIPPT wird. Base32 ist das Alphabet, das Google Authenticator liest,
-   und es kennt kein kleines l, keine 0 und keine 1 -- die drei Zeichen, an
-   denen sich ein Mensch vertut.
-   GEPRUEFT WIRD GEGEN DEN TESTVEKTOR AUS RFC 4648, nicht gegen die eigene
-   Rueckrechnung: ein Kodierer, der zu seinem eigenen Dekodierer passt, kann
-   trotzdem ein Alphabet verschoben haben. */
+/* Base32 nach RFC 4648 -- das Alphabet, das Google Authenticator liest. Es
+   kennt kein kleines l, keine 0 und keine 1. */
 const B32 = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
 
 function base32Encode(buffer) {
@@ -57,11 +32,9 @@ function base32Encode(buffer) {
   return out;
 }
 
-/* Liefert den Puffer oder null. NULL UND KEINE AUSNAHME: der Aufrufer ist eine
-   Route, und ein abgetippter Wert mit einem falschen Zeichen ist keine Stoerung
-   der Instanz, sondern eine gewoehnliche Eingabe.
-   LEERZEICHEN UND BINDESTRICHE FALLEN WEG: der Schluessel steht am Bildschirm
-   in Vierergruppen, und wer ihn abschreibt, schreibt die Luecken mit. */
+/* Liefert den Puffer oder null -- null und keine Ausnahme: der Aufrufer ist
+   eine Route. Leerzeichen und Bindestriche fallen weg, weil der Schluessel am
+   Bildschirm in Vierergruppen steht. */
 function base32Decode(text) {
   const t = String(text || '').toUpperCase().replace(/[\s-]/g, '').replace(/=+$/, '');
   if (!t) return null;
@@ -78,33 +51,23 @@ function base32Decode(text) {
 }
 
 // Ein frisches Geheimnis, fertig zum Abtippen. Es verlaesst die Instanz genau
-// einmal -- beim Einschalten. Danach nie wieder, auch nicht an den Eigentuemer.
+// einmal -- beim Einschalten.
 const newSecret = () => base32Encode(crypto.randomBytes(SECRET_BYTES));
 
-/* Der Schluessel am Bildschirm, in Vierergruppen. Zweiunddreissig Zeichen am
-   Stueck sind der Weg, an dem Menschen aufgeben; acht Gruppen zu vier sind
-   derselbe String und lassen sich nach jeder Gruppe abgleichen.
-   DIE GRUPPEN SIND EINE ANZEIGE UND KEIN FORMAT: base32Decode wirft die
-   Trennzeichen wieder weg, und die Instanz speichert den Wert ohne sie. */
+/* Der Schluessel am Bildschirm, in Vierergruppen. Die Gruppen sind eine
+   Anzeige und kein Format: base32Decode wirft sie wieder weg. */
 const groupsOfFour = (s) => String(s || '').replace(/(.{4})(?=.)/g, '$1 ');
 
-/* ---- Der Zeitschritt ----
-   DIE ZAHL DER DREISSIG-SEKUNDEN-SCHRITTE SEIT DEM 1.1.1970. Sie ist der
-   Zaehler, ueber den der HMAC laeuft, und zugleich das, was gegen
-   Wiederverwendung aufbewahrt wird: ein verbrauchter Schritt kommt nie wieder.
-   DIE UHR WIRD UEBERGEBEN UND NICHT HIER GEHOLT -- sonst liesse sich das
-   Zeitfenster nur mit echtem Warten pruefen, und eine Pruefung, die eine
-   Minute schlaeft, wird irgendwann herausgenommen. */
+/* Die Zahl der Dreissig-Sekunden-Schritte seit dem 1.1.1970. Sie ist der
+   Zaehler des HMAC und zugleich das, was gegen Wiederverwendung aufbewahrt
+   wird. Die Uhr wird uebergeben, damit das Zeitfenster ohne Warten pruefbar
+   bleibt. */
 const stepOf = (msSinceEpoch) => Math.floor(msSinceEpoch / 1000 / STEP_SECONDS);
 const nowStep = () => stepOf(Date.now());
 
-/* Der Code zu EINEM Zaehler. Das dynamische Abgreifen steht so in RFC 4226,
-   Abschnitt 5.3: die letzten vier Bit des Hashs nennen den Anfang, dort
-   werden vier Bytes gelesen, das oberste Bit faellt weg.
-   Der Zaehler ist acht Bytes gross und wird in ZWEI Haelften geschrieben --
-   writeUInt32BE kann keine 64 Bit. Ueber 2^32 laeuft er erst ab dem Jahr
-   6053, kein Testvektor erreicht ihn; der Pruefstand haelt die obere Haelfte
-   deshalb gegen eine ZWEITE Bauform (writeBigUInt64BE). */
+/* Der Code zu einem Zaehler. Das dynamische Abgreifen steht in RFC 4226,
+   Abschnitt 5.3. Der Zaehler wird in zwei Haelften geschrieben --
+   writeUInt32BE kann keine 64 Bit. */
 function code(secretBase32, counter) {
   const secret = base32Decode(secretBase32);
   if (!secret || !secret.length) return null;
@@ -117,25 +80,15 @@ function code(secretBase32, counter) {
   return String(bin % 10 ** DIGITS).padStart(DIGITS, '0');
 }
 
-// Sieht ein getippter Wert ueberhaupt nach einem Code aus. Sechs Ziffern, sonst
-// nichts -- der Wiederherstellungscode ist an seiner Form zu unterscheiden, und
-// deshalb genuegt EIN Eingabefeld fuer beide.
+// Sieht ein getippter Wert nach einem Code aus. Sechs Ziffern, sonst nichts --
+// damit ein Eingabefeld ihn vom Wiederherstellungscode unterscheidet.
 const isCodeForm = (input) => new RegExp(`^\\d{${DIGITS}}$`).test(String(input || '').trim());
 
-/* Prueft einen Code gegen das Fenster und liefert den ZAEHLER, der getragen
-   hat -- oder null.
-
-   DER ZAEHLER UND NICHT ja/nein: der Aufrufer schreibt ihn weg und nimmt beim
-   naechsten Mal nur noch etwas GROESSERES an. Ein blosses ja/nein zwaenge ihn,
-   den Schritt selbst nachzurechnen -- eine zweite Rechnung neben dieser.
-
-   NACH steht VOR: geprueft wird von hinten nach vorn, damit bei zwei
-   passenden Fenstern der spaetere gewinnt.
-
-   ZEITUNABHAENGIG VERGLICHEN, anders als beim Token: dort ist der Hash ein
-   Primaerschluessel und wird NACHGESCHLAGEN, hier wird wirklich verglichen,
-   und sechs Ziffern sind kurz genug, dass eine Laufzeit etwas sagen
-   koennte. */
+/* Prueft einen Code gegen das Fenster und liefert den Zaehler, der getragen
+   hat, oder null. Der Zaehler und nicht ja/nein: der Aufrufer schreibt ihn
+   weg und nimmt danach nur noch etwas Groesseres an.
+   Geprueft wird von hinten nach vorn, damit bei zwei passenden Fenstern der
+   spaetere gewinnt. Verglichen wird zeitunabhaengig. */
 function checkCode(secretBase32, input, now = Date.now()) {
   const typed = String(input || '').trim();
   if (!isCodeForm(typed)) return null;
@@ -151,18 +104,10 @@ function checkCode(secretBase32, input, now = Date.now()) {
   return null;
 }
 
-/* ---- Die Zeile fuer die App ----
-   otpauth:// IST DER STANDARD, an den sich jedes Pruefgeraet haelt. Auf einem
-   Telefon oeffnet der Link die App unmittelbar; am Rechner ist er der String,
-   den ein QR-Code ohnehin nur zeichnen wuerde.
-
-   DIE DREI KENNWERTE STEHEN AUSGESCHRIEBEN DARIN, obwohl sie die Vorgabe
-   sind: ein Pruefgeraet, das sie ANDERS vorbelegt, laege sonst still daneben.
-
-   DER INSTANZNAME KOMMT AUS DEM OEFFENTLICHEN TITEL und ist Eingabe aus dem
-   Systembereich -- deshalb encodeURIComponent, nicht bloss ein Ersetzen von
-   Doppelpunkten. Die Zeile misst rund hundert Zeichen bei kurzen Namen und
-   zweihundert bei sehr langen. */
+/* Die Zeile fuer die App. otpauth:// ist der Standard; auf einem Telefon
+   oeffnet der Link die App unmittelbar. Die drei Kennwerte stehen
+   ausgeschrieben darin, obwohl sie die Vorgabe sind. Der Instanzname ist
+   Eingabe aus dem Systembereich, deshalb encodeURIComponent. */
 function otpauthLine(instance, username, secretBase32) {
   const label = encodeURIComponent(`${instance}:${username}`);
   return `otpauth://totp/${label}?secret=${secretBase32}` +
@@ -170,45 +115,31 @@ function otpauthLine(instance, username, secretBase32) {
     `&algorithm=${ALGORITHM.toUpperCase()}&digits=${DIGITS}&period=${STEP_SECONDS}`;
 }
 
-/* ---- Die Wiederherstellungscodes ----
-   OHNE SIE IST EIN VERLORENES TELEFON EIN VERLORENER ZUGANG.
-
-   ACHT STUECK, ZEHN ZEICHEN -- rund fuenfzig Bit, weit jenseits dessen, was
-   eine Bremse von zehn Versuchen je Adresse durchlaesst. Acht sind mehr, als
-   ein Mensch je braucht, und wenig genug fuer einen Zettel.
-
-   EIN EIGENES ALPHABET UND NICHT BASE32: hier wird nichts dekodiert, nur
-   verglichen. Also faellt heraus, was sich beim Abschreiben verwechseln
-   laesst -- 0/O, 1/I/l.
-   DIE GRUPPEN SIND EINE ANZEIGE UND KEIN FORMAT: gespeichert und verglichen
-   wird ohne sie. */
+/* Die Wiederherstellungscodes -- ohne sie ist ein verlorenes Telefon ein
+   verlorener Zugang. Acht Stueck, zehn Zeichen, rund fuenfzig Bit.
+   Ein eigenes Alphabet und nicht Base32: hier wird nichts dekodiert, nur
+   verglichen, also faellt heraus, was sich verwechseln laesst. */
 const RECOVERY_ALPHABET = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
 const RECOVERY_COUNT = 8;
 const RECOVERY_LENGTH = 10;
 
-/* GLEICHVERTEILT GEZOGEN, nicht ueber einen Rest. `zufall % 31` gaebe den
-   ersten Zeichen des Alphabets mehr Gewicht als den letzten -- bei 256 durch 31
-   sind das rund vier Prozent Schieflage. randomInt zieht ohne diesen Rand. */
+/* Gleichverteilt gezogen. `zufall % 31` gaebe den ersten Zeichen des
+   Alphabets rund vier Prozent mehr Gewicht. */
 const oneRecoveryCode = () => Array.from({ length: RECOVERY_LENGTH },
   () => RECOVERY_ALPHABET[crypto.randomInt(RECOVERY_ALPHABET.length)]).join('');
 
 const newRecoveryCodes = () => Array.from({ length: RECOVERY_COUNT }, oneRecoveryCode);
 
-// Am Bildschirm in zwei Fuenferbloecken: XXXXX-XXXXX. Derselbe Gedanke wie bei
-// den Vierergruppen des Schluessels.
+// Am Bildschirm in zwei Fuenferbloecken: XXXXX-XXXXX.
 const recoveryDisplay = (c) => `${String(c).slice(0, 5)}-${String(c).slice(5)}`;
 
-/* Auf die Form gebracht, bevor verglichen wird. Bindestriche und Leerzeichen
-   fallen weg, klein wird gross: wer einen Code vom Zettel abschreibt, schreibt
-   ihn so, wie er dasteht.
-   LIEFERT DEN LEEREN STRING, wenn nichts uebrig bleibt -- der Aufrufer prueft
-   auf die Laenge und schlaegt nicht mit einem leeren Hash nach. */
+/* Auf die Form gebracht, bevor verglichen wird: Bindestriche und Leerzeichen
+   fallen weg, klein wird gross. Liefert den leeren String, wenn nichts
+   uebrig bleibt. */
 const recoveryNormal = (input) =>
   String(input || '').toUpperCase().replace(/[\s-]/g, '');
 
-// Sieht ein getippter Wert nach einem Wiederherstellungscode aus. Zehn Zeichen
-// aus dem Alphabet, sonst nichts -- die Gegenprobe zu isCodeForm, damit EIN
-// Eingabefeld beide Formen auseinanderhaelt.
+// Die Gegenprobe zu isCodeForm: zehn Zeichen aus dem Alphabet, sonst nichts.
 const isRecoveryForm = (input) => {
   const w = recoveryNormal(input);
   return w.length === RECOVERY_LENGTH && [...w].every(z => RECOVERY_ALPHABET.includes(z));
