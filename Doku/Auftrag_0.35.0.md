@@ -2,7 +2,8 @@
 
 Geschrieben am 16. September 2026. Nicht gebaut. Läuft nach 0.34.3.
 
-**101 Befunde gemessen, 75 halten der Widerlegung stand, 5 davon gehören nach
+**101 Befunde gemessen, 75 halten der Widerlegung stand. Fünf davon sind
+Sicherheitsbefunde: zwei gehen als Patch 0.34.4 vor diese Runde, drei nach
 0.36.0. Für diese Runde bleiben 70 Befunde an 65 Stellen.**
 
 ---
@@ -84,11 +85,15 @@ Kommentaranteil auf 19,2 % gebracht, aber über 34 **JavaScript**-Dateien.
 | `server.js:1655` | `PUT /api/settings` sagt an neun Stellen ab, **nachdem** es schon geschrieben hat, ohne Transaktion |
 | `testbench.js:25` | **Ein Modul, das nach dem Schreiben seiner Meldung abstürzt, zählt als bestanden.** `test/frame.js` schreibt die Meldung in Zeile 619, räumt in 620–624 auf (`fs.rmSync` ohne `try/catch`) und beendet erst in 625 |
 
-**`auth.js:691` und `testbench.js:25` sollten nicht auf 0.36.0 warten.** Der
-erste bricht eine Zusage, die die Anwendung ausdrücklich gibt; der zweite kann
-einen roten Lauf als grünen ausgeben. Beide sind je wenige Zeilen. Der
-Vorschlag: ein eigener Patch **0.34.4** vor dieser Runde. **Das ist zu
-entscheiden und steht in der Fragetafel als F13.**
+**`auth.js:691` und `testbench.js:25` warten nicht auf 0.36.0.** Der erste
+bricht eine Zusage, die die Anwendung ausdrücklich gibt; der zweite kann einen
+roten Lauf als grünen ausgeben — und zwar gerade dort, wo 0.35.0 seine Belege
+herholt. Beide sind je wenige Zeilen.
+
+> **ENTSCHIEDEN AM 16. SEPTEMBER 2026 (F13): beide gehen als eigener Patch
+> 0.34.4 vor diese Runde.** Nach dem Muster von 0.33.1 und 0.33.2: eigene
+> Nummer, eigenes Änderungsprotokoll, **kein Auftrag**. Die übrigen drei
+> Befunde bleiben bei 0.36.0.
 
 ---
 
@@ -128,7 +133,7 @@ nicht quotieren — zwei Zeilen weniger können eine Verschlechterung sein.
 | **F10** | Die vier Befunde der Messung? | **B1 und B2 als eigener Bauabschnitt**, B3 als Messpunkt davor |
 | **F11** | Welche Stellen kommen in die Runde? | **Die 65**, die der Widerlegung standhalten. Die 26 widerlegten stehen mit Begründung daneben |
 | **F12** | Bindende Zahl wie die 20 % bei 0.34.1? | **Keine Quote** |
-| **F13** | `auth.js:691` und `testbench.js:25` als Patch 0.34.4 vor dieser Runde? | **offen** |
+| **F13** | `auth.js:691` und `testbench.js:25` als Patch 0.34.4 vor dieser Runde? | **Ja.** Eigene Nummer, eigenes Änderungsprotokoll, kein Auftrag |
 
 ---
 
@@ -199,8 +204,9 @@ Lauf.
   bleiben als Befund stehen und bekommen eine eigene Nummer.**
 - **Kein Austauschformat.** `appVersion` wird im Format 17 nie gelesen
   (`server.js:4021`) — das bleibt Befund.
-- **Keine Sicherheitsarbeit.** Die fünf Befunde aus Abschnitt 3 gehören nach
-  0.36.0, vorbehaltlich F13.
+- **Keine Sicherheitsarbeit.** Drei der fünf Befunde aus Abschnitt 3 gehören
+  nach 0.36.0. Die beiden übrigen sind mit **0.34.4** vor dieser Runde gebaut
+  worden (F13).
 - **Keine Prüfung fällt**, auch keine, die dasselbe sagt wie eine andere.
 - **Keine Quote wird gegen die Regel erzwungen.** Kommt ein Bauabschnitt mit der
   Regel nicht zu einer Verbesserung, ist das ein Befund und wird aufgeschrieben.
