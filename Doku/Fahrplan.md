@@ -1932,10 +1932,12 @@ null auf, sondern schließt Lücken in einem vorhandenen.
 
 ### Was NICHT in dieser Runde liegt
 
-**`npm audit` meldet heute zwei mittelschwere Schwachstellen** in `qs`,
-eingeschleppt über `express`, behebbar mit `npm audit fix` (nur das Lockfile
-bewegt sich). **Das wartet nicht auf 0.36.0.** Eine bekannte Schwachstelle drei
-Runden liegen zu lassen wäre falsch; sie gehört in den nächsten Patch.
+*Hier stand bis 0.35.0, `npm audit` melde zwei mittelschwere Schwachstellen in
+`qs` über `express`, und sie gehörten in den nächsten Patch.* **Die Zeile war
+beim Schreiben des Auftrags 0.35.0 schon überholt: 0.33.1 hat die beiden mit
+`npm audit fix` behoben.** Gemessen am 16. September 2026 auf dem Stand
+`5139e1f` — **`npm audit` meldet 0 Schwachstellen** (B2 des Auftrags 0.35.0).
+Punkt 5 der Tafel darüber bleibt: geprüft wird bis heute von Hand.
 
 ### Offene Fragen für die Fragetafel jener Runde
 

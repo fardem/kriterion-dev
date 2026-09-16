@@ -192,7 +192,7 @@ function writeEnvLine(file, oldHex, newHex, who, stamp) {
   return old;
 }
 
-module.exports = { loadKey, HEX_PATTERN, createKey, cleanNote,
+module.exports = { loadKey, HEX_PATTERN, createKey,
                    writeKeyFile, findEnvLine, writeEnvLine,
                    testbenchSwitch, scryptCost, mailDeadline, brakeWait,
-                   TESTBENCH_NAME, TESTBENCH_MARK, TESTBENCH_FLOOR };
+                   TESTBENCH_NAME };

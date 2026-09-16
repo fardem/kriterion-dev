@@ -8553,6 +8553,37 @@ const REGRESSIONS = [
     replacement: "if (false) {",
     expected: 'Der Treiber sieht den Rueckgabewert — 0.34.4'
   },
+
+  /* ---- 0.35.0 · BA 0: die Befunde der Messung selbst ------------------- */
+  {
+    /* B1: die Schalterprobe vererbt TESTBENCH_TIME wieder an das Kind. Die
+       Pruefung darueber ist dann nur noch gruen, solange der Elternlauf
+       zufaellig keinen Schalter traegt. */
+    nr: '1063', name: 'Die Schalterprobe vererbt den Schalter wieder an das Kind',
+    file: 'test/release_030.js',
+    search: "        env: { ...process.env, TESTBENCH_PROBE: '1', TESTBENCH_TIME: '' } });",
+    replacement: "        env: { ...process.env, TESTBENCH_PROBE: '1' } });",
+    expected: 'Die Schalterprobe haengt nicht am Elternlauf — 0.35.0'
+  },
+
+  /* ---- 0.35.0 · BA 1: tot in den ausgelieferten Dateien ---------------- */
+  {
+    /* Der Sprachname traegt wieder eine Klasse ohne Regel im Stilblatt. */
+    nr: '1064', name: 'Der Sprachname traegt wieder ename statt engine-name',
+    file: 'public/app.js',
+    search: "      st.onclick = () => sendLanguages({ languageDefault: a.code }, t('card.languageDefaultSaved'));\n      const nm = document.createElement('span');\n      nm.className = 'engine-name';",
+    replacement: "      st.onclick = () => sendLanguages({ languageDefault: a.code }, t('card.languageDefaultSaved'));\n      const nm = document.createElement('span');\n      nm.className = 'ename';",
+    expected: 'Die Karte sagt, wo Arbeit liegt — 0.25.0'
+  },
+  {
+    /* Die Route ohne Aufrufer steht wieder da -- hinter requireAuth, also
+       ohne Sitzungscookie mit 401. */
+    nr: '1065', name: 'Die Route /api/health steht wieder da',
+    file: 'server.js',
+    search: "app.get('/api/manifest.json'",
+    replacement: "app.get('/api/health', (req, res) => res.json({ ok: true }));\napp.get('/api/manifest.json'",
+    expected: 'Das Startbildzeichen — 0.28.0'
+  },
 ];
 
 /* ================= Spuren und Versatz ================= Der Versatz je

@@ -1700,8 +1700,11 @@ async function sendImport(object, mode, withoutShare = false) {
     check('Die neue Route ist lesend und waechst F_ROUTES nicht',
       /app\.get\('\/api\/manifest\.json'/.test(serverCode)
       && !/app\.(post|put|delete)\('\/api\/manifest\.json'/.test(serverCode));
+    /* 31 -> 30 mit 0.35.0: GET /api/health ist gefallen. Die Route stand
+       hinter app.use('/api', auth.requireAuth) und antwortete ohne
+       Sitzungscookie mit 401; der Container fragt /api/config. */
     check('Und sie ist die EINZIGE neue Route dieser Runde',
-      (serverCode.match(/^app\.get\('/gm) || []).length === 31,
+      (serverCode.match(/^app\.get\('/gm) || []).length === 30,
       String((serverCode.match(/^app\.get\('/gm) || []).length));
 
     // Den Titel zurueckstellen -- die Pruefungen danach rechnen mit dem alten.

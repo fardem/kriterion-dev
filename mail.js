@@ -202,10 +202,10 @@ const mailConfirm = (locale, values) => mail(locale, 'confirm', values);
 const mailTest = (locale, values) => mail(locale, 'test', values);
 
 module.exports = {
-  PROVIDERS, HINTS, HINT_ALWAYS, SETTING_KEY,
+  PROVIDERS, SETTING_KEY,
   SEND_MS, CONNECT_MS, GREETING_MS,
   SEND_SHIPPED, CONNECT_SHIPPED, GREETING_SHIPPED,
-  isAddress, providerOf, forChoice, resolve, state, configured, checkInput, mark,
+  isAddress, forChoice, resolve, state, configured, checkInput, mark,
   send, setTranslator,
   mailInvite, mailReset, mailConfirm, mailTest
 };

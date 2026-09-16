@@ -1278,6 +1278,23 @@ async function run() {
       check('Und nach dem Wechsel nennt sie die neue Vorgabesprache und beide Zahlen',
         anHint().includes('Türkçe') && /4/.test(anHint()) && /15/.test(anHint()),
         JSON.stringify(anHint()));
+      /* DER SPRACHNAME TRAEGT EINE KLASSE MIT REGEL -- 0.35.0, BA 1. Bis
+         dahin stand dort `ename`, und dafuer gibt es in public/style.css
+         keine Regel; die beiden anderen Listen mit derselben Zeilenform
+         setzen `engine-name`. */
+      {
+        const anRow = [...wAn.document.querySelectorAll('#langs .engine')]
+          .find(z => z.dataset.k === 'de');
+        const anName = anRow && anRow.querySelector('.engine-name');
+        check('Der Sprachname traegt engine-name und nicht ename',
+          !!anName && (anName.textContent || '').trim() === 'Deutsch'
+          && !anRow.querySelector('.ename'),
+          anRow ? anRow.innerHTML.slice(0, 120) : 'keine Sprachzeile');
+        check('Und zu dieser Klasse gibt es eine Regel im Stilblatt',
+          /\.engine-name\s*\{/.test(fs.readFileSync(
+            path.join(__dirname, 'public', 'style.css'), 'utf8')),
+          'keine Regel .engine-name');
+      }
       wAn.close();
     }
     /* UND SIE STEHT NICHT DA, WENN NICHTS FEHLT. Ein Satz, der immer dasteht,

@@ -146,7 +146,6 @@ const DUMMY_VALUE = hashPasswordSync(crypto.randomBytes(16).toString('hex'));
 // Drei Rollen als Leiter: user < admin < eigentuemer (Begruendung am Schema
 // in db.js).
 const ROLES = ['user', 'admin', 'owner'];
-const STATES = ['active', 'locked', 'deleted'];
 
 // Der Name eines geloeschten Zugangs. Der urspruengliche wird ueberschrieben
 // und ist damit wieder frei.
@@ -1191,17 +1190,17 @@ module.exports = {
   delay, SCRYPT_COST: SCRYPT.N, SCRYPT_SHIPPED,
   // Meine Sitzungen und die Token; Rufer ist server.js.
   sessionIdOf, sessionsOf, endSession, endOtherSessions,
-  TOKEN_DAYS, TOKEN_TRACE_DAYS, TOKEN_PURPOSES, TOKEN_DEADLINE_MINUTES, tokenHash,
+  TOKEN_DAYS, TOKEN_DEADLINE_MINUTES, tokenHash,
   cleanupTokens, createToken, checkToken, redeemToken, startTokenDeadline,
   // Die Selbstanmeldung; Rufer ist server.js.
   REQUEST_HOURS, REQUEST_CAP, REQUEST_NAME_MAX, REQUEST_MAIL_MAX,
   countRequests, cleanupRequests,
   createRequest, confirmRequest, listRequests, getRequest, removeRequest,
   // Das Sicherheitsprotokoll; Rufer sind server.js und usertool.js.
-  EVENTS, DETAILS, LOG_DAYS, LOG_LIMIT, LOG_GROUPS, FROM_HOST,
+  EVENTS, DETAILS, LOG_LIMIT, LOG_GROUPS, FROM_HOST,
   log, cleanupLog, readLog,
   // Die zweite Bestaetigung.
-  CONFIRM_PURPOSES, RELEASE_MS, createRelease, useRelease, dropRelease,
+  CONFIRM_PURPOSES, RELEASE_MS, createRelease, useRelease,
   // Der zweite Faktor; Rufer sind server.js und usertool.js.
   TWO_FACTOR_DENIAL, LOGIN_TICKET_MS,
   twoFactorOn, twoFactorState, startTwoFactor, turnTwoFactorOn,
@@ -1210,7 +1209,7 @@ module.exports = {
   getUser, getUserByName, userExists, createFirstUser, changeUser,
   hashPassword, checkPassword,
   // Zugangsverwaltung; Rufer sind server.js und usertool.js.
-  ROLES, STATES, tombstoneName, TOMBSTONE_PATTERN,
+  ROLES,
   getUser2, listUsers, ownerCount,
   createUser, setNewPassword, setRole, setStatus, countInventory, removeUser
 };

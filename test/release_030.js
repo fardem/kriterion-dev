@@ -178,7 +178,8 @@ async function check0300() {
       tFew.join(' | '));
     /* UND SIE STEHT WIRKLICH IM SCHLUSSBLOCK EINES GEFAHRENEN LAUFS. */
     const tProbe = require('child_process').spawnSync(process.execPath, ['testbench.js'],
-      { cwd: __dirname, encoding: 'utf8', env: { ...process.env, TESTBENCH_PROBE: '1' } });
+      { cwd: __dirname, encoding: 'utf8',
+        env: { ...process.env, TESTBENCH_PROBE: '1', TESTBENCH_TIME: '' } });
     check('Und ein gefahrener Lauf traegt sie in seinem Schlussblock',
       /DIE TEUERSTEN 2 VON 2 GRUPPEN:/.test(tProbe.stdout) &&
       /s in Gruppen, .* s im ganzen Lauf\./.test(tProbe.stdout),

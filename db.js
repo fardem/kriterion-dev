@@ -1272,7 +1272,7 @@ module.exports = { db, DATA_DIR, DB_FILE, keyFromEnv: key.fromEnv, keyHex: key.h
                    // nicht eine zweite, die dasselbe tut.
                    searchFold,
                    changeKey, method,
-                   renumberCriteria, assignInventory, ownerId,
+                   renumberCriteria, assignInventory,
                    /* Was eine unvollstaendige Datenbank vermissen laesst. Geht hinaus, damit
                       der Pruefstand die Probe an einer gestellten Lage fragen
                       kann. */

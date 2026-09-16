@@ -507,8 +507,11 @@ async function check0311() {
 /* DIE BEIDEN DEUTSCHEN PRUEFSUMMEN DER GLEICHLAUTPROBE, gemessen am gebauten
    Stand dieser Runde. */
 /* MIT 0.31.4 SIND DIESE BEIDEN ZAHLEN ANDERE, UND KEIN DEUTSCHER SATZ HAT
-   SICH BEWEGT. */
-const DE_UNTOUCHED = { one: 'daa0c9094f2c2305', other: '77128aef244a5976' };
+   SICH BEWEGT. Dasselbe gilt fuer 0.35.0: die Probe liest den Quelltext von
+   public/app.js ohne Kommentare und ohne Markup, und diese Runde nimmt dort
+   toten Code weg und fasst Wiederholungen zusammen. Der Stand von 0.31.4 war
+   daa0c9094f2c2305 / 77128aef244a5976. */
+const DE_UNTOUCHED = { one: '39e1f98e9428f87c', other: '18d15f4912bb55cd' };
 const DE_BEFORE_0312 = { one: '91b86c5affcba789', other: '07fc3ccdc8a27a03' };
 const DE_ORDERED_0312 = {
   'login.requestAccess': 'Zugang anfragen',
@@ -820,12 +823,14 @@ async function check0312() {
    DE_UNTOUCHED steht schon oben bei 0.31.2 und wird hier WEITERBENUTZT und
    nicht abgeschrieben: zwei Zahlen an zwei Orten laufen auseinander. */
 /* 9cfb555855459a0c / 98295846dd0ac5a4 -- 0.31.3 2f8e5b3abe58f9fd /
-   39489ec6ae18020b -- vor 0.31.3; derselbe Grund wie oben. */
-const EN_UNTOUCHED = { one: 'caa4b814e75f8263', other: 'f224721465ac0d35' };
+   39489ec6ae18020b -- vor 0.31.3; derselbe Grund wie oben.
+   VOR 0.35.0: en caa4b814e75f8263 / f224721465ac0d35,
+   tr ab6bdf35499f7cf9 / ad34f68137acaa2b. */
+const EN_UNTOUCHED = { one: 'af8e04bc09fa2eba', other: '2918722b8f39e17c' };
 const TR_BEFORE_0313 = { one: '5fec71b10c0dfa3c', other: '18b07eda589b5120' };
 /* bbaca227348609dc / 73d9f1ea0298d519 -- der Stand VOR der Berichtigung an
    der Vorschau der Vokabelkarte, die der Augenschein von 0.31.3 verlangt hat. */
-const TR_AFTER_0313 = { one: 'ab6bdf35499f7cf9', other: 'ad34f68137acaa2b' };
+const TR_AFTER_0313 = { one: 'd670aea110e2c952', other: '42d56dd837055e12' };
 
 async function check0313() {
   const tgRead = (code) => JSON.parse(fs.readFileSync(

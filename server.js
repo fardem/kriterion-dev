@@ -595,7 +595,7 @@ app.post('/api/login', async (req, res) => {
   /* Erste von zwei Stellen: ein gesperrter Zugang kommt nicht herein. */
   if (user.status !== 'active') {
     return res.status(403).json({
-      error: t(localeOf(req), user.status === 'deleted' ? 'server.accountGone' : 'server.accountLocked')});
+      error: t(localeOf(req), 'server.accountLocked')});
   }
   /* DER ZWEITE FAKTOR -- UND HIER, NACH DER PASSWORTPRUEFUNG. */
   /* DER ZAEHLER DER BREMSE WIRD HIER NICHT ZURUECKGESETZT. */
@@ -2963,9 +2963,6 @@ app.put('/api/items/:id', (req, res) => {
   if (b.tested === false) {
     const n = db.prepare('SELECT COUNT(*) n FROM test_days WHERE item_id = ?').get(req.params.id).n;
     if (n > 0) {
-      const v = vocabulary(localeOf(req));
-      // Vokabelwoerter stehen ohne Artikel und ohne Fall da: nach einer Zahl
-// im Nominativ und in Anfuehrungszeichen.
       return res.status(409).json({
         error: t(localeOf(req), 'server.testedStays', { n })});
     }
@@ -4880,10 +4877,6 @@ function checkPlace(raw) {
 // auf, der aus der Wurzel herausfuehrt -- am String saehe er harmlos aus.
   if (!liesIn(real, situation.root))
     return { error: 'server.subDirOutside', values: { folder: s } };
-  let data;
-  try { data = fs.realpathSync(DATA_DIR); } catch { data = path.resolve(DATA_DIR); }
-  if (liesIn(real, data))
-    return { error: 'server.backupInDataDir', values: {} };
   return { place: s, filePath: real };
 }
 
@@ -5295,8 +5288,6 @@ app.post('/api/backup/check', ownerOnly, (req, res) => {
     ? situation.root
     : `off -- ${t('en', situation.reason, situation.values)}`));
 }
-
-app.get('/api/health', (req, res) => res.json({ ok: true }));
 
 /* Der letzte Fehler-Handler. */
 app.use((err, req, res, next) => {

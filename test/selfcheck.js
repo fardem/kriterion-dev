@@ -25,7 +25,7 @@ async function run() {
   // Die Zahl der Rueckbauten steht ausdruecklich da: eine Zahl in einem
   // Papier ist eine Behauptung, eine Zahl im Pruefstand ist ein Beleg. Wie
   // sie Runde fuer Runde gewachsen ist, steht in den Aenderungsprotokollen.
-  check(`Es sind genau 1000 Rueckbauten`, gpList.length === 1000, `${gpList.length}`);
+  check(`Es sind genau 1003 Rueckbauten`, gpList.length === 1003, `${gpList.length}`);
   const gpTwice = gpList.map(r => r.nr).filter((n, i, a) => a.indexOf(n) !== i);
   check('Und keine Nummer steht zweimal', gpTwice.length === 0, gpTwice.join(' '));
   /* JEDER GREIFT: der Suchtext kommt in seiner Datei GENAU EINMAL vor. */
@@ -266,7 +266,7 @@ async function run() {
     if (miss.length) rpStrange.push(`${r.nr} ${r.file}: ${miss.join(' ')}`);
   }
   check('Der Waechter sieht die Rueckbauten auf Pruefstandsdateien',
-    rpChecked === 20, `${rpChecked} Rueckbauten`);
+    rpChecked === 21, `${rpChecked} Rueckbauten`);
   check('Und jeder ihrer Namen steht in der Zieldatei, im Rahmen oder im Suchtext',
     rpStrange.length === 0, rpStrange.slice(0, 6).join(' · '));
 
@@ -293,20 +293,20 @@ async function run() {
       ['test/keychange.js', 70],
       ['test/release_029.js', 60],
       ['test/release_030.js', 239],
-      ['test/release_031.js', 384],
-      ['test/roundtrip.js', 3125],
-      ['test/selfcheck.js', 140],
+      ['test/release_031.js', 389],
+      ['test/roundtrip.js', 3128],
+      ['test/selfcheck.js', 152],
       ['test/source.js', 605],
       ['test/ui_entry.js', 497],
       ['test/ui_export.js', 453],
       ['test/ui_inventory.js', 241],
       ['test/ui_language.js', 273],
-      ['test/ui_overview.js', 490],
+      ['test/ui_overview.js', 494],
       ['test/ui_style.js', 562],
       ['test/ui_system.js', 692],
       ['test/ui_translator.js', 104],
-      ['counterproof.js', 1460],
-      ['server.js', 1426],
+      ['counterproof.js', 1468],
+      ['server.js', 1424],
       ['auth.js', 274],
       ['db.js', 272],
       ['mail.js', 40],
@@ -317,10 +317,10 @@ async function run() {
       ['usertool.js', 51],
       ['twofactor.js', 34],
       ['keytool.js', 55],
-      ['public/app.js', 1814],
+      ['public/app.js', 1808],
       ['public/theme.js', 3],
     ];
-    const COMMENT_TOTAL = { comment: 14202, code: 59816 };
+    const COMMENT_TOTAL = { comment: 14226, code: 59848 };
     check('Der Waechter sieht alle vierunddreissig Dateien',
       crAll.each.length === 34 && COMMENT_ROWS.length === 34,
       `${crAll.each.length} gemessen, ${COMMENT_ROWS.length} genannt`);
@@ -674,6 +674,32 @@ async function run() {
     check('Und es ist die einzige rote Zeile',
       (driverText.match(/✗/g) || []).length === 1, driverRed);
     check('Der Lauf endet rot', driver.status === 1, `Code ${driver.status}`);
+  }
+
+  /* ============ Die Schalterprobe haengt nicht am Elternlauf — 0.35.0 =====
+     B1 des Auftrags 0.35.0. test/release_030.js startet ein Kind, um zu
+     belegen, dass die Zeitzeile OHNE Schalter nicht dasteht -- und hat
+     TESTBENCH_TIME dabei an das Kind vererbt. Die Pruefung war gruen, weil
+     der Elternprozess zufaellig keinen Schalter trug: derselbe Stand meldete
+     mit TESTBENCH_TIME=1 nur 6892 von 6893.
+
+     GEPRUEFT WIRD DER QUELLTEXT und nicht ein zweiter Lauf. Ein Lauf, der die
+     Lage nachstellt, kostet elf Sekunden und belegt am Ende dieselbe Zeile. */
+  group('Die Schalterprobe haengt nicht am Elternlauf — 0.35.0');
+  {
+    const switchText = fs.readFileSync(
+      path.join(__dirname, 'test', 'release_030.js'), 'utf8');
+    const probeAt = switchText.indexOf('const tProbe =');
+    const claimAt = switchText.indexOf('Und ohne ihn nicht');
+    check('Die Probe ohne Schalter steht vor der Behauptung ueber sie',
+      probeAt > -1 && claimAt > probeAt,
+      `tProbe bei ${probeAt}, Behauptung bei ${claimAt}`);
+    /* Und sie raeumt den Schalter ausdruecklich weg, statt process.env
+       unbesehen zu uebernehmen. Ohne diese Zeile belegt die Pruefung nur,
+       wie der Elternlauf gerade gestartet worden ist. */
+    const probeCall = switchText.slice(probeAt, switchText.indexOf('});', probeAt));
+    check('Und sie raeumt TESTBENCH_TIME im Kind ausdruecklich weg',
+      /TESTBENCH_TIME:\s*''/.test(probeCall), JSON.stringify(probeCall));
   }
 }
 

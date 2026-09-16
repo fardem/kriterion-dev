@@ -252,15 +252,9 @@ const ICON_PIN = char('<path d="M9 4h6l-1 6 2.5 2v2h-9v-2l2.5-2z"/><path d="M12 
 const ICON_REPORT = char('<path d="M5 21V4.5"/><path d="M5 5.5h10.5l-1.6 3.2 1.6 3.3H5"/>');
 /* DAS ZEICHEN „Eintrag entfernen" -- 0.25.0 (F5). */
 const ICON_ERASE = char('<path d="M8.5 20H20"/><path d="M14.5 5.5l4 4-8 8H6.5l-2-2z"/>');
-/* DIE ZWEI FEINEN PFEILE DER KOPFZEILE -- 0.28.0, und ausdruecklich NICHT
-   dieselben Zeichen wie an der Bildreihe. */
-/* ---- DER HAKEN NACH UNTEN UND NACH OBEN -- 0.30.2, Befund 1 ---- KEINE NEUE
-   FORM: `ICON_STEP_BACK` und `ICON_STEP_FWD` gleich darunter sind derselbe
-   Haken, nur gedreht. */
+/* ---- DER HAKEN NACH UNTEN UND NACH OBEN -- 0.30.2, Befund 1 ---- */
 const ICON_MORE_DOWN = char('<path d="M6 9.5L12 15.5l6-6"/>', 1.7);
 const ICON_MORE_UP   = char('<path d="M6 14.5L12 8.5l6 6"/>', 1.7);
-const ICON_STEP_BACK = char('<path d="M14.5 5.5L8 12l6.5 6.5"/>', 1.5);
-const ICON_STEP_FWD  = char('<path d="M9.5 5.5L16 12l-6.5 6.5"/>', 1.5);
 /* DER RUECKWEG IST EIN PFEIL MIT SCHAFT UND KEIN WINKEL -- und das ist kein
    Geschmack, sondern ein Befund aus dem Augenschein vom 11. September 2026.
    ERST TRUGEN BEIDE DENSELBEN WINKEL: der Rueckweg zur Uebersicht und der
@@ -1331,9 +1325,6 @@ function searchList() {
     .sort((a, b) => (b.isDefault ? 1 : 0) - (a.isDefault ? 1 : 0))
     .slice(0, SEARCH_NAMES);
 }
-// Der Standard ist das Ziel des Zeilenklicks. Faellt er durch die Schranke,
-// gibt es keinen -- der Klick meldet das, statt anderswo zu suchen.
-const searchDefault = () => searchList()[0] || null;
 const searchAddress = (template, text) => template.replace('%s', encodeURIComponent(text));
 
 /* ================= Links im Kommentartext ================= */
@@ -1702,9 +1693,9 @@ const saveFilters = () => {
 };
 
 async function loadAll() {
-  const [items, categories, tags, criteria, titles] = await Promise.all([
+  const [items, categories, tags, titles] = await Promise.all([
     api('GET', '/api/items'), api('GET', '/api/product-categories'), api('GET', '/api/tags'),
-    api('GET', '/api/criteria'), api('GET', '/api/titles')
+    api('GET', '/api/titles')
   ]);
   /* DER UNGEFILTERTE BESTAND KOMMT HIER UND NUR HIER. `all` ist die Quelle,
      `items` das, was gezeigt wird -- beim Betreten der Uebersicht dasselbe. */
@@ -1712,7 +1703,7 @@ async function loadAll() {
      eine Kopie von tausend Objekten waere Arbeit fuer nichts. */
   state.all = items; state.items = items; state.inventory = items.length;
   state.searchError = false;
-  state.categories = categories; state.tags = tags; state.criteria = criteria;
+  state.categories = categories; state.tags = tags;
   TITLE_APP = titles.appTitle; TITLE_PUBLIC = titles.publicTitle;
   document.title = TITLE_APP;
   const settings = SETTINGS;
@@ -1960,17 +1951,11 @@ const termOutAddress = (askKey) => {
 /* JEDE ALTE ADRESSE WIRD UEBERSETZT UND NICHT FALLEN GELASSEN -- 0.24.1 (F4). */
 const OLD_ADDRESSES = { '#/offen': '#/open' };
 const OLD_ADDRESS_ROOTS = { '#/einladung/': '#/invite/', '#/bestaetigung/': '#/confirm/' };
-const OLD_SECTIONS = { personal: 'personal', inventory: 'inventory',
-                       users: 'users', database: 'database' };
 function translateAddress() {
   const h = location.hash || '';
   let fresh = OLD_ADDRESSES[h] || '';
   if (!fresh) for (const [old, now] of Object.entries(OLD_ADDRESS_ROOTS))
     if (h.startsWith(old)) { fresh = now + h.slice(old.length); break; }
-  if (!fresh) {
-    const m = h.match(/^#\/system\/([a-z]+)$/);
-    if (m && OLD_SECTIONS[m[1]]) fresh = `#/system/${OLD_SECTIONS[m[1]]}`;
-  }
   if (!fresh || fresh === h) return false;
   history.replaceState(null, '', fresh);
   return true;
@@ -3784,7 +3769,7 @@ async function renderDetail(id, termAddress) {
           </div>
         </div>
 
-        <div class="blocks" id="blocks-side">
+        <div id="blocks-side">
         <div class="block" data-block="kategorie">
           <div class="block-head"><span class="label">${tH('list.category')}</span></div>
           <div class="row-in">
@@ -3832,7 +3817,7 @@ async function renderDetail(id, termAddress) {
       </div>
     </div>
 
-    <div class="blocks" id="blocks-bottom">
+    <div id="blocks-bottom">
 
     <div class="block block-wide" data-block="beschreibung">
       <div class="block-head"><span class="label">${tH('list.description')}</span></div>
@@ -5968,7 +5953,7 @@ async function renderSystem({ keepScroll = false } = {}) {
       aria-expanded="false" aria-controls="sys-tabs">${tH('card.sections')}<span class="fcount">${esc(open.name())}</span></button>
     <nav class="sys-tabs" id="sys-tabs" aria-label="${esc(t('card.sectionsHint'))}">
       ${visibleOnes.map(a => `<a class="sys-tab${a === open ? ' on' : ''}"
-        href="${sysUrl(a.key)}" data-section="${esc(a.key)}"${
+        href="${sysUrl(a.key)}"${
         a === open ? ' aria-current="page"' : ''}>${esc(a.name())}</a>`).join('')}
     </nav>
     <div class="sys-grid">
@@ -6114,7 +6099,7 @@ function setUpLanguagesOut() {
 // ausserhalb des Vorrats ist ein Zustand, den es nicht geben darf.
       st.onclick = () => sendLanguages({ languageDefault: a.code }, t('card.languageDefaultSaved'));
       const nm = document.createElement('span');
-      nm.className = 'ename';
+      nm.className = 'engine-name';
       nm.textContent = a.name;
       row.append(hk, st, nm);
       box.appendChild(row);
@@ -6308,7 +6293,7 @@ function setUpUserOut(fetched) {
     const box = document.getElementById('two-factor-block');
     if (!box || !Array.isArray(codes)) return;
     const boxId = document.createElement('div');
-    boxId.className = 'warn-box two-factor-codebox';
+    boxId.className = 'warn-box';
     boxId.id = 'two-factor-codebox';
     boxId.innerHTML = `<strong>${tH('card.yourRecoveryCodes', { length: codes.length })}</strong>
       ${tMark('card.recoveryCodesHint', 'card.once')}
@@ -7654,7 +7639,7 @@ function setUpUsersOut() {
     // Der Server gibt den fertigen Link nur heraus, wenn die Einstellung steht.
 // Sonst baut ihn der Browser wie bisher.
     const address = d.link || buildInviteUrl(d.token);
-    box.innerHTML = `<div class="warn-box user-linkbox" style="margin:12px 0 0">
+    box.innerHTML = `<div class="warn-box" style="margin:12px 0 0">
       <strong>${tMarks('card.linkForUser', {
         word: d.purpose === 'reset' ? tH('card.resetLink') : tH('card.inviteLink') },
         { name: d.username || '' })}</strong>
