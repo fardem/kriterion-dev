@@ -268,8 +268,7 @@ const CASES = [];
 
 /* ================= Der SMTP-Empfaenger, 0.9.0 ================= ER KOMMT AUS
    `net` UND NICHT AUS DEM NETZ. */
-/* DIE PORTBASIS IST AUSGERECHNET, NICHT GESCHAETZT (Stolpersteine 64 und
-   127), und sie geht ueber DIESELBE Liste wie jede andere -- sonst saehe der
+/* DIE PORTBASIS IST AUSGERECHNET, NICHT GESCHAETZT, und sie geht ueber DIESELBE Liste wie jede andere -- sonst saehe der
    Waechter aus 0.8.91 sie gar nicht, und genau daran sind in 0.8.90 zwei
    Gegenproben haengengeblieben. */
 const SMTP_BASE = 6110;

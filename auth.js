@@ -625,7 +625,7 @@ const setDeadline = db.prepare(
     WHERE hash = ? AND used_at IS NULL AND expires_at > datetime('now', ?)`);
 function startTokenDeadline(hash) {
   const modifier = `+${TOKEN_DEADLINE_MINUTES} minutes`;
-  // ZWEI MODIFIKATOREN WAEREN ZWEI ARGUMENTE (Stolperstein 119) -- hier steht
+  // ZWEI MODIFIKATOREN WAEREN ZWEI ARGUMENTE -- hier steht
 // derselbe zweimal, einmal als neuer Wert und einmal als Schranke davor.
   setDeadline.run(modifier, String(hash || ''), modifier);
   return TOKEN_DEADLINE_MINUTES;

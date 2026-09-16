@@ -31,6 +31,20 @@ ihre deutschen Abschnittsüberschriften bleiben.*
 
 *Hier wird mitgeschrieben, während gebaut wird.*
 
+## [0.34.3] - 2026-09-16
+
+*Diese Runde ändert am Programm nichts. Sie nimmt die letzten Stolpersteinverweise
+aus den Kommentaren und stellt eine Prüfung darüber.*
+
+### Intern
+
+- **Kein Kommentar nennt mehr einen Stolperstein** — 367 standen nach 0.34.2 noch da, 1.061 waren es vor 0.34.1. 346 waren Klammern mitten im Satz, 21 tragende Satzteile, die von Hand umgeschrieben wurden.
+- **Eine Prüfung hält die Null fest**, samt Gegenprobe am Wächter selbst und der einen benannten Ausnahme: `counterproof.js` nennt eine Nummer in seiner Meldung an den Wirt, und das ist ein Text und kein Kommentar.
+- **Berichtigt: drei Stellen sagten „alle weg", während 367 dastanden** — der Eintrag 0.34.1 hier, das Änderungsprotokoll 0.34.1 und der Projektstand. Sie nennen jetzt die Zahl, die 0.34.1 wirklich erreicht hat.
+- Eine Metapher ist mitgefallen: „JEDE MESSUNG LÄUFT ÜBER EIN EIGENES AUFFANGNETZ" in `test/roundtrip.js`.
+- Rückbau 368 aus 0.34.2 ist nachträglich gegengeprüft: **0 stumm**, rot in „Der Sprachwaechter".
+- Prüfstand 6888 → 6893, Gruppen 348 → 349, Rückbauten 998 → 998.
+
 ## [0.34.2] - 2026-09-16
 
 *Diese Runde ändert am Programm nichts. Sie teilt die README in zwei Dateien.*
@@ -65,7 +79,7 @@ außer dass die README kürzer ist.*
 
 ### Intern
 
-- **14.170 von 73.827 Zeilen sind Kommentar (19,2 %)** — vorher 38.366 von 97.861 (39,2 %). Keine Datei liegt über 30 %; die höchste ist `server.js` mit 26 %. Ein Kommentar sagt, was die Stelle tut; Erzählung, Stolpersteinverweise und Wiederholungen des Codes sind heraus.
+- **14.170 von 73.827 Zeilen sind Kommentar (19,2 %)** — vorher 38.366 von 97.861 (39,2 %). Keine Datei liegt über 30 %; die höchste ist `server.js` mit 26 %. Ein Kommentar sagt, was die Stelle tut; Erzählung und Wiederholungen des Codes sind heraus, dazu 694 der 1.061 Stolpersteinverweise — die übrigen 367 mit 0.34.3.
 - **Anwendungscode ist nicht angefasst.** Die Codeteile jeder geänderten Datei stehen vorher und nachher Byte für Byte gleich, nachgewiesen Datei für Datei.
 - **Der Namenswächter sieht jetzt den Prüfstand** — 21 Dateien neben den 13 ausgelieferten. 131 deutsche Bezeichner waren darin, 13 sind übrig, und die 13 sind Gegenstände von Prüfungen statt Benennungen. Ein deutscher Dateiname unter `test/` macht eine Prüfung namentlich rot.
 - **Die Ersatztexte der Rückbauten stehen jetzt unter einem Wächter.** Bis 0.34.0 prüfte niemand sie; ein Ersatztext auf einen Namen von gestern macht einen Rückbau rot, ohne zu prüfen, was sein Name sagt.

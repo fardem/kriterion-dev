@@ -286,7 +286,7 @@ async function run() {
 
     await tzQuiet();
     const tzStart = await tzS.call('POST', '/api/two-factor/start', { password: TZ_WORD });
-    // Auffangnetz (Stolperstein 138): gibt /start kein Geheimnis her, laeuft
+    // Auffangnetz: gibt /start kein Geheimnis her, laeuft
     // alles Weitere trotzdem durch -- mit einem Wert, der zuverlaessig nicht
     // traegt, statt dass der Lauf hier abreisst.
     const tzSecret = (tzStart.content && tzStart.content.secret) || 'A'.repeat(32);
@@ -296,7 +296,7 @@ async function run() {
     // DER BESTAETIGENDE CODE ZAEHLT ALS VERBRAUCHT -- das ist die Zusage "ein
 // Code gilt genau einmal" an ihrer ersten Anwendung.
     tzUsed = tzCounter;
-    /* ERST DER GEGENSTAND, DANN DIE EIGENSCHAFT (Stolperstein 81): ohne
+    /* ERST DER GEGENSTAND, DANN DIE EIGENSCHAFT: ohne
        eingeschalteten Faktor liefe die ganze Gruppe gegen denselben Server
        wie die Gruppe darueber und belegte nichts ueber die Einmaligkeit. */
     check('Der Zugang traegt wirklich einen eingeschalteten zweiten Faktor',
@@ -389,7 +389,7 @@ async function run() {
     check('Der ganze Weg hinterlaesst keine einzige neue Zeile "bestaetigung.fehl"',
       tzFailAfter === tzFailVor, `${tzFailVor} vorher, ${tzFailAfter} nachher`);
     /* UND DAS PROTOKOLL SCHREIBT UEBERHAUPT MIT -- eine leere Tabelle machte
-       die Zeile darueber wahr, ohne etwas zu belegen (Stolperstein 81). */
+       die Zeile darueber wahr, ohne etwas zu belegen. */
     check('Und der Export selbst steht sehr wohl darin, Teil fuer Teil',
       (tzProtAfter?.rows || []).filter(z => z.event === 'export' && z.detail === 'part')
         .length === tzParts.length,
@@ -641,7 +641,7 @@ async function run() {
     id, title: 'Stueck ' + id, rejected: false, tested: false, favorite: false, category: null,
     tags: [], mainPhoto: null, photoCount: 0, linkCount: 0, avgRating: null,
     testCount: null, testAvg: null, testLast: null, testDays: [], updated_at: date });
-  /* DIE LAGE STELLT DEN LEERLAUF WIRKLICH HER (Stolperstein 224): EIN Tag ist
+  /* DIE LAGE STELLT DEN LEERLAUF WIRKLICH HER: EIN Tag ist
      bereits gewaehlt, und der zweite traegt keinen der sichtbaren Eintraege
      -- erst dann fuehrt ein zusaetzlicher Klick garantiert auf eine leere
      Liste. */
@@ -658,7 +658,7 @@ async function run() {
   const flPill = (w, name) => [...w.document.querySelectorAll('#filters .pill-tag')]
     .find(b => b.textContent.trim() === name);
   const flEmptyPill = flPill(flOldW, 'Blau');
-  /* ERST DER GEGENSTAND (Stolperstein 81): ohne die Pille im Vorrat waere jede
+  /* ERST DER GEGENSTAND: ohne die Pille im Vorrat waere jede
      Pruefung auf ihre Klasse gruen fuer nichts. */
   check('Die Pille steht da', !!flEmptyPill, '(keine Pille)');
   check('Und die Vorauswahl steht wirklich',
@@ -887,7 +887,7 @@ async function run() {
 // hinaus, statt sich zu teilen.
   check('Die Zeile bricht weiterhin um',
     /flex-wrap: wrap/.test(obFrow[0] || ''), obFrow[0] || '(keine Regel)');
-  /* UMGEDREHT MIT 0.28.1 UND NICHT GELOESCHT (Stolperstein 74). */
+  /* UMGEDREHT MIT 0.28.1 UND NICHT GELOESCHT. */
   check('Der schmale Schirm behaelt seine eigene Anordnung — seit 0.28.1 ein Raster',
     /display: grid/.test(obFrow[1] || '')
     && /grid-template-columns: auto minmax\(0, 1fr\)/.test(obFrow[1] || '')
@@ -903,7 +903,7 @@ async function run() {
      goldenen Kanten und einer grauen da. */
   group('Der angepinnte Rahmen schliesst — 0.13.2');
 
-  /* ERST DER GEGENSTAND (Stolperstein 81): ohne die vier Klassen an EINEM
+  /* ERST DER GEGENSTAND: ohne die vier Klassen an EINEM
      Kasten hat keine Regel darunter einen Fall, auf den sie zutraefe. */
   const arSource = fs.readFileSync(path.join(__dirname, 'public', 'app.js'), 'utf8');
   check('Die Oberflaeche haengt Art und Anpinnung an denselben Kasten',
@@ -1150,7 +1150,7 @@ async function run() {
      begannen die Sternreihen nicht an derselben Stelle. */
   group('Die Sternreihe steht auf einer Linie — 0.14.0');
 
-  /* ERST DER GEGENSTAND (Stolperstein 81): ohne die beiden schwierigen Zeilen
+  /* ERST DER GEGENSTAND: ohne die beiden schwierigen Zeilen
      traegt keine Regel darunter einen Fall, auf den sie zutraefe. */
   const slDom = buildDom(JSDOM, { hash: '#/item/1',
     settings: { filters: null, userCount: 3, isAdmin: true } });
@@ -1161,7 +1161,7 @@ async function run() {
   const slNumbers = slRows.map(z => z.querySelector('.ravg')?.textContent ?? '(keine Zelle)');
   check('Die Prueflage traegt drei Kriterienzeilen',
     slRows.length === 3, `${slRows.length}`);
-  /* UMGEDREHT MIT 0.21.0 (Stolperstein 74): bis 0.20.1 stand hier `=== ''` --
+  /* UMGEDREHT MIT 0.21.0: bis 0.20.1 stand hier `=== ''` --
      die Zelle war da und leer. */
   check('Eine davon hat keine Bewertung und traegt trotzdem ihre Zelle',
     slNumbers[2] === '–', JSON.stringify(slNumbers));
@@ -1175,15 +1175,15 @@ async function run() {
     slBox?.classList.contains('rlist'), JSON.stringify(slBox?.className));
   const slChildren = slRows.map(z => [...z.children].map(k => k.className));
   /* VIER SEIT 0.22.0 (E15): der Ruecksetzer bekommt seine eigene vierte Zelle
-     `.rreset-cell` rechts neben der Zahl. Umgedreht, nicht geloescht (Stolperstein 74). */
+     `.rreset-cell` rechts neben der Zahl. Umgedreht, nicht geloescht. */
   check('Jede Zeile haengt Name, Sterne, Zahl und Ruecksetzer als vier direkte Kinder — 0.22.0',
     slChildren.every(k => k.length === 4 && k[0] === 'rname' && k[1] === 'racts' && k[2] === 'ravg' && k[3] === 'rreset-cell'),
     JSON.stringify(slChildren));
   check('Die Zahl steckt ausdruecklich NICHT mehr in den Sternen',
     slRows.every(z => !z.querySelector('.racts .ravg')),
     JSON.stringify(slRows.map(z => !!z.querySelector('.racts .ravg'))));
-  /* UMGEDREHT MIT 0.21.0 (Stolperstein 74), und der Satz davor bleibt stehen
-     (Stolperstein 201): bis 0.20.1 hiess die Zeile „Die leere Zelle bleibt
+  /* UMGEDREHT MIT 0.21.0, und der Satz davor bleibt stehen
+: bis 0.20.1 hiess die Zeile „Die leere Zelle bleibt
      leer und bekommt keinen Ersatztext", mit der Begruendung, neben fuenf
      leeren Sternen waere „noch keine Bewertung" dieselbe Aussage zweimal. */
   check('Die leere Zelle traegt einen Strich und den Klartext dazu',
@@ -1197,7 +1197,7 @@ async function run() {
 
   /* DIE REGELN IM STILBLATT. */
   const slList = regel123('.rlist'), slRow = regel123('.rrow'), slAvg = regel123('.rrow .ravg');
-  /* MITGENOMMEN MIT 0.17.0 (Stolperstein 201): diese Zeile hiess „ist ein
+  /* MITGENOMMEN MIT 0.17.0: diese Zeile hiess „ist ein
      Raster ueber drei Spalten" und war ab dieser Runde nur noch die halbe
      Wahrheit -- bei genau EINEM Zugang sind es zwei. */
   check('Die allgemeine Regel der Kriterienliste ist ein Raster ueber drei Spalten',
@@ -1205,7 +1205,7 @@ async function run() {
     slList || '(keine Regel)');
   check('Die Zeile ist kein eigener Kasten mehr, sondern gibt ihre Zellen frei',
     /display: contents/.test(slRow), slRow || '(keine Regel)');
-  /* UMGEDREHT MIT 0.21.0 (Stolperstein 74). */
+  /* UMGEDREHT MIT 0.21.0. */
   check('Die Zahlenspalte traegt wieder eine Mindestbreite -- und zwar eine gemessene',
     /min-width: calc\(4\.34rem \+ 9px\)/.test(slAvg), slAvg || '(keine Regel)');
   /* IN rem UND NICHT IN PIXELN, und das ist der Kern: die Instanz stellt ihre
@@ -1253,7 +1253,7 @@ async function run() {
     await new Promise(r => setTimeout(r, 80));
     const szDoc = szDom.w.document;
     const szRows = [...szDoc.querySelectorAll('#ratings .rrow')];
-    /* ERST DER GEGENSTAND (Stolperstein 81): die Prueflage braucht eine Zeile
+    /* ERST DER GEGENSTAND: die Prueflage braucht eine Zeile
        MIT eigenem Stern und eine OHNE -- sonst kann sie den Unterschied
        zwischen sichtbar und unsichtbar gar nicht tragen. */
     const szNull = buildDom(JSDOM, { hash: '#/item/1', ownValues: [3, 3, 0],
@@ -1361,7 +1361,7 @@ async function run() {
   group('Zwei Kaesten in der Oberflaeche — 0.21.0');
 
   {
-    /* ERST DER GEGENSTAND (Stolperstein 81): eine Prueflage mit einem
+    /* ERST DER GEGENSTAND: eine Prueflage mit einem
        Kriterium im Kasten „before" und zweien im Kasten „after". */
     const zkPhases = ['after', 'after', 'before'];
     /* UND DIE DRITTE ZEILE BEKOMMT EINEN SCHNITT. */
@@ -1411,7 +1411,7 @@ async function run() {
       zkZu('bewertung') === false && zkZu('potenzial') === true,
       JSON.stringify([zkZu('bewertung'), zkZu('potenzial')]));
     /* DIE KURZFASSUNG IST WEG, UND DIE ZAHL STEHT TROTZDEM DA -- 0.22.1 (E4). */
-    /* ERST DAS OBJEKT, DANN SEIN INHALT (Stolperstein 81): `?.textContent ||
+    /* ERST DAS OBJEKT, DANN SEIN INHALT: `?.textContent ||
        ''` waere auch dann leer, wenn es die Kurzfassung gar nicht mehr gaebe
        — und die Zusage bliebe gruen, obwohl der ganze Knoten fehlt. */
     const zkSum = zkDoc.querySelector('.block[data-block="potenzial"] .bsum');
@@ -1567,7 +1567,7 @@ async function run() {
       zkWZu('potenzial') === true, JSON.stringify(zkWZu('potenzial')));
     zkChange.w.location.hash = '#/item/2';
     await new Promise(r => setTimeout(r, 120));
-    /* ERST DAS OBJEKT, DANN SEIN ZUSTAND (Stolperstein 81): steht der Kasten
+    /* ERST DAS OBJEKT, DANN SEIN ZUSTAND: steht der Kasten
        nach dem Wechsel gar nicht da, sagt `undefined === true` dasselbe wie
        „offen" -- und die Zeile darunter waere gruen, ohne etwas zu belegen. */
     check('Der zweite Eintrag ist geladen und hat beide Kaesten',
@@ -1587,7 +1587,7 @@ async function run() {
     await sysSection(zkSys.w, 'inventory');
     const zkCardsNames = (id) => [...(zkSys.w.document.getElementById(id)
       ?.querySelectorAll('.mrow .mname') || [])].map(n => n.textContent);
-    /* ERST DIE KAESTEN (Stolperstein 81): stuende die zweite Karte gar nicht
+    /* ERST DIE KAESTEN: stuende die zweite Karte gar nicht
        da, waeren beide Listen leer, und „nur seine Zeilen" waere gruen. */
     check('Beide Kriterienkarten stehen im Bestand',
       Boolean(zkSys.w.document.getElementById('mcrits')) &&
@@ -1690,7 +1690,7 @@ async function run() {
     /* --- Die Sortierung --- */
     const zkSort = zkUeb.w.document.getElementById('f-sort');
     const zkValues = [...zkSort.options].map(o => o.value);
-    /* MITGEZOGEN MIT 0.28.1 (Stolperstein 201): die Richtung ist kein Eintrag
+    /* MITGEZOGEN MIT 0.28.1: die Richtung ist kein Eintrag
        der Liste mehr, sondern ein Umschalter daneben -- aus `potential_desc`
        und `potential_asc` ist EIN Eintrag `potential` geworden. */
     check('Das Auswahlfeld traegt den neuen Eintrag',
@@ -1703,8 +1703,8 @@ async function run() {
       [...zkSort.options].find(o => o.value === 'potential')?.textContent === 'Potenzial',
       JSON.stringify([...zkSort.options].find(o => o.value === 'potential')?.textContent));
     const zkTitle = () => [...zkUeb.w.document.querySelectorAll('.card-title')].map(t => t.textContent);
-    /* ZWEIMAL UMGEDREHT UND NIE GELOESCHT (Stolperstein 74). */
-    /* MITGEZOGEN MIT 0.28.1 (Stolperstein 201): die Richtung wird nicht mehr
+    /* ZWEIMAL UMGEDREHT UND NIE GELOESCHT. */
+    /* MITGEZOGEN MIT 0.28.1: die Richtung wird nicht mehr
        im Auswahlfeld GEWAEHLT, sondern am Umschalter daneben GEKLICKT. */
     const zkField = () => zkUeb.w.document.getElementById('f-sort');
     const zkDir = () => zkUeb.w.document.getElementById('f-sort-dir');
@@ -1803,7 +1803,7 @@ async function run() {
        auch dann gruen, wenn beide Lagen auf zwei Zellen und zwei Spalten
        faellen -- die Durchschnittsspalte waere dann wortlos verschwunden. */
     /* VIER UND DREI SEIT 0.22.0 (E15): die Zelle des Ruecksetzers kommt in
-       beiden Lagen dazu. Umgedreht, nicht geloescht (Stolperstein 74). */
+       beiden Lagen dazu. Umgedreht, nicht geloescht. */
     check(`Bei ${word} sind es ${howMany > 1 ? 'vier' : 'drei'} Zellen — 0.22.0`,
       rzCells[0] === (howMany > 1 ? 4 : 3), `${rzCells[0]}`);
     /* UND DIE KLASSE STEHT NUR DA, WO SIE HINGEHOERT. */
@@ -1812,8 +1812,8 @@ async function run() {
     rz.w.close();
   }
 
-  /* UMGEDREHT MIT 0.21.0 (Stolperstein 74), und der alte Satz bleibt stehen,
-     damit der Widerruf einen Gegenstand hat (Stolperstein 201). */
+  /* UMGEDREHT MIT 0.21.0, und der alte Satz bleibt stehen,
+     damit der Widerruf einen Gegenstand hat. */
   const rzRules = (css123.match(/\.rlist[^{]*\{[^}]*grid-template-columns[^}]*\}/g) || []);
   check('Die Spaltenzahl steht an genau drei Stellen im Stilblatt',
     rzRules.length === 3, JSON.stringify(rzRules));

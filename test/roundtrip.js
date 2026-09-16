@@ -248,7 +248,7 @@ async function sendImport(object, mode, withoutShare = false) {
   const freshDb = open(path.join(DATA, 'katalog.sqlite'));
   /* Die Spalte weight steht mit in der Abfrage -- und wird abgefangen, falls
      es sie nicht gibt: sonst risse ein Rueckbau der DDL den ganzen Lauf in
-     der ERSTEN Gruppe ab und nennte keinen einzigen Namen (Stolperstein 103). */
+     der ERSTEN Gruppe ab und nennte keinen einzigen Namen. */
   let freshCriterion;
   try {
     freshCriterion = freshDb.prepare('SELECT name, sort_order, weight FROM rating_criteria ORDER BY sort_order, id').all();
@@ -257,7 +257,7 @@ async function sendImport(object, mode, withoutShare = false) {
   }
   check('Grundausstattung wird angelegt', freshCriterion.length === 3, JSON.stringify(freshCriterion));
   check('Grundausstattung ist durchnummeriert', equal(freshCriterion.map(c => c.sort_order), [0, 1, 2]));
-  /* Erst auf Vorhandensein, dann auf die Eigenschaft (Stolperstein 81): eine
+  /* Erst auf Vorhandensein, dann auf die Eigenschaft: eine
      leere Liste liesse every() gruen und belegte nichts. */
   check('Und jedes Kriterium startet auf Gewicht 1',
     freshCriterion.length === 3 && freshCriterion.every(c => c.weight === 1),
@@ -403,7 +403,7 @@ async function sendImport(object, mode, withoutShare = false) {
       halfCores >= 1 && halfCores <= Math.max(1, os.cpus().length),
       `${halfCores} bei ${os.cpus().length} Kernen`);
     /* UND DIE EINSCHRAENKUNG STEHT DANEBEN: os.cpus() meldet im Container den
-       WIRT und nicht das Kontingent (Stolperstein 278). */
+       WIRT und nicht das Kontingent. */
     check('Und der Vorbehalt zum Container steht im Quelltext daneben',
       /os\.cpus\(\) IST IM CONTAINER NICHT DIE WAHRHEIT/.test(serverText),
       'der Vorbehalt fehlt');
@@ -416,8 +416,7 @@ async function sendImport(object, mode, withoutShare = false) {
   const lockPath = path.join(__dirname, 'package-lock.json');
   const lockDa = fs.existsSync(lockPath);
   // Erst das Vorhandensein, dann die Eigenschaft: ohne diese Zeile bliebe
-  // jede Aussage ueber den Inhalt bei fehlender Datei unpruefbar
-  // (Stolperstein 81).
+  // jede Aussage ueber den Inhalt bei fehlender Datei unpruefbar.
   check('Das Lockfile liegt im Repo', lockDa, lockPath);
   const lockfile = lockDa ? JSON.parse(fs.readFileSync(lockPath, 'utf8')) : {};
   check('Es hat das heutige Format', lockfile.lockfileVersion >= 3, `${lockfile.lockfileVersion}`);
@@ -530,7 +529,7 @@ async function sendImport(object, mode, withoutShare = false) {
   // Der Wert des laufenden Servers, gegen den verglichen wird.
   const fingerprintDisk = (await call('GET', '/api/stats')).content.fingerprint;
   const fingerprintCopy = await fingerprintOut(sourceCopy);
-  // Erst das Vorhandensein, dann jede Aussage darueber (Stolperstein 81): ohne
+  // Erst das Vorhandensein, dann jede Aussage darueber: ohne
 // diese Zeile bliebe jeder Vergleich zweier fehlender Werte wahr.
   check('Der Server aus der Kopie nennt einen Fingerprint',
     /^[0-9a-f]{8}$/.test(fingerprintCopy || ''), JSON.stringify(fingerprintCopy));
@@ -634,7 +633,7 @@ async function sendImport(object, mode, withoutShare = false) {
     });
   // Erst das Vorhandensein, dann die Eigenschaft: bliebe die Ableitung bei
   // server.js allein stehen, waere die Pruefung darunter gruen, ohne eine
-  // einzige der anderen Dateien gelesen zu haben (Stolperstein 81).
+  // einzige der anderen Dateien gelesen zu haben.
   check('Der Modulgraph nennt mehr als server.js allein',
     imFingerprint.length >= 5, imFingerprint.join(' · '));
   check('Und weder usertool.js noch testbench.js stehen darauf',
@@ -683,7 +682,7 @@ async function sendImport(object, mode, withoutShare = false) {
 
   const withoutFilter = frameProbe('1', '');
   // Erst das Vorhandensein: kaeme aus dem Kindprozess gar nichts, waere jede
-// Verneinung darunter wahr und der ganze Abschnitt gruen (Stolperstein 81).
+// Verneinung darunter wahr und der ganze Abschnitt gruen.
   check('Die Selbstprobe des Rahmens läuft überhaupt',
     /Pruefungen bestanden/.test(withoutFilter.text), JSON.stringify(withoutFilter.text.slice(0, 120)));
   check('Ohne Filter stehen beide Gruppen da',
@@ -742,7 +741,7 @@ async function sendImport(object, mode, withoutShare = false) {
   const workPath = path.join(__dirname, '.github', 'workflows', 'pruefstand.yml');
   const workDa = fs.existsSync(workPath);
   // Erst das Vorhandensein: fehlt die Datei, waere jede Aussage ueber ihren
-// Inhalt an einem leeren String wahr (Stolperstein 81).
+// Inhalt an einem leeren String wahr.
   check('Die Datei für den Prüflauf liegt im Repo', workDa, workPath);
   const workText = workDa ? fs.readFileSync(workPath, 'utf8') : '';
   const workNode = (workText.match(/node-version:\s*'([^']+)'/) || [])[1];
@@ -776,7 +775,7 @@ async function sendImport(object, mode, withoutShare = false) {
      Abend des 10. September 2026. Diese Zeile zielt seit 0.8.10 auf den
      Rueckbau der Ereignisliste; ihre Sache hat sich an EINEM TAG ZWEIMAL
      geaendert, und sie geht beide Male MIT, statt geloescht zu werden
-     (Stolperstein 201): bis 10.9. */
+: bis 10.9. */
   const workCode = workText.split('\n').filter(z => !/^\s*#/.test(z)).join('\n');
   check('Er läuft bei jedem Push und auf Knopfdruck — und nicht bei einer Anfrage',
     /^on:[ \t]*\n[ \t]+push:[ \t]*\n[ \t]+workflow_dispatch:[ \t]*$/m.test(workCode) &&
@@ -973,7 +972,7 @@ async function sendImport(object, mode, withoutShare = false) {
   const mkContent = Object.fromEntries(mkFiles
     .filter(n => fs.existsSync(path.join(mkVerz, n)))
     .map(n => [n, fs.readFileSync(path.join(mkVerz, n), 'utf8')]));
-  /* ERST DER GEGENSTAND, DANN DIE EIGENSCHAFT (Stolperstein 81): eine leere
+  /* ERST DER GEGENSTAND, DANN DIE EIGENSCHAFT: eine leere
      Datei erfuellte jede Verneinung darunter. */
   check('Und jede traegt wirklich ein SVG',
     mkFiles.every(n => /<svg[\s>]/.test(mkContent[n] || '')),
@@ -1004,7 +1003,7 @@ async function sendImport(object, mode, withoutShare = false) {
   }
   check('In public/ liegt keine Datei zweimal unter zwei Namen',
     mkTwice.length === 0, mkTwice.join(' \u00b7 '));
-  /* ERST DER GEGENSTAND, DANN DIE EIGENSCHAFT (Stolperstein 81): ohne diese
+  /* ERST DER GEGENSTAND, DANN DIE EIGENSCHAFT: ohne diese
      Zeile bliebe die vorige auch dann gruen, wenn public/ leer waere. */
   check('Und es liegen ueberhaupt Dateien darin', mkAll.length >= 4,
     `${mkAll.length} Dateien`);
@@ -1187,7 +1186,7 @@ async function sendImport(object, mode, withoutShare = false) {
   /* ---------------------------------------------------------------- */
   group('Die Trefferzeile im Stylesheet');
 
-  /* jsdom RECHNET KEIN CSS (Stolperstein 223). */
+  /* jsdom RECHNET KEIN CSS. */
   const cssTz = css.replace(/\s+/g, ' ');
   const ruleTz = (choice) =>
     (cssTz.match(new RegExp(choice.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + ' \\{[^}]*\\}')) || [''])[0];
@@ -1299,8 +1298,8 @@ async function sendImport(object, mode, withoutShare = false) {
   check('Eingabefelder fallen auf dem Finger nicht unter die Zoomgrenze',
     (cssEng.match(/font-size: max\(16px, 1rem\)/g) || []).length >= 2,
     String((cssEng.match(/font-size: max\(16px, 1rem\)/g) || []).length));
-  /* DIESE ZUSAGE IST IN ZWEI ZERFALLEN UND NICHT GEFALLEN -- 0.28.0,
-     Stolperstein 201. Bis 0.27.0 stand hier EINE Zeile, die `.input,
+  /* DIESE ZUSAGE IST IN ZWEI ZERFALLEN UND NICHT GEFALLEN -- 0.28.0.
+     Bis 0.27.0 stand hier EINE Zeile, die `.input,
      .input-sm, .ta, .select, .select-sm` in einem Stueck verlangte. */
   /* DIE KOMMENTARE MUESSEN WEG, BEVOR DER WAEHLER GELESEN WIRD -- und das ist
      ein Fund aus dem ersten Lauf dieser Runde. */
@@ -1428,7 +1427,7 @@ async function sendImport(object, mode, withoutShare = false) {
      feste Kachelbreite in einem umbrechenden Kasten heisst: die Spaltenzahl
      ist eine Treppe ueber der Fensterbreite, und was nicht mehr hineinpasst,
      bleibt als Streifen rechts liegen. */
-  /* UMGEDREHT MIT 0.22.0 UND NICHT GELOESCHT (Stolperstein 74): das Raster
+  /* UMGEDREHT MIT 0.22.0 UND NICHT GELOESCHT: das Raster
      gilt seither auf ALLEN Schirmen, und die Mindestkante kommt aus der
      Einstellung `--tile-min` (E11) statt aus festen 60 Pixeln. */
   const tileGrid = (cssEng.match(/\.thumbs \{ display: grid;[^}]*\}/) || [''])[0];
@@ -1533,7 +1532,7 @@ async function sendImport(object, mode, withoutShare = false) {
     && /class="search-box"/.test(headCode) && /id="sub-q"/.test(headCode)
     && /class="icon-btn mast-menu" id="menu"/.test(headCode));
   /* UND SIE TRAEGT KEINE BLAETTERPFEILE MEHR -- 0.28.1, und die Zusage hat
-     sich dabei UMGEDREHT statt zu verschwinden (Stolperstein 201). */
+     sich dabei UMGEDREHT statt zu verschwinden. */
   check('Und KEINE Blaetterpfeile -- die stehen seit 0.28.1 am Fuss des Eintrags',
     !/ICON_STEP_BACK/.test(headCode) && !/ICON_STEP_FWD/.test(headCode)
     && !/class="icon-btn step"/.test(headCode));
@@ -2381,7 +2380,7 @@ async function sendImport(object, mode, withoutShare = false) {
   group('Der kaputte Cookiewert — 0.14.0');
 
   const kkValue = '%';
-  /* ERST DER GEGENSTAND (Stolperstein 81): ist der Wert dekodierbar, traegt
+  /* ERST DER GEGENSTAND: ist der Wert dekodierbar, traegt
      die ganze Gruppe darunter nichts. */
   let kkBreaks = false;
   try { decodeURIComponent(kkValue); } catch { kkBreaks = true; }
@@ -2409,7 +2408,7 @@ async function sendImport(object, mode, withoutShare = false) {
   const kkName = await kkCall(`fre%md=1; ${H.cookie}`);
   check('Ein Prozentzeichen im NAMEN ist gar kein Fall', kkName === 200, `Stand ${kkName}`);
   /* WAS AUSDRUECKLICH NICHT GEBAUT WURDE, und deshalb hier steht
-     (Stolperstein 199): ein fremder Cookie ist kein Vorgang dieser Instanz. */
+: ein fremder Cookie ist kein Vorgang dieser Instanz. */
   const kkProt = (await call('GET', '/api/security-log')).content;
   const kkRows = Array.isArray(kkProt) ? kkProt : (kkProt?.rows || []);
   check('Und er hinterlaesst keine Zeile im Sicherheitsprotokoll',
@@ -2777,7 +2776,7 @@ async function sendImport(object, mode, withoutShare = false) {
     (srvSource.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '')
       .match(/^.*zuletztGesehen.*$/m) || ['(keine)'])[0]);
   /* DER VERMERK BLEIBT ABER STEHEN. Eine Entscheidung, die man zurueckgenommen
-     hat, kommt sonst in zwei Jahren wieder (Stolperstein 201). */
+     hat, kommt sonst in zwei Jahren wieder. */
   check('Der Vermerk ueber den weggefallenen Merker steht als Kommentar da',
     /zuletztGesehen/.test(srvSource) && /Neu seit/.test(srvSource),
     'der Vermerk fehlt');
@@ -2880,7 +2879,7 @@ async function sendImport(object, mode, withoutShare = false) {
     dOne.filters?.tested === 'yes' && dTwo.filters?.tested === 'no',
     JSON.stringify([dOne.filters, dTwo.filters]));
 
-  /* MITGENOMMEN MIT 0.17.0, NICHT GELOESCHT (Stolperstein 201): bis dahin
+  /* MITGENOMMEN MIT 0.17.0, NICHT GELOESCHT: bis dahin
      stand hier derselbe Block fuer `zuletztGesehen`, den Merker der Pille
      „Neu seit ...". */
   const dBefore = (await dCall('cookie-d-eins', 'GET', '/api/settings')).content;
@@ -2900,7 +2899,7 @@ async function sendImport(object, mode, withoutShare = false) {
     dAfter.bellSeen !== '1999-01-01 00:00:00' &&
     dAfter.bellSeen > '2020-01-01 00:00:00',
     JSON.stringify(dAfter.bellSeen));
-  /* DAS WINDOW IST NACHGESTELLT (Stolperstein 60): datetime('now') loest nur
+  /* DAS WINDOW IST NACHGESTELLT: datetime('now') loest nur
      Sekunden auf. */
   const dClock = (() => {
     const d = open(path.join(dDir, 'katalog.sqlite'));
@@ -3043,7 +3042,7 @@ async function sendImport(object, mode, withoutShare = false) {
   group('Der Vorrat der Sprachen — 0.24.3');
 
   const pvBefore = (await call('GET', '/api/settings')).content;
-  /* ERST DER GEGENSTAND (Stolperstein 81): ohne zwei Sprachen im Haus liesse
+  /* ERST DER GEGENSTAND: ohne zwei Sprachen im Haus liesse
      sich ueber einen Vorrat gar nichts sagen. */
   /* DREI SEIT 0.24.4 -- und die Zahl steht ausdruecklich da, wie bei
      F_ROUTES: eine Sprachdatei, die still dazukommt oder verschwindet, faellt
@@ -3479,7 +3478,7 @@ async function sendImport(object, mode, withoutShare = false) {
   /* JEDER GRIFF IN DIE TAFEL IST GEKLAMMERT, und das hat die Gegenprobe
      entschieden und nicht der Entwurf: Rueckbau 737 nimmt die Tafeln aus der
      Antwort, und `ntDe.criterionNames.de[...]` warf daraufhin -- der ganze
-     Lauf riss ab und faerbte keine einzige Zeile rot (Stolperstein 161). */
+     Lauf riss ab und faerbte keine einzige Zeile rot. */
   /* SEIT 0.25.0 TRAEGT EINE ZELLE ZWEI ANGABEN: den Namen, den ein Leser
      dieser Sprache saehe, und die Sprache, aus der er stammt. */
   const ntCell = (answer, which, code, id) =>
@@ -4311,7 +4310,7 @@ async function sendImport(object, mode, withoutShare = false) {
     /* UND DIE EINE NEUE AUS 0.32.0 -- sie steht ohne Migrationsblock da:
        `CREATE TABLE IF NOT EXISTS` legt eine fehlende TABELLE bei jedem Start
        an; nur eine fehlende SPALTE an einer vorhandenen Tabelle braeuchte
-       einen (Stolperstein 13). */
+       einen. */
     check('Und die eine neue aus 0.32.0 auch — comment_mentions',
       tzTables.includes('comment_mentions'), tzTables.join(' '));
   }
@@ -4522,7 +4521,7 @@ async function sendImport(object, mode, withoutShare = false) {
   const gAverage = async (itemId = 1) =>
     (await eCall('cookie-e-eins', 'GET', `/api/items/${itemId}`)).content?.avgRating;
   // Abgefangen wie ueberall, wo die Spalte gelesen wird: ohne das reisst ein
-// Rueckbau der DDL den Lauf ab, statt rot zu werden (Stolperstein 103).
+// Rueckbau der DDL den Lauf ab, statt rot zu werden.
   const gWeights = () => {
     const d = open(path.join(levelEDir, 'katalog.sqlite'));
     let z = [];
@@ -4537,7 +4536,7 @@ async function sendImport(object, mode, withoutShare = false) {
     JSON.stringify(gCriterion?.map(c => c.name)));
   check('Die Kriterienliste nennt das Gewicht',
     gCriterion?.every(c => c.weight === 1), JSON.stringify(gCriterion?.map(c => `${c.name}:${c.weight}`)));
-  /* Stolperstein 102: was die Oberflaeche aus der Antwort liest, gehoert an
+  /* Was die Oberflaeche aus der Antwort liest, gehoert an
      der ECHTEN Antwort geprueft. */
   const gDetail = (await eCall('cookie-e-eins', 'GET', '/api/items/1')).content;
   check('Und jede Kriterienzeile am Eintrag traegt es ebenfalls',
@@ -4681,7 +4680,7 @@ async function sendImport(object, mode, withoutShare = false) {
 
   /* --- Die Klemme: zwei vorbereitete Sitzungen, echte zweite Cookie
      --------- Zu jeder Verweigerung der Erfolgsfall daneben und die
-     Nachschau, dass nichts geschrieben wurde (Stolperstein 3). */
+     Nachschau, dass nichts geschrieben wurde. */
   const gVorRight = gWeights().find(c => c.name === 'Preis')?.weight;
   const gNo = await gSet('Preis', 0.5, 'cookie-e-zwei');
   check('Ein gewoehnlicher Benutzer setzt kein Gewicht', gNo.status === 403,
@@ -4808,7 +4807,7 @@ async function sendImport(object, mode, withoutShare = false) {
   /* DIE NUMMER KOMMT AUS DER ANTWORT und nicht aus einer eigenen Abfrage nach
      einem NAMEN: die Lage weiter oben hat ein Kriterium umbenannt, und eine
      Abfrage auf 'Service' liefe seither ins Leere -- still, denn sie faende
-     einfach nichts (Stolperstein 81). */
+     einfach nichts. */
   const zpCriterionRow = rwView.ratings.find(r => r.avg == null)
     || rwView.ratings[rwView.ratings.length - 1];
   check('Die Prueflage findet ein Kriterium, an dem gesetzt werden kann',
@@ -4908,7 +4907,7 @@ async function sendImport(object, mode, withoutShare = false) {
     (await glEntry('cookie-e-eins', 1))?.newFrom?.length === 1 &&
     (await glEntry('cookie-e-eins', 1))?.newFrom?.[0]?.name === 'zwei',
     JSON.stringify((await glEntry('cookie-e-eins', 1))?.newFrom));
-  /* ZWEIMAL UMGEDREHT UND NIE GELOESCHT (Stolperstein 201). */
+  /* ZWEIMAL UMGEDREHT UND NIE GELOESCHT. */
   await eCall('cookie-e-eins', 'POST', '/api/items/1/comments', { text: 'Von eins selbst' });
   check('Der eigene zaehlt seit 0.17.2 wieder nicht mit',
     (await glEntry('cookie-e-eins', 1))?.newComments === 1,
@@ -5152,7 +5151,7 @@ async function sendImport(object, mode, withoutShare = false) {
     check('Zusage: kein tuerkischer Befehl steht unmittelbar hinter einem Platzhalter — 0.32.1',
       trHits.length === 0, trHits.map(([k, v]) => `${k}: ${v}`).join(' · ') || 'keiner');
     /* UND DER LESER LIEST WIRKLICH. Ohne diese Zeile bliebe die daruber auch
-       dann gruen, wenn das Muster gar nicht zuendete (Stolperstein 81). */
+       dann gruen, wenn das Muster gar nicht zuendete. */
     check('Und der Waechter wuerde „{entryOne} sil" finden',
       trObject.test('{entryOne} sil') && trObject.test('“{potential}” aç')
       && !trObject.test('{entryOne} kaydını sil'),
@@ -6009,7 +6008,7 @@ async function sendImport(object, mode, withoutShare = false) {
     pkRoles.content?.trashDays === 30, JSON.stringify(pkRoles.content?.trashDays));
 
   /* Der Ausgangsstand, an dem hinterher Feld fuer Feld gemessen wird. */
-  /* Auch hier jede Lesestelle abgefangen (Stolperstein 103): antwortet der
+  /* Auch hier jede Lesestelle abgefangen: antwortet der
      Server nicht mit dem Eintrag, sollen die Pruefungen darunter ROT werden
      und nicht der Lauf abreissen -- ein abgerissener Lauf nennt keinen
      einzigen Namen. */
@@ -6048,7 +6047,7 @@ async function sendImport(object, mode, withoutShare = false) {
     pkRows('SELECT id FROM trash').length === 1,
     JSON.stringify(pkRows('SELECT id, title FROM trash')));
 
-  /* JEDE LESESTELLE ABGEFANGEN (Stolperstein 103): faellt die Zeile weg,
+  /* JEDE LESESTELLE ABGEFANGEN: faellt die Zeile weg,
      sollen die Pruefungen darunter ROT werden und nicht der Lauf abreissen. */
   const pkRow = pkOne('SELECT id, title, deleted_by, length(content) AS n FROM trash') || {};
   check('Sie traegt den Titel als eigene Spalte',
@@ -6092,7 +6091,7 @@ async function sendImport(object, mode, withoutShare = false) {
   // Die Liste, wie die Karte sie sieht.
   const pkList = (await pkCall('cookie-pk-anna', 'GET', '/api/trash')).content || {};
   // Erst das Vorhandensein, dann jede Aussage darueber -- und jede Lesestelle
-// abgefangen (Stolpersteine 81 und 103).
+// abgefangen.
   const pkFirst = (pkList.rows || [])[0] || {};
   check('Die Liste nennt die Frist', pkList.days === 30, JSON.stringify(pkList.days));
   check('Und eine Zeile mit Titel, Datum und Loeschendem',
@@ -6123,7 +6122,7 @@ async function sendImport(object, mode, withoutShare = false) {
     pkAfter?.title === pkBefore.title && pkAfter?.description === pkBefore.description &&
     pkAfter?.rejected === pkBefore.rejected && pkAfter?.tested === pkBefore.tested,
     JSON.stringify({ t: pkAfter?.title, r: pkAfter?.rejected, g: pkAfter?.tested }));
-  /* ERST DER GEGENSTAND (Stolperstein 81): truege der Ausgangsstand keine
+  /* ERST DER GEGENSTAND: truege der Ausgangsstand keine
      Ablehnung mit Angaben, verglichen die drei Zeilen darunter null mit null. */
   check('Der Ausgangsstand trug wirklich eine begruendete Ablehnung',
     pkBefore.rejected === true && !!pkBefore.rejected_at && !!pkBefore.rejected_reason &&
@@ -6274,7 +6273,7 @@ async function sendImport(object, mode, withoutShare = false) {
   /* ---------------------------------------------------------------- */
   group('Der Papierkorb: die dreissig Tage');
 
-  /* DER AUSGANGSWERT WIRD VON HAND GESETZT (Stolperstein 60): datetime('now')
+  /* DER AUSGANGSWERT WIRD VON HAND GESETZT: datetime('now')
      loest nur Sekunden auf, und dreissig Tage lassen sich nicht abwarten. */
   {
     /* datetime() nimmt seine Modifikatoren EINZELN -- "-30 days +1 seconds"
@@ -6709,7 +6708,7 @@ async function sendImport(object, mode, withoutShare = false) {
   check('Und nirgendwo sonst',
     siFiles('').length === 0 && siFiles('leer').length === 0,
     siAllFiles().join(' · '));
-  /* JEDE LESESTELLE ABGEFANGEN (Stolperstein 103): faellt der Name aus der
+  /* JEDE LESESTELLE ABGEFANGEN: faellt der Name aus der
      Antwort, sollen die Pruefungen darunter ROT werden und nicht der Lauf
      abreissen. */
   const siCopy = path.join(siRoot, 'taeglich',
@@ -6752,7 +6751,7 @@ async function sendImport(object, mode, withoutShare = false) {
              return n === siBeforeEntries; })(),
     `vorher ${siBeforeEntries} Eintraege, Datei vorher ${siBeforeBytes} Bytes`);
 
-  /* DER ARBEITSNAME, und er ist die Antwort auf Stolperstein 8. */
+  /* DER ARBEITSNAME. */
   check('Nach einer geglueckten Sicherung liegt keine Arbeitsdatei mehr da',
     fs.readdirSync(path.join(siRoot, 'taeglich')).filter(n => n.endsWith('.wird')).length === 0,
     fs.readdirSync(path.join(siRoot, 'taeglich')).join(' · '));
@@ -7091,7 +7090,7 @@ async function sendImport(object, mode, withoutShare = false) {
         headers: { cookie: 'kriterion_session=cookie-sd-anna' } })).json()
       ).error?.includes('Datenverzeichnis'), 'keine sprechende Absage');
     /* DIESE ZUSAGE HAT DEN FEHLER FESTGENAGELT und ist deshalb UMGEDREHT und
-       nicht geloescht (Stolperstein 201). */
+       nicht geloescht. */
     check('Der Start sagt es im Protokoll',
       /Backup location: off -- The backup folder must not be inside the data directory/
         .test(SD.log()), SD.log().slice(0, 500));
@@ -7308,7 +7307,7 @@ async function sendImport(object, mode, withoutShare = false) {
   const AU = startFurtherServer(auDir, { BACKUP_DIR: auRoot }, 4300);
   await AU.ready;
   /* bert BEKOMMT DIE ADMINROLLE ERST JETZT -- ohne ihn waere "Eigentuemer"
-     von "Admin" gar nicht zu unterscheiden (Stolperstein 73). */
+     von "Admin" gar nicht zu unterscheiden. */
   {
     const d = open(path.join(auDir, 'katalog.sqlite'));
     d.pragma('busy_timeout = 4000');
@@ -7738,7 +7737,7 @@ async function sendImport(object, mode, withoutShare = false) {
       auDa().join(' · '));
     /* DAS AUFRAEUMEN REISST DIE SICHERUNG NICHT MIT: die Antwort ist die
        einer gelungenen Sicherung, und was das Aufraeumen meldet, steht NEBEN
-       ihr (Stolperstein 298). */
+       ihr. */
     check('Und die Antwort bleibt die einer gelungenen Sicherung',
       ok.content?.ok === true && /^kriterion-.+\.sqlite$/.test(ok.content?.file || '') &&
       ok.content?.bytes > 0, JSON.stringify(ok.content?.file));
@@ -7826,7 +7825,7 @@ async function sendImport(object, mode, withoutShare = false) {
     d.prepare("INSERT INTO photos (item_id, mime_type, data, sort_order) VALUES (2, 'image/jpeg', ?, 0)")
       .run(Buffer.from('kein echtes Bild, wird nur geloescht'));
     /* Die Datei traegt ihren Verfasser ausdruecklich -- derselbe Grund wie an
-       der Linkzeile darunter (Stolperstein 104): ohne user_id schoebe sie
+       der Linkzeile darunter: ohne user_id schoebe sie
        assignInventory() beim Start der Eigentuemerin zu, und "der Admin
        loescht eine FREMDE Datei" loeschte dann eine eigene. */
     d.prepare("INSERT INTO attachments (item_id, filename, mime_type, size, data, user_id) VALUES (2, 'zettel.txt', 'text/plain', 5, ?, 2)")
@@ -7966,7 +7965,7 @@ async function sendImport(object, mode, withoutShare = false) {
     JSON.stringify(fRows('SELECT tag_id FROM item_tags WHERE item_id = 2')));
 
   /* ---- Die Linkzeile, seit 0.8.30 der fuenfte Traeger ---------------------
-     UMGEDREHT MIT 0.8.30, NICHT GELOESCHT (Stolperstein 74): bis 0.8.20 stand
+     UMGEDREHT MIT 0.8.30, NICHT GELOESCHT: bis 0.8.20 stand
      hier "Ein Fremder haengt keinen Link an einen fremden Eintrag" mit 403.
      Genau das ist jetzt erlaubt -- und die Zeile daneben belegt, dass sie
      dabei SEINEN Namen bekommt und nicht den des Eintragsverfassers. */
@@ -8062,7 +8061,7 @@ async function sendImport(object, mode, withoutShare = false) {
     fRows('SELECT id FROM photos WHERE id = ?', fVideoRow?.id).length === 1);
 
   /* ---- Die Datei, seit 0.8.31 der sechste Traeger ------------------------
-     UMGEDREHT MIT 0.8.31, NICHT GELOESCHT (Stolperstein 74): bis 0.8.30 stand
+     UMGEDREHT MIT 0.8.31, NICHT GELOESCHT: bis 0.8.30 stand
      hier nur die Verweigerung. */
   const fFileAn = await fUpload('cookie-f-carla', 2, 'von-carla.txt', 'inhalt von carla');
   check('Ein Fremder haengt eine Datei an einen fremden Eintrag', fFileAn.status === 201,
@@ -8328,7 +8327,7 @@ async function sendImport(object, mode, withoutShare = false) {
   check('Wegnehmen bleibt auch am ungetesteten Eintrag offen',
     fNullUng.status === 200, `Status ${fNullUng.status}`);
   /* UND DANACH GEHT ES WIEDER. Ohne diese Zeile bliebe gruen, wer die Route
-     ueberhaupt gesperrt haette (Stolperstein 81). */
+     ueberhaupt gesperrt haette. */
   await fCall('cookie-f-bert', 'PUT', `/api/items/${fIdea.id}`, { tested: true });
   const fAgainBert = await fCall('cookie-f-bert', 'PUT', `/api/items/${fIdea.id}/ratings`,
     { criterionId: fLookId, value: 4 });
@@ -8486,7 +8485,7 @@ async function sendImport(object, mode, withoutShare = false) {
   check('Aber den Schluesselwert bekommt nur die Eigentuemerin',
     fStatsCarla.status === 200 && fStatsCarla.content?.keyHex === null,
     JSON.stringify([fStatsCarla.status, fStatsCarla.content?.keyHex]));
-  /* UMGEDREHT SEIT 0.8.5, nicht geloescht (Stolperstein 74): bis 0.8.4 hiess
+  /* UMGEDREHT SEIT 0.8.5, nicht geloescht: bis 0.8.4 hiess
      die Prueflage "Die Kennzahlen selbst sieht weiterhin jeder". */
   check('Die Kennzahlen selbst sieht seit 0.8.5 nur noch der Admin',
     fStatsBert.status === 403, `Status ${fStatsBert.status}`);
@@ -8629,7 +8628,7 @@ async function sendImport(object, mode, withoutShare = false) {
     (fVList || []).find(i => i.id === fVId)?.author?.name === 'bert',
     JSON.stringify((fVList || []).find(i => i.id === fVId)?.author));
   /* SEIT 0.19.3 STEHT HIER DIE GEGENRICHTUNG, und die Zeile ist umgedreht
-     worden statt geloescht (Stolperstein 201): bis 0.19.2 stand hier, dass
+     worden statt geloescht: bis 0.19.2 stand hier, dass
      auch jeder Testtag der UEBERSICHT seinen Verfasser nennt. */
   const fVListDays = (fVList || []).find(i => i.id === fVId)?.testDays || [];
   check('Die Uebersicht traegt die Testtage ueberhaupt',
@@ -8740,7 +8739,7 @@ async function sendImport(object, mode, withoutShare = false) {
   check('Und geschrieben wird dabei nichts',
     equal(fStInventory(), fStBefore), JSON.stringify(fStInventory()));
 
-  /* UMGEHAENGT MIT 0.8.6, nicht geloescht (Stolperstein 74): dieselben vier
+  /* UMGEHAENGT MIT 0.8.6, nicht geloescht: dieselben vier
      Aussagen wie bis 0.8.5 an der Eintragsantwort -- nur eben hier. */
   const fStLook = (fStCarla.content || []).find(z => z.criterion_id === fLookId);
   check('Je Kriterium steht, wer welchen Wert vergeben hat',
@@ -8985,7 +8984,7 @@ async function sendImport(object, mode, withoutShare = false) {
   const oList = await oGet('cookie-f-anna');
   const oTexts = (l) => (l || []).map(z => z.text);
 
-  /* Erst das Vorhandensein, dann die Verneinung (Stolperstein 81): dass die
+  /* Erst das Vorhandensein, dann die Verneinung: dass die
      erledigte Aufgabe, die Notiz und der Bericht ueberhaupt in der Datenbank
      stehen, wird ausdruecklich geprueft -- sonst bliebe jede Aussage
      darueber, dass sie NICHT erscheinen, auf einem leeren Bestand gruen. */
@@ -9014,7 +9013,7 @@ async function sendImport(object, mode, withoutShare = false) {
     JSON.stringify((oList || []).map(z => z.item?.id)));
 
   /* Jedes Feld, das die Oberflaeche aus der Antwort liest, an der ECHTEN
-     Antwort geprueft -- nicht nur am Mock (Stolperstein 102). */
+     Antwort geprueft -- nicht nur am Mock. */
   const oOne = (l, text) => (l || []).find(z => z.text === text);
   check('Jede Zeile nennt ihren Eintrag mit Nummer und Titel',
     oOne(oList, 'A-eins offen')?.item?.id === oA.id &&
@@ -9121,7 +9120,7 @@ async function sendImport(object, mode, withoutShare = false) {
   /* ---------------------------------------------------------------- */
   group('Der Bezugspunkt: die Sekunde am Rand');
 
-  /* MITGENOMMEN MIT 0.17.0, NICHT GELOESCHT (Stolperstein 201): diese Gruppe
+  /* MITGENOMMEN MIT 0.17.0, NICHT GELOESCHT: diese Gruppe
      hiess „Neu seit: die Sekunde am Rand" und fuhr auf `zuletztGesehen`, den
      Merker der gestrichenen Pille. */
   const fClock = () => {
@@ -9216,7 +9215,7 @@ async function sendImport(object, mode, withoutShare = false) {
     return z;
   };
 
-  /* ERST DER GEGENSTAND (Stolperstein 81): steht am Eintrag noch gar nichts,
+  /* ERST DER GEGENSTAND: steht am Eintrag noch gar nichts,
      belegt keine Pruefung darunter etwas. */
   check('Der Eintrag ist zu Beginn nicht abgelehnt und traegt keine Angabe',
     agRow().rejected === 0 && agRow().rejected_at === null &&
@@ -9489,7 +9488,7 @@ async function sendImport(object, mode, withoutShare = false) {
      0.15.0 NIMMT EINE ENTSCHEIDUNG AUS 0.14.0 ZURUECK. */
   group('Entfernen darf auch der Admin — 0.15.0');
 
-  // ERST DER GEGENSTAND (Stolperstein 81): ohne eine Begruendung in der Zeile
+  // ERST DER GEGENSTAND: ohne eine Begruendung in der Zeile
 // belegt kein Entfernen darunter etwas.
   await agCall('cookie-ag-carla', 'PUT', '/api/items/1', { rejectedReason: 'Lieferzeit über 6 Monate' });
   check('Die Begruendung steht vor dem Entfernen wirklich da',
@@ -9986,7 +9985,7 @@ async function sendImport(object, mode, withoutShare = false) {
   /* ---------------------------------------------------------------- */
   group('Der Token: die sieben Tage an beiden Seiten');
 
-  /* DER AUSGANGSWERT WIRD VON HAND GESETZT (Stolperstein 60): datetime('now')
+  /* DER AUSGANGSWERT WIRD VON HAND GESETZT: datetime('now')
      loest nur auf die Sekunde auf, eine Frist von sieben Tagen liesse sich
      sonst gar nicht abwarten. */
   const tkSetExpires = (userId, modifier) => {
@@ -10046,7 +10045,7 @@ async function sendImport(object, mode, withoutShare = false) {
 
   /* Die ERSTE Aufrufstelle -- der Start -- braucht einen eigenen Beleg: zwei
      Aufrufstellen einer Funktion sind zwei Stellen, und eine deckt die andere
-     nicht (Stolperstein 53). */
+     nicht. */
   {
     const auDir = fs.mkdtempSync(path.join(os.tmpdir(), 'kriterion-tokenraum-'));
     shortRun(`require('./db'); console.log('da');`, auDir);
@@ -10097,8 +10096,8 @@ async function sendImport(object, mode, withoutShare = false) {
          ZWEI offene Zeilen da -- erzeugeToken laesst die uebrigen stehen,
          erst das Einloesen raeumt sie weg. */
       try { return d.prepare('SELECT expires_at FROM tokens WHERE used_at IS NULL ORDER BY rowid DESC').get()?.expires_at; }
-      // Stolperstein 134: schliessen auch im Fehlerfall, sonst haelt die
-// offene Leseverbindung eine Sperre.
+      // Schliessen auch im Fehlerfall, sonst haelt die offene
+      // Leseverbindung eine Sperre.
       finally { d.close(); }
     };
     const frMinutes = (value) => (Date.parse(String(value).replace(' ', 'T') + 'Z') - Date.now()) / 60000;
@@ -10230,7 +10229,7 @@ async function sendImport(object, mode, withoutShare = false) {
   check('Die Absage nennt das Heilmittel',
     /beim Admin einen neuen/.test(tkDenials[0].raw), tkDenials[0].raw);
   /* UND DIE GEGENPROBE ZUR PRUEFUNG SELBST: sie darf nicht deshalb gruen
-     sein, weil alle Antworten leer sind (Stolperstein 81). */
+     sein, weil alle Antworten leer sind. */
   const tkGood = (await tkF('cookie-tk-anna')('POST', '/api/users/3/token',
     { purpose: 'reset' })).content?.token || '';
   const tkGoodResponse = await tkCall(null, 'POST', '/api/token/check', { token: tkGood });
@@ -10362,7 +10361,7 @@ async function sendImport(object, mode, withoutShare = false) {
     check(`Die Anmeldung scheitert mit ${name} Passwort`,
       a.status === 401, `${a.status} ${a.raw}`);
   }
-  /* DER ERFOLGSFALL DANEBEN (Stolperstein 81): ohne ihn belegte die Reihe
+  /* DER ERFOLGSFALL DANEBEN: ohne ihn belegte die Reihe
      oben nur, dass sich ueberhaupt niemand anmelden kann. */
   check('Ein Zugang MIT Passwort kommt daneben herein',
     (await tkCall(null, 'POST', '/api/login', { user: 'dora', password: TK_PASSWORD })).status === 200,
@@ -10410,7 +10409,7 @@ async function sendImport(object, mode, withoutShare = false) {
   /* DIE FREIGABE WIRD MITGEHOLT, und das gehoert begruendet: ohne sie
      antwortete jeder dieser Wege mit der Bestaetigungsfrage statt mit der
      Absage, die hier der Gegenstand ist -- die Pruefung waere gruen und
-     belegte etwas anderes (Stolperstein 74). */
+     belegte etwas anderes. */
   const tkNothing = async (name, cookieValue, filePath, body, expected) => {
     const before = tkOpen();
     const a = await tkF(cookieValue)('POST', filePath, body);
@@ -10580,7 +10579,7 @@ async function sendImport(object, mode, withoutShare = false) {
     const d = open(path.join(msDir, 'katalog.sqlite'));
     d.prepare("INSERT INTO users (username, password_hash, role) VALUES ('anna', 'x', 'owner')").run();
     d.prepare("INSERT INTO users (username, password_hash) VALUES ('carla', 'x')").run();
-    /* Die Zeitstempel VON HAND, und nicht datetime('now') (Stolperstein 60):
+    /* Die Zeitstempel VON HAND, und nicht datetime('now'):
        vier Zeilen in derselben Sekunde liessen sich in der Reihenfolge nicht
        unterscheiden, und "zuletzt gesehen" waere unbeweisbar. */
     const sitz = [
@@ -10618,7 +10617,7 @@ async function sendImport(object, mode, withoutShare = false) {
   check('Die eigenen Anmeldungen kommen ueberhaupt',
     msAnna.status === 200 && Array.isArray(msAnna.content?.sessions),
     `${msAnna.status} ${msAnna.raw}`);
-  /* JEDE LESESTELLE IST ABGEFANGEN (Stolperstein 103). */
+  /* JEDE LESESTELLE IST ABGEFANGEN. */
   const msList = (a) => (a && a.content && Array.isArray(a.content.sessions))
     ? a.content.sessions : [];
   check('Es sind genau die zwei eigenen',
@@ -11059,7 +11058,7 @@ async function sendImport(object, mode, withoutShare = false) {
   check('Und auch nicht sein HASH',
     !prEverything().includes(prFreshHash), 'der Hash des Links steht im Protokoll');
   /* DIE GEGENPROBE ZUR NACHSCHAU SELBST: sie darf nicht deshalb gruen sein,
-     weil sie gar nichts sieht (Stolperstein 81). */
+     weil sie gar nichts sieht. */
   check('Die Nachschau sieht ueberhaupt etwas: in tokens steht der Hash',
     JSON.stringify(prRows('SELECT * FROM tokens')).includes(prFreshHash),
     'die Nachschau findet den Hash auch dort nicht');
@@ -11077,7 +11076,7 @@ async function sendImport(object, mode, withoutShare = false) {
   /* ---------------------------------------------------------------- */
   group('Das Sicherheitsprotokoll: die Frist an beiden Seiten');
 
-  /* DER AUSGANGSWERT WIRD VON HAND GESETZT (Stolperstein 60): datetime('now')
+  /* DER AUSGANGSWERT WIRD VON HAND GESETZT: datetime('now')
      loest nur Sekunden auf, und eine Frist von 180 Tagen laesst sich an einer
      frisch geschriebenen Zeile gar nicht pruefen. */
   const prSetAge = (id, modifier) => {
@@ -11193,8 +11192,7 @@ async function sendImport(object, mode, withoutShare = false) {
 
   /* DIE LAGE WIRD BEENDET, und das ist keine Ordnungsliebe: ein Server, der
      den Lauf ueberlebt, besetzt seinen Port weiter, und der naechste Lauf
-     bekommt auf demselben Port einen FREMDEN Server samt fremder Datenbank
-     (Stolperstein 122). */
+     bekommt auf demselben Port einen FREMDEN Server samt fremder Datenbank. */
   await PR.stop();
   fs.rmSync(prDir, { recursive: true, force: true });
 
@@ -11955,8 +11953,7 @@ async function sendImport(object, mode, withoutShare = false) {
 
     group('Der Mailversand: die Frist wird gemessen, nicht behauptet');
 
-    /* JEDE MESSUNG LAEUFT UEBER EIN EIGENES AUFFANGNETZ, und das ist keine
-       Vorsicht, sondern Stolperstein 138: geprueft wird hier ein Vorgang, der
+    /* JEDE MESSUNG WIRD EINZELN ABGEFANGEN: geprueft wird hier ein Vorgang, der
        SCHEITERN kann -- und die Gegenprobe nimmt ihm absichtlich genau die
        Frist weg, die ihn beendet. */
     /* DIE GRENZE IST DAS DOPPELTE DER ZUSAGE, und die Zusage ist die Frist
@@ -12095,11 +12092,11 @@ async function sendImport(object, mode, withoutShare = false) {
           }
         }
       }
-    } finally { pDb.close(); }   // Stolperstein 134: schliessen auch im Fehlerfall
+    } finally { pDb.close(); }   // schliessen auch im Fehlerfall
     check('Das Mailpasswort steht in keiner anderen Zeile der Datenbank',
       pHit.length === 0, pHit.join(' · '));
     /* Und die Gegenlage, damit die Suche nicht deshalb leer ist, weil sie
-       nichts findet (Stolperstein 81): in settings steht es sehr wohl. */
+       nichts findet: in settings steht es sehr wohl. */
     const pDb2 = open(path.join(A.dir, 'katalog.sqlite'));
     let pInSettings = false;
     try {
@@ -12271,7 +12268,7 @@ async function sendImport(object, mode, withoutShare = false) {
         const raw = JSON.parse(d.prepare("SELECT value FROM settings WHERE key = 'mailzugang'").get().value);
         d.prepare("UPDATE settings SET value = ? WHERE key = 'mailzugang'")
           .run(JSON.stringify({ ...raw, server: 'boeser.beispiel.net', port: 2525, secure: true }));
-      } finally { d.close(); }   // Stolperstein 134
+      } finally { d.close(); }
     }
     const rSaved = await RA.S.call('GET', '/api/mail');
     check('Und auch ein GESPEICHERTER Wert verliert gegen die Vorlage',
@@ -12362,7 +12359,7 @@ async function sendImport(object, mode, withoutShare = false) {
 
     for (const l of [E, F, X, St, Sw, Tr, O, H, T]) await l.stop();
     // A ist oben beim Neustart schon gestoppt worden -- endKind fragt vorher,
-    // ob das Kind schon vorbei ist (Stolperstein 139), ein zweiter Aufruf
+    // ob das Kind schon vorbei ist, ein zweiter Aufruf
     // haengt also nicht.
     for (const x of [A, emptyA, FA, XA, StA, SwA, TrA, OA, HA, TA, RA]) {
       await x.S.stop();
@@ -12497,7 +12494,7 @@ async function sendImport(object, mode, withoutShare = false) {
     check('Und keine der drei legt eine Anfrage an',
       regSql(gA.dir, "SELECT username FROM requests WHERE username = 'dritter'").length === 0,
       JSON.stringify(regSql(gA.dir, 'SELECT username FROM requests')));
-    /* ERST DER GEGENSTAND (Stolperstein 81): ein leerer Rumpf waere in allen
+    /* ERST DER GEGENSTAND: ein leerer Rumpf waere in allen
        vier Lagen gleich und belegte nichts. */
     check('Der Rumpf sagt ueberhaupt etwas -- und nennt den naechsten Schritt',
       /E-Mail/.test(REG_RESPONSE) && /Admin/.test(REG_RESPONSE), REG_RESPONSE.slice(0, 160));
@@ -12538,7 +12535,7 @@ async function sendImport(object, mode, withoutShare = false) {
     check('Und auch dabei bleibt es bei der einen Zeile',
       regSql(gA.dir, 'SELECT username FROM requests').length === 1,
       JSON.stringify(regSql(gA.dir, 'SELECT username, email FROM requests')));
-    /* UND DIE GEGENLAGE ZU BEIDEN (Stolperstein 81): eine Anfrage mit NEUEM
+    /* UND DIE GEGENLAGE ZU BEIDEN: eine Anfrage mit NEUEM
        Namen UND NEUER Adresse geht durch. */
     await regRaw(gA.S, '/api/signup',
       { name: 'beides-neu', address: 'beides-neu@beispiel.de' });
@@ -12559,7 +12556,7 @@ async function sendImport(object, mode, withoutShare = false) {
     check('Und keine von beiden hat eine Zeile angelegt',
       regSql(gA.dir, 'SELECT username FROM requests').length === 2,
       JSON.stringify(regSql(gA.dir, 'SELECT username FROM requests').map(z => z.username.length)));
-    /* UND DIE GEGENLAGE ZUR GRENZE (Stolperstein 81): ein Name knapp DARUNTER
+    /* UND DIE GEGENLAGE ZUR GRENZE: ein Name knapp DARUNTER
        geht durch. */
     const gTight = await regRaw(gA.S, '/api/signup',
       { name: 'z'.repeat(64), address: 'knapp@beispiel.de' });
@@ -12655,9 +12652,9 @@ async function sendImport(object, mode, withoutShare = false) {
     check('Die Bestaetigungsmail geht am echten SMTP-Gespraech hinaus',
       hLetters.length === 1, `${hLetters.length} Briefe an clara, ` +
       `${hOk.letters().length - hVorLetters} neue insgesamt`);
-    /* ERST DER GEGENSTAND, DANN DIE EIGENSCHAFT (Stolperstein 81) -- und in
+    /* ERST DER GEGENSTAND, DANN DIE EIGENSCHAFT -- und in
        einer Gruppe ueber einen Vorgang, der scheitern KANN, laeuft jede
-       Lesestelle danach ueber ein Auffangnetz (Stolperstein 138): kommt der
+       Lesestelle danach ueber ein Auffangnetz: kommt der
        Brief nicht, soll die Gruppe rot werden und nicht abreissen. */
     const hMail = hLetters[0] || { head: '', core: '', raw: '' };
     check('Der Empfaenger ist die angefragte Adresse',
@@ -12874,12 +12871,12 @@ async function sendImport(object, mode, withoutShare = false) {
       (fCard.requests || []).length === 1 &&
       ((fCard.requests || [])[0] || {}).username === 'frieda',
       JSON.stringify(fCard.requests));
-    /* JEDE LESESTELLE DANACH UEBER EIN AUFFANGNETZ (Stolperstein 138): kommt
+    /* JEDE LESESTELLE DANACH UEBER EIN AUFFANGNETZ: kommt
        die Zeile nicht, soll die Gruppe rot werden und nicht abreissen -- eine
        Gegenprobe, die den Lauf mitnimmt, sagt nichts darueber, welche
        Pruefung den Rueckbau bemerkt haette. */
     /* ZU JEDEM FELD, DAS DIE OBERFLAECHE LIEST, EINE PRUEFUNG AN DER ECHTEN
-       ANTWORT (Stolperstein 102) -- das ist die Quelle von vier stummen
+       ANTWORT -- das ist die Quelle von vier stummen
        Gegenproben der Vorrunde. */
     const fRow = (fCard.requests || [])[0] || {};
     check('Die Antwort traegt den Namen', fRow.username === 'frieda', JSON.stringify(fRow));
@@ -12992,7 +12989,7 @@ async function sendImport(object, mode, withoutShare = false) {
       const s = await regWaitOnMail(hOk, address);
       await hA.S.call('POST', '/api/signup/confirm', { key: s });
       const k = (await hA.S.call('GET', '/api/requests')).content || {};
-      // Ein Auffangnetz statt eines Griffs ins Leere (Stolperstein 138): eine
+      // Ein Auffangnetz statt eines Griffs ins Leere: eine
       // Nummer, die es nicht gibt, faerbt die Pruefung rot statt den Lauf
       // abzureissen.
       return ((k.requests || []).find(a => a.username === name) || { id: 0 }).id;
@@ -13072,7 +13069,7 @@ async function sendImport(object, mode, withoutShare = false) {
     check('Anfrage, Bestaetigung und geratene Bestaetigung schreiben zusammen keine Zeile',
       regSql(hA.dir, 'SELECT id FROM security_log').length === 0,
       JSON.stringify(regSql(hA.dir, 'SELECT event FROM security_log')));
-    /* ERST DER GEGENSTAND (Stolperstein 81): die Tabelle muss ueberhaupt
+    /* ERST DER GEGENSTAND: die Tabelle muss ueberhaupt
        beschreibbar sein. */
     const ludwigId = ((((await hA.S.call('GET', '/api/requests')).content || {})
       .requests || []).find(a => a.username === 'ludwig') || { id: 0 }).id;
@@ -13122,8 +13119,7 @@ async function sendImport(object, mode, withoutShare = false) {
 
     /* KEIN MIGRATIONSBLOCK -- und das ist zum vierten Mal NACHGESTELLT statt
        abgeschrieben: anders als eine SPALTE legt CREATE TABLE IF NOT EXISTS
-       eine fehlende TABELLE bei jedem Start an (Stolperstein 13 gilt der
-       Spalte). */
+       eine fehlende TABELLE bei jedem Start an. */
     {
       const nDir = fs.mkdtempSync(path.join(os.tmpdir(), 'kriterion-anfragentab-'));
       shortRun(`require('./db'); console.log('da');`, nDir);
@@ -13237,7 +13233,7 @@ async function sendImport(object, mode, withoutShare = false) {
       zfWrong.length === 0,
       zfWrong.map(([t, s]) => `T=${t} soll ${s.slice(-ZF.DIGITS)}, ist ` +
         ZF.code(zfVectorSecret, ZF.stepOf(t * 1000))).join(' · '));
-    /* ERST DER GEGENSTAND, DANN DIE EIGENSCHAFT (Stolperstein 81): eine leere
+    /* ERST DER GEGENSTAND, DANN DIE EIGENSCHAFT: eine leere
        Vektorliste machte die Zeile darueber wahr, ohne etwas zu belegen. */
     check('Und die Liste der Vektoren ist wirklich gefuellt',
       ZF_VECTORS.length === 6 && ZF_VECTORS.every(([, s]) => s.length === 8));
@@ -13267,7 +13263,7 @@ async function sendImport(object, mode, withoutShare = false) {
       zfUpWrong.length === 0 && ZF_UP.every(z => z >= 2 ** 32),
       zfUpWrong.map(z => `${z}: ${ZF.code(zfVectorSecret, z)} statt ` +
         zfHmacDirekt(zfVectorSecret, z)).join(' · '));
-    /* UND DIE GEGENLAGE ZUR PRUEFUNG SELBST (Stolperstein 81): stimmten die
+    /* UND DIE GEGENLAGE ZUR PRUEFUNG SELBST: stimmten die
        beiden Wege IMMER ueberein, auch bei verschiedenen Zaehlern, belegte
        die Zeile darueber nichts. */
     check('Und die beiden Wege unterscheiden sich sehr wohl bei verschiedenen Zaehlern',
@@ -13365,7 +13361,7 @@ async function sendImport(object, mode, withoutShare = false) {
       const start = await zfS.call('POST', '/api/two-factor/start', { password });
       await zfQuiet();
       const counter = ZF.nowStep();
-      /* AUFFANGNETZ (Stolperstein 138): gibt /start kein Geheimnis her,
+      /* AUFFANGNETZ: gibt /start kein Geheimnis her,
          laeuft alles Weitere trotzdem durch -- mit einem erfundenen Wert, der
          zuverlaessig nicht traegt. */
       const secret = (start.content && start.content.secret) || 'A'.repeat(32);
@@ -13379,7 +13375,7 @@ async function sendImport(object, mode, withoutShare = false) {
 
     // Anmeldung in zwei Schritten, mit einem Code fuer einen bestimmten
     // Zaehler.
-    /* DAS AUFFANGNETZ IST DER GANZE PUNKT DIESER FUNKTION (Stolperstein 138). */
+    /* DAS AUFFANGNETZ IST DER GANZE PUNKT DIESER FUNKTION. */
     const zfLogin = async (z, counter, raw) => {
       await zfS.cookieRemove();
       const one = await zfS.call('POST', '/api/login', { user: z.name, password: z.password });
@@ -13531,7 +13527,7 @@ async function sendImport(object, mode, withoutShare = false) {
     /* GEPRUEFT WIRD AN VIER EIGENEN ZUGAENGEN und nicht an einem: sobald ein
        Code getragen hat, steht der verbrauchte Zaehler im Weg, und die
        naechste Lage praefte dann nicht mehr das Fenster, sondern die
-       Wiederverwendung (Stolperstein 154). */
+       Wiederverwendung. */
     await zfQuiet();
     const zfW = { vor: await zfUserIncludingFactor('wvor'), after: await zfUserIncludingFactor('wnach'),
                   wide: await zfUserIncludingFactor('wweit'), back: await zfUserIncludingFactor('wzur') };
@@ -13634,7 +13630,7 @@ async function sendImport(object, mode, withoutShare = false) {
       `${zfIncludingFactor.status} ${zfWithoutFactor.status} ${zfUnknown.status}`);
     check('Kein Wort ueber den zweiten Faktor steht darin',
       !/zweifaktor|ausweis|faktor|code/i.test(zfIncludingFactor.raw), zfIncludingFactor.raw);
-    /* ERST DER GEGENSTAND, DANN DIE EIGENSCHAFT (Stolperstein 81): die drei
+    /* ERST DER GEGENSTAND, DANN DIE EIGENSCHAFT: die drei
        Antworten oben waeren auch dann gleich, wenn die Instanz ueberhaupt nie
        etwas ueber den Faktor sagte. */
     const zfIncludingWord = await zfRaw({ user: zfC.name, password: zfC.password });
@@ -13662,7 +13658,7 @@ async function sendImport(object, mode, withoutShare = false) {
     const zfHit = zfD.codes.filter(c => zfEverything.includes(ZF.recoveryNormal(c)));
     check('Kein Klartext eines Wiederherstellungscodes steht in irgendeiner Spalte',
       zfHit.length === 0, zfHit.join(' '));
-    /* UND DIE GEGENLAGE ZUR SUCHE SELBST (Stolperstein 81): findet sie
+    /* UND DIE GEGENLAGE ZUR SUCHE SELBST: findet sie
        ueberhaupt etwas, wo etwas stehen MUSS? */
     check('Und die Suche findet sehr wohl, was dort stehen muss',
       zfEverything.includes(zfD.secret) && zfEverything.includes('erik'),
@@ -13678,7 +13674,7 @@ async function sendImport(object, mode, withoutShare = false) {
     const zfW3 = await zfLogin(zfD, 0, zfD.codes[1]);
     check('Ein anderer aus demselben Satz sehr wohl', zfW3.two.status === 200);
     // Ueber ?. gelesen: nimmt ein Rueckbau das Feld aus der Antwort, soll die
-// Pruefung ROT werden und der Lauf nicht abreissen (Stolperstein 138).
+// Pruefung ROT werden und der Lauf nicht abreissen.
     check('Und die Karte zaehlt herunter',
       (await zfS.call('GET', '/api/account')).content?.twoFactor?.codesOpen === 6,
       JSON.stringify((await zfS.call('GET', '/api/account')).content?.twoFactor));
@@ -13705,7 +13701,7 @@ async function sendImport(object, mode, withoutShare = false) {
       zfFresh.status === 200 && zfFresh.content.codes.length === 8 &&
       zfFresh.content.codesOpen === 8 && zfFresh.content.codesTotal === 8,
       JSON.stringify(zfFresh.content.codesOpen));
-    /* AUFFANGNETZ (Stolperstein 138): gibt die Route keine Codes her -- weil
+    /* AUFFANGNETZ: gibt die Route keine Codes her -- weil
        ein Rueckbau sie hat scheitern lassen --, laeuft die Zeile trotzdem
        durch und faellt rot. */
     const zfNewCodes = (zfFresh.content && zfFresh.content.codes) || [];
@@ -13924,7 +13920,7 @@ async function sendImport(object, mode, withoutShare = false) {
        eine Verzoegerung. */
     await zfQuiet();
     const zfI = await zfUserIncludingFactor('jonas');
-    /* ERST DIE GEGENLAGE (Stolperstein 81): SOLANGE NICHT GESPERRT IST,
+    /* ERST DIE GEGENLAGE: SOLANGE NICHT GESPERRT IST,
        antwortet derselbe Ruf mit 401 ueber den Ausweis. */
     const zfVorLock = await zfS.call('POST', '/api/login/second',
       { ticket: 'f'.repeat(64), code: '000000' });
@@ -14033,8 +14029,7 @@ async function sendImport(object, mode, withoutShare = false) {
 
     /* KEIN MIGRATIONSBLOCK -- zum fuenften Mal NACHGESTELLT statt
        abgeschrieben: anders als eine SPALTE legt CREATE TABLE IF NOT EXISTS
-       eine fehlende TABELLE bei jedem Start an (Stolperstein 13 gilt der
-       Spalte). */
+       eine fehlende TABELLE bei jedem Start an. */
     {
       const tDir = fs.mkdtempSync(path.join(os.tmpdir(), 'kriterion-zftab-'));
       shortRun(`require('./db'); console.log('da');`, tDir);
@@ -15218,8 +15213,7 @@ async function sendImport(object, mode, withoutShare = false) {
 
   await call('PUT', `/api/photos/${image.id}/focus`, { x: 20, y: 70, zoom: 180 });
   /* MIT KLAMMER: ein Rueckbau, der die Uebersicht scheitern laesst, soll die
-     Zusagen darunter rot faerben und nicht den Lauf abreissen (Stolperstein
-     161). */
+     Zusagen darunter rot faerben und nicht den Lauf abreissen. */
   const overviewF = ((await call('GET', '/api/items')).content || [])
     .find(i => i.id === fp.id) || { mainPhoto: {} };
   const overviewPhoto = overviewF.mainPhoto || {};
@@ -15321,7 +15315,7 @@ async function sendImport(object, mode, withoutShare = false) {
   const baSize = await sharp(baBytes).metadata();
   check('Und es hat dieselben Maße wie die Vorlage',
     baSize.width === 96 && baSize.height === 96, `${baSize.width}x${baSize.height}`);
-  /* DIE GEGENPROBE ZUR PRUEFUNG SELBST (Stolperstein 106): sie darf nicht
+  /* DIE GEGENPROBE ZUR PRUEFUNG SELBST: sie darf nicht
      deshalb gruen sein, weil sie JEDEN Unterschied durchliesse. */
   const baBad = await sharp(templatePNG).webp({ quality: 70 }).toBuffer();
   check('Und die Messung fände einen verlustbehafteten Kodierer wirklich',
@@ -15769,7 +15763,7 @@ async function sendImport(object, mode, withoutShare = false) {
       oneLine.includes('const qAllPhotos = db.prepare(`SELECT ${PHOTO_COLUMNS}, ${PHOTO_VERSION} FROM photos'),
       (oneLine.match(/const PHOTO_VERSION = [^;]*/) || ['(nicht gefunden)'])[0]);
     /* DER KNOPF WAEHLT SEIT 0.27.0 GROSSZUEGIG AUS -- und die Zusage ist
-       mitgegangen statt geloescht zu werden (Stolperstein 201). */
+       mitgegangen statt geloescht zu werden. */
     check('Die Auswahl des Knopfs liest keinen Blob-Inhalt mehr',
       /qConvertRows = db\.prepare\(\s*"SELECT id FROM photos WHERE kind != 'video'"\);/.test(oneLine.replace(/\s+/g, ' ')) ||
       /qConvertRows = db\.prepare\([\s\S]{0,200}?SELECT id FROM photos WHERE kind != 'video'\"\);/.test(serverSource),
@@ -15815,7 +15809,7 @@ async function sendImport(object, mode, withoutShare = false) {
       { criterionId: pmCrit.content.id, value: 4 });
     const pmRead = async () => (await call('GET', `/api/items/${pmItem.content.id}`)).content;
     const pmBefore = await pmRead();
-    /* ERST DAS VORHANDENSEIN, DANN JEDE AUSSAGE DARUEBER (Stolperstein 81):
+    /* ERST DAS VORHANDENSEIN, DANN JEDE AUSSAGE DARUEBER:
        ohne eine Zahl belegte „sie steht noch da" gar nichts. */
     check('Der Eintrag traegt eine Potenzialzahl',
       pmBefore.potentialRating === 4, JSON.stringify(pmBefore.potentialRating));
@@ -16683,7 +16677,7 @@ async function sendImport(object, mode, withoutShare = false) {
     `${svgUp.status}: ${JSON.stringify(svgUp.content)}`);
   // Erst das Vorhandensein, dann die Eigenschaft: ohne den Erfolgsfall
   // daneben bliebe die Abweisung auch dann gruen, wenn gar nichts mehr
-  // hochladbar waere (Stolperstein 81).
+  // hochladbar waere.
   const pngUp = await sendMultipart(`/api/items/${fo.id}/photos`, 'photos',
     [{ name: 'gut.png', type: 'image/png', content: Buffer.from(PNG_BASE64, 'base64') }]);
   check('Ein echtes PNG geht durch', pngUp.status === 201 && pngUp.content.photos.length >= 1,
@@ -16761,14 +16755,14 @@ async function sendImport(object, mode, withoutShare = false) {
   const vUp = await sendVideo(vi.id, { duration: 42 });
   check('Ein echtes MP4 mit Standbild geht durch', vUp.status === 201,
     `${vUp.status}: ${JSON.stringify(vUp.content?.error)}`);
-  // Erst das Vorhandensein, dann die Eigenschaft (Stolperstein 81): ohne die
+  // Erst das Vorhandensein, dann die Eigenschaft: ohne die
 // Zeile belegte alles Weitere nichts.
   check('Der Eintrag traegt jetzt zwei Zeilen, Foto und Video',
     vUp.content?.photos?.length === 2, JSON.stringify(vUp.content?.photos?.length));
   const vPhoto = vUp.content?.photos?.[0], vVideo = vUp.content?.photos?.[1];
 
   /* ZU JEDEM FELD, DAS DIE OBERFLAECHE LIEST, EINE PRUEFUNG AN DER ECHTEN
-     ANTWORT (Stolperstein 102): woran sie ein Video erkennt, ist allein kind. */
+     ANTWORT: woran sie ein Video erkennt, ist allein kind. */
   check('Die Videozeile nennt ihre Art und ihre Dauer',
     vVideo?.kind === 'video' && vVideo?.duration === 42,
     JSON.stringify({ kind: vVideo?.kind, duration: vVideo?.duration }));
@@ -16819,7 +16813,7 @@ async function sendImport(object, mode, withoutShare = false) {
 
   /* REIHENFOLGE, KASKADE UND LOESCHEN GELTEN VON SELBST -- sie arbeiten auf
      Zeilen, nicht auf Arten. */
-  /* JEDE LESESTELLE ABGEFANGEN (Stolperstein 103): kam oben nichts herein,
+  /* JEDE LESESTELLE ABGEFANGEN: kam oben nichts herein,
      werden die Pruefungen hier rot, statt den Lauf abzureissen und KEINEN
      Namen zu nennen. */
   const vIds = vStatus.photos.map(p2 => p2.id);
@@ -16875,7 +16869,7 @@ async function sendImport(object, mode, withoutShare = false) {
   /* --- 0.12.3: die erwartete Exportgroesse steht in denselben Kennzahlen ---
      ZWEI FRAGEN, ZWEI ZAHLEN. */
   const exStats = (await call('GET', '/api/stats')).content;
-  // ERST DAS VORHANDENSEIN, DANN DIE EIGENSCHAFT (Stolperstein 81): ohne
+  // ERST DAS VORHANDENSEIN, DANN DIE EIGENSCHAFT: ohne
 // dieses Feld blieben alle Pruefungen darunter auf undefined stehen.
   check('Die Kennzahlen nennen die Teile der Exportgroesse',
     exStats?.export && ['envelope', 'photos', 'videos', 'attachments', 'commentImages']
@@ -16990,7 +16984,7 @@ async function sendImport(object, mode, withoutShare = false) {
     !!vMp4Id && !!vImageId, JSON.stringify(vOut.photos.map(p2 => `${p2.id}:${p2.kind}`)));
 
   // Abgefangen wie jede Lesestelle: fehlt die Zeile, werden die Pruefungen
-// darunter rot, statt den Lauf abzureissen (Stolperstein 103).
+// darunter rot, statt den Lauf abzureissen.
   const vEmpty = { status: 0, h: {}, bytes: Buffer.alloc(0) };
   const vRaw = vMp4Id ? await vResponse(vMp4Id) : vEmpty;
   check('Ein MP4 wird als video/mp4 ausgeliefert', vRaw.h['content-type'] === 'video/mp4',
@@ -17104,7 +17098,7 @@ async function sendImport(object, mode, withoutShare = false) {
                  VALUES (1, 'video/mp4', ?, ?, NULL, 0, 'video', 9)`)
         .run(MP4(), Buffer.from(PNG_BASE64, 'base64'));
       // Und eine echte Fotozeile ohne beides daneben -- ohne sie bliebe offen,
-// ob das Nachruesten ueberhaupt noch etwas tut (Stolperstein 81).
+// ob das Nachruesten ueberhaupt noch etwas tut.
       d.prepare(`INSERT INTO photos (item_id, mime_type, data, sort_order)
                  VALUES (1, 'image/png', ?, 1)`).run(Buffer.from(PNG_BASE64, 'base64'));
       d.close();
@@ -17240,7 +17234,7 @@ async function sendImport(object, mode, withoutShare = false) {
 
   const walPath = path.join(hDir2, 'katalog.sqlite-wal');
   // Erst das Vorhandensein, dann die Eigenschaft: waere die WAL schon vorher
-// leer, belegte die Zeile danach nichts (Stolperstein 81).
+// leer, belegte die Zeile danach nichts.
   const walBefore = fs.existsSync(walPath) ? fs.statSync(walPath).size : 0;
   check('Vor dem Herunterfahren steht etwas in der WAL', walBefore > 0, `${walBefore} Bytes`);
 
@@ -17617,7 +17611,7 @@ async function sendImport(object, mode, withoutShare = false) {
     !!fkP && fkP.text.includes('Zwirbel.Knoten'), JSON.stringify(fkP?.text));
 
   /* DAS FELD IST EINE ERWEITERUNG UND KEINE WEGNAHME. Was vorher in der
-     Antwort stand, steht Zeichen fuer Zeichen weiter da (Stolperstein 102). */
+     Antwort stand, steht Zeichen fuer Zeichen weiter da. */
   const fkFields = new Set(Object.keys((await vsSearch('volltext'))[0] || {}));
   check('Und die Antwort auf eine Suche traegt weiterhin alle bekannten Felder',
     ['id', 'title', 'tags', 'category', 'avgRating', 'linkCount'].every(f => fkFields.has(f)),
@@ -17659,7 +17653,7 @@ async function sendImport(object, mode, withoutShare = false) {
   check('Mit eingeschalteter Zeitleiste steht testDays in der Antwort',
     vsIncludingZl.every(i => Array.isArray(i.testDays)), 'nicht überall');
   const vsIncludingTest = vsIncludingZl.find(i => i.id === vsTagTag.id);
-  /* ERST DAS VORHANDENSEIN, DANN DIE EIGENSCHAFT (Stolperstein 81) -- und
+  /* ERST DAS VORHANDENSEIN, DANN DIE EIGENSCHAFT -- und
      hier ist es keine Formsache: die erste Fassung las
      `vsIncludingTest.testDays.length` ungeschuetzt. */
   check('Der Aufbau steht: ein Eintrag trägt wirklich einen Testtag',
@@ -18005,7 +17999,7 @@ async function sendImport(object, mode, withoutShare = false) {
 
   /* DIE ZWEI WERTE, UND SONST KEINER -- hier ausgeschrieben und nicht aus dem
      Server gelesen: eine Zahl im Pruefstand ist ein Beleg, eine aus dem
-     Gegenstand gelesene waere ein Echo (Stolperstein 137). */
+     Gegenstand gelesene waere ein Echo. */
   const PHASES_EXPECTED = ['before', 'after'];
 
   const PH_WORD = 'annas-langes-wort';
@@ -18205,7 +18199,7 @@ async function sendImport(object, mode, withoutShare = false) {
     phAfter.avgRating === 4 && phAfter.potentialRating === 1 &&
     phAfterL.avgRating === 4 && phAfterL.potentialRating === 1,
     `${phAfter.avgRating}/${phAfter.potentialRating} und ${phAfterL.avgRating}/${phAfterL.potentialRating}`);
-  /* ERST DAS OBJEKT, DANN SEIN INHALT -- Stolperstein 81, und hier nicht aus
+  /* ERST DAS OBJEKT, DANN SEIN INHALT, und hier nicht aus
      Ordnungsliebe: Rueckbau 573 nimmt `it.potenzialRechenweg` aus der
      Antwort, und die Kette `phD.potenzialRechenweg.zeilen.length` warf
      daraufhin, statt rot zu werden. */

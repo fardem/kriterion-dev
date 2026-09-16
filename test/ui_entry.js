@@ -95,7 +95,7 @@ async function run() {
   await new Promise(r => setTimeout(r, 20));
   check('Und wieder auf', !comments.classList.contains('closed'));
 
-  /* UMGEDREHT STATT GELOESCHT (Stolperstein 74). */
+  /* UMGEDREHT STATT GELOESCHT. */
   check('Der Kommentarblock zaehlt in seinem Hinweis, nicht in der Kurzfassung',
     wb.blockSummary('kommentare', { comments: [{ kind: 'note' }, { kind: 'report' }] }) === '' &&
     wb.commentNumbers([{ kind: 'note' }, { kind: 'report' }]).text === '2 Kommentare · 1 Bericht',
@@ -299,7 +299,7 @@ async function run() {
 
   // Die Marke liegt seit 0.24.0 hinter dem Umschalter (Bauabschnitt 0.2).
   await openTagRow(wFilt);
-  /* GEKLAMMERT WIE JEDER GRIFF IN EINEN NACHBAU -- 0.30.0, Stolperstein 161.
+  /* GEKLAMMERT WIE JEDER GRIFF IN EINEN NACHBAU -- 0.30.0.
      Ein Rueckbau, der die Tagzeile wegnimmt, soll die Zusagen darunter ROT
      machen und nicht den Lauf abreissen: eine abgerissene Gegenprobe belegt
      gar nichts. */
@@ -364,7 +364,7 @@ async function run() {
     eColumns[0]?.title === 'Durchschnitt 3,4 aus 5 Bewertungen', eColumns[0]?.title);
   check('Und die zweite Zeile traegt ihren eigenen Klartext',
     eColumns[1]?.title === 'Durchschnitt 4,1 aus 128 Bewertungen', eColumns[1]?.title);
-  /* UMGEDREHT MIT 0.21.0 (Stolperstein 74): bis 0.20.1 hiess die Zeile „Ein
+  /* UMGEDREHT MIT 0.21.0: bis 0.20.1 hiess die Zeile „Ein
      Kriterium ohne Stimme bekommt keinen Klartext" -- die Zelle war leer,
      also gab es nichts zu erklaeren. */
   check('Ein Kriterium ohne Bewertung bekommt seinen eigenen Klartext',
@@ -372,7 +372,7 @@ async function run() {
   check('Der Schnitt steht mit Komma, nicht mit Punkt',
     !eColumns.some(z => z.textContent.includes('.')),
     JSON.stringify(eColumns.map(z => z.textContent)));
-  /* UMGEDREHT MIT 0.21.0 (Stolperstein 74): bis 0.20.1 blieb die Zelle LEER. */
+  /* UMGEDREHT MIT 0.21.0: bis 0.20.1 blieb die Zelle LEER. */
   check('Ein Kriterium ohne Stimme zeigt einen Strich und ausdruecklich keine Null',
     eColumns[2]?.textContent === '–', JSON.stringify(eColumns[2]?.textContent));
   // Die Sterne bleiben die EIGENEN -- 3 von 5, nicht 3,4.
@@ -383,7 +383,7 @@ async function run() {
   check('Der Blockkopf traegt den Gesamtschnitt',
     /⌀\s*3,0/.test(eDoc.getElementById('rhead')?.textContent || ''),
     JSON.stringify(eDoc.getElementById('rhead')?.textContent));
-  /* UMGEDREHT MIT 0.21.0 (Stolperstein 74): bis 0.20.1 hiess die Zeile „Der
+  /* UMGEDREHT MIT 0.21.0: bis 0.20.1 hiess die Zeile „Der
      Ruecksetzer sagt, dass er nur meine Werte trifft" und pruefte den Knopf
      „Meine Bewertung zuruecksetzen" im Blockkopf. */
   check('Der Kopf traegt keinen Ruecksetzer mehr',
@@ -571,7 +571,7 @@ async function run() {
   eUm.w.close();
 
   /* --- Wer hat bewertet: die Ansicht des Admins -------------------------
-     UMGEHAENGT MIT 0.8.6, nicht geloescht (Stolperstein 74). */
+     UMGEHAENGT MIT 0.8.6, nicht geloescht. */
   check('Unter den Sternen steht seit 0.8.6 keine Stimmenliste mehr',
     [...eDoc.querySelectorAll('#ratings .rrow')].length === 3 &&
     eDoc.querySelectorAll('#ratings .rvotes').length === 0,
@@ -778,7 +778,7 @@ async function run() {
     `${eSysUser.w.document.querySelectorAll('#mcrits .mrow .mact').length} Knoepfe`);
   check('Die Kriterien selbst bleiben sichtbar',
     /Zuerst/.test(eSysUser.w.document.getElementById('mcrits')?.textContent || ''));
-  /* UMGEDREHT SEIT 0.8.5, nicht geloescht (Stolperstein 74): bis 0.8.4 hiess
+  /* UMGEDREHT SEIT 0.8.5, nicht geloescht: bis 0.8.4 hiess
      die Prueflage "Tags und Kategorien bleiben unangetastet bedienbar" -- die
      Klemme galt nur den Kriterien. */
   check('Tags und Kategorien tragen seit 0.8.5 dasselbe Muster',
@@ -966,8 +966,7 @@ async function run() {
     zlSent?.body.timeline === true, JSON.stringify(zlSent?.body));
 
   /* „Links" und „Suchanbieter" stehen im Abschnitt „Bestand", der Schalter
-     fuer die Zeitleiste in „Darstellung" -- seit 0.16.0 zwei Abschnitte
-     (Stolperstein 201). */
+     fuer die Zeitleiste in „Darstellung" -- seit 0.16.0 zwei Abschnitte. */
   await sysSection(sysZl.w, 'inventory');
   const lzLevels = [...sysZl.w.document.querySelectorAll('#lrows .pill')];
   check('Und es gibt Stufen für die sichtbaren Linkzeilen', lzLevels.length === 4, `${lzLevels.length}`);
@@ -1289,7 +1288,7 @@ async function run() {
   group('Der Name an der Linkzeile');
 
   /* DIE REGEL HAT ZWEI HAELFTEN, und beide brauchen ihre eigene Gegenlage
-     (Stolperstein 72): gezeigt wird der Name nur bei MEHREREN Zugaengen UND
+: gezeigt wird der Name nur bei MEHREREN Zugaengen UND
      nur an einer Zeile, die NICHT vom Verfasser des Eintrags stammt. */
   const lvRows = (window) => [...window.document.querySelectorAll('#links .lrow')];
   const lvName = (z) => z?.querySelector('.lfrom')?.textContent || '';
@@ -1299,7 +1298,7 @@ async function run() {
   await new Promise(r => setTimeout(r, 80));
   const lvM = lvRows(lvMore.w);
   // Erst das Vorhandensein, dann die Eigenschaft: ohne Zeilen waere jede
-// Aussage ueber sie wahr (Stolperstein 81).
+// Aussage ueber sie wahr.
   check('Die Linkliste steht auch bei mehreren Zugaengen vollstaendig da',
     lvM.length === 8, `${lvM.length}`);
   check('An einer Zeile des Eintragsverfassers steht kein Name',
@@ -1806,7 +1805,7 @@ async function run() {
 
   check('Markierungen stehen links in der Kopfzeile',
     kmts.every(k => k.querySelector('.cmt-head .marks')));
-  /* UMGEDREHT STATT GELOESCHT (Stolperstein 74). Bis 0.8.2 standen ✎ und ✕ an
+  /* UMGEDREHT STATT GELOESCHT. Bis 0.8.2 standen ✎ und ✕ an
      jedem Kommentar, gleich wem er gehoerte. */
   check('Bearbeiten steht nur am eigenen Kommentar, Löschen an jedem',
     kmts.filter(k => k.querySelector('.cmt-head .acts .ed')).length === 3 &&
@@ -2367,8 +2366,7 @@ async function run() {
   const vTiles = [...wVid.document.querySelectorAll('#thumbs .thumb')];
   // Erst das Vorhandensein, dann die Eigenschaft -- und ausdruecklich BEIDE
   // Kacheln: eine Pruefung darauf, dass an einer Zeile etwas NICHT steht,
-  // gehoert hinter eine darauf, dass es die Zeile ueberhaupt gibt
-  // (Stolperstein 81).
+  // gehoert hinter eine darauf, dass es die Zeile ueberhaupt gibt.
   check('Die Vorschauleiste zeigt beide Zeilen', vTiles.length === 2,
     `${vTiles.length} Kacheln`);
   check('Am Video steht ein Abspielzeichen',
@@ -2392,7 +2390,7 @@ async function run() {
      und ausdruecklich OHNE automatisches Abspielen. */
   const vViewer = wVid.document.getElementById('viewer');
   // Wieder abgefangen: ohne Betrachter waeren die Zeilen darunter ein Absturz
-// statt einer Auskunft (Stolperstein 103).
+// statt einer Auskunft.
   check('Der Betrachter steht ueberhaupt da', !!vViewer, 'kein #viewer');
   check('Beim Foto steht ein Bild im Betrachter',
     !!vViewer?.querySelector('img') && !vViewer.querySelector('video'),
@@ -3005,7 +3003,7 @@ async function run() {
       Math.abs(frame().edge - vorClickable.edge) < 0.001,
       `${vorClickable.links}/${vorClickable.edge} → ${frame().links}/${frame().edge}`);
     /* DIE ANDERE HAELFTE VON E1, und ohne sie belegte die erste nichts: es
-       koennte auch gar nichts mehr gespeichert werden (Stolperstein 81). */
+       koennte auch gar nichts mehr gespeichert werden. */
     const outsideX = vorClickable.links > 40 ? vorClickable.links / 2
       : (vorClickable.links + vorClickable.edge + 600) / 2;
     const outsideCore = await drag([outsideX, 200], [outsideX + 2, 200]);
@@ -3160,7 +3158,7 @@ async function run() {
     const zBlock = (zRaw.match(/:root \{[\s\S]*?\n\}/) || [''])[0];
     const zLevels = [...zBlock.matchAll(/--(z-[a-z-]+):\s*(\d+);/g)]
       .map(m => [m[1], Number(m[2])]);
-    /* ERST DAS VORHANDENSEIN DES GEGENSTANDS (Stolperstein 81): eine Ordnung
+    /* ERST DAS VORHANDENSEIN DES GEGENSTANDS: eine Ordnung
        aus null Stufen bestuende jede Verneinung darunter. */
     check('Die Stapelordnung steht als Ganzes in :root',
       zLevels.length === 10, `${zLevels.length} Stufen: ${zLevels.map(([n]) => n).join(' · ')}`);
@@ -3190,7 +3188,7 @@ async function run() {
     check('Und keine einzelne Regel traegt mehr ihre eigene Zahl',
       zBare.length === 0, zBare.join(' · '));
     /* DIE ZEHN STUFEN WERDEN AUCH WIRKLICH BENUTZT. Eine Tafel, auf die keine
-       Regel zeigt, ordnet nichts (Stolperstein 81, wieder herum). */
+       Regel zeigt, ordnet nichts. */
     const zUnused = zLevels.map(([n]) => n).filter(n => !zRaw.includes(`var(--${n})`));
     check('Und jede Stufe wird von mindestens einer Regel gelesen',
       zUnused.length === 0, zUnused.join(' · '));

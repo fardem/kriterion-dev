@@ -37,6 +37,11 @@ tut.** Dazu gehört, was die Runde weggenommen hat:
   Entscheidung des Betreibers am 16. September 2026: alle weg. Wo die
   Begründung gebraucht wird, steht sie im Änderungsprotokoll der Runde, die
   sie getroffen hat.
+
+  > **BERICHTIGT AM 16. SEPTEMBER 2026, nach 0.34.2.** Hier stand „alle weg",
+  > während **367 von 1.061** noch dastanden. Diese Runde hat **694**
+  > weggenommen — die, die in einem gekürzten Kommentar standen. Die übrigen
+  > 367 fallen mit **0.34.3**, samt einer Prüfung über die Null.
 - **Wiederholung des Codes.** Was die Zeile darunter selbst sagt.
 
 Geblieben ist, was der Code nicht sagt: die gemessene Zahl, der Grund für eine

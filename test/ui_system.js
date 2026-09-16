@@ -119,7 +119,7 @@ async function run() {
     `${checkCategory.closest('.sys-card')?.querySelector('h3')?.textContent}`);
   /* Ein wirklich zugestelltes Ereignis, kein Behandleraufruf: der Behandler
      laeuft nach einem await weiter, und genau dort saessen die Fehler, die im
-     bloss gebauten DOM unsichtbar bleiben (Stolperstein 61). */
+     bloss gebauten DOM unsichtbar bleiben. */
   sysDom.sent.length = 0;
   checkTag.checked = true;
   checkTag.dispatchEvent(new wSys.Event('change', { bubbles: true }));
@@ -272,7 +272,7 @@ async function run() {
   check('Und die Adresse wird dabei nachgezogen',
     rUser.w.location.hash === '#/system/personal', rUser.w.location.hash);
   /* DIE GEGENLAGE, sonst belegte die Zeile darueber nichts: eine Adresse auf
-     einen Abschnitt, den es SEHR WOHL gibt, bleibt stehen (Stolperstein 189). */
+     einen Abschnitt, den es SEHR WOHL gibt, bleibt stehen. */
   await sysSection(rUser.w, 'inventory');
   check('Eine Adresse auf einen sichtbaren Abschnitt bleibt dagegen stehen',
     rUser.w.location.hash === '#/system/inventory', rUser.w.location.hash);
@@ -443,8 +443,7 @@ async function run() {
   check('Beim gewoehnlichen Benutzer steht der Wirtsbefehl nicht mehr da',
     !!rUserCard && !/usertool\.js passwort/.test(rUserCard.textContent || ''),
     rUserCard?.textContent?.slice(0, 300));
-  /* DER SATZ IST MIT 0.31.1 EIN ANDERER, und sein Gegenstand ist derselbe
-     (Stolperstein 201). */
+  /* DER SATZ IST MIT 0.31.1 EIN ANDERER, und sein Gegenstand ist derselbe. */
   check('Sondern der Satz, der ihm wirklich hilft',
     !!rUserCard && /Link zum Zurücksetzen des Passworts geschickt werden/.test(rUserCard.textContent || ''),
     rUserCard?.textContent?.slice(0, 300));
@@ -563,8 +562,7 @@ async function run() {
     eiGood.w.document.body.classList.contains('login'));
   check('Sie steht in derselben Karte wie die Anmeldung',
     !!eiGood.w.document.querySelector('.login-screen .login-card'), 'keine Anmeldekarte');
-  /* DER NAME KOMMT VOM SERVER, und zwar erst, wenn der Link traegt
-     (Stolperstein 102: das Feld wird aus der Antwort gelesen). */
+  /* DER NAME KOMMT VOM SERVER, und zwar erst, wenn der Link traegt. */
   check('Sie begruesst mit dem Namen aus der Antwort',
     /Willkommen, carla/.test(eiGood.w.document.body.textContent), 
     eiGood.w.document.body.textContent.slice(0, 200));
@@ -646,11 +644,11 @@ async function run() {
   const eiButton = eiThrottle.w.document.getElementById('eb-again');
   check('Ein zweiter Anlauf steht als Knopf da', !!eiButton, 'kein Knopf');
   {
-    /* ERST DAS VORHANDENSEIN, DANN DIE EIGENSCHAFT (Stolperstein 81) -- und
-       hier ist es zugleich Stolperstein 103: eine Gegenprobe nimmt genau
+    /* ERST DAS VORHANDENSEIN, DANN DIE EIGENSCHAFT, und hier nicht aus
+       Ordnungsliebe: eine Gegenprobe nimmt genau
        diesen Knopf weg, und ein .dispatchEvent auf null riss den ganzen Lauf
        ab, statt die Pruefungen darunter rot zu faerben. */
-    // Ein WIRKLICH zugestelltes Ereignis (Stolperstein 61), samt Durchlauf
+    // Ein WIRKLICH zugestelltes Ereignis, samt Durchlauf
 // der Event Loop -- ein Knopf ist erst geprueft, wenn er geklickt wurde.
     if (eiButton) eiButton.dispatchEvent(new eiThrottle.w.MouseEvent('click', { bubbles: true }));
     await new Promise(r => setTimeout(r, 80));
@@ -800,8 +798,7 @@ async function run() {
       sAn.w.Node.DOCUMENT_POSITION_FOLLOWING), 'er steht davor');
   check('Und die Anmeldemaske steht weiterhin daneben',
     Boolean(sAn.w.document.getElementById('lu')), 'die Anmeldemaske fehlt');
-  /* DIE TRENNUNG STEHT IM STYLESHEET (Stolperstein 81: erst der Gegenstand,
-     dann die Eigenschaft) -- ohne sie liefe der Knopf optisch mit dem
+  /* DIE TRENNUNG STEHT IM STYLESHEET -- ohne sie liefe der Knopf optisch mit dem
      Anmeldeknopf zusammen. */
   const sCss = fs.readFileSync(path.join(__dirname, 'public', 'style.css'), 'utf8')
     .replace(/\s+/g, ' ');
@@ -847,7 +844,7 @@ async function run() {
   check('Denn die Grundklasse .btn traegt eine',
     /\.btn \{[^}]*border: *1px solid/.test(sCss),
     (sCss.match(/\.btn \{[^}]*\}/) || [''])[0]);
-  /* UEBER EIN WIRKLICH ZUGESTELLTES EREIGNIS (Stolperstein 61) -- ein
+  /* UEBER EIN WIRKLICH ZUGESTELLTES EREIGNIS -- ein
      aufgerufener Behandler belegt nicht, dass ein Klick ankommt. */
   sReference.dispatchEvent(new sAn.w.MouseEvent('click', { bubbles: true, cancelable: true }));
   await new Promise(r => setTimeout(r, 40));
@@ -878,9 +875,7 @@ async function run() {
     equal(Object.keys(sSent?.body || {}).sort(), ['address', 'name']),
     JSON.stringify(Object.keys(sSent?.body || {})));
   /* DIE MELDUNG KOMMT VOM SERVER UND WIRD NICHT ERFUNDEN -- eine zweite
-     Ausfertigung in der Oberflaeche liefe beim naechsten Wort auseinander
-     (Stolperstein 102: der Mock bringt sie nicht selbst mit, er gibt zurueck,
-     was der echte Server gibt). */
+     Ausfertigung in der Oberflaeche liefe beim naechsten Wort auseinander. */
   const sDank = sAn.w.document.getElementById('req-thanks');
   check('Danach steht die Dankseite da', Boolean(sDank), 'die Dankseite fehlt');
   check('Und sie zeigt genau die Meldung des Servers',
@@ -895,8 +890,7 @@ async function run() {
   group('Die Anmeldeseite: der zweite Schritt');
 
   /* WAS DER MENSCH SIEHT, IST DIE HAELFTE DIESER RUNDE. */
-  /* GEDRUECKT WIRD PER dispatchEvent SAMT DURCHLAUF DES EVENT LOOPS
-     (Stolperstein 61). */
+  /* GEDRUECKT WIRD PER dispatchEvent SAMT DURCHLAUF DES EVENT LOOPS. */
   const zdClickable = async (w, el, ms = 80) => {
     if (el) el.dispatchEvent(new w.MouseEvent('click', { bubbles: true }));
     await new Promise(r => setTimeout(r, ms));
@@ -1229,8 +1223,7 @@ async function run() {
   check('Und im Rumpf steht dann auch kein Feld code',
     zkWithoutCall && zkWithoutCall.body.code === undefined, JSON.stringify(zkWithoutCall?.body));
 
-  /* DIE FARBEN DES ZUSTANDS -- erst das Vorhandensein, dann die Eigenschaft
-     (Stolperstein 81). */
+  /* DIE FARBEN DES ZUSTANDS -- erst das Vorhandensein, dann die Eigenschaft. */
   const zfCss = fs.readFileSync(path.join(__dirname, 'public', 'style.css'), 'utf8')
     .replace(/\s+/g, ' ');
   const zfRule = (w) => (zfCss.match(new RegExp(w.replace(/\./g, '\\.') + ' \\{[^}]*\\}')) || [''])[0];
@@ -1295,7 +1288,7 @@ async function run() {
   group('Die Karte „Anfragen“');
 
   /* ZU JEDEM FELD, DAS DIE OBERFLAECHE AUS DER ANTWORT LIEST, EINE PRUEFUNG
-     AN DER ECHTEN ANTWORT (Stolperstein 102) -- die steht in der Gruppe "die
+     AN DER ECHTEN ANTWORT -- die steht in der Gruppe "die
      Freischaltung" oben. */
   const sCardBuild = async (status) => {
     const d = buildDom(JSDOM, { requestsStatus: status,
@@ -1410,7 +1403,7 @@ async function run() {
   check('Der Schalter steht dabei weiterhin auf "an"',
     /an/.test(kRed.w.document.getElementById('signup-state')?.textContent || ''),
     kRed.w.document.getElementById('signup-state')?.textContent || '');
-  /* UND DIE GEGENLAGE (Stolperstein 81): bei heilem Versand steht die Zeile
+  /* UND DIE GEGENLAGE: bei heilem Versand steht die Zeile
      NICHT da. */
   check('Bei heilem Versand steht sie nicht da',
     !kA.w.document.getElementById('signup-broken'), 'die Zeile steht auch dann da');
@@ -1432,8 +1425,7 @@ async function run() {
   /* ---------------------------------------------------------------- */
   group('Meine Sitzungen in der Oberflaeche');
 
-  /* DIE KARTE IN BEIDEN ZUSTAENDEN -- mehrere Anmeldungen und eine einzige
-     (Stolperstein 90). */
+  /* DIE KARTE IN BEIDEN ZUSTAENDEN -- mehrere Anmeldungen und eine einzige. */
   const msSystem = async (roles, opt = {}) => {
     const d = buildDom(JSDOM, { settings: { filters: null, userCount: 4, ...roles }, ...opt });
     await new Promise(r => setTimeout(r, 60));
@@ -1448,7 +1440,7 @@ async function run() {
   const msuEig = await msSystem({ isAdmin: true, isOwner: true });
   const msuUser = await msSystem({ isAdmin: false, isOwner: false });
 
-  // ERST DAS VORHANDENSEIN, dann jede Aussage darueber (Stolperstein 81).
+  // ERST DAS VORHANDENSEIN, dann jede Aussage darueber.
   check('Die Karte steht bei der Eigentuemerin', !!msCard(msuEig));
   /* UND BEI EINEM GEWOEHNLICHEN BENUTZER AUCH -- sie ist persoenlich wie
      "Zugang" und kein Systembereich fuer Admins. */
@@ -1461,7 +1453,7 @@ async function run() {
   check('Die Karte zeigt alle drei Anmeldungen', msuRows.length === 3,
     `${msuRows.length} Zeilen`);
   /* ZU JEDEM FELD, DAS DIE OBERFLAECHE AUS DER ANTWORT LIEST, GEHOERT EINE
-     PRUEFUNG (Stolperstein 102) -- hier beide Zeitangaben, in deutscher
+     PRUEFUNG -- hier beide Zeitangaben, in deutscher
      Schreibweise. */
   const msuText = msuRows.map(r => r.textContent || '');
   check('Jede Zeile nennt, wann angemeldet wurde',
@@ -1573,7 +1565,7 @@ async function run() {
       /einzige/.test(msCard(d)?.textContent || ''), msCard(d)?.textContent?.slice(-200));
   }
 
-  /* JEDE LESESTELLE IST ABGEFANGEN (Stolperstein 103): fehlt die Antwort oder
+  /* JEDE LESESTELLE IST ABGEFANGEN: fehlt die Antwort oder
      ein Feld darin, soll die Karte etwas sagen und nicht der Lauf abreissen. */
   {
     const d = await msSystem({ isAdmin: true, isOwner: true }, { sessionsInventory: [] });
@@ -1722,7 +1714,7 @@ async function run() {
       /Nur an die richtige Person weitergeben/.test(zlText()), zlText().slice(0, 240));
     check('Der Kasten sagt, dass der Link nur dieses eine Mal erscheint',
       /wird nur einmal angezeigt/.test(zlText()), zlText().slice(0, 240));
-    // Und die Frist aus 0.9.0, gelesen aus der ANTWORT (Stolperstein 102).
+    // Und die Frist aus 0.9.0, gelesen aus der ANTWORT.
     check('Und er nennt die Frist ab dem ersten Oeffnen',
       /15 Minuten/.test(d.w.document.getElementById('user-link')?.textContent || ''),
       d.w.document.getElementById('user-link')?.textContent?.slice(0, 300));
@@ -1798,7 +1790,7 @@ async function run() {
   group('Das Sicherheitsprotokoll in der Oberflaeche');
 
   /* DIE KARTE HOLT IHREN BESTAND BEIM AUFBAU DES BEREICHS und laedt sich
-     nicht selbst nach (Stolperstein 118): eine Zusage, die nach dem
+     nicht selbst nach: eine Zusage, die nach dem
      Schliessen ihres Fensters ankommt, risse den ganzen Lauf ab statt eine
      Pruefung rot zu faerben. */
   const spCard = (d) => [...d.w.document.querySelectorAll('.sys-grid > .sys-card')]
@@ -1816,7 +1808,7 @@ async function run() {
       spRows(d).length === 4, `${spRows(d).length} Zeilen`);
 
     /* JEDE DER VIER LAGEN EINZELN -- und erst das Vorhandensein der Zeile,
-       dann ihre Eigenschaft (Stolperstein 81). */
+       dann ihre Eigenschaft. */
     const spRow = (event) => spRows(d).find(z => z.dataset.event === event);
     check('Die Zeile zum Rollenwechsel ist ueberhaupt da', !!spRow('user.role'));
     check('Sie nennt den Vorgang, den Handelnden, das Ziel und die neue Rolle',
@@ -1826,7 +1818,7 @@ async function run() {
       /Admin/.test(spRow('user.role')?.textContent || ''),
       spRow('user.role')?.textContent?.replace(/\s+/g, ' '));
     check('Die Zeile zum Export ist ueberhaupt da', !!spRow('export'));
-    /* Erst das Vorhandensein des Feldes, dann seine Leere (Stolperstein 81):
+    /* Erst das Vorhandensein des Feldes, dann seine Leere:
        ein fehlendes Feld liefert einen leeren Text, und jede Verneinung
        darauf waere wahr. */
     check('Die Zeile zum Export hat ueberhaupt ein Zielfeld',
@@ -1979,7 +1971,7 @@ async function run() {
       { logInventory: { rows: wRows, total: wRows.length, days: 180, limit: 100,
                             counts: { all: wRows.length } } });
     /* ERST DER GEGENSTAND: ohne Zeilen bliebe die Verneinung darunter wahr und
-       belegte nichts (Stolperstein 81). */
+       belegte nichts. */
     check('Der Aufbau steht: jede Vorgangsart hat eine Zeile',
       spRows(d).length === wListen.EVENTS.length,
       `${spRows(d).length} von ${wListen.EVENTS.length}`);
@@ -2125,8 +2117,7 @@ async function run() {
     /* prompt() WIRD AUF „Abbrechen" GESTELLT, obwohl die Oberflaeche es seit
        0.22.0 nicht mehr ruft: jsdom liefert undefined, und ein Rueckbau auf
        prompt() liefe damit in `.trim()` auf undefined -- der Lauf risse ab,
-       statt dass die Zeile zum Passwortfeld rot wuerde (Stolpersteine 161 und
-       311; die Gegenprobe 630 hat es gezeigt). */
+       statt dass die Zeile zum Passwortfeld rot wuerde. */
     d.w.prompt = () => null;
     const row = ziRows(d).find(r => (r.querySelector('.mname')?.textContent || '').includes('carla'));
     row?.querySelector('.user-pass-btn')?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
@@ -2162,7 +2153,7 @@ async function run() {
     await new Promise(r => setTimeout(r, 60));
     /* ---- 0.22.0: EIN WINDOW STATT DREI RUECKFRAGEN (Bauabschnitt 4) ----
        Bis 0.21.1 stellte der Weg drei confirm() hintereinander, und in den
-       ersten beiden hiess „Abbrechen" nicht abbrechen (Stolperstein 316). */
+       ersten beiden hiess „Abbrechen" nicht abbrechen. */
     const zdModal = d.w.document.getElementById('delete-user');
     check('Vor dem Loeschen steht EIN Fenster mit den Haekchen — 0.22.0',
       !!zdModal && !zdDialog(d), zdModal ? 'steht' : 'kein Fenster');
@@ -2281,7 +2272,7 @@ async function run() {
     check('Der Knopf sagt, was er tun wird',
       button.textContent.includes('Link'), button.textContent);
     /* Und die Regel dazu im Stylesheet -- ohne sie stuende das Feld im
-       Flex-Kasten weiter da (Stolperstein 81: erst das Vorhandensein). */
+       Flex-Kasten weiter da. */
     const ziCss = fs.readFileSync(path.join(__dirname, 'public', 'style.css'), 'utf8').replace(/\s+/g, ' ');
     check('Das Stylesheet nimmt ein verstecktes Feld wirklich aus der Zeile',
       /\[hidden\] \{ display: none !important; \}/.test(ziCss),
@@ -2428,7 +2419,7 @@ async function run() {
     check('Und das bisherige Passwort daneben',
       put?.body?.oldPassword === DOM_PASSWORD, 'das bisherige Passwort fehlt');
     /* DER MOCK ZIEHT MIT, also steht die neue Adresse danach wirklich im Feld
-       (Stolperstein 90) -- sonst waere „die Karte zeichnet sich neu“ von „sie
+ -- sonst waere „die Karte zeichnet sich neu“ von „sie
        blieb stehen“ nicht zu unterscheiden. */
     check('Und die Karte zeigt danach die neue Adresse',
       d.w.document.getElementById('acc-mail')?.value === 'neue@beispiel.de',
@@ -2740,7 +2731,7 @@ async function run() {
   }
   {
     /* SPEICHERN -- hinter der zweiten Bestaetigung, mit einem WIRKLICH
-       zugestellten Ereignis (Stolperstein 61). */
+       zugestellten Ereignis. */
     const d = await ziSystem({ isAdmin: true, isOwner: true },
       { publicAddress: 'https://kriterion.beispiel.de', mailStatus: {} });
     const dlg = await mdOpen(d);
@@ -2796,7 +2787,7 @@ async function run() {
   /* ---------------------------------------------------------------- */
   group('Der Papierkorb in der Oberflaeche');
 
-  /* DIE KARTE IN BEIDEN ZUSTAENDEN -- gefuellt und leer (Stolperstein 90). */
+  /* DIE KARTE IN BEIDEN ZUSTAENDEN -- gefuellt und leer. */
   const pkSystem = async (roles, opt = {}) => {
     const d = buildDom(JSDOM, { settings: { filters: null, userCount: 4, ...roles }, ...opt });
     await new Promise(r => setTimeout(r, 60));
@@ -2812,7 +2803,7 @@ async function run() {
   const pkuAdm = await pkSystem({ isAdmin: true, isOwner: false });
   const pkuUser = await pkSystem({ isAdmin: false, isOwner: false });
 
-  // ERST DAS VORHANDENSEIN, dann jede Aussage darueber (Stolperstein 81).
+  // ERST DAS VORHANDENSEIN, dann jede Aussage darueber.
   check('Die Karte steht bei der Eigentuemerin', !!pkCard(pkuEig));
   check('Und beim Admin ohne Eigentuemerrolle', !!pkCard(pkuAdm));
   check('Bei einem gewoehnlichen Benutzer gibt es sie nicht', !pkCard(pkuUser));
@@ -2893,7 +2884,7 @@ async function run() {
 
   /* ZURUECKHOLEN, mit einem WIRKLICH zugestellten Ereignis -- .click()
      genuegt nicht, und ein Fehler hinter einem await bliebe im nur gebauten
-     DOM unsichtbar (Stolperstein 61). */
+     DOM unsichtbar. */
   {
     const d = await pkSystem({ isAdmin: true, isOwner: true });
     const before = pkTrashRows(d).length;
@@ -2966,7 +2957,7 @@ async function run() {
   /* DIE KENNZAHLENKARTE weist den Papierkorb getrennt aus. */
   {
     // Die Kennzahlen stehen im Abschnitt „Datenbank", der Papierkorb in
-// „Bestand" -- dieselbe Karte, ein anderer Platz (Stolperstein 201).
+// „Bestand" -- dieselbe Karte, ein anderer Platz.
     await sysSection(pkuEig.w, 'database');
     const card = [...pkuEig.w.document.querySelectorAll('.sys-grid > .sys-card')]
       .find(c => c.querySelector('h3')?.textContent.trim() === 'Kennzahlen');
@@ -3022,8 +3013,7 @@ async function run() {
       !/Lücke ausnutzen|welcher Bibliothek/.test(card?.textContent || ''),
       card?.textContent?.replace(/\s+/g, ' ').slice(-260));
     /* DIE ANGABE SELBST BLEIBT ABER STEHEN -- ohne diese Zeile bliebe die
-       Verneinung darueber auch dann gruen, wenn der ganze Absatz verschwaende
-       (Stolperstein 81). */
+       Verneinung darueber auch dann gruen, wenn der ganze Absatz verschwaende. */
     check('Der Satz zum Schluessel neben der Datenbank bleibt dagegen stehen — 0.22.0',
       /liegt (weiterhin im Datenbankverzeichnis|im selben Verzeichnis wie die Datenbank)/
         .test(card?.textContent || ''),
@@ -3153,7 +3143,7 @@ async function run() {
       /bei Bildschirmfotos mit Text dagegen GRÖSSER/.test(baCardText),
       baCardText.slice(0, 400));
     /* DIE DRITTE HAELFTE HAT MIT 0.31.0 IHRE SACHE GEWECHSELT und ist deshalb
-       umgestellt und nicht gefallen (Stolperstein 201). */
+       umgestellt und nicht gefallen. */
     check('Und dass die Wahl fuer alles gilt, was hereinkommt',
       /Die Wahl gilt für alles, was hereinkommt/.test(baCardText), baCardText.slice(0, 400));
     /* UND DIE ABLEITUNGEN FOLGEN DER WAHL NICHT (F3). Ohne diesen Satz hielte
@@ -3359,7 +3349,7 @@ async function run() {
      ein Zielort mit Fehler. */
   /* „Sicherung" und „Export und Import" stehen seit 0.16.0 im Abschnitt
      „Datenbank", der Papierkorb daneben in „Bestand" -- dieselbe Prueflage,
-     ein anderer Abschnitt (Stolperstein 201). */
+     ein anderer Abschnitt. */
   const siSystem = async (roles, opt = {}) => {
     const d = await pkSystem(roles, opt);
     await sysSection(d.w, 'database');
@@ -3462,8 +3452,7 @@ async function run() {
       /nur mit dem alten Schlüssel/.test(partlyRed) && /Passwort-Manager/.test(partlyRed),
       partlyRed.slice(0, 400));
     /* DIE ZEILE „DATEIEN AM ORT" IST MIT 0.20.1 AUS DIESER KARTE HERAUS --
-       und die Pruefung darauf wird UMGEDREHT statt geloescht (Stolperstein
-       74). */
+       und die Pruefung darauf wird UMGEDREHT statt geloescht. */
     check('Die Zeile "Dateien am Ort" steht nicht mehr in dieser Karte',
       !/Dateien am Ort/.test(siText(partly)), siText(partly).slice(0, 400));
 
@@ -3504,7 +3493,7 @@ async function run() {
 
   /* DIE ROLLENTEILUNG STEHT AN BEIDEN KARTEN, nicht nur in den Dokumenten. */
   // SEIT 0.16.0 HEISST SIE „Export und Import": es ist dieselbe Datei, die
-// hinausgeht und wieder hereinkommt (Stolperstein 201).
+// hinausgeht und wieder hereinkommt.
   const siExportCard = [...siEig.w.document.querySelectorAll('.sys-grid > .sys-card')]
     .find(c => c.querySelector('h3')?.textContent.trim() === 'Export und Import');
   check('Die Exportkarte ist ueberhaupt da', !!siExportCard);

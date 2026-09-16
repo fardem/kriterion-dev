@@ -258,14 +258,14 @@ function checkKeyChange() {
   check('Sie traegt keinen Handelnden, kein Ziel und kein Merkmal',
     protoRows.filter(z => z.event === 'key' &&
       z.actor === null && z.target === null && z.detail === null).length === 1, allRows);
-  /* ERST DAS VORHANDENSEIN, DANN DIE EIGENSCHAFT (Stolperstein 81): eine leere
+  /* ERST DAS VORHANDENSEIN, DANN DIE EIGENSCHAFT: eine leere
      Tabelle belegt nichts darueber, dass in ihr kein Schluessel steht. */
   check('Der ALTE Schluessel steht in keiner Spalte keiner Zeile',
     protoRows.length > 0 && !allRows.includes(envOld), allRows);
   check('Der NEUE Schluessel ebenso wenig',
     protoRows.length > 0 && envFresh !== '' && !allRows.includes(envFresh), allRows);
   /* Und die Gegenlage dazu: die Nachschau faengt ueberhaupt etwas. Ohne sie
-     bliebe sie gruen, wenn die Tabelle leer waere (Stolperstein 81). */
+     bliebe sie gruen, wenn die Tabelle leer waere. */
   check('Und die Nachschau faengt einen Wert, wenn einer dastuende',
     JSON.stringify([{ detail: envOld }]).includes(envOld));
 

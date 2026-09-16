@@ -89,7 +89,7 @@ function state() {
   let bytes = 0;
   // MIT wal_checkpoint: ohne ihn steht der frisch geschriebene Bestand noch in
   // der WAL, die Datei sieht winzig aus, und Platzbedarf wie Dauer waeren zu
-  // niedrig angesetzt (Stolperstein 4 in der Gegenrichtung).
+  // niedrig angesetzt.
   try { db.pragma('wal_checkpoint(TRUNCATE)'); bytes = fs.statSync(DB_FILE).size; } catch {}
   let free = null;
   try { const s = fs.statfsSync(path.dirname(DB_FILE)); free = s.bsize * s.bavail; } catch {}

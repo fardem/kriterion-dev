@@ -190,12 +190,11 @@ async function run() {
     F_ROUTES.length === 73 && fFound.length === 73,
     `${F_ROUTES.length} erwartet, ${fFound.length} gefunden`);
   /* DIE GESCHLOSSENEN LISTEN AUS auth.js, ausdruecklich mit ihrer ZAHL --
-     dieselbe Bauform wie F_ROUTES und aus demselben Grund (Stolperstein 137):
+     dieselbe Bauform wie F_ROUTES und aus demselben Grund:
      eine Zahl in einem Papier ist eine Behauptung, eine Zahl im Pruefstand
      ist ein Beleg. */
   /* GELESEN WIRD DIE LAUFENDE LISTE, NICHT DER QUELLTEXT DANEBEN: ein
-     Waechter ueber den Quelltext faerbt sich am Warnschild statt an der Sache
-     (Stolperstein 106). */
+     Waechter ueber den Quelltext faerbt sich am Warnschild statt an der Sache. */
   const fAuthDir = fs.mkdtempSync(path.join(os.tmpdir(), 'kriterion-listen-'));
   const fAuth = JSON.parse(shortRun(
     `const a = require('./auth');` +
@@ -276,7 +275,7 @@ async function run() {
   check('Und keine andere tut es stillschweigend',
     fTooManySecond.length === 0, fTooManySecond.join(' · '));
   /* Und die Gegenprobe zur Pruefung selbst: sie darf nicht deshalb gruen
-     sein, weil sie beides durchgehen laesst (Stolperstein 106). */
+     sein, weil sie beides durchgehen laesst. */
   const selfMissing = (core) =>
     !core.includes('req.user.id') || /req\.params\.(?!sessionId)/.test(core);
   check('Und sie faende eine Route, die den Benutzer gar nicht nennt',
@@ -420,7 +419,7 @@ async function run() {
     typeCount("app.get('/x', (req, res) => { res.set('Content-Type', 'video/mp4'); });").length === 1,
     'der Waechter sieht die Verletzung nicht');
   const fAttachmentsSource = fs.readFileSync(path.join(__dirname, 'attachments.js'), 'utf8');
-  // Erst das Vorhandensein, dann die Eigenschaft (Stolperstein 81): ohne die
+  // Erst das Vorhandensein, dann die Eigenschaft: ohne die
 // Funktion belegte die Zeile darunter nichts.
   check('Die Ableitung aus den Bytes gibt es', fAttachmentsSource.includes('function typeFromBytes('),
     'typeFromBytes fehlt in attachments.js');
@@ -449,7 +448,7 @@ async function run() {
   check('Er kennt die Markierung absichtlicher Fehler',
     fErrorCore.includes('err.status'), fErrorCore ? 'err.status fehlt' : '(kein Rumpf)');
   /* SEIT 0.24.0 STEHT DORT KEIN TEXT MEHR, SONDERN EIN SCHLUESSEL -- und die
-     Zusicherung dreht sich mit um (Stolperstein 201): der Handler darf bei
+     Zusicherung dreht sich mit um: der Handler darf bei
      500 nichts VERRATEN, und das tut ein Schluessel noch weniger als ein
      fester Satz. */
   check('Und er liefert die Meldung eines Serverfehlers nicht aus',
@@ -474,7 +473,7 @@ async function run() {
   check('Die Abbildung je Eintrag kommt genau einmal im Quelltext vor',
     fImage.every(([, n]) => n === 1), fImage.map(([m, n]) => `${m} (${n}x)`).join(' · '));
   /* DIE GEGENPROBE ZUM WAECHTER SELBST: er darf nicht deshalb gruen sein,
-     weil er gar nichts mehr ansieht (Stolperstein 106). */
+     weil er gar nichts mehr ansieht. */
   check('Und er wuerde eine zweite Abbildung wirklich finden',
     imageCount(fCodeRows + '\nconst o = { favorite: pins.has(it.id) };')
       .some(([, n]) => n === 2),
@@ -510,7 +509,7 @@ async function run() {
       z.includes(`FROM ${t}`) || z.includes(`INTO ${t}`) || z.includes(`UPDATE ${t} `)));
   const tainted = (rows) => rows.filter(z => /trash|deleted/i.test(z));
   const fInventoryRows = inventoryQueries(fCodeRows);
-  // Erst das Vorhandensein, dann die Eigenschaft (Stolperstein 81): ohne
+  // Erst das Vorhandensein, dann die Eigenschaft: ohne
 // Zeilen bliebe jede Verneinung darauf wahr und belegte nichts.
   check('Der Waechter findet die Abfragen auf den Bestand ueberhaupt',
     fInventoryRows.length > 30, `${fInventoryRows.length} Zeilen`);
@@ -569,7 +568,7 @@ async function run() {
   /* GELESEN WIRD CODE UND NICHT DER KOMMENTAR DANEBEN: die Probe in db.js
      ERKLAERT in ihrem Kopf, warum sie ihre Tafel selbst traegt und nicht aus
      jener Datei liest -- ein Satz darueber, was weggefallen ist, ist keine
-     zweite Wahrheit, sondern das Gegenteil davon (Stolperstein 201). */
+     zweite Wahrheit, sondern das Gegenteil davon. */
   const fDbCode = fDbSource.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/[^\n]*/g, '');
   check('Und db.js liest tools/dictionary.json nicht mehr',
     !/dictionary\.json/.test(fDbCode),
@@ -620,7 +619,7 @@ async function run() {
     !fBackupCore.includes('fs.unlinkSync(file)'),
     (fBackupCore.match(/.*fs\.unlinkSync\(.*/g) || []).join(' · '));
   /* Und die Gegenprobe zum Waechter selbst: er darf nicht deshalb gruen sein,
-     weil er gar nichts mehr ansieht (Stolperstein 106). */
+     weil er gar nichts mehr ansieht. */
   check('Und der Waechter wuerde ein Aufraeumen an der Zieldatei finden',
     /fs\.unlinkSync\(datei\)/.test('    try { fs.unlinkSync(datei); } catch {}'),
     'der Waechter sieht die Verletzung nicht');
@@ -646,7 +645,7 @@ async function run() {
   const fCookie = COOKIE_FILES
     .map(d => [d, cookieCount(fs.readFileSync(path.join(__dirname, d), 'utf8'))])
     .filter(([, n]) => n > 0);
-  /* ERST DAS VORHANDENSEIN (Stolperstein 81): ein Waechter, der auf null
+  /* ERST DAS VORHANDENSEIN: ein Waechter, der auf null
      Dateien laeuft, ist gruen und belegt nichts. */
   check('Der Cookiewaechter sieht alle sieben ausgelieferten Dateien an',
     COOKIE_FILES.length === 7 &&
@@ -659,7 +658,7 @@ async function run() {
       .match(/'kriterion_session'/g) || []).length === 1,
     'der eine Ort ist nicht mehr der eine');
   /* DIE GEGENPROBE ZUM WAECHTER SELBST: er darf nicht deshalb gruen sein,
-     weil er gar keinen Code mehr liest (Stolperstein 106). */
+     weil er gar keinen Code mehr liest. */
   check('Und der Waechter wuerde ein abgeschriebenes Vorkommen finden',
     cookieCount("const c = req.cookies['kriterion_session'];") === 1,
     'der Waechter sieht den Namen nicht');
@@ -767,7 +766,7 @@ async function run() {
   check('Und alle drei Sprachdateien zitieren dieselbe Zeile',
     protQuoted.length === 0, protQuoted.join(' · ') || 'alle drei');
   /* DIE GEGENPROBE ZUM WAECHTER SELBST: er darf nicht deshalb gruen sein,
-     weil er gar keinen Code mehr liest (Stolperstein 106) -- und er darf das
+     weil er gar keinen Code mehr liest -- und er darf das
      lange Wort nicht mitzaehlen, sonst waere die Entscheidung wertlos. */
   check('Und der Waechter faende ein neues alleinstehendes Vorkommen',
     protCount("  toast('Das Protokoll ist leer');") === 1, 'der Waechter sieht das Wort nicht');
@@ -805,8 +804,7 @@ async function run() {
     reAuthCount('// Die Re-Authentifizierung greift hier.') === 1,
     'der Waechter sieht das Wort nicht');
   /* DER SATZ STEHT SEIT 0.24.0 IN DER SPRACHDATEI und nicht mehr im Quelltext
-     -- gesucht wird er dort, mitgezogen und nicht geloescht (Stolperstein
-     201). */
+     -- gesucht wird er dort, mitgezogen und nicht geloescht. */
   check('Dafuer steht das gewaehlte Wort am Bildschirm',
     JSON.parse(fs.readFileSync(path.join(__dirname, 'public', 'languages', 'de.json'), 'utf8'))
       ['dialog.confirm'] === 'Bestätigen',
@@ -907,7 +905,7 @@ async function run() {
     return fs.existsSync(p) ? languageHit(onlyProse(fs.readFileSync(p, 'utf8')), n) : [];
   });
 
-  /* ERST DAS VORHANDENSEIN DES GEGENSTANDS (Stolperstein 81): ein Waechter,
+  /* ERST DAS VORHANDENSEIN DES GEGENSTANDS: ein Waechter,
      der auf null Dateien laeuft, ist grün und belegt nichts. */
   /* DIE ZAHL AUSDRUECKLICH, nicht nur "alle, die dastehen": eine gekuerzte
      Liste bliebe sonst gruen, und der Waechter saehe ohne jeden Hinweis nur
@@ -918,7 +916,7 @@ async function run() {
     `${LANGUAGE_SOURCES.length} Dateien, fehlend: ` +
     JSON.stringify(LANGUAGE_SOURCES.filter(n => !fs.existsSync(path.join(__dirname, n)))));
   /* Und der Beleg, dass der Filter ueberhaupt etwas uebrig laesst: einer, der
-     alles wegwirft, machte jede Verneinung darauf wahr (Stolperstein 81). */
+     alles wegwirft, machte jede Verneinung darauf wahr. */
   const languageCommentRows = LANGUAGE_SOURCES.reduce((n, d) =>
     n + onlyComments(fs.readFileSync(path.join(__dirname, d), 'utf8'))
       .split('\n').filter(z => z.trim()).length, 0);
@@ -960,8 +958,7 @@ async function run() {
     JSON.stringify(languageHit(onlyComments('// Die Abbildung je Eintrag.'), 'x')));
   /* Dieselbe Ordnung fuer die zweite Ausnahme, seit 0.19.1: erst der Treffer,
      dann die Ausnahme -- ohne die erste Zeile bliebe die zweite auch dann
-     gruen, wenn der Waechter das Wort gar nicht mehr kennte (Stolperstein
-     81). */
+     gruen, wenn der Waechter das Wort gar nicht mehr kennte. */
   check('„Faden" faengt er -- das ist der Thread',
     languageHit(onlyComments('// Die Fadenzahl steht fest.'), 'x').length === 1);
   check('Aber „Pfaden" laesst er stehen -- das ist der Dativ von Pfad',
@@ -1956,6 +1953,48 @@ async function run() {
     check('Der Leser wuerde einen deutschen Dateinamen melden',
       isGerman('rahmen') && isGerman('oberflaeche') && !isGerman('roundtrip'),
       'der Leser trennt die beiden Sprachen nicht');
+  }
+
+  /* ================= Kein Verweis mehr auf eine Nummer — 0.34.3 ==========
+     Entscheidung des Betreibers vom 16. September 2026: die Verweise fallen,
+     alle. Wo die Herleitung gebraucht wird, steht sie im Aenderungsprotokoll
+     der Runde, die sie getroffen hat. */
+  group('Kein Stolpersteinverweis mehr — 0.34.3');
+  {
+    const SHIPPED = ['server.js', 'auth.js', 'db.js', 'mail.js', 'keys.js', 'attachments.js',
+      'images.js', 'batchrun.js', 'usertool.js', 'twofactor.js', 'keytool.js',
+      'public/app.js', 'public/theme.js'];
+    const BENCH = [...benchFiles(), 'counterproof.js'];
+    const readShipped = (f) => fs.readFileSync(path.join(__dirname, ...f.split('/')), 'utf8');
+    const stWord = 'Stolper' + 'stein';
+    const stAll = [...BENCH, ...SHIPPED];
+    check('Der Waechter sieht alle vierunddreissig Dateien',
+      stAll.length === 34, `${stAll.length} Dateien`);
+    let stRows = 0;
+    const stHits = [];
+    for (const f of stAll)
+      for (const part of segment(readShipped(f), f)) {
+        if (part.kind !== COMMENT) continue;
+        stRows += part.value.split('\n').length;
+        for (const m of part.value.matchAll(new RegExp(`[^\n]*${stWord}[^\n]*`, 'gi')))
+          stHits.push(`${f}: ${m[0].trim().slice(0, 60)}`);
+      }
+    /* Ein Leser, der nichts findet, macht jede Verneinung darauf wahr. */
+    check('Und er liest wirklich Kommentarzeilen',
+      stRows > 10000, `${stRows} Zeilen`);
+    check('Kein Kommentar nennt mehr einen Stolperstein — 1061 waren es vor 0.34.1',
+      stHits.length === 0, stHits.slice(0, 8).join(' · '));
+    check('Der Leser wuerde einen Verweis melden',
+      new RegExp(stWord, 'i').test(`/* Wie in 0.19.1 (${stWord} 81). */`),
+      'der Leser sieht den gestellten Text nicht');
+    /* DIE EINE STELLE, DIE BLEIBT, UND SIE IST KEIN KOMMENTAR: der
+       Gegenprobentreiber nennt die Nummer in seiner Meldung an den Wirt. Sie
+       zu aendern hiesse, Code zu aendern. */
+    const stText = segment(readShipped('counterproof.js'), 'counterproof.js')
+      .filter(q => q.kind !== COMMENT)
+      .reduce((n, q) => n + (q.value.match(new RegExp(stWord, 'gi')) || []).length, 0);
+    check('Ausserhalb der Kommentare steht die Nummer noch genau einmal',
+      stText === 1, `${stText} Vorkommen in counterproof.js`);
   }
 
   /* ================= Zugeklappt heisst: die ERSTEN Zeilen — 0.24.1 =========

@@ -101,7 +101,7 @@ async function run() {
     check('Und jeder gerufene Schluessel steht in der Datei',
       withoutSentence.length === 0, withoutSentence.slice(0, 12).join(' · '));
     // Und der Leser liest wirklich: die vier Briefe stehen da, und er findet
-// ueber tausend Rufe (Stolperstein 106).
+// ueber tausend Rufe.
     check('Der Leser findet mehr als tausend Rufe',
       called.size > 1000, `${called.size} Rufe`);
     check('Und die acht Briefzeilen stehen namentlich da',
@@ -477,7 +477,7 @@ async function run() {
           consoleLeft.push(`${file}:${call.row} → ${[...new Set(words)].join(',')}`);
       }
     }
-    /* ERST DAS VORHANDENSEIN, DANN DIE EIGENSCHAFT (Stolperstein 81): ohne
+    /* ERST DAS VORHANDENSEIN, DANN DIE EIGENSCHAFT: ohne
        Rufe bliebe jede Verneinung darauf wahr und belegte nichts. */
     check('Der Waechter findet die Konsolenansagen der sechs Dateien ueberhaupt',
       consoleSeen > 50, `${consoleSeen} Rufe`);
@@ -637,7 +637,7 @@ async function run() {
     const mailModule = require('./mail.js');
     /* GEFRAGT WIRD mail.js SELBST und keine hier abgeschriebene Liste: eine
        zweite Fassung der Namen koennte anders lauten als die, die der Server
-       ausgibt (Stolperstein 47). */
+       ausgibt. */
     const nameOf = (provider) => {
       const z = mailModule.state({ provider, server: 'smtp.beispiel.de', port: 587,
                                    user: 'a@beispiel.de', password: 'x',
@@ -696,7 +696,7 @@ async function run() {
       const [up, deep] = [zlGlow(a), zlGlow(b)].sort((x, y) => y - x);
       return (up + 0.05) / (deep + 0.05);
     };
-    // DIE GEGENLAGE ZUERST (Stolperstein 81): rechnet der Rechenweg
+    // DIE GEGENLAGE ZUERST: rechnet der Rechenweg
     // ueberhaupt?
     check('Der Rechenweg rechnet: Weiss auf Schwarz sind 21 : 1',
       Math.round(zlContrast('#ffffff', '#000000') * 100) / 100 === 21,
@@ -814,8 +814,7 @@ async function run() {
         .every(f => (appCode.split(f).length - 1) >= 2),
       ['confirmBox(', 'nameBox(', 'passwordDialog(', 'newPasswordDialog(', 'userDeleteDialog(']
         .map(f => `${f} ${appCode.split(f).length - 1}x`).join(' · '));
-    /* DAS LOESCHFENSTER FUER EINEN BENUTZER: „Abbrechen" bricht ab
-       (Stolperstein 316). */
+    /* DAS LOESCHFENSTER FUER EINEN BENUTZER: „Abbrechen" bricht ab. */
     const blDom = buildDom(JSDOM, { settings: { filters: null, userCount: 4, isAdmin: true, isOwner: true } });
     await new Promise(r => setTimeout(r, 60));
     const blW = blDom.w;
@@ -866,7 +865,7 @@ async function run() {
 
   /* ================= Server-Befehle nur im Kasten — 0.22.0 =================
      Vier Stellen trugen `docker compose exec …` im Fliesstext, eine davon sah
-     jeder Benutzer (die Wiederherstellungscodes; Stolperstein 315). */
+     jeder Benutzer (die Wiederherstellungscodes). */
   group('Server-Befehle nur im Kasten — 0.22.0');
   {
     const appRaw = fs.readFileSync(path.join(__dirname, 'public', 'app.js'), 'utf8');
@@ -1271,7 +1270,7 @@ async function run() {
     /* ---- BEFUND 3c DER RUNDE 0.26.0 -- DER GEWICHTSSATZ -------------------
        Die Karte „Bewertung: Kriterien" schloss ihren Gewichtssatz fuer den
        Benutzer mit „Eingestellt wird es vom Admin." -- ein Satz ueber einen
-       KNOPF, den er nicht hat, und damit Sprachregel S5 (Stolperstein 315). */
+       KNOPF, den er nicht hat, und damit Sprachregel S5. */
     const kUserWeight = cardText(rwUserB, 'Bewertung: Kriterien');
     const kAdmWeight = cardText(rwAdmB, 'Bewertung: Kriterien');
     const kFlat = (el) => (el?.textContent || '').replace(/\s+/g, ' ');

@@ -19,7 +19,7 @@ async function run() {
 /* ================================================================= 0.31.0 —
    „Die Sprachdateien werden gegengelesen" DREI BAUABSCHNITTE AM TEXT, UND ELF
    ZUSAGEN DARUEBER. */
-/* DIE ZAHL DER SCHLUESSEL JE SPRACHDATEI STEHT EINMAL -- Stolperstein 47.
+/* DIE ZAHL DER SCHLUESSEL JE SPRACHDATEI STEHT EINMAL.
    ZWEI GRUPPEN FRAGEN SIE AB: 0.31.0 auf die Deckung der drei Dateien, 0.31.1
    auf den Stand nach dem Verschmelzen. */
 const LANG_KEY_COUNT = 1208;
@@ -350,7 +350,7 @@ async function check0311() {
        `{word}` ohne Ruf zeigt am Bildschirm „{word}" -- der sichtbarste
        Fehler, den eine Sprachdatei machen kann. */
     const dsMarkSentences = [...dsCode.matchAll(/\btMarks?\(\s*'([^']+)'/g)].map(m => m[1]);
-    /* JEDER ZWEIG EINZELN -- Stolperstein 81. Bis zum Bau von BA 3 stand hier
+    /* JEDER ZWEIG EINZELN. Bis zum Bau von BA 3 stand hier
        `String(dsFiles.de[k])`, und ein Schluessel mit Ein- und Mehrzahl wurde
        dabei zu „[object Object]": die Wache kannte nur die eine Gestalt und
        meldete `card.opensOnlyWith` und `card.otherSessionsHint` als Satz ohne
@@ -596,7 +596,7 @@ async function check0312() {
     }
     fs.rmSync(egOut, { force: true });
     /* ERST DER LAUF SELBST. Eine Probe, die abreisst, ist keine gruene Probe
-       -- sie ist gar keine (Stolpersteine 138, 161 und 170). */
+       -- sie ist gar keine. */
     check('Zusage 1: die Gleichlautprobe laeuft und nennt ihre sechs Summen',
       Object.keys(egSums).length === 6,
       `${Object.keys(egSums).length} Summen · ${String(egRun.stderr || '').slice(0, 200)}`);
@@ -619,8 +619,7 @@ async function check0312() {
       `en/one ${egSums['en/one']} · en/other ${egSums['en/other']}`);
 
     /* ---- Zusage 2: gleich viele Schluessel, dieselbe Folge, dieselbe
-       Gestalt DIE ZAHL STEHT AN EINER STELLE (LANG_KEY_COUNT, Stolperstein
-       47). */
+       Gestalt DIE ZAHL STEHT AN EINER STELLE (LANG_KEY_COUNT). */
     const egCounts = Object.fromEntries(['de', 'en', 'tr']
       .map(c => [c, Object.keys(egFiles[c]).length]));
     check(`Zusage 2: die drei Dateien tragen gleich viele Schluessel — ${LANG_KEY_COUNT}`,
@@ -1388,7 +1387,7 @@ async function check0314() {
     check('Und keine Stelle setzt eine Zahl und ein Wort mit plural() nebeneinander',
       anRaw === 0, `${anRaw} Stellen`);
     /* UND DER LESER WUERDE EINE FINDEN. Ohne diese Zeile waere die darueber
-       auch mit einem kaputten Muster gruen (Stolperstein 81). */
+       auch mit einem kaputten Muster gruen. */
     const anProbe = /\$\{(?![^{}]*(?:vThing|vTime|vReport|vTask|vRating|counted))[^{}]*\}\s+\$\{(?:esc\()?plural\(/;
     check('Und der Leser wuerde eine finden — und das Verb laesst er stehen',
       anProbe.test('`${n} ${plural(n, a, b)}`') &&
@@ -1480,7 +1479,7 @@ async function check0314() {
       const anSay = (expr) => {
         try { return String(wAn.eval(expr)); } catch (e) { return 'FEHLER ' + e.message; }
       };
-      /* ZUERST DER GEGENSTAND (Stolperstein 81): steht das Fenster wirklich
+      /* ZUERST DER GEGENSTAND: steht das Fenster wirklich
          auf Tuerkisch, und hat es `_afterNumber` wirklich gelesen? */
       check('Zusage 5, am gerenderten Text: das Fenster steht auf Tuerkisch und hat `_afterNumber` gelesen',
         anSay('AFTER_NUMBER') === 'one' &&
@@ -1587,7 +1586,7 @@ async function check0314() {
       /* UND DIE EINZAHL BEHAELT IHRE ZAHL. */
       check('Und die Einzahl steht weiter MIT Zahl da — „1 Test günü"',
         /1 \$\{esc\(z1\)\}/.test(anPreview), 'die Einzahlstelle der Vorschau fehlt');
-      /* UND DER LESER WUERDE EINEN RUECKFALL FINDEN (Stolperstein 81). */
+      /* UND DER LESER WUERDE EINEN RUECKFALL FINDEN. */
       const anPreviewProbe = (text, many) =>
         [...text.matchAll(/(\d+)\s+\$\{esc\((\w+)\)\}/g)].filter(m => many.has(m[2])).length;
       check('Und der Leser wuerde einen finden — und die Einzahlstelle laesst er stehen',

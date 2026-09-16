@@ -1,6 +1,6 @@
 # Projektstand — Kriterion
 
-**Kompakte Übergabe · Revision 97 · Stand 16. September 2026 · gebaut: Version 0.34.2**
+**Kompakte Übergabe · Revision 98 · Stand 16. September 2026 · gebaut: Version 0.34.3**
 
 > **REVISION 92 IST DER BRUCH.** *Was dieses Blatt über MIGRATIONSBLÖCKE sagt,
 > gilt ab hier nur noch als Geschichte: mit 0.33.0 sind alle achtzehn gefallen,
@@ -12061,6 +12061,61 @@ hängengeblieben.* **Dazu zwei vorhandene Rückbauten nachgezogen (710 und 711).
 **Fingerprint `d6dbb696`** *(davor `38949534`)*. **Prüfstand 6865 von 6865,
 998 Rückbauten, vier gefahren, 0 stumm.**
 
+### 0.34.3 — „Kein Stolpersteinverweis mehr"
+
+**PATCH · 16. September 2026** *(Änderungsprotokoll 0.34.3).* Die Runde ändert am
+Programm nichts. Sie nimmt die letzten 367 Stolpersteinverweise aus den
+Kommentaren und stellt eine Prüfung darüber.
+
+**Der Befund kam aus einer Frage des Betreibers:** *„Haben wir nun alles, was
+34er vorhatte, umgesetzt oder fehlt da noch was?"* — und es fehlte etwas. **Die
+Entscheidung „alle weg" war zur Hälfte umgesetzt.**
+
+| | |
+|---|---:|
+| Verweise vor 0.34.1 | **1.061** |
+| nach 0.34.1 und 0.34.2 | **367** |
+| jetzt | **0** |
+
+*0.34.1 hat 694 weggenommen — nämlich die, die in einem Kommentar standen, der
+ohnehin gekürzt wurde. Die 367 blieben stehen, und drei Papiere sagten trotzdem
+„alle".* **Aufgefallen ist es nicht durch eine Prüfung**, und das ist dasselbe
+Muster wie bei den Kommentarzahlen vor 0.34.1: *eine Zusage ohne Zähler ist von
+ihrer Erosion nicht zu unterscheiden.*
+
+**Was gefallen ist:** 346 als Klammer mitten im Satz — mechanisch, mit einem
+Werkzeug, das nur COMMENT-Teile anfasst; 20 Punkte, die danach allein auf einer
+Zeile standen, an das Ende der Zeile darüber gezogen; **21 von Hand**, weil sie
+keine Klammer waren, sondern ein tragender Satzteil („— Stolperstein 47.",
+„Stolperstein 102: was die Oberfläche …", „und er ist die Antwort auf
+Stolperstein 8"). Jeder dieser Sätze ist so umgeschrieben, dass er ohne die
+Nummer steht und dasselbe sagt.
+
+**Mitgefallen ist eine Metapher:** „JEDE MESSUNG LÄUFT ÜBER EIN EIGENES
+AUFFANGNETZ" in `test/roundtrip.js` steht auf der Liste in `CLAUDE.md`,
+Abschnitt 1, und heißt jetzt „JEDE MESSUNG WIRD EINZELN ABGEFANGEN".
+
+**Die eine Stelle, die bleibt, ist kein Kommentar.** `counterproof.js` nennt in
+seiner Meldung an den Wirt eine Nummer — ein Text, und ihn zu ändern hieße, Code
+zu ändern. Sie steht als benannte Ausnahme in der Prüfung, **mit ihrer Zahl,
+damit eine zweite auffällt**.
+
+**Der Wächter** ist eine eigene Gruppe in `test/source.js` und lässt sich allein
+fahren (`node testbench.js Stolperstein`, 0,2 s): 34 Dateien gesehen, über
+10.000 Kommentarzeilen gelesen, **kein Verweis**, der Leser fände einen
+gestellten, und außerhalb der Kommentare steht die Nummer **genau einmal**.
+
+**Drei Sätze sind berichtigt** — sie sagten „alle weg", während 367 dastanden:
+im Änderungsprotokoll 0.34.1, im Kasten am Planabschnitt dieses Blattes und im
+CHANGELOG-Eintrag 0.34.1. Sie nennen jetzt die Zahl, die 0.34.1 wirklich
+erreicht hat.
+
+**Nachgeholt aus 0.34.2:** Rückbau 368 ist gegengeprüft — **0 stumm**, 6885 von
+6888, rot in „Der Sprachwaechter", der Gruppe, die sein Eintrag nennt.
+
+**Fingerprint `ecbbd5fc`** *(davor `5ade984f`)*. **Prüfstand 6893 von 6893,
+349 Gruppen, 998 Rückbauten.**
+
 ### 0.34.2 — „Die Anleitung bekommt ein eigenes Papier"
 
 **PATCH · 16. September 2026** *(Änderungsprotokoll 0.34.2).* Die Runde ändert am
@@ -15158,8 +15213,10 @@ nicht hier.
 > Betreiber am 16. September 2026:**
 >
 > - **Der Stolpersteinverweis stand hier in der Spalte „bleibt". Er ist
->   gefallen** — *alle, ohne Ausnahme.* Begründung des Betreibers: *„Das liest
->   außer dir eh keine."* Wo die Herleitung gebraucht wird, steht sie im
+>   gefallen.** Begründung des Betreibers: *„Das liest außer dir eh keine."*
+>   *0.34.1 hat 694 von 1.061 weggenommen — die, die in einem gekürzten
+>   Kommentar standen; die übrigen 367 mit 0.34.3, samt einer Prüfung über
+>   die Null.* Wo die Herleitung gebraucht wird, steht sie im
 >   Änderungsprotokoll der Runde, die sie getroffen hat.
 > - **Die harte Klemme — „nichts wird gestrichen, was nicht vorher woanders
 >   steht" — ist mitgefallen.** Sie hätte verlangt, jede gekürzte Begründung

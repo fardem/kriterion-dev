@@ -956,8 +956,8 @@ warnIncompleteDatabase(incompleteDatabase());
    Pruefstands -- zweimal derselbe, in zwei Stufen.
 
    EIN INDEX AUF EINER NACHGERUESTETEN SPALTE GEHOERT HINTER IHRE MIGRATION
-   (Stolperstein 281). `CREATE TABLE IF NOT EXISTS` ruehrt eine vorhandene
-   Tabelle nicht an (Stolperstein 13): eine Datenbank aus 0.8.40 trug
+. `CREATE TABLE IF NOT EXISTS` ruehrt eine vorhandene
+   Tabelle nicht an: eine Datenbank aus 0.8.40 trug
    `photos.kind` erst, nachdem migration0850() gelaufen war, und `photos.zoom`
    erst nach migration0190(). Ein CREATE INDEX weiter oben scheiterte dort mit
    „no such column" -- beim OEFFNEN der Datei, also bevor der Server ueberhaupt
@@ -1007,7 +1007,7 @@ warnIncompleteDatabase(incompleteDatabase());
      kind gruppiert, MIT diesem Index                0,1 ms
 
    DER UNTERSCHIED IST NICHT DIE MENGE, SONDERN DIE LAGE DER SPALTE
-   (Stolperstein 279). EINE GLEICHHEIT, KEINE UNGLEICHHEIT: `WHERE kind !=
+. EINE GLEICHHEIT, KEINE UNGLEICHHEIT: `WHERE kind !=
    'video'` schlaegt den Index aus, `WHERE kind IS ?` nutzt ihn. Die Abfragen in
    /api/stats holen deshalb erst die vorhandenen Arten und fragen dann je Art.
 

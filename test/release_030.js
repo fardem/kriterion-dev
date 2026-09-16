@@ -363,7 +363,7 @@ async function check0300() {
       Object.keys(GERMAN_WORDS).length > 1000 &&
       germanWordsIn('Die Sterne sind gewichtet').includes('gewichtet'),
       `${Object.keys(GERMAN_WORDS).length} Wortpaare`);
-    /* ERST DER BEFUND AM GESTELLTEN SATZ (Stolperstein 81): eine Wache, die
+    /* ERST DER BEFUND AM GESTELLTEN SATZ: eine Wache, die
        nichts faende, waere gruen und belegte nichts. */
     check('Und sie WUERDE ein festes deutsches Wort am Bildschirm finden',
       germanWordsIn("<strong>eingerichtet</strong>").length === 1 &&
@@ -745,8 +745,7 @@ async function check0301() {
     /* GEFAHREN AM SYSTEMBEREICH: die Tagkarte traegt ZWEI Zahlen, und ihr
        Titel nennt beide Woerter. */
     /* MIT MARKEN IM BESTAND: eine leere Karte hat keine Zeilen, und eine
-       Pruefung an null Zeilen bliebe gruen und belegte nichts (Stolperstein
-       81). */
+       Pruefung an null Zeilen bliebe gruen und belegte nichts. */
     const uSys = buildDom(JSDOMu, { tags: [
       { id: 91, name: 'BIOS', usage_count: 4, test_usage_count: 2 },
       { id: 92, name: 'Gelb', usage_count: 1, test_usage_count: 0 }] });
@@ -952,7 +951,7 @@ async function check0303() {
 
     /* ---- Zusage 2: cloudRows zaehlt die Reihen UNGEKUERZT ---- GEFAHREN UND
        NICHT GELESEN, und zwar am Mock: jsdom rechnet keine Hoehen, also
-       bekommt die Zeile einen Kasten, der welche nennt (Stolperstein 161). */
+       bekommt die Zeile einen Kasten, der welche nennt. */
     const wEmpty = buildDom(JSDOMw, { tags: [] });
     await wait();
     const wWindow = wEmpty.w;
@@ -1004,8 +1003,7 @@ async function check0303() {
     check('Am Schreibtisch zeigt die zugeklappte Wolke EINE Reihe',
       wCalls.length > 0 && wCalls[wCalls.length - 1] === 1, `gerufen mit ${wCalls.join(', ')}`);
     /* UND JETZT DAS TELEFON: die Antwort des Stilblatts wird fuer diese eine
-       Zeile getauscht -- jsdom wertet den schmalen Abschnitt nicht aus
-       (Stolperstein 161). */
+       Zeile getauscht -- jsdom wertet den schmalen Abschnitt nicht aus. */
     const wRealStyle = w.getComputedStyle.bind(w);
     w.getComputedStyle = (el, ...rest) =>
       (el && el.id === 'f-tagzeile') ? { display: 'grid' } : wRealStyle(el, ...rest);

@@ -46,7 +46,7 @@ async function run() {
     return d;
   };
 
-  // ERST DER GEGENSTAND (Stolperstein 81): ohne die vier Zeilen belegt keine
+  // ERST DER GEGENSTAND: ohne die vier Zeilen belegt keine
 // Menge darunter etwas.
   const fromAll = await fromBuild(null);
   check('Die Prueflage traegt alle vier Kombinationen',
@@ -104,7 +104,7 @@ async function run() {
     !equal(fromTitle(fromOnlyTested), fromTitle(fromJa)),
     JSON.stringify([fromTitle(fromOnlyTested), fromTitle(fromJa)]));
 
-  /* ---- EIN KLICK, WIRKLICH ZUGESTELLT (Stolperstein 61). Ein gebauter DOM
+  /* ---- EIN KLICK, WIRKLICH ZUGESTELLT. Ein gebauter DOM
      zeigt nicht, was ein Druck tut. ---- */
   const fromGruppe2 = fromAll.w.document.getElementById('f-abgelehnt');
   const fromPill = [...fromGruppe2.querySelectorAll('.pill')].find(b => b.textContent === 'Abgelehnt');
@@ -306,7 +306,7 @@ async function run() {
     ruhPath(d).dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
     await new Promise(r => setTimeout(r, 40));
     // Dieselbe Absicherung wie beim Ja daneben: ohne Rueckfrage gibt es kein
-// Fenster, und ein Griff ins Leere risse den Lauf ab (Stolperstein 211).
+// Fenster, und ein Griff ins Leere risse den Lauf ab.
     d.w.document.querySelector('.backdrop [data-no]')
       ?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
     await new Promise(r => setTimeout(r, 40));
@@ -451,7 +451,7 @@ async function run() {
       hidAll.length === 1, JSON.stringify(hidAll));
     /* DIE GEGENPROBE ZUM MASSSTAB: es gibt ueberhaupt Regeln, die `display`
        setzen und ein Element mit `hidden` treffen koennen -- sonst pruefte
-       die Zeile darueber eine Sache ohne Gegenstand (Stolperstein 81). */
+       die Zeile darueber eine Sache ohne Gegenstand. */
     const hidDanger = ['.row-in', '.rej-note', '.lb-btn']
       .filter(w => /display:\s*(flex|grid|block|inline-flex)/.test(regel123(w)));
     check('Und es gibt wirklich display-Regeln, die `hidden` schlagen wuerden',
@@ -493,7 +493,7 @@ async function run() {
       ex?.querySelector('#imp-drop')?.className);
     /* DIE REIHENFOLGE IST DER HALBE PUNKT: der Import steht UNTER dem Export
        und nicht darueber. Verglichen wird die Stellung im Markup. */
-    /* BEIDE HAELFTEN GESCHUETZT (Stolperstein 161): faellt die Karte weg, muss
+    /* BEIDE HAELFTEN GESCHUETZT: faellt die Karte weg, muss
        diese Zeile ROT werden koennen und darf den Lauf nicht mitreissen. */
     const setting = (w) =>
       [...(ex?.querySelectorAll('*') || [])].indexOf(ex?.querySelector(w) || null);
@@ -501,7 +501,7 @@ async function run() {
       setting('#imp-drop') > setting('#ex-plan'),
       `${setting('#ex-plan')} gegen ${setting('#imp-drop')}`);
     // Und die Regel dazu steht wirklich im Stilblatt -- erst das Vorhandensein,
-// dann die Eigenschaft (Stolperstein 81).
+// dann die Eigenschaft.
     check('Die Regel fuer das leise Ablagefeld steht im Stilblatt',
       regel123('.drop-quiet').length > 0, '(keine Regel)');
     check('Und sie nimmt ihm den eigenen Untergrund',
@@ -628,7 +628,7 @@ async function run() {
     check('Der Kasten nennt die Zahl ohne Gewichte',
       doc.getElementById('calc-same')?.textContent.trim() === '⌀ 4',
       doc.getElementById('calc-same')?.textContent);
-    /* SIE WIRD GELESEN UND NICHT NACHGERECHNET (Stolperstein 217). */
+    /* SIE WIRD GELESEN UND NICHT NACHGERECHNET. */
     check('Und sie kommt aus der Antwort, statt im Browser gerechnet zu werden',
       !/3,8/.test(doc.querySelector('.calc')?.textContent || ''),
       doc.querySelector('.calc')?.textContent?.replace(/\s+/g, ' '));
@@ -664,7 +664,7 @@ async function run() {
     check('Und sie fuehrt keine neue Farbe ein',
       !/#[0-9a-f]{3,8}/i.test(rgSpanRule) && !/rgb|hsl/i.test(rgSpanRule),
       rgSpanRule || '(keine Regel)');
-    /* DER GEGENSATZ MUSS ES AUCH GEBEN (Stolperstein 81): „untergeordnet"
+    /* DER GEGENSATZ MUSS ES AUCH GEBEN: „untergeordnet"
        belegt nichts, wenn die Zeile darueber selbst nicht hervorgehoben ist. */
     const rgErgRule = regel123('.calc-result > span');
     check('Die Zeile darueber traegt dagegen den fetten Schnitt',
@@ -886,7 +886,7 @@ async function run() {
     check('Jede Zeile fuehrt zu ihrem Eintrag',
       equal(rows.map(z => z.getAttribute('href')), ['#/item/1', '#/item/2']),
       JSON.stringify(rows.map(z => z.getAttribute('href'))));
-    /* MITGENOMMEN MIT 0.17.0 (Stolperstein 201): hier stand „3 neue
+    /* MITGENOMMEN MIT 0.17.0: hier stand „3 neue
        Beitraege". */
     const glNumber = (i) => rows[i]?.querySelector('.mcount')?.textContent?.trim();
     check('Sie nennt die Arten getrennt statt sie zusammenzuzaehlen',
@@ -908,7 +908,7 @@ async function run() {
       glWho(0) === 'von bert und carla', JSON.stringify(glWho(0)));
     check('Bei einem Namen ohne „und"',
       glWho(1) === 'von dora', JSON.stringify(glWho(1)));
-    /* ZWEIMAL UMGEDREHT UND NIE GELOESCHT (Stolperstein 201). */
+    /* ZWEIMAL UMGEDREHT UND NIE GELOESCHT. */
     check('Und der eigene Name steht in keiner Zeile',
       !/chefin/.test(panel?.textContent || ''),
       panel?.textContent?.replace(/\s+/g, ' ').slice(0, 300));
@@ -916,7 +916,7 @@ async function run() {
     check('Die Tafel begruendet das Fehlen aber nicht',
       !/Eigene Beiträge stehen nie hier/.test(panel?.textContent || ''),
       panel?.textContent?.replace(/\s+/g, ' ').slice(0, 300));
-    /* MITGENOMMEN MIT 0.17.0, NICHT GELOESCHT (Stolperstein 201): bis dahin
+    /* MITGENOMMEN MIT 0.17.0, NICHT GELOESCHT: bis dahin
        stand hier „die Tafel sagt, was sie nicht verspricht". */
     check('Die Tafel begruendet sich nicht mehr selbst',
       !/nicht verspricht|Lesestand je Meldung|nicht laufend/.test(panel?.textContent || ''),
@@ -1003,7 +1003,7 @@ async function run() {
       rows[1]?.querySelector('.mcount')?.textContent?.trim() === '3 Kommentare',
       JSON.stringify(rows[1]?.querySelector('.mcount')?.textContent));
     /* JE ZEILE GENAU EINE ANGABE, und sie wird am GEGENSTAND gelesen und
-       nicht an einem Attribut (Stolperstein 223): zwei .mcount nebeneinander
+       nicht an einem Attribut: zwei .mcount nebeneinander
        saehen im Text aus wie eine. */
     check('Jede Zeile traegt genau eine solche Angabe',
       rows.every(z => z.querySelectorAll('.mcount').length === 1),
@@ -1017,7 +1017,7 @@ async function run() {
 
   {
     /* DIE GEGENRICHTUNG: nur Bewertungen, und eine davon in der Einzahl. */
-    /* OHNE NAMEN, WIE DER ECHTE SERVER (Stolperstein 90): er speist `neuVon`
+    /* OHNE NAMEN, WIE DER ECHTE SERVER: er speist `neuVon`
        aus den KOMMENTAREN, und hier gibt es keine. */
     const d = await glBuild([[0, 4, []], [0, 1, []]]);
     const doc = d.w.document;
@@ -1044,7 +1044,7 @@ async function run() {
 
   {
     /* WAS EIN BETREIBER SIEHT, DER ALLEIN ARBEITET -- UMGEDREHT MIT 0.17.2
-       UND NICHT GELOESCHT (Stolperstein 201). */
+       UND NICHT GELOESCHT. */
     const d = await glBuild([[0, 0, []], [0, 0, []]], { userCount: 1 });
     const doc = d.w.document;
     check('Auch bei einem einzigen Zugang steht die Glocke da',
@@ -1220,7 +1220,7 @@ async function run() {
       !/Mindestens 10 Zeichen/.test(tOut), tOut.slice(0, 260));
 
     /* DIE KLEMME SITZT AN DERSELBEN STELLE WIE DIE KARTE und nicht an einer
-       zweiten Abfrage daneben (Stolperstein 47). */
+       zweiten Abfrage daneben. */
     const ztFetches = (d) => d.sent.filter(x => x.method === 'GET').map(x => x.url).sort();
     check('Beide Lagen holen genau dieselben Auskuenfte',
       equal(ztFetches(dOut), ztFetches(dAn)),
@@ -1353,8 +1353,7 @@ async function run() {
       /max-width: min\(14rem, 46%\)/.test(khHint) && /overflow-wrap: anywhere/.test(khHint),
       khHint || '(keine Regel)');
     /* UND SIE SAGT NICHTS ZWEIMAL: alles andere -- die Forderung, das
-       Schrumpfen, das Rollen -- steht in der Grundregel und gilt weiter
-       (Stolperstein 47). */
+       Schrumpfen, das Rollen -- steht in der Grundregel und gilt weiter. */
     check('Und wiederholt die Grundregel nicht',
       !/flex:/.test(khSitz) && !/overflow/.test(khSitz), khSitz || '(keine Regel)');
     /* ---- IN EINEM WINDOW GILT DER DECKEL NICHT — 0.17.4 ---- Glockentafel
@@ -1560,7 +1559,7 @@ async function run() {
       .filter(([, w]) => w.includes('Instanz'));
     check('Und in der Sprachdatei steht es in keinem einzigen Satz',
       iDe.length === 0, iDe.map(([k]) => k).join(' · '));
-    /* ERST DER WAECHTER, DANN SEIN BEFUND (Stolperstein 81): ein Zaehler, der
+    /* ERST DER WAECHTER, DANN SEIN BEFUND: ein Zaehler, der
        nichts findet, weil er nichts liest, ist gruen und belegt nichts. */
     check('Und der Waechter wuerde eine solche Zeile wirklich finden',
       withoutEveryComment("  const t = 'die Instanz sagt es';").includes('Instanz'),
@@ -1783,7 +1782,7 @@ async function run() {
     check('Und in keiner Zeile steht eine Klammer um eine Eins',
       !kColumns.some(z => /\(1\)/.test(z.textContent || '')),
       JSON.stringify(kColumns.map(z => z.textContent)));
-    /* UMGEDREHT MIT 0.21.0 (Stolperstein 74), wie die beiden Schwestern in
+    /* UMGEDREHT MIT 0.21.0, wie die beiden Schwestern in
        der Gruppe „Die Sternreihe steht auf einer Linie": bis 0.20.1 blieb die
        Zelle GANZ LEER, jetzt traegt sie einen Strich. */
     check('Ohne Stimme steht dort ein Strich und keine Klammer',
@@ -1794,7 +1793,7 @@ async function run() {
       kColumns[1]?.title === 'Durchschnitt 4,0 aus 1 Bewertung', kColumns[1]?.title);
     check('Und bei zweien steht dort die Mehrzahl',
       kColumns[0]?.title === 'Durchschnitt 3,5 aus 2 Bewertungen', kColumns[0]?.title);
-    /* UMGEDREHT MIT 0.21.0 (Stolperstein 74): der Strich bekommt seinen
+    /* UMGEDREHT MIT 0.21.0: der Strich bekommt seinen
        eigenen Klartext -- „noch niemand" --, und er nennt ausdruecklich KEINE
        Stimmen. */
     check('Ein Kriterium ohne Stimme bekommt einen Klartext ohne Stimmenzahl',
@@ -1854,8 +1853,7 @@ async function run() {
       regel123('.frow-right-wide') || '(keine Regel)');
 
     /* ---- UND JETZT DER KLICK ---- EIN SUCHBEGRIFF STEHT DABEI WIRKLICH IM
-       FELD und nicht bloss im Zustand: nur dann belegt die Zeile unten etwas
-       (Stolperstein 224). */
+       FELD und nicht bloss im Zustand: nur dann belegt die Zeile unten etwas. */
     const beforeSort = d.w.document.getElementById('f-sort')?.value;
     const searchField = d.w.document.getElementById('q');
     searchField.value = 'schraube';
@@ -1865,7 +1863,7 @@ async function run() {
        schon lief -- sonst pruefte die Verneinung unten den Seitenaufbau mit. */
     const vorDemClickable = d.sent.length;
     // MIT `?.`: ob der Knopf dasteht, hat die Zeile oben schon gefragt
-// (Stolperstein 311) -- an einer Null soll der Lauf nicht abreissen.
+// -- an einer Null soll der Lauf nicht abreissen.
     button?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
     await new Promise(r => setTimeout(r, 80));
     const after = d.sent.slice(vorDemClickable);
@@ -1927,8 +1925,7 @@ async function run() {
     const anBefore = d.sent.length;
     /* MIT `?.`: zaehlt ein Rueckbau den einen Tag nicht mehr mit, steht kein
        Knopf da -- dann bleibt die Zeile darueber rot, statt dass der Lauf an
-       einer Null abreisst (Stolpersteine 161 und 311; die Gegenprobe 637 hat
-       es gezeigt). */
+       einer Null abreisst. */
     frButton(d.w)?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
     await new Promise(r => setTimeout(r, 80));
     check('Nach dem Zuruecksetzen steht sie immer noch da',
@@ -1987,7 +1984,7 @@ async function run() {
   };
   // Die Sortierung wird ueber ihr eigenes Bedienelement gestellt und nicht
 // ueber eine zweite gebaute Lage: nur so ist der WECHSEL geprueft.
-  /* MITGEZOGEN MIT 0.28.1 (Stolperstein 201): eine Sortierung wird seit
+  /* MITGEZOGEN MIT 0.28.1: eine Sortierung wird seit
      dieser Runde an ZWEI Bedienelementen eingestellt -- die Grundlage im
      Auswahlfeld, die Richtung am Umschalter daneben. */
   const ksSort = async (d, value) => {
@@ -2469,8 +2466,7 @@ async function run() {
     const pmText = (d) => d.w.document.getElementById('app')?.textContent || '';
     /* GEPRUEFT AN EINEM EIGENEN BESTAND: der oben traegt an BEIDEN
        ungetesteten eine Zahl, und dann stuende der Hinweis auch mit Schalter
-       nirgends -- die Zusage waere gruen, ohne etwas zu belegen (Stolperstein
-       106). */
+       nirgends -- die Zusage waere gruen, ohne etwas zu belegen. */
     const pmNoValue = [{ id: 9, title: 'Idee ohne Zahl', rejected: false, tested: false,
       favorite: false, category: null, tags: [], mainPhoto: null, photoCount: 0, linkCount: 0,
       avgRating: null, potentialRating: null, testCount: null, testAvg: null, testLast: null,

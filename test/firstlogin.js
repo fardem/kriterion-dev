@@ -16,7 +16,7 @@ async function checkFirstLogin() {
   group('Erstanmeldung: frische Installation');
   const freshDir = fs.mkdtempSync(path.join(os.tmpdir(), 'kriterion-setup-'));
   // 5130 und nicht 4000: die Basis 4000 deckt die Nummern 4000 bis 4059, und
-  // 4045 steht auf der Sperrliste von fetch() (Stolperstein 127).
+  // 4045 steht auf der Sperrliste von fetch().
   const B = startFurtherServer(freshDir, {}, 5130);
   await B.ready;
 

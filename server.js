@@ -1184,7 +1184,7 @@ app.delete('/api/users/:id', adminOnly, (req, res) => {
 function mailCard(req) {
   const raw = getSetting(mail.SETTING_KEY, null);
   // Der Vergleich steht in mailTestState() weiter oben -- eine
-// Rechnung, zwei Rufer (Stolperstein 145).
+// Rechnung, zwei Rufer.
   const test = mailTestState(raw);
   const state = mail.state(raw);
   return {

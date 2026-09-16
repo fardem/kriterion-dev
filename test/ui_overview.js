@@ -179,7 +179,7 @@ async function run() {
      Bedienelement ist erst geprueft, wenn ein Ereignis wirklich zugestellt
      wurde und der Event Loop durchlaufen ist. */
   /* „Darstellung" steht seit 0.16.0 im Abschnitt „Persoenlich", die
-     Linkzeilen darunter in „Bestand" (Stolperstein 201). */
+     Linkzeilen darunter in „Bestand". */
   await sysSection(w, 'personal');
   const fontButtons = [...w.document.querySelectorAll('#fsize .pill')];
   const targetFont = fontButtons.find(b => b.textContent === '120 %');
@@ -355,7 +355,7 @@ async function run() {
     textList.includes('Geprüft') && textList.includes('Ungeprüft'));
   check('Filterbeschriftung bleibt generisch',
     textList.includes('Status') && !textList.includes('Teststatus'));
-  /* MITGEZOGEN MIT 0.28.1 (Stolperstein 201): die Richtung haengt nicht mehr
+  /* MITGEZOGEN MIT 0.28.1: die Richtung haengt nicht mehr
      am Eintrag, sondern am Umschalter daneben -- aus „Sitzungen (viele →
      wenige)" ist „Sitzungen" geworden. */
   const sortWords = [...w2.document.querySelectorAll('#f-sort option')]
@@ -383,7 +383,7 @@ async function run() {
   const fields = ['v1','v2','v3','v4','v5','v6','v7','v8','v9','v10','v11','v12','v13','v14','v15']
     .map(id => w3.document.getElementById(id));
   /* VIERZEHN SEIT 0.22.0 (E14), FUENFZEHN SEIT 0.32.0; umgedreht, nicht
-     geloescht (Stolperstein 74). */
+     geloescht. */
   check('Fuenfzehn Vokabelfelder stehen bereit — 0.32.0', fields.every(Boolean),
     fields.map((f, n) => f ? '' : `v${n + 1} fehlt`).filter(Boolean).join(' '));
   /* UND ALLES DARUNTER FRAGT MIT `?.` -- 0.32.0, aus der Gegenprobe 1014
@@ -613,7 +613,7 @@ async function run() {
     const npPill = (w, boxId, name) => [...(w.document.getElementById(boxId) || { children: [] }).children]
       .find(b => pillName(b) === name);
     /* DRUECKT EINE PILLE UND SAGT, OB SIE DA WAR -- geklammert wie setField()
-       und aus demselben Grund (Stolperstein 161): ein Rueckbau, der die
+       und aus demselben Grund: ein Rueckbau, der die
        Pillenreihe wegnimmt, muss die Zusagen darunter ROT machen und nicht
        den ganzen Lauf abreissen. */
     const npPress = async (w, boxId, name) => {
@@ -861,7 +861,7 @@ async function run() {
   }
 
   /* DIE SCHRIFTGROESSE STEHT IN „Darstellung" UND DAMIT IN EINEM ANDEREN
-     ABSCHNITT ALS DAS VOKABULAR (Stolperstein 201): die Karte ist dieselbe
+     ABSCHNITT ALS DAS VOKABULAR: die Karte ist dieselbe
      geblieben, ihr Platz nicht. */
   await sysSection(w3, 'personal');
   const levels = [...w3.document.querySelectorAll('#fsize .pill')];
@@ -951,7 +951,7 @@ async function run() {
     const AX_NAMES = { en: { 22: 'Ueberall_en' }, tr: { 22: 'Ueberall_tr' } };
     /* GEKLAMMERT WIE npPress(): ein Rueckbau, der die Zeile oder den Knopf
        wegnimmt, muss die Zusagen darunter ROT machen und nicht den ganzen
-       Lauf abreissen (Stolperstein 161). */
+       Lauf abreissen. */
     const axCell = (w, boxId, id) => {
       const row = [...w.document.querySelectorAll(`#${boxId} .mrow`)]
         .find(z => Number(z.dataset.mid) === id);
@@ -1623,7 +1623,7 @@ async function run() {
         path.join(__dirname, 'public', 'languages', 'tr.json'), 'utf8')), '');
       /* DASS ES UEBERHAUPT SAETZE MIT DEM WORT GIBT -- ohne diese Zeile waere
          der Waechter darunter auch dann gruen, wenn die Datei gar nicht
-         gelesen wurde (Stolperstein 81). */
+         gelesen wurde. */
       const ydGood = ydFlat.filter(([, v]) => /yedekleme/i.test(v));
       check('Aufbau: die tuerkische Datei spricht wirklich von Sicherungen',
         ydGood.length >= 40, `${ydGood.length} Saetze mit „yedekleme"`);
@@ -1984,7 +1984,7 @@ async function run() {
     JSON.stringify(zw.document.getElementById('tagcloud')?.style.maxHeight));
 
   // Ein Bedienelement ist erst geprueft, wenn ein Ereignis wirklich
-  // zugestellt wurde (Stolperstein 61) -- also dispatchEvent samt Durchlauf
+  // zugestellt wurde -- also dispatchEvent samt Durchlauf
   // der Event Loop, nicht der von Hand gerufene Behandler.
   const beforePill = zw.document.querySelector('#tagcloud .pill');
   tagBlock.querySelector('.block-head')
@@ -2040,7 +2040,7 @@ async function run() {
     wf.matchesTags(inventory[1], [1, 2], 'quatsch') === false);
 
   const title = () => [...wf.document.querySelectorAll('.card .card-title')].map(e => e.textContent);
-  /* GEKLAMMERT WIE JEDER GRIFF IN EINEN NACHBAU -- 0.30.0, Stolperstein 161.
+  /* GEKLAMMERT WIE JEDER GRIFF IN EINEN NACHBAU -- 0.30.0.
      Ein Rueckbau, der die Tagzeile wegnimmt, findet hier keine Marke mehr;
      ein nackter `.onclick()` darauf RISSE DEN LAUF AB, statt die Zusagen
      darunter rot zu machen -- und eine abgerissene Gegenprobe belegt gar
@@ -2320,7 +2320,7 @@ async function run() {
     offAll.w.document.querySelector('.page-title')?.textContent === 'Offene Aufgaben',
     offAll.w.document.querySelector('.page-title')?.textContent);
   // Erst das Vorhandensein der Zeilen, dann die Aussage darueber, welche es
-// sind -- auf null Zeilen waere jede Verneinung wahr (Stolperstein 81).
+// sind -- auf null Zeilen waere jede Verneinung wahr.
   check('Sie zeigt Zeilen', offRows(offAll).length === 3, `${offRows(offAll).length} Zeilen`);
   check('Und zwar genau die nicht erledigten Aufgaben',
     equal(offTexts(offAll), ['Eine Aufgabe', 'Fremde Aufgabe', 'Herrenlose Aufgabe']),
@@ -2356,7 +2356,7 @@ async function run() {
     offWhen(offAll).every(t => /\d{2}\.\d{2}\.\d{4}/.test(t || '')), JSON.stringify(offWhen(offAll)));
 
   /* Der Umschalter -- erst das Vorhandensein bei drei Zugaengen, dann die
-     Abwesenheit bei einem (Stolperstein 81). */
+     Abwesenheit bei einem. */
   const offView = (d, which) =>
     d.w.document.querySelector(`#open-view [data-view="${which}"]`);
   check('Bei mehreren Zugaengen steht der Umschalter „meine / alle" da',
@@ -2408,7 +2408,7 @@ async function run() {
     JSON.stringify(offRows(offUser).map(z => !!z.querySelector('.open-check'))));
   offUser.w.close();
 
-  /* Ein wirklich zugestellter Druck, kein Behandleraufruf (Stolperstein 61). */
+  /* Ein wirklich zugestellter Druck, kein Behandleraufruf. */
   offAdmin.sent.length = 0;
   offRows(offAdmin)[0].querySelector('.open-check')
     .dispatchEvent(new offAdmin.w.MouseEvent('click', { bubbles: true }));
@@ -2448,7 +2448,7 @@ async function run() {
     !offRows(offAdmin)[0].classList.contains('done'),
     offRows(offAdmin)[0].className);
 
-  /* Der Mock aendert seinen Bestand wirklich mit (Stolperstein 90): wird die
+  /* Der Mock aendert seinen Bestand wirklich mit: wird die
      Ansicht neu aufgebaut, ist die abgehakte Zeile fort. */
   offRows(offAdmin)[0].querySelector('.open-check')
     .dispatchEvent(new offAdmin.w.MouseEvent('click', { bubbles: true }));
@@ -2508,7 +2508,7 @@ async function run() {
 
   const offEmptyVok = await offBuild({ openInventory: [],
     settings: { ...ownFull, userCount: 3 } });
-  /* UMGEDREHT MIT 0.22.0 (Stolperstein 74): der leere Satz heisst „Nichts
+  /* UMGEDREHT MIT 0.22.0: der leere Satz heisst „Nichts
      offen." -- zwei Woerter, und er braucht kein Vokabelwort mehr (Anlage C,
      Z. */
   check('Der leere Satz ist kurz und kommt ohne Vokabelwort aus — 0.22.0',
@@ -2553,7 +2553,7 @@ async function run() {
     ruleOff('.open-row.done .open-text'));
 
   /* ================= Die gestrichene Pille — 0.17.0 ====================
-     MITGENOMMEN UND NICHT GELOESCHT (Stolperstein 201). */
+     MITGENOMMEN UND NICHT GELOESCHT. */
   group('Die gestrichene Pille „Neu seit …" — 0.17.0');
 
   /* Vier Eintraege, zwei alt und zwei neu -- der Bestand der alten Gruppe,
@@ -2593,7 +2593,7 @@ async function run() {
     !nsWithout.w.document.getElementById('f-neu'),
     nsWithout.w.document.getElementById('filters')?.textContent?.replace(/\s+/g, ' '));
   /* UND AUCH IHRE BESCHRIFTUNG NICHT. Ein Rueckbau, der nur die Kennung
-     umbenennt, bliebe an der Zeile darueber unsichtbar (Stolperstein 223). */
+     umbenennt, bliebe an der Zeile darueber unsichtbar. */
   check('Und ihre Beschriftung steht nirgends mehr in der Filterzeile',
     !/Neu seit/.test(nsWithout.w.document.getElementById('filters')?.textContent || ''),
     nsWithout.w.document.getElementById('filters')?.textContent?.replace(/\s+/g, ' '));
@@ -2649,7 +2649,7 @@ async function run() {
   nsOne.w.close();
 
   /* ================= Der Bezugspunkt der Glocke ================= */
-  /* MITGENOMMEN MIT 0.17.0 (Stolperstein 201): diese Gruppe hiess „Neu seit:
+  /* MITGENOMMEN MIT 0.17.0: diese Gruppe hiess „Neu seit:
      der Merkzeitpunkt" und pruefte `zuletztGesehen`. */
   group('Der Bezugspunkt der Glocke in der Oberflaeche');
 

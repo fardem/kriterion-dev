@@ -365,7 +365,7 @@ function buildDom(JSDOM, { withoutLanguage = false, settings = { filters: null }
     author: entryMine ? vChefin : vBert,
     /* ZWEI ZEILEN, UND SIE SIND VERSCHIEDENER ART -- ein Mock mit lauter
        Bildern naehme genau die Pruefungen weg, fuer die er hier gebraucht
-       wird (Stolperstein 90). */
+       wird. */
     photos: [{ id: 5, mime_type: 'image/png', focus_x: 50, focus_y: 50, sort_order: 0,
                kind: 'image', duration: null },
              { id: 6, mime_type: 'video/mp4', focus_x: 50, focus_y: 50, sort_order: 1,
@@ -439,8 +439,7 @@ function buildDom(JSDOM, { withoutLanguage = false, settings = { filters: null }
     /* DREI ZEILEN, UND SIE SIND VERSCHIEDEN LANG -- das ist seit 0.14.0 keine
        Zierde mehr, sondern der Gegenstand: die Sternreihen sollen an
        derselben Stelle beginnen, und eine Prueflage, in der alle Zahlen
-       gleich lang sind, kann diesen Fehler gar nicht tragen (Stolperstein
-       189). */
+       gleich lang sind, kann diesen Fehler gar nicht tragen. */
     ratings: criteria.map((c, i) => ({
       criterion_id: c.id, name: c.name, value: ownValues[i], weight: c.weight,
       // DIE PHASE REIST AN DER ZEILE MIT, wie beim echten Server -- der
@@ -595,7 +594,7 @@ function buildDom(JSDOM, { withoutLanguage = false, settings = { filters: null }
       }
       const t = tokenState[JSON.parse(opt.body || '{}').token];
       // minuten: die Frist ab dem ersten Oeffnen, seit 0.9.0. Die Seite liest
-// sie aus der Antwort (Stolperstein 102).
+// sie aus der Antwort.
       return t ? give({ ...t, minPassword: 10, minutes: 15 }) : give({ error: TOKEN_DENIAL_MOCK }, 400);
     }
     if (url === '/api/token/redeem' && opt.method === 'POST') {
@@ -608,10 +607,10 @@ function buildDom(JSDOM, { withoutLanguage = false, settings = { filters: null }
     }
     /* Die eigene Adresse steht seit 0.9.0 in dieser Antwort, und der Mock
        liefert sie mit -- sonst bliebe das Feld in der Karte "Zugang" leer und
-       jede Pruefung darauf blind (Stolperstein 102). */
+       jede Pruefung darauf blind. */
     /* DER ZWEITE FAKTOR REIST SEIT 0.10.0 IN DIESER ANTWORT MIT, und der Mock
        liefert ihn -- sonst bliebe der Block in der Karte "Zugang" leer und
-       jede Pruefung darauf blind (Stolperstein 102). */
+       jede Pruefung darauf blind. */
     if (url === '/api/account' && (opt.method || 'GET') === 'GET')
       return give({ username: 'chefin', minPassword: 10, email: ownAddress,
                    twoFactor: zfStatusMock });
@@ -645,7 +644,7 @@ function buildDom(JSDOM, { withoutLanguage = false, settings = { filters: null }
       return give({ ok: true });
     }
     /* ---- Der zweite Faktor, 0.10.0 ---- DER MOCK ZIEHT WIRKLICH MIT
-       (Stolperstein 90): einschalten macht "an", ausschalten macht "aus", und
+: einschalten macht "an", ausschalten macht "aus", und
        die Zahl der Wiederherstellungscodes aendert sich. */
     if (url === '/api/two-factor/start' && opt.method === 'POST') {
       const k = JSON.parse(opt.body || '{}');
@@ -684,7 +683,7 @@ function buildDom(JSDOM, { withoutLanguage = false, settings = { filters: null }
       return give(mailCardMock());
     }
     /* ---- Die Selbstanmeldung, 0.9.1 ---- ER ANTWORTET WIE DER ECHTE SERVER
-       (Stolperstein 90), und das heisst hier vor allem: ER ZIEHT MIT. */
+, und das heisst hier vor allem: ER ZIEHT MIT. */
     /* Die beiden Routen VOR der Anmeldung. */
     if (url === '/api/signup' && opt.method === 'POST') {
       return give({ ok: true, message:
@@ -771,7 +770,7 @@ function buildDom(JSDOM, { withoutLanguage = false, settings = { filters: null }
     const baseLanguageMock = () =>
       ((settings.languages || []).find(a => a.isDefault) || {}).code || 'de';
     /* DIE KETTE IM MOCK -- 0.25.0, und sie ist Schritt fuer Schritt dieselbe
-       wie `chainFor()` in server.js (Stolperstein 90): die Sprache des
+       wie `chainFor()` in server.js: die Sprache des
        Lesers, sonst die Vorgabe, sonst die Erstellungssprache der Zeile,
        sonst der Originaltext ohne Sprachangabe. */
     const chainMock = (row, per, locale) => {
@@ -844,7 +843,7 @@ function buildDom(JSDOM, { withoutLanguage = false, settings = { filters: null }
           criterionNames: namesTableMock(criteria, criterionNames) }),
         ...settings });
     /* SCHREIBEND, seit 0.19.0 -- und der Mock AENDERT SEINE ANTWORT WIRKLICH
-       (Stolperstein 90): sonst waere „der Haken ist gesetzt" von „der Haken
+: sonst waere „der Haken ist gesetzt" von „der Haken
        springt zurueck" nicht zu unterscheiden. */
     if (url === '/api/settings' && opt.method === 'PUT') {
       const sentBody = opt.body ? JSON.parse(opt.body) : {};
@@ -964,7 +963,7 @@ function buildDom(JSDOM, { withoutLanguage = false, settings = { filters: null }
                    cleanup: backup.cleanup });
     }
     /* Und die beiden Schreibwege, die ihren Stand WIRKLICH aendern
-       (Stolperstein 90): ein Mock, der stur denselben Stand zurueckgaebe,
+: ein Mock, der stur denselben Stand zurueckgaebe,
        machte "die Karte zeichnet sich neu" von "die Karte blieb stehen"
        ununterscheidbar. */
     if (url === '/api/backup/dir' && opt.method === 'PUT') {
@@ -994,8 +993,7 @@ function buildDom(JSDOM, { withoutLanguage = false, settings = { filters: null }
                    changedAt: backup.changedAt ?? null,
                    outdated: backup.outdated ?? 0, cleaned: null });
     }
-    /* Und die beiden Wege, die den Bestand WIRKLICH aendern (Stolperstein
-       90): ein Mock, der beim Zurueckholen zwar antwortet, aber dieselbe
+    /* Und die beiden Wege, die den Bestand WIRKLICH aendern: ein Mock, der beim Zurueckholen zwar antwortet, aber dieselbe
        Liste weiterliefert, macht "die Karte zeichnet sich neu" von "die Karte
        blieb stehen" ununterscheidbar -- beide Faelle blieben gruen. */
     if (/^\/api\/trash\/\d+\/restore$/.test(url) && opt.method === 'POST') {
@@ -1086,7 +1084,7 @@ function buildDom(JSDOM, { withoutLanguage = false, settings = { filters: null }
                    foreignTestDays: 0, comments: 4, ratings: 2, testDays: 1 });
     /* GET /api/items?q=... -- der Suchweg, seit 0.11.0. */
     /* ---- DIE BEIDEN ZAHLEN, DIE MIT DER LISTE MITREISEN -- 0.16.0 ---- WIE
-       DER ECHTE SERVER, und darauf kommt es an (Stolperstein 90):
+       DER ECHTE SERVER, und darauf kommt es an:
        `offeneAufgaben` wird aus DERSELBEN Menge gerechnet, aus der /api/open
        seine Liste nimmt -- kind = 'task'. */
     const includingHeadCounts = (list, wasSearch) => list.map(i => {
@@ -1235,7 +1233,7 @@ function buildDom(JSDOM, { withoutLanguage = false, settings = { filters: null }
       }
       return give(example);
     }
-    /* LOESCHEN ZIEHT WIRKLICH MIT (Stolperstein 90). */
+    /* LOESCHEN ZIEHT WIRKLICH MIT. */
     if (/^\/api\/photos\/\d+$/.test(url) && opt.method === 'DELETE') {
       const pathId = Number(url.slice(url.lastIndexOf('/') + 1));
       example.photos = example.photos.filter(p => p.id !== pathId);

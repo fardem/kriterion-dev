@@ -27,8 +27,7 @@ async function check0290() {
     check('Die Kennzahlen tragen die Einzelwerte mit',
       Array.isArray(fpFiles) && fpFiles.length >= 15,
       `${fpFiles.length} Dateien`);
-    /* DIESELBE LISTE WIE DER GESAMTWERT -- und nicht eine zweite daneben (F6,
-       Stolperstein 47). */
+    /* DIESELBE LISTE WIE DER GESAMTWERT -- und nicht eine zweite daneben (F6). */
     check('Es sind genau die ausgelieferten und ausgefuehrten Dateien',
       fpFiles.some(z => z.name === 'server.js') &&
       fpFiles.some(z => z.name === 'public/app.js') &&
@@ -230,7 +229,7 @@ async function check0290() {
   {
     const csSource = fs.readFileSync(path.join(__dirname, 'public', 'style.css'), 'utf8');
     const csApp = fs.readFileSync(path.join(__dirname, 'public', 'app.js'), 'utf8');
-    /* JSDOM RECHNET KEIN CSS (Stolperstein 223). */
+    /* JSDOM RECHNET KEIN CSS. */
     /* DIE UMBRUCHSTELLE HEISST 700 UND NICHT 760, und sie traegt zwei weitere
        Bedingungen: `(max-height: 500px) and (max-width: 960px)` faengt das
        Telefon im Querformat. */

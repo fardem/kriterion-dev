@@ -56,7 +56,7 @@ async function run() {
     const spRaw = fs.readFileSync(spFile, 'utf8');
     let spTexts = null;
     try { spTexts = JSON.parse(spRaw); } catch (e) { spTexts = null; }
-    // Erst das Vorhandensein, dann jede Aussage darueber (Stolperstein 81).
+    // Erst das Vorhandensein, dann jede Aussage darueber.
     check('Sie ist lesbares JSON', !!spTexts && typeof spTexts === 'object',
       spTexts ? `${Object.keys(spTexts).length} Schluessel` : '(nicht lesbar)');
     /* DIE LOCALE IM KOPF. An ihr haengen Datum, Zahl, Sortierung und die
@@ -123,7 +123,7 @@ async function run() {
     for (const [n, wanted] of [[0, '0 Kommentare'], [1, '1 Kommentar'], [2, '2 Kommentare']])
       check(`Die Mehrzahl bei n = ${n} ist „${wanted}"`,
         spW.t('probe.plural', { n }) === wanted, spW.t('probe.plural', { n }));
-    /* tH() MASKIERT JEDEN EINGESETZTEN WERT -- Stolperstein 18 in Dateiform. */
+    /* tH() MASKIERT JEDEN EINGESETZTEN WERT. */
     const spBad = { n: '<b>', total: 1 };
     check('tH() maskiert einen Wert mit einem <',
       spW.tH('probe.platzhalter', spBad) === 'Es sind &lt;b&gt; von 1.',
@@ -132,7 +132,7 @@ async function run() {
       spW.t('probe.platzhalter', spBad) === 'Es sind <b> von 1.',
       spW.t('probe.platzhalter', spBad));
     /* AUCH DAS VOKABELWORT WIRD IN tH() MASKIERT. Es kommt vom Admin und ist
-       damit Benutzertext -- genau der Fall, den Stolperstein 18 nennt. */
+       damit Benutzertext. */
     spW.eval("V = { ...V, entryOne: '<i>Modell</i>' };");
     check('tH() maskiert auch das Vokabelwort',
       spW.tH('probe.vokabel') === 'Der Knopf heißt „&lt;i&gt;Modell&lt;/i&gt;".',
@@ -409,7 +409,7 @@ async function run() {
       /auth\.setTranslator\(\(req, key, values\) =>/.test(sdSrv),
       `mail: ${/mail\.setTranslator/.test(sdSrv)} · auth: ${/auth\.setTranslator/.test(sdSrv)}`);
     /* DIE VORGABEN DER FUENFZEHN VOKABELWOERTER KOMMEN AUS DER DATEI -- eine
-       Vorgabe, ein Ort (Stolperstein 47). */
+       Vorgabe, ein Ort. */
     const sdVok = Object.keys(sdDe).filter(k => k.startsWith('vocabulary.'));
     check('Die fuenfzehn Vokabelvorgaben stehen in der Sprachdatei',
       sdVok.length === 15 && sdDe['vocabulary.entryOne'] === 'Eintrag'

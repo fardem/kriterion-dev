@@ -1078,7 +1078,7 @@ function setUpBlocksOut(item) {
 // Versionsnummer.
 /* DIE VERSIONSZEILE, und das Zeichen davor ist ein Aufruf und kein zweites
    Bild: MARK() liefert dieselbe durchsichtige Fassung, die auf allen neun
-   Anmeldeseiten steht (Stolperstein 145). */
+   Anmeldeseiten steht. */
 function showVersion() {
   const el = document.getElementById('version');
   if (!el) return;
@@ -3151,7 +3151,7 @@ async function renderOpen() {
 
   /* DIE EINTEILUNG STEHT SEIT 0.30.0 GANZ OBEN (`dueOf`, Befund 8): der
      Eintrag faerbt sein Datum nach derselben Auskunft, und zwei Einteilungen
-     an zwei Orten liefen auseinander (Stolperstein 47). */
+     an zwei Orten liefen auseinander. */
   /* VIER ABSCHNITTE UND NICHT DREI, und der vierte ist kein vierter Zustand:
      „ohne Datum" ist die Abwesenheit eines Zustands. */
   const SECTIONS = [['overdue', 'list.dueOverdue'], ['today', 'list.dueToday'],
@@ -6133,7 +6133,7 @@ function setUpLanguagesOut() {
 
 /* ---- Karte „Zugang" — Abschnitt „Persönlich" ---- */
 /* ZWEI KLEMMEN, UND BEIDE SITZEN HIER -- an derselben Stelle wie die Karte
-   selbst und nicht an einer zweiten Abfrage daneben (Stolperstein 47). */
+   selbst und nicht an einer zweiten Abfrage daneben. */
 function cardUser(fetched) {
   const { account } = fetched;
   return `<div class="sys-card">
@@ -6313,8 +6313,7 @@ function setUpUserOut(fetched) {
     boxId.innerHTML = `<strong>${tH('card.yourRecoveryCodes', { length: codes.length })}</strong>
       ${tMark('card.recoveryCodesHint', 'card.once')}
       <div class="two-factor-codes">${codes.map(c => `<span>${esc(c)}</span>`).join('')}</div>
-      ${/* DER SERVER-BEFEHL STAND HIER BIS 0.21.1 FUER JEDEN BENUTZER (Stolperstein
-           315). Jetzt: ein Satz fuer alle, der Kasten nur fuer den Eigentuemer. */''}
+      ${/* DER SERVER-BEFEHL STAND HIER BIS 0.21.1 FUER JEDEN BENUTZER. Jetzt: ein Satz fuer alle, der Kasten nur fuer den Eigentuemer. */''}
       <p class="desc" style="margin:8px 0 0">${tH('card.allCodesUsed')}</p>
       ${serverBox(t('card.twoFactorOffUser'), 'docker compose exec kriterion node usertool.js zweifaktor <name>')}`;
     box.appendChild(boxId);
@@ -8014,7 +8013,7 @@ function setUpLogOut(fetched) {
 
   /* --- Das Sicherheitsprotokoll --- Gezeichnet wird aus dem, was oben schon
      geholt wurde -- dieselbe Bauform wie bei den Verwaltungskarten und aus
-     demselben Grund (Stolperstein 118). */
+     demselben Grund. */
   // Schluessel statt Satz (siehe VERWALTUNGSART) -- Modulebene.
   const EVENT_WORD = {
     'login.ok': 'card.signedIn',
@@ -8135,7 +8134,7 @@ function setUpLogOut(fetched) {
     for (const [key, word] of LOG_VIEW) {
       const b = document.createElement('button');
       const n = Number(numbers[key || 'all']) || 0;
-      /* GEDAEMPFT BEI NULL, wie jede Pille in dieser Lage (Stolperstein 47):
+      /* GEDAEMPFT BEI NULL, wie jede Pille in dieser Lage:
          eine Ansicht ohne Zeilen fuehrt garantiert auf eine leere Liste. */
       const empty = n === 0 && logGroup !== key;
       b.className = 'pill' + (logGroup === key ? ' on' : '') + (empty ? ' blank' : '');
@@ -8395,8 +8394,7 @@ function setUpMailDeliveryOut(fetched) {
   const mailButton = document.getElementById('mail-setup');
   if (mailButton && mailStatus) {
     /* DER DIALOG BEKOMMT DEN ZUSTAND MIT, den die Karte ohnehin schon hat --
-       kein zweiter Ruf an den Server fuer dieselbe Auskunft (Stolperstein
-       145). */
+       kein zweiter Ruf an den Server fuer dieselbe Auskunft. */
     mailButton.onclick = async () => {
       if (await mailDialog(mailStatus)) renderSystem();
     };
@@ -8408,7 +8406,7 @@ function setUpMailDeliveryOut(fetched) {
     };
 
     document.getElementById('mail-test').onclick = async (e) => {
-      /* e.currentTarget IST NACH DEM ERSTEN await NULL (Stolperstein 61) --
+      /* e.currentTarget IST NACH DEM ERSTEN await NULL --
          der Knopf wird deshalb VOR dem Ruf festgehalten. */
       const button = e.currentTarget;
       button.disabled = true; button.textContent = t('card.sending');

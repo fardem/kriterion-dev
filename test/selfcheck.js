@@ -20,7 +20,7 @@ async function run() {
 
   const gpList = require('./counterproof').REGRESSIONS;
   /* DIE ZAHL AUSDRUECKLICH, wie bei F_ROUTES und den Listen aus auth.js
-     (Stolperstein 137): eine Zahl in einem Papier ist eine Behauptung, eine
+: eine Zahl in einem Papier ist eine Behauptung, eine
      Zahl im Pruefstand ist ein Beleg. */
   // Die Zahl der Rueckbauten steht ausdruecklich da: eine Zahl in einem
   // Papier ist eine Behauptung, eine Zahl im Pruefstand ist ein Beleg. Wie
@@ -132,7 +132,7 @@ async function run() {
     gpMatches(gpCase, '256') === false, JSON.stringify(gpMatches(gpCase, '256')));
   /* DIE GEGENLAGE, sonst belegte die Zeile darueber nichts: dieselbe Nummer
      an ihrem eigenen Rueckbau greift sehr wohl -- die Regel darf nicht
-     einfach alles abweisen, was aus Ziffern besteht (Stolperstein 189). */
+     einfach alles abweisen, was aus Ziffern besteht. */
   check('Und dieselbe Nummer greift an ihrem eigenen Rueckbau',
     gpMatches({ nr: '256', name: 'Ein anderer Rueckbau' }, '256') === true,
     JSON.stringify(gpMatches({ nr: '256', name: 'Ein anderer Rueckbau' }, '256')));
@@ -285,27 +285,27 @@ async function run() {
   {
     const crAll = require('./tools/comments.js').measureAll();
     const COMMENT_ROWS = [
-      ['testbench.js', 70],
-      ['test/batchrun.js', 88],
-      ['test/dom.js', 330],
+      ['testbench.js', 69],
+      ['test/batchrun.js', 87],
+      ['test/dom.js', 328],
       ['test/firstlogin.js', 30],
-      ['test/frame.js', 151],
+      ['test/frame.js', 150],
       ['test/keychange.js', 70],
-      ['test/release_029.js', 61],
-      ['test/release_030.js', 241],
-      ['test/release_031.js', 385],
-      ['test/roundtrip.js', 3123],
+      ['test/release_029.js', 60],
+      ['test/release_030.js', 239],
+      ['test/release_031.js', 384],
+      ['test/roundtrip.js', 3116],
       ['test/selfcheck.js', 120],
-      ['test/source.js', 600],
-      ['test/ui_entry.js', 499],
+      ['test/source.js', 605],
+      ['test/ui_entry.js', 497],
       ['test/ui_export.js', 453],
       ['test/ui_inventory.js', 241],
-      ['test/ui_language.js', 274],
+      ['test/ui_language.js', 273],
       ['test/ui_overview.js', 490],
-      ['test/ui_style.js', 566],
-      ['test/ui_system.js', 703],
+      ['test/ui_style.js', 562],
+      ['test/ui_system.js', 692],
       ['test/ui_translator.js', 104],
-      ['counterproof.js', 1457],
+      ['counterproof.js', 1451],
       ['server.js', 1426],
       ['auth.js', 269],
       ['db.js', 272],
@@ -317,10 +317,10 @@ async function run() {
       ['usertool.js', 51],
       ['twofactor.js', 34],
       ['keytool.js', 55],
-      ['public/app.js', 1816],
+      ['public/app.js', 1814],
       ['public/theme.js', 3],
     ];
-    const COMMENT_TOTAL = { comment: 14188, code: 59699 };
+    const COMMENT_TOTAL = { comment: 14151, code: 59734 };
     check('Der Waechter sieht alle vierunddreissig Dateien',
       crAll.each.length === 34 && COMMENT_ROWS.length === 34,
       `${crAll.each.length} gemessen, ${COMMENT_ROWS.length} genannt`);
@@ -375,7 +375,7 @@ async function run() {
   /* ---- DAS WERKZEUG AN EINER GESTELLTEN VORLAGE ---- Ohne diese vier Zeilen
      koennte functionLengths() die leere Liste liefern und alles darunter
      bliebe gruen -- eine Erfolgsmeldung, die ihren eigenen Fund nicht sehen
-     kann, ist schlimmer als keine (Stolperstein 213). */
+     kann, ist schlimmer als keine. */
   const flProbe = [
     'function eins() {',                 // 3 Zeilen
     '  return 1;',
@@ -424,7 +424,7 @@ async function run() {
   console.log('  ──────────────────────────────────────────────────────────');
 
   /* ---- UND DIE BEHAUPTUNG, DIE ROT WERDEN DARF ---- ERST DAS VORHANDENSEIN,
-     DANN DIE EIGENSCHAFT (Stolperstein 81): eine Messung, die gar nichts
+     DANN DIE EIGENSCHAFT: eine Messung, die gar nichts
      gefunden hat, liefert `undefined` -- und jede Aussage darueber waere
      entweder wahr oder unfalsifizierbar. */
   const flLongest = (file) => (flStatus.get(file)?.list || [])[0];
@@ -498,7 +498,7 @@ async function run() {
       for (const [sentence, event] of corrected)
         if (text.includes(sentence)) matched.push(`${file}: ${event} („${sentence}")`);
     }
-    /* ERST DAS VORHANDENSEIN DES GEGENSTANDS (Stolperstein 81): ein Waechter,
+    /* ERST DAS VORHANDENSEIN DES GEGENSTANDS: ein Waechter,
        der auf null Dateien laeuft, ist gruen und belegt nichts. */
     check('Der Waechter sieht alle sechs Dateien an',
       searched.every(d => fs.existsSync(path.join(__dirname, ...d.split('/')))),
@@ -557,7 +557,7 @@ async function run() {
       ignored.includes('docker-compose.yml'), ignored.join(' · '));
     /* DIESELBE ZEILE FUER `.env` STEHT DANEBEN -- ohne sie bliebe die Zusage
        darueber auch dann gruen, wenn jemand das Muster nur zur Haelfte
-       uebernaehme (Stolperstein 81). */
+       uebernaehme. */
     check('Und `.env` steht weiterhin daneben',
       ignored.includes('.env'), ignored.join(' · '));
     /* DER PFLICHTSCHRITT IN DER README, in derselben Form wie bei `.env`:

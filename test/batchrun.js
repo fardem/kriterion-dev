@@ -133,7 +133,7 @@ async function checkBatchRun() {
     JSON.stringify(um.states[0]));
   /* AUCH HIER GEHT JEDER ZUGRIFF DURCH EINE KLAMMER: Rueckbau 491 nimmt der
      Schleife ihre Message, und eine Zeile, die dann auf `m.status.erledigt`
-     greift, riesse den Lauf ab statt rot zu werden (Stolperstein 161). */
+     greift, riesse den Lauf ab statt rot zu werden. */
   const ueDone = um.states.map(m => (m && m.status && m.status.done));
   check('Und der Stand zaehlt hoch, bis alle Zeilen erledigt sind',
     equal(ueDone, [1, 2, 3, 4, 5, 6, 6]), JSON.stringify(ueDone));
@@ -154,8 +154,7 @@ async function checkBatchRun() {
       webp === ROWS && png === 0, `${webp} WebP, ${png} PNG`);
   }
   /* KEINE EINZIGE ABWEISUNG, und die Zahl der Schreibungen steht daneben: ein
-     zweiter Schreiber, der gar nicht erst zum Zuge kam, belegte nichts
-     (Stolperstein 81). */
+     zweiter Schreiber, der gar nicht erst zum Zuge kam, belegte nichts. */
   const nb = alongside.result || {};
   check('Der zweite Schreiber kam waehrenddessen ueberhaupt zum Zuge',
     nb.written > 0, JSON.stringify(nb));

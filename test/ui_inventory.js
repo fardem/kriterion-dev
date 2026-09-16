@@ -145,7 +145,7 @@ async function run() {
   }
 
   /* --- Schreiben: ein WIRKLICH ZUGESTELLTES change-Ereignis ---------------
-     .click() oder ein Aufruf von onchange genuegt nicht (Stolperstein 17):
+     .click() oder ein Aufruf von onchange genuegt nicht:
      ein Fehler in einem Behandler, der nach einem await weiterlaeuft,
      entsteht erst beim echten Ereignis. */
   const gwPuts = () => gwSent.filter(z => z.method === 'PUT' && /^\/api\/criteria\/\d+$/.test(z.url));
@@ -248,7 +248,7 @@ async function run() {
     gwSent.filter(z => z.url === '/api/criteria/order').length === gwVorSort,
     'die Zeile wurde umsortiert');
   /* Die Gegenprobe daneben, sonst belegte die Zeile darueber auch dann etwas,
-     wenn das Ziehen ueberhaupt nicht mehr ginge (Stolperstein 81). */
+     wenn das Ziehen ueberhaupt nicht mehr ginge. */
   gwRows[0].dispatchEvent(gwCursor('pointerdown', 0));
   gwSDoc.dispatchEvent(gwCursor('pointermove', 120));
   gwSDoc.dispatchEvent(gwCursor('pointerup', 120));
@@ -362,7 +362,7 @@ async function run() {
     equal(cmpBest(1), [false, false, false, true]),
     JSON.stringify([cmpBest(0), cmpBest(1)]));
 
-  /* Ein wirklich zugestellter Druck, kein Behandleraufruf (Stolperstein 61). */
+  /* Ein wirklich zugestellter Druck, kein Behandleraufruf. */
   cmpView('meine').dispatchEvent(new wVgl.MouseEvent('click', { bubbles: true }));
   await new Promise(r => setTimeout(r, 40));
   check('Ein Druck schaltet auf „meine" um',
@@ -665,7 +665,7 @@ async function run() {
     equal(trRows().map(z => z.querySelector('.find-source')?.textContent),
            ['Kommentar:', 'Link:']),
     JSON.stringify(trRows().map(z => z.querySelector('.find-source')?.textContent)));
-  /* ERST DAS VORHANDENSEIN, DANN DIE EIGENSCHAFT (Stolperstein 81). */
+  /* ERST DAS VORHANDENSEIN, DANN DIE EIGENSCHAFT. */
   check('Und zeigt den Ausschnitt daneben',
     trRows()[0]?.querySelector('.find-text')?.textContent === '…hat mir der Bosch-Händler empfohlen…',
     JSON.stringify(trRows()[0]?.querySelector('.find-text')?.textContent));
@@ -844,7 +844,7 @@ async function run() {
     `${adIncluding.document.querySelectorAll('#links .lrow .dom mark').length} Marken`);
   /* DER TITEL UND DIE BESCHREIBUNG TRAGEN KEINE MARKE, und das ist kein
      Versehen: beide sind Eingabefelder. */
-  /* ERST DAS VORHANDENSEIN, DANN DIE EIGENSCHAFT (Stolperstein 81 und 138). */
+  /* ERST DAS VORHANDENSEIN, DANN DIE EIGENSCHAFT. */
   /* ---- BEFUND 1 DER RUNDE 0.26.0 -- DAS DATEIFELD BLEIBT IM BAUM --------
      `uploadFiles()` tauschte den Hinweistext ueber `drop.textContent`, und
      das wirft ALLE Kinder des Labels weg -- den Text UND das Dateifeld darin. */
@@ -1065,7 +1065,7 @@ async function run() {
   check('Und sucht damit',
     awDom.sent.some(g => g.url === '/api/items?q=bosch'),
     JSON.stringify(awDom.sent.filter(g => String(g.url).startsWith('/api/items?q=')).map(g => g.url)));
-  /* MITGEZOGEN MIT 0.28.1 (Stolperstein 201): die gespeicherte Ansicht traegt
+  /* MITGEZOGEN MIT 0.28.1: die gespeicherte Ansicht traegt
      weiter `title_asc` -- die Schreibweise hat sich NICHT geaendert --, und
      die Leiste zeigt sie seit jener Runde an zwei Stellen. */
   check('Und die Sortierung steht auf der gespeicherten',

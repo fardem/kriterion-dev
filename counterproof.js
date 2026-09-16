@@ -233,7 +233,7 @@ const REGRESSIONS = [
     expected: 'Die eigene Adresse in der Karte „Zugang“'
   },
   {
-    /* MITGEGANGEN MIT 0.25.4 (Stolperstein 201): der Zaehlwert heisst jetzt
+    /* MITGEGANGEN MIT 0.25.4: der Zaehlwert heisst jetzt
        `n` und nicht mehr `minutes` -- nur ueber `n` waehlt `PLURAL.select()`
        die Form, und ohne ihn stand dort immer die Mehrzahl („noch 1
        Minuten"). */
@@ -1096,7 +1096,7 @@ const REGRESSIONS = [
   },
   /* ---- testDays und die Zeitleiste ---- */
   {
-    /* MITGEGANGEN MIT 0.19.3 (Stolperstein 201): die Zeile holt seit dieser
+    /* MITGEGANGEN MIT 0.19.3: die Zeile holt seit dieser
        Runde die schmale Fassung aus einer Karte statt je Eintrag zu fragen. */
     nr: '136', name: 'testDays kommt wieder immer mit',
     file: 'server.js',
@@ -1150,9 +1150,8 @@ const REGRESSIONS = [
   },
   /* ---- Die gespeicherten Ansichten ---- */
   {
-    /* GEAENDERT MIT 0.17.0 (Stolperstein 201): `zuletztGesehen` ist aus der
-       Liste gefallen, und der Suchtext griff damit ins Leere (Stolperstein
-       192). */
+    /* GEAENDERT MIT 0.17.0: `zuletztGesehen` ist aus der
+       Liste gefallen, und der Suchtext griff damit ins Leere. */
     nr: '143', name: 'Die Ansichten sind kein persoenlicher Schluessel mehr',
     file: 'server.js',
     search: "                                'bellSeen', 'views', 'strip', 'theme', 'language'];",
@@ -1300,7 +1299,7 @@ const REGRESSIONS = [
     expected: 'Handy und Tablett: die Staffel der Umbruchpunkte'
   },
   /* DER ERSTE ANLAUF DIESES RUECKBAUS HAT DEN LAUF ABGERISSEN, und das belegt
-     nichts (Stolpersteine 138, 161 und 170). */
+     nichts. */
   {
     nr: '163', name: 'Der Name des Angemeldeten rutscht hinter das Abmelden',
     file: 'public/app.js',
@@ -1680,7 +1679,7 @@ const REGRESSIONS = [
     expected: 'Die Filterleiste wird kuerzer — 0.13.0'
   },
   {
-    /* MITGENOMMEN MIT 0.17.0 (Stolperstein 201): der Rueckbau zeigte auf die
+    /* MITGENOMMEN MIT 0.17.0: der Rueckbau zeigte auf die
        Pille „Neu seit ...", und die ist gestrichen. */
     nr: '208', name: 'Eine Pille mit null Treffern wird nicht mehr gedaempft',
     file: 'public/app.js',
@@ -1859,7 +1858,7 @@ const REGRESSIONS = [
   /* ---- 0.14.0: das Austauschformat ---- */
   {
     /* MIT 0.19.0 STEHT DIE NUMMER AUF 12 -- der Ausschnitt geht in die Datei. */
-    /* MITGEGANGEN MIT 0.21.0, nicht geloescht (Stolperstein 201): die
+    /* MITGEGANGEN MIT 0.21.0, nicht geloescht: die
        Formatnummer steht auf 13, der Rueckbau nimmt sie wie immer um eins
        zurueck. */
     nr: '233', name: 'Die Formatnummer bleibt auf 15',
@@ -1898,7 +1897,7 @@ const REGRESSIONS = [
        Reinform: bei 80 Prozent stimmt es zufaellig, bei 120 klaffen 26 px. */
     nr: '237', name: 'Die Zahlenspalte bekommt ihre feste Mindestbreite zurueck',
     file: 'public/style.css',
-    /* MITGEGANGEN MIT 0.21.0 (Stolperstein 201): die Regel hat seit dieser
+    /* MITGEGANGEN MIT 0.21.0: die Regel hat seit dieser
        Runde eine Zeile mehr -- die GEMESSENE Mindestbreite. */
     search: "  white-space: nowrap; padding-left: 9px;\n  min-width: calc(4.34rem + 9px);\n  display: flex; align-items: center; justify-content: flex-end;",
     replacement: "  white-space: nowrap; padding-left: 9px;\n  min-width: 52px; text-align: right;",
@@ -1906,7 +1905,7 @@ const REGRESSIONS = [
   },
   {
     /* Das Raster faellt weg, die Zeile wird wieder ein Flex-Kasten. */
-    /* GEAENDERT MIT 0.17.0, und der Grund gehoert daneben (Stolperstein 201):
+    /* GEAENDERT MIT 0.17.0, und der Grund gehoert daneben:
        zwischen den beiden Zeilen steht seit dieser Runde die Regel fuer den
        einen Zugang. */
     nr: '238', name: 'Aus dem Raster wird wieder ein gewoehnlicher Kasten',
@@ -1917,7 +1916,7 @@ const REGRESSIONS = [
   },
   {
     /* Der Kasten bekommt die Rasterklasse nicht mehr. */
-    /* GEAENDERT MIT 0.17.0 (Stolperstein 201): die Zeile setzt seither auch
+    /* GEAENDERT MIT 0.17.0: die Zeile setzt seither auch
        die Klasse fuer den einen Zugang. */
     nr: '239', name: 'Die Kriterienliste bekommt ihre Rasterklasse nicht',
     file: 'public/app.js',
@@ -1927,7 +1926,7 @@ const REGRESSIONS = [
   },
   {
     /* Die Zahl wandert zurueck in die Sterne. */
-    /* MITGEGANGEN MIT 0.21.0 (Stolperstein 201): der Anker hat sich
+    /* MITGEGANGEN MIT 0.21.0: der Anker hat sich
        verschoben, weil die leere Zelle seit dieser Runde einen Strich traegt
        statt gar nichts. */
     nr: '240', name: 'Die Zahl steckt wieder in den Sternen statt im Raster',
@@ -2017,7 +2016,7 @@ const REGRESSIONS = [
   },
   {
     /* Der Schluessel steht nicht mehr in der Vorgabe. */
-    /* GEAENDERT MIT 0.17.0 (Stolperstein 201): `neu` steht nicht mehr in der
+    /* GEAENDERT MIT 0.17.0: `neu` steht nicht mehr in der
        Vorgabe -- die Pille ist gestrichen. */
     nr: '252', name: 'Der neue Filter fehlt in der Vorgabe',
     file: 'public/app.js',
@@ -2245,7 +2244,7 @@ const REGRESSIONS = [
     expected: 'Export und Import stehen in einer Karte'
   },
   {
-    /* MITGEGANGEN MIT 0.21.0 (Stolperstein 201): der Erklaerknopf bekommt
+    /* MITGEGANGEN MIT 0.21.0: der Erklaerknopf bekommt
        seit dieser Runde den Kasten mit, zu dem er gehoert -- es gibt ihn
        zweimal. */
     nr: '279', name: 'Die Kopfzahl ist wieder blosser Text',
@@ -2270,7 +2269,7 @@ const REGRESSIONS = [
     expected: 'Der Rechenweg reist mit'
   },
   {
-    /* GEAENDERT MIT 0.17.0 (Stolperstein 201): der Rechenweg traegt seither
+    /* GEAENDERT MIT 0.17.0: der Rechenweg traegt seither
        auch die Vergleichszahl ohne Gewichte, und der Aufruf ist damit vier
        Zeilen lang. */
     nr: '282', name: 'Der Rechenweg wird auf zwei Stellen gerundet ausgeliefert',
@@ -2280,7 +2279,7 @@ const REGRESSIONS = [
     expected: 'Der Rechenweg reist mit'
   },
   {
-    /* GEAENDERT MIT 0.17.0 (Stolperstein 201), derselbe Grund wie bei 143.
+    /* GEAENDERT MIT 0.17.0, derselbe Grund wie bei 143.
        Der Rueckbau nimmt weiterhin genau den Bezugspunkt der Glocke heraus. */
     nr: '283', name: 'Der Bezugspunkt der Glocke ist kein persoenlicher Schluessel mehr',
     file: 'server.js',
@@ -2289,7 +2288,7 @@ const REGRESSIONS = [
     expected: 'Persoenliche Einstellungen'
   },
   {
-    /* GEAENDERT MIT 0.17.0 (Stolperstein 201): der Knopf heisst nicht mehr
+    /* GEAENDERT MIT 0.17.0: der Knopf heisst nicht mehr
        „Neu von anderen" -- die Glocke meldet seither von allen. */
     nr: '284', name: 'Die Glocke steht auch ohne gespeicherten Bezugspunkt',
     file: 'public/app.js',
@@ -2298,8 +2297,8 @@ const REGRESSIONS = [
     expected: 'Die Glocke in der Kopfzeile'
   },
   {
-    /* GEAENDERT MIT 0.17.0 (Stolperstein 201): aus `freshForeign` sind drei
-       Angaben geworden, und der Suchtext griff ins Leere (Stolperstein 192). */
+    /* GEAENDERT MIT 0.17.0: aus `freshForeign` sind drei
+       Angaben geworden, und der Suchtext griff ins Leere. */
     nr: '285', name: 'Die Zahl der Kommentare steht auch ohne Bezugspunkt da',
     file: 'server.js',
     search: "    if (reference) it.newComments = newCommentsPer.get(it.id) || 0;",
@@ -2315,8 +2314,8 @@ const REGRESSIONS = [
     expected: 'Die Glocke: was mit der Liste mitreist'
   },
   {
-    /* MITGENOMMEN MIT 0.17.0 UND UMGEDREHT (Stolperstein 201). */
-    /* UMGEDREHT MIT 0.17.2, ZUM ZWEITEN MAL (Stolperstein 201). */
+    /* MITGENOMMEN MIT 0.17.0 UND UMGEDREHT. */
+    /* UMGEDREHT MIT 0.17.2, ZUM ZWEITEN MAL. */
     nr: '286', name: 'Die Glocke zaehlt die eigenen Kommentare wieder mit',
     file: 'server.js',
     search: "    WHERE c.created_at > ? AND c.user_id IS NOT ?\n    GROUP BY c.item_id, c.user_id`);",
@@ -2353,7 +2352,7 @@ const REGRESSIONS = [
     expected: 'Die Glocke in der Kopfzeile'
   },
   {
-    /* GEAENDERT MIT 0.17.0 (Stolperstein 201): dieselbe Zeile steht seither
+    /* GEAENDERT MIT 0.17.0: dieselbe Zeile steht seither
        auch in merkeGesehen() -- dort setzt sie den Bezugspunkt beim ERSTEN
        Verlassen der Uebersicht, hier beim Oeffnen der Tafel. */
     nr: '291', name: 'Das Oeffnen der Tafel zieht den Bezugspunkt nicht nach',
@@ -2416,7 +2415,7 @@ const REGRESSIONS = [
   },
   {
     /* EIN WERKZEUG, DAS SEINEN EIGENEN FUND NICHT SEHEN KANN, IST SCHLIMMER
-       ALS KEINES (Stolperstein 213). */
+       ALS KEINES. */
     nr: '299', name: 'Die Groessenmessung findet gar nichts mehr',
     file: 'test/selfcheck.js',
     search: "    return found.sort((a, b) => b.rows - a.rows || a.name.localeCompare(b.name));",
@@ -2548,7 +2547,7 @@ const REGRESSIONS = [
   },
   {
     /* DER KASTEN RECHNET SIE SELBST NACH statt sie zu lesen -- eine zweite
-       Rechenstelle im Browser (Stolperstein 217). */
+       Rechenstelle im Browser. */
     nr: '313', name: 'Der Kasten rechnet die Vergleichszahl selbst nach',
     file: 'public/app.js',
     search: "          <span id=\"calc-same\">⌀ ${esc(weightNumber(removed.equalResult))}</span></div>` : ''}",
@@ -2791,7 +2790,7 @@ const REGRESSIONS = [
     expected: 'So hoch wie der Inhalt — 0.17.5'
   },
   {
-    /* MITGEGANGEN IN 0.19.1 (Stolperstein 201): der Abschnitt heisst jetzt
+    /* MITGEGANGEN IN 0.19.1: der Abschnitt heisst jetzt
        „Installation", der Rueckbau setzt weiter den aeltesten Namen. */
     nr: '347', name: 'Der fuenfte Abschnitt heisst wieder „Anlage"',
     file: 'public/app.js',
@@ -3546,7 +3545,7 @@ const REGRESSIONS = [
     /* DER ZOOM GEHT NICHT MEHR AN DIE KACHEL. */
     nr: '449', name: 'Der Zoom kommt nicht in den Zuschnitt (bis 0.19.4: nicht an die Kachel)',
     file: 'batchrun.js',
-    /* MITGEGANGEN MIT 0.19.5, NICHT GELOESCHT (Stolperstein 201). */
+    /* MITGEGANGEN MIT 0.19.5, NICHT GELOESCHT. */
     search: "                               zoom: Number(z.zoom) });",
     replacement: "                               zoom: 100 });",
     expected: 'Der Ausschnitt steckt in der Kachel — 0.19.5'
@@ -3578,7 +3577,7 @@ const REGRESSIONS = [
     /* DAS STILBLATT RECHNET DEN ZOOM NICHT MEHR EIN. */
     nr: '453', name: 'Die Ueberfahrregel haengt wieder am Ausschnitt',
     file: 'public/style.css',
-    /* MITGEGANGEN MIT 0.19.5 (Stolperstein 201). */
+    /* MITGEGANGEN MIT 0.19.5. */
     search: ".card:hover .card-img img { transform: scale(1.02); }",
     replacement: ".card:hover .card-img img { transform: scale(calc(var(--zoom, 1) * 1.02)); }",
     expected: 'Der Ausschnitt steckt in der Kachel — 0.19.5'
@@ -3619,7 +3618,7 @@ const REGRESSIONS = [
   /* ---- 0.19.1: was 0.19.0 falsch gemacht hat ---- ZEHN PUNKTE, ZEHN
      RUECKBAUTEN UND MEHR. */
   {
-    /* MITGEGANGEN IN 0.19.2 (Stolperstein 201): die Formatabfrage traegt
+    /* MITGEGANGEN IN 0.19.2: die Formatabfrage traegt
        jetzt `WHERE kind IS ?` statt `art != 'video'`. */
     nr: '460', name: 'Die Aufteilung nach Format liest wieder den Inhalt',
     file: 'server.js',
@@ -3635,7 +3634,7 @@ const REGRESSIONS = [
     expected: 'Die Bildablage: PNG kommt herein, WebP geht in die Tabelle'
   },
   {
-    /* MITGEGANGEN IN 0.19.2 (Stolperstein 201): die art-Aufteilung ist keine
+    /* MITGEGANGEN IN 0.19.2: die art-Aufteilung ist keine
        materialisierte Zwischenabfrage mehr, sondern eine Schleife ueber die
        Arten -- weil `MATERIALIZED` die zweite Ursache gar nicht traf. */
     nr: '461', name: 'Die Arten kommen wieder aus dem Satz statt aus dem Index',
@@ -3664,7 +3663,7 @@ const REGRESSIONS = [
     /* DER VERGROESSERUNGSPUNKT FAELLT WEG. */
     nr: '464', name: 'Der Zuschnitt verliert eine seiner beiden Achsen (bis 0.19.4: transform-origin)',
     file: 'images.js',
-    /* MITGEGANGEN MIT 0.19.5 (Stolperstein 201). */
+    /* MITGEGANGEN MIT 0.19.5. */
     search: "  return { links: fx / 100 * (width - tight), top: fy / 100 * (height - tight), edge: tight };",
     replacement: "  return { links: fx / 100 * (breite - eng), top: 0, kante: eng };",
     expected: 'Der Ausschnitt steckt in der Kachel — 0.19.5'
@@ -3673,7 +3672,7 @@ const REGRESSIONS = [
     /* ER STEHT DA, ABER AUF DER MITTE. */
     nr: '465', name: 'Der Zuschnitt sitzt in der Mitte statt auf dem Fokuspunkt',
     file: 'images.js',
-    /* MITGEGANGEN MIT 0.19.5 (Stolperstein 201): dieselbe Zusage an der
+    /* MITGEGANGEN MIT 0.19.5: dieselbe Zusage an der
        Stelle, an der der Ausschnitt jetzt entsteht. */
     search: "  const k = cropSpecBox(width, height, cropSpec.fx, cropSpec.fy, cropSpec.zoom);",
     replacement: "  const k = cropSpecBox(breite, hoehe, 50, 50, zuschnitt.zoom);",
@@ -3910,8 +3909,7 @@ const REGRESSIONS = [
     file: 'batchrun.js',
     /* DIE ZEILE DANACH GEHOERT SEIT 0.19.4 ZUM SUCHTEXT: dieselben zwei
        Zeilen stehen jetzt auch in der dritten Schleife, und ein Suchtext, der
-       zweimal passt, bricht den Rueckbau ab (Stolperstein 201 -- mitziehen,
-       nicht loeschen). */
+       zweimal passt, bricht den Rueckbau ab. */
     search: "    status.done++;\n    report(status);\n    await new Promise(r => setTimeout(r, 30));",
     replacement: "    stand.done++;\n    await new Promise(r => setTimeout(r, 30));",
     expected: 'Der Bestandslauf faehrt in einem eigenen Thread — 0.19.3'
@@ -4088,7 +4086,7 @@ const REGRESSIONS = [
     /* DIE ALTE GEOMETRIE WIRD AN DER KURZEN KANTE ERKANNT. */
     nr: '511', name: 'Die Faelligkeit wird wieder an der Zielkante erkannt',
     file: 'images.js',
-    /* MITGEGANGEN MIT 0.19.5 (Stolperstein 201). */
+    /* MITGEGANGEN MIT 0.19.5. */
     search: "  return size.width !== size.height;",
     replacement: "  return masse.width !== masse.height || masse.width !== VARIANTS.thumb.kurz;",
     expected: 'Der Ausschnitt steckt in der Kachel — 0.19.5'
@@ -4430,7 +4428,7 @@ const REGRESSIONS = [
   },
   {
     /* DAS AUFRAEUMEN REISST DIE GELUNGENE SICHERUNG MIT -- genau der Fehler
-       aus 0.19.6 (Stolperstein 298): aus einem geglueckten Vorgang wird eine
+       aus 0.19.6: aus einem geglueckten Vorgang wird eine
        rote Message. */
     nr: '552', name: 'Das Aufraeumen reisst die gelungene Sicherung mit',
     file: 'server.js',
@@ -4462,7 +4460,7 @@ const REGRESSIONS = [
   },
   {
     /* DIE VORSCHAU RECHNET MIT ANDEREN WERTEN ALS DAS LOESCHEN -- zwei
-       Wahrheiten darueber, was gleich passiert (Stolperstein 47). */
+       Wahrheiten darueber, was gleich passiert. */
     nr: '555', name: 'Die Vorschau rechnet mit einem anderen Boden als das Loeschen',
     file: 'server.js',
     search: "  const matched = ruleHit(files, keep, days, now, mark ? mark.ms : null);",
@@ -4473,8 +4471,7 @@ const REGRESSIONS = [
   {
     /* DIE LOESCHROUTE NIMMT EINEN DATEINAMEN ENTGEGEN -- die gefaehrlichste
        Route der Anwendung, und sie waere es auch mit Pruefung: die Pruefung
-       stuende einen Handgriff davon entfernt, vergessen zu werden
-       (Stolperstein 300). */
+       stuende einen Handgriff davon entfernt, vergessen zu werden. */
     nr: '556', name: 'Die Loeschroute nimmt einen Dateinamen aus dem Rumpf',
     file: 'server.js',
     search: "  const kind = String(req.body?.kind || '');",
@@ -4559,7 +4556,7 @@ const REGRESSIONS = [
     /* DER KNOPF IST AUCH DANN BEDIENBAR, WENN DIE REGEL NICHTS TRIFFT. */
     nr: '565', name: 'Der Knopf ist auch ohne Treffer bedienbar',
     file: 'public/app.js',
-    // MITGEGANGEN mit 0.20.1 (Stolperstein 201): der Knopf heisst jetzt
+    // MITGEGANGEN mit 0.20.1: der Knopf heisst jetzt
     // „Jetzt loeschen" statt „Regel jetzt anwenden".
     search: "id=\"cleanup-run\"${matched.length ? '' : ' disabled'}>${tH('card.deleteNow')}",
     replacement: "id=\"cleanup-run\">${tH('card.deleteNow')}",
@@ -4569,7 +4566,7 @@ const REGRESSIONS = [
     /* DIE LISTE VERLIERT DEN GEMEINSAMEN DECKEL. */
     nr: '566', name: 'Die Sicherungsliste bekommt keinen Deckel',
     file: 'public/style.css',
-    /* MITGEGANGEN mit 0.20.1 (Stolperstein 201) -- UND IN EINE ANDERE DATEI
+    /* MITGEGANGEN mit 0.20.1 -- UND IN EINE ANDERE DATEI
        GEWANDERT. */
     search: '#cleanup-list { flex: none; max-height: 13.98rem; }',
     replacement: '#cleanup-list { flex: none; }',
@@ -4909,7 +4906,7 @@ const REGRESSIONS = [
   {
     /* DIE ABLEITUNG SCHREIBT SICH IN state.filters -- der Rueckbau, den der
        Auftrag ausdruecklich verlangt. */
-    /* MITGEZOGEN MIT 0.28.1 (Stolperstein 201): seit der Richtungstrennung
+    /* MITGEZOGEN MIT 0.28.1: seit der Richtungstrennung
        setzt der Behandler nicht mehr `sel.value` unmittelbar, sondern legt
        die Lage in `applySort()` zusammen. */
     nr: '613', name: 'Die Ableitung wird mitgespeichert',
@@ -4922,7 +4919,7 @@ const REGRESSIONS = [
   {
     /* DIE LEISTE WIRD BEIM WECHSEL DER SORTIERUNG NICHT MEHR MITGEZEICHNET --
        der Stand vor 0.21.1, als eine Sortierung nur ordnete. */
-    /* MITGEZOGEN MIT 0.28.1 (Stolperstein 201) -- dieselbe Zeile wie 613. */
+    /* MITGEZOGEN MIT 0.28.1 -- dieselbe Zeile wie 613. */
     nr: '614', name: 'Der Wechsel der Sortierung zeichnet nur noch die Liste',
     file: 'public/app.js',
     search: "  const applySort = () => { f.sort = picked.base.key + (picked.asc ? '_asc' : '_desc'); redraw(); };",
@@ -4988,8 +4985,7 @@ const REGRESSIONS = [
   },
   {
     /* DER SERVER-BEFEHL STEHT WIEDER IM FLIESSTEXT -- vor den Augen jedes
-       Benutzers, wie bis 0.21.1 an den Wiederherstellungscodes (Stolperstein
-       315). */
+       Benutzers, wie bis 0.21.1 an den Wiederherstellungscodes. */
     nr: '628', name: 'Ein Server-Befehl steht wieder im Fliesstext der Karte Mein Konto',
     file: 'public/languages/de.json',
     search: "\"card.forgotPasswordHint\": \"Ein vergessenes Passwort setzt du auf dem Server zurück:\",",
@@ -5056,7 +5052,7 @@ const REGRESSIONS = [
   {
     /* EIN FILTER, DER GREIFT UND UNSICHTBAR IST, IST EIN FEHLER: die Tagzeile
        bliebe beim Aufbau zu, obwohl ein Tag die Liste kuerzt. */
-    /* NACHGEZOGEN MIT 0.30.0 (Stolperstein 201): der Merker ist mit dem
+    /* NACHGEZOGEN MIT 0.30.0: der Merker ist mit dem
        Umschalter gefallen, die REGEL dahinter ist dieselbe geblieben -- ein
        Filter, der greift und unsichtbar ist, ist ein Fehler. */
     nr: '636', name: 'Die Tagzeile bleibt bei greifendem Tagfilter zugeklappt',
@@ -5164,9 +5160,8 @@ const REGRESSIONS = [
     expected: 'Die Serverseite spricht aus der Datei — 0.24.0'
   },
   {
-    /* DIE VORGABE DES VOKABULARS KOMMT WIEDER AUS DEM QUELLTEXT --
-       Stolperstein 47 in seiner urspruenglichen Form: doppelt gehaltene
-       Vorgaben pruefen sich nur halb. */
+    /* DIE VORGABE DES VOKABULARS KOMMT WIEDER AUS DEM QUELLTEXT: doppelt
+       gehaltene Vorgaben pruefen sich nur halb. */
     nr: '682', name: 'Die Vokabelvorgaben stehen wieder im Quelltext',
     file: 'server.js',
     search: "const vocabularyDefault = (locale) => Object.fromEntries(\n  Object.entries(textsOf(locale || languageDefault()))",
@@ -5208,8 +5203,8 @@ const REGRESSIONS = [
     expected: 'Der Sprachhelfer und die Ladung — 0.24.0'
   },
   {
-    /* tH() MASKIERT NICHT MEHR -- Stolperstein 18 waere damit wieder offen:
-       ein Vokabelwort des Admins liefe roh in innerHTML. */
+    /* tH() MASKIERT NICHT MEHR: ein Vokabelwort des Admins liefe roh in
+       innerHTML. */
     nr: '667', name: 'tH() maskiert die eingesetzten Werte nicht mehr',
     file: 'public/app.js',
     search: "    return mask ? esc(String(value)) : String(value);",
@@ -5334,7 +5329,7 @@ const REGRESSIONS = [
     expected: 'Die Rollenweichen — 0.22.0'
   },
   {
-    /* „ABBRECHEN" BRICHT NICHT AB (Stolperstein 316): der Nein-Knopf des
+    /* „ABBRECHEN" BRICHT NICHT AB: der Nein-Knopf des
        Loeschfensters liefert die Stellung der Haekchen wie der Ja-Knopf. */
     nr: '641', name: 'Abbrechen im Loeschfenster fuer einen Benutzer bricht nicht ab',
     file: 'public/app.js',
@@ -5428,7 +5423,7 @@ const REGRESSIONS = [
   },
   {
     /* DIE KURZFASSUNG KOMMT ZURUECK: die Zahl steht wieder zweimal im selben
-       Kopf, einmal in Klammern und einmal mit „gewichtet" (Stolperstein 318). */
+       Kopf, einmal in Klammern und einmal mit „gewichtet". */
     nr: '651', name: 'Die Kopfzahl steht wieder zweimal da',
     file: 'public/app.js',
     search: "    case 'potenzial': return item.potentialRating ? '' : t('list.notEstimatedYet');",
@@ -5713,7 +5708,7 @@ const REGRESSIONS = [
     expected: 'Der Rueckfall der Namen — 0.24.3'
   },
   {
-    /* MITGEGANGEN MIT 0.25.0 (Stolperstein 201). */
+    /* MITGEGANGEN MIT 0.25.0. */
     nr: '717', name: 'Die Grundzeile haengt wieder an der Vorgabesprache',
     file: 'server.js',
     search: "  if (language === rowLanguage) return true;",
@@ -5863,7 +5858,7 @@ const REGRESSIONS = [
      der Kartenhinweis (E1) und das Nachziehen der Tafeln (E3). */
   {
     /* DER DRITTE SCHRITT DER KETTE -- die Antwort des Betreibers auf F2. */
-    /* MITGEGANGEN MIT 0.25.0 (Stolperstein 201): die Kette steht seit dieser
+    /* MITGEGANGEN MIT 0.25.0: die Kette steht seit dieser
        Runde AM SERVER und nicht mehr in der Karte -- dieselbe Zusage, ein
        anderer Ort, und sie gilt jetzt fuer JEDEN Leser. */
     nr: '749', name: 'Die Kette bricht nach der Vorgabesprache ab',
@@ -5904,7 +5899,7 @@ const REGRESSIONS = [
   /* RUECKBAU 753 IST MIT 0.25.0 WEGGEFALLEN und nicht mitgegangen -- „Die
      Kette nimmt auch Sprachen ausserhalb des Vorrats". */
   {
-    /* MITGEGANGEN MIT 0.25.0 (Stolperstein 201). */
+    /* MITGEGANGEN MIT 0.25.0. */
     nr: '754', name: 'Der rote Rahmen an der Kachel faellt weg',
     file: 'public/app.js',
     search: "  if (card) card.classList.toggle('gaps', namesMissing(key, shownCode, only) > 0);",
@@ -6359,7 +6354,7 @@ const REGRESSIONS = [
        Zahl, die nirgends zu sehen ist. */
     nr: '806', name: 'Die Sortiergruppe des Potenzials steht wieder immer da',
     file: 'public/app.js',
-    /* MITGEZOGEN MIT 0.28.1 (Stolperstein 201): die Gruppe wird seit der
+    /* MITGEZOGEN MIT 0.28.1: die Gruppe wird seit der
        Richtungstrennung nicht mehr im Aufbau verzweigt, sondern ueber `only`
        aus der Liste der Grundlagen gefiltert. */
     /* UND MITGEZOGEN MIT 0.29.0: die Grundlage traegt seit dieser Runde auch
@@ -6493,8 +6488,7 @@ const REGRESSIONS = [
     /* DER UMBAU GING UEBER VIER AUFBAUTEN, und genau das ist die Gefahr: eine
        Zusage, die nur an renderDetail() haengt, bliebe gruen, wenn
        renderCompare() seine alte Zeile behaelt. */
-    /* DER ERSTE ANLAUF HAT DEN LAUF ABGERISSEN, und das belegt nichts
-       (Stolpersteine 138, 161 und 170). */
+    /* DER ERSTE ANLAUF HAT DEN LAUF ABGERISSEN, und das belegt nichts. */
     nr: '825', name: 'Der Vergleich behaelt seine alte Rueckzeile',
     file: 'public/app.js',
     /* NACHGEZOGEN IN 0.31.0: der Abstand unter dem Hinweis kommt seit dieser
@@ -6566,7 +6560,7 @@ const REGRESSIONS = [
   {
     /* SIE VERSCHWINDEN LASSEN statt sie zu daempfen -- Gegenprobe zu Zusage
        5. */
-    /* MITGEZOGEN MIT 0.28.1 (Stolperstein 201): die Pfeile stehen seit dieser
+    /* MITGEZOGEN MIT 0.28.1: die Pfeile stehen seit dieser
        Runde am FUSS des Eintrags. */
     nr: '833', name: 'Der gedaempfte Blaetterknopf verschwindet statt dazubleiben',
     file: 'public/style.css',
@@ -6586,7 +6580,7 @@ const REGRESSIONS = [
     /* EINE TASTE MITNEHMEN -- Gegenprobe zu Zusage 7. */
     nr: '835', name: 'Bild auf und Bild ab blaettern doch den Eintrag',
     file: 'public/app.js',
-    /* MITGEZOGEN MIT 0.28.1 (Stolperstein 201): die Knoepfe stehen am Fuss
+    /* MITGEZOGEN MIT 0.28.1: die Knoepfe stehen am Fuss
        des Eintrags. */
     search: "  document.querySelectorAll('.entry-nav .step').forEach(b => {",
     replacement: "  document.addEventListener('keydown', e => { if (e.key === 'PageDown' || e.key === 'PageUp') e.preventDefault(); });\n  document.querySelectorAll('.entry-nav .step').forEach(b => {",
@@ -6808,7 +6802,7 @@ const REGRESSIONS = [
        erfundene Lage, sondern der Fehler, den diese Zusage beim ersten Lauf
        GEFUNDEN hat: `title_desc` gibt es in der Sortierung nicht, und die
        Liste ordnete still nach dem Aenderungsdatum weiter. */
-    /* MITGEZOGEN MIT 0.29.0 (Stolperstein 201), und diesmal hat der
+    /* MITGEZOGEN MIT 0.29.0, und diesmal hat der
        Gegenstand gewechselt: `dirOf()` ist mit Befund 8 gefallen -- seit
        „Titel" beide Richtungen kennt, ist keine Grundlage mehr einspurig, und
        eine Weiche ohne Fall bleibt nicht stehen. */
@@ -7236,7 +7230,7 @@ const REGRESSIONS = [
     expected: "Kein deutscher Bildschirmsatz sitzt fest — die neue Wache — 0.30.0"
   },
   {
-    /* ZWEI EINTEILUNGEN AN ZWEI ORTEN LAUFEN AUSEINANDER -- Stolperstein 47.
+    /* ZWEI EINTEILUNGEN AN ZWEI ORTEN LAUFEN AUSEINANDER.
        Genau dafuer ist `dueOf` in dieser Runde nach oben gewandert. */
     nr: '908', name: "Eine zweite Einteilung steht neben der ersten",
     file: "public/app.js",
@@ -7580,7 +7574,7 @@ const REGRESSIONS = [
     expected: "Die zugeklappte Tagzeile fuellt ihre Hoehe \u2014 0.30.3"
   },
   {
-    /* ZWEI LESER, EINE MESSUNG (Stolperstein 47). */
+    /* ZWEI LESER, EINE MESSUNG. */
     nr: "948", name: "Der Reihenzaehler misst wieder selbst",
     file: "public/app.js",
     search: "function cloudRows(box) {\n  const height = cloudLine(box);",
@@ -7800,7 +7794,7 @@ const REGRESSIONS = [
   {
     /* ZUSAGE 7: eine Zahl steht wieder zweimal -- einmal als `value` am
        Auswahlfeld und einmal als Satz in drei Sprachdateien, obwohl „50 MB"
-       in allen dreien gleich lautet (Stolperstein 47). */
+       in allen dreien gleich lautet. */
     nr: '973', name: 'Eine Exportgroesse steht wieder in der Sprachdatei',
     file: 'public/languages/de.json',
     search: "  \"card.mergeExplainHint\":",

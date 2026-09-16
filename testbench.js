@@ -146,7 +146,7 @@ if (process.env.TESTBENCH_PROBE) {
     : base === LANGUAGE_BASE ? LANGUAGE_WIDTH : PORT_WIDTH;
   const pbBases = [...new Set([...pbCases.map(l => l.base),
                                ...pbSmtp.map(l => l.base)])].sort((a, b) => a - b);
-  /* ERST DER GEGENSTAND (Stolperstein 81): ein Waechter ueber null Basen ist
+  /* ERST DER GEGENSTAND: ein Waechter ueber null Basen ist
      gruen und belegt nichts. */
   /* EINUNDSECHZIG SEIT 0.21.0: die Gruppe „Zwei Kaesten, zwei Durchschnitte"
      bringt drei eigene Instanzen mit (die Runde selbst, eine fuer die Datei
@@ -159,8 +159,7 @@ if (process.env.TESTBENCH_PROBE) {
     pbBases.length === 63 && pbCases.length >= 60,
     `${pbBases.length} Basen aus ${pbCases.length} Prueflagen: ${pbBases.join(' ')}`);
   // Und der Empfaenger selbst ist wirklich gelaufen: eine Liste ohne
-  // Eintraege machte die Rechnung darueber wahr, ohne etwas zu belegen
-  // (Stolperstein 81).
+  // Eintraege machte die Rechnung darueber wahr, ohne etwas zu belegen.
   check('Der SMTP-Empfaenger hat seine Nummern vermerkt',
     pbSmtp.length >= 6 && pbSmtp.every(l => l.base === SMTP_BASE),
     `${pbSmtp.length} Empfaenger, Nummern ${pbSmtp.map(l => l.port).join(' ')}`);
@@ -216,7 +215,7 @@ if (process.env.TESTBENCH_PROBE) {
   check(`Alle ${OFFSET_TRACES} Nebenspuren bleiben von der Sperrliste frei`,
     pbTraceHit.length === 0, pbTraceHit.join(' · '));
   // Und die Gegenlage: der Waechter faengt ueberhaupt etwas. Ohne sie bliebe
-// er gruen, wenn pbLocked() nie etwas faende (Stolperstein 81).
+// er gruen, wenn pbLocked() nie etwas faende.
   check('Und der Waechter faengt eine gesperrte Nummer, wenn eine dasteht',
     pbLocked(5990, PORT_WIDTH).join() === '6000' &&
     pbLocked(4000, PORT_WIDTH).join() === '4045',
