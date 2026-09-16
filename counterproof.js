@@ -2918,7 +2918,7 @@ const REGRESSIONS = [
     /* SEIT 0.34.2 IM HANDBUCH: der Satz ist mit der Bedienung dorthin
        gezogen, die Nummernpruefung liest beide Dateien. */
     nr: '368', name: 'Die Anleitung erzaehlt wieder, seit wann etwas gilt',
-    file: 'HANDBUCH.md',
+    file: 'manual-de.md',
     search: "**Über der Liste steht eine Reihe von Ansichten**",
     replacement: "**Seit 0.13.0 steht über der Liste eine Reihe von Ansichten**",
     expected: 'Der Sprachwaechter'

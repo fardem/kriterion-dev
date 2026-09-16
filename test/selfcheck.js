@@ -587,7 +587,7 @@ async function run() {
   {
     const guideRead = n => fs.readFileSync(path.join(__dirname, n), 'utf8');
     const readme = guideRead('README.md');
-    const handbook = guideRead('HANDBUCH.md');
+    const handbook = guideRead('manual-de.md');
     /* ERST DAS VORHANDENSEIN: ueber zwei leeren Dateien waere jede Verneinung
        darunter wahr. */
     check('Beide Dateien tragen wirklich etwas',
@@ -608,7 +608,7 @@ async function run() {
 
     /* JEDE ZEIGT AUF DIE ANDERE, und zwar mit dem Dateinamen. */
     check('Die README nennt das Handbuch beim Namen',
-      /HANDBUCH\.md/.test(readme), 'der Verweis auf HANDBUCH.md fehlt');
+      /manual-de\.md/.test(readme), 'der Verweis auf manual-de.md fehlt');
     check('Und das Handbuch die README',
       /README\.md/.test(handbook), 'der Verweis auf README.md fehlt');
 

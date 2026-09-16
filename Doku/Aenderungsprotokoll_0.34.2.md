@@ -7,7 +7,7 @@ Die Runde ändert am Programm nichts. Sie teilt die README in zwei Dateien.
 | | vorher | nachher |
 |---|---:|---:|
 | `README.md` | 2.501 Zeilen | **1.091** |
-| `HANDBUCH.md` | — | **1.438** |
+| `manual-de.md` | — | **1.438** |
 | zusammen | 2.501 | 2.529 |
 | Prüfungen | 6881 | **6888** |
 | Gruppen in der Schlusstafel | 347 | **348** |
@@ -43,7 +43,7 @@ Auf GitHub ist die README die Landeseite; dort steht dieser Teil im Weg.
 Dazu die Innenansicht, weil sie zum Code gehört und nicht zur Bedienung —
 „Dateien am Eintrag" sagt das in seinem ersten Satz.
 
-| `README.md` | `HANDBUCH.md` |
+| `README.md` | `manual-de.md` |
 |---|---|
 | Einstieg, Woraus es gebaut ist | Anmeldung |
 | Erstinstallation | Der zweite Faktor |
@@ -56,6 +56,10 @@ Dazu die Innenansicht, weil sie zum Code gehört und nicht zur Bedienung —
 | Dateien am Eintrag · Kurzvideos | Hell oder dunkel · Schriftgröße |
 | Speicherbedarf · Sichern · Datenmodell | |
 | Prüfen · Den Schlüssel wechseln | |
+
+**Die Datei heißt `manual-de.md`.** Das Suffix nennt die Sprache, in der sie
+geschrieben ist — dieselbe Form wie bei den Sprachdateien unter
+`public/languages/`. In deutscher Prosa heißt sie weiter „das Handbuch".
 
 **Drei Unterabschnitte sind hochgestuft worden.** „Hinter einem Reverse Proxy",
 „Beide Wege zugleich" und „Gescheiterte Anmeldungen aussperren" standen unter
@@ -105,13 +109,13 @@ Wer nur eine der beiden läse, sähe eine gekürzte Zahl für eine ungekürzte
 Zusage. Die Prüfung heißt deshalb „Die Anleitung nennt …" statt „Die README
 nennt …".
 
-**Der Sprachwächter sieht `HANDBUCH.md`.** Er liest `Doku/*.md` und die Dateien
+**Der Sprachwächter sieht `manual-de.md`.** Er liest `Doku/*.md` und die Dateien
 im Wurzelverzeichnis namentlich; das Handbuch steht jetzt neben `README.md` und
 `CHANGELOG.md` in derselben Liste.
 
 **Rückbau 368 ist nachgezogen**, nicht gelöscht: sein Suchtext
 („**Über der Liste steht eine Reihe von Ansichten**") ist mit der Bedienung ins
-Handbuch gewandert. `file` steht auf `HANDBUCH.md`, der Name heißt jetzt „Die
+Handbuch gewandert. `file` steht auf `manual-de.md`, der Name heißt jetzt „Die
 Anleitung erzaehlt wieder, seit wann etwas gilt". Die Zahl der Rückbauten
 bleibt bei **998**.
 

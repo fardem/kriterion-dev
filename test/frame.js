@@ -54,7 +54,7 @@ const RUN_SCRYPT = RUN_KEYS.scryptCost(SCRYPT_SHIPPED);
 const readmeFlat = fs.readFileSync(path.join(__dirname, 'README.md'), 'utf8')
   .replace(/\s+/g, ' ');
 /* UND DAS HANDBUCH DANEBEN -- seit 0.34.2 steht die Bedienung dort. */
-const handbookFlat = fs.readFileSync(path.join(__dirname, 'HANDBUCH.md'), 'utf8')
+const handbookFlat = fs.readFileSync(path.join(__dirname, 'manual-de.md'), 'utf8')
   .replace(/\s+/g, ' ');
 
 /* ================= Kleiner Pruefrahmen ================= */

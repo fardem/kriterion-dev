@@ -12088,7 +12088,7 @@ Satz: wer an* `attachments.js` *etwas ändert, solle es gelesen haben.*
 | | vorher | nachher |
 |---|---:|---:|
 | `README.md` | 2.501 Zeilen | **1.091** |
-| `HANDBUCH.md` | — | **1.438** |
+| `manual-de.md` | — | **1.438** |
 | Prüfungen | 6881 | **6888** |
 
 **Kein Satz ist umgeschrieben worden.** Es sind dieselben Zeilen an einem
@@ -12113,7 +12113,7 @@ dasteht.*
 **Mitgezogen:** der Rahmen liest `handbookFlat` neben `readmeFlat`; zwei
 Prüfungen lesen es statt der README, weil ihr Gegenstand umgezogen ist; die
 Nummernprüfung liest beide Dateien zusammen — sechs Nennungen, fünf in der
-README, eine im Handbuch; der Sprachwächter sieht `HANDBUCH.md`; **Rückbau 368
+README, eine im Handbuch; der Sprachwächter sieht `manual-de.md`; **Rückbau 368
 ist nachgezogen**, nicht gelöscht.
 
 **Fingerprint `5ade984f`** *(davor `3cc525dc`)*. Er ändert sich an genau einer

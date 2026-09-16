@@ -14,7 +14,7 @@ Favicon-Abrufe — die Anwendung läuft vollständig offline im eigenen Netz.
 **Die Datenbank ist als Ganzes verschlüsselt** (SQLCipher, AES-256); Fotos und
 Videos liegen darin und werden nie als Datei auf die Platte geschrieben.
 
-> **DIE BEDIENUNG STEHT IM [HANDBUCH](HANDBUCH.md).** Was am Bildschirm
+> **DIE BEDIENUNG STEHT IM [Handbuch](manual-de.md).** Was am Bildschirm
 > passiert — Anmeldung, Benutzer und Rollen, Einträge, Bewertungen, Kommentare,
 > Einstellungen, Sprache und die Ansicht auf dem Telefon — steht dort.
 > **Hier steht, was auf dem Server passiert**, und was der kennen muss, der am
@@ -141,12 +141,12 @@ zehn Zeichen, sonst keine Regeln.
 
 **Dieser erste Zugang wird der Eigentümer.** Ihm gehören Export, Import,
 Rollenvergabe, der Mailzugang und der Schlüsselwert; alles Weitere steht im
-[Handbuch](HANDBUCH.md) unter „Rollen und Benutzer".
+[Handbuch](manual-de.md) unter „Rollen und Benutzer".
 
 ### Was danach eingerichtet werden kann — und nichts davon muss
 
 Die Tafel sagt, wo es steht. **Was die einzelnen Karten tun, steht im
-[Handbuch](HANDBUCH.md).**
+[Handbuch](manual-de.md).**
 
 | | wo | wofür |
 |---|---|---|
@@ -392,7 +392,7 @@ deshalb über sämtliche Felder.
 
 **Wie man sich anmeldet, wer was darf, wie Benutzer angelegt und eingeladen
 werden und was der zweite Faktor tut, steht im
-[Handbuch](HANDBUCH.md).** Hier stehen die beiden Stellen, an denen die
+[Handbuch](manual-de.md).** Hier stehen die beiden Stellen, an denen die
 Anmeldung den Server betrifft.
 
 ## Hinter einem Reverse Proxy

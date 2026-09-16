@@ -899,9 +899,9 @@ async function run() {
     .map(n => path.join('Doku', n))
     /* CHANGELOG.md STEHT SEIT 0.10.0 IM WURZELVERZEICHNIS und war damit aus
        dem Blick dieses Waechters gefallen -- als `Doku/Changelog.md` lag sie
-       vorher in der Sammlung oben. HANDBUCH.md seit 0.34.2, aus demselben
+       vorher in der Sammlung oben. manual-de.md seit 0.34.2, aus demselben
        Grund: der Waechter liest Doku/*.md, und das Handbuch liegt daneben. */
-    .concat(['README.md', 'CHANGELOG.md', 'HANDBUCH.md']);
+    .concat(['README.md', 'CHANGELOG.md', 'manual-de.md']);
   const languageDocs = languageDocsFiles.flatMap(n => {
     const p = path.join(__dirname, n);
     return fs.existsSync(p) ? languageHit(onlyProse(fs.readFileSync(p, 'utf8')), n) : [];
@@ -927,8 +927,8 @@ async function run() {
   check('Und mindestens zehn Dokumente daneben',
     languageDocsFiles.length >= 10, `${languageDocsFiles.length} Dokumente`);
   /* UND DIE DREI IM WURZELVERZEICHNIS SIND NAMENTLICH DABEI. */
-  check('Darunter namentlich README.md, CHANGELOG.md und HANDBUCH.md',
-    ['README.md', 'CHANGELOG.md', 'HANDBUCH.md']
+  check('Darunter namentlich README.md, CHANGELOG.md und manual-de.md',
+    ['README.md', 'CHANGELOG.md', 'manual-de.md']
       .every(n => languageDocsFiles.includes(n)),
     languageDocsFiles.filter(n => !n.startsWith('Doku')).join(' '));
   check('Die Kommentare des Quelltextes benutzen die heutigen Fachwoerter',
@@ -999,7 +999,7 @@ async function run() {
      Ganzes: fuenf Nennungen stehen in der README, eine im Handbuch. Wer nur
      eine der beiden laese, saehe eine gekuerzte Zahl fuer eine ungekuerzte
      Zusage. */
-  const handbookRaw = fs.readFileSync(path.join(__dirname, 'HANDBUCH.md'), 'utf8');
+  const handbookRaw = fs.readFileSync(path.join(__dirname, 'manual-de.md'), 'utf8');
   const guideRaw = readmeRaw + '\n' + handbookRaw;
   const readmeNumbers = guideRaw.match(/\b0\.\d+\.\d+\b/g) || [];
   const README_NUMBERS = ['0.33.0', '0.32.1', '0.8.0'];
