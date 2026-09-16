@@ -2,27 +2,17 @@ const crypto = require('crypto');
 const nodemailer = require('nodemailer');
 
 /* Der Uebersetzer. Die vier Briefe und die Absagen dieser Datei stehen in
-   public/languages/<code>.json. t() lebt in server.js und wird beim Start
-   hereingereicht -- der Weg zurueck waere ein Ring. Bis dahin steht hier die
-   Klammerform, damit ein vergessener Griff auffaellt. */
+   public/languages/<code>.json. */
 let t = (locale, key) => `\u27e6${key}\u27e7`;
 function setTranslator(fn) { t = fn; }
 
 /* Ein Fehler mit Schluessel, ohne die Klasse `Message` aus auth.js -- die
-   requiret diese Datei. Der Fehler-Handler in server.js braucht nur die Form:
-   `key`, `values`, `status`. */
+   requiret diese Datei. */
 const message = (key, values = {}) =>
   Object.assign(new Error(key), { key, values, status: 400 });
 
-/* Der Mailversand -- die einzige Verbindung nach draussen, und nur
-   ausgehend. Nichts in dieser Datei wirft: send() liefert ein Ergebnis.
-   Verschickt wird immer ueber den SMTP-Zugang eines Anbieters.
-
-   Die Anbietervorlagen. Eine Liste im Quelltext, kein Freitext: der Server
-   speichert einen Schluessel. 'eigen' steht mit darin und ist doch keine
-   Vorlage -- dort traegt der Eigentuemer Server, Port und Verschluesselung
-   selbst ein. Port und Verschluesselung gehoeren zusammen: 465 ist implizites
-   TLS, 587 beginnt im Klartext und schaltet mit STARTTLS um. */
+/* Der Mailversand -- die einzige Verbindung nach draussen, und nur ausgehend.
+   Nichts in dieser Datei wirft: send() liefert ein Ergebnis. */
 const PROVIDERS = [
   { key: 'gmx',    name: 'GMX',           server: 'mail.gmx.net',       port: 587, secure: false },
   { key: 'web',    name: 'Web.de',        server: 'smtp.web.de',        port: 587, secure: false },
@@ -30,8 +20,7 @@ const PROVIDERS = [
   { key: 'strato', name: 'Strato',        server: 'smtp.strato.de',     port: 465, secure: true },
   { key: 'ionos',  name: 'IONOS',         server: 'smtp.ionos.de',      port: 587, secure: false },
   /* „Eigener Server" ist eine Beschreibung und keine Marke, also traegt der
-     Eintrag einen Schluessel daneben. Die fuenf Marken haben keinen.
-     Uebersetzt wird in server.js (providerList). */
+     Eintrag einen Schluessel daneben. */
   { key: 'eigen',  name: 'Eigener Server', nameKey: 'mail.ownServer',
     server: '',                  port: 587, secure: false }
 ];
@@ -45,12 +34,7 @@ const HINTS = {
 };
 const HINT_ALWAYS = 'mail.hintAlways';
 
-/* Die drei Fristen. nodemailers Vorgaben reichen bis zu zehn Minuten; die
-   Zahlen hier stehen fest und lassen sich nur ueber den Pruefschalter aus
-   keys.js kuerzen, und zwar alle drei mit demselben Teiler.
-   Die aeussere Schranke ist die tragende: socketTimeout laeuft nur bei
-   Untaetigkeit ab. Die drei darunter nennen den Abschnitt, an dem es
-   klemmte. */
+/* Die drei Fristen. */
 const keys = require('./keys');
 const SEND_SHIPPED = 20 * 1000;
 const CONNECT_SHIPPED = 7 * 1000;
@@ -60,34 +44,27 @@ const CONNECT_MS = keys.mailDeadline(CONNECT_SHIPPED);
 const GREETING_MS = keys.mailDeadline(GREETING_SHIPPED);
 
 /* Der Mailzugang liegt unter einem Schluessel in settings und gehoert dem
-   Eigentuemer, nicht dem Admin: der SMTP-Server sieht jede Mail. In settings
-   und nicht in der .env, damit das Mailpasswort in der verschluesselten
-   Datenbank liegt; die Exportdatei traegt settings nicht mit. */
+   Eigentuemer, nicht dem Admin: der SMTP-Server sieht jede Mail. */
 const SETTING_KEY = 'mailzugang';
 
 const EMPTY = { provider: '', server: '', port: 0, secure: false, user: '', password: '', sender: '' };
 
-// Wie eine Adresse aussehen darf. Bewusst grob: abgewiesen wird nur, was
-// gar keine Adresse sein kann -- kein @, Leerzeichen, zwei @, nichts davor
-// oder dahinter.
+// Wie eine Adresse aussehen darf.
 const ADDRESS_PATTERN = /^[^\s@]+@[^\s@.]+(\.[^\s@.]+)+$/;
 const isAddress = (a) => ADDRESS_PATTERN.test(String(a || '').trim());
 
 const providerOf = (key) => PROVIDERS.find(a => a.key === key) || null;
 
-/* Was der Dialog je Anbieter braucht: der Hinweis und die drei festen
-   Werte, die mit der Auswahl gelten -- beides muss vorliegen, bevor
-   gespeichert wird. Kein Geheimnis dabei; das Passwort kommt hier so wenig
-   heraus wie in state(). */
+/* Was der Dialog je Anbieter braucht: der Hinweis und die drei festen Werte,
+   die mit der Auswahl gelten -- beides muss vorliegen, bevor gespeichert
+   wird. */
 const forChoice = () => PROVIDERS.map(a => ({
   key: a.key, name: a.name, nameKey: a.nameKey || '',
   server: a.server, port: a.port, secure: a.secure,
   hint: HINTS[a.key] || ''
 }));
 
-/* Loest den gespeicherten Zugang zu dem auf, was der Versand braucht. Die
-   Vorlage gewinnt ueber das Gespeicherte, ausser bei 'eigen': wechselt ein
-   Anbieter den Port, kommt der neue aus dem Quelltext. */
+/* Loest den gespeicherten Zugang zu dem auf, was der Versand braucht. */
 function resolve(raw) {
   const z = { ...EMPTY, ...(raw && typeof raw === 'object' ? raw : {}) };
   const v = providerOf(z.provider);
@@ -124,9 +101,7 @@ function configured(raw) {
 }
 
 /* Prueft, was von aussen hereinkommt, und liefert den Wert zum Speichern.
-   Wirft mit Schluessel; der Aufrufer gibt die Message weiter.
-   Ein leeres Passwort heisst „unveraendert", ein leerer Zugang schaltet den
-   Versand ab. */
+   Wirft mit Schluessel; der Aufrufer gibt die Message weiter. */
 function checkInput(input, before) {
   const e = input && typeof input === 'object' ? input : {};
   const old = resolve(before);
@@ -138,7 +113,7 @@ function checkInput(input, before) {
   const user = String(e.user ?? '').trim();
   const sender = String(e.sender ?? '').trim();
   // Ein neues Passwort wird genommen, wie es ist -- nicht beschnitten: ein
-  // Leerzeichen am Ende kann dazugehoeren.
+// Leerzeichen am Ende kann dazugehoeren.
   const password = typeof e.password === 'string' && e.password !== ''
     ? e.password : String(old.password || '');
 
@@ -158,8 +133,7 @@ function checkInput(input, before) {
 }
 
 /* Eine Marke ueber den Zugang: damit laesst sich belegen, dass sich seit dem
-   Test nichts geaendert hat. Gehasht wird der ganze Zugang in einem Zug, das
-   Passwort steht nicht im Klartext darin. */
+   Test nichts geaendert hat. */
 function mark(raw) {
   const z = resolve(raw);
   return crypto.createHash('sha256')
@@ -167,11 +141,8 @@ function mark(raw) {
     .digest('hex').slice(0, 16);
 }
 
-/* Der Versand. Liefert ein Ergebnis und wirft nie -- der Token muss auf
-   jeden Fall entstehen. Reiner Text, kein HTML, keine Bilder, keine
-   Anhaenge.
-   Der Rumpf geht als quoted-printable hinaus; ein langer Link bekommt darin
-   einen weichen Umbruch, den jedes Mailprogramm wieder zusammensetzt. */
+/* Der Versand. Liefert ein Ergebnis und wirft nie -- der Token muss auf jeden
+   Fall entstehen. */
 function buildTransport(z) {
   return nodemailer.createTransport({
     host: z.server, port: z.port, secure: z.secure === true,
@@ -220,10 +191,7 @@ function shortReason(locale, e) {
 }
 
 /* Die vier Briefe. Die Texte stehen in der Sprachdatei; hier steht nur der
-   Griff -- welcher Brief zu welchem Anlass gehoert. Ein Schluessel je Brief
-   und nicht je Zeile: der Uebersetzer sieht ihn am Stueck.
-   Jeder Brief liefert Betreff und Text zusammen. Der Link darin steht im
-   Fragment (#/invite/…) und geht nie an den Server. */
+   Griff -- welcher Brief zu welchem Anlass gehoert. */
 const mail = (locale, kind, values) => ({
   subject: t(locale, `mail.${kind}.subject`, values),
   text: t(locale, `mail.${kind}.body`, values)

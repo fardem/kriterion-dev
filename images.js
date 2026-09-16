@@ -1,15 +1,8 @@
 /* Die Bildableitungen. Der Anfrageweg (server.js) und der Bestandslauf
-   (batchrun.js) rufen dieselben Funktionen.
-   sharp.concurrency() steht hier nicht: das setzt jeder Prozess fuer sich. */
+   (batchrun.js) rufen dieselben Funktionen. */
 const sharp = require('sharp');
 
-/* Die beiden Ableitungen je Foto.
-     short   worauf die kurze Kante gebracht wird
-     long    der Deckel auf der langen Kante
-     q       WebP-Guete
-     crops   ob der Ausschnitt der Kachel angewandt wird
-   Foto am Eintrag: Original, medium und thumb. Kommentarbild: nur medium
-   und thumb. */
+/* Die beiden Ableitungen je Foto. */
 const VARIANTS = {
   thumb:  { short: 512,  long: 1280, q: 82, crops: true  },
   medium: { short: 1600, long: 1600, q: 78, crops: false }
@@ -19,8 +12,7 @@ const VARIANTS = {
 const variantWebp = (q) => ({ quality: q, effort: 4 });
 
 /* Der Ausschnitt der Kachel aus focus_x, focus_y und zoom -- massstabsfrei
-   und ohne Rundung. Dieselbe Rechnung steht in public/app.js; der Pruefstand
-   haelt beide gegeneinander. */
+   und ohne Rundung. */
 function cropSpecBox(width, height, fx, fy, zoom) {
   const side = Math.min(width, height);   // was die Kachel bei zoom 100 zeigt
   const tight = side * 100 / zoom;          // was sie beim eingestellten Zoom zeigt
@@ -53,8 +45,7 @@ function cropRectOf(size, cropSpec) {
 }
 
 /* Baut thumb und medium aus einem Bild. Eine Ableitung, die nicht gelingt,
-   wird null; die andere entsteht trotzdem. Ohne lesbare Masse wird quer
-   angenommen und nicht geschnitten. */
+   wird null; die andere entsteht trotzdem. */
 async function makeVariants(buf, cropSpec) {
   const out = {};
   let size = null;
@@ -64,7 +55,7 @@ async function makeVariants(buf, cropSpec) {
   for (const [name, v] of Object.entries(VARIANTS)) {
     try {
       // Ueber den Zuschnitt entscheidet `crops` und nicht der Name der
-      // Ableitung. Geschnitten wird quadratisch, also zweimal die kurze Kante.
+// Ableitung. Geschnitten wird quadratisch, also zweimal die kurze Kante.
       const raw = sharp(buf, { failOn: 'none' }).rotate();
       const cropped = v.crops && cropRect;
       out[name] = await (cropped ? raw.extract(cropRect) : raw)
@@ -109,12 +100,11 @@ const isPng = (buf) =>
   Buffer.isBuffer(buf) && buf.length >= 8 && buf.subarray(0, 8).equals(PNG_MAGIC);
 
 /* Legt ein Bild ab. Ein PNG wird nach dem gewaehlten Verfahren umkodiert --
-   aber nur, wenn das Ergebnis kleiner ist. Alles andere geht unveraendert
-   durch. */
+   aber nur, wenn das Ergebnis kleiner ist. */
 async function storeImage(buf, reportedType, store) {
   const recipe = IMAGE_STORES[isImageStore(store) ? store : IMAGE_STORE_DEFAULT];
   // Das Verfahren „PNG" hat kein Rezept -- es ist die Abwesenheit einer
-  // Umkodierung und nicht eine Umkodierung mit anderen Zahlen.
+// Umkodierung und nicht eine Umkodierung mit anderen Zahlen.
   if (!recipe || !isPng(buf)) return { data: buf, mime: reportedType, converted: false };
   try {
     const webp = await sharp(buf).webp(recipe).toBuffer();
@@ -122,7 +112,7 @@ async function storeImage(buf, reportedType, store) {
       return { data: webp, mime: 'image/webp', converted: true };
   } catch (e) {
     // Laut ins Protokoll, still in der Antwort: das Bild ist gespeichert, nur
-    // eben als PNG.
+// eben als PNG.
     console.error('[Kriterion] PNG blieb PNG:', e.message);
   }
   return { data: buf, mime: reportedType, converted: false };

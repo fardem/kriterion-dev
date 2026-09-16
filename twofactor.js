@@ -1,9 +1,7 @@
 const crypto = require('crypto');
 
 /* Der zweite Faktor: TOTP nach RFC 6238, die reine Rechnung. Diese Datei
-   kennt keine Datenbank -- alles, was eine Zeile hat, steht in auth.js.
-   Die vier Kennwerte stehen fest, weil Google Authenticator jede Abweichung
-   stillschweigend falsch oder gar nicht liest. */
+   kennt keine Datenbank -- alles, was eine Zeile hat, steht in auth.js. */
 const ALGORITHM = 'sha1';
 const DIGITS = 6;
 const STEP_SECONDS = 30;
@@ -27,14 +25,13 @@ function base32Encode(buffer) {
   }
   if (bits) out += B32[(value << (5 - bits)) & 31];
   // Fuellzeichen bis auf ein Vielfaches von acht -- so verlangt es RFC 4648.
-  // Bei 20 Bytes faellt keines an; die Zeile steht fuer den allgemeinen Fall.
+// Bei 20 Bytes faellt keines an; die Zeile steht fuer den allgemeinen Fall.
   while (out.length % 8) out += '=';
   return out;
 }
 
 /* Liefert den Puffer oder null -- null und keine Ausnahme: der Aufrufer ist
-   eine Route. Leerzeichen und Bindestriche fallen weg, weil der Schluessel am
-   Bildschirm in Vierergruppen steht. */
+   eine Route. */
 function base32Decode(text) {
   const t = String(text || '').toUpperCase().replace(/[\s-]/g, '').replace(/=+$/, '');
   if (!t) return null;
@@ -60,14 +57,12 @@ const groupsOfFour = (s) => String(s || '').replace(/(.{4})(?=.)/g, '$1 ');
 
 /* Die Zahl der Dreissig-Sekunden-Schritte seit dem 1.1.1970. Sie ist der
    Zaehler des HMAC und zugleich das, was gegen Wiederverwendung aufbewahrt
-   wird. Die Uhr wird uebergeben, damit das Zeitfenster ohne Warten pruefbar
-   bleibt. */
+   wird. */
 const stepOf = (msSinceEpoch) => Math.floor(msSinceEpoch / 1000 / STEP_SECONDS);
 const nowStep = () => stepOf(Date.now());
 
 /* Der Code zu einem Zaehler. Das dynamische Abgreifen steht in RFC 4226,
-   Abschnitt 5.3. Der Zaehler wird in zwei Haelften geschrieben --
-   writeUInt32BE kann keine 64 Bit. */
+   Abschnitt 5.3. */
 function code(secretBase32, counter) {
   const secret = base32Decode(secretBase32);
   if (!secret || !secret.length) return null;
@@ -85,10 +80,7 @@ function code(secretBase32, counter) {
 const isCodeForm = (input) => new RegExp(`^\\d{${DIGITS}}$`).test(String(input || '').trim());
 
 /* Prueft einen Code gegen das Fenster und liefert den Zaehler, der getragen
-   hat, oder null. Der Zaehler und nicht ja/nein: der Aufrufer schreibt ihn
-   weg und nimmt danach nur noch etwas Groesseres an.
-   Geprueft wird von hinten nach vorn, damit bei zwei passenden Fenstern der
-   spaetere gewinnt. Verglichen wird zeitunabhaengig. */
+   hat, oder null. */
 function checkCode(secretBase32, input, now = Date.now()) {
   const typed = String(input || '').trim();
   if (!isCodeForm(typed)) return null;
@@ -105,9 +97,7 @@ function checkCode(secretBase32, input, now = Date.now()) {
 }
 
 /* Die Zeile fuer die App. otpauth:// ist der Standard; auf einem Telefon
-   oeffnet der Link die App unmittelbar. Die drei Kennwerte stehen
-   ausgeschrieben darin, obwohl sie die Vorgabe sind. Der Instanzname ist
-   Eingabe aus dem Systembereich, deshalb encodeURIComponent. */
+   oeffnet der Link die App unmittelbar. */
 function otpauthLine(instance, username, secretBase32) {
   const label = encodeURIComponent(`${instance}:${username}`);
   return `otpauth://totp/${label}?secret=${secretBase32}` +
@@ -116,9 +106,7 @@ function otpauthLine(instance, username, secretBase32) {
 }
 
 /* Die Wiederherstellungscodes -- ohne sie ist ein verlorenes Telefon ein
-   verlorener Zugang. Acht Stueck, zehn Zeichen, rund fuenfzig Bit.
-   Ein eigenes Alphabet und nicht Base32: hier wird nichts dekodiert, nur
-   verglichen, also faellt heraus, was sich verwechseln laesst. */
+   verlorener Zugang. */
 const RECOVERY_ALPHABET = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
 const RECOVERY_COUNT = 8;
 const RECOVERY_LENGTH = 10;
@@ -134,8 +122,7 @@ const newRecoveryCodes = () => Array.from({ length: RECOVERY_COUNT }, oneRecover
 const recoveryDisplay = (c) => `${String(c).slice(0, 5)}-${String(c).slice(5)}`;
 
 /* Auf die Form gebracht, bevor verglichen wird: Bindestriche und Leerzeichen
-   fallen weg, klein wird gross. Liefert den leeren String, wenn nichts
-   uebrig bleibt. */
+   fallen weg, klein wird gross. */
 const recoveryNormal = (input) =>
   String(input || '').toUpperCase().replace(/[\s-]/g, '');
 

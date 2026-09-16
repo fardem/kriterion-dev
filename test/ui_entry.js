@@ -1,10 +1,6 @@
-/* Kriterion — Pruefstand: die Oberflaeche: der Eintrag
- *
- * Bloecke anordnen, Dateien und Links, Kommentare, Videos am Bildschirm,
- * der Fokuspunkt und die fuenf Gesten am Ausschnitt.
- *
- * Eigener Prozess, eigener Speicher. Der Rahmen steht in test/frame.js.
- */
+/* Kriterion — Pruefstand: die Oberflaeche: der Eintrag Bloecke anordnen,
+   Dateien und Links, Kommentare, Videos am Bildschirm, der Fokuspunkt und die
+   fuenf Gesten am Ausschnitt. */
 const H = require('./frame.js');
 const D = require('./dom.js');
 const {
@@ -16,25 +12,18 @@ async function run() {
    fs, path, attachments, TEXT, __dirname, group, check, equal, setField,
    open
   } = H;
-  /* DIESES MODUL BAUT FENSTER. Fehlt jsdom, sagt es das und haelt an. Die
-     Zahl der uebersprungenen Pruefungen steht EINMAL im ersten Modul der
-     Oberflaeche und nicht in jedem -- sonst zaehlte ein Lauf ohne jsdom sie
-     achtmal. */
+  /* DIESES MODUL BAUT FENSTER. Fehlt jsdom, sagt es das und haelt an. */
   let JSDOM;
   try { ({ JSDOM } = require('jsdom')); }
   catch { console.log('  … uebersprungen: jsdom fehlt (npm install)'); return; }
-  /* DER BEISPIELEINTRAG DES GESTELLTEN SERVERS. Er kommt aus buildDom() und
-     stand bis 0.33.2 im ersten Aufbau der Oberflaeche -- eine Vorlage und
-     keine Zusage. Dieses Modul baut sie sich selbst. */
+  /* DER BEISPIELEINTRAG DES GESTELLTEN SERVERS. */
   const { example } = buildDom(JSDOM);
 
   /* ================= Blöcke ================= */
   group('Blöcke anordnen und einklappen');
 
   /* DIE GESPEICHERTE ORDNUNG KENNT `potenzial` NICHT -- so, wie sie bei jedem
-     aussieht, der vor 0.21.0 einmal geschoben hat. Genau das ist der Fall, den
-     sortArea() traegt: der neue Block haengt sich HINTEN an, und die drei
-     geschobenen behalten ihre Reihenfolge. */
+     aussieht, der vor 0.21.0 einmal geschoben hat. */
   const ownOrder = { filters: null, blocks: {
     side: ['bewertung', 'kategorie', 'tags'],
     bottom: ['kommentare', 'beschreibung', 'testtage', 'links', 'dateien'],
@@ -75,16 +64,7 @@ async function run() {
   check('Einklappzustand wird serverseitig gespeichert',
     savedB && equal(savedB.body.blocks.closed, []), JSON.stringify(savedB && savedB.body.blocks));
 
-  /* Knoepfe in der Kopfzeile duerfen nicht einklappen.
-     GENOMMEN WIRD SEIT 0.21.0 „Stimmen" und nicht mehr „Meine Bewertung
-     zuruecksetzen": den Knopf gibt es nicht mehr, und ein Ziel, das null ist,
-     riss den Lauf ab, statt eine Pruefung rot zu faerben (Stolperstein 103).
-     GENOMMEN WIRD DER ERKLAERKNOPF AN DER KOPFZAHL und nicht „Stimmen": den
-     gibt es nur beim Admin ab zwei Zugaengen, und diese Prueflage faehrt mit
-     einem. Der Erklaerknopf steht dort, sobald eine Kopfzahl dasteht -- und
-     sie steht.
-     ERST DER GEGENSTAND, DANN DIE ZUSAGE (Stolperstein 81): ohne den Knopf
-     bliebe die Zeile darunter gruen, ohne etwas zu belegen. */
+  /* Knoepfe in der Kopfzeile duerfen nicht einklappen. */
   const rating = wb.document.querySelector('[data-block="bewertung"]');
   const before = rating.classList.contains('closed');
   const headButton = rating.querySelector('.block-head button');
@@ -97,12 +77,7 @@ async function run() {
   check('Der Griff klappt nicht mit ein', rating.classList.contains('closed') === before);
 
   /* DIESELBEN ZAHLEN AUCH EINGEKLAPPT -- eingeklappt ist gerade der Moment,
-     in dem man nicht hineinsieht. Sie stehen in der Kopfzeile und bleiben
-     deshalb von selbst stehen; die Kurzfassung daneben bleibt leer, sonst
-     stuenden dieselben Zahlen zweimal in einer Zeile. Und eine leere
-     Kurzfassung erzeugt KEINE leere Klammer: "()" waere eine Klammer um
-     nichts. SEIT 0.32.1 STEHT DORT DIE KURZFORM und im `title` der volle
-     Satz -- beides wird gestellt. */
+     in dem man nicht hineinsieht. */
   comments.querySelector('.block-head').onclick({ target: comments.querySelector('.label') });
   await new Promise(r => setTimeout(r, 20));
   check('Der Kommentarblock laesst sich einklappen', comments.classList.contains('closed'));
@@ -120,11 +95,7 @@ async function run() {
   await new Promise(r => setTimeout(r, 20));
   check('Und wieder auf', !comments.classList.contains('closed'));
 
-  /* UMGEDREHT STATT GELOESCHT (Stolperstein 74). Bis hierher zaehlte die
-     Kurzfassung die Kommentare; jetzt traegt der Block seinen vollen Satz an
-     eigener Stelle, und die Kurzfassung bleibt ausdruecklich leer. BEIDE
-     HAELFTEN IN EINER PRUEFUNG: die eine allein bliebe gruen, waehrend die
-     andere alles wegnimmt. */
+  /* UMGEDREHT STATT GELOESCHT (Stolperstein 74). */
   check('Der Kommentarblock zaehlt in seinem Hinweis, nicht in der Kurzfassung',
     wb.blockSummary('kommentare', { comments: [{ kind: 'note' }, { kind: 'report' }] }) === '' &&
     wb.commentNumbers([{ kind: 'note' }, { kind: 'report' }]).text === '2 Kommentare · 1 Bericht',
@@ -155,8 +126,7 @@ async function run() {
   wb.document.dispatchEvent(zeiger2('pointerup', 200));
   await new Promise(r => setTimeout(r, 20));
   /* VIER BLOECKE IN DER SEITENSPALTE SEIT 0.21.0 -- der Potenzialblock haengt
-     hinten, weil die gespeicherte Ordnung ihn nicht kennt (ordneBereich). Er
-     zieht mit wie jeder andere; die Zusagen darunter gelten unveraendert. */
+     hinten, weil die gespeicherte Ordnung ihn nicht kennt (ordneBereich). */
   check('Ziehen am Rumpf verschiebt nichts',
     equal(namen2('#blocks-side'), ['bewertung', 'kategorie', 'tags', 'potenzial']),
     JSON.stringify(namen2('#blocks-side')));
@@ -181,7 +151,7 @@ async function run() {
 
   const fileRows = [...wb.document.querySelectorAll('#atts .arow')];
   // Zeile anklicken, ohne ueber fehlende Teile zu stolpern: sonst reisst ein
-  // Rueckbau in der Gegenprobe den ganzen Lauf mit.
+// Rueckbau in der Gegenprobe den ganzen Lauf mit.
   const clickable = (z, part = '.aname') => {
     if (!z || typeof z.onclick !== 'function') return false;
     z.onclick({ target: z.querySelector(part) || z });
@@ -197,18 +167,14 @@ async function run() {
   check('Jede Zeile reagiert auf einen Klick', fileRows.every(z => typeof z.onclick === 'function'));
   check('Jede Datei lässt sich entfernen',
     fileRows.every(z => z.querySelector('.xdel')));
-  // Vorhanden ist nicht sichtbar: .xdel steht auf opacity 0 und wird erst beim
-  // Überfahren eingeblendet. Fehlt die eigene Zeilenart in dieser Regel, ist
-  // der Knopf unsichtbar und die Funktion wirkt, als gäbe es sie nicht.
-  // Im DOM ohne Layoutberechnung lässt sich das nur am Stylesheet prüfen.
+  // Vorhanden ist nicht sichtbar: .xdel steht auf opacity 0 und wird erst
+  // beim Überfahren eingeblendet.
   const cssText = fs.readFileSync(path.join(__dirname, 'public', 'style.css'), 'utf8');
   const fadeInRule = (cssText.match(/^[^{}]*\.xdel[^{}]*\{[^}]*opacity: *1[^}]*\}/m) || [''])[0];
   ['.lrow', '.trow', '.arow'].forEach(kind =>
     check(`Löschkreuz wird in ${kind} eingeblendet`,
       fadeInRule.includes(`${kind}:hover`), fadeInRule || '(keine Regel gefunden)'));
   // Umgekehrt fuer die Bewertungszeile: dort gibt es keines.
-  // Ein Kriterium zu loeschen wirkt auf alle Eintraege und gehoert deshalb in
-  // den Systembereich, nicht neben das Sterne-Widget eines einzelnen Eintrags.
   check('In der Bewertungszeile gibt es kein Löschkreuz mehr',
     !fadeInRule.includes('.rrow:hover'), fadeInRule);
   check('Ohne Überfahren sind die Kreuze immer sichtbar',
@@ -221,7 +187,7 @@ async function run() {
   check('Nicht Ansehbares kündigt das Herunterladen an', text(fileRows[3], '.ago') === '↓');
 
   // Der Klick auf die Zeile: bei nicht Ansehbarem loest er den Ladeverweis
-  // aus, statt eine Vorschau zu oeffnen.
+// aus, statt eine Vorschau zu oeffnen.
   let loaded = 0;
   const loadArrow = fileRows[3]?.querySelector('.adl');
   if (loadArrow) loadArrow.click = () => { loaded++; };
@@ -258,7 +224,7 @@ async function run() {
   check('PDF-iframe ist gesandboxt', !!pdfV && pdfV.hasAttribute('sandbox'),
     JSON.stringify(pdfV?.getAttribute('sandbox')));
   // allow-scripts MUSS gesetzt sein: die eingebauten PDF-Betrachter bestehen
-  // selbst aus HTML und JavaScript und bleiben sonst leer.
+// selbst aus HTML und JavaScript und bleiben sonst leer.
   check('Sandbox erlaubt Skript, sonst bleibt der Betrachter leer',
     /allow-scripts/.test(pdfV?.getAttribute('sandbox') || ''),
     JSON.stringify(pdfV?.getAttribute('sandbox')));
@@ -266,11 +232,11 @@ async function run() {
     !/allow-same-origin/.test(pdfV?.getAttribute('sandbox') || ''),
     JSON.stringify(pdfV?.getAttribute('sandbox')));
   // Ausweichweg: zeigt ein Browser das PDF trotzdem nicht, muss ein Klick
-  // genügen statt eine Sackgasse zu sein.
+// genügen statt eine Sackgasse zu sein.
   const newTabLink = wb.document.querySelector('#atts .apreview a[target="_blank"]');
   check('Es gibt den Weg in einen neuen Tab', !!newTabLink);
   // Fehlt der Ausweichweg, darf der Prüflauf nicht abstürzen -- sonst
-  // verschwinden alle folgenden Ergebnisse in einer Fehlermeldung.
+// verschwinden alle folgenden Ergebnisse in einer Fehlermeldung.
   check('Der neue Tab bekommt kein Fenster-Handle',
     !!newTabLink && /noopener/.test(newTabLink.getAttribute('rel') || ''),
     newTabLink ? newTabLink.getAttribute('rel') : '(kein Verweis)');
@@ -336,8 +302,7 @@ async function run() {
   /* GEKLAMMERT WIE JEDER GRIFF IN EINEN NACHBAU -- 0.30.0, Stolperstein 161.
      Ein Rueckbau, der die Tagzeile wegnimmt, soll die Zusagen darunter ROT
      machen und nicht den Lauf abreissen: eine abgerissene Gegenprobe belegt
-     gar nichts. Gefunden beim ersten gefahrenen Gegenprobenlauf dieser Runde
-     -- Rueckbau 636 riss hier nach 125 Sekunden ab. */
+     gar nichts. */
   const tagPill = (name) => [...wFilt.document.querySelectorAll('#filters .pill-tag')]
     .find(b2 => b2.textContent === name) || null;
   check('Die Marke „Grün" steht in der Tagzeile', !!tagPill('Grün'),
@@ -346,9 +311,7 @@ async function run() {
   await new Promise(r => setTimeout(r, 20));
   check('Ein Tagfilter greift', equal(visible(), ['Mit Tag']), JSON.stringify(visible()));
 
-  // Der entscheidende Fall: in einen Eintrag und wieder zurück. loadAll() setzt
-  // state.filters aus der beim Start geholten Momentaufnahme -- wird die nicht
-  // mitgeführt, landet man wieder beim Stand vom Seitenaufruf.
+  // Der entscheidende Fall: in einen Eintrag und wieder zurück.
   wFilt.location.hash = '#/item/1';
   await new Promise(r => setTimeout(r, 80));
   wFilt.location.hash = '#/';
@@ -373,8 +336,7 @@ async function run() {
 
   /* ================= Mehrbenutzer in der Oberflaeche ================= */
   /* Ein Bedienelement ist erst geprueft, wenn ein Ereignis wirklich
-     zugestellt wurde. Hier: das Anlegefeld im Systembereich und der
-     Ruecksetzer -- und der Beleg, dass es am Eintrag KEIN Anlegefeld gibt. */
+     zugestellt wurde. */
   group('Mehrbenutzer-Anzeigen in der Oberflaeche');
 
   const eMore = buildDom(JSDOM, { hash: '#/item/1',
@@ -385,16 +347,13 @@ async function run() {
   check('Bei mehreren Zugaengen steht die Durchschnittsspalte da',
     eColumns.length === 3, `${eColumns.length}`);
   // Jede Zeile ihre eigene Zahl: gleiche Werte koennten nicht zeigen, ob die
-  // Spalte ueberhaupt der richtigen Zeile zugeordnet ist.
+// Spalte ueberhaupt der richtigen Zeile zugeordnet ist.
   check('Sie nennt Schnitt und Zahl der Bewerter je Zeile',
     eColumns[0]?.textContent === '⌀ 3,4 (5)' && eColumns[1]?.textContent === '⌀ 4,1 (128)',
     JSON.stringify(eColumns.map(z => z.textContent)));
-  /* --- 0.12.3: dieselbe Form wie die Kopfzahl darueber ---
-     DAS ⌀ IST DIE HAUSFORM: die Kopfzahl schreibt bereits "⌀ 4,2 gewichtet",
-     und zwei Formen fuer dieselbe Aussage sind eine zu viel.
-     UND DER KLARTEXT GEHOERT DAZU -- ein Symbol allein liest kein
-     Vorleseprogramm vor. Ohne die zweite Haelfte bliebe ein ersatzloses
-     Loeschen des title gruen. */
+  /* --- 0.12.3: dieselbe Form wie die Kopfzahl darueber --- DAS ⌀ IST DIE
+     HAUSFORM: die Kopfzahl schreibt bereits "⌀ 4,2 gewichtet", und zwei
+     Formen fuer dieselbe Aussage sind eine zu viel. */
   check('Die Zeile spricht dieselbe Form wie die Kopfzahl darueber',
     eColumns.slice(0, 2).every(z => /^⌀ \d,\d \(\d+\)$/.test(z.textContent)),
     JSON.stringify(eColumns.map(z => z.textContent)));
@@ -406,19 +365,14 @@ async function run() {
   check('Und die zweite Zeile traegt ihren eigenen Klartext',
     eColumns[1]?.title === 'Durchschnitt 4,1 aus 128 Bewertungen', eColumns[1]?.title);
   /* UMGEDREHT MIT 0.21.0 (Stolperstein 74): bis 0.20.1 hiess die Zeile „Ein
-     Kriterium ohne Stimme bekommt keinen Klartext" -- die Zelle war leer, also
-     gab es nichts zu erklaeren. Seit dieser Runde steht dort ein STRICH, und
-     ein Zeichen allein liest kein Vorleseprogramm vor: der Klartext gehoert
-     dazu, wie an der Zahl daneben. */
+     Kriterium ohne Stimme bekommt keinen Klartext" -- die Zelle war leer,
+     also gab es nichts zu erklaeren. */
   check('Ein Kriterium ohne Bewertung bekommt seinen eigenen Klartext',
     eColumns[2]?.title === 'Noch nicht bewertet', eColumns[2]?.title);
   check('Der Schnitt steht mit Komma, nicht mit Punkt',
     !eColumns.some(z => z.textContent.includes('.')),
     JSON.stringify(eColumns.map(z => z.textContent)));
-  /* UMGEDREHT MIT 0.21.0 (Stolperstein 74): bis 0.20.1 blieb die Zelle LEER.
-     Sie traegt jetzt einen Strich -- und die Zusage dahinter ist unveraendert:
-     ausdruecklich KEINE NULL. „⌀ 0" waere eine Aussage ueber eine Bewertung,
-     die es nicht gibt; ein Strich sagt „noch niemand". */
+  /* UMGEDREHT MIT 0.21.0 (Stolperstein 74): bis 0.20.1 blieb die Zelle LEER. */
   check('Ein Kriterium ohne Stimme zeigt einen Strich und ausdruecklich keine Null',
     eColumns[2]?.textContent === '–', JSON.stringify(eColumns[2]?.textContent));
   // Die Sterne bleiben die EIGENEN -- 3 von 5, nicht 3,4.
@@ -431,15 +385,11 @@ async function run() {
     JSON.stringify(eDoc.getElementById('rhead')?.textContent));
   /* UMGEDREHT MIT 0.21.0 (Stolperstein 74): bis 0.20.1 hiess die Zeile „Der
      Ruecksetzer sagt, dass er nur meine Werte trifft" und pruefte den Knopf
-     „Meine Bewertung zuruecksetzen" im Blockkopf. DEN GIBT ES NICHT MEHR --
-     zurueckgesetzt wird an der Zeile, ueber das × an den eigenen Sternen.
-     „Meine" braucht dort kein Wort: das × steht an MEINEN Sternen. */
+     „Meine Bewertung zuruecksetzen" im Blockkopf. */
   check('Der Kopf traegt keinen Ruecksetzer mehr',
     !eDoc.getElementById('reset-r'),
     JSON.stringify(eDoc.getElementById('reset-r')?.textContent));
-  /* UND DAS × STEHT AN DER ZEILE, mit dem Klartext dazu. Ohne diese Zeile
-     bliebe die Verneinung darueber gruen, auch wenn es gar keinen Weg mehr
-     gaebe (Stolperstein 81). */
+  /* UND DAS × STEHT AN DER ZEILE, mit dem Klartext dazu. */
   // SEIT 0.22.0 EIN EIGENER KNOPF IN DER LETZTEN SPALTE statt des × in der Reihe (E15).
   check('Dafuer traegt jede Sternzeile ihren Ruecksetzknopf',
     [...eDoc.querySelectorAll('#ratings .rrow')].every(z => !!z.querySelector('.rreset-cell .rreset')),
@@ -459,16 +409,12 @@ async function run() {
     eSingle.w.document.querySelectorAll('#ratings .rrow').length === 3);
 
   /* --- Verfassernamen an den vier Traegern -------------------------------
-     Bei genau einem aktiven Zugang bleibt alles davon aus. Abgeleitet aus der
-     Zahl der Zugaenge, ohne Schalter -- ein Zustand, keine zweite Wahrheit.
-     Deshalb steht die Gegenlage (eSingle) hier gleich daneben: eine Pruefung,
-     die nur die Anzeige belegt, liesse offen, ob die Schwelle ueberhaupt
-     wirkt. */
+     Bei genau einem aktiven Zugang bleibt alles davon aus. */
   check('Bei einem Zugang steht keine Verfasserzeile am Eintrag',
     eSingle.w.document.getElementById('iauthor')?.hidden === true,
     JSON.stringify(eSingle.w.document.getElementById('iauthor')?.textContent));
   // Und damit auch kein Datum. Es steht dort schon in der Sortierung; die
-  // Zeile bliebe sonst als reine Datumszeile stehen.
+// Zeile bliebe sonst als reine Datumszeile stehen.
   check('Und damit auch kein Anlegedatum',
     !/2026/.test(eSingle.w.document.getElementById('iauthor')?.textContent || ''),
     JSON.stringify(eSingle.w.document.getElementById('iauthor')?.textContent));
@@ -478,16 +424,9 @@ async function run() {
     eSingle.w.document.querySelectorAll('#tdays .tfrom').length === 0);
   /* UMGEDREHT MIT 0.8.6, nicht geloescht: bis 0.8.5 hiess die Prueflage "Und
      keine Stimmenliste unter den Sternen" und war die einzige Lage, in der
-     unter den Sternen nichts stand. Unter den Sternen steht jetzt fuer
-     JEDEN nichts mehr; was hier bleibt, ist die zweite Haelfte der Bedingung
-     am Aufrufknopf: bei einem einzigen Zugang waere die Ansicht der eigene
-     Wert ein zweites Mal. Diese Lage ist Admin -- ohne sie waere die Halbierung
-     der Bedingung von "nur der Admin" nicht zu unterscheiden. */
+     unter den Sternen nichts stand. */
   /* DIE GEGENPROBE STEHT SEIT 0.21.0 AN DER STERNZEILE und nicht mehr am
-     Ruecksetzer im Kopf -- den gibt es nicht mehr. Sie ist noetig, damit die
-     Verneinung nicht auch dann gruen bliebe, wenn der ganze Block fehlte
-     (Stolperstein 81): der Bewertungsblock steht da, seine Zeilen tragen ihr ×
-     -- nur der Aufruf des Admins fehlt. */
+     Ruecksetzer im Kopf -- den gibt es nicht mehr. */
   check('Bei einem Zugang gibt es den Aufruf gar nicht',
     eSingle.w.document.getElementById('rwho') === null &&
     eSingle.w.document.querySelector('#ratings .rrow .rreset') !== null,
@@ -498,9 +437,7 @@ async function run() {
   check('Ab zwei Zugaengen sagt der Eintrag, wer ihn angelegt hat',
     eIvf?.hidden === false && /Angelegt von bert/.test(eIvf?.textContent || ''),
     JSON.stringify([eIvf?.hidden, eIvf?.textContent]));
-  /* Und seit 0.8.6 auch, wann. Geprueft wird auf den Tag aus created_at
-     (2026-07-20), nicht bloss auf irgendeine Zahl: eine Pruefung auf "da steht
-     ein Datum" bliebe auch bei einem falschen gruen. */
+  /* Und seit 0.8.6 auch, wann. */
   check('Und seit 0.8.6 auch, wann',
     /Angelegt von bert am 20\.07\.2026/.test(eIvf?.textContent || ''),
     JSON.stringify(eIvf?.textContent));
@@ -510,9 +447,7 @@ async function run() {
     eFrom.length === 6 && eFrom.includes('chefin') && eFrom.includes('bert'),
     JSON.stringify(eFrom));
   /* Der Grabstein bekommt die Nummer, nicht den freigegebenen Namen -- das
-     ist der ganze Zweck der stehengebliebenen Zeile. Und die herrenlose Zeile
-     bekommt etwas ANDERES: "kein Verfasser mehr feststellbar" ist nicht
-     dasselbe wie "der Zugang wurde entfernt". */
+     ist der ganze Zweck der stehengebliebenen Zeile. */
   check('Ein Grabstein erscheint als „Geloeschter Benutzer <nr>"',
     eFrom.includes('Gelöschter Benutzer 4'), JSON.stringify(eFrom));
   check('Eine herrenlose Zeile nennt keinen Namen, sondern sagt das',
@@ -527,8 +462,7 @@ async function run() {
   /* --- Wer angemeldet ist, in der Kopfzeile -----------------------------
      AUCH BEI EINEM EINZIGEN ZUGANG: eine Aussage ueber MICH, nicht ueber
      andere -- derselbe Grund, aus dem die Karte "Zugang" fuer jeden
-     stehenbleibt. Deshalb steht die Lage mit einem Zugang hier VORNE: an ihr
-     faellt auf, wenn jemand die Angabe hinter mehrereBenutzer() klemmt. */
+     stehenbleibt. */
   const eHead1 = buildDom(JSDOM, {
     settings: { filters: null, userCount: 1, isAdmin: true, name: 'chefin' } });
   await new Promise(r => setTimeout(r, 80));
@@ -547,18 +481,8 @@ async function run() {
   check('Sie steht unmittelbar vor dem Knopf zum Abmelden',
     eWho?.nextElementSibling?.id === 'out', eWho?.nextElementSibling?.id);
 
-  /* --- Das Menue hinter den drei Strichen ------------------------------
-     ES IST EIN MARKUP UND ZWEI GESTALTEN. Auf dem breiten Schirm traegt der
-     Behaelter `display: contents` und ist fuer das Layout gar nicht da --
-     seine vier Kinder stehen unmittelbar in der Kopfzeile, in derselben
-     Reihenfolge wie vor dieser Runde. Auf dem Telefon wird derselbe
-     Behaelter zur Tafel. Geprueft wird deshalb HIER, an derselben Prueflage
-     wie die Zeile darueber: dass die vier wirklich noch alle da sind und in
-     der richtigen Ordnung stehen. Waeren sie beim Drehen des Geraets
-     umgehaengt worden, waere genau das die Stelle, an der es auffiele.
-     jsdom rechnet kein Layout; ob die Tafel sichtbar IST, prueft das
-     Stylesheet in der Gruppe "Handy und Tablett". Hier geht es um das
-     Markup und um das Verhalten. */
+  /* --- Das Menue hinter den drei Strichen ------------------------------ ES
+     IST EIN MARKUP UND ZWEI GESTALTEN. */
   const ePanel = eHead.w.document.getElementById('mast-rest');
   const eChar = eHead.w.document.getElementById('menu');
   check('Die Kopfzeile traegt das Menuezeichen', !!eChar);
@@ -567,9 +491,7 @@ async function run() {
     !!ePanel && [...ePanel.children].map(k => k.id).join(',') === 'open,sys,who,out',
     ePanel ? [...ePanel.children].map(k => k.id).join(',') : '(kein Behaelter)');
   /* Die beiden Symbolknoepfe tragen ihr Wort mit: in der Kopfzeile ist es
-     unsichtbar, in der Tafel steht es neben dem Zeichen. Ein Zeichen allein
-     in einer Liste erklaert sich nicht, und auf dem Finger gibt es kein
-     Ueberfahren, das den Titel zeigen koennte. */
+     unsichtbar, in der Tafel steht es neben dem Zeichen. */
   check('Die Symbolknoepfe bringen ihr Wort fuer die Tafel mit',
     !!ePanel && ePanel.querySelectorAll('.mast-word').length === 2,
     String(ePanel?.querySelectorAll('.mast-word').length));
@@ -581,18 +503,15 @@ async function run() {
     ePanel?.classList.contains('open') && eChar?.getAttribute('aria-expanded') === 'true',
     `${ePanel?.className} / ${eChar?.getAttribute('aria-expanded')}`);
   // Ein Klick daneben schliesst -- eine Tafel, die nur ihr eigener Knopf
-  // wieder zumacht, steht im Weg, sobald man sie versehentlich geoeffnet hat.
+// wieder zumacht, steht im Weg, sobald man sie versehentlich geoeffnet hat.
   eHead.w.document.getElementById('body')
     ?.dispatchEvent(new eHead.w.MouseEvent('click', { bubbles: true }));
   check('Und ein Klick daneben schliesst sie wieder',
     !ePanel?.classList.contains('open') && eChar?.getAttribute('aria-expanded') === 'false',
     `${ePanel?.className} / ${eChar?.getAttribute('aria-expanded')}`);
 
-  /* --- Der Schalter ueber den Filtern ---------------------------------
-     Er klappt die vier Filterreihen weg. DIE ZAHL DANEBEN IST DER GRUND,
-     warum das ueberhaupt zulaessig ist: eingeklappt sieht man sonst nicht,
-     dass gefiltert wird -- und eine Liste, die ohne sichtbaren Grund
-     unvollstaendig ist, ist ein Fehler und keine Ansicht. */
+  /* --- Der Schalter ueber den Filtern --------------------------------- Er
+     klappt die vier Filterreihen weg. */
   const eToggle = eHead.w.document.getElementById('filter-toggle');
   const eFilter = eHead.w.document.getElementById('filters');
   check('Ueber den Filtern steht ein Schalter', !!eToggle);
@@ -606,9 +525,7 @@ async function run() {
   eToggle?.dispatchEvent(new eHead.w.MouseEvent('click', { bubbles: true }));
   check('Und der naechste holt sie zurueck',
     !eFilter?.classList.contains('closed'), eFilter?.className);
-  // Und die Zahl folgt der Filterstellung. Ein Klick auf "Getestet" ist EIN
-  // greifender Filter; die Sortierung zaehlt ausdruecklich nicht mit, sie
-  // nimmt nichts weg.
+  // Und die Zahl folgt der Filterstellung.
   [...eHead.w.document.querySelectorAll('#filters .pill')]
     .find(b => b.textContent.trim() === 'Getestet')
     ?.dispatchEvent(new eHead.w.MouseEvent('click', { bubbles: true }));
@@ -631,9 +548,7 @@ async function run() {
     eBad.w.document.getElementById('who')?.textContent);
   eBad.w.close();
 
-  /* Nach dem Umbenennen des eigenen Zugangs zieht die Kopfzeile nach.
-     ladeEinstellungen() laeuft nur beim Start -- ohne das Nachziehen stuende
-     dort bis zum naechsten Laden der Seite der alte Name. */
+  /* Nach dem Umbenennen des eigenen Zugangs zieht die Kopfzeile nach. */
   const eUm = buildDom(JSDOM, {
     settings: { filters: null, userCount: 3, isAdmin: true, name: 'chefin' } });
   await new Promise(r => setTimeout(r, 80));
@@ -656,10 +571,7 @@ async function run() {
   eUm.w.close();
 
   /* --- Wer hat bewertet: die Ansicht des Admins -------------------------
-     UMGEHAENGT MIT 0.8.6, nicht geloescht (Stolperstein 74). Bis 0.8.5 standen
-     dieselben Aussagen an der Stimmenliste unter der Sternzeile; sie sind mit
-     ihr in die Adminansicht gewandert. Was hier NEU dazukommt, ist die
-     Gegenrichtung: unter den Sternen steht nichts mehr. */
+     UMGEHAENGT MIT 0.8.6, nicht geloescht (Stolperstein 74). */
   check('Unter den Sternen steht seit 0.8.6 keine Stimmenliste mehr',
     [...eDoc.querySelectorAll('#ratings .rrow')].length === 3 &&
     eDoc.querySelectorAll('#ratings .rvotes').length === 0,
@@ -667,7 +579,7 @@ async function run() {
   check('Der Blockkopf bietet dem Admin die Ansicht an',
     !!eDoc.getElementById('rwho'), 'kein Knopf im Blockkopf');
   // Wirklich zugestellt, nicht von Hand gerufen -- und danach durch die
-  // Event Loop.
+// Event Loop.
   eDoc.getElementById('rwho')?.dispatchEvent(new eMore.w.MouseEvent('click', { bubbles: true }));
   await new Promise(r => setTimeout(r, 40));
   check('Der Knopf holt die Stimmen beim Server',
@@ -683,7 +595,7 @@ async function run() {
     eVoteRows.length === 2 &&
     [...eDoc.querySelectorAll('#ratings .rrow')].length === 3);
   // Der Name kommt aus dem Eintrag, nicht aus der Antwort des Endpunkts --
-  // zwei Quellen fuer denselben Namen waeren zwei Wahrheiten.
+// zwei Quellen fuer denselben Namen waeren zwei Wahrheiten.
   check('Jede Zeile traegt den Namen ihres Kriteriums',
     equal(eVoteRows.map(z => z.querySelector('.rname')?.textContent), ['Zuerst', 'Dann']),
     JSON.stringify(eVoteRows.map(z => z.querySelector('.rname')?.textContent)));
@@ -696,11 +608,7 @@ async function run() {
   check('Die eigene Stimme ist gekennzeichnet',
     eVoteRows[0]?.querySelectorAll('.rvote.mine').length === 1,
     `${eVoteRows[0]?.querySelectorAll('.rvote.mine').length}`);
-  /* Das ✕ steht am FREMDEN Wert. Am eigenen nicht: dafuer gibt es die Sterne
-     und den Ruecksetzer, und zwei Wege fuer dieselbe Absicht waeren einer zu
-     viel. Eine Rollenfrage steht hier NICHT mehr daneben -- den Dialog
-     bekommt ohnehin nur der Admin zu sehen, und eine zweite Klemme darin
-     liesse sich nicht gegenpruefen. */
+  /* Das ✕ steht am FREMDEN Wert. */
   check('An jeder fremden Stimme steht ein ✕',
     eVoteRows[0]?.querySelectorAll('.rvote .xdel').length === 4,
     `${eVoteRows[0]?.querySelectorAll('.rvote .xdel').length}`);
@@ -710,11 +618,7 @@ async function run() {
     !/deleted-4/.test(eView?.textContent || ''), eView?.textContent);
 
   /* --- Und jetzt wirklich draufdruecken ---------------------------------
-     Ein gebauter DOM zeigt nicht, was beim Klicken passiert. Das Ereignis
-     wird zugestellt, das Modal bestaetigt, danach durch der Event Loop
-     -- und erst dann wird nachgesehen, was der Server bekommen hat.
-     Die Rueckfrage liegt hier UEBER dem Dialog: zwei .backdrop
-     uebereinander, und der zweite ist der juengere. */
+     Ein gebauter DOM zeigt nicht, was beim Klicken passiert. */
   const eX = eVoteRows[0]?.querySelectorAll('.rvote .xdel')[0];
   if (eX) {
     eX.dispatchEvent(new eMore.w.MouseEvent('click', { bubbles: true }));
@@ -732,18 +636,13 @@ async function run() {
   const eRemoved = eMore.sent.filter(x => x.method === 'DELETE' && /^\/api\/ratings\//.test(x.url)).pop();
   check('Der Klick entfernt wirklich genau diese Bewertung',
     eRemoved?.url === '/api/ratings/502', JSON.stringify(eRemoved));
-  /* Und die Ansicht zeichnet sich danach neu. Ohne diese Pruefung waere ein
-     stehengebliebener Stand von einem neu gezeichneten nicht zu
-     unterscheiden -- der Mock nimmt die Stimme deshalb wirklich aus
-     seiner Antwort. */
+  /* Und die Ansicht zeichnet sich danach neu. */
   check('Danach holt sie die Liste neu und zeigt die Stimme nicht mehr',
     eMore.sent.filter(x => x.url === '/api/items/1/votes').length === 2 &&
     ![...eDoc.querySelectorAll('.backdrop .rvote')]
       .some(z => /bert 4/.test(z.textContent)),
     JSON.stringify([...eDoc.querySelectorAll('.backdrop .rvote')].map(z => z.textContent)));
-  /* Zwei Dialoge uebereinander, und eine Taste nimmt nur den obersten weg.
-     Ohne diese Frage schluesse dieselbe Taste die Ansicht gleich mit -- der
-     Admin haette abgebrochen und staende wieder am Eintrag. */
+  /* Zwei Dialoge uebereinander, und eine Taste nimmt nur den obersten weg. */
   const eKreuz2 = [...eDoc.querySelectorAll('.backdrop .rvote .xdel')][0];
   const eVorCancel = eMore.sent.length;
   if (eKreuz2) {
@@ -767,8 +666,7 @@ async function run() {
     `${eDoc.querySelectorAll('.backdrop').length} Dialoge`);
 
   /* Ohne Adminrolle gibt es den Aufruf ueberhaupt nicht -- der erste Teil der
-     Bedingung. Die zweite Haelfte (ein einziger Zugang) steht weiter oben an
-     eSingle; ohne beide Lagen bliebe eine der beiden ungeprueft. */
+     Bedingung. */
   const eNoAdmin = buildDom(JSDOM, { hash: '#/item/1',
     settings: { filters: null, userCount: 3, isAdmin: false } });
   await new Promise(r => setTimeout(r, 80));
@@ -778,9 +676,7 @@ async function run() {
     eNoAdmin.w.document.getElementById('rwho') === null &&
     eNoAdmin.w.document.querySelector('#ratings .rrow .rreset') !== null,
     'rwho steht im Blockkopf');
-  // Und die Stimmen werden auch nicht abgerufen. Der Server verweigert es
-  // ohnehin -- aber ein Abruf, der zuverlaessig ein 403 erzeugt, waere genau
-  // die Falle aus 0.8.5: sechs Abrufe in einem Promise.all.
+  // Und die Stimmen werden auch nicht abgerufen.
   check('Und die Stimmen werden gar nicht erst abgerufen',
     !eNoAdmin.sent.some(x => /\/stimmen$/.test(x.url)),
     JSON.stringify(eNoAdmin.sent.map(x => x.url)));
@@ -799,15 +695,13 @@ async function run() {
     JSON.stringify(eMore.sent.slice(-3)));
   const eDialog = eDoc.querySelector('.backdrop .modal p')?.textContent || '';
   /* UMGESTELLT MIT 0.8.30, nicht geloescht: bis 0.8.20 stand hier "8 Links"
-     im ersten Satz. Ein Link kann seit dieser Fassung fremd sein und gehoert
-     damit zu den Beitraegen, nicht zum Eintrag. */
+     im ersten Satz. */
   check('Der Dialog nennt, was am Eintrag selbst haengt',
     /Dabei gehen 1 Foto mit/.test(eDialog), eDialog);
   /* SEIT 0.8.70 IST DER SCHLUSSSATZ EIN ANDERER, und das ist die einzige
      Aenderung dieser Runde an etwas, das taeglich benutzt wird: mit dem
      Papierkorb ist das Loeschen nicht mehr unwiderruflich, und ein Dialog,
-     der es weiter behauptete, sagte etwas Falsches. Die Zahlen bleiben --
-     sie sind die eigentliche Auskunft. */
+     der es weiter behauptete, sagte etwas Falsches. */
   check('Sein Schlusssatz nennt den Papierkorb samt Frist',
     /landet für 30 Tage im Papierkorb/.test(eDialog), eDialog);
   check('Und wer wiederherstellen darf',
@@ -828,11 +722,9 @@ async function run() {
   await new Promise(r => setTimeout(r, 20));
   eMore.w.close();
 
-  /* --- Das Anlegefeld im Systembereich, mit zugestelltem Ereignis ---
-     Beide Lagen bekommen DIESELBEN zwei Tags: nur so laesst sich das Muster
-     der Karte an beiden Rollen nebeneinander pruefen. Eine leere Liste zeigt
-     "Noch nichts angelegt" -- und eine Pruefung auf fehlende Bedienzeichen
-     bliebe daran gruen, ohne je etwas zu belegen (Stolperstein 81). */
+  /* --- Das Anlegefeld im Systembereich, mit zugestelltem Ereignis --- Beide
+     Lagen bekommen DIESELBEN zwei Tags: nur so laesst sich das Muster der
+     Karte an beiden Rollen nebeneinander pruefen. */
   const eSysTags = [
     { id: 21, name: 'Alu', usage_count: 3, test_usage_count: 1 },
     { id: 22, name: 'Stahl', usage_count: 1, test_usage_count: 0 }
@@ -847,8 +739,7 @@ async function run() {
     [...eSys.w.document.querySelectorAll('#mcrits .mrow')]
       .every(z => z.querySelector('.grip') && z.querySelector('.ed') && z.querySelector('.rm')));
   // Das Gegenstueck zur umgedrehten Pruefung weiter unten: MIT Adminrolle
-  // stehen die Zeichen an Tags und Kategorien sehr wohl da. Ohne diese Zeile
-  // waere "keine Zeichen" von "gar keine Zeilen" nicht zu unterscheiden.
+  // stehen die Zeichen an Tags und Kategorien sehr wohl da.
   check('Und die Tagzeilen tragen mit Adminrolle ✎ und ✕',
     [...eSys.w.document.querySelectorAll('#mtags .mrow')].length === 2 &&
     [...eSys.w.document.querySelectorAll('#mtags .mrow')]
@@ -857,7 +748,7 @@ async function run() {
   if (eField) {
     eField.value = 'Verpackung';
     // Wirklich zugestellt, nicht von Hand gerufen -- und danach durch die
-    // Event Loop.
+// Event Loop.
     eSys.w.document.getElementById('newcrit-b')
       .dispatchEvent(new eSys.w.MouseEvent('click', { bubbles: true }));
     await new Promise(r => setTimeout(r, 40));
@@ -868,11 +759,9 @@ async function run() {
   check('Und das Feld ist danach wieder leer', eField?.value === '', JSON.stringify(eField?.value));
   eSys.w.close();
 
-  /* --- Und dasselbe fuer einen ohne Adminrolle ---
-     isOwner MUSS hier mit auf false: die Rollen sind eine LEITER, ein
-     Eigentuemer ohne Adminrecht kann es gar nicht geben. Bliebe das Feld auf
-     seiner Vorgabe true, baute die Prueflage eine Lage nach, die der Server
-     nie ausliefert -- und pruefte den Systembereich gegen sie. */
+  /* --- Und dasselbe fuer einen ohne Adminrolle --- isOwner MUSS hier mit auf
+     false: die Rollen sind eine LEITER, ein Eigentuemer ohne Adminrecht kann
+     es gar nicht geben. */
   const eSysUser = buildDom(JSDOM, { tags: eSysTags,
     settings: { filters: null, userCount: 3,
       isAdmin: false, isOwner: false } });
@@ -881,7 +770,7 @@ async function run() {
   check('Ohne Adminrolle gibt es kein Anlegefeld',
     !eSysUser.w.document.getElementById('newcrit'));
   // Der Server verweigert es ohnehin. Ein Knopf, der nur eine Fehlermeldung
-  // erzeugt, sieht aber aus wie ein Fehler -- deshalb steht er gar nicht da.
+// erzeugt, sieht aber aus wie ein Fehler -- deshalb steht er gar nicht da.
   check('Und die Zeilen tragen weder Griff noch ✎ noch ✕',
     [...eSysUser.w.document.querySelectorAll('#mcrits .mrow')].length === 3 &&
     ![...eSysUser.w.document.querySelectorAll('#mcrits .mrow')]
@@ -891,9 +780,7 @@ async function run() {
     /Zuerst/.test(eSysUser.w.document.getElementById('mcrits')?.textContent || ''));
   /* UMGEDREHT SEIT 0.8.5, nicht geloescht (Stolperstein 74): bis 0.8.4 hiess
      die Prueflage "Tags und Kategorien bleiben unangetastet bedienbar" -- die
-     Klemme galt nur den Kriterien. Seit 0.8.5 tragen alle drei Karten
-     dasselbe Muster: Zeilen sichtbar, Bedienzeichen weg. Umbenennen und
-     Loeschen stehen an allen dreien hinter nurAdmin. */
+     Klemme galt nur den Kriterien. */
   check('Tags und Kategorien tragen seit 0.8.5 dasselbe Muster',
     [...eSysUser.w.document.querySelectorAll('#mtags .mrow')].length > 0 &&
     ![...eSysUser.w.document.querySelectorAll('#mtags .mrow')]
@@ -909,24 +796,19 @@ async function run() {
   /* --- Die Karte "Zugaenge" -----------------------------------------------
      Was die Karte anbietet, muss genau das sein, was der Server auch
      durchliesse -- ein Knopf, der zuverlaessig eine Fehlermeldung erzeugt,
-     sieht aus wie ein Fehler. Dieselbe Ueberlegung wie bei den Kriterien,
-     nur mit drei Lagen statt zweien. */
+     sieht aus wie ein Fehler. */
   const gvEig = buildDom(JSDOM, { settings: { filters: null, userCount: 4,
     isAdmin: true, isOwner: true } });
   await new Promise(r => setTimeout(r, 60));
   await sysSection(gvEig.w, 'users');
   const gvRows = [...gvEig.w.document.querySelectorAll('#musers .mrow')];
   /* DREI ZEILEN SEIT 0.13.0, VORHER VIER: der Grabstein steht nicht mehr
-     zwischen den lebenden Zugaengen, sondern in einem eigenen Fenster. Die
-     Prueflage traegt ihn weiterhin -- er ist nur woanders zu sehen. */
+     zwischen den lebenden Zugaengen, sondern in einem eigenen Fenster. */
   check('Der Systembereich hat eine Karte fuer die Zugaenge', gvRows.length === 3,
     `${gvRows.length} Zeilen`);
   check('Der eigene Zugang ist als solcher gekennzeichnet',
     /\(du\)/.test(gvRows[0]?.textContent || ''), gvRows[0]?.textContent);
-  /* Der Grabstein zeigt die NUMMER, nicht den gespeicherten Namen. Das ist der
-     ganze Zweck der stehengebliebenen Zeile: die Beitraege bleiben sichtbar,
-     der Name ist weg. Er steht seit 0.13.0 im eigenen Fenster -- gepruefft
-     wird er dort (Gruppe "Gelöschte Zugänge im eigenen Fenster"). */
+  /* Der Grabstein zeigt die NUMMER, nicht den gespeicherten Namen. */
   const gvPath = gvEig.w.document.getElementById('zug-weg-auf');
   check('Der Grabstein steht nicht mehr in dieser Liste',
     !gvRows.some(z => /Gelöschter Benutzer 4/.test(z.textContent || '')),
@@ -966,9 +848,7 @@ async function run() {
     gvEig.w.document.getElementById('user-pass').value === '');
   gvEig.w.close();
 
-  /* Ein Admin OHNE Eigentuemerrecht. Ohne diese Lage waere nicht zu
-     unterscheiden, ob die Karte die Rollenwahl ueberhaupt an etwas festmacht
-     -- was im Pruefbestand immer wahr ist, ist ungeprueft. */
+  /* Ein Admin OHNE Eigentuemerrecht. */
   const gvAdm = buildDom(JSDOM, {
     settings: { filters: null, userCount: 4, isAdmin: true, isOwner: false },
     users: { ich: 2, mayRoles: false, owner: 1, users: [
@@ -1005,7 +885,7 @@ async function run() {
 
   /* --- Zeitleiste: eigene Punkte gefuellt, fremde als Ring --- */
   // Sechs Testtage, davon zwei fremde. Unter fuenf Punkten bleibt das Band
-  // ohnehin weg (ZEITLEISTE_AB).
+// ohnehin weg (ZEITLEISTE_AB).
   const eZlItems = Array.from({ length: 6 }, (_, i) => ({
     id: i + 1, title: 'S' + i, rejected: false, tested: true, favorite: false,
     category: null, tags: [], mainPhoto: null, photoCount: 0, linkCount: 0,
@@ -1100,9 +980,8 @@ async function run() {
   check('Eine andere Stufe wird gespeichert', lzSent?.body.linkRows === 3,
     JSON.stringify(lzSent?.body));
 
-  // Anbieterwahl in derselben Karte wie die Zeilenknoepfe -- beide
-  // betreffen die Linkliste. Dort steht
-  // eine Liste aus neun Plaetzen mit Haekchen und Startknopf.
+  // Anbieterwahl in derselben Karte wie die Zeilenknoepfe -- beide betreffen
+  // die Linkliste.
   const anbRows = [...sysZl.w.document.querySelectorAll('#engines .engine')];
   check('Die Verwaltungskarte zeigt alle neun Plätze', anbRows.length === 9, `${anbRows.length}`);
   check('Jede Zeile trägt Häkchen und Startknopf',
@@ -1115,7 +994,7 @@ async function run() {
     anbRows.find(z => z.querySelector('.sdefault')?.classList.contains('on'))?.dataset.k === 'startpage',
     anbRows.find(z => z.querySelector('.sdefault')?.classList.contains('on'))?.dataset.k);
   // Ein leerer Platz laesst sich weder anhaken noch zum Start machen -- er
-  // traegt niemanden, den man waehlen koennte.
+// traegt niemanden, den man waehlen koennte.
   const emptyRow = anbRows.find(z => z.dataset.k === 'eigen2');
   check('Ein leerer eigener Platz ist gesperrt',
     emptyRow?.querySelector('input[type=checkbox]')?.disabled === true &&
@@ -1123,8 +1002,6 @@ async function run() {
   check('Und zeigt einen Strich statt eines Namens',
     emptyRow?.querySelector('.engine-name')?.textContent === '—');
   // Der Name ist Eingabe des Admins und wird als Beschriftung gerendert.
-  // Geprueft wird die gerenderte Form, nicht textContent allein: spitze
-  // Klammern fallen textContent gar nicht auf.
   const ownRow = anbRows.find(z => z.dataset.k === 'eigen1');
   check('Ein Anbietername mit spitzen Klammern wird in der Karte maskiert',
     ownRow?.querySelector('.engine-name')?.textContent === 'Forum <b>X</b>' &&
@@ -1143,7 +1020,7 @@ async function run() {
     JSON.stringify(poolSent?.body.searchOn));
 
   // Der Startknopf setzt den Standard und nimmt zugleich in den Vorrat auf:
-  // ein Standard ausserhalb des Vorrats ist ein unmoeglicher Zustand.
+// ein Standard ausserhalb des Vorrats ist ein unmoeglicher Zustand.
   [...sysZl.w.document.querySelectorAll('#engines .engine')]
     .find(z => z.dataset.k === 'brave')?.querySelector('.sdefault')?.click();
   await new Promise(r => setTimeout(r, 30));
@@ -1203,7 +1080,7 @@ async function run() {
   inName.w.close();
 
   // Sind weniger im Vorrat als eingestellt, stehen weniger da -- keine leeren
-  // Plaetze und kein Auffuellen mit Anbietern, die niemand gewaehlt hat.
+// Plaetze und kein Auffuellen mit Anbietern, die niemand gewaehlt hat.
   const fewerActive = buildDom(JSDOM, { hash: '#/item/1', settings: { filters: null, searchNames: 4,
     searchProviders: DOM_PROVIDER.map(a => ({ ...a, active: a.key === 'startpage', isDefault: a.key === 'startpage' })) } });
   await new Promise(r => setTimeout(r, 60));
@@ -1214,8 +1091,6 @@ async function run() {
   fewerActive.w.close();
 
   // Zweite Schranke: die Vorlage kommt aus der Datenbank und ist Eingabe.
-  // Faellt sie durch, faellt DIESER Anbieter weg -- still einen anderen
-  // einzusetzen hiesse, woanders zu suchen, als die Zeile anschreibt.
   const sysBad = buildDom(JSDOM, { hash: '#/item/1', settings: { filters: null,
     searchProviders: DOM_PROVIDER.map(a => a.key === 'startpage'
       ? { ...a, template: 'javascript:alert(1)/*%s*/' } : a) } });
@@ -1269,13 +1144,7 @@ async function run() {
   check('Bei mehr als fünf gibt es einen Aufklappknopf', !!moreButton && !moreButton.hidden);
   check('Der Knopf nennt die Gesamtzahl', /alle 8/.test(moreButton.textContent), moreButton.textContent);
   /* UMGEDREHT MIT 0.8.6, nicht geloescht: bis 0.8.5 hiess die Prueflage
-     "Zugeklappt bleibt die Liste scrollbar". Ein eigener Bildlauf faengt auf
-     dem Finger die Wischbewegung ab -- wer die Seite herunterzieht und dabei
-     ueber die Liste kommt, scrollt ploetzlich nur noch die Liste. Der Weg zum
-     Rest ist der Knopf darunter, und den gibt es laengst.
-     Erst das Vorhandensein der Begrenzung, dann ihre Art: ohne den ersten Teil
-     bliebe die Pruefung auch dann gruen, wenn gar nichts begrenzt waere --
-     eine leere Angabe ist ja auch nicht 'auto' (Stolperstein 81). */
+     "Zugeklappt bleibt die Liste scrollbar". */
   check('Zugeklappt wird die Liste abgeschnitten, nicht scrollbar',
     wb.document.getElementById('links').style.maxHeight !== '' &&
     wb.document.getElementById('links').style.overflowY === 'hidden',
@@ -1288,7 +1157,7 @@ async function run() {
     wb.document.getElementById('links').style.maxHeight === '',
     wb.document.getElementById('links').style.maxHeight);
   // Und mit ihr die Abschneidung: aufgeklappt steht die Liste im Fluss der
-  // Seite, ohne jede eigene Angabe zum Ueberlauf.
+// Seite, ohne jede eigene Angabe zum Ueberlauf.
   check('Und die Abschneidung ebenso',
     wb.document.getElementById('links').style.overflowY === '',
     JSON.stringify(wb.document.getElementById('links').style.overflowY));
@@ -1299,7 +1168,7 @@ async function run() {
     wb.document.getElementById('links').style.maxHeight !== '');
 
   // Suchzeile: keine Adresse, deshalb Lupe statt Pfeil und der Anbieter unter
-  // dem Rohtext. Die Zeile muss ohne Ueberfahren erkennbar sein.
+// dem Rohtext. Die Zeile muss ohne Ueberfahren erkennbar sein.
   const allRows = [...wb.document.querySelectorAll('#links .lrow')];
   const searchRow = allRows[7];
   const linkZeile0 = allRows[0];
@@ -1309,9 +1178,7 @@ async function run() {
   check('Oben steht der Rohtext, unverändert',
     searchRow?.querySelector('.dom')?.textContent === 'Handbuch 3000',
     searchRow?.querySelector('.dom')?.textContent);
-  // Darunter stehen mehrere Anbieter, Standard zuerst. BEWUSST OHNE
-  // Vorspann "Suche · ": der erste Trenner bedeutete sonst etwas
-  // anderes als der zweite.
+  // Darunter stehen mehrere Anbieter, Standard zuerst.
   const anbNames = [...(searchRow?.querySelectorAll('.snames .sname') || [])];
   check('Darunter stehen die Anbieter des Vorrats', anbNames.length === 3, `${anbNames.length}`);
   check('Der Startanbieter steht vorn',
@@ -1326,9 +1193,7 @@ async function run() {
     (searchRow?.querySelector('.snames')?.textContent || '').split(' · ').length === 3,
     searchRow?.querySelector('.snames')?.textContent);
   // Der Anbietername ist Eingabe des Admins und die erste Stelle in der
-  // Linkliste, an der Eingabe als Beschriftung gerendert wird. Gebaut wird
-  // deshalb mit echten Knoten -- geprueft wird am gerenderten HTML, weil
-  // textContent eine fehlende Maskierung gar nicht bemerken wuerde.
+  // Linkliste, an der Eingabe als Beschriftung gerendert wird.
   check('Ein Anbietername mit spitzen Klammern bleibt Text',
     !searchRow?.querySelector('.snames b') &&
     /&lt;b&gt;/.test(searchRow?.querySelector('.snames')?.innerHTML || ''),
@@ -1349,13 +1214,12 @@ async function run() {
     /Suchbegriff/.test(searchRow?.querySelector('.xdel')?.getAttribute('title') || ''),
     searchRow?.querySelector('.xdel')?.getAttribute('title'));
   // Vorhanden ist nicht sichtbar. Die Einblendregel zaehlt
-  // die Zeilenarten einzeln auf -- .lrow steht darin, die Suchzeile ist eine.
+// die Zeilenarten einzeln auf -- .lrow steht darin, die Suchzeile ist eine.
   check('Die Suchzeile ist eine .lrow und damit von der Einblendregel erfasst',
     !!searchRow?.classList.contains('lrow'));
 
   // Der Klick auf eine Linkzeile laeuft ueber makeSortable, nicht ueber
-  // onclick -- deshalb echte Zeigerereignisse. Ohne Bewegung dazwischen gilt
-  // das Loslassen als Klick.
+  // onclick -- deshalb echte Zeigerereignisse.
   const typeInto = (el) => {
     if (!el) return;
     for (const kind of ['pointerdown', 'pointerup']) {
@@ -1381,7 +1245,7 @@ async function run() {
     targetSearch === 'https://beispiel.de/0', String(targetSearch));
 
   // Ein Klick auf einen Alternativnamen sucht bei genau diesem Anbieter --
-  // das ist der ganze Zweck der Namensliste.
+// das ist der ganze Zweck der Namensliste.
   targetSearch = null;
   anbNames[2]?.onclick?.({ stopPropagation: () => {} });
   await new Promise(r => setTimeout(r, 20));
@@ -1394,8 +1258,6 @@ async function run() {
     targetSearch === 'https://www.startpage.com/sp/search?query=Handbuch%203000', String(targetSearch));
 
   // Die Namen liegen IN der Zeile, die selbst Klickziel und Ziehgriff ist.
-  // Ohne Ausnahme im Sortierer loeste ein Namensklick zwei Dinge zugleich
-  // aus: ziehen und suchen.
   targetSearch = null;
   const namesType = (el) => {
     for (const kind of ['pointerdown', 'pointerup']) {
@@ -1428,11 +1290,7 @@ async function run() {
 
   /* DIE REGEL HAT ZWEI HAELFTEN, und beide brauchen ihre eigene Gegenlage
      (Stolperstein 72): gezeigt wird der Name nur bei MEHREREN Zugaengen UND
-     nur an einer Zeile, die NICHT vom Verfasser des Eintrags stammt.
-     Ein Rueckbau, der nur eine der beiden Bedingungen entfernt, faerbt sonst
-     dieselben Punkte wie einer, der beide entfernt.
-     Der Eintrag gehoert bert; chefin, der boese Name, der Grabstein und die
-     herrenlose Zeile sind ihm fremd. */
+     nur an einer Zeile, die NICHT vom Verfasser des Eintrags stammt. */
   const lvRows = (window) => [...window.document.querySelectorAll('#links .lrow')];
   const lvName = (z) => z?.querySelector('.lfrom')?.textContent || '';
 
@@ -1441,7 +1299,7 @@ async function run() {
   await new Promise(r => setTimeout(r, 80));
   const lvM = lvRows(lvMore.w);
   // Erst das Vorhandensein, dann die Eigenschaft: ohne Zeilen waere jede
-  // Aussage ueber sie wahr (Stolperstein 81).
+// Aussage ueber sie wahr (Stolperstein 81).
   check('Die Linkliste steht auch bei mehreren Zugaengen vollstaendig da',
     lvM.length === 8, `${lvM.length}`);
   check('An einer Zeile des Eintragsverfassers steht kein Name',
@@ -1457,11 +1315,7 @@ async function run() {
   check('Ein Grabstein erscheint mit seiner Nummer',
     lvName(lvM[7]) === '(Gelöschter Benutzer 4)', lvName(lvM[7]) || '(kein Name)');
 
-  /* EIN Zeichen fuer beide Zeilenarten, und es ist die Klammer. Ein Trennzeichen
-     davor waere an beiden falsch: in der Suchzeile bedeutet " · " bereits "noch
-     ein Anbieter, anklickbar", und ein Strich sieht aus wie ein abgerissener
-     Satz. Geprueft wird an BEIDEN Zeilenarten -- eine Regel, die nur an einer
-     gilt, ist keine. */
+  /* EIN Zeichen fuer beide Zeilenarten, und es ist die Klammer. */
   check('Der Name steht in Klammern, an der Adresszeile',
     /^\(.+\)$/.test(lvName(lvM[5])), lvName(lvM[5]));
   check('Und an der Suchzeile genauso',
@@ -1484,18 +1338,13 @@ async function run() {
   check('Der Ueberfahrtext nennt Eintrager und Datum',
     /Eingetragen von chefin am \d\d\.\d\d\.\d{4}/.test(lvM[5].title), lvM[5].title);
   /* Und der bisherige Ueberfahrtext bleibt davor stehen -- er sagt, was ein
-     Klick tut, und das ist die wichtigere Auskunft. Bewusst OHNE das
-     Trennzeichen geprueft: sonst faerbt ein Rueckbau, der nur das Datum
-     entfernt, diese Zeile mit, und zwei Gegenproben, die dieselben Namen rot
-     machen, pruefen dieselbe Sache (Stolperstein 72). */
+     Klick tut, und das ist die wichtigere Auskunft. */
   check('Und was die Zeile sonst tut, steht weiterhin davor',
     lvM[5].title.startsWith('https://beispiel.de/5'), lvM[5].title);
   check('An einer eigenen Zeile steht davon nichts',
     !/Eingetragen von/.test(lvM[0].title), lvM[0].title);
 
-  /* Ein Benutzername ist Eingabe, keine Konstante. Geprueft am gerenderten
-     HTML, nicht an textContent -- eine fehlende Maskierung faellt textContent
-     gar nicht auf. */
+  /* Ein Benutzername ist Eingabe, keine Konstante. */
   check('Aus einem Verfassernamen mit spitzen Klammern wird kein HTML',
     !lvMore.w.document.getElementById('boese-link') &&
     lvName(lvM[4]).includes('<b id="boese-link">X</b>'),
@@ -1505,17 +1354,14 @@ async function run() {
   check('Die Klammern stehen auch dort aussen',
     /^\(.*\)$/.test(lvName(lvM[4])), lvName(lvM[4]));
 
-  /* DAS LOESCHKREUZ FOLGT DEM RECHT, NICHT DER ANZEIGE. Hier ist die Fragende
-     Admin: sie darf jede Zeile loeschen, auch die, an der ihr Name gar nicht
-     steht. */
+  /* DAS LOESCHKREUZ FOLGT DEM RECHT, NICHT DER ANZEIGE. */
   check('Der Admin sieht an jeder Zeile ein Loeschkreuz',
     lvM.every(z => !!z.querySelector('.xdel')),
     `${lvM.filter(z => !!z.querySelector('.xdel')).length} von ${lvM.length}`);
   lvMore.w.close();
 
   /* Die erste Gegenlage: EIN Zugang. "Von mir" ist keine Auskunft, und die
-     Schwelle steht in mehrereBenutzer() und nirgends sonst. Dieselben acht
-     Zeilen, dieselben Verfasser -- nur die Zahl ist eine andere. */
+     Schwelle steht in mehrereBenutzer() und nirgends sonst. */
   const lvOne = buildDom(JSDOM, { hash: '#/item/1',
     settings: { filters: null, userCount: 1 } });
   await new Promise(r => setTimeout(r, 80));
@@ -1534,9 +1380,7 @@ async function run() {
     `${lvE.filter(z => !!z.querySelector('.xdel')).length} von ${lvE.length}`);
   lvOne.w.close();
 
-  /* Die zweite Gegenlage: mehrere Zugaenge, aber ohne Adminrolle. Jetzt
-     trennen sich Anzeige und Recht sichtbar -- an der Grabsteinzeile steht ein
-     Name und kein Kreuz. */
+  /* Die zweite Gegenlage: mehrere Zugaenge, aber ohne Adminrolle. */
   const lvUser = buildDom(JSDOM, { hash: '#/item/1',
     settings: { filters: null, userCount: 3, isAdmin: false } });
   await new Promise(r => setTimeout(r, 80));
@@ -1548,25 +1392,21 @@ async function run() {
     !!lvU[7].querySelector('.lfrom') && !lvU[7].querySelector('.xdel'),
     `${lvName(lvU[7])} / ${!!lvU[7].querySelector('.xdel')}`);
   // Und die Zeile bleibt im Uebrigen vollstaendig -- ein fehlendes Kreuz darf
-  // nicht den Aufbau der Liste mitreissen.
+// nicht den Aufbau der Liste mitreissen.
   check('Die Zeilen ohne Kreuz sind sonst unversehrt',
     lvU.length === 8 && lvU.every(z => !!z.querySelector('.lurl') && !!z.querySelector('.go')),
     `${lvU.length}`);
   lvUser.w.close();
 
   /* Und die Regel steht wirklich im Stylesheet: ohne die Aufteilung der
-     zweiten Zeile frisst ein langer Pfad den Namen weg. Erst das Vorhandensein
-     der Regel, dann ihre Eigenschaft (Stolperstein 81). */
+     zweiten Zeile frisst ein langer Pfad den Namen weg. */
   const cssL = fs.readFileSync(path.join(__dirname, 'public', 'style.css'), 'utf8').replace(/\s+/g, ' ');
   const ruleL = (choice) => (cssL.match(new RegExp(choice.replace(/[.>]/g, m => '\\' + m) + ' \\{[^}]*\\}')) || [''])[0];
   check('Die zweite Zeile der Linkzeile ist im Stylesheet ueberhaupt geregelt',
     ruleL('.lbottom').length > 0, '(keine Regel .lbottom)');
   check('Sie stellt Pfad und Namen nebeneinander',
     /display: flex/.test(ruleL('.lbottom')), ruleL('.lbottom') || '(keine Regel)');
-  /* `0 1 auto` und nicht `1 1 auto`: der Pfad nimmt sich nur, was er braucht.
-     Waechst er auf die volle Breite, schiebt er den Namen ans rechte Ende der
-     Zeile, wo er zu nichts mehr gehoert -- genau das war der Befund aus dem
-     Betrieb. Schrumpfen darf er weiterhin. */
+  /* `0 1 auto` und nicht `1 1 auto`: der Pfad nimmt sich nur, was er braucht. */
   check('Der Pfad nimmt sich nur, was er braucht, und darf schrumpfen',
     /flex: 0 1 auto/.test(ruleL('.lbottom .path, .lbottom .snames')),
     ruleL('.lbottom .path, .lbottom .snames') || '(keine Regel)');
@@ -1579,8 +1419,7 @@ async function run() {
 
   /* DIESELBE REGEL WIE AN DER LINKZEILE, und sie bekommt hier ihre eigenen
      Gegenlagen -- eine Regel, die an einer Stelle geprueft ist und an der
-     zweiten nur behauptet, ist an der zweiten ungeprueft.
-     Der Eintrag gehoert bert; chefin und die herrenlose Zeile sind ihm fremd. */
+     zweiten nur behauptet, ist an der zweiten ungeprueft. */
   const avRows = (window) => [...window.document.querySelectorAll('#atts .arow')];
   const avName = (z) => z?.querySelector('.afrom')?.textContent || '';
 
@@ -1597,9 +1436,8 @@ async function run() {
     avName(avM[2]) === '(chefin)', avName(avM[2]) || '(kein Name)');
   check('Eine herrenlose Datei nennt ausdruecklich keinen Verfasser',
     avName(avM[3]) === '(Ohne Verfasser)', avName(avM[3]) || '(kein Name)');
-  /* Der Name steht bei den Angaben ZUR Datei, also hinter der Groesse -- nicht
-     hinter dem Dateinamen. Der Name der Datei ist die Hauptsache der Zeile und
-     darf nicht schrumpfen, um Platz fuer eine Nebenangabe zu machen. */
+  /* Der Name steht bei den Angaben ZUR Datei, also hinter der Groesse --
+     nicht hinter dem Dateinamen. */
   check('Er steht hinter der Groesse, nicht hinter dem Dateinamen',
     !!avM[2].querySelector('.asize + .afrom'),
     avM[2].innerHTML.slice(0, 200));
@@ -1630,7 +1468,7 @@ async function run() {
   avOne.w.close();
 
   // Zweite Gegenlage: mehrere Zugaenge ohne Adminrolle -- Anzeige und Recht
-  // trennen sich sichtbar.
+// trennen sich sichtbar.
   const avUser = buildDom(JSDOM, { hash: '#/item/1',
     settings: { filters: null, userCount: 3, isAdmin: false } });
   await new Promise(r => setTimeout(r, 80));
@@ -1758,9 +1596,9 @@ async function run() {
            ['Angepinnte Notiz', 'Ein Bericht', 'Gewöhnliche Notiz']));
 
   // Maskierung des Kommentartextes, mit eigener Pruefung: die
-  // Reihenfolgepruefung liest mit textContent aus, und stuende in
-  // keinem der Pruefkommentare eine spitze Klammer, bliebe ein Rueckbau des
-  // esc() vollstaendig gruen.
+  // Reihenfolgepruefung liest mit textContent aus, und stuende in keinem der
+  // Pruefkommentare eine spitze Klammer, bliebe ein Rueckbau des esc()
+  // vollstaendig gruen.
   const rawText = example.comments[3].text;
   const kBody = kmts[3]?.querySelector('.cmt-body');
   check('Der Kommentartext steht Zeichen für Zeichen so da, wie er gespeichert ist',
@@ -1775,12 +1613,8 @@ async function run() {
   check('Angepinntes ist optisch erkennbar',
     kmts[0].classList.contains('pinned') && !kmts[1].classList.contains('pinned'));
 
-  /* --- 0.12.3: der Sprungknopf im Blockkopf ---
-     DAS FORMULAR SITZT UNTER DER LISTE, und bei vierzig Kommentaren ist der
-     Weg dorthin weit. Der Knopf springt hin -- er baut ausdruecklich KEIN
-     zweites Formular: das vorhandene traegt Bilder-Einfuegen, Anpinnen,
-     Art-Umschalter und Mitwachsen, und ein zweites davon waeren zwei
-     Wahrheiten ueber dasselbe Formular. */
+  /* --- 0.12.3: der Sprungknopf im Blockkopf --- DAS FORMULAR SITZT UNTER DER
+     LISTE, und bei vierzig Kommentaren ist der Weg dorthin weit. */
   const cjHead = wb.document.getElementById('cjump');
   check('Im Blockkopf der Kommentare steht ein Sprungknopf',
     !!cjHead, wb.document.querySelector('[data-block="kommentare"] .block-head')?.innerHTML.slice(0, 200));
@@ -1788,17 +1622,15 @@ async function run() {
     !!cjHead && cjHead.closest('.block-head') === wb.document.getElementById('ccount')?.closest('.block-head'),
     cjHead?.closest('.block-head')?.className);
   /* ALS BUTTON UND NICHT ALS VERWEIS: kopf.onclick nimmt jeden Klick auf ein
-     `button` aus, und ohne das klappte der Sprung den Block im selben
-     Atemzug ein. */
+     `button` aus, und ohne das klappte der Sprung den Block im selben Atemzug
+     ein. */
   check('Er ist ein Knopf — sonst klappte der Klick den Block gleich mit ein',
     cjHead?.tagName === 'BUTTON', cjHead?.tagName);
   check('Es entsteht dabei kein zweites Schreibfeld',
     wb.document.querySelectorAll('#ctext').length === 1,
     String(wb.document.querySelectorAll('#ctext').length));
   {
-    /* Der Klick fuehrt wirklich ans Feld. scrollIntoView gibt es in jsdom
-       nicht -- es wird gestellt und dabei gezaehlt, sonst risse der Klick den
-       Lauf ab und die Pruefung sagte nichts (Stolperstein 138). */
+    /* Der Klick fuehrt wirklich ans Feld. */
     const field = wb.document.getElementById('ctext');
     let scrolled = 0;
     field.scrollIntoView = () => { scrolled++; };
@@ -1811,11 +1643,7 @@ async function run() {
     check('Der Block bleibt dabei offen',
       !field.closest('.block').classList.contains('closed'), field.closest('.block').className);
 
-    /* UND DERSELBE KLICK AM EINGEKLAPPTEN BLOCK. Ohne diese Lage belegte die
-       Zeile darueber nichts: der Block war in der Prueflage ohnehin offen, und
-       ein Rueckbau, der das Aufklappen herausnimmt, blieb dabei stumm
-       (Gegenprobe 182). Ein eingeklappter Block stellt seine Kinder auf
-       display: none -- ein Sprung auf ein unsichtbares Feld landete irgendwo. */
+    /* UND DERSELBE KLICK AM EINGEKLAPPTEN BLOCK. */
     const cjBlock = field.closest('.block');
     wb.document.querySelector('[data-block="kommentare"] .block-head')
       .onclick({ target: wb.document.querySelector('[data-block="kommentare"] .label') });
@@ -1834,11 +1662,7 @@ async function run() {
   check('Beides ist unterscheidbar, nicht dasselbe',
     kmts[0].className !== kmts[1].className);
 
-  // Die drei Prüfungen darüber sehen nur die Klassennamen. Ob die im
-  // Stylesheet überhaupt etwas bewirken, bemerken sie nicht: ein
-  // ersatzloses Löschen beider Regeln bliebe dort vollständig grün,
-  // obwohl alle vier Zustände danach gleich aussähen -- vorhanden, benannt
-  // und unsichtbar.
+  // Die drei Prüfungen darüber sehen nur die Klassennamen.
   const cssM = fs.readFileSync(path.join(__dirname, 'public', 'style.css'), 'utf8').replace(/\s+/g, ' ');
   const ruleM = (choice) => (cssM.match(new RegExp(choice.replace(/\./g, '\\.') + ' \\{[^}]*\\}')) || [''])[0];
   check('Die Art wird an der linken Kante markiert, in Orange',
@@ -1848,26 +1672,14 @@ async function run() {
     /[a-z-]+:/.test(ruleM('.cmt.pinned')), ruleM('.cmt.pinned') || '(keine Regel)');
 
   // Im Einzelnen: die beiden Kanäle dürfen sich nicht überschneiden,
-  // sonst sind nicht mehr alle vier Zustände unterscheidbar.
+// sonst sind nicht mehr alle vier Zustände unterscheidbar.
   check('Es gibt ein gedämpftes Gold als eigene Farbe',
     // SEIT 0.23.0 STEHT DIE FARBE ALS TRIPEL: `rgba(var(--gold-rgb), .52)`.
-    // Geprueft wird beides -- dass --gold-line das GOLD-Tripel nimmt und nicht
-    // irgendeines, und dass das Tripel wirklich Gold ist. Sonst belegte die
-    // Zeile nur noch, dass irgendwo eine Klammer steht.
     /--gold-line: rgba\(var\(--gold-rgb\),\s*\.\d+\)/.test(cssM)
       && /--gold-rgb: *255,\s*197,\s*49/.test(cssM),
     (cssM.match(/--gold-line:[^;]*/) || ['(nicht gesetzt)'])[0]);
   /* DIESE DREI ZEILEN HABEN BIS 0.13.2 DIE ZURUECKGENOMMENE ENTSCHEIDUNG
-     FESTGEHALTEN, und das ist der eigentliche Befund jener Runde. Sie
-     stammen aus 0.12.0 und verlangten woertlich: die Anpinnung faerbt
-     "oben, rechts und unten", und "die linke Kante bleibt der Art
-     vorbehalten" -- letzteres sogar als Verbot von `border-color:`.
-     0.12.3 HAT DIESE ENTSCHEIDUNG UMGEDREHT ("kein Kasten traegt zwei
-     Farben; bei der Notiz wird der ganze Rahmen golden"), den Prüfstand
-     aber nicht mitgenommen. Die alten Zeilen blieben gruen, weil die
-     Umsetzung ihren Rest behalten hatte -- die linke Kante der angepinnten
-     Notiz blieb grau. DER PRUEFSTAND HAT DEN FEHLER NICHT UEBERSEHEN, ER
-     HAT IHN VERLANGT (Stolperstein 201). */
+     FESTGEHALTEN, und das ist der eigentliche Befund jener Runde. */
   check('Die Anpinnung faerbt alle vier Kanten',
     /border-color: var\(--gold-line\)/.test(ruleM('.cmt.pinned'))
     || ['top', 'right', 'bottom', 'left']
@@ -1913,10 +1725,7 @@ async function run() {
     ruleM('.cmt.done') || '(keine Regel)');
   check('Grün ist als Farbe hinterlegt',
     /--green: #[0-9a-f]{6}/i.test(cssM), (cssM.match(/--green:[^;]*/) || ['(nicht gesetzt)'])[0]);
-  // Keine Farbe zweimal erklaeren. Eine zweite Deklaration im selben :root
-  // ist still: die spaetere gewinnt, und je nach Reihenfolge faerbt man damit
-  // unbemerkt die halbe Oberflaeche um -- --green gibt es laengst fuer die
-  // Getestet-Marke und den besten Wert im Vergleich.
+  // Keine Farbe zweimal erklaeren.
   const root = (cssM.match(/:root \{[^}]*\}/) || [''])[0];
   const names = (root.match(/--[a-z0-9-]+(?=:)/g) || []);
   const twice = names.filter((n, i) => names.indexOf(n) !== i);
@@ -1946,18 +1755,12 @@ async function run() {
     buttons(5).aufg.textContent === 'Erledigt' &&
     buttons(5).aufg.classList.contains('done'),
     `${buttons(5).aufg.textContent} | ${buttons(5).aufg.className}`);
-  /* Der Knopf traegt die Farbe der Kante, die er setzt. Bis 0.8.2 fiel der
-     eingeschaltete, noch offene Aufgabenknopf auf .mark.on zurueck und wurde
-     orange -- neben einer blauen Kante. Beide Zustaende stehen hier
-     nebeneinander: eine Pruefung nur auf Blau liesse offen, ob dabei das
-     Gruen des erledigten Todos mit umgefaerbt wurde. */
+  /* Der Knopf traegt die Farbe der Kante, die er setzt. */
   check('Der eingeschaltete Aufgabenknopf trägt Blau wie seine Kante',
     /color: var\(--blue\)/.test(ruleM('.mark.task.on')) &&
     /border-color: var\(--blue\)/.test(ruleM('.mark.task.on')),
     ruleM('.mark.task.on') || '(keine Regel)');
-  // Die Regel muss DA SEIN und darf nicht orange sein. Ohne den ersten Teil
-  // waere die Pruefung bei fehlender Regel gruen -- sie kann dann gar nicht
-  // scheitern, und die Gegenprobe belegte nichts.
+  // Die Regel muss DA SEIN und darf nicht orange sein.
   check('Und ausdrücklich nicht mehr Orange',
     !!ruleM('.mark.task.on') && !/var\(--accent\)/.test(ruleM('.mark.task.on')),
     ruleM('.mark.task.on') || '(keine Regel)');
@@ -1965,7 +1768,7 @@ async function run() {
     /color: var\(--green\)/.test(ruleM('.mark.task.on.done')),
     ruleM('.mark.task.on.done') || '(keine Regel)');
   // Orange bleibt die Farbe der uebrigen Marken -- die Klarstellung nimmt
-  // "Orange ist Art und Bedienung" nicht zurueck, sie beschneidet sie.
+// "Orange ist Art und Bedienung" nicht zurueck, sie beschneidet sie.
   check('Die übrigen Marken bleiben orange',
     /color: var\(--accent\)/.test(ruleM('.mark.on')),
     ruleM('.mark.on') || '(keine Regel)');
@@ -1975,7 +1778,7 @@ async function run() {
     !buttons(2).kind.classList.contains('on') && !buttons(2).aufg.classList.contains('on'));
 
   // Die Art ist ein Wert, keine zwei Merkmale: der Aufgabenknopf an einem
-  // Bericht macht daraus eine Aufgabe -- nicht beides zugleich.
+// Bericht macht daraus eine Aufgabe -- nicht beides zugleich.
   const lastKind = () => bd.sent.filter(x => x.body && x.body.kind !== undefined).pop();
   bd.sent.length = 0;
   buttons(1).aufg.onclick();
@@ -1991,9 +1794,7 @@ async function run() {
   bd.sent.length = 0;
 
   // Die ganze Abfolge, nicht nur ein Schritt: Notiz -> Aufgabe -> erledigt ->
-  // Notiz. Bei drei Zustaenden zeigt ein einzelner Schritt noch keine Ordnung.
-  // Fehlt die Funktion, muss das ein roter Punkt werden und darf den Lauf nicht
-  // abbrechen -- ein Absturz sagt nicht, welche Pruefung betroffen ist.
+  // Notiz.
   const next = (k) => { try { return wb.taskMore(k); } catch { return '(fehlt)'; } };
   check('Die Weiterschaltung läuft im Kreis',
     equal(['note', 'task', 'done'].map(next), ['task', 'done', 'note']),
@@ -2005,13 +1806,8 @@ async function run() {
 
   check('Markierungen stehen links in der Kopfzeile',
     kmts.every(k => k.querySelector('.cmt-head .marks')));
-  /* UMGEDREHT STATT GELOESCHT (Stolperstein 74). Bis 0.8.2 standen ✎ und ✕
-     an jedem Kommentar, gleich wem er gehoerte. Seit 0.8.3 bearbeitet nur der
-     Verfasser -- auch der Admin nicht. Dieser Aufbau ist ein Admin (ADMIN
-     bleibt bei der Vorgabe true) und Zugang 1: er darf ueberall loeschen,
-     aber nur seine eigenen drei Kommentare bearbeiten. Beide Haelften stehen
-     in EINER Pruefung, weil sonst die eine gruen bliebe, waehrend die andere
-     alles wegnimmt. */
+  /* UMGEDREHT STATT GELOESCHT (Stolperstein 74). Bis 0.8.2 standen ✎ und ✕ an
+     jedem Kommentar, gleich wem er gehoerte. */
   check('Bearbeiten steht nur am eigenen Kommentar, Löschen an jedem',
     kmts.filter(k => k.querySelector('.cmt-head .acts .ed')).length === 3 &&
     kmts.every(k => k.querySelector('.cmt-head .acts .rm')),
@@ -2059,16 +1855,10 @@ async function run() {
   /* --- Der Eingriffsvermerk am Kommentar --------------------------------
      Eine EIGENE Angabe in der Kopfzeile, nie im Textfeld -- ein Admin, der in
      eine fremde Aussage hineinschriebe, taete genau das, was ihm verwehrt
-     ist. Zwei Kommentare tragen ihn mit VERSCHIEDENEN Zahlen: gleiche liessen
-     nicht sehen, ob die Angabe ihre eigene Zeile trifft, und die Mehrzahl
-     bliebe ungeprueft. */
+     ist. */
   const notes = [...wb.document.querySelectorAll('#cmts .cmt-head .cmt-edited')]
     .map(z => z.textContent);
-  /* DER VERMERK NENNT DIE ROLLE. "vom Admin" steht in keiner Spalte: es folgt
-     aus den beiden Klemmen an der Loeschroute (siehe den Waechter ueber den
-     Quelltext). Kein Name, kein Zeitpunkt, keine Kette -- eine Rolle ist keine
-     Person. Zwei Kommentare mit VERSCHIEDENEN Zahlen, damit Ein- und Mehrzahl
-     nebeneinander stehen. */
+  /* DER VERMERK NENNT DIE ROLLE. */
   check('Der Eingriffsvermerk steht als eigene Angabe in der Kopfzeile',
     equal(notes, ['1 Bild vom Admin entfernt', '2 Bilder vom Admin entfernt']),
     JSON.stringify(notes));
@@ -2085,19 +1875,8 @@ async function run() {
     ![...wb.document.querySelectorAll('#cmts .cmt-edited')].some(z => z.querySelector('button')));
 
   /* --- Die Zahlen in der Kopfzeile des Kommentarblocks ------------------
-     Links und Dateien tragen ihren Hinweis, Kommentare bisher nicht. Der Satz
-     nennt TEILMENGEN, keine Summanden: "davon", und die Klammer nistet die
-     zweite Ebene ein -- das Erledigte steckt IN den Aufgaben. Addiert ergaeben
-     die Zahlen mehr Kommentare, als es gibt; genau das soll der Wortlaut
-     verhindern.
-     Der Prueflage nach: sechs Kommentare, darunter ein Bericht, eine Aufgabe
-     und ein erledigtes Todo. Die Notiz bleibt ungenannt, die Anpinnung steht
-     nicht in der Zeile. */
-  /* AN EINEM FRISCHEN AUFBAU. Die Pruefungen darueber haben in DIESEM Fenster
-     zwei Arten umgeschaltet, und der Mock schreibt das seit 0.8.60
-     wirklich mit -- eine Antwort, die sich durch einen Schreibvorgang aendern
-     soll, muss sich wirklich aendern (Stolperstein 90). Die Zahlen der
-     Prueflage liessen sich an diesem Fenster danach nicht mehr ablesen. */
+     Links und Dateien tragen ihren Hinweis, Kommentare bisher nicht. */
+  /* AN EINEM FRISCHEN AUFBAU. */
   const kzDom = buildDom(JSDOM, { settings: ownOrder, hash: '#/item/1' });
   await new Promise(r => setTimeout(r, 90));
   const kCount = kzDom.w.document.getElementById('ccount');
@@ -2112,17 +1891,12 @@ async function run() {
   kzDom.w.close();
 
   /* GEBILDET AN EINEM ORT, und seit 0.32.1 kommen ZWEI STUECKE zurueck:
-     `html` fuer den Bildschirm (Zahl und Zeichen) und `text` fuer den
-     `title` (die Woerter). BEIDE WERDEN HIER GESTELLT -- eine Kurzform, die
-     etwas anderes sagt als ihr title, waeren zwei Wahrheiten ueber dieselbe
-     Zahl, und niemand saehe es. Die Randfaelle stehen unmittelbar an der
-     Funktion und nicht ueber sechs aufgebaute Kommentarlagen. */
+     `html` fuer den Bildschirm (Zahl und Zeichen) und `text` fuer den `title`
+     (die Woerter). */
   const kz = (...kinds) => wb.commentNumbers(kinds.map(k => ({ kind: k }))).text;
   const kzH = (...kinds) => wb.commentNumbers(kinds.map(k => ({ kind: k }))).html;
   /* Die Zeichen aus der Kurzform herausnehmen: was bleibt, sind die Zahlen
-     und ihre Mittelpunkte. So laesst sich die Kurzform pruefen, ohne ein
-     SVG Zeichen fuer Zeichen abzuschreiben -- das waere eine zweite
-     Ausfertigung des Bildes und liefe beim ersten Nachschliff auseinander. */
+     und ihre Mittelpunkte. */
   const kzZ = (...kinds) => kzH(...kinds).replace(/<svg[\s\S]*?<\/svg>/g, '')
                                          .replace(/<[^>]+>/g, '');
   const empty = wb.commentNumbers(null);
@@ -2135,9 +1909,7 @@ async function run() {
   check('Nur Notizen: es bleibt bei der einen Zahl',
     kz('note', 'note', 'note') === '3 Kommentare' && kzZ('note', 'note', 'note') === '3',
     `${kz('note', 'note', 'note')} · ${kzZ('note', 'note', 'note')}`);
-  /* DER MITTELPUNKT STATT „, davon" -- 0.32.1. Eine Aufzaehlung aus „Zahl +
-     Wort" braucht in keiner der drei Sprachen eine Fuge; „davon" brauchte auf
-     Tuerkisch eine Klammer um die ganze Aufzaehlung („, bunun … kadarı"). */
+  /* DER MITTELPUNKT STATT „, davon" -- 0.32.1. */
   check('Eine Gruppe mit null verschwindet ganz',
     kz('note', 'report') === '2 Kommentare · 1 Bericht' && kzZ('note', 'report') === '2 · 1',
     `${kz('note', 'report')} · ${kzZ('note', 'report')}`);
@@ -2146,12 +1918,7 @@ async function run() {
       && kzZ('note', 'task', 'task') === '3 · 2',
     `${kz('note', 'task', 'task')} · ${kzZ('note', 'task', 'task')}`);
   /* DIE KLAMMER NENNT SEIT 0.22.0 NUR DIE OFFENEN: „1 Erledigt" war ein
-     Vokabelwort mit grossem Anfangsbuchstaben mitten im Satz (Anlage B, Z.
-     883). Die Zahl der Erledigten ist die Differenz. Umgedreht, nicht
-     geloescht (Stolperstein 74).
-     IN DER KURZFORM STEHEN BEIDE NEBENEINANDER (☐ und ☑) -- dort kostet die
-     zweite Zahl kein Wort, und ein leeres neben einem gefuellten Kaestchen
-     sagt „offen" und „erledigt" ohne jede Sprache. */
+     Vokabelwort mit grossem Anfangsbuchstaben mitten im Satz (Anlage B, Z. */
   check('Das Erledigte steckt IN den Aufgaben, nicht daneben',
     kz('task', 'task', 'done') === '3 Kommentare · 3 Aufgaben (2 offen)'
       && kzZ('task', 'task', 'done') === '3 · 2 · 1',
@@ -2164,10 +1931,9 @@ async function run() {
       === '5 Kommentare · 2 Berichte · 2 Aufgaben (1 offen)'
       && !/ und /.test(kz('report', 'report', 'task', 'done', 'note')),
     kz('report', 'report', 'task', 'done', 'note'));
-  /* --- 0.12.3: die Zahl, nach der im Alltag gefragt wird ---
-     ABGEZOGEN UND NICHT GEZAEHLT: `tasks - finished` kann von der Summe
-     nicht abweichen, eine zweite Zaehlung ueber kind='task' schon. Die
-     Prueflage haelt beides zusammen fest. */
+  /* --- 0.12.3: die Zahl, nach der im Alltag gefragt wird --- ABGEZOGEN UND
+     NICHT GEZAEHLT: `tasks - finished` kann von der Summe nicht abweichen,
+     eine zweite Zaehlung ueber kind='task' schon. */
   check('Die offenen Aufgaben stehen in der Klammer, die erledigten nicht mehr — 0.22.0',
     /\(3 offen\)/.test(kz('task', 'task', 'task', 'done', 'done'))
       && !/Erledigt/.test(kz('task', 'task', 'task', 'done', 'done')),
@@ -2191,11 +1957,7 @@ async function run() {
       === '2 Kommentare',
     wb.commentNumbers([{ kind: 'note', pinned: true }, { kind: 'note', pinned: false }]).text);
   /* Die Summe der Teilmengen darf die Gesamtzahl nicht ueberschreiten -- sie
-     sind TEILMENGEN und keine Summanden. Waeren es Summanden, ergaebe die
-     Prueflage 1 + 2 + 1 = 4 von 3.
-     GENAU DARUM STEHT IN DER KURZFORM KEIN PLUSZEICHEN: eine Notiz wird gar
-     nicht genannt, und drei Kommentare koennen 1 Bericht und 2 Notizen sein.
-     „3 (1)" waere eine Rechnung, die nicht aufgeht. */
+     sind TEILMENGEN und keine Summanden. */
   check('Die Teilmengen bleiben Teilmengen',
     (() => { const t = kz('report', 'task', 'done').match(/\d+/g).map(Number);
              return t[0] === 3 && t[1] === 1 && t[2] === 2 && t[3] === 1; })(),
@@ -2203,20 +1965,13 @@ async function run() {
   check('Und die Kurzform behauptet keine Summe — kein Pluszeichen, nur Mittelpunkte',
     !/\+/.test(kzH('report', 'task', 'done', 'note')),
     kzZ('report', 'task', 'done', 'note'));
-  /* ---- ZUSAGE: DIE KURZFORM TRAEGT KEIN WORT -------------------------------
-     Das ist der Grund, aus dem sie gebaut ist. Jede Form, die das Vokabelwort
-     ZEIGT, laesst sich vom Vokabular selbst sprengen: gemessen bei 390
-     Bildpunkten reisst die Aufzaehlung mit Woertern, sobald der Betreiber
-     „Protokolle" und „Arbeitsauftraege" eintraegt. Die Kurzform kann das
-     nicht, weil in ihr kein Wort steht. */
+  /* ---- ZUSAGE: DIE KURZFORM TRAEGT KEIN WORT
+     ------------------------------- Das ist der Grund, aus dem sie gebaut
+     ist. */
   check('Zusage: die Kurzform traegt kein Vokabelwort — nur Zahlen und Zeichen',
     /^[\d\s·]+$/.test(kzZ('report', 'report', 'task', 'done', 'note')),
     kzZ('report', 'report', 'task', 'done', 'note'));
-  /* UND JEDE ZAHL TRAEGT IHRE ART ALS DATENFELD, nicht nur eine Farbe.
-     Gestaltungsregel G1: Zustandsmarken werden aus FORM gebaut und nicht aus
-     Farbe. Das Datenfeld ist der Haken, an dem im Stilblatt Zeichen und Farbe
-     haengen -- und der Beleg, dass die Bedeutung nicht allein in der Farbe
-     steckt. */
+  /* UND JEDE ZAHL TRAEGT IHRE ART ALS DATENFELD, nicht nur eine Farbe. */
   const kzKinds = (...kinds) => [...kzH(...kinds).matchAll(/data-kind="(\w+)"/g)].map(m => m[1]);
   check('Jede Zahl der Kurzform nennt ihre Art — Bericht, offen, erledigt',
     kzKinds('report', 'task', 'done').join(' ') === 'report task done',
@@ -2225,15 +1980,8 @@ async function run() {
     (kzH('report', 'task', 'done').match(/<svg/g) || []).length === 3,
     `${(kzH('report', 'task', 'done').match(/<svg/g) || []).length} Zeichen`);
 
-  /* --- Fuenf Faelle, drei Antworten ------------------------------------
-     Der Bildschirm bietet nicht mehr an, was der Server abweist. Die drei
-     Antworten sind die Spalten der Rechtetabelle -- Verfasser, anderer,
-     Admin --, und die fuenf Faelle sind ✎, "+ Bild", ✕ am Kommentar, ✕ am
-     Bild und die drei Marken.
-     Der Aufbau oben ist ein ADMIN. Daneben gehoert ein Rufer, fuer den die
-     Adminfrage FALSCH ist: sonst bliebe verdeckt, an welcher Bedingung die
-     Knoepfe haengen, weil der erste Teil des ODER ohnehin wahr ist
-     (Stolperstein 73). */
+  /* --- Fuenf Faelle, drei Antworten ------------------------------------ Der
+     Bildschirm bietet nicht mehr an, was der Server abweist. */
   const bnA = buildDom(JSDOM, { hash: '#/item/1',
     settings: { filters: null, userCount: 3, isAdmin: false } });
   await new Promise(r => setTimeout(r, 80));
@@ -2260,9 +2008,7 @@ async function run() {
   check('Und der Admin darf dort sehr wohl löschen',
     !!kmts[1].querySelector('.cmt-img .del'), 'dem Admin fehlt das ✕ am fremden Bild');
 
-  /* "+ Bild" ist Bearbeiten und steht ausschliesslich im Bearbeitenmodus.
-     Ein Ereignis wird wirklich zugestellt, nicht der Behandler gerufen
-     (Stolperstein 61). */
+  /* "+ Bild" ist Bearbeiten und steht ausschliesslich im Bearbeitenmodus. */
   nKmts[4].querySelector('.ed').dispatchEvent(new bnA.w.MouseEvent('click', { bubbles: true }));
   await new Promise(r => setTimeout(r, 30));
   check('Am eigenen Kommentar führt ✎ zum Feld und zu „+ Bild"',
@@ -2305,9 +2051,7 @@ async function run() {
     kLinks.every(a => !/javascript:/i.test(a.getAttribute('href') || '')),
     kLinks.map(a => a.getAttribute('href')).join(' '));
 
-  // Schranke 1 einzeln: die Erkennung wird unmittelbar gefragt. Ueber den
-  // DOM allein waere sie nicht zu pruefen -- dort faengt Schranke 2 alles
-  // ab, was hier durchrutschte.
+  // Schranke 1 einzeln: die Erkennung wird unmittelbar gefragt.
   const targets = (raw) => wb.splitCommentText(raw).filter(s => s.target);
   const inTarget = (raw) => targets(raw)[0]?.target ?? null;
   const inText = (raw) => targets(raw)[0]?.text ?? null;
@@ -2360,7 +2104,7 @@ async function run() {
     targets('https://a.de und www.b.de').length === 2);
 
   // Schranke 2 einzeln: dem Knotenbauer wird unmittelbar ein Ziel vorgelegt,
-  // das durch die Erkennung nie kaeme.
+// das durch die Erkennung nie kaeme.
   const build = (pieces) => wb.buildCommentNodes(pieces);
   const bad = build([{ text: 'hier klicken', target: 'javascript:alert(1)' }]);
   check('Ein unerlaubtes Ziel wird gar nicht erst zum Link',
@@ -2375,12 +2119,7 @@ async function run() {
   check('Auch der Knotenbauer erzeugt aus Markup niemals Markup',
     build([{ text: '<img src=x onerror=alert(1)>' }]).querySelector('img') === null);
 
-  /* UND DASSELBE MIT EINEM SUCHBEGRIFF MITTEN DARIN -- 0.18.0. Die
-     Hervorhebung durchsetzt fremden Text mit Markup, und Kommentartexte kommen
-     von Menschen: genau hier waere der Weg wieder offen, den 0.5.4 zugemacht
-     hat. Wer den Rohtext maskiert und danach ein <mark> hineinschreibt, hat
-     ihn geoeffnet -- deshalb dieselbe Zeile ein zweites Mal, jetzt mit einem
-     Begriff, der MITTEN IM Angriffstext trifft. */
+  /* UND DASSELBE MIT EINEM SUCHBEGRIFF MITTEN DARIN -- 0.18.0. */
   const badHit = wb.splitAtTerm('<img src=x onerror=alert(1)>', 'onerror');
   const badNode = build(badHit);
   check('Der Aufbau steht: der Begriff trifft wirklich mitten im Angriffstext',
@@ -2395,12 +2134,7 @@ async function run() {
     badNode.querySelector('mark')?.textContent);
 
   /* UND DER BEGRIFF SELBST IST MARKUP -- die Lage, die der Gegenprobe zu
-     0.18.0 aufgefallen ist. In der Marke steht IMMER genau der Suchbegriff,
-     und den tippt ein Mensch: wer `<img src=x onerror=alert(1)>` ins Suchfeld
-     schreibt, findet damit einen Kommentar, der das traegt -- und die Marke
-     traegt danach denselben Text. **Ein Rueckbau, der die Marke ueber
-     innerHTML fuellt, blieb ohne diese Zeile STUMM**, weil in allen anderen
-     Lagen nur harmlose Woerter markiert werden. */
+     0.18.0 aufgefallen ist. */
   const badTerm = '<img src=x onerror=alert(1)>';
   const asTerm = build(wb.splitAtTerm('davor ' + badTerm + ' danach', badTerm));
   check('Der Aufbau steht: der Begriff selbst ist der Angriffstext',
@@ -2413,10 +2147,7 @@ async function run() {
     asTerm.textContent === 'davor ' + badTerm + ' danach',
     asTerm.textContent);
 
-  /* EINE ADRESSE BLEIBT EIN LINK, auch wenn der Begriff mitten in ihr steht.
-     Die Zerlegung liefert sie dann als mehrere Stuecke mit demselben Ziel;
-     drei Anker nebeneinander waeren drei Links auf dieselbe Adresse -- fuer
-     ein Vorleseprogramm drei Ziele statt einem. */
+  /* EINE ADRESSE BLEIBT EIN LINK, auch wenn der Begriff mitten in ihr steht. */
   const linkHit = build(wb.splitCommentText('Siehe https://beispiel.de/pfad hier', 'beispiel'));
   check('Ein Begriff in der Adresse macht aus einem Link nicht drei',
     linkHit.querySelectorAll('a').length === 1,
@@ -2448,12 +2179,7 @@ async function run() {
 
   /* ---- ZUSAGE 2 DER RUNDE 0.32.0: DIE MARKIERUNG IST DAS VIERTE STUECK ----
      SEIT 0.18.0 ENTSTEHT DER KOMMENTARTEXT ALS ECHTE KNOTEN UND NIE ALS
-     STRING. Leitplanke L2 verlangt, dass die Markierung ein VIERTES Stueck
-     DIESER Zerlegung wird und kein `replace()` ueber ihr Ergebnis: wer das
-     umdreht, holt Markup in einen Text, der ausdruecklich keines tragen darf.
-     WELCHE `@…` EINE MARKIERUNG SIND, SAGT DER SERVER. Die Zerlegung bekommt
-     seine Liste gereicht und sucht nicht selbst -- ein Tippfehler steht in
-     keiner Liste und bleibt gewoehnlicher Text. */
+     STRING. */
   const marks = [{ handle: 'bert', author: { id: 2, name: 'bert', deleted: false } }];
   const mentionPieces = wb.splitCommentText('Hallo @bert und @bret', '', marks);
   check('Markierprobe: `@bert` wird ein eigenes Stueck, `@bret` nicht',
@@ -2468,7 +2194,7 @@ async function run() {
     JSON.stringify(wb.splitCommentText('Hallo @bert und @bret', '')));
   /* DER ANGEZEIGTE NAME KOMMT AUS DER NUMMER UND NIE AUS DEM TEXT (L9): ein
      geloeschter Zugang steht als „Gelöschter Benutzer 7" da, ein umbenannter
-     unter seinem HEUTIGEN Namen. Der Rohtext sagt beide Male `@bert`. */
+     unter seinem HEUTIGEN Namen. */
   const tombMarks = [{ handle: 'bert', author: { id: 7, name: null, deleted: true } }];
   const tombPieces = wb.splitCommentText('Hallo @bert', '', tombMarks);
   check('Zusage 4, an der Oberflaeche: ein Grabstein steht als „Gelöschter Benutzer 7"',
@@ -2493,8 +2219,7 @@ async function run() {
       .filter(s => s.mention)[0]?.text === '@annabelle',
     JSON.stringify(wb.splitCommentText('Hallo @annabelle', '', twoNames)));
   /* UND AM KNOTEN: ein eigenes Element mit eigener Klasse, ueber textContent
-     gesetzt. `<mark>` waere dasselbe Element wie eine Fundstelle der Suche --
-     zwei verschiedene Sachen an einem Ort. */
+     gesetzt. */
   const mentionNode = build(wb.splitCommentText('Hallo @bert', '', marks));
   check('Zusage 2: die Markierung entsteht als Knoten und nie als String',
     mentionNode.querySelectorAll('.mention').length === 1 &&
@@ -2515,9 +2240,7 @@ async function run() {
       .map(s => s.text).join('') === 'Vor @bert mitte https://a.de/x Ende',
     JSON.stringify(wb.splitCommentText('Vor @bert mitte https://a.de/x Ende', '', marks)
       .map(s => s.text)));
-  /* UND DAS STILBLATT GIBT IHR EINE EIGENE FARBE. Orange ist das Signal der
-     SUCHE; stuende die Markierung in derselben Farbe, waere in einem Kommentar
-     mit Treffern nicht mehr zu sehen, was gefunden und was markiert ist. */
+  /* UND DAS STILBLATT GIBT IHR EINE EIGENE FARBE. */
   const cssMention = fs.readFileSync(path.join(__dirname, 'public', 'style.css'), 'utf8')
     .replace(/\s+/g, ' ');
   check('Und das Stilblatt gibt ihr eine eigene Farbe — nicht die der Suche',
@@ -2529,8 +2252,8 @@ async function run() {
   const cssK = fs.readFileSync(path.join(__dirname, 'public', 'style.css'), 'utf8').replace(/\s+/g, ' ');
   check('Ein Link im Kommentartext ist ohne Überfahren erkennbar',
     /* Seit 0.23.0 --accent-text: im hellen Schema faellt Orange als SCHRIFT
-       unter die Lesbarkeitsschwelle, waehrend es als Flaeche die Marke bleibt.
-       Die Bedeutung ist dieselbe, der Wert je Schema ein anderer. */
+       unter die Lesbarkeitsschwelle, waehrend es als Flaeche die Marke
+       bleibt. */
     /\.cmt-body a \{[^}]*color: var\(--accent-text\)[^}]*\}/.test(cssK) &&
     /\.cmt-body a \{[^}]*text-decoration: underline[^}]*\}/.test(cssK),
     (cssK.match(/\.cmt-body a \{[^}]*\}/) || ['(keine Regel)'])[0]);
@@ -2546,7 +2269,7 @@ async function run() {
   const arrows = [...lb2.querySelectorAll('.lb-nav')];
   check('Es gibt Pfeile für vor und zurück', arrows.length === 2);
   // Der Kern: im gezoomten Zustand wird .lb-stage zum Scrollbereich. Liegen die
-  // Pfeile darin, wandern sie beim Verschieben mit dem Bild aus dem Bild.
+// Pfeile darin, wandern sie beim Verschieben mit dem Bild aus dem Bild.
   check('Die Pfeile hängen nicht in der Bühne',
     arrows.every(p => !p.closest('.lb-stage')),
     arrows.map(p => p.parentElement?.className).join(' | '));
@@ -2589,8 +2312,7 @@ async function run() {
   check('Zwei langsame Tipper zoomen nicht', !stage.classList.contains('zoomed'));
 
   // Nach dem Zoom stand der Bildlauf auf 0/0 -- sichtbar war die linke obere
-  // Ecke des Originals statt der Mitte. jsdom rechnet kein Layout, deshalb
-  // bekommt die Rechnung ihre Zahlen unmittelbar vorgelegt.
+  // Ecke des Originals statt der Mitte.
   const stageBig = { scrollWidth: 3000, clientWidth: 1000,
                         scrollHeight: 2400, clientHeight: 800, scrollLeft: 0, scrollTop: 0 };
   wb.centerStage(stageBig);
@@ -2607,7 +2329,7 @@ async function run() {
     (() => { try { wb.centerStage(null); return true; } catch { return false; } })());
 
   // Die Rechnung muss auch angeschlossen sein -- eine Funktion, die niemand
-  // ruft, ist so gut wie nicht vorhanden.
+// ruft, ist so gut wie nicht vorhanden.
   const lb4 = (wb.openLightbox(includingOriginal, 0, 'Mitte'), wb.document.querySelector('.lightbox'));
   await new Promise(r => setTimeout(r, 20));
   const buehne4 = lb4.querySelector('.lb-stage'), bild4 = lb4.querySelector('.lb-stage img');
@@ -2636,11 +2358,8 @@ async function run() {
   /* ---------------------------------------------------------------- */
   group('Videos am Bildschirm');
 
-  /* WORAN DIE OBERFLAECHE EIN VIDEO ERKENNT: an kind aus der Antwort, an nichts
-     sonst. Kein Raten am ausgelieferten Typ, keine zweite Wahrheit.
-     Der Mock traegt deshalb beides nebeneinander -- ein Bild an
-     erster, ein Video an zweiter Stelle. Mit lauter Bildern fielen genau die
-     Pruefungen weg, fuer die er hier steht (Stolperstein 90). */
+  /* WORAN DIE OBERFLAECHE EIN VIDEO ERKENNT: an kind aus der Antwort, an
+     nichts sonst. */
   const vDom = buildDom(JSDOM, { hash: '#/item/1' });
   const wVid = vDom.w;
   await new Promise(r => setTimeout(r, 60));
@@ -2673,7 +2392,7 @@ async function run() {
      und ausdruecklich OHNE automatisches Abspielen. */
   const vViewer = wVid.document.getElementById('viewer');
   // Wieder abgefangen: ohne Betrachter waeren die Zeilen darunter ein Absturz
-  // statt einer Auskunft (Stolperstein 103).
+// statt einer Auskunft (Stolperstein 103).
   check('Der Betrachter steht ueberhaupt da', !!vViewer, 'kein #viewer');
   check('Beim Foto steht ein Bild im Betrachter',
     !!vViewer?.querySelector('img') && !vViewer.querySelector('video'),
@@ -2693,11 +2412,7 @@ async function run() {
     vPlayer?.getAttribute('src') === '/api/photos/6/raw' &&
     vPlayer?.getAttribute('poster') === '/api/photos/6/raw?size=medium',
     `${vPlayer?.getAttribute('src')} / ${vPlayer?.getAttribute('poster')}`);
-  /* EIN WEG INS VOLLBILD MUSS ES AM VIDEOPLATZ GEBEN. Beim Foto oeffnet der
-     Klick aufs Bild; am Video gehoert der Klick der Abspielsteuerung, und ohne
-     einen eigenen Knopf kaeme man von einem reinen Videobestand aus gar nicht
-     hinein. Am Fotoplatz steht er ausdruecklich NICHT -- erst das
-     Vorhandensein, dann die Abwesenheit (Stolperstein 81). */
+  /* EIN WEG INS VOLLBILD MUSS ES AM VIDEOPLATZ GEBEN. */
   check('Am Videoplatz gibt es einen Knopf ins Vollbild',
     !!vViewer.querySelector('.vfull'), vViewer?.innerHTML?.slice(0, 160));
   vViewer?.querySelector('.vfull')?.dispatchEvent(new wVid.Event('click', { bubbles: true }));
@@ -2712,10 +2427,8 @@ async function run() {
     await new Promise(r => setTimeout(r, 30));
   }
 
-  /* DER AUSSCHNITTMODUS BLEIBT AM VIDEOPLATZ BEDIENBAR -- eingestellt wird die
-     Kachel, und die gibt es dort genauso. Solange er an ist, steht das
-     Standbild da: der Rahmen rechnet mit den natuerlichen Massen eines Bildes,
-     und ein Abspieler hat keine. */
+  /* DER AUSSCHNITTMODUS BLEIBT AM VIDEOPLATZ BEDIENBAR -- eingestellt wird
+     die Kachel, und die gibt es dort genauso. */
   vViewer?.querySelector('.vfocus')?.dispatchEvent(new wVid.Event('click', { bubbles: true }));
   await new Promise(r => setTimeout(r, 20));
   check('Im Ausschnittmodus zeigt der Videoplatz sein Standbild',
@@ -2729,10 +2442,7 @@ async function run() {
   check('Nach dem Verlassen steht der Abspieler wieder da',
     !!vViewer.querySelector('video'), vViewer?.innerHTML?.slice(0, 120));
 
-  /* DAS VOLLBILD. Blaettern bleibt; beim Blaettern UND beim Verlassen wird
-     angehalten -- sonst spielt der Ton weiter, waehrend man das naechste Bild
-     ansieht. Das Papier sagt nur "beim Verlassen"; das Blaettern gehoert
-     dazu. */
+  /* DAS VOLLBILD. */
   const vMixed = [{ id: 5, kind: 'image', duration: null }, { id: 6, kind: 'video', duration: 42 }];
   wVid.openLightbox(vMixed, 1, 'Vollbildprobe');
   await new Promise(r => setTimeout(r, 20));
@@ -2744,22 +2454,11 @@ async function run() {
     JSON.stringify({ video: vLbVideo?.hidden, image: vLbImage?.hidden }));
   check('Und er traegt die Videodatei',
     vLbVideo?.getAttribute('src') === '/api/photos/6/raw', vLbVideo?.getAttribute('src'));
-  /* KEIN ZOOM BEIM VIDEO: der zweite Klick gehoert der Abspielsteuerung. Ein
-     Knopf, der nichts tut, wirkt kaputt -- deshalb ist er weg, nicht bloss
-     wirkungslos. */
+  /* KEIN ZOOM BEIM VIDEO: der zweite Klick gehoert der Abspielsteuerung. */
   check('Der Zoomknopf ist am Video verborgen', vLb?.querySelector('.zoom')?.hidden === true,
     JSON.stringify(vLb?.querySelector('.zoom')?.hidden));
   /* UND DAS ATTRIBUT MUSS AUCH WIRKEN. .lb-btn traegt display: flex, und das
-     schlaegt das display:none, das der Browser einem hidden-Attribut mitgibt.
-     Ohne eine Gegenregel stuende der Knopf sichtbar da und taete nichts --
-     eine Klassenpruefung allein belegt nicht, dass die Klasse etwas bewirkt
-     (Lücke 1 im Prüfstand). Im echten Chromium aufgefallen, nicht hier.
-     SEIT 0.15.1 TRAEGT DAS DIE GRUNDSAETZLICHE REGEL und nicht mehr eine
-     eigene fuer diesen Knopf: `.lb-btn[hidden]` ist entfallen, weil
-     `[hidden] { display: none !important }` ganz oben dasselbe fuer die ganze
-     Instanz tut -- und zwar auch dort, wo noch niemand daran gedacht hat.
-     Zwei Regeln fuer dieselbe Sache waeren zwei Wahrheiten (Stolperstein
-     201 und 214). */
+     schlaegt das display:none, das der Browser einem hidden-Attribut mitgibt. */
   {
     const cssV = fs.readFileSync(path.join(__dirname, 'public', 'style.css'), 'utf8')
       .replace(/\s+/g, ' ');
@@ -2805,9 +2504,7 @@ async function run() {
   wVid.document.querySelector('.lightbox .close')?.dispatchEvent(new wVid.Event('click', { bubbles: true }));
   await new Promise(r => setTimeout(r, 20));
 
-  /* Und die Laengenangabe an ihren Raendern. Eigene Funktionsdeklaration in
-     app.js, damit der Pruefstand ihr die Zahlen unmittelbar vorlegen kann --
-     dieselbe Bauform wie bei zentriereBuehne(). */
+  /* Und die Laengenangabe an ihren Raendern. */
   check('Die Laengenangabe rechnet Minuten und Sekunden richtig',
     wVid.durationText(42) === '0:42' && wVid.durationText(130) === '2:10' && wVid.durationText(60) === '1:00',
     JSON.stringify([wVid.durationText(42), wVid.durationText(130), wVid.durationText(60)]));
@@ -2815,9 +2512,7 @@ async function run() {
     wVid.durationText(null) === '' && wVid.durationText(0) === '' && wVid.durationText('x') === '',
     JSON.stringify([wVid.durationText(null), wVid.durationText(0), wVid.durationText('x')]));
 
-  /* DIE KARTE. Dort steht das Standbild wie ein Foto, mit einem
-     Abspielzeichen darauf -- und der Zaehler nennt beide Zahlen, statt ein
-     Video als Foto auszugeben. */
+  /* DIE KARTE. */
   const vCardsInventory = (mainKind, f, v) => [{
     id: 1, title: 'Kartenprobe', rejected: false, tested: false, favorite: false,
     category: null, tags: [], mainPhoto: { id: 5, kind: mainKind, focus_x: 50, focus_y: 50 },
@@ -2893,7 +2588,7 @@ async function run() {
     wb.document.getElementById('ctask').textContent);
 
   // Die Art ist ein Wert: die beiden Schalter im Formular duerfen nie
-  // gleichzeitig leuchten, sonst waere unklar, was abgeschickt wird.
+// gleichzeitig leuchten, sonst waere unklar, was abgeschickt wird.
   const fKind = wb.document.getElementById('ckind'), fAufg = wb.document.getElementById('ctask');
   fKind.onclick();
   check('Bericht an, Aufgabe aus',
@@ -2937,9 +2632,7 @@ async function run() {
   check('Und erzeugt keine Kachel',
     wb.document.querySelectorAll('#cnew-imgs .cmt-img').length === 1);
   // Zwei Filter greifen hier ineinander: einer beim Auslesen der
-  // Zwischenablage, einer beim Aufnehmen. Der Unterschied wird erst am
-  // abgefangenen Einfügen sichtbar -- sonst verdeckt einer den anderen und
-  // die Gegenprobe bliebe stumm.
+  // Zwischenablage, einer beim Aufnehmen.
   const pdfE = paste([makeFile('application/pdf')]);
   check('Eingefügtes Nicht-Bild wird übergangen',
     wb.document.querySelectorAll('#cnew-imgs .cmt-img').length === 1);
@@ -2955,25 +2648,14 @@ async function run() {
   /* ================= Fokuspunkt in der Oberflaeche ================= */
   group('Fokuspunkt in der Oberflaeche');
 
-  /* DIE DREI WERTE SIND KEIN STIL MEHR -- 0.19.5. Bis 0.18.1 hiess die
-     Funktion fokus() und lieferte die object-position; von 0.19.0 bis 0.19.4
-     hiess sie ausschnitt() und trug Weite und Vergroesserungspunkt daneben.
-     SEIT 0.19.5 GIBT ES SIE NICHT MEHR: der Server rechnet den Ausschnitt in
-     die Kachel, und ein zweiter Zuschnitt im Browser zeigte einen Ausschnitt
-     des Ausschnitts.
-     WAS AN IHRE STELLE GETRETEN IST, sind zwei Dinge: `cropSpecBox()`
-     rechnet den Ausschnitt fuer den RAHMEN im Editor (und wird vom Pruefstand
-     gegen die gleichnamige Funktion in images.js gehalten -- siehe die Gruppe
-     „Der Ausschnitt steckt in der Kachel"), und `bildQuelle()` haengt die FASSUNG an
-     die Adresse. */
+  /* DIE DREI WERTE SIND KEIN STIL MEHR -- 0.19.5. */
   check('ausschnitt() gibt es nicht mehr', typeof wb.ausschnitt === 'undefined',
     typeof wb.ausschnitt);
   check('Und fokus() ebenso wenig', typeof wb.fokus === 'undefined', typeof wb.fokus);
   check('Die Rechnung fuer den Ausschnitt steht als eigene Funktion da',
     typeof wb.cropSpecBox === 'function', typeof wb.cropSpecBox);
-  /* SIE RECHNET OHNE RUNDUNG UND MASSSTABSFREI. Bei zoom 100 ist die Kante die
-     kurze Seite; bei 250 ein Fuenftel-... nachgerechnet: 1080 * 100 / 250 =
-     432. Der Punkt liegt linear auf dem verbleibenden Weg. */
+  /* SIE RECHNET OHNE RUNDUNG UND MASSSTABSFREI. Bei zoom 100 ist die Kante
+     die kurze Seite; bei 250 ein Fuenftel-... */
   {
     const k = wb.cropSpecBox(1920, 1080, 10, 90, 250);
     check('Der Ausschnitt bei zoom 250 ist 432 breit und sitzt auf dem Punkt',
@@ -2994,17 +2676,13 @@ async function run() {
   });
   await new Promise(r => setTimeout(r, 80));
   const cardsImage = focusDom.w.document.querySelector('.card-img img');
-  /* DIE KACHEL TRAEGT KEINEN ZUSCHNITT MEHR AM BILD. Bliebe er stehen, wuerde
-     zweimal geschnitten -- und das faellt an einem Bild, das ohnehin ein Bild
-     zeigt, niemandem auf. */
+  /* DIE KACHEL TRAEGT KEINEN ZUSCHNITT MEHR AM BILD. */
   check('Die Karte setzt keine object-position mehr',
     cardsImage.style.objectPosition === '', `„${cardsImage.style.objectPosition}"`);
   check('Und sie traegt auch keinen --zoom mehr',
     cardsImage.style.getPropertyValue('--zoom').trim() === '',
     cardsImage.getAttribute('style') || '(kein style)');
-  /* DAFUER TRAEGT IHRE ADRESSE DIE FASSUNG. Ohne sie haelt der Browser die
-     alte Kachel bis zu 24 Stunden fest (`private, max-age=86400`), und der
-     Betreiber saehe seinen neuen Ausschnitt nicht. */
+  /* DAFUER TRAEGT IHRE ADRESSE DIE FASSUNG. */
   check('Dafuer traegt ihre Adresse die Fassung der Kachel',
     cardsImage.getAttribute('src') === '/api/photos/5/raw?size=thumb&v=20481',
     cardsImage.getAttribute('src'));
@@ -3025,12 +2703,7 @@ async function run() {
     withoutPhotos.w.close();
   }
 
-  /* UND DAS STILBLATT RECHNET IHN AUCH NICHT MEHR EIN. Bis 0.19.4 musste hier
-     belegt werden, DASS es `--zoom` liest -- Rueckbau 453 nahm die Zeile
-     seinerzeit weg und blieb stumm. Jetzt ist die Zusage die umgekehrte: die
-     Zeile darf nicht wieder da sein, sonst wird zweimal geschnitten.
-     GEPRUEFT WIRD AM TEXT UND NICHT AN DER LAGE: jsdom rechnet keine Lage aus
-     (Stolperstein 223). */
+  /* UND DAS STILBLATT RECHNET IHN AUCH NICHT MEHR EIN. */
   const cssOut = fs.readFileSync(path.join(__dirname, 'public', 'style.css'), 'utf8')
     .replace(/\s+/g, ' ');
   const ruleOut = (w) => (cssOut.match(new RegExp(
@@ -3046,9 +2719,7 @@ async function run() {
   check('Die Ueberfahrvergroesserung bleibt und haengt an nichts mehr',
     /transform: scale\(1\.02\)/.test(ruleOut('.card:hover .card-img img')),
     ruleOut('.card:hover .card-img img') || '(keine Regel)');
-  /* AUF DEM TELEFON FAELLT SIE WEG -- und jetzt darf dort `none` stehen. Bis
-     0.19.4 musste es `scale(var(--zoom, 1))` heissen, weil `none` den
-     eingestellten Ausschnitt mitgenommen haette. */
+  /* AUF DEM TELEFON FAELLT SIE WEG -- und jetzt darf dort `none` stehen. */
   check('Auf dem Telefon faellt die Vergroesserung ganz weg',
     (cssOut.match(/\.card:hover \.card-img img \{ transform: none; \}/g) || []).length === 1,
     cssOut.includes('.card:hover .card-img img { transform: none') ? 'transform: none' : '(nicht gefunden)');
@@ -3063,9 +2734,9 @@ async function run() {
     wb.document.querySelector('.viewer').classList.contains('focus-mode'));
   check('Ein Rahmen zeigt den künftigen Ausschnitt', !!wb.document.querySelector('.focus-frame'));
 
-  /* --- DER SCHIEBER FUER DIE WEITE, seit 0.19.0 ---
-     Er steht IM BETRACHTER und nur im Ausschnittmodus: der Ausschnitt wird an
-     EINEM Ort eingestellt, nicht an zweien. */
+  /* --- DER SCHIEBER FUER DIE WEITE, seit 0.19.0 --- Er steht IM BETRACHTER
+     und nur im Ausschnittmodus: der Ausschnitt wird an EINEM Ort eingestellt,
+     nicht an zweien. */
   const slider = wb.document.querySelector('#vzoom-slider');
   check('Im Ausschnittmodus steht ein Schieber für die Weite', !!slider);
   check('Er steht auf dem weitesten Ausschnitt', slider && slider.value === '100',
@@ -3075,9 +2746,7 @@ async function run() {
   /* ZIEHEN ZEICHNET, LOSLASSEN SPEICHERT -- getrennt geprueft, denn ein
      Schieber, der bei jedem Zwischenschritt schickt, erzeugt bei einem Zug
      ueber die ganze Leiter sechzig Anfragen. */
-  /* JEDER GRIFF AN DEN SCHIEBER GEHT DURCH DIESE KLAMMER. Fehlt er (Rueckbau
-     450), werden die Zusagen darunter rot und der Lauf laeuft weiter -- ein
-     Rueckbau, der den Lauf abreisst, belegt gar nichts (Stolperstein 161). */
+  /* JEDER GRIFF AN DEN SCHIEBER GEHT DURCH DIESE KLAMMER. */
   const pull = (value, kind = 'input') => {
     if (!slider) return false;
     slider.value = String(value);
@@ -3096,13 +2765,7 @@ async function run() {
   check('Und es schickt dabei noch nichts',
     !bd.sent.some(g => /\/focus$/.test(g.url)), JSON.stringify(bd.sent.map(g => g.url)));
   /* UND DER RAHMEN ZIEHT SICH WIRKLICH ZUSAMMEN -- um seine Mitte, so wie
-     scale() es am Bild tut. Ohne diese Zeile bliebe gruen, wer die Zahl
-     anzeigt und den Rahmen stehen laesst.
-     JSDOM RECHNET KEIN LAYOUT: getBoundingClientRect() liefert dort ueberall
-     Nullen, und der Rahmen waere in JEDER Stellung 0 px breit -- die Pruefung
-     koennte gar nicht scheitern (Stolperstein 106). Deshalb bekommen Bild und
-     Betrachter fuer diese eine Frage ein gemessenes Rechteck untergeschoben;
-     gerechnet wird danach wirklich in app.js. */
+     scale() es am Bild tut. */
   {
     const betr = wb.document.querySelector('.viewer');
     const imageEl = wb.document.querySelector('.viewer img');
@@ -3119,7 +2782,7 @@ async function run() {
     pull(200);
     const frameEng = frameWidth();
     // Erst das Vorhandensein, dann der Vergleich: zwei Nullen waeren sonst
-    // "gleich" und die Zusage darunter gruen.
+// "gleich" und die Zusage darunter gruen.
     check('Der Rahmen hat ueberhaupt eine gemessene Breite', frameWide > 0,
       `${frameWide}`);
     check('Der Rahmen wird beim Zuziehen kleiner', frameEng < frameWide,
@@ -3138,9 +2801,7 @@ async function run() {
     zoomCall && zoomCall.body && zoomCall.body.zoom === 250 &&
     typeof zoomCall.body.x === 'number' && typeof zoomCall.body.y === 'number',
     JSON.stringify(zoomCall && zoomCall.body));
-  /* DER GRIFF AN DEN SCHIEBER SETZT KEINEN FOKUSPUNKT. Ohne die Ausnahme in
-     der Zeigerklemme laege der Punkt danach dort, wo der Schieber steht --
-     also unten in der Mitte, bei jedem Zug aufs Neue. */
+  /* DER GRIFF AN DEN SCHIEBER SETZT KEINEN FOKUSPUNKT. */
   bd.sent.length = 0;
   slider?.dispatchEvent(new wb.Event('pointerdown', { bubbles: true }));
   slider?.dispatchEvent(new wb.Event('pointerup', { bubbles: true }));
@@ -3151,20 +2812,12 @@ async function run() {
   check('Ein Griff an den Schieber setzt keinen Fokuspunkt',
     !bd.sent.some(g => /\/focus$/.test(g.url)), JSON.stringify(bd.sent.map(g => g.url)));
 
-  /* ================= Die fuenf Gesten am Ausschnitt — 0.22.1 =================
-     DER BEFUND AUS DEM BETRIEB, nach dem Einspielen von 0.22.0 gemeldet: das
-     Rechteck „bedient sich nicht wie ein Ausschnitt". 0.22.0 kannte zwei
-     Gesten und einen einzigen Griff -- die ganze Flaeche --, und Ziehen zog
-     IMMER einen neuen Ausschnitt auf. Wer den vorhandenen Rahmen anfasste, um
-     ihn zu schieben, warf ihn damit weg, und Lage und Weite aenderten sich in
-     derselben Bewegung: zwei Groessen auf einen Griff.
-     SEIT 0.22.1 ENTSCHEIDET DER ORT DER BERUEHRUNG. */
+  /* ================= Die fuenf Gesten am Ausschnitt — 0.22.1
+     ================= DER BEFUND AUS DEM BETRIEB, nach dem Einspielen von
+     0.22.0 gemeldet: das Rechteck „bedient sich nicht wie ein Ausschnitt". */
   group('Die fuenf Gesten am Ausschnitt — 0.22.1');
 
-  /* ZUERST DIE ENTSCHEIDUNG SELBST, UND ZWAR OHNE ZEIGER. `ausschnittGeste()`
-     bekommt einen Rahmen und einen Punkt und antwortet mit einem Wort --
-     dieselbe Bauform wie `cropSpecBox()` und aus demselben Grund: was der
-     Pruefstand nur ueber ein Zeigerereignis erreicht, prueft er nicht. */
+  /* ZUERST DIE ENTSCHEIDUNG SELBST, UND ZWAR OHNE ZEIGER. */
   check('Die Gestenentscheidung steht als eigene Funktion da',
     typeof wb.cropGesture === 'function', typeof wb.cropGesture);
   {
@@ -3191,9 +2844,7 @@ async function run() {
     check('Die Greifzone ist zwoelf Bildpunkte breit',
       g(112, 150) === 'links' && g(113, 150) === 'schieben',
       `${g(112, 150)} / ${g(113, 150)}`);
-    /* UND SIE WIRD AM RAHMEN GEDECKELT (kante / 4). Ohne den Deckel deckten
-       die acht Zonen einen kleinen Rahmen vollstaendig ab, und das Schieben --
-       die haeufigste Geste -- haette keine Flaeche mehr. */
+    /* UND SIE WIRD AM RAHMEN GEDECKELT (kante / 4). */
     const lower = { links: 0, top: 0, edge: 20 };
     check('An einem kleinen Rahmen bleibt Flaeche zum Schieben',
       wb.cropGesture(lower, 10, 10) === 'schieben' &&
@@ -3201,13 +2852,8 @@ async function run() {
       `${wb.cropGesture(lower, 10, 10)} / ${wb.cropGesture(lower, 2, 2)}`);
   }
 
-  /* --- UND JETZT AM LEBENDEN OBJEKT. Gefahren wird mit echten Zeigerereignissen
-     gegen den echten Betrachter; gerechnet wird in app.js.
-     JSDOM RECHNET KEIN LAYOUT (Stolperstein 106): Betrachter und Bild bekommen
-     dafuer ein gemessenes Rechteck untergeschoben -- 600 x 400 bei einem Bild
-     von 1200 x 800, also eine Bildflaeche von genau 600 x 400 an (0,0). Der
-     Rahmen liegt damit im selben Mass wie der Zeiger, und `style.left` ist
-     unmittelbar die Zahl, um die es geht. */
+  /* --- UND JETZT AM LEBENDEN OBJEKT. Gefahren wird mit echten
+     Zeigerereignissen gegen den echten Betrachter; gerechnet wird in app.js. */
   {
     const betr = wb.document.querySelector('.viewer');
     const imageEl = wb.document.querySelector('.viewer img');
@@ -3235,13 +2881,7 @@ async function run() {
       return { links: z('left'), top: z('top'), edge: z('width') };
     };
     const center = (r) => [r.links + r.edge / 2, r.top + r.edge / 2];
-    /* EIN FRISCHER, MITTLERER RAHMEN -- und zwar ueber die Bedienung selbst.
-       DER ZUG MUSS AUSSERHALB ANFANGEN, sonst schoebe er den Rahmen oder zoege
-       an einem seiner Griffe. WO das ist, haengt vom Rahmen ab, den die vorige
-       Geste hinterlassen hat; geraten wird deshalb nicht, sondern gesucht.
-       ZUERST AUF DEN ENGSTEN ZOOM: ein Rahmen von einem Viertel der kurzen
-       Seite kann die vier Ecken des Bildes nicht alle abdecken, also gibt es
-       immer einen Punkt draussen. */
+    /* EIN FRISCHER, MITTLERER RAHMEN -- und zwar ueber die Bedienung selbst. */
     const outsidePoints = (r) => [[10, 10], [590, 10], [10, 390], [590, 390]]
       .find(([x, y]) => x < r.links || x > r.links + r.edge ||
                         y < r.top || y > r.top + r.edge) || [10, 10];
@@ -3253,10 +2893,7 @@ async function run() {
     };
 
     /* EIN BEKANNTER AUSGANGSZUSTAND, und zwar ueber die Bedienung selbst: ein
-       neues Rechteck von (60,60) nach (360,360). Es faengt ausserhalb an --
-       (60,60) liegt links oberhalb jedes Rahmens, den der Schieber bei 250 %
-       stehen laesst -- und legt damit die Lage fest, auf die alles Weitere
-       sich bezieht. */
+       neues Rechteck von (60,60) nach (360,360). */
     pull(250); pull(250, 'change');
     await new Promise(r => setTimeout(r, 20));
     const freshCore = await drag([60, 60], [360, 360]);
@@ -3269,9 +2906,7 @@ async function run() {
       Math.abs(r0.links - 60) < 0.5 && Math.abs(r0.top - 60) < 0.5,
       `${r0.links} / ${r0.top}`);
 
-    /* --- SCHIEBEN: die Lage geht, die Weite bleibt.
-       GEPRUEFT AM GESENDETEN RUMPF UND NICHT AN DER ANZEIGE: eine Zahl, die
-       richtig dasteht und falsch gespeichert wird, faellt sonst niemandem auf. */
+    /* --- SCHIEBEN: die Lage geht, die Weite bleibt. */
     const vorPush = frame();
     const [mx, my] = center(vorPush);
     const pushCore = await drag([mx, my], [mx + 40, my]);
@@ -3280,9 +2915,7 @@ async function run() {
       Math.abs(afterPush.links - (vorPush.links + 40)) < 0.5,
       `${vorPush.links} → ${afterPush.links}`);
     /* GEHALTEN WIRD GEGEN DEN ZOOM DAVOR und nicht gegen den des Schiebers:
-       das neue Rechteck hat seine Kante gerastet und den Zoom dabei gesetzt.
-       Die Zusage lautet „das Schieben aendert ihn nicht" -- nicht „er steht
-       auf 250". */
+       das neue Rechteck hat seine Kante gerastet und den Zoom dabei gesetzt. */
     check('Und er ruehrt die Weite nicht an',
       !!pushCore && !!freshCore && pushCore.zoom === freshCore.zoom &&
       Math.abs(afterPush.edge - vorPush.edge) < 0.001,
@@ -3298,12 +2931,10 @@ async function run() {
     check('Ein Zug an der Ecke aendert die Weite',
       !!cornerCore && afterCorner.edge < vorCorner.edge,
       `${vorCorner.edge} → ${afterCorner.edge}`);
-    /* DIE SCHRANKE IST ENG, UND DAS IST EIN FUND AUS DER GEGENPROBE: mit einem
-       halben Bildpunkt Toleranz blieb Rueckbau 646 STUMM — er legt den Rahmen
-       nach der ungerasteten Kante, und der Unterschied betrug in dieser Lage
-       0,148 px. „Bleibt liegen" heisst bleibt liegen: der richtige Weg trifft
-       den Anker EXAKT (l = rechts - eng, also l + eng = rechts), und was hier
-       stehen darf, ist nur das Rauschen der Gleitkommarechnung. */
+    /* DIE SCHRANKE IST ENG, UND DAS IST EIN FUND AUS DER GEGENPROBE: mit
+       einem halben Bildpunkt Toleranz blieb Rueckbau 646 STUMM — er legt den
+       Rahmen nach der ungerasteten Kante, und der Unterschied betrug in
+       dieser Lage 0,148 px. */
     const EXACTLY = 0.01;
     check('Und die gegenueberliegende Ecke bleibt liegen',
       Math.abs(afterCorner.links - vorCorner.links) < EXACTLY &&
@@ -3311,15 +2942,7 @@ async function run() {
       `${vorCorner.links}/${vorCorner.top} → ${afterCorner.links}/${afterCorner.top}`);
 
     /* UND DIE ANDERE DIAGONALE -- die Zeile darueber allein belegt zu wenig,
-       und das ist ein Fund aus der Gegenprobe und keine Vorsicht.
-       WARUM: die Ecke oben zieht `rechts-unten`, und deren Anker ist die LINKE
-       OBERE Ecke -- `state()` gibt dort schlicht `{ l: k.links, o: k.oben }`
-       zurueck und sieht die gerastete Kante gar nicht. Rueckbau 646 legt den
-       Rahmen nach der UNGERASTETEN Kante; an dieser Ecke aendert das nichts,
-       und die Zusage blieb gruen. Rot wurde 646 nur an den KANTEN.
-       DIE ECKE OBEN LINKS SIEHT ES: ihr Anker ist `right - e` und `unten - e`,
-       haengt also an der Rastung. Erst mit ihr traegt die Zusage „die feste
-       Ecke bleibt liegen" beide Faelle. */
+       und das ist ein Fund aus der Gegenprobe und keine Vorsicht. */
     await fresherFrame();
     const vorCornerTwo = frame();
     const fixedRight = vorCornerTwo.links + vorCornerTwo.edge;
@@ -3337,18 +2960,14 @@ async function run() {
       `${afterCornerTwo.links + afterCornerTwo.edge}/${afterCornerTwo.top + afterCornerTwo.edge}`);
 
     /* --- DIE KANTE: die gegenueberliegende bleibt liegen, und die andere
-       Achse geht symmetrisch um DEREN MITTE mit (Auftrag 1.3a). Der Rahmen
-       rutscht dabei nicht seitlich weg. */
-    /* ZUERST WIEDER EIN MITTLERER RAHMEN. Der Eckzug darueber hat ihn auf
-       seine MINDESTKANTE gebracht (ein Viertel der kurzen Seite, dieselbe
-       Grenze wie Zoom 400) -- von dort aus laesst sich nichts mehr verkleinern,
-       und die Zusage darunter waere trivial gruen. */
+       Achse geht symmetrisch um DEREN MITTE mit (Auftrag 1.3a). */
+    /* ZUERST WIEDER EIN MITTLERER RAHMEN. */
     await fresherFrame();
     const vorEdge = frame();
     const rightVor = vorEdge.links + vorEdge.edge;
     const centerYvor = vorEdge.top + vorEdge.edge / 2;
     // Die linke Kante nach LINKS: der Rahmen wird dabei groesser, und die
-    // rechte Kante muss trotzdem stehenbleiben.
+// rechte Kante muss trotzdem stehenbleiben.
     const edgeCore = await drag([vorEdge.links + 4, centerYvor],
       [vorEdge.links - 40, centerYvor]);
     const afterEdge = frame();
@@ -3375,9 +2994,7 @@ async function run() {
       wideCore.zoom >= 100 && wideCore.zoom <= 400,
       JSON.stringify(wideCore));
 
-    /* --- EIN GRIFF OHNE BEWEGUNG (Entscheidung E1). Innen geschieht nichts --
-       ein Griff in den Rahmen, der sich nicht bewegt, ist ein misslungener
-       Griff. Aussen setzt der Klick weiter den Punkt, wie seit 0.19.x. */
+    /* --- EIN GRIFF OHNE BEWEGUNG (Entscheidung E1). */
     const vorClickable = frame();
     const [kx, ky] = center(vorClickable);
     const insideCore = await drag([kx, ky], [kx + 2, ky + 1]);
@@ -3407,16 +3024,13 @@ async function run() {
     check('An der Kante zeigt er die Achse',
       /handle-ew/.test(cls(r1.links + 4, r1.top + r1.edge / 2)),
       cls(r1.links + 4, r1.top + r1.edge / 2));
-    /* DER PUNKT AUSSERHALB WIRD AM AKTUELLEN RAHMEN BESTIMMT. Ein Punkt, der
-       vor drei Gesten ausserhalb lag, kann inzwischen darin liegen -- und die
-       Zusage praefte dann das Gegenteil dessen, was sie behauptet. */
+    /* DER PUNKT AUSSERHALB WIRD AM AKTUELLEN RAHMEN BESTIMMT. */
     const drausX = r1.links > 40 ? r1.links / 2 : (r1.links + r1.edge + 600) / 2;
     check('Und ausserhalb traegt er keine Griffklasse',
       !/griff-/.test(cls(drausX, 200)), `${drausX}: ${cls(drausX, 200)}`);
 
-    /* --- AUF DEM FINGER GIBT ES DIE ACHT GRIFFE NICHT (Entscheidung E3): eine
-       Zone von zwoelf Bildpunkten trifft keine Fingerkuppe. Wer den Rahmen
-       antippt, SCHIEBT ihn -- die Weite bleibt beim Schieber (0.22.0, E9). */
+    /* --- AUF DEM FINGER GIBT ES DIE ACHT GRIFFE NICHT (Entscheidung E3):
+       eine Zone von zwoelf Bildpunkten trifft keine Fingerkuppe. */
     const r2 = frame();
     bd.sent.length = 0;
     cursor('pointerdown', r2.links + 4, r2.top + 4, { });
@@ -3438,9 +3052,7 @@ async function run() {
   }
 
   /* --- Verlassen des Modus. Der Betrachter wird beim Neuzeichnen nicht
-   * ersetzt, sondern nur sein Inhalt -- was an ihm selbst haengt, ueberlebt.
-   * Rahmen und graue Schaltflaeche verschwinden dabei von allein und belegen
-   * deshalb gar nichts; die letzte Pruefung ist die eigentliche. */
+     ersetzt, sondern nur sein Inhalt -- was an ihm selbst haengt, ueberlebt. */
   const viewer = wb.document.querySelector('.viewer');
   wb.document.querySelector('.vfocus').onclick();
   await new Promise(r => setTimeout(r, 20));
@@ -3450,7 +3062,7 @@ async function run() {
     !viewer.onpointerdown && !viewer.onpointermove && !viewer.onpointerup,
     'sonst speichert der naechste Klick aufs Bild einen Ausschnitt, statt das Vollbild zu oeffnen');
   // Gegenprobe am lebenden Objekt: ein Zeigerdruck darf jetzt nichts mehr
-  // ausloesen, und der Klick muss wieder im Vollbild landen.
+// ausloesen, und der Klick muss wieder im Vollbild landen.
   bd.sent.length = 0;
   viewer.dispatchEvent(new wb.Event('pointerdown', { bubbles: true }));
   viewer.dispatchEvent(new wb.Event('pointerup', { bubbles: true }));
@@ -3465,36 +3077,14 @@ async function run() {
   /* ================= Die Ansicht kann fort sein — 0.19.6 =================
      DER BEFUND AUS DEM FELD, wortgleich gemeldet: „ich bekomme eine rote
      Fehlermeldung unten wenn ich auf Overview zurueck gehe -- can't access
-     property innerHTML ... der Fehler kommt immer wenn ich Ausschnitt
-     veraendere (400 %) und direkt in die Uebersicht gehe."
-
-     WAS DAHINTERSTAND: die Route wartet auf die neue Kachel (494 bis 873 ms
-     gemessen, siehe die Gruppe „Der Ausschnitt steckt in der Kachel"). Wer in
-     dieser Zeit auf die Uebersicht geht, laesst `drawThumbs()` in eine Seite
-     zeichnen, die es nicht mehr gibt: `document.getElementById('thumbs')` gab
-     null, `box.innerHTML` warf, und der Wurf landete im `catch` des
-     Speicherwegs -- also wurde ein GEGLUECKTER Vorgang als roter Fehler
-     gemeldet (Stolperstein 298).
-
-     WARUM 400 PROZENT DEN FEHLER SO ZUVERLAESSIG ZEIGT: je enger der
-     Ausschnitt, desto weniger nuetzt libjpeg sein Shrink-on-Load -- der
-     teuerste Fall ist der weiteste Zoom, und das Fenster zum Wegklicken ist
-     dann am groessten. Der Fehler ist also kein Zufall gewesen, sondern die
-     Bedienung, die am laengsten wartet.
-
-     GEPRUEFT WIRD DER ECHTE WEG UND NICHT EIN NACHGESTELLTES DOM: der Ruf
-     wird angehalten, die Adresse wechselt wirklich, `route()` zeichnet die
-     Uebersicht, und erst DANN kommt die Antwort zurueck. Ein Prueflauf, der
-     nur `#app` leert, belegte die Reihenfolge nicht, um die es geht. */
+     property innerHTML ... */
   group('Die Ansicht kann fort sein — 0.19.6');
   {
     const awayDom = buildDom(JSDOM, { hash: '#/item/1' });
     const wf = awayDom.w;
     await new Promise(r => setTimeout(r, 120));
     const vfF = wf.document.querySelector('.vfocus');
-    /* ERST DIE PRUEFLAGE, DANN DIE ZUSAGE. Ohne diese Zeile waere „keine rote
-       Message" trivial wahr, sobald der Ausschnittmodus gar nicht erst
-       aufgeht (Stolperstein 161). */
+    /* ERST DIE PRUEFLAGE, DANN DIE ZUSAGE. */
     check('Die Prueflage steht: der Betrachter hat seinen Ausschnittschalter', !!vfF);
     vfF?.onclick();
     await new Promise(r => setTimeout(r, 20));
@@ -3502,8 +3092,7 @@ async function run() {
     check('Und den Schieber fuer die Weite', !!schF);
 
     /* DER RUF WIRD ANGEHALTEN -- genau hier liegt das Zeitfenster, in dem der
-       Benutzer wegklickt. `release` gibt ihn frei, sobald die Uebersicht
-       steht. */
+       Benutzer wegklickt. */
     const realF = wf.fetch;
     let release = null;
     wf.fetch = (url, opt = {}) => (/\/focus$/.test(url)
@@ -3531,9 +3120,7 @@ async function run() {
     check('Keine rote Meldung, wenn die Antwort in eine fortgegangene Ansicht faellt',
       !messages.some(t => t.classList.contains('err')),
       messages.map(t => `${t.className}: ${t.textContent}`).join(' | ') || '(keine Meldung)');
-    /* UND DIE ZUSAGE STEHT TROTZDEM DA. Sie ist die eigentliche Auskunft: der
-       Ausschnitt IST gespeichert, und eine Bestaetigung, die genau dann
-       ausbleibt, wenn man nicht hingesehen hat, waere keine. */
+    /* UND DIE ZUSAGE STEHT TROTZDEM DA. */
     check('Und die Zusage „gespeichert" steht trotzdem da',
       messages.some(t => /Gespeichert/.test(t.textContent)),
       messages.map(t => t.textContent).join(' | ') || '(keine Meldung)');
@@ -3541,8 +3128,7 @@ async function run() {
   }
 
   /* DIE GEGENPROBE ZUR WACHE: bei STEHENDER Ansicht zeichnet der Streifen
-     wirklich. Ohne sie bliebe gruen, wer `drawThumbs()` einfach leer laesst --
-     die Wache waere dann keine Wache, sondern ein Ausschalter. */
+     wirklich. */
   {
     const standsDom = buildDom(JSDOM, { hash: '#/item/1' });
     const ws = standsDom.w;
@@ -3553,11 +3139,7 @@ async function run() {
     ws.close();
   }
 
-  /* UND BEIDE ZEICHENWEGE DER BILDSPALTE TRAGEN DIE WACHE. Der Betrachter
-     laesst sich im Prueflauf nicht so leicht in denselben Wettlauf bringen
-     (er haengt am Loeschen und am Hochladen statt am Schieber), und genau
-     deshalb steht seine Zusage hier am Quelltext: fehlt die Zeile, faellt sie
-     -- nicht erst im Feld. */
+  /* UND BEIDE ZEICHENWEGE DER BILDSPALTE TRAGEN DIE WACHE. */
   {
     const quApp = fs.readFileSync(path.join(__dirname, 'public', 'app.js'), 'utf8');
     const guard = (id, v) => new RegExp(
@@ -3569,17 +3151,10 @@ async function run() {
   /* ================= Tags am Testtag ================= */
   group('Die Stapelordnung — 0.19.1');
 
-  /* ================= Die Stapelordnung — 0.19.1 =================
-     DER BEFUND: `.backdrop` lag auf 60, `.lightbox` auf 90 -- ein
+  /* ================= Die Stapelordnung — 0.19.1 ================= DER
+     BEFUND: `.backdrop` lag auf 60, `.lightbox` auf 90 -- ein
      Bestaetigungsdialog, den man AUS DEM VOLLBILD heraus ausloest, stand also
-     DAHINTER. Im Feld gemeldet als „Loeschen im Vollbild sieht aus, als
-     reagiere nichts"; betroffen war JEDER Dialog aus dem Vollbild.
-     GEBAUT WURDE NICHT „eine Zahl hochgesetzt", SONDERN DIE ORDNUNG AN EINE
-     STELLE GESCHRIEBEN. Geprueft wird deshalb beides: dass die Stufen dort
-     stehen, und dass sie in der Reihenfolge stehen, die der Kommentar dort
-     begruendet.
-     GEPRUEFT WIRD AM TEXT UND NICHT AN DER LAGE: jsdom rechnet keine Lage aus
-     (Stolperstein 223), und `z-index` schon gar nicht. */
+     DAHINTER. */
   {
     const zRaw = fs.readFileSync(path.join(__dirname, 'public', 'style.css'), 'utf8');
     const zBlock = (zRaw.match(/:root \{[\s\S]*?\n\}/) || [''])[0];
@@ -3589,9 +3164,7 @@ async function run() {
        aus null Stufen bestuende jede Verneinung darunter. */
     check('Die Stapelordnung steht als Ganzes in :root',
       zLevels.length === 10, `${zLevels.length} Stufen: ${zLevels.map(([n]) => n).join(' · ')}`);
-    /* DIE REIHENFOLGE IST DIE DER DATEI. Sie steht dort von unten nach oben
-       aufgeschrieben, mit einem Satz je Ebene -- eine Liste, die anders
-       sortiert ist als ihre Begruendung, laesst sich nicht lesen. */
+    /* DIE REIHENFOLGE IST DIE DER DATEI. */
     check('Und sie steht von unten nach oben, ohne Sprung zurueck',
       zLevels.every(([, w], i) => i === 0 || w > zLevels[i - 1][1]),
       zLevels.map(([n, w]) => `${n}:${w}`).join(' · '));
@@ -3607,15 +3180,12 @@ async function run() {
       `Meldung ${zValue('z-toast')} gegen Dialog ${zValue('z-dialog')}`);
     /* DIE VIER STUFEN INNERHALB DES VOLLBILDS BEHALTEN IHRE VERHAELTNISSE:
        der Schleier des Ausschnittrahmens unter der Bedienung, die Bedienung
-       unter den Blaetterpfeilen. Die Ordnung wurde sortiert und nicht
-       durcheinandergeworfen. */
+       unter den Blaetterpfeilen. */
     check('Der Schleier des Ausschnittrahmens bleibt unter der Bedienung',
       zValue('z-crop-frame') < zValue('z-viewer-tools') &&
       zValue('z-viewer-tools') < zValue('z-page-arrows'),
       `${zValue('z-crop-frame')} · ${zValue('z-viewer-tools')} · ${zValue('z-page-arrows')}`);
-    /* UND KEINE REGEL TRAEGT MEHR IHRE EIGENE ZAHL. Ohne diese Zeile bliebe
-       gruen, wer die Tafel oben stehen laesst und daneben weiter feste Zahlen
-       schreibt -- dann stuende die Ordnung an elf Stellen statt an einer. */
+    /* UND KEINE REGEL TRAEGT MEHR IHRE EIGENE ZAHL. */
     const zBare = [...zRaw.replace(zBlock, '').matchAll(/z-index:\s*(\d+)/g)].map(m => m[1]);
     check('Und keine einzelne Regel traegt mehr ihre eigene Zahl',
       zBare.length === 0, zBare.join(' · '));

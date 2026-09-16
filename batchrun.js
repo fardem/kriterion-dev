@@ -1,11 +1,4 @@
-/* Die Bestandslaeufe, in einem eigenen Thread.
-   Vier Aufgaben: die Umstellung des Ablageverfahrens (auf Knopfdruck), das
-   Nachruesten fehlender Vorschaubilder, das Erneuern der Kacheln (beide beim
-   Start) und das Erneuern einer einzelnen Kachel (beim Speichern eines
-   Ausschnitts). Welche Aufgabe und welche Zeilen, steht in workerData.
-   better-sqlite3 ist synchron; im Haupt-Thread hielte jede dieser Zeilen die
-   Event Loop an. Der Schluessel reist nicht mit -- keys.js holt ihn hier
-   denselben Weg wie dort. maintainStorage() laeuft hier nicht. */
+/* Die Bestandslaeufe, in einem eigenen Thread. */
 const os = require('os');
 const { parentPort, workerData } = require('worker_threads');
 const sharp = require('sharp');
@@ -19,13 +12,8 @@ const { makeVariants, isPng, storeImage, isUncropped } = require('./images');
    Der Haupt-Thread ersetzt damit, statt zu addieren. */
 const report = (status) => parentPort.postMessage({ kind: 'status', status });
 
-/* Der Bestandslauf: das Original.
-   Eine Frage je Zeile -- liegt das Original als PNG da, und will das
-   gewaehlte Verfahren etwas damit? Ableitungen werden nicht angefasst.
-   Videozeilen waehlt der Haupt-Thread aus. Je Bild eine eigene Transaktion:
-   eine einzelne Anweisung ist in SQLite ihre eigene.
-   Drei Zahlen: `converted` die umgestellten Originale, `stayed` die Zeilen
-   ohne Arbeit oder ohne Erfolg, `freed` die gesparten Bytes. */
+/* Der Bestandslauf: das Original. Eine Frage je Zeile -- liegt das Original
+   als PNG da, und will das gewaehlte Verfahren etwas damit? */
 async function convertInventory(rows, store) {
   const status = { running: true, total: rows.length, done: 0,
                   converted: 0, stayed: 0, freed: 0 };
@@ -37,7 +25,7 @@ async function convertInventory(rows, store) {
     try {
       const z = get.get(id);
       // Die Zeile kann waehrend des Laufs geloescht oder schon umgestellt
-      // worden sein. Beides ist kein Fehler -- nur nichts zu tun.
+// worden sein. Beides ist kein Fehler -- nur nichts zu tun.
       if (z) {
         const sizeBefore = z.data ? z.data.length : 0;
         const start = isPng(z.data) ? await storeImage(z.data, 'image/png', store)
@@ -50,7 +38,7 @@ async function convertInventory(rows, store) {
       }
     } catch (e) {
       // Eine Zeile reisst den Lauf nicht ab. Sie bleibt, wie sie ist, wird
-      // gezaehlt und genannt.
+// gezaehlt und genannt.
       status.stayed++;
       console.error(`[Kriterion] Photo ${id} not converted:`, e.message);
     }
@@ -66,22 +54,18 @@ async function convertInventory(rows, store) {
     `to do, ${status.freed} bytes saved.`);
 }
 
-/* Woraus eine Zeile ihre Kachel bekommt. Am Foto ist die Vorlage `data`, das
-   Original; am Video `medium`, die Ableitung seines Standbilds -- der Server
-   oeffnet nie ein Video. `medium` wird am Video deshalb nicht neu
-   geschrieben: es entstuende aus sich selbst. */
+/* Woraus eine Zeile ihre Kachel bekommt. */
 const isVideoRow = (z) => z && z.kind === 'video';
 const sourceFrom = (z) => (isVideoRow(z) ? z.medium : z.data);
 const cropFrom = (z) => ({ fx: Number(z.focus_x), fy: Number(z.focus_y),
                                zoom: Number(z.zoom) });
 
 /* Die fehlenden Vorschaubilder nachruesten. Nur Bilder: in der Videozeile
-   steht in `data` die Videodatei. Welche Zeilen offen sind, waehlt der
-   Haupt-Thread. */
+   steht in `data` die Videodatei. */
 async function backfillThumbnails(rows) {
   console.log(`[Kriterion] Creating thumbnails for ${rows.length} photo(s) ...`);
   // Der Zuschnitt geht mit: die drei Zahlen stehen in eigenen Spalten und
-  // sind auch dann da, wenn die Ableitung fehlt.
+// sind auch dann da, wenn die Ableitung fehlt.
   const get = db.prepare(
     'SELECT data, kind, medium, focus_x, focus_y, zoom FROM photos WHERE id = ?');
   const upd = db.prepare('UPDATE photos SET thumb = ?, medium = ? WHERE id = ?');
@@ -100,11 +84,7 @@ async function backfillThumbnails(rows) {
 }
 
 /* Die Kacheln erneuern. Faellig ist eine Zeile, deren `thumb` nicht
-   quadratisch ist -- ein zugeschnittener ist es. Der Haupt-Thread schickt
-   die Nummern aller Zeilen mit einer Ableitung, nicht die der faelligen:
-   welche faellig ist, sagt erst der Kopf ihres `thumb`.
-   Zwei Zahlen: `checked` die gelesenen Zeilen, `renewed` die mit einer neuen
-   Ableitung. */
+   quadratisch ist -- ein zugeschnittener ist es. */
 async function refreshTiles(rows) {
   const status = { running: true, total: rows.length, done: 0,
                   checked: 0, renewed: 0, skipped: 0, grown: 0 };
@@ -114,7 +94,7 @@ async function refreshTiles(rows) {
     try {
       const z = get.get(id);
       // Ohne `thumb` ist die Zeile Sache des Nachruestens und nicht dieses
-      // Laufs.
+// Laufs.
       if (z && z.thumb) {
         status.checked++;
         if (await isUncropped(z.thumb)) {
@@ -130,7 +110,7 @@ async function refreshTiles(rows) {
     status.done++;
     report(status);
     // Dieselben 30 ms wie in den anderen Schleifen: sie halten die Maschine
-    // frei, auf der noch etwas anderes laufen darf.
+// frei, auf der noch etwas anderes laufen darf.
     await new Promise(r => setTimeout(r, 30));
   }
   status.running = false;
@@ -142,9 +122,7 @@ async function refreshTiles(rows) {
 }
 
 /* Eine Zeile erneuern -- die Schleife oben und die Aufgabe `crop` rufen
-   dieselbe Funktion. Zurueck kommt die Differenz in Bytes oder null. `null`
-   heisst nicht geschrieben: eine Vorlage, an der sharp scheitert, darf die
-   vorhandene Kachel nicht ersetzen. */
+   dieselbe Funktion. */
 const writeBoth = db.prepare('UPDATE photos SET thumb = ?, medium = ? WHERE id = ?');
 const writeTile = db.prepare('UPDATE photos SET thumb = ? WHERE id = ?');
 async function refreshRow(id, z) {
@@ -158,10 +136,7 @@ async function refreshRow(id, z) {
 }
 
 /* Die vierte Aufgabe: eine Zeile, auf Knopfdruck beim Speichern eines
-   Ausschnitts. Sie faehrt im Thread, weil sie an der Route 494 bis 873 ms
-   kostet -- der groessere Posten ist das Zurueckschreiben, denn SQLite
-   schreibt den ganzen Satz neu und der traegt das Original.
-   Der Stand reist nicht zurueck; gemeldet wird nur das Ergebnis. */
+   Ausschnitts. */
 async function refreshOneTile(rows) {
   const id = rows && rows[0] && rows[0].id;
   const z = id ? db.prepare(
@@ -175,16 +150,12 @@ async function refreshOneTile(rows) {
   parentPort.postMessage({ kind: 'refreshed', id, ok });
 }
 
-/* Gibt die freigewordenen Seiten ans Dateisystem zurueck. Zwei Pragmas auf
-   der eigenen Verbindung -- eine Verbindung laesst sich nicht ueber eine
-   Threadgrenze reichen. Darf nichts werfen: die Datei ist geschrieben. */
+/* Gibt die freigewordenen Seiten ans Dateisystem zurueck. */
 function reclaim() {
   try { db.pragma('incremental_vacuum'); db.pragma('wal_checkpoint(TRUNCATE)'); } catch {}
 }
 
-/* Der Thread faehrt genau eine Aufgabe und endet dann. Die Verbindung wird
-   vorher geschlossen, sonst bleiben ihre WAL-Seiten liegen; parentPort.close()
-   danach, sonst haelt der offene Kanal den Thread am Leben. */
+/* Der Thread faehrt genau eine Aufgabe und endet dann. */
 (async () => {
   if (workerData.task === 'conversion') await convertInventory(workerData.rows, workerData.store);
   else if (workerData.task === 'thumbnails') await backfillThumbnails(workerData.rows);

@@ -1,10 +1,6 @@
-/* Kriterion — Pruefstand: die Staende 0.30.0 bis 0.30.3
- *
- * Der Waechter ueber den Prueflauf, die Schlusstafel, die Anmeldebremse,
- * das Faelligkeitsdatum und die Tagzeile in drei Bauabschnitten.
- *
- * Eigener Prozess, eigener Speicher. Der Rahmen steht in test/frame.js.
- */
+/* Kriterion — Pruefstand: die Staende 0.30.0 bis 0.30.3 Der Waechter ueber
+   den Prueflauf, die Schlusstafel, die Anmeldebremse, das Faelligkeitsdatum
+   und die Tagzeile in drei Bauabschnitten. */
 const H = require('./frame.js');
 const D = require('./dom.js');
 const {
@@ -21,23 +17,17 @@ async function run() {
 
 /* ===================================================================== */
 /* ================= DIE ZUSAGEN DER RUNDE 0.30.0 ====================== */
-/* Jede neue Zusage mit gefahrener Gegenprobe, fortlaufend ab 895.
-   ACHT VON IHNEN FAHREN EINEN ECHTEN PROZESS ODER EINEN LAUFENDEN SERVER und
-   lesen nicht den Quelltext -- eine Zusage, die nur den Ausdruck ansieht,
-   bliebe gruen, wenn er dasteht und nichts trifft. Genau das war Befund 1. */
+/* Jede neue Zusage mit gefahrener Gegenprobe, fortlaufend ab 895. ACHT VON
+   IHNEN FAHREN EINEN ECHTEN PROZESS ODER EINEN LAUFENDEN SERVER und lesen
+   nicht den Quelltext -- eine Zusage, die nur den Ausdruck ansieht, bliebe
+   gruen, wenn er dasteht und nichts trifft. */
 async function check0300() {
 
   /* ---- BA 1: der Waechter erkennt den Prueflauf --------------------- */
   group('Der Waechter erkennt den Prueflauf — 0.30.0');
   {
     const cp = require('./counterproof.js');
-    /* GEFAHREN UND NICHT GELESEN. Bis 0.30.0 stand im Ausdruck `pruefung.js`
-       -- eine Datei, die es in diesem Repository nie gegeben hat --, und der
-       Kommentar zwei Zeilen darueber sagte die ganze Zeit das Richtige. Eine
-       Zusage, die den Ausdruck liest, haette denselben Fehler gemacht wie der
-       Leser: sie haette den Absatz geglaubt.
-       ZWEI ECHTE PROZESSE, die auf die beiden Namen enden und lange genug
-       leben, um gesehen zu werden. Sie tun nichts -- gesucht wird ihr NAME. */
+    /* GEFAHREN UND NICHT GELESEN. */
     const wDir = fs.mkdtempSync(path.join(os.tmpdir(), 'kriterion-waechter-'));
     const wSleep = "setTimeout(() => {}, 8000);";
     fs.writeFileSync(path.join(wDir, 'testbench.js'), wSleep);
@@ -52,17 +42,14 @@ async function check0300() {
       wHas(0), `gesehen: ${wSeen.map(z => `${z.pid} ${z.script}`).join(' · ') || '—'}`);
     check('Und einen node server.js ebenso — wie seit 0.21.0',
       wHas(1), `gesehen: ${wSeen.map(z => z.script).join(' · ') || '—'}`);
-    /* UND ER FAERBT SICH NICHT AN JEDEM WERKZEUG. Ein Muster ueber den ganzen
-       Aufruf faenge jedes zweite mit -- und ein Waechter, der bei jedem Lauf
-       anschlaegt, wird abgeschaltet. */
+    /* UND ER FAERBT SICH NICHT AN JEDEM WERKZEUG. */
     check('Und ein anderes Werkzeug laesst er in Ruhe',
       !wHas(2), 'der Waechter faerbt sich an einem beliebigen Skript');
     for (const k of wKinds) { try { k.kill('SIGKILL'); } catch {} }
 
-    /* ---- DER PORTBLICK (F7) ----
-       Er findet, was kein Muster ueber die Befehlszeile je findet: einen
-       Server aus `node -e "require('./server.js')"`. GEFAHREN AN EINEM ECHT
-       HORCHENDEN SOCKET und nicht an einer Liste. */
+    /* ---- DER PORTBLICK (F7) ---- Er findet, was kein Muster ueber die
+       Befehlszeile je findet: einen Server aus `node -e
+       "require('./server.js')"`. */
     const wSpan = cp.portSpan();
     check('Die Spanne der Portbasen kommt aus dem Pruefstand und ist eine Spanne',
       wSpan.from === PORT_SPAN_FROM && wSpan.to === PORT_SPAN_TO && wSpan.to > wSpan.from,
@@ -71,12 +58,7 @@ async function check0300() {
     /* EINE FREIE NUMMER WIRD GESUCHT UND NICHT GESETZT, und das ist die Lehre
        aus dem ersten gefahrenen Gegenprobenlauf dieser Runde: die Gegenprobe
        faehrt VIER Spuren nebeneinander, und die oberste reicht mit ihrem
-       Versatz bis an das obere Ende der Spanne. Eine feste Nummer traf dort
-       irgendwann einen laufenden Server, `listen` warf EADDRINUSE, und der
-       ganze Lauf riss ab -- eine abgerissene Gegenprobe belegt gar nichts
-       (Stolperstein 161).
-       GESUCHT WIRD VON OBEN NACH UNTEN, und der Fehlschlag ist ein ROTER PUNKT
-       und kein Abbruch. */
+       Versatz bis an das obere Ende der Spanne. */
     const listenOn = async (from, step) => {
       for (let i = 0; i < 40; i++) {
         const port = from - i * step;
@@ -115,8 +97,7 @@ async function check0300() {
       READY_TRIES * READY_STEP > 12000,
       `${READY_TRIES} x ${READY_STEP} ms = ${READY_TRIES * READY_STEP / 1000} s`);
     /* DIE MELDUNG WIRD GEBAUT UND NICHT GELESEN: dieselbe Funktion, die der
-       Zweitserver wirft. Ihn wirklich ins Leere laufen zu lassen kostete
-       dreissig Sekunden und belegte nichts mehr. */
+       Zweitserver wirft. */
     const mText = readyFailure(6180, 6213, '/tmp/kriterion-beispiel', 'ausgabe des servers');
     check('Und die Meldung nennt Portbasis, Port und Verzeichnis',
       /6180/.test(mText) && /6213/.test(mText) && /\/tmp\/kriterion-beispiel/.test(mText),
@@ -131,12 +112,7 @@ async function check0300() {
   /* ---- BA 3: der Aufraeumer beim Start ------------------------------ */
   group('Der Pruefstand raeumt beim Start auf — 0.30.0');
   {
-    /* AN EINEM ECHT HINTERLASSENEN SERVER GEFAHREN. Ein KIND dieses Laufs
-       waere keiner: der Aufraeumer laesst die eigene Nachkommenschaft
-       ausdruecklich stehen, sonst brachte er den Lauf um, den er schuetzt.
-       DER ENKEL IST DER WEG: ein kurzlebiger Helfer startet den Server und
-       beendet sich selbst -- danach haengt der Server an der Eins und ist ein
-       Rest wie jeder andere. */
+    /* AN EINEM ECHT HINTERLASSENEN SERVER GEFAHREN. */
     const aDir = fs.mkdtempSync(path.join(os.tmpdir(), 'kriterion-rest-'));
     const aScript =
       `const { spawn } = require('child_process');` +
@@ -156,9 +132,7 @@ async function check0300() {
       aFound.some(z => z.pid === aBorn),
       aFound.map(z => `${z.pid} ${z.where}`).join(' · ') || 'nichts gefunden');
     const aSweep = sweepLeftovers();
-    /* GEWARTET WIRD AUF DAS ENDE UND NICHT AUF DIE UHR. Ein SIGKILL wirkt
-       nicht in derselben Zeile, und eine feste Zahl Millisekunden ist auf einer
-       belasteten Maschine eine Wette. */
+    /* GEWARTET WIRD AUF DAS ENDE UND NICHT AUF DIE UHR. */
     for (let i = 0; i < 50 && aAlive(aBorn); i++) await new Promise(r => setTimeout(r, 100));
     check('Und er raeumt ihn wirklich weg — der Prozess lebt danach nicht mehr',
       !aAlive(aBorn), `PID ${aBorn} lebt noch`);
@@ -202,9 +176,7 @@ async function check0300() {
     check('Und bei weniger als zehn Gruppen nennt sie die, die es gibt',
       tFew.filter(z => /^ {4}Eine/.test(z)).length === 1 && /1 VON 1 GRUPPEN/.test(tFew[0]),
       tFew.join(' | '));
-    /* UND SIE STEHT WIRKLICH IM SCHLUSSBLOCK EINES GEFAHRENEN LAUFS. Der
-       Rahmen wird dafuer als EIGENER Prozess gefahren -- wie beim
-       Gruppenfilter, und aus demselben Grund. */
+    /* UND SIE STEHT WIRKLICH IM SCHLUSSBLOCK EINES GEFAHRENEN LAUFS. */
     const tProbe = require('child_process').spawnSync(process.execPath, ['testbench.js'],
       { cwd: __dirname, encoding: 'utf8', env: { ...process.env, TESTBENCH_PROBE: '1' } });
     check('Und ein gefahrener Lauf traegt sie in seinem Schlussblock',
@@ -226,10 +198,7 @@ async function check0300() {
   /* ---- BA 5: die Anmeldebremse an der Funktion (F3) ----------------- */
   group('Die Anmeldebremse — an der reinen Funktion — 0.30.0');
   {
-    /* DIE KURVE FUER JEDEN ZAEHLERSTAND UND IN NULL MILLISEKUNDEN. Bis 0.30.0
-       fuhren sechs Prueflagen sie real durch die Routen: 700 + 1400 + 2100 +
-       2800 + 3500 ms je Durchlauf, und abgedeckt waren dabei genau die sechs
-       Staende, durch die ein Lauf zufaellig geht. Hier sind es alle. */
+    /* DIE KURVE FUER JEDEN ZAEHLERSTAND UND IN NULL MILLISEKUNDEN. */
     const bCurve = JSON.parse(shortRun(
       `const a = require('./auth');` +
       `console.log(JSON.stringify(Array.from({length: 21}, (_, i) => a.delay(i))));`, DATA));
@@ -254,13 +223,10 @@ async function check0300() {
     const withoutSwitch = { ...process.env };
     delete withoutSwitch.KRITERION_TESTBENCH;
     /* DIE LETZTE ZEILE UND NICHT DIE GANZE AUSGABE -- dieselbe Bauform wie
-       shortRun(). keys.js sagt beim Laden „Schluessel aus ENCRYPTION_KEY
-       geladen", und diese Zeile stuende sonst vor jeder Antwort. */
+       shortRun(). */
     const ask = (code, environment) => execFileSync(process.execPath, ['-e', code],
       { cwd: __dirname, encoding: 'utf8', env: environment }).trim().split('\n').pop().trim();
-    /* DIE AUSLIEFERUNG TRAEGT N = 16384 -- FESTGENAGELT. Gefragt wird das
-       MODUL und nicht der Quelltext: eine Zeile, die dasteht und nicht
-       greift, waere genau der Fehler aus Befund 1. */
+    /* DIE AUSLIEFERUNG TRAEGT N = 16384 -- FESTGENAGELT. */
     const sShipped = ask(`const a = require('./auth'); console.log(a.SCRYPT_SHIPPED + ' ' + a.SCRYPT_COST);`,
       { ...withoutSwitch, DATA_DIR: DATA, ENCRYPTION_KEY: KEY });
     check('Die Auslieferung traegt scrypt N = 16384, und sie rechnet auch damit',
@@ -278,9 +244,7 @@ async function check0300() {
         KRITERION_TESTBENCH: 'pruefstand:scrypt=1024' });
     check('Der Pruefschalter dagegen schon — das ist der einzige Weg',
       sSwitched === '1024', `N = ${sSwitched}`);
-    /* UND AUCH ER KANN NICHT BELIEBIG WEIT. Ein Boden, und er wird gehoben
-       statt abgewiesen: eine Anlage, die den Schalter aus Versehen traegt,
-       ist langsamer zu pruefen und nicht ungeschuetzt. */
+    /* UND AUCH ER KANN NICHT BELIEBIG WEIT. */
     const sFloor = ask(`const a = require('./auth'); console.log(a.SCRYPT_COST);`,
       { ...withoutSwitch, DATA_DIR: DATA, ENCRYPTION_KEY: KEY,
         KRITERION_TESTBENCH: 'pruefstand:scrypt=2' });
@@ -318,10 +282,7 @@ async function check0300() {
   /* ---- BA 5: und die Route wartet wirklich (Zusage 7) --------------- */
   group('Und die Route wartet wirklich — 0.30.0');
   {
-    /* EINMAL, AM LAUFENDEN SERVER UND OHNE SCHALTER. Alles Uebrige belegt der
-       Lauf an der reinen Funktion; DASS die Verdrahtung dahinter wirklich
-       wartet, laesst sich nur am Server sehen -- und nur mit den
-       ausgelieferten Zahlen. */
+    /* EINMAL, AM LAUFENDEN SERVER UND OHNE SCHALTER. */
     const rDir = fs.mkdtempSync(path.join(os.tmpdir(), 'kriterion-warten-'));
     const R = startFurtherServer(rDir, { KRITERION_TESTBENCH: '' }, 7180);
     await R.ready;
@@ -336,8 +297,8 @@ async function check0300() {
     check('Die ersten fuenf Versuche kommen ohne Verzoegerung zurueck',
       rTimes.slice(0, 5).every(z => z < 700), JSON.stringify(rTimes));
     /* DER SECHSTE IST DER ERSTE GEBREMSTE: checkThrottle liest den Zaehler,
-       BEVOR noteFailure ihn hochzaehlt -- weich ab fuenf heisst also, dass der
-       sechste wartet. */
+       BEVOR noteFailure ihn hochzaehlt -- weich ab fuenf heisst also, dass
+       der sechste wartet. */
     check('Und der sechste wartet die ausgelieferten 700 ms wirklich ab',
       rTimes[5] >= 700, `Versuch 6: ${rTimes[5]} ms (Versuch 1: ${rTimes[0]} ms)`);
     /* UND ER TRAEGT DEN SCHALTER WIRKLICH NICHT -- sonst belegte die Zeile
@@ -364,26 +325,9 @@ async function check0300() {
       /weightedCalc \? ' ' \+ t\('entry\.weighted'\)/.test(gApp) &&
       !/' gewichtet'/.test(gApp), 'das feste Wort steht noch im Quelltext');
 
-    /* ================= DIE WACHE, DIE WERTE LIEST -- Zusage 21 =========
-       DEN SCHLUESSEL NACHZUTRAGEN REPARIERT EINEN SATZ; eine Wache faengt den
-       naechsten. Fuenf festsitzende deutsche Woerter in sechs Runden sind
-       keine fuenf Versehen, sondern eine Masche im Netz: die Restprobe
-       vergleicht die SPRACHDATEI gegen eine Urfassung, `SCREEN_BAN` liest die
-       Texte auf VERBOTENE Woerter, und der Bezeichnerwaechter liest NAMEN.
-       Ein fester deutscher Satz im Quelltext faellt durch alle drei.
-       SIE LIEST WERTE: jeden Text, den der Zerleger in public/app.js findet.
-       DREI SIEBE DAVOR, und jedes hat einen Grund:
-         1. EINE KENNUNG IST KEIN SATZ. Reine Kleinschreibung ohne Leerzeichen
-            ist ein id, eine Klasse, eine Adresse oder ein gespeicherter Wert.
-            Deutsche `id` sind ein eigener Befund (Sammelblatt 25).
-         2. MARKUP IST KEIN SATZ. Aus einer Vorlage bleibt der Text ZWISCHEN
-            den Marken; Attribute und Marken stehen nie am Bildschirm.
-         3. UND EIN BRUCHSTUECK MITTEN IN EINER MARKE ist keines von beidem:
-            `" alt="` hat gar kein `>`, und was danach kaeme, steht im
-            naechsten Stueck der Vorlage.
-       WAS SIE BEIM BAUEN GEFUNDEN HAT: drei weitere feste deutsche Woerter --
-       „an", „aus" und „eingerichtet" (0.30.0, Befund 10). Sie stehen jetzt im
-       Woerterbuch, und genau deshalb steht diese Wache hier. */
+    /* ================= DIE WACHE, DIE WERTE LIEST -- Zusage 21 ========= DEN
+       SCHLUESSEL NACHZUTRAGEN REPARIERT EINEN SATZ; eine Wache faengt den
+       naechsten. */
     const GERMAN_WORDS = Object.create(null);
     {
       const dict = JSON.parse(fs.readFileSync(path.join(__dirname, 'tools', 'dictionary.json'), 'utf8'));
@@ -397,23 +341,16 @@ async function check0300() {
     const germanWordsIn = (t) => bareText(t).split(/[^A-Za-zÄÖÜäöüß]+/)
       .filter(x => x.length > 2).map(x => x.toLowerCase()).filter(w => GERMAN_WORDS[w]);
     /* DIE BENANNTEN AUSNAHMEN, und jede hat einen Grund und keinen Platz in
-       einer Sprachdatei:
-         die drei Befehle   sie werden auf dem WIRT getippt und sind an
-                            usertool.js gebunden -- `passwort` und
-                            `zweifaktor` sind dort Argumente und keine Woerter
-         die zwei Adressen  `forum.beispiel.de` ist ein Beispiel und keine
-                            Sprache
-         der eine Satz      „Die Sprachdatei fehlt." -- ohne die Datei gibt es
-                            keinen Schluessel, mit dem sich sagen liesse, dass
-                            sie fehlt (Entscheidung A1 aus 0.24.0) */
+       einer Sprachdatei: die drei Befehle sie werden auf dem WIRT getippt und
+       sind an usertool.js gebunden -- `passwort` und `zweifaktor` sind dort
+       Argumente und keine Woerter die zwei Adressen `forum.beispiel.de` ist
+       ein Beispiel und keine Sprache der eine Satz „Die Sprachdatei fehlt."
+       -- ohne die Datei gibt es keinen Schluessel, mit dem sich sagen liesse,
+       dass sie fehlt (Entscheidung A1 aus 0.24.0) */
     const SENTENCE_EXCEPTIONS = [
       'docker compose exec kriterion node usertool.js passwort <name>',
       'docker compose exec kriterion node usertool.js zweifaktor <name>',
-      /* ZWEI BEISPIELADRESSEN UND EINE ABFRAGE. `forum.beispiel.de` steht in
-         der Karte „Suchanbieter" als Beispiel, einmal als Adresse und einmal
-         in einem <code>-Kasten daneben; `?gruppe=` ist ein Stueck Abfrage und
-         kein Satz. Keines von beiden gehoert in eine Sprachdatei -- eine
-         Adresse wird nicht uebersetzt. */
+      /* ZWEI BEISPIELADRESSEN UND EINE ABFRAGE. */
       'https://forum.beispiel.de/suche?q=%s',
       'site%3Aforum.beispiel.de',
       '?gruppe=',
@@ -446,9 +383,7 @@ async function check0300() {
     check('KEIN deutscher Bildschirmsatz sitzt mehr fest in public/app.js',
       gStuck.length === 0,
       gStuck.map(z => `${z.row}: ${JSON.stringify(z.text.slice(0, 60))}`).join(' · '));
-    /* DIE ZAHL DER AUSNAHMEN STEHT AUSDRUECKLICH DA. Ohne sie waere die Liste
-       eine Selbstbestaetigung: wer einen Satz hinzufuegt, macht sie wieder
-       gruen -- dieselbe Ueberlegung wie bei den zwoelf benannten Bezeichnern. */
+    /* DIE ZAHL DER AUSNAHMEN STEHT AUSDRUECKLICH DA. */
     check('Und es sind genau sechs benannte Ausnahmen — zwei Befehle, drei Adressen, ein Satz',
       SENTENCE_EXCEPTIONS.length === 6 &&
       SENTENCE_EXCEPTIONS.filter(x => x.startsWith('docker')).length === 2 &&
@@ -467,33 +402,18 @@ async function check0300() {
   {
     const dApp = fs.readFileSync(path.join(__dirname, 'public', 'app.js'), 'utf8');
     const dCode = dApp.replace(/\/\*[\s\S]*?\*\//g, ' ').replace(/^\s*\/\/.*$/gm, ' ');
-    /* EINE EINZIGE EINTEILUNG. `dueOf` stand bis 0.30.0 INNERHALB von
-       renderOpen() und war von dort aus nirgends zu erreichen; eine zweite
-       daneben waere genau die zweite Wahrheit aus Stolperstein 47. */
+    /* EINE EINZIGE EINTEILUNG. */
     check('`dueOf` steht genau EINMAL im Code — und nicht mehr in renderOpen()',
       (dCode.match(/const dueOf = /g) || []).length === 1 &&
       (dCode.match(/const todayKey = /g) || []).length === 1,
       `dueOf ${(dCode.match(/const dueOf = /g) || []).length}x, ` +
       `todayKey ${(dCode.match(/const todayKey = /g) || []).length}x`);
     /* GENAU ZWEI RUFER, und das ist die Zahl und nicht „mindestens zwei": die
-       Ansicht „Offen" und die Zeile im Eintrag. Ein dritter waere ein dritter
-       Ort fuer dieselbe Frage und gehoerte benannt. */
+       Ansicht „Offen" und die Zeile im Eintrag. */
     check('Und beide Orte fragen dieselbe Funktion — genau zwei Rufer',
       (dCode.match(/dueOf\(/g) || []).length === 2, `${(dCode.match(/dueOf\(/g) || []).length} Aufrufe`);
-    /* ---- SEIT 0.30.1 SIND ES FUENF ZUSTAENDE UND DREI FARBEN -- Befund 7 ----
-       DIE FARBE SAGT DEN ZUSTAND UND NICHT MEHR NUR DIE FRIST. Der Betreiber,
-       12. September 2026: „Blau bei unerledigten aufgabe. rot wenn das datum
-       ueberschritten ist … wenn aber ein nicht ueberschrittene aufgabe auf
-       fertig gesetzt wird, muss das datum auch mit gruen werden."
-       DREI FARBEN UND NICHT FUENF, UND DAS IST DIE ZUSAGE: Rot fuer gerissen,
-       Blau fuer offen, Gruen fuer gehalten. Die Paare unterscheiden sich nicht
-       in der Farbe, sondern in der AUSZEICHNUNG -- „heute" durch das Gewicht,
-       „zu spaet erledigt" durch den Strich. Wer nur die Farben zaehlte,
-       verlangte fuenf und bekaeme eine Oberflaeche, die drei Sachen mit fuenf
-       Toenen sagt.
-       KEIN NEUER FARBTON: Blau und Gruen fuer offen und erledigt traegt das
-       Haus schon an der Kante des Kommentars und an der Marke „ToDo". Das
-       Datum war die dritte Stelle und die einzige, die nicht mitmachte. */
+    /* ---- SEIT 0.30.1 SIND ES FUENF ZUSTAENDE UND DREI FARBEN -- Befund 7
+       ---- DIE FARBE SAGT DEN ZUSTAND UND NICHT MEHR NUR DIE FRIST. */
     const dCss = fs.readFileSync(path.join(__dirname, 'public', 'style.css'), 'utf8');
     const dRule = (name) => (dCss.match(new RegExp(`\\.cmt-due\\.due-${name} \\{([^}]*)\\}`)) || [])[1] || '';
     const dStates = ['overdue', 'today', 'later', 'late', 'done'];
@@ -504,17 +424,14 @@ async function check0300() {
       new Set(dStates.map(n => dRule(n).replace(/\s+/g, ' ').trim())).size === 5,
       JSON.stringify(dStates.map(n => dRule(n).replace(/\s+/g, ' ').trim()))); 
     /* DIE ZUORDNUNG AUSDRUECKLICH und nicht bloss „drei verschiedene": eine
-       vertauschte Zuordnung -- gruen fuer gerissen, rot fuer gehalten -- waere
-       ebenfalls dreifarbig und sagte das Gegenteil. */
+       vertauschte Zuordnung -- gruen fuer gerissen, rot fuer gehalten --
+       waere ebenfalls dreifarbig und sagte das Gegenteil. */
     check('Offen ist blau, gerissen ist rot, gehalten ist gruen',
       /var\(--blue\)/.test(dRule('later')) && /var\(--blue\)/.test(dRule('today')) &&
       /var\(--red\)/.test(dRule('overdue')) && /var\(--red\)/.test(dRule('late')) &&
       /var\(--green\)/.test(dRule('done')),
       JSON.stringify(dColours));
-    /* „ZU SPAET FERTIG" BLEIBT SICHTBAR ZU SPAET. Bis 0.30.0 schlug „erledigt"
-       jede Frist: sobald jemand abhakte, wurde das Datum gedaempft und
-       durchgestrichen, ganz gleich ob die Frist gehalten wurde. Das ist die
-       eigentliche Aenderung dieser Runde am Datum. */
+    /* „ZU SPAET FERTIG" BLEIBT SICHTBAR ZU SPAET. */
     check('Eine erledigte Aufgabe mit gerissener Frist bleibt rot — und durchgestrichen',
       /var\(--red\)/.test(dRule('late')) && /line-through/.test(dRule('late')), dRule('late'));
     check('Und „ueberfaellig" traegt dasselbe Rot wie die Ueberschrift in „Offen"',
@@ -525,10 +442,7 @@ async function check0300() {
       /font-weight: 600/.test(dRule('today')) && !/--red/.test(dRule('today')), dRule('today'));
     check('Und „erledigt" ist durchgestrichen',
       /line-through/.test(dRule('done')), dRule('done'));
-    /* DER STRICH BLEIBT, UND ZWAR AN BEIDEN ERLEDIGTEN (F17). Farbe und Strich
-       schliessen einander nicht aus: die Farbe sagt „gehalten oder gerissen",
-       der Strich sagt „erledigt". Ohne ihn waeren eine offene ueberfaellige
-       und eine spaet erledigte Aufgabe beide rot und sonst nichts. */
+    /* DER STRICH BLEIBT, UND ZWAR AN BEIDEN ERLEDIGTEN (F17). */
     check('Und der Strich steht an BEIDEN erledigten, an keiner offenen',
       ['late', 'done'].every(n => /line-through/.test(dRule(n))) &&
       ['overdue', 'today', 'later'].every(n => !/line-through/.test(dRule(n))),
@@ -541,17 +455,13 @@ async function check0300() {
       const p = (n) => String(n).padStart(2, '0');
       return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`; };
     /* VIER AUFGABEN IN VIER ZUSTAENDEN. `mine` an jeder: der Verweis steht
-       nur da, wo jemand ihn auch bedienen darf. `pinned` und `imagesRemoved`
-       gehoeren dazu, weil der echte Server sie an JEDEM Kommentar liefert --
-       ein Mock, der die Antwort vereinfacht, loescht genau die Pruefung,
-       fuer die er gebaut ist. */
+       nur da, wo jemand ihn auch bedienen darf. */
     const dWho = { id: 1, name: 'chefin' };
     const dRow = (id, kind, text, due) => ({ id, kind, text, dueDate: due, pinned: false,
       mine: true, imagesRemoved: 0, author: dWho, images: [],
       created_at: '2026-09-01 09:00:00', updated_at: null });
     /* FUENF AUFGABEN SEIT 0.30.1, und die fuenfte ist der Kern des Befundes:
-       eine ERLEDIGTE, deren Frist noch nicht abgelaufen war. Bis 0.30.0 sah
-       sie genauso aus wie die zu spaet erledigte darueber. */
+       eine ERLEDIGTE, deren Frist noch nicht abgelaufen war. */
     const dComments = [
       dRow(91, 'task', 'Gestern', dShift(-1)),
       dRow(92, 'task', 'Heute', dToday),
@@ -579,9 +489,7 @@ async function check0300() {
       !!dDone?.querySelector('.cmt-due.due-done') &&
       (dDone.querySelector('.cmt-due')?.textContent || '').trim().length > 4,
       JSON.stringify(dDone?.querySelector('.cmt-due')?.outerHTML?.slice(0, 120)));
-    /* UND DIE ZU SPAET ERLEDIGTE STEHT DANEBEN UND SIEHT ANDERS AUS. Zwei
-       erledigte Aufgaben, zwei Zustaende -- genau die Unterscheidung, die es
-       bis 0.30.0 nicht gab. */
+    /* UND DIE ZU SPAET ERLEDIGTE STEHT DANEBEN UND SIEHT ANDERS AUS. */
     const dLate = [...dDom.w.document.querySelectorAll('.cmt')]
       .find(c => (c.querySelector('.cmt-body')?.textContent || '').trim() === 'Erledigt');
     check('Und die ZU SPAET erledigte daneben traegt einen anderen Zustand',
@@ -596,24 +504,19 @@ async function check0300() {
   {
     const kApp = fs.readFileSync(path.join(__dirname, 'public', 'app.js'), 'utf8');
     const kCss = fs.readFileSync(path.join(__dirname, 'public', 'style.css'), 'utf8');
-    /* DER SCHMALE ABSCHNITT ALLEIN. Was hier steht, gilt nur unterhalb der
-       Umbruchstelle; alles davor ist der Schreibtisch und wird von dieser
-       Runde ausdruecklich nicht angefasst (Zusage 26). */
+    /* DER SCHMALE ABSCHNITT ALLEIN. */
     const K_NARROW = '@media (max-width: 700px), (max-height: 500px) and (max-width: 960px) {';
     const kNarrow = kCss.slice(kCss.lastIndexOf(K_NARROW));
     const kWide = kCss.slice(0, kCss.lastIndexOf(K_NARROW));
     check('Der schmale Abschnitt steht da und ist der letzte',
       kNarrow.length > 1000 && kWide.length > 1000, `${kNarrow.length} / ${kWide.length} Zeichen`);
 
-    /* ---- DIE KOPFZEILE (Zusage 17) ----
-       GEMESSEN AM 12. SEPTEMBER 2026 in echtem Chromium bei 390 x 844, an
-       einer Anlage mit ZWEI Zugaengen und gesetzten Gewichten:
-         „⌀ 3,5 gewichtet" + „Wer hat bewertet" (159 px)   81 px, ZWEI Zeilen
-         „⌀ 3,5 gewichtet" + „Wer?"             ( 67 px)   42 px, EINE Zeile
+    /* ---- DIE KOPFZEILE (Zusage 17) ---- GEMESSEN AM 12. SEPTEMBER 2026 in
+       echtem Chromium bei 390 x 844, an einer Anlage mit ZWEI Zugaengen und
+       gesetzten Gewichten: „⌀ 3,5 gewichtet" + „Wer hat bewertet" (159 px) 81
+       px, ZWEI Zeilen „⌀ 3,5 gewichtet" + „Wer?" ( 67 px) 42 px, EINE Zeile
        DIE GRENZE IST GEFAHREN: „Bewerter" (98 px) passt, „Abgestimmt?" (127)
-       nicht. Der Knopf muss also unter 127 px bleiben -- und weil eine
-       Sprachdatei ihn laenger machen kann, haelt diese Zeile die LAENGE und
-       nicht den Wortlaut. */
+       nicht. */
     const kButton = ['de', 'en', 'tr'].map(code => JSON.parse(fs.readFileSync(
       path.join(__dirname, 'public', 'languages', `${code}.json`), 'utf8'))['entry.whoRated']);
     check('Der Knopf heisst in jeder Sprache hoechstens acht Zeichen',
@@ -621,26 +524,18 @@ async function check0300() {
       JSON.stringify(kButton));
     check('Und auf Deutsch heisst er „Wer?" — 67 statt 159 Pixel',
       kButton[0] === 'Wer?', JSON.stringify(kButton[0]));
-    /* UND DER FENSTERTITEL BLEIBT DER GANZE SATZ. Er steht nicht in der
-       Kopfzeile und hat Platz; der kurze Knopf bekommt seine Erklaerung genau
-       beim Oeffnen (F11, zweite Haelfte). */
+    /* UND DER FENSTERTITEL BLEIBT DER GANZE SATZ. */
     const kTitle = ['de', 'en', 'tr'].map(code => JSON.parse(fs.readFileSync(
       path.join(__dirname, 'public', 'languages', `${code}.json`), 'utf8'))['entry.whoRatedWord']);
     check('Der Titel des Fensters dahinter bleibt der ganze Satz',
       kTitle.every(w => typeof w === 'string' && w.includes('{word}') && w.length > 12),
       JSON.stringify(kTitle));
 
-    /* ---- DIE STERNZEILE (Zusagen 18 und 19) ----
-       DIE ZWEIZEILIGE FORM BLEIBT, und das hat die Messung entschieden und
-       nicht der Geschmack: zurueckgenommen waechst der Kasten von 580 auf 607
-       px, die Namensspalte faellt auf 54, jeder Name bricht fuenfzeilig um,
-       und die Seite ROLLT seitlich (Projektstand 5.3 behaelt recht, F12).
-       GEBAUT IST STATTDESSEN WENIGER LUFT IN DERSELBEN FORM -- C1a, also NUR
-       dort, wo die vierte Spalte steht. GEMESSEN bei 390 x 844, zwei Zugaenge,
-       fuenf Kriterien:
-         vorher   Kasten 537 px, je Kriterium 82 px
-         nachher  Kasten 439 px, je Kriterium 70 px
-       und bei EINEM Zugang 336 px vorher wie nachher -- unangetastet. */
+    /* ---- DIE STERNZEILE (Zusagen 18 und 19) ---- DIE ZWEIZEILIGE FORM
+       BLEIBT, und das hat die Messung entschieden und nicht der Geschmack:
+       zurueckgenommen waechst der Kasten von 580 auf 607 px, die Namensspalte
+       faellt auf 54, jeder Name bricht fuenfzeilig um, und die Seite ROLLT
+       seitlich (Projektstand 5.3 behaelt recht, F12). */
     check('Die zweizeilige Sternzeile bleibt — die Regel steht unveraendert da',
       /\.rlist:not\(\.no-average\) \{ grid-template-columns: auto 1fr auto; \}/.test(kNarrow) &&
       /\.rlist:not\(\.no-average\) \.rrow \.rname \{\s*grid-column: 1 \/ -1;/.test(kNarrow),
@@ -649,9 +544,7 @@ async function check0300() {
       /\.rlist:not\(\.no-average\) \.rrow \.rname \{ padding-top: 4px; line-height: 1\.35; \}/.test(kNarrow) &&
       /\.rlist:not\(\.no-average\) \.rrow \.rreset-cell \{ padding-bottom: 5px; \}/.test(kNarrow),
       (kNarrow.match(/\.rlist:not\(\.no-average\) \.rrow \.rname \{ padding[^\n]*/) || ['(nicht gefunden)'])[0]);
-    /* UND KEINE DIESER REGELN STEHT OHNE DIE KLAMMER. Ohne `:not(.no-average)`
-       traefe sie auch die Fassung mit EINEM Zugang -- also genau die, die der
-       Betreiber „gut" nennt (F12). Das waere C1 und nicht C1a. */
+    /* UND KEINE DIESER REGELN STEHT OHNE DIE KLAMMER. */
     check('Und keine von ihnen trifft die Fassung mit einem einzigen Zugang',
       !/^\s*\.rrow \.rname \{ padding-top: 4px/m.test(kNarrow) &&
       !/^\s*\.rrow > \* \{ padding-bottom: 5px/m.test(kNarrow),
@@ -663,14 +556,13 @@ async function check0300() {
       !/rreset-cell \{ padding-bottom: 5px/.test(kWide),
       'eine der Regeln steht ausserhalb der Umbruchstelle');
 
-    /* ---- DIE VOKABELKARTE (Zusage 25) ----
-       GEMESSEN, UND DIE MESSUNG HAT DEN VORSCHLAG DES AUFTRAGS WIDERLEGT:
-         heute, einspaltig            1203 px    2 von 14 Umbruechen
-         zwei Spalten (Vorschlag)      733 px   14 von 14, zwei dreizeilig
-         Beschriftung neben dem Feld   982 px   14 von 14, DREI dreizeilig
-         diese Fassung                1056 px    2 von 14, keine dreizeilig
-       GEBAUT IST DASSELBE MITTEL WIE AM BEWERTUNGSKASTEN: weniger Luft,
-       gleiche Bauform (F14, zweite Runde). */
+    /* ---- DIE VOKABELKARTE (Zusage 25) ---- GEMESSEN, UND DIE MESSUNG HAT
+       DEN VORSCHLAG DES AUFTRAGS WIDERLEGT: heute, einspaltig 1203 px 2 von
+       14 Umbruechen zwei Spalten (Vorschlag) 733 px 14 von 14, zwei
+       dreizeilig Beschriftung neben dem Feld 982 px 14 von 14, DREI
+       dreizeilig diese Fassung 1056 px 2 von 14, keine dreizeilig GEBAUT IST
+       DASSELBE MITTEL WIE AM BEWERTUNGSKASTEN: weniger Luft, gleiche Bauform
+       (F14, zweite Runde). */
     const V_NARROW = '@container (max-width: 420px)';
     const kContainer = kCss.slice(kCss.indexOf(V_NARROW));
     check('Die Vokabelkarte bleibt einspaltig — zwei Spalten sind gemessen widerlegt',
@@ -693,23 +585,14 @@ async function check0300() {
   }
 }
 
-/* =================================================================
-   0.30.1 — „Was der Rundlauf mit 0.30.0 gefunden hat"
-
-   ACHT BEFUNDE, SIEBEN BAUABSCHNITTE, und alle ausser einem sind
-   Oberflaeche. Die Zusagen stehen im Auftrag 0.30.1; jede wird an dem
-   belegt, was sie behauptet, und nicht an ihrer Schreibweise.
-   GEMESSEN WORDEN IST VORHER (BA 1), in echtem Chromium bei 390 x 844,
-   `deviceScaleFactor: 3`, `isMobile: true` -- an zwei Installationen mit
-   denselben Daten, einer mit zwei Zugaengen und einer mit einem. Die Zahlen
-   stehen an den Zusagen, zu denen sie gehoeren.
-   ================================================================= */
+/* ================================================================= 0.30.1 —
+   „Was der Rundlauf mit 0.30.0 gefunden hat" ACHT BEFUNDE, SIEBEN
+   BAUABSCHNITTE, und alle ausser einem sind Oberflaeche. */
 async function check0301() {
   const uCss = fs.readFileSync(path.join(__dirname, 'public', 'style.css'), 'utf8');
   const uApp = fs.readFileSync(path.join(__dirname, 'public', 'app.js'), 'utf8');
   /* DER SCHMALE ABSCHNITT, und zwar derselbe, den 0.30.0 schon liest: die
-     Regeln dieser Runde muessen DORT stehen und nicht global. Eine Regel, die
-     am Schreibtisch mitgilt, ist eine andere Zusage als die gegebene. */
+     Regeln dieser Runde muessen DORT stehen und nicht global. */
   const uNarrow = (uCss.match(/@media \(max-width: 700px\), \(max-height: 500px\) and \(max-width: 960px\) \{[\s\S]*$/) || [''])[0];
   let JSDOMu;
   try { ({ JSDOM: JSDOMu } = require('jsdom')); } catch { JSDOMu = null; }
@@ -718,21 +601,9 @@ async function check0301() {
   group('Die Tagzeile rueckt nach oben — 0.30.1');
   {
     check('jsdom steht fuer die Tagzeile bereit', !!JSDOMu, 'ohne jsdom keine Oberflaechenprobe');
-    /* DIE ZEILE AUF `1fr` IST DIE GANZE REPARATUR. Beide Rasterzeilen standen
-       auf `auto`; die Wolke spannt ueber beide und bestimmt die Hoehe, also
-       teilten sich die zwei Zeilen deren 433 Pixel zu je 212. Die
-       Beschriftung stand darin 96 px tief, der Umschalter 218.
-       GEMESSEN NACHHER: Beschriftung +0, Umschalter +25 -- und das sind genau
-       die 18 px der Beschriftung plus die 7 px Zeilenabstand des Rasters. */
+    /* DIE ZEILE AUF `1fr` IST DIE GANZE REPARATUR. */
     /* SEIT 0.30.2 SIND ES DREI ZEILEN: Beschriftung, die beiden Zeichen, der
-       Umschalter. Die beiden ersten sind so hoch wie ihr Inhalt, die dritte
-       nimmt den Rest -- dieselbe Bauform wie in 0.30.1, nur eine Zeile
-       tiefer. Die Zusage von 0.30.1 bleibt damit erhalten und wird nicht
-       geloescht (Stolperstein 201).
-       SEIT 0.30.3 STEHEN BEIDE FASSUNGEN NEBENEINANDER: die dritte Zeile gibt
-       es nur, wo die Wolke sie traegt (`tags-deep`); sonst gilt wieder die
-       Bauform von 0.30.1 mit zwei Zeilen. Die Zusage sagt deshalb, dass die
-       ERSTEN Zeilen so hoch sind wie ihr Inhalt -- und zwar in beiden. */
+       Umschalter. */
     check('Die ersten Rasterzeilen der Tagzeile sind so hoch wie ihr Inhalt',
       /\.frow-tags \{ grid-template-rows: auto 1fr; \}/.test(uNarrow) &&
       /\.frow-tags\.tags-deep \{ grid-template-rows: auto auto 1fr; \}/.test(uNarrow),
@@ -747,10 +618,7 @@ async function check0301() {
       /\.frow-tags > \.tagmode \{ grid-column: 1; grid-row: 2; margin-right: 0;\s*align-self: start; \}/.test(uNarrow),
       (uNarrow.match(/\.frow-tags > \.tagmode \{[^}]*\}/) || ['(keine Regel)'])[0]);
     /* DIE MARKEN SIND KLEINER ALS DIE KATEGORIEN -- GERECHNET UND NICHT
-       ABGESCHRIEBEN. Eine Zahl, die dasteht, kann man vertauschen; eine, die
-       unter einer anderen liegen muss, nicht.
-       GEMESSEN: zugeklappt stehen vier Tags in der einen Reihe statt dreier,
-       und der offene Filterkasten faellt von 654 auf 543 Pixel. */
+       ABGESCHRIEBEN. */
     const uPill = Number(((uCss.match(/\.pill \{[^}]*font-size: ([\d.]+)rem/) || [])[1]));
     const uTagWide = Number(((uCss.match(/\.pill-tag \{ font-family: var\(--mono\); font-size: ([\d.]+)rem; \}/) || [])[1]));
     const uTagNarrow = Number(((uNarrow.match(/\.pill-tag \{ font-size: ([\d.]+)rem; padding: 4px 10px; \}/) || [])[1]));
@@ -758,10 +626,7 @@ async function check0301() {
       uTagWide > 0 && uPill > 0 && uTagWide < uPill, `${uTagWide}rem gegen ${uPill}rem`);
     check('Und am Telefon ist sie noch eine Stufe kleiner',
       uTagNarrow > 0 && uTagNarrow < uTagWide, `${uTagNarrow}rem gegen ${uTagWide}rem`);
-    /* DIE FESTSCHRIFT BLEIBT, UND DAS IST EINE MESSUNG UND KEINE MEINUNG. Der
-       Auftrag hatte vermutet, sie sei die eigentliche Breite; sie allein macht
-       den breitesten Tag um neun Pixel schmaler und aendert an Reihen und
-       Hoehe gar nichts. Der Gewinn steckt im Polster. */
+    /* DIE FESTSCHRIFT BLEIBT, UND DAS IST EINE MESSUNG UND KEINE MEINUNG. */
     check('Und sie traegt weiterhin die Festschrift',
       /\.pill-tag \{ font-family: var\(--mono\)/.test(uCss) &&
       !/\.pill-tag \{[^}]*font-family: inherit/.test(uNarrow),
@@ -785,10 +650,8 @@ async function check0301() {
       !/\.trow \.tweek \{ display: none/.test(uCss.replace(uNarrow, '')));
     check('Und kein Geraetename steht im Stilblatt',
       !/ultra|max phone|iphone|ipad|galaxy/i.test(uCss.replace(/\/\*[\s\S]*?\*\//g, ' ')));
-    /* OHNE MARKEN WAECHST DER MARKENKASTEN IN DEN FREIEN PLATZ UND SCHIEBT DIE
-       STERNE ANS ENDE. `flex: 1` hiess „Grundbreite null und dann wachsen": er
-       griff sich die ganze uebrige Breite, auch wenn gar kein Tag darin
-       stand, und drueckte die Sterne aus der Zeile. */
+    /* OHNE MARKEN WAECHST DER MARKENKASTEN IN DEN FREIEN PLATZ UND SCHIEBT
+       DIE STERNE ANS ENDE. */
     check('Ohne Tags behaelt der Tagkasten seinen Inhalt als Grundmass',
       /\.trow \.ttags \{ flex: 1 1 auto; \}/.test(uNarrow));
     check('Mit Tags schrumpft er, statt die Zeile vor sich herzutragen',
@@ -815,7 +678,7 @@ async function check0301() {
     /* „MEHR" STEHT RECHTS VON DEN MARKEN UND NICHT AM ZEILENENDE -- so steht
        es in der Bestellung, und es stimmt auch baulich: am Zeilenende stuende
        es hinter den Sternen und sagte nichts mehr darueber, WAS da noch
-       kommt. Gemessen wird die Reihenfolge im Aufbau und nicht die Klasse. */
+       kommt. */
     const uOrder = (r) => [...r.children].map(e =>
       ['ttags', 'ttag-more', 'stars', 'tdate', 'tweek', 'tfrom', 'xdel']
         .find(n => e.classList.contains(n)) || e.className.split(' ')[0]);
@@ -825,11 +688,7 @@ async function check0301() {
         return o.indexOf('ttags') >= 0 && o.indexOf('ttag-more') === o.indexOf('ttags') + 1 &&
                o.indexOf('stars') > o.indexOf('ttag-more');
       }), JSON.stringify(uOrder(uRows[2] || uRows[0])));
-    /* DIE BEGRENZUNG SELBST WIRD GEFAHREN UND NICHT GELESEN. jsdom rechnet
-       keine Hoehen -- offsetHeight ist dort null --, also bekommt der Kasten
-       seine Masse hier ausdruecklich, und limitCloud() muss daran dasselbe
-       tun wie am Bildschirm: begrenzen und melden, dass etwas abgeschnitten
-       ist. DIE FUNKTION IST DIESELBE, die die beiden Wolken benutzen. */
+    /* DIE BEGRENZUNG SELBST WIRD GEFAHREN UND NICHT GELESEN. */
     const uBox = uDom.w.document.createElement('div');
     const uChild = uDom.w.document.createElement('span');
     uBox.appendChild(uChild);
@@ -849,21 +708,8 @@ async function check0301() {
     check('Und passt alles hinein, bleibt keine Grenze stehen',
       uEng === false && !uBox.style.maxHeight && !uBox.style.overflow,
       `${uEng} · „${uBox.style.maxHeight}" · „${uBox.style.overflow}"`);
-    /* ---- UND DER AUFBAU RUFT SIE AUCH -- 0.30.1, nachgetragen ----
-       DIE GEGENPROBE HAT ES GEFUNDEN, und das ist ihr Zweck. Rueckbau 926
-       setzt `limitCloud(tagBox, opened ? 0 : 1)` auf `0` -- die Begrenzung
-       faellt damit ganz weg, und KEINE EINZIGE PRUEFUNG wurde rot. Belegt war
-       die Begrenzung selbst; ihr RUF war es nicht.
-       WARUM SIE NICHT AM ERGEBNIS ZU SEHEN IST: jsdom rechnet keine Hoehen,
-       also steigt limitCloud() gleich am Anfang aus und setzt nichts. Am
-       fertigen Dokument ist zwischen „begrenzt" und „nicht begrenzt" kein
-       Unterschied zu messen.
-       DESHALB DER MITSCHREIBER: die Funktion wird gegen eine getauscht, die
-       jeden Ruf notiert und dann die echte ruft. Sie ist eine
-       Funktionsdeklaration auf oberster Ebene und liegt damit am Fenster --
-       der Tausch greift auch fuer die Rufe INNERHALB der Datei.
-       GEZEICHNET WIRD DANACH NEU, und zwar ueber `renderDetail`, wie an jeder
-       anderen Stelle dieses Prueflaufs auch. */
+    /* ---- UND DER AUFBAU RUFT SIE AUCH -- 0.30.1, nachgetragen ---- DIE
+       GEGENPROBE HAT ES GEFUNDEN, und das ist ihr Zweck. */
     const uCalls = [];
     const uReal = uDom.w.limitCloud;
     uDom.w.limitCloud = (box, rows) => {
@@ -882,10 +728,7 @@ async function check0301() {
   /* ---- Zusage 5: der Zaehler ---------------------------------------- */
   group('In der Zeile die Zahl, im Titel das Wort — 0.30.1');
   {
-    /* EIN HELFER UND NICHT VIER STELLEN. Vier Listen tragen den gewoehnlichen
-       Zaehler: Kategorien, Tags, Kriterien und die Zugaenge samt
-       Grabsteinfenster. Stuende die Bauform an jeder einzeln, liefen sie
-       auseinander. */
+    /* EIN HELFER UND NICHT VIER STELLEN. */
     const uCode = uApp.replace(/\/\*[\s\S]*?\*\//g, ' ').replace(/^\s*\/\/.*$/gm, ' ');
     check('Der Zaehler entsteht an EINER Stelle',
       (uCode.match(/const countCell = /g) || []).length === 1,
@@ -893,20 +736,17 @@ async function check0301() {
     check('Und keine Zeile baut ihre Zaehlerzelle mehr selbst',
       !/<span class="mcount">\$\{[^}]*vThing/.test(uCode),
       (uCode.match(/<span class="mcount">[^<]*</g) || []).join(' || ') || '(keine)');
-    /* DREI RUFSTELLEN FUER FUENF LISTEN: Kategorien, Tags und Kriterien teilen
-       sich manageList(), dazu kommen die Zugaenge und das Grabsteinfenster.
-       DIE ZAHL AUSDRUECKLICH und nicht „mindestens eine": eine Stelle, die
-       zurueckfaellt, bliebe sonst unbemerkt. */
+    /* DREI RUFSTELLEN FUER FUENF LISTEN: Kategorien, Tags und Kriterien
+       teilen sich manageList(), dazu kommen die Zugaenge und das
+       Grabsteinfenster. */
     check('Und drei Rufstellen tragen fuenf Listen',
       (uCode.match(/countCell\(/g) || []).length === 3,
       String((uCode.match(/countCell\(/g) || []).length));
     /* GEFAHREN AM SYSTEMBEREICH: die Tagkarte traegt ZWEI Zahlen, und ihr
-       Titel nennt beide Woerter. Zwei Zahlen ohne Wort sind lesbar, solange
-       ihre Reihenfolge feststeht -- und sie steht fest. */
+       Titel nennt beide Woerter. */
     /* MIT MARKEN IM BESTAND: eine leere Karte hat keine Zeilen, und eine
-       Pruefung an null Zeilen bliebe gruen und belegte nichts
-       (Stolperstein 81). Beide Zahlen sind VERSCHIEDEN -- gleiche machten die
-       Pruefung blind dafuer, welche wo steht. */
+       Pruefung an null Zeilen bliebe gruen und belegte nichts (Stolperstein
+       81). */
     const uSys = buildDom(JSDOMu, { tags: [
       { id: 91, name: 'BIOS', usage_count: 4, test_usage_count: 2 },
       { id: 92, name: 'Gelb', usage_count: 1, test_usage_count: 0 }] });
@@ -932,19 +772,14 @@ async function check0301() {
       mine: false, imagesRemoved: 0, author: uWho, images: [],
       created_at: '2026-09-01 09:00:00', updated_at: null });
     const uComments = [uRow(81, 'task', 'Fremde Aufgabe mit Frist', '2026-09-30')];
-    /* EIN ZUGANG, DER WEDER VERFASSER NOCH ADMIN IST. Bis 0.30.1 stand der
-       ganze Kennzeichenkasten hinter „darf aendern" -- und damit sah das
-       Faelligkeitsdatum nur, wer es auch aendern durfte. Die Ansicht „Offen"
-       zeigte dasselbe Datum dagegen jedem. */
+    /* EIN ZUGANG, DER WEDER VERFASSER NOCH ADMIN IST. */
     const uForeign = buildDom(JSDOMu, { hash: '#/item/1', commentInventory: uComments,
       settings: { filters: null, isAdmin: false } });
     await new Promise(r => setTimeout(r, 250));
     const uDue = uForeign.w.document.querySelector('.cmt-due');
     check('Das Datum steht da, obwohl der Leser es nicht aendern darf', !!uDue,
       uForeign.w.document.querySelector('.cmt-head')?.outerHTML?.slice(0, 160) || '(kein Kopf)');
-    /* UND ES IST KEIN KNOPF. Ein Knopf, der nichts tut, ist eine Luege ueber
-       die eigene Bedienbarkeit -- dieselbe Ueberlegung wie beim Schalter des
-       Potenzialmodus, den ein Admin sieht und nicht drueckt. */
+    /* UND ES IST KEIN KNOPF. */
     check('Und es ist ein Text und kein Knopf',
       !!uDue && uDue.tagName === 'SPAN',
       uDue ? uDue.tagName : '(kein Element)');
@@ -955,9 +790,7 @@ async function check0301() {
       !!uDue && /due-[a-z]+/.test(uDue.className), uDue ? uDue.className : '(kein Element)');
     uForeign.w.close();
     /* UND WER AENDERN DARF, BEKOMMT WEITER EINEN KNOPF -- auch an einer
-       ERLEDIGTEN OHNE DATUM. Bis 0.30.1 stand er nur bei `task || (done &&
-       dueDate)`; einer erledigten Aufgabe ohne Datum liess sich damit keines
-       mehr geben. */
+       ERLEDIGTEN OHNE DATUM. */
     const uOwn = buildDom(JSDOMu, { hash: '#/item/1', commentInventory: [
       { id: 82, kind: 'done', text: 'Erledigt, ohne Datum', dueDate: null, pinned: false,
         mine: true, imagesRemoved: 0, author: { id: 1, name: 'chefin' }, images: [],
@@ -971,19 +804,8 @@ async function check0301() {
   }
 }
 
-/* =================================================================
-   0.30.2 — „Die Tagzeile bekommt ihre Breite zurück"
-
-   EIN BEFUND, EIN BAUABSCHNITT. Die dritte Rasterspalte der Tagzeile nahm
-   der Wolke bis zu 180 der 366 Pixel, sobald ein Tagfilter griff -- „mehr"
-   und „Tags zurücksetzen" standen dort als WORTE.
-   GEMESSEN AM 12. SEPTEMBER 2026 in echtem Chromium bei 390 x 844, in allen
-   DREI Sprachen, aufgeklappt und mit gesetztem Tagfilter:
-     Deutsch    Zeilenende 180 px, Wolke  92, 26 Reihen, Tagzeile 845
-     Tuerkisch  Zeilenende 159 px, Wolke 109, 25 Reihen, Tagzeile 812
-     Englisch   Zeilenende 109 px, Wolke 175, 16 Reihen, Tagzeile 518
-   NACHHER, dieselbe Lage: Wolke 272 / 268 / 282, Tagzeile 321 / 321 / 289.
-   ================================================================= */
+/* ================================================================= 0.30.2 —
+   „Die Tagzeile bekommt ihre Breite zurück" EIN BEFUND, EIN BAUABSCHNITT. */
 async function check0302() {
   const vCss = fs.readFileSync(path.join(__dirname, 'public', 'style.css'), 'utf8');
   const vApp = fs.readFileSync(path.join(__dirname, 'public', 'app.js'), 'utf8');
@@ -995,23 +817,18 @@ async function check0302() {
   {
     check('jsdom steht fuer die Tagzeile bereit', !!JSDOMv, 'ohne jsdom keine Oberflaechenprobe');
     /* ---- Zusage 1: zwei Zeichen, und beide sind keine neue Form ----
-       `ICON_STEP_BACK` und `ICON_STEP_FWD` sind derselbe Haken, nur gedreht.
-       Der neue zeigt nach unten und nach oben und entsteht aus demselben
-       Helfer -- geprueft wird der Helfer und nicht der Pfad, denn der Pfad
-       darf sich aendern, der Bauweg nicht. */
+       `ICON_STEP_BACK` und `ICON_STEP_FWD` sind derselbe Haken, nur gedreht. */
     check('Der Haken entsteht aus demselben Helfer wie die vorhandenen',
       /const ICON_MORE_DOWN = char\(/.test(vApp) && /const ICON_MORE_UP\s+= char\(/.test(vApp),
       (vApp.match(/const ICON_MORE_[A-Z]+\s*= [^\n]{0,40}/g) || ['(nicht gefunden)']).join(' · '));
     /* DER RUECKSETZER BEKOMMT KEIN EIGENES ZEICHEN: `ICON_RESET` steht schon
-       an der Sternzeile und heisst dort „zuruecksetzen". Ein Kreuz waere
-       falsch -- es heisst im Haus „weg". */
+       an der Sternzeile und heisst dort „zuruecksetzen". */
     check('Der Ruecksetzer nimmt den Kreispfeil, den es schon gibt',
       /c\.innerHTML = ICON_RESET;/.test(vApp) && /const ICON_RESET = char\(/.test(vApp));
     check('Und kein Kreuz — das heisst im Haus „weg"',
       !/c\.innerHTML = ICON_X;/.test(vApp));
-    /* ---- Zusage 2: das Wort ist umgezogen und nicht gefallen ----
-       Ein Zeichen allein liest kein Vorleseprogramm vor. Die drei Schluessel
-       bleiben stehen und wandern in den Titel. */
+    /* ---- Zusage 2: das Wort ist umgezogen und nicht gefallen ---- Ein
+       Zeichen allein liest kein Vorleseprogramm vor. */
     for (const key of ['list.more', 'list.less', 'list.resetTags']) {
       const vName = key.split('.')[1];
       check(`Der Schluessel ${key} steht weiter in allen drei Sprachen`,
@@ -1028,8 +845,7 @@ async function check0302() {
 
     /* ---- Zusage 3: die dritte Spalte ist weg ---- */
     /* SEIT 0.30.3 HAENGEN DIESE DREI AN `tags-deep`: die Anordnung gilt nur,
-       wo die Wolke die zweite Rasterzeile auch ausfuellt. Die Zusagen bleiben
-       dieselben und nennen nur den Traeger mit (Stolperstein 201). */
+       wo die Wolke die zweite Rasterzeile auch ausfuellt. */
     check('Die beiden Verweise stehen in Spalte eins, unter der Beschriftung',
       /\.frow-tags\.tags-deep > \.frow-right-end \{ grid-column: 1; grid-row: 2;/.test(vNarrow),
       (vNarrow.match(/\.frow-tags[^\n{]*> \.frow-right-end[^\n]*/) || ['(keine Regel)'])[0]);
@@ -1037,16 +853,8 @@ async function check0302() {
       /\.frow-tags\.tags-deep \{ grid-template-rows: auto auto 1fr; \}/.test(vNarrow));
     check('Und der Umschalter steht in der dritten',
       /\.frow-tags\.tags-deep > \.tagmode \{ grid-row: 3; \}/.test(vNarrow));
-    /* ---- UND ZUGEKLAPPT IST ER VERBORGEN -- nachgetragen, 0.30.2 ----
-       DIE GEGENPROBE HAT ES GEFUNDEN, und das ist ihr Zweck. Rueckbau 941
-       macht den Umschalter wieder immer sichtbar, und KEINE EINZIGE PRUEFUNG
-       wurde rot: die Zusagen darueber fragten die KLASSE (`tags-live`) und die
-       RASTERZEILE -- aber nie die Regel, die tatsaechlich verbirgt. Ein
-       Waechter ueber nichts ist gruen (Stolperstein 81).
-       GEFRAGT WIRD DIE VERNEINUNG UND NICHT BLOSS DAS VORKOMMEN DER KLASSE:
-       eine Regel `.frow-tags.tags-live > .tagmode { display: inline-flex; }`
-       nennt beide Namen und verbirgt trotzdem nichts -- genau das ist der
-       Rueckbau. Die Zusage muss deshalb sagen, WORAN die Regel haengt. */
+    /* ---- UND ZUGEKLAPPT IST ER VERBORGEN -- nachgetragen, 0.30.2 ---- DIE
+       GEGENPROBE HAT ES GEFUNDEN, und das ist ihr Zweck. */
     check('Und zugeklappt ist er verborgen — die Regel haengt an der Verneinung',
       /\.frow-tags:not\(\.tags-live\) > \.tagmode \{ display: none; \}/.test(vNarrow),
       (vNarrow.match(/\.frow-tags[^\n{]*\.tagmode \{[^}]*\}/g) || ['(keine Regel)']).join(' · '));
@@ -1089,13 +897,7 @@ async function check0302() {
       !!vRow() && vRow().classList.contains('tags-live'),
       vRow() ? vRow().className : '(keine Zeile)');
     vZu.w.close();
-    /* UND AUFGEKLAPPT STEHT ER IMMER DA.
-       DER GRIFF ZUM AUFKLAPPEN STEHT IN JSDOM NICHT VON SELBST DA: er
-       erscheint nur, wenn limitCloud() meldet, dass etwas abgeschnitten ist --
-       und das kann sie dort nicht, weil jsdom keine Hoehen rechnet. Sie wird
-       deshalb gegen eine getauscht, die „abgeschnitten" sagt; danach wird die
-       Zeile neu gezeichnet, indem ein Tag zweimal gedrueckt wird (an und
-       wieder aus). Die Lage ist dann: nichts gewaehlt, Griff da. */
+    /* UND AUFGEKLAPPT STEHT ER IMMER DA. */
     const vOpen = buildDom(JSDOMv, { tags: vTags });
     await new Promise(r => setTimeout(r, 120));
     const vOpenRow = () => vOpen.w.document.getElementById('f-tagzeile');
@@ -1123,21 +925,9 @@ async function check0302() {
   }
 }
 
-/* =================================================================
-   0.30.3 — „Die zugeklappte Tagzeile fuellt, was sie ohnehin kostet"
-
-   EIN BEFUND, DREI BAUABSCHNITTE. Seit 0.30.2 stehen die beiden Zeichen unter
-   der Beschriftung; Spalte 1 verlangt damit 18 + 7 + 30 + 7 = 62 Pixel, ob die
-   Wolke sie braucht oder nicht. EINE Wolkenreihe misst 27 -- FUENFUNDDREISSIG
-   Pixel standen leer.
-   GEMESSEN AM 12. SEPTEMBER 2026 in echtem Chromium bei 390 x 844, dreissig
-   Tags, zugeklappt:
-     vorher   Zeile 62, Wolke 27, leer 35, vier sichtbare Tags
-     nachher  Zeile 62, Wolke 60, leer  2, SIEBEN sichtbare Tags (de),
-              sechs (tr), sechs mit gesetztem Filter
-   UND DER JUNGE BESTAND, drei Tags: vorher Zeile 62 und leer 35 -- nachher
-   Zeile 27 ohne Filter und 37 mit, leer 0 bzw. 10.
-   ================================================================= */
+/* ================================================================= 0.30.3 —
+   „Die zugeklappte Tagzeile fuellt, was sie ohnehin kostet" EIN BEFUND, DREI
+   BAUABSCHNITTE. */
 async function check0303() {
   const wCss = fs.readFileSync(path.join(__dirname, 'public', 'style.css'), 'utf8');
   const wApp = fs.readFileSync(path.join(__dirname, 'public', 'app.js'), 'utf8');
@@ -1150,13 +940,8 @@ async function check0303() {
   {
     check('jsdom steht fuer die Tagzeile bereit', !!JSDOMw, 'ohne jsdom keine Oberflaechenprobe');
 
-    /* ---- Zusage 1: die Zeilenhoehe wird an EINER Stelle gemessen ----
-       Zwei Leser fragen sie. Stuende die Messung zweimal da, liefen sie beim
-       naechsten Griff an der Pille auseinander -- und eine Begrenzung, die
-       eine andere Zeilenhoehe annimmt als der Zaehler daneben, schneidet an
-       einer Stelle ab, die der Zaehler nicht kennt (Stolperstein 47).
-       GEPRUEFT WIRD DER LESER UND NICHT DER WORTLAUT: beide duerfen `offsetHeight`
-       nicht selbst anfassen. */
+    /* ---- Zusage 1: die Zeilenhoehe wird an EINER Stelle gemessen ---- Zwei
+       Leser fragen sie. */
     check('Die Zeilenhoehe einer Wolke wird an EINER Stelle gemessen',
       /function cloudLine\(box\) \{/.test(wApp) &&
       (wApp.match(/firstElementChild;\s*\n\s*return first \? first\.offsetHeight/g) || []).length === 1,
@@ -1165,11 +950,9 @@ async function check0303() {
       /function limitCloud\(box, rows\) \{[\s\S]{0,400}?const height = cloudLine\(box\);/.test(wApp) &&
       /function cloudRows\(box\) \{\s*\n\s*const height = cloudLine\(box\);/.test(wApp));
 
-    /* ---- Zusage 2: cloudRows zaehlt die Reihen UNGEKUERZT ----
-       GEFAHREN UND NICHT GELESEN, und zwar am Mock: jsdom rechnet keine
-       Hoehen, also bekommt die Zeile einen Kasten, der welche nennt
-       (Stolperstein 161). `scrollHeight` misst den vollen Inhalt auch hinter
-       einer Begrenzung -- genau das ist der Punkt der Zusage. */
+    /* ---- Zusage 2: cloudRows zaehlt die Reihen UNGEKUERZT ---- GEFAHREN UND
+       NICHT GELESEN, und zwar am Mock: jsdom rechnet keine Hoehen, also
+       bekommt die Zeile einen Kasten, der welche nennt (Stolperstein 161). */
     const wEmpty = buildDom(JSDOMw, { tags: [] });
     await wait();
     const wWindow = wEmpty.w;
@@ -1186,10 +969,9 @@ async function check0303() {
     check('Eine Wolke ohne messbare Hoehe meldet null Reihen',
       wWindow.cloudRows(wBox(0, 0)) === 0 &&
       wWindow.cloudRows({ firstElementChild: null, scrollHeight: 0 }) === 0);
-    /* ---- Zusage 3: beide rechnen mit derselben Zeilenhoehe ----
-       DIE BEGRENZUNG SETZT EINE HOEHE, DER ZAEHLER LIEST EINE -- und was die
-       eine fuer zwei Reihen haelt, muss die andere ebenso. Gefahren und nicht
-       behauptet: die gesetzte Hoehe wird dem Zaehler zurueckgegeben. */
+    /* ---- Zusage 3: beide rechnen mit derselben Zeilenhoehe ---- DIE
+       BEGRENZUNG SETZT EINE HOEHE, DER ZAEHLER LIEST EINE -- und was die eine
+       fuer zwei Reihen haelt, muss die andere ebenso. */
     const wMeasure = { firstElementChild: { offsetHeight: 27 }, scrollHeight: 999,
       clientHeight: 0, style: {} };
     wWindow.limitCloud(wMeasure, 2);
@@ -1202,10 +984,7 @@ async function check0303() {
     /* ---- Zusage 4 und 5: zwei Reihen am Telefon, eine am Schreibtisch ----
        DIE ZAHL HAENGT AM STILBLATT UND NICHT AN EINER ZWEITEN BEDINGUNG: das
        Raster gibt es nur im schmalen Abschnitt, also ist `display: grid` die
-       Antwort auf „steht die Zeile am Telefon".
-       GEFAHREN WIRD MIT EINEM SPAEHER an der Begrenzung: er sagt, mit welcher
-       Zahl sie gerufen wurde. Die Zusage gilt dem RUF und nicht der Funktion
-       -- genau die Luecke, die 0.30.1 an ihrer eigenen Gegenprobe gefunden hat. */
+       Antwort auf „steht die Zeile am Telefon". */
     const wTags = [
       { id: 61, name: 'Alu', usage_count: 3, test_usage_count: 0 },
       { id: 62, name: 'Stahl', usage_count: 2, test_usage_count: 0 },
@@ -1235,9 +1014,8 @@ async function check0303() {
     await wait();
     check('Am Telefon zeigt sie ZWEI — die Hoehe ist ohnehin bezahlt',
       wCalls.length > 0 && wCalls[wCalls.length - 1] === 2, `gerufen mit ${wCalls.join(', ')}`);
-    /* ---- Zusage 6: aufgeklappt gilt keine Begrenzung ----
-       Die Zahl gilt nur zugeklappt. Der Betreiber am 12. September 2026:
-       „Aufgeklappt sieht es gut aus." */
+    /* ---- Zusage 6: aufgeklappt gilt keine Begrenzung ---- Die Zahl gilt nur
+       zugeklappt. */
     w.limitCloud = (box, rows) => { wCalls.push(rows); return true; };
     wCalls = [];
     wRow()?.querySelector('.pill-tag')?.click();
@@ -1247,13 +1025,10 @@ async function check0303() {
     check('Aufgeklappt gilt keine Begrenzung',
       wCalls[wCalls.length - 1] === 0, `gerufen mit ${wCalls.join(', ')}`);
 
-    /* ---- Zusage 7: die Anordnung gilt nur, wo die Wolke sie traegt ----
-       BEI EINEM JUNGEN BESTAND GIBT ES KEINE ZWEITE REIHE ZU ZEIGEN -- gemessen
+    /* ---- Zusage 7: die Anordnung gilt nur, wo die Wolke sie traegt ---- BEI
+       EINEM JUNGEN BESTAND GIBT ES KEINE ZWEITE REIHE ZU ZEIGEN -- gemessen
        mit drei Tags blieb die Zeile bei 62 und die Wolke bei 27, mit zwei
-       Reihen genauso. Die Wolke kann nicht fuellen, was nicht da ist.
-       GEFAHREN WIRD DER ZAEHLER GEGEN DIE KLASSE, in beide Richtungen: eine
-       Zusage, die nur den einen Ausgang kennt, bliebe gruen, wenn die
-       Bedingung ganz fiele (Stolperstein 81). */
+       Reihen genauso. */
     w.limitCloud = wRealLimit;
     const wRealCounter = w.cloudRows;
     w.cloudRows = () => 2;
@@ -1264,8 +1039,7 @@ async function check0303() {
     w.cloudRows = () => 1;
     /* EIN KLICK AUF DIE ERSTE PILLE UND NICHT AUF EINE GEWAEHLTE: sortCloud()
        stellt die gewaehlten nach vorn, der erste Klick hat die eine also
-       wieder abgewaehlt -- und `.pill-tag.on` traf danach ins Leere. Ohne Klick
-       kein Neuzeichnen, und die Zeile behielt die Klasse aus dem Zug davor. */
+       wieder abgewaehlt -- und `.pill-tag.on` traf danach ins Leere. */
     wRow()?.querySelector('.pill-tag')?.click();
     await wait();
     check('Bei EINER Reihe traegt sie es nicht',
@@ -1274,11 +1048,9 @@ async function check0303() {
     w.cloudRows = wRealCounter;
     wDom.w.close();
 
-    /* ---- Zusage 8 bis 10: was ohne `tags-deep` gilt ----
-       DIE GRUNDREGEL GREIFT WIEDER -- die Zeichen stehen am Zeilenende, wie an
-       jeder anderen Filterzeile. Es braucht dafuer KEINE neue Regel, und genau
-       das haelt die Zusage fest: die drei Regeln von 0.30.2 nennen ihren
-       Traeger, und ohne ihn steht nichts an ihrer Stelle. */
+    /* ---- Zusage 8 bis 10: was ohne `tags-deep` gilt ---- DIE GRUNDREGEL
+       GREIFT WIEDER -- die Zeichen stehen am Zeilenende, wie an jeder anderen
+       Filterzeile. */
     for (const [wName, wRule] of [
       ['Die Verweise stehen nur MIT `tags-deep` in Spalte eins',
         /\.frow-tags\.tags-deep > \.frow-right-end \{ grid-column: 1;/],
@@ -1287,9 +1059,7 @@ async function check0303() {
       ['Und der Umschalter steht nur dort in der dritten',
         /\.frow-tags\.tags-deep > \.tagmode \{ grid-row: 3; \}/]
     ]) check(wName, wRule.test(wNarrow), (wNarrow.match(wRule) || ['(keine Regel)'])[0]);
-    /* UND KEINE DER DREI STEHT OHNE TRAEGER DA. Ohne diese Zeile bliebe die
-       Gruppe gruen, wenn jemand die alte Fassung danebenstellte -- zwei Regeln
-       zur selben Sache, und die spaetere gewaenne. */
+    /* UND KEINE DER DREI STEHT OHNE TRAEGER DA. */
     check('Und keine der drei steht daneben noch ohne Traeger',
       !/\.frow-tags > \.frow-right-end \{/.test(wNarrow) &&
       !/\.frow-tags \{ grid-template-rows: auto auto 1fr; \}/.test(wNarrow) &&
@@ -1304,11 +1074,11 @@ async function check0303() {
     check('Und die Wolke spannt in beiden Fassungen ueber alle Rasterzeilen',
       /\.frow-tags > \.pills\.cloud \{ grid-row: 1 \/ -1;/.test(wNarrow));
 
-    /* ---- Zusage 11 und 12: die beiden anderen Wolken bleiben ----
-       KEINE VON BEIDEN HAT EIN LOCH ZU FUELLEN: die Wolke im Eintrag steht in
-       keinem Raster mit Beschriftungsspalte und traegt ihr „mehr" als Wort in
-       einem eigenen Kasten; die Tagzeile eines Testtags ist eine Flexzeile,
-       und 0.30.1 hat sie genau dafuer gebaut. */
+    /* ---- Zusage 11 und 12: die beiden anderen Wolken bleiben ---- KEINE VON
+       BEIDEN HAT EIN LOCH ZU FUELLEN: die Wolke im Eintrag steht in keinem
+       Raster mit Beschriftungsspalte und traegt ihr „mehr" als Wort in einem
+       eigenen Kasten; die Tagzeile eines Testtags ist eine Flexzeile, und
+       0.30.1 hat sie genau dafuer gebaut. */
     check('Die Wolke im Eintrag bleibt bei DREI Reihen',
       /limitCloud\(box, cloudOpen\.detail \? 0 : 3\)/.test(wApp));
     check('Und die Tagzeile eines Testtags bei EINER',

@@ -1,10 +1,6 @@
-/* Kriterion — Pruefstand: die Oberflaeche: die Uebersicht
- *
- * Das mitwachsende Feld, die Einrichtungsseite, die Kacheln und ihr Leser,
- * die Sprachpillen, die Zeitleiste, die Tagwolken und die offenen Aufgaben.
- *
- * Eigener Prozess, eigener Speicher. Der Rahmen steht in test/frame.js.
- */
+/* Kriterion — Pruefstand: die Oberflaeche: die Uebersicht Das mitwachsende
+   Feld, die Einrichtungsseite, die Kacheln und ihr Leser, die Sprachpillen,
+   die Zeitleiste, die Tagwolken und die offenen Aufgaben. */
 const H = require('./frame.js');
 const D = require('./dom.js');
 const {
@@ -44,12 +40,9 @@ async function run() {
   field.dispatchEvent(new w.Event('input'));
   check('Neue Zeile vergroessert das Feld', field.style.height === '302px', `ist: ${field.style.height}`);
 
-  /* --- Kein Sprung nach oben beim Tippen ---
-   * jsdom rechnet kein Layout: das Zusammenfallen bei height:auto verkuerzt
-   * hier keine Seite, und der Browser zieht nichts nach. Beides wird deshalb
-   * gestellt -- ein eigenes scrollingElement, und das Messen selbst reisst die
-   * Position auf 0, genau wie es der Browser tut. Die Pruefung verlangt, dass
-   * sie danach wieder auf dem alten Wert steht. */
+  /* --- Kein Sprung nach oben beim Tippen --- jsdom rechnet kein Layout: das
+     Zusammenfallen bei height:auto verkuerzt hier keine Seite, und der
+     Browser zieht nichts nach. */
   const scroll = { scrollTop: 0 };
   Object.defineProperty(w.document, 'scrollingElement', { configurable: true, get: () => scroll });
   const feld2 = w.document.createElement('textarea');
@@ -57,9 +50,7 @@ async function run() {
   Object.defineProperty(feld2, 'scrollHeight', { get: () => 240 });
   Object.defineProperty(feld2, 'offsetHeight', { get: () => 42 });
   Object.defineProperty(feld2, 'clientHeight', { get: () => 40 });
-  // Das Zurueckziehen haengt am Setzen von height:auto, nicht am Messen. Wird
-  // es an der falschen Stelle gestellt, laesst sich nicht mehr unterscheiden,
-  // ob die Position VOR dem Zusammenfallen gemerkt wurde.
+  // Das Zurueckziehen haengt am Setzen von height:auto, nicht am Messen.
   let setHeight = '';
   Object.defineProperty(feld2.style, 'height', {
     configurable: true,
@@ -86,7 +77,7 @@ async function run() {
   check('Sie verraet den Bestand nicht',
     !eText.includes('Intern') && !eText.includes('Beispiel'), eText.slice(0, 120));
   // Ohne Uebereinstimmung darf nichts an den Server gehen -- sonst waere ein
-  // Tippfehler im Passwort sofort endgueltig.
+// Tippfehler im Passwort sofort endgueltig.
   setField(inDom.w.document, 'su', 'chefin');
   setField(inDom.w.document, 'sp', 'zehn-zeichen-und-mehr');
   setField(inDom.w.document, 'sp2', 'zehn-zeichen-und-mahr');
@@ -100,11 +91,8 @@ async function run() {
     /stimmen nicht überein/.test(inDom.w.document.body.textContent));
 
   /* --- Anmeldeseite: Versionszeile ohne Scrollen erreichbar ---
-   * .login-screen nimmt mit min-height: 100vh das ganze Fenster ein, die
-   * Versionszeile steht ausserhalb von #app darunter. Ohne Gegenmassnahme ist
-   * die Seite hoeher als das Fenster. jsdom rechnet kein Layout; pruefen
-   * laesst sich das nur an beiden Enden: dass die Kennzeichnung gesetzt und
-   * wieder genommen wird, und dass am Stylesheet eine Regel dafuer haengt. */
+     .login-screen nimmt mit min-height: 100vh das ganze Fenster ein, die
+     Versionszeile steht ausserhalb von #app darunter. */
   w.showLogin();
   check('Anmeldeseite kennzeichnet sich am body', w.document.body.classList.contains('login'));
   const cssAnm = fs.readFileSync(path.join(__dirname, 'public', 'style.css'), 'utf8').replace(/\s+/g, ' ');
@@ -116,7 +104,7 @@ async function run() {
     /body\.login \.login-screen \{[^}]*flex: *1 0 auto/.test(cssAnm));
 
   // Ueber start(), nicht ueber renderDetail: das ist der einzige Weg, den es
-  // nach einer Anmeldung wirklich gibt.
+// nach einer Anmeldung wirklich gibt.
   await w.start();
   check('Nach der Anmeldung ist die Kennzeichnung wieder weg',
     !w.document.body.classList.contains('login'));
@@ -128,14 +116,13 @@ async function run() {
   check('Kommentarfeld waechst mit', w.document.getElementById('ctext').classList.contains('ta-auto'));
   check('Beschreibung steht unveraendert im Feld', description.value === example.description);
   // firstChild, nicht textContent: hinter dem Namen kann die Gewichtsmarke
-  // stehen, und die gehoert nicht zum Namen.
+// stehen, und die gehoert nicht zum Namen.
   const rows = [...w.document.querySelectorAll('#ratings .rname')]
     .map(e => e.firstChild.textContent.trim());
   check('Bewertungsblock folgt der Serverreihenfolge',
     equal(rows, ['Zuerst', 'Dann', 'Zuletzt']), JSON.stringify(rows));
-  // Die Bewertungszeile traegt keinen Loeschknopf -- weder
-  // sichtbar noch versteckt. Die Regel im Stylesheet allein genuegt nicht als
-  // Nachweis: der Knopf koennte im DOM stehen und trotzdem anklickbar sein.
+  // Die Bewertungszeile traegt keinen Loeschknopf -- weder sichtbar noch
+  // versteckt.
   const bewRows = [...w.document.querySelectorAll('#ratings .rrow')];
   check('Keine Bewertungszeile trägt einen Löschknopf',
     bewRows.length === 3 && bewRows.every(z => !z.querySelector('.xdel')),
@@ -154,15 +141,7 @@ async function run() {
   check('Kategorien behalten ihre Zeilen ohne Griff',
     !w.document.querySelector('#mcats .grip') && !w.document.querySelector('#mtags .grip'));
   /* ---- IN DER ZEILE DIE ZAHL, IM TITEL DAS WORT -- 0.30.1, Befund 6 ----
-     BIS 0.30.0 STAND „2 Einträge" IN DER ZEILE. Der Betreiber, 12. September
-     2026, mit Bild: „Wir verlieren so viel Platz um Eintraege zu schreiben."
-     Von sieben Kriterien standen fuenf mit Auslassung da.
-     DIE ZUSAGE WIRD UMGESTELLT UND NICHT GELOESCHT (Stolperstein 201): sie
-     fragt jetzt BEIDES -- dass die Zeile nur noch die Zahl zeigt UND dass das
-     Wort im Titel steht. Nur das erste zu fragen hiesse, eine Zeile ohne jede
-     Auskunft gruen zu nennen.
-     DAS WORT IST UMGEZOGEN UND NICHT ERFUNDEN: im Titel steht genau der Text,
-     der vorher in der Zeile stand. */
+     BIS 0.30.0 STAND „2 Einträge" IN DER ZEILE. */
   const mZelle = rowList[0].querySelector('.mcount');
   check('Zaehler zeigt nur noch die Zahl', mZelle.textContent.trim() === '2');
   check('Und das Wort steht im Titel derselben Zelle',
@@ -187,8 +166,7 @@ async function run() {
     command && equal(command.body.order, [8, 9, 7]), JSON.stringify(command && command.body));
 
   // Anfassen und wieder loslassen, ohne die Schwelle zu ueberschreiten: darf
-  // nichts schreiben. Die Liste wurde nach dem Ziehen neu aufgebaut, deshalb
-  // frische Zeilen holen.
+  // nichts schreiben.
   const fresh = [...w.document.querySelectorAll('#mcrits .mrow')];
   fresh[0].dispatchEvent(cursor('pointerdown', 0));
   w.document.dispatchEvent(cursor('pointerup', 2));
@@ -197,22 +175,9 @@ async function run() {
     sent.filter(s => s.url === '/api/criteria/order').length === 1,
     `${sent.filter(s => s.url === '/api/criteria/order').length} Aufrufe`);
 
-  /* --- Die persoenlichen Schalter, mit wirklich zugestelltem Klick ---
-   * Ein Bedienelement ist erst geprueft, wenn ein Ereignis wirklich
-   * zugestellt wurde und der Event Loop durchlaufen ist. Die vier
-   * Schalter hier schreiben in die persoenliche Tabelle, und genau dort
-   * saesse ein Fehler.
-   *
-   * .click() oder den Behandler von Hand zu rufen genuegt nicht: ein Fehler
-   * in einem Behandler, der nach einem `await` weiterlaeuft, entsteht erst
-   * beim echten Ereignis. Deshalb dispatchEvent und danach ein Durchlauf.
-   *
-   * Die beiden Schalter zeichnen ihren Zustand aus der eigenen Variablen neu,
-   * NICHT aus der Antwort des Servers -- deshalb faellt hier nicht auf, dass
-   * der Mock auf PUT stur den alten Stand zurueckgibt. Das ist hier
-   * folgenlos: der Zustand kommt gar nicht von dort. Wer diese Schalter
-   * einmal auf die Serverantwort umstellt, muss den Mock mit
-   * umstellen. */
+  /* --- Die persoenlichen Schalter, mit wirklich zugestelltem Klick --- Ein
+     Bedienelement ist erst geprueft, wenn ein Ereignis wirklich zugestellt
+     wurde und der Event Loop durchlaufen ist. */
   /* „Darstellung" steht seit 0.16.0 im Abschnitt „Persoenlich", die
      Linkzeilen darunter in „Bestand" (Stolperstein 201). */
   await sysSection(w, 'personal');
@@ -264,16 +229,13 @@ async function run() {
     }
   };
   /* Ein ZWEITER Satz, diesmal vollstaendig -- er traegt auch die Woerter fuer
-     Bericht und Aufgabe. Der obere bleibt bewusst unvollstaendig: an ihm
-     haengt die Pruefung, dass die Karte im Systembereich fuer ein Wort, das
-     das Vokabular nicht nennt, die Vorgabe zeigt. Beides in einem Satz ginge
-     nicht, ohne eine der beiden Aussagen zu verlieren. */
+     Bericht und Aufgabe. */
   const ownFull = { filters: null, vocabulary: { ...own.vocabulary,
     reportOne: 'Notat', reportMany: 'Notate',
     taskOne: 'ToDo', taskMany: 'ToDo’s', taskDone: 'Done' } };
 
   // Direkteinstieg auf einen Eintrag: hier lief loadAll() frueher nie, das
-  // Vokabular waere also nicht geladen gewesen.
+// Vokabular waere also nicht geladen gewesen.
   const two = buildDom(JSDOM, { settings: own, hash: '#/item/1' });
   const w2 = two.w;
   await new Promise(r => setTimeout(r, 80));
@@ -294,17 +256,13 @@ async function run() {
   /* Die Zahlen am Kommentarblock holen ihre Woerter aus dem Vokabular --
      "Kommentar" dagegen bleibt eine FESTE Beschriftung und wird kein
      zwoelftes Vokabelwort: anders als Sache und Zeitpunkt verschiebt es sich
-     nicht mit dem Gegenstand. Beide Haelften stehen nebeneinander, sonst
-     bliebe die eine gruen, waehrend die andere sich verschoebe. */
+     nicht mit dem Gegenstand. */
   const vokDom = buildDom(JSDOM, { settings: ownFull, hash: '#/item/1' });
   const wVok = vokDom.w;
   await new Promise(r => setTimeout(r, 80));
   const kzVok = wVok.document.getElementById('ccount');
   /* SEIT 0.32.1 STEHT DAS VOKABULAR IM `title` UND NICHT MEHR AM BILDSCHIRM
-     -- die Kopfzeile zeigt Zahl und Zeichen. GEPRUEFT WIRD TROTZDEM, DASS ES
-     MITGEHT: wer sein Wort umbenennt, muss es im Hinweis wiederfinden, sonst
-     waere die Umbenennung an dieser Stelle wirkungslos. Und die Kurzform
-     daneben darf das Wort GERADE NICHT tragen -- das ist ihr Zweck. */
+     -- die Kopfzeile zeigt Zahl und Zeichen. */
   check('Die Zahlen am Kommentarblock folgen dem Vokabular',
     kzVok?.title === '6 Kommentare · 1 Notat · 2 ToDo’s (1 offen)',
     kzVok ? kzVok.title : '(kein Hinweis)');
@@ -320,13 +278,11 @@ async function run() {
     wVok.commentNumbers([{ kind: 'report' }, { kind: 'task' }]).text);
   wVok.close();
 
-  /* ---- Der Favoritenknopf, mit einem wirklich zugestellten Klick ----
-     Die einzige Prueflage im ganzen Prüfstand, die ein Ereignis zustellt
-     statt nur den gebauten DOM anzusehen -- und sie muss es sein: der Fehler
-     war in jedem gebauten DOM unsichtbar, weil er erst
-     entsteht, wenn ein Behandler nach einem await weiterlaeuft.
-     Der Mock antwortet auf PUT mit dem geaenderten Eintrag, so wie
-     der Server es tut. */
+  /* ---- Der Favoritenknopf, mit einem wirklich zugestellten Klick ---- Die
+     einzige Prueflage im ganzen Prüfstand, die ein Ereignis zustellt statt
+     nur den gebauten DOM anzusehen -- und sie muss es sein: der Fehler war in
+     jedem gebauten DOM unsichtbar, weil er erst entsteht, wenn ein Behandler
+     nach einem await weiterlaeuft. */
   group('Favorit: der Knopf im Eintrag');
   const pinDom = buildDom(JSDOM, { hash: '#/item/1' });
   const wp = pinDom.w;
@@ -338,9 +294,7 @@ async function run() {
     `${JSON.stringify(pinButton()?.textContent)} / ${JSON.stringify(pinButton()?.className)}`);
 
   /* Nicht .click() und nicht die Behandlerfunktion von Hand rufen: beides
-     ginge am Fehler vorbei. Es muss ein zugestelltes Ereignis sein, und
-     danach muss der Event Loop durchlaufen -- erst dann setzt der
-     Browser currentTarget auf null. */
+     ginge am Fehler vorbei. */
   pinButton().dispatchEvent(new wp.MouseEvent('click', { bubbles: true }));
   await new Promise(r => setTimeout(r, 60));
 
@@ -352,8 +306,8 @@ async function run() {
       && pinSent[0].body.favorite === true,
     JSON.stringify(pinSent));
   /* Der Kern der Sache: liefe der Klick auf e.currentTarget, das nach dem
-     await null ist, waere der Eintrag zwar gespeichert, aber der Knopf
-     bliebe stehen und stattdessen erschiene eine rote Message. */
+     await null ist, waere der Eintrag zwar gespeichert, aber der Knopf bliebe
+     stehen und stattdessen erschiene eine rote Message. */
   check('Danach traegt der Knopf den vollen Stern',
     pinButton()?.textContent === '★', JSON.stringify(pinButton()?.textContent));
   check('Und ist als Favorit gekennzeichnet',
@@ -363,7 +317,7 @@ async function run() {
     (wp.document.body.textContent.match(/.{0,60}currentTarget.{0,20}/) || [''])[0]);
 
   // Und wieder zurueck -- der Weg heraus ist derselbe Weg und traegt
-  // dieselbe Falle.
+// dieselbe Falle.
   pinButton().dispatchEvent(new wp.MouseEvent('click', { bubbles: true }));
   await new Promise(r => setTimeout(r, 60));
   check('Erneuter Klick nimmt den Favoriten zurueck',
@@ -374,11 +328,7 @@ async function run() {
       && g.body.favorite === false).length === 1,
     JSON.stringify(pinDom.sent.filter(g => g.body && g.body.favorite !== undefined)));
 
-  /* Waechter ueber die ganze Datei. Der Fehler war kein Denkfehler, sondern
-     ein Muster, das man beim Schreiben nicht sieht -- und es steckte
-     jahrelang unbemerkt drin, weil niemand den Knopf benutzt hat. Die
-     Zustellprüfung oben deckt genau einen Knopf ab; dieser Waechter deckt
-     jeden kuenftigen. */
+  /* Waechter ueber die ganze Datei. */
   const ui = fs.readFileSync(path.join(__dirname, 'public', 'app.js'), 'utf8')
     .replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
   const afterAwait = [];
@@ -405,24 +355,12 @@ async function run() {
     textList.includes('Geprüft') && textList.includes('Ungeprüft'));
   check('Filterbeschriftung bleibt generisch',
     textList.includes('Status') && !textList.includes('Teststatus'));
-  /* MITGEZOGEN MIT 0.28.1 (Stolperstein 201): die Richtung haengt nicht mehr am
-     Eintrag, sondern am Umschalter daneben -- aus „Sitzungen (viele → wenige)"
-     ist „Sitzungen" geworden. Die Aussage bleibt dieselbe: die Sortierliste
-     nennt die Zeitpunkte mit dem WORT DES BETREIBERS und die Note daneben.
-     GEFRAGT WIRD JETZT DAS FELD UND NICHT DER SEITENTEXT: „Sitzungen" steht
-     ohne die Richtung dahinter auch auf jeder Karte („2 Sitzungen"), und eine
-     Zusage ueber den ganzen Text waere damit gruen geblieben, selbst wenn die
-     Sortierliste das Vorgabewort zurueckbekaeme. */
+  /* MITGEZOGEN MIT 0.28.1 (Stolperstein 201): die Richtung haengt nicht mehr
+     am Eintrag, sondern am Umschalter daneben -- aus „Sitzungen (viele →
+     wenige)" ist „Sitzungen" geworden. */
   const sortWords = [...w2.document.querySelectorAll('#f-sort option')]
     .map(o => `${o.value}=${o.textContent}`);
-  /* UND SEIT 0.32.0 IST „Note" DORT EIN VOKABELWORT -- Strang 2. Aus „Letzte
-     Note" ist „Zuletzt: {grade}" geworden, denn EIN FREIES WORT DULDET KEIN
-     ADJEKTIV VOR SICH: mit einem gewaehlten Wort wuerde daraus „Letzter
-     Tageswert", „Letztes Ergebnis" -- das Geschlecht wechselt mit dem Wort,
-     und die Sprachdatei kann es nicht wissen. Die Beschriftung ist deshalb
-     artikellos. Dasselbe an der Nachbarzeile: aus „Durchschnittsnote" (ein
-     ZUSAMMENGESETZTES Wort, und das darf ein Vokabelwort nie sein --
-     Leitplanke L6) ist „Durchschnitt: {grade}" geworden. */
+  /* UND SEIT 0.32.0 IST „Note" DORT EIN VOKABELWORT -- Strang 2. */
   check('Sortierung nennt Zeitpunkte und die Note artikellos — 0.32.0',
     sortWords.includes('tests=Sitzungen') && sortWords.includes('testlast=Zuletzt: Note')
     && sortWords.includes('testavg=Durchschnitt: Note'),
@@ -445,39 +383,20 @@ async function run() {
   const fields = ['v1','v2','v3','v4','v5','v6','v7','v8','v9','v10','v11','v12','v13','v14','v15']
     .map(id => w3.document.getElementById(id));
   /* VIERZEHN SEIT 0.22.0 (E14), FUENFZEHN SEIT 0.32.0; umgedreht, nicht
-     geloescht (Stolperstein 74). 0.22.0 hat dieselbe Zahl schon einmal von
-     zwoelf auf vierzehn gedreht und es ausdruecklich notiert -- eine Zahl,
-     die still waechst, faellt sonst niemandem auf. */
+     geloescht (Stolperstein 74). */
   check('Fuenfzehn Vokabelfelder stehen bereit — 0.32.0', fields.every(Boolean),
     fields.map((f, n) => f ? '' : `v${n + 1} fehlt`).filter(Boolean).join(' '));
   /* UND ALLES DARUNTER FRAGT MIT `?.` -- 0.32.0, aus der Gegenprobe 1014
-     gelernt. Ein Rueckbau, der ein Feld aus der Tafel nimmt, liess die Zeilen
-     hier an `null.value` ABREISSEN statt rot zu werden -- und ein abgerissener
-     Lauf belegt nichts (Stolpersteine 138, 161 und 170). Die Zeile darueber
-     sagt, WELCHES Feld fehlt; die darunter duerfen daran nicht sterben. */
+     gelernt. */
   check('Felder sind vorbelegt', fields[0]?.value === 'Maschine' && fields[5]?.value === 'Sitzungen');
   /* WAS NICHT EINGETRAGEN IST, STEHT ALS LEERES FELD DA -- 0.24.4, und das
-     ist eine ANDERE Zusicherung als bis 0.24.3. Dort trugen diese acht Felder
-     die VORGABE als Wert, und das sah richtig aus: „Bericht" stand da, also
-     hiess es so. Es war der Fehler. Ein Feld, das die Vorgabe als Wert
-     traegt, ist von einem Feld, in das jemand die Vorgabe getippt hat, nicht
-     zu unterscheiden -- und ein Klick auf „Speichern" machte aus dem einen
-     das andere. Mit zwei Sprachen wurde daraus der schwerste Befund der
-     Runde: die Karte zeigte auf Englisch den deutschen Rueckfall, schrieb ihn
-     beim Speichern als englischen Eintrag fest, und der deutsche Leser las
-     danach „Entry" (B1 und B2).
-     WAS DAS FELD BEDEUTET, SAGT DER HINWEIS DARUNTER -- „(Vorgabe: Bericht)",
-     und der wird zwei Zeilen weiter geprueft. Ein leeres Feld ist damit keine
-     Auslassung, sondern eine Aussage: „fuer diese Sprache ist nichts
-     eingetragen". */
+     ist eine ANDERE Zusicherung als bis 0.24.3. */
   const empties = [6, 7, 8, 9, 10, 11, 12, 13, 14];
   check('Und was nicht eingetragen ist, steht leer da — 0.24.4',
     empties.every(n => fields[n]?.value === ''),
     empties.map(n => `v${n + 1}=${JSON.stringify(fields[n]?.value)}`).join(' '));
   /* UND DIE VORGABE STEHT TROTZDEM DA, nur eben als Hinweis und nicht als
-     Wert. Ohne diese Zeile bliebe die daruber auch dann gruen, wenn die Karte
-     die Vorgabe gar nicht mehr naennte -- und dann wuesste niemand mehr, was
-     ein leeres Feld bedeutet. */
+     Wert. */
   const hintOf = (n) => (w3.document.querySelector(`label[for=v${n + 1}] .hint`) || {}).textContent || '';
   check('Und der Hinweis darunter nennt die Vorgabe der Kachel',
     /Bericht/.test(hintOf(6)) && /Berichte/.test(hintOf(7)) &&
@@ -521,10 +440,7 @@ async function run() {
   /* ============ Die vier Umschalter — 0.24.4 (B1, B3, B4) ==============
      DREI PROBEN AN EINER LAGE, und die Lage ist die des Befunds: der Leser
      steht auf DEUTSCH, fuer ENGLISCH ist etwas eingetragen, fuer Deutsch
-     nichts. Genau so sah der Bildschirm aus, den der Betreiber am
-     8. September 2026 mit Bild gemeldet hat.
-     EIN EIGENES DOM: die Lage braucht zwei Sprachen im Vorrat und drei
-     Vokabeltafeln, und die Prueflage darueber stellt eine andere Frage. */
+     nichts. */
   {
     const usLanguages = [
       { code: 'de', name: 'Deutsch', isDefault: true, active: true },
@@ -537,8 +453,7 @@ async function run() {
         .filter(([k]) => k.startsWith('vocabulary.'))
         .map(([k, v]) => [k.slice('vocabulary.'.length), v]))]));
     /* FUER ENGLISCH IST ETWAS EINGETRAGEN, FUER DEUTSCH NICHTS -- und der
-       Rueckfall traegt das englische Wort in den deutschen Satz. Bis 0.24.3
-       stand es damit auch im FELD der deutschen Kachel. */
+       Rueckfall traegt das englische Wort in den deutschen Satz. */
     const usOwn = { de: {}, en: { entryOne: 'Widget' }, tr: {} };
     const usEffective = Object.fromEntries(['de', 'en', 'tr'].map(code =>
       [code, { ...usDefaults[code], entryOne: 'Widget' }]));
@@ -549,17 +464,12 @@ async function run() {
     const w4 = four.w;
     await new Promise(r => setTimeout(r, 80));
     await sysSection(w4, 'inventory');
-    /* GEZAEHLT WERDEN PILLEN UND NICHT KINDER -- 0.24.6. Seit dieser Runde
-       liegt im Kasten der drei Namenskarten ausser den Pillen auch der Hinweis
-       auf die Grundzeile (F3); `children` zaehlte ihn mit, und aus drei
-       Sprachen wurden vier. Was diese Zeile fragt, sind die Sprachen. */
+    /* GEZAEHLT WERDEN PILLEN UND NICHT KINDER -- 0.24.6. */
     const usPills = (boxId) => [...((w4.document.getElementById(boxId) || {})
       .querySelectorAll ? w4.document.getElementById(boxId).querySelectorAll('.pill') : [])]
       .map(b => pillName(b) + (b.className.includes('on') ? '*' : ''));
     /* --- DIE UMSCHALTERPROBE, AN ALLEN VIER KACHELN ------------------
-       Vokabular, Kategorien und die beiden Kriterienlisten. Vier Kaesten,
-       ein Umschalter je Kasten -- und jeder steht anfangs auf der Sprache
-       des Lesers. */
+       Vokabular, Kategorien und die beiden Kriterienlisten. */
     const US_BOXES = ['vlang', 'ncatlang', 'mcrits-lang', 'mpcrits-lang'];
     check('Umschalterprobe: alle vier Kacheln tragen ihre Sprachzeile',
       US_BOXES.every(id => usPills(id).length === 3),
@@ -574,10 +484,9 @@ async function run() {
       usField(1) === '', JSON.stringify(usField(1)));
     check('Vorgabeprobe: der Hinweis nennt die deutsche Vorgabe',
       /Eintrag/.test(usHint(1)) && !/Entry/.test(usHint(1)), usHint(1));
-    /* --- DAS UMSCHALTEN SELBST ---------------------------------------
-       Ein Klick auf „English": die Pille wandert, das Feld zeigt das
-       EINGETRAGENE Wort, und der Hinweis nennt die ENGLISCHE Vorgabe.
-       Bis 0.24.3 blieb der Hinweis deutsch -- das war B4. */
+    /* --- DAS UMSCHALTEN SELBST --------------------------------------- Ein
+       Klick auf „English": die Pille wandert, das Feld zeigt das EINGETRAGENE
+       Wort, und der Hinweis nennt die ENGLISCHE Vorgabe. */
     const usEnglish = [...w4.document.getElementById('vlang').children]
       .find(b => pillName(b) === 'English');
     usEnglish.dispatchEvent(new w4.Event('click', { bubbles: true }));
@@ -588,9 +497,7 @@ async function run() {
       usField(1) === 'Widget', JSON.stringify(usField(1)));
     check('Vorgabeprobe: und der Hinweis folgt der Kachel, nicht dem Leser',
       /Entries/.test(usHint(2)) && !/Einträge/.test(usHint(2)), usHint(2));
-    /* UND DIE UEBRIGE OBERFLAECHE BLEIBT DEUTSCH. Der Umschalter ist der
-       Zustand EINER Karte und nicht die Sprache des Lesers -- „der
-       Eigentuemer schaltet im Adminbereich kurz um". */
+    /* UND DIE UEBRIGE OBERFLAECHE BLEIBT DEUTSCH. */
     check('Und die Oberflaeche daneben bleibt in der Sprache ihres Lesers',
       w4.document.body.textContent.includes('Vokabular'),
       'die Seite hat die Sprache gewechselt');
@@ -605,28 +512,16 @@ async function run() {
       usPut.vocabulary.en && usPut.vocabulary.en.entryOne === 'Widget2',
       JSON.stringify(usPut && usPut.vocabulary));
     /* UND DIE UEBRIGEN DREIZEHN FELDER GEHEN LEER HINAUS -- sie sind leer,
-       weil fuer sie nichts eingetragen ist, und der Server macht daraus
-       kein „eingetragen". Bis 0.24.3 trug die Karte hier die Vorgaben ein,
-       und genau das hat B2 verursacht. */
+       weil fuer sie nichts eingetragen ist, und der Server macht daraus kein
+       „eingetragen". */
     check('Und die uebrigen dreizehn Felder gehen leer hinaus',
       !!usPut && Object.values(usPut.vocabulary.en).filter(v => String(v).trim()).length === 1,
       JSON.stringify(usPut && usPut.vocabulary.en));
     w4.close();
   }
 
-  /* ============ Die Sprachprobe des Lesers — 0.24.4 (B9) ===============
-     WER SEINE EIGENE SPRACHE WECHSELT, WECHSELT AUCH DIE VIERZEHN WOERTER.
-
-     DER BEFUND IST BEIM BAUEN DIESER RUNDE GEFUNDEN WORDEN, nicht im Feld:
-     bis 0.24.3 warf die Pillenreihe die Antwort des Servers weg. Die Seite
-     wechselte die Sprache, `V` blieb der Satz der alten -- auf einer
-     englischen Oberflaeche stand danach „applies to all Einträge".
-     WARUM loadLanguages() DAS NICHT RICHTET, gehoert dazu: loadLanguage()
-     legt die Vorgaben der neuen Datei UNTER `V`, und `V` traegt zu diesem
-     Zeitpunkt schon alle vierzehn Woerter der alten Sprache. Ein Rueckfall
-     greift nur, wo etwas fehlt -- und hier fehlte nichts.
-     GEPRUEFT WIRD AN EINEM SATZ, DER EIN VOKABELWORT TRAEGT: `card.blocksHint`
-     nennt `{entryMany}`. Ein Satz ohne Vokabelwort saehe den Fehler nicht. */
+  /* ============ Die Sprachprobe des Lesers — 0.24.4 (B9) =============== WER
+     SEINE EIGENE SPRACHE WECHSELT, WECHSELT AUCH DIE VIERZEHN WOERTER. */
   {
     const spDom = buildDom(JSDOM, { settings: { filters: null, language: 'de',
       languages: [{ code: 'de', name: 'Deutsch', isDefault: true, active: true },
@@ -656,22 +551,8 @@ async function run() {
     wSp.close();
   }
 
-  /* ============ Die Stellungsprobe — 0.24.4 (B3) =======================
-     DIE BILDLAUFSTELLUNG UEBERLEBT DAS UMSCHALTEN.
-
-     WIE MAN DAS IN jsdom UEBERHAUPT SIEHT, gehoert dazugesagt: jsdom rechnet
-     kein Layout, also faellt die Stellung beim Neubau von `app.innerHTML`
-     GAR NICHT von selbst auf null -- im Browser tut sie es, weil die Seite
-     auf die Hoehe der Ladezeile zusammenfaellt. **Eine Probe, die nur
-     nachsieht, ob 640 noch dasteht, waere deshalb gruen, ohne dass
-     irgendetwas wiederhergestellt worden waere** (Stolperstein 81).
-
-     DIE PROBE RAEUMT SIE DESHALB SELBST WEG, und zwar im richtigen
-     Augenblick: renderSystem() liest die Stellung SYNCHRON, bevor der erste
-     Abruf laeuft, und setzt sie GANZ AM ENDE zurueck. Wer unmittelbar nach
-     dem Klick auf null stellt, steht damit zwischen den beiden -- genau da,
-     wo im Browser der Zusammenfall liegt. Was danach dasteht, hat die
-     Reparatur dorthin geschrieben und sonst niemand. */
+  /* ============ Die Stellungsprobe — 0.24.4 (B3) ======================= DIE
+     BILDLAUFSTELLUNG UEBERLEBT DAS UMSCHALTEN. */
   {
     const stDom = buildDom(JSDOM, { settings: { filters: null, language: 'de',
       languages: [{ code: 'de', name: 'Deutsch', isDefault: true, active: true },
@@ -690,11 +571,7 @@ async function run() {
     await new Promise(r => setTimeout(r, 200));
     check('Stellungsprobe: die Bildlaufstellung ueberlebt das Umschalten',
       stSide.scrollTop === 640, `${stSide.scrollTop} statt 640`);
-    /* UND SIE UEBERLEBT NUR DORT. Wer aus der Uebersicht in den Systembereich
-       geht, soll oben anfangen -- eine gemerkte Stellung waere dort ein
-       Sprung ins Nichts. Ohne diese Zeile bliebe die darueber auch dann
-       gruen, wenn renderSystem() die Stellung IMMER hielte, und das waere
-       ein zweiter Fehler. */
+    /* UND SIE UEBERLEBT NUR DORT. */
     stSide.scrollTop = 500;
     const stPlain = wSt.renderSystem();
     stSide.scrollTop = 0;
@@ -706,36 +583,7 @@ async function run() {
   }
 
   /* ====== Die Tafel der Sprachpillen — 0.24.5 ==========================
-     SIEBENUNDZWANZIG ZELLEN UND NEUN DANEBEN, und sie sind KEINE Stichprobe.
-
-     DER BEFUND IST ALS TAFEL GEMELDET WORDEN und wird als Tafel nachgestellt:
-     drei Lesersprachen × drei Pillen × drei Verwaltungskarten. Der Betreiber
-     hat am 8. September 2026 achtzehn Zellen an zwei Karten durchprobiert,
-     zwoelf davon falsch, und danach nachgetragen, dass es die DRITTE Karte
-     genauso trifft — „Kategorien, Bewertungen: Kriterien, Potenzial:
-     Kriterien". Beide Kriterienkarten lesen dieselbe Antwort von
-     `/api/criteria`; es ist EIN Fehler an DREI Karten, und deshalb stehen
-     alle drei in der Tafel.
-
-     UND DIE KACHEL „VOKABULAR" LAEUFT ALS VERGLEICHSGRUPPE MIT (F7): dieselben
-     neun Kombinationen, gruen VOR der Reparatur und gruen danach. Sie ist der
-     Maßstab dieser Runde -- der Betreiber hat sie ausdruecklich fuer richtig
-     befunden. Eine Prueflage, die ueberall rot ist, hat womoeglich nur den
-     Pruefstand falsch aufgesetzt; eine, die genau dort rot ist, wo der Befund
-     es sagt, und genau dort gruen, wo er es fuer richtig haelt, misst die
-     Sache. WER DIE NEUN ZELLEN SPAETER LOESCHT, weil sie „immer gruen" sind,
-     nimmt der Tafel daneben ihren Maßstab.
-
-     DER BESTAND IST DER DES BEFUNDS -- mit und ohne Uebersetzung:
-       Kategorie 21 „Werkzeug" → en „Tool",      tr „Alet"
-       Kategorie 22 „Material" → en „Substance", KEIN tr   ← Rueckfall
-       Kriterium 7 „Zuerst"    → en „First",     tr „Birinci"   (Kasten nachher)
-       Kriterium 8 „Dann"      → en „Then",      KEIN tr   ← Rueckfall
-       Kriterium 9 „Zuletzt"   → en „Last",      tr „Sonuncu"   (Kasten vorher)
-     OHNE DIE ZWEI ZEILEN OHNE tr belegte die Tafel die Haelfte nicht: der
-     Rueckfall auf die Grundzeile ist die letzte Zelle der zweiten Karte im
-     Befund, und sie ist die einzige, die der Betreiber dort fuer richtig
-     befunden hat. */
+     SIEBENUNDZWANZIG ZELLEN UND NEUN DANEBEN, und sie sind KEINE Stichprobe. */
   group('Die Sprachpillen der Namenskarten — 0.24.5');
   {
     const npLanguages = [
@@ -746,29 +594,19 @@ async function run() {
     const npCategoryNames = { en: { 21: 'Tool', 22: 'Substance' }, tr: { 21: 'Alet' } };
     const npCriterionNames = { en: { 7: 'First', 8: 'Then', 9: 'Last' },
                                tr: { 7: 'Birinci', 9: 'Sonuncu' } };
-    /* WAS IN DEN DREI LISTEN STEHEN MUSS, je Pille -- der SOLLWERT neben jeder
-       Zelle. Unter `tr` stehen „Material" und „Dann" als Rueckfall auf die
-       Grundzeile: fuer sie ist auf Tuerkisch nichts eingetragen, und ein leerer
-       Name waere schlimmer als ein deutscher. */
+    /* WAS IN DEN DREI LISTEN STEHEN MUSS, je Pille -- der SOLLWERT neben
+       jeder Zelle. */
     const npWant = {
       de: { mcats: ['Werkzeug', 'Material'], mcrits: ['Zuerst', 'Dann'], mpcrits: ['Zuletzt'] },
       en: { mcats: ['Tool', 'Substance'], mcrits: ['First', 'Then'], mpcrits: ['Last'] },
       tr: { mcats: ['Alet', 'Material'], mcrits: ['Birinci', 'Dann'], mpcrits: ['Sonuncu'] }
     };
-    /* DIE VIERZEHN WOERTER DER VERGLEICHSGRUPPE. Fuer jede der drei Sprachen
-       ist etwas ANDERES eingetragen -- nur dann sagt die Zelle etwas: waeren
-       sie gleich, waere jede Pille von jeder anderen ununterscheidbar. */
+    /* DIE VIERZEHN WOERTER DER VERGLEICHSGRUPPE. */
     const npVocabularyOwn = { de: { entryOne: 'Maschine' }, en: { entryOne: 'Machine' },
                               tr: { entryOne: 'Makine' } };
     const NP_CARDS = [['mcats', 'Kategorien'], ['mcrits', 'Bewertungen: Kriterien'],
                       ['mpcrits', 'Potenzial: Kriterien']];
-    /* GEZAEHLT WIRD MITGELAUFEN, und die Zahl wird hinterher festgenagelt. Die
-       Tafel entsteht in einer Schleife: wer eine Sprache aus `npLanguages`
-       nimmt, eine Karte aus `NP_CARDS` streicht oder die Vergleichszelle
-       herausnimmt, macht die Gruppe damit KLEINER, ohne dass ein einziger
-       Punkt rot wuerde -- und ein Prueflauf, der ungefragt weniger prueft,
-       meldet Erfolg fuer nichts (Stolperstein 81). Die zwei Zeilen am Ende der
-       Schleife sind der Beleg, dass es siebenundzwanzig und neun waren. */
+    /* GEZAEHLT WIRD MITGELAUFEN, und die Zahl wird hinterher festgenagelt. */
     let npCells = 0, npComparisons = 0;
     const npRows = (w, boxId) => [...w.document.querySelectorAll(`#${boxId} .mname`)]
       .map(z => z.textContent.trim());
@@ -776,8 +614,8 @@ async function run() {
       .find(b => pillName(b) === name);
     /* DRUECKT EINE PILLE UND SAGT, OB SIE DA WAR -- geklammert wie setField()
        und aus demselben Grund (Stolperstein 161): ein Rueckbau, der die
-       Pillenreihe wegnimmt, muss die Zusagen darunter ROT machen und nicht den
-       ganzen Lauf abreissen. */
+       Pillenreihe wegnimmt, muss die Zusagen darunter ROT machen und nicht
+       den ganzen Lauf abreissen. */
     const npPress = async (w, boxId, name) => {
       const knob = npPill(w, boxId, name);
       if (!knob) return false;
@@ -819,8 +657,7 @@ async function run() {
         }
         /* EIN KLICK, DREI ZELLEN: die Pillenreihe ist EIN Umschalter fuer den
            ganzen Abschnitt, und wer ihn an einer Karte umlegt, sieht ihn an
-           den anderen mitgehen (0.24.3). Deshalb wird nach EINEM Klick an
-           ALLEN DREI Listen nachgesehen -- und nicht dreimal geklickt. */
+           den anderen mitgehen (0.24.3). */
         for (const [box, cardName] of NP_CARDS) {
           npCells++;
           check(`Zelle: Leser ${readerName}, Pille ${pillLabel}, Karte „${cardName}"`,
@@ -837,12 +674,10 @@ async function run() {
           `steht: ${JSON.stringify((wNp.document.getElementById('v1') || {}).value)} — ` +
           `soll: ${JSON.stringify(npVocabularyOwn[pill].entryOne)}`);
       }
-      /* ---- DER KOPF DER KARTE STIMMT IMMER, und das gehoert in die Tafel ----
-         Der Betreiber hat es ausdruecklich gemeldet: „Kategorien",
-         „Categories", „Kategoriler" folgen dem LESER, wie sie sollen -- falsch
-         ist allein die Liste darunter. Ohne diese Zeile liesse sich eine
-         Reparatur nicht von einer unterscheiden, die die ganze Karte in die
-         Sprache der Pille dreht. */
+      /* ---- DER KOPF DER KARTE STIMMT IMMER, und das gehoert in die Tafel
+         ---- Der Betreiber hat es ausdruecklich gemeldet: „Kategorien",
+         „Categories", „Kategoriler" folgen dem LESER, wie sie sollen --
+         falsch ist allein die Liste darunter. */
       const npHeads = { de: 'Kategorien', en: 'Categories', tr: 'Kategoriler' };
       check(`Und der Kopf der Karte bleibt beim Leser (${readerName})`,
         [...wNp.document.querySelectorAll('.sys-card h3')]
@@ -858,18 +693,7 @@ async function run() {
       npComparisons === 9, `${npComparisons} Zellen`);
 
     /* ---- DIE FOLGE IN EINER SITZUNG — 0.24.5 (D2) ---------------------
-       PILLE DRUECKEN, EIGENE SPRACHE WECHSELN, DIESELBE PILLE NOCH EINMAL.
-
-       DAS IST DIE ZELLE, DIE DEN GANZEN BEFUND ERKLAERT: Karte 1, Leser
-       Deutsch, Pille Tuerkisch → englisch. Englisch ist dort weder die
-       Sprache des Lesers noch die der Pille noch die Vorgabe der Installation
-       -- eine Liste, die aus keiner dieser drei stammen kann, stammt nicht aus
-       der Anfrage, sondern aus einem Zwischenspeicher.
-       EIN PRUEFSTAND, DER JEDE ZELLE FRISCH AUFSETZT, SIEHT DAS NIE. Der
-       Zwischenspeicher haengt an der Reihenfolge INNERHALB einer Sitzung: was
-       unter dem Schluessel `tr` liegt, ist die Liste der Sprache, die der
-       Leser las, als er die Pille das erste Mal druckte. Diese Prueflage
-       stellt genau diese Reihenfolge her. */
+       PILLE DRUECKEN, EIGENE SPRACHE WECHSELN, DIESELBE PILLE NOCH EINMAL. */
     {
       const seqDom = buildDom(JSDOM, {
         settings: { filters: null, language: 'en', languages: npLanguages,
@@ -884,9 +708,7 @@ async function run() {
       check('Folgeprobe, Schritt 1: der englische Leser drueckt Türkçe und liest Tuerkisch',
         equal(npRows(wSeq, 'mcats'), npWant.tr.mcats),
         JSON.stringify(npRows(wSeq, 'mcats')));
-      /* SCHRITT 2: DIE EIGENE SPRACHE WECHSELN. Die Pillenreihe des Lesers
-         steht in „Darstellung" -- ein anderer Abschnitt, und der Wechsel
-         zeichnet den ganzen Systembereich neu. */
+      /* SCHRITT 2: DIE EIGENE SPRACHE WECHSELN. */
       await sysSection(wSeq, 'personal');
       const seqOwn = [...(wSeq.document.getElementById('lang') || { children: [] }).children]
         .find(b => b.textContent === 'Deutsch');
@@ -897,8 +719,7 @@ async function run() {
         await new Promise(r => setTimeout(r, 260));
       }
       /* UND SCHRITT 3: DIESELBE PILLE NOCH EINMAL. Sie muss dasselbe zeigen
-         wie beim ersten Mal -- die Namen der Sprache, die auf ihr steht. Bis
-         0.24.5 stand hier die Liste der Sprache, die der Leser VORHER las. */
+         wie beim ersten Mal -- die Namen der Sprache, die auf ihr steht. */
       await sysSection(wSeq, 'inventory');
       await npPress(wSeq, 'ncatlang', 'Türkçe');
       check('Folgeprobe, Schritt 3: dieselbe Pille zeigt dieselbe Liste wie beim ersten Mal',
@@ -907,17 +728,9 @@ async function run() {
       wSeq.close();
     }
 
-    /* ---- DER RUECKFALL SAGT, DASS ER EINER IST — 0.24.5 (F4) ----------
-       WO FUER DIE GEZEIGTE SPRACHE NICHTS EINGETRAGEN IST, steht der Name der
-       Vorgabesprache da UND ein gedaempfter Vermerk daneben. Die Entscheidung
-       des Betreibers vom 8. September 2026: *„Wenn die Felder von
-       Defaultsprache gefuellt sind, werden sie vorgezogen. Ist da auch nicht,
-       wird die Vorgabe genommen. Und gerne gedaempft der Hinweis, dass dies
-       ein Fallback ist und fuer die ausgewaehlte Sprache keine Eingabe
-       existiert."*
-       DIESELBE UEBERLEGUNG WIE BEI DEN VIERZEHN VOKABELWOERTERN (0.24.4,
-       B2/B4): ein Rueckfall, der wie ein Eintrag aussieht, wird beim naechsten
-       Speichern zu einem. */
+    /* ---- DER RUECKFALL SAGT, DASS ER EINER IST — 0.24.5 (F4) ---------- WO
+       FUER DIE GEZEIGTE SPRACHE NICHTS EINGETRAGEN IST, steht der Name der
+       Vorgabesprache da UND ein gedaempfter Vermerk daneben. */
     {
       const fbDom = buildDom(JSDOM, {
         settings: { filters: null, language: 'de', languages: npLanguages },
@@ -938,9 +751,7 @@ async function run() {
         /Deutsch/.test(fbMark('mcats', 'Material')), fbMark('mcats', 'Material'));
       check('Und dasselbe an der Kriterienkarte',
         /Deutsch/.test(fbMark('mcrits', 'Dann')), fbMark('mcrits', 'Dann'));
-      /* UND DIE UEBERSETZTE ZEILE TRAEGT IHN NICHT. Ohne diese Zeile bliebe
-         die darueber auch dann gruen, wenn der Vermerk an JEDER Zeile stuende
-         -- und dann sagte er nichts mehr. */
+      /* UND DIE UEBERSETZTE ZEILE TRAEGT IHN NICHT. */
       check('Und die uebersetzte Zeile daneben traegt ihn nicht',
         fbMark('mcats', 'Alet') === '' && fbMark('mcrits', 'Birinci') === '',
         `Alet=${JSON.stringify(fbMark('mcats', 'Alet'))} ` +
@@ -948,15 +759,11 @@ async function run() {
       /* UND DAS UMBENENNFELD ZEIGT DEN RUECKFALL NICHT ALS WERT (B2 der Runde
          0.24.4, hier am Namen): wer das ✎ an einer Zeile ohne tuerkischen
          Namen oeffnet, findet ein LEERES Feld mit dem Rueckfall als
-         Platzhalter. Stuende „Material" darin, machte ein Klick auf Speichern
-         daraus einen tuerkischen Eintrag „Material". */
+         Platzhalter. */
       const fbOpenPen = (boxId, name) => {
         /* GEKLAMMERT, UND ZWAR AUSDRUECKLICH: solange die Reparatur nicht
-           steht, zeigt die Karte auf der Pille „Türkçe" die deutschen Namen --
-           die gesuchte Zeile ist dann gar nicht da. Ein ungeschuetztes
-           `.querySelector` an einer fehlenden Zeile RISSE DEN GANZEN LAUF AB,
-           statt die Zusage darunter rot zu machen (Stolperstein 161), und eine
-           abgerissene Prueflage belegt nichts. */
+           steht, zeigt die Karte auf der Pille „Türkçe" die deutschen Namen
+           -- die gesuchte Zeile ist dann gar nicht da. */
         const row = fbRowOf(boxId, name);
         const pen = row && row.querySelector('.ed');
         if (pen) pen.dispatchEvent(new wFb.Event('click', { bubbles: true }));
@@ -977,20 +784,8 @@ async function run() {
       wFb.close();
     }
 
-    /* ---- DAS UMBENENNEN AUF EINER FREMDEN PILLE — 0.24.5 --------------
-       WER AUF DER PILLE „Türkçe" UMBENENNT, LIEST DANACH WEITER TUERKISCH.
-
-       DAS IST DER ZWEITE WEG, AUF DEM DIE FALSCHE SPRACHE IN DIE LISTE KAM,
-       und er stand nicht im Auftrag: `drawAdmin()` las bis 0.24.4
-       `fetched.cats` und `fetched.crits` -- die Namen in der Sprache des
-       LESERS -- waehrend `setUpCategoriesOut()` daneben durch `namesFrom()`
-       ging. Zwei Wege in dieselbe Liste, und der eine kannte den Umschalter
-       nicht. Nach jedem Umbenennen, Anlegen, Loeschen und Sortieren zeichnete
-       dieser Weg, und die Pille stand danach auf Türkçe ueber einer deutschen
-       Liste.
-       GEPRUEFT WIRD MIT DEM ✎ UND NICHT MIT EINEM GESETZTEN ZUSTAND: der
-       ganze Weg -- Feld, Rumpf mit Sprachangabe, Antwort, Neuzeichnen -- ist
-       der Gegenstand. */
+    /* ---- DAS UMBENENNEN AUF EINER FREMDEN PILLE — 0.24.5 -------------- WER
+       AUF DER PILLE „Türkçe" UMBENENNT, LIEST DANACH WEITER TUERKISCH. */
     {
       const rnDom = buildDom(JSDOM, {
         settings: { filters: null, language: 'de', languages: npLanguages },
@@ -1014,31 +809,23 @@ async function run() {
           rnField.dispatchEvent(new wRn.Event('blur', { bubbles: true }));
         }
         await new Promise(r => setTimeout(r, 200));
-        /* DER RUMPF NENNT DIE SPRACHE DER PILLE -- 0.24.3, Bauabschnitt 6a.
-           Ohne sie benennte der Server die GRUNDZEILE um, und der deutsche
-           Leser haette danach eine tuerkische Kategorie. */
+        /* DER RUMPF NENNT DIE SPRACHE DER PILLE -- 0.24.3, Bauabschnitt 6a. */
         const rnPut = rnDom.sent.filter(g => g.method === 'PUT' &&
           g.url === '/api/product-categories/21').pop();
         check('Umbenennprobe: der Rumpf nennt die Sprache der Pille',
           !!rnPut && rnPut.body && rnPut.body.name === 'Takım' && rnPut.body.language === 'tr',
           JSON.stringify(rnPut && rnPut.body));
-        /* UND DIE LISTE BLEIBT DANACH TUERKISCH. Bis 0.24.4 stand hier wieder
-           „Werkzeug", „Material" -- die deutsche Liste unter einer tuerkischen
-           Pille. */
+        /* UND DIE LISTE BLEIBT DANACH TUERKISCH. */
         check('Und die Liste bleibt danach in der Sprache der Pille',
           equal(npRows(wRn, 'mcats'), ['Takım', 'Material']),
           `steht: ${JSON.stringify(npRows(wRn, 'mcats'))} — soll: ["Takım","Material"]`);
-        /* UND DER VERMERK STEHT WEITER AN DER ZEILE OHNE EINTRAG. Ohne diese
-           Zeile bliebe die darueber auch dann gruen, wenn das Neuzeichnen den
-           Rueckfall stillschweigend als Eintrag zeigte. */
+        /* UND DER VERMERK STEHT WEITER AN DER ZEILE OHNE EINTRAG. */
         const rnMark = [...wRn.document.querySelectorAll('#mcats .mrow')]
           .find(z => (z.querySelector('.mname') || {}).textContent.trim() === 'Material');
         check('Und der Vermerk steht weiter an der Zeile ohne tuerkischen Namen',
           !!rnMark && !!rnMark.querySelector('.mfallback'),
           rnMark ? 'kein Vermerk' : 'keine Zeile „Material"');
-        /* UND DIE PILLE STEHT NOCH AUF Türkçe. Eine Liste in der richtigen
-           Sprache unter einer Pille, die auf eine andere zeigt, waere derselbe
-           Widerspruch andersherum. */
+        /* UND DIE PILLE STEHT NOCH AUF Türkçe. */
         check('Und die Pille steht danach immer noch auf Türkçe',
           [...(wRn.document.getElementById('ncatlang') || { children: [] }).children]
             .filter(b => b.className.includes('on')).map(b => pillName(b)).join('') === 'Türkçe',
@@ -1048,17 +835,8 @@ async function run() {
       wRn.close();
     }
 
-    /* ---- WER NICHT VERWALTEN DARF, SIEHT DIE PILLENREIHE GAR NICHT ----
-       DIE ENTSCHEIDUNG DES BETREIBERS ZU F3, 8. September 2026: *„Der normale
-       User soll nicht mal die Pille über der Kachel sehen können. Er sieht nur
-       die Bezeichnungen der Sprache, den er im persönlichen Bereich
-       eingestellt hat."*
-       DIE KARTEN BLEIBEN STEHEN, alle drei: wer nicht verwalten darf, darf
-       trotzdem nachsehen, was es gibt -- die Namen sind die Auswahl, aus der
-       jeder am Eintrag schoepft. Nur der Umschalter ist weg, und mit ihm die
-       Tafel: eine Namenstafel aller Sprachen an einen Leser zu schicken, der
-       keine davon umschalten kann, waere eine Antwort auf eine Frage, die er
-       nicht stellt. */
+    /* ---- WER NICHT VERWALTEN DARF, SIEHT DIE PILLENREIHE GAR NICHT ---- DIE
+       ENTSCHEIDUNG DES BETREIBERS ZU F3, 8. */
     {
       const roDom = buildDom(JSDOM, {
         settings: { filters: null, language: 'tr', languages: npLanguages,
@@ -1125,10 +903,7 @@ async function run() {
   w4.close();
 
   /* --- Rueckfallprobe: Liste, Eintrag und Anmeldung — 0.24.0 -----------
-     DASSELBE ZEICHEN, DIE ANDEREN DREI ANSICHTEN. ⟦…⟧ steht am Bildschirm,
-     wo ein Schluessel fehlt -- und vor allem dort, wo eine Tabelle beim LADEN
-     der Datei ausgewertet wurde, als es noch keinen Text gab. Der
-     Systembereich steht in seiner eigenen Gruppe. */
+     DASSELBE ZEICHEN, DIE ANDEREN DREI ANSICHTEN. */
   {
     const rf = buildDom(JSDOM, {});
     await new Promise(r => setTimeout(r, 80));
@@ -1153,9 +928,7 @@ async function run() {
       rfList > 200 && rfEntry > 200 && rfText().length > 50,
       `${rfList} · ${rfEntry} · ${rfText().length} Zeichen`);
     /* UND DAS ZEICHEN WUERDE WIRKLICH AUFFALLEN: der Helfer setzt es, wenn
-       ein Schluessel weder in der Sprache noch im Rueckfall steht. Ohne diese
-       Zeile waere die Probe oben auch dann gruen, wenn niemand mehr suchte
-       (Stolperstein 106). */
+       ein Schluessel weder in der Sprache noch im Rueckfall steht. */
     check('Und ein fehlender Schluessel wuerde als ⟦…⟧ dastehen',
       rf.w.t('gibtesnicht.hier') === '\u27e6gibtesnicht.hier\u27e7',
       rf.w.t('gibtesnicht.hier'));
@@ -1164,23 +937,7 @@ async function run() {
 
   /* ================= Zeitleiste ================= */
   /* ================= Die Karte sagt, wo Arbeit liegt — 0.25.0 ===========
-     DIE VORGABE DES BETREIBERS, 9. September 2026, vor der Fragerunde
-     gesetzt: **Rahmen an ALLEN Kacheln mit fehlenden Zellen, auch am
-     Vokabular · fehlende Zellen gedaempft markiert · Pillen mit Punkt und
-     Zahl.** Dazu die Antwort auf F5 (ein eigenes Zeichen am Feld) und die auf
-     F2 (einmal nachfragen, EIN Knopf).
-
-     DIE NEUN ZELLEN VON 0.24.6 BLEIBEN, MIT UMGEKEHRTEM SOLLWERT. Damals
-     wanderte die Grundzeile mit der Vorgabesprache; seit die Zeile ihre eigene
-     Sprache traegt, bleibt sie, wo sie hingehoert -- und der Vermerk nennt sie
-     unabhaengig davon, was gerade Vorgabe ist. Dieselbe Tafel, dieselbe
-     Schleife, ein anderer Sollwert: so laesst sich lesen, was diese Runde
-     geaendert hat.
-
-     DIE KETTE SELBST STEHT NICHT MEHR HIER. Sie ist mit 0.25.0 an den Server
-     gewandert (Stolperstein 47: eine Aussage, ein Ort); geprueft wird sie am
-     LAUFENDEN Server, in der Gruppe „Die Kette am Server — 0.25.0". Was hier
-     bleibt, ist die Frage, ob die KARTE zeigt, was ankommt. */
+     DIE VORGABE DES BETREIBERS, 9. */
   group('Die Karte sagt, wo Arbeit liegt — 0.25.0');
   {
     const axName = { de: 'Deutsch', en: 'English', tr: 'Türkçe' };
@@ -1188,16 +945,13 @@ async function run() {
       ({ code, name: axName[code], isDefault: code === base,
          active: code === base || !without.includes(code) }));
     /* DIE ZEILE 21 IST DEUTSCH ANGELEGT UND HAT KEINE UEBERSETZUNG, die Zeile
-       22 traegt alle drei Sprachen. Seit 0.25.0 steht die Sprache AN DER
-       ZEILE (`language`), und der Mock traegt sie mit -- ohne sie faenden alle
-       Zellen den vierten Schritt der Kette (Originaltext, Sprache unbekannt),
-       und die Tafel maesse nichts. */
+       22 traegt alle drei Sprachen. */
     const AX_CATS = [{ id: 21, name: 'Grundname', usage_count: 2, language: 'de' },
                      { id: 22, name: 'Ueberall_de', usage_count: 0, language: 'de' }];
     const AX_NAMES = { en: { 22: 'Ueberall_en' }, tr: { 22: 'Ueberall_tr' } };
     /* GEKLAMMERT WIE npPress(): ein Rueckbau, der die Zeile oder den Knopf
-       wegnimmt, muss die Zusagen darunter ROT machen und nicht den ganzen Lauf
-       abreissen (Stolperstein 161). */
+       wegnimmt, muss die Zusagen darunter ROT machen und nicht den ganzen
+       Lauf abreissen (Stolperstein 161). */
     const axCell = (w, boxId, id) => {
       const row = [...w.document.querySelectorAll(`#${boxId} .mrow`)]
         .find(z => Number(z.dataset.mid) === id);
@@ -1205,9 +959,7 @@ async function run() {
       const name = row.querySelector('.mname');
       return { name: ((name || {}).textContent || '').trim(),
                mark: ((row.querySelector('.mfallback') || {}).textContent || '').trim(),
-               /* GEDAEMPFT HEISST: DAS FELD SAGT ES SELBST. Gepruefft wird die
-                  Klasse und nicht die Farbe -- welche Farbe `.back` traegt,
-                  entscheidet das Stilblatt, und der Nachbau hat keine. */
+               /* GEDAEMPFT HEISST: DAS FELD SAGT ES SELBST. */
                faded: !!name && name.classList.contains('back'),
                erase: !!row.querySelector('.mact.nx') };
     };
@@ -1234,10 +986,7 @@ async function run() {
       return !!card && card.classList.contains('gaps');
     };
     /* DER KNOPF „Standard" IN DER KARTE „Sprachen" -- derselbe Weg, den der
-       Betreiber gegangen ist. Die Karte steht im Abschnitt „Installation" und
-       nur dem Eigentuemer offen; die drei Namenskarten stehen im Abschnitt
-       „Bestand". Der Weg dazwischen ist ein Abschnittswechsel und KEIN
-       Neuladen -- genau die Lage, in der die Karte stimmen muss. */
+       Betreiber gegangen ist. */
     const axSetDefault = async (w, code) => {
       const row = [...w.document.querySelectorAll('#langs .engine')]
         .find(z => z.dataset.k === code);
@@ -1248,20 +997,9 @@ async function run() {
       return true;
     };
     /* WAS EIN VERMERK SAGEN DARF: genau die eine erwartete Sprache und keine
-       der beiden anderen. Verglichen wird nicht mit dem ganzen Satz -- der
-       steht in der Sprachdatei und darf umformuliert werden --, sondern mit
-       dem NAMEN der Sprache. Das ist der Wert, um den es geht.
-       `null` HEISST „ueberhaupt kein Vermerk", `''` heisst „ein Vermerk, der
-       KEINE Sprache nennt" (der Originaltext, Schritt 4 der Kette). */
+       der beiden anderen. */
     const AX_ALL_NAMES = ['Deutsch', 'English', 'Türkçe'];
-    /* UND SEIT 0.25.1 NENNT DER SATZ ZWEI SPRACHEN. `missing` ist die, in der
-       nichts eingetragen ist (die Pille, auf der man steht), `wanted` die,
-       deren Name stattdessen dasteht. BEIDE muessen vorkommen, und die dritte
-       darf es nicht -- ohne die dritte Haelfte bliebe ein Satz gruen, der
-       einfach alle Sprachnamen aufzaehlt.
-       DER GRUND FUER DIE ZWEITE ANGABE steht im Befund des Betreibers vom
-       10. September 2026: „(nicht eingetragen — es steht Deutsch)" sagte
-       nicht, WAS nicht eingetragen ist. */
+    /* UND SEIT 0.25.1 NENNT DER SATZ ZWEI SPRACHEN. */
     const axMarkOk = (mark, wanted, missing) => {
       if (wanted === null) return mark === '';
       if (wanted === '') return mark !== '' && AX_ALL_NAMES.every(n => !mark.includes(n));
@@ -1270,12 +1008,9 @@ async function run() {
         AX_ALL_NAMES.filter(n => !named.includes(n)).every(n => !mark.includes(n));
     };
 
-    /* ---- DIE NEUN ZELLEN, MIT DEM SOLLWERT DIESER RUNDE ---------------
-       DIE ZEILE 21 IST DEUTSCH, und das bleibt sie, gleichgueltig welche
-       Sprache Vorgabe ist. Auf der deutschen Pille steht sie ohne Vermerk; auf
-       jeder anderen mit dem Vermerk „Deutsch" -- und NICHT, wie bis 0.24.6,
-       mit dem Namen der Vorgabesprache. Das ist der ganze Befund A1 in einer
-       Tafel. */
+    /* ---- DIE NEUN ZELLEN, MIT DEM SOLLWERT DIESER RUNDE --------------- DIE
+       ZEILE 21 IST DEUTSCH, und das bleibt sie, gleichgueltig welche Sprache
+       Vorgabe ist. */
     let axCells = 0;
     for (const std of ['de', 'en', 'tr']) {
       const axDom = buildDom(JSDOM, {
@@ -1285,16 +1020,12 @@ async function run() {
       });
       const wAx = axDom.w;
       await new Promise(r => setTimeout(r, 80));
-      /* ZUERST DER WECHSEL, DANN DIE KARTE. Der Aufbau steht ausdruecklich als
-         eigene Zusage da: ohne den Knopf „Standard" belegten die drei Zellen
-         darunter nichts ueber eine gewechselte Vorgabesprache. */
+      /* ZUERST DER WECHSEL, DANN DIE KARTE. */
       await sysSection(wAx, 'installation');
       const axSwitched = await axSetDefault(wAx, std);
       check(`Aufbau (Vorgabe → ${axName[std]}): der Knopf „Standard" steht da und ist gedrueckt`,
         axSwitched, 'kein Knopf „Standard" in der Karte „Sprachen"');
-      /* UND DIE KARTE HAT DEN WECHSEL WIRKLICH GESCHICKT. Ohne diese Zeile
-         waeren die Zellen darunter auch dann gruen, wenn der Knopf gar nichts
-         tut -- und die ganze Achse waere eine Achse mit einem Punkt. */
+      /* UND DIE KARTE HAT DEN WECHSEL WIRKLICH GESCHICKT. */
       const axPut = axDom.sent.filter(g => g.method === 'PUT' && g.url === '/api/settings' &&
         g.body && g.body.languageDefault !== undefined).pop();
       check(`Und der Rumpf nennt die neue Vorgabesprache (${axName[std]})`,
@@ -1308,23 +1039,19 @@ async function run() {
         }
         axCells++;
         /* DER SOLLWERT: der Name der Grundzeile steht da -- und der Vermerk
-           nennt DEUTSCH, weil die Zeile deutsch angelegt ist. Auf der
-           deutschen Pille steht gar kein Vermerk: dort ist sie ein Eintrag. */
+           nennt DEUTSCH, weil die Zeile deutsch angelegt ist. */
         const cell = axCell(wAx, 'mcats', 21);
         const wantMark = pill === 'de' ? null : 'Deutsch';
         check(`Zelle: Vorgabe ${axName[std]}, Pille ${axName[pill]} — Name und genannte Sprache`,
           cell.name === 'Grundname' && axMarkOk(cell.mark, wantMark, axName[pill]),
           `steht: ${JSON.stringify(cell)} — soll: Name "Grundname", ` +
           `Vermerk ${wantMark === null ? '(keiner)' : JSON.stringify(wantMark)}`);
-        /* UND DER NAME IST GEDAEMPFT, WO ER GELIEHEN IST -- die dritte Vorgabe
-           des Betreibers. Ohne die zweite Haelfte („und sonst nicht") waere
-           jede Zeile gedaempft, und die Daempfung sagte nichts. */
+        /* UND DER NAME IST GEDAEMPFT, WO ER GELIEHEN IST -- die dritte
+           Vorgabe des Betreibers. */
         check(`Und die Daempfung folgt dem Rueckfall (Vorgabe ${axName[std]}, Pille ${axName[pill]})`,
           cell.faded === (pill !== 'de'),
           `gedaempft: ${cell.faded} — soll: ${pill !== 'de'}`);
-        /* UND DIE VERGLEICHSZEILE DANEBEN. Fuer sie ist in jeder Sprache etwas
-           eingetragen; sie ist der Maßstab -- eine Tafel, die ueberall rot ist,
-           misst nichts. */
+        /* UND DIE VERGLEICHSZEILE DANEBEN. */
         const both = axCell(wAx, 'mcats', 22);
         check(`Vergleichszelle: Vorgabe ${axName[std]}, Pille ${axName[pill]} — die gepflegte Zeile`,
           both.name === `Ueberall_${pill}` && both.mark === '',
@@ -1332,17 +1059,12 @@ async function run() {
       }
       wAx.close();
     }
-    /* UND ES WAREN WIRKLICH NEUN. Wer eine Vorgabesprache oder eine Pille aus
-       der Schleife nimmt, macht die Tafel KLEINER, ohne dass ein Punkt rot
-       wuerde -- ein Lauf, der ungefragt weniger prueft, meldet Erfolg fuer
-       nichts (Stolperstein 81). */
+    /* UND ES WAREN WIRKLICH NEUN. */
     check('Die zweite Achse hat wirklich neun Zellen — drei Vorgabesprachen × drei Pillen',
       axCells === 9, `${axCells} Zellen`);
 
     /* ---- PUNKT UND ZAHL AN DER PILLE, UND DER RAHMEN AN DER KACHEL -----
-       DIE LAGE: Zeile 21 ist nur deutsch da, Zeile 22 in allen dreien. Damit
-       fehlt Englisch und Tuerkisch je EINE Zelle, Deutsch keine -- und die
-       Pillenreihe muss genau das sagen. */
+       DIE LAGE: Zeile 21 ist nur deutsch da, Zeile 22 in allen dreien. */
     {
       const pzDom = buildDom(JSDOM, {
         settings: { filters: null, language: 'de', languages: axLanguages('de') },
@@ -1355,15 +1077,7 @@ async function run() {
       check('Pillenprobe: die vollstaendige Sprache traegt den Punkt, jede andere ihre Zahl',
         axMarks(wPz, 'ncatlang') === 'Deutsch:● English:1 Türkçe:1',
         axMarks(wPz, 'ncatlang'));
-      /* UND DIE ZAHL IST DIE DER FEHLENDEN ZELLEN und nicht die der Zeilen.
-         SEIT 0.25.1 SIND ES ZWEI UND NICHT DREI: die drei Kriterien sind alle
-         deutsch angelegt und tragen keine Uebersetzung, aber ZWEI davon
-         gehoeren in den Bewertungskasten und eines in den Potenzialkasten
-         (`criteriaPhases`). Bis 0.25.0 stand hier eine 3, weil die Zahl die
-         ganze Tafel zaehlte -- also beide Kacheln. Der Sollwert hat sich
-         geaendert, die Zusage nicht: es sind die FEHLENDEN Zellen und nicht
-         die Zeilen. Ohne diese Zeile bliebe die darueber auch mit einer
-         festen 1 gruen. */
+      /* UND DIE ZAHL IST DIE DER FEHLENDEN ZELLEN und nicht die der Zeilen. */
       check('Und die Zahl zaehlt die fehlenden Zellen dieser Kachel, nicht die Zeilen',
         axMarks(wPz, 'mcrits-lang') === 'Deutsch:● English:2 Türkçe:2',
         axMarks(wPz, 'mcrits-lang'));
@@ -1382,12 +1096,8 @@ async function run() {
       wPz.close();
     }
 
-    /* ---- DAS ✕ AM FELD — 0.25.0 (F5) ----------------------------------
-       ES STEHT NUR, WO ETWAS EINGETRAGEN IST. An einem Rueckfall gibt es
-       nichts zu raeumen, und der Originaltext IST der Name der Zeile.
-       UND ES RAEUMT WIRKLICH: danach faellt die Zeile auf die Kette zurueck,
-       und die Zahl an der Pille steigt um eins. Ohne die zweite Haelfte waere
-       das ✕ ein Knopf, der etwas schickt und nichts bewirkt. */
+    /* ---- DAS ✕ AM FELD — 0.25.0 (F5) ---------------------------------- ES
+       STEHT NUR, WO ETWAS EINGETRAGEN IST. */
     {
       const xDom = buildDom(JSDOM, {
         settings: { filters: null, language: 'de', languages: axLanguages('de') },
@@ -1413,9 +1123,7 @@ async function run() {
       const xRow = [...wX.document.querySelectorAll('#mcats .mrow')]
         .find(z => Number(z.dataset.mid) === 22);
       const xKnob = xRow && xRow.querySelector('.mact.nx');
-      /* MIT RUECKFRAGE, wie jeder Griff, der etwas wegnimmt (F5). Ohne den
-         Beobachter bliebe der Dialog stehen und der Rumpf ginge nie hinaus --
-         die Zusagen darunter waeren rot, ohne dass etwas kaputt waere. */
+      /* MIT RUECKFRAGE, wie jeder Griff, der etwas wegnimmt (F5). */
       const xTranscript = [];
       const xWatch = placeConfirm(wX, true, xTranscript);
       if (xKnob) {
@@ -1449,10 +1157,8 @@ async function run() {
       wX.close();
     }
 
-    /* ---- DIE UNBEKANNTE ERSTELLUNGSSPRACHE — 0.25.0 (F2) --------------
-       DER BESTAND NACH DER MIGRATION: die Spalte ist da und leer. Die Karte
-       fragt EINMAL nach, mit Zahl und EINEM Knopf -- und nach dem Zuordnen ist
-       der Kasten weg und kommt nicht wieder. */
+    /* ---- DIE UNBEKANNTE ERSTELLUNGSSPRACHE — 0.25.0 (F2) -------------- DER
+       BESTAND NACH DER MIGRATION: die Spalte ist da und leer. */
     {
       const ukDom = buildDom(JSDOM, {
         settings: { filters: null, language: 'de', languages: axLanguages('de') },
@@ -1471,9 +1177,7 @@ async function run() {
         !!ukBox() && ukBox().querySelectorAll('button').length === 1,
         ukBox() ? `${ukBox().querySelectorAll('button').length} Knoepfe` : 'kein Kasten');
       /* UND JEDE ZEILE STEHT ALS ORIGINALTEXT DA -- der vierte Schritt der
-         Kette, und er nennt KEINE Sprache. Das ist die ehrliche Antwort: die
-         Migration fuellt nichts, und was niemand weiss, behauptet das System
-         auch nicht. */
+         Kette, und er nennt KEINE Sprache. */
       const ukCell = axCell(wUk, 'mcats', 21);
       check('Und die Zeile traegt den Originaltext ohne genannte Sprache',
         ukCell.name === 'Grundname' && axMarkOk(ukCell.mark, ''), JSON.stringify(ukCell));
@@ -1500,11 +1204,7 @@ async function run() {
     }
 
     /* ---- DIE KACHEL „VOKABULAR" MIT DENSELBEN ZUSAGEN — 0.25.0 --------
-       *„Das gilt natürlich auch für Vokabular."* -- der Betreiber,
-       9. September 2026. An der KETTE dort aendert sich nichts: die fuenfzehn
-       Woerter kennen keine Grundzeile, ihre Tafeln tragen je Sprache nur
-       Eingetragenes, und der Rueckfall auf die Vorgabe der Sprachdatei bleibt,
-       wie er ist. Es ist eine Frage der Darstellung und nicht der Ablage. */
+       „Das gilt natürlich auch für Vokabular."* -- der Betreiber, 9. */
     {
       const vgOwn = { de: { entryOne: 'Maschine' }, en: {}, tr: {} };
       const vgDom = buildDom(JSDOM, {
@@ -1516,9 +1216,7 @@ async function run() {
       await new Promise(r => setTimeout(r, 80));
       await sysSection(wVg, 'inventory');
       /* FUENFZEHN WOERTER SEIT 0.32.0, EINES EINGETRAGEN: Deutsch fehlen
-         vierzehn, den beiden anderen alle fuenfzehn. Kein Punkt an einer
-         einzigen Pille -- und genau das ist die Lage einer frischen
-         Installation. */
+         vierzehn, den beiden anderen alle fuenfzehn. */
       check('Vokabelprobe: Punkt und Zahl stehen auch an der Kachel „Vokabular"',
         axMarks(wVg, 'vlang') === 'Deutsch:14 English:15 Türkçe:15',
         axMarks(wVg, 'vlang'));
@@ -1535,9 +1233,7 @@ async function run() {
         `v1=${vgField(1)} v2=${vgField(2)} v14=${vgField(14)}`);
       wVg.close();
     }
-    /* UND EINE VOLLSTAENDIGE SPRACHE TRAEGT KEINEN RAHMEN. Ohne diese Lage
-       waere die Zusage darueber auch mit einem Rahmen gruen, der immer steht
-       -- und dann sagte er nichts. */
+    /* UND EINE VOLLSTAENDIGE SPRACHE TRAEGT KEINEN RAHMEN. */
     {
       const vfWords = Object.fromEntries(['entryOne', 'entryMany', 'testedYes', 'testedNo',
         'dayOne', 'dayMany', 'reportOne', 'reportMany', 'taskOne', 'taskMany', 'taskDone',
@@ -1557,11 +1253,7 @@ async function run() {
     }
 
     /* ---- DIE ANSAGE NACH DEM UMSCHALTEN — 0.25.0 (F4) -----------------
-       *„wir nehmen nicht die Glocke, sondern Rahmen"* -- der Betreiber,
-       9. September 2026. Die Glocke zeigt nach ihrer eigenen Regel nur FREMDE
-       Taetigkeit; wer umschaltet, ist selbst der Handelnde. Die Karte
-       „Sprachen" sagt es deshalb an Ort und Stelle.
-       SIE ZAEHLT BEIDES: Namen aus beiden Tafeln und Vokabelwoerter. */
+       „wir nehmen nicht die Glocke, sondern Rahmen"* -- der Betreiber, 9. */
     {
       const anDom = buildDom(JSDOM, {
         settings: { filters: null, language: 'de', languages: axLanguages('de'),
@@ -1581,11 +1273,8 @@ async function run() {
         anHint().includes('Deutsch') && /14/.test(anHint()), JSON.stringify(anHint()));
       await axSetDefault(wAn, 'tr');
       /* NACH DEM WECHSEL: Tuerkisch fehlen vier Namen (die Zeile 21 in beiden
-         Kriterienkarten und die Kategorie 21 -- alles, was nur deutsch da ist)
-         und alle fuenfzehn Vokabelwoerter. Gezaehlt wird aus den Tafeln, die
-         der Wechsel mitgebracht hat; ohne das rechnete die Ansage mit einer
-         neuen Vorgabe auf einer alten Tafel (Befund E3 der Runde 0.24.6, an
-         einer neuen Stelle). */
+         Kriterienkarten und die Kategorie 21 -- alles, was nur deutsch da
+         ist) und alle fuenfzehn Vokabelwoerter. */
       check('Und nach dem Wechsel nennt sie die neue Vorgabesprache und beide Zahlen',
         anHint().includes('Türkçe') && /4/.test(anHint()) && /15/.test(anHint()),
         JSON.stringify(anHint()));
@@ -1612,12 +1301,9 @@ async function run() {
         avBox ? (avBox.textContent || '').trim().slice(0, 80) : 'keine Karte „Sprachen"');
       wAv.close();
     }
-    /* ---- KEIN ZWEITER ABRUF — 0.24.6 (F4) -----------------------------
-       DIE TAFELN KOMMEN AUS DER ANTWORT DES WECHSELS und nicht aus einem
-       zweiten `GET /api/settings` daneben. Das ist dieselbe Bauform wie
-       `takeVocabulary()` beim Sprachwechsel des Lesers -- und es ist der
-       Unterschied zwischen „ein Feld mehr in einer Antwort, die es laengst
-       gibt" und einem Weg, den jemand pflegen muss. */
+    /* ---- KEIN ZWEITER ABRUF — 0.24.6 (F4) ----------------------------- DIE
+       TAFELN KOMMEN AUS DER ANTWORT DES WECHSELS und nicht aus einem zweiten
+       `GET /api/settings` daneben. */
     {
       const nzDom = buildDom(JSDOM, {
         settings: { filters: null, language: 'de', languages: axLanguages('de') },
@@ -1637,22 +1323,9 @@ async function run() {
       wNz.close();
     }
 
-    /* ---- DAS GEWICHT BENENNT NICHTS UM — 0.24.6 ----------------------
-       EIN BEFUND, DEN DER AUFTRAG NICHT KANNTE, gefunden beim Gegenlesen des
-       eigenen Diffs.
-
-       DER SCHREIBWEG VERLANGT EINEN NAMEN (`server.nameMissing`), ein
-       Gewichtswechsel schickt also einen mit. Bis 0.24.5 schickte er
-       `entry.name` OHNE Sprachangabe -- und ohne Sprachangabe meint der Server
-       die GRUNDZEILE (`namedLanguage()`). **Wer auf der Pille „English" ein
-       Gewicht verstellte, benannte damit die Grundzeile in den englischen
-       Namen um**: der deutsche Name war weg, im Export, in der Sortierung und
-       fuer jeden anderen Leser. Niemand hat einen Namen angefasst, und
-       trotzdem stand danach ein anderer da.
-
-       ZWEI ZUSAGEN, UND DIE ZWEITE TRAEGT DIE SACHE: dass der Rumpf die
-       Sprache nennt, und dass der BESTAND danach unveraendert ist. Die erste
-       allein bliebe auch mit einer falschen Sprache gruen. */
+    /* ---- DAS GEWICHT BENENNT NICHTS UM — 0.24.6 ---------------------- EIN
+       BEFUND, DEN DER AUFTRAG NICHT KANNTE, gefunden beim Gegenlesen des
+       eigenen Diffs. */
     {
       const gwLanguages = axLanguages('de');
       const gwNames = { en: { 7: 'First', 9: 'Last' }, tr: { 7: 'Birinci' } };
@@ -1718,27 +1391,7 @@ async function run() {
     /* ================= Jede Kachel zaehlt ihre eigene Arbeit — 0.25.1 =====
        DER BEFUND DES BETREIBERS, 10. September 2026, am eingespielten 0.25.0:
        „die zahl in der sprachen pille ist das eine zahl pro kachel oder fuer
-       alle? Im momment ist es gemischt. besser waere pro kachel dann weis man
-       wieviele man in dem kachel noch bearbeiten muss."
-
-       ER WAR ES. Die Tafel `crits` traegt BEIDE Kriterienkarten; die Liste
-       darunter filterte nach der Phase, die Zahl darueber nicht. Ueber
-       „Bewertung" und ueber „Potenzial" stand deshalb dieselbe Summe --
-       zweimal hingeschrieben. Ueber „Kategorien" stand die richtige Zahl nur
-       deshalb, weil Kategorien EINE Tabelle und EINE Kachel sind.
-
-       DIE PRUEFLAGE TRENNT DIE BEIDEN KACHELN SCHARF: fuer Tuerkisch ist nur
-       am Potenzialkriterium etwas eingetragen, fuer Englisch nur an den beiden
-       Bewertungskriterien. Damit traegt jede Kachel in JEDER der beiden
-       Sprachen etwas ANDERES:
-
-         Kachel        Deutsch   English   Türkçe
-         Bewertung        ●         ●         2
-         Potenzial        ●         1         ●
-
-       EINE PRUEFLAGE, IN DER BEIDE DASSELBE ZEIGTEN, BEWIESE NICHTS -- und
-       genau das war der Zustand: bis 0.25.0 stand an beiden „English:1
-       Türkçe:2", die Summe. */
+       alle? */
     group('Jede Kachel zaehlt ihre eigene Arbeit — 0.25.1');
     {
       const kzDom = buildDom(JSDOM, {
@@ -1762,15 +1415,11 @@ async function run() {
       check('Und die Pille ueber „Potenzial" nennt ihre eigenen — eine andere Zahl',
         axMarks(wKz, 'mpcrits-lang') === 'Deutsch:● English:1 Türkçe:●',
         axMarks(wKz, 'mpcrits-lang'));
-      /* UND DIE BEIDEN REIHEN SAGEN NICHT DASSELBE. Das ist der Befund in
-         einer Zeile: bis 0.25.0 waren sie Zeichen fuer Zeichen gleich, weil
-         beide dieselbe Tafel ganz zaehlten. */
+      /* UND DIE BEIDEN REIHEN SAGEN NICHT DASSELBE. */
       check('Und die beiden Pillenreihen sagen NICHT dasselbe',
         axMarks(wKz, 'mcrits-lang') !== axMarks(wKz, 'mpcrits-lang'),
         `beide: ${axMarks(wKz, 'mcrits-lang')}`);
-      /* UND DIE KACHEL „KATEGORIEN" ZAEHLT WEITER IHRE EIGENE TAFEL. Sie hat
-         nie etwas anderes getan -- aber ohne diese Zeile bliebe unbelegt, dass
-         die neue Auswahl sie nicht beschneidet. */
+      /* UND DIE KACHEL „KATEGORIEN" ZAEHLT WEITER IHRE EIGENE TAFEL. */
       check('Und die Kachel „Kategorien" zaehlt weiter ihre eigene Tafel',
         axMarks(wKz, 'ncatlang') === 'Deutsch:● English:1 Türkçe:1',
         axMarks(wKz, 'ncatlang'));
@@ -1778,8 +1427,7 @@ async function run() {
       /* ---- UND DER RAHMEN FOLGT DERSELBEN ZAHL -------------------------
          Auf Tuerkisch ist die Bewertungskachel lueckig und die
          Potenzialkachel vollstaendig -- genau EINE von beiden traegt den
-         Rahmen. Bis 0.25.0 trugen ihn beide, weil beide dieselbe Zahl
-         lasen. */
+         Rahmen. */
       await axPress(wKz, 'mcrits-lang', 'Türkçe');
       check('Rahmenprobe: auf Türkçe traegt „Bewertung" den Rahmen',
         axFramed(wKz, 'mcrits-lang'), 'kein Rahmen an der lueckigen Kachel');
@@ -1795,21 +1443,7 @@ async function run() {
       /* ---- UND DAS NEUZEICHNEN HAELT DIE TRENNUNG — 0.25.1 -------------
          DIE PILLENREIHEN ENTSTEHEN AN ZWEI STELLEN: beim Aufbau der Karte
          (`setUpCriteriaOut`) und beim Neuzeichnen nach einem Griff
-         (`drawAdmin`, ueber `adminNew`). Bis 0.25.0 standen dort ZWEI
-         Schleifen, und nur die eine kannte die Phase -- genau die Bauform,
-         aus der der Befund entstanden ist.
-
-         DIESE ZEILEN SIND NACHGEWACHSEN, und zwar durch einen gefahrenen
-         Rueckbau: 783 nimmt der zweiten Stelle die Auswahl weg und lief im
-         ersten Anlauf STUMM. Die Gruppe darueber prueft ausschliesslich den
-         AUFBAU -- ein Rueckbau am Neuzeichnen hatte nichts, was er rot machen
-         konnte. Ein STUMM ist ein Fund und kein Versehen.
-
-         GERAEUMT WIRD DER EINZIGE TUERKISCHE EINTRAG DES POTENZIALKASTENS.
-         Danach muss SEINE Zahl von ● auf 1 gehen -- und die des
-         Bewertungskastens auf 2 stehen bleiben. Mit der Auswahl beider Stellen
-         stimmt beides; ohne sie zaehlen beide wieder die ganze Tafel und
-         stuenden nach dem Raeumen bei 3. */
+         (`drawAdmin`, ueber `adminNew`). */
       await axPress(wKz, 'mpcrits-lang', 'Türkçe');
       const kzVorP = axMarks(wKz, 'mpcrits-lang');
       const kzVorB = axMarks(wKz, 'mcrits-lang');
@@ -1839,11 +1473,7 @@ async function run() {
       /* ---- DER VERMERK HAT DIE VOLLE BREITE — 0.25.1 -------------------
          DER ZWEITE BEFUND DESSELBEN TAGES: „warum ist der untere text mit dem
          hinweis im ersten kachel volltaendig zu sehen und in den beiden
-         andren nicht?"
-         WEIL ER IN DER NAMENSSPALTE SASS. Gepruefft wird deshalb, WO er
-         haengt, und nicht, wie breit er am Bildschirm ist: eine Breite in
-         Pixeln hat der Nachbau nicht, die Stelle im Baum hat er. Sie ist es,
-         die ueber die Breite entscheidet. */
+         andren nicht?" WEIL ER IN DER NAMENSSPALTE SASS. */
       await axPress(wKz, 'ncatlang', 'Türkçe');
       const kzBack = [...wKz.document.querySelectorAll('#mcats .mrow')]
         .find(z => Number(z.dataset.mid) === 21);
@@ -1851,9 +1481,7 @@ async function run() {
       check('Der Vermerk haengt an der ZEILE und nicht mehr im Namenskasten',
         !!kzMark && kzMark.parentElement === kzBack,
         kzMark ? `haengt an .${kzMark.parentElement.className}` : 'kein Vermerk an Zeile 21');
-      /* UND ER IST IHR LETZTES KIND. Stuende er vor dem Gewichtsfeld, schoebe
-         der Umbruch alles dahinter auf eine dritte Zeile -- die Zusage gilt
-         der Stelle und nicht nur der Elternschaft. */
+      /* UND ER IST IHR LETZTES KIND. */
       check('Und er ist ihr LETZTES Kind',
         !!kzBack && kzBack.lastElementChild === kzMark,
         kzBack ? `letztes Kind: .${(kzBack.lastElementChild || {}).className}` : 'keine Zeile 21');
@@ -1872,15 +1500,7 @@ async function run() {
         kzFull ? kzFull.className : 'keine Zeile 22');
 
       /* ---- UND DER SATZ NENNT BEIDE SPRACHEN — 0.25.1 ------------------
-         DER DRITTE BEFUND: „ist irgendwie ein nicht klarer satz. warum nicht
-         ‚Fallback — Kein Eintrag in xxxx Vorhanden'".
-         BEIDE, UND NICHT NUR EINE. Die fehlende sagt, WAS zu tun ist; die
-         gezeigte sagt, was ein Leser dieser Sprache stattdessen vor sich hat
-         -- und die ist seit 0.24.6 der Grund, warum der Vermerk ueberhaupt
-         dasteht (eine genannte Sprache, die nicht stimmt, ist schlimmer als
-         keine).
-         DIE DRITTE DARF NICHT VORKOMMEN: ohne diese Haelfte bliebe ein Satz
-         gruen, der einfach alle Sprachnamen aufzaehlt. */
+         DER DRITTE BEFUND: „ist irgendwie ein nicht klarer satz. */
       const kzText = kzMark ? (kzMark.textContent || '') : '';
       check('Der Vermerk nennt die fehlende UND die gezeigte Sprache',
         kzText.includes('Türkçe') && kzText.includes('Deutsch'), JSON.stringify(kzText));
@@ -1893,30 +1513,11 @@ async function run() {
     /* ================= Ein Leser, der anders liest — 0.25.2 ==============
        DER BEFUND DES BETREIBERS, 10. September 2026, an einer TUERKISCHEN
        Oberflaeche: „wenn kriterion selber auf türkisch steht, dann wird
-       unwahrheit angezeigt. obwohl deutsch vorhanden ist, und auch der punkt
-       in der pille das so anzeigt, wird unten behauptet das keine eintrag
-       vorhanden wäre."
-
-       DIE URSACHE: `namesFrom()` setzte den Namen aus der Tafel ein und liess
-       den `nameFallback`-STEMPEL DES SERVERS im Spread stehen. Der Server
-       stempelt fuer die Sprache des LESERS; der Satz darunter wird mit der
-       Sprache der PILLE beschriftet. Auf der Pille „Deutsch" stand deshalb
-       „(kein Eintrag in Deutsch — gezeigt wird Deutsch)" — dieselbe Sprache in
-       beiden Haelften, und die Pille darueber trug den Punkt.
-
-       UND WARUM ES NIEMAND GEMERKT HAT: in JEDER Prueflage dieses Prüfstands
-       las der Leser dieselbe Sprache, in der die Zeilen angelegt sind — und
-       dann stempelt der Server gar nicht. Ohne Stempel gibt es nichts, was
-       mitreisen koennte. **Es fehlte kein Wächter, es fehlte eine LAGE.**
-
-       DIESE GRUPPE STELLT SIE HER: der Leser liest TUERKISCH, die Zeilen sind
-       DEUTSCH angelegt, und eine davon traegt zusaetzlich Englisch. Damit
-       stempelt der Server, und die Karte muss den Stempel wegwerfen. */
+       unwahrheit angezeigt. */
     group('Ein Leser, der anders liest — 0.25.2');
     {
       /* 31 nur deutsch, 32 deutsch mit englischer Uebersetzung, 33 in allen
-         dreien. Nur 31 und 32 werden vom Server gestempelt — 33 ist der
-         Maßstab: eine Tafel, in der alles gleich ist, misst nichts. */
+         dreien. */
       const alCats = [{ id: 31, name: 'Nur_de', usage_count: 0, language: 'de' },
                       { id: 32, name: 'Mit_en', usage_count: 1, language: 'de' },
                       { id: 33, name: 'Alle_de', usage_count: 0, language: 'de' }];
@@ -1943,10 +1544,7 @@ async function run() {
          der Server gar nicht — und die ganze Gruppe belegte nichts. */
       check('Aufbau: die Karte öffnet in der Sprache des Lesers — Türkçe',
         alRow('ncatlang') === 'Türkçe', `es steht an: ${alAll()}`);
-      /* UND DER SERVER HAT WIRKLICH GESTEMPELT. Der Nachbau antwortet wie der
-         echte (`withNames`): fuer einen tuerkischen Leser faellt 31 und 32 auf
-         Deutsch zurueck, 33 nicht. Ohne diese Zeile bliebe die Gruppe darunter
-         auch dann gruen, wenn gar nichts zu verwerfen waere. */
+      /* UND DER SERVER HAT WIRKLICH GESTEMPELT. */
       check('Und der Server stempelt die zurückgefallenen Zeilen — sonst misst die Gruppe nichts',
         axMarkOk(axCell(wAl, 'mcats', 31).mark, 'Deutsch', 'Türkçe') &&
         axMarkOk(axCell(wAl, 'mcats', 32).mark, 'Deutsch', 'Türkçe') &&
@@ -1957,8 +1555,7 @@ async function run() {
 
       /* ---- AUF DER PILLE „DEUTSCH" IST NICHTS ZU VERMERKEN --------------
          Alle drei Zeilen sind deutsch angelegt; die Tafel „de" sagt bei jeder
-         „eingetragen". Vor der Reparatur stand an 31 und 32 trotzdem ein
-         Vermerk — der Stempel aus der Lesersprache. */
+         „eingetragen". */
       await axPress(wAl, 'ncatlang', 'Deutsch');
       check('Auf der Pille „Deutsch" steht an keiner Zeile ein Vermerk',
         ['31', '32', '33'].every(id => axCell(wAl, 'mcats', Number(id)).mark === ''),
@@ -1974,11 +1571,9 @@ async function run() {
         [31, 32, 33].every(id => !axCell(wAl, 'mcats', id).faded),
         [31, 32, 33].map(id => `${id}=${axCell(wAl, 'mcats', id).faded}`).join(' '));
 
-      /* ---- UND DAS ✕ IST WIEDER DA, WO ES HINGEHOERT -------------------
-         Es haengt an derselben Abfrage (`nameFallback === undefined`), und wo
-         der Stempel mitreiste, fehlte es. Auf der Pille „English" traegt 32
-         einen Eintrag und ist deutsch angelegt — genau die Lage, in der
-         geraeumt werden darf. */
+      /* ---- UND DAS ✕ IST WIEDER DA, WO ES HINGEHOERT ------------------- Es
+         haengt an derselben Abfrage (`nameFallback === undefined`), und wo
+         der Stempel mitreiste, fehlte es. */
       await axPress(wAl, 'ncatlang', 'English');
       check('Zeichenprobe: auf „English" steht das ✕ an der übersetzten Zeile',
         axCell(wAl, 'mcats', 32).erase && axCell(wAl, 'mcats', 33).erase,
@@ -1986,24 +1581,15 @@ async function run() {
       check('Und an der Zeile ohne englischen Eintrag steht es nicht',
         !axCell(wAl, 'mcats', 31).erase, 'ein ✕ an einer Zeile ohne Eintrag');
       /* UND DER VERMERK IST NICHT VERSCHWUNDEN, sondern richtig: 31 hat kein
-         Englisch und faellt auf Deutsch zurueck. Ohne diese Zeile bliebe die
-         Gruppe auch dann gruen, wenn die Reparatur ALLE Vermerke wegnaehme. */
+         Englisch und faellt auf Deutsch zurueck. */
       check('Und der Vermerk steht weiter da, wo wirklich nichts eingetragen ist',
         axMarkOk(axCell(wAl, 'mcats', 31).mark, 'Deutsch', 'English'),
         JSON.stringify(axCell(wAl, 'mcats', 31).mark));
 
       /* ---- DIE VIER UMSCHALTER LAUFEN SYNCHRON — 0.25.2 ----------------
          DER BETREIBER: „bei den 3 kacheln laufen die sprachumschalter der
-         pilen syncron mit aber der von vokabular nicht. bitte alle
-         syncronisieren."
-         BIS 0.25.1 GAB ES ZWEI ANGABEN (`NAMES_SHOWN` und `VOCABULARY_SHOWN`)
-         ueber dieselbe Frage. Geprueft wird in BEIDE Richtungen: eine Angabe,
-         die nur einer Seite folgt, waere wieder zwei. */
-      /* GESCHALTET WIRD AUF EINE SPRACHE, DIE NICHT DIE DES LESERS IST.
-         Der erste Entwurf schaltete auf Türkçe -- und weil der Leser Türkisch
-         liest, faellt jede kaputte Reihe genau dorthin zurueck. Die Zusage war
-         damit von „laeuft mit" nicht zu unterscheiden; der gefahrene Rueckbau
-         790 hat es gezeigt (er machte nur die Gegenrichtung rot). */
+         pilen syncron mit aber der von vokabular nicht. */
+      /* GESCHALTET WIRD AUF EINE SPRACHE, DIE NICHT DIE DES LESERS IST. */
       await axPress(wAl, 'ncatlang', 'Deutsch');
       check('Gleichlaufprobe: ein Klick an der Kategorienkachel zieht alle vier Reihen mit',
         ['ncatlang', 'mcrits-lang', 'mpcrits-lang', 'vlang']
@@ -2015,9 +1601,7 @@ async function run() {
           .every(id => alRow(id) === 'English'), alAll());
       wAl.close();
 
-      /* UND ES GIBT WIRKLICH NUR EINE ANGABE. Zwei, die zufaellig gleich
-         laufen, sind kein Gleichlauf — sie sind zwei, die noch nicht
-         auseinandergelaufen sind (Stolperstein 47). */
+      /* UND ES GIBT WIRKLICH NUR EINE ANGABE. */
       const alSource = fs.readFileSync(path.join(__dirname, 'public', 'app.js'), 'utf8');
       check('Und es gibt nur EINE Angabe dafür — VOCABULARY_SHOWN ist weg',
         !/VOCABULARY_SHOWN\s*=/.test(alSource) && !/vocabularyLanguage\s*\(/.test(alSource),
@@ -2025,38 +1609,7 @@ async function run() {
     }
     /* ================= „Backup" heisst auf Tuerkisch yedekleme — 0.25.1 ===
        DER BETREIBER AM 10. September 2026: „türkcede backup icin yedek
-       kelmiesi kullanmisin. galiba ona daha cok yedekleme denir" -- und nach
-       zwei Quellen und einer Rueckfrage: „immer nur das wort yedekleme".
-
-       IM TUERKISCHEN IST `yedekleme` DER VORGANG und `yedek` die entstandene
-       Kopie; die Karte heisst nach dem Vorgang, und die Entscheidung des
-       Betreibers ist, dass auch die gezaehlte Sicherung so heisst.
-
-       GEPRUEFT WIRD DIE DATEI UND NICHT DER BILDSCHIRM: es ist eine Frage des
-       Wortlauts, und der steht in der Sprachdatei. Ein Waechter ueber alle
-       Saetze faengt auch den, der in einem Jahr dazukommt -- eine Probe an
-       einer einzelnen Karte faenge ihn nicht.
-       `yedekleme` UND `yedeklemeden` SIND NICHT BETROFFEN: dahinter geht das
-       Wort weiter, und der Stamm allein steht nicht da.
-
-       OHNE `\b`, UND ZWAR SEIT 0.32.0 (Punkt 31 des Sammelblatts, Leitplanke
-       L4). Der Waechter von 0.25.1 las `/\byedek(ler|leri|le|tir)?\b/` und
-       war an ZWEI Stellen blind:
-         DIE KONSONANTENERWEICHUNG. Tuerkisch erweicht den Auslaut vor einer
-         Vokalendung: aus `yedek` wird `yedeğe`, `yedeği`, `yedeğin`. Der
-         Waechter suchte ein `k` und fand das `ğ` nicht -- ein Wert stand so
-         dreissig Runden lang da (`card.neverSameBackup`, in 0.31.3
-         berichtigt).
-         UND DIE WORTGRENZE SELBST. Fuer JavaScript sind `ş`, `ğ`, `ı`, `ç`,
-         `ö`, `ü` KEINE Wortzeichen: hinter `yedeği` folgt ein `i`, das ist
-         eines -- aber hinter `yedeğ` steht ein `ğ`, und dort steht eine
-         Wortgrenze, wo keine ist. Ein Waechter ueber tuerkischen Text kommt
-         deshalb ohne `\b` aus; das ist die allgemeine Lehre und nicht die
-         Ausnahme dieser Stelle.
-       WAS DER NEUE STAMM LIEST: `yedek` und `yedeğ` mit allem, was an Endung
-       folgt -- und `yedekleme…` bleibt ausdruecklich ausgenommen. Vorn steht
-       ein Ausschluss statt einer Grenze (kein Buchstabe davor), hinten gar
-       nichts: was nach dem Stamm kommt, ist gerade das Gesuchte. */
+       kelmiesi kullanmisin. */
     group('„Backup" heisst auf Tuerkisch yedekleme — 0.25.1');
     {
       const ydFlat = [];
@@ -2079,10 +1632,7 @@ async function run() {
       check('Kein alleinstehendes „yedek" mehr — es heisst ueberall yedekleme',
         ydBad.length === 0,
         ydBad.map(([k, v]) => `${k}: ${v}`).join(' · ') || 'keins');
-      /* UND DER WAECHTER FINDET WIRKLICH BEIDE AUSLAUTE. Ohne diese Zeile
-         bliebe die darueber auch dann gruen, wenn das Muster gar nichts mehr
-         faende -- und genau so ist die Erweichung dreissig Runden lang
-         durchgekommen (Stolperstein 81). */
+      /* UND DER WAECHTER FINDET WIRKLICH BEIDE AUSLAUTE. */
       check('Und der Waechter sieht die Konsonantenerweichung — `yedeğe` faellt auf',
         YEDEK_STEM.test('asla aynı yedeğe koyma') && YEDEK_STEM.test('Son yedek') &&
         YEDEK_STEM.test('yedeği al') && YEDEK_STEM.test('yedekler') &&
@@ -2090,21 +1640,13 @@ async function run() {
         !YEDEK_STEM.test('yedeklemeler'),
         'der Stamm liest zu viel oder zu wenig');
       /* UND DIE ALLGEMEINE ZEILE DAZU -- 0.32.0, Leitplanke L4: KEIN Waechter
-         ueber tuerkischen Text arbeitet mit `\b`. Gelesen wird der Quelltext
-         dieser Datei und der der Gegenproben; gesucht wird die Wortgrenze in
-         der Nachbarschaft eines tuerkischen Wortstamms.
-         NAMENTLICH UND NICHT ALS REGEL „nirgends ein \b": die Datei prueft
-         auch deutschen und englischen Text, und dort ist die Wortgrenze
-         richtig. Was hier zaehlt, sind die Muster ueber tuerkische Woerter. */
+         ueber tuerkischen Text arbeitet mit `\b`. */
       const TR_GUARD_WORDS = ['yedek', 'yedeğ', 'görev', 'öğe', 'değerlendirme',
         'şey', 'günlük', 'yorum'];
       /* GELESEN WERDEN DIE MUSTER SELBST und nicht die Datei als Text: die
          Zerlegung aus tools/segments.js liefert jedes `/…/`-Literal einzeln,
          und damit faellt aus, was in einem KOMMENTAR oder in einer
-         Zeichenfolge steht. Ohne sie meldete diese Zeile den Waechter von
-         0.25.1, der zwei Absaetze weiter oben als abgeloestes Beispiel
-         zitiert wird -- ein Fehlalarm, und ein Fehlalarm macht eine Probe
-         wertlos. */
+         Zeichenfolge steht. */
       const trGuardBad = [];
       for (const file of [...benchFiles(), 'counterproof.js'])
         for (const part of segment(fs.readFileSync(path.join(__dirname, file), 'utf8'), file)) {
@@ -2112,18 +1654,12 @@ async function run() {
           const low = part.value.toLowerCase();
           if (TR_GUARD_WORDS.some(w => low.includes(w))) trGuardBad.push(`${file}: ${part.value}`);
         }
-      /* EINE AUSNAHME, UND SIE IST DER BEWEIS SELBST. `/\bŞey\b/` steht in der
-         Zeile, die ZEIGT, dass die Wortgrenze versagt -- sie prueft
-         ausdruecklich `!/\bŞey\b/.test('Şey, tekil')`. Ein Gegenbeispiel ist
-         kein Waechter; naehme man es heraus, verschwaende der Beleg. */
+      /* EINE AUSNAHME, UND SIE IST DER BEWEIS SELBST. */
       const TR_GUARD_NAMED = ['/\\bŞey\\b/'];
       const trGuardLeft = trGuardBad.filter(x => !TR_GUARD_NAMED.some(a => x.endsWith(a)));
       check('Kein Waechter ueber tuerkischen Text arbeitet mit einer Wortgrenze — 0.32.0 (L4)',
         trGuardLeft.length === 0, trGuardLeft.slice(0, 4).join(' · ') || 'keiner');
-      /* UND DER LESER FINDET WIRKLICH ETWAS. Ohne diese Zeile waere die Zeile
-         darueber auch dann gruen, wenn die Zerlegung kein einziges Muster
-         lieferte (Stolperstein 81) -- und die eine Ausnahme muss auch wirklich
-         dastehen, sonst ist sie eine Karteileiche. */
+      /* UND DER LESER FINDET WIRKLICH ETWAS. */
       check('Und der Leser findet das eine benannte Gegenbeispiel',
         trGuardBad.length === TR_GUARD_NAMED.length &&
         TR_GUARD_NAMED.every(a => trGuardBad.some(x => x.endsWith(a))),
@@ -2131,29 +1667,7 @@ async function run() {
     }
 
     /* ================= Zwei Felder in einer Zeile stehen auf einer Linie ===
-       0.25.3. DER BEFUND DES BETREIBERS, 10. September 2026: „es darf keine
-       verschiebung innerhalb der zeile durch texte passieren. wenn der eine
-       mehr platz braucht, nimmt sich sein nachbar auch diesen platz und sie
-       haben beide die selbe höhe. schau dir bei Görev, çoğul [an]. Das darf
-       natürlich in keiner sprache passieren."
-
-       DAS RASTER STRECKTE DIE KAESTEN laengst auf gleiche Hoehe; der INHALT
-       floss von oben. Wo eine Beschriftung zwei Zeilen brauchte und die
-       daneben eine, stand das eine Eingabefeld tiefer als das andere.
-
-       GEMESSEN AM ECHTEN BROWSER, 10. September 2026, OHNE die Reparatur:
-       schief in ALLEN DREI Sprachen, sobald das Raster zwei Spalten hat --
-       Tuerkisch und Englisch ab 1280 Pixeln, Deutsch ab 1360. *Der Betreiber
-       hat es im Tuerkischen gesehen, weil dessen Beschriftungen frueher
-       umbrechen; ein deutscher Bildschirm derselben Breite war zufaellig
-       gerade.* MIT der Reparatur: 21 von 21 Lagen auf einer Linie.
-
-       GEPRUEFT WIRD HIER DIE REGEL UND NICHT DIE LAGE. Der Nachbau hat keine
-       Layoutrechnung -- `getBoundingClientRect()` gibt dort Nullen zurueck,
-       und eine Messung in Pixeln waere eine Messung an nichts. Was sich
-       pruefen laesst, ist die Zeile im Stilblatt, die die Lage erzeugt;
-       dieselbe Wahl wie bei der Daempfung am Rueckfall (die Klasse statt der
-       Farbe). Die Messung selbst steht als Augenschein im Protokoll. */
+       0.25.3. */
     group('Zwei Felder in einer Zeile stehen auf einer Linie — 0.25.3');
     {
       const vzRaw = fs.readFileSync(path.join(__dirname, 'public', 'style.css'), 'utf8');
@@ -2178,39 +1692,24 @@ async function run() {
       check('Das Feld einer Vokabelzeile ist eine Spalte',
         !!vzField && /display:\s*flex/.test(vzField) && /flex-direction:\s*column/.test(vzField),
         String(vzField));
-      /* UND DAS EINGABEFELD HAENGT AN DER UNTERKANTE. Das ist die Zeile, die
-         beide Felder einer Zeile auf dieselbe Linie bringt: das Raster macht
-         die Kaesten gleich hoch, `margin-top: auto` schiebt den Eintrag ans
-         untere Ende. */
+      /* UND DAS EINGABEFELD HAENGT AN DER UNTERKANTE. */
       check('Und das Eingabefeld hängt an der Unterkante',
         !!vzInput && /margin-top:\s*auto/.test(vzInput), String(vzInput));
-      /* UND KEINE FESTE HOEHE AN DER BESCHRIFTUNG. Sie muesste die laengste
-         Beschriftung ALLER Sprachen kennen und waere mit der naechsten Sprache
-         wieder falsch -- genau die Bauform, die dieser Befund verbietet. */
+      /* UND KEINE FESTE HOEHE AN DER BESCHRIFTUNG. */
       const vzLabel = vzRule('.vocabulary-grid .field label') || '';
       check('Und die Beschriftung bekommt keine feste Höhe',
         !/(min-)?height:/.test(vzLabel), vzLabel || '(keine eigene Regel)');
-      /* UND DIE REGEL GILT NUR DORT. Dieselbe Klasse traegt jedes Anmeldefeld
-         und jeden Dialog; dort stehen die Felder UNTEREINANDER, und eine
-         Unterkante zum Andruecken gibt es gar nicht. */
+      /* UND DIE REGEL GILT NUR DORT. */
       check('Und die allgemeine Feldregel bleibt unangetastet',
         !!vzAllgemein && !/display:\s*flex/.test(vzAllgemein), String(vzAllgemein));
     }
 
-    /* ================= Ein Satz, den jede Sprache selbst schneidet — 0.25.4 =
-       DER STAERKSTE FUND DER SPRACHDURCHSICHT, und er kam nicht aus den
+    /* ================= Ein Satz, den jede Sprache selbst schneidet — 0.25.4
+       = DER STAERKSTE FUND DER SPRACHDURCHSICHT, und er kam nicht aus den
        Berichten, sondern aus der Gegenpruefung: `login.yourLinkAffected` +
        <strong>`login.not`</strong> + `login.stillValid` ergab im Deutschen
        „Dein Link ist davon NICHT betroffen -- er gilt weiter." und im
-       Englischen dasselbe. IM TUERKISCHEN NICHT: dort verneint ein SUFFIX IM
-       VERB, und aus den drei Stuecken wurde „Bağlantın bundan değil
-       etkilendi" -- keine Verneinung, sondern Kauderwelsch. **Der Satz sagte
-       das Gegenteil dessen, was dastehen sollte**, und stand so seit 0.24.3
-       im Programm.
-
-       JETZT TRAEGT JEDE SPRACHE EINEN GANZEN SATZ mit einem Platzhalter, und
-       sie entscheidet selbst, wo das hervorgehobene Stueck sitzt und WAS es
-       ist -- im Deutschen ein Woertchen, im Tuerkischen ein Verb. */
+       Englischen dasselbe. */
     group('Ein Satz, den jede Sprache selbst schneidet — 0.25.4');
     {
       const vsFiles = {};
@@ -2237,32 +1736,20 @@ async function run() {
       check('Und das hervorgehobene Stück steht in jeder Sprache da',
         vsEmpty.length === 0, vsEmpty.join(' ') || 'alle drei');
       /* UND IM TUERKISCHEN IST ES DAS VERB. Das ist der ganze Befund in einer
-         Zeile: „değil" allein ist keine Verneinung, „etkilenmez" ist eine.
-         Ohne diese Zusage koennte jemand den Satz wieder um ein freistehendes
-         Woertchen herum bauen, und niemand saehe es. */
+         Zeile: „değil" allein ist keine Verneinung, „etkilenmez" ist eine. */
       const vsTr = vsFiles.tr;
       check('Und im Türkischen ist es das VERB — nicht ein Wörtchen davor',
         vsTr['login.linkUnaffectedWord'] === 'etkilenmez' &&
         !/\bdeğil\b/.test(vsTr['login.linkUnaffected']) &&
         !/\bdeğil\b/.test(vsTr['login.linkUnaffectedRetry']),
         `${JSON.stringify(vsTr['login.linkUnaffectedWord'])} · ${JSON.stringify(vsTr['login.linkUnaffected'])}`);
-      /* UND DIE ALTE ZUSAMMENSETZUNG GIBT ES IM QUELLTEXT NICHT MEHR. Die
-         Schluessel sind weg (das steht weiter oben); hier geht es um den
-         RUF, der sie zusammensetzte. */
+      /* UND DIE ALTE ZUSAMMENSETZUNG GIBT ES IM QUELLTEXT NICHT MEHR. */
       const vsSource = fs.readFileSync(path.join(__dirname, 'public', 'app.js'), 'utf8');
       /* AN DER WORTGRENZE GESUCHT UND NICHT IRGENDWO: `weightMark(` traegt
          die Zeichenfolge „tMark(" mitten im Namen, und der erste Entwurf
-         zaehlte die beiden Gewichtsstellen mit -- vier statt zwei. Eine Zahl,
-         die von einer fremden Funktion mit abhaengt, sagt nichts ueber die
-         eigene. */
+         zaehlte die beiden Gewichtsstellen mit -- vier statt zwei. */
       /* BIS 0.31.0 STAND HIER `vsRufe === 2` -- die beiden Rufe, die 0.25.4
-         angelegt hat. Das war eine Zahl, die von der GANZEN Datei abhing und
-         nicht von dieser Zusage: 0.31.1 loest den zersaegten Satzbau auf und
-         bringt achtunddreissig weitere tMark()-Stellen mit. Die Zusage waere
-         rot geworden, ohne dass ihr Gegenstand sich geruehrt haette -- genau
-         der stille Fehlschluss aus Stolperstein 81.
-         GEPRUEFT WIRD JETZT DER GEGENSTAND SELBST: die beiden Rufe DIESER
-         Runde stehen namentlich da, und die alte Zusammensetzung nicht. */
+         angelegt hat. */
       const vsOwn = ["tMark('login.linkUnaffected', 'login.linkUnaffectedWord')",
                         "tMark('login.linkUnaffectedRetry', 'login.linkUnaffectedWord')"];
       const vsMissing = vsOwn.filter(r => !vsSource.includes(r));
@@ -2281,10 +1768,7 @@ async function run() {
         vsOpen.length === 0, vsOpen.join(' · ') || 'alle drei geschlossen');
 
       /* ---- DIE ZWEI MEHRZAHLFORMEN, DIE NIE EINE WAREN ------------------
-         Die Form waehlt `PLURAL.select(values.n)` und NUR ueber `n`. Beide
-         Saetze reichten `{days}` beziehungsweise `{minutes}` -- damit kam
-         immer `select(undefined)` heraus, und das ist die MEHRZAHL.
-         „in 1 Tagen" stand sieben Runden lang da. */
+         Die Form waehlt `PLURAL.select(values.n)` und NUR ueber `n`. */
       const vsCount = ['card.inDays', 'login.linkValidMinutes'];
       const vsWithoutN = [];
       for (const [code, langFile] of Object.entries(vsFiles))
@@ -2297,34 +1781,19 @@ async function run() {
         }
       check('Die zwei Zählsätze tragen zwei Formen — und den Zählwert, der sie wählt',
         vsWithoutN.length === 0, vsWithoutN.join(' · ') || 'beide in allen drei');
-      /* UND IM DEUTSCHEN SIND ES WIRKLICH ZWEI VERSCHIEDENE. Ein Paar mit
-         zweimal demselben Wort waere im Deutschen ein Fehler -- im
-         Tuerkischen ist es richtig (TR-S4, Punkt 19), und genau deshalb steht
-         hier `de` und nicht „alle drei". */
+      /* UND IM DEUTSCHEN SIND ES WIRKLICH ZWEI VERSCHIEDENE. */
       check('Und im Deutschen unterscheiden sich die beiden Formen wirklich',
         vsCount.every(k => vsFiles.de[k].one !== vsFiles.de[k].other),
         vsCount.map(k => `${k}: ${JSON.stringify(vsFiles.de[k])}`).join(' · '));
-      /* UND IM TUERKISCHEN SIND SIE GLEICH, und das ist keine Nachlaessigkeit,
-         sondern die Entscheidung des Betreibers vom 8. September 2026: nach
-         einer Zahl bleibt das Substantiv im Singular. */
+      /* UND IM TUERKISCHEN SIND SIE GLEICH, und das ist keine
+         Nachlaessigkeit, sondern die Entscheidung des Betreibers vom 8. */
       check('Und im Türkischen sind sie gleich — nach einer Zahl bleibt der Singular',
         vsCount.every(k => vsFiles.tr[k].one === vsFiles.tr[k].other),
         vsCount.map(k => `${k}: ${JSON.stringify(vsFiles.tr[k])}`).join(' · '));
       /* UND DIE ANDERE HAELFTE DERSELBEN REPARATUR: DER ZAEHLWERT WIRD
-         GEREICHT. Zwei Formen in der Datei nuetzen nichts, wenn die Stelle
-         weiter `{days}` reicht -- `PLURAL.select(values.n)` bekaeme wieder
-         `undefined` und waehlte wieder die Mehrzahl. Die Zusage steht HIER
-         und nicht nur beim allgemeinen Platzhalterwaechter: der Befund ist
-         diese Runde, und wer ihn zurueckbaut, soll unter seinem Namen
-         auffallen und nicht unter einem fremden. */
+         GEREICHT. */
       /* SEIT 0.31.1 GEHT DER WERT DURCH tMark() -- beide Saetze tragen dort
-         eine Hervorhebung, und der Zaehlwert reist im dritten Parameter mit.
-         DIE ZUSAGE IST DIESELBE GEBLIEBEN, ihre Formulierung nicht: gesucht
-         wird jetzt der SCHLUESSEL mit `{ n:` dahinter, gleich ob er als
-         erstes Argument von tH() oder als zweites von tMark() steht. Wer die
-         alte Form festschriebe, haette eine Zusage, die am Umbau ihrer
-         Umgebung zerbricht und nicht an ihrem eigenen Gegenstand
-         (Stolperstein 201). */
+         eine Hervorhebung, und der Zaehlwert reist im dritten Parameter mit. */
       const vsPassed = (vsSource.match(
         /(?:card\.inDays|login\.linkValidMinutes)',\s*\{\s*n:/g) || []).length;
       check('Und beide Stellen reichen den Zählwert unter dem Namen n',
@@ -2349,9 +1818,7 @@ async function run() {
   check('Erste Jahresmarke sitzt am Anfang, nicht davor',
     wz.yearMarks('2023-07-01', '2025-01-01')[0].share === 0);
 
-  // Eintraege wie aus der Uebersicht. Der Zustand der Anwendung steckt in
-  // einem const und haengt deshalb nicht am window -- geprueft wird darum ueber
-  // den echten Weg: Antwort des Servers, Suche, Neuzeichnen.
+  // Eintraege wie aus der Uebersicht.
   const buildItems = (n, proEntry = 1) => Array.from({ length: n }, (_, i) => ({
     id: i + 1, title: 'Stück ' + (i + 1), rejected: false, tested: true, favorite: false,
     category: null, tags: [], mainPhoto: null, photoCount: 0, linkCount: 0,
@@ -2404,11 +1871,7 @@ async function run() {
   check('Auf dem Finger erscheint kein Hinweis', !zlBox().querySelector('.timeline-hint'));
 
   /* Folgt den Filtern: die Suche schneidet die sichtbaren Eintraege zusammen,
-     danach unterschreitet die Zeitleiste ihre Schwelle und verschwindet.
-     SEIT 0.11.0 MIT WARTEZEIT DAVOR. Die Suche fragt den Server und laeuft
-     ueber einen Debounce von 220 ms; ein Vergleich unmittelbar nach oninput()
-     saehe noch den alten Stand und waere gruen, ohne etwas zu belegen. Das
-     Leeren braucht sie nicht -- es geht ohne Anfrage durch. */
+     danach unterschreitet die Zeitleiste ihre Schwelle und verschwindet. */
   const searchField = wviel.document.getElementById('q');
   searchField.value = 'Stück 1';
   searchField.oninput();
@@ -2460,11 +1923,7 @@ async function run() {
   check('Drei Zeilen zählen die Lücken mit', (ww.limitCloud(cloudBox, 3), cloudBox.style.maxHeight === '90px'),
     cloudBox.style.maxHeight);
   check('Abgeschnittenes wird gemeldet', ww.limitCloud(cloudBox, 1) === true);
-  /* Und zwar abgeschnitten, nicht scrollbar. Die Wolke hatte nie einen
-     eigenen Bildlauf -- die Prueflage steht seit 0.8.6 daneben, damit ein
-     spaeterer Griff nach 'auto' hier ebenso auffaellt wie an der Linkliste:
-     ein eigener Bildlauf faengt auf dem Finger die Wischbewegung ab.
-     Erst das Vorhandensein der Begrenzung, dann ihre Art. */
+  /* Und zwar abgeschnitten, nicht scrollbar. */
   check('Und die Wolke wird abgeschnitten, nicht scrollbar',
     (ww.limitCloud(cloudBox, 1),
      cloudBox.style.maxHeight !== '' && cloudBox.style.overflow === 'hidden'),
@@ -2485,7 +1944,7 @@ async function run() {
   check('Das ✕ an der Marke bleibt zusätzlich bestehen',
     !!ww.document.querySelector('#chips .chip button'));
   // Klick auf einen nicht vergebenen Tag muss ihn vergeben, Klick auf einen
-  // vergebenen ihn zuruecknehmen -- zwei verschiedene Aufrufe.
+// vergebenen ihn zuruecknehmen -- zwei verschiedene Aufrufe.
   const free = cloud.find(b2 => !b2.classList.contains('on'));
   free.onclick();
   await new Promise(r => setTimeout(r, 30));
@@ -2501,9 +1960,7 @@ async function run() {
 
   /* --- Die eingeklappte Wolke: zwei Wege, einzeln geprueft ---------------
      Ein eingeklappter Block macht seine Kinder unsichtbar; offsetHeight ist
-     dort null. Stolperstein 14 in neuer Gestalt.
-     ERSTER WEG: bei Hoehe null wird gar nichts gesetzt -- sonst entstuende
-     eine winzige feste maxHeight, die nach dem Aufklappen stehenbliebe. */
+     dort null. */
   const zuBox = ww.document.createElement('div');
   zuBox.appendChild(ww.document.createElement('span'));   // offsetHeight bleibt 0
   ww.document.body.appendChild(zuBox);
@@ -2514,11 +1971,7 @@ async function run() {
     `maxHeight=${JSON.stringify(zuBox.style.maxHeight)}, meldet ${zuResult}`);
   ww.close();
 
-  /* ZWEITER WEG: das Aufklappen zeichnet die Wolke neu. Der erste Weg allein
-     laesst sie unbegrenzt stehen, der zweite allein raeumte die falsche Hoehe
-     nie weg -- einzeln zurueckgebaut muss deshalb jeder von beiden seine
-     eigene Pruefung rot machen (Stolperstein 52).
-     Nachgestellt wird der gemeldete Weg: Block "Tags" eingeklappt betreten. */
+  /* ZWEITER WEG: das Aufklappen zeichnet die Wolke neu. */
   const zuDom = buildDom(JSDOM, { tags: pool, hash: '#/item/1',
     settings: { filters: null, blocks: { closed: ['tags'] } } });
   const zw = zuDom.w;
@@ -2530,9 +1983,9 @@ async function run() {
     zw.document.getElementById('tagcloud')?.style.maxHeight === '',
     JSON.stringify(zw.document.getElementById('tagcloud')?.style.maxHeight));
 
-  // Ein Bedienelement ist erst geprueft, wenn ein Ereignis wirklich zugestellt
-  // wurde (Stolperstein 61) -- also dispatchEvent samt Durchlauf der
-  // Event Loop, nicht der von Hand gerufene Behandler.
+  // Ein Bedienelement ist erst geprueft, wenn ein Ereignis wirklich
+  // zugestellt wurde (Stolperstein 61) -- also dispatchEvent samt Durchlauf
+  // der Event Loop, nicht der von Hand gerufene Behandler.
   const beforePill = zw.document.querySelector('#tagcloud .pill');
   tagBlock.querySelector('.block-head')
     .dispatchEvent(new zw.MouseEvent('click', { bubbles: true }));
@@ -2588,12 +2041,10 @@ async function run() {
 
   const title = () => [...wf.document.querySelectorAll('.card .card-title')].map(e => e.textContent);
   /* GEKLAMMERT WIE JEDER GRIFF IN EINEN NACHBAU -- 0.30.0, Stolperstein 161.
-     Ein Rueckbau, der die Tagzeile wegnimmt, findet hier keine Marke mehr; ein
-     nackter `.onclick()` darauf RISSE DEN LAUF AB, statt die Zusagen darunter
-     rot zu machen -- und eine abgerissene Gegenprobe belegt gar nichts.
-     Gefunden am gefahrenen Rueckbau 636 dieser Runde.
-     `markClick()` KLICKT ODER TUT NICHTS; dass die Marke ueberhaupt dasteht,
-     ist eine eigene Zusage und keine stille Voraussetzung. */
+     Ein Rueckbau, der die Tagzeile wegnimmt, findet hier keine Marke mehr;
+     ein nackter `.onclick()` darauf RISSE DEN LAUF AB, statt die Zusagen
+     darunter rot zu machen -- und eine abgerissene Gegenprobe belegt gar
+     nichts. */
   const mark = (name) => [...wf.document.querySelectorAll('#filters .pill-tag')]
     .find(b => b.textContent === name) || null;
   const markClick = (name) => { const b = mark(name); if (b) b.onclick(); return !!b; };
@@ -2603,10 +2054,7 @@ async function run() {
   const modeClick = (value) => { const b = mode(value); if (b) b.onclick(); return !!b; };
 
   /* DIE TAGZEILE STEHT SEIT 0.24.0 ZUGEKLAPPT, solange kein Tagfilter greift
-     (Bauabschnitt 0.2). Diese Gruppe prueft, was IN der Zeile steht -- sie
-     klappt sie deshalb zuerst auf, mit demselben Klick, den ein Benutzer tut.
-     EINMAL GENUEGT: der Merker haelt fuer die Dauer der Sitzung, und ab dem
-     ersten gewaehlten Tag stuende die Zeile ohnehin offen. */
+     (Bauabschnitt 0.2). */
   check('Die Tagzeile laesst sich aufklappen', !!(await openTagRow(wf)),
     '(keine Tagzeile nach dem Klick)');
 
@@ -2621,10 +2069,7 @@ async function run() {
   check('Ein Tag filtert wie gehabt',
     equal(title().sort(), ['Grün und leicht', 'Grün und schwer', 'Nur grün']), JSON.stringify(title()));
 
-  /* UND SIE STEHEN AUCH NOCH DA, WENN EIN FILTER GREIFT. Bis 0.30.0 war die
-     Zeile bei greifendem Filter aufgeklappt; jetzt steht sie immer da, und
-     genau das haelt diese Zeile fest -- ohne sie liese sich der Rueckbau, der
-     sie wieder zuklappt, nur am Abriss erkennen. */
+  /* UND SIE STEHEN AUCH NOCH DA, WENN EIN FILTER GREIFT. */
   check('Und sie stehen auch bei greifendem Filter noch da',
     !!mark('Schwer'), '(die Tagzeile ist bei greifendem Filter verschwunden)');
   markClick('Schwer');
@@ -2667,9 +2112,7 @@ async function run() {
     wf.document.querySelectorAll('#filters .pill-tag.blank').length === 0);
 
   // Der Fall, in dem der Schutz für gewählte Tags erst greift: eine Auswahl
-  // ohne jeden Treffer. Dann ist die sichtbare Liste leer, und ohne die
-  // Ausnahme würden auch die gewählten Tags als aussichtslos gelten -- also
-  // gleichzeitig hervorgehoben und gedämpft, was wie ein Fehler aussieht.
+  // ohne jeden Treffer.
   modeClick('and');
   await new Promise(r => setTimeout(r, 20));
   markClick('Grün');          // abwählen
@@ -2706,12 +2149,7 @@ async function run() {
   group('Favoriten: Sortierung und Filter');
 
   /* Eine Vorsortierung der Favoriten vor dem `switch` schluege JEDE
-     eingestellte Sortierung. Sichtbar wuerde das bei "Bewertung hoch nach
-     niedrig": ein Favorit ohne Wertung stuende ganz oben, obwohl Eintraege
-     ohne Wert dort ans Ende gehoeren.
-     Der Anlass fuer diese Gruppe: der Rueckbau einer solchen Zeile bliebe an
-     allen uebrigen Pruefungen unbemerkt -- keine der Favoriten-Pruefungen
-     deckt ab, WO ein Favorit in der Liste steht. */
+     eingestellte Sortierung. */
   const favEntry = (id, title, favorite, ratingValue) => ({
     id, title: title, rejected: false, tested: id % 2 === 0, favorite: favorite,
     category: null, tags: [], mainPhoto: null, photoCount: 0, linkCount: 0,
@@ -2719,9 +2157,7 @@ async function run() {
     updated_at: '2026-08-01 10:00:00'
   });
   // "Zeta ohne Wertung" ist Favorit und hat KEINE Wertung -- genau der Fall
-  // aus dem Betrieb. Bei "Bewertung hoch nach niedrig" gehoert er ans Ende,
-  // bei Titelsortierung an die letzte Stelle. Steht er beide Male vorn, ist
-  // eine Vorsortierung am Werk.
+  // aus dem Betrieb.
   const favInventory = [
     favEntry(1, 'Alpha mit Wertung', false, 5),
     favEntry(2, 'Beta mit Wertung', true, 3),
@@ -2729,9 +2165,8 @@ async function run() {
     favEntry(4, 'Gamma mit Wertung', false, 4)
   ];
 
-  // `const state` haengt nicht am window und laesst sich von
-  // aussen nicht setzen. Jede Kombination bekommt deshalb ihr eigenes DOM mit
-  // gespeicherten Filtern -- der echte Weg, so wie die Tagfilter darueber.
+  // `const state` haengt nicht am window und laesst sich von aussen nicht
+  // setzen.
   const favTitleFrom = (d) =>
     [...d.w.document.querySelectorAll('.card .card-title')].map(e => e.textContent);
   const favBuild = async (filters) => {
@@ -2748,20 +2183,7 @@ async function run() {
   favTitleSort.w.close();
 
   /* Der eigentliche Fall aus dem Betrieb: ein Favorit ohne Wertung darf bei
-     absteigender Bewertung NICHT nach oben.
-
-     ZWISCHEN 0.21.1 UND 0.32.0 STAND HIER EIN UMWEG (Stolperstein 74):
-     „Bewertung hoch nach niedrig" gab damals „Getestet" vor, der Favorit ohne
-     Wertung (id 3) ist UNGETESTET und fiel aus der Liste -- die Zusage haette
-     ihren Gegenstand verloren. Die Lage musste ihn deshalb ueber einen Klick
-     auf „Alle" erst zurueckholen.
-     MIT 0.32.1 IST DER UMWEG WEG, weil die Vorgabe weg ist: die Sortierung
-     filtert nicht mehr, also steht der ganze Bestand von selbst da. Die
-     ZUSAGE SELBST IST UNVERAENDERT -- ein Favorit ohne Wertung darf bei
-     absteigender Bewertung nicht nach oben --, und sie wird jetzt gerade
-     heraus gestellt. DIE ZEILE ZUM KLICK BLEIBT TROTZDEM: ein Klick auf
-     „Alle" darf an der Reihenfolge nichts aendern, und das ist nach dem
-     Ausbau eine eigene Frage. */
+     absteigender Bewertung NICHT nach oben. */
   const favValue = await favBuild({ tested: 'all', favorite: false, sort: 'rating_desc' });
   const favVorClickable = favTitleFrom(favValue);
   check('Bei Bewertungssortierung steht der ganze Bestand da — 0.32.1',
@@ -2769,7 +2191,7 @@ async function run() {
       ['Alpha mit Wertung', 'Gamma mit Wertung', 'Beta mit Wertung', 'Zeta ohne Wertung']),
     JSON.stringify(favVorClickable));
   // Die erste Pille „Alle" im Dokument ist die der Statusreihe; die der
-  // Ablehnung steht dahinter im Aufklapper.
+// Ablehnung steht dahinter im Aufklapper.
   const favEverything = [...favValue.w.document.querySelectorAll('#filters .pill')]
     .find(b => b.textContent.trim() === 'Alle');
   favEverything?.dispatchEvent(new favValue.w.MouseEvent('click', { bubbles: true }));
@@ -2784,10 +2206,7 @@ async function run() {
   favValue.w.close();
 
   /* Der Filter. Er ist ein EIGENER Umschalter und kein vierter Wert von
-     `tested` -- deshalb muss er sich mit dem Teststatus kombinieren lassen.
-     Genau das ist unten die dritte Pruefung, und sie ist der Beleg fuer die
-     Bauform: als vierter Knopf in der Statusreihe waere sie nicht zu
-     erfuellen. */
+     `tested` -- deshalb muss er sich mit dem Teststatus kombinieren lassen. */
   const favOnly = await favBuild({ tested: 'all', favorite: true, sort: 'title_asc' });
   check('Der Filter zeigt nur Favoriten',
     equal(favTitleFrom(favOnly), ['Beta mit Wertung', 'Zeta ohne Wertung']),
@@ -2802,10 +2221,8 @@ async function run() {
     JSON.stringify(favTitleFrom(favAndTest)));
   favAndTest.w.close();
 
-  /* Der Knopf selbst, mit wirklich zugestelltem Ereignis. `.click()` oder
-     der Behandler von Hand gerufen
-     genuegen nicht. Geprueft wird am sichtbaren Ergebnis und
-     nicht am Zustandsobjekt, das von aussen ohnehin nicht erreichbar ist. */
+  /* Der Knopf selbst, mit wirklich zugestelltem Ereignis. `.click()` oder der
+     Behandler von Hand gerufen genuegen nicht. */
   const favClickable = await favBuild({ tested: 'all', favorite: false, sort: 'title_asc' });
   const wv = favClickable.w;
   const favButton = wv.document.getElementById('f-fav');
@@ -2832,10 +2249,8 @@ async function run() {
     JSON.stringify(favTitleFrom(favClickable)));
   wv.close();
 
-  /* Ein aelterer gespeicherter Filter kennt das Feld `favorite` nicht. Er darf
-     nicht dazu fuehren, dass der Filter als eingeschaltet gilt. Geprueft am
-     Beobachtbaren: alle vier Eintraege sichtbar UND der Knopf ungesetzt --
-     ein `undefined` wuerde sich am Knopf zeigen, nicht an der Liste. */
+  /* Ein aelterer gespeicherter Filter kennt das Feld `favorite` nicht. Er
+     darf nicht dazu fuehren, dass der Filter als eingeschaltet gilt. */
   const favOld = await favBuild({ tagIds: [], tagMode: 'and', tested: 'all', sort: 'title_asc' });
   check('Ein gespeicherter Filter ohne das neue Feld zeigt alles',
     favTitleFrom(favOld).length === 4, JSON.stringify(favTitleFrom(favOld)));
@@ -2844,9 +2259,7 @@ async function run() {
     favOld.w.document.getElementById('f-fav')?.className);
   favOld.w.close();
 
-  /* Der Stern auf der Karte. Im DOM laesst sich ohne Layoutberechnung nicht
-     pruefen, ob er sichtbar ist -- deshalb am Stylesheet, wie schon bei den
-     Loeschkreuzen. */
+  /* Der Stern auf der Karte. */
   const cssFav = fs.readFileSync(path.join(__dirname, 'public', 'style.css'), 'utf8').replace(/\s+/g, ' ');
   const ruleFav = (cssFav.match(/\.card-pin \{[^}]*\}/) || [''])[0];
   check('Der Favoritenstern traegt einen eigenen Hintergrund',
@@ -2857,18 +2270,15 @@ async function run() {
   check('Er bleibt dabei gold -- keine neue Farbe',
     /color: *var\(--gold\)/.test(ruleFav), ruleFav);
   // Das Bedienelement dagegen bleibt orange: "Gold ist Bewertung und Favorit,
-  // Orange ist Art und Bedienung". Ein goldener Filterknopf braeche die Regel.
+// Orange ist Art und Bedienung". Ein goldener Filterknopf braeche die Regel.
   check('Der Filterknopf faerbt sich nicht gold',
     !/\.pill-sep\.on \{[^}]*var\(--gold\)/.test(cssFav),
     (cssFav.match(/\.pill-sep[^{]*\{[^}]*\}/g) || []).join(' '));
 
   /* Und der Wächter: Eintraege haben Favoriten, Kommentare eine Anpinnung --
-     zwei verschiedene Dinge. Wer eines der beiden Woerter global ersetzt,
-     macht hier rot. */
+     zwei verschiedene Dinge. */
   const appSource = fs.readFileSync(path.join(__dirname, 'public', 'app.js'), 'utf8');
-  /* DIE DREI TEXTE STEHEN SEIT 0.24.0 IN DER SPRACHDATEI. Der Waechter sucht
-     sie dort -- die Frage ist dieselbe geblieben: heisst es am Eintrag
-     „Favorit" und am Kommentar „angepinnt"? */
+  /* DIE DREI TEXTE STEHEN SEIT 0.24.0 IN DER SPRACHDATEI. */
   const appTexts = JSON.parse(fs.readFileSync(
     path.join(__dirname, 'public', 'languages', 'de.json'), 'utf8'));
   const appValues = Object.values(appTexts)
@@ -2876,22 +2286,14 @@ async function run() {
   check('Der Eintrag spricht von Favoriten, nicht vom Anheften',
     appValues.includes('Favorit') && !appValues.includes('Angeheftet'),
     'die Uebersichtskarte traegt noch den alten Ueberfahrtext');
-  /* GESUCHT WIRD IN BEIDEM -- in der Sprachdatei und im Quelltext. Waehrend
-     Bauabschnitt 3 laeuft, ist die eine Ansicht umgezogen und die naechste
-     noch nicht; die FRAGE aendert sich dadurch nicht, und der Waechter soll
-     sie in beiden Staenden stellen koennen. Die Restprobe haelt am Ende
-     fest, dass nichts mehr im Quelltext steht. */
+  /* GESUCHT WIRD IN BEIDEM -- in der Sprachdatei und im Quelltext. */
   const appAllTexts = appValues.join('\u0000') + '\u0000' + appSource;
   check('Der Knopf benennt die naechste Handlung',
     appAllTexts.includes('Als Favorit markieren') && appAllTexts.includes('Favorit entfernen'),
     appValues.filter(w => /Favorit/.test(w)).join(' · '));
   // DREI SEIT 0.22.0: das Formular, drawNeuMarken() (die Marke nennt seither
-  // auch den Rueckweg „Nicht mehr anpinnen") und die Kommentarliste.
-  /* DREI STELLEN WURDEN EIN SCHLUESSEL -- 0.24.0. Das ist der Gewinn dieser
-     Runde und kein Verlust an Zusicherung: die drei Stellen sagten dreimal
-     denselben Satz, und jetzt sagen sie ihn EINMAL (S3). Gehalten wird
-     dasselbe wie vorher -- die Kommentare sprechen vom Anpinnen --, nur zaehlt
-     der Waechter jetzt SCHLUESSEL statt Vorkommen. */
+// auch den Rueckweg „Nicht mehr anpinnen") und die Kommentarliste.
+  /* DREI STELLEN WURDEN EIN SCHLUESSEL -- 0.24.0. */
   check('Die Kommentare sprechen vom Anpinnen, nicht vom Favoriten',
     appTexts['entry.pinHint'] === 'Anpinnen — steht dann ganz oben' &&
     appTexts['entry.unpin'] === 'Nicht mehr anpinnen' &&
@@ -2911,17 +2313,14 @@ async function run() {
   const offTexts = (d) => offRows(d).map(z => z.querySelector('.open-text')?.textContent);
   const offGroups = (d) => [...d.w.document.querySelectorAll('.open-group')];
 
-  /* Drei Zugaenge: nur dann erscheinen Verfassername und Umschalter. Die
-     Prueflage des Mocks traegt neben den drei offenen Aufgaben eine
-     erledigte, eine Notiz und einen Bericht -- der Mock filtert wie
-     der echte Server, und was er nicht liefert, darf hier auch nicht stehen. */
+  /* Drei Zugaenge: nur dann erscheinen Verfassername und Umschalter. */
   const offAll = await offBuild({ settings: { filters: null, userCount: 3 } });
 
   check('Die Ansicht ist erreichbar und traegt eine Ueberschrift',
     offAll.w.document.querySelector('.page-title')?.textContent === 'Offene Aufgaben',
     offAll.w.document.querySelector('.page-title')?.textContent);
   // Erst das Vorhandensein der Zeilen, dann die Aussage darueber, welche es
-  // sind -- auf null Zeilen waere jede Verneinung wahr (Stolperstein 81).
+// sind -- auf null Zeilen waere jede Verneinung wahr (Stolperstein 81).
   check('Sie zeigt Zeilen', offRows(offAll).length === 3, `${offRows(offAll).length} Zeilen`);
   check('Und zwar genau die nicht erledigten Aufgaben',
     equal(offTexts(offAll), ['Eine Aufgabe', 'Fremde Aufgabe', 'Herrenlose Aufgabe']),
@@ -2946,9 +2345,7 @@ async function run() {
     offGroups(offAll)[1]?.querySelector('.open-text')?.getAttribute('href') === '#/item/2',
     offGroups(offAll)[1]?.querySelector('.open-title')?.getAttribute('href'));
 
-  /* Verfasser und Datum an der Zeile. Drei Lagen nebeneinander: ein lebender
-     Name, ein Fremder und ein Grabstein -- waeren alle gleich, liesse sich
-     nicht sehen, ob die Beschriftung ihre eigene Zeile trifft. */
+  /* Verfasser und Datum an der Zeile. */
   const offWhen = (d) => offRows(d).map(z => z.querySelector('.open-when')?.textContent);
   check('Jede Zeile nennt ihren Verfasser',
     offWhen(offAll)[0]?.startsWith('chefin · ') && offWhen(offAll)[1]?.startsWith('bert · '),
@@ -2994,9 +2391,7 @@ async function run() {
   /* ================= Der Haken in der Ansicht ================= */
   group('Offen: der Haken in der Ansicht');
 
-  /* EIN BEDIENZEICHEN FOLGT DEM RECHT, NICHT DER ANZEIGE. Erst die Lage, in
-     der es dasteht, dann die Gegenlage, in der es fehlt -- und in beiden wird
-     zuerst geprueft, dass es die ZEILE ueberhaupt gibt (Stolperstein 81). */
+  /* EIN BEDIENZEICHEN FOLGT DEM RECHT, NICHT DER ANZEIGE. */
   const offAdmin = await offBuild({ settings: { filters: null, userCount: 3 } });
   check('Dem Admin steht an jeder Zeile ein Kaestchen',
     offRows(offAdmin).length === 3 &&
@@ -3013,9 +2408,7 @@ async function run() {
     JSON.stringify(offRows(offUser).map(z => !!z.querySelector('.open-check'))));
   offUser.w.close();
 
-  /* Ein wirklich zugestellter Druck, kein Behandleraufruf (Stolperstein 61).
-     Geprueft wird BEIDES: was hinausgeht, und was danach auf dem Bildschirm
-     steht. */
+  /* Ein wirklich zugestellter Druck, kein Behandleraufruf (Stolperstein 61). */
   offAdmin.sent.length = 0;
   offRows(offAdmin)[0].querySelector('.open-check')
     .dispatchEvent(new offAdmin.w.MouseEvent('click', { bubbles: true }));
@@ -3024,9 +2417,9 @@ async function run() {
   check('Der Haken schreibt ueber die vorhandene Kommentarroute',
     offSent.length === 1 && offSent[0].url === '/api/comments/65',
     JSON.stringify(offSent.map(g => g.url)));
-  /* Er schickt die ART AUSDRUECKLICH und schaltet nicht weiter: aufgabeWeiter()
-     machte aus einer erledigten Aufgabe eine Notiz, und die Zeile fiele beim
-     zweiten Druck lautlos aus der Menge. */
+  /* Er schickt die ART AUSDRUECKLICH und schaltet nicht weiter:
+     aufgabeWeiter() machte aus einer erledigten Aufgabe eine Notiz, und die
+     Zeile fiele beim zweiten Druck lautlos aus der Menge. */
   check('Und zwar die Art „erledigt", nichts sonst',
     equal(Object.keys(offSent[0]?.body || {}), ['kind']) &&
     offSent[0]?.body?.kind === 'done',
@@ -3038,7 +2431,7 @@ async function run() {
     offRows(offAdmin)[0].classList.contains('done'),
     offRows(offAdmin)[0].className);
   // SEIT 0.22.0 EIN SVG-ZEICHEN STATT ☐/☑ (Stilblatt N1): der Haken ist am
-  // Zustand `on` und am Zeichen im Kaestchen zu erkennen, nicht am Glyph.
+// Zustand `on` und am Zeichen im Kaestchen zu erkennen, nicht am Glyph.
   check('Das Kaestchen zeigt jetzt den Haken',
     offRows(offAdmin)[0].querySelector('.open-check')?.classList.contains('on') === true &&
     !!offRows(offAdmin)[0].querySelector('.open-check svg.icon'),
@@ -3055,10 +2448,8 @@ async function run() {
     !offRows(offAdmin)[0].classList.contains('done'),
     offRows(offAdmin)[0].className);
 
-  /* Der Mock aendert seinen Bestand wirklich mit (Stolperstein 90):
-     wird die Ansicht neu aufgebaut, ist die abgehakte Zeile fort. Ohne diese
-     Zeile waere "die Ansicht hat den Haken gesetzt" von "nichts ist passiert"
-     nicht zu unterscheiden. */
+  /* Der Mock aendert seinen Bestand wirklich mit (Stolperstein 90): wird die
+     Ansicht neu aufgebaut, ist die abgehakte Zeile fort. */
   offRows(offAdmin)[0].querySelector('.open-check')
     .dispatchEvent(new offAdmin.w.MouseEvent('click', { bubbles: true }));
   await new Promise(r => setTimeout(r, 50));
@@ -3101,10 +2492,7 @@ async function run() {
     offNotMy.w.document.getElementById('open-hint')?.textContent);
   offNotMy.w.close();
 
-  /* DIE UEBERSCHRIFT KOMMT AUS DEM VOKABULAR. Eine Ansicht, die „Offene
-     Aufgaben" schreibt, waehrend der Betreiber sie „ToDo's" nennt, ist falsch
-     beschriftet. Geprueft wird an einer Prueflage, die das Vokabular
-     umstellt -- ohne sie bliebe jeder feste String unbemerkt. */
+  /* DIE UEBERSCHRIFT KOMMT AUS DEM VOKABULAR. */
   const offVok = await offBuild({ settings: { ...ownFull, userCount: 3 } });
   check('Die Ueberschrift benutzt das Vokabular, nicht das feste Wort',
     offVok.w.document.querySelector('.page-title')?.textContent === 'Offene ToDo’s',
@@ -3122,7 +2510,7 @@ async function run() {
     settings: { ...ownFull, userCount: 3 } });
   /* UMGEDREHT MIT 0.22.0 (Stolperstein 74): der leere Satz heisst „Nichts
      offen." -- zwei Woerter, und er braucht kein Vokabelwort mehr (Anlage C,
-     Z. 3524: „Ton, doppelt"). Belegt wird, dass er kurz ist und dasteht. */
+     Z. */
   check('Der leere Satz ist kurz und kommt ohne Vokabelwort aus — 0.22.0',
     (offEmptyVok.w.document.getElementById('open-hint')?.textContent || '').trim() === 'Nichts offen.',
     offEmptyVok.w.document.getElementById('open-hint')?.textContent);
@@ -3136,8 +2524,7 @@ async function run() {
   check('Und er steht neben dem Zahnrad',
     offButton?.nextElementSibling?.id === 'sys', offButton?.nextElementSibling?.id);
   /* SEIT 0.16.0 NENNT DER TITEL DIE ZAHL, sobald es eine gibt -- der Knopf
-     traegt sie ohnehin. Das Wort dahinter kommt weiter aus dem Vokabular, und
-     es steht in der richtigen Zahlform: eine Aufgabe, zwei Aufgaben. */
+     traegt sie ohnehin. */
   check('Sein Ueberfahrtext kommt aus dem Vokabular',
     /^\d+ Aufgabe offen$/.test(offButton?.title || ''), offButton?.title);
   check('Und der Knopf traegt die Zahl selbst',
@@ -3151,9 +2538,8 @@ async function run() {
     offHead.w.location.hash);
   offHead.w.close();
 
-  /* Die Kante und der Durchstrich am Stylesheet -- im gebauten DOM laesst sich
-     ohne Layoutberechnung nicht sehen, ob etwas sichtbar ist. Erst das
-     Vorhandensein der Regel, dann ihre Eigenschaft (Stolperstein 81, Luecke 1). */
+  /* Die Kante und der Durchstrich am Stylesheet -- im gebauten DOM laesst
+     sich ohne Layoutberechnung nicht sehen, ob etwas sichtbar ist. */
   const cssOff = fs.readFileSync(path.join(__dirname, 'public', 'style.css'), 'utf8').replace(/\s+/g, ' ');
   const ruleOff = (choice) => (cssOff.match(new RegExp(choice.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + ' \\{[^}]*\\}')) || [''])[0];
   check('Die Gruppe traegt eine Regel im Stylesheet',
@@ -3167,25 +2553,11 @@ async function run() {
     ruleOff('.open-row.done .open-text'));
 
   /* ================= Die gestrichene Pille — 0.17.0 ====================
-     MITGENOMMEN UND NICHT GELOESCHT (Stolperstein 201). Hier standen bis 0.16.0
-     die beiden Gruppen „Neu seit: der Filter in der Uebersicht" und „Neu seit:
-     der Merkzeitpunkt" -- rund dreissig Zusagen an eine Pille, die es nicht
-     mehr gibt. Sie sind nicht verschwunden, sondern umgedreht: was die Pille
-     KONNTE, muss jetzt nachweislich WEG sein, und was ihr Merkzeitpunkt
-     leistete, leistet der Bezugspunkt der Glocke allein.
-     WARUM SIE GESTRICHEN IST: zwei Anzeigen fuer dieselbe Frage -- was hat
-     sich getan, seit ich zuletzt hier war -- sind eine zu viel. Dazu verletzte
-     sie eine Hausregel: sie stand auch dann da, wenn ihre Zahl null war, nur
-     gedaempft. Am Knopf „Offen" steht seit 0.16.0 das Gegenteil.
-     WAS DABEI VERLORENGEHT, STEHT IM AENDERUNGSPROTOKOLL und im Quelltext bei
-     visibleItems(): die Pille zeigte JEDE Aenderung, die Glocke bleibt bei
-     Kommentaren und Bewertungen. */
+     MITGENOMMEN UND NICHT GELOESCHT (Stolperstein 201). */
   group('Die gestrichene Pille „Neu seit …" — 0.17.0');
 
   /* Vier Eintraege, zwei alt und zwei neu -- der Bestand der alten Gruppe,
-     unveraendert. Er ist der Gegenstand: ohne Eintraege, die sich in
-     `updated_at` unterscheiden, koennte keine Zeile darunter belegen, dass
-     wirklich NICHT MEHR gefiltert wird (Stolperstein 81). */
+     unveraendert. */
   const nsCategory = { id: 21, name: 'Werkzeug' };
   const nsTag = { id: 1, name: 'Grün' };
   const nsEntry = (id, title, status, extra = {}) => ({
@@ -3213,9 +2585,7 @@ async function run() {
   const nsDefault = { categoryIds: [], tagIds: [], tagMode: 'and', tested: 'all',
                       favorite: false, sort: 'title_asc' };
 
-  /* ERST DER GEGENSTAND: die Filterzeile steht ueberhaupt da. Ohne diese Zeile
-     bliebe jede Verneinung darunter auch bei einer gar nicht gezeichneten
-     Zeile gruen (Stolperstein 81). */
+  /* ERST DER GEGENSTAND: die Filterzeile steht ueberhaupt da. */
   const nsWithout = await nsBuild(nsDefault);
   check('Die Filterzeile steht da, mit dem Favoritenknopf',
     !!nsWithout.w.document.getElementById('f-fav'));
@@ -3229,13 +2599,7 @@ async function run() {
     nsWithout.w.document.getElementById('filters')?.textContent?.replace(/\s+/g, ' '));
   check('Es sind alle vier Eintraege zu sehen', nsTitle(nsWithout).length === 4,
     JSON.stringify(nsTitle(nsWithout)));
-  /* UND DIE ZEILE IST WIRKLICH EINE PILLE KUERZER. Eine Pille, die ihre
-     Kennung verliert, waere an den beiden Zeilen darueber unsichtbar wieder da
-     (Stolperstein 223) -- gezaehlt wird deshalb, was in der Statuszeile
-     WIRKLICH steht, und die Pillen werden namentlich genannt.
-     SIEBEN STATT ACHT: drei fuer den Teststatus, der Favorit, und drei fuer
-     die Ablehnung. Die Fortsetzung von 0.13.0, wo die Filterzeile 75 px
-     flacher wurde. */
+  /* UND DIE ZEILE IST WIRKLICH EINE PILLE KUERZER. */
   const nsStatus = [...nsWithout.w.document.querySelectorAll('#filters .frow')][0];
   const nsPills = [...(nsStatus?.querySelectorAll('.pill') || [])]
     .map(b => b.textContent.replace(/\s+/g, ' ').trim());
@@ -3247,28 +2611,20 @@ async function run() {
     JSON.stringify(nsPills));
   nsWithout.w.close();
 
-  /* EINE GESPEICHERTE ANSICHT AUS 0.11.0 KANN DEN SCHLUESSEL NOCH TRAGEN. Sie
-     muss ihn UEBERGEHEN statt daran zu scheitern -- dieselbe Regel wie beim
-     Schluessel `abgelehnt`, den 0.15.0 hinzugefuegt hat, nur andersherum.
-     UND SIE DARF NICHTS WEGNEHMEN: sonst verschwaende der halbe Bestand hinter
-     einem Knopf, den es gar nicht mehr gibt. */
+  /* EINE GESPEICHERTE ANSICHT AUS 0.11.0 KANN DEN SCHLUESSEL NOCH TRAGEN. */
   const nsOld = await nsBuild({ ...nsDefault, fresh: true });
   check('Eine gespeicherte Stellung mit „neu" bleibt lesbar',
     nsTitle(nsOld).length === 4, JSON.stringify(nsTitle(nsOld)));
   check('Und der Schluessel faellt aus der zurechtgerueckten Stellung heraus',
     !('neu' in nsOld.w.filterNormal({ ...nsDefault, fresh: true })),
     JSON.stringify(nsOld.w.filterNormal({ ...nsDefault, fresh: true })));
-  /* ER ZAEHLT AUCH NICHT MEHR MIT. Der Schalter ueber den Filtern nennt die
-     Zahl der greifenden Filter; ein Schluessel, den es nicht mehr gibt, darf
-     dort keine Eins erzeugen. */
+  /* ER ZAEHLT AUCH NICHT MEHR MIT. */
   check('Und der Schalter zaehlt ihn nicht als greifenden Filter',
     !/aktiv/.test(nsOld.w.document.querySelector('#filter-toggle .fcount')?.textContent || ''),
     nsOld.w.document.querySelector('#filter-toggle .fcount')?.textContent);
   nsOld.w.close();
 
-  /* UND DIE UEBRIGEN FILTER STEHEN UNVERAENDERT. Eine gestrichene Pille darf
-     ihre Nachbarn nicht mitnehmen -- geprueft an allen dreien, die in
-     derselben Zeile stehen. */
+  /* UND DIE UEBRIGEN FILTER STEHEN UNVERAENDERT. */
   const nsRest = await nsBuild({ ...nsDefault, tested: 'tested' });
   check('Der Teststatus filtert weiter',
     equal(nsTitle(nsRest), ['Alpha alt', 'Delta neu']), JSON.stringify(nsTitle(nsRest)));
@@ -3283,11 +2639,7 @@ async function run() {
     equal(nsTitle(nsCategoryDom), ['Alpha alt', 'Delta neu']), JSON.stringify(nsTitle(nsCategoryDom)));
   nsCategoryDom.w.close();
 
-  /* WAS EIN BETREIBER SIEHT, DER ALLEIN ARBEITET. Die Pille ist gestrichen,
-     und die Glocke steht auch bei einem einzigen Zugang da -- der KNOPF, nicht
-     zwangslaeufig eine Message darin. Seit 0.17.2 meldet sie nur Fremdes und
-     bleibt bei einem einzigen Zugang deshalb still; die Lage dazu steht in der
-     Gruppe „Die Glocke in der Kopfzeile". */
+  /* WAS EIN BETREIBER SIEHT, DER ALLEIN ARBEITET. */
   const nsOne = await nsBuild(nsDefault, { userCount: 1,
     bellSeen: '2026-08-01 00:00:00' });
   check('Bei einem einzigen Zugang steht die Pille ebenfalls nicht mehr da',
@@ -3298,13 +2650,7 @@ async function run() {
 
   /* ================= Der Bezugspunkt der Glocke ================= */
   /* MITGENOMMEN MIT 0.17.0 (Stolperstein 201): diese Gruppe hiess „Neu seit:
-     der Merkzeitpunkt" und pruefte `zuletztGesehen`. Die Zusagen galten nie
-     der Pille, sondern der BAUFORM -- beim Verlassen und nicht beim Betreten,
-     als Signal und nicht als Uhrzeit, und nicht bei jedem Filterklick. Sie
-     tragen jetzt den Bezugspunkt der Glocke, den einzigen, der noch da ist.
-     UND EINE ZUSAGE IST NEU: er faehrt GENAU EINMAL hinaus. Bis 0.16.0 ging
-     bei jedem Verlassen der Uebersicht ein Ruf hinaus, weil der Merkzeitpunkt
-     nachgestellt werden musste; den gibt es nicht mehr. */
+     der Merkzeitpunkt" und pruefte `zuletztGesehen`. */
   group('Der Bezugspunkt der Glocke in der Oberflaeche');
 
   const nsPath = await nsBuild(nsDefault);
@@ -3327,9 +2673,7 @@ async function run() {
     equal(Object.keys(nsPuts()[0]?.body || {}), ['bellSeen']),
     JSON.stringify(nsPuts()[0]?.body));
   /* UND DIE GEGENLAGE: hat der Zugang seinen Bezugspunkt schon, faehrt beim
-     Verlassen GAR NICHTS mehr hinaus. Ohne diese Zeile belegte die darueber
-     nicht, dass er genau einmal gesetzt wird, sondern nur, dass er ueberhaupt
-     mitfaehrt (Stolperstein 81). */
+     Verlassen GAR NICHTS mehr hinaus. */
   const nsAlready = await nsBuild(nsDefault, { bellSeen: '2026-08-01 00:00:00' });
   nsAlready.w.location.hash = '#/item/1';
   await new Promise(r => setTimeout(r, 90));
@@ -3340,9 +2684,9 @@ async function run() {
   nsAlready.w.close();
   nsPath.w.close();
 
-  /* Der Weg in die Ansicht "Offen" ist ebenfalls ein Verlassen der Uebersicht,
-     der Weg in den Systembereich auch -- der Bezugspunkt haengt an der
-     Uebersicht und nicht an einem einzelnen Ziel. */
+  /* Der Weg in die Ansicht "Offen" ist ebenfalls ein Verlassen der
+     Uebersicht, der Weg in den Systembereich auch -- der Bezugspunkt haengt
+     an der Uebersicht und nicht an einem einzelnen Ziel. */
   for (const target of ['#/open', '#/system', '#/compare']) {
     const d = await nsBuild(nsDefault);
     d.w.location.hash = target;
@@ -3355,9 +2699,7 @@ async function run() {
   }
 
   /* Und die Gegenprobe zum Ganzen: ein Wechsel, der die Uebersicht NICHT
-     verlaesst, merkt sich nichts. Ohne sie bliebe offen, ob der Bezugspunkt
-     bei jedem Neuzeichnen hinausginge -- dann stuende er auf dem Augenblick,
-     in dem man hinsieht, und die Glocke waere immer leer. */
+     verlaesst, merkt sich nichts. */
   const nsStays = await nsBuild(nsDefault);
   nsStays.w.document.getElementById('f-fav')
     ?.dispatchEvent(new nsStays.w.MouseEvent('click', { bubbles: true }));
