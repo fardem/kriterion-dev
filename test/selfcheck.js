@@ -10,7 +10,7 @@ const H = require('./frame.js');
 
 async function run() {
   const {
-   fs, path, execFileSync, attachments, sharp, CODE, COMMENT, REGEX,
+   fs, path, execFileSync, attachments, sharp, segment, CODE, COMMENT, REGEX,
    readmeFlat, __dirname, require, group, check, equal, PORT, open,
    benchFiles
   } = H;
@@ -859,6 +859,161 @@ async function run() {
   const gpCode = gpSource.replace(/\/\*[\s\S]*?\*\//g, ' ').replace(/^\s*\/\/.*$/gm, ' ');
   check('Und der Name, den es nie gab, steht in keiner Zeile Code mehr',
     !/pruefung\.js/.test(gpCode), 'pruefung.js steht noch im Code von counterproof.js');
+
+  /* ================= Die Ersatztexte der Rueckbauten — 0.34.1 =============
+     Ein Suchtext, der nicht mehr passt, faellt sofort auf: der Rueckbau
+     bricht ab und wird gemeldet. Ein Ersatztext, der nicht mehr passt, faellt
+     nicht auf, solange irgendetwas rot wird. Bei W2 und W5 sind die alten
+     Namen nach der Umbenennung in 0.34.0 stehengeblieben; W2 brach beim Laden
+     ab, und die Gegenprobe meldete trotzdem Erfolg.
+     Zwei Fassungen: die erste liest alle Ersatztexte gegen alle Woerter des
+     Projekts, die zweite die Rueckbauten auf Pruefstandsdateien gegen ihre
+     Zieldatei. Die zweite ist die schaerfere und deshalb nur dort moeglich:
+     ein Rueckbau auf eine ausgelieferte Datei fuehrt absichtlich Namen ein,
+     die es heute nicht mehr gibt. */
+  group('Die Ersatztexte der Rueckbauten — 0.34.1');
+
+  const rpWord = /[A-Za-z_$][A-Za-z0-9_$]*/g;
+  const rpFiles = (() => {
+    const found = [];
+    (function walk(where) {
+      for (const e of fs.readdirSync(where, { withFileTypes: true })) {
+        if (e.name === 'node_modules' || e.name === '.git' || e.name === 'data') continue;
+        const p = path.join(where, e.name);
+        if (e.isDirectory()) walk(p);
+        else if (/\.(js|html)$/.test(e.name)) found.push(p);
+      }
+    })(__dirname);
+    return found;
+  })();
+  const rpAllWords = new Set();
+  for (const f of rpFiles)
+    for (const m of fs.readFileSync(f, 'utf8').matchAll(rpWord)) rpAllWords.add(m[0]);
+  check('Der Waechter sieht die Woerter des ganzen Projekts',
+    rpFiles.length >= 40 && rpAllWords.size > 20000,
+    `${rpFiles.length} Dateien, ${rpAllWords.size} verschiedene Woerter`);
+
+  const rpUnknown = [];
+  for (const r of gpList) {
+    if (!r.replacement) continue;
+    const miss = [...new Set([...r.replacement.matchAll(rpWord)].map(m => m[0]))]
+      .filter(n => !rpAllWords.has(n));
+    if (miss.length) rpUnknown.push(`${r.nr} ${r.file}: ${miss.join(' ')}`);
+  }
+  check('Kein Ersatztext nennt ein Wort, das es im Projekt nirgends gibt',
+    rpUnknown.length === 0, rpUnknown.slice(0, 6).join(' · '));
+
+  /* Die schaerfere Fassung. Gelesen wird nur CODE: ein Name in einem Text ist
+     keine Benennung. Der Rahmen und das Fenster zaehlen mit, weil jedes Modul
+     seine Namen von dort bekommt; der Suchtext zaehlt mit, weil der Rueckbau
+     ihn gerade ersetzt. */
+  const rpCodeNames = (text, file) => {
+    const found = new Set();
+    for (const part of segment(text, file))
+      if (part.kind === CODE)
+        for (const m of part.value.matchAll(rpWord)) found.add(m[0]);
+    return found;
+  };
+  const rpBuiltIn = new Set([...Object.getOwnPropertyNames(Array.prototype),
+    ...Object.getOwnPropertyNames(String.prototype),
+    ...Object.getOwnPropertyNames(Object.prototype),
+    ...Object.getOwnPropertyNames(Promise.prototype)]);
+  const rpBench = new Set([...benchFiles(), 'counterproof.js']);
+  const rpFrame = new Set([
+    ...rpCodeNames(fs.readFileSync(path.join(__dirname, 'test', 'frame.js'), 'utf8'), 'test/frame.js'),
+    ...rpCodeNames(fs.readFileSync(path.join(__dirname, 'test', 'dom.js'), 'utf8'), 'test/dom.js')]);
+  const rpStrange = [];
+  let rpChecked = 0;
+  for (const r of gpList) {
+    if (!r.replacement || !rpBench.has(r.file)) continue;
+    rpChecked++;
+    const here = rpCodeNames(fs.readFileSync(path.join(__dirname, ...r.file.split('/')), 'utf8'), r.file);
+    const searched = rpCodeNames(r.search || '', r.file);
+    const miss = [...rpCodeNames(r.replacement, r.file)]
+      .filter(n => !here.has(n) && !rpFrame.has(n) && !searched.has(n)
+        && !rpBuiltIn.has(n) && !(n in globalThis));
+    if (miss.length) rpStrange.push(`${r.nr} ${r.file}: ${miss.join(' ')}`);
+  }
+  check('Der Waechter sieht die Rueckbauten auf Pruefstandsdateien',
+    rpChecked === 19, `${rpChecked} Rueckbauten`);
+  check('Und jeder ihrer Namen steht in der Zieldatei, im Rahmen oder im Suchtext',
+    rpStrange.length === 0, rpStrange.slice(0, 6).join(' · '));
+
+  /* Und der Waechter wuerde den Fall von W2 wirklich melden. Der alte Name
+     steht hier in Stuecken: ganz geschrieben stuende er in dieser Datei, und
+     der Waechter faende seine eigene Gegenprobe. */
+  const rpGone = 'const B = ' + 'starte' + 'WeiterenServer(' + 'frisch' + 'Dir, {}, 4000);';
+  const rpToday = 'const B = start' + 'FurtherServer(fresh' + 'Dir, {}, 4000);';
+  const rpKnown = (line) => [...line.matchAll(rpWord)].map(m => m[0]).every(n => rpAllWords.has(n));
+  check('Der Leser wuerde einen alten Namen im Ersatztext melden',
+    !rpKnown(rpGone) && rpKnown(rpToday),
+    `alt: ${rpKnown(rpGone)} · heute: ${rpKnown(rpToday)}`);
+
+  /* ================= Die Kommentare je Datei — 0.34.1 ====================
+     Bis 0.34.0 bewachte eine Zeile die Kommentare: mehr als tausend ueber acht
+     Dateien. Bei 38.000 Zeilen liessen sich 37.000 loeschen, und der Lauf
+     bliebe gruen. Hier steht die Zahl je Datei.
+     GEZAEHLT WIRD IN tools/comments.js: das Werkzeug beim Bauen und der
+     Waechter im Lauf lesen dieselbe Funktion.
+     EINGETRAGEN WIRD SIE AUCH VON DORT -- `node tools/comments.js --write`
+     schreibt beide Listen. Von Hand nachgezaehlt stimmte sie nie. */
+  group('Die Kommentare je Datei — 0.34.1');
+  {
+    const crAll = require('./tools/comments.js').measureAll();
+    const COMMENT_ROWS = [
+      ['testbench.js', 224],
+      ['test/batchrun.js', 238],
+      ['test/dom.js', 985],
+      ['test/firstlogin.js', 47],
+      ['test/frame.js', 555],
+      ['test/keychange.js', 138],
+      ['test/release_029.js', 133],
+      ['test/release_030.js', 471],
+      ['test/release_031.js', 1208],
+      ['test/roundtrip.js', 6549],
+      ['test/selfcheck.js', 869],
+      ['test/source.js', 2087],
+      ['test/ui_entry.js', 929],
+      ['test/ui_export.js', 971],
+      ['test/ui_inventory.js', 531],
+      ['test/ui_language.js', 716],
+      ['test/ui_overview.js', 1148],
+      ['test/ui_style.js', 1318],
+      ['test/ui_system.js', 1245],
+      ['test/ui_translator.js', 250],
+      ['counterproof.js', 3229],
+      ['server.js', 5128],
+      ['auth.js', 911],
+      ['db.js', 467],
+      ['mail.js', 193],
+      ['keys.js', 122],
+      ['attachments.js', 156],
+      ['images.js', 537],
+      ['batchrun.js', 349],
+      ['usertool.js', 51],
+      ['twofactor.js', 116],
+      ['keytool.js', 70],
+      ['public/app.js', 6419],
+      ['public/theme.js', 45],
+    ];
+    const COMMENT_TOTAL = { comment: 38405, code: 59654 };
+    check('Der Waechter sieht alle vierunddreissig Dateien',
+      crAll.each.length === 34 && COMMENT_ROWS.length === 34,
+      `${crAll.each.length} gemessen, ${COMMENT_ROWS.length} genannt`);
+    const crWrong = [];
+    for (let i = 0; i < COMMENT_ROWS.length; i++) {
+      const [name, rows] = COMMENT_ROWS[i];
+      const here = crAll.each[i];
+      if (!here || here.file !== name || here.comment !== rows)
+        crWrong.push(`${name}: ${rows} genannt, ${here ? here.comment : '—'} gezaehlt`);
+    }
+    check('Und jede traegt die Zahl, die hier steht',
+      crWrong.length === 0, crWrong.slice(0, 8).join(' · '));
+    check('Und die Zahl ueber alles steht ebenso',
+      crAll.comment === COMMENT_TOTAL.comment && crAll.code === COMMENT_TOTAL.code,
+      `${crAll.comment} Kommentar (${COMMENT_TOTAL.comment} genannt), ` +
+      `${crAll.code} Code (${COMMENT_TOTAL.code} genannt), ${crAll.share.toFixed(1)} Prozent`);
+  }
 
   /* ================= Die Groesse der Funktionen — 0.16.0 ================
      SIE MISST, SIE WEIST NICHT AB. Eine harte Grenze („keine Funktion ueber

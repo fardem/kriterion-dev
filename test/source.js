@@ -3276,6 +3276,49 @@ async function run() {
     check('Und der laengste Schluesselname bleibt unter der Latte',
       longestKey.length === 20,
       `${longestKey} (${longestKey.length})`);
+    /* ---- 7. Die Namensprobe ueber den Pruefstand — 0.34.1 ---------------
+       Dieselbe Probe wie unter 1, ueber die 20 Dateien des Pruefstands und
+       counterproof.js. Eigene Liste und eigene Zahl: die Ausnahmen der beiden
+       Bestaende sind verschieden, und eine gemeinsame Liste naehme der Zeile
+       „Und es sind genau sechs" ihren Gegenstand. */
+    const BENCH = [...benchFiles(), 'counterproof.js'];
+    const benchNames = new Set();
+    for (const f of BENCH)
+      for (const part of segment(readShipped(f), f))
+        if (part.kind === CODE)
+          for (const m of part.value.matchAll(/[A-Za-z_$][A-Za-z0-9_$]*/g)) benchNames.add(m[0]);
+    check('Der Waechter sieht wirklich den ganzen Pruefstand',
+      benchNames.size > 2000 && BENCH.length === 21,
+      `${benchNames.size} Bezeichner aus ${BENCH.length} Dateien`);
+
+    /* Die dreizehn sind keine Benennungen, sondern Gegenstaende von Pruefungen:
+         `Abbild`, `Faden`      zwei abgelegte Woerter, die der Wortfilter sucht
+         absender … `vorlage`   die sechs alten Feldnamen im gestellten Bestand
+         `ausschnitt`, `fokus`  zwei Funktionen, deren Fehlen geprueft wird
+         `Haptik`               ein Kriterienname im gestellten Bestand
+         `standbild_base64`     ein Feld des Austauschformats
+         PORT_VERSATZ           der alte Name der Umgebungsvariablen */
+    const BENCH_NAMED = ['Abbild', 'Faden', 'Haptik', 'PORT_VERSATZ', 'absender', 'anbieter',
+      'ausschnitt', 'benutzer', 'fokus', 'marke', 'passwort', 'standbild_base64', 'vorlage'];
+    const benchGerman = [...benchNames].filter(isGerman).sort();
+    check('Namensprobe des Pruefstands: kein deutscher Bezeichner ausser den benannten',
+      equal(benchGerman, BENCH_NAMED),
+      `zu viel: ${benchGerman.filter(n => !BENCH_NAMED.includes(n)).join(' ') || '—'} · ` +
+      `fehlt: ${BENCH_NAMED.filter(n => !benchGerman.includes(n)).join(' ') || '—'}`);
+    check('Und es sind genau dreizehn — 131 waren es vor 0.34.1',
+      benchGerman.length === 13 && BENCH_NAMED.length === 13,
+      `${benchGerman.length} deutsch, ${BENCH_NAMED.length} benannt`);
+    check('Und jeder benannte steht wirklich im Code — keine Karteileiche',
+      BENCH_NAMED.every(n => benchNames.has(n)),
+      BENCH_NAMED.filter(n => !benchNames.has(n)).join(' '));
+
+    // Zusage 6a: ein deutscher Dateiname unter test/ macht diese Zeile rot.
+    const germanBenchFiles = BENCH.filter(f => isGerman(path.basename(f, '.js')));
+    check('Und kein Dateiname des Pruefstands traegt ein deutsches Wortstueck',
+      germanBenchFiles.length === 0, germanBenchFiles.join(' '));
+    check('Der Leser wuerde einen deutschen Dateinamen melden',
+      isGerman('rahmen') && isGerman('oberflaeche') && !isGerman('roundtrip'),
+      'der Leser trennt die beiden Sprachen nicht');
   }
 
   /* ================= Zugeklappt heisst: die ERSTEN Zeilen — 0.24.1 =========
