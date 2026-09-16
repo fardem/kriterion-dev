@@ -27,7 +27,7 @@ const root = path.join(__dirname, '..');
 const values = JSON.parse(fs.readFileSync(
   path.join(root, 'public', 'languages', 'en.json'), 'utf8'));
 const out = {
-  _hinweis: 'Die WERTE von public/languages/en.json am gebauten Stand von 0.31.2, '
+  _about: 'Die WERTE von public/languages/en.json am gebauten Stand von 0.31.2, '
     + 'Schluessel fuer Schluessel und in der Folge der Datei. Fuer Englisch gibt es keine '
     + 'Abnahme wie fuer Deutsch (0681d42) -- DIESE Runde ist sie (Auftrag, F9). Der Waechter '
     + '„Englisch sitzt" im Pruefstand haelt en.json dagegen; wer einen englischen Wert '

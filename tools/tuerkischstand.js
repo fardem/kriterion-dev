@@ -27,7 +27,7 @@ const root = path.join(__dirname, '..');
 const values = JSON.parse(fs.readFileSync(
   path.join(root, 'public', 'languages', 'tr.json'), 'utf8'));
 const out = {
-  _hinweis: 'Die WERTE von public/languages/tr.json am gebauten Stand von 0.31.3, '
+  _about: 'Die WERTE von public/languages/tr.json am gebauten Stand von 0.31.3, '
     + 'Schluessel fuer Schluessel und in der Folge der Datei. Fuer Tuerkisch gab es keine '
     + 'Abnahme wie fuer Deutsch (0681d42) und keinen Vergleichsstand wie fuer Englisch '
     + '(0.31.2) -- DIESE Runde ist beides (Auftrag, F10). Der Waechter „Tuerkisch sitzt" im '

@@ -13,7 +13,7 @@ const {
 
 async function run() {
   const {
-   fs, os, path, attachments, sharp, CODE, KOMMENTAR, __dirname, require,
+   fs, os, path, attachments, sharp, CODE, COMMENT, __dirname, require,
    FILTER, group, check, equal, open, startFurtherServer
   } = H;
   /* DIESES MODUL BAUT FENSTER. Fehlt jsdom, sagt es das und haelt an. Die
@@ -2137,9 +2137,9 @@ async function run() {
        ganze Leiste neu, und die Knoten von vorhin haengen danach nicht mehr in
        der Seite. Eine festgehaltene Fassung antwortete zwar noch, aber sie
        antwortete ueber eine Leiste, die niemand mehr sieht. */
-    const zkFeld = () => zkUeb.w.document.getElementById('f-sort');
+    const zkField = () => zkUeb.w.document.getElementById('f-sort');
     const zkDir = () => zkUeb.w.document.getElementById('f-sort-dir');
-    if (zkFeld()) { zkFeld().value = 'potential'; zkFeld().onchange(); }
+    if (zkField()) { zkField().value = 'potential'; zkField().onchange(); }
     await new Promise(r => setTimeout(r, 60));
     check('Nach Potenzial sortiert steht der ganze Bestand da — 0.32.1',
       equal(zkTitle(), ['Geprueft', 'Idee', 'Blanko']), JSON.stringify(zkTitle()));

@@ -1,5 +1,5 @@
 {
- "_hinweis": "Die WERTE von public/sprachen/de.json bei der Abnahme von 0.24.0 (Commit 0681d42), sortiert. Die Wortlautprobe im Pruefstand haelt public/languages/de.json dagegen: 0.24.1 benennt Schluessel um und fasst keinen Satz an. ERZEUGT UND NICHT VON HAND GESCHRIEBEN -- git show 0681d42:public/sprachen/de.json ist die Quelle. WARUM ALS DATEI UND NICHT AUS GIT: eine Gegenprobenkopie entsteht aus git archive und hat kein .git; ein Waechter, der dort abbricht, belegt nichts (Stolpersteine 138, 161, 170).",
+ "_about": "Die WERTE von public/sprachen/de.json bei der Abnahme von 0.24.0 (Commit 0681d42), sortiert. Die Wortlautprobe im Pruefstand haelt public/languages/de.json dagegen: 0.24.1 benennt Schluessel um und fasst keinen Satz an. ERZEUGT UND NICHT VON HAND GESCHRIEBEN -- git show 0681d42:public/sprachen/de.json ist die Quelle. WARUM ALS DATEI UND NICHT AUS GIT: eine Gegenprobenkopie entsteht aus git archive und hat kein .git; ein Waechter, der dort abbricht, belegt nichts (Stolpersteine 138, 161, 170).",
  "commit": "0681d42",
  "values": [
   " ({n} offen)",

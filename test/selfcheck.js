@@ -10,7 +10,7 @@ const H = require('./frame.js');
 
 async function run() {
   const {
-   fs, path, execFileSync, attachments, sharp, CODE, KOMMENTAR, REGEX,
+   fs, path, execFileSync, attachments, sharp, CODE, COMMENT, REGEX,
    readmeFlat, __dirname, require, group, check, equal, PORT, open,
    benchFiles
   } = H;

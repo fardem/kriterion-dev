@@ -3019,7 +3019,7 @@ darunter die Zeit in den Gruppen und die des ganzen Laufs.
 die Ausgabe um 329 Zeilen länger:
 
 ```bash
-TESTBENCH_ZEIT=1 npm test
+TESTBENCH_TIME=1 npm test
 ```
 
 ### Der Prüfschalter — und warum er in einer benutzten Installation nichts zu suchen hat

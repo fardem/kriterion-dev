@@ -14,7 +14,7 @@ const {
 
 async function run() {
   const {
-   fs, path, attachments, TEXT, KOMMENTAR, readmeFlat, __dirname, FILTER,
+   fs, path, attachments, TEXT, COMMENT, readmeFlat, __dirname, FILTER,
    group, check, equal, open
   } = H;
   /* DIESES MODUL BAUT FENSTER. Fehlt jsdom, sagt es das und haelt an. Die
@@ -2687,36 +2687,36 @@ async function run() {
      umgedreht und nicht geloescht (Stolperstein 74) --, also wird der
      Quelltext OHNE Kommentare gelesen. */
   {
-    const appOhne = fs.readFileSync(path.join(__dirname, 'public', 'app.js'), 'utf8')
+    const appWithout = fs.readFileSync(path.join(__dirname, 'public', 'app.js'), 'utf8')
       .replace(/(^|[^A-Za-z0-9_"'`])\/\*[\s\S]*?\*\//g, '$1 ')
       .replace(/(^|[^:])\/\/[^\n]*/g, '$1 ');
     const reste = ['SORT_STATUS', 'STATUS_BY_HAND', 'defaultClosed', 'statusOutSort', 'statusIdle']
-      .filter(n => new RegExp(`\\b${n}\\b`).test(appOhne));
+      .filter(n => new RegExp(`\\b${n}\\b`).test(appWithout));
     check('Kein Rest der Ableitung steht mehr im Quelltext — 0.32.1',
       reste.length === 0, reste.join(' ') || 'keiner');
     check('Und `statusEffective` liest nur noch das Feld',
-      /const statusEffective = \(f\) => f\.tested;/.test(appOhne),
-      (appOhne.match(/const statusEffective =[^\n]*/) || ['(fehlt)'])[0]);
+      /const statusEffective = \(f\) => f\.tested;/.test(appWithout),
+      (appWithout.match(/const statusEffective =[^\n]*/) || ['(fehlt)'])[0]);
     /* UND DIE DREI SAETZE SIND AUS ALLEN DREI DATEIEN. Ein Satz ohne Rufer ist
        eine Leiche; die Verwendungsprobe faende ihn, aber sie sagt nicht, dass
        er zu DIESER Sache gehoerte. */
-    const sortSaetze = ['list.followsSort', 'list.statusByHand', 'list.byHandHint',
+    const sortSentences = ['list.followsSort', 'list.statusByHand', 'list.byHandHint',
                         'list.pillHint', 'list.sortDefaultHint'];
     const nochDa = [];
     for (const code of ['de', 'en', 'tr']) {
       const file = JSON.parse(fs.readFileSync(
         path.join(__dirname, 'public', 'languages', `${code}.json`), 'utf8'));
-      for (const k of sortSaetze) if (file[k] !== undefined) nochDa.push(`${code}/${k}`);
+      for (const k of sortSentences) if (file[k] !== undefined) nochDa.push(`${code}/${k}`);
     }
     check('Und die fuenf Saetze der Ableitung stehen in keiner Sprachdatei mehr',
       nochDa.length === 0, nochDa.join(' ') || 'in allen dreien weg');
     /* UND IM STILBLATT AUCH NICHT. `.pill-derived` war ihr Aussehen; eine
        Klasse ohne Traeger ist derselbe tote Code eine Datei weiter. */
-    const cssOhne = fs.readFileSync(path.join(__dirname, 'public', 'style.css'), 'utf8')
+    const cssWithout = fs.readFileSync(path.join(__dirname, 'public', 'style.css'), 'utf8')
       .replace(/\/\*[\s\S]*?\*\//g, ' ');
     check('Und das Stilblatt kennt `.pill-derived` nicht mehr',
-      !/\.pill-derived/.test(cssOhne) && !/#f-status-from/.test(cssOhne),
-      (cssOhne.match(/\.pill-derived[^\n]*/) || ['weg'])[0]);
+      !/\.pill-derived/.test(cssWithout) && !/#f-status-from/.test(cssWithout),
+      (cssWithout.match(/\.pill-derived[^\n]*/) || ['weg'])[0]);
   }
 
   /* ================= Die acht Reparaturen — 0.28.1 ====================== */
@@ -2766,8 +2766,8 @@ async function run() {
      die schliessende Klammer der vorigen Regel verbraucht, ueberspringt jede
      zweite (derselbe Fund wie beim Raster der Kriterienliste weiter oben). */
   const soCss = css123.replace(/\/\*[\s\S]*?\*\//g, ' ');
-  const soRegeln = (waehler) => soCss.match(
-    new RegExp('(?<=[{}])\\s*' + waehler.replace(/\./g, '\\.') + ' \\{[^}]*\\}', 'g')
+  const soRules = (soSelector) => soCss.match(
+    new RegExp('(?<=[{}])\\s*' + soSelector.replace(/\./g, '\\.') + ' \\{[^}]*\\}', 'g')
   )?.map(r => r.trim()) || [];
 
   /* DER POTENZIALMODUS IST AN: ohne ihn fehlte der siebte Eintrag, und „genau
@@ -2783,9 +2783,9 @@ async function run() {
        „Potenzial" nur Ungetestete. Fuer eine Zusage ueber die REIHENFOLGE
        muessen in jeder Lage dieselben drei Eintraege dastehen -- ein Klick auf
        „Alle" ist die ausdrueckliche Wahl, die das haelt. */
-    const alle = [...d.w.document.querySelectorAll('#filters .pill')]
+    const allPills = [...d.w.document.querySelectorAll('#filters .pill')]
       .find(b => b.textContent.trim() === 'Alle');
-    alle?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
+    allPills?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
     await new Promise(r => setTimeout(r, 60));
     return d;
   };
@@ -2832,14 +2832,14 @@ async function run() {
   {
     const d = await soBuild();
     const soSechs = ['updated', 'rating', 'potential', 'tests', 'testavg', 'testlast'];
-    const soAb = {}, soAuf = {};
+    const soFrom = {}, soOn = {};
     for (const key of soSechs) {
       if (soField(d)) { soField(d).value = key; soField(d).onchange(); }
       await new Promise(r => setTimeout(r, 50));
-      soAb[key] = soOrder(d);
+      soFrom[key] = soOrder(d);
       soDir(d)?.click();
       await new Promise(r => setTimeout(r, 50));
-      soAuf[key] = soOrder(d);
+      soOn[key] = soOrder(d);
       /* ZURUECK IN DIE ABSTEIGENDE LAGE, damit die naechste Grundlage von
          derselben Stellung aus anfaengt -- die Richtung bleibt beim Wechsel
          der Grundlage stehen, und ohne diesen Zug maesse die naechste Runde
@@ -2851,21 +2851,21 @@ async function run() {
        verschiedene Plaetze. Eine Sortierung, die zwei Eintraege gleich
        einordnet, koennte ihre Gegenrichtung nicht belegen. */
     check('Jede der sechs zweiseitigen Sortierungen ordnet alle drei Eintraege',
-      soSechs.every(k => soAb[k].length === 3 && new Set(soAb[k]).size === 3),
-      JSON.stringify(soAb));
+      soSechs.every(k => soFrom[k].length === 3 && new Set(soFrom[k]).size === 3),
+      JSON.stringify(soFrom));
     /* UND DIE GEGENRICHTUNG IST DIE UMGEKEHRTE FOLGE -- nicht „eine andere":
        „irgendwie anders" bliebe gruen, wenn der Umschalter auf eine dritte
        Sortierung umlegt. */
-    const soKehrt = soSechs.filter(k => equal([...soAb[k]].reverse(), soAuf[k]));
+    const soKehrt = soSechs.filter(k => equal([...soFrom[k]].reverse(), soOn[k]));
     check('Und der Umschalter dreht jede von ihnen wirklich um',
       soKehrt.length === 6,
-      soSechs.map(k => `${k}: ${soAb[k].join('>')} / ${soAuf[k].join('>')}`).join(' · '));
+      soSechs.map(k => `${k}: ${soFrom[k].join('>')} / ${soOn[k].join('>')}`).join(' · '));
     /* UND KEINE ZWEI VON IHNEN ORDNEN GLEICH. Ohne diese Zeile belegte die
        Zusage darueber nur, dass sich ETWAS dreht -- sechs Sortierungen, die
        alle dieselbe Folge ergaeben, waeren eine Sortierung mit sechs Namen. */
     check('Und keine zwei von ihnen ergeben dieselbe Folge',
-      new Set(soSechs.map(k => soAb[k].join('>'))).size === 6,
-      soSechs.map(k => `${k}: ${soAb[k].join('>')}`).join(' · '));
+      new Set(soSechs.map(k => soFrom[k].join('>'))).size === 6,
+      soSechs.map(k => `${k}: ${soFrom[k].join('>')}`).join(' · '));
     /* DIE SIEBTE KANN SEIT 0.29.0 BEIDE RICHTUNGEN -- Befund 8, aus dem
        Betrieb gemeldet (11.9.2026): „Z bis A kann nicht angewahlt werden".
        BIS DAHIN HATTE SIE NUR EINE, und der Grund war die NUMMER und nicht die
@@ -2877,9 +2877,9 @@ async function run() {
        jemand landete. Getragen wird das von `start` an der Grundlage. */
     if (soField(d)) { soField(d).value = 'title'; soField(d).onchange(); }
     await new Promise(r => setTimeout(r, 50));
-    const soTitel = soOrder(d);
+    const soTitle = soOrder(d);
     check('Die siebte ordnet nach Titel, aufsteigend',
-      equal(soTitel, ['Alpha', 'Beta', 'Gamma']), JSON.stringify(soTitel));
+      equal(soTitle, ['Alpha', 'Beta', 'Gamma']), JSON.stringify(soTitle));
     check('Und ihr Umschalter steht DA und ist nicht mehr gesperrt',
       !!soDir(d) && soDir(d).disabled === false && soDir(d).textContent === 'A → Z',
       `${soDir(d)?.textContent} · disabled=${soDir(d)?.disabled}`);
@@ -2890,7 +2890,7 @@ async function run() {
     soDir(d)?.click();
     await new Promise(r => setTimeout(r, 50));
     check('Und ein Druck darauf dreht die Reihenfolge um',
-      equal(soOrder(d), [...soTitel].reverse()) && soDir(d)?.textContent === 'Z → A',
+      equal(soOrder(d), [...soTitle].reverse()) && soDir(d)?.textContent === 'Z → A',
       `${soOrder(d).join('>')} · ${soDir(d)?.textContent}`);
     /* UND DIE AUFSTEIGENDE SCHREIBWEISE BLEIBT DIESELBE. `title_asc` heisst
        weiter `title_asc` -- gespeicherte Ansichten aus 0.28.0 gelten
@@ -2916,14 +2916,14 @@ async function run() {
      Hoehe. Gepruefet wird deshalb, WAS die Hoehe macht: die beiden Hebel, jeder
      einzeln und namentlich. */
   {
-    const soSchmal = soRegeln('.frow')[1] || '';
+    const soNarrow = soRules('.frow')[1] || '';
     /* ERSTER HEBEL: DIE BESCHRIFTUNG STEHT WIEDER DANEBEN. Bis 0.28.0 wurde
        die Zeile am schmalen Schirm zur SPALTE, und jede Beschriftung kostete
        eine eigene Zeile -- fuenfmal 18 px. */
     check('Erster Hebel: die Beschriftung steht am Telefon wieder NEBEN der Reihe',
-      /display: grid/.test(soSchmal)
-      && /grid-template-columns: auto minmax\(0, 1fr\)/.test(soSchmal),
-      soSchmal || '(keine Regel)');
+      /display: grid/.test(soNarrow)
+      && /grid-template-columns: auto minmax\(0, 1fr\)/.test(soNarrow),
+      soNarrow || '(keine Regel)');
     check('Und Beschriftung und Reihe stehen in verschiedenen Spalten',
       /\.frow > \.eyebrow, \.frow > \.eyebrow-with \{ grid-column: 1;/.test(soCss)
       && /\.frow > \.pills, \.frow > \.select, \.frow > \.sort-pair \{ grid-column: 2;/.test(soCss),
@@ -2971,7 +2971,7 @@ async function run() {
        und kleiner wird am Finger schwierig. */
     check('Und die Pillen messen unveraendert weiter — sie waren nicht das Problem',
       /\.pill \{ padding: 7px 13px; \}/.test(soCss),
-      soRegeln('.pill').join(' || ') || '(keine Regel)');
+      soRules('.pill').join(' || ') || '(keine Regel)');
   }
 
   /* ---- Zusage 9: die Sterne werden filigraner ----
@@ -2983,10 +2983,10 @@ async function run() {
      nicht zu verkleinern oder ihn auf das Zeigermass zu setzen -- und ein
      Stern ist ein ZIEL und kein Zeichen: man tippt darauf. */
   {
-    const soRegeln = (waehler) => soCss.match(
-      new RegExp('(?<=[{}])\\s*' + waehler.replace(/\./g, '\\.') + ' \\{[^}]*\\}', 'g')
+    const soRules = (soSelector) => soCss.match(
+      new RegExp('(?<=[{}])\\s*' + soSelector.replace(/\./g, '\\.') + ' \\{[^}]*\\}', 'g')
     )?.map(r => r.trim()) || [];
-    const soStern = soRegeln('.star');
+    const soStar = soRules('.star');
     /* SEIT 0.30.1 SIND ES DREI (Befund 5, F10): Zeiger, Finger, Telefon.
        DIE ZUSAGE WIRD ERWEITERT UND NICHT ERSETZT -- Stolperstein 201. Die
        beiden alten Masse stehen unveraendert da; das dritte kommt hinzu, und
@@ -2997,19 +2997,19 @@ async function run() {
        auch fuer ein Tablet, und dort ist die Breite da. Gemessen worden ist
        das Telefon. */
     check('Der Stern hat drei Masse: Zeiger, Finger, Telefon',
-      soStern.length === 3, soStern.join(' || ') || '(keine Regel)');
+      soStar.length === 3, soStar.join(' || ') || '(keine Regel)');
     check('Am Zeiger steht er unveraendert auf 1.2rem',
-      /font-size: 1\.2rem/.test(soStern[0] || ''), soStern[0] || '(keine Regel)');
+      /font-size: 1\.2rem/.test(soStar[0] || ''), soStar[0] || '(keine Regel)');
     /* KLEINER ALS DIE 1.45rem VON VORHER UND GROESSER ALS DIE 1.2rem DES
        ZEIGERS -- gerechnet und nicht abgeschrieben: eine Zahl, die dasteht,
        kann man vertauschen; eine, die zwischen zwei anderen liegen muss,
        nicht. */
-    const soRem = Number(((soStern[1] || '').match(/font-size: ([\d.]+)rem/) || [])[1]);
+    const soRem = Number(((soStar[1] || '').match(/font-size: ([\d.]+)rem/) || [])[1]);
     check('Am Finger ist er kleiner als vorher und groesser als am Zeiger',
       soRem > 1.2 && soRem < 1.45, `${soRem}rem`);
     check('Und seine Polsterung ist mitgegangen — 3px statt 5px',
       /\.stars \.star \{ padding: 3px 4px; \}/.test(soCss),
-      soRegeln('.stars .star').join(' || ') || '(keine Regel)');
+      soRules('.stars .star').join(' || ') || '(keine Regel)');
     /* ---- DAS DRITTE MASS -- 0.30.1, Befund 5 (F10) ----
        GERECHNET UND NICHT ABGESCHRIEBEN, wie schon beim zweiten: es muss
        kleiner sein als beide anderen. Eine Zahl, die dasteht, kann man
@@ -3018,15 +3018,15 @@ async function run() {
        von 186 auf 210 px, und das laengste Wort eines Kriteriennamens misst
        200 -- gemessen am 12. September 2026 in echtem Chromium bei 390 x 844.
        Der Kasten wird dabei kein Pixel hoeher: 256 vorher, 256 nachher. */
-    const soSchmal = Number(((soStern[2] || '').match(/font-size: ([\d.]+)rem/) || [])[1]);
+    const soNarrow = Number(((soStar[2] || '').match(/font-size: ([\d.]+)rem/) || [])[1]);
     check('Und am Telefon ist er kleiner als an beiden anderen',
-      soSchmal < 1.2 && soSchmal < soRem, `${soSchmal}rem gegen ${soRem}rem und 1.2rem`);
+      soNarrow < 1.2 && soNarrow < soRem, `${soNarrow}rem gegen ${soRem}rem und 1.2rem`);
     check('Und auch dort geht die Polsterung mit — 3px ringsum',
       /\.stars \.star \{ padding: 3px 3px; \}/.test(soCss),
-      soRegeln('.stars .star').join(' || ') || '(keine Regel)');
+      soRules('.stars .star').join(' || ') || '(keine Regel)');
     check('Und der Abstand zwischen den Sternen ebenso — 2px statt 3px',
       /\.stars \{ gap: 2px; \}/.test(soCss),
-      soRegeln('.stars').join(' || ') || '(keine Regel)');
+      soRules('.stars').join(' || ') || '(keine Regel)');
   }
 
   /* ---- Zusage 12 und 13: die Titelzeile dehnt sich ----
@@ -3042,10 +3042,10 @@ async function run() {
      wurde, und wird falsch, wo die Anzeigeart wechselt. Am Schreibtisch ist
      nichts zu sehen. */
   {
-    const soRegeln = (waehler) => soCss.match(
-      new RegExp('(?<=[{}])\\s*' + waehler.replace(/\./g, '\\.') + ' \\{[^}]*\\}', 'g')
+    const soRules = (soSelector) => soCss.match(
+      new RegExp('(?<=[{}])\\s*' + soSelector.replace(/\./g, '\\.') + ' \\{[^}]*\\}', 'g')
     )?.map(r => r.trim()) || [];
-    const soDetail = soRegeln('.detail');
+    const soDetail = soRules('.detail');
     check('Am Schreibtisch bleibt der Eintrag ein Raster mit `align-items: start`',
       /display: grid/.test(soDetail[0] || '') && /align-items: start/.test(soDetail[0] || ''),
       soDetail[0] || '(keine Regel)');
@@ -3077,47 +3077,47 @@ async function run() {
      deshalb ausdruecklich gebaut -- dieselbe Frage, die auch das Stilblatt
      stellt. */
   {
-    const soSys = async (schmal) => {
+    const soSys = async (narrow) => {
       const d = buildDom(JSDOM, {});
       await new Promise(r => setTimeout(r, 60));
-      d.w.matchMedia = () => ({ matches: schmal, addEventListener() {}, addListener() {} });
+      d.w.matchMedia = () => ({ matches: narrow, addEventListener() {}, addListener() {} });
       await sysSection(d.w, 'inventory');
       return d;
     };
     const soEng = await soSys(true);
-    const soKnopf = soEng.w.document.getElementById('sys-toggle');
-    const soReiter = soEng.w.document.getElementById('sys-tabs');
-    check('Ueber den Abschnitten steht ein Schalter', !!soKnopf && !!soReiter,
-      soKnopf ? '(Reiter fehlen)' : '(kein Schalter)');
+    const soButton = soEng.w.document.getElementById('sys-toggle');
+    const soTabs = soEng.w.document.getElementById('sys-tabs');
+    check('Ueber den Abschnitten steht ein Schalter', !!soButton && !!soTabs,
+      soButton ? '(Reiter fehlen)' : '(kein Schalter)');
     /* UND ER SAGT, WAS DAHINTERSTECKT. Eine Liste, die ohne Auskunft
        eingeklappt dasteht, ist derselbe Fehler wie ein Filter ohne Zahl:
        niemand sieht, wo er gerade ist. */
     check('Und er traegt den Namen des offenen Abschnitts',
-      soKnopf?.querySelector('.fcount')?.textContent === 'Bestand',
-      JSON.stringify(soKnopf?.querySelector('.fcount')?.textContent));
+      soButton?.querySelector('.fcount')?.textContent === 'Bestand',
+      JSON.stringify(soButton?.querySelector('.fcount')?.textContent));
     check('Am Telefon steht die Liste eingeklappt da',
-      soReiter?.classList.contains('closed')
-      && soKnopf?.getAttribute('aria-expanded') === 'false',
-      `${soReiter?.className} · ${soKnopf?.getAttribute('aria-expanded')}`);
-    soKnopf?.dispatchEvent(new soEng.w.MouseEvent('click', { bubbles: true }));
+      soTabs?.classList.contains('closed')
+      && soButton?.getAttribute('aria-expanded') === 'false',
+      `${soTabs?.className} · ${soButton?.getAttribute('aria-expanded')}`);
+    soButton?.dispatchEvent(new soEng.w.MouseEvent('click', { bubbles: true }));
     check('Ein Druck holt sie hervor',
-      !soReiter?.classList.contains('closed')
-      && soKnopf?.getAttribute('aria-expanded') === 'true',
-      `${soReiter?.className} · ${soKnopf?.getAttribute('aria-expanded')}`);
-    soKnopf?.dispatchEvent(new soEng.w.MouseEvent('click', { bubbles: true }));
+      !soTabs?.classList.contains('closed')
+      && soButton?.getAttribute('aria-expanded') === 'true',
+      `${soTabs?.className} · ${soButton?.getAttribute('aria-expanded')}`);
+    soButton?.dispatchEvent(new soEng.w.MouseEvent('click', { bubbles: true }));
     check('Und der naechste legt sie wieder weg',
-      soReiter?.classList.contains('closed'), soReiter?.className);
+      soTabs?.classList.contains('closed'), soTabs?.className);
     soEng.w.close();
     /* ---- Zusage 11: am Schreibtisch unveraendert ----
        Ohne die Frage nach der Breite saesse ein breites Fenster vor
        eingeklappten Abschnitten und haette keinen sichtbaren Knopf, sie zu
        oeffnen -- der Schalter selbst steht dort im Stilblatt auf
        `display: none`. */
-    const soBreit = await soSys(false);
+    const soWide = await soSys(false);
     check('Am Schreibtisch steht die Liste unveraendert offen',
-      !soBreit.w.document.getElementById('sys-tabs')?.classList.contains('closed'),
-      soBreit.w.document.getElementById('sys-tabs')?.className);
-    soBreit.w.close();
+      !soWide.w.document.getElementById('sys-tabs')?.classList.contains('closed'),
+      soWide.w.document.getElementById('sys-tabs')?.className);
+    soWide.w.close();
     /* UND DER SCHALTER STEHT NUR AM TELEFON DA. Er ist im Baum, aber das
        Stilblatt zeigt ihn erst am Finger -- dieselbe Bauform wie beim
        Filterschalter der Uebersicht. */
@@ -3125,7 +3125,7 @@ async function run() {
       /\.sys-toggle \{ display: none;/.test(soCss)
       && /\.sys-toggle \{ display: inline-flex; \}/.test(soCss)
       && /\.sys-tabs\.closed \{ display: none; \}/.test(soCss),
-      soRegeln('.sys-toggle').join(' || ') || '(keine Regel)');
+      soRules('.sys-toggle').join(' || ') || '(keine Regel)');
   }
 
   /* ---- Zusage 17 STEHT HIER NICHT ----

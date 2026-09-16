@@ -215,7 +215,7 @@ async function check0300() {
        Stellungen, sonst belegte die Zeile nur eine davon. */
     const tWith = require('child_process').spawnSync(process.execPath, ['testbench.js'],
       { cwd: __dirname, encoding: 'utf8',
-        env: { ...process.env, TESTBENCH_PROBE: '1', TESTBENCH_ZEIT: '1' } });
+        env: { ...process.env, TESTBENCH_PROBE: '1', TESTBENCH_TIME: '1' } });
     check('Mit dem Schalter steht die Zeit auch je Gruppe da',
       /⏱ [0-9]+\.[0-9] s/.test(tWith.stdout),
       JSON.stringify(tWith.stdout.split('\n').slice(0, 8).join(' | ')));
@@ -752,12 +752,12 @@ async function check0301() {
        GEMESSEN: zugeklappt stehen vier Tags in der einen Reihe statt dreier,
        und der offene Filterkasten faellt von 654 auf 543 Pixel. */
     const uPill = Number(((uCss.match(/\.pill \{[^}]*font-size: ([\d.]+)rem/) || [])[1]));
-    const uTagWeit = Number(((uCss.match(/\.pill-tag \{ font-family: var\(--mono\); font-size: ([\d.]+)rem; \}/) || [])[1]));
-    const uTagSchmal = Number(((uNarrow.match(/\.pill-tag \{ font-size: ([\d.]+)rem; padding: 4px 10px; \}/) || [])[1]));
+    const uTagWide = Number(((uCss.match(/\.pill-tag \{ font-family: var\(--mono\); font-size: ([\d.]+)rem; \}/) || [])[1]));
+    const uTagNarrow = Number(((uNarrow.match(/\.pill-tag \{ font-size: ([\d.]+)rem; padding: 4px 10px; \}/) || [])[1]));
     check('Der Tag war schon vorher kleiner als die Kategorie',
-      uTagWeit > 0 && uPill > 0 && uTagWeit < uPill, `${uTagWeit}rem gegen ${uPill}rem`);
+      uTagWide > 0 && uPill > 0 && uTagWide < uPill, `${uTagWide}rem gegen ${uPill}rem`);
     check('Und am Telefon ist sie noch eine Stufe kleiner',
-      uTagSchmal > 0 && uTagSchmal < uTagWeit, `${uTagSchmal}rem gegen ${uTagWeit}rem`);
+      uTagNarrow > 0 && uTagNarrow < uTagWide, `${uTagNarrow}rem gegen ${uTagWide}rem`);
     /* DIE FESTSCHRIFT BLEIBT, UND DAS IST EINE MESSUNG UND KEINE MEINUNG. Der
        Auftrag hatte vermutet, sie sei die eigentliche Breite; sie allein macht
        den breitesten Tag um neun Pixel schmaler und aendert an Reihen und
@@ -936,12 +936,12 @@ async function check0301() {
        ganze Kennzeichenkasten hinter „darf aendern" -- und damit sah das
        Faelligkeitsdatum nur, wer es auch aendern durfte. Die Ansicht „Offen"
        zeigte dasselbe Datum dagegen jedem. */
-    const uFremd = buildDom(JSDOMu, { hash: '#/item/1', commentInventory: uComments,
+    const uForeign = buildDom(JSDOMu, { hash: '#/item/1', commentInventory: uComments,
       settings: { filters: null, isAdmin: false } });
     await new Promise(r => setTimeout(r, 250));
-    const uDue = uFremd.w.document.querySelector('.cmt-due');
+    const uDue = uForeign.w.document.querySelector('.cmt-due');
     check('Das Datum steht da, obwohl der Leser es nicht aendern darf', !!uDue,
-      uFremd.w.document.querySelector('.cmt-head')?.outerHTML?.slice(0, 160) || '(kein Kopf)');
+      uForeign.w.document.querySelector('.cmt-head')?.outerHTML?.slice(0, 160) || '(kein Kopf)');
     /* UND ES IST KEIN KNOPF. Ein Knopf, der nichts tut, ist eine Luege ueber
        die eigene Bedienbarkeit -- dieselbe Ueberlegung wie beim Schalter des
        Potenzialmodus, den ein Admin sieht und nicht drueckt. */
@@ -949,25 +949,25 @@ async function check0301() {
       !!uDue && uDue.tagName === 'SPAN',
       uDue ? uDue.tagName : '(kein Element)');
     check('Und die Kennzeichen daneben stehen nicht da',
-      !uFremd.w.document.querySelector('.cmt-head .mark'),
-      String(uFremd.w.document.querySelectorAll('.cmt-head .mark').length));
+      !uForeign.w.document.querySelector('.cmt-head .mark'),
+      String(uForeign.w.document.querySelectorAll('.cmt-head .mark').length));
     check('Und es traegt trotzdem seinen Zustand',
       !!uDue && /due-[a-z]+/.test(uDue.className), uDue ? uDue.className : '(kein Element)');
-    uFremd.w.close();
+    uForeign.w.close();
     /* UND WER AENDERN DARF, BEKOMMT WEITER EINEN KNOPF -- auch an einer
        ERLEDIGTEN OHNE DATUM. Bis 0.30.1 stand er nur bei `task || (done &&
        dueDate)`; einer erledigten Aufgabe ohne Datum liess sich damit keines
        mehr geben. */
-    const uEigen = buildDom(JSDOMu, { hash: '#/item/1', commentInventory: [
+    const uOwn = buildDom(JSDOMu, { hash: '#/item/1', commentInventory: [
       { id: 82, kind: 'done', text: 'Erledigt, ohne Datum', dueDate: null, pinned: false,
         mine: true, imagesRemoved: 0, author: { id: 1, name: 'chefin' }, images: [],
         created_at: '2026-09-01 09:00:00', updated_at: null }] });
     await new Promise(r => setTimeout(r, 250));
-    const uNach = uEigen.w.document.querySelector('.cmt-due');
+    const uAfter = uOwn.w.document.querySelector('.cmt-due');
     check('Eine erledigte Aufgabe ohne Datum bekommt wieder einen Knopf',
-      !!uNach && uNach.tagName === 'BUTTON',
-      uNach ? `${uNach.tagName} „${uNach.textContent.trim()}"` : '(kein Element)');
-    uEigen.w.close();
+      !!uAfter && uAfter.tagName === 'BUTTON',
+      uAfter ? `${uAfter.tagName} „${uAfter.textContent.trim()}"` : '(kein Element)');
+    uOwn.w.close();
   }
 }
 
@@ -1012,12 +1012,12 @@ async function check0302() {
     /* ---- Zusage 2: das Wort ist umgezogen und nicht gefallen ----
        Ein Zeichen allein liest kein Vorleseprogramm vor. Die drei Schluessel
        bleiben stehen und wandern in den Titel. */
-    for (const schluessel of ['list.more', 'list.less', 'list.resetTags']) {
-      const vName = schluessel.split('.')[1];
-      check(`Der Schluessel ${schluessel} steht weiter in allen drei Sprachen`,
+    for (const key of ['list.more', 'list.less', 'list.resetTags']) {
+      const vName = key.split('.')[1];
+      check(`Der Schluessel ${key} steht weiter in allen drei Sprachen`,
         ['de', 'en', 'tr'].every(sp => {
           const d = JSON.parse(fs.readFileSync(path.join(__dirname, 'public', 'languages', sp + '.json'), 'utf8'));
-          return typeof d[schluessel] === 'string' && d[schluessel].trim().length > 0;
+          return typeof d[key] === 'string' && d[key].trim().length > 0;
         }), vName);
     }
     check('Und er steht im TITEL des Verweises, nicht in seinem Text',
@@ -1061,7 +1061,7 @@ async function check0302() {
 
     /* ---- Zusage 4: der Umschalter geht unter die Klappe ----
        GEFAHREN UND NICHT GELESEN: drei Lagen, drei Antworten. */
-    const vBau = (tags, klicks) => buildDom(JSDOMv, { tags });
+    const vBuild = (tags, klicks) => buildDom(JSDOMv, { tags });
     const vTags = [
       { id: 41, name: 'Alu', usage_count: 3, test_usage_count: 0 },
       { id: 42, name: 'Stahl', usage_count: 2, test_usage_count: 0 },
@@ -1096,30 +1096,30 @@ async function check0302() {
        deshalb gegen eine getauscht, die „abgeschnitten" sagt; danach wird die
        Zeile neu gezeichnet, indem ein Tag zweimal gedrueckt wird (an und
        wieder aus). Die Lage ist dann: nichts gewaehlt, Griff da. */
-    const vAuf = buildDom(JSDOMv, { tags: vTags });
+    const vOpen = buildDom(JSDOMv, { tags: vTags });
     await new Promise(r => setTimeout(r, 120));
-    const vAufRow = () => vAuf.w.document.getElementById('f-tagzeile');
-    vAuf.w.limitCloud = () => true;
-    vAufRow()?.querySelector('.pill-tag')?.click();
+    const vOpenRow = () => vOpen.w.document.getElementById('f-tagzeile');
+    vOpen.w.limitCloud = () => true;
+    vOpenRow()?.querySelector('.pill-tag')?.click();
     await new Promise(r => setTimeout(r, 120));
-    vAufRow()?.querySelector('.pill-tag.on')?.click();
+    vOpenRow()?.querySelector('.pill-tag.on')?.click();
     await new Promise(r => setTimeout(r, 120));
     check('Der Griff zum Aufklappen steht da, sobald etwas abgeschnitten ist',
-      !!vAufRow()?.querySelector('.frow-right-end .link-btn'),
-      vAufRow() ? vAufRow().innerHTML.slice(0, 120) : '(keine Zeile)');
-    vAufRow()?.querySelector('.frow-right-end .link-btn')?.click();
+      !!vOpenRow()?.querySelector('.frow-right-end .link-btn'),
+      vOpenRow() ? vOpenRow().innerHTML.slice(0, 120) : '(keine Zeile)');
+    vOpenRow()?.querySelector('.frow-right-end .link-btn')?.click();
     await new Promise(r => setTimeout(r, 120));
     check('Aufgeklappt steht er da, auch ohne Auswahl',
-      !!vAufRow() && vAufRow().classList.contains('tags-live'),
-      vAufRow() ? vAufRow().className : '(keine Zeile)');
+      !!vOpenRow() && vOpenRow().classList.contains('tags-live'),
+      vOpenRow() ? vOpenRow().className : '(keine Zeile)');
     /* UND DER HAKEN DREHT SICH: nach unten, solange zugeklappt ist, nach oben,
        wenn offen. Gemessen am Titel, denn der sagt, was der Griff tut. */
-    const vHaken = vAufRow()?.querySelector('.frow-right-end .link-btn');
+    const vCheck = vOpenRow()?.querySelector('.frow-right-end .link-btn');
     check('Und der Haken zeigt dann nach oben und sagt „weniger"',
-      !!vHaken && vHaken.getAttribute('title') === 'weniger' &&
-      vHaken.innerHTML.includes('M6 14.5L12 8.5l6 6'),
-      vHaken ? `„${vHaken.getAttribute('title')}"` : '(kein Griff)');
-    vAuf.w.close();
+      !!vCheck && vCheck.getAttribute('title') === 'weniger' &&
+      vCheck.innerHTML.includes('M6 14.5L12 8.5l6 6'),
+      vCheck ? `„${vCheck.getAttribute('title')}"` : '(kein Griff)');
+    vOpen.w.close();
   }
 }
 
@@ -1144,7 +1144,7 @@ async function check0303() {
   const wNarrow = (wCss.match(/@media \(max-width: 700px\), \(max-height: 500px\) and \(max-width: 960px\) \{[\s\S]*$/) || [''])[0];
   let JSDOMw;
   try { ({ JSDOM: JSDOMw } = require('jsdom')); } catch { JSDOMw = null; }
-  const warte = () => new Promise(r => setTimeout(r, 120));
+  const wait = () => new Promise(r => setTimeout(r, 120));
 
   group('Die zugeklappte Tagzeile fuellt ihre Hoehe — 0.30.3');
   {
@@ -1170,34 +1170,34 @@ async function check0303() {
        Hoehen, also bekommt die Zeile einen Kasten, der welche nennt
        (Stolperstein 161). `scrollHeight` misst den vollen Inhalt auch hinter
        einer Begrenzung -- genau das ist der Punkt der Zusage. */
-    const wLeer = buildDom(JSDOMw, { tags: [] });
-    await warte();
-    const wFenster = wLeer.w;
-    const wKasten = (hoch, voll) => ({ firstElementChild: { offsetHeight: hoch }, scrollHeight: voll });
+    const wEmpty = buildDom(JSDOMw, { tags: [] });
+    await wait();
+    const wWindow = wEmpty.w;
+    const wBox = (high, full) => ({ firstElementChild: { offsetHeight: high }, scrollHeight: full });
     check('cloudRows zaehlt EINE Reihe als eine',
-      wFenster.cloudRows(wKasten(27, 27)) === 1, String(wFenster.cloudRows(wKasten(27, 27))));
+      wWindow.cloudRows(wBox(27, 27)) === 1, String(wWindow.cloudRows(wBox(27, 27))));
     check('Und ZWEI Reihen als zwei — auch hinter einer Begrenzung',
-      wFenster.cloudRows(wKasten(27, 60)) === 2, String(wFenster.cloudRows(wKasten(27, 60))));
+      wWindow.cloudRows(wBox(27, 60)) === 2, String(wWindow.cloudRows(wBox(27, 60))));
     check('Und dreissig Reihen als dreissig',
-      wFenster.cloudRows(wKasten(27, 30 * 27 + 29 * 6)) === 30,
-      String(wFenster.cloudRows(wKasten(27, 30 * 27 + 29 * 6))));
+      wWindow.cloudRows(wBox(27, 30 * 27 + 29 * 6)) === 30,
+      String(wWindow.cloudRows(wBox(27, 30 * 27 + 29 * 6))));
     /* EIN EINGEKLAPPTER BLOCK MISST NULL -- seine Kinder stehen auf
        display: none. Null heisst „nicht messbar" und nicht „keine Reihe". */
     check('Eine Wolke ohne messbare Hoehe meldet null Reihen',
-      wFenster.cloudRows(wKasten(0, 0)) === 0 &&
-      wFenster.cloudRows({ firstElementChild: null, scrollHeight: 0 }) === 0);
+      wWindow.cloudRows(wBox(0, 0)) === 0 &&
+      wWindow.cloudRows({ firstElementChild: null, scrollHeight: 0 }) === 0);
     /* ---- Zusage 3: beide rechnen mit derselben Zeilenhoehe ----
        DIE BEGRENZUNG SETZT EINE HOEHE, DER ZAEHLER LIEST EINE -- und was die
        eine fuer zwei Reihen haelt, muss die andere ebenso. Gefahren und nicht
        behauptet: die gesetzte Hoehe wird dem Zaehler zurueckgegeben. */
-    const wMess = { firstElementChild: { offsetHeight: 27 }, scrollHeight: 999,
+    const wMeasure = { firstElementChild: { offsetHeight: 27 }, scrollHeight: 999,
       clientHeight: 0, style: {} };
-    wFenster.limitCloud(wMess, 2);
+    wWindow.limitCloud(wMeasure, 2);
     check('Was die Begrenzung fuer zwei Reihen haelt, haelt der Zaehler ebenso',
-      wMess.style.maxHeight === '60px' &&
-      wFenster.cloudRows(wKasten(27, parseInt(wMess.style.maxHeight, 10))) === 2,
-      `Begrenzung ${wMess.style.maxHeight}`);
-    wLeer.w.close();
+      wMeasure.style.maxHeight === '60px' &&
+      wWindow.cloudRows(wBox(27, parseInt(wMeasure.style.maxHeight, 10))) === 2,
+      `Begrenzung ${wMeasure.style.maxHeight}`);
+    wEmpty.w.close();
 
     /* ---- Zusage 4 und 5: zwei Reihen am Telefon, eine am Schreibtisch ----
        DIE ZAHL HAENGT AM STILBLATT UND NICHT AN EINER ZWEITEN BEDINGUNG: das
@@ -1212,40 +1212,40 @@ async function check0303() {
       { id: 63, name: 'Holz', usage_count: 1, test_usage_count: 0 }
     ];
     const wDom = buildDom(JSDOMw, { tags: wTags });
-    await warte();
+    await wait();
     const w = wDom.w;
-    const wZeile = () => w.document.getElementById('f-tagzeile');
-    let wRufe = [];
-    const wEchteGrenze = w.limitCloud;
-    w.limitCloud = (box, rows) => { wRufe.push(rows); return wEchteGrenze(box, rows); };
+    const wRow = () => w.document.getElementById('f-tagzeile');
+    let wCalls = [];
+    const wRealLimit = w.limitCloud;
+    w.limitCloud = (box, rows) => { wCalls.push(rows); return wRealLimit(box, rows); };
     /* JSDOM MELDET FUER EIN DIV KEIN RASTER -- das ist der Schreibtisch. */
-    wRufe = [];
-    wZeile()?.querySelector('.pill-tag')?.click();
-    await warte();
+    wCalls = [];
+    wRow()?.querySelector('.pill-tag')?.click();
+    await wait();
     check('Am Schreibtisch zeigt die zugeklappte Wolke EINE Reihe',
-      wRufe.length > 0 && wRufe[wRufe.length - 1] === 1, `gerufen mit ${wRufe.join(', ')}`);
+      wCalls.length > 0 && wCalls[wCalls.length - 1] === 1, `gerufen mit ${wCalls.join(', ')}`);
     /* UND JETZT DAS TELEFON: die Antwort des Stilblatts wird fuer diese eine
        Zeile getauscht -- jsdom wertet den schmalen Abschnitt nicht aus
        (Stolperstein 161). */
-    const wEchterStil = w.getComputedStyle.bind(w);
+    const wRealStyle = w.getComputedStyle.bind(w);
     w.getComputedStyle = (el, ...rest) =>
-      (el && el.id === 'f-tagzeile') ? { display: 'grid' } : wEchterStil(el, ...rest);
-    wRufe = [];
-    wZeile()?.querySelector('.pill-tag.on')?.click();
-    await warte();
+      (el && el.id === 'f-tagzeile') ? { display: 'grid' } : wRealStyle(el, ...rest);
+    wCalls = [];
+    wRow()?.querySelector('.pill-tag.on')?.click();
+    await wait();
     check('Am Telefon zeigt sie ZWEI — die Hoehe ist ohnehin bezahlt',
-      wRufe.length > 0 && wRufe[wRufe.length - 1] === 2, `gerufen mit ${wRufe.join(', ')}`);
+      wCalls.length > 0 && wCalls[wCalls.length - 1] === 2, `gerufen mit ${wCalls.join(', ')}`);
     /* ---- Zusage 6: aufgeklappt gilt keine Begrenzung ----
        Die Zahl gilt nur zugeklappt. Der Betreiber am 12. September 2026:
        „Aufgeklappt sieht es gut aus." */
-    w.limitCloud = (box, rows) => { wRufe.push(rows); return true; };
-    wRufe = [];
-    wZeile()?.querySelector('.pill-tag')?.click();
-    await warte();
-    wZeile()?.querySelector('.frow-right-end .link-btn')?.click();
-    await warte();
+    w.limitCloud = (box, rows) => { wCalls.push(rows); return true; };
+    wCalls = [];
+    wRow()?.querySelector('.pill-tag')?.click();
+    await wait();
+    wRow()?.querySelector('.frow-right-end .link-btn')?.click();
+    await wait();
     check('Aufgeklappt gilt keine Begrenzung',
-      wRufe[wRufe.length - 1] === 0, `gerufen mit ${wRufe.join(', ')}`);
+      wCalls[wCalls.length - 1] === 0, `gerufen mit ${wCalls.join(', ')}`);
 
     /* ---- Zusage 7: die Anordnung gilt nur, wo die Wolke sie traegt ----
        BEI EINEM JUNGEN BESTAND GIBT ES KEINE ZWEITE REIHE ZU ZEIGEN -- gemessen
@@ -1254,24 +1254,24 @@ async function check0303() {
        GEFAHREN WIRD DER ZAEHLER GEGEN DIE KLASSE, in beide Richtungen: eine
        Zusage, die nur den einen Ausgang kennt, bliebe gruen, wenn die
        Bedingung ganz fiele (Stolperstein 81). */
-    w.limitCloud = wEchteGrenze;
-    const wEchterZaehler = w.cloudRows;
+    w.limitCloud = wRealLimit;
+    const wRealCounter = w.cloudRows;
     w.cloudRows = () => 2;
-    wZeile()?.querySelector('.pill-tag')?.click();
-    await warte();
+    wRow()?.querySelector('.pill-tag')?.click();
+    await wait();
     check('Ab ZWEI Reihen traegt die Zeile `tags-deep`',
-      !!wZeile()?.classList.contains('tags-deep'), wZeile() ? wZeile().className : '(keine Zeile)');
+      !!wRow()?.classList.contains('tags-deep'), wRow() ? wRow().className : '(keine Zeile)');
     w.cloudRows = () => 1;
     /* EIN KLICK AUF DIE ERSTE PILLE UND NICHT AUF EINE GEWAEHLTE: sortCloud()
        stellt die gewaehlten nach vorn, der erste Klick hat die eine also
        wieder abgewaehlt -- und `.pill-tag.on` traf danach ins Leere. Ohne Klick
        kein Neuzeichnen, und die Zeile behielt die Klasse aus dem Zug davor. */
-    wZeile()?.querySelector('.pill-tag')?.click();
-    await warte();
+    wRow()?.querySelector('.pill-tag')?.click();
+    await wait();
     check('Bei EINER Reihe traegt sie es nicht',
-      !!wZeile() && !wZeile().classList.contains('tags-deep'),
-      wZeile() ? wZeile().className : '(keine Zeile)');
-    w.cloudRows = wEchterZaehler;
+      !!wRow() && !wRow().classList.contains('tags-deep'),
+      wRow() ? wRow().className : '(keine Zeile)');
+    w.cloudRows = wRealCounter;
     wDom.w.close();
 
     /* ---- Zusage 8 bis 10: was ohne `tags-deep` gilt ----
@@ -1279,14 +1279,14 @@ async function check0303() {
        jeder anderen Filterzeile. Es braucht dafuer KEINE neue Regel, und genau
        das haelt die Zusage fest: die drei Regeln von 0.30.2 nennen ihren
        Traeger, und ohne ihn steht nichts an ihrer Stelle. */
-    for (const [wName, wRegel] of [
+    for (const [wName, wRule] of [
       ['Die Verweise stehen nur MIT `tags-deep` in Spalte eins',
         /\.frow-tags\.tags-deep > \.frow-right-end \{ grid-column: 1;/],
       ['Die dritte Rasterzeile gibt es nur MIT `tags-deep`',
         /\.frow-tags\.tags-deep \{ grid-template-rows: auto auto 1fr; \}/],
       ['Und der Umschalter steht nur dort in der dritten',
         /\.frow-tags\.tags-deep > \.tagmode \{ grid-row: 3; \}/]
-    ]) check(wName, wRegel.test(wNarrow), (wNarrow.match(wRegel) || ['(keine Regel)'])[0]);
+    ]) check(wName, wRule.test(wNarrow), (wNarrow.match(wRule) || ['(keine Regel)'])[0]);
     /* UND KEINE DER DREI STEHT OHNE TRAEGER DA. Ohne diese Zeile bliebe die
        Gruppe gruen, wenn jemand die alte Fassung danebenstellte -- zwei Regeln
        zur selben Sache, und die spaetere gewaenne. */

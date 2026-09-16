@@ -13,7 +13,7 @@ const {
 
 async function run() {
   const {
-   fs, os, path, spawn, zerlege, CODE, TEXT, __dirname, require, group,
+   fs, os, path, spawn, segment, CODE, TEXT, __dirname, require, group,
    check, equal, KEY, PORT_OFFSET, PORT, PASSWORD, endKind, CASES,
    LANGUAGE_BASE, call
   } = H;
@@ -84,9 +84,9 @@ async function run() {
        meint eine Eigenschaft namens `t` und nicht den Helfer. Dieselbe
        Unterscheidung trifft der Umbenenner in tools/rename.js. */
     const HELPER_REACH = /(?<![A-Za-z0-9_$])(?<!(?<!\.)\.)t\.([A-Za-z_$][\w$]*)/g;
-    const spAppCode = zerlege(
+    const spAppCode = segment(
       fs.readFileSync(path.join(__dirname, 'public', 'app.js'), 'utf8'), 'public/app.js')
-      .filter(z => z.kind === CODE).map(z => z.wert).join('\n');
+      .filter(z => z.kind === CODE).map(z => z.value).join('\n');
     const spReach = [...spAppCode.matchAll(HELPER_REACH)].map(m => 't.' + m[1]);
     check('Der Sprachhelfer wird nie nach einer Eigenschaft gefragt',
       spReach.length === 0, spReach.join(' ') || '(keine)');
@@ -286,8 +286,8 @@ async function run() {
        Stelle ZITIERT die alte Konstante, weil dort steht, was sie ersetzt hat
        -- und ein Waechter, der ein Zitat fuer eine Benennung haelt, verboete
        das Aufschreiben. Dieselbe Trennung wie in der Namensprobe. */
-    const spSrvCode = zerlege(spSrv, 'server.js')
-      .filter(z => z.kind === CODE).map(z => z.wert).join('\n');
+    const spSrvCode = segment(spSrv, 'server.js')
+      .filter(z => z.kind === CODE).map(z => z.value).join('\n');
     check('Die Vorgabesprache steht nicht mehr als Konstante im Quelltext',
       !/const LANGUAGE_DEFAULT\s*=/.test(spSrvCode), 'const LANGUAGE_DEFAULT steht noch da');
     // Und der Leser wuerde sie wirklich finden -- an einem gestellten Fall.

@@ -14,7 +14,7 @@ const {
 
 async function run() {
   const {
-   fs, os, path, zerlege, CODE, TEXT, KOMMENTAR, __dirname, require,
+   fs, os, path, segment, CODE, TEXT, COMMENT, __dirname, require,
    FILTER, group, check, equal, shortRun, call, names
   } = H;
   /* DIESES MODUL BAUT FENSTER. Fehlt jsdom, sagt es das und haelt an. Die
@@ -827,19 +827,19 @@ async function run() {
        steht die Bauform, denn zwei Funktionen, die dasselbe tun, laufen beim
        naechsten Griff auseinander -- und genau das war der Befund.
        GELESEN WIRD DER AUSGELIEFERTE QUELLTEXT und nicht ein Kommentar
-       darueber: `zerlege` trennt Code von Erzaehlung. */
+       darueber: `segment` trennt Code von Erzaehlung. */
     {
       const flDb = fs.readFileSync(path.join(__dirname, 'db.js'), 'utf8');
       const flServer = fs.readFileSync(path.join(__dirname, 'server.js'), 'utf8');
-      /* ALLES AUSSER DEN KOMMENTAREN, und nicht nur CODE: `zerlege` schneidet
+      /* ALLES AUSSER DEN KOMMENTAREN, und nicht nur CODE: `segment` schneidet
          auch die Strings heraus, und `db.function('kkl', …)` traegt
          einen mitten im Ruf -- eine Probe nur auf CODE saehe davon
          `db.function(` und den Rest getrennt. Was hier stoeren wuerde, sind
          allein die Kommentare: sie nennen `searchFold` und `fulltextTerm`
          mehrfach, und ein Waechter, der sich an seinem eigenen Warnschild
          faerbt, belegt nichts (Stolperstein 106). */
-      const withoutTalk = (raw, name) => zerlege(raw, name)
-        .filter(t => t.kind !== KOMMENTAR).map(t => t.wert).join('');
+      const withoutTalk = (raw, name) => segment(raw, name)
+        .filter(t => t.kind !== COMMENT).map(t => t.value).join('');
       const flDbCode = withoutTalk(flDb, 'db.js');
       const flServerCode = withoutTalk(flServer, 'server.js');
       check('Faltungsprobe: die Faltung steht EINMAL, in db.js, und nimmt keine Sprache',

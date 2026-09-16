@@ -2125,11 +2125,11 @@ async function run() {
      Ausfertigung des Bildes und liefe beim ersten Nachschliff auseinander. */
   const kzZ = (...kinds) => kzH(...kinds).replace(/<svg[\s\S]*?<\/svg>/g, '')
                                          .replace(/<[^>]+>/g, '');
-  const leer = wb.commentNumbers(null);
+  const empty = wb.commentNumbers(null);
   check('Bei null Kommentaren bleibt beides ganz leer, wie bei den Links',
-    kz() === '' && kzH() === '' && leer.html === '' && leer.text === ''
+    kz() === '' && kzH() === '' && empty.html === '' && empty.text === ''
       && wb.commentNumbers(undefined).html === '',
-    JSON.stringify([kz(), kzH(), leer]));
+    JSON.stringify([kz(), kzH(), empty]));
   check('Ein einzelner Kommentar steht in der Einzahl',
     kz('note') === '1 Kommentar' && kzZ('note') === '1', `${kz('note')} · ${kzZ('note')}`);
   check('Nur Notizen: es bleibt bei der einen Zahl',
@@ -2217,10 +2217,10 @@ async function run() {
      Farbe. Das Datenfeld ist der Haken, an dem im Stilblatt Zeichen und Farbe
      haengen -- und der Beleg, dass die Bedeutung nicht allein in der Farbe
      steckt. */
-  const kzArten = (...kinds) => [...kzH(...kinds).matchAll(/data-kind="(\w+)"/g)].map(m => m[1]);
+  const kzKinds = (...kinds) => [...kzH(...kinds).matchAll(/data-kind="(\w+)"/g)].map(m => m[1]);
   check('Jede Zahl der Kurzform nennt ihre Art — Bericht, offen, erledigt',
-    kzArten('report', 'task', 'done').join(' ') === 'report task done',
-    kzArten('report', 'task', 'done').join(' ') || 'keine');
+    kzKinds('report', 'task', 'done').join(' ') === 'report task done',
+    kzKinds('report', 'task', 'done').join(' ') || 'keine');
   check('Und jedes Zeichen ist ein SVG und kein Schriftzeichen',
     (kzH('report', 'task', 'done').match(/<svg/g) || []).length === 3,
     `${(kzH('report', 'task', 'done').match(/<svg/g) || []).length} Zeichen`);

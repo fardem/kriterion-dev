@@ -13,7 +13,7 @@ const {
 
 async function run() {
   const {
-   fs, path, attachments, TEXT, KOMMENTAR, __dirname, group, check, equal
+   fs, path, attachments, TEXT, COMMENT, __dirname, group, check, equal
   } = H;
   /* DIESES MODUL BAUT FENSTER. Fehlt jsdom, sagt es das und haelt an. Die
      Zahl der uebersprungenen Pruefungen steht EINMAL im ersten Modul der
@@ -954,14 +954,14 @@ async function run() {
      ein Nachbau ohne Wartezeit koennte sie gar nicht herstellen. Dieselbe
      Wahl wie beim Vokabelraster in 0.25.3 (die Regel statt der Lage). */
   {
-    const naQuelle = fs.readFileSync(path.join(__dirname, 'public', 'app.js'), 'utf8');
-    const naStelle = naQuelle.slice(naQuelle.indexOf('async function renderList()'));
-    const naKopf = naStelle.slice(0, naStelle.indexOf('try { await loadAll(); }'));
+    const naSource = fs.readFileSync(path.join(__dirname, 'public', 'app.js'), 'utf8');
+    const naPlace = naSource.slice(naSource.indexOf('async function renderList()'));
+    const naHead = naPlace.slice(0, naPlace.indexOf('try { await loadAll(); }'));
     /* DER PLATZHALTER STEHT HINTER EINER BEDINGUNG -- und die fragt, ob ueberhaupt
        schon etwas dasteht. Ohne sie waere die Zusage wieder die alte. */
     check('Der Platzhalter wird nur gesetzt, wenn nichts dasteht',
-      /if \(!app\.firstElementChild\)\s*\n\s*app\.innerHTML =/.test(naKopf),
-      naKopf.split('\n').filter(z => /app\.innerHTML|firstElementChild/.test(z))
+      /if \(!app\.firstElementChild\)\s*\n\s*app\.innerHTML =/.test(naHead),
+      naHead.split('\n').filter(z => /app\.innerHTML|firstElementChild/.test(z))
         .map(z => z.trim()).join(' | ') || 'keine Zeile gefunden');
     /* UND ES STEHT KEINE UNBEDINGTE ZUWEISUNG DANEBEN. Die Zusage darueber
        sagt nur, dass EINE bedingte da ist -- eine zweite, unbedingte gleich
@@ -970,7 +970,7 @@ async function run() {
        der erste Entwurf zaehlte den eigenen Erklaertext mit, in dem
        `app.innerHTML` als Zitat des ALTEN Standes vorkommt -- die Zahl war
        dann von etwas abhaengig, das gar nichts tut. */
-    const naCode = naKopf.replace(/\/\*[\s\S]*?\*\//g, '');
+    const naCode = naHead.replace(/\/\*[\s\S]*?\*\//g, '');
     const naZuweisungen = (naCode.match(/app\.innerHTML\s*=/g) || []).length;
     check('Und daneben steht keine zweite, unbedingte Zuweisung',
       naZuweisungen === 1, `${naZuweisungen} Zuweisungen vor dem Fragen`);

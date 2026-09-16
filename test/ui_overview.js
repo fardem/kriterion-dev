@@ -14,7 +14,7 @@ const {
 
 async function run() {
   const {
-   fs, path, zerlege, KOMMENTAR, REGEX, __dirname, require, FILTER, group,
+   fs, path, segment, COMMENT, REGEX, __dirname, require, FILTER, group,
    check, equal, setField, open, names, benchFiles
   } = H;
 
@@ -413,7 +413,7 @@ async function run() {
      ohne die Richtung dahinter auch auf jeder Karte („2 Sitzungen"), und eine
      Zusage ueber den ganzen Text waere damit gruen geblieben, selbst wenn die
      Sortierliste das Vorgabewort zurueckbekaeme. */
-  const sortWorte = [...w2.document.querySelectorAll('#f-sort option')]
+  const sortWords = [...w2.document.querySelectorAll('#f-sort option')]
     .map(o => `${o.value}=${o.textContent}`);
   /* UND SEIT 0.32.0 IST „Note" DORT EIN VOKABELWORT -- Strang 2. Aus „Letzte
      Note" ist „Zuletzt: {grade}" geworden, denn EIN FREIES WORT DULDET KEIN
@@ -424,9 +424,9 @@ async function run() {
      ZUSAMMENGESETZTES Wort, und das darf ein Vokabelwort nie sein --
      Leitplanke L6) ist „Durchschnitt: {grade}" geworden. */
   check('Sortierung nennt Zeitpunkte und die Note artikellos — 0.32.0',
-    sortWorte.includes('tests=Sitzungen') && sortWorte.includes('testlast=Zuletzt: Note')
-    && sortWorte.includes('testavg=Durchschnitt: Note'),
-    JSON.stringify(sortWorte));
+    sortWords.includes('tests=Sitzungen') && sortWords.includes('testlast=Zuletzt: Note')
+    && sortWords.includes('testavg=Durchschnitt: Note'),
+    JSON.stringify(sortWords));
   check('Karte zaehlt Zeitpunkte in der Mehrzahl', textList.includes('2 Sitzungen'));
 
   // Abmelden setzt die Schriftgroesse zurueck
@@ -1265,9 +1265,9 @@ async function run() {
     const axMarkOk = (mark, wanted, missing) => {
       if (wanted === null) return mark === '';
       if (wanted === '') return mark !== '' && AX_ALL_NAMES.every(n => !mark.includes(n));
-      const nennt = [wanted, ...(missing ? [missing] : [])];
-      return nennt.every(n => mark.includes(n)) &&
-        AX_ALL_NAMES.filter(n => !nennt.includes(n)).every(n => !mark.includes(n));
+      const named = [wanted, ...(missing ? [missing] : [])];
+      return named.every(n => mark.includes(n)) &&
+        AX_ALL_NAMES.filter(n => !named.includes(n)).every(n => !mark.includes(n));
     };
 
     /* ---- DIE NEUN ZELLEN, MIT DEM SOLLWERT DIESER RUNDE ---------------
@@ -1572,13 +1572,13 @@ async function run() {
       const wAn = anDom.w;
       await new Promise(r => setTimeout(r, 80));
       await sysSection(wAn, 'installation');
-      const anNote = () => {
+      const anHint = () => {
         const box = wAn.document.getElementById('langs');
-        const note = box && box.querySelector('.langnote');
-        return note ? (note.textContent || '').trim() : '';
+        const hint = box && box.querySelector('.langnote');
+        return hint ? (hint.textContent || '').trim() : '';
       };
       check('Ansageprobe: mit der deutschen Vorgabe steht schon eine Ansage da',
-        anNote().includes('Deutsch') && /14/.test(anNote()), JSON.stringify(anNote()));
+        anHint().includes('Deutsch') && /14/.test(anHint()), JSON.stringify(anHint()));
       await axSetDefault(wAn, 'tr');
       /* NACH DEM WECHSEL: Tuerkisch fehlen vier Namen (die Zeile 21 in beiden
          Kriterienkarten und die Kategorie 21 -- alles, was nur deutsch da ist)
@@ -1587,8 +1587,8 @@ async function run() {
          neuen Vorgabe auf einer alten Tafel (Befund E3 der Runde 0.24.6, an
          einer neuen Stelle). */
       check('Und nach dem Wechsel nennt sie die neue Vorgabesprache und beide Zahlen',
-        anNote().includes('Türkçe') && /4/.test(anNote()) && /15/.test(anNote()),
-        JSON.stringify(anNote()));
+        anHint().includes('Türkçe') && /4/.test(anHint()) && /15/.test(anHint()),
+        JSON.stringify(anHint()));
       wAn.close();
     }
     /* UND SIE STEHT NICHT DA, WENN NICHTS FEHLT. Ein Satz, der immer dasteht,
@@ -1813,9 +1813,9 @@ async function run() {
       await axPress(wKz, 'mpcrits-lang', 'Türkçe');
       const kzVorP = axMarks(wKz, 'mpcrits-lang');
       const kzVorB = axMarks(wKz, 'mcrits-lang');
-      const kzNeun = [...wKz.document.querySelectorAll('#mpcrits .mrow')]
+      const kzNine = [...wKz.document.querySelectorAll('#mpcrits .mrow')]
         .find(z => Number(z.dataset.mid) === 9);
-      const kzX = kzNeun && kzNeun.querySelector('.mact.nx');
+      const kzX = kzNine && kzNine.querySelector('.mact.nx');
       /* MIT RUECKFRAGE, wie jeder Griff, der etwas wegnimmt (F5). Ohne den
          Beobachter bliebe der Dialog stehen und der Rumpf ginge nie hinaus. */
       const kzWatch = placeConfirm(wKz, true, []);
@@ -1934,15 +1934,15 @@ async function run() {
       /* WELCHE PILLE IN EINER REIHE ANSTEHT -- gebraucht wird es zweimal: als
          Beleg, dass der Leser wirklich Tuerkisch liest, und unten fuer den
          Gleichlauf der vier Reihen. */
-      const alReihe = (boxId) => axPills(wAl, boxId)
+      const alRow = (boxId) => axPills(wAl, boxId)
         .filter(b => b.classList.contains('on')).map(b => pillName(b)).join(',');
-      const alAlle = () => ['ncatlang', 'mcrits-lang', 'mpcrits-lang', 'vlang']
-        .map(id => `${id}=${alReihe(id)}`).join(' ');
+      const alAll = () => ['ncatlang', 'mcrits-lang', 'mpcrits-lang', 'vlang']
+        .map(id => `${id}=${alRow(id)}`).join(' ');
       /* DER AUFBAU ZUERST, und er ist hier mehr als eine Hoeflichkeit: ohne
          einen Leser, der ANDERS liest als die Zeilen angelegt sind, stempelt
          der Server gar nicht — und die ganze Gruppe belegte nichts. */
       check('Aufbau: die Karte öffnet in der Sprache des Lesers — Türkçe',
-        alReihe('ncatlang') === 'Türkçe', `es steht an: ${alAlle()}`);
+        alRow('ncatlang') === 'Türkçe', `es steht an: ${alAll()}`);
       /* UND DER SERVER HAT WIRKLICH GESTEMPELT. Der Nachbau antwortet wie der
          echte (`withNames`): fuer einen tuerkischen Leser faellt 31 und 32 auf
          Deutsch zurueck, 33 nicht. Ohne diese Zeile bliebe die Gruppe darunter
@@ -2007,20 +2007,20 @@ async function run() {
       await axPress(wAl, 'ncatlang', 'Deutsch');
       check('Gleichlaufprobe: ein Klick an der Kategorienkachel zieht alle vier Reihen mit',
         ['ncatlang', 'mcrits-lang', 'mpcrits-lang', 'vlang']
-          .every(id => alReihe(id) === 'Deutsch'), alAlle());
+          .every(id => alRow(id) === 'Deutsch'), alAll());
       /* UND ANDERSHERUM — das war die Richtung, die nicht ging. */
       await axPress(wAl, 'vlang', 'English');
       check('Und andersherum: ein Klick an der Vokabelkachel zieht die drei Namenskarten mit',
         ['ncatlang', 'mcrits-lang', 'mpcrits-lang', 'vlang']
-          .every(id => alReihe(id) === 'English'), alAlle());
+          .every(id => alRow(id) === 'English'), alAll());
       wAl.close();
 
       /* UND ES GIBT WIRKLICH NUR EINE ANGABE. Zwei, die zufaellig gleich
          laufen, sind kein Gleichlauf — sie sind zwei, die noch nicht
          auseinandergelaufen sind (Stolperstein 47). */
-      const alQuelle = fs.readFileSync(path.join(__dirname, 'public', 'app.js'), 'utf8');
+      const alSource = fs.readFileSync(path.join(__dirname, 'public', 'app.js'), 'utf8');
       check('Und es gibt nur EINE Angabe dafür — VOCABULARY_SHOWN ist weg',
-        !/VOCABULARY_SHOWN\s*=/.test(alQuelle) && !/vocabularyLanguage\s*\(/.test(alQuelle),
+        !/VOCABULARY_SHOWN\s*=/.test(alSource) && !/vocabularyLanguage\s*\(/.test(alSource),
         'im Quelltext steht noch eine zweite Angabe');
     }
     /* ================= „Backup" heisst auf Tuerkisch yedekleme — 0.25.1 ===
@@ -2107,10 +2107,10 @@ async function run() {
          wertlos. */
       const trGuardBad = [];
       for (const file of [...benchFiles(), 'counterproof.js'])
-        for (const part of zerlege(fs.readFileSync(path.join(__dirname, file), 'utf8'), file)) {
-          if (part.kind !== REGEX || !part.wert.includes('\\b')) continue;
-          const low = part.wert.toLowerCase();
-          if (TR_GUARD_WORDS.some(w => low.includes(w))) trGuardBad.push(`${file}: ${part.wert}`);
+        for (const part of segment(fs.readFileSync(path.join(__dirname, file), 'utf8'), file)) {
+          if (part.kind !== REGEX || !part.value.includes('\\b')) continue;
+          const low = part.value.toLowerCase();
+          if (TR_GUARD_WORDS.some(w => low.includes(w))) trGuardBad.push(`${file}: ${part.value}`);
         }
       /* EINE AUSNAHME, UND SIE IST DER BEWEIS SELBST. `/\bŞey\b/` steht in der
          Zeile, die ZEIGT, dass die Wortgrenze versagt -- sie prueft
@@ -2156,38 +2156,38 @@ async function run() {
        Farbe). Die Messung selbst steht als Augenschein im Protokoll. */
     group('Zwei Felder in einer Zeile stehen auf einer Linie — 0.25.3');
     {
-      const vzRoh = fs.readFileSync(path.join(__dirname, 'public', 'style.css'), 'utf8');
+      const vzRaw = fs.readFileSync(path.join(__dirname, 'public', 'style.css'), 'utf8');
       /* DER RUMPF EINER REGEL, am Zeilenanfang verankert: `.field` steht auch
          INNERHALB von `.vocabulary-grid .field`, und ohne Anker faende die
          Suche nach der allgemeinen Regel die besondere. */
-      const vzRegel = (wahl) => {
-        const m = vzRoh.match(new RegExp(
-          '^' + wahl.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\s*\\{([^}]*)\\}', 'm'));
+      const vzRule = (vzChoice) => {
+        const m = vzRaw.match(new RegExp(
+          '^' + vzChoice.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\s*\\{([^}]*)\\}', 'm'));
         return m ? m[1].replace(/\s+/g, ' ').trim() : null;
       };
-      const vzFeld = vzRegel('.vocabulary-grid .field');
-      const vzEingabe = vzRegel('.vocabulary-grid .field .input');
-      const vzAllgemein = vzRegel('.field');
+      const vzField = vzRule('.vocabulary-grid .field');
+      const vzInput = vzRule('.vocabulary-grid .field .input');
+      const vzAllgemein = vzRule('.field');
       /* DER AUFBAU ZUERST: ohne die drei Regeln prueft alles darunter nichts,
          und ein Tippfehler im Suchtext saehe aus wie ein Befund. */
       check('Aufbau: das Stilblatt kennt beide Regeln des Vokabelrasters',
-        vzFeld !== null && vzEingabe !== null && vzAllgemein !== null,
-        `Feld=${vzFeld} · Eingabe=${vzEingabe} · allgemein=${vzAllgemein}`);
+        vzField !== null && vzInput !== null && vzAllgemein !== null,
+        `Feld=${vzField} · Eingabe=${vzInput} · allgemein=${vzAllgemein}`);
       /* DER KASTEN IST EINE SPALTE. Ohne ihn gibt es keine Unterkante, an die
          sich etwas druecken liesse. */
       check('Das Feld einer Vokabelzeile ist eine Spalte',
-        !!vzFeld && /display:\s*flex/.test(vzFeld) && /flex-direction:\s*column/.test(vzFeld),
-        String(vzFeld));
+        !!vzField && /display:\s*flex/.test(vzField) && /flex-direction:\s*column/.test(vzField),
+        String(vzField));
       /* UND DAS EINGABEFELD HAENGT AN DER UNTERKANTE. Das ist die Zeile, die
          beide Felder einer Zeile auf dieselbe Linie bringt: das Raster macht
          die Kaesten gleich hoch, `margin-top: auto` schiebt den Eintrag ans
          untere Ende. */
       check('Und das Eingabefeld hängt an der Unterkante',
-        !!vzEingabe && /margin-top:\s*auto/.test(vzEingabe), String(vzEingabe));
+        !!vzInput && /margin-top:\s*auto/.test(vzInput), String(vzInput));
       /* UND KEINE FESTE HOEHE AN DER BESCHRIFTUNG. Sie muesste die laengste
          Beschriftung ALLER Sprachen kennen und waere mit der naechsten Sprache
          wieder falsch -- genau die Bauform, die dieser Befund verbietet. */
-      const vzLabel = vzRegel('.vocabulary-grid .field label') || '';
+      const vzLabel = vzRule('.vocabulary-grid .field label') || '';
       check('Und die Beschriftung bekommt keine feste Höhe',
         !/(min-)?height:/.test(vzLabel), vzLabel || '(keine eigene Regel)');
       /* UND DIE REGEL GILT NUR DORT. Dieselbe Klasse traegt jedes Anmeldefeld
@@ -2213,34 +2213,34 @@ async function run() {
        ist -- im Deutschen ein Woertchen, im Tuerkischen ein Verb. */
     group('Ein Satz, den jede Sprache selbst schneidet — 0.25.4');
     {
-      const vsDateien = {};
+      const vsFiles = {};
       for (const code of ['de', 'en', 'tr'])
-        vsDateien[code] = JSON.parse(fs.readFileSync(
+        vsFiles[code] = JSON.parse(fs.readFileSync(
           path.join(__dirname, 'public', 'languages', `${code}.json`), 'utf8'));
-      const vsSaetze = ['login.linkUnaffected', 'login.linkUnaffectedRetry'];
+      const vsSentences = ['login.linkUnaffected', 'login.linkUnaffectedRetry'];
       /* JEDER SATZ IST EINER, und er traegt genau EINEN Platzhalter. Zwei
          waeren wieder eine Zusammensetzung, keiner waere keine Hervorhebung. */
-      const vsFalsch = [];
-      for (const [code, datei] of Object.entries(vsDateien))
-        for (const k of vsSaetze) {
-          const wert = datei[k];
-          const platz = (String(wert).match(/\{\w+\}/g) || []);
-          if (typeof wert !== 'string' || platz.length !== 1 || platz[0] !== '{word}')
-            vsFalsch.push(`${code}/${k}: ${JSON.stringify(wert)}`);
+      const vsWrong = [];
+      for (const [code, langFile] of Object.entries(vsFiles))
+        for (const k of vsSentences) {
+          const value = langFile[k];
+          const platz = (String(value).match(/\{\w+\}/g) || []);
+          if (typeof value !== 'string' || platz.length !== 1 || platz[0] !== '{word}')
+            vsWrong.push(`${code}/${k}: ${JSON.stringify(value)}`);
         }
       check('Jede Sprache trägt EINEN Satz mit genau einem hervorgehobenen Stück',
-        vsFalsch.length === 0, vsFalsch.join(' · ') || 'alle sechs');
+        vsWrong.length === 0, vsWrong.join(' · ') || 'alle sechs');
       /* UND DAS STUECK STEHT DA UND IST NICHT LEER. Ein leeres Stueck waere
          eine Hervorhebung um nichts. */
-      const vsLeer = Object.entries(vsDateien)
+      const vsEmpty = Object.entries(vsFiles)
         .filter(([, d]) => !d['login.linkUnaffectedWord']).map(([c]) => c);
       check('Und das hervorgehobene Stück steht in jeder Sprache da',
-        vsLeer.length === 0, vsLeer.join(' ') || 'alle drei');
+        vsEmpty.length === 0, vsEmpty.join(' ') || 'alle drei');
       /* UND IM TUERKISCHEN IST ES DAS VERB. Das ist der ganze Befund in einer
          Zeile: „değil" allein ist keine Verneinung, „etkilenmez" ist eine.
          Ohne diese Zusage koennte jemand den Satz wieder um ein freistehendes
          Woertchen herum bauen, und niemand saehe es. */
-      const vsTr = vsDateien.tr;
+      const vsTr = vsFiles.tr;
       check('Und im Türkischen ist es das VERB — nicht ein Wörtchen davor',
         vsTr['login.linkUnaffectedWord'] === 'etkilenmez' &&
         !/\bdeğil\b/.test(vsTr['login.linkUnaffected']) &&
@@ -2249,7 +2249,7 @@ async function run() {
       /* UND DIE ALTE ZUSAMMENSETZUNG GIBT ES IM QUELLTEXT NICHT MEHR. Die
          Schluessel sind weg (das steht weiter oben); hier geht es um den
          RUF, der sie zusammensetzte. */
-      const vsQuelle = fs.readFileSync(path.join(__dirname, 'public', 'app.js'), 'utf8');
+      const vsSource = fs.readFileSync(path.join(__dirname, 'public', 'app.js'), 'utf8');
       /* AN DER WORTGRENZE GESUCHT UND NICHT IRGENDWO: `weightMark(` traegt
          die Zeichenfolge „tMark(" mitten im Namen, und der erste Entwurf
          zaehlte die beiden Gewichtsstellen mit -- vier statt zwei. Eine Zahl,
@@ -2263,53 +2263,53 @@ async function run() {
          der stille Fehlschluss aus Stolperstein 81.
          GEPRUEFT WIRD JETZT DER GEGENSTAND SELBST: die beiden Rufe DIESER
          Runde stehen namentlich da, und die alte Zusammensetzung nicht. */
-      const vsEigene = ["tMark('login.linkUnaffected', 'login.linkUnaffectedWord')",
+      const vsOwn = ["tMark('login.linkUnaffected', 'login.linkUnaffectedWord')",
                         "tMark('login.linkUnaffectedRetry', 'login.linkUnaffectedWord')"];
-      const vsFehlt = vsEigene.filter(r => !vsQuelle.includes(r));
+      const vsMissing = vsOwn.filter(r => !vsSource.includes(r));
       check('Und der Ruf, der drei Stücke zusammensetzte, ist weg',
-        !/login\.yourLinkAffected|login\.not'/.test(vsQuelle) && vsFehlt.length === 0,
-        vsFehlt.length ? `fehlt: ${vsFehlt.join(' · ')}` : 'beide Rufe stehen namentlich');
+        !/login\.yourLinkAffected|login\.not'/.test(vsSource) && vsMissing.length === 0,
+        vsMissing.length ? `fehlt: ${vsMissing.join(' · ')}` : 'beide Rufe stehen namentlich');
 
       /* ---- DAS ANFUEHRUNGSZEICHEN, DAS NIE GESCHLOSSEN WURDE ------------
          `entry.tagQuote` geht unveraendert in ein `title`; am Bildschirm
          stand „Tag „Werkzeug" -- in ALLEN DREI Dateien. */
-      const vsOffen = Object.entries(vsDateien).filter(([, d]) => {
+      const vsOpen = Object.entries(vsFiles).filter(([, d]) => {
         const v = String(d['entry.tagQuote'] || '');
         return (v.match(/[„“”]/g) || []).length !== 2;
       }).map(([c, d]) => `${c}: ${JSON.stringify(d['entry.tagQuote'])}`);
       check('Das Anführungszeichen am Tagzeichen wird in jeder Sprache geschlossen',
-        vsOffen.length === 0, vsOffen.join(' · ') || 'alle drei geschlossen');
+        vsOpen.length === 0, vsOpen.join(' · ') || 'alle drei geschlossen');
 
       /* ---- DIE ZWEI MEHRZAHLFORMEN, DIE NIE EINE WAREN ------------------
          Die Form waehlt `PLURAL.select(values.n)` und NUR ueber `n`. Beide
          Saetze reichten `{days}` beziehungsweise `{minutes}` -- damit kam
          immer `select(undefined)` heraus, und das ist die MEHRZAHL.
          „in 1 Tagen" stand sieben Runden lang da. */
-      const vsZaehl = ['card.inDays', 'login.linkValidMinutes'];
-      const vsOhneN = [];
-      for (const [code, datei] of Object.entries(vsDateien))
-        for (const k of vsZaehl) {
-          const wert = datei[k];
-          if (!wert || typeof wert !== 'object' || wert.one === undefined || wert.other === undefined)
-            { vsOhneN.push(`${code}/${k}: keine zwei Formen`); continue; }
-          if (!/\{n\}/.test(wert.one) || !/\{n\}/.test(wert.other))
-            vsOhneN.push(`${code}/${k}: kein {n}`);
+      const vsCount = ['card.inDays', 'login.linkValidMinutes'];
+      const vsWithoutN = [];
+      for (const [code, langFile] of Object.entries(vsFiles))
+        for (const k of vsCount) {
+          const value = langFile[k];
+          if (!value || typeof value !== 'object' || value.one === undefined || value.other === undefined)
+            { vsWithoutN.push(`${code}/${k}: keine zwei Formen`); continue; }
+          if (!/\{n\}/.test(value.one) || !/\{n\}/.test(value.other))
+            vsWithoutN.push(`${code}/${k}: kein {n}`);
         }
       check('Die zwei Zählsätze tragen zwei Formen — und den Zählwert, der sie wählt',
-        vsOhneN.length === 0, vsOhneN.join(' · ') || 'beide in allen drei');
+        vsWithoutN.length === 0, vsWithoutN.join(' · ') || 'beide in allen drei');
       /* UND IM DEUTSCHEN SIND ES WIRKLICH ZWEI VERSCHIEDENE. Ein Paar mit
          zweimal demselben Wort waere im Deutschen ein Fehler -- im
          Tuerkischen ist es richtig (TR-S4, Punkt 19), und genau deshalb steht
          hier `de` und nicht „alle drei". */
       check('Und im Deutschen unterscheiden sich die beiden Formen wirklich',
-        vsZaehl.every(k => vsDateien.de[k].one !== vsDateien.de[k].other),
-        vsZaehl.map(k => `${k}: ${JSON.stringify(vsDateien.de[k])}`).join(' · '));
+        vsCount.every(k => vsFiles.de[k].one !== vsFiles.de[k].other),
+        vsCount.map(k => `${k}: ${JSON.stringify(vsFiles.de[k])}`).join(' · '));
       /* UND IM TUERKISCHEN SIND SIE GLEICH, und das ist keine Nachlaessigkeit,
          sondern die Entscheidung des Betreibers vom 8. September 2026: nach
          einer Zahl bleibt das Substantiv im Singular. */
       check('Und im Türkischen sind sie gleich — nach einer Zahl bleibt der Singular',
-        vsZaehl.every(k => vsDateien.tr[k].one === vsDateien.tr[k].other),
-        vsZaehl.map(k => `${k}: ${JSON.stringify(vsDateien.tr[k])}`).join(' · '));
+        vsCount.every(k => vsFiles.tr[k].one === vsFiles.tr[k].other),
+        vsCount.map(k => `${k}: ${JSON.stringify(vsFiles.tr[k])}`).join(' · '));
       /* UND DIE ANDERE HAELFTE DERSELBEN REPARATUR: DER ZAEHLWERT WIRD
          GEREICHT. Zwei Formen in der Datei nuetzen nichts, wenn die Stelle
          weiter `{days}` reicht -- `PLURAL.select(values.n)` bekaeme wieder
@@ -2325,10 +2325,10 @@ async function run() {
          alte Form festschriebe, haette eine Zusage, die am Umbau ihrer
          Umgebung zerbricht und nicht an ihrem eigenen Gegenstand
          (Stolperstein 201). */
-      const vsGereicht = (vsQuelle.match(
+      const vsPassed = (vsSource.match(
         /(?:card\.inDays|login\.linkValidMinutes)',\s*\{\s*n:/g) || []).length;
       check('Und beide Stellen reichen den Zählwert unter dem Namen n',
-        vsGereicht === 2, `${vsGereicht} von 2`);
+        vsPassed === 2, `${vsPassed} von 2`);
     }
   }
 

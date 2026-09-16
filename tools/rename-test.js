@@ -3,7 +3,7 @@
    Werkzeug den Fall richtig macht, dann, dass die Probe den falschen Fall
    FAENGT. Eine stumme Gegenprobe ist ein Fund. */
 const { ersetzeIdent, ersetzeString, ersetzeInString } = require('./rename.js');
-const { zerlege, zusammen, texte } = require('./segments.js');
+const { segment, joined, texts } = require('./segments.js');
 
 let ok = 0, fehler = [];
 const ist = (name, a, b) => { if (a === b) ok++; else fehler.push(`${name}\n    erwartet: ${JSON.stringify(b)}\n    bekommen: ${JSON.stringify(a)}`); };
@@ -84,12 +84,12 @@ wirft('die Probe schlaegt, wenn ein Text dazukommt',
 wirft('die Probe faengt das Suchen-und-Ersetzen ueber die ganze Datei', () => {
   const src = "const t = 1; const el = document.getElementById('sw-test-t');";
   const falsch = src.replace(/\bt\b/g, 'translate');
-  probeGleich(texte(zerlege(src, 'p.js')), texte(zerlege(falsch, 'p.js')), 'Zeichenketten', 'p.js');
+  probeGleich(texts(segment(src, 'p.js')), texts(segment(falsch, 'p.js')), 'Zeichenketten', 'p.js');
 });
 
 // 15. Die Zerlegung ist verlustfrei
 for (const s of ['const a = `x${`y${z}`}w`;', "const r = /[/]/g;", 'a /= 2; // /nicht/', "x = 'a\\'b';"]) {
-  ist('verlustfrei: ' + s, zusammen(zerlege(s, 'p.js')), s);
+  ist('verlustfrei: ' + s, joined(segment(s, 'p.js')), s);
 }
 
 console.log(`${ok} Proben bestanden`);

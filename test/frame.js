@@ -75,7 +75,7 @@ const sharp = require('sharp');
    Kommentar ist keine Benennung, und ein Weg in einer Erzaehlung ist keine
    Adresse. Er ist WERKZEUG und wird nicht ausgeliefert -- deshalb steht er
    hier und nicht in einer Serverdatei. */
-const { zerlege, CODE, TEXT, KOMMENTAR, REGEX } = require('./tools/segments.js');
+const { segment, CODE, TEXT, COMMENT, REGEX } = require('./tools/segments.js');
 
 /* DIE FRISTEN, MIT DENEN DIE SERVER DIESES LAUFS WIRKLICH RECHNEN -- 0.30.0.
    GELESEN AUS mail.js SELBST und nicht danebengeschrieben: die Prueflagen des
@@ -183,7 +183,7 @@ let silent = false;
    und die Regel des gefilterten Laufs waere an ihrer eigenen Schlusstafel
    gebrochen. */
 const TIMES = [];
-const TIME_EACH = process.env.TESTBENCH_ZEIT === '1';
+const TIME_EACH = process.env.TESTBENCH_TIME === '1';
 const RUN_START = Date.now();
 let timeName = '', timeStart = 0, timeSilent = false;
 /* SCHLIESST DIE LAUFENDE GRUPPE UND MERKT IHRE ZEIT. Gerufen wird sie von
@@ -286,7 +286,7 @@ function endBlock() {
 }
 const returnValue = () => (failed || (FILTER && !groupsShown)) ? 1 : 0;
 const equal = (a, b) => JSON.stringify(a) === JSON.stringify(b);
-/* SETZT EIN FELD UND SAGT, OB ES DA WAR. `field?.value = wert` gibt es nicht --
+/* SETZT EIN FELD UND SAGT, OB ES DA WAR. `field?.value = value` gibt es nicht --
    optional chaining kann kein Zuweisungsziel sein, und genau deshalb standen
    diese Zeilen ungeschuetzt da.
    OHNE DIESEN HELFER REISST EIN RUECKBAU, DER EIN FELD WEGNIMMT, DEN GANZEN
@@ -988,7 +988,7 @@ function addCounters(z) {
    trotzdem als uebergangen, sonst behauptete der Schlussblock eines Teillaufs,
    es gaebe nur die Gruppen der gestarteten Module. */
 let skippedGroupCount = 0;
-function addSkippedGroups(zahl) { groupsStill += zahl; skippedGroupCount++; }
+function addSkippedGroups(count) { groupsStill += count; skippedGroupCount++; }
 /* WIE VIELE MODULE DIESER LAUF AUSGELASSEN HAT. Der Treiber fragt danach:
    zwei seiner Gruppen rechnen ueber ALLE Module und koennen in einem Teillauf
    nichts belegen. */
@@ -998,10 +998,10 @@ const skippedModules = () => skippedGroupCount;
    Meldung wird geschrieben, das Wegwerfverzeichnis entfernt, der Rueckgabewert
    folgt dem Gezeigten. Bricht das Modul ab, geht die Ursache mit -- dieselbe
    Kette wie im Treiber, denn ein `cause` kann selbst eines tragen. */
-async function moduleRun(lauf, name) {
+async function moduleRun(run, name) {
   let abort = '';
   try {
-    await lauf();
+    await run();
   } catch (e) {
     const chain = [];
     for (let z = e, step = 0; z && step < 5; z = z.cause, step++)
@@ -1029,19 +1029,19 @@ async function moduleRun(lauf, name) {
    dasselbe tun wie der Treiber mit diesem einen Modul -- sonst waere das
    Verzeichnis eine Ablage und kein Weg. Ohne Treiber steht auch der
    Schlussblock, sonst endete der Lauf ohne Zahl. */
-function standalone(lauf, datei) {
-  const name = nodePath.basename(datei, '.js');
+function standalone(run, moduleFile) {
+  const name = nodePath.basename(moduleFile, '.js');
   if (!REPORT_PATH) {
-    const own = async () => { await lauf(); endBlock(); };
+    const own = async () => { await run(); endBlock(); };
     return moduleRun(own, name);
   }
-  return moduleRun(lauf, name);
+  return moduleRun(run, name);
 }
 
 return {
   /* die geladenen Sachen, damit ein Modul sie nicht noch einmal laedt */
   fs, os, path, crypto, spawn, spawnSync, execFileSync, Worker, Database,
-  attachments, sharp, zerlege, CODE, TEXT, KOMMENTAR, REGEX, vm,
+  attachments, sharp, segment, CODE, TEXT, COMMENT, REGEX, vm,
   MAIL_TIMES, BASE_SOURCE, BASE_SCRIPT, RUN_KEYS, BRAKE_STEP,
   SCRYPT_SHIPPED, RUN_SCRYPT, readmeFlat,
   __dirname, require,

@@ -452,9 +452,9 @@ async function check0311() {
     };
 
     const dsFirst = (v) => String(typeof v === 'string' ? v : Object.values(v)[0]).trim();
-    const dsAusnahme = new Set([...Object.keys(DS_JOINED), ...Object.keys(DS_STANDALONE)]);
+    const dsException = new Set([...Object.keys(DS_JOINED), ...Object.keys(DS_STANDALONE)]);
     const dsFragmentStart = Object.entries(dsFiles.de)
-      .filter(([k]) => !k.startsWith('_') && !dsWordKeys.has(k) && !dsAusnahme.has(k))
+      .filter(([k]) => !k.startsWith('_') && !dsWordKeys.has(k) && !dsException.has(k))
       .filter(([, v]) => /^[.,;:—–)“”]/.test(dsFirst(v)));
     check('Kein deutscher Wert faengt mit einem Satzzeichen an — ausser den benannten',
       dsFragmentStart.length === 0,
@@ -469,9 +469,9 @@ async function check0311() {
       const zweige = eltern === undefined ? []
         : (typeof eltern === 'string' ? [eltern] : Object.values(eltern));
       if (!zweige.length || !zweige.every(v => v.includes(`{${slot}}`))) { dsLoose.push(`${k}: ${parent} ohne {${slot}}`); continue; }
-      const ab = dsCode.indexOf(`${Q}${parent}${Q}`);
-      const ruf = ab < 0 ? '' : dsCode.slice(ab, ab + 400);
-      if (!ruf.includes(`${slot}:`) || !ruf.includes(`${Q}${k}${Q}`)) dsLoose.push(`${k}: nicht an ${parent}.${slot} gesetzt`);
+      const from = dsCode.indexOf(`${Q}${parent}${Q}`);
+      const callText = from < 0 ? '' : dsCode.slice(from, from + 400);
+      if (!callText.includes(`${slot}:`) || !callText.includes(`${Q}${k}${Q}`)) dsLoose.push(`${k}: nicht an ${parent}.${slot} gesetzt`);
     }
     check('Und jedes Anschlussstueck haengt wirklich an seinem Satz',
       dsLoose.length === 0, dsLoose.join(' · ') || `alle ${Object.keys(DS_JOINED).length}`);
@@ -479,10 +479,10 @@ async function check0311() {
     /* UND KEINE AUSNAHME STEHT UMSONST DA. Ein Eintrag, dessen Wert kein
        Satzzeichen mehr traegt oder den niemand mehr ruft, ist eine Erinnerung
        und keine Ausnahme -- er faellt hier auf. */
-    const dsStale = [...dsAusnahme].filter(k => !(k in dsFiles.de))
-      .concat([...dsAusnahme].filter(k => k in dsFiles.de && !dsCode.includes(`${Q}${k}${Q}`)));
+    const dsStale = [...dsException].filter(k => !(k in dsFiles.de))
+      .concat([...dsException].filter(k => k in dsFiles.de && !dsCode.includes(`${Q}${k}${Q}`)));
     check('Und keine Ausnahme steht umsonst in der Tafel',
-      dsStale.length === 0, dsStale.join(' ') || `${dsAusnahme.size} benannt`);
+      dsStale.length === 0, dsStale.join(' ') || `${dsException.size} benannt`);
 
     /* DIE DRITTE SORTE: DAS BLOSSE FUELLWORT. Ein Schluessel, dessen ganzer
        Wert ein Funktionswort ist, traegt keine Aussage -- er traegt ein
@@ -496,7 +496,7 @@ async function check0311() {
       'einem', 'einer', 'nicht', 'kein', 'keine', 'auch', 'noch', 'dann', 'so', 'als',
       'wie', 'bis', 'je', 'nur', 'schon', 'gleich', 'frei', 'mehr', 'weniger']);
     const dsFiller = Object.entries(dsFiles.de)
-      .filter(([k]) => !k.startsWith('_') && !dsWordKeys.has(k) && !dsAusnahme.has(k))
+      .filter(([k]) => !k.startsWith('_') && !dsWordKeys.has(k) && !dsException.has(k))
       .filter(([, v]) => (typeof v === 'string' ? [v] : Object.values(v))
         .some(x => DS_FUNCTION_WORDS.has(String(x).trim().replace(/[.,;:!?]$/, '').toLowerCase())));
     check('Kein deutscher Wert ist ein blosses Fuellwort',
@@ -1161,11 +1161,11 @@ async function check0312() {
     /* UND SIE SAGT, WAS SIE IST UND WOHER SIE KOMMT. Eine Datei mit 1197
        Zeilen und ohne einen Satz darueber wird beim naechsten Handgriff von
        Hand gepflegt -- und dann ist sie eine zweite Wahrheit. Dieselbe Bauform
-       wie bei der deutschen Wortlautprobe (`_hinweis` in
+       wie bei der deutschen Wortlautprobe (`_about` in
        tools/wording-0681d42.json). */
     check('Und sie nennt ihre Runde und ihr Werkzeug',
-      egFile.round === '0.31.2' && /englischstand\.js/.test(String(egFile._hinweis)),
-      `${egFile.round} · ${String(egFile._hinweis || '').slice(0, 60)}`);
+      egFile.round === '0.31.2' && /englischstand\.js/.test(String(egFile._about)),
+      `${egFile.round} · ${String(egFile._about || '').slice(0, 60)}`);
     check('Und das Werkzeug, das sie schreibt, liegt daneben',
       fs.existsSync(path.join(__dirname, 'tools', 'englischstand.js')),
       'tools/englischstand.js');
@@ -1788,8 +1788,8 @@ async function check0313() {
       ? JSON.parse(fs.readFileSync(tgPrintFile, 'utf8')) : {};
     const tgPrint = tgFile.values || {};
     check('Und sie nennt ihre Runde und ihr Werkzeug',
-      tgFile.round === '0.31.3' && /tuerkischstand\.js/.test(String(tgFile._hinweis)),
-      `${tgFile.round} · ${String(tgFile._hinweis || '').slice(0, 60)}`);
+      tgFile.round === '0.31.3' && /tuerkischstand\.js/.test(String(tgFile._about)),
+      `${tgFile.round} · ${String(tgFile._about || '').slice(0, 60)}`);
     check('Und das Werkzeug, das sie schreibt, liegt daneben',
       fs.existsSync(path.join(__dirname, 'tools', 'tuerkischstand.js')),
       'tools/tuerkischstand.js');

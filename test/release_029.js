@@ -9,7 +9,7 @@ const H = require('./frame.js');
 
 async function run() {
   const {
-   fs, os, path, crypto, CODE, KOMMENTAR, __dirname, require, group, check,
+   fs, os, path, crypto, CODE, COMMENT, __dirname, require, group, check,
    equal, PASSWORD, open, shortRun, shortRunAll, call, names
   } = H;
   /* Dieses Modul ruft den Hauptserver. Es startet ihn fuer sich --
@@ -60,9 +60,9 @@ async function check0290() {
        Zweck: der Handgriff in der README liefert dieselben acht Zeichen. Ohne
        diese Zusage koennte die Karte irgendetwas Achtstelliges zeigen. */
     const fpWrong = fpFiles.filter(z => {
-      const soll = crypto.createHash('sha256')
+      const expected = crypto.createHash('sha256')
         .update(fs.readFileSync(path.join(__dirname, z.name))).digest('hex').slice(0, 8);
-      return soll !== z.hash;
+      return expected !== z.hash;
     });
     check('Jeder Einzelwert ist der sha256 seiner Datei, acht Zeichen',
       fpWrong.length === 0 && fpFiles.every(z => /^[0-9a-f]{8}$/.test(z.hash)),
@@ -98,22 +98,22 @@ async function check0290() {
   group('Das Faelligkeitsdatum — 0.29.0');
   {
     const dueItem = (await call('POST', '/api/items', { title: 'Faelligkeit' })).content;
-    const heute = (() => {
+    const today = (() => {
       const d = new Date(); const z = (n) => String(n).padStart(2, '0');
       return `${d.getFullYear()}-${z(d.getMonth() + 1)}-${z(d.getDate())}`;
     })();
-    const tag = (versatz) => {
-      const d = new Date(); d.setDate(d.getDate() + versatz);
+    const tag = (offset) => {
+      const d = new Date(); d.setDate(d.getDate() + offset);
       const z = (n) => String(n).padStart(2, '0');
       return `${d.getFullYear()}-${z(d.getMonth() + 1)}-${z(d.getDate())}`;
     };
     const dueAdd = (text, due) => call('POST', `/api/items/${dueItem.id}/comments`,
       { text, kind: 'task', ...(due === null ? {} : { dueDate: due }) });
 
-    const dueGood = await dueAdd('mit Datum', heute);
+    const dueGood = await dueAdd('mit Datum', today);
     check('Eine Aufgabe nimmt ein Datum an',
       dueGood.status === 201 &&
-      (dueGood.content?.comments || []).some(c => c.dueDate === heute),
+      (dueGood.content?.comments || []).some(c => c.dueDate === today),
       JSON.stringify((dueGood.content?.comments || []).map(c => c.dueDate)));
     /* EINE AUFGABE OHNE DATUM VERHAELT SICH WIE VORHER -- die Zusage, die
        belegt, dass das Feld FREIWILLIG ist. Gegenprobe waere eine Vorgabe:
@@ -133,11 +133,11 @@ async function check0290() {
       `${dueBad.status} / ${dueWord.status}`);
     /* DAS FELD HAENGT NICHT AN kind: wer zur Notiz zurueckschaltet und wieder
        zur Aufgabe, findet sein Datum vor. */
-    const dueRow = (dueGood.content?.comments || []).find(c => c.dueDate === heute);
+    const dueRow = (dueGood.content?.comments || []).find(c => c.dueDate === today);
     await call('PUT', `/api/comments/${dueRow.id}`, { kind: 'note' });
     const dueBack = await call('PUT', `/api/comments/${dueRow.id}`, { kind: 'task' });
     check('Das Datum ueberlebt den Weg ueber die Notiz',
-      (dueBack.content?.comments || []).some(c => c.id === dueRow.id && c.dueDate === heute),
+      (dueBack.content?.comments || []).some(c => c.id === dueRow.id && c.dueDate === today),
       JSON.stringify((dueBack.content?.comments || []).map(c => [c.id, c.dueDate])));
     /* UND DER RUECKWEG IST DAS LEERE FELD -- und es gibt keinen zweiten. */
     const dueClear = await call('PUT', `/api/comments/${dueRow.id}`, { dueDate: '' });
@@ -152,7 +152,7 @@ async function check0290() {
        eigene Sortierstufe. */
     const dueOrderItem = (await call('POST', '/api/items', { title: 'Ordnung' })).content;
     for (const [text, d] of [['spaeter', tag(5)], ['ueberfaellig', tag(-5)],
-                             ['ohne', null], ['heute', heute]])
+                             ['ohne', null], ['heute', today]])
       await call('POST', `/api/items/${dueOrderItem.id}/comments`,
         { text, kind: 'task', ...(d === null ? {} : { dueDate: d }) });
     const dueOpen = (await call('GET', '/api/open')).content
@@ -393,7 +393,7 @@ async function check0290() {
     check('„Diese Sortierung hat nur eine Richtung" steht in keiner Sprachdatei mehr',
       tiKeys.every(([where]) => where), JSON.stringify(tiKeys));
     check('Und „Z → A" steht in allen dreien',
-      tiKeys.every(([, wort]) => wort === 'Z → A'), JSON.stringify(tiKeys));
+      tiKeys.every(([, word]) => word === 'Z → A'), JSON.stringify(tiKeys));
     /* GEFAHREN UND NICHT GELESEN: die Sortierung selbst, am laufenden Server.
        Eine Zusage, die nur SORT_BASES ansieht, bliebe gruen, wenn der
        Vergleicher danebengreift -- genau dieser Fehler ist in 0.28.1

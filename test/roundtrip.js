@@ -21,7 +21,7 @@ const {
 async function run() {
   const {
    fs, os, path, crypto, spawn, execFileSync, Worker, Database,
-   attachments, sharp, zerlege, CODE, TEXT, KOMMENTAR, MAIL_TIMES,
+   attachments, sharp, segment, CODE, TEXT, COMMENT, MAIL_TIMES,
    BRAKE_STEP, RUN_SCRYPT, __dirname, require, group, check, equal, KEY,
    PORT_OFFSET, PORT, BASE, DATA, USER, PASSWORD, open, startServer,
    shortRun, shortRunAll, setPasswordImInventory, endKind, CASES,
@@ -1630,27 +1630,27 @@ async function sendImport(object, mode, withoutShare = false) {
      eines Tages umformuliert, wuerde die Zusage still gruen -- ohne dass sich
      am Stilblatt etwas geaendert haette. Eine Zusage liest den WAEHLER und
      nicht den Absatz darueber. */
-  const cssOhneRede = css.replace(/\/\*[\s\S]*?\*\//g, ' ').replace(/\s+/g, ' ');
-  const zoomRegel = (cssOhneRede.match(/[^{}]*\{ font-size: max\(16px, 1rem\); \}/g) || []).join(' ');
+  const cssWithoutProse = css.replace(/\/\*[\s\S]*?\*\//g, ' ').replace(/\s+/g, ' ');
+  const zoomRule = (cssWithoutProse.match(/[^{}]*\{ font-size: max\(16px, 1rem\); \}/g) || []).join(' ');
   check('Die Eingabefelder stehen ausnahmslos in der Zoomregel',
-    /\.input, \.input-sm, \.ta, \.title-in/.test(zoomRegel)
-    && /\.engine-slot \.input/.test(zoomRegel)
-    && /\.user-link-row \.input/.test(zoomRegel)
-    && /\.mrow input\.medit/.test(zoomRegel)
-    && /\.mrow \.mweight-field/.test(zoomRegel)
-    && /\.test-add input\[type=date\]/.test(zoomRegel),
-    zoomRegel || '(Regel nicht gefunden)');
+    /\.input, \.input-sm, \.ta, \.title-in/.test(zoomRule)
+    && /\.engine-slot \.input/.test(zoomRule)
+    && /\.user-link-row \.input/.test(zoomRule)
+    && /\.mrow input\.medit/.test(zoomRule)
+    && /\.mrow \.mweight-field/.test(zoomRule)
+    && /\.test-add input\[type=date\]/.test(zoomRule),
+    zoomRule || '(Regel nicht gefunden)');
   /* UND DAS DATUMSFELD BLEIBT AUSDRUECKLICH DRIN (F16). Es traegt einen
      Schreibstrich, den ein `<select>` nicht hat -- die Zeile darueber nennt es
      mit, diese sagt WARUM es eine eigene Frage war. */
   check('Und das Datumsfeld ist eines von ihnen und kein Auswahlfeld',
-    /\.test-add input\[type=date\]/.test(zoomRegel)
-    && !/input\[type=date\][^,}]*select/.test(zoomRegel));
+    /\.test-add input\[type=date\]/.test(zoomRule)
+    && !/input\[type=date\][^,}]*select/.test(zoomRule));
   check('Die Auswahlfelder stehen NICHT mehr darin -- alle drei namentlich',
-    !/\.select\b/.test(zoomRegel)
-    && !/\.select-sm\b/.test(zoomRegel)
-    && !/select\.user-role-sel/.test(zoomRegel),
-    zoomRegel || '(Regel nicht gefunden)');
+    !/\.select\b/.test(zoomRule)
+    && !/\.select-sm\b/.test(zoomRule)
+    && !/select\.user-role-sel/.test(zoomRule),
+    zoomRule || '(Regel nicht gefunden)');
   /* UND DER GRUND STEHT IM STILBLATT DANEBEN. Eine Wegnahme ohne Begruendung
      liest sich beim naechsten Mal wie ein Versehen und wird zurueckgebaut. */
   check('Und der Grund dafuer steht im Stilblatt daneben',
@@ -1674,10 +1674,10 @@ async function sendImport(object, mode, withoutShare = false) {
      Polsterung misst sie am Zeiger 31, mit 7 px 35, mit 10 px 41. */
   const fingerBlock2 = (cssEng.match(/@media \(pointer: coarse\) \{.*?\n?/) || [''])[0];
   const pillFinger = (cssEng.match(/@media \(pointer: coarse\) \{[^@]*?\.pill \{ padding: (\d+)px (\d+)px; \}/) || [])[1];
-  const pillZeiger = (cssEng.match(/\.pill \{ padding: (\d+)px/) || [])[1];
+  const pillPointer = (cssEng.match(/\.pill \{ padding: (\d+)px/) || [])[1];
   check('Die Pille ist am Finger kleiner als vorher UND groesser als am Zeiger',
-    Number(pillFinger) === 7 && Number(pillZeiger) === 5,
-    `Finger ${pillFinger}px (vorher 10), Zeiger ${pillZeiger}px`);
+    Number(pillFinger) === 7 && Number(pillPointer) === 5,
+    `Finger ${pillFinger}px (vorher 10), Zeiger ${pillPointer}px`);
   /* UND DER UND/ODER-UMSCHALTER MUSS MITGEHEN. Bei 7px stuende er nach dem
      Schrumpfen der Pille GENAU SO HOCH wie sie -- der Satz „er bleibt kleiner
      als die Pillen daneben" waere damit nicht mehr wahr. */
@@ -1704,9 +1704,9 @@ async function sendImport(object, mode, withoutShare = false) {
   /* UND SIE STEHT HOEHER ALS DIE LEISTE HOCH IST. Eine Zahl, die kleiner waere
      als die Leiste, verschoebe die Meldung und deckte sie trotzdem zu. */
   const hub = Number((cssEng.match(/body:has\(\.cmp-bar\) \.toast \{ bottom: calc\((\d+)px/) || [])[1]);
-  const leisteUnten = Number((cssEng.match(/\.cmp-bar \{ position: fixed; bottom: (\d+)px/) || [])[1]);
+  const barBottom = Number((cssEng.match(/\.cmp-bar \{ position: fixed; bottom: (\d+)px/) || [])[1]);
   check('Und der Hub ist groesser als Stand und Hoehe der Leiste zusammen',
-    hub > leisteUnten + 60, `Hub ${hub}px gegen Leiste bei ${leisteUnten}px plus 60px Hoehe`);
+    hub > barBottom + 60, `Hub ${hub}px gegen Leiste bei ${barBottom}px plus 60px Hoehe`);
 
   /* ---- Die Behaelterabfragen -- 0.28.0, BA 3 ----
      DAS ERSTE `container-type` DIESES STILBLATTS. Die Zahl der Fensterabfragen
@@ -1740,11 +1740,11 @@ async function sendImport(object, mode, withoutShare = false) {
      `overflow-x: auto` laesst den Kasten seitlich rollen. Das ist die Zeile,
      die der Befund meinte; sie heisst weder Anmeldungszeile noch
      Protokollzeile. */
-  const befehl = (css.match(/@container \(max-width: 560px\) \{[\s\S]*?\n\}/) || [''])[0];
+  const command = (css.match(/@container \(max-width: 560px\) \{[\s\S]*?\n\}/) || [''])[0];
   check('Der Befehl bricht um, statt seitlich zu rollen',
-    /\.server-row code \{[^}]*overflow-x: visible/.test(befehl)
-    && /white-space: pre-wrap/.test(befehl),
-    befehl ? '(Behaelterabfrage gefunden)' : '(keine Behaelterabfrage bei 560px)');
+    /\.server-row code \{[^}]*overflow-x: visible/.test(command)
+    && /white-space: pre-wrap/.test(command),
+    command ? '(Behaelterabfrage gefunden)' : '(keine Behaelterabfrage bei 560px)');
   /* UND VIER REGELN BLEIBEN AUSDRUECKLICH FENSTERABFRAGEN, jede mit ihrem Grund
      im Stilblatt. Wer sie mit umstellte, machte sie falsch: ein Behaelter kann
      sich nicht selbst fragen, wie breit er ist, und Hoehe und Zeiger sind gar
@@ -1752,7 +1752,7 @@ async function sendImport(object, mode, withoutShare = false) {
   check('Das Raster der Karten bleibt eine Fensterfrage',
     /@media \(max-width: 1024px\) \{[^@]*\.sys-grid \{ grid-template-columns: repeat\(auto-fit/.test(cssEng));
   check('Und der Deckel der Listen bleibt eine Frage an die HOEHE',
-    /max-height: 62dvh/.test(cssOhneRede) && !/@container[^@]*62dvh/.test(cssOhneRede));
+    /max-height: 62dvh/.test(cssWithoutProse) && !/@container[^@]*62dvh/.test(cssWithoutProse));
 
   /* Jede Sichtbarkeit, die an :hover haengt, braucht ihr Gegenstueck fuer den
      Finger. Vor dieser Runde fehlte es an drei Stellen -- und der Blaetterpfeil
@@ -1880,26 +1880,26 @@ async function sendImport(object, mode, withoutShare = false) {
      GESCHNITTEN WIRD AM ROHEN TEXT und erst danach geleert: die Marken, an
      denen geschnitten wird, sind Funktionskoepfe und stehen nie in einem
      Kommentar. */
-  const stueck = (von, bis) => {
-    const a = appSource.indexOf(von);
+  const piece = (fromLine, until) => {
+    const a = appSource.indexOf(fromLine);
     if (a < 0) return '';
-    const b = bis ? appSource.indexOf(bis, a) : -1;
+    const b = until ? appSource.indexOf(until, a) : -1;
     return appSource.slice(a, b < 0 ? a + 4000 : b)
       .replace(/\/\*[\s\S]*?\*\//g, ' ');
   };
-  const VIER = [
+  const FOUR = [
     ['Eintrag',          'async function renderDetail(', '\n/* ---- Fotos ----'],
     ['Systembereich',    'async function renderSystem(', '  for (const k of cards)'],
     ['Offene Aufgaben',  'async function renderOpen(',   '  function drawView()'],
     ['Vergleich',        'async function renderCompare(', '  const cg = document.getElementById'],
   ];
-  for (const [name, von, bis] of VIER) {
-    const teil = stueck(von, bis);
+  for (const [name, fromLine, until] of FOUR) {
+    const pieceText = piece(fromLine, until);
     check(`${name}: traegt die gemeinsame Kopfzeile`,
-      /\$\{subhead\(/.test(teil) && /wireSubhead\(/.test(teil),
-      teil ? '(Ansicht gefunden, aber ohne subhead)' : '(Ansicht nicht gefunden)');
+      /\$\{subhead\(/.test(pieceText) && /wireSubhead\(/.test(pieceText),
+      pieceText ? '(Ansicht gefunden, aber ohne subhead)' : '(Ansicht nicht gefunden)');
     check(`${name}: die alte Rueckzeile ist weg`,
-      !/class="back"/.test(teil));
+      !/class="back"/.test(pieceText));
   }
   /* UND DER FUENFTE: der Fehlerweg des Eintrags. Er stand mit derselben Zeile
      da und wird gern vergessen, weil ihn niemand sieht, solange alle Nummern
@@ -1912,10 +1912,10 @@ async function sendImport(object, mode, withoutShare = false) {
      gehoert dorthin. Eine Zusage, die den rohen Text zaehlt, faende ihn und
      bliebe rot, obwohl kein einziger Aufbau die Klasse mehr traegt. Derselbe
      Fund und dieselbe Antwort wie bei der Zoomregel weiter oben. */
-  const appOhneRede = appSource.replace(/\/\*[\s\S]*?\*\//g, ' ');
+  const appWithoutProse = appSource.replace(/\/\*[\s\S]*?\*\//g, ' ');
   check('Und die Klasse `back` steht nirgends mehr im Aufbau',
-    (appOhneRede.match(/class="back"/g) || []).length === 0,
-    String((appOhneRede.match(/class="back"/g) || []).length));
+    (appWithoutProse.match(/class="back"/g) || []).length === 0,
+    String((appWithoutProse.match(/class="back"/g) || []).length));
   /* DER SATZ BLEIBT. Die Zeile ist gefallen, nicht ihr Wortlaut -- der Knopf
      traegt ihn weiter als Titel. Eine Runde, die eine Ansicht umbaut und dabei
      still einen Satz aus dem Vokabular verliert, faellt spaeter in drei
@@ -1926,13 +1926,13 @@ async function sendImport(object, mode, withoutShare = false) {
   /* ---- Zusage 2: WAS sie traegt, namentlich und nicht gezaehlt ----
      EINE ZUSAGE, DIE NUR ZAEHLT, SIEHT KEINEN TAUSCH: „sechs Dinge" bliebe
      gruen, wenn jemand das Suchfeld gegen die Glocke tauscht. */
-  const kopf = stueck('function subhead(', '\nfunction wireSubhead(');
+  const headCode = piece('function subhead(', '\nfunction wireSubhead(');
   check('Sie traegt Zurueck, Marke, Suchfeld und Menue -- jedes namentlich',
-    /class="icon-btn sub-back"/.test(kopf)
-    && /\$\{MARK\(32\)\}/.test(kopf)
-    && /<h1>\$\{esc\(TITLE_APP\)\}<\/h1>/.test(kopf)
-    && /class="search-box"/.test(kopf) && /id="sub-q"/.test(kopf)
-    && /class="icon-btn mast-menu" id="menu"/.test(kopf));
+    /class="icon-btn sub-back"/.test(headCode)
+    && /\$\{MARK\(32\)\}/.test(headCode)
+    && /<h1>\$\{esc\(TITLE_APP\)\}<\/h1>/.test(headCode)
+    && /class="search-box"/.test(headCode) && /id="sub-q"/.test(headCode)
+    && /class="icon-btn mast-menu" id="menu"/.test(headCode));
   /* UND SIE TRAEGT KEINE BLAETTERPFEILE MEHR -- 0.28.1, und die Zusage hat sich
      dabei UMGEDREHT statt zu verschwinden (Stolperstein 201).
      IN 0.28.0 STANDEN SIE HIER, links und rechts von der Marke. Zwei Pfeile
@@ -1942,24 +1942,24 @@ async function sendImport(object, mode, withoutShare = false) {
      DIE KOPFZEILE TRAEGT DAMIT IN ALLEN VIER UNTERANSICHTEN VIER DINGE, und
      nicht mehr sechs im Eintrag und vier anderswo. */
   check('Und KEINE Blaetterpfeile -- die stehen seit 0.28.1 am Fuss des Eintrags',
-    !/ICON_STEP_BACK/.test(kopf) && !/ICON_STEP_FWD/.test(kopf)
-    && !/class="icon-btn step"/.test(kopf));
+    !/ICON_STEP_BACK/.test(headCode) && !/ICON_STEP_FWD/.test(headCode)
+    && !/class="icon-btn step"/.test(headCode));
   /* WAS SIE AUSDRUECKLICH NICHT TRAEGT (F1), und jedes einzeln: der Zaehler
      zaehlt die Uebersicht, „+ Eintrag" gehoert dorthin, wo man anlegt, und die
      Glocke ist eine Auskunft ueber den Bestand. */
-  check('Sie traegt KEINEN Zaehler', !/class="count"/.test(kopf));
-  check('Sie traegt KEIN „+ Eintrag"', !/id="new"/.test(kopf) && !/V\.entryOne/.test(kopf));
-  check('Sie traegt KEINE Glocke', !/id="bell"/.test(kopf) && !/ICON_BELL/.test(kopf));
+  check('Sie traegt KEINEN Zaehler', !/class="count"/.test(headCode));
+  check('Sie traegt KEIN „+ Eintrag"', !/id="new"/.test(headCode) && !/V\.entryOne/.test(headCode));
+  check('Sie traegt KEINE Glocke', !/id="bell"/.test(headCode) && !/ICON_BELL/.test(headCode));
   /* UND SIE IST DIESELBE KOPFZEILE WIE IN DER UEBERSICHT und keine zweite.
      Traegt sie `.masthead` nicht, hat sie ein eigenes Stilblatt -- und damit
      eine zweite Wahrheit ueber die Kopfzeile dieser Instanz. */
   check('Sie ist dieselbe Kopfzeile wie die der Uebersicht',
-    /class="masthead subhead"/.test(kopf));
+    /class="masthead subhead"/.test(headCode));
   check('Und das Menue klappt auf dem Telefon nach derselben Regel ein',
-    /class="mast-rest" id="mast-rest"/.test(kopf));
+    /class="mast-rest" id="mast-rest"/.test(headCode));
 
   /* ---- Zusage 3: die Suche springt zur Uebersicht ---- */
-  const draht = stueck('function wireSubhead(', '\n/* Gesetzt von der Tuer');
+  const draht = piece('function wireSubhead(', '\n/* Gesetzt von der Tuer');
   check('Die Suche darin springt zur Uebersicht und sucht nicht in der Ansicht',
     /SEARCH_HANDOFF = true; location\.hash = '#\/';/.test(draht)
     && !/api\('GET', '\/api\/items\?/.test(draht));
@@ -1972,9 +1972,9 @@ async function sendImport(object, mode, withoutShare = false) {
      Aufbau (`searchBox: false`), der andere im Stilblatt. Eine Zusage je
      Grund. */
   check('Der Systembereich traegt auf KEINEM Geraet ein Suchfeld',
-    /\$\{subhead\(\{ searchBox: false \}\)\}/.test(appOhneRede));
+    /\$\{subhead\(\{ searchBox: false \}\)\}/.test(appWithoutProse));
   check('Und das Feld steht nur da, wo die Ansicht es zulaesst',
-    /\$\{searchBox \? `<div class="search-box">/.test(kopf));
+    /\$\{searchBox \? `<div class="search-box">/.test(headCode));
   check('Am Telefon faellt es auch aus den uebrigen Unteransichten',
     /\.subhead \.search-box \{ display: none; \}/.test(cssEng));
   check('Und der Schreibstrich landet danach im Feld der Uebersicht',
@@ -1983,7 +1983,7 @@ async function sendImport(object, mode, withoutShare = false) {
     /SEARCH_HANDOFF = false;/.test(appSource));
 
   /* ---- Zusage 4 bis 6: die Reihenfolge ---- */
-  const nachbarn = stueck('const entryNeighbours =', '\n/* Der Aufbau.');
+  const nachbarn = piece('const entryNeighbours =', '\n/* Der Aufbau.');
   check('Die Pfeile blaettern in der Reihenfolge der Uebersicht',
     /state\.items \|\| \[\]/.test(nachbarn));
   check('Und nicht im ungefilterten Bestand',
@@ -1997,11 +1997,11 @@ async function sendImport(object, mode, withoutShare = false) {
   check('Und kein Feld daneben, das niemand liest',
     !/ordered/.test(nachbarn));
   /* DER FUSS DES EINTRAGS -- seit 0.28.1 der Ort der beiden Knoepfe. */
-  const fuss = stueck('      const nb = entryNeighbours(id);', '\n  wireSubhead(');
+  const foot = piece('      const nb = entryNeighbours(id);', '\n  wireSubhead(');
   check('Am Anfang und am Ende sind sie gedaempft und bleiben stehen',
     /at > 0 \? list\[at - 1\]\.id : null/.test(nachbarn)
     && /at < list\.length - 1 \? list\[at \+ 1\]\.id : null/.test(nachbarn)
-    && /target == null \? 'disabled' : ''/.test(fuss));
+    && /target == null \? 'disabled' : ''/.test(foot));
   /* SIE VERSCHWINDEN NICHT. Bis 0.28.0 war der Grund, dass ein verschwundener
      Pfeil den Titel daneben verschoben haette; am Fuss ist es der andere
      Knopf, der an seine Stelle spraenge. Dieselbe Zusage, derselbe Grund,
@@ -2012,18 +2012,18 @@ async function sendImport(object, mode, withoutShare = false) {
      umdreht. Ohne sie bliebe „am Anfang gedaempft" auch dann gruen, wenn die
      Knoepfe wieder nach oben wanderten. */
   check('Und sie stehen am FUSS des Eintrags, in einer eigenen Reihe',
-    /<div class="entry-nav">/.test(fuss)
+    /<div class="entry-nav">/.test(foot)
     && /\.entry-nav \{ display: flex; justify-content: space-between;/.test(cssEng));
   /* KURZ AUF DEM KNOPF, VOLLSTAENDIG IM TITEL -- ein Befund aus dem Augenschein:
      mit dem vollen Satz lief der zweite Knopf am Telefon aus dem Schirm. */
   check('Der Knopf traegt das kurze Wort und den vollen Satz im Titel',
-    /title="\$\{esc\(t\(hint\)\)\}"/.test(fuss)
-    && /list\.prevHint/.test(fuss) && /list\.nextHint/.test(fuss));
+    /title="\$\{esc\(t\(hint\)\)\}"/.test(foot)
+    && /list\.prevHint/.test(foot) && /list\.nextHint/.test(foot));
   check('Die Reihenfolge wird NICHT gespeichert und NICHT am Server gefragt',
     !/sessionStorage/.test(nachbarn) && !/localStorage/.test(nachbarn)
     && !/api\(/.test(nachbarn));
   check('Und der Begriff faehrt beim Blaettern in der Adresse mit',
-    /location\.hash = entryAddress\(\+to, term\)/.test(appOhneRede));
+    /location\.hash = entryAddress\(\+to, term\)/.test(appWithoutProse));
 
   /* ---- Zusage 7: KEINE Taste blaettert den Eintrag ----
      DER BETREIBER HAT `Bild auf`/`Bild ab` AM 11. SEPTEMBER 2026 GESTRICHEN:
@@ -2037,24 +2037,24 @@ async function sendImport(object, mode, withoutShare = false) {
   check('Und die Pfeiltasten bleiben bei den Bildern',
     /e\.key === 'ArrowLeft'/.test(appSource) && /e\.key === 'ArrowRight'/.test(appSource));
   check('Der Wechsel des Eintrags haengt am Klick und nicht an einer Taste',
-    /b\.onclick = \(\) => \{[\s\S]{0,160}location\.hash = entryAddress/.test(appOhneRede)
-    && !/keydown[\s\S]{0,200}entryAddress/.test(appOhneRede));
+    /b\.onclick = \(\) => \{[\s\S]{0,160}location\.hash = entryAddress/.test(appWithoutProse)
+    && !/keydown[\s\S]{0,200}entryAddress/.test(appWithoutProse));
   /* ---- Zusage 8: keine Wischgeste ---- */
   check('Es ist keine Wischgeste zum Blaettern angehaengt',
     !/touchstart[\s\S]{0,300}entryAddress/.test(appSource)
     && !new RegExp('swipe', 'i').test(draht));
 
   /* ---- Zusage 10: der Halbsatz am Ablegefeld, in allen drei Sprachen ---- */
-  for (const sprache of ['de', 'en', 'tr']) {
-    const worte = JSON.parse(fs.readFileSync(path.join(__dirname, 'public', 'languages', sprache + '.json'), 'utf8'));
-    check(`Der Satz am Ablegefeld gilt am Telefon (${sprache})`,
-      !/Strg\+V|Ctrl\+V/.test(worte['entry.addMediaHint'] || ''),
-      worte['entry.addMediaHint']);
-    check(`Und der Schluessel steht noch da (${sprache})`,
-      typeof worte['entry.addMediaHint'] === 'string' && worte['entry.addMediaHint'].length > 10);
-    check(`Und die zwei neuen Saetze fuer die Pfeile stehen da (${sprache})`,
-      typeof worte['list.prevInList'] === 'string' && typeof worte['list.nextInList'] === 'string',
-      `${worte['list.prevInList']} / ${worte['list.nextInList']}`);
+  for (const langCode of ['de', 'en', 'tr']) {
+    const langWords = JSON.parse(fs.readFileSync(path.join(__dirname, 'public', 'languages', langCode + '.json'), 'utf8'));
+    check(`Der Satz am Ablegefeld gilt am Telefon (${langCode})`,
+      !/Strg\+V|Ctrl\+V/.test(langWords['entry.addMediaHint'] || ''),
+      langWords['entry.addMediaHint']);
+    check(`Und der Schluessel steht noch da (${langCode})`,
+      typeof langWords['entry.addMediaHint'] === 'string' && langWords['entry.addMediaHint'].length > 10);
+    check(`Und die zwei neuen Saetze fuer die Pfeile stehen da (${langCode})`,
+      typeof langWords['list.prevInList'] === 'string' && typeof langWords['list.nextInList'] === 'string',
+      `${langWords['list.prevInList']} / ${langWords['list.nextInList']}`);
   }
 
   /* ---------------------------------------------------------------- */
@@ -2063,18 +2063,18 @@ async function sendImport(object, mode, withoutShare = false) {
   /* GEFRAGT WIRD DER LAUFENDE SERVER UND NICHT DER QUELLTEXT. Eine Route, die
      im Quelltext steht und beim Rufen 404 liefert, ist keine Route. */
   {
-    const titelVorher = (await call('GET', '/api/titles')).content;
+    const titlesBefore = (await call('GET', '/api/titles')).content;
     /* ZUERST OHNE ANMELDUNG -- und das ist die eigentliche Zusage. Der Browser
        holt das Manifest nach der Regel OHNE Anmeldedaten; haengt es hinter der
        Anmeldung, ist es fuer ihn schlicht nicht da. Der Cookie wird dafuer
        beiseite gelegt und danach zurueckgegeben: die Pruefungen danach brauchen
        ihn. */
-    const merk = H.cookie; H.cookie = '';
-    const ohne = await call('GET', '/api/manifest.json');
-    H.cookie = merk;
+    const keptCookie = H.cookie; H.cookie = '';
+    const without = await call('GET', '/api/manifest.json');
+    H.cookie = keptCookie;
     check('Der Manifestweg antwortet OHNE Anmeldung',
-      ohne.status === 200 && ohne.content && typeof ohne.content.name === 'string',
-      `Status ${ohne.status}`);
+      without.status === 200 && without.content && typeof without.content.name === 'string',
+      `Status ${without.status}`);
 
     /* UND ER TRAEGT DEN TITEL DIESER INSTALLATION. Gepruefet wird mit einem
        Namen, den niemand raten kann -- steht danach „Kriterion" oder
@@ -2087,18 +2087,18 @@ async function sendImport(object, mode, withoutShare = false) {
        Angabe offen, die bisher hinter der Anmeldung stand. */
     const probe = 'Werkstatt Nord ' + Math.random().toString(36).slice(2, 7);
     await callF('PUT', '/api/titles', { publicTitle: probe, appTitle: probe + ' intern' });
-    const nachher = await call('GET', '/api/manifest.json');
+    const manifestAfter = await call('GET', '/api/manifest.json');
     check('Er traegt den Titel DIESER Installation und keinen festen Namen',
-      nachher.content && nachher.content.name === probe,
-      `ist: ${nachher.content && nachher.content.name}`);
+      manifestAfter.content && manifestAfter.content.name === probe,
+      `ist: ${manifestAfter.content && manifestAfter.content.name}`);
     check('Und zwar den OEFFENTLICHEN Titel und nicht den der Anwendung',
-      nachher.content && nachher.content.name === probe
-      && nachher.content.name !== probe + ' intern',
-      `ist: ${nachher.content && nachher.content.name}`);
+      manifestAfter.content && manifestAfter.content.name === probe
+      && manifestAfter.content.name !== probe + ' intern',
+      `ist: ${manifestAfter.content && manifestAfter.content.name}`);
     /* WAS EIN STARTBILDZEICHEN BRAUCHT, und jedes Stueck einzeln: ohne
        `start_url` oeffnet die Kachel irgendwo, ohne `display: standalone` ist
        sie ein huebscheres Lesezeichen, ohne Zeichen ist sie grau. */
-    const m = nachher.content || {};
+    const m = manifestAfter.content || {};
     check('Er nennt Startadresse, Geltungsbereich und Darstellungsart',
       m.start_url === '/' && m.scope === '/' && m.display === 'standalone',
       JSON.stringify({ start_url: m.start_url, scope: m.scope, display: m.display }));
@@ -2109,8 +2109,8 @@ async function sendImport(object, mode, withoutShare = false) {
     /* DIE FARBE IST DAS DUNKLE --bg UND EINE ABSCHRIFT. Steht hier ein anderer
        Wert als in index.html, blitzt beim Start ein Streifen in der falschen
        Farbe auf -- zwei Wahrheiten ueber dieselbe Farbe. */
-    const kopfHtml = fs.readFileSync(path.join(__dirname, 'public', 'index.html'), 'utf8');
-    const themeMeta = (kopfHtml.match(/<meta name="theme-color" content="([^"]+)"/) || [])[1];
+    const headHtml = fs.readFileSync(path.join(__dirname, 'public', 'index.html'), 'utf8');
+    const themeMeta = (headHtml.match(/<meta name="theme-color" content="([^"]+)"/) || [])[1];
     /* UND SIE SETZT IHREN TYP NICHT SELBST. Der Waechter weiter unten haelt
        `server.js` frei von jedem Content-Type -- der ausgelieferte Typ soll nie
        aus der Datenbank kommen koennen. Diese Zeile sagt, dass die neue Route
@@ -2125,24 +2125,24 @@ async function sendImport(object, mode, withoutShare = false) {
       m.theme_color === themeMeta && m.background_color === themeMeta,
       `Manifest ${m.theme_color} / ${m.background_color}, index.html ${themeMeta}`);
     check('Die Seite verweist auf das Manifest',
-      /<link rel="manifest" href="\/api\/manifest\.json">/.test(kopfHtml));
+      /<link rel="manifest" href="\/api\/manifest\.json">/.test(headHtml));
     /* UND OHNE crossorigin: der Browser holt das Manifest ohne Anmeldedaten,
        und die Route ist genau deshalb offen. Stuende dort use-credentials,
        verlangte er einen Zugang fuer eine Datei, die er vor der Anmeldung
        braucht. */
     check('Und zwar ohne use-credentials',
-      !/rel="manifest"[^>]*crossorigin/.test(kopfHtml));
+      !/rel="manifest"[^>]*crossorigin/.test(headHtml));
 
     /* KEIN ARBEITER IM HINTERGRUND, KEIN ZWISCHENSPEICHER -- am Quelltext
        geprueft, im GANZEN Auslieferungsverzeichnis und nicht nur in app.js.
        Ein Zwischenspeicher, der eine alte Fassung ausliefert, waere in einer
        Instanz mit Fingerprint das Gegenteil von hilfreich: die Oberflaeche
        zeigte eine Version, die der Server laengst nicht mehr ist. */
-    const ausgeliefert = fs.readdirSync(path.join(__dirname, 'public'), { recursive: true })
+    const shipped = fs.readdirSync(path.join(__dirname, 'public'), { recursive: true })
       .filter(f => /\.(js|html|json)$/.test(String(f)))
       .map(f => fs.readFileSync(path.join(__dirname, 'public', String(f)), 'utf8')).join('\n');
     check('Kein Arbeiter im Hintergrund und kein Zwischenspeicher',
-      !/serviceWorker|ServiceWorker|caches\.open|workbox/.test(ausgeliefert + fs.readFileSync(path.join(__dirname, 'server.js'), 'utf8')));
+      !/serviceWorker|ServiceWorker|caches\.open|workbox/.test(shipped + fs.readFileSync(path.join(__dirname, 'server.js'), 'utf8')));
 
     /* UND DIE ZAHL, DIE NICHT WAECHST. `F_ROUTES` fuehrt die SCHREIBENDEN
        Routen; die Manifestroute ist lesend und steht dort nicht. Der Auftrag
@@ -2150,18 +2150,18 @@ async function sendImport(object, mode, withoutShare = false) {
        steht hier ausdruecklich, damit es niemand nachtraeglich hineinschreibt.
        Die Zahl selbst wird weiter unten in ihrer eigenen Gruppe geprueft; hier
        steht, dass die NEUE Route lesend ist. */
-    const serverQuelle = fs.readFileSync(path.join(__dirname, 'server.js'), 'utf8');
+    const serverCode = fs.readFileSync(path.join(__dirname, 'server.js'), 'utf8');
     check('Die neue Route ist lesend und waechst F_ROUTES nicht',
-      /app\.get\('\/api\/manifest\.json'/.test(serverQuelle)
-      && !/app\.(post|put|delete)\('\/api\/manifest\.json'/.test(serverQuelle));
+      /app\.get\('\/api\/manifest\.json'/.test(serverCode)
+      && !/app\.(post|put|delete)\('\/api\/manifest\.json'/.test(serverCode));
     check('Und sie ist die EINZIGE neue Route dieser Runde',
-      (serverQuelle.match(/^app\.get\('/gm) || []).length === 31,
-      String((serverQuelle.match(/^app\.get\('/gm) || []).length));
+      (serverCode.match(/^app\.get\('/gm) || []).length === 31,
+      String((serverCode.match(/^app\.get\('/gm) || []).length));
 
     // Den Titel zurueckstellen -- die Pruefungen danach rechnen mit dem alten.
-    if (titelVorher && titelVorher.publicTitle)
+    if (titlesBefore && titlesBefore.publicTitle)
       await callF('PUT', '/api/titles',
-        { publicTitle: titelVorher.publicTitle, appTitle: titelVorher.appTitle });
+        { publicTitle: titlesBefore.publicTitle, appTitle: titlesBefore.appTitle });
   }
 
   /* ---------------------------------------------------------------- */
@@ -4279,14 +4279,14 @@ async function sendImport(object, mode, withoutShare = false) {
     (((answer || {})[which] || {})[code] || {})[id] || {};
   const ntAt = (answer, which, code, id) => ntCell(answer, which, code, id).name;
   const ntFrom = (answer, which, code, id) => ntCell(answer, which, code, id).from;
-  const ntSpalten = (answer, which) => Object.keys((answer || {})[which] || {});
+  const ntColumns = (answer, which) => Object.keys((answer || {})[which] || {});
   check('Der Aufbau steht: die Antwort traegt beide Namenstafeln',
     !!ntDe.categoryNames && !!ntDe.criterionNames,
     JSON.stringify(Object.keys(ntDe).filter(k => /Names$/.test(k))));
   check('Und jede traegt eine Spalte je Sprachdatei',
-    equal(ntSpalten(ntDe, 'criterionNames').sort(), ['de', 'en', 'tr']) &&
-    equal(ntSpalten(ntDe, 'categoryNames').sort(), ['de', 'en', 'tr']),
-    JSON.stringify(ntSpalten(ntDe, 'criterionNames')));
+    equal(ntColumns(ntDe, 'criterionNames').sort(), ['de', 'en', 'tr']) &&
+    equal(ntColumns(ntDe, 'categoryNames').sort(), ['de', 'en', 'tr']),
+    JSON.stringify(ntColumns(ntDe, 'criterionNames')));
   /* DIE TAFEL DER ERSTELLUNGSSPRACHE KOMMT AUS DER GRUNDZEILE -- 0.25.0.
      `product_categories.name` IST der Eintrag dieser einen Sprache, und
      `writeName()` legt fuer sie keine Zeile in der Namenstabelle an.
@@ -4317,7 +4317,7 @@ async function sendImport(object, mode, withoutShare = false) {
      nicht zu unterscheiden -- genau der Weg, auf dem B2 der Runde 0.24.4
      entstanden ist. `from` sagt es, und die Karte zaehlt genau das. */
   check('Und wo nichts eingetragen ist, sagt die Zelle es — from nennt die Herkunft',
-    ntSpalten(ntDe, 'categoryNames').length === 3 &&
+    ntColumns(ntDe, 'categoryNames').length === 3 &&
     ntAt(ntDe, 'categoryNames', 'tr', ntCategory.id) === 'Grundkategorie' &&
     ntFrom(ntDe, 'categoryNames', 'tr', ntCategory.id) === 'de' &&
     ntAt(ntDe, 'categoryNames', 'en', ntCategory.id) === 'English category' &&
@@ -4326,7 +4326,7 @@ async function sendImport(object, mode, withoutShare = false) {
 
   /* ---- DIE KERNZUSICHERUNG: DER LESER AENDERT DIE TAFEL NICHT ---------- */
   check('Tafelprobe: drei Leser, dieselbe Tafel — der Kopf aendert sie nicht',
-    ntSpalten(ntDe, 'criterionNames').length === 3 &&
+    ntColumns(ntDe, 'criterionNames').length === 3 &&
     equal(ntDe.criterionNames, ntEn.criterionNames) &&
     equal(ntDe.criterionNames, ntTr.criterionNames) &&
     equal(ntDe.categoryNames, ntEn.categoryNames) &&
@@ -4339,7 +4339,7 @@ async function sendImport(object, mode, withoutShare = false) {
   await NT.call('PUT', '/api/settings', { language: 'tr' });
   const ntChosen = await ntRead('de');
   check('Und der persoenliche Schluessel aendert sie auch nicht',
-    ntSpalten(ntChosen, 'criterionNames').length === 3 &&
+    ntColumns(ntChosen, 'criterionNames').length === 3 &&
     equal(ntChosen.criterionNames, ntDe.criterionNames) &&
     equal(ntChosen.categoryNames, ntDe.categoryNames),
     JSON.stringify(ntAt(ntChosen, 'criterionNames', 'de', ntCriterion.id)));
@@ -4385,8 +4385,8 @@ async function sendImport(object, mode, withoutShare = false) {
      `fetchNames` und `NAMES_FETCHED` -- das ist die Buchfuehrung dieser Runde
      und keine Zeile Code. Ein Waechter, der Kommentare mitliest, waere von der
      eigenen Erklaerung rot (0.24.1, derselbe Zerleger). */
-  const ntCode = zerlege(fs.readFileSync(path.join(__dirname, 'public', 'app.js'), 'utf8'),
-    'public/app.js').filter(part => part.kind === CODE).map(part => part.wert).join('\n');
+  const ntCode = segment(fs.readFileSync(path.join(__dirname, 'public', 'app.js'), 'utf8'),
+    'public/app.js').filter(part => part.kind === CODE).map(part => part.value).join('\n');
   check('Der Zwischenspeicher der nachgeholten Abrufe steht in keiner Zeile mehr',
     !/NAMES_FETCHED/.test(ntCode), (ntCode.match(/.{0,60}NAMES_FETCHED.{0,20}/) || [''])[0]);
   check('Und fetchNames() gibt es nicht mehr',
@@ -4414,8 +4414,8 @@ async function sendImport(object, mode, withoutShare = false) {
      allein ueber `localeOf(req)`. Am Quelltext heisst das: die beiden Bauer
      nehmen ueberhaupt keine Sprache an -- sie liefern ALLE. Ein Argument dort
      waere die alte Frage in neuer Form. */
-  const ntServer = zerlege(fs.readFileSync(path.join(__dirname, 'server.js'), 'utf8'), 'server.js')
-    .filter(part => part.kind === CODE).map(part => part.wert).join('\n');
+  const ntServer = segment(fs.readFileSync(path.join(__dirname, 'server.js'), 'utf8'), 'server.js')
+    .filter(part => part.kind === CODE).map(part => part.value).join('\n');
   check('Die beiden Bauer der Namenstafeln nehmen keine Sprache an',
     !/(categoryNamesAll|criterionNamesAll)\(\s*[^)\s]/.test(ntServer) &&
     /const categoryNamesAll = \(\) =>/.test(ntServer) &&
@@ -4640,7 +4640,7 @@ async function sendImport(object, mode, withoutShare = false) {
     }
   };
   const KT_IDS = { L1: ktOne.id, L2: ktTwo.id, L3: ktThree.id, L4: ktFour.id };
-  const KT_LAGE = { L1: 'nur Erstellungssprache', L2: 'Erstellung + eine Uebersetzung',
+  const KT_STATE = { L1: 'nur Erstellungssprache', L2: 'Erstellung + eine Uebersetzung',
                     L3: 'alle drei', L4: 'Erstellungssprache unbekannt' };
   const KT_NAME = { de: 'Deutsch', en: 'English', tr: 'Türkçe' };
   let ktCells = 0;
@@ -4648,12 +4648,12 @@ async function sendImport(object, mode, withoutShare = false) {
     await KT.call('PUT', '/api/settings', { languageDefault: std });
     for (const reader of ['de', 'en', 'tr']) {
       const list = await ktRows(reader);
-      for (const lage of ['L1', 'L2', 'L3', 'L4']) {
+      for (const ktState of ['L1', 'L2', 'L3', 'L4']) {
         ktCells++;
-        const [wantName, wantFrom] = KT_TABLE[std][lage][reader];
-        const cell = ktCell(list, KT_IDS[lage]);
+        const [wantName, wantFrom] = KT_TABLE[std][ktState][reader];
+        const cell = ktCell(list, KT_IDS[ktState]);
         check(`Kette: Vorgabe ${KT_NAME[std]}, Leser ${KT_NAME[reader]}, ` +
-          `Lage „${KT_LAGE[lage]}"`,
+          `Lage „${KT_STATE[ktState]}"`,
           cell.name === wantName && (cell.from === undefined ? null : cell.from) === wantFrom,
           `steht: ${JSON.stringify(cell)} — soll: ${JSON.stringify(wantName)} aus ` +
           `${wantFrom === null ? '(der eigenen Sprache)' : JSON.stringify(wantFrom)}`);
@@ -5154,34 +5154,34 @@ async function sendImport(object, mode, withoutShare = false) {
      Server eingesetzt hat, steht nirgends mehr; ein Block, der raet, naehme
      dem Eigentuemer Woerter weg, die er wirklich eingetragen hat. */
   {
-    const abOld = {
+    const fromOld = {
       de: Object.fromEntries(Object.entries(JSON.parse(fs.readFileSync(
         path.join(__dirname, 'public', 'languages', 'de.json'), 'utf8')))
         .filter(([k]) => k.startsWith('vocabulary.'))
         .map(([k, v]) => [k.slice('vocabulary.'.length), v]))
     };
-    abOld.de.entryOne = 'Maschine';
-    abOld.de.entryMany = 'Maschinen';
+    fromOld.de.entryOne = 'Maschine';
+    fromOld.de.entryMany = 'Maschinen';
     {
       const d = open(path.join(DATA, 'katalog.sqlite'));
       d.prepare("INSERT OR REPLACE INTO settings (key, value) VALUES ('vocabulary', ?)")
-        .run(JSON.stringify(abOld));
+        .run(JSON.stringify(fromOld));
       d.close();
     }
-    const abRead = await bfRead('de');
+    const fromRead = await bfRead('de');
     check('Ein Bestand aus 0.24.3 laeuft an — die fuenfzehn Woerter stehen danach da',
-      abRead.vocabulary.entryOne === 'Maschine' && abRead.vocabulary.entryMany === 'Maschinen' &&
-      abRead.vocabulary.dayOne === 'Testtag' && abRead.vocabulary.ratingMany === 'Bewertungen' &&
-      abRead.vocabulary.grade === 'Note' &&
-      Object.keys(abRead.vocabulary).length === 15,
-      JSON.stringify(abRead.vocabulary));
+      fromRead.vocabulary.entryOne === 'Maschine' && fromRead.vocabulary.entryMany === 'Maschinen' &&
+      fromRead.vocabulary.dayOne === 'Testtag' && fromRead.vocabulary.ratingMany === 'Bewertungen' &&
+      fromRead.vocabulary.grade === 'Note' &&
+      Object.keys(fromRead.vocabulary).length === 15,
+      JSON.stringify(fromRead.vocabulary));
     /* UND DIE KARTE ZEIGT SIE ALS EINGETRAGEN -- weil sie es aus Sicht der
        Ablage sind. Das ist die Kehrseite der Entscheidung oben, und sie
        gehoert benannt: wer einen 0.24.3-Bestand einspielt, findet die vierzehn
        Felder gefuellt vor und raeumt sie von Hand, wenn er die Vorgabe will. */
     check('Und die Karte zeigt sie als eingetragen — die Kehrseite, benannt',
-      abRead.vocabulariesOwn.de.dayOne === 'Testtag',
-      JSON.stringify(abRead.vocabulariesOwn.de.dayOne));
+      fromRead.vocabulariesOwn.de.dayOne === 'Testtag',
+      JSON.stringify(fromRead.vocabulariesOwn.de.dayOne));
     await bfClear();
   }
 
@@ -14570,18 +14570,18 @@ async function sendImport(object, mode, withoutShare = false) {
        Cookie und drei verschiedenen `Accept-Language`. Die fuenf Marken
        heissen in jeder Sprache gleich -- die zweite Zeile haelt das fest,
        damit die naechste Runde sie nicht „uebersetzt". */
-    const mailKarte = async (sprache) => {
+    const mailCard = async (langCode) => {
       const a = await fetch(`${RA.S.base}/api/mail`,
-        { headers: { cookie: RA.S.cookieValue(), 'accept-language': sprache } });
+        { headers: { cookie: RA.S.cookieValue(), 'accept-language': langCode } });
       return await a.json();
     };
-    const anbieterEigen = (liste) => (liste || []).find(a => a.key === 'eigen')?.name;
-    const anbEn = (await mailKarte('en')).providerList || [];
-    const anbTr = (await mailKarte('tr')).providerList || [];
+    const providerOwn = (providerRows) => (providerRows || []).find(a => a.key === 'eigen')?.name;
+    const anbEn = (await mailCard('en')).providerList || [];
+    const anbTr = (await mailCard('tr')).providerList || [];
     check('Der Anbietername ohne Marke kommt in der Sprache des Lesers — 0.32.0',
-      anbieterEigen(rAnbList) === 'Eigener Server' && anbieterEigen(anbEn) === 'Own server'
-        && anbieterEigen(anbTr) === 'Kendi sunucu',
-      JSON.stringify([anbieterEigen(rAnbList), anbieterEigen(anbEn), anbieterEigen(anbTr)]));
+      providerOwn(rAnbList) === 'Eigener Server' && providerOwn(anbEn) === 'Own server'
+        && providerOwn(anbTr) === 'Kendi sunucu',
+      JSON.stringify([providerOwn(rAnbList), providerOwn(anbEn), providerOwn(anbTr)]));
     check('Und die fuenf Marken heissen in jeder Sprache gleich',
       ['gmx', 'web', 'gmail', 'strato', 'ionos'].every(k =>
         anbEn.find(a => a.key === k)?.name === rAnbList.find(a => a.key === k)?.name &&
@@ -14620,16 +14620,16 @@ async function sendImport(object, mode, withoutShare = false) {
        Gruppe -- danach werden die Prueflagen beendet, und niemand liest den
        Zugang mehr. */
     await mailFree(RA.S);
-    const rEigen = await RA.S.call('PUT', '/api/mail',
+    const rOwn = await RA.S.call('PUT', '/api/mail',
       { provider: 'eigen', server: 'mail.beispiel.de', port: 465, secure: true,
         user: 'a@beispiel.de', password: MAIL_SECRET, sender: 'a@beispiel.de' });
-    const nEigenDe = (await mailKarte('de')).providerName;
-    const nEigenEn = (await mailKarte('en')).providerName;
-    const nEigenTr = (await mailKarte('tr')).providerName;
+    const nOwnDe = (await mailCard('de')).providerName;
+    const nOwnEn = (await mailCard('en')).providerName;
+    const nOwnTr = (await mailCard('tr')).providerName;
     check('Und der eingerichtete Anbieter heisst in der Karte ebenso — 0.32.0',
-      rEigen.status === 200 && nEigenDe === 'Eigener Server' &&
-      nEigenEn === 'Own server' && nEigenTr === 'Kendi sunucu',
-      JSON.stringify([rEigen.status, nEigenDe, nEigenEn, nEigenTr]));
+      rOwn.status === 200 && nOwnDe === 'Eigener Server' &&
+      nOwnEn === 'Own server' && nOwnTr === 'Kendi sunucu',
+      JSON.stringify([rOwn.status, nOwnDe, nOwnEn, nOwnTr]));
 
     for (const l of [E, F, X, St, Sw, Tr, O, H, T]) await l.stop();
     // A ist oben beim Neustart schon gestoppt worden -- endKind fragt
@@ -18259,11 +18259,11 @@ async function sendImport(object, mode, withoutShare = false) {
      DAS BILD WIRD HIER GEBAUT UND NICHT OBEN MITGENOMMEN: es ist die
      GEGENLAGE zu templatePNG, und beide werden gebraucht. */
   {
-    const kaesten = Array.from({ length: 400 }, (unused, i) =>
+    const boxes = Array.from({ length: 400 }, (unused, i) =>
       `<rect x="${i * 17 % 1200}" y="${i * 23 % 800}" width="9" height="9" fill="#000"/>`).join('');
     const hardEdges = await sharp(Buffer.from(
       `<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="800">` +
-      `<rect width="1200" height="800" fill="#fff"/>${kaesten}</svg>`))
+      `<rect width="1200" height="800" fill="#fff"/>${boxes}</svg>`))
       .png({ compressionLevel: 9 }).toBuffer();
     const harsh = {};
     for (const method of ['webp-lossless', 'webp-lossy']) {

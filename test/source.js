@@ -17,7 +17,7 @@ const {
 
 async function run() {
   const {
-   fs, os, path, attachments, sharp, zerlege, CODE, TEXT, KOMMENTAR,
+   fs, os, path, attachments, sharp, segment, CODE, TEXT, COMMENT,
    __dirname, require, group, check, equal, open, shortRun, shortRunAll,
    call, names, benchFiles
   } = H;
@@ -1641,9 +1641,9 @@ async function run() {
        einem Text oder einem Kommentar steht, ist keine Benennung. */
     const identifiers = new Set();
     for (const f of SHIPPED)
-      for (const part of zerlege(readShipped(f), f))
+      for (const part of segment(readShipped(f), f))
         if (part.kind === CODE)
-          for (const m of part.wert.matchAll(/[A-Za-z_$][A-Za-z0-9_$]*/g)) identifiers.add(m[0]);
+          for (const m of part.value.matchAll(/[A-Za-z_$][A-Za-z0-9_$]*/g)) identifiers.add(m[0]);
     check('Der Waechter sieht wirklich den ganzen ausgelieferten Code',
       identifiers.size > 2000 && SHIPPED.length === 13, `${identifiers.size} Bezeichner aus ${SHIPPED.length} Dateien`);
 
@@ -1704,8 +1704,8 @@ async function run() {
     const OLD_STORED_NAMES = ['absender', 'anbieter', 'benutzer', 'marke', 'passwort', 'vorlage'];
     const oldElsewhere = [];
     for (const f of SHIPPED) {
-      const code = zerlege(readShipped(f), f).filter(p => p.kind === CODE)
-        .map(p => p.wert).join('\n');
+      const code = segment(readShipped(f), f).filter(p => p.kind === CODE)
+        .map(p => p.value).join('\n');
       for (const n of OLD_STORED_NAMES)
         if (new RegExp(`(^|[^A-Za-z0-9_$])${n}(?![A-Za-z0-9_$])`).test(code))
           oldElsewhere.push(`${f}: ${n}`);
@@ -1955,13 +1955,13 @@ async function run() {
        einem Kommentar ist eine Erzaehlung und keine Adresse. */
     const addresses = new Set();
     for (const f of SHIPPED)
-      for (const part of zerlege(readShipped(f), f)) {
+      for (const part of segment(readShipped(f), f)) {
         /* NUR DIE STRINGS. Ein Weg in einem Kommentar ist eine Erzaehlung
            ueber frueher -- `#/system/datenbank` steht dort als Beispiel fuer
            ein altes Lesezeichen und nicht als Adresse dieser Fassung. */
         if (part.kind !== TEXT) continue;
-        for (const m of part.wert.matchAll(/(\/api\/[A-Za-z0-9/:_-]+)/g)) addresses.add(m[1]);
-        for (const m of part.wert.matchAll(/(#\/[A-Za-z0-9/:_-]*)/g)) addresses.add(m[1]);
+        for (const m of part.value.matchAll(/(\/api\/[A-Za-z0-9/:_-]+)/g)) addresses.add(m[1]);
+        for (const m of part.value.matchAll(/(#\/[A-Za-z0-9/:_-]*)/g)) addresses.add(m[1]);
       }
     const germanAddresses = [...addresses]
       .filter(a => a.split(/[/:#]/).filter(Boolean).some(isGerman)).sort();
