@@ -86,7 +86,8 @@ function dispositionHeader(filename, inline) {
   return `${inline ? 'inline' : 'attachment'}; filename="${plain}"; filename*=UTF-8''${encoded}`;
 }
 
-// Die Sicherheitsregel der Antwort. PDF bekommt `sandbox allow-scripts`,
+// Die Sicherheitsregel der Antwort. Sie haelt jede Anlage davon ab, im
+// Ursprung der Anwendung zu laufen. PDF bekommt `sandbox allow-scripts`,
 // weil die Betrachter von Chrome und Edge selbst aus HTML und JavaScript
 // bestehen; allow-same-origin wird nie gesetzt.
 function securityRule(type) {

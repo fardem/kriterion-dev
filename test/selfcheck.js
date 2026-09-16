@@ -984,10 +984,10 @@ async function run() {
       ['counterproof.js', 3229],
       ['server.js', 5128],
       ['auth.js', 911],
-      ['db.js', 467],
+      ['db.js', 272],
       ['mail.js', 72],
       ['keys.js', 45],
-      ['attachments.js', 65],
+      ['attachments.js', 66],
       ['images.js', 37],
       ['batchrun.js', 57],
       ['usertool.js', 51],
@@ -996,7 +996,7 @@ async function run() {
       ['public/app.js', 6419],
       ['public/theme.js', 5],
     ];
-    const COMMENT_TOTAL = { comment: 37200, code: 59651 };
+    const COMMENT_TOTAL = { comment: 37006, code: 59651 };
     check('Der Waechter sieht alle vierunddreissig Dateien',
       crAll.each.length === 34 && COMMENT_ROWS.length === 34,
       `${crAll.each.length} gemessen, ${COMMENT_ROWS.length} genannt`);
