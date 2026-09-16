@@ -4,23 +4,14 @@
  *   node keytool.js zeigen
  *   node keytool.js wechseln [--env <pfad>] [--wer <text>] [--ja]
  *
- * ES IST DER EINZIGE VORGANG IM GANZEN PROJEKT, DER BEI FALSCHER HANDHABUNG
- * ALLES VERLIERT. Deshalb steht er hier und nicht als Knopf in der Oberflaeche:
- *   * Auf dem Wirt liegt die .env. Kommt der Schluessel von dort, kann NUR hier
- *     der Wechsel zu Ende gefuehrt werden -- die Instanz im Container sieht die
- *     Datei nicht einmal (.dockerignore).
- *   * Die Instanz STEHT dabei. Ein laufender Server haelt die Datei im WAL-Modus
- *     offen, und der Wechsel muss auf DELETE umschalten. Ein Knopf im laufenden
- *     Betrieb muesste um genau diesen Umstand herumbauen.
- *   * ZUGRIFF AUF DEN WIRT IST DIE BERECHTIGUNG -- dieselbe Linie wie bei
- *     usertool.js. Eine Rechtefrage waere hier eine Kulisse.
- * Gerufen wird er ueber keytool.sh, das die Instanz anhaelt, sichert und
- * hinterher wieder startet. Von Hand geht es auch; dann gilt die Reihenfolge
- * aus der README.
+ * Er laeuft auf dem Wirt und nicht als Knopf in der Oberflaeche: dort liegt
+ * die .env, die der Container nicht sieht, und die Instanz muss stehen -- ein
+ * laufender Server haelt die Datei im WAL-Modus offen, der Wechsel schaltet
+ * auf DELETE um. Zugriff auf den Wirt ist die Berechtigung.
+ * Gerufen wird er ueber keytool.sh, das anhaelt, sichert und wieder startet.
  *
- * WAS ER NICHT TUT: er wechselt den SCHLUESSEL, nicht das Verfahren.
- * cipher='sqlcipher' bleibt, die Schluessellaenge bleibt, katalog.sqlite bleibt.
- */
+ * Er wechselt den Schluessel, nicht das Verfahren: cipher='sqlcipher', die
+ * Schluessellaenge und katalog.sqlite bleiben. */
 const fs = require('fs');
 const path = require('path');
 const readline = require('readline');
@@ -242,9 +233,7 @@ async function commandChange(options) {
      Stelle, die zum Abschreiben da ist, und der Merksatz zu Kontrollausgaben
      nimmt sie ausdruecklich aus. */
   /* Dieselbe Schreibweise wie jeder Zeitstempel der Instanz ("2026-08-23
-     19:56:01", UTC): die Karte "Sicherung" haelt die Marke gegen die
-     Aenderungszeiten der Dateien, und die Oberflaeche hat genau einen Weg, aus
-     einem Zeitstempel ein Datum zu machen. */
+     19:56:01", UTC). */
   const stamp = new Date().toISOString().slice(0, 19).replace('T', ' ');
   let old = null;
   try {
@@ -288,12 +277,8 @@ async function commandChange(options) {
   }
   console.log('  Jetzt die Instanz starten und im Protokoll nachsehen, dass sie öffnet.');
 
-  /* SAUBER SCHLIESSEN, dieselbe Form wie beim Herunterfahren des Servers: die
-     WAL wird eingearbeitet, bevor der Prozess endet. keytool.sh startet die
-     Instanz unmittelbar danach, und wer in genau diesem Augenblick das
-     Datenverzeichnis sichert, soll keinen Zustand mit offener WAL erwischen.
-     Der Abschluss darf nichts werfen -- der Wechsel ist an dieser Stelle
-     laengst gelungen. */
+  /* Sauber schliessen: die WAL wird eingearbeitet, bevor der Prozess endet.
+     Der Abschluss darf nichts werfen -- der Wechsel ist gelungen. */
   try { db.pragma('wal_checkpoint(TRUNCATE)'); db.close(); } catch {}
 }
 

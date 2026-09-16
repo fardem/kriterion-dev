@@ -987,16 +987,16 @@ async function run() {
       ['db.js', 467],
       ['mail.js', 72],
       ['keys.js', 45],
-      ['attachments.js', 156],
+      ['attachments.js', 65],
       ['images.js', 37],
       ['batchrun.js', 57],
       ['usertool.js', 51],
       ['twofactor.js', 47],
-      ['keytool.js', 70],
+      ['keytool.js', 55],
       ['public/app.js', 6419],
       ['public/theme.js', 5],
     ];
-    const COMMENT_TOTAL = { comment: 37306, code: 59651 };
+    const COMMENT_TOTAL = { comment: 37200, code: 59651 };
     check('Der Waechter sieht alle vierunddreissig Dateien',
       crAll.each.length === 34 && COMMENT_ROWS.length === 34,
       `${crAll.each.length} gemessen, ${COMMENT_ROWS.length} genannt`);
