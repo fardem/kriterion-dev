@@ -12143,7 +12143,7 @@ gelöscht ist dabei nichts. Berichtigt: die Zeile zu 0.30.0 nannte
 `TESTBENCH_ZEIT=1`, der Schalter heißt `TESTBENCH_TIME`.
 
 **Fingerprint `3cc525dc`** *(davor `af69ce33`)*. **Prüfstand 6881 von 6881,
-347 Gruppen, 998 Rückbauten, 0 stumm.**
+347 Gruppen, 998 Rückbauten, fünf Gegenproben gefahren, 0 stumm.**
 
 ### 0.34.0 — „Der Prüfstand bekommt ein Verzeichnis"
 

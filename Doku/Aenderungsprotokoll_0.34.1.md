@@ -173,8 +173,22 @@ Gebaut sind zwei Prüfungen in `test/selfcheck.js`:
 **Fünf Rückbauten hingen an einem Kommentar**, der gefallen ist — 291, 479,
 515, 541 und 747. Zusage 3 des Auftrags sagt, was dann zu tun ist: nachziehen,
 nicht löschen. Alle fünf zeigen jetzt auf die neue Kommentarzeile derselben
-Stelle; die Zahl der Rückbauten bleibt bei 998, und der Gegenprobenlauf ist
-**0 stumm**.
+Stelle, und die Zahl der Rückbauten bleibt bei 998.
+
+**Alle fünf sind am fertigen Stand nachgefahren worden — 0 STUMM.** Jeder trifft
+die Gruppe, die sein Eintrag nennt:
+
+| # | Datei | rote Prüfungen | erwartete Gruppe getroffen |
+|---|---|---:|---|
+| 291 | `public/app.js` | 6 | Die Glocke in der Kopfzeile |
+| 479 | `server.js` | 2 | Die berichtigten Behauptungen stehen nirgends mehr |
+| 515 | `batchrun.js` | 15 | Der Bestandslauf faehrt in einem eigenen Thread — 0.19.3 |
+| 541 | `public/app.js` | 9 | Die Ansicht kann fort sein — 0.19.6 |
+| 747 | `public/app.js` | 8 | Die Sprachpillen der Namenskarten — 0.24.5 |
+
+*Jeder von ihnen macht daneben „Jeder Suchtext kommt in seiner Datei genau
+einmal vor" rot — der Ersatztext steht dann zweimal da. Das ist der erwartete
+Nebenbefund und keine zweite Meldung.*
 
 **Sechs Kommentartexte sucht der Prüfstand namentlich.** Sie sind beim ersten
 Durchgang mitgefallen und wieder eingesetzt:

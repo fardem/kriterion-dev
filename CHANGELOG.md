@@ -53,7 +53,7 @@ außer dass die README kürzer ist.*
 - **Der Namenswächter sieht jetzt den Prüfstand** — 21 Dateien neben den 13 ausgelieferten. 131 deutsche Bezeichner waren darin, 13 sind übrig, und die 13 sind Gegenstände von Prüfungen statt Benennungen. Ein deutscher Dateiname unter `test/` macht eine Prüfung namentlich rot.
 - **Die Ersatztexte der Rückbauten stehen jetzt unter einem Wächter.** Bis 0.34.0 prüfte niemand sie; ein Ersatztext auf einen Namen von gestern macht einen Rückbau rot, ohne zu prüfen, was sein Name sagt.
 - **Jede Datei trägt ihre Kommentarzahl als Prüfung**, dazu die beiden bindenden Grenzen (≤ 20 % über alles, keine Datei über 30 %).
-- Fünf Rückbauten hingen an einem gekürzten Kommentar und sind nachgezogen, nicht gelöscht. Gegenprobenlauf **0 stumm**.
+- Fünf Rückbauten hingen an einem gekürzten Kommentar und sind nachgezogen, nicht gelöscht. Fünf Gegenproben am fertigen Stand gefahren, **0 stumm**.
 - Prüfstand 6865 → 6881, Gruppen 345 → 347, Rückbauten 998 → 998. Drei Prüfungsnamen nennen eine Zahl, die über Kommentare geht, und sind mitgezogen — benannte Ausnahme.
 - `tools/segments.js` spricht englisch; `tools/comments.js` ist neu und zählt, schreibt und trägt die Zahlen ein.
 
