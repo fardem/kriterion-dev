@@ -697,7 +697,15 @@ async function redeemToken(plain, newPassword) {
 // Transaktion soll nicht so lange offen stehen.
   const hash = await hashPassword(newPassword);
   db.transaction(() => {
-    db.prepare("UPDATE tokens SET used_at = datetime('now') WHERE hash = ?").run(token.hash);
+    // Zwischen der Frage in checkToken und dieser Zeile liegt das await auf
+    // hashPassword, und scrypt gibt den Event Loop frei. Ohne `AND used_at IS
+    // NULL` sehen zwei gleichzeitige Anfragen beide ein freies Token, und die
+    // zweite ueberschreibt das Passwort der ersten. `changes` sagt, wer zuerst
+    // da war.
+    const taken = db.prepare(
+      "UPDATE tokens SET used_at = datetime('now') WHERE hash = ? AND used_at IS NULL"
+    ).run(token.hash);
+    if (!taken.changes) throw new Message('server.linkExpired');
     db.prepare('DELETE FROM tokens WHERE user_id = ? AND used_at IS NULL').run(token.id);
     db.prepare('UPDATE users SET password_hash = ? WHERE id = ?').run(hash, token.id);
     db.prepare('DELETE FROM sessions WHERE user_id = ?').run(token.id);

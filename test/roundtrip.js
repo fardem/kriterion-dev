@@ -9938,6 +9938,43 @@ async function sendImport(object, mode, withoutShare = false) {
       "SELECT used_at b FROM tokens WHERE user_id=(SELECT id FROM users WHERE username='neuling')")[0]?.b || ''),
     JSON.stringify(tkRows('SELECT purpose, used_at FROM tokens')));
 
+  /* 7. ZWEI GLEICHZEITIG -- 0.34.4. Die Frage nach used_at steht in
+     checkToken, das Schreiben in redeemToken, und dazwischen liegt das await
+     auf hashPassword. scrypt gibt den Event Loop frei, also sehen zwei
+     gleichzeitige Anfragen beide ein freies Token. Der Weg nacheinander
+     (Abschnitt 6) faengt das nicht -- er prueft eine andere Lage. */
+  const tkPar = await tkCall('cookie-tk-anna', 'POST', '/api/users',
+    { username: 'gleichzeitig', sendInvite: true });
+  const tkParLink = tkPar.content?.token || '';
+  check('Fuer die gleichzeitige Probe steht ein frischer Link bereit',
+    /^[0-9a-f]{64}$/.test(tkParLink), `${tkPar.status} ${tkPar.raw}`);
+  const [tkRunA, tkRunB] = await Promise.all([
+    tkCall(null, 'POST', '/api/token/redeem',
+      { token: tkParLink, password: 'passwort-eins-aa' }),
+    tkCall(null, 'POST', '/api/token/redeem',
+      { token: tkParLink, password: 'passwort-zwei-bb' })
+  ]);
+  const tkWon = [tkRunA, tkRunB].filter(z => z.status === 200).length;
+  check('Zwei gleichzeitige Einloesungen desselben Links: genau eine gelingt',
+    tkWon === 1, `${tkRunA.status} / ${tkRunB.status}`);
+  /* UND DAS IST DER EIGENTLICHE SCHADEN: gelingen beide, steht am Ende das
+     Passwort des Zweiten da, und der, dem die 200 zugesagt wurde, kommt nicht
+     herein. Gefragt wird deshalb nach dem Gewinner und nicht danach, ob
+     irgendeines der beiden traegt -- das waere in beiden Faellen wahr. */
+  const tkWinner = tkRunA.status === 200 ? 'passwort-eins-aa' : 'passwort-zwei-bb';
+  const tkLoser = tkRunA.status === 200 ? 'passwort-zwei-bb' : 'passwort-eins-aa';
+  const tkLoginWin = await tkCall(null, 'POST', '/api/login',
+    { user: 'gleichzeitig', password: tkWinner });
+  const tkLoginLose = await tkCall(null, 'POST', '/api/login',
+    { user: 'gleichzeitig', password: tkLoser });
+  check('Und es traegt das Passwort dessen, dem sie zugesagt wurde',
+    tkLoginWin.status === 200 && tkLoginLose.status !== 200,
+    `Gewinner ${tkLoginWin.status} · Verlierer ${tkLoginLose.status}`);
+  check('Der Link ist danach verbraucht',
+    tkRows("SELECT used_at b FROM tokens WHERE user_id=(SELECT id FROM users WHERE username='gleichzeitig')")
+      .every(z => z.b !== null),
+    JSON.stringify(tkRows("SELECT used_at FROM tokens WHERE user_id=(SELECT id FROM users WHERE username='gleichzeitig')")));
+
   /* ---------------------------------------------------------------- */
   group('Der Token: gespeichert ist der Hash, nicht der Schluessel');
 

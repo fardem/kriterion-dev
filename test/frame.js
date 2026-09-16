@@ -617,6 +617,11 @@ async function moduleRun(run, name) {
   report.abort = abort;
   report.moduleName = name;
   if (REPORT_PATH) { try { fs.writeFileSync(REPORT_PATH, JSON.stringify(report)); } catch {} }
+  /* PROBE FUER DEN TREIBER -- 0.34.4. Hier ist die Meldung geschrieben und
+     das Aufraeumen noch nicht gelaufen. Wer in dieser Luecke stirbt,
+     hinterlaesst eine saubere Meldung und einen Rueckgabewert ungleich 0.
+     Bis 0.34.3 hat der Treiber das nicht gemerkt. */
+  if (process.env.TESTBENCH_DIE_AFTER_REPORT === name) process.exit(9);
   /* DER HAUPTSERVER GEHOERT DAZU. */
   if (kind) { try { kind.kill(); } catch {} }
   for (const l of CASES) { try { l.kind.kill(); } catch {} }
