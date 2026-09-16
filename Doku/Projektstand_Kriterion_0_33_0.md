@@ -1,6 +1,6 @@
 # Projektstand — Kriterion
 
-**Kompakte Übergabe · Revision 96 · Stand 16. September 2026 · gebaut: Version 0.34.1**
+**Kompakte Übergabe · Revision 97 · Stand 16. September 2026 · gebaut: Version 0.34.2**
 
 > **REVISION 92 IST DER BRUCH.** *Was dieses Blatt über MIGRATIONSBLÖCKE sagt,
 > gilt ab hier nur noch als Geschichte: mit 0.33.0 sind alle achtzehn gefallen,
@@ -12060,6 +12060,66 @@ hängengeblieben.* **Dazu zwei vorhandene Rückbauten nachgezogen (710 und 711).
 
 **Fingerprint `d6dbb696`** *(davor `38949534`)*. **Prüfstand 6865 von 6865,
 998 Rückbauten, vier gefahren, 0 stumm.**
+
+### 0.34.2 — „Die Anleitung bekommt ein eigenes Papier"
+
+**PATCH · 16. September 2026** *(Änderungsprotokoll 0.34.2).* Die Runde ändert am
+Programm nichts. Sie teilt die README in zwei Dateien.
+
+**Der Befund kam vom Betreiber, unmittelbar nach 0.34.1:** *„Ist Anleitung nicht
+im Handbuch gut aufgehoben?"* Nachgemessen an den 2.501 Zeilen, die 0.34.1
+hinterlassen hat:
+
+| Teil | Zeilen | Anteil | wer das liest |
+|---|---:|---:|---|
+| **Bedienung im Browser** | **1.450** | **58 %** | wer damit arbeitet, nach dem Einspielen |
+| Betrieb | 725 | 29 % | wer die Installation aufsetzt |
+| Innenansicht | 253 | 10 % | wer am Code arbeitet |
+| Einstieg | 73 | 3 % | wer überlegt, ob er es nimmt |
+
+**58 % richten sich an einen Leser, der die Installation schon läuft hat.** Auf
+GitHub ist die README die Landeseite für den, der sie aufsetzen will.
+
+**Die Linie: was außerhalb des Browsers passiert, bleibt in der README** — dazu
+Datenmodell, Dateisicherheit, Kurzvideos und Speicherbedarf, weil sie zum Code
+gehören und nicht zur Bedienung. *„Dateien am Eintrag" sagt das in seinem ersten
+Satz: wer an* `attachments.js` *etwas ändert, solle es gelesen haben.*
+
+| | vorher | nachher |
+|---|---:|---:|
+| `README.md` | 2.501 Zeilen | **1.091** |
+| `HANDBUCH.md` | — | **1.438** |
+| Prüfungen | 6881 | **6888** |
+
+**Kein Satz ist umgeschrieben worden.** Es sind dieselben Zeilen an einem
+anderen Ort. **Drei Unterabschnitte sind hochgestuft** — „Hinter einem Reverse
+Proxy", „Beide Wege zugleich" und „Gescheiterte Anmeldungen aussperren" standen
+unter „Anmeldung" und betreffen den Server; ihr Elternabschnitt ist fortgezogen.
+
+**Vier Querverweise laufen über die Naht und sind Verweise geblieben, keine
+zweite Erklärung.** Die Tafel „Was danach eingerichtet werden kann" nennt acht
+Karten mit je einer Zeile und bleibt in der README: sie ist die Liste für den
+ersten Start, und was die Karten tun, steht im Handbuch.
+
+**Der Wächter dazu ist die eigentliche Arbeit der Runde.** Gruppe „Die Anleitung
+liegt in zwei Dateien — 0.34.2" in `test/selfcheck.js`, sieben Prüfungen: beide
+Dateien tragen etwas, **kein Abschnitt steht in beiden**, jede nennt die andere
+beim Namen, und beide Listen stehen namentlich da — sechs Bedienabschnitte, zehn
+Betriebsabschnitte. *Das ist die Antwort auf Stolperstein 47, und zwar als
+Prüfung statt als Vorsatz: zwei Papiere über dieselbe Sache dürfen sich nicht
+widersprechen, und der einzige Weg dahin ist, dass die Sache nur einmal
+dasteht.*
+
+**Mitgezogen:** der Rahmen liest `handbookFlat` neben `readmeFlat`; zwei
+Prüfungen lesen es statt der README, weil ihr Gegenstand umgezogen ist; die
+Nummernprüfung liest beide Dateien zusammen — sechs Nennungen, fünf in der
+README, eine im Handbuch; der Sprachwächter sieht `HANDBUCH.md`; **Rückbau 368
+ist nachgezogen**, nicht gelöscht.
+
+**Fingerprint `5ade984f`** *(davor `3cc525dc`)*. Er ändert sich an genau einer
+Stelle: `package.json` trägt die Versionsnummer; `README.md` steht nicht auf der
+Liste der 18 Dateien, über die er geht. **Prüfstand 6888 von 6888, 348 Gruppen,
+998 Rückbauten.**
 
 ### 0.34.1 — „Die Kommentare werden knapp"
 

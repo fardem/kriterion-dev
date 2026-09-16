@@ -899,8 +899,9 @@ async function run() {
     .map(n => path.join('Doku', n))
     /* CHANGELOG.md STEHT SEIT 0.10.0 IM WURZELVERZEICHNIS und war damit aus
        dem Blick dieses Waechters gefallen -- als `Doku/Changelog.md` lag sie
-       vorher in der Sammlung oben. */
-    .concat(['README.md', 'CHANGELOG.md']);
+       vorher in der Sammlung oben. HANDBUCH.md seit 0.34.2, aus demselben
+       Grund: der Waechter liest Doku/*.md, und das Handbuch liegt daneben. */
+    .concat(['README.md', 'CHANGELOG.md', 'HANDBUCH.md']);
   const languageDocs = languageDocsFiles.flatMap(n => {
     const p = path.join(__dirname, n);
     return fs.existsSync(p) ? languageHit(onlyProse(fs.readFileSync(p, 'utf8')), n) : [];
@@ -925,9 +926,10 @@ async function run() {
     languageCommentRows > 1000, `${languageCommentRows} Zeilen`);
   check('Und mindestens zehn Dokumente daneben',
     languageDocsFiles.length >= 10, `${languageDocsFiles.length} Dokumente`);
-  /* UND DIE BEIDEN IM WURZELVERZEICHNIS SIND NAMENTLICH DABEI. */
-  check('Darunter namentlich README.md und CHANGELOG.md',
-    languageDocsFiles.includes('README.md') && languageDocsFiles.includes('CHANGELOG.md'),
+  /* UND DIE DREI IM WURZELVERZEICHNIS SIND NAMENTLICH DABEI. */
+  check('Darunter namentlich README.md, CHANGELOG.md und HANDBUCH.md',
+    ['README.md', 'CHANGELOG.md', 'HANDBUCH.md']
+      .every(n => languageDocsFiles.includes(n)),
     languageDocsFiles.filter(n => !n.startsWith('Doku')).join(' '));
   check('Die Kommentare des Quelltextes benutzen die heutigen Fachwoerter',
     languageSource.length === 0, languageSource.slice(0, 12).join(' · '));
@@ -993,9 +995,15 @@ async function run() {
      WANN etwas entstanden ist: „seit 0.13.0", „bis 0.16.0", „mit 0.17.0
      gestrichen". */
   const readmeRaw = fs.readFileSync(path.join(__dirname, 'README.md'), 'utf8');
-  const readmeNumbers = readmeRaw.match(/\b0\.\d+\.\d+\b/g) || [];
+  /* SEIT 0.34.2 SIND ES ZWEI DATEIEN. Die Zusage gilt der Anleitung als
+     Ganzes: fuenf Nennungen stehen in der README, eine im Handbuch. Wer nur
+     eine der beiden laese, saehe eine gekuerzte Zahl fuer eine ungekuerzte
+     Zusage. */
+  const handbookRaw = fs.readFileSync(path.join(__dirname, 'HANDBUCH.md'), 'utf8');
+  const guideRaw = readmeRaw + '\n' + handbookRaw;
+  const readmeNumbers = guideRaw.match(/\b0\.\d+\.\d+\b/g) || [];
   const README_NUMBERS = ['0.33.0', '0.32.1', '0.8.0'];
-  check('Die README nennt ueberhaupt noch die Nummern, die eine Handlung bestimmen',
+  check('Die Anleitung nennt ueberhaupt noch die Nummern, die eine Handlung bestimmen',
     README_NUMBERS.every(v => readmeNumbers.includes(v)),
     JSON.stringify(README_NUMBERS.filter(v => !readmeNumbers.includes(v))));
   check('Und keine andere Nummer steht mehr darin',
@@ -1014,12 +1022,12 @@ async function run() {
      Exportdatei, die zu alt ist, geht denselben Weg wie eine zu alte
      Datenbank -- ueber dieselbe Fassung. */
   check('Und der Weg fuer eine abgewiesene Exportdatei nennt dieselbe Fassung',
-    /in eine Fassung bis 0\.32\.1 ein und exportiert sie dort neu/.test(readmeRaw),
+    /in eine Fassung bis 0\.32\.1 ein und exportiert sie dort neu/.test(handbookRaw),
     'der Weg fuer die Datei fehlt');
   /* UND KEINE PROTOKOLLZEILE EINER MIGRATION STEHT MEHR ALS ZITAT DA. */
   check('Und keine Protokollzeile einer Migration steht mehr als Zitat da',
-    !/Migration auf 0\.\d+\.\d+\)/.test(readmeRaw),
-    (readmeRaw.match(/[^\n]*Migration auf 0\.\d+\.\d+\)[^\n]*/) || ['(keine — richtig)'])[0]);
+    !/Migration auf 0\.\d+\.\d+\)/.test(guideRaw),
+    (guideRaw.match(/[^\n]*Migration auf 0\.\d+\.\d+\)[^\n]*/) || ['(keine — richtig)'])[0]);
   /* DIE GEGENPROBE AM WAECHTER SELBST: er findet eine Nummer wirklich, und
      er faerbt sich nicht an einer Zahl, die keine Version ist. */
   check('Der Waechter wuerde eine Nummer wirklich finden',

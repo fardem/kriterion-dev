@@ -31,6 +31,23 @@ ihre deutschen Abschnittsüberschriften bleiben.*
 
 *Hier wird mitgeschrieben, während gebaut wird.*
 
+## [0.34.2] - 2026-09-16
+
+*Diese Runde ändert am Programm nichts. Sie teilt die README in zwei Dateien.*
+
+### Geändert
+
+- **Die Bedienung steht jetzt in `HANDBUCH.md`.** Anmeldung, Benutzer und Rollen, Einträge, Bewertungen, Kommentare, Einstellungen, Sprache und die Ansicht auf dem Telefon — 1.438 Zeilen. **Die README trägt, was auf dem Server passiert**, und was der kennen muss, der am Code arbeitet: 2.501 → **1.091 Zeilen**.
+- **Kein Satz ist dabei umgeschrieben worden.** Es sind dieselben Zeilen an einem anderen Ort; vier Querverweise laufen über die Naht und sind Verweise geblieben.
+- **Drei Unterabschnitte sind hochgestuft**: „Hinter einem Reverse Proxy", „Beide Wege zugleich" und „Gescheiterte Anmeldungen aussperren" standen unter „Anmeldung" und betreffen den Server.
+
+### Intern
+
+- **Ein Wächter hält den Schnitt**: kein Abschnitt steht in beiden Dateien, jede nennt die andere beim Namen, und beide Listen — sechs Bedienabschnitte, zehn Betriebsabschnitte — stehen namentlich da.
+- Die Nummernprüfung liest beide Dateien zusammen: sechs Nennungen von drei Nummern, fünf in der README, eine im Handbuch. Der Sprachwächter sieht `HANDBUCH.md` neben `README.md` und `CHANGELOG.md`.
+- Rückbau 368 ist nachgezogen, nicht gelöscht: sein Suchtext ist mit der Bedienung ins Handbuch gewandert. Rückbauten 998 → 998.
+- Prüfstand 6881 → 6888, Gruppen 347 → 348.
+
 ## [0.34.1] - 2026-09-16
 
 *Diese Runde ändert am Programm nichts. Sie kürzt die Kommentare im Quelltext

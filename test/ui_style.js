@@ -9,7 +9,7 @@ const {
 
 async function run() {
   const {
-   fs, path, attachments, TEXT, COMMENT, readmeFlat, __dirname, FILTER,
+   fs, path, attachments, TEXT, COMMENT, handbookFlat, __dirname, FILTER,
    group, check, equal, open
   } = H;
   /* DIESES MODUL BAUT FENSTER. Fehlt jsdom, sagt es das und haelt an. */
@@ -921,12 +921,12 @@ async function run() {
     check('Die Tafel begruendet sich nicht mehr selbst',
       !/nicht verspricht|Lesestand je Meldung|nicht laufend/.test(panel?.textContent || ''),
       panel?.textContent?.replace(/\s+/g, ' ').slice(-260));
-    /* UND DIE AUSKUNFT IST DAFUER IN DER README -- erst das Vorhandensein,
-       dann die Verneinung (Stolperstein 81). */
-    check('Dafuer steht sie in der README',
-      /keinen Lesestand je Meldung/.test(readmeFlat) &&
-      /nicht laufend/.test(readmeFlat),
-      'die README traegt den Vorbehalt nicht');
+    /* UND DIE AUSKUNFT IST DAFUER IM HANDBUCH -- erst das Vorhandensein,
+       dann die Verneinung. Bis 0.34.1 stand sie in der README. */
+    check('Dafuer steht sie im Handbuch',
+      /keinen Lesestand je Meldung/.test(handbookFlat) &&
+      /nicht laufend/.test(handbookFlat),
+      'das Handbuch traegt den Vorbehalt nicht');
     /* DAS OEFFNEN SETZT ALLES AUF GESEHEN -- die bewusste Grenze der schlanken
        Fassung, und sie steht in der Tafel. */
     const glPut = d.sent.filter(g => g.method === 'PUT' && g.url === '/api/settings')

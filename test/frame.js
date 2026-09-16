@@ -53,6 +53,9 @@ const RUN_SCRYPT = RUN_KEYS.scryptCost(SCRYPT_SHIPPED);
 /* DIE README ALS EIN LANGER STRING, EINMAL GELESEN. */
 const readmeFlat = fs.readFileSync(path.join(__dirname, 'README.md'), 'utf8')
   .replace(/\s+/g, ' ');
+/* UND DAS HANDBUCH DANEBEN -- seit 0.34.2 steht die Bedienung dort. */
+const handbookFlat = fs.readFileSync(path.join(__dirname, 'HANDBUCH.md'), 'utf8')
+  .replace(/\s+/g, ' ');
 
 /* ================= Kleiner Pruefrahmen ================= */
 /* EIN NAMENSFILTER AUF DER AUSGABE, NICHT AUF DER ARBEIT. */
@@ -638,7 +641,7 @@ return {
   fs, os, path, crypto, spawn, spawnSync, execFileSync, Worker, Database,
   attachments, sharp, segment, CODE, TEXT, COMMENT, REGEX, vm,
   MAIL_TIMES, BASE_SOURCE, BASE_SCRIPT, RUN_KEYS, BRAKE_STEP,
-  SCRYPT_SHIPPED, RUN_SCRYPT, readmeFlat,
+  SCRYPT_SHIPPED, RUN_SCRYPT, readmeFlat, handbookFlat,
   __dirname, require,
   /* der Pruefrahmen */
   FILTER, group, check, endBlock, returnValue, closeTime, timeTable, TIMES,

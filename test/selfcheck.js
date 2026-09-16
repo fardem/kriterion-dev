@@ -289,14 +289,14 @@ async function run() {
       ['test/batchrun.js', 88],
       ['test/dom.js', 330],
       ['test/firstlogin.js', 30],
-      ['test/frame.js', 150],
+      ['test/frame.js', 151],
       ['test/keychange.js', 70],
       ['test/release_029.js', 61],
       ['test/release_030.js', 241],
       ['test/release_031.js', 385],
       ['test/roundtrip.js', 3123],
-      ['test/selfcheck.js', 110],
-      ['test/source.js', 595],
+      ['test/selfcheck.js', 120],
+      ['test/source.js', 600],
       ['test/ui_entry.js', 499],
       ['test/ui_export.js', 453],
       ['test/ui_inventory.js', 241],
@@ -305,7 +305,7 @@ async function run() {
       ['test/ui_style.js', 566],
       ['test/ui_system.js', 703],
       ['test/ui_translator.js', 104],
-      ['counterproof.js', 1455],
+      ['counterproof.js', 1457],
       ['server.js', 1426],
       ['auth.js', 269],
       ['db.js', 272],
@@ -320,7 +320,7 @@ async function run() {
       ['public/app.js', 1816],
       ['public/theme.js', 3],
     ];
-    const COMMENT_TOTAL = { comment: 14170, code: 59657 };
+    const COMMENT_TOTAL = { comment: 14188, code: 59699 };
     check('Der Waechter sieht alle vierunddreissig Dateien',
       crAll.each.length === 34 && COMMENT_ROWS.length === 34,
       `${crAll.each.length} gemessen, ${COMMENT_ROWS.length} genannt`);
@@ -578,6 +578,53 @@ async function run() {
     check('Und was ohne ihn geschieht',
       /no configuration file provided/.test(readmeFlat),
       'die Absage von docker compose steht nicht daneben');
+  }
+
+  /* ================= Die Anleitung liegt in zwei Dateien — 0.34.2 =========
+     Der Betrieb steht in der README, die Bedienung im Handbuch. Der Schnitt
+     traegt nur, solange keine Sache an beiden Stellen steht. */
+  group('Die Anleitung liegt in zwei Dateien — 0.34.2');
+  {
+    const guideRead = n => fs.readFileSync(path.join(__dirname, n), 'utf8');
+    const readme = guideRead('README.md');
+    const handbook = guideRead('HANDBUCH.md');
+    /* ERST DAS VORHANDENSEIN: ueber zwei leeren Dateien waere jede Verneinung
+       darunter wahr. */
+    check('Beide Dateien tragen wirklich etwas',
+      readme.split('\n').length > 800 && handbook.split('\n').length > 800,
+      `${readme.split('\n').length} / ${handbook.split('\n').length} Zeilen`);
+
+    const tops = s => (s.match(/^## .+$/gm) || []).map(z => z.slice(3).trim());
+    const readmeTops = tops(readme);
+    const handbookTops = tops(handbook);
+    check('Und beide haben mehr als fuenf Abschnitte',
+      readmeTops.length > 5 && handbookTops.length > 5,
+      `${readmeTops.length} / ${handbookTops.length} Abschnitte`);
+    /* KEINE UEBERSCHRIFT STEHT IN BEIDEN. Eine Sache an zwei Stellen ist der
+       Anfang zweier Fassungen derselben Sache. */
+    const doubled = readmeTops.filter(n => handbookTops.includes(n));
+    check('Kein Abschnitt steht in beiden Dateien',
+      doubled.length === 0, doubled.join(' · '));
+
+    /* JEDE ZEIGT AUF DIE ANDERE, und zwar mit dem Dateinamen. */
+    check('Die README nennt das Handbuch beim Namen',
+      /HANDBUCH\.md/.test(readme), 'der Verweis auf HANDBUCH.md fehlt');
+    check('Und das Handbuch die README',
+      /README\.md/.test(handbook), 'der Verweis auf README.md fehlt');
+
+    /* UND DER SCHNITT LIEGT WIRKLICH DORT, WO ER LIEGEN SOLL -- namentlich,
+       damit ein zurueckgewanderter Abschnitt auffaellt. */
+    const BENCH_ONLY = ['Bedienung', 'Vokabular', 'Sprache', 'Hell oder dunkel',
+      'Auf dem Handy und auf dem Tablett', 'Schriftgröße'];
+    const HOST_ONLY = ['Erstinstallation', 'Auf dem Server', 'Sichern',
+      'Datenmodell', 'Prüfen', 'Den Schlüssel wechseln', 'Verschlüsselung',
+      'Hinter einem Reverse Proxy', 'Kurzvideos', 'Speicherbedarf'];
+    check('Die Bedienung steht vollstaendig im Handbuch',
+      BENCH_ONLY.every(n => handbookTops.includes(n)),
+      BENCH_ONLY.filter(n => !handbookTops.includes(n)).join(' · '));
+    check('Und der Betrieb vollstaendig in der README',
+      HOST_ONLY.every(n => readmeTops.includes(n)),
+      HOST_ONLY.filter(n => !readmeTops.includes(n)).join(' · '));
   }
 }
 
