@@ -92,7 +92,7 @@ unter „Code" → „Download ZIP":
 python3 -m zipfile -e kriterion-main.zip .
 mv kriterion-main kriterion                  # der Ordner heißt nach dem Branch
 cd kriterion
-chmod +x keytool.sh                       # siehe unten
+chmod +x keytool.sh          # das Ausführungsrecht, siehe unten
 cp .env.example .env
 cp docker-compose.example.yml docker-compose.yml
 docker compose up -d --build
@@ -291,54 +291,6 @@ cd kriterion && docker compose up -d --build
 „Schlüssel aus ENCRYPTION_KEY geladen" stehen. Steht stattdessen die Warnung
 über eine Schlüsseldatei neben den Daten, wurde die `.env` nicht gelesen —
 dann sofort anhalten und nachsehen, **bevor** etwas geschrieben wird.
-
-### Warum jede Zeile so dasteht
-
-**`docker compose down` vor der Sicherung.** Eine Kopie, die neben einem
-laufenden Server entsteht, kann eine offene WAL-Datei enthalten.
-
-**Die Sicherungszeile.** Bei einer Version, die die Datenbank anfasst, ist sie
-kein guter Rat, sondern der einzige Weg zurück. Ob eine Version das tut, steht
-im `CHANGELOG.md` über ihren Änderungen.
-
-**`mv kriterion kriterion-alt` und ein frisch entpacktes Verzeichnis.** Wer über
-den alten Ordner entpackt, behält Dateien, die die neue Version **weggenommen**
-hat. Der Server läuft dann einwandfrei, die Oberfläche ist die neue — **und der
-Fingerprint ist trotzdem ein anderer** (siehe unten).
-
-**Der Ordner aus dem ZIP heißt nicht `kriterion`.** GitHub hängt den Branchnamen
-an: aus `main` wird `kriterion-main`. Ohne das `mv` legt das folgende
-`cp -r kriterion-alt/data kriterion/data` den Bestand in einen Ordner, den
-`docker compose` nie ansieht.
-
-**Die `.env` liegt bewusst nicht im Paket** — sie enthält den Schlüssel und hat
-in einer verteilten Datei nichts verloren. Sie wandert mit dem alten Ordner nach
-`kriterion-alt` und muss von Hand zurück. Fehlt sie, bricht `docker compose` ab,
-bevor der Container entsteht; kaputt geht dabei nichts.
-
-> **Nicht mit `cp .env.example .env` behelfen.** Dieser Schritt gilt nur für
-> eine **neue, leere** Installation. Bei vorhandenem Bestand steht darin ein
-> leerer `ENCRYPTION_KEY`, der Start erzeugt einen **neuen** Schlüssel und legt
-> ihn als `data/encryption.key` ab — und die vorhandene Datenbank lässt sich
-> damit nicht mehr öffnen. Passiert es doch: `data/encryption.key` löschen und
-> die richtige `.env` aus `kriterion-alt` holen. Zerstört wird nichts, aber der
-> Container läuft bis dahin in einer Neustartschleife.
-
-**Die `mv`-Zeile für die Sicherungen gilt nur, solange der Sicherungsordner im
-Projektordner liegt** — der Auslieferungszustand. Sie holt die vorhandenen
-Kopien aus dem umbenannten Ordner zurück; ohne sie bleiben sie in
-`kriterion-alt` liegen und verschwinden, sobald der weggeräumt wird. Genau davor
-warnt der rote Kasten in der Karte „Sicherung". Liegt der Ort außerhalb, ist die
-Zeile ohne Wirkung und stört nicht.
-
-**Die `chmod`-Zeile.** `python3 -m zipfile -e` legt das Ausführungsrecht beim
-Auspacken nicht an — `unzip` und `git clone` tun es. **Wer einen davon nimmt,
-braucht die Zeile nicht.** Ohne das Recht antwortet `./keytool.sh` mit „Keine
-Berechtigung"; es geht dann auch `bash keytool.sh zeigen`.
-
-**`--build` ist nicht optional.** Ohne es startet stillschweigend die alte
-Version weiter — der Quelltext steckt im Image, nicht im eingehängten
-Verzeichnis.
 
 ### Prüfen, ob wirklich die neue Version läuft
 
@@ -2152,7 +2104,7 @@ Auf einem Tablett steht der Schalter ebenfalls da, die Filter fangen dort aber
 **offen** an. Dort ist Platz, und was vorher sichtbar war, soll nicht ohne Not
 verschwinden.
 
-### Die Kästen — Kaffeesatz und Kartenstapel
+### Die Kästen der Übersicht
 
 Wäre jeder Block eine Karte — eigener Untergrund, eigener Rahmen, eigene Ecke,
 eigener Innenabstand —, lägen auf 390 Pixeln fünf Kanten und drei verschiedene
@@ -3065,52 +3017,6 @@ arbeitet, gehört er entfernt.
 ```
 
 **Steht diese Zeile in deinem Protokoll, gehört der Schalter aus der `.env`.**
-
-### Ein Papier ist Prüfstoff
-
-**Wer ein Dokument unter `Doku/` ändert, fährt den Prüflauf.** Das ist keine
-Förmlichkeit: der Sprachwächter liest die Papiere mit, und ein einziges Wort aus
-seiner Liste macht den Prüfstand rot. Genau das ist schon einmal passiert — ein
-Merge brachte ein Wort in `Fehler_und_Ideen.md`, der Zweig war danach rot, und
-niemand hat es bemerkt, weil zwischen Merge und nächster Runde kein Lauf lag.
-
-*Der Lauf bei jedem Push fängt es ab: `.github/workflows/pruefstand.yml` hängt
-an `push:` ohne Zweigfilter, also auch an einem Commit, der nur ein Papier
-ändert. Nachgesehen am 12. September 2026 — ein Commit, der nur
-`Doku/Auftrag_0.30.0.md` anfasst, hat den Lauf ausgelöst und ist grün
-durchgelaufen.*
-
-Der Prüfstand liegt in `test/`, ein Modul je Sachgebiet; jedes Modul läuft als
-eigener Prozess. `testbench.js` ist der Treiber: er startet die Module, sammelt
-ihre Zahlen ein und schreibt den Schlussblock.
-
-```bash
-npm test                              # alles
-node testbench.js Rechte              # nur die Module mit „Rechte" im Gruppennamen
-node test/source.js                # ein Modul allein
-```
-
-Ein gefilterter Lauf startet nur die Module, auf die der Filter passt, und sagt
-am Ende ausdrücklich, dass er kein vollständiger Beleg ist.
-
-`testbench.js`, `counterproof.js` und `test/` sind per `.dockerignore`
-ausgeschlossen und landen nicht im Image.
-
-**Die Gegenproben laufen über `counterproof.js`** — ein eigener Aufruf, nicht Teil
-von `npm test`:
-
-```bash
-node counterproof.js 3     # alle Rückbauten, drei Nebenspuren
-```
-
-Er baut jede geprüfte Sache **probeweise zurück**, in einer eigenen Kopie aus
-`git archive HEAD`, und schreibt eine Tabelle: welcher Rückbau welche Prüfungen
-namentlich rot gemacht hat. **Ein Rückbau, der keine einzige Prüfung rot macht,
-ist ein Fund** — dann prüft die Prüfung nicht, was sie zu prüfen vorgibt.
-
-**Reißt ein Lauf ab, statt rot zu werden, druckt die Tabelle die letzten Zeilen
-seiner Ausgabe mit.** Die Kopie ist danach weg, und ein Abbruch ohne genannten
-Grund sieht aus wie ein Fund, ist aber eine Sackgasse.
 
 ## Den Schlüssel wechseln
 
