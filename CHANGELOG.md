@@ -23,11 +23,39 @@ gebracht worden. Vorher trugen sie Absätze, Herleitungen und Zahlen aus dem
 Bauen — `F_ROUTEN`, Migrationsblöcke, Kartenzahlen —, die niemandem etwas sagen,
 der das Projekt nicht selbst gebaut hat. Verloren geht dabei nichts: die
 Änderungsprotokolle sind unangetastet und tragen alles. Die Einträge bis 0.9.1
-bleiben in der Form ihrer Zeit.*
+bleiben in der Form ihrer Zeit. Mit 0.34.1 sind auch sie auf die knappe
+Form gebracht — je Version eine Liste aus hinzugefügt, geändert und entfernt;
+ihre deutschen Abschnittsüberschriften bleiben.*
 
 ## [Unreleased]
 
 *Hier wird mitgeschrieben, während gebaut wird.*
+
+## [0.34.1] - 2026-09-16
+
+*Diese Runde ändert am Programm nichts. Sie kürzt die Kommentare im Quelltext
+sowie CHANGELOG und README. Für den, der Kriterion betreibt, ändert sich nichts —
+außer dass die README kürzer ist.*
+
+### Geändert
+
+- **Die README ist von 3.244 auf 2.500 Zeilen gekürzt.** Das Handbuch bleibt vollständig: jede Funktion ist weiter beschrieben. Weggefallen ist die Begründung im Satz, dazu zwei Abschnitte, die begründen statt zu beschreiben.
+- **Das Changelog ist von 2.303 auf 1.668 Zeilen gekürzt**, diesen Eintrag eingerechnet. Die sechzehn Einträge von 0.9.1 bis 0.8.6 standen als Fließtext und stehen jetzt als Liste — 888 Zeilen wurden 224. Gelöscht ist dabei nichts.
+
+### Behoben
+
+- **Die Zeile zu 0.30.0 nannte `TESTBENCH_ZEIT=1`.** Der Schalter heißt `TESTBENCH_TIME`; der alte Name steht daneben.
+
+### Intern
+
+- **14.170 von 73.827 Zeilen sind Kommentar (19,2 %)** — vorher 38.366 von 97.861 (39,2 %). Keine Datei liegt über 30 %; die höchste ist `server.js` mit 26 %. Ein Kommentar sagt, was die Stelle tut; Erzählung, Stolpersteinverweise und Wiederholungen des Codes sind heraus.
+- **Anwendungscode ist nicht angefasst.** Die Codeteile jeder geänderten Datei stehen vorher und nachher Byte für Byte gleich, nachgewiesen Datei für Datei.
+- **Der Namenswächter sieht jetzt den Prüfstand** — 21 Dateien neben den 13 ausgelieferten. 131 deutsche Bezeichner waren darin, 13 sind übrig, und die 13 sind Gegenstände von Prüfungen statt Benennungen. Ein deutscher Dateiname unter `test/` macht eine Prüfung namentlich rot.
+- **Die Ersatztexte der Rückbauten stehen jetzt unter einem Wächter.** Bis 0.34.0 prüfte niemand sie; ein Ersatztext auf einen Namen von gestern macht einen Rückbau rot, ohne zu prüfen, was sein Name sagt.
+- **Jede Datei trägt ihre Kommentarzahl als Prüfung**, dazu die beiden bindenden Grenzen (≤ 20 % über alles, keine Datei über 30 %).
+- Fünf Rückbauten hingen an einem gekürzten Kommentar und sind nachgezogen, nicht gelöscht. Gegenprobenlauf **0 stumm**.
+- Prüfstand 6865 → 6881, Gruppen 345 → 347, Rückbauten 998 → 998. Drei Prüfungsnamen nennen eine Zahl, die über Kommentare geht, und sind mitgezogen — benannte Ausnahme.
+- `tools/segments.js` spricht englisch; `tools/comments.js` ist neu und zählt, schreibt und trägt die Zahlen ein.
 
 ## [0.34.0] - 2026-09-15
 

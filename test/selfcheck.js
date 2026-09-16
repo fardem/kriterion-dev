@@ -320,7 +320,7 @@ async function run() {
       ['public/app.js', 1816],
       ['public/theme.js', 3],
     ];
-    const COMMENT_TOTAL = { comment: 14170, code: 59658 };
+    const COMMENT_TOTAL = { comment: 14170, code: 59657 };
     check('Der Waechter sieht alle vierunddreissig Dateien',
       crAll.each.length === 34 && COMMENT_ROWS.length === 34,
       `${crAll.each.length} gemessen, ${COMMENT_ROWS.length} genannt`);

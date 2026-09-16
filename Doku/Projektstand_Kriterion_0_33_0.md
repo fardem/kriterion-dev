@@ -1,6 +1,6 @@
 # Projektstand — Kriterion
 
-**Kompakte Übergabe · Revision 95 · Stand 15. September 2026 · gebaut: Version 0.34.0**
+**Kompakte Übergabe · Revision 96 · Stand 16. September 2026 · gebaut: Version 0.34.1**
 
 > **REVISION 92 IST DER BRUCH.** *Was dieses Blatt über MIGRATIONSBLÖCKE sagt,
 > gilt ab hier nur noch als Geschichte: mit 0.33.0 sind alle achtzehn gefallen,
@@ -12061,6 +12061,90 @@ hängengeblieben.* **Dazu zwei vorhandene Rückbauten nachgezogen (710 und 711).
 **Fingerprint `d6dbb696`** *(davor `38949534`)*. **Prüfstand 6865 von 6865,
 998 Rückbauten, vier gefahren, 0 stumm.**
 
+### 0.34.1 — „Die Kommentare werden knapp"
+
+**PATCH · 16. September 2026** *(Änderungsprotokoll 0.34.1).* Die Runde ändert am
+Programm nichts. Sie kürzt die Kommentare im Quelltext sowie CHANGELOG und
+README.
+
+**Die Regel, in einem Satz: ein Kommentar sagt, was die Stelle tut.** Weg sind
+Erzählung, Stolpersteinverweise *(Entscheidung des Betreibers am 16. September
+2026: alle)* und alles, was der Code eine Zeile weiter selbst sagt. Geblieben
+ist, was der Code nicht sagt — die gemessene Zahl, der Grund für eine
+Reihenfolge, die Absage an einen naheliegenden Weg.
+
+| | vorher | nachher |
+|---|---:|---:|
+| Kommentarzeilen über 34 Dateien | 38.366 | **14.170** |
+| Anteil am Quelltext | 39,2 % | **19,2 %** |
+| höchster Anteil einer Datei | 85 % (`images.js`) | **26 %** (`server.js`) |
+| deutsche Bezeichner im Prüfstand | 131 | **13** |
+| `CHANGELOG.md` | 2.303 Zeilen | **1.668** |
+| `README.md` | 3.244 Zeilen | **2.500** |
+
+**Die Zielformel des Auftrags war falsch, und das ist vor dem Bauen gemeldet
+worden.** Er rechnete mit 0,20 × Gesamtzeilen; wer einer Datei mit 100 Zeilen
+und 40 Kommentar so viel wegnimmt, dass 20 Kommentarzeilen bleiben, landet bei
+20/(80+20) — also 25 %. Gerechnet wird mit **0,25 × Codezeilen**. *Die Zählart
+ist in derselben Frage festgelegt worden: eine Zeile zählt als Kommentarzeile,
+sobald sie irgendeinen Kommentarteil trägt.* Ohne diese Festlegung gab es für
+`server.js` zwei Zahlen — 5.128 und 3.826.
+
+**Anwendungscode ist nicht angefasst.** Nach jedem Schnitt vergleicht
+`codesame.js` den Stand davor und danach ohne die Kommentarteile, **Byte für
+Byte**. Für jede der zwölf ausgelieferten Dateien und jede Datei des Prüfstands
+ist er gleich geblieben. Der Fingerprint ändert sich trotzdem: er geht über die
+ganzen Dateien und nicht über ihre Codeteile.
+
+**Drei neue Wächter.**
+
+- **Der Namenswächter sieht jetzt den Prüfstand.** Neben `SHIPPED` mit den 13
+  ausgelieferten Dateien steht `BENCH` mit **21** — die 19 Module unter `test/`,
+  `testbench.js` und `counterproof.js`. *Gebaut ist die zweite Liste und nicht die Umbenennung
+  der ersten: `SHIPPED` meint weiter die ausgelieferten Dateien.* **131 deutsche
+  Bezeichner standen darin, 13 sind übrig**, und die 13 sind Gegenstände von
+  Prüfungen statt Benennungen. Zusage 6a ist eine eigene Prüfung: ein deutscher
+  Dateiname unter `test/` macht sie namentlich rot — der Fall, an dem 0.34.0
+  vorbeigelaufen ist.
+- **Die Ersatztexte der Rückbauten stehen unter einem Wächter.** Bis 0.34.0
+  prüfte niemand sie; ein Ersatztext auf einen Namen von gestern macht einen
+  Rückbau rot, ohne zu prüfen, was sein Name sagt. Zwei Formen: schwach über
+  alle 998, streng über die 19 auf Dateien des Prüfstands.
+- **Jede Datei trägt ihre Kommentarzahl als Prüfung**, dazu die beiden bindenden
+  Grenzen — ≤ 20 % über alles, keine Datei über 30 %.
+
+**Befund, nicht gebaut: `standbild_base64`.** Das Feld des Austauschformats 17
+trägt einen deutschen Namen und wird in `server.js` geschrieben. Es umzubenennen
+wäre eine Änderung am Austauschformat und damit Anwendungscode; der Auftrag
+schließt das aus. Der Name steht als benannte Ausnahme da.
+
+**Beim Kürzen aufgefallen.** Fünf Rückbauten hingen an einem Kommentar, der
+gefallen ist (291, 479, 515, 541, 747) — alle fünf nachgezogen, keiner gelöscht.
+Sechs Kommentartexte sucht der Prüfstand namentlich; sie sind mitgefallen und
+wieder eingesetzt und stehen seither in einer Vorprüfung. **Drei Prüfungsnamen
+in `test/ui_style.js` nennen eine Zahl, die über Kommentare geht, und mussten
+mit** — benannte Ausnahme zu Zusage 2. *Das Wort „Anlage" stand in
+`public/app.js` nur noch in Kommentaren; die Ausnahmeliste führt die Datei
+nicht mehr.*
+
+**Das Werkzeug.** `tools/segments.js` spricht englisch (`segment`, `segmentJs`,
+`joined`, `texts`, `COMMENT`, `value`), umbenannt mit `tools/rename.js`;
+20 Proben bestanden. **`tools/comments.js` ist neu** — es zählt, schreibt die
+Tabelle und trägt die Zahlen in `test/selfcheck.js` ein. `--write` prüft vor dem
+Schreiben, dass Zeilen- und Gruppenzahl danach unverändert sind, und bricht
+sonst ab; der Grund ist ein Fehler beim Bauen, bei dem ein Ausdruck drei Gruppen
+überschrieben hat.
+
+**CHANGELOG und README.** *Das Handbuch bleibt vollständig* — Entscheidung des
+Betreibers —, *gekürzt ist die Begründung im Satz.* Zwei Abschnitte sind ganz
+entfallen, weil sie begründen statt zu beschreiben. Im Changelog stehen die
+sechzehn Einträge von 0.9.1 bis 0.8.6 jetzt als Liste statt als Fließtext;
+gelöscht ist dabei nichts. Berichtigt: die Zeile zu 0.30.0 nannte
+`TESTBENCH_ZEIT=1`, der Schalter heißt `TESTBENCH_TIME`.
+
+**Fingerprint `3cc525dc`** *(davor `af69ce33`)*. **Prüfstand 6881 von 6881,
+347 Gruppen, 998 Rückbauten, 0 stumm.**
+
 ### 0.34.0 — „Der Prüfstand bekommt ein Verzeichnis"
 
 **MINOR · 15. September 2026** *(Änderungsprotokoll 0.34.0).* Die Runde ändert
@@ -15007,6 +15091,24 @@ nicht hier.
 ---
 
 ### 0.34.1 — „Die Kommentare werden knapp" · *PATCH* *(stand hier bis zum 4. September 2026 als 0.23.x, bis zum 5. September 2026 als 0.26.x, bis zum 15. September 2026 als 0.28.x und danach als 0.33.x)*
+
+> **GEBAUT am 16. September 2026.** *Was hier steht, ist der Plan von vorher und
+> bleibt als solcher stehen; was daraus geworden ist, steht in Abschnitt 9 unter
+> 0.34.1.* **Zwei Punkte des Plans sind beim Bauen umgestoßen worden, beide vom
+> Betreiber am 16. September 2026:**
+>
+> - **Der Stolpersteinverweis stand hier in der Spalte „bleibt". Er ist
+>   gefallen** — *alle, ohne Ausnahme.* Begründung des Betreibers: *„Das liest
+>   außer dir eh keine."* Wo die Herleitung gebraucht wird, steht sie im
+>   Änderungsprotokoll der Runde, die sie getroffen hat.
+> - **Die harte Klemme — „nichts wird gestrichen, was nicht vorher woanders
+>   steht" — ist mitgefallen.** Sie hätte verlangt, jede gekürzte Begründung
+>   zuerst in dieses Blatt zu schreiben; bei 24.196 Zeilen wäre das ein zweites
+>   Dokument in der Größe des ersten geworden.
+>
+> **Und die beiden offenen Fragen sind beantwortet:** geschnitten wurde nach
+> **0,25 × Codezeilen** je Datei, und **`testbench.js` und alle Module unter
+> `test/` sind angefasst worden** — sie stellen den größten Teil des Bestands.
 
 > **DIESE ÜBERSCHRIFT HIESS BIS ZUM 3. SEPTEMBER 2026 „0.21.x", während die
 > Tabelle in Abschnitt 10 schon „0.22.x" trug.** *Zwei Tabellen über dieselbe

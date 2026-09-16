@@ -1494,12 +1494,11 @@ async function run() {
                           'keys.js', 'keytool.js', 'twofactor.js'];
     /* WAS STEHENBLEIBEN DARF, STEHT MIT SEINER ZAHL DA und nicht als blosse
        Erlaubnis: verglichen wird die ganze Liste. */
-    /* NULL IN public/app.js SEIT 0.34.1: die vier Vorkommen standen in
-       Kommentaren, die diese Runde gekuerzt hat. Uebrig ist die eine Stelle
-       in server.js, an der das Wort Teil eines Bezeichners ist. */
+    /* SEIT 0.34.1 NUR NOCH EINE: die vier Vorkommen in public/app.js standen
+       in Kommentaren, die diese Runde gekuerzt hat. Uebrig ist die Stelle in
+       server.js, an der das Wort Teil eines Bezeichners ist. */
     const ALLOWED = {
-      'server.js': ['Anlagenbytes'],
-      'public/app.js': []
+      'server.js': ['Anlagenbytes']
     };
     const found = {};
     for (const file of shipped)
@@ -1509,13 +1508,13 @@ async function run() {
     check('Das Wort „Anlage" steht nur noch, wo es ausdruecklich stehenbleibt',
       left.length === 0,
       left.map(d => `${d}: ${found[d].join(', ')}`).join(' · '));
-    /* UND DIE ERLAUBNIS IST KEINE LEERE HUELSE: beide Ausnahmen stehen
-       wirklich noch da. */
-    check('Und beide Ausnahmen zeigen wirklich auf etwas',
+    /* UND DIE ERLAUBNIS IST KEINE LEERE HUELSE: die Ausnahme steht wirklich
+       noch da, und public/app.js traegt keine mehr. */
+    check('Und die eine Ausnahme zeigt wirklich auf etwas',
       found['server.js'].length === 1 && found['public/app.js'].length === 0,
       `${found['server.js'].length} / ${found['public/app.js'].length}`);
-    /* NEUN VON ELF DATEIEN TRAGEN DAS WORT GAR NICHT MEHR. */
-    check('Und neun der elf ausgelieferten Dateien kennen es gar nicht mehr',
+    /* ZEHN VON ELF DATEIEN TRAGEN DAS WORT GAR NICHT MEHR. */
+    check('Und zehn der elf ausgelieferten Dateien kennen es gar nicht mehr',
       shipped.filter(d => found[d].length === 0).length === 10,
       `${shipped.filter(d => found[d].length === 0).length}`);
     check('In attachments.js meint jede der drei Stellen einen Anhang',
