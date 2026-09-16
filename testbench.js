@@ -36,6 +36,16 @@ function runModule(name) {
   REPORTS.push(report);
   if (report.abort)
     console.log(`\n  ✗ Das Modul ${name} ist abgebrochen: ${report.abort}`);
+  /* DIE MELDUNG IST DA -- ABER SIE IST NICHT DER GANZE BEWEIS. test/frame.js
+     schreibt sie, raeumt danach auf und beendet erst dann; stirbt das Modul
+     dazwischen, steht eine saubere Meldung da und der Rueckgabewert ist
+     trotzdem nicht 0. Ohne diese Zeile zaehlt ein solcher Lauf als bestanden. */
+  if (!report.abort && !report.failed && r.status !== 0) {
+    console.log(`\n  ✗ Das Modul ${name} meldet keinen Fehler, endete aber mit` +
+      ` Rueckgabewert ${r.status}, Signal ${r.signal}`);
+    H.addCounters({ passedCount: 0, failed: 1, skipped: 0, stillPassed: 0,
+                    stillFailed: 0, groupsShown: 0, groupsStill: 0, times: [] });
+  }
 }
 
 /* ================= DIE MODULE UND IHRE REIHENFOLGE ================= SIE IST

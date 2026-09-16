@@ -1,10 +1,17 @@
 # Auftrag 0.35.0 — „Code-Effizienz"
 
-Geschrieben am 16. September 2026. Nicht gebaut. Läuft nach 0.34.3.
+Geschrieben am 16. September 2026. Nicht gebaut. Läuft nach 0.34.4.
 
 **101 Befunde gemessen, 75 halten der Widerlegung stand. Fünf davon sind
 Sicherheitsbefunde: zwei gehen als Patch 0.34.4 vor diese Runde, drei nach
 0.36.0. Für diese Runde bleiben 70 Befunde an 65 Stellen.**
+
+> **GEMESSEN WURDE AUF DEM STAND `5139e1f` (0.34.3).** *0.34.4 ist am selben Tag
+> gebaut worden und hebt zwei Zahlen, die hier stehen:* **Rückbauten 998 → 1000,
+> Prüfungen 6893 → 6903.** *Die Befunde selbst sind davon nicht berührt — 0.34.4
+> fasst `auth.js`, `testbench.js`, `test/frame.js`, `test/roundtrip.js` und
+> `test/selfcheck.js` an, und zwar an Stellen, die in keinem der 70 Befunde
+> stehen.*
 
 ---
 
@@ -94,6 +101,11 @@ herholt. Beide sind je wenige Zeilen.
 > 0.34.4 vor diese Runde.** Nach dem Muster von 0.33.1 und 0.33.2: eigene
 > Nummer, eigenes Änderungsprotokoll, **kein Auftrag**. Die übrigen drei
 > Befunde bleiben bei 0.36.0.
+>
+> **GEBAUT am 16. September 2026** — Änderungsprotokoll 0.34.4. *Beide sind
+> behoben und mit zehn Prüfungen und zwei Rückbauten belegt.* **Diese Runde
+> fängt also mit einem Treiber an, der einen roten Lauf nicht mehr als grünen
+> ausgeben kann** — was für ihre Belege der Punkt war.
 
 ---
 

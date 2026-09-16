@@ -6,7 +6,7 @@ const H = require('./frame.js');
 
 async function run() {
   const {
-   fs, path, execFileSync, attachments, sharp, segment, CODE, COMMENT, REGEX,
+   fs, path, execFileSync, spawnSync, attachments, sharp, segment, CODE, COMMENT, REGEX,
    readmeFlat, __dirname, require, group, check, equal, PORT, open,
    benchFiles
   } = H;
@@ -25,7 +25,7 @@ async function run() {
   // Die Zahl der Rueckbauten steht ausdruecklich da: eine Zahl in einem
   // Papier ist eine Behauptung, eine Zahl im Pruefstand ist ein Beleg. Wie
   // sie Runde fuer Runde gewachsen ist, steht in den Aenderungsprotokollen.
-  check(`Es sind genau 998 Rueckbauten`, gpList.length === 998, `${gpList.length}`);
+  check(`Es sind genau 1000 Rueckbauten`, gpList.length === 1000, `${gpList.length}`);
   const gpTwice = gpList.map(r => r.nr).filter((n, i, a) => a.indexOf(n) !== i);
   check('Und keine Nummer steht zweimal', gpTwice.length === 0, gpTwice.join(' '));
   /* JEDER GREIFT: der Suchtext kommt in seiner Datei GENAU EINMAL vor. */
@@ -266,7 +266,7 @@ async function run() {
     if (miss.length) rpStrange.push(`${r.nr} ${r.file}: ${miss.join(' ')}`);
   }
   check('Der Waechter sieht die Rueckbauten auf Pruefstandsdateien',
-    rpChecked === 19, `${rpChecked} Rueckbauten`);
+    rpChecked === 20, `${rpChecked} Rueckbauten`);
   check('Und jeder ihrer Namen steht in der Zieldatei, im Rahmen oder im Suchtext',
     rpStrange.length === 0, rpStrange.slice(0, 6).join(' · '));
 
@@ -285,17 +285,17 @@ async function run() {
   {
     const crAll = require('./tools/comments.js').measureAll();
     const COMMENT_ROWS = [
-      ['testbench.js', 69],
+      ['testbench.js', 73],
       ['test/batchrun.js', 87],
       ['test/dom.js', 328],
       ['test/firstlogin.js', 30],
-      ['test/frame.js', 150],
+      ['test/frame.js', 154],
       ['test/keychange.js', 70],
       ['test/release_029.js', 60],
       ['test/release_030.js', 239],
       ['test/release_031.js', 384],
-      ['test/roundtrip.js', 3116],
-      ['test/selfcheck.js', 120],
+      ['test/roundtrip.js', 3125],
+      ['test/selfcheck.js', 140],
       ['test/source.js', 605],
       ['test/ui_entry.js', 497],
       ['test/ui_export.js', 453],
@@ -305,9 +305,9 @@ async function run() {
       ['test/ui_style.js', 562],
       ['test/ui_system.js', 692],
       ['test/ui_translator.js', 104],
-      ['counterproof.js', 1451],
+      ['counterproof.js', 1460],
       ['server.js', 1426],
-      ['auth.js', 269],
+      ['auth.js', 274],
       ['db.js', 272],
       ['mail.js', 40],
       ['keys.js', 45],
@@ -320,7 +320,7 @@ async function run() {
       ['public/app.js', 1814],
       ['public/theme.js', 3],
     ];
-    const COMMENT_TOTAL = { comment: 14151, code: 59734 };
+    const COMMENT_TOTAL = { comment: 14202, code: 59816 };
     check('Der Waechter sieht alle vierunddreissig Dateien',
       crAll.each.length === 34 && COMMENT_ROWS.length === 34,
       `${crAll.each.length} gemessen, ${COMMENT_ROWS.length} genannt`);
@@ -625,6 +625,55 @@ async function run() {
     check('Und der Betrieb vollstaendig in der README',
       HOST_ONLY.every(n => readmeTops.includes(n)),
       HOST_ONLY.filter(n => !readmeTops.includes(n)).join(' · '));
+  }
+
+  /* ============ Der Treiber sieht den Rueckgabewert — 0.34.4 ============
+     test/frame.js schreibt die Meldung, raeumt danach auf und beendet erst
+     dann. Stirbt ein Modul in dieser Luecke, liegt eine vollstaendige Meldung
+     vor und der Rueckgabewert ist trotzdem nicht 0. Bis 0.34.3 hat der
+     Treiber nur die Meldung gelesen und einen solchen Lauf fuer bestanden
+     gehalten. */
+  group('Der Treiber sieht den Rueckgabewert — 0.34.4');
+  {
+    /* Die Probe in test/frame.js liegt hinter dem Schreiben der Meldung und
+       vor dem Aufraeumen. Sie greift nur, wenn die Umgebungsvariable den
+       Modulnamen traegt; ein Lauf ohne sie merkt nichts davon. */
+    const driverFrame = fs.readFileSync(path.join(__dirname, 'test', 'frame.js'), 'utf8');
+    const driverAt = t => driverFrame.indexOf(t);
+    check('Die Probe liegt zwischen Meldung und Aufraeumen',
+      driverAt('TESTBENCH_REPORT') < driverAt('TESTBENCH_DIE_AFTER_REPORT')
+      && driverAt('TESTBENCH_DIE_AFTER_REPORT') < driverAt('DER HAUPTSERVER GEHOERT DAZU'),
+      'die Reihenfolge in test/frame.js stimmt nicht');
+
+    /* Ein Teillauf ueber eine Gruppe, die nur test/source.js traegt. Dieses
+       Modul startet keinen Server: der Lauf kostet vier Sekunden und keine
+       Portnummer, und er kann dem laufenden Lauf nichts wegnehmen. */
+    const driver = spawnSync(process.execPath,
+      ['testbench.js', 'Kein Stolpersteinverweis mehr'],
+      { cwd: __dirname, encoding: 'utf8',
+        env: { ...process.env, TESTBENCH_DIE_AFTER_REPORT: 'source' } });
+    const driverText = (driver.stdout || '') + (driver.stderr || '');
+    const driverRed = driverText.split('\n').filter(z => z.includes('✗')).join(' | ');
+    /* ERST DAS VORHANDENSEIN: kaeme aus dem Kindprozess gar nichts, waere
+       jede Verneinung darunter wahr. */
+    check('Der Teillauf laeuft ueberhaupt',
+      /Pruefungen bestanden/.test(driverText), JSON.stringify(driverText.slice(0, 160)));
+    /* Das Modul hat seine fuenf Zahlen gemeldet -- die sechste Pruefung ist
+       die des Treibers. Die Meldung nennt die Zahlen und NICHT den Satz, in dem
+       sie stehen: counterproof.js liest `\d+ von \d+ Pruefungen bestanden` als
+       Gesamtzahl des Laufs und nimmt den ersten Treffer. Stuende der Satz hier,
+       traege jeder Gegenprobebericht, in dem diese Pruefung rot wird, die Zahl
+       des Teillaufs statt die des Laufs. */
+    const driverScore = driverText.match(/(\d+) von (\d+) Pruefungen bestanden/);
+    check('Das Modul meldet seine Zahlen noch',
+      driverScore && driverScore[1] === '5' && driverScore[2] === '6',
+      `bestanden ${driverScore ? driverScore[1] : '—'} von ${driverScore ? driverScore[2] : '—'}`);
+    check('Und der Treiber nennt den Rueckgabewert beim Wert',
+      /Das Modul source meldet keinen Fehler, endete aber mit Rueckgabewert 9/.test(driverText),
+      driverRed);
+    check('Und es ist die einzige rote Zeile',
+      (driverText.match(/✗/g) || []).length === 1, driverRed);
+    check('Der Lauf endet rot', driver.status === 1, `Code ${driver.status}`);
   }
 }
 

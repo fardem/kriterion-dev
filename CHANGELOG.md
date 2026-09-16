@@ -31,6 +31,24 @@ ihre deutschen Abschnittsüberschriften bleiben.*
 
 *Hier wird mitgeschrieben, während gebaut wird.*
 
+## [0.34.4] - 2026-09-16
+
+*Zwei Funde aus der Messung zur 0.35.0, beide beim Lesen gefunden und nicht,
+weil etwas rot war. Einer betrifft den Betrieb, einer den Prüfstand.*
+
+### Sicherheit
+
+- **Ein Einladungs- oder Zurücksetzungslink kann nicht mehr zweimal gleichzeitig eingelöst werden.** Zwischen der Frage, ob der Link frei ist, und dem Schreiben des Passworts liegt das Hashen mit scrypt; zwei Anfragen im selben Augenblick sahen beide einen freien Link, und die zweite überschrieb das Passwort der ersten. Jetzt entscheidet die Datenbank, wer zuerst da war; die zweite Anfrage bekommt „Link abgelaufen".
+
+### Behoben
+
+- **Der Prüfstand meldet einen Lauf nicht mehr als bestanden, wenn ein Modul nach seiner Meldung stirbt.** Der Treiber las bis 0.34.3 nur die Meldung des Moduls und nicht seinen Rückgabewert.
+
+### Intern
+
+- Zwei Rückbauten dazu — **1000 sind es jetzt**, davon 20 auf Dateien des Prüfstands. Beide gefahren, **0 stumm**.
+- Eine Meldung des Prüfstands nannte die Schlusszeile eines eingebetteten Teillaufs im Wortlaut; `counterproof.js` las sie als Gesamtzahl des Laufs. Sie nennt jetzt nur die Zahlen.
+
 ## [0.34.3] - 2026-09-16
 
 *Diese Runde ändert am Programm nichts. Sie nimmt die letzten Stolpersteinverweise

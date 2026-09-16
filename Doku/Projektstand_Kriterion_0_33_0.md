@@ -1,6 +1,6 @@
 # Projektstand — Kriterion
 
-**Kompakte Übergabe · Revision 98 · Stand 16. September 2026 · gebaut: Version 0.34.3**
+**Kompakte Übergabe · Revision 99 · Stand 16. September 2026 · gebaut: Version 0.34.4**
 
 > **REVISION 92 IST DER BRUCH.** *Was dieses Blatt über MIGRATIONSBLÖCKE sagt,
 > gilt ab hier nur noch als Geschichte: mit 0.33.0 sind alle achtzehn gefallen,
@@ -12060,6 +12060,68 @@ hängengeblieben.* **Dazu zwei vorhandene Rückbauten nachgezogen (710 und 711).
 
 **Fingerprint `d6dbb696`** *(davor `38949534`)*. **Prüfstand 6865 von 6865,
 998 Rückbauten, vier gefahren, 0 stumm.**
+
+### 0.34.4 — „Zwei Funde aus der Messung"
+
+**PATCH · 16. September 2026** *(Änderungsprotokoll 0.34.4).* Zwei
+Sicherheitsbefunde aus der Messung zur 0.35.0, je wenige Zeilen, vorgezogen vor
+die Runde. **Beide sind beim Lesen gefunden worden und nicht, weil etwas rot
+war** — der Prüfstand fuhr grün, während beide Lücken offen standen.
+
+**Der erste: ein Link ließ sich zweimal gleichzeitig einlösen.** `auth.js`,
+`redeemToken`. Zwischen der Frage in `checkToken`, ob der Link noch frei ist,
+und dem Schreiben liegt `await hashPassword` — scrypt, absichtlich langsam, und
+es gibt den Event Loop frei. *Zwei Anfragen im selben Augenblick sahen beide
+einen freien Link; am Ende stand das Passwort der zweiten da, und der Absender
+der ersten kam mit seinem eigenen Passwort nicht herein.* **In der Messung auf
+einer Kopie der Datenbank nachgestellt: zwei gleichzeitige Aufrufe gelangen
+beide.** Der `UPDATE` trägt jetzt `AND used_at IS NULL`, und `changes` sagt, wer
+zuerst da war; wer verliert, bekommt `server.linkExpired` — **ein vorhandener
+Schlüssel, keine neue Meldung**. Die Zeile steht in der Transaktion, also nimmt
+der `throw` alles zurück. **Die teure Rechnung bleibt außerhalb.**
+
+**Der zweite: der Treiber las nur die Meldung.** `testbench.js`, `runModule`.
+Seit 0.34.0 fährt jedes Modul als eigener Prozess, schreibt seine Zahlen in eine
+Datei und räumt danach auf. *Stirbt es zwischen dem Schreiben und dem Beenden,
+liegt eine vollständige grüne Meldung da und der Rückgabewert ist trotzdem nicht
+0.* **Ein solcher Lauf zählte als bestanden.** Der Treiber sah den Rückgabewert
+bis dahin nur an, wenn gar keine Meldung dastand — die Lage „Meldung da,
+Rückgabewert schlecht" fiel zwischen die beiden Fälle. Jetzt zählt sie als
+gescheiterte Prüfung, mit Zahl und Signal in der Zeile.
+
+**Zehn neue Prüfungen, und beide Behebungen sind gegengeprüft:**
+
+| Beleg | ohne die Behebung |
+|---|---|
+| 4 Prüfungen in `test/roundtrip.js`, Gruppe „Der Token: der Rundlauf" | **20 von 22** — „genau eine gelingt" und „es trägt das Passwort dessen, dem sie zugesagt wurde" werden rot, in zwei Läufen dieselben zwei |
+| 6 Prüfungen in `test/selfcheck.js`, neue Gruppe „Der Treiber sieht den Rueckgabewert — 0.34.4" | **2 von 6** — und der alte Treiber meldet „5 von 5 Prüfungen bestanden — alles in Ordnung" für einen Lauf, dessen Modul mit Rückgabewert 9 gestorben ist |
+
+**Der zweite Beleg braucht eine Probe im Rahmen:** `test/frame.js` beendet sich
+mit `process.exit(9)`, wenn `TESTBENCH_DIE_AFTER_REPORT` den Modulnamen trägt —
+unmittelbar hinter dem Schreiben der Meldung und vor dem Aufräumen. *Ein
+gewöhnlicher Lauf merkt nichts davon.* Die Gruppe fährt darauf einen Teillauf
+des Treibers als eigenen Prozess, gefiltert auf eine Gruppe, die nur
+`test/source.js` trägt: **4,1 Sekunden und keine Portnummer**, weil dieses Modul
+keinen Server startet.
+
+**Die drei übrigen Sicherheitsbefunde bleiben bei 0.36.0** — dasselbe Muster
+beim Wiederherstellen aus dem Papierkorb (`server.js:4780`), die ungeprüft
+gelesene Schlüsseldatei (`keys.js:86`) und `PUT /api/settings`, das neunmal
+absagt, nachdem es schon geschrieben hat (`server.js:1655`). *Sie sind größer
+als wenige Zeilen.*
+
+**Mitgefallen ist eine Meldung, die den Gegenprobenbericht verfälscht hat:** die
+Prüfung „Das Modul meldet seine Zahlen noch" nannte die Zeile des Teillaufs im
+Wortlaut, und `readRun` in `counterproof.js` liest genau dieses Muster als
+Gesamtzahl des Laufs — der erste Bericht sagte für 1062 „5 von 5 bestanden"
+statt 6898 von 6903. *Die roten Punkte waren richtig, die Zahl daneben nicht.*
+Die Meldung nennt jetzt nur die Zahlen und nicht den Satz.
+
+**Gegenproben gefahren am 16. September 2026, zwei Nebenspuren, je 312 Sekunden:
+0 stumm** — 1061 mit 6900 von 6903, 1062 mit 6898 von 6903.
+
+**Fingerprint `1f76adac`** *(davor `ecbbd5fc`)*. **Prüfstand 6903 von 6903,
+350 Gruppen, 1000 Rückbauten** *(davon 20 auf Dateien des Prüfstands)*.
 
 ### 0.34.3 — „Kein Stolpersteinverweis mehr"
 

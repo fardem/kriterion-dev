@@ -8529,6 +8529,30 @@ const REGRESSIONS = [
     replacement: "languageSkip(file, 'sie traegt kein Objekt');",
     expected: 'Die sieben Waechter der Sprachdatei — 0.24.0'
   },
+
+  /* ---- 0.34.4 · Zwei Funde aus der Messung zur 0.35.0 -------------------
+     BEIDE SIND NICHT GEFUNDEN WORDEN, WEIL ETWAS ROT WAR, sondern beim
+     Lesen. Jeder Fund bekommt hier seinen Rueckbau. */
+  {
+    /* DER ERSTE: die Zeile nimmt den Link wieder ohne Bedingung in Anspruch.
+       Zwischen der Frage in checkToken und dieser Zeile liegt das await auf
+       hashPassword; ohne `AND used_at IS NULL` gelingen zwei gleichzeitige
+       Einloesungen desselben Links beide. */
+    nr: '1061', name: 'Der Link wird wieder ohne Bedingung in Anspruch genommen',
+    file: 'auth.js',
+    search: "\"UPDATE tokens SET used_at = datetime('now') WHERE hash = ? AND used_at IS NULL\"",
+    replacement: "\"UPDATE tokens SET used_at = datetime('now') WHERE hash = ?\"",
+    expected: 'Der Token: der Rundlauf'
+  },
+  {
+    /* DER ZWEITE: der Treiber liest wieder nur die Meldung. Ein Modul, das
+       nach dem Schreiben der Meldung stirbt, zaehlt dann als bestanden. */
+    nr: '1062', name: 'Der Treiber liest wieder nur die Meldung',
+    file: 'testbench.js',
+    search: "if (!report.abort && !report.failed && r.status !== 0) {",
+    replacement: "if (false) {",
+    expected: 'Der Treiber sieht den Rueckgabewert — 0.34.4'
+  },
 ];
 
 /* ================= Spuren und Versatz ================= Der Versatz je
