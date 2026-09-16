@@ -1,61 +1,14 @@
 #!/usr/bin/env node
-/* Der Gegenprobentreiber.
- *
- *   node counterproof.js            alle Rueckbauten, zwei Nebenspuren
- *   node counterproof.js 4          alle Rueckbauten, vier Nebenspuren
- *   node counterproof.js 2 W2 W3    nur die Rueckbauten, deren Nummer oder Name
- *                                 auf eines der Woerter passt
- *
- * WOZU. Eine Pruefung, die gruen ist, belegt nichts, solange niemand gezeigt
- * hat, dass sie auch rot werden kann. Die Gegenprobe baut die gepruefte Sache
- * probeweise zurueck und haelt fest, WELCHE Pruefungen daraufhin namentlich rot
- * werden. EIN RUECKBAU, DER KEINE EINZIGE PRUEFUNG ROT MACHT, IST EIN FUND --
- * nicht ein Erfolg. In 0.8.90 waren zwei davon dabei, und beide haben eine
- * Luecke im Pruefstand aufgedeckt.
- *
- * WARUM ER NICHT IN npm test STEHT. Er faehrt den vollen Prueflauf je Rueckbau
- * und dauert damit ein Vielfaches davon. Er gehoert an das Ende einer Runde und
- * nicht an jeden Lauf; der Pruefstand kennt ihn deshalb nicht.
- *
- * DIE KOPIE ENTSTEHT UEBER git archive HEAD UND NICHT UEBER cp. Sie ist damit
- * atomar gegen den Arbeitsbaum: wer waehrend eines Laufs weiterarbeitet, bekommt
- * trotzdem den Stand, der im Kopf des Zweiges steht (Stolperstein 100). Der
- * Arbeitsbaum selbst wird NIE angefasst.
- *
- * AUFGERAEUMT WIRD UEBER /proc/<pid>/cwd UND NICHT UEBER DIE BEFEHLSZEILE. Ein
- * mit cwd gestarteter Kindprozess traegt den Pfad dort gar nicht -- in der
- * Befehlszeile steht nur "node server.js". pkill -f <Kopierpfad> trifft deshalb
- * nie, und kill -- -$! trifft auch daneben, weil setsid eine neue
- * Prozessgruppe anlegt. In 0.8.90 haben sich so 48 verwaiste Server
- * angesammelt und acht Gegenproben abreissen lassen (Stolperstein 133).
- * Nach dem Aufraeumen wird NACHGESEHEN, ob wirklich keiner ueberlebt hat.
- */
+/* Der Gegenprobentreiber. */
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
 const { spawn, spawnSync } = require('child_process');
 
-/* ================= Die Rueckbauten =================
-   DIE LISTE IST DIE ENTSCHEIDUNG, und sie steht deshalb hier oben und nicht in
-   einer Datei daneben -- dieselbe Bauform wie F_ROUTES im Pruefstand: man sucht
-   sie dort, wo sie steht.
-
-   Ein Eintrag traegt fuenf Angaben:
-     nr      die Nummer in der Tabelle
-     name    was zurueckgebaut wird, in einem Satz
-     datei   welche Datei angefasst wird
-     suche   der Text, der ersetzt wird. Er muss GENAU EINMAL vorkommen --
-             kommt er keinmal oder mehrfach vor, bricht der Rueckbau ab und
-             wird als solcher gemeldet. Ein Rueckbau, der ins Leere greift,
-             saehe sonst aus wie einer, der nichts bewirkt.
-     ersatz  wodurch er ersetzt wird
-   Statt `suche`/`replacement` darf ein Eintrag auch `copy` tragen: dann wird
-   `datei` in der Kopie ein zweites Mal unter diesem Namen abgelegt. Damit
-   laesst sich eine entfernte Datei zurueckholen -- eine Textersetzung kann
-   das nicht, weil es dabei um die Datei geht und nicht um ihren Inhalt.
-     erwartet  die Prueffgruppe, in der die roten Punkte erwartet werden. Sie
-             ist eine NOTIZ und keine Bedingung: gemeldet wird, was wirklich
-             rot wurde, und wenn das eine andere Gruppe ist, steht das da. */
+/* ================= Die Rueckbauten ================= DIE LISTE IST DIE
+   ENTSCHEIDUNG, und sie steht deshalb hier oben und nicht in einer Datei
+   daneben -- dieselbe Bauform wie F_ROUTES im Pruefstand: man sucht sie dort,
+   wo sie steht. */
 const REGRESSIONS = [
   /* ---- Der Versand: das Offline-Prinzip ---- */
   {
@@ -91,11 +44,7 @@ const REGRESSIONS = [
     nr: '05', name: 'Die aeussere Schranke ueber dem Versand faellt weg',
     file: 'mail.js',
     /* DER RUECKBAU MACHT DIE FRIST WIRKUNGSLOS, ER ENTFERNT SIE NICHT AUS DEM
-       WETTLAUF. Zwei Anlaeufe davor waren falsch, und der zweite lehrreich:
-       `frist` aus dem Promise.race zu streichen laesst die Zusage zwar fallen,
-       aber die Zusage wirft danach UNBEHANDELT -- der Server stirbt, und der
-       Lauf reisst ab, statt eine Pruefung rot zu faerben (Stolperstein 138).
-       So bleibt alles stehen, und nur die Wirkung faellt weg. */
+       WETTLAUF. */
     search: "      clock = setTimeout(() => error(new Error(t(locale, 'mail.timeout'))), SEND_MS);",
     replacement: "      uhr = setTimeout(() => {}, SEND_MS);",
     expected: 'Der Mailversand: die Frist wird gemessen, nicht behauptet'
@@ -111,10 +60,8 @@ const REGRESSIONS = [
   {
     nr: '07', name: 'Ohne oeffentliche Adresse wird trotzdem verschickt',
     file: 'server.js',
-    /* STEHT DIESELBE FRAGE ZWEIMAL im Quelltext -- einmal am
-       Versand des Tokenlinks und einmal in versandBereit(). Der Rueckbau
-       nimmt die Zeile am VERSAND, und die naechste Zeile macht ihn
-       eindeutig. */
+    /* STEHT DIESELBE FRAGE ZWEIMAL im Quelltext -- einmal am Versand des
+       Tokenlinks und einmal in versandBereit(). */
     search: "  if (!PUBLIC.address)\n    return { delivery: 'aus', deliveryReason:",
     replacement: "  if (false)\n    return { versand: 'aus', versandGrund:",
     expected: 'Der Mailversand: die oeffentliche Adresse ist Pflicht'
@@ -164,18 +111,11 @@ const REGRESSIONS = [
     expected: 'Der Mailversand: die Testmail geht an die eigene Adresse'
   },
   {
-    /* GEZIELT AUF DEN VERGLEICH, denn DER traegt die Zusage. Der erste Anlauf
-       nahm ein ausdrueckliches Loeschen der Marke weg und blieb stumm -- weil
-       der Hash ueber den Zugang die Arbeit ohnehin schon tat. Das Loeschen
-       war folgenlos und ist entfernt; es gibt jetzt EINEN Mechanismus, und der
-       Rueckbau greift ihn an. */
+    /* GEZIELT AUF DEN VERGLEICH, denn DER traegt die Zusage. */
     nr: '14', name: 'Die Marke gilt auch nach einer Aenderung am Zugang weiter',
     file: 'server.js',
-    /* DER VERGLEICH IST IN mailtestStand() GEZOGEN -- eine
-       Rechnung, zwei Rufer: die Karte und der Schalter der Selbstanmeldung.
-       Zwei Mechanismen fuer eine Zusage waeren einer zu viel
-       (Stolperstein 145), und deshalb faerbt dieser Rueckbau jetzt BEIDE
-       Seiten rot. */
+    /* DER VERGLEICH IST IN mailtestStand() GEZOGEN -- eine Rechnung, zwei
+       Rufer: die Karte und der Schalter der Selbstanmeldung. */
     search: "  return test && test.mark && test.mark === mail.mark(raw) ? test : null;",
     replacement: "  return test || null;",
     expected: 'Der Mailversand: die Testmail geht an die eigene Adresse'
@@ -271,11 +211,7 @@ const REGRESSIONS = [
   },
   /* ---- Die Oberflaeche ---- */
   {
-    /* GEZIELT AUF DEN ABRUF, nicht auf die Bedingung der Karte. Ein Rueckbau
-       allein an der Karte blieb stumm: mailstand ist beim Admin `null`, weil
-       er gar nicht erst geholt wird -- die Karte erschiene also trotzdem
-       nicht. DIE TRAGENDE ZEILE IST DER ABRUF, und der Rueckbau greift
-       deshalb dort. */
+    /* GEZIELT AUF DEN ABRUF, nicht auf die Bedingung der Karte. */
     nr: '27', name: 'Der Mailzugang wird auch fuer den Admin geholt',
     file: 'public/app.js',
     search: "      ADMIN ? api('GET', '/api/requests') : null",
@@ -297,11 +233,10 @@ const REGRESSIONS = [
     expected: 'Die eigene Adresse in der Karte „Zugang“'
   },
   {
-    /* MITGEGANGEN MIT 0.25.4 (Stolperstein 201): der Zaehlwert heisst jetzt
-       `n` und nicht mehr `minutes` -- nur ueber `n` waehlt
-       `PLURAL.select()` die Form, und ohne ihn stand dort immer die
-       Mehrzahl („noch 1 Minuten"). Die Sache des Rueckbaus ist dieselbe
-       geblieben: die Frist verschwindet von der Seite. */
+    /* MITGEGANGEN MIT 0.25.4: der Zaehlwert heisst jetzt
+       `n` und nicht mehr `minutes` -- nur ueber `n` waehlt `PLURAL.select()`
+       die Form, und ohne ihn stand dort immer die Mehrzahl („noch 1
+       Minuten"). */
     nr: '30', name: 'Die Frist steht nicht mehr auf der Einladungsseite',
     file: 'public/app.js',
     search: "        ${status.minutes ? `${tMark('login.linkValidHint', 'login.linkValidMinutes', { n: status.minutes })}` : ''}",
@@ -317,10 +252,7 @@ const REGRESSIONS = [
     expected: 'Die Selbstanmeldung: die immer gleiche Antwort'
   },
   {
-    /* DER RUECKBAU MACHT DIE ANTWORT LANGSAM, ER ENTFERNT SIE NICHT. Der
-       Versand steht danach ein zweites Mal da -- das stoert nicht, denn
-       geprueft wird die LAUFZEIT der Antwort, und die haengt am await davor.
-       Der troepfelnde Empfaenger haelt ihn zwanzig Sekunden fest. */
+    /* DER RUECKBAU MACHT DIE ANTWORT LANGSAM, ER ENTFERNT SIE NICHT. */
     nr: '32', name: 'Die Antwort wartet wieder auf den Mailserver',
     file: 'server.js',
     search: "  const plain = an ? auth.createRequest(name, address) : null;",
@@ -373,10 +305,7 @@ const REGRESSIONS = [
     expected: 'Die Selbstanmeldung: die immer gleiche Antwort'
   },
   {
-    /* DIE ZWEITE HAELFTE DERSELBEN SCHRANKE. Ohne sie bliebe der Rueckbau auf
-       die Adressschranke stumm -- die Namensschranke faengt jede Lage auf, in
-       der BEIDES noch einmal geschickt wird. Genau das ist beim ersten Lauf
-       dieser Runde passiert. */
+    /* DIE ZWEITE HAELFTE DERSELBEN SCHRANKE. */
     nr: '67', name: 'Derselbe Wunschname darf zweimal in der Warteschlange stehen',
     file: 'auth.js',
     search: "  if (qRequestName.get(clean)) return null;",
@@ -515,10 +444,7 @@ const REGRESSIONS = [
   },
   {
     /* DER NAME IN merkmal WIRD VON protokolliere() ABGEWIESEN -- MERKMALE ist
-       eine geschlossene Liste, und die Zeile entsteht dann GAR NICHT. Der
-       Rueckbau faerbt deshalb "die Protokollzeile steht" rot und nicht "der
-       Name steht nicht darin": genau so ist "kein Freitext von aussen"
-       BAULICH wahr statt durchgesetzt. */
+       eine geschlossene Liste, und die Zeile entsteht dann GAR NICHT. */
     nr: '58', name: 'Der Name des Abgewiesenen soll ins Protokoll',
     file: 'server.js',
     search: "  auth.log('request.reject', { actor: req.user.id });",
@@ -558,13 +484,9 @@ const REGRESSIONS = [
   },
   {
     /* DIE BEDINGUNG AUS DER ERSTEN FASSUNG, wiederhergestellt: die Karte
-       erscheint nur, wenn der Schalter an ist oder Anfragen offen sind. Das
-       ist die Sackgasse aus dem Betrieb -- der Schalter steht IN der Karte,
-       also gaebe es keinen Weg, ihn je einzuschalten. */
+       erscheint nur, wenn der Schalter an ist oder Anfragen offen sind. */
     /* SEIT 0.16.0 STEHT DIE KLEMME ALS FELD IN SYS_KARTEN und nicht mehr als
-       Klammer im Markup -- der Rueckbau greift deshalb dort an. Die Sache ist
-       dieselbe geblieben: die Karte traegt den Schalter, mit dem sich die
-       Selbstanmeldung ueberhaupt erst einschalten laesst. */
+       Klammer im Markup -- der Rueckbau greift deshalb dort an. */
     nr: '63', name: 'Die Karte „Anfragen“ verschwindet, solange der Schalter aus ist',
     file: 'public/app.js',
     search: "visible: (g) => ADMIN && !!g.requests,",
@@ -573,8 +495,7 @@ const REGRESSIONS = [
   },
   {
     /* AUS DEM BETRIEB: der Weg zur Selbstanmeldung stand als Verweis in einer
-       Fusszeile und wurde uebersehen. Er ist jetzt ein Knopf in derselben
-       Groesse wie "Anmelden"; der Rueckbau macht wieder einen Verweis daraus. */
+       Fusszeile und wurde uebersehen. */
     nr: '68', name: 'Der Weg zur Anfrage wird wieder ein Verweis statt eines Knopfes',
     file: 'public/app.js',
     search: "      <button class=\"btn login-alt\" id=\"l-request\">${tH('login.requestAccess')}</button>",
@@ -583,7 +504,7 @@ const REGRESSIONS = [
   },
   {
     /* DIE ANDERE HAELFTE VON 68: der Knopf wird so leise, dass er im
-       Ruhezustand keiner mehr ist. Der Rueckbau nimmt ihm die Umrandung. */
+       Ruhezustand keiner mehr ist. */
     nr: '69', name: 'Der gedaempfte Knopf verliert auch seine Umrandung',
     file: 'public/style.css',
     search: "  background: var(--accent-dim); border-color: var(--accent-line);",
@@ -592,8 +513,7 @@ const REGRESSIONS = [
   },
   {
     /* AUS DEM BETRIEB: die Trennlinie ueber dem Knopf lag quer durch eine
-       Karte, die sonst keine kennt. Sie ist weg, der Abstand traegt die
-       Trennung. Der Rueckbau holt den Strich zurueck. */
+       Karte, die sonst keine kennt. */
     nr: '73', name: 'Der Strich ueber dem Anfrageknopf kommt zurueck',
     file: 'public/style.css',
     search: "  margin: 28px 0 0; font-size: .87rem;",
@@ -610,8 +530,7 @@ const REGRESSIONS = [
     expected: 'Die Anmeldeseite: das Anfrageformular'
   },
   {
-    /* DIE FAERBUNG FAELLT WEG. Ohne Linie darueber und ohne eigene Farbe
-       stuende ein grauer Knopf auf dunkelgrauem Grund. */
+    /* DIE FAERBUNG FAELLT WEG. */
     nr: '75', name: 'Der Anfrageknopf verliert seine leichte Faerbung',
     file: 'public/style.css',
     search: "  background: var(--accent-dim); border-color: var(--accent-line);",
@@ -619,9 +538,7 @@ const REGRESSIONS = [
     expected: 'Die Anmeldeseite: das Anfrageformular'
   },
   {
-    /* UND DIE GEGENRICHTUNG: die Faerbung wird so laut wie der Anmeldeknopf.
-       Dann saessen zwei gleich laute Knoepfe uebereinander und die Seite
-       sagte nicht mehr, welcher der gewoehnliche Weg ist. */
+    /* UND DIE GEGENRICHTUNG: die Faerbung wird so laut wie der Anmeldeknopf. */
     nr: '76', name: 'Der Anfrageknopf wird so laut wie "Anmelden"',
     file: 'public/style.css',
     search: "  background: var(--accent-dim); border-color: var(--accent-line);",
@@ -645,9 +562,7 @@ const REGRESSIONS = [
   {
     nr: '66', name: 'Die gekuerzte Zeile im Mailtext verliert eine Auskunft',
     file: 'public/languages/de.json',
-    /* DIE ZEILE STEHT ZWEIMAL -- in der Einladung und in der Ruecksetzung.
-       Genommen wird die der EINLADUNG; die naechsten Zeilen machen sie
-       eindeutig. */
+    /* DIE ZEILE STEHT ZWEIMAL -- in der Einladung und in der Ruecksetzung. */
     search: "Danach brauchst du einen neuen Link vom Admin.\\n\\nWer diesen Link hat, kommt in deinen Zugang",
     replacement: "\\nWer diesen Link hat, kommt in deinen Zugang",
     expected: 'Der Mailversand: das echte SMTP-Gespraech'
@@ -655,8 +570,7 @@ const REGRESSIONS = [
   /* ---- Die Marke der Instanz ---- */
   {
     /* NEU GEZIELT: marke-hell.svg ist entfernt -- sie war Byte fuer Byte
-       favicon.svg. Der Rueckbau greift jetzt zur verbliebenen Fassung mit
-       Kachel, und die saesse auf dunklem Grund als sichtbares Rechteck. */
+       favicon.svg. */
     nr: '70', name: 'Die Marke folgt dem Schema nicht mehr',
     file: 'public/app.js',
     search: '<path d="M8 6 V26" stroke="var(--brand-grey)"/>',
@@ -681,9 +595,7 @@ const REGRESSIONS = [
   },
   /* ---- Die Markenzeile der Anmeldeseiten ---- */
   {
-    /* DER STAND VOR DER BERICHTIGUNG AUS DEM BETRIEB: Marke UEBER dem Namen.
-       Der Helfer legt dann keinen Kasten mehr an, und die beiden stapeln
-       sich wieder. */
+    /* DER STAND VOR DER BERICHTIGUNG AUS DEM BETRIEB: Marke UEBER dem Namen. */
     nr: '77', name: 'Marke und Name stapeln sich wieder uebereinander',
     file: 'public/app.js',
     search: '  `<div class="login-brand">${MARK(36)}<h1>${esc(TITLE_PUBLIC)}</h1></div>`;',
@@ -691,8 +603,7 @@ const REGRESSIONS = [
     expected: 'Die Markenzeile der Anmeldeseiten'
   },
   {
-    /* DIE REIHENFOLGE KIPPT: erst das Wort, dann das Zeichen. Der Kasten
-       bleibt, also greift hier nur die Zeile, die die Reihenfolge prueft. */
+    /* DIE REIHENFOLGE KIPPT: erst das Wort, dann das Zeichen. */
     nr: '78', name: 'Erst das Wort, dann das Zeichen',
     file: 'public/app.js',
     search: '  `<div class="login-brand">${MARK(36)}<h1>${esc(TITLE_PUBLIC)}</h1></div>`;',
@@ -701,8 +612,7 @@ const REGRESSIONS = [
   },
   {
     /* DER KASTEN BLEIBT, DAS STYLESHEET STELLT IHN ABER NICHT MEHR
-       NEBENEINANDER. Zwei Bloecke untereinander sehen im Baum aus wie eine
-       Zeile -- deshalb prueft der Prueflauf beides. */
+       NEBENEINANDER. */
     nr: '79', name: 'Die Markenzeile ist keine Zeile mehr',
     file: 'public/style.css',
     search: '  display: flex; align-items: center; gap: 11px; margin: 0 0 5px;',
@@ -710,9 +620,9 @@ const REGRESSIONS = [
     expected: 'Die Marke der Instanz'
   },
   {
-    /* DIE UEBERSCHRIFT NIMMT IHREN UNTERRAND WIEDER MIT -- bei
-       align-items: center saesse sie damit um die halbe Hoehe zu hoch und
-       die Marke stuende schief daneben. */
+    /* DIE UEBERSCHRIFT NIMMT IHREN UNTERRAND WIEDER MIT -- bei align-items:
+       center saesse sie damit um die halbe Hoehe zu hoch und die Marke
+       stuende schief daneben. */
     nr: '80', name: 'Die Ueberschrift in der Zeile traegt wieder einen Unterrand',
     file: 'public/style.css',
     search: '.login-card .login-brand h1 { margin: 0; }',
@@ -721,17 +631,14 @@ const REGRESSIONS = [
   },
   {
     /* DIE DOPPELTE DATEI KOMMT ZURUECK: favicon.svg noch einmal unter einem
-       zweiten Namen. Genau der Zustand, der aufgeraeumt wurde. */
+       zweiten Namen. */
     nr: '81', name: 'Dieselbe Datei liegt wieder unter zwei Namen in public/',
     file: 'public/favicon.svg',
     copy: 'public/marke-hell.svg',
     expected: 'Die Marke der Instanz'
   },
-  /* ---- Der zweite Faktor: die Rechnung, 0.10.0 ----
-     DIE DREI KENNWERTE EINZELN. Jedes davon ist fuer sich das bessere
-     Verfahren und wird von Google Authenticator stillschweigend falsch
-     gelesen -- ein Rueckbau, der stumm bliebe, hiesse: die Instanz bindet sich
-     an nichts. */
+  /* ---- Der zweite Faktor: die Rechnung, 0.10.0 ---- DIE DREI KENNWERTE
+     EINZELN. */
   {
     nr: '82', name: 'Acht Ziffern statt sechs',
     file: 'twofactor.js',
@@ -754,10 +661,7 @@ const REGRESSIONS = [
     expected: 'Der zweite Faktor: die Rechnung gegen den Standard'
   },
   {
-    /* DAS DYNAMISCHE ABGREIFEN AUS RFC 4226, Abschnitt 5.3. Ein fester Anfang
-       statt der letzten vier Bit sieht plausibel aus und ergibt weltweit
-       andere Codes -- die eine Stelle, an der eine eigene Umsetzung typisch
-       danebenliegt. */
+    /* DAS DYNAMISCHE ABGREIFEN AUS RFC 4226, Abschnitt 5.3. */
     nr: '85', name: 'Der Anfang des Abgreifens steht fest statt aus dem Hash zu kommen',
     file: 'twofactor.js',
     search: '  const o = h[h.length - 1] & 0x0f;',
@@ -765,9 +669,7 @@ const REGRESSIONS = [
     expected: 'Der zweite Faktor: die Rechnung gegen den Standard'
   },
   {
-    /* DER ZAEHLER IST ACHT BYTES GROSS. Nur die untere Haelfte zu schreiben
-       stimmt bis zum Jahr 6053 -- und der Testvektor T = 20 000 000 000 liegt
-       darueber. Ohne ihn bliebe genau diese Zeile ungeprueft. */
+    /* DER ZAEHLER IST ACHT BYTES GROSS. */
     nr: '86', name: 'Der Zaehler wird nur in seiner unteren Haelfte geschrieben',
     file: 'twofactor.js',
     search: "  z.writeUInt32BE(Math.floor(counter / 2 ** 32), 0);",
@@ -791,13 +693,8 @@ const REGRESSIONS = [
   },
   {
     /* EIN CODE GILT GENAU EINMAL -- und die Bedingung steht im UPDATE und
-       nicht in einer Pruefung davor. Faellt sie weg, traegt derselbe Code
-       beliebig oft, und wer ueber die Schulter sieht, hat dreissig Sekunden. */
-    /* DIE BEDINGUNG WIRD WIRKUNGSLOS GEMACHT, NICHT ENTFERNT. Der erste Anlauf
-       strich sie samt Platzhalter -- dann bekam die vorbereitete Anweisung drei
-       Werte fuer zwei Stellen, better-sqlite3 warf, der Server starb, und der
-       Lauf RISS AB, statt eine Pruefung rot zu faerben (Stolperstein 138). So
-       bleibt die Zahl der Platzhalter gleich und nur die Wirkung faellt weg. */
+       nicht in einer Pruefung davor. */
+    /* DIE BEDINGUNG WIRD WIRKUNGSLOS GEMACHT, NICHT ENTFERNT. */
     nr: '89', name: 'Der verbrauchte Zaehler wird nicht mehr geprueft',
     file: 'auth.js',
     search: "    WHERE user_id = ? AND (last_counter IS NULL OR last_counter < ?)`);",
@@ -812,9 +709,7 @@ const REGRESSIONS = [
     expected: 'Der zweite Faktor: ein Code gilt genau einmal'
   },
   {
-    /* DER BESTAETIGENDE CODE ZAEHLT ALS VERBRAUCHT. Ohne das truege er
-       unmittelbar danach ein zweites Mal -- und "genau einmal" waere an seiner
-       ERSTEN Anwendung falsch. */
+    /* DER BESTAETIGENDE CODE ZAEHLT ALS VERBRAUCHT. */
     nr: '91', name: 'Der bestaetigende Code beim Einschalten zaehlt nicht als verbraucht',
     file: 'auth.js',
     search: "    `UPDATE two_factor SET confirmed_at = datetime('now'), last_counter = ?\n      WHERE user_id = ?`).run(counter, id);",
@@ -830,12 +725,7 @@ const REGRESSIONS = [
     expected: 'Der zweite Faktor: ohne Code kommt niemand herein'
   },
   {
-    /* DIE AUSKUNFT KOMMT ERST NACH RICHTIGEM PASSWORT. Vorgezogen waere die
-       Anmeldeseite ein Werkzeug zum Durchprobieren von Namen: "dieser hat
-       einen zweiten Faktor" hiesse "diesen Namen gibt es".
-       DER RUECKBAU SETZT DIE AUSKUNFT IN DIE ABSAGE, statt die Reihenfolge zu
-       drehen: so bleibt alles Uebrige stehen, und nur die eine Zusage faellt
-       weg (Stolperstein 138). */
+    /* DIE AUSKUNFT KOMMT ERST NACH RICHTIGEM PASSWORT. */
     nr: '93', name: 'Die Absage verraet, ob der Zugang einen zweiten Faktor hat',
     file: 'server.js',
     search: "    return res.status(401).json({ error: t(localeOf(req), 'server.loginWrong')});",
@@ -851,10 +741,7 @@ const REGRESSIONS = [
   },
   {
     /* DIE FRIST IST IM PRUEFLAUF NICHT ZU MESSEN -- zwei Minuten zu warten
-       waere eine Prueflage, die jeder Lauf bezahlt. Gehalten wird sie deshalb
-       ueber die ZAHL in der Antwort: der Ausweis nennt seine Sekunden, und sie
-       sind dieselben wie bei der Freigabe der zweiten Bestaetigung. Ein Wert,
-       eine Regel, eine Gegenprobe. */
+       waere eine Prueflage, die jeder Lauf bezahlt. */
     nr: '95', name: 'Der Ausweis bekommt eine eigene, laengere Frist',
     file: 'auth.js',
     search: 'const LOGIN_TICKET_MS = RELEASE_MS;',
@@ -862,19 +749,15 @@ const REGRESSIONS = [
     expected: 'Der zweite Faktor: der Rundlauf'
   },
   {
-    /* DIE BENUTZERNUMMER KOMMT AUS DEM AUSWEIS UND NIE AUS DEM RUMPF. Stuende
-       sie dort, waere das richtige Passwort EINES Zugangs die Eintrittskarte
-       fuer JEDEN anderen. */
+    /* DIE BENUTZERNUMMER KOMMT AUS DEM AUSWEIS UND NIE AUS DEM RUMPF. */
     nr: '96', name: 'Die Benutzernummer im zweiten Schritt kommt aus dem Rumpf',
     file: 'server.js',
     search: "  const id = auth.useLoginTicket(ticket);",
     replacement: "  const id = Number((req.body || {}).id) || auth.useLoginTicket(ausweis);",
     expected: 'Der zweite Faktor: ohne Code kommt niemand herein'
   },
-  /* ---- Der zweite Faktor: die Bremse ----
-     SECHS DIGITS SIND EINE MILLION; ungebremst ist das kein Faktor, sondern
-     eine Verzoegerung. Der zweite Schritt faellt NICHT von selbst in die
-     Bremse -- er ist eine eigene Route. */
+  /* ---- Der zweite Faktor: die Bremse ---- SECHS DIGITS SIND EINE MILLION;
+     ungebremst ist das kein Faktor, sondern eine Verzoegerung. */
   {
     nr: '97', name: 'Die Bremse fehlt am zweiten Schritt',
     file: 'server.js',
@@ -883,10 +766,7 @@ const REGRESSIONS = [
     expected: 'Der zweite Faktor: die Anmeldebremse greift am zweiten Schritt'
   },
   {
-    /* DIE REIHENFOLGE SELBST. Steht die Bremse hinter dem Ausweis, bekommt ein
-       gesperrter Aufrufer eine 401 ueber den Ausweis statt der 429 -- und ob
-       sie hier ueberhaupt gilt, waere von aussen nicht mehr zu sehen. Genau
-       daran ist die erste Fassung der Bremsprobe stumm geblieben. */
+    /* DIE REIHENFOLGE SELBST. */
     nr: '123', name: 'Die Bremse steht wieder HINTER dem Ausweis',
     file: 'server.js',
     search: "  const throttle = auth.checkThrottle(ip, null);\n  if (throttle.blocked) {\n    return res.status(429).json({\n      error: t(localeOf(req), 'server.throttled', { seconds: throttle.retryInSec })});\n  }\n  if (throttle.delayMs) await new Promise(r => setTimeout(r, throttle.delayMs));\n  const id = auth.useLoginTicket(ticket);\n  if (!id) {\n    auth.noteFailure(ip, null);\n    return res.status(401).json({ error: t(localeOf(req), 'server.sessionExpired')});\n  }",
@@ -984,9 +864,7 @@ const REGRESSIONS = [
   },
   {
     /* NAEHME DAS SPERREN DEN FAKTOR MIT, waere "sperren und wieder freigeben"
-       der Weg, an dem ein Admin einen FREMDEN zweiten Faktor abstreift. Der
-       Rueckbau baut genau die Zeile ein, die neben den beiden daneben
-       plausibel aussieht. */
+       der Weg, an dem ein Admin einen FREMDEN zweiten Faktor abstreift. */
     nr: '109', name: 'Sperren raeumt den zweiten Faktor mit weg',
     file: 'auth.js',
     search: "    db.prepare('DELETE FROM sessions WHERE user_id = ?').run(u.id);\n    db.prepare('DELETE FROM tokens WHERE user_id = ?').run(u.id);\n  }\n  log('user.status'",
@@ -1016,19 +894,7 @@ const REGRESSIONS = [
     expected: 'Der zweite Faktor: die zweite Bestaetigung fragt zusaetzlich'
   },
   {
-    /* DIE ANDERE RICHTUNG -- und zwar an der OBERFLAECHE, nicht am Server.
-       Wer ihn nicht eingeschaltet hat, soll von dieser Runde nichts merken;
-       das Bestaetigungsfenster zeigt sein Codefeld deshalb nur, wenn der
-       Server es sagt. Hier steht es immer da.
-       AM SERVER GIBT ES DIESE RICHTUNG NICHT ALS RUECKBAU, und das ist
-       entschieden: liesse man die zweite Bestaetigung auch ohne Faktor nach
-       einem Code fragen, scheiterte sie fuer JEDEN Zugang -- Export, Import,
-       Rollen, fremde Passwoerter. Der Lauf reisst dann in Gruppen ab, die mit
-       dieser Runde nichts zu tun haben (Stolperstein 138), und ein Rueckbau,
-       der die halbe Pruefung mitnimmt, sagt ohnehin nichts (Stolperstein 49).
-       Die Zusage traegt dort die Pruefung "Ein Zugang OHNE zweiten Faktor
-       bestaetigt weiterhin mit dem Passwort allein" -- sie wuerde bei genau
-       dieser Aenderung rot. */
+    /* DIE ANDERE RICHTUNG -- und zwar an der OBERFLAECHE, nicht am Server. */
     nr: '113', name: 'Das Bestaetigungsfenster zeigt sein Codefeld immer',
     file: 'public/app.js',
     search: "    : ''), TWO_FACTOR);",
@@ -1036,8 +902,7 @@ const REGRESSIONS = [
     expected: 'Die Karte „Zugang“: der zweite Faktor'
   },
   {
-    /* DIE REIHENFOLGE: PASSWORT, DANN CODE. Umgekehrt erfuehre jemand ohne das
-       Passwort, ob am Zugang ein Faktor haengt. */
+    /* DIE REIHENFOLGE: PASSWORT, DANN CODE. */
     nr: '114', name: 'Der Code wird VOR dem Passwort geprueft',
     file: 'server.js',
     search: "  const row = db.prepare('SELECT password_hash FROM users WHERE id = ?').get(req.user.id);\n  if (!row || !await auth.checkPassword(String(password || ''), row.password_hash)) {",
@@ -1048,15 +913,7 @@ const REGRESSIONS = [
   },
   /* ---- Der zweite Faktor: die Tabellen und die Oberflaeche ---- */
   {
-    /* GEZIELT AUF DEN INDEX UND NICHT AUF DIE TABELLEN. Ein Rueckbau, der die
-       DDL einer der beiden Tabellen wegnimmt, macht den Server
-       UNSTARTBAR -- auth.js bereitet seine Anweisungen beim Laden vor, und
-       "no such table" beendet den Prozess. Der Lauf risse dann ab, statt rot
-       zu werden (Stolperstein 138). Die Zusage "eine fehlende TABELLE waechst
-       nach" haelt der Pruefstand deshalb an einem echten Versuch statt an einer
-       Behauptung: er entfernt beide von Hand aus einer bestehenden Instanz,
-       startet einmal und sieht nach. Der INDEX daneben laesst sich gefahrlos
-       zuruecknehmen und traegt dieselbe Aussage ueber CREATE ... IF NOT EXISTS. */
+    /* GEZIELT AUF DEN INDEX UND NICHT AUF DIE TABELLEN. */
     nr: '115', name: 'Der Index auf zweifaktor_codes wird nicht mehr angelegt',
     file: 'db.js',
     search: 'CREATE INDEX IF NOT EXISTS idx_two_factor_codes_user ON two_factor_codes(user_id);',
@@ -1078,10 +935,7 @@ const REGRESSIONS = [
     expected: 'Die Karte „Zugang“: der zweite Faktor'
   },
   {
-    /* DER SATZ, DER DEN KASTEN TRAEGT. Codes, die einmal gezeigt werden, ohne
-       dass es dabeisteht, sind ein Zettel, den niemand abschreibt -- und beim
-       naechsten Aufbau der Karte sind sie fort. Derselbe Ernst wie beim
-       Einladungslink. */
+    /* DER SATZ, DER DEN KASTEN TRAEGT. */
     nr: '118', name: 'Der Kasten sagt nicht mehr, dass die Codes nicht wiederkommen',
     file: 'public/app.js',
     search: "    boxId.innerHTML = `<strong>${tH('card.yourRecoveryCodes', { length: codes.length })}</strong>",
@@ -1131,12 +985,9 @@ const REGRESSIONS = [
     replacement: "    it.searchText = (it.title || '').toLowerCase();\n    delete it.description;",
     expected: 'searchText ist fort, und sonst nichts'
   },
-  /* ---- Die sieben Quellen, einzeln ----
-     JEDES GLIED WIRD WIRKUNGSLOS GEMACHT, NICHT ENTFERNT: `0 > 1` an seiner
-     Stelle laesst die ODER-Kette ganz und nimmt genau eine Quelle heraus. Ein
-     geloeschtes Glied riss die Kette auseinander, und SQLite scheiterte an der
-     Abfrage -- der Lauf faerbte dann nicht eine Pruefung rot, er stuerzte
-     (Stolperstein 138). */
+  /* ---- Die sieben Quellen, einzeln ---- JEDES GLIED WIRD WIRKUNGSLOS
+     GEMACHT, NICHT ENTFERNT: `0 > 1` an seiner Stelle laesst die ODER-Kette
+     ganz und nimmt genau eine Quelle heraus. */
   {
     nr: '126', name: 'Die Suche sieht den Titel nicht mehr an',
     file: 'server.js',
@@ -1190,9 +1041,7 @@ const REGRESSIONS = [
   {
     /* GENAU DIE UNICODE-HAELFTE FAELLT WEG, nicht die Kleinschreibung selbst:
        ASCII wird weiter gefaltet, Umlaute nicht -- also genau das Verhalten,
-       das SQLite mit lower() und LIKE von Haus aus hat. Ein Rueckbau, der
-       toLowerCase() ganz entfernte, machte auch jede ASCII-Suche rot und sagte
-       damit nichts mehr ueber die Umlaute. */
+       das SQLite mit lower() und LIKE von Haus aus hat. */
     nr: '133', name: 'Die Kleinschreibung faltet nur noch ASCII',
     file: 'db.js',
     search: "db.function('kkl', { deterministic: true }, searchFold);",
@@ -1202,8 +1051,7 @@ const REGRESSIONS = [
   /* ---- Die eine Faltung der Suche -- 0.24.4 (B8) ---- */
   {
     /* DIE NADEL FAELLT WIEDER AN DIE SPRACHE DES LESERS -- der Zustand von
-       0.24.3. Die Zwei-Leser-Probe und die T3-Probe muessen daraufhin rot
-       werden; wird nur eine rot, ist die andere stumm. */
+       0.24.3. */
     nr: '734', name: 'Die Nadel faltet wieder mit der Sprache des Lesers',
     file: 'server.js',
     search: "const fulltextTerm = (raw) => (typeof raw === 'string' ? searchFold(raw.trim()) : '');",
@@ -1211,10 +1059,8 @@ const REGRESSIONS = [
     expected: 'Die Befunde der Runde 0.24.4'
   },
   {
-    /* DER SPRACHWECHSEL DES LESERS WIRFT DIE ANTWORT WIEDER WEG -- der Zustand
-       von 0.24.3. Die Sprachprobe des Lesers muss daraufhin rot werden, und
-       zwar NUR ihre zweite Haelfte: die Oberflaeche wechselt weiter, die
-       vierzehn Woerter nicht. */
+    /* DER SPRACHWECHSEL DES LESERS WIRFT DIE ANTWORT WIEDER WEG -- der
+       Zustand von 0.24.3. */
     nr: '736', name: 'Der Sprachwechsel nimmt das Vokabular nicht mit',
     file: 'public/app.js',
     search: "          takeVocabulary((await api('PUT', '/api/settings', { language: a.code })));",
@@ -1223,14 +1069,9 @@ const REGRESSIONS = [
   },
   {
     /* UND DIE VIER i FALLEN WIEDER AUSEINANDER: dieselbe Funktion, nur ohne
-       den Schritt, der `İ` und `ı` auf `i` bringt. Die T3-Probe wird rot,
-       die Zwei-Leser-Probe NICHT -- beide Haelften falten ja weiter gleich.
-       Genau diese Trennung ist der Grund fuer zwei Rueckbauten statt einem. */
+       den Schritt, der `İ` und `ı` auf `i` bringt. */
     /* SEIT 0.26.0 ZIELT ER AUF EINE UMGEBAUTE ZEILE -- die Faltung setzt
-       seither auch `ß` und `ss` gleich (Befund 6). Der Rueckbau geht mit,
-       statt geloescht zu werden (Stolperstein 201), und er nimmt WEITER NUR
-       die beiden i-Schritte: die ß-Gleichsetzung bleibt stehen, sonst
-       faerbte ein Rueckbau zwei Befunde auf einmal rot und saegte keinen. */
+       seither auch `ß` und `ss` gleich (Befund 6). */
     nr: '735', name: 'Die vier i fallen nicht mehr auf eines',
     file: 'db.js',
     search: "  : String(s).toLowerCase().replace(/\\u0307/g, '').replace(/\\u0131/g, 'i')\n      .replace(/\\u00df/g, 'ss'));",
@@ -1246,9 +1087,7 @@ const REGRESSIONS = [
   },
   {
     /* DIE LISTE VERSCHWEIGT ETWAS, DAS DIE SUCHE ZEIGT -- die Richtung, auf
-       die es ankommt. Der Papierkorb steht gar nicht in `items`; die schaerfste
-       erreichbare Lage ist deshalb eine Liste, die weniger zeigt als die
-       Suche. */
+       die es ankommt. */
     nr: '135', name: 'Die Liste ohne Begriff verschweigt die abgelehnten Eintraege',
     file: 'server.js',
     search: "  let rows = qAllItems.all();",
@@ -1257,9 +1096,8 @@ const REGRESSIONS = [
   },
   /* ---- testDays und die Zeitleiste ---- */
   {
-    /* MITGEGANGEN MIT 0.19.3 (Stolperstein 201): die Zeile holt seit dieser
-       Runde die schmale Fassung aus einer Karte statt je Eintrag zu fragen.
-       Derselbe Fund, andere Zeile. */
+    /* MITGEGANGEN MIT 0.19.3: die Zeile holt seit dieser
+       Runde die schmale Fassung aus einer Karte statt je Eintrag zu fragen. */
     nr: '136', name: 'testDays kommt wieder immer mit',
     file: 'server.js',
     search: "    if (timeline) it.testDays = testDaysPer.get(it.id) || [];",
@@ -1312,9 +1150,8 @@ const REGRESSIONS = [
   },
   /* ---- Die gespeicherten Ansichten ---- */
   {
-    /* GEAENDERT MIT 0.17.0 (Stolperstein 201): `zuletztGesehen` ist aus der
-       Liste gefallen, und der Suchtext griff damit ins Leere (Stolperstein
-       192). Er nimmt weiterhin genau die Ansichten heraus. */
+    /* GEAENDERT MIT 0.17.0: `zuletztGesehen` ist aus der
+       Liste gefallen, und der Suchtext griff damit ins Leere. */
     nr: '143', name: 'Die Ansichten sind kein persoenlicher Schluessel mehr',
     file: 'server.js',
     search: "                                'bellSeen', 'views', 'strip', 'theme', 'language'];",
@@ -1357,9 +1194,7 @@ const REGRESSIONS = [
     expected: 'Gespeicherte Ansichten in der Oberflaeche'
   },
   {
-    /* SEIT 0.13.0 TRAEGT DER FILTER EINE LISTE. Der Rueckbau nimmt dieselbe
-       Klemme weg wie vorher: eine Nummer, die es nicht mehr gibt, bliebe
-       stehen und filterte auf eine Kategorie, die niemand mehr hat. */
+    /* SEIT 0.13.0 TRAEGT DER FILTER EINE LISTE. */
     nr: '149', name: 'Eine geloeschte Kategorie bleibt in der angewandten Ansicht stehen',
     file: 'public/app.js',
     search: "  f.categoryIds = [...new Set(f.categoryIds)].filter(v =>\n    v === CATEGORY_NONE || state.categories.some(c => c.id === v));",
@@ -1399,7 +1234,7 @@ const REGRESSIONS = [
   {
     /* DIESELBE ZEILE IN DER ANDEREN DATEI, und das ist kein Doppel: die
        beiden liegen getrennt, und wer eine anfasst, laesst die andere
-       zurueck. Genau dafuer stehen hier zwei Rueckbauten. */
+       zurueck. */
     nr: '154', name: 'Die Fassung mit Kachel traegt wieder Gold',
     file: 'public/favicon.svg',
     search: '<path d="M8 16 H24" stroke="#ff7a1a"/>',
@@ -1427,14 +1262,7 @@ const REGRESSIONS = [
     replacement: 'width="${s}" height="${s}"',
     expected: 'Die Marke der Instanz'
   },
-  /* ---- Telefon und Tablett (0.12.0) ----
-     SECHS RUECKBAUTEN UND NICHT MEHR. Sie sind auf die tragenden Zusagen der
-     Runde gerichtet und ersetzen den vollen Lauf nicht -- was sie decken und
-     was nicht, steht im Aenderungsprotokoll 0.12.0, Abschnitt 5.
-     DREI DAVON GREIFEN AM STYLESHEET UND KEINE AM LAYOUT: der Prueflauf
-     rechnet auf jsdom kein Layout, er kann nur pruefen, dass eine Regel
-     dasteht. Ein Rueckbau, der eine Regel entfernt, ist damit genau das, was
-     sich hier belegen laesst -- und mehr behauptet die Pruefung auch nicht. */
+  /* ---- Telefon und Tablett (0.12.0) ---- SECHS RUECKBAUTEN UND NICHT MEHR. */
   {
     nr: '158', name: 'Die Spalte des Systembereichs darf sich wieder aufblaehen',
     file: 'public/style.css',
@@ -1471,16 +1299,7 @@ const REGRESSIONS = [
     expected: 'Handy und Tablett: die Staffel der Umbruchpunkte'
   },
   /* DER ERSTE ANLAUF DIESES RUECKBAUS HAT DEN LAUF ABGERISSEN, und das belegt
-     nichts (Stolpersteine 138, 161 und 170). Er nahm dem Menuezeichen seine
-     Kennung; `document.getElementById('menue')` gab daraufhin null zurueck, und
-     `menue.onclick = ...` warf, BEVOR eine einzige Zusicherung lief -- die
-     ganze Prueflage fiel zusammen, und der Bericht sagte "abgerissen" statt
-     eine Zeile rot zu faerben.
-     ER GREIFT DESHALB JETZT DA, WO DIE ZUSICHERUNG HINSIEHT: er vertauscht in
-     der Tafel den Namen des Angemeldeten mit dem Abmelden. Das wirft nichts,
-     und es trifft ZWEI Zusagen auf einmal -- die Reihenfolge der vier in der
-     Tafel und die aeltere Zeile, dass die Angabe unmittelbar vor dem Knopf
-     steht, den sie erklaert. */
+     nichts. */
   {
     nr: '163', name: 'Der Name des Angemeldeten rutscht hinter das Abmelden',
     file: 'public/app.js',
@@ -1490,9 +1309,7 @@ const REGRESSIONS = [
   },
   /* DAS KREUZ AN DER KACHEL WAR EIN FUND AUS DEM FELD, kein Einfall am
      Schreibtisch: beim Durchwischen der Kachelleiste hat der Daumen es
-     getroffen und ein Foto geloescht. Es ist auf dem Finger weg -- und weil
-     ein Weglassen sich nicht von einem Vergessen unterscheiden laesst, muss
-     der Rueckbau es zurueckholen koennen. */
+     getroffen und ein Foto geloescht. */
   {
     nr: '164', name: 'Das Kreuz kehrt auf die Vorschaukachel zurueck',
     file: 'public/style.css',
@@ -1500,9 +1317,7 @@ const REGRESSIONS = [
     replacement: '',
     expected: 'Handy und Tablett: die Staffel der Umbruchpunkte'
   },
-  /* Und der Abstand, der das Wegnehmen vom Einstellen trennt. Ohne ihn
-     stehen Ausschnitt und Papierkorb Schulter an Schulter -- genau die Lage,
-     die das Kreuz an der Kachel so gefaehrlich gemacht hat. */
+  /* Und der Abstand, der das Wegnehmen vom Einstellen trennt. */
   {
     nr: '165', name: 'Der Papierkorb rueckt an die Einstellknoepfe heran',
     file: 'public/style.css',
@@ -1511,11 +1326,7 @@ const REGRESSIONS = [
     expected: 'Handy und Tablett: die Staffel der Umbruchpunkte'
   },
   /* UNSICHTBAR IST NICHT DASSELBE WIE UNANTASTBAR, und genau darauf kam der
-     Befund aus dem Betrieb heraus. Dieser Rueckbau macht das Kreuz an der
-     Kachel wieder durchsichtig statt es herauszunehmen: auf einem
-     Bildschirmfoto sieht das Ergebnis richtig aus, unter dem Daumen ist es
-     der alte Fehler. Wenn dafuer keine Zeile rot wird, sichert der Pruefstand
-     nur das Aussehen und nicht das Verhalten. */
+     Befund aus dem Betrieb heraus. */
   {
     nr: '166', name: 'Das Kreuz an der Kachel wird nur durchsichtig, nicht herausgenommen',
     file: 'public/style.css',
@@ -1534,8 +1345,7 @@ const REGRESSIONS = [
     expected: 'Handy und Tablett: die Staffel der Umbruchpunkte'
   },
   /* auto-fit statt auto-fill: mit zwoelf Fotos faellt das gar nicht auf, mit
-     zweien werden aus zwei Kacheln zwei Kachelplatten. Ein Rueckbau, den man
-     an einem vollen Eintrag nicht sieht -- deshalb steht er hier. */
+     zweien werden aus zwei Kacheln zwei Kachelplatten. */
   {
     nr: '168', name: 'Die leeren Spalten klappen zusammen (auto-fit)',
     file: 'public/style.css',
@@ -1545,7 +1355,7 @@ const REGRESSIONS = [
   },
   /* Die Kachel behaelt ihre feste Hoehe, waehrend die Breite rechnet: aus dem
      Quadrat wird ein liegendes Rechteck, und object-fit beschneidet das Foto
-     anders. Sieht nicht kaputt aus, ist aber falsch. */
+     anders. */
   {
     nr: '169', name: 'Die Kachel behaelt ihre feste Hoehe und wird zum Rechteck',
     file: 'public/style.css',
@@ -1553,11 +1363,7 @@ const REGRESSIONS = [
     replacement: "  width: auto; height: 62px; border-radius: 8px; overflow: hidden;",
     expected: 'Handy und Tablett: die Staffel der Umbruchpunkte'
   },
-  /* UND EINER IN DIE GEGENRICHTUNG: die Grundregel der Kachel wird angefasst.
-     Sie gilt am Schreibtisch, und dort soll sich nichts aendern -- ein
-     Rueckbau, der die 62 Pixel verschiebt, muss auffallen. Sonst haenge die
-     Zusage allein an einem Pixelvergleich von Hand, und der faerbt nichts
-     rot. */
+  /* UND EINER IN DIE GEGENRICHTUNG: die Grundregel der Kachel wird angefasst. */
   {
     nr: '170', name: 'Die Grundgroesse der Kachel verrutscht',
     file: 'public/style.css',
@@ -1578,9 +1384,7 @@ const REGRESSIONS = [
   },
   {
     /* DIE SUMME UEBER ALLE BLOB-SPALTEN IST DIE NAHELIEGENDE UND FALSCHE
-       RECHNUNG: photos.thumb geht nie in die Datei. Faellt hier keine
-       Pruefung rot, warnt die Instanz irgendwann zu frueh -- und eine Warnung,
-       die zu frueh kommt, wird weggeklickt. */
+       RECHNUNG: photos.thumb geht nie in die Datei. */
     nr: '172', name: 'Die Vorschaubilder werden mitgezaehlt, obwohl sie nie mitgehen',
     file: 'server.js',
     search: "      `SELECT COALESCE(SUM(length(data)),0) n FROM photos WHERE kind != 'video'${and('item_id')}`));",
@@ -1602,9 +1406,7 @@ const REGRESSIONS = [
     expected: 'Die Exportgroesse sagt sich an'
   },
   {
-    /* DER VIDEOSCHALTER HAENGT AM FOTOSCHALTER, wie in eintragAlsPaket(). Ohne
-       diese Bindung naennte die Karte eine Groesse, die kein Knopf erzeugen
-       kann -- und das faellt an keiner einzelnen Zahl auf. */
+    /* DER VIDEOSCHALTER HAENGT AM FOTOSCHALTER, wie in eintragAlsPaket(). */
     nr: '175', name: 'Die Videos zaehlen auch ohne Fotos mit',
     file: 'public/app.js',
     search: '    + (s.withPhotos && s.withVideos ? (ex.videos || 0) : 0)',
@@ -1621,9 +1423,7 @@ const REGRESSIONS = [
   },
   {
     /* OHNE DAS WORT auto GILT DIE SCHAETZUNG FUER IMMER, und der Rollbalken
-       springt bei jeder Kachel, die anders hoch ist als geschaetzt. Der
-       Rueckbau nimmt genau dieses Wort weg -- die Regel bleibt sonst stehen
-       und saehe von aussen unveraendert aus. */
+       springt bei jeder Kachel, die anders hoch ist als geschaetzt. */
     nr: '177', name: 'Die geschaetzte Kachelhoehe gilt fuer immer statt nur bis zum ersten Zeichnen',
     file: 'public/style.css',
     search: '  contain-intrinsic-size: auto 400px;',
@@ -1640,12 +1440,9 @@ const REGRESSIONS = [
   {
     /* DER KASTEN STEHT IM AUFBAU VOR DER WOLKE, und daran haengt alles: die
        Zeile bricht um, und ein Geschwister DAHINTER rutscht auf eine eigene
-       Zeile. Genau das war der Befund. Die CSS-Regel bliebe dabei stehen und
-       saehe richtig aus. */
-    /* UMGEDREHT SEIT 0.13.0: der Verweis steht jetzt HINTER der Wolke, und das
-       ist die neue Wahrheit. Der Rueckbau schiebt ihn wieder davor -- dann
-       stimmt die Reihenfolge nicht mehr, und "mehr" stuende vor dem, was es
-       aufklappt. */
+       Zeile. */
+    /* UMGEDREHT SEIT 0.13.0: der Verweis steht jetzt HINTER der Wolke, und
+       das ist die neue Wahrheit. */
     nr: '179', name: 'Der Verweis rutscht wieder VOR die Wolke',
     file: 'public/app.js',
     search: '  if (right.childElementCount) r3.appendChild(right);',
@@ -1653,13 +1450,7 @@ const REGRESSIONS = [
     expected: 'Die Anzeige zieht nach — 0.12.3'
   },
   {
-    /* NICHT `zaehle('task')` ALS ERSATZ: das ist DASSELBE. `aufgaben` zaehlt
-       task UND done, `done` zaehlt done -- die Differenz IST die Zahl der
-       task-Zeilen. Der erste Anlauf hat genau das versucht und blieb stumm,
-       weil er gar nichts veraenderte. **Ein Rueckbau, der rechnerisch ein
-       No-op ist, sieht aus wie eine Luecke im Pruefstand und ist keine.**
-       Zurueckgebaut wird deshalb die Verschachtelung selbst: die Gesamtzahl
-       statt der offenen. */
+    /* NICHT `zaehle('task')` ALS ERSATZ: das ist DASSELBE. */
     nr: '180', name: 'Die Klammer nennt die Gesamtzahl statt der offenen',
     file: 'public/app.js',
     search: "    + (finished ? t('list.openCount', { n: open }) : ''));",
@@ -1667,9 +1458,7 @@ const REGRESSIONS = [
     expected: 'Kommentare in der Oberflaeche'
   },
   {
-    /* DAS FELD NIMMT BEIDE FORMEN. Eine Beschriftung, die eine davon
-       ausschliesst, ist fuer die Haelfte der Faelle falsch -- und sie sieht
-       dabei vollkommen unauffaellig aus. */
+    /* DAS FELD NIMMT BEIDE FORMEN. */
     nr: '181', name: 'Das Codefeld fragt wieder nach der App statt nach dem Verfahren',
     file: 'public/app.js',
     search: "<label>${tH('dialog.twoFactorCode')}</label>\n        <input class=\"input\" id=\"confirm-code\"",
@@ -1684,9 +1473,7 @@ const REGRESSIONS = [
     expected: 'Kommentare in der Oberflaeche'
   },
   /* ---- 0.12.4: der Export in Teilen ---- */
-  /* SIE ZIELEN AUF DEN SCHNITT UND AUF DIE SCHRANKE. Ein Schnitt, der einen
-     Eintrag doppelt oder gar nicht vergibt, faellt am Bildschirm nicht auf --
-     erst beim Einspielen, und dann ist der Bestand schon falsch. */
+  /* SIE ZIELEN AUF DEN SCHNITT UND AUF DIE SCHRANKE. */
   {
     nr: '183', name: 'Der Schnitt laesst die Fenster ueberlappen',
     file: 'server.js',
@@ -1695,9 +1482,8 @@ const REGRESSIONS = [
     expected: 'Der Export in Teilen'
   },
   {
-    /* OHNE DEN UMSCHLAG JE TEIL waere die Rechnung zu klein: jeder Teil traegt
-       Titel, Zeitstempel und die ganze Kriterienliste noch einmal. Bei vielen
-       kleinen Teilen ist das kein Rundungsfehler. */
+    /* OHNE DEN UMSCHLAG JE TEIL waere die Rechnung zu klein: jeder Teil
+       traegt Titel, Zeitstempel und die ganze Kriterienliste noch einmal. */
     nr: '184', name: 'Der Umschlag je Teil faellt aus der Rechnung',
     file: 'server.js',
     search: "      open = { nr: parts.length + 1, from: z.id, to: z.id, count: 0, bytes: reason };",
@@ -1705,9 +1491,7 @@ const REGRESSIONS = [
     expected: 'Der Export in Teilen'
   },
   {
-    /* EIN EINTRAG, DER IN KEINEN TEIL PASST, DARF NICHT STILL VERSCHWINDEN.
-       Dieser Rueckbau uebergeht ihn wortlos -- genau der Ausgang, gegen den
-       die Message gebaut ist. */
+    /* EIN EINTRAG, DER IN KEINEN TEIL PASST, DARF NICHT STILL VERSCHWINDEN. */
     nr: '185', name: 'Ein zu grosser Eintrag wird still uebergangen',
     file: 'server.js',
     search: "    if (reason + b > EXCHANGE_MAX) { tooBig.push({ id: z.id, title: z.title, bytes: reason + b }); continue; }",
@@ -1715,9 +1499,7 @@ const REGRESSIONS = [
     expected: 'Der Export in Teilen'
   },
   {
-    /* EINE HALBE FENSTERANGABE MUSS EIN FEHLER SEIN. Wer `von` schickt und
-       `bis` vergisst, bekaeme sonst stillschweigend den ganzen Bestand -- und
-       merkte es erst an der Dateigroesse. */
+    /* EINE HALBE FENSTERANGABE MUSS EIN FEHLER SEIN. */
     nr: '186', name: 'Eine halbe Fensterangabe geht als Vollexport durch',
     file: 'server.js',
     search: '  if (asPart && (from === null || to === null || part === null || parts === null))',
@@ -1725,9 +1507,7 @@ const REGRESSIONS = [
     expected: 'Der Export in Teilen'
   },
   {
-    /* AUS N SCHRANKEN WIRD SONST EINE. Die Freigabe haengt an Sitzung, Zweck
-       UND Ziel; faellt das Ziel weg, laesst eine einzige Bestaetigung jeden
-       Teil durch. */
+    /* AUS N SCHRANKEN WIRD SONST EINE. */
     nr: '187', name: 'Eine Freigabe gilt wieder fuer alle Teile',
     file: 'server.js',
     search: "             : (req.query && req.query.part !== undefined ? req.query.part : null);",
@@ -1735,9 +1515,7 @@ const REGRESSIONS = [
     expected: 'Der Export in Teilen'
   },
   {
-    /* DER TEIL MUSS EIN WINDOW LESEN UND NICHT ALLES. Ohne die Klemme traegt
-       jeder Teil den ganzen Bestand -- fuenf Dateien, jede vollstaendig, und
-       der Import legte danach alles fuenfmal an. */
+    /* DER TEIL MUSS EIN WINDOW LESEN UND NICHT ALLES. */
     nr: '188', name: 'Jeder Teil traegt den ganzen Bestand',
     file: 'server.js',
     search: "    ? db.prepare('SELECT * FROM items WHERE id BETWEEN ? AND ? ORDER BY id').all(from, to)",
@@ -1753,8 +1531,7 @@ const REGRESSIONS = [
   },
   {
     /* DER DATEINAME IST DIE EINZIGE STELLE, an der ein Mensch die Reihenfolge
-       ablesen kann. Fuenf gleichnamige Dateien im Ordner waeren nicht mehr
-       auseinanderzuhalten. */
+       ablesen kann. */
     nr: '190', name: 'Alle Teile heissen gleich',
     file: 'server.js',
     search: "    `attachment; filename=\"${exportName(asPart ? `-teil-${part}-von-${parts}` : '')}\"`);",
@@ -1762,13 +1539,7 @@ const REGRESSIONS = [
     expected: 'Der Export in Teilen'
   },
   {
-    /* DER ZUSAMMENZUG IST DER GANZE PUNKT 1 AUS 0.13.0. Faellt er weg und die
-       Oberflaeche fragt wieder je Teil, kommt genau der Fehler aus dem Betrieb
-       zurueck: der erste Aufruf traegt, jeder weitere bekommt "Der Code stimmt
-       nicht" -- ein Code des zweiten Faktors gilt genau einmal.
-       DER RUECKBAU IST DER ALTE QUELLTEXT, Zeile fuer Zeile. Er ist auf einem
-       Server OHNE zweiten Faktor harmlos, und genau deshalb muss die neue
-       Gruppe rot werden und nicht die alte. */
+    /* DER ZUSAMMENZUG IST DER GANZE PUNKT 1 AUS 0.13.0. */
     nr: '191', name: 'Die Oberflaeche fragt wieder je Teil statt einmal fuer alle',
     file: 'public/app.js',
     search: "  try { await api('POST', '/api/confirm', { ...input, purpose, targets }); }\n  catch (e) { toast(e.message, true); return false; }\n  return true;",
@@ -1776,9 +1547,7 @@ const REGRESSIONS = [
     expected: 'Der Teilexport mit zweitem Faktor'
   },
   {
-    /* DIE MEHRZAHL AM SERVER. Ohne sie nimmt die Route nur ein Ziel, und die
-       eine Anfrage der Oberflaeche legt genau eine Freigabe an -- Teil 2
-       bekaeme 403, und zwar ohne dass irgendwo ein Code falsch gewesen waere. */
+    /* DIE MEHRZAHL AM SERVER. */
     nr: '192', name: 'Die Route nimmt wieder nur ein einzelnes Ziel',
     file: 'server.js',
     search: '  } else targetList = [target ?? null];',
@@ -1786,9 +1555,7 @@ const REGRESSIONS = [
     expected: 'Der Teilexport mit zweitem Faktor'
   },
   {
-    /* DIE ABSAGE AUF DOPPELTE NUMMERN. Ohne sie wird aus drei bestellten
-       Freigaben stillschweigend eine -- die Antwort saehe aus wie ein Erfolg,
-       und der zweite Teil bliebe stehen. */
+    /* DIE ABSAGE AUF DOPPELTE NUMMERN. */
     nr: '193', name: 'Doppelte Zielnummern gehen als halbierte Bestellung durch',
     file: 'server.js',
     search: '    if (new Set(targetList).size !== targetList.length)',
@@ -1796,9 +1563,7 @@ const REGRESSIONS = [
     expected: 'Der Teilexport mit zweitem Faktor'
   },
   {
-    /* DER DECKEL AUF DER ZAHL DER ZIELE. Ohne ihn legt eine einzige Anfrage
-       zehntausend Freigaben im Arbeitsspeicher ab, und nichts raeumt sie vor
-       ihrem Ablauf wieder weg. */
+    /* DER DECKEL AUF DER ZAHL DER ZIELE. */
     nr: '194', name: 'Eine Anfrage darf beliebig viele Freigaben bestellen',
     file: 'server.js',
     search: '    if (targets.length > EXCHANGE_PART_MAX)',
@@ -1806,10 +1571,7 @@ const REGRESSIONS = [
     expected: 'Der Teilexport mit zweitem Faktor'
   },
   {
-    /* DAS MERKMAL AM TEILEXPORT. Steht dort wieder die Nummer, ist sie kein
-       Wert aus MERKMALE -- und protokolliere() verwirft die GANZE Zeile. Ein
-       Bestand, der in fuenf Teilen hinausgeht, stuende im Protokoll nirgends.
-       DAS IST DER BEFUND AUS 0.12.4, wortwoertlich zurueckgebaut. */
+    /* DAS MERKMAL AM TEILEXPORT. */
     nr: '195', name: 'Der Teilexport schreibt wieder "teil 1/5" und faellt damit aus dem Protokoll',
     file: 'server.js',
     search: "detail: asPart ? 'part' : null });",
@@ -1818,9 +1580,7 @@ const REGRESSIONS = [
   },
   /* ---- 0.13.0: zwei Netze, ein Zugang ---- */
   {
-    /* DER KOPF WIRD OHNE DIE EINSTELLUNG GEGLAUBT. Dann holt sich jeder
-       Aufrufer auf Port 3100 einen __Host--Cookie samt HSTS -- und sperrt sich
-       damit selbst aus, weil sein Browser den Cookie verwirft. */
+    /* DER KOPF WIRD OHNE DIE EINSTELLUNG GEGLAUBT. */
     nr: '196', name: 'X-Forwarded-Proto wird auch ohne BEHIND_PROXY geglaubt',
     file: 'auth.js',
     search: '  if (!BEHIND_PROXY) return false;',
@@ -1828,9 +1588,7 @@ const REGRESSIONS = [
     expected: 'Ohne Proxy ist der Kopf nur eine Behauptung'
   },
   {
-    /* BEIDE WEGE BEKOMMEN DENSELBEN NAMEN -- der Fehler aus (b) in Reinform.
-       Eine Zeile, die nur sagt, dass ein Cookie gesetzt wurde, bliebe dabei
-       gruen; der NAME ist die Pruefung. */
+    /* BEIDE WEGE BEKOMMEN DENSELBEN NAMEN -- der Fehler aus (b) in Reinform. */
     nr: '197', name: 'Beide Wege bekommen denselben Cookienamen',
     file: 'auth.js',
     search: "const cookieName = (req) => viaProxy(req) ? COOKIE_SECURE : COOKIE_NAME;",
@@ -1838,9 +1596,7 @@ const REGRESSIONS = [
     expected: 'Zwei Netze, ein Zugang — 0.13.0'
   },
   {
-    /* SECURE AM HEIMNETZWEG. Der Browser verwirft den Cookie dann
-       stillschweigend -- genau der Fehler, gegen den diese Runde gebaut ist,
-       nur eine Ebene tiefer. */
+    /* SECURE AM HEIMNETZWEG. */
     nr: '198', name: 'Auch der Heimnetzcookie traegt Secure',
     file: 'auth.js',
     search: "  `${viaProxy(req) ? '; Secure' : ''}; Max-Age=${SESSION_DAYS * 86400}`;",
@@ -1848,9 +1604,7 @@ const REGRESSIONS = [
     expected: 'Zwei Netze, ein Zugang — 0.13.0'
   },
   {
-    /* HSTS AUF JEDEM WEG. Der Kopf sperrt den Heimnetzweg aus, den (a) gerade
-       offenhalten soll: der Browser bestuende danach auf HTTPS und faende an
-       Port 3100 keines. */
+    /* HSTS AUF JEDEM WEG. */
     nr: '199', name: 'HSTS geht wieder auf jedem Weg mit',
     file: 'server.js',
     search: "  if (auth.viaProxy(req)) res.set('Strict-Transport-Security', 'max-age=31536000');",
@@ -1859,9 +1613,7 @@ const REGRESSIONS = [
   },
   /* ---- 0.13.0: der Filter am Sicherheitsprotokoll ---- */
   {
-    /* DIE AUSWAHL WIRD UEBERGANGEN. Die Karte zeigt dann wieder die hundert
-       juengsten ALLER Arten, und genau darin findet man die gescheiterten
-       Anmeldungen nicht. */
+    /* DIE AUSWAHL WIRD UEBERGANGEN. */
     nr: '200', name: 'Die Leseroute uebergeht die gewaehlte Ansicht',
     file: 'server.js',
     search: '  res.json(auth.readLog(auth.LOG_LIMIT, group));',
@@ -1869,8 +1621,7 @@ const REGRESSIONS = [
     expected: 'Das Sicherheitsprotokoll in der Oberflaeche'
   },
   {
-    /* DIE NAMEN WERDEN WIEDER BLOSSER TEXT. Der Sprung zum Zugang faellt damit
-       weg -- und mit ihm die zweite Haelfte von Punkt 3a. */
+    /* DIE NAMEN WERDEN WIEDER BLOSSER TEXT. */
     nr: '201', name: 'Die Namen im Protokoll sind wieder nur Text',
     file: 'public/app.js',
     search: "    if (id == null) { field.appendChild(doc.createTextNode(text)); return field; }",
@@ -1878,8 +1629,7 @@ const REGRESSIONS = [
     expected: 'Das Sicherheitsprotokoll in der Oberflaeche'
   },
   {
-    /* "unbekannter Name" WIRD ANKLICKBAR. Er ist der getippte Name eines
-       Versuchs, der an keinen Zugang traf -- ein Knopf ins Leere. */
+    /* "unbekannter Name" WIRD ANKLICKBAR. */
     nr: '202', name: 'Auch "unbekannter Name" wird ein Knopf',
     file: 'public/app.js',
     search: "      row.appendChild(logNameField(doc, 'log-actor', logActor(z),\n        z.actor != null ? z.actor : null));",
@@ -1887,8 +1637,7 @@ const REGRESSIONS = [
     expected: 'Das Sicherheitsprotokoll in der Oberflaeche'
   },
   {
-    /* DIE FUENF WOERTER FALLEN WIEDER WEG. Die Vorgaenge stehen dann als rohe
-       Schluessel am Bildschirm -- "request.approve" statt eines Satzes. */
+    /* DIE FUENF WOERTER FALLEN WIEDER WEG. */
     nr: '203', name: 'Fuenf Vorgaenge stehen wieder als roher Schluessel da',
     file: 'public/app.js',
     search: "    'request.approve': 'card.requestApproved',",
@@ -1897,9 +1646,7 @@ const REGRESSIONS = [
   },
   /* ---- 0.13.0: der Loeschdialog und die Grabsteine ---- */
   {
-    /* DER SATZ FAELLT WEG. Der Dialog sagt dann wieder nur, dass es nicht
-       rueckgaengig zu machen ist -- und verschweigt den Weg, der genau das
-       nicht tut. Der billigste Punkt der Runde mit dem groessten Schaden. */
+    /* DER SATZ FAELLT WEG. */
     nr: '204', name: 'Der Loeschdialog verschweigt den umkehrbaren Weg wieder',
     file: 'public/app.js',
     search: "      <p>${tH('dialog.lockInsteadHint')}</p>",
@@ -1916,9 +1663,7 @@ const REGRESSIONS = [
   },
   /* ---- 0.13.0: die Filterleiste ---- */
   {
-    /* DIE SELBSTTAETIGE AUSSENKANTE KOMMT ZURUECK. Sie frisst den freien Platz
-       der Zeile, die Wolke rutscht darunter, und die Tagzeile kostet wieder
-       zwei Zeilen. */
+    /* DIE SELBSTTAETIGE AUSSENKANTE KOMMT ZURUECK. */
     nr: '206', name: 'Die selbsttaetige Aussenkante frisst die Zeile wieder',
     file: 'public/style.css',
     search: '.frow-right { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }',
@@ -1934,12 +1679,8 @@ const REGRESSIONS = [
     expected: 'Die Filterleiste wird kuerzer — 0.13.0'
   },
   {
-    /* MITGENOMMEN MIT 0.17.0 (Stolperstein 201): der Rueckbau zeigte auf die
-       Pille „Neu seit ...", und die ist gestrichen. DIE REGEL DAHINTER GILT
-       WEITER und war nie ihre eigene -- seit 0.13.0 wird JEDE Pille gedaempft,
-       die auf null Treffer fuehrt. Der Rueckbau nimmt sie jetzt am Tag, wo sie
-       zuerst stand. Ohne das Nachziehen waere er stumm geworden
-       (Stolperstein 192). */
+    /* MITGENOMMEN MIT 0.17.0: der Rueckbau zeigte auf die
+       Pille „Neu seit ...", und die ist gestrichen. */
     nr: '208', name: 'Eine Pille mit null Treffern wird nicht mehr gedaempft',
     file: 'public/app.js',
     search: "    b.className = 'pill pill-tag' + (chosen ? ' on' : '') + (idle.has(tag.id) ? ' blank' : '');",
@@ -1948,8 +1689,7 @@ const REGRESSIONS = [
   },
   /* ---- 0.13.0: die Kategoriezeile ---- */
   {
-    /* DIE UEBERSETZUNG DER ALTEN FORM FAELLT WEG. Alle vorhandenen Ansichten
-       verloeren ihre Kategorie -- still und ohne Message. */
+    /* DIE UEBERSETZUNG DER ALTEN FORM FAELLT WEG. */
     nr: '209', name: 'Eine gespeicherte Ansicht in der alten Form verliert ihre Kategorie',
     file: 'public/app.js',
     search: "  if (!Array.isArray(f.categoryIds))\n    f.categoryIds = f.categoryId != null ? [f.categoryId] : [];",
@@ -1957,8 +1697,7 @@ const REGRESSIONS = [
     expected: 'Die Kategoriezeile lernt die Mehrzahl — 0.13.0'
   },
   {
-    /* AUS DEM ODER WIRD EIN UND. Ein Eintrag traegt genau eine Kategorie --
-       zwei gewaehlte ergaeben damit garantiert null Treffer. */
+    /* AUS DEM ODER WIRD EIN UND. */
     nr: '210', name: 'Aus der Vereinigung wird ein Schnitt',
     file: 'public/app.js',
     search: "  if (f.categoryIds.length) out = out.filter(i =>\n    f.categoryIds.includes(i.category ? i.category.id : CATEGORY_NONE));",
@@ -1975,8 +1714,7 @@ const REGRESSIONS = [
     expected: 'Die Kategoriezeile lernt die Mehrzahl — 0.13.0'
   },
   {
-    /* DIE PILLE "OHNE" FAELLT WEG. Die Eintraege ohne Kategorie waeren wieder
-       ueber keine einzelne Kategorie erreichbar -- der Anlass des Punktes. */
+    /* DIE PILLE "OHNE" FAELLT WEG. */
     nr: '212', name: 'Die Pille "Ohne" wird gar nicht erst gezeichnet',
     file: 'public/app.js',
     search: "  if (withoutNumber || f.categoryIds.includes(CATEGORY_NONE)) {",
@@ -1985,9 +1723,7 @@ const REGRESSIONS = [
   },
   /* ---- Die Beschriftungen stehen oben — 0.13.1 ---- */
   {
-    /* ZURUECK IN DIE MITTE -- der Befund selbst. Bei aufgeklappter Tagwolke
-       sinken Beschriftung, Umschalter und Verweise wieder in die Mitte des
-       Blocks. */
+    /* ZURUECK IN DIE MITTE -- der Befund selbst. */
     nr: '213', name: 'Die Filterzeile mittelt wieder ueber die ganze Hoehe',
     file: 'public/style.css',
     search: '.frow { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }',
@@ -1995,9 +1731,7 @@ const REGRESSIONS = [
     expected: 'Die Beschriftungen stehen oben — 0.13.1'
   },
   {
-    /* DIE BESCHRIFTUNG NIMMT SICH IHRE MITTE EINZELN ZURUECK. Die Zeile bleibt
-       an der Grundlinie, das eine Element schert aus -- genau der Weg, den die
-       Pruefung ueber `align-self` zuhalten soll. */
+    /* DIE BESCHRIFTUNG NIMMT SICH IHRE MITTE EINZELN ZURUECK. */
     nr: '214', name: 'Die Beschriftung schert aus der Grundlinie aus',
     file: 'public/style.css',
     search: '.frow > .eyebrow { min-width: 7.25em; flex-shrink: 0; }',
@@ -2006,8 +1740,7 @@ const REGRESSIONS = [
   },
   /* ---- Der angepinnte Rahmen schliesst — 0.13.2 ---- */
   {
-    /* DREI KANTEN STATT VIER -- der Befund selbst. Die angepinnte Notiz steht
-       wieder in drei goldenen und einer grauen Kante da. */
+    /* DREI KANTEN STATT VIER -- der Befund selbst. */
     nr: '215', name: 'Die angepinnte Notiz bekommt ihre linke Kante nicht',
     file: 'public/style.css',
     search: '.cmt.pinned { border-color: var(--gold-line); }',
@@ -2028,8 +1761,7 @@ const REGRESSIONS = [
   /* ---- 0.14.0: der kaputte Cookiewert ---- */
   {
     /* DER BEFUND SELBST, wiederhergestellt: decodeURIComponent() auf JEDEN
-       Wert, ohne Auffangnetz. Ein fremder Cookie mit einem Prozentzeichen
-       sperrt den Browser damit wieder aus. */
+       Wert, ohne Auffangnetz. */
     nr: '217', name: 'Ein kaputter Cookiewert bricht wieder den ganzen Kopf ab',
     file: 'auth.js',
     search: "    let value;\n    try { value = decodeURIComponent(part.slice(i + 1).trim()); }\n" +
@@ -2039,9 +1771,7 @@ const REGRESSIONS = [
   },
   {
     /* DIE ANDERE HALBE FASSUNG: der kaputte Wert reisst nicht mehr ab, aber
-       der ganze KOPF faellt weg statt nur der einen Zeile. Dann kommt der
-       eigene, gueltige Cookie daneben nicht mehr an -- und genau das ist der
-       Unterschied, den eine Prueflage mit nur einem Cookie nicht sehen kann. */
+       der ganze KOPF faellt weg statt nur der einen Zeile. */
     nr: '218', name: 'Ein kaputter Wert nimmt den ganzen Cookiekopf mit',
     file: 'auth.js',
     search: "    catch { continue; }",
@@ -2050,11 +1780,7 @@ const REGRESSIONS = [
   },
   /* ---- 0.14.0: die drei Spalten und der Migrationsblock ---- */
   {
-    /* Die DDL verliert die drei Spalten. Bis 0.32.1 bekaeme eine FRISCHE
-       Instanz sie dann ueber den Migrationsblock; SEIT 0.33.0 gar nicht mehr,
-       denn den Block gibt es nicht. DIESER RUECKBAU IST DAMIT SCHAERFER
-       GEWORDEN, ohne dass jemand ihn angefasst haette -- und genau dafuer
-       stand von Anfang an die Gegenlage der frischen Instanz. */
+    /* Die DDL verliert die drei Spalten. */
     nr: '224', name: 'Die drei Spalten stehen nicht mehr in der DDL',
     file: 'db.js',
     search: "  rejected_at TEXT,\n  rejected_reason TEXT,",
@@ -2063,9 +1789,8 @@ const REGRESSIONS = [
   },
   /* ---- 0.14.0: die Klemme an der Begruendung ---- */
   {
-    /* DIE ZURUECKGENOMMENE ENTSCHEIDUNG, wiederhergestellt: an der Begruendung
-       gilt wieder darfAendern -- Verfasser ODER Admin. Damit schreibt ein
-       Admin eine fremde Aussage unter fremdem Namen um. */
+    /* DIE ZURUECKGENOMMENE ENTSCHEIDUNG, wiederhergestellt: an der
+       Begruendung gilt wieder darfAendern -- Verfasser ODER Admin. */
     nr: '225', name: 'An der Begruendung gilt wieder mayChange statt selfOnly',
     file: 'server.js',
     search: "      it.rejected_by != null && !selfOnly(req, it.rejected_by))",
@@ -2074,8 +1799,7 @@ const REGRESSIONS = [
   },
   {
     /* Die grobe Haelfte faellt weg: rejectedGrund steht nicht mehr in
-       NUR_VERFASSER_FELDER. Dann setzt jeder Angemeldete eine Begruendung an
-       einen Eintrag, dessen Ablehnung noch keinen Verfasser traegt. */
+       NUR_VERFASSER_FELDER. */
     nr: '226', name: 'Die Begruendung faellt aus den Verfasserfeldern heraus',
     file: 'server.js',
     search: "const AUTHOR_ONLY_FIELDS = ['title', 'description', 'rejected', 'rejectedReason',\n                              'tested', 'productCategoryId'];",
@@ -2083,9 +1807,7 @@ const REGRESSIONS = [
     expected: 'Die Entscheidung wird mitgeschrieben — 0.14.0'
   },
   {
-    /* Der Zweig fuer den Bestand ohne Verfasser faellt weg. Eine Ablehnung aus
-       einer Instanz vor 0.14.0 bekaeme damit NIE eine Begruendung:
-       nurSelbst(null) ist fuer jeden falsch. */
+    /* Der Zweig fuer den Bestand ohne Verfasser faellt weg. */
     nr: '227', name: 'Eine Ablehnung ohne Verfasser laesst sich nicht mehr begruenden',
     file: 'server.js',
     search: "  if (b.rejectedReason !== undefined && !turnsOn && !removedReason &&\n      it.rejected_by != null && !selfOnly(req, it.rejected_by))",
@@ -2093,9 +1815,7 @@ const REGRESSIONS = [
     expected: 'Die Entscheidung wird mitgeschrieben — 0.14.0'
   },
   {
-    /* Beim Einschalten wird der Grund nicht mehr mitgeschrieben. Dann traegt
-       die NEUE Entscheidung den Satz der vorigen Person unter neuem Namen --
-       genau das, was die Klemme verhindern soll. */
+    /* Beim Einschalten wird der Grund nicht mehr mitgeschrieben. */
     nr: '228', name: 'Ein neues Ablehnen uebernimmt den fremden Satz',
     file: 'server.js',
     search: "    put('rejected_by', req.user.id);\n    put('rejected_reason', reasonText(b.rejectedReason));",
@@ -2103,8 +1823,7 @@ const REGRESSIONS = [
     expected: 'Die Entscheidung wird mitgeschrieben — 0.14.0'
   },
   {
-    /* Das Datum kommt wieder aus dem Rumpf. Dann traegt jede Ablehnung das
-       Datum, das der Aufrufende hineinschreibt. */
+    /* Das Datum kommt wieder aus dem Rumpf. */
     nr: '229', name: 'Das Ablehnungsdatum kommt aus dem Rumpf statt vom Server',
     file: 'server.js',
     search: "    sets.push(`rejected_at = datetime('now')`);",
@@ -2113,8 +1832,7 @@ const REGRESSIONS = [
   },
   {
     /* Die nackte Zugangsnummer bleibt in der Detailantwort stehen -- und das
-       Verfasserobjekt entfaellt. Aus einem Grabstein liesse sich der
-       freigegebene Name dann nicht mehr fernhalten. */
+       Verfasserobjekt entfaellt. */
     nr: '230', name: 'Der Ablehnende geht als nackte Nummer hinaus',
     file: 'server.js',
     search: "  it.rejectedAuthor = authorFrom(card, it.rejected_by);\n  delete it.rejected_by;",
@@ -2122,9 +1840,7 @@ const REGRESSIONS = [
     expected: 'Die Entscheidung wird mitgeschrieben — 0.14.0'
   },
   {
-    /* Die drei Angaben bleiben in der Uebersicht stehen. Der Grund gehoert an
-       den Eintrag und nicht in eine Kachelreihe -- und rejected_by waere dort
-       eine nackte Zugangsnummer in einer Antwort an jeden. */
+    /* Die drei Angaben bleiben in der Uebersicht stehen. */
     nr: '231', name: 'Die Uebersicht schickt Grund und Nummer mit hinaus',
     file: 'server.js',
     search: "    delete it.rejected_at; delete it.rejected_reason; delete it.rejected_by;",
@@ -2132,8 +1848,7 @@ const REGRESSIONS = [
     expected: 'Die Entscheidung wird mitgeschrieben — 0.14.0'
   },
   {
-    /* Der Text wird nicht mehr eingeebnet. Ein eingefuegter Absatz risse die
-       Marke in der Oberflaeche, und der Deckel faellt gleich mit. */
+    /* Der Text wird nicht mehr eingeebnet. */
     nr: '232', name: 'Die Begruendung wird weder eingeebnet noch gekappt',
     file: 'server.js',
     search: "const reasonText = (v) =>\n  typeof v === 'string' ? v.replace(/\\s+/g, ' ').trim().slice(0, REASON_LENGTH) : '';",
@@ -2142,15 +1857,10 @@ const REGRESSIONS = [
   },
   /* ---- 0.14.0: das Austauschformat ---- */
   {
-    /* MIT 0.19.0 STEHT DIE NUMMER AUF 12 -- der Ausschnitt geht in die Datei.
-       DER RUECKBAU BLEIBT DERSELBE FUND und wird deshalb nicht durch einen
-       neuen ersetzt: er nimmt der Datei ihre Nummer und laesst alles andere
-       stehen. Nur der Zielwert rueckt mit, sonst griffe die Suche ins Leere
-       und der Rueckbau saehe aus wie einer, der nichts bewirkt. */
-    /* MITGEGANGEN MIT 0.21.0, nicht geloescht (Stolperstein 201): die
+    /* MIT 0.19.0 STEHT DIE NUMMER AUF 12 -- der Ausschnitt geht in die Datei. */
+    /* MITGEGANGEN MIT 0.21.0, nicht geloescht: die
        Formatnummer steht auf 13, der Rueckbau nimmt sie wie immer um eins
-       zurueck. Was er belegt, ist unveraendert -- dass die Nummer mit dem
-       Format steigt und nicht stehen bleibt. */
+       zurueck. */
     nr: '233', name: 'Die Formatnummer bleibt auf 15',
     file: 'server.js',
     search: "const EXCHANGE_FORMAT = 17;",
@@ -2158,9 +1868,7 @@ const REGRESSIONS = [
     expected: 'Die Entscheidung wird mitgeschrieben — 0.14.0'
   },
   {
-    /* Der Ablehnende wandert als NUMMER hinaus. Eine Zugangsnummer bedeutet in
-       einer fremden Instanz etwas anderes -- der Rundlauf traefe dort einen
-       beliebigen Zugang oder gar keinen. */
+    /* Der Ablehnende wandert als NUMMER hinaus. */
     nr: '234', name: 'Der Ablehnende wandert als Nummer statt als Name hinaus',
     file: 'server.js',
     search: "    rejected_author: authorName(it.rejected_by),",
@@ -2168,8 +1876,7 @@ const REGRESSIONS = [
     expected: 'Die Entscheidung wird mitgeschrieben — 0.14.0'
   },
   {
-    /* Die drei Felder fallen aus der Datei. Ein Rundlauf machte damit aus
-       einer begruendeten Ablehnung wieder ein nacktes Haekchen. */
+    /* Die drei Felder fallen aus der Datei. */
     nr: '235', name: 'Die drei Angaben gehen gar nicht erst in die Datei',
     file: 'server.js',
     search: "    rejected_at: it.rejected_at, rejected_reason: it.rejected_reason,\n    rejected_author: authorName(it.rejected_by),",
@@ -2177,9 +1884,7 @@ const REGRESSIONS = [
     expected: 'Die Entscheidung wird mitgeschrieben — 0.14.0'
   },
   {
-    /* Der fehlende Name faellt wieder an den Einspielenden. Dann ist JEDER
-       eingespielte Eintrag von ihm abgelehnt -- auch die, die niemand
-       abgelehnt hat. */
+    /* Der fehlende Name faellt wieder an den Einspielenden. */
     nr: '236', name: 'Ein fehlender Ablehnender faellt an den Einspielenden',
     file: 'server.js',
     search: "      const rejectedBy = String(it.rejected_author == null ? '' : it.rejected_author).trim()\n        ? authorId(it.rejected_author) : null;",
@@ -2192,25 +1897,17 @@ const REGRESSIONS = [
        Reinform: bei 80 Prozent stimmt es zufaellig, bei 120 klaffen 26 px. */
     nr: '237', name: 'Die Zahlenspalte bekommt ihre feste Mindestbreite zurueck',
     file: 'public/style.css',
-    /* MITGEGANGEN MIT 0.21.0 (Stolperstein 201): die Regel hat seit dieser
-       Runde eine Zeile mehr -- die GEMESSENE Mindestbreite. Der Rueckbau
-       ersetzt weiter die ganze Regel durch die alte, geschaetzte Fassung (52
-       feste Pixel und text-align statt flex), und er muss weiter rot werden:
-       52 px reichen fuer „⌀ 4,2 (9)" nicht, und in Pixeln folgt die Spalte der
-       Schriftstufe nicht mehr. */
+    /* MITGEGANGEN MIT 0.21.0: die Regel hat seit dieser
+       Runde eine Zeile mehr -- die GEMESSENE Mindestbreite. */
     search: "  white-space: nowrap; padding-left: 9px;\n  min-width: calc(4.34rem + 9px);\n  display: flex; align-items: center; justify-content: flex-end;",
     replacement: "  white-space: nowrap; padding-left: 9px;\n  min-width: 52px; text-align: right;",
     expected: 'Die Sternreihe steht auf einer Linie — 0.14.0'
   },
   {
-    /* Das Raster faellt weg, die Zeile wird wieder ein Flex-Kasten. Damit
-       misst sich jede Zahlenspalte wieder an ihrem eigenen Inhalt. */
-    /* GEAENDERT MIT 0.17.0, und der Grund gehoert daneben (Stolperstein 201):
+    /* Das Raster faellt weg, die Zeile wird wieder ein Flex-Kasten. */
+    /* GEAENDERT MIT 0.17.0, und der Grund gehoert daneben:
        zwischen den beiden Zeilen steht seit dieser Runde die Regel fuer den
-       einen Zugang. Der Rueckbau griff damit ins Leere und waere stumm
-       geworden (Stolperstein 192). Er nimmt jetzt die Kastenhaelfte; die
-       Zeilenhaelfte hat mit 307 ihren eigenen bekommen -- zwei Rueckbauten
-       statt einem, und beide zeigen auf eine Zeile, die es wirklich gibt. */
+       einen Zugang. */
     nr: '238', name: 'Aus dem Raster wird wieder ein gewoehnlicher Kasten',
     file: 'public/style.css',
     search: ".rlist { display: grid; grid-template-columns: 1fr auto auto auto; }",
@@ -2218,13 +1915,9 @@ const REGRESSIONS = [
     expected: 'Die Sternreihe steht auf einer Linie — 0.14.0'
   },
   {
-    /* Der Kasten bekommt die Rasterklasse nicht mehr. Die Regeln im Stilblatt
-       stehen dann alle da und greifen an nichts -- der Fehler waere zurueck,
-       ohne dass sich eine Zeile im Stilblatt geaendert haette. */
-    /* GEAENDERT MIT 0.17.0 (Stolperstein 201): die Zeile setzt seither auch
-       die Klasse fuer den einen Zugang. Ohne das Nachziehen zeigte der
-       Rueckbau auf eine Zeile, die es nicht mehr gibt, und waere stumm
-       geworden (Stolperstein 192). Er nimmt weiterhin die ganze Klasse. */
+    /* Der Kasten bekommt die Rasterklasse nicht mehr. */
+    /* GEAENDERT MIT 0.17.0: die Zeile setzt seither auch
+       die Klasse fuer den einen Zugang. */
     nr: '239', name: 'Die Kriterienliste bekommt ihre Rasterklasse nicht',
     file: 'public/app.js',
     search: "    box.className = 'rlist' + (withAverage ? '' : ' no-average');",
@@ -2232,13 +1925,10 @@ const REGRESSIONS = [
     expected: 'Die Sternreihe steht auf einer Linie — 0.14.0'
   },
   {
-    /* Die Zahl wandert zurueck in die Sterne. Dann ist sie keine Rasterzelle
-       mehr und wieder nur so breit wie ihr eigener Inhalt. */
-    /* MITGEGANGEN MIT 0.21.0 (Stolperstein 201): der Anker hat sich
+    /* Die Zahl wandert zurueck in die Sterne. */
+    /* MITGEGANGEN MIT 0.21.0: der Anker hat sich
        verschoben, weil die leere Zelle seit dieser Runde einen Strich traegt
-       statt gar nichts. Was der Rueckbau tut, ist unveraendert -- er steckt
-       die Zahl zurueck in die Sternreihe, wo sie nur so breit waere wie ihr
-       eigener Inhalt. */
+       statt gar nichts. */
     nr: '240', name: 'Die Zahl steckt wieder in den Sternen statt im Raster',
     file: 'public/app.js',
     search: "        row.append(a);",
@@ -2246,8 +1936,7 @@ const REGRESSIONS = [
     expected: 'Die Sternreihe steht auf einer Linie — 0.14.0'
   },
   {
-    /* Die Trennlinie bleibt an der Zeile. Eine Zeile mit display: contents ist
-       kein Kasten mehr -- die Linie verschwaende ganz. */
+    /* Die Trennlinie bleibt an der Zeile. */
     nr: '241', name: 'Die Trennlinie wird wieder an der Zeile gezogen',
     file: 'public/style.css',
     search: ".rrow > * { padding: 9px 0; border-bottom: 1px solid var(--line-2); }\n.rrow:last-of-type > * { border-bottom: none; }",
@@ -2256,8 +1945,8 @@ const REGRESSIONS = [
   },
   /* ---- 0.14.0: die Oberflaeche an der Marke ---- */
   {
-    /* Die Marke wird wieder ein blosses Haekchen: der Satz darunter entfaellt.
-       Genau der Zustand vor dieser Runde. */
+    /* Die Marke wird wieder ein blosses Haekchen: der Satz darunter
+       entfaellt. */
     nr: '242', name: 'Die Marke sagt wieder nur "Abgelehnt"',
     file: 'public/app.js',
     search: "    drawRejection();\n  }",
@@ -2265,8 +1954,7 @@ const REGRESSIONS = [
     expected: 'Die Aussage an der Marke — 0.14.0'
   },
   {
-    /* Der Name faellt aus der Aussage. Aussagen tragen in dieser Instanz ihren
-       Verfasser -- ohne ihn ist es wieder ein Haekchen mit Datum. */
+    /* Der Name faellt aus der Aussage. */
     nr: '243', name: 'Die Aussage verliert ihren Verfasser',
     file: 'public/app.js',
     search: "    if (item.rejectedAuthor && multipleUsers())\n" +
@@ -2275,9 +1963,7 @@ const REGRESSIONS = [
     expected: 'Die Aussage an der Marke — 0.14.0'
   },
   {
-    /* DER NAME STEHT AUCH BEI EINEM EINZIGEN ZUGANG DA. Dann saende
-       "von pruefer" nichts -- dieselbe Sache wie an jeder anderen
-       Verfasserangabe, und die Prueflage mit EINEM Zugang faengt es. */
+    /* DER NAME STEHT AUCH BEI EINEM EINZIGEN ZUGANG DA. */
     nr: '247', name: 'Der Name steht auch bei einem einzigen Zugang da',
     file: 'public/app.js',
     search: "    if (item.rejectedAuthor && multipleUsers())",
@@ -2285,9 +1971,7 @@ const REGRESSIONS = [
     expected: 'Die Aussage an der Marke — 0.14.0'
   },
   {
-    /* Die alte Begruendung geht beim erneuten Einschalten nicht mehr mit.
-       Damit ist die Angabe, die beim Zuruecknehmen ausdruecklich stehen
-       geblieben ist, beim naechsten Ablehnen doch weg. */
+    /* Die alte Begruendung geht beim erneuten Einschalten nicht mehr mit. */
     nr: '244', name: 'Der Vorschlag zum Ueberschreiben geht verloren',
     file: 'public/app.js',
     search: "      : { rejected: true, rejectedReason: item.rejected_reason || '' };",
@@ -2295,11 +1979,7 @@ const REGRESSIONS = [
     expected: 'Die Aussage an der Marke — 0.14.0'
   },
   {
-    /* Das Feld fuer den Grund bleibt verborgen. Ein Feld, das man nicht sieht,
-       ist ein Feld, das niemand fuellt -- und die Spalte bliebe leer.
-       SEIT 0.15.0 HAENGT ES AN `grundOffen` und nicht mehr am Merkmal: der
-       Ruhezustand hat es zu, und geoeffnet wird ueber Schalter, Text und
-       Stift. Der Rueckbau trifft dieselbe Sache an ihrer neuen Zeile. */
+    /* Das Feld fuer den Grund bleibt verborgen. */
     nr: '245', name: 'Das Feld fuer den Grund erscheint nicht',
     file: 'public/app.js',
     search: "    row.hidden = !open;",
@@ -2308,8 +1988,7 @@ const REGRESSIONS = [
   },
   {
     /* Die Zeile steht auch dann da, wenn gar nichts bekannt ist -- dann sagt
-       sie "Abgelehnt", also dasselbe wie der Schalter darueber. Dieselbe
-       Aussage zweimal. */
+       sie "Abgelehnt", also dasselbe wie der Schalter darueber. */
     nr: '246', name: 'Die Aussage steht auch da, wenn sie nichts sagt',
     file: 'public/app.js',
     search: "    mark.hidden = !item.rejected || open || (!head && !reason && !showPen);",
@@ -2328,9 +2007,7 @@ const REGRESSIONS = [
     expected: 'Der Filter „abgelehnt" — 0.15.0'
   },
   {
-    /* Nur die Gegenrichtung faellt weg. "Zeig mir alles ausser dem
-       Verworfenen" ist der haeufigere Griff und der Grund, warum es drei
-       Zustaende sind und kein Umschalter. */
+    /* Nur die Gegenrichtung faellt weg. */
     nr: '251', name: 'Die Gegenrichtung des Filters faellt weg',
     file: 'public/app.js',
     search: "  else if (f.rejected === 'nein') out = out.filter(i => !i.rejected);",
@@ -2338,13 +2015,9 @@ const REGRESSIONS = [
     expected: 'Der Filter „abgelehnt" — 0.15.0'
   },
   {
-    /* Der Schluessel steht nicht mehr in der Vorgabe. Damit faellt eine
-       gespeicherte Ansicht nicht mehr auf "Alle" zurueck, filterNormal()
-       raeumt ihn nicht auf, und filterZahl() vergleicht gegen undefined. */
-    /* GEAENDERT MIT 0.17.0 (Stolperstein 201): `neu` steht nicht mehr in der
-       Vorgabe -- die Pille ist gestrichen. Der Rueckbau nimmt weiterhin genau
-       den Ablehnungsfilter heraus; ohne das Nachziehen griffe er ins Leere
-       (Stolperstein 192). */
+    /* Der Schluessel steht nicht mehr in der Vorgabe. */
+    /* GEAENDERT MIT 0.17.0: `neu` steht nicht mehr in der
+       Vorgabe -- die Pille ist gestrichen. */
     nr: '252', name: 'Der neue Filter fehlt in der Vorgabe',
     file: 'public/app.js',
     search: "                         rejected: 'all', favorite: false,",
@@ -2371,9 +2044,7 @@ const REGRESSIONS = [
     expected: 'Der Filter „abgelehnt" — 0.15.0'
   },
   {
-    /* Der Server sagt nicht mehr, wem die Begruendung gehoert. Die Oberflaeche
-       kann es nicht zurueckrechnen -- sie kennt ihren Namen, nicht ihre
-       Nummer -- und der Stift verschwindet fuer den, der ihn braucht. */
+    /* Der Server sagt nicht mehr, wem die Begruendung gehoert. */
     nr: '255', name: 'rejectedMine geht nicht mehr hinaus',
     file: 'server.js',
     search: "  it.rejectedMine = it.rejected_by != null && it.rejected_by === userId;",
@@ -2392,7 +2063,7 @@ const REGRESSIONS = [
   {
     /* Die Fallunterscheidung faellt weg: das Entfernen laeuft wieder ueber
        nurSelbst, und ein Admin kann eine fremde Begruendung weder umschreiben
-       noch wegnehmen. Genau die Luecke, die 0.15.0 schliesst. */
+       noch wegnehmen. */
     nr: '257', name: 'Entfernen laeuft wieder ueber selfOnly',
     file: 'server.js',
     search: "  const removedReason = b.rejectedReason !== undefined && !reasonText(b.rejectedReason);",
@@ -2401,8 +2072,7 @@ const REGRESSIONS = [
   },
   {
     /* Umgekehrt: die Klemme laesst jetzt ALLES durch, auch das Umschreiben
-       einer fremden Begruendung. "Loeschen ja, umschreiben nein" waere damit
-       "beides ja". */
+       einer fremden Begruendung. */
     nr: '258', name: 'Auch das Umschreiben kommt durch',
     file: 'server.js',
     search: "  if (b.rejectedReason !== undefined && !turnsOn && !removedReason &&",
@@ -2419,9 +2089,7 @@ const REGRESSIONS = [
     expected: 'Entfernen darf auch der Admin — 0.15.0'
   },
   {
-    /* Das Feld schliesst sich nach dem Speichern nicht mehr. Damit steht die
-       Aussage wieder neben einem dauernd offenen Feld -- dieselbe Sache
-       zweimal, und genau der Befund aus dem Betrieb. */
+    /* Das Feld schliesst sich nach dem Speichern nicht mehr. */
     nr: '260', name: 'Das Feld bleibt nach dem Speichern offen',
     file: 'public/app.js',
     search: "      reasonOpen = false;\n      drawSwitches();\n    };\n    field.onblur = save;",
@@ -2429,12 +2097,7 @@ const REGRESSIONS = [
     expected: 'Die Begruendung kommt zur Ruhe — 0.15.0'
   },
   {
-    /* Beim Einschalten steht das Feld nicht mehr offen. Ein Feld, das man erst
-       suchen muss, bleibt leer -- das war die Zusage aus 0.14.0.
-       SEIT 0.15.1 HAENGT DAS NICHT MEHR AM KLICK, sondern an der abgeleiteten
-       Regel: abgelehnt und kein Grund heisst offen. Der Rueckbau nimmt
-       deshalb die Haelfte der Regel weg, die den fehlenden Grund traegt --
-       dieselbe Sache an ihrer neuen Zeile. */
+    /* Beim Einschalten steht das Feld nicht mehr offen. */
     nr: '261', name: 'Beim Einschalten bleibt das Feld zu',
     file: 'public/app.js',
     search: "    const open = item.rejected && mine && (!reason || reasonOpen);",
@@ -2460,8 +2123,7 @@ const REGRESSIONS = [
     expected: 'Die Begruendung kommt zur Ruhe — 0.15.0'
   },
   {
-    /* Der Papierkorb entfernt ohne Rueckfrage. Eine Angabe, die niemand
-       wiederherstellen kann, verschwindet auf einen Klick. */
+    /* Der Papierkorb entfernt ohne Rueckfrage. */
     nr: '264', name: 'Der Papierkorb fragt nicht mehr nach',
     file: 'public/app.js',
     search: "    if (!await confirmBox(t('entry.reasonDeleteAsk'),",
@@ -2469,9 +2131,7 @@ const REGRESSIONS = [
     expected: 'Die Begruendung kommt zur Ruhe — 0.15.0'
   },
   {
-    /* Escape setzt das Feld nicht mehr zurueck, bevor es schliesst. Das
-       Schliessen nimmt den Zeiger, onblur laeuft, und der verworfene Text
-       wird genau von dem Weg gespeichert, der ihn verwerfen sollte. */
+    /* Escape setzt das Feld nicht mehr zurueck, bevor es schliesst. */
     nr: '265', name: 'Escape verwirft nicht mehr, sondern speichert',
     file: 'public/app.js',
     search: "        field.value = item.rejected_reason || '';\n        reasonOpen = false;\n        drawRejection();",
@@ -2479,9 +2139,8 @@ const REGRESSIONS = [
     expected: 'Die Begruendung kommt zur Ruhe — 0.15.0'
   },
   {
-    /* An einer herrenlosen Ablehnung -- aus einer Instanz vor 0.14.0 -- gibt es
-       keinen Weg mehr in das Feld. Der Server laesst dort jeden schreiben, der
-       den Eintrag aendern darf; die Oberflaeche bietet es nicht mehr an. */
+    /* An einer herrenlosen Ablehnung -- aus einer Instanz vor 0.14.0 -- gibt
+       es keinen Weg mehr in das Feld. */
     nr: '266', name: 'An der herrenlosen Ablehnung fehlt der Weg hinein',
     file: 'public/app.js',
     search: "    const mine = may && (item.rejectedMine === true || !item.rejectedAuthor);",
@@ -2490,8 +2149,7 @@ const REGRESSIONS = [
   },
   {
     /* Der Grund steht nicht mehr hervorgehoben da, sondern im selben Grau wie
-       "Angelegt von … am …". Eine Entscheidung, die den Eintrag verwirft,
-       liest sich wieder wie eine Randnotiz -- der zweite Befund. */
+       "Angelegt von … am …". */
     nr: '267', name: 'Die Hervorhebung des Grundes faellt weg',
     file: 'public/style.css',
     search: ".rej-note .rej-why { color: var(--red); font-weight: 500; }",
@@ -2501,9 +2159,7 @@ const REGRESSIONS = [
   /* ---- 0.15.1: `hidden` wirkt wieder ---- */
   {
     /* DIE EINE REGEL FAELLT WEG, und damit ist `hidden` im ganzen Haus wieder
-       wirkungslos, sobald eine display-Regel danebensteht. Der Rueckbau nimmt
-       das `!important` -- die Regel bleibt stehen und tut nichts mehr, genau
-       die Lage von vor 0.15.1. */
+       wirkungslos, sobald eine display-Regel danebensteht. */
     nr: '268', name: 'Die Regel fuer hidden verliert ihre Kraft',
     file: 'public/style.css',
     search: "[hidden] { display: none !important; }",
@@ -2511,8 +2167,7 @@ const REGRESSIONS = [
     expected: 'Die Begruendung kommt zur Ruhe — 0.15.0'
   },
   {
-    /* Die Regel verschwindet ganz. Damit stuenden die beiden oertlichen
-       Flicken auch nicht mehr da -- niemand versteckt mehr irgendetwas. */
+    /* Die Regel verschwindet ganz. */
     nr: '269', name: 'Die Regel fuer hidden fehlt ganz',
     file: 'public/style.css',
     search: "[hidden] { display: none !important; }\n",
@@ -2521,7 +2176,7 @@ const REGRESSIONS = [
   },
   {
     /* Die Aussage steht auch dann da, wenn das Feld offen ist -- also beides
-       zugleich. Genau die Doppelung, die 0.15.0 aufloesen sollte. */
+       zugleich. */
     nr: '270', name: 'Aussage und Feld stehen wieder zugleich da',
     file: 'public/app.js',
     search: "    mark.hidden = !item.rejected || open || (!head && !reason && !showPen);",
@@ -2529,8 +2184,7 @@ const REGRESSIONS = [
     expected: 'Das Feld steht nur, wo etwas fehlt — 0.15.1'
   },
   {
-    /* Das Feld steht auch dem offen, der nicht schreiben darf. Es nimmt dann
-       eine Eingabe an, die der Server mit 403 abweist. */
+    /* Das Feld steht auch dem offen, der nicht schreiben darf. */
     nr: '271', name: 'Das Feld steht auch dem offen, der nicht schreiben darf',
     file: 'public/app.js',
     search: "    const open = item.rejected && mine && (!reason || reasonOpen);",
@@ -2568,9 +2222,7 @@ const REGRESSIONS = [
     expected: 'Der Systembereich nach Rolle'
   },
   {
-    /* DIE REITER VERLIEREN IHRE ADRESSE. Genau die Falle, in die draussen alle
-       einmal getreten sind: ohne Adresse laesst sich keine Einstellung
-       verlinken und die Zurueck-Taste bricht. */
+    /* DIE REITER VERLIEREN IHRE ADRESSE. */
     nr: '276', name: 'Die Reiter tragen keine eigene Adresse mehr',
     file: 'public/app.js',
     search: "      ${visibleOnes.map(a => `<a class=\"sys-tab${a === open ? ' on' : ''}\"",
@@ -2592,9 +2244,9 @@ const REGRESSIONS = [
     expected: 'Export und Import stehen in einer Karte'
   },
   {
-    /* MITGEGANGEN MIT 0.21.0 (Stolperstein 201): der Erklaerknopf bekommt
+    /* MITGEGANGEN MIT 0.21.0: der Erklaerknopf bekommt
        seit dieser Runde den Kasten mit, zu dem er gehoert -- es gibt ihn
-       zweimal. Was der Rueckbau tut, ist unveraendert. */
+       zweimal. */
     nr: '279', name: 'Die Kopfzahl ist wieder blosser Text',
     file: 'public/app.js',
     search: "        b.onclick = () => showCalc(boxId);",
@@ -2602,8 +2254,7 @@ const REGRESSIONS = [
     expected: 'Die Rechnung hinter der Kopfzahl'
   },
   {
-    /* DER KERN VON PUNKT 4: der Kasten LIEST die Rechnung. Rechnet er nach,
-       gibt es zwei Wege zu derselben Zahl -- und sie laufen auseinander. */
+    /* DER KERN VON PUNKT 4: der Kasten LIEST die Rechnung. */
     nr: '280', name: 'Der Erklaerkasten rechnet wieder selbst nach',
     file: 'public/app.js',
     search: "          <span id=\"calc-result\">⌀ ${esc(weightNumber(removed.result))}</span></div>",
@@ -2618,11 +2269,9 @@ const REGRESSIONS = [
     expected: 'Der Rechenweg reist mit'
   },
   {
-    /* GEAENDERT MIT 0.17.0 (Stolperstein 201): der Rechenweg traegt seither
+    /* GEAENDERT MIT 0.17.0: der Rechenweg traegt seither
        auch die Vergleichszahl ohne Gewichte, und der Aufruf ist damit vier
-       Zeilen lang. Ohne das Nachziehen griffe der Rueckbau ins Leere und waere
-       stumm geworden (Stolperstein 192). Er rundet weiterhin genau das, was er
-       vorher gerundet hat -- Summe und rohen Quotienten. */
+       Zeilen lang. */
     nr: '282', name: 'Der Rechenweg wird auf zwei Stellen gerundet ausgeliefert',
     file: 'server.js',
     search: "    { rows, sum: counter, divisor: denominator, raw: denominator ? counter / denominator : null,",
@@ -2630,7 +2279,7 @@ const REGRESSIONS = [
     expected: 'Der Rechenweg reist mit'
   },
   {
-    /* GEAENDERT MIT 0.17.0 (Stolperstein 201), derselbe Grund wie bei 143.
+    /* GEAENDERT MIT 0.17.0, derselbe Grund wie bei 143.
        Der Rueckbau nimmt weiterhin genau den Bezugspunkt der Glocke heraus. */
     nr: '283', name: 'Der Bezugspunkt der Glocke ist kein persoenlicher Schluessel mehr',
     file: 'server.js',
@@ -2639,9 +2288,8 @@ const REGRESSIONS = [
     expected: 'Persoenliche Einstellungen'
   },
   {
-    /* GEAENDERT MIT 0.17.0 (Stolperstein 201): der Knopf heisst nicht mehr
-       „Neu von anderen" -- die Glocke meldet seither von allen. Ohne das
-       Nachziehen griffe der Rueckbau ins Leere (Stolperstein 192). */
+    /* GEAENDERT MIT 0.17.0: der Knopf heisst nicht mehr
+       „Neu von anderen" -- die Glocke meldet seither von allen. */
     nr: '284', name: 'Die Glocke steht auch ohne gespeicherten Bezugspunkt',
     file: 'public/app.js',
     search: "        ${BELL_SEEN ? `<button class=\"icon-btn bell\" id=\"bell\" title=\"${esc(t('list.news'))}\"",
@@ -2649,11 +2297,8 @@ const REGRESSIONS = [
     expected: 'Die Glocke in der Kopfzeile'
   },
   {
-    /* GEAENDERT MIT 0.17.0 (Stolperstein 201): aus `freshForeign` sind drei
-       Angaben geworden, und der Suchtext griff ins Leere (Stolperstein 192).
-       DIE ZUSAGE IST DIESELBE: ohne Bezugspunkt fehlt die Angabe GANZ und
-       steht nicht auf 0 -- die Oberflaeche unterscheidet „nichts Neues" von
-       „es gibt keinen Bezugspunkt". */
+    /* GEAENDERT MIT 0.17.0: aus `freshForeign` sind drei
+       Angaben geworden, und der Suchtext griff ins Leere. */
     nr: '285', name: 'Die Zahl der Kommentare steht auch ohne Bezugspunkt da',
     file: 'server.js',
     search: "    if (reference) it.newComments = newCommentsPer.get(it.id) || 0;",
@@ -2661,8 +2306,7 @@ const REGRESSIONS = [
     expected: 'Die Glocke: was mit der Liste mitreist'
   },
   {
-    /* NEU MIT 0.17.0: die drei Angaben stehen oder fehlen GEMEINSAM. Eine
-       Antwort mit nur einer davon waere eine dritte Lage, die niemand kennt. */
+    /* NEU MIT 0.17.0: die drei Angaben stehen oder fehlen GEMEINSAM. */
     nr: '314', name: 'Die Verfasser stehen auch ohne Bezugspunkt an jedem Eintrag',
     file: 'server.js',
     search: "    if (reference) it.newFrom = [...(newFromPer.get(it.id) || [])].map(uid => authorFrom(card, uid));",
@@ -2670,17 +2314,8 @@ const REGRESSIONS = [
     expected: 'Die Glocke: was mit der Liste mitreist'
   },
   {
-    /* MITGENOMMEN MIT 0.17.0 UND UMGEDREHT (Stolperstein 201). Bis 0.16.0 hiess
-       der Rueckbau „Die Glocke zaehlt die eigenen Kommentare mit" und nahm die
-       Bedingung `IFNULL(user_id, -1) != ?` weg. Die Entscheidung ist
-       zurueckgenommen: die Glocke meldet seither von ALLEN, sonst meldete sie
-       einem Betreiber, der allein arbeitet, nie etwas. Der Rueckbau baut die
-       alte Bedingung deshalb WIEDER EIN -- und genau daran muss die Gruppe rot
-       werden. */
-    /* UMGEDREHT MIT 0.17.2, ZUM ZWEITEN MAL (Stolperstein 201). Bis 0.16.0
-       hiess er „zaehlt die eigenen nicht mit", 0.17.0 machte daraus das
-       Gegenteil, und seit 0.17.2 gilt wieder 0.16.0 -- der Anker faehrt die
-       Bedingung also wieder HERAUS statt hinein. */
+    /* MITGENOMMEN MIT 0.17.0 UND UMGEDREHT. */
+    /* UMGEDREHT MIT 0.17.2, ZUM ZWEITEN MAL. */
     nr: '286', name: 'Die Glocke zaehlt die eigenen Kommentare wieder mit',
     file: 'server.js',
     search: "    WHERE c.created_at > ? AND c.user_id IS NOT ?\n    GROUP BY c.item_id, c.user_id`);",
@@ -2702,8 +2337,7 @@ const REGRESSIONS = [
     expected: 'Die Bewertung traegt ihren Zeitpunkt'
   },
   {
-    /* EIN PUNKT FUER EIN EREIGNIS, EINE ZAHL FUER EINEN ZUSTAND. Die beiden
-       Zeichen werden nirgends vertauscht. */
+    /* EIN PUNKT FUER EIN EREIGNIS, EINE ZAHL FUER EINEN ZUSTAND. */
     nr: '289', name: 'Der Punkt an der Glocke wird wieder eine Zahl',
     file: 'public/app.js',
     search: "  atElement('bell-dot', el => { el.hidden = !fresh; });",
@@ -2718,15 +2352,13 @@ const REGRESSIONS = [
     expected: 'Die Glocke in der Kopfzeile'
   },
   {
-    /* GEAENDERT MIT 0.17.0 (Stolperstein 201): dieselbe Zeile steht seither
+    /* GEAENDERT MIT 0.17.0: dieselbe Zeile steht seither
        auch in merkeGesehen() -- dort setzt sie den Bezugspunkt beim ERSTEN
-       Verlassen der Uebersicht, hier beim Oeffnen der Tafel. Ein Suchtext, der
-       zweimal passt, bricht den Rueckbau ab; die Zeile davor macht ihn wieder
-       eindeutig. */
+       Verlassen der Uebersicht, hier beim Oeffnen der Tafel. */
     nr: '291', name: 'Das Oeffnen der Tafel zieht den Bezugspunkt nicht nach',
     file: 'public/app.js',
-    search: "     weiter da und behauptete etwas, das nicht mehr gilt. */\n  api('PUT', '/api/settings', { bellSeen: 1 }).catch(() => {});",
-    replacement: "     weiter da und behauptete etwas, das nicht mehr gilt. */\n  void 0;",
+    search: "     Tafel gesehen hat, hat sie gesehen. */\n  api('PUT', '/api/settings', { bellSeen: 1 }).catch(() => {});",
+    replacement: "     Tafel gesehen hat, hat sie gesehen. */\n  void 0;",
     expected: 'Die Glocke in der Kopfzeile'
   },
   {
@@ -2783,7 +2415,7 @@ const REGRESSIONS = [
   },
   {
     /* EIN WERKZEUG, DAS SEINEN EIGENEN FUND NICHT SEHEN KANN, IST SCHLIMMER
-       ALS KEINES (Stolperstein 213). */
+       ALS KEINES. */
     nr: '299', name: 'Die Groessenmessung findet gar nichts mehr',
     file: 'test/selfcheck.js',
     search: "    return found.sort((a, b) => b.rows - a.rows || a.name.localeCompare(b.name));",
@@ -2809,9 +2441,7 @@ const REGRESSIONS = [
     expected: 'Das Raster der Kriterienliste zaehlt seine Zellen — 0.17.0'
   },
   {
-    /* DIE KLASSE STEHT, DIE REGEL FEHLT. Ein Rueckbau, der nur die Klasse
-       naehme, liesse eine Pruefung durch, die bloss das Attribut liest
-       (Stolperstein 223) -- dieser hier nimmt den Gegenstand weg. */
+    /* DIE KLASSE STEHT, DIE REGEL FEHLT. */
     nr: '302', name: 'Die Regel fuer den einen Zugang faellt aus dem Stilblatt',
     file: 'public/style.css',
     search: ".rlist.no-average { grid-template-columns: 1fr auto auto; }",
@@ -2844,12 +2474,8 @@ const REGRESSIONS = [
     nr: '305', name: 'Die Anmeldezeile darf wieder breiter werden als ihr Kasten',
     file: 'public/style.css',
     /* AM GEGENSTAND UND NICHT AN EINEM KOMMENTAR DANEBEN: die Regel kommt
-       ausserhalb der Medienabfrage genau einmal vor, und wer sie umformuliert,
-       aendert die Sache selbst. Ein Suchtext, der an einem Kommentar haengt,
-       greift ins Leere, sobald jemand den Kommentar besser schreibt.
-       SEIT 0.17.1 ZIELT ER AUFS RASTER. Die Zusage ist dieselbe geblieben --
-       der Rahmen der eigenen Anmeldung reicht bis zum Rand --, sie haengt nur
-       nicht mehr am Umbruch, sondern an der nachgebenden Namensspalte. */
+       ausserhalb der Medienabfrage genau einmal vor, und wer sie
+       umformuliert, aendert die Sache selbst. */
     search: `.mrow.session { display: grid; grid-template-columns: minmax(0, 1fr) auto;
   align-items: center; column-gap: 9px; row-gap: 2px; }`,
     replacement: ".mrow.sitz { display: grid; grid-template-columns: max-content auto; }",
@@ -2865,9 +2491,9 @@ const REGRESSIONS = [
   },
   {
     /* DIE ZWEITE HAELFTE VON 238, seit 0.17.0 ein eigener Rueckbau: die Zeile
-       wird wieder ein eigener Kasten, und damit koennen sich die Spalten nicht
-       mehr an der breitesten Zelle der ganzen Liste ausrichten -- genau der
-       Befund, den 0.14.0 behoben hat. */
+       wird wieder ein eigener Kasten, und damit koennen sich die Spalten
+       nicht mehr an der breitesten Zelle der ganzen Liste ausrichten -- genau
+       der Befund, den 0.14.0 behoben hat. */
     nr: '307', name: 'Aus den Rasterzellen wird wieder eine eigene Zeile',
     file: 'public/style.css',
     search: ".rrow { display: contents; }",
@@ -2921,7 +2547,7 @@ const REGRESSIONS = [
   },
   {
     /* DER KASTEN RECHNET SIE SELBST NACH statt sie zu lesen -- eine zweite
-       Rechenstelle im Browser (Stolperstein 217). */
+       Rechenstelle im Browser. */
     nr: '313', name: 'Der Kasten rechnet die Vergleichszahl selbst nach',
     file: 'public/app.js',
     search: "          <span id=\"calc-same\">⌀ ${esc(weightNumber(removed.equalResult))}</span></div>` : ''}",
@@ -2940,8 +2566,7 @@ const REGRESSIONS = [
     expected: 'Die Glocke in der Kopfzeile'
   },
   {
-    /* DIE NULL STEHT WIEDER DA. „0 Bewertungen" ist eine Auskunft ueber
-       nichts -- dieselbe Regel wie am Knopf „Offen". */
+    /* DIE NULL STEHT WIEDER DA. */
     nr: '316', name: 'Die Tafel schreibt auch die Null hin',
     file: 'public/app.js',
     search: "          b ? esc(`${b} ${vRating(b)}`) : ''].filter(Boolean).join(' · ');",
@@ -2957,8 +2582,7 @@ const REGRESSIONS = [
     expected: 'Die Glocke in der Kopfzeile'
   },
   {
-    /* DIE ZAHLEN KOMMEN AUS EINER ABFRAGE, DIE SIE NICHT MEHR TRENNT. Der
-       Server wirft die Auskunft wieder weg, noch bevor sie hinausgeht. */
+    /* DIE ZAHLEN KOMMEN AUS EINER ABFRAGE, DIE SIE NICHT MEHR TRENNT. */
     nr: '318', name: 'Der Server legt beide Zahlen wieder in eine Kiste',
     file: 'server.js',
     search: "      newRatingsPer.set(z.item_id, (newRatingsPer.get(z.item_id) || 0) + z.n);",
@@ -2978,8 +2602,7 @@ const REGRESSIONS = [
 
   /* ---- 0.17.0: die Glocke ersetzt die Pille ---- */
   {
-    /* DIE TAFEL SAGT NICHT MEHR, VON WEM. Bei einer Glocke, die auch die
-       eigenen Beitraege meldet, ist das die halbe Auskunft. */
+    /* DIE TAFEL SAGT NICHT MEHR, VON WEM. */
     nr: '320', name: 'Die Tafel sagt nicht mehr, von wem etwas kommt',
     file: 'public/app.js',
     search: "    a.querySelector('.bell-from').textContent = newFromWords(it);",
@@ -2987,13 +2610,7 @@ const REGRESSIONS = [
     expected: 'Die Glocke in der Kopfzeile'
   },
   {
-    /* DIE ABFRAGE GRUPPIERT NICHT MEHR NACH VERFASSER. Dann liefert sie je
-       Eintrag EINE Zeile, und in `neuVon` steht nur noch EIN Name statt aller
-       -- die Tafel sagt dann die halbe Wahrheit darueber, von wem etwas kommt.
-       ZWEI ANLAEUFE VORHER ZIELTEN AUF DIE MENGE und blieben STUMM: die
-       Eindeutigkeit kommt aus dem GROUP BY, nicht aus der Menge, und ein
-       Rueckbau, der ein zweites Netz wegnimmt, kann nichts zeigen
-       (Stolperstein 235). Der Anker gehoert an die tragende Zusage. */
+    /* DIE ABFRAGE GRUPPIERT NICHT MEHR NACH VERFASSER. */
     nr: '321', name: 'Die Abfrage gruppiert nicht mehr nach Verfasser',
     file: 'server.js',
     search: "    GROUP BY c.item_id, c.user_id`);",
@@ -3001,8 +2618,8 @@ const REGRESSIONS = [
     expected: 'Die Glocke: was mit der Liste mitreist'
   },
   {
-    /* DIE AUFZAEHLUNG WIRD EINE LISTE MIT KOMMAS BIS ZUM SCHLUSS -- so
-       zaehlt man Dinge auf, nicht Menschen. */
+    /* DIE AUFZAEHLUNG WIRD EINE LISTE MIT KOMMAS BIS ZUM SCHLUSS -- so zaehlt
+       man Dinge auf, nicht Menschen. */
     nr: '322', name: 'Die Namen werden mit Kommas bis zum Schluss aufgezaehlt',
     file: 'public/app.js',
     search: "  const last = names[names.length - 1], first = names.slice(0, -1).join(', ');\n  return t('list.byNames',\n    { names: first ? t('list.namesAndLast', { first: first, last: last }) : last });",
@@ -3019,9 +2636,9 @@ const REGRESSIONS = [
     expected: 'Die gestrichene Pille „Neu seit …" — 0.17.0'
   },
   {
-    /* DER BEZUGSPUNKT DER GLOCKE FAEHRT BEI JEDEM VERLASSEN HINAUS statt genau
-       einmal -- dann setzt ein Blick in einen Eintrag die Tafel zurueck, ohne
-       dass jemand sie gelesen haette. */
+    /* DER BEZUGSPUNKT DER GLOCKE FAEHRT BEI JEDEM VERLASSEN HINAUS statt
+       genau einmal -- dann setzt ein Blick in einen Eintrag die Tafel
+       zurueck, ohne dass jemand sie gelesen haette. */
     nr: '324', name: 'Der Bezugspunkt faellt bei jedem Verlassen der Uebersicht',
     file: 'public/app.js',
     search: "  if (BELL_SEEN) return;\n  BELL_SEEN = true;",
@@ -3046,11 +2663,8 @@ const REGRESSIONS = [
     expected: 'Die Glocke in der Kopfzeile'
   },
 
-  /* ---- 0.17.0: die beiden gestrichenen Erklaertexte ----
-     EIN GESTRICHENER TEXT LAESST SICH NUR ZURUECKBAUEN, INDEM MAN IHN WIEDER
-     HINSCHREIBT. Beide Rueckbauten setzen genau den Satz zurueck, den die
-     Runde aus der Oberflaeche genommen hat -- und die Zusagen, die das
-     festhalten, muessen daran rot werden. */
+  /* ---- 0.17.0: die beiden gestrichenen Erklaertexte ---- EIN GESTRICHENER
+     TEXT LAESST SICH NUR ZURUECKBAUEN, INDEM MAN IHN WIEDER HINSCHREIBT. */
   {
     nr: '327', name: 'Die Kennzahlen begruenden den Vorbehalt wieder an der Oberflaeche',
     file: 'public/app.js',
@@ -3065,11 +2679,9 @@ const REGRESSIONS = [
     replacement: "    <div class=\"manage-list\" id=\"bell-list\"></div>\n    <p class=\"hint hint-sm\" style=\"margin:2px 0 0\"><strong>Was die Glocke nicht verspricht:</strong>\n      Sie rechnet beim Aufbau der Übersicht nach, nicht laufend.</p>\n    <div class=\"modal-acts\">",
     expected: 'Die Glocke in der Kopfzeile'
   },
-  /* DIE GEGENRICHTUNG ZU 301. Dort faellt die KLASSE weg und das Raster bleibt
-     bei drei Spalten; hier bleibt die Klasse und die ZELLE loest sich von der
-     Bedingung -- drei Zellen in zwei Spalten. Ohne diesen Rueckbau belegte
-     nichts, dass die Gruppe wirklich Zellen GEGEN Spalten haelt und nicht bloss
-     eine Klasse liest (Stolperstein 223). */
+  /* DIE GEGENRICHTUNG ZU 301. Dort faellt die KLASSE weg und das Raster
+     bleibt bei drei Spalten; hier bleibt die Klasse und die ZELLE loest sich
+     von der Bedingung -- drei Zellen in zwei Spalten. */
   {
     nr: '329', name: 'Die Durchschnittszelle haengt nicht mehr an derselben Bedingung',
     file: 'public/app.js',
@@ -3077,13 +2689,9 @@ const REGRESSIONS = [
     replacement: "      if (true) {",
     expected: 'Das Raster der Kriterienliste zaehlt seine Zellen — 0.17.0'
   },
-  /* DER SATZ ZEIGT WIEDER AUS DEM KASTEN HINAUS -- auf die Durchschnittsspalte
-     der Liste dahinter, die es bei einem einzigen Zugang nicht gibt.
-     SEIN SUCHTEXT IST MIT 0.22.1 MITGEGANGEN und nicht geloescht (Stolperstein
-     201): der Satz traegt seither „ueber alle Benutzer" (E5). Der Rueckbau
-     nimmt beides zugleich zurueck -- den Verweis nach draussen UND die
-     Auskunft, wessen Zahl es ist; das ist gewollt, denn beides steht in
-     demselben Satz. */
+  /* DER SATZ ZEIGT WIEDER AUS DEM KASTEN HINAUS -- auf die
+     Durchschnittsspalte der Liste dahinter, die es bei einem einzigen Zugang
+     nicht gibt. */
   {
     nr: '330', name: 'Der Erklaerkasten verweist wieder auf die Spalte dahinter',
     file: 'public/app.js',
@@ -3092,10 +2700,7 @@ const REGRESSIONS = [
     expected: 'Die Rechnung hinter der Kopfzahl'
   },
   /* DIESELBE FRAGE WIE AN DER KRITERIENLISTE, EINE ANSICHT WEITER: passen die
-     Zellen einer Zeile zu den Spalten ihres Rasters? 331 nimmt dem Raster eine
-     Spalte, 333 der Zeile eine Zelle -- beide Richtungen, weil eine allein die
-     andere nicht belegt. Bis 0.17.0 stand die Vier in der Pruefung getippt und
-     nicht im Stilblatt gelesen; kein Rueckbau konnte sie treffen. */
+     Zellen einer Zeile zu den Spalten ihres Rasters? */
   {
     nr: '331', name: 'Das Raster des Erklaerkastens verliert eine Spalte',
     file: 'public/style.css',
@@ -3103,8 +2708,7 @@ const REGRESSIONS = [
     replacement: ".rechnung { display: grid; grid-template-columns: 1fr auto auto; gap: 0 14px; }",
     expected: 'Die Rechnung hinter der Kopfzahl'
   },
-  /* DIE REGEL, DIE DIE VERGLEICHSZAHL UNTERORDNET. Ihr Kommentar macht vier
-     Zusagen; bis 0.17.0 stand keine davon in einer Pruefung (Stolperstein 199). */
+  /* DIE REGEL, DIE DIE VERGLEICHSZAHL UNTERORDNET. */
   {
     nr: '332', name: 'Die Vergleichszeile wird dem Ergebnis gleichgestellt',
     file: 'public/style.css',
@@ -3186,7 +2790,7 @@ const REGRESSIONS = [
     expected: 'So hoch wie der Inhalt — 0.17.5'
   },
   {
-    /* MITGEGANGEN IN 0.19.1 (Stolperstein 201): der Abschnitt heisst jetzt
+    /* MITGEGANGEN IN 0.19.1: der Abschnitt heisst jetzt
        „Installation", der Rueckbau setzt weiter den aeltesten Namen. */
     nr: '347', name: 'Der fuenfte Abschnitt heisst wieder „Anlage"',
     file: 'public/app.js',
@@ -3284,9 +2888,8 @@ const REGRESSIONS = [
   },
   {
     /* DER SUCHTEXT IST MIT 0.32.0 EIN ANDERER: die Abfrage ist eine Spalte
-       breiter geworden (der LEFT JOIN auf die Markierungen), und der
-       Rueckbau greift jetzt an der WHERE-Zeile mit ihrem Tabellenkuerzel.
-       DIE SACHE IST DIESELBE GEBLIEBEN -- die eigene Hand zaehlt nicht. */
+       breiter geworden (der LEFT JOIN auf die Markierungen), und der Rueckbau
+       greift jetzt an der WHERE-Zeile mit ihrem Tabellenkuerzel. */
     nr: '365', name: 'Die Glocke meldet wieder die eigenen Kommentare',
     file: 'server.js',
     search: "    WHERE c.created_at > ? AND c.user_id IS NOT ?",
@@ -3303,8 +2906,7 @@ const REGRESSIONS = [
   {
     /* DER SATZ IM GLOCKENFENSTER HAT MIT 0.32.0 SEINEN ENDGUELTIGEN WORTLAUT
        BEKOMMEN (F4) und traegt kein hervorgehobenes Wort mehr -- er nennt die
-       drei Herkuenfte, nach denen die Tafel jetzt trennt. DER RUECKBAU BLEIBT
-       DERSELBE: er verspricht dem Leser wieder die eigenen Beitraege. */
+       drei Herkuenfte, nach denen die Tafel jetzt trennt. */
     nr: '367', name: 'Die Tafel verspricht wieder die eigenen Beitraege',
     file: 'public/app.js',
     search: "    <p>${tH('list.newCommentsHint')}</p>",
@@ -3312,8 +2914,10 @@ const REGRESSIONS = [
     expected: 'Die Glocke in der Kopfzeile'
   },
   {
-    nr: '368', name: 'Die README erzaehlt wieder, seit wann etwas gilt',
-    file: 'README.md',
+    /* SEIT 0.34.2 IM HANDBUCH: der Satz ist mit der Bedienung dorthin
+       gezogen, die Nummernpruefung liest beide Dateien. */
+    nr: '368', name: 'Die Anleitung erzaehlt wieder, seit wann etwas gilt',
+    file: 'manual-de.md',
     search: "**Über der Liste steht eine Reihe von Ansichten**",
     replacement: "**Seit 0.13.0 steht über der Liste eine Reihe von Ansichten**",
     expected: 'Der Sprachwaechter'
@@ -3539,14 +3143,7 @@ const REGRESSIONS = [
   },
   {
     /* DIE ANDERE RICHTUNG: das Feld steht auch da, wenn gar nicht gesucht
-       wurde. Ohne diesen Rueckbau belegte die Gruppe nur, DASS es bei einer
-       Suche dasteht -- und nicht, dass es sonst fehlt.
-       ER GREIFT AN DER KLEMME UND NICHT AN DER ABBILDUNG -- 0.18.0. Der erste
-       Anlauf fuellte die Abbildung auch ohne Begriff (`volltextTreffer(begriff
-       || 'e')`) und blieb STUMM: die Klemme sitzt eine Zeile tiefer, am
-       `if (begriff)` vor dem Feld, und die Antwort aenderte sich dadurch
-       ueberhaupt nicht. Ein Rueckbau muss die Stelle treffen, die die Zusage
-       traegt, nicht eine daneben. */
+       wurde. */
     nr: '399', name: 'Der Trefferkontext steht auch ohne Suche in der Antwort',
     file: 'server.js',
     search: "    if (term) it.foundAt = hits.get(it.id);",
@@ -3601,10 +3198,7 @@ const REGRESSIONS = [
     expected: 'Der Trefferkontext an der Antwort'
   },
   {
-    /* WELCHER KOMMENTAR GENANNT WIRD, IST BESTIMMT. Der Rueckbau dreht die
-       Ordnung um statt sie zu entfernen: ohne ORDER BY entschiede die
-       Abfrageplanung, und der Rueckbau koennte zufaellig dasselbe liefern --
-       ein Rueckbau, der nur manchmal greift, ist keiner. */
+    /* WELCHER KOMMENTAR GENANNT WIRD, IST BESTIMMT. */
     nr: '406', name: 'Der genannte Kommentar ist der juengste statt der aeltesten',
     file: 'server.js',
     search: "             ORDER BY k.id LIMIT 1)",
@@ -3612,12 +3206,7 @@ const REGRESSIONS = [
     expected: 'Der Trefferkontext an der Antwort'
   },
   {
-    /* ER NIMMT DAS FELD WEG UND NICHT NUR DIE VORLAGE. Der erste Anlauf setzte
-       `fundZeile` auf leer und liess `f` stehen -- die Kachel suchte danach
-       eine `.find-text`, die es nicht mehr gab, und riss beim Zeichnen ab
-       statt rot zu werden. EIN RUECKBAU MUSS EINEN LAUFFAEHIGEN STAND
-       ERGEBEN; einer, der die Oberflaeche zerreisst, sagt nichts darueber,
-       welche Pruefung ihn bemerkt haette (Stolperstein 138). */
+    /* ER NIMMT DAS FELD WEG UND NICHT NUR DIE VORLAGE. */
     nr: '407', name: 'Die Kachel baut keine Trefferzeile mehr',
     file: 'public/app.js',
     search: "  const f = it.foundAt;",
@@ -3625,11 +3214,7 @@ const REGRESSIONS = [
     expected: 'Die Trefferzeile an der Kachel'
   },
   {
-    /* SIE WANDERT UND VERSCHWINDET NICHT. Ein Rueckbau, der sie ganz wegnimmt,
-       waere derselbe wie 407 -- und er liesse den Lauf ABREISSEN statt rot zu
-       werden, weil die Prueflagen danach an einer fehlenden Zeile griffen
-       (Stolperstein 138). So bleibt die Zeile da und steht nur an der
-       falschen Stelle. */
+    /* SIE WANDERT UND VERSCHWINDET NICHT. */
     nr: '408', name: 'Die Trefferzeile rutscht ueber den Titel',
     file: 'public/app.js',
     search: "      <h3 class=\"card-title\">${esc(it.title)}</h3>\n      ${findingRow}",
@@ -3659,8 +3244,7 @@ const REGRESSIONS = [
   },
   {
     /* DER AUSSCHNITT KOMMT WIEDER UEBER innerHTML IN DIE SEITE -- genau der
-       Weg, den 0.5.4 zugemacht hat, auf dem Umweg ueber die Kachel. Er kann
-       aus einem Kommentar stammen. */
+       Weg, den 0.5.4 zugemacht hat, auf dem Umweg ueber die Kachel. */
     nr: '412', name: 'Der Ausschnitt kommt ueber innerHTML in die Kachel',
     file: 'public/app.js',
     search: "  if (f) a.querySelector('.find-text').replaceChildren(raiseHighlight(f.text, term));",
@@ -3668,9 +3252,7 @@ const REGRESSIONS = [
     expected: 'Die Trefferzeile an der Kachel'
   },
   {
-    /* UND DIE MARKE SELBST. Sie ist die einzige Stelle, an der aus einem
-       Stueck ein ELEMENT wird -- wenn irgendwo Markup entstehen kann, dann
-       hier. */
+    /* UND DIE MARKE SELBST. */
     nr: '413', name: 'Die Marke wird ueber innerHTML gefuellt',
     file: 'public/app.js',
     search: "  const m = document.createElement('mark');\n  m.textContent = text;",
@@ -3751,9 +3333,7 @@ const REGRESSIONS = [
     expected: 'Der Suchbegriff in der Adresse'
   },
   {
-    /* DIE ADRESSE WIRD UEBER location.hash GESETZT STATT UEBER replaceState.
-       Sie steht dann zwar richtig da, aber jeder Aufruf legt einen Eintrag im
-       Verlauf an und loest ein zweites Zeichnen aus. */
+    /* DIE ADRESSE WIRD UEBER location.hash GESETZT STATT UEBER replaceState. */
     nr: '424', name: 'Die Adresse wird ueber location.hash gesetzt',
     file: 'public/app.js',
     search: "    history.replaceState(null, '', wanted);",
@@ -3800,12 +3380,7 @@ const REGRESSIONS = [
   {
     /* SEIT 0.26.0 STEHT DORT 48.37rem UND NICHT MEHR 55.23rem: die Fusszeile
        ist aus der rollenden Liste heraus (Befund 2), und der Deckel rechnet
-       sie nicht mehr mit. Der Rueckbau geht mit (Stolperstein 201) und zielt
-       auf die neue Zahl.
-       UND DER ERSATZ HEISST WIEDER RICHTIG: er trug bis hierher `#msitzungen`,
-       den deutschen Bezeichner von vor 0.24.1. Er wirkte trotzdem -- eine
-       Regel auf einen Namen, den es nicht gibt, nimmt der Liste ihren Deckel
-       genauso --, aber er wirkte aus dem falschen Grund. */
+       sie nicht mehr mit. */
     nr: '430', name: 'Die Sitzungsliste deckelt wieder nach der fremden Zeile',
     file: 'public/style.css',
     search: "#msessions { max-height: 48.37rem; }",
@@ -3813,19 +3388,10 @@ const REGRESSIONS = [
     expected: 'So hoch wie der Inhalt — 0.17.5'
   },
 
-  /* ---- 0.19.0: die Bildablage ----
-     ELF RUECKBAUTEN AN DER ABLAGE, und sie zielen auf verschiedene Haelften
-     derselben Zusage: dass ein PNG umgewandelt wird, dass es NUR ein PNG ist,
-     dass die Spalte mitgeht, dass der Rueckfall greift und dass das Bild dabei
-     unversehrt bleibt. Ein Rueckbau, der alles zugleich abschaltet, sagte nur,
-     dass irgendetwas fehlt.
-
-     SECHS DAVON ZEIGEN SEIT 0.19.3 AUF images.js -- 431 bis 435 und 458. Die
-     Umwandlung steht nicht mehr in server.js, weil der Bestandslauf sie aus
-     einem eigenen Thread braucht; die Rueckbauten sind MITGEGANGEN und nicht
-     geloescht worden (Stolperstein 201). Es ist derselbe Fund an derselben
-     Zeile, nur in einer anderen Datei -- und ein Rueckbau, der ins Leere
-     greift, ist stumm und verfaelscht die Tabelle (Stolperstein 192). */
+  /* ---- 0.19.0: die Bildablage ---- ELF RUECKBAUTEN AN DER ABLAGE, und sie
+     zielen auf verschiedene Haelften derselben Zusage: dass ein PNG
+     umgewandelt wird, dass es NUR ein PNG ist, dass die Spalte mitgeht, dass
+     der Rueckfall greift und dass das Bild dabei unversehrt bleibt. */
   {
     nr: '431', name: 'Ein ankommendes PNG wird gar nicht mehr umgewandelt',
     file: 'images.js',
@@ -3834,10 +3400,7 @@ const REGRESSIONS = [
     expected: 'Die Bildablage: PNG kommt herein, WebP geht in die Tabelle'
   },
   {
-    /* Die Spalte bleibt auf image/png stehen, obwohl WebP daruntersteht. Die
-       AUSLIEFERUNG faellt darauf nicht herein -- sie liest die ersten Bytes --,
-       aber der naechste Export traegt die Luege weiter. Genau deshalb muss die
-       Pruefung an der SPALTE haengen und nicht nur am Kopf der Antwort. */
+    /* Die Spalte bleibt auf image/png stehen, obwohl WebP daruntersteht. */
     nr: '432', name: 'Der mime_type wird nicht mitgezogen',
     file: 'images.js',
     search: "      return { data: webp, mime: 'image/webp', converted: true };",
@@ -3846,31 +3409,7 @@ const REGRESSIONS = [
   },
   {
     /* DER GROESSENVERGLEICH FAELLT WEG: auch ein groesseres Ergebnis wird
-       genommen. ER IST ALS STUMM ERWARTET.
-
-       DIE BEGRUENDUNG IST IN 0.19.1 BERICHTIGT WORDEN, und das gehoert
-       hierher und nicht in eine Fussnote. Bis dahin stand hier, der Fall
-       komme am echten Bestand vor und lasse sich nur mit erzeugtem Material
-       nicht herstellen. DER ERSTE HALBSATZ IST WIDERLEGT -- er stammte aus dem
-       Auftrag zu 0.19.0 und aus keiner Messung; der Wortlaut steht im
-       Aenderungsprotokoll dieser Runde.
-
-       GEMESSEN AM ECHTEN BESTAND: 679 von 679 PNG umgestellt, KEINES
-       geblieben; in `bildFormate` stand danach kein `png` mehr. Dazu achtzehn
-       Laborversuche (neun in 0.19.0, neun danach: Palette mit 8 und mit 256
-       Farben, reiner Text, Graustufen, mit und ohne Alpha, 1x1, Flaechen) --
-       PNG gewinnt nie ueber die Groesse, und schon das kleinste moegliche PNG
-       ist groesser als das kleinste moegliche WebP.
-
-       DER EINZIGE FALL, IN DEM PNG LIEGEN BLEIBT, ist der, in dem WebP NICHT
-       KANN -- ueber 16383 Bildpunkte je Kante. Der ist als Rueckbau 458
-       gebaut und geprueft und macht Pruefungen rot.
-
-       ER BLEIBT TROTZDEM IN DER LISTE: verschwindet die Zeile aus dem
-       Quelltext, greift sein Suchtext ins Leere, und GENAU DAS meldet der
-       Pruefstand ("Jeder Suchtext kommt in seiner Datei genau einmal vor").
-       Der Rueckbau bewacht damit das Vorhandensein der Regel, auch wo er ihre
-       Wirkung nicht zeigen kann. */
+       genommen. */
     nr: '433', name: 'Auch ein groesseres Ergebnis wird genommen',
     file: 'images.js',
     search: "    if (webp.length < buf.length)",
@@ -3879,8 +3418,7 @@ const REGRESSIONS = [
   },
   {
     /* DER ANDERE RUECKFALL, und der laesst sich zeigen: WebP kann hoechstens
-       16383 px je Kante. Faengt niemand den Fehler ab, scheitert der ganze
-       Upload mit 500, statt das PNG unveraendert abzulegen. */
+       16383 px je Kante. */
     nr: '458', name: 'Ein Bild, das WebP nicht fassen kann, reisst den Upload ab',
     file: 'images.js',
     search: "    console.error('[Kriterion] PNG blieb PNG:', e.message);",
@@ -3889,8 +3427,7 @@ const REGRESSIONS = [
   },
   {
     /* Die Erkennung geht ueber den GEMELDETEN TYP statt ueber die ersten acht
-       Bytes. Sie sieht damit richtig aus und glaubt dem Browser aufs Wort --
-       ein JPEG, das sich image/png nennt, ginge durch den Kodierer. */
+       Bytes. */
     nr: '434', name: 'Die Erkennung glaubt dem gemeldeten Typ',
     file: 'images.js',
     search: "  Buffer.isBuffer(buf) && buf.length >= 8 && buf.subarray(0, 8).equals(PNG_MAGIC);",
@@ -3898,9 +3435,7 @@ const REGRESSIONS = [
     expected: 'Die Bildablage: PNG kommt herein, WebP geht in die Tabelle'
   },
   {
-    /* Der verlustbehaftete Bitstrom statt VP8L. Die Datei ist danach kleiner
-       und heisst weiterhin WebP -- nur franst sie an harten Kanten aus. Ohne
-       eine Pruefung, die PIXEL vergleicht, bliebe dieser Rueckbau stumm. */
+    /* Der verlustbehaftete Bitstrom statt VP8L. */
     nr: '435', name: 'Der verlustbehaftete Kodierer statt nearLossless',
     file: 'images.js',
     search: "  'webp-lossless': { nearLossless: true, quality: 60, effort: 4 },",
@@ -3915,14 +3450,8 @@ const REGRESSIONS = [
     expected: 'Die Bildablage: PNG kommt herein, WebP geht in die Tabelle'
   },
   {
-    /* Der Schalter faellt aus der Eigentuemerliste und wird damit gewoehnliche
-       Adminsache. Er bestimmt, wie die ganze Instanz ablegt.
-       DER SUCHTEXT IST MIT 0.20.0 MITGEGANGEN, nicht geloescht (Stolperstein
-       201): die Liste traegt seit jener Runde vier Schluessel statt einem, und
-       seit 0.26.0 sieben -- `potentialMode` ist dazugekommen (F3). Der
-       Rueckbau geht wieder mit und nimmt weiterhin GENAU `convertImages`
-       heraus; alles Uebrige bleibt stehen, sonst pruefte er nicht mehr
-       dasselbe. */
+    /* Der Schalter faellt aus der Eigentuemerliste und wird damit
+       gewoehnliche Adminsache. */
     nr: '437', name: 'Der Schalter der Bildablage ist nur noch Adminsache',
     file: 'server.js',
     search: "const OWNER_KEYS = ['imageStore',\n" +
@@ -3947,9 +3476,7 @@ const REGRESSIONS = [
     expected: 'Die Bildablage: PNG kommt herein, WebP geht in die Tabelle'
   },
   {
-    /* Der Fortschritt verschwindet aus den Kennzahlen. Die Karte kann danach
-       nicht mehr sagen, wie weit der Lauf ist -- und die Pruefung, die auf
-       sein Ende wartet, laeuft in ihre Grenze. */
+    /* Der Fortschritt verschwindet aus den Kennzahlen. */
     nr: '440', name: 'Der Fortschritt steht nicht mehr in den Kennzahlen',
     file: 'server.js',
     search: "const batchState = (task) =>\n  batchStates[task] && { ...batchStates[task] };",
@@ -3957,9 +3484,7 @@ const REGRESSIONS = [
     expected: 'Die Bildablage: PNG kommt herein, WebP geht in die Tabelle'
   },
   {
-    /* Die Aufteilung nach Format faellt aus der Antwort. Die alten Zahlen
-       bleiben stehen -- der Rueckbau nimmt genau den Nachbarn weg, nicht die
-       Zeile daneben. */
+    /* Die Aufteilung nach Format faellt aus der Antwort. */
     nr: '441', name: 'Die Aufstellung nach Format faellt aus den Kennzahlen',
     file: 'server.js',
     search: "    imageFormats,\n",
@@ -3976,8 +3501,7 @@ const REGRESSIONS = [
     expected: 'Fokuspunkt der Vorschau'
   },
   {
-    /* DIE SPANNE FAELLT WEG. Ein Wert unter 100 zeigte am Rand Leere statt
-       Bild, einer ueber 400 die Ableitung statt des Motivs. */
+    /* DIE SPANNE FAELLT WEG. */
     nr: '443', name: 'Der Zoomwert wird nicht mehr beschnitten',
     file: 'server.js',
     search: "  zoom:    { min: ZOOM_MIN, max: ZOOM_MAX, fallback: ZOOM_MIN, digits: 0 }",
@@ -3985,9 +3509,7 @@ const REGRESSIONS = [
     expected: 'Fokuspunkt der Vorschau'
   },
   {
-    /* EIN FEHLENDES FELD SETZT ZURUECK. Das Ziehen im Bild schickt kein
-       `zoom` mit -- der eingestellte Ausschnitt waere bei jedem Zug weg
-       (Stolperstein 271). */
+    /* EIN FEHLENDES FELD SETZT ZURUECK. */
     nr: '444', name: 'Ein Ruf ohne Zoomwert setzt ihn auf die Vorgabe zurueck',
     file: 'server.js',
     search: "  let z = p.zoom;\n  if (req.body.zoom !== undefined) {",
@@ -4020,15 +3542,10 @@ const REGRESSIONS = [
 
   /* ---- 0.19.0: die Bildablage in der Oberflaeche ---- */
   {
-    /* DER ZOOM GEHT NICHT MEHR AN DIE KACHEL. crop() rechnet ihn
-       weiterhin richtig aus und schreibt ihn nirgends hin -- genau der Fall,
-       den eine Pruefung an der Funktion allein nicht faende. */
+    /* DER ZOOM GEHT NICHT MEHR AN DIE KACHEL. */
     nr: '449', name: 'Der Zoom kommt nicht in den Zuschnitt (bis 0.19.4: nicht an die Kachel)',
     file: 'batchrun.js',
-    /* MITGEGANGEN MIT 0.19.5, NICHT GELOESCHT (Stolperstein 201). Bis dahin
-       nahm dieser Rueckbau der Kachel ihr `--zoom` -- die Eigenschaft gibt es
-       nicht mehr, der Zuschnitt steckt im Bild. Die Zusage ist dieselbe
-       geblieben: der eingestellte Zoom muss ankommen. */
+    /* MITGEGANGEN MIT 0.19.5, NICHT GELOESCHT. */
     search: "                               zoom: Number(z.zoom) });",
     replacement: "                               zoom: 100 });",
     expected: 'Der Ausschnitt steckt in der Kachel — 0.19.5'
@@ -4041,8 +3558,7 @@ const REGRESSIONS = [
     expected: 'Fokuspunkt in der Oberflaeche'
   },
   {
-    /* JEDER ZWISCHENSCHRITT SCHICKT. Ein Zug ueber die ganze Leiter erzeugte
-       damit sechzig Anfragen statt einer. */
+    /* JEDER ZWISCHENSCHRITT SCHICKT. */
     nr: '451', name: 'Der Schieber schickt bei jedem Zwischenschritt',
     file: 'public/app.js',
     search: "        draw();\n      };\n      slider.onchange = save;",
@@ -4050,8 +3566,7 @@ const REGRESSIONS = [
     expected: 'Fokuspunkt in der Oberflaeche'
   },
   {
-    /* DER GRIFF AN DEN SCHIEBER SETZT DEN FOKUSPUNKT. Er laege danach dort,
-       wo der Schieber steht -- unten in der Mitte, bei jedem Zug aufs Neue. */
+    /* DER GRIFF AN DEN SCHIEBER SETZT DEN FOKUSPUNKT. */
     nr: '452', name: 'Der Griff an den Schieber setzt den Fokuspunkt mit',
     file: 'public/app.js',
     search: "      if (e.target.closest('.vfocus, .vnav, .vzoom')) return;",
@@ -4059,14 +3574,10 @@ const REGRESSIONS = [
     expected: 'Fokuspunkt in der Oberflaeche'
   },
   {
-    /* DAS STILBLATT RECHNET DEN ZOOM NICHT MEHR EIN. Der Wert steht an der
-       Kachel, und niemand liest ihn (Stolperstein 272, andersherum). */
+    /* DAS STILBLATT RECHNET DEN ZOOM NICHT MEHR EIN. */
     nr: '453', name: 'Die Ueberfahrregel haengt wieder am Ausschnitt',
     file: 'public/style.css',
-    /* MITGEGANGEN MIT 0.19.5 (Stolperstein 201). Bis dahin nahm er dem
-       Stilblatt sein `scale(var(--zoom))`; das gibt es nicht mehr. Er holt es
-       jetzt ZURUECK -- und damit den zweiten Zuschnitt, den diese Runde
-       gerade weggeraeumt hat. */
+    /* MITGEGANGEN MIT 0.19.5. */
     search: ".card:hover .card-img img { transform: scale(1.02); }",
     replacement: ".card:hover .card-img img { transform: scale(calc(var(--zoom, 1) * 1.02)); }",
     expected: 'Der Ausschnitt steckt in der Kachel — 0.19.5'
@@ -4079,8 +3590,7 @@ const REGRESSIONS = [
     expected: 'Die Bildablage in der Oberflaeche'
   },
   {
-    /* DER DIALOG BESCHOENIGT. Er nennt die Zahl nicht mehr und sagt nicht
-       mehr, dass die PNG-Fassung danach weg ist. */
+    /* DER DIALOG BESCHOENIGT. */
     nr: '455', name: 'Der Dialog sagt nicht mehr, was verloren geht',
     file: 'public/app.js',
     search: "        t('card.catchUpAsk', { n: png.count, bytes: fmtBytes(png.bytes),",
@@ -4089,10 +3599,7 @@ const REGRESSIONS = [
   },
   {
     /* UMGEDREHT MIT 0.33.0: bis 0.32.1 war der Knopf AUCH ohne PNG bedienbar,
-       weil die Ableitungen eine zweite Haelfte waren. Sie ist gefallen, und
-       der Knopf ist wieder das, was er bis 0.26.0 war -- tot, solange nichts
-       umzustellen ist. Der Rueckbau belebt ihn und laesst ihn damit eine
-       Frage ohne Gegenstand oeffnen, fuer die er ein Passwort verlangt. */
+       weil die Ableitungen eine zweite Haelfte waren. */
     nr: '456', name: 'Der Knopf bleibt bedienbar, obwohl kein PNG mehr dasteht',
     file: 'public/app.js',
     search: "id=\"convert-run\"${running || !(png && IMAGE_STORE !== 'png') ? ' disabled' : ''}",
@@ -4100,9 +3607,7 @@ const REGRESSIONS = [
     expected: 'Die Bildablage in der Oberflaeche'
   },
   {
-    /* DER SCHALTER STEHT AUCH DEM ADMIN OHNE EIGENTUEMERROLLE. Der Server
-       weist ihn ab -- ein Haken, der zuverlaessig 403 erzeugt, sieht aus wie
-       ein Fehler. */
+    /* DER SCHALTER STEHT AUCH DEM ADMIN OHNE EIGENTUEMERROLLE. */
     nr: '457', name: 'Schalter und Knopf stehen jedem Admin',
     file: 'public/app.js',
     search: "        ${OWNER ? `\n        ${/* ---- DIE WAHL, UND SIE IST EIN KNOPF „Standard\" JE ZEILE ----",
@@ -4110,19 +3615,11 @@ const REGRESSIONS = [
     expected: 'Die Bildablage in der Oberflaeche'
   },
 
-  /* ---- 0.19.1: was 0.19.0 falsch gemacht hat ----
-     ZEHN PUNKTE, ZEHN RUECKBAUTEN UND MEHR. Nummer 459 steht weiter oben bei
-     der Tafel der alten Adressen, wo sie hingehoert. */
+  /* ---- 0.19.1: was 0.19.0 falsch gemacht hat ---- ZEHN PUNKTE, ZEHN
+     RUECKBAUTEN UND MEHR. */
   {
-    /* MITGEGANGEN IN 0.19.2 (Stolperstein 201): die Formatabfrage traegt jetzt
-       `WHERE kind IS ?` statt `art != 'video'`. Derselbe Fund, ein anderer
-       Wortlaut.
-       DIE AUFTEILUNG NACH FORMAT LIEST WIEDER DEN INHALT -- die Abfrage aus
-       0.19.0. Sie ist nicht falsch, sie ist teuer: gemessen 919 ms gegen
-       0,2 ms, und sie laeuft bei JEDEM Zeichnen des Systembereichs. Rot wird
-       die Zeile, die eine falsch benannte Datei zaehlt: ein JPEG unter dem
-       Namen `image/png` faellt am Inhalt in die JPEG-Spalte und an der Spalte
-       in die PNG-Spalte. */
+    /* MITGEGANGEN IN 0.19.2: die Formatabfrage traegt
+       jetzt `WHERE kind IS ?` statt `art != 'video'`. */
     nr: '460', name: 'Die Aufteilung nach Format liest wieder den Inhalt',
     file: 'server.js',
     search: "    SELECT mime_type AS m, length(data) AS o FROM photos WHERE kind IS ?)",
@@ -4137,12 +3634,9 @@ const REGRESSIONS = [
     expected: 'Die Bildablage: PNG kommt herein, WebP geht in die Tabelle'
   },
   {
-    /* MITGEGANGEN IN 0.19.2 (Stolperstein 201): die art-Aufteilung ist keine
+    /* MITGEGANGEN IN 0.19.2: die art-Aufteilung ist keine
        materialisierte Zwischenabfrage mehr, sondern eine Schleife ueber die
-       Arten -- weil `MATERIALIZED` die zweite Ursache gar nicht traf.
-       DIE ARTEN KOMMEN WIEDER AUS DEM SATZ STATT AUS DEM INDEX. Das Ergebnis
-       bleibt richtig und kostet 1338,8 statt 0,1 ms; genau deshalb haengt die
-       Zusage am TEXT und nicht am Ergebnis. */
+       Arten -- weil `MATERIALIZED` die zweite Ursache gar nicht traf. */
     nr: '461', name: 'Die Arten kommen wieder aus dem Satz statt aus dem Index',
     file: 'server.js',
     search: "const qImageKinds = db.prepare('SELECT kind AS a FROM photos GROUP BY 1');",
@@ -4150,9 +3644,7 @@ const REGRESSIONS = [
     expected: 'Die Bildablage: PNG kommt herein, WebP geht in die Tabelle'
   },
   {
-    /* DER KNOPF SUCHT AM GEMELDETEN TYP statt an den ersten acht Bytes. Er
-       naehme damit genau die Zeilen mit, die die Karte sich verzaehlt -- und
-       schriebe eine Datei um, die gar kein PNG ist. */
+    /* DER KNOPF SUCHT AM GEMELDETEN TYP statt an den ersten acht Bytes. */
     nr: '462', name: 'Der Knopf sucht am gemeldeten Typ statt am Inhalt',
     file: 'server.js',
     search: "  \"SELECT id FROM photos WHERE kind != 'video'\");",
@@ -4160,8 +3652,7 @@ const REGRESSIONS = [
     expected: 'Die Bildablage: PNG kommt herein, WebP geht in die Tabelle'
   },
   {
-    /* DIE ZUORDNUNG KENNT KEIN FORMAT MEHR -- jede Zeile faellt in 'other'.
-       Ohne diese Tafel stuende die Aufstellung leer da. */
+    /* DIE ZUORDNUNG KENNT KEIN FORMAT MEHR -- jede Zeile faellt in 'other'. */
     nr: '463', name: 'Die Zuordnung von mime_type auf den Schluessel ist leer',
     file: 'server.js',
     search: "const IMAGE_MIME_FORMAT = {\n  'image/png': 'png', 'image/jpeg': 'jpeg', 'image/webp': 'webp', 'image/gif': 'gif'\n};",
@@ -4169,33 +3660,26 @@ const REGRESSIONS = [
     expected: 'Die Bildablage: PNG kommt herein, WebP geht in die Tabelle'
   },
   {
-    /* DER VERGROESSERUNGSPUNKT FAELLT WEG. scale() verankert wieder in der
-       Mitte, und von der eingestellten Bildecke ist nichts zu sehen --
-       gemessen 0,0 % in allen vier Richtungen. */
+    /* DER VERGROESSERUNGSPUNKT FAELLT WEG. */
     nr: '464', name: 'Der Zuschnitt verliert eine seiner beiden Achsen (bis 0.19.4: transform-origin)',
     file: 'images.js',
-    /* MITGEGANGEN MIT 0.19.5 (Stolperstein 201). `transform-origin` gibt es
-       nicht mehr; die Zusage dahinter -- der Ausschnitt folgt dem Fokuspunkt
-       in BEIDEN Richtungen -- gilt unveraendert und steht jetzt hier. */
+    /* MITGEGANGEN MIT 0.19.5. */
     search: "  return { links: fx / 100 * (width - tight), top: fy / 100 * (height - tight), edge: tight };",
     replacement: "  return { links: fx / 100 * (breite - eng), top: 0, kante: eng };",
     expected: 'Der Ausschnitt steckt in der Kachel — 0.19.5'
   },
   {
-    /* ER STEHT DA, ABER AUF DER MITTE. Der gefaehrlichere der beiden: die
-       Eigenschaft ist vorhanden, und wer nur nachsieht, OB sie dasteht, findet
-       nichts. */
+    /* ER STEHT DA, ABER AUF DER MITTE. */
     nr: '465', name: 'Der Zuschnitt sitzt in der Mitte statt auf dem Fokuspunkt',
     file: 'images.js',
-    /* MITGEGANGEN MIT 0.19.5 (Stolperstein 201): dieselbe Zusage an der
+    /* MITGEGANGEN MIT 0.19.5: dieselbe Zusage an der
        Stelle, an der der Ausschnitt jetzt entsteht. */
     search: "  const k = cropSpecBox(width, height, cropSpec.fx, cropSpec.fy, cropSpec.zoom);",
     replacement: "  const k = cropSpecBox(breite, hoehe, 50, 50, zuschnitt.zoom);",
     expected: 'Der Ausschnitt steckt in der Kachel — 0.19.5'
   },
   {
-    /* DER DIALOG LIEGT WIEDER UNTER DEM VOLLBILD -- der Zustand bis 0.19.1.
-       Die Rueckfrage steht dann erst da, wenn man das Vollbild schliesst. */
+    /* DER DIALOG LIEGT WIEDER UNTER DEM VOLLBILD -- der Zustand bis 0.19.1. */
     nr: '466', name: 'Der Dialog liegt wieder unter dem Vollbild',
     file: 'public/style.css',
     search: "  --z-dialog: 100;",
@@ -4203,9 +3687,7 @@ const REGRESSIONS = [
     expected: 'Die Stapelordnung — 0.19.1'
   },
   {
-    /* DIE REGEL TRAEGT WIEDER IHRE EIGENE ZAHL. Sie sieht damit richtig aus
-       und steht doch neben der Ordnung statt in ihr -- die naechste Kachel
-       macht sie wieder auf. */
+    /* DIE REGEL TRAEGT WIEDER IHRE EIGENE ZAHL. */
     nr: '467', name: 'Der Dialog traegt seine Stufe wieder als Zahl in der Regel',
     file: 'public/style.css',
     search: "padding: 22px; z-index: var(--z-dialog);",
@@ -4213,8 +3695,7 @@ const REGRESSIONS = [
     expected: 'Die Stapelordnung — 0.19.1'
   },
   {
-    /* DIE MELDUNG RUTSCHT UNTER DEN DIALOG. Sie ist die Quittung des Dialogs
-       und waere von ihm verdeckt. */
+    /* DIE MELDUNG RUTSCHT UNTER DEN DIALOG. */
     nr: '468', name: 'Die Meldung liegt unter dem Dialog',
     file: 'public/style.css',
     search: "  --z-toast: 120;",
@@ -4222,8 +3703,7 @@ const REGRESSIONS = [
     expected: 'Die Stapelordnung — 0.19.1'
   },
   {
-    /* DIE BILDABLAGE HAT KEINE EIGENE KARTE MEHR. Sie steht damit nirgends --
-       weder als Karte noch als Abschnitt in „Kennzahlen". */
+    /* DIE BILDABLAGE HAT KEINE EIGENE KARTE MEHR. */
     nr: '469', name: 'Die Bildablage faellt aus der Kartentabelle',
     file: 'public/app.js',
     search: "  { key: 'bildablage',   section: 'database', visible: () => ADMIN,\n" +
@@ -4232,8 +3712,7 @@ const REGRESSIONS = [
     expected: 'Die Bildablage in der Oberflaeche'
   },
   {
-    /* SIE STEHT IM FALSCHEN ABSCHNITT. Der Knopf, der die Datenbank umschreibt,
-       laege dann bei den Kategorien und Tags. */
+    /* SIE STEHT IM FALSCHEN ABSCHNITT. */
     nr: '470', name: 'Die Karte „Bildablage" steht im Abschnitt „Bestand"',
     file: 'public/app.js',
     search: "  { key: 'bildablage',   section: 'database',",
@@ -4241,9 +3720,7 @@ const REGRESSIONS = [
     expected: 'Die Bildablage in der Oberflaeche'
   },
   {
-    /* SIE VERSCHWINDET, WENN KEIN BILD DALIEGT. Der Systembereich wechselte
-       damit unter der Hand die Gestalt -- achtzehn Karten auf einer frischen
-       Installation, neunzehn auf einer benutzten. */
+    /* SIE VERSCHWINDET, WENN KEIN BILD DALIEGT. */
     nr: '471', name: 'Die Karte „Bildablage" verschwindet ohne Bilder',
     file: 'public/app.js',
     search: "  { key: 'bildablage',   section: 'database', visible: () => ADMIN,",
@@ -4252,11 +3729,8 @@ const REGRESSIONS = [
     expected: 'Die Bildablage in der Oberflaeche'
   },
   {
-    /* DER DIALOG SAGT NICHT MEHR, DASS ES DAUERN KANN. Wer den Knopf drueckt,
-       rechnet dann mit Sekunden und bekommt eine Stunde. */
-    /* AN DER MEHRZAHLFORM UND NICHT AN DER EINZAHL -- ein Fund vom
-       6. September 2026: die Prueflage zeigt zwoelf Fotos, also die Mehrzahl;
-       ein Rueckbau an der Einzahl blieb deshalb STUMM. */
+    /* DER DIALOG SAGT NICHT MEHR, DASS ES DAUERN KANN. */
+    /* AN DER MEHRZAHLFORM UND NICHT AN DER EINZAHL -- ein Fund vom 6. */
     nr: '472', name: 'Der Dialog sagt nicht mehr, dass es dauern kann',
     file: 'public/languages/de.json',
     search: "werden konvertiert, die Originale ersetzt (danach etwa {after}). Rückgängig nur mit einer vorher angelegten Sicherung. Dauer: Minuten bis Stunden.\"",
@@ -4264,9 +3738,7 @@ const REGRESSIONS = [
     expected: 'Die Bildablage in der Oberflaeche'
   },
   {
-    /* ER ERFINDET DOCH EINE ZAHL. Gemessen 394 ms je Bild hier gegen 5,3 s im
-       Feld -- Faktor dreizehn: eine Schaetzung waere auf der einen Maschine
-       beruhigend falsch und auf der anderen erschreckend falsch. */
+    /* ER ERFINDET DOCH EINE ZAHL. */
     nr: '473', name: 'Der Dialog erfindet doch eine Minutenangabe',
     file: 'public/languages/de.json',
     search: "Rückgängig nur mit einer vorher angelegten Sicherung. Dauer: Minuten bis Stunden.\"\n  },",
@@ -4274,9 +3746,7 @@ const REGRESSIONS = [
     expected: 'Die Bildablage in der Oberflaeche'
   },
   {
-    /* DIE THREADZAHL VON sharp WIRD NICHT MEHR GESETZT. Auf der Installation,
-       die den Befund gemeldet hat, aendert das nichts -- auf einem Image mit
-       jemalloc oder unter musl nimmt sich libvips die ganze Maschine. */
+    /* DIE THREADZAHL VON sharp WIRD NICHT MEHR GESETZT. */
     nr: '474', name: 'Die Threadzahl von sharp wird nicht mehr gesetzt',
     file: 'server.js',
     search: "sharp.concurrency(Math.max(1, Math.floor(os.cpus().length / 2)));",
@@ -4293,9 +3763,7 @@ const REGRESSIONS = [
     expected: 'Die Threadzahl von sharp — 0.19.1'
   },
   {
-    /* DER BILDSCHIRMTEXT SAGT WIEDER „der Instanz". Wer seine Anlage anders
-       benannt hat, liest eine Message ueber ein Wort, das nirgends auf seinem
-       Bildschirm steht. */
+    /* DER BILDSCHIRMTEXT SAGT WIEDER „der Instanz". */
     nr: '476', name: 'Die Absage nennt wieder „den Eigentümer der Instanz"',
     file: 'public/languages/de.json',
     search: "\"server.deniedOwner\": \"Das kann nur der Eigentümer dieser Installation.\",",
@@ -4303,8 +3771,7 @@ const REGRESSIONS = [
     expected: 'Die Rechte am Papierkorb'
   },
   {
-    /* DIE ARBEITSDATEI STEHT WIEDER NICHT IN DER IGNORIERLISTE. Wer das ZIP
-       ueber seinen Ordner entpackt, verliert seine angepasste Fassung. */
+    /* DIE ARBEITSDATEI STEHT WIEDER NICHT IN DER IGNORIERLISTE. */
     nr: '477', name: 'Die docker-compose.yml steht nicht mehr in der .gitignore',
     file: '.gitignore',
     search: "\ndocker-compose.yml",
@@ -4312,9 +3779,7 @@ const REGRESSIONS = [
     expected: 'Die Compose-Datei wird nicht ueberschrieben'
   },
   {
-    /* DIE README NENNT DEN PFLICHTSCHRITT NICHT MEHR. Ohne ihn bricht
-       `docker compose up` mit „no configuration file provided" ab -- karg,
-       aber es haelt an; die README ist die Stelle, die es vorher sagt. */
+    /* DIE README NENNT DEN PFLICHTSCHRITT NICHT MEHR. */
     nr: '478', name: 'Die README nennt den Pflichtschritt zur Compose-Datei nicht mehr',
     file: 'README.md',
     search: "**Der Schritt `cp docker-compose.example.yml docker-compose.yml` ist Pflicht.**",
@@ -4322,21 +3787,17 @@ const REGRESSIONS = [
     expected: 'Die Compose-Datei wird nicht ueberschrieben'
   },
   {
-    /* DER WAECHTER UEBER DIE BERICHTIGTEN BEHAUPTUNGEN LAEUFT INS LEERE.
-       Ohne die Berichtigung im Quelltext stuende dort wieder ein Satz, der
-       gemessen falsch ist. */
+    /* DER WAECHTER UEBER DIE BERICHTIGTEN BEHAUPTUNGEN LAEUFT INS LEERE. */
     nr: '479', name: 'Die Berichtigung zu substr() faellt aus dem Quelltext',
     file: 'server.js',
-    search: "     -- substr() AUF EINEM BLOB LIEST DAS BLOB, gemessen 657 ms bei 205 MB,",
-    replacement: "     -- substr() liest wenig, gemessen 657 ms bei 205 MB,",
+    search: "   BERICHTIGT GEGEN 0.19.0: substr() AUF EINEM BLOB LIEST DAS BLOB, gemessen",
+    replacement: "   BERICHTIGT GEGEN 0.19.0: substr() liest wenig, gemessen",
     expected: 'Die berichtigten Behauptungen stehen nirgends mehr'
   },
 
   /* ---- 0.19.2: was 0.19.1 nur zur Haelfte getroffen hat ---- */
   {
-    /* DER INDEX AUF `art` FAELLT WEG. Ohne ihn kostet jede Frage nach der Art
-       den ganzen Satz -- gemessen 1338,8 ms gegen 0,1 ms, und keine Umformung
-       der Abfrage hilft dagegen (Stolperstein 279). */
+    /* DER INDEX AUF `art` FAELLT WEG. */
     nr: '480', name: 'Der Index auf photos(art) faellt weg',
     file: 'db.js',
     search: "tryIndex('idx_photos_kind',\n  'CREATE INDEX IF NOT EXISTS idx_photos_kind ON photos(kind)');",
@@ -4345,9 +3806,7 @@ const REGRESSIONS = [
   },
   {
     /* DER INDEX WANDERT ZURUECK IN DIE DDL -- vor die Migration, die seine
-       Spalte anlegt. Eine Datenbank aus 0.8.40 traegt `photos.art` nicht, und
-       das Oeffnen der Datei scheitert dann mit „no such column: art"
-       (Stolperstein 281). */
+       Spalte anlegt. */
     nr: '486', name: 'Der Index steht wieder vor seiner Migration',
     file: 'db.js',
     search: "CREATE INDEX IF NOT EXISTS idx_photos_item ON photos(item_id, sort_order);",
@@ -4356,8 +3815,7 @@ const REGRESSIONS = [
     expected: 'Die Bildablage: PNG kommt herein, WebP geht in die Tabelle'
   },
   {
-    /* GEFRAGT WIRD WIEDER MIT EINER UNGLEICHHEIT. Sie sieht richtig aus und
-       schlaegt den Index aus: 1334 ms gegen 0,5 ms, dieselbe Antwort. */
+    /* GEFRAGT WIRD WIEDER MIT EINER UNGLEICHHEIT. */
     nr: '481', name: 'Die Aufteilung fragt wieder mit einer Ungleichheit',
     file: 'server.js',
     search: "  'SELECT COUNT(*) AS n, COALESCE(SUM(length(data)),0) AS o FROM photos WHERE kind IS ?');",
@@ -4367,8 +3825,7 @@ const REGRESSIONS = [
   {
     /* DIE EXPORTGROESSE DER BILDER WIRD WIEDER EIN ZWEITES MAL GEFRAGT --
        dieselbe teure Frage nach `art != 'video'`, gemessen 1363 und 1310 ms
-       zusaetzlich. Die Zahl bleibt dieselbe; nur der Weg dorthin ist ein
-       zweiter (Stolperstein 47). */
+       zusaetzlich. */
     nr: '482', name: 'Die Exportgroesse der Bilder wird ein zweites Mal gefragt',
     file: 'server.js',
     search: "      ...exchangeParts(null, { withFiles: true }),",
@@ -4376,10 +3833,8 @@ const REGRESSIONS = [
     expected: 'Die Bildablage: PNG kommt herein, WebP geht in die Tabelle'
   },
   {
-    /* DER SPIELRAUM DES RAHMENS RECHNET DEN ZOOM NICHT MEHR EIN -- der Zustand
-       bis 0.19.1. An einem fast quadratischen Bild laesst sich der Ausschnitt
-       damit waagerecht gar nicht verschieben, und die eingestellte Ecke ist
-       auch mit `transform-origin` nie zu erreichen. */
+    /* DER SPIELRAUM DES RAHMENS RECHNET DEN ZOOM NICHT MEHR EIN -- der
+       Zustand bis 0.19.1. */
     nr: '483', name: 'Der Spielraum des Ausschnitts rechnet den Zoom nicht ein',
     file: 'public/app.js',
     search: "               playX: f.width - k.edge, playY: f.height - k.edge };",
@@ -4389,7 +3844,7 @@ const REGRESSIONS = [
   {
     /* DER ZEIGER LANDET NICHT MEHR IN DER MITTE DES RAHMENS, den er gerade
        zieht -- gerechnet wird wieder mit der vollen Seite statt mit dem
-       engeren Ausschnitt. Der Sprung ist umso groesser, je enger man zieht. */
+       engeren Ausschnitt. */
     nr: '484', name: 'Der Griff setzt den Punkt neben die Mitte des Rahmens',
     file: 'public/app.js',
     search: "      fx = playX > 0 ? Math.min(100, Math.max(0, (px - eng / 2) / playX * 100)) : 50;",
@@ -4397,11 +3852,9 @@ const REGRESSIONS = [
     expected: 'Fokuspunkt in der Oberflaeche'
   },
   {
-    /* DER DIALOG SAGT NICHT MEHR, DASS DIE UMWANDLUNG NAHEZU VERLUSTFREI IST.
-       Wer das nicht liest, haelt den Knopf fuer eine Verschlechterung. */
+    /* DER DIALOG SAGT NICHT MEHR, DASS DIE UMWANDLUNG NAHEZU VERLUSTFREI IST. */
     /* DER SUCHTEXT IST MIT 0.31.0 MITGEWANDERT: aus „kein sichtbarer Verlust"
-       ist „verlustfrei" geworden (Worttafel B). Der Rueckbau ist derselbe
-       geblieben -- er nimmt dem Satz weiterhin die Aussage ueber die Guete. */
+       ist „verlustfrei" geworden (Worttafel B). */
     nr: '485', name: 'Der Dialog sagt nicht mehr, dass es verlustfrei ist',
     file: 'public/languages/de.json',
     search: "\"card.storeLosslessHint\": \"Vorgabe — verlustfrei, gemessen rund zwei Drittel kleiner\",",
@@ -4410,9 +3863,7 @@ const REGRESSIONS = [
   },
 
   {
-    /* DIE UEBERSETZUNG KOMMT ZURUECK. Sie sieht harmlos aus und faengt einen
-       Fall ab, den es an dieser Anlage nicht gibt -- Aufwand ohne Gegenwert,
-       der bei jeder weiteren Umbenennung gepflegt werden will. */
+    /* DIE UEBERSETZUNG KOMMT ZURUECK. */
     nr: '487', name: 'Die Uebersetzung der alten Abschnittsadressen kommt zurueck',
     file: 'public/app.js',
     search: "  const desired = fromAddress;",
@@ -4421,9 +3872,7 @@ const REGRESSIONS = [
   },
 
   {
-    /* DER DECKENDE INDEX FUER DIE UEBERSICHT FAELLT WEG. Sie liest dann sieben
-       Spalten wieder aus dem Satz, und der steht in Overflow-Seiten --
-       gemessen 6,3 statt 1,6 ms bei 400 Fotos. */
+    /* DER DECKENDE INDEX FUER DIE UEBERSICHT FAELLT WEG. */
     nr: '488', name: 'Der deckende Index fuer die Uebersicht faellt weg',
     file: 'db.js',
     search: "tryIndex('idx_photos_tile', `CREATE INDEX IF NOT EXISTS idx_photos_tile",
@@ -4432,8 +3881,7 @@ const REGRESSIONS = [
   },
   {
     /* EINE SPALTE FEHLT IM INDEX -- und das genuegt: SQLite faellt auf
-       idx_photos_item zurueck und liest wieder den Satz. Der Index steht da,
-       sieht richtig aus und deckt nichts mehr. */
+       idx_photos_item zurueck und liest wieder den Satz. */
     nr: '489', name: 'Dem deckenden Index fehlt eine Spalte',
     file: 'db.js',
     search: "zoom, created_at, kind, duration)`);",
@@ -4441,8 +3889,7 @@ const REGRESSIONS = [
     expected: 'Die Bildablage: PNG kommt herein, WebP geht in die Tabelle'
   },
   {
-    /* DIE UEBERSICHT FRAGT WIEDER JE EINTRAG. Der Index bleibt, der Gewinn
-       halbiert sich -- 3,0 statt 1,6 ms. */
+    /* DIE UEBERSICHT FRAGT WIEDER JE EINTRAG. */
     nr: '490', name: 'Die Uebersicht fragt die Fotos wieder je Eintrag',
     file: 'server.js',
     search: "    const ph = photosPer.get(it.id) || [];",
@@ -4450,33 +3897,25 @@ const REGRESSIONS = [
     expected: 'Die Bildablage: PNG kommt herein, WebP geht in die Tabelle'
   },
 
-  /* ---- 0.19.3: der Bestandslauf im eigenen Thread ----
-     NEUN RUECKBAUTEN, und sie zielen auf verschiedene Haelften derselben
-     Zusage: dass der Stand waehrend des Laufs ueberhaupt zurueckreist, dass er
-     im Haupt-Thread ankommt, dass der Schluessel NICHT mitreist, dass der
-     Abschluss den Thread mitnimmt, dass ein Fehler nicht still bleibt, dass
-     der Fingerprint die Datei kennt und dass der Thread sich nicht die ganze
-     Maschine nimmt. Ein Rueckbau, der alles zugleich abschaltet, sagte nur,
-     dass irgendetwas fehlt. */
+  /* ---- 0.19.3: der Bestandslauf im eigenen Thread ---- NEUN RUECKBAUTEN,
+     und sie zielen auf verschiedene Haelften derselben Zusage: dass der Stand
+     waehrend des Laufs ueberhaupt zurueckreist, dass er im Haupt-Thread
+     ankommt, dass der Schluessel NICHT mitreist, dass der Abschluss den
+     Thread mitnimmt, dass ein Fehler nicht still bleibt, dass der Fingerprint
+     die Datei kennt und dass der Thread sich nicht die ganze Maschine nimmt. */
   {
-    /* DER STAND REIST ERST AM ENDE ZURUECK. Die Karte im Systembereich fragt
-       alle 1500 ms und saehe waehrend des ganzen Laufs dieselbe Null -- am
-       Ergebnis aendert sich nichts, an der Auskunft alles. */
+    /* DER STAND REIST ERST AM ENDE ZURUECK. */
     nr: '491', name: 'Der Thread meldet seinen Stand erst am Ende',
     file: 'batchrun.js',
     /* DIE ZEILE DANACH GEHOERT SEIT 0.19.4 ZUM SUCHTEXT: dieselben zwei
        Zeilen stehen jetzt auch in der dritten Schleife, und ein Suchtext, der
-       zweimal passt, bricht den Rueckbau ab (Stolperstein 201 -- mitziehen,
-       nicht loeschen). Das Nachziehen bekommt seinen eigenen Rueckbau. */
+       zweimal passt, bricht den Rueckbau ab. */
     search: "    status.done++;\n    report(status);\n    await new Promise(r => setTimeout(r, 30));",
     replacement: "    stand.done++;\n    await new Promise(r => setTimeout(r, 30));",
     expected: 'Der Bestandslauf faehrt in einem eigenen Thread — 0.19.3'
   },
   {
-    /* DER HAUPT-THREAD HOERT NICHT MEHR ZU. `umstellung.laeuft` bleibt damit
-       fuer immer auf true stehen -- die Karte meldet einen Lauf, der laengst
-       vorbei ist, und die Pruefung, die auf sein Ende wartet, laeuft in ihre
-       Grenze. */
+    /* DER HAUPT-THREAD HOERT NICHT MEHR ZU. */
     nr: '492', name: 'Der Haupt-Thread hoert die Meldungen des Threads nicht mehr',
     file: 'server.js',
     search: "  w.on('message', (m) => { if (m && m.kind === 'status') batchStates[task] = m.status; });",
@@ -4484,10 +3923,7 @@ const REGRESSIONS = [
     expected: 'Die Bildablage: PNG kommt herein, WebP geht in die Tabelle'
   },
   {
-    /* DER SCHLUESSEL REIST UEBER workerData. `workerData` wird beim Erzeugen
-       des Threads strukturiert KOPIERT -- der Schluessel staende danach in
-       einem zweiten Speicher, und zwar ohne Not: der Thread liest ihn
-       denselben Weg wie der Haupt-Thread. */
+    /* DER SCHLUESSEL REIST UEBER workerData. */
     nr: '493', name: 'Der Schluessel reist ueber workerData in den Thread',
     file: 'server.js',
     search: "  const w = new Worker(BATCHRUN, { workerData: { task, rows, store } });",
@@ -4495,9 +3931,7 @@ const REGRESSIONS = [
     expected: 'Der Bestandslauf faehrt in einem eigenen Thread — 0.19.3'
   },
   {
-    /* DER ABSCHLUSS LAESST DEN THREAD LAUFEN. Er schreibt dann in eine Datei,
-       deren WAL gerade gekuerzt wird -- der eine Fall, den diese Runde neu
-       einbringt. */
+    /* DER ABSCHLUSS LAESST DEN THREAD LAUFEN. */
     nr: '494', name: 'SIGTERM kuerzt die WAL, waehrend der Thread noch schreibt',
     file: 'server.js',
     search: "    for (const w of batchThreads) { try { w.terminate(); } catch {} }",
@@ -4505,9 +3939,7 @@ const REGRESSIONS = [
     expected: 'Der Bestandslauf faehrt in einem eigenen Thread — 0.19.3'
   },
   {
-    /* EIN FEHLER IM THREAD BLEIBT STILL. Der Server steht danach zwar noch,
-       aber die Karte zeigt fuer immer „laeuft" -- und ein zweiter Druck wird
-       mit 409 abgewiesen, obwohl gar nichts mehr laeuft. */
+    /* EIN FEHLER IM THREAD BLEIBT STILL. */
     nr: '495', name: 'Ein Fehler im Thread laesst den Lauf auf „laeuft" stehen',
     file: 'server.js',
     search: "    if (batchStates[task]) batchStates[task].running = false;",
@@ -4515,9 +3947,7 @@ const REGRESSIONS = [
     expected: 'Der Bestandslauf faehrt in einem eigenen Thread — 0.19.3'
   },
   {
-    /* DER FINGERPRINT KENNT DIE DATEI DES THREADS NICHT MEHR. Sie wird nicht
-       requiret, sondern an `new Worker` gereicht -- ohne diese Zeile steht sie
-       in keiner Ableitung, und der Fingerprint ist eine halbe Aussage. */
+    /* DER FINGERPRINT KENNT DIE DATEI DES THREADS NICHT MEHR. */
     nr: '496', name: 'Der Fingerprint kennt die Datei des Threads nicht',
     file: 'server.js',
     search: "  const list = [...new Set([...ran, BATCHRUN,",
@@ -4525,9 +3955,7 @@ const REGRESSIONS = [
     expected: 'Der Versions-Fingerprint'
   },
   {
-    /* DER THREAD UEBERLAESST sharp SEINE VORGABE. sharp wird dort EIGENS
-       geladen; unter musl oder mit jemalloc ist die Vorgabe die Kernzahl, und
-       ausgerechnet der Wartungslauf naehme sich dann die ganze Maschine. */
+    /* DER THREAD UEBERLAESST sharp SEINE VORGABE. */
     nr: '497', name: 'Der Thread ueberlaesst sharp seine Vorgabe',
     file: 'batchrun.js',
     search: "sharp.concurrency(Math.max(1, Math.floor(os.cpus().length / 2)));",
@@ -4535,9 +3963,8 @@ const REGRESSIONS = [
     expected: 'Der Bestandslauf faehrt in einem eigenen Thread — 0.19.3'
   },
   {
-    /* DER SCHLUESSELHINWEIS STEHT BEI JEDEM LAUF EIN ZWEITES MAL IM
-       PROTOKOLL -- ein halber Bildschirm, jedes Mal. Wer ihn einmal gelesen
-       hat, liest ihn beim zweiten Mal nicht besser. */
+    /* DER SCHLUESSELHINWEIS STEHT BEI JEDEM LAUF EIN ZWEITES MAL IM PROTOKOLL
+       -- ein halber Bildschirm, jedes Mal. */
     nr: '498', name: 'Der Schluesselhinweis wiederholt sich in jedem Thread',
     file: 'keys.js',
     search: "function warnKeyBesideData() {\n  if (!isMainThread) return;",
@@ -4549,8 +3976,7 @@ const REGRESSIONS = [
      SECHS RUECKBAUTEN, und sie zielen auf die beiden Gefahren der Buendelung:
      die verlorene ZWEITE Ordnung (wer nach item_id gruppiert und den Rest
      vergisst, bekommt die Zeilen in Einfuegereihenfolge) und die zweite
-     WAHRHEIT (die gebuendelte Fassung liest andere Spalten als die
-     einzelne). */
+     WAHRHEIT (die gebuendelte Fassung liest andere Spalten als die einzelne). */
   {
     nr: '499', name: 'Die gebuendelten Schlagworte verlieren ihre zweite Ordnung',
     file: 'server.js',
@@ -4566,9 +3992,7 @@ const REGRESSIONS = [
     expected: 'Die Uebersicht fragt einmal — und Kachel und Eintrag sagen dasselbe — 0.19.3'
   },
   {
-    /* EINE KARTE KENNT NUR, WAS SIE GEFUNDEN HAT. Ohne den Rueckfall traegt
-       die Kachel eines Eintrags ohne Link gar kein Feld -- und die
-       Oberflaeche zeigt dort nichts statt einer Null. */
+    /* EINE KARTE KENNT NUR, WAS SIE GEFUNDEN HAT. */
     nr: '501', name: 'Die Linkzahl fehlt ganz, wo kein Link ist',
     file: 'server.js',
     search: "    it.linkCount = linkCountPer.get(it.id) || 0;",
@@ -4576,9 +4000,7 @@ const REGRESSIONS = [
     expected: 'Die Uebersicht fragt einmal — und Kachel und Eintrag sagen dasselbe — 0.19.3'
   },
   {
-    /* DIE GEBUENDELTE FASSUNG LIEST EINE SPALTE MEHR ALS DIE EINZELNE. Beide
-       sehen fuer sich richtig aus, und die Kachel traegt trotzdem etwas
-       anderes als der Eintrag (Stolperstein 47). */
+    /* DIE GEBUENDELTE FASSUNG LIEST EINE SPALTE MEHR ALS DIE EINZELNE. */
     nr: '502', name: 'Die gebuendelte Schlagwortabfrage liest eine Spalte mehr',
     file: 'server.js',
     search: "const qAllTags = db.prepare(`SELECT it.item_id, ${TAG_COLUMNS} FROM tags t",
@@ -4588,7 +4010,7 @@ const REGRESSIONS = [
   {
     /* DIE LISTE HOLT WIEDER, WAS SIE NICHT ZEIGT: die Schlagworte jedes
        Testtags (bei 400 Eintraegen 1200 Einzelabfragen) und den Verfasser
-       dazu. Gelesen hat beides in der Uebersicht nie jemand. */
+       dazu. */
     nr: '503', name: 'Die Testtage der Liste tragen wieder Schlagworte und Verfasser',
     file: 'server.js',
     search: "    if (timeline) it.testDays = testDaysPer.get(it.id) || [];",
@@ -4596,9 +4018,7 @@ const REGRESSIONS = [
     expected: 'Die Uebersicht fragt einmal — und Kachel und Eintrag sagen dasselbe — 0.19.3'
   },
   {
-    /* `t.*` STATT DER SPALTENLISTE. `created_at` eines Schlagworts liest die
-       Oberflaeche nirgends -- und was niemand ansieht, wird zweimal bezahlt:
-       beim Holen und beim Senden. */
+    /* `t.*` STATT DER SPALTENLISTE. */
     nr: '504', name: 'Die Schlagwortabfrage liest wieder alle Spalten',
     file: 'server.js',
     search: "const TAG_COLUMNS = 't.id, t.name';",
@@ -4608,8 +4028,7 @@ const REGRESSIONS = [
 
   /* ---- 0.19.3: die letzten acht „Instanz" ---- */
   {
-    /* EINE DER ACHT STELLEN SAGT WIEDER „Instanz". Der Waechter zaehlt
-       Nicht-Kommentarzeilen; eine einzige genuegt, damit er anschlaegt. */
+    /* EINE DER ACHT STELLEN SAGT WIEDER „Instanz". */
     nr: '505', name: 'Eine Stelle im Bildschirmtext sagt wieder „Instanz"',
     file: 'public/languages/de.json',
     search: "\"card.emailOptionalHint\": \"{word} Ohne Mailzugang zeigt Kriterion",
@@ -4617,11 +4036,11 @@ const REGRESSIONS = [
     expected: '„Instanz" steht in keinem Bildschirmtext mehr — 0.19.1 und 0.19.3'
   },
 
-  /* ---- 0.19.4: die Ableitung folgt der Anzeige ----
-     ZEHN RUECKBAUTEN AN DER GEOMETRIE UND SIEBEN AM LAUF, und sie sind
-     absichtlich klein geschnitten: die Runde aendert eine ZAHL in einer Tafel,
-     und ein Rueckbau, der die ganze Tafel umwirft, sagte nur, dass irgendetwas
-     an den Ableitungen haengt. */
+  /* ---- 0.19.4: die Ableitung folgt der Anzeige ---- ZEHN RUECKBAUTEN AN DER
+     GEOMETRIE UND SIEBEN AM LAUF, und sie sind absichtlich klein geschnitten:
+     die Runde aendert eine ZAHL in einer Tafel, und ein Rueckbau, der die
+     ganze Tafel umwirft, sagte nur, dass irgendetwas an den Ableitungen
+     haengt. */
   {
     /* DIE KURZE KANTE STEHT WIEDER AUF 400. Der Deckel bleibt, damit genau
        diese eine Zahl gemessen wird und nicht zwei zugleich. */
@@ -4632,9 +4051,7 @@ const REGRESSIONS = [
     expected: 'Die Ableitung folgt der Anzeige — 0.19.4'
   },
   {
-    /* DER DECKEL FAELLT WEG. Ohne ihn kennt die kurze Kante keine obere
-       Grenze fuer die lange: ein Bildschirmfoto ueber zwei Monitore wird zur
-       groessten Ableitung der Tabelle -- groesser als sein eigenes `medium`. */
+    /* DER DECKEL FAELLT WEG. */
     nr: '507', name: 'Der Deckel auf der langen Kante faellt weg',
     file: 'images.js',
     search: "long: 1280, q: 82, crops: true  }",
@@ -4642,10 +4059,7 @@ const REGRESSIONS = [
     expected: 'Die Ableitung folgt der Anzeige — 0.19.4'
   },
   {
-    /* `medium` WIRD BEHANDELT WIE `thumb`. Es wird mit `object-fit: contain`
-       gezeigt, und dafuer ist die LANGE Kante die richtige -- wer beide
-       Ableitungen „der Ordnung halber" gleich behandelt, macht `medium`
-       schlechter und die Datenbank groesser. */
+    /* `medium` WIRD BEHANDELT WIE `thumb`. */
     nr: '508', name: 'medium bekommt dieselbe Kiste wie thumb',
     file: 'images.js',
     search: "  medium: { short: 1600, long: 1600, q: 78, crops: false }",
@@ -4653,10 +4067,7 @@ const REGRESSIONS = [
     expected: 'Die Ableitung folgt der Anzeige — 0.19.4'
   },
   {
-    /* DER EXIF-VERMERK ZAEHLT NICHT MEHR MIT. `metadata()` liefert die Masse
-       so, wie sie in der Datei stehen; `.rotate()` dreht danach. Ein
-       hochkantes Bild mit Ausrichtung 6 bekommt damit die Kiste hochkant und
-       kommt quer heraus -- mit 1280 auf der kurzen Kante. */
+    /* DER EXIF-VERMERK ZAEHLT NICHT MEHR MIT. */
     nr: '509', name: 'Der EXIF-Vermerk zaehlt bei der Kante nicht mehr mit',
     file: 'images.js',
     search: "  const rotated = m && m.orientation >= 5;",
@@ -4664,9 +4075,7 @@ const REGRESSIONS = [
     expected: 'Die Ableitung folgt der Anzeige — 0.19.4'
   },
   {
-    /* DER KOPF WIRD GAR NICHT ERST GELESEN. Die Kiste liegt dann immer quer,
-       und jedes hochkante Bild bekommt 512 auf der LANGEN statt auf der
-       kurzen Kante. */
+    /* DER KOPF WIRD GAR NICHT ERST GELESEN. */
     nr: '510', name: 'Der Kopf wird nicht gelesen -- die Kiste liegt immer quer',
     file: 'images.js',
     search: "  const landscape = size ? isLandscape(size) : true;",
@@ -4674,26 +4083,16 @@ const REGRESSIONS = [
     expected: 'Die Ableitung folgt der Anzeige — 0.19.4'
   },
   {
-    /* DIE ALTE GEOMETRIE WIRD AN DER KURZEN KANTE ERKANNT. Das klingt
-       richtiger und ist es nicht: der Lauf zoege damit auch das kleine Bild
-       und das Panorama mit, und beide kaemen unveraendert heraus -- also bei
-       JEDEM Start aufs Neue. Die Abfrage waere kein Festpunkt mehr. */
+    /* DIE ALTE GEOMETRIE WIRD AN DER KURZEN KANTE ERKANNT. */
     nr: '511', name: 'Die Faelligkeit wird wieder an der Zielkante erkannt',
     file: 'images.js',
-    /* MITGEGANGEN MIT 0.19.5 (Stolperstein 201). Die alte Frage lautete
-       „traegt die lange Kante genau 400?"; sie ist von „ist die Kachel
-       quadratisch?" abgeloest. DIESER RUECKBAU SETZT DIE ZIELKANTE ALS
-       ZWEITE HAELFTE WIEDER EIN -- und genau daran faellt der Festpunkt: eine
-       zugeschnittene Kachel unter 512 (kleines Original, enger Ausschnitt) waere
-       damit bei JEDEM Start wieder faellig. */
+    /* MITGEGANGEN MIT 0.19.5. */
     search: "  return size.width !== size.height;",
     replacement: "  return masse.width !== masse.height || masse.width !== VARIANTS.thumb.kurz;",
     expected: 'Der Ausschnitt steckt in der Kachel — 0.19.5'
   },
   {
-    /* EIN UNLESBARER `thumb` GILT WIEDER ALS FERTIG. Die Zeile bleibt damit
-       fuer immer kaputt: das Nachruesten sucht `thumb IS NULL` und sieht
-       einen kaputten `thumb` gar nicht an. */
+    /* EIN UNLESBARER `thumb` GILT WIEDER ALS FERTIG. */
     nr: '512', name: 'Ein unlesbarer thumb bleibt liegen',
     file: 'images.js',
     search: "  catch { return true; }",
@@ -4701,9 +4100,7 @@ const REGRESSIONS = [
     expected: 'Der Bestandslauf faehrt in einem eigenen Thread — 0.19.3'
   },
   {
-    /* DER LAUF FASST JEDE GEPRUEFTE ZEILE AN. Er leitet damit auch die
-       Zeilen neu ab, die laengst richtig liegen -- bei jedem Start, mit dem
-       vollen Preis fuer das Lesen des Originals. */
+    /* DER LAUF FASST JEDE GEPRUEFTE ZEILE AN. */
     nr: '513', name: 'Der Lauf erneuert jede Zeile, nicht nur die faelligen',
     file: 'batchrun.js',
     search: "        if (await isUncropped(z.thumb)) {",
@@ -4711,9 +4108,7 @@ const REGRESSIONS = [
     expected: 'Der Bestandslauf faehrt in einem eigenen Thread — 0.19.3'
   },
   {
-    /* DER LAUF SCHREIBT AUCH EINE LEERE ABLEITUNG. Danach steht NULL in einer
-       Spalte, die vorher ein Bild trug -- eine Videozeile verliert so ihr
-       Standbild, und zwar still. */
+    /* DER LAUF SCHREIBT AUCH EINE LEERE ABLEITUNG. */
     nr: '514', name: 'Der Lauf schreibt auch, wenn die Ableitung leer zurueckkommt',
     file: 'batchrun.js',
     search: "  if (!v.thumb) return null;",
@@ -4722,26 +4117,15 @@ const REGRESSIONS = [
   },
   {
     /* DER STAND REIST ERST AM ENDE ZURUECK -- dasselbe wie Rueckbau 491, eine
-       Schleife weiter. Die Karte im Systembereich fragt alle 1500 ms und
-       saehe waehrend des ganzen Laufs dieselbe Null. */
+       Schleife weiter. */
     nr: '515', name: 'Das Nachziehen meldet seinen Stand erst am Ende',
     file: 'batchrun.js',
-    search: "    status.done++;\n    report(status);\n    /* DIESELBEN 30 ms WIE IN DEN ANDEREN BEIDEN SCHLEIFEN.",
-    replacement: "    stand.done++;\n    /* DIESELBEN 30 ms WIE IN DEN ANDEREN BEIDEN SCHLEIFEN.",
+    search: "    status.done++;\n    report(status);\n    // Dieselben 30 ms wie in den anderen Schleifen: sie halten die Maschine",
+    replacement: "    stand.done++;\n    // Dieselben 30 ms wie in den anderen Schleifen: sie halten die Maschine",
     expected: 'Der Bestandslauf faehrt in einem eigenen Thread — 0.19.3'
   },
   {
-    /* DAS NACHZIEHEN GIBT SEINE SEITEN NICHT FREI. Die alten Ableitungen
-       geben ihre Seiten frei, aber SQLite gibt sie ohne incremental_vacuum
-       nicht ans Dateisystem zurueck.
-       ERWARTET STUMM, UND DAS IST EIN OFFENER PUNKT UND KEINE FORMALIE: die
-       Wirkung von reclaim() ist eine DATEIGROESSE, und in dieser Runde
-       waechst die Datei ohnehin -- die freigegebenen Seiten werden von den
-       groesseren Ableitungen sofort wieder belegt. Nachgesehen, nicht
-       vermutet: die WAL-Datei ist nach dem Lauf in beiden Faellen weg, weil
-       db.close() ebenfalls einen Punkt setzt. Dieselbe Luecke steht seit
-       0.19.3 an der Umstellung; sie ist im Aenderungsprotokoll als
-       Offengebliebenes benannt. */
+    /* DAS NACHZIEHEN GIBT SEINE SEITEN NICHT FREI. */
     nr: '516', name: 'Das Nachziehen gibt seine Seiten nicht frei',
     file: 'batchrun.js',
     search: "  reclaim();\n  report(status);\n  console.log(`[Kriterion] Tiles renewed:",
@@ -4749,9 +4133,7 @@ const REGRESSIONS = [
     expected: '(erwartet STUMM — die Wirkung ist eine Dateigroesse, und die waechst in dieser Runde ohnehin)'
   },
   {
-    /* DIE KETTE BRICHT. Das Nachziehen laeuft danach nur noch, wenn beim
-       Start zufaellig ein Vorschaubild fehlt -- also in keiner Instanz nach
-       ihrem ersten Start. */
+    /* DIE KETTE BRICHT. */
     nr: '517', name: 'Das Nachziehen wird beim Start nicht mehr gerufen',
     file: 'server.js',
     search: "  if (!open.length) return refreshTiles();",
@@ -4759,11 +4141,7 @@ const REGRESSIONS = [
     expected: 'Der Bestandslauf faehrt in einem eigenen Thread — 0.19.3'
   },
   {
-    /* DIE AUSWAHL VERENGT SICH AUF EIN WORT. `art` traegt laut Schema 'image'
-       oder 'video' -- aber der Import schreibt den Wert aus der
-       Austauschdatei ungeprueft durch, und der Pruefstand legt seit 0.19.3
-       Zeilen mit `art = 'foto'` an. Die verengte Abfrage laesst sie still
-       liegen. */
+    /* DIE AUSWAHL VERENGT SICH AUF EIN WORT. */
     nr: '518', name: 'Die Auswahl der faelligen Zeilen verengt sich auf ein Wort',
     file: 'server.js',
     search: "const qTileRows = db.prepare('SELECT id FROM photos');",
@@ -4771,9 +4149,7 @@ const REGRESSIONS = [
     expected: 'Der Bestandslauf faehrt in einem eigenen Thread — 0.19.3'
   },
   {
-    /* DIE FORTSCHRITTSZEILE DES NACHZIEHENS FAELLT AUS DER KARTE. Der Lauf
-       dauert am echten Bestand Minuten und laesst die Datenbank um zig
-       Megabyte wachsen -- ohne die Zeile geschieht das ohne jedes Zeichen. */
+    /* DIE FORTSCHRITTSZEILE DES NACHZIEHENS FAELLT AUS DER KARTE. */
     nr: '519', name: 'Die Fortschrittszeile des Nachziehens faellt aus der Karte',
     file: 'public/app.js',
     search: "        ${geometryRow(stats.geometry)}",
@@ -4781,10 +4157,7 @@ const REGRESSIONS = [
     expected: 'Die Bildablage in der Oberflaeche'
   },
   {
-    /* DIE ZEILE STEHT AUCH OHNE FUND DA. Der Lauf faehrt bei JEDEM Start und
-       findet nach dem ersten Durchgang nichts mehr; die Zeile „0 von 1032
-       nachgezogen" staende von da an fuer immer in der Karte und erklaerte
-       einen Vorgang, den niemand angestossen hat. */
+    /* DIE ZEILE STEHT AUCH OHNE FUND DA. */
     nr: '520', name: 'Die Zeile des Nachziehens steht auch ohne Fund da',
     file: 'public/app.js',
     search: "  if (!g.renewed && !g.skipped) return '';",
@@ -4792,9 +4165,7 @@ const REGRESSIONS = [
     expected: 'Die Bildablage in der Oberflaeche'
   },
   {
-    /* DIE UHR VERFOLGT NUR NOCH DIE UMSTELLUNG. Die Zeile des Nachziehens
-       bliebe damit auf ihrem ersten Stand stehen, bis jemand den
-       Systembereich neu aufbaut. */
+    /* DIE UHR VERFOLGT NUR NOCH DIE UMSTELLUNG. */
     nr: '521', name: 'Die Uhr verfolgt nur noch die Umstellung',
     file: 'public/app.js',
     search: "  { field: 'geometry', id: 'thumbs-running',",
@@ -4802,9 +4173,7 @@ const REGRESSIONS = [
     expected: 'Die Ableitung folgt der Anzeige — 0.19.4'
   },
   {
-    /* DIE KARTE NENNT WIEDER „400 px UND 1600 px". Die Angabe war bis 0.19.3
-       richtig und ist es seit dieser Runde nicht mehr -- und sie verschweigt
-       das, worauf es ankommt: WELCHE Kante die Zahl traegt. */
+    /* DIE KARTE NENNT WIEDER „400 px UND 1600 px". */
     nr: '522', name: 'Die Karte nennt wieder 400 px, ohne die Kante zu sagen',
     file: 'public/languages/de.json',
     search: "(WebP) sind nicht mitgezählt.\"",
@@ -4812,17 +4181,10 @@ const REGRESSIONS = [
     expected: 'Die Bildablage in der Oberflaeche'
   },
 
-  /* ---- Der Ausschnitt steckt in der Kachel -- 0.19.5 ----
-     JEDER RUECKBAU NIMMT GENAU EINE ZUSAGE WEG. Die Runde kehrt eine
-     Entscheidung aus 0.19.4 um -- der Zuschnitt entsteht ab jetzt am Server
-     und nicht mehr im Browser --, und sie besteht aus zwei Haelften, die nur
-     zusammen richtig sind. Deshalb liegen hier Rueckbauten fuer BEIDE Seiten:
-     einer, der das Erzeugen wegnimmt, und einer, der den CSS-Zuschnitt
-     zurueckholt (453, oben mitgegangen). */
+  /* ---- Der Ausschnitt steckt in der Kachel -- 0.19.5 ---- JEDER RUECKBAU
+     NIMMT GENAU EINE ZUSAGE WEG. */
   {
-    /* DIE TAFEL SCHNEIDET NICHT MEHR. `thumb` wird wieder ungeschnitten
-       abgeleitet -- die Kachel ist danach 910 x 512 statt 512 x 512, und der
-       Browser, der sie zurechtzoege, ist weg. */
+    /* DIE TAFEL SCHNEIDET NICHT MEHR. */
     nr: '523', name: 'Die Kachel wird wieder ungeschnitten abgeleitet',
     file: 'images.js',
     search: "  thumb:  { short: 512,  long: 1280, q: 82, crops: true  },",
@@ -4830,9 +4192,7 @@ const REGRESSIONS = [
     expected: 'Der Ausschnitt steckt in der Kachel — 0.19.5'
   },
   {
-    /* `medium` WIRD MITGESCHNITTEN. Es wird mit `object-fit: contain`
-       gezeigt -- ganz --, und der Editor zeichnet den Rahmen darauf. Ein
-       geschnittenes `medium` naehme ihm seine Vorlage. */
+    /* `medium` WIRD MITGESCHNITTEN. */
     nr: '524', name: 'medium wird mitgeschnitten',
     file: 'images.js',
     search: "  medium: { short: 1600, long: 1600, q: 78, crops: false }",
@@ -4840,10 +4200,7 @@ const REGRESSIONS = [
     expected: 'Der Ausschnitt steckt in der Kachel — 0.19.5'
   },
   {
-    /* DER ZUSCHNITT RECHNET IN DEN GESPEICHERTEN MASSEN. `extract()` rechnet
-       in den GEDREHTEN -- Stolperstein 288 an einer zweiten Stelle. Wer den
-       EXIF-Vermerk nicht mitzaehlt, schneidet an der falschen Stelle, und bei
-       3024 Breite laege ein `left` von 3500 sogar ausserhalb. */
+    /* DER ZUSCHNITT RECHNET IN DEN GESPEICHERTEN MASSEN. */
     nr: '525', name: 'Der Zuschnitt rechnet in den gespeicherten statt in den gedrehten Massen',
     file: 'images.js',
     search: "  const { width, height } = rotatedSize(size);",
@@ -4851,10 +4208,7 @@ const REGRESSIONS = [
     expected: 'Der Ausschnitt steckt in der Kachel — 0.19.5'
   },
   {
-    /* DIE KISTE WIRD NICHT MEHR GEGEN DEN RAND GEKLAMMERT. Gerundet kann
-       `left + width` einen Bildpunkt ueber den Rand ragen -- sharp quittiert
-       das mit einem Fehler, und die Kachel entsteht gar nicht erst. Trifft
-       genau den Ausschnitt in einer Ecke (fx = 100). */
+    /* DIE KISTE WIRD NICHT MEHR GEGEN DEN RAND GEKLAMMERT. */
     nr: '526', name: 'Die Zuschnittkiste wird nicht gegen den Rand geklammert',
     file: 'images.js',
     search: "  return { left:  Math.max(0, Math.min(width - edge, Math.round(k.links))),\n           top:   Math.max(0, Math.min(height  - edge, Math.round(k.top))),",
@@ -4863,8 +4217,7 @@ const REGRESSIONS = [
   },
   {
     /* KEIN HOCHRECHNEN MEHR -- umgekehrt: `withoutEnlargement` faellt weg,
-       und ein Ausschnitt unter der Zielkante wird auf 512 aufgeblasen. Es
-       kostete Bytes und truege keinen einzigen Bildpunkt mehr. */
+       und ein Ausschnitt unter der Zielkante wird auf 512 aufgeblasen. */
     nr: '527', name: 'Ein zu kleiner Ausschnitt wird auf die Zielkante hochgerechnet',
     file: 'images.js',
     search: "withoutEnlargement: true })",
@@ -4872,10 +4225,7 @@ const REGRESSIONS = [
     expected: 'Der Ausschnitt steckt in der Kachel — 0.19.5'
   },
   {
-    /* DAS FRISCH HOCHGELADENE FOTO WIRD NICHT ZUGESCHNITTEN. Es traegt danach eine
-       ungeschnittene Kachel, bis der Bestandslauf beim naechsten Start
-       darueberfaehrt -- und der Browser, der sie bis 0.19.4 zurechtzog, ist
-       weg. */
+    /* DAS FRISCH HOCHGELADENE FOTO WIRD NICHT ZUGESCHNITTEN. */
     nr: '528', name: 'Beim Hochladen wird die Kachel nicht zugeschnitten',
     file: 'server.js',
     search: "      const v = await makeVariants(f.buffer, DEFAULT_CROP);",
@@ -4883,10 +4233,7 @@ const REGRESSIONS = [
     expected: 'Der Ausschnitt steckt in der Kachel — 0.19.5'
   },
   {
-    /* DER EINGESPIELTE AUSSCHNITT KOMMT NICHT IN DIE ABLEITUNG. Die drei
-       Zahlen stehen danach richtig in der Zeile, die Kachel zeigt sie aber
-       nicht -- an einem gerade eingespielten Bestand ist das der ganze
-       Bestand. */
+    /* DER EINGESPIELTE AUSSCHNITT KOMMT NICHT IN DIE ABLEITUNG. */
     nr: '529', name: 'Beim Einspielen wird die Kachel nicht zugeschnitten',
     file: 'server.js',
     search: "      const v = template ? await makeVariants(template, crop) : { thumb: null, medium: null };",
@@ -4894,9 +4241,7 @@ const REGRESSIONS = [
     expected: 'Der Ausschnitt steckt in der Kachel — 0.19.5'
   },
   {
-    /* DER BESTANDSLAUF ERNEUERT OHNE ZUSCHNITT. Er erzeugte damit genau die
-       Ableitung, die 0.19.4 hinterlassen hat -- und die Zeile bliebe bei
-       jedem Start aufs Neue faellig, weil sie nicht quadratisch wird. */
+    /* DER BESTANDSLAUF ERNEUERT OHNE ZUSCHNITT. */
     nr: '530', name: 'Der Bestandslauf erneuert ohne Zuschnitt',
     file: 'batchrun.js',
     search: "  const v = await makeVariants(source, cropFrom(z));",
@@ -4904,10 +4249,7 @@ const REGRESSIONS = [
     expected: 'Der Ausschnitt steckt in der Kachel — 0.19.5'
   },
   {
-    /* DIE VIDEOZEILE ERZEUGT AUS `data`. Dort steht die Videodatei -- sharp
-       kommt daran leer zurueck, die Zeile wird uebersprungen und behaelt ihre
-       ungeschnittene Kachel. Der Kernsatz bleibt: der Server oeffnet nie ein
-       Video. */
+    /* DIE VIDEOZEILE ERZEUGT AUS `data`. */
     nr: '531', name: 'Die Videozeile erzeugt aus der Videodatei statt aus ihrem Standbild',
     file: 'batchrun.js',
     search: "const sourceFrom = (z) => (isVideoRow(z) ? z.medium : z.data);",
@@ -4915,9 +4257,7 @@ const REGRESSIONS = [
     expected: 'Der Ausschnitt steckt in der Kachel — 0.19.5'
   },
   {
-    /* DIE VIERTE AUFGABE GIBT ES NICHT MEHR. Der Thread wirft dann
-       „Unbekannte Aufgabe", die Route bekommt ihren Abschluss ueber den
-       Fehlerweg -- und die Kachel bleibt, wie sie war. */
+    /* DIE VIERTE AUFGABE GIBT ES NICHT MEHR. */
     nr: '532', name: 'Der Thread kennt die Aufgabe zuschnitt nicht',
     file: 'batchrun.js',
     search: "  else if (workerData.task === 'crop') await refreshOneTile(workerData.rows);\n",
@@ -4925,9 +4265,7 @@ const REGRESSIONS = [
     expected: 'Der Ausschnitt steckt in der Kachel — 0.19.5'
   },
   {
-    /* DAS ERGEBNIS DER EINZELNEN ZEILE REIST NICHT ZURUECK. Der Haupt-Thread
-       haengt seine Antwort an das Ende des Threads und nicht an diese
-       Message -- ohne sie weiss aber niemand, ob wirklich erneuert wurde. */
+    /* DAS ERGEBNIS DER EINZELNEN ZEILE REIST NICHT ZURUECK. */
     nr: '533', name: 'Das Ergebnis der einzelnen Zeile wird nicht gemeldet',
     file: 'batchrun.js',
     search: "  parentPort.postMessage({ kind: 'refreshed', id, ok });",
@@ -4935,9 +4273,7 @@ const REGRESSIONS = [
     expected: 'Der Ausschnitt steckt in der Kachel — 0.19.5'
   },
   {
-    /* DIE ROUTE ERZEUGT NICHT MEHR. Sie schreibt die drei Zahlen und ist
-       fertig -- wie bis 0.19.4. Die Uebersicht zeigte danach den alten
-       Schnitt, bis irgendwann etwas anderes die Zeile anfasst. */
+    /* DIE ROUTE ERZEUGT NICHT MEHR. */
     nr: '534', name: 'Das Speichern des Ausschnitts erzeugt die Kachel nicht neu',
     file: 'server.js',
     search: "  refreshTile(req.params.id, () => res.json(detail(p.item_id, req.user.id, localeOf(req))));",
@@ -4945,9 +4281,7 @@ const REGRESSIONS = [
     expected: 'Der Ausschnitt steckt in der Kachel — 0.19.5'
   },
   {
-    /* DIE ANTWORT WARTET NICHT AUF DIE KACHEL. Die Frist faellt auf null, die
-       Antwort geht sofort hinaus -- und traegt die Fassung der ALTEN Kachel.
-       Der Browser haelt sie damit bis zu 24 Stunden fest. */
+    /* DIE ANTWORT WARTET NICHT AUF DIE KACHEL. */
     nr: '535', name: 'Die Antwort kommt, bevor die Kachel steht',
     file: 'server.js',
     search: "  const clock = setTimeout(once, REFRESH_MS);",
@@ -4955,9 +4289,7 @@ const REGRESSIONS = [
     expected: 'Der Ausschnitt steckt in der Kachel — 0.19.5'
   },
   {
-    /* DIE FASSUNG STEHT NICHT MEHR AN DER FOTOZEILE. Ohne sie traegt die
-       Adresse kein `?v=`, und `Cache-Control: private, max-age=86400` haelt
-       die alte Kachel fest. */
+    /* DIE FASSUNG STEHT NICHT MEHR AN DER FOTOZEILE. */
     nr: '536', name: 'Die Fassung faellt aus der Fotoabfrage',
     file: 'server.js',
     search: "const PHOTO_VERSION = 'length(thumb) AS thumbLength';",
@@ -4965,9 +4297,7 @@ const REGRESSIONS = [
     expected: 'Der Ausschnitt steckt in der Kachel — 0.19.5'
   },
   {
-    /* DIE ADRESSE TRAEGT DIE FASSUNG NICHT MEHR. Dieselbe Wirkung wie 536,
-       eine Schicht hoeher -- und ohne diesen Rueckbau bliebe gruen, wer die
-       Spalte liefert und sie in der Oberflaeche liegen laesst. */
+    /* DIE ADRESSE TRAEGT DIE FASSUNG NICHT MEHR. */
     nr: '537', name: 'Die Bildadresse traegt die Fassung nicht mehr',
     file: 'public/app.js',
     search: "  const version = filesize === 'thumb' && Number.isFinite(f) ? `&v=${f}` : '';",
@@ -4975,9 +4305,7 @@ const REGRESSIONS = [
     expected: 'Der Ausschnitt steckt in der Kachel — 0.19.5'
   },
   {
-    /* DER ZUSCHNITT IM BROWSER KOMMT ZURUECK. Ab jetzt wird ZWEIMAL
-       geschnitten -- die zugeschnittene Kachel ist schon das sichtbare Quadrat,
-       und `scale()` darauf zeigt einen Ausschnitt des Ausschnitts. */
+    /* DER ZUSCHNITT IM BROWSER KOMMT ZURUECK. */
     nr: '538', name: 'Der Zuschnitt im Browser kommt zurueck -- es wird zweimal geschnitten',
     file: 'public/style.css',
     search: ".thumb img { width: 100%; height: 100%; object-fit: cover; display: block; pointer-events: none; }",
@@ -4985,11 +4313,7 @@ const REGRESSIONS = [
     expected: 'Der Ausschnitt steckt in der Kachel — 0.19.5'
   },
   {
-    /* DIE BEIDEN RECHNUNGEN LAUFEN AUSEINANDER. Der Browser zeichnet den
-       Rahmen ohne den Zoom, der Server schneidet mit ihm -- der Editor zeigt
-       danach ein anderes Quadrat, als in der Kachel landet. GENAU DAS ist die
-       Gefahr, wegen der die Rechnung auf beiden Seiten in EINER Funktion
-       steht und der Pruefstand sie gegeneinander haelt (Stolperstein 293). */
+    /* DIE BEIDEN RECHNUNGEN LAUFEN AUSEINANDER. */
     nr: '539', name: 'Die Rechnung im Browser laeuft der im Server davon',
     file: 'public/app.js',
     search: "  const eng = side * 100 / zoom;          // was sie beim eingestellten Zoom zeigt",
@@ -4997,11 +4321,7 @@ const REGRESSIONS = [
     expected: 'Der Ausschnitt steckt in der Kachel — 0.19.5'
   },
   {
-    /* DIE FORTSCHRITTSZEILE KENNT NUR NOCH EINE RICHTUNG. Bis 0.19.4 wurde die
-       Kachel groesser, und „mehr" war immer richtig; zugeschnitten wird sie in der
-       Regel kleiner. Danach staende in der Karte „20 MB mehr", wo 20 MB frei
-       geworden sind -- eine Zahl, die in die falsche Richtung zeigt, ist
-       schlechter als keine. */
+    /* DIE FORTSCHRITTSZEILE KENNT NUR NOCH EINE RICHTUNG. */
     nr: '540', name: 'Die Fortschrittszeile kennt nur eine Richtung',
     file: 'public/app.js',
     search: "(d > 0 ? t('card.moreBytes', { bytes: fmtBytes(Math.abs(d)) })\n                                : t('card.lessBytes', { bytes: fmtBytes(Math.abs(d)) }))",
@@ -5009,26 +4329,19 @@ const REGRESSIONS = [
     expected: 'Die Bildablage in der Oberflaeche'
   },
 
-  /* ---- Die Ansicht kann fort sein -- 0.19.6 ----
-     DREI RUECKBAUTEN ZU EINER EINZIGEN ZEILE JE ZEICHENWEG, und der dritte ist
-     der wichtigste: er nimmt nicht die Wache weg, sondern das, was sie
-     bewacht. Eine Wache, die nichts mehr durchlaesst, waere gruen und
-     nutzlos. */
+  /* ---- Die Ansicht kann fort sein -- 0.19.6 ---- DREI RUECKBAUTEN ZU EINER
+     EINZIGEN ZEILE JE ZEICHENWEG, und der dritte ist der wichtigste: er nimmt
+     nicht die Wache weg, sondern das, was sie bewacht. */
   {
-    /* DER STREIFEN ZEICHNET WIEDER OHNE ZU FRAGEN. Genau der gemeldete
-       Fehler: wer den Ausschnitt speichert und in die Uebersicht geht,
-       bekommt „can't access property innerHTML" als ROTE Message ueber einen
-       Vorgang, der geglueckt ist. */
+    /* DER STREIFEN ZEICHNET WIEDER OHNE ZU FRAGEN. */
     nr: '541', name: 'Der Bilderstreifen fragt nicht, ob seine Ansicht noch steht',
     file: 'public/app.js',
-    search: "    // erste, die den fehlenden Knoten anfasste.\n    if (!box) return;\n",
-    replacement: "    // erste, die den fehlenden Knoten anfasste.\n",
+    search: "    // einem await.\n    if (!box) return;\n",
+    replacement: "    // einem await.\n",
     expected: 'Die Ansicht kann fort sein — 0.19.6'
   },
   {
-    /* DASSELBE AM BETRACHTER. Er faellt beim Loeschen und beim Hochladen an
-       -- beides steht hinter einem await, und das Hochladen wartet laenger
-       als jedes Speichern eines Ausschnitts. */
+    /* DASSELBE AM BETRACHTER. */
     nr: '542', name: 'Der Betrachter fragt nicht, ob seine Ansicht noch steht',
     file: 'public/app.js',
     search: "    if (!v) return;\n    // Der Betrachter bleibt bei jedem Neuzeichnen",
@@ -5036,9 +4349,7 @@ const REGRESSIONS = [
     expected: 'Die Ansicht kann fort sein — 0.19.6'
   },
   {
-    /* UND DIE WACHE ALS AUSSCHALTER: der Streifen zeichnet gar nichts mehr.
-       Wer nur „keine rote Message" prueft, bleibt hier gruen -- deshalb steht
-       in derselben Gruppe die Gegenprobe an der STEHENDEN Ansicht. */
+    /* UND DIE WACHE ALS AUSSCHALTER: der Streifen zeichnet gar nichts mehr. */
     nr: '543', name: 'Der Bilderstreifen zeichnet ueberhaupt keine Kacheln mehr',
     file: 'public/app.js',
     search: "    box.innerHTML = '';\n    item.photos.forEach((p, i) => {",
@@ -5046,16 +4357,10 @@ const REGRESSIONS = [
     expected: 'Die Ansicht kann fort sein — 0.19.6'
   },
 
-  /* ---- Alte Sicherungen aufraeumen -- 0.20.0 ----
-     DIE REGEL HAT ZWEI BEDINGUNGEN, und die beiden ersten Rueckbauten nehmen je
-     eine davon weg. Sie sind die wichtigsten der Runde: jede einzelne Bedingung
-     ist ausgerechnet in der Lage falsch, in der sie gebraucht wird
-     (Stolperstein 299), und ohne diese beiden belegte die Tafel nichts darueber,
-     dass wirklich BEIDE zutreffen muessen. */
+  /* ---- Alte Sicherungen aufraeumen -- 0.20.0 ---- DIE REGEL HAT ZWEI
+     BEDINGUNGEN, und die beiden ersten Rueckbauten nehmen je eine davon weg. */
   {
-    /* NUR NOCH DAS ALTER -- der Boden faellt weg. Eine Installation, an der ein
-       halbes Jahr nicht gesichert wurde, verliert damit ALLE Kopien auf einen
-       Schlag, genau dann, wenn sie die einzigen sind. */
+    /* NUR NOCH DAS ALTER -- der Boden faellt weg. */
     nr: '544', name: 'Die Regel kennt nur das Alter -- der Boden faellt weg',
     file: 'server.js',
     search: "  return usable.slice(keep).filter(d => d.time < limit);",
@@ -5063,9 +4368,7 @@ const REGRESSIONS = [
     expected: 'Die Aufraeumregel an der Tafel'
   },
   {
-    /* NUR NOCH DIE ZAHL -- die Schere faellt weg. Wer an einem Nachmittag
-       viermal auf den Knopf drueckt, wirft damit die Kopie vom Vormonat weg,
-       obwohl nichts alt ist. */
+    /* NUR NOCH DIE ZAHL -- die Schere faellt weg. */
     nr: '545', name: 'Die Regel kennt nur die Zahl -- die Schere faellt weg',
     file: 'server.js',
     search: "  return usable.slice(keep).filter(d => d.time < limit);",
@@ -5074,10 +4377,8 @@ const REGRESSIONS = [
   },
   {
     /* DIE MUSTERPRUEFUNG FAELLT WEG -- und mit ihr die Zusage, um die es in
-       dieser Runde am meisten geht: eine fremde Datei im Sicherungsordner wird
-       angefasst. Getauscht wird die KONSTANTE und nicht eine der beiden
-       Abfragen: nur so faellt sie an BEIDEN Stellen zugleich, und genau das ist
-       die Lage, in der `notizen.txt` wirklich verschwindet. */
+       dieser Runde am meisten geht: eine fremde Datei im Sicherungsordner
+       wird angefasst. */
     nr: '546', name: 'Die Musterpruefung faellt weg -- die fremde Datei faellt mit',
     file: 'server.js',
     search: "const BACKUP_PATTERN = /^kriterion-.+\\.sqlite$/;",
@@ -5085,12 +4386,7 @@ const REGRESSIONS = [
     expected: 'Alte Sicherungen aufraeumen: der echte Ordner'
   },
   {
-    /* DIE ZWEITE MUSTERPRUEFUNG, unmittelbar vor dem unlink. Sie ist bei
-       heilem Muster keine Verdopplung, sondern die Klemme an der Stelle, an
-       der der Fehler wehtut: wer entferneSicherungen() je von woanders her
-       ruft, kommt an ihr nicht vorbei. AM VERHALTEN ALLEIN WAERE SIE STUMM --
-       die Namen kommen heute aus sicherungsListe() und sind laengst geprueft;
-       rot wird deshalb der Waechter ueber den Quelltext. */
+    /* DIE ZWEITE MUSTERPRUEFUNG, unmittelbar vor dem unlink. */
     nr: '547', name: 'Die zweite Musterpruefung vor dem unlink faellt weg',
     file: 'server.js',
     search: "    if (short !== String(n) || !BACKUP_PATTERN.test(short)) { stayed.push(short); continue; }",
@@ -5098,10 +4394,7 @@ const REGRESSIONS = [
     expected: 'Alte Sicherungen aufraeumen: der echte Ordner'
   },
   {
-    /* EIN SYMLINK WIRD ZUR SICHERUNG. statSync folgt dem Verweis und meldet
-       die Datei am anderen Ende als regulaer; lstatSync sieht den Verweis
-       selbst. Der Verweis im Prueflauf zeigt aus dem Ordner heraus -- und sein
-       Ziel ist eigens alt, sonst deckte ihn der Boden. */
+    /* EIN SYMLINK WIRD ZUR SICHERUNG. */
     nr: '548', name: 'Die Liste folgt dem Symlink statt ihn zu sehen',
     file: 'server.js',
     search: "      const st = fs.lstatSync(path.join(filePath, n));",
@@ -5109,10 +4402,7 @@ const REGRESSIONS = [
     expected: 'Alte Sicherungen aufraeumen: der echte Ordner'
   },
   {
-    /* DASSELBE AM ENTFERNEN. Am Verhalten allein bliebe es stumm, solange die
-       Liste darueber heil ist -- rot wird der Waechter ueber den Quelltext,
-       und das ist hier die richtige Stelle: die beiden Fragen stehen
-       absichtlich zweimal da. */
+    /* DASSELBE AM ENTFERNEN. */
     nr: '549', name: 'Das Entfernen folgt dem Symlink',
     file: 'server.js',
     search: "      const st = fs.lstatSync(full);",
@@ -5120,9 +4410,7 @@ const REGRESSIONS = [
     expected: 'Alte Sicherungen aufraeumen: der echte Ordner'
   },
   {
-    /* DER BODEN ZAEHLT WIEDER ALLE KOPIEN -- Entscheidung 5 faellt. Drei
-       Kopien, von denen zwei vor dem Schluesselwechsel entstanden sind, sind in
-       Wahrheit eine; wer sie mitzaehlt, raeumt die einzige brauchbare weg. */
+    /* DER BODEN ZAEHLT WIEDER ALLE KOPIEN -- Entscheidung 5 faellt. */
     nr: '550', name: 'Der Boden zaehlt auch die veralteten Kopien mit',
     file: 'server.js',
     search: "    .filter(d => changeMs == null || d.time >= changeMs)",
@@ -5131,9 +4419,7 @@ const REGRESSIONS = [
   },
   {
     /* NACH EINER GESCHEITERTEN SICHERUNG WIRD DOCH AUFGERAEUMT -- der Aufruf
-       wandert vor den Fehlerausgang. Genau das ist die wichtigste Zeile der
-       Runde: sonst raeumt die Installation in dem Augenblick auf, in dem sie
-       keine neue Kopie zustande bringt. */
+       wandert vor den Fehlerausgang. */
     nr: '551', name: 'Nach der gescheiterten Sicherung wird doch aufgeraeumt',
     file: 'server.js',
     search: "  if (fs.existsSync(file))\n    return res.status(409).json({ error: t(localeOf(req), 'server.backupConcurrent')});",
@@ -5141,11 +4427,9 @@ const REGRESSIONS = [
     expected: 'Alte Sicherungen aufraeumen: der Anschluss an die Sicherung'
   },
   {
-    /* DAS AUFRAEUMEN REISST DIE GELUNGENE SICHERUNG MIT -- genau der Fehler aus
-       0.19.6 (Stolperstein 298): aus einem geglueckten Vorgang wird eine rote
-       Message. Der Rueckbau nimmt dem `catch` seine Wirkung UND setzt einen
-       Ausgang dahinter; einer von beiden allein bliebe stumm, weil im Prueflauf
-       nichts wirft. */
+    /* DAS AUFRAEUMEN REISST DIE GELUNGENE SICHERUNG MIT -- genau der Fehler
+       aus 0.19.6: aus einem geglueckten Vorgang wird eine
+       rote Message. */
     nr: '552', name: 'Das Aufraeumen reisst die gelungene Sicherung mit',
     file: 'server.js',
     search: "    console.error('[Kriterion] Clearing up after the backup failed:', e.message);\n" +
@@ -5159,9 +4443,7 @@ const REGRESSIONS = [
   },
   {
     /* DER SCHALTER STEHT WIEDER AUF AN, wenn nichts dasteht -- die Abweichung
-       von `convertImages` faellt weg. Eine umgewandelte PNG-Datei holt der
-       Knopf in der Gegenrichtung zurueck; eine geloeschte Sicherung holt
-       nichts zurueck. */
+       von `convertImages` faellt weg. */
     nr: '553', name: 'Der Schalter steht bei einer frischen Installation auf AN',
     file: 'server.js',
     search: "    an: getSetting('backupCleanup', false) === true,",
@@ -5169,9 +4451,7 @@ const REGRESSIONS = [
     expected: 'Alte Sicherungen aufraeumen: der echte Ordner'
   },
   {
-    /* DIE GRENZEN HALTEN NICHT MEHR AM SERVER. `min`/`max` im HTML bleibt
-       stehen -- und ist eine Bitte, keine Klemme: ein Feld, in das jemand 0
-       schreiben kann, ist eine Falle. */
+    /* DIE GRENZEN HALTEN NICHT MEHR AM SERVER. */
     nr: '554', name: 'Die Grenzen der beiden Werte halten nicht mehr am Server',
     file: 'server.js',
     search: "  if (!Number.isInteger(n) || n < range.min || n > range.max)",
@@ -5180,8 +4460,7 @@ const REGRESSIONS = [
   },
   {
     /* DIE VORSCHAU RECHNET MIT ANDEREN WERTEN ALS DAS LOESCHEN -- zwei
-       Wahrheiten darueber, was gleich passiert (Stolperstein 47). Die Vorschau
-       verliert damit genau das, wofuer es sie gibt. */
+       Wahrheiten darueber, was gleich passiert. */
     nr: '555', name: 'Die Vorschau rechnet mit einem anderen Boden als das Loeschen',
     file: 'server.js',
     search: "  const matched = ruleHit(files, keep, days, now, mark ? mark.ms : null);",
@@ -5192,8 +4471,7 @@ const REGRESSIONS = [
   {
     /* DIE LOESCHROUTE NIMMT EINEN DATEINAMEN ENTGEGEN -- die gefaehrlichste
        Route der Anwendung, und sie waere es auch mit Pruefung: die Pruefung
-       stuende einen Handgriff davon entfernt, vergessen zu werden
-       (Stolperstein 300). */
+       stuende einen Handgriff davon entfernt, vergessen zu werden. */
     nr: '556', name: 'Die Loeschroute nimmt einen Dateinamen aus dem Rumpf',
     file: 'server.js',
     search: "  const kind = String(req.body?.kind || '');",
@@ -5214,9 +4492,7 @@ const REGRESSIONS = [
     expected: 'Alte Sicherungen aufraeumen: der echte Ordner'
   },
   {
-    /* DIE ROUTE FAELLT AUF nurAdmin. Sie entfernt Dateien vom Dateisystem des
-       Wirts und liegt damit in derselben Zeile wie Export, Import und
-       Sicherung -- beim Eigentuemer. */
+    /* DIE ROUTE FAELLT AUF nurAdmin. */
     nr: '558', name: 'Ein gewoehnlicher Admin darf alte Sicherungen entfernen',
     file: 'server.js',
     search: "app.post('/api/backup/cleanup', ownerOnly,\n" +
@@ -5226,8 +4502,7 @@ const REGRESSIONS = [
     expected: 'Alte Sicherungen aufraeumen: der echte Ordner'
   },
   {
-    /* KEINE ZEILE MEHR IM SICHERHEITSPROTOKOLL. Eine Loeschung, die keine Spur
-       hinterlaesst, ist die, nach der hinterher niemand suchen kann. */
+    /* KEINE ZEILE MEHR IM SICHERHEITSPROTOKOLL. */
     nr: '559', name: 'Die entfernten Kopien stehen in keinem Protokoll mehr',
     file: 'server.js',
     search: "  for (let i = 0; i < number; i++) auth.log('backup.delete', { actor });",
@@ -5235,8 +4510,7 @@ const REGRESSIONS = [
     expected: 'Alte Sicherungen aufraeumen: der echte Ordner'
   },
   {
-    /* DER VORGANG FAELLT AUS DER GRUPPE `inventory`. Er stuende dann unter keiner
-       Ansicht des Filters -- ausser unter "alle", und dort sucht ihn niemand. */
+    /* DER VORGANG FAELLT AUS DER GRUPPE `inventory`. */
     nr: '560', name: 'Der Vorgang sicherung.weg steht in keiner Gruppe',
     file: 'auth.js',
     search: "  inventory: ['export', 'import', 'backup', 'backup.delete', 'key']",
@@ -5244,9 +4518,7 @@ const REGRESSIONS = [
     expected: 'Das Sicherheitsprotokoll: die Gruppen des Filters'
   },
   {
-    /* DIE ZWANZIGSTE KARTE FAELLT WEG. Ohne sie gibt es die Bedienung gar
-       nicht -- der Schalter, die beiden Felder, die Vorschau und beide
-       Knoepfe stehen darauf. */
+    /* DIE ZWANZIGSTE KARTE FAELLT WEG. */
     nr: '561', name: 'Die Karte „Alte Sicherungen" faellt aus dem Systembereich',
     file: 'public/app.js',
     search: "  { key: 'aufraeumen',   section: 'database', visible: () => OWNER,\n" +
@@ -5264,9 +4536,7 @@ const REGRESSIONS = [
     expected: 'Der Systembereich nach Rolle'
   },
   {
-    /* DIE VORSCHAU RECHNET NICHT MEHR NEU. Wer die Zahl von 3 auf 1 stellt,
-       sieht dann nicht mehr, was das kostet -- und die Karte zeigt eine
-       Vorschau zu Werten, die gar nicht mehr dastehen. */
+    /* DIE VORSCHAU RECHNET NICHT MEHR NEU. */
     nr: '563', name: 'Eine Aenderung am Feld rechnet die Vorschau nicht neu',
     file: 'public/app.js',
     search: "        el.oninput = previewNew;",
@@ -5274,9 +4544,7 @@ const REGRESSIONS = [
     expected: 'Die Karte „Alte Sicherungen" in der Oberflaeche'
   },
   {
-    /* DIE KARTE SCHICKT DIE DATEINAMEN MIT. Der Server nimmt sie nicht
-       entgegen -- aber eine Oberflaeche, die sie schickt, ist der erste
-       Handgriff zu einer Route, die sie liest. */
+    /* DIE KARTE SCHICKT DIE DATEINAMEN MIT. */
     nr: '564', name: 'Die Karte schickt die Dateinamen an die Loeschroute mit',
     file: 'public/app.js',
     search: "      try { r = await api('POST', '/api/backup/cleanup', { kind }); }",
@@ -5285,27 +4553,21 @@ const REGRESSIONS = [
     expected: 'Die Karte „Alte Sicherungen" in der Oberflaeche'
   },
   {
-    /* DER KNOPF IST AUCH DANN BEDIENBAR, WENN DIE REGEL NICHTS TRIFFT. Ein
-       Knopf, der zuverlaessig nichts tut, sieht aus wie ein Fehler. */
+    /* DER KNOPF IST AUCH DANN BEDIENBAR, WENN DIE REGEL NICHTS TRIFFT. */
     nr: '565', name: 'Der Knopf ist auch ohne Treffer bedienbar',
     file: 'public/app.js',
-    // MITGEGANGEN mit 0.20.1 (Stolperstein 201): der Knopf heisst jetzt „Jetzt
-    // loeschen" statt „Regel jetzt anwenden". Die Zusage ist unveraendert.
+    // MITGEGANGEN mit 0.20.1: der Knopf heisst jetzt
+    // „Jetzt loeschen" statt „Regel jetzt anwenden".
     search: "id=\"cleanup-run\"${matched.length ? '' : ' disabled'}>${tH('card.deleteNow')}",
     replacement: "id=\"cleanup-run\">${tH('card.deleteNow')}",
     expected: 'Die Karte „Alte Sicherungen" in der Oberflaeche'
   },
   {
-    /* DIE LISTE VERLIERT DEN GEMEINSAMEN DECKEL. Ein Ordner mit vierzig Kopien
-       zieht die Seite auf -- zehn Zeilen sind das Mass jeder Liste im
-       Systembereich, seit 0.17.3. */
+    /* DIE LISTE VERLIERT DEN GEMEINSAMEN DECKEL. */
     nr: '566', name: 'Die Sicherungsliste bekommt keinen Deckel',
     file: 'public/style.css',
-    /* MITGEGANGEN mit 0.20.1 (Stolperstein 201) -- UND IN EINE ANDERE DATEI
-       GEWANDERT. Bis 0.20.0 nahm er der Liste ihre Klasse in `public/app.js`;
-       seit 0.20.1 hat sie ihren EIGENEN Deckel von fuenf Zeilen als Regel im
-       Stilblatt, und die ist die Sache. Die Zusage ist dieselbe geblieben:
-       eine Liste ohne Deckel zieht die Karte auf. */
+    /* MITGEGANGEN mit 0.20.1 -- UND IN EINE ANDERE DATEI
+       GEWANDERT. */
     search: '#cleanup-list { flex: none; max-height: 13.98rem; }',
     replacement: '#cleanup-list { flex: none; }',
     expected: 'Die Karte „Alte Sicherungen" in der Oberflaeche'
@@ -5313,8 +4575,7 @@ const REGRESSIONS = [
   {
     /* DIE LISTE FAELLT GANZ WEG -- und mit ihr die Auskunft, um die es im
        Feldbefund zu 0.20.0 ueberhaupt ging: welche Sicherungen liegen da, wie
-       alt und wie gross. Die Zahl in der Ueberschrift bleibt stehen; ohne die
-       Zeilen ist sie eine Behauptung. */
+       alt und wie gross. */
     nr: '567', name: 'Die Karte listet die Sicherungen nicht mehr',
     file: 'public/app.js',
     search: '           <div class="manage-list" id="cleanup-list">${all.map(row).join(\'\')}</div>`',
@@ -5322,9 +4583,7 @@ const REGRESSIONS = [
     expected: 'Die Karte „Alte Sicherungen" in der Oberflaeche'
   },
   {
-    /* DIE NUMMER LAEUFT VON DER AELTESTEN AN. Damit steht die juengste Kopie
-       als letzte Nummer da, und „mindestens 3 behalten" liesse sich an der
-       Liste nicht mehr ablesen -- was faellt, stuende dann ganz oben. */
+    /* DIE NUMMER LAEUFT VON DER AELTESTEN AN. */
     nr: '568', name: 'Die Nummern laufen von der aeltesten zur juengsten',
     file: 'server.js',
     search: '      ...cleanupRow(d, now), nr: i + 1,',
@@ -5332,9 +4591,7 @@ const REGRESSIONS = [
     expected: 'Die Karte „Alte Sicherungen" in der Oberflaeche'
   },
   {
-    /* DIE MARKE „LOESCHEN" FAELLT VON DER ZEILE. Die Liste sagt dann, was
-       daliegt, aber nicht mehr, was gleich fehlt -- und die Karte hat ausser
-       der Summenzeile nichts, was auf eine bestimmte Kopie zeigt. */
+    /* DIE MARKE „LOESCHEN" FAELLT VON DER ZEILE. */
     nr: '569', name: 'Die Zeilen sagen nicht mehr, welche geloescht wird',
     file: 'public/app.js',
     search: "      const mark = z.affected ? `<span class=\"cleanup-badge remove\">${tH('card.deleteLower')}</span>`",
@@ -5344,22 +4601,7 @@ const REGRESSIONS = [
 
   /* ---- 0.21.0: zwei Kaesten, zwei Durchschnitte ---- */
   {
-    /* DIE PHASE FAELLT AUS DEM GROUP BY DER GEBUENDELTEN ABFRAGE.
-       ERSTER ANLAUF WAR DIESER RUECKBAU ALS DER ZUR ZENTRALEN ZUSAGE GEDACHT
-       -- mit der Begruendung, beide Kaesten stuenden dann wieder in EINER
-       Menge. DAS IST FALSCH, und die Gegenprobe hat es gezeigt: 571, derselbe
-       Griff an der zweiten Fassung, kam STUMM zurueck. Nachgemessen an einem
-       eigens gebauten Bestand (fuenf Kriterien in beiden Phasen, drei Bewerter
-       je Kriterium) kommen mit und ohne diese Spalte im GROUP BY Zeile fuer
-       Zeile DIESELBEN Werte heraus: `criterion_id` bestimmt die Phase
-       eindeutig, also teilt die Spalte keine Gruppe und legt keine zusammen.
-       Die Trennung haengt am SELECT -- das sind die Rueckbauten 602 und 603.
-       WARUM DIE ZEILE TROTZDEM STEHT UND DIESER RUECKBAU BLEIBT: eine blosse
-       Spalte neben einem Aggregat ist eine Freundlichkeit von SQLite und kein
-       SQL. Die Zeile haelt die Abfrage vollstaendig, damit sie es bleibt, wenn
-       jemand sie anderswohin traegt. AM VERHALTEN WAERE SIE STUMM -- rot wird
-       deshalb der Waechter ueber den Quelltext, dieselbe Bauform wie beim
-       zweiten Musterwaechter von 0.20.0 (Rueckbau 547). */
+    /* DIE PHASE FAELLT AUS DEM GROUP BY DER GEBUENDELTEN ABFRAGE. */
     nr: '570', name: 'Der Gesamtschnitt der Uebersicht kennt die Phase nicht mehr',
     file: 'server.js',
     search: '   GROUP BY r.item_id, r.criterion_id, c.weight, c.phase`);',
@@ -5367,11 +4609,7 @@ const REGRESSIONS = [
     expected: 'Zwei Kaesten, zwei Durchschnitte — 0.21.0'
   },
   {
-    /* DASSELBE AM EINZELNEN EINTRAG. Zwei Fassungen derselben Abfrage, zwei
-       Rueckbauten -- faellt nur einer, blieben Uebersicht und Detail
-       verschiedener Meinung, und genau das soll auffallen.
-       DIESER HIER IST DER, DER STUMM ZURUECKKAM und die Messung ausgeloest
-       hat; die Begruendung steht eine Nummer hoeher. */
+    /* DASSELBE AM EINZELNEN EINTRAG. */
     nr: '571', name: 'Der Gesamtschnitt des Eintrags kennt die Phase nicht mehr',
     file: 'server.js',
     search: '   GROUP BY r.criterion_id, c.weight, c.phase`);',
@@ -5379,9 +4617,7 @@ const REGRESSIONS = [
     expected: 'Zwei Kaesten, zwei Durchschnitte — 0.21.0'
   },
   {
-    /* DIE ZWEITE KOPFZAHL FAELLT AUS DER ANTWORT. Der Kasten stuende dann da
-       und wuesste seine eigene Zahl nicht -- und die Kachel eines ungetesteten
-       Eintrags zeigte nichts. */
+    /* DIE ZWEITE KOPFZAHL FAELLT AUS DER ANTWORT. */
     nr: '572', name: 'potenzialRating faellt aus der Uebersicht',
     file: 'server.js',
     search: '    it.potentialRating = totalAverage(boxes.before);',
@@ -5389,9 +4625,7 @@ const REGRESSIONS = [
     expected: 'Zwei Kaesten, zwei Durchschnitte — 0.21.0'
   },
   {
-    /* DER ZWEITE RECHENWEG FAELLT. Die Kopfzahl bliebe richtig, die Erklaerung
-       dahinter leer -- genau die Lage, in der eine Zahl dasteht und niemand
-       nachsehen kann, wie sie zustande kommt (Stolperstein 217). */
+    /* DER ZWEITE RECHENWEG FAELLT. */
     nr: '573', name: 'Der Rechenweg des Potenzials faellt aus der Antwort',
     file: 'server.js',
     search: '  it.potentialCalc = { ...potentialCalc, result: it.potentialRating };',
@@ -5399,8 +4633,7 @@ const REGRESSIONS = [
     expected: 'Zwei Kaesten, zwei Durchschnitte — 0.21.0'
   },
   {
-    /* DIE PHASE FAELLT VON DER STERNZEILE. Der Browser koennte dann nicht mehr
-       nach Kaesten teilen, und beide Kaesten zeigten alle Zeilen. */
+    /* DIE PHASE FAELLT VON DER STERNZEILE. */
     nr: '574', name: 'Die Sternzeilen des Details tragen ihre Phase nicht mehr',
     file: 'server.js',
     search: '    SELECT c.id AS criterion_id, c.name, c.weight, c.phase, COALESCE(r.value, 0) AS value',
@@ -5419,8 +4652,7 @@ const REGRESSIONS = [
   },
   {
     /* DER KASTEN LAESST SICH DOCH WECHSELN -- still, ueber ein uebergangenes
-       Feld. Genau das ist der Fall, den die Absage verhindert: ein
-       uebergangenes Feld sieht fuer den Aufrufer aus wie ein gesetztes. */
+       Feld. */
     nr: '576', name: 'PUT /api/criteria/:id uebergeht die Phase stillschweigend',
     file: 'server.js',
     search: "  if (req.body.phase !== undefined)",
@@ -5428,9 +4660,7 @@ const REGRESSIONS = [
     expected: 'Zwei Kaesten, zwei Durchschnitte — 0.21.0'
   },
   {
-    /* DAS DRITTE FELD FAELLT AUS DER EXPORTDATEI. Eine Datei mit
-       Vorher-Kriterien spielte sich dann als lauter Bewertungskriterien ein --
-       und die Sterne landeten im falschen Durchschnitt. */
+    /* DAS DRITTE FELD FAELLT AUS DER EXPORTDATEI. */
     nr: '577', name: 'Der Export nennt die Kaesten nicht mehr',
     file: 'server.js',
     search: "  for (const c of critRows) if (c.phase !== 'after') criteriaPhase[c.name] = c.phase;",
@@ -5438,10 +4668,7 @@ const REGRESSIONS = [
     expected: 'Zwei Kaesten, zwei Durchschnitte — 0.21.0'
   },
   {
-    /* DIE ABSAGE BEIM EINSPIELEN FAELLT. Ein Kriterium, das hier im einen und
-       in der Datei im anderen Kasten steht, wuerde dann still in den
-       vorhandenen eingespielt: die Datei sagte etwas anderes als die
-       Installation, und niemand saehe es. */
+    /* DIE ABSAGE BEIM EINSPIELEN FAELLT. */
     nr: '578', name: 'Der Import spielt ueber die Kaesten hinweg ein',
     file: 'server.js',
     search: '  if (conflicts.length) {',
@@ -5449,9 +4676,7 @@ const REGRESSIONS = [
     expected: 'Zwei Kaesten, zwei Durchschnitte — 0.21.0'
   },
   {
-    /* DIE PHASE FAELLT AUS DER KRITERIENLISTE. Die zweite Systemkarte fand
-       ihre Zeilen dann nicht mehr, und die Oberflaeche koennte die beiden
-       Kaesten nicht auseinanderhalten. */
+    /* DIE PHASE FAELLT AUS DER KRITERIENLISTE. */
     nr: '579', name: 'GET /api/criteria liefert die Phase nicht mehr',
     file: 'server.js',
     search: '  SELECT c.id, c.name, c.language, c.sort_order, c.weight, c.phase, c.created_at,',
@@ -5459,9 +4684,7 @@ const REGRESSIONS = [
     expected: 'Zwei Kaesten, zwei Durchschnitte — 0.21.0'
   },
   {
-    /* DIE BEIDEN STERNKAESTEN FUEHREN IHREN EINKLAPPZUSTAND WIEDER IN `zu`.
-       Damit gaelte ein Klick an EINEM Eintrag fuer ALLE -- genau die Reichweite,
-       die diese Runde ihnen nimmt. */
+    /* DIE BEIDEN STERNKAESTEN FUEHREN IHREN EINKLAPPZUSTAND WIEDER IN `zu`. */
     nr: '582', name: 'Die Sternkaesten speichern ihren Einklappzustand wieder',
     file: 'server.js',
     search: "const CLOSED_BLOCKS = ALL_BLOCKS.filter(k => !BLOCKS_ALWAYS_OPEN.includes(k));",
@@ -5471,9 +4694,7 @@ const REGRESSIONS = [
 
   /* ---- 0.21.0: die Sternzeile ---- */
   {
-    /* DAS × VERLIERT SEINEN PLATZ, WENN ES UNSICHTBAR IST. `hidden` ist
-       `display: none`; damit rutschten die Sterne beim ERSTEN Stern nach links
-       -- genau der Sprung, den dieselbe Runde eine Spalte weiter abschafft. */
+    /* DAS × VERLIERT SEINEN PLATZ, WENN ES UNSICHTBAR IST. */
     nr: '583', name: 'Das × verschwindet mit seinem Platz statt nur mit seiner Farbe',
     file: 'public/app.js',
     search: "  z.className = 'rreset' + (value > 0 ? '' : ' blank');",
@@ -5482,8 +4703,7 @@ const REGRESSIONS = [
   },
   {
     /* DAS × STEHT AN JEDER STERNREIHE, auch an denen ohne Ruecksetzer -- die
-       Testtage und jede Lesestelle. Ein Kreuz, das nichts tut, ist schlimmer
-       als keins. */
+       Testtage und jede Lesestelle. */
     nr: '584', name: 'Das × steht auch an einer Sternreihe ohne Ruecksetzer',
     file: 'public/app.js',
     search: "  w.addEventListener('click', e => { if (e.target.dataset.v) onPick(+e.target.dataset.v); });\n  return w;\n}",
@@ -5491,8 +4711,7 @@ const REGRESSIONS = [
     expected: "Die Sternzeile — 0.22.0"
   },
   {
-    /* DIE LEERE DURCHSCHNITTSZELLE IST WIEDER LEER. Der Strich faellt, und mit
-       ihm die Auskunft „noch niemand". */
+    /* DIE LEERE DURCHSCHNITTSZELLE IST WIEDER LEER. */
     nr: '585', name: 'Die leere Durchschnittszelle zeigt wieder gar nichts',
     file: 'public/app.js',
     search: "          a.textContent = '–';\n          a.title = t('entry.notRatedYet');",
@@ -5500,9 +4719,7 @@ const REGRESSIONS = [
     expected: 'Die Sternzeile — 0.21.0'
   },
   {
-    /* DIE MINDESTBREITE FAELLT WIEDER WEG. Solange niemand bewertet hat, ist
-       die Spalte null Pixel breit, und der erste Stern laesst sie aufgehen --
-       alle Sternzeilen rutschen nach links, unter dem Finger. */
+    /* DIE MINDESTBREITE FAELLT WIEDER WEG. */
     nr: '586', name: 'Die Durchschnittsspalte verliert ihre Mindestbreite wieder',
     file: 'public/style.css',
     search: '  min-width: calc(4.34rem + 9px);\n  display: flex; align-items: center; justify-content: flex-end;',
@@ -5512,9 +4729,7 @@ const REGRESSIONS = [
 
   /* ---- 0.21.0: die Oberflaeche der beiden Kaesten ---- */
   {
-    /* DER ZWEITE BLOCK STEHT HINTER DEM ERSTEN statt davor. Geschaetzt wird,
-       BEVOR bewertet wird, und die Anordnung sagt es -- an einer neuen Idee
-       stuende sonst der leere Bewertungskasten oben. */
+    /* DER ZWEITE BLOCK STEHT HINTER DEM ERSTEN statt davor. */
     nr: '587', name: 'Der Potenzialblock steht hinter der Bewertung',
     file: 'public/app.js',
     search: "  side: ['kategorie', 'tags', 'potenzial', 'bewertung'],",
@@ -5522,9 +4737,7 @@ const REGRESSIONS = [
     expected: 'Zwei Kaesten in der Oberflaeche — 0.21.0'
   },
   {
-    /* DER ZEICHNER FILTERT NICHT MEHR. Beide Kaesten zeigten dann ALLE Zeilen
-       -- dieselbe Sternzeile zweimal, in zwei Kaesten, mit zwei verschiedenen
-       Kopfzahlen darueber. */
+    /* DER ZEICHNER FILTERT NICHT MEHR. */
     nr: '588', name: 'Der Zeichner zeigt in beiden Kaesten alle Zeilen',
     file: 'public/app.js',
     search: '    const rows = item.ratings.filter(r => r.phase === boxId.phase);',
@@ -5532,9 +4745,7 @@ const REGRESSIONS = [
     expected: 'Zwei Kaesten in der Oberflaeche — 0.21.0'
   },
   {
-    /* DER EINKLAPPZUSTAND FOLGT WIEDER DER EINSTELLUNG STATT DEM ZUSTAND.
-       An einer neuen Idee stuende der Bewertungskasten offen und das Potenzial
-       zu -- genau verkehrt herum. */
+    /* DER EINKLAPPZUSTAND FOLGT WIEDER DER EINSTELLUNG STATT DEM ZUSTAND. */
     nr: '589', name: 'Die Sternkaesten folgen wieder der gespeicherten Einstellung',
     file: 'public/app.js',
     search: '    const afterState = BLOCKS_ALWAYS_OPEN.includes(name);',
@@ -5542,9 +4753,7 @@ const REGRESSIONS = [
     expected: 'Zwei Kaesten in der Oberflaeche — 0.21.0'
   },
   {
-    /* VORHANDENE DATEN SCHLAGEN DIE REGEL NICHT MEHR. Ein ungetesteter Eintrag
-       aus alten Zeiten mit Bewertungssternen zeigte sie dann nicht -- etwas,
-       das jemand eingetragen hat, waere versteckt. */
+    /* VORHANDENE DATEN SCHLAGEN DIE REGEL NICHT MEHR. */
     nr: '590', name: 'Bewertungssterne an einem ungetesteten Eintrag bleiben zugeklappt',
     file: 'public/app.js',
     search: "  return !item.tested && !hasStars(item, 'after');",
@@ -5552,9 +4761,7 @@ const REGRESSIONS = [
     expected: 'Zwei Kaesten in der Oberflaeche — 0.21.0'
   },
   {
-    /* DER KLICK AUF DEN KOPF SPEICHERT WIEDER. Damit gaelte ein Blick an EINEM
-       Eintrag fuer ALLE, und beim naechsten Eintrag stuende der falsche Kasten
-       offen -- ohne dass jemand wuesste, warum. */
+    /* DER KLICK AUF DEN KOPF SPEICHERT WIEDER. */
     nr: '591', name: 'Ein Klick auf den Kastenkopf speichert wieder',
     file: 'public/app.js',
     search: '        if (GLANCE.has(name)) GLANCE.delete(name); else GLANCE.add(name);',
@@ -5562,9 +4769,7 @@ const REGRESSIONS = [
     expected: 'Zwei Kaesten in der Oberflaeche — 0.21.0'
   },
   {
-    /* DER SCHALTER LEERT DEN BLICK NICHT MEHR. Nach dem Umlegen von „Getestet"
-       stuende der Kasten offen, den man vorher aufgeklappt hatte -- der Klick
-       auf den Schalter saehe aus, als haette er nichts getan. */
+    /* DER SCHALTER LEERT DEN BLICK NICHT MEHR. */
     nr: '592', name: 'Der Schalter „Getestet" leert den Blick nicht mehr',
     file: 'public/app.js',
     search: '      GLANCE.clear();\n      drawSwitches(); drawTestDays(); drawRatings();',
@@ -5572,9 +4777,7 @@ const REGRESSIONS = [
     expected: 'Zwei Kaesten in der Oberflaeche — 0.21.0'
   },
   {
-    /* DER BLICK GILT UEBER EINTRAEGE HINWEG. Er ist dann doch eine
-       Einstellung, nur eine, die niemand speichert -- die schlechteste
-       Mischung aus beidem. */
+    /* DER BLICK GILT UEBER EINTRAEGE HINWEG. */
     nr: '593', name: 'Der Blick ueberlebt den Wechsel des Eintrags',
     file: 'public/app.js',
     search: '  GLANCE.clear();\n  /* DER BEGRIFF KOMMT AUS DER ADRESSE ODER AUS DEM ZUSTAND',
@@ -5582,9 +4785,7 @@ const REGRESSIONS = [
     expected: 'Zwei Kaesten in der Oberflaeche — 0.21.0'
   },
   {
-    /* DIE KACHEL ZEIGT AN EINEM UNGETESTETEN EINTRAG WIEDER DIE BEWERTUNG.
-       Damit stuende dort „★ –" statt „◆ 4,2", und das Sortieren nach Potenzial
-       haette keine sichtbare Entsprechung. */
+    /* DIE KACHEL ZEIGT AN EINEM UNGETESTETEN EINTRAG WIEDER DIE BEWERTUNG. */
     nr: '594', name: 'Die Kachel zeigt an einer Idee wieder die Bewertung',
     file: 'public/app.js',
     search: "  const value = potential ? it.potentialRating : it.avgRating;",
@@ -5592,9 +4793,7 @@ const REGRESSIONS = [
     expected: 'Zwei Kaesten in der Oberflaeche — 0.21.0'
   },
   {
-    /* DAS ZEICHEN IST WIEDER DER STERN. Dann hielte jemand 4,2 Potenzial fuer
-       4,2 Qualitaet -- und die Kachel saehe an einer Idee genauso aus wie an
-       einem geprueften Eintrag. */
+    /* DAS ZEICHEN IST WIEDER DER STERN. */
     nr: '595', name: 'Das Potenzial traegt auf der Kachel wieder den Stern',
     file: 'public/app.js',
     search: "  const char = potential ? '◆' : '★';",
@@ -5602,9 +4801,7 @@ const REGRESSIONS = [
     expected: 'Zwei Kaesten in der Oberflaeche — 0.21.0'
   },
   {
-    /* DIE SORTIERUNG NACH POTENZIAL STELLT EINTRAEGE OHNE ZAHL NACH VORN.
-       In der Richtung „niedrig → hoch" stuenden dann lauter Eintraege ohne
-       Einschaetzung oben -- die Ansicht „Als Naechstes" waere unbrauchbar. */
+    /* DIE SORTIERUNG NACH POTENZIAL STELLT EINTRAEGE OHNE ZAHL NACH VORN. */
     nr: '596', name: 'Eintraege ohne Potenzialzahl stehen in einer Richtung vorn',
     file: 'public/app.js',
     search: "      case 'potential_asc':  return (a.potentialRating ?? 99) - (b.potentialRating ?? 99);",
@@ -5612,15 +4809,7 @@ const REGRESSIONS = [
     expected: 'Zwei Kaesten in der Oberflaeche — 0.21.0'
   },
   {
-    /* DIE ZWEITE SYSTEMKARTE ZEIGT DIE KRITERIEN DES ANDEREN KASTENS. Beide
-       Karten zeigten dann dieselbe Liste, und wer im Potenzialkasten anlegt,
-       saehe sein Kriterium in beiden.
-       MITGEGANGEN MIT 0.25.1 (Stolperstein 201). Bis 0.25.0 stand der
-       Phasenfilter im Ruf von `manageList()`; seit 0.25.1 teilen sich Liste
-       UND Pillenreihe denselben Ausdruck (`critRows()`), und den Filter gibt
-       es nur noch dort. Der Rueckbau zielt jetzt darauf -- und nimmt damit
-       beiden zugleich die Trennung, was mehr rot macht als vorher und
-       dieselbe Sache belegt. */
+    /* DIE ZWEITE SYSTEMKARTE ZEIGT DIE KRITERIEN DES ANDEREN KASTENS. */
     nr: '597', name: 'Die zweite Kriterienkarte filtert nicht nach Phase',
     file: 'public/app.js',
     search: "function critRows(fetched, phase) {\n" +
@@ -5630,9 +4819,7 @@ const REGRESSIONS = [
     expected: 'Zwei Kaesten in der Oberflaeche — 0.21.0'
   },
   {
-    /* DIE KARTE SCHICKT DIE PHASE NICHT MIT. Was in der Potenzialkarte
-       angelegt wird, landete als Bewertungskriterium -- der Server hat die
-       Vorgabe 'after'. */
+    /* DIE KARTE SCHICKT DIE PHASE NICHT MIT. */
     nr: '598', name: 'Die zweite Kriterienkarte legt im falschen Kasten an',
     file: 'public/app.js',
     search: "      try { await api('POST', '/api/criteria', { name, phase }); critField.value = '';",
@@ -5640,10 +4827,7 @@ const REGRESSIONS = [
     expected: 'Zwei Kaesten in der Oberflaeche — 0.21.0'
   },
   {
-    /* DER VERGLEICH MISCHT DIE BEIDEN KAESTEN WIEDER. `eigenerSchnitt()`
-       rechnete dann in der Stellung „meine" ueber beide Mengen -- die eine
-       zweite Rechenstelle im Browser waere genau die, die es nicht geben
-       darf. */
+    /* DER VERGLEICH MISCHT DIE BEIDEN KAESTEN WIEDER. */
     nr: '599', name: 'Der eigene Schnitt im Vergleich mischt die Kaesten',
     file: 'public/app.js',
     search: "      if (r.phase !== phase) continue;",
@@ -5651,9 +4835,7 @@ const REGRESSIONS = [
     expected: 'Zwei Kaesten in der Oberflaeche — 0.21.0'
   },
   {
-    /* DAS WORT KOMMT NICHT MEHR AUS DEM VOKABULAR. Wer „Erwartung" einstellt,
-       saehe im Blockkopf weiter „Potenzial" -- das Wort stuende wieder im
-       Quelltext. */
+    /* DAS WORT KOMMT NICHT MEHR AUS DEM VOKABULAR. */
     nr: '600', name: 'Der Blockkopf traegt das Wort aus dem Quelltext',
     file: 'public/app.js',
     search: "<div class=\"block-head\"><span class=\"label\">${esc(V.potential)}</span>",
@@ -5662,12 +4844,7 @@ const REGRESSIONS = [
   },
 
   {
-    /* DIE ZWEITE VORGABELISTE VERLIERT DAS NEUE WORT. `public/app.js` fuehrt
-       eine eigene Vorgabe des Vokabulars -- damit die Oberflaeche schon VOR
-       dem ersten Abruf beschriftet ist. Fehlt dort ein Wort, steht das Feld in
-       der Vokabularkarte leer, solange der gespeicherte Satz es nicht nennt.
-       GENAU DAS IST BEIM BAUEN VON 0.21.0 PASSIERT, und der Pruefstand hat es
-       gefunden -- an der Lage mit dem unvollstaendigen eigenen Vokabular. */
+    /* DIE ZWEITE VORGABELISTE VERLIERT DAS NEUE WORT. */
     nr: '601', name: 'Die Vorgabe der Oberflaeche kennt das neue Wort nicht',
     file: 'public/languages/de.json',
     search: "\"vocabulary.potential\":",
@@ -5676,14 +4853,7 @@ const REGRESSIONS = [
   },
   {
     /* HIER HAENGT DIE ZENTRALE ZUSAGE DIESER RUNDE -- am SELECT und nicht am
-       GROUP BY. Faellt `c.phase` aus der Spaltenliste, kommt die Schnittzeile
-       ohne Phase an; karteJePhase() legt sie in KEINEN der beiden Kaesten
-       (`box[undefined]` gibt es nicht), und beide Durchschnitte fallen auf
-       null. Die Kachel zeigte dann an jedem Eintrag gar keine Zahl mehr.
-       NACHGETRAGEN NACH DER GEGENPROBE: die Runde hatte fuer diese beiden
-       Abfragen nur den Griff ans GROUP BY, und der ist am Verhalten stumm
-       (Rueckbauten 570 und 571). Ein Rueckbau, der die Zusage wirklich
-       herausnimmt, fehlte -- er steht jetzt hier. */
+       GROUP BY. */
     nr: '602', name: 'Die gebuendelte Abfrage waehlt die Phase nicht mehr aus',
     file: 'server.js',
     search: '  SELECT r.item_id, r.criterion_id, AVG(r.value * 1.0) AS average, COUNT(*) AS count,\n' +
@@ -5693,10 +4863,7 @@ const REGRESSIONS = [
     expected: 'Zwei Kaesten, zwei Durchschnitte — 0.21.0'
   },
   {
-    /* DASSELBE AN DER FASSUNG DES EINZELNEN EINTRAGS. Zwei Fassungen, zwei
-       Rueckbauten: faellt nur einer, blieben Uebersicht und Detail
-       verschiedener Meinung -- und ein Eintrag zeigte in der Liste zwei Zahlen
-       und aufgeschlagen keine. */
+    /* DASSELBE AN DER FASSUNG DES EINZELNEN EINTRAGS. */
     nr: '603', name: 'Die Abfrage des Eintrags waehlt die Phase nicht mehr aus',
     file: 'server.js',
     search: '  SELECT r.criterion_id, AVG(r.value * 1.0) AS average, COUNT(*) AS count,\n' +
@@ -5706,15 +4873,9 @@ const REGRESSIONS = [
     expected: 'Zwei Kaesten, zwei Durchschnitte — 0.21.0'
   },
   {
-    /* DER TREIBER SIEHT NICHT MEHR NACH, OB FREMDE SERVER LAUFEN. Genau die
-       Lage, aus der dieser Waechter entstanden ist: sieben Server aus
-       abgebrochenen Laeufen an den Ports 6180 bis 6242, Spur 0 faehrt ohne
-       Versatz dagegen, und die Tabelle zeigt einen stummen Rueckbau als
-       greifenden. EINE FALSCHE TABELLE IST SCHLIMMER ALS GAR KEINE. */
+    /* DER TREIBER SIEHT NICHT MEHR NACH, OB FREMDE SERVER LAUFEN. */
     /* NACHGEZOGEN MIT 0.30.0: der Treiber sieht seither ZWEIMAL nach -- ueber
-       die Befehlszeile und ueber die Ports (F7). Der Suchtext von 0.21.0 stand
-       nicht mehr da, und ein Rueckbau, dessen Suchtext fehlt, ist ein Fund
-       ueber die Liste und kein Fund ueber den Baum. */
+       die Befehlszeile und ueber die Ports (F7). */
     nr: '604', name: 'Der Treiber faehrt los, ohne nach fremden Servern zu sehen',
     file: 'counterproof.js',
     search: '  const foreign = foreignServer();\n  const busy = foreignPort(foreign.map(f => f.port));\n  if (foreign.length || busy.length) {',
@@ -5722,17 +4883,10 @@ const REGRESSIONS = [
     expected: 'Die Gegenproben greifen'
   },
   {
-    /* UND DIE SUCHE SELBST FINDET NUR NOCH EINEN DER DREI NAMEN. Ein
-       liegengebliebener PRUEFLAUF belegt genauso Ports wie ein liegen-
-       gebliebener Server -- er startet ja welche, und seit 0.34.0 gilt das
-       ebenso fuer ein liegengebliebenes Modul unter test/. */
+    /* UND DIE SUCHE SELBST FINDET NUR NOCH EINEN DER DREI NAMEN. */
     /* NACHGEZOGEN MIT 0.30.0, UND ZWAR AUF DEN BEFUND SELBST: der Rueckbau
        setzt den Namen zurueck, der von 0.21.0 bis 0.30.0 dort stand --
-       `pruefung.js`, eine Datei, die es in diesem Repository nie gegeben hat.
-       ER MUSS JETZT ZWEI ZUSAGEN ROT MACHEN: die, die den Quelltext liest,
-       und die, die einen ECHTEN `node testbench.js` startet und wiederfindet.
-       Bis 0.30.0 gab es nur die erste -- und sie hat den Namen abgeschrieben,
-       den der Ausdruck trug. */
+       `pruefung.js`, eine Datei, die es in diesem Repository nie gegeben hat. */
     nr: '605', name: 'Die Suche nach fremden Servern kennt den Prueflauf nicht mehr',
     file: 'counterproof.js',
     search: "    const script = parts.find(t => /(^|\\/)(server\\.js|testbench\\.js|test\\/[a-z0-9_]+\\.js)$/.test(t));",
@@ -5742,9 +4896,7 @@ const REGRESSIONS = [
 
   /* ---- 0.21.1: die Sortierung gibt den Status vor ---- */
   {
-    /* DIE LISTE LIEST WIEDER UNMITTELBAR DIE GEWAEHLTE STELLUNG. Die eine
-       Lesestelle faellt damit weg, und die ganze Ableitung wirkt nirgends
-       mehr -- der groesste Rueckbau dieser Runde. */
+    /* DIE LISTE LIEST WIEDER UNMITTELBAR DIE GEWAEHLTE STELLUNG. */
     nr: '610', name: 'Die Liste liest die Ableitung nicht mehr',
     file: 'public/app.js',
     search: "  const status = statusEffective(f);",
@@ -5753,16 +4905,10 @@ const REGRESSIONS = [
   },
   {
     /* DIE ABLEITUNG SCHREIBT SICH IN state.filters -- der Rueckbau, den der
-       Auftrag ausdruecklich verlangt. Er macht aus einem Blick eine
-       Einstellung: was hier hineinlaeuft, faehrt durch saveFilters() an
-       PUT /api/settings hinaus, und nach dem Neuladen stuende ein Filter da,
-       den niemand gesetzt hat (Stolperstein 304 von der anderen Seite).
-       ER MUSS ROT WERDEN, sonst ist Regel 3 nicht baulich, sondern behauptet. */
-    /* MITGEZOGEN MIT 0.28.1 (Stolperstein 201): seit der Richtungstrennung
-       setzt der Behandler nicht mehr `sel.value` unmittelbar, sondern legt die
-       Lage in `applySort()` zusammen. Der Rueckbau zielt auf dieselbe Sache --
-       die Ableitung des Status wird mitgespeichert, statt abgeleitet zu
-       bleiben. */
+       Auftrag ausdruecklich verlangt. */
+    /* MITGEZOGEN MIT 0.28.1: seit der Richtungstrennung
+       setzt der Behandler nicht mehr `sel.value` unmittelbar, sondern legt
+       die Lage in `applySort()` zusammen. */
     nr: '613', name: 'Die Ableitung wird mitgespeichert',
     file: 'public/app.js',
     search: "  const applySort = () => { f.sort = picked.base.key + (picked.asc ? '_asc' : '_desc'); redraw(); };",
@@ -5772,10 +4918,8 @@ const REGRESSIONS = [
   },
   {
     /* DIE LEISTE WIRD BEIM WECHSEL DER SORTIERUNG NICHT MEHR MITGEZEICHNET --
-       der Stand vor 0.21.1, als eine Sortierung nur ordnete. Die Liste zeigt
-       dann schon die neue Menge, waehrend die Pillen darueber die alte
-       Stellung behaupten. */
-    /* MITGEZOGEN MIT 0.28.1 (Stolperstein 201) -- dieselbe Zeile wie 613. */
+       der Stand vor 0.21.1, als eine Sortierung nur ordnete. */
+    /* MITGEZOGEN MIT 0.28.1 -- dieselbe Zeile wie 613. */
     nr: '614', name: 'Der Wechsel der Sortierung zeichnet nur noch die Liste',
     file: 'public/app.js',
     search: "  const applySort = () => { f.sort = picked.base.key + (picked.asc ? '_asc' : '_desc'); redraw(); };",
@@ -5786,10 +4930,7 @@ const REGRESSIONS = [
   /* ---- Der Pruefstand ueber sich selbst ---- */
   {
     /* DIE DATEILISTE DES SPRACHWAECHTERS VERLIERT DIE BEIDEN NEUEN DATEIEN --
-       0.19.3. Sie ist eine gepflegte Liste und keine abgeleitete; wer eine
-       Quelltextdatei anlegt und sie hier vergisst, bekommt einen Waechter, der
-       ueber sie schweigt. GENAU DAS IST IN DIESER RUNDE PASSIERT: in
-       batchrun.js stand ein Wort aus der Sperrliste, und niemand sah es. */
+       0.19.3. */
     nr: 'W14', name: 'Die Dateiliste des Sprachwaechters verliert die neuen Dateien',
     file: 'test/source.js',
     search: "                          'images.js', 'batchrun.js', 'mail.js'];",
@@ -5799,29 +4940,19 @@ const REGRESSIONS = [
   {
     /* DIE SPRACHLISTE VERLIERT IHREN DREIZEHNTEN EINTRAG -- 0.19.1 hat ihn
        eingetragen, weil das Wort in dieser Runde gefallen ist und 0.19.2 voll
-       davon sein wird. Ein Waechter, dem ein Wort fehlt, sieht aus wie einer,
-       der nichts zu beanstanden hat. */
+       davon sein wird. */
     nr: 'W13', name: 'Die Sprachliste verliert ihren juengsten Eintrag',
     file: 'test/source.js',
     search: "    ['Faden', 'Thread']\n  ];",
     replacement: "  ];",
     expected: 'Der Sprachwaechter'
   },
-  /* ================= 0.22.0: die Runde „Die Oberflaeche wird ruhiger" =================
-     ACHTZEHN NEUE, AB NUMMER 624 -- fuer jede neue Regel des Pruefstands
-     mindestens einer, und einer, der das Milchglas wieder einsetzt (Auftrag
-     0.22.0, „Der Pruefstand"). EINUNDVIERZIG VORHANDENE SIND MITGEGANGEN statt
-     geloescht zu werden (Stolperstein 201): fast jeder, der einen
-     Bildschirmtext suchte, zeigte nach der Textrunde ins Leere -- 13, 30, 68,
-     123, 143, 167 bis 170, 180, 181, 203, 204, 238, 264, 283, 284, 296, 302,
-     315, 316, 327, 330, 334, 337, 367, 377, 383, 453 bis 455, 472, 473, 485,
-     505, 522, 551, 583 bis 585 und 601. 583 und 584 zeigen dabei auf die neue
-     Sternzeile (0.22.0) statt auf die von 0.21.0. */
+  /* ================= 0.22.0: die Runde „Die Oberflaeche wird ruhiger"
+     ================= ACHTZEHN NEUE, AB NUMMER 624 -- fuer jede neue Regel
+     des Pruefstands mindestens einer, und einer, der das Milchglas wieder
+     einsetzt (Auftrag 0.22.0, „Der Pruefstand"). */
   {
-    /* DAS MILCHGLAS KOMMT ZURUECK. Die Regel steht seit 0.19.x im Projektstand
-       (10a), und bis 0.21.1 brach das Stilblatt sie an neun Stellen -- eine
-       Regel, die im Papier steht und im Stilblatt gebrochen wird, ist keine
-       (Stolperstein 314). Der Waechter muss sie kennen. */
+    /* DAS MILCHGLAS KOMMT ZURUECK. */
     nr: '624', name: 'Das Milchglas kommt an die Kopfzeile zurueck',
     file: 'public/style.css',
     search: ".masthead.scrolled { box-shadow: var(--sh-sm); }",
@@ -5854,8 +4985,7 @@ const REGRESSIONS = [
   },
   {
     /* DER SERVER-BEFEHL STEHT WIEDER IM FLIESSTEXT -- vor den Augen jedes
-       Benutzers, wie bis 0.21.1 an den Wiederherstellungscodes (Stolperstein
-       315). Gezaehlt wird, nicht gesucht: die Zeile traegt kein serverKasten(. */
+       Benutzers, wie bis 0.21.1 an den Wiederherstellungscodes. */
     nr: '628', name: 'Ein Server-Befehl steht wieder im Fliesstext der Karte Mein Konto',
     file: 'public/languages/de.json',
     search: "\"card.forgotPasswordHint\": \"Ein vergessenes Passwort setzt du auf dem Server zurück:\",",
@@ -5896,8 +5026,7 @@ const REGRESSIONS = [
   },
   {
     /* DER KNOPF RUTSCHT IN DIE ZELLE DER STERNE -- dorthin, wo er bis 0.21.1
-       als × stand. Die Zeile hat dann drei Zellen statt vier, und der Befund
-       aus dem Betrieb waere nicht behoben. */
+       als × stand. */
     nr: '633', name: 'Der Ruecksetzknopf steht wieder in der Sternzelle statt in seiner eigenen Spalte',
     file: 'public/app.js',
     search: "      const zz = document.createElement('span');\n      zz.className = 'rreset-cell';\n      zz.appendChild(back);\n      row.append(zz);",
@@ -5922,14 +5051,10 @@ const REGRESSIONS = [
   },
   {
     /* EIN FILTER, DER GREIFT UND UNSICHTBAR IST, IST EIN FEHLER: die Tagzeile
-       bliebe beim Aufbau zu, obwohl ein Tag die Liste kuerzt.
-       MITGEZOGEN, NICHT GELOESCHT -- 0.24.0 (Stolperstein 201): der Aufklapper
-       ist ein Knopf geworden, die Regel dahinter ist dieselbe geblieben. */
-    /* NACHGEZOGEN MIT 0.30.0 (Stolperstein 201): der Merker ist mit dem
+       bliebe beim Aufbau zu, obwohl ein Tag die Liste kuerzt. */
+    /* NACHGEZOGEN MIT 0.30.0: der Merker ist mit dem
        Umschalter gefallen, die REGEL dahinter ist dieselbe geblieben -- ein
-       Filter, der greift und unsichtbar ist, ist ein Fehler. Der Rueckbau
-       stellt genau das wieder her: die Zeile steht nur noch da, wenn sie
-       gerade nicht gebraucht wird. */
+       Filter, der greift und unsichtbar ist, ist ein Fehler. */
     nr: '636', name: 'Die Tagzeile bleibt bei greifendem Tagfilter zugeklappt',
     file: 'public/app.js',
     search: "  const tagsOpen = tagsPossible;",
@@ -5945,13 +5070,9 @@ const REGRESSIONS = [
     expected: 'Der Umschalter der Tagzeile — 0.24.0'
   },
   {
-    /* DER UMSCHALTER BELEGT WIEDER EINE EIGENE ZEILE -- 0.24.0. Genau das war
-       der Befund: er kostete den Platz, den er sparen sollte. */
+    /* DER UMSCHALTER BELEGT WIEDER EINE EIGENE ZEILE -- 0.24.0. */
     /* NACHGEZOGEN MIT 0.30.0: der Umschalter ist gefallen, und mit ihm sein
-       Platz in der Kategoriezeile. Was an seine Stelle tritt, ist die Klasse,
-       an der das Raster des Telefons haengt -- ohne sie steht „und/Oder"
-       wieder neben der Beschriftung, und die Zeile traegt drei Rasterzeilen
-       statt zweier. Dieselbe Sache, ein anderer Traeger. */
+       Platz in der Kategoriezeile. */
     nr: '658', name: 'Die Tagzeile sagt dem Raster nicht mehr, dass sie die Tagzeile ist',
     file: 'public/app.js',
     search: "    r3.classList.add('frow-tags');",
@@ -5969,7 +5090,7 @@ const REGRESSIONS = [
   },
   {
     /* EIN UMSCHALTER FUER EINE LEERE ZEILE -- die zweite Haelfte des Befundes
-       vom 5. September 2026. */
+       vom 5. */
     nr: '660', name: 'Der Umschalter steht auch da, wenn kein Tag dahinter ist',
     file: 'public/app.js',
     search: "  const tagsPossible = filterTags.length > 0 || f.tagIds.length > 0;",
@@ -5986,8 +5107,8 @@ const REGRESSIONS = [
     expected: 'Der Bildschirmtext-Waechter'
   },
   {
-    /* EIN DEUTSCHER SATZ ZURUECK IN `throw new Error` IN auth.js -- der blinde
-       Fleck des Waechters, den diese Runde geschlossen hat. */
+    /* EIN DEUTSCHER SATZ ZURUECK IN `throw new Error` IN auth.js -- der
+       blinde Fleck des Waechters, den diese Runde geschlossen hat. */
     nr: '676', name: 'auth.js wirft wieder einen deutschen Satz',
     file: 'auth.js',
     search: "  if (!ROLES.includes(role)) throw new Message('login.roleUnknown');\n  const clean = String(name).trim();",
@@ -5995,8 +5116,7 @@ const REGRESSIONS = [
     expected: 'Der Bildschirmtext-Waechter'
   },
   {
-    /* EIN PROGRAMMIERFEHLER OHNE BILDSCHIRM VERSCHWINDET. Die Liste ist
-       namentlich -- eine Zahl allein liesse offen, welche gemeint sind. */
+    /* EIN PROGRAMMIERFEHLER OHNE BILDSCHIRM VERSCHWINDET. */
     nr: '677', name: 'Ein Programmierfehler ohne Bildschirm faellt weg',
     file: 'auth.js',
     search: "    throw new Error('Eine Sitzung braucht einen Benutzer.');",
@@ -6004,8 +5124,8 @@ const REGRESSIONS = [
     expected: 'Der Bildschirmtext-Waechter'
   },
   {
-    /* EINE DER VIER ALTLASTEN VERSCHWINDET AUS DER DATEI, ohne dass jemand die
-       Liste im Pruefstand nachzieht. */
+    /* EINE DER VIER ALTLASTEN VERSCHWINDET AUS DER DATEI, ohne dass jemand
+       die Liste im Pruefstand nachzieht. */
     nr: '678', name: 'Eine benannte Altlast verschwindet aus der Sprachdatei',
     file: 'public/languages/de.json',
     search: '  "login.noUserYet": "Es ist noch kein Zugang eingerichtet.",',
@@ -6014,7 +5134,7 @@ const REGRESSIONS = [
   },
   {
     /* UND DIE ANDERE RICHTUNG: eine Altlast wird richtiggestellt, bleibt aber
-       auf der Liste stehen. Dann fuehrt die Liste eine Ausnahme fuer nichts. */
+       auf der Liste stehen. */
     nr: '679', name: 'Eine Altlast ist behoben und steht doch noch auf der Liste',
     file: 'public/languages/de.json',
     search: '  "server.deniedOwnUser": "Den eigenen Zugang ändert man unter „Mein Konto“, nicht hier.",',
@@ -6031,8 +5151,8 @@ const REGRESSIONS = [
     expected: 'Die Serverseite spricht aus der Datei — 0.24.0'
   },
   {
-    /* UND auth.js EBENSO WENIG -- die zwei Antworten von requireAuth() stuenden
-       als Klammerausdruck da. */
+    /* UND auth.js EBENSO WENIG -- die zwei Antworten von requireAuth()
+       stuenden als Klammerausdruck da. */
     nr: '681', name: 'auth.js bekommt den Uebersetzer nicht mehr gereicht',
     file: 'server.js',
     search: "auth.setTranslator((req, key, values) => t(localeOf(req), key, values));",
@@ -6040,9 +5160,8 @@ const REGRESSIONS = [
     expected: 'Die Serverseite spricht aus der Datei — 0.24.0'
   },
   {
-    /* DIE VORGABE DES VOKABULARS KOMMT WIEDER AUS DEM QUELLTEXT -- Stolperstein
-       47 in seiner urspruenglichen Form: doppelt gehaltene Vorgaben pruefen
-       sich nur halb. */
+    /* DIE VORGABE DES VOKABULARS KOMMT WIEDER AUS DEM QUELLTEXT: doppelt
+       gehaltene Vorgaben pruefen sich nur halb. */
     nr: '682', name: 'Die Vokabelvorgaben stehen wieder im Quelltext',
     file: 'server.js',
     search: "const vocabularyDefault = (locale) => Object.fromEntries(\n  Object.entries(textsOf(locale || languageDefault()))",
@@ -6050,8 +5169,8 @@ const REGRESSIONS = [
     expected: 'Die Serverseite spricht aus der Datei — 0.24.0'
   },
   {
-    /* EINE BETREFFZEILE ZURUECK IN server.js -- der Text gehoert zur Sache, und
-       zwei Ausfertigungen liefen auseinander. */
+    /* EINE BETREFFZEILE ZURUECK IN server.js -- der Text gehoert zur Sache,
+       und zwei Ausfertigungen liefen auseinander. */
     nr: '683', name: 'Der Betreff eines Briefes verliert seinen Platzhalter',
     file: 'public/languages/de.json',
     search: "  \"mail.invite.subject\": \"Dein Zugang zu „{instanceTitle}“\",",
@@ -6076,9 +5195,7 @@ const REGRESSIONS = [
     expected: 'Der Sprachhelfer und die Ladung — 0.24.0'
   },
   {
-    /* EIN WERT MIT SPITZER KLAMMER. Der Helfer maskiert den TEXT ausdruecklich
-       nicht -- er kommt aus der Datei und traegt kein HTML. Traegt er doch
-       eines, faellt genau diese Zusage. */
+    /* EIN WERT MIT SPITZER KLAMMER. */
     nr: '666', name: 'Ein Wert der Sprachdatei traegt eine spitze Klammer',
     file: 'public/languages/de.json',
     search: '"server.errorUnknown": "Unbekannter Fehler"',
@@ -6086,8 +5203,8 @@ const REGRESSIONS = [
     expected: 'Der Sprachhelfer und die Ladung — 0.24.0'
   },
   {
-    /* tH() MASKIERT NICHT MEHR -- Stolperstein 18 waere damit wieder offen:
-       ein Vokabelwort des Admins liefe roh in innerHTML. */
+    /* tH() MASKIERT NICHT MEHR: ein Vokabelwort des Admins liefe roh in
+       innerHTML. */
     nr: '667', name: 'tH() maskiert die eingesetzten Werte nicht mehr',
     file: 'public/app.js',
     search: "    return mask ? esc(String(value)) : String(value);",
@@ -6095,8 +5212,7 @@ const REGRESSIONS = [
     expected: 'Der Sprachhelfer und die Ladung — 0.24.0'
   },
   {
-    /* EIN UNBEKANNTER PLATZHALTER WIRD GELEERT STATT STEHENZUBLEIBEN. Ein
-       leerer Fleck ist kein Fund -- `{sache}` am Bildschirm ist einer. */
+    /* EIN UNBEKANNTER PLATZHALTER WIRD GELEERT STATT STEHENZUBLEIBEN. */
     nr: '668', name: 'Ein unbekannter Platzhalter verschwindet still',
     file: 'public/app.js',
     search: "    if (value === undefined) return whole;",
@@ -6104,9 +5220,7 @@ const REGRESSIONS = [
     expected: 'Der Sprachhelfer und die Ladung — 0.24.0'
   },
   {
-    /* DIE MEHRZAHL WAEHLT WIEDER `n === 1` STATT Intl.PluralRules. Auf Deutsch
-       faellt beides zusammen -- die Regel steht trotzdem falsch da, und die
-       naechste Sprache bricht daran. */
+    /* DIE MEHRZAHL WAEHLT WIEDER `n === 1` STATT Intl.PluralRules. */
     nr: '669', name: 'Die Mehrzahl waehlt wieder ueber n === 1',
     file: 'public/app.js',
     search: "  return PLURAL.select(values.n) === 'one' ? raw.one : raw.other;",
@@ -6114,9 +5228,7 @@ const REGRESSIONS = [
     expected: 'Der Sprachhelfer und die Ladung — 0.24.0'
   },
   {
-    /* DER RUECKFALL AUF DEUTSCH FAELLT WEG. In dieser Runde ist er leer -- und
-       genau deshalb muss er belegt sein, sonst faellt sein Wegfall erst in
-       Stufe 2 auf, wo er gebraucht wird. */
+    /* DER RUECKFALL AUF DEUTSCH FAELLT WEG. */
     nr: '670', name: 'Der Rueckfall auf Deutsch faellt weg',
     file: 'public/app.js',
     search: "  const raw = TEXTS[key] !== undefined ? TEXTS[key] : TEXTS_FALLBACK[key];",
@@ -6133,12 +5245,7 @@ const REGRESSIONS = [
     expected: 'Der Sprachhelfer und die Ladung — 0.24.0'
   },
   {
-    /* DER SERVER STIRBT WIEDER AN EINER FEHLENDEN PFLICHTDATEI -- 0.24.3, F6.
-       DIE ZUSAGE HAT SICH MIT DIESER RUNDE UMGEDREHT: bis 0.24.2 stellte
-       dieser Rueckbau den WURF ab und machte damit rot, dass der Server ohne
-       Sprachdatei anhaelt. Seit das Verzeichnis die Liste ist, ist das
-       Anhalten der Fehler -- also stellt er den Wurf WIEDER HER.
-       Die Nummer bleibt, weil es dieselbe Stelle und dieselbe Frage ist. */
+    /* DER SERVER STIRBT WIEDER AN EINER FEHLENDEN PFLICHTDATEI -- 0.24.3, F6. */
     nr: '672', name: 'Der Server stirbt wieder an einer fehlenden Pflichtdatei',
     file: 'server.js',
     search: "if (!LANGUAGES[LANGUAGE_FALLBACK]) console.error(",
@@ -6182,7 +5289,7 @@ const REGRESSIONS = [
   },
   {
     /* DAS DUNKLE SCHEMA AENDERT EINEN BILDPUNKT -- und genau das darf es
-       nicht. Die Regel steht in jedem Auftrag seit 0.23.0. */
+       nicht. */
     nr: '663', name: 'Das dunkle Schema bekommt einen anderen Wert fuer die Zeitleiste',
     file: 'public/style.css',
     search: "  --timeline-mid: var(--line);\n  --timeline-year: var(--faint);",
@@ -6190,8 +5297,7 @@ const REGRESSIONS = [
     expected: 'Die Zeitleiste im hellen Schema — 0.24.0'
   },
   {
-    /* DIE REGEL LIEST WIEDER DIE ALLGEMEINE RANDFARBE. Die Variable stuende
-       tadellos da und faerbte nichts. */
+    /* DIE REGEL LIEST WIEDER DIE ALLGEMEINE RANDFARBE. */
     nr: '664', name: 'Die Hilfslinie liest die allgemeine Randfarbe statt ihrer eigenen',
     file: 'public/style.css',
     search: ".timeline-line { position: absolute; left: 0; right: 0; height: 1px; background: var(--timeline-line); }",
@@ -6223,7 +5329,7 @@ const REGRESSIONS = [
     expected: 'Die Rollenweichen — 0.22.0'
   },
   {
-    /* „ABBRECHEN" BRICHT NICHT AB (Stolperstein 316): der Nein-Knopf des
+    /* „ABBRECHEN" BRICHT NICHT AB: der Nein-Knopf des
        Loeschfensters liefert die Stellung der Haekchen wie der Ja-Knopf. */
     nr: '641', name: 'Abbrechen im Loeschfenster fuer einen Benutzer bricht nicht ab',
     file: 'public/app.js',
@@ -6231,11 +5337,9 @@ const REGRESSIONS = [
     replacement: "    bd.querySelector('[data-no]').onclick = nimm;\n    bd.querySelector('[data-yes]').onclick = nimm;\n    bd.onclick = e => { if (e.target === bd) done(null); };\n    const onKey = e => { if (e.key === 'Escape') done(null); };",
     expected: 'Keine Browserfenster mehr — 0.22.0'
   },
-  /* ================= 0.22.1 — die fuenf Gesten, die Kopfzahl, der Kasten ====
-     Zwoelf Rueckbauten, und jeder nimmt GENAU EINE Zusage dieser Runde zurueck.
-     Wo eine Zusage an mehreren Zeilen haengt, steht der Rueckbau an der Zeile,
-     die den Unterschied traegt -- nicht an der, die am leichtesten zu finden
-     ist. */
+  /* ================= 0.22.1 — die fuenf Gesten, die Kopfzahl, der Kasten
+     ==== Zwoelf Rueckbauten, und jeder nimmt GENAU EINE Zusage dieser Runde
+     zurueck. */
   {
     /* OHNE GREIFZONE GIBT ES DIE ACHT GRIFFE NICHT MEHR: alles im Rahmen wird
        zum Schieben, und Ecke wie Kante sind unerreichbar. */
@@ -6265,9 +5369,7 @@ const REGRESSIONS = [
     expected: 'Die fuenf Gesten am Ausschnitt — 0.22.1'
   },
   {
-    /* SCHIEBEN AENDERT DIE WEITE MIT. Der Weg an der Rastung vorbei ist die
-       Zusage; geht das Schieben durch setzeKiste(), rastet der Zoom bei jedem
-       Zug neu. */
+    /* SCHIEBEN AENDERT DIE WEITE MIT. */
     nr: '645', name: 'Das Schieben aendert die Weite wieder mit',
     file: 'public/app.js',
     search: "      setState(user.crate.links + (p.x - user.p0.x), user.crate.top + (p.y - user.p0.y));",
@@ -6275,9 +5377,7 @@ const REGRESSIONS = [
     expected: 'Die fuenf Gesten am Ausschnitt — 0.22.1'
   },
   {
-    /* DIE RASTUNG KOMMT VOR DER LAGE. Legt man den Rahmen nach der
-       UNGERASTETEN Kante, wandert die feste Ecke bei jedem Zug um bis zu eine
-       halbe Stufe -- genau die Ecke, die stillstehen soll. */
+    /* DIE RASTUNG KOMMT VOR DER LAGE. */
     nr: '646', name: 'Die feste Ecke wandert wieder mit der Rastung',
     file: 'public/app.js',
     search: "      const { l, o } = situation(narrow);\n      setState(l, o);",
@@ -6285,9 +5385,7 @@ const REGRESSIONS = [
     expected: 'Die fuenf Gesten am Ausschnitt — 0.22.1'
   },
   {
-    /* DIE KANTE VERSCHIEBT DEN MITTELPUNKT. Statt symmetrisch um die Mitte der
-       festen Kante zu wachsen, haengt der Rahmen an ihrer oberen Ecke -- er
-       rutscht dabei seitlich weg. */
+    /* DIE KANTE VERSCHIEBT DEN MITTELPUNKT. */
     nr: '647', name: 'Die Kante verschiebt den Mittelpunkt wieder',
     file: 'public/app.js',
     search: "          (e) => ({ l: right - e, o: centerY - e / 2 }), Math.min(right, aroundCenter(centerY, f.height)));",
@@ -6314,9 +5412,9 @@ const REGRESSIONS = [
     expected: 'Die fuenf Gesten am Ausschnitt — 0.22.1'
   },
   {
-    /* DER FINGER BEKOMMT DIE ACHT GRIFFE DOCH (Entscheidung E3): eine Zone von
-       zwoelf Bildpunkten trifft keine Fingerkuppe, und ein Tipp an den Rand
-       aendert dann die Weite statt zu schieben. */
+    /* DER FINGER BEKOMMT DIE ACHT GRIFFE DOCH (Entscheidung E3): eine Zone
+       von zwoelf Bildpunkten trifft keine Fingerkuppe, und ein Tipp an den
+       Rand aendert dann die Weite statt zu schieben. */
     nr: '650', name: 'Der Finger bekommt die acht Griffe doch',
     file: 'public/app.js',
     search: "      if (e.pointerType === 'touch' && gesture !== 'neu') gesture = 'schieben';",
@@ -6325,7 +5423,7 @@ const REGRESSIONS = [
   },
   {
     /* DIE KURZFASSUNG KOMMT ZURUECK: die Zahl steht wieder zweimal im selben
-       Kopf, einmal in Klammern und einmal mit „gewichtet" (Stolperstein 318). */
+       Kopf, einmal in Klammern und einmal mit „gewichtet". */
     nr: '651', name: 'Die Kopfzahl steht wieder zweimal da',
     file: 'public/app.js',
     search: "    case 'potenzial': return item.potentialRating ? '' : t('list.notEstimatedYet');",
@@ -6342,9 +5440,7 @@ const REGRESSIONS = [
     expected: 'Die beiden Sternkaesten — 0.21.0'
   },
   {
-    /* UND DER SERVER NIMMT SIE WIEDER AN. Was der Bildschirm nicht anbietet,
-       muss der Server abweisen -- sonst ist es keine Regel, sondern eine
-       Gewohnheit. */
+    /* UND DER SERVER NIMMT SIE WIEDER AN. */
     nr: '653', name: 'Der Server nimmt die Bewertung am ungetesteten Eintrag wieder an',
     file: 'server.js',
     search: "    if (crit && crit.phase === 'after' && entry && !entry.tested)",
@@ -6361,10 +5457,10 @@ const REGRESSIONS = [
     expected: 'Die beiden Sternkaesten — 0.21.0'
   },
   {
-    /* DIE RASTUNG SPRINGT WIEDER UEBER DEN DECKEL -- 0.22.1, und die Regel ist
-       aus der Gegenprobe zu 646 entstanden: rastet die Kante nach oben ueber
-       den Deckel hinaus, passt der Rahmen nicht mehr an seinen Anker, und die
-       Klemme schiebt ihn ins Bild zurueck. */
+    /* DIE RASTUNG SPRINGT WIEDER UEBER DEN DECKEL -- 0.22.1, und die Regel
+       ist aus der Gegenprobe zu 646 entstanden: rastet die Kante nach oben
+       ueber den Deckel hinaus, passt der Rahmen nicht mehr an seinen Anker,
+       und die Klemme schiebt ihn ins Bild zurueck. */
     nr: '655', name: 'Die Rastung springt wieder ueber den Deckel',
     file: 'public/app.js',
     search: "      if (narrow > up + 1e-9 && zoom < 400) {",
@@ -6386,12 +5482,7 @@ const REGRESSIONS = [
     expected: 'Die Portbasen und der Versatz'
   },
   {
-    /* GEZIELT AUF DEN HORCHPOSTEN, nicht auf das Abraeumen der Verbindungen.
-       Der erste Anlauf nahm das Abraeumen weg -- dann HAENGT der Lauf am
-       close(), das auf offene Verbindungen wartet, und er lief in die
-       Zeitgrenze des Treibers, statt eine Pruefung rot zu faerben
-       (Stolperstein 138). So bleibt der Lauf ganz, die Empfaenger horchen
-       weiter, und genau der Waechter faerbt sich, der dafuer da ist. */
+    /* GEZIELT AUF DEN HORCHPOSTEN, nicht auf das Abraeumen der Verbindungen. */
     nr: 'W6', name: 'Der SMTP-Empfaenger hoert nicht auf zu horchen',
     file: 'test/frame.js',
     search: '    server.close(() => r());',
@@ -6401,9 +5492,7 @@ const REGRESSIONS = [
   /* ---- 0.20.1: der Bericht ueber einen abgerissenen Lauf ---- */
   {
     /* BEIDE ZEILEN GEHOEREN ZUSAMMEN, und deshalb gibt es zwei Rueckbauten:
-       einen auf das AUFHEBEN des Grundes und einen auf das DRUCKEN. Faellt nur
-       das Drucken weg, steht der Grund im Ergebnis und niemand sieht ihn --
-       genau die Lage, in der Rueckbau 568 seinen Abriss unerklaert liess. */
+       einen auf das AUFHEBEN des Grundes und einen auf das DRUCKEN. */
     nr: 'W15', name: 'Der Bericht druckt die letzten Zeilen eines Abrisses nicht mehr',
     file: 'counterproof.js',
     search: '      for (const z of e.tail || []) console.log(`     \u2502 ${z}`);',
@@ -6418,22 +5507,16 @@ const REGRESSIONS = [
     expected: 'Die Gegenproben greifen'
   },
   /* ---- Die sieben Waechter der Sprachdatei -- 0.24.0 ------------------
-     SIEBEN FRAGEN, NEUN RUECKBAUTEN. Jede der neuen Zusicherungen bekommt
-     genau den Fall, gegen den sie gebaut ist -- eine Zusicherung ohne
-     Gegenprobe ist eine Behauptung (Projektstand, Abschnitt 12). */
+     SIEBEN FRAGEN, NEUN RUECKBAUTEN. */
   {
-    /* EINE ZWEITE SPRACHDATEI MIT GANZ ANDEREN SCHLUESSELN. package.json ist
-       lesbares JSON und traegt kein einziges `card.`; die Deckungsprobe muss
-       das sehen -- und die Formatprobe die fehlende Locale. */
+    /* EINE ZWEITE SPRACHDATEI MIT GANZ ANDEREN SCHLUESSELN. */
     nr: '685', name: 'Eine zweite Sprachdatei traegt andere Schluessel',
     file: 'package.json',
     copy: 'public/languages/en.json',
     expected: 'Die sieben Waechter der Sprachdatei — 0.24.0'
   },
   {
-    /* EIN SCHLUESSEL WIRD UMBENANNT. Danach steht in der Datei einer, den
-       niemand ruft, und im Code einer, den die Datei nicht kennt -- beide
-       Haelften der Verwendungsprobe auf einmal. */
+    /* EIN SCHLUESSEL WIRD UMBENANNT. */
     nr: '686', name: 'Ein Schluessel der Sprachdatei heisst anders als im Code',
     file: 'public/languages/de.json',
     search: '"list.open": "\u00d6ffnen",',
@@ -6441,9 +5524,7 @@ const REGRESSIONS = [
     expected: 'Die sieben Waechter der Sprachdatei \u2014 0.24.0'
   },
   {
-    /* EIN PLATZHALTER HEISST BEINAHE WIE EIN VOKABELWORT. `{sache}` gibt es
-       nicht -- es heisst `{sacheEinzahl}`; der Helfer laesst das Unbekannte
-       ausdruecklich stehen, und am Bildschirm stuende woertlich „{sache}". */
+    /* EIN PLATZHALTER HEISST BEINAHE WIE EIN VOKABELWORT. */
     nr: '687', name: 'Ein Platzhalter heisst beinahe wie ein Vokabelwort',
     file: 'public/languages/de.json',
     search: "\"list.foundIn\": \"Gefunden in: {source}\",",
@@ -6451,8 +5532,7 @@ const REGRESSIONS = [
     expected: 'Die sieben Waechter der Sprachdatei \u2014 0.24.0'
   },
   {
-    /* EINE MEHRZAHLFORM VERLIERT IHRE EINZAHL. Der Helfer waehlt dann
-       `undefined` und setzt es am Bildschirm ein. */
+    /* EINE MEHRZAHLFORM VERLIERT IHRE EINZAHL. */
     nr: '688', name: 'Einer Mehrzahlform fehlt die Einzahl',
     file: 'public/languages/de.json',
     search: "\"list.commentCount\": {\n    \"one\": \"{n} Kommentar\",\n    \"other\": \"{n} Kommentare\"\n  },",
@@ -6460,8 +5540,8 @@ const REGRESSIONS = [
     expected: 'Die sieben Waechter der Sprachdatei \u2014 0.24.0'
   },
   {
-    /* DIE DEUTSCHE REGEL KEHRT IN DEN CODE ZURUECK: `n === 1 ?` waehlt
-       wieder zwei Saetze, statt Intl.PluralRules zu fragen. */
+    /* DIE DEUTSCHE REGEL KEHRT IN DEN CODE ZURUECK: `n === 1 ?` waehlt wieder
+       zwei Saetze, statt Intl.PluralRules zu fragen. */
     nr: '689', name: 'Eine Mehrzahl waehlt ihre Form wieder ueber `=== 1 ?`',
     file: 'public/app.js',
     search: "const vThing = (n) => counted(n, V.entryOne, V.entryMany);",
@@ -6469,9 +5549,7 @@ const REGRESSIONS = [
     expected: 'Die sieben Waechter der Sprachdatei \u2014 0.24.0'
   },
   {
-    /* EIN DEUTSCHER SATZ BLEIBT IM QUELLTEXT STEHEN. Genau der Fall, gegen
-       den diese ganze Runde gebaut ist -- und die Restliste nennt ihn beim
-       Namen, statt bloss eine Zahl zu zeigen. */
+    /* EIN DEUTSCHER SATZ BLEIBT IM QUELLTEXT STEHEN. */
     nr: '690', name: 'Ein deutscher Satz bleibt wieder in app.js stehen',
     file: 'public/app.js',
     search: "      button.textContent = t('entry.showLess');",
@@ -6479,13 +5557,7 @@ const REGRESSIONS = [
     expected: 'Die sieben Waechter der Sprachdatei \u2014 0.24.0'
   },
   {
-    /* EINE LOCALE, DIE ES NICHT GIBT. Ohne sie rechnet Intl mit der Sprache
-       des Servers weiter -- still, und das Datum sieht ploetzlich anders aus.
-       `xx-XX` UND NICHT `de-XYZ`: das zweite ist kein gueltiges Sprachetikett,
-       und `new Intl.PluralRules('de-XYZ')` wirft schon beim Start des Servers.
-       Ein Rueckbau, der den Lauf abreisst, belegt nichts -- gesucht ist die
-       ROTE ZEILE, nicht der Absturz. `xx-XX` ist wohlgeformt und trotzdem
-       keiner Sprache zugeordnet: `supportedLocalesOf` gibt nichts zurueck. */
+    /* EINE LOCALE, DIE ES NICHT GIBT. */
     nr: '691', name: 'Die Sprachdatei nennt eine Locale, die Intl nicht kennt',
     file: 'public/languages/de.json',
     search: "\"_locale\": \"de-DE\",",
@@ -6511,10 +5583,8 @@ const REGRESSIONS = [
     expected: 'Der Systembereich nach Rolle'
   },
 
-  /* ---- Die sechs Waechter der Runde 0.24.1 ----------------------------
-     Ein Waechter, der nie rot wird, ist eine Behauptung. Jeder der sechs
-     bekommt hier seinen Rueckbau: eine Stelle, an der ein deutscher Name
-     zurueckkehrt -- und der Lauf muss es merken. */
+  /* ---- Die sechs Waechter der Runde 0.24.1 ---------------------------- Ein
+     Waechter, der nie rot wird, ist eine Behauptung. */
   {
     nr: '694', name: 'Ein deutscher Bezeichner kehrt in den Server zurueck',
     file: 'server.js',
@@ -6558,11 +5628,8 @@ const REGRESSIONS = [
     expected: 'Der Quelltext spricht Englisch — die sechs Waechter'
   },
 
-  /* ---- Der Sprachhelfer, nach zwei Befunden aus dem Betrieb ------------
-     Am 7. September 2026 gemeldet: die Vorschaukachel im Eintrag war mit der
-     Maus nicht mehr anzuklicken. Ursache war `t.parentElement` -- `t` ist
-     seit 0.24.0 der Sprachhelfer, die Kachel heisst `tile`. Dieser Rueckbau
-     stellt genau das wieder her. */
+  /* ---- Der Sprachhelfer, nach zwei Befunden aus dem Betrieb ------------ Am
+     7. */
   {
     nr: '700', name: 'Die Vorschaukachel fragt wieder den Sprachhelfer nach ihrem Vater',
     file: 'public/app.js',
@@ -6579,11 +5646,7 @@ const REGRESSIONS = [
   },
 
   /* ---- Die gespeicherten Formen — 0.24.2 -------------------------------
-     Der Befund aus dem Betrieb vom 7. September 2026: 0.24.1 hat die
-     SCHLUESSEL in `settings` umbenannt, aber nicht die Feldnamen IN den
-     gespeicherten Werten. Diese sieben Rueckbauten nehmen der Migration je
-     ein Stueck weg -- und jeder muss die Gruppe rot machen, sonst belegt sie
-     nichts. */
+     Der Befund aus dem Betrieb vom 7. */
   {
     nr: '710', name: 'Eine Datei mit kaputtem JSON nimmt den Server wieder mit',
     file: 'server.js',
@@ -6605,8 +5668,7 @@ const REGRESSIONS = [
     replacement: "    if (false) {",
     expected: 'Die Fremddatei und der Dateiname — 0.24.3'
   },
-  /* UND DIE MELDUNG SELBST. Eine still uebergangene Datei sieht fuer den
-     Eigentuemer aus wie eine, die gar nicht ankommt. */
+  /* UND DIE MELDUNG SELBST. */
   {
     nr: '713', name: 'Die uebergangene Datei wird nicht mehr genannt',
     file: 'server.js',
@@ -6623,16 +5685,7 @@ const REGRESSIONS = [
     expected: 'Der Vorrat der Sprachen — 0.24.3'
   },
   {
-    /* DIE KLEMME STEHT AN ZWEI STELLEN, UND DESHALB SIND ES ZWEI RUECKBAUTEN.
-       writeLanguages() legt die Vorgabe beim SCHREIBEN in den Vorrat zurueck,
-       languagePool() beim LESEN. Die erste Fassung dieser Gegenprobe nahm nur
-       eine der beiden weg und blieb STUMM: die andere hat sie aufgefangen,
-       und der Waechter sah nichts. Das war keine Schwaeche des Baus, sondern
-       eine des Waechters -- er hat die Doppelung nur als Ganzes gesehen.
-       SEIT 0.24.3 PRUEFT DER WAECHTER JEDE HAELFTE EINZELN: die schreibende
-       an der Zeile in der Ablage, die lesende an einem Vorrat, der am
-       Schreibweg vorbei hineingelegt wird. Erst damit hat jede Haelfte ihre
-       eigene Gegenprobe. */
+    /* DIE KLEMME STEHT AN ZWEI STELLEN, UND DESHALB SIND ES ZWEI RUECKBAUTEN. */
     nr: '715', name: 'Die Vorgabesprache faellt beim SCHREIBEN aus dem Vorrat',
     file: 'server.js',
     search: "  if (!set.includes(std)) set.push(std);",
@@ -6646,8 +5699,7 @@ const REGRESSIONS = [
     replacement: "  return pool;",
     expected: 'Der Vorrat der Sprachen — 0.24.3'
   },
-  /* DER RUECKFALL DER NAMEN (F8a, F8b). Der erste ist der Befund aus
-     Bauabschnitt 6a: ein Admin, der Deutsch liest, benennt sonst nie um. */
+  /* DER RUECKFALL DER NAMEN (F8a, F8b). */
   {
     nr: '716', name: 'Ohne Sprachangabe meint der Schreibweg wieder die Sprache des Lesers',
     file: 'server.js',
@@ -6656,12 +5708,7 @@ const REGRESSIONS = [
     expected: 'Der Rueckfall der Namen — 0.24.3'
   },
   {
-    /* MITGEGANGEN MIT 0.25.0 (Stolperstein 201). Bis 0.24.6 baute dieser
-       Rueckbau die Loeschung „eine Uebersetzung, die der Grundzeile gleicht"
-       zurueck -- die Regel ist mit dieser Runde weggefallen (die Grundzeile hat
-       jetzt eine eigene Sprache, und ein gleicher Name ist eine Uebersetzung).
-       An ihre Stelle tritt die Frage, um die es seither geht: WELCHE Zeile ein
-       Umbenennen trifft. */
+    /* MITGEGANGEN MIT 0.25.0. */
     nr: '717', name: 'Die Grundzeile haengt wieder an der Vorgabesprache',
     file: 'server.js',
     search: "  if (language === rowLanguage) return true;",
@@ -6678,16 +5725,14 @@ const REGRESSIONS = [
   {
     /* NICHT DIE TABELLE WEGNEHMEN: eine Abfrage auf eine Tabelle, die es
        nicht gibt, nimmt den Server beim Vorbereiten mit, und der Lauf reisst
-       ab statt namentlich rot zu werden. Zurueckgebaut wird deshalb der
-       LESEWEG -- die Liste kommt dann in jeder Sprache in der Grundfassung. */
+       ab statt namentlich rot zu werden. */
     nr: '719', name: 'Die Kategorienamen werden nicht mehr je Sprache gelesen',
     file: 'server.js',
     search: "const categoryNames = (locale) => nameTable(qCategoryBase.all(), qCategoryNamesAll.all(), locale);",
     replacement: "const categoryNames = () => new Map();",
     expected: 'Der Rueckfall der Namen — 0.24.3'
   },
-  /* DIE GESPEICHERTEN WERTE (F7). Der zweite Migrationsblock dieser Runde --
-     und die vier Faelle, an denen ein Bestand etwas verloere. */
+  /* DIE GESPEICHERTEN WERTE (F7). */
   {
     nr: '731', name: 'Der Export nimmt die Sprachfassungen der Namen nicht mit',
     file: 'server.js',
@@ -6702,13 +5747,11 @@ const REGRESSIONS = [
     replacement: "      ['criterion_names', 'criterion_id', critByName, null],",
     expected: 'Der Rueckfall der Namen — 0.24.3'
   },
-  /* ---- Die Sprachpillen der Namenskarten -- 0.24.5 ----
-     ZWOELF RUECKBAUTEN FUER EINE REPARATUR, und das ist keine Uebertreibung:
-     der Befund hatte drei Wege (D1, D2, D3), die Reparatur hat zwei Enden
-     (Server und Karte), und die Haelfte der neuen Zusagen ist eine
-     ABWESENHEIT -- kein Zwischenspeicher, kein Nachholen, kein fuenfter Wert
-     an api(). Eine Abwesenheit laesst sich nur belegen, indem man sie
-     probeweise zurueckholt. */
+  /* ---- Die Sprachpillen der Namenskarten -- 0.24.5 ---- ZWOELF RUECKBAUTEN
+     FUER EINE REPARATUR, und das ist keine Uebertreibung: der Befund hatte
+     drei Wege (D1, D2, D3), die Reparatur hat zwei Enden (Server und Karte),
+     und die Haelfte der neuen Zusagen ist eine ABWESENHEIT -- kein
+     Zwischenspeicher, kein Nachholen, kein fuenfter Wert an api(). */
   {
     nr: '737', name: 'Die Namenstafeln fallen aus der Antwort',
     file: 'server.js',
@@ -6724,15 +5767,10 @@ const REGRESSIONS = [
     expected: 'Die Namenstafeln je Sprache — 0.24.5'
   },
   {
-    /* DER RUECKFALL SCHON IN DER TAFEL EINGESETZT -- genau die Bauform, die bei
-       den vierzehn Vokabelwoertern B2 verursacht hat: eine Tafel, in der der
-       Rueckfall wie ein Eintrag aussieht, kann die Karte nicht mehr
-       kennzeichnen.
-       MITGEGANGEN MIT 0.25.0 (Stolperstein 201): seit dieser Runde SETZT die
-       Tafel den Rueckfall ein und sagt es (`from`). Der Rueckbau nimmt genau
-       das Sagen weg -- dann sieht jede Zelle aus wie ein Eintrag, die Zahl an
-       der Pille faellt auf null, das ✕ stuende ueberall, und der Rahmen
-       bliebe aus. */
+    /* DER RUECKFALL SCHON IN DER TAFEL EINGESETZT -- genau die Bauform, die
+       bei den vierzehn Vokabelwoertern B2 verursacht hat: eine Tafel, in der
+       der Rueckfall wie ein Eintrag aussieht, kann die Karte nicht mehr
+       kennzeichnen. */
     nr: '739', name: 'Die Namenstafel behauptet, jede Zelle sei eingetragen',
     file: 'server.js',
     search: "      table[row.id] = { name: hit.name, from: hit.from };",
@@ -6740,9 +5778,7 @@ const REGRESSIONS = [
     expected: 'Die Sprachpillen der Namenskarten — 0.24.5'
   },
   {
-    /* UND DIE TAFEL ENTSCHEIDET WIEDER UEBER EINE SPRACHE. Ein Bauer, der eine
-       Sprache annimmt, ist die alte Frage in neuer Form -- und der Rufer gibt
-       keine mit, also bleibt genau eine Spalte gefuellt. */
+    /* UND DIE TAFEL ENTSCHEIDET WIEDER UEBER EINE SPRACHE. */
     nr: '740', name: 'Der Bauer der Kriterientafel nimmt wieder eine Sprache an',
     file: 'server.js',
     search: "const criterionNamesAll = () => namesAll(qCriterionBase.all(), qCriterionNamesAll.all());",
@@ -6760,8 +5796,7 @@ const REGRESSIONS = [
   },
   {
     /* DER FUENFTE WERT AN api() -- er kommt zurueck, und nichts am Bildschirm
-       aendert sich. Genau dafuer steht der Waechter da: ein Weg, der wieder
-       offen ist, wird wieder benutzt. */
+       aendert sich. */
     nr: '742', name: 'api() nimmt wieder eine fremde Sprache an',
     file: 'public/app.js',
     search: "async function api(method, url, body, isForm = false) {",
@@ -6802,15 +5837,12 @@ const REGRESSIONS = [
     expected: 'Die Sprachpillen der Namenskarten — 0.24.5'
   },
   {
-    /* UND DER ZWEITE WEG IN DIE LISTE -- der, den der Auftrag nicht kannte.
-       drawAdmin() zeichnet nach jedem Umbenennen, Anlegen, Loeschen und
-       Sortieren; las es an namesFrom vorbei, stand die Pille auf Türkçe ueber
-       einer deutschen Liste. */
+    /* UND DER ZWEITE WEG IN DIE LISTE -- der, den der Auftrag nicht kannte. */
     nr: '747', name: 'drawAdmin liest wieder an namesFrom vorbei',
     file: 'public/app.js',
-    search: "       keine Pillenreihe. */\n" +
+    search: "    /* DURCH namesFrom() UND NICHT AUS `fetched` -- 0.24.5. */\n" +
       "    manageList('mcats', namesFrom(fetched, 'cats'), 'cat', fetched);",
-    replacement: "       keine Pillenreihe. */\n" +
+    replacement: "    /* DURCH namesFrom() UND NICHT AUS `fetched` -- 0.24.5. */\n" +
       "    manageList('mcats', fetched.cats, 'cat', fetched);",
     expected: 'Die Sprachpillen der Namenskarten — 0.24.5'
   },
@@ -6823,16 +5855,10 @@ const REGRESSIONS = [
   },
   /* ================= 0.24.6 — der Rueckfall sagt, was er zeigt ==========
      ZEHN RUECKBAUTEN FUER DREI TEILE, die zusammenhaengen: die Kette (E2),
-     der Kartenhinweis (E1) und das Nachziehen der Tafeln (E3). Vier davon
-     nehmen eine Zusage weg, die es bis 0.24.5 gar nicht gab -- und genau
-     deshalb muessen sie gefahren werden: eine neue Zeile, die nie
-     zurueckgebaut worden ist, ist eine Behauptung. */
+     der Kartenhinweis (E1) und das Nachziehen der Tafeln (E3). */
   {
-    /* DER DRITTE SCHRITT DER KETTE -- die Antwort des Betreibers auf F2. Ohne
-       ihn bleibt die Kette bei der Vorgabesprache stehen, und eine Zeile,
-       fuer die nur eine dritte Sprache etwas traegt, zeigt wieder, was
-       hereinkam. */
-    /* MITGEGANGEN MIT 0.25.0 (Stolperstein 201): die Kette steht seit dieser
+    /* DER DRITTE SCHRITT DER KETTE -- die Antwort des Betreibers auf F2. */
+    /* MITGEGANGEN MIT 0.25.0: die Kette steht seit dieser
        Runde AM SERVER und nicht mehr in der Karte -- dieselbe Zusage, ein
        anderer Ort, und sie gilt jetzt fuer JEDEN Leser. */
     nr: '749', name: 'Die Kette bricht nach der Vorgabesprache ab',
@@ -6854,9 +5880,7 @@ const REGRESSIONS = [
     /* UND DIE KLAMMER BEHAUPTET WIEDER EINE SPRACHE, statt keine zu nennen --
        das war die Zeile, die der Betreiber gemeldet hat. */
     /* MITGEGANGEN MIT 0.25.0: die Klammer ist der VIERTE Schritt der Kette
-       und steht seither am Server. Sie behauptet keine Sprache -- der Rueckbau
-       laesst sie eine behaupten, und danach steht „(nicht eingetragen — es
-       steht Deutsch)" an einer Zeile, deren Sprache niemand kennt. */
+       und steht seither am Server. */
     nr: '751', name: 'Die Klammer behauptet wieder eine Sprache',
     file: 'server.js',
     search: "  return { name: row.name, from: null, fallback: true };",
@@ -6865,12 +5889,7 @@ const REGRESSIONS = [
   },
   {
     /* DIE REIHENFOLGE: die Vorgabesprache VOR der Erstellungssprache und
-       nicht umgekehrt. Ein Rueckbau, der die Kette LAESST und nur ihre Ordnung
-       dreht -- sonst waere die Reihenfolge eine Behauptung ohne Beleg.
-       MITGEGANGEN MIT 0.25.0: bis 0.24.6 war es die Ordnung des VORRATS, jetzt
-       sind es zwei benannte Schritte. Derselbe Suchtext wie 749, wie bei 233
-       und 448 -- zwei Rueckbauten duerfen an derselben Zeile ziehen, solange
-       sie verschiedene Dinge wegnehmen. */
+       nicht umgekehrt. */
     nr: '752', name: 'Die Kette laeuft in der umgekehrten Reihenfolge',
     file: 'server.js',
     search: "  for (const code of [std, row.language]) {",
@@ -6878,21 +5897,9 @@ const REGRESSIONS = [
     expected: 'Die Kette am Server — 0.25.0'
   },
   /* RUECKBAU 753 IST MIT 0.25.0 WEGGEFALLEN und nicht mitgegangen -- „Die
-     Kette nimmt auch Sprachen ausserhalb des Vorrats". Er hat keinen Ort mehr:
-     die Kette LAEUFT NICHT MEHR UEBER DEN VORRAT. Sie hat drei benannte
-     Schritte -- die Sprache des Lesers (`localeOf` klemmt sie gegen den
-     Vorrat), die Vorgabe der Installation (die IST im Vorrat, an zwei Stellen
-     erzwungen) und die Erstellungssprache der Zeile (die ist der Originaltext
-     und keine Wahl). Eine vierte Sprache, die eine Klemme abweisen muesste,
-     kommt gar nicht mehr vor. */
+     Kette nimmt auch Sprachen ausserhalb des Vorrats". */
   {
-    /* MITGEGANGEN MIT 0.25.0 (Stolperstein 201). Bis 0.24.6 baute dieser
-       Rueckbau den Kartenhinweis zur Grundzeile zurueck; der Hinweis ist mit
-       dieser Runde weggefallen (`card.namesBaseRow`), weil die Grundzeile
-       seither eine eigene Sprache hat und der Satz damit falsch wurde.
-       An seine Stelle tritt das Merkmal, das ihn ersetzt: der rote Rahmen an
-       der Kachel (F3). Ohne ihn sagt die Karte nicht mehr, dass in DIESER
-       Ansicht Arbeit liegt. */
+    /* MITGEGANGEN MIT 0.25.0. */
     nr: '754', name: 'Der rote Rahmen an der Kachel faellt weg',
     file: 'public/app.js',
     search: "  if (card) card.classList.toggle('gaps', namesMissing(key, shownCode, only) > 0);",
@@ -6900,19 +5907,7 @@ const REGRESSIONS = [
     expected: 'Die Karte sagt, wo Arbeit liegt — 0.25.0'
   },
   {
-    /* UND DIE ANDERE HAELFTE: es steht ueberall. Ein Merkmal, das immer
-       dasteht, sagt nichts mehr -- und ohne diesen Rueckbau bliebe die Zusage
-       „und bei einer vollstaendigen Sprache NICHT" ungeprueft.
-       ER ZIELT AUF DIE BEDINGUNG UND NICHT AUF DAS AUSSEHEN, und das hat der
-       gefahrene Lauf von 0.24.6 entschieden: der erste Entwurf tauschte damals
-       im Satz `baseNamesLanguage()` gegen `namesLanguage()` -- und weil der
-       Satz nur gezeichnet wurde, WENN die beiden gleich sind, war der Rueckbau
-       ein Nichts. **Er lief STUMM** und belegte gar nichts (ein Rueckbau muss
-       die Stelle treffen, die die Zusage traegt).
-       DERSELBE SUCHTEXT WIE 754 UND TROTZDEM EIN ZWEITER: der eine nimmt das
-       Merkmal weg, der andere stellt es ueberall hin. Verschiedene Zusagen,
-       verschiedene rote Punkte.
-       MITGEGANGEN MIT 0.25.0, wie 754 und aus demselben Grund. */
+    /* UND DIE ANDERE HAELFTE: es steht ueberall. */
     nr: '755', name: 'Der rote Rahmen steht an jeder Kachel',
     file: 'public/app.js',
     search: "  if (card) card.classList.toggle('gaps', namesMissing(key, shownCode, only) > 0);",
@@ -6931,7 +5926,7 @@ const REGRESSIONS = [
   },
   {
     /* UND DIE WURZEL AM SERVER: die Antwort des Wechsels traegt die Tafeln
-       gar nicht erst. Die Karte kann dann nichts nachziehen. */
+       gar nicht erst. */
     nr: '757', name: 'Die Antwort des Wechsels traegt die Namenstafeln nicht',
     file: 'server.js',
     search: "             ...(isAdmin(req) && languagesTouched\n" +
@@ -6941,8 +5936,7 @@ const REGRESSIONS = [
   },
   {
     /* UND DIE BEDINGUNG DANEBEN: jede Antwort dieses Weges traegt die Tafeln,
-       auch die auf ein gespeichertes Filterfeld. Ohne diesen Rueckbau waere
-       „nur wenn die Sprachfrage beruehrt war" eine Behauptung. */
+       auch die auf ein gespeichertes Filterfeld. */
     nr: '758', name: 'Jede Antwort des Schreibwegs traegt die Namenstafeln',
     file: 'server.js',
     search: "             ...(isAdmin(req) && languagesTouched",
@@ -6952,8 +5946,7 @@ const REGRESSIONS = [
   {
     /* UND DER BEFUND, DEN DER AUFTRAG NICHT KANNTE: der Gewichtswechsel
        schickt seinen Namen wieder OHNE Sprachangabe -- und ohne Angabe meint
-       der Server die Grundzeile. Ein Gewicht auf der Pille „English" benannte
-       damit die Grundzeile in den englischen Namen um. */
+       der Server die Grundzeile. */
     nr: '759', name: 'Der Gewichtswechsel schickt den Namen ohne Sprache',
     file: 'public/app.js',
     search: "          const now = await api('PUT', `${url}/${entry.id}`, spec.perLanguage\n" +
@@ -6966,13 +5959,9 @@ const REGRESSIONS = [
   },
   /* ================= 0.25.0 — der Name weiss, in welcher Sprache ========
      NEUNZEHN RUECKBAUTEN FUER FUENF BAUABSCHNITTE: die Datenbankstufe, die
-     Kette am Server, die Adminkarte, das Vokabular und den Beipack. Jeder
-     nimmt EINE Zusage weg -- und keiner von ihnen hatte vor dieser Runde
-     etwas, worauf er haette zeigen koennen. */
+     Kette am Server, die Adminkarte, das Vokabular und den Beipack. */
   {
-    /* DIE KETTE: eine neue Kategorie entsteht wieder OHNE Sprachvermerk. Ab
-       dieser Runde soll das nicht mehr vorkommen -- und die Zeile faellt
-       danach fuer jeden Leser in den vierten Schritt. */
+    /* DIE KETTE: eine neue Kategorie entsteht wieder OHNE Sprachvermerk. */
     nr: '763', name: 'Eine neue Kategorie entsteht wieder ohne Sprachvermerk',
     file: 'server.js',
     search: "  const i = db.prepare('INSERT INTO product_categories (name, language) VALUES (?, ?)')\n" +
@@ -6982,8 +5971,7 @@ const REGRESSIONS = [
   },
   {
     /* UND DIE SPRACHE EINER NEUEN ZEILE IST WIEDER DIE VORGABE DER
-       INSTALLATION statt der des Rufers. Wer auf Deutsch liest und anlegt,
-       bekaeme eine Zeile, die „auf Englisch" heisst. */
+       INSTALLATION statt der des Rufers. */
     nr: '764', name: 'Eine neue Zeile bekommt die Vorgabe statt der Sprache des Rufers',
     file: 'server.js',
     search: "  if (wanted === undefined) return localeOf(req);\n" +
@@ -6994,7 +5982,7 @@ const REGRESSIONS = [
   },
   {
     /* DER EINE GRIFF WIRD ZUM UMSCHREIBER: er fasst auch die Zeilen an, die
-       ihre Sprache schon kennen. Aus einer Nachfrage wird damit ein Befehl. */
+       ihre Sprache schon kennen. */
     nr: '765', name: 'Der eine Griff schreibt auch die Zeilen um, die ihre Sprache kennen',
     file: 'server.js',
     search: "  const categories = db.prepare('UPDATE product_categories SET language = ? WHERE language IS NULL')",
@@ -7002,8 +5990,7 @@ const REGRESSIONS = [
     expected: 'Die Kette am Server — 0.25.0'
   },
   {
-    /* UND DAS ✕ RAEUMT DEN ORIGINALTEXT MIT. `name` ist `NOT NULL`, und eine
-       Zeile ohne Namen waere keine -- der Rueckbau nimmt die Absage weg. */
+    /* UND DAS ✕ RAEUMT DEN ORIGINALTEXT MIT. */
     nr: '766', name: 'Das ✕ raeumt auch den Originaltext',
     file: 'server.js',
     search: "  if (language === row.language)\n" +
@@ -7014,8 +6001,8 @@ const REGRESSIONS = [
   },
   {
     /* DER EXPORT LAESST DIE ERSTELLUNGSSPRACHEN LIEGEN -- der Befund, den der
-       Auftrag nicht kannte: der Import ist ein Anlegeweg wie jeder andere, und
-       ohne diese beiden Felder legte er Zeilen ohne Sprachvermerk an. */
+       Auftrag nicht kannte: der Import ist ein Anlegeweg wie jeder andere,
+       und ohne diese beiden Felder legte er Zeilen ohne Sprachvermerk an. */
     nr: '767', name: 'Der Export nimmt die Erstellungssprachen nicht mit',
     file: 'server.js',
     search: "           criteriaNames: exchangeCriterionNames(),\n" +
@@ -7024,12 +6011,7 @@ const REGRESSIONS = [
     expected: 'Der Rueckfall der Namen — 0.24.3'
   },
   {
-    /* UND DER IMPORT UEBERGEHT SIE, auch wenn die Datei sie traegt.
-       ZWEI RUECKBAUTEN UND NICHT EINER: die beiden Tabellen haben je ein
-       eigenes Feld und je einen eigenen Weg -- ein Kriterium entsteht aus der
-       Kriterienliste, eine Kategorie ausschliesslich dadurch, dass ein Eintrag
-       sie nennt. **Der erste Anlauf hat nur die Kategorien zurueckgebaut und
-       lief STUMM**, weil die Zusage darueber am Kriterium gemessen wurde. */
+    /* UND DER IMPORT UEBERGEHT SIE, auch wenn die Datei sie traegt. */
     nr: '768', name: 'Der Import uebergeht die Erstellungssprache der Kriterien',
     file: 'server.js',
     search: "    const critLanguages = fileLanguage(payload.criteriaLanguages);",
@@ -7045,9 +6027,7 @@ const REGRESSIONS = [
     expected: 'Der Rueckfall der Namen — 0.24.3'
   },
   {
-    /* DIE KARTE: die Pille traegt kein Merkmal mehr -- weder Punkt noch Zahl.
-       Wer wissen will, ob fuer Tuerkisch noch etwas fehlt, drueckt sie und
-       liest zwanzig Zeilen durch (Befund A3). */
+    /* DIE KARTE: die Pille traegt kein Merkmal mehr -- weder Punkt noch Zahl. */
     nr: '769', name: 'Die Pille traegt weder Punkt noch Zahl',
     file: 'public/app.js',
     search: "    b.innerHTML = esc(a.name) + (gaps\n" +
@@ -7058,8 +6038,7 @@ const REGRESSIONS = [
     expected: 'Die Karte sagt, wo Arbeit liegt — 0.25.0'
   },
   {
-    /* UND DIE ZAHL ZAEHLT ALLE ZELLEN STATT DER FEHLENDEN. Sie stuende dann
-       an jeder Pille und saegte nichts ueber die Arbeit. */
+    /* UND DIE ZAHL ZAEHLT ALLE ZELLEN STATT DER FEHLENDEN. */
     nr: '770', name: 'Die Zahl an der Pille zaehlt alle Zellen statt der fehlenden',
     file: 'public/app.js',
     search: "  return Object.entries(table).filter(([id, z]) =>\n" +
@@ -7069,8 +6048,7 @@ const REGRESSIONS = [
     expected: 'Die Karte sagt, wo Arbeit liegt — 0.25.0'
   },
   {
-    /* UND DER GELIEHENE NAME WIRD NICHT MEHR GEDAEMPFT. Die dritte Vorgabe des
-       Betreibers: fehlende Zellen gedaempft markiert. */
+    /* UND DER GELIEHENE NAME WIRD NICHT MEHR GEDAEMPFT. */
     nr: '771', name: 'Der geliehene Name wird nicht mehr gedaempft',
     file: 'public/app.js',
     search: "        <span class=\"mname${\n" +
@@ -7089,8 +6067,7 @@ const REGRESSIONS = [
     expected: 'Die Karte sagt, wo Arbeit liegt — 0.25.0'
   },
   {
-    /* UND ES SCHICKT WIEDER EINEN NAMEN STATT DES RAEUMZEICHENS. Der Server
-       sagte darauf `server.nameMissing`, und geraeumt waere nichts. */
+    /* UND ES SCHICKT WIEDER EINEN NAMEN STATT DES RAEUMZEICHENS. */
     nr: '773', name: 'Das ✕ schickt einen leeren Namen statt des Raeumzeichens',
     file: 'public/app.js',
     search: "          await api('PUT', `${url}/${entry.id}`,\n" +
@@ -7101,8 +6078,7 @@ const REGRESSIONS = [
   },
   {
     /* UND DER KASTEN FUER DIE UNBEKANNTE SPRACHE STEHT IMMER -- auch, wenn es
-       nichts mehr zu fragen gibt. Eine Nachfrage, die nach der Antwort
-       stehenbleibt, ist keine. */
+       nichts mehr zu fragen gibt. */
     nr: '774', name: 'Der Kasten fuer die unbekannte Sprache steht immer',
     file: 'public/app.js',
     search: "  box.hidden = open === 0;",
@@ -7110,8 +6086,7 @@ const REGRESSIONS = [
     expected: 'Die Karte sagt, wo Arbeit liegt — 0.25.0'
   },
   {
-    /* DAS VOKABULAR: die Pille traegt kein Merkmal. *„Das gilt natürlich auch
-       für Vokabular."* */
+    /* DAS VOKABULAR: die Pille traegt kein Merkmal. */
     nr: '775', name: 'Die Vokabelpille traegt weder Punkt noch Zahl',
     file: 'public/app.js',
     search: "      b.innerHTML = esc(a.name) + (gaps\n" +
@@ -7131,8 +6106,7 @@ const REGRESSIONS = [
     expected: 'Die Karte sagt, wo Arbeit liegt — 0.25.0'
   },
   {
-    /* UND DIE ANSAGE NACH DEM UMSCHALTEN FAELLT WEG (F4). Der Betreiber darf
-       auf eine lueckige Sprache umstellen -- aber er soll es erfahren. */
+    /* UND DIE ANSAGE NACH DEM UMSCHALTEN FAELLT WEG (F4). */
     nr: '777', name: 'Die Ansage nach dem Umschalten faellt weg',
     file: 'public/app.js',
     search: "    if (gapCode && gaps.names + gaps.words > 0) {",
@@ -7141,8 +6115,7 @@ const REGRESSIONS = [
   },
   {
     /* UND DIE PILLENREIHEN WERDEN NACH EINEM UMBENENNEN NICHT NACHGEZOGEN --
-       die Zahl darin bliebe auf dem Stand von vorhin stehen. Dieselbe Bauform
-       wie D2 der Runde 0.24.5, an einer neuen Stelle. */
+       die Zahl darin bliebe auf dem Stand von vorhin stehen. */
     nr: '778', name: 'Die Pillenreihen werden nach einem Umbenennen nicht nachgezogen',
     file: 'public/app.js',
     search: "    drawNameLanguages('ncatlang', 'cats');\n    drawNamesUnknown(fetched);",
@@ -7150,11 +6123,8 @@ const REGRESSIONS = [
     expected: 'Die Karte sagt, wo Arbeit liegt — 0.25.0'
   },
   {
-    /* ================= 0.25.1 =========================================
-       DIE ZAHL AN DER PILLE ZAEHLT WIEDER BEIDE KRITERIENKARTEN. Das ist
-       der gemeldete Zustand von 0.25.0: die Tafel `crits` traegt beide
-       Karten, und ohne die Auswahl der Kachel stand ueber „Bewertung" und
-       ueber „Potenzial" dieselbe Summe. */
+    /* ================= 0.25.1 ========================================= DIE
+       ZAHL AN DER PILLE ZAEHLT WIEDER BEIDE KRITERIENKARTEN. */
     nr: '780', name: 'Die Zahl an der Pille zaehlt wieder beide Kriterienkarten',
     file: 'public/app.js',
     search: "    const gaps = namesMissing(key, a.code, only);",
@@ -7162,11 +6132,7 @@ const REGRESSIONS = [
     expected: 'Jede Kachel zaehlt ihre eigene Arbeit — 0.25.1'
   },
   {
-    /* UND DER ROTE RAHMEN TUT ES AUCH. Zwei Aussagen, zwei Rueckbauten: die
-       Zahl sagt „so viel liegt hier", der Rahmen sagt „hier liegt etwas".
-       Ein Rueckbau, der beide traefe, liesse offen, welche von beiden haelt.
-       DERSELBE SUCHTEXT WIE 754 UND 755, und aus demselben Grund wie dort:
-       an einer Zeile haengen drei verschiedene Zusagen. */
+    /* UND DER ROTE RAHMEN TUT ES AUCH. */
     nr: '781', name: 'Der rote Rahmen zaehlt wieder beide Kriterienkarten',
     file: 'public/app.js',
     search: "  if (card) card.classList.toggle('gaps', namesMissing(key, shownCode, only) > 0);",
@@ -7174,9 +6140,7 @@ const REGRESSIONS = [
     expected: 'Jede Kachel zaehlt ihre eigene Arbeit — 0.25.1'
   },
   {
-    /* UND DIE KARTE REICHT DIE ZEILEN GAR NICHT ERST DURCH -- beim AUFBAU.
-       Die Pillenreihe entsteht an zwei Stellen, und beide muessen die
-       Auswahl kennen; dieser Rueckbau trifft die erste. */
+    /* UND DIE KARTE REICHT DIE ZEILEN GAR NICHT ERST DURCH -- beim AUFBAU. */
     nr: '782', name: 'Die erste Zeichnung reicht der Pillenreihe die Zeilen nicht',
     file: 'public/app.js',
     search: "  drawNameLanguages(`${k.list}-lang`, 'crits', rows);",
@@ -7184,11 +6148,7 @@ const REGRESSIONS = [
     expected: 'Jede Kachel zaehlt ihre eigene Arbeit — 0.25.1'
   },
   {
-    /* UND DIE ZWEITE: das Neuzeichnen nach einem Griff (`drawAdmin`). Bis
-       0.25.0 standen Liste und Pillenreihe dort in ZWEI Schleifen, und nur
-       die eine kannte die Phase -- genau die Bauform, aus der der Befund
-       entstanden ist. Ohne diesen Rueckbau bliebe unbelegt, dass die
-       Trennung ein Raeumen ueberlebt. */
+    /* UND DIE ZWEITE: das Neuzeichnen nach einem Griff (`drawAdmin`). */
     nr: '783', name: 'Das Neuzeichnen reicht der Pillenreihe die Zeilen nicht',
     file: 'public/app.js',
     search: "      drawNameLanguages(`${CRIT_CARD[phase].list}-lang`, 'crits', rows);",
@@ -7196,13 +6156,9 @@ const REGRESSIONS = [
     expected: 'Jede Kachel zaehlt ihre eigene Arbeit — 0.25.1'
   },
   {
-    /* UND DER VERMERK SITZT WIEDER IM NAMENSKASTEN -- der Zustand, in dem
-       er in der Kriterienkarte mit Auslassung kuerzte, weil ihm nur die
-       Namensspalte blieb.
-       ER STEHT DANACH ZWEIMAL IN DER ZEILE, einmal im Kasten und einmal am
-       Ende: ein Rueckbau tauscht EINE Stelle, und die Zusage haengt an der
-       ersten, die `querySelector` findet. Das ist gewollt und genuegt --
-       gepruefft wird, WO der Vermerk haengt und ob es den Kasten gibt. */
+    /* UND DER VERMERK SITZT WIEDER IM NAMENSKASTEN -- der Zustand, in dem er
+       in der Kriterienkarte mit Auslassung kuerzte, weil ihm nur die
+       Namensspalte blieb. */
     nr: '784', name: 'Der Vermerk sitzt wieder im Namenskasten',
     file: 'public/app.js',
     search: "        <span class=\"mname${\n" +
@@ -7212,9 +6168,7 @@ const REGRESSIONS = [
     expected: 'Jede Kachel zaehlt ihre eigene Arbeit — 0.25.1'
   },
   {
-    /* UND DIE ZEILE BEKOMMT DEN UMBRUCH NICHT. Ohne ihn bliebe der Vermerk
-       ein Feld neben den anderen: `flex-basis: 100%` wirkt nur in einer
-       Zeile, die umbrechen darf. */
+    /* UND DIE ZEILE BEKOMMT DEN UMBRUCH NICHT. */
     nr: '785', name: 'Die Zeile mit Vermerk bekommt den Umbruch nicht',
     file: 'public/app.js',
     search: "      if (entry.nameFallback !== undefined) row.classList.add('withback');",
@@ -7232,10 +6186,7 @@ const REGRESSIONS = [
     expected: 'Jede Kachel zaehlt ihre eigene Arbeit — 0.25.1'
   },
   {
-    /* UND EIN ALLEINSTEHENDES „yedek" BLEIBT IM TUERKISCHEN STEHEN. Ein
-       Waechter ueber alle Saetze faengt auch den einen, der wieder
-       hineinrutscht -- ohne diesen Rueckbau bliebe unbelegt, dass er das
-       tut. */
+    /* UND EIN ALLEINSTEHENDES „yedek" BLEIBT IM TUERKISCHEN STEHEN. */
     nr: '787', name: 'Ein alleinstehendes „yedek" bleibt im Tuerkischen stehen',
     file: 'public/languages/tr.json',
     search: "\"card.lastBackup\": \"Son yedekleme\"",
@@ -7243,12 +6194,8 @@ const REGRESSIONS = [
     expected: '„Backup" heisst auf Tuerkisch yedekleme — 0.25.1'
   },
   {
-    /* ================= 0.25.2 =========================================
-       DER STEMPEL DES SERVERS REIST WIEDER MIT. Das ist der gemeldete
-       Zustand: auf der Pille „Deutsch" steht der Punkt, und darunter
-       behauptet jede Zeile, fuer Deutsch sei nichts eingetragen -- weil der
-       Vermerk aus der Sprache des LESERS stammt und mit der Sprache der
-       PILLE beschriftet wird. */
+    /* ================= 0.25.2 ========================================= DER
+       STEMPEL DES SERVERS REIST WIEDER MIT. */
     nr: '788', name: 'Der Stempel des Servers reist wieder mit',
     file: 'public/app.js',
     search: "    if (hit.from === code) return { ...z, name: hit.name, nameFallback: undefined };",
@@ -7256,19 +6203,7 @@ const REGRESSIONS = [
     expected: 'Ein Leser, der anders liest — 0.25.2'
   },
   {
-    /* UND DIE ZWEITE ANGABE STEHT WIEDER IM QUELLTEXT. Sie tut dann nichts --
-       und genau das ist der Punkt: eine Angabe, die dieselbe Frage beantwortet
-       und noch niemand liest, ist der Anfang, nicht das Ende (Stolperstein 47).
-       Der Waechter ueber den Quelltext muss sie finden.
-
-       DER ERSTE ENTWURF ZIELTE AUF DIE KLICKWEICHE und liess den
-       Vokabelumschalter ins Leere schreiben. ER HAT DEN LAUF ABGERISSEN
-       („Cannot convert undefined or null to object"): aeltere Gruppen schalten
-       die Kachel um und rechnen danach mit dem, was dort steht -- ohne
-       Umschalten greifen sie ins Leere. Ein Rueckbau, der den Lauf
-       niederreisst, belegt nichts (dieselbe Lage wie 760 in 0.25.0). Und er
-       war ohnehin ueberfluessig: mit EINER Angabe gibt es keine zwei
-       Richtungen, die getrennt kaputtgehen koennten -- 790 nimmt sie beide. */
+    /* UND DIE ZWEITE ANGABE STEHT WIEDER IM QUELLTEXT. */
     nr: '789', name: 'Die zweite Angabe steht wieder im Quelltext',
     file: 'public/app.js',
     search: "let NAMES_SHOWN = null;",
@@ -7276,10 +6211,7 @@ const REGRESSIONS = [
     expected: 'Ein Leser, der anders liest — 0.25.2'
   },
   {
-    /* UND ER LIEST WIEDER SEINE EIGENE. Die andere Haelfte desselben
-       Gleichlaufs: wer schreibt, aber woanders liest, bewegt sich nicht mit,
-       wenn eine NACHBARKACHEL umschaltet. Zwei Rueckbauten, weil es zwei
-       Richtungen sind. */
+    /* UND ER LIEST WIEDER SEINE EIGENE. */
     nr: '790', name: 'Der Vokabelumschalter liest wieder seine eigene Angabe',
     file: 'public/app.js',
     search: "      b.className = 'pill' + (namesLanguage() === a.code ? ' on' : '');",
@@ -7287,14 +6219,8 @@ const REGRESSIONS = [
     expected: 'Ein Leser, der anders liest — 0.25.2'
   },
   {
-    /* ================= 0.25.3 =========================================
-       DIE FELDER EINER VOKABELZEILE FLIESSEN WIEDER VON OBEN. Das ist der
-       gemeldete Zustand: braucht eine Beschriftung zwei Zeilen und die
-       daneben eine, steht das eine Eingabefeld tiefer als das andere.
-       ER NIMMT BEIDE ZEILEN AUF EINMAL, und das ist hier richtig: sie sind
-       EINE Reparatur -- ohne die Spalte gibt es keine Unterkante, und ohne
-       die Unterkante nuetzt die Spalte nichts. Zwei Rueckbauten waeren zwei
-       Haelften derselben Zusage. */
+    /* ================= 0.25.3 ========================================= DIE
+       FELDER EINER VOKABELZEILE FLIESSEN WIEDER VON OBEN. */
     nr: '791', name: 'Die Felder einer Vokabelzeile fliessen wieder von oben',
     file: 'public/style.css',
     search: ".vocabulary-grid .field { margin-bottom: 10px; display: flex; flex-direction: column; }\n" +
@@ -7303,17 +6229,8 @@ const REGRESSIONS = [
     expected: 'Zwei Felder in einer Zeile stehen auf einer Linie — 0.25.3'
   },
   {
-    /* ================= 0.25.4 =========================================
-       DAS FREISTEHENDE WOERTCHEN STEHT WIEDER DA, WO EIN VERB HINGEHOERT.
-       Das ist der Befund selbst und nicht seine Umgebung: „değil" allein
-       verneint im Tuerkischen nichts, die Verneinung sitzt IM VERB. Der Satz
-       las sich damit als „Deine Verbindung ist davon nicht betroffen" und
-       sagte in Wahrheit das Gegenteil.
-       ER GREIFT AN EINER SPRACHDATEI UND NICHT AM QUELLTEXT, weil dort der
-       Fehler sass: der Bau von 0.25.4 gibt jeder Sprache einen ganzen Satz
-       und ueberlaesst ihr das hervorgehobene Stueck -- wer dieses Stueck
-       wieder zu einem Woertchen macht, hat den Befund zurueckgebaut, ohne
-       eine Zeile Programm anzufassen. Genau das muss auffallen. */
+    /* ================= 0.25.4 ========================================= DAS
+       FREISTEHENDE WOERTCHEN STEHT WIEDER DA, WO EIN VERB HINGEHOERT. */
     nr: '792', name: 'Das tuerkische Stueck ist wieder ein Woertchen statt eines Verbs',
     file: 'public/languages/tr.json',
     search: '"login.linkUnaffectedWord": "etkilenmez",',
@@ -7321,19 +6238,7 @@ const REGRESSIONS = [
     expected: 'Ein Satz, den jede Sprache selbst schneidet — 0.25.4'
   },
   {
-    /* UND DAS ANFUEHRUNGSZEICHEN BLEIBT WIEDER OFFEN. Der kleinste der drei
-       Befunde und der aelteste: `entry.tagQuote` geht unveraendert in ein
-       `title`, und am Bildschirm stand „Etiket „Werkzeug -- auf, aber nie zu.
-       ER GREIFT AN EINER EINZIGEN DATEI, obwohl alle drei betroffen waren:
-       der Waechter sieht jede Datei einzeln an, und eine offene reicht.
-       Wer den Rueckbau ueberlebt, hat einen Waechter, der nur die Mehrheit
-       fragt.
-       MIT 0.31.3 IST DAS PAAR EIN TUERKISCHES -- die tuerkische Typografie kennt
-       das deutsche nicht, und 0.31.3 hat es in `tr.json` umgestellt (F3, 68
-       Schluessel). Der Suchtext ist mitgezogen; der Pruefstand hat ihn mit null
-       Treffern gemeldet, und das ist wieder der Beleg, dass ein Rueckbau, der
-       ins Leere greift, auffaellt. Der Waechter von 0.25.4 zaehlt ohnehin alle
-       drei Zeichen und bleibt unberuehrt. */
+    /* UND DAS ANFUEHRUNGSZEICHEN BLEIBT WIEDER OFFEN. */
     nr: '793', name: 'Das Anfuehrungszeichen am Tagzeichen bleibt wieder offen',
     file: 'public/languages/tr.json',
     search: '"entry.tagQuote": "Etiket \u201c{name}\u201d",',
@@ -7341,14 +6246,7 @@ const REGRESSIONS = [
     expected: 'Ein Satz, den jede Sprache selbst schneidet — 0.25.4'
   },
   {
-    /* UND DER ZAEHLWERT REIST WIEDER UNTER EINEM FREMDEN NAMEN. Die Form
-       waehlt `PLURAL.select(values.n)` und NUR ueber `n`. Wer wieder `days`
-       reicht, bekommt `select(undefined)` -- und das ist die Mehrzahl, immer.
-       „in 1 Tagen" stand sieben Runden lang da.
-       DIE DATEI BLEIBT DABEI HEIL, und das ist der Sinn: die zwei Formen
-       stehen weiter drin und sehen richtig aus. Nur waehlt sie niemand mehr.
-       Ein Rueckbau, der die sichtbare Haelfte in Ruhe laesst und die
-       unsichtbare nimmt, prueft den Waechter und nicht das Auge. */
+    /* UND DER ZAEHLWERT REIST WIEDER UNTER EINEM FREMDEN NAMEN. */
     nr: '794', name: 'Der Zaehlwert reist wieder unter einem fremden Namen',
     file: 'public/app.js',
     search: "tMark('card.logKeepsHint', 'card.inDays', { n: log.days })",
@@ -7358,9 +6256,7 @@ const REGRESSIONS = [
 
   /* ---- 0.26.0: die kleinen Fehler fallen ---- */
   {
-    /* DAS DATEIFELD FLIEGT WIEDER AUS DEM LABEL. Ohne den eigenen Traeger
-       gibt es nichts, dessen Text sich tauschen liesse, ohne die Kinder des
-       Labels mitzunehmen -- und eines davon ist das Feld selbst. */
+    /* DAS DATEIFELD FLIEGT WIEDER AUS DEM LABEL. */
     nr: '795', name: 'Der Hinweistext hat keinen eigenen Traeger mehr',
     file: 'public/app.js',
     search: '<input type="file" id="file" accept="image/*,video/*" multiple><span\n          id="drop-text">',
@@ -7368,9 +6264,7 @@ const REGRESSIONS = [
     expected: 'Die kleinen Fehler fallen — 0.26.0'
   },
   {
-    /* UND DER FORTSCHRITT SCHREIBT WIEDER INS LABEL. Der Traeger steht dann
-       zwar da, aber niemand benutzt ihn: `textContent` am Label wirft alle
-       Kinder weg, das Feld eingeschlossen. Genau der Zustand vor 0.26.0. */
+    /* UND DER FORTSCHRITT SCHREIBT WIEDER INS LABEL. */
     nr: '796', name: 'Der Fortschritt schreibt wieder ins Label statt in den Traeger',
     file: 'public/app.js',
     search: "    const dropText = document.getElementById('drop-text');",
@@ -7378,9 +6272,8 @@ const REGRESSIONS = [
     expected: 'Die kleinen Fehler fallen — 0.26.0'
   },
   {
-    /* DIE FUSSZEILE HAENGT WIEDER IN DER ROLLENDEN LISTE -- `box.appendChild(foot)`,
-       der Zustand vor Befund 2. Der Knopf ist dann nur ueber einen Bildlauf
-       zu erreichen, den von aussen niemand als solchen erkennt. */
+    /* DIE FUSSZEILE HAENGT WIEDER IN DER ROLLENDEN LISTE --
+       `box.appendChild(foot)`, der Zustand vor Befund 2. */
     nr: '797', name: 'Die Fusszeile der Sitzungen haengt wieder in der Liste',
     file: 'public/app.js',
     search: "    if (!foot) return;\n    foot.innerHTML = other",
@@ -7388,8 +6281,7 @@ const REGRESSIONS = [
     expected: 'Die kleinen Fehler fallen — 0.26.0'
   },
   {
-    /* DER TITEL IST WIEDER EINZEILIG. Ein `<input>` bricht nicht um; auf dem
-       Telefon steht ein langer Titel dann wieder rechts aus dem Feld heraus. */
+    /* DER TITEL IST WIEDER EINZEILIG. */
     nr: '798', name: 'Der Eintragstitel ist wieder ein einzeiliges Feld',
     file: 'public/app.js',
     search: '<textarea class="title-in" id="title" rows="1">${esc(item.title)}</textarea>',
@@ -7397,8 +6289,8 @@ const REGRESSIONS = [
     expected: 'Die kleinen Fehler fallen — 0.26.0'
   },
   {
-    /* DIE DREI TEILE DES KNOPFES STEHEN WIEDER NEBENEINANDER, und der
-       `gap: 7px` setzt sich zwischen sie: „Mit Fotos (~ 301,5 KB )". */
+    /* DIE DREI TEILE DES KNOPFES STEHEN WIEDER NEBENEINANDER, und der `gap:
+       7px` setzt sich zwischen sie: „Mit Fotos (~ 301,5 KB )". */
     nr: '799', name: 'Der Ausfuhrknopf traegt wieder drei Flexkinder',
     file: 'public/app.js',
     search: '<button class="btn btn-accent btn-sm" id="ex-yes"><span>${tMarks(\'card.withPhotos\',\n            { word: \'<span id="ex-gr-yes">…</span>\' })}</span></button>',
@@ -7407,7 +6299,7 @@ const REGRESSIONS = [
   },
   {
     /* UND DIE KLAMMER GEHT WIEDER NICHT AUF -- der Satz, den das Umbenennen
-       der Bezeichner erwischt hat. Am Knopf steht dann „mit Fotos 301,5 KB )". */
+       der Bezeichner erwischt hat. */
     nr: '800', name: 'Der Satz am Ausfuhrknopf macht seine Klammer nicht mehr auf',
     file: 'public/languages/de.json',
     search: "\"card.withPhotos\": \"Mit Fotos (~{word})\",",
@@ -7415,8 +6307,7 @@ const REGRESSIONS = [
     expected: 'Die kleinen Fehler fallen — 0.26.0'
   },
   {
-    /* DER BENUTZER LIEST WIEDER UEBER EINEN KNOPF, DEN ER NICHT HAT. Der
-       Rueckbau gibt ihm den Bereich 0,2 bis 2 -- den Satz des Admins. */
+    /* DER BENUTZER LIEST WIEDER UEBER EINEN KNOPF, DEN ER NICHT HAT. */
     nr: '801', name: 'Der Gewichtssatz erklaert dem Benutzer wieder den Knopf des Admins',
     file: 'public/app.js',
     search: "            : t('card.weightSystemDefault')}</p>",
@@ -7424,8 +6315,7 @@ const REGRESSIONS = [
     expected: 'Die kleinen Fehler fallen — 0.26.0'
   },
   {
-    /* DIE TOTE REGEL STEHT WIEDER DA, und die lebende faellt. Sie tut nichts:
-       `:first-of-type` zaehlt DIV-Geschwister, und das erste ist der Kopf. */
+    /* DIE TOTE REGEL STEHT WIEDER DA, und die lebende faellt. */
     nr: '802', name: 'Der Strich vor den Summen kommt wieder aus einer toten Regel',
     file: 'public/style.css',
     search: '.calc-last > span { border-bottom-color: var(--line); }',
@@ -7442,9 +6332,7 @@ const REGRESSIONS = [
     expected: 'Die kleinen Fehler fallen — 0.26.0'
   },
   {
-    /* ß UND ss FALLEN WIEDER AUSEINANDER. „UEBERGROSS" findet „uebergroß"
-       dann nicht mehr -- und „Masse" findet „Maße" nicht, der Preis faellt
-       mit. Der Rueckbau nimmt NUR diesen Schritt: die vier i bleiben. */
+    /* ß UND ss FALLEN WIEDER AUSEINANDER. */
     nr: '804', name: 'ß und ss sind wieder zwei verschiedene Dinge',
     file: 'db.js',
     search: "      .replace(/\\u00df/g, 'ss'));",
@@ -7454,8 +6342,7 @@ const REGRESSIONS = [
 
   /* ---- 0.26.0: der Potenzialmodus ---- */
   {
-    /* DER STERNKASTEN WIRD WIEDER IMMER GEZEICHNET. Der Modus mag aus sein --
-       im Eintrag steht der Kasten dann doch, und ein Klick vergibt Sterne. */
+    /* DER STERNKASTEN WIRD WIEDER IMMER GEZEICHNET. */
     nr: '805', name: 'Der Sternkasten steht wieder an jedem Eintrag',
     file: 'public/app.js',
     search: '        ${POTENTIAL_MODE ? `<div class="block" data-block="potenzial">',
@@ -7467,12 +6354,11 @@ const REGRESSIONS = [
        Zahl, die nirgends zu sehen ist. */
     nr: '806', name: 'Die Sortiergruppe des Potenzials steht wieder immer da',
     file: 'public/app.js',
-    /* MITGEZOGEN MIT 0.28.1 (Stolperstein 201): die Gruppe wird seit der
+    /* MITGEZOGEN MIT 0.28.1: die Gruppe wird seit der
        Richtungstrennung nicht mehr im Aufbau verzweigt, sondern ueber `only`
-       aus der Liste der Grundlagen gefiltert. Dieselbe Sache, andere Stelle. */
+       aus der Liste der Grundlagen gefiltert. */
     /* UND MITGEZOGEN MIT 0.29.0: die Grundlage traegt seit dieser Runde auch
-       `start` (Befund 8), und die Zeile ist dabei umgebrochen. Dieselbe Sache,
-       dieselbe Stelle, eine Zeile weiter. */
+       `start` (Befund 8), und die Zeile ist dabei umgebrochen. */
     search: "      down: 'list.dirHighLow',  up: 'list.dirLowHigh', start: 'down',\n      only: () => POTENTIAL_MODE },",
     replacement: "      down: 'list.dirHighLow',  up: 'list.dirLowHigh', start: 'down',\n      only: () => true },",
     expected: 'Der Potenzialmodus — 0.26.0'
@@ -7489,10 +6375,7 @@ const REGRESSIONS = [
   },
   {
     /* DER SCHALTER FAELLT AUS DER EIGENTUEMERLISTE und wird gewoehnliche
-       Adminsache -- die Antwort auf F3 ist damit zurueckgenommen.
-       ER NIMMT GENAU `potentialMode` HERAUS und laesst die sechs anderen
-       stehen; Rueckbau 437 nimmt `convertImages`, und die beiden duerfen sich
-       nicht ins Gehege kommen. */
+       Adminsache -- die Antwort auf F3 ist damit zurueckgenommen. */
     nr: '809', name: 'Der Potenzialmodus ist wieder gewoehnliche Adminsache',
     file: 'server.js',
     search: "                                'languageDefault', 'languageOn', 'potentialMode'];",
@@ -7500,11 +6383,7 @@ const REGRESSIONS = [
     expected: 'Der Potenzialmodus — 0.26.0'
   },
   {
-    /* DER SERVER SAGT DER OBERFLAECHE NICHT MEHR, WIE DER SCHALTER STEHT.
-       Sie faellt dann auf ihre Vorgabe „an" zurueck -- und der ganze Modus
-       ist wieder da, obwohl er in der Datenbank auf aus steht. DER
-       SCHLIMMSTE FALL, und er faellt still aus: kein Fehler, keine Meldung,
-       nur ein Schalter, der nichts mehr tut. */
+    /* DER SERVER SAGT DER OBERFLAECHE NICHT MEHR, WIE DER SCHALTER STEHT. */
     nr: '810', name: 'Die Antwort verschweigt, wie der Schalter steht',
     file: 'server.js',
     search: "  potentialMode: potentialMode(),\n  /* DIE WAHL DER BILDABLAGE",
@@ -7513,14 +6392,7 @@ const REGRESSIONS = [
   },
   {
     /* ================= 0.26.0, BA 5 =====================================
-       DER BILDSCHIRM WIRD WIEDER GELEERT, BEVOR JEMAND GEFRAGT HAT. Das ist
-       der gemeldete Zustand: `renderList()` setzte den Platzhalter ohne
-       Bedingung und wartete erst danach auf `loadAll()` -- 227 ms weisse
-       Flaeche, gemessen im Browser des Betreibers am 10. September 2026.
-       ER NIMMT NUR DIE BEDINGUNG UND LAESST DIE ZUWEISUNG STEHEN, und das
-       ist hier richtig: eine Zuweisung, die ganz fehlte, waere ein anderer
-       Fehler (kein Platzhalter beim ersten Betreten). Der Rueckbau soll den
-       ALTEN Zustand herstellen und keinen dritten. */
+       DER BILDSCHIRM WIRD WIEDER GELEERT, BEVOR JEMAND GEFRAGT HAT. */
     nr: '811', name: 'Der Bildschirm wird wieder geleert, bevor jemand gefragt hat',
     file: 'public/app.js',
     search: "  if (!app.firstElementChild)\n    app.innerHTML = `<div class=\"shell\"><p class=\"hint\" style=\"padding-top:44px\">${tH('list.loading')}</p></div>`;",
@@ -7529,14 +6401,7 @@ const REGRESSIONS = [
   },
   {
     /* ================= 0.26.0, Beipack ==================================
-       DER LAUF HAENGT WIEDER NUR AN main. Das ist der Zustand vom Nachmittag
-       des 10. September, und er macht den Ablauf des Betreibers unmoeglich:
-       er setzt das Repository nur um einen Push herum auf oeffentlich, und
-       ein Push auf einen ZWEIG loeste dann gar nichts aus -- geprueft wuerde
-       erst nach dem Zusammenfuehren, also zu spaet.
-       ER NIMMT DEN ZWEIGFILTER UND LAESST DEN KNOPF STEHEN. Zwei Ereignisse
-       bleiben es damit, und genau darauf zielt er: eine Zusage, die nur
-       ZAEHLT, bliebe hier stumm. */
+       DER LAUF HAENGT WIEDER NUR AN main. */
     nr: '812', name: 'Der Lauf haengt wieder nur an main',
     file: '.github/workflows/pruefstand.yml',
     search: "on:\n  push:\n  workflow_dispatch:",
@@ -7544,19 +6409,10 @@ const REGRESSIONS = [
     expected: 'Der Beipack — 0.25.0'
   },
 
-  /* ---- Die waehlbare Bildablage — 0.27.0 ----
-     ELF ZUSAGEN, ELF RUECKBAUTEN, und jeder faehrt gegen GENAU EINE.
-     WAS HIER NICHT NOCH EINMAL STEHT: die neunzehn Rueckbauten dieser Sache,
-     die es laengst gibt (431 bis 435, 454 bis 462, 493, 506 bis 508, 522 bis
-     524, 810). Sie sind mit dieser Runde MITGEGANGEN und zeigen auf die
-     Zeilen, die dieselbe Sache jetzt tragen (Stolperstein 201) -- ein
-     zweiter Rueckbau daneben waere eine zweite Wahrheit ueber denselben
-     Fund. */
+  /* ---- Die waehlbare Bildablage — 0.27.0 ---- ELF ZUSAGEN, ELF RUECKBAUTEN,
+     und jeder faehrt gegen GENAU EINE. */
   {
-    /* ZUSAGE 1: die Einstellung kennt GENAU DREI Werte. Der Rueckbau laesst
-       einen vierten durch -- die Karte zeigte danach ein Verfahren an und der
-       Server legte in einem anderen ab, denn `imageStore()` faellt beim Lesen
-       auf die Vorgabe zurueck. Eine Luege, die nirgends auffaellt. */
+    /* ZUSAGE 1: die Einstellung kennt GENAU DREI Werte. */
     nr: '813', name: 'Ein vierter Wert kommt durch',
     file: 'server.js',
     search: "    if (!isImageStore(req.body.imageStore))",
@@ -7564,9 +6420,7 @@ const REGRESSIONS = [
     expected: 'Die Bildablage: die Rechte'
   },
   {
-    /* ZUSAGE 2: sie gehoert dem Eigentuemer. Der Rueckbau weitet die Klemme
-       auf jeden Admin -- ein Schluessel, der den PLATZBEDARF DER GANZEN
-       INSTANZ bestimmt, waere damit Tagesgeschaeft. */
+    /* ZUSAGE 2: sie gehoert dem Eigentuemer. */
     nr: '814', name: 'Die Wahl der Bildablage wird gewoehnliche Adminsache',
     file: 'server.js',
     search: "const OWNER_KEYS = ['imageStore',\n",
@@ -7574,10 +6428,7 @@ const REGRESSIONS = [
     expected: 'Die Bildablage: die Rechte'
   },
   {
-    /* ZUSAGE 3: eine frische Installation steht auf „WebP verlustfrei". Der
-       Rueckbau verstellt die Vorgabe auf PNG -- eine Runde, die eine Wahl
-       einfuehrt, haette damit die bisherige Antwort nebenbei geaendert, und
-       jede neue Installation legte ploetzlich dreimal so gross ab. */
+    /* ZUSAGE 3: eine frische Installation steht auf „WebP verlustfrei". */
     nr: '815', name: 'Die Vorgabe einer frischen Installation wird verstellt',
     file: 'images.js',
     search: "const IMAGE_STORE_DEFAULT = 'webp-lossless';",
@@ -7585,9 +6436,7 @@ const REGRESSIONS = [
     expected: 'Die Bildablage: die Rechte'
   },
   {
-    /* ZUSAGE 4: storeImage() LIEST die Wahl. Der Rueckbau verdrahtet sie
-       wieder fest -- dreimal dasselbe Bild ergaebe dreimal dasselbe Ergebnis,
-       und die Karte zeigte eine Wahl, die nichts tut. */
+    /* ZUSAGE 4: storeImage() LIEST die Wahl. */
     nr: '816', name: 'Die Wahl wird wieder fest verdrahtet',
     file: 'images.js',
     search: "  const recipe = IMAGE_STORES[isImageStore(store) ? store : IMAGE_STORE_DEFAULT];",
@@ -7595,13 +6444,7 @@ const REGRESSIONS = [
     expected: 'Die Bildablage: PNG kommt herein, WebP geht in die Tabelle'
   },
   {
-    /* ZUSAGE 5: die Groessenpruefung gilt in JEDEM Verfahren. Der Rueckbau
-       schaltet sie ab -- aus einer Wahl wuerde eine Wette, und am
-       verlustbehafteten Weg ist sie schaerfer gebraucht als am anderen.
-       ER IST NICHT DERSELBE WIE 433: der dort nimmt die Pruefung heraus und
-       ist als STUMM erwartet, weil PNG ueber die Groesse nie gewinnt. DIESER
-       laesst sie fuer ein Verfahren stehen und fuer die anderen fallen --
-       genau die Form, in der jemand sie „nur fuer Fotos" abschaltete. */
+    /* ZUSAGE 5: die Groessenpruefung gilt in JEDEM Verfahren. */
     nr: '817', name: 'Die Groessenpruefung gilt nicht mehr fuer jedes Verfahren',
     file: 'images.js',
     search: "    if (webp.length < buf.length)",
@@ -7609,9 +6452,7 @@ const REGRESSIONS = [
     expected: 'Die Bildablage: PNG kommt herein, WebP geht in die Tabelle'
   },
   {
-    /* ZUSAGE 6: die Ableitungen sind WebP, und ihr MIME-Typ sagt es. Der
-       Rueckbau stellt eine davon auf JPEG zurueck -- die Tafel traege
-       weiterhin ihre Zahl, und die bedeutete etwas anderes. */
+    /* ZUSAGE 6: die Ableitungen sind WebP, und ihr MIME-Typ sagt es. */
     nr: '818', name: 'Die Ableitungen werden wieder JPEG',
     file: 'images.js',
     search: "        .webp(variantWebp(v.q)).toBuffer();",
@@ -7619,9 +6460,7 @@ const REGRESSIONS = [
     expected: 'Die Bildablage: PNG kommt herein, WebP geht in die Tabelle'
   },
   {
-    /* ZUSAGE 8: Umschalten allein ruehrt den Bestand nicht an (F5). Der
-       Rueckbau haengt den Lauf ans Umschalten -- wer die Wahl PROBIERT,
-       bekaeme 500 MB umkodiert, und zwar ohne die zweite Bestaetigung. */
+    /* ZUSAGE 8: Umschalten allein ruehrt den Bestand nicht an (F5). */
     nr: '820', name: 'Der Lauf haengt am Umschalten',
     file: 'public/app.js',
     search: "      } catch (e) { IMAGE_STORE = before; toast(e.message, true); }",
@@ -7629,10 +6468,7 @@ const REGRESSIONS = [
     expected: 'Die Bildablage in der Oberflaeche'
   },
   {
-    /* ZUSAGE 9: die Karte nennt die Auflage. Der Rueckbau nimmt den Satz aus
-       der deutschen Datei -- und genau diese Bauform ist ein FUND vom
-       6. September 2026: Gegenprobe 485 nahm den damaligen Halbsatz heraus
-       und blieb STUMM, weil ihn keine Zusage las. */
+    /* ZUSAGE 9: die Karte nennt die Auflage. */
     nr: '821', name: 'Die Karte nennt die Auflage nicht mehr',
     file: 'public/languages/de.json',
     search: "Verlustbehaftet: bei Fotos rund zwei Drittel kleiner",
@@ -7640,15 +6476,8 @@ const REGRESSIONS = [
     expected: 'Die Bildablage in der Oberflaeche'
   },
   {
-    /* ZUSAGE 11: `convertImages` steht nach der Migration NIRGENDS mehr. Der
-       Rueckbau laesst den alten Schluessel stehen -- danach stuenden ZWEI
-       Zeilen ueber dieselbe Frage in derselben Tabelle, und beim naechsten
-       Griff waere nicht zu sagen, welche gilt (Stolperstein 47). */
-    /* F7 — DER SATZ AN DER EINFUEGESTELLE. Der Rueckbau nimmt ihn aus der
-       Zeile, in der er gezeichnet wird -- nicht aus der Sprachdatei: ein Satz,
-       der dort steht und nirgends erscheint, ist genau der Fall, den diese
-       Gegenprobe finden soll. Dieselbe Bauform wie 485, die daran STUMM
-       geblieben ist. */
+    /* ZUSAGE 11: `convertImages` steht nach der Migration NIRGENDS mehr. */
+    /* F7 — DER SATZ AN DER EINFUEGESTELLE. */
     nr: '824', name: 'Der Satz an der Einfuegestelle wird nicht gezeichnet',
     file: 'public/app.js',
     search: "          ${tH('entry.photoOrderHint')} ${tH('entry.clipboardLarger')}</p>",
@@ -7658,23 +6487,13 @@ const REGRESSIONS = [
   {
     /* DER UMBAU GING UEBER VIER AUFBAUTEN, und genau das ist die Gefahr: eine
        Zusage, die nur an renderDetail() haengt, bliebe gruen, wenn
-       renderCompare() seine alte Zeile behaelt. Dieser Rueckbau setzt sie an
-       der Ansicht zurueck, die am leichtesten vergessen wird. */
-    /* DER ERSTE ANLAUF HAT DEN LAUF ABGERISSEN, und das belegt nichts
-       (Stolpersteine 138, 161 und 170). Er nahm der Ansicht ihre Kopfzeile und
-       liess `wireSubhead()` stehen; `document.getElementById('menu')` gab
-       daraufhin null zurueck, und `menu.onclick = ...` warf, BEVOR eine
-       einzige Zusicherung lief.
-       ER NIMMT DESHALB BEIDES ZUSAMMEN -- den Aufbau UND seine Zusagen. Das
-       ist ohnehin der ehrlichere Rueckbau: „die Ansicht behaelt ihre alte
-       Zeile" heisst, dass sie die neue Kopfzeile gar nicht kennt, und nicht,
-       dass sie eine halbe traegt. */
+       renderCompare() seine alte Zeile behaelt. */
+    /* DER ERSTE ANLAUF HAT DEN LAUF ABGERISSEN, und das belegt nichts. */
     nr: '825', name: 'Der Vergleich behaelt seine alte Rueckzeile',
     file: 'public/app.js',
     /* NACHGEZOGEN IN 0.31.0: der Abstand unter dem Hinweis kommt seit dieser
        Runde aus der Klasse `.page-hint` und nicht mehr aus zwei Werten der
-       Sprachdatei. Der Rueckbau ist derselbe geblieben -- er nimmt der Seite
-       ihre gemeinsame Kopfzeile --, nur sein Suchtext ist mitgewandert. */
+       Sprachdatei. */
     search: "    ${subhead()}\n    <h1 class=\"page-title\">${tH('list.compare')}</h1>\n    <p class=\"hint page-hint${multipleUsers() ? ' above-pills' : ''}\" id=\"cmp-hint\"></p>\n    ${multipleUsers() ? `<div class=\"pills\" id=\"cmp-view\" style=\"margin:0 0 20px\"></div>` : ''}\n    <div class=\"cmp-grid\" id=\"cg\" style=\"grid-template-columns:repeat(auto-fit,minmax(264px,1fr))\"></div>\n  </div>`;\n  wireSubhead();",
     replacement: "    <a href=\"#/\" class=\"back\">${tH('list.backToList')}</a>\n    <h1 class=\"page-title\">${tH('list.compare')}</h1>\n    <p class=\"hint page-hint${multipleUsers() ? ' above-pills' : ''}\" id=\"cmp-hint\"></p>\n    ${multipleUsers() ? `<div class=\"pills\" id=\"cmp-view\" style=\"margin:0 0 20px\"></div>` : ''}\n    <div class=\"cmp-grid\" id=\"cg\" style=\"grid-template-columns:repeat(auto-fit,minmax(264px,1fr))\"></div>\n  </div>`;",
     expected: 'Die gemeinsame Kopfzeile und das Blaettern — 0.28.0'
@@ -7688,8 +6507,7 @@ const REGRESSIONS = [
     expected: 'Die gemeinsame Kopfzeile und das Blaettern — 0.28.0'
   },
   {
-    /* EIN FUENFTES DING DANEBENSTELLEN -- Gegenprobe zu Zusage 2. Sie nennt
-       die Stuecke namentlich; eine, die nur zaehlte, saehe diesen Tausch. */
+    /* EIN FUENFTES DING DANEBENSTELLEN -- Gegenprobe zu Zusage 2. */
     nr: '827', name: 'Die Glocke wandert in die Kopfzeile der Unteransicht',
     file: 'public/app.js',
     search: "    <div class=\"mast-rest\" id=\"mast-rest\">\n      <button class=\"icon-btn\" id=\"open\"",
@@ -7697,9 +6515,7 @@ const REGRESSIONS = [
     expected: 'Die gemeinsame Kopfzeile und das Blaettern — 0.28.0'
   },
   {
-    /* SIE WIRD EINE ZWEITE KOPFZEILE. Ohne `.masthead` haette die Unteransicht
-       ein eigenes Stilblatt -- und damit klebte sie nicht mehr oben, klappte
-       auf dem Telefon nicht ein und truege ihren Schatten nicht. */
+    /* SIE WIRD EINE ZWEITE KOPFZEILE. */
     nr: '828', name: 'Die Kopfzeile der Unteransicht wird eine eigene',
     file: 'public/app.js',
     search: "  return `<div class=\"masthead subhead\">",
@@ -7716,9 +6532,7 @@ const REGRESSIONS = [
     expected: 'Die gemeinsame Kopfzeile und das Blaettern — 0.28.0'
   },
   {
-    /* UND DER SCHREIBSTRICH BLEIBT LIEGEN. Der Sprung allein waere ein Griff,
-       das Tippen ein zweiter -- also genau die zwei Griffe, die die Runde
-       wegnimmt. Eine Zusage, die nur den Sprung prueft, saehe das nicht. */
+    /* UND DER SCHREIBSTRICH BLEIBT LIEGEN. */
     nr: '830', name: 'Der Schreibstrich landet nach dem Sprung nirgends',
     file: 'public/app.js',
     search: "    atElement('q', el => { el.focus(); el.setSelectionRange(el.value.length, el.value.length); });",
@@ -7728,9 +6542,7 @@ const REGRESSIONS = [
 
   /* ---- BA 2: das Blaettern ---- */
   {
-    /* DIE UNGEFILTERTE LISTE NEHMEN -- Gegenprobe zu Zusage 4. Sie ist der
-       Fehler, den man macht, ohne ihn zu bemerken: die Pfeile blaettern dann
-       durch Eintraege, die der eingestellte Filter gar nicht zeigt. */
+    /* DIE UNGEFILTERTE LISTE NEHMEN -- Gegenprobe zu Zusage 4. */
     nr: '831', name: 'Die Pfeile blaettern im ganzen Bestand statt in der Trefferliste',
     file: 'public/app.js',
     search: "  const list = state.items || [];",
@@ -7738,9 +6550,7 @@ const REGRESSIONS = [
     expected: 'Die gemeinsame Kopfzeile und das Blaettern — 0.28.0'
   },
   {
-    /* EINE REIHENFOLGE ERFINDEN -- Gegenprobe zu Zusage 6. Wer den Eintrag
-       nicht in der Liste findet, tut so, als staende er am Anfang: beide Pfeile
-       saehen aktiv aus und fuehrten in eine Liste, die niemand vor sich hat. */
+    /* EINE REIHENFOLGE ERFINDEN -- Gegenprobe zu Zusage 6. */
     nr: '832', name: 'Ohne Reihenfolge wird eine erfunden',
     file: 'public/app.js',
     search: "  if (at < 0) return { prev: null, next: null };",
@@ -7748,13 +6558,10 @@ const REGRESSIONS = [
     expected: 'Die gemeinsame Kopfzeile und das Blaettern — 0.28.0'
   },
   {
-    /* SIE VERSCHWINDEN LASSEN statt sie zu daempfen -- Gegenprobe zu Zusage 5.
-       Das verschiebt alles daneben: der Titel wandert beim Blaettern hin und
-       her, weil am ersten und letzten Eintrag ein Knopf fehlt. */
-    /* MITGEZOGEN MIT 0.28.1 (Stolperstein 201): die Pfeile stehen seit dieser
-       Runde am FUSS des Eintrags. Die Zusage ist dieselbe -- der gedaempfte
-       Knopf bleibt stehen, statt zu verschwinden --, nur an der Stelle, an der
-       sie jetzt haengt. */
+    /* SIE VERSCHWINDEN LASSEN statt sie zu daempfen -- Gegenprobe zu Zusage
+       5. */
+    /* MITGEZOGEN MIT 0.28.1: die Pfeile stehen seit dieser
+       Runde am FUSS des Eintrags. */
     nr: '833', name: 'Der gedaempfte Blaetterknopf verschwindet statt dazubleiben',
     file: 'public/style.css',
     search: ".entry-nav .step:disabled { opacity: .38; cursor: default; }",
@@ -7762,9 +6569,7 @@ const REGRESSIONS = [
     expected: 'Die gemeinsame Kopfzeile und das Blaettern — 0.28.0'
   },
   {
-    /* DIE REIHENFOLGE SPEICHERN -- ausdruecklich nicht gebaut (F2). Eine
-       gespeicherte Reihenfolge waere beim naechsten Oeffnen eine Behauptung
-       ueber eine Uebersicht, die niemand mehr sieht. */
+    /* DIE REIHENFOLGE SPEICHERN -- ausdruecklich nicht gebaut (F2). */
     nr: '834', name: 'Die Reihenfolge wird im Browser abgelegt',
     file: 'public/app.js',
     search: "  const list = state.items || [];",
@@ -7772,21 +6577,17 @@ const REGRESSIONS = [
     expected: 'Die gemeinsame Kopfzeile und das Blaettern — 0.28.0'
   },
   {
-    /* EINE TASTE MITNEHMEN -- Gegenprobe zu Zusage 7. Der Betreiber hat
-       `Bild auf`/`Bild ab` am 11. September 2026 gestrichen: bei langen
-       Kommentaren wird `Bild ab` zum Rollen gebraucht. */
+    /* EINE TASTE MITNEHMEN -- Gegenprobe zu Zusage 7. */
     nr: '835', name: 'Bild auf und Bild ab blaettern doch den Eintrag',
     file: 'public/app.js',
-    /* MITGEZOGEN MIT 0.28.1 (Stolperstein 201): die Knoepfe stehen am Fuss des
-       Eintrags. Die Zusage ist dieselbe -- keine Taste blaettert. */
+    /* MITGEZOGEN MIT 0.28.1: die Knoepfe stehen am Fuss
+       des Eintrags. */
     search: "  document.querySelectorAll('.entry-nav .step').forEach(b => {",
     replacement: "  document.addEventListener('keydown', e => { if (e.key === 'PageDown' || e.key === 'PageUp') e.preventDefault(); });\n  document.querySelectorAll('.entry-nav .step').forEach(b => {",
     expected: 'Die gemeinsame Kopfzeile und das Blaettern — 0.28.0'
   },
   {
-    /* DER BEGRIFF FAELLT UNTERWEGS AUS DER ADRESSE. Wer mit einem gesuchten
-       Begriff in einen Eintrag gegangen ist, blaettert in der Trefferliste --
-       und stuende nach einem Schritt ohne Begriff da. */
+    /* DER BEGRIFF FAELLT UNTERWEGS AUS DER ADRESSE. */
     nr: '836', name: 'Der Begriff faellt beim Blaettern aus der Adresse',
     file: 'public/app.js',
     search: "      if (to) location.hash = entryAddress(+to, term);",
@@ -7796,8 +6597,8 @@ const REGRESSIONS = [
 
   /* ---- BA 3: die Behaelterabfragen ---- */
   {
-    /* DIE BEHAELTERABFRAGE GEGEN EINE FENSTERABFRAGE TAUSCHEN -- Gegenprobe zu
-       Zusage 9. Das ist genau der Rueckbau auf den Stand vor dieser Runde. */
+    /* DIE BEHAELTERABFRAGE GEGEN EINE FENSTERABFRAGE TAUSCHEN -- Gegenprobe
+       zu Zusage 9. */
     nr: '837', name: 'Die Protokollzeile fragt wieder das Fenster',
     file: 'public/style.css',
     search: "@container (max-width: 420px) {",
@@ -7805,9 +6606,7 @@ const REGRESSIONS = [
     expected: 'Handy und Tablett: die Staffel der Umbruchpunkte'
   },
   {
-    /* DIE KARTE IST KEIN BEHAELTER MEHR. Dann greift keine der beiden
-       Behaelterabfragen -- und beide Regeln liegen still da, ohne dass etwas
-       fehlt, das man sehen wuerde. */
+    /* DIE KARTE IST KEIN BEHAELTER MEHR. */
     nr: '838', name: 'Die Karte des Systembereichs ist kein Behaelter mehr',
     file: 'public/style.css',
     search: ".sys-card { container-type: inline-size; }",
@@ -7815,8 +6614,7 @@ const REGRESSIONS = [
     expected: 'Handy und Tablett: die Staffel der Umbruchpunkte'
   },
   {
-    /* DER BEFEHL ROLLT WIEDER SEITLICH -- Befund 3. Gemessen: 452 px Inhalt in
-       182 px Kasten. */
+    /* DER BEFEHL ROLLT WIEDER SEITLICH -- Befund 3. */
     nr: '839', name: 'Der Befehl rollt wieder seitlich statt umzubrechen',
     file: 'public/style.css',
     search: "  .server-row code { flex: 1 1 100%; overflow-x: visible;\n    white-space: pre-wrap; overflow-wrap: anywhere; }",
@@ -7845,9 +6643,7 @@ const REGRESSIONS = [
     expected: 'Handy und Tablett: die Staffel der Umbruchpunkte'
   },
   {
-    /* EIN HUB, DER KLEINER IST ALS DIE LEISTE HOCH IST. Er verschoebe die
-       Meldung und deckte sie trotzdem zu -- die schlimmere Fassung, weil sie
-       aussieht, als waere etwas getan worden. */
+    /* EIN HUB, DER KLEINER IST ALS DIE LEISTE HOCH IST. */
     nr: '842', name: 'Der Hub der Meldung ist kleiner als die Leiste',
     file: 'public/style.css',
     search: "body:has(.cmp-bar) .toast { bottom: calc(90px + env(safe-area-inset-bottom)); }",
@@ -7884,9 +6680,7 @@ const REGRESSIONS = [
     expected: 'Das Startbildzeichen — 0.28.0'
   },
   {
-    /* DIE SEITE VERWEIST NICHT MEHR AUF DAS MANIFEST. Die Route allein legt
-       nichts auf einen Startbildschirm -- ohne die Verknuepfung findet der
-       Browser sie nie. */
+    /* DIE SEITE VERWEIST NICHT MEHR AUF DAS MANIFEST. */
     nr: '846', name: 'Die Seite verweist nicht mehr auf das Manifest',
     file: 'public/index.html',
     search: '<link rel="manifest" href="/api/manifest.json">',
@@ -7896,10 +6690,9 @@ const REGRESSIONS = [
 
   /* ---- BA 7: die Dichte am Finger ---- */
   {
-    /* EINES DER BEIDEN MASSE WEGLASSEN -- Gegenprobe zu Zusage 16. Zurueck auf
-       das ZEIGERMASS: „kleiner als vorher" waere damit erfuellt, „groesser als
-       am Zeiger" nicht. Eine Zusage, die nur eines der beiden nennt, bliebe
-       hier gruen. */
+    /* EINES DER BEIDEN MASSE WEGLASSEN -- Gegenprobe zu Zusage 16. Zurueck
+       auf das ZEIGERMASS: „kleiner als vorher" waere damit erfuellt,
+       „groesser als am Zeiger" nicht. */
     nr: '847', name: 'Die Pille faellt am Finger auf das Zeigermass zurueck',
     file: 'public/style.css',
     search: "  .pill { padding: 7px 13px; }",
@@ -7907,9 +6700,8 @@ const REGRESSIONS = [
     expected: 'Handy und Tablett: die Staffel der Umbruchpunkte'
   },
   {
-    /* DER UMSCHALTER BLEIBT STEHEN und ist danach genau so hoch wie die Pille.
-       Der Satz „er bleibt kleiner als die Pillen daneben" waere nicht mehr
-       wahr -- und das ist die Zusage, die es merkt. */
+    /* DER UMSCHALTER BLEIBT STEHEN und ist danach genau so hoch wie die
+       Pille. */
     nr: '848', name: 'Der Und/Oder-Umschalter wird so hoch wie die Pille',
     file: 'public/style.css',
     search: "  .pill-mode { padding: 5px 11px; }",
@@ -7936,8 +6728,8 @@ const REGRESSIONS = [
   },
   {
     /* EIN EINGABEFELD HERAUSNEHMEN -- Gegenprobe zu Zusage 18, und die
-       wichtigere Richtung: die Regel soll fuer die Felder bleiben, fuer die sie
-       gedacht war. */
+       wichtigere Richtung: die Regel soll fuer die Felder bleiben, fuer die
+       sie gedacht war. */
     nr: '851', name: 'Ein Eingabefeld faellt aus der Zoomregel',
     file: 'public/style.css',
     search: "  .mrow input.medit, .mrow .mweight-field,",
@@ -7945,8 +6737,8 @@ const REGRESSIONS = [
     expected: 'Handy und Tablett: die Staffel der Umbruchpunkte'
   },
   {
-    /* DAS DATUMSFELD MIT HERAUSNEHMEN -- F16 sagt ausdruecklich nein: es traegt
-       einen Schreibstrich, den ein `<select>` nicht hat. */
+    /* DAS DATUMSFELD MIT HERAUSNEHMEN -- F16 sagt ausdruecklich nein: es
+       traegt einen Schreibstrich, den ein `<select>` nicht hat. */
     nr: '852', name: 'Das Datumsfeld faellt mit aus der Zoomregel',
     file: 'public/style.css',
     search: "  .test-add input[type=date] { font-size: max(16px, 1rem); }",
@@ -7954,8 +6746,8 @@ const REGRESSIONS = [
     expected: 'Handy und Tablett: die Staffel der Umbruchpunkte'
   },
   {
-    /* DIE UNTERGRENZE ALS BLANKE ZAHL -- Gegenprobe zu Zusage 20. Sie waere ein
-       zweites Grundmass neben dem am Wurzelelement. */
+    /* DIE UNTERGRENZE ALS BLANKE ZAHL -- Gegenprobe zu Zusage 20. Sie waere
+       ein zweites Grundmass neben dem am Wurzelelement. */
     nr: '853', name: 'Die Untergrenze steht als blanke Zahl',
     file: 'public/style.css',
     search: "  .test-add input[type=date] { font-size: max(16px, 1rem); }",
@@ -7963,18 +6755,11 @@ const REGRESSIONS = [
     expected: 'Handy und Tablett: die Staffel der Umbruchpunkte'
   },
   /* ================= 0.28.1 — die acht Reparaturen ======================
-     JEDE NEUE ZUSAGE MIT EINER GEFAHRENEN GEGENPROBE, fortlaufend ab 854.
-     WAS HIER NICHT STEHT: die Zusagen 4 bis 8 (die Kopfzeile, das Blaettern,
-     das Suchfeld). Sie sind mit 0.28.0 gekommen und haben ihre Rueckbauten
-     seither -- diese Runde hat sie UMGEDREHT und nicht neu gemacht, und ein
-     zweiter Rueckbau auf dieselbe Zeile belegte nichts, was der erste nicht
-     schon belegt. Zusage 17 haelt das Wegeverzeichnis mit seinen eigenen
-     Rueckbauten. */
+     JEDE NEUE ZUSAGE MIT EINER GEFAHRENEN GEGENPROBE, fortlaufend ab 854. WAS
+     HIER NICHT STEHT: die Zusagen 4 bis 8 (die Kopfzeile, das Blaettern, das
+     Suchfeld). */
   {
-    /* EIN ACHTER EINTRAG DANEBEN -- Gegenprobe zu Zusage 1. „Genau sieben"
-       muss die Liste NAMENTLICH kennen: eine Zusage, die nur zaehlt, saehe
-       einen Tausch nicht, und eine, die nur die sieben sucht, saehe den
-       achten nicht. */
+    /* EIN ACHTER EINTRAG DANEBEN -- Gegenprobe zu Zusage 1. */
     nr: '854', name: 'Ein achter Eintrag steht in der Sortierliste',
     file: 'public/app.js',
     search: "  ].filter(b => !b.only || b.only());",
@@ -7986,8 +6771,7 @@ const REGRESSIONS = [
   {
     /* DIE RICHTUNG WANDERT ZURUECK INS WORT -- Gegenprobe zu Zusage 2, und
        zwar auf der Seite, die man leicht vergisst: der WERT bliebe sauber,
-       und die Liste waere trotzdem wieder so lang wie vorher. Genau das war
-       der Befund vom Geraet. */
+       und die Liste waere trotzdem wieder so lang wie vorher. */
     nr: '855', name: 'Die Richtung steht wieder im Wort der Option',
     file: 'public/app.js',
     search: "word: () => t('list.sortChanged'),",
@@ -7995,10 +6779,8 @@ const REGRESSIONS = [
     expected: 'Die Sortierung trennt Grundlage und Richtung — 0.28.1'
   },
   {
-    /* DER UMSCHALTER STEHT GAR NICHT ERST DA -- die andere Haelfte von
-       Zusage 2. Er wird gebaut und verdrahtet, aber nicht angehaengt: der
-       Fall, in dem ein Rueckbau die Oberflaeche NICHT abreisst und die
-       Bedienung trotzdem fehlt. */
+    /* DER UMSCHALTER STEHT GAR NICHT ERST DA -- die andere Haelfte von Zusage
+       2. */
     nr: '856', name: 'Der Richtungsumschalter haengt nicht in der Zeile',
     file: 'public/app.js',
     search: "  sortPair.appendChild(dirBtn);",
@@ -8019,17 +6801,11 @@ const REGRESSIONS = [
     /* „TITEL" BEKOMMT DIE ABSTEIGENDE ENDUNG ZURUECK -- und das ist keine
        erfundene Lage, sondern der Fehler, den diese Zusage beim ersten Lauf
        GEFUNDEN hat: `title_desc` gibt es in der Sortierung nicht, und die
-       Liste ordnete still nach dem Aenderungsdatum weiter. Ausgewaehlt, ohne
-       Fehlermeldung, und schlicht falsch. */
-    /* MITGEZOGEN MIT 0.29.0 (Stolperstein 201), und diesmal hat der Gegenstand
-       gewechselt: `dirOf()` ist mit Befund 8 gefallen -- seit „Titel" beide
-       Richtungen kennt, ist keine Grundlage mehr einspurig, und eine Weiche
-       ohne Fall bleibt nicht stehen.
-       WAS DER RUECKBAU BELEGT, IST DASSELBE GEBLIEBEN: dass der Wechsel der
-       Grundlage die RICHTIGE Richtung nimmt. Er nimmt jetzt die der ALTEN
-       Grundlage statt die der neuen -- genau der Fehler, den `start` verhindert,
-       und er setzt jeden, der aus der Vorgabe „neu → alt" kommt, bei „Titel"
-       auf „Z → A". */
+       Liste ordnete still nach dem Aenderungsdatum weiter. */
+    /* MITGEZOGEN MIT 0.29.0, und diesmal hat der
+       Gegenstand gewechselt: `dirOf()` ist mit Befund 8 gefallen -- seit
+       „Titel" beide Richtungen kennt, ist keine Grundlage mehr einspurig, und
+       eine Weiche ohne Fall bleibt nicht stehen. */
     nr: '858', name: 'Der Wechsel der Grundlage nimmt die alte Richtung mit',
     file: 'public/app.js',
     search: "    picked = { base: b, asc: b.start === 'up' };",
@@ -8038,8 +6814,7 @@ const REGRESSIONS = [
   },
   {
     /* DER STERN FAELLT AUF DAS ZEIGERMASS -- Gegenprobe zu Zusage 9, erste
-       Haelfte. Ein Finger ist breiter als ein Mauszeiger, und diese Runde
-       nimmt ihm nicht weg, was er gebraucht hat. */
+       Haelfte. */
     nr: '859', name: 'Der Stern faellt am Finger auf das Zeigermass',
     file: 'public/style.css',
     search: "  .star { font-size: 1.25rem; }",
@@ -8047,8 +6822,7 @@ const REGRESSIONS = [
     expected: 'Die Sortierung trennt Grundlage und Richtung — 0.28.1'
   },
   {
-    /* UND DIE ANDERE HAELFTE: er bleibt, wie er war. Ohne sie bliebe die
-       Zusage gruen, wenn die Runde am Stern gar nichts taete. */
+    /* UND DIE ANDERE HAELFTE: er bleibt, wie er war. */
     nr: '860', name: 'Der Stern behaelt sein altes Mass',
     file: 'public/style.css',
     search: "  .star { font-size: 1.25rem; }",
@@ -8056,9 +6830,9 @@ const REGRESSIONS = [
     expected: 'Die Sortierung trennt Grundlage und Richtung — 0.28.1'
   },
   {
-    /* DIE ABSCHNITTSLISTE KLAPPT OHNE AUSKUNFT EIN -- Gegenprobe zu
-       Zusage 10. Das ist derselbe Fehler wie ein Filter ohne Zahl: die Liste
-       ist weg, und niemand sieht, wo er gerade ist. */
+    /* DIE ABSCHNITTSLISTE KLAPPT OHNE AUSKUNFT EIN -- Gegenprobe zu Zusage
+       10. Das ist derselbe Fehler wie ein Filter ohne Zahl: die Liste ist
+       weg, und niemand sieht, wo er gerade ist. */
     nr: '861', name: 'Der Abschnittsschalter sagt nicht, welcher Abschnitt offen ist',
     file: 'public/app.js',
     search: "aria-controls=\"sys-tabs\">${tH('card.sections')}<span class=\"fcount\">${esc(open.name())}</span></button>",
@@ -8079,8 +6853,7 @@ const REGRESSIONS = [
   {
     /* DER UEBERLAEUFER WIRD ZURUECKGESCHRIEBEN -- Gegenprobe zu Zusage 12,
        und die Sorte ist gefaehrlich: der Wert steht richtig da, wo er
-       geschrieben wurde, und wird falsch, wo die Anzeigeart wechselt. Am
-       Schreibtisch ist nichts zu sehen. */
+       geschrieben wurde, und wird falsch, wo die Anzeigeart wechselt. */
     nr: '863', name: 'Die Titelzeile dehnt sich am Telefon wieder nicht',
     file: 'public/style.css',
     search: "  .detail { display: flex; flex-direction: column; gap: 16px; align-items: stretch; }",
@@ -8113,17 +6886,14 @@ const REGRESSIONS = [
        fuenf davon waren am Geraet 90 Pixel. */
     nr: '866', name: 'Die Filterzeile wird am Telefon wieder eine Spalte',
     file: 'public/style.css',
-    /* MITGEZOGEN MIT 0.29.0: die Zeile traegt seit Befund 6 eine DRITTE Spalte.
-       Was der Rueckbau belegt, ist unveraendert -- dass das Raster die Zeile
-       traegt und nicht eine Spalte. */
+    /* MITGEZOGEN MIT 0.29.0: die Zeile traegt seit Befund 6 eine DRITTE
+       Spalte. */
     search: "  .frow { display: grid; grid-template-columns: auto minmax(0, 1fr) auto;",
     replacement: "  .frow { display: flex; flex-direction: column;",
     expected: 'Die Sortierung trennt Grundlage und Richtung — 0.28.1'
   },
   {
-    /* UND DIE REIHEN BRECHEN WIEDER UM -- Gegenprobe zum ZWEITEN Hebel. Eine
-       Kategoriereihe mit fuenf Pillen mass umgebrochen 77 Pixel und misst in
-       einer Zeile 35; der Gewinn waechst mit dem Bestand. */
+    /* UND DIE REIHEN BRECHEN WIEDER UM -- Gegenprobe zum ZWEITEN Hebel. */
     nr: '867', name: 'Die Filterreihen brechen wieder um, statt quer zu rollen',
     file: 'public/style.css',
     search: "  .frow > .pills:not(.cloud) { flex-wrap: nowrap; overflow-x: auto;",
@@ -8142,15 +6912,13 @@ const REGRESSIONS = [
     expected: 'Die Sortierung trennt Grundlage und Richtung — 0.28.1'
   },
 
-  /* ================================================================
-     0.29.0 — „Worauf man sich verlassen können muss"
-     Acht Bauabschnitte, und jede neue Zusage bekommt ihren Rückbau. */
+  /* ================================================================ 0.29.0 —
+     „Worauf man sich verlassen können muss" Acht Bauabschnitte, und jede neue
+     Zusage bekommt ihren Rückbau. */
 
   /* ---- BA 1: die Sicherungsprobe ---- */
   {
-    /* SIE ZEIGT AUF DIE LAUFENDE DATENBANK. Der schlimmste Fehler dieser
-       Route: sie oeffnet dann nicht die Kopie, sondern das Original -- und
-       die vier Zahlen stimmen immer, ohne je etwas zu belegen. */
+    /* SIE ZEIGT AUF DIE LAUFENDE DATENBANK. */
     nr: '869', name: 'Die Probe oeffnet die laufende Datenbank statt der Kopie',
     file: 'server.js',
     search: "  const full = path.join(target.filePath, file.name);",
@@ -8158,8 +6926,7 @@ const REGRESSIONS = [
     expected: 'Die Sicherungsprobe — 0.29.0'
   },
   {
-    /* SIE OEFFNET SCHREIBEND. Ohne `readonly` legt SQLite eine WAL neben die
-       Sicherung und aendert damit den Ordner, den die Aufraeumregel zaehlt. */
+    /* SIE OEFFNET SCHREIBEND. */
     nr: '870', name: 'Die Probe oeffnet die Sicherung schreibend',
     file: 'server.js',
     search: "    probe = new Database(full, { readonly: true });",
@@ -8167,14 +6934,7 @@ const REGRESSIONS = [
     expected: 'Die Sicherungsprobe — 0.29.0'
   },
   {
-    /* DER FREMDE SCHLUESSEL WIRD FUER LESBAR ERKLAERT. Die Karte saegte dann
-       „Eintraege 0", und wer das sieht, haelt seine Sicherung fuer leer statt
-       fuer unlesbar -- die schlimmste der drei moeglichen Antworten.
-       ER WIRFT NICHT MEHR, UND DAS IST EIN FUND DIESER RUNDE: der erste
-       Entwurf ersetzte die Zeile durch ein `throw`, und der Lauf RISS AB
-       (359 s, kein einziger roter Punkt). Eine Gegenprobe, die abreisst,
-       belegt nichts -- sie muss so greifen, dass die Oberflaeche danach noch
-       laeuft. */
+    /* DER FREMDE SCHLUESSEL WIRD FUER LESBAR ERKLAERT. */
     nr: '871', name: 'Der fremde Schluessel wird fuer lesbar erklaert',
     file: 'server.js',
     search: "    return res.json({ ok: false, reason: 'key', at: file.time, bytes: file.bytes, nr });",
@@ -8182,14 +6942,7 @@ const REGRESSIONS = [
     expected: 'Die Sicherungsprobe — 0.29.0'
   },
   {
-    /* EINE NUMMER, DIE ES NICHT GIBT, WIRD ZU EINER LEEREN SICHERUNG. Dann
-       antwortet die Probe auf #9999 mit „Eintraege 0" statt mit einer Absage,
-       und wer sich vertippt, haelt eine Kopie fuer leer, die es gar nicht gibt.
-       ER ZIELT AUF DIE ABSAGE UND NICHT AUF DIE ZAHLENPRUEFUNG DAVOR, und das
-       ist ein Fund dieser Runde: der erste Entwurf nahm `Number.isInteger`
-       heraus und blieb STUMM -- `files[9999 - 1]`, `files[0 - 1]` und
-       `files[NaN - 1]` sind alle drei `undefined`, und die Absage kam
-       trotzdem. Ein Griff ohne sichtbare Wirkung belegt nichts. */
+    /* EINE NUMMER, DIE ES NICHT GIBT, WIRD ZU EINER LEEREN SICHERUNG. */
     nr: '872', name: 'Eine Nummer, die es nicht gibt, wird zur leeren Sicherung',
     file: 'server.js',
     search: "  if (!file) return res.status(404).json({ error: t(localeOf(req), 'server.backupGone') });",
@@ -8197,9 +6950,7 @@ const REGRESSIONS = [
     expected: 'Die Sicherungsprobe — 0.29.0'
   },
   {
-    /* DIE ZAHLEN KOMMEN AUS DER LAUFENDEN DATENBANK. Sie saehen richtig aus,
-       solange die Kopie frisch ist -- und blieben richtig, wenn die Kopie
-       leer waere. */
+    /* DIE ZAHLEN KOMMEN AUS DER LAUFENDEN DATENBANK. */
     nr: '873', name: 'Die Probe zaehlt in der laufenden Datenbank',
     file: 'server.js',
     search: "      itemCount: one('SELECT COUNT(*) AS n FROM items').n,",
@@ -8207,8 +6958,7 @@ const REGRESSIONS = [
     expected: 'Die Sicherungsprobe — 0.29.0'
   },
   {
-    /* SIE GEHOERT DER EIGENTUEMERIN. Die Antwort nennt Datum und Groesse
-       einer Datei auf dem Wirt -- dieselbe Klemme wie die Karte selbst. */
+    /* SIE GEHOERT DER EIGENTUEMERIN. */
     nr: '874', name: 'Die Probe steht schon dem Admin offen',
     file: 'server.js',
     search: "app.post('/api/backup/check', ownerOnly, (req, res) => {",
@@ -8218,9 +6968,7 @@ const REGRESSIONS = [
 
   /* ---- BA 2: der Fingerprint nennt die Datei ---- */
   {
-    /* EINE ZWEITE LISTE NEBEN DER ERSTEN. Sie saehe gleich aus und liefe beim
-       naechsten Griff auseinander -- Stolperstein 47, und F6 sagt es
-       ausdruecklich. */
+    /* EINE ZWEITE LISTE NEBEN DER ERSTEN. */
     nr: '875', name: 'Die Einzelwerte kommen aus einem zweiten Lesevorgang',
     file: 'server.js',
     search: "    files.push({ name: rel,\n      hash: crypto.createHash('sha256').update(bytes).digest('hex').slice(0, 8) });",
@@ -8228,9 +6976,7 @@ const REGRESSIONS = [
     expected: 'Der Fingerprint nennt die Datei — 0.29.0'
   },
   {
-    /* DIE LISTE STEHT DAUERHAFT DA. Der Betreiber hat das ausdruecklich nicht
-       gewollt („muss keine extra Zeile"), und achtzehn Zeilen in einer Karte,
-       die ohnehin lang ist, schoeben die Verfahren aus dem Blick. */
+    /* DIE LISTE STEHT DAUERHAFT DA. */
     nr: '876', name: 'Die Dateiliste steht dauerhaft aufgeklappt da',
     file: 'public/app.js',
     search: '        <div class="fp-list" id="fp-list" hidden>',
@@ -8240,8 +6986,7 @@ const REGRESSIONS = [
 
   /* ---- BA 3: das Faelligkeitsdatum ---- */
   {
-    /* DER KALENDER WIRD NICHT GEFRAGT. „2026-02-31" hat die richtige Form und
-       gibt es nicht; `Date.UTC` rechnet daraus den 3. Maerz. */
+    /* DER KALENDER WIRD NICHT GEFRAGT. */
     nr: '877', name: 'Ein Tag, den es nicht gibt, wird gespeichert',
     file: 'server.js',
     search: "  if (d.getUTCFullYear() !== year || d.getUTCMonth() !== month - 1 || d.getUTCDate() !== day)\n    return { error: 'server.dueInvalid' };",
@@ -8249,9 +6994,7 @@ const REGRESSIONS = [
     expected: 'Das Faelligkeitsdatum — 0.29.0'
   },
   {
-    /* OHNE DATUM STEHT WIEDER VORN. Ein NULL sortiert in SQLite von sich aus
-       dorthin -- wer keine Zahl hat, haette damit den niedrigsten Wert statt
-       gar keinen. */
+    /* OHNE DATUM STEHT WIEDER VORN. */
     nr: '878', name: 'Die Aufgaben ohne Datum stehen wieder vorn',
     file: 'server.js',
     search: "   ORDER BY CASE WHEN c.due_date IS NULL THEN 1 ELSE 0 END,\n            c.due_date,",
@@ -8259,9 +7002,7 @@ const REGRESSIONS = [
     expected: 'Das Faelligkeitsdatum — 0.29.0'
   },
   {
-    /* DIE GRUPPIERUNG ZERFAELLT. Ohne die Stufe auf den Eintrag mischen sich
-       bei gleicher Sekunde die Zeilen zweier Eintraege ineinander, und
-       derselbe Eintrag steht mehrfach in der Liste (F18). */
+    /* DIE GRUPPIERUNG ZERFAELLT. */
     nr: '879', name: 'Die Zeilen zweier Eintraege mischen sich in „Offen"',
     file: 'server.js',
     search: "            i.updated_at DESC, c.item_id, c.id`);",
@@ -8269,9 +7010,7 @@ const REGRESSIONS = [
     expected: 'Das Faelligkeitsdatum — 0.29.0'
   },
   {
-    /* DAS FELD FEHLT IM EXPORT. Ein Feld, das im Export fehlt, ist beim
-       naechsten Einspielen weg -- und der Export ist fuer viele die einzige
-       vollstaendige Kopie ausserhalb der Datenbank. */
+    /* DAS FELD FEHLT IM EXPORT. */
     nr: '880', name: 'Das Faelligkeitsdatum geht nicht mit hinaus',
     file: 'server.js',
     search: "        ...(c.due_date ? { dueDate: c.due_date } : {}),\n",
@@ -8279,9 +7018,7 @@ const REGRESSIONS = [
     expected: 'Das Faelligkeitsdatum — 0.29.0'
   },
   {
-    /* DER IMPORT SCHREIBT ROH IN DIE SPALTE. Eine Exportdatei kommt von
-       aussen; ein „morgen" darin waere ein Tag, den die Oberflaeche nie
-       erlaubt haette. */
+    /* DER IMPORT SCHREIBT ROH IN DIE SPALTE. */
     nr: '881', name: 'Der Import schreibt das Datum ungeprueft',
     file: 'server.js',
     search: "                 cDue.error ? null : cDue.value);",
@@ -8289,8 +7026,7 @@ const REGRESSIONS = [
     expected: 'Das Faelligkeitsdatum — 0.29.0'
   },
   {
-    /* DER INDEX OHNE `WHERE`. Dann ist schon der ZWEITE Zugang ohne Adresse
-       eine Verletzung -- und genau die soll er zulassen. */
+    /* DER INDEX OHNE `WHERE`. */
     nr: '884', name: 'Der Index laesst nur EINEN Zugang ohne Adresse zu',
     file: 'db.js',
     search: "             ON users(email COLLATE NOCASE) WHERE email IS NOT NULL`);",
@@ -8298,8 +7034,7 @@ const REGRESSIONS = [
     expected: 'Die Adresse ist eindeutig — 0.29.0'
   },
   {
-    /* OHNE NOCASE. „Anna@Haus.de" und „anna@haus.de" stuenden dann
-       nebeneinander, und der Befund waere nur halb erledigt. */
+    /* OHNE NOCASE. */
     nr: '885', name: 'Der Index unterscheidet Gross- und Kleinschreibung',
     file: 'db.js',
     search: "  db.exec(`CREATE UNIQUE INDEX IF NOT EXISTS idx_users_email\n             ON users(email COLLATE NOCASE) WHERE email IS NOT NULL`);",
@@ -8307,8 +7042,7 @@ const REGRESSIONS = [
     expected: 'Die Adresse ist eindeutig — 0.29.0'
   },
   {
-    /* DER FEHLSCHLAG WIRD VERSCHLUCKT. Die Instanz saehe dann aus, als haette
-       sie ein Schloss, und haette keins -- die schlimmste Antwort auf F10. */
+    /* DER FEHLSCHLAG WIRD VERSCHLUCKT. */
     nr: '886', name: 'Der fehlgeschlagene Index wird verschwiegen',
     file: 'db.js',
     search: "  doubleEmails = db.prepare(qDoubleEmails).all();",
@@ -8316,8 +7050,7 @@ const REGRESSIONS = [
     expected: 'Die Adresse ist eindeutig — 0.29.0'
   },
   {
-    /* DIE KARTE FRAGT NICHT NACH. Dann bliebe der Warnkasten leer, waehrend
-       zwei gleiche Adressen dastehen. */
+    /* DIE KARTE FRAGT NICHT NACH. */
     nr: '887', name: 'Die Karte „Benutzer" meldet keine doppelten Adressen',
     file: 'db.js',
     search: "  return present ? [] : db.prepare(qDoubleEmails).all();",
@@ -8327,9 +7060,7 @@ const REGRESSIONS = [
 
   /* ---- BA 6 und 7: die beiden Bildschirmbefunde ---- */
   {
-    /* ALLE VERWEISE IN SPALTE DREI. Der Ruecksetzer der Sortierzeile ist
-       140 px breit und nimmt sie der Sortierwahl daneben -- gemessen bleiben
-       ihr 30 px, und der NAME der Sortierung ist fort (F17). */
+    /* ALLE VERWEISE IN SPALTE DREI. */
     nr: '888', name: 'Auch der Ruecksetzer der Sortierzeile geht in Spalte drei',
     file: 'public/style.css',
     search: "  .frow > .frow-right-end { grid-column: 3; }",
@@ -8337,13 +7068,9 @@ const REGRESSIONS = [
     expected: 'Die Filterzeile und der Kategoriekasten — 0.29.0'
   },
   {
-    /* DER UND/ODER-UMSCHALTER ZURUECK IN DIE SPANNE. Zwei Pillen, die 86 px
-       brauchen, spannen dann wieder ueber 362 -- und die Beschriftung „Tags"
-       bleibt allein auf der Zeile darueber stehen. */
+    /* DER UND/ODER-UMSCHALTER ZURUECK IN DIE SPANNE. */
     /* NACHGEZOGEN MIT 0.30.0: „und/Oder" steht seither in Spalte EINS und in
-       der ZWEITEN Rasterzeile -- unter der Beschriftung. Der Rueckbau setzt
-       ihn wieder daneben, und genau das ist der Befund vom 12. September:
-       neben ihr nimmt er der Wolke die erste Zeile weg. */
+       der ZWEITEN Rasterzeile -- unter der Beschriftung. */
     nr: '889', name: 'Der Und/Oder-Umschalter steht wieder neben der Beschriftung',
     file: 'public/style.css',
     search: "  .frow-tags > .tagmode { grid-column: 1; grid-row: 2; margin-right: 0;",
@@ -8351,9 +7078,7 @@ const REGRESSIONS = [
     expected: 'Die Filterzeile und der Kategoriekasten — 0.29.0'
   },
   {
-    /* DIE FESTE ZAHL STATT DES TEILENS. Sie traegt bei 100 Prozent Schrift und
-       kann bei 80 bis 120 nur falsch werden -- dieselbe Ueberlegung, die im
-       Stilblatt schon dreimal steht. */
+    /* DIE FESTE ZAHL STATT DES TEILENS. */
     nr: '890', name: 'Der Kategoriekasten bekommt eine ausgerechnete Breite',
     file: 'public/style.css',
     search: "  [data-block=\"kategorie\"] .row-in > #cat,\n  [data-block=\"kategorie\"] .row-in > .input { flex: 1 1 0; min-width: 0; }",
@@ -8361,9 +7086,7 @@ const REGRESSIONS = [
     expected: 'Die Filterzeile und der Kategoriekasten — 0.29.0'
   },
   {
-    /* DER PLATZHALTER WIRD WIEDER LANG. Gemessen sind im schmalen Feld 91 bis
-       106 px Platz; „Neue Kategorie" braucht 124 bis 139 und passt bei keiner
-       Schriftstufe. */
+    /* DER PLATZHALTER WIRD WIEDER LANG. */
     nr: '891', name: 'Der Platzhalter der Kategorie wird wieder lang',
     file: 'public/languages/de.json',
     search: '  "entry.newCategoryHint": "Name",',
@@ -8373,8 +7096,7 @@ const REGRESSIONS = [
 
   /* ---- BA 8: „Titel" kehrt um ---- */
   {
-    /* „TITEL" WIRD WIEDER EINSPURIG. Der Befund aus dem Betrieb waere damit
-       zurueck: „Z bis A kann nicht angewahlt werden". */
+    /* „TITEL" WIRD WIEDER EINSPURIG. */
     nr: '892', name: '„Titel" kennt wieder nur eine Richtung',
     file: 'public/app.js',
     search: "      down: 'list.dirZA',       up: 'list.dirAZ',     start: 'up' },",
@@ -8382,9 +7104,7 @@ const REGRESSIONS = [
     expected: '„Titel" kehrt um — 0.29.0'
   },
   {
-    /* DER VERGLEICHER KENNT DIE GEGENRICHTUNG NICHT. Der Knopf sagte dann
-       „Z → A", und die Liste ordnete still nach dem Aenderungsdatum weiter --
-       genau der Fehler, den 0.28.1 gefunden hat. */
+    /* DER VERGLEICHER KENNT DIE GEGENRICHTUNG NICHT. */
     nr: '893', name: 'Der Vergleicher kennt title_desc nicht',
     file: 'public/app.js',
     search: "      case 'title_desc':  return b.title.localeCompare(a.title, LOCALE);",
@@ -8392,8 +7112,7 @@ const REGRESSIONS = [
     expected: '„Titel" kehrt um — 0.29.0'
   },
   {
-    /* DER SATZ BLEIBT STEHEN, obwohl ihn nichts mehr ausloest. Eine Regel ohne
-       Traeger bleibt nicht stehen (F21). */
+    /* DER SATZ BLEIBT STEHEN, obwohl ihn nichts mehr ausloest. */
     nr: '894', name: '„Diese Sortierung hat nur eine Richtung" steht wieder da',
     file: 'public/languages/de.json',
     search: '  "list.sortFlip": "Richtung umkehren",',
@@ -8405,14 +7124,9 @@ const REGRESSIONS = [
      EINUNDZWANZIG NEUE, 895 bis 915. Jede neue Zusage dieser Runde bekommt
      ihren Rueckbau, und jeder Rueckbau nennt die Gruppe, die er rot machen
      muss -- ein Rueckbau, der NICHTS rot macht, ist ein STUMMER und damit ein
-     Fund ueber die Zusage und nicht ueber den Baum.
-     FUENF ALTE SIND AUSSERDEM NACHGEZOGEN (604, 605, 636, 658, 889): ihre
-     Suchtexte standen nach dieser Runde nicht mehr da. Ein Rueckbau, dessen
-     Suchtext fehlt, ist ein Fund ueber die LISTE -- in 0.29.0 waren es fuenf,
-     in dieser Runde wieder. */
+     Fund ueber die Zusage und nicht ueber den Baum. */
   {
-    /* DER ZWEITE BLICK FAELLT WEG. Was kein Muster ueber die Befehlszeile je
-       findet -- ein Server aus `node -e` --, faellt danach wieder durch. */
+    /* DER ZWEITE BLICK FAELLT WEG. */
     nr: '895', name: "Der Portblick der Gegenprobe sieht nicht mehr nach",
     file: "counterproof.js",
     search: "  return [...listeningPorts()]\n    .filter(p => p >= span.from && p <= span.to && !taken.has(p))",
@@ -8420,9 +7134,7 @@ const REGRESSIONS = [
     expected: "Der Waechter erkennt den Prueflauf — 0.30.0"
   },
   {
-    /* ZURUECK AUF DIE ZAHL, DIE IN 0.8.10 UND 0.8.30 ZU KLEIN WAR. Unter
-       schwerer Nebenlast reisst der Lauf dann wieder ab, statt eine Pruefung
-       namentlich rot zu faerben. */
+    /* ZURUECK AUF DIE ZAHL, DIE IN 0.8.10 UND 0.8.30 ZU KLEIN WAR. */
     nr: '896', name: "Das Wartefenster steht wieder auf zwoelf Sekunden",
     file: 'test/frame.js',
     search: "const READY_TRIES = 300;",
@@ -8430,8 +7142,7 @@ const REGRESSIONS = [
     expected: "Das Wartefenster und seine Meldung — 0.30.0"
   },
   {
-    /* DIE TEURERE HAELFTE DES BEFUNDES. Der Lauf startet 78 Server;
-       „Zweitserver nicht erreichbar" schickt auf eine Suche durch alle. */
+    /* DIE TEURERE HAELFTE DES BEFUNDES. */
     nr: '897', name: "Die Meldung des Zweitservers nennt ihn nicht mehr",
     file: 'test/frame.js',
     search: "  `Zweitserver nicht erreichbar: Portbasis ${portBase}, Port ${port}, ` +\n  `Verzeichnis ${dataDirectory} -- ${READY_TRIES * READY_STEP / 1000} s gewartet\\n${log}`;",
@@ -8439,9 +7150,7 @@ const REGRESSIONS = [
     expected: "Das Wartefenster und seine Meldung — 0.30.0"
   },
   {
-    /* EIN AUFRAEUMEN, DAS NIE GREIFT, SIEHT AUS WIE EINES, DAS GREIFT. Genau
-       deshalb sieht die Zusage hinterher nach, ob der Prozess wirklich fort
-       ist -- und nicht nur, ob der Aufraeumer gerufen wurde. */
+    /* EIN AUFRAEUMEN, DAS NIE GREIFT, SIEHT AUS WIE EINES, DAS GREIFT. */
     nr: '898', name: "Der Aufraeumer beim Start beendet nichts mehr",
     file: 'test/frame.js',
     search: "  for (const z of found) { try { process.kill(z.pid, 'SIGKILL'); } catch {} }",
@@ -8449,8 +7158,7 @@ const REGRESSIONS = [
     expected: "Der Pruefstand raeumt beim Start auf — 0.30.0"
   },
   {
-    /* OHNE DIESE ZAHL IST JEDE BESCHLEUNIGUNG GERATEN. Eine leere Tafel sagt
-       genauso wenig wie gar keine -- und sieht aus wie eine. */
+    /* OHNE DIESE ZAHL IST JEDE BESCHLEUNIGUNG GERATEN. */
     nr: '899', name: "Die Schlusstafel bleibt leer",
     file: 'test/frame.js',
     search: "  const worst = [...rows].sort((a, b) => b.ms - a.ms).slice(0, top);",
@@ -8458,9 +7166,7 @@ const REGRESSIONS = [
     expected: "Die Schlusstafel sagt, wo die Zeit hingeht — 0.30.0"
   },
   {
-    /* DIE KURVE FUER JEDEN ZAEHLERSTAND. Bis 0.30.0 deckte der Lauf nur die
-       sechs Staende ab, durch die er zufaellig ging -- ein Schritt von 500
-       statt 700 ms waere dabei durchgegangen. */
+    /* DIE KURVE FUER JEDEN ZAEHLERSTAND. */
     nr: '900', name: "Die Kurve der Anmeldebremse ist verbogen",
     file: "auth.js",
     search: "  return over > 0 ? Math.min(over * 700, 4000) : 0;",
@@ -8468,8 +7174,7 @@ const REGRESSIONS = [
     expected: "Die Anmeldebremse — an der reinen Funktion — 0.30.0"
   },
   {
-    /* DIE KURVE AN DER FUNKTION UND DIE VERDRAHTUNG AN DER ROUTE. Ohne diese
-       zweite Haelfte belegte der Lauf eine Formel, die niemand ruft. */
+    /* DIE KURVE AN DER FUNKTION UND DIE VERDRAHTUNG AN DER ROUTE. */
     nr: '901', name: "Die Route wartet gar nicht mehr",
     file: "auth.js",
     search: "  return { blocked: false, delayMs: keys.brakeWait(delayMs) };",
@@ -8477,8 +7182,7 @@ const REGRESSIONS = [
     expected: "Und die Route wartet wirklich — 0.30.0"
   },
   {
-    /* `N` IST EINE SICHERHEITSGRENZE. Eine Auslieferung, die sie senkt,
-       senkt sie auf jedem Wirt -- und niemand sieht es. */
+    /* `N` IST EINE SICHERHEITSGRENZE. */
     nr: '902', name: "Die Auslieferung traegt eine gesenkte Kostenstufe",
     file: "auth.js",
     search: "const SCRYPT_SHIPPED = 16384;",
@@ -8486,8 +7190,7 @@ const REGRESSIONS = [
     expected: "Der Pruefschalter und seine Grenzen — 0.30.0"
   },
   {
-    /* DIE KLAMMER IST DER GANZE PUNKT VON F1. Eine Variable, die so heisst,
-       wie man sie erraet, senkt die Anmeldung aus Versehen. */
+    /* DIE KLAMMER IST DER GANZE PUNKT VON F1. */
     nr: '903', name: "Die Kostenstufe laesst sich wieder ueber eine gewoehnliche Variable senken",
     file: "keys.js",
     search: "  const wish = set && set.scrypt;",
@@ -8495,8 +7198,7 @@ const REGRESSIONS = [
     expected: "Der Pruefschalter und seine Grenzen — 0.30.0"
   },
   {
-    /* EINE ANLAGE, DIE NACH FUENF SEKUNDEN AUFGIBT, VERSCHICKT WENIGER MAIL.
-       Die Frist ist keine Sicherheitsgrenze, aber sie ist hergeleitet. */
+    /* EINE ANLAGE, DIE NACH FUENF SEKUNDEN AUFGIBT, VERSCHICKT WENIGER MAIL. */
     nr: '904', name: "Die ausgelieferte Mailfrist ist gesenkt",
     file: "mail.js",
     search: "const SEND_SHIPPED = 20 * 1000;",
@@ -8504,9 +7206,7 @@ const REGRESSIONS = [
     expected: "Der Pruefschalter und seine Grenzen — 0.30.0"
   },
   {
-    /* EIN SCHALTER, DER NICHTS TUT, SIEHT AUS WIE EINER, DER WIRKT. Ohne
-       diesen Rueckbau bliebe offen, ob die 55 Sekunden wirklich von ihm
-       kommen. */
+    /* EIN SCHALTER, DER NICHTS TUT, SIEHT AUS WIE EINER, DER WIRKT. */
     nr: '905', name: "Der Pruefschalter stellt die Fristen gar nicht mehr kurz",
     file: "keys.js",
     search: "  return Math.max(TESTBENCH_FLOOR.mail, Math.round(shipped / part));",
@@ -8514,8 +7214,7 @@ const REGRESSIONS = [
     expected: "Der Pruefschalter und seine Grenzen — 0.30.0"
   },
   {
-    /* DER FUENFTE FUND IN SECHS RUNDEN, wiederhergestellt. Genau ihn soll
-       die neue Wache fangen -- und nicht nur der nachgetragene Schluessel. */
+    /* DER FUENFTE FUND IN SECHS RUNDEN, wiederhergestellt. */
     nr: '906', name: "„gewichtet\" steht wieder fest im Quelltext",
     file: "public/app.js",
     search: "          (weightedCalc ? ' ' + t('entry.weighted') : '');",
@@ -8523,8 +7222,7 @@ const REGRESSIONS = [
     expected: "Kein deutscher Bildschirmsatz sitzt fest — die neue Wache — 0.30.0"
   },
   {
-    /* EIN SIEB, DAS ALLES DURCHLAESST, IST KEIN SIEB. Die Wache waere danach
-       gruen und blind -- deshalb prueft die Zusage das Sieb selbst. */
+    /* EIN SIEB, DAS ALLES DURCHLAESST, IST KEIN SIEB. */
     nr: '907', name: "Die neue Wache schaut an jeder Kennung vorbei",
     file: 'test/release_030.js',
     search: "    const isName = (t) => /^[a-z0-9][a-z0-9._#/-]*$/.test(t.trim()) || /^#\\//.test(t.trim());",
@@ -8532,7 +7230,7 @@ const REGRESSIONS = [
     expected: "Kein deutscher Bildschirmsatz sitzt fest — die neue Wache — 0.30.0"
   },
   {
-    /* ZWEI EINTEILUNGEN AN ZWEI ORTEN LAUFEN AUSEINANDER -- Stolperstein 47.
+    /* ZWEI EINTEILUNGEN AN ZWEI ORTEN LAUFEN AUSEINANDER.
        Genau dafuer ist `dueOf` in dieser Runde nach oben gewandert. */
     nr: '908', name: "Eine zweite Einteilung steht neben der ersten",
     file: "public/app.js",
@@ -8541,8 +7239,7 @@ const REGRESSIONS = [
     expected: "Das Faelligkeitsdatum bekommt Farbe — 0.30.0"
   },
   {
-    /* VIER ZUSTAENDE, VIER FARBEN -- wer zwei davon gleich faerbt, hat drei.
-       Gemessen ist es: „spaeter" und „erledigt" trugen zuerst dieselbe. */
+    /* VIER ZUSTAENDE, VIER FARBEN -- wer zwei davon gleich faerbt, hat drei. */
     nr: '909', name: "Zwei Zustaende des Faelligkeitsdatums sind gleich gefaerbt",
     file: "public/style.css",
     search: ".cmt-due.due-done { color: var(--green); text-decoration: line-through; }",
@@ -8551,8 +7248,7 @@ const REGRESSIONS = [
   },
   {
     /* EINE ANGABE, DIE JEMAND EINGETRAGEN HAT, VERSCHWINDET NICHT BEIM
-       ABHAKEN. Der Betreiber verlangt ausdruecklich „ob fertig, oder noch
-       offen". */
+       ABHAKEN. */
     nr: '910', name: "Das Datum verschwindet beim Abhaken wieder",
     file: "public/app.js",
     search: "              ? (task || done ? `<button class=\"link-btn cmt-due${",
@@ -8560,8 +7256,7 @@ const REGRESSIONS = [
     expected: "Das Faelligkeitsdatum bekommt Farbe — 0.30.0"
   },
   {
-    /* 147 PIXEL, UND SIE KOSTEN KEINE EINZIGE BESCHRIFTUNG. Der Rueckbau
-       nimmt sie wieder her. */
+    /* 147 PIXEL, UND SIE KOSTEN KEINE EINZIGE BESCHRIFTUNG. */
     nr: '911', name: "Die Vokabelkarte behaelt ihre Luft",
     file: "public/style.css",
     search: "  .vocabulary-grid .field { margin-bottom: 4px; }",
@@ -8569,8 +7264,7 @@ const REGRESSIONS = [
     expected: "Der Bewertungskasten und die Vokabelkarte — 0.30.0"
   },
   {
-    /* C1 STATT C1a. Wer „gut" sagt, bekommt nicht ungefragt etwas anderes --
-       und eine Regel ohne die Klammer trifft genau diese Fassung. */
+    /* C1 STATT C1a. */
     nr: '912', name: "Die Luft geht auch dort weg, wo nur ein Zugang ist",
     file: "public/style.css",
     search: "  .rlist:not(.no-average) .rrow .rname { padding-top: 4px; line-height: 1.35; }",
@@ -8578,8 +7272,7 @@ const REGRESSIONS = [
     expected: "Der Bewertungskasten und die Vokabelkarte — 0.30.0"
   },
   {
-    /* EIN SATZ OHNE LESER BLEIBT NICHT STEHEN. Der Umschalter ist gefallen,
-       und mit ihm die Zahl, die an ihm stand. */
+    /* EIN SATZ OHNE LESER BLEIBT NICHT STEHEN. */
     nr: '913', name: "Die Zahl am gefallenen Umschalter steht wieder in der Sprachdatei",
     file: "public/languages/de.json",
     search: "  \"list.tags\": ",
@@ -8587,8 +7280,7 @@ const REGRESSIONS = [
     expected: "Die Tagzeile steht offen — 0.30.0"
   },
   {
-    /* 159 STATT 67 PIXEL. Gemessen kippt die Kopfzeile damit von 42 auf 81
-       px -- zusammen mit dem Wort „gewichtet" daneben. */
+    /* 159 STATT 67 PIXEL. */
     nr: '914', name: "Der Knopf heisst wieder „Wer hat bewertet\"",
     file: "public/languages/de.json",
     search: "  \"entry.whoRated\": \"Wer?\",",
@@ -8596,8 +7288,7 @@ const REGRESSIONS = [
     expected: "Der Bewertungskasten und die Vokabelkarte — 0.30.0"
   },
   {
-    /* DIE HAELFTE VON C1a. Ohne sie bleibt der Kasten bei 537 statt 439 px --
-       gemessen an fuenf Kriterien und zwei Zugaengen. */
+    /* DIE HAELFTE VON C1a. */
     nr: '915', name: "Die Sternzeile behaelt ihre Luft unter den Sternen",
     file: "public/style.css",
     search: "  .rlist:not(.no-average) .rrow .rreset-cell { padding-bottom: 5px; }",
@@ -8605,12 +7296,7 @@ const REGRESSIONS = [
     expected: "Der Bewertungskasten und die Vokabelkarte — 0.30.0"
   },
   {
-    /* DIE GANZE REPARATUR STECKT IN EINER ZEILE. Auf `auto auto` teilen sich
-     beide Zeilen die Hoehe der spannenden Wolke, und Beschriftung und
-     Umschalter sacken wieder ab -- gemessen 96 und 218 Pixel tief.
-     NACHGEZOGEN IN 0.30.3: die Regel nennt seit dieser Runde ihren Traeger.
-     Der Rueckbau ist derselbe geblieben, nur sein Suchtext ist mitgewandert
-     -- ein Rueckbau, dessen Suchtext fehlt, waere ein Fund ueber die LISTE. */
+    /* DIE GANZE REPARATUR STECKT IN EINER ZEILE. */
     nr: "916", name: "Beide Rasterzeilen der Tagzeile teilen sich wieder die Hoehe",
     file: "public/style.css",
     search: "  .frow-tags.tags-deep { grid-template-rows: auto auto 1fr; }",
@@ -8618,8 +7304,8 @@ const REGRESSIONS = [
     expected: "Die Tagzeile rueckt nach oben \u2014 0.30.1"
   },
   {
-    /* OHNE `align-self: start` STEHT ER MITTIG in seiner nun 407 px hohen Zeile.
-     Die erste Haelfte der Reparatur allein genuegt nicht. */
+    /* OHNE `align-self: start` STEHT ER MITTIG in seiner nun 407 px hohen
+       Zeile. */
     nr: "917", name: "Der Umschalter sitzt wieder mittig in seiner Zeile",
     file: "public/style.css",
     search: "  .frow-tags > .tagmode { grid-column: 1; grid-row: 2; margin-right: 0;\n    align-self: start; }",
@@ -8628,7 +7314,7 @@ const REGRESSIONS = [
   },
   {
     /* GEMESSEN IST DER UNTERSCHIED: drei Tags in der zugeklappten Reihe statt
-     vier, und der offene Filterkasten 654 statt 543 Pixel. */
+       vier, und der offene Filterkasten 654 statt 543 Pixel. */
     nr: "918", name: "Die Tags sind wieder so gross wie vorher",
     file: "public/style.css",
     search: "  .pill-tag { font-size: .72rem; padding: 4px 10px; }",
@@ -8637,8 +7323,8 @@ const REGRESSIONS = [
   },
   {
     /* SIE IST DAS MERKMAL, AN DEM EINE MARKE VON EINER KATEGORIE ZU
-     UNTERSCHEIDEN IST -- und sie bringt an Breite fast nichts (gemessen neun
-     Pixel am breitesten Tag, keine Reihe, kein Pixel Hoehe). */
+       UNTERSCHEIDEN IST -- und sie bringt an Breite fast nichts (gemessen
+       neun Pixel am breitesten Tag, keine Reihe, kein Pixel Hoehe). */
     nr: "919", name: "Die Festschrift der Tags faellt",
     file: "public/style.css",
     search: "  .pill-tag { font-size: .72rem; padding: 4px 10px; }",
@@ -8646,8 +7332,7 @@ const REGRESSIONS = [
     expected: "Die Tagzeile rueckt nach oben \u2014 0.30.1"
   },
   {
-    /* DER BEFUND IST DIE ZAHL DER MARKEN und nicht die Groesse aller Pillen. Wer
-     die Kategorien mitschrumpft, hat etwas anderes gebaut als bestellt. */
+    /* DER BEFUND IST DIE ZAHL DER MARKEN und nicht die Groesse aller Pillen. */
     nr: "920", name: "Die Kategorienpille schrumpft mit",
     file: "public/style.css",
     search: "  .pill-tag { font-size: .72rem; padding: 4px 10px; }",
@@ -8655,8 +7340,7 @@ const REGRESSIONS = [
     expected: "Die Tagzeile rueckt nach oben \u2014 0.30.1"
   },
   {
-    /* ER MISST 51 DER 344 PIXEL. Ohne ihn passt die Zeile ohne Tags in EINE
-     Zeile -- gemessen 54 statt 83 Pixel. */
+    /* ER MISST 51 DER 344 PIXEL. */
     nr: "921", name: "Der Wochentag bleibt auch am Telefon stehen",
     file: "public/style.css",
     search: "  .trow .tweek { display: none; }",
@@ -8665,8 +7349,8 @@ const REGRESSIONS = [
   },
   {
     /* `flex: 1 1 0` HEISST „GRUNDBREITE NULL UND DANN WACHSEN": er nimmt sich
-     alles, auch wenn gar kein Tag darin steht, und drueckt die Sterne aus
-     der Zeile. Genau der Befund des Betreibers. */
+       alles, auch wenn gar kein Tag darin steht, und drueckt die Sterne aus
+       der Zeile. */
     nr: "922", name: "Der Tagkasten greift sich wieder die ganze Breite",
     file: "public/style.css",
     search: "  .trow .ttags { flex: 1 1 auto; }",
@@ -8675,7 +7359,7 @@ const REGRESSIONS = [
   },
   {
     /* OHNE `flex-basis: 100%` ZWINGT DAS STUECK KEINEN UMBRUCH, und die erste
-     Zeile traegt wieder Datum, Tags UND Sterne. */
+       Zeile traegt wieder Datum, Tags UND Sterne. */
     nr: "923", name: "Mit Tags bricht die Zeile nicht mehr vor den Sternen um",
     file: "public/style.css",
     search: "  .trow-tags::after { content: ''; flex-basis: 100%; height: 0; order: 1; }",
@@ -8683,8 +7367,7 @@ const REGRESSIONS = [
     expected: "Die Testtagzeile ordnet sich nach ihrem Inhalt \u2014 0.30.1"
   },
   {
-    /* OHNE DIE KLASSE GREIFT KEINE DER DREI REGELN. Eine Zusage, die nur das
-     Stilblatt liest, bliebe hier gruen -- deshalb wird die Klasse gefahren. */
+    /* OHNE DIE KLASSE GREIFT KEINE DER DREI REGELN. */
     nr: "924", name: "Die Zeile sagt nicht mehr, ob sie Tags traegt",
     file: "public/app.js",
     search: "      if ((d.tags || []).length) row.classList.add('trow-tags');",
@@ -8692,8 +7375,7 @@ const REGRESSIONS = [
     expected: "Die Testtagzeile ordnet sich nach ihrem Inhalt \u2014 0.30.1"
   },
   {
-    /* AM ZEILENENDE SAGT ES NICHTS MEHR DARUEBER, WAS DA NOCH KOMMT. Der
-     Betreiber hat es ausdruecklich rechts VON DEN MARKEN bestellt. */
+    /* AM ZEILENENDE SAGT ES NICHTS MEHR DARUEBER, WAS DA NOCH KOMMT. */
     nr: "925", name: "\u201emehr\" steht hinter den Sternen statt bei den Tags",
     file: "public/app.js",
     search: "        row.append(date, wd, tagBox, more, s, x);",
@@ -8702,7 +7384,7 @@ const REGRESSIONS = [
   },
   {
     /* DANN BRECHEN SIEBEN MARKEN DIE ZEILE WIEDER AUF VIER REIHEN AUF --
-     gemessen 309 statt 100 Pixel. */
+       gemessen 309 statt 100 Pixel. */
     nr: "926", name: "Die Tags eines Testtags werden nicht mehr auf eine Reihe begrenzt",
     file: "public/app.js",
     search: "      const trimmed = limitCloud(tagBox, opened ? 0 : 1);",
@@ -8710,8 +7392,7 @@ const REGRESSIONS = [
     expected: "Die Testtagzeile ordnet sich nach ihrem Inhalt \u2014 0.30.1"
   },
   {
-    /* DIE ZAHL ALLEIN SAGT NICHT, WAS SIE ZAEHLT. Der Sinn steht im Titel --
-     ohne ihn ist die Kuerzung genau der Verlust, den F12 ausschliesst. */
+    /* DIE ZAHL ALLEIN SAGT NICHT, WAS SIE ZAEHLT. */
     nr: "927", name: "Der Zaehler verliert seinen Titel",
     file: "public/app.js",
     search: "  `<span class=\"mcount\" title=\"${esc(long)}\">${esc(short)}</span>`;",
@@ -8719,8 +7400,7 @@ const REGRESSIONS = [
     expected: "In der Zeile die Zahl, im Titel das Wort \u2014 0.30.1"
   },
   {
-    /* ZWEI ZAHLEN OHNE WORT SIND LESBAR, solange ihre Reihenfolge feststeht.
-     Ausgeschrieben frisst die Zelle die Namensspalte, um die es geht. */
+    /* ZWEI ZAHLEN OHNE WORT SIND LESBAR, solange ihre Reihenfolge feststeht. */
     nr: "928", name: "Die Tagkarte schreibt ihre beiden Zahlen wieder aus",
     file: "public/app.js",
     search: "      shortCounter: e => `${e.usage_count} \u00b7 ${e.test_usage_count}`,",
@@ -8728,8 +7408,7 @@ const REGRESSIONS = [
     expected: "In der Zeile die Zahl, im Titel das Wort \u2014 0.30.1"
   },
   {
-    /* DAS IST DIE FASSUNG VON 0.30.0: „erledigt" schlaegt jede Frist. „Zu spaet
-     fertig" saehe dann aus wie „rechtzeitig fertig". */
+    /* DAS IST DIE FASSUNG VON 0.30.0: „erledigt" schlaegt jede Frist. */
     nr: "929", name: "Eine zu spaet erledigte Aufgabe verliert ihr Rot",
     file: "public/app.js",
     search: "  if (z.dueDate < todayKey()) return settled ? 'late' : 'overdue';",
@@ -8738,7 +7417,7 @@ const REGRESSIONS = [
   },
   {
     /* DIE ZUORDNUNG AUSDRUECKLICH: gruen fuer gerissen waere ebenfalls
-     dreifarbig und sagte das Gegenteil. */
+       dreifarbig und sagte das Gegenteil. */
     nr: "930", name: "Gerissen und gehalten tragen dieselbe Farbe",
     file: "public/style.css",
     search: ".cmt-due.due-late { color: var(--red); text-decoration: line-through; }",
@@ -8746,9 +7425,9 @@ const REGRESSIONS = [
     expected: "Das Faelligkeitsdatum bekommt Farbe \u2014 0.30.0"
   },
   {
-    /* BEFUND 8: der ganze Kennzeichenkasten stand hinter „darf aendern", und damit
-     sah das Datum nur, wer es auch aendern durfte -- waehrend die Ansicht
-     „Offen" es jedem zeigt. */
+    /* BEFUND 8: der ganze Kennzeichenkasten stand hinter „darf aendern", und
+       damit sah das Datum nur, wer es auch aendern durfte -- waehrend die
+       Ansicht „Offen" es jedem zeigt. */
     nr: "931", name: "Das Faelligkeitsdatum verschwindet wieder hinter der Bedienung",
     file: "public/app.js",
     search: "      const dueShown = (task || done) && c.dueDate;",
@@ -8756,9 +7435,8 @@ const REGRESSIONS = [
     expected: "Das Faelligkeitsdatum sieht jeder, der den Eintrag sieht \u2014 0.30.1"
   },
   {
-    /* EIN KNOPF, DER NICHTS TUT, IST EINE LUEGE UEBER DIE EIGENE BEDIENBARKEIT.
-     Der Rueckbau schliesst das Element bewusst falsch -- der Browser macht
-     daraus einen Knopf ohne Inhalt, und die Zusage faellt. */
+    /* EIN KNOPF, DER NICHTS TUT, IST EINE LUEGE UEBER DIE EIGENE
+       BEDIENBARKEIT. */
     nr: "932", name: "Wer nicht aendern darf, bekommt wieder einen Knopf",
     file: "public/app.js",
     search: "              : `<span class=\"cmt-due on due-${dueState}\"",
@@ -8766,8 +7444,9 @@ const REGRESSIONS = [
     expected: "Das Faelligkeitsdatum sieht jeder, der den Eintrag sieht \u2014 0.30.1"
   },
   {
-    /* GEMESSEN: die Namensspalte im Einzelzugang faellt von 210 auf 186 Pixel,
-     und das laengste Wort misst 200 -- es bricht wieder mitten durch. */
+    /* GEMESSEN: die Namensspalte im Einzelzugang faellt von 210 auf 186
+       Pixel, und das laengste Wort misst 200 -- es bricht wieder mitten
+       durch. */
     nr: "933", name: "Der Stern am Telefon ist wieder so gross wie am Finger",
     file: "public/style.css",
     search: "  .star { font-size: 1.1rem; }",
@@ -8775,8 +7454,7 @@ const REGRESSIONS = [
     expected: "Die Sortierung trennt Grundlage und Richtung \u2014 0.28.1"
   },
   {
-    /* VIER ABSTAENDE ZU EINEM PIXEL SIND VIER PIXEL SPALTENBREITE. An zehn
-     Pixeln Luft ist das die Haelfte. */
+    /* VIER ABSTAENDE ZU EINEM PIXEL SIND VIER PIXEL SPALTENBREITE. */
     nr: "934", name: "Der Abstand zwischen den Sternen bleibt, wie er war",
     file: "public/style.css",
     search: "  .stars { gap: 2px; }",
@@ -8784,8 +7462,7 @@ const REGRESSIONS = [
     expected: "Die Sortierung trennt Grundlage und Richtung \u2014 0.28.1"
   },
   {
-    /* DIE DRITTE SPALTE IST DIE URSACHE DES BEFUNDES. Kommen die Verweise dorthin
-     zurueck, nimmt sie der Wolke wieder bis zu 180 der 366 Pixel. */
+    /* DIE DRITTE SPALTE IST DIE URSACHE DES BEFUNDES. */
     nr: "935", name: "Die beiden Verweise stehen wieder am Zeilenende",
     file: "public/style.css",
     search: "  .frow-tags.tags-deep > .frow-right-end { grid-column: 1; grid-row: 2;\n    align-self: start; justify-self: start; gap: 4px; }",
@@ -8793,8 +7470,8 @@ const REGRESSIONS = [
     expected: "Die Tagzeile traegt Zeichen statt Woerter \u2014 0.30.2"
   },
   {
-    /* DANN TEILT ER SICH DIE ZEILE MIT DEN BEIDEN ZEICHEN, und eines von beiden
-     steht nicht mehr da, wo es bestellt ist. */
+    /* DANN TEILT ER SICH DIE ZEILE MIT DEN BEIDEN ZEICHEN, und eines von
+       beiden steht nicht mehr da, wo es bestellt ist. */
     nr: "936", name: "Der Umschalter steht wieder in der zweiten Rasterzeile",
     file: "public/style.css",
     search: "  .frow-tags.tags-deep > .tagmode { grid-row: 3; }",
@@ -8802,8 +7479,7 @@ const REGRESSIONS = [
     expected: "Die Tagzeile traegt Zeichen statt Woerter \u2014 0.30.2"
   },
   {
-    /* DAS WORT IST UMGEZOGEN UND NICHT GEFALLEN -- in den Titel. Steht es wieder
-     im Text, ist die Zeile so breit wie vorher. */
+    /* DAS WORT IST UMGEZOGEN UND NICHT GEFALLEN -- in den Titel. */
     nr: "937", name: "\u201emehr\" steht wieder als Wort statt als Zeichen",
     file: "public/app.js",
     search: "      m.title = cloudOpen.overview ? t('list.less') : t('list.more');",
@@ -8812,8 +7488,7 @@ const REGRESSIONS = [
   },
   {
     /* EIN KREUZ HEISST IM HAUS „weg" -- eine Zeile loeschen, einen Tag vom
-     Testtag nehmen, eine Ansicht entfernen. „Zuruecksetzen" ist etwas anderes,
-     und das Haus hat dafuer den Kreispfeil. */
+       Testtag nehmen, eine Ansicht entfernen. */
     nr: "938", name: "Der Ruecksetzer nimmt wieder das Kreuz",
     file: "public/app.js",
     search: "      c.innerHTML = ICON_RESET;",
@@ -8821,9 +7496,7 @@ const REGRESSIONS = [
     expected: "Die Tagzeile traegt Zeichen statt Woerter \u2014 0.30.2"
   },
   {
-    /* EIN ZEICHEN ALLEIN LIEST KEIN VORLESEPROGRAMM VOR. Der Rueckbau laesst den
-     Titel stehen und nimmt nur die Ansage weg -- die Zusage muss beides
-     verlangen. */
+    /* EIN ZEICHEN ALLEIN LIEST KEIN VORLESEPROGRAMM VOR. */
     nr: "939", name: "Die Zeichen sagen dem Vorleseprogramm nichts mehr",
     file: "public/app.js",
     search: "      m.setAttribute('aria-label', m.title);",
@@ -8831,8 +7504,8 @@ const REGRESSIONS = [
     expected: "Die Tagzeile traegt Zeichen statt Woerter \u2014 0.30.2"
   },
   {
-    /* EIN FILTER, DER GREIFT UND NICHT ZU SEHEN IST, ist genau der Befund, wegen
-     dessen bis 0.30.0 „Tags (2)" am alten Umschalter stand. */
+    /* EIN FILTER, DER GREIFT UND NICHT ZU SEHEN IST, ist genau der Befund,
+       wegen dessen bis 0.30.0 „Tags (2)" am alten Umschalter stand. */
     nr: "940", name: "Der Umschalter bleibt verborgen, auch wenn er greift",
     file: "public/app.js",
     search: "    if (cloudOpen.overview || f.tagIds.length > 1) r3.classList.add('tags-live');",
@@ -8840,8 +7513,7 @@ const REGRESSIONS = [
     expected: "Die Tagzeile traegt Zeichen statt Woerter \u2014 0.30.2"
   },
   {
-    /* „UNTER DIE KLAPPE" HEISST: im Regelzustand nicht sichtbar. Steht er immer
-     da, ist die Bestellung nicht gebaut. */
+    /* „UNTER DIE KLAPPE" HEISST: im Regelzustand nicht sichtbar. */
     nr: "941", name: "Der Umschalter steht immer da, auch zugeklappt",
     file: "public/style.css",
     search: "  .frow-tags:not(.tags-live) > .tagmode { display: none; }",
@@ -8850,8 +7522,7 @@ const REGRESSIONS = [
   },
   {
     /* DREISSIG PIXEL IM QUADRAT SIND DASSELBE MASS, das der Ruecksetzer der
-     Sternzeile am groben Zeiger traegt. Sechzehn sind das Zeichen selbst --
-     und nichts zum Treffen. */
+       Sternzeile am groben Zeiger traegt. */
     nr: "942", name: "Das Zeichen ist kein Ziel mehr fuer den Finger",
     file: "public/style.css",
     search: "  width: 30px; height: 30px; padding: 0; border-radius: 7px;",
@@ -8860,7 +7531,7 @@ const REGRESSIONS = [
   },
   {
     /* EINE REIHE LAESST FUENFUNDDREISSIG PIXEL LEER -- genau der Befund der
-     Runde. Die Hoehe ist bezahlt, ob die Wolke sie fuellt oder nicht. */
+       Runde. */
     nr: "943", name: "Die zugeklappte Wolke zeigt wieder EINE Reihe",
     file: "public/app.js",
     search: "    const cloudLimit = getComputedStyle(r3).display === 'grid' ? 2 : 1;",
@@ -8869,7 +7540,7 @@ const REGRESSIONS = [
   },
   {
     /* AM SCHREIBTISCH GIBT ES KEIN LOCH ZU FUELLEN: dort steht die Zeile als
-     Flexzeile, und zwei Reihen waeren rund 33 Pixel fuer nichts. */
+       Flexzeile, und zwei Reihen waeren rund 33 Pixel fuer nichts. */
     nr: "944", name: "Die zwei Reihen gelten auch am Schreibtisch",
     file: "public/app.js",
     search: "getComputedStyle(r3).display === 'grid' ? 2 : 1;",
@@ -8877,8 +7548,7 @@ const REGRESSIONS = [
     expected: "Die zugeklappte Tagzeile fuellt ihre Hoehe \u2014 0.30.3"
   },
   {
-    /* BEI EINEM JUNGEN BESTAND GIBT ES KEINE ZWEITE REIHE ZU ZEIGEN. Gilt die
-     Anordnung trotzdem, steht das Loch wieder da. */
+    /* BEI EINEM JUNGEN BESTAND GIBT ES KEINE ZWEITE REIHE ZU ZEIGEN. */
     nr: "945", name: "Die Anordnung von 0.30.2 gilt wieder immer",
     file: "public/app.js",
     search: "    if (cloudRows(g3) > 1) r3.classList.add('tags-deep');",
@@ -8887,7 +7557,7 @@ const REGRESSIONS = [
   },
   {
     /* UND DER ANDERE AUSGANG DERSELBEN BEDINGUNG: bei zwei Reihen soll sie
-     greifen. Eine Zusage, die nur einen der beiden kennt, bliebe hier gruen. */
+       greifen. */
     nr: "946", name: "Die Anordnung greift erst ab drei Reihen",
     file: "public/app.js",
     search: "if (cloudRows(g3) > 1) r3.classList",
@@ -8895,8 +7565,8 @@ const REGRESSIONS = [
     expected: "Die zugeklappte Tagzeile fuellt ihre Hoehe \u2014 0.30.3"
   },
   {
-    /* DER ABSTAND ZWISCHEN DEN REIHEN GEHOERT IN DIE RECHNUNG: ohne ihn zaehlt
-     der Zaehler bei dreissig Reihen sechsunddreissig. */
+    /* DER ABSTAND ZWISCHEN DEN REIHEN GEHOERT IN DIE RECHNUNG: ohne ihn
+       zaehlt der Zaehler bei dreissig Reihen sechsunddreissig. */
     nr: "947", name: "Der Reihenzaehler rechnet ohne den Abstand",
     file: "public/app.js",
     search: "  return Math.round((box.scrollHeight + CLOUD_GAP) / (height + CLOUD_GAP));",
@@ -8904,8 +7574,7 @@ const REGRESSIONS = [
     expected: "Die zugeklappte Tagzeile fuellt ihre Hoehe \u2014 0.30.3"
   },
   {
-    /* ZWEI LESER, EINE MESSUNG (Stolperstein 47). Misst der Zaehler selbst,
-     laufen die beiden beim naechsten Griff an der Pille auseinander. */
+    /* ZWEI LESER, EINE MESSUNG. */
     nr: "948", name: "Der Reihenzaehler misst wieder selbst",
     file: "public/app.js",
     search: "function cloudRows(box) {\n  const height = cloudLine(box);",
@@ -8913,8 +7582,8 @@ const REGRESSIONS = [
     expected: "Die zugeklappte Tagzeile fuellt ihre Hoehe \u2014 0.30.3"
   },
   {
-    /* `scrollHeight` MISST DEN VOLLEN INHALT, `clientHeight` nur das Sichtbare.
-     Hinter einer Begrenzung ist das der Unterschied zwischen zwei und einer. */
+    /* `scrollHeight` MISST DEN VOLLEN INHALT, `clientHeight` nur das
+       Sichtbare. */
     nr: "949", name: "Der Reihenzaehler sieht nur, was nicht abgeschnitten ist",
     file: "public/app.js",
     search: "  return Math.round((box.scrollHeight + CLOUD_GAP)",
@@ -8922,8 +7591,8 @@ const REGRESSIONS = [
     expected: "Die zugeklappte Tagzeile fuellt ihre Hoehe \u2014 0.30.3"
   },
   {
-    /* OHNE TRAEGER BLEIBT DIE DRITTE RASTERZEILE STEHEN, auch wo die Wolke sie
-     nicht fuellt -- und damit das Loch. */
+    /* OHNE TRAEGER BLEIBT DIE DRITTE RASTERZEILE STEHEN, auch wo die Wolke
+       sie nicht fuellt -- und damit das Loch. */
     nr: "950", name: "Die dritte Rasterzeile gilt wieder ohne Bedingung",
     file: "public/style.css",
     search: "  .frow-tags { grid-template-rows: auto 1fr; }",
@@ -8931,23 +7600,18 @@ const REGRESSIONS = [
     expected: "Die zugeklappte Tagzeile fuellt ihre Hoehe \u2014 0.30.3"
   },
   {
-    /* UND DER UMSCHALTER OHNE TRAEGER STUENDE IMMER IN DER DRITTEN -- in einer
-     Zeile, die nur zwei hat. */
+    /* UND DER UMSCHALTER OHNE TRAEGER STUENDE IMMER IN DER DRITTEN -- in
+       einer Zeile, die nur zwei hat. */
     nr: "951", name: "Der Umschalter nennt seinen Traeger nicht mehr",
     file: "public/style.css",
     search: "  .frow-tags.tags-deep > .tagmode { grid-row: 3; }",
     replacement: "  .frow-tags > .tagmode { grid-row: 3; }",
     expected: "Die zugeklappte Tagzeile fuellt ihre Hoehe \u2014 0.30.3"
   },
-  /* ---- 0.31.0: „Die Sprachdateien werden gegengelesen" ----
-     ZWOELF RUECKBAUTEN FUER ELF ZUSAGEN. Jeder nimmt genau EINE Sache zurueck
-     -- ein Rueckbau, der zwei Zusagen zugleich trifft, sagt nicht mehr,
-     welche von beiden ihn gefangen hat. */
+  /* ---- 0.31.0: „Die Sprachdateien werden gegengelesen" ---- ZWOELF
+     RUECKBAUTEN FUER ELF ZUSAGEN. */
   {
-    /* ZUSAGE 1: ein Code-Leck kehrt in die deutsche Datei zurueck. Es faellt
-       damit doppelt auf -- an der Zusage selbst UND an der Deckungsprobe, der
-       `de.json` dann einen Schluessel mehr traegt als die beiden anderen.
-       GENAU DAS IST DER GRUND, WARUM DIE SCHLUESSEL NICHT WARTEN KONNTEN. */
+    /* ZUSAGE 1: ein Code-Leck kehrt in die deutsche Datei zurueck. */
     nr: '952', name: 'Ein Code-Leck steht wieder in der deutschen Sprachdatei',
     file: 'public/languages/de.json',
     search: "  \"entry.testedFirstHint\": ",
@@ -8956,9 +7620,7 @@ const REGRESSIONS = [
   },
   {
     /* ZUSAGE 2: der Wert ist zwar aus der Sprachdatei heraus, steht aber
-       nirgends mehr. Ein `window.open` ohne `noopener` bleibt STILL -- der
-       neue Tab bekaeme Zugriff auf das oeffnende Fenster, und niemand saehe
-       es. Genau deshalb prueft die Zusage den INHALT und nicht die Wegnahme. */
+       nirgends mehr. */
     nr: '953', name: 'Der geoeffnete Tab bekommt sein `noopener` nicht mehr',
     file: 'public/app.js',
     search: "          if (!search) return window.open(l.url, '_blank', 'noopener,noreferrer');",
@@ -8967,9 +7629,7 @@ const REGRESSIONS = [
   },
   {
     /* ZUSAGE 2, DIE ANDERE HAELFTE: der Abstand steht wieder inline am Knoten
-       -- diesmal als Konstante im Skript statt als Wert der Sprachdatei. Das
-       ist genau der Fehler an anderer Stelle, vor dem F2 warnt: aus dem
-       Stilblatt ist er danach wieder unerreichbar. */
+       -- diesmal als Konstante im Skript statt als Wert der Sprachdatei. */
     nr: '954', name: 'Der Abstand der Listenseite steht wieder inline am Knoten',
     file: 'public/app.js',
     search: "    <p class=\"hint page-hint${multipleUsers() ? ' above-pills' : ''}\" id=\"open-hint\"></p>",
@@ -8977,9 +7637,7 @@ const REGRESSIONS = [
     expected: 'Die Sprachdateien werden gegengelesen — 0.31.0'
   },
   {
-    /* ZUSAGE 3: eine Datei traegt einen Schluessel weniger. Er faellt nur aus
-       `en.json` -- und genau so faellt in einer echten Uebersetzungsrunde
-       einer heraus. */
+    /* ZUSAGE 3: eine Datei traegt einen Schluessel weniger. */
     nr: '955', name: 'Die englische Datei traegt einen Schluessel weniger',
     file: 'public/languages/en.json',
     search: "  \"card.active\": \"active\",\n",
@@ -8987,9 +7645,7 @@ const REGRESSIONS = [
     expected: 'Die Sprachdateien werden gegengelesen — 0.31.0'
   },
   {
-    /* ZUSAGE 4: EIN gerades Zeichen schleicht sich wieder ein. Am Bildschirm
-       steht danach „Bosch" mit zwei verschiedenen Anfuehrungszeichen, und
-       genau das sieht niemand, der nicht danach sucht. */
+    /* ZUSAGE 4: EIN gerades Zeichen schleicht sich wieder ein. */
     nr: '956', name: 'Ein Text schliesst wieder mit einem geraden Anfuehrungszeichen',
     file: 'public/languages/de.json',
     search: "  \"entry.titleDeleteHint\": \"„{title}“ wird gelöscht.\",",
@@ -8997,9 +7653,7 @@ const REGRESSIONS = [
     expected: 'Die Sprachdateien werden gegengelesen — 0.31.0'
   },
   {
-    /* ZUSAGE 5: EINE der vier Meldungen faellt zurueck auf „Standbild". Vier
-       Meldungen ueber dieselbe Sache mit zwei Woertern dafuer -- das ist der
-       Zustand, den diese Runde beendet. */
+    /* ZUSAGE 5: EINE der vier Meldungen faellt zurueck auf „Standbild". */
     nr: '957', name: 'Eine der vier Video-Meldungen sagt wieder „Standbild"',
     file: 'public/languages/de.json',
     search: "  \"server.videoStill\": \"Video und Video-Vorschaubild gehören zusammen\",",
@@ -9008,8 +7662,7 @@ const REGRESSIONS = [
   },
   {
     /* ZUSAGE 6: „gruppiert" wird „sortiert" -- Geminis Vorschlag, und er ist
-       falsch: die Ansicht gruppiert wirklich. Ein Wort, das die Oberflaeche
-       nicht mehr beschreibt, ist kein kuerzeres, sondern ein falsches. */
+       falsch: die Ansicht gruppiert wirklich. */
     nr: '958', name: '„gruppiert nach" heisst wieder „sortiert nach"',
     file: 'public/languages/de.json',
     search: "offen, gruppiert nach ",
@@ -9026,9 +7679,7 @@ const REGRESSIONS = [
     expected: 'Die Sprachdateien werden gegengelesen — 0.31.0'
   },
   {
-    /* ZUSAGE 8: der Export verlaesst wieder „das Haus". Das Bild ist die
-       Quelle, aus der „files that leaves the house" und „evden çıkan"
-       entstanden sind -- solange es hier steht, erbt es jede Uebersetzung. */
+    /* ZUSAGE 8: der Export verlaesst wieder „das Haus". */
     nr: '960', name: 'Der Export verlaesst wieder „das Haus"',
     file: 'public/languages/de.json',
     search: "in {n} Dateien — mit allen Fotos",
@@ -9036,9 +7687,7 @@ const REGRESSIONS = [
     expected: 'Die Sprachdateien werden gegengelesen — 0.31.0'
   },
   {
-    /* ZUSAGE 9: der Hinweis nennt die Knoepfe wieder „Pillen". Im Code heisst
-       die Klasse weiter `pill` -- der Rueckbau fasst sie nicht an, und genau
-       das ist der Unterschied, den die Zusage haelt. */
+    /* ZUSAGE 9: der Hinweis nennt die Knoepfe wieder „Pillen". */
     nr: '961', name: 'Der Filterhinweis nennt die Knoepfe wieder „Pillen"',
     file: 'public/languages/de.json',
     search: "  \"card.exportWritesHint\": \"Schreibt den gesamten Bestand in eine Datei; die erwartete Größe steht an den Knöpfen.\",",
@@ -9057,7 +7706,7 @@ const REGRESSIONS = [
   {
     /* ZUSAGE 11: ein Satz verliert seine Anrede und wird zum Infinitiv ohne
        Subjekt -- genau die Sorte Satz, die Geminis Vorlage „professionelles
-       Du" nennt. Drei Anreden fallen mit EINEM Satz. */
+       Du" nennt. */
     nr: '963', name: 'Ein Satz verliert seine Anrede und wird zum Infinitiv',
     file: 'public/languages/de.json',
     search: "  \"card.languageHint\": \"Sprache der Oberfläche, der Meldungen und deiner Mails. Wirkt sofort und gilt auf jedem Gerät, an dem du dich anmeldest.\",",
@@ -9065,17 +7714,9 @@ const REGRESSIONS = [
     expected: 'Die Sprachdateien werden gegengelesen — 0.31.0'
   },
 
-  /* ---- 0.31.1: „Deutsch sitzt" ----
-     DREIZEHN RUECKBAUTEN FUER ELF ZUSAGEN. Zusage 2 bekommt DREI, weil sie
-     drei Sorten Bruchstueck verbietet und ein Rueckbau je Sorte sagt, welche
-     davon gefangen hat.
-     JEDER GREIFT IN DIE DATEN UND NICHT IN DEN WAECHTER. Eine Gegenprobe, die
-     die Pruefung selbst umbaut, belegt nur, dass man Pruefungen abschalten
-     kann. */
+  /* ---- 0.31.1: „Deutsch sitzt" ---- DREIZEHN RUECKBAUTEN FUER ELF ZUSAGEN. */
   {
-    /* ZUSAGE 1: das Werkzeug verschweigt, wofuer es blind ist. Die Probe
-       selbst bleibt heil -- und genau das ist der Fall, vor dem die Zusage
-       warnt: ein Werkzeug, dem jemand mehr zutraut, als es kann. */
+    /* ZUSAGE 1: das Werkzeug verschweigt, wofuer es blind ist. */
     nr: '964', name: 'Die Gleichlautprobe nennt ihre eigene Blindstelle nicht mehr',
     file: 'tools/gleichlaut.js',
     search: "   WOFUER SIE BLIND IST, UND DAS GEHOERT HIERHER:\n   SIE FUEHRT DEN CODE NICHT AUS.",
@@ -9083,9 +7724,7 @@ const REGRESSIONS = [
     expected: 'Deutsch sitzt — 0.31.1'
   },
   {
-    /* ZUSAGE 2, ERSTE SORTE: ein Wert faengt wieder mit einem Satzzeichen an.
-       Genau so stand er vor der Runde da -- der Punkt gehoerte dem Quelltext
-       und nicht dem Satz. */
+    /* ZUSAGE 2, ERSTE SORTE: ein Wert faengt wieder mit einem Satzzeichen an. */
     nr: '965', name: 'Ein Satz faengt wieder mit dem Punkt des Vorgaengers an',
     file: 'public/languages/de.json',
     search: "  \"card.subDirOptional\": \"Optional ein vorhandener Unterordner:\",",
@@ -9093,10 +7732,8 @@ const REGRESSIONS = [
     expected: 'Deutsch sitzt — 0.31.1'
   },
   {
-    /* ZUSAGE 2, ZWEITE SORTE: ein Schluessel traegt nur noch ein Funktionswort.
-       Gewaehlt ist einer, den DIESE Runde eingefuehrt hat -- die Wortlautprobe
-       vergleicht ihn gar nicht erst, und der Rueckbau trifft damit wirklich
-       nur die eine Zusage. */
+    /* ZUSAGE 2, ZWEITE SORTE: ein Schluessel traegt nur noch ein
+       Funktionswort. */
     nr: '966', name: 'Ein Schluessel traegt wieder ein blosses Fuellwort',
     file: 'public/languages/de.json',
     search: "  \"card.withPhotosPlain\": \" mit Fotos\",",
@@ -9105,7 +7742,7 @@ const REGRESSIONS = [
   },
   {
     /* ZUSAGE 2, DRITTE SORTE: die Klammer geht auf und der Uebersetzer soll
-       raten, was folgt. Die schliessende stuende wieder im Quelltext. */
+       raten, was folgt. */
     nr: '967', name: 'Ein Wert oeffnet wieder eine Klammer, die er nicht schliesst',
     file: 'public/languages/de.json',
     search: "  \"card.includeFiles\": \"Angehängte Dateien mitnehmen (+{size})\",",
@@ -9113,10 +7750,8 @@ const REGRESSIONS = [
     expected: 'Deutsch sitzt — 0.31.1'
   },
   {
-    /* ZUSAGE 2, DIE ANDERE HAELFTE: ein Anschlussstueck verliert seinen Platz.
-       Der Satz bleibt lesbar, der Nachsatz faellt lautlos vom Bildschirm --
-       „dann der Durchschnitt darueber." ohne die Angabe, ob gewichtet wird.
-       Die Ausnahmetafel darf das nicht decken, und sie tut es nicht. */
+    /* ZUSAGE 2, DIE ANDERE HAELFTE: ein Anschlussstueck verliert seinen
+       Platz. */
     nr: '968', name: 'Ein Anschlussstueck haengt an keinem Satz mehr',
     file: 'public/languages/de.json',
     search: "dann der Durchschnitt darüber{extra}.",
@@ -9124,9 +7759,7 @@ const REGRESSIONS = [
     expected: 'Deutsch sitzt — 0.31.1'
   },
   {
-    /* ZUSAGE 3: der Ablauf haengt wieder an der Sprache. Der Vergleich ist
-       auf Deutsch wahr und auf Englisch falsch -- und niemand sieht es, weil
-       die Zeile nichts anzeigt, sondern etwas ENTSCHEIDET. */
+    /* ZUSAGE 3: der Ablauf haengt wieder an der Sprache. */
     nr: '969', name: 'Ein Vergleich steht wieder neben einem Textruf',
     file: 'public/app.js',
     search: "    if (state) state.innerHTML = status.an",
@@ -9135,8 +7768,7 @@ const REGRESSIONS = [
   },
   {
     /* ZUSAGE 4: eine Datei traegt einen Schluessel weniger -- diesmal die
-       tuerkische. So faellt in einer echten Uebersetzungsrunde einer heraus,
-       und die Deckung der drei Dateien ist der Gegenstand der Zusage. */
+       tuerkische. */
     nr: '970', name: 'Die tuerkische Datei traegt einen Schluessel weniger',
     file: 'public/languages/tr.json',
     search: "  \"card.active\": \"etkin\",\n",
@@ -9144,9 +7776,7 @@ const REGRESSIONS = [
     expected: 'Deutsch sitzt — 0.31.1'
   },
   {
-    /* ZUSAGE 5: ein tMark-Satz verliert seinen Platz. Am Bildschirm stuende
-       danach „Willkommen, — bitte ein Passwort waehlen." -- ohne den Namen,
-       fuer den die Zeile da ist. */
+    /* ZUSAGE 5: ein tMark-Satz verliert seinen Platz. */
     nr: '971', name: 'Ein Satz mit Hervorhebung verliert seinen Platz',
     file: 'public/languages/de.json',
     search: "  \"login.welcome\": \"Willkommen, {word} — bitte ein Passwort wählen.\",",
@@ -9154,10 +7784,7 @@ const REGRESSIONS = [
     expected: 'Deutsch sitzt — 0.31.1'
   },
   {
-    /* ZUSAGE 6: eine Vokabelbeschriftung nennt ihr eigenes Vorgabewort. Wer
-       „Eintrag" durch „Gerät" ersetzt, liest daneben weiterhin „Eintrag" --
-       die Beschriftung nennt genau das, was der Benutzer gerade auswechselt
-       (L5). */
+    /* ZUSAGE 6: eine Vokabelbeschriftung nennt ihr eigenes Vorgabewort. */
     nr: '972', name: 'Eine Vokabelbeschriftung nennt wieder ihr Vorgabewort',
     file: 'public/languages/de.json',
     search: "  \"card.itemOne\": \"Das Bewertete, Einzahl\",",
@@ -9167,11 +7794,7 @@ const REGRESSIONS = [
   {
     /* ZUSAGE 7: eine Zahl steht wieder zweimal -- einmal als `value` am
        Auswahlfeld und einmal als Satz in drei Sprachdateien, obwohl „50 MB"
-       in allen dreien gleich lautet (Stolperstein 47).
-       ER FAELLT DOPPELT AUF -- an dieser Zusage UND an der Deckungsprobe, der
-       `de.json` dann einen Schluessel mehr traegt als die beiden anderen. Das
-       ist keine Unschaerfe, sondern die Sache selbst: eine Zahl, die in einer
-       Sprachdatei steht, ist in DREI Dateien zu pflegen. */
+       in allen dreien gleich lautet. */
     nr: '973', name: 'Eine Exportgroesse steht wieder in der Sprachdatei',
     file: 'public/languages/de.json',
     search: "  \"card.mergeExplainHint\":",
@@ -9179,10 +7802,7 @@ const REGRESSIONS = [
     expected: 'Deutsch sitzt — 0.31.1'
   },
   {
-    /* ZUSAGE 8: ein deutscher Wert traegt wieder eine HTML-Entitaet. Der
-       Uebersetzer muesste Maskierung kennen, um den Satz zu verstehen -- und
-       wer sie nicht kennt, schreibt spitze Klammern hin, die im Browser
-       verschwinden. */
+    /* ZUSAGE 8: ein deutscher Wert traegt wieder eine HTML-Entitaet. */
     nr: '974', name: 'Ein deutscher Wert traegt wieder eine HTML-Entitaet',
     file: 'public/languages/de.json',
     search: "steht künftig unter „Gelöschter Benutzer {number}“.",
@@ -9190,9 +7810,7 @@ const REGRESSIONS = [
     expected: 'Deutsch sitzt — 0.31.1'
   },
   {
-    /* ZUSAGE 9: die Einrueckung des Quelltexts steht wieder im Wert. Am
-       Bildschirm faellt sie nicht auf -- HTML zieht sie zusammen --, und
-       genau deshalb wandert sie ungesehen in jede Uebersetzung mit. */
+    /* ZUSAGE 9: die Einrueckung des Quelltexts steht wieder im Wert. */
     nr: '975', name: 'Ein Wert traegt wieder die Einrueckung des Quelltexts',
     file: 'public/languages/de.json',
     search: "\"card.storeCaveat\": \"Verlustbehaftet: bei Fotos rund zwei Drittel kleiner,",
@@ -9200,10 +7818,7 @@ const REGRESSIONS = [
     expected: 'Deutsch sitzt — 0.31.1'
   },
   {
-    /* ZUSAGE 10: ein Eintrag der Umbenennungstafel zeigt wieder ins Leere.
-       Die Tafel uebersetzt den alten deutschen Namen; zeigt sie auf einen
-       Schluessel, den es nicht mehr gibt, findet der Rufer nichts und merkt
-       es nicht. */
+    /* ZUSAGE 10: ein Eintrag der Umbenennungstafel zeigt wieder ins Leere. */
     nr: '976', name: 'Ein Eintrag der Umbenennungstafel zeigt wieder ins Leere',
     file: 'tools/keys.json',
     search: "  \"karte.laden\": \"card.confirmOnce\",",
@@ -9212,32 +7827,17 @@ const REGRESSIONS = [
   },
   {
     /* ZUSAGE 11: ein Satz, den DIESE Runde nicht angefasst hat, aendert sein
-       Wort. Er steht in keiner der drei Listen -- und muss deshalb Zeichen
-       fuer Zeichen der von 0681d42 sein. Faellt diese Zeile nicht, ist die
-       ganze Buchfuehrung der Runde eine Behauptung. */
+       Wort. */
     nr: '977', name: 'Ein unberuehrter Satz aendert sein Wort',
     file: 'public/languages/de.json',
     search: "  \"list.close\": \"Schließen\",",
     replacement: "  \"list.close\": \"Zumachen\",",
     expected: 'Der Quelltext spricht Englisch — die sechs Waechter'
   },
-  /* ---- „Englisch sitzt" -- 0.31.2, zehn Zusagen ----
-     JEDER GREIFT IN DIE DATEN UND NICHT IN DEN WAECHTER. Neun fassen
-     `en.json` an -- die Datei, die diese Runde formuliert --, einer `de.json`
-     und einer den Vergleichsstand.
-     UND JEDER IST SO KLEIN GESCHNITTEN, DASS ER SEINE EIGENE ZUSAGE MELDET
-     und moeglichst keine zweite: der Laengenrueckbau fuegt keinen Satz hinzu,
-     der Satzrueckbau macht aus einem Gedankenstrich einen Punkt und bleibt
-     dabei gleich lang. Ein Rueckbau, der drei Zeilen zugleich rot macht, sagt
-     nicht, welche gefangen hat. */
+  /* ---- „Englisch sitzt" -- 0.31.2, zehn Zusagen ---- JEDER GREIFT IN DIE
+     DATEN UND NICHT IN DEN WAECHTER. */
   {
-    /* ZUSAGE 1: ein DEUTSCHER Wert wird angefasst. Das ist die tragende
-       Leitplanke der Runde (L1) -- und der einzige Rueckbau hier, der nicht in
-       `en.json` greift. Die Gleichlautprobe rechnet ihre beiden deutschen
-       Summen am Quelltext nach; eine geaenderte Beschriftung faellt damit
-       auf, ohne dass jemand sie gesucht haette.
-       ER MACHT AUCH DIE WORTLAUTPROBE ROT, und das ist richtig so: zwei
-       Wachen ueber dieselbe Zusage duerfen sich nicht widersprechen. */
+    /* ZUSAGE 1: ein DEUTSCHER Wert wird angefasst. */
     nr: '978', name: 'Ein deutscher Wert aendert sich — Deutsch ist nicht mehr unangetastet',
     file: 'public/languages/de.json',
     search: "  \"card.appearance\": \"Darstellung\",",
@@ -9245,9 +7845,7 @@ const REGRESSIONS = [
     expected: 'Englisch sitzt — 0.31.2'
   },
   {
-    /* ZUSAGE 2: ein Mehrzahlpaar wird auf Englisch zu EINEM Satz. Die
-       Deckungsprobe sieht das nicht -- der Schluessel ist da, und gezaehlt
-       wird er auch; am Bildschirm stuende danach „1 vocabulary words". */
+    /* ZUSAGE 2: ein Mehrzahlpaar wird auf Englisch zu EINEM Satz. */
     nr: '979', name: 'Ein englisches Mehrzahlpaar wird ein einzelner Satz',
     file: 'public/languages/en.json',
     search: "  \"card.wordsMissing\": {\n    \"one\": \"1 vocabulary word\",\n    \"other\": \"{n} vocabulary words\"\n  },",
@@ -9255,8 +7853,7 @@ const REGRESSIONS = [
     expected: 'Englisch sitzt — 0.31.2'
   },
   {
-    /* ZUSAGE 3: ein Platz faellt aus dem englischen Satz. Der Satz verliert
-       seine Zahl, und niemand sieht es -- ausser dieser Zeile. */
+    /* ZUSAGE 3: ein Platz faellt aus dem englischen Satz. */
     nr: '980', name: 'Ein englischer Wert verliert einen Platzhalter',
     file: 'public/languages/en.json',
     search: "  \"card.deleteFreesHint\": \"{word} — {bytes} free.\",",
@@ -9264,8 +7861,7 @@ const REGRESSIONS = [
     expected: 'Englisch sitzt — 0.31.2'
   },
   {
-    /* ZUSAGE 4: die Verbotsliste. Der Schluessel bekommt seinen Denglisch-Satz
-       von vor der Runde zurueck -- Dateien und Ordner „sitzen" nicht. */
+    /* ZUSAGE 4: die Verbotsliste. */
     nr: '981', name: 'Ein englischer Wert traegt wieder ein Wort der Verbotsliste',
     file: 'public/languages/en.json',
     search: "  \"card.keyBesideDb\": \"The key is in the same directory as the database\",",
@@ -9273,9 +7869,7 @@ const REGRESSIONS = [
     expected: 'Englisch sitzt — 0.31.2'
   },
   {
-    /* ZUSAGE 5: die letzte HTML-Entitaet kommt zurueck. 0.31.1 hat sie nur auf
-       Deutsch herausgenommen und den Grund benannt; wer sie hier wieder
-       hinschreibt, verlangt vom naechsten Uebersetzer, Maskierung zu kennen. */
+    /* ZUSAGE 5: die letzte HTML-Entitaet kommt zurueck. */
     nr: '982', name: 'Ein englischer Wert traegt wieder eine HTML-Entitaet',
     file: 'public/languages/en.json',
     search: "appear under “Deleted user” with a number.",
@@ -9284,9 +7878,7 @@ const REGRESSIONS = [
   },
   {
     /* ZUSAGE 6: der englische Satz wird laenger als sein deutscher -- und
-       zwar OHNE einen Satz mehr. Genau so kommt der Ballast zurueck, den die
-       Vorlage gefunden hat: nicht als zweiter Satz, sondern als Beiwerk im
-       ersten. */
+       zwar OHNE einen Satz mehr. */
     nr: '983', name: 'Ein englischer Satz wird wieder deutlich laenger als sein deutscher',
     file: 'public/languages/en.json',
     search: "  \"card.blocksHint\": \"The order of the blocks and their collapsed state apply to all {entryMany}.\",",
@@ -9294,10 +7886,7 @@ const REGRESSIONS = [
     expected: 'Englisch sitzt — 0.31.2'
   },
   {
-    /* ZUSAGE 7: ein Satz mehr, bei gleicher Laenge. Aus einem Gedankenstrich
-       wird ein Punkt -- der Wert ist danach sogar ein Zeichen kuerzer, und
-       die Laengenzusage bleibt gruen. Nur die Satzzahl faellt auf, und genau
-       das soll sie: die Kuerze steckt nicht in den Zeichen. */
+    /* ZUSAGE 7: ein Satz mehr, bei gleicher Laenge. */
     nr: '984', name: 'Ein englischer Wert traegt einen Satz mehr als sein deutscher',
     file: 'public/languages/en.json',
     search: "  \"server.exportGrew\": \"The export file has passed the limit of {limit} MB. Use the backup — it writes the whole inventory and does not know this limit.\",",
@@ -9305,10 +7894,7 @@ const REGRESSIONS = [
     expected: 'Englisch sitzt — 0.31.2'
   },
   {
-    /* ZUSAGE 8: eine US-Schreibung. `_locale` sagt en-GB seit 0.24.3; die
-       Zeile war vor der Runde schon gruen -- dieser Rueckbau zeigt, dass sie
-       auch rot werden kann. Eine Zusage, die nur gruen sein KANN, belegt
-       nichts. */
+    /* ZUSAGE 8: eine US-Schreibung. */
     nr: '985', name: 'Ein englischer Wert traegt eine US-Schreibung',
     file: 'public/languages/en.json',
     search: "  \"card.themeHint\": \"Colour scheme",
@@ -9316,10 +7902,7 @@ const REGRESSIONS = [
     expected: 'Englisch sitzt — 0.31.2'
   },
   {
-    /* ZUSAGE 9: die Einrueckung des Quelltexts steht wieder im Wert. Am
-       Bildschirm faellt sie nicht auf -- HTML zieht sie zusammen --, und
-       genau deshalb wandert sie ungesehen in jede weitere Uebersetzung mit.
-       Derselbe Rueckbau wie 975, nur auf der englischen Seite. */
+    /* ZUSAGE 9: die Einrueckung des Quelltexts steht wieder im Wert. */
     nr: '986', name: 'Ein englischer Wert traegt wieder die Einrueckung des Quelltexts',
     file: 'public/languages/en.json',
     search: "  \"card.storeCaveat\": \"Lossy: about two thirds smaller for photos,",
@@ -9327,11 +7910,7 @@ const REGRESSIONS = [
     expected: 'Englisch sitzt — 0.31.2'
   },
   {
-    /* ZUSAGE 10: der Vergleichsstand und `en.json` laufen auseinander. DIESER
-       RUECKBAU GREIFT IN DIE VERGLEICHSDATEI und nicht in `en.json`: es geht
-       um die Buchfuehrung selbst. Wer einen englischen Wert anfasst, ohne ihn
-       zu benennen, bekommt genau dieses Bild -- und die Tafel
-       EG_CHANGED_AFTER_0312 ist leer, also faellt es auf. */
+    /* ZUSAGE 10: der Vergleichsstand und `en.json` laufen auseinander. */
     nr: '987', name: 'Der Vergleichsstand weicht von en.json ab, ohne benannt zu sein',
     file: 'tools/englisch-0312.json',
     search: "    \"card.active\": \"active\",",
@@ -9339,42 +7918,17 @@ const REGRESSIONS = [
     expected: 'Englisch sitzt — 0.31.2'
   },
   {
-    /* ZUSAGE 1, ZWEITE HAELFTE: die bestellte Ausnahme wird zurueckgenommen.
-       SEIT DER BESTELLUNG DES BETREIBERS HAT ZUSAGE 1 ZWEI HAELFTEN -- „kein
-       deutscher Wert ist von mir angefasst" (978) und „genau diese zwei sind es
-       auf Bestellung" (hier). Eine Ausnahme ohne Gegenprobe ist eine
-       Behauptung: sie kann still verschwinden, und niemand merkt es.
-       ER MACHT DREI WACHEN ZUGLEICH ROT, und das ist hier kein Mangel, sondern
-       die Sache selbst: die Pruefsummen dieser Runde, die Tafel
-       DE_ORDERED_0312 und -- weil die Ausnahme der Bildschirmverbotsliste mit
-       dem Satz gewandert ist -- auch das Verbot von „Zugang" fuer Konto. */
+    /* ZUSAGE 1, ZWEITE HAELFTE: die bestellte Ausnahme wird zurueckgenommen. */
     nr: '988', name: 'Das Label heisst wieder „Zugang beantragen"',
     file: 'public/languages/de.json',
     search: "  \"login.requestAccess\": \"Zugang anfragen\",",
     replacement: "  \"login.requestAccess\": \"Zugang beantragen\",",
     expected: 'Englisch sitzt — 0.31.2'
   },
-  /* ---- „Tuerkisch sitzt" -- 0.31.3, dreizehn Zusagen ----
-     JEDER GREIFT IN DIE DATEN UND NICHT IN DEN WAECHTER. Elf fassen `tr.json`
-     an -- die Datei, die diese Runde formuliert --, einer `en.json` und einer
-     den Vergleichsstand.
-     UND JEDER IST SO KLEIN GESCHNITTEN, DASS ER SEINE EIGENE ZUSAGE MELDET:
-     der Laengenrueckbau fuegt keinen Satz hinzu, der Satzrueckbau macht aus
-     einem Gedankenstrich einen Punkt und bleibt dabei gleich lang, und der
-     Verbotswort-Rueckbau ist ausdruecklich KUERZER als sein deutscher Satz.
-     ZWEI VON IHNEN MACHEN ABSICHTLICH AUCH EINEN AELTEREN WAECHTER ROT, und
-     das ist bei beiden die Sache selbst: 989 faellt zugleich in „Englisch
-     sitzt" (Englisch ist jetzt Basis fuer zwei Runden) und 997 in die
-     Vokabelprobe von 0.24.4 (die Entscheidung des Betreibers steht an beiden
-     Orten). Zwei Wachen ueber dieselbe Zusage duerfen sich nicht
-     widersprechen. */
+  /* ---- „Tuerkisch sitzt" -- 0.31.3, dreizehn Zusagen ---- JEDER GREIFT IN
+     DIE DATEN UND NICHT IN DEN WAECHTER. */
   {
-    /* ZUSAGE 1: ein ENGLISCHER Wert wird angefasst. Seit dieser Runde ist
-       Englisch die zweite unveraenderliche Basis (Leitplanke L1), und die
-       Gleichlautprobe rechnet ihre beiden englischen Summen am Quelltext nach.
-       DER DEUTSCHE HALBTEIL STEHT SCHON DA -- Gegenprobe 978 aus 0.31.2 fasst
-       `de.json` an und macht seit dieser Runde BEIDE Gruppen rot. Hier geht es
-       um die Haelfte, die 0.31.3 dazugelegt hat. */
+    /* ZUSAGE 1: ein ENGLISCHER Wert wird angefasst. */
     nr: '989', name: 'Ein englischer Wert aendert sich — Englisch ist die zweite Basis',
     file: 'public/languages/en.json',
     search: "  \"card.active\": \"active\",",
@@ -9382,9 +7936,7 @@ const REGRESSIONS = [
     expected: 'Tuerkisch sitzt — 0.31.3'
   },
   {
-    /* ZUSAGE 2: ein Mehrzahlpaar wird auf Tuerkisch zu EINEM Satz. Die
-       Deckungsprobe sieht das nicht -- der Schluessel ist da, und gezaehlt
-       wird er auch; am Bildschirm stuende danach bei n = 1 ein `⟦…⟧`. */
+    /* ZUSAGE 2: ein Mehrzahlpaar wird auf Tuerkisch zu EINEM Satz. */
     nr: '990', name: 'Ein tuerkisches Mehrzahlpaar wird ein einzelner Satz',
     file: 'public/languages/tr.json',
     search: "  \"card.wordsMissing\": {\n    \"one\": \"1 sözcük\",\n    \"other\": \"{n} sözcük\"\n  },",
@@ -9392,10 +7944,7 @@ const REGRESSIONS = [
     expected: 'Tuerkisch sitzt — 0.31.3'
   },
   {
-    /* ZUSAGE 3: ein Platz faellt aus dem tuerkischen Satz. Im Tuerkischen
-       WANDERT die Stelle eines Platzes mit der Grammatik (L5) -- und genau
-       deshalb braucht diese Zusage ihre Gegenprobe: eine Runde, die Plaetze
-       umstellt, kann einen dabei verlieren, und der Satz verliert seine Zahl. */
+    /* ZUSAGE 3: ein Platz faellt aus dem tuerkischen Satz. */
     nr: '991', name: 'Ein tuerkischer Wert verliert einen Platzhalter',
     file: 'public/languages/tr.json',
     search: "  \"card.deleteFreesHint\": \"{word} — {bytes} boş.\",",
@@ -9403,13 +7952,7 @@ const REGRESSIONS = [
     expected: 'Tuerkisch sitzt — 0.31.3'
   },
   {
-    /* ZUSAGE 4: die Verbotsliste -- UND ZWAR MIT ANGEKLEBTER ENDUNG. Das ist
-       die Lehre aus Leitplanke L4 als Gegenprobe: „hap" steht in der Datei
-       nicht nackt, sondern als „haptan". Ein Waechter mit `\b` bliebe hier
-       gruen, weil zwischen einem Leerzeichen und einem tuerkischen Buchstaben
-       fuer JavaScript keine Wortgrenze steht.
-       UND DER SATZ IST KUERZER ALS SEIN DEUTSCHER, damit nur Zusage 4 faellt
-       und nicht die Laenge mit. */
+    /* ZUSAGE 4: die Verbotsliste -- UND ZWAR MIT ANGEKLEBTER ENDUNG. */
     nr: '992', name: 'Ein tuerkischer Wert traegt wieder „haptan" — mit angeklebter Endung',
     file: 'public/languages/tr.json',
     search: "  \"card.exportWritesHint\": \"Bütün veriyi bir dosyaya yazar; beklenen boyut düğmelerin üzerinde gösterilir.\",",
@@ -9417,12 +7960,7 @@ const REGRESSIONS = [
     expected: 'Tuerkisch sitzt — 0.31.3'
   },
   {
-    /* ZUSAGE 5: ein deutsches Anfuehrungszeichen kommt zurueck. 0.31.0 hat das
-       Paar in `tr.json` nur GESCHLOSSEN und die Frage vertagt; diese Runde hat
-       sie entschieden (F3), und ohne diese Zeile koennte der naechste
-       Uebersetzer das deutsche Paar wieder hinschreiben, ohne dass es
-       auffaellt -- im Browser sieht `„…“` nicht falsch aus, es ist nur keine
-       tuerkische Typografie. */
+    /* ZUSAGE 5: ein deutsches Anfuehrungszeichen kommt zurueck. */
     nr: '993', name: 'Ein tuerkischer Wert traegt wieder ein deutsches Anfuehrungszeichen',
     file: 'public/languages/tr.json',
     search: "  \"card.approveAsk\": \"“{username}” onaylansın mı?\",",
@@ -9431,9 +7969,7 @@ const REGRESSIONS = [
   },
   {
     /* ZUSAGE 6: der tuerkische Satz wird deutlich laenger als sein deutscher
-       -- und zwar OHNE einen Satz mehr. Genau so kommt der Ballast zurueck,
-       den die Vorlage gefunden hat: nicht als zweiter Satz, sondern als
-       Beiwerk im ersten. */
+       -- und zwar OHNE einen Satz mehr. */
     nr: '994', name: 'Ein tuerkischer Satz wird wieder deutlich laenger als sein deutscher',
     file: 'public/languages/tr.json',
     search: "  \"card.blocksHint\": \"Blokların sırası ve açık mı kapalı mı olduğu her {entryOne} için geçerlidir.\",",
@@ -9441,10 +7977,7 @@ const REGRESSIONS = [
     expected: 'Tuerkisch sitzt — 0.31.3'
   },
   {
-    /* ZUSAGE 7: ein Satz mehr, bei gleicher Laenge. Aus einem Gedankenstrich
-       wird ein Punkt -- der Wert ist danach sogar ein Zeichen kuerzer, und die
-       Laengenzusage bleibt gruen. Nur die Satzzahl faellt auf: die Kuerze
-       steckt nicht in den Zeichen. */
+    /* ZUSAGE 7: ein Satz mehr, bei gleicher Laenge. */
     nr: '995', name: 'Ein tuerkischer Wert traegt einen Satz mehr als sein deutscher',
     file: 'public/languages/tr.json',
     search: "  \"server.exportGrew\": \"Dışa aktarma dosyası {limit} MB sınırını aştı. Yedeklemeyi kullan — o bütün veriyi yazar ve bu sınırı tanımaz.\",",
@@ -9452,10 +7985,7 @@ const REGRESSIONS = [
     expected: 'Tuerkisch sitzt — 0.31.3'
   },
   {
-    /* ZUSAGE 8: die letzte HTML-Entitaet kommt zurueck. Sie stand in allen drei
-       Dateien an DERSELBEN Stelle und ist in drei Runden gefallen -- 0.31.1
-       auf Deutsch, 0.31.2 auf Englisch, 0.31.3 auf Tuerkisch. Wer sie wieder
-       hinschreibt, verlangt vom naechsten Uebersetzer, Maskierung zu kennen. */
+    /* ZUSAGE 8: die letzte HTML-Entitaet kommt zurueck. */
     nr: '996', name: 'Ein tuerkischer Wert traegt wieder eine HTML-Entitaet',
     file: 'public/languages/tr.json',
     search: "katkıları bundan sonra “Silinen kullanıcı” adıyla ve bir numarayla görünür.",
@@ -9463,17 +7993,7 @@ const REGRESSIONS = [
     expected: 'Tuerkisch sitzt — 0.31.3'
   },
   {
-    /* ZUSAGE 9: DIESER RUECKBAU HAT SICH MIT SEINER ZUSAGE GEDREHT -- 0.31.4.
-       BIS 0.31.3 BAUTE ER EIN, WAS DIE VORLAGE VERLANGTE: `entryMany` bekam
-       sein -ler, und damit stand an vierundzwanzig Stellen „3 Öğeler". Das war
-       der Bug, nicht die Reparatur.
-       SEIT 0.31.4 NIMMT `counted()` HINTER EINER ZAHL DIE EINZAHL, und die
-       Mehrzahl kostet dort nichts mehr -- der Betreiber hat sie am 13.9.2026
-       bestellt. Der Rueckbau nimmt sie jetzt WEG: „Öğeler" wird wieder „Öğe",
-       und damit verlieren die vierunddreissig zahllosen Stellen ihre Mehrzahl.
-       ER MACHT ZWEI WACHEN ROT, und das ist die Sache selbst: die
-       Sprachentscheidung steht seit 0.24.4 im Pruefstand und seit 0.31.3 ein
-       zweites Mal, mit der Messung daneben. */
+    /* ZUSAGE 9: DIESER RUECKBAU HAT SICH MIT SEINER ZUSAGE GEDREHT -- 0.31.4. */
     nr: '997', name: 'Ein Vokabelwort verliert seine Mehrzahl wieder — „Öğeler" wird „Öğe"',
     file: 'public/languages/tr.json',
     search: "  \"vocabulary.entryMany\": \"Öğeler\",",
@@ -9481,10 +8001,7 @@ const REGRESSIONS = [
     expected: 'Tuerkisch sitzt — 0.31.3'
   },
   {
-    /* ZUSAGE 10: eine Mehrzahl hinter einer Zahl. DIE GEGENLEITPLANKE ZUR
-       VORLAGE (L7) -- und der Rueckbau greift in die MEHRZAHLFORM eines
-       Paares, dessen beide Formen denselben Satz tragen. Genau dort greift
-       jemand hin, der die 28 gleichen Paare fuer einen Fehler haelt. */
+    /* ZUSAGE 10: eine Mehrzahl hinter einer Zahl. */
     nr: '998', name: 'Eine Mehrzahl steht hinter einer Zahl — „{n} yedeklemeler"',
     file: 'public/languages/tr.json',
     search: "  \"card.backupsDeleted\": {\n    \"one\": \"{n} yedekleme silindi ({bytes} boşaldı){extra}\",\n    \"other\": \"{n} yedekleme silindi ({bytes} boşaldı){extra}\"\n  },",
@@ -9492,11 +8009,7 @@ const REGRESSIONS = [
     expected: 'Tuerkisch sitzt — 0.31.3'
   },
   {
-    /* ZUSAGE 11: die eine siz-Form kommt zurueck. Sie stand wirklich so da --
-       `card.emailsDoubledHint` war der einzige hoefliche Wert unter 78
-       vertrauten --, und sie ist nicht als Fehler zu sehen, sondern nur im
-       Vergleich: eine Oberflaeche, die zwischen sen und siz wechselt, liest
-       sich wie zwei Programme. */
+    /* ZUSAGE 11: die eine siz-Form kommt zurueck. */
     nr: '999', name: 'Ein tuerkischer Wert spricht den Benutzer wieder hoeflich an',
     file: 'public/languages/tr.json',
     search: "Birini değiştir ya da boşalt — bir sonraki başlatmada",
@@ -9504,10 +8017,7 @@ const REGRESSIONS = [
     expected: 'Tuerkisch sitzt — 0.31.3'
   },
   {
-    /* ZUSAGE 12: die Einrueckung des Quelltexts steht wieder im Wert. Am
-       Bildschirm faellt sie nicht auf -- HTML zieht sie zusammen --, und genau
-       deshalb wandert sie ungesehen in jede weitere Uebersetzung mit.
-       Derselbe Rueckbau wie 975 und 986, nur auf der tuerkischen Seite. */
+    /* ZUSAGE 12: die Einrueckung des Quelltexts steht wieder im Wert. */
     nr: '1000', name: 'Ein tuerkischer Wert traegt wieder die Einrueckung des Quelltexts',
     file: 'public/languages/tr.json',
     search: "  \"card.storeCaveat\": \"Kayıplı: fotoğraflarda yaklaşık üçte iki daha küçük,",
@@ -9515,27 +8025,19 @@ const REGRESSIONS = [
     expected: 'Tuerkisch sitzt — 0.31.3'
   },
   {
-    /* ZUSAGE 13: der Vergleichsstand und `tr.json` laufen auseinander. DIESER
-       RUECKBAU GREIFT IN DIE VERGLEICHSDATEI und nicht in `tr.json`: es geht um
-       die Buchfuehrung selbst. Wer einen tuerkischen Wert anfasst, ohne ihn zu
-       benennen, bekommt genau dieses Bild -- und die Tafel
-       TR_CHANGED_AFTER_0313 ist leer, also faellt es auf. */
+    /* ZUSAGE 13: der Vergleichsstand und `tr.json` laufen auseinander. */
     nr: '1001', name: 'Der Vergleichsstand weicht von tr.json ab, ohne benannt zu sein',
     file: 'tools/tuerkisch-0313.json',
     search: "    \"card.active\": \"etkin\",",
     replacement: "    \"card.active\": \"açık\",",
     expected: 'Tuerkisch sitzt — 0.31.3'
   },
-  /* ---- „Nach einer Zahl die Einzahl" -- 0.31.4, fuenf Rueckbauten ----
-     DIE UEBRIGEN ZUSAGEN JENER RUNDE HABEN SCHON EINEN: Zusage 6 faellt mit
-     997 (das Vokabelwort verliert seine Mehrzahl), Zusage 8 mit 990, Zusage 10
+  /* ---- „Nach einer Zahl die Einzahl" -- 0.31.4, fuenf Rueckbauten ---- DIE
+     UEBRIGEN ZUSAGEN JENER RUNDE HABEN SCHON EINEN: Zusage 6 faellt mit 997
+     (das Vokabelwort verliert seine Mehrzahl), Zusage 8 mit 990, Zusage 10
      mit 991. Hier stehen die fuenf, die sonst keiner traefe. */
   {
-    /* ZUSAGE 1: DEUTSCH WIRD MITGERISSEN. Die Forderung des Betreibers war
-       ausdruecklich „das darf sich bei deutsch und englisch nicht negativ
-       auswirken" -- und der Schutz ist EIN Wort in der Datei. Wer es umstellt,
-       macht aus „3 Einträge" ein „3 Eintrag", und keine deutsche Zeile des
-       Pruefstands saehe es: sie pruefen Werte, nicht Stellungen. */
+    /* ZUSAGE 1: DEUTSCH WIRD MITGERISSEN. */
     nr: '1002', name: 'Deutsch bekommt die tuerkische Stellungsregel',
     file: 'public/languages/de.json',
     search: "  \"_afterNumber\": \"plural\",",
@@ -9543,9 +8045,7 @@ const REGRESSIONS = [
     expected: 'Nach einer Zahl die Einzahl — 0.31.4'
   },
   {
-    /* ZUSAGE 2: TUERKISCH VERLIERT SIE. Der Gegenzug zum vorigen -- und der
-       teurere: ohne ihn stuende an fuenfunddreissig Stellen wieder „3
-       Öğeler", und zwar erst am Bildschirm. */
+    /* ZUSAGE 2: TUERKISCH VERLIERT SIE. */
     nr: '1003', name: 'Tuerkisch verliert seine Stellungsregel',
     file: 'public/languages/tr.json',
     search: "  \"_afterNumber\": \"one\",",
@@ -9553,11 +8053,7 @@ const REGRESSIONS = [
     expected: 'Nach einer Zahl die Einzahl — 0.31.4'
   },
   {
-    /* ZUSAGE 5: EINE ZAEHLERSTELLE GREIFT WIEDER ZU `plural()`. Das ist der
-       Rueckfall, den die naechste Runde aus Versehen macht -- sie baut eine
-       neue Zaehlerstelle und nimmt den Helfer, der ueberall sonst steht.
-       GENAU AN DIESER ZEILE IST ER BEIM BAUEN VON 0.31.4 EINMAL PASSIERT:
-       `entry.added` ist uebersehen worden und vom Waechter gefunden. */
+    /* ZUSAGE 5: EINE ZAEHLERSTELLE GREIFT WIEDER ZU `plural()`. */
     nr: '1004', name: 'Eine Zaehlerstelle greift wieder zu `plural()`',
     file: 'public/app.js',
     search: "const vTask = (n) => counted(n, V.taskOne, V.taskMany);",
@@ -9565,10 +8061,7 @@ const REGRESSIONS = [
     expected: 'Nach einer Zahl die Einzahl — 0.31.4'
   },
   {
-    /* ZUSAGE 7: `counted()` LIEST DIE LOCALE STATT DER DATEI. Das ist die
-       billige Loesung, die Leitplanke L1 verbietet -- eine Liste von Sprachen
-       im Code. Sie SIEHT richtig aus und tut fuer Tuerkisch sogar dasselbe;
-       falsch ist, dass die naechste Sprache dann wieder den Code braucht. */
+    /* ZUSAGE 7: `counted()` LIEST DIE LOCALE STATT DER DATEI. */
     nr: '1005', name: '`counted()` entscheidet an der Locale statt an der Datei',
     file: 'public/app.js',
     search: "  return AFTER_NUMBER === 'one' ? one : plural(n, one, other);",
@@ -9576,10 +8069,7 @@ const REGRESSIONS = [
     expected: 'Nach einer Zahl die Einzahl — 0.31.4'
   },
   {
-    /* ZUSAGE 11: EIN SATZ FAELLT AUF DIE MEHRZAHLFORM ZURUECK. `her` verlangt
-       im Tuerkischen die Einzahl, auch ohne Zahl davor -- „her öğeler için"
-       ist falsch. Der Rueckbau macht genau den Handgriff, den jemand macht,
-       der die Regel nicht kennt und die Formen fuer austauschbar haelt. */
+    /* ZUSAGE 11: EIN SATZ FAELLT AUF DIE MEHRZAHLFORM ZURUECK. */
     nr: '1006', name: 'Ein Satz mit `her` faellt auf die Mehrzahlform zurueck',
     file: 'public/languages/tr.json',
     search: "olduğu her {entryOne} için geçerlidir.",
@@ -9587,17 +8077,7 @@ const REGRESSIONS = [
     expected: 'Nach einer Zahl die Einzahl — 0.31.4'
   },
   {
-    /* ZUSAGE 5 UND 6 AM GERENDERTEN TEXT: DIE KRUECKE KOMMT ZURUECK. 0.31.3
-       hatte „Açık {taskMany}" nicht zur Verfuegung -- `taskMany` war damals
-       dasselbe Wort wie `taskOne`, und der Satz haette „Açık Görev" gelesen.
-       Der Handgriff von damals war, „listesi" anzuhaengen: „Açık Görev
-       listesi" -- grammatisch richtig, aber eine Kruecke um ein fehlendes
-       Wort herum.
-       KEIN BLICK IN DIE DATEI FINDET IHN WIEDER: „Açık {taskMany} listesi"
-       verstoesst gegen keine Verbotsliste, traegt jeden Platzhalter des
-       deutschen Satzes und liest sich sauber. Falsch ist er erst im Vergleich
-       mit dem, was ab 0.31.4 moeglich ist -- und das sieht nur die Probe am
-       GERENDERTEN Text. Sie ist der einzige Waechter, der hier rot wird. */
+    /* ZUSAGE 5 UND 6 AM GERENDERTEN TEXT: DIE KRUECKE KOMMT ZURUECK. */
     nr: '1007', name: 'Die Kruecke „listesi" kommt hinter das Vokabelwort zurueck',
     file: 'public/languages/tr.json',
     search: "  \"list.openTasks\": \"Açık {taskMany}\",",
@@ -9605,13 +8085,7 @@ const REGRESSIONS = [
     expected: 'Nach einer Zahl die Einzahl — 0.31.4'
   },
   {
-    /* ZUSAGE 5, FUENFTER SCHRITT: DIE ZAHL KOMMT IN DIE VORSCHAU ZURUECK.
-       GENAU SO STAND ES BIS 0.31.3 DA, und der Augenschein dieser Runde hat es
-       gefunden: „7 Öğeler" in der Karte, in die der Eigentuemer seine Woerter
-       eintraegt. Es ist der teuerste der Rueckbauten dieser Runde, weil er am
-       Quelltext voellig harmlos aussieht -- eine Zahl in einer String,
-       kein `plural()`, kein `counted()`, kein Vokabelzaehler. Die vier ersten
-       Schritte von Zusage 5 sehen ihn nicht; der fuenfte sieht ihn. */
+    /* ZUSAGE 5, FUENFTER SCHRITT: DIE ZAHL KOMMT IN DIE VORSCHAU ZURUECK. */
     nr: '1008', name: 'Die Vorschau der Vokabelkarte setzt wieder eine Zahl vor die Mehrzahl',
     file: 'public/app.js',
     search: "</span><span>${many(7, sm)}</span>",
@@ -9620,12 +8094,7 @@ const REGRESSIONS = [
   },
   {
     /* ZUSAGE 5, FUENFTER SCHRITT, DIE FEINE HAELFTE: die Vorschau fragt die
-       Sprache DES LESERS statt der GEZEIGTEN. Dieser Rueckbau ist der
-       gefaehrlichste der Runde, weil er gruen aussieht: ein tuerkischer Leser
-       saehe dieselbe Vorschau wie vorher. Falsch wird er genau in dem Fall,
-       fuer den die Karte gebaut ist -- der Eigentuemer liest Deutsch und
-       pflegt die tuerkischen Woerter, und dann stuende dort wieder
-       „7 Öğeler". Genau so hat der Augenschein den Befund gefunden. */
+       Sprache DES LESERS statt der GEZEIGTEN. */
     nr: '1009', name: 'Die Vorschau fragt die Sprache des LESERS statt der gezeigten',
     file: 'public/app.js',
     search: "(afterNumberOf(namesLanguage()) === 'one' ? esc(word) : `${n} ${esc(word)}`);",
@@ -9634,14 +8103,9 @@ const REGRESSIONS = [
   },
 
   /* ================= 0.32.0 — „Einen anderen markieren" ================
-     DREIZEHN ZUSAGEN, DREIZEHN RUECKBAUTEN. Jeder nimmt genau EINE davon
-     zurueck; was daraufhin rot wird, steht im Aenderungsprotokoll. */
+     DREIZEHN ZUSAGEN, DREIZEHN RUECKBAUTEN. */
   {
-    /* ZUSAGE 1: die Glocke rechnet EINMAL. Der Rueckbau macht aus der
-       Teilmenge eine zweite Zaehlung -- `marked` zaehlt dann JEDEN neuen
-       Kommentar und nicht nur die, die mich markieren. Am Bildschirm stuende
-       „3 Kommentare, davon 3 an mich gerichtet" an einem Eintrag, in dem
-       niemand markiert ist. */
+    /* ZUSAGE 1: die Glocke rechnet EINMAL. */
     nr: '1010', name: 'Die Glocke zaehlt jeden neuen Kommentar als Markierung',
     file: 'server.js',
     search: "          SUM(CASE WHEN m.comment_id IS NULL THEN 0 ELSE 1 END) AS marked",
@@ -9649,10 +8113,7 @@ const REGRESSIONS = [
     expected: 'Einen anderen markieren — 0.32.0'
   },
   {
-    /* ZUSAGE 2: die Markierung entsteht als KNOTEN. Der Rueckbau macht aus dem
-       eigenen Element ein `<mark>` -- am Bildschirm dieselbe Farbe wie eine
-       Fundstelle der Suche, und in einem Kommentar mit Treffern nicht mehr
-       auseinanderzuhalten. */
+    /* ZUSAGE 2: die Markierung entsteht als KNOTEN. */
     nr: '1011', name: 'Die Markierung wird zur Fundstelle der Suche',
     file: 'public/app.js',
     search: "    const at = document.createElement('span');\n    at.className = 'mention';",
@@ -9660,9 +8121,7 @@ const REGRESSIONS = [
     expected: 'Der Kommentartext: Links, Hervorhebung und Markierung'
   },
   {
-    /* ZUSAGE 3: die Markierung gilt EINEM. Der Rueckbau nimmt die Bedingung am
-       JOIN weg -- danach markiert jeder Kommentar jeden, und die Glocke des
-       Unbeteiligten meldet eine Markierung, die ihn nichts angeht. */
+    /* ZUSAGE 3: die Markierung gilt EINEM. */
     nr: '1012', name: 'Die Markierung gilt wieder jedem',
     file: 'server.js',
     search: "     LEFT JOIN comment_mentions m ON m.comment_id = c.id AND m.user_id = ?",
@@ -9670,9 +8129,7 @@ const REGRESSIONS = [
     expected: 'Einen anderen markieren — 0.32.0'
   },
   {
-    /* ZUSAGE 4: der Grabsteinname geht nicht hinaus. Der Rueckbau schickt
-       statt des Verfasserobjekts den `handle` mit -- und damit stuende der
-       freigegebene Name wieder am Bildschirm. */
+    /* ZUSAGE 4: der Grabsteinname geht nicht hinaus. */
     nr: '1013', name: 'Die Markierung schickt den Namen statt der Nummer',
     file: 'server.js',
     search: "    markedPer.get(z.comment_id).push({ handle: z.handle, author: authorFrom(card, z.user_id) });",
@@ -9680,9 +8137,7 @@ const REGRESSIONS = [
     expected: 'Einen anderen markieren — 0.32.0'
   },
   {
-    /* ZUSAGE 6: es sind fuenfzehn Vokabelwoerter. Der Rueckbau nimmt das
-       fuenfzehnte aus der Karte -- die Sprachdatei kennt es weiter, die Karte
-       zeigt es nicht mehr, und niemand kann es umbenennen. */
+    /* ZUSAGE 6: es sind fuenfzehn Vokabelwoerter. */
     nr: '1014', name: 'Das fuenfzehnte Vokabelwort faellt aus der Karte',
     file: 'public/app.js',
     search: "  ['v15', 'grade', () => t('card.grade')]",
@@ -9690,9 +8145,7 @@ const REGRESSIONS = [
     expected: 'Oberflaeche'
   },
   {
-    /* ZUSAGE 7: kein Vokabelwort steht zusammengesetzt. Der Rueckbau klebt das
-       neue Wort an ein anderes -- „Durchschnittsnote" ist genau der Fehler,
-       den L6 seit 0.21.0 verbietet. */
+    /* ZUSAGE 7: kein Vokabelwort steht zusammengesetzt. */
     nr: '1016', name: 'Ein Vokabelwort wird wieder zusammengesetzt',
     file: 'public/languages/de.json',
     search: "  \"list.sortAvg\": \"Durchschnitt: {grade}\",",
@@ -9700,9 +8153,7 @@ const REGRESSIONS = [
     expected: 'Die Sprachdatei ist die Quelle'
   },
   {
-    /* ZUSAGE 8: kein fester deutscher Satz in den Serverdateien. Der Rueckbau
-       schreibt einen der elf zurueck -- genau den, mit dem Punkt 29 angefangen
-       hat. */
+    /* ZUSAGE 8: kein fester deutscher Satz in den Serverdateien. */
     nr: '1017', name: 'Ein fester deutscher Satz kommt in server.js zurueck',
     file: 'server.js',
     search: "  if (!mail.configured(raw)) return { ok: false, key: 'server.noAccountOwner' };",
@@ -9710,10 +8161,7 @@ const REGRESSIONS = [
     expected: 'Die Sprachdatei ist die Quelle'
   },
   {
-    /* ZUSAGE 9: die Zugangsanfrage weist eine leere Form ab. Der Rueckbau
-       nimmt die Pruefung im SERVER weg -- die im Browser bleibt stehen, und
-       genau das ist die Lage, gegen die Punkt 30 argumentiert: eine Pruefung
-       nur im Browser ist eine Bitte. */
+    /* ZUSAGE 9: die Zugangsanfrage weist eine leere Form ab. */
     nr: '1018', name: 'Der Server prueft die Form der Zugangsanfrage nicht mehr',
     file: 'server.js',
     search: "  if (!mail.isAddress(address))\n    return res.status(400).json({ error: t(localeOf(req), 'login.emailInvalid') });",
@@ -9722,8 +8170,7 @@ const REGRESSIONS = [
   },
   {
     /* ZUSAGE 10: jede Aenderung an den drei Sprachdateien steht in ihrer
-       Tafel. DIESER RUECKBAU GREIFT IN DIE VERGLEICHSDATEI und nicht in
-       `en.json`: es geht um die Buchfuehrung selbst. */
+       Tafel. */
     nr: '1019', name: 'Der englische Vergleichsstand weicht ab, ohne benannt zu sein',
     file: 'tools/englisch-0312.json',
     search: "    \"card.active\": \"active\",",
@@ -9731,9 +8178,7 @@ const REGRESSIONS = [
     expected: 'Englisch steht auf dem Stand des Deutschen — 0.31.2'
   },
   {
-    /* ZUSAGE 11: kein Waechter ueber tuerkischen Text arbeitet mit `\b`. Der
-       Rueckbau setzt den Stamm von 0.25.1 zurueck -- er findet `yedeğe` nicht,
-       und die allgemeine Zeile daneben faellt ebenfalls auf. */
+    /* ZUSAGE 11: kein Waechter ueber tuerkischen Text arbeitet mit `\b`. */
     nr: '1020', name: 'Der `yedek`-Waechter bekommt seine Wortgrenzen zurueck',
     file: 'test/ui_overview.js',
     search: "      const YEDEK_STEM = /(?<![\\p{L}])yede[kğ](?!leme)[\\p{L}]*/iu;",
@@ -9742,8 +8187,7 @@ const REGRESSIONS = [
   },
   {
     /* UND DIE SCHWESTER DER GEGENPROBE 787, die Punkt 31 verlangt hat: sie
-       setzt „Son yedekleme" auf „Son yedeğe" statt auf „Son yedek". BIS
-       0.31.4 WAR SIE STUMM -- der Waechter suchte ein `k`. */
+       setzt „Son yedekleme" auf „Son yedeğe" statt auf „Son yedek". */
     nr: '1021', name: 'Ein erweichtes „yedeğe" bleibt im Tuerkischen stehen',
     file: 'public/languages/tr.json',
     search: "\"card.lastBackup\": \"Son yedekleme\"",
@@ -9760,10 +8204,10 @@ const REGRESSIONS = [
     expected: 'Der Bildschirmtext-Waechter — 0.22.0'
   },
   {
-    /* UND DER AUFKLAPPER „MEHR" SCHLAEGT WIEDER OHNE MESSUNG ZU -- 0.32.0,
-       BA 10. Der Rueckbau nimmt die Breitenfrage weg: danach liefe die
-       Messung auch am Telefon, wo jeder der acht Aufklapper 67 bis 107
-       Bildpunkte spart. */
+    /* UND DER AUFKLAPPER „MEHR" SCHLAEGT WIEDER OHNE MESSUNG ZU -- 0.32.0, BA
+       10. Der Rueckbau nimmt die Breitenfrage weg: danach liefe die Messung
+       auch am Telefon, wo jeder der acht Aufklapper 67 bis 107 Bildpunkte
+       spart. */
     nr: '1024', name: 'Der „Mehr"-Aufklapper fragt die Breite nicht mehr',
     file: 'public/app.js',
     search: "  if (!root || isNarrow()) return;",
@@ -9771,9 +8215,7 @@ const REGRESSIONS = [
     expected: 'Server-Befehle nur im Kasten — 0.22.0'
   },
   {
-    /* UND DIE MESSUNG LAEUFT GAR NICHT MEHR. Ohne den Ruf bliebe der
-       Aufklapper an jeder der acht Stellen stehen -- auch dort, wo er eine
-       Zeile kostet und eine Zeile spart. */
+    /* UND DIE MESSUNG LAEUFT GAR NICHT MEHR. */
     nr: '1025', name: 'Die Messung der Aufklapper laeuft gar nicht mehr',
     file: 'public/app.js',
     search: "  trimMore(app);",
@@ -9781,12 +8223,7 @@ const REGRESSIONS = [
     expected: 'Server-Befehle nur im Kasten — 0.22.0'
   },
   {
-    /* UND DIE ZWEITE STELLE DESSELBEN SATZES -- 0.32.0, nachgereicht.
-       1023 nimmt die Uebersetzung aus der AUSWAHLLISTE; dieser hier nimmt sie
-       aus der ANZEIGE dessen, was eingerichtet ist. Es sind zwei Stellen in
-       server.js mit derselben Entscheidung, und ein Rueckbau je Stelle ist
-       die einzige Art, beide zu belegen: 1023 blieb an der einen stumm, und
-       die andere waere dabei gar nicht aufgefallen. */
+    /* UND DIE ZWEITE STELLE DESSELBEN SATZES -- 0.32.0, nachgereicht. */
     nr: '1026', name: 'Der eingerichtete Anbieter heisst in der Karte wieder fest deutsch',
     file: 'server.js',
     search: `    providerName: state.providerNameKey
@@ -9794,17 +8231,12 @@ const REGRESSIONS = [
     replacement: "    providerName: state.providerName,",
     expected: 'Der Mailzugang: wer ihn setzen darf'
   },
-  /* ---- 0.32.1: die Ableitung, die Zaehlzeile und die tuerkischen Endungen ----
-     SIEBZEHN RUECKBAUTEN SIND MIT DIESER RUNDE GEFALLEN (606 bis 623, 807 und
-     1022). Sie bauten die Filterableitung zurueck, und die gibt es nicht mehr
-     -- ein Rueckbau, der ins Leere greift, ist wertlos, und die Selbstprobe
-     „jeder Suchtext kommt genau einmal vor" haette ihn gemeldet.
-     AN IHRE STELLE TRETEN ZWEI, DIE SIE WIEDER EINBAUEN. Das ist die richtige
-     Richtung fuer einen Ausbau: nicht „nimm weg, was da ist", sondern „bring
-     zurueck, was weg sein soll". */
+  /* ---- 0.32.1: die Ableitung, die Zaehlzeile und die tuerkischen Endungen
+     ---- SIEBZEHN RUECKBAUTEN SIND MIT DIESER RUNDE GEFALLEN (606 bis 623,
+     807 und 1022). */
   {
-    /* DIE ABLEITUNG KEHRT ZURUECK -- die eine Zeile, die den ganzen Unterschied
-       macht. Danach filtert die Sortierung wieder mit. */
+    /* DIE ABLEITUNG KEHRT ZURUECK -- die eine Zeile, die den ganzen
+       Unterschied macht. */
     nr: '1027', name: 'Der Statusfilter folgt wieder der Sortierung',
     file: 'public/app.js',
     search: "const statusEffective = (f) => f.tested;",
@@ -9815,9 +8247,7 @@ const REGRESSIONS = [
   },
   {
     /* UND DIE SACKGASSE KEHRT MIT ZURUECK: `filterNumber()` misst wieder
-       gegen eine RUHESTELLUNG statt gegen die Vorgabe. Allein macht dieser
-       Rueckbau den Ruecksetzer noch nicht unsichtbar -- dafuer braucht es
-       auch 1027 --, aber er nimmt die Zeile weg, die ihn sichtbar haelt. */
+       gegen eine RUHESTELLUNG statt gegen die Vorgabe. */
     nr: '1028', name: 'Die Filterzahl misst wieder gegen eine Ruhestellung',
     file: 'public/app.js',
     search: "  if (f.tested !== v.tested) n++;",
@@ -9825,8 +8255,7 @@ const REGRESSIONS = [
     expected: 'Die Sortierung gibt den Status NICHT mehr vor — 0.32.1'
   },
   {
-    /* DIE KURZFORM BEKOMMT EIN WORT ZURUECK. Genau das ist der Grund, aus dem
-       sie gebaut ist: ein Wort laesst sich vom Vokabular sprengen. */
+    /* DIE KURZFORM BEKOMMT EIN WORT ZURUECK. */
     nr: '1029', name: 'Die Zaehlzeile setzt wieder ein Wort neben die Zahl',
     file: 'public/app.js',
     search: "    marks.push(countMark('report', ICON_REPORT, reports));",
@@ -9834,8 +8263,8 @@ const REGRESSIONS = [
     expected: 'Der Kommentarblock zaehlt'
   },
   {
-    /* UND DAS ZEICHEN FAELLT WEG -- die Zahl traegt ihre Bedeutung dann allein
-       in der Farbe. Gestaltungsregel G1 verbietet genau das. */
+    /* UND DAS ZEICHEN FAELLT WEG -- die Zahl traegt ihre Bedeutung dann
+       allein in der Farbe. */
     nr: '1030', name: 'Die Zahl der Berichte traegt nur noch Farbe, kein Zeichen',
     file: 'public/app.js',
     search: "    marks.push(countMark('report', ICON_REPORT, reports));",
@@ -9844,7 +8273,7 @@ const REGRESSIONS = [
   },
   {
     /* DER VOLLE SATZ IM title WIRD WIEDER EIN SATZ -- mit „, davon" statt
-       Mittelpunkten. Auf Tuerkisch war das die Klammer um die Aufzaehlung. */
+       Mittelpunkten. */
     nr: '1031', name: 'Der Hinweis der Zaehlzeile wird wieder ein Satz',
     file: 'public/app.js',
     search: "  return { html: marks.join(' · '), text: words.join(' · ') };",
@@ -9860,8 +8289,7 @@ const REGRESSIONS = [
     expected: 'Endungen, Woerter und Zahlen — 0.32.1'
   },
   {
-    /* UND DIE FRAGEPARTIKEL HAENGT WIEDER AM PLATZHALTER. Sie richtet sich
-       nach dem letzten Vokal des Wortes davor, und der ist unbekannt. */
+    /* UND DIE FRAGEPARTIKEL HAENGT WIEDER AM PLATZHALTER. */
     nr: '1033', name: 'Die tuerkische Fragepartikel haengt wieder am Platzhalter',
     file: 'public/languages/tr.json',
     search: '"server.criterionKindFixed": "Bir ölçüt ya “{potential}” ya da “{ratingOne}” kutusuna aittir; sonradan değişmez."',
@@ -9869,8 +8297,8 @@ const REGRESSIONS = [
     expected: 'Endungen, Woerter und Zahlen — 0.32.1'
   },
   {
-    /* UND DAS VOKABELWORT STEHT WIEDER FEST IM SATZ -- der zweite Befund,
-       und er trifft alle drei Sprachen. */
+    /* UND DAS VOKABELWORT STEHT WIEDER FEST IM SATZ -- der zweite Befund, und
+       er trifft alle drei Sprachen. */
     nr: '1034', name: 'Das fuenfzehnte Vokabelwort steht wieder fest im deutschen Satz',
     file: 'public/languages/de.json',
     search: '"entry.noDaysYet": "Noch keine {dayMany} — unten Datum und {grade} eintragen."',
@@ -9879,17 +8307,9 @@ const REGRESSIONS = [
   },
   /* ================= 0.33.0 — der Bruch ==================================
      ALLE RUECKBAUTEN DIESER RUNDE GEHEN IN EINE RICHTUNG: sie bauen WIEDER
-     EIN, was die Runde ausgebaut hat. Das ist die richtige Richtung fuer eine
-     Runde, die wegnimmt -- nicht „nimm weg, was da ist", sondern „bring
-     zurueck, was weg sein soll" (dieselbe Ueberlegung wie bei 1027 bis 1034
-     in 0.32.1).
-     UND WENN KEINE PRUEFUNG DAVON ROT WIRD, IST DER HINWEIS NICHT BELEGT.
-     Genau das sagt Frage F11 des Auftrags: die acht Rueckbauten auf
-     Migrationszeilen werden auf den Hinweis UMGEHAENGT. Sie stehen hier. */
+     EIN, was die Runde ausgebaut hat. */
   {
-    /* DER KASTEN ERSCHEINT GAR NICHT MEHR. Der Ruf faellt weg, und eine
-       unvollstaendige Datenbank oeffnet wieder ohne Widerspruch -- genau der
-       leise Fehler, gegen den diese Runde gebaut ist. */
+    /* DER KASTEN ERSCHEINT GAR NICHT MEHR. */
     nr: '1035', name: 'Der Hinweis auf eine unvollstaendige Datenbank wird nicht mehr gerufen',
     file: 'db.js',
     search: 'warnIncompleteDatabase(incompleteDatabase());',
@@ -9897,9 +8317,7 @@ const REGRESSIONS = [
     expected: 'Der Hinweis auf einen unvollstaendigen Bestand — 0.33.0'
   },
   {
-    /* ER ERSCHEINT, ABER OHNE DIE NAMEN. „Etwas fehlt" ohne zu sagen WAS ist
-       das Symptom statt der Diagnose -- und Frage F6 hat ausdruecklich die
-       Diagnose bestellt. */
+    /* ER ERSCHEINT, ABER OHNE DIE NAMEN. */
     nr: '1036', name: 'Der Kasten nennt die fehlende Spalte nicht mehr beim Namen',
     file: 'db.js',
     search: "    : `    ${f.place.padEnd(22)} added in ${f.since}` +",
@@ -9907,9 +8325,7 @@ const REGRESSIONS = [
     expected: 'Der Hinweis auf einen unvollstaendigen Bestand — 0.33.0'
   },
   {
-    /* UND DIE PROBE SIEHT NUR NOCH EINE SPALTE AN. Fuenf Zeilen statt zwanzig
-       waeren billiger gewesen und naennten das Symptom; F6 hat die Diagnose
-       entschieden, und das heisst: JEDE Spalte einzeln. */
+    /* UND DIE PROBE SIEHT NUR NOCH EINE SPALTE AN. */
     nr: '1037', name: 'Die Probe fragt nur noch eine einzige Spalte ab',
     file: 'db.js',
     search: "  for (const [table, column, old, since] of REQUIRED_COLUMNS) {",
@@ -9917,10 +8333,7 @@ const REGRESSIONS = [
     expected: 'Der Hinweis auf einen unvollstaendigen Bestand — 0.33.0'
   },
   {
-    /* UND SIE SIEHT DIE ALTEN TABELLENNAMEN NICHT MEHR. Das ist der
-       schlimmste Fall von allen: die DDL legt daneben eine leere neue an, die
-       Zeilen liegen unveraendert im alten Namen -- nicht verloren, aber
-       unsichtbar. */
+    /* UND SIE SIEHT DIE ALTEN TABELLENNAMEN NICHT MEHR. */
     nr: '1038', name: 'Die Probe uebersieht eine Tabelle unter ihrem alten Namen',
     file: 'db.js',
     search: "  for (const [old, fresh] of LEGACY_TABLES)",
@@ -9929,8 +8342,7 @@ const REGRESSIONS = [
   },
   {
     /* AUS DEM HINWEIS WIRD DIE HARTE ABSAGE -- mein erster Entwurf, und der
-       Betreiber hat ihn am 14. September 2026 gekippt (F4, Leitplanke L3).
-       Eine Probe, die sich irren kann, darf niemanden aussperren. */
+       Betreiber hat ihn am 14. September 2026 gekippt (F4, Leitplanke L3). */
     nr: '1039', name: 'Aus dem Hinweis wird ein Abbruch — die Instanz oeffnet nicht mehr',
     file: 'db.js',
     search: 'function warnIncompleteDatabase(findings) {\n  if (!isMainThread || !findings.length) return;',
@@ -9939,9 +8351,7 @@ const REGRESSIONS = [
     expected: 'Der Hinweis auf einen unvollstaendigen Bestand — 0.33.0'
   },
   {
-    /* UND DIE PROBE FRAGT WIEDER EINEN MERKER. Er fehlte genau in der
-       Datenbank, um die es geht -- eine aus 0.13.0 traegt keinen, und die
-       Probe saehe von da an nichts mehr (Leitplanke L4). */
+    /* UND DIE PROBE FRAGT WIEDER EINEN MERKER. */
     nr: '1040', name: 'Die Probe fragt einen Merker statt des Bestands',
     file: 'db.js',
     search: "function incompleteDatabase() {\n  const tables = new Set(db.prepare(\"SELECT name FROM sqlite_master WHERE type = 'table'\")",
@@ -9950,10 +8360,7 @@ const REGRESSIONS = [
     expected: 'Der Hinweis auf einen unvollstaendigen Bestand — 0.33.0'
   },
   {
-    /* DIE BEIDEN INDIZES VERLIEREN IHRE KLAMMER. Eine Datenbank ohne
-       `photos.zoom` traefe hier auf „no such column" -- und die Instanz kaeme
-       nicht hoch. Das waere die harte Absage an einer Stelle, an der sie
-       niemand bestellt hat: nicht als Entscheidung, sondern als Absturz. */
+    /* DIE BEIDEN INDIZES VERLIEREN IHRE KLAMMER. */
     nr: '1041', name: 'Die Indizes auf nachgeruestete Spalten fallen wieder hart',
     file: 'db.js',
     search: "const tryIndex = (name, sql) => {\n  try { db.exec(sql); } catch (e) {",
@@ -9961,9 +8368,7 @@ const REGRESSIONS = [
     expected: 'Der Hinweis auf einen unvollstaendigen Bestand — 0.33.0'
   },
   {
-    /* UND DAS AUFFANGNETZ FRAGT NICHT MEHR NACH `user_id`. `links` und
-       `attachments` haben ihre Spalte bis 0.32.1 aus zwei Bloecken bekommen;
-       ohne die Frage stirbt der Start an einem `db.prepare`. */
+    /* UND DAS AUFFANGNETZ FRAGT NICHT MEHR NACH `user_id`. */
     nr: '1042', name: 'Das Auffangnetz uebergeht eine fehlende Spalte nicht mehr',
     file: 'db.js',
     search: "    if (!db.prepare(`PRAGMA table_info(${table})`).all().some(c => c.name === 'user_id')) {\n      counts[table] = 0;\n      continue;\n    }",
@@ -9971,10 +8376,7 @@ const REGRESSIONS = [
     expected: 'Der Hinweis auf einen unvollstaendigen Bestand — 0.33.0'
   },
   {
-    /* UND DIE GRUNDAUSSTATTUNG FRAGT NICHT MEHR NACH `language`. Dieselbe
-       Klemme wie am Auffangnetz darueber, nur eine Tabelle weiter: ein
-       `db.prepare` ueber eine Spalte, die es nicht gibt, scheitert beim
-       VORBEREITEN und damit beim Start. */
+    /* UND DIE GRUNDAUSSTATTUNG FRAGT NICHT MEHR NACH `language`. */
     nr: '1043', name: 'Die Grundausstattung fragt nicht mehr nach der Sprachspalte',
     file: 'db.js',
     search: "const insertCriterion = db.prepare(seedHasLanguage\n  ? 'INSERT OR IGNORE INTO rating_criteria (name, language) VALUES (?, ?)'\n  : 'INSERT OR IGNORE INTO rating_criteria (name) VALUES (?)');",
@@ -9982,9 +8384,7 @@ const REGRESSIONS = [
     expected: 'Der Hinweis auf einen unvollstaendigen Bestand — 0.33.0'
   },
   {
-    /* DIE ABWEISUNG ZU ALTER DATEIEN FAELLT. Eine Datei von vor 0.24.1 kaeme
-       damit wieder herein -- und ihre Fotos verloeren still ihre Art und ihre
-       Dauer, weil niemand die Feldnamen mehr uebersetzt (F9, F15). */
+    /* DIE ABWEISUNG ZU ALTER DATEIEN FAELLT. */
     nr: '1044', name: 'Der Import liest die Formatnummer nicht mehr',
     file: 'server.js',
     search: "  if (!Number.isFinite(fileFormat) || fileFormat < EXCHANGE_FORMAT_MIN) {",
@@ -10002,10 +8402,7 @@ const REGRESSIONS = [
     expected: 'Der Rueckfall der Namen — 0.24.3'
   },
   {
-    /* DIE PROGRAMMFASSUNG FAELLT AUS DER EXPORTDATEI. Die Datei sagte damit
-       wieder nur, WELCHE FELDER zu erwarten sind, und nicht, WAS sie
-       geschrieben hat -- genau die Luecke, die der Betreiber am
-       14. September 2026 benannt hat (F14). */
+    /* DIE PROGRAMMFASSUNG FAELLT AUS DER EXPORTDATEI. */
     nr: '1046', name: 'Die Exportdatei nennt die Programmfassung nicht mehr',
     file: 'server.js',
     search: "           appVersion: VERSION,\n           criteria: critRows.map(c => c.name), criteriaWeights, criteriaPhase,",
@@ -10013,9 +8410,7 @@ const REGRESSIONS = [
     expected: 'Der Rueckfall der Namen — 0.24.3'
   },
   {
-    /* DER STEMPEL WIRD AUCH IN EINEN GEWACHSENEN BESTAND GESCHRIEBEN. Eine
-       Datenbank aus 0.19.0 truege danach „angelegt mit 0.33.0" -- eine
-       ERFINDUNG ueber fremde Arbeit, und niemand saehe sie je wieder. */
+    /* DER STEMPEL WIRD AUCH IN EINEN GEWACHSENEN BESTAND GESCHRIEBEN. */
     nr: '1047', name: 'Der Stempel behauptet, ein gewachsener Bestand sei neu angelegt',
     file: 'db.js',
     search: "  if (!grown) setDefault.run('versionCreated', JSON.stringify(APP_VERSION));",
@@ -10023,9 +8418,7 @@ const REGRESSIONS = [
     expected: 'Der Stempel der Datenbank — 0.33.0'
   },
   {
-    /* UND DIE ZEILE „ZULETZT GEOEFFNET" WANDERT NICHT MEHR MIT. Sie stuende
-       fuer immer auf der Fassung, unter der sie entstanden ist -- und der
-       Stempel saehe richtig aus und waere falsch. */
+    /* UND DIE ZEILE „ZULETZT GEOEFFNET" WANDERT NICHT MEHR MIT. */
     nr: '1048', name: 'Die Zeile „zuletzt geoeffnet" bleibt stehen',
     file: 'db.js',
     search: "    db.prepare(\"UPDATE settings SET value = ? WHERE key = 'versionLastOpened'\")\n      .run(JSON.stringify(APP_VERSION));",
@@ -10033,9 +8426,7 @@ const REGRESSIONS = [
     expected: 'Der Stempel der Datenbank — 0.33.0'
   },
   {
-    /* DIE JPEG-HAELFTE DES BESTANDSLAUFS KOMMT ZURUECK. Sie kann seit 0.27.0
-       nur in einer Installation greifen, die VOR jener Runde Fotos
-       hochgeladen hat -- in einer frischen Instanz ist sie toter Code. */
+    /* DIE JPEG-HAELFTE DES BESTANDSLAUFS KOMMT ZURUECK. */
     nr: '1049', name: 'Der Bestandslauf fasst die Ableitungen wieder an',
     file: 'batchrun.js',
     search: "  const write = db.prepare(\n    'UPDATE photos SET mime_type = ?, data = ? WHERE id = ?');",
@@ -10043,8 +8434,7 @@ const REGRESSIONS = [
     expected: 'Die Bildablage: PNG kommt herein, WebP geht in die Tabelle'
   },
   {
-    /* UND DER FERTIGSATZ ZAEHLT WIEDER ABLEITUNGEN. Eine Zahl, die nie wieder
-       steigt, ist eine Auskunft ueber nichts. */
+    /* UND DER FERTIGSATZ ZAEHLT WIEDER ABLEITUNGEN. */
     nr: '1050', name: 'Der Fertigsatz des Laufs zaehlt wieder Ableitungen',
     file: 'public/languages/de.json',
     search: '"card.convertFinished": "Konvertierung fertig: {converted} von {total} Originalen konvertiert{stayed}{freed}."',
@@ -10052,9 +8442,7 @@ const REGRESSIONS = [
     expected: 'Die Bildablage in der Oberflaeche'
   },
   {
-    /* UND EINE KONSOLENANSAGE SPRICHT WIEDER DEUTSCH. Das Containerprotokoll
-       erreicht den, der die Anwendung BETREIBT, und der muss nicht deutsch
-       koennen (Strang 4). Der Waechter dagegen ist die Restprobe. */
+    /* UND EINE KONSOLENANSAGE SPRICHT WIEDER DEUTSCH. */
     nr: '1051', name: 'Eine Konsolenansage spricht wieder deutsch',
     file: 'server.js',
     search: "  console.log(`[Kriterion] Running on port ${PORT} -- ` +",
@@ -10072,16 +8460,9 @@ const REGRESSIONS = [
   },
 
   /* ---- 0.33.1 · Der Anbietername im Containerprotokoll ------------------
-     VIER RUECKBAUTEN ZU EINEM BEFUND AUS DEM BETRIEB. Der Betreiber hat am
-     15. September 2026 das Protokoll der eingespielten 0.33.0 geschickt;
-     darin stand „Mail delivery: Eigener Server via smtp.strato.de:587" --
-     deutsch in einer englischen Zeile. */
+     VIER RUECKBAUTEN ZU EINEM BEFUND AUS DEM BETRIEB. */
   {
-    /* DER RUECKBAU DES BEFUNDS SELBST: die Zeile nimmt wieder den Rohwert.
-       ER MUSS ZWEI PUNKTE ROT MACHEN und nicht nur einen -- den Treffer auf
-       „Own server" UND die Frage nach der Abwesenheit von „Eigener Server".
-       Eine Zusage, die nur den einen traegt, uebersaehe eine Zeile, die
-       beides nebeneinander schriebe. */
+    /* DER RUECKBAU DES BEFUNDS SELBST: die Zeile nimmt wieder den Rohwert. */
     nr: '1053', name: 'Die Protokollzeile nimmt wieder den rohen Anbieternamen',
     file: 'server.js',
     search: "      const providerShown = z.providerNameKey\n        ? t('en', z.providerNameKey) : z.providerName;",
@@ -10090,8 +8471,7 @@ const REGRESSIONS = [
   },
   {
     /* UND DER ANDERE ZWEIG: wer JEDEN Namen durch den Schluessel jagt, macht
-       aus „Strato" einen leeren String. Die Laufzeitprobe faende das nicht,
-       sie faehrt auf „eigen" -- dafuer steht die Gruppe ohne Server. */
+       aus „Strato" einen leeren String. */
     nr: '1054', name: 'Die Protokollzeile jagt auch Marken durch den Schluessel',
     file: 'mail.js',
     search: "  { key: 'strato', name: 'Strato',        server: 'smtp.strato.de',     port: 465, secure: true },",
@@ -10099,9 +8479,7 @@ const REGRESSIONS = [
     expected: 'Der Anbietername im Containerprotokoll — 0.33.1'
   },
   {
-    /* DER SCHLUESSEL FAELLT AUS DER ENGLISCHEN SPRACHDATEI. Ohne die dritte
-       Zusage der Gruppe bliebe das gruen: der Server saehe dann den
-       Schluessel selbst im Protokoll stehen, und niemand faende es. */
+    /* DER SCHLUESSEL FAELLT AUS DER ENGLISCHEN SPRACHDATEI. */
     nr: '1055', name: 'Der englische Name des eigenen Servers faellt weg',
     file: 'public/languages/en.json',
     search: '"mail.ownServer": "Own server"',
@@ -10109,10 +8487,7 @@ const REGRESSIONS = [
     expected: 'Der Anbietername im Containerprotokoll — 0.33.1'
   },
   {
-    /* UND mail.js FAELLT WIEDER AUS DEM SPRACHWAECHTER. W14 nimmt alle drei
-       neuen Dateien zugleich; dieser nimmt nur die eine, die 0.33.1
-       eingetragen hat -- sonst bliebe unbelegt, dass gerade SIE gesehen wird
-       (Stolperstein 156: gezaehlt wird, was gemeint ist). */
+    /* UND mail.js FAELLT WIEDER AUS DEM SPRACHWAECHTER. */
     nr: '1056', name: 'Der Sprachwaechter verliert mail.js wieder',
     file: 'test/source.js',
     search: "'images.js', 'batchrun.js', 'mail.js'];",
@@ -10121,15 +8496,9 @@ const REGRESSIONS = [
   },
 
   /* ---- 0.33.2 · Elf deutsche Saetze und ein roher Schluessel ------------
-     VIER RUECKBAUTEN ZU EINEM ZWEITEN BEFUND AUS DEM BETRIEB. Der Betreiber
-     hat am 15. September 2026 das Protokoll der eingespielten 0.33.1
-     geschickt; darin stand `Backup location: off -- server.backupDirNotSet`.
-     ALLE DREI STELLEN SIND DERSELBE FALL WIE DER ANBIETERNAME IN 0.33.1:
-     der Rahmen der Zeile ist englisch, der eingesetzte Wert nicht. */
+     VIER RUECKBAUTEN ZU EINEM ZWEITEN BEFUND AUS DEM BETRIEB. */
   {
-    /* DER BEFUND SELBST: die Zeile schreibt den Schluessel wieder roh hin.
-       ER MUSS ZWEI PUNKTE ROT MACHEN -- den Treffer auf den englischen Satz
-       UND die Frage, ob noch ein roher Schluessel dasteht. */
+    /* DER BEFUND SELBST: die Zeile schreibt den Schluessel wieder roh hin. */
     nr: '1057', name: 'Die Sicherungszeile schreibt den Schluessel wieder roh hin',
     file: 'server.js',
     search: "  console.log('[Kriterion] Backup location: ' + (situation.input\n    ? situation.root\n    : `off -- ${t('en', situation.reason, situation.values)}`));",
@@ -10137,10 +8506,7 @@ const REGRESSIONS = [
     expected: 'Die Sicherungsprobe — 0.29.0'
   },
   {
-    /* UND DIE WERTE FALLEN WEG. Drei der fuenf Gruende nennen den Ordner;
-       ohne die Werte stuende dort woertlich die Platzhalterklammer. Die
-       Zusage auf den Satz allein faende das nicht -- ihr Grund traegt keine
-       Werte, und genau dafuer gibt es die zweite Prueflage. */
+    /* UND DIE WERTE FALLEN WEG. */
     nr: '1058', name: 'Der Grund der Sicherungszeile reist ohne seine Werte',
     file: 'server.js',
     search: "`off -- ${t('en', situation.reason, situation.values)}`",
@@ -10148,9 +8514,7 @@ const REGRESSIONS = [
     expected: 'Die Sicherungsprobe — 0.29.0'
   },
   {
-    /* EINER DER SECHS SAETZE DER PUBLIC_ADDRESS-PROBE WIRD WIEDER DEUTSCH.
-       Sie stehen in einem RUECKGABEWERT und nicht in einem Konsolenruf --
-       die Restprobe 5d sieht sie nie, 5c schon. */
+    /* EINER DER SECHS SAETZE DER PUBLIC_ADDRESS-PROBE WIRD WIEDER DEUTSCH. */
     nr: '1059', name: 'Die PUBLIC_ADDRESS-Probe antwortet wieder auf Deutsch',
     file: 'auth.js',
     search: "problem: 'The host name is missing.' };",
@@ -10158,9 +8522,7 @@ const REGRESSIONS = [
     expected: 'Die sieben Waechter der Sprachdatei — 0.24.0'
   },
   {
-    /* UND EINER DER FUENF GRUENDE VON `languageSkip` EBENSO. Dieselbe
-       Bauform: der Rahmen der Konsolenzeile ist englisch, der Grund kommt
-       als Wert herein. */
+    /* UND EINER DER FUENF GRUENDE VON `languageSkip` EBENSO. */
     nr: '1060', name: 'Der Grund einer uebergangenen Sprachdatei wird wieder deutsch',
     file: 'server.js',
     search: "languageSkip(file, 'it does not carry an object');",
@@ -10169,12 +8531,10 @@ const REGRESSIONS = [
   },
 ];
 
-/* ================= Spuren und Versatz =================
-   Der Versatz je Nebenspur steht im RAHMEN DES PRUEFSTANDS (OFFSET_LEVEL,
-   test/frame.js) und wird von dort gelesen -- der Waechter, der ihn
-   nachrechnet, liegt im Pruefstand, und zwei
-   Zahlen an zwei Orten laufen auseinander. Faellt die Zeile weg, bricht der
-   Treiber ab, statt still auf einen Vorgabewert zu fallen. */
+/* ================= Spuren und Versatz ================= Der Versatz je
+   Nebenspur steht im RAHMEN DES PRUEFSTANDS (OFFSET_LEVEL, test/frame.js) und
+   wird von dort gelesen -- der Waechter, der ihn nachrechnet, liegt im
+   Pruefstand, und zwei Zahlen an zwei Orten laufen auseinander. */
 function offsetLevel() {
   const t = fs.readFileSync(path.join(__dirname, 'test', 'frame.js'), 'utf8');
   const m = t.match(/^const OFFSET_LEVEL = (\d+);$/m);
@@ -10192,21 +8552,19 @@ const MAX_TRACES = 4;
 
 function makeCopy(target) {
   fs.mkdirSync(target, { recursive: true });
-  // git archive schreibt einen tar-Strom; entpackt wird er unmittelbar. Damit
-  // liegt nie eine Zwischendatei herum, und der Stand ist der von HEAD.
+  // git archive schreibt einen tar-Strom; entpackt wird er unmittelbar.
   const tar = spawnSync('sh', ['-c',
     `git -C ${JSON.stringify(__dirname)} archive HEAD | tar -x -C ${JSON.stringify(target)}`],
     { encoding: 'utf8' });
   if (tar.status !== 0)
     throw new Error(`git archive gescheitert: ${(tar.stderr || '').trim()}`);
   /* node_modules wird VERKNUEPFT statt kopiert: es traegt uebersetzte native
-     Anteile, waere je Kopie ein paar hundert Megabyte, und kein Rueckbau fasst
-     es an. Eine Verknuepfung genuegt -- require loest sie auf. */
+     Anteile, waere je Kopie ein paar hundert Megabyte, und kein Rueckbau
+     fasst es an. */
   fs.symlinkSync(path.join(__dirname, 'node_modules'), path.join(target, 'node_modules'), 'dir');
 }
 
-/* Wer laeuft noch unter diesem Pfad? Erkannt am Arbeitsverzeichnis und nicht an
-   der Befehlszeile (Stolperstein 133). Liefert die Nummern der Prozesse. */
+/* Wer laeuft noch unter diesem Pfad? */
 function processesUnder(dirPath) {
   const outcome = [];
   let entries;
@@ -10220,49 +8578,10 @@ function processesUnder(dirPath) {
   return outcome;
 }
 
-/* ================= Fremde Server VOR dem Lauf =================
-   DER BEFUND, AUS DEM DIESE FUNKTION ENTSTANDEN IST (0.21.0): sieben Server
-   aus abgebrochenen Laeufen hingen noch an den Ports 6180 bis 6242 -- genau
-   im Fenster der Mailgruppe. Spur 0 faehrt ohne Versatz und lief deshalb
-   gegen sie: ZWEI Rueckbauten bekamen rote Punkte IM MAILVERSAND, an einer
-   Stelle also, mit der sie nichts zu tun haben. Einer davon (570) hatte in
-   seiner eigenen Gruppe KEINEN einzigen -- die Tabelle zeigte ihn trotzdem
-   als „2 rot" und damit als Beleg. SIE HAT GELOGEN, und zwar in die
-   gefaehrliche Richtung: ein stummer Rueckbau sah aus wie ein greifender.
-   EIN ZWEITER SERVER AUF DEMSELBEN PORT FAELLT NICHT VON SELBST AUF (Stolper-
-   stein 139) -- die Bereitschaftspruefung bekommt ja eine Antwort. Deshalb
-   wird hier VOR dem ersten Rueckbau nachgesehen und nicht hinterher gedeutet.
-   GESUCHT WIRD UEBER `/proc`, wie bei processesUnder(): keine neue Abhaengig-
-   keit, kein `ps`, und dieselbe Auskunft. Ein Prozess zaehlt als fremd, wenn
-   sein Befehl auf server.js, testbench.js oder einem Modul unter test/ endet
-   -- eigene Kinder gibt es zu diesem Zeitpunkt noch keine.
-
-   DIE MODULE SIND SEIT 0.34.0 DABEI (F8). Der Pruefstand ist in test/
-   aufgeteilt; ein liegengebliebenes `node test/roundtrip.js` belegt genauso
-   Ports wie ein liegengebliebenes testbench.js -- es startet ja welche. Ein
-   Muster, das nur die beiden alten Namen kennt, saehe nach dem Umzug genau
-   den Fall nicht mehr, fuer den es diesen Waechter gibt.
-
-   DER NAME WAR BIS 0.30.0 FALSCH, UND ZWAR SEIT 0.21.0: im Ausdruck stand
-   `pruefung.js` -- eine Datei, die es in diesem Repository nie gegeben hat.
-   Der Kommentar hier sagte die ganze Zeit das Richtige, drei Zeilen tiefer
-   stand etwas anderes, und damit fand der Waechter GENAU DEN FALL NICHT, fuer
-   den es ihn gibt: den nebenher laufenden Prueflauf. Neunzehn Rueckbauten sind
-   hintereinander als ABGERISSEN gemeldet worden. EINE ZUSAGE LIEST IHREN
-   GEGENSTAND UND NICHT DEN ABSATZ DARUEBER -- deshalb faehrt die Zusage zu
-   dieser Zeile seit 0.30.0 einen ECHT GESTARTETEN Prozess und liest den
-   Ausdruck nicht mehr.
-
-   UND DER ZWEITE BLICK GEHT AUF DIE PORTS -- 0.30.0 (F7). Ein Server aus
-   `node -e "require('./server.js')"` traegt server.js nirgends in seiner
-   Befehlszeile; ein Muster ueber den ganzen Aufruf faenge dafuer jedes zweite
-   Werkzeug mit. GENAU SO EINER IST BEIM BAUEN VON 0.21.0 ENTSTANDEN und eine
-   Viertelstunde unbemerkt gelaufen. Wer horcht, faellt dagegen auf, ganz
-   gleich, wie er gestartet wurde: `/proc/net/tcp` nennt jeden horchenden
-   Socket samt Port, und die Spanne der Portbasen steht im Pruefstand.
-   ZWEI BLICKE UND NICHT EINER, weil sie VERSCHIEDENES finden: der erste sieht
-   auch einen Server, der gerade erst startet und noch nicht horcht; der zweite
-   sieht auch einen, dessen Befehlszeile nichts verraet. */
+/* ================= Fremde Server VOR dem Lauf ================= DER BEFUND,
+   AUS DEM DIESE FUNKTION ENTSTANDEN IST (0.21.0): sieben Server aus
+   abgebrochenen Laeufen hingen noch an den Ports 6180 bis 6242 -- genau im
+   Fenster der Mailgruppe. */
 function foreignServer() {
   const outcome = [];
   let entries;
@@ -10272,9 +8591,7 @@ function foreignServer() {
     let row;
     try { row = fs.readFileSync(`/proc/${e}/cmdline`, 'utf8'); } catch { continue; }
     const parts = row.split('\0').filter(Boolean);
-    /* DAS SKRIPT UND NICHT DAS LETZTE STUECK. `node testbench.js sterne` endet
-       auf dem Filterwort -- wer die Zeile daran erkennen will, bekommt dann
-       „sterne" gemeldet und sucht nach etwas, das es nicht gibt. */
+    /* DAS SKRIPT UND NICHT DAS LETZTE STUECK. */
     const script = parts.find(t => /(^|\/)(server\.js|testbench\.js|test\/[a-z0-9_]+\.js)$/.test(t));
     if (!script) continue;
     /* DER PORT AUS DER UMGEBUNG, wenn er dasteht: ohne ihn muesste der Leser
@@ -10292,15 +8609,7 @@ function foreignServer() {
   return outcome;
 }
 
-/* ================= Wer horcht im Fenster des Prueflaufs? =================
-   0.30.0, F7. DIE SPANNE KOMMT AUS DEM PRUEFSTAND und wird dort gegen die
-   LAUFENDEN Portbasen nachgerechnet (Gruppe „Die Portbasen und der Versatz").
-   Zwei Zahlen an zwei Orten liefen auseinander -- deshalb steht sie einmal da
-   und wird hier gelesen, genau wie OFFSET_LEVEL.
-   GELESEN WIRD `/proc/net/tcp` UND `/proc/net/tcp6`: der Zustand 0A ist
-   LISTEN, das Feld davor traegt Adresse und Port hexadezimal. Keine neue
-   Abhaengigkeit, kein `ss`, kein `lsof` -- dieselbe Auskunft wie bei
-   processesUnder() und aus derselben Quelle. */
+/* ================= Wer horcht im Fenster des Prueflaufs? */
 function portSpan() {
   const t = fs.readFileSync(path.join(__dirname, 'test', 'frame.js'), 'utf8');
   const from = t.match(/^const PORT_SPAN_FROM = (\d+);$/m);
@@ -10328,9 +8637,7 @@ function listeningPorts() {
   return outcome;
 }
 
-/* WER HORCHT, OHNE DASS SEIN BEFEHL IHN VERRAET. Die Nummern, die schon ueber
-   foreignServer() gemeldet sind, bleiben hier weg: zweimal dieselbe Sache zu
-   melden macht die Meldung laenger und nicht genauer. */
+/* WER HORCHT, OHNE DASS SEIN BEFEHL IHN VERRAET. */
 function foreignPort(known = []) {
   const span = portSpan();
   const taken = new Set(known.map(Number).filter(Boolean));
@@ -10339,16 +8646,12 @@ function foreignPort(known = []) {
     .sort((a, b) => a - b);
 }
 
-/* Raeumt auf UND SIEHT NACH. Ein Aufraeumen, das nie greift, sieht aus wie
-   eines, das greift -- wer eines baut, sieht hinterher nach, ob wirklich
-   keiner ueberlebt hat. Liefert die Zahl der Prozesse, die es NICHT
-   ueberlebt haben, und wirft, wenn einer stehenbleibt. */
+/* Raeumt auf UND SIEHT NACH. */
 function cleanUp(dirPath) {
   const first = processesUnder(dirPath);
   for (const pid of first) { try { process.kill(pid, 'SIGKILL'); } catch {} }
-  // Ein SIGKILL wirkt nicht in derselben Zeile: dem Kern bleibt ein Augenblick.
-  // Gewartet wird SYNCHRON -- die Nachschau gehoert vor das Loeschen, und ein
-  // await mitten im Aufraeumen liesse die anderen Spuren dazwischenfunken.
+  // Ein SIGKILL wirkt nicht in derselben Zeile: dem Kern bleibt ein
+  // Augenblick.
   const wait = (ms) => Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms);
   const to = Date.now() + 5000;
   let left = processesUnder(dirPath);
@@ -10362,15 +8665,7 @@ function cleanUp(dirPath) {
 function applyRegression(copy, r) {
   const file = path.join(copy, r.file);
   if (!fs.existsSync(file)) throw new Error(`${r.file} gibt es in der Kopie nicht.`);
-  /* DER ZWEITE RUECKBAUWEG: eine ENTFERNTE DATEI WIEDER HINLEGEN. Er ersetzt
-     keinen Text, sondern legt `datei` ein zweites Mal unter dem Namen `copy`
-     ab. Gebraucht wird er fuer die Zeile, die haelt, dass in public/ keine
-     Datei zweimal unter zwei Namen liegt -- die laesst sich mit einer
-     Textersetzung nicht zurueckbauen, weil es dabei um die Datei selbst
-     geht und nicht um ihren Inhalt.
-     ER LIEGT ABSICHTLICH IM ZURUECK STATT DANEBEN: so faellt er unter
-     dieselbe Kopie, dieselbe Nachschau und dasselbe Aufraeumen wie jeder
-     andere -- der Arbeitsbaum wird auch hier NIE angefasst. */
+  /* DER ZWEITE RUECKBAUWEG: eine ENTFERNTE DATEI WIEDER HINLEGEN. */
   if (r.copy) {
     const target = path.join(copy, r.copy);
     if (fs.existsSync(target))
@@ -10380,23 +8675,15 @@ function applyRegression(copy, r) {
   }
   const text = fs.readFileSync(file, 'utf8');
   const parts = text.split(r.search);
-  /* GENAU EINMAL. Keinmal heisst: der gesuchte Text steht so nicht mehr da --
-     der Rueckbau griffe ins Leere und der Lauf bliebe gruen, ohne dass etwas
-     zurueckgebaut worden waere. Mehrfach heisst: es ist nicht entschieden,
-     welche Stelle gemeint ist. Beides bricht ab und wird gemeldet. */
+  /* GENAU EINMAL. */
   if (parts.length !== 2)
     throw new Error(`Der gesuchte Text steht ${parts.length - 1}-mal in ${r.file}, erwartet ist genau einmal.`);
   fs.writeFileSync(file, parts.join(r.replacement));
 }
 
-/* ================= Den Prueflauf lesen =================
-   Der Pruefstand schreibt Gruppen als "── <Name> ───" und Pruefungen als
-   "  ✓ <Name>" bzw. "  ✗ <Name>". Gelesen wird genau das -- und die Schlusszeile
-   daneben, denn ein Lauf, der ABREISST, sieht in den roten Punkten allein
-   genauso aus wie einer, der sauber durchlaeuft und nichts findet. */
-/* DER NAME DER EINEN SELBSTPROBE, die bei JEDEM gefahrenen Rueckbau rot wird.
-   Sie steht hier als Konstante und nicht als String mitten im Filter:
-   aendert sich ihr Name im Pruefstand, faellt es an einer Stelle auf. */
+/* ================= Den Prueflauf lesen ================= Der Pruefstand
+   schreibt Gruppen als "── <Name> ───" und Pruefungen als " ✓ <Name>" bzw. */
+/* DER NAME DER EINEN SELBSTPROBE, die bei JEDEM gefahrenen Rueckbau rot wird. */
 const SELF_CHECK = 'Jeder Suchtext kommt in seiner Datei genau einmal vor';
 
 function readRun(output) {
@@ -10404,9 +8691,7 @@ function readRun(output) {
   let group = '(vor der ersten Gruppe)';
   for (const row of output.split('\n')) {
     // ─* und nicht ─+: eine Ueberschrift, die die Zeile fuellt, traegt gar
-    // keinen Strich mehr. Der Pruefstand setzt seit dieser Runde mindestens
-    // zwei -- der Leser hier gibt sich trotzdem mit keinem zufrieden, denn er
-    // liest auch aeltere Ausgaben.
+    // keinen Strich mehr.
     const g = row.match(/^── (.+?) ─*\s*$/);
     if (g) { group = g[1]; continue; }
     const p = row.match(/^ {2}✗ (.+)$/);
@@ -10416,22 +8701,7 @@ function readRun(output) {
   const teardown = output.match(/^Prueflauf abgebrochen: (.+)$/m);
   return {
     red,
-    /* DIE INHALTLICH ROTEN PUNKTE, OHNE DIE SELBSTPROBE. Die Gruppe „Die
-       Gegenproben greifen" prueft, dass JEDER Suchtext in seiner Datei genau
-       einmal vorkommt -- und ein gefahrener Rueckbau hat seine Zeile gerade
-       ersetzt. Diese eine Pruefung wird deshalb bei JEDEM Rueckbau rot, ganz
-       gleich, ob er sonst etwas bewirkt.
-       OHNE DIESE UNTERSCHEIDUNG KANN DIE TABELLE EINEN STUMMEN RUECKBAU GAR
-       NICHT SEHEN: `red.length` ist nie null, und „0 STUMM" waere eine
-       Auskunft ueber nichts. Genau so ist Rueckbau 265 in 0.15.0 durch die
-       Message gerutscht -- gefunden wurde er beim Lesen der Tabelle von Hand
-       (Stolperstein 213).
-       AUSGEBLENDET WIRD DIE EINE ZEILE UND NICHT DIE GANZE GRUPPE. Bis 0.16.0
-       fiel die Gruppe als Ganzes weg -- und damit jeder Rueckbau, dessen
-       eigene Zusagen ausgerechnet DORT stehen: der Nummernfilter des Werkzeugs
-       (Rueckbau 300) machte zwei Pruefungen sauber rot und wurde trotzdem als
-       STUMM gemeldet. Ein zu grober Filter macht aus einem Beleg einen Fund
-       und schickt den naechsten Leser auf eine Suche nach nichts. */
+    /* DIE INHALTLICH ROTEN PUNKTE, OHNE DIE SELBSTPROBE. */
     byContentRed: red.filter(t => !(t.group === 'Die Gegenproben greifen' &&
       t.name === SELF_CHECK)),
     ranThrough: Boolean(end),
@@ -10439,19 +8709,7 @@ function readRun(output) {
     total: end ? Number(end[2]) : null,
     teardown: teardown ? teardown[1] : null,
     /* DIE LETZTEN ZEILEN DER AUSGABE -- damit ein ABGERISSENER Lauf sagen
-       kann, WARUM er abriss. Der Treiber faengt stdout UND stderr ein und warf
-       den Grund bis 0.20.1 weg: die Tabelle zeigte die roten Punkte davor und
-       dahinter „Rueckgabewert 1", eine Zahl ohne jede Auskunft. Genau daran
-       ist bei Rueckbau 568 eine Stunde vergangen (Stolperstein 301).
-       ZWEI WEGE ENDEN OHNE SCHLUSSBLOCK, und nur EINER schreibt eine Zeile,
-       die dieser Leser kennt: der aeussere Fang druckt „Prueflauf
-       abgebrochen: ...". Ein unbehandeltes Ereignis ausserhalb der
-       abgewarteten Kette druckt gar nichts davon -- Node legt Message und
-       Aufrufweg auf stderr und geht mit 1. Fuer diesen zweiten Weg ist der
-       Schwanz die EINZIGE Auskunft.
-       ZWANZIG ZEILEN, LEERE WEGGELASSEN: eine unbehandelte Message von Node
-       ist rund zwoelf Zeilen lang, und davor sollen noch ein paar Zeilen des
-       Laufs stehen, damit man sieht, WO er stand. */
+       kann, WARUM er abriss. */
     tail: output.split('\n').map(z => z.trimEnd()).filter(z => z).slice(-20)
   };
 }
@@ -10479,13 +8737,7 @@ function drive(r, trace, level) {
     let output = '';
     kind.stdout.on('data', d => { output += d; });
     kind.stderr.on('data', d => { output += d; });
-    /* EINE ZEITGRENZE JE RUECKBAU, . Ein Rueckbau kann den Prueflauf
-       nicht nur rot machen, sondern HAENGEN lassen -- und ein haengender Lauf
-       blockiert seine Spur fuer immer, ohne CPU und ohne Message. Genau das
-       tut der Rueckbau, der das Aufraeumen des SMTP-Empfaengers wegnimmt.
-       OHNE GRENZE STUENDE DER GANZE TREIBER STILL, und von aussen saehe es aus
-       wie ein besonders langer Lauf. Die Grenze ist grosszuegig: ein
-       vollstaendiger Lauf dauert rund sechs Minuten, die Grenze liegt beim Doppelten. */
+    /* EINE ZEITGRENZE JE RUECKBAU, . */
     const LIMIT_MS = 12 * 60 * 1000;
     const clock = setTimeout(() => { try { kind.kill('SIGKILL'); } catch {} }, LIMIT_MS);
     kind.on('exit', (code, signal) => {
@@ -10509,10 +8761,7 @@ async function runAll(list, traces, level) {
       console.log(`  [Spur ${nr}] ${r.nr} — ${r.name}`);
       results[i] = await drive(r, nr, level);
       const e = results[i];
-      /* EIN ABGERISSENER LAUF IST KEIN STUMMER. Beide zeigen null rote Punkte,
-         und sie sagen das Gegenteil: der eine, dass niemand prueft, der andere,
-         dass der Lauf gar nicht so weit gekommen ist (Stolperstein 138). Die
-         Tabelle unterscheidet sie seit jeher -- diese Zeile jetzt auch. */
+      /* EIN ABGERISSENER LAUF IST KEIN STUMMER. */
       const word = e.error ? 'FEHLER'
         : e.overdue ? 'ZEITGRENZE'
         : !e.ranThrough ? 'ABGERISSEN'
@@ -10525,10 +8774,8 @@ async function runAll(list, traces, level) {
   return results;
 }
 
-/* ================= Die Tabelle =================
-   EINE Tabelle, und zwar in der Form, in der sie im Aenderungsprotokoll steht.
-   Was sie NICHT tut: einen stummen Rueckbau als Erfolg zeigen. Er bekommt sein
-   eigenes Wort und darunter seinen eigenen Absatz. */
+/* ================= Die Tabelle ================= EINE Tabelle, und zwar in
+   der Form, in der sie im Aenderungsprotokoll steht. */
 function writeTable(results) {
   console.log('\n| # | Rückbau | Namentlich rot |');
   console.log('|---|---|---|');
@@ -10558,10 +8805,7 @@ function writeTable(results) {
     if (e.error) { console.log(`  RÜCKBAU GESCHEITERT: ${e.error}\n`); continue; }
     if (!e.ranThrough) {
       console.log(`  LAUF ABGERISSEN: ${e.teardown || `Rückgabewert ${e.code}`}`);
-      /* UND DARUNTER DIE LETZTEN ZEILEN, DIE ER GEDRUCKT HAT. Ein Abriss ohne
-         Grund schickt den Leser auf eine Suche nach nichts: der Grund liegt in
-         der eingefangenen Ausgabe, und dorthin kommt niemand mehr, denn die
-         Kopie ist beim Aufraeumen weg. Deshalb steht er hier. */
+      /* UND DARUNTER DIE LETZTEN ZEILEN, DIE ER GEDRUCKT HAT. */
       for (const z of e.tail || []) console.log(`     │ ${z}`);
     } else
       console.log(`  ${e.passedCount} von ${e.total} bestanden, erwartet in „${e.expected}"`);
@@ -10592,25 +8836,12 @@ function writeTable(results) {
   return (silent.length || broken.length || corpses.length) ? 1 : 0;
 }
 
-/* ================= Bedienung =================
-   DIE LISTE IST AUCH VON AUSSEN LESBAR, und der Prueflauf liest sie: er zaehlt
-   die Rueckbauten nach und sieht bei jedem nach, ob sein Suchtext in seiner
-   Datei genau einmal vorkommt. Ein Rueckbau, der ins Leere greift, sieht sonst
-   aus wie einer, der nichts bewirkt -- und faellt erst beim vollen Lauf auf,
-   der Stunden dauert. Drei davon lagen so fuenf Runden lang unbemerkt.
-   NUR BEIM DIREKTEN AUFRUF WIRD GEFAHREN: `require('./counterproof')` liefert
-   die Liste und startet keinen einzigen Server. */
-/* ---- WELCHER RUECKBAU AUF EIN ARGUMENT PASST ----
-   GREIFT EIN ARGUMENT ALS NUMMER, GILT NUR DIE NUMMER. Vorher stand hier ein
-   ODER: Nummer gleich ODER Name enthaelt -- und damit fuhr `node counterproof.js
-   2 256` neben Rueckbau 256 auch die 83 mit, weil deren Name „SHA-256 statt
-   SHA-1" die Zeichenfolge 256 traegt. Der zweite Lauf stand dann stumm in der
-   Tabelle, ohne dass ihn jemand angefordert haette.
-   EIN NAME, DER WIE EINE NUMMER AUSSIEHT, IST KEINER: wer nach Text sucht,
-   schreibt Text. Ein Argument aus lauter Ziffern meint die Nummer und sonst
-   nichts -- passt keine, ist das ein Fehler und kein stiller Beifang.
-   Die Wortnummern (W2, W5, W6) sind keine reinen Ziffernfolgen und gehen
-   deshalb weiter ueber beide Wege. */
+/* ================= Bedienung ================= DIE LISTE IST AUCH VON AUSSEN
+   LESBAR, und der Prueflauf liest sie: er zaehlt die Rueckbauten nach und
+   sieht bei jedem nach, ob sein Suchtext in seiner Datei genau einmal
+   vorkommt. */
+/* ---- WELCHER RUECKBAU AUF EIN ARGUMENT PASST ---- GREIFT EIN ARGUMENT ALS
+   NUMMER, GILT NUR DIE NUMMER. */
 const matchesRegression = (r, argument) => {
   const a = String(argument).toLowerCase();
   if (/^\d+$/.test(a)) return r.nr.toLowerCase() === a;
@@ -10619,14 +8850,10 @@ const matchesRegression = (r, argument) => {
 
 /* readRun GEHT MIT HINAUS, damit der Pruefstand die Regel „was gilt als
    stumm" an gestellten Ausgaben nachsehen kann -- in Millisekunden statt in
-   Minuten. Ein Werkzeug, das seinen eigenen Fund nicht melden kann, ist
-   schlimmer als keines (Stolperstein 213).
-   matchesRegression EBENSO: die Regel, welches Argument welchen Rueckbau meint,
-   laesst sich damit an gestellten Faellen nachsehen, statt Minuten lang einen
-   Lauf zu fahren, um zu sehen, WAS er gefahren hat. */
+   Minuten. */
 /* foreignServer GEHT EBENFALLS MIT HINAUS: die Regel, was als fremder Server
    gilt, laesst sich damit am laufenden Prueflauf selbst nachsehen -- er ist
-   ja einer. Ein Waechter, den niemand pruefen kann, ist ein Versprechen. */
+   ja einer. */
 module.exports = { REGRESSIONS, readRun, matchesRegression, writeTable,
                    foreignServer, foreignPort, listeningPorts, portSpan };
 if (require.main !== module) return;
@@ -10644,17 +8871,13 @@ if (require.main !== module) return;
     ? REGRESSIONS.filter(r => argumente.some(a => matchesRegression(r, a)))
     : REGRESSIONS;
   /* Ein Filter, auf den KEIN Rueckbau passt, ist ein Fehler und kein leerer
-     Lauf -- sonst meldete ein Tippfehler wortlos Erfolg. Dieselbe Regel wie
-     beim Gruppenfilter des Pruefstands. */
+     Lauf -- sonst meldete ein Tippfehler wortlos Erfolg. */
   if (!list.length) {
     console.error(`Kein Rueckbau passt auf ${argumente.join(', ')}.`);
     console.error('Vorhanden: ' + REGRESSIONS.map(r => r.nr).join(', '));
     process.exit(1);
   }
-  /* ERST NACHSEHEN, DANN FAHREN. Ein fremder Server macht nicht den Lauf
-     kaputt, sondern die TABELLE -- und eine falsche Tabelle ist schlimmer als
-     gar keine. Abgebrochen wird deshalb, statt zu warnen: wer eine Warnung
-     ueberliest, liest hinterher Zahlen, die nichts bedeuten. */
+  /* ERST NACHSEHEN, DANN FAHREN. */
   const foreign = foreignServer();
   const busy = foreignPort(foreign.map(f => f.port));
   if (foreign.length || busy.length) {
@@ -10666,8 +8889,7 @@ if (require.main !== module) return;
                     `${f.wo ? `  in ${f.wo}` : ''}`);
     /* DER PORTBLICK NENNT KEINE PID, und das ist keine Nachlaessigkeit: die
        Zuordnung Socket -> Prozess steht in /proc/net/tcp nur als Inode und
-       verlangte einen Gang durch jedes /proc/<pid>/fd. Wer den Port kennt,
-       findet den Prozess mit einem Befehl; wer ihn nicht kennt, sucht. */
+       verlangte einen Gang durch jedes /proc/<pid>/fd. */
     for (const p of busy)
       console.error(`  PORT ${p}  horcht -- sein Befehl verraet ihn nicht ` +
                     `(z. B. node -e). Finden:  ss -lptn 'sport = :${p}'`);

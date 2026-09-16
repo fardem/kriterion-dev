@@ -1,15 +1,11 @@
-/* Kriterion — Pruefstand: der Stand 0.29.0
- *
- * Der Fingerprint nennt die Datei, das Faelligkeitsdatum, die eindeutige
- * Adresse, die Filterzeile und die Umkehr der Sortierung nach Titel.
- *
- * Eigener Prozess, eigener Speicher. Der Rahmen steht in test/frame.js.
- */
+/* Kriterion — Pruefstand: der Stand 0.29.0 Der Fingerprint nennt die Datei,
+   das Faelligkeitsdatum, die eindeutige Adresse, die Filterzeile und die
+   Umkehr der Sortierung nach Titel. */
 const H = require('./frame.js');
 
 async function run() {
   const {
-   fs, os, path, crypto, CODE, KOMMENTAR, __dirname, require, group, check,
+   fs, os, path, crypto, CODE, COMMENT, __dirname, require, group, check,
    equal, PASSWORD, open, shortRun, shortRunAll, call, names
   } = H;
   /* Dieses Modul ruft den Hauptserver. Es startet ihn fuer sich --
@@ -17,18 +13,10 @@ async function run() {
   await H.mainServerReady();
 
 /* ======================================================================
-   0.29.0 — „Worauf man sich verlassen können muss"
-
-   WAS HIER STEHT UND WAS NICHT: die Sicherungsprobe hat ihre eigenen Zusagen
-   in der Gruppe „Die Sicherungsprobe — 0.29.0" weiter oben, weil sie eine
-   Instanz mit eingerichtetem Sicherungsort braucht. Hier stehen die uebrigen
-   sieben Bauabschnitte.
-
-   GEFAHREN, WO ES GEHT, UND GELESEN, WO JSDOM NICHT RECHNET. Der Pruefstand
-   rechnet kein CSS (Stolperstein 223): jede Pixelzahl dieser Runde ist im
-   echten Chromium gemessen und steht im Aenderungsprotokoll. Was hier stehen
-   kann, ist die REGEL — dass sie an der richtigen Stelle steht, den richtigen
-   Traeger hat und den Schreibtisch nicht anfasst. */
+   0.29.0 — „Worauf man sich verlassen können muss" WAS HIER STEHT UND WAS
+   NICHT: die Sicherungsprobe hat ihre eigenen Zusagen in der Gruppe „Die
+   Sicherungsprobe — 0.29.0" weiter oben, weil sie eine Instanz mit
+   eingerichtetem Sicherungsort braucht. */
 async function check0290() {
 
   /* ---- BA 2: der Fingerprint nennt die Datei ------------------------- */
@@ -39,14 +27,7 @@ async function check0290() {
     check('Die Kennzahlen tragen die Einzelwerte mit',
       Array.isArray(fpFiles) && fpFiles.length >= 15,
       `${fpFiles.length} Dateien`);
-    /* DIESELBE LISTE WIE DER GESAMTWERT -- und nicht eine zweite daneben
-       (F6, Stolperstein 47). Gepruefte Eigenschaften: es sind genau die
-       Dateien, ueber die der Fingerprint geht, sie stehen in derselben
-       Reihenfolge, und testbench.js und Doku/ sind NICHT dabei.
-       UND test/ SEIT 0.34.0: der Pruefstand liegt dort, ein Modul je
-       Sachgebiet. Der Server laedt keines davon -- die Zeile sagt es
-       trotzdem ausdruecklich, denn eine Datei, die niemand nennt, faellt
-       auch niemandem auf, wenn sie eines Tages doch dasteht. */
+    /* DIESELBE LISTE WIE DER GESAMTWERT -- und nicht eine zweite daneben (F6). */
     check('Es sind genau die ausgelieferten und ausgefuehrten Dateien',
       fpFiles.some(z => z.name === 'server.js') &&
       fpFiles.some(z => z.name === 'public/app.js') &&
@@ -57,21 +38,16 @@ async function check0290() {
       equal(fpFiles.map(z => z.name), [...fpFiles.map(z => z.name)].sort()),
       fpFiles.map(z => z.name).join(' · '));
     /* DIE WERTE LASSEN SICH MIT sha256sum NACHRECHNEN -- genau das ist ihr
-       Zweck: der Handgriff in der README liefert dieselben acht Zeichen. Ohne
-       diese Zusage koennte die Karte irgendetwas Achtstelliges zeigen. */
+       Zweck: der Handgriff in der README liefert dieselben acht Zeichen. */
     const fpWrong = fpFiles.filter(z => {
-      const soll = crypto.createHash('sha256')
+      const expected = crypto.createHash('sha256')
         .update(fs.readFileSync(path.join(__dirname, z.name))).digest('hex').slice(0, 8);
-      return soll !== z.hash;
+      return expected !== z.hash;
     });
     check('Jeder Einzelwert ist der sha256 seiner Datei, acht Zeichen',
       fpWrong.length === 0 && fpFiles.every(z => /^[0-9a-f]{8}$/.test(z.hash)),
       fpWrong.map(z => z.name).join(' · ') || 'alle gleich');
-    /* UND SIE ENTSTEHEN IN DERSELBEN SCHLEIFE. Am Quelltext gelesen, denn ein
-       zweiter Durchgang ueber dasselbe Verzeichnis liefe erst auseinander,
-       wenn jemand zwischen beiden eine Datei anfasst -- und dann ist es zu
-       spaet. Gegenprobe: ein zweites `filesUnder` oder ein zweites
-       `readFileSync` je Datei faerbt diese Zeile rot. */
+    /* UND SIE ENTSTEHEN IN DERSELBEN SCHLEIFE. */
     const fpServer = fs.readFileSync(path.join(__dirname, 'server.js'), 'utf8');
     const fpBody = fpServer.slice(fpServer.indexOf('function buildFingerprint()'),
                                   fpServer.indexOf('const FINGERPRINT = buildFingerprint()'));
@@ -81,8 +57,7 @@ async function check0290() {
       /h\.update\(bytes\)/.test(fpBody) && /\.update\(bytes\)\.digest/.test(fpBody),
       `${(fpBody.match(/fs\.readFileSync/g) || []).length} Lesevorgaenge in der Schleife`);
     /* KEINE DAUERHAFTE ZEILE UND KEIN UEBERFAHRTEXT. Die Liste steht im Baum,
-       aber `hidden`; sichtbar wird sie erst auf Verlangen (F16). Gelesen wird
-       die Vorlage der Karte -- eine Liste ohne `hidden` faerbt das rot. */
+       aber `hidden`; sichtbar wird sie erst auf Verlangen (F16). */
     const fpApp = fs.readFileSync(path.join(__dirname, 'public', 'app.js'), 'utf8');
     check('Die Dateiliste steht zugeklappt da und traegt keinen Ueberfahrtext',
       /<div class="fp-list" id="fp-list" hidden>/.test(fpApp) &&
@@ -98,34 +73,32 @@ async function check0290() {
   group('Das Faelligkeitsdatum — 0.29.0');
   {
     const dueItem = (await call('POST', '/api/items', { title: 'Faelligkeit' })).content;
-    const heute = (() => {
+    const today = (() => {
       const d = new Date(); const z = (n) => String(n).padStart(2, '0');
       return `${d.getFullYear()}-${z(d.getMonth() + 1)}-${z(d.getDate())}`;
     })();
-    const tag = (versatz) => {
-      const d = new Date(); d.setDate(d.getDate() + versatz);
+    const tag = (offset) => {
+      const d = new Date(); d.setDate(d.getDate() + offset);
       const z = (n) => String(n).padStart(2, '0');
       return `${d.getFullYear()}-${z(d.getMonth() + 1)}-${z(d.getDate())}`;
     };
     const dueAdd = (text, due) => call('POST', `/api/items/${dueItem.id}/comments`,
       { text, kind: 'task', ...(due === null ? {} : { dueDate: due }) });
 
-    const dueGood = await dueAdd('mit Datum', heute);
+    const dueGood = await dueAdd('mit Datum', today);
     check('Eine Aufgabe nimmt ein Datum an',
       dueGood.status === 201 &&
-      (dueGood.content?.comments || []).some(c => c.dueDate === heute),
+      (dueGood.content?.comments || []).some(c => c.dueDate === today),
       JSON.stringify((dueGood.content?.comments || []).map(c => c.dueDate)));
     /* EINE AUFGABE OHNE DATUM VERHAELT SICH WIE VORHER -- die Zusage, die
-       belegt, dass das Feld FREIWILLIG ist. Gegenprobe waere eine Vorgabe:
-       stuende dort ein selbst gesetztes Datum, faerbte das diese Zeile rot. */
+       belegt, dass das Feld FREIWILLIG ist. */
     const dueNone = await dueAdd('ohne Datum', null);
     check('Und ohne Datum bleibt sie, was sie war',
       dueNone.status === 201 &&
       (dueNone.content?.comments || []).some(c => c.text === 'ohne Datum' && c.dueDate === null),
       JSON.stringify((dueNone.content?.comments || []).map(c => [c.text, c.dueDate])));
     /* DER KALENDER WIRD GEPRUEFT UND NICHT NUR DIE FORM: "2026-02-31" hat die
-       richtige Form und gibt es nicht. Ohne diese Zeile bliebe die Zusage
-       gruen, wenn nur die Zeichen gezaehlt wuerden. */
+       richtige Form und gibt es nicht. */
     const dueBad = await dueAdd('krumm', '2026-02-31');
     const dueWord = await dueAdd('wort', 'morgen');
     check('Ein Tag, den es nicht gibt, wird abgewiesen',
@@ -133,11 +106,11 @@ async function check0290() {
       `${dueBad.status} / ${dueWord.status}`);
     /* DAS FELD HAENGT NICHT AN kind: wer zur Notiz zurueckschaltet und wieder
        zur Aufgabe, findet sein Datum vor. */
-    const dueRow = (dueGood.content?.comments || []).find(c => c.dueDate === heute);
+    const dueRow = (dueGood.content?.comments || []).find(c => c.dueDate === today);
     await call('PUT', `/api/comments/${dueRow.id}`, { kind: 'note' });
     const dueBack = await call('PUT', `/api/comments/${dueRow.id}`, { kind: 'task' });
     check('Das Datum ueberlebt den Weg ueber die Notiz',
-      (dueBack.content?.comments || []).some(c => c.id === dueRow.id && c.dueDate === heute),
+      (dueBack.content?.comments || []).some(c => c.id === dueRow.id && c.dueDate === today),
       JSON.stringify((dueBack.content?.comments || []).map(c => [c.id, c.dueDate])));
     /* UND DER RUECKWEG IST DAS LEERE FELD -- und es gibt keinen zweiten. */
     const dueClear = await call('PUT', `/api/comments/${dueRow.id}`, { dueDate: '' });
@@ -145,14 +118,10 @@ async function check0290() {
       (dueClear.content?.comments || []).some(c => c.id === dueRow.id && c.dueDate === null),
       JSON.stringify((dueClear.content?.comments || []).map(c => [c.id, c.dueDate])));
 
-    /* „OFFEN" ORDNET UEBERFAELLIG, HEUTE, SPAETER -- UND OHNE DATUM HINTEN.
-       VIER Aufgaben, VIER Zustaende, und geprueft wird die REIHENFOLGE, die
-       der Server liefert. Gegenprobe: die ohne Datum nach vorn nehmen -- ein
-       NULL sortiert in SQLite von sich aus dorthin, und genau davor steht die
-       eigene Sortierstufe. */
+    /* „OFFEN" ORDNET UEBERFAELLIG, HEUTE, SPAETER -- UND OHNE DATUM HINTEN. */
     const dueOrderItem = (await call('POST', '/api/items', { title: 'Ordnung' })).content;
     for (const [text, d] of [['spaeter', tag(5)], ['ueberfaellig', tag(-5)],
-                             ['ohne', null], ['heute', heute]])
+                             ['ohne', null], ['heute', today]])
       await call('POST', `/api/items/${dueOrderItem.id}/comments`,
         { text, kind: 'task', ...(d === null ? {} : { dueDate: d }) });
     const dueOpen = (await call('GET', '/api/open')).content
@@ -160,10 +129,7 @@ async function check0290() {
     check('„Offen" ordnet ueberfaellig · heute · spaeter, ohne Datum hinten',
       equal(dueOpen, ['ueberfaellig', 'heute', 'spaeter', 'ohne']),
       dueOpen.join(' · '));
-    /* UND DIE ZWEITE SORTIERSTUFE HAELT DIE GRUPPIERUNG (F18). Zwei Aufgaben
-       desselben Eintrags mit DEMSELBEN Datum muessen beieinander stehen --
-       sonst zerfaellt die Gruppierung, und derselbe Eintrag stuende mehrfach
-       in der Liste. */
+    /* UND DIE ZWEITE SORTIERSTUFE HAELT DIE GRUPPIERUNG (F18). */
     const dueA = (await call('POST', '/api/items', { title: 'Gruppe A' })).content;
     const dueB = (await call('POST', '/api/items', { title: 'Gruppe B' })).content;
     for (const it of [dueA, dueB, dueA, dueB])
@@ -185,9 +151,7 @@ async function check0290() {
       dueComments.some(c => c.dueDate === tag(9)) &&
       dueComments.filter(c => c.text === 'ohne Datum').every(c => !('dueDate' in c)),
       JSON.stringify(dueComments.filter(c => c.dueDate).map(c => c.dueDate).slice(0, 5)));
-    /* UND DER IMPORT PRUEFT ES WIE DIE OBERFLAECHE. Eine Datei von aussen darf
-       keinen Tag einspielen, den die Oberflaeche nie erlaubt haette; die
-       Zeile selbst bleibt trotzdem stehen. */
+    /* UND DER IMPORT PRUEFT ES WIE DIE OBERFLAECHE. */
     const dueServer = fs.readFileSync(path.join(__dirname, 'server.js'), 'utf8');
     check('Der Import laesst das Datum durch dieselbe Pruefung',
       /const cDue = c\.dueDate === undefined \? \{ value: null \} : dueValue\(c\.dueDate\);/
@@ -205,9 +169,7 @@ async function check0290() {
       (emServer.match(/CREATE UNIQUE INDEX IF NOT EXISTS idx_users_email[\s\S]{0,90}/) ||
         ['(nicht gefunden)'])[0]);
     /* GEFAHREN UND NICHT GELESEN: der Index selbst weist ab, nicht die Frage
-       davor. Geschrieben wird DIREKT in die Tabelle -- ueber die Route griffe
-       die Frage in auth.js, und die Zusage belegte dann sie und nicht das
-       Schloss. */
+       davor. */
     const emDir = fs.mkdtempSync(path.join(os.tmpdir(), 'kriterion-adresse-'));
     shortRun(`require('./db'); console.log('da');`, emDir);
     const emOut = shortRun(`const { db } = require('./db');
@@ -229,8 +191,7 @@ async function check0290() {
       /ohnedritte:DURCH/.test(emAll), emAll.split('\n').slice(-3).join(' | '));
 
     /* BESTEHENDE DOPPELADRESSEN LASSEN DIE INSTANZ LAUFEN (F10) und werden
-       benannt. Gegenprobe waere ein verschluckter Fehlschlag: dann stuende der
-       Index nicht da, die Karte saegte nichts, und niemand wuesste es. */
+       benannt. */
     const emOldDir = fs.mkdtempSync(path.join(os.tmpdir(), 'kriterion-doppelt-'));
     shortRun(`require('./db'); console.log('da');`, emOldDir);
     shortRun(`const { db } = require('./db');
@@ -251,9 +212,7 @@ async function check0290() {
     check('Und die Karte „Benutzer" bekommt Adresse und Zugaenge',
       /GEMELDET \[\{"address":"doppelt@haus\.de","n":2,"names":"eins, zwei"\}\]/.test(emStart),
       (emStart.match(/GEMELDET .*/) || ['(nichts gemeldet)'])[0]);
-    /* UND DER KLARTEXT GILT NUR HINTER DER ANMELDUNG. Vor ihr ist jede
-       unterschiedliche Antwort ein Werkzeug zum Durchprobieren -- der Weg der
-       Selbstanmeldung darf den Satz deshalb NICHT kennen. */
+    /* UND DER KLARTEXT GILT NUR HINTER DER ANMELDUNG. */
     const emAuth = fs.readFileSync(path.join(__dirname, 'auth.js'), 'utf8');
     const emRequest = emAuth.slice(emAuth.indexOf('function requestAccess'),
                                    emAuth.indexOf('function requestAccess') + 3000);
@@ -270,16 +229,10 @@ async function check0290() {
   {
     const csSource = fs.readFileSync(path.join(__dirname, 'public', 'style.css'), 'utf8');
     const csApp = fs.readFileSync(path.join(__dirname, 'public', 'app.js'), 'utf8');
-    /* JSDOM RECHNET KEIN CSS (Stolperstein 223). Die Pixelzahlen dieser Runde
-       sind im echten Chromium gemessen und stehen im Aenderungsprotokoll; was
-       hier steht, ist die REGEL und ihr TRAEGER.
-       DER SCHMALE SCHIRM UND NUR ER: die Regeln stehen innerhalb der
-       Umbruchstelle. Stuenden sie global, aenderte sich der Schreibtisch mit
-       -- und genau das ist zugesagt, dass es NICHT geschieht. */
+    /* JSDOM RECHNET KEIN CSS. */
     /* DIE UMBRUCHSTELLE HEISST 700 UND NICHT 760, und sie traegt zwei weitere
        Bedingungen: `(max-height: 500px) and (max-width: 960px)` faengt das
-       Telefon im Querformat. Gesucht wird deshalb der WORTLAUT der Stelle und
-       keine Zahl, die sich abschreiben laesst. */
+       Telefon im Querformat. */
     const CS_NARROW = '@media (max-width: 700px), (max-height: 500px) and (max-width: 960px) {';
     check('Die Umbruchstelle des schmalen Schirms steht, wo sie stand',
       csSource.includes(CS_NARROW), '(die Umbruchstelle heisst anders)');
@@ -296,41 +249,25 @@ async function check0290() {
       'die Spaltenzuweisung fehlt oder trifft alle Verweise');
     /* DER RUECKSETZER DER SORTIERZEILE BLEIBT DRAUSSEN, und das ist der Kern
        von F17: mit ihm in Spalte 3 schrumpft die Sortierwahl auf 30 px, und
-       der NAME der Sortierung ist nicht mehr zu sehen. Getragen wird die
-       Unterscheidung von einer Klasse, die nur die beiden bekommen. */
-    /* EINER SEIT 0.30.0, vorher zwei: der Umschalter „Tags" ist gefallen (F9),
-       und mit ihm der zweite Traeger der Klasse. Die Verweise der Tagzeile
-       tragen sie weiter -- „mehr" und „Tags zurücksetzen" gehoeren ans Ende
-       ihrer Zeile und nicht ueber ihre ganze Breite. */
+       der NAME der Sortierung ist nicht mehr zu sehen. */
+    /* EINER SEIT 0.30.0, vorher zwei: der Umschalter „Tags" ist gefallen
+       (F9), und mit ihm der zweite Traeger der Klasse. */
     const csEnd = (csApp.match(/className = '[^']*frow-right-end[^']*'/g) || []);
     check('Genau ein Verweis traegt die Klasse — und der Ruecksetzer nicht',
       csEnd.length === 1 && !/right5\.className = '[^']*frow-right-end/.test(csApp),
       csEnd.join(' · '));
     /* UND „und/Oder" STEHT SEIT 0.30.0 IN SPALTE EINS, in der ZWEITEN
        Rasterzeile: unter der Beschriftung und nicht mehr neben ihr (Befund 6,
-       F9). Gemessen ist der Gewinn: die Tagzeile faellt von 69 auf 46 px, der
-       Filterkasten von 291 auf 267, und die erste Kachel rueckt von y = 502
-       auf y = 479. */
+       F9). */
     check('Der Und/Oder-Umschalter steht unter der Beschriftung — Spalte eins, Zeile zwei',
       /\.frow-tags > \.tagmode \{ grid-column: 1; grid-row: 2;/.test(csNarrow) &&
       !/\.frow > \.tagmode \{ grid-column: 2; \}/.test(csNarrow),
       (csNarrow.match(/\.frow-tags > \.tagmode[^\n]*/) || ['(nicht gefunden)'])[0]);
-    /* UND DIE WOLKE SPANNT UEBER ALLE RASTERZEILEN. Ohne das stuende „mehr"
-       unter der Wolke, und die Zeile waere hoeher als vorher -- also das
-       Gegenteil des Befundes.
-       SEIT 0.30.2 SIND ES DREI ZEILEN UND NICHT ZWEI (Beschriftung, die
-       beiden Zeichen, der Umschalter), und die Wolke spannt deshalb ueber
-       `1 / -1` statt ueber `1 / span 2`. Die Zusage bleibt dieselbe -- sie
-       nennt nur nicht mehr die ZAHL der Zeilen, sondern ALLE.
-       UND DER VERWEISKASTEN SPANNT NICHT MEHR MIT: er steht seit 0.30.2 in
-       Spalte EINS, unter der Beschriftung, und die dritte Spalte ist damit
-       ganz weg. */
+    /* UND DIE WOLKE SPANNT UEBER ALLE RASTERZEILEN. */
     check('Und die Wolke spannt ueber alle Rasterzeilen',
       /\.frow-tags > \.pills\.cloud \{ grid-row: 1 \/ -1;/.test(csNarrow),
       (csNarrow.match(/\.frow-tags > \.pills\.cloud[^\n]*/) || ['(nicht gefunden)'])[0]);
-    /* DER KATEGORIEKASTEN: geteilt statt ausgerechnet. Eine feste Zahl faerbt
-       diese Zeile rot -- das Stilblatt verbietet ausgerechnete Breiten bei 80
-       bis 120 Prozent Schrift an drei anderen Stellen selbst. */
+    /* DER KATEGORIEKASTEN: geteilt statt ausgerechnet. */
     check('Auswahl und Feld teilen sich, was der Knopf uebrig laesst',
       /\[data-block="kategorie"\] \.row-in > #cat,\s*\n\s*\[data-block="kategorie"\] \.row-in > \.input \{ flex: 1 1 0; min-width: 0; \}/
         .test(csNarrow),
@@ -366,20 +303,13 @@ async function check0290() {
     check('Und der Vergleicher kennt title_desc',
       /case 'title_desc':\s*return b\.title\.localeCompare\(a\.title, LOCALE\);/.test(tiApp),
       'die Gegenrichtung fehlt im Vergleicher');
-    /* JEDE DER SIEBEN GRUNDLAGEN SAGT, WORAUF EIN WECHSEL LANDET. Ohne das
-       haette die mitwandernde Richtung jeden, der aus der Vorgabe kommt, auf
-       „Z → A" abgesetzt -- also jeden beim ersten Mal. */
+    /* JEDE DER SIEBEN GRUNDLAGEN SAGT, WORAUF EIN WECHSEL LANDET. */
     const tiStarts = (tiApp.match(/start: '(up|down)'/g) || []);
     check('Jede Grundlage sagt, worauf ein Wechsel landet',
       tiStarts.length === 7 && tiStarts.filter(z => /up/.test(z)).length === 1,
       tiStarts.join(' · '));
-    /* UND DER SONDERFALL IST GANZ GEFALLEN (F21). Keine Grundlage ist mehr
-       einspurig, also bleibt weder der gesperrte Knopf noch die Weiche noch
-       der Satz daneben stehen -- eine Regel ohne Traeger bleibt nicht stehen. */
-    /* GELESEN WIRD DER CODE UND NICHT DER KOMMENTAR. `twoWays()` steht in
-       app.js noch EINMAL da -- in dem Absatz, der erklaert, WARUM es die
-       Funktion nicht mehr gibt. Ein Waechter, der den Kommentar mitliest,
-       zwaenge dazu, die Begruendung zu loeschen, und genau die soll bleiben. */
+    /* UND DER SONDERFALL IST GANZ GEFALLEN (F21). */
+    /* GELESEN WIRD DER CODE UND NICHT DER KOMMENTAR. */
     const tiCode = tiApp.replace(/\/\*[\s\S]*?\*\//g, ' ').replace(/^\s*\/\/.*$/gm, ' ');
     check('Der gesperrte Knopf und seine Weiche sind fort',
       !/twoWays/.test(tiCode) && !/dirBtn\.disabled/.test(tiCode) &&
@@ -393,11 +323,8 @@ async function check0290() {
     check('„Diese Sortierung hat nur eine Richtung" steht in keiner Sprachdatei mehr',
       tiKeys.every(([where]) => where), JSON.stringify(tiKeys));
     check('Und „Z → A" steht in allen dreien',
-      tiKeys.every(([, wort]) => wort === 'Z → A'), JSON.stringify(tiKeys));
-    /* GEFAHREN UND NICHT GELESEN: die Sortierung selbst, am laufenden Server.
-       Eine Zusage, die nur SORT_BASES ansieht, bliebe gruen, wenn der
-       Vergleicher danebengreift -- genau dieser Fehler ist in 0.28.1
-       aufgefallen („Titel" sortierte nach dem Aenderungsdatum). */
+      tiKeys.every(([, word]) => word === 'Z → A'), JSON.stringify(tiKeys));
+    /* GEFAHREN UND NICHT GELESEN: die Sortierung selbst, am laufenden Server. */
     const tiWhich = (await call('GET', '/api/items')).content;
     const tiTitles = (Array.isArray(tiWhich) ? tiWhich : tiWhich?.items || [])
       .map(i => i.title).filter(Boolean);

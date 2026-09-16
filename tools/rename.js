@@ -4,7 +4,7 @@
    vorher ausgesondert (tools/segments.js); ein Name in einem Text bleibt
    stehen.
 
-   ER ARBEITET AUF WORTGRENZEN und nie auf Teilstuecken: `wert` ersetzt nicht
+   ER ARBEITET AUF WORTGRENZEN und nie auf Teilstuecken: `value` ersetzt nicht
    die Haelfte von `wertung`. Er sieht dazu einen ganzen Bezeichner an und
    nicht eine Zeichenfolge darin.
 
@@ -24,7 +24,7 @@
 
 const fs = require('fs');
 const path = require('path');
-const { zerlege, zusammen, texte, CODE, TEXT, KOMMENTAR, REGEX } = require('./segments.js');
+const { segment, joined, texts, CODE, TEXT, COMMENT, REGEX } = require('./segments.js');
 
 const IDENT = /[A-Za-z_$][A-Za-z0-9_$]*/g;
 
@@ -47,17 +47,17 @@ function pruefeZiele(map) {
 // --- Bezeichner ------------------------------------------------------------
 function ersetzeIdent(src, datei, map, opt = {}) {
   pruefeZiele(map);
-  const teile = zerlege(src, datei);
-  const vorher = texte(teile);
+  const parts = segment(src, datei);
+  const vorher = texts(parts);
   let treffer = 0;
   const von = opt.vonZeile || 0, bis = opt.bisZeile || Infinity;
   let zeile = 1;
-  for (const t of teile) {
+  for (const t of parts) {
     const anfangsZeile = zeile;
-    zeile += (t.wert.match(/\n/g) || []).length;
+    zeile += (t.value.match(/\n/g) || []).length;
     if (t.kind !== CODE) continue;
     if (zeile < von || anfangsZeile > bis) continue;
-    t.wert = t.wert.replace(IDENT, (m, i, s) => {
+    t.value = t.value.replace(IDENT, (m, i, s) => {
       if (!Object.prototype.hasOwnProperty.call(map, m)) return m;
       // Die Zeile des einzelnen Treffers, nicht die des ganzen Stuecks: ein
       // Stueck Code kann ueber hundert Zeilen gehen.
@@ -73,9 +73,9 @@ function ersetzeIdent(src, datei, map, opt = {}) {
       treffer++; return map[m];
     });
   }
-  if (opt.auchKommentare) treffer += ersetzeInKommentaren(teile, map);
-  const neu = zusammen(teile);
-  const nachher = texte(zerlege(neu, datei));
+  if (opt.auchKommentare) treffer += ersetzeInKommentaren(parts, map);
+  const neu = joined(parts);
+  const nachher = texts(segment(neu, datei));
   probeGleich(vorher, nachher, 'Zeichenketten', datei);
   return { text: neu, treffer };
 }
@@ -98,14 +98,14 @@ function istCodeName(n) {
   if (/[0-9_$./]/.test(n)) return true;
   return /[a-z]/.test(n) && /[A-Z]/.test(n);
 }
-function ersetzeInKommentaren(teile, map) {
+function ersetzeInKommentaren(parts, map) {
   let treffer = 0;
   const namen = Object.keys(map).sort((a, b) => b.length - a.length);
   if (!namen.length) return 0;
   const re = new RegExp('(?<![A-Za-z0-9_$.-])(' + namen.map(esc).join('|') + ')(?![A-Za-z0-9_$-])', 'g');
-  for (const t of teile) {
-    if (t.kind !== KOMMENTAR) continue;
-    t.wert = t.wert.replace(re, (m, name, i, s) => {
+  for (const t of parts) {
+    if (t.kind !== COMMENT) continue;
+    t.value = t.value.replace(re, (m, name, i, s) => {
       const davor = s[i - 1], danach = s[i + m.length];
       const inRuecktasten = davor === '`' || danach === '`';
       const mitKlammer = danach === '(';
@@ -120,15 +120,15 @@ function ersetzeInKommentaren(teile, map) {
    Rufer eines umbenannten Exports: `zustand` allein koennte in seiner Datei
    etwas anderes heissen, `mail.zustand` nie. */
 function ersetzeQualifiziert(src, datei, map, opt = {}) {
-  const teile = zerlege(src, datei);
-  const vorher = texte(teile);
+  const parts = segment(src, datei);
+  const vorher = texts(parts);
   let treffer = 0;
   const paare = Object.keys(map).sort((a, b) => b.length - a.length);
   if (!paare.length) return { text: src, treffer: 0 };
   const re = new RegExp('(?<![A-Za-z0-9_$])(' + paare.map(esc).join('|') + ')(?![A-Za-z0-9_$])', 'g');
-  for (const t of teile) {
-    if (t.kind !== CODE && !(opt.auchKommentare && t.kind === KOMMENTAR)) continue;
-    t.wert = t.wert.replace(re, (m, name, i, s) => {
+  for (const t of parts) {
+    if (t.kind !== CODE && !(opt.auchKommentare && t.kind === COMMENT)) continue;
+    t.value = t.value.replace(re, (m, name, i, s) => {
       /* EIN PUNKT DAVOR HEISST: der Traeger ist ein anderer -- ausser bei
          `...auth.x`, wo die drei Punkte die Ausbreitung sind und nicht der
          Zugriff auf ein Feld. Gefunden an `...auth.erzeugeAnmeldeAusweis()`,
@@ -137,53 +137,53 @@ function ersetzeQualifiziert(src, datei, map, opt = {}) {
       treffer++; return map[m];
     });
   }
-  const neu = zusammen(teile);
-  probeGleich(vorher, texte(zerlege(neu, datei)), 'Zeichenketten', datei);
+  const neu = joined(parts);
+  probeGleich(vorher, texts(segment(neu, datei)), 'Zeichenketten', datei);
   return { text: neu, treffer };
 }
 
 // --- ganze Zeichenketten ---------------------------------------------------
 function ersetzeString(src, datei, map) {
-  const teile = zerlege(src, datei);
-  const vorher = bezeichner(teile);
+  const parts = segment(src, datei);
+  const vorher = bezeichner(parts);
   let treffer = 0;
-  for (const t of teile) {
+  for (const t of parts) {
     if (t.kind !== TEXT) continue;
-    const q = t.wert[0];
+    const q = t.value[0];
     if (q !== '"' && q !== "'" && q !== '`') {
       // Ein festes Stueck einer Vorlage: der ganze Text muss passen
-      if (Object.prototype.hasOwnProperty.call(map, t.wert)) { t.wert = map[t.wert]; treffer++; }
+      if (Object.prototype.hasOwnProperty.call(map, t.value)) { t.value = map[t.value]; treffer++; }
       continue;
     }
-    const inhalt = t.wert.slice(1, -1);
-    if (Object.prototype.hasOwnProperty.call(map, inhalt)) { t.wert = q + map[inhalt] + q; treffer++; }
+    const inhalt = t.value.slice(1, -1);
+    if (Object.prototype.hasOwnProperty.call(map, inhalt)) { t.value = q + map[inhalt] + q; treffer++; }
   }
-  const neu = zusammen(teile);
-  probeGleich(vorher, bezeichner(zerlege(neu, datei)), 'Bezeichner', datei);
+  const neu = joined(parts);
+  probeGleich(vorher, bezeichner(segment(neu, datei)), 'Bezeichner', datei);
   return { text: neu, treffer };
 }
 
 // --- Woerter innerhalb von Zeichenketten -----------------------------------
 function ersetzeInString(src, datei, map, opt = {}) {
-  const teile = zerlege(src, datei);
-  const vorher = bezeichner(teile);
+  const parts = segment(src, datei);
+  const vorher = bezeichner(parts);
   let treffer = 0;
   const woerter = Object.keys(map).sort((a, b) => b.length - a.length);
   if (!woerter.length) return { text: src, treffer: 0 };
   const re = new RegExp('(?<![A-Za-z0-9_$-])(' + woerter.map(esc).join('|') + ')(?![A-Za-z0-9_$-])', 'g');
-  for (const t of teile) {
+  for (const t of parts) {
     if (t.kind !== TEXT && !(opt.auchCode && t.kind === CODE)) continue;
-    t.wert = t.wert.replace(re, (m) => { treffer++; return map[m]; });
+    t.value = t.value.replace(re, (m) => { treffer++; return map[m]; });
   }
-  const neu = zusammen(teile);
-  if (!opt.auchCode) probeGleich(vorher, bezeichner(zerlege(neu, datei)), 'Bezeichner', datei);
+  const neu = joined(parts);
+  if (!opt.auchCode) probeGleich(vorher, bezeichner(segment(neu, datei)), 'Bezeichner', datei);
   return { text: neu, treffer };
 }
 
 // --- Probe -----------------------------------------------------------------
-function bezeichner(teile) {
+function bezeichner(parts) {
   const m = new Map();
-  for (const t of teile) if (t.kind === CODE) for (const w of (t.wert.match(IDENT) || [])) m.set(w, (m.get(w) || 0) + 1);
+  for (const t of parts) if (t.kind === CODE) for (const w of (t.value.match(IDENT) || [])) m.set(w, (m.get(w) || 0) + 1);
   return m;
 }
 function probeGleich(a, b, was, datei) {
@@ -202,8 +202,8 @@ const esc = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
    Mustern im Quelltext -- `/function ruleHit\(/` ist ein ZITAT eines Namens
    und kein Text. Wer den Namen umbenennt, muss das Muster mitnehmen. */
 function nurRegex(src, datei, map) {
-  const teile = zerlege(src, datei);
-  const vorher = texte(teile);
+  const parts = segment(src, datei);
+  const vorher = texts(parts);
   let treffer = 0;
   const namen = Object.keys(map).sort((a, b) => b.length - a.length);
   if (!namen.length) return { text: src, treffer: 0 };
@@ -211,23 +211,23 @@ function nurRegex(src, datei, map) {
      ihn machte `trenner -> sep` daraus `anmeld-sep`, und die Klasse im
      Stilblatt hiesse weiter anders. */
   const re = new RegExp('(?<![A-Za-z0-9_$-])(' + namen.map(esc).join('|') + ')(?![A-Za-z0-9_$-])', 'g');
-  for (const t of teile) {
+  for (const t of parts) {
     if (t.kind !== REGEX) continue;
-    t.wert = t.wert.replace(re, (m) => { treffer++; return map[m]; });
+    t.value = t.value.replace(re, (m) => { treffer++; return map[m]; });
   }
-  const neu = zusammen(teile);
-  probeGleich(vorher, texte(zerlege(neu, datei)), 'Zeichenketten', datei);
+  const neu = joined(parts);
+  probeGleich(vorher, texts(segment(neu, datei)), 'Zeichenketten', datei);
   return { text: neu, treffer };
 }
 
 // Nur die Kommentare -- fuer Namen, die schon umbenannt sind und deren Zitate
 // nachziehen sollen.
 function nurKommentare(src, datei, map) {
-  const teile = zerlege(src, datei);
-  const vorher = texte(teile);
-  const treffer = ersetzeInKommentaren(teile, map);
-  const neu = zusammen(teile);
-  probeGleich(vorher, texte(zerlege(neu, datei)), 'Zeichenketten', datei);
+  const parts = segment(src, datei);
+  const vorher = texts(parts);
+  const treffer = ersetzeInKommentaren(parts, map);
+  const neu = joined(parts);
+  probeGleich(vorher, texts(segment(neu, datei)), 'Zeichenketten', datei);
   return { text: neu, treffer };
 }
 

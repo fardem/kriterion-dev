@@ -1,14 +1,6 @@
-/* Kriterion — Pruefstand: die Erstanmeldung
- *
- * Die Wege, die eine Instanz vor ihrem ersten Zugang geht: die frische
- * Einrichtung, das Aendern des Zugangs, die Anmeldesperre, AUTH_RESET und die
- * leere Benutzertabelle.
- * 
- * Eigene Server in eigenen Verzeichnissen -- der Hauptbestand wird nicht
- * beruehrt.
- *
- * Eigener Prozess, eigener Speicher. Der Rahmen steht in test/frame.js.
- */
+/* Kriterion — Pruefstand: die Erstanmeldung Die Wege, die eine Instanz vor
+   ihrem ersten Zugang geht: die frische Einrichtung, das Aendern des Zugangs,
+   die Anmeldesperre, AUTH_RESET und die leere Benutzertabelle. */
 const H = require('./frame.js');
 
 async function run() {
@@ -24,10 +16,7 @@ async function checkFirstLogin() {
   group('Erstanmeldung: frische Installation');
   const freshDir = fs.mkdtempSync(path.join(os.tmpdir(), 'kriterion-setup-'));
   // 5130 und nicht 4000: die Basis 4000 deckt die Nummern 4000 bis 4059, und
-  // 4045 steht auf der Sperrliste von fetch() (Stolperstein 127). Eine von
-  // sechzig Ziehungen liess diese Lage unerreichbar werden und riss den Lauf
-  // ab, statt eine Pruefung rot zu faerben. 5130 bis 5189 liegt frei zwischen
-  // 5070 und 5200.
+  // 4045 steht auf der Sperrliste von fetch().
   const B = startFurtherServer(freshDir, {}, 5130);
   await B.ready;
 
@@ -63,7 +52,7 @@ async function checkFirstLogin() {
   check('Das Passwort steht nirgends im Klartext',
     !freshDb.prepare('SELECT password_hash h FROM users').get().h.includes('zehn-zeichen-und-mehr'));
   // Der erste Benutzer entsteht ausschliesslich hier -- und wer die Instanz
-  // einrichtet, dem gehoert sie.
+// einrichtet, dem gehoert sie.
   const freshU = freshDb.prepare('SELECT id, role, status, last_login FROM users ORDER BY id').get();
   check('Der frisch eingerichtete Zugang ist Eigentuemer', freshU?.role === 'owner',
     JSON.stringify(freshU));
@@ -101,12 +90,12 @@ async function checkFirstLogin() {
     (await B.call('POST', '/api/login', { user: 'chefin', password: 'ganz-neues-passwort' })).status === 200);
 
   // Etwas anlegen, damit die Rueckstellung gleich zeigen kann, dass der Bestand
-  // bleibt.
+// bleibt.
   await B.call('POST', '/api/items', { title: 'Ueberlebt die Ruecksetzung' });
 
   /* --- Anmeldesperre: unveraendert --- */
   // Bewusst ganz am Schluss und auf diesem Server: nach zehn Fehlversuchen ist
-  // die Adresse fuenf Minuten gesperrt, alles Weitere liefe ins Leere.
+// die Adresse fuenf Minuten gesperrt, alles Weitere liefe ins Leere.
   group('Erstanmeldung: Anmeldesperre bleibt');
   B.cookieRemove();
   const times = [];
@@ -128,19 +117,15 @@ async function checkFirstLogin() {
     (await B.call('POST', '/api/login', { user: 'chefin', password: 'ganz-neues-passwort' })).status === 429);
   await B.stop();
 
-  /* --- AUTH_RESET wird abgelehnt ---
-     Frueher setzte die Umgebungsvariable beim Start ein blankes
-     DELETE FROM users ab. Im Mehrbenutzerbetrieb waere das eine Katastrophe:
-     alle Zugaenge weg, aller Bestand ueber ON DELETE SET NULL herrenlos, und
-     der naechste Start schoebe ihn dem zu, der sich als Erster neu
-     einrichtet. An ihre Stelle tritt usertool.js auf dem Wirt. */
+  /* --- AUTH_RESET wird abgelehnt --- Frueher setzte die Umgebungsvariable
+     beim Start ein blankes DELETE FROM users ab. */
   group('AUTH_RESET wird abgelehnt');
   const C = startFurtherServer(freshDir, { AUTH_RESET: '1' }, 4100);
   await C.ready;
   check('Der Start sagt laut, dass AUTH_RESET wirkungslos ist',
     /AUTH_RESET has not been carried out since version 0\.8\.0/.test(C.log()));
   // Still weglassen waere falsch: wer die Zeile in seiner .env stehen hat,
-  // muss den neuen Weg erfahren, und zwar ohne nachzuschlagen.
+// muss den neuen Weg erfahren, und zwar ohne nachzuschlagen.
   check('Und nennt den Weg, der an seine Stelle tritt',
     /usertool\.js passwort/.test(C.log()));
   check('Der Start bricht deswegen nicht ab',
@@ -148,9 +133,8 @@ async function checkFirstLogin() {
   check('Es ist KEINE Einrichtung noetig',
     (await C.call('GET', '/api/config')).content.setupRequired === false);
   const afterReset = open(path.join(freshDir, 'katalog.sqlite'));
-  /* Die drei Zeilen des Gewinns: der Zugang steht
-     noch, der Bestand gehoert weiter ihm, und nichts ist herrenlos
-     geworden. */
+  /* Die drei Zeilen des Gewinns: der Zugang steht noch, der Bestand gehoert
+     weiter ihm, und nichts ist herrenlos geworden. */
   check('Der Zugang steht unveraendert in der Datenbank',
     afterReset.prepare('SELECT COUNT(*) n FROM users').get().n === 1,
     JSON.stringify(afterReset.prepare('SELECT id, username, role, status FROM users').all()));
@@ -167,15 +151,14 @@ async function checkFirstLogin() {
 
   /* --- Die zweite Aufrufstelle des Auffangnetzes ---------------------------
      assignInventory() steht an zwei Stellen; die zweite sitzt in
-     legeErstenBenutzerAn. Im Normalbetrieb entsteht die leere Benutzertabelle
-     nicht -- die Prueflage stellt sie deshalb selbst her. */
+     legeErstenBenutzerAn. */
   group('Erstanmeldung: Einrichtung bei leerer Benutzertabelle');
   {
     const d = open(path.join(freshDir, 'katalog.sqlite'));
     d.prepare('DELETE FROM users').run();
     d.prepare('DELETE FROM sessions').run();
     // ON DELETE SET NULL hat gerade zugeschlagen -- genau die Lage, die die
-    // dritte Aufrufstelle aufraeumen muss.
+// dritte Aufrufstelle aufraeumen muss.
     check('Der Bestand ist jetzt herrenlos',
       d.prepare('SELECT COUNT(*) n FROM items WHERE user_id IS NULL').get().n === 1,
       JSON.stringify(d.prepare('SELECT id, user_id FROM items').all()));
@@ -195,7 +178,7 @@ async function checkFirstLogin() {
   check('Der herrenlose Bestand faellt an den neu eingerichteten Zugang',
     freshItems.length === 1 && freshItems[0].user_id === freshId, JSON.stringify(freshItems));
   // Und der Neue ist Eigentuemer -- ohne das griffe assignInventory() ins
-  // Leere, weil eigentuemerId() niemanden faende.
+// Leere, weil eigentuemerId() niemanden faende.
   check('Und der neu eingerichtete Zugang ist Eigentuemer',
     afterFresh.prepare('SELECT role FROM users WHERE id = ?').get(freshId)?.role === 'owner',
     JSON.stringify(afterFresh.prepare('SELECT id, username, role FROM users').all()));

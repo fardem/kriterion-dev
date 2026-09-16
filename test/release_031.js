@@ -1,10 +1,6 @@
-/* Kriterion — Pruefstand: die Staende 0.31.0 bis 0.31.4
- *
- * Die Sprachdateien werden gegengelesen, und die drei Sprachen sitzen:
- * Deutsch, Englisch, Tuerkisch. Dazu die Einzahl nach einer Zahl.
- *
- * Eigener Prozess, eigener Speicher. Der Rahmen steht in test/frame.js.
- */
+/* Kriterion — Pruefstand: die Staende 0.31.0 bis 0.31.4 Die Sprachdateien
+   werden gegengelesen, und die drei Sprachen sitzen: Deutsch, Englisch,
+   Tuerkisch. */
 const H = require('./frame.js');
 const D = require('./dom.js');
 const {
@@ -20,56 +16,12 @@ async function run() {
      siehe mainServerReady() in test/frame.js. */
   await H.mainServerReady();
 
-/* =================================================================
-   0.31.0 — „Die Sprachdateien werden gegengelesen"
-
-   DREI BAUABSCHNITTE AM TEXT, UND ELF ZUSAGEN DARUEBER. Die Vorlage kam von
-   aussen (Doku/I18N_CLEANUP_DE.md, von Google Gemini geschrieben); jede ihrer
-   Zeilen ist gegen `de.json`, gegen den Quelltext und gegen die beiden anderen
-   Sprachdateien nachgeprueft worden, und was nicht uebernommen wurde, steht
-   mit Grund im Auftrag.
-   DIE ELF CODE-LECKS FALLEN AUS ALLEN DREI DATEIEN ZUGLEICH, die Texte nur
-   aus der deutschen: Englisch ist 0.31.2, Tuerkisch 0.31.3 (die Nummern hier
-   standen bis 0.31.3 eine Runde zu frueh -- 0.31.1 ist dazwischengekommen und
-   hat die zersaegten Saetze zusammengesetzt). Der Grund steht
-   im Auftrag (F21) und ist gemessen -- die Deckungsprobe verlangt in jeder
-   Datei dieselben Schluessel, also koennen die SCHLUESSEL nicht warten; die
-   TEXTE koennen es sehr wohl.
-   ================================================================= */
-/* DIE ZAHL DER SCHLUESSEL JE SPRACHDATEI STEHT EINMAL -- Stolperstein 47.
+/* ================================================================= 0.31.0 —
+   „Die Sprachdateien werden gegengelesen" DREI BAUABSCHNITTE AM TEXT, UND ELF
+   ZUSAGEN DARUEBER. */
+/* DIE ZAHL DER SCHLUESSEL JE SPRACHDATEI STEHT EINMAL.
    ZWEI GRUPPEN FRAGEN SIE AB: 0.31.0 auf die Deckung der drei Dateien, 0.31.1
-   auf den Stand nach dem Verschmelzen. Zwei Zahlen an zwei Stellen laufen beim
-   naechsten Handgriff auseinander.
-   SIE STEHT AUF MODULEBENE UND NICHT IN EINER DER BEIDEN GRUPPEN, und das ist
-   beim Bauen von 0.31.1 gelernt worden: zuerst stand sie in `check0310()`, und
-   `check0311()` ist eine EIGENE Funktion -- der Lauf riss mit „LANG_KEY_COUNT
-   is not defined" ab, und ein abgerissener Lauf belegt nichts (Stolpersteine
-   138, 161 und 170). Vier Gegenproben haben es zugleich gemeldet.
-   SIE WIRD UMGEDREHT UND NICHT WEGGENOMMEN: „gleich viele" allein bliebe
-   gruen, wenn jemand aus allen dreien dasselbe herausnaehme.
-     1254 vor 0.31.1 -- 1197 danach. Die Runde verschmilzt Bruchstuecke zu
-     ganzen Saetzen; ein verschmolzener Satz braucht einen Schluessel statt
-     zwei, und vierundvierzig sind neu dazugekommen.
-     1197 VOR 0.31.4 -- 1198 DANACH, und der eine ist kein Satz: `_afterNumber`
-     sagt, welche Form hinter einer Zahl steht. Er steht neben `_locale` und
-     `_name` und erreicht keinen Bildschirm.
-     1198 VOR 0.32.0 -- 1215 DANACH: achtzehn kommen dazu und einer faellt.
-     Die achtzehn stehen namentlich in WORDING_NEW_0320, der eine in
-     WORDING_GONE_0320 (`list.otherUser`) -- und ihre drei Herkuenfte sind das
-     fuenfzehnte Vokabelwort, die geteilte Glockentafel und die zwoelf
-     deutschen Saetze aus den Serverdateien.
-     1215 VOR 0.32.1 -- 1209 DANACH: acht fallen, zwei kommen dazu. Die acht
-     stehen namentlich in WORDING_GONE_0321, die zwei in WORDING_NEW_0321.
-     ES IST DIE ERSTE RUNDE, DIE SCHRUMPFT, seit 0.31.1 -- und aus demselben
-     Grund: sie nimmt eine Bauweise zurueck (dort den zersaegten Satzbau, hier
-     die Zaehlzeile als Satz und die Filterableitung).
-     1209 VOR 0.33.0 -- 1208 DANACH: zwei fallen, einer kommt dazu. Die zwei
-     stehen namentlich in WORDING_GONE_0330 (`card.catchUpDerivatives` und
-     `card.derivativesAsk` -- die JPEG-Haelfte des Bestandslaufs), der eine in
-     WORDING_NEW_0330 (`server.exportTooOld` -- die eine Abweisung des Bruchs).
-     SIE SCHRUMPFT ZUM ZWEITEN MAL IN FOLGE, und das ist diesmal die Sache
-     selbst: diese Runde legt nichts dazu, sie nimmt weg, was einen Rueckweg
-     offenhaelt. */
+   auf den Stand nach dem Verschmelzen. */
 const LANG_KEY_COUNT = 1208;
 
 async function check0310() {
@@ -88,8 +40,7 @@ async function check0310() {
     /* ---- Zusage 1: keine der elf Konstanten steht mehr in einer Sprachdatei
        IN KEINER DER DREI, und das ist keine Sorgfaltsgeste: zwei Waechter
        verlangen in jeder Datei dieselben Schluessel, und zwar in derselben
-       Folge. Elf nur aus `de.json` zu nehmen faerbte den Lauf SOFORT rot --
-       `en.json` und `tr.json` haetten dann je „11 zu viel". */
+       Folge. */
     const DR_LEAKS = ['entry.targetBlank', 'entry.linkRel', 'entry.imagePrefix',
       'list.px10', 'list.px20', 'card.composeFile', 'card.filesQuery', 'card.photosQuery',
       'card.videosQuery', 'list.thumbQuery', 'card.partQuery'];
@@ -101,34 +52,15 @@ async function check0310() {
     // Und es sind wirklich elf -- eine Liste, die schrumpft, belegt weniger.
     check('Und es sind wirklich elf', DR_LEAKS.length === 11, `${DR_LEAKS.length}`);
 
-    /* ---- Zusage 2: und jede steht als fester Wert im Skript ----
-       MIT IHREM ALTEN INHALT, Zeichen fuer Zeichen. Eine Wegnahme, bei der
-       der Wert unterwegs verloren geht, waere kein Umzug, sondern ein Fehler
-       -- und zwar einer, den erst der Betrieb fände: ein `window.open` ohne
-       `noopener` bleibt still.
-       ZWEI GEHEN NICHT INS SKRIPT, SONDERN INS STILBLATT: `10px` und `20px`
-       waren ein ABSTAND. Eine Konstante im Skript waere derselbe Fehler an
-       anderer Stelle gewesen (Auftrag, F2) -- sie stuende dann inline am
-       Knoten und damit ausserhalb jeder Regel.
-       DER TEILEXPORT WIRD UEBER SEIN GERIPPE GEPRUEFT: die Oberflaeche baut
-       die Adresse heute aus einer Vorlage (`&from=${…}`), der alte Wert trug
-       Platzhalter in geschweiften Klammern (`&from={from}`). Was in Klammern
-       steht, faellt fuer den Vergleich heraus -- was bleibt, ist der Weg. */
+    /* ---- Zusage 2: und jede steht als fester Wert im Skript ---- MIT IHREM
+       ALTEN INHALT, Zeichen fuer Zeichen. */
     const drSkeleton = (x) => String(x).replace(/\$?\{[^}]*\}/g, '{}');
     const DR_IN_SCRIPT = ['_blank', 'noopener,noreferrer', 'image/', 'docker-compose.yml',
       '&files=1', 'photos=1', '&videos=1', '?size=thumb'];
     const drMissing = DR_IN_SCRIPT.filter(v => !drApp.includes(`'${v}'`));
     check('Zusage 2: jeder der acht Werte steht als fester Wert in app.js',
       drMissing.length === 0, drMissing.join(' · ') || 'alle acht');
-    /* UND JEDER RUF TRAEGT IHN -- nicht bloss die Datei irgendwo.
-       DAS IST EIN FUND DER GEGENPROBE 953 UND KEINE Vorsicht: der Rueckbau nahm
-       EINEM `window.open` sein `noopener,noreferrer` weg und blieb STUMM. Der
-       Wert steht dreimal in app.js; eine Zusage, die nur fragt „kommt er vor",
-       ist mit zwei verbleibenden Vorkommen weiterhin gruen -- und der dritte
-       Tab bekaeme Zugriff auf das oeffnende Fenster, ohne dass etwas rot wird.
-       GELESEN WIRD DER RUMPF DES AUFRUFS, mit gezaehlten Klammern: das erste
-       Argument ist selbst ein Ruf (`searchAddress(...)`), und ein Muster bis
-       zur ersten schliessenden Klammer schnitte mitten hinein. */
+    /* UND JEDER RUF TRAEGT IHN -- nicht bloss die Datei irgendwo. */
     const drOpenCalls = [];
     for (const m of drApp.matchAll(/window\.open\(/g)) {
       let i = m.index + m[0].length, depth = 1;
@@ -148,8 +80,7 @@ async function check0310() {
       drSkeleton(drApp).includes(drSkeleton('&from={from}&to={to}&part={part}&parts={n}')),
       (drApp.match(/`&from=[^`]*`/) || ['(nicht gefunden)'])[0]);
     /* UND DIE BEIDEN ABSTAENDE STEHEN IM STILBLATT -- als Klasse und nicht
-       als zweite Konstante. Geprueft wird die REGEL und nicht der Absatz
-       darueber: der Kommentar an ihr nennt die alten Schluessel. */
+       als zweite Konstante. */
     const drRules = drCss.replace(/\/\*[\s\S]*?\*\//g, ' ');
     check('Und die beiden Abstaende stehen als Klasse im Stilblatt',
       /\.page-hint \{ margin: 0 0 20px; \}/.test(drRules) &&
@@ -160,9 +91,7 @@ async function check0310() {
       !/margin:0 0 \$\{multipleUsers\(\)/.test(drApp),
       (drApp.match(/class="hint page-hint[^"]*"/g) || ['(keine Stelle)']).join(' | '));
     /* UND KEIN RUF SUCHT DIE ELF NOCH -- weder im Auslieferungsverzeichnis
-       noch in der Umbenennungstafel. Gelesen wird der CODE und nicht der
-       Kommentar: die Absaetze an den alten Stellen erklaeren, warum die
-       Schluessel gefallen sind, und nennen sie dabei. */
+       noch in der Umbenennungstafel. */
     const drBare = (file) => fs.readFileSync(path.join(__dirname, file), 'utf8')
       .replace(/\/\*[\s\S]*?\*\//g, ' ').replace(/^\s*\/\/.*$/gm, ' ');
     const drNames = fs.readFileSync(path.join(__dirname, 'tools', 'keys.json'), 'utf8');
@@ -186,17 +115,7 @@ async function check0310() {
     /* ---- Zusage 4: kein Text mischt „ mit einem geraden " ----
        DREIUNDDREISSIG SCHLUESSEL, VIERUNDDREISSIG TEXTE haben in dieser Runde
        ihr schliessendes Zeichen bekommen -- auf Deutsch und auf Tuerkisch
-       (`en.json` hatte keinen einzigen). Der Waechter haelt es danach fest:
-       ein gerades Zeichen schleicht sich sonst beim naechsten Satz unbemerkt
-       wieder ein, und am Bildschirm steht „Tag „Werkzeug" statt „Werkzeug“.
-       DIE TUERKISCHE DATEI BEKOMMT DAMIT KEINEN NEUEN TEXT: dasselbe Wort,
-       dasselbe Zeichenpaar, nur richtig geschlossen. Dass das Paar dort am
-       Ende `“…”` heissen muss, ist die Sache von 0.31.3 -- und dort ist es
-       entschieden und gebaut (F3, 68 Schluessel).
-       BIS 0.31.3 STAND HIER 0.31.2. Die Nummer stammte aus der Zeit vor
-       0.31.1, als die Strecke noch drei Runden hatte statt vier; 0.31.2 hat
-       Englisch gemacht. Ein Kommentar, der auf die falsche Runde zeigt, ist
-       schlimmer als keiner -- er sieht wie Buchfuehrung aus. */
+       (`en.json` hatte keinen einzigen). */
     const drMixed = [];
     for (const [code, file] of Object.entries(drFiles))
       for (const [k, text] of drTexts(file))
@@ -213,10 +132,7 @@ async function check0310() {
        „Standbild" IST TECHNISCH RICHTIG UND FUER DEN BENUTZER OHNE BELANG
        (Auftrag, F10) -- und „Video-Vorschaubild" trifft die Sache genauer:
        das Bild liegt in denselben Spalten `thumb`/`medium` wie jedes andere
-       Vorschaubild, nur mit `kind = 'video'`.
-       BEIDE RICHTUNGEN, wie immer: dass das neue Wort dasteht, UND dass das
-       alte nirgends mehr steht. Eine Zusage, die nur den einen Ausgang kennt,
-       bliebe gruen, wenn beide Saetze nebeneinanderstuenden. */
+       Vorschaubild, nur mit `kind = 'video'`. */
     const DR_VIDEO = ['server.videoNeedsStill', 'server.videoStill',
       'server.stillNoPreview', 'server.stillNotImage'];
     check('Zusage 5: die vier Video-Meldungen sagen „Video-Vorschaubild"',
@@ -226,13 +142,10 @@ async function check0310() {
     check('Und keine sagt „Standbild" — kein deutscher Text tut es mehr',
       drStill.length === 0, drStill.map(([k]) => k).join(' · ') || 'keiner');
 
-    /* ---- Zusage 6: „gruppiert nach" steht weiter da ----
-       GEMINI WOLLTE „sortiert nach", UND DAS WAERE FALSCH GEWESEN: die
-       Ansicht gruppiert wirklich -- `groupsOf()` fasst aufeinanderfolgende
-       Zeilen desselben Eintrags zu EINER Gruppe zusammen. Ein Wort, das die
-       Oberflaeche nicht mehr beschreibt, ist kein kuerzeres Wort, sondern ein
-       falsches (Auftrag, F9).
-       GEPRUEFT WIRD BEIDES: der Satz und die Sache dahinter. */
+    /* ---- Zusage 6: „gruppiert nach" steht weiter da ---- GEMINI WOLLTE
+       „sortiert nach", UND DAS WAERE FALSCH GEWESEN: die Ansicht gruppiert
+       wirklich -- `groupsOf()` fasst aufeinanderfolgende Zeilen desselben
+       Eintrags zu EINER Gruppe zusammen. */
     check('Zusage 6: „gruppiert nach" steht weiter da',
       /gruppiert nach/.test(String(drFiles.de['list.openGroupedBy'])),
       String(drFiles.de['list.openGroupedBy']));
@@ -240,12 +153,10 @@ async function check0310() {
       /const groupsOf = \(list\) => \{/.test(drApp) && /groupsOf\(inside\)\.forEach/.test(drApp),
       (drApp.match(/groupsOf[^\n]*/g) || ['(nicht gefunden)']).slice(0, 2).join(' | '));
 
-    /* ---- Zusage 7: `login.linkUnaffectedWord` ist „nicht" ----
-       GEMINI WOLLTE „unberührt", UND DAS BRICHT DEN SATZ: das Wort steht
+    /* ---- Zusage 7: `login.linkUnaffectedWord` ist „nicht" ---- GEMINI
+       WOLLTE „unberührt", UND DAS BRICHT DEN SATZ: das Wort steht
        HERVORGEHOBEN in zwei Traegersaetzen („Dein Link ist davon {word}
-       betroffen"), und die Hervorhebung sitzt auf der VERNEINUNG. Mit
-       „unberührt" stuende dort „Dein Link ist davon unberührt betroffen".
-       BEIDE TRAEGERSAETZE WERDEN GEFRAGT -- Gemini nennt nur einen. */
+       betroffen"), und die Hervorhebung sitzt auf der VERNEINUNG. */
     check('Zusage 7: `login.linkUnaffectedWord` ist „nicht"',
       drFiles.de['login.linkUnaffectedWord'] === 'nicht',
       JSON.stringify(drFiles.de['login.linkUnaffectedWord']));
@@ -255,27 +166,14 @@ async function check0310() {
       ['login.linkUnaffected', 'login.linkUnaffectedRetry']
         .map(k => `${k}: ${drFiles.de[k]}`).join(' · '));
     /* UND DIE AUSZEICHNUNG LAEUFT WEITER UEBER tMark() -- das `{word}` wird
-       gegen ein Steuerzeichen getauscht und danach mit <strong> umschlossen.
-       Ohne diese Zeile bliebe die Zusage gruen, wenn jemand die Hervorhebung
-       entfernte und das Wort als gewoehnlichen Wert reichte. */
+       gegen ein Steuerzeichen getauscht und danach mit <strong> umschlossen. */
     check('Und die Hervorhebung sitzt auf ihm',
       (drApp.match(/tMark\('login\.linkUnaffected(Retry)?', 'login\.linkUnaffectedWord'\)/g) || []).length === 2,
       (drApp.match(/tMark\([^)]*\)/g) || ['(kein Ruf)']).join(' | '));
 
-    /* ---- Zusage 8 und 9: die beiden Bilder des Projekts fallen ----
-       „Das Haus verlassen" UND „Pille" SIND HAUSWOERTER, und beide haben am
-       Bildschirm nichts zu suchen (Leitplanke L7 und Frage F7). Wer Export
-       drueckt, weiss, dass es das System verlaesst; und was der Benutzer
-       sieht, ist eine runde Schaltflaeche und keine Arznei.
-       IM CODE BLEIBT `pill` -- die Klasse heisst weiter so, und das ist der
-       Unterschied, um den es geht: drinnen ein Bild, draussen eine Sache.
-       GEFRAGT WIRD DIE DEUTSCHE DATEI, und das bleibt so. Als diese Zusage
-       entstand, trug `en.json` noch „leaves the house" und `tr.json` „hap";
-       der Auftrag sagte, warum: solange die Quelle das Bild traegt, erbt es
-       jede Uebersetzung neu. BEIDE SIND SEITDEM GEFALLEN -- 0.31.2 auf
-       Englisch, 0.31.3 auf Tuerkisch --, und jede der beiden Runden haelt ihre
-       eigene Verbotsliste. Diese Zeile fragt weiter nur Deutsch: sie ist die
-       Wache ueber die QUELLE. */
+    /* ---- Zusage 8 und 9: die beiden Bilder des Projekts fallen ---- „Das
+       Haus verlassen" UND „Pille" SIND HAUSWOERTER, und beide haben am
+       Bildschirm nichts zu suchen (Leitplanke L7 und Frage F7). */
     const drHouse = drTexts(drFiles.de).filter(([, t]) => /[Hh]aus\b/.test(t));
     check('Zusage 8: kein deutscher Text sagt „das Haus"',
       drHouse.length === 0, drHouse.map(([k]) => k).join(' · ') || 'keiner');
@@ -286,30 +184,10 @@ async function check0310() {
       /\.pill \{/.test(drRules) && /class="pills"/.test(drApp),
       (drRules.match(/\.pill \{[^}]{0,40}/) || ['(keine Regel)'])[0]);
 
-    /* ---- Zusage 10: die Vokabelkarte beschriftet mit „Einzahl"/„Mehrzahl" --
-       „SACHE" WAR GENAU DAS WORT, DAS DER BETREIBER DORT ERSETZEN SOLL: die
-       Karte fragt, wie SEINE Eintraege heissen, und schrieb ihm einen Namen
-       vor.
-       BIS 0.31.0 STAND HIER, die fuenf Geschwisterpaare trugen weiter ein Wort
-       davor („Bericht, Einzahl"), weil sie einen FESTEN Begriff benennen. Das
-       hat 0.31.1 widerlegt: „Bericht, Einzahl" stand neben „(Vorgabe:
-       Bericht)" -- dasselbe Wort zweimal in einer Zeile, und wer „Bericht" in
-       „Protokoll" umbenennt, liest weiter „Bericht, Einzahl". Fuenf von ihnen
-       heissen jetzt „Kommentar zum Festhalten" und „Kommentar zum
-       Abarbeiten"; die uebrigen neun wiederholen kein Vorgabewort und sind
-       nicht angetastet.
-       UMGEDREHT MIT 0.32.0 UND NICHT GELOESCHT (Stolperstein 74). Bis 0.31.4
-       stand hier: „sie gilt den beiden ERSTEN Feldern, und die heissen weiter
-       „Einzahl" und „Mehrzahl"." DER ENGLISCHE DURCHGANG VON 0.31.2 HAT
-       WIDERSPROCHEN (Punkt 28, Fund 5): die Vokabelkarte trug damit ZWEI
-       Bauformen -- fuenf Beschriftungen nannten die Sache und dann die Zahl
-       („Zeitpunkt, Einzahl"), eine nur die Zahl. Auf Englisch faellt das
-       sofort auf, weil dort die Grossschreibung des Substantivs fehlt, die im
-       Deutschen den Namen als Namen markiert.
-       WAS BLEIBT, IST DER GRUND DER ALTEN ZUSAGE: „Sache" war genau das Wort,
-       das der Betreiber dort ersetzen soll. Die Beschriftung nennt deshalb
-       NICHT das Vorgabewort („Eintrag, Einzahl" waere derselbe Fehler wie
-       „Bericht, Einzahl"), sondern das, WORUM es geht: „Das Bewertete". */
+    /* ---- Zusage 10: die Vokabelkarte beschriftet mit „Einzahl"/„Mehrzahl"
+       -- „SACHE" WAR GENAU DAS WORT, DAS DER BETREIBER DORT ERSETZEN SOLL:
+       die Karte fragt, wie SEINE Eintraege heissen, und schrieb ihm einen
+       Namen vor. */
     check('Zusage 10: die Vokabelkarte beschriftet ihre beiden ersten Felder wie die anderen — 0.32.0',
       drFiles.de['card.itemOne'] === 'Das Bewertete, Einzahl'
       && drFiles.de['card.itemMany'] === 'Das Bewertete, Mehrzahl',
@@ -329,12 +207,7 @@ async function check0310() {
        GEMINIS UEBERSCHRIFT VERSPRICHT „professionelles Du (Linear-/
        SIEBENUNDSECHZIG WAREN ES BEI 0.30.3, NEUNUNDSECHZIG SIND ES JETZT --
        gezaehlt werden die Vorkommen von „du", „dir", „dich" und „dein…" als
-       ganze Woerter. Die zwei mehr stehen in den Briefen: „kommt in deinen
-       Zugang" und „dass die Adresse dir gehört".
-       DIE SCHRANKE STEHT AUF NEUNUNDSECHZIG UND NICHT AUF SIEBENUNDSECHZIG,
-       und das ist Absicht: bei siebenundsechzig duerfte die naechste Runde
-       den Gewinn dieser hier stillschweigend wieder hergeben. Wer die Zahl
-       senkt, soll hier vorbeikommen muessen. */
+       ganze Woerter. */
     const DR_YOU = /\b[Dd](?:u|ir|ich|ein(?:e|er|em|en|es)?)\b/g;
     const drYou = drTexts(drFiles.de)
       .reduce((n, [, t]) => n + (t.match(DR_YOU) || []).length, 0);
@@ -349,26 +222,14 @@ async function check0310() {
   }
 }
 
-/* ================= DEUTSCH SITZT -- 0.31.1 =================
-   ELF ZUSAGEN. Die Runde hat den zersaegten Satzbau aufgeloest: bis 0.31.0
-   wurde ein Satz in mehrere Schluessel geteilt und im Aufruf wieder
-   zusammengesetzt. Im Deutschen ging das auf; im Tuerkischen nicht, und das
-   war seit 0.24.3 im Programm.
-
-   WAS DIE RUNDE VERSPROCHEN HAT: der Wortlaut bleibt. Was am Bildschirm
-   stand, steht danach genauso da -- ausser an den Stellen, die das
-   Aenderungsprotokoll NAMENTLICH auffuehrt. Gefahren ist das mit
-   tools/gleichlaut.js; hier stehen die Eigenschaften, die DAUERHAFT gelten
-   sollen. */
+/* ================= DEUTSCH SITZT -- 0.31.1 ================= ELF ZUSAGEN. */
 async function check0311() {
   const dsRead = (code) => JSON.parse(fs.readFileSync(
     path.join(__dirname, 'public', 'languages', `${code}.json`), 'utf8'));
   const dsFiles = { de: dsRead('de'), en: dsRead('en'), tr: dsRead('tr') };
   const dsApp = fs.readFileSync(path.join(__dirname, 'public', 'app.js'), 'utf8');
   /* KOMMENTARE WEG: die Absaetze an den umgebauten Stellen NENNEN die
-     gefallenen Schluessel und erklaeren, warum sie gefallen sind. Wer den
-     Code liest, sucht Rufe -- nicht Erinnerungen. Derselbe Schnitt wie bei
-     Zusage 1 von 0.31.0. */
+     gefallenen Schluessel und erklaeren, warum sie gefallen sind. */
   const dsCode = dsApp.replace(/\/\*[\s\S]*?\*\//g, ' ').replace(/^[ \t]*\/\/.*$/gm, ' ');
   const dsTexts = (j) => Object.entries(j).filter(([k]) => k !== '_locale' && k !== '_name')
     .flatMap(([k, v]) => (typeof v === 'string' ? [v] : Object.values(v)).map(text => [k, text]));
@@ -377,47 +238,17 @@ async function check0311() {
   group('Deutsch sitzt — 0.31.1');
   {
     /* ---- Zusage 2: kein Schluessel ist mehr ein blosses Bruchstueck ----
-       DREI SORTEN, und jede war vor der Runde da. Gezaehlt wird auf dem
-       DEUTSCHEN Stand: er ist die unveraenderliche Basis (Abschnitt 12), und
-       en/tr ziehen in 0.31.2 und 0.31.3 nach.
-
-       DIE WORTSCHLUESSEL SIND AUSGENOMMEN, und zwar NAMENTLICH und nicht ueber
-       eine Eigenschaft: ein `{word}`-Fueller IST per Entwurf ein einzelnes
-       Wort („nicht", „einmal", „vor"), und wer ihn mitzaehlte, bekaeme eine
-       Zusage, die ihr eigenes Muster verbietet. Gelesen werden sie aus dem
-       QUELLTEXT -- wer einen tMark()-Ruf entfernt, verliert die Ausnahme
-       automatisch und nicht erst, wenn jemand diese Liste pflegt. */
+       DREI SORTEN, und jede war vor der Runde da. */
     const dsWordKeys = new Set();
     for (const m of dsCode.matchAll(/\btMark\(\s*'[^']+'\s*,\s*'([^']+)'/g)) dsWordKeys.add(m[1]);
-    /* UND DIE FUELLUNGEN VON tMarks() SIND AUCH WELCHE. Der zweite Helfer
-       nimmt sein Stueck als fertigen Text und nicht als Schluessel; steht
-       dort ein `tH('entry.calcEquals')`, ist das derselbe Wortschluessel wie
-       beim einteiligen Ruf. Gelesen wird wieder aus dem QUELLTEXT. */
+    /* UND DIE FUELLUNGEN VON tMarks() SIND AUCH WELCHE. */
     for (const m of dsCode.matchAll(/\bword\d*:\s*[^,}]*?\bt[H]?\(\s*'([^']+)'/g)) dsWordKeys.add(m[1]);
     check('Die Wortschluessel kommen aus dem Quelltext und nicht aus einer Liste',
       dsWordKeys.size >= 30 && dsWordKeys.has('login.linkUnaffectedWord'),
       `${dsWordKeys.size} Wortschluessel`);
 
-    /* ZWEI SORTEN STEHEN WEITERHIN MIT EINEM TRENNER ODER EINEM EINZELNEN WORT
-       DA, und keine von beiden ist ein Bruchstueck. Die Zusage hiess bis zum
-       Bau von BA 3 nur „kein Wert faengt mit einem Satzzeichen an", und sie
-       war damit ZU GROB: sie haette „— keine —" aus einer Auswahlliste
-       einkassiert und den Nachsatz eines Satzes gleich mit.
-
-       DAS ANSCHLUSSSTUECK fuellt einen BENANNTEN PLATZ eines anderen Satzes.
-       Wo sein Trenner sitzt, entscheidet dann der SATZ und nicht der
-       Quelltext -- und genau das wird geprueft: der Elternsatz muss den Platz
-       wirklich tragen, und der Ruf muss das Stueck wirklich dort einsetzen.
-       Faellt der Platz weg, faellt die Ausnahme mit ihm.
-
-       DIE EIGENSTAENDIGE BESCHRIFTUNG ist ein Bedienelement und kein Satzteil:
-       ein Eintrag einer Auswahlliste, die Beschriftung eines Filterknopfes,
-       das Zustandswort einer Kennzeile, das Bindewort einer Aufzaehlung. Sie
-       steht NAMENTLICH da, mit ihrem Ort.
-
-       UND DIE TAFEL IST GESCHLOSSEN: was nicht darin steht, ist ein Fund --
-       und was darin steht und keines mehr ist, faellt genauso auf. Eine
-       Ausnahmeliste, die nur in eine Richtung prueft, waechst. */
+    /* ZWEI SORTEN STEHEN WEITERHIN MIT EINEM TRENNER ODER EINEM EINZELNEN
+       WORT DA, und keine von beiden ist ein Bruchstueck. */
     const DS_JOINED = {
       'card.createdFrom':        ['card.fileContainsHint',   'from'],
       'card.freedBytes':         ['card.convertFinished',    'freed'],
@@ -432,18 +263,14 @@ async function check0311() {
       'entry.withAllImages':     ['entry.commentDeleteHint', 'extra']
     };
     /* `list.ofWhich` STAND HIER BIS 0.32.0 -- der Satz „, davon ..." lief in
-       den Platz `{of}` von `list.commentCount`. Beide sind mit 0.32.1
-       gefallen: die Zaehlzeile baut keinen Satz mehr. */
+       den Platz `{of}` von `list.commentCount`. */
     const DS_STANDALONE = {
       'card.more':        'Beschriftung des Aufklappers',
       'card.noDelivery':  'Eintrag der Versandauswahl',
       'card.off':         'Zustandswort einer Kennzeile',
       'card.on':          'Zustandswort einer Kennzeile',
       'entry.none':       'Eintrag der Kategorieauswahl',
-      /* `list.and` STAND HIER BIS 0.32.0 als „Bindewort einer Aufzaehlung".
-         Die Aufzaehlung, die es band, war die Zaehlzeile des
-         Kommentarblocks; sie zaehlt seit 0.32.1 mit Mittelpunkten auf, und
-         das Bindewort hatte danach keinen Rufer mehr. */
+      /* `list.and` STAND HIER BIS 0.32.0 als „Bindewort einer Aufzaehlung". */
       'list.less':        'Beschriftung des Tagwolkenknopfes',
       'list.more':        'Beschriftung des Tagwolkenknopfes',
       'list.or':          'Beschriftung eines Filterknopfes',
@@ -452,51 +279,42 @@ async function check0311() {
     };
 
     const dsFirst = (v) => String(typeof v === 'string' ? v : Object.values(v)[0]).trim();
-    const dsAusnahme = new Set([...Object.keys(DS_JOINED), ...Object.keys(DS_STANDALONE)]);
+    const dsException = new Set([...Object.keys(DS_JOINED), ...Object.keys(DS_STANDALONE)]);
     const dsFragmentStart = Object.entries(dsFiles.de)
-      .filter(([k]) => !k.startsWith('_') && !dsWordKeys.has(k) && !dsAusnahme.has(k))
+      .filter(([k]) => !k.startsWith('_') && !dsWordKeys.has(k) && !dsException.has(k))
       .filter(([, v]) => /^[.,;:—–)“”]/.test(dsFirst(v)));
     check('Kein deutscher Wert faengt mit einem Satzzeichen an — ausser den benannten',
       dsFragmentStart.length === 0,
       dsFragmentStart.map(([k, v]) => `${k}: ${JSON.stringify(dsFirst(v))}`).join(' · ') || 'keiner');
 
     /* DER BEWEIS FUER JEDES ANSCHLUSSSTUECK: der Elternsatz traegt den Platz,
-       und der Ruf setzt das Stueck dort ein. Gesucht wird im Quelltext ab dem
-       Namen des Elternsatzes -- der Ruf steht mit seinen Werten daneben. */
+       und der Ruf setzt das Stueck dort ein. */
     const dsLoose = [];
     for (const [k, [parent, slot]] of Object.entries(DS_JOINED)) {
       const eltern = dsFiles.de[parent];
       const zweige = eltern === undefined ? []
         : (typeof eltern === 'string' ? [eltern] : Object.values(eltern));
       if (!zweige.length || !zweige.every(v => v.includes(`{${slot}}`))) { dsLoose.push(`${k}: ${parent} ohne {${slot}}`); continue; }
-      const ab = dsCode.indexOf(`${Q}${parent}${Q}`);
-      const ruf = ab < 0 ? '' : dsCode.slice(ab, ab + 400);
-      if (!ruf.includes(`${slot}:`) || !ruf.includes(`${Q}${k}${Q}`)) dsLoose.push(`${k}: nicht an ${parent}.${slot} gesetzt`);
+      const from = dsCode.indexOf(`${Q}${parent}${Q}`);
+      const callText = from < 0 ? '' : dsCode.slice(from, from + 400);
+      if (!callText.includes(`${slot}:`) || !callText.includes(`${Q}${k}${Q}`)) dsLoose.push(`${k}: nicht an ${parent}.${slot} gesetzt`);
     }
     check('Und jedes Anschlussstueck haengt wirklich an seinem Satz',
       dsLoose.length === 0, dsLoose.join(' · ') || `alle ${Object.keys(DS_JOINED).length}`);
 
-    /* UND KEINE AUSNAHME STEHT UMSONST DA. Ein Eintrag, dessen Wert kein
-       Satzzeichen mehr traegt oder den niemand mehr ruft, ist eine Erinnerung
-       und keine Ausnahme -- er faellt hier auf. */
-    const dsStale = [...dsAusnahme].filter(k => !(k in dsFiles.de))
-      .concat([...dsAusnahme].filter(k => k in dsFiles.de && !dsCode.includes(`${Q}${k}${Q}`)));
+    /* UND KEINE AUSNAHME STEHT UMSONST DA. */
+    const dsStale = [...dsException].filter(k => !(k in dsFiles.de))
+      .concat([...dsException].filter(k => k in dsFiles.de && !dsCode.includes(`${Q}${k}${Q}`)));
     check('Und keine Ausnahme steht umsonst in der Tafel',
-      dsStale.length === 0, dsStale.join(' ') || `${dsAusnahme.size} benannt`);
+      dsStale.length === 0, dsStale.join(' ') || `${dsException.size} benannt`);
 
-    /* DIE DRITTE SORTE: DAS BLOSSE FUELLWORT. Ein Schluessel, dessen ganzer
-       Wert ein Funktionswort ist, traegt keine Aussage -- er traegt ein
-       Scharnier, das im Quelltext zwischen zwei andere Stuecke geschraubt
-       wird. Gesucht wird eine GESCHLOSSENE KLASSE und keine Wortlaenge: „Name",
-       „Suche" und „Standard" sind einzelne Woerter und trotzdem Beschriftungen.
-       Ausgenommen sind wieder die Wortschluessel und die benannten
-       Beschriftungen -- „an", „aus" und „Oder" SIND Bedienelemente. */
+    /* DIE DRITTE SORTE: DAS BLOSSE FUELLWORT. */
     const DS_FUNCTION_WORDS = new Set(['und', 'oder', 'ohne', 'mit', 'von', 'aus', 'an', 'in',
       'auf', 'für', 'zu', 'der', 'die', 'das', 'den', 'dem', 'ein', 'eine', 'einen',
       'einem', 'einer', 'nicht', 'kein', 'keine', 'auch', 'noch', 'dann', 'so', 'als',
       'wie', 'bis', 'je', 'nur', 'schon', 'gleich', 'frei', 'mehr', 'weniger']);
     const dsFiller = Object.entries(dsFiles.de)
-      .filter(([k]) => !k.startsWith('_') && !dsWordKeys.has(k) && !dsAusnahme.has(k))
+      .filter(([k]) => !k.startsWith('_') && !dsWordKeys.has(k) && !dsException.has(k))
       .filter(([, v]) => (typeof v === 'string' ? [v] : Object.values(v))
         .some(x => DS_FUNCTION_WORDS.has(String(x).trim().replace(/[.,;:!?]$/, '').toLowerCase())));
     check('Kein deutscher Wert ist ein blosses Fuellwort',
@@ -512,16 +330,9 @@ async function check0311() {
       dsBracket.length === 0, dsBracket.map(([k]) => k).join(' ') || 'keiner');
 
     /* ---- Zusage 3: kein Programmablauf laeuft durch die Sprachdatei ----
-       ZWEI SCHLUESSEL TATEN ES, und beide waren unsichtbar:
-         entry.reportKind = „report" wurde gegen einen DATENBANKWERT
-           verglichen -- eine Zeile darueber stand derselbe Vergleich gegen
-           ein Literal. Wer den Schluessel uebersetzt haette, haette die
-           Beschriftung des Knopfes stumm umgedreht.
-         dialog.sessionExpired = „Sitzung abgelaufen" wurde geworfen und an
-           sechs Stellen zurueckverglichen -- und nie angezeigt.
-       GESUCHT WIRD DAS MUSTER UND NICHT DIE BEIDEN NAMEN: ein dritter
-       Schluessel derselben Sorte soll unter dieser Zusage auffallen und nicht
-       erst, wenn jemand ihn zufaellig liest. */
+       ZWEI SCHLUESSEL TATEN ES, und beide waren unsichtbar: entry.reportKind
+       = „report" wurde gegen einen DATENBANKWERT verglichen -- eine Zeile
+       darueber stand derselbe Vergleich gegen ein Literal. */
     const dsFlowCompare = [...dsCode.matchAll(/[!=]==\s*t\(\s*'([^']+)'/g)].map(m => m[1])
       .concat([...dsCode.matchAll(/t\(\s*'([^']+)'\s*\)\s*[!=]==/g)].map(m => m[1]));
     check('Kein Vergleich steht neben einem Textruf — der Ablauf haengt nicht an der Sprache',
@@ -534,12 +345,12 @@ async function check0311() {
       /const SESSION_GONE = /.test(dsApp) && (dsCode.match(/SESSION_GONE/g) || []).length >= 8,
       `${(dsCode.match(/SESSION_GONE/g) || []).length} Stellen`);
 
-    /* ---- Zusage 5: jeder Platz hat seinen Satz und jeder Satz seinen Platz ----
-       BEIDE RICHTUNGEN, und die zweite ist die wichtigere: ein Satz mit
+    /* ---- Zusage 5: jeder Platz hat seinen Satz und jeder Satz seinen Platz
+       ---- BEIDE RICHTUNGEN, und die zweite ist die wichtigere: ein Satz mit
        `{word}` ohne Ruf zeigt am Bildschirm „{word}" -- der sichtbarste
        Fehler, den eine Sprachdatei machen kann. */
     const dsMarkSentences = [...dsCode.matchAll(/\btMarks?\(\s*'([^']+)'/g)].map(m => m[1]);
-    /* JEDER ZWEIG EINZELN -- Stolperstein 81. Bis zum Bau von BA 3 stand hier
+    /* JEDER ZWEIG EINZELN. Bis zum Bau von BA 3 stand hier
        `String(dsFiles.de[k])`, und ein Schluessel mit Ein- und Mehrzahl wurde
        dabei zu „[object Object]": die Wache kannte nur die eine Gestalt und
        meldete `card.opensOnlyWith` und `card.otherSessionsHint` als Satz ohne
@@ -555,8 +366,7 @@ async function check0311() {
       dsNoSlot.length === 0, dsNoSlot.join(' ') || 'alle');
     /* Die vier Schluessel mit `{word}` als gewoehnlichem Platzhalter stehen
        NAMENTLICH da: `{word}` traegt dort „Foto" oder „Video" und hat mit dem
-       Muster von 0.25.4 nichts zu tun. Eine Doppelbelegung des Namens, aelter
-       als diese Runde -- sie faellt hier auf, damit sie nicht waechst. */
+       Muster von 0.25.4 nichts zu tun. */
     /* `entry.deleteWord` STAND HIER BIS 0.32.0 -- er ist mit 0.32.1 in
        `entry.deletePhoto` und `entry.deleteVideo` geteilt, und beide tragen
        gar keinen Platzhalter mehr. */
@@ -573,10 +383,7 @@ async function check0311() {
       DS_PLAIN_WORD.filter(k => !(k in dsFiles.de)).join(' ') || 'alle vier');
 
     /* UND JEDER PLATZ EINES SATZES MIT MEHREREN STUECKEN BEKOMMT SEINE
-       FUELLUNG. tMarks() kennt {word}, {word2}, {word3}; fehlt einer am Ruf,
-       steht er am Bildschirm.
-       (Das Wort, das hier naheliegt, steht auf der Liste des Sprachwaechters
-       -- er hat diesen Absatz in seinem ersten Lauf gefangen.) */
+       FUELLUNG. */
     const dsGap = [];
     for (const m of dsCode.matchAll(/\btMarks\(\s*'([^']+)'\s*,\s*\{([^{}]*(?:\{[^{}]*\}[^{}]*)*)\}/g)) {
       const filled = new Set([...m[2].matchAll(/(\w+)\s*:/g)].map(x => x[1]));
@@ -586,9 +393,7 @@ async function check0311() {
     check('Und jeder Platz eines Satzes mit mehreren Stuecken bekommt seine Fuellung',
       dsGap.length === 0, dsGap.join(' · ') || 'alle');
 
-    /* UND DER PLATZ STEHT IN ALLEN DREI DATEIEN AN SEINER STELLE. Eine Sprache
-       ohne `{word}` verlaere die Hervorhebung stumm -- der Satz stuende da,
-       das hervorgehobene Stueck nicht. */
+    /* UND DER PLATZ STEHT IN ALLEN DREI DATEIEN AN SEINER STELLE. */
     const dsSlotMismatch = Object.keys(dsFiles.de).filter(k => ['en', 'tr']
       .some(c => String(dsFiles.de[k]).includes('{word}') !== String(dsFiles[c][k]).includes('{word}')));
     check('Und jeder Platz steht in allen drei Dateien',
@@ -596,12 +401,7 @@ async function check0311() {
 
     /* ---- Zusage 6: keine Beschriftung nennt ihr eigenes Vorgabewort ----
        „Bericht, Einzahl" stand neben „(Vorgabe: Bericht)" -- dasselbe Wort
-       zweimal in einer Zeile. Und wer „Bericht" in „Protokoll" umbenennt,
-       liest weiter „Bericht, Einzahl": die Beschriftung eines Feldes, das
-       gerade zum Umbenennen da ist, trug den alten Namen.
-       ZEHN DER FUENFZEHN SIND NICHT ANGETASTET -- sie wiederholen kein
-       Vorgabewort und folgen nur verschiedenen Stilen. Diese Zusage sucht den
-       FEHLER und nicht den Geschmack. */
+       zweimal in einer Zeile. */
     const dsVocabLabel = { entryOne: 'itemOne', entryMany: 'itemMany',
       testedYes: 'testedYes', testedNo: 'testedNo', dayOne: 'dayOne', dayMany: 'dayMany',
       reportOne: 'reportOne', reportMany: 'reportMany', taskOne: 'taskOne',
@@ -619,11 +419,9 @@ async function check0311() {
       Object.keys(dsVocabLabel).every(v => `vocabulary.${v}` in dsFiles.de),
       `${Object.keys(dsVocabLabel).length}`);
 
-    /* ---- Zusage 7: keine Zahl steht zweimal ----
-       Die vier Groessen standen als `value="52428800"` UND als Schluessel mit
-       dem Text „50 MB" -- in drei Dateien, obwohl „50 MB" in allen dreien
-       gleich lautet. Und card.vocabularyResetHint zaehlte die vierzehn
-       Vorgabewoerter in Prosa auf, die in derselben Karte darueber stehen. */
+    /* ---- Zusage 7: keine Zahl steht zweimal ---- Die vier Groessen standen
+       als `value="52428800"` UND als Schluessel mit dem Text „50 MB" -- in
+       drei Dateien, obwohl „50 MB" in allen dreien gleich lautet. */
     check('Die vier Exportgroessen stehen nicht mehr in den Sprachdateien',
       ['card.mb50', 'card.mb100', 'card.mb200', 'card.mb300']
         .every(k => !(k in dsFiles.de) && !(k in dsFiles.en) && !(k in dsFiles.tr)),
@@ -637,32 +435,15 @@ async function check0311() {
       JSON.stringify(dsFiles.de['card.vocabularyResetHint']));
 
     /* ---- Zusage 8: kein deutscher Wert traegt eine HTML-Entitaet ----
-       card.nameFreedHint schrieb „Geloeschter Benutzer &lt;Nummer&gt;" nach.
-       Zwei Fehler in einem: ein Uebersetzer muesste Maskierung kennen, und
-       die Beschriftung steht schon als list.deletedUser daneben.
-       AUF DEUTSCH EINGEGRENZT, und das steht hier statt in einer Fussnote:
-       en und tr tragen die Entitaeten noch, und sie herauszunehmen hiesse,
-       ihre Saetze neu zu formulieren -- das ist 0.31.2 und 0.31.3. Eine
-       Zusage, die eine Runde lang rot steht, ist keine. */
+       card.nameFreedHint schrieb „Geloeschter Benutzer &lt;Nummer&gt;" nach. */
     const dsEntity = dsTexts(dsFiles.de).filter(([, v]) => /&[a-z]+;|&#\d+;/i.test(v));
     check('Kein deutscher Wert traegt eine HTML-Entitaet',
       dsEntity.length === 0, dsEntity.map(([k]) => k).join(' ') || 'keiner');
 
-    /* ---- Zusage 9: kein Wert traegt Weissraum aus dem Quelltext ----
-       UND DIESE GILT FUER ALLE DREI. Sie ist der Tausch fuer die Lockerung an
-       der Wortlautprobe: die zieht den Weissraum seit dieser Runde zusammen,
-       statt ihn als Wortlaut zu zaehlen -- und hier ist er GANZ verboten.
-       Was dort an Strenge abgegeben wird, steht hier staerker wieder da:
-       vorher fiel Weissraum nur in de.json auf und nur als Buchfuehrung,
-       jetzt in allen dreien und unbedingt. */
+    /* ---- Zusage 9: kein Wert traegt Weissraum aus dem Quelltext ---- UND
+       DIESE GILT FUER ALLE DREI. */
     /* EINRUECKUNG, NICHT UMBRUCH -- und diese Unterscheidung ist teuer
-       gelernt. Der erste Anlauf dieses Bauabschnitts zog JEDEN Umbruch
-       zusammen und hat damit die vier Briefe zerstoert: in `mail.*.body` sind
-       Umbrueche ABSAETZE, und jede Mail waere als eine Textwand angekommen.
-       Der Pruefstand hat es viermal gemeldet -- einmal je Brief.
-       SO GEHT DIE GRENZE: Einrueckung ist ein Umbruch, dem LEERZEICHEN
-       FOLGEN; so entsteht sie, wenn jemand eine Vorlagenzeile im Quelltext
-       umbricht. Ein Absatz ist ein Umbruch, dem ein Zeichen folgt. */
+       gelernt. */
     const dsSpace = [];
     for (const c of ['de', 'en', 'tr'])
       for (const [k, v] of dsTexts(dsFiles[c]))
@@ -680,38 +461,23 @@ async function check0311() {
       [...new Set(dsBreak)].sort().join(' ') === DS_LETTERS.join(' '),
       [...new Set(dsBreak)].sort().join(' ') || 'keiner');
 
-    /* ---- Zusage 10: die Umbenennungstafel zeigt nirgends ins Leere ----
-       Sie ist die Deutsch-nach-Englisch-Tafel aus 0.8.x und KEIN Verzeichnis
-       der Wanderungen. 0.31.0 hat die elf ersatzlos gestrichenen Schluessel
-       daraus ENTFERNT; hier ist es anders -- ein verschmolzener Schluessel hat
-       einen Nachfolger, und der alte deutsche Name zeigt auf ihn. */
+    /* ---- Zusage 10: die Umbenennungstafel zeigt nirgends ins Leere ---- Sie
+       ist die Deutsch-nach-Englisch-Tafel aus 0.8.x und KEIN Verzeichnis der
+       Wanderungen. */
     const dsTable = JSON.parse(fs.readFileSync(
       path.join(__dirname, 'tools', 'keys.json'), 'utf8'));
     /* AUF DIE SCHLUESSEL DIESER RUNDE EINGEGRENZT, und das ist ein BEFUND und
        keine Bequemlichkeit: NEUNUNDDREISSIG Eintraege zeigten schon vor
        0.31.1 ins Leere -- auf `login.not`, `list.sortAvgDesc`,
-       `card.convertAllPng` und die vierzehn deutschen Vokabelnamen. Sie
-       stammen aus 0.24 bis 0.30.
-       WOHIN SIE ZEIGEN SOLLTEN, WEISS DIESE RUNDE NICHT. Zu raten waere
-       schlimmer als die Luecke: ein falscher Nachfolger schickt den Sucher an
-       die falsche Stelle und sieht dabei richtig aus. Sie stehen als Befund
-       im Aenderungsprotokoll.
-       WAS HIER GEPRUEFT WIRD: die sechsundsechzig Schluessel, die DIESE Runde
-       weggenommen hat, haben alle ihren Nachfolger -- oder ihr Eintrag ist
-       mitgefallen, wie bei den elf von 0.31.0.
-       UND EINER IST MIT 0.32.0 MITGEFALLEN: `liste.andererBenutzer` zeigte auf
-       `list.otherUser`, und den gibt es nicht mehr (F4). Ein Nachfolger liesse
-       sich nicht benennen -- das hervorgehobene Wort ist im neuen Satz gar
-       nicht mehr enthalten --, also faellt der Eintrag, wie die elf von
-       0.31.0. DIE ZAHL DARUNTER BLEIBT DESHALB BEI 39. */
+       `card.convertAllPng` und die vierzehn deutschen Vokabelnamen. */
     const DS_OLD_DANGLING = 39;
     const dsDangling = Object.entries(dsTable).filter(([, target]) => !(target in dsFiles.de));
     check('Kein Eintrag der Umbenennungstafel zeigt auf einen Schluessel DIESER Runde',
       dsDangling.length === DS_OLD_DANGLING,
       `${dsDangling.length} ins Leere, ${DS_OLD_DANGLING} davon aelter als diese Runde`);
 
-    /* ---- Zusage 4: die drei Dateien tragen gleich viele Schluessel ----
-       Die Zahl steht ausdruecklich da, wie bei F_ROUTES: „gleich viele" allein
+    /* ---- Zusage 4: die drei Dateien tragen gleich viele Schluessel ---- Die
+       Zahl steht ausdruecklich da, wie bei F_ROUTES: „gleich viele" allein
        bliebe gruen, wenn jemand aus allen dreien dasselbe herausnaehme. */
     const dsCounts = Object.fromEntries(['de', 'en', 'tr']
       .map(c => [c, Object.keys(dsFiles[c]).length]));
@@ -723,12 +489,9 @@ async function check0311() {
                               JSON.stringify(Object.keys(dsFiles.de))),
       'Folge geprueft');
 
-    /* ---- Zusage 1: die Gleichlautprobe steht als Werkzeug daneben ----
-       SIE IST KEINE PRUEFUNG UND SOLL KEINE SEIN: sie braucht einen ZWEITEN
-       Stand zum Vergleichen, und den hat ein Lauf nicht. Was hier geprueft
-       wird, ist, dass es sie GIBT und dass sie ihre eigene Blindstelle nennt
-       -- ein Werkzeug, dem jemand mehr zutraut, als es kann, ist schlimmer
-       als keines. */
+    /* ---- Zusage 1: die Gleichlautprobe steht als Werkzeug daneben ---- SIE
+       IST KEINE PRUEFUNG UND SOLL KEINE SEIN: sie braucht einen ZWEITEN Stand
+       zum Vergleichen, und den hat ein Lauf nicht. */
     const dsTool = path.join(__dirname, 'tools', 'gleichlaut.js');
     check('Die Gleichlautprobe liegt als Werkzeug daneben',
       fs.existsSync(dsTool), 'tools/gleichlaut.js');
@@ -739,91 +502,12 @@ async function check0311() {
   }
 }
 
-/* =================================================================
-   0.31.2 — „Englisch sitzt"
-
-   ZEHN ZUSAGEN UEBER EINE EINZIGE DATEI. Die Runde formuliert `en.json` neu
-   und faellt dabei keinen Schluessel; der deutsche Stand ist die
-   unveraenderliche Basis und wird in Zusage 1 nachgerechnet, nicht
-   behauptet.
-
-   DIE VORLAGE KAM VON AUSSEN -- `Doku/I18N_GENERATE_EN.md`, von Google Gemini
-   geschrieben, vier Stolperfallen. Sie ist NACHGEMESSEN und nicht uebernommen:
-   ihre Stolperfalle 1 (die Plaetze) war schon gruen, ihre Stolperfalle 2
-   nannte fuenf Schluessel, gemessen sind es sieben, und eine Zeile ihrer
-   Verbotsliste hat null Treffer. Was nicht uebernommen wurde, steht mit Grund
-   im Auftrag.
-
-   DIE VERBOTSLISTE WIRD HIER EIN WAECHTER UND KEIN MERKZETTEL (Leitplanke L4).
-   Eine Verbotsliste in einem Papier verblasst; eine im Pruefstand wird rot.
-   Sie ist das erste Stueck der Runde gewesen, damit sie beim Bauen schon rot
-   steht und nicht erst am Ende -- dieselbe Reihenfolge wie bei der
-   Gleichlautprobe in 0.31.1.
-
-   WOFUER KEINE ZEILE HIER BLIND SEIN KANN: ob ein englischer Satz GUT ist.
-   Das entscheidet kein Muster, das entscheidet der Augenschein und der Leser.
-   Diese Zusagen halten die MESSBAREN Seiten fest -- Laenge, Satzzahl, Plaetze,
-   verbotene Woerter, Entitaeten -- und jede einzelne ist an einem Befund
-   dieser Runde gelernt und nicht erfunden.
-   ================================================================= */
+/* ================================================================= 0.31.2 —
+   „Englisch sitzt" ZEHN ZUSAGEN UEBER EINE EINZIGE DATEI. */
 /* DIE BEIDEN DEUTSCHEN PRUEFSUMMEN DER GLEICHLAUTPROBE, gemessen am gebauten
-   Stand dieser Runde. SIE SIND DER BEWEIS FUER LEITPLANKE L1 -- „Deutsch ist
-   die unveraenderliche Basis" -- und stehen deshalb im Code und nicht im
-   Papier: eine Zusage, die niemand nachrechnet, ist eine Behauptung.
-   SIE HAENGEN AUCH AN `public/app.js`, und das ist kein Mangel, sondern der
-   Gegenstand: die Probe misst, was am BILDSCHIRM steht, und dorthin kommt der
-   deutsche Satz durch den Quelltext. Wer app.js anfasst, rechnet die beiden
-   Zahlen neu und schreibt sie hierher -- wie die Wortlautprobe ihre Listen je
-   Runde nachfuehrt.
-   DER AUFTRAG NENNT ZWEI ANDERE WERTE (bbd86a64161af49e / 70b5fb78ad2832b1).
-   Die sind am gebauten Stand von 0.31.1 nicht nachzumessen -- weder am
-   Arbeitsbaum noch an einer frischen Kopie von HEAD; das Werkzeug rechnet die
-   beiden hier. Was die Runde halten kann, ist der GEMESSENE Stand.
-
-   UND DIE ZUSAGE HAT EINE AUSNAHME, DIE DER BETREIBER WAEHREND DER RUNDE
-   BESTELLT HAT -- zwei deutsche Werte, und sie stehen unten NAMENTLICH da:
-   „Zugang beantragen" heisst jetzt „Zugang anfragen". Der Grund ist gemessen
-   und keine Geschmacksfrage: das ganze Wortfeld sagt in allen drei Sprachen
-   „Anfrage" (`login.sendRequest`, `card.openRequests`, `card.requestedAt`,
-   „Send request", „Başvuruyu gönder"); dieses eine Label war der Ausreisser.
-   EINE AUSNAHME MIT NAMEN IST EINE ENTSCHEIDUNG, eine ohne waere ein Leck:
-   darum stehen hier DREI Zahlen statt einer -- der Stand von 0.31.1, der Stand
-   dieser Runde, und die beiden Werte selbst Zeichen fuer Zeichen. */
-/* MIT 0.31.4 SIND DIESE BEIDEN ZAHLEN ANDERE, UND KEIN DEUTSCHER SATZ HAT SICH
-   BEWEGT. Die Probe liest den ganzen Quelltext, und die Runde hat `counted()`
-   in `public/app.js` gebaut -- also aendern sich alle SECHS Summen. Genau davor
-   warnt die Probe selbst: „SIE SIEHT AUCH QUELLTEXT ... das ist kein Mangel,
-   sondern der Preis dafuer, dass sie NICHT unterscheiden kann, was ein Mensch
-   sieht."
-   NACHGESEHEN WORDEN IST ES TROTZDEM, mit dem zweiten Gang der Probe
-   (`node tools/gleichlaut.js <neu> <alt>`): fuer `de` und `en` sind die
-   Woerter, die kommen und gehen, AUSSCHLIESSLICH Quelltext --
-   `AFTER_NUMBER`, `counted(n, other);`, `data._afterNumber`,
-   `counted(finished,` gegen `plural(finished,`, dazu `afterNumberOf`,
-   `many word)` und `many(7,` aus der Vorschau der Vokabelkarte. Kein
-   Bildschirmtext.
-   UND EINMAL WAR DOCH EINER DARIN, und genau dieser zweite Gang hat ihn
-   gemeldet: der erste Bau der Vorschau-Berichtigung strich die Zahl
-   UNBEDINGT, und damit las die DEUTSCHE Vorschau „Einträge" statt
-   „7 Einträge". Die Forderung des Betreibers war „das darf sich bei deutsch
-   und englisch nicht negativ auswirken"; die Vorschau fragt seither die
-   Stellungsregel der GEZEIGTEN Sprache, und am Browser steht deutsch wieder
-   „7 Einträge" und tuerkisch „Öğeler".
-     e026e2cf4acfaf08 / 467fb77110922665 -- 0.31.3
-     7c1fe1a927f158f9 / 0b443d44733cc668 -- vor 0.31.3
-
-   UND MIT 0.32.0 BEWEGEN SICH ALLE SECHS, und das ist der Unterschied zu
-   0.31.2 und 0.31.3: DORT WAR DIE UNVERAENDERLICHKEIT DIE ZUSAGE, HIER IST ES
-   DIE BUCHFUEHRUNG. Jede Aenderung an den drei Sprachdateien steht namentlich
-   in ihrer Tafel -- die Wortlautprobe gegen 0681d42, EG_CHANGED_AFTER_0312,
-   TR_CHANGED_AFTER_0313 --, und was nicht darin steht, ist ein Fund
-   (Leitplanke L3, Zusage 10 dieser Runde).
-   DIE SUMMEN BLEIBEN TROTZDEM STEHEN UND WERDEN NICHT ABGESCHAFFT: sie sind
-   der zweite Blick auf dieselbe Frage. Wer einen Wert aendert, ohne ihn in
-   seine Tafel zu schreiben, faellt an den Tafeln auf; wer QUELLTEXT aendert,
-   der Bildschirmtext erzeugt, faellt nur hier auf.
-     0f38b9157739b492 / bc6542b1f0e28bd6 -- 0.31.4, der Stand vor dieser Runde
-     6ff26921e11674ff / e1428e2484415619 -- 0.32.1, der Stand vor 0.33.0 */
+   Stand dieser Runde. */
+/* MIT 0.31.4 SIND DIESE BEIDEN ZAHLEN ANDERE, UND KEIN DEUTSCHER SATZ HAT
+   SICH BEWEGT. */
 const DE_UNTOUCHED = { one: 'daa0c9094f2c2305', other: '77128aef244a5976' };
 const DE_BEFORE_0312 = { one: '91b86c5affcba789', other: '07fc3ccdc8a27a03' };
 const DE_ORDERED_0312 = {
@@ -832,10 +516,9 @@ const DE_ORDERED_0312 = {
     'Zugang anfragen. Du bestätigst deine Adresse per Mail, danach entscheidet ein Admin.'
 };
 
-/* DIE TAFEL DER ENGLISCHEN AENDERUNGEN -- sie steht auf MODULEBENE, weil
-   zwei Gruppen sie lesen: 0.31.2 misst gegen ihren eigenen Vergleichsstand,
-   0.31.3 misst denselben Stand noch einmal von ihrer Seite aus. Zwei Listen
-   ueber dieselbe Frage liefen auseinander (Stolperstein 47). */
+/* DIE TAFEL DER ENGLISCHEN AENDERUNGEN -- sie steht auf MODULEBENE, weil zwei
+   Gruppen sie lesen: 0.31.2 misst gegen ihren eigenen Vergleichsstand, 0.31.3
+   misst denselben Stand noch einmal von ihrer Seite aus. */
 const EG_CHANGED_AFTER_0312_SHARED = {
   "_afterNumber": "0.31.4: der Mechanismus — fuer Englisch `plural`, also das Verhalten von vorher",
   "card.catchUpAsk": "0.33.0: der Dialog nennt die Vorschaubilder nicht mehr — die zweite Haelfte des Laufs ist gefallen",
@@ -886,9 +569,7 @@ async function check0312() {
   const egRead = (code) => JSON.parse(fs.readFileSync(
     path.join(__dirname, 'public', 'languages', `${code}.json`), 'utf8'));
   const egFiles = { de: egRead('de'), en: egRead('en'), tr: egRead('tr') };
-  /* JEDES PAAR MIT SEINER FORM. Jede Zusage dieser Runde stellt Englisch gegen
-     Deutsch, und zwar Form gegen Form: ein Mehrzahlsatz kann in der Einzahl
-     sitzen und in der Mehrzahl auseinanderlaufen. */
+  /* JEDES PAAR MIT SEINER FORM. */
   const egPairs = [];
   for (const [k, dv] of Object.entries(egFiles.de)) {
     if (k.startsWith('_')) continue;
@@ -898,21 +579,13 @@ async function check0312() {
       egPairs.push([`${k}/${f}`, f, String(dv[f]),
         ev && typeof ev === 'object' && ev[f] !== undefined ? String(ev[f]) : '']);
   }
-  /* DIE PLAETZE FALLEN VOR JEDER WORTPRUEFUNG HERAUS. `{thing}` ist das
-     Vokabelwort des Betreibers und kein englischer Satzteil -- eine
-     Verbotsliste, die „Thing" sucht, faende sonst genau den Platz, der dort
-     stehen MUSS, und waere nach einem Tag abgeschaltet. */
+  /* DIE PLAETZE FALLEN VOR JEDER WORTPRUEFUNG HERAUS. */
   const egBare = (v) => String(v).replace(/\{[A-Za-z0-9_]+\}/g, ' ');
 
   group('Englisch sitzt — 0.31.2');
   {
     /* ---- Zusage 1: Deutsch ist unangetastet -----------------------------
-       NACHGERECHNET UND NICHT BEHAUPTET. Die Gleichlautprobe von 0.31.1 setzt
-       jeden Textruf im Quelltext durch seinen Wert; ihre beiden deutschen
-       Summen muessen nach dieser Runde dieselben sein wie davor.
-       SIE WIRD WIRKLICH GEFAHREN, mit einem eigenen Ausgabepfad im
-       Systemtemp. Ein Werkzeug, das nur daliegt, belegt nichts -- 0.31.1 hat
-       es bei sich selbst so gehalten und genau diese Luecke benannt. */
+       NACHGERECHNET UND NICHT BEHAUPTET. */
     const egOut = path.join(os.tmpdir(), `kriterion-gleichlaut-${process.pid}.json`);
     const egRun = spawnSync(process.execPath, ['tools/gleichlaut.js', egOut],
       { cwd: __dirname, encoding: 'utf8' });
@@ -923,7 +596,7 @@ async function check0312() {
     }
     fs.rmSync(egOut, { force: true });
     /* ERST DER LAUF SELBST. Eine Probe, die abreisst, ist keine gruene Probe
-       -- sie ist gar keine (Stolpersteine 138, 161 und 170). */
+       -- sie ist gar keine. */
     check('Zusage 1: die Gleichlautprobe laeuft und nennt ihre sechs Summen',
       Object.keys(egSums).length === 6,
       `${Object.keys(egSums).length} Summen · ${String(egRun.stderr || '').slice(0, 200)}`);
@@ -931,10 +604,7 @@ async function check0312() {
       egSums['de/one'] === DE_UNTOUCHED.one && egSums['de/other'] === DE_UNTOUCHED.other,
       `de/one ${egSums['de/one']} · de/other ${egSums['de/other']}`);
     /* UND SIE SIND ANDERE ALS DIE VON 0.31.1 -- weil der Betreiber zwei Werte
-       bestellt hat. DIESE ZEILE IST DIE EHRLICHE HAELFTE DER ZUSAGE: sie sagt,
-       dass Deutsch NICHT unberuehrt ist, und die Zeile darunter sagt, wo. Ohne
-       beide waere „Deutsch ist unangetastet" eine halbe Zusage -- und eine
-       halbe ist keine. */
+       bestellt hat. */
     check('Und sie sind ANDERE als die von 0.31.1 — der Betreiber hat zwei Werte bestellt',
       egSums['de/one'] !== DE_BEFORE_0312.one && egSums['de/other'] !== DE_BEFORE_0312.other,
       `0.31.1: ${DE_BEFORE_0312.one} · ${DE_BEFORE_0312.other}`);
@@ -943,20 +613,13 @@ async function check0312() {
     check('Und die beiden bestellten Werte stehen Zeichen fuer Zeichen da — und sonst kein deutscher',
       egOrdered.length === 0 && Object.keys(DE_ORDERED_0312).length === 2,
       egOrdered.map(([k]) => `${k}: ${JSON.stringify(egFiles.de[k])}`).join(' · ') || 'beide'); 
-    /* UND DIE ENGLISCHEN SIND ES NICHT. Diese Zeile ist die Gegenrichtung und
-       genauso wichtig: haelt Zusage 1, ohne dass sich Englisch bewegt hat,
-       dann hat die Runde nichts getan. */
+    /* UND DIE ENGLISCHEN SIND ES NICHT. */
     check('Und die beiden englischen sind es NICHT — die Runde hat Englisch angefasst',
       egSums['en/one'] !== '45fa40be3b0b6145' && egSums['en/other'] !== '24f9083c0610df9d',
       `en/one ${egSums['en/one']} · en/other ${egSums['en/other']}`);
 
-    /* ---- Zusage 2: gleich viele Schluessel, dieselbe Folge, dieselbe Gestalt
-       DIE ZAHL STEHT AN EINER STELLE (LANG_KEY_COUNT, Stolperstein 47). Was
-       diese Runde dazulegt, ist die GESTALT: ein Mehrzahlpaar auf Deutsch muss
-       auf Englisch ein Mehrzahlpaar sein. Ein Uebersetzer, der es zu einem
-       Satz zusammenzieht, nimmt der Einzahl ihren Satz -- und am Bildschirm
-       steht „1 Einträge". Die Deckungsprobe sieht das nicht: der Schluessel
-       ist da, und gezaehlt wird er auch. */
+    /* ---- Zusage 2: gleich viele Schluessel, dieselbe Folge, dieselbe
+       Gestalt DIE ZAHL STEHT AN EINER STELLE (LANG_KEY_COUNT). */
     const egCounts = Object.fromEntries(['de', 'en', 'tr']
       .map(c => [c, Object.keys(egFiles[c]).length]));
     check(`Zusage 2: die drei Dateien tragen gleich viele Schluessel — ${LANG_KEY_COUNT}`,
@@ -972,12 +635,7 @@ async function check0312() {
     /* ---- Zusage 3: jeder Platzhalter steht gleich -----------------------
        BEIDE RICHTUNGEN, und die zweite ist die wichtigere: ein Platz, der
        weggefallen ist, nimmt dem Satz seine Zahl; einer, der dazugekommen
-       ist, steht woertlich am Bildschirm („3 Kommentare{of}" -- 0.31.1).
-       DIE ALLGEMEINE PLATZHALTERPROBE PRUEFT DASSELBE UEBER ALLE DREI
-       DATEIEN. Hier steht sie trotzdem noch einmal, auf Englisch eingegrenzt:
-       diese Runde formuliert englische Saetze um, und die Zusage gehoert zu
-       ihr. Eine Zusage, die ihre Gegenprobe nicht namentlich rot macht, ist
-       Buchfuehrung von einer anderen Runde. */
+       ist, steht woertlich am Bildschirm („3 Kommentare{of}" -- 0.31.1). */
     const egPlaces = (v) => new Set([...String(v).matchAll(/\{([A-Za-z0-9_]+)\}/g)].map(m => m[1]));
     const egPlaceOff = [];
     for (const [name, , de, en] of egPairs) {
@@ -989,14 +647,7 @@ async function check0312() {
       egPlaceOff.length === 0, egPlaceOff.slice(0, 6).join(' · ') || 'alle gleich');
 
     /* ---- Zusage 4: die Verbotsliste ------------------------------------
-       DREIZEHN MUSTER, UND JEDES MIT SEINEM GRUND. Die Vorlage hat sie
-       aufgeschrieben; hier stehen sie als Wache, weil ein aufgeschriebenes
-       Verbot beim naechsten Satz vergessen ist. Gemessen waren es 36 Treffer
-       in 33 Schluesseln.
-       DIE VIERZEHNTE ZEILE DER VORLAGE -- die US-Schreibung -- STEHT NICHT
-       HIER, SONDERN IN ZUSAGE 8. Sie hatte null Treffer und ist damit kein
-       Befund dieser Runde, sondern eine Leitplanke ueber alle kommenden:
-       `_locale` sagt en-GB seit 0.24.3. */
+       DREIZEHN MUSTER, UND JEDES MIT SEINEM GRUND. */
     const EG_FORBIDDEN = [
       [/leaves? the house/i,  'das Haus verlassen — deutsches Idiom, im Deutschen laengst gestrichen'],
       [/\bthe run\b/i,        '„der Lauf" — deutsches Entwicklerdenken, kein Satzgegenstand'],
@@ -1013,8 +664,7 @@ async function check0312() {
       [/already current/i,    'holpriges Englisch — es heisst already up to date']
     ];
     /* ERST DER LESER SELBST: ein Waechter, dessen Muster nichts finden KANN,
-       ist gruen und sagt nichts. Dieselbe Bauform wie beim Sprachwaechter --
-       geprueft wird an einem Satz, der wirklich in der Datei stand. */
+       ist gruen und sagt nichts. */
     check('Der Leser der Verbotsliste findet, was vor dieser Runde dastand',
       EG_FORBIDDEN.filter(([rx]) => rx.test(egBare('The key sits next to the database')) ||
         rx.test(egBare('Thing, singular')) ||
@@ -1037,10 +687,7 @@ async function check0312() {
     /* ---- Zusage 5: keine HTML-Entitaet ---------------------------------
        0.31.1 HAT DIESE ZUSAGE AUSDRUECKLICH NUR AUF DEUTSCH GEGEBEN -- ihre
        Zusage 8 war eine Runde lang bewusst halb, weil die Entitaet aus
-       `card.nameFreedHint` nur mit einem neu formulierten Satz herauskommt.
-       Das ist diese Runde. Der Grund ist derselbe: eine Entitaet in einem
-       Wert verlangt vom Uebersetzer, Maskierung zu kennen -- und wer sie
-       nicht kennt, schreibt spitze Klammern hin, die im Browser verschwinden. */
+       `card.nameFreedHint` nur mit einem neu formulierten Satz herauskommt. */
     const egEntity = egPairs.filter(([, , , en]) => /&[a-z]+;|&#\d+;/i.test(en));
     check('Zusage 5: kein englischer Wert traegt eine HTML-Entitaet',
       egEntity.length === 0, egEntity.map(([n]) => n).join(' ') || 'keiner');
@@ -1048,15 +695,7 @@ async function check0312() {
     /* ---- Zusage 6: kein englischer Wert ist deutlich laenger -----------
        NUR IN EINE RICHTUNG, und das ist die Entscheidung des Auftrags (F7):
        Englisch braucht fuer dieselbe Aussage regelmaessig weniger Zeichen als
-       Deutsch, also darf es kuerzer sein und soll es oft. Eine Zusage „gleich
-       lang" waere falsch und nach drei Saetzen abgeschaltet.
-       AB VIERZIG ZEICHEN, und darunter gar nicht: „vor" wird „before" und ist
-       damit doppelt so lang -- an einem Wort sagt das Verhaeltnis nichts. Ein
-       SATZ dagegen, der auf Englisch ein Sechstel laenger ist, traegt Ballast,
-       und genau der war der Befund der Vorlage.
-       FUENFZEHN PROZENT, und nicht fuenf: die Grenze soll den Roman fangen und
-       nicht den Artikel. Gemessen waren es vor der Runde sieben Werte mit mehr
-       als 1,15 -- zweieinhalbfach der laengste. */
+       Deutsch, also darf es kuerzer sein und soll es oft. */
     const EG_LONG_FROM = 40, EG_LONG_MAX = 1.15;
     const egTooLong = egPairs
       .filter(([, , de, en]) => de.length >= EG_LONG_FROM && en.length > de.length * EG_LONG_MAX)
@@ -1064,15 +703,8 @@ async function check0312() {
     check(`Zusage 6: kein englischer Wert ab ${EG_LONG_FROM} Zeichen ist mehr als ${EG_LONG_MAX}x so lang wie sein deutscher`,
       egTooLong.length === 0, egTooLong.slice(0, 8).join(' · ') || 'keiner');
 
-    /* ---- Zusage 7: nicht mehr Saetze als der deutsche -----------------
-       DIE KUERZE STECKT NICHT IN DEN ZEICHEN, SONDERN IN DEN SAETZEN. Sechs
-       englische Werte trugen vor dieser Runde einen Satz mehr als ihr
-       deutscher -- `card.resetMailHint` sogar drei; das ist der
-       Erklaerbaersaft, den 0.31.1 auf Deutsch weggenommen hat (BA 7).
-       DIE ABKUERZUNGEN FALLEN VORHER HERAUS, und zwar NAMENTLICH: „z. B." mit
-       seinem Leerzeichen zaehlte sonst als ZWEI Satzenden und „e.g." als
-       eines -- der deutsche Satz duerfte dann zwei Saetze mehr tragen, und die
-       Zusage waere in genau den drei Karten blind, in denen sie etwas sagt. */
+    /* ---- Zusage 7: nicht mehr Saetze als der deutsche ----------------- DIE
+       KUERZE STECKT NICHT IN DEN ZEICHEN, SONDERN IN DEN SAETZEN. */
     const EG_SHORTHAND = /\b(?:z\. ?B\.|bzw\.|usw\.|ggf\.|u\. ?a\.|vgl\.|Nr\.|ca\.|e\.g\.|i\.e\.|etc\.|approx\.)/g;
     const egSentences = (v) => (egBare(String(v).replace(EG_SHORTHAND, 'x'))
       .match(/[.!?](?=\s|$)/g) || []).length;
@@ -1088,14 +720,7 @@ async function check0312() {
 
     /* ---- Zusage 8: en-GB, und zwar durchgehend ------------------------
        `_locale` SAGT ES SEIT 0.24.3, und heute ist die Zeile schon gruen --
-       sie steht hier, damit sie es bleibt. Die Vorlage hat die US-Schreibung
-       als dreizehnte Zeile ihrer Verbotsliste gefuehrt; gemessen hatte sie
-       null Treffer, und eine Verbotszeile ohne Treffer ist keine Arbeit,
-       sondern eine Leitplanke.
-       SECHZEHN PAARE, JEDES MIT SEINER BRITISCHEN SEITE. Eine Regel „kein
-       -ize" waere billiger und falsch: `size` traegt dieselben drei
-       Buchstaben, und ein Waechter, der „Size of the inventory" meldet, ist
-       nach einem Tag abgeschaltet. */
+       sie steht hier, damit sie es bleibt. */
     const EG_US = [['color', 'colour'], ['colors', 'colours'], ['colored', 'coloured'],
       ['favorite', 'favourite'], ['favorites', 'favourites'], ['behavior', 'behaviour'],
       ['organize', 'organise'], ['organized', 'organised'], ['optimize', 'optimise'],
@@ -1115,11 +740,7 @@ async function check0312() {
 
     /* ---- Zusage 9: kein Weissraum aus dem Quelltext -------------------
        0.31.1 HAT IHN IN ALLEN DREI DATEIEN GENOMMEN, und die Zeile dort gilt
-       weiter. Hier steht die englische Haelfte noch einmal fuer sich, weil
-       diese Runde englische Werte NEU SCHREIBT: wer einen langen Satz im
-       Quelltext umbricht, legt die Einrueckung in den Wert, und am Bildschirm
-       faellt sie nicht auf -- HTML zieht sie zusammen. Sie wandert dann
-       ungesehen in jede weitere Uebersetzung mit. */
+       weiter. */
     const egSpace = egPairs.filter(([, , , en]) => /\n[ \t]|[ \t][ \t]/.test(en));
     check('Zusage 9: kein englischer Wert traegt die Einrueckung des Quelltexts',
       egSpace.length === 0, egSpace.map(([n]) => n).join(' ') || 'keiner');
@@ -1127,57 +748,31 @@ async function check0312() {
     const egBreak = [...new Set(egPairs.filter(([, , , en]) => en.includes('\n')).map(([n]) => n))];
     check('Und ein Umbruch steht nur in den vier Briefen, wo er ein Absatz ist',
       egBreak.sort().join(' ') === EG_LETTERS.join(' '), egBreak.join(' ') || 'keiner');
-    /* UND DIE ABSAETZE STEHEN IN JEDEM BRIEF. Der Prueflauf von 0.31.1 hat
-       genau hier vier rote Punkte gehabt: ein Weissraumschnitt nahm den
-       Briefen ihre Leerzeilen, und jede Mail waere als eine Wand Text
-       angekommen. Auf Englisch schreibt DIESE Runde die Briefe neu. */
+    /* UND DIE ABSAETZE STEHEN IN JEDEM BRIEF. */
     check('Und jeder der vier Briefe traegt seine Leerzeilen',
       EG_LETTERS.every(k => String(egFiles.en[k]).includes('\n\n')),
       EG_LETTERS.filter(k => !String(egFiles.en[k]).includes('\n\n')).join(' ') || 'alle vier');
 
     /* ---- Zusage 10: der englische Stand liegt als Vergleichsdatei daneben
-       ES GIBT KEINE ABNAHME FUER ENGLISCH. Die deutsche Wortlautprobe haelt
-       den Stand von 0681d42 fest, weil es ihn gibt; fuer Englisch ist DIESE
-       Runde die Abnahme (Auftrag, F9). Was sie hinterlaesst, ist ein
-       Vergleichsstand: 1197 Schluessel, jeder mit seinem Wert.
-       DER AUFTRAG NENNT IHN ANDERS -- `Abdruckdatei` --, UND DAS WORT GEHT
-       NICHT. Der Sprachwaechter fuehrt `Abdruck` auf seiner Liste, und dort
-       heisst es Fingerprint; er hat meine drei Kommentarzeilen im ersten Lauf
-       gemeldet, mit Datei und Zeilennummer.
-       Ein Waechter, der die eigene Vorschrift der Runde anmeckert, hat recht:
-       zwei Namen fuer zwei Sachen sind besser als einer fuer beide.
-       UND DIE TAFEL DARUNTER IST DER EIGENTLICHE WAECHTER. Sie ist LEER, und
-       solange sie das ist, muss jeder englische Wert Zeichen fuer Zeichen der
-       dieser Runde sein. Wer Englisch anfasst, schreibt den Schluessel mit
-       seinem Grund hinein -- dieselbe Bauform wie die drei Listen der
-       Wortlautprobe. EINEN VERGLEICHSSTAND STILL NACHZUZIEHEN ist damit
-       keine Moeglichkeit mehr, sondern ein roter Punkt. */
+       ES GIBT KEINE ABNAHME FUER ENGLISCH. */
     const egPrintFile = path.join(__dirname, 'tools', 'englisch-0312.json');
     check('Zusage 10: der englische Stand liegt als Vergleichsdatei daneben',
       fs.existsSync(egPrintFile), 'tools/englisch-0312.json');
     const egFile = fs.existsSync(egPrintFile)
       ? JSON.parse(fs.readFileSync(egPrintFile, 'utf8')) : {};
     const egPrint = egFile.values || {};
-    /* UND SIE SAGT, WAS SIE IST UND WOHER SIE KOMMT. Eine Datei mit 1197
-       Zeilen und ohne einen Satz darueber wird beim naechsten Handgriff von
-       Hand gepflegt -- und dann ist sie eine zweite Wahrheit. Dieselbe Bauform
-       wie bei der deutschen Wortlautprobe (`_hinweis` in
-       tools/wording-0681d42.json). */
+    /* UND SIE SAGT, WAS SIE IST UND WOHER SIE KOMMT. */
     check('Und sie nennt ihre Runde und ihr Werkzeug',
-      egFile.round === '0.31.2' && /englischstand\.js/.test(String(egFile._hinweis)),
-      `${egFile.round} · ${String(egFile._hinweis || '').slice(0, 60)}`);
+      egFile.round === '0.31.2' && /englischstand\.js/.test(String(egFile._about)),
+      `${egFile.round} · ${String(egFile._about || '').slice(0, 60)}`);
     check('Und das Werkzeug, das sie schreibt, liegt daneben',
       fs.existsSync(path.join(__dirname, 'tools', 'englischstand.js')),
       'tools/englischstand.js');
-    /* DER VERGLEICHSSTAND WAECHST NICHT MIT -- er haelt den Stand von 0.31.2.
-       0.31.4 hat allen drei Dateien `_afterNumber` in den Kopf gelegt; der
-       Schluessel steht deshalb NAMENTLICH hier und nicht still in der Datei. */
+    /* DER VERGLEICHSSTAND WAECHST NICHT MIT -- er haelt den Stand von 0.31.2. */
     /* UND ACHTZEHN MIT 0.32.0. Sie stehen namentlich hier, alphabetisch wie in
        der Datei -- jede Runde, die einen Schluessel anlegt, traegt ihn ein. */
     /* UND EINER MIT 0.33.0: `server.exportTooOld`, die eine Abweisung des
-       Bruchs. Eine Exportdatei mit Formatnummer 13 oder aelter traegt die
-       Feldnamen von vor 0.24.1, und seit jener Runde uebersetzt sie niemand
-       mehr -- sie kommt gar nicht erst herein, und der Satz sagt warum. */
+       Bruchs. */
     const EG_ADDED_AFTER_0312 = ['_afterNumber',
       'card.grade', 'entry.deletePhoto', 'entry.deleteVideo',
       'list.bellMine', 'list.bellOther', 'list.bellToMe',
@@ -1186,18 +781,11 @@ async function check0312() {
       'server.cleanupOldestAge', 'server.exportTooOld', 'server.noAccountOwner',
       'server.noPublicAddress', 'server.noTestMail', 'server.noUserAddress',
       'server.signupThanks', 'vocabulary.grade'];
-    /* UND EINER IST GEFALLEN -- `list.otherUser`. Der Satz des Glockenfensters
-       traegt seit 0.32.0 kein hervorgehobenes Wort mehr (F4); ein Schluessel,
-       den niemand ruft, bleibt nicht stehen. */
+    /* UND EINER IST GEFALLEN -- `list.otherUser`. */
     /* UND SIEBEN MIT 0.32.1 -- sechs, die 0.32.1 ausbaut, und der geteilte
-       `entry.deleteWord`. Die zwei Schluessel, die 0.32.0 angelegt und 0.32.1
-       schon wieder genommen hat (`list.statusByHand`, `list.byHandHint`),
-       stehen HIER NICHT: den Vergleichsstand von 0.31.2 gab es ohne sie, also
-       ist dort auch nichts verlorengegangen. */
-    /* UND ZWEI MIT 0.33.0: `card.catchUpDerivatives` und `card.derivativesAsk`
-       -- die JPEG-Haelfte des Bestandslaufs. Sie beschreiben eine Haelfte, die
-       es nicht mehr gibt. DIE FOLGE IST DIE DER DATEI und nicht die der
-       Runden: die Zeile darunter vergleicht die Schluessel als FOLGE. */
+       `entry.deleteWord`. */
+    /* UND ZWEI MIT 0.33.0: `card.catchUpDerivatives` und
+       `card.derivativesAsk` -- die JPEG-Haelfte des Bestandslaufs. */
     const EG_GONE_AFTER_0312 = ['card.catchUpDerivatives', 'card.derivativesAsk',
       'entry.deleteWord', 'list.and', 'list.followsSort',
       'list.ofWhich', 'list.otherUser', 'list.pillHint', 'list.sortDefaultHint'];
@@ -1209,86 +797,34 @@ async function check0312() {
       `neu ${egAdded.join(' ') || 'keiner'} · verloren ${egLost.join(' ') || 'keiner'}`);
     /* DIE TAFEL STEHT IN DER REIHENFOLGE DER DATEI und nicht in der der
        Runden: die Zeile darunter vergleicht die Schluessel als FOLGE, damit
-       ein Eintrag nicht doppelt oder an der falschen Stelle stehen kann.
-       JEDER TRAEGT SEINE RUNDE UND SEINEN GRUND -- eine Liste ohne Gruende
-       waere eine Liste und keine Buchfuehrung. */
+       ein Eintrag nicht doppelt oder an der falschen Stelle stehen kann. */
     const EG_CHANGED_AFTER_0312 = EG_CHANGED_AFTER_0312_SHARED;
     const egDiff = Object.keys(egFiles.en)
       .filter(k => JSON.stringify(egPrint[k]) !== JSON.stringify(egFiles.en[k]));
     check('Und jeder englische Wert ist Zeichen fuer Zeichen der des Vergleichsstands — ausser den benannten',
       egDiff.join(' ') === Object.keys(EG_CHANGED_AFTER_0312).join(' '),
       egDiff.slice(0, 8).join(' ') || 'alle gleich');
-    /* UND DIE TAFEL IST IN BEIDE RICHTUNGEN GESCHLOSSEN -- 0.31.1, Zusage 2.
-       Ein Eintrag, der keinen Unterschied mehr benennt, ist eine
-       Karteileiche: er behauptet eine Aenderung, die es nicht gibt, und
-       deckt beim naechsten Mal eine, die es gibt. */
+    /* UND DIE TAFEL IST IN BEIDE RICHTUNGEN GESCHLOSSEN -- 0.31.1, Zusage 2. */
     const egStale = Object.keys(EG_CHANGED_AFTER_0312).filter(k => !egDiff.includes(k));
     check('Und kein Eintrag der Tafel benennt einen Unterschied, den es nicht gibt',
       egStale.length === 0, egStale.join(' ') || 'keine Karteileiche');
   }
 }
 
-/* =================================================================
-   0.31.3 — „Tuerkisch sitzt"
-
-   DREIZEHN ZUSAGEN UEBER EINE EINZIGE DATEI, und es ist die letzte der vier
-   Runden der 31er-Strecke: 0.31.0 hat die Sprachdateien gegengelesen, 0.31.1
-   hat die zersaegten Saetze zusammengesetzt, 0.31.2 hat Englisch auf den Stand
-   des Deutschen gebracht. Diese Runde formuliert `tr.json` neu und faellt
-   dabei keinen Schluessel; DEUTSCH UND ENGLISCH sind jetzt ZWEI
-   unveraenderliche Basen und werden in Zusage 1 nachgerechnet, nicht
-   behauptet.
-
-   DIE VORLAGE KAM VON AUSSEN -- `Doku/I18N_GENERATE_TR.md`, von Google Gemini
-   geschrieben, fuenf Stolperfallen. Sie ist NACHGEMESSEN und nicht uebernommen,
-   und bei ZWEI ihrer Vorschlaege sagt diese Runde ausdruecklich nein. Beide
-   Male steht eine ENTSCHEIDUNG DES BETREIBERS dagegen, und beide Male ist sie
-   schon ein Waechter:
-
-     STOLPERFALLE 2 -- „die fuenf Vokabelmehrzahlen brauchen ihr -ler/-lar" --
-     WIRD NICHT GEBAUT. Die Entscheidung vom 8. September 2026 (Woerterbuch
-     TR-S4; Fehler und Ideen, Punkt 19: „abgelehnt, nicht vertagt") gibt jedem
-     Vokabelwort GENAU EINEN Mehrzahlplatz, und der wird an zwei Orten gelesen.
-     Zusage 9 misst nach, an wie vielen davon eine ZAHL davorsteht -- dort
-     stuende danach „3 Öğeler", und das ist kein Tuerkisch. Die Zusage steht
-     deshalb UMGEKEHRT da: die fuenf Paare tragen dasselbe Wort.
-
-     STOLPERFALLE 5.2 -- „Yedek ist natuerlicher als Yedekleme" -- WIRD NICHT
-     GEBAUT. Der Betreiber am 10. September 2026: „immer nur das wort
-     yedekleme". Der Waechter dazu steht seit 0.25.1 im Pruefstand.
-
-   DIE VERBOTSLISTE WIRD HIER EIN WAECHTER UND KEIN MERKZETTEL (Leitplanke L4),
-   UND SIE LIEST WORTSTAEMME. Das ist der Unterschied zu 0.31.2 und beim Messen
-   dieses Auftrags gelernt: Tuerkisch klebt seine Endungen an -- „hap" steht als
-   „haptan", „sabit resim" als „sabit resmi". UND `\b` TAUGT DAFUER NICHT:
-   fuer JavaScript sind Ş, ş, ğ, ı, ç, ö und ü keine Wortzeichen, also steht
-   zwischen einem Leerzeichen und einem „Ş" gar keine Wortgrenze. Eine erste
-   Messung mit `\b` uebersah fuenf von 26 Treffern und meldete „Şey" mit null.
-   Hier steht darum ein Blick zurueck (`(?<![\p{L}\p{N}_])`) und die Endung
-   bleibt frei.
-
-   WOFUER KEINE ZEILE HIER BLIND SEIN KANN: ob ein tuerkischer Satz GUT ist.
-   Das entscheidet kein Muster, das entscheidet der Leser -- und der ist der
-   Betreiber selbst (Auftrag, F2). Diese Zusagen halten die MESSBAREN Seiten
-   fest, und jede einzelne ist an einem Befund dieser Runde gelernt.
-   ================================================================= */
+/* ================================================================= 0.31.3 —
+   „Tuerkisch sitzt" DREIZEHN ZUSAGEN UEBER EINE EINZIGE DATEI, und es ist die
+   letzte der vier Runden der 31er-Strecke: 0.31.0 hat die Sprachdateien
+   gegengelesen, 0.31.1 hat die zersaegten Saetze zusammengesetzt, 0.31.2 hat
+   Englisch auf den Stand des Deutschen gebracht. */
 /* DIE VIER PRUEFSUMMEN DER BASIS, gemessen am gebauten Stand dieser Runde --
    DE_UNTOUCHED steht schon oben bei 0.31.2 und wird hier WEITERBENUTZT und
-   nicht abgeschrieben: zwei Zahlen an zwei Orten laufen auseinander.
-   DIE BEIDEN TUERKISCHEN STEHEN IN BEIDEN RICHTUNGEN DA -- der Stand VOR
-   dieser Runde und der danach. Ohne den ersten waere „die Runde hat Tuerkisch
-   angefasst" eine Behauptung; ohne den zweiten koennte jemand die Datei
-   zurueckdrehen, und niemand saehe es. */
-/* 9cfb555855459a0c / 98295846dd0ac5a4 -- 0.31.3
-   2f8e5b3abe58f9fd / 39489ec6ae18020b -- vor 0.31.3; derselbe Grund wie oben.
-   597dfc60b7a1fa63 / 6558810bf793704a -- 0.31.4, der Stand vor 0.32.0
-   97f89e94bcb911f2 / 81d826369839a242 -- 0.32.1, der Stand vor 0.33.0 */
+   nicht abgeschrieben: zwei Zahlen an zwei Orten laufen auseinander. */
+/* 9cfb555855459a0c / 98295846dd0ac5a4 -- 0.31.3 2f8e5b3abe58f9fd /
+   39489ec6ae18020b -- vor 0.31.3; derselbe Grund wie oben. */
 const EN_UNTOUCHED = { one: 'caa4b814e75f8263', other: 'f224721465ac0d35' };
 const TR_BEFORE_0313 = { one: '5fec71b10c0dfa3c', other: '18b07eda589b5120' };
-/* bbaca227348609dc / 73d9f1ea0298d519 -- der Stand VOR der Berichtigung an der
-   Vorschau der Vokabelkarte, die der Augenschein von 0.31.3 verlangt hat.
-   a7f3cd4bf8992f90 / e26a1dca46c545da -- 0.31.4, der Stand vor 0.32.0
-   f3a2034e18783412 / 5ef5cbd1132e5562 -- 0.32.1, der Stand vor 0.33.0 */
+/* bbaca227348609dc / 73d9f1ea0298d519 -- der Stand VOR der Berichtigung an
+   der Vorschau der Vokabelkarte, die der Augenschein von 0.31.3 verlangt hat. */
 const TR_AFTER_0313 = { one: 'ab6bdf35499f7cf9', other: 'ad34f68137acaa2b' };
 
 async function check0313() {
@@ -1314,10 +850,7 @@ async function check0313() {
   group('Tuerkisch sitzt — 0.31.3');
   {
     /* ---- Zusage 1: Deutsch UND Englisch sind unangetastet ---------------
-       NACHGERECHNET UND NICHT BEHAUPTET, und diesmal fuer ZWEI Sprachen. Die
-       Gleichlautprobe von 0.31.1 setzt jeden Textruf im Quelltext durch seinen
-       Wert; ihre vier Summen fuer de und en muessen nach dieser Runde dieselben
-       sein wie davor -- und die beiden tuerkischen ANDERE. */
+       NACHGERECHNET UND NICHT BEHAUPTET, und diesmal fuer ZWEI Sprachen. */
     const tgOut = path.join(os.tmpdir(), `kriterion-gleichlaut-tr-${process.pid}.json`);
     const tgRun = spawnSync(process.execPath, ['tools/gleichlaut.js', tgOut],
       { cwd: __dirname, encoding: 'utf8' });
@@ -1336,33 +869,22 @@ async function check0313() {
     check(`Und die beiden englischen auch — ${EN_UNTOUCHED.one} · ${EN_UNTOUCHED.other}`,
       tgSums['en/one'] === EN_UNTOUCHED.one && tgSums['en/other'] === EN_UNTOUCHED.other,
       `en/one ${tgSums['en/one']} · en/other ${tgSums['en/other']}`);
-    /* UND DIE GEGENRICHTUNG. Haelt Zusage 1, ohne dass sich Tuerkisch bewegt
-       hat, dann hat die Runde nichts getan -- dieselbe Zeile wie in 0.31.2,
-       nur mit BEIDEN Zahlen statt einer: der alte Stand darf nicht
-       zurueckkommen, und der neue muss dastehen. */
+    /* UND DIE GEGENRICHTUNG. */
     check('Und die beiden tuerkischen sind NICHT die von 0.31.2 — die Runde hat Tuerkisch angefasst',
       tgSums['tr/one'] !== TR_BEFORE_0313.one && tgSums['tr/other'] !== TR_BEFORE_0313.other,
       `0.31.2: ${TR_BEFORE_0313.one} · ${TR_BEFORE_0313.other}`);
     check(`Und sie sind die dieser Runde — ${TR_AFTER_0313.one} · ${TR_AFTER_0313.other}`,
       tgSums['tr/one'] === TR_AFTER_0313.one && tgSums['tr/other'] === TR_AFTER_0313.other,
       `tr/one ${tgSums['tr/one']} · tr/other ${tgSums['tr/other']}`);
-    /* UND DER ENGLISCHE VERGLEICHSSTAND VON 0.31.2 STIMMT WEITER. Die
-       Pruefsumme haengt an `public/app.js` UND an `en.json`; diese Zeile
-       nennt die Datei selbst, damit ein Handgriff an einem einzelnen
-       englischen Wert namentlich auffaellt und nicht nur als andere Summe. */
+    /* UND DER ENGLISCHE VERGLEICHSSTAND VON 0.31.2 STIMMT WEITER. */
     const tgEnPrint = path.join(__dirname, 'tools', 'englisch-0312.json');
     const tgEnFile = fs.existsSync(tgEnPrint)
       ? (JSON.parse(fs.readFileSync(tgEnPrint, 'utf8')).values || {}) : {};
-    /* `_afterNumber` IST SEIT 0.31.4 DABEI und steht namentlich da: er ist der
-       einzige englische Schluessel, den der Vergleichsstand von 0.31.2 nicht
-       kennt, und sein Wert (`plural`) ist genau das Verhalten von vorher. */
-    /* UND SEIT 0.32.0 STEHT DIE TAFEL EINEN STOCK HOEHER. Jene Runde fasst
-       Englisch an -- das fuenfzehnte Vokabelwort, die geteilte Glockentafel,
-       die zwoelf Saetze aus den Serverdateien --, und WELCHE Schluessel das
-       sind, steht namentlich in EG_CHANGED_AFTER_0312 (die Gruppe 0.31.2, ein
-       Stueck weiter oben). Diese Zeile hier liest dieselbe Tafel statt eine
-       zweite danebenzustellen: zwei Listen ueber dieselbe Frage liefen beim
-       naechsten Handgriff auseinander (Stolperstein 47). */
+    /* `_afterNumber` IST SEIT 0.31.4 DABEI und steht namentlich da: er ist
+       der einzige englische Schluessel, den der Vergleichsstand von 0.31.2
+       nicht kennt, und sein Wert (`plural`) ist genau das Verhalten von
+       vorher. */
+    /* UND SEIT 0.32.0 STEHT DIE TAFEL EINEN STOCK HOEHER. */
     const tgEnNamed = Object.keys(EG_CHANGED_AFTER_0312_SHARED);
     const tgEnDiff = Object.keys(tgFiles.en)
       .filter(k => JSON.stringify(tgEnFile[k]) !== JSON.stringify(tgFiles.en[k]));
@@ -1384,19 +906,8 @@ async function check0313() {
       tgShape.length === 0, tgShape.join(' ') || 'gleiche Gestalt');
 
     /* ---- Zusage 3: jeder Platzhalter steht gleich -----------------------
-       BEIDE RICHTUNGEN. Im Tuerkischen wandert die STELLE eines Platzes mit
-       der Grammatik (Leitplanke L5) -- der Platz selbst nicht. Diese Runde hat
-       genau davon gelebt: „Şu: {word} ancak…" wurde „{word} ancak…", und
-       `entry.weightsWhere` hat seinen Platz aus dem Satzende an seine Stelle
-       geholt. Waere die Zusage blind, waere dabei ein Platz verschwunden. */
-    /* DIE BEIDEN FORMEN EINES VOKABELWORTS SIND DERSELBE PLATZ -- 0.31.4.
-       Deutsch schreibt „fuer alle {entryMany}", Tuerkisch muss „her {entryOne}
-       için" schreiben: `her` verlangt dort die Einzahl, und ohne diese Zeile
-       waere jeder solche Satz ein roter Punkt.
-       NUR UM EINEN SPALT GEOEFFNET: getauscht werden darf ausschliesslich
-       INNERHALB eines Paares. Ein `{bytes}`, das fehlt, ist weiter ein roter
-       Punkt -- und ein `{entryOne}`, das gegen `{dayMany}` getauscht wird,
-       auch. */
+       BEIDE RICHTUNGEN. */
+    /* DIE BEIDEN FORMEN EINES VOKABELWORTS SIND DERSELBE PLATZ -- 0.31.4. */
     const TR_VOC_FORMS = [['entryOne', 'entryMany'], ['dayOne', 'dayMany'],
       ['reportOne', 'reportMany'], ['taskOne', 'taskMany'], ['ratingOne', 'ratingMany']];
     const tgFamily = Object.fromEntries(TR_VOC_FORMS.flatMap(([a, b]) => [[a, a], [b, a]]));
@@ -1412,18 +923,7 @@ async function check0313() {
       tgPlaceOff.length === 0, tgPlaceOff.slice(0, 6).join(' · ') || 'alle gleich');
 
     /* ---- Zusage 4: die Verbotsliste, und sie liest STAEMME --------------
-       ELF MUSTER, JEDES MIT SEINEM GRUND. Gemessen waren es vor der Runde
-       26 Treffer in 23 Schluesseln.
-       DER WORTANFANG IST GEBUNDEN, DAS WORTENDE NICHT: `hap` findet „haptan",
-       `sabit res` findet „sabit resmi". Und gebunden wird mit einem Blick
-       zurueck und nicht mit `\b` -- der Grund steht im Kopf dieser Gruppe.
-       ZEHN DER ELF STEHEN IN DER VORLAGE, das elfte („Şu:") ist der
-       Grammatik-Kollaps selbst: der Uebersetzer wusste nicht, wohin mit dem
-       deutschen Artikel, und hat vier Saetzen ein „Dieses da:" vorangestellt.
-       WAS NICHT HIER STEHT, IST „kilit … devreye girer": die Vorlage fuehrt es,
-       gemessen war es EIN Wert, und ein Muster dafuer musste ueber einen halben
-       Satz hinweglesen. Der Wert ist neu formuliert, und Zusage 11 haelt
-       dieselbe Stelle -- er trug auch die einzige siz-Form der Datei. */
+       ELF MUSTER, JEDES MIT SEINEM GRUND. */
     const TR_STEM = (s) => new RegExp(`(?<![\\p{L}\\p{N}_])${s}`, 'u');
     const TR_FORBIDDEN = [
       [TR_STEM('hap'),                'hap — Kopfschmerztablette; CSS-Jargon fuer einen Knopf'],
@@ -1439,8 +939,7 @@ async function check0313() {
       [TR_STEM('Şu:'),                'Şu: — der deutsche Artikel als „Dieses da:"; der Grammatik-Kollaps selbst']
     ];
     /* ERST DER LESER SELBST: ein Waechter, dessen Muster nichts finden KANN,
-       ist gruen und sagt nichts. Geprueft wird an Saetzen, die WIRKLICH in der
-       Datei standen -- und ausdruecklich an den ANGEKLEBTEN Endungen. */
+       ist gruen und sagt nichts. */
     check('Der Leser der Verbotsliste findet, was vor dieser Runde dastand',
       TR_FORBIDDEN.filter(([rx]) =>
         rx.test(tgBare('Üç haptan birine tıklamak filtreyi kendisi ayarlar.')) ||
@@ -1449,18 +948,12 @@ async function check0313() {
         rx.test(tgBare('Anahtar veritabanının yanında duruyor')) ||
         rx.test(tgBare('Şu: {word} giriş sayfasında durur'))).length === 5,
       'der Leser sieht die alten Saetze nicht mehr');
-    /* UND ER FAENGT DIE ENDUNG UND NICHT NUR DAS NACKTE WORT. Das ist die
-       Lehre, die Leitplanke L4 verschaerft hat: mit `\b` waeren „haptan" und
-       „sabit resmi" durchgegangen, und „Şey" gar nicht erst gefunden worden. */
+    /* UND ER FAENGT DIE ENDUNG UND NICHT NUR DAS NACKTE WORT. */
     check('Und er faengt die angeklebte Endung — mit `\\b` waeren fuenf Treffer durchgegangen',
       TR_FORBIDDEN[0][0].test('haptan') && TR_FORBIDDEN[2][0].test('sabit resmi') &&
       TR_FORBIDDEN[3][0].test('Şey, tekil') && !/\bŞey\b/.test('Şey, tekil'),
       'der Stammleser liest wie ein Wortleser');
-    /* UND ER FAERBT SICH NICHT AM HARMLOSEN WORT. „hap" steckt in keinem
-       tuerkischen Alltagswort dieser Datei, „Çalışma" schon -- als Nomen
-       („Arbeit") waere es erlaubt; verboten ist der LAUF als Satzgegenstand,
-       also das Wort mit einem Verb dahinter. Dieselbe Sorgfalt wie beim
-       Platzhalter: ein Waechter, der Richtiges meldet, wird abgeschaltet. */
+    /* UND ER FAERBT SICH NICHT AM HARMLOSEN WORT. */
     check('Und er faerbt sich an einem Platzhalter NICHT — `{thing}` ist das Vokabelwort',
       !TR_FORBIDDEN.some(([rx]) => rx.test(tgBare('{items} {thing}, {photos} fotoğraf'))),
       'ein Platz faerbt den Waechter');
@@ -1475,13 +968,7 @@ async function check0313() {
       tgForbidden.length === 0, tgForbidden.slice(0, 8).join(' · ') || 'keiner');
 
     /* ---- Zusage 5: die Anfuehrungszeichen sind tuerkisch ----------------
-       `„…“` GIBT ES IN DER TUERKISCHEN TYPOGRAFIE NICHT. 0.31.0 hat das Paar
-       in `tr.json` ausdruecklich nur GESCHLOSSEN und die Frage vertagt; diese
-       Runde entscheidet sie (Auftrag, F3) und stellt 68 Schluessel um.
-       DREI ZEILEN UND NICHT EINE: kein deutsches Zeichen mehr, kein gerader
-       Ersatz (`"` waere die billige Loesung und im Fliesstext falsch), und
-       PAARWEISE geschlossen. Die dritte ist die, die 0.25.4 an
-       `entry.tagQuote` teuer gelernt hat: am Bildschirm stand „Tag „Werkzeug". */
+       `„…“` GIBT ES IN DER TUERKISCHEN TYPOGRAFIE NICHT. */
     const tgGerman = tgPairs.filter(([, , , tr]) => /[„]/.test(tr));
     check('Zusage 5: kein tuerkischer Wert traegt ein deutsches Anfuehrungszeichen',
       tgGerman.length === 0, tgGerman.map(([n]) => n).join(' ') || 'keiner');
@@ -1492,9 +979,7 @@ async function check0313() {
       (String(tr).match(/“/g) || []).length !== (String(tr).match(/”/g) || []).length);
     check('Und jedes Paar ist geschlossen — so viele `“` wie `”`',
       tgUnpaired.length === 0, tgUnpaired.map(([n]) => n).join(' ') || 'alle geschlossen');
-    /* UND ES GIBT SIE UEBERHAUPT. Ohne diese Zeile waeren die drei darueber
-       auch dann gruen, wenn jemand alle Anfuehrungszeichen der Datei loeschte
-       (Stolperstein 81). */
+    /* UND ES GIBT SIE UEBERHAUPT. */
     const TR_QUOTED = 60;
     const tgQuoted = tgPairs.filter(([, , , tr]) => /“/.test(tr));
     check(`Und die Datei traegt wirklich tuerkische Paare — mehr als ${TR_QUOTED}`,
@@ -1502,11 +987,7 @@ async function check0313() {
 
     /* ---- Zusage 6: kein tuerkischer Wert ist deutlich laenger -----------
        DIESELBE DECKE WIE BEI ENGLISCH (Auftrag, F8): ab vierzig Zeichen
-       hoechstens 1,15x. Tuerkisch spart durch seine Endungen und zahlt bei
-       Hoeflichkeitsformen; 90,7 % im Ganzen zeigt, dass die Decke haelt.
-       VIERUNDVIERZIG WERTE LAGEN VOR DER RUNDE DARUEBER, `card.vocabularyResetHint`
-       mit 2,84x an der Spitze -- es zaehlte alle vierzehn Vokabelwoerter auf,
-       wo der deutsche Satz „Alle Wörter dieser Karte" sagt. */
+       hoechstens 1,15x. */
     const TR_LONG_FROM = 40, TR_LONG_MAX = 1.15;
     const tgTooLong = tgPairs
       .filter(([, , de, tr]) => de.length >= TR_LONG_FROM && tr.length > de.length * TR_LONG_MAX)
@@ -1516,12 +997,7 @@ async function check0313() {
 
     /* ---- Zusage 7: nicht mehr Saetze als der deutsche -----------------
        SECHS TUERKISCHE WERTE TRUGEN MEHR SAETZE als ihr deutscher, und es
-       waren genau die sechs, die auf Englisch auch zu viele hatten.
-       DIE ABKUERZUNGEN FALLEN VORHER HERAUS, und die TUERKISCHEN GEHOEREN
-       DAZU: „örn." (zum Beispiel) und „vb." (und so weiter) zaehlten sonst als
-       Satzende. UND WIEDER OHNE `\b`: „örn." beginnt mit einem ö, und dort ist
-       fuer JavaScript keine Wortgrenze -- derselbe Fehlgriff wie bei der
-       Verbotsliste, an derselben Stelle gelernt. */
+       waren genau die sechs, die auf Englisch auch zu viele hatten. */
     const TR_SHORTHAND = /(?:z\. ?B\.|bzw\.|usw\.|ggf\.|u\. ?a\.|vgl\.|Nr\.|ca\.|örn\.|vb\.|bkz\.)/g;
     const tgSentences = (v) => (tgBare(String(v).replace(TR_SHORTHAND, 'x'))
       .match(/[.!?](?=\s|$)/g) || []).length;
@@ -1536,50 +1012,18 @@ async function check0313() {
       tgMoreSentences.length === 0, tgMoreSentences.slice(0, 8).join(' · ') || 'keiner');
 
     /* ---- Zusage 8: keine HTML-Entitaet ---------------------------------
-       DIE LETZTE DER DREI. 0.31.1 hat sie auf Deutsch genommen, 0.31.2 auf
-       Englisch, und beide Male war es dieselbe Stelle: `card.nameFreedHint`
-       schrieb „&lt;numara&gt;" nach. Der Grund ist derselbe: eine Entitaet in
-       einem Wert verlangt vom Uebersetzer, Maskierung zu kennen. */
+       DIE LETZTE DER DREI. */
     const tgEntity = tgPairs.filter(([, , , tr]) => /&[a-z]+;|&#\d+;/i.test(tr));
     check('Zusage 8: kein tuerkischer Wert traegt eine HTML-Entitaet',
       tgEntity.length === 0, tgEntity.map(([n]) => n).join(' ') || 'keiner');
 
     /* ---- Zusage 9: die fuenf Vokabelmehrzahlen tragen DASSELBE Wort ----
        HIER STEHT DIE ZUSAGE UMGEKEHRT, WIE DER AUFTRAG SIE VORGESCHLAGEN HAT,
-       und der Grund ist gemessen und nicht gemeint.
-       DER AUFTRAG (BA 6, Zusage 9) wollte den fuenf Mehrzahlwoertern ihr
-       -ler/-lar geben, weil die Vorlage es als „fatalen Plural-Bug" fuehrt.
-       DAS WAERE DER FEHLER GEWESEN, und zwar dreifach:
-         ERSTENS bricht es Leitplanke L7 DESSELBEN Auftrags -- nach einer Zahl
-         bleibt im Tuerkischen die Einzahl.
-         ZWEITENS nimmt es eine Entscheidung des Betreibers vom 8. September
-         2026 zurueck (Woerterbuch TR-S4), und die ist „abgelehnt, nicht
-         vertagt" (Fehler und Ideen, Punkt 19).
-         DRITTENS steht sie seit 0.24.4 als Waechter im Pruefstand („T2: die
-         fuenf Vokabelpaare tragen auf Tuerkisch dasselbe Wort").
-       WAS DIE VORLAGE NICHT SEHEN KONNTE, UND DIESE ZEILE MISST ES: das
-       Vokabelwort hat je EINEN Mehrzahlplatz, und der Code stellt ihm an
-       achtzehn Stellen eine ZAHL voran (`${n} ${vThing(n)}`), die Sprachdatei
-       an weiteren sechs (`{length} {thing}`). Vierundzwanzig Stellen lesen
-       also „3 Öğeler", sobald jemand die Vorlage befolgt.
-       DIE ZAHL STEHT HIER UND WIRD NACHGERECHNET. Waere sie null, waere die
-       Begruendung der Vorlage richtig und diese Zusage falsch. */
+       und der Grund ist gemessen und nicht gemeint. */
     /* ================= 0.31.4 HAT DIESE ZUSAGE UMGEDREHT =================
        SIE STAND HIER: „die fuenf Vokabelpaare tragen auf Tuerkisch DASSELBE
        Wort" -- und sie war richtig, solange EIN Platz ZWEI Stellungen tragen
-       musste. Die Messung darunter ist der Grund dafuer gewesen.
-       DER BETREIBER HAT DEN ZIELKONFLIKT AM 13. SEPTEMBER 2026 AUFGELOEST,
-       nachdem diese Runde ihm Punkt 32 mit drei Wegen vorgelegt hatte: „an den
-       Stellen wo eine Zahl steht das Wort fuer Einzahl, fuer die anderen das
-       Mehrzahlige -- und dort trage ich dann z. B. Öğeler ein."
-       SEIT 0.31.4 NIMMT `counted()` HINTER EINER ZAHL IMMER DIE EINZAHL, und
-       die Auskunft dafuer steht in der Sprachdatei (`_afterNumber`). Damit
-       kostet die Mehrzahl nichts mehr, und die Paare duerfen -- muessen --
-       verschieden sein.
-       DIE MESSUNG DARUNTER BLEIBT STEHEN, und das ist kein Versehen: sie war
-       der Beweis, dass es den Zielkonflikt GIBT. Er ist nicht verschwunden, er
-       ist geloest -- und wer `counted()` wieder durch `plural()` ersetzte,
-       braechte ihn zurueck. Die Zahl haelt fest, wie gross er ist. */
+       musste. */
     const TR_VOC_PAIRS = [['entryOne', 'entryMany'], ['dayOne', 'dayMany'],
       ['reportOne', 'reportMany'], ['taskOne', 'taskMany'], ['ratingOne', 'ratingMany']];
     const tgSamePair = TR_VOC_PAIRS.filter(([one, many]) =>
@@ -1614,15 +1058,9 @@ async function check0313() {
       !tgNumThenWord.test('her {thing} için geçerlidir'),
       'der Leser sieht die Nachbarschaft nicht');
 
-    /* ---- Zusage 10: keine Mehrzahl hinter einer Zahl ------------------
-       DIE GEGENLEITPLANKE ZUR VORLAGE (L7), und sie gilt fuer BEIDE Formen
-       jedes Paares: „{n} dosya" und nie „{n} dosyalar". Gemessen war sie vor
-       der Runde schon gruen -- kein einziger Wert schrieb „{n} …-ler" --, und
-       genau deshalb steht sie hier: 28 Mehrzahlpaare tragen in beiden Formen
-       denselben Satz, und das ist korrektes Tuerkisch und kein Bug. Wer sie
-       „reparierte", baute den Fehler ein.
-       DERSELBE LESER WIE IN 0.24.4, und die Zeichenklasse nennt die
-       tuerkischen Buchstaben ausdruecklich -- `\\w` kennt sie nicht. */
+    /* ---- Zusage 10: keine Mehrzahl hinter einer Zahl ------------------ DIE
+       GEGENLEITPLANKE ZUR VORLAGE (L7), und sie gilt fuer BEIDE Formen jedes
+       Paares: „{n} dosya" und nie „{n} dosyalar". */
     const TR_LETTERS = 'A-Za-zÇĞİÖŞÜçğıöşü';
     const tgCounted = new RegExp(
       `(?:\\{n\\}|(?:^|[^${TR_LETTERS}0-9])[0-9]+)\\s+[${TR_LETTERS}]*(?:ler|lar)(?![${TR_LETTERS}])`);
@@ -1633,29 +1071,7 @@ async function check0313() {
       tgCounted.test('3 yorumlar') && tgCounted.test('{n} dosyalar') && !tgCounted.test('3 yorum'),
       'der Leser trennt Einzahl und Mehrzahl nicht');
     /* UND DIE ZWEITE HAELFTE DER ZUSAGE, die der Augenschein dieser Runde
-       gefunden hat und die KEIN Blick in die Sprachdatei findet.
-       `countWord(n, einzahl, mehrzahl)` setzt im QUELLTEXT eine Zahl vor ein
-       Wort, das aus ZWEI Schluesseln kommt: `${n} ${plural(n, a, b)}`. In der
-       Datei steht damit nirgends „{n} …lar" -- am Bildschirm aber sehr wohl:
-       bei drei Kommentaren „3 yorumlar", bei drei Dateien „3 dosyalar".
-       FUENF PAARE SIND BETROFFEN, ELF STELLEN. Das sechste Paar, das dort
-       gelesen wird, ist ein VOKABELPAAR (`ratingOne`/`ratingMany`) -- und es
-       ist richtig, weil die Entscheidung des Betreibers vom 8. September 2026
-       genau dort schon gegriffen hat. Die fuenf hier sind nie nachgezogen
-       worden.
-       WARUM 0.31.3 SIE NICHT GEAENDERT HAT: dieselben fuenf Schluessel stehen
-       als BLOCKUEBERSCHRIFT ueber ihren Listen („YORUMLAR", „DOSYALAR",
-       „BAĞLANTILAR"), und dort ist die Mehrzahl richtig. Es war derselbe
-       Zielkonflikt wie bei den Vokabelwoertern, und den hat der Betreiber
-       entschieden und nicht der Uebersetzer.
-       UND SEIT 0.31.4 IST ER GELOEST: `counted()` nimmt hinter einer Zahl die
-       Einzahl, und beide Stellen lesen richtig -- „3 yorum" im Satz,
-       „YORUMLAR" ueber der Liste. Die Zahl unten haelt fest, wie gross der
-       Konflikt war; wer `counted()` wieder durch `plural()` ersetzte, braechte
-       ihn zurueck.
-       GEZAEHLT WIRD ER TROTZDEM, UND ZWAR HIER: eine Zahl, die niemand
-       nachrechnet, verschwindet. Wird eines der fuenf Paare nachgezogen, faellt
-       diese Zeile auf -- und wer ein SECHSTES Paar hinzufuegt, faellt auch auf. */
+       gefunden hat und die KEIN Blick in die Sprachdatei findet. */
     const TR_COUNTED_PAIRS = [['dialog.comment', 'dialog.comments'],
       ['dialog.link', 'dialog.links'], ['dialog.file', 'dialog.files'],
       ['list.photo', 'list.photos'], ['list.video', 'list.videos']];
@@ -1674,63 +1090,33 @@ async function check0313() {
     check('Und die fuenf Paare tragen ihre Mehrzahl — seit 0.31.4 an der richtigen Stelle gelesen',
       tgStillPlural.length === 5 && tgPairsInCode.size === 5,
       `${tgStillPlural.length} von 5 · im Quelltext ${tgPairsInCode.size} Paare: ${[...tgPairsInCode].join(' ')}`);
-    /* UND DAS VOKABELPAAR AN DERSELBEN STELLE IST RICHTIG. Diese Zeile ist der
-       Beleg dafuer, dass die Entscheidung von 0.24.4 greift, wo sie gilt --
-       und dass die fuenf oben wirklich eine Luecke sind und keine zweite
+    /* UND DAS VOKABELPAAR AN DERSELBEN STELLE IST RICHTIG. */
+    /* BIS 0.31.3 STAND HIER: „das Vokabelpaar an derselben Stelle ist
+       richtig, weil beide Formen dasselbe Wort tragen." Das war der Beleg
+       dafuer, dass die fuenf Paare oben eine Luecke sind und keine zweite
        Meinung. */
-    /* BIS 0.31.3 STAND HIER: „das Vokabelpaar an derselben Stelle ist richtig,
-       weil beide Formen dasselbe Wort tragen." Das war der Beleg dafuer, dass
-       die fuenf Paare oben eine Luecke sind und keine zweite Meinung.
-       SEIT 0.31.4 IST DER BELEG EIN ANDERER, und er ist staerker: das
-       Vokabelpaar traegt jetzt ZWEI Woerter, und die Stelle liest trotzdem
-       richtig -- weil `counted()` dort die Einzahl nimmt. Genau das ist der
-       Mechanismus, den die fuenf Paare oben mitbenutzen. */
     check('Und das Vokabelpaar an derselben Stelle traegt zwei Woerter — `counted()` nimmt dort die Einzahl',
       tgFiles.tr['vocabulary.ratingOne'] !== tgFiles.tr['vocabulary.ratingMany'] &&
       /counted\(n, V\.ratingOne, V\.ratingMany\)/.test(tgApp),
       `${tgFiles.tr['vocabulary.ratingOne']} / ${tgFiles.tr['vocabulary.ratingMany']}`);
-    /* UND DIE GROSSSCHREIBUNG IST NACHGEZOGEN -- der eine Handgriff, der keinen
-       Zielkonflikt hat: `dialog.links` stand als „Bağlantılar" da, waehrend
-       `dialog.files` und `dialog.comments` klein geschrieben sind. Am
-       Bildschirm las sich das als „3 Bağlantılar" mitten im Satz; die
-       Blockueberschrift macht das Stilblatt ohnehin gross (TR-S1). */
+    /* UND DIE GROSSSCHREIBUNG IST NACHGEZOGEN -- der eine Handgriff, der
+       keinen Zielkonflikt hat: `dialog.links` stand als „Bağlantılar" da,
+       waehrend `dialog.files` und `dialog.comments` klein geschrieben sind. */
     check('Und die drei Mehrzahlwoerter der Bloecke sind gleich geschrieben — klein',
       ['dialog.links', 'dialog.files', 'dialog.comments']
         .every(k => /^[a-zçğıöşü]/.test(String(tgFiles.tr[k]))),
       ['dialog.links', 'dialog.files', 'dialog.comments']
         .map(k => `${k}: ${tgFiles.tr[k]}`).join(' · '));
 
-    /* ---- Zusage 11: die Anrede ist durchgehend dieselbe ---------------
-       sen UND NICHT siz (Auftrag, F4). Das Deutsche duzt in 44 Werten, und die
-       tuerkische Datei folgte ihm in 78 -- bis auf GENAU EINEN:
-       `card.emailsDoubledHint` sagte „değiştirin ya da boşaltın". Eine
-       Oberflaeche, die zwischen vertraut und hoeflich wechselt, liest sich wie
-       zwei Programme.
-       GESUCHT WIRD DIE HOEFLICHE BEFEHLSFORM und nicht „siz" als Wort: die
-       Endung -in/-ın/-un/-ün an einem Verb ist das Zeichen, und sie ist es
-       auch mit dem angehaengten -iz. NAMENTLICH UND NICHT ALLGEMEIN: dieselbe
-       Endung traegt der Genitiv jedes Substantivs („dosyanın"), und ein
-       Waechter, der „dosyanın" meldet, ist nach einem Tag abgeschaltet.
-       SIEBENUNDZWANZIG VERBEN, UND DIE LISTE IST AN DER DATEI GEMESSEN: jedes
-       einzelne ist gegen alle 1197 Werte gehalten worden, und keines meldet
-       einen richtigen Satz. `yap`, `et`, `ver`, `bul` und `iste` stehen dabei,
-       weil sie die haeufigsten Verben einer Oberflaeche sind -- ein Waechter,
-       der „yapınız" nicht faende, waere die halbe Wache.
-       `verme` STEHT VOR `ver`, und das ist die Form der Vorlage: „vermeyiniz".
-       UND DIE VIER BRIEFE GEHEN DEN DRITTEN WEG (F5): sie reden niemanden an.
-       Die Vorlage schlug „Bu iletiye yanıt vermeyiniz" vor -- das ist siz und
-       braeche diese Zusage; das Deutsche sagt „Antworten darauf liest
-       niemand", also sagt das Tuerkische „yanıtlar okunmaz". */
+    /* ---- Zusage 11: die Anrede ist durchgehend dieselbe --------------- sen
+       UND NICHT siz (Auftrag, F4). */
     const TR_POLITE_VERBS = ['değiştir', 'boşalt', 'gir', 'yanıtla', 'kullan', 'tıkla',
       'seç', 'aç', 'kapat', 'yaz', 'oku', 'bekle', 'dene', 'kaydet', 'sil', 'ekle',
       'ayarla', 'gönder', 'verme', 'ver', 'yükle', 'kopyala', 'başlat', 'yap', 'et',
       'bul', 'iste'];
     /* DAS PUFFER-`y` GEHOERT DAZU, und es ist an dieser Zeile gelernt: die
        tuerkische Grammatik schiebt zwischen Vokal und Endung ein `y` ein --
-       „vermeyiniz" ist `verme` + **y** + `iniz`, nicht `verme` + `iniz`. Der
-       erste Entwurf ohne das `y` fand die Form der VORLAGE nicht, und genau
-       die ist der Grund fuer F5. Der Pruefstand hat es im ersten Lauf
-       gemeldet, an der eigenen Selbstprobe. */
+       „vermeyiniz" ist `verme` + **y** + `iniz`, nicht `verme` + `iniz`. */
     const tgPolite = new RegExp(
       `(?<![\\p{L}\\p{N}_])(?:${TR_POLITE_VERBS.join('|')})y?(?:in|ın|un|ün)(?:iz|ız)?(?![\\p{L}])`, 'u');
     check('Der Leser der Anrede findet die hoefliche Befehlsform — und nicht den Genitiv',
@@ -1741,10 +1127,7 @@ async function check0313() {
     check('Zusage 11: kein tuerkischer Wert spricht den Benutzer hoeflich an — sen, durchgehend',
       tgSiz.length === 0, tgSiz.join(' ') || 'keiner');
     /* UND `lütfen` STEHT NIRGENDS -- Woerterbuch TR-S2. „Bitte" steht 21-mal
-       in `de.json`, und keine dieser Stellen wird eine Hoeflichkeitsfloskel.
-       Die Zeile war vor dieser Runde schon gruen und steht hier, damit sie es
-       bleibt: diese Runde schreibt 151 Formen neu, und `lütfen` ist der Griff,
-       zu dem ein Uebersetzer bei „Bitte" zuerst greift. */
+       in `de.json`, und keine dieser Stellen wird eine Hoeflichkeitsfloskel. */
     const tgPlease = tgPairs.filter(([, , , tr]) => /lütfen/i.test(tr)).map(([n]) => n);
     check('Und `lütfen` steht in keinem tuerkischen Wert — TR-S2',
       tgPlease.length === 0, tgPlease.join(' ') || 'keiner');
@@ -1763,24 +1146,14 @@ async function check0313() {
     check('Und jeder der vier Briefe traegt seine Leerzeilen',
       TR_LETTERS_KEYS.every(k => String(tgFiles.tr[k]).includes('\n\n')),
       TR_LETTERS_KEYS.filter(k => !String(tgFiles.tr[k]).includes('\n\n')).join(' ') || 'alle vier');
-    /* UND SIE SCHLIESSEN UNPERSOENLICH (F5). Die Zeile steht namentlich da,
-       weil sie die Entscheidung IST: nicht „vermeyiniz" (siz, braeche Zusage
-       11) und nicht „kimse okumaz" (Kneipenton, Zusage 4), sondern das
-       Passiv. */
+    /* UND SIE SCHLIESSEN UNPERSOENLICH (F5). */
     const TR_LETTER_END = 'Bu ileti otomatik olarak gönderilmiştir; yanıtlar okunmaz.';
     const tgEnd = TR_LETTERS_KEYS.filter(k => !String(tgFiles.tr[k]).endsWith(TR_LETTER_END));
     check('Und jeder der vier Briefe schliesst unpersoenlich — F5',
       tgEnd.length === 0, tgEnd.join(' ') || 'alle vier');
 
     /* ---- Zusage 13: der tuerkische Stand liegt als Vergleichsdatei daneben
-       DIESELBE BAUFORM WIE FUER ENGLISCH IN 0.31.2 (Auftrag, F10). Fuer
-       Deutsch gibt es eine Abnahme (0681d42), fuer Englisch den
-       Vergleichsstand von 0.31.2 -- fuer Tuerkisch ist DIESE Runde die
-       Abnahme. Was sie hinterlaesst, sind 1197 Schluessel mit ihrem Wert.
-       UND DIE TAFEL DARUNTER IST DER EIGENTLICHE WAECHTER. Sie ist LEER, und
-       solange sie das ist, muss jeder tuerkische Wert Zeichen fuer Zeichen der
-       dieser Runde sein. Einen Vergleichsstand still nachzuziehen ist damit
-       ein roter Punkt. */
+       DIESELBE BAUFORM WIE FUER ENGLISCH IN 0.31.2 (Auftrag, F10). */
     const tgPrintFile = path.join(__dirname, 'tools', 'tuerkisch-0313.json');
     check('Zusage 13: der tuerkische Stand liegt als Vergleichsdatei daneben',
       fs.existsSync(tgPrintFile), 'tools/tuerkisch-0313.json');
@@ -1788,20 +1161,16 @@ async function check0313() {
       ? JSON.parse(fs.readFileSync(tgPrintFile, 'utf8')) : {};
     const tgPrint = tgFile.values || {};
     check('Und sie nennt ihre Runde und ihr Werkzeug',
-      tgFile.round === '0.31.3' && /tuerkischstand\.js/.test(String(tgFile._hinweis)),
-      `${tgFile.round} · ${String(tgFile._hinweis || '').slice(0, 60)}`);
+      tgFile.round === '0.31.3' && /tuerkischstand\.js/.test(String(tgFile._about)),
+      `${tgFile.round} · ${String(tgFile._about || '').slice(0, 60)}`);
     check('Und das Werkzeug, das sie schreibt, liegt daneben',
       fs.existsSync(path.join(__dirname, 'tools', 'tuerkischstand.js')),
       'tools/tuerkischstand.js');
-    /* DER VERGLEICHSSTAND WAECHST NICHT MIT. Er haelt den Stand von 0.31.3
-       fest; was seitdem dazugekommen ist, steht NAMENTLICH in der Tafel
-       darunter -- und `_afterNumber` ist der einzige NEUE Schluessel. */
-    /* UND ACHTZEHN MIT 0.32.0, Schluessel fuer Schluessel dieselben wie auf der
-       englischen Seite -- L5 verlangt es: kein neuer Schluessel ohne alle drei
-       Sprachen, und die Deckungsprobe faerbte den Lauf sofort rot. */
-    /* UND EINER MIT 0.33.0 -- derselbe wie drueben: `server.exportTooOld`. L6
-       verlangt es: kein Schluessel faellt und keiner kommt nur in einer
-       Sprache. */
+    /* DER VERGLEICHSSTAND WAECHST NICHT MIT. */
+    /* UND ACHTZEHN MIT 0.32.0, Schluessel fuer Schluessel dieselben wie auf
+       der englischen Seite -- L5 verlangt es: kein neuer Schluessel ohne alle
+       drei Sprachen, und die Deckungsprobe faerbte den Lauf sofort rot. */
+    /* UND EINER MIT 0.33.0 -- derselbe wie drueben: `server.exportTooOld`. */
     const TR_ADDED_AFTER_0313 = ['_afterNumber',
       'card.grade', 'entry.deletePhoto', 'entry.deleteVideo',
       'list.bellMine', 'list.bellOther', 'list.bellToMe',
@@ -1826,17 +1195,11 @@ async function check0313() {
       `neu ${tgAdded.join(' ') || 'keiner'} · verloren ${tgLost.join(' ') || 'keiner'}`);
     /* DIE TAFEL WAR IN 0.31.3 LEER, UND SIE IST ES SEIT 0.31.4 NICHT MEHR --
        genau dafuer ist sie gebaut: „Wer Tuerkisch anfasst, schreibt den
-       Schluessel mit seinem Grund hinein."
-       VIERZEHN EINTRAEGE MIT 0.31.4, UND SIE ERZAEHLEN JENE RUNDE: fuenf
-       Vokabelmehrzahlen bekommen ihr -ler/-lar (der Betreiber, 13.9.2026),
-       fuenf Saetze waehlen die Einzahlform, weil ihre Grammatik sie verlangt,
-       drei Kruecken aus 0.31.3 fallen weg, und `_afterNumber` ist der
-       Mechanismus selbst.
-       SIEBENUNDVIERZIG MIT 0.32.0 -- dreiunddreissig mehr, und `list.newCommentsHint`
-       wechselt seinen Grund: der Satz des Glockenfensters wird ersetzt (F4),
-       also steht dort jetzt die neue Runde. DIE ZAHL WAECHST UND WIRD NICHT
-       GELOESCHT (Stolperstein 74): wer sie still mitlaufen liesse, saehe nicht
-       mehr, welche Runde welchen tuerkischen Wert angefasst hat. */
+       Schluessel mit seinem Grund hinein." VIERZEHN EINTRAEGE MIT 0.31.4, UND
+       SIE ERZAEHLEN JENE RUNDE: fuenf Vokabelmehrzahlen bekommen ihr
+       -ler/-lar (der Betreiber, 13.9.2026), fuenf Saetze waehlen die
+       Einzahlform, weil ihre Grammatik sie verlangt, drei Kruecken aus 0.31.3
+       fallen weg, und `_afterNumber` ist der Mechanismus selbst. */
     const TR_CHANGED_AFTER_0313 = {
       '_afterNumber':           '0.31.4: der Mechanismus — hinter einer Zahl die Einzahl',
       'card.catchUpAsk':        '0.33.0: der Dialog nennt die Vorschaubilder nicht mehr — und „mümkündür" wird „olur", damit er unter der Laengenlatte bleibt',
@@ -1858,8 +1221,7 @@ async function check0313() {
       'list.noCategory':        '0.31.4: die Kruecke „listesi" faellt — „Kategorisiz Öğeler"',
       'list.newCommentsHint':   '0.32.0: der Satz im Glockenfenster, nach Herkunft getrennt (F4); 0.32.1: „sana ait {entryMany}" statt „senin" — ohne Besitzendung',
       /* UND DREIUNDDREISSIG MIT 0.32.0 -- dieselben Schluessel wie auf der
-         englischen Seite und aus denselben Gruenden. Die Tafel traegt sie
-         alphabetisch wie die Datei; die Zeile darunter vergleicht sortiert. */
+         englischen Seite und aus denselben Gruenden. */
       'vocabulary.grade':         '0.32.0: das fuenfzehnte Vokabelwort — „Puan"',
       'card.grade':               '0.32.0: seine Beschriftung in der Vokabelkarte',
       'entry.grade':              '0.32.0: der Spaltenkopf der Rechnung wird {grade}',
@@ -1891,22 +1253,7 @@ async function check0313() {
       'mail.ownServer':           '0.32.0: der zwoelfte Satz — „Kendi sunucu" in der Anbieterliste',
       /* VIER STANDEN HIER BIS 0.32.0 und stehen jetzt nicht mehr:
          `list.followsSort`, `list.pillHint`, `list.statusByHand` und
-         `list.byHandHint`. Alle vier gehoerten der Filterableitung, und die
-         ist mit 0.32.1 ausgebaut -- ein Eintrag, der auf einen Schluessel
-         zeigt, den es nicht mehr gibt, ist eine Karteileiche.
-
-         UND ACHTZEHN KOMMEN MIT 0.32.1 DAZU. Dreizehn davon sind der
-         eigentliche Gegenstand der Runde: TUERKISCH BRAUCHT AM VOKABELWORT
-         EINE ENDUNG, und die haengt vom Wort ab, das der Betreiber eintraegt
-         -- „Öğe" wird „Öğeyi", „Rapor" wird „Raporu", „Test günü" wird „Test
-         gününü". AUSRECHNEN LAESST SIE SICH NICHT: die beste Bibliothek
-         (affixi) haengt an jedes vokalendende Wort ein `-n-` und macht aus
-         „Öğe" ein „Öğeni" -- richtig nach einem Possessiv, falsch sonst, und
-         aus den Buchstaben ist das nicht zu sehen.
-         ALSO WIRD DER SATZ SO GEBAUT, DASS DIE ENDUNG AUF EIN FESTES WORT
-         FAELLT („{entryOne} kaydını sil"). Das ist die Krücke, die die
-         Fachwelt dafuer kennt, und `dialog.deleteAlso` benutzt sie im Haus
-         schon seit 0.31.3. */
+         `list.byHandHint`. */
       'entry.deleteEntry':        '0.32.1: „{entryOne} kaydını sil" — der Akkusativ faellt auf „kayıt"',
       'entry.deleteDay':          '0.32.1: „{dayOne} kaydını sil" — derselbe Griff',
       'card.potentialModeLabel':  '0.32.1: „modunu aç" — der Akkusativ faellt auf „mod"',
@@ -1925,11 +1272,7 @@ async function check0313() {
       'server.ratingBeforeTest':  '0.32.1: „burada {testedNo} yazıyor" — Vokabelwort statt fester Text',
       'card.potentialModeHint':   '0.32.1: „ayrıntı görünümünde" statt „kayıtta" — das Vokabelwort stand fest im Satz',
       'entry.dueHint':            '0.32.1: „Son tarih" ohne „Görevin" — das Vokabelwort stand fest im Satz',
-      /* UND EIN FUND DER RUNDE SELBST -- Punkt 31 des Sammelblatts. Der
-         berichtigte `yedek`-Waechter hat ihn im ersten Lauf gefunden: „bu
-         uygulamanın yedeği değil" traegt die Konsonantenerweichung, und der
-         Waechter von 0.25.1 suchte ein `k`. Er stand dreissig Runden lang so
-         da -- genau wie der Wert, den 0.31.3 berichtigt hat. */
+      /* UND EIN FUND DER RUNDE SELBST -- Punkt 31 des Sammelblatts. */
       'card.checkForeign':        '0.32.0: Punkt 31 — „yedeği" wird „yedeklemesi"'
     };
     const tgDiff = Object.keys(tgFiles.tr)
@@ -1949,35 +1292,10 @@ async function check0313() {
   }
 }
 
-/* =================================================================
-   0.31.4 — „Nach einer Zahl die Einzahl, sonst die Mehrzahl"
-
-   DIE RUNDE LOEST EINEN ZIELKONFLIKT AUF, den 0.31.3 gemessen und dem
-   Betreiber vorgelegt hat (Fehler und Ideen, Punkt 32). Seine Entscheidung vom
-   13. September 2026, im Wortlaut:
-
-     „Dann machen wir das so, dass an den Stellen wo eine Zahl steht das Wort
-      fuer Einzahl kommt, fuer die anderen das Mehrzahlige -- und dort trage
-      ich dann z. B. Öğeler ein."
-
-   DIE REGEL DAHINTER IST NACHRECHERCHIERT und steht auf vier Beinen: TDK
-   („sayı sıfatının peşinden gelen isim çoğul eki almaz"), Göksel & Kerslake
-   (Turkish: A Comprehensive Grammar -- Ausnahme nur bei Eigennamen und
-   geschlossenen Gruppen), Sağ („Turkish numerals strictly reject co-occurrence
-   with plural nouns") und die CLDR-Daten selbst: „1 elma", „123 elma" -- ohne
-   Zahl „elmalar".
-
-   UND DARAUS FOLGT, WARUM DER CODE ES NICHT VON ALLEIN WISSEN KANN:
-   `Intl.PluralRules('tr').select(n)` waehlt nach dem WERT von n, die
-   tuerkische Regel haengt an der STELLUNG. `select(3)` ist `other`, und das
-   ist als CLDR-Kategorie richtig -- es heisst im Tuerkischen aber nicht
-   „haenge -lar an". DIE AUSKUNFT, DIE DER CODE BRAEUCHTE, SIEHT DIE
-   SCHNITTSTELLE NIE.
-
-   ALSO SAGT SIE DIE DATEI: `_afterNumber` neben `_locale` und `_name`. Das ist
-   Leitplanke L1 und keine Erfindung dieser Runde -- der Kommentar an
-   `plural()` sagt seit 0.24.0: „die Regel gehoert aber der Sprache".
-   ================================================================= */
+/* ================================================================= 0.31.4 —
+   „Nach einer Zahl die Einzahl, sonst die Mehrzahl" DIE RUNDE LOEST EINEN
+   ZIELKONFLIKT AUF, den 0.31.3 gemessen und dem Betreiber vorgelegt hat
+   (Fehler und Ideen, Punkt 32). */
 const TR_AFTER_NUMBER = { de: 'plural', en: 'plural', tr: 'one' };
 
 async function check0314() {
@@ -1995,29 +1313,14 @@ async function check0314() {
   {
     /* ---- Zusage 1: fuer Deutsch und Englisch aendert sich NICHTS -------
        DIE FORDERUNG DES BETREIBERS, 13. September 2026: „Das darf sich bei
-       deutsch und englisch nicht negativ auswirken."
-       SIE IST DURCH DIE BAUFORM ERFUELLT UND NICHT DURCH SORGFALT: `counted()`
-       faellt bei `_afterNumber: plural` auf `plural()` zurueck -- derselbe Ruf,
-       dieselben Argumente, dasselbe Ergebnis. Fuer de und en ist die Runde ein
-       anderer Weg zu demselben Wort.
-       ZWEI ZEILEN HALTEN DAS FEST: dass beide Dateien `plural` sagen (unten,
-       Zusage 2) und dass der Rueckfall wirklich `plural(n, one, other)` ist
-       (Zusage 7). Fehlte eine, waere die Zusage eine Behauptung.
-       UND DIE WERTE SELBST HALTEN ZWEI AELTERE WACHEN: die Wortlautprobe haelt
-       `de.json` gegen die Abnahme von 0681d42, der Vergleichsstand
-       `tools/englisch-0312.json` haelt alle 1197 englischen Werte Zeichen fuer
-       Zeichen. Beide laufen in diesem Lauf mit.
-       DIE SECHS SUMMEN DER GLEICHLAUTPROBE SIND TROTZDEM ANDERE, und der Grund
-       steht oben bei DE_UNTOUCHED: die Probe liest den ganzen Quelltext, und
-       diese Runde baut in `public/app.js`. Am zweiten Gang der Probe
-       nachgesehen -- fuer de und en kommen und gehen AUSSCHLIESSLICH
-       Quelltextwoerter, kein Bildschirmtext. */
+       deutsch und englisch nicht negativ auswirken." SIE IST DURCH DIE
+       BAUFORM ERFUELLT UND NICHT DURCH SORGFALT: `counted()` faellt bei
+       `_afterNumber: plural` auf `plural()` zurueck -- derselbe Ruf,
+       dieselben Argumente, dasselbe Ergebnis. */
     const anDeEn = ['de', 'en'].filter(c => anFiles[c]._afterNumber !== 'plural');
     check('Zusage 1: fuer Deutsch und Englisch aendert sich nichts — beide sagen `plural`',
       anDeEn.length === 0, anDeEn.join(' ') || 'de und en unveraendert');
-    /* UND DIE VOKABELPAARE DORT SIND UNBERUEHRT. Die Runde gibt der
-       tuerkischen Mehrzahl ihr -ler; auf Deutsch und Englisch stand sie immer
-       schon da, und sie darf sich nicht bewegen. */
+    /* UND DIE VOKABELPAARE DORT SIND UNBERUEHRT. */
     const AN_DE_VOC = { entryOne: 'Eintrag', entryMany: 'Einträge', dayOne: 'Testtag',
       dayMany: 'Testtage', reportOne: 'Bericht', reportMany: 'Berichte',
       taskOne: 'Aufgabe', taskMany: 'Aufgaben', ratingOne: 'Bewertung',
@@ -2029,9 +1332,7 @@ async function check0314() {
       anDeMoved.map(([k]) => `${k}: ${anFiles.de['vocabulary.' + k]}`).join(' · ') || 'alle zehn');
 
     /* ---- Zusage 2: die Auskunft steht in jeder der drei Dateien --------
-       UND SIE TRAEGT EINEN DER BEIDEN ERLAUBTEN WERTE. Ein Tippfehler waere
-       sonst eine stille Ruecknahme dieser Runde: `AFTER_NUMBER` faellt auf
-       `plural`, und niemand saehe es. */
+       UND SIE TRAEGT EINEN DER BEIDEN ERLAUBTEN WERTE. */
     const AN_ALLOWED = ['one', 'plural'];
     const anMissing = Object.entries(TR_AFTER_NUMBER)
       .filter(([c, want]) => anFiles[c]._afterNumber !== want);
@@ -2042,22 +1343,14 @@ async function check0314() {
     check('Und der Wert ist einer der beiden erlaubten',
       ['de', 'en', 'tr'].every(c => AN_ALLOWED.includes(anFiles[c]._afterNumber)),
       ['de', 'en', 'tr'].map(c => `${c}: ${anFiles[c]._afterNumber}`).join(' · '));
-    /* UND ER STEHT VORN, BEI SEINESGLEICHEN. `_locale` und `_name` sind die
-       beiden anderen Zeilen, die keinen Bildschirmtext tragen; eine dritte
-       gehoert dazu und nicht zwischen die Saetze. */
+    /* UND ER STEHT VORN, BEI SEINESGLEICHEN. */
     check('Und er steht bei `_locale` und `_name` und nicht zwischen den Saetzen',
       ['de', 'en', 'tr'].every(c => Object.keys(anFiles[c]).slice(0, 3).sort().join(' ')
         === '_afterNumber _locale _name'),
       ['de', 'en', 'tr'].map(c => Object.keys(anFiles[c]).slice(0, 3).join(',')).join(' · '));
 
     /* ---- Zusage 3: eine Datei ohne den Schluessel faellt auf `plural` ---
-       DAS IST DIE ZEILE FUER DIE VIERTE SPRACHE. 0.24.0 hat versprochen: „wer
-       eine weitere hineinlegt, hat nach einem Neustart eine Sprache mehr --
-       ohne eine Zeile Programm." Eine Datei, die an einem fehlenden
-       `_afterNumber` zerbraeche, naehme dieses Versprechen zurueck.
-       GEPRUEFT WIRD DER AUSDRUCK IM QUELLTEXT und nicht eine Behauptung: er
-       muss GEGEN `'one'` vergleichen und nicht gegen `'plural'` -- nur dann
-       ist die Vorgabe das alte Verhalten. */
+       DAS IST DIE ZEILE FUER DIE VIERTE SPRACHE. */
     check('Zusage 3: eine Sprachdatei ohne `_afterNumber` faellt auf `plural`',
       /_afterNumber === 'one' \? 'one' : 'plural'/.test(anCode),
       'der Ausdruck im Quelltext vergleicht nicht gegen `one`');
@@ -2065,10 +1358,7 @@ async function check0314() {
       /let AFTER_NUMBER = 'plural';/.test(anCode), 'die Vorgabe fehlt oder heisst anders');
 
     /* ---- Zusage 7: `counted()` liest die DATEI und nicht die Locale -----
-       DAS IST LEITPLANKE L1 ALS PRUEFUNG. Eine Liste von Sprachkennungen im
-       Code („tr, hu, ja, ko, zh") waere billiger und genau das, was Konzept 4.3
-       verbietet: die Regel gehoert der Sprache, und die Sprache steht in ihrer
-       Datei. */
+       DAS IST LEITPLANKE L1 ALS PRUEFUNG. */
     const anBody = (anCode.match(/function counted\(n, one, other\) \{([\s\S]*?)\n\}/) || [])[1] || '';
     check('Zusage 7: counted() gibt es, und sie entscheidet an AFTER_NUMBER',
       /AFTER_NUMBER === 'one' \? one : plural\(n, one, other\)/.test(anBody),
@@ -2077,16 +1367,7 @@ async function check0314() {
       !/'tr'|"tr"|tr-TR|LOCALE/.test(anBody), anBody.trim().slice(0, 120));
 
     /* ---- Zusage 5: JEDE Zaehlerstelle geht durch `counted()` -----------
-       DER BEWEIS DIESER RUNDE, und er ist in drei Schritten gebaut:
-         1. jede Stelle, die eine Zahl und ein Wort NEBENEINANDER setzt, ruft
-            `counted()` und nicht `plural()`
-         2. `counted()` nimmt bei `_afterNumber: one` die EINZAHLFORM
-         3. keine tuerkische Einzahlform endet auf -ler/-lar
-       Zusammen: hinter einer Zahl steht am Bildschirm keine Mehrzahl.
-       DIE EINE AUSNAHME STEHT NAMENTLICH DA UND IST KEIN NOMEN: in
-       `card.aloneOverLimit` waehlt `plural()` zwischen „passt" und „passen" --
-       einem VERB. Die Stellungsregel gilt fuer das Nomen hinter der Zahl, und
-       im Tuerkischen tragen dort ohnehin beide Formen dasselbe Wort. */
+       DER BEWEIS DIESER RUNDE, und er ist in drei Schritten gebaut: 1. */
     const AN_COUNTED_CALLS = 8, AN_PLURAL_LEFT = 2;
     const anCounted = (anCode.match(/counted\(/g) || []).length - 1;
     const anPluralLeft = (anCode.match(/[^a-zA-Z]plural\(/g) || []).length - 1;
@@ -2094,21 +1375,19 @@ async function check0314() {
       anCounted === AN_COUNTED_CALLS, `${anCounted} Rufe`);
     check('Und es bleiben genau zwei plural() — der Ruf in counted() selbst und das VERB in card.aloneOverLimit',
       anPluralLeft === AN_PLURAL_LEFT, `${anPluralLeft} Rufe`);
-    /* UND KEINE STELLE SETZT EINE ZAHL UND EIN WORT MIT `plural()` NEBENEINANDER.
-       Das ist die Zeile, die den naechsten Handgriff faengt: wer eine neue
-       Zaehlerstelle baut und dabei zu `plural()` greift, faellt hier auf. */
-    /* GESUCHT WIRD EINE ZAHL VOR EINEM WORT und nicht irgendein `plural()` mit
-       einer Klammer davor: in `card.aloneOverLimit` steht
-       `${n} ${esc(vThing(n))} ${plural(n, passt, passen)}` -- dort waehlt
-       `plural()` ein VERB, und davor steht kein Zaehler, sondern das Nomen, das
-       `counted()` schon richtig gemacht hat. Der Blick zurueck schliesst die
-       fuenf Vokabelhelfer deshalb aus. */
+    /* UND KEINE STELLE SETZT EINE ZAHL UND EIN WORT MIT `plural()`
+       NEBENEINANDER. */
+    /* GESUCHT WIRD EINE ZAHL VOR EINEM WORT und nicht irgendein `plural()`
+       mit einer Klammer davor: in `card.aloneOverLimit` steht `${n}
+       ${esc(vThing(n))} ${plural(n, passt, passen)}` -- dort waehlt
+       `plural()` ein VERB, und davor steht kein Zaehler, sondern das Nomen,
+       das `counted()` schon richtig gemacht hat. */
     const anRaw = [...anCode.matchAll(
       /\$\{(?![^{}]*(?:vThing|vTime|vReport|vTask|vRating|counted))[^{}]*\}\s+\$\{(?:esc\()?plural\(/g)].length;
     check('Und keine Stelle setzt eine Zahl und ein Wort mit plural() nebeneinander',
       anRaw === 0, `${anRaw} Stellen`);
     /* UND DER LESER WUERDE EINE FINDEN. Ohne diese Zeile waere die darueber
-       auch mit einem kaputten Muster gruen (Stolperstein 81). */
+       auch mit einem kaputten Muster gruen. */
     const anProbe = /\$\{(?![^{}]*(?:vThing|vTime|vReport|vTask|vRating|counted))[^{}]*\}\s+\$\{(?:esc\()?plural\(/;
     check('Und der Leser wuerde eine finden — und das Verb laesst er stehen',
       anProbe.test('`${n} ${plural(n, a, b)}`') &&
@@ -2124,8 +1403,7 @@ async function check0314() {
       anOnePlural.map(([o]) => `${o}: ${anFiles.tr['vocabulary.' + o]}`).join(' · ') || 'alle fuenf');
     /* ---- Zusage 6: die Gegenrichtung — ohne Zahl steht sehr wohl eine ---
        OHNE DIESE ZEILE WAERE DIE RUNDE GRUEN, wenn jemand alle Mehrzahlen aus
-       `tr.json` loeschte. Sie ist die Haelfte, die sagt, dass die Runde
-       ueberhaupt etwas getan hat. */
+       `tr.json` loeschte. */
     const anManySingular = AN_VOC.filter(([, many]) => !anPlural(anFiles.tr['vocabulary.' + many]));
     check('Zusage 6: jede der fuenf tuerkischen MEHRZAHLformen endet auf -ler oder -lar',
       anManySingular.length === 0,
@@ -2137,12 +1415,7 @@ async function check0314() {
       'der Leser sieht die Endung nicht');
 
     /* ---- Zusage 11: die Saetze, die die Einzahl VERLANGEN --------------
-       AUCH OHNE ZAHL DAVOR. `her` („jedes") und `sayısı` („die Zahl der …")
-       verlangen im Tuerkischen die Einzahl -- „her öğeler için" ist falsch.
-       Diese fuenf Saetze tragen deshalb `{entryOne}` und nicht `{entryMany}`,
-       und ohne diese Zeile faellt der naechste Handgriff dorthin zurueck.
-       GEPRUEFT WIRD DIE NACHBARSCHAFT und nicht der Schluesselname: wer den
-       Satz umbaut und `her` stehen laesst, faellt weiter auf. */
+       AUCH OHNE ZAHL DAVOR. */
     const anNeedsOne = [];
     for (const [k, v] of Object.entries(anFiles.tr)) {
       if (typeof v !== 'string') continue;
@@ -2155,10 +1428,7 @@ async function check0314() {
       /(?:^|[^\p{L}])(?:her|kaç)\s+\{(\w*Many)\}/u.test('her {entryMany} için') &&
       !/(?:^|[^\p{L}])(?:her|kaç)\s+\{(\w*Many)\}/u.test('her {entryOne} için'),
       'der Leser sieht die Nachbarschaft nicht');
-    /* UND DIE FUENF STEHEN NAMENTLICH DA. Die Nachbarschaftsprobe darueber
-       faengt den Rueckfall; diese Zeile haelt fest, DASS es die fuenf gibt --
-       sonst waere sie auch gruen, wenn jemand alle fuenf Saetze loeschte
-       (Stolperstein 81). */
+    /* UND DIE FUENF STEHEN NAMENTLICH DA. */
     const AN_SINGULAR_SENTENCES = ['card.blocksHint', 'card.criteriaAdminHint',
       'card.criteriaOrderHint', 'card.orderAppliesNote', 'list.showAll'];
     const anNotOne = AN_SINGULAR_SENTENCES.filter(k => !/\{entryOne\}/.test(String(anFiles.tr[k])));
@@ -2166,9 +1436,7 @@ async function check0314() {
       anNotOne.length === 0, anNotOne.join(' ') || 'alle fuenf');
 
     /* ---- Zusage 10: ein Platz wechselt nur innerhalb SEINES Paares ------
-       Die Zusage 3 von 0.31.3 ist dafuer um einen Spalt geoeffnet worden. Diese
-       Zeile haelt fest, dass es ein Spalt bleibt: `{entryOne}` fuer
-       `{entryMany}` ja, `{entryOne}` fuer `{dayMany}` nicht. */
+       Die Zusage 3 von 0.31.3 ist dafuer um einen Spalt geoeffnet worden. */
     const anWrongFamily = [];
     for (const [k, dv] of Object.entries(anFiles.de)) {
       if (k.startsWith('_') || typeof dv !== 'string') continue;
@@ -2188,29 +1456,7 @@ async function check0314() {
       anWrongFamily.length === 0, [...new Set(anWrongFamily)].slice(0, 6).join(' · ') || 'keiner');
 
     /* ---- Zusage 5, VIERTER SCHRITT: am GERENDERTEN TEXT (F8, BA 5) ------
-       DIE DREI SCHRITTE OBEN LESEN DEN QUELLTEXT UND DIE DATEI. Die Frage des
-       Auftrags war eine andere (F8): „Woran zeigt sich, dass es wirklich
-       stimmt? Am gerenderten Bildschirmtext und nicht an der Datei." Genau
-       dort stand der Befund, den 0.31.3 gemeldet hat: „3 yorumlar" steht in
-       KEINER Datei -- `countWord` setzt Zahl und Wort aus ZWEI Schluesseln
-       zusammen, und erst am Bildschirm stehen sie nebeneinander.
-
-       HIER LAEUFT `app.js` WIRKLICH, in einem Fenster mit den echten
-       Sprachdateien, und die Zaehlerstellen werden AUSGEFUELLT. Abgeschrieben
-       ist allein die FORM „Zahl, Leerzeichen, Wort"; WELCHES Wort dort steht,
-       sagt die Datei, und WELCHE Paare gelesen werden, sagt der Quelltext.
-
-       DIE ZAHLEN 0 1 2 3 11 21 100 STEHEN DA, WEIL DER FEHLER AM WERT HAENGT:
-       `Intl.PluralRules('tr')` sagt bei 1 `one` und sonst `other`. Waere
-       `counted()` doch an den Wert gebunden, fiele die Mehrzahl bei 2, 3, 11,
-       21 und 100 heraus und bei 1 nicht -- eine Probe, die nur mit 1 rechnete,
-       waere gruen und belegte das Gegenteil.
-
-       GEFRAGT WIRD UEBER `eval` IM FENSTER, und das hat einen Grund: `vThing`
-       und `V` stehen auf oberster Ebene als `const` und `let` und liegen damit
-       NICHT am window (derselbe Grund, aus dem `waitSearch` die Zaehlzeile
-       liest und nicht `w.state`). Das Fenster ist das des Pruefstands und kein
-       Nachbau -- `buildDom` laedt `public/app.js` in seinen Zusammenhang. */
+       DIE DREI SCHRITTE OBEN LESEN DEN QUELLTEXT UND DIE DATEI. */
     let JSDOMan;
     try { ({ JSDOM: JSDOMan } = require('jsdom')); } catch { JSDOMan = null; }
     check('jsdom steht fuer die Probe am gerenderten Text bereit',
@@ -2218,21 +1464,7 @@ async function check0314() {
     if (JSDOMan) {
       /* DER VOKABELSATZ DES LESERS KOMMT VOM SERVER, und der Mock muss ihn
          mitgeben -- sonst steht die Oberflaeche auf Tuerkisch und traegt
-         deutsche Vokabelwoerter. Das ist keine Luecke in `app.js`, sondern
-         seine Bauform: `loadLanguages()` holt zuerst die VORGABESPRACHE der
-         Installation (im Mock Deutsch), und `V = { ...vocabularyDefault(),
-         ...V }` laesst stehen, was schon drinsteht -- „der Satz des Servers
-         wiegt schwerer als die Vorgabe". Im Betrieb ueberschreibt ihn
-         `/api/settings` mit `vocabulary`, und genau das ist hier nachgebaut.
-         ABGELEITET UND NICHT GETIPPT, und zwar Zeichen fuer Zeichen wie
-         `vocabulary()` in server.js es tut, wenn nichts eingetragen ist: die
-         `vocabulary.`-Schluessel der Sprachdatei des Lesers. Ein hier
-         hingeschriebenes Wort waere eine zweite Wahrheit (Stolperstein 47) --
-         die Probe soll ja belegen, dass die DATEI am Bildschirm ankommt.
-         DASS DIESE ZEILE NOETIG IST, HAT DER ERSTE LAUF GEZEIGT: ohne sie las
-         der Bildschirm „Açık Aufgaben", und die Zeile darunter blieb trotzdem
-         gruen -- deutsche Mehrzahlen enden nicht auf -ler. Die Selbstprobe hat
-         genau das geleistet, wofuer sie dasteht. */
+         deutsche Vokabelwoerter. */
       const anVocabulary = Object.fromEntries(Object.entries(anFiles.tr)
         .filter(([k]) => k.startsWith('vocabulary.'))
         .map(([k, v]) => [k.slice('vocabulary.'.length), v]));
@@ -2242,15 +1474,13 @@ async function check0314() {
       await new Promise(r => setTimeout(r, 120));
       /* GEKLAMMERT WIE JEDER GRIFF IN EIN FREMDES FENSTER: ein Rueckbau, der
          `app.js` zerbricht, soll eine Zusage rot machen und nicht den Lauf
-         abreissen -- und der Fehler soll im Befund stehen und nicht im Nichts. */
+         abreissen -- und der Fehler soll im Befund stehen und nicht im
+         Nichts. */
       const anSay = (expr) => {
         try { return String(wAn.eval(expr)); } catch (e) { return 'FEHLER ' + e.message; }
       };
-      /* ZUERST DER GEGENSTAND (Stolperstein 81): steht das Fenster wirklich auf
-         Tuerkisch, und hat es `_afterNumber` wirklich gelesen? Ohne diese Zeile
-         waere alles darunter auch an einem deutschen Fenster gruen -- dort
-         stimmt die Stellungsregel von selbst, weil „3 Einträge" die Mehrzahl
-         verlangt und kein -ler traegt. */
+      /* ZUERST DER GEGENSTAND: steht das Fenster wirklich
+         auf Tuerkisch, und hat es `_afterNumber` wirklich gelesen? */
       check('Zusage 5, am gerenderten Text: das Fenster steht auf Tuerkisch und hat `_afterNumber` gelesen',
         anSay('AFTER_NUMBER') === 'one' &&
         anSay('V.entryOne') === String(anFiles.tr['vocabulary.entryOne']) &&
@@ -2262,16 +1492,9 @@ async function check0314() {
       const anSpots = [];
       for (const f of ['vThing', 'vTime', 'vReport', 'vTask', 'vRating'])
         anSpots.push([f, (n) => `${n} ${anSay(`${f}(${n})`)}`]);
-      /* UND DIE PAARE DER BEIDEN ZAEHLERHELFER -- AUS DEM QUELLTEXT GELESEN und
-         nicht hier aufgezaehlt: wer einen weiteren Ruf dazubaut, wird von
-         dieser Probe mitgenommen, ohne dass er diese Zeile finden muss. Genau
-         daran ist `entry.added` beim Bauen dieser Runde aufgefallen.
-         GELESEN WIRD `countWord(` UND NICHT `counted(`: der Helfer bekommt die
-         beiden Schluessel, und er gibt sie unter seinen PARAMETERNAMEN an
-         `counted()` weiter -- ein Muster auf `counted(` fande dort „n, one,
-         more" und nicht die Woerter. Es sind sechs Paare: die fuenf, die 0.31.3
-         gemessen hat, und das Vokabelpaar `ratingOne`/`ratingMany`, das an
-         derselben Stelle mitgelesen wird. */
+      /* UND DIE PAARE DER BEIDEN ZAEHLERHELFER -- AUS DEM QUELLTEXT GELESEN
+         und nicht hier aufgezaehlt: wer einen weiteren Ruf dazubaut, wird von
+         dieser Probe mitgenommen, ohne dass er diese Zeile finden muss. */
       const anPairRe = /countWord\([^,]+,\s*(?:t\('([^']+)'\)|V\.(\w+))\s*,\s*(?:t\('([^']+)'\)|V\.(\w+))\)/g;
       const anPairs = [];
       const anPairSeen = new Set();
@@ -2290,18 +1513,16 @@ async function check0314() {
         `${anPairs.length} Paare: ${anPairs.map(([n]) => n).join(' · ')}`);
       for (const [name, one, many] of anPairs)
         anSpots.push([name, (n) => `${n} ${anSay(`counted(${n}, ${one}, ${many})`)}`]);
-      /* UND DER GANZE SATZ, DER BEIM BAUEN UEBERSEHEN WORDEN IST: `entry.added`
-         setzt „{count} {what} eklendi" -- die Zahl und das Wort stehen dort in
-         ZWEI Platzhaltern desselben Satzes, und `counted()` fuellt den zweiten.
-         Hier steht er ausgefuellt, wie ihn ein Mensch nach dem Hochladen liest. */
+      /* UND DER GANZE SATZ, DER BEIM BAUEN UEBERSEHEN WORDEN IST:
+         `entry.added` setzt „{count} {what} eklendi" -- die Zahl und das Wort
+         stehen dort in ZWEI Platzhaltern desselben Satzes, und `counted()`
+         fuellt den zweiten. */
       anSpots.push(['entry.added (Foto)',
         (n) => anSay(`t('entry.added', { count: ${n}, what: counted(${n}, t('list.photo'), t('list.photos')) })`)]);
       anSpots.push(['entry.added (Video)',
         (n) => anSay(`t('entry.added', { count: ${n}, what: counted(${n}, t('list.video'), t('list.videos')) })`)]);
       /* DER LESER: eine Zahl, Weissraum, ein Wort auf -ler/-lar -- auch die
-         Verbundform -leri/-ları. `\b` ist fuer Tuerkisch unbrauchbar, weil Ş,
-         ş, ğ, ı, ç, ö und ü kein `\w` sind; die Klammer mit `\p{L}` und das
-         Kennzeichen `u` sind der Ersatz. */
+         Verbundform -leri/-ları. */
       const anScreen = /(?<![\p{L}\p{N}_])\d+\s+\p{L}*(?:ler|lar)(?:i|ı)?(?![\p{L}])/u;
       const anBad = [];
       for (const [name, build] of anSpots)
@@ -2313,21 +1534,13 @@ async function check0314() {
       check(`Zusage 5: hinter einer Zahl steht am BILDSCHIRM keine Mehrzahl — ${anSpots.length} Stellen mal ${AN_NUMBERS.length} Zahlen`,
         anBad.length === 0,
         anBad.slice(0, 6).join(' · ') || `${anSpots.length * AN_NUMBERS.length} Saetze gelesen`);
-      /* UND DER LESER WUERDE EINE FINDEN. Gefahren an DEMSELBEN Fenster, mit
-         DEMSELBEN Wortpaar und derselben Zahl -- nur mit `plural()` statt
-         `counted()`. Das ist die Gegenprobe zu Stolperstein 81 und gleichzeitig
-         der Beleg, DASS `counted()` der Unterschied ist und nicht die
-         Sprachdatei: derselbe Satz, zwei Funktionen, zwei Ergebnisse. */
+      /* UND DER LESER WUERDE EINE FINDEN. */
       const anWould = `3 ${anSay("plural(3, t('dialog.comment'), t('dialog.comments'))")}`;
       const anIs = `3 ${anSay("counted(3, t('dialog.comment'), t('dialog.comments'))")}`;
       check('Und der Leser wuerde eine finden — `plural()` an derselben Stelle faellt auf',
         anScreen.test(anWould) && !anScreen.test(anIs), `${anWould} · ${anIs}`);
-      /* DIE GEGENRICHTUNG AM BILDSCHIRM: OHNE Zahl steht die Mehrzahl sehr wohl
-         da. Gelesen an den drei Saetzen, die 0.31.4 von ihrer Kruecke befreit
-         hat -- „Açık {taskMany} listesi" ist wieder „Açık {taskMany}" --, und
-         `t()` setzt das Vokabelwort dabei selbst ein. Sie sind der sichtbare
-         Gewinn der Runde; ohne diese Zeile waere sie auch dann gruen, wenn
-         jemand alle fuenf Mehrzahlen aus `tr.json` loeschte. */
+      /* DIE GEGENRICHTUNG AM BILDSCHIRM: OHNE Zahl steht die Mehrzahl sehr
+         wohl da. */
       const AN_MANY_ON_SCREEN = [['list.openTasks', 'taskMany'],
         ['list.noCategory', 'entryMany'], ['list.newCommentsHint', 'entryMany']];
       const anMissing = AN_MANY_ON_SCREEN.filter(([key, voc]) =>
@@ -2335,9 +1548,7 @@ async function check0314() {
       check('Zusage 6, am gerenderten Text: ohne Zahl steht die Mehrzahl da — „Açık Görevler"',
         anMissing.length === 0,
         AN_MANY_ON_SCREEN.map(([k]) => `${k}: ${anSay(`t('${k}')`)}`).join(' · '));
-      /* UND DIE KRUECKE IST WIRKLICH WEG. Das angehaengte „listesi" war der
-         Handgriff von 0.31.3; er steht namentlich hier, damit ihn niemand beim
-         naechsten Mal als Loesung wiederfindet. */
+      /* UND DIE KRUECKE IST WIRKLICH WEG. */
       check('Und das angehaengte „listesi" steht nicht mehr hinter dem Vokabelwort',
         !/listesi/.test(anSay("t('list.openTasks')")) &&
         !/listesi/.test(anSay("t('list.noCategory')")),
@@ -2345,30 +1556,8 @@ async function check0314() {
       /* ---- Zusage 5, FUENFTER SCHRITT: die Vorschau der Vokabelkarte ------
          DER AUGENSCHEIN DIESER RUNDE HAT SIE GEFUNDEN, und die vier Schritte
          darueber konnten es nicht: in `drawPreview()` stand die Zahl als
-         STRING unmittelbar vor der Mehrzahlform -- „7 ${sm}", „3 ${zm}",
-         „2 ${bm}", „4 ${at}", „2 ${rateMany}". Kein `plural()`, kein
-         `counted()`, kein Vokabelzaehler: nichts, wonach ein Muster gesucht
-         haette.
-         AM BILDSCHIRM LAS SICH DAS ALS „7 Öğeler" -- eine Stelle, die es auf
-         Tuerkisch seit dieser Runde nicht mehr gibt. Die Karte, in die der
-         Eigentuemer seine Woerter eintraegt, lehrte damit das GEGENTEIL der
-         Regel, die die Runde gebaut hat.
-         GEFRAGT WIRD DIE GEZEIGTE SPRACHE UND NICHT DIE DES LESERS, und das
-         ist der Kern dieser Zusage: die Karte pflegt die Woerter der Sprache,
-         die der Eigentuemer gerade zeigt. Ein Blick auf `AFTER_NUMBER` haette
-         ausgerechnet SEINEN Fall verfehlt -- er liest Deutsch und traegt
-         Tuerkisch ein. Der Server schickt die Regel je Sprache in der
-         Sprachtafel mit; `afterNumberOf()` liest sie dort.
-         UND DEUTSCH BEHAELT SEINE ZAHL. Die Forderung des Betreibers war
-         „das darf sich bei deutsch und englisch nicht negativ auswirken" --
-         eine Vorschau, die auf Deutsch ihr „7 Einträge" verloere, waere genau
-         das. Der erste Bau dieser Berichtigung hat die Zahl unbedingt
-         gestrichen, und der zweite Gang der Gleichlautprobe hat es gemeldet.
-         GELESEN WIRD, WELCHE ORTSNAMEN EINE MEHRZAHL TRAGEN, und zwar an
-         ihrer Zuweisung und nicht an ihrer Schreibung: `const sm =
-         w.entryMany.trim() || e.entryMany` bindet `sm` an ein `...Many`-Feld.
-         Wer die Namen umbenennt, wird davon mitgenommen; wer ein sechstes
-         Mehrzahlfeld hinzufuegt, auch. */
+         STRING unmittelbar vor der Mehrzahlform -- „7 ${sm}", „3 ${zm}", „2
+         ${bm}", „4 ${at}", „2 ${rateMany}". */
       const anPreview = (anCode.match(/function drawPreview\(\) \{[\s\S]*?\n  \}/) || [''])[0];
       check('Zusage 5, fuenfter Schritt: die Vorschau der Vokabelkarte steht im Quelltext',
         anPreview.includes("getElementById('vpreview')") && anPreview.includes('card.preview'),
@@ -2382,51 +1571,38 @@ async function check0314() {
         .filter(m => anManyVars.has(m[2])).map(m => `${m[1]} ${m[2]}`);
       check('Und keine feste Zahl steht in der Vorschau vor einer MEHRZAHLform',
         anPreviewNumbered.length === 0, anPreviewNumbered.join(' · ') || 'keine');
-      /* UND JEDE DER FUENF GEHT DURCH `many()`. Ohne diese Zeile waere die
-         darueber auch dann gruen, wenn jemand die fuenf Mehrzahlstellen ganz
-         aus der Vorschau naehme (Stolperstein 81). */
+      /* UND JEDE DER FUENF GEHT DURCH `many()`. */
       const anThroughMany = new Set([...anPreview.matchAll(/\$\{many\(\d+, (\w+)\)\}/g)]
         .map(m => m[1]).filter(v => anManyVars.has(v)));
       check('Und jede der fuenf geht durch `many()` — mit ihrer Zahl als Argument',
         anThroughMany.size === anManyVars.size,
         `${anThroughMany.size} von ${anManyVars.size}: ${[...anThroughMany].join(' ')}`);
-      /* UND `many()` FRAGT DIE GEZEIGTE SPRACHE. Das ist die Zeile, die den
-         feinen Rueckfall faengt: `AFTER_NUMBER` statt `afterNumberOf()` sieht
-         richtig aus, tut fuer einen tuerkischen LESER sogar dasselbe -- und
-         bringt fuer den deutschen Leser, der Tuerkisch pflegt, „7 Öğeler"
-         zurueck. */
+      /* UND `many()` FRAGT DIE GEZEIGTE SPRACHE. */
       const anManyBody = (anPreview.match(/const many = \(n, word\) =>[\s\S]*?;/) || [''])[0];
       check('Und `many()` fragt die GEZEIGTE Sprache und nicht die des Lesers',
         /afterNumberOf\(namesLanguage\(\)\) === 'one'/.test(anManyBody) &&
         !/AFTER_NUMBER/.test(anManyBody),
         anManyBody.replace(/\s+/g, ' ').slice(0, 140) || 'die Funktion fehlt');
-      /* UND DIE EINZAHL BEHAELT IHRE ZAHL. Ohne diese Zeile waere die Vorschau
-         auch dann gruen, wenn jemand alle Zahlen daraus entfernte -- und
-         „1 Test günü" ist in jeder Sprache richtig. */
+      /* UND DIE EINZAHL BEHAELT IHRE ZAHL. */
       check('Und die Einzahl steht weiter MIT Zahl da — „1 Test günü"',
         /1 \$\{esc\(z1\)\}/.test(anPreview), 'die Einzahlstelle der Vorschau fehlt');
-      /* UND DER LESER WUERDE EINEN RUECKFALL FINDEN (Stolperstein 81). */
+      /* UND DER LESER WUERDE EINEN RUECKFALL FINDEN. */
       const anPreviewProbe = (text, many) =>
         [...text.matchAll(/(\d+)\s+\$\{esc\((\w+)\)\}/g)].filter(m => many.has(m[2])).length;
       check('Und der Leser wuerde einen finden — und die Einzahlstelle laesst er stehen',
         anPreviewProbe('<span>7 ${esc(sm)}</span>', new Set(['sm'])) === 1 &&
         anPreviewProbe('<span>1 ${esc(z1)}</span>', new Set(['sm'])) === 0,
         'der Leser trennt Einzahl und Mehrzahl in der Vorschau nicht');
-      /* ---- Zusage 7, ZWEITE HAELFTE: der Server schickt die Regel je Sprache
-         DIE REGEL GEHOERT DER SPRACHE (L1), und die Karte braucht sie fuer eine
-         FREMDE Sprache. Also steht sie in der Sprachtafel des Servers, neben
-         Name, Vorgabe und Vorrat -- abgeleitet aus `_afterNumber` der Datei und
-         nicht aus einer Liste im Quelltext. Gefahren am laufenden Server und
-         nicht am Muster: was die Karte bekommt, entscheidet er. */
+      /* ---- Zusage 7, ZWEITE HAELFTE: der Server schickt die Regel je
+         Sprache DIE REGEL GEHOERT DER SPRACHE (L1), und die Karte braucht sie
+         fuer eine FREMDE Sprache. */
       const anTable = ((await call('GET', '/api/settings')).content || {}).languages || [];
       const anRule = Object.fromEntries(anTable.map(a => [a.code, a.afterNumber]));
       const anRuleWrong = Object.entries(TR_AFTER_NUMBER).filter(([c, v]) => anRule[c] !== v);
       check('Zusage 7, zweite Haelfte: die Sprachtafel des Servers nennt je Sprache ihre Stellungsregel',
         anTable.length >= 3 && anRuleWrong.length === 0,
         JSON.stringify(anRule));
-      /* UND SIE KENNT NUR DIE BEIDEN WERTE. Eine dritte Antwort waere eine
-         Auskunft, die der Browser nicht lesen kann -- und er faellt dann still
-         auf `plural`. */
+      /* UND SIE KENNT NUR DIE BEIDEN WERTE. */
       const anRuleOdd = anTable.filter(a => a.afterNumber !== 'one' && a.afterNumber !== 'plural');
       check('Und kein Eintrag traegt einen dritten Wert',
         anRuleOdd.length === 0, anRuleOdd.map(a => `${a.code}: ${a.afterNumber}`).join(' · ') || 'keiner');

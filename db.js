@@ -2,11 +2,8 @@ const fs = require('fs');
 const path = require('path');
 const Database = require('better-sqlite3-multiple-ciphers');
 const { loadKey } = require('./keys');
-/* IM NEBEN-THREAD BLEIBT DER KASTEN STILL -- dieselbe Ueberlegung wie in
-   keys.js: der Bestandslauf oeffnet dieselbe Datei aus seinem eigenen Thread
-   und faehrt damit alles hier ein zweites Mal. Was doppelt LAEUFT, ist
-   nachgewiesen harmlos (siehe der Kasten weiter unten); was doppelt SPRICHT,
-   ist Gerede. Seit 0.33.0 hat diese Datei genau eine solche Ansage. */
+// Die eine Ansage dieser Datei bleibt im Neben-Thread still: der
+// Bestandslauf oeffnet dieselbe Datei aus seinem eigenen Thread.
 const { isMainThread } = require('worker_threads');
 
 const DATA_DIR = process.env.DATA_DIR || path.join(__dirname, 'data');
@@ -24,21 +21,13 @@ function open(file) {
   return db;
 }
 
-/* --- Den Schluessel der Datei wechseln -----------------------------------
-   Gerufen ausschliesslich von keytool.js auf dem Wirt, bei angehaltener
-   Instanz. Es steht hier, weil hier auch journal_mode gesetzt wird.
-
-   PRAGMA rekey LAEUFT IM WAL-MODUS NICHT ("Rekeying is not supported in WAL
-   journal mode"), und open() setzt WAL bei jedem Oeffnen -- also erst auf
-   DELETE umschalten, wechseln, zurueckschalten (Stolperstein 128). Die
-   Rueckschaltung steht im finally: scheitert der Wechsel, bliebe die Instanz
-   sonst still im DELETE-Modus zurueck.
-
-   EIN ABBRUCH MITTENDRIN IST FOLGENLOS, solange das Rollback-Journal
-   ueberlebt -- danach oeffnet der alte Schluessel, der neue wird abgewiesen,
-   es entsteht kein halber Zustand. Faellt das Journal weg, ist alles verloren:
-   DAS ist der Grund fuer die Sicherung davor. Es waechst auf die Groesse der
-   Datenbank. */
+/* Den Schluessel der Datei wechseln. Gerufen nur von keytool.js auf dem
+   Wirt, bei angehaltener Instanz; es steht hier, weil hier journal_mode
+   gesetzt wird.
+   PRAGMA rekey laeuft im WAL-Modus nicht -- also erst auf DELETE umschalten,
+   wechseln, zurueckschalten. Die Rueckschaltung steht im finally.
+   Ein Abbruch mittendrin ist folgenlos, solange das Rollback-Journal
+   ueberlebt; faellt es weg, ist alles verloren. Daher die Sicherung davor. */
 function changeKey(newHex) {
   if (!/^[0-9a-fA-F]{64}$/.test(String(newHex)))
     throw new Error('Der neue Schluessel ist kein 64-stelliger Hexwert.');
@@ -52,19 +41,12 @@ function changeKey(newHex) {
   return { before, after: db.pragma('journal_mode', { simple: true }) };
 }
 
-/* --- Welche Verfahren wirklich laufen -----------------------------------
-   DIE KENNZAHLEN NENNEN SIE, UND SIE STEHEN DESHALB HIER UND NICHT DORT.
-   Eine Kopie der Angaben in der Oberflaeche waere eine zweite Wahrheit: wer
-   hier eines Tages den Journalmodus umstellt, aendert die Anzeige nicht mit,
-   und die Karte behauptete dann etwas, das nicht mehr stimmt.
-   ABGELESEN, NICHT BEHAUPTET: `cipher` und `journal_mode` fragt die geoeffnete
-   Datei selbst, die Schluessellaenge ist die des Schluessels, der wirklich
-   gesetzt wurde. Nur "scrypt" kommt von woanders -- es steht in auth.js und
-   wird dort in jeden gespeicherten Wert geschrieben; der Server haengt es an.
-
-   KEINE PAKETVERSION, NICHT EINE. Ein Verfahrensname sagt, WIE gerechnet wird,
-   und das ist unbedenklich: wer die Instanz betreibt, darf wissen, worauf seine
-   Daten liegen. Eine Versionsnummer sagt dagegen, WELCHE Luecke passt. */
+/* Welche Verfahren wirklich laufen -- fuer die Kennzahlen. Abgelesen und
+   nicht behauptet: `cipher` und `journal_mode` fragt die geoeffnete Datei
+   selbst, die Schluessellaenge ist die des gesetzten Schluessels. "scrypt"
+   haengt der Server aus auth.js an.
+   Keine Paketversion: ein Verfahrensname sagt, wie gerechnet wird, eine
+   Versionsnummer sagt, welche Luecke passt. */
 function method() {
   return {
     cipher: String(db.pragma('cipher', { simple: true }) || ''),
@@ -73,14 +55,8 @@ function method() {
   };
 }
 
-/* KEIN BACKTICK IN DIESEM STRING -- auch nicht in einem SQL-Kommentar.
-   Das ganze Schema ist EIN Template-String, und ein Backtick beendet ihn:
-   aus der DDL wird dann Quelltext, und der Server startet nicht mehr. Der
-   uebrige Quelltext dieses Projekts setzt Bezeichner in Kommentaren
-   gewohnheitsmaessig in Backticks -- hier drin darf das nicht sein.
-   NACHGESEHEN UND NICHT VERMUTET: beim Nachziehen der Kommentare zu 0.19.5 ist
-   genau das passiert, und `node --check` hat es gefunden, bevor es jemand
-   anderes tat. */
+/* Kein Backtick in diesem String, auch nicht in einem SQL-Kommentar: das
+   ganze Schema ist ein Template-String, und ein Backtick beendet ihn. */
 const SCHEMA = `
 CREATE TABLE IF NOT EXISTS product_categories (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -828,163 +804,58 @@ CREATE TABLE IF NOT EXISTS trash_bytes (
 );
 `;
 
-/* ================= WAS BEIM OEFFNEN LAEUFT — UND DASS ES ZWEIMAL DARF ========
-   NACHGESEHEN FUER 0.19.3, weil seit dieser Runde ein ZWEITER Leser dieselbe
-   Datei oeffnet: der Bestandslauf requiret db.js aus seinem eigenen Thread und
-   faehrt damit alles hier ein zweites Mal. Der Auftrag liess die Wahl zwischen
-   einem Schalter „nur oeffnen, nicht wandern" und dem Nachweis, dass nichts
-   davon zweimal schadet. Nachgesehen wurde, Zeile fuer Zeile, und es ist der
-   Nachweis geworden:
+/* WAS BEIM OEFFNEN LAEUFT — UND DASS ES ZWEIMAL DARF. Der Bestandslauf
+   oeffnet dieselbe Datei aus seinem eigenen Thread und faehrt alles hier ein
+   zweites Mal. Nichts davon schadet zweimal:
 
-     db.exec(SCHEMA)              CREATE TABLE/INDEX IF NOT EXISTS -- beim
-                                  zweiten Mal geschieht nichts.
-     incompleteDatabase()         sie LIEST nur -- sqlite_master und
-                                  PRAGMA table_info. Ein Leser schadet nie
-                                  zweimal. Bis 0.32.1 standen hier die
-                                  achtzehn Migrationsbloecke; jeder fragte
-                                  zuerst, ob die Spalte schon da war, und
-                                  kehrte sonst wortlos zurueck.
-     die beiden CREATE INDEX      IF NOT EXISTS.
-     das Auffangnetz              UPDATE ... AND NOT EXISTS (... eigentuemer)
-     assignInventory()             UPDATE OR IGNORE ... WHERE user_id IS NULL
-     die Grundausstattung         INSERT OR IGNORE
-     renumberCriteria()           schreibt nur, wo die Nummer abweicht
-   EIN VACUUM WAERE ES NICHT, und genau deshalb steht keines hier: es liegt in
-   maintainStorage() in server.js und bleibt im Haupt-Thread.
-   WAS TROTZDEM ZWEIMAL SCHADET, IST DAS GEREDE: die Ansagen an den Betreiber
-   -- der halbe Bildschirm Schluesselhinweis und seit 0.33.0 der Kasten ueber
-   eine unvollstaendige Datenbank -- halten keys.js und die Probe weiter unten
-   im Neben-Thread zurueck.
-   WER HIER ETWAS ERGAENZT, PRUEFT ES GEGEN DIESE LISTE. Eine Zeile, die beim
-   zweiten Lauf etwas anderes tut als beim ersten, faellt nicht auf: sie faellt
-   dem Bestandslauf zur Last, und der laeuft still im Hintergrund. */
+     db.exec(SCHEMA)        CREATE TABLE/INDEX IF NOT EXISTS
+     incompleteDatabase()   liest nur
+     die beiden CREATE INDEX  IF NOT EXISTS
+     das Auffangnetz        UPDATE … AND NOT EXISTS (… eigentuemer)
+     assignInventory()      UPDATE OR IGNORE … WHERE user_id IS NULL
+     die Grundausstattung   INSERT OR IGNORE
+     renumberCriteria()     schreibt nur, wo die Nummer abweicht
+
+   Ein VACUUM waere es nicht; es liegt in maintainStorage() in server.js.
+   Die Ansagen an den Betreiber bleiben im Neben-Thread still.
+   Wer hier etwas ergaenzt, prueft es gegen diese Liste. */
 const db = open(DB_FILE);
 
-/* searchFold() -- DIE EINE FALTUNG DER SUCHE. 0.24.4, Bauabschnitt 1 (B8).
-
-   SIE NIMMT KEINE SPRACHE ENTGEGEN, und das ist ihre ganze Zusicherung. Bis
-   0.24.3 falteten die beiden Haelften der Suche verschieden: die NADEL
-   (`fulltextTerm()` in server.js) mit `toLocaleLowerCase()` und der Sprache
-   des LESERS, der HEUHAUFEN (kkl(), hier) mit blankem `toLowerCase()`. Mit
-   Deutsch und Englisch faellt das nicht auf -- beide falten `I` nach `i`. Auf
-   Tuerkisch faellt es sofort auf: `'I'.toLocaleLowerCase('tr')` ist das
-   punktlose `ı`, und im Bestand steht das gepunktete `i`. Dieselbe Suche gab
-   damit zwei Lesern zwei Antworten.
-
-   UND DIE VIER i FALLEN AUF EINES. Das Lateinische kennt zwei i, Unicode
-   kennt vier: `I` `i` `İ` `ı`. Sie alle fallen hier auf `i`:
-     `toLowerCase()`      macht aus `I` ein `i` und aus `İ` ein `i` mit
-                          angehaengtem U+0307 (kombinierender Punkt).
-     U+0307 faellt weg    damit aus `İ` ein blankes `i` wird.
-     `ı` wird `i`         das punktlose i des Tuerkischen.
-   DEUTSCHER UND ENGLISCHER BESTAND AENDERT SICH DABEI UM KEIN ZEICHEN --
-   `ı` und `İ` kommen dort nicht vor. Gemessen: von neun gewoehnlichen
-   tuerkischen Suchfaellen gingen vorher fuenf ins Leere, danach keiner.
-
-   UND SEIT 0.26.0 FALLEN `ß` UND `ss` AUF DASSELBE -- Befund 6. Der Grund war
-   nie Nachlaessigkeit, sondern Unicode: `'UEBERGROSS'.toLowerCase()` ist
-   `'uebergross'` mit zwei s, im Bestand steht `uebergroß` mit `ß`, und ein
-   kleines `ß`, das aus `SS` zurueckkaeme, gibt es nicht. Die Faltung war
-   richtig; sie hatte nur keine Seite, auf der sich die beiden treffen.
-   HIER TREFFEN SIE SICH AUF `ss`, und zwar NACH `toLowerCase()`: das grosse
-   `ẞ` (U+1E9E) ist dann schon ein `ß` und faellt mit.
-   DER PREIS STEHT DANEBEN UND IST BEZAHLT (F7 des Auftrags 0.26.0): „Masse"
-   findet damit auch „Maße", „Busse" auch „Buße". Das ist kein Nebeneffekt,
-   sondern dieselbe Gleichsetzung, von der anderen Seite gelesen -- fuer eine
-   SUCHE die richtige Seite des Irrtums, denn wer sucht, will lieber eine Zeile
-   zu viel sehen als eine zu wenig.
-   FUER EINEN VERGLEICH WAERE SIE FALSCH, und der Vergleich der Namen ist eine
-   andere Funktion und bleibt es. Wer hier etwas aendert, aendert die SUCHE.
-   0.24.4 HAT DIESEN FALL AUSDRUECKLICH AUSGENOMMEN -- er betrifft Deutsch und
-   nicht Tuerkisch, und eine Runde, die schon zwei Fehler an derselben Funktion
-   repariert, nimmt keinen dritten mit. Seither ist er billiger: die Faltung
-   steht an EINER Stelle, und beide Haelften der Suche rufen sie.
-
-   SIE GEHOERT HIERHER UND NICHT IN server.js: SQLite ruft sie ueber kkl() bei
-   jeder Zeile, und die Nadel muss DIESELBE Funktion rufen -- nicht eine, die
-   dasselbe tut. Zwei Funktionen ueber dieselbe Sache laufen auseinander, und
-   genau das ist der Befund, der hier repariert wird.
-
-   NULL UND undefined WERDEN ZUM LEEREN STRING und nicht zu NULL:
-   instr(NULL, 'x') ist NULL, und `NULL > 0` ist in SQL nie wahr -- eine
-   fehlende Beschreibung waere damit kein "kein Treffer", sondern ein Wert,
-   mit dem sich nicht rechnen laesst. */
+/* searchFold() -- die eine Faltung der Suche. Nadel und Heuhaufen rufen
+   dieselbe Funktion; sie nimmt keine Sprache entgegen.
+   Die vier i von Unicode fallen auf eines: `toLowerCase()` macht aus `İ` ein
+   `i` mit kombinierendem U+0307, der Punkt faellt weg, und `ı` wird `i`.
+   `ß` und `ss` treffen sich auf `ss`, und zwar nach `toLowerCase()`. Der
+   Preis: „Masse" findet auch „Maße". Fuer eine Suche ist das die richtige
+   Seite des Irrtums; fuer einen Vergleich waere sie falsch.
+   null und undefined werden zum leeren String und nicht zu NULL:
+   instr(NULL, 'x') ist NULL, und `NULL > 0` ist nie wahr. */
 const searchFold = (s) => (s === null || s === undefined ? ''
   : String(s).toLowerCase().replace(/\u0307/g, '').replace(/\u0131/g, 'i')
       .replace(/\u00df/g, 'ss'));
 
-/* kkl() -- DIE FALTUNG, IN SQL EINGEHAENGT.
-   SQLites lower() faltet AUSSCHLIESSLICH ASCII: lower('Ü') bleibt
-   'Ü', und dasselbe gilt fuer LIKE. Eine Suche darauf faende
-   "STICHSAEGE UEBERGROSS" bei der Eingabe "uebergross" nicht -- unauffaellig,
-   und mit Umlauten faellt der Treffer wirklich weg. searchFold() faltet nach
-   Unicode; die Klemme, die aus dem Suchtext Kleinbuchstaben macht, gibt es
-   damit genau einmal.
-
-   deterministic: gleicher Wert, gleiches Ergebnis, immer. Ohne die Angabe
-   verbietet SQLite den Aufruf in einem Index oder einer erzeugten Spalte.
-   SEIT 0.24.4 IST DIE ANGABE AUCH VERDIENT: bis dahin stand sie an dieser
-   Zeile, waehrend die andere Haelfte der Suche an der Sprache des Lesers
-   hing -- ein Index darueber waere falsch geworden, sobald jemand
-   umschaltet. */
+/* kkl() -- die Faltung, in SQL eingehaengt. SQLites lower() faltet nur
+   ASCII: lower('Ü') bleibt 'Ü', und dasselbe gilt fuer LIKE.
+   deterministic: ohne die Angabe verbietet SQLite den Aufruf in einem Index
+   oder einer erzeugten Spalte. */
 db.function('kkl', { deterministic: true }, searchFold);
 
 db.exec(SCHEMA);
 
-/* ================= DIE PROBE AUF EINEN UNVOLLSTAENDIGEN BESTAND ==========
-   SIE STEHT DA, WO BIS 0.33.0 ACHTZEHN MIGRATIONSBLOECKE STANDEN, und sie ist
-   das einzige Stueck jener Runde, das DAZUKAM. Die achtzehn haben einen
-   Bestand nachgeruestet, der ihnen fehlte; sie sind gefallen, und damit faellt
-   ihre Gutmuetigkeit weg: eine Datenbank aus 0.13.0 oeffnete danach ohne
-   Widerspruch und ohne die drei Spalten, die jede Ablehnung braucht.
+/* Die Probe auf einen unvollstaendigen Bestand. Sie steht da, wo bis 0.33.0
+   achtzehn Migrationsbloecke standen: eine Datenbank aus 0.13.0 oeffnet ohne
+   sie widerspruchslos und ohne die Spalten, die jede Ablehnung braucht.
+   Sie sperrt niemanden aus -- sie meldet. Ein Hinweis, der sich irrt, kostet
+   eine Zeile im Protokoll; eine Absage, die sich irrt, den Zugang.
+   Gefragt wird der Bestand und kein Merker: `sqlite_master` und
+   `PRAGMA table_info`.
+   Sie steht hinter db.exec(SCHEMA), weil die DDL eine fehlende Tabelle bei
+   jedem Start anlegt -- was danach fehlt, ist eine Spalte.
+   Im Neben-Thread bleibt sie still. Das Protokoll ist englisch. */
 
-   DAS IST DER GEFAEHRLICHSTE AUGENBLICK DER GANZEN STRECKE, UND ER IST STILL.
-   Nicht der Absturz ist die Gefahr, sondern der Start, der gelingt: die
-   Datenbank oeffnet, die Seiten gehen auf, und irgendwo fehlen Zahlen.
-   Kriterion ist darauf gebaut, dass Fehler LAUT sind -- der Fingerprint
-   schreit, wenn eine Datei nicht mitgekommen ist. Dieser eine Fehler waere
-   leise. Die Probe macht ihn laut.
-
-   SIE SPERRT NIEMANDEN AUS -- Leitplanke L3, und der Betreiber hat den ersten
-   Entwurf am 14. September 2026 gekippt. Eine harte Absage wehrte ein Risiko
-   ab, das es nach der Voraussetzung dieser Runde gar nicht gibt (unter 0.33.0
-   hat nie jemand anders gestanden), und braechte dafuer eines mit, das es sehr
-   wohl gibt: DIESE PROBE KANN SICH IRREN. Ein Hinweis, der sich irrt, kostet
-   eine Zeile im Protokoll; eine Absage, die sich irrt, kostet dem Betreiber
-   den Zugang zu seiner eigenen Datenbank.
-
-   SIE FRAGT DEN BESTAND UND KEINEN MERKER -- Leitplanke L4, dieselbe Haltung,
-   die jeder der achtzehn Bloecke hatte. Ein Merker in der Datenbank waere eine
-   zweite Wahrheit (Stolperstein 47), und er fehlte genau in der Datenbank, um
-   die es geht: eine aus 0.13.0 traegt keinen. `sqlite_master` und
-   `PRAGMA table_info` sind der Bestand selbst.
-
-   SIE STEHT HINTER db.exec(SCHEMA), und das ist keine Ordnungsfrage: die DDL
-   legt eine fehlende TABELLE bei jedem Start an. Was DANACH noch fehlt, ist
-   eine SPALTE -- und nur die kann die DDL nicht heilen (Stolperstein 13). Ein
-   Lauf davor meldete jede frische Instanz als unvollstaendig.
-
-   VIER DER ACHTZEHN BLOECKE HABEN HIER NICHTS ZU SUCHEN, und das ist kein
-   Vergessen: 0.24.2 und 0.24.3 haben Feldnamen IN gespeicherten Werten
-   uebersetzt, 0.24.3 eine Vorgabesprache geschrieben und 0.27.0 eine
-   Einstellungszeile. Keiner von ihnen hat eine Spalte oder eine Tabelle
-   angelegt, und F6 sagt, was gefragt wird: eine Probe je SPALTE und TABELLE.
-
-   IM NEBEN-THREAD BLEIBT SIE STILL, wie der Schluesselhinweis in keys.js: der
-   Bestandslauf oeffnet dieselbe Datei aus seinem eigenen Thread und braechte
-   den Kasten bei jedem Lauf ein zweites Mal. Wer ihn einmal gelesen hat, liest
-   ihn beim zweiten Mal nicht besser.
-
-   ENGLISCH, WIE DAS GANZE PROTOKOLL SEIT 0.33.0 -- F5. Wer eine Instanz
-   betreibt, muss nicht deutsch koennen. */
-
-/* DIE SECHS TABELLEN, DIE 0.24.1 UMBENANNT HAT. Steht eine von ihnen noch
-   unter ihrem alten Namen da, ist der Fall der SCHLIMMSTE von allen: die DDL
-   hat daneben eine leere neue angelegt, die Zeilen liegen unveraendert im
-   alten Namen -- nicht verloren, aber unsichtbar.
-   DIE LISTE STEHT HIER UND NICHT IN `tools/dictionary.json`: jene Datei
-   uebersetzt Namen, diese Tafel nennt einen Befund. Seit 0.33.0 liest `db.js`
-   das Woerterbuch nicht mehr -- es ist die Sache des Imports geblieben. */
+/* Die sechs Tabellen, die 0.24.1 umbenannt hat. Steht eine noch unter ihrem
+   alten Namen da, hat die DDL daneben eine leere neue angelegt und die Zeilen
+   liegen unsichtbar im alten Namen. */
 const LEGACY_TABLES = [
   ['anfragen', 'requests'], ['sicherheitsprotokoll', 'security_log'],
   ['papierkorb', 'trash'], ['papierkorb_bytes', 'trash_bytes'],
@@ -1085,8 +956,8 @@ warnIncompleteDatabase(incompleteDatabase());
    Pruefstands -- zweimal derselbe, in zwei Stufen.
 
    EIN INDEX AUF EINER NACHGERUESTETEN SPALTE GEHOERT HINTER IHRE MIGRATION
-   (Stolperstein 281). `CREATE TABLE IF NOT EXISTS` ruehrt eine vorhandene
-   Tabelle nicht an (Stolperstein 13): eine Datenbank aus 0.8.40 trug
+. `CREATE TABLE IF NOT EXISTS` ruehrt eine vorhandene
+   Tabelle nicht an: eine Datenbank aus 0.8.40 trug
    `photos.kind` erst, nachdem migration0850() gelaufen war, und `photos.zoom`
    erst nach migration0190(). Ein CREATE INDEX weiter oben scheiterte dort mit
    „no such column" -- beim OEFFNEN der Datei, also bevor der Server ueberhaupt
@@ -1136,7 +1007,7 @@ warnIncompleteDatabase(incompleteDatabase());
      kind gruppiert, MIT diesem Index                0,1 ms
 
    DER UNTERSCHIED IST NICHT DIE MENGE, SONDERN DIE LAGE DER SPALTE
-   (Stolperstein 279). EINE GLEICHHEIT, KEINE UNGLEICHHEIT: `WHERE kind !=
+. EINE GLEICHHEIT, KEINE UNGLEICHHEIT: `WHERE kind !=
    'video'` schlaegt den Index aus, `WHERE kind IS ?` nutzt ihn. Die Abfragen in
    /api/stats holen deshalb erst die vorhandenen Arten und fragen dann je Art.
 
@@ -1222,11 +1093,9 @@ const qDoubleEmails = `
    WHERE email IS NOT NULL AND trim(email) <> '' AND status <> 'deleted'
    GROUP BY lower(email) HAVING COUNT(*) > 1
    ORDER BY lower(email)`;
-/* GRABSTEINE ZAEHLEN NICHT MIT: ein geloeschter Zugang traegt einen
-   ueberschriebenen Namen und meldet sich nie wieder an. Seine Adresse dort
-   stehenzulassen waere eine Auskunft ueber jemanden, den es nicht mehr gibt.
-   ER STEHT ABER IM WEG, wenn seine Adresse noch dasteht -- deshalb raeumt die
-   Zeile darunter sie beim Grabstein weg, bevor der Index versucht wird. */
+/* Grabsteine zaehlen nicht mit: ein geloeschter Zugang meldet sich nie
+   wieder an. Seine Adresse steht aber im Weg, also raeumt die Zeile darunter
+   sie weg, bevor der Index versucht wird. */
 db.prepare(`UPDATE users SET email = NULL WHERE status = 'deleted' AND email IS NOT NULL`).run();
 let doubleEmails = [];
 try {
@@ -1238,11 +1107,8 @@ try {
     doubleEmails.map(z => `${z.address} (${z.n})`).join(', ') +
     ' -- used more than once. The "Users" card names them.');
 }
-/* SIE WIRD BEI JEDEM ABRUF NEU GEFRAGT UND NICHT GEMERKT: wer die Doppelung
-   aufloest, soll die Karte sauber sehen, ohne den Server neu zu starten --
-   und wer eine NEUE anlegt, waehrend der Index fehlt, soll sie dort finden.
-   NUR WENN DER INDEX FEHLT: steht er, kann es keine geben, und eine Abfrage
-   bei jedem Aufruf der Karte waere Arbeit fuer eine Antwort, die feststeht. */
+/* Bei jedem Abruf neu gefragt und nicht gemerkt -- und nur, wenn der Index
+   fehlt: steht er, kann es keine doppelte Adresse geben. */
 function emailsDoubled() {
   const present = db.prepare(
     `SELECT 1 FROM sqlite_master WHERE type = 'index' AND name = 'idx_users_email'`).get();
@@ -1301,16 +1167,9 @@ function assignInventory() {
     return { items: 0, comments: 0, test_days: 0, ratings: 0, links: 0, attachments: 0 };
   }
   for (const table of ['items', 'comments', 'test_days', 'ratings', 'links', 'attachments']) {
-    /* EINE TABELLE OHNE `user_id` WIRD UEBERGANGEN -- 0.33.0. `links` und
-       `attachments` haben ihre Spalte bis 0.32.1 aus den Bloecken 0.8.30 und
-       0.8.31 bekommen; die sind gefallen, und eine unvollstaendige Datenbank
-       traegt sie deshalb nicht mehr nach. OHNE DIESE ZEILE STUERBE DER START
-       GENAU DORT, und zwar an einem `db.prepare`, das an der fehlenden Spalte
-       scheitert -- also an einem Abbruch, den Leitplanke L3 ausschliesst und
-       den der Kasten weiter oben schon angekuendigt hat.
-       GEFRAGT WIRD DIE TABELLE SELBST, wie ueberall in dieser Datei. Und es
-       ist keine Notloesung, sondern die Sache: was es nicht gibt, laesst sich
-       niemandem zuordnen. */
+    /* Eine Tabelle ohne `user_id` wird uebergangen. Ohne diese Zeile stuerbe
+       der Start an einem `db.prepare` ueber die fehlende Spalte. Gefragt wird
+       die Tabelle selbst. */
     if (!db.prepare(`PRAGMA table_info(${table})`).all().some(c => c.name === 'user_id')) {
       counts[table] = 0;
       continue;
@@ -1331,24 +1190,14 @@ function assignInventory() {
 assignInventory();
 
 // --- Grundausstattung ---
-/* DIE DREI MITGELIEFERTEN KRITERIEN STEHEN AUF DEUTSCH, und seit 0.25.0 sagen
-   sie es auch: die Spalte `language` traegt ihre Sprache, wie bei jeder Zeile,
-   die ab dieser Runde entsteht.
-   `de` STEHT HIER ALS ZEICHENFOLGE UND NICHT ALS RUF: diese Datei kennt die
-   Sprachdateien nicht -- sie liegen im Server. Was sie kennt, ist der Text
-   daneben, und der ist deutsch. Dieselbe Bauform wie LANGUAGE_BEFORE_0243.
-   EINE BEHAUPTUNG IST DAS NICHT: die drei Namen stehen zwei Zeilen darueber,
-   und wer sie liest, sieht die Sprache. Der Vermerk sagt, was dasteht. */
+/* Die drei mitgelieferten Kriterien stehen auf Deutsch, und die Spalte
+   `language` sagt es. `de` steht hier als Text und nicht als Ruf: diese Datei
+   kennt die Sprachdateien nicht. */
 const SEED_LANGUAGE = 'de';
 const seedCriteria = ['Optische Erscheinung', 'Verarbeitungsqualität', 'Funktionalität'];
-/* OHNE `language` WIRD NUR DER NAME GESETZT -- 0.33.0, und aus demselben
-   Grund wie am Auffangnetz darueber: die Spalte kam bis 0.32.1 aus dem Block
-   0.25.0, der gefallen ist. Ein `db.prepare` ueber eine Spalte, die es nicht
-   gibt, scheitert beim VORBEREITEN und damit beim Start -- an einer Zeile, die
-   in einer unvollstaendigen Datenbank ohnehin nichts anzulegen haette.
-   ES IST KEIN VERLUST: die drei mitgelieferten Kriterien stehen auf Deutsch,
-   und ohne die Spalte gibt es keinen Ort, an dem das stuende. Der Kasten
-   weiter oben hat den Befund schon genannt. */
+/* Ohne die Spalte `language` wird nur der Name gesetzt: ein `db.prepare`
+   ueber eine fehlende Spalte scheitert beim Vorbereiten und damit beim
+   Start. */
 const seedHasLanguage = db.prepare('PRAGMA table_info(rating_criteria)')
   .all().some(c => c.name === 'language');
 const insertCriterion = db.prepare(seedHasLanguage
@@ -1374,58 +1223,18 @@ const setDefault = db.prepare('INSERT OR IGNORE INTO settings (key, value) VALUE
 setDefault.run('title_public', JSON.stringify('Bewertungskatalog'));
 setDefault.run('title_app', JSON.stringify('Model Bewertungen'));
 
-/* ================= DER STEMPEL: WOMIT DIESE DATENBANK LAEUFT ==============
-   0.33.0, Frage F14. DER BEFUND DES BETREIBERS vom 14. September 2026:
-   *„Prueft das System beim Einspielen, mit welcher Version die Datenbank
-   betrieben wurde? … Generell fuer die Zukunft waere es gut, wenn direkt
-   erkennbar waere, mit welcher Version das betrieben wurde."*
+/* Der Stempel: womit diese Datenbank laeuft. Zwei Zeilen in `settings`:
+     `versionCreated`     womit sie angelegt wurde, einmal geschrieben
+     `versionLastOpened`  womit sie zuletzt geoeffnet wurde, wandert mit
 
-   NACHGESEHEN UND NICHT VERMUTET: an keiner der drei Stellen stand etwas. In
-   der Datenbank kein `user_version` und keine Zeile in `settings`; in der
-   Exportdatei nur die FORMATNUMMER, die der Import nie las; die Sicherung ist
-   eine Kopie der Datei und erbt dieselbe Luecke.
-
-   ER BEANTWORTET EINE ANDERE FRAGE ALS DIE PROBE WEITER OBEN, und die beiden
-   gehoeren deshalb zusammen: die Probe auf `sqlite_master` sagt „IST ES
-   VOLLSTAENDIG?" -- sie kann nennen, welche Spalte fehlt. DER STEMPEL SAGT
-   „WAS IST ES?" -- er kann sagen, dass die Datenbank zuletzt unter 0.19.0
-   lief. Ohne ihn kennt der Hinweis nur das Symptom und nicht die Diagnose.
-
-   UND ER WIRKT NUR NACH VORN. Eine Datenbank, die nie einen getragen hat,
-   bekommt ihn nicht rueckwirkend -- genau deshalb ERSETZT er die Probe nicht,
-   sondern ergaenzt sie. Die Probe deckt die Vergangenheit ab, der Stempel die
-   Zukunft; nach 0.33.0 wird die Probe mit jedem Jahr weniger gebraucht und
-   der Stempel mehr.
-
-   ZWEI ZEILEN UND NICHT EINE, weil es zwei Aussagen sind:
-     `versionCreated`   womit sie ANGELEGT wurde. Sie steht EINMAL da und wird
-                        nie wieder angefasst.
-     `versionLastOpened` womit sie zuletzt geoeffnet wurde. Sie wandert mit.
-
-   `versionCreated` WIRD NUR IN EINER WIRKLICH FRISCHEN DATENBANK GESCHRIEBEN,
-   und das ist der ganze Aufwand dieses Blocks. Die naheliegende Fassung waere
-   `INSERT OR IGNORE` bei jedem Start -- sie truege in eine Datenbank aus
-   0.19.0 beim ersten Start unter 0.33.0 die Zeile „angelegt mit 0.33.0" ein,
-   und das waere eine ERFINDUNG ueber fremde Arbeit. Dieselbe Ueberlegung wie
-   seinerzeit an `set_at` in 0.16.0 und an `rejected_at` in 0.14.0: was die
-   Instanz nicht weiss, behauptet sie nicht. EINE FEHLENDE ZEILE IST DIE
-   RICHTIGE ANTWORT und heisst „aelter als der Stempel".
-
-   GEFRAGT WIRD NACH BESTAND UND NICHT NACH EINEM MERKER -- dieselbe Haltung
-   wie ueberall in dieser Datei. „Gab es hier schon einmal Arbeit?" beantworten
-   `users` und `items`; beide sind leer, solange niemand die Einrichtung im
-   Browser durchlaufen hat. GEZAEHLT WERDEN AUCH GELOESCHTE ZUGAENGE, wie
-   seinerzeit in migration0243Language(): die Frage ist nicht, wer sich
-   anmelden kann, sondern ob hier schon einmal jemand gearbeitet hat.
-
-   BEIDE SCHREIBUNGEN SIND BELIEBIG OFT FAHRBAR und im Normalfall stumm: die
-   erste laeuft ins `OR IGNORE`, die zweite schreibt nur, wo der Wert abweicht
-   -- dieselbe Bauform wie renumberCriteria() darunter. Der Bestandslauf
-   oeffnet dieselbe Datei aus seinem Thread und richtet damit nichts an.
-
-   ER STEHT ALS JSON WIE JEDE ANDERE EINSTELLUNGSZEILE: `"0.33.0"` mit
-   Anfuehrungszeichen. Eine Zeile, die anders gelesen werden muss als ihre
-   Nachbarn, ist eine Falle fuer den naechsten Leser. */
+   `versionCreated` wird nur in einer wirklich frischen Datenbank
+   geschrieben: ein `INSERT OR IGNORE` bei jedem Start truege in eine
+   Datenbank aus 0.19.0 die Zeile „angelegt mit 0.33.0" ein. Eine fehlende
+   Zeile heisst „aelter als der Stempel".
+   Ob hier schon gearbeitet wurde, beantworten `users` und `items`; geloeschte
+   Zugaenge zaehlen mit.
+   Beide Schreibungen sind beliebig oft fahrbar und im Normalfall stumm. Der
+   Wert steht als JSON wie jede andere Einstellungszeile. */
 const APP_VERSION = require('./package.json').version;
 {
   const grown = db.prepare('SELECT COUNT(*) AS n FROM users').get().n > 0 ||
@@ -1464,11 +1273,7 @@ module.exports = { db, DATA_DIR, DB_FILE, keyFromEnv: key.fromEnv, keyHex: key.h
                    searchFold,
                    changeKey, method,
                    renumberCriteria, assignInventory, ownerId,
-                   /* WAS EINE UNVOLLSTAENDIGE DATENBANK VERMISSEN LAESST --
-                      0.33.0. Sie geht hinaus, damit der Pruefstand die Probe
-                      an einer gestellten Lage fragen kann, ohne die Instanz
-                      dafuer starten zu muessen. DIE ZEHN MIGRATIONSNAMEN, die
-                      bis 0.32.1 an dieser Stelle standen, gingen aus genau
-                      demselben Grund hinaus -- und sind mit ihren Bloecken
-                      gefallen. */
+                   /* Was eine unvollstaendige Datenbank vermissen laesst. Geht hinaus, damit
+                      der Pruefstand die Probe an einer gestellten Lage fragen
+                      kann. */
                    incompleteDatabase };

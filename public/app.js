@@ -4,56 +4,21 @@ const app = document.getElementById('app');
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 
 /* ================= Die Sprache ================= */
-/* TEXT IST DATEN UND NICHT PROGRAMM -- 0.24.0, Bauabschnitt 1. Jeder Text, den
-   ein Mensch am Bildschirm liest, steht in `public/languages/<code>.json`; der
-   Quelltext kennt nur noch den Schluessel.
-
-   FLACHE SCHLUESSEL MIT PUNKTEN und keine verschachtelten Objekte:
-   `t('dialog.fotoLoeschen.frage')` schlaegt EIN Feld nach. Verschachtelt waere
-   die Datei fuer einen Uebersetzer huebscher, aber zwei Schluessel wie
-   `button.speichern` und `button.speichern.titel` koennten dann nicht
-   nebeneinander stehen -- bei tausend Schluesseln trifft dieser Fall ein, und
-   er faellt erst beim Laden auf. Flach koennen sie es, und das Objekt bleibt
-   der Mehrzahl vorbehalten: WAS EIN OBJEKT IST, IST EINE MEHRZAHLFORM.
-
-   DER RUECKFALL GEHT AUF DIE VORGABESPRACHE DER INSTALLATION und nicht auf
-   eine feste Sprache. Bis 0.24.2 hiess die Rueckfalltafel `TEXTS_DE` und
-   wurde mit `if (code === 'de')` gefuellt -- fest auf Deutsch verdrahtet, weil
-   es damals nur Deutsch gab. Mit Englisch als Vorgabe und einer Wahl je
-   Benutzer heisst sie, was sie ist. Fehlt der Schluessel auch dort, steht
-   `⟦schluessel⟧` am Bildschirm -- sichtbar und nie still (Konzept 4.4).
-   DIE ANFANGSWERTE SIND EIN NOTNAGEL UND KEINE AUSSAGE: sie gelten die
-   Millisekunden bis loadLanguage(), damit ein Ruf vor der Datei nicht auf
-   `undefined` trifft. */
+/* TEXT IST DATEN UND NICHT PROGRAMM -- 0.24.0, Bauabschnitt 1. */
 let LANGUAGE = 'en';
 let LOCALE = 'en-GB';
 let TEXTS = {};
 let TEXTS_FALLBACK = {};
-/* WELCHE SPRACHE DIE INSTALLATION VORGIBT -- aus /api/config. Sie ist die
-   dritte und letzte der drei Quellen (Konzept 5.3) und zugleich die Sprache
-   der Rueckfalltafel. */
+/* WELCHE SPRACHE DIE INSTALLATION VORGIBT -- aus /api/config. */
 let LANGUAGE_DEFAULT = 'en';
 /* DER VORRAT, aus dem gewaehlt werden darf: [{ code, name }]. Vor der
    Anmeldung aus /api/config, danach aus /api/settings -- dieselbe Liste. */
-/* DAS GEDAECHTNIS DES GERAETS -- die zweite Quelle. Es traegt die Wahl von der
-   Anmeldeseite in die Sitzung und ueber das Abmelden hinaus; der persoenliche
-   Schluessel schlaegt es, sobald es einen gibt. Derselbe Namensraum wie
-   THEME_KEY. */
+/* DAS GEDAECHTNIS DES GERAETS -- die zweite Quelle. */
 /* EINMAL GEBAUT UND NICHT JE AUFRUF. `new Intl.PluralRules(...)` je Text waere
    bei 46 Mehrzahlstellen und jedem Neuzeichnen eine gut sichtbare Rechnung. */
 let PLURAL = new Intl.PluralRules(LOCALE);
-/* WELCHE FORM HINTER EINER ZAHL STEHT -- 0.31.4, und die Auskunft kommt aus der
-   SPRACHDATEI und nicht von hier. `Intl.PluralRules` waehlt nach dem WERT von
-   n; im Tuerkischen haengt die Form nicht am Wert, sondern an der STELLUNG --
-   steht eine Zahl davor oder nicht. `select(3)` ist dort `other`, und das
-   heisst NICHT „haenge -lar an": „3 öğe" ist richtig, „3 öğeler" ist falsch
-   (TDK; Göksel & Kerslake; Sağ, „Turkish numerals strictly reject
-   co-occurrence with plural nouns").
-   DIE AUSKUNFT, DIE DER CODE BRAEUCHTE, SIEHT DIE SCHNITTSTELLE NIE -- also
-   sagt sie die Datei, in `_afterNumber`. `plural` heisst „die Zahl waehlt, wie
-   bisher"; `one` heisst „hinter einer Zahl immer die Einzahl".
-   VORGABE IST `plural`: eine vierte Sprachdatei, die jemand hineinlegt (0.24.0),
-   darf daran nicht scheitern. */
+/* WELCHE FORM HINTER EINER ZAHL STEHT -- 0.31.4, und die Auskunft kommt aus
+   der SPRACHDATEI und nicht von hier. */
 let AFTER_NUMBER = 'plural';
 
 // Den Satz nachschlagen -- in der gewaehlten Sprache, sonst in der Vorgabe.
@@ -61,20 +26,11 @@ function languageSentence(key, values) {
   const raw = TEXTS[key] !== undefined ? TEXTS[key] : TEXTS_FALLBACK[key];
   if (raw === undefined) return `⟦${key}⟧`;
   if (typeof raw !== 'object') return raw;
-  /* DIE MEHRZAHL WAEHLT Intl.PluralRules UND NICHT `n === 1`. Fuer Deutsch
-     faellt beides zusammen; fuer die naechste Sprache nicht, und die Regel
-     steht dann schon richtig da. `select(undefined)` ist `other` -- ein
-     Mehrzahlobjekt ohne `n` bekommt also die Mehrzahl und nicht die Einzahl. */
+  /* DIE MEHRZAHL WAEHLT Intl.PluralRules UND NICHT `n === 1`. */
   return PLURAL.select(values.n) === 'one' ? raw.one : raw.other;
 }
 
-/* DIE WERTE EINSETZEN. Ein Platzhalter, den weder der Aufrufer noch das
-   Vokabular kennt, BLEIBT STEHEN -- `{sache}` am Bildschirm ist ein Fund, ein
-   leerer Fleck waere keiner.
-   MASKIERT WIRD DER WERT UND NIE DER TEXT: der Text kommt aus der Datei und
-   traegt kein HTML (der Pruefstand haelt das fest); der Wert kommt vom
-   Benutzer oder aus dem Vokabular des Admins. Genau deshalb maskiert tH()
-   AUCH die Vokabelwoerter -- Stolperstein 18 in Dateiform. */
+/* DIE WERTE EINSETZEN. */
 function fillSentence(sentence, values, mask) {
   return String(sentence).replace(/\{(\w+)\}/g, (whole, name) => {
     let value = values[name];
@@ -93,66 +49,14 @@ function tH(key, values = {}) {
   return fillSentence(languageSentence(key, values), values, true);
 }
 
-/* EIN SATZ MIT EINEM HERVORGEHOBENEN STUECK -- 0.25.4.
-
-   BIS 0.25.3 WURDE SO EIN SATZ IN DREI SCHLUESSEL ZERSAEGT und im Aufruf
-   wieder zusammengesetzt: „Dein Link ist davon" + <strong>nicht</strong> +
-   „betroffen -- er gilt weiter." Im Deutschen geht das auf, im Englischen
-   auch.
-
-   IM TUERKISCHEN NICHT. Dort verneint ein SUFFIX IM VERB und kein eigenes
-   Woertchen davor; aus den drei Stuecken wurde „Bağlantın bundan değil
-   etkilendi" -- keine Verneinung, sondern Kauderwelsch. DER SATZ SAGTE DAS
-   GEGENTEIL dessen, was dastehen sollte, und stand so seit 0.24.3 im
-   Programm.
-
-   JETZT TRAEGT JEDE SPRACHE EINEN GANZEN SATZ mit einem Platzhalter, und sie
-   entscheidet selbst, WO das hervorgehobene Stueck sitzt und WAS es ist: im
-   Deutschen das Woertchen „nicht", im Tuerkischen das ganze Verb
-   „etkilenmez".
-
-   DER SATZ WIRD NICHT MASKIERT, DAS EINGESETZTE STUECK SCHON -- dieselbe
-   Teilung wie in tH() darueber. Der Umweg ueber das Steuerzeichen sorgt
-   dafuer, dass die Auszeichnung NIE durch einen maskierenden Weg laeuft: wer
-   hier einen Wert vom Benutzer einsetzen wollte, muesste diese Zeile aendern,
-   und dann faellt es auf. */
-/* SEIT 0.31.1 NIMMT ER AUCH WERTE. Ein Satz mit Hervorhebung traegt oft noch
-   eine Zahl oder ein Vokabelwort („bei {dbBytes} etwa {durationSeconds}
-   Sekunden"); bis hierher war genau das der Grund, ihn hinter der
-   Hervorhebung noch einmal aufzubrechen. Der dritte Parameter ist optional --
-   alle Rufe von 0.25.4 bis 0.31.0 bleiben unveraendert gueltig. */
-/* DIE WERTE GEHEN AN BEIDE -- an den Satz UND an das hervorgehobene Wort.
-   0.31.1 hat es zuerst nur dem Satz gereicht, und der Pruefstand hat es
-   binnen einer Runde gemeldet: das Wort ist an drei Stellen selbst ein Satz
-   mit Zahl („{n} Tagen", „{trashDays} Tage"), und am Bildschirm stand
-   „Die Zeilen werden nach {n} Tagen automatisch geloescht". EIN PLATZHALTER,
-   DER AM BILDSCHIRM STEHENBLEIBT, IST DER SICHTBARSTE FEHLER, DEN EINE
-   SPRACHDATEI MACHEN KANN -- und er entstand hier im Code, nicht dort. */
+/* EIN SATZ MIT EINEM HERVORGEHOBENEN STUECK -- 0.25.4. */
+/* SEIT 0.31.1 NIMMT ER AUCH WERTE. */
+/* DIE WERTE GEHEN AN BEIDE -- an den Satz UND an das hervorgehobene Wort. */
 const tMark = (key, wordKey, values) => tH(key, { ...values, word: '\u0001' })
   .replace('\u0001', `<strong>${tH(wordKey, values)}</strong>`);
 
 /* MEHRERE STUECKE IN EINEM SATZ, UND SIE MUESSEN KEINE SCHLUESSEL SEIN --
-   0.31.1. tMark() traegt genau EINES, und es muss aus der Sprachdatei kommen.
-   Beides reicht nicht:
-
-   EIN SATZ NENNT DREI BEISPIELE. Der Kriterien-Tipp hebt „Wunsch", „Nutzen"
-   und „Machbarkeit" hervor; bis hierher war genau das der Grund, ihn in SECHS
-   Schluessel zu zersaegen, von denen einer „(Gewicht 1,5)," hiess.
-
-   UND MANCHMAL IST DAS STUECK KEIN SCHLUESSEL, sondern ein Wert: ein
-   Benutzername, eine Zahl, ein Mehrzahlsatz mit eigenem Argument. Auch dort
-   musste der Satz drumherum aufgebrochen werden, weil der Ruf ja irgendwo
-   aufgemacht werden musste.
-
-   JETZT BLEIBT DER SATZ EIN SCHLUESSEL mit {word}, {word2}, {word3} darin, und
-   die Fuellungen kommen fertig herein. Die Sprache entscheidet weiterhin, WO
-   die Stuecke sitzen und in welcher Reihenfolge -- sie entscheidet nur nicht
-   mehr, WAS drinsteht.
-
-   DERSELBE UMWEG UEBER DAS STEUERZEICHEN wie in tMark(), und aus demselben
-   Grund: die Auszeichnung laeuft NIE durch den maskierenden Weg. Die FUELLUNG
-   muss der Rufer maskiert hereingeben -- dieselbe Teilung wie in tH(), und sie
-   steht sichtbar an seiner Zeile statt versteckt in dieser. */
+   0.31.1. */
 const tMarks = (key, parts, values) => {
   const names = Object.keys(parts), marks = {};
   names.forEach((n, i) => { marks[n] = `\u0001${i}\u0001`; });
@@ -162,97 +66,48 @@ const tMarks = (key, parts, values) => {
 };
 
 /* DAS MERKMAL DER ABGELAUFENEN SITZUNG -- 0.31.1, und es ist ein BEFUND und
-   keine Verbesserung. Bis hierher stand hier `t('dialog.sessionExpired')`:
-   der Wurf trug einen UEBERSETZTEN SATZ, und sechs Fangstellen verglichen
-   dagegen.
-
-   DER SATZ HATTE KEINEN LESER. Geworfen wird er unmittelbar hinter
-   showLogin(), also nimmt die Anmeldeseite ohnehin den Bildschirm; jede der
-   sechs Fangstellen UNTERDRUECKT ihn danach. „Sitzung abgelaufen" ist nie
-   irgendwo erschienen -- der Schluessel stand in drei Sprachdateien, damit ein
-   `===` etwas zu vergleichen hat.
-
-   UND ER WAR DABEI ZERBRECHLICH: wechselt die Sprache zwischen Wurf und Fang,
-   greift jeder dieser sechs Vergleiche daneben. Eine Verzweigung, die durch
-   einen Satz laeuft, den jemand uebersetzen darf, ist keine Verzweigung,
-   sondern eine Wette.
-
-   `server.sessionExpired` ist ein ANDERER Schluessel, wird wirklich angezeigt
-   (`showLogin(j.error || ...)`) und bleibt. */
+   keine Verbesserung. */
 const SESSION_GONE = 'kriterion:session-gone';
 
 /* ZWEI FORMEN, UND DIE ZAHL WAEHLT -- ueber Intl.PluralRules und nicht ueber
-   `n === 1`. Der Vergleich waere die deutsche Regel, festgeschrieben im Code;
-   die Regel gehoert aber der Sprache (Konzept 4.3).
-   DAS IST DER WEG FUER EIN VOKABELWORT: seine beiden Formen sind Inhalt und
-   stehen nicht in der Sprachdatei. Steht der ganze Satz dort, traegt sein
-   Schluessel stattdessen ein Objekt { eins, andere }. */
+   `n === 1`. */
 function plural(n, one, other) {
   return PLURAL.select(Number(n) || 0) === 'one' ? one : other;
 }
 
-/* DASSELBE, ABER MIT EINER ZAHL DAVOR -- 0.31.4.
-   `plural()` gilt ueberall dort, wo die Form allein von der Zahl abhaengt.
-   `counted()` gilt dort, wo die Zahl SICHTBAR DAVORSTEHT -- `${n} ${wort}`.
-   Fuer Deutsch und Englisch ist das dasselbe; fuer das Tuerkische nicht, und
-   deshalb steht hier eine zweite Funktion und keine Bedingung im Aufrufer.
-   WER SIE NEHMEN MUSS: jede Stelle, die eine Zahl und ein Wort NEBENEINANDER
-   setzt. Wer das Wort ohne Zahl schreibt, nimmt weiter die Form, die sein Satz
-   verlangt -- und die waehlt der Satz in der Sprachdatei, ueber `{entryOne}`
-   oder `{entryMany}`. */
+/* DASSELBE, ABER MIT EINER ZAHL DAVOR -- 0.31.4. `plural()` gilt ueberall
+   dort, wo die Form allein von der Zahl abhaengt. */
 function counted(n, one, other) {
   return AFTER_NUMBER === 'one' ? one : plural(n, one, other);
 }
 
-/* DIE DATEI HOLEN. Sie liegt unter public/ und kommt damit ueber
-   express.static -- keine neue Route, ETag und 304 wie app.js selbst, und der
-   Fingerprint deckt sie ab, ohne dass jemand daran denkt (Konzept 3.3). */
+/* DIE DATEI HOLEN. */
 async function loadLanguage(code) {
   const response = await fetch(`/languages/${code}.json`, { credentials: 'same-origin' });
-  /* DIE BEIDEN WUERFE TRAGEN KEINEN SATZ, SONDERN EINE LAGE. Sie erreichen
-     keinen Bildschirm: boot() faengt sie und zeigt den einen festen Satz (A1).
-     Ein deutscher Satz hier waere ein Text, den nie jemand liest -- und der
-     dem Waechter als Rest in app.js aufstiesse. Die Lage steht trotzdem da:
-     sie landet auf der Konsole, und dort liest sie der Betreiber. */
+  /* DIE BEIDEN WUERFE TRAGEN KEINEN SATZ, SONDERN EINE LAGE. */
   if (!response.ok) throw new Error(`languages/${code}.json ${response.status}`);
   const data = await response.json();
   // Ohne Locale kein Datum und keine Mehrzahl -- eine Datei ohne sie ist keine.
   if (!data || typeof data !== 'object' || typeof data._locale !== 'string')
     throw new Error(`languages/${code}.json _locale`);
-  /* DIE RUECKFALLTAFEL WIRD GEFUELLT, WENN DIESE DATEI DIE VORGABE IST --
-     und das ist sie im Regelfall: nur wer eine ANDERE Sprache gewaehlt hat,
+  /* DIE RUECKFALLTAFEL WIRD GEFUELLT, WENN DIESE DATEI DIE VORGABE IST -- und
+     das ist sie im Regelfall: nur wer eine ANDERE Sprache gewaehlt hat,
      braucht ueberhaupt zwei Dateien (siehe loadLanguages()). */
   if (code === LANGUAGE_DEFAULT) TEXTS_FALLBACK = data;
   LANGUAGE = code;
   LOCALE = data._locale;
   PLURAL = new Intl.PluralRules(LOCALE);
-  /* NUR DIE BEIDEN BEKANNTEN WERTE ZAEHLEN; alles andere -- auch ein Tippfehler
-     -- faellt auf `plural` und damit auf das Verhalten von vor 0.31.4. Eine
-     Sprachdatei soll an einem falschen Wort nicht zerbrechen. */
+  /* NUR DIE BEIDEN BEKANNTEN WERTE ZAEHLEN; alles andere -- auch ein
+     Tippfehler -- faellt auf `plural` und damit auf das Verhalten von vor
+     0.31.4. */
   AFTER_NUMBER = data._afterNumber === 'one' ? 'one' : 'plural';
   TEXTS = data;
-  /* UND DIE VORGABE DES VOKABULARS -- 0.24.0. Sie ist Oberflaeche und kein
-     Inhalt: bis der Server seinen Satz schickt, beschriftet sie den Bildschirm
-     (siehe `V`). Gesetzt wird sie HIER und nicht an `V` selbst, weil die Zeile
-     dort beim Laden der Datei ausgewertet wird -- da gibt es noch keinen Text.
-     Was schon in `V` steht, bleibt: der Satz des Servers wiegt schwerer als
-     die Vorgabe. */
+  /* UND DIE VORGABE DES VOKABULARS -- 0.24.0. */
   V = { ...vocabularyDefault(), ...V };
   return data;
 }
 
-/* ZWEI DATEIEN, ABER NUR WENN ES SEIN MUSS -- 0.24.3, Bauabschnitt 3.
-   Wer die Vorgabesprache liest, holt EINE Datei; sie ist zugleich ihr eigener
-   Rueckfall. Wer eine andere gewaehlt hat, holt zwei -- die eigene und die,
-   auf die ein fehlender Schluessel faellt.
-   DIE VORGABE ZUERST UND DIE GEWAEHLTE DANACH, und die Reihenfolge ist keine
-   Geschmacksfrage: loadLanguage() setzt TEXTS, und die Rueckfalltafel nur
-   dann, wenn die Datei die Vorgabe IST. Wer die Vorgabe zuletzt holte, laese
-   sie am Bildschirm.
-   SCHLAEGT DIE GEWAEHLTE FEHL, BLEIBT DIE VORGABE STEHEN. Eine Sprache, deren
-   Datei gerade verschwunden ist, darf die Oberflaeche nicht leer machen: der
-   Rueckfall ist dann eben alles, was da ist. Schlaegt die VORGABE fehl, wirft
-   der Ruf -- dann gibt es gar nichts, und boot() zeigt seinen einen Satz. */
+/* ZWEI DATEIEN, ABER NUR WENN ES SEIN MUSS -- 0.24.3, Bauabschnitt 3. */
 async function loadLanguages(wanted) {
   await loadLanguage(LANGUAGE_DEFAULT);
   if (!wanted || wanted === LANGUAGE_DEFAULT) return;
@@ -260,40 +115,14 @@ async function loadLanguages(wanted) {
   catch (e) { console.error(`languages/${wanted}.json`, e); }
 }
 
-/* HIER STAND BIS 0.24.3 DAS GEDAECHTNIS DES GERAETS (`kriterion.language`).
-   Es hatte genau einen Leser -- die Anmeldeseite --, und die spricht seit dem
-   8. September 2026 die Vorgabesprache der Installation und sonst nichts.
-   Ein gespeicherter Wert ohne Leser ist eine zweite Wahrheit ueber etwas, das
-   niemand mehr fragt; er faellt deshalb ganz und nicht nur sein Leseweg.
-   WER ANGEMELDET IST, LIEST WEITER IN SEINER SPRACHE: sie steht am Zugang
-   (`user_settings.language`) und gilt auf jedem Geraet. */
-/* WAS AM WURZELELEMENT STEHT -- daran haengen Silbentrennung und Vorleser.
-   ES HIESS BIS 0.24.2 `document.documentElement.long`, und das war ein Fund
-   dieser Runde: der Umbenenner aus 0.24.1 hat das deutsch aussehende `lang`
-   fuer ein Wort gehalten und zu `long` uebersetzt. Seither wurde das Attribut
-   nie gesetzt -- eine Eigenschaft `long` an einem Element tut nichts, und
-   niemandem faellt etwas auf, weil auch nichts falsch aussieht. */
+/* HIER STAND BIS 0.24.3 DAS GEDAECHTNIS DES GERAETS (`kriterion.language`). */
+/* WAS AM WURZELELEMENT STEHT -- daran haengen Silbentrennung und Vorleser. */
 const applyLanguage = () => { document.documentElement.lang = LANGUAGE; };
 /* DIE LOCALE DES VERGLEICHS -- 0.24.3, Bauabschnitt 4, und sie ist NICHT die
-   des Lesers (LOCALE). Wo getippter Text ohne Ruecksicht auf Gross- und
-   Kleinschreibung verglichen wird, muss die Regel fuer alle dieselbe sein:
-   sonst waeren „İstanbul" und „istanbul" fuer den einen derselbe Name und
-   fuer den anderen zwei (T3). Der Server hat dieselbe Funktion unter
-   demselben Namen; beide nehmen die Locale der VORGABESPRACHE.
-   TEXTS_FALLBACK IST GENAU DIESE DATEI -- loadLanguage() fuellt sie, wenn der
-   Code die Vorgabe ist. Der Rueckfall auf LOCALE gilt die Millisekunden vor
-   der ersten geladenen Datei. */
+   des Lesers (LOCALE). */
 const compareLocale = () => TEXTS_FALLBACK._locale || LOCALE;
 
-/* DIE VORGABEN DES VOKABULARS -- 0.24.3, Bauabschnitt 6. Bis 0.24.2 stand hier
-   VOCABULARY_DEFAULT: eine Tafel aus vierzehn Rufen, die dieselben vierzehn
-   Namen ein zweites Mal aufzaehlte. Jetzt kommt die Liste aus der GELADENEN
-   SPRACHDATEI, abgeleitet aus dem Vorsatz `vocabulary.` -- Zeichen fuer
-   Zeichen dieselbe Ableitung wie in server.js.
-   EINE WAHRHEIT JE SPRACHE STATT ZWEI JE CODE: wer ein fuenfzehntes Wort
-   einfuehrt, traegt es in die Sprachdateien ein, und beide Seiten sehen es.
-   Genau daran ist `potenzial` beim Bauen von 0.21.0 gescheitert -- es fehlte
-   in der zweiten Liste, und das Feld stand leer. */
+/* DIE VORGABEN DES VOKABULARS -- 0.24.3, Bauabschnitt 6. */
 const VOCABULARY_PREFIX = 'vocabulary.';
 const vocabularyDefault = () => Object.fromEntries(
   Object.entries(TEXTS)
@@ -306,9 +135,7 @@ function fmtDate(iso) {
   return d.toLocaleString(LOCALE, { day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit' });
 }
 /* HIER STAND BIS 0.17.0 fmtTagKurz() -- die Kurzform „19.08." fuer die
-   Beschriftung der Pille „Neu seit ...". Die Pille ist gestrichen, und die
-   Funktion hatte danach genau keinen Rufer mehr. Eine Funktion, die niemand
-   ruft, ist kein Vorrat, sondern eine Frage an den Naechsten. */
+   Beschriftung der Pille „Neu seit ...". */
 function fmtDay(day) {
   const d = new Date(day + 'T12:00:00');
   return d.toLocaleDateString(LOCALE, { day:'2-digit', month:'2-digit', year:'numeric' });
@@ -316,15 +143,7 @@ function fmtDay(day) {
 function weekday(day) {
   return new Date(day + 'T12:00:00').toLocaleDateString(LOCALE, { weekday:'long' });
 }
-/* EINE ZAHL, WIE SIE DIE SPRACHE SCHREIBT -- 0.24.0, Bauabschnitt 4. Bis
-   0.23.0 stand dafuer elfmal `.replace('.', ',')` im Code: die deutsche Regel,
-   festgeschrieben an elf Stellen.
-   OHNE GRUPPIERUNG, und das ist keine Kleinigkeit: mit ihr stuende in „1234"
-   ploetzlich ein Punkt, und die Abnahme dieser Runde heisst „kein Zeichen
-   anders" (Auftrag 4.1).
-   ZWEI STELLENZAHLEN: `zahl(x, 1)` schreibt immer eine Nachkommastelle,
-   `zahl(x, 0, 2)` hoechstens zwei und keine, wo keine noetig ist -- das ist
-   die Form der Gewichte. */
+/* EINE ZAHL, WIE SIE DIE SPRACHE SCHREIBT -- 0.24.0, Bauabschnitt 4. */
 function number(n, digits = 0, atMost = digits) {
   const value = Number(n);
   return new Intl.NumberFormat(LOCALE, { minimumFractionDigits: digits,
@@ -341,12 +160,7 @@ function fmtBytes(b) {
 const today = () => new Date().toLocaleDateString('sv-SE');
 
 /* WIE GROSS DIE EXPORTDATEI WIRD -- gerechnet aus den Teilen, die der Server
-   in `stats.export` liefert. Der Umschlag faellt IMMER an: ein Export "ohne
-   Fotos" ist nicht null Bytes gross, und eine Anzeige, die das behauptet,
-   waere die falsche Beruhigung.
-   Der Videoschalter haengt am Fotoschalter -- genau wie am Server, wo die
-   Fotoliste ohne ihn gar nicht erst gebaut wird. Ohne diese Bindung naennte
-   die Karte eine Zahl, die kein Knopf erzeugen kann. */
+   in `stats.export` liefert. */
 function exportSum(ex, s) {
   if (!ex) return 0;
   return (ex.envelope || 0)
@@ -359,35 +173,9 @@ const exportTotal = (stats) => exportSum(stats && stats.export,
   { withPhotos: true, withFiles: true, withVideos: true });
 
 /* DER FUENFTE WERT IST MIT 0.24.5 WEGGEFALLEN, und das ist die Reparatur von
-   D1 an ihrer Wurzel.
-
-   SEIT 0.24.3 STAND HIER `language = LANGUAGE`: eine Anfrage durfte
-   ausdruecklich eine ANDERE Sprache verlangen als die, die der Leser liest.
-   Gebraucht wurde das an genau EINER Stelle -- `fetchNames()` holte damit die
-   Namen einer Sprache nach, die der Eigentuemer selbst nicht liest.
-
-   ES HAT NIE FUNKTIONIERT. `localeOf(req)` am Server fragt ZUERST den
-   persoenlichen Schluessel, und der schlaegt den Kopf (Konzept 5.3): wer eine
-   Sprache eingestellt hat, bekam auf jede Frage die Antwort in SEINER. Der Kopf
-   ist die Antwort auf „in welcher Sprache sprichst du mit mir" und nicht auf
-   „welche Namenstafel meinst du" -- er taugt fuer die zweite Frage nicht, und
-   deshalb wird sie nicht mehr gestellt: die Namen aller Sprachen kommen auf
-   einmal mit `GET /api/settings`.
-
-   DAMIT KANN DIE OBERFLAECHE EINE FREMDE SPRACHE GAR NICHT MEHR VERLANGEN.
-   Nicht „sie tut es nicht mehr", sondern „sie kann es nicht" -- ein Weg, den es
-   nicht gibt, wird auch von der naechsten Runde nicht wieder benutzt. */
+   D1 an ihrer Wurzel. */
 async function api(method, url, body, isForm = false) {
-  /* `Accept-Language` AN JEDER ANFRAGE -- 0.24.3, Bauabschnitt 4. Er ist die
-     zweite der drei Quellen von localeOf(req) und traegt die Sprache, die
-     DIESES GERAET gewaehlt hat: der persoenliche Schluessel schlaegt ihn am
-     Server, aber wer noch keinen gesetzt hat oder noch gar nicht angemeldet
-     ist, bekommt seine Servermeldungen ueber diesen Kopf.
-     AUSDRUECKLICH GESETZT UND NICHT DEM BROWSER UEBERLASSEN: der Browser
-     schickte die Sprache des Betriebssystems, und die hat mit der Wahl in der
-     Karte „Darstellung" nichts zu tun.
-     UND ER TRAEGT SEIT 0.24.5 IMMER `LANGUAGE`, ohne Ausnahme -- siehe den
-     Absatz ueber den weggefallenen fuenften Wert darueber. */
+  /* `Accept-Language` AN JEDER ANFRAGE -- 0.24.3, Bauabschnitt 4. */
   const opts = { method, credentials: 'same-origin',
                  headers: { 'Accept-Language': LANGUAGE } };
   if (body !== undefined) {
@@ -404,10 +192,7 @@ async function api(method, url, body, isForm = false) {
   return res.status === 204 ? null : res.json();
 }
 
-/* `action`: { text, tu } -- ein Knopf in der Meldung, 0.22.0 (E16). Eine Meldung
-   mit Knopf steht laenger (sechs Sekunden statt 2,6): wer den Weg zurueck
-   sieht, soll ihn auch erreichen. Allgemein gebaut, zunaechst an genau einer
-   Stelle benutzt -- dem Zuruecksetzen der eigenen Sterne. */
+/* `action`: { text, tu } -- ein Knopf in der Meldung, 0.22.0 (E16). */
 function toast(msg, isErr = false, action = null) {
   document.querySelectorAll('.toast').forEach(m => m.remove());
   const el = document.createElement('div');
@@ -435,43 +220,18 @@ const ICON_PH = `<svg class="ph" width="42" height="42" viewBox="0 0 24 24" fill
 // neben dem Zahnrad und traegt dieselbe Groesse wie dieses.
 const ICON_OPEN = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 6.5l2 2 3-3.5"/><path d="M3.5 13l2 2 3-3.5"/><path d="M3.5 19.5l2 2 3-3.5"/><path d="M12.5 6.5H21"/><path d="M12.5 13H21"/><path d="M12.5 19.5H21"/></svg>`;
 /* DREI STRICHE. Es gibt kein besseres Zeichen fuer "hier ist noch mehr" --
-   nicht weil es gut waere, sondern weil es jeder kennt. Es steht NUR auf dem
-   schmalen Schirm; das entscheidet das Stylesheet, nicht diese Zeile.
-   Dieselbe Strichstaerke und dasselbe viewBox wie die beiden Nachbarn in der
-   Kopfzeile -- sie sollen wie ein Satz aussehen und nicht wie drei Herkuenfte. */
+   nicht weil es gut waere, sondern weil es jeder kennt. */
 const ICON_MENU = `<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><path d="M4 7h16"/><path d="M4 12h16"/><path d="M4 17h16"/></svg>`;
 /* DIE DREI ZEICHEN AM BILDBEREICH. Sie ersetzen die Woerter "Ausschnitt" und
-   "Vollbild" -- und der Papierkorb ist neu.
-   WARUM ZEICHEN UND NICHT WOERTER: sie liegen AUF dem Bild und nicht daneben.
-   Ein Wort dort verdeckt Bildflaeche in der Breite des laengsten Wortes, und
-   es zwang die Instanz zu einer ausgerechneten Zahl -- der Vollbildknopf sass
-   auf `right: 92px`, und das waren die 92 Pixel, die "Ausschnitt" bei 100
-   Prozent Schrift misst. Bei 120 Prozent schoben sich die beiden uebereinander.
-   Drei gleich grosse Quadrate in einer Reihe brauchen diese Zahl nicht.
-   DER AUSSCHNITT IST DAS ZEICHEN, DAS JEDES FOTOPROGRAMM DAFUER FUEHRT: zwei
-   ineinandergeschobene rechte Winkel. Es ist nicht huebscher als ein Wort, es
-   ist bekannt -- und das ist bei einem Zeichen der ganze Punkt.
-   ALLE DREI IN DERSELBEN STRICHSTAERKE UND DEMSELBEN viewBox wie die Zeichen
-   der Kopfzeile. Sie sollen wie ein Satz aussehen und nicht wie drei
-   Herkuenfte. */
+   "Vollbild" -- und der Papierkorb ist neu. */
 const ICON_CROP = `<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M7 2v13a2 2 0 0 0 2 2h13"/><path d="M2 7h13a2 2 0 0 1 2 2v13"/></svg>`;
 const ICON_FULLSCREEN = `<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M9 3H3v6"/><path d="M15 21h6v-6"/><path d="M21 9V3h-6"/><path d="M3 15v6h6"/></svg>`;
 const ICON_TRASH = `<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16"/><path d="M9.5 7V4.5h5V7"/><path d="M6.5 7l.9 12.6A1.5 1.5 0 0 0 8.9 21h6.2a1.5 1.5 0 0 0 1.5-1.4L17.5 7"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>`;
 const ICON_SEARCH = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round"><circle cx="10.5" cy="10.5" r="6.5"/><path d="M15.5 15.5L21 21"/></svg>`;
-/* DIE GLOCKE. Kein Zeichen erklaert sich von selbst, aber dieses ist draussen
-   so fest belegt wie das Zahnrad fuer Einstellungen -- und die Kopfzeile
-   traegt ohnehin an jedem Knopf seinen Titel. */
+/* DIE GLOCKE. */
 const ICON_BELL = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8.5a6 6 0 1 0-12 0c0 5.2-2 6.5-2 6.5h16s-2-1.3-2-6.5"/><path d="M13.7 19.5a2 2 0 0 1-3.4 0"/></svg>`;
 const ICON_SYS = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.6 1.6 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.6 1.6 0 0 0-1.8-.3 1.6 1.6 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1A1.6 1.6 0 0 0 9 19.4a1.6 1.6 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.6 1.6 0 0 0 .3-1.8 1.6 1.6 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1A1.6 1.6 0 0 0 4.6 9a1.6 1.6 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.6 1.6 0 0 0 1.8.3H9a1.6 1.6 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.6 1.6 0 0 0 1 1.5 1.6 1.6 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.6 1.6 0 0 0-.3 1.8V9a1.6 1.6 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.6 1.6 0 0 0-1.5 1z"/></svg>`;
-/* DIE ZEICHEN DER ZEILENAKTIONEN -- 0.22.0 (Ideentafel N1). Bis 0.21.1 waren
-   sie Schriftzeichen und ein Emoji (✎ ✕ ↩ ☐ ☑ 🔗 🔑 ⃠ 📌): jedes System
-   zeichnete sie anders, und das Emoji bunt. Jetzt sind sie SVG aus demselben
-   Satz wie Suche, Glocke und Zahnrad -- 24er Raster, Strich 1,8, keine
-   Zeichenschrift, kein CDN: die Installation laeuft ohne Internet.
-   OHNE FESTE BREITE: die Klasse `icon` im Stilblatt setzt 1em, das Zeichen
-   misst sich damit an der Schrift, in der es steht.
-   aria-hidden, weil jeder Knopf seinen Sinn im `title` traegt; ein
-   Vorleseprogramm soll nicht „Grafik" vorlesen. */
+/* DIE ZEICHEN DER ZEILENAKTIONEN -- 0.22.0 (Ideentafel N1). */
 const char = (paths, strokeWidth = 1.8) =>
   `<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="${strokeWidth}" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${paths}</svg>`;
 const ICON_X = char('<path d="M6 6l12 12"/><path d="M18 6L6 18"/>');
@@ -488,45 +248,15 @@ const ICON_LINK = char('<path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1
 const ICON_KEY = char('<circle cx="8" cy="15.5" r="4"/><path d="M11 12.5L20 3.5"/><path d="M17 6.5l2.5 2.5"/><path d="M14.5 9l2 2"/>');
 const ICON_LOCK = char('<circle cx="12" cy="12" r="8.5"/><path d="M6 6l12 12"/>');
 const ICON_PIN = char('<path d="M9 4h6l-1 6 2.5 2v2h-9v-2l2.5-2z"/><path d="M12 14v6.5"/>');
-/* DAS ZEICHEN DES BERICHTS -- 0.32.1. Es gab bisher keines: der Bericht war
-   ueberall ein WORT („Bericht", „Rapor"), und in der Zaehlzeile ist dafuer
-   kein Platz mehr. EINE FAHNE, und zwar aus demselben Satz wie die anderen --
-   24er Raster, Strich 1,8, kein Zeichensatz.
-   WARUM UEBERHAUPT EIN ZEICHEN: Gestaltungsregel G1 sagt, Zustandsmarken
-   werden AUS FORM gebaut und nicht aus Farbe. Eine nackte Zahl in Orange
-   waere eine Marke aus Farbe -- wer sie nicht sieht, liest eine Zahl ohne
-   Bedeutung. Die Fahne traegt den Sinn, die Farbe verstaerkt ihn nur.
-   ☐ UND ☑ GIBT ES SCHON (ICON_BOX, ICON_BOX_CHECK) und sie bedeuten dort
-   dasselbe: offen und erledigt. Ein zweites Zeichen fuer dieselbe Sache waere
-   eine zweite Wahrheit. */
+/* DAS ZEICHEN DES BERICHTS -- 0.32.1. */
 const ICON_REPORT = char('<path d="M5 21V4.5"/><path d="M5 5.5h10.5l-1.6 3.2 1.6 3.3H5"/>');
-/* DAS ZEICHEN „Eintrag entfernen" -- 0.25.0 (F5). Ein Radierer, und
-   ausdruecklich NICHT das Kreuz daneben: das loescht die ZEILE samt allem, was
-   an ihr haengt; dieser hier raeumt einen NAMEN weg, und die Zeile bleibt
-   stehen. Zwei Griffe in einer Zeile brauchen zwei Zeichen -- „eigenes Zeichen
-   am Feld" (die Antwort des Betreibers auf F5). */
+/* DAS ZEICHEN „Eintrag entfernen" -- 0.25.0 (F5). */
 const ICON_ERASE = char('<path d="M8.5 20H20"/><path d="M14.5 5.5l4 4-8 8H6.5l-2-2z"/>');
 /* DIE ZWEI FEINEN PFEILE DER KOPFZEILE -- 0.28.0, und ausdruecklich NICHT
-   dieselben Zeichen wie an der Bildreihe. Die `.vnav` traegt die Glyphen
-   ‹ und › und blaettert die BILDER dieses Eintrags; diese beiden blaettern die
-   EINTRAEGE der Uebersicht. Zwei Folgen liegen hier ineinander, und wer ihnen
-   dasselbe Zeichen gibt, laesst den Menschen raten, welche gemeint ist.
-   DUENNER ALS JEDES ANDERE ZEICHEN (1,5 statt 1,8): sie stehen neben der
-   Marke und sollen die Kopfzeile nicht anfuehren. Der Betreiber hat sie am
-   8. September 2026 so bestellt -- „feine Pfeile an der linken und rechten
-   Seite, oben, was kaum Platz nimmt". */
-/* ---- DER HAKEN NACH UNTEN UND NACH OBEN -- 0.30.2, Befund 1 ----
-   KEINE NEUE FORM: `ICON_STEP_BACK` und `ICON_STEP_FWD` gleich darunter sind
-   derselbe Haken, nur gedreht. Er entsteht aus demselben Helfer und traegt
-   dieselbe Strichstaerke -- ein Zeichen, das die Instanz schon zweimal zeigt,
-   muss niemand neu lernen.
-   WOFUER: „mehr" und „weniger" an der Tagwolke. Sie standen als WORT am Ende
-   ihrer Zeile und kosteten dort zusammen mit dem Ruecksetzer bis zu 180 der
-   366 Pixel (Deutsch, aufgeklappt, mit gesetztem Tagfilter). Der Betreiber,
-   12. September 2026, mit zwei Bildern.
-   DAS WORT IST NICHT WEG, SONDERN IM TITEL -- ein Zeichen allein liest kein
-   Vorleseprogramm vor. Dieselbe Bauform wie an den Werkzeugen einer
-   Verwaltungszeile (Stift und Kreuz). */
+   dieselben Zeichen wie an der Bildreihe. */
+/* ---- DER HAKEN NACH UNTEN UND NACH OBEN -- 0.30.2, Befund 1 ---- KEINE NEUE
+   FORM: `ICON_STEP_BACK` und `ICON_STEP_FWD` gleich darunter sind derselbe
+   Haken, nur gedreht. */
 const ICON_MORE_DOWN = char('<path d="M6 9.5L12 15.5l6-6"/>', 1.7);
 const ICON_MORE_UP   = char('<path d="M6 14.5L12 8.5l6 6"/>', 1.7);
 const ICON_STEP_BACK = char('<path d="M14.5 5.5L8 12l6.5 6.5"/>', 1.5);
@@ -534,83 +264,16 @@ const ICON_STEP_FWD  = char('<path d="M9.5 5.5L16 12l-6.5 6.5"/>', 1.5);
 /* DER RUECKWEG IST EIN PFEIL MIT SCHAFT UND KEIN WINKEL -- und das ist kein
    Geschmack, sondern ein Befund aus dem Augenschein vom 11. September 2026.
    ERST TRUGEN BEIDE DENSELBEN WINKEL: der Rueckweg zur Uebersicht und der
-   Pfeil „ein Eintrag zurueck" standen als zwei gleiche Zeichen
-   NEBENEINANDER in derselben Zeile. Zwei verschiedene Ziele, ein Zeichen --
-   auf dem Bild war nicht zu sehen, welches welches ist.
-   DER SCHAFT IST DER UNTERSCHIED, und er steht schon im Satz: `list.backToList`
-   beginnt mit „←" und nicht mit „‹". Das Zeichen sagt jetzt dasselbe wie sein
-   Titel. */
+   Pfeil „ein Eintrag zurueck" standen als zwei gleiche Zeichen NEBENEINANDER
+   in derselben Zeile. */
 const ICON_BACK_OUT = char('<path d="M19.5 12H5"/><path d="M11 5.5L4.5 12l6.5 6.5"/>', 1.6);
 
 /* EIN LEERER BEREICH SIEHT GEWOLLT AUS UND NICHT KAPUTT -- 0.22.0 (Ideentafel
-   N3). Der Satz geht durch esc() -- er ist fest, aber innerHTML ist innerHTML.
-
-   UND SEIT 0.24.4 STEHT KEIN ZEICHEN MEHR DARUEBER (Befund B4 der Runde
-   0.24.3, Frage F8). Bis dahin stand hier ICON_PH -- ein BILDPLATZHALTER,
-   ein Rechteck mit Sonne und Bergen. An der Kachel ohne Foto und im
-   Bildstreifen ohne Bilder meint er, was er zeigt; ueber „Noch keine
-   Kommentare." meinte er „hier fehlt ein Bild, das nicht geladen werden
-   konnte". Ein Zeichen, das an zwei Stellen etwas anderes bedeutet, ist an
-   einer von beiden falsch -- und die vier Kaesten (Testtage, Links, Dateien,
-   Kommentare) haben mit Bildern nichts zu tun.
-   GAR KEINES UND NICHT EIN ZWEITES: der Satz sagt alles, ein Bild darueber
-   erklaert nichts und kostet Hoehe. ICON_PH selbst bleibt -- es hat drei
-   Rufer, an denen es richtig steht. */
+   N3). */
 const emptyState = (sentence) => `<div class="empty-state"><span class="hint">${esc(sentence)}</span></div>`;
 
-/* Die Marke der Instanz — EIN EINGEBAUTES SVG, seit 0.23.0 wieder.
-
-   UND DAS NIMMT EINE ENTSCHEIDUNG VON 0.9.1 ZURÜCK. Dort wurde sie aus dem
-   Quelltext in eine Datei gezogen, mit dieser Begründung: „eine Marke gehört
-   dem Projekt und nicht einer Funktion in app.js — wer sie austauscht,
-   tauscht eine Datei aus und fasst keinen Quelltext an." Die Begründung ist
-   nicht falsch geworden. Sie hält nur der Messung nicht stand:
-
-     die drei grauen Striche #838c95   auf dunklem Grund 5,58 : 1
-                                       auf hellem Grund  2,91 : 1   ✗
-     der orange Strich      #ff7a1a    auf dunklem Grund 7,31 : 1
-                                       auf hellem Grund  2,22 : 1   ✗
-
-   Der Dateiname sagt es selbst: `marke-dunkel.svg`. Auf hellem Grund fällt
-   sie durch, und zwar der Markenstrich am deutlichsten.
-
-   WAS NICHT GEHT UND WARUM. Ein `<img>` kann keine CSS-Variable lesen — das
-   Dokument, aus dem es gezeichnet wird, ist ein anderes. Eine zweite Datei
-   `marke-hell.svg` scheidet aus: sie lag schon einmal daneben und ist
-   ausdrücklich entfernt worden (zwei Dateien über dieselbe Sache,
-   Stolperstein 47), und sie kostete beim Umschalten ein Neuzeichnen der
-   Kopfzeile. Ein Strich, der auf BEIDEN Gründen trägt, gäbe es — aber nur
-   um den Preis, dass die Marke in keinem der beiden Schemata mehr die
-   Markenfarbe trägt, auch im dunklen nicht, wo heute alles stimmt.
-
-   WAS DER TAUSCH KOSTET, STEHT HIER UND NICHT NUR IM ÄNDERUNGSPROTOKOLL: wer
-   die Marke austauscht, fasst ab jetzt Quelltext an. `favicon.svg` bleibt
-   eine Datei — es braucht keine Variable, weil es seine eigene dunkle Kachel
-   mitbringt und damit auf jeder fremden Fläche steht.
-
-   ZWEI VARIABLEN UND KEINE NEUEN FARBEN: --brand-grey ist --muted, und
-   --brand-line ist --accent-text. Beide tragen in beiden Schemata schon den
-   richtigen Wert, und beide sind über 3 : 1 auf ihrem Grund. Die Marke folgt
-   dem Schema damit ohne eine Zeile JavaScript.
-
-   Die Klasse heisst `mark` und nicht `mark`: `mark` gibt es in style.css
-   bereits fuer die kleinen Knoepfe am Kommentar.
-
-   aria-hidden UND KEIN TITEL: die Marke steht ueberall unmittelbar neben dem
-   Namen der Instanz -- ein Vorleseprogramm saegte ihn sonst zweimal. (Bis
-   0.22.1 stand dafuer alt="" am Bild; an einem SVG ist aria-hidden die
-   Entsprechung, und focusable="false" haelt es aus der Tabreihenfolge
-   aelterer Browser.)
-
-   DAS viewBox UMSCHLIESST DIE FARBE UND NICHT DIE KACHEL (`6.5 4.5 19 23`):
-   bei stroke-width 3 und stroke-linecap round traegt die Farbe eine halbe
-   Strichbreite ueber die Zeichnung hinaus. Damit ist die angegebene Hoehe die
-   gezeichnete Hoehe. favicon.svg behaelt 0 0 32 32 samt Kachel -- ein
-   Kachelsymbol braucht seinen Rand.
-
-   DIE WIRKLICHE GROESSE STEHT IM CSS, IN rem: die Instanz stellt die Schrift
-   von 80 bis 120 Prozent. Die Attribute hier halten nur das Seitenverhaeltnis
-   und den Platz, bis das Stylesheet greift. */
+/* Die Marke der Instanz — EIN EINGEBAUTES SVG, seit 0.23.0 wieder. UND DAS
+   NIMMT EINE ENTSCHEIDUNG VON 0.9.1 ZURÜCK. */
 const MARK = (s = 30) =>
   `<svg class="logo" viewBox="6.5 4.5 19 23" width="${Math.round(s * 19 / 23)}" height="${s}"`
   + ` aria-hidden="true" focusable="false" fill="none" stroke-linecap="round" stroke-width="3">`
@@ -630,19 +293,7 @@ function splitUrl(u) {
   } catch { return { dom: u, path: '' }; }
 }
 
-/* Sterne-Widget. Skala ist ueberall fest 1-5.
-   HINTER DEM FUENFTEN STERN EIN SECHSTER PLATZ MIT EINEM × -- 0.21.0, und nur
-   dort, wo es etwas zurueckzusetzen gibt (also bei `onReset`). Die Testtage
-   und jede reine Lesestelle rufen ohne, und die bekommen keinen sechsten
-   Platz.
-   ER IST IMMER IM DOKUMENT UND NUR SICHTBAR, WENN value > 0 -- ueber
-   `visibility` und nicht ueber `display`. Der Unterschied ist der ganze Punkt:
-   `display: none` naehme dem × seinen Platz, und die Sterne rutschten beim
-   ERSTEN Stern nach links. Genau diesen Sprung schafft dieselbe Runde eine
-   Spalte weiter rechts ab; ihn hier neu einzubauen waere absurd.
-   BIS 0.20.1 STAND DAS ZURUECKSETZEN AUF EINEM DOPPELKLICK, angekuendigt in
-   einem `title` -- also einem Hinweis, den kein Telefon je zeigt. Ein
-   sichtbarer Weg statt einem versteckten: beides faellt weg. */
+/* Sterne-Widget. Skala ist ueberall fest 1-5. */
 function stars(value, onPick) {
   const w = document.createElement('span');
   w.className = 'stars';
@@ -654,7 +305,7 @@ function stars(value, onPick) {
     w.appendChild(s);
   }
   // Das Vorschauleuchten geht ueber die STERNE und nicht ueber alle Kinder --
-  // sonst faerbte das × als sechstes Kind mit, sobald jemand darueberfaehrt.
+// sonst faerbte das × als sechstes Kind mit, sobald jemand darueberfaehrt.
   const stars = () => [...w.querySelectorAll('.star')];
   w.addEventListener('mouseover', e => {
     if (!e.target.dataset.v) return;
@@ -668,18 +319,7 @@ function stars(value, onPick) {
   return w;
 }
 
-/* DER RUECKSETZKNOPF DER STERNZEILE -- 0.22.0 (E15). Bis 0.21.1 stand er als
-   sechster Platz IN der Sternreihe, zwei Bildpunkte hinter dem fuenften
-   Stern; aus dem Betrieb kam: „man denkt, man klickt auf den letzten Stern,
-   und dann loescht man die Bewertung". Jetzt ist er ein eigener runder Knopf
-   mit dem Zeichen ↺ in der LETZTEN Spalte des Rasters, hinter der
-   Durchschnittszahl -- groesstmoeglicher Abstand zum fuenften Stern.
-   DER HINWEISTEXT BEHAELT DAS WORT „Meine": neben der Durchschnittszahl
-   darf er nicht wie ein Loeschknopf fuer fremde Bewertungen gelesen werden.
-   UNSICHTBAR UEBER EINE KLASSE UND NICHT UEBER `hidden`: `hidden` ist
-   `display: none` und naehme dem Knopf seinen Platz; die Klasse setzt
-   `visibility: hidden` -- die Zelle bleibt, das Raster bewegt sich nicht,
-   und der Knopf faellt aus Tastaturreihenfolge und Vorleseprogramm. */
+/* DER RUECKSETZKNOPF DER STERNZEILE -- 0.22.0 (E15). */
 function resetButton(value, onReset) {
   const z = document.createElement('button');
   z.type = 'button';
@@ -691,19 +331,15 @@ function resetButton(value, onReset) {
   return z;
 }
 
-// Mitwachsendes Textfeld. Der Rahmen muss dazugerechnet werden, weil
-// box-sizing global auf border-box steht -- sonst bliebe eine Scrollleiste von
-// zwei Pixeln stehen. Das Element muss im Dokument haengen, sonst ist
-// scrollHeight null. Gibt die Messfunktion zurueck.
+// Mitwachsendes Textfeld.
 function autoGrow(el) {
   if (!el) return () => {};
   el.classList.add('ta-auto');
   const fit = () => {
     // Der Zwischenschritt height:auto laesst ein hohes Feld auf zwei Zeilen
-    // zusammenfallen; der Browser zieht die Bildlaufposition auf das neue Ende
-    // nach und gibt sie nicht von selbst zurueck -- Ergebnis waere ein Sprung
-    // bei jedem Tastendruck. Deshalb Position merken und noch im selben
-    // Durchlauf zuruecksetzen.
+    // zusammenfallen; der Browser zieht die Bildlaufposition auf das neue
+    // Ende nach und gibt sie nicht von selbst zurueck -- Ergebnis waere ein
+    // Sprung bei jedem Tastendruck.
     const side = document.scrollingElement || document.documentElement;
     const before = side ? side.scrollTop : 0;
     el.style.height = 'auto';
@@ -737,9 +373,7 @@ function confirmBox(title, text, confirmLabel = t('dialog.delete'), kind = 'dang
 
 /* EIN NAME WIRD GEFRAGT -- nach dem Muster von confirmBox() und ausdruecklich
    KEIN prompt(): das steht am oberen Rand des Fensters, sieht in keinem
-   Browser wie diese Instanz aus und laesst sich nicht beschriften.
-   Liefert den getrimmten Namen oder null bei Abbruch. Ein leerer Name ist ein
-   Abbruch: eine Ansicht ohne Namen liesse sich nicht wiederfinden. */
+   Browser wie diese Instanz aus und laesst sich nicht beschriften. */
 function nameBox(title, text, fallback = '', okLabel = t('dialog.save'), maxLength = 40) {
   return new Promise(resolve => {
     const bd = document.createElement('div');
@@ -765,30 +399,13 @@ function nameBox(title, text, fallback = '', okLabel = t('dialog.save'), maxLeng
   });
 }
 
-/* DIE ZWEITE BESTAETIGUNG AM BILDSCHIRM.
-   Ein eigener Dialog nach dem Muster von confirmBox() -- und ausdruecklich
-   KEIN prompt(): dort stuende das Passwort im Klartext auf dem Bildschirm.
-   DER GRUND STEHT DANEBEN, und das ist keine Zierde: ein Passwortfeld ohne
-   Begruendung sieht aus wie eine Schikane. Wer liest, warum gefragt wird,
-   versteht auch, warum es beim naechsten Mal wieder gefragt wird.
-   Liefert true, wenn die Freigabe steht -- der Rufer handelt danach. Bei false
-   ist entweder abgebrochen worden oder das Passwort war falsch; die Meldung
-   steht dann schon. */
-/* EINE FUNKTION UND KEINE KONSTANTE -- 0.24.0. Sie liest jetzt aus der
-   Sprachdatei, und die ist beim Auswerten dieser Zeile noch nicht da: ein
-   `const` haette hier fuer immer die Klammerform festgehalten. Gefragt wird
-   beim Gebrauch und nicht beim Laden. */
+/* DIE ZWEITE BESTAETIGUNG AM BILDSCHIRM. */
+/* EINE FUNKTION UND KEINE KONSTANTE -- 0.24.0. */
 const confirmReason = () => t('dialog.appWideHint') +
   t('dialog.confirmPassword');
 
-/* STEHT HIER EIN ZWEITES FELD -- aber nur bei Zugaengen, die einen
-   zweiten Faktor eingeschaltet haben. Wer ihn nicht will, sieht denselben
-   Dialog wie vor dieser Runde.
-   DIE FRAGE, OB DAS FELD DASTEHT, KOMMT VOM SERVER (`zweifaktor` aus
-   GET /api/settings) und wird hier nie geraten. Ohne sie muesste der Dialog
-   den ersten Versuch absichtlich scheitern lassen, um zu erfahren, dass ein
-   Code fehlt -- und schriebe dabei bei JEDEM Vorgang eine Zeile
-   'confirm.fail' ins Sicherheitsprotokoll. */
+/* STEHT HIER EIN ZWEITES FELD -- aber nur bei Zugaengen, die einen zweiten
+   Faktor eingeschaltet haben. */
 function passwordDialog(title, event, reason, withCode) {
   return new Promise(resolve => {
     const bd = document.createElement('div');
@@ -798,13 +415,7 @@ function passwordDialog(title, event, reason, withCode) {
       ${reason ? `<p class="desc" style="margin:0">${esc(reason)}</p>` : ''}
       <div class="field" style="margin:0"><label>${tH('dialog.yourPassword')}</label>
         <input class="input" id="confirm-pass" type="password" autocomplete="current-password"></div>
-      ${/* DAS FELD NENNT DAS VERFAHREN UND NICHT DAS GERAET. "Code aus deiner
-           App" war zweimal falsch: es fragt nach der Herkunft statt nach der
-           Sache, und es stimmt fuer die Haelfte der Faelle nicht -- hier traegt
-           auch ein Wiederherstellungscode, und der kommt von einem Zettel.
-           EIN FELD FUER BEIDE FORMEN, wie an der Anmeldung: der Server sieht
-           der Eingabe an, was gemeint ist (istCodeform gegen istWiederform).
-           Deshalb darf die Beschriftung keine von beiden ausschliessen. */''}
+      ${/* DAS FELD NENNT DAS VERFAHREN UND NICHT DAS GERAET. */''}
       ${withCode ? `<div class="field" style="margin:10px 0 0"><label>${tH('dialog.twoFactorCode')}</label>
         <input class="input" id="confirm-code" inputmode="text" autocomplete="one-time-code"
           autocapitalize="characters" spellcheck="false" maxlength="16"></div>` : ''}
@@ -828,42 +439,18 @@ function passwordDialog(title, event, reason, withCode) {
 }
 
 /* Das Fenster der ZWEITEN BESTAETIGUNG. Ob das Codefeld dasteht, entscheidet
-   ZWEIFAKTOR und damit der Server -- die Oberflaeche raet es nie.
-   DER ZUSATZSATZ STEHT NUR DA, WENN DAS FELD DASTEHT: ein Grund fuer eine
-   Frage, die gar nicht gestellt wird, waere Verwirrung ohne Gegenwert. */
+   ZWEIFAKTOR und damit der Server -- die Oberflaeche raet es nie. */
 const confirmField = (title, event) => passwordDialog(title, event,
   confirmReason() + (TWO_FACTOR
     ? t('dialog.twoFactorOn') +
       t('dialog.recoveryCodeToo')
     : ''), TWO_FACTOR);
 
-/* Dasselbe Fenster fuer die vier Wege des zweiten Faktors selbst, .
-   ES HAT EINEN EIGENEN NAMEN UND KEINEN SCHALTER AN confirmField: dort
-   haengt das Codefeld an ZWEIFAKTOR, hier am WEG. Beim Einschalten gibt es noch
-   keinen Code zu fragen, beim Ausschalten gehoert er dazu -- und beide Male ist
-   ZWEIFAKTOR die falsche Auskunft darueber.
-   OHNE confirmReason(): der steht fuer "das trifft die Instanz als Ganzes",
-   und das trifft hier nicht zu -- es geht um den eigenen Zugang. Der Grund
-   kommt deshalb je Weg von der Aufrufstelle. */
+/* Dasselbe Fenster fuer die vier Wege des zweiten Faktors selbst, . */
 const confirmFieldFree = (title, event, withCode) =>
   passwordDialog(title, event, '', withCode === true);
 
-/* EINE ABFRAGE, EINE ANFRAGE, MEHRERE FREIGABEN. Ein Bestand, der in fuenf
-   Teilen hinausgeht, braucht fuenf Freigaben -- eine Freigabe wird verbraucht,
-   und fuenf mit demselben Ziel waeren EINE; der Schluessel ist Sitzung, Zweck
-   und Ziel.
-   ALLE ZIELE IN EINER ANFRAGE, und das ist die ganze Sache: ein Code des
-   zweiten Faktors gilt GENAU EINMAL. Wer dieselbe Eingabe n-mal an den Server
-   schickt, bekommt einmal 200 und n-1 mal "Der Code stimmt nicht" -- richtig
-   gemeldet und trotzdem irrefuehrend, denn der Code war richtig und
-   verbraucht. Fuer das Passwort gilt das nicht: es laeuft gegen einen Hash und
-   laesst sich beliebig oft vergleichen. Der Unterschied ist die Stelle, an der
-   ein n-facher Aufruf kippt.
-   NEBENHER FAELLT DAMIT DREIERLEI WEG: n-1 Zeilen 'confirm.fail' ueber
-   den Eigentuemer selbst, n-1 Fehlschlaege in der Anmeldebremse (bei elf
-   Teilen griff die harte Sperre), und der verbrannte Wiederherstellungscode.
-   WAS BLEIBT: das Laden eines Teils verbraucht genau eine Freigabe. Was
-   zusammengefasst wird, ist die ABFRAGE und nicht die Schranke. */
+/* EINE ABFRAGE, EINE ANFRAGE, MEHRERE FREIGABEN. */
 async function confirmTwiceMany(purpose, targets, title, event) {
   const input = await confirmField(title, event);
   if (input === null) return false;
@@ -875,8 +462,7 @@ async function confirmTwiceMany(purpose, targets, title, event) {
 async function secondConfirm(purpose, target, title, event) {
   const input = await confirmField(title, event);
   // null heisst abgebrochen -- ein Abbruch, der trotzdem handelt, waere der
-  // schlimmere Fehler. Ein LEERES Feld ist keine Bestaetigung, sondern ein
-  // falsches Passwort und geht als solches an den Server.
+  // schlimmere Fehler.
   if (input === null) return false;
   try { await api('POST', '/api/confirm', { ...input, purpose, target: target ?? null }); }
   catch (e) { toast(e.message, true); return false; }
@@ -884,9 +470,7 @@ async function secondConfirm(purpose, target, title, event) {
 }
 
 /* EIN NEUES PASSWORT FUER EINEN ANDEREN -- 0.22.0, und ausdruecklich KEIN
-   prompt(): dort stand das fremde Passwort im Klartext auf dem Bildschirm.
-   Ein Passwortfeld, darueber die Vorgabe und die Folge. Liefert das Passwort
-   oder null bei Abbruch; ein leeres Feld ist ein Abbruch. */
+   prompt(): dort stand das fremde Passwort im Klartext auf dem Bildschirm. */
 function newPasswordDialog(title, sentence) {
   return new Promise(resolve => {
     const bd = document.createElement('div');
@@ -912,14 +496,7 @@ function newPasswordDialog(title, sentence) {
   });
 }
 
-/* DAS FENSTER ZUM LOESCHEN EINES BENUTZERS -- 0.22.0, Bauabschnitt 4. EIN
-   Fenster statt drei confirm() hintereinander, in denen „Abbrechen" nicht
-   abbrach, sondern „stehen lassen und trotzdem weiter loeschen" hiess
-   (Stolperstein 316). Zwei Haekchen mit den Zahlen vom Server, ein Satz zum
-   Sperren als Alternative, zwei Knoepfe -- und „Abbrechen" bricht ab.
-   Ein Haekchen steht nur da, wenn es etwas zu entscheiden gibt: ohne eigene
-   Eintraege gibt es nichts mitzuloeschen.
-   Liefert { entries, posts } oder null bei Abbruch. */
+/* DAS FENSTER ZUM LOESCHEN EINES BENUTZERS -- 0.22.0, Bauabschnitt 4. */
 function userDeleteDialog(name, number, b) {
   return new Promise(resolve => {
     const countWord = (n, singular, more) => (n ? [`${n} ${counted(n, singular, more)}`] : []);
@@ -959,9 +536,7 @@ function userDeleteDialog(name, number, b) {
   });
 }
 
-// Schreibvorgaenge der Reihe nach abarbeiten. Klick und Doppelklick auf
-// dieselben Sterne loesen mehrere Aufrufe kurz hintereinander aus; ohne
-// Serialisierung kann das Zuruecksetzen vor dem Setzen ankommen.
+// Schreibvorgaenge der Reihe nach abarbeiten.
 let queue = Promise.resolve();
 const enqueue = fn => (queue = queue.then(fn, fn));
 
@@ -970,16 +545,10 @@ let TITLE_PUBLIC = 'Kriterion';
 let VERSION = '';   // kommt von /api/config, steht auch vor der Anmeldung
 let TITLE_APP = 'Kriterion';
 let MIN_PASSWORD = 10;   // Vorgabe des Servers, kommt mit /api/config
-/* Ob diese Instanz Anfragen annimmt. KOMMT VOM SERVER und wird hier nie
-   geraten: die Oberfläche zeigt das Formular, der Server entscheidet über die
-   Anfrage. Wer das Feld von Hand auf true setzt, bekommt ein Formular, dessen
-   Anfrage an derselben Antwort endet wie jede andere — die Schranke liegt
-   nicht hier. */
+/* Ob diese Instanz Anfragen annimmt. */
 let SIGNUP = false;
 
-/* Erste Einrichtung. Nennt den vorhandenen Bestand mit keinem Wort: die Seite
-   steht vor der Anmeldung, dort gilt dieselbe Regel wie fuer den zweiten
-   Titel. */
+/* Erste Einrichtung. */
 function showSetup(errMsg) {
   document.querySelectorAll('.lightbox, .backdrop, .cmp-bar').forEach(e => e.remove());
   document.body.classList.remove('lb-open');
@@ -1031,10 +600,10 @@ function showLogin(errMsg) {
   document.querySelectorAll('.lightbox, .backdrop, .cmp-bar').forEach(e => e.remove());
   document.body.classList.remove('lb-open');
   // Teilt der Seite mit, dass jetzt die Anmeldung steht: nur dort teilen sich
-  // Inhalt und Versionszeile die Fensterhoehe.
+// Inhalt und Versionszeile die Fensterhoehe.
   document.body.classList.add('login');
   // Die Anmeldeseite bleibt bei der Vorgabegroesse: der Endpunkt davor liefert
-  // nur den oeffentlichen Titel, sonst nichts.
+// nur den oeffentlichen Titel, sonst nichts.
   document.documentElement.style.fontSize = '';
   app.innerHTML = `<div class="login-screen"><div class="login-card">
     ${BRAND_LINE()}
@@ -1045,29 +614,12 @@ function showLogin(errMsg) {
     <div class="field"><label for="lp">${tH('login.password')}</label>
       <input class="input" id="lp" type="password" autocomplete="current-password"></div>
     <button class="btn btn-accent" id="lb">${tH('login.signIn')}</button>
-    ${/* DIE SELBSTANMELDUNG — sie steht nur da, wenn der
-          Server sagt, dass sie an ist. Ein Formular, das ins Leere führt,
-          wäre schlimmer als keines: der Anfragende bekäme dieselbe freundliche
-          Antwort wie alle und wartete auf eine Mail, die nie kommt.
-          KEIN PASSWORTFELD. Der Anfragende gibt Namen und Adresse an, sonst
-          nichts — sein Passwort wählt er später über den Einladungslink, und
-          zwar erst, wenn ein Admin ihn hereingelassen hat. */''}
+    ${/* DIE SELBSTANMELDUNG — sie steht nur da, wenn der Server sagt, dass
+         sie an ist. */''}
     ${SIGNUP ? `<p class="sub login-divider">${tH('login.noAccountYet')}</p>
       <button class="btn login-alt" id="l-request">${tH('login.requestAccess')}</button>` : ''}
-    ${/* KEINE SPRACHZEILE UNTER DER MASKE — vom Betreiber am 8. September 2026
-          entschieden, nachdem er 0.24.3 im Feld gesehen hat. Bauabschnitt 3
-          hatte sie gebaut (E6 des Konzepts).
-          WAS DIE ANMELDESEITE STATTDESSEN SPRICHT, bleibt unverändert: das
-          Gedächtnis des Geräts, sonst was der Browser verlangt, sonst die
-          Vorgabe der Installation. Wer sich hier schon einmal angemeldet hat,
-          DIE ANMELDESEITE SPRICHT DIE VORGABESPRACHE DER INSTALLATION —
-          und sonst nichts. Kein Umschalter, kein Gedächtnis des Geräts: wer
-          angemeldet ist, liest in seiner Sprache, und wer es nicht ist, liest
-          in der des Hauses.
-          DAMIT IST AUCH DAS GEDÄCHTNIS GEFALLEN. `kriterion.language` hatte
-          genau einen Leser, und das war diese Seite; ein gespeicherter Wert
-          ohne Leser ist eine zweite Wahrheit über etwas, das niemand mehr
-          fragt. */''}
+    ${/* KEINE SPRACHZEILE UNTER DER MASKE — vom Betreiber am 8. September
+         2026 entschieden, nachdem er 0.24.3 im Feld gesehen hat. */''}
   </div></div>`;
   document.title = TITLE_PUBLIC;
   if (SIGNUP) document.getElementById('l-request').onclick = () => showRequest();
@@ -1087,10 +639,7 @@ function showLogin(errMsg) {
         return;
       }
       const j = await res.json().catch(() => ({}));
-      /* DER ZWEITE SCHRITT, . Der Server hat KEINEN Cookie
-         geschickt — es gibt noch keine Sitzung, und diese Seite hält auch
-         keine halbe: sie hält nur den Ausweis, den sie gleich wieder
-         hergibt. */
+      /* DER ZWEITE SCHRITT, . */
       if (j.twoFactor) return showSecondFactor(j.ticket);
       location.hash = '#/';
       start();
@@ -1101,16 +650,7 @@ function showLogin(errMsg) {
   u.focus();
 }
 
-/* Der zweite Schritt der Anmeldung.
-
-   ES IST EINE SEITE UND KEIN ZUSTAND. Der Ausweis liegt in einer Variablen
-   dieser Funktion und sonst nirgends — nicht im Speicher des Browsers, nicht
-   in der Adresse. Wer neu lädt, steht wieder an der Anmeldung.
-
-   EIN FELD FÜR BEIDE FORMEN: sechs Ziffern aus der App oder ein
-   Wiederherstellungscode — der Server sieht der Eingabe an, was gemeint ist.
-
-   DIE ABSAGE KOMMT VOM SERVER UND WIRD HIER NICHT ERFUNDEN. */
+/* Der zweite Schritt der Anmeldung. ES IST EINE SEITE UND KEIN ZUSTAND. */
 function showSecondFactor(ticket, errMsg) {
   document.body.classList.add('login');
   document.documentElement.style.fontSize = '';
@@ -1118,9 +658,8 @@ function showSecondFactor(ticket, errMsg) {
     ${BRAND_LINE()}
     <p class="sub">${tH('login.almostDone')}</p>
     ${errMsg ? `<div class="login-error">${esc(errMsg)}</div>` : ''}
-    ${/* Nicht "Sechsstelliger Code": hier traegt auch ein Wiederherstellungscode,
-         und der hat zehn Zeichen. Die Beschriftung nennt deshalb das Verfahren,
-         die Zeile darunter nennt den zweiten Weg. */''}
+    ${/* Nicht "Sechsstelliger Code": hier traegt auch ein
+         Wiederherstellungscode, und der hat zehn Zeichen. */''}
     <div class="field"><label for="two-factor-code">${tH('dialog.twoFactorCode')}</label>
       <input class="input" id="two-factor-code" inputmode="text" autocomplete="one-time-code"
         autocapitalize="characters" spellcheck="false" maxlength="16"></div>
@@ -1141,12 +680,7 @@ function showSecondFactor(ticket, errMsg) {
         const j = await res.json().catch(() => ({}));
         /* DER SERVER ENTSCHEIDET, OB ES HIER WEITERGEHT — an einem FELD und
            nicht an einem Statuscode: liegt der Absage ein frischer Ausweis
-           bei, war der Code falsch und ein zweiter Anlauf steht offen. Liegt
-           keiner bei (abgelaufene Anmeldung, Zugang inzwischen gesperrt, die
-           Bremse), ist hier nichts mehr zu holen und der Mensch gehört zurück
-           an den Anfang.
-           DEN ALTEN AUSWEIS WEITERZUVERWENDEN WÄRE FALSCH: er ist verbraucht,
-           auch nach einer Absage. */
+           bei, war der Code falsch und ein zweiter Anlauf steht offen. */
         if (j.ticket) return showSecondFactor(j.ticket, j.error || t('login.codeWrong'));
         return showLogin(j.error || t('server.sessionExpired'));
       }
@@ -1159,25 +693,11 @@ function showSecondFactor(ticket, errMsg) {
   c.focus();
 }
 
-/* DIE FORM EINER ADRESSE -- 0.32.0, Bauabschnitt 6. Zeichen fuer Zeichen
-   dasselbe Muster wie `ADDRESS_PATTERN` in mail.js: zwei Stellen, die
-   „gueltige Adresse" verschieden beantworten, waeren eine Falle -- der
-   Browser liesse durch, was der Server abweist, oder umgekehrt.
-   ES IST EINE ZWEITE ABSCHRIFT UND KEINE ZWEITE WAHRHEIT: die eine Wahrheit
-   steht im Server, und der Pruefstand haelt beide Zeilen Zeichen fuer Zeichen
-   gegeneinander. Ohne diese Abschrift muesste der Browser fuer die Form eine
-   Anfrage stellen -- und genau dann waere sie keine Vorpruefung mehr. */
+/* DIE FORM EINER ADRESSE -- 0.32.0, Bauabschnitt 6. */
 const ADDRESS_FORM = /^[^\s@]+@[^\s@.]+(\.[^\s@.]+)+$/;
 
-/* Die Selbstanmeldung: das Formular und die Antwort darauf.
-
-   ZWEI FELDER UND KEIN PASSWORT. Das Passwort wählt der Anfragende später
-   selbst über den Einladungslink, und den bekommt er erst, wenn ein Admin ihn
-   hereingelassen hat.
-
-   DIE ANTWORT KOMMT VOM SERVER UND WIRD HIER NICHT ERFUNDEN: sie sieht in
-   jeder Lage gleich aus, und diese Seite darf daraus keine zweite Auskunft
-   machen — kein „Name bereits vergeben", kein Unterschied im Aussehen. */
+/* Die Selbstanmeldung: das Formular und die Antwort darauf. ZWEI FELDER UND
+   KEIN PASSWORT. */
 function showRequest(errMsg, values = {}) {
   document.body.classList.add('login');
   document.documentElement.style.fontSize = '';
@@ -1198,23 +718,7 @@ function showRequest(errMsg, values = {}) {
   const n = document.getElementById('req-name'), m = document.getElementById('req-mail'),
         b = document.getElementById('req-send');
   document.getElementById('req-back').onclick = (e) => { e.preventDefault(); showLogin(); };
-  /* FORM IST OEFFENTLICH, EXISTENZ IST ES NICHT -- 0.32.0, Bauabschnitt 6.
-     DIESER SATZ IST DIE GRENZE, und er steht hier, damit die naechste Runde
-     die Gleichheit der Antwort nicht fuer eine Umstaendlichkeit haelt und
-     wegbaut: /api/signup antwortet in JEDER Lage dasselbe -- ob der Name frei
-     war, ob er vergeben war, ob die Adresse schon an einem Zugang haengt, ob
-     der Deckel erreicht ist, ob der Schalter aus ist. Sonst waere das
-     Formular ein Werkzeug zum Durchprobieren, und zwar ein bequemeres als die
-     Anmeldung: es steht ohne Passwort davor.
-     ABER EIN LEERES FORMULAR FRAGT NICHTS AB. Wer nichts eingibt, probiert
-     keinen Namen aus -- er hat vergessen, etwas einzugeben, und las bis
-     0.31.4 trotzdem „Danke" (Punkt 30 des Sammelblatts, vom Betreiber am
-     13. September 2026 an der laufenden Installation gesehen).
-     GEPRUEFT WIRD DIE FORM UND NICHT DER BESTAND: ist das Feld leer, traegt
-     die Adresse kein `@`. Ueber diese Auskunft laesst sich nichts darueber
-     erfahren, WER hier einen Zugang hat.
-     UND DER SERVER PRUEFT DASSELBE NOCH EINMAL -- eine Pruefung nur im
-     Browser ist eine Bitte. */
+  /* FORM IST OEFFENTLICH, EXISTENZ IST ES NICHT -- 0.32.0, Bauabschnitt 6. */
   const formFault = () => {
     if (!String(n.value).trim()) return t('login.usernameMissing');
     if (!ADDRESS_FORM.test(String(m.value).trim())) return t('login.emailInvalid');
@@ -1231,10 +735,7 @@ function showRequest(errMsg, values = {}) {
         body: JSON.stringify({ name: n.value, address: m.value })
       });
       const j = await res.json().catch(() => ({}));
-      /* NUR DIE BREMSE UND DER AUSFALL FÜHREN ZURÜCK INS FORMULAR. Alles
-         andere endet auf derselben Dankseite — auch das, was der Server still
-         verworfen hat. Die Eingaben bleiben dabei stehen, damit ein zweiter
-         Anlauf nach einer 429 nicht am leeren Formular beginnt. */
+      /* NUR DIE BREMSE UND DER AUSFALL FÜHREN ZURÜCK INS FORMULAR. */
       if (!res.ok) return showRequest(j.error || t('login.requestFailed'),
         { name: n.value, address: m.value });
       showRequestThanks(j.message);
@@ -1256,17 +757,7 @@ function showRequestThanks(message) {
   document.getElementById('req-back2').onclick = (e) => { e.preventDefault(); showLogin(); };
 }
 
-/* Der Bestätigungslink aus der Selbstanmeldung.
-
-   ER HAT KEINE PASSWORTKRAFT, und diese Seite ist die bauliche Form davon: sie
-   setzt kein Passwort, sie meldet niemanden an, und danach steht man wieder
-   auf der Anmeldeseite. Sie schickt genau einen Aufruf ab und zeigt sein
-   Ergebnis.
-
-   DER SCHLÜSSEL STEHT IM FRAGMENT (#/confirm/…) und geht damit nie an den
-   Server — dieselbe Bauform wie beim Einladungslink. Ein Vorschaudienst, der
-   Links im Postfach vorab abruft, holt nur die Seite und bestätigt gerade
-   NICHT: der Browser schickt den Schlüssel erst von hier aus im Rumpf. */
+/* Der Bestätigungslink aus der Selbstanmeldung. */
 async function showConfirm(key) {
   document.body.classList.add('login');
   document.documentElement.style.fontSize = '';
@@ -1309,18 +800,7 @@ async function showConfirm(key) {
   }
 }
 
-/* Der Link aus einer Einladung oder einer Rücksetzung.
-
-   EIN ZUSTAND DIESER SEITE, KEINE ZWEITE DATEI: eine zweite ausgelieferte
-   Seite hieße eine zweite Stelle für Kopfzeilen, für die
-   Content-Security-Policy und für die Sicherheitsregel.
-
-   DER SCHLÜSSEL STEHT IM FRAGMENT DER ADRESSE (#/invite/…), und das ist
-   der Grund für diese Bauform: ein Fragment geht nie an den Server und steht
-   damit in keinem Zugriffsprotokoll und in keinem Referrer.
-
-   DER NAME KOMMT ERST VOM SERVER, wenn der Link trägt — sonst verriete ein
-   geratener Link einen Benutzernamen. */
+/* Der Link aus einer Einladung oder einer Rücksetzung. */
 async function showInvite(key) {
   document.querySelectorAll('.lightbox, .backdrop, .cmp-bar').forEach(e => e.remove());
   document.body.classList.remove('lb-open');
@@ -1339,16 +819,7 @@ async function showInvite(key) {
       body: JSON.stringify({ token: key })
     });
     status = await res.json().catch(() => ({}));
-    /* EINE VORÜBERGEHENDE ABSAGE DARF DEN SCHLÜSSEL NICHT WEGWERFEN. Leerte
-       JEDES `!res.ok` die Adresse, träfe es auch die 429 der Anmeldebremse:
-       wer sich vorher beim Anmelden vertippt hat und danach seinen GÜLTIGEN
-       Einladungslink anklickt, sähe eine Fehlermeldung, lüde neu und stünde
-       auf der Anmeldeseite -- der Link war nie tot, die Adresse war weg.
-       DESHALB WIRD NUR BEI DER ENDGÜLTIGEN ABSAGE GELEERT. Bei allem anderen
-       -- Bremse, Serverfehler, kein Netz -- bleibt der Schlüssel in der
-       Adresse stehen.
-       400 IST DIE ENDGÜLTIGE: die EINE Absage für abgelaufen, verbraucht,
-       erfunden, Zugang gesperrt, Frist verstrichen. */
+    /* EINE VORÜBERGEHENDE ABSAGE DARF DEN SCHLÜSSEL NICHT WEGWERFEN. */
     if (res.status === 400) {
       location.hash = '#/';
       return showLogin(status.error || t('login.linkExpired'));
@@ -1359,12 +830,7 @@ async function showInvite(key) {
   const min = status.minPassword || MIN_PASSWORD;
   draw();
 
-  /* Die Seite für eine VORÜBERGEHENDE Absage. Sie hält den Schlüssel fest und
-     bietet einen zweiten Anlauf an — ohne Neuladen, aber ein Neuladen tut es
-     auch, denn die Adresse steht noch. Bewusst KEIN Zeitgeber, der von selbst
-     wiederholt: die Bremse antwortet mit einer Wartezeit, und ein Browser,
-     der im Sekundentakt nachfragt, hält sie am Leben statt sie ablaufen zu
-     lassen. Der Mensch drückt, wenn er so weit ist. */
+  /* Die Seite für eine VORÜBERGEHENDE Absage. */
   function later(message) {
     app.innerHTML = `<div class="login-screen"><div class="login-card">
       ${BRAND_LINE()}
@@ -1386,10 +852,7 @@ async function showInvite(key) {
         <input class="input" id="ep" type="password" autocomplete="new-password"></div>
       <div class="field"><label for="ep2">${tH('login.repeatPassword')}</label>
         <input class="input" id="ep2" type="password" autocomplete="new-password"></div>
-      ${/* DIE FRIST GEHÖRT AN DIE STELLE, AN DER SIE LÄUFT. Sie beginnt mit
-            genau diesem Aufruf — vorher ist nichts geschehen, egal wie lange
-            die Mail im Postfach lag. Wer sie hier nicht liest, erfährt sie
-            erst an der Absage, und dann ist es zu spät. */''}
+      ${/* DIE FRIST GEHÖRT AN DIE STELLE, AN DER SIE LÄUFT. */''}
       <p class="sub" style="margin:0 0 4px">${tH('login.minChars', { min: min })}
         ${status.minutes ? `${tMark('login.linkValidHint', 'login.linkValidMinutes', { n: status.minutes })}` : ''}
         <br>${tH('login.logoutHint')}</p>
@@ -1413,13 +876,11 @@ async function showInvite(key) {
           return draw(j.error || t('login.passwordNotSet'));
         }
         const j = await res.json().catch(() => ({}));
-        /* DER ZWEITE FAKTOR WIRD AUCH HIER VERLANGT, — sonst wäre
-           der Rücksetzlink der Weg daran vorbei. Das Passwort IST gesetzt und
-           der Link verbraucht; was noch aussteht, ist die Anmeldung. Deshalb
-           wird die Adresse auch hier geleert. */
+        /* DER ZWEITE FAKTOR WIRD AUCH HIER VERLANGT, — sonst wäre der
+           Rücksetzlink der Weg daran vorbei. */
         if (j.twoFactor) { location.hash = '#/'; return showSecondFactor(j.ticket); }
         // Angemeldet ist man damit schon -- der Server hat den Cookie
-        // mitgeschickt. Die Adresse wird geleert: der Link ist verbraucht.
+// mitgeschickt. Die Adresse wird geleert: der Link ist verbraucht.
         location.hash = '#/';
         start();
       } catch { draw(t('login.serverUnreachable')); }
@@ -1432,22 +893,14 @@ async function showInvite(key) {
 
 /* ================= Blöcke der Detailansicht ================= */
 // Reihenfolge und Einklappzustand gelten global, nicht je Eintrag, und liegen
-// auf dem Server. Verschoben wird nur innerhalb des jeweiligen Bereichs:
-// Kommentare in der schmalen Spalte oder eine Kategorieauswahl über die volle
-// Breite wären schlechter als jede Vorgabe.
+// auf dem Server.
 const BLOCK_DEFAULT = {
-  // Vorher steht vor nachher -- geschaetzt wird, bevor bewertet wird. Dieselbe
-  // Liste wie BLOCK_DEFAULT.seite im Server; wer eine gespeicherte Reihenfolge
-  // hat, bekommt den neuen Block ueber sortArea() hinten angehaengt und
-  // kann ihn ziehen.
+  // Vorher steht vor nachher -- geschaetzt wird, bevor bewertet wird.
   side: ['kategorie', 'tags', 'potenzial', 'bewertung'],
   bottom: ['beschreibung', 'testtage', 'links', 'dateien', 'kommentare']
 };
-/* DIE BEIDEN STERNKAESTEN FUEHREN IHREN EINKLAPPZUSTAND NICHT MEHR IN `closed`
-   -- 0.21.0. Fuer sie entscheidet der Zustand des Eintrags; die Begruendung
-   steht bei BLICK weiter unten. Dieselbe Liste wie im Server, und aus
-   demselben Grund gefiltert: ein gespeichertes `bewertung` aus einer aelteren
-   Fassung faellt still heraus. */
+/* DIE BEIDEN STERNKAESTEN FUEHREN IHREN EINKLAPPZUSTAND NICHT MEHR IN
+   `closed` -- 0.21.0. */
 const BLOCKS_ALWAYS_OPEN = ['potenzial', 'bewertung'];
 const CLOSED_BLOCKS = [...BLOCK_DEFAULT.side, ...BLOCK_DEFAULT.bottom]
   .filter(k => !BLOCKS_ALWAYS_OPEN.includes(k));
@@ -1483,63 +936,7 @@ function sortBlocks() {
 }
 
 /* DIE ZAHLEN AM KOMMENTARBLOCK -- 0.32.1 NEU GEBAUT, und der Grund ist
-   gemessen. Bis 0.32.0 stand dort ein SATZ:
-
-       12 Kommentare, davon 3 Berichte und 5 Aufgaben (3 offen)
-
-   ER PASST AM TELEFON NICHT. Gemessen an der echten Kopfzeile (`.label` plus
-   Luecke plus `.hint`, Stilblatt) bei 390 Bildpunkten Fenster: Deutsch 490,
-   Englisch 435, Tuerkisch 401 -- nutzbar sind 358. In ALLEN DREI Sprachen
-   reisst die Zeile, im Deutschen um 132 Bildpunkte.
-   UND ER LIESS SICH NICHT DURCH KUERZEN RETTEN. Eine Aufzaehlung mit
-   Mittelpunkten ohne das Wort „Kommentare" passt gerade eben (Deutsch 341
-   von 358) -- aber der Betreiber darf die Vokabeln umbenennen, und mit
-   „Protokolle" und „Arbeitsauftraege" reisst sie wieder (390). JEDE Form, die
-   das Vokabelwort ZEIGT, laesst sich vom Vokabular selbst sprengen.
-
-   ALSO ZAHL UND ZEICHEN:
-
-       12 · ⚑3 · ☐3 · ☑2
-
-   DREI GRUENDE, WARUM ES ZEICHEN SIND UND NICHT NUR FARBIGE ZAHLEN:
-     1. Gestaltungsregel G1 -- „Rollen- und Zustandsmarken werden aus FORM
-        gebaut, nicht aus Farbe". Eine Zahl, deren Sinn nur in ihrer Farbe
-        steckt, ist fuer jeden Farbfehlsichtigen eine Zahl ohne Sinn, und ein
-        Vorleseprogramm liest „zwoelf drei drei zwei".
-     2. Die Zahlen ergeben NICHT die Summe, und ein Pluszeichen behauptete
-        das Gegenteil. Eine Notiz (`kind: 'note'`) wird nicht genannt -- sie
-        ist der Zustand ohne Markierung. Vier Kommentare koennen 1 Bericht
-        und 3 Notizen sein; „4 (1)" waere eine Rechnung, die nicht aufgeht.
-     3. Ein Zeichen ist in allen drei Sprachen dasselbe. Damit faellt an
-        dieser Stelle JEDE Grammatik weg -- und mit ihr `list.ofWhich`, das
-        auf Tuerkisch „, bunun {parts} kadarı" hiess: eine Klammer um eine
-        Aufzaehlung, die zur Laufzeit beliebig lang wird.
-
-   DER VOLLE SATZ BLEIBT IM `title`. Wer den Mauszeiger daraufhaelt oder
-   vorlesen laesst, bekommt die Woerter -- und zwar als AUFZAEHLUNG mit
-   Mittelpunkten und nicht als Satz: „12 Kommentare · 3 Berichte · 5 Aufgaben
-   (3 offen)". Eine Aufzaehlung aus „Zahl + Wort" braucht in keiner der drei
-   Sprachen eine Fuge, ein „davon" schon.
-
-   GEBILDET AN EINEM ORT: derselbe Inhalt steht aufgeklappt wie eingeklappt.
-   DIE OFFENEN STEHEN VORAN, denn danach wird im Alltag gefragt. Sie werden
-   ABGEZOGEN und nicht gezaehlt: `tasks - finished` kann nicht von der Summe
-   abweichen, eine zweite Zaehlung ueber `kind = 'task'` schon.
-   DAS ERLEDIGTE STECKT IN DEN AUFGABEN -- im `title` nistet es die Klammer
-   ein, in der Kurzform stehen ☐ und ☑ nebeneinander. Beide Male schrumpft
-   die Zahl der Aufgaben beim Abhaken nicht.
-   DIE KLAMMER IM title ERSCHEINT NUR, WENN ETWAS ERLEDIGT IST. Sonst stuende
-   dort "5 Aufgaben (5 offen)" -- eine Zahl, die nichts hinzufuegt.
-   DIE NOTIZ BLEIBT UNGENANNT: sie ist der Zustand ohne Markierung.
-   DIE ANPINNUNG STEHT NICHT IN DER ZEILE: sie ist die zweite, unabhaengige
-   Achse, und zwei Achsen in einer Zeile sind nicht mehr lesbar.
-   "Kommentar" ist eine FESTE Beschriftung und kein sechzehntes Vokabelwort --
-   anders als Sache und Zeitpunkt verschiebt es sich nicht mit dem Gegenstand.
-
-   ZURUECK KOMMEN ZWEI STUECKE UND NICHT EIN STRING: `html` fuer den
-   Bildschirm, `text` fuer den `title`. Ein Rufer, der nur den Text will,
-   nimmt `text` -- so gibt es keine zweite Stelle, die dieselben Zahlen noch
-   einmal zusammensetzt. */
+   gemessen. */
 const countMark = (kind, icon, number, word) =>
   `<span class="cnum" data-kind="${kind}"${word ? ` title="${esc(word)}"` : ''}>${icon}${number}</span>`;
 
@@ -1572,24 +969,7 @@ function blockSummary(name, item) {
     case 'kategorie': return item.category ? item.category.name : 'keine';
     case 'tags': return String(item.tags.length);
     /* DIE BEIDEN STERNKAESTEN TRAGEN HIER NICHTS, SOBALD SIE EINE ZAHL HABEN
-       -- 0.22.1 (Entscheidung E4).
-       DER BEFUND: bis 0.22.0 stand im Kopf des zugeklappten Bewertungskastens
-       „(⌀ 2,1)" UND daneben „⌀ 2,1 gewichtet". Beide lasen dasselbe Feld und
-       rundeten gleich -- es war zweimal dieselbe Zahl, und die eine trug ein
-       Wort, das die andere nicht trug. Wer zwei Zahlen nebeneinander sieht,
-       schliesst daraus, dass sie zwei Dinge meinen; die Frage „ist das meine
-       oder die von allen" entstand genau hier (Stolperstein 318).
-       WELCHE VON BEIDEN BLEIBT: die Kopfzahl. Sie traegt das Wort „gewichtet",
-       sie sagt im Titel, wessen Zahl sie ist, und sie IST der Knopf zur
-       Rechnung -- sie ist die reichere der beiden.
-       DIE REGEL IST KEINE NEUE. Der Kommentarblock ein paar Zeilen tiefer
-       traegt seine Zahlen aus genau diesem Grund nicht hier: beides zugleich
-       waere derselbe Satz zweimal nebeneinander. Sie galt fuer die zwei
-       Sternkaesten nur nicht, und das war der ganze Fehler.
-       OHNE ZAHL BLEIBT DER SATZ. Dann steht keine Kopfzahl da (ohne Zahl kein
-       Knopf), und der zugeklappte Kasten muss selbst sagen, dass er leer ist
-       -- und zwar JE KASTEN MIT EIGENEM WORT: zwei gleiche Texte an zwei
-       Koepfen waeren ein Raetsel fuer den, der nur die Koepfe sieht. */
+       -- 0.22.1 (Entscheidung E4). */
     case 'bewertung': return item.avgRating ? '' : t('list.notRatedYet');
     case 'potenzial': return item.potentialRating ? '' : t('list.notEstimatedYet');
     case 'beschreibung': {
@@ -1601,40 +981,18 @@ function blockSummary(name, item) {
     case 'links': return String(item.links.length);
     case 'dateien': return String((item.attachments || []).length);
     /* Der Kommentarblock traegt seine Zahlen NICHT hier, sondern in seinem
-       eigenen Hinweis in der Kopfzeile -- und die steht auch eingeklappt da.
-       Beides zugleich waere derselbe Satz zweimal nebeneinander. Das ist die
-       ausdruecklich entschiedene Abweichung von den uebrigen Bloecken: sie
-       tragen hier eine sehr kurze Kurzfassung, der Kommentarblock den vollen
-       Satz an seiner eigenen Stelle. */
+       eigenen Hinweis in der Kopfzeile -- und die steht auch eingeklappt da. */
     case 'kommentare': return '';
     default: return '';
   }
 }
 
 /* WELCHE BLOECKE GERADE OFFEN STEHEN, OBWOHL DIE REGEL SIE ZUKLAPPEN WUERDE
-   -- und umgekehrt. 0.21.0.
-   EINE MENGE IM SPEICHER DER SEITE UND KEINE EINSTELLUNG: sie wird beim
-   Oeffnen eines anderen Eintrags geleert. Ein Klick auf einen der beiden
-   Sternkoepfe ist ein BLICK und kein Befehl -- er gilt, bis man den Eintrag
-   verlaesst.
-   WARUM NICHT GESPEICHERT: eine gespeicherte Einstellung gilt fuer ALLE
-   Eintraege zugleich. „Ich klappe an Eintrag 12 den Potenzialkasten auf"
-   hiesse dann „an allen Eintraegen offen", und beim naechsten Eintrag stuende
-   der falsche Kasten offen, ohne dass jemand wuesste, warum. Was vom EINTRAG
-   abhaengt, darf nicht in einer Einstellung stehen, die fuer alle gilt.
-   NUR DIE BEIDEN STERNKAESTEN. Jeder andere Block behaelt seinen gespeicherten
-   Einklappzustand -- der haengt an keinem Merkmal des Eintrags. */
+   -- und umgekehrt. */
 let GLANCE = new Set();
 
-/* WAS DIE REGEL SAGT, WENN NIEMAND GEKLICKT HAT -- 0.21.0.
-   ungetestet -> Potenzial offen, Bewertung zu; getestet -> umgekehrt. Der
-   ZUSTAND des Eintrags entscheidet, nicht eine Einstellung.
-   DIE EINE AUSNAHME AUS RUECKSICHT AUF DEN BESTAND: traegt ein UNGETESTETER
-   Eintrag aus alten Zeiten schon Bewertungssterne, steht der Bewertungskasten
-   offen. Vorhandene Daten schlagen die Regel; nichts wird vor jemandem
-   versteckt, der es eingetragen hat.
-   GEZAEHLT WIRD `value > 0` ODER `avg != null` -- also MEINE Sterne oder die
-   irgendeines anderen. Nur die eigenen zu fragen versteckte fremde. */
+/* WAS DIE REGEL SAGT, WENN NIEMAND GEKLICKT HAT -- 0.21.0. ungetestet ->
+   Potenzial offen, Bewertung zu; getestet -> umgekehrt. */
 const hasStars = (item, phase) => (item.ratings || [])
   .some(r => r.phase === phase && (r.value > 0 || r.avg != null));
 
@@ -1643,28 +1001,7 @@ function closedByState(name, item) {
   return !item.tested && !hasStars(item, 'after');
 }
 
-/* WELCHER BLOCK AN DIESEM EINTRAG GAR NICHT DASTEHT -- 0.22.1.
-   „Vor dem Test schaetzt man, nach dem Test bewertet man" ist der Satz, mit
-   dem 0.21.0 die zwei Sternkaesten gebaut hat. Die Regel darueber klappte den
-   Bewertungskasten an einem ungetesteten Eintrag aber nur ZU -- und zugeklappt
-   heisst sichtbar: Kopfzeile, Griff, Pfeil, eine Zeile Platz, und ein Klick
-   liess Sterne vergeben. Die Oberflaeche sagte den Satz leise und liess
-   zugleich das Gegenteil zu.
-   SEIT 0.22.1 STEHT ER GAR NICHT DA. Nicht zugeklappt, sondern fort, und er
-   nimmt keinen Platz (`[hidden]` im Stilblatt, seit 0.15.1 EINE Regel ganz
-   oben).
-   DIE EINE AUSNAHME IST DIESELBE WIE IN `closedByState()` (Entscheidung E6):
-   traegt ein ungetesteter Eintrag schon Bewertungssterne -- eigene oder
-   fremde --, steht der Kasten da. Vorhandene Daten schlagen die Regel; ohne
-   die Ausnahme waeren vergebene Sterne unsichtbar UND unerreichbar, denn
-   wegnehmen laesst sich nur, was man sieht.
-   DIESELBE BEDINGUNG WIE OBEN, und zwar buchstaeblich dieselbe: `hasStars()`
-   entscheidet, OB der Kasten dasteht, und ob er offen steht. Zwei getrennte
-   Abfragen waeren zwei Wahrheiten, und die eine liesse sich aendern, ohne dass
-   die andere mitginge (Stolperstein 47).
-   NUR DER BEWERTUNGSKASTEN. Der Potenzialkasten bleibt an einem getesteten
-   Eintrag stehen: was man vor dem Test wollte, ist nach dem Test die
-   interessantere Haelfte der Frage. */
+/* WELCHER BLOCK AN DIESEM EINTRAG GAR NICHT DASTEHT -- 0.22.1. */
 function blockPathAfterState(name, item) {
   return name === 'bewertung' && !item.tested && !hasStars(item, 'after');
 }
@@ -1692,17 +1029,12 @@ function setUpBlocksOut(item) {
     }
 
     /* FUER GENAU ZWEI BLOECKE ENTSCHEIDET DER ZUSTAND UND NICHT DIE
-       EINSTELLUNG -- 0.21.0. Ein Klick kehrt die Regel fuer diesen Eintrag um
-       (BLICK), er speichert sie nicht. */
+       EINSTELLUNG -- 0.21.0. */
     const afterState = BLOCKS_ALWAYS_OPEN.includes(name);
     const closed = afterState
       ? (GLANCE.has(name) ? !closedByState(name, item) : closedByState(name, item))
       : BLOCKS.closed.includes(name);
-    /* DER BLOCK WIRD AUSGEBLENDET UND NICHT ENTFERNT -- 0.22.1. `#rhead` und
-       `#ratings` bleiben damit im Dokument, und `drawRatings()` braucht keine
-       zweite Wache. Und er wird auch nicht aus `BLOCKS` genommen: die
-       Reihenfolge der Bloecke gilt fuer ALLE Eintraege, und ein Eintrag, an dem
-       ein Block fehlt, darf sie nicht umschreiben. */
+    /* DER BLOCK WIRD AUSGEBLENDET UND NICHT ENTFERNT -- 0.22.1. */
     block.hidden = blockPathAfterState(name, item);
     block.classList.toggle('closed', closed);
     head.querySelector('.bcaret').textContent = closed ? '▸' : '▾';
@@ -1711,15 +1043,12 @@ function setUpBlocksOut(item) {
     const short = closed ? blockSummary(name, item) : '';
     sum.textContent = short ? `(${short})` : '';
 
-    // Klick auf die Kopfzeile klappt ein und aus. Griff und alles Bedienbare
-    // darin sind ausgenommen, sonst löst das Zurücksetzen der Bewertung
-    // nebenbei das Einklappen aus.
+    // Klick auf die Kopfzeile klappt ein und aus.
     head.onclick = (e) => {
       if (e.target.closest('button, input, select, a, .bgrip')) return;
       if (afterState) {
         /* KEIN saveBlocks(), KEIN PUT /api/settings -- der Klick ist ein
-           Blick. Umgeschaltet wird eine Menge im Speicher der Seite, und die
-           gilt bis zum Verlassen des Eintrags. */
+           Blick. */
         if (GLANCE.has(name)) GLANCE.delete(name); else GLANCE.add(name);
       } else {
         BLOCKS.closed = closed ? BLOCKS.closed.filter(k => k !== name) : [...BLOCKS.closed, name];
@@ -1727,9 +1056,7 @@ function setUpBlocksOut(item) {
       }
       setUpBlocksOut(item);
       // Was eingeklappt war, konnte nicht gemessen werden -- die Wolke im
-      // Tagblock hat deshalb keine Zeilenbegrenzung. Jetzt steht sie im
-      // Dokument und laesst sich vermessen. Nur beim AUFklappen: beim
-      // Einklappen gaebe es wieder nichts zu messen.
+      // Tagblock hat deshalb keine Zeilenbegrenzung.
       if (name === 'tags' && closed && redrawCloud) redrawCloud();
     };
 
@@ -1748,20 +1075,10 @@ function setUpBlocksOut(item) {
   });
 }
 
-// Versionsnummer. Sie steht einmal im Grundgeruest, ausserhalb von #app --
-// damit ist sie auf jeder Ansicht sichtbar, ohne in vier Aufbauten gepflegt
-// werden zu muessen. Mittig unter dem Inhalt, damit sie nie etwas verdeckt.
+// Versionsnummer.
 /* DIE VERSIONSZEILE, und das Zeichen davor ist ein Aufruf und kein zweites
    Bild: MARK() liefert dieselbe durchsichtige Fassung, die auf allen neun
-   Anmeldeseiten steht (Stolperstein 145).
-   `old=""` STECKT IN MARK() -- das Zeichen steht unmittelbar neben dem Namen
-   der Instanz, und ein Vorleseprogramm saegte ihn sonst zweimal.
-   DIE GROESSE STEHT IM STYLESHEET UND IN em: diese Zeile laeuft auf 0,67rem,
-   und die Instanz stellt die Schrift von 80 bis 120 Prozent. Eine feste
-   Pixelzahl bliebe bei jeder anderen Einstellung stehen, waehrend die Schrift
-   daneben mitwaechst.
-   Der Name geht durch esc(): er kommt zwar aus dem eigenen package.json und
-   nicht von aussen, aber innerHTML ist innerHTML. */
+   Anmeldeseiten steht. */
 function showVersion() {
   const el = document.getElementById('version');
   if (!el) return;
@@ -1769,9 +1086,7 @@ function showVersion() {
 }
 
 /* ================= Bilder in Kommentaren ================= */
-// Bilder aus einem Einfuegevorgang holen. Strg+V liefert sie als Dateien im
-// Zwischenablage-Objekt; alles, was kein Bild ist, wird uebergangen, damit
-// eingefuegter Text weiterhin normal im Feld landet.
+// Bilder aus einem Einfuegevorgang holen.
 function imagesFromClipboard(e) {
   const data = e.clipboardData;
   if (!data) return [];
@@ -1799,75 +1114,19 @@ async function sendForm(path, form) {
   return data;
 }
 
-/* ================= Der Ausschnitt der Vorschau =================
+/* ================= Der Ausschnitt der Vorschau ================= ER WIRD
+   SEIT 0.19.5 NICHT MEHR HIER GERECHNET. */
 
-   ER WIRD SEIT 0.19.5 NICHT MEHR HIER GERECHNET. Bis 0.19.4 stand an dieser
-   Stelle `ausschnitt(p)`: es machte aus den drei Werten einen Inline-Stil --
-   `object-position` fuer den Punkt und `--zoom` fuer die Weite -- und der
-   Browser schnitt die Kachel selbst zu. DAS IST WEGGEFALLEN, weil der Server
-   den Ausschnitt jetzt in die Kachel RECHNET. Wer beides tut, schneidet zweimal:
-   die zugeschnittene Kachel IST schon das sichtbare Quadrat, und ein zweiter
-   Zuschnitt darauf zeigte einen Ausschnitt des Ausschnitts.
-
-   WAS DIE DREI WERTE JETZT SIND: das Rezept fuer die Ableitung, nicht mehr
-   eine Anweisung an den Browser. Sie stehen unveraendert in denselben drei
-   Spalten, in derselben Spanne und mit derselben Genauigkeit -- gelesen
-   werden sie nur noch an EINER Stelle, naemlich im Editor unten, der den
-   Rahmen darueber zeichnet.
-
-   WAS DER BROWSER STATTDESSEN BRAUCHT, ist die FASSUNG der Kachel: die
-   Adresse `/api/photos/<n>/raw?size=thumb` liefert seit dieser Runde bei
-   gleichem Namen einen anderen Inhalt, und sie wird mit
-   `Cache-Control: private, max-age=86400` ausgeliefert. Ohne ein Merkmal an
-   der Adresse saehe der Betreiber seinen neuen Ausschnitt bis zu 24 Stunden
-   lang nicht. Es haengt in imageSource() an der Adresse und nirgends sonst. */
-
-/* ---- DIE EINE RECHNUNG FUER DEN AUSSCHNITT -- 0.19.5 ----
-
-   SIE STEHT ZWEIMAL, UND DAS IST DER PUNKT. Diese Funktion ist Zeichen fuer
-   Zeichen dieselbe wie `cropSpecBox()` in images.js: der Browser muss den
-   Rahmen live zeichnen, der Server muss erzeugen, und zwischen beiden liegt
-   HTTP -- eine gemeinsame Fassung gibt es nicht. Also steht sie auf jeder
-   Seite in GENAU EINER Funktion und nicht verstreut, und der Pruefstand haelt
-   beide gegeneinander (Stolperstein 293). Eine Abweichung zeigt sich sonst
-   als ein Bild, das falsch ist statt fehlt.
-
-   DIE RECHNUNG, UND SIE IST DIE DER KACHEL:
-     die Kachel ist quadratisch und zeigt die kurze Seite ganz -- `seite`;
-     der Zoom verkuerzt das Sichtbare auf `seite / z` -- `edge`;
-     die beiden Prozentwerte legen dieses Quadrat linear auf den Weg
-     `width - edge` bzw. `height - edge`.
-   BEI zoom = 100 IST `edge === seite`, und die Rechnung ist Zeichen fuer
-   Zeichen die von 0.18.1.
-
-   OHNE RUNDUNG: der Rahmen im Editor braucht Bruchteile eines Bildpunkts, um
-   ruckelfrei zu ziehen. Gerundet wird nur dort, wo sharp ganze Zahlen
-   verlangt -- im Server, in schnittRechteck(). */
+/* ---- DIE EINE RECHNUNG FUER DEN AUSSCHNITT -- 0.19.5 ---- SIE STEHT
+   ZWEIMAL, UND DAS IST DER PUNKT. */
 function cropSpecBox(width, height, fx, fy, zoom) {
   const side = Math.min(width, height);   // was die Kachel bei zoom 100 zeigt
   const eng = side * 100 / zoom;          // was sie beim eingestellten Zoom zeigt
   return { links: fx / 100 * (width - eng), top: fy / 100 * (height - eng), edge: eng };
 }
 
-/* WELCHE GESTE UNTER EINER BERUEHRUNG LIEGT -- 0.22.1.
-   BIS 0.22.0 GAB ES ZWEI GESTEN UND EINEN EINZIGEN GRIFF: die ganze Flaeche.
-   Ziehen zog IMMER einen neuen Ausschnitt auf, und weil dabei die Ecke den
-   Punkt und die Kantenlaenge die Weite setzte, aenderten sich Lage und Weite
-   in jeder Bewegung zugleich. Wer den vorhandenen Rahmen anfasste, um ihn zu
-   schieben, warf ihn damit weg. Zwei Groessen auf einen Griff -- und deshalb
-   keine davon zuverlaessig (Stolperstein 319).
-   SEIT 0.22.1 HAT DER RAHMEN ACHT GRIFFE (Entscheidung E2): vier Ecken und
-   vier Kanten, je GRIFF Bildpunkte NACH INNEN. Was darin nicht liegt, ist
-   innen „schieben" und aussen „neu".
-   DIE ECKE GEWINNT GEGEN DIE KANTE, wo beide Zonen einander ueberlappen: sie
-   ist die genauere Angabe, und wer in die Ecke zielt, meint die Ecke.
-   DER GRIFF WIRD AM RAHMEN GEDECKELT (kante / 4). Ohne den Deckel deckten die
-   acht Zonen einen kleinen Rahmen vollstaendig ab, und das Schieben -- die
-   haeufigste Geste -- haette keine Flaeche mehr.
-   SIE BEKOMMT KEIN EREIGNIS UND KEINEN BETRACHTER, sondern einen Rahmen und
-   einen Punkt, beide im Bildmass. Nur so ist sie ohne Zeiger zu pruefen --
-   dieselbe Bauform wie `cropSpecBox()` darueber, und aus demselben Grund:
-   was der Pruefstand nur ueber ein Zeigerereignis erreicht, prueft er nicht. */
+/* WELCHE GESTE UNTER EINER BERUEHRUNG LIEGT -- 0.22.1. BIS 0.22.0 GAB ES ZWEI
+   GESTEN UND EINEN EINZIGEN GRIFF: die ganze Flaeche. */
 const HANDLE = 12;
 function cropGesture(frame, px, py, handle = HANDLE) {
   const { links, top, edge } = frame;
@@ -1887,11 +1146,7 @@ function cropGesture(frame, px, py, handle = HANDLE) {
   return 'schieben';
 }
 
-/* WELCHEN ZEIGER EINE GESTE VERLANGT. Eigene Tafel statt acht Zeilen im
-   Stilblatt: der Zeiger ist die Antwort auf eine Beruehrung (Regel G2 aus
-   0.22.0), und die Antwort haengt an der Geste und nicht am Ort.
-   'neu' steht NICHT darin -- es ist die Ruhestellung, und die traegt das
-   Stylesheet am `.focus-mode` selbst. */
+/* WELCHEN ZEIGER EINE GESTE VERLANGT. */
 const HANDLE_CURSORS = {
   'links-oben': 'handle-nwse', 'rechts-unten': 'handle-nwse',
   'rechts-oben': 'handle-nesw', 'links-unten': 'handle-nesw',
@@ -1903,8 +1158,7 @@ const HANDLE_CLASSES = ['handle-nwse', 'handle-nesw', 'handle-ns', 'handle-ew', 
 
 /* ================= Tagwolken ================= */
 // Sortierung: hervorgehobene Tags (aktiver Filter bzw. vergebener Tag) immer
-// vorn, danach nach Haeufigkeit, bei Gleichstand nach Namen. Sonst rutscht ein
-// gerade benutzter Tag beim Aufklappen aus dem Blick.
+// vorn, danach nach Haeufigkeit, bei Gleichstand nach Namen.
 function sortCloud(tags, highlight) {
   return [...tags].sort((a, b) => {
     const ha = highlight.has(a.id) ? 0 : 1, hb = highlight.has(b.id) ? 0 : 1;
@@ -1915,27 +1169,15 @@ function sortCloud(tags, highlight) {
 }
 
 // Begrenzt die Wolke auf n Zeilen und meldet, ob dabei etwas abgeschnitten
-// wurde. n = 0 hebt die Begrenzung auf. Die Zeilenhoehe wird am ersten Element
-// gemessen statt geraten -- sie haengt an der eingestellten Schriftgroesse.
+// wurde.
 const CLOUD_GAP = 6;
-/* DIE ZEILENHOEHE EINER WOLKE WIRD AN EINER STELLE GEMESSEN -- 0.30.3.
-   Zwei Leser fragen sie: die Begrenzung unten und cloudRows(). Stuende die
-   Messung zweimal da, liefen die beiden beim naechsten Griff an der Pille
-   auseinander -- und eine Begrenzung, die eine andere Zeilenhoehe annimmt als
-   der Zaehler daneben, schneidet an einer Stelle ab, die der Zaehler nicht
-   kennt (Stolperstein 47).
-   NULL HEISST „NICHT MESSBAR": ein eingeklappter Block misst null, seine
-   Kinder stehen auf display: none. Beide Leser behandeln das je fuer sich. */
+/* DIE ZEILENHOEHE EINER WOLKE WIRD AN EINER STELLE GEMESSEN -- 0.30.3. Zwei
+   Leser fragen sie: die Begrenzung unten und cloudRows(). */
 function cloudLine(box) {
   const first = box.firstElementChild;
   return first ? first.offsetHeight || 0 : 0;
 }
-/* WIE VIELE REIHEN DIE WOLKE UNGEKUERZT BRAUCHT -- 0.30.3, Befund 1.
-   `scrollHeight` misst den vollen Inhalt, AUCH hinter einer Begrenzung; die
-   Antwort haengt also nicht daran, ob limitCloud() vorher gelaufen ist.
-   GERECHNET WIRD MIT DERSELBEN ZEILENHOEHE, die die Begrenzung setzt -- eine
-   Reihe ist `hoehe`, zwei sind `2*hoehe + CLOUD_GAP`, und der Weg zurueck ist
-   diese Zeile. */
+/* WIE VIELE REIHEN DIE WOLKE UNGEKUERZT BRAUCHT -- 0.30.3, Befund 1. */
 function cloudRows(box) {
   const height = cloudLine(box);
   if (!height) return 0;
@@ -1945,11 +1187,9 @@ function limitCloud(box, rows) {
   if (!rows) { box.style.maxHeight = ''; box.style.overflow = ''; return false; }
   if (!box.firstElementChild) return false;
   const height = cloudLine(box);
-  // EIN EINGEKLAPPTER BLOCK MISST NULL: seine Kinder stehen auf
-  // display: none, und aus der Hoehe 0 entstuende eine feste maxHeight, die
-  // nach dem Aufklappen stehenbliebe. Also gar nichts setzen.
-  // ZWEITER WEG NOETIG: das Aufklappen zeichnet die Wolke neu -- dieser Weg
-  // haelt die falsche Hoehe fern, jener holt die richtige nach.
+  // EIN EINGEKLAPPTER BLOCK MISST NULL: seine Kinder stehen auf display:
+  // none, und aus der Hoehe 0 entstuende eine feste maxHeight, die nach dem
+  // Aufklappen stehenbliebe.
   if (!height) { box.style.maxHeight = ''; box.style.overflow = ''; return false; }
   box.style.maxHeight = (rows * height + (rows - 1) * CLOUD_GAP) + 'px';
   box.style.overflow = 'hidden';
@@ -1960,37 +1200,13 @@ function limitCloud(box, rows) {
 // Speicher: er sagt nichts ueber den Bestand aus und gehoert nicht auf den
 // Server.
 const cloudOpen = { overview: false, detail: false };
-/* UND DIE MARKEN EINES TESTTAGS -- 0.30.1, Befund 4 (F9). Je Testtag ein
-   Merker, und aus demselben Grund nur im Speicher: er sagt nichts ueber den
-   Bestand aus. EINE MENGE UND KEIN FELD AM TAG SELBST: der Tag kommt vom
-   Server, und ein Merker der Oberflaeche gehoert nicht in seine Antwort. */
+/* UND DIE MARKEN EINES TESTTAGS -- 0.30.1, Befund 4 (F9). */
 const dayTagsOpen = new Set();
 /* HIER STAND BIS 0.30.0 `MORE_FILTERS_OPEN` -- der Merker, ob die Tagzeile
-   offen steht. Er ist mit dem Umschalter „Tags" gefallen: die Zeile steht
-   seither immer da, sobald die Filter aufgeklappt sind (Betreiber, 12.
-   September 2026), und ein Merker ueber einen Zustand, den es nur noch in
-   einer Fassung gibt, ist ein Feld ohne Leser. */
+   offen steht. */
 
 /* ---- DIE VIER ZUSTÄNDE EINES FÄLLIGKEITSDATUMS -- 0.29.0 (Befund 3),
-   hierher gewandert mit 0.30.0 (Befund 8, F13).
-   HEUTE IST DER HEUTIGE TAG DES LESERS und nicht der des Servers:
-   „ueberfaellig" entscheidet sich an der Uhr, vor der jemand sitzt. Der Server
-   liefert deshalb das nackte Datum und ordnet nur vor (siehe qOpenTasks); die
-   Zustaende rechnet diese Zeile.
-   GERECHNET WIRD IN ORTSZEIT UND NICHT UEBER toISOString(): das gaebe UTC, und
-   oestlich von Greenwich waere „heute" bis zum Vormittag noch „gestern".
-   TEXTVERGLEICH UND KEIN Date: 'JJJJ-MM-TT' ordnet als Text wie im Kalender,
-   und zwei Strings zu vergleichen kann keine Zeitzone verlieren.
-
-   WARUM SIE HIER STEHT UND NICHT MEHR IN renderOpen(): seit 0.30.0 faerbt AUCH
-   DER EINTRAG sein Datum nach diesen Zustaenden -- der Betreiber am 12.
-   September 2026: „Datum feld muss farblich zum todo zugeordnet werden
-   koennen. passend zum status. ob fertig, oder noch offen." Von renderOpen()
-   aus war sie nirgends zu erreichen; eine zweite Einteilung daneben waere
-   genau die zweite Wahrheit, gegen die Stolperstein 47 steht.
-   `todayKey` WIRD BEI JEDEM AUFRUF GERECHNET und nicht einmal beim Laden: eine
-   Seite, die ueber Mitternacht offen bleibt, faerbte sonst bis zum Neuladen
-   nach dem Tag von gestern. */
+   hierher gewandert mit 0.30.0 (Befund 8, F13). */
 const todayKey = () => {
   const d = new Date();
   const pad = (n) => String(n).padStart(2, '0');
@@ -1998,22 +1214,7 @@ const todayKey = () => {
 };
 /* `erledigt` GEHT ALS ZWEITES EIN UND NICHT ALS FUENFTER ZUSTAND DER ZEILE:
    eine erledigte Aufgabe HAT ein Datum und einen Termin -- sie ist nur nicht
-   mehr offen.
-   BIS 0.30.0 SCHLUG `erledigt` JEDE FRIST: sobald die Aufgabe fertig war,
-   stand das Datum gedaempft und durchgestrichen da, ganz gleich ob die Frist
-   gehalten wurde oder nicht. DER BETREIBER WILL DAS GEGENTEIL (0.30.1,
-   Befund 7): „auch wenn es erledigt gesetzt wird. solange das datum nicht
-   editiert worden ist … und das bestehende datum immer noch ueberschritten
-   ist, ist es rot. wenn aber ein nicht ueberschrittene aufgabe auf fertig
-   gesetzt wird, muss das datum auch mit gruen werden."
-   DESHALB ENTSCHEIDET DIE FRIST ZUERST UND DER ZUSTAND DANACH. Fuenf
-   Zustaende statt vier: `late` ist die erledigte, deren Frist gerissen ist --
-   rot wie eine offene ueberfaellige, durchgestrichen wie jede erledigte.
-   „Zu spaet fertig" bleibt damit sichtbar zu spaet.
-   DIE ANSICHT „OFFEN" RUFT WEITER OHNE ZWEITES ARGUMENT und bekommt damit
-   dieselben vier Zustaende wie bisher: `late` und `done` entstehen nur, wenn
-   der Rufer nach dem ERLEDIGT fragt. Eine Funktion, zwei Rufer, keine zweite
-   Wahrheit (Stolperstein 47). */
+   mehr offen. */
 const dueOf = (z, doneToo = false) => {
   if (!z.dueDate) return 'none';
   const settled = doneToo && (z.kind === 'done' || z.done);
@@ -2023,95 +1224,41 @@ const dueOf = (z, doneToo = false) => {
 };
 
 // Wer die Wolke der Detailansicht neu zeichnen kann. Sie laesst sich nur
-// messen, wenn ihr Block offen ist. Modulweit statt als Ereignis am Dokument:
-// ein Behandler am bleibenden Dokument ueberlebte jeden Neuaufbau. Geleert in
-// route(), gesetzt in renderDetail().
+// messen, wenn ihr Block offen ist.
 let redrawCloud = null;
 
 /* ================= Vokabular und Darstellung ================= */
-// Die Oberflaeche benennt sich um, die Daten nicht. Alle Texte sind so
-// geschrieben, dass weder Beiwort noch Fall vorkommt -- sonst muesste man das
-// Geschlecht des eingetragenen Wortes kennen. Merksatz: Plural im Nominativ
-// und Akkusativ ist immer sicher; Dativ Plural und Singular meiden.
+// Die Oberflaeche benennt sich um, die Daten nicht.
 /* DIE VORGABE DES VOKABULARS -- DIESELBE LISTE WIE VOKABULAR_VORGABE IM
    SERVER, und das ist keine Doppelung ohne Grund: sie steht hier, damit die
-   Oberflaeche schon VOR dem ersten Abruf beschriftet ist. Der Server bleibt
-   die Wahrheit; was er liefert, ueberschreibt.
-   WER HIER EIN WORT VERGISST, MERKT ES ERST IM SYSTEMBEREICH: das Feld in der
-   Vokabularkarte stuende dann leer, solange der gespeicherte Satz es nicht
-   nennt -- und ein gespeicherter Satz nennt genau die Woerter, die schon
-   einmal jemand gesetzt hat. Genau das ist mit `potenzial` beim Bauen von
-   0.21.0 passiert.
-   SEIT 0.24.0 STEHT SIE NUR NOCH AN EINER STELLE: in der Sprachdatei, unter
-   `vokabular.`. Diese Zeile faengt leer an und wird gefuellt, sobald die Datei
-   da ist (loadLanguage) -- ein Wort hier haette beim Laden der Datei noch
-   keinen Text. Seit 0.24.3 kommt auch die LISTE der Namen aus der
-   Datei -- vocabularyDefault() leitet sie aus dem Vorsatz `vocabulary.` ab,
-   Zeichen fuer Zeichen wie server.js. Eine zweite Aufzaehlung im Quelltext
-   gibt es nicht mehr (Stolperstein 47). */
+   Oberflaeche schon VOR dem ersten Abruf beschriftet ist. */
 let V = {};
 
 // Weiterschaltung des Aufgabenknopfes: Notiz -> Aufgabe -> erledigt -> Notiz.
 // Eine Abfolge, kein Entweder-oder -- deshalb ein Knopf statt dreier.
-// Funktionsdeklaration, nicht const: sonst haengt sie nicht am window und der
-// Pruefstand kaeme nicht heran.
 function taskMore(kind) {
   /* `note` IST HIER DER FALSCHE FREUND und bleibt stehen -- 0.24.3,
-     Bauabschnitt 7. Es ist die KOMMENTARART („Vermerk") und nicht die Note
-     eines Testtags; die Werte daneben sagen es. Der Umbenenner
-     arbeitet auf Wortgrenzen und kann das nicht auseinanderhalten -- er hatte
-     den Schluessel schon zu `score` gemacht, und taskMore('note') gab danach
-     `undefined`. Der Prüfstand hat es gefangen, der Kommentar haelt es fest. */
+     Bauabschnitt 7. */
   return { note: 'task', task: 'done', done: 'note', report: 'task' }[kind] || 'task';
 }
 /* --- Das Gewicht eines Kriteriums: Komma herein, Komma hinaus -------------
    "1,2" und "1.2" ergeben beide 1.2; alles andere ergibt NaN und faellt damit
-   beim Server durch gueltigesGewicht(). Auch "" und " " -- EIN LEERES FELD IST
-   KEINE NULL. Number('') ergibt in JavaScript 0, und ohne diese Klemme liefe
-   ein geloeschtes Feld in eine Absage "muss zwischen 0,2 und 2 sein", die
-   niemand verlangt hat.
-   Die Spanne selbst steht NICHT hier, sondern nur im Server: zwei Stellen fuer
-   dieselbe Grenze liefen auseinander, und die Oberflaeche waere die, die es
-   nicht meldet. */
+   beim Server durch gueltigesGewicht(). */
 const weightOutText = (raw) => {
   const raw2 = String(raw ?? '').trim();
   return raw2 === '' ? NaN : Number(raw2.replace(',', '.'));
 };
 
-/* 1 -> "1", 1.2 -> "1,2", 1.25 -> "1,25". KEINE nachlaufenden Nullen: "1,50"
-   sieht nach einer Genauigkeit aus, die es nicht gibt -- und "1,0" nach einer
-   Einstellung, wo in Wahrheit die Vorgabe steht.
-   Das Komma setzt seit 0.24.0 zahl() aus der Sprache und nicht mehr ein
-   festes Zeichen -- dieselbe Form, aber begruendet statt festgeschrieben. */
+/* 1 -> "1", 1.2 -> "1,2", 1.25 -> "1,25". */
 const weightText = (g) => number(Math.round(Number(g) * 100) / 100, 0, 2);
 
 /* Die Marke hinter einem Kriteriennamen -- ABGELEITET, kein Schalter: bei
-   Gewicht 1 steht dort nichts. "×1" an jeder Zeile waere Rauschen ohne
-   Aussage, aus demselben Grund, aus dem die Durchschnittsspalte bei einem
-   einzigen Zugang entfaellt.
-   Ohne diese Anzeige saehe die Kopfzahl schlicht falsch aus: mit Gewichten
-   laesst sich das Mittel der Zeilenwerte nicht mehr im Kopf nachrechnen. */
+   Gewicht 1 steht dort nichts. */
 const weightMark = (g) => (Number(g) === 1 || g == null ? '' : '×' + weightText(g));
 
 const vThing = (n) => counted(n, V.entryOne, V.entryMany);
-/* ---- DER ZAEHLER EINER VERWALTUNGSZEILE -- 0.30.1, Befund 6 ----
-   IN DER ZEILE STEHT DIE ZAHL, IM TITEL DAS WORT (F14). Der Betreiber, 12.
-   September 2026, mit Bild: „Wir verlieren so viel Platz um Eintraege zu
-   schreiben. bei Mobil reicht doch einfach 3x, 10x oder 0x zu schreiben."
-   Gemessen an seinem Bild: von sieben Kriterien standen fuenf mit Auslassung
-   da -- „1_O…", „2_V…", „Test2…" --, und der Name ist das Einzige, woran man
-   die Zeile erkennt.
-   OHNE ZEICHEN NEBEN DER ZAHL, und das ist gegen seinen ersten Wortlaut
-   entschieden (F14): in derselben Kriterienzeile steht das × schon zweimal --
-   vor dem Gewichtsfeld („× 1,2") und als Loeschknopf am rechten Ende. Ein
-   drittes traege die dritte Bedeutung.
-   UND IN JEDER BREITE, nicht nur am Telefon (F24). Der Betreiber hat F12
-   eingeschraenkt: „gekuerzt werden kann, auch wenn platz da ist wenn der sinn
-   nicht verloren geht." Der Sinn steht im Titel, also geht er nicht verloren
-   -- und es bleibt EINE Regel statt zweier.
-   DAS WORT IST NICHT ERFUNDEN, SONDERN UMGEZOGEN: im Titel steht genau der
-   Text, der bis 0.30.0 in der Zeile stand. Keine neue Zeile in einer
-   Sprachdatei, kein neues Wort, das uebersetzt werden muesste. */
+/* ---- DER ZAEHLER EINER VERWALTUNGSZEILE -- 0.30.1, Befund 6 ---- IN DER
+   ZEILE STEHT DIE ZAHL, IM TITEL DAS WORT (F14). */
 const countCell = (short, long) =>
   `<span class="mcount" title="${esc(long)}">${esc(short)}</span>`;
 const vTime = (n) => counted(n, V.dayOne, V.dayMany);
@@ -2121,14 +1268,7 @@ const vRating = (n) => counted(n, V.ratingOne, V.ratingMany);
 
 /* Aus dem Verfasserobjekt des Servers wird die Beschriftung -- GENAU HIER und
    nirgends sonst, damit die Karte "Zugaenge" und die Beitraege im Eintrag
-   nicht auseinanderlaufen koennen; beide rufen diese Funktion.
-   Ein Grabstein hat keinen Namen mehr: seine Zeile traegt geloescht-<nr>, und
-   was hier entsteht, ist "Geloeschter Benutzer 7". Der gespeicherte Name wird
-   nie gezeigt -- das ist der ganze Zweck der stehengebliebenen Zeile.
-   null heisst herrenlos: die Zeile hat ihren Verfasser verloren, und das ist
-   etwas anderes als ein entfernter Zugang.
-   Funktionsdeklaration, nicht const: sonst haengt sie nicht am window und der
-   Pruefstand kaeme nicht heran. */
+   nicht auseinanderlaufen koennen; beide rufen diese Funktion. */
 function authorName(v) {
   if (!v) return t('list.noAuthor');
   return v.deleted ? t('list.deletedUser', { id: v.id }) : v.name;
@@ -2138,44 +1278,19 @@ let LINK_ROWS = 5;          // sichtbare Zeilen, bevor aufgeklappt wird
 let TIMELINE_ON = true;
 const LINK_ROW_LEVELS = [3, 5, 8, 12];
 
-// Suchanbieter fuer Linkzeilen, die keine Adresse sind. %s ist der Platzhalter
-// fuer den Suchtext. Die Liste steht ausschliesslich im Server und
-// kommt ueber /api/settings -- hier gibt es bewusst KEINE zweite Kopie und
-// auch keine eingebaute Vorlage als Rueckfall.
+// Suchanbieter fuer Linkzeilen, die keine Adresse sind. %s ist der
+// Platzhalter fuer den Suchtext.
 let SEARCH_PROVIDERS = [];      // alle neun Plaetze, wie der Server sie liefert
 
-/* JEDE SPRACHE, FUER DIE EINE DATEI LIEGT -- 0.24.3. Wie bei den
-   Suchanbietern daneben gibt es hier KEINE zweite Kopie und keine eingebaute
-   Liste als Rueckfall: welche Sprachen es gibt, weiss allein das Verzeichnis
-   auf dem Server. Jeder Eintrag traegt { code, name, isDefault, active }. */
+/* JEDE SPRACHE, FUER DIE EINE DATEI LIEGT -- 0.24.3. */
 let LANGUAGES = [];
-/* DIE FUENFZEHN WOERTER JE SPRACHE, { <kennung>: { ...fuenfzehn } } -- 0.24.3.
-   Sie stehen NEBEN `V` und ersetzen es nicht: `V` ist der eine Satz, mit dem
-   die Oberflaeche sich beschriftet, und der gehoert dem Leser. Diese Tafel
-   braucht allein die Karte „Vokabular", um umschalten zu koennen. */
+/* DIE FUENFZEHN WOERTER JE SPRACHE, { <kennung>: { ...fuenfzehn } } --
+   0.24.3. */
 let VOCABULARIES = {};
-/* UND ZWEI TAFELN DANEBEN -- 0.24.4, die Reparatur von B1, B2 und B4. Drei
-   Tafeln, drei Fragen, und keine beantwortet die der anderen:
-     VOCABULARIES          was ein Leser dieser Sprache SAEHE (samt Rueckfall)
-                           -- damit rechnet die Vorschau unter den Feldern.
-     VOCABULARIES_OWN      was fuer diese Sprache EINGETRAGEN ist. Die
-                           fuenfzehn Felder zeigen genau das, und ein leeres
-                           Feld heisst „nichts eingetragen".
-     VOCABULARY_DEFAULTS   die Vorgabe aus der Sprachdatei je Sprache -- der
-                           Hinweis „(Vorgabe: …)" unter jedem Feld.
-   BIS 0.24.3 STANDEN IN DEN FELDERN DIE WERTE AUS `VOCABULARIES`, also samt
-   Rueckfall. Wer die Karte auf eine Sprache schaltete, fuer die noch nichts
-   dastand, sah die Woerter der Nachbarsprache -- und der Knopf „Speichern"
-   schrieb sie als eigenen Eintrag fest. Genau so ist B2 entstanden. */
+/* UND ZWEI TAFELN DANEBEN -- 0.24.4, die Reparatur von B1, B2 und B4. */
 let VOCABULARIES_OWN = {};
 let VOCABULARY_DEFAULTS = {};
-/* DIE VIER SAETZE AUS EINER ANTWORT UEBERNEHMEN -- 0.24.4. `r.vocabulary` ist
-   der Satz des LESERS und beschriftet die Oberflaeche; die drei Tafeln daneben
-   gehoeren der Karte „Vokabular".
-   SIE STEHT AUF MODULEBENE UND NICHT IN DER KARTE, seit sie ZWEI Rufer hat:
-   das Speichern der Woerter und der Wechsel der eigenen Sprache. Zwei
-   Ausfertigungen liefen auseinander -- und die zweite fehlte bis 0.24.3 ganz
-   (Befund B9, siehe drawLanguagePills). */
+/* DIE VIER SAETZE AUS EINER ANTWORT UEBERNEHMEN -- 0.24.4. */
 function takeVocabulary(r) {
   if (!r || typeof r !== 'object') return;
   if (r.vocabularies) VOCABULARIES = r.vocabularies;
@@ -2185,47 +1300,12 @@ function takeVocabulary(r) {
 }
 /* WELCHE SPRACHE DER ABSCHNITT „BESTAND" ZEIGT -- 0.24.3, Bauabschnitt 6a,
    und seit 0.25.2 fuer ALLE VIER KACHELN: die drei Namenskarten UND das
-   Vokabular. Sie faengt bei der Sprache des Lesers an, steht als Zustand der
-   Karte und nicht in der Adresse, und faellt beim Neuzeichnen des
-   Systembereichs auf die des Lesers zurueck -- eine gemerkte Sprache, die
-   niemand sieht, waere eine zweite Wahrheit ueber „was steht da gerade".
-   BIS 0.25.1 STAND DANEBEN `VOCABULARY_SHOWN` fuer die vierzehn Woerter, Zeile
-   fuer Zeile dieselbe Bauform. Zwei Angaben ueber dieselbe Frage laufen
-   auseinander, sobald man EINE umstellt -- und genau das tat der Betreiber. */
+   Vokabular. */
 let NAMES_SHOWN = null;
 /* DIE NAMEN JE SPRACHE, ALS TAFEL UND AUF EINMAL -- 0.24.5, und damit faellt
-   der Zwischenspeicher der Runde 0.24.3 weg.
-
-   BIS 0.24.4 STAND HIER `NAMES_FETCHED`, ein Gedaechtnis fuer nachgeholte
-   Abrufe: der Umschalter brauchte die Listen in einer Sprache, die der Leser
-   nicht liest, also einen zweiten Abruf je Sprache. Der Abruf schickte
-   `Accept-Language: <code>`, und der Server hoerte die Frage nicht -- er
-   antwortete in der Sprache des LESERS (Befund D1). Der Speicher machte es
-   schlimmer: geleert wurde er beim Umbenennen und beim Anlegen, beim WECHSEL
-   DER EIGENEN SPRACHE nicht. Was unter dem Schluessel `tr` lag, war in
-   Wahrheit die Liste der Sprache, die der Leser las, als er die Pille das
-   erste Mal drueckte -- und die konnte eine dritte sein. Genau so kam
-   Englisch in eine Zelle, in der es weder Leser- noch Pillen- noch
-   Vorgabesprache war (Befund D2).
-
-   JETZT LIEGT ALLES SCHON DA. `GET /api/settings` liefert dem Admin die Namen
-   ALLER Sprachen auf einmal, und die Pille schaltet OERTLICH um -- dieselbe
-   Bauform wie `VOCABULARIES_OWN` bei den fuenfzehn Vokabelwoertern. Ein Abruf,
-   den es nicht gibt, kann die falsche Sprache nicht mitbringen; ein
-   Zwischenspeicher, den es nicht gibt, kann nicht veralten.
-
-   ES IST DAS EINGETRAGENE UND NICHT DER RUECKFALL -- wie `VOCABULARIES_OWN`.
-   Wo fuer die gezeigte Sprache nichts eingetragen ist, bildet namesFrom() den
-   Rueckfall und KENNZEICHNET ihn (F4). */
+   der Zwischenspeicher der Runde 0.24.3 weg. */
 let NAMES_ALL = { cats: {}, crits: {} };
-/* DIE ZWEI TAFELN AUS EINER ANTWORT UEBERNEHMEN. Sie stehen unter den Namen,
-   die der Server ihnen gibt, und werden hier EINMAL auf die Kennungen der
-   Oberflaeche gelegt -- `cats` und `crits`, dieselben wie in `fetched`. Zwei
-   Namen fuer dieselbe Sache an zwei Stellen liefen auseinander.
-   EIN GEWOEHNLICHER BENUTZER BEKOMMT SIE NICHT (F3), und dann bleiben die
-   Tafeln leer: namesFrom() laesst die Liste in diesem Fall, wie sie
-   hereinkam -- in der Sprache des Lesers, und die ist die einzige, die er
-   sehen kann. */
+/* DIE ZWEI TAFELN AUS EINER ANTWORT UEBERNEHMEN. */
 function takeNames(r) {
   if (!r || typeof r !== 'object') return;
   if (r.categoryNames && typeof r.categoryNames === 'object') NAMES_ALL.cats = r.categoryNames;
@@ -2238,17 +1318,13 @@ const SEARCH_NAME_LEVELS = [1, 2, 3, 4];
 // bei allem, was wie eine Adresse aussieht -- was ohne dasteht, ist Suchtext.
 const isSearch = (text) => !/^https?:\/\//i.test(String(text || ''));
 
-// Zweite Schranke vor dem Oeffnen. Die erste steht im Server beim Speichern;
-// eine Vorlage aus der Datenbank ist Eingabe und landet hier in einem
-// window.open. Faellt eine durch, faellt dieser Anbieter weg -- still einen
-// anderen einzusetzen hiesse, woanders zu suchen als angeschrieben.
+// Zweite Schranke vor dem Oeffnen.
 function searchTemplateOk(v) {
   return typeof v === 'string' && /^https?:\/\/[^\s]+$/i.test(v) && v.includes('%s');
 }
 
 // Die Anbieter unter einer Suchzeile: im Vorrat, Vorlage in Ordnung, Standard
-// zuerst -- die Reihenfolge kommt fertig vom Server. Gezaehlt werden ALLE
-// Namen, nicht nur die Alternativen: Stufe 1 zeigt damit genau den Standard.
+// zuerst -- die Reihenfolge kommt fertig vom Server.
 function searchList() {
   return SEARCH_PROVIDERS
     .filter(a => a.active && a.present && searchTemplateOk(a.template))
@@ -2262,22 +1338,13 @@ const searchAddress = (template, text) => template.replace('%s', encodeURICompon
 
 /* ================= Links im Kommentartext ================= */
 // Erkennung und Knotenbau sind getrennt, und das mit Absicht: Schranke 2 kann
-// nicht anschlagen, solange Schranke 1 richtig ist. Nur weil der Knotenbauer
-// einzeln aufrufbar ist, laesst sich ihm im Pruefstand ein javascript:
-// vorlegen und die zweite Schranke ueberhaupt gegenpruefen.
+// nicht anschlagen, solange Schranke 1 richtig ist.
 
 // Schranke 1. Nur ausdruecklich Geschriebenes gilt: http://, https:// und
-// www. ohne Schema. Ein blankes beispiel.de ausdruecklich nicht -- deutscher
-// Fliesstext ist voll von "z.B." und "usw.", jede Endungsregel produziert dort
-// Fehltreffer. javascript: kann hier gar nicht erst passen.
-// Der Anfang wird mitgefangen: weiter unten wird nur noch gefragt, ob nach ihm
-// etwas stehen blieb -- sonst staende die Schemaentscheidung an zwei Stellen.
+// www.
 const COMMENT_LINK = /(https?:\/\/|www\.)\S+/gi;
 
-// Nachlaufende Satzzeichen gehoeren nicht zur Adresse. Bei Klammern mit
-// Augenmass: eine schliessende bleibt drin, solange die Adresse eine
-// unpaarige oeffnende enthaelt -- sonst zerrisse jedes
-// ..._(Begriffsklaerung) mitten in der Adresse.
+// Nachlaufende Satzzeichen gehoeren nicht zur Adresse.
 const LINK_PUNCTUATION = '.,;:!?"\'»«…';
 const LINK_BRACKETS = { ')': '(', ']': '[' };
 const countChar = (s, z) => s.split(z).length - 1;
@@ -2296,28 +1363,7 @@ function trimLinkEnd(address) {
 
 /* ---- DIE HERVORHEBUNG, ALS DRITTES STUECK -- 0.18.0 --------------------
    BIS 0.17.5 KANNTE DIE ZERLEGUNG ZWEI STUECKE: gewoehnlichen Text und einen
-   Link. Seit 0.18.0 gibt es ein drittes -- die Fundstelle des Suchbegriffs.
-
-   SIE ENTSTEHT IN DER ZERLEGUNG UND NICHT HINTERHER. Wer das fertige Ergebnis
-   nachbearbeitet, muss dafuer wieder in Strings denken -- maskieren,
-   `<mark>` hineinschreiben, wieder als Markup einsetzen --, und genau dort
-   entsteht der Fehler, den 0.5.4 zugemacht hat. Hier entsteht kein einziges
-   Zeichen Markup: das Stueck sagt nur, DASS es eine Fundstelle ist, und der
-   Knotenbauer macht daraus ein Element mit textContent.
-
-   DER BEGRIFF WIRD GENOMMEN, WIE ER GETIPPT UND GETRIMMT IST -- dieselbe
-   Klemme wie im Server (volltextBegriff), und gesucht wird mit indexOf und
-   nicht mit einem Muster: aus einem Suchbegriff ein regulaeres Ausdrucksmuster
-   zu bauen hiesse, jedes Sonderzeichen darin maskieren zu muessen. Ein
-   eingegebenes `.` faende sonst jedes Zeichen -- derselbe Fehler wie LIKE
-   gegen instr() im Server, nur im Browser.
-
-   VERGLICHEN WIRD KLEINGESCHRIEBEN, angezeigt der Originaltext: wer "bella"
-   tippt, will "Bellavista" markiert sehen und nicht "bella" daruntergelegt.
-
-   DIE UEBRIGEN ANGABEN EINES STUECKS REISEN MIT (`rest`). Damit zerfaellt auch
-   eine Adresse, in der der Begriff steht, in mehrere Stuecke MIT demselben
-   Ziel -- der Knotenbauer setzt sie danach wieder zu EINEM Link zusammen. */
+   Link. */
 function splitAtTerm(text, term, rest = {}) {
   const content = String(text ?? '');
   const b = String(term ?? '');
@@ -2337,36 +1383,14 @@ function splitAtTerm(text, term, rest = {}) {
   return pieces;
 }
 
-// Zerlegt den Rohtext in Stuecke: { text } ist gewoehnlicher Text,
-// { text, ziel } ein Link, { text, treffer } eine Fundstelle des Suchbegriffs.
-// Gearbeitet wird auf dem Rohtext, nicht auf maskiertem -- sonst zerrisse ein
-// &amp; jede Abfragezeichenfolge.
-// DIE LINKS WERDEN ZUERST GESUCHT UND DER BEGRIFF DANACH: umgekehrt zerschnitte
-// eine Fundstelle die Adresse, bevor sie ueberhaupt als eine erkannt waere.
+// Zerlegt den Rohtext in Stuecke: { text } ist gewoehnlicher Text, { text,
+// ziel } ein Link, { text, treffer } eine Fundstelle des Suchbegriffs.
 /* DIE MARKIERUNG IST DAS VIERTE STUECK DER ZERLEGUNG -- 0.32.0, Leitplanke
-   L2. Seit 0.18.0 entsteht der Kommentartext als echte KNOTEN und nie als
-   String; ein `replace()` ueber das Ergebnis holte Markup in einen Text, der
-   ausdruecklich keines tragen darf. Also wird die Markierung genauso
-   zerlegt wie Link und Fundstelle -- ein Stueck mehr, kein Handgriff hinterher.
-
-   WELCHE `@…` EINE MARKIERUNG SIND, SAGT DER SERVER UND NICHT DIESES MUSTER.
-   Er hat die Namenstafel und hat beim Schreiben aufgeloest; hier steht nur
-   noch, WO im Rohtext die Stelle sitzt. `@bret` -- ein Tippfehler -- steht in
-   keiner Liste, bleibt gewoehnlicher Text, und genau daran SIEHT man, dass er
-   niemanden getroffen hat.
-   GESUCHT WIRD OHNE `\b` (Leitplanke L4): fuer JavaScript sind `ş`, `ğ`, `ı`
-   keine Wortzeichen. Verglichen wird stattdessen Zeichen fuer Zeichen gegen
-   den Handgriff, den der Server nennt, und das Zeichen dahinter darf kein
-   Namenszeichen sein -- sonst truege `@anna` in „@annabelle" eine Markierung,
-   die niemand geschrieben hat. */
+   L2. */
 const MENTION_TAIL = /[\p{L}\p{N}_.-]/u;
 
 /* DIE MARKIERUNGEN EINES ROHTEXTES, ALS STUECKE. Sie laufen VOR der Suche und
-   NACH den Links durch dieselbe Kette wie jede andere Zerlegung.
-   DER ANGEZEIGTE NAME KOMMT AUS DEM VERFASSEROBJEKT UND NIE AUS DEM TEXT
-   (Leitplanke L9): ein geloeschter Zugang steht als „Gelöschter Benutzer 7"
-   da, ein umbenannter unter seinem HEUTIGEN Namen. Der freigegebene Name
-   geht nicht hinaus -- der Server schickt ihn seit 0.24.4 gar nicht mit. */
+   NACH den Links durch dieselbe Kette wie jede andere Zerlegung. */
 function splitAtMention(raw, marks, term, rest) {
   const text = String(raw ?? '');
   const list = (marks || []).filter(m => m && m.handle);
@@ -2383,9 +1407,7 @@ function splitAtMention(raw, marks, term, rest) {
     /* KLEIN GESCHRIEBEN MIT DER VERGLEICHSSPRACHE und nicht mit der des
        Lesers -- dieselbe Regel wie im Server (T3): sonst waeren „İstanbul"
        und „istanbul" fuer den einen derselbe Zugang und fuer den anderen
-       zwei. Sie greift, wenn derselbe Zugang zweimal mit verschiedener
-       Gross- und Kleinschreibung im Text steht: gespeichert ist dann nur EIN
-       Handgriff, und die zweite Stelle wird ueber ihn gefunden. */
+       zwei. */
     const hit = list.filter(m => text.slice(i + 1, i + 1 + m.handle.length)
         .toLocaleLowerCase(compareLocale()) === String(m.handle).toLocaleLowerCase(compareLocale()))
       .sort((a, b) => b.handle.length - a.handle.length)[0];
@@ -2404,9 +1426,7 @@ function splitCommentText(raw, term, marks) {
   const text = String(raw ?? '');
   const pieces = [];
   /* IN EINER ADRESSE WIRD NICHT MARKIERT. Ein `@` in einer URL gehoert zur
-     Adresse; wer dort eine Markierung faende, zerschnitte den Link. Deshalb
-     geht das Stueck mit `target` den alten Weg -- dieselbe Ueberlegung, aus
-     der die Links VOR dem Begriff gesucht werden. */
+     Adresse; wer dort eine Markierung faende, zerschnitte den Link. */
   const take = (raw2, rest) => {
     const out = rest.target ? splitAtTerm(raw2, term, rest) : splitAtMention(raw2, marks, term, rest);
     for (const s of out) pieces.push(s);
@@ -2416,8 +1436,7 @@ function splitCommentText(raw, term, marks) {
   while ((matched = COMMENT_LINK.exec(text)) !== null) {
     const address = trimLinkEnd(matched[0]);
     // Nach dem Abschneiden kann ein nacktes "https://" uebrigbleiben. Das ist
-    // keine Adresse und wird wieder zu Text. Gefragt wird allein, ob nach dem
-    // Anfang noch etwas steht -- ueber das Schema entscheidet das Muster.
+    // keine Adresse und wird wieder zu Text.
     if (address.length <= matched[1].length) continue;
     if (matched.index > last) take(text.slice(last, matched.index), {});
     take(address, {
@@ -2431,17 +1450,12 @@ function splitCommentText(raw, term, marks) {
 }
 
 /* Ein Stueck als Knoten. EINE FUNDSTELLE WIRD ZU <mark>, alles andere zu
-   gewoehnlichem Text -- in beiden Faellen ueber textContent. Markup kann auf
-   diesem Weg gar nicht entstehen, und das ist der ganze Punkt: die Zusage aus
-   0.5.4 haengt nicht daran, dass jemand das Maskieren nicht vergisst. */
+   gewoehnlichem Text -- in beiden Faellen ueber textContent. */
 function pieceNode(s) {
   const text = String(s?.text ?? '');
   /* DIE MARKIERUNG IST HERVORGEHOBEN WIE EIN TREFFER DER SUCHE UND DOCH ALS
      EIGENE SACHE ERKENNBAR -- 0.32.0: ein eigenes Element mit eigener Klasse,
-     nicht `<mark>`. Zwei verschiedene Sachen in einem Element waeren am
-     Bildschirm dasselbe und in einem Vorleseprogramm auch.
-     UEBER textContent WIE ALLES HIER: Markup kann auf diesem Weg gar nicht
-     entstehen, und das ist der ganze Punkt. */
+     nicht `<mark>`. */
   if (s?.mention) {
     const at = document.createElement('span');
     at.className = 'mention';
@@ -2459,23 +1473,19 @@ function pieceNode(s) {
 function buildCommentNodes(pieces) {
   const part = document.createDocumentFragment();
   // Leere Stuecke fallen vorher heraus, damit weiter unten keine Abfrage auf
-  // "" mitten in der Zusammenfassung eines Links steht.
+// "" mitten in der Zusammenfassung eines Links steht.
   const list = (pieces || []).filter(s => String(s?.text ?? '') !== '');
   for (let i = 0; i < list.length; i++) {
     const s = list[i];
     // Schranke 2: unmittelbar vor dem Setzen von href noch einmal pruefen.
-    // Faellt der String durch, wird sie gewoehnlicher Text, nicht Link.
+// Faellt der String durch, wird sie gewoehnlicher Text, nicht Link.
     if (s.target && /^https?:\/\//i.test(String(s.target))) {
       const a = document.createElement('a');
       a.href = String(s.target);
       a.target = '_blank';
       a.rel = 'noopener noreferrer';
       /* EINE ADRESSE BLEIBT EIN LINK, AUCH WENN DER BEGRIFF MITTEN DARIN
-         STEHT. Die Zerlegung liefert sie dann als mehrere Stuecke mit
-         DEMSELBEN Ziel; hier werden sie in EINEN Anker gefuellt. Drei Anker
-         nebeneinander waeren drei Links auf dieselbe Adresse -- fuer ein
-         Vorleseprogramm drei Ziele statt einem, und beim Kopieren drei
-         Stuecke statt einer Adresse. */
+         STEHT. */
       let j = i;
       while (j < list.length && String(list[j].target ?? '') === String(s.target))
         a.appendChild(pieceNode(list[j++]));
@@ -2489,16 +1499,11 @@ function buildCommentNodes(pieces) {
 }
 
 /* DIE HERVORHEBUNG FUER JEDEN TEXT OHNE LINKS -- Titel, Kategorie, Tag,
-   Kontextzeile, Linkadresse. Denselben Weg geht der Kommentartext, nur mit
-   der Linkzerlegung davor: ein Knotenbauer und nicht zwei. */
+   Kontextzeile, Linkadresse. */
 const raiseHighlight = (text, term) =>
   buildCommentNodes(splitAtTerm(String(text ?? ''), term));
 
-/* DEN INHALT EINES ELEMENTS DURCH HERVORGEHOBENE KNOTEN ERSETZEN. Ohne
-   Begriff wird gar nichts angefasst -- ohne Suche gibt es nichts
-   hervorzuheben, und ein unnoetig neu gebauter Knoten waere Arbeit ohne
-   Wirkung. Ein fehlendes Element ist kein Fehler: die Kategorie steht nicht
-   an jeder Kachel. */
+/* DEN INHALT EINES ELEMENTS DURCH HERVORGEHOBENE KNOTEN ERSETZEN. */
 function highlightInNode(el, text, term) {
   if (!el || !term) return;
   el.replaceChildren(raiseHighlight(text, term));
@@ -2512,42 +1517,23 @@ function applyFont() {
   document.documentElement.style.fontSize = (15 * FONT / 100).toFixed(2) + 'px';
 }
 
-/* DER BILDSTREIFEN -- 0.22.0 (E11). Ein Wert am Wurzelelement, `--tile-min`,
-   und das Stilblatt rechnet damit: `.thumbs` ist ueberall ein Raster mit
-   `minmax(var(--tile-min), 1fr)`. Die Stufen stehen hier UND im Server; der
-   Server entscheidet, die Karte „Darstellung" zeigt die Liste. */
+/* DER BILDSTREIFEN -- 0.22.0 (E11). */
 let STRIP = 80;
 const STRIP_LEVELS = [60, 80, 100, 120, 150];
 function applyTiles() {
   document.documentElement.style.setProperty('--tile-min', STRIP + 'px');
 }
 
-/* ================= DAS FARBSCHEMA -- 0.23.0 =================
-   DREI STUFEN HIER, ZWEI IM STILBLATT. `light` und `dark` sind Werte von
-   `data-theme` am Wurzelelement; `device` ist KEINER -- er wird hier
-   aufgeloest und kommt dort nie an. Der Grund steht im Stilblatt am zweiten
-   Block: sonst muesste jeder der vierzig Werte dreimal geschrieben werden.
-   DIE STUFEN STEHEN HIER UND IM SERVER; der Server entscheidet, die Karte
-   „Darstellung" zeigt die Liste -- dieselbe Bauform wie `font`. */
+/* ================= DAS FARBSCHEMA -- 0.23.0 ================= DREI STUFEN
+   HIER, ZWEI IM STILBLATT. */
 const THEME_LEVELS = ['light', 'dark', 'device'];
 // Schluessel statt Satz (siehe VERWALTUNGSART) -- Modulebene.
 const THEME_NAMES = { light: 'card.light', dark: 'card.dark', device: 'card.likeDevice' };
 const DEVICE_LIGHT = '(prefers-color-scheme: light)';
 /* DER GEMERKTE WERT IST KEINE ZWEITE WAHRHEIT, SONDERN DAS GEDAECHTNIS DER
-   LETZTEN. Der Server bleibt die Wahrheit: loadSettings() ueberschreibt
-   ihn bei JEDEM Laden, und er wird NIE zurueckgeschickt. Er wird gelesen,
-   damit beim Oeffnen nicht das falsche Schema aufblitzt -- und sonst zu
-   nichts. In einem privaten Fenster wirft der Zugriff selbst, deshalb der
-   Fangarm.
-   DERSELBE SCHLUESSEL STEHT IM KOPF DER SEITE, im Achtzeiler vor dem
-   Stilblatt. Zwei Stellen fuer denselben Namen -- es geht nicht anders: der
-   Achtzeiler laeuft, bevor es diese Datei gibt. */
-/* DER SCHLUESSEL IM BROWSERSPEICHER, und der alte wird noch gelesen -- 0.24.1.
-   Er hiess bis 0.24.0 `kriterion.thema`. Faende die Seite nach dem Einspielen
-   nur den neuen und der stuende leer, zeigte sie beim ERSTEN Aufschlag das
-   Vorgabeschema statt des gewaehlten -- ein sichtbarer Sprung fuer etwas, das
-   niemand geaendert hat. Geschrieben wird nur noch der neue; der alte bleibt
-   liegen und faellt beim naechsten Leeren des Speichers weg. */
+   LETZTEN. */
+/* DER SCHLUESSEL IM BROWSERSPEICHER, und der alte wird noch gelesen --
+   0.24.1. */
 const THEME_KEY = 'kriterion.theme';
 const THEME_KEY_0240 = 'kriterion.thema';
 let THEME = (() => {
@@ -2559,12 +1545,7 @@ let THEME = (() => {
 const effectiveTheme = () => THEME === 'device'
   ? (window.matchMedia && window.matchMedia(DEVICE_LIGHT).matches ? 'light' : 'dark')
   : (THEME === 'light' ? 'light' : 'dark');
-/* DIE FARBE DER BROWSERLEISTE WIRD GELESEN UND NICHT ABGESCHRIEBEN. Der Kopf
-   der Seite sagt seit jeher, sie sei `--bg` und duerfe keine zweite Wahrheit
-   sein -- als Zeichenfolge im Meta-Element war sie aber genau das. Zwei
-   Schemata heissen zwei Werte, und beide stehen im Stilblatt: hier wird der
-   gerade gueltige abgeholt. Wer --bg aendert, aendert die Leiste mit, ohne
-   diese Datei anzufassen. */
+/* DIE FARBE DER BROWSERLEISTE WIRD GELESEN UND NICHT ABGESCHRIEBEN. */
 function applyTheme() {
   const effective = effectiveTheme();
   document.documentElement.dataset.theme = effective;
@@ -2577,12 +1558,9 @@ function applyTheme() {
 }
 /* SOFORT UND NICHT ERST NACH DEM ABRUF: der Achtzeiler im Kopf setzt
    `data-theme`, aber er kann die Leistenfarbe nicht kennen -- das Stilblatt
-   gibt es dort noch nicht. Hier gibt es beides. */
+   gibt es dort noch nicht. */
 applyTheme();
-/* UND WER „wie das Geraet" gewaehlt hat, folgt ihm OHNE NEULADEN. Der Horcher
-   greift nur in dieser einen Stellung; in den beiden anderen ist die Frage
-   des Geraets nicht gestellt worden. `addListener` als Rueckfall: aeltere
-   Fassungen kennen `addEventListener` an einer Medienabfrage nicht. */
+/* UND WER „wie das Geraet" gewaehlt hat, folgt ihm OHNE NEULADEN. */
 if (window.matchMedia) {
   const mq = window.matchMedia(DEVICE_LIGHT);
   const follow = () => { if (THEME === 'device') applyTheme(); };
@@ -2590,16 +1568,7 @@ if (window.matchMedia) {
   else if (mq.addListener) mq.addListener(follow);
 }
 
-/* DER SCHMALE SCHIRM, ALS FRAGE AN DEN BROWSER.
-   SIE STEHT WOERTLICH SO AUCH IM STYLESHEET, und das ist die einzige Stelle
-   in der ganzen Instanz, an der eine Bedingung zweimal geschrieben steht. Es
-   geht nicht anders: das Stylesheet entscheidet, WAS zu sehen ist, und die
-   Oberflaeche muss wissen, ob die Filter beim Aufbau eingeklappt anfangen
-   sollen -- eine Frage, die nur der Browser beantworten kann. Wer eine der
-   beiden Zahlen aendert, aendert die andere mit; im Stylesheet steht dieselbe
-   Zeile unter der Ueberschrift "DAS TELEFON".
-   WARUM ZWEI BEDINGUNGEN: ein Telefon quer ist 850 bis 930 Pixel breit und
-   keine 500 hoch. Nach der Breite allein waere es ein Tablett. */
+/* DER SCHMALE SCHIRM, ALS FRAGE AN DEN BROWSER. */
 const NARROW = '(max-width: 700px), (max-height: 500px) and (max-width: 960px)';
 const isNarrow = () => !!(window.matchMedia && window.matchMedia(NARROW).matches);
 
@@ -2607,76 +1576,27 @@ const isNarrow = () => !!(window.matchMedia && window.matchMedia(NARROW).matches
 /* DIE VORGABESTELLUNG DER FILTER STEHT GENAU EINMAL -- sonst laufen die
    Abschriften auseinander, sobald jemand einen Filter ergaenzt. */
 /* "Ohne Kategorie" ist ein WERT DIESER LISTE und kein Sonderfall daneben --
-   deshalb steht er in derselben Auswahl wie jede Kategorie und laesst sich mit
-   ihnen zusammen anklicken. Ein Wort und keine Nummer: Nummern sind
-   Kategorienummern, und eine erfundene (0 oder -1) waere irgendwann eine echte.
-   ER STEHT IM GESPEICHERTEN JSON und muss deshalb stabil bleiben. */
+   deshalb steht er in derselben Auswahl wie jede Kategorie und laesst sich
+   mit ihnen zusammen anklicken. */
 const CATEGORY_NONE = 'ohne';
-/* SEIT 0.13.0 EINE LISTE UND KEINE EINZELNE NUMMER. Der Filter traegt mehrere
-   Kategorien zugleich, und die Verknuepfung ist ein ODER -- nie ein UND:
-   `product_category_id` ist EINE Spalte, ein Eintrag traegt also genau eine
-   Kategorie, und "Datentraeger UND Produkt" waere garantiert leer. */
+/* SEIT 0.13.0 EINE LISTE UND KEINE EINZELNE NUMMER. */
 /* `neu` STEHT HIER SEIT 0.17.0 NICHT MEHR. Die Pille „Neu seit ..." ist
-   gestrichen; ihre Auskunft traegt die Glocke. Eine gespeicherte Ansicht aus
-   0.11.0 kann den Schluessel noch tragen -- filterNormal() uebergeht ihn. */
+   gestrichen; ihre Auskunft traegt die Glocke. */
 const FILTER_DEFAULT = { categoryIds: [], tagIds: [], tagMode: 'and', tested: 'all',
                          rejected: 'all', favorite: false,
                          sort: 'updated_desc' };
 
-/* ========== DIE SORTIERUNG GAB DEN STATUS VOR -- 0.21.1 bis 0.32.0 ==========
-   AUSGEBAUT MIT 0.32.1, auf Entscheidung des Betreibers, und der Grund ist
-   eine SACKGASSE und keine Geschmacksfrage.
-
-   WAS ES WAR. Vier Sortierungen gaben den Statusfilter vor: nach Bewertung
-   sortieren hiess „nur getestete", nach Potenzial sortieren hiess „nur
-   ungetestete". Eine Handwahl schlug die Vorgabe; ein Merker `STATUS_BY_HAND`
-   hielt fest, dass jemand geklickt hatte.
-
-   WARUM ES WEG MUSSTE. „Filter zuruecksetzen" setzte den Merker zurueck --
-   ausdruecklich, mit Begruendung: er heisst ja „zuruecksetzen", und die
-   Handwahl ist eine Filterstellung. Danach griff die Ableitung wieder, die
-   Statuspille stand angewaehlt da, und die Liste war gefiltert. ABER
-   filterNumber() zaehlte die Ableitung nicht als gesetzten Filter -- die
-   Ruhestellung war ja genau sie --, also VERSCHWAND DER KNOPF „Filter
-   zuruecksetzen". Es war gefiltert, es sah gefiltert aus, und es gab keinen
-   Weg mehr heraus ausser einer Sortierung, die man gar nicht wechseln wollte.
-   Der Kommentar an `statusIdle()` behauptete sogar, dieser Weg zurueck sei
-   der eine, den es gibt. Er war es nicht mehr, sobald die Ruhestellung selbst
-   filterte.
-
-   WAS STATTDESSEN GILT: der Statusfilter ist das, was dasteht, und sonst
-   nichts. `statusEffective(f)` ist `f.tested` -- eine Zeile, kein Merker,
-   keine Tabelle, keine zweite Wahrheit ueber denselben Filter.
-
-   WAS MIT VERSCHWUNDEN IST: `SORT_STATUS`, `STATUS_BY_HAND`, `defaultClosed`,
-   `statusOutSort`, `statusIdle` und die drei Saetze `list.followsSort`,
-   `list.statusByHand`, `list.byHandHint`. Die Zeilen stehen umgedreht und
-   nicht geloescht: wer in einem Papier von 0.21.1 bis 0.32.0 von „Filter
-   folgt der Sortierung" liest, findet hier, was daraus geworden ist.
-
-   `statusEffective` BLEIBT ALS NAME STEHEN, obwohl es jetzt nur noch ein Feld
-   liest. Die Liste (visibleItems) und die Leiste (drawFilters,
-   drawFilterSwitch) fragen weiter DIESELBE Stelle -- zwei Rechenwege fuer
-   dieselbe Frage liefen schon einmal auseinander (Stolperstein 47), und eine
-   Funktion, die heute schlicht ist, ist der billigste Schutz davor, dass
-   morgen wieder zwei daraus werden. */
+/* ========== DIE SORTIERUNG GAB DEN STATUS VOR -- 0.21.1 bis 0.32.0
+   ========== AUSGEBAUT MIT 0.32.1, auf Entscheidung des Betreibers, und der
+   Grund ist eine SACKGASSE und keine Geschmacksfrage. */
 const statusEffective = (f) => f.tested;
 
 const state = {
   items: [], categories: [], tags: [], criteria: [],
   filters: { ...FILTER_DEFAULT },
   search: '', compare: new Set(),
-  /* SUCHT DER SERVER, und daraus folgen vier Felder.
-     `all` ist der ungefilterte Bestand aus dem letzten loadAll(). Er bleibt
-     liegen, damit das LEEREN der Suche keine Anfrage kostet -- ohne ihn waere
-     die haeufigste Handhabung der Suche (tippen, wieder loeschen) die
-     teuerste. `items` ist, was gerade gezeigt wird: entweder `all` oder die
-     Antwort auf einen Suchbegriff.
-     `inventory` ist die Zahl des GANZEN Bestands fuer die Zaehlzeile. Ohne sie
-     stuende dort waehrend einer Suche die Trefferzahl als Gesamtzahl -- "3
-     Sachen · 3 sichtbar", und der Bestand von 300 waere verschwunden.
-     `searchRunning` und `searchError` sind Ansichtszustand und keine Einstellung:
-     beim naechsten Aufruf steht wieder die Vorgabe. */
+  /* SUCHT DER SERVER, und daraus folgen vier Felder. `all` ist der
+     ungefilterte Bestand aus dem letzten loadAll(). */
   all: [], inventory: 0, searchRunning: false, searchError: false,
 };
 
@@ -2684,85 +1604,34 @@ const state = {
 // auf einen Eintrag oder den Systembereich, wo loadAll() gar nicht laeuft.
 let SETTINGS = null;
 
-// Abgeleitet, nicht eingestellt. USER_COUNT entscheidet, ob die
-// Durchschnittsspalte ueberhaupt erscheint; ADMIN steuert die Kriterienkarte,
-// EIGENTUEMER, was in der Karte "Zugaenge" bedienbar ist. Der Server
-// verweigert beides ohnehin -- die Felder ersparen der Oberflaeche eine zweite
-// Wahrheit darueber, wem die Instanz gehoert.
+// Abgeleitet, nicht eingestellt.
 let USER_COUNT = 1;
 let ADMIN = true;
 let OWNER = true;
-// Der eigene Name in der Kopfzeile. AUCH BEI EINEM EINZIGEN ZUGANG: das ist
-// eine Aussage ueber MICH, nicht ueber andere -- derselbe Grund, aus dem die
-// Karte "Zugang" fuer jeden stehenbleibt.
+// Der eigene Name in der Kopfzeile.
 let NAME = '';
 // Die Schwelle steht GENAU HIER und nirgends sonst.
 const multipleUsers = () => USER_COUNT > 1;
 
-/* DER BEZUGSPUNKT DER GLOCKE, und seit 0.17.0 der EINZIGE. Bis dahin stand ein
-   zweiter daneben: `zuletztGesehen` trug die Pille „Neu seit ..." und fiel beim
-   Verlassen der Uebersicht, dieser hier faellt erst, wenn die Tafel WIRKLICH
-   geoeffnet wurde. Zwei Anzeigen fuer dieselbe Frage -- was hat sich getan,
-   seit ich zuletzt hier war -- sind eine zu viel; die Pille ist gestrichen,
-   und ihr Merker mit ihr.
-   null heisst „noch nie gesetzt": dann gibt es keine Glocke. Alles fuer neu zu
-   erklaeren waere eine Behauptung, und der erste Blick in die Uebersicht
-   laeutete fuer den ganzen Bestand. Gesetzt wird er beim ersten Verlassen der
-   Uebersicht; von da an ist er der Strich, hinter dem gezaehlt wird. */
+/* DER BEZUGSPUNKT DER GLOCKE, und seit 0.17.0 der EINZIGE. */
 let BELL_SEEN = null;
 
-/* Die beiden Anlegen-Schalter, global und mit Vorgabe an. Der Bildschirm haelt
-   sich an dieselbe Regel wie der Server: DER ADMIN KOMMT IMMER DURCH. Bote die
-   Oberflaeche die Zeile "+ neu anlegen" trotz ausgeschaltetem Schalter an,
-   erzeugte sie zuverlaessig eine Fehlermeldung -- und ein solcher Knopf sieht
-   aus wie ein Fehler.
-   Aus heisst ausdruecklich NUR: die Zeile zum Anlegen verschwindet. Auswahl
-   und Wolke bleiben, denn zuweisen darf immer jeder. */
+/* Die beiden Anlegen-Schalter, global und mit Vorgabe an. Der Bildschirm
+   haelt sich an dieselbe Regel wie der Server: DER ADMIN KOMMT IMMER DURCH. */
 let TAGS_FREE = true;
 let CATEGORIES_FREE = true;
 /* DER POTENZIALMODUS -- 0.26.0. AN, solange der Server nichts anderes sagt:
-   dieselbe Vorgabe wie am Server, und aus demselben Grund. Eine Installation,
-   die nach der Hebung ploetzlich ihre Potenzialsterne nicht mehr zeigte, saehe
-   aus, als haette sie etwas verloren -- die Sterne stehen ja noch da.
-   EIN MERKER UND NICHT FUENF ABFRAGEN: er wirkt an fuenf Stellen, und das ist
-   der ganze Punkt. Ein abgeschalteter Modus, der an einer Stelle doch noch
-   durchscheint, ist kein abgeschalteter Modus. */
+   dieselbe Vorgabe wie am Server, und aus demselben Grund. */
 let POTENTIAL_MODE = true;
 /* IN WELCHEM VERFAHREN LEGT DIESE INSTANZ ANKOMMENDE PNG AB? Vorgabe wie im
-   Server. Der Wert entscheidet hier NICHTS -- abgelegt wird im Server, und der
-   liest seine eigene Einstellung. Er sagt der Karte nur, welches Verfahren
-   gilt; die Schranke liegt nicht hier.
-   BIS 0.26.0 WAR ES EIN JA/NEIN (`IMAGES_CONVERT`). Seit 0.27.0 ist es ein
-   Wert aus dreien, und die Vorgabe ist das, was das Haekchen „an" bedeutet
-   hat.
-   DIE LISTE DANEBEN KOMMT VOM SERVER und wird hier nicht aufgezaehlt: die
-   Karte zeichnet, was hereinkommt. Eine zweite Aufzaehlung der Verfahren im
-   Browser liefe beim naechsten auseinander (Stolperstein 47) -- die WOERTER
-   dazu stehen sehr wohl hier (IMAGE_STORE_WORDS), denn der Server hat mit der
-   Sprache der Karte nichts zu schaffen.
-   DIE VORGABE STEHT ALS EINZELNE LISTE UND NICHT ALS LEERE: bis die Antwort da
-   ist, soll die Karte das heutige Verfahren zeigen und keine leere Auswahl. */
+   Server. */
 let IMAGE_STORE = 'webp-lossless';
 let IMAGE_STORES = ['png', 'webp-lossless', 'webp-lossy'];
-/* Ob DIESER Zugang einen zweiten Faktor traegt, . KOMMT VOM SERVER
-   und wird hier nie geraten: die Oberflaeche entscheidet damit nur, ob das
-   Bestaetigungsfenster ein zweites Feld zeigt. Wer den Wert von Hand auf false
-   setzt, bekommt ein Fenster ohne Codefeld -- und der Server weist die
-   Bestaetigung ab. Die Schranke liegt nicht hier. */
+/* Ob DIESER Zugang einen zweiten Faktor traegt, . */
 let TWO_FACTOR = false;
-/* Die Frist des Papierkorbs. Sie kommt aus /api/settings und wird hier NICHT
-   nachgebaut: die Zahl steht im Server an einer Stelle, und der Löschdialog
-   nennt sie jedem — auch dem, der die Karte gar nicht sehen darf. Die 30
-   hier ist kein zweiter Wert, sondern der Rückfall für eine Antwort, die das
-   Feld nicht kennt. */
+/* Die Frist des Papierkorbs. */
 let TRASH_DAYS = 30;
-/* DIE GESPEICHERTEN ANSICHTEN, . Persoenlich, wie die eine gemerkte
-   Filterstellung daneben -- und sie ERSETZEN diese nicht: `filters` bleibt die
-   zuletzt benutzte Stellung und wird weiter bei jeder Aenderung
-   ueberschrieben. Eine Ansicht wird nur auf Zuruf angewandt.
-   DER DECKEL KOMMT VOM SERVER. Er steht dort an einer Stelle und wird hier
-   nicht nachgebaut; die 8 ist der Rueckfall fuer eine Antwort, die das Feld
-   nicht kennt. */
+/* DIE GESPEICHERTEN ANSICHTEN, . */
 let VIEWS = [];
 let VIEWS_CAP = 8;
 const mayTagCreate = () => ADMIN || TAGS_FREE;
@@ -2783,9 +1652,7 @@ async function loadSettings() {
   if (SETTINGS.timeline !== undefined) TIMELINE_ON = SETTINGS.timeline !== false;
   if (Array.isArray(SETTINGS.views)) VIEWS = SETTINGS.views;
   if (SETTINGS.viewsCap) VIEWS_CAP = SETTINGS.viewsCap;
-  // Ausdruecklich nur beim ERSTEN Laden. loadSettings() laeuft nur in
-  // start(); ein spaeterer Aufruf duerfte den Bezugszeitpunkt nicht mehr
-  // nachziehen, sonst verschwaende die Menge unter dem Zeiger.
+  // Ausdruecklich nur beim ERSTEN Laden.
   if (SETTINGS.bellSeen) BELL_SEEN = SETTINGS.bellSeen;
   if (Array.isArray(SETTINGS.searchProviders)) SEARCH_PROVIDERS = SETTINGS.searchProviders;
   if (Array.isArray(SETTINGS.languages)) LANGUAGES = SETTINGS.languages;
@@ -2802,11 +1669,7 @@ async function loadSettings() {
   takeNames(SETTINGS);
   /* DIE ERSTE DER DREI QUELLEN (Konzept 5.3), und sie schlaegt die beiden
      anderen: was am ZUGANG steht, gilt -- auf jedem Geraet, an dem er sich
-     anmeldet. Der Server hat den Wert schon gegen den Vorrat geklemmt.
-     GELADEN WIRD NUR, WENN ES EINE ANDERE IST. loadSettings() laeuft bei
-     jedem Start; ein Ruf je Start waere ein Umlauf fuer nichts.
-     UND DAS GEDAECHTNIS ZIEHT MIT: wer sich anmeldet, sieht danach auch die
-     Anmeldeseite in seiner Sprache. */
+     anmeldet. */
   if (typeof SETTINGS.language === 'string' && SETTINGS.language) {
     if (SETTINGS.language !== LANGUAGE) {
       await loadLanguages(SETTINGS.language);
@@ -2815,7 +1678,7 @@ async function loadSettings() {
   }
   if (SETTINGS.searchNames) SEARCH_NAMES = SETTINGS.searchNames;
   // Der Server leitet beide beim Lesen ab und liefert sie immer; die Vorgabe
-  // hier greift nur, wenn die Antwort das Feld gar nicht kennt.
+// hier greift nur, wenn die Antwort das Feld gar nicht kennt.
   if (SETTINGS.tagsFreeCreate !== undefined) TAGS_FREE = SETTINGS.tagsFreeCreate !== false;
   if (SETTINGS.categoriesFreeCreate !== undefined)
     CATEGORIES_FREE = SETTINGS.categoriesFreeCreate !== false;
@@ -2833,9 +1696,7 @@ async function loadSettings() {
 }
 
 const saveFilters = () => {
-  // Die Momentaufnahme mitfuehren. loadAll() laeuft bei jeder Rueckkehr in die
-  // Uebersicht und setzt state.filters daraus zurueck -- ohne diese Zeile
-  // landet man immer wieder bei der Kombination, die beim Laden der Seite galt.
+  // Die Momentaufnahme mitfuehren.
   if (SETTINGS) SETTINGS.filters = { ...state.filters };
   api('PUT', '/api/settings', { filters: state.filters }).catch(() => {});
 };
@@ -2846,15 +1707,9 @@ async function loadAll() {
     api('GET', '/api/criteria'), api('GET', '/api/titles')
   ]);
   /* DER UNGEFILTERTE BESTAND KOMMT HIER UND NUR HIER. `all` ist die Quelle,
-     `items` das, was gezeigt wird -- beim Betreten der Uebersicht dasselbe.
-     Stand vorher ein Suchbegriff im Feld, wird er gleich darunter neu gefragt;
-     bis die Antwort da ist, steht der ganze Bestand da und nicht nichts. */
-  /* `all` und `items` zeigen hier auf DASSELBE Feld, und das ist gewollt: eine
-     Kopie von tausend Objekten waere Arbeit fuer nichts. Es traegt nur, solange
-     niemand `state.items` an der Stelle veraendert -- gefiltert und sortiert
-     wird ueber Kopien (`[...out].sort(...)` in visibleItems), und ein push oder
-     splice darauf gibt es nirgends. Wer je eines einbaut, veraendert damit auch
-     den ungefilterten Bestand. */
+     `items` das, was gezeigt wird -- beim Betreten der Uebersicht dasselbe. */
+  /* `all` und `items` zeigen hier auf DASSELBE Feld, und das ist gewollt:
+     eine Kopie von tausend Objekten waere Arbeit fuer nichts. */
   state.all = items; state.items = items; state.inventory = items.length;
   state.searchError = false;
   state.categories = categories; state.tags = tags; state.criteria = criteria;
@@ -2865,34 +1720,12 @@ async function loadAll() {
 }
 
 /* EINE GESPEICHERTE FILTERSTELLUNG WIRD BEIM ANWENDEN ZURECHTGERUECKT, nicht
-   beim Speichern. Sie kommt aus zwei Quellen -- der gemerkten Stellung und
-   einer gespeicherten Ansicht -- und beide gehen durch DIESEN Weg.
-
-   ERSTENS DIE FEHLENDEN FELDER: das Ausbreiten setzt ein fehlendes Feld nicht
-   auf die Vorgabe zurueck, es laesst es weg -- und `undefined` zeichnete den
-   Knopf nicht sauber.
-
-   ZWEITENS DIE NUMMERN, DIE ES NICHT MEHR GIBT. JSON kennt keine Kaskade:
-   eine geloeschte Kategorie bleibt als Nummer stehen und filterte danach auf
-   etwas, das niemand mehr hat -- die Liste waere leer, und nichts sagte
-   warum. UEBERGANGEN, NICHT ZURUECKGESCHRIEBEN: der gespeicherte Wert bleibt,
-   wie er ist. Ein Lesevorgang, der die Ansicht eines Menschen
-   umschreibt, ist schlimmer als eine Nummer, die ins Leere zeigt. */
+   beim Speichern. */
 function filterNormal(raw) {
   const f = { ...FILTER_DEFAULT, ...(raw && typeof raw === 'object' ? raw : {}) };
   f.tagIds = (Array.isArray(f.tagIds) ? f.tagIds : []).filter(id => state.tags.some(tag => tag.id === id));
   /* DIE UEBERSETZUNG DER ALTEN FORM, an genau dieser einen Stelle. Vor 0.13.0
-     stand in einer gespeicherten Ansicht EIN Kategoriewert (`categoryId`).
-     Ohne diese Zeilen verloeren alle vorhandenen Ansichten ihre Kategorie --
-     still und ohne Meldung, weil das Ausbreiten oben ein unbekanntes Feld
-     einfach stehenlaesst und `categoryIds` auf der leeren Vorgabe bliebe.
-     HIER UND NICHT AN JEDER LESESTELLE: filterNormal ist der Ort, an dem eine
-     gespeicherte Stellung zurechtgerueckt wird; ein zweiter Weg daneben liefe
-     auseinander.
-     DER GESPEICHERTE WERT WIRD NICHT ZURUECKGESCHRIEBEN -- gelesen wird er
-     uebersetzt, in der Ablage bleibt er, wie er ist. Dieselbe Linie wie bei
-     den Nummern, die es nicht mehr gibt: ein Lesevorgang, der die Ansicht
-     eines Menschen umschreibt, ist schlimmer als ein alter Wert. */
+     stand in einer gespeicherten Ansicht EIN Kategoriewert (`categoryId`). */
   if (!Array.isArray(f.categoryIds))
     f.categoryIds = f.categoryId != null ? [f.categoryId] : [];
   else if (f.categoryId != null && !f.categoryIds.length) f.categoryIds = [f.categoryId];
@@ -2901,72 +1734,30 @@ function filterNormal(raw) {
   // gilt), und ein mitgeschlepptes Feld liesse jede alte Ansicht als "nicht
   // aktiv" erscheinen, obwohl sie genau das zeigt, was sie zeigen soll.
   delete f.categoryId;
-  /* NUMMERN, DIE ES NICHT MEHR GIBT, FALLEN WEG -- und der Rest bleibt stehen.
-     Bis 0.12.4 fiel eine Ansicht mit geloeschter Kategorie ganz auf "Alle"
-     zurueck; mit einer Liste faellt sie auf den REST zurueck, und das ist der
-     bessere Ausgang: von drei gewaehlten Kategorien soll eine geloeschte nicht
-     die beiden anderen mitnehmen.
-     "Ohne" BLEIBT IMMER STEHEN: es ist kein Kategoriewert und trotzdem
-     gueltig. */
+  /* NUMMERN, DIE ES NICHT MEHR GIBT, FALLEN WEG -- und der Rest bleibt
+     stehen. */
   f.categoryIds = [...new Set(f.categoryIds)].filter(v =>
     v === CATEGORY_NONE || state.categories.some(c => c.id === v));
   if (f.tagMode !== 'or') f.tagMode = 'and';
   f.favorite = f.favorite === true;
-  /* DER SCHLUESSEL EINER GESTRICHENEN PILLE FAELLT HERAUS -- 0.17.0. Eine
-     gespeicherte Ansicht aus 0.11.0 kann `neu` noch tragen; sie muss ihn
-     UEBERGEHEN statt daran zu scheitern. Dieselbe Regel wie beim Schluessel
-     `abgelehnt`, den 0.15.0 hinzugefuegt hat, nur andersherum.
-     UND ER MUSS WIRKLICH HERAUSFALLEN: die zurechtgerueckte Stellung wird
-     Zeichen fuer Zeichen mit der aktuellen verglichen (welche Ansicht gerade
-     gilt), und ein mitgeschlepptes Feld liesse jede alte Ansicht als „nicht
-     aktiv" erscheinen -- dieselbe Ueberlegung wie bei `categoryId` darueber.
-     DER GESPEICHERTE WERT BLEIBT, WIE ER IST: gelesen wird er uebergangen, in
-     der Ablage steht er weiter. Ein Lesevorgang, der die Ansicht eines
-     Menschen umschreibt, ist schlimmer als ein alter Wert. */
+  /* DER SCHLUESSEL EINER GESTRICHENEN PILLE FAELLT HERAUS -- 0.17.0. */
   delete f.fresh;
   return f;
 }
 
-/* ================= Die Suche fragt den Server =================
-   JEDER TASTENDRUCK IST EINE ANFRAGE UEBER DAS NETZ. Drei Vorkehrungen
-   gehoeren dazu, und alle drei sind gebaut und nicht gehofft.
-
-   ERSTENS DER DEBOUNCE: 220 ms, ab dem ERSTEN Zeichen. Eine Mindestzahl an
-   Zeichen waere die eine Wegnahme, die diese Runde nicht machen darf -- ein
-   einzelnes Zeichen fand vorher, also findet es weiter. 220 ms liegen ueber
-   dem Tastenabstand eines schnellen Schreibers (er fasst damit die meisten
-   Anschlaege zusammen) und unter der Schwelle, an der Tippen zu haken
-   beginnt. DAS LEEREN LAEUFT OHNE Debounce und ohne Anfrage: der ungefilterte
-   Bestand liegt in state.alle.
-
-   ZWEITENS DIE REIHENFOLGE. Zwei Anfragen koennen sich ueberholen; die
-   Antwort auf "bo" darf die auf "bosch" nicht ueberschreiben. Jede Anfrage
-   bekommt eine laufende Nummer, und nur die jeweils hoechste darf schreiben.
-   Ohne diese Nummer zeigte die Liste gelegentlich das Ergebnis eines
-   Suchbegriffs, der nicht mehr im Feld steht -- selten, unerklaerlich und
-   nicht nachstellbar.
-
-   DRITTENS DER RUECKFALL. Vorher KONNTE die Suche nicht scheitern, jetzt
-   schon. Scheitert sie, bleibt stehen, was da ist, und die Zaehlzeile sagt es
-   einmal. EINE ERSATZSUCHE IM BROWSER GIBT ES AUSDRUECKLICH NICHT: sie haette
-   die Kommentare nicht und faende damit weniger -- zwei Antworten auf
-   dieselbe Frage, und die schlechtere ohne Kennzeichen. */
+/* ================= Die Suche fragt den Server ================= JEDER
+   TASTENDRUCK IST EINE ANFRAGE UEBER DAS NETZ. */
 const SEARCH_DELAY_MS = 220;
 let searchClock = null;
 let searchRun = 0;
 
-/* Das Kreuz zum Leeren steht nur da, wenn etwas zu leeren ist. Der Helfer
-   liest das FELD und nicht state.search: er wird auch gerufen, nachdem eine
-   gespeicherte Ansicht das Feld gesetzt hat, und dann ist das Feld die
-   Wahrheit. */
+/* Das Kreuz zum Leeren steht nur da, wenn etwas zu leeren ist. */
 function syncSearchBtn() {
   const q = document.getElementById('q'), c = document.getElementById('qclr');
   if (q && c) c.style.display = q.value ? 'block' : 'none';
 }
 
-/* Der Begriff wird genau so zugeschnitten wie im Server: aussen getrimmt.
-   Kleingeschrieben wird dort -- die Anfrage traegt, was der Mensch getippt
-   hat, und der Vergleich ist an einer Stelle. */
+/* Der Begriff wird genau so zugeschnitten wie im Server: aussen getrimmt. */
 async function runSearch() {
   const term = state.search.trim();
   const run = ++searchRun;
@@ -2987,32 +1778,20 @@ async function runSearch() {
   } catch (e) {
     if (run !== searchRun) return;
     if (e.message === SESSION_GONE) return;   // die Anmeldeseite kommt
-    // Stehen bleibt, was da ist. Die Zaehlzeile sagt es.
+// Stehen bleibt, was da ist. Die Zaehlzeile sagt es.
     state.searchRunning = false; state.searchError = true;
   }
   drawFilters(); drawBody();
 }
 
-/* ================= Die gespeicherten Ansichten =================
-   EINE ANSICHT IST EINE FILTERSTELLUNG SAMT SUCHBEGRIFF, unter einem Namen.
-   Der Begriff gehoert dazu -- eine Ansicht "Bosch, ungetestet" ist ohne ihn
-   die halbe Ansicht.
-
-   SIE STEHEN IN DER FILTERZEILE UND NICHT IN EINER EIGENEN KARTE: wer eine
-   Ansicht sucht, sucht sie dort, wo die Filter stehen.
-
-   PERSOENLICH, ueber PUT /api/settings wie `filters`. DIE GANZE LISTE WIRD
-   GESCHICKT, nicht ein einzelner Eintrag -- es ist ein Schluessel mit einem
-   Wert. */
+/* ================= Die gespeicherten Ansichten ================= EINE
+   ANSICHT IST EINE FILTERSTELLUNG SAMT SUCHBEGRIFF, unter einem Namen. */
 
 // Was gerade eingestellt ist, als Ansicht -- ohne den Namen, der kommt vom
 // Menschen.
 const viewOutState = () => ({ filters: { ...state.filters }, q: state.search.trim() });
 
-/* GESCHICKT UND DANN ERST UEBERNOMMEN. Der Deckel und die Namensgleichheit
-   entscheidet der Server; scheitert es dort, bleibt die oertliche Liste, wie
-   sie war, und die Meldung steht da. Die umgekehrte Reihenfolge zeigte eine
-   Ansicht, die es nicht gibt. */
+/* GESCHICKT UND DANN ERST UEBERNOMMEN. */
 async function sendViews(list) {
   try {
     await api('PUT', '/api/settings', { views: list });
@@ -3029,7 +1808,7 @@ async function saveView() {
     t('list.saveViewNote'), '', t('dialog.save'));
   if (!name) return;
   // Derselbe Vergleich wie im Server, und aus demselben Grund: der Name ist
-  // das Einzige, woran ein Mensch zwei Ansichten auseinanderhaelt.
+// das Einzige, woran ein Mensch zwei Ansichten auseinanderhaelt.
   if (VIEWS.some(a => a.name.toLocaleLowerCase(compareLocale())
                       === name.toLocaleLowerCase(compareLocale())))
     return toast(t('list.viewExists', { name: name }), true);
@@ -3044,20 +1823,12 @@ async function viewDelete(name) {
   if (await sendViews(VIEWS.filter(a => a.name !== name))) drawFilters();
 }
 
-/* ANGEWANDT WIRD OERTLICH UND SOFORT. Die Stellung geht durch filterNormal()
-   -- dort werden geloeschte Kategorien und Tags uebergangen, statt auf etwas
-   zu filtern, das niemand mehr hat. Der Begriff geht in das Feld UND in den
-   Zustand: stuende er nur im Zustand, zeigte das Feld daneben etwas anderes.
-   GESUCHT WIRD OHNE Debounce: es ist ein Klick und kein Tippen. */
+/* ANGEWANDT WIRD OERTLICH UND SOFORT. */
 function applyView(a) {
   state.filters = filterNormal(a.filters);
-  /* HIER STAND BIS 0.32.0 `STATUS_BY_HAND = true` -- eine gespeicherte Ansicht
-     war eine ausdrueckliche Wahl und schlug die Ableitung der Sortierung. Seit
-     die Ableitung ausgebaut ist, gibt es nichts mehr zu schlagen: `filters`
-     traegt `sort` und `tested` zusammen, und beide gelten so, wie sie
-     gespeichert wurden. Wer „Potenzial" und „alles anzeigen" zusammen
-     gespeichert hat, bekommt weiterhin beides zurueck -- nur jetzt, weil es
-     dasteht, und nicht, weil ein Merker eine Vorgabe abwehrt. */
+  /* HIER STAND BIS 0.32.0 `STATUS_BY_HAND = true` -- eine gespeicherte
+     Ansicht war eine ausdrueckliche Wahl und schlug die Ableitung der
+     Sortierung. */
   state.search = typeof a.q === 'string' ? a.q : '';
   const field = document.getElementById('q');
   if (field) field.value = state.search;
@@ -3096,91 +1867,51 @@ function matchesTags(item, tagIds, mode) {
 
 /* Der Parameter ist die Vorschau: die Filterzeile fragt "wie viele blieben
    uebrig, wenn ich DIESEN Umschalter noch druecke" -- dieselbe Frage, die die
-   Tagwolke schon fuer ihre gedaempften Tags stellt. Ohne ihn braeuchte die
-   Zahl daneben einen zweiten Rechenweg, und zwei Wege fuer dieselbe Menge
-   laufen auseinander. */
+   Tagwolke schon fuer ihre gedaempften Tags stellt. */
 function visibleItems(filter) {
   const f = filter || state.filters;
   let out = state.items;
   /* EIN ODER UEBER DIE GEWAEHLTEN KATEGORIEN, niemals ein UND: ein Eintrag
-     traegt genau eine Kategorie, ein Schnitt waere also immer leer. Gebaut
-     wird die Vereinigung -- beide Gruppen zugleich in der Liste.
-     "OHNE" IST EIN WERT DIESER LISTE: ein Eintrag ohne Kategorie war ueber
-     keine einzelne Kategorie erreichbar, und die Zahlen verrieten die Luecke,
-     ohne sie zeigen zu koennen. */
+     traegt genau eine Kategorie, ein Schnitt waere also immer leer. */
   if (f.categoryIds.length) out = out.filter(i =>
     f.categoryIds.includes(i.category ? i.category.id : CATEGORY_NONE));
   // UND ist die Vorgabe: mit zwei Tags will man fast immer den Schnitt
-  // ("gruen UND schwer"), nicht die Vereinigung.
+// ("gruen UND schwer"), nicht die Vereinigung.
   if (f.tagIds.length) out = out.filter(i => matchesTags(i, f.tagIds, f.tagMode));
-  /* DIE EINE LESESTELLE DER ABLEITUNG -- 0.21.1. Hier stand bis dahin
-     `f.tested` unmittelbar; jetzt fragt die Zeile statusEffective(), und das ist
-     der einzige Ort, an dem aus Handwahl und Sortierung eine Menge wird. Eine
-     zweite Lesestelle liefe auseinander (Stolperstein 47).
-     GEFRAGT WIRD MIT `f` UND NICHT MIT state.filters: der Parameter dieser
-     Funktion ist die Vorschau, und sie soll dieselbe Rechnung bekommen. */
+  /* DIE EINE LESESTELLE DER ABLEITUNG -- 0.21.1. */
   const status = statusEffective(f);
   if (status === 'tested') out = out.filter(i => i.tested);
   else if (status === 'untested') out = out.filter(i => !i.tested);
-  /* DIE ABLEHNUNG IST EIN EIGENES MERKMAL und deshalb eine eigene Dreiergruppe
-     -- kein vierter Wert von `tested`. Man lehnt ab, OHNE zu testen, und man
-     lehnt NACH dem Test ab; beide Merkmale muessen sich kreuzen lassen, und als
-     vierter Wert waere "getestet UND abgelehnt" nicht mehr einstellbar.
-     DREI ZUSTAENDE UND KEIN UMSCHALTER wie beim Favoriten daneben: ein
-     Umschalter kann nur "zeig mir die abgelehnten". Gebraucht wird auch die
-     Gegenrichtung -- "zeig mir alles ausser dem Verworfenen" --, und die ist
-     der haeufigere Griff.
-     JEDER ANDERE WERT GILT ALS "all", genau wie eine Zeile hoeher: eine
-     gespeicherte Ansicht aus einer aelteren Fassung kennt den Schluessel nicht,
-     und ein unbekannter Wert darf nichts wegnehmen. */
+  /* DIE ABLEHNUNG IST EIN EIGENES MERKMAL und deshalb eine eigene
+     Dreiergruppe -- kein vierter Wert von `tested`. */
   if (f.rejected === 'ja') out = out.filter(i => i.rejected);
   else if (f.rejected === 'nein') out = out.filter(i => !i.rejected);
   // Eigenes Merkmal, eigener Filter -- bewusst NICHT als vierter Wert von
   // `tested`: Favorit und Teststatus sind unabhaengig, und "getestet UND
   // Favorit" muss moeglich bleiben.
   if (f.favorite) out = out.filter(i => i.favorite);
-  /* HIER STEHT SEIT 0.17.0 KEIN FILTER „Neu seit ..." MEHR. Die Auskunft --
-     was hat sich getan, seit ich zuletzt hier war -- traegt die Glocke; zwei
-     Anzeigen fuer dieselbe Frage sind eine zu viel. WAS DABEI VERLORENGEHT,
-     gehoert daneben: die Pille zeigte JEDE Aenderung an einem Eintrag, auch
-     einen geaenderten Titel, eine neue Datei, einen neuen Testtag. Die Glocke
-     bleibt bei Kommentaren und Bewertungen.
-     TRAGBAR IST DAS, weil eine Titelaenderung etwas ist, das jemand AM Eintrag
-     getan hat, und kein Beitrag, der FUER dich daliegt -- und weil die Liste
-     ohnehin nach updated_at ordnet: was sich zuletzt getan hat, steht oben. */
+  /* HIER STEHT SEIT 0.17.0 KEIN FILTER „Neu seit ..." MEHR. */
   /* HIER WIRD NICHT GESUCHT: das macht GET /api/items?q=..., und
-     `state.items` traegt bereits nur noch die Treffer. Eine zweite Suche hier
-     waere eine zweite Wahrheit ueber dieselbe Menge. Die uebrigen Filter
-     bleiben oertlich -- sie rechnen mit Feldern, die die Antwort ohnehin
-     traegt, und kosten keine Anfrage. */
+     `state.items` traegt bereits nur noch die Treffer. */
 
   out = [...out].sort((a, b) => {
     // HIER STEHT BEWUSST KEINE Vorsortierung der Favoriten: sie schluege jede
     // eingestellte Sortierung -- ein Favorit ohne Wertung stuende bei
-    // "Bewertung hoch nach niedrig" ganz oben. Ein Favorit ist persoenlich und
-    // darf die gemeinsame Liste nicht umsortieren.
+    // "Bewertung hoch nach niedrig" ganz oben.
     switch (f.sort) {
       /* OHNE SPRACHE, UND DAS IST ABSICHT: verglichen werden zwei
-         ISO-Zeitstempel („2026-09-05 14:02:11"), also Ziffern. Eine Sprache
-         daran waere eine Behauptung ueber Text, wo keiner steht (Auftrag 4.1). */
+         ISO-Zeitstempel („2026-09-05 14:02:11"), also Ziffern. */
       case 'updated_asc': return a.updated_at.localeCompare(b.updated_at);
       case 'rating_desc': return (b.avgRating ?? -1) - (a.avgRating ?? -1);
       case 'rating_asc':  return (a.avgRating ?? 99) - (b.avgRating ?? 99);
       /* SPIEGELBILD DER BEIDEN DARUEBER -- 0.21.0, mit denselben zwei
          Ersatzwerten und aus demselben Grund: -1 in der einen Richtung und 99
          in der anderen stellen die Eintraege OHNE Zahl in BEIDEN Richtungen
-         hinten an. Wer nach Potenzial sortiert, sucht die Kandidaten mit einer
-         Einschaetzung -- die ohne stehen nicht dazwischen, gleich wie herum
-         gefragt wird. */
+         hinten an. */
       case 'potential_desc': return (b.potentialRating ?? -1) - (a.potentialRating ?? -1);
       case 'potential_asc':  return (a.potentialRating ?? 99) - (b.potentialRating ?? 99);
       case 'title_asc':   return a.title.localeCompare(b.title, LOCALE);
-      /* SPIEGELBILD, und die Sprache steht auf BEIDEN Seiten -- 0.29.0.
-         `localeCompare` mit vertauschten Seiten und nicht ein negiertes
-         Ergebnis: zwei Titel, die in dieser Sprache gleich einsortieren,
-         liefern 0, und die Negation machte daraus -0. Das ist dieselbe
-         Reihenfolge, aber es liest sich wie eine Aussage ueber eine
-         Gegenrichtung, die es bei Gleichheit nicht gibt. */
+      /* SPIEGELBILD, und die Sprache steht auf BEIDEN Seiten -- 0.29.0. */
       case 'title_desc':  return b.title.localeCompare(a.title, LOCALE);
       case 'tests_desc':  return byTest(a, b, 'testCount', 'desc');
       case 'tests_asc':   return byTest(a, b, 'testCount', 'asc');
@@ -3209,45 +1940,15 @@ async function start() {
 /* Welche Ansicht zuletzt stand -- gebraucht wird das fuer genau eine Frage:
    ob die Uebersicht gerade VERLASSEN wird. */
 let LAST_VIEW = null;
-/* DER MERKZEITPUNKT WIRD BEIM VERLASSEN GESETZT, NICHT BEIM BETRETEN. Beim
-   Betreten waere er wertlos: er stuende dann auf dem Augenblick, in dem man
-   hinsieht, und "neu seit" waere immer leer. Beim Verlassen bleibt er
-   waehrend des ganzen Besuchs stehen.
-   Geschickt wird ein SIGNAL, keine Zeit -- die Uhr des Aufrufers ist eine
-   Behauptung; der Server setzt seine eigene ein.
-   Wer den Browser schliesst, ohne die Uebersicht zu verlassen, behaelt seinen
-   alten Merkzeitpunkt und sieht dieselben Eintraege noch einmal. Das ist die
-   richtige Seite des Fehlers: lieber zweimal zeigen als einmal verschlucken. */
-/* DER BEZUGSPUNKT DER GLOCKE ENTSTEHT BEIM ERSTEN VERLASSEN DER UEBERSICHT.
-   Ohne ihn gibt es keine Glocke, und ohne Glocke gaebe es keinen Weg, ihn je zu
-   setzen -- eine Bedingung, die ihren eigenen Ausweg verdeckt. Danach faellt er
-   NUR noch beim Oeffnen der Tafel: wer sie gesehen hat, hat sie gesehen.
-   GENAU EIN RUF, UND NUR EINMAL. Bis 0.17.0 ging bei jedem Verlassen der
-   Uebersicht ein Ruf hinaus -- er stellte `zuletztGesehen` fuer die Pille
-   „Neu seit ..." nach. Die Pille ist gestrichen, und mit ihr der Merker; was
-   bleibt, ist der eine Ruf, der die Glocke ueberhaupt erst moeglich macht.
-   UND AUSDRUECKLICH KEIN RUF BEIM BETRETEN: was beim Betreten der Uebersicht
-   hinausginge, ginge bei jedem Seitenaufbau hinaus. */
+/* DER MERKZEITPUNKT WIRD BEIM VERLASSEN GESETZT, NICHT BEIM BETRETEN. */
+/* DER BEZUGSPUNKT DER GLOCKE ENTSTEHT BEIM ERSTEN VERLASSEN DER UEBERSICHT. */
 const rememberSeen = () => {
   if (BELL_SEEN) return;
   BELL_SEEN = true;
   api('PUT', '/api/settings', { bellSeen: 1 }).catch(() => {});
 };
-/* ================= Der Suchbegriff in der Adresse -- 0.18.0 =================
-   BIS 0.17.5 LEBTE DER BEGRIFF NUR IN state.search. Wer einen Treffer oeffnete
-   und neu lud, verlor ihn -- und mit ihm die Hervorhebung. Ein Eintrag, der
-   beim ersten Blick markierte Stellen hat und nach F5 keine mehr, sieht aus
-   wie ein Fehler.
-
-   DAS MUSTER IST VERANKERT UND BLEIBT ES. `#/item/12x` darf nicht treffen,
-   und `#/item/12` ohne Begriff bleibt gueltig -- jedes Lesezeichen von gestern
-   fuehrt dorthin, wohin es immer fuehrte. Dieselbe Bauform wie SYS_PATTERN,
-   das seit 0.16.0 genau das fuer den Systembereich tut.
-
-   GELESEN WIRD MIT URLSearchParams UND NICHT MIT EINEM ZWEITEN MUSTER: das
-   Entschluesseln der Prozentzeichen steht damit an einer Stelle, und ein
-   Parameter, den diese Fassung nicht kennt, wirft die Adresse nicht um.
-   Ein `?q=` ohne Wert ist dasselbe wie kein `?q=` -- "keine Suche". */
+/* ================= Der Suchbegriff in der Adresse -- 0.18.0
+   ================= BIS 0.17.5 LEBTE DER BEGRIFF NUR IN state.search. */
 const ENTRY_PATTERN = /^#\/item\/(\d+)(?:\?(.*))?$/;
 const entryAddress = (id, term) =>
   `#/item/${id}` + (term ? `?q=${encodeURIComponent(term)}` : '');
@@ -3256,17 +1957,7 @@ const termOutAddress = (askKey) => {
   catch { return ''; }
 };
 
-/* JEDE ALTE ADRESSE WIRD UEBERSETZT UND NICHT FALLEN GELASSEN -- 0.24.1 (F4).
-   Ein Einladungslink steht in einer Mail, die vor Wochen verschickt wurde;
-   ein Lesezeichen zeigt auf `#/system/datenbank`. Beides fuehrt weiter
-   dorthin, wohin es immer fuehrte.
-   EINE TAFEL UND KEINE VERZWEIGUNG, und sie ist NICHT verkettet: jeder alte
-   Name zeigt unmittelbar auf den heutigen. `{ alt: 'zwischen', zwischen:
-   'neu' }` schickte den aeltesten Link auf einen Namen, den es nicht mehr
-   gibt -- das ist die Falle, die 0.19.1 beinahe gestellt haette.
-   UMGESCHRIEBEN WIRD MIT replaceState: danach steht in der Zeile des Browsers
-   der neue Name, und im Verlauf liegt kein zweiter Eintrag, ueber den ein
-   Zurueck wieder auf den alten fiele. */
+/* JEDE ALTE ADRESSE WIRD UEBERSETZT UND NICHT FALLEN GELASSEN -- 0.24.1 (F4). */
 const OLD_ADDRESSES = { '#/offen': '#/open' };
 const OLD_ADDRESS_ROOTS = { '#/einladung/': '#/invite/', '#/bestaetigung/': '#/confirm/' };
 const OLD_SECTIONS = { personal: 'personal', inventory: 'inventory',
@@ -3292,12 +1983,7 @@ function route() {
   redrawCloud = null;
   const m = h.match(ENTRY_PATTERN);
   /* DER SYSTEMBEREICH HAT SEIT 0.16.0 FUENF ADRESSEN STATT EINER --
-     `#/system` und `#/system/<abschnitt>`. Welcher Abschnitt gemeint ist,
-     liest renderSystem() selbst aus der Adresse; hier steht nur, DASS es der
-     Systembereich ist. Sonst muesste der Abschnitt zweimal bestimmt werden,
-     und die beiden Stellen liefen auseinander.
-     `#/systemisch` DARF NICHT TREFFEN: das Muster ist verankert und verlangt
-     hinter „system" entweder nichts oder einen Schraegstrich. */
+     `#/system` und `#/system/<abschnitt>`. */
   const view = SYS_PATTERN.test(h) ? 'system' : h === '#/compare' ? 'compare'
     : h === '#/open' ? 'open' : m ? 'entry' : 'list';
   if (LAST_VIEW === 'list' && view !== 'list') rememberSeen();
@@ -3309,96 +1995,31 @@ function route() {
   return renderList();
 }
 
-/* ================= Die Glocke und der Zähler „Offen" =================
-   BEIDE ZAHLEN KOMMEN AUS DER LISTE, DIE DIE UEBERSICHT OHNEHIN HOLT. Kein
-   eigener Weg, der bei jedem Seitenaufbau gefragt wird -- genau daran ist der
-   Zaehler „Offen 7" in 0.8.60 gescheitert, und genau das ist hier beantwortet.
-   GERECHNET WIRD AUS `state.alle` UND NICHT AUS `state.items`: die Zahlen
-   gelten dem BESTAND und nicht der gerade eingestellten Filterung. Ein Filter,
-   der die Glocke stumm schaltet, waere eine Falle -- man saehe nichts und
-   wuesste nicht, warum.
-   DIE GLOCKE TRAEGT DEN PUNKT, DER KNOPF „OFFEN" DIE ZAHL. Das ist keine
-   Laune: eine Zahl beschreibt einen ZUSTAND (so viele Aufgaben stehen offen),
-   ein Punkt meldet ein EREIGNIS (seit deinem letzten Blick ist etwas
-   dazugekommen). Die beiden Zeichen werden nirgends vertauscht.
-   WAS DIE GLOCKE NICHT LEISTET, steht in der README: sie rechnet beim Aufbau
-   der Uebersicht nach und nicht laufend.
-   SIE MELDET SEIT 0.17.2 WIEDER NUR FREMDE BEITRAEGE. 0.17.0 nahm die eigenen
-   dazu, damit sie einem Betreiber, der allein arbeitet, ueberhaupt etwas
-   meldet; das ist zurueckgenommen. Eine Glocke ist eine Nachricht von jemand
-   anderem, und ueber die eigene Hand braucht niemand eine. Bei einem einzigen
-   Zugang bleibt sie deshalb still -- die gewollte Folge und kein Mangel. */
-/* DIE SUMME ENTSTEHT AN GENAU EINER STELLE. Der Server liefert zwei Zahlen und
-   keine Summe: eine Summe neben ihren Teilen waere eine zweite Wahrheit ueber
-   dieselbe Sache (Stolperstein 47), und die Glocke zaehlte sie eines Tages
-   doppelt. */
+/* ================= Die Glocke und der Zähler „Offen" ================= BEIDE
+   ZAHLEN KOMMEN AUS DER LISTE, DIE DIE UEBERSICHT OHNEHIN HOLT. */
+/* DIE SUMME ENTSTEHT AN GENAU EINER STELLE. */
 const freshCount = (i) => (Number(i.newComments) || 0) + (Number(i.newRatings) || 0);
 const bellNew = () => (state.all || []).reduce((n, i) => n + freshCount(i), 0);
-/* WIE VIELE DAVON MICH MARKIEREN -- 0.32.0, Bauabschnitt 1. Es ist eine
-   TEILMENGE von `newComments` und keine Zahl daneben: der Server liefert sie
-   aus DERSELBEN Abfrage, und hier wird sie gelesen und nicht gerechnet.
-   SIE GEHT NIE IN EINE SUMME EIN. `bellNew()` bleibt die eine Zahl der Glocke;
-   waere die Markierung ein zweiter Summand, zaehlte die Glocke denselben
-   Kommentar zweimal (Stolperstein 47, Leitplanke L1). */
+/* WIE VIELE DAVON MICH MARKIEREN -- 0.32.0, Bauabschnitt 1. */
 const markedCount = (i) => Number(i.newMarked) || 0;
 
-/* WOHER EINE MELDUNG KOMMT -- die drei Herkuenfte der Tafel, 0.32.0 (F3).
-   EINE ZEILE STEHT IN GENAU EINEM ABSCHNITT, und zwar im staerksten, der auf
-   sie zutrifft: eine Markierung schlaegt den eigenen Eintrag, der eigene
-   Eintrag schlaegt „alles andere". Eine Zeile in zwei Abschnitten waere
-   dieselbe Sache an zwei Orten -- und die Zahlen darueber liefen auseinander.
-   DIE REIHENFOLGE IST DIE DER DRINGLICHKEIT und nicht die des Alphabets:
-   was an MICH gerichtet ist, steht oben. */
+/* WOHER EINE MELDUNG KOMMT -- die drei Herkuenfte der Tafel, 0.32.0 (F3). */
 const bellOrigin = (i) =>
   markedCount(i) ? 'marked' : (i.mine ? 'mine' : 'other');
 const openTotal = () => (state.all || []).reduce((n, i) => n + (Number(i.openTasks) || 0), 0);
 
-/* WAS DORT NEU IST, IN WORTEN -- 0.17.0. „7 neue Beitraege" liess offen, ob
-   das Kommentare sind oder Bewertungen; „Beitrag" ist ein Sammelwort, das die
-   Instanz sonst nirgends benutzt.
-   NUR WAS ES GIBT: bei einer Art steht auch nur eine Angabe da. „0
-   Bewertungen" waere eine Auskunft ueber nichts -- dieselbe Regel wie die
-   fehlende Null am Knopf „Offen".
-   EIN- UND MEHRZAHL AUSGESCHRIEBEN: „1 Kommentare" ist der Fehler, den eine
-   feste Endung macht. Die beiden Woerter stehen NICHT im Vokabular: dort geht
-   es um die Sache, den Bericht, die Aufgabe und den Zeitpunkt -- Kommentar und
-   Bewertung heissen in dieser Instanz ueberall so. */
+/* WAS DORT NEU IST, IN WORTEN -- 0.17.0. */
 const newWords = (i) => {
   const k = Number(i.newComments) || 0, b = Number(i.newRatings) || 0;
   /* DIE MARKIERUNG STEHT ALS ZEICHEN DANEBEN UND NICHT MEHR IM SATZ --
-     0.32.1. Bis dahin hiess es „3 Kommentare, davon 1 an mich gerichtet",
-     gebaut aus `list.commentCount` mit einem Platz `{of}`, in den
-     `list.ofWhich` hineinlief. Dieser Platz ist weg, und mit ihm die
-     tuerkische Klammer „, bunun … kadarı".
-     HIER BLEIBT DAS WORT „Kommentare" STEHEN, anders als im Blockkopf: dort
-     heisst der Block schon so, hier steht keine Ueberschrift daneben.
-     `@` UND KEIN NEUES ZEICHEN: die Markierung heisst im Kommentartext
-     `@name`, und sie traegt dort seit 0.32.0 dasselbe Blau. Wer `@1` sieht,
-     hat das Zeichen schon einmal gesehen.
-     SIE IST WEITER DIE TEILMENGE von `k` und wird nirgends dazugezaehlt --
-     deshalb steht sie hinter einem Mittelpunkt und nicht hinter einem Plus. */
+     0.32.1. */
   const marked = markedCount(i);
   return [k ? esc(t('list.commentCount', { n: k })) : '',
           marked ? countMark('marked', '@', marked, t('list.markedCount', { n: marked })) : '',
           b ? esc(`${b} ${vRating(b)}`) : ''].filter(Boolean).join(' · ');
 };
 
-/* VON WEM -- 0.17.0. Wer an einem Eintrag war, gehoert neben die Zahl: „3
-   Kommentare" allein sagt nicht, ob dort einer dreimal oder drei je einmal
-   geschrieben haben. Der eigene Name kann seit 0.17.2 nicht darunter sein --
-   der Server schickt ihn gar nicht erst mit.
-   DIE NAMEN KOMMEN AUS DEN KOMMENTAREN UND NICHT AUS DEN BEWERTUNGEN -- der
-   Server liefert sie gar nicht anders. Wer welche Bewertung abgegeben hat, ist
-   eine Angabe ueber einzelne Personen und steht in keiner Antwort, die jeder
-   bekommt. Eine Zeile mit ausschliesslich neuen Bewertungen traegt deshalb
-   keinen Namen, und das ist kein Mangel, sondern dieselbe Regel wie am Eintrag
-   selbst.
-   „von Anna", „von Anna und Bert", „von Anna, Bert und Carla": so heisst eine
-   Aufzaehlung im Deutschen. Kommas bis zum Schluss lesen sich wie eine Liste
-   von Dingen, nicht von Menschen.
-   SORTIERT NACH DEM ANGEZEIGTEN NAMEN und nicht nach der Zugangsnummer -- die
-   Nummer sieht niemand, und zwei Tafeln nacheinander sollen dieselbe Reihe
-   zeigen. Der Name entsteht ueber authorName() wie ueberall sonst. */
+/* VON WEM -- 0.17.0. */
 const newFromWords = (i) => {
   const names = (Array.isArray(i.newFrom) ? i.newFrom : [])
     .map(authorName).sort((a, b) => String(a).localeCompare(String(b), LOCALE));
@@ -3410,9 +2031,7 @@ const newFromWords = (i) => {
 
 function drawHeadCounts() {
   const open = openTotal();
-  /* KEINE NULL AM KNOPF. „Offen 0" ist eine Auskunft ueber nichts und stuende
-     dauerhaft da -- dieselbe Ueberlegung wie bei der Marke ×1 an einem
-     Kriterium. Ohne offene Aufgaben traegt der Knopf nur sein Zeichen. */
+  /* KEINE NULL AM KNOPF. */
   atElement('open-count', el => {
     el.textContent = open ? String(open) : '';
     el.hidden = !open;
@@ -3421,10 +2040,7 @@ function drawHeadCounts() {
     ? `${open} ${vTask(open)} offen`
     : t('list.openTasks'));
   const fresh = bellNew();
-  /* EINE ZAHL IM TITEL, EIN PUNKT AM KNOPF. Der Titel bleibt EINE Zahl, auch
-     seit die Tafel zwei nennt: er beantwortet „gibt es etwas", die Tafel
-     beantwortet „was". Eine Aufzaehlung im Titel machte aus einem Hinweis eine
-     Liste. */
+  /* EINE ZAHL IM TITEL, EIN PUNKT AM KNOPF. */
   atElement('bell-dot', el => { el.hidden = !fresh; });
   atElement('bell', b => b.title = fresh
     ? t('list.newsFromOthers', { n: fresh })
@@ -3432,23 +2048,8 @@ function drawHeadCounts() {
 }
 
 /* DIE TAFEL. Sie ist die zweite Haelfte der Glocke und nicht ihr Beiwerk:
-   eine Meldung, die man nicht anspringen kann, ist eine Mitteilung ohne Weg.
-   JEDE ZEILE FUEHRT ZU IHREM EINTRAG.
-   DAS OEFFNEN SETZT ALLES AUF GESEHEN. Es ist die bewusste Grenze der
-   schlanken Fassung: ein Lesestand je Meldung braeuchte eine Tabelle, und die
-   gibt es hier nicht.
-   BIS 0.17.0 STAND DAS IN DER TAFEL SELBST, als Block „Was die Glocke nicht
-   verspricht". Er ist ersatzlos gestrichen und steht nur noch in der README:
-   eine Oberflaeche sagt, WAS IST, nicht, warum sie so gebaut ist
-   (Projektstand 5.6). Die Grenze gilt unveraendert -- gestrichen ist ihre
-   Begruendung an der Oberflaeche, nicht die Grenze. */
-/* DIE DREI ABSCHNITTE DER TAFEL -- 0.32.0, F3. EINE ZAHL AM SYMBOL, EINE
-   GETEILTE TAFEL DARUNTER: zwei Zahlen an einem Symbol waeren zwei Wahrheiten
-   an einem Ort (Leitplanke L1), und der Betreiber hat am 13. September 2026
-   entschieden, DASS unterschieden wird -- nicht, dass doppelt gezaehlt wird.
-   DIE UEBERSCHRIFT STEHT NUR DA, WO EINE ZEILE DARUNTER STEHT. Ein leerer
-   Abschnitt waere eine Auskunft ueber nichts -- dieselbe Regel wie die
-   fehlende Null am Knopf „Offen". */
+   eine Meldung, die man nicht anspringen kann, ist eine Mitteilung ohne Weg. */
+/* DIE DREI ABSCHNITTE DER TAFEL -- 0.32.0, F3. */
 const BELL_SECTIONS = [['marked', 'list.bellToMe'], ['mine', 'list.bellMine'],
                        ['other', 'list.bellOther']];
 
@@ -3487,23 +2088,17 @@ function showBellPanel() {
     box.appendChild(head);
     for (const it of part) {
       /* EIN LINK UND KEIN KNOPF: er traegt eine Adresse, laesst sich kopieren
-         und in einem neuen Fenster oeffnen. Geschlossen wird die Tafel trotzdem
-         von Hand -- ein Wechsel der Ansicht raeumt sie nicht mit weg. */
+         und in einem neuen Fenster oeffnen. */
       const a = document.createElement('a');
       a.className = 'mrow bell-row';
       a.href = `#/item/${it.id}`;
       a.dataset.mid = String(it.id);
-      /* DREI STUECKE: der Titel, WAS dort neu ist, und VON WEM. Die dritte
-         Angabe steht in einer eigenen Zeile darunter -- oben, worum es geht,
-         darunter, wer: dieselbe Aufteilung wie an der Zeile einer Anmeldung.
-         ALLE DREI WERDEN GESETZT UND NICHT ZUSAMMENGEBAUT: Titel und Namen sind
-         freier Text. */
+      /* DREI STUECKE: der Titel, WAS dort neu ist, und VON WEM. */
       a.innerHTML = `<span class="mname"></span><span class="mcount"></span>
         <span class="bell-from"></span>`;
       a.querySelector('.mname').textContent = it.title;
       /* HTML UND NICHT TEXT -- newWords() traegt seit 0.32.1 das Zeichen der
-         Markierung. Was hineingeht, ist maskiert: die Woerter dort, die
-         Zahlen sind Zahlen. */
+         Markierung. */
       a.querySelector('.mcount').innerHTML = newWords(it);
       a.querySelector('.bell-from').textContent = newFromWords(it);
       a.onclick = () => zu();
@@ -3512,70 +2107,31 @@ function showBellPanel() {
   }
 
   /* DER STRICH WIRD BEIM OEFFNEN NACHGEZOGEN, nicht beim Schliessen: wer die
-     Tafel gesehen hat, hat sie gesehen. Und die Zahlen im Speicher gehen im
-     selben Zug auf null -- sonst stuende der Punkt bis zum naechsten Laden
-     weiter da und behauptete etwas, das nicht mehr gilt. */
+     Tafel gesehen hat, hat sie gesehen. */
   api('PUT', '/api/settings', { bellSeen: 1 }).catch(() => {});
-  /* NUR WAS DASTEHT, WIRD ZURUECKGESETZT -- und nichts angelegt. Ohne
-     Bezugspunkt gibt es die Felder gar nicht, und wer sie hier auf 0 setzte,
-     machte aus „es gibt keinen Bezugspunkt" ein „nichts Neues". */
+  /* NUR WAS DASTEHT, WIRD ZURUECKGESETZT -- und nichts angelegt. */
   for (const it of (state.all || [])) {
     if (it.newComments) it.newComments = 0;
     if (it.newRatings) it.newRatings = 0;
     if (it.newFrom) it.newFrom = [];
-    // Die vierte Angabe geht mit den drei anderen -- 0.32.0. Bliebe sie
-    // stehen, sagte die naechste Tafel „davon 1 an mich gerichtet" ueber
-    // einen Kommentar, den man gerade gesehen hat.
+    // Die vierte Angabe geht mit den drei anderen -- 0.32.0.
     if (it.newMarked) it.newMarked = 0;
   }
   drawHeadCounts();
 }
 
-/* ================= Die gemeinsame Kopfzeile der Unteransichten =================
-   VIER ANSICHTEN TRUGEN EINE ZEILE: `<a href="#/" class="back">`, fuenfmal im
-   Quelltext -- im Eintrag, im Systembereich, in den offenen Aufgaben, im
-   Vergleich und auf dem Fehlerweg des Eintrags. Sie fuehrte zurueck und sonst
-   nirgendwohin. Am Schreibtisch faellt das kaum auf; am Telefon war der Weg
-   von einem Eintrag zur Suche ZWEI Griffe statt einem: erst zurueck, dann ins
-   Feld.
+/* ================= Die gemeinsame Kopfzeile der Unteransichten
+   ================= VIER ANSICHTEN TRUGEN EINE ZEILE: `<a href="#/"
+   class="back">`, fuenfmal im Quelltext -- im Eintrag, im Systembereich, in
+   den offenen Aufgaben, im Vergleich und auf dem Fehlerweg des Eintrags. */
 
-   ES IST DIESELBE KOPFZEILE WIE IN DER UEBERSICHT UND KEINE ZWEITE. Sie traegt
-   `.masthead` und `.mast-rest`, also dasselbe Stilblatt und damit auch
-   dieselben zwei Gestalten: auf dem breiten Schirm stehen die Knoepfe in der
-   Reihe, auf dem Telefon wandern sie hinter das Menuezeichen (0.12.0).
-   ES WAERE DER GROESSERE FEHLER GEWESEN, HIER EIN EIGENES MENUE ZU BAUEN, das
-   auf JEDER Breite eine Tafel bleibt: dann fuehrte der Weg in den
-   Systembereich in der Uebersicht ueber einen Knopf und im Eintrag ueber ein
-   Zeichen -- zwei Bedienungen fuer dasselbe Ziel, je nachdem, wo man steht
-   (Stolperstein 47).
-
-   WAS SIE NICHT TRAEGT, und warum (Fragetafel F1, beantwortet am 11.9.2026):
-   KEIN ZAEHLER -- er zaehlt den Bestand der Uebersicht, nicht diese Ansicht.
-   KEIN „+ Eintrag" -- wer einen Eintrag liest, legt selten dabei einen an,
-   und das Menue hat den Weg.
-   KEINE GLOCKE -- sie ist eine Auskunft ueber den BESTAND und gehoert dorthin,
-   wo der Bestand steht.
-
-   DER RUECKWEG BLEIBT EIN SATZ UND WIRD EIN ZEICHEN. `list.backToList` faellt
-   nicht: der Knopf traegt ihn als Titel, Pfeilglyphe und alles. Ein zweiter,
-   kuerzerer Satz fuer dieselbe Handlung waere eine zweite Wahrheit. */
-
-/* DIE NACHBARN IN DER REIHENFOLGE DER UEBERSICHT -- 0.28.0, F2.
-   `state.items` ist, was die Uebersicht ZULETZT GEZEIGT hat: mit ihrem Filter
-   und ihrer Sortierung. Sie ueberlebt einen Wechsel der Ansicht, weil `state`
-   auf Modulebene steht -- und sie ueberlebt kein Neuladen.
-   STEHT DER EINTRAG NICHT DARIN, GIBT ES KEINE NACHBARN, und beide Pfeile sind
-   gedaempft. Das ist der Direkteinstieg ueber die Adresse, das frisch geladene
-   Fenster, und der Eintrag, den der eingestellte Filter gar nicht zeigt.
-   EINE ERFUNDENE REIHENFOLGE WAERE DER SCHLECHTERE WEG: die Pfeile saehen
-   aktiv aus und fuehrten in eine Liste, die niemand vor sich hat. */
+/* DIE NACHBARN IN DER REIHENFOLGE DER UEBERSICHT -- 0.28.0, F2. */
 const entryNeighbours = (id) => {
   const list = state.items || [];
   const at = list.findIndex(x => x && x.id === id);
   /* UND ES GIBT KEIN FELD `ordered` DANEBEN, obwohl es sich anbote: „keine
      Reihenfolge" und „am Rand der Reihenfolge" sehen beide genau so aus, wie
-     sie aussehen sollen -- zwei gedaempfte Pfeile beziehungsweise einer. Ein
-     Feld, das niemand liest, bleibt nicht stehen (Stolperstein 47). */
+     sie aussehen sollen -- zwei gedaempfte Pfeile beziehungsweise einer. */
   if (at < 0) return { prev: null, next: null };
   return {
     prev: at > 0 ? list[at - 1].id : null,
@@ -3583,21 +2139,8 @@ const entryNeighbours = (id) => {
   };
 };
 
-/* Der Aufbau.
-
-   DIE BLAETTERPFEILE STANDEN BIS 0.28.0 HIER, links und rechts von der Marke --
-   und genau das war der Fehler. ZWEI PFEILE LINKS UND RECHTS VON ETWAS SAGEN:
-   „wir blaettern das hier dazwischen". Dazwischen stand der Name der
-   INSTALLATION, geblaettert wurden die EINTRAEGE.
-   DER BETREIBER HAT ES AM GERAET GEMERKT, ohne es benennen zu koennen
-   (11.9.2026): „aber eintrag blaettern pfeile da weis ich nicht". Sie stehen
-   seit 0.28.1 am ENDE des Eintrags -- dort, wo man ist, wenn man
-   weiterblaettern will, und wo sie nichts einrahmen.
-   DER PREIS IST BENANNT: wer frueher wechseln will als am Ende, muss erst ans
-   Ende rollen. Der Betreiber hat ihn gegen Claudes Vorschlag gewaehlt.
-
-   `searchBox` STEHT NUR DA, WO GESUCHT WERDEN KANN -- siehe die Tuer weiter
-   unten. */
+/* Der Aufbau. DIE BLAETTERPFEILE STANDEN BIS 0.28.0 HIER, links und rechts
+   von der Marke -- und genau das war der Fehler. */
 function subhead({ searchBox = true } = {}) {
   return `<div class="masthead subhead">
     <a href="#/" class="icon-btn sub-back" title="${esc(t('list.backToList'))}"
@@ -3607,33 +2150,7 @@ function subhead({ searchBox = true } = {}) {
       <div><h1>${esc(TITLE_APP)}</h1></div>
     </div>
     ${/* DAS FELD IST EINE TUER UND KEIN ZWEITER SUCHER. Gesucht wird in der
-         Uebersicht, weil dort der Bestand steht; hier ist der Weg dorthin.
-         ZWEI WEGE HINUEBER, und beide fuehren an dieselbe Stelle: ein Tipp auf
-         das Feld springt sofort, und wer mit der Tabtaste hierher kommt und
-         tippt, nimmt den ersten Buchstaben mit. Der Fokus geht in beiden
-         Faellen in das Feld der Uebersicht.
-         DIE TABTASTE ALLEIN SPRINGT NICHT. Ein Fokus, der die Ansicht
-         wechselt, machte das Durchtabben der Kopfzeile unbenutzbar.
-
-         SIE STEHT SEIT 0.28.1 NICHT MEHR UEBERALL, und das hat zwei
-         verschiedene Gruende:
-         IM SYSTEMBEREICH GAR NICHT, auf keinem Geraet. Ein Suchfeld ueber den
-         Einstellungen verspricht, IN den Einstellungen zu suchen, und springt
-         in den Bestand. Eine Oberflaeche sagt, was ist (Projektstand 5.6) --
-         und dieses Feld sagte etwas anderes. Der Betreiber hat es am laufenden
-         Geraet benannt (11.9.2026): „man wuerde annehmen wenn man da sucht
-         sucht man im adminpanel nach funktionen etc."
-         AM TELEFON AUCH IM EINTRAG NICHT: das Feld bricht dort in eine eigene
-         Zeile um und kostet 54 Pixel -- gemessen, Kopfzeile 123 px mit und
-         69 ohne. Der Betreiber hat den Preis dafuer ausdruecklich in Kauf
-         genommen: der Weg zur Suche ist am Telefon wieder zwei Griffe. Claude
-         hatte eine Lupe statt des Feldes vorgeschlagen (ein Griff, keine
-         Zeile) und ist ueberstimmt worden. Das steht so, damit niemand es
-         spaeter fuer ein Versehen haelt.
-         DIE WEICHE STEHT IM STILBLATT UND NICHT HIER: `searchBox` sagt nur, ob es
-         die Ansicht ueberhaupt angeht; ob das Telefon es zeigt, entscheidet
-         der Telefonabschnitt. Eine Abfrage der Fensterbreite im Aufbau muesste
-         beim Drehen des Geraets nachgezogen werden. */''}
+         Uebersicht, weil dort der Bestand steht; hier ist der Weg dorthin. */''}
     ${searchBox ? `<div class="search-box">
       <span class="ic">${ICON_SEARCH}</span>
       <input class="input" id="sub-q" placeholder="${esc(t('list.searching'))}"
@@ -3650,13 +2167,7 @@ function subhead({ searchBox = true } = {}) {
   </div>`;
 }
 
-/* Die Zusagen dazu. Sie stehen hier und nicht viermal in den Ansichten -- vier
-   Abschriften desselben Behandlers laufen auseinander, sobald einer geaendert
-   wird.
-   ALLES, WAS AM DOKUMENT HAENGT, GEHT BEIM VERLASSEN DER ANSICHT WIEDER WEG.
-   `app.innerHTML` nimmt die Elemente mit; die Zusagen am Dokument blieben
-   sonst liegen und sammelten sich mit jedem Aufruf. Dieselbe Bauform wie in
-   renderList(). */
+/* Die Zusagen dazu. */
 function wireSubhead({ term = '' } = {}) {
   atElement('open', b => b.onclick = () => { location.hash = '#/open'; });
   atElement('sys', b => b.onclick = () => { location.hash = '#/system'; });
@@ -3667,8 +2178,8 @@ function wireSubhead({ term = '' } = {}) {
   drawHeadCounts();
 
   /* DER SCHATTEN BEIM ROLLEN -- dieselbe Zeile wie in der Uebersicht und aus
-     demselben Grund: die Kopfzeile klebt oben, und dass unter ihr etwas liegt,
-     sagt ab acht Bildpunkten der Schatten. */
+     demselben Grund: die Kopfzeile klebt oben, und dass unter ihr etwas
+     liegt, sagt ab acht Bildpunkten der Schatten. */
   const scrollGuard = () =>
     document.querySelector('.masthead')?.classList.toggle('scrolled', (window.scrollY || 0) > 8);
   window.addEventListener('scroll', scrollGuard, { passive: true });
@@ -3690,13 +2201,7 @@ function wireSubhead({ term = '' } = {}) {
   document.addEventListener('click', menuOutside);
   document.addEventListener('keydown', menuKey);
 
-  /* DIE TUER ZUR SUCHE. `SEARCH_HANDOFF` sagt der Uebersicht, dass der Fokus
-     ins Feld gehoert -- ohne die Marke landete der Schreibstrich nirgends, und
-     der Mensch muesste nach dem Sprung ein zweites Mal tippen.
-     SIE STEHT NICHT IN JEDER ANSICHT (siehe subhead), also wird sie auch nicht
-     in jeder verdrahtet. `atElement` und nicht `getElementById` mit Punkt
-     dahinter: ein Feld, das es nicht gibt, ist hier kein Fehler, sondern die
-     Absicht. */
+  /* DIE TUER ZUR SUCHE. */
   atElement('sub-q', sq => {
     const over = () => { SEARCH_HANDOFF = true; location.hash = '#/'; };
     sq.addEventListener('pointerdown', (e) => { e.preventDefault(); over(); });
@@ -3716,22 +2221,7 @@ let SEARCH_HANDOFF = false;
 
 /* ================= Übersicht ================= */
 async function renderList() {
-  /* NICHT LEEREN, BEVOR ERSATZ DA IST -- 0.26.0, BA 5 (Befund 7a).
-     Bis hierher stand `app.innerHTML = "Laedt ..."` ohne Bedingung, und
-     danach erst wurde gefragt: DER BILDSCHIRM WAR LEER, BEVOR UEBERHAUPT
-     JEMAND GEFRAGT HATTE. Wer aus einem Eintrag zurueckkam, sah eine weisse
-     Flaeche, solange die Antwort unterwegs war -- gemessen am 10. September
-     2026 im Browser des Betreibers: 227 ms fuer die fuenf Abrufe, und die
-     sind EINE Rundreise und lassen sich nicht verkuerzen.
-     DER PLATZHALTER BLEIBT, WO ES NICHTS ZU LASSEN GIBT -- beim ersten
-     Betreten steht nichts da, und dann ist "Laedt ..." besser als nichts.
-     Steht dagegen schon eine Ansicht, bleibt sie stehen, bis die neue
-     fertig ist. Das macht NICHTS schneller; es hoert nur auf, ohne Not zu
-     leeren.
-     DER BEFUND SELBST WIRD BEOBACHTET UND NICHT GEBAUT: die Sekunde war am
-     gemeldeten Geraet nicht mehr da, und niemand hat etwas repariert, das
-     sie erklaeren wuerde. Diese Zeile bleibt trotzdem -- sie ist unabhaengig
-     davon richtig, wie schnell die Antwort kommt. */
+  /* NICHT LEEREN, BEVOR ERSATZ DA IST -- 0.26.0, BA 5 (Befund 7a). */
   if (!app.firstElementChild)
     app.innerHTML = `<div class="shell"><p class="hint" style="padding-top:44px">${tH('list.loading')}</p></div>`;
   try { await loadAll(); }
@@ -3748,34 +2238,11 @@ async function renderList() {
       </div>
       ${/* DIE VIER, DIE AUF DEM TELEFON HINTER DAS ZEICHEN WANDERN, stehen in
            einem eigenen Behaelter -- und sie stehen dort AUCH auf dem breiten
-           Schirm. Der Behaelter traegt dann `display: contents` und ist fuer
-           das Layout gar nicht da: seine Kinder sitzen unmittelbar in der
-           Kopfzeile, mit deren Abstaenden, in derselben Reihenfolge wie vor
-           dieser Runde.
-           EIN MARKUP, ZWEI GESTALTEN. Die Knoepfe beim Drehen des Geraets
-           umzuhaengen waere der andere Weg gewesen, und er waere der
-           schlechtere: jeder verschobene Knoten verliert seine Zusagen, und
-           es gibt keinen Ort, an dem sich das einmal richtig machen liesse.
-           WER ANGEMELDET IST, STEHT WEITERHIN UNMITTELBAR VOR DEM ABMELDEN.
-           Das ist keine Formsache: die Angabe erklaert den Knopf daneben, und
-           getrennt erklaerte sie nichts mehr. */''}
+           Schirm. */''}
       <div class="mast-rest" id="mast-rest">
         ${/* DIE GLOCKE STEHT IN DEMSELBEN BEHAELTER wie die beiden anderen
              Zeichenknoepfe -- und damit wandert sie auf dem Telefon ohne ein
-             einziges Zutun in die Tafel: ein Markup, zwei Gestalten (0.12.0).
-             Eine Glocke nur am Desktop waere eine Weiche nach Geraet.
-             SIE HEISST SEIT 0.22.0 „Neuigkeiten" -- davor „Neu seit deinem
-             letzten Blick" (0.17.0) und „Neu von anderen" (0.16.x). Wer
-             geschrieben hat und seit wann, steht in der Tafel; der Knopf
-             traegt nur die Zahl.
-             SIE STEHT NUR DA, WENN ES EINEN BEZUGSPUNKT GIBT. Vor dem ersten
-             Aufbau der Uebersicht weiss die Instanz nicht, was jemand schon
-             gesehen hat -- eine Glocke, die dann alles meldet, laeutete beim
-             ersten Blick fuer den ganzen Bestand. Dieselbe Lage und dieselbe
-             Antwort wie bei „Neu seit meinem letzten Besuch".
-             DER PUNKT IST EIN EIGENER KNOTEN und kein Text im Knopf: er wird
-             beim Zeichnen ein- und ausgeblendet, ohne dass das Zeichen daneben
-             neu gebaut wird. */''}
+             einziges Zutun in die Tafel: ein Markup, zwei Gestalten (0.12.0). */''}
         ${BELL_SEEN ? `<button class="icon-btn bell" id="bell" title="${esc(t('list.news'))}"
           aria-label="${esc(t('list.news'))}">${ICON_BELL}<span class="bell-dot" id="bell-dot" hidden></span><span class="mast-word">${tH('list.news')}</span></button>` : ''}
         <button class="icon-btn" id="open" title="${esc(t('list.openTasks'))}">${ICON_OPEN}<span class="open-count" id="open-count" hidden></span><span class="mast-word">${tH('list.openTasks')}</span></button>
@@ -3786,15 +2253,11 @@ async function renderList() {
       <button class="btn btn-accent" id="new">+ ${esc(V.entryOne)}</button>
       ${/* Das Zeichen steht IM Markup hinter dem Anlegen-Knopf, damit es auf
            dem Telefon rechts aussen sitzt -- dort, wo ein Menuezeichen
-           hingehoert. Auf dem breiten Schirm ist es unsichtbar, die Stelle im
-           Markup fuer die Tastatur aber trotzdem die letzte, und das ist
-           richtig: es fuehrt nirgendwohin, was nicht schon dasteht. */''}
+           hingehoert. */''}
       <button class="icon-btn mast-menu" id="menu" aria-expanded="false"
         aria-controls="mast-rest" aria-label="${esc(t('list.openMenu'))}" title="${esc(t('list.menu'))}">${ICON_MENU}</button>
     </div>
-    ${/* Nur auf dem schmalen Schirm sichtbar. Die Zahl daneben nennt die
-         Filter, die gerade greifen -- ohne sie waere eine eingeklappte
-         Filterreihe eine Liste, die aus unerfindlichem Grund weniger zeigt. */''}
+    ${/* Nur auf dem schmalen Schirm sichtbar. */''}
     <button class="btn btn-sm filter-toggle" id="filter-toggle"
       aria-expanded="true" aria-controls="filters">${tH('list.filter')}<span class="fcount" id="filter-count"></span></button>
     <div class="filters" id="filters"></div>
@@ -3807,12 +2270,7 @@ async function renderList() {
   atElement('bell', b => b.onclick = showBellPanel);
   drawHeadCounts();
   document.getElementById('sys').onclick = () => { location.hash = '#/system'; };
-  /* DER SCHATTEN DER KOPFZEILE BEIM ROLLEN -- 0.22.0. Sie ist deckend und
-     ohne Milchglas (Gestaltungsregel G3); dass unter ihr etwas liegt, sagt ab
-     acht Bildpunkten Rollweg die Klasse `scrolled`, und das Stilblatt haengt
-     den Schatten daran. Acht und nicht null: beim Aufbau und am oberen Rand
-     soll die Kopfzeile flach auf der Seite liegen. Der Horcher geht beim
-     Verlassen der Ansicht mit den anderen weg. */
+  /* DER SCHATTEN DER KOPFZEILE BEIM ROLLEN -- 0.22.0. */
   const scrollGuard = () =>
     document.querySelector('.masthead')?.classList.toggle('scrolled', (window.scrollY || 0) > 8);
   window.addEventListener('scroll', scrollGuard, { passive: true });
@@ -3823,20 +2281,14 @@ async function renderList() {
   };
   const q = document.getElementById('q'), qclr = document.getElementById('qclr');
   // Getippt wird oertlich, gesucht ueber den Debounce. Das Leeren geht ohne
-  // Anfrage durch -- der ungefilterte Bestand liegt in state.alle.
+// Anfrage durch -- der ungefilterte Bestand liegt in state.alle.
   q.oninput = () => { state.search = q.value; syncSearchBtn(); searchTriggered(); };
   qclr.onclick = () => { q.value = ''; state.search = ''; syncSearchBtn(); searchTriggered(); q.focus(); };
   syncSearchBtn();
 
-  /* ---- Die Tafel hinter dem Menuezeichen ----
-     Sie wird ueber EINE Klasse geoeffnet und geschlossen; ob sie ueberhaupt
-     eine Tafel ist oder als vier Knoepfe in der Kopfzeile steht, entscheidet
-     allein das Stylesheet. Die Oberflaeche weiss davon nichts und muss es
-     auch nicht wissen -- deshalb gibt es hier keine Abfrage der Fensterbreite
-     und nichts, was beim Drehen des Geraets nachgezogen werden muesste.
-     aria-expanded wird mitgefuehrt, weil das Zeichen sonst ein Knopf ohne
-     Auskunft waere: ein Vorleseprogramm saehe drei Striche und keinen
-     Zustand. */
+  /* ---- Die Tafel hinter dem Menuezeichen ---- Sie wird ueber EINE Klasse
+     geoeffnet und geschlossen; ob sie ueberhaupt eine Tafel ist oder als vier
+     Knoepfe in der Kopfzeile steht, entscheidet allein das Stylesheet. */
   const menu = document.getElementById('menu');
   const panel = document.getElementById('mast-rest');
   const menuPlaces = (on) => {
@@ -3846,16 +2298,7 @@ async function renderList() {
   };
   menu.onclick = () => menuPlaces(!panel.classList.contains('open'));
 
-  /* EIN KLICK DANEBEN SCHLIESST, UND ESCAPE AUCH. Beides haengt am Dokument
-     und nicht an der Tafel: eine Tafel, die sich nur ueber ihren eigenen
-     Knopf schliessen laesst, steht im Weg, sobald man sie versehentlich
-     geoeffnet hat -- und das passiert auf einem Telefon staendig.
-     Der Klick auf das Zeichen selbst faellt heraus, sonst schloesse der
-     Behandler hier die Tafel im selben Zug wieder zu, in dem der Knopf sie
-     geoeffnet hat.
-     BEIDE WERDEN BEIM VERLASSEN DER ANSICHT ABGERAEUMT. app.innerHTML nimmt
-     die Elemente weg, die Zusagen am Dokument bleiben sonst liegen und
-     sammeln sich mit jedem Aufruf der Uebersicht. */
+  /* EIN KLICK DANEBEN SCHLIESST, UND ESCAPE AUCH. */
   const menuOutside = (e) => {
     if (e.target.closest('#menu') || e.target.closest('#mast-rest')) return;
     menuPlaces(false);
@@ -3864,32 +2307,14 @@ async function renderList() {
   document.addEventListener('click', menuOutside);
   document.addEventListener('keydown', menuKey);
 
-  /* ---- Der Schalter ueber den Filtern ----
-     AUF DEM SCHMALEN SCHIRM FANGEN DIE FILTER EINGEKLAPPT AN. Vier Reihen mit
-     Beschriftungen und Pillen fuellten dort den ganzen ersten Bildschirm,
-     bevor der erste Eintrag zu sehen war -- und die Uebersicht ist die Liste,
-     nicht ihre Einstellung.
-     GEFRAGT WIRD DIESELBE BEDINGUNG WIE IM STYLESHEET (siehe SCHMAL): der
-     Schalter ist dort und nur dort sichtbar, wo hier eingeklappt wird. Ohne
-     die Frage saesse ein breites Fenster vor eingeklappten Filtern und
-     haette keinen sichtbaren Knopf, sie zu oeffnen. */
+  /* ---- Der Schalter ueber den Filtern ---- AUF DEM SCHMALEN SCHIRM FANGEN
+     DIE FILTER EINGEKLAPPT AN. */
   const filterBox = document.getElementById('filters');
   if (isNarrow()) filterBox.classList.add('closed');
   document.getElementById('filter-toggle').onclick = () => {
     const wasClosed = filterBox.classList.contains('closed');
     filterBox.classList.toggle('closed');
-    /* BEIM AUFKLAPPEN WIRD NEU GEZEICHNET, beim Einklappen nicht.
-       Der Grund steht bei limitCloud(): die Tagwolke wird auf eine Zeile
-       begrenzt, und die Zeilenhoehe wird an der ERSTEN Marke GEMESSEN statt
-       geraten -- sie haengt an der eingestellten Schriftgroesse. Ein
-       eingeklappter Kasten misst null, und limitCloud() steigt dann
-       ausdruecklich aus, ohne etwas zu setzen. Waere die Wolke also beim
-       Aufbau der Ansicht hinter einem eingeklappten Filterbereich gezeichnet
-       worden, staende sie nach dem Aufklappen unbegrenzt da: alle Marken auf
-       einmal, und der Knopf "mehr" fehlte.
-       DAS IST DERSELBE ZWEITE WEG, den das Einklappen eines Blocks in der
-       Detailansicht ueber redrawCloud geht -- dieselbe Falle, dieselbe
-       Antwort. Beim Einklappen gibt es nichts zu messen und nichts zu holen. */
+    /* BEIM AUFKLAPPEN WIRD NEU GEZEICHNET, beim Einklappen nicht. */
     if (wasClosed) drawFilters();
     else drawFilterSwitch();
   };
@@ -3903,27 +2328,14 @@ async function renderList() {
     window.removeEventListener('scroll', scrollGuard);
   }, { once: true });
 
-  /* DER SCHREIBSTRICH KOMMT AUS DER UNTERANSICHT MIT -- 0.28.0, BA 1.
-     Wer dort das Suchfeld angetippt hat, steht jetzt hier, und der Strich
-     gehoert ins Feld: ohne diese Zeile waere der Sprung ein Griff und das
-     Tippen ein zweiter -- also genau die zwei Griffe, die diese Runde
-     wegnimmt.
-     DER STRICH ANS ENDE und nicht an den Anfang: wer schon einen Buchstaben
-     mitgebracht hat, schreibt dahinter weiter.
-     DIE MARKE GILT FUER GENAU EINEN SPRUNG und wird hier geleert. Bliebe sie
-     stehen, risse sie beim naechsten Zeichnen der Uebersicht den Fokus an
-     sich -- auch dann, wenn niemand gesucht hat. */
+  /* DER SCHREIBSTRICH KOMMT AUS DER UNTERANSICHT MIT -- 0.28.0, BA 1. */
   if (SEARCH_HANDOFF) {
     SEARCH_HANDOFF = false;
     atElement('q', el => { el.focus(); el.setSelectionRange(el.value.length, el.value.length); });
   }
 
   drawFilters(); drawBody();
-  /* STAND SCHON EIN BEGRIFF IM FELD, wird er jetzt gefragt. Der Begriff
-     ueberlebt den Weg in einen Eintrag und zurueck (state.search), die
-     Trefferliste tut das nicht -- loadAll() hat gerade den ganzen Bestand
-     gesetzt. Ohne diese Zeile stuende im Feld ein Begriff und daneben die
-     ungefilterte Liste. */
+  /* STAND SCHON EIN BEGRIFF IM FELD, wird er jetzt gefragt. */
   if (state.search.trim()) runSearch();
 }
 
@@ -3934,83 +2346,35 @@ function listKeys(e) {
   if (e.key === '/') { e.preventDefault(); document.getElementById('q')?.focus(); }
 }
 
-/* WIE VIELE FILTER GERADE GREIFEN. Gezaehlt wird gegen FILTER_DEFAULT und
-   nicht gegen eine zweite Liste -- die Vorgabe steht genau einmal, und wer
-   dort einen Filter ergaenzt, ergaenzt ihn hier mit.
-   DIE SORTIERUNG ZAEHLT AUSDRUECKLICH NICHT MIT. Die Zahl beantwortet die
-   eine Frage, die ein eingeklappter Filterbereich aufwirft: "warum sehe ich
-   nicht alles?" Eine andere Reihenfolge nimmt nichts weg, sie ordnet nur --
-   sie mitzuzaehlen hiesse, eine Vollstaendigkeit in Frage zu stellen, die
-   gar nicht angetastet ist.
-   Jeder gewaehlte Tag zaehlt einzeln: zwei Tags verkleinern die Menge
-   zweimal, und genau das soll die Zahl sagen.
-
-   DIE ABLEITUNG AUS DER SORTIERUNG ZAEHLT NICHT MIT -- 0.21.1, und das ist eine
-   Entscheidung und keine Formalie. DAFUER SPRACH: die Zahl sagt, wie viele
-   Filter greifen, und die Ableitung greift. DAGEGEN SPRACH ZWEIERLEI, und das
-   zweite gab den Ausschlag.
-   ERSTENS: die Zahl steht auch fuer „wie viel habe ich eingestellt", und
-   eingestellt hat das niemand.
-   ZWEITENS, UND DAS IST BAULICH: dieselbe Zahl traegt der Ruecksetzer
-   („Filter zuruecksetzen (3)"), und der steht NUR da, solange sie groesser als
-   null ist. Zaehlte die Ableitung mit, stuende er auch dann da, wenn sonst
-   nichts gesetzt ist -- und ein Druck darauf raeumte die Ableitung gerade
-   nicht weg, sondern stellte sie wieder her. Der Knopf saesse mit derselben
-   Zahl wieder da, und niemand kaeme aus ihm heraus. Ein Knopf, der nichts
-   bewirkt, ist dieselbe Auskunft ueber nichts wie eine Null am Zaehler.
-   GESAGT WIRD SIE TROTZDEM, nur in Worten statt in einer Zahl: neben den
-   Statuspillen steht „folgt der Sortierung", und am eingeklappten Schalter
-   steht dasselbe. Regel 4 gilt an beiden Orten. */
+/* WIE VIELE FILTER GERADE GREIFEN. */
 function filterNumber() {
   const f = state.filters, v = FILTER_DEFAULT;
   let n = 0;
   /* GEZAEHLT WIRD WIEDER DIE ABWEICHUNG VON DER VORGABE -- 0.32.1, und damit
-     steht hier dieselbe Zeile wie vor 0.21.1. Zwischen den beiden Runden war
-     der Massstab die RUHESTELLUNG: was die Leiste zeigte, haette niemand
-     geklickt. Solange die Sortierung eine Vorgabe machte, waren das zwei
-     Dinge -- und genau daran ist die Sache zerbrochen: eine Ruhestellung, die
-     selbst filtert, zaehlt sich nicht mit, also verschwand der Ruecksetzer,
-     und die Liste blieb gefiltert ohne Weg heraus.
-     JETZT IST DIE RUHESTELLUNG WIEDER `all`, also faellt beides zusammen: was
-     nicht `all` ist, hat jemand gesetzt, und was jemand gesetzt hat, laesst
-     sich zuruecksetzen. */
+     steht hier dieselbe Zeile wie vor 0.21.1. */
   if (f.tested !== v.tested) n++;
   // Die Ablehnung zaehlt EIGENS mit und nicht mit dem Teststatus zusammen: sie
-  // ist ein zweites Merkmal, und beide zugleich verkleinern die Menge zweimal.
+// ist ein zweites Merkmal, und beide zugleich verkleinern die Menge zweimal.
   if (f.rejected !== v.rejected) n++;
   if (f.favorite) n++;
   /* DREI GEWAEHLTE KATEGORIEN ZAEHLEN ALS EIN FILTER und nicht als drei --
      anders als die Tags eine Zeile tiefer, und der Unterschied ist die
-     Verknuepfung. Jeder zusaetzliche Tag verkleinert die Menge (UND), jede
-     zusaetzliche Kategorie vergroessert sie (ODER). Die Zahl beantwortet die
-     eine Frage "warum sehe ich nicht alles?"; eine Drei fuer etwas, das die
-     Liste gerade WEITER macht, gaebe darauf die falsche Antwort. */
+     Verknuepfung. */
   if (f.categoryIds.length) n++;
   n += f.tagIds.length;
   return n;
 }
 
-/* Der Schalter ueber den Filtern. Er wird bei jedem Neuzeichnen nachgefuehrt,
-   weil sich die Zahl mit jedem Klick auf eine Pille aendert -- und weil der
-   Schalter eingeklappt sonst eine veraltete Zahl truege, also genau dann
-   falsch waere, wenn er als einziger noch etwas sagt. */
+/* Der Schalter ueber den Filtern. */
 function drawFilterSwitch() {
   const button = document.getElementById('filter-toggle');
   const box = document.getElementById('filters');
   if (!button || !box) return;
   const n = filterNumber();
   const zu = box.classList.contains('closed');
-  /* HIER STAND BIS 0.32.0 AUCH DIE ABLEITUNG DER SORTIERUNG -- eingeklappt war
-     das Wort neben den Statuspillen nicht zu sehen, und der Schalter war der
-     einzige Ort, der fuer die zugeklappte Leiste noch sprach. Mit der
-     Ableitung faellt der Zusatz weg: es gibt nichts mehr zu melden, was
-     niemand eingestellt hat. Was jetzt hier steht, hat jemand gesetzt, und
-     dann steht die Zahl dafuer da.
-     AUS DER SPRACHDATEI UND NICHT AUS DEM QUELLTEXT -- 0.24.4 (B5). Bis
-     0.24.3 stand hier `${n} aktiv` fest verdrahtet: kein Satz, sondern ein
-     Wort neben einer Zahl, und deshalb durch jeden Waechter der Runde 0.24.3
-     gefallen -- der Bildschirmtext-Waechter prueft die Verbotsliste und nicht
-     die Sprache. Auf Englisch stand es deutsch da. */
+  /* HIER STAND BIS 0.32.0 AUCH DIE ABLEITUNG DER SORTIERUNG -- eingeklappt
+     war das Wort neben den Statuspillen nicht zu sehen, und der Schalter war
+     der einzige Ort, der fuer die zugeklappte Leiste noch sprach. */
   button.querySelector('.fcount').textContent =
     n ? `· ${t('list.filtersActive', { n })}` : '';
   button.classList.toggle('active', n > 0);
@@ -4025,9 +2389,7 @@ function drawFilters() {
   const f = state.filters;
   const redraw = () => { saveFilters(); drawFilters(); drawBody(); };
 
-  /* JEDE ZEILE KOMMT IN DIE LEISTE. Bis 0.24.0 nahm dieser Helfer ein Ziel
-     entgegen, weil die Tagzeile in einem <details> steckte; der ist fort
-     (Bauabschnitt 0.2), und mit ihm der zweite mögliche Ort. */
+  /* JEDE ZEILE KOMMT IN DIE LEISTE. */
   const row = (label) => {
     const r = document.createElement('div');
     r.className = 'frow';
@@ -4035,10 +2397,9 @@ function drawFilters() {
     box.appendChild(r);
     return r;
   };
-  /* EINE ZWEITE BESCHRIFTUNG IN DERSELBEN ZEILE -- und sie ist das Gegenstueck
-     zur ersten und keine Ueberschrift ueber dem, was dahinter steht. Deshalb
-     ohne die Beschriftungsspalte (`min-width`) und mit einem Abstand davor:
-     die erste haelt die Spalte, die zweite laeuft mit. */
+  /* EINE ZWEITE BESCHRIFTUNG IN DERSELBEN ZEILE -- und sie ist das
+     Gegenstueck zur ersten und keine Ueberschrift ueber dem, was dahinter
+     steht. */
   const secondLabel = (row, text) => {
     const e = document.createElement('span');
     e.className = 'eyebrow eyebrow-with';
@@ -4048,14 +2409,11 @@ function drawFilters() {
   };
 
   // Merkmal (Vorgabe: Teststatus). Beschriftung generisch, weil das Wort
-  // selbst aus dem Vokabular kommt.
+// selbst aus dem Vokabular kommt.
   const r1 = row(t('list.status'));
   const g1 = document.createElement('div'); g1.className = 'pills';
   /* GENAU EINE PILLE IST MARKIERT, UND SIE SAGT: „so steht die Liste gerade
-     da". Seit 0.32.1 ist das wieder schlicht die gewaehlte Stellung -- bis
-     0.32.0 konnte hier eine ABGELEITETE Pille stehen (`pill-derived`), die
-     galt, ohne dass jemand sie angeklickt hatte. Genau daran ist die Sache
-     zerbrochen; die Begruendung steht oben bei `statusEffective`. */
+     da". */
   [['all',t('list.all')],['tested',V.testedYes],['untested',V.testedNo]].forEach(([v,l]) => {
     const b = document.createElement('button');
     b.className = 'pill' + (f.tested === v ? ' on' : '');
@@ -4065,7 +2423,7 @@ function drawFilters() {
   });
   // Eigener Umschalter, kein vierter Wert der Reihe davor: die drei oben sind
   // drei Zustaende EINES Merkmals, der Favorit ist davon unabhaengig und muss
-  // sich mit jedem kombinieren lassen. `pill-sep` setzt ihn optisch ab.
+  // sich mit jedem kombinieren lassen.
   const bFav = document.createElement('button');
   bFav.className = 'pill pill-sep' + (f.favorite ? ' on' : '');
   bFav.id = 'f-fav';
@@ -4074,37 +2432,14 @@ function drawFilters() {
   bFav.onclick = () => { f.favorite = !f.favorite; redraw(); };
   g1.appendChild(bFav);
 
-  /* HIER STAND BIS 0.17.0 DIE PILLE „Neu seit ...". Sie ist gestrichen: ihre
-     Auskunft -- was hat sich getan, seit ich zuletzt hier war -- traegt die
-     Glocke, und zwei Anzeigen fuer dieselbe Frage sind eine zu viel.
-     DAZU EINE HAUSREGEL, DIE SIE VERLETZTE: sie stand auch dann da, wenn ihre
-     Zahl null war, nur gedaempft. Am Knopf „Offen" steht seit 0.16.0 das
-     Gegenteil -- „Offen 0" waere eine Auskunft ueber nichts. Dieselbe Sache
-     darf nicht zwei Verhalten haben (Stolperstein 47, im Kleinen).
-     DIE FILTERZEILE IST DAMIT UM EINE PILLE KUERZER -- die Fortsetzung von
-     0.13.0, wo sie 75 px flacher wurde. */
+  /* HIER STAND BIS 0.17.0 DIE PILLE „Neu seit ...". */
   r1.appendChild(g1);
 
   /* HIER STANDEN BIS 0.32.0 ZWEI ZUSATZBESCHRIFTUNGEN: „folgt der Sortierung:
-     Getestet" (0.21.1, Regel 4) und „von Hand gewaehlt" (0.32.0, BA 9). Beide
-     erklaerten eine Ableitung, die es seit 0.32.1 nicht mehr gibt -- und die
-     zweite erklaerte ausgerechnet den Zustand, in dem die Sackgasse zuschnappte.
-     WAS DAVON BLEIBT, IST DIE REGEL DAHINTER: ein unsichtbarer Automatismus ist
-     ein Fehler, auch wenn er richtig raet. Der billigste Weg, ihr zu genuegen,
-     ist kein Automatismus. */
+     Getestet" (0.21.1, Regel 4) und „von Hand gewaehlt" (0.32.0, BA 9). */
 
-  /* ---- Die Ablehnung: ZWEITE GRUPPE DERSELBEN ZEILE ----
-     KEINE EIGENE ZEILE. Die Zeile heisst "Status", und die Ablehnung ist einer
-     -- eine zweite Zeile gaebe von der in 0.13.0 gewonnenen Hoehe wieder etwas
-     her, fuer dieselbe Sache. Abgesetzt wird sie wie "Ansichten" hinter
-     "Sortieren": mit der zweiten Beschriftung, die keine Beschriftungsspalte
-     haelt.
-     DIE ZEILE TRAEGT DAMIT ACHT PILLEN und darf bei grosser Schrift umbrechen
-     -- `flex-wrap: wrap` steht seit 0.13.1 an `.pills`, und der Umbruch ist
-     hier erlaubt und kein Fehler.
-     "Alle" HEISST DIE ERSTE PILLE -- seit 0.22.0 in jeder Gruppe der Leiste
-     dasselbe Wort fuer denselben Zustand (Woerterbuch, Konzept 4.3); bis dahin
-     sagte die Statusgruppe "Alles anzeigen". */
+  /* ---- Die Ablehnung: ZWEITE GRUPPE DERSELBEN ZEILE ---- KEINE EIGENE
+     ZEILE. */
   secondLabel(r1, t('list.rejection'));
   const g1b = document.createElement('div');
   g1b.className = 'pills'; g1b.id = 'f-abgelehnt';
@@ -4117,24 +2452,11 @@ function drawFilters() {
   });
   r1.appendChild(g1b);
 
-  /* ---- Kategorie ----
-     MEHRERE ZUGLEICH, UND ES IST EIN ODER. Die Zeile bekommt deshalb
-     ausdruecklich KEIN Und/Oder wie die Tagzeile darunter: bei den Tags ist die
-     Wahl echt, weil ein Eintrag viele Tags traegt; hier gibt es nur Oder, denn
-     `product_category_id` ist eine einzelne Spalte. Ein Umschalter, dessen eine
-     Haelfte garantiert null Treffer liefert, ist schlimmer als keiner -- und er
-     ist auch nicht dadurch zu retten, dass man ihn daempft.
-     "ALLE" BLEIBT EINE PILLE, obwohl die Tagzeile stattdessen "zuruecksetzen"
-     am rechten Ende traegt. Der Unterschied ist nicht Nachlaessigkeit, sondern
-     der Ort: die Kategorien sind eine kurze, geschlossene, immer sichtbare
-     Liste, in der "alles" ein nennbarer Zustand ist und seinen festen Platz
-     behaelt. Die Tagwolke ist offen und lang; ein dauernd hervorgehobenes
-     "Alle" an ihrem Anfang laese sich als Tag. Und "zuruecksetzen" kaeme und
-     ginge, waehrend "Alle" immer an derselben Stelle steht. */
+  /* ---- Kategorie ---- MEHRERE ZUGLEICH, UND ES IST EIN ODER. */
   const r2 = row(t('list.category'));
   const g2 = document.createElement('div'); g2.className = 'pills';
   // Ein Klick auf einen Wert nimmt ihn dazu oder wieder heraus -- dieselbe
-  // Handhabung wie bei den Tags, und die Zeile verhaelt sich damit wie jene.
+// Handhabung wie bei den Tags, und die Zeile verhaelt sich damit wie jene.
   const switchCategory = (value) => {
     f.categoryIds = f.categoryIds.includes(value)
       ? f.categoryIds.filter(x => x !== value) : [...f.categoryIds, value];
@@ -4152,18 +2474,7 @@ function drawFilters() {
     b.onclick = () => switchCategory(c.id);
     g2.appendChild(b);
   });
-  /* "OHNE" AM ENDE DER ZEILE, mit eigener Zahl. Der Anlass: der Kopf sagte 12
-     Eintraege, die Kategorien 1 + 9 = 10 -- zwei Eintraege waren ueber keine
-     einzelne Kategorie erreichbar. Die Zahlen verrieten die Luecke, zu sehen
-     bekam man sie trotzdem nicht.
-     DIE ZAHL RECHNET DER BROWSER, wie die an der Glocke -- state.alle traegt
-     den ganzen Bestand, der Server wird dafuer nicht gefragt. Und sie
-     zaehlt ueber den GANZEN Bestand wie die usage_count der Kategorien daneben:
-     zwei Zahlen in einer Zeile muessen dasselbe meinen.
-     SIE STEHT NUR DA, WENN ES SIE GIBT -- eine Pille mit garantierter Null
-     waere ein Bedienelement fuer nichts. Ist sie einmal gewaehlt und faellt der
-     letzte Eintrag ohne Kategorie weg, bleibt sie stehen: sonst verschwaende
-     der eigene Filter unter der Hand. */
+  /* "OHNE" AM ENDE DER ZEILE, mit eigener Zahl. */
   const withoutNumber = state.all.filter(i => !i.category).length;
   if (withoutNumber || f.categoryIds.includes(CATEGORY_NONE)) {
     const b = document.createElement('button');
@@ -4174,37 +2485,14 @@ function drawFilters() {
     b.onclick = () => switchCategory(CATEGORY_NONE);
     g2.appendChild(b);
   }
-  /* ---- HIER STAND BIS 0.30.0 DER UMSCHALTER DER TAGZEILE ----
-     Er kam in 0.22.0 (E8) als <summary> eines <details> in einer EIGENEN Zeile
-     und wurde in 0.24.0 zu einem Knopf am rechten Ende der Kategoriezeile.
-     ER IST GEFALLEN, und der Betreiber hat den Grund selbst genannt (12.
-     September 2026, mit Bild): „tag soll grundsaetzlich wenn man filter
-     aufklappt zu sehen sein." Ein Schalter, der beim Aufbau immer schon
-     umgelegt ist, ist ein Wort ueber eine Sache und nicht die Sache.
-     GEMESSEN IST DER PREIS UND ER STEHT IM AUFTRAG: gegen heute AUFGEKLAPPT
-     spart die neue Zeile 27 Pixel; gegen heute ZUGEKLAPPT kostet „immer
-     sichtbar" deren 52. Beides ist wahr, und der uebliche Zustand entscheidet
-     -- wer die Filter aufklappt, will filtern (F9).
-     UND DER BEGRIFF DER ZAHL FAELLT MIT: „Tags (2)" stand am Umschalter, damit
-     ein greifender Filter hinter der zugeklappten Zeile nicht unsichtbar wird.
-     Es gibt keine zugeklappte Zeile mehr; der Satz `list.tagsCount` ist damit
-     ein Satz ohne Leser und in allen drei Sprachdateien gefallen (F9).
-     filterNumber() zaehlt den Tagfilter weiter mit -- daran aendert sich
-     nichts. */
+  /* ---- HIER STAND BIS 0.30.0 DER UMSCHALTER DER TAGZEILE ---- Er kam in
+     0.22.0 (E8) als <summary> eines <details> in einer EIGENEN Zeile und
+     wurde in 0.24.0 zu einem Knopf am rechten Ende der Kategoriezeile. */
   // Nur Tags mit mindestens einem Eintrag: Tags, die ausschliesslich an
-  // Testtagen haengen, lieferten hier null Treffer. Die Suche findet sie
-  // trotzdem.
+  // Testtagen haengen, lieferten hier null Treffer.
   const filterTags = state.tags.filter(tag => tag.usage_count > 0);
   const tagsPossible = filterTags.length > 0 || f.tagIds.length > 0;
-  /* DIE ZEILE STEHT DA, SOBALD ES ETWAS ZU FILTERN GIBT -- 0.30.0 (F9).
-     „Sobald es etwas gibt" ist dieselbe Bedingung wie vorher: entweder haengt
-     ein Tag an einem Eintrag, oder es greift ein Tagfilter. Der eine Fall, in
-     dem beides zusammenfaellt, ist der Filter auf einen Tag, dessen letzter
-     Eintrag gerade weggefallen ist -- dann ist die Wolke leer und die Zeile
-     traegt „Tags zurücksetzen", den Weg heraus.
-     HAENGT KEIN EINZIGER TAG AN EINEM EINTRAG, STEHT SIE GAR NICHT DA. Eine
-     Zeile fuer nichts ist dieselbe Verschwendung wie ein Schalter fuer nichts
-     -- dieselbe Ueberlegung wie bei der Pille „Ohne" eine Zeile hoeher. */
+  /* DIE ZEILE STEHT DA, SOBALD ES ETWAS ZU FILTERN GIBT -- 0.30.0 (F9). */
   const tagsOpen = tagsPossible;
   r2.appendChild(g2);
 
@@ -4215,29 +2503,14 @@ function drawFilters() {
        verborgen: eine leere Zeile im Fluss kostete genau den Platz, um den es
        in diesem Befund geht. */
     r3.id = 'f-tagzeile';
-    /* `frow-tags` SAGT DEM RASTER, DASS DIES DIE TAGZEILE IST -- 0.30.0 (F9).
-       Auf dem Telefon rueckt „und/Oder" damit UNTER die Beschriftung, und
-       Wolke und „mehr" spannen ueber beide Rasterzeilen. Eine eigene Klasse
-       und kein `:has()`: dieselbe Ueberlegung wie bei `frow-right-end` aus
-       0.29.0 -- eine Regel, die sich ihren Traeger ueber den Inhalt der Zeile
-       zusammensucht, liest sich beim naechsten Filter falsch. */
+    /* `frow-tags` SAGT DEM RASTER, DASS DIES DIE TAGZEILE IST -- 0.30.0 (F9). */
     r3.classList.add('frow-tags');
 
     // Umschalter der Verknuepfung. Auf dem Telefon steht er UNTER der
     // Beschriftung und kleiner (0.30.0, F9); am Schreibtisch weiter daneben.
-    // Er macht sichtbar, warum ein zweiter Tag das Ergebnis verkleinert.
-    // Gedaempft, solange weniger als zwei Tags gewaehlt sind.
     const modeBox = document.createElement('div');
     modeBox.className = 'tagmode' + (f.tagIds.length > 1 ? '' : ' idle');
-    /* DIE BESCHRIFTUNG IST NICHT DAS BINDEWORT -- 0.31.1. Bis hierher las
-       dieser Knopf `list.and`, und derselbe Schluessel band in der Zaehlzeile
-       des Kommentarblocks eine Aufzaehlung zusammen („3 Berichte und 2
-       Aufgaben"). Ein Bindewort steht klein und mit Leerzeichen, eine
-       Beschriftung gross und ohne -- also stand hier „ und " neben „Oder".
-       DAS BINDEWORT SELBST IST MIT 0.32.1 GEFALLEN: die Zaehlzeile bindet
-       nichts mehr zusammen, sie zaehlt mit Mittelpunkten auf. Der Schluessel
-       hatte danach keinen einzigen Rufer mehr, und ein Schluessel ohne Rufer
-       ist eine Leiche -- die Verwendungsprobe haette ihn gemeldet. */
+    /* DIE BESCHRIFTUNG IST NICHT DAS BINDEWORT -- 0.31.1. */
     [['and', t('list.tagModeAnd'), t('list.allTagsHint')],
      ['or', t('list.or'), t('list.anyTagHint')]]
       .forEach(([value, text, explanation]) => {
@@ -4253,12 +2526,9 @@ function drawFilters() {
 
     const g3 = document.createElement('div'); g3.className = 'pills cloud';
     /* KEIN „Noch keine Tags" MEHR: die Zeile steht ueberhaupt nur da, wenn es
-       einen Tag gibt oder ein Tagfilter greift (siehe `tagsPossible` oben). Der
-       eine Fall, der bleibt, ist der zweite: ein Filter auf einen Tag, dessen
-       letzter Eintrag gerade weggefallen ist. Dann ist die Wolke leer, und die
-       Zeile traegt „Tags zurücksetzen" -- der Weg heraus. */
+       einen Tag gibt oder ein Tagfilter greift (siehe `tagsPossible` oben). */
     // Welche Tags brächten null Treffer, wenn man sie zusätzlich anklickt? Nur
-    // im UND-Modus eine Frage -- im ODER-Modus erweitert jeder Klick.
+// im UND-Modus eine Frage -- im ODER-Modus erweitert jeder Klick.
     const idle = new Set();
     if (f.tagMode === 'and' && f.tagIds.length) {
       const visible = visibleItems();
@@ -4280,73 +2550,19 @@ function drawFilters() {
       g3.appendChild(b);
     });
     r3.appendChild(g3);
-    /* ---- WIE VIELE REIHEN DIE ZUGEKLAPPTE WOLKE ZEIGT -- 0.30.3, Befund 1 ----
-       DER BETREIBER, 12. SEPTEMBER 2026, MIT DREI BILDERN: „Aufgeklappt sieht
-       es gut aus. Da zeigt den richtigen Weg aber zugeklappt sieht es wie da
-       ist was falsch gelaufen aus. … Eine zweite Reihe von Tags?"
-       ZWEI REIHEN KOSTEN AM TELEFON NICHTS, und das ist gemessen. Seit 0.30.2
-       stehen die beiden Zeichen unter der Beschriftung; Spalte 1 verlangt damit
-       18 + 7 + 30 + 7 = 62 Pixel, ob die Wolke sie braucht oder nicht. EINE
-       Reihe misst 27 -- fuenfunddreissig Pixel standen leer, und weil rechts
-       neben dem Haken sonst nichts ist, las sich das Loch wie ein Fehler.
-       ZWEI REIHEN MESSEN 27 + 6 + 27 = 60 und passen hinein: die Zeile blieb in
-       der Messung bei 62, mit gesetztem Tagfilter ebenso. Sichtbar sind dafuer
-       sieben Tags statt vier (ohne Filter) und sechs statt vier (mit).
-       DREI WAEREN 93 und liessen die Zeile wachsen -- zwei ist genau die Zahl,
-       die Spalte 1 ohnehin verlangt.
-       AM SCHREIBTISCH GILT SIE NICHT. Dort ist die Zeile eine Flexzeile, die
-       Zeichen stehen neben der Wolke, und es gibt kein Loch zu fuellen; zwei
-       Reihen waeren dort rund 33 Pixel fuer nichts (Betreiber, 12. September
-       2026: nur am Telefon).
-       GEFRAGT WIRD DAS STILBLATT UND NICHT EINE ZWEITE ZAHL: das Raster gibt es
-       nur im schmalen Abschnitt, also ist `display: grid` die Antwort auf „steht
-       die Zeile am Telefon". Eine eigene Bedingung daneben waere die zweite
-       Wahrheit, gegen die Stolperstein 47 steht -- und die Instanz haelt sich
-       genau EINE Bruecke dieser Art (NARROW, fuer die Frage, ob die Filter
-       eingeklappt anfangen). */
+    /* ---- WIE VIELE REIHEN DIE ZUGEKLAPPTE WOLKE ZEIGT -- 0.30.3, Befund 1
+       ---- DER BETREIBER, 12. SEPTEMBER 2026, MIT DREI BILDERN: „Aufgeklappt
+       sieht es gut aus. */
     const cloudLimit = getComputedStyle(r3).display === 'grid' ? 2 : 1;
     // Rest aufklappbar. Der Knopf erscheint nur, wenn wirklich etwas
-    // abgeschnitten ist.
+// abgeschnitten ist.
     const trimmed = limitCloud(g3, cloudOpen.overview ? 0 : cloudLimit);
-    /* ---- UND DIE ZEICHEN BEKOMMEN IHRE ZEILE NUR, WENN DIE WOLKE SIE TRAEGT ----
-       0.30.3, Befund 1. BEI EINEM JUNGEN BESTAND GIBT ES KEINE ZWEITE REIHE ZU
-       ZEIGEN: gemessen mit drei Tags blieb die Zeile bei 62, die Wolke bei 27,
-       und die fuenfunddreissig Pixel standen wieder leer -- mit zwei Reihen
-       genauso, denn die Wolke kann nicht fuellen, was nicht da ist.
-       DANN DUERFEN DIE ZEICHEN KEINE EIGENE RASTERZEILE VERLANGEN. Ohne
-       `tags-deep` faellt die Anordnung von 0.30.2 weg und die Grundregel greift
-       wieder: die Zeichen stehen am Zeilenende, wie an jeder anderen Filterzeile.
-       DEN BEFUND VON 0.30.2 HOLT DAS NICHT ZURUECK. Der war: zwei WOERTER in
-       Spalte 3 machten aus 38 Pixeln deren 180. Beide sind seit 0.30.2 ZEICHEN
-       -- 30 Pixel je Stueck. Und wo nichts abgeschnitten ist, gibt es kein
-       „mehr": bei flacher Wolke steht dort meist nur der Ruecksetzer.
-       GEMESSEN WIRD EINMAL JE ZEICHNUNG und bevor die Zeichen im Dokument
-       stehen -- die Wolke hat dabei immer dieselbe Breite, die Antwort kann also
-       nicht hin- und herspringen. Und der unguenstige Ausgang ist harmlos: wird
-       die Wolke nach dem Umzug doch zweireihig, misst die Zeile 60 und die Wolke
-       60. Auch dann bleibt kein Loch. */
+    /* ---- UND DIE ZEICHEN BEKOMMEN IHRE ZEILE NUR, WENN DIE WOLKE SIE TRAEGT
+       ---- 0.30.3, Befund 1. */
     if (cloudRows(g3) > 1) r3.classList.add('tags-deep');
-    /* DIE BEIDEN VERWEISE STEHEN HINTER DER WOLKE, als gewoehnliche Geschwister
-       -- und seit 0.13.0 ist das wieder die natuerliche Reihenfolge: "mehr"
-       gehoert hinter das, was es aufklappt.
-       WARUM DAS FRUEHER NICHT GING: der Kasten trug `margin-left: auto`. Eine
-       selbsttaetige Aussenkante frisst den gesamten freien Platz der ersten
-       Zeile -- die Wolke KANN daneben nicht stehen, sie rutscht immer darunter,
-       und die Tagzeile kostete zwei Zeilen statt einer. Jetzt ist die Wolke ein
-       Flex-Element (`flex: 1 1 0`, `min-width: 0`) und nimmt den Platz, der
-       uebrig ist; die Verweise stehen daneben.
-       DER PREIS IST BEKANNT UND ANGENOMMEN: die Wolke verliert rund 230 px, also
-       etwa drei sichtbare Tags. "mehr" faengt sie -- und die erste Zeile war
-       vorher zu drei Vierteln leer.
-       GEMESSEN WIRD DIE WOLKE VORHER: limitCloud() braucht sie im Dokument,
-       und ob "mehr" ueberhaupt dasteht, haengt an seiner Antwort.
-       ZUSAMMEN IN EINEM KASTEN und nicht zwei einzelne Geschwister: die beiden
-       gehoeren zusammen und sollen bei einem Umbruch nicht auseinanderfallen.
-       KEIN AUSGERECHNETER FREIRAUM. Die Wolke wird beschnitten (`max-height`,
-       `overflow: hidden`), ein Verweis IN ihr wuerde mitabgeschnitten -- und
-       eine feste Breite daneben ist genau der Fehler, an dem 0.12.1 schon einmal
-       hing (`right: 92px`, Befund A). Die Instanz stellt die Schrift von 80 bis
-       120 Prozent; jede ausgerechnete Breite kann dabei nur falsch werden. */
+    /* DIE BEIDEN VERWEISE STEHEN HINTER DER WOLKE, als gewoehnliche
+       Geschwister -- und seit 0.13.0 ist das wieder die natuerliche
+       Reihenfolge: "mehr" gehoert hinter das, was es aufklappt. */
     const right = document.createElement('div');
     // Ans Ende SEINER Zeile, wie der Umschalter darueber -- 0.29.0, Befund 6.
     right.className = 'frow-right frow-right-end';
@@ -4354,17 +2570,7 @@ function drawFilters() {
        GEMESSEN IN DREI SPRACHEN, aufgeklappt und mit gesetztem Tagfilter: das
        Zeilenende mass 180 Pixel auf Deutsch, 159 auf Tuerkisch, 109 auf
        Englisch -- und der Wolke blieben 92, 109 und 175 von 366. Auf Deutsch
-       fiel die Tagzeile damit auf 26 Reihen und 845 Pixel.
-       DER HAKEN SAGT „mehr" UND „weniger" -- nach unten, solange zugeklappt
-       ist, nach oben, wenn offen. Der KREISPFEIL sagt „zuruecksetzen", und er
-       steht schon so an der Sternzeile (`.rreset`). EIN KREUZ WAERE FALSCH:
-       es heisst im Haus „weg" -- eine Zeile loeschen, einen Tag vom Testtag
-       nehmen, eine Ansicht entfernen -- und „zuruecksetzen" ist etwas anderes.
-       (Eine offene Tuer war der andere Vorschlag; sie faellt, weil „Das Haus
-       verlassen" die Wendung dieses Projekts fuer das ist, was hinausgeht.)
-       DAS WORT STEHT IM TITEL, in jeder der drei Sprachen -- die Schluessel
-       `list.more`, `list.less` und `list.resetTags` bleiben unveraendert
-       stehen und wechseln nur den Ort. */
+       fiel die Tagzeile damit auf 26 Reihen und 845 Pixel. */
     if (trimmed || cloudOpen.overview) {
       const m = document.createElement('button');
       m.className = 'link-btn icon-link';
@@ -4384,24 +2590,15 @@ function drawFilters() {
       right.appendChild(c);
     }
     // Ein leerer Kasten bliebe als Flex-Element stehen und naehme der Wolke
-    // eine Luecke weg.
+// eine Luecke weg.
     if (right.childElementCount) r3.appendChild(right);
-    /* DIE ZEILE SAGT, OB DER UMSCHALTER ZU SEHEN SEIN MUSS -- 0.30.2.
-       Er steht unter der Klappe: verborgen, solange die Wolke zugeklappt ist.
-       AUSGENOMMEN, WENN ER GREIFT: ab zwei gewaehlten Tags entscheidet er
-       ueber das Ergebnis, und ein Filter, der greift und nicht zu sehen ist,
-       ist der Befund, wegen dessen bis 0.30.0 „Tags (2)" am alten Umschalter
-       stand.
-       EINE KLASSE UND KEINE ABFRAGE IM STILBLATT: das Stilblatt kann nicht
-       zaehlen, wie viele Tags gewaehlt sind. */
+    /* DIE ZEILE SAGT, OB DER UMSCHALTER ZU SEHEN SEIN MUSS -- 0.30.2. Er
+       steht unter der Klappe: verborgen, solange die Wolke zugeklappt ist. */
     if (cloudOpen.overview || f.tagIds.length > 1) r3.classList.add('tags-live');
   }
 
   /* SORTIEREN UND ANSICHTEN TEILEN SICH EINE ZEILE -- gemessen brauchen sie
-     322 und 237 px von 1232, sie passen mit Abstand.
-     DER SCHLIMMSTE FALL IST HARMLOS: stehen einmal acht gespeicherte Ansichten
-     da (VIEWS_CAP), bricht die Zeile um und sieht aus wie vorher. Nichts
-     wird abgeschnitten, nichts geht verloren. */
+     322 und 237 px von 1232, sie passen mit Abstand. */
   const r4 = row(t('list.sort'));
   const sel = document.createElement('select');
   // Eine Kennung wie am Favoritenknopf daneben: ohne sie liesse sich die
@@ -4409,63 +2606,21 @@ function drawFilters() {
   // Auswahlfelder der Instanz.
   sel.id = 'f-sort';
   sel.className = 'select';
-  /* ---- DIE RICHTUNG IST SEIT 0.28.1 KEIN EINTRAG DER LISTE MEHR ----
-     BIS 0.28.0 STAND JEDE SORTIERUNG ZWEIMAL DA, einmal je Richtung: dreizehn
-     Eintraege in vier Gruppen, mit den Ueberschriften siebzehn Zeilen.
-     DAS IST AM TELEFON DER GANZE SCHIRM, und das Stilblatt kann daran nichts
-     aendern: Chrome auf Android zeichnet die aufgeklappte Auswahl als EIGENEN
-     Systemdialog mit Systemschrift. 0.28.0 hat das FELD von 16 auf 12,45 px
-     gebracht und die LISTE nicht -- am Geraet des Betreibers nachgesehen,
-     11. September 2026. Der Befund war damit zur Haelfte erledigt.
-     GEGEN DEN DIALOG HILFT NUR, IHN KUERZER ZU MACHEN: die Liste nennt jetzt
-     nur noch, WONACH sortiert wird, und die Richtung sitzt daneben. Sieben
-     Eintraege statt dreizehn, elf Zeilen statt siebzehn.
-     DER GESPEICHERTE WERT AENDERT SICH NICHT. `f.sort` heisst weiter
-     `updated_desc`, `title_asc` und so fort -- gespeicherte Ansichten aus
-     0.28.0 gelten unveraendert weiter, und der Server sieht keinen Unterschied.
-     Zerlegt wird erst beim Zeichnen und wieder zusammengesetzt beim Waehlen. */
-  /* DIE BEIDEN UEBERSCHRIFTEN KOMMEN AUS DER SPRACHDATEI -- 0.28.1. Bis dahin
-     standen „Allgemein" und „Verlauf" als feste Woerter im Quelltext und
-     damit auf JEDER Sprache deutsch am Bildschirm. Sie sind beim Umbau dieses
-     Feldes aufgefallen, weil die Restprobe sie erst jetzt einzeln zu sehen
-     bekam: vorher lagen sie mitten in einer langen Vorlage.
-     DIE BEIDEN ANDEREN UEBERSCHRIFTEN BRAUCHEN KEINEN SCHLUESSEL: sie heissen
-     wie das Vokabular des Betreibers und stehen damit ohnehin in seiner
-     Sprache da. */
+  /* ---- DIE RICHTUNG IST SEIT 0.28.1 KEIN EINTRAG DER LISTE MEHR ---- BIS
+     0.28.0 STAND JEDE SORTIERUNG ZWEIMAL DA, einmal je Richtung: dreizehn
+     Eintraege in vier Gruppen, mit den Ueberschriften siebzehn Zeilen. */
+  /* DIE BEIDEN UEBERSCHRIFTEN KOMMEN AUS DER SPRACHDATEI -- 0.28.1. */
   const GENERAL = t('list.sortGroupGeneral');
   const HISTORY = t('list.sortGroupHistory');
-  /* `start` SAGT, WORAUF EIN WECHSEL AUF DIESE GRUNDLAGE LANDET -- 0.29.0, und
-     es steht an JEDER der sieben und nicht nur an der einen, die abweicht: ein
-     stiller Vorgabewert liesse die Ausnahme wie ein Versehen aussehen.
-     SECHS FANGEN OBEN AN ('down'): bei einer Zahl und bei einem Datum ist „das
-     Groesste zuerst" das, wonach gefragt wird -- die neuesten Aenderungen, die
-     beste Bewertung, die meisten Testtage.
-     „TITEL" FAENGT VORN AN ('up'): ein Name wird von A nach Z gelesen, und wer
-     auf „Titel" stellt, sucht das Alphabet und nicht sein Ende. Der Betreiber
-     hat es am 11. September 2026 entschieden, nachdem die Messung gezeigt
-     hatte, dass eine mitwandernde Richtung ihn auf „Z → A" abgesetzt haette --
-     dorthin, wo vor dieser Runde nie jemand landete.
-     GEWECHSELT WIRD DAMIT NUR DIE GRUNDLAGE. Wer die Richtung danach umlegt,
-     behaelt sie, solange er bei dieser Grundlage bleibt -- `start` greift beim
-     WECHSEL und nicht bei jedem Zeichnen. */
+  /* `start` SAGT, WORAUF EIN WECHSEL AUF DIESE GRUNDLAGE LANDET -- 0.29.0,
+     und es steht an JEDER der sieben und nicht nur an der einen, die
+     abweicht: ein stiller Vorgabewert liesse die Ausnahme wie ein Versehen
+     aussehen. */
   const SORT_BASES = [
     { key: 'updated',  group: GENERAL,      word: () => t('list.sortChanged'),
       down: 'list.dirNewOld',   up: 'list.dirOldNew',  start: 'down' },
-    /* „Titel" KANN SEIT 0.29.0 BEIDE RICHTUNGEN -- und bis dahin nur die eine.
-       DER GRUND FUER DIE EINE WAR DIE NUMMER UND NICHT DIE SACHE: 0.28.1
-       schrieb hierher, Z nach A waere eine FUNKTION und damit nach Regel 5.1
-       mindestens MINOR, und jene Runde war ein PATCH. Der Betreiber hat es am
-       11. September 2026 am laufenden 0.28.1 gemeldet („aber Z bis A kann
-       nicht angewaehlt werden"), und 0.29.0 ist ohnehin MINOR -- damit reisen
-       die drei Zeilen zum Nulltarif mit.
-       `down` UND `up` WIE UEBERALL: der gespeicherte Wert heisst weiter
-       `title_asc`, und `title_desc` kommt dazu. Eine gespeicherte Ansicht aus
-       einer aelteren Fassung traegt `title_asc` und meint damit dasselbe wie
-       vorher.
-       UND DAMIT IST KEINE GRUNDLAGE MEHR EINSPURIG: der gedaempfte Knopf, der
-       Satz „Diese Sortierung hat nur eine Richtung" und die Weiche, die beides
-       trug, sind mit dieser Runde fort. Eine Regel ohne Traeger bleibt nicht
-       stehen. */
+    /* „Titel" KANN SEIT 0.29.0 BEIDE RICHTUNGEN -- und bis dahin nur die
+       eine. */
     { key: 'title',    group: GENERAL,      word: () => t('list.sortTitle'),
       down: 'list.dirZA',       up: 'list.dirAZ',     start: 'up' },
     { key: 'rating',   group: V.ratingOne,   word: () => V.ratingOne,
@@ -4482,20 +2637,9 @@ function drawFilters() {
     { key: 'testlast', group: HISTORY,      word: () => t('list.sortLast'),
       down: 'list.dirHighLow',  up: 'list.dirLowHigh', start: 'down' }
   ].filter(b => !b.only || b.only());
-  /* GELESEN WIRD VON HINTEN: die Kennung endet auf `_desc` oder `_asc`, und der
-     Rest davor ist die Grundlage. Steht dort etwas Unbekanntes -- eine
-     gespeicherte Ansicht aus einer Fassung, die diese nicht kennt --, faellt es
-     auf die erste Grundlage und die absteigende Richtung zurueck, genau wie
-     `sel.value` es vorher tat. */
-  /* WELCHE RICHTUNG GILT, STEHT IM WERT und in nichts sonst -- 0.29.0.
-     BIS DAHIN STAND HIER EINE WEICHE, und sie hatte ihren Grund: „Titel"
-     kannte nur A → Z, ein `title_desc` gab es in der Sortierung nicht, und es
-     fiele still auf die Vorgabe zurueck -- ausgewaehlt, ohne Fehler, und
-     schlicht falsch. Gefunden hatte das Zusage 3, die jede Grundlage in beide
-     Richtungen faehrt.
-     JETZT KENNT JEDE GRUNDLAGE BEIDE, und die Weiche haette nichts mehr zu
-     entscheiden. Sie faellt samt `twoWays()`, samt dem gedaempften Knopf und
-     samt dem Satz daneben -- eine Regel ohne Traeger bleibt nicht stehen. */
+  /* GELESEN WIRD VON HINTEN: die Kennung endet auf `_desc` oder `_asc`, und
+     der Rest davor ist die Grundlage. */
+  /* WELCHE RICHTUNG GILT, STEHT IM WERT und in nichts sonst -- 0.29.0. */
   const sortParts = (value) => {
     const stem = String(value || '').replace(/_(desc|asc)$/, '');
     const b = SORT_BASES.find(x => x.key === stem) || SORT_BASES[0];
@@ -4513,17 +2657,8 @@ function drawFilters() {
   let picked = sortParts(f.sort);
   sel.value = picked.base.key;
   /* DER UMSCHALTER DANEBEN, und er sagt die KONKRETE Richtung und nicht
-     „absteigend": bei „Zuletzt geaendert" steht „neu → alt", bei der Bewertung
-     „hoch → niedrig", bei den Testtagen „viele → wenige". Vier Wortpaare
-     decken alle sieben Grundlagen -- vier Sortierungen teilen sich „hoch →
-     niedrig", und deshalb sind es sieben Saetze und nicht vierzehn.
-     ER IST BESSER ALS DIE ALTE LISTE UND NICHT NUR KUERZER: dort musste man
-     zwei Zeilen nebeneinanderhalten, um zu sehen, welche Richtung gerade galt.
-     Hier steht sie an einer Stelle.
-     SEIT 0.29.0 IST ER NIE MEHR GESPERRT. Bis dahin stand er bei „Titel"
-     gedaempft da, weil es dort nur A → Z gab; jetzt kennt jede der sieben
-     Grundlagen beide Richtungen, und ein Zustand, den nichts mehr ausloest,
-     bleibt nicht stehen. */
+     „absteigend": bei „Zuletzt geaendert" steht „neu → alt", bei der
+     Bewertung „hoch → niedrig", bei den Testtagen „viele → wenige". */
   const dirBtn = document.createElement('button');
   dirBtn.className = 'btn btn-sm sort-dir';
   dirBtn.id = 'f-sort-dir';
@@ -4534,53 +2669,37 @@ function drawFilters() {
   };
   drawDir();
   /* ZUSAMMENGESETZT WIRD HIER UND NUR HIER -- an beiden Bedienelementen
-     dieselbe Zeile. Zwei Stellen, die `base + '_' + richtung` bilden, liefen
-     beim naechsten Griff auseinander. */
+     dieselbe Zeile. */
   const applySort = () => { f.sort = picked.base.key + (picked.asc ? '_asc' : '_desc'); redraw(); };
   /* SEIT 0.21.1 WIRD DIE GANZE LEISTE NEU GEZEICHNET UND NICHT NUR DIE LISTE:
-     die Sortierung gibt den Statusfilter vor, und die Statuspillen stehen eine
-     Zeile weiter oben. Vorher genuegte drawBody(), weil eine Sortierung nur
-     ordnete; jetzt aendert sie auch, was die Leiste zeigt. */
+     die Sortierung gibt den Statusfilter vor, und die Statuspillen stehen
+     eine Zeile weiter oben. */
   sel.onchange = () => {
     const b = SORT_BASES.find(x => x.key === sel.value) || SORT_BASES[0];
     /* DER WECHSEL NIMMT DIE RICHTUNG DER NEUEN GRUNDLAGE und nicht die der
-       alten -- 0.29.0. Bis dahin wanderte sie mit, und das war richtig,
-       solange sechs der sieben oben anfingen; mit „Titel" in beiden
-       Richtungen waere daraus ein „Z → A" fuer jeden geworden, der aus der
-       Vorgabe („neu → alt") kommt -- also fuer jeden beim ersten Mal.
-       ER GREIFT NUR BEIM WECHSEL: wer danach umlegt, behaelt seine Richtung,
-       solange er bei dieser Grundlage bleibt. */
+       alten -- 0.29.0. */
     picked = { base: b, asc: b.start === 'up' };
     applySort();
   };
   dirBtn.onclick = () => { picked.asc = !picked.asc; applySort(); };
   /* BEIDE IN EINEM KASTEN: die Sortierung und ihre Richtung sind EINE
      Einstellung in zwei Bedienelementen, und sie sollen bei einem Umbruch
-     nicht auseinanderfallen. Der Kasten ist ausserdem das eine Feld, das die
-     Beschriftung daneben (0.28.1, BA 7) fuellt -- zwei lose Kinder haetten
-     dort zwei Rasterzellen gebraucht. */
+     nicht auseinanderfallen. */
   const sortPair = document.createElement('div');
   sortPair.className = 'sort-pair';
   sortPair.appendChild(sel);
   sortPair.appendChild(dirBtn);
   r4.appendChild(sortPair);
 
-  /* ---- Die gespeicherten Ansichten ----
-     GANZ UNTEN UND NICHT GANZ OBEN: sie sind die Zusammenfassung der Zeilen
-     darueber, und man liest sie, nachdem man weiss, was einstellbar ist.
-     Die Zeile steht auch LEER da, mit dem Knopf zum Speichern -- ohne ihn
-     erfuehre niemand, dass es Ansichten gibt.
-     SEIT 0.13.0 IN DERSELBEN ZEILE WIE DIE SORTIERUNG: sie ist dieselbe Sorte
-     Bedienung -- was gezeigt wird, aendert sie nicht -- und beide brauchten je
-     eine ganze Zeile fuer ein Auswahlfeld und ein paar Pillen. */
+  /* ---- Die gespeicherten Ansichten ---- GANZ UNTEN UND NICHT GANZ OBEN: sie
+     sind die Zusammenfassung der Zeilen darueber, und man liest sie, nachdem
+     man weiss, was einstellbar ist. */
   const r5 = r4;
   secondLabel(r5, t('list.views'));
   const g5 = document.createElement('div'); g5.className = 'pills';
   /* WELCHE ANSICHT GERADE GILT, wird verglichen und nicht gemerkt: ein
-     gemerkter Zeiger auf "die aktive Ansicht" liefe auseinander, sobald jemand
-     einen Filter von Hand verstellt. Verglichen wird die zurechtgerueckte
-     Stellung samt Begriff -- sonst gaelte eine Ansicht mit einer geloeschten
-     Kategorie nie als aktiv, obwohl sie genau das zeigt, was sie zeigen kann. */
+     gemerkter Zeiger auf "die aktive Ansicht" liefe auseinander, sobald
+     jemand einen Filter von Hand verstellt. */
   const now = JSON.stringify({ filters: filterNormal(state.filters), q: state.search.trim() });
   VIEWS.forEach(a => {
     const b = document.createElement('button');
@@ -4590,7 +2709,7 @@ function drawFilters() {
     b.innerHTML = `<span>${esc(a.name)}</span><span class="view-remove" title="${esc(t('list.deleteView'))}">${ICON_X}</span>`;
     b.onclick = () => applyView(a);
     // Das Kreuz liegt IM Knopf und muss deshalb den Klick anhalten -- sonst
-    // wuerde die Ansicht im selben Zug angewandt und geloescht.
+// wuerde die Ansicht im selben Zug angewandt und geloescht.
     b.querySelector('.view-remove').onclick = e => {
       e.preventDefault(); e.stopPropagation(); viewDelete(a.name);
     };
@@ -4600,15 +2719,7 @@ function drawFilters() {
     const bNew = document.createElement('button');
     /* EIN TEXT UND KEINE PILLE -- 0.32.0, Bauabschnitt 10. Der Betreiber
        (13.9.2026): „Ansicht speichern wirkt wie ein auswahl eines
-       gespeicherten ansicht. den am besten nur als text … nicht als
-       (pillen)schaltfläche".
-       ER HAT RECHT, UND DER QUELLTEXT SAGTE WARUM: der Knopf trug `pill` und
-       hing in DERSELBEN Zeile wie die gespeicherten Ansichten -- eine Pille
-       neben Pillen liest sich als eine von ihnen. Jetzt traegt er `.link-btn`
-       wie „Filter zuruecksetzen" am anderen Ende derselben Zeile: dieselbe
-       Sorte Bedienung, dieselbe Gestalt.
-       DAS FUEHRENDE „+" BLEIBT. Es ist das einzige Zeichen, das ihn schon
-       heute als Befehl und nicht als Auswahl ausweist. */
+       gespeicherten ansicht. */
     bNew.className = 'link-btn' + (VIEWS.length ? ' link-btn-sep' : '');
     bNew.id = 'ansicht-neu';
     bNew.textContent = t('list.saveView');
@@ -4617,7 +2728,7 @@ function drawFilters() {
     g5.appendChild(bNew);
   } else {
     // Der Deckel wird GESAGT und nicht durch einen fehlenden Knopf angedeutet:
-    // ein Knopf, der einfach nicht mehr da ist, sieht aus wie ein Fehler.
+// ein Knopf, der einfach nicht mehr da ist, sieht aus wie ein Fehler.
     const towards = document.createElement('span');
     towards.className = 'hint hint-sm';
     towards.textContent = t('list.viewCapNew', { viewsCap: VIEWS_CAP });
@@ -4625,24 +2736,8 @@ function drawFilters() {
   }
   r5.appendChild(g5);
 
-  /* ---- DER RUECKSETZER FUER DIE FILTERLEISTE — 0.17.3 ----
-     ER STAND BIS HIERHER NIRGENDS. Ein „zurücksetzen" gab es genau EINMAL, in
-     der Tagzeile weiter oben, und auch dort nur, solange mindestens ein Tag
-     gewaehlt war. Fuer die Leiste als Ganzes gab es keinen -- gesucht wurde er
-     hier, in der Sortierzeile neben „+ Ansicht speichern".
-     ER STEHT NUR DA, WENN WIRKLICH ETWAS GESETZT IST, und nennt die Zahl. Ein
-     Knopf, der nichts zu tun hat, ist dieselbe Auskunft ueber nichts wie eine
-     Null am Zaehler „Offen".
-     DIE ZAHL KOMMT AUS filterNumber() UND AUS NICHTS ANDEREM -- dieselbe
-     Funktion, die den Schalter ueber den Filtern traegt, mit denselben Regeln:
-     drei Kategorien zaehlen als EIN Filter, jeder Tag einzeln. Eine zweite
-     Zaehlung daneben waere eine zweite Wahrheit (Stolperstein 47).
-     WAS ER NICHT MITRAEUMT, UND BEIDES AUS DEMSELBEN GRUND: die SUCHE -- sie
-     hat ihr eigenes ✕ im Suchfeld, und filterNumber() zaehlt sie nicht mit --
-     und die SORTIERUNG. Ein Knopf, der „(3)" sagt und vier Dinge wegnimmt,
-     sagt die Unwahrheit.
-     EINE GESPEICHERTE ANSICHT WIRD NICHT ANGETASTET: zuruecksetzen heisst
-     „zeig mir alles", nicht „vergiss, was ich mir gemerkt habe". */
+  /* ---- DER RUECKSETZER FUER DIE FILTERLEISTE — 0.17.3 ---- ER STAND BIS
+     HIERHER NIRGENDS. */
   const filtersSet = filterNumber();
   if (filtersSet) {
     const right5 = document.createElement('div');
@@ -4653,19 +2748,13 @@ function drawFilters() {
     bBack.textContent = t('list.resetFilters', { filtersSet: filtersSet });
     bBack.title = t('list.resetFiltersHint');
     bBack.onclick = () => {
-      /* ZURUECKGESETZT WIRD AUF FILTER_DEFAULT und sonst nichts -- und der Weg
-         dorthin ist filterNormal(), derselbe wie beim Anwenden einer
-         gespeicherten Ansicht. Eine zweite Stelle, die eine Filterstellung
-         zurechtrueckt, liefe auseinander.
-         DIE SORTIERUNG WIRD MITGEGEBEN UND NICHT ZURUECKGESETZT, obwohl sie in
-         der Vorgabe steht: sie zaehlt auch nicht mit. */
+      /* ZURUECKGESETZT WIRD AUF FILTER_DEFAULT und sonst nichts -- und der
+         Weg dorthin ist filterNormal(), derselbe wie beim Anwenden einer
+         gespeicherten Ansicht. */
       state.filters = filterNormal({ sort: state.filters.sort });
       /* HIER STAND BIS 0.32.0 `STATUS_BY_HAND = false` -- „Filter
-         zuruecksetzen" setzte auch die Handwahl zurueck, und danach folgte der
-         Statusfilter wieder der Sortierung. DAS WAR DIE SACKGASSE: der Knopf
-         hat gefiltert statt zurueckgesetzt, und weil die Ableitung nicht
-         mitzaehlte, verschwand er anschliessend selbst. Jetzt setzt er
-         zurueck, und was danach dasteht, ist die Vorgabe. */
+         zuruecksetzen" setzte auch die Handwahl zurueck, und danach folgte
+         der Statusfilter wieder der Sortierung. */
       redraw();
     };
     right5.appendChild(bBack);
@@ -4674,7 +2763,7 @@ function drawFilters() {
 
   // Ganz zum Schluss, wenn state.filters steht: der Schalter nennt die Zahl
   // der greifenden Filter, und die aendert sich mit jedem Klick auf eine
-  // Pille. Er steht ausserhalb von #filters und ueberlebt das Neuzeichnen.
+  // Pille.
   drawFilterSwitch();
 }
 
@@ -4683,12 +2772,7 @@ function drawBody() {
   if (!body) return;
   const list = visibleItems();
   /* DIE ZAEHLZEILE NENNT DEN GANZEN BESTAND, nicht die Trefferzahl der Suche:
-     `state.bestand` und nicht `state.items.length`. Waehrend einer Suche traegt
-     `items` nur die Treffer, und "3 Sachen" waere dann eine falsche Auskunft
-     ueber den Bestand.
-     UND SIE IST DER ORT FUER DEN ZUSTAND DER SUCHE. Ein eigener Kasten daneben
-     waere ein zweiter Platz fuer dieselbe Auskunft; hier steht sie da, wo
-     ohnehin die Zahlen stehen. */
+     `state.bestand` und nicht `state.items.length`. */
   const cnt = document.getElementById('count');
   if (cnt) {
     let z = `${state.inventory} ${vThing(state.inventory)}` +
@@ -4702,7 +2786,7 @@ function drawBody() {
   body.innerHTML = '';
   // GEFRAGT WIRD DER BESTAND UND NICHT DIE GEZEIGTE MENGE: eine Suche ohne
   // Treffer ist kein leerer Bestand, und "Noch nichts erfasst" waere dort die
-  // falsche Auskunft. Die Absage darunter ist die richtige.
+  // falsche Auskunft.
   if (!state.inventory) {
     body.innerHTML = `<div class="empty">${ICON_PH}<h2>${tH('list.nothingYet')}</h2>
       <p>${tH('list.emptyHint')}</p></div>`;
@@ -4716,8 +2800,7 @@ function drawBody() {
   }
   const grid = document.createElement('div');
   /* WAEHREND DIE SUCHE LAEUFT, BLEIBT DIE ALTE LISTE STEHEN und wird nur
-     gedaempft. Eine Liste, die zwischen zwei Tastendruecken leer wird, ist
-     schlechter als eine, die einen Augenblick alt ist. */
+     gedaempft. */
   grid.className = 'grid' + (state.searchRunning ? ' searching' : '');
   list.forEach(it => grid.appendChild(card(it)));
   body.appendChild(grid);
@@ -4725,10 +2808,7 @@ function drawBody() {
 }
 
 /* ================= Zeitleiste der Testtage ================= */
-// Ein Punkt je Testtag über einer gemeinsamen Zeitachse. Die Höhe eines
-// Punktes ist seine Tagesnote — das trennt Punkte, die auf denselben Tag
-// fallen, und zeigt nebenbei, wohin sich die Bewertungen entwickeln.
-// Richtet sich nach den gerade sichtbaren Einträgen, folgt also den Filtern.
+// Ein Punkt je Testtag über einer gemeinsamen Zeitachse.
 const TIMELINE_FROM = 5;   // darunter sagt das Band nichts und bleibt weg
 
 function timelinePoints(list) {
@@ -4736,7 +2816,7 @@ function timelinePoints(list) {
   for (const it of list)
     for (const d of it.testDays || [])
       // mine kommt vom Server: eigene Punkte werden gefuellt
-      // gezeichnet, fremde als Ring. Kein neuer Farbkanal -- Gold bleibt Gold.
+// gezeichnet, fremde als Ring. Kein neuer Farbkanal -- Gold bleibt Gold.
       points.push({ itemId: it.id, title: it.title, date: d.day, score: d.rating, mine: d.mine !== false });
   return points.sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0));
 }
@@ -4765,8 +2845,7 @@ function drawTimeline(list) {
   if (!TIMELINE_ON) { box.innerHTML = ''; return; }
   const points = timelinePoints(list);
   // Zwei getrennte Bedingungen mit Absicht: die Schwelle ist eine Frage des
-  // Nutzens, die leere Menge eine des Rechnens. Wer die Schwelle spaeter
-  // aendert, soll nicht ueber punkte[0] stolpern.
+  // Nutzens, die leere Menge eine des Rechnens.
   if (!points.length || points.length < TIMELINE_FROM) { box.innerHTML = ''; return; }
 
   const from = points[0].date, to = points[points.length - 1].date;
@@ -4795,8 +2874,7 @@ function drawTimeline(list) {
     d.setAttribute('aria-label', t('list.gradeLong', { instanceTitle: p.title, date: fmtDay(p.date), score: p.score }));
     d.onclick = () => { location.hash = `#/item/${p.itemId}`; };
     // Eigenes Hinweisfeld statt title: kein Wartezögern, und der Text bleibt
-    // lesbar gesetzt. Auf dem Finger gibt es kein Überfahren — dort öffnet die
-    // Berührung direkt den Eintrag.
+    // lesbar gesetzt.
     d.onpointerenter = (e) => { if (e.pointerType !== 'touch') showHint(box, d, p); };
     d.onpointerleave = () => hideHint(box);
     field.appendChild(d);
@@ -4812,22 +2890,7 @@ function drawTimeline(list) {
     years.appendChild(s);
   });
 
-  /* NUR SO VIELE JAHRESZAHLEN, WIE NEBENEINANDER PASSEN.
-     Eine Marke je Jahr ist auf einem breiten Schirm richtig und auf einem
-     Telefon eine graue Wand: "2026" misst in der Festbreitenschrift rund 23
-     Pixel, die Achse ist dort 330 breit -- ab vierzehn Jahren stehen die
-     Zahlen uebereinander und keine einzige ist mehr zu lesen. Zwoelf lesbare
-     Jahreszahlen sagen mehr als dreissig unlesbare.
-     GEMESSEN, NICHT GERATEN: die Breite einer Zahl haengt an der
-     eingestellten Schriftgroesse (80 bis 120 Prozent). Deshalb werden erst
-     alle gebaut, dann wird die erste vermessen und dann wird ausgeduennt --
-     dasselbe Vorgehen wie in limitCloud(), und aus demselben Grund.
-     Der Zwischenraum von einer halben Zahlbreite gehoert dazu: zwei
-     Jahreszahlen, die einander beruehren, sind eine achtstellige Zahl.
-     AUSGEDUENNT WIRD NUR DIE BESCHRIFTUNG. Die Punkte stehen alle da, wo sie
-     stehen -- an der Achse selbst aendert sich nichts, nur an ihrer
-     Beschriftung. Und bei einer Achse, die nichts zu verbergen hat (weniger
-     Jahre als Platz), ist der Schritt 1 und diese Rechnung folgenlos. */
+  /* NUR SO VIELE JAHRESZAHLEN, WIE NEBENEINANDER PASSEN. */
   const numberWidth = years.firstElementChild ? years.firstElementChild.offsetWidth : 0;
   const axisWidth = years.clientWidth;
   if (numberWidth && axisWidth && marks.length > 1) {
@@ -4848,11 +2911,7 @@ function showHint(box, point, p) {
 }
 function hideHint(box) { box.querySelector('.timeline-hint')?.remove(); }
 
-/* Die Marke auf der Karte, wenn mehr als ein Element dahintersteht. Bei
-   gemischtem Bestand stehen beide Zahlen da -- "3 Fotos" allein verschwiege,
-   dass auch ein Video dabei ist. Bei reinem Bestand bleibt es beim einen Wort.
-   Die beiden Zaehler kommen getrennt aus der Antwort und werden hier nicht
-   zusammengerechnet. */
+/* Die Marke auf der Karte, wenn mehr als ein Element dahintersteht. */
 function inventoryText(it) {
   const f = it.photoCount || 0, v = it.videoCount || 0;
   if (f + v < 2) return '';
@@ -4862,21 +2921,8 @@ function inventoryText(it) {
   return `<div class="photo-count">${parts.join(' · ')}</div>`;
 }
 
-/* ================= Der Trefferkontext an der Kachel -- 0.18.0 =================
-   WARUM EIN EINTRAG IN DER TREFFERLISTE STEHT. Eine Suche nach "ella" findet
-   auch "eurobella" -- unter anderem in einer Linkadresse. Der Treffer ist
-   richtig; ohne diese Zeile ist er nur nicht nachvollziehbar, weil die Kachel
-   nicht sagt, WO das Wort steht.
-
-   DIE ZEILE STEHT NUR DA, SOLANGE EINE SUCHE LAEUFT. Ohne Begriff traegt die
-   Antwort das Feld gar nicht, und die Kachel ist dann Pixel fuer Pixel die
-   von vorher.
-
-   WELCHE QUELLE GENANNT WIRD, ENTSCHEIDET DER SERVER -- an einer Stelle und in
-   einer festen Folge (VOLLTEXT_QUELLEN). Hier steht nur, wie sie HEISST.
-   "Tag am Testtag" heisst je nach eingestelltem Vokabular anders; deshalb
-   sind es Funktionen und keine Strings, die einmal beim Laden
-   festgelegt wuerden. */
+/* ================= Der Trefferkontext an der Kachel -- 0.18.0
+   ================= WARUM EIN EINTRAG IN DER TREFFERLISTE STEHT. */
 const FINDING_WORDS = {
   description: () => t('list.description'),
   comment: () => t('dialog.comment'),
@@ -4886,27 +2932,16 @@ const FINDING_WORDS = {
   category: () => t('list.category'),
   title: () => t('list.title')
 };
-/* EINE UNBEKANNTE QUELLE HEISST "Fundstelle" UND FAELLT NICHT AUS DER ZEILE.
-   Ein Server, der eine achte Quelle kennt, und eine Oberflaeche, die sie noch
-   nicht kennt, sind derselbe Fall wie eine alte Oberflaeche an einer neuen
-   Antwort: die Zeile sagt dann weniger, aber sie luegt nicht und sie
-   verschwindet nicht. */
+/* EINE UNBEKANNTE QUELLE HEISST "Fundstelle" UND FAELLT NICHT AUS DER ZEILE. */
 const findingWord = (source) => (FINDING_WORDS[source] || (() => t('list.hitPlace')))();
 
-/* DIE VOLLE AUSSAGE STEHT IM UEBERFAHRTEXT. In der Zeile selbst ist kein
-   Platz dafuer: die schmalste Kachel ist 240 px breit, und "und 2 weitere
-   Stellen" nimmt dort mehr Raum ein als der Ausschnitt, den sie begleitet
-   (gemessen, siehe Aenderungsprotokoll 0.18.0). Die Zahl steht deshalb kurz
-   in der Zeile und ausgeschrieben darueber. */
+/* DIE VOLLE AUSSAGE STEHT IM UEBERFAHRTEXT. */
 const findHover = (f) => t('list.foundIn', { source: findingWord(f.source) }) + (
   f.others > 0 ? t('list.moreHits', { n: f.others }) : '');
 
 function card(it) {
   const a = document.createElement('a');
-  /* DER BEGRIFF WANDERT IN DIE ADRESSE DER KACHEL. Wer einen Treffer oeffnet
-     und neu laedt, behaelt damit die Hervorhebung -- ein Eintrag, der beim
-     ersten Blick markierte Stellen hat und nach F5 keine mehr, saehe aus wie
-     ein Fehler. Ohne Suche bleibt es bei der Adresse von vorher. */
+  /* DER BEGRIFF WANDERT IN DIE ADRESSE DER KACHEL. */
   const term = state.search.trim();
   a.href = entryAddress(it.id, term);
   a.className = 'card' + (state.compare.has(it.id) ? ' picked' : '') + (it.rejected ? ' rejected' : '');
@@ -4921,12 +2956,7 @@ function card(it) {
     </div>` : '';
 
   /* DIE ZEILE STEHT UNTER DEM TITEL UND UEBER DEN TAGS -- bei dem, was sie
-     erklaert, und nicht am Fuss bei den Zahlen.
-     DER AUSSCHNITT BLEIBT IN DER VORLAGE LEER. Er kann aus einem Kommentar
-     stammen, und fuer Kommentartext gilt seit 0.5.4: er kommt nie ueber
-     innerHTML in die Seite (Projektstand 5.6). Gefuellt wird er weiter unten
-     mit echten Knoten -- mit Hervorhebung, wenn ein Begriff da ist, und ohne,
-     wenn nicht. */
+     erklaert, und nicht am Fuss bei den Zahlen. */
   const f = it.foundAt;
   const findingRow = f ? `<div class="card-find" title="${esc(findHover(f))}">
         <span class="find-source">${esc(findingWord(f.source))}:</span><span
@@ -4949,16 +2979,7 @@ function card(it) {
       ${testLine}
       <div class="card-foot">
         <span class="card-meta-l">
-          ${/* EINE KACHEL, EINE ZAHL -- 0.21.0. Bei einem GETESTETEN Eintrag die
-               Bewertung („★ 3,8"), bei einem UNGETESTETEN das Potenzial
-               („◆ 4,2"). Die andere steht im Kopf des zugeklappten Kastens am
-               Eintrag; die Kachel ist zu klein fuer zwei.
-               EIN ANDERES ZEICHEN, UND DAS IST DER PUNKT: sonst hielte jemand
-               4,2 Potenzial fuer 4,2 Qualitaet. Der `title` sagt dazu, welche
-               der beiden Zahlen dasteht -- mit dem Wort aus dem Vokabular.
-               FEHLT DIE JEWEILIGE ZAHL, STEHT DER HINWEIS DA -- und er nennt,
-               was fehlt: an einem ungetesteten Eintrag fehlt keine „Wertung",
-               sondern die Einschaetzung. */''}
+          ${/* EINE KACHEL, EINE ZAHL -- 0.21.0. */''}
           ${tileNumber(it)}
           ${it.linkCount ? `<span class="link-count">${tH('list.linkCount', { n: it.linkCount })}</span>` : ''}
         </span>
@@ -4968,11 +2989,7 @@ function card(it) {
 
   if (f) a.querySelector('.find-text').replaceChildren(raiseHighlight(f.text, term));
   /* DIE HERVORHEBUNG GILT DORT, WO GESUCHT WURDE -- und die Kachel zeigt drei
-     der sieben Quellen: Titel, Kategorie und die ersten vier Tags. Der Rest
-     steht in der Zeile darueber.
-     ERSETZT WIRD DER FERTIGE TEXTKNOTEN, nicht die Vorlage umgebaut: `esc()`
-     hat den Text schon richtig hineingeschrieben, und ohne Begriff bleibt er
-     unangetastet stehen. */
+     der sieben Quellen: Titel, Kategorie und die ersten vier Tags. */
   highlightInNode(a.querySelector('.card-title'), it.title, term);
   if (it.category) highlightInNode(a.querySelector('.card-cat'), it.category.name, term);
   if (term) [...a.querySelectorAll('.card-tags .chip')]
@@ -4986,32 +3003,16 @@ function card(it) {
   return a;
 }
 
-/* DIE ZAHL AUF DER KACHEL -- 0.21.0. Sie steht hier und nicht in der Vorlage
-   darueber, weil sie drei Dinge zugleich entscheidet (welches Zeichen, welche
-   Zahl, welcher Hinweis, wenn keine da ist) und in einem String
-   unleserlich wuerde.
-   DAS ZEICHEN ◆ IST NICHT ★, damit niemand 4,2 Potenzial fuer 4,2 Qualitaet
-   haelt. Es traegt eine eigene Klasse und keine eigene Farbe: Gold bleibt der
-   Bewertung. */
+/* DIE ZAHL AUF DER KACHEL -- 0.21.0. */
 function tileNumber(it) {
   const potential = !it.tested;
   /* IST DER MODUS AUS, STEHT AN DIESER STELLE NICHTS -- 0.26.0, und das ist
      die Antwort auf F5: kein Platzhalter, kein Strich, die Zeile schliesst
-     sich. Eine leere Stelle, an der einmal etwas stand, sieht aus wie ein
-     Fehler.
-     ES TRIFFT NUR DEN UNGETESTETEN EINTRAG. Ein getesteter zeigt seine
-     Bewertung ★ weiter -- die hat mit dem Potenzial nichts zu tun.
-     UND ES GILT AUCH DANN, WENN SCHON POTENZIALBEWERTUNGEN IN DER DATENBANK
-     STEHEN. Der Server rechnet sie weiter aus (F1); gezeigt werden sie
-     nicht. Genau das hat der Betreiber verlangt. */
+     sich. */
   if (!POTENTIAL_MODE && potential) return '';
   const value = potential ? it.potentialRating : it.avgRating;
   /* „noch nicht eingeschätzt" UND NICHT „keine <Vokabelwort>sterne": das Wort
-     aus dem Vokabular wird nirgends zu einem Wort verbaut. Es ist derselbe
-     Text wie im Kopf des Potenzialkastens, und er unterscheidet sich vom
-     „noch nicht bewertet" der Bewertung: zwei gleiche Texte fuer zwei
-     verschiedene Kaesten waeren ein Raetsel. „keine Sterne" las sich bis
-     0.21.1 wie null Sterne (Konzept 0.22.0, Anhang B und C). */
+     aus dem Vokabular wird nirgends zu einem Wort verbaut. */
   if (!value) return `<span class="hint hint-sm">${potential ? tH('list.notEstimatedYet') : tH('list.notRatedYet')}</span>`;
   const char = potential ? '◆' : '★';
   const word = potential ? V.potential : V.ratingOne;
@@ -5032,23 +3033,9 @@ function drawCompareBar() {
   document.body.appendChild(bar);
 }
 
-/* ================= Doppelte Eintraege beim Anlegen =================
-   Bei vier Zugaengen und dreihundert Eintraegen legt der zweite Mensch
-   dieselbe Maschine ein zweites Mal an -- eine Sache, zwei Wahrheiten.
-
-   EINE ZEILE, KEIN DIALOG. Sie blockiert nichts und verlangt keine
-   Entscheidung: sie sagt nur, was schon da ist, mit Sprungmarken dorthin.
-
-   KEINE ROUTE: die Titel des ganzen Bestands liegen ohnehin im Browser.
-   GEFRAGT WIRD state.alle UND NICHT state.items -- waehrend einer Suche
-   traegt `items` nur die Treffer, und dann fiele der Doppeleintrag genau dann
-   nicht auf, wenn man ihn beim Suchen nicht gefunden hat.
-
-   VERGLICHEN WIRD UEBER VIERERGRUPPEN: zwei Titel gelten als aehnlich, wenn
-   sie eine Folge von vier Zeichen teilen -- Schreibung und Sonderzeichen
-   vorher weggeraeumt. Vier, weil "GSR" und "18V" allein zu viel faenden und
-   weil jede laengere gemeinsame Folge eine Vierergruppe enthaelt.
-   TRIGRAMME ODER LEVENSHTEIN BRAUCHT ES NICHT: Titel sind kurz. */
+/* ================= Doppelte Eintraege beim Anlegen ================= Bei
+   vier Zugaengen und dreihundert Eintraegen legt der zweite Mensch dieselbe
+   Maschine ein zweites Mal an -- eine Sache, zwei Wahrheiten. */
 const SIMILAR_DIALOG = 4;
 const SIMILAR_SHOW = 5;
 
@@ -5087,14 +3074,12 @@ function openCreate() {
   document.getElementById('nc').onclick = close;
   const nt = document.getElementById('nt');
   const row = document.getElementById('nt-similar');
-  // Die Zeile wird bei jedem Anschlag neu gebildet. Sie rechnet oertlich und
-  // braucht deshalb keinen Debounce -- bei dreihundert Titeln sind es
-  // dreihundert includes() auf einer Handvoll Vierergruppen.
+  // Die Zeile wird bei jedem Anschlag neu gebildet.
   const drawSimilar = () => {
     const matched = similarEntries(nt.value);
     if (!matched.length) { row.innerHTML = ''; return; }
     // Die Sprungmarken schliessen den Dialog: ein offener Kasten ueber dem
-    // Eintrag, zu dem man gerade gesprungen ist, waere im Weg.
+// Eintrag, zu dem man gerade gesprungen ist, waere im Weg.
     row.innerHTML = t('list.similarTitles') + matched
       .map(it => `<a href="#/item/${it.id}" data-close>${esc(it.title)}</a>`).join(', ');
     row.querySelectorAll('[data-close]').forEach(a => { a.onclick = () => close(); });
@@ -5116,14 +3101,7 @@ function openCreate() {
 /* ================= Offene Aufgaben quer über alle Einträge ================= */
 /* Diese Ansicht macht vorhandene Funktionalität erreichbar: Aufgaben samt
    Farbkante und Weiterschaltknopf gibt es im Kommentarblock, sichtbar waren
-   sie aber nur im geöffneten Eintrag.
-
-   SIE LIEST, SIE ORDNET NICHT UM. Die Reihenfolge kommt vom Server und ist
-   dieselbe wie in der Übersicht.
-
-   DIE ÜBERSCHRIFT KOMMT AUS DEM VOKABULAR: wer seine Aufgaben „Mängel" nennt,
-   liest hier „Offene Mängel". Deshalb steht in dieser Funktion kein einziges
-   der elf einstellbaren Wörter fest. */
+   sie aber nur im geöffneten Eintrag. */
 async function renderOpen() {
   app.innerHTML = `<div class="shell"><p class="hint" style="padding-top:44px">${tH('list.loading')}</p></div>`;
   let rows;
@@ -5134,14 +3112,9 @@ async function renderOpen() {
     return;
   }
 
-  /* ANSICHTSZUSTAND IM SPEICHER, KEINE EINSTELLUNG -- wie im Vergleich und aus
-     demselben Grund: der Umschalter ist eine Linse auf dieselben Daten und darf
-     keine zweite Wahrheit werden.
-     VORGABESTELLUNG „alle": die Ansicht beantwortet „was ist noch offen", und
-     das beantwortet der Blick über alle.
-     Bei genau einem Zugang erscheint der Umschalter nicht -- dann sind beide
-     Stellungen dieselbe Menge, und ein Knopf ohne Wirkung sieht aus wie ein
-     Fehler. Die Schwelle steht in multipleUsers() wie überall. */
+  /* ANSICHTSZUSTAND IM SPEICHER, KEINE EINSTELLUNG -- wie im Vergleich und
+     aus demselben Grund: der Umschalter ist eine Linse auf dieselben Daten
+     und darf keine zweite Wahrheit werden. */
   let onlyMy = false;
 
   app.innerHTML = `<div class="shell">
@@ -5167,17 +3140,7 @@ async function renderOpen() {
     });
   }
 
-  /* Der Haken schickt die Art AUSDRÜCKLICH, er schaltet nicht weiter.
-     taskMore() macht aus einer erledigten Aufgabe eine NOTIZ -- im
-     Kommentarblock ist das die gewollte Abfolge, hier wäre es ein Kästchen,
-     dessen zweiter Druck die Zeile lautlos aus der Menge nimmt. Zwei
-     Bedienelemente, zwei Bedeutungen: dort eine Abfolge, hier ein Zustand.
-     Geschrieben wird über PUT /api/comments/:id, die es längst gibt -- es
-     entsteht keine neue schreibende Route.
-     DIE ZEILE BLEIBT STEHEN, durchgestrichen: eine Zeile, die unter dem Zeiger
-     verschwindet, nimmt die Möglichkeit, den Haken gleich wieder wegzunehmen.
-     Der Vermerk steht nur hier im Speicher; beim nächsten Aufbau holt die
-     Ansicht die Wahrheit wieder vom Server. */
+  /* Der Haken schickt die Art AUSDRÜCKLICH, er schaltet nicht weiter. */
   const setCheck = async (z, finished) => {
     try {
       await api('PUT', `/api/comments/${z.id}`, { kind: finished ? 'done' : 'task' });
@@ -5188,25 +3151,16 @@ async function renderOpen() {
 
   /* DIE EINTEILUNG STEHT SEIT 0.30.0 GANZ OBEN (`dueOf`, Befund 8): der
      Eintrag faerbt sein Datum nach derselben Auskunft, und zwei Einteilungen
-     an zwei Orten liefen auseinander (Stolperstein 47). */
+     an zwei Orten liefen auseinander. */
   /* VIER ABSCHNITTE UND NICHT DREI, und der vierte ist kein vierter Zustand:
-     „ohne Datum" ist die Abwesenheit eines Zustands. Er steht hinten und trägt
-     seine eigene Überschrift — unter „Später" wäre er eine Behauptung über
-     etwas, das niemand gesagt hat.
-     EINE ÜBERSCHRIFT STEHT NUR DA, WENN ETWAS DARUNTER STEHT. Wer keine
-     überfälligen Aufgaben hat, soll das Wort „Überfällig" gar nicht erst
-     sehen — dieselbe Überlegung wie bei der fehlenden Null am Zähler. */
+     „ohne Datum" ist die Abwesenheit eines Zustands. */
   const SECTIONS = [['overdue', 'list.dueOverdue'], ['today', 'list.dueToday'],
                     ['later', 'list.dueLater'], ['none', 'list.dueNone']];
 
   function draw() {
     drawView();
     const visible = onlyMy ? rows.filter(z => z.mine) : rows;
-    /* DIE GRUPPIERUNG NACH EINTRAG BLEIBT — INNERHALB DES ABSCHNITTS (F18).
-       Der Server ordnet nach Datum, dann nach Eintrag; wer die Abschnitte
-       weglässt und stumpf durchsortiert, bekommt denselben Eintrag mehrfach
-       in der Liste. Die Gruppen entstehen deshalb JE Abschnitt und aus
-       aufeinanderfolgenden Zeilen, wie bisher. */
+    /* DIE GRUPPIERUNG NACH EINTRAG BLEIBT — INNERHALB DES ABSCHNITTS (F18). */
     const groupsOf = (list) => {
       const out = [];
       for (const z of list) {
@@ -5218,7 +3172,7 @@ async function renderOpen() {
     };
 
     // Ein leerer Bildschirm ist eine schlechte Antwort. Und die beiden Fälle
-    // sind verschieden: gar nichts offen, oder nichts von mir.
+// sind verschieden: gar nichts offen, oder nichts von mir.
     document.getElementById('open-hint').textContent = !visible.length
       ? (rows.length ? t('list.nothingOpenMine')
                        : t('list.nothingOpen'))
@@ -5233,7 +3187,7 @@ async function renderOpen() {
       const inside = visible.filter(z => dueOf(z) === key);
       if (!inside.length) return;
       // Die Überschrift des Abschnitts. Sie trägt die Zahl -- wer drei
-      // überfällige Aufgaben hat, soll das sehen, ohne zu zählen.
+// überfällige Aufgaben hat, soll das sehen, ohne zu zählen.
       const section = document.createElement('div');
       section.className = 'open-section' + (key === 'overdue' ? ' overdue' : '');
       section.dataset.due = key;
@@ -5254,11 +3208,7 @@ async function renderOpen() {
         el.className = 'open-row' + (z.done ? ' done' : '');
         el.dataset.comment = z.id;
 
-        /* EIN BEDIENZEICHEN FOLGT DEM RECHT, NICHT DER ANZEIGE. Die Art eines
-           Kommentars darf setzen, wer ihn geschrieben hat, und der Admin --
-           dieselbe Regel wie am Kommentar im Eintrag, und sie steht im Server.
-           Wo sie nicht gilt, steht hier kein Kästchen; ein Haken, der ein 403
-           holt, sähe aus wie ein Fehler. */
+        /* EIN BEDIENZEICHEN FOLGT DEM RECHT, NICHT DER ANZEIGE. */
         if (z.mine || ADMIN) {
           const check = document.createElement('button');
           check.className = 'open-check';
@@ -5277,14 +3227,9 @@ async function renderOpen() {
         el.appendChild(text);
 
         // Verfasser nur ab zwei Zugängen -- bei einem wiederholte der Name nur,
-        // wer ohnehin alles geschrieben hat. Dieselbe Schwelle wie überall.
+// wer ohnehin alles geschrieben hat. Dieselbe Schwelle wie überall.
         /* DAS FÄLLIGKEITSDATUM AN DER ZEILE -- 0.29.0. Es steht nur da, wenn
-           eines gesetzt ist; im Abschnitt „Ohne Datum" wäre es ohnehin leer.
-           NEBEN DEM VERFASSER UND NICHT STATT SEINER: die beiden sagen
-           Verschiedenes — wer es aufgeschrieben hat und wann es fällig ist.
-           UND NICHT NOCH EINMAL DER ABSCHNITT: „Überfällig" steht in der
-           Überschrift darüber, und ein zweites Wort an jeder Zeile wäre
-           dieselbe Auskunft ein zweites Mal (Stolperstein 47). */
+           eines gesetzt ist; im Abschnitt „Ohne Datum" wäre es ohnehin leer. */
         const when = document.createElement('span');
         when.className = 'open-when';
         when.textContent = (multipleUsers() ? `${authorName(z.author)} · ` : '')
@@ -5312,11 +3257,7 @@ async function renderCompare() {
 
   /* ZWEI GRUPPEN VON ZEILEN -- 0.21.0: erst die Vorher-Kriterien, dann die
      Nachher-Kriterien, jede mit ihrer eigenen Kopfzahl und einer Trennzeile,
-     die das Wort traegt. Die Namen sind ueber beide Kaesten eindeutig
-     (UNIQUE(name) ist global), also kann ein Name nur in einer Gruppe stehen.
-     ERSTE NENNUNG GEWINNT, wie bisher -- fuer den Namen, das Gewicht UND die
-     Phase: alle drei gehoeren dem Kriterium und nicht dem Eintrag, sie sind
-     global dieselben, gleich aus welchem Eintrag die Zeile stammt. */
+     die das Wort traegt. */
   const names = [];
   const weights = new Map();
   const phases = new Map();
@@ -5326,22 +3267,14 @@ async function renderCompare() {
     }
   }));
   // Die beiden Gruppen, in der Reihenfolge der Kaesten am Eintrag: vorher,
-  // dann nachher. Eine leere Gruppe zeichnet gar nichts -- eine Trennzeile
-  // ueber nichts waere eine Ueberschrift ohne Inhalt.
+  // dann nachher.
   const GROUPS = [
     { phase: 'before',  word: () => V.potential, average: 'potentialRating' },
     { phase: 'after', word: () => V.ratingOne, average: 'avgRating' }
   ].map(g => ({ ...g, names: names.filter(n => phases.get(n) === g.phase) }));
 
   /* ANSICHTSZUSTAND IM SPEICHER, KEINE EINSTELLUNG -- wie linksOpen und
-     cloudOpen. Der Umschalter ist eine Linse auf dieselben Daten und darf
-     keine zweite Wahrheit werden; beim naechsten Aufruf steht wieder die
-     Vorgabe.
-     VORGABESTELLUNG "alle": der Vergleich fragt, wie die Dinge zueinander
-     stehen, und das beantwortet der Schnitt ueber alle.
-     Bei genau einem Zugang erscheint der Umschalter nicht -- dann sind beide
-     Stellungen dieselbe Zahl, und ein Knopf ohne Wirkung sieht aus wie ein
-     Fehler. */
+     cloudOpen. */
   let onlyMy = false;
 
   app.innerHTML = `<div class="shell">
@@ -5355,31 +3288,8 @@ async function renderCompare() {
 
   const cg = document.getElementById('cg');
 
-  /* DIE ZAHL FUER "MEINE" BILDET DER KLIENT. Bei einem Bewerter hat jedes
-     Kriterium hoechstens eine Stimme -- Stufe 1 des Zweistufenmittels ist also
-     der eigene Wert, und Stufe 2 mittelt darueber. Ein zweiter Rechenweg im
-     Server waere eine zweite Wahrheit ueber denselben Schnitt.
-     EIN ZWEITER RUNDUNGSORT, ABER FUER EINE ANDERE ZAHL -- darin liegt der
-     Unterschied zu "gerundet wird genau einmal": jene Regel gilt dem Schnitt
-     UEBER ALLE, der weiterhin nur im Server entsteht. Hier wird der EIGENE
-     Schnitt gebildet, und auch er wird genau einmal gerundet, am Ende und auf
-     dasselbe Zehntel wie drueben.
-     Nur Werte ueber null zaehlen, wie ueberall: eine zurueckgesetzte Bewertung
-     hinterlaesst eine Zeile mit 0, und die ist keine Stimme.
-     DIESELBE FORMEL WIE gesamtSchnitt() IM SERVER, auf die eigene Menge
-     angewandt: gewichteter Mittelwert, Nenner nur ueber die Kriterien, die
-     ICH bewertet habe. Ungewichtet zeigte der Umschalter "meine / alle" zwei
-     Zahlen nach zwei verschiedenen Formeln.
-     Ein Kriterium ohne eigenen Wert bringt sein Gewicht NICHT in den Nenner
-     -- sonst laege die eigene Zahl unter der ueber alle, ohne dass es an den
-     Werten laege.
-     ES SIND UND BLEIBEN GENAU ZWEI RECHENSTELLEN. Die Kachel der Uebersicht
-     liest avgRating vom Server, und dabei bleibt es. */
-  /* MIT DER PHASE ALS ARGUMENT -- 0.21.0. Es bleibt die EINZIGE zweite
-     Rechenstelle im Browser, und sie rechnet weiter nur das, was der Server
-     nicht liefern kann: den Schnitt ueber MEINE eigenen Sterne. Neu ist
-     allein, dass sie ihn je Kasten bildet -- eine Zahl aus beiden Mengen waere
-     genau die Vermischung, die diese Runde abschafft. */
+  /* DIE ZAHL FUER "MEINE" BILDET DER KLIENT. */
+  /* MIT DER PHASE ALS ARGUMENT -- 0.21.0. */
   const ownAverage = (it, phase) => {
     let counter = 0, denominator = 0;
     for (const r of it.ratings) {
@@ -5390,15 +3300,14 @@ async function renderCompare() {
     return Math.round((counter / denominator) * 10) / 10;
   };
   // Drei Zahlen, ein Schalter: Kriterienwert, Kopfzahl und Testtagzeile
-  // schalten gemeinsam um. Schaltete nur eine, waere es derselbe Widerspruch
-  // mit einem Knopf davor.
+  // schalten gemeinsam um.
   const valueFrom = (it, name) => {
     const r = it.ratings.find(x => x.name === name);
     if (!r) return 0;
     return onlyMy ? r.value : (r.avg || 0);
   };
   // Der Schnitt DER GRUPPE: in der Stellung „alle" die Zahl vom Server, in der
-  // Stellung „meine" die eigene -- beide je Kasten, nie ueber beide.
+// Stellung „meine" die eigene -- beide je Kasten, nie ueber beide.
   const averageFrom = (it, group) =>
     (onlyMy ? ownAverage(it, group.phase) : it[group.average]);
   const daysFrom = (it) => (onlyMy
@@ -5406,7 +3315,7 @@ async function renderCompare() {
     : (it.testCount || 0));
   /* GANZ BLEIBT GANZ, ALLES ANDERE BEKOMMT EINE STELLE -- und zwar auch dann,
      wenn sie nach dem Runden eine Null ist: „7,0" sagt, dass gerechnet wurde,
-     „7" saehe aus wie eine glatte Zahl. Genau so stand es bis 0.23.0 da. */
+     „7" saehe aus wie eine glatte Zahl. */
   const asNumber = (v) => (Number.isInteger(v) ? number(v, 0) : number(v, 1));
 
   function drawView() {
@@ -5440,12 +3349,7 @@ async function renderCompare() {
       const col = document.createElement('div');
       col.className = 'cmp-col';
       /* JE GRUPPE EINE TRENNZEILE MIT DEM WORT UND DER KOPFZAHL DIESES
-         KASTENS, darunter seine Kriterienzeilen. Eine leere Gruppe zeichnet
-         gar nichts: eine Ueberschrift ueber null Zeilen sagt nichts.
-         EIN EINTRAG OHNE STERNE IN EINER GRUPPE ZEIGT DORT EINEN STRICH und
-         keine 0 -- „nicht eingeschaetzt" ist etwas anderes als „schlecht
-         eingeschaetzt". Das galt fuer die Kriterienzeilen schon; hier gilt es
-         auch fuer die Kopfzahl der Gruppe. */
+         KASTENS, darunter seine Kriterienzeilen. */
       const groups = GROUPS.filter(g => g.names.length).map(g => {
         const average = averageFrom(it, g);
         const head = `<div class="cmp-group"><span class="cn">${esc(g.word())}</span>
@@ -5454,7 +3358,7 @@ async function renderCompare() {
           const v = valueFrom(it, n);
           const best = v > 0 && v === bestOf(n);
           // Die Marke ×1,5 an der Zeilenbeschriftung, abgeleitet wie ueberall:
-          // bei Gewicht 1 steht dort nichts.
+// bei Gewicht 1 steht dort nichts.
           const mark = weightMark(weights.get(n));
           return `<div class="cmp-crit"><span class="cn">${esc(n)}${
               mark ? ` <span class="cweight" title="${esc(t('list.weightedAvg'))}">${esc(mark)}</span>` : ''}</span>
@@ -5483,23 +3387,9 @@ async function renderCompare() {
 /* ================= Vollbild ================= */
 let lightboxOpen = false;
 
-// Adresse eines Bildes. Fotos am Eintrag haben ein unveraendertes Original,
-// Kommentarbilder nicht -- dort ist die gespeicherte Variante schon die
-// groesste, und der Zoom entfaellt.
+// Adresse eines Bildes.
 /* DIE EINE STELLE, AN DER EINE BILDADRESSE ENTSTEHT -- und seit 0.19.5 auch
-   die einzige, die die FASSUNG anhaengt. Bis dahin bauten die Kachel der
-   Uebersicht und der Streifen am Eintrag ihre Adresse selbst zusammen; drei
-   Stellen fuer dieselbe Adresse sind zwei zu viel, und die dritte haette das
-   `?v=` vergessen (Stolperstein 47).
-
-   `?v=` TRAEGT `length(thumb)` und haengt NUR an der Kachel. Die Kachel ist
-   die einzige Ableitung, deren INHALT sich unter derselben Adresse aendert --
-   `medium` wird nicht geschnitten und bleibt Bild fuer Bild dasselbe, und das
-   Original wird ohnehin nie angefasst. Ein `?v=` an allen dreien wuerde
-   Zwischenspeicher verwerfen, die noch gueltig sind.
-   FEHLT DIE FASSUNG, STEHT SIE NICHT DA. Eine aeltere Antwort ohne das Feld
-   (oder ein Kommentarbild, das gar keine hat) bekommt die Adresse wie bisher
-   -- und damit genau das Verhalten bis 0.19.4, nicht `?v=undefined`. */
+   die einzige, die die FASSUNG anhaengt. */
 function imageSource(p, filesize) {
   if (p.source === 'comment')
     return `/api/comment-images/${p.id}/raw${filesize === 'thumb' ? '?size=thumb' : ''}`;
@@ -5522,31 +3412,14 @@ function durationText(s) {
 }
 
 // Nach dem Zoom steht der Bildlauf auf 0/0 -- man saehe die linke obere Ecke
-// statt der Stelle, die man eben betrachtet hat. Eigene Funktionsdeklaration,
-// weil jsdom kein Layout rechnet und der Pruefstand ihr die Zahlen deshalb
-// unmittelbar vorlegen muss.
+// statt der Stelle, die man eben betrachtet hat.
 function centerStage(stage) {
   if (!stage) return;
   stage.scrollLeft = Math.max(0, (stage.scrollWidth - stage.clientWidth) / 2);
   stage.scrollTop = Math.max(0, (stage.scrollHeight - stage.clientHeight) / 2);
 }
 
-/* `remove` IST FREIWILLIG UND ENTSCHEIDET UEBER DEN PAPIERKORB IM VOLLBILD.
-   Wer keinen mitgibt, bekommt keinen -- die Kommentarbilder etwa werden am
-   Kommentar entfernt und nicht hier.
-   DIE KLEMME WIRD NICHT NEU ERFUNDEN: der Rufer gibt genau die Funktion
-   mit, die auch der Papierkorb ueber dem grossen Bild ruft -- samt Rueckfrage,
-   samt Route, samt Neuzeichnen der Ansicht darunter. Eine zweite Loeschstelle
-   waere eine zweite Gelegenheit, die Rueckfrage zu vergessen.
-   SIE LIEFERT `true`, WENN WIRKLICH GELOESCHT WURDE. Ohne diese Antwort
-   muesste das Vollbild raten, ob es sein Bild aus der Liste nehmen darf --
-   und naehme es auch dann heraus, wenn der Mensch die Rueckfrage abgebrochen
-   hat.
-   `inside` IST FREIWILLIG UND LIEFERT DEN INNEREN ABSPIELER. Es ist eine
-   FUNKTION und kein Element: der Betrachter darunter zeichnet sich beim
-   Loeschen neu, und ein gemerktes Element zeigte danach auf einen Knoten, den
-   es nicht mehr gibt. Wer keinen mitgibt -- die Kommentarbilder etwa --
-   bekommt keinen Wechsel; dort gibt es auch nichts zu uebernehmen. */
+/* `remove` IST FREIWILLIG UND ENTSCHEIDET UEBER DEN PAPIERKORB IM VOLLBILD. */
 function openLightbox(photos, startIdx, title, remove, inside) {
   if (!photos.length) return;
   lightboxOpen = true;
@@ -5562,12 +3435,7 @@ function openLightbox(photos, startIdx, title, remove, inside) {
         <button class="lb-btn zoom" title="${esc(t('list.zoomFull'))}">⊕</button>
         ${/* DER PAPIERKORB STEHT ABGESETZT, mit einer groesseren Luecke davor
              -- dieselbe Ueberlegung wie ueber dem grossen Bild darunter: die
-             Knoepfe davor stellen etwas ein, dieser hier nimmt etwas weg.
-             UND ER STEHT NICHT NEBEN DEM SCHLIESSEN. Zwei Kreuze
-             nebeneinander, von denen eines die Ansicht zumacht und das andere
-             das Bild vernichtet, waeren die gefaehrlichste Nachbarschaft der
-             Instanz. Deshalb traegt er das Papierkorbzeichen und steht vor dem
-             Schliessen, nicht daneben. */''}
+             Knoepfe davor stellen etwas ein, dieser hier nimmt etwas weg. */''}
         ${remove ? `<button class="lb-btn remove" title="${esc(t('dialog.delete'))}">${ICON_TRASH}</button>` : ''}
         <button class="lb-btn close" title="${esc(t('list.closeEsc'))}">${ICON_X}</button>
       </div>
@@ -5585,19 +3453,8 @@ function openLightbox(photos, startIdx, title, remove, inside) {
   const player = lb.querySelector('.lb-video');
   const strip = lb.querySelector('.lb-strip');
 
-  /* ---- DER FLIEGENDE WECHSEL ----
-     DAS VOLLBILD IST DERSELBE FILM, NUR GROESSER. Bis 0.17.0 baute es sich
-     seinen eigenen Abspieler und liess den inneren stehen, wo er war: zwei
-     Elemente mit derselben Quelle, zwei Tonspuren, zwei Stellen im Film.
-     Also wird uebergeben. Der hier uebernimmt Stelle und Zustand des inneren,
-     und der innere GIBT SEINE QUELLE AB -- anhalten allein genuegt nicht: ein
-     Element mit Quelle laedt weiter, und es bliebe ein zweiter Abspieler.
-     DIE PROBE IST DIE QUELLE UND NICHT DIE NUMMER. Nur wenn der innere
-     wirklich dieses Video traegt, gehoert ihm die Stelle -- steht dort ein
-     anderes Bild oder gar nichts, wird nichts uebernommen und nichts
-     angehalten.
-     DIE LEERE QUELLE IST DAS ERKENNUNGSZEICHEN FUER DEN RUECKWEG: leer ist
-     nur der, dem wir sie genommen haben. */
+  /* ---- DER FLIEGENDE WECHSEL ---- DAS VOLLBILD IST DERSELBE FILM, NUR
+     GROESSER. */
   const inner = () => (typeof inside === 'function' ? inside() : null) || null;
   let handover = null;
   {
@@ -5611,14 +3468,7 @@ function openLightbox(photos, startIdx, title, remove, inside) {
     }
   }
 
-  /* ANHALTEN BEIM BLAETTERN UND BEIM VERLASSEN. Ohne das spielt der Ton
-     weiter, waehrend man das naechste Bild ansieht -- und beim Schliessen
-     bliebe ein unsichtbares Element am Laufen. Die Quelle wird mit
-     abgeraeumt, sonst laedt der Browser weiter.
-     UND HIER WIRD DIE STELLE MITGENOMMEN, BEVOR SIE FAELLT: nach dem
-     removeAttribute steht sie nicht mehr da. Das gilt fuers Blaettern wie
-     fuers Schliessen -- beide gehen durch diese eine Stelle, und deshalb
-     braucht der Rueckweg keine zweite. */
+  /* ANHALTEN BEIM BLAETTERN UND BEIM VERLASSEN. */
   const hold = () => {
     if (!player.hidden || player.src) {
       if (handover && player.getAttribute('src') === handover.source) {
@@ -5632,10 +3482,7 @@ function openLightbox(photos, startIdx, title, remove, inside) {
   };
 
   /* ZURUECK GEHT ES DENSELBEN WEG -- Quelle und Stelle wandern an den inneren
-     Abspieler zurueck. ABER NUR, WENN ER NOCH DERSELBE IST: Loeschen aus dem
-     Vollbild zeichnet den Betrachter darunter neu, und der neue traegt schon
-     seine eigene Quelle. Sie zu ueberschreiben hiesse, ihn auf eine Adresse zu
-     setzen, die es vielleicht gar nicht mehr gibt. */
+     Abspieler zurueck. */
   const restore = () => {
     if (!handover) return;
     const el = inner();
@@ -5647,7 +3494,7 @@ function openLightbox(photos, startIdx, title, remove, inside) {
   };
 
   // Erst wenn das Original geladen ist, stehen seine Masse fest -- vorher waere
-  // scrollWidth noch das der kleinen Variante und die Mitte falsch berechnet.
+// scrollWidth noch das der kleinen Variante und die Mitte falsch berechnet.
   img.addEventListener('load', () => { if (zoomed) centerStage(stage); });
 
   function setZoom(on) {
@@ -5664,19 +3511,13 @@ function openLightbox(photos, startIdx, title, remove, inside) {
     hold();
     const video = isVideo(photos[i]);
     // Statt des Bildes der Abspieler. Kein automatisches Abspielen -- der
-    // Klick auf die Steuerung startet, sonst nichts.
+// Klick auf die Steuerung startet, sonst nichts.
     img.hidden = video;
     player.hidden = !video;
     if (video) {
       player.poster = imageSource(photos[i], 'medium');
       player.src = imageSource(photos[i], '');
-      /* DIE UEBERNOMMENE STELLE GILT EINMAL, beim Oeffnen. Wer im Vollbild
-         weiterblaettert und zurueckkommt, faengt vorn an -- so wie jedes
-         andere Video dort auch.
-         VOR DEM LADEN GESETZT IST currentTime die "default playback start
-         position": der Browser merkt sich die Zahl und springt hin, sobald er
-         die Masse kennt. Ein Warten auf loadedmetadata braucht es dafuer
-         nicht. */
+      /* DIE UEBERNOMMENE STELLE GILT EINMAL, beim Oeffnen. */
       if (handover && handover.open && player.getAttribute('src') === handover.source) {
         handover.open = false;
         player.currentTime = handover.position;
@@ -5689,10 +3530,7 @@ function openLightbox(photos, startIdx, title, remove, inside) {
     lb.querySelector('.zoom').hidden = !hasOriginal(photos[i]);
     img.title = hasOriginal(photos[i]) ? t('list.clickZoomHint') : '';
     lb.querySelector('.lb-count').textContent = `${i + 1} / ${photos.length}`;
-    /* BLEIBT NUR EINES UEBRIG, VERSCHWINDEN PFEILE UND STREIFEN. Beim Oeffnen
-       entscheidet die Zahl, OB es sie gibt; danach kann Loeschen sie
-       ueberfluessig machen, und ein Pfeil, der auf dasselbe Bild zeigt, sieht
-       aus wie ein kaputter Knopf. */
+    /* BLEIBT NUR EINES UEBRIG, VERSCHWINDEN PFEILE UND STREIFEN. */
     lb.querySelectorAll('.lb-nav').forEach(k => { k.hidden = photos.length < 2; });
     if (strip) {
       strip.hidden = photos.length < 2;
@@ -5735,25 +3573,18 @@ function openLightbox(photos, startIdx, title, remove, inside) {
   lb.querySelector('.close').onclick = close;
   lb.querySelector('.zoom').onclick = () => setZoom(!zoomed);
   /* GELOESCHT WIRD, WAS MAN ANSIEHT -- dieselbe Regel wie ueber dem grossen
-     Bild darunter, und dort steht sie ausfuehrlich begruendet. Die Rueckfrage
-     stellt der Rufer; hier wird nur nachgezogen, was danach uebrig ist.
-     WAR ES DAS LETZTE BILD, GEHT DAS VOLLBILD ZU. Ein leeres Vollbild mit
-     „0 / 0" waere die Ansicht eines Nichts. */
+     Bild darunter, und dort steht sie ausfuehrlich begruendet. */
   lb.querySelector('.remove')?.addEventListener('click', async () => {
     const removed = photos[i];
     if (!await remove(removed)) return;
-    /* WAS GELOESCHT IST, WANDERT NICHT ZURUECK. Der Betrachter darunter hat
-       sich beim Loeschen bereits neu gezeichnet; eine Quelle, die es nicht
-       mehr gibt, darf ihm hier nicht noch einmal untergeschoben werden. */
+    /* WAS GELOESCHT IST, WANDERT NICHT ZURUECK. */
     if (handover && imageSource(removed, '') === handover.source) handover = null;
     photos.splice(i, 1);
     if (!photos.length) { close(); return; }
     buildStrip();
     show();
   });
-  // Auf dem Finger zoomt erst der zweite Tipp. Ein einzelner Tipp tut nichts --
-  // Schliessen waere bei jedem versehentlichen Antippen zu hart, und beim
-  // Betrachten tippt man leicht daneben.
+  // Auf dem Finger zoomt erst der zweite Tipp.
   const DOUBLE_TAP = 300;
   let lastTap = 0;
   img.addEventListener('pointerup', (e) => {
@@ -5785,10 +3616,6 @@ function openLightbox(photos, startIdx, title, remove, inside) {
 /* ================= Ziehen zum Umsortieren ================= */
 // Ein Aufruf fuer Vorschaubilder und Linkzeilen. Pointer-Events statt der
 // HTML5-Ziehschnittstelle, damit es auch mit dem Finger funktioniert.
-// handle: Ziehen beginnt nur an diesem Teil.
-// Halten, bevor auf dem Finger gezogen wird -- ohne das ist jede Wischbewegung
-// ueber einer Liste ein Umsortieren. Mit der Maus bleibt es bei der Schwelle
-// von wenigen Pixeln.
 const HOLD_MS = 400;      // Millisekunden, bis der Finger greift
 const SWIPE_TOLERANCE = 8;   // bewegt er sich vorher weiter, war es Scrollen
 
@@ -5805,8 +3632,7 @@ function makeSortable(el, { axis = 'x', selector, onClick, onDrop, ignore, handl
     let keep = null;
 
     // Solange der Browser das Scrollen noch nicht uebernommen hat, laesst es
-    // sich abfangen. Deshalb greift dieser Hoerer erst nach der Haltezeit --
-    // vorher soll gescrollt werden duerfen.
+    // sich abfangen.
     const stopFixed = (ev) => { if (dragging) ev.preventDefault(); };
 
     const cleanup = () => {
@@ -5874,10 +3700,8 @@ function sparkline(days) {
   const coords = pts.map((d, i) => [pad + i * step, y(d.rating)]);
   const line = coords.map(([x, yy], i) => `${i ? 'L' : 'M'}${x.toFixed(1)},${yy.toFixed(1)}`).join(' ');
   const area = `${line} L${coords[coords.length-1][0].toFixed(1)},${h - pad} L${pad},${h - pad} Z`;
-  // Dieselbe Unterscheidung wie in der Zeitleiste ueber dem
-  // Kartenraster -- eigene Punkte gefuellt, fremde als Ring. Die Linie selbst
-  // laeuft weiter ueber alle: sie ist der Verlauf des Eintrags, nicht der einer
-  // Person.
+  // Dieselbe Unterscheidung wie in der Zeitleiste ueber dem Kartenraster --
+  // eigene Punkte gefuellt, fremde als Ring.
   const dots = coords.map(([x, yy], i) => pts[i].mine === false
     ? `<circle cx="${x.toFixed(1)}" cy="${yy.toFixed(1)}" r="2.4" fill="var(--surface)" stroke="var(--gold)" stroke-width="1.4"/>`
     : `<circle cx="${x.toFixed(1)}" cy="${yy.toFixed(1)}" r="2.6" fill="var(--gold)"/>`).join('');
@@ -5889,25 +3713,10 @@ function sparkline(days) {
 
 /* ================= Detailansicht ================= */
 async function renderDetail(id, termAddress) {
-  /* DER BLICK GILT FUER EINEN EINTRAG UND ENDET MIT IHM -- 0.21.0. Wer an
-     Eintrag 12 den Potenzialkasten aufgeklappt hat, hat das an Eintrag 12
-     getan; an Eintrag 13 gilt wieder die Regel. Genau das unterscheidet den
-     Blick von einer Einstellung, und deshalb steht die Leerung hier, am
-     Eingang der Ansicht, und nicht an einer der Stellen, die sie verlassen. */
+  /* DER BLICK GILT FUER EINEN EINTRAG UND ENDET MIT IHM -- 0.21.0. */
   GLANCE.clear();
   /* DER BEGRIFF KOMMT AUS DER ADRESSE ODER AUS DEM ZUSTAND -- und danach
-     stehen beide gleich. Aus der Adresse kommt er nach einem Neuladen und aus
-     einem weitergegebenen Link; aus dem Zustand kommt er auf jedem Weg in
-     einen Eintrag, den die Kachel nicht gebaut hat -- die Glockentafel, die
-     Zeitleiste, die offenen Aufgaben, der Vergleich.
-     EINE STELLE UND NICHT SECHS: die Adresse hier nachzuziehen ist derselbe
-     Griff wie am Ende von renderSystem(), und er greift fuer jeden dieser
-     Wege. Wer stattdessen an jedem Absender den Begriff anhaengte, haette ihn
-     ab dem naechsten Absender vergessen.
-     replaceState UND NICHT location.hash: der Begriff ist kein anderer Ort,
-     sondern dieselbe Ansicht mit einer Angabe mehr. Ein Eintrag im Verlauf je
-     Buchstabe machte die Zurueck-Taste unbrauchbar, und ein gesetzter Hash
-     loeste ein zweites Zeichnen aus. */
+     stehen beide gleich. */
   const term = (termAddress || state.search).trim();
   if (term) state.search = term;
   const wanted = entryAddress(id, term);
@@ -5938,60 +3747,10 @@ async function renderDetail(id, termAddress) {
         <div class="viewer" id="viewer"></div>
         <div class="thumbs" id="thumbs"></div>
         ${/* DER HINWEISTEXT STEHT IN EINEM EIGENEN SPAN -- Befund 1 der Runde
-             0.26.0. uploadFiles() tauschte ihn ueber `drop.textContent`, und
-             das wirft ALLE Kinder des Labels weg: den Text UND das Dateifeld
-             darin. Am Ende kam der Text zurueck, das Feld nicht -- ein Label
-             ohne Feld hat nichts zu oeffnen, und der `onchange` hing an einem
-             Element, das nicht mehr im Baum stand. Strg+V ging die ganze Zeit
-             weiter, weil der Einfuegeweg am `document` haengt und das Feld gar
-             nicht braucht, und F5 heilte es -- deshalb ist es nie als Fehler
-             gemeldet worden, sondern als Eigenart.
-             NICHT `innerHTML` NEU SETZEN: dann waere der `onchange` wieder weg,
-             nur eine Ebene spaeter. */''}
+             0.26.0. */''}
         <label class="drop" id="drop"><input type="file" id="file" accept="image/*,video/*" multiple><span
           id="drop-text">${tH('entry.addMediaHint')}</span></label>
-        ${/* EIN SATZ UND KEIN ABSATZ -- 0.22.0. Bis 0.21.1 standen hier fuenf
-             Saetze (Vollbild, Blaettern, Papierkorb, Standbild): was ein Knopf
-             tut, sagt sein Tooltip. Die Grenze fuer Videos bleibt, weil man
-             sie VOR dem Upload wissen muss (Regel S1: eine Folge, die man
-             kennen muss, darf stehen).
-             ZWEI SAETZE SEIT 0.27.0, UND DER ZWEITE STEHT AUS DEMSELBEN
-             GRUND WIE DIE VIDEOGRENZE -- F7 des Auftrags 0.27.0, Regel S1:
-             eine Folge, die man VOR dem Handeln kennen muss, darf stehen.
-             Einfuegen ist der TEUERSTE Weg, ein Bild hereinzuholen, und man
-             sieht es dem Ergebnis nicht an: die Zwischenablage traegt keine
-             Datei, sondern Bildpunkte, und der Browser legt sie als PNG ab.
-             Gemessen am 2. September 2026 wurden aus einem 5,21-MB-JPEG im
-             Netz 34,79 MB Zwischenablage und daraus 20,42 MB in der
-             Datenbank.
-
-             ER NENNT DIE FOLGE UND GIBT KEINEN RAT, und das ist die
-             Entscheidung des Betreibers vom 10. September 2026: „Welche
-             Folgen ... hat, wird im kurzen Satz erklaert und der Rest ist
-             Usersache. ... Wir sind nicht sein Papa und er nicht ein
-             Kindergartenkind."
-             ZWEI FASSUNGEN SIND VORHER GEFALLEN. Die erste erklaerte den
-             billigsten Weg mit („Bild speichern unter" und hochladen) und war
-             zu lang; die zweite hatte beim Kuerzen ihre Verben verloren und
-             war kein deutscher Satz mehr. DIE DRITTE IST NICHT NUR KUERZER,
-             SONDERN SAGT ETWAS ANDERES: sie stellt fest, statt zu raten. Wer
-             die Folge kennt, zieht den Schluss selbst.
-             DER PRUEFSTAND HAELT BEIDES FEST -- dass die Folge dasteht UND
-             dass keine Empfehlung danebensteht. Ohne die zweite Zusage waere
-             die Entscheidung eine Laune und kaeme beim naechsten Aufraeumen
-             zurueck.
-
-             ER STEHT AN DER EINFUEGESTELLE UND NICHT IN DER KARTE: hier
-             trifft ihn jemand in dem Augenblick, in dem er die Wahl noch hat.
-             Wer die Karte „Bildformate" liest, fuegt gerade kein Bild ein.
-             UND ER STEHT UNABHAENGIG VOM VERFAHREN DA. Die Folge gilt in jedem
-             der drei -- bei „PNG" am deutlichsten, denn dort bleiben die
-             34,79 MB liegen. Ein Satz, der je nach Einstellung verschwaende,
-             waere eine Auskunft, die man nur bekommt, wenn man sie am
-             wenigsten braucht.
-             IM SELBEN ABSATZ UND NICHT IN EINEM ZWEITEN: es ist dieselbe
-             Auskunft ueber dasselbe Feld, und zwei Absaetze untereinander
-             lesen sich als zwei Themen. */''}
+        ${/* EIN SATZ UND KEIN ABSATZ -- 0.22.0. */''}
         <p class="hint hint-sm" style="margin:8px 2px 0">
           ${tH('entry.photoOrderHint')} ${tH('entry.clipboardLarger')}</p>
       </div>
@@ -5999,30 +3758,11 @@ async function renderDetail(id, termAddress) {
       <div class="meta-col">
         ${/* DER TITELBEREICH TRAEGT SEIT DIESER RUNDE EINEN NAMEN, und der
              Name ist der ganze Zweck: auf einem Telefon steht er VOR dem
-             Bild. Ohne Klasse liesse er sich nicht ansprechen, und ohne
-             Ansprache muesste die Reihenfolge in app.js entschieden werden --
-             also von einem Aufbau, der die Fensterbreite gar nicht kennt.
-             WARUM DER TITEL NACH VORN GEHOERT: einspaltig steht sonst zuerst
-             das Bild, dann die Vorschaubilder, dann das Feld zum Hochladen
-             und dann sechs Zeilen Erklaerung dazu -- und erst danach erfaehrt
-             man, WELCHE Sache man da eigentlich ansieht. Auf einem breiten
-             Schirm faellt das nicht auf, weil beides nebeneinander steht.
-             Auf dem breiten Schirm aendert die Klasse nichts: sie traegt
-             dort keine einzige Regel. */''}
+             Bild. */''}
         <div class="title-head">
           <div class="title-line">
             ${/* EIN MITWACHSENDES FELD UND KEIN EINZEILIGES -- Befund 3a der
-                 Runde 0.26.0. Hier stand ein `<input>`, und ein `<input>`
-                 bricht NICHT um: ein langer Titel lief rechts aus dem Feld
-                 heraus und war auf dem Telefon nicht zu lesen -- auf dem
-                 Geraet also, an dem man ihn am ehesten sucht.
-                 KEINE ZEILE IM STILBLATT KANN DAS: dass ein `<input>` nicht
-                 umbricht, ist seine Bauart und keine Regel. Der Auftrag hat
-                 das Stilblatt genannt; die Abweichung steht im
-                 Aenderungsprotokoll.
-                 DIE MASCHINERIE STEHT SEIT LANGEM DA -- `autoGrow()`, dasselbe
-                 wie an der Beschreibung darunter. Die Hoehe kommt aus dem
-                 Inhalt, der Ziehgriff faellt weg (`.ta-auto`). */''}
+                 Runde 0.26.0. */''}
             <textarea class="title-in" id="title" rows="1">${esc(item.title)}</textarea>
             <button class="pin-btn${item.favorite ? ' on' : ''}" id="pin" title="${item.favorite ? t('entry.unmarkFavorite') : t('entry.markFavorite')}">${item.favorite ? '★' : '☆'}</button>
           </div>
@@ -6033,19 +3773,10 @@ async function renderDetail(id, termAddress) {
           </div>
           ${/* DIE MARKE „abgelehnt" WIRD ZUR AUSSAGE, und eine Aussage traegt
                in dieser Instanz ihren Verfasser: „Abgelehnt am 14.03.2026,
-               09:12 von Anna — Lieferzeit über 6 Monate."
-               EIGENE ZEILE UNTER DEM SCHALTER, nicht Text IM Schalter: der
-               Knopf traegt den Zustand, den er umlegt, und ein Satz darin
-               risse ihn bei 120 Prozent Schrift ueber die Zeile. Dieselbe
-               Bauform und dieselbe Klasse wie „Angelegt von … am …" darueber.
-               DAS FELD STEHT BEIM EINSCHALTEN OFFEN UND SCHLIESST SICH
-               DANACH. Offen beim Einschalten, weil ein Feld, das man erst
-               suchen muss, leer bleibt; geschlossen danach, weil die Aussage
-               daneben schon dasteht -- ein dauernd offenes Feld sagte
-               dieselbe Sache ein zweites Mal. Zurueck kommt es ueber den Text
-               oder ueber das ✎, und beides gibt es nur fuer den, der die
-               Begruendung getroffen hat.
-               Beide sind versteckt, solange nicht abgelehnt ist. */''}
+               09:12 von Anna — Lieferzeit über 6 Monate." EIGENE ZEILE UNTER
+               DEM SCHALTER, nicht Text IM Schalter: der Knopf traegt den
+               Zustand, den er umlegt, und ein Satz darin risse ihn bei 120
+               Prozent Schrift ueber die Zeile. */''}
           <div class="hint hint-sm author-row rej-note" id="rej-badge" hidden></div>
           <div class="row-in rej-reason" id="rej-reason-row" hidden>
             <input class="input input-sm" id="rej-reason" maxlength="200"
@@ -6057,9 +3788,9 @@ async function renderDetail(id, termAddress) {
         <div class="block" data-block="kategorie">
           <div class="block-head"><span class="label">${tH('list.category')}</span></div>
           <div class="row-in">
-            ${/* DIE MINDESTBREITE STEHT SEIT 0.29.0 IM STILBLATT und nicht mehr
-                 hier: inline schlug sie jede Regel, auch die des schmalen
-                 Schirms, und genau die braucht sie (Befund 7). */''}
+            ${/* DIE MINDESTBREITE STEHT SEIT 0.29.0 IM STILBLATT und nicht
+                 mehr hier: inline schlug sie jede Regel, auch die des
+                 schmalen Schirms, und genau die braucht sie (Befund 7). */''}
             <select class="select select-sm" id="cat" style="padding:9px 11px"></select>
             ${mayCategoryCreate() ? `<input class="input input-sm" id="newcat" placeholder="${esc(t('entry.newCategoryHint'))}" style="padding:8px 11px">
             <button class="btn btn-sm" id="newcat-b">${tH('entry.create')}</button>` : ''}
@@ -6081,28 +3812,9 @@ async function renderDetail(id, termAddress) {
           <div class="pills cloud" id="tagcloud"></div>
         </div>
 
-        ${/* ZWEI STERNKAESTEN, DIESELBE BAUFORM -- 0.21.0. Oben das Potenzial
-             (die Einschaetzung VOR dem Test), darunter die Bewertung (das
-             Urteil DANACH). Vorher steht vor nachher, und die Anordnung sagt
-             es; ziehen laesst sich beides wie jeder andere Block.
-             DIE KOEPFE SIND KURZ UND IN BEIDEN GLEICH: Beschriftung, Kopfzahl
-             mit Erklaerknopf, und fuer den Admin bei mehreren Benutzern
-             „Wer hat bewertet" (E5, 0.22.0; 0.21.0 nannte den Knopf „Stimmen",
-             die Route heisst weiter so). Auf dem Telefon eine Zeile.
-             KEIN KNOPF ZUM ZURUECKSETZEN, IN KEINEM DER BEIDEN. „Meine
-             Bewertung zuruecksetzen" brach auf dem Telefon den Blockkopf in
-             drei Zeilen und tat nichts, was das × an der Zeile nicht besser
-             tut. */''}
+        ${/* ZWEI STERNKAESTEN, DIESELBE BAUFORM -- 0.21.0. */''}
         ${/* DER STERNKASTEN STEHT NUR BEI EINGESCHALTETEM MODUS DA -- 0.26.0,
-             und zwar GAR NICHT ERST GEZEICHNET und nicht bloss eingeklappt.
-             Der Unterschied ist der ganze Punkt: eingeklappt heisst sichtbar
-             -- Kopfzeile, Griff, Pfeil, und ein Klick liesse Sterne vergeben.
-             Genau diesen Fehler hat 0.22.1 am Bewertungskasten repariert.
-             NICHT `[hidden]`, SONDERN FORT. Ein verstecktes Element steht im
-             Baum, und was im Baum steht, findet frueher oder spaeter jemand.
-             Der Betreiber hat gesagt: „darf die Box gar nicht zu sehen sein."
-             `sortBlocks()` VERTRAEGT DAS: es sucht den Kasten und verschiebt
-             ihn, wenn es ihn findet. Fehlt er, ruecken die anderen zusammen. */''}
+             und zwar GAR NICHT ERST GEZEICHNET und nicht bloss eingeklappt. */''}
         ${POTENTIAL_MODE ? `<div class="block" data-block="potenzial">
           <div class="block-head"><span class="label">${esc(V.potential)}</span>
             <span class="hint" id="phead"></span>
@@ -6150,16 +3862,7 @@ async function renderDetail(id, termAddress) {
     </div>
 
     <div class="block block-wide" data-block="kommentare">
-      ${/* DER SPRUNGKNOPF, und er ist ein Sprung und kein zweites Formular.
-           Das vorhandene traegt Bilder-Einfuegen, Anpinnen, Art-Umschalter und
-           Mitwachsen; ein zweites davon im Dialog waeren zwei Wahrheiten ueber
-           dasselbe Formular, und die eine wuerde irgendwann vergessen.
-           ER SITZT IM KOPF, WEIL DAS FORMULAR UNTEN SITZT: bei vierzig
-           Kommentaren ist der Weg dorthin weit, und auf dem Telefon steht die
-           Liste einspaltig und ist damit noch laenger.
-           ALS BUTTON UND NICHT ALS VERWEIS -- kopf.onclick nimmt jeden Klick
-           auf ein `button` aus, und ohne das klappte der Sprung den Block im
-           selben Atemzug ein. */''}
+      ${/* DER SPRUNGKNOPF, und er ist ein Sprung und kein zweites Formular. */''}
       <div class="block-head"><span class="label">${tH('dialog.comments')}</span><span class="hint" id="ccount"></span>
         <button class="link-btn" id="cjump" title="${esc(t('entry.jumpToInput'))}">${tH('entry.addComment')}</button></div>
       <div class="cmts" id="cmts"></div>
@@ -6179,37 +3882,22 @@ async function renderDetail(id, termAddress) {
     </div>
     </div>
 
-    ${/* NUR FUER DEN, DER LOESCHEN DARF -- 0.22.0 (E10). Der Server laesst
-         nur Verfasser und Admin durch; fuer jeden anderen war der Knopf nie
-         eine Funktion, sondern eine Fehlermeldung auf Vorrat. Dieselbe Weiche
-         wie an den Kreuzen der Link- und Dateizeilen (mayPath). */''}
+    ${/* NUR FUER DEN, DER LOESCHEN DARF -- 0.22.0 (E10). */''}
     ${item.mine === true || ADMIN
       ? `<div class="danger-row"><button class="btn btn-danger btn-sm" id="del">${tH('entry.deleteEntry')}</button></div>`
       : ''}
 
-    ${/* ---- DAS BLAETTERN, AM ENDE DES EINTRAGS -- 0.28.1 ----
-         HIER UND NICHT IN DER KOPFZEILE, und der Grund steht bei subhead():
-         zwei Pfeile links und rechts von der Marke behaupteten, die Marke zu
-         blaettern. Hier behaupten sie nichts -- sie stehen dort, wo man ist,
-         wenn man mit dem Eintrag fertig ist.
-         NUR DAS WORT UND NICHT DER NAME DES NACHBARN (F6): der Name steht in
-         `state.items` und waere zu haben -- aber beim Direkteinstieg ueber die
-         Adresse gibt es ihn nicht. Dann stuende dort mal ein Name und mal
-         keiner, und ein Knopf, der manchmal etwas anderes sagt, ist zwei
-         Knoepfe.
-         GEDAEMPFT UND DA, NICHT WEG: am ersten und letzten Eintrag bleibt der
-         Knopf stehen und nimmt nur den Griff. Verschwaende er, spraenge der
-         andere an seine Stelle. */''}
+    ${/* ---- DAS BLAETTERN, AM ENDE DES EINTRAGS -- 0.28.1 ---- HIER UND
+         NICHT IN DER KOPFZEILE, und der Grund steht bei subhead(): zwei
+         Pfeile links und rechts von der Marke behaupteten, die Marke zu
+         blaettern. */''}
     ${(() => {
       const nb = entryNeighbours(id);
-      /* KURZ AUF DEM KNOPF, VOLLSTAENDIG IM TITEL -- und das ist ein Befund aus
-         dem Augenschein vom 11. September 2026. „Eins zurueck in der
+      /* KURZ AUF DEM KNOPF, VOLLSTAENDIG IM TITEL -- und das ist ein Befund
+         aus dem Augenschein vom 11. September 2026. „Eins zurueck in der
          Uebersicht" war als Tooltip an einem Zeichen geschrieben, wo Laenge
          nichts kostet; als BESCHRIFTUNG lief der zweite Knopf am Telefon aus
-         dem Schirm.
-         DER PFEIL STEHT IM AUFBAU UND NICHT IM SATZ: eine Richtung ist keine
-         Sprache, und ein uebersetzter Satz, der eine Glyphe mitschleppt,
-         verliert sie beim naechsten Uebersetzen. */
+         dem Schirm. */
       const stepBtn = (target, word, hint, cls, arrow) =>
         `<button class="btn btn-sm step ${cls}" data-step="${target == null ? '' : target}"
           ${target == null ? 'disabled' : ''} title="${esc(t(hint))}">${arrow === 'before'
@@ -6223,9 +3911,7 @@ async function renderDetail(id, termAddress) {
   </div>`;
   wireSubhead({ term });
 
-  /* DIE ZWEI KNOEPFE AM FUSS. Der Begriff faehrt mit: wer mit einem gesuchten
-     Begriff in einen Eintrag gegangen ist, blaettert in der Trefferliste und
-     soll die Adresse nicht unterwegs verlieren. */
+  /* DIE ZWEI KNOEPFE AM FUSS. */
   document.querySelectorAll('.entry-nav .step').forEach(b => {
     b.onclick = () => {
       const to = b.getAttribute('data-step');
@@ -6234,15 +3920,8 @@ async function renderDetail(id, termAddress) {
   });
 
   /* ---- Fotos ---- */
-  /* ---- Ein Foto oder Video entfernen ----
-     EINE FUNKTION, ZWEI RUFER: der Papierkorb ueber dem grossen Bild und der
-     im Vollbild. Die Rueckfrage, die Route und das Neuzeichnen stehen damit an
-     EINER Stelle; zwei Ausfertigungen waeren zwei Gelegenheiten, die
-     Rueckfrage zu vergessen -- und ein Loeschknopf ohne Rueckfrage waere der
-     gefaehrlichste Knopf der Instanz.
-     SIE LIEFERT, OB WIRKLICH GELOESCHT WURDE. Das Vollbild braucht die
-     Antwort, um sein Bild aus der eigenen Liste zu nehmen; ein abgebrochenes
-     Loeschen darf dort nichts verschwinden lassen. */
+  /* ---- Ein Foto oder Video entfernen ---- EINE FUNKTION, ZWEI RUFER: der
+     Papierkorb ueber dem grossen Bild und der im Vollbild. */
   async function deletePhoto(photo) {
     if (!photo) return false;
     const word = isVideo(photo) ? t('list.video') : t('list.photo');
@@ -6258,41 +3937,22 @@ async function renderDetail(id, termAddress) {
 
   function drawViewer() {
     const v = document.getElementById('viewer');
-    /* DIE ANSICHT KANN FORT SEIN -- 0.19.6. Wer den Ausschnitt speichert und
-       waehrend der Wartezeit auf die Uebersicht geht, laesst diese Funktion in
-       eine Seite zeichnen, die es nicht mehr gibt: `getElementById` gibt dann
-       null, und die naechste Zeile warf „can't access property ... is null".
-       Der Wurf landete im `catch` des Aufrufers und wurde dort zur ROTEN
-       MELDUNG -- also zu einer Fehlermeldung ueber einen Vorgang, der in
-       Wahrheit geglueckt war (Stolperstein 298).
-       DIE WACHE STEHT HIER UND NICHT AN DEN SECHS AUFRUFSTELLEN: alle sechs
-       stehen hinter einem await, und die siebte kaeme ungeschuetzt dazu.
-       Dieselbe Regel wie bei drawUsers() -- nur dass dort ein gehaltener
-       Knoten auf isConnected geprueft wird und hier ein frisch gesuchter auf
-       sein Dasein. */
+    /* DIE ANSICHT KANN FORT SEIN -- 0.19.6. */
     if (!v) return;
     // Der Betrachter bleibt bei jedem Neuzeichnen dasselbe Element; innerHTML
-    // ersetzt nur die Kinder. Zeigerbehandler und Kennzeichnung des
-    // Ausschnittmodus haengen aber an ihm selbst und muessen von Hand weg --
-    // sonst wirkt der verlassene Modus weiter: der Klick aufs Bild speichert
-    // dann einen Ausschnitt, statt das Vollbild zu oeffnen.
-    /* ALLE FUENF, seit 0.22.1. `pointerleave` und `pointercancel` sind mit den
-       acht Griffen dazugekommen; blieben sie haengen, setzte ein verlassener
-       Modus weiter Zeigerklassen und speicherte bei einem abgebrochenen Zug. */
+    // ersetzt nur die Kinder.
+    /* ALLE FUENF, seit 0.22.1. */
     v.onpointerdown = v.onpointermove = v.onpointerup =
       v.onpointerleave = v.onpointercancel = null;
     v.classList.remove('focus-mode', ...HANDLE_CLASSES);
     // Beim Blaettern anhalten, bevor das Element verschwindet -- sonst spielt
-    // der Ton der abgeraeumten Zeile noch einen Augenblick weiter.
+// der Ton der abgeraeumten Zeile noch einen Augenblick weiter.
     v.querySelector('video')?.pause();
     const ps = item.photos;
     if (!ps.length) { v.innerHTML = ICON_PH; return; }
     if (idx >= ps.length) idx = 0;
     if (idx < 0) idx = ps.length - 1;
-    /* Am Videoplatz steht der Abspieler -- ausser im Ausschnittmodus. Dort
-       zeigt der Betrachter das Standbild, denn eingestellt wird die Kachel,
-       und die gibt es am Video genauso. Der Rahmen rechnet ausserdem mit den
-       natuerlichen Massen eines Bildes. */
+    /* Am Videoplatz steht der Abspieler -- ausser im Ausschnittmodus. */
     const showsVideo = isVideo(ps[idx]) && !cropMode;
     v.innerHTML = (showsVideo
         ? `<video controls playsinline preload="metadata"
@@ -6300,19 +3960,7 @@ async function renderDetail(id, termAddress) {
              src="/api/photos/${ps[idx].id}/raw"></video>`
         : `<img src="/api/photos/${ps[idx].id}/raw?size=medium" alt="" title="${esc(t('entry.clickFullscreen'))}">`) + `
       ${idx === 0 ? `<span class="main-flag">${tH('entry.mainImage')}</span>` : ''}
-      ${/* EINE REIHE UND NICHT DREI AUSGERECHNETE ABSTAENDE. Die Knoepfe
-           standen vorher einzeln am rechten Rand, und der Vollbildknopf trug
-           dafuer die Zahl 92 -- die Breite des Wortes "Ausschnitt" bei 100
-           Prozent Schrift. Bei 120 Prozent schoben sie sich uebereinander.
-           Eine Flexreihe braucht die Zahl nicht.
-           DER VOLLBILDKNOPF NUR AM VIDEOPLATZ. Beim Foto oeffnet der Klick
-           aufs Bild das Vollbild; am Video gehoert der Klick der
-           Abspielsteuerung, und ohne diesen Knopf kaeme man von einem reinen
-           Videobestand aus gar nicht hinein.
-           DER PAPIERKORB STEHT ABGESETZT, mit einer groesseren Luecke davor.
-           Dieselbe Ueberlegung wie beim Favoritenfilter in der Filterzeile:
-           die beiden davor stellen etwas ein, dieser hier nimmt etwas weg.
-           Ohne den Abstand liest er sich als dritte Einstellung. */''}
+      ${/* EINE REIHE UND NICHT DREI AUSGERECHNETE ABSTAENDE. */''}
       <div class="vtools${cropMode ? ' open' : ''}">
         <button class="vfocus${cropMode ? ' on' : ''}" title="${esc(t('entry.setCrop'))}"
           aria-label="${esc(t('entry.setCrop'))}">${ICON_CROP}</button>
@@ -6322,10 +3970,7 @@ async function renderDetail(id, termAddress) {
       </div>
       ${/* DER SCHIEBER STEHT NUR IM AUSSCHNITTMODUS, und er steht IM
            BETRACHTER und nicht in einer eigenen Bedienflaeche daneben: der
-           Ausschnitt wird an einem Ort eingestellt, nicht an zweien.
-           EIN SCHIEBER UND KEIN MAUSRAD: ein Rad gaebe es auf dem Telefon
-           nicht, und die Bedienung waere dann geraeteabhaengig -- genau das,
-           was die Kachelreihe seit 0.12.0 vermeidet. */''}
+           Ausschnitt wird an einem Ort eingestellt, nicht an zweien. */''}
       ${cropMode && !showsVideo ? `<div class="vzoom">
         <label for="vzoom-slider">${tH('entry.zoom')}</label>
         <input type="range" id="vzoom-slider" min="100" max="400" step="5"
@@ -6336,14 +3981,7 @@ async function renderDetail(id, termAddress) {
         <button class="vnav next" title="${esc(t('list.next'))}">›</button>
         <span class="vcount">${idx + 1} / ${ps.length}</span>` : ''}`;
     const image = v.querySelector('img');
-    /* DAS VOLLBILD BEKOMMT DENSELBEN PAPIERKORB -- eine Funktion, zwei Rufer.
-       Eine EIGENE Liste geht mit: das Vollbild nimmt sein geloeschtes Bild
-       selbst heraus, waehrend hier unten `item` frisch vom Server kommt.
-       Beide Listen zeigen danach dasselbe, aber keine haengt an der anderen.
-       UND ES BEKOMMT DEN INNEREN ABSPIELER -- als Funktion, nicht als
-       Element: `drawViewer()` baut den Betrachter beim Loeschen und beim
-       Blaettern neu auf, und ein gemerkter Knoten waere danach ein Waisenkind.
-       Ohne diese Mitgabe liefen zwei Abspieler nebeneinander. */
+    /* DAS VOLLBILD BEKOMMT DENSELBEN PAPIERKORB -- eine Funktion, zwei Rufer. */
     const innerPlayer = () => v.querySelector('video');
     if (image) image.onclick = () => {
       if (!cropMode)
@@ -6357,17 +3995,7 @@ async function renderDetail(id, termAddress) {
       if (cropMode) toast(t('entry.cropHint'));
     };
     /* GELOESCHT WIRD AM GROSSEN BILD, und das ist der Kern dieser Aenderung.
-       Vorher sass ein Kreuz auf jeder Vorschaukachel. Auf dem Finger stand es
-       dauerhaft da und war 27 Pixel gross -- auf einer Kachel von 62 Pixeln
-       ein Fuenftel der Flaeche, und zwar genau in der Ecke, auf der der Daumen
-       aufsetzt, wenn er ueber die Reihe wischt. Die Reihe las sich damit nicht
-       mehr als vier Bilder, sondern als vier Loeschknoepfe.
-       DIE VORSCHAUREIHE TRAEGT DESHALB AUF DEM FINGER KEINE ZERSTOERUNG MEHR
-       (das entscheidet das Stylesheet). Sie behaelt genau zwei Aufgaben, und
-       beide sind harmlos: antippen zeigt, langes Druecken verschiebt.
-       Hier dagegen ist das Bild gross und der Zaehler daneben sagt, welches es
-       ist -- man loescht, was man ansieht. Dasselbe Bild, das eine Kamera
-       zeigt, wenn man dort den Papierkorb drueckt. */
+       Vorher sass ein Kreuz auf jeder Vorschaukachel. */
     v.querySelector('.vremove').onclick = () => deletePhoto(ps[idx]);
     if (cropMode && image) setUpCropOut(v, image, ps[idx]);
     if (ps.length > 1) {
@@ -6377,7 +4005,7 @@ async function renderDetail(id, termAddress) {
   }
 
   // Ausschnitt festlegen. Der Rahmen zeigt, was die quadratische Vorschau
-  // spaeter zeigen wird -- ohne ihn muesste man raten.
+// spaeter zeigen wird -- ohne ihn muesste man raten.
   function setUpCropOut(v, image, photo) {
     v.classList.add('focus-mode');
     const frame = document.createElement('div');
@@ -6385,7 +4013,7 @@ async function renderDetail(id, termAddress) {
     v.appendChild(frame);
 
     // Das Bild steht mit object-fit:contain im Betrachter; gerechnet wird auf
-    // dem tatsaechlich sichtbaren Rechteck, nicht auf dem Element.
+// dem tatsaechlich sichtbaren Rechteck, nicht auf dem Element.
     const rect = () => {
       const r = image.getBoundingClientRect();
       const nb = image.naturalWidth || 1, nh = image.naturalHeight || 1;
@@ -6395,34 +4023,10 @@ async function renderDetail(id, termAddress) {
     };
 
     let fx = Number(photo.focus_x ?? 50), fy = Number(photo.focus_y ?? 50);
-    /* DIE WEITE WIRD HIER GEMERKT UND NICHT AM foto GELESEN. Nach dem
-       Speichern kommt `item` frisch vom Server, `foto` zeigt aber weiter auf
-       die alte Liste -- der Betrachter wird dabei absichtlich nicht neu
-       gezeichnet, sonst spraenge der Ausschnittmodus bei jedem Zug zu. */
+    /* DIE WEITE WIRD HIER GEMERKT UND NICHT AM foto GELESEN. */
     let zoom = Number(photo.zoom ?? 100) || 100;
 
-    /* WIE GROSS DER SICHTBARE AUSSCHNITT IST UND WIE WEIT ER WANDERN KANN.
-       BEIDES AN EINER STELLE, seit 0.19.1 -- vorher rechnete `draw()` die
-       Lage des Rahmens und `outPoint()` den Spielraum, und die beiden liefen
-       auseinander.
-
-       DER BEFUND, DER DAZU GEFUEHRT HAT: an einem fast quadratischen Bild
-       liess sich der Ausschnitt WAAGERECHT GAR NICHT verschieben und senkrecht
-       kaum. Der Grund stand hier: der Spielraum war `width - seite`, also
-       allein die Ueberlaenge der laengeren Seite -- bei 542 x 568 Bildpunkten
-       sind das 0 waagerecht und 26 senkrecht. DER ZOOM KAM DARIN NICHT VOR,
-       und genau er macht den sichtbaren Ausschnitt kleiner und damit den
-       Spielraum groesser.
-
-       DIE RECHNUNG SELBST STEHT SEIT 0.19.5 IN `cropSpecBox()` GANZ OBEN,
-       und der Grund steht dort: der Server rechnet sie ein zweites Mal, um die
-       Kachel zu erzeugen, und der Pruefstand haelt beide gegeneinander
-       (Stolperstein 293). Hier bleibt nur, was der EDITOR daraus macht -- die
-       Lage des Rahmens auf dem Bildschirm und der Spielraum fuer den Zeiger.
-       WAS SICH AM RAHMEN NICHT GEAENDERT HAT: er zeigt genau das Quadrat, das
-       der Server ausschneidet. Bis 0.19.4 war das eine Behauptung ueber zwei
-       CSS-Eigenschaften; seit dieser Runde ist es dasselbe Rechteck, das in
-       `extract()` geht. */
+    /* WIE GROSS DER SICHTBARE AUSSCHNITT IST UND WIE WEIT ER WANDERN KANN. */
     const dims = () => {
       const f = rect();
       const k = cropSpecBox(f.width, f.height, fx, fy, zoom);
@@ -6442,28 +4046,17 @@ async function renderDetail(id, termAddress) {
     if (!image.complete) image.onload = draw;
 
     // Aus der Zeigerposition den Fokuspunkt errechnen: der angeklickte Punkt
-    // soll in der Mitte des Ausschnitts liegen, soweit das Bild das hergibt.
+// soll in der Mitte des Ausschnitts liegen, soweit das Bild das hergibt.
     const outPoint = (e) => {
       const { f, eng, playX, playY } = dims();
       const px = e.clientX - f.links, py = e.clientY - f.top;
-      /* GERECHNET WIRD MIT DEMSELBEN `eng` WIE OBEN. Stuende hier `seite`,
-         landete der Zeiger nicht in der Mitte des Rahmens, den er gerade
-         zieht -- und der Sprung waere umso groesser, je enger der Ausschnitt.
-         BLEIBT KEIN SPIELRAUM, IST 50 DIE EINZIGE EHRLICHE ANTWORT: ein Bild,
-         von dem die Kachel alles zeigt, hat keine Wahl zu treffen. */
+      /* GERECHNET WIRD MIT DEMSELBEN `eng` WIE OBEN. */
       fx = playX > 0 ? Math.min(100, Math.max(0, (px - eng / 2) / playX * 100)) : 50;
       fy = playY > 0 ? Math.min(100, Math.max(0, (py - eng / 2) / playY * 100)) : 50;
       draw();
     };
 
-    /* DIE FUENF GESTEN -- 0.22.1, und sie sind der Kern dieser Runde.
-       0.22.0 hat das Rechteck gebaut (E9) und dabei ALLES auf eine Geste
-       gelegt: ziehen hiess neu aufziehen, immer. Ab jetzt entscheidet der
-       ORT der Beruehrung, was die Bewegung tut -- aussen neu aufziehen,
-       innen schieben, an einer der acht Zonen die Weite aendern.
-       WELCHE ZONE ES IST, SAGT `cropGesture()` GANZ OBEN; hier steht nur
-       noch, was daraus folgt. Die Trennung ist Absicht: die Entscheidung ist
-       ohne Zeiger pruefbar, die Ausfuehrung braucht den Betrachter. */
+    /* DIE FUENF GESTEN -- 0.22.1, und sie sind der Kern dieser Runde. */
 
     const limited = (x, lo, hi) => Math.min(hi, Math.max(lo, x));
     // Der Rahmen im Bildmass -- dasselbe Rechteck, das `draw()` hinlegt.
@@ -6471,10 +4064,7 @@ async function renderDetail(id, termAddress) {
     // Zeigerlage im Bildmass. Jede Geste rechnet darin, keine in Bildschirmpunkten.
     const inImage = (e) => { const f = rect(); return { x: e.clientX - f.links, y: e.clientY - f.top }; };
 
-    /* NUR DIE LAGE, OHNE DIE WEITE ANZURUEHREN. Das Schieben geht durch diesen
-       Weg und nicht durch `setBox()`: die Zusage „schieben aendert die
-       Weite nicht" ist damit baulich erfuellt und haengt nicht daran, dass die
-       Rastung zufaellig denselben Wert zurueckgibt. */
+    /* NUR DIE LAGE, OHNE DIE WEITE ANZURUEHREN. */
     const setState = (l, o) => {
       const f = rect();
       const eng = Math.min(f.width, f.height) * 100 / zoom;
@@ -6484,19 +4074,7 @@ async function renderDetail(id, termAddress) {
       draw();
     };
 
-    /* WEITE UND LAGE IN EINEM ZUG -- fuer alle Gesten, die die Kante aendern.
-       DIE RASTUNG KOMMT VOR DER LAGE, und das ist der ganze Kniff: die Kante
-       rastet auf die Fuenferstufen des Schiebers (0.22.0, E9 -- beide Wege
-       zeigen dieselbe Zahl), und ERST DANACH wird der Rahmen an seinen Anker
-       gelegt. Legte man ihn nach der ungerasteten Kante, wanderte die feste
-       Ecke bei jeder Rastung um bis zu eine halbe Stufe -- genau die Ecke, die
-       stillstehen soll.
-       `situation` bekommt deshalb die GERASTETE Kante und antwortet mit der linken
-       oberen Ecke. Jede Geste bringt ihre eigene Lage mit; mehr unterscheidet
-       sie nicht.
-       DER DECKEL HAELT DEN RAHMEN IM BILD, ohne den Anker zu verschieben: er
-       begrenzt die KANTE, nicht die Lage. Ohne ihn schoebe die Klemme in
-       `setState()` den Rahmen zurueck ins Bild -- und damit die feste Ecke. */
+    /* WEITE UND LAGE IN EINEM ZUG -- fuer alle Gesten, die die Kante aendern. */
     const setBox = (edgeWanted, situation, cap) => {
       const f = rect();
       const sideLength = Math.min(f.width, f.height);
@@ -6504,19 +4082,8 @@ async function renderDetail(id, termAddress) {
       const k = limited(edgeWanted, sideLength / 4, up);
       zoom = limited(Math.round(sideLength * 100 / k / 5) * 5, 100, 400);
       let narrow = sideLength * 100 / zoom;
-      /* UND DIE RASTUNG DARF DEN DECKEL NICHT UEBERSPRINGEN -- 0.22.1, und das
-         ist ein Fund aus der Gegenprobe.
-         WAS GESCHAH: die Kante rastet auf die naechste Fuenferstufe, und die
-         kann NACH OBEN gehen -- `eng` wird dann groesser als der Deckel, den
-         `up` gerade gesetzt hat. Der Rahmen passt danach nicht mehr an
-         seinen Anker, die Klemme in `setState()` schiebt ihn ins Bild zurueck
-         -- und damit genau die Ecke oder Kante, die stillstehen sollte. In der
-         Prueflage waren es 0,217 Bildpunkte am Mittelpunkt einer Kante.
-         DIE ANTWORT IST EINE STUFE ENGER, nicht eine Toleranz: eine Stufe
-         weiter zugezogen bleibt der Rahmen unter dem Deckel, der Anker sitzt
-         wieder exakt, und die Zahl am Schieber ist weiterhin eine
-         Fuenferstufe. Der Preis ist ein halber Schritt Weite an genau der
-         Stelle, an der es ohnehin nicht weiterginge. */
+      /* UND DIE RASTUNG DARF DEN DECKEL NICHT UEBERSPRINGEN -- 0.22.1, und
+         das ist ein Fund aus der Gegenprobe. */
       if (narrow > up + 1e-9 && zoom < 400) {
         zoom = Math.min(400, zoom + 5);
         narrow = sideLength * 100 / zoom;
@@ -6526,17 +4093,12 @@ async function renderDetail(id, termAddress) {
     };
 
     /* DIE ANKER DER ACHT GRIFFE. Je Geste: welche Ecke oder Kante stillsteht,
-       und wohin der Rahmen von dort aus waechst.
-       AN EINER ECKE steht die gegenueberliegende Ecke still.
-       AN EINER KANTE steht die gegenueberliegende Kante still, und die andere
-       Achse geht symmetrisch um DEREN MITTE mit (Auftrag 1.3a). Der Rahmen
-       rutscht dabei nicht seitlich weg: sein Mittelpunkt wandert auf der
-       festen Kante nicht, er bleibt in ihrer Mitte. */
+       und wohin der Rahmen von dort aus waechst. */
     const dragHandle = (gesture, k, p, f) => {
       const right = k.links + k.edge, bottom = k.top + k.edge;
       const centerX = k.links + k.edge / 2, centerY = k.top + k.edge / 2;
       // Wie weit eine Kante nach beiden Seiten reichen darf, ohne dass die
-      // Mitte wandert -- die kleinere Haelfte gibt den Deckel.
+// Mitte wandert -- die kleinere Haelfte gibt den Deckel.
       const aroundCenter = (m, whole) => 2 * Math.min(m, whole - m);
       switch (gesture) {
         case 'links-oben': return setBox(Math.max(right - p.x, bottom - p.y),
@@ -6561,8 +4123,7 @@ async function renderDetail(id, termAddress) {
     /* EIN NEUES RECHTECK -- das ist die Geste aus 0.22.0, unveraendert in
        ihrer Rechnung: die laengere Seite des aufgezogenen Rechtecks wird die
        Kante (der Ausschnitt ist immer ein Quadrat, die Kachel auch), aus der
-       linken oberen Ecke folgt der Punkt. Neu ist allein, dass sie nur noch
-       AUSSERHALB des Rahmens anfaengt. */
+       linken oberen Ecke folgt der Punkt. */
     const outRect = (a, e) => {
       const f = rect();
       const x1 = limited(a.x - f.links, 0, f.width), y1 = limited(a.y - f.top, 0, f.height);
@@ -6572,17 +4133,13 @@ async function renderDetail(id, termAddress) {
     };
 
     // Den Rahmen schieben: die Weite bleibt, der Zeiger behaelt seine Stelle
-    // IM Rahmen. Ohne den gemerkten Abstand spraenge der Rahmen beim Anfassen
-    // mit seiner linken oberen Ecke unter den Zeiger.
+    // IM Rahmen.
     const shift = (user, e) => {
       const p = inImage(e);
       setState(user.crate.links + (p.x - user.p0.x), user.crate.top + (p.y - user.p0.y));
     };
 
-    /* EIN SPEICHERWEG FUER ALLE GESTEN. Ziehen, Schieben und jeder der acht
-       Griffe setzen denselben Ausschnitt und gehen deshalb durch dieselbe
-       Zusage -- mehrere Aufrufstellen mit mehreren Meldungen waeren mehrere
-       Wahrheiten darueber, was gerade gespeichert wurde. */
+    /* EIN SPEICHERWEG FUER ALLE GESTEN. */
     const save = async () => {
       try {
         item = await api('PUT', `/api/photos/${photo.id}/focus`, { x: fx, y: fy, zoom });
@@ -6591,16 +4148,9 @@ async function renderDetail(id, termAddress) {
       } catch (e) { toast(e.message, true); }
     };
     /* DIE MELDUNG KOMMT AUCH DANN, WENN DIE ANSICHT SCHON FORT IST -- 0.19.6,
-       und das ist die Entscheidung und kein Versehen. Die Route wartet auf die
-       neue Kachel (494 bis 873 ms gemessen); wer in dieser Zeit auf die
-       Uebersicht geht, hat trotzdem gespeichert, und eine Zusage, die genau
-       dann verschwiegen wird, wenn man nicht hingesehen hat, ist keine.
-       DER TOAST HAENGT AM `body` UND NICHT AN DER ANSICHT -- er ueberlebt den
-       Wechsel von sich aus; der Streifen darunter zeichnet nicht mehr. */
+       und das ist die Entscheidung und kein Versehen. */
 
-    /* WAS DER ZEIGER ZEIGT, BEVOR JEMAND DRUECKT. Bis 0.22.0 stand die ganze
-       Flaeche auf `crosshair`, und drei verschiedene Dinge lagen unter
-       demselben Zeichen. */
+    /* WAS DER ZEIGER ZEIGT, BEVOR JEMAND DRUECKT. */
     const showHandle = (gesture) => {
       v.classList.remove(...HANDLE_CLASSES);
       const kl = HANDLE_CURSORS[gesture];
@@ -6609,9 +4159,7 @@ async function renderDetail(id, termAddress) {
 
     /* EIN KLICK BLEIBT EIN KLICK: erst ab sechs Bildpunkten Weg ist es ein
        Zug -- darunter geschieht ausserhalb dasselbe wie bisher (der Punkt
-       wird gesetzt) und INNERHALB DES RAHMENS NICHTS (Entscheidung E1).
-       Ein Griff in den Rahmen, der sich nicht bewegt, ist ein misslungener
-       Griff, und der darf den Ausschnitt nicht verstellen. */
+       wird gesetzt) und INNERHALB DES RAHMENS NICHTS (Entscheidung E1). */
     const DISTANCE_MIN = 6;
     let user = null;
     v.onpointerdown = (e) => {
@@ -6623,8 +4171,7 @@ async function renderDetail(id, termAddress) {
       let gesture = cropGesture(crate, p0.x, p0.y);
       /* AUF DEM FINGER GIBT ES DIE ACHT GRIFFE NICHT (Entscheidung E3): eine
          Zone von zwoelf Bildpunkten trifft keine Fingerkuppe, und ein Weg,
-         der auf dem Telefon danebengeht, ist schlechter als keiner. Wer den
-         Rahmen antippt, schiebt ihn; die Weite bleibt beim Schieber (E9). */
+         der auf dem Telefon danebengeht, ist schlechter als keiner. */
       if (e.pointerType === 'touch' && gesture !== 'neu') gesture = 'schieben';
       user = { gesture, x: e.clientX, y: e.clientY, crate, p0, dragged: false };
       v.setPointerCapture?.(e.pointerId);
@@ -6645,9 +4192,7 @@ async function renderDetail(id, termAddress) {
     v.onpointerup = (e) => {
       if (!user) return;
       /* DER LETZTE ZUG GEHT DURCH DENSELBEN WEG WIE JEDER ZWISCHENSCHRITT --
-         mit dem Anker vom Anfang der Geste. Ein hier neu gebildeter Anker
-         waere der Rahmen, den die Bewegung gerade hingelegt hat, und der Griff
-         wirkte ein zweites Mal. */
+         mit dem Anker vom Anfang der Geste. */
       const prev = user;
       user = null;
       if (prev.dragged) {
@@ -6660,22 +4205,17 @@ async function renderDetail(id, termAddress) {
       outPoint(e);
       save();
     };
-    /* EIN ABGEBROCHENER ZUG SPEICHERT, WAS DASTEHT. Der Rahmen zeigt zu diesem
-       Zeitpunkt bereits den neuen Ausschnitt; ihn unbemerkt zu verwerfen
-       hiesse, dem Bildschirm zu widersprechen. */
+    /* EIN ABGEBROCHENER ZUG SPEICHERT, WAS DASTEHT. */
     v.onpointercancel = () => {
       const dragged = user && user.dragged;
       user = null;
       if (dragged) save();
     };
 
-    /* DER SCHIEBER: `input` zeichnet mit, `change` speichert. Beim Ziehen des
-       Fokuspunkts ist es dieselbe Teilung -- die Bewegung ist sichtbar, die
-       Schreibung geschieht einmal am Ende. Ein Aufruf je Zwischenschritt
-       schickte bei einem Zug ueber die ganze Leiter sechzig Anfragen. */
+    /* DER SCHIEBER: `input` zeichnet mit, `change` speichert. */
     const slider = v.querySelector('#vzoom-slider');
     // Nach einem Rechteck zeigt der Schieber den neuen Zoom -- beide Wege
-    // sagen dieselbe Zahl.
+// sagen dieselbe Zahl.
     const showZoom = () => {
       if (!slider) return;
       slider.value = String(zoom);
@@ -6697,10 +4237,9 @@ async function renderDetail(id, termAddress) {
 
   function drawThumbs() {
     const box = document.getElementById('thumbs');
-    // Dieselbe Wache wie im Betrachter, aus demselben Grund: der Streifen wird
-    // nach jedem Speichern neu gezeichnet, und gespeichert wird hinter einem
-    // await. Ohne sie war der Fehler AN DIESER ZEILE zu sehen -- sie war die
-    // erste, die den fehlenden Knoten anfasste.
+    // Dieselbe Wache wie im Betrachter, aus demselben Grund: der Streifen
+    // wird nach jedem Speichern neu gezeichnet, und gespeichert wird hinter
+    // einem await.
     if (!box) return;
     box.innerHTML = '';
     item.photos.forEach((p, i) => {
@@ -6708,7 +4247,7 @@ async function renderDetail(id, termAddress) {
       tile.className = 'thumb' + (i === idx ? ' current' : '') + (isVideo(p) ? ' is-video' : '');
       tile.dataset.pid = p.id;
       // Abgeleitet aus art und dauer, kein Schalter: das ▶ in der Ecke und,
-      // wenn die Dauer bekannt ist, die Laenge daneben.
+// wenn die Dauer bekannt ist, die Laenge daneben.
       const length = isVideo(p) ? durationText(p.duration) : '';
       const word = isVideo(p) ? t('list.video') : t('list.photo');
       tile.innerHTML = `<img src="${imageSource(p, 'thumb')}" alt="">` +
@@ -6743,15 +4282,8 @@ async function renderDetail(id, termAddress) {
     });
   }
 
-  /* Ein Standbild aus dem gewaehlten Video ziehen -- IM BROWSER, ohne dass der
-     Server das Video je oeffnen muesste. Wer es abspielen kann, kann auch ein
-     Standbild daraus ziehen; wer nicht, laedt es gar nicht erst hoch. Das ist
-     die Entscheidung, an der der ganze Videoweg haengt: kein ffmpeg im Image,
-     keine neue Abhaengigkeit, keine Videobibliothek mit eigener
-     Angriffsflaeche.
-     Die blob:-Adresse am <video> braucht media-src 'self' blob: in der
-     Sicherheitsregel der Anwendung -- ohne die Freigabe scheitert das hier
-     wortlos. */
+  /* Ein Standbild aus dem gewaehlten Video ziehen -- IM BROWSER, ohne dass
+     der Server das Video je oeffnen muesste. */
   async function stillFrame(file, second = 1) {
     const v = document.createElement('video');
     v.preload = 'metadata'; v.muted = true; v.playsInline = true;
@@ -6762,7 +4294,7 @@ async function renderDetail(id, termAddress) {
         v.onerror = () => fail(new Error(t('entry.videoUnplayable')));
       });
       // Ein Video ohne Bildmasse -- etwa eine reine Tonspur -- ergaebe eine
-      // Zeichenflaeche der Groesse null und damit gar kein Standbild.
+// Zeichenflaeche der Groesse null und damit gar kein Standbild.
       if (!v.videoWidth || !v.videoHeight)
         throw new Error(t('entry.videoNoImage'));
       v.currentTime = Math.min(second, (v.duration || 2) / 2);
@@ -6780,14 +4312,12 @@ async function renderDetail(id, termAddress) {
   }
 
   // Fotos gehen gebuendelt in einem Vorgang, Videos einzeln: jedes bringt sein
-  // eigenes Standbild mit, und zwei benannte Felder tragen nur ein Paar.
+// eigenes Standbild mit, und zwei benannte Felder tragen nur ein Paar.
   async function uploadFiles(files) {
     if (!files.length) return;
     const images = files.filter(f => !/^video\//.test(f.type));
     const videos = files.filter(f => /^video\//.test(f.type));
-    /* NUR DER TEXT WANDERT, NICHT DAS FELD -- Befund 1. Getauscht wird der
-       Text des eigenen `<span>`; das Dateifeld bleibt, wo es steht, und mit
-       ihm sein `onchange`. */
+    /* NUR DER TEXT WANDERT, NICHT DAS FELD -- Befund 1. */
     const dropText = document.getElementById('drop-text');
     const old = dropText.textContent;
     dropText.textContent = t('entry.uploading');
@@ -6811,11 +4341,7 @@ async function renderDetail(id, termAddress) {
         finished++;
       }
       drawViewer(); drawThumbs();
-      /* „1 Foto", „1 Video", sonst „3 Dateien" -- „Element" sagt niemand.
-         UND `counted` UND NICHT `plural` -- 0.31.4: `entry.added` setzt das Wort
-         unmittelbar hinter die Zahl („{count} {what} eklendi"), und damit gilt
-         dort die Stellungsregel. Diese Zeile ist beim Bauen von 0.31.4
-         uebersehen und vom Waechter darunter gefunden worden. */
+      /* „1 Foto", „1 Video", sonst „3 Dateien" -- „Element" sagt niemand. */
       if (finished) toast(t('entry.added', { count: finished,
         what: counted(finished, videos.length ? t('list.video') : t('list.photo'),
           videos.length ? (images.length ? t('dialog.files') : t('list.videos')) : t('list.photos')) }));
@@ -6863,33 +4389,13 @@ async function renderDetail(id, termAddress) {
   }, { once: true });
 
   /* WISCHEN BLAETTERT, wie im Vollbild und mit denselben Massen (45 Pixel
-     waagerecht, und waagerecht muss deutlicher sein als senkrecht). Auf einem
-     Telefon ist der Wisch die Bewegung, die man ohne Nachdenken macht.
-     DIE PFEILE BLEIBEN TROTZDEM STEHEN -- sie sind seit dieser Runde auch auf
-     dem Finger sichtbar (siehe `@media (hover: none)` am `.vnav` im
-     Stylesheet). Der Wisch ist der bequeme Weg, der Pfeil der auffindbare;
-     eine Geste, die man nur durch Zufall entdeckt, ist keine Bedienung.
-     DIE ZUSAGEN HAENGEN AM BETRACHTER SELBST UND WERDEN GENAU EINMAL
-     GEGEBEN. drawViewer() ersetzt bei jedem Blaettern nur die KINDER von
-     #viewer; stuenden sie dort, kaeme mit jedem Bild ein weiteres Paar dazu,
-     und nach dem dritten Wisch spraenge die Ansicht um drei Bilder weiter.
-     Aus demselben Grund raeumt drawViewer() seine eigenen Zeigerbehandler von
-     Hand ab -- die hier sind die Ausnahme, weil sie nie ersetzt werden.
-     NICHT IM AUSSCHNITTMODUS: dort zieht der Finger den Rahmen des
-     Bildausschnitts, und ein Blaettern mittendrin verwuerfe die Einstellung.
-     passive: true, weil nichts verhindert wird: war der Wisch senkrecht
-     gemeint, scrollt die Seite weiter, als waere nichts gewesen. */
+     waagerecht, und waagerecht muss deutlicher sein als senkrecht). */
   const stage = document.getElementById('viewer');
   const SWIPE_DISTANCE = 45;
   let swipeX = 0, swipeY = 0, swipes = false;
   stage.addEventListener('touchstart', e => {
     if (cropMode || e.touches.length !== 1 || item.photos.length < 2) return;
-    /* NICHT AUF DEM ABSPIELER. Der steht als Kind im Bildbereich und bringt
-       seine eigene Steuerung mit -- Beruehrungen darauf steigen bis hierher
-       auf. Ohne diese Zeile ist jedes Ziehen am Schieberegler des Videos
-       zugleich ein Wisch: man will an eine andere Stelle im Film und landet
-       im naechsten Bild. Der Wisch gilt dem Blaettern zwischen Bildern, und
-       die Steuerung eines Videos ist kein Bild. */
+    /* NICHT AUF DEM ABSPIELER. */
     if (e.target.closest('video')) return;
     swipeX = e.touches[0].clientX; swipeY = e.touches[0].clientY; swipes = true;
   }, { passive: true });
@@ -6917,34 +4423,11 @@ async function renderDetail(id, termAddress) {
   }
 
   /* DIE AUSSAGE ZUR ABLEHNUNG -- Datum, Verfasser und Grund, und JEDES DER
-     DREI DARF FEHLEN. Eine Ablehnung aus einer Instanz vor 0.14.0 hat keines
-     davon; ein Grund ist freiwillig; und ein Zugang kann entfernt worden sein.
-     Zusammengesetzt wird deshalb aus dem, was DA ist, und nicht aus einer
-     Vorlage mit Luecken.
-     STEHT GAR NICHTS DA, BLEIBT DIE ZEILE WEG: „Abgelehnt" allein saende
-     dasselbe wie der Schalter darueber -- dieselbe Aussage zweimal.
-     AM GRABSTEIN STEHT KEIN NAME: authorName() macht daraus „Gelöschter
-     Benutzer 7", und die Abbildung von der Nummer auf den Namen ist eine
-     Stelle und kein zweiter Weg. Ein Verfasserobjekt, das gar nicht da ist,
-     laesst das „von" weg -- „von Ohne Verfasser" waere eine Behauptung ueber
-     jemanden, den diese Instanz nicht kennt.
-     Das Datum in derselben Schreibweise wie ueberall sonst (fmtDate); zwei
-     Schreibweisen fuer denselben Zeitpunkt waeren eine zu viel.
-     BEI GENAU EINEM ZUGANG FAELLT DER NAME WEG, wie an jeder anderen
-     Verfasserangabe: es gibt nur einen, und "von pruefer" saende nichts.
-     DATUM UND GRUND BLEIBEN dabei stehen -- sie sind der INHALT der
-     Entscheidung und keine Angabe ueber eine Person. Deshalb faellt hier der
-     Name weg und nicht die ganze Zeile. */
+     DREI DARF FEHLEN. */
   /* OB JEMAND DAS FELD AUSDRUECKLICH GEOEFFNET HAT, ist Ansichtszustand und
-     gehoert deshalb hierher und nicht in `item`: der Server weiss nichts davon,
-     und eine Antwort, die es mitbraechte, waere eine Auskunft ueber ein
-     Fenster.
-     ES IST NUR DIE HAELFTE DER FRAGE, SEIT 0.15.1. Ob das Feld dasteht, haengt
-     am ZUSTAND und nicht an einem Klick: es steht offen, solange abgelehnt ist
-     und KEIN Grund dasteht -- und darueber hinaus dann, wenn jemand es ueber
-     den Text oder das ✎ aufgemacht hat. Damit kommt es nach dem Entfernen des
-     Grundes von selbst zurueck, und ein neu geladener Eintrag ohne Grund
-     zeigt es ebenso. */
+     gehoert deshalb hierher und nicht in `item`: der Server weiss nichts
+     davon, und eine Antwort, die es mitbraechte, waere eine Auskunft ueber
+     ein Fenster. */
   let reasonOpen = false;
 
   function drawRejection() {
@@ -6955,39 +4438,19 @@ async function renderDetail(id, termAddress) {
 
     /* WER WAS DARF, KOMMT VOM SERVER UND WIRD NICHT ZURUECKGERECHNET -- diese
        Seite kennt ihren NAMEN (`NAME`), nicht ihre Nummer, und aus einem
-       Grabstein liesse sich ohnehin nichts holen. Geliefert werden zwei
-       Tatsachen, gerechnet wird hier, und zwar genau wie am Kommentar:
-         `may`      spiegelt darfAendern am EINTRAG. Ohne ihn kommt gar kein
-                     Schreiben an `rejectedReason` durch die erste Klemme.
-         `mine`     UMSCHREIBEN -- nur wer die Begruendung getroffen hat, und
-                     nur, solange er den Eintrag auch aendern darf.
-         `manage` ENTFERNEN -- "Loeschen ja, umschreiben nein": das ist
-                     dieselbe Klemme wie am Eintrag und deshalb `may`.
-       HERRENLOS IST EIN EIGENER FALL: eine Ablehnung aus einer Instanz vor
-       0.14.0 hat keinen Verfasser. Der Server laesst dort jeden schreiben, der
-       den Eintrag aendern darf -- ohne diesen Zweig gaebe es hier keinen Weg
-       hinein, und die Zusage des Servers liefe ins Leere. `rejectedVerfasser`
-       ist GENAU DANN null, wenn die Spalte leer ist: ein Grabstein steht
-       weiter in der Verfasserkarte und kommt als Objekt ohne Namen. */
+       Grabstein liesse sich ohnehin nichts holen. */
     const may = item.mine === true || ADMIN;
     const mine = may && (item.rejectedMine === true || !item.rejectedAuthor);
     const manage = may;
     const reason = (item.rejected_reason || '').trim();
 
     /* WANN DAS FELD DASTEHT -- die Regel aus dem Betrieb, 29. August 2026:
-       ABGELEHNT UND KEIN GRUND. Das ist der Zustand, in dem etwas fehlt, und
-       nur dort gehoert eine Eingabe hin. Ein Eintrag, an dem niemand den
-       Ablehnungsknopf gedrueckt hat, braucht sie gar nicht -- sie naehme
-       umsonst Platz (gemessen: 72,9 px).
-       UND DARUEBER HINAUS AUF WUNSCH: wer den Text oder das ✎ anklickt, macht
-       sie auf, um einen vorhandenen Grund zu aendern. Das ist `reasonOpen`.
-       EIN FELD, DAS NIEMAND FUELLEN DARF, STEHT NIE OFFEN. */
+       ABGELEHNT UND KEIN GRUND. */
     const open = item.rejected && mine && (!reason || reasonOpen);
     if (!open) reasonOpen = false;
     row.hidden = !open;
     // Der Vorschlag zum Ueberschreiben: beim Oeffnen steht die alte
-    // Begruendung im Feld. Waehrend getippt wird, NICHT ueberschreiben --
-    // drawSwitches() laeuft auch nach dem Speichern des Grundes.
+    // Begruendung im Feld.
     if (open && document.activeElement !== field) field.value = item.rejected_reason || '';
 
     const parts = [];
@@ -6996,17 +4459,12 @@ async function renderDetail(id, termAddress) {
       parts.push(`von ${authorName(item.rejectedAuthor)}`);
     const head = parts.length ? t('entry.rejectedBy', { what: parts.join(' ') }) : '';
 
-    /* DAS ✎ STEHT AUCH OHNE BEGRUENDUNG DA. Ohne Text gibt es nichts
-       anzuklicken, und ohne das Zeichen gaebe es dann gar keinen Weg mehr in
-       das Feld -- der Schalter steht ja schon auf "abgelehnt".
-       DAS ✕ NUR MIT BEGRUENDUNG: ein Papierkorb an einem leeren Feld boete
-       an, nichts zu entfernen. */
+    /* DAS ✎ STEHT AUCH OHNE BEGRUENDUNG DA. */
     const showPen = item.rejected && mine;
     const showPath = item.rejected && manage && !!reason;
     /* WAEHREND GESCHRIEBEN WIRD, TRITT DIE AUSSAGE ZURUECK: das Feld IST in
        diesem Augenblick die Aussage, und beides nebeneinander waere genau die
-       Doppelung, die dieser Ruhezustand aufloest. Der Kommentar macht es
-       genauso -- sein Text weicht dem Textfeld. */
+       Doppelung, die dieser Ruhezustand aufloest. */
     mark.hidden = !item.rejected || open || (!head && !reason && !showPen);
     mark.innerHTML = '';
     const text = document.createElement('span');
@@ -7014,9 +4472,7 @@ async function renderDetail(id, termAddress) {
     if (head) text.appendChild(document.createTextNode(reason ? `${head} — ` : head));
     if (reason) {
       /* DER GRUND IST DIE ENTSCHEIDUNG UND BEKOMMT DAS ROT DES SCHALTERS;
-         Datum und Name bleiben grau. Sie sind eine Verfasserangabe wie
-         „Angelegt von … am …" und keine Aussage ueber die Sache -- und ein
-         ganzer Satz in Rot naehme dem Grund die Hervorhebung wieder weg. */
+         Datum und Name bleiben grau. */
       const w = document.createElement('span');
       w.className = 'rej-why' + (mine ? ' clickable' : '');
       w.textContent = reason;
@@ -7026,7 +4482,7 @@ async function renderDetail(id, termAddress) {
     mark.appendChild(text);
 
     // Dieselbe Bauform, dieselben Klassen, dieselben Zeichen wie am Kommentar.
-    // Eine zweite Bauform fuer dasselbe waere eine zweite Wahrheit.
+// Eine zweite Bauform fuer dasselbe waere eine zweite Wahrheit.
     const acts = document.createElement('span');
     acts.className = 'acts';
     if (showPen) {
@@ -7047,9 +4503,7 @@ async function renderDetail(id, termAddress) {
   }
 
   /* AUSDRUECKLICH AUFMACHEN -- fuer den einen Fall, den die Regel nicht schon
-     abdeckt: es steht ein Grund da, und er soll geaendert werden. Ohne Grund
-     ist das Feld ohnehin offen, und dieser Weg fuehrt dann nur den Zeiger
-     hinein. */
+     abdeckt: es steht ein Grund da, und er soll geaendert werden. */
   function openReason() {
     reasonOpen = true;
     drawRejection();
@@ -7059,12 +4513,7 @@ async function renderDetail(id, termAddress) {
 
   /* DAS ENTFERNEN GEHT ALS LEERER GRUND HINAUS, und der Server macht daraus
      ein Entfernen: leer nach reasonText() heisst wegnehmen und laeuft ueber
-     darfAendern, alles andere ueber nurSelbst.
-     DATUM UND VERFASSER BLEIBEN STEHEN -- „Abgelehnt am 14.03.2026 von Anna"
-     ist weiterhin wahr, nur der Grund fehlt. Deshalb wird hier auch NICHT das
-     Merkmal zurueckgenommen; das ist der Schalter darueber und eine andere
-     Handlung.
-     GEFRAGT WIRD VORHER: die Angabe ist danach nirgends wiederherzustellen. */
+     darfAendern, alles andere ueber nurSelbst. */
   async function removeReason() {
     if (!await confirmBox(t('entry.reasonDeleteAsk'),
       t('entry.reasonDeleteHint'))) return;
@@ -7076,29 +4525,14 @@ async function renderDetail(id, termAddress) {
   document.getElementById('sw-test').onclick = async () => {
     try {
       item = await api('PUT', `/api/items/${id}`, { tested: !item.tested });
-      /* DER SCHALTER LEERT DEN BLICK -- 0.21.0. Nach dem Umlegen soll der
-         Kasten offen stehen, den die Regel meint: „Getestet" ein -> Bewertung
-         auf, Potenzial zu; wieder aus -> umgekehrt. Ein Blick, den jemand VOR
-         dem Umlegen geworfen hat, kehrte die neue Regel sonst gleich wieder um
-         -- und der Klick auf den Schalter saehe aus, als haette er nichts
-         getan.
-         GELOESCHT WIRD NICHTS: die Sterne beider Kaesten bleiben, wo sie sind,
-         und die Zahl des zugeklappten steht in seinem Kopf. */
+      /* DER SCHALTER LEERT DEN BLICK -- 0.21.0. */
       GLANCE.clear();
       drawSwitches(); drawTestDays(); drawRatings();
     }
     catch (e) { toast(e.message, true); }   // Sperre wird serverseitig begruendet
   };
   document.getElementById('sw-rej').onclick = async () => {
-    /* BEIM EINSCHALTEN GEHT DIE ALTE BEGRUENDUNG MIT HINAUS. Der Server
-       schreibt die drei Angaben zusammen: eine neue Entscheidung bekommt
-       neues Datum, neuen Namen und den Text, der im Rumpf steht. Ohne dieses
-       Feld faenge jede erneute Ablehnung mit einer leeren Zeile an -- und die
-       Angabe, die beim Zuruecknehmen ausdruecklich stehen geblieben ist, waere
-       damit doch weg. Sie steht anschliessend im Feld und laesst sich
-       ueberschreiben; das ist der Vorschlag und keine Uebernahme im Stillen.
-       BEIM AUSSCHALTEN GEHT NUR DAS MERKMAL HINAUS: die drei Angaben bleiben,
-       wo sie sind. */
+    /* BEIM EINSCHALTEN GEHT DIE ALTE BEGRUENDUNG MIT HINAUS. */
     const core = item.rejected
       ? { rejected: false }
       : { rejected: true, rejectedReason: item.rejected_reason || '' };
@@ -7106,14 +4540,7 @@ async function renderDetail(id, termAddress) {
       item = await api('PUT', `/api/items/${id}`, core);
       /* BEIM EINSCHALTEN STEHT DAS FELD OFFEN, WENN KEIN GRUND DASTEHT -- und
          das entscheidet seit 0.15.1 die Regel in drawRejection() und nicht
-         dieser Klick. Hier wird deshalb NICHTS aufgeklappt, sondern nur der
-         Zeiger hineingesetzt, wenn es ohnehin dasteht: ein Feld, das man erst
-         suchen muss, bleibt leer.
-         WIRD EIN EINTRAG MIT VORHANDENEM GRUND ERNEUT ABGELEHNT, bleibt es zu
-         -- der Grund steht dann in der Aussage und laesst sich ueber das ✎
-         aendern. Er ist nicht verloren, er steht nur woanders.
-         BEIM AUSSCHALTEN VERSCHWINDEN BEIDE: es gibt nichts mehr zu begruenden,
-         und die Angaben bleiben trotzdem in der Zeile stehen. */
+         dieser Klick. */
       reasonOpen = false;
       drawSwitches();
       const f = document.getElementById('rej-reason');
@@ -7123,12 +4550,7 @@ async function renderDetail(id, termAddress) {
   };
   /* Der Grund wird beim Verlassen des Feldes gespeichert, wie Titel und
      Beschreibung daneben -- und mit Enter, weil es eine EINZELNE Zeile ist
-     und dort kein Zeilenumbruch im Weg steht.
-     UNVERAENDERT WIRD NICHT GESCHICKT: sonst schoebe jedes Anklicken den
-     Eintrag ueber updated_at in jeder Uebersicht nach oben.
-     UND DANACH SCHLIESST SICH DAS FELD, in jedem Ausgang: die Aussage tritt
-     wieder an seine Stelle. Auch nach einer Absage -- der Text steht dann
-     wieder da, wie er in der Zeile steht, und die Meldung sagt, warum. */
+     und dort kein Zeilenumbruch im Weg steht. */
   {
     const field = document.getElementById('rej-reason');
     const save = async () => {
@@ -7141,11 +4563,11 @@ async function renderDetail(id, termAddress) {
       drawSwitches();
     };
     field.onblur = save;
-    /* ESCAPE SETZT DAS FELD ZURUECK, BEVOR ES SCHLIESST -- und die Reihenfolge
-       ist der ganze Punkt: das Schliessen nimmt dem Feld den Zeiger, das
-       loest onblur aus, und save() vergliche sonst den getippten Text
-       mit dem gespeicherten und schriebe genau das weg, was gerade verworfen
-       werden sollte. */
+    /* ESCAPE SETZT DAS FELD ZURUECK, BEVOR ES SCHLIESST -- und die
+       Reihenfolge ist der ganze Punkt: das Schliessen nimmt dem Feld den
+       Zeiger, das loest onblur aus, und save() vergliche sonst den getippten
+       Text mit dem gespeicherten und schriebe genau das weg, was gerade
+       verworfen werden sollte. */
     field.addEventListener('keydown', e => {
       if (e.key === 'Enter') { e.preventDefault(); field.blur(); }
       else if (e.key === 'Escape') {
@@ -7157,19 +4579,15 @@ async function renderDetail(id, termAddress) {
     });
   }
   /* Den Knopf NICHT aus dem Ereignis holen: e.currentTarget ist nur waehrend
-     der Zustellung gesetzt und steht nach dem ersten await auf null. Der
-     Klick schriebe dann zwar richtig weg, wuerfe aber danach und zeichnete
-     den Knopf nie neu. Deshalb zeichnen wie die beiden Schalter
-     darueber: nach dem await aus `item`, das der Server gerade frisch
-     geliefert hat. */
+     der Zustellung gesetzt und steht nach dem ersten await auf null. */
   function drawPin() {
     const b = document.getElementById('pin');
     if (!b) return;
     b.className = 'pin-btn' + (item.favorite ? ' on' : '');
     b.textContent = item.favorite ? '★' : '☆';
-    // Der Ueberfahrtext gehoert mit gezeichnet: er benennt die
-    // naechste Handlung, nicht das Merkmal -- bliebe er stehen, boete ein
-    // gesetzter Favorit weiterhin "Als Favorit markieren" an.
+    // Der Ueberfahrtext gehoert mit gezeichnet: er benennt die naechste
+    // Handlung, nicht das Merkmal -- bliebe er stehen, boete ein gesetzter
+    // Favorit weiterhin "Als Favorit markieren" an.
     b.title = item.favorite ? t('entry.unmarkFavorite') : t('entry.markFavorite');
   }
   document.getElementById('pin').onclick = async () => {
@@ -7181,11 +4599,7 @@ async function renderDetail(id, termAddress) {
 
   /* ---- Texte ---- */
   const titleEl = document.getElementById('title');
-  /* EIN TITEL HAT KEINE ZEILEN -- Befund 3a. Er DARF umbrechen, wo der Platz
-     endet, und er soll keinen Umbruch TRAGEN: die Eingabetaste beendet ihn,
-     wie sie es im Feld davor tat, und ein eingefuegter Absatz wird beim
-     Speichern zu einem Leerzeichen. Das Feld zeigt danach, was gespeichert
-     ist -- sonst stuenden zwei Wahrheiten in derselben Zeile. */
+  /* EIN TITEL HAT KEINE ZEILEN -- Befund 3a. */
   titleEl.onkeydown = e => { if (e.key === 'Enter') { e.preventDefault(); titleEl.blur(); } };
   const titleFit = autoGrow(titleEl);
   titleEl.onblur = async () => {
@@ -7204,15 +4618,9 @@ async function renderDetail(id, termAddress) {
   };
 
   /* ---- Kategorie ---- */
-  /* ---- Wer den Eintrag angelegt hat, und wann ----
-     Bei genau einem aktiven Zugang bleibt die Zeile weg -- "Angelegt von mir"
-     ist keine Information, und dann ist auch das Datum keine: es steht schon
-     in der Sortierung. Abgeleitet aus der Zahl der Zugänge, nicht aus einem
-     Schalter; die Schwelle steht in multipleUsers() und nirgends sonst.
-     Das Datum ist reine Anzeige, in derselben Form wie am Kommentar --
-     zwei Schreibweisen für denselben Zeitpunkt wären eine zu viel.
-     `created_at` steht NOT NULL in der Zeile; ein Auffangnetz für den
-     fehlenden Wert wäre eines gegen etwas, das es nicht gibt. */
+  /* ---- Wer den Eintrag angelegt hat, und wann ---- Bei genau einem aktiven
+     Zugang bleibt die Zeile weg -- "Angelegt von mir" ist keine Information,
+     und dann ist auch das Datum keine: es steht schon in der Sortierung. */
   function drawAuthor() {
     const el = document.getElementById('iauthor');
     if (!el) return;
@@ -7243,7 +4651,7 @@ async function renderDetail(id, termAddress) {
     } catch (e) { toast(e.message, true); }
   };
   // Die Behandler haengen nur an tatsaechlich vorhandenen Elementen: steht der
-  // Schalter auf aus, gibt es die Anlegezeile gar nicht.
+// Schalter auf aus, gibt es die Anlegezeile gar nicht.
   const newcatEl = document.getElementById('newcat');
   if (newcatEl) {
     document.getElementById('newcat-b').onclick = addCat;
@@ -7254,7 +4662,7 @@ async function renderDetail(id, termAddress) {
   function drawTags() {
     const box = document.getElementById('chips');
     // Kein Hinweis, solange die Wolke darunter leer ist: „Noch keine Tags."
-    // direkt ueber „Noch keine Tags angelegt." war derselbe Satz zweimal.
+// direkt ueber „Noch keine Tags angelegt." war derselbe Satz zweimal.
     box.innerHTML = item.tags.length || !allTags.length ? '' : `<span class="hint">${tH('entry.noTagsYet')}</span>`;
     item.tags.forEach(tag => {
       const c = document.createElement('span');
@@ -7271,9 +4679,7 @@ async function renderDetail(id, termAddress) {
     setUpBlocksOut(item);
   }
 
-  // Wolke aller vorhandenen Tags. Klick vergibt oder nimmt zurueck -- das ✕ an
-  // der Marke oben bleibt daneben bestehen: zwei Wege fuer zwei Absichten,
-  // Fehlgriff korrigieren gegen gezieltes Aufraeumen.
+  // Wolke aller vorhandenen Tags.
   function drawCloud() {
     const box = document.getElementById('tagcloud');
     const more = document.getElementById('tagcloud-more');
@@ -7324,17 +4730,8 @@ async function renderDetail(id, termAddress) {
     newtagEl.addEventListener('keydown', e => { if (e.key === 'Enter') addTag(); });
   }
 
-  /* ---- Die beiden Sternkaesten ----
-     EIN ZEICHNER MIT EINER PHASE, NICHT ZWEI ZEICHNER. Zwei waeren zwei
-     Wahrheiten ueber dieselbe Zeile: was am × haengt, wie die Klammer ab zwei
-     Stimmen aussieht, wann der Strich steht -- all das muesste zweimal
-     stimmen, und beim naechsten Griff nur einmal geaendert werden.
-     WAS DIE PHASE ENTSCHEIDET, IST DREIERLEI: welche Zeilen aus `item.ratings`
-     genommen werden, aus welchem Feld die Kopfzahl kommt (`avgRating` gegen
-     `potenzialRating`) und welcher Rechenweg am Erklaerknopf haengt. Sonst
-     nichts.
-     GERECHNET WIRD HIER NICHTS. Beide Kopfzahlen und beide Rechenwege kommen
-     vom Server; der Browser filtert und schreibt hin. */
+  /* ---- Die beiden Sternkaesten ---- EIN ZEICHNER MIT EINER PHASE, NICHT
+     ZWEI ZEICHNER. */
   const BOXES = [
     { phase: 'after', box: 'ratings',           head: 'rhead', button: 'weight-open',
       actor: 'rwho', average: 'avgRating',       removed: 'calc' },
@@ -7350,52 +4747,27 @@ async function renderDetail(id, termAddress) {
     const rows = item.ratings.filter(r => r.phase === boxId.phase);
     /* DER KASTEN IST DAS RASTER, nicht die einzelne Zeile: eine Spalte kann
        sich nur dann an ihrer breitesten Zelle ausrichten, wenn alle Zellen im
-       SELBEN Raster liegen. Die Klasse steht hier und nicht im Aufbau
-       darueber, damit sie neben dem Kasten steht, den sie meint.
-       UND DIE SPALTENZAHL FOLGT DEM ZUSTAND: bei genau einem Zugang gibt es
-       die Durchschnittszelle nicht, also hat das Raster auch nur zwei
-       Spalten. Beide Entscheidungen haengen an DERSELBEN Bedingung -- sie
-       steht einmal hier und wird unten wiederverwendet, statt ein zweites Mal
-       gefragt zu werden (Stolperstein 47). Mit drei Spalten und zwei Zellen
-       ruecken die Zeilen gegeneinander, und die Liste zerfaellt. */
+       SELBEN Raster liegen. */
     const withAverage = multipleUsers();
     box.className = 'rlist' + (withAverage ? '' : ' no-average');
-    // Angelegt wird im Systembereich: ein neues Kriterium erscheint an
-    // JEDEM Eintrag, das ist eine redaktionelle Entscheidung und keine
-    // Notiz am Eintrag.
-    // DER TEXT GILT IN BEIDEN KAESTEN, und er zaehlt die Zeilen DIESES Kastens:
-    // wer nur Bewertungskriterien angelegt hat, hat im Potenzialkasten
-    // tatsaechlich noch keine.
+    // Angelegt wird im Systembereich: ein neues Kriterium erscheint an JEDEM
+    // Eintrag, das ist eine redaktionelle Entscheidung und keine Notiz am
+    // Eintrag.
     box.innerHTML = rows.length ? ''
       : `<span class="hint">${ADMIN
           ? t('entry.noCriteriaHint')
           : t('entry.noCriteriaYet')}</span>`;
     // Die Kopfzahl neben der Beschriftung: erst je Kriterium ueber alle, dann
     // ueber die Kriterien -- also genau das Mittel der Zahlen, die rechts in
-    // den Zeilen stehen. Damit ist sie nachvollziehbar, sobald beide zugleich
-    // sichtbar sind.
+    // den Zeilen stehen.
     const head = document.getElementById(boxId.head);
-    /* DAS WORT "gewichtet" IST ABGELEITET, kein Schalter und keine Einstellung
-       -- dieselbe Bauform wie die Durchschnittsspalte, die bei einem einzigen
-       Zugang entfaellt. Sind alle Gewichte 1, steht dort genau das, was vor
-       dieser Version dort stand.
-       ABGELEITET AUS DEN BEWERTETEN KRITERIEN, nicht aus allen: ein Kriterium
-       mit Gewicht 1,5, das an diesem Eintrag niemand bewertet hat, geht in die
-       Rechnung gar nicht ein. Das Wort stuende dann an einer Zahl, an der
-       keine Gewichtung stattgefunden hat. */
+    /* DAS WORT "gewichtet" IST ABGELEITET, kein Schalter und keine
+       Einstellung -- dieselbe Bauform wie die Durchschnittsspalte, die bei
+       einem einzigen Zugang entfaellt. */
     const weightedCalc = rows
       .some(r => (r.value > 0 || r.avg != null) && Number(r.weight) !== 1);
     /* DIE KOPFZAHL IST SEIT 0.16.0 EIN KNOPF, und er fuehrt zur eigenen
-       Rechnung dieses Eintrags. „⌀ 4,2 gewichtet" war zwar richtig, hat sich
-       aber nirgends erklaert -- auch nicht in der Karte, in der die Gewichte
-       eingestellt werden.
-       DER GANZE AUSDRUCK IST DER KNOPF, nicht nur das Wort „gewichtet". Sonst
-       gaebe es die Erklaerung ausgerechnet dort nicht, wo alle Gewichte 1 sind
-       -- und die zwei Schritte hinter dem ⌀ (erst je Kriterium, dann darueber)
-       sind auch ohne Gewichte nicht selbstverstaendlich.
-       OHNE ZAHL KEIN KNOPF: an einem Eintrag ohne Bewertung gaebe es nichts zu
-       erklaeren, und ein Knopf, der ein leeres Fenster oeffnet, ist einer zu
-       viel. */
+       Rechnung dieses Eintrags. */
     const averageValue = item[boxId.average];
     if (head) {
       head.textContent = '';
@@ -7403,34 +4775,12 @@ async function renderDetail(id, termAddress) {
         const b = document.createElement('button');
         b.className = 'link-btn weight-open';
         b.id = boxId.button;
-        /* DAS WORT KOMMT AUS DER SPRACHDATEI -- 0.30.0, Befund 10 (F15).
-           BIS HIERHER STAND ES FEST IM QUELLTEXT, und in einer englisch oder
-           tuerkisch eingestellten Instanz stand an dieser Stelle deutscher
-           Text. Es ist der FUENFTE solche Fund in sechs Runden (0.24.3 zwei,
-           0.28.1 zwei), und keiner der drei Waechter konnte ihn sehen: die
-           Restprobe vergleicht die SPRACHDATEI, `SCREEN_BAN` liest die Texte
-           des Moduls, der Bezeichnerwaechter liest NAMEN und keine WERTE. Die
-           Antwort darauf ist nicht dieser Schluessel, sondern die Wache, die
-           seit dieser Runde WERTE liest (Zusage 21).
-           DER ABSTAND STEHT IM CODE UND NICHT IM SATZ: ein Schluessel, dessen
-           Wert mit einem Leerzeichen anfaengt, verliert es beim ersten
-           Nachpflegen. */
+        /* DAS WORT KOMMT AUS DER SPRACHDATEI -- 0.30.0, Befund 10 (F15). */
         b.textContent = '⌀ ' + number(averageValue, 1) +
           (weightedCalc ? ' ' + t('entry.weighted') : '');
-        /* DER TITEL SAGT, WESSEN ZAHL DAS IST -- 0.22.1 (E5). Die Zahl ist
-           der Schnitt ueber ALLE, die bewertet haben; die eigenen Sterne
-           stehen links in der Zeile. Bis 0.22.0 stand das nirgends, und die
-           Frage danach kam aus dem Betrieb.
-           OHNE BEDINGUNG AUF DIE ZAHL DER ZUGAENGE: eine Installation mit
-           einem einzigen Benutzer bekaeme sonst einen anderen Satz ueber
-           dieselbe Rechnung (Stolperstein 47). „Ueber alle Benutzer" ist bei
-           einem Benutzer nicht falsch, sondern knapp.
-           UND PHASENNEUTRAL: derselbe Titel steht in beiden Kaesten, und
-           „Bewertung" waere im Potenzialkasten das falsche Wort. */
+        /* DER TITEL SAGT, WESSEN ZAHL DAS IST -- 0.22.1 (E5). */
         b.title = t('entry.avgAllHint');
-        // DER ERKLAERKNOPF BEKOMMT DEN RECHENWEG SEINES KASTENS. Beide kommen
-        // aus derselben Rechnung im Server; hier wird nur der richtige
-        // angehaengt.
+        // DER ERKLAERKNOPF BEKOMMT DEN RECHENWEG SEINES KASTENS.
         b.onclick = () => showCalc(boxId);
         head.appendChild(b);
       }
@@ -7440,10 +4790,7 @@ async function renderDetail(id, termAddress) {
       row.className = 'rrow';
       const n = document.createElement('span');
       n.className = 'rname'; n.textContent = r.name;
-      // Die Marke ×1,5 hinter dem Namen. Ohne sie saehe die Kopfzahl falsch
-      // aus -- mit Gewichten ist sie aus den Zeilenwerten nicht mehr durch
-      // Mitteln nachzuvollziehen. Eigener Knoten statt Text im Namen: der Name
-      // ist Eingabe und wird gesetzt, nicht zusammengebaut.
+      // Die Marke ×1,5 hinter dem Namen.
       const mark = weightMark(r.weight);
       if (mark) {
         const m = document.createElement('span');
@@ -7457,186 +4804,84 @@ async function renderDetail(id, termAddress) {
         try { item = await api('PUT', `/api/items/${id}/ratings`, { criterionId: r.criterion_id, value: v }); drawRatings(); }
         catch (err) { toast(err.message, true); }
       });
-      /* DAS ZURUECKSETZEN GEHT UEBER `PUT` MIT 0 und nicht ueber einen eigenen
-         Weg: `Math.max(0, ...)` im Server nimmt die Null seit jeher an, und
-         eine Zeile mit 0 ist keine Stimme. Die Sammelroute dahinter ist mit
-         0.21.0 weggefallen.
-         DIE MELDUNG IST PHASENNEUTRAL: sie gilt in beiden Kaesten, und
-         „Bewertung" waere im Potenzialkasten das falsche Wort.
-         UND SIE TRAEGT „Rückgängig" -- 0.22.0 (E16): ein Klick schreibt den
-         eigenen alten Wert zurueck, derselbe PUT mit dem alten Wert. Es ist
-         kein Verlauf und keine Wiederherstellung, sondern die Umkehr genau
-         des einen Klicks, der die Meldung ausgeloest hat. */
+      /* DAS ZURUECKSETZEN GEHT UEBER `PUT` MIT 0 und nicht ueber einen
+         eigenen Weg: `Math.max(0, ...)` im Server nimmt die Null seit jeher
+         an, und eine Zeile mit 0 ist keine Stimme. */
       const s = stars(r.value, set);
       const back = resetButton(r.value, () => {
         const old = r.value;
         set(0);
         toast(t('entry.starsRemoved', { name: r.name }), false, { text: t('entry.undo'), tu: () => set(old) });
       });
-      // Kein Loeschkreuz in dieser Zeile. Ein Kriterium zu
-      // loeschen wirkt auf ALLE Eintraege und nimmt vergebene Sterne mit -- eine
-      // globale Folge, die hier eine Zeigerbreite neben dem Sterne-Widget lag,
-      // im Blick auf einen einzelnen Eintrag. Geloescht wird im Systembereich,
-      // wo der Verwendungszaehler danebensteht. Dieselbe Begruendung wie beim
-      // Sortieren, das aus demselben Grund schon dort liegt.
+      // Kein Loeschkreuz in dieser Zeile.
       acts.append(s);
-      // Rechts der Schnitt ueber alle und die Zahl der Bewerter,
-      // gedaempft. Die Sterne links bleiben die EIGENE Bewertung -- ein
-      // Bedienelement zeigt den Zustand, den es veraendert; zeigten sie den
-      // Schnitt, spraenge die Anzeige nach einem Klick auf den vierten Stern
-      // auf 3,6, und der Klick wirkte verschluckt.
-      // Die Zahl der Bewerter steht dabei, sobald es ETWAS ZU UNTERSCHEIDEN
-      // gibt: 4,8 aus zwei Stimmen heisst etwas anderes als 4,8 aus zwanzig.
-      // BEI EINER EINZIGEN STIMME STEHT SIE NICHT DA -- die Eins beantwortet
-      // keine Frage, die jemand hat. Bis 0.17.1 stand sie auch dort, und die
-      // Begruendung lautete "4,8 aus einer Stimme heisst etwas anderes als 4,8
-      // aus zwanzig". Das stimmt, sagt aber nichts darueber, ob die Zahl DORT
-      // gebraucht wird: der Vergleich beginnt bei zwei.
-      // Bei genau einem Zugang entfaellt die Spalte ganz. Hat niemand bewertet,
-      // bleibt sie leer -- neben fuenf leeren Sternen waere "keine Bewertung"
-      // dieselbe Aussage zweimal.
+      // Rechts der Schnitt ueber alle und die Zahl der Bewerter, gedaempft.
       row.append(n, acts);
-      /* DIE DURCHSCHNITTSSPALTE IST EINE RASTERZELLE UND HAENGT DESHALB AN DER
-         ZEILE, nicht in .racts. Nur so kann sich das Raster an der breitesten
-         Zahl der ganzen Liste ausrichten -- steckte sie in .racts, waere sie
-         wieder nur so breit wie ihr eigener Inhalt, und die Sterne stuenden
-         Zeile fuer Zeile woanders.
-         DIESELBE BEDINGUNG WIE OBEN AM RASTER, und zwar buchstaeblich
-         dieselbe: `withAverage` entscheidet ueber die Spalte UND ueber die
-         Zelle. Zwei getrennte Abfragen waeren zwei Wahrheiten, und die eine
-         liesse sich aendern, ohne dass die andere mitginge. */
+      /* DIE DURCHSCHNITTSSPALTE IST EINE RASTERZELLE UND HAENGT DESHALB AN
+         DER ZEILE, nicht in .racts. */
       if (withAverage) {
         const a = document.createElement('span');
         a.className = 'ravg';
         /* DIESELBE FORM WIE DIE KOPFZAHL DARUEBER, die bereits "⌀ 4,2
-           gewichtet" schreibt: das ⌀ ist die Hausform, die Klammer sagt
-           "so viele Stimmen". Der Mittelpunkt davor sagte weder das eine
-           noch das andere -- er trennte nur zwei Zahlen, die verschiedene
-           Dinge meinen.
-           DER KLARTEXT GEHOERT DAZU: ein Symbol allein liest kein
-           Vorleseprogramm vor, und "⌀ 4,2 (3)" bliebe fuer den, der es
-           vorgelesen bekommt, eine Folge von Zeichen. */
+           gewichtet" schreibt: das ⌀ ist die Hausform, die Klammer sagt "so
+           viele Stimmen". */
         if (r.avg) {
           const votes = `${r.count} ${vRating(r.count)}`;
           const average = number(r.avg, 1);
-          /* DIE KLAMMER ERST AB ZWEI. Sie sagt "so viele Stimmen" und
-             beantwortet damit die Frage, wie schwer der Schnitt wiegt -- bei
-             einer einzigen gibt es diese Frage nicht.
-             DER TITEL BLEIBT VOLLSTAENDIG: wer die Zahl doch braucht, bekommt
-             sie beim Ueberfahren und ueber das Vorleseprogramm. Was hier
-             wegfaellt, ist die Zahl auf dem Bildschirm und nicht die Auskunft. */
+          /* DIE KLAMMER ERST AB ZWEI. */
           a.textContent = r.count > 1 ? `⌀ ${average} (${r.count})` : `⌀ ${average}`;
           a.title = t('entry.avgOf', { average: average, votes: votes });
         } else {
-          /* EIN STRICH, SOLANGE NIEMAND BEWERTET HAT -- 0.21.0. Bis 0.20.1
-             stand hier nichts, mit der Begruendung, neben fuenf leeren Sternen
-             waere ein Satz dieselbe Aussage zweimal. Das stimmt fuer einen
-             SATZ; ein Strich ist keiner, sondern der Platz, der der Zahl
-             gehoert -- und er sagt „noch niemand".
-             DER TITEL SAGT ES IN WORTEN, wie an der Zahl daneben auch: ein
-             Zeichen allein liest kein Vorleseprogramm vor.
-             Die Breite haengt nicht an ihm: die Spalte traegt seit dieser
-             Runde eine gemessene Mindestbreite (style.css). Der Strich ist
-             die Auskunft, nicht der Platzhalter. */
+          /* EIN STRICH, SOLANGE NIEMAND BEWERTET HAT -- 0.21.0. */
           a.textContent = '–';
           a.title = t('entry.notRatedYet');
         }
         row.append(a);
       }
-      /* DIE LETZTE ZELLE DER ZEILE, IN JEDER LAGE: der Ruecksetzknopf in seiner
-         eigenen Rasterspalte -- steckte er in der Zelle der Zahl, wanderte die
-         Zahl, sobald eine Zeile keinen Knopf traegt (Konzept 6.5a). Bei einem
-         einzigen Zugang steht er damit als dritte Zelle hinter den Sternen,
-         und das Stilblatt haelt dort mindestens 12 px Abstand. */
+      /* DIE LETZTE ZELLE DER ZEILE, IN JEDER LAGE: der Ruecksetzknopf in
+         seiner eigenen Rasterspalte -- steckte er in der Zelle der Zahl,
+         wanderte die Zahl, sobald eine Zeile keinen Knopf traegt (Konzept
+         6.5a). */
       const zz = document.createElement('span');
       zz.className = 'rreset-cell';
       zz.appendChild(back);
       row.append(zz);
       box.appendChild(row);
-      /* HIER STEHT AUSDRÜCKLICH KEINE STIMMENLISTE. Wer welchen Wert vergeben
-         hat, ist eine Angabe über einzelne Personen; die Zeile zeigt den
-         eigenen Wert und den Schnitt, mehr soll eine Bewertung nicht aussagen.
-         Die Liste ruft der Admin über den Knopf im Blockkopf auf. */
+      /* HIER STEHT AUSDRÜCKLICH KEINE STIMMENLISTE. */
     });
   }
-  /* ---- „Stimmen": die Ansicht des Admins ----
-     SIE HIESS BIS 0.20.1 „Wer hat bewertet". Der Knopf traegt seit 0.21.0 den
-     Namen der Route und den Namen der Sache im Dialog: EIN WORT. Es steht in
-     BEIDEN Kastenkoepfen gleich -- „Wer hat bewertet" waere im
-     Potenzialkasten das falsche Wort, und zwei verschiedene Beschriftungen
-     fuer dieselbe Ansicht waeren zwei Namen fuer eine Sache.
-     Wer welchen Wert vergeben hat, steht nicht unter der Sternzeile: die
-     Angabe geht sonst an jeden. Sie ist eine eigene Ansicht, die der Admin
-     ausdrücklich aufruft — und zugleich der LÖSCHWEG für eine fremde
-     Bewertung. Ohne diese Ansicht wäre DELETE /api/ratings/:id vom Bildschirm
-     aus unerreichbar.
-     Der Knopf steht nur beim Admin und erst ab zwei Zugängen: bei einem wäre
-     die Liste der eigene Wert ein zweites Mal. Der Server verweigert den Abruf
-     ohnehin; ein Knopf, der zuverlässig eine Fehlermeldung erzeugt, sieht aus
-     wie ein Fehler. */
-  /* ---- Die eigene Rechnung hinter der Kopfzahl -- 0.16.0 ----
-     DER KASTEN LIEST DIE VORHANDENE RECHNUNG, ER RECHNET NICHT NACH. Zaehler,
-     Nenner und das ungerundete Ergebnis kommen aus `rechenweg`, und der
-     entsteht im Server IN gesamtSchnitt() -- also in derselben Schleife, die
-     die Zahl erzeugt. Ein zweiter Rechenweg fuer die Anzeige waere genau die
-     zweite Wahrheit, die diese Instanz nirgends duldet: die beiden liefen
-     frueher oder spaeter auseinander, und zwar unbemerkt.
-     KEIN ALLGEMEINES BEISPIEL, SONDERN DIESER EINTRAG. Ein erfundenes
-     Rechenbeispiel liest niemand zweimal; die eigene Rechnung schon.
-     DIE NAMEN KOMMEN AUS `ratings` UND NICHT AUS DEM RECHENWEG: der traegt
-     Nummern, Werte und Gewichte. Zwei Quellen fuer denselben Namen waeren zwei
-     Wahrheiten -- dieselbe Ueberlegung wie bei „Wer hat bewertet". */
+  /* ---- „Stimmen": die Ansicht des Admins ---- SIE HIESS BIS 0.20.1 „Wer hat
+     bewertet". */
+  /* ---- Die eigene Rechnung hinter der Kopfzahl -- 0.16.0 ---- DER KASTEN
+     LIEST DIE VORHANDENE RECHNUNG, ER RECHNET NICHT NACH. */
   const weightNumber = (n) => {
     const z = Math.round(Number(n) * 100) / 100;
     return number(z, 0, 2);
   };
 
-  /* MIT DEM KASTEN ALS ARGUMENT -- 0.21.0. Die Aufstellung gibt es zweimal,
-     einmal je Kopfzahl, und sie liest beide Male denselben Bau: `rechenweg`
-     fuer die Bewertung, `potenzialRechenweg` fuer das Potenzial. Beide
-     entstehen im Server IN gesamtSchnitt(), also in derselben Schleife wie die
-     Zahl darueber. Zwei Kaesten, ein Fenster. */
+  /* MIT DEM KASTEN ALS ARGUMENT -- 0.21.0. */
   function showCalc(boxId) {
     const removed = item[boxId.removed];
     // Ohne Aufstellung kein Kasten. Sie fehlt nur, wenn nichts bewertet ist --
-    // dann steht aber auch keine Kopfzahl da, an der man klicken koennte.
+// dann steht aber auch keine Kopfzahl da, an der man klicken koennte.
     if (!removed || !Array.isArray(removed.rows) || !removed.rows.length)
       return toast(t('entry.nothingRatedYet'), true);
     const names = new Map(item.ratings.map(r => [r.criterion_id, r.name]));
     const withWeight = removed.rows.some(z => Number(z.weight) !== 1);
-    /* OB DIE GEWICHTUNG UEBERHAUPT ETWAS AENDERT. Verglichen werden die beiden
-       ANGEZEIGTEN Zahlen und nicht die ungerundeten: der Kasten sagt etwas
-       ueber das, was dasteht. Zwei Rechnungen, die sich erst in der dritten
-       Stelle unterscheiden, ergeben am Bildschirm dieselbe Zahl -- und dann
-       ist „hier steht 3,7 statt 3,7" keine Auskunft. */
+    /* OB DIE GEWICHTUNG UEBERHAUPT ETWAS AENDERT. */
     const sameNumber = Number(removed.equalResult) === Number(removed.result);
     const bd = document.createElement('div');
     bd.className = 'backdrop';
     bd.innerHTML = `<div class="modal calc-modal" id="calc-modal">
       <h2>${tMarks('entry.calcHowAvg', { word: esc(weightNumber(removed.result)) })}</h2>
-      ${/* DER VERWEIS ZEIGT IN DEN KASTEN UND NICHT AUS IHM HINAUS. Hier stand
-           bis 0.17.0 „die Zahlen rechts in den Zeilen" -- gemeint war die
-           Durchschnittsspalte der Kriterienliste dahinter, und die gibt es bei
-           genau EINEM Zugang gar nicht. Derselbe blinde Fleck wie in Punkt 1
-           dieser Runde, eine Ansicht weiter: ein Satz zeigte auf eine Spalte,
-           die nicht in jeder Lage dasteht.
-           DIE SPALTE „NOTE" STEHT DAGEGEN IMMER DA -- sie gehoert dem Kasten
-           selbst, gleich unter diesem Satz. Ein Verweis auf das, was der Kasten
-           mitbringt, braucht keine Bedingung; eine Bedingung waere eine zweite
-           Wahrheit ueber die Zahl der Zugaenge (Stolperstein 47). */''}
-      ${/* „UEBER ALLE BENUTZER" -- 0.22.1 (E5). Der Kasten erklaerte die Zahl
-           bis 0.22.0 nur zur Haelfte: er nannte die beiden Schritte und liess
-           offen, ueber WEN der erste geht. Genau das war die Frage aus dem
-           Betrieb. Zwei Woerter, und sie stehen dort, wo die Zahl ohnehin
-           erklaert wird. */''}
+      ${/* DER VERWEIS ZEIGT IN DEN KASTEN UND NICHT AUS IHM HINAUS. */''}
+      ${/* „UEBER ALLE BENUTZER" -- 0.22.1 (E5). */''}
       <p><strong>${tH('entry.calcTwoSteps')}</strong> ${tMark('entry.calcStepsHint', 'entry.grade',
           { extra: withWeight ? t('entry.calcWithWeight') : t('entry.calcAllEqual') })}</p>
       <div class="calc" id="calc">
         <div class="calc-row calc-head"><span>${tH('entry.criterion')}</span><span>${tH('entry.grade')}</span><span>${tH('entry.weight')}</span><span>${tH('entry.calcGradeWeight')}</span></div>
         ${/* DIE LETZTE KRITERIENZEILE HEISST SO -- Befund 4. Sie zieht den
-             Strich vor den Summen; das Stilblatt faerbt ihn dort staerker.
-             Ohne Kriterien gibt es sie nicht, und dann grenzt der Kopf mit
-             seinem eigenen Strich an die Summen. */''}
+             Strich vor den Summen; das Stilblatt faerbt ihn dort staerker. */''}
         ${removed.rows.map((z, i) => `<div class="calc-row${i === removed.rows.length - 1 ? ' calc-last' : ''}" data-krit="${Number(z.criterionId)}">
           <span class="calc-name">${esc(names.get(z.criterionId) || '—')}</span>
           <span>${esc(weightNumber(z.average))}</span>
@@ -7648,48 +4893,18 @@ async function renderDetail(id, termAddress) {
           <span id="calc-divisor">${esc(weightNumber(removed.divisor))}</span></div>
         <div class="calc-row calc-result"><span>${tH('entry.result')}</span><span></span><span></span>
           <span id="calc-result">⌀ ${esc(weightNumber(removed.result))}</span></div>
-        ${/* DIE VERGLEICHSZAHL -- 0.17.0. Die Formel stand Zeile fuer Zeile da
-             und liess trotzdem offen, WOFUER die Gewichte gut sind. Erst der
-             Unterschied macht die Gewichtung sichtbar.
-             OHNE GEWICHTUNG STEHT SIE GAR NICHT DA: sind alle Gewichte 1, ist
-             sie dieselbe Zahl wie darueber, und zweimal dasselbe hinzuschreiben
-             ist keine Auskunft.
-             VIER ZELLEN WIE JEDE ANDERE ZEILE. Das Raster hat vier Spalten;
-             eine Zeile mit dreien schoebe alles darunter um eine weiter --
-             genau der Fehler, den Punkt 1 derselben Runde behebt.
-             UND SIE WIRD GELESEN, NICHT GERECHNET (Stolperstein 217): sie
-             entsteht in gesamtSchnitt(), in derselben Schleife wie die Zahl
-             darueber. */''}
+        ${/* DIE VERGLEICHSZAHL -- 0.17.0. Die Formel stand Zeile fuer Zeile
+             da und liess trotzdem offen, WOFUER die Gewichte gut sind. */''}
         ${withWeight ? `<div class="calc-row calc-same"><span>${tH('entry.calcNoWeights')}</span>
           <span></span><span></span>
           <span id="calc-same">⌀ ${esc(weightNumber(removed.equalResult))}</span></div>` : ''}
       </div>
-      ${/* ZWEI ABSAETZE UNTER DER TABELLE UND NICHT DREI -- 0.17.3. Bei sieben
-           Kriterien lief der Kasten ueber `88dvh` hinaus und rollte.
-           WAS WIRKLICH DOPPELT DASTAND, WAR GENAU EINE ANGABE: die
-           ausgeschriebene Rechnung „Summe ÷ Teiler = Ergebnis". Sie steht als
-           Summe, Teiler und Ergebnis schon in der Tabelle darueber, und die
-           Zwischenzahl vor dem Runden trug nichts, was der Satz nicht auch so
-           sagt. Alles andere trug etwas, das in der Tabelle NICHT steht, und
-           ist deshalb geblieben.
-           WEGGEFALLEN IST AUSSERDEM DIE BEGRUENDUNG ZUM TEILER -- „sonst zoege
-           es die Zahl nach unten": WARUM es so gebaut ist, steht im
-           Projektstand und nicht in einem Kasten, den man beim Lesen einer Note
-           oeffnet.
-           DER TEILER BLEIBT DER PUNKT, AN DEM SICH DIE MEISTEN VERRECHNEN, und
-           steht deshalb vorn. Die Rundung steht daneben und nicht in einem
-           eigenen Absatz: beides sagt, wie aus den Zeilen darueber EINE Zahl
-           wird. */''}
-      ${/* ZWEI SAETZE FUER JEDEN, DER DRITTE NUR FUER DEN ADMIN -- 0.22.0. Wo
-           die Gewichte eingestellt werden, liest nur, wer dorthin kommt
-           (Regel S5). */''}
+      ${/* ZWEI ABSAETZE UNTER DER TABELLE UND NICHT DREI -- 0.17.3. Bei
+           sieben Kriterien lief der Kasten ueber `88dvh` hinaus und rollte. */''}
+      ${/* ZWEI SAETZE FUER JEDEN, DER DRITTE NUR FUER DEN ADMIN -- 0.22.0. */''}
       <p>${tMark('entry.calcRoundingHint', 'entry.criteriaNoStars')}${ADMIN ? ` ${tMarks('entry.weightsWhere', { word: `<strong>${
         esc(boxId.phase === 'before' ? t('entry.criteriaPotential') : t('entry.criteriaRating'))}</strong>` })}` : ''}</p>
-      ${/* WAS DIE GEWICHTUNG AENDERT, IN EINEM SATZ. Sind beide Zahlen gleich,
-           steht genau das da -- zweimal dieselbe Zahl hinzuschreiben waere
-           eine Auskunft ueber nichts.
-           DIESER ABSATZ IST DER PUNKT DES GANZEN KASTENS und deshalb der
-           einzige, an dem 0.17.3 kein Wort geaendert hat. */''}
+      ${/* WAS DIE GEWICHTUNG AENDERT, IN EINEM SATZ. */''}
       ${withWeight ? (sameNumber
         ? `<p id="calc-same-note">${tMarks('entry.calcNoChange',
             { word: `<strong>⌀ ${esc(weightNumber(removed.result))}</strong>` })}</p>`
@@ -7713,10 +4928,7 @@ async function renderDetail(id, termAddress) {
     bd.onclick = e => { if (e.target === bd) zu(); };
   }
 
-  /* MIT DEM KASTEN ALS ARGUMENT -- 0.21.0, wie die Rechnung darueber. EIN
-     ABRUF liefert die Stimmen aller Kriterien; welche das Fenster zeigt,
-     entscheidet der Kasten, aus dem geklickt wurde. Eine zweite Route je
-     Kasten waere eine Route mehr fuer nichts -- die Antwort ist dieselbe. */
+  /* MIT DEM KASTEN ALS ARGUMENT -- 0.21.0, wie die Rechnung darueber. */
   async function showMatch(boxId) {
     let list;
     try { list = await api('GET', `/api/items/${id}/votes`); }
@@ -7731,9 +4943,7 @@ async function renderDetail(id, termAddress) {
       <div class="modal-acts"><button class="btn btn-ghost" data-no>${tH('list.close')}</button></div></div>`;
     document.body.appendChild(bd);
     const zu = () => { bd.remove(); document.removeEventListener('keydown', onKey, true); };
-    // NUR DER OBERSTE DIALOG SCHLIESST. Das ✕ hier drin fragt über confirmBox
-    // nach, und dann liegen zwei Dialoge übereinander -- ohne diese Frage
-    // nähme eine Taste beide zugleich weg.
+    // NUR DER OBERSTE DIALOG SCHLIESST.
     const onKey = e => {
       if (e.key !== 'Escape') return;
       if ([...document.querySelectorAll('.backdrop')].pop() !== bd) return;
@@ -7749,16 +4959,13 @@ async function renderDetail(id, termAddress) {
       box.innerHTML = '';
       const per = new Map(list.map(z => [z.criterion_id, z.votes]));
       // Reihenfolge und Name kommen aus dem Eintrag: der Endpunkt liefert nur
-      // Nummern, Werte und Verfasser. Zwei Quellen für denselben Namen wären
-      // zwei Wahrheiten.
+      // Nummern, Werte und Verfasser.
       let something = false;
-      // NUR DIE ZEILEN DIESES KASTENS. Der Abruf kennt keine Phase; das Fenster
-      // gehoert aber zu einem der beiden Koepfe, und was darin steht, muss zu
-      // dem Kopf passen, aus dem es aufgegangen ist.
+      // NUR DIE ZEILEN DIESES KASTENS.
       item.ratings.filter(r => r.phase === boxId.phase).forEach(r => {
         const votes = per.get(r.criterion_id) || [];
         // Ein Kriterium ohne Stimme bekommt gar keine Zeile -- eine leere
-        // Liste unter einem Namen sagt nichts.
+// Liste unter einem Namen sagt nichts.
         if (!votes.length) return;
         something = true;
         const row = document.createElement('div');
@@ -7773,9 +4980,7 @@ async function renderDetail(id, termAddress) {
           s2.appendChild(document.createTextNode(`${authorName(st.author)} ${st.value}`));
           /* Das ✕ steht nur am FREMDEN Wert — den eigenen räumt man mit dem
              Doppelklick auf den Stern weg, und zwei Wege für dieselbe Absicht
-             wären einer zu viel. Die Note ändert der Admin nicht: es gibt hier
-             kein Sterne-Widget an einer fremden Stimme, nur den Weg, sie zu
-             entfernen. */
+             wären einer zu viel. */
           if (!st.mine) {
             const x = document.createElement('button');
             x.className = 'xdel';
@@ -7802,19 +5007,13 @@ async function renderDetail(id, termAddress) {
     }
   }
   // Der Knopf steht nur beim Admin ab zwei Zugängen; ohne ihn gibt es hier
-  // nichts anzuhängen. ZWEI KOEPFE, ZWEI KNOEPFE, EINE SCHLEIFE.
+// nichts anzuhängen. ZWEI KOEPFE, ZWEI KNOEPFE, EINE SCHLEIFE.
   for (const k of BOXES) {
     const el = document.getElementById(k.actor);
     if (el) el.onclick = () => showMatch(k);
   }
   /* HIER HING BIS 0.20.1 DER KNOPF „Meine Bewertung zuruecksetzen" -- samt
-     confirmBox und samt `DELETE /api/items/:id/ratings` dahinter. Beides ist
-     mit 0.21.0 weg: das Zuruecksetzen sitzt an der ZEILE, als sichtbares ×
-     hinter den eigenen fuenf Sternen, und geht ueber `PUT` mit `value: 0`.
-     WER ALLES LEEREN WILL, TIPPT DREI- BIS FUENFMAL -- bei einer Handlung, die
-     selten ist und sich durch erneutes Setzen ohnehin heilt. Dafuer gibt es
-     keinen zweiten, versteckten Weg mehr und keinen Kopf, der auf dem Telefon
-     in drei Zeilen bricht. */
+     confirmBox und samt `DELETE /api/items/:id/ratings` dahinter. */
 
   /* ---- Testtage ---- */
   function drawTestDays() {
@@ -7859,8 +5058,7 @@ async function renderDetail(id, termAddress) {
       };
 
       // Tags am Testtag: zwischen Datum und Sternen, derselbe Vorrat wie am
-      // Eintrag. Der Filter der Uebersicht greift sie nicht auf, die Suche
-      // findet sie trotzdem.
+      // Eintrag.
       const tagBox = document.createElement('span');
       tagBox.className = 'ttags';
       (d.tags || []).forEach(tag => {
@@ -7897,37 +5095,18 @@ async function renderDetail(id, termAddress) {
       };
       tagBox.appendChild(plus);
 
-      /* ---- „MEHR" RECHTS VON DEN MARKEN -- 0.30.1, Befund 4 (F9) ----
-         DER BETREIBER HAT DIE ENTSCHEIDUNG NICHT SELBST GETROFFEN, SONDERN
-         EINE REGEL DAFUER GEGEBEN: „Beides machbar. welches eher in frage
-         kommt, kommt darauf an welche form wir im eintragsview welche benutzt
-         haben." Damit entscheidet der Quelltext und nicht der Geschmack -- und
-         er ist eindeutig: die Tagwolke DIESER Ansicht steht auf drei Reihen
-         begrenzt und traegt darunter „mehr"/„weniger" (drawCloud(), weiter
-         oben). Gerollt wird nur die KATEGORIENREIHE der Uebersicht, und das
-         ist ein anderer Ort.
-         EINE REIHE UND NICHT DREI: eine Testtagzeile ist eine ZEILE. Drei
-         Reihen Tags darin waeren derselbe Umbruch, gegen den dieser Befund
-         gebaut wird.
-         RECHTS VON DEN MARKEN UND NICHT AM ZEILENENDE -- so steht es in der
-         Bestellung, und es stimmt auch baulich: am Zeilenende stuende er
-         hinter den Sternen und sagte nichts mehr darueber, WAS da noch kommt. */
+      /* ---- „MEHR" RECHTS VON DEN MARKEN -- 0.30.1, Befund 4 (F9) ---- DER
+         BETREIBER HAT DIE ENTSCHEIDUNG NICHT SELBST GETROFFEN, SONDERN EINE
+         REGEL DAFUER GEGEBEN: „Beides machbar. */
       const more = document.createElement('button');
       more.className = 'link-btn ttag-more';
       more.hidden = true;
 
-      /* DIE ZEILE SAGT SELBST, OB SIE MARKEN TRAEGT -- 0.30.1, Befund 4.
-         Danach richtet sich ihr Aufbau: ohne Tags steht alles in EINER
-         Zeile und die Sterne rechtsbuendig; mit Tags traegt die erste Zeile
-         Datum und Tags, und die Sterne rutschen darunter.
-         EINE KLASSE UND KEIN `:has()`: dieselbe Ueberlegung wie bei
-         `frow-tags` in 0.30.0 -- eine Regel, die sich ihren Traeger ueber den
-         Inhalt der Zeile zusammensucht, liest sich beim naechsten Stueck in
-         der Zeile falsch. */
+      /* DIE ZEILE SAGT SELBST, OB SIE MARKEN TRAEGT -- 0.30.1, Befund 4. */
       if ((d.tags || []).length) row.classList.add('trow-tags');
 
       // Wer den Tag eingetragen hat -- ab zwei Zugängen. Die Zeitleiste
-      // unterscheidet weiter über die Füllung; hier steht der Name.
+// unterscheidet weiter über die Füllung; hier steht der Name.
       if (multipleUsers()) {
         const from = document.createElement('span');
         from.className = 'tfrom' + (d.mine ? ' mine' : '');
@@ -7938,18 +5117,10 @@ async function renderDetail(id, termAddress) {
       }
       list.appendChild(row);
 
-      /* GEMESSEN WIRD ERST IM DOKUMENT. limitCloud() liest die Hoehe des
-         ersten Kindes; ausserhalb misst sie null, und aus null entstuende
-         keine Begrenzung. Dieselbe Reihenfolge wie bei den beiden Wolken. */
+      /* GEMESSEN WIRD ERST IM DOKUMENT. */
       const opened = dayTagsOpen.has(d.id);
       const trimmed = limitCloud(tagBox, opened ? 0 : 1);
-      /* SCHNEIDET SIE NICHTS AB, WIRD SIE WIEDER WEGGENOMMEN. Eine feste
-         `max-height` an einem Kasten, der ohnehin hineinpasst, ist eine Grenze
-         ueber nichts -- sie belegt nichts und stuende der Zeile im Weg, sobald
-         ein Tag seine Hoehe aendert (Schriftstufe, laengerer Name).
-         SIE GILT IN JEDER BREITE und nicht nur am Telefon: die Tagwolke des
-         Eintrags steht am Schreibtisch ebenso auf drei Reihen begrenzt. Eine
-         Regel und nicht zwei. */
+      /* SCHNEIDET SIE NICHTS AB, WIRD SIE WIEDER WEGGENOMMEN. */
       if (!trimmed && !opened) limitCloud(tagBox, 0);
       more.hidden = !trimmed && !opened;
       more.textContent = opened ? t('list.less') : t('list.more');
@@ -7995,39 +5166,21 @@ async function renderDetail(id, termAddress) {
       const { dom, path } = splitUrl(l.url);
       // Suchzeile: der Rohtext oben, darunter die Anbieter -- die sind
       // einstellbar, also darf die Zeile nicht verschweigen, wen sie fragt.
-      // Rechts steht die Lupe statt des Pfeils; das ist der Platz, an dem eine
-      // Zeile in Kriterion ansagt, was ein Klick tut.
       const provider = search ? searchList() : [];
       const isDefault = provider[0] || null;
       const top = search ? l.url : dom;
 
       /* WANN DER NAME AN DER ZEILE STEHT -- die Regel steht hier und nirgends
-         sonst. Zwei Bedingungen, und beide sagen dasselbe: gezeigt wird der
-         Name nur, wo er eine Auskunft ist.
-         Bei einem einzigen Zugang sagt "von mir" nichts -- dieselbe Schwelle
-         wie ueberall, sie steht in multipleUsers().
-         Und an einer Zeile, die der Verfasser des Eintrags selbst eingetragen
-         hat, wiederholte der Name nur, was oben am Eintrag ohnehin steht. Was
-         uebrig bleibt, ist der Fall, um den es geht: jemand anderes hat etwas
-         beigesteuert. "Kein Name" heisst bei mehreren Zugaengen also "vom
-         Verfasser des Eintrags".
-         Verglichen wird ueber die Nummer, nicht ueber den Namen: ein Grabstein
-         hat keinen mehr. Fehlt der Verfasser auf beiden Seiten, ist niemand zu
-         nennen; fehlt er nur an der Zeile, steht dort "Ohne Verfasser" -- eine
-         herrenlose Zeile ist eine Auskunft. */
+         sonst. */
       const foreignRow = (l.author?.id ?? null) !== (item.author?.id ?? null);
       const showFrom = multipleUsers() && foreignRow;
       // Das Datum steht im Ueberfahrtext, nicht in der Zeile: die Zeile ist auf
-      // dem Handy am Anschlag, und der Name ist die Angabe, um die es geht.
+// dem Handy am Anschlag, und der Name ist die Angabe, um die es geht.
       const entered = showFrom
         ? t('entry.enteredByOn', { author: authorName(l.author), created_at: fmtDate(l.created_at) }) : '';
 
       /* DAS LOESCHKREUZ FOLGT DEM RECHT, NICHT DER ANZEIGE: der Server laesst
-         den Eintrager und den Admin durch (darfAendern). Beides ist getrennt --
-         an der eigenen Zeile steht ein Kreuz ohne Namen, an einer fremden ein
-         Name ohne Kreuz, solange man nicht Admin ist.
-         `mine` sagt der Server; die Oberflaeche rechnet das nicht aus dem
-         Verfasserobjekt zurueck. */
+         den Eintrager und den Admin durch (darfAendern). */
       const mayPath = l.mine === true || ADMIN;
 
       const row = document.createElement('div');
@@ -8038,18 +5191,7 @@ async function renderDetail(id, termAddress) {
         : l.url;
       row.title = entered ? `${reasonText} · ${entered}` : reasonText;
       /* Die zweite Zeile traegt den Pfad (bei einer Suchzeile die
-         Anbieternamen) und dahinter den Namen. Beides in EINER Zeile, damit die
-         Linkzeile nicht auf drei Hoehen waechst; abgeschnitten wird der Pfad,
-         nie der Name.
-         DER NAME STEHT IN KLAMMERN UND OHNE TRENNZEICHEN. Ein Trennzeichen
-         waere hier an beiden Zeilenarten falsch: in der Suchzeile bedeutet
-         " · " bereits "noch ein Anbieter, anklickbar", und ein Strich davor
-         sieht aus wie ein abgerissener Satz. Die Klammer sagt von selbst, dass
-         hier eine Angabe ueber die Zeile steht und kein weiterer Teil von ihr.
-         Sie traegt ausserdem jede Form, die authorName() liefert --
-         "(chefin)", "(Geloeschter Benutzer 4)", "(Ohne Verfasser)". Ein
-         Vorwort wie "von" taete das nicht: "von Ohne Verfasser" ist kein
-         Deutsch. */
+         Anbieternamen) und dahinter den Namen. */
       const bottomLinks = search ? '<span class="snames"></span>'
                                : (path ? `<span class="path">${esc(path)}</span>` : '');
       const bottom = bottomLinks + (showFrom
@@ -8062,22 +5204,12 @@ async function renderDetail(id, termAddress) {
         <span class="go">${search ? ICON_SEARCH : '↗'}</span>
         ${mayPath ? `<button class="xdel" title="${search ? t('entry.removeSearch') : t('entry.removeLink')}">${ICON_X}</button>` : ''}`;
       /* IN DER LINKLISTE WIRD DIE ADRESSE HERVORGEHOBEN UND NICHT DER
-         ANZEIGENAME -- 0.18.0. Gesucht wurde in `links.url`; ein
-         hervorgehobener Anbietername, in dem der Begriff gar nicht steht,
-         waere eine Falschaussage. Hervorgehoben werden deshalb `.dom` und
-         `.path` -- die beiden Stuecke, in die splitUrl() die Adresse zerlegt
-         -- und ausdruecklich nicht `.snames`.
-         Bei einer Suchzeile steht oben der Rohtext, und der IST hier die
-         Adresse: gesucht hat SQLite in derselben Spalte. */
+         ANZEIGENAME -- 0.18.0. */
       highlightInNode(row.querySelector('.dom'), top, term);
       if (!search && path) highlightInNode(row.querySelector('.path'), path, term);
 
       // Die Namen sind Eingabe des Admins und werden als Beschriftung
       // gerendert -- die erste Stelle in der Linkliste, an der das gilt.
-      // Deshalb echte Knoten mit textContent statt innerHTML: Maskierung ist
-      // damit nicht vergessbar, sondern baulich unmoeglich (wie .cmt-body).
-      // Jeder Name ist ausserdem sein eigenes Klickziel und braucht ohnehin
-      // einen eigenen Knoten.
       if (search) {
         const nameBox = row.querySelector('.snames');
         provider.forEach((a, i) => {
@@ -8086,9 +5218,7 @@ async function renderDetail(id, termAddress) {
           s.className = 'sname';
           s.textContent = a.name;
           s.title = t('entry.searchForAt', { url: l.url, name: a.name });
-          // Ein Klick auf einen Namen sucht bei genau diesem Anbieter. Die
-          // Zeile selbst darf dabei nicht mitgehen und nicht ins Ziehen
-          // kippen -- .sname steht deshalb im ignore von makeSortable.
+          // Ein Klick auf einen Namen sucht bei genau diesem Anbieter.
           s.onclick = (e) => {
             e.stopPropagation();
             window.open(searchAddress(a.template, l.url), '_blank', 'noopener,noreferrer');
@@ -8097,7 +5227,7 @@ async function renderDetail(id, termAddress) {
         });
       }
       // Der Behandler nur dort, wo das Kreuz auch steht -- an einem fehlenden
-      // Element risse er den Aufbau der ganzen Liste mit.
+// Element risse er den Aufbau der ganzen Liste mit.
       if (mayPath) row.querySelector('.xdel').onclick = async (e) => {
         e.stopPropagation();
         if (!await confirmBox(search ? t('entry.removeSearchAsk') : t('entry.removeLinkAsk'),
@@ -8107,13 +5237,13 @@ async function renderDetail(id, termAddress) {
         catch (err) { toast(err.message, true); }
       };
       // Ganze Zeile oeffnet den Link; Ziehen sortiert um. Unterschieden wird
-      // ueber dieselbe Bewegungsschwelle wie bei den Vorschaubildern.
+// ueber dieselbe Bewegungsschwelle wie bei den Vorschaubildern.
       makeSortable(row, {
         axis: 'y', selector: '.lrow', ignore: '.xdel, .sname',
         onClick: () => {
           if (!search) return window.open(l.url, '_blank', 'noopener,noreferrer');
           // Ohne gueltigen Standard wird nicht ersatzweise woanders gesucht --
-          // die Zeile sagt dann, dass nichts eingestellt ist.
+// die Zeile sagt dann, dass nichts eingestellt ist.
           if (!isDefault) return toast(ADMIN
             ? t('entry.noSearchEngineHint')
             : t('entry.noSearchEngine'), true);
@@ -8133,13 +5263,6 @@ async function renderDetail(id, termAddress) {
   }
 
   // Sichtbare Zeilen begrenzen, statt die Liste immer scrollen zu lassen.
-  // Die Zeilenhoehe wird an der ersten Zeile gemessen -- sie haengt an der
-  // eingestellten Schriftgroesse und laesst sich nicht raten.
-  // ABGESCHNITTEN, NICHT SCROLLBAR. Ein eigener Bildlauf faengt auf dem Finger
-  // die Wischbewegung ab: wer die Seite herunterzieht und dabei ueber die
-  // Liste kommt, scrollt ploetzlich nur noch die Liste. Der Knopf "alle N
-  // anzeigen" ist der Weg zum Rest -- damit scrollt am Finger immer die Seite,
-  // und die Einstellung "sichtbare Zeilen" behaelt ihren Sinn.
   function limitLinks() {
     const box = document.getElementById('links');
     const button = document.getElementById('links-more');
@@ -8158,14 +5281,7 @@ async function renderDetail(id, termAddress) {
     const gap = 5;   // entspricht dem margin-bottom von .lrow
     box.style.maxHeight = (LINK_ROWS * h + (LINK_ROWS - 1) * gap) + 'px';
     box.style.overflowY = 'hidden';
-    /* UND AN DEN ANFANG DER LISTE -- 7. September 2026, aus dem Betrieb.
-       ZUGEKLAPPT HEISST: DIE ERSTEN N ZEILEN, und der Rest steht hinter dem
-       Knopf. Ohne diese Zeile behielt der Kasten die Stellung, die das
-       Hinzufuegen eines Links ihm gegeben hatte (ans Ende), und der
-       zugeklappte Block zeigte die LETZTEN fuenf statt der ersten -- bei acht
-       Links die Nummern 4 bis 8. Der Bildlauf ist hier auf `hidden`; eine
-       Stellung ungleich null ist deshalb von aussen nicht mehr zu ändern und
-       bleibt, bis jemand aufklappt. */
+    /* UND AN DEN ANFANG DER LISTE -- 7. September 2026, aus dem Betrieb. */
     box.scrollTop = 0;
     button.hidden = false;
     // Aus der Sprachdatei -- 0.24.4 (B5), aus demselben Grund wie die
@@ -8182,12 +5298,7 @@ async function renderDetail(id, termAddress) {
     try {
       item = await api('POST', `/api/items/${id}/links`, { url });
       el.value = ''; drawLinks();
-      /* ANS ENDE NUR, WENN DIE LISTE NICHT GEKLEMMT IST. Der neue Link steht
-         unten; steht die Liste zugeklappt da, ist er ohnehin nicht zu sehen,
-         und ein Bildlauf hinterliesse den Kasten mit einer Stellung, die
-         `limitLinks()` beim naechsten Zeichnen als falschen Ausschnitt zeigt
-         (7. September 2026, aus dem Betrieb). Der Knopf sagt die neue Zahl --
-         das ist die Rueckmeldung. */
+      /* ANS ENDE NUR, WENN DIE LISTE NICHT GEKLEMMT IST. */
       const linkBox = document.getElementById('links');
       if (!linkBox.style.maxHeight) linkBox.scrollTop = 1e6;
     } catch (e) { toast(e.message, true); }
@@ -8197,7 +5308,7 @@ async function renderDetail(id, termAddress) {
 
   /* ---- Dateien ---- */
   // Welche Vorschau möglich ist, entscheidet der Server (Feld `preview`) --
-  // die Oberfläche rät nicht anhand des Dateinamens herum.
+// die Oberfläche rät nicht anhand des Dateinamens herum.
   const openPreview = new Set();
 
   function filesize(bytes) {
@@ -8228,10 +5339,7 @@ async function renderDetail(id, termAddress) {
         : t('entry.clickToDownload');
       /* DIESELBE REGEL WIE AN DER LINKZEILE, und sie steht dort ausfuehrlich:
          der Name nur bei mehreren Zugaengen und nur an einer Zeile, die NICHT
-         vom Verfasser des Eintrags stammt. In Klammern, ohne Trennzeichen.
-         Er steht hinter der Groesse, nicht hinter dem Dateinamen: rechts stehen
-         die Angaben ZUR Datei, links ist ihr Name -- und der darf nicht
-         abgeschnitten werden, um Platz fuer eine Nebenangabe zu machen. */
+         vom Verfasser des Eintrags stammt. */
       const foreignFile = (a.author?.id ?? null) !== (item.author?.id ?? null);
       const showFrom = multipleUsers() && foreignFile;
       const uploaded = showFrom
@@ -8256,10 +5364,8 @@ async function renderDetail(id, termAddress) {
         catch (e2) { toast(e2.message, true); }
       };
 
-      // Ganze Zeile reagiert, wie bei den Links: was passiert, entscheidet der
-      // Dateityp. Was der Server ansehen kann, wird auf- und zugeklappt; alles
-      // andere wird heruntergeladen. Das ✕ und der Ladepfeil sind ausgenommen,
-      // sonst löste ein Klick darauf beides zugleich aus.
+      // Ganze Zeile reagiert, wie bei den Links: was passiert, entscheidet
+      // der Dateityp.
       row.onclick = (e) => {
         if (e.target.closest('.xdel, .adl')) return;
         if (!canPreview) return row.querySelector('.adl')?.click();
@@ -8278,16 +5384,12 @@ async function renderDetail(id, termAddress) {
     boxId.className = 'apreview';
     if (a.preview === 'image') {
       // Bilder in einem img-Element: dort wird nichts ausgeführt, und der
-      // Server schickt sie mit nosniff und enger Sicherheitsregel.
+// Server schickt sie mit nosniff und enger Sicherheitsregel.
       boxId.innerHTML = `<img src="/api/attachments/${a.id}/raw?inline=1" alt="${esc(a.filename)}">`;
     } else if (a.preview === 'pdf') {
       // allow-scripts, aber ausdrücklich OHNE allow-same-origin: die
       // eingebauten PDF-Betrachter von Chrome und Edge bestehen selbst aus
-      // HTML und JavaScript und bleiben ohne diese Erlaubnis leer. Ohne
-      // allow-same-origin liegt das Dokument in einem eigenen, fremden
-      // Ursprung und sieht von der Anwendung nichts.
-      // Daneben immer der Weg in einen neuen Tab: sollte ein Browser das
-      // Einbetten trotzdem verweigern, ist das dann kein Sackgassen-Ergebnis.
+      // HTML und JavaScript und bleiben ohne diese Erlaubnis leer.
       boxId.innerHTML = `<iframe src="/api/attachments/${a.id}/raw?inline=1"
           sandbox="allow-scripts" referrerpolicy="no-referrer" title="${esc(a.filename)}"></iframe>
         <p class="apdf-hint"><span class="hint">${tH('entry.pdfHint')}</span>
@@ -8296,7 +5398,7 @@ async function renderDetail(id, termAddress) {
       boxId.innerHTML = `<p class="hint">${tH('list.loading')}</p>`;
       api('GET', `/api/attachments/${a.id}/preview`).then(v => {
         // Als Text in den DOM gesetzt, nie als Datei ausgeliefert: der
-        // Browser interpretiert den Inhalt damit überhaupt nicht.
+// Browser interpretiert den Inhalt damit überhaupt nicht.
         boxId.innerHTML = '';
         const pre = document.createElement('pre');
         pre.className = 'atext';
@@ -8337,12 +5439,7 @@ async function renderDetail(id, termAddress) {
     const box = document.getElementById('cmts');
     /* Der Hinweis steht in der Kopfzeile und bleibt damit auch eingeklappt
        sichtbar -- eingeklappt ist gerade der Moment, in dem man nicht
-       hineinsieht. Gebildet wird er an einem Ort, oben bei commentNumbers().
-       SEIT 0.32.1 IST ER HTML UND NICHT TEXT: er traegt die drei Zeichen.
-       `innerHTML` IST HIER UNBEDENKLICH, und das ist nachgerechnet und nicht
-       gehofft: commentNumbers() setzt aus ZAHLEN und den eigenen SVG-Zeichen
-       zusammen -- kein Stueck davon kommt vom Benutzer. Der volle Satz geht
-       ueber `title`, und der laeuft ueber textContent-Weg (Attribut). */
+       hineinsieht. */
     const counts = commentNumbers(item.comments);
     const ccount = document.getElementById('ccount');
     ccount.innerHTML = counts.html;
@@ -8357,44 +5454,18 @@ async function renderDetail(id, termAddress) {
         + (c.pinned ? ' pinned' : '');
 
       /* FUENF FAELLE, DREI ANTWORTEN -- die Spalten der Rechtetabelle:
-         Verfasser, anderer, Admin.
-           ✎ Text bearbeiten        nur der Verfasser, auch der Admin nicht
-           + Bild anhaengen         desgleichen -- Anhaengen IST Bearbeiten;
-                                    wer etwas beizutragen hat, schreibt einen
-                                    eigenen Kommentar. Der Knopf steht im
-                                    Bearbeitenmodus und faellt mit ✎ baulich
-                                    weg; eine zweite Klemme daneben liesse
-                                    sich nicht gegenpruefen.
-           ✕ Kommentar loeschen     Verfasser oder Admin
-           ✕ Bild loeschen          Verfasser oder Admin
-           Art und Anpinnung        Verfasser oder Admin
-         Der Server sagt mit `mine`, wem die Zeile gehoert -- die Oberflaeche
-         rechnet das nicht aus dem Verfasserobjekt zurueck. Bei einem
-         Grabstein ginge das gar nicht, der hat keinen Namen mehr. */
+         Verfasser, anderer, Admin. */
       const mine = c.mine === true;
       const manage = mine || ADMIN;
 
       /* DER EINGRIFFSVERMERK NENNT DIE ROLLE, NICHT DIE PERSON -- und dafuer
          braucht es kein Feld in der Antwort: DELETE /api/comment-images/:id
          steht hinter darfAendern, und hochgezaehlt wird nur, wenn ein ANDERER
-         als der Verfasser entfernt. Wer beide Klemmen passiert, kann nur der
-         Admin sein. Kein Name, kein Zeitpunkt, keine Kette.
-         Der Satz ist nur so lange wahr, wie die Klemme dort steht -- eine
-         Pruefung am Quelltext bindet die Beschriftung an sie. */
-      /* ---- DAS DATUM SIEHT JEDER, AENDERN DARF ES NUR, WER DARF -- 0.30.1 ----
-         BEFUND 8, aus dem Nachsehen und nicht aus dem Feld: der ganze
+         als der Verfasser entfernt. */
+      /* ---- DAS DATUM SIEHT JEDER, AENDERN DARF ES NUR, WER DARF -- 0.30.1
+         ---- BEFUND 8, aus dem Nachsehen und nicht aus dem Feld: der ganze
          Kennzeichenkasten stand hinter `manage`, und damit sah das
-         Faelligkeitsdatum nur, wer es auch aendern durfte. Die Ansicht „Offen"
-         zeigt dasselbe Datum dagegen jedem, der die Zeile sehen darf
-         (renderOpen(), ohne jede Klemme). Zwei Orte, eine Angabe, zwei
-         Antworten auf die Frage, wer sie sehen darf.
-         DIE KLEMME GEHOERT AN DIE BEDIENUNG UND NICHT AN DIE AUSKUNFT (F20).
-         In einer Installation mit mehreren Zugaengen ist eine Frist, die nur
-         ihr Verfasser sieht, keine Frist.
-         WER NICHT AENDERN DARF, BEKOMMT KEINEN KNOPF, SONDERN EINEN TEXT. Ein
-         Knopf, der nichts tut, ist eine Luege ueber die eigene Bedienbarkeit
-         -- dieselbe Ueberlegung wie beim Schalter des Potenzialmodus, den ein
-         Admin sieht und nicht drueckt. */
+         Faelligkeitsdatum nur, wer es auch aendern durfte. */
       const dueShown = (task || done) && c.dueDate;
       /* EIN RUF UND NICHT ZWEI. Knopf und Text zeigen denselben Zustand;
          zweimal zu fragen hiesse, dass sie auseinanderlaufen koennen. */
@@ -8411,42 +5482,10 @@ async function renderDetail(id, termAddress) {
                        : task ? t('list.setDone')
                                  : t('entry.markTask')
             }">${esc(done ? V.taskDone : V.taskOne)}</button>
-            ${/* ---- DAS FÄLLIGKEITSDATUM -- 0.29.0, Befund 3 ----
-                 NUR AN EINER AUFGABE, und erst, wenn die Marke steht (F20).
-                 Ein Datumsfeld an jedem Vermerk stünde bei den meisten
-                 Kommentaren für nichts da — und die meisten Kommentare sind
-                 Vermerke.
-                 UND SEIT 0.30.0 AUCH AN EINER ERLEDIGTEN — durchgestrichen
-                 und gedämpft (Befund 8, F13). Bis dahin verschwand es beim
-                 Abhaken: die Spalte behielt es, der Bildschirm zeigte es
-                 nicht. Der Betreiber verlangt ausdrücklich „ob fertig, oder
-                 noch offen" — und eine Angabe, die jemand eingetragen hat,
-                 verschwindet nicht beim Abhaken.
-                 DIE FARBE SAGT DEN ZUSTAND, und es sind vier: überfällig rot,
-                 heute normal und fett, später gedämpft, erledigt gedämpft und
-                 durchgestrichen. Bis 0.30.0 stand ein gesetztes Datum in der
-                 gewöhnlichen Textfarbe — und drei Elemente weiter rechts steht
-                 in derselben Zeile das ERSTELLUNGSDATUM des Kommentars. Zwei
-                 Daten nebeneinander, und keines sagte, welches welches ist.
-                 DIESELBE FARBE WIE `.open-section.overdue`: die Ansicht „Offen"
-                 und der Eintrag sagen dasselbe mit demselben Rot.
-                 UND DIESELBE FUNKTION: `dueOf()` steht seit dieser Runde ganz
-                 oben und wird von beiden Orten gerufen (Stolperstein 47).
-                 EIN VERWEIS UND KEIN FELD: ein `<input type="date">` an jeder
-                 Aufgabenzeile wäre in einer Liste von zwölf Kommentaren zwölf
-                 Bedienelemente. Der Verweis trägt das Datum, wenn eines da
-                 ist, und sonst das Wort — geklickt wird daraus das Feld.
-                 DER RÜCKWEG IST DAS LEERE FELD und kein zweites ✕: wer das
-                 Datum im Feld löscht, nimmt es weg. Ein Kreuz daneben wäre ein
-                 zweiter Weg für dieselbe Sache. */''}
+            ${/* ---- DAS FÄLLIGKEITSDATUM -- 0.29.0, Befund 3 ---- NUR AN
+                 EINER AUFGABE, und erst, wenn die Marke steht (F20). */''}
             ` : ''}
-            ${/* SEIT 0.30.1 AUCH AN EINER ERLEDIGTEN OHNE DATUM (F19). Bis
-                 dahin stand der Knopf nur bei `task || (done && dueDate)` --
-                 einer erledigten Aufgabe ohne Datum liess sich damit keines
-                 mehr geben. Der Betreiber nennt den Fall selbst: „Ist ja
-                 moeglich das man sich verschaetzt hat und neuen Datum
-                 abgesprochen hat." Das kann nach dem Abhaken eintreten, und
-                 „jederzeit editierbar" heisst auch „nachtragbar". */''}
+            ${/* SEIT 0.30.1 AUCH AN EINER ERLEDIGTEN OHNE DATUM (F19). */''}
             ${manage
               ? (task || done ? `<button class="link-btn cmt-due${
                   c.dueDate ? ` on due-${dueState}` : ''}"
@@ -8467,15 +5506,8 @@ async function renderDetail(id, termAddress) {
         <div class="cmt-imgs"></div>`;
 
       /* Der Text kommt nicht aus der Vorlage, sondern als echte Knoten -- so
-         kann hier gar kein Markup entstehen. Der Bearbeitenmodus weiter unten
-         zeigt weiterhin den Rohtext im Textfeld.
-         DIE HERVORHEBUNG GEHT DENSELBEN WEG -- 0.18.0. Sie ist ein drittes
-         Stueck der Zerlegung und kein Nachbearbeiten des Ergebnisses: aus
-         `<mark>` wird hier ein Element mit textContent und niemals ein
-         String. Ohne Begriff aendert sich an dieser Zeile nichts. */
-      /* UND DIE MARKIERUNG IST DAS VIERTE STUECK -- 0.32.0 (L2). Welche
-         Stellen es sind, sagt der Server (`c.mentions`); der Rohtext im
-         Bearbeitenmodus bleibt unberuehrt, dort steht `@bert` als `@bert`. */
+         kann hier gar kein Markup entstehen. */
+      /* UND DIE MARKIERUNG IST DAS VIERTE STUECK -- 0.32.0 (L2). */
       el.querySelector('.cmt-body')
         .appendChild(buildCommentNodes(splitCommentText(c.text, term, c.mentions)));
 
@@ -8484,24 +5516,15 @@ async function renderDetail(id, termAddress) {
         catch (e) { toast(e.message, true); }
       };
       // Die Knoepfe stehen nur da, wo sie auch gedrueckt werden duerfen --
-      // ein Behandler an einem fehlenden Element risse den Aufbau mit.
+// ein Behandler an einem fehlenden Element risse den Aufbau mit.
       if (manage) {
         el.querySelector('.pin').onclick = () => flip('pinned', !c.pinned);
-        // Die Art ist ein Wert, keine zwei Merkmale: wer Aufgabe drueckt, waehrend
-        // Bericht an ist, waehlt Aufgabe -- ein zweiter Druck auf denselben Knopf
-        // nimmt sie wieder zurueck auf Notiz.
+        // Die Art ist ein Wert, keine zwei Merkmale: wer Aufgabe drueckt,
+        // waehrend Bericht an ist, waehlt Aufgabe -- ein zweiter Druck auf
+        // denselben Knopf nimmt sie wieder zurueck auf Notiz.
         el.querySelector('.kind').onclick = () => flip('kind', report ? 'note' : 'report');
         el.querySelector('.task').onclick = () => flip('kind', taskMore(c.kind));
-        /* AUS DEM VERWEIS WIRD DAS FELD -- 0.29.0. Getauscht wird an Ort und
-           Stelle, damit die Zeile nicht springt; `showPicker()` oeffnet den
-           Kalender gleich mit, sonst muesste man das Feld ein zweites Mal
-           antippen.
-           GESCHRIEBEN WIRD BEI `change` UND NICHT BEI JEDEM ZEICHEN: ein
-           `input` an einem Datumsfeld feuert auch bei halb getippten Jahren
-           („0002-01-01"), und jede davon waere eine Runde zum Server.
-           VERLAESST MAN ES OHNE ZU AENDERN, kommt der Verweis zurueck --
-           `drawComments()` zeichnet ihn ohnehin neu, sobald etwas gespeichert
-           wurde; hier ist es der Weg ohne Speichern. */
+        /* AUS DEM VERWEIS WIRD DAS FELD -- 0.29.0. */
         const dueButton = el.querySelector('.cmt-due');
         if (dueButton) dueButton.onclick = () => {
           const field = document.createElement('input');
@@ -8517,7 +5540,7 @@ async function renderDetail(id, termAddress) {
       }
 
       // Bilder als Kacheln unter dem Text; Klick öffnet das vorhandene Vollbild.
-      // Das ✕ nur bei Verfasser oder Admin -- ansehen darf jeder.
+// Das ✕ nur bei Verfasser oder Admin -- ansehen darf jeder.
       const imgBox = el.querySelector('.cmt-imgs');
       (c.images || []).forEach((b, i) => {
         const k = document.createElement('div');
@@ -8544,7 +5567,7 @@ async function renderDetail(id, termAddress) {
       };
 
       // Der Bearbeitenmodus haengt am ✎, und das gibt es nur beim Verfasser.
-      // Damit faellt auch "+ Bild" weg -- es steht ausschliesslich hier drin.
+// Damit faellt auch "+ Bild" weg -- es steht ausschliesslich hier drin.
       if (mine) el.querySelector('.ed').onclick = () => {
         const wrap = document.createElement('div');
         wrap.className = 'cmt-edit';
@@ -8560,7 +5583,7 @@ async function renderDetail(id, termAddress) {
         ta.focus();
 
         // Beim Bearbeiten hat der Kommentar schon eine Id -- Bilder gehen
-        // deshalb sofort an den Server, ohne auf das Speichern zu warten.
+// deshalb sofort an den Server, ohne auf das Speichern zu warten.
         const addLater = async (files) => {
           if (!files.length) return;
           const fd = new FormData();
@@ -8606,12 +5629,7 @@ async function renderDetail(id, termAddress) {
     const kind = document.getElementById('ckind');
     kind.classList.toggle('on', newKind === 'report');
     kind.textContent = V.reportOne;
-    /* GEGEN DAS LITERAL UND NICHT GEGEN DIE SPRACHDATEI -- 0.31.1. Eine Zeile
-       darueber steht derselbe Vergleich schon richtig, und in dieser Funktion
-       stehen sechs davon: fuenf pruefen gegen ein Literal, genau einer lief
-       durch entry.reportKind. Der Schluessel trug in allen drei Dateien
-       „report" -- wer ihn uebersetzt haette, haette die Beschriftung des
-       Knopfes stumm umgedreht. */
+    /* GEGEN DAS LITERAL UND NICHT GEGEN DIE SPRACHDATEI -- 0.31.1. */
     kind.title = newKind === 'report' ? t('entry.unmarkReport') : t('entry.markReport');
     const taskBtn = document.getElementById('ctask');
     const finished = newKind === 'done';
@@ -8652,13 +5670,7 @@ async function renderDetail(id, termAddress) {
     () => { newKind = taskMore(newKind); drawNewMarks(); };
   document.getElementById('cimg').onclick = () => pickImages(takeImages);
 
-  /* Der Sprung ans Schreibfeld. ZUERST AUFKLAPPEN, DANN SPRINGEN: ein
-     eingeklappter Block stellt seine Kinder auf display: none, und ein Sprung
-     auf ein unsichtbares Feld landete irgendwo. Der Zustand geht denselben Weg
-     wie beim Klick auf die Kopfzeile -- gespeichert und neu ausgeruestet, nicht
-     an der Klasse vorbei umgeschaltet.
-     scrollIntoView VOR focus(): focus() rollt von sich aus hart an den Rand,
-     die weiche Bewegung davor gibt dem Feld seinen Platz in der Mitte. */
+  /* Der Sprung ans Schreibfeld. */
   document.getElementById('cjump').onclick = () => {
     if (BLOCKS.closed.includes('kommentare')) {
       BLOCKS.closed = BLOCKS.closed.filter(k => k !== 'kommentare');
@@ -8696,10 +5708,7 @@ async function renderDetail(id, termAddress) {
 
   /* Die Zahlen kommen vom Server, nicht aus dem geladenen Eintrag: nur dort
      lassen sich eigene von fremden Beiträgen trennen, und zwei Quellen für
-     dieselbe Aussage wären zwei Wahrheiten.
-     Der fremde Teil steht in einem eigenen Satz, weil er das Neue ist — was
-     hier verlorengeht, gehört anderen. Ist nichts Fremdes dabei, fehlt der
-     Satz; ein Zugang allein sieht den Dialog deshalb wie vorher. */
+     dieselbe Aussage wären zwei Wahrheiten. */
   atElement('del', del => del.onclick = async () => {
     let b;
     try { b = await api('GET', `/api/items/${id}/inventory`); }
@@ -8707,7 +5716,7 @@ async function renderDetail(id, termAddress) {
 
     const countWord = (n, one, more) => (n ? [`${n} ${counted(n, one, more)}`] : []);
     // Fotos und Dateien haengen am Eintrag und gehoeren seinem Verfasser. Ein
-    // Link kann fremd sein und steht deshalb bei den Beitraegen, nicht hier.
+// Link kann fremd sein und steht deshalb bei den Beitraegen, nicht hier.
     const content = [
       ...countWord(b.photos, t('list.photo'), t('list.photos')),
       // Eigene Zeile, nicht als Foto getarnt: ein Dialog, der "3 Fotos" sagt
@@ -8730,11 +5739,7 @@ async function renderDetail(id, termAddress) {
       ...(b.foreignTestDays ? [`${b.foreignTestDays} ${vTime(b.foreignTestDays)}`] : [])
     ];
 
-    /* DER DIALOG NENNT ZAHLEN, UND SEIN SCHLUSSSATZ NENNT DEN PAPIERKORB.
-       Mit Unwiderruflichkeit lässt er sich nicht mehr begründen — das wäre
-       falsch. Die Zahlen sind trotzdem die eigentliche Auskunft: was hier
-       verloren geht, gehört anderen. Und wer wiederherstellen darf, steht
-       dabei — es ist nicht der, der hier klickt. */
+    /* DER DIALOG NENNT ZAHLEN, UND SEIN SCHLUSSSATZ NENNT DEN PAPIERKORB. */
     const sentences = [t('entry.titleDeleteHint', { title: item.title })];
     if (content.length) sentences.push(t('entry.alsoGoes', { what: content.join(', ') }));
     if (own.length) sentences.push(t('entry.alsoFromMe', { what: own.join(', ') }));
@@ -8756,98 +5761,30 @@ async function renderDetail(id, termAddress) {
   drawRatings(); drawTestDays(); drawLinks(); drawAtts(); drawComments();
 }
 
-/* ================= Der Systembereich =================
-   ACHTZEHN KARTEN IN FUENF ABSCHNITTEN, JEDER MIT EIGENER ADRESSE.
-
-   BIS 0.15.1 STANDEN ALLE KARTEN IN EINER REIHE, und renderSystem() war mit
-   2.466 Zeilen die laengste Funktion der Instanz. Beides hing zusammen: eine
-   Seite ohne Abschnitte braucht keine Aufteilung im Quelltext, und eine
-   Funktion, die alles zeichnet, laesst sich nicht abschnittsweise rufen.
-
-   DIE AUFTEILUNG STEHT DESHALB ALS TABELLE UND NICHT ALS VERZWEIGUNG. Je
-   Karte eine Zeile: wohin sie gehoert, woran sie haengt, wie sie aussieht,
-   was sie ausruestet. Damit ist die Zuordnung ABLESBAR -- und der Pruefstand
-   kann sie nachzaehlen, statt sie im Markup zu suchen.
-
-   DIE KLEMME IST EIN FELD UND KEINE KLAMMER. Vorher stand vor jeder Karte ein
-   `${ADMIN ? ...}` im Markup; jetzt steht sie in `visible`. Das ist derselbe
-   Wert an einer Stelle, an der man ihn ansehen kann: kein Zugang bekommt
-   danach eine Karte, die ihm vorher verwehrt war, und keiner verliert eine.
-
-   EINE KARTE, DIE NICHT GEZEICHNET WIRD, BEKOMMT AUCH KEINEN BEHANDLER --
-   `wireUp` laeuft nur fuer die Karten, die wirklich dastehen. Das ist
-   nicht Sparsamkeit, sondern die Bedingung: die Behandler greifen mit
-   getElementById auf ihre Felder zu, und ein Griff ins Leere risse den ganzen
-   Systembereich mit (Stolperstein 211). Vorher hing dieselbe Frage an EINER
-   Klammer (`atElement`); jetzt haengt sie an der Tabelle. */
+/* ================= Der Systembereich ================= ACHTZEHN KARTEN IN
+   FUENF ABSCHNITTEN, JEDER MIT EIGENER ADRESSE. */
 
 /* DIE FUENF ABSCHNITTE, IN DER REIHENFOLGE DER RECHTELEITER: was jedem
-   gehoert, steht vorn; was nur der Eigentuemer sieht, steht hinten.
-   "Installation" traegt seit 0.24.3 ZWEI Karten -- den Titel und die Sprachen.
-   Bis dahin war es eine, und der Vermerk hier sagte, warum: der oeffentliche
-   Titel war die einzige Einstellung, die die INSTALLATION als Ganzes
-   beschreibt, und ein Abschnitt mit einer Karte ist ehrlicher als eine Karte am
-   falschen Platz. DIE ZWEITE STEHT AUS DEMSELBEN GRUND HIER: welche Sprache
-   die Installation vorgibt und welche zur Wahl stehen, gehoert weder zum
-   Bestand noch zu den Zugaengen.
-   ER HEISST SEIT 0.19.1 "Installation" und hiess bis 0.17.0 "Anlage", bis
-   0.19.1 "Instanz". EINWORTIG WIE SEINE VIER NACHBARN -- "Kriterion Installation" stuende quer in der Reihe, zumal
-   ueberall daneben schon Kriterion draufsteht. Und NICHT "von Kriterion",
-   weil `title_app` einstellbar ist: wer seinen Bestand "Produktliste" nennt,
-   laese sonst eine Meldung ueber "Kriterion" und muesste erst ueberlegen, was
-   gemeint ist. */
-/* DIE NAMEN SIND RUFE UND KEINE WERTE -- 0.24.0. Diese Zeile wird beim Laden
-   der Datei ausgewertet, die Sprachdatei kommt erst danach: ein Wert stuende
-   fuer immer als ⟦card.personal⟧ am Reiter. Gefragt wird beim Zeichnen.
-   Dieselbe Ueberlegung wie bei FINDING_WORDS und confirmReason(). */
+   gehoert, steht vorn; was nur der Eigentuemer sieht, steht hinten. */
+/* DIE NAMEN SIND RUFE UND KEINE WERTE -- 0.24.0. */
 const SYS_SECTIONS = [
   { key: 'personal',     name: () => t('card.personal') },
   { key: 'inventory',    name: () => t('card.inventory') },
   // „Benutzer" seit 0.22.0 (E2); der Schluessel bleibt, ein Bildschirmtext
-  // benennt keine Adresse um.
+// benennt keine Adresse um.
   { key: 'users',        name: () => t('card.user') },
   { key: 'database',     name: () => t('card.database') },
   { key: 'installation', name: () => t('card.installation') }
 ];
 
-/* DIE ADRESSE IST DIE EINE WAHRHEIT UEBER DEN OFFENEN ABSCHNITT. Kein
-   gemerkter Zustand daneben: ein zweiter Merker waere eine zweite Wahrheit,
-   und beim naechsten Aufruf staende die Frage, welche gilt.
-   `#/system` OHNE ABSCHNITT BLEIBT GUELTIG -- es ist die Adresse, die der
-   Knopf in der Kopfzeile setzt und die in aelteren Papieren steht. Sie loest
-   sich auf den ersten sichtbaren Abschnitt auf. */
+/* DIE ADRESSE IST DIE EINE WAHRHEIT UEBER DEN OFFENEN ABSCHNITT. */
 const SYS_PATTERN = /^#\/system(?:\/([a-z]+))?$/;
 const sysUrl = (key) => `#/system/${key}`;
 
 /* DIE UEBERSETZUNG ALTER ABSCHNITTSADRESSEN IST IN 0.19.2 ABGEBAUT WORDEN --
-   UND IN 0.24.1 ZURUECKGEKOMMEN. Beides mit Grund, und der Grund ist ein
-   anderer geworden.
+   UND IN 0.24.1 ZURUECKGEKOMMEN. */
 
-   WARUM SIE WEG WAR: `#/system/anlage` (bis 0.17.0) und `#/system/instanz`
-   (bis 0.19.1) waren Namen aus einer Zeit mit EINEM Zugang. Es gab keine
-   fremden Lesezeichen und keine verschickten Links auf einen Abschnitt --
-   eine Tafel, die einen Fall abfaengt, den es nicht gibt, ist Aufwand ohne
-   Gegenwert.
-
-   WARUM SIE WIEDER DA IST: diese Runde benennt VIER Abschnitte auf einmal um,
-   und die Anlage hat heute mehrere Zugaenge mit eigenen Lesezeichen. Der
-   Betreiber hat am 6. September 2026 entschieden (F4), dass keine alte
-   Adresse ins Leere faellt. Die Tafel steht bei `route()` unter
-   `OLD_SECTIONS`, zusammen mit den beiden Wegen aus verschickten Mails.
-
-   SIE IST EINE TAFEL UND KEINE VERZWEIGUNG, und sie ist nicht verkettet:
-   `{ anlage: 'instanz', instanz: 'installation' }` haette den aeltesten Link
-   auf einen Schluessel geschickt, den es nicht mehr gibt. Genau das war die
-   Falle, die 0.19.1 beinahe gestellt haette.
-
-   WAS EINE UNBEKANNTE ADRESSE WEITERHIN TUT: sie faellt auf den ersten
-   sichtbaren Abschnitt zurueck -- derselbe Weg, den `#/system/scheune` schon
-   immer nimmt. Kein Fehler, keine leere Seite, nur ein anderer Ort. */
-
-/* Was eine Karte nicht zeigt, bekommt auch keinen Behandler. EIN Ort fuer die
-   Frage nach einem fehlenden Element: stuende vor jedem Behandler dieselbe
-   Klammer, risse die erste vergessene den ganzen Systembereich mit -- und
-   zwar wortlos, weil der Fehler nach dem Setzen von app.innerHTML kaeme. */
+/* Was eine Karte nicht zeigt, bekommt auch keinen Behandler. */
 const atElement = (id, tu) => { const el = document.getElementById(id); if (el) tu(el); };
 
 /* IN DIE ZWISCHENABLAGE, mit demselben Rueckfall wie am Einladungslink: das
@@ -8865,14 +5802,7 @@ document.addEventListener('click', e => {
   if (b) copyText(b.dataset.copy);
 });
 
-/* DER KASTEN „Auf dem Server" -- 0.22.0, Regel S5. Die EINZIGE Stelle, an der
-   ein Server-Befehl am Bildschirm stehen darf, und nur der Eigentuemer sieht
-   ihn: Ueberschrift, ein Satz, der Befehl in Schreibmaschinenschrift mit
-   Kopierknopf. Die Rollenweiche steckt HIER und nicht an jeder Karte -- wer
-   nicht Eigentuemer ist, bekommt einen leeren String. Bis 0.21.1 standen
-   vier solche Befehle im Fliesstext, einen davon sah jeder Benutzer.
-   JEDER AUFRUF STEHT MIT SEINEM BEFEHL AUF EINER ZEILE `serverBox(`, damit
-   der Pruefstand die Befehle zaehlen und dem Kasten zuordnen kann. */
+/* DER KASTEN „Auf dem Server" -- 0.22.0, Regel S5. */
 function serverBox(sentence, command) {
   if (!OWNER) return '';
   return `<div class="server-box"><div class="server-head">${tH('card.onTheServer')}</div>
@@ -8881,46 +5811,14 @@ function serverBox(sentence, command) {
       data-copy="${esc(command)}">${tH('card.copy')}</button></div></div>`;
 }
 
-/* „MEHR": DIE ZWEITE EBENE DER ERKLAERTEXTE -- 0.22.0, Konzept 4.5. Ein
-   Aufklapper unter dem Satz der Karte mit den Folgen, die man kennen muss, um
-   zu entscheiden. Immer eingeklappt beim Aufbau, keine Einstellung dafuer.
-   Kein Tooltip: ein Finger kann nicht ueberfahren. Der Inhalt kommt fertig
-   als Markup, wie der Rest der Karte. */
+/* „MEHR": DIE ZWEITE EBENE DER ERKLAERTEXTE -- 0.22.0, Konzept 4.5. */
 /* „MEHR" WIRD BREITENABHAENGIG -- 0.32.0, Bauabschnitt 10, und der Grund ist
-   GEMESSEN und nicht geschaetzt. Der Betreiber (13.9.2026): „wenn dder satz von
-   mehr nur eine einzige satz ist brauchen wir kein mehr knopf".
-   EIN AUFKLAPPER KOSTET SEINE EIGENE ZEILE und spart die Hoehe seines Inhalts.
-   Ist der Inhalt EINE Zeile, kostet er mehr, als er bringt -- am 14. September
-   2026 an allen acht Stellen im Browser nachgemessen:
-
-     am Telefon (390 px)   spart er 67 bis 107 Bildpunkte. Er lohnt sich ueberall.
-     am Rechner (1280 px)  spart er 46 bis 87 an sieben -- und 26 an EINER,
-                           und 26 ist genau eine Zeile.
-
-   DIE ZAHL IST DESHALB KEINE ZEICHENZAHL. Der erste Entwurf dieser Runde hat
-   es mit einer versucht (120 Zeichen) und daran gelernt: die acht Texte messen
-   140 bis 239 Zeichen, und die KUERZESTEN sind nicht die, die sich am wenigsten
-   lohnen -- es kommt auf die Breite der KARTE an, und die schmale traegt
-   denselben Satz in doppelt so vielen Zeilen. Eine Zeichenzahl haette die
-   falschen zwei erwischt.
-   GEMESSEN WIRD DESHALB AM GEZEICHNETEN, in trimMore() unten. */
+   GEMESSEN und nicht geschaetzt. */
 const more = (html) =>
   `<details class="more"><summary>${tH('card.more')}</summary><div class="more-text">${html}</div></details>`;
 
-/* UND DIE MESSUNG SELBST -- sie laeuft NACH dem Zeichnen und nicht davor:
-   wie viele Zeilen ein Satz braucht, weiss erst der Browser.
-   DERSELBE ZWEITE WEG WIE BEI DER TAGWOLKE: dort wird der Knopf „mehr" auch
-   erst eingeblendet, wenn gemessen ist, dass es etwas aufzuklappen gibt.
-   AM TELEFON WIRD GAR NICHT ERST GEMESSEN. Dort lohnt sich der Aufklapper an
-   jeder der acht Stellen, und eine Messung, deren Ergebnis feststeht, ist
-   Arbeit ohne Wirkung.
-   EINE ZEILE ODER MEHR -- die Schranke ist die Zeilenhoehe des Inhalts selbst
-   und keine Zahl aus dem Quelltext. Eineinhalb davon lassen Rundung und
-   Aussenabstand Platz, ohne zwei Zeilen durchzulassen.
-   GEMESSEN WIRD MIT GEOEFFNETEM AUFKLAPPER und danach wieder geschlossen: ein
-   `<details>` ohne `open` hat einen Inhalt ohne Hoehe. Beides geschieht in
-   DEMSELBEN Durchlauf, bevor der Browser zeichnet -- zu sehen ist davon
-   nichts. */
+/* UND DIE MESSUNG SELBST -- sie laeuft NACH dem Zeichnen und nicht davor: wie
+   viele Zeilen ein Satz braucht, weiss erst der Browser. */
 function trimMore(root) {
   if (!root || isNarrow()) return;
   for (const box of [...root.querySelectorAll('details.more')]) {
@@ -8933,9 +5831,7 @@ function trimMore(root) {
     box.open = wasOpen;
     if (!line || high > line * 1.5) continue;
     /* AUS DEM AUFKLAPPER WIRD EIN ABSATZ, und der Inhalt wandert als KNOTEN
-       hinueber -- nicht als String. `innerHTML` haette denselben Text noch
-       einmal durch den Parser geschickt; hier wird umgehaengt, was schon
-       dasteht. */
+       hinueber -- nicht als String. */
     const plain = document.createElement('p');
     plain.className = 'desc more-plain';
     while (text.firstChild) plain.appendChild(text.firstChild);
@@ -8943,11 +5839,9 @@ function trimMore(root) {
   }
 }
 
-/* „GESPEICHERT" -- ein Muster fuer alle Felder der Einstellungen (Woerterbuch):
-   der Toast, und die Karte, in der gespeichert wurde, zeigt es 400 ms lang am
-   Rand (Stilblatt 1.2). Die Karte ist die des Elements, das gerade den Fokus
-   hat -- der Knopf, das Feld, die Pille; ohne eine solche bleibt es beim
-   Toast. */
+/* „GESPEICHERT" -- ein Muster fuer alle Felder der Einstellungen
+   (Woerterbuch): der Toast, und die Karte, in der gespeichert wurde, zeigt es
+   400 ms lang am Rand (Stilblatt 1.2). */
 function saved(el = document.activeElement) {
   toast(t('list.saved'));
   const card = el && el.closest ? el.closest('.sys-card') : null;
@@ -8959,22 +5853,8 @@ function saved(el = document.activeElement) {
 }
 
 
-/* ---- DIE NEUNZEHN KARTEN ----
-   `visible` ist die Klemme, `markup` das Aussehen, `wireUp` die
-   Behandler. Eine Karte ohne Behandler laesst `wireUp` weg, und eine leere
-   Funktion daneben waere eine Zeile, die behauptet, es gaebe dort etwas zu tun.
-   "Kennzahlen" ist wieder die einzige ohne: sie zeigt nur Zahlen.
-   ZWANZIG SEIT 0.20.0, vorher neunzehn. "Alte Sicherungen" kommt dazu und
-   steht hinter "Sicherung" -- die Begruendung steht an ihrer Zeile unten, und
-   es ist DERSELBE Satz wie bei der Bildablage eine Runde vorher: die Karte
-   daneben war zu gross geworden.
-   NEUNZEHN SEIT 0.19.1, vorher achtzehn. Die Bildablage hat "Kennzahlen"
-   verlassen und eine eigene bekommen -- nicht, weil etwas dazugekommen waere,
-   sondern weil die Karte darunter zu gross geworden war. 0.19.0 hat sie
-   ausdruecklich HINEINgesetzt und "es bleibt bei achtzehn Karten" dazu
-   geschrieben; das war fuer zwei Zeilen und einen Schalter richtig und ist es
-   fuer fuenf Formatzeilen, einen Schalter mit Erlaeuterung, einen Knopf, eine
-   Fortschrittszeile und eine Meldung nicht mehr. */
+/* ---- DIE NEUNZEHN KARTEN ---- `visible` ist die Klemme, `markup` das
+   Aussehen, `wireUp` die Behandler. */
 const SYS_CARDS = [
   { key: 'zugang',       section: 'personal', visible: () => true,
     markup: cardUser,       wireUp: setUpUserOut },
@@ -8990,12 +5870,7 @@ const SYS_CARDS = [
   { key: 'kriterien',    section: 'inventory', visible: () => true,
     markup: () => cardCriteria('after'),
     wireUp: (g) => setUpCriteriaOut(g, 'after') },
-  /* DIE ZWEITE KRITERIENKARTE -- 0.21.0, direkt hinter der ersten. Sichtbar
-     fuer alle, bedienbar fuer den Admin, wie die Nachbarkarte: die Namen sind
-     die Auswahl, aus der jeder am Eintrag schoepft.
-     ZWEI KARTEN, EINE MASCHINE: dieselbe `manage-list`, derselbe Eintrag
-     `crit`, dasselbe Ziehen, dasselbe Gewichtsfeld. Nur die Liste ist nach
-     Phase gefiltert, und `POST` schickt die Phase mit. */
+  /* DIE ZWEITE KRITERIENKARTE -- 0.21.0, direkt hinter der ersten. */
   { key: 'potenzialkriterien', section: 'inventory', visible: () => true,
     markup: () => cardCriteria('before'),
     wireUp: (g) => setUpCriteriaOut(g, 'before') },
@@ -9023,16 +5898,9 @@ const SYS_CARDS = [
     markup: cardImageStore,   wireUp: setUpImageStoreOut },
   { key: 'sicherung',    section: 'database', visible: () => OWNER,
     markup: cardBackup,    wireUp: setUpBackupOut },
-  /* UNMITTELBAR HINTER "SICHERUNG", und die Reihenfolge ist geprueft und nicht
-     zufaellig: die eine Karte legt Kopien an, die andere raeumt sie weg.
-     DIESELBE KLEMME WIE DIE KARTE DANEBEN -- `OWNER`.
-     WARUM SIE NICHT IN DIE VORHANDENE PASST: die Karte "Sicherung" traegt
-     heute schon bis zu drei Zustandskaesten, vier Kennzahlzeilen, das Feld
-     fuer den Zielort mit eigenem Knopf und den Sicherungsknopf. Dazu kaemen
-     ein Schalter, zwei Zahlenfelder, eine Dateiliste und zwei weitere Knoepfe.
-     UND EIN LOESCHKNOPF GEHOERT NICHT UNTER DEN SICHERUNGSKNOPF: die beiden
-     Vorgaenge sind gegenlaeufig und stuenden untereinander in derselben
-     Kachel -- die Verwechslung waere nicht wiedergutzumachen. */
+  /* UNMITTELBAR HINTER "SICHERUNG", und die Reihenfolge ist geprueft und
+     nicht zufaellig: die eine Karte legt Kopien an, die andere raeumt sie
+     weg. */
   { key: 'aufraeumen',   section: 'database', visible: () => OWNER,
     markup: cardCleanup,   wireUp: setUpCleanupOut },
   { key: 'export',       section: 'database', visible: () => OWNER,
@@ -9040,65 +5908,27 @@ const SYS_CARDS = [
 
   { key: 'titel',        section: 'installation', visible: () => ADMIN,
     markup: cardTitle,        wireUp: setUpTitleOut },
-  /* DIE ZWEITE KARTE DES ABSCHNITTS -- 0.24.3, F9. Bis 0.24.2 trug
-     „Installation" genau eine, und der Vermerk darueber sagte, warum: der
-     oeffentliche Titel war die einzige Einstellung, die die INSTALLATION als
-     Ganzes beschreibt. Die Vorgabesprache und ihr Vorrat sind die zweite --
-     sie gehoeren weder zum Bestand noch zu den Zugaengen.
-     `OWNER` UND NICHT `ADMIN`, anders als die Nachbarkarte: Vorgabe (3) des
-     Betreibers legt beide ausdruecklich zum Eigentuemer. */
+  /* DIE ZWEITE KARTE DES ABSCHNITTS -- 0.24.3, F9. */
   { key: 'sprachen',     section: 'installation', visible: () => OWNER,
     markup: cardLanguages,    wireUp: setUpLanguagesOut }
 ];
 
-/* WELCHE ABSCHNITTE FUER DIESEN ZUGANG ETWAS ZU ZEIGEN HABEN. Ein Abschnitt
-   ohne sichtbare Karte erscheint gar nicht -- ein leerer Reiter waere
-   schlechter als keiner: er verspricht etwas und haelt es nie.
-   ZWEI BLEIBEN IMMER: "Persoenlich" und "Bestand" tragen Karten ohne Klemme.
-   Die Liste kann deshalb nicht leer werden, und der Rueckfall unten greift
-   nie ins Leere. */
+/* WELCHE ABSCHNITTE FUER DIESEN ZUGANG ETWAS ZU ZEIGEN HABEN. */
 function sysVisibleSections(fetched) {
   return SYS_SECTIONS.filter(a =>
     SYS_CARDS.some(k => k.section === a.key && k.visible(fetched)));
 }
 
 
-/* `keepScroll`: DIE BILDLAUFSTELLUNG UEBERLEBT DAS NEUZEICHNEN -- 0.24.4 (B3).
-   renderSystem() baut `app.innerHTML` neu, und dabei ist die Stellung weg:
-   die Seite faellt auf die Hoehe der Ladezeile zusammen, der Browser zieht
-   auf null nach und gibt sie nicht von selbst zurueck. Bei vierzehn
-   Vokabelfeldern hiess das bis 0.24.3: nach jedem Umschalten erst wieder
-   hinunterrollen.
-   ALS AUSDRUECKLICHER SCHALTER UND NICHT IMMER. Wer aus der Uebersicht in den
-   Systembereich geht, will oben anfangen -- eine gemerkte Stellung waere dort
-   ein Sprung ins Nichts. Gesetzt wird er von den Rufern, die IN DERSELBEN
-   ANSICHT neu zeichnen: die beiden Sprachumschalter und das Speichern des
-   Vokabulars.
-   DIESELBE BAUFORM WIE IN autoHeight() weiter oben: Stellung merken, neu
-   bauen, Stellung zuruecksetzen. Ein zweiter Weg ueber scrollIntoView waere
-   eine zweite Wahrheit darueber, wo die Seite steht. */
+/* `keepScroll`: DIE BILDLAUFSTELLUNG UEBERLEBT DAS NEUZEICHNEN -- 0.24.4
+   (B3). */
 async function renderSystem({ keepScroll = false } = {}) {
   const side = document.scrollingElement || document.documentElement;
   const scrollBefore = keepScroll && side ? side.scrollTop : 0;
   app.innerHTML = `<div class="shell"><p class="hint" style="padding-top:44px">${tH('list.loading')}</p></div>`;
   const fetched = {};
   try {
-    /* DIE KENNZAHLEN WERDEN NUR GEHOLT, WENN SIE AUCH ANGEZEIGT WERDEN. Sie
-       stehen hinter dem Admin; ein Abruf, der zuverlaessig 403 ergibt, risse
-       hier mehr mit als seine eigene Karte -- alle
-       Abrufe haengen in EINEM Promise.all, und ein einziger Fehlschlag
-       verliesse den Rumpf mit return. Der Systembereich bliebe dann leer,
-       auch die Karten, die jedem zustehen.
-       Bewusst KEIN catch je Abruf daneben: die Bedingung hier ist die eine
-       Stelle, an der die Frage gestellt wird. Ein Auffangnetz darunter
-       verdeckte sie in jeder Gegenprobe. Es sind acht Abrufe.
-       ALLE UEBRIGEN GEHEN DENSELBEN WEG: jeder Abruf liegt hinter der Rolle,
-       hinter der auch seine Karte steht -- Papierkorb beim Admin, Sicherung,
-       Sicherheitsprotokoll und Mailversand beim Eigentuemer, Anmeldungen und
-       Zugang bei jedem, die Selbstanmeldung beim Admin. Und alle werden HIER
-       geholt und nicht spaeter nachgeladen: ein Nachladen liefe als herrenlose
-       Zusage weiter, auch wenn das Fenster laengst zu ist (Stolperstein 118).
-       Es sind elf Abrufe. */
+    /* DIE KENNZAHLEN WERDEN NUR GEHOLT, WENN SIE AUCH ANGEZEIGT WERDEN. */
     [fetched.stats, fetched.titles, fetched.cats, fetched.tags, fetched.crits, fetched.account,
      fetched.trash, fetched.backup, fetched.sessions, fetched.log,
      fetched.mailStatus, fetched.requests] = await Promise.all([
@@ -9116,9 +5946,7 @@ async function renderSystem({ keepScroll = false } = {}) {
 
   /* WELCHER ABSCHNITT OFFEN IST, ENTSCHEIDET DIE ADRESSE -- und wenn die auf
      einen zeigt, den es fuer diesen Zugang nicht gibt, faellt sie auf den
-     ersten sichtbaren zurueck. Ins Leere zeigen darf sie nicht: wer den Link
-     eines Admins bekommt und ihn als gewoehnlicher Benutzer oeffnet, saehe
-     sonst eine leere Seite. */
+     ersten sichtbaren zurueck. */
   const visibleOnes = sysVisibleSections(fetched);
   const fromAddress = (SYS_PATTERN.exec(location.hash || '') || [])[1] || '';
   const desired = fromAddress;
@@ -9126,36 +5954,16 @@ async function renderSystem({ keepScroll = false } = {}) {
   const cards = SYS_CARDS.filter(k => k.section === open.key && k.visible(fetched));
 
   app.innerHTML = `<div class="shell">
-    ${/* OHNE SUCHFELD, auf jedem Geraet -- 0.28.1. Ein Feld ueber den
-         Einstellungen verspricht, IN den Einstellungen zu suchen; es sprang
-         aber in den Bestand. Die Begruendung steht vollstaendig bei
-         subhead(). */''}
+    ${/* OHNE SUCHFELD, auf jedem Geraet -- 0.28.1. */''}
     ${subhead({ searchBox: false })}
     <h1 class="page-title">${tH('list.settings')}</h1>
     <p class="hint" style="margin:0 0 16px">${ADMIN
       ? t('card.settingsHintAll')
       : t('card.settingsHint')}</p>
     ${/* EIN MARKUP, ZWEI GESTALTEN -- dieselbe Bauform wie das Menue der
-         Kopfzeile aus 0.12.0. Auf dem breiten Schirm eine Reihe Reiter, auf
-         dem Telefon eine Liste, die in den Abschnitt hinein fuehrt. Kein
-         Verschieben von Knoten, keine Weiche nach Geraet.
-         ES SIND LINKS UND KEINE KNOEPFE. Ein Reiter, der eine Adresse hat,
-         laesst sich kopieren, in einem neuen Fenster oeffnen und mit der
-         Zurueck-Taste verlassen -- ein Knopf koennte davon nichts. */''}
+         Kopfzeile aus 0.12.0. */''}
     ${/* DER SCHALTER DARUEBER GEHOERT DEM TELEFON -- 0.28.1, und es ist
-         dieselbe Bauform wie der Filterschalter der Uebersicht (0.22.0).
-         GEMESSEN: die Reiterliste misst am Telefon 241 Pixel bei fuenf
-         Abschnitten, und die erste Karte begann bei y = 480 von 844 -- 57
-         Prozent des Schirms waren Bedienung, bevor die erste Auskunft dastand.
-         Der Betreiber (11.9.2026): „Menue muss aufklappbar sein. aehnlich wie
-         das filter."
-         ER TRAEGT DEN NAMEN DES OFFENEN ABSCHNITTS, und das ist der ganze
-         Unterschied zwischen einem Schalter und einem Versteck: eingeklappt
-         sagt er, wo man steht. Ohne den Namen waere die Liste nur weg.
-         EIN MARKUP, ZWEI GESTALTEN: das Stilblatt entscheidet, ob der Schalter
-         ueberhaupt dasteht -- auf dem breiten Schirm ist er unsichtbar und die
-         Reiter stehen, wo sie immer standen. Keine Abfrage der Fensterbreite
-         im Aufbau, nichts, was beim Drehen des Geraets nachzuziehen waere. */''}
+         dieselbe Bauform wie der Filterschalter der Uebersicht (0.22.0). */''}
     <button class="btn btn-sm sys-toggle" id="sys-toggle"
       aria-expanded="false" aria-controls="sys-tabs">${tH('card.sections')}<span class="fcount">${esc(open.name())}</span></button>
     <nav class="sys-tabs" id="sys-tabs" aria-label="${esc(t('card.sectionsHint'))}">
@@ -9168,14 +5976,9 @@ async function renderSystem({ keepScroll = false } = {}) {
     </div></div>`;
   wireSubhead();
 
-  /* ---- Der Schalter ueber den Abschnitten ----
-     EINGEKLAPPT FAENGT ER AN, und die Bedingung ist dieselbe wie im Stilblatt
-     (isNarrow) -- genau wie beim Filterschalter der Uebersicht. Ohne die Frage
-     saesse ein breites Fenster vor eingeklappten Abschnitten und haette keinen
-     sichtbaren Knopf, sie zu oeffnen.
-     WER EINEN ABSCHNITT WAEHLT, IST FERTIG: die Ansicht wird ohnehin neu
-     gezeichnet, und danach steht die Liste wieder eingeklappt da -- mit dem
-     Namen des neuen Abschnitts am Knopf. Es braucht dafuer keine Zeile. */
+  /* ---- Der Schalter ueber den Abschnitten ---- EINGEKLAPPT FAENGT ER AN,
+     und die Bedingung ist dieselbe wie im Stilblatt (isNarrow) -- genau wie
+     beim Filterschalter der Uebersicht. */
   atElement('sys-toggle', b => {
     const tabs = document.getElementById('sys-tabs');
     if (isNarrow()) tabs.classList.add('closed');
@@ -9188,14 +5991,7 @@ async function renderSystem({ keepScroll = false } = {}) {
 
   for (const k of cards) if (k.wireUp) k.wireUp(fetched);
 
-  /* DIE ADRESSE WIRD NACHGEZOGEN, NICHT DIE ANSICHT VERBOGEN. Stuende in der
-     Adresse weiter "datenbank", waehrend "Persoenlich" dasteht, gaebe es zwei
-     Aussagen ueber denselben Zustand -- und die kopierte Adresse fuehrte den
-     naechsten wieder woandershin.
-     replaceState UND NICHT location.hash: ein neuer Eintrag im Verlauf machte
-     die Zurueck-Taste unbrauchbar (zurueck fuehrte auf dieselbe Seite), und
-     ein gesetzter Hash loeste ein zweites Zeichnen aus. replaceState loest
-     kein hashchange aus -- genau deshalb steht es hier. */
+  /* DIE ADRESSE WIRD NACHGEZOGEN, NICHT DIE ANSICHT VERBOGEN. */
   if (location.hash !== sysUrl(open.key) &&
       typeof history !== 'undefined' && typeof history.replaceState === 'function')
     history.replaceState(null, '', sysUrl(open.key));
@@ -9207,8 +6003,8 @@ async function renderSystem({ keepScroll = false } = {}) {
 
   /* UND DIE AUFKLAPPER, DIE SICH NICHT LOHNEN, FALLEN WEG -- 0.32.0,
      Bauabschnitt 10. NACH dem Zeichnen und nach dem Verdrahten, aus demselben
-     Grund wie die Bildlaufstellung eine Zeile hoeher: vorher haette der Inhalt
-     keine Hoehe, und die Messung maesse nichts. */
+     Grund wie die Bildlaufstellung eine Zeile hoeher: vorher haette der
+     Inhalt keine Hoehe, und die Messung maesse nichts. */
   trimMore(app);
 }
 
@@ -9242,13 +6038,7 @@ function setUpTitleOut() {
 
 /* ---- Karte „Sprachen" — Abschnitt „Installation" ---- */
 /* DIESELBE BAUFORM WIE DER VORRAT DER SUCHMASCHINEN, und aus demselben Grund:
-   der Eigentuemer kuratiert, der Benutzer waehlt daraus. Auch dieselben
-   Klassen -- `engine-list` und `engine` -- statt eigener: es ist dieselbe
-   Zeile aus Haekchen, Standardknopf und Namen, und ein zweiter Satz Regeln
-   im Stilblatt liefe irgendwann auseinander.
-   DIE NAMEN STEHEN IN IHRER EIGENEN SPRACHE, und sie kommen als freier Text
-   vom Server (aus `_name` der Datei oder aus Intl) -- textContent statt
-   innerHTML, damit Maskierung nicht vergessbar ist. */
+   der Eigentuemer kuratiert, der Benutzer waehlt daraus. */
 function cardLanguages() {
   return `<div class="sys-card">
         <h3>${tH('card.languages')}</h3>
@@ -9256,10 +6046,8 @@ function cardLanguages() {
         ${more(t('card.languagesUsersHint'))}
         <div class="engine-list" id="langs"></div>
         ${/* DIE PFADE STEHEN IM QUELLTEXT UND NICHT IN DER SPRACHDATEI: ein
-              Verzeichnisname ist ein technischer Name und in jeder Sprache
-              derselbe (Regel S8). Und die Auszeichnung steht ebenfalls hier --
-              kein HTML in einem Text; wo ein Satz ein <code> braucht, sind es
-              zwei Schluessel. */''}
+             Verzeichnisname ist ein technischer Name und in jeder Sprache
+             derselbe (Regel S8). */''}
         ${more(`${tH('card.languagesFileBefore')} <code>public/languages/</code>
           ${tH('card.languagesFileAfter')}`)}
       </div>`;
@@ -9270,48 +6058,18 @@ function setUpLanguagesOut() {
 
   /* --- Die Sprachen der Installation --- */
   // Zurueck kommt immer der aufgeraeumte Zustand; gezeichnet wird daraus und
-  // nicht aus der eigenen Annahme -- dieselbe Regel wie bei sendProvider().
+// nicht aus der eigenen Annahme -- dieselbe Regel wie bei sendProvider().
   async function sendLanguages(body, message) {
     try {
       const s = await api('PUT', '/api/settings', body);
       if (Array.isArray(s.languages)) LANGUAGES = s.languages;
-      /* UND DIE NAMENSTAFELN MIT -- 0.24.6, die Reparatur von E3. Bis 0.24.5
-         zog hier `LANGUAGES` nach und `NAMES_ALL` nicht: danach rechneten die
-         drei Verwaltungskarten mit einer NEUEN Vorgabesprache auf einer ALTEN
-         Tafel, und in dieser Lage ist der Rueckfall nicht die Ausnahme,
-         sondern der Normalfall.
-         ES IST DERSELBE FEHLERTYP WIE D2 DER RUNDE 0.24.5 -- ein Zustand im
-         Browser, den jemand nachziehen muss, und eine Stelle, an der es
-         niemand tut. 0.24.5 hat den Zwischenspeicher abgeschafft und die Tafel
-         an zwei Stellen nachgezogen (Start und `adminNew`); dies ist die
-         dritte.
-         AUS DERSELBEN ANTWORT UND OHNE ZWEITEN ABRUF -- dieselbe Zeile wie
-         `takeVocabulary()` beim Sprachwechsel des Lesers. Ein Abruf, den es
-         nicht gibt, kann die falsche Sprache nicht mitbringen.
-         `takeNames()` NIMMT NUR AN, WAS DA IST: bei jedem anderen Schreiben
-         (Filter, Ansichten, Vokabular) traegt die Antwort keine Tafeln, und
-         die vorhandenen bleiben stehen. */
+      /* UND DIE NAMENSTAFELN MIT -- 0.24.6, die Reparatur von E3. */
       takeNames(s);
       drawLanguages();
       toast(message);
     } catch (e) { drawLanguages(); toast(e.message, true); }
   }
-  /* DIE ANSAGE NACH DEM UMSCHALTEN -- 0.25.0 (F4). Sie steht AN ORT UND
-     STELLE, in der Karte „Sprachen", und ausdruecklich NICHT in der Glocke:
-     die zeigt nach ihrer eigenen Regel nur FREMDE Taetigkeit, und wer
-     umschaltet, ist selbst der Handelnde. *„wir nehmen nicht die Glocke,
-     sondern Rahmen"* -- der Betreiber, 9. September 2026.
-
-     SIE ZAEHLT, WAS DER NEUEN VORGABESPRACHE FEHLT: Namen aus beiden Tafeln
-     und Vokabelwoerter. Beides steht schon da -- die Tafeln kommen aus
-     derselben Antwort (`takeNames`), die fuenfzehn Woerter aus
-     `VOCABULARIES_OWN`. Ein zweiter Abruf waere ein Weg, den jemand pflegen
-     muss.
-
-     KEIN ZWANG. Der Betreiber darf die Vorgabe auf eine lueckige Sprache
-     stellen; die Karte sagt es ihm, und die Kette haelt die Liste lesbar. Ein
-     Umschalter, der erst nach zwanzig Uebersetzungen greift, waere schlimmer
-     als der Zustand, den er verhindern soll. */
+  /* DIE ANSAGE NACH DEM UMSCHALTEN -- 0.25.0 (F4). */
   const languageGaps = (code) => ({
     names: namesMissing('cats', code) + namesMissing('crits', code),
     words: VOCABULARY_FIELDS.filter(
@@ -9324,7 +6082,7 @@ function setUpLanguagesOut() {
       words: t('card.wordsMissing', { n: gaps.words }) });
   };
   // Der Vorrat als Liste von Kennungen -- dieselbe Form, in der der Server
-  // ihn speichert.
+// ihn speichert.
   const languagePool = () => LANGUAGES.filter(a => a.active).map(a => a.code);
 
   function drawLanguages() {
@@ -9339,9 +6097,7 @@ function setUpLanguagesOut() {
       hk.type = 'checkbox';
       hk.checked = !!a.active;
       /* DIE VORGABESPRACHE LAESST SICH NICHT HERAUSNEHMEN -- die Klemme steht
-         hier UND am Server (writeLanguages). Das Haekchen ist gesetzt und
-         gesperrt: ein Kaestchen, das sich anklicken laesst und nichts tut,
-         waere schlechter als eines, das sagt, dass es nicht geht. */
+         hier UND am Server (writeLanguages). */
       hk.disabled = !!a.isDefault;
       hk.title = t(a.isDefault ? 'card.languageDefaultTip' : 'card.addToSelection');
       hk.onchange = () => {
@@ -9355,7 +6111,7 @@ function setUpLanguagesOut() {
       st.textContent = t('card.standard');
       st.title = t('card.languageDefaultTip');
       // Vorgabe werden nimmt zugleich in den Vorrat auf: eine Vorgabesprache
-      // ausserhalb des Vorrats ist ein Zustand, den es nicht geben darf.
+// ausserhalb des Vorrats ist ein Zustand, den es nicht geben darf.
       st.onclick = () => sendLanguages({ languageDefault: a.code }, t('card.languageDefaultSaved'));
       const nm = document.createElement('span');
       nm.className = 'ename';
@@ -9363,14 +6119,7 @@ function setUpLanguagesOut() {
       row.append(hk, st, nm);
       box.appendChild(row);
     });
-    /* UND DIE ANSAGE DARUNTER, solange der Vorgabesprache etwas fehlt. Sie
-       steht NUR DANN da: ein Satz, der immer dasteht, sagt nichts mehr --
-       dieselbe Ueberlegung wie beim Kartenhinweis, den 0.24.6 an diese Stelle
-       gesetzt und 0.25.0 wieder weggenommen hat.
-       GEZAEHLT WIRD AUS DEN TAFELN, DIE SCHON DA SIND. Der Wechsel zieht sie
-       ueber `takeNames()` aus derselben Antwort nach; ohne das rechnete dieser
-       Satz mit einer neuen Vorgabe auf einer alten Tafel -- der Fehler E3 der
-       Runde 0.24.6, an einer neuen Stelle. */
+    /* UND DIE ANSAGE DARUNTER, solange der Vorgabesprache etwas fehlt. */
     const gapCode = (LANGUAGES.find(a => a.isDefault) || {}).code;
     const gaps = gapCode ? languageGaps(gapCode) : { names: 0, words: 0 };
     if (gapCode && gaps.names + gaps.words > 0) {
@@ -9384,19 +6133,7 @@ function setUpLanguagesOut() {
 
 /* ---- Karte „Zugang" — Abschnitt „Persönlich" ---- */
 /* ZWEI KLEMMEN, UND BEIDE SITZEN HIER -- an derselben Stelle wie die Karte
-   selbst und nicht an einer zweiten Abfrage daneben (Stolperstein 47).
-   ERSTENS DIE SELBSTANMELDUNG. Ist sie an, ist die Adresse keine
-   Bequemlichkeit mehr: ohne sie kommt keine Bestätigungsmail an. Der Satz
-   RICHTET SICH DANACH, WAS GERADE GILT, statt eine Lage zu behaupten.
-   Gelesen wird `SIGNUP` -- derselbe Merker, aus dem die Anmeldeseite
-   ihr Formular baut. Ein zweiter Abruf daneben wäre eine zweite Wahrheit, und
-   die läuft auseinander, sobald jemand den Schalter umlegt.
-   ZWEITENS DIE ROLLE. Der Befehl auf dem Wirt steht nur beim Eigentümer: er
-   ist der Einzige, der in der Regel auch am Server sitzt. Wer dort nicht
-   hinkommt, dem nützt der Befehl nichts — er ist für ihn eine Auskunft über
-   den Betrieb und kein Weg. Für ihn steht dort der Satz, der wirklich hilft.
-   WAS HILFT DEM, DER DAVORSTEHT — und was erzählt ihm nur, wie es gebaut ist?
-   Eine Oberfläche sagt, WAS IST (Projektstand 5.6). */
+   selbst und nicht an einer zweiten Abfrage daneben. */
 function cardUser(fetched) {
   const { account } = fetched;
   return `<div class="sys-card">
@@ -9406,11 +6143,7 @@ function cardUser(fetched) {
           <input class="input" id="acc-user" autocomplete="username" autocapitalize="off"
             spellcheck="false" value="${esc(account.username || '')}"></div>
         ${/* DIE EIGENE ADRESSE STEHT HIER UND NICHT IN DER KARTE „ZUGÄNGE“:
-              sie gehört dem, der sie hat. Ein Admin, der eine bestehende
-              fremde Adresse umschreiben könnte, böge damit den nächsten
-              Rücksetzlink des Betroffenen auf ein Postfach seiner Wahl.
-              Sie steht hinter dem bisherigen Passwort wie Name und Passwort
-              daneben — aus demselben Grund. */''}
+             sie gehört dem, der sie hat. */''}
         <div class="field"><label>${tH('login.email')} <span class="hint">${
           SIGNUP ? t('card.required') : t('card.optional')}</span></label>
           <input class="input" id="acc-mail" type="email" autocomplete="email"
@@ -9418,10 +6151,7 @@ function cardUser(fetched) {
             placeholder="${esc(t('card.noneStoredYet'))}"></div>
         <div class="field"><label>${tH('card.oldPassword')} <span class="hint">${tH('card.neededToSave')}</span></label>
           <input class="input" id="acc-old" type="password" autocomplete="current-password"></div>
-        ${/* DIE VORGABE STEHT AM FELD, FÜR DAS SIE GILT. „Mindestens 10
-              Zeichen“ stand bis 0.17.0 im Absatz unter der ADRESSE — dort
-              gehört sie nicht hin, und wer sie dort las, hielt sie für eine
-              Vorgabe an die Adresse. */''}
+        ${/* DIE VORGABE STEHT AM FELD, FÜR DAS SIE GILT. */''}
         <div class="field"><label>${tH('dialog.newPassword')}
           <span class="hint">${tH('card.minCharsHint', { minPassword: MIN_PASSWORD })}</span></label>
           <input class="input" id="acc-new" type="password" autocomplete="new-password"></div>
@@ -9434,15 +6164,7 @@ function cardUser(fetched) {
         <button class="btn btn-accent btn-sm" id="acc-save" style="margin-top:10px">${tH('dialog.save')}</button>
 
         ${/* DER ZWEITE FAKTOR STEHT IN DIESER KARTE UND BEKOMMT KEINE EIGENE
-              — es bleibt bei neunzehn. Hier stehen Name, Passwort
-              und Adresse; wer seinen Zugang sichern will, sucht ihn dort, wo
-              sein Zugang steht. Eine zwanzigste Karte fände nur, wer schon
-              weiß, dass es sie gibt.
-              DER ZUSTAND STEHT OHNE KLICK DA — „an seit …“ oder „aus“, dazu
-              die Zahl der übrigen Wiederherstellungscodes. Er kommt aus
-              GET /api/account, das diese Karte ohnehin holt; ein Knopf, den
-              man erst drücken muss, um zu sehen, ob der Zugang gesichert ist,
-              wäre keine Auskunft. */''}
+             — es bleibt bei neunzehn. */''}
         <div class="two-factor-block" id="two-factor-block"></div>
       </div>`;
 }
@@ -9460,16 +6182,12 @@ function setUpUserOut(fetched) {
       return toast(t('login.passwordTooShort', { min: MIN_PASSWORD }), true);
     try {
       // Die Adresse geht IMMER mit, auch leer: der Server unterscheidet
-      // „nicht angefasst“ (Feld fehlt) von „löschen“ (leer). Das Formular
-      // zeigt den heutigen Wert an, also ist ein leeres Feld hier wirklich
-      // die Ansage, sie zu entfernen.
+      // „nicht angefasst“ (Feld fehlt) von „löschen“ (leer).
       const r = await api('PUT', '/api/account', {
         oldPassword: old, username: name, newPassword: new1, email: address
       });
       toast(r.passwordChanged ? t('card.passwordChanged') : t('list.saved'));
-      // Die Kopfzeile nennt den Namen. Ohne diese Zeile stuende dort bis zum
-      // naechsten Laden der Seite der alte -- loadSettings() laeuft nur
-      // beim Start.
+      // Die Kopfzeile nennt den Namen.
       NAME = name;
       renderSystem();   // leert die Passwortfelder
     } catch (e) { toast(e.message, true); }
@@ -9477,15 +6195,10 @@ function setUpUserOut(fetched) {
   drawTwoFactor(fetched.account.twoFactor);
 }
 
-  /* --- Der zweite Faktor in der Karte „Zugang“ ---
-     DIESELBE BAUFORM WIE drawRequests(): der Stand kommt vom Server, die
-     Karte zeichnet sich nach jeder Handlung aus der ANTWORT der Handlung neu
-     und fragt nicht ein zweites Mal nach. Ein Server, der auf ein Einschalten
-     zwar „ok“ sagt, aber denselben Stand zurückgibt, fällt damit auf
-     (Stolperstein 90).
-     DER ANGEZEIGTE ZUSTAND KOMMT AUS DER ANTWORT UND WIRD HIER NIE GERATEN —
-     „an“, der Zeitpunkt und die Zahl der übrigen Codes stehen alle im Feld
-     `zweifaktor` von GET /api/account (Stolperstein 102). */
+  /* --- Der zweite Faktor in der Karte „Zugang“ --- DIESELBE BAUFORM WIE
+     drawRequests(): der Stand kommt vom Server, die Karte zeichnet sich nach
+     jeder Handlung aus der ANTWORT der Handlung neu und fragt nicht ein
+     zweites Mal nach. */
   function drawTwoFactor(status) {
     const box = document.getElementById('two-factor-block');
     if (!box || !status) return;
@@ -9504,11 +6217,7 @@ function setUpUserOut(fetched) {
       <p class="desc" style="margin:8px 0 10px">${tH('card.twoFactorHint')}</p>
       <button class="btn btn-sm" id="two-factor-on">${tH('card.twoFactorOn')}</button>`;
 
-    /* Das Passwort wird an ALLEN Wegen verlangt, auch am Einschalten. Beim
-       Ausschalten leuchtet das ein; beim EINSCHALTEN ist es der weniger
-       offensichtliche und genauso wichtige Fall — eine übernommene offene
-       Anmeldung könnte sonst einen zweiten Faktor auf ein FREMDES Telefon
-       legen und dich damit aussperren. */
+    /* Das Passwort wird an ALLEN Wegen verlangt, auch am Einschalten. */
     const ask = (title, event, withCode) => confirmFieldFree(title, event, withCode);
 
     atElement('two-factor-on', b => b.onclick = async () => {
@@ -9546,10 +6255,7 @@ function setUpUserOut(fetched) {
 
   /* Schritt eins am Bildschirm: der Schlüssel steht da, und zwar in
      VIERERGRUPPEN — zweiunddreißig Zeichen am Stück sind der Weg, an dem
-     Menschen aufgeben. Daneben die `otpauth://`-Zeile als Link: auf einem
-     Telefon öffnet der die App unmittelbar.
-     DER SCHLÜSSEL IST DIE ZUSAGE, DER LINK IST DIE BEQUEMLICHKEIT. Deshalb
-     steht der abtippbare Wert oben und groß, nicht der Link. */
+     Menschen aufgeben. */
   function showSecret(d) {
     const box = document.getElementById('two-factor-block');
     if (!box) return;
@@ -9595,10 +6301,9 @@ function setUpUserOut(fetched) {
     field.focus();
   }
 
-  /* DIE WIEDERHERSTELLUNGSCODES WERDEN GENAU EINMAL GEZEIGT, und der Bildschirm
-     sagt es an derselben Stelle — mit demselben Ernst wie beim Einladungslink,
-     und im selben Kasten. Sie kommen danach nicht wieder: in der Datenbank
-     steht nur ihr SHA-256. */
+  /* DIE WIEDERHERSTELLUNGSCODES WERDEN GENAU EINMAL GEZEIGT, und der
+     Bildschirm sagt es an derselben Stelle — mit demselben Ernst wie beim
+     Einladungslink, und im selben Kasten. */
   function showAgainCodes(codes) {
     const box = document.getElementById('two-factor-block');
     if (!box || !Array.isArray(codes)) return;
@@ -9608,8 +6313,7 @@ function setUpUserOut(fetched) {
     boxId.innerHTML = `<strong>${tH('card.yourRecoveryCodes', { length: codes.length })}</strong>
       ${tMark('card.recoveryCodesHint', 'card.once')}
       <div class="two-factor-codes">${codes.map(c => `<span>${esc(c)}</span>`).join('')}</div>
-      ${/* DER SERVER-BEFEHL STAND HIER BIS 0.21.1 FUER JEDEN BENUTZER (Stolperstein
-           315). Jetzt: ein Satz fuer alle, der Kasten nur fuer den Eigentuemer. */''}
+      ${/* DER SERVER-BEFEHL STAND HIER BIS 0.21.1 FUER JEDEN BENUTZER. Jetzt: ein Satz fuer alle, der Kasten nur fuer den Eigentuemer. */''}
       <p class="desc" style="margin:8px 0 0">${tH('card.allCodesUsed')}</p>
       ${serverBox(t('card.twoFactorOffUser'), 'docker compose exec kriterion node usertool.js zweifaktor <name>')}`;
     box.appendChild(boxId);
@@ -9622,23 +6326,8 @@ function cardSessions() {
         <h3>${tH('card.mySessions')}</h3>
         <p class="desc">${tH('card.sessionsHint')}</p>
         <div class="manage-list" id="msessions"></div>
-        ${/* DIE FUSSZEILE STEHT NEBEN DER LISTE UND NICHT DARIN -- Befund 2 der
-             Runde 0.26.0. Bis dahin haengte `drawSessions()` sie als letztes
-             Kind IN `#msessions`, und der Deckel dieser Liste rechnete sie mit.
-             Auf einem schmalen Schirm ist eine Sitzungszeile hoeher als die
-             72,55 Pixel, mit denen gerechnet wurde -- dann passten zehn Zeilen
-             samt Fusszeile nicht mehr darunter, und HERAUS fiel die Fusszeile:
-             der Satz brach mitten in der Zeile ab, und der Knopf „Andere
-             Sitzungen beenden" stand gar nicht mehr da. Erreichbar war er nur
-             ueber einen Bildlauf, den von aussen niemand als solchen erkennt.
-             ALS GESCHWISTER DECKELT DER DECKEL NUR NOCH ZEILEN: die Liste
-             rollt, Kopf und Fuss stehen immer da. Der Grund, aus dem 0.17.3 die
-             Fusszeile in den Deckel rechnete („sonst muesste man an zehn
-             Sitzungen vorbeirollen, um den Knopf zu sehen"), faellt damit weg
-             -- ausserhalb der rollenden Liste ist er ohne Rollen zu sehen.
-             UND SIE STEHT AN DIESER EINEN KARTE UND NICHT AN `.manage-list`:
-             die sechs anderen Listen haben keine Fusszeile, und eine Regel, die
-             nirgends sonst greift, gehoert nicht in die gemeinsame. */''}
+        ${/* DIE FUSSZEILE STEHT NEBEN DER LISTE UND NICHT DARIN -- Befund 2
+             der Runde 0.26.0. */''}
         <div class="session-foot" id="msessions-foot"></div>
       </div>`;
 }
@@ -9646,14 +6335,9 @@ function setUpSessionsOut(fetched) {
   drawSessions(fetched.sessions);
 }
 
-  /* --- Meine Sitzungen ---
-     Gezeichnet wird aus dem, was oben schon geholt wurde -- eine Karte, die
-     sich beim Einhaengen selbst nachlaedt, laeuft als herrenlose Zusage
-     weiter. Nach einem Beenden holt sessionsNew() die Liste noch einmal und
-     zeichnet NUR diese Karte: ein Neuaufbau des ganzen Systembereichs leerte
-     die Passwortfelder daneben.
-     JEDE LESESTELLE IST ABGEFANGEN: fehlt die Antwort oder ein Feld darin,
-     soll die Karte etwas sagen und nicht der Lauf abreissen. */
+  /* --- Meine Sitzungen --- Gezeichnet wird aus dem, was oben schon geholt
+     wurde -- eine Karte, die sich beim Einhaengen selbst nachlaedt, laeuft
+     als herrenlose Zusage weiter. */
   function drawSessions(d) {
     const box = document.getElementById('msessions');
     if (!box) return;
@@ -9663,7 +6347,7 @@ function setUpSessionsOut(fetched) {
     if (!list) {
       box.innerHTML = `<span class="hint">${tH('card.loginsLoadFailed')}</span>`;
       // UND DIE FUSSZEILE MIT -- sie steht seit Befund 2 ausserhalb der Liste
-      // und wuerde sonst die Zahl der letzten geglueckten Abfrage weitertragen.
+// und wuerde sonst die Zahl der letzten geglueckten Abfrage weitertragen.
       if (foot) foot.innerHTML = '';
       return;
     }
@@ -9690,10 +6374,7 @@ function setUpSessionsOut(fetched) {
       }
       box.appendChild(row);
     }
-    /* DIE ZAHL IST DIE AUSKUNFT DIESER KARTE. Wer eine Anmeldung erwartet und
-       vier sieht, weiss genug -- und das Heilmittel ist der eine Knopf
-       daneben. Steht keine andere da, steht auch kein Knopf: einer, der
-       zuverlaessig nichts tut, sieht aus wie ein Fehler. */
+    /* DIE ZAHL IST DIE AUSKUNFT DIESER KARTE. */
     if (!foot) return;
     foot.innerHTML = other
       ? `<p class="desc" style="margin:10px 0 8px">${tMarks('card.otherSessionsHint',
@@ -9730,9 +6411,8 @@ function cardAppearance() {
   return `<div class="sys-card">
         <h3>${tH('card.appearance')}</h3>
         ${/* DIE SPRACHE STEHT UEBER DEM FARBSCHEMA: sie entscheidet ueber
-              jedes Wort der Karte darunter, und was weiter reicht, steht
-              weiter oben. KEIN SCHALTER IN DER KOPFZEILE daneben -- zwei Orte
-              fuer eine Frage. */''}
+             jedes Wort der Karte darunter, und was weiter reicht, steht
+             weiter oben. */''}
         <p class="desc">${tH('card.languageHint')}</p>
         <div class="pills" id="lang"></div>
 
@@ -9779,15 +6459,7 @@ function setUpAppearanceOut() {
   /* --- Sprache — 0.24.3, dieselbe Bauform wie das Farbschema darunter ---
      DIE NAMEN STEHEN IN IHRER EIGENEN SPRACHE und kommen als freier Text vom
      Server: wer die Oberfläche gerade nicht lesen kann, findet seine
-     trotzdem. textContent statt innerHTML, damit Maskierung nicht
-     vergessbar ist.
-     DER WECHSEL ZEICHNET NEU — OHNE NEULADEN. Anders als beim Farbschema
-     reicht kein applyX(): jedes Wort der Seite hängt daran, und app.js
-     zeichnet ohnehin ganze Ansichten.
-     ERST SPEICHERN, DANN ZEICHNEN — und das ist der Unterschied zu den drei
-     Reihen darunter. Die zeigen sofort und nehmen bei einem Fehlschlag
-     zurück; hier hinge zwischen Anzeige und Antwort eine Oberfläche in einer
-     Sprache, die der Server gerade abgelehnt hat. */
+     trotzdem. */
   function drawLanguagePills() {
     const box = document.getElementById('lang');
     if (!box) return;
@@ -9803,18 +6475,7 @@ function setUpAppearanceOut() {
         if (LANGUAGE === a.code) return;
         try {
           /* DIE ANTWORT WIRD ANGENOMMEN UND NICHT WEGGEWORFEN -- 0.24.4
-             (Befund B9, beim Bauen der Runde gefunden). Bis 0.24.3 stand hier
-             ein blosses `await api(...)`: die Seite wechselte die Sprache,
-             die VIERZEHN VOKABELWOERTER aber nicht. Auf einer englischen
-             Oberflaeche stand danach „applies to all Einträge".
-             WARUM loadLanguages() DAS NICHT RICHTET: loadLanguage() legt die
-             Vorgaben der neuen Datei UNTER `V` (`{ ...vocabularyDefault(),
-             ...V }`) -- und `V` traegt zu diesem Zeitpunkt schon alle
-             vierzehn Woerter der ALTEN Sprache. Der Rueckfall greift nur, wo
-             etwas fehlt, und hier fehlt nichts.
-             DIE ANTWORT WEISS ES BESSER: sie kommt aus derselben Anfrage, die
-             die Sprache gesetzt hat, und traegt den Satz des Lesers in seiner
-             NEUEN Sprache -- samt Rueckfall auf das, was eingetragen ist. */
+             (Befund B9, beim Bauen der Runde gefunden). */
           takeVocabulary((await api('PUT', '/api/settings', { language: a.code })));
           await loadLanguages(a.code);
           applyLanguage();
@@ -9826,10 +6487,8 @@ function setUpAppearanceOut() {
     });
   }
 
-  /* --- Farbschema — 0.23.0, dieselbe Bauform wie die Schriftgröße darunter ---
-     DREI PILLEN STATT FÜNF, und die mittlere ist die Vorgabe. Sofort sichtbar,
-     bei einem Fehlschlag zurück auf den alten Wert — wer das Schema wechselt,
-     sieht es, bevor der Server geantwortet hat. */
+  /* --- Farbschema — 0.23.0, dieselbe Bauform wie die Schriftgröße darunter
+     --- DREI PILLEN STATT FÜNF, und die mittlere ist die Vorgabe. */
   function drawTheme() {
     const box = document.getElementById('theme');
     if (!box) return;
@@ -9900,24 +6559,13 @@ function cardCategories() {
         <p class="desc">${ADMIN
           ? tH('card.categoriesHint')
           : t('card.categoriesAdminHint')}</p>
-        ${/* DIE SPRACHZEILE -- 0.24.3, F8b. Nur fuer den Admin: wer die Liste
-              nur LIEST, sieht sie ohnehin in seiner Sprache, und ein
-              Umschalter ohne Schreibrecht waere ein Knopf ohne Folge. */''}
+        ${/* DIE SPRACHZEILE -- 0.24.3, F8b. */''}
         ${ADMIN && LANGUAGES.filter(a => a.active).length > 1
           ? `<div class="pills" id="ncatlang" style="margin-bottom:12px"></div>` : ''}
-        ${/* DER KASTEN FUER DIE UNBEKANNTE ERSTELLUNGSSPRACHE -- 0.25.0 (F2).
-              Er steht AN DIESER Karte und nur hier, obwohl der Knopf beide
-              Tabellen schreibt: es ist eine Frage an den ganzen Bestand.
-              UND NICHT AM UMSCHALTER: er haengt nicht daran, dass es mehr als
-              eine Sprache gibt -- auch eine einsprachige Installation traegt
-              nach dem Einspielen Zeilen ohne Sprachvermerk. */''}
+        ${/* DER KASTEN FUER DIE UNBEKANNTE ERSTELLUNGSSPRACHE -- 0.25.0 (F2). */''}
         ${ADMIN ? `<div class="namegap" id="nunknown" hidden></div>` : ''}
         <div class="manage-list" id="mcats"></div>
-        ${/* DAS ANLEGEFELD -- 0.24.4 (B7). `POST /api/product-categories`
-              stand laengst; der Weg war nur nicht dort, wo man ihn beim
-              Verwalten sucht. Es steht UNTER der Liste und ueber dem
-              Schalter: erst was es gibt, dann was dazukommt, dann die Regel
-              darueber, wer dazutun darf. */''}
+        ${/* DAS ANLEGEFELD -- 0.24.4 (B7). */''}
         ${manageCreate('cat')}
         ${ADMIN ? `<p class="desc" style="margin:16px 0 8px">${tH('card.adminOnlyCategory')}</p>
         <label class="ex-files"><input type="checkbox" id="cat-free">
@@ -9926,8 +6574,7 @@ function cardCategories() {
 }
 function setUpCategoriesOut(fetched) {
   // OHNE AUSWAHL, UND DAS IST KEINE AUSNAHME -- 0.25.1. Diese Kachel zeigt
-  // ALLE Kategorien; ihre Auswahl IST die Tafel. Eine Menge zu bauen, die
-  // ohnehin jede Kennung enthaelt, waere eine Zeile, die nichts entscheidet.
+  // ALLE Kategorien; ihre Auswahl IST die Tafel.
   drawNameLanguages('ncatlang', 'cats');
   drawNamesUnknown(fetched);
   manageList('mcats', namesFrom(fetched, 'cats'), 'cat', fetched);
@@ -9944,9 +6591,8 @@ function cardTags() {
           : t('card.tagsAdminHint')}</p>
         <div class="manage-list" id="mtags"></div>
         ${/* DAS ANLEGEFELD -- 0.24.4 (B7), und fuer die Tags war dafuer eine
-              Zeile mehr zu bauen als ein Eingabefeld: bis 0.24.3 gab es
-              ueberhaupt keinen Weg, einen Tag FUER SICH anzulegen. `POST
-              /api/tags` ist mit dieser Runde dazugekommen. */''}
+             Zeile mehr zu bauen als ein Eingabefeld: bis 0.24.3 gab es
+             ueberhaupt keinen Weg, einen Tag FUER SICH anzulegen. */''}
         ${manageCreate('tag')}
         ${ADMIN ? `<p class="desc" style="margin:16px 0 8px">${tH('card.adminOnlyTag')}</p>
         <label class="ex-files"><input type="checkbox" id="tag-free">
@@ -9960,17 +6606,7 @@ function setUpTagsOut(fetched) {
 }
 
 /* ---- Karte „Bewertungskriterien" — Abschnitt „Bestand" ---- */
-/* EINE FUNKTION FUER BEIDE KARTEN -- 0.21.0. Was sich unterscheidet, ist der
-   Titel, der einleitende Satz und die Kennungen der beiden Elemente darin;
-   alles andere ist dieselbe Maschine. Zwei Funktionen waeren zwei Wahrheiten
-   ueber dieselbe Liste, und die zweite ginge beim naechsten Griff vergessen.
-   DER TITEL DER NEUEN KARTE IST `${V.potenzial}: Kriterien` -- MIT
-   DOPPELPUNKT und nicht zusammengesetzt: das Wort aus dem Vokabular wird
-   nirgends zu einem Wort verbaut. SEIT 0.22.0 HEISST AUCH DIE ERSTE KARTE SO,
-   „Bewertung: Kriterien" -- „Bewertung" ist seither ein Vokabelwort (E14),
-   und ein Vokabelwort wird nie in ein zusammengesetztes Wort verbaut. Der
-   Kartenschluessel `kriterien` bleibt: ein Bildschirmtext benennt keine
-   Adresse um. */
+/* EINE FUNKTION FUER BEIDE KARTEN -- 0.21.0. */
 const CRIT_CARD = {
   after:  { list: 'mcrits',  field: 'newcrit',  button: 'newcrit-b' },
   before: { list: 'mpcrits', field: 'newpcrit', button: 'newpcrit-b' }
@@ -9992,30 +6628,13 @@ function cardCriteria(phase) {
           : tH('card.criteriaAdminHint')}</p>
            ${ADMIN ? more(tH('card.orderAppliesNote')) : ''}`}
         ${/* DIESELBE SPRACHZEILE WIE AN DEN KATEGORIEN, und aus demselben
-              Grund. Sie steht an BEIDEN Kriterienkarten: es ist EIN
-              Umschalter fuer den ganzen Abschnitt, und wer ihn an der einen
-              Karte umlegt, sieht ihn an der anderen mitgehen. */''}
+             Grund. */''}
         ${ADMIN && LANGUAGES.filter(a => a.active).length > 1
           ? `<div class="pills" id="${k.list}-lang" style="margin-bottom:12px"></div>` : ''}
-        ${/* DIE LISTE WIRD GEDAEMPFT, WENN DER MODUS AUS IST -- 0.26.0, F2.
-             Sie bleibt bedienbar: die Kriterien sind nicht weg, und wer sie
-             beim Wiedereinschalten vorfinden soll, muss sie vorher pflegen
-             duerfen. Gedaempft heisst „steht hier, wirkt gerade nicht". */''}
+        ${/* DIE LISTE WIRD GEDAEMPFT, WENN DER MODUS AUS IST -- 0.26.0, F2. */''}
         <div class="manage-list${before && !POTENTIAL_MODE ? ' list-quiet' : ''}" id="${k.list}"></div>
         ${/* BEFUND 3c DER RUNDE 0.26.0 -- UND ER FAELLT ANDERS AUS, ALS DER
-             AUFTRAG VORSCHLUG. Der Vorschlag wollte den ganzen Gewichtssatz
-             hinter die Adminklemme legen (Sprachregel S5). DER BETREIBER HAT
-             AM 10. SEPTEMBER 2026 ANDERS ENTSCHIEDEN: was das Gewicht TUT,
-             liest jeder weiter -- er sieht die Marke ×1 an jedem Kriterium
-             und den Durchschnitt darunter, und der Satz erklaert damit eine
-             ANZEIGE, die vor ihm steht, und keinen Knopf, den er nicht hat.
-             S5 GREIFT DESHALB NUR AUF DIE ZWEITE HAELFTE, und die war schon
-             geklemmt -- sie sagte nur das Falsche: „Eingestellt wird es vom
-             Admin" beschrieb einen Knopf. Sie sagt jetzt, was der Benutzer
-             wirklich wissen muss: dass die Gewichte eine SYSTEMVORGABE sind.
-             `card.setByAdmin` FAELLT DAMIT NAMENTLICH WEG, in allen drei
-             Sprachdateien; `card.weightSystemDefault` steht an seiner Stelle,
-             an derselben Zeile in allen dreien. Die Zahl der Saetze bleibt. */''}
+             AUFTRAG VORSCHLUG. */''}
         <p class="desc" style="margin:10px 0 0">${tMark('card.weightExplainHint', 'entry.weight')} ${ADMIN
             ? t('card.weightRangeHint')
             : t('card.weightSystemDefault')}</p>
@@ -10030,8 +6649,7 @@ function cardCriteria(phase) {
         ${/* DIE VORSCHLAGSLISTE STEHT NUR EINMAL IM DOKUMENT -- sie gehoert
              keiner der beiden Karten, sondern dem Gewichtsfeld, und zwei
              `datalist` mit derselben Kennung waeren zwei Knoten fuer einen
-             Verweis. Die zweite Karte liegt hinter der ersten; ihre
-             Gewichtsfelder finden die eine. */''}
+             Verweis. */''}
         ${before ? '' : `<datalist id="weightsug">
           <option value="0,5"><option value="0,8"><option value="1"><option value="1,2"><option value="1,5">
         </datalist>`}
@@ -10040,21 +6658,7 @@ function cardCriteria(phase) {
           <button class="btn btn-sm" id="${k.button}">${tH('entry.create')}</button>
         </div>` : ''}
         ${/* DER SCHALTER DES POTENZIALMODUS -- 0.26.0, und er steht IN dieser
-             Karte. Das ist die Antwort auf F2: eine Karte, die beim
-             Ausschalten mitverschwindet, nimmt den Ort mit, an dem man den
-             Modus wieder einschaltet.
-             DER SATZ STEHT AUCH OHNE SCHALTER DA, fuer jede Rolle: wer die
-             gedaempfte Liste sieht, soll lesen, warum sie gedaempft ist --
-             und dass nichts verloren ist.
-             DER SCHALTER GEHOERT DEM EIGENTUEMER ALLEIN (F3, gegen den
-             Vorschlag). Ein Admin sieht ihn und kommt nicht daran; `disabled`
-             und ein Satz daneben, damit die Sperre nicht wie ein Fehler
-             aussieht. Ein gewoehnlicher Benutzer sieht ihn gar nicht --
-             Sprachregel S5: was nur die Rolle darueber braucht, steht hinter
-             deren Klemme.
-             DIE SPERRE HIER IST DIE BEQUEMLICHKEIT, NICHT DIE SICHERUNG. Die
-             traegt der Server (OWNER_KEYS); `disabled` im Browser ist eine
-             Auskunft und keine Schranke. */''}
+             Karte. */''}
         ${before ? `${!POTENTIAL_MODE
             ? `<p class="desc" id="pot-off" style="margin:16px 0 0">${tH('card.potentialModeOff')}</p>` : ''}
           ${ADMIN ? `<p class="desc" style="margin:16px 0 8px">${tH('card.potentialModeHint')}</p>
@@ -10064,69 +6668,40 @@ function cardCriteria(phase) {
       </div>`;
 }
 /* DIE ZEILEN EINER KRITERIENKARTE -- 0.25.1. EIN Ausdruck fuer die Liste UND
-   fuer die Pillenreihe darueber. Bis 0.25.0 filterte nur die Liste nach der
-   Phase; die Zahl an der Pille zaehlte die Tafel `crits` ganz, also BEIDE
-   Karten -- die Liste zeigte fuenf Zeilen, und die Pille darueber sprach von
-   acht. Zwei Auswahlen fuer eine Kachel, und die eine wusste nichts von der
-   anderen.
-   EINE DEKLARATION UND KEIN `const`: sie wird von `setUpCriteriaOut()` und von
-   `drawAdmin()` gerufen, und eine Deklaration steht ueberall da, wo sie
-   gebraucht wird -- eine Bindung nicht (das hat 0.25.0 einmal gekostet). */
+   fuer die Pillenreihe darueber. */
 function critRows(fetched, phase) {
   return namesFrom(fetched, 'crits').filter(c => c.phase === phase);
 }
 function setUpCriteriaOut(fetched, phase) {
   const k = CRIT_CARD[phase];
-  // NUR DIE ZEILEN DIESES KASTENS. Die Antwort von /api/criteria traegt beide
-  // und ist nach sort_order, id sortiert -- gefiltert bleibt jede Karte in
-  // sich richtig geordnet, ohne dass irgendwo eine zweite Ordnung stuende.
-  // UND DIE PILLENREIHE BEKOMMT DIESELBEN ZEILEN -- 0.25.1.
+  // NUR DIE ZEILEN DIESES KASTENS.
   const rows = critRows(fetched, phase);
   drawNameLanguages(`${k.list}-lang`, 'crits', rows);
   manageList(k.list, rows, 'crit', fetched);
   // Hier wird angelegt, nicht am Eintrag. Das Feld gibt es nur
-  // fuer den Admin -- der Server verweigert es allen anderen ohnehin.
+// fuer den Admin -- der Server verweigert es allen anderen ohnehin.
   const critField = document.getElementById(k.field);
   if (critField) {
     const addCrit = async () => {
       const name = critField.value.trim();
       if (!name) return;
       // DIE PHASE SCHICKT DIE KARTE MIT. Ohne sie legte die zweite Karte
-      // Bewertungskriterien an -- der Server hat die Vorgabe 'after'.
+// Bewertungskriterien an -- der Server hat die Vorgabe 'after'.
       try { await api('POST', '/api/criteria', { name, phase }); critField.value = ''; toast(t('card.criterionCreated')); adminNew(fetched); }
       catch (e) { toast(e.message, true); }
     };
     document.getElementById(k.button).onclick = addCrit;
     critField.addEventListener('keydown', e => { if (e.key === 'Enter') addCrit(); });
   }
-  /* DER SCHALTER DES POTENZIALMODUS -- 0.26.0, und nur an der Potenzialkarte.
-     Er wird hier verdrahtet und nicht bei den beiden Anlegen-Schaltern: er
-     gehoert dieser Karte, und ein Schalter, der woanders verdrahtet wird als
-     er steht, ist beim naechsten Umbau verwaist.
-     DER HELFER FINDET IHN NUR, WENN ER DASTEHT -- fuer die zweite Karte und
-     fuer jeden, der kein Admin ist, gibt es das Element nicht, und er kehrt
-     still zurueck.
-     NEU GEZEICHNET WIRD DER GANZE BEREICH: der Modus wirkt an fuenf Stellen,
-     und zwei davon stehen in dieser Karte. Die Bildlaufstellung bleibt --
-     dieselbe Wahl wie beim Sprachwechsel (B3 der Runde 0.24.4). */
+  /* DER SCHALTER DES POTENZIALMODUS -- 0.26.0, und nur an der Potenzialkarte. */
   if (phase === 'before') createToggle('pot-mode', 'potentialMode',
     () => POTENTIAL_MODE, v => { POTENTIAL_MODE = v; },
     () => renderSystem({ keepScroll: true }));
 }
 
-  /* --- Die beiden Anlegen-Schalter ---
-     Nur der Admin bekommt sie zu sehen; ein Haken, der zuverlaessig 403
-     erzeugt, saehe aus wie ein Fehler. EIN Helfer fuer beide: zwei
-     gleichlautende Bloecke nebeneinander liefen frueher oder spaeter
-     auseinander. Schlaegt das Speichern fehl, geht die Stellung zurueck --
-     sonst zeigte der Bildschirm etwas anderes an als der Server haelt. */
-  /* `after` SEIT 0.26.0, UND NUR EIN RUFER BRAUCHT ES. Die drei aelteren
-     Schalter aendern eine Regel und sonst nichts Sichtbares; der
-     Potenzialmodus aendert die Karte, in der er steht (gedaempfte Liste, ein
-     Satz darueber) und vier weitere Stellen. Ohne ein Neuzeichnen stuende der
-     Haken auf „aus" und die Karte saehe aus wie vorher.
-     NACH DEM SPEICHERN UND NICHT DAVOR: schlaegt der Ruf fehl, geht die
-     Stellung zurueck, und dann gibt es nichts neu zu zeichnen. */
+  /* --- Die beiden Anlegen-Schalter --- Nur der Admin bekommt sie zu sehen;
+     ein Haken, der zuverlaessig 403 erzeugt, saehe aus wie ein Fehler. */
+  /* `after` SEIT 0.26.0, UND NUR EIN RUFER BRAUCHT ES. */
   const createToggle = (id, key, read, remember, after) => {
     const el = document.getElementById(id);
     if (!el) return;
@@ -10142,33 +6717,17 @@ function setUpCriteriaOut(fetched, phase) {
 
   /* --- Kategorien, Tags und Kriterien verwalten --- */
   // Dieselbe Liste fuer alle drei. Kriterien haben zusaetzlich einen Griff,
-  // weil bei ihnen die Reihenfolge etwas bedeutet.
-  /* DIE TABELLE HAELT DEN SCHLUESSEL, DAS WORT HOLT DIE LESESTELLE -- 0.24.0.
-     Diese Zeile steht auf Modulebene und laeuft, sobald der Browser die Datei
-     liest; die Sprachdatei kommt erst danach. Ein fertiger Satz stuende hier
-     fuer immer als ⟦…⟧. */
+// weil bei ihnen die Reihenfolge etwas bedeutet.
+  /* DIE TABELLE HAELT DEN SCHLUESSEL, DAS WORT HOLT DIE LESESTELLE -- 0.24.0. */
   const MANAGE_KIND = {
     cat: {
       /* `create` SEIT 0.24.4 (B7): die Karte kann anlegen, und WIE sie es
          tut, steht hier -- Kennung des Feldes, Kennung des Knopfes, der
-         Platzhalter und die Meldung danach. Die beiden Kriterienkarten
-         konnten es laengst; „Kategorien" und „Tags" fehlte allein das Feld.
-         UEBER DIESEN EINTRAG UND NICHT UEBER EINE ABFRAGE AUF DEN
-         KARTENNAMEN, wie schon bei `sortable`, `counter`, `weight` und
-         `perLanguage`. Wer eine vierte Liste dazustellt, traegt sie hier ein
-         und nicht in eine Weiche.
-         DIE KRITERIEN TRAGEN KEINEN: sie schicken die PHASE mit, und ihre
-         zwei Karten haben dafuer ihre eigene Zeile (CRIT_CARD). Ein
-         gemeinsamer Eintrag muesste die Phase kennen, und dann stuende in
-         dieser Tabelle etwas, das nur eine der drei Listen angeht. */
+         Platzhalter und die Meldung danach. */
       create: { field: 'newmcat', button: 'newmcat-b',
                 hint: 'card.newCategory', done: 'card.categoryCreated' },
       /* `perLanguage` SEIT 0.24.3: diese Liste traegt einen Namen JE SPRACHE,
-         und das Umbenennen sagt deshalb, welche gemeint ist. Die Tags tragen
-         keinen -- sie sind fuer alle Sprachen dieselben (Nachtrag zu E9/E11,
-         Punkt 2). Die Unterscheidung laeuft ueber diesen Eintrag und nicht
-         ueber eine Abfrage auf den Kartennamen, wie schon bei `sortable`,
-         `counter` und `weight`. */
+         und das Umbenennen sagt deshalb, welche gemeint ist. */
       perLanguage: true,
       url: '/api/product-categories', askKey: 'card.deleteCategoryAsk',
       warning: e => t('card.categoryDeleteHint', { name: e.name, usage_count: e.usage_count, thing: vThing(e.usage_count) })
@@ -10178,20 +6737,14 @@ function setUpCriteriaOut(fetched, phase) {
                 hint: 'card.newTag', done: 'card.tagCreated' },
       url: '/api/tags', askKey: 'card.deleteTagAsk',
       // Beide Verwendungen nennen: sonst wird ein scheinbar ungenutzter Tag
-      // entfernt und reisst die Kennzeichnungen an den Testtagen mit.
+// entfernt und reisst die Kennzeichnungen an den Testtagen mit.
       counter: e => `${e.usage_count} ${vThing(e.usage_count)} · ${e.test_usage_count} ${vTime(e.test_usage_count)}`,
-      /* ZWEI ZAHLEN OHNE WORT -- 0.30.1, Befund 6 (F13). Sie sind lesbar,
-         solange ihre Reihenfolge feststeht, und sie steht fest: erst die
-         Eintraege, dann die Testtage, wie im Titel daneben. */
+      /* ZWEI ZAHLEN OHNE WORT -- 0.30.1, Befund 6 (F13). */
       shortCounter: e => `${e.usage_count} · ${e.test_usage_count}`,
-      /* DAS „und" KAM AUS DEM QUELLTEXT -- gefunden beim Bau von BA 3. In einer
-         englisch eingestellten Instanz stand hier „3 entries und 2 test days".
-         Jetzt traegt jede Sprache den ganzen Satz, und die Bindung mit ihm. */
-      /* DIE WERTE STEHEN AN BEIDEN RUFEN UND NICHT IN EINER VARIABLEN --
-         der Platzhalterwaechter liest die Rufstelle, und ein Wert, der in
-         einem Bezeichner dorthin reist, ist fuer ihn nicht gereicht. Drei
-         Namen zweimal hinzuschreiben ist billiger als eine Ausnahme in einer
-         Liste, die danach jemand pflegen muss. */
+      /* DAS „und" KAM AUS DEM QUELLTEXT -- gefunden beim Bau von BA 3. */
+      /* DIE WERTE STEHEN AN BEIDEN RUFEN UND NICHT IN EINER VARIABLEN -- der
+         Platzhalterwaechter liest die Rufstelle, und ein Wert, der in einem
+         Bezeichner dorthin reist, ist fuer ihn nicht gereicht. */
       warning: e => {
         const things = `${e.usage_count} ${vThing(e.usage_count)}`;
         const times = `${e.test_usage_count} ${vTime(e.test_usage_count)}`;
@@ -10202,30 +6755,14 @@ function setUpCriteriaOut(fetched, phase) {
     },
     crit: {
       url: '/api/criteria', askKey: 'card.deleteCriterionAsk', sortable: true,
-      // DAS GEWICHTSFELD GEHOERT ALLEIN HIERHER. manageList() zeichnet dieselbe
-      // Zeile auch fuer Kategorien und Tags, und dort gibt es kein Gewicht --
-      // ein Kriterium wiegt im Gesamtschnitt, eine Kategorie rechnet nirgends
-      // mit. Die Unterscheidung laeuft ueber diesen Eintrag, wie schon bei
-      // `sortable` und `counter`, und nicht ueber eine Abfrage auf den
-      // Kartennamen.
+      // DAS GEWICHTSFELD GEHOERT ALLEIN HIERHER.
       weight: true,
       perLanguage: true,
       warning: e => t('card.criterionDeleteHint', { name: e.name })
     }
   };
 
-  /* DIE ANLEGEZEILE EINER VERWALTUNGSKARTE -- 0.24.4 (B7). Zwei Rufe, einer
-     fuers Markup und einer fuers Verdrahten, wie ueberall in diesem Bereich:
-     die Karte wird als String gebaut und danach verdrahtet.
-     SIE STEHT NUR BEIM ADMIN, wie die Umbenenn- und Loeschwerkzeuge daneben:
-     der Server verweigert das Anlegen einem gewoehnlichen Benutzer nur, wenn
-     der Schalter aus ist -- ein Feld, das je nach Schalter eine Absage
-     erzeugt, saehe aus wie ein Fehler. Wer am EINTRAG anlegen darf, tut es
-     dort; diese Karte ist die Verwaltung.
-     EINE VORHANDENE ZEILE IST KEIN FEHLER: der Server gibt sie mit 200
-     zurueck, und die Karte zeichnet danach neu. Wer einen Namen zweimal
-     eintippt, sieht ihn einmal -- und keine Fehlermeldung fuer etwas, das
-     schon in Ordnung ist. */
+  /* DIE ANLEGEZEILE EINER VERWALTUNGSKARTE -- 0.24.4 (B7). */
   const manageCreate = (kind) => {
     const spec = MANAGE_KIND[kind].create;
     if (!spec || !ADMIN) return '';
@@ -10244,17 +6781,12 @@ function setUpCriteriaOut(fetched, phase) {
       if (!name) return;
       /* OHNE SPRACHANGABE -- 0.24.4, Frage F9, und dieselbe Regel wie beim
          Umbenennen ohne Sprachangabe (0.24.3, Bauabschnitt 6a): angelegt wird
-         IMMER die Grundzeile, und der Umschalter darueber fasst sie nicht an.
-         Eine Kategorie, die es nur auf Tuerkisch gaebe, waere eine Kategorie,
-         die der Rest der Installation nicht kennt. */
+         IMMER die Grundzeile, und der Umschalter darueber fasst sie nicht an. */
       try {
         await api('POST', MANAGE_KIND[kind].url, { name });
         field.value = '';
         toast(t(spec.done));
-        /* DIE NAMENSTAFELN ZIEHT adminNew() NACH -- 0.24.5. Bis 0.24.4 stand
-           hier ein `NAMES_FETCHED = {}`: der Zwischenspeicher der nachgeholten
-           Abrufe war mit dem neuen Namen veraltet. Der Speicher ist weg, und
-           mit ihm die Frage, wer ihn leert. */
+        /* DIE NAMENSTAFELN ZIEHT adminNew() NACH -- 0.24.5. */
         adminNew(fetched);
       } catch (e) { toast(e.message, true); }
     };
@@ -10267,13 +6799,7 @@ function setUpCriteriaOut(fetched, phase) {
     if (!box) return;
     const spec = MANAGE_KIND[kind];
     // Umbenennen und Loeschen gehoeren dem Admin -- bei allen dreien, und bei
-    // den Kriterien auch das Sortieren. Fuer andere bleibt die Karte eine
-    // LISTE: kein Griff, kein ✎, kein ✕ und kein Anlegefeld. Der Server
-    // verweigert es ohnehin; ein Knopf, der eine Fehlermeldung erzeugt, sieht
-    // aber aus wie ein Fehler.
-    // DIE KARTE SELBST BLEIBT STEHEN, alle drei. Wer nicht verwalten darf,
-    // darf trotzdem nachsehen, was es gibt -- die Namen sind die Auswahl, aus
-    // der jeder am Eintrag schoepft.
+    // den Kriterien auch das Sortieren.
     const may = ADMIN;
     box.innerHTML = '';
     if (!list.length) { box.innerHTML = `<span class="hint">${tH('card.nothingCreatedYet')}</span>`; return; }
@@ -10282,14 +6808,8 @@ function setUpCriteriaOut(fetched, phase) {
       row.className = 'mrow' + (spec.sortable && may ? ' drag' : '');
       row.dataset.mid = entry.id;
       const url = spec.url;
-      /* Die Zeile war schon besetzt: Griff, Name, Verwendungszaehler, ✎ und ✕.
-         Das Gewichtsfeld steht ZWISCHEN Name und Zaehler -- der Name traegt
-         flex:1 und schiebt alles Weitere nach rechts, das Feld sitzt damit an
-         der Kante zwischen Beschriftung und Kennzahlen. Rechts der Knoepfe
-         waere es zwischen zwei Aktionen geraten, obwohl es keine ist.
-         WER NICHT VERWALTEN DARF, SIEHT DAS GEWICHT TROTZDEM -- es erklaert
-         die Kopfzahl an jedem Eintrag, und die sieht er ja auch. Nur als Text
-         statt als Feld, wie bei Name und Zaehler daneben. */
+      /* Die Zeile war schon besetzt: Griff, Name, Verwendungszaehler, ✎ und
+         ✕. */
       const weightField = spec.weight
         ? (may
           ? `<span class="mweight" title="${esc(t('list.weightedAvg'))}">×<input class="mweight-field"
@@ -10297,67 +6817,11 @@ function setUpCriteriaOut(fetched, phase) {
                value="${esc(weightText(entry.weight))}"></span>`
           : `<span class="mweight mweight-fixed" title="${esc(t('list.weightedAvg'))}">×${esc(weightText(entry.weight))}</span>`)
         : '';
-      /* DER VERMERK AM RUECKFALL -- 0.24.5 (F4). Wo fuer die GEZEIGTE Sprache
-         nichts eingetragen ist, steht der Name der Vorgabesprache da, und
-         dieser Vermerk sagt beides: dass nichts eingetragen ist, und welche
-         Sprache stattdessen dasteht.
-         ER STEHT NEBEN DEM NAMEN UND NICHT DARIN: `.mname` traegt weiterhin
-         genau den Namen -- der Pruefstand liest ihn, und ein angehaengter Satz
-         waere dort ein zweiter Wert im selben Feld.
-         UND ER STEHT DARUNTER, NICHT DANEBEN -- das hat der Augenschein
-         entschieden und nicht der Entwurf. Nebeneinander in EINER Zeile hat
-         der Vermerk den Namen verdraengt: `.mname` traegt `flex: 1`, und das
-         heisst `flex-basis: 0` -- in einer engen Spalte bekommt der Name damit
-         null Grundbreite, waehrend der laengere Vermerk seine volle behaelt.
-         Am Bildschirm stand „(nicht eingetragen — es steht De…" und KEIN
-         Name. Jetzt liegt beides in einem Kasten uebereinander: der Name in
-         voller Breite, der Vermerk als zweite Zeile darunter -- dieselbe
-         Bauform wie „(Vorgabe: …)" unter einem Vokabelfeld.
-         GEDAEMPFT WIE DER VERWENDUNGSZAEHLER daneben: er ist eine Auskunft
-         ueber die Zeile und keine Aktion.
-         UND DERSELBE SATZ NOCH EINMAL ALS `title`: in der Kriterienkarte steht
-         neben dem Namen auch noch das Gewicht, und dann bleibt fuer die zweite
-         Zeile so wenig Platz, dass sie mit Auslassung kuerzt. Der Zeiger
-         darueber zeigt den ganzen Satz -- wie beim Zaehler und beim Gewicht
-         daneben, die es seit je so halten. */
-      /* ZWEI SAETZE UND NICHT EINER -- 0.24.6. `nameFallback` traegt entweder
-         die KENNUNG der Sprache, deren Name wirklich dasteht, oder `true`:
-         „es steht ein Rueckfall da, und ich kann keine Sprache dafuer
-         nennen". Der zweite Fall ist die Klammer aus namesFrom(), und er
-         bekommt einen eigenen Satz OHNE Sprachnamen -- eine genannte Sprache,
-         die nicht stimmt, ist schlimmer als keine (der Befund dieser Runde).
-         EIN FELD UND NICHT ZWEI: ein zweites Kennzeichen daneben waere eine
-         zweite Aussage ueber dieselbe Sache, und die beiden liefen
-         auseinander. Beide Gestalten sind WAHR im Sinne von JavaScript --
-         daran haengt das Umbennenfeld weiter unten, und es bleibt, wie es
-         war. */
-      /* BEIDE SCHLUESSEL STEHEN WOERTLICH DA und nicht als Variable. Das ist
-         keine Umstaendlichkeit, sondern die Bedingung eines Waechters: der
-         Pruefstand liest die Aufrufe von `t()` am Quelltext und haelt dagegen,
-         dass jeder Platzhalter eines Satzes auch gereicht wird. Ein Schluessel
-         in einer Variablen ist fuer ihn kein Aufruf -- `{language}` bliebe
-         danach woertlich am Bildschirm stehen, und niemand saehe es. */
-      /* UND SEIT 0.25.0 SAGT DER ZWEITE SATZ ETWAS ANDERES. `nameFallback ===
-         true` heisst nicht mehr „ein Rueckfall ohne nennbare Sprache", sondern
-         genau eine Lage: der ORIGINALTEXT der Zeile steht da, und niemand
-         weiss, in welcher Sprache er geschrieben ist (Schritt 4 der Kette).
-         Das ist eine Auskunft ueber die ZEILE und nicht ueber die Sprache --
-         `card.nameFallbackNone` („nicht eingetragen") sagte das Gegenteil und
-         ist deshalb weggefallen. */
-      /* UND SEIT 0.25.1 NENNT DER SATZ BEIDE SPRACHEN. Bis 0.25.0 stand da
-         „(nicht eingetragen -- es steht Deutsch)", und der Betreiber hat am
-         10. September 2026 gesagt, was daran fehlt: „ist irgendwie ein nicht
-         klarer satz." Er sagte nicht, WAS nicht eingetragen ist, und „es
-         steht Deutsch" liest sich wie eine Aussage ueber den Text selbst.
-         JETZT: „(kein Eintrag in Türkçe -- gezeigt wird Deutsch)". Zwei
-         Angaben, weil es zwei Sprachen sind: die, in der nichts steht (die
-         Pille, auf der man gerade steht), und die, deren Name stattdessen
-         dasteht.
-         DIE FEHLENDE MUSS MIT, obwohl die Pille darueber sie schon nennt:
-         wer die Liste ueberfliegt, liest die Zeile und nicht den Umschalter.
-         DIE GEZEIGTE MUSS BLEIBEN -- das ist der Befund von 0.24.6: eine
-         genannte Sprache, die nicht stimmt, ist schlimmer als keine, und
-         darum steht sie ueberhaupt da. */
+      /* DER VERMERK AM RUECKFALL -- 0.24.5 (F4). */
+      /* ZWEI SAETZE UND NICHT EINER -- 0.24.6. */
+      /* BEIDE SCHLUESSEL STEHEN WOERTLICH DA und nicht als Variable. */
+      /* UND SEIT 0.25.0 SAGT DER ZWEITE SATZ ETWAS ANDERES. */
+      /* UND SEIT 0.25.1 NENNT DER SATZ BEIDE SPRACHEN. */
       const fallbackName = entry.nameFallback === true
         ? '' : languageNameOf(entry.nameFallback);
       const shownName = languageNameOf(namesLanguage());
@@ -10369,43 +6833,14 @@ function setUpCriteriaOut(fetched, phase) {
               { missing: shownName, language: fallbackName }))}">${
               tH('card.nameFallback',
               { missing: shownName, language: fallbackName })}</span>`);
-      /* DAS ✕ AM FELD -- 0.25.0 (F5). Es steht genau dort, wo etwas
-         EINGETRAGEN ist und die Zeile es nicht selbst traegt: ein Rueckfall
-         laesst sich nicht raeumen (da steht nichts), und der Originaltext
-         auch nicht (er IST der Name der Zeile -- `name` ist `NOT NULL`).
-         EIN EIGENES ZEICHEN UND NICHT „leer speichern": ein leeres Feld heisst
-         seit 0.24.5 „ich habe es mir anders ueberlegt", und dieselbe Geste
-         kann nicht zweierlei bedeuten. */
+      /* DAS ✕ AM FELD -- 0.25.0 (F5). */
       const mayClear = may && spec.perLanguage && entry.nameFallback === undefined &&
         entry.language !== namesLanguage();
       /* DER VERMERK STEHT AM ENDE DER ZEILE UND NICHT MEHR IM NAMENSKASTEN --
          0.25.1, und das ist der Befund des Betreibers vom 10. September 2026:
          „warum ist der untere text mit dem hinweis im ersten kachel
-         vollstaendig zu sehen und in den beiden anderen nicht?“
-
-         BIS 0.25.0 SASS ER IN `.mnamebox`, ALSO IN DER NAMENSSPALTE. In einer
-         Kriterienzeile teilen sich Ziehgriff, Gewichtsfeld, ✕, Zaehler und
-         zwei Knoepfe dieselbe Zeile; was der Namensspalte blieb, war schmal,
-         und der Vermerk kuerzte mit Auslassung. Eine Kategorienzeile hat
-         weder Griff noch Gewicht -- dort stand derselbe Satz vollstaendig da.
-         EIN SATZ, ZWEI BREITEN, je nach Karte -- und der Betreiber hat es am
-         Bildschirm gesehen, nicht im Quelltext.
-
-         ALS LETZTES KIND DER ZEILE bricht er mit `flex-basis: 100%` auf eine
-         eigene Zeile um und hat die volle Kachelbreite, in jeder Karte
-         dieselbe. LETZTES Kind und nicht irgendeines: stuende er vor dem
-         Gewichtsfeld, schoebe der Umbruch alles dahinter auf eine dritte
-         Zeile.
-
-         DER NAMENSKASTEN FAELLT DAMIT WEG. Er hatte genau einen Zweck --
-         Name und Vermerk uebereinanderzustellen (0.24.5) --, und den erledigt
-         jetzt der Umbruch der Zeile selbst. `.mname` ist wieder ein Kind der
-         Zeile und traegt `flex: 1; min-width: 0` wie vor 0.24.5.
-
-         DEN UMBRUCH TRAEGT EINE EIGENE KLASSE und nicht `.mrow` schlechthin:
-         dieselbe Zeile zeichnet auch Tags, Papierkorb und Benutzer, und ein
-         Umbruch fuer alle waere eine Aenderung an Listen, die gar keinen
-         Vermerk kennen. */
+         vollstaendig zu sehen und in den beiden anderen nicht?“ BIS 0.25.0
+         SASS ER IN `.mnamebox`, ALSO IN DER NAMENSSPALTE. */
       if (entry.nameFallback !== undefined) row.classList.add('withback');
       row.innerHTML = `${spec.sortable && may ? `<span class="grip" title="${esc(t('entry.dragToSort'))}">⣿</span>` : ''}
         <span class="mname${
@@ -10420,7 +6855,7 @@ function setUpCriteriaOut(fetched, phase) {
       if (!may) { box.appendChild(row); return; }
       if (spec.sortable) {
         // Ziehen wie bei Fotos und Links: Pointer-Events, gleiche Schwelle.
-        // Die Knoepfe und das Umbenennfeld bleiben ausgenommen.
+// Die Knoepfe und das Umbenennfeld bleiben ausgenommen.
         makeSortable(row, {
           axis: 'y', selector: '.mrow', ignore: '.mact, input',
           onDrop: async (children) => {
@@ -10432,15 +6867,7 @@ function setUpCriteriaOut(fetched, phase) {
           }
         });
       }
-      /* NACH EINEM GEWICHTSWECHSEL WIRD DIE LISTE NICHT NEU GEZEICHNET. Das
-         ist der Unterschied zum Umbenennen: dort MUSS neu gezeichnet werden,
-         weil das ✎ den Namen durch ein Eingabefeld ERSETZT hat und der Zustand
-         zurueckgebaut gehoert. Ein Gewichtswechsel ersetzt nichts -- das Feld
-         steht dauerhaft da und traegt den neuen Wert bereits. Ein adminNew()
-         waere hier nicht nur ueberfluessig, sondern schaedlich: ist an
-         derselben Zeile gerade ein Umbenennen offen, risse der Neuaufbau es
-         weg. Der Verwendungszaehler daneben aendert sich durch ein Gewicht
-         ohnehin nicht. */
+      /* NACH EINEM GEWICHTSWECHSEL WIRD DIE LISTE NICHT NEU GEZEICHNET. */
       const weightInput = row.querySelector('.mweight-field');
       if (weightInput) weightInput.onchange = async () => {
         const g = weightOutText(weightInput.value);
@@ -10449,36 +6876,10 @@ function setUpCriteriaOut(fetched, phase) {
         // "Gewicht 0".
         if (Number.isNaN(g)) { weightInput.value = weightText(entry.weight); return; }
         try {
-          /* DER NAME GEHT DAHIN ZURUECK, WO ER HERKOMMT -- 0.24.6, und das ist
-             ein Befund, den der Auftrag nicht kannte.
-
-             DER SCHREIBWEG VERLANGT EINEN NAMEN (`server.nameMissing`), ein
-             Gewichtswechsel schickt also einen mit. Bis 0.24.5 schickte er
-             `entry.name` OHNE Sprachangabe -- und ohne Sprachangabe meint der
-             Server die GRUNDZEILE (`namedLanguage()`). Wer also auf der Pille
-             „English" ein Gewicht verstellte, benannte damit die Grundzeile in
-             den englischen Namen um: der deutsche Name war weg, im Export, in
-             der Sortierung und fuer jeden anderen Leser. **Niemand hat einen
-             Namen angefasst, und trotzdem stand danach ein anderer da.**
-
-             DIE ANGABE IST DESHALB DIE SPRACHE, AUS DEREN TAFEL DER NAME
-             STAMMT, und nicht die der Pille: bei einem Rueckfall steht in
-             `entry.name` der Name einer ANDEREN Sprache, und mit der Pille als
-             Angabe machte das Speichern aus dem Rueckfall einen Eintrag --
-             derselbe Fehler wie B2 der Runde 0.24.4, nur an einem Feld, das
-             gar keinen Namen aendern will. `nameFallback` sagt genau das:
-             die Kennung der Tafel, aus der der Name kommt, oder `true`, wenn
-             es keine gibt -- dann ist es die Antwort des Servers, und die
-             traegt den Namen der Grundzeile.
-             SO GESCHRIEBEN AENDERT DER GEWICHTSWECHSEL KEINEN NAMEN: er
-             schreibt denselben Wert an dieselbe Stelle zurueck. */
-          /* UND SEIT 0.25.0 GEHT DER VIERTE SCHRITT OHNE SPRACHANGABE ZURUECK.
-             `nameFallback === true` heisst: da steht der Originaltext, und
-             seine Sprache kennt niemand. Eine Angabe waere hier eine
-             Behauptung -- ohne Angabe meint der Server die ZEILE SELBST
-             (`namedLanguage()`), und die Grundzeile bekommt denselben Namen
-             zurueck, den sie schon traegt. Ein Gewichtswechsel benennt damit
-             auch in dieser Lage nichts um. */
+          /* DER NAME GEHT DAHIN ZURUECK, WO ER HERKOMMT -- 0.24.6, und das
+             ist ein Befund, den der Auftrag nicht kannte. */
+          /* UND SEIT 0.25.0 GEHT DER VIERTE SCHRITT OHNE SPRACHANGABE
+             ZURUECK. */
           const nameLanguage = entry.nameFallback === true
             ? null : (entry.nameFallback || namesLanguage());
           const now = await api('PUT', `${url}/${entry.id}`, spec.perLanguage
@@ -10486,10 +6887,10 @@ function setUpCriteriaOut(fetched, phase) {
                 ...(nameLanguage === null ? {} : { language: nameLanguage }) }
             : { name: entry.name, weight: g });
           // Den Datensatz IN DER LISTE nachziehen statt neu zu laden -- sonst
-          // zeigte die naechste Zeichnung wieder den alten Wert.
+// zeigte die naechste Zeichnung wieder den alten Wert.
           entry.weight = now.weight;
           // Zeigt die Rundung mit: 1,234 steht danach als 1,23 im Feld. Die
-          // Rundung ist damit nicht still.
+// Rundung ist damit nicht still.
           weightInput.value = weightText(now.weight);
           toast(t('card.weightSaved'));
         } catch (e) {
@@ -10502,13 +6903,7 @@ function setUpCriteriaOut(fetched, phase) {
         const inp = document.createElement('input');
         inp.className = 'medit';
         /* IM FELD STEHT NUR DAS EINGETRAGENE -- 0.24.5, und das ist dieselbe
-           Entscheidung wie an den vierzehn Vokabelfeldern (0.24.4, B1/B2). Ein
-           Feld, das den RUECKFALL als Wert traegt, ist von einem Feld, in das
-           jemand den Rueckfall getippt hat, nicht zu unterscheiden -- und ein
-           Speichern machte aus dem einen das andere: „Material" stuende danach
-           als tuerkischer Eintrag da, obwohl niemand ihn tuerkisch gemeint hat.
-           DER RUECKFALL STEHT ALS PLATZHALTER: das Feld ist damit leer und sagt
-           trotzdem, was dasteht, solange nichts eingetragen ist. */
+           Entscheidung wie an den vierzehn Vokabelfeldern (0.24.4, B1/B2). */
         inp.value = entry.nameFallback ? '' : entry.name;
         if (entry.nameFallback) inp.placeholder = entry.name;
         row.querySelector('.mname').replaceWith(inp);
@@ -10519,18 +6914,10 @@ function setUpCriteriaOut(fetched, phase) {
           const name = inp.value.trim();
           /* EIN LEERES FELD SCHICKT GAR NICHTS, und seit 0.24.5 ist das an
              einer Zeile OHNE Eintrag der gewoehnliche Fall: wer das ✎ oeffnet
-             und wieder wegklickt, hat es sich anders ueberlegt. Und wer den
-             Rueckfall abtippt, schickt auch nichts -- der Server loeschte die
-             Uebersetzung ohnehin, sobald sie dem Grundnamen gleicht
-             (`writeName()`), und ein Umlauf fuer nichts ist einer zu viel. */
+             und wieder wegklickt, hat es sich anders ueberlegt. */
           if (!name || name === entry.name) return adminNew(fetched);
           /* DIE SPRACHE GEHT MIT -- 0.24.3, Bauabschnitt 6a, und NUR an den
-             beiden Listen, die eine haben. An den Tags gibt es keine: sie sind
-             fuer alle Sprachen dieselben (Nachtrag zu E9/E11, Punkt 2).
-             OHNE DIESE ANGABE BENENNTE DER SERVER DIE GRUNDZEILE UM. Genau das
-             ist beim Bauen aufgefallen: wer sie weglaesst, hat umbenannt und
-             nichts geaendert, sobald die gezeigte Sprache nicht die der
-             Grundzeile ist. */
+             beiden Listen, die eine haben. */
           const body = spec.perLanguage ? { name, language: namesLanguage() } : { name };
           try { await api('PUT', `${url}/${entry.id}`, body); toast(t('card.renamed'));
                 adminNew(fetched); }
@@ -10540,11 +6927,7 @@ function setUpCriteriaOut(fetched, phase) {
         inp.onkeydown = e => { if (e.key === 'Enter') inp.blur(); if (e.key === 'Escape') adminNew(fetched); };
       };
       /* DAS ✕ RAEUMT EINEN EINTRAG WEG UND LOESCHT NICHTS SONST -- 0.25.0
-         (F5). Mit Rueckfrage, wie jeder Griff, der etwas wegnimmt; danach
-         faellt die Zeile auf die Kette zurueck und die Zahl an der Pille
-         steigt um eins.
-         `clearName` UND KEIN LEERER NAME: der Schreibweg verlangt einen Namen,
-         und ein leeres Feld heisst dort etwas anderes. */
+         (F5). */
       const clearKnob = row.querySelector('.nx');
       if (clearKnob) clearKnob.onclick = async () => {
         if (!await confirmBox(t('card.nameRemoveAsk'),
@@ -10566,29 +6949,14 @@ function setUpCriteriaOut(fetched, phase) {
     });
   }
   function drawAdmin(fetched) {
-    /* DURCH namesFrom() UND NICHT AUS `fetched` -- 0.24.5. Bis 0.24.4 stand
-       hier `fetched.cats` und `fetched.crits`, also die Namen in der Sprache
-       des LESERS: wer auf der Pille „Türkçe" umbenannte, sah danach wieder die
-       deutsche Liste, waehrend die Pille weiter auf Türkçe stand. Zwei Wege in
-       dieselbe Liste, und der eine kannte den Umschalter nicht.
-       DIE TAGS GEHEN NICHT DURCH: sie tragen bewusst keinen Namen je Sprache
-       (Nachtrag zu E9/E11, Punkt 2), und ueber ihrer Karte steht deshalb auch
-       keine Pillenreihe. */
+    /* DURCH namesFrom() UND NICHT AUS `fetched` -- 0.24.5. */
     manageList('mcats', namesFrom(fetched, 'cats'), 'cat', fetched);
     /* UND DIE PILLENREIHEN MIT -- 0.25.0. Sie tragen seit dieser Runde eine
-       ZAHL, und die aendert sich mit jedem Umbenennen, Anlegen und Raeumen.
-       Bis 0.24.6 stand darin nur der Name der Sprache, und deshalb genuegte
-       es, sie beim Aufbau der Karte einmal zu zeichnen. */
+       ZAHL, und die aendert sich mit jedem Umbenennen, Anlegen und Raeumen. */
     drawNameLanguages('ncatlang', 'cats');
     drawNamesUnknown(fetched);
     manageList('mtags', fetched.tags, 'tag', fetched);
-    // BEIDE KRITERIENLISTEN, aus DERSELBEN Antwort. manageList() haengt
-    // sich an einen Kasten, den es nicht gibt, gar nicht erst an -- wer nur
-    // eine der beiden Karten offen hat, bekommt nur diese gezeichnet.
-    // LISTE UND PILLENREIHE IN EINEM DURCHGANG -- 0.25.1. Bis dahin standen
-    // sie in zwei Schleifen, und nur die eine kannte die Phase. Zwei
-    // Schleifen ueber dieselbe Sache laufen auseinander, sobald eine sich
-    // aendert -- und genau das war passiert.
+    // BEIDE KRITERIENLISTEN, aus DERSELBEN Antwort.
     for (const phase of Object.keys(CRIT_CARD)) {
       const rows = critRows(fetched, phase);
       drawNameLanguages(`${CRIT_CARD[phase].list}-lang`, 'crits', rows);
@@ -10596,15 +6964,7 @@ function setUpCriteriaOut(fetched, phase) {
     }
   }
   async function adminNew(fetched) {
-    /* UND DIE NAMENSTAFELN MIT -- 0.24.5. Anlegen, Umbenennen und Loeschen
-       aendern die Namen; die Tafeln aller Sprachen kommen aus
-       `GET /api/settings`, und ohne diesen vierten Abruf zeigte die Karte nach
-       einem Umbenennen den alten Namen. Bis 0.24.4 stand an denselben Stellen
-       ein `NAMES_FETCHED = {}` -- ein Zwischenspeicher, den jemand leeren
-       musste, und beim Wechsel der Lesersprache hat es niemand getan (D2).
-       ES IST DERSELBE UMLAUF WIE DIE DREI DANEBEN und kein neuer Weg. Er
-       laeuft nur hier: die drei Verwaltungswerkzeuge stehen ausschliesslich
-       dem Admin offen, und nur der bekommt die Tafeln ueberhaupt. */
+    /* UND DIE NAMENSTAFELN MIT -- 0.24.5. */
     const [cats, tags, crits, settings] = await Promise.all([
       api('GET', '/api/product-categories'), api('GET', '/api/tags'), api('GET', '/api/criteria'),
       api('GET', '/api/settings')
@@ -10620,38 +6980,15 @@ function cardVocabulary() {
   return `<div class="sys-card">
         <h3>${tH('card.vocabulary')}</h3>
         <p class="desc">${tMark('card.vocabularyHint', 'card.labelOnlyHint')}</p>
-        ${/* FUENFZEHN FELDER AUS EINER TABELLE -- 0.22.0, und seit 0.32.0 sind
-             es fuenfzehn. Bis 0.21.1 standen die zwoelf Felder dreimal im Quelltext: hier als Markup, in vFields()
-             als Leser und in setUpVocabularyOut() als Liste der Kennungen.
-             Wer ein Wort ergaenzte, musste es dreimal ergaenzen -- genau so
-             ist beim Bauen von 0.21.0 das Feld fuer „Potenzial" zunaechst
-             leer geblieben. Jetzt steht die Tabelle einmal (VOCABULARY_FIELDS), und
-             die drei Stellen lesen sie.
-             JEDER FELDNAME NENNT DIE VORGABE: „Sache, Einzahl" allein sagte
-             einem Admin nicht, welches Wort er da umbenennt. */''}
-        ${/* DIE SPRACHZEILE UEBER DEN FELDERN -- 0.24.3, F3. EINE
-              Karte, kein zweiter Ort: sie zeigt die fuenfzehn Felder der
-              GEWAEHLTEN Sprache, und ein Umschalter darueber wechselt sie.
-              Sie steht nur da, wenn es ueberhaupt etwas zu wechseln gibt. */''}
+        ${/* FUENFZEHN FELDER AUS EINER TABELLE -- 0.22.0, und seit 0.32.0
+             sind es fuenfzehn. */''}
+        ${/* DIE SPRACHZEILE UEBER DEN FELDERN -- 0.24.3, F3. */''}
         ${LANGUAGES.filter(a => a.active).length > 1
           ? `<div class="pills" id="vlang" style="margin-bottom:12px"></div>` : ''}
         <div class="vocabulary-grid">
-        ${/* DER HINWEIS FOLGT DER KACHEL UND NICHT DEM LESER -- 0.24.4 (B4).
-              vocabularyDefaultShown() liest die Vorgabe der Sprache, auf der
-              die Karte gerade steht; bis 0.24.3 stand hier die des Lesers,
-              und wer auf Deutsch las und Tuerkisch pflegte, bekam „(Vorgabe:
-              Eintrag)" unter ein tuerkisches Feld.
-              UND IM FELD STEHT NUR DAS EINGETRAGENE: ein leeres Feld heisst
-              „fuer diese Sprache ist nichts eingetragen", und was dann am
-              Bildschirm stuende, sagen Hinweis und Vorschau. */''}
+        ${/* DER HINWEIS FOLGT DER KACHEL UND NICHT DEM LESER -- 0.24.4 (B4). */''}
         ${/* UND DIE FEHLENDEN ZELLEN GEDAEMPFT MARKIERT -- 0.25.0,
-              Bauabschnitt 4. Dieselbe Zusage wie an den Namenskarten: „Rahmen
-              an allen Kacheln mit fehlenden Zellen, AUCH AM VOKABULAR" (der
-              Betreiber, 9. September 2026).
-              AN DER ABLAGE AENDERT SICH NICHTS. Die fuenfzehn Woerter kennen
-              keine Grundzeile, ihre Tafeln tragen je Sprache nur
-              Eingetragenes, und der Rueckfall auf die Vorgabe der Sprachdatei
-              bleibt, wie er ist. Es ist eine Frage der Darstellung. */''}
+             Bauabschnitt 4. */''}
           ${VOCABULARY_FIELDS.map(([id, key, name]) => `<div class="field${
             vocabularyShown()[key] ? '' : ' gap'}"><label for="${id}">${esc(name())}
             <span class="hint">${tH('card.defaultValue', { defaultWord: vocabularyDefaultShown()[key] })}</span></label>
@@ -10664,15 +7001,7 @@ function cardVocabulary() {
         </div>
       </div>`;
 }
-/* DIE TABELLE DER VOKABELFELDER: Kennung, Schluessel, Beschriftung. Die
-   Kennungen v1 bis v15 bleiben in der Reihenfolge, in der die Woerter dazu-
-   gekommen sind -- der Pruefstand spricht die Felder darueber an.
-   vocabularyDefault() liest die Vorgabe aus der geladenen Sprachdatei, weil die
-   Karte sie NENNEN muss („Vorgabe: Eintrag") und der Server sie nur beim
-   Speichern einsetzt. `V` selbst taugt dafuer nicht: es traegt nach dem
-   ersten Abruf das gespeicherte Wort.
-   SEIT 0.24.3 IST DAS DIE VORGABE DER GELESENEN SPRACHE -- wer die Karte auf
-   Englisch oeffnet, liest „(default: Entry)". */
+/* DIE TABELLE DER VOKABELFELDER: Kennung, Schluessel, Beschriftung. */
 /* AUCH HIER RUFE STATT WERTE -- 0.24.0, aus demselben Grund wie bei
    SYS_SECTIONS: die Vorgabe steht in der Sprachdatei, und die ist beim
    Auswerten dieser Zeile noch nicht geladen. */
@@ -10685,76 +7014,32 @@ const VOCABULARY_FIELDS = [
   ['v7', 'reportOne', () => t('card.reportOne')], ['v8', 'reportMany', () => t('card.reportMany')],
   ['v9', 'taskOne', () => t('card.taskOne')], ['v10', 'taskMany', () => t('card.taskMany')],
   ['v11', 'taskDone', () => t('card.taskDone')],
-  /* DAS WORT FUER DEN ZWEITEN STERNKASTEN -- 0.21.0. Es steht am Blockkopf des
-     Eintrags, in den Sortiereintraegen und im Titel der Karte „Potenzial:
-     Kriterien"; ein Umbenennen wirkt an allen Stellen zugleich. NIE
-     ZUSAMMENGESETZT: „Erwartungkriterien" haette kein Fugen-s. */
+  /* DAS WORT FUER DEN ZWEITEN STERNKASTEN -- 0.21.0. */
   ['v12', 'potential', () => t('card.potential')],
   /* UND DAS PAAR FUER DEN ERSTEN -- 0.22.0 (E14): Kastenkopf, Sortierung,
      Vergleich, Kachel, Karte, Glocke und Loeschdialoge lesen es. */
   ['v13', 'ratingOne', () => t('card.ratingOne')],
   ['v14', 'ratingMany', () => t('card.ratingMany')],
-  /* UND DAS FUENFZEHNTE -- 0.32.0, Strang 2. „Note" war die EINZIGE Zahl im
-     Programm ohne Vokabelwort: der Blockkopf darueber nennt `V.dayMany`, der
-     Nachbarblock `V.ratingOne`, und dazwischen stand ein festes Wort.
-     EIN WORT UND KEIN PAAR -- wie `potential`: kein einziger Wert schreibt
-     „Noten", das Wort steht an allen zehn Stellen in der Einzahl.
-     UND DIE RICHTUNG IST DER GRUND, NICHT DIE UMBENENNBARKEIT: eine deutsche
-     Note laeuft abwaerts -- die 1 ist die beste --, Sterne laufen aufwaerts.
-     Wer „Die Note muss zwischen 1 und 5 liegen" als Schulnote liest, haelt die
-     5 fuer fast das Schlechteste. Gemeint ist das Beste. */
+  /* UND DAS FUENFZEHNTE -- 0.32.0, Strang 2. */
   ['v15', 'grade', () => t('card.grade')]
 ];
-/* WELCHE SPRACHE DIE KARTEN „KATEGORIEN" UND „KRITERIEN" GERADE ZEIGEN.
-   Sie ist die des Lesers, solange niemand umschaltet -- und nur eine aus dem
-   VORRAT: was der Eigentuemer nicht freigegeben hat, pflegt er auch nicht. */
+/* WELCHE SPRACHE DIE KARTEN „KATEGORIEN" UND „KRITERIEN" GERADE ZEIGEN. */
 const namesLanguage = () => {
   const ok = LANGUAGES.some(a => a.active && a.code === NAMES_SHOWN);
   return ok ? NAMES_SHOWN : LANGUAGE;
 };
-/* WELCHE SPRACHE DIE GRUNDZEILE TRAEGT -- die Vorgabe der Installation. Sie
-   steht in LANGUAGES und wird nicht ein zweites Mal gemerkt: der Eigentuemer
-   kann sie in der Karte „Sprachen" wechseln, und zwei Aussagen darueber liefen
-   auseinander. */
+/* WELCHE SPRACHE DIE GRUNDZEILE TRAEGT -- die Vorgabe der Installation. */
 const baseNamesLanguage = () => (LANGUAGES.find(a => a.isDefault) || {}).code || LANGUAGE;
 /* WIE EINE SPRACHE HEISST -- in ihrer EIGENEN Sprache, wie ueberall in dieser
    Oberflaeche: der Server schickt den Namen mit (`languageName()` dort), und
-   die Kennung bleibt stehen, wenn keiner ankommt. Sie steht nie allein da: „tr"
-   sagt einem Betreiber nichts, „Türkçe" alles. */
+   die Kennung bleibt stehen, wenn keiner ankommt. */
 const languageNameOf = (code) =>
   ((LANGUAGES.find(a => a.code === code) || {}).name) || code;
-/* WELCHE FORM EINE SPRACHE HINTER EINER ZAHL NIMMT -- 0.31.4. Das ist DIESELBE
-   Auskunft wie `AFTER_NUMBER`, aber fuer eine ANDERE Sprache als die des
-   Lesers: die Karte „Vokabular" pflegt die Woerter der Sprache, die der
-   Eigentuemer gerade zeigt, und ihre Vorschau muss deren Regel folgen. Wer
-   Deutsch liest und Tuerkisch eintraegt, saehe sonst „7 Öğeler" -- eine
-   Stelle, die es am tuerkischen Bildschirm nicht gibt (Augenschein 0.31.4).
-   DER SERVER SCHICKT SIE IN DER SPRACHTAFEL MIT (`languageEntries()` dort);
-   fehlt sie, gilt `plural` -- das Verhalten von vor 0.31.4. */
+/* WELCHE FORM EINE SPRACHE HINTER EINER ZAHL NIMMT -- 0.31.4. */
 const afterNumberOf = (code) =>
   (((LANGUAGES.find(a => a.code === code) || {}).afterNumber) === 'one' ? 'one' : 'plural');
 /* DIE LISTE IN DER GEZEIGTEN SPRACHE -- 0.24.5, und seit 0.25.0 RECHNET SIE
-   NICHT MEHR MIT.
-
-   DIE KETTE STEHT AM SERVER UND SONST NIRGENDS (Bauabschnitt 2). Was hier
-   ankommt, ist je Sprache schon ausgerechnet: `{ name, from }` -- der Name,
-   den ein Leser DIESER Sprache saehe, und die Sprache, aus der er stammt.
-   Diese Zeile setzt ihn ein und kennzeichnet, wenn `from` eine andere Sprache
-   ist als die gezeigte.
-
-   BIS 0.24.6 STAND DIE KETTE HIER, und der Server hatte eine andere: dort
-   zwei Schritte, hier drei, und der gewoehnliche Leser gar keine. Genau das
-   ist Stolperstein 47 -- eine Aussage an zwei Orten --, und diese Runde hat
-   ihn zweimal bezahlt. `nameFallbackChain()` ist damit weggefallen.
-
-   `from === null` HEISST „DER ORIGINALTEXT, UND NIEMAND WEISS, WELCHE SPRACHE
-   DAS IST" -- der vierte Schritt der Kette. Er wird als `nameFallback === true`
-   weitergereicht, in derselben Gestalt wie seit 0.24.6, und die Zeile darunter
-   bekommt dafuer ihren eigenen Satz.
-
-   OHNE TAFEL BLEIBT DIE LISTE, WIE SIE HEREINKAM. Der gewoehnliche Benutzer
-   bekommt keine (F3) -- und er braucht auch keine: seine Liste traegt seit
-   dieser Runde denselben Namen aus derselben Kette, vom Server eingesetzt. */
+   NICHT MEHR MIT. */
 function namesFrom(fetched, key) {
   const rows = fetched[key] || [];
   const code = namesLanguage();
@@ -10764,56 +7049,14 @@ function namesFrom(fetched, key) {
     if (!z || z.id === undefined) return { ...z };
     const hit = shown[z.id];
     if (!hit || hit.name === undefined) return { ...z };
-    /* UND DER STEMPEL DES SERVERS MUSS AUSDRUECKLICH WEG -- 0.25.2.
-       `z` ist die Zeile, wie sie hereinkam, und der Server hat sie fuer die
-       Sprache des LESERS gestempelt (`named()`, `nameFallback`). Wo die Tafel
-       der gezeigten Sprache „eingetragen" sagt, ist dieser Stempel falsch --
-       und ohne diese Zeile reist er im Spread mit.
-
-       DER BEFUND DES BETREIBERS vom 10. September 2026, an einer tuerkischen
-       Oberflaeche: „obwohl deutsch vorhanden ist, und auch der punkt in der
-       pille das so anzeigt, wird unten behauptet das keine eintrag vorhanden
-       waere." Auf der Pille „Deutsch" stand der Punkt (die Tafel: nichts
-       fehlt), und darunter an jeder Zeile „(Deutsch icin kayit yok -- Deutsch
-       goruenuyor)" -- DIESELBE Sprache in beiden Haelften, weil der Satz mit
-       der Sprache der PILLE beschriftet wird und der Stempel aus der Sprache
-       des LESERS stammte.
-
-       BEI DEUTSCHER ODER ENGLISCHER OBERFLAECHE FIEL ES NICHT AUF: ein
-       deutscher Leser bekommt an einer deutschen Zeile gar keinen Stempel,
-       und ohne Stempel gibt es nichts, was mitreisen koennte. Der Fehler war
-       seit 0.24.5 da und brauchte eine dritte Sprache, um sichtbar zu werden.
-
-       ES HING NOCH ETWAS DARAN: das Zeichen zum Raeumen fragt dieselbe Zeile
-       ab (`entry.nameFallback === undefined`). Wo der Stempel mitreiste,
-       fehlte das ✕ -- an genau den Zeilen, an denen es hingehoert. */
+    /* UND DER STEMPEL DES SERVERS MUSS AUSDRUECKLICH WEG -- 0.25.2. */
     if (hit.from === code) return { ...z, name: hit.name, nameFallback: undefined };
     return { ...z, name: hit.name, nameFallback: hit.from === null ? true : hit.from };
   });
 }
-/* WIE VIELE ZELLEN EINER SPRACHE NICHT EINGETRAGEN SIND -- 0.25.0. Das ist die
-   Zahl an der Pille, und sie ist die Antwort auf „ist das ein Handgriff oder
-   ein Nachmittag".
-   GEZAEHLT WIRD, WAS NICHT AUS DIESER SPALTE KOMMT: `from !== code`. Eine
-   Zeile ohne Sprachvermerk zaehlt damit in JEDER Sprache mit -- sie ist in
-   keiner eingetragen, und das ist wahr. Der Kasten unter der Pillenreihe sagt,
-   woran es liegt.
-   OHNE TAFEL IST DIE ZAHL NULL und nicht „alles fehlt": wer keine Tafel
-   bekommt, hat auch keine Pillenreihe. */
+/* WIE VIELE ZELLEN EINER SPRACHE NICHT EINGETRAGEN SIND -- 0.25.0. */
 /* UND SEIT 0.25.1 ZAEHLT SIE JE KACHEL. `only` ist die Menge der Kennungen,
-   die eine Kachel wirklich zeigt; ohne Angabe zaehlt sie die ganze Tafel.
-   DAS WAR DER BEFUND DES BETREIBERS vom 10. September 2026: „die zahl in der
-   sprachen pille ist das eine zahl pro kachel oder fuer alle? Im moment ist es
-   gemischt." Er war es: die Tafel `crits` traegt BEIDE Kriterienkarten, und
-   ueber „Bewertung" wie ueber „Potenzial" stand dieselbe Summe. Ueber
-   „Kategorien" stand die richtige Zahl nur deshalb, weil Kategorien eine
-   Tabelle und eine Kachel sind.
-   DIE ZAHL SOLL SAGEN, WIE VIEL ARBEIT IN DIESER KACHEL LIEGT -- das ist ihr
-   Zweck („dann weiss man wieviele man in dem kachel noch bearbeiten muss"),
-   und eine Summe ueber zwei Kacheln beantwortet die Frage nicht.
-   OHNE `only` BLEIBT ES DIE SUMME, und das ist kein Rest, sondern ein
-   eigener Fall: die Karte „Sprachen" fragt nach der ganzen Installation und
-   ruft sie deshalb ohne Auswahl. */
+   die eine Kachel wirklich zeigt; ohne Angabe zaehlt sie die ganze Tafel. */
 const namesMissing = (key, code, only) => {
   const table = (NAMES_ALL[key] || {})[code];
   if (!table) return 0;
@@ -10821,13 +7064,7 @@ const namesMissing = (key, code, only) => {
     (!only || only.has(Number(id))) && (!z || z.from !== code)).length;
 };
 /* WIE VIELE ZEILEN GAR KEINE ERSTELLUNGSSPRACHE HABEN -- ueber BEIDE Tafeln,
-   weil der eine Knopf beide Tabellen schreibt. Gelesen wird die Tafel und
-   nicht die Liste: die Liste einer Karte traegt nur ihre eigenen Zeilen (die
-   Kriterienkarten sogar nur ihren Kasten), die Tafel traegt alle.
-   ERKANNT WIRD SIE AN `from === null` IN DER VORGABESPRACHE -- dort ist der
-   Rueckfall auf die Erstellungssprache der letzte Schritt vor der Klammer.
-   Genau genommen taete es jede Spalte; genommen wird die der Vorgabe, weil sie
-   in jeder Installation dasteht. */
+   weil der eine Knopf beide Tabellen schreibt. */
 const namesWithoutLanguage = () => {
   const base = baseNamesLanguage();
   let n = 0;
@@ -10837,35 +7074,13 @@ const namesWithoutLanguage = () => {
   }
   return n;
 };
-/* DIE PILLENREIHE UEBER EINER ADMINLISTE. Sie steht nur da, wenn es etwas zu
-   wechseln gibt, und zeichnet nach dem Klick den ganzen Systembereich neu --
-   beide Karten zugleich, weil beide dieselbe Sprache zeigen.
-
-   SEIT 0.25.0 SAGT SIE AUCH, WO ARBEIT LIEGT. Der Betreiber hat es am
-   9. September 2026 so bestellt: Punkt und Zahl an der Pille, roter Rahmen an
-   der Kachel, Dämpfung an der Zeile.
-
-     PUNKT `●`   fuer eine Sprache, fuer die JEDE Zeile etwas traegt,
-     ZAHL        fuer jede andere -- die Zahl der fehlenden Zellen.
-
-   ZWEI AUSSAGEN, ZWEI MERKMALE. Die gewaehlte Pille bleibt orange GEFUELLT
-   wie bisher; Punkt und Zahl stehen gedaempft DARIN. Wer den Zustand ueber die
-   Fuellung anzeigte, naehme der Karte ihre Auswahlanzeige.
-
-   DER ROTE RAHMEN GILT DER GEZEIGTEN SPRACHE (F3): er sagt „hier, jetzt, in
-   dieser Ansicht ist Arbeit". Wo sonst noch, sagen die Zahlen in den Pillen.
-   Er sitzt an der KACHEL und nicht an der Pillenreihe -- gemeint ist die
-   Liste darunter, nicht der Umschalter darueber. */
+/* DIE PILLENREIHE UEBER EINER ADMINLISTE. */
 function drawNameLanguages(boxId, key, rows) {
   const box = document.getElementById(boxId);
   if (!box) return;
   box.innerHTML = '';
   const shownCode = namesLanguage();
-  /* DIE KENNUNGEN DIESER KACHEL -- 0.25.1. Sie kommen aus DERSELBEN Liste,
-     die darunter gezeichnet wird, und nicht aus einer zweiten Abfrage: eine
-     Zahl ueber einer Liste, die eine andere Auswahl trifft als die Liste
-     selbst, ist Stolperstein 47 in klein. Ohne Liste zaehlt die ganze Tafel --
-     so ruft die Karte „Kategorien", die alle Kategorien zeigt. */
+  /* DIE KENNUNGEN DIESER KACHEL -- 0.25.1. */
   const only = rows ? new Set(rows.map(z => z.id)) : null;
   LANGUAGES.filter(a => a.active).forEach(a => {
     const b = document.createElement('button');
@@ -10880,26 +7095,12 @@ function drawNameLanguages(boxId, key, rows) {
     b.onclick = () => { NAMES_SHOWN = a.code; renderSystem({ keepScroll: true }); };
     box.appendChild(b);
   });
-  /* UND DER RAHMEN AN DER KACHEL. Er haengt an der Kachel und wird von hier
-     gesetzt, weil hier die Zahl steht -- `closest()` findet sie, und ohne
-     Kachel (im Nachbau ohne Karte) passiert nichts. */
+  /* UND DER RAHMEN AN DER KACHEL. */
   const card = box.closest('.sys-card');
   if (card) card.classList.toggle('gaps', namesMissing(key, shownCode, only) > 0);
 }
 /* DER KASTEN FUER DIE UNBEKANNTE ERSTELLUNGSSPRACHE -- 0.25.0 (F2). Die
-   Migration fuellt nichts, und hier wird EINMAL nachgefragt.
-
-   ER STEHT AN DER KARTE „KATEGORIEN" UND NUR DORT, obwohl der Knopf beide
-   Tabellen schreibt: es ist EINE Frage an den Bestand („in welcher Sprache war
-   das eingetragen"), und drei Knoepfe nebeneinander waeren drei Gelegenheiten,
-   verschiedene Antworten zu geben. Die Zahl zaehlt deshalb ueber beide Tafeln.
-
-   ER STEHT NUR DA, SOLANGE ES ETWAS ZU FRAGEN GIBT. Nach dem Zuordnen ist er
-   weg und kommt nicht wieder -- eine neue Zeile bekommt ihre Sprache beim
-   Anlegen.
-
-   EINGETRAGEN WIRD DIE GEZEIGTE SPRACHE, und sie steht im Knopf: wer auf der
-   Pille „Deutsch" steht und drueckt, sagt „das ist Deutsch". */
+   Migration fuellt nichts, und hier wird EINMAL nachgefragt. */
 function drawNamesUnknown(fetched) {
   const box = document.getElementById('nunknown');
   if (!box) return;
@@ -10930,68 +7131,32 @@ function drawNamesUnknown(fetched) {
   box.append(line, knob);
 }
 /* WELCHE SPRACHE DER ABSCHNITT „BESTAND" GERADE ZEIGT, STEHT SEIT 0.25.2 AN
-   EINER EINZIGEN STELLE -- in `namesLanguage()` weiter oben, und sie gilt fuer
-   ALLE VIER KACHELN.
-
-   BIS 0.25.1 WAREN ES ZWEI ANGABEN: `NAMES_SHOWN` fuer die drei Namenskarten
-   und `VOCABULARY_SHOWN` fuer das Vokabular, jede mit eigener Klemme gegen den
-   Vorrat und eigenem Rueckfall auf die Sprache des Lesers -- Zeile fuer Zeile
-   dieselben. Zwei Antworten auf EINE Frage laufen auseinander, sobald man eine
-   davon umstellt, und genau das ist passiert: die drei Namenskarten liefen
-   synchron, das Vokabular blieb stehen.
-
-   DER BETREIBER AM 10. SEPTEMBER 2026: „bei den 3 kacheln laufen die
-   sprachumschalter der pilen syncron mit aber der von vokabular nicht. bitte
-   alle syncronisieren."
-
-   DIE ZWEITE FUNKTION IST WEGGEFALLEN und nicht umbenannt worden: ein zweiter
-   Name fuer dieselbe Auskunft ist der halbe Weg zurueck zur zweiten Wahrheit
-   (Stolperstein 47). */
+   EINER EINZIGEN STELLE -- in `namesLanguage()` weiter oben, und sie gilt
+   fuer ALLE VIER KACHELN. */
 /* DIE VIERZEHN WOERTER, DIE IN DEN FELDERN STEHEN -- 0.24.4: das, was fuer
-   diese Sprache EINGETRAGEN ist, und sonst nichts.
-   BIS 0.24.3 STAND HIER DER SATZ MIT RUECKFALL (`V` beziehungsweise
-   `VOCABULARIES[code]`). Das sah richtig aus und war der Fehler: wer die
-   Karte auf eine Sprache schaltete, fuer die noch nichts eingetragen war, sah
-   die Woerter der Nachbarsprache in den Feldern stehen -- und ein Klick auf
-   „Speichern" machte aus dem Rueckfall einen Eintrag. Vierzehn englische
-   Woerter landeten so im deutschen Satz (B2).
-   EIN LEERES FELD IST JETZT EINE AUSSAGE: „fuer diese Sprache ist nichts
-   eingetragen". Was stattdessen dasteht, sagt der Hinweis darunter
-   (vocabularyDefaultShown) und die Vorschau. */
+   diese Sprache EINGETRAGEN ist, und sonst nichts. */
 const vocabularyShown = () => VOCABULARIES_OWN[namesLanguage()] || {};
 /* WAS EIN LESER DIESER SPRACHE SAEHE -- mit Rueckfall, und genau dafuer gibt
-   es die Tafel des Servers. Die Vorschau rechnet damit: ein leeres Feld zeigt
-   dort nicht die Vorgabe, sondern das, was wirklich am Bildschirm stuende. */
+   es die Tafel des Servers. */
 const vocabularyEffective = () => {
   const code = namesLanguage();
   if (code === LANGUAGE) return V;
   return VOCABULARIES[code] || V;
 };
-/* UND DIE VORGABE DER GEZEIGTEN SPRACHE -- 0.24.4, die Reparatur von B4. Bis
-   0.24.3 las der Hinweis „(Vorgabe: …)" die Datei des LESERS: wer auf Deutsch
-   liest und Tuerkisch pflegt, bekam deutsche Vorgaben unter tuerkische
-   Felder. Die Tafel kommt vom Server und wird nicht aus TEXTS abgeleitet --
-   fuer eine Sprache, die der Leser nicht liest, liegt gar keine Datei im
-   Browser.
-   DER RUECKFALL AUF DIE DATEI DES LESERS gilt die Millisekunden vor der
-   ersten Antwort und fuer eine Sprache, die der Server nicht kennt. */
+/* UND DIE VORGABE DER GEZEIGTEN SPRACHE -- 0.24.4, die Reparatur von B4. */
 const vocabularyDefaultShown = () =>
   VOCABULARY_DEFAULTS[namesLanguage()] || vocabularyDefault();
 
 function setUpVocabularyOut() {
   drawVocabularyLanguages();
   // Die Probe zeigt dieselben Textbausteine, die die Oberfläche später
-  // benutzt — damit sich Einzahl und Mehrzahl vor dem Speichern prüfen lassen.
+// benutzt — damit sich Einzahl und Mehrzahl vor dem Speichern prüfen lassen.
   const vFields = () => Object.fromEntries(VOCABULARY_FIELDS.map(([id, key]) =>
     [key, document.getElementById(id).value]));
   function drawPreview() {
     const w = vFields();
-    /* DER RUECKFALL DER VORSCHAU IST DER SATZ DER GEZEIGTEN SPRACHE -- 0.24.4,
-       und nicht mehr `V`, der Satz des Lesers. Ein leeres Feld zeigt hier
-       das, was ein Leser DIESER Sprache wirklich saehe: die Vorgabe, oder
-       nach Rueckfall 2 ein eingetragenes Wort einer anderen Sprache. Bis
-       0.24.3 stand in der Vorschau der Karte auf Englisch das deutsche Wort,
-       sobald der Leser Deutsch las. */
+    /* DER RUECKFALL DER VORSCHAU IST DER SATZ DER GEZEIGTEN SPRACHE --
+       0.24.4, und nicht mehr `V`, der Satz des Lesers. */
     const e = vocabularyEffective();
     const entryWord = w.entryOne.trim() || e.entryOne;
     const sm = w.entryMany.trim() || e.entryMany;
@@ -11008,26 +7173,7 @@ function setUpVocabularyOut() {
     const rateOne = w.ratingOne.trim() || e.ratingOne;
     const rateMany = w.ratingMany.trim() || e.ratingMany;
     /* DIE MEHRZAHL IN DER VORSCHAU: MIT ZAHL, WO DIE ZAHL SIE WAEHLT -- und
-       OHNE, wo die Sprache hinter einer Zahl die Einzahl verlangt (0.31.4).
-       DER AUGENSCHEIN DIESER RUNDE HAT DEN GRUND GELIEFERT. Bis 0.31.3 stand
-       hier fest „7 ${sm}", „3 ${zm}", „2 ${bm}", „4 ${at}", „2 ${rateMany}" --
-       eine Zahl und unmittelbar dahinter die Mehrzahlform. Auf Tuerkisch las
-       sich das als „7 Öğeler": eine Stelle, die es am Bildschirm seit dieser
-       Runde nicht mehr gibt. DIE KARTE LEHRTE DAMIT DAS GEGENTEIL DER REGEL --
-       wer „Öğeler" eintippt, schloss daraus, sein Mehrzahlwort erscheine
-       hinter Zahlen. Es erscheint dort nie.
-       GEFRAGT IST DIE GEZEIGTE SPRACHE UND NICHT DIE DES LESERS. Das ist der
-       ganze Witz dieser Stelle: die Karte pflegt die Woerter der Sprache, die
-       der Eigentuemer gerade zeigt (`namesLanguage()`). Ein Blick auf
-       `AFTER_NUMBER` haette ausgerechnet SEINEN Fall verfehlt -- er liest
-       Deutsch und traegt Tuerkisch ein, und die Vorschau stuende wieder auf
-       „7 Öğeler". Der Server schickt die Regel je Sprache in der Sprachtafel
-       mit; `afterNumberOf()` liest sie dort.
-       UND FUER DEUTSCH UND ENGLISCH AENDERT SICH DAMIT NICHTS: dort waehlt
-       weiter die Zahl, und in der Vorschau steht weiter „7 Einträge".
-       DIE EINZAHL BEHAELT IHRE ZAHL IN JEDER SPRACHE: „1 Test günü" ist
-       ueberall richtig und zeigt genau die Stelle, um die es dieser Runde
-       ging. */
+       OHNE, wo die Sprache hinter einer Zahl die Einzahl verlangt (0.31.4). */
     const many = (n, word) =>
       (afterNumberOf(namesLanguage()) === 'one' ? esc(word) : `${n} ${esc(word)}`);
     document.getElementById('vpreview').innerHTML =
@@ -11039,19 +7185,12 @@ function setUpVocabularyOut() {
        <span>${tH('card.markAs', { reportWord: a1 })}</span><span>${many(4, at)}</span>
        <span>${tH('card.setTo', { doneWord: doneWord })}</span>
        ${/* DIE PROBE ZEIGT DAS WORT SO, WIE ES SPAETER STEHT -- getrennt und
-            nie verbaut. Wer „Erwartung" eintippt, sieht hier „Erwartung:
-            Kriterien" und nicht „Erwartungkriterien". */''}
+            nie verbaut. */''}
        <span>${tH('card.criteriaPotential', { potentialWord: potentialWord })}</span><span>${tH('card.sortPotentialDesc', { potentialWord: potentialWord })}</span>
        <span>${tH('card.criteriaPotential', { potentialWord: rateOne })}</span><span>${tH('card.sortPotentialDesc', { potentialWord: rateOne })}</span><span>${many(2, rateMany)}</span>`;
   }
-  /* DER UMSCHALTER. Er zeichnet NUR die Karte neu und nicht die Seite: die
-     Oberflaeche bleibt in der Sprache ihres Lesers, waehrend der Eigentuemer
-     die Woerter einer anderen pflegt. Genau das ist der Sinn -- „der
-     Eigentuemer schaltet im Adminbereich kurz um" (Nachtrag zu E9, Punkt 4). */
-  /* WIE VIELE DER VIERZEHN WOERTER EINER SPRACHE FEHLEN -- 0.25.0. Gelesen
-     wird `VOCABULARIES_OWN`, also das EINGETRAGENE: `VOCABULARIES` traegt den
-     Rueckfall schon eingesetzt und saehe fuer jede Sprache vollstaendig aus
-     (derselbe Unterschied wie zwischen den beiden Tafeln bei den Namen). */
+  /* DER UMSCHALTER. */
+  /* WIE VIELE DER VIERZEHN WOERTER EINER SPRACHE FEHLEN -- 0.25.0. */
   function vocabularyMissing(code) {
     return VOCABULARY_FIELDS.filter(
       ([, key]) => !(((VOCABULARIES_OWN || {})[code] || {})[key])).length;
@@ -11065,8 +7204,7 @@ function setUpVocabularyOut() {
       b.className = 'pill' + (namesLanguage() === a.code ? ' on' : '');
       /* PUNKT UND ZAHL WIE AN DEN NAMENSKARTEN -- 0.25.0, Bauabschnitt 4, und
          ausdruecklich dieselbe Gestalt: es ist dieselbe Frage („was fehlt
-         dieser Sprache") an einem anderen Bestand. Zwei Gestalten fuer eine
-         Aussage waeren zwei Aussagen. */
+         dieser Sprache") an einem anderen Bestand. */
       const gaps = vocabularyMissing(a.code);
       b.innerHTML = esc(a.name) + (gaps
         ? `<span class="n">${gaps}</span>`
@@ -11076,9 +7214,7 @@ function setUpVocabularyOut() {
         /* DIESELBE ANGABE WIE AN DEN NAMENSKARTEN -- 0.25.2. Wer hier
            umschaltet, schaltet den ganzen Abschnitt um, und umgekehrt. */
         NAMES_SHOWN = a.code;
-        /* MIT DER BILDLAUFSTELLUNG -- 0.24.4 (B3). Die Karte steht weit unten
-           im Abschnitt „Bestand"; wer umschaltet, will die vierzehn Felder
-           vor sich behalten und nicht den Seitenkopf. */
+        /* MIT DER BILDLAUFSTELLUNG -- 0.24.4 (B3). */
         renderSystem({ keepScroll: true });
       };
       box.appendChild(b);
@@ -11089,26 +7225,21 @@ function setUpVocabularyOut() {
     if (card) card.classList.toggle('gaps', vocabularyMissing(namesLanguage()) > 0);
   }
   // Die Karte steht nur dem Admin offen; ohne sie gibt es weder Felder noch
-  // Probe. Das VOKABULAR SELBST wird trotzdem ausgeliefert -- es ist jede
-  // Beschriftung der Oberflaeche. Was hier fehlt, ist die Karte, nicht der Wert.
+  // Probe.
   VOCABULARY_FIELDS.forEach(([id]) =>
     atElement(id, field => field.addEventListener('input', drawPreview)));
   if (document.getElementById('vpreview')) drawPreview();
 
-  /* GESPEICHERT WIRD JE SPRACHE -- 0.24.3, F3. Der Rumpf traegt dieselbe Form
-     wie die Ablage: ein Objekt je Sprachkennung, und die Karte schickt genau
-     die eine, die gerade offen ist. Die uebrigen bleiben am Server stehen. */
+  /* GESPEICHERT WIRD JE SPRACHE -- 0.24.3, F3. */
   const vocabularyBody = (words) => ({ [namesLanguage()]: words });
-  /* DIE DREI TAFELN ZIEHEN MIT -- 0.24.4, ueber takeVocabulary() weiter oben.
-     Wer nur `vocabularies` nachzoege, saehe nach dem Speichern in den Feldern
-     noch den Stand von vorhin. */
+  /* DIE DREI TAFELN ZIEHEN MIT -- 0.24.4, ueber takeVocabulary() weiter oben. */
   atElement('vsave', vsave => vsave.onclick = async () => {
     try {
       const r = await api('PUT', '/api/settings', { vocabulary: vocabularyBody(vFields()) });
       takeVocabulary(r);
       toast(t('card.vocabularySaved'));
       // Leere Felder bleiben leer, der Hinweis sagt die Vorgabe -- und die
-      // Bildlaufstellung bleibt, wo sie war (B3).
+// Bildlaufstellung bleibt, wo sie war (B3).
       renderSystem({ keepScroll: true });
     } catch (e) { toast(e.message, true); }
   });
@@ -11207,8 +7338,7 @@ function setUpSearchProviderOut() {
 
   /* --- Suchanbieter --- */
   // Der Vorrat als Liste von Schluesseln, Standard zuerst -- dieselbe Form,
-  // in der der Server sie speichert. Zurueck kommt immer der aufgeraeumte
-  // Zustand; gezeichnet wird daraus, nicht aus der eigenen Annahme.
+  // in der der Server sie speichert.
   const poolList = () => {
     const std = SEARCH_PROVIDERS.find(a => a.active && a.isDefault);
     const rest = SEARCH_PROVIDERS.filter(a => a.active && a !== std).map(a => a.key);
@@ -11249,12 +7379,12 @@ function setUpSearchProviderOut() {
       st.disabled = !a.present;
       st.title = t('card.searchLineHint');
       // Start nimmt zugleich in die Auswahl auf: ein Startanbieter ausserhalb
-      // des Vorrats ist ein Zustand, den es nicht geben darf.
+// des Vorrats ist ein Zustand, den es nicht geben darf.
       st.onclick = () => sendProvider(
         { searchOn: [a.key, ...poolList().filter(k => k !== a.key)] },
         t('list.saved'));
       // Der Name kommt aus dem Verwaltungsbereich und ist freier Text --
-      // textContent statt innerHTML, damit Maskierung nicht vergessbar ist.
+// textContent statt innerHTML, damit Maskierung nicht vergessbar ist.
       const nm = document.createElement('span');
       nm.className = 'engine-name';
       nm.textContent = a.present ? a.name : '—';
@@ -11287,7 +7417,7 @@ function setUpSearchProviderOut() {
   }
 
   // Immer alle drei Plaetze auf einmal: der Server bekommt den ganzen Stand
-  // und raeumt danach den Vorrat auf, falls ein Platz geleert wurde.
+// und raeumt danach den Vorrat auf, falls ein Platz geleert wurde.
   function sendOwn() {
     const list = [1, 2, 3].map(i => ({
       name: document.getElementById(`se-name-${i}`)?.value || '',
@@ -11312,12 +7442,7 @@ function setUpTrashOut(fetched) {
 
   /* --- Papierkorb --- */
   /* Gezeichnet wird aus dem, was oben schon geholt wurde -- dieselbe Bauform
-     wie bei den drei Verwaltungskarten. Nach einem Zurueckholen oder einem
-     endgueltigen Entfernen holt trashNew() die Liste noch einmal und
-     zeichnet nur DIESE Karte: ein Neuaufbau des ganzen Systembereichs leerte
-     die Passwortfelder daneben.
-     JEDE LESESTELLE IST ABGEFANGEN: fehlt die Antwort oder ein Feld darin,
-     soll die Karte etwas sagen und nicht der Lauf abreissen. */
+     wie bei den drei Verwaltungskarten. */
   async function trashNew(fetched) {
     try { fetched.trash = await api('GET', '/api/trash'); }
     catch (e) {
@@ -11341,32 +7466,8 @@ function setUpTrashOut(fetched) {
       row.className = 'mrow trash';
       row.dataset.pkid = z.id;
       const open = Number(z.daysOpen);
-      /* DIE ZEILE NENNT DAS LOESCHDATUM UND NICHT DEN ANLEGER -- 0.24.4
-         (B6 B), entschieden vom Betreiber am 8. September 2026.
-
-         DER AUFTRAG WOLLTE DEN ANLEGER IN DER ZEILE (B6 B, im Rahmen von F7,
-         Schritt 1), und gebaut war er auch schon. Der Betreiber hat anders
-         entschieden: gefragt wird hier „welchen Eintrag habe ich wann
-         weggeworfen", und die Frist darunter zaehlt von genau diesem Tag.
-         Wer ihn angelegt hat und wann, gehoert in die DETAILANSICHT --
-         Schritt 2, eine eigene Runde.
-         DIE ZEILE BLEIBT DAMIT, WAS SIE WAR: Titel, Loeschvermerk, Frist,
-         Groesse. Das ist auch das, was ein Papierkorb draussen fuehrt:
-         Windows Name, Ort, Loeschdatum, Groesse; der Mac Name, Loeschdatum,
-         Groesse. Den Anleger fuehrt nur, wo eine Ablage vielen gehoert
-         (Google Drive).
-         GELIEFERT WIRD BEIDES TROTZDEM -- `GET /api/trash` traegt
-         `createdBy` und `created_at`, und die Detailansicht liest sie ohne
-         einen zweiten Weg. Sie stehen dort als HALBE Reparatur und nicht als
-         herrenloses Feld: der Auftrag hat den Schritt geteilt, und dies ist
-         seine erste Haelfte.
-         DAS NAHELIEGENDE HAUPTWORT DAFUER STEHT HIER ABSICHTLICH NICHT: es
-         ist dasselbe, ueber das der Waechter aus 0.19.1 wacht (Abschnitt 4
-         des Pruefstands). Dort meint es die INSTALLATION, hier meinte es den
-         EINTRAG -- ein falscher Freund im Quelltext ist genau das, was jener
-         Waechter verhindert, und er hat diese Zeile beim ersten Lauf auch
-         wirklich gefunden. In den Papieren steht das Wort; dort deutet es
-         niemand auf die Installation. */
+      /* DIE ZEILE NENNT DAS LOESCHDATUM UND NICHT DEN ANLEGER -- 0.24.4 (B6
+         B), entschieden vom Betreiber am 8. */
       const meta = [
         t('card.deletedByOn', { deletedAt: fmtDate(z.deleted_at), deletedBy: authorName(z.deletedBy) }),
         t('card.daysLeft', { n: open }),
@@ -11375,16 +7476,7 @@ function setUpTrashOut(fetched) {
       // Die Knoepfe stehen nur beim Eigentuemer -- der Server verweigert es
       // ohnehin, und ein Knopf, der zuverlaessig eine Fehlermeldung erzeugt,
       // sieht aus wie ein Fehler.
-      /* DAS ZEICHEN STEHT NEBEN DEM SATZ UND NICHT IN IHM -- 0.24.4 (B6 A).
-         Bis 0.24.3 stand hier `tH('card.restoreIcon', { restoreIcon:
-         ICON_RESTORE })`, und der Knopf zeigte seinen SVG-Quelltext als Text:
-         tH() maskiert jeden eingesetzten Wert, mit Absicht (Stolperstein 18
-         in Dateiform). Verursacht hat es 0.24.0 beim Umzug der Saetze -- aus
-         `${ICON} Wiederherstellen` wurde ein Satz mit Platzhalter, und ein
-         Platzhalter ist ein Wert.
-         DER SCHLUESSEL `card.restoreIcon` IST DAMIT WEGGEFALLEN: ein Zeichen
-         ist kein Wort und gehoert nicht in einen Satz, den jemand uebersetzt.
-         Der Knopf setzt das Zeichen selbst und schreibt das Wort daneben. */
+      /* DAS ZEICHEN STEHT NEBEN DEM SATZ UND NICHT IN IHM -- 0.24.4 (B6 A). */
       row.innerHTML = `<span class="mname">${esc(z.title)}</span>
         ${OWNER ? `<button class="mact trash-back" title="${esc(t('card.restore'))}">${ICON_RESTORE} ${tH('card.restore')}</button>
         <button class="mact rm trash-remove" title="${esc(t('card.deleteForGood'))}">${ICON_X}</button>` : ''}
@@ -11395,7 +7487,7 @@ function setUpTrashOut(fetched) {
         try {
           const r = await api('POST', `/api/trash/${z.id}/restore`);
           // Die unbekannten Verfasser stehen in der Antwort und gehoeren
-          // gesagt: sie sind beim Zurueckholen an MICH gefallen.
+// gesagt: sie sind beim Zurueckholen an MICH gefallen.
           const open = (r && Array.isArray(r.authorUnknown)) ? r.authorUnknown : [];
           toast(t('card.restored', { instanceTitle: z.title }) +
             (open.length ? t('card.postsAssignedHint', { names: open.join(', ') }) : ''));
@@ -11425,17 +7517,10 @@ function cardUsers() {
         ${more(`${tMark('card.lockInsteadHint', 'card.lockNotDelete')} ${OWNER
             ? t('card.rolesYouOnly')
             : t('card.rolesOwnerHint')}`)}
-        ${/* DER KASTEN ZU DEN DOPPELTEN ADRESSEN -- 0.29.0, Befund 4. Er ist
-             leer und steht nicht da, solange nichts zu klären ist; gefüllt
-             wird er von drawUsers(), sobald die Liste vom Server da ist.
-             ÜBER DER LISTE, nicht darunter: er sagt etwas über die Zugänge,
-             die gleich folgen, und wer ihn unter einer Liste von zwanzig
-             fände, fände ihn nicht. */''}
+        ${/* DER KASTEN ZU DEN DOPPELTEN ADRESSEN -- 0.29.0, Befund 4. */''}
         <div id="user-doubles"></div>
         <div class="manage-list" id="musers"></div>
-        ${/* DER KNOPF ZU DEN GRABSTEINEN. Die Zeile steht leer da, solange
-             nichts geloescht wurde -- gefuellt wird sie von
-             drawTombstoneButton(), sobald die Liste vom Server da ist. */''}
+        ${/* DER KNOPF ZU DEN GRABSTEINEN. */''}
         <div class="row-in" id="user-remove-row" style="margin-top:8px"></div>
 
         <p class="desc" style="margin:16px 0 8px">${tMark('card.newUserHint', 'card.inviteLink')}</p>
@@ -11443,10 +7528,9 @@ function cardUsers() {
           <input class="input input-sm" id="user-name" placeholder="${esc(t('login.username'))}"
             autocomplete="off" autocapitalize="off" spellcheck="false">
           ${/* DIE ADRESSE BEIM ANLEGEN, und nur hier: ohne sie hat die
-                Einladungsmail keinen Empfänger, und den Zugang gibt es in
-                diesem Augenblick noch nicht, also kann sie auch niemand selbst
-                eintragen. Ändern darf sie danach allein der Betroffene, unter
-                „Zugang“. Freiwillig — ohne sie bleibt alles beim Kopieren. */''}
+               Einladungsmail keinen Empfänger, und den Zugang gibt es in
+               diesem Augenblick noch nicht, also kann sie auch niemand selbst
+               eintragen. */''}
           <input class="input input-sm" id="user-mail" type="email" placeholder="${esc(t('card.emailOptional'))}"
             autocomplete="off" autocapitalize="off" spellcheck="false">
           <select class="input input-sm" id="user-kind">
@@ -11465,10 +7549,8 @@ function cardUsers() {
         <div id="user-link"></div>
 
         ${/* DIESELBE KLEMME WIE IN DER KARTE „ZUGANG“, und aus demselben
-              Grund: der Befehl läuft auf dem Wirt, und dort sitzt in der Regel
-              der Eigentümer. Ein Admin, der nicht Eigentümer ist, verwaltet
-              Zugänge über diese Karte und kommt an den Server nicht heran —
-              ihm hilft der Name dessen, der es kann. */''}
+             Grund: der Befehl läuft auf dem Wirt, und dort sitzt in der Regel
+             der Eigentümer. */''}
         ${OWNER
           ? `<div style="margin-top:16px">${serverBox(t('card.lockedOutHint'), 'docker compose exec kriterion node usertool.js passwort <name>')}</div>`
           : `<p class="desc" style="margin:16px 0 0">${tMark('card.lockedOutCard', 'card.owner')}</p>`}
@@ -11476,16 +7558,7 @@ function cardUsers() {
 }
 function setUpUsersOut() {
   drawUsers();
-  /* EINE WAHL, EIN KNOPF. Vorher standen hier zwei Knöpfe nebeneinander, und
-     die Betriebsart steckte darin, WELCHEN man drückt — man musste beide
-     Beschriftungen lesen, um zu wissen, was gleich passiert, und das
-     Passwortfeld stand auch dann da, wenn es gar nicht galt.
-     Jetzt sagt das Auswahlfeld die Betriebsart, das Passwortfeld erscheint nur
-     zu ihr, und der Knopf trägt die Folge im Namen. Ein Feld, das nicht gilt,
-     ist kein Feld — und ein Knopf, der zuverlässig etwas anderes tut, als sein
-     Nachbar heißt, ist eine Falle.
-     DIE VORGABE IST DER LINK: es ist der Weg, bei dem der Admin das Passwort
-     nie erfährt. */
+  /* EINE WAHL, EIN KNOPF. */
   const userKind = document.getElementById('user-kind');
   const userCreate = document.getElementById('user-create');
   const userPass = document.getElementById('user-pass');
@@ -11495,7 +7568,7 @@ function setUpUsersOut() {
     const link = userKind.value === 'link';
     userPass.hidden = link;
     // Geleert, nicht bloß versteckt: ein Passwort, das man nicht mehr sieht,
-    // aber noch mitschickt, wäre die unangenehmste Art von Überraschung.
+// aber noch mitschickt, wäre die unangenehmste Art von Überraschung.
     if (link) userPass.value = '';
     userCreate.textContent = link ? t('card.createWithLink') : t('entry.create');
   };
@@ -11525,11 +7598,8 @@ function setUpUsersOut() {
 
 }
 
-  /* --- Zugaenge ---
-     Was ein Zugang mit sich machen laesst, entscheidet der Server. Die
-     Oberflaeche zeigt nur, was dort auch durchkaeme -- ein Knopf, der
-     zuverlaessig eine Fehlermeldung erzeugt, sieht aus wie ein Fehler.
-     Dieselbe Ueberlegung wie bei der Kriterienkarte. */
+  /* --- Zugaenge --- Was ein Zugang mit sich machen laesst, entscheidet der
+     Server. */
   /* SCHLUESSEL STATT SATZ, wie bei VERWALTUNGSART -- Modulebene. */
   const ROLE_WORD = { user: 'card.user', admin: 'card.admin', owner: 'card.owner' };
   const rolesWord = (role) => (ROLE_WORD[role] ? t(ROLE_WORD[role]) : role);
@@ -11537,42 +7607,24 @@ function setUpUsersOut() {
   const STATUS_WORD = { active: 'card.active', locked: 'card.locked', deleted: 'card.deletedLower' };
   const statusWord = (status) => (STATUS_WORD[status] ? t(STATUS_WORD[status]) : status);
 
-  /* DIE VOLLSTÄNDIGE ADRESSE BAUT DER BROWSER, nicht der Server. Der Server
-     hinter einem Proxy weiß nicht, wie er von außen heißt, und aus dem
-     Host-Kopf darf er es nicht ableiten — über einen gefälschten Kopf ließe
-     sich ein Link sonst auf einen fremden Server umbiegen. Der Browser des
-     Admins steht bereits an der richtigen Adresse. */
+  /* DIE VOLLSTÄNDIGE ADRESSE BAUT DER BROWSER, nicht der Server. */
   const buildInviteUrl = (key) =>
     `${location.origin}${location.pathname}#/invite/${key}`;
 
   /* WER DEN LINK KOPIERT, MUSS AN DIESER STELLE LESEN, WAS ER IN DER HAND
-     HÄLT. Der Weitergabeweg ist der Admin selbst — mündlich, per Zettel, per
-     Messenger. Damit ist der Link ein Passwortersatz auf Zeit und steht nach
-     der Weitergabe in einem fremden Verlauf. Das gehört an den Bildschirm und
-     nicht bloß in ein Dokument. */
-  /* WOHER DIE ADRESSE KAM, GEHOERT AN DIE STELLE, AN DER DER LINK ENTSTEHT.
-     Wer den falschen Fall vor sich hat, soll ihn an dieser Zeile erkennen und
-     nicht am toten Link beim Empfaenger. Die Einstellung selbst wird hier nur
-     GEZEIGT und nicht gesetzt -- sie steht in der .env, aus demselben Grund
-     wie BEHIND_PROXY. */
+     HÄLT. */
+  /* WOHER DIE ADRESSE KAM, GEHOERT AN DIE STELLE, AN DER DER LINK ENTSTEHT. */
   const linkOrigin = (d) => d.linkSource === 'einstellung'
     ? `${tH('card.fromServerSetting')} <code>PUBLIC_ADDRESS</code>`
     : t('card.fromYourBrowser');
 
   /* WAS DER VERSAND GEMACHT HAT, STEHT NEBEN DEM LINK UND NICHT ANSTELLE VON
-     IHM. Das ist die sichtbare Hälfte des Satzes, der über der ganzen Stufe
-     steht: E-Mail ist eine Bequemlichkeit, keine Voraussetzung. Schlägt der
-     Versand fehl, bricht nichts ab — der Link steht da wie immer, und
-     daneben steht, warum nichts hinausging.
-     DREI ZUSTÄNDE, DREI FARBEN, und der Grund wird MITGENANNT: „aus“ allein
-     deckt drei verschiedene Lagen ab, und ohne den Grund wüsste niemand,
-     welche davon gerade gilt. */
+     IHM. */
   const deliveryRow = (d) => {
     /* DIE ADRESSE STEHT HIER NICHT, und das ist kein Versehen: an einem
        BESTEHENDEN Zugang hat sie der Betroffene selbst eingetragen, und ein
        Admin bekommt fremde Postfächer nicht zu sehen — GET /api/users liefert
-       sie aus demselben Grund nicht mit. Was der Admin wissen muss, ist, DASS
-       die Mail hinausging. */
+       sie aus demselben Grund nicht mit. */
     if (d.delivery === 'ok')
       return `<p class="user-send user-send-ok">${tH('card.testMailSent')}</p>`;
     if (d.delivery === 'fehlgeschlagen')
@@ -11584,18 +7636,15 @@ function setUpUsersOut() {
     return '';
   };
 
-  /* EINE FUNKTION, ZWEI RUFER -- das Anlegen in der Karte
-     "Zugaenge" und das Freischalten in der Karte "Anfragen". Der Link ist in
-     beiden Faellen derselbe Gegenstand mit derselben Warnung daneben; zwei
-     Ausfertigungen liefen beim naechsten Satz auseinander. */
+  /* EINE FUNKTION, ZWEI RUFER -- das Anlegen in der Karte "Zugaenge" und das
+     Freischalten in der Karte "Anfragen". */
   function showLink(d, boxId = 'user-link') {
     const box = document.getElementById(boxId);
     if (!box || !d || !d.token) return;
     /* DER ANDERE KASTEN WIRD GELEERT, und das ist keine Aufraeumarbeit: die
        Kennungen darin sind feste Namen, und zwei Kaesten nebeneinander
        ergaeben sie doppelt -- getElementById naehme dann den ersten, und der
-       Knopf "Kopieren" kopierte den falschen Link. Es steht immer hoechstens
-       EIN Link am Bildschirm, und das ist ohnehin richtig so. */
+       Knopf "Kopieren" kopierte den falschen Link. */
     for (const other of ['user-link', 'signup-link']) {
       if (other !== boxId) {
         const k = document.getElementById(other);
@@ -11603,7 +7652,7 @@ function setUpUsersOut() {
       }
     }
     // Der Server gibt den fertigen Link nur heraus, wenn die Einstellung steht.
-    // Sonst baut ihn der Browser wie bisher.
+// Sonst baut ihn der Browser wie bisher.
     const address = d.link || buildInviteUrl(d.token);
     box.innerHTML = `<div class="warn-box user-linkbox" style="margin:12px 0 0">
       <strong>${tMarks('card.linkForUser', {
@@ -11624,7 +7673,7 @@ function setUpUsersOut() {
     document.getElementById('user-link-copy').onclick = () => {
       field.select();
       // Die Zwischenablage über das Skript ist nicht überall erlaubt; das
-      // markierte Feld daneben ist der Weg, der immer trägt.
+// markierte Feld daneben ist der Weg, der immer trägt.
       if (navigator.clipboard && navigator.clipboard.writeText) {
         navigator.clipboard.writeText(address).then(() => toast(t('card.linkCopied')),
           () => toast(t('card.copyByHandLink'), true));
@@ -11636,29 +7685,16 @@ function setUpUsersOut() {
     const box = document.getElementById('musers');
     if (!box) return;
     /* Was nach dem await gebraucht wird, wird VORHER geholt -- dieselbe Regel
-       wie bei e.currentTarget, nur eine Ebene hoeher: hier
-       ist es `document` selbst. Wechselt die Ansicht, waehrend die Liste noch
-       unterwegs ist, zeichnete der Rest in eine Seite, die es nicht mehr gibt.
-       ownerDocument haengt am Knoten und ueberlebt das; isConnected sagt, ob
-       er ueberhaupt noch in der Seite steht. */
+       wie bei e.currentTarget, nur eine Ebene hoeher: hier ist es `document`
+       selbst. */
     const doc = box.ownerDocument;
     let data;
     try { data = await api('GET', '/api/users'); }
     catch (e) { if (box.isConnected) box.innerHTML = `<span class="hint">${esc(e.message)}</span>`; return; }
     if (!box.isConnected) return;
     box.innerHTML = '';
-    /* ---- DIE DOPPELTEN ADRESSEN -- 0.29.0, Befund 4 ----
-       SIE STEHEN NUR DA, WENN ES WELCHE GIBT. Im Normalfall trägt der
-       partielle Index das Schloss, die Liste ist leer, und dieser Kasten
-       zeichnet nichts — eine Zeile „keine doppelten Adressen" wäre eine
-       Auskunft über nichts, dieselbe Überlegung wie bei der fehlenden Null am
-       Zähler „Offen".
-       ER NENNT DIE ADRESSE UND DIE ZUGÄNGE, denn ohne die Namen wüsste
-       niemand, wo er anfassen soll. Beides ist Freitext von außen und geht
-       deshalb durch esc().
-       UND ER SAGT, WAS ZU TUN IST: eine der beiden leeren oder ändern, dann
-       legt der nächste Start den Index von selbst nach. Ohne diesen Satz
-       stünde dort ein Befund ohne Ausweg. */
+    /* ---- DIE DOPPELTEN ADRESSEN -- 0.29.0, Befund 4 ---- SIE STEHEN NUR DA,
+       WENN ES WELCHE GIBT. */
     const doubles = doc.getElementById('user-doubles');
     if (doubles) {
       const list = Array.isArray(data.emailsDoubled) ? data.emailsDoubled : [];
@@ -11668,42 +7704,26 @@ function setUpUsersOut() {
           esc(z.names || '')}</span></div>`).join('')}
         <p style="margin:9px 0 0">${tH('card.emailsDoubledHint')}</p></div>`;
     }
-    /* GRABSTEINE STEHEN NICHT MEHR ZWISCHEN DEN LEBENDEN. Sie sind kein
-       Zugang, den man verwalten kann -- kein Werkzeug, keine Rolle, kein
-       Passwort --, und sie wachsen mit jeder Löschung. Sie stehen deshalb in
-       einem eigenen Fenster; das Vorbild ist "Wer hat bewertet".
-       DIE ERKENNUNG BLEIBT DIE EINE: `status === 'deleted'`. Kein zweiter
-       Test am Namen -- der geht gar nicht hinaus.
-       DER SERVER GIBT SIE WEITERHIN MIT. Getrennt wird in der Oberfläche; die
-       Antwort der Route bleibt, wie sie ist. */
+    /* GRABSTEINE STEHEN NICHT MEHR ZWISCHEN DEN LEBENDEN. */
     userTombstones = data.users.filter(z => z.status === 'deleted');
     for (const z of data.users.filter(z => z.status !== 'deleted')) {
       const self = z.id === data.ich;
       // Genau die Regel des Servers, einmal hier: an einen Admin oder den
-      // Eigentuemer kommt nur der Eigentuemer.
+// Eigentuemer kommt nur der Eigentuemer.
       const may = !self && (z.role === 'user' ? true : data.mayRoles);
       const row = doc.createElement('div');
       row.className = 'mrow user' + (z.status === 'locked' ? ' user-locked' : '');
       row.dataset.mid = z.id;
       // Dieselbe Beschriftung wie an jedem Beitrag im Eintrag -- eine
-      // Funktion, zwei Rufer. Stuende die Bildung des Grabsteinnamens hier ein
-      // zweites Mal, liefen die beiden Stellen auseinander.
-      /* "Noch kein Passwort" steht NICHT als vierter Zustand in der Datenbank:
-         ZUSTAENDE hat drei, und jede Stelle, die status liest, kennt sie. Es
-         ist abgeleitet aus dem leeren Hash — genau dem Wert, über den auch die
-         Anmeldung entscheidet. Am Grabstein kann es gar nicht mehr erscheinen:
-         der steht seit 0.13.0 in einem eigenen Fenster, und dort trägt keine
-         Zeile diese Angabe. */
+      // Funktion, zwei Rufer.
+      /* "Noch kein Passwort" steht NICHT als vierter Zustand in der
+         Datenbank: ZUSTAENDE hat drei, und jede Stelle, die status liest,
+         kennt sie. */
       const waiting = z.withoutPassword;
       row.innerHTML = `<span class="mname">${esc(authorName({ id: z.id, name: z.username, deleted: false }))}${
           self ? ' <span class="user-mine">(du)</span>' : ''}</span>
-        ${/* ROLLE ALS MARKE, ZUSTAND ALS PUNKT -- 0.22.0 (Konzept 6.7). Die Marke
-             ist Form, keine Farbe: gefuellt, umrandet, neutral. Der Punkt
-             nimmt die drei Farben, die „aktiv", „zurueckgenommen" und
-             „wartet auf Bedienung" ohnehin schon bedeuten; an einem Zugang,
-             dessen Passwort noch niemand gesetzt hat, ist er orange und der
-             Hinweistext sagt, dass die Einladung offen ist. Das Wort bleibt
-             daneben stehen: ein Punkt allein liest kein Vorleseprogramm vor. */''}
+        ${/* ROLLE ALS MARKE, ZUSTAND ALS PUNKT -- 0.22.0 (Konzept 6.7). Die
+             Marke ist Form, keine Farbe: gefuellt, umrandet, neutral. */''}
         <span class="user-role"><span class="role-badge ${esc(z.role)}">${esc(rolesWord(z.role))}</span></span>
         <span class="user-status" title="${waiting ? esc(t('card.inviteOpen')) : esc(statusWord(z.status))}"><span
           class="user-dot ${waiting ? 'invited' : esc(z.status)}"></span>${esc(statusWord(z.status))}${
@@ -11747,11 +7767,7 @@ function setUpUsersOut() {
           drawUsers();
         };
 
-        /* BEIDE WEGE BLEIBEN, UND DIE KARTE BEVORZUGT DEN LINK. Das ist kein
-           zweiter Weg zur selben Sache: der Link übergibt das RECHT, ein
-           Passwort zu setzen, der Schlüssel übergibt ein PASSWORT. Der direkte
-           Weg kommt ohne den Browser des anderen aus — für jemanden, der
-           danebensteht, ist er der kürzere. */
+        /* BEIDE WEGE BLEIBEN, UND DIE KARTE BEVORZUGT DEN LINK. */
         tool.querySelector('.user-link-btn').onclick = async () => {
           const purpose = z.withoutPassword ? 'invite' : 'reset';
           if (purpose === 'reset' && !await confirmBox(t('card.resetLinkAsk'),
@@ -11780,23 +7796,14 @@ function setUpUsersOut() {
           let b;
           try { b = await api('GET', `/api/users/${z.id}/inventory`); }
           catch (e) { return toast(e.message, true); }
-          /* EIN FENSTER MIT ZWEI HAEKCHEN -- 0.22.0, Bauabschnitt 4. Bis 0.21.1
-             standen hier drei confirm() hintereinander, und in den ersten
-             beiden hiess „Abbrechen" nicht abbrechen, sondern „stehen lassen
-             und trotzdem weiter loeschen" (Stolperstein 316). Die Zahlen
-             stehen VOR der Entscheidung, wie bei jeder Loeschabfrage im
-             Projekt; der Satz zum Sperren nennt den umkehrbaren Weg (seit
-             0.12.4). Danach, wie bisher, die Passwortabfrage. */
+          /* EIN FENSTER MIT ZWEI HAEKCHEN -- 0.22.0, Bauabschnitt 4. */
           const choice = await userDeleteDialog(z.username, z.id, b);
           if (!choice) return;
           if (!await secondConfirm('remove', z.id, t('dialog.deleteUser'),
             t('card.deleteUserHint', { username: z.username }))) return;
           try {
             /* `entries` UND `posts` STATT `eintraege` UND `beitraege` --
-               0.24.3, F7. Die beiden Angaben sind Teil des WEGES und damit
-               ein Name wie jeder andere; 0.24.1 hat sie liegen gelassen, weil
-               sie in einer Zeichenfolge stehen und der Umbenenner nur Code
-               anfasst. */
+               0.24.3, F7. */
             await api('DELETE', `/api/users/${z.id}?entries=${choice.entries ? 1 : 0}&posts=${choice.posts ? 1 : 0}`);
             toast(t('card.userDeleted'));
           } catch (e) { toast(e.message, true); }
@@ -11810,13 +7817,7 @@ function setUpUsersOut() {
     drawTombstoneButton();
   }
 
-  /* --- Gelöschte Zugänge, im eigenen Fenster ---
-     REINE OBERFLÄCHE. Das Vorbild steht im Projekt: der Dialog "Wer hat
-     bewertet" -- Hintergrund, Fenster, ein erklärender Satz, eine Liste, ein
-     Knopf zum Schließen.
-     DER KNOPF STEHT NUR DA, WENN ES ETWAS ZU ZEIGEN GIBT. Ein Knopf, der ein
-     leeres Fenster öffnet, ist ein Knopf zu viel; die Zahl daneben sagt schon,
-     was darin steht. */
+  /* --- Gelöschte Zugänge, im eigenen Fenster --- REINE OBERFLÄCHE. */
   let userTombstones = [];
   function drawTombstoneButton() {
     const row = document.getElementById('user-remove-row');
@@ -11843,8 +7844,8 @@ function setUpUsersOut() {
       <div class="modal-acts"><button class="btn btn-ghost" data-no>${tH('list.close')}</button></div></div>`;
     doc.body.appendChild(bd);
     const zu = () => { bd.remove(); doc.removeEventListener('keydown', onKey, true); };
-    /* Escape schliesst nur den OBERSTEN Dialog -- dieselbe Regel wie bei
-       "Wer hat bewertet": aus diesem Fenster heraus geht keiner auf, aber ein
+    /* Escape schliesst nur den OBERSTEN Dialog -- dieselbe Regel wie bei "Wer
+       hat bewertet": aus diesem Fenster heraus geht keiner auf, aber ein
        Horcher, der jeden Hintergrund schliesst, waere eine Falle fuer den
        naechsten, der einen dazubaut. */
     const onKey = e => {
@@ -11864,9 +7865,7 @@ function setUpUsersOut() {
       const row = doc.createElement('div');
       row.className = 'mrow user user-remove';
       row.dataset.mid = z.id;
-      // Dieselbe Beschriftung wie ueberall: eine Funktion, zwei Rufer. Stuende
-      // die Bildung des Grabsteinnamens hier ein zweites Mal, liefen die
-      // Stellen auseinander.
+      // Dieselbe Beschriftung wie ueberall: eine Funktion, zwei Rufer.
       row.innerHTML = `<span class="mname">${esc(authorName({ id: z.id, name: z.username, deleted: true }))}</span>
         <span class="user-status">${tH('card.deletedLower')}</span>
         ${countCell(String(z.entries), `${z.entries} ${vThing(z.entries)}`)}`;
@@ -11912,11 +7911,7 @@ function setUpRequestsOut(fetched) {
     try {
       const d = await api('PUT', '/api/signup/toggle', { an: fresh });
       fetched.requests = d;
-      /* DER EINE MERKER ZIEHT MIT. `SIGNUP` kommt beim Start aus
-         /api/config und traegt die Anmeldeseite; seit 0.17.1 haengt auch der
-         Satz in der Karte „Zugang“ daran. Bliebe er hier stehen, saehe der
-         Admin, der eben umgelegt hat, einen Abschnitt weiter noch die alte
-         Lage -- eine zweite Wahrheit, und zwar die falsche. */
+      /* DER EINE MERKER ZIEHT MIT. */
       SIGNUP = !!d.an;
       toast(fresh ? t('card.signupOn') : t('card.signupOff'));
       drawRequests(d);
@@ -11926,13 +7921,7 @@ function setUpRequestsOut(fetched) {
   };
 }
 
-  /* Die Warteschlange der Selbstanmeldung, . DIESELBE BAUFORM WIE
-     drawUsers(): die Liste kommt vom Server, wird nach jeder Handlung
-     neu gezeichnet, und was nach dem await gebraucht wird, wird vorher geholt.
-     DIE ANTWORT DER HANDLUNG TRAEGT DIE NEUE LISTE MIT -- die Karte zeichnet
-     sich daraus neu und fragt nicht ein zweites Mal nach. Ein Mock, der auf
-     ein Loeschen zwar "ok" sagt, aber dieselbe Liste zurueckgibt, faellt damit
-     auf (Stolperstein 90). */
+  /* Die Warteschlange der Selbstanmeldung, . */
   function drawRequests(status) {
     const box = document.getElementById('mrequests');
     if (!box || !status) return;
@@ -11940,9 +7929,7 @@ function setUpRequestsOut(fetched) {
     const state = document.getElementById('signup-state');
     /* „an" UND „aus" KOMMEN AUS DEM WOERTERBUCH -- 0.30.0, Befund 10. Sie
        standen fest im Quelltext, und in einer englisch oder tuerkisch
-       eingestellten Instanz stand hier deutscher Text. Gefunden hat sie die
-       Wache aus dieser Runde, die WERTE liest statt NAMEN -- kein Eintrag,
-       sondern ein Waechter (Zusage 21). Die Schluessel gab es schon. */
+       eingestellten Instanz stand hier deutscher Text. */
     if (state) state.innerHTML = status.an
       ? `<strong class="mail-on">${tH('card.on')}</strong>`
       : `<strong class="mail-off">${tH('card.off')}</strong>`;
@@ -11967,8 +7954,7 @@ function setUpRequestsOut(fetched) {
       row.className = 'mrow user';
       row.dataset.mid = a.id;
       /* NAME UND ADRESSE STEHEN HIER, und sie sind Freitext von aussen --
-         deshalb geht jedes Feld durch esc(). Es ist die einzige Stelle im
-         Systembereich, an der etwas steht, das ein Fremder getippt hat. */
+         deshalb geht jedes Feld durch esc(). */
       row.innerHTML = `<span class="mname">${esc(a.username)}</span>
         <span class="user-role">${esc(a.email)}</span>
         <span class="user-status">${tH('card.requestedAt', { created_at: fmtDate(a.created_at) })}</span>
@@ -12012,10 +7998,8 @@ function cardLog(fetched) {
         <h3>${tH('card.securityLog')}</h3>
         <p class="desc">${tMark('card.logHint', 'card.notIncluded')}</p>
         <p class="desc">${tMark('card.logKeepsHint', 'card.inDays', { n: log.days })}</p>
-        ${/* DIE FILTERLEISTE. Sie steht VOR der Liste, wie jede Filterreihe in
-             dieser Instanz -- man waehlt, bevor man liest. Gezeichnet wird sie
-             aus einer geschlossenen Liste; die Auswahl geht an den Server,
-             denn die Liste darunter traegt nur die hundert juengsten Zeilen. */''}
+        ${/* DIE FILTERLEISTE. Sie steht VOR der Liste, wie jede Filterreihe
+             in dieser Instanz -- man waehlt, bevor man liest. */''}
         <div class="pills" id="log-filter" style="margin:0 0 12px"></div>
         <div class="log-list" id="log-list"></div>
         <p class="hint hint-sm" id="log-foot" style="margin:10px 2px 0"></p>
@@ -12027,11 +8011,9 @@ function setUpLogOut(fetched) {
   drawLog(fetched.log);
 }
 
-  /* --- Das Sicherheitsprotokoll ---
-     Gezeichnet wird aus dem, was oben schon geholt wurde -- dieselbe Bauform
-     wie bei den Verwaltungskarten und aus demselben Grund (Stolperstein 118).
-     JEDE LESESTELLE IST ABGEFANGEN: fehlt der Gegenstand, bleibt die Karte
-     leer und sagt es, statt den Lauf abzureissen. */
+  /* --- Das Sicherheitsprotokoll --- Gezeichnet wird aus dem, was oben schon
+     geholt wurde -- dieselbe Bauform wie bei den Verwaltungskarten und aus
+     demselben Grund. */
   // Schluessel statt Satz (siehe VERWALTUNGSART) -- Modulebene.
   const EVENT_WORD = {
     'login.ok': 'card.signedIn',
@@ -12044,11 +8026,7 @@ function setUpLogOut(fetched) {
     'user.self': 'card.ownAccountChanged',
     'link.new': 'card.linkCreated',
     'link.use': 'card.linkUsed',
-    /* DIE FUENF, DIE BIS 0.12.4 FEHLTEN. Sie fielen auf den Rueckfall `|| z.was`
-       und standen als roher Schluessel am Bildschirm -- "request.approve" statt
-       eines Wortes. Zwanzig Vorgaenge und vierzehn Woerter: der Filter dieser
-       Runde macht die Luecke unuebersehbar, gefehlt hat sie seit 0.9.1 und
-       0.10.0. */
+    /* DIE FUENF, DIE BIS 0.12.4 FEHLTEN. */
     'request.approve': 'card.requestApproved',
     'request.reject': 'card.requestRejected',
     'twofactor.on': 'card.twoFactorTurnedOn',
@@ -12058,13 +8036,11 @@ function setUpLogOut(fetched) {
     'import': 'card.imported',
     'backup': 'card.backupWritten',
     /* EINE ZEILE JE ENTFERNTER KOPIE, deshalb der Singular: vier entfernte
-       Kopien sind vier Zeilen. Die Zahl steht damit in der Tabelle, ohne dass
-       es eine Spalte dafuer braeuchte -- die Begruendung steht in auth.js an
-       der Liste. */
+       Kopien sind vier Zeilen. */
     'backup.delete': 'card.oldBackupDeleted',
-    // Die Zeile nennt, DASS gewechselt wurde, nie WOHIN -- sie
-    // traegt weder Ziel noch Merkmal, und der Handelnde ist immer leer:
-    // gewechselt wird auf dem Wirt.
+    // Die Zeile nennt, DASS gewechselt wurde, nie WOHIN -- sie traegt weder
+    // Ziel noch Merkmal, und der Handelnde ist immer leer: gewechselt wird
+    // auf dem Wirt.
     'key': 'card.keyChanged'
   };
   // Der Status ist der eine Vorgang, dessen Wort am Merkmal haengt: "locked"
@@ -12074,20 +8050,10 @@ function setUpLogOut(fetched) {
     ? (z.detail === 'active' ? t('card.userUnlocked') : t('card.userLocked'))
     : (EVENT_WORD[z.event] ? t(EVENT_WORD[z.event]) : z.event);
   // Was hinter dem Vorgang noch zu sagen ist. Die Rolle beim Rollenwechsel,
-  // der Anlass beim Link, die Betriebsart beim Import -- sonst nichts.
+// der Anlass beim Link, die Betriebsart beim Import -- sonst nichts.
   /* EIN MERKMAL OHNE WORT VERSCHWINDET SPURLOS -- detailWord() faellt still
      auf den leeren String zurueck, und genau deshalb ist bis 0.12.4 niemandem
-     aufgefallen, dass Woerter fehlten.
-     'part' KAM MIT 0.13.0 DAZU: ohne das Wort waere ein Teilexport von einem
-     vollen nicht zu unterscheiden -- und das war der Grund, aus dem er
-     ueberhaupt ein Merkmal traegt.
-     'address' FEHLTE seit 0.9.1, und 'both' war seither falsch beschriftet:
-     es heisst am Server "mehr als eines" und kann Name, Passwort und Adresse
-     in jeder Mischung meinen -- "Name und Passwort" behauptete zwei bestimmte.
-     'active' UND 'locked' STEHEN HIER AUSDRUECKLICH NICHT: ihr Wort traegt
-     schon der Vorgang ("Benutzer gesperrt" / "Benutzer entsperrt"), und zweimal
-     dasselbe in einer Zeile ist eines zu viel. Ein Waechter im Pruefstand
-     nimmt genau diese beiden aus und verlangt fuer jedes uebrige ein Wort. */
+     aufgefallen, dass Woerter fehlten. */
   // Schluessel statt Satz (siehe VERWALTUNGSART) -- Modulebene.
   const DETAIL_WORD = {
     user: 'card.user', admin: 'card.admin', owner: 'card.owner',
@@ -12099,10 +8065,7 @@ function setUpLogOut(fetched) {
   const detailWord = (z) => (z.event === 'user.status' || !DETAIL_WORD[z.detail]
     ? '' : t(DETAIL_WORD[z.detail]));
 
-  /* WER GEHANDELT HAT. Eine leere Nummer heisst "per Kommandozeile am Server"
-     (usertool.js auf dem Wirt) -- mit genau einer Ausnahme, und die ist am
-     Vorgang zu erkennen: bei einer gescheiterten Anmeldung war niemand
-     angemeldet. */
+  /* WER GEHANDELT HAT. */
   const logActor = (z) => {
     if (z.actor != null) return authorName({ id: z.actor, name: z.actorName, deleted: z.actorName == null });
     return z.event === 'login.fail' ? '—' : t('card.viaCommandLine');
@@ -12113,13 +8076,7 @@ function setUpLogOut(fetched) {
     return authorName({ id: z.target, name: z.targetName, deleted: z.targetName == null });
   };
 
-  /* DIE ANSICHTEN DES PROTOKOLLS. Die Schluessel kommen aus auth.js
-     (LOG_GROUPS), die Woerter stehen hier -- dieselbe Teilung wie bei
-     den Vorgaengen selbst.
-     "GESCHEITERT" HEISST NICHT "gescheiterte Anmeldungen": die Gruppe traegt
-     auch die gescheiterte zweite Bestaetigung, und beide sagen dasselbe --
-     jemand konnte an der Tuer nicht belegen, wer er ist. Ein Name, der nur die
-     Haelfte nennt, waere falsch. */
+  /* DIE ANSICHTEN DES PROTOKOLLS. */
   // Schluessel statt Satz (siehe VERWALTUNGSART) -- Modulebene.
   const LOG_VIEW = [
     ['', 'list.all'],
@@ -12138,18 +8095,10 @@ function setUpLogOut(fetched) {
     inventory: 'card.logDataHint'
   };
   // Welche Ansicht gerade gilt. Ansichtszustand und keine Einstellung: beim
-  // naechsten Aufruf steht wieder "Alle", wie beim Umschalter "meine / alle".
+// naechsten Aufruf steht wieder "Alle", wie beim Umschalter "meine / alle".
   let logGroup = '';
 
-  /* DER SPRUNG ZUM ZUGANG. Er klappt nichts auf -- die Karte "Zugaenge" steht
-     im selben Bereich -- und hebt die Zeile kurz hervor, damit man sie in
-     einer langen Liste wiederfindet.
-     WER DAS PROTOKOLL SIEHT, IST EIGENTUEMER UND DAMIT IMMER AUCH ADMIN: die
-     Karte "Zugaenge" ist also da. Trotzdem abgefangen -- drawUsers()
-     laedt fuer sich, und beim allerersten Aufbau kann die Zeile noch fehlen.
-     Ein stiller Klick, der nichts tut, waere der schlechtere Ausgang.
-     scrollIntoView MIT `?.`: jsdom kennt es nicht, und ein Prueflauf, der an
-     einer Anzeigefunktion abreisst, faerbt keine Pruefung rot (Stolperstein 138). */
+  /* DER SPRUNG ZUM ZUGANG. */
   function jumpToUser(id) {
     const row = document.querySelector(`#musers .mrow[data-mid="${Number(id) || 0}"]`);
     if (!row) return toast(t('card.userGone'), true);
@@ -12158,16 +8107,13 @@ function setUpLogOut(fetched) {
     setTimeout(() => row.classList.remove('mrow-flash'), 1600);
   }
 
-  /* EIN NAME WIRD ZUM KNOPF, wenn er eine Nummer hat -- und nur dann.
-     "unbekannter Name" hat keine: er ist der getippte Name eines Versuchs, der
-     an keinen Zugang traf, und es gaebe nichts, wohin er springen koennte. Ein
-     Knopf, der ins Leere fuehrt, ist schlimmer als Text. */
+  /* EIN NAME WIRD ZUM KNOPF, wenn er eine Nummer hat -- und nur dann. */
   const logNameField = (doc, cls, text, id, before = '') => {
     const field = doc.createElement('span');
     field.className = cls;
     if (!text) return field;
     // Der Pfeil steht VOR dem Knopf und nicht in ihm: er gehoert der Zeile und
-    // ist kein Teil des Namens, auf den man klickt.
+// ist kein Teil des Namens, auf den man klickt.
     if (before) field.appendChild(doc.createTextNode(before));
     if (id == null) { field.appendChild(doc.createTextNode(text)); return field; }
     const b = doc.createElement('button');
@@ -12188,9 +8134,8 @@ function setUpLogOut(fetched) {
     for (const [key, word] of LOG_VIEW) {
       const b = document.createElement('button');
       const n = Number(numbers[key || 'all']) || 0;
-      /* GEDAEMPFT BEI NULL, wie jede Pille in dieser Lage (Stolperstein 47):
-         eine Ansicht ohne Zeilen fuehrt garantiert auf eine leere Liste.
-         Anklickbar bleibt sie -- man sieht nur vorher, dass nichts kommt. */
+      /* GEDAEMPFT BEI NULL, wie jede Pille in dieser Lage:
+         eine Ansicht ohne Zeilen fuehrt garantiert auf eine leere Liste. */
       const empty = n === 0 && logGroup !== key;
       b.className = 'pill' + (logGroup === key ? ' on' : '') + (empty ? ' blank' : '');
       b.dataset.group = key;
@@ -12202,11 +8147,7 @@ function setUpLogOut(fetched) {
   }
 
   /* NACHGELADEN WIRD BEIM KLICK, und zwar NUR diese Karte -- dieselbe Bauform
-     wie sessionsNew() und trashNew(). Ein Neuaufbau des ganzen
-     Systembereichs leerte die Passwortfelder daneben.
-     GEFRAGT WIRD DER SERVER UND NICHT DIE GEHOLTEN HUNDERT ZEILEN: der Filter
-     soll die hundert juengsten DIESER Art zeigen und nicht die dieser Art unter
-     den hundert juengsten aller Arten. Genau das war der Befund. */
+     wie sessionsNew() und trashNew(). */
   async function logNew(group) {
     logGroup = group || '';
     let d;
@@ -12229,9 +8170,7 @@ function setUpLogOut(fetched) {
     drawLogFilter(d);
     const rows = (d && Array.isArray(d.rows)) ? d.rows : [];
     if (!rows.length) {
-      /* ZWEI LEERE FAELLE, ZWEI SAETZE. "Noch kein Vorgang festgehalten" waere
-         unter einem Filter eine Falschaussage: es gibt Vorgaenge, nur keinen
-         dieser Art. */
+      /* ZWEI LEERE FAELLE, ZWEI SAETZE. */
       box.innerHTML = logGroup
         ? `<p class="hint">${tH('card.noEventKind')} ${esc(String(d && d.days || ''))} ${tH('card.daysDot')}</p>`
         : `<p class="hint">${tH('card.noEventYet')}</p>`;
@@ -12250,16 +8189,15 @@ function setUpLogOut(fetched) {
       event.className = 'log-event'; event.textContent = eventWord(z);
       row.appendChild(time); row.appendChild(event);
       // Der Handelnde ist anklickbar, wenn er eine Nummer hat -- "—" und
-      // "ueber usertool.js auf dem Wirt" haben keine.
+// "ueber usertool.js auf dem Wirt" haben keine.
       row.appendChild(logNameField(doc, 'log-actor', logActor(z),
         z.actor != null ? z.actor : null));
       row.appendChild(logNameField(doc, 'log-target', whom,
         z.target != null ? z.target : null, '→ '));
       const detailEl = doc.createElement('span');
       detailEl.className = 'log-detail';
-      /* DIESELBE MARKE WIE IN DER BENUTZERLISTE hinter dem Rollenwort -- 0.22.0
-         (Konzept 6.7). Alles andere bleibt Text; die Marke selbst entsteht
-         als Knoten und nicht als Vorlage, der Wortlaut geht durch textContent. */
+      /* DIESELBE MARKE WIE IN DER BENUTZERLISTE hinter dem Rollenwort --
+         0.22.0 (Konzept 6.7). */
       if (markText && ROLE_WORD[z.detail]) {
         const mark = doc.createElement('span');
         mark.className = 'role-badge ' + z.detail;
@@ -12282,54 +8220,25 @@ function setUpLogOut(fetched) {
 /* ---- Karte „Mailversand" — Abschnitt „Zugänge" ---- */
 function cardMailDelivery(fetched) {
   const { mailStatus } = fetched;
-  /* `.breit` WIE DIE DREI NACHBARN. Seit 0.16.0 stehen „Zugaenge",
-     „Anfragen", „Sicherheitsprotokoll" und „Mailversand" im selben Abschnitt;
-     die ersten drei nehmen die volle Breite, und die vierte wirkte daneben wie
-     ein Rest. Vier gleich breite Kacheln sind einfacher zu begruenden als drei
-     plus ein Rest -- und seit 0.17.3 traegt sie die Breite mit ihrer laengsten
-     Zeile, „Eigener Server · smtp.beispiel.de:587 · STARTTLS", statt mit
-     Feldern. */
+  /* `.breit` WIE DIE DREI NACHBARN. */
   return `<div class="sys-card wide">
         <h3>${tH('card.mailDelivery')}</h3>
         ${/* DIE ACHTZEHNTE KARTE, und sie gehört dem EIGENTÜMER — nicht dem
-              Admin, obwohl der die Einladungen verschickt. Der SMTP-Server
-              sieht jede Mail, und jede trägt einen Link, der ein Passwort
-              setzt; ein Admin, der ihn einträgt, böge damit die Rücksetzmail
-              des Eigentümers auf einen Server seiner Wahl. Über dem Eigentümer
-              steht niemand — die Rollenleiter bleibt heil.
-              DAS PASSWORT STEHT HIER NIE — nie der Wert, nie die Länge, nie
-              der Anfang, nie Sternchen mit der richtigen Zahl. Aus jedem davon
-              ließe sich etwas ableiten, und keines hilft dem, der die Karte
-              ansieht. Bis 0.17.2 stand hier wenigstens „gesetzt" oder „nicht
-              gesetzt"; die Zeile ist weg, weil sie dieselbe Frage beantwortete
-              wie „Zustand" — der Dialog sagt es jetzt am Feld selbst. */''}
+             Admin, obwohl der die Einladungen verschickt. */''}
         <p class="desc">${tMarks('card.emailOptionalHint', {
           word:  `<strong>${tH('card.emailOptional')}</strong>`,
           word2: `<em>${tH('card.additionally')}</em>` })}</p>
         ${/* „eingerichtet" KAM AUS DEM QUELLTEXT UND SEIN GEGENTEIL AUS DEM
-              WOERTERBUCH — 0.30.0, Befund 10. Dieselbe Zeile, zwei Wege: die
-              Absage las `card.notConfigured`, die Zusage stand fest auf
-              Deutsch da. Gefunden hat es die Wache, die WERTE liest (Zusage
-              21); `card.configured` ist der Schluessel, den es dazu brauchte. */''}
+             WOERTERBUCH — 0.30.0, Befund 10. Dieselbe Zeile, zwei Wege: die
+             Absage las `card.notConfigured`, die Zusage stand fest auf
+             Deutsch da. */''}
         <div class="kv"><span class="k">${tH('card.state')}</span><span class="v">${mailStatus.configured
           ? `<strong class="mail-on">${tH('card.configured')}</strong>`
           : `<strong class="mail-off">${tH('card.notConfigured')}</strong>`}</span></div>
-        ${/* ---- DIE KARTE ZEIGT, DER DIALOG STELLT EIN — 0.17.3 ----
-              BIS 0.17.2 STANDEN HIER NEUN BEDIENELEMENTE in vier verschiedenen
-              Spaltenaufteilungen, und dazwischen vier Erklärsätze: zwei NEBEN
-              einem Feld, zwei über die volle Breite. Das Auge fand keine
-              Spalte. Die Reihe „Anbieter" war der sichtbarste Teil davon: ein
-              Feld auf einem Drittel, daneben zwei Drittel Leere mit einem
-              Strich darin.
-              JETZT IST SIE EINE ZUSTANDSKARTE WIE IHRE NACHBARN — fünf Zeilen,
-              zwei Knöpfe, ein Satz. Was eingestellt wird, stellt der Dialog
-              ein, und der trägt EINEN Rhythmus.
-              KEINE ZEILE „PASSWORT" MEHR: sie beantwortete dieselbe Frage wie
-              „Zustand" eine Zeile darüber — ein Zugang ist nur dann
-              eingerichtet, wenn ein Passwort gesetzt ist. Der Dialog sagt es
-              am Feld selbst. DASS DAS PASSWORT NIE DASTEHT, gilt unverändert:
-              nie der Wert, nie die Länge, nie Sternchen mit der richtigen
-              Zahl. */''}
+        ${/* ---- DIE KARTE ZEIGT, DER DIALOG STELLT EIN — 0.17.3 ---- BIS
+             0.17.2 STANDEN HIER NEUN BEDIENELEMENTE in vier verschiedenen
+             Spaltenaufteilungen, und dazwischen vier Erklärsätze: zwei NEBEN
+             einem Feld, zwei über die volle Breite. */''}
         <div class="kv"><span class="k">${tH('card.provider')}</span><span class="v">${mailProviderRow(mailStatus)}</span></div>
         <div class="kv"><span class="k">${tH('card.sender')}</span><span class="v">${mailStatus.sender
           ? esc(mailStatus.sender)
@@ -12341,13 +8250,8 @@ function cardMailDelivery(fetched) {
           ? esc(mailStatus.testedAt) : tH('card.never')}</span></div>
         ${mailStatus.addressSet ? '' : `<p class="warn-box" style="margin:10px 0 0">
           <strong>${tH('card.withoutServerSetting')} <code>PUBLIC_ADDRESS</code> ${tH('card.nothingSent')}</strong> ${tH('card.addressNeededHint')}</p>`}
-        ${/* ZWEI KNÖPFE, und der erste sagt, was er tut: einrichten, wenn noch
-              nichts steht, ändern, wenn etwas steht. „Speichern" hieß er bis
-              0.17.2 — an einer Karte, in der die Felder schon dastanden. Ein
-              Knopf, der einen Dialog öffnet, verspricht mit „Speichern" einen
-              Vorgang, den er gar nicht auslöst.
-              DER SATZ ZUR TESTMAIL STEHT DARUNTER und nicht daneben: er nennt
-              eine Folge, die man kennen muss, bevor man drückt. */''}
+        ${/* ZWEI KNÖPFE, und der erste sagt, was er tut: einrichten, wenn
+             noch nichts steht, ändern, wenn etwas steht. */''}
         <div class="row-in" style="margin-top:14px">
           <button class="btn btn-accent btn-sm" id="mail-setup">${tH('card.mailAccount')} ${
             mailStatus.configured ? tH('card.change') : tH('card.setUp')}</button>
@@ -12359,12 +8263,7 @@ function cardMailDelivery(fetched) {
 }
 
 /* DIE ANBIETERZEILE DER KARTE: Name · Server:Port · Verschlüsselung, in EINER
-   Zeile — „Eigener Server · smtp.beispiel.de:587 · STARTTLS".
-   OHNE ANBIETER STEHT DA, DASS KEINER GEWÄHLT IST, und nicht nichts: eine
-   leere Zelle sieht aus wie eine Auskunft, die nicht geladen hat.
-   BEI „Eigener Server" OHNE EINGETRAGENEN SERVER steht nur der Name. Ein
-   „:0" oder ein nacktes „:587" wäre eine Angabe über etwas, das gar nicht
-   eingetragen ist. */
+   Zeile — „Eigener Server · smtp.beispiel.de:587 · STARTTLS". */
 function mailProviderRow(m) {
   if (!m.provider) return `<strong class="mail-off">${tH('card.noneChosenYet')}</strong>`;
   const parts = [esc(m.providerName || m.provider)];
@@ -12375,24 +8274,8 @@ function mailProviderRow(m) {
   return parts.join(' · ');
 }
 
-/* ---- Der Dialog „Mailzugang einrichten" — 0.17.3 ----
-   EINE SPALTE, BESCHRIFTUNG ÜBER DEM FELD, HINWEIS UNTER SEINER SACHE. Das ist
-   der ganze Umbau, und er hat einen Satz: die Karte zeigt, der Dialog stellt
-   ein.
-   AUS NEUN FELDERN WERDEN DREI für jeden, der eine der fünf Vorlagen nimmt.
-   Server, Port und Verschlüsselung stehen dann als GELESENE Zeile da und nicht
-   als drei gesperrte Felder: die Werte stehen fest, und ein gesperrtes Feld
-   sieht aus wie eines, das gleich aufgeht. Bei „Eigener Server" sind es
-   Felder, und DORT steht auch der Satz zum Hausanschluss — dort, wo er gilt,
-   und sonst nirgends.
-   DER SPEICHERWEG IST DERSELBE WIE VORHER, und das ist die harte Klemme dieses
-   Umbaus: `mail` ist einer der sieben Zwecke in BESTAETIGUNG_ZWECKE, und die
-   zweite Bestätigung bleibt, wo sie ist — Passwort, und bei eingeschaltetem
-   zweitem Faktor ein Code. Ein Dialog, der eine Schranke abkürzt, weil er
-   selbst schon ein Dialog ist, wäre der stillste Verlust dieser Runde.
-   BRICHT DIE BESTÄTIGUNG AB, BLEIBT DER DIALOG STEHEN: sonst wäre das
-   Eingetippte weg, und ein Anbieterpasswort tippt niemand gern zweimal.
-   LIEFERT true, wenn wirklich gespeichert wurde — der Rufer zeichnet dann neu. */
+/* ---- Der Dialog „Mailzugang einrichten" — 0.17.3 ---- EINE SPALTE,
+   BESCHRIFTUNG ÜBER DEM FELD, HINWEIS UNTER SEINER SACHE. */
 function mailDialog(mailStatus) {
   return new Promise(resolve => {
     const list = Array.isArray(mailStatus.providerList) ? mailStatus.providerList : [];
@@ -12407,15 +8290,10 @@ function mailDialog(mailStatus) {
           ${list.map(a => `<option value="${esc(a.key)}"${
             a.key === mailStatus.provider ? ' selected' : ''}>${esc(a.name)}</option>`).join('')}
         </select></div>
-      ${/* DER HINWEIS ZUM GEWÄHLTEN ANBIETER — DARUNTER, NICHT DANEBEN, und er
-            wechselt mit der Auswahl. Er kommt vom Server: zwei Ausfertigungen
-            derselben Hinweise liefen auseinander, sobald ein Anbieter
-            dazukommt (Stolperstein 102). */''}
+      ${/* DER HINWEIS ZUM GEWÄHLTEN ANBIETER — DARUNTER, NICHT DANEBEN, und
+           er wechselt mit der Auswahl. */''}
       <p class="desc mail-hint" id="mail-provider-hint"></p>
-      ${/* DIE FESTEN WERTE EINER VORLAGE — GELESEN UND NICHT EINGESTELLT. Sie
-            stehen im Quelltext des Servers; wechselt ein Anbieter morgen den
-            Port, kommt der neue von dort. Drei Felder für drei feste Werte
-            wären drei Felder zu viel. */''}
+      ${/* DIE FESTEN WERTE EINER VORLAGE — GELESEN UND NICHT EINGESTELLT. */''}
       <div class="field" id="mail-fixed-field"><label>${tH('card.serverPortHint')}</label>
         <div class="mail-fixed" id="mail-fixed"></div></div>
       <div id="mail-custom">
@@ -12453,10 +8331,7 @@ function mailDialog(mailStatus) {
     const ownBox = bd.querySelector('#mail-custom');
     const senderHint = bd.querySelector('#mail-sender-hint');
 
-    /* WAS DIE AUSWAHL UMSTELLT, an EINER Stelle. Drei Fälle und nicht zwei:
-       eine Vorlage (feste Zeile), „Eigener Server" (Felder) und „kein
-       Versand" — dort gibt es weder das eine noch das andere, und auch die
-       drei Felder darunter haben nichts zu tragen. */
+    /* WAS DIE AUSWAHL UMSTELLT, an EINER Stelle. */
     const afterSelection = () => {
       const v = template(selection.value);
       const own = selection.value === 'eigen';
@@ -12476,8 +8351,7 @@ function mailDialog(mailStatus) {
       document.removeEventListener('keydown', onKey, true); bd.remove(); resolve(v);
     };
     /* Escape schliesst nur den OBERSTEN Dialog -- steht die zweite
-       Bestaetigung darueber, gehoert die Taste ihr. Dieselbe Regel wie am
-       Erklaerkasten und an den Grabsteinen. */
+       Bestaetigung darueber, gehoert die Taste ihr. */
     const onKey = e => {
       if (e.key !== 'Escape') return;
       if ([...document.querySelectorAll('.backdrop')].pop() !== bd) return;
@@ -12495,10 +8369,9 @@ function mailDialog(mailStatus) {
         secure: field('secure').value === 'tls',
         user: field('user').value.trim(),
         // LEER HEISST "unveraendert", nicht "loeschen": sonst muesste das
-        // Passwort bei jeder Aenderung am Absender neu getippt werden, und ein
-        // Formular, das ein Geheimnis fuer eine Nebensache verlangt, wird
-        // irgendwann mit einem falschen Wert gespeichert. Der Server hat
-        // dieselbe Regel; hier steht sie nur, weil das Feld hier steht.
+        // Passwort bei jeder Aenderung am Absender neu getippt werden, und
+        // ein Formular, das ein Geheimnis fuer eine Nebensache verlangt, wird
+        // irgendwann mit einem falschen Wert gespeichert.
         password: field('pass').value,
         sender: field('sender').value.trim()
       };
@@ -12516,17 +8389,12 @@ function mailDialog(mailStatus) {
 }
 function setUpMailDeliveryOut(fetched) {
   /* NUR FUER DEN EIGENTUEMER; die Klemme steht in SYS_CARDS, und die
-     Endpunkte darunter weisen jeden anderen ohnehin ab. Die Abfrage auf das
-     Element bleibt trotzdem stehen: sie ist der Schutz davor, dass ein
-     Behandler ins Leere greift, wenn die Karte einmal woanders steht
-     (Stolperstein 211). */
+     Endpunkte darunter weisen jeden anderen ohnehin ab. */
   const { mailStatus } = fetched;
   const mailButton = document.getElementById('mail-setup');
   if (mailButton && mailStatus) {
     /* DER DIALOG BEKOMMT DEN ZUSTAND MIT, den die Karte ohnehin schon hat --
-       kein zweiter Ruf an den Server fuer dieselbe Auskunft (Stolperstein 145).
-       NEU GEZEICHNET WIRD NUR, WENN WIRKLICH GESPEICHERT WURDE. renderSystem()
-       nach einem Abbruch waere ein Neuaufbau fuer nichts. */
+       kein zweiter Ruf an den Server fuer dieselbe Auskunft. */
     mailButton.onclick = async () => {
       if (await mailDialog(mailStatus)) renderSystem();
     };
@@ -12538,7 +8406,7 @@ function setUpMailDeliveryOut(fetched) {
     };
 
     document.getElementById('mail-test').onclick = async (e) => {
-      /* e.currentTarget IST NACH DEM ERSTEN await NULL (Stolperstein 61) --
+      /* e.currentTarget IST NACH DEM ERSTEN await NULL --
          der Knopf wird deshalb VOR dem Ruf festgehalten. */
       const button = e.currentTarget;
       button.disabled = true; button.textContent = t('card.sending');
@@ -12555,15 +8423,9 @@ function setUpMailDeliveryOut(fetched) {
 }
 
 
-/* ---- Die Bildablage in der Karte „Kennzahlen" ----
-   DIE NAMEN UND DIE REIHENFOLGE STEHEN AN EINER STELLE. Die Schluessel kommen
-   aus /api/stats, wo sie an den ERSTEN BYTES erkannt werden -- nicht am
-   gemeldeten Typ. Was der Server nicht einordnen kann, faellt in 'other';
-   die Zeile erscheint nur, wenn es wirklich etwas gibt, und dann ist sie ein
-   Befund und keine Verzierung. */
-/* RUFE STATT WERTE -- 0.24.0 (siehe SYS_SECTIONS). Auch die drei festen
-   Namen stehen als Ruf da: die Zeile, die sie ausgibt, soll nicht zweierlei
-   Formen kennen muessen. */
+/* ---- Die Bildablage in der Karte „Kennzahlen" ---- DIE NAMEN UND DIE
+   REIHENFOLGE STEHEN AN EINER STELLE. */
+/* RUFE STATT WERTE -- 0.24.0 (siehe SYS_SECTIONS). */
 const IMAGE_FORMATS = [
   // Der Hinweis am PNG haengt an der Wahl und steht deshalb in der Karte selbst.
   { key: 'png',     name: () => 'PNG',  hint: () => '' },
@@ -12573,20 +8435,8 @@ const IMAGE_FORMATS = [
   { key: 'other', name: () => t('card.otherFormat'), hint: () => '' }
 ];
 
-/* WIE DIE DREI VERFAHREN AUF DEM BILDSCHIRM HEISSEN -- 0.27.0.
-   DIE SCHLUESSEL KOMMEN VOM SERVER, DIE WOERTER VON HIER. Das ist dieselbe
-   Aufteilung wie bei IMAGE_FORMATS darueber und bei IMAGE_MIME_FORMAT in
-   server.js: eine Tafel ueber die SACHE (dort) und eine ueber ihren NAMEN
-   (hier). Der Server hat mit der Sprache der Karte nichts zu schaffen, und
-   zwei Aufzaehlungen der Verfahren wuerden sich frueher oder spaeter
-   widersprechen (Stolperstein 47).
-   WAS HIER FEHLT, FAELLT NICHT WEG, SONDERN ZEIGT SEINEN SCHLUESSEL. Ein
-   viertes Verfahren im Server erschiene damit als `webp-irgendwas` in der
-   Karte -- sichtbar unfertig statt unsichtbar. Eine Zeile, die still
-   verschwaende, waere die schlechtere Art zu scheitern.
-   RUFE STATT WERTE, wie ueberall in dieser Datei seit 0.24.0: diese Zeilen
-   laufen, sobald der Browser die Datei liest -- die Sprachdatei kommt erst
-   danach. */
+/* WIE DIE DREI VERFAHREN AUF DEM BILDSCHIRM HEISSEN -- 0.27.0. DIE SCHLUESSEL
+   KOMMEN VOM SERVER, DIE WOERTER VON HIER. */
 const IMAGE_STORE_WORDS = {
   'png':           { name: () => t('card.storePng'),
                      hint: () => t('card.storePngHint') },
@@ -12596,56 +8446,33 @@ const IMAGE_STORE_WORDS = {
                      hint: () => t('card.storeLossyHint') }
 };
 
-/* Die Fortschrittszeile. EIN Ort fuer den Satz, den drei Zustaende brauchen --
-   laeuft, fertig, nie gelaufen --, sonst stuenden drei Formulierungen
-   nebeneinander und wuerden bei der naechsten Aenderung drei verschiedene. */
+/* Die Fortschrittszeile. */
 function switchRow(u) {
   if (!u) return '';
   if (u.running)
     return `<p class="hint hint-sm" style="margin:8px 2px 0" id="convert-running">${tH('card.convertRunning')} ` +
            `${tH('card.progressOf', { done: u.done, total: u.total })}</p>`;
   /* DER FERTIGSATZ NENNT WIEDER EINE HAELFTE -- 0.33.0. Von 0.27.0 bis 0.32.1
-     nannte er zwei: umgestellte ORIGINALE und neu gerechnete ABLEITUNGEN. Die
-     zweite Haelfte des Laufs ist gefallen, und mit ihr die Zahl -- ein Satz,
-     der „0 Vorschaubilder neu generiert" meldete, weil es gar keine mehr zu
-     generieren gibt, waere eine Auskunft ueber nichts.
-     UND ER STEHT GANZ IN DER SPRACHDATEI. Bis 0.26.0 klebte „von" und
-     „umgewandelt" als deutscher Text im Quelltext zwischen zwei uebersetzten
-     Stuecken -- eine englische Oberflaeche las „Conversion done: 7 von 12
-     umgewandelt". Gefunden beim Umbau dieser Zeile. */
-  /* EIN SATZ STATT VIER BRUCHSTUECKE -- 0.31.1. Die beiden Nachsaetze
-     koennen WEGFALLEN, und genau das war der Grund, den Satz drumherum
-     aufzubrechen. Jetzt kommen sie als Werte herein, die leer sein duerfen. */
+     nannte er zwei: umgestellte ORIGINALE und neu gerechnete ABLEITUNGEN. */
+  /* EIN SATZ STATT VIER BRUCHSTUECKE -- 0.31.1. Die beiden Nachsaetze koennen
+     WEGFALLEN, und genau das war der Grund, den Satz drumherum aufzubrechen. */
   return `<p class="hint hint-sm" style="margin:8px 2px 0" id="convert-running">${
     tH('card.convertFinished', { converted: u.converted, total: u.total,
       stayed: u.stayed ? t('card.stayedCurrent', { stayed: u.stayed }) : '',
       freed: u.freed > 0 ? t('card.freedBytes', { freed: fmtBytes(u.freed) }) : '' })}</p>`;
 }
 
-/* Die zweite Fortschrittszeile — 0.19.4, fuer das Nachziehen der Geometrie.
-   EINE EIGENE UND KEINE GETEILTE: die beiden Laeufe zaehlen verschiedene
-   Dinge (umgestellt/geblieben gegen nachgezogen/geprueft), und eine Zeile,
-   die beides ausdruecken soll, sagt am Ende von beidem die Haelfte.
-   SIE STEHT NUR DA, WENN ES ETWAS ZU SAGEN GIBT. Der Lauf faehrt bei JEDEM
-   Start; nach dem ersten Durchgang findet er nichts mehr und meldet
-   „0 nachgezogen". Eine Zeile darueber staende von da an fuer immer in der
-   Karte und erklaerte einen Vorgang, den niemand angestossen hat. */
+/* Die zweite Fortschrittszeile — 0.19.4, fuer das Nachziehen der Geometrie. */
 function geometryRow(g) {
   if (!g) return '';
   if (g.running)
     return `<p class="hint hint-sm" style="margin:8px 2px 0" id="thumbs-running">${tH('card.thumbnails')} ` +
            `${tH('card.refreshProgress', { done: g.done, total: g.total })}</p>`;
   if (!g.renewed && !g.skipped) return '';
-  /* DIE ZAHL DARF IN BEIDE RICHTUNGEN ZEIGEN -- 0.19.5. Bis 0.19.4 wurde die
-     Kachel groesser (512 statt 400 auf der kurzen Kante), und die Zeile sagte
-     deshalb nur „mehr". Zugeschnitten wird sie in der Regel KLEINER: gemessen
-     -34,2 % ueber zwoelf Seitenverhaeltnisse, beim Panorama dagegen mehr.
-     Eine Zeile, die nur eine Richtung kennt, verschwiege die haeufigere. */
+  /* DIE ZAHL DARF IN BEIDE RICHTUNGEN ZEIGEN -- 0.19.5. */
   const d = g.grown || 0;
-  /* „mehr" UND „weniger" KAMEN AUS DEM QUELLTEXT -- gefunden beim Bau von BA 3,
-     derselbe Fund wie das „und" in der Tagwarnung. In einer englisch
-     eingestellten Instanz stand hier „2.1 MB weniger". Auch der Schlusspunkt
-     gehoert jetzt dem Satz und nicht mehr dieser Zeile. */
+  /* „mehr" UND „weniger" KAMEN AUS DEM QUELLTEXT -- gefunden beim Bau von BA
+     3, derselbe Fund wie das „und" in der Tagwarnung. */
   return `<p class="hint hint-sm" style="margin:8px 2px 0" id="thumbs-running">${
     tH('card.thumbsRefreshed', { renewed: g.renewed, checked: g.checked,
       skipped: g.skipped ? t('card.skipped', { skipped: g.skipped }) : '',
@@ -12653,13 +8480,9 @@ function geometryRow(g) {
                                 : t('card.lessBytes', { bytes: fmtBytes(Math.abs(d)) })) })}</p>`;
 }
 
-/* ---- Karte „Kennzahlen" — Abschnitt „Datenbank" ----
-   SIE TRAEGT SEIT 0.29.0 WIEDER EINEN BEHANDLER, und zwar genau einen: den
-   Verweis „Dateien zeigen" unter dem Fingerprint (Befund 2). In 0.19.0 trug
-   sie schon einmal einen -- Schalter und Knopf der Bildablage sassen darin --,
-   und der ist in 0.19.1 mit jener Karte fortgezogen (siehe cardImageStore()).
-   Was seither blieb, waren Zahlen; jetzt kommt ein Aufklappen dazu und sonst
-   nichts. */
+/* ---- Karte „Kennzahlen" — Abschnitt „Datenbank" ---- SIE TRAEGT SEIT 0.29.0
+   WIEDER EINEN BEHANDLER, und zwar genau einen: den Verweis „Dateien zeigen"
+   unter dem Fingerprint (Befund 2). */
 function cardStats(fetched) {
   const { stats } = fetched;
   return `<div class="sys-card">
@@ -12672,69 +8495,31 @@ function cardStats(fetched) {
         <div class="kv"><span class="k">${tH('dialog.links')}</span><span class="v">${stats.linkCount}</span></div>
         <div class="kv"><span class="k">${esc(V.dayMany)}</span><span class="v">${stats.testDayCount}</span></div>
           <div class="kv"><span class="k">${tH('dialog.files')}</span><span class="v">${stats.attachmentCount} · ${fmtBytes(stats.attachmentBytes)}</span></div>
-        ${/* Der Papierkorb steht GETRENNT da, aus demselben Grund wie die Videos:
-             sonst wundert sich jemand ueber eine Datenbank, die nach dem
-             Aufraeumen groesser ist als vorher. Die Zeile steht UEBER der
-             Datenbankgroesse, weil sie ein Teil von ihr ist. */''}
-        ${/* Kommentarbilder standen bisher in keiner Zeile, obwohl sie als Blob
-             in derselben Datei liegen wie Fotos und Anhaenge. Wer sich fragt,
-             wovon die Datenbank so gross ist, soll die Antwort vollstaendig
-             finden und nicht bei einem Rest stehenbleiben. */''}
+        ${/* Der Papierkorb steht GETRENNT da, aus demselben Grund wie die
+             Videos: sonst wundert sich jemand ueber eine Datenbank, die nach
+             dem Aufraeumen groesser ist als vorher. */''}
+        ${/* Kommentarbilder standen bisher in keiner Zeile, obwohl sie als
+             Blob in derselben Datei liegen wie Fotos und Anhaenge. */''}
         <div class="kv"><span class="k">${tH('card.commentImages')}</span><span class="v">${stats.commentImageCount || 0} · ${fmtBytes(stats.commentImageBytes)}</span></div>
         <div class="kv"><span class="k">${tH('card.trash')}</span><span class="v">${stats.trashCount || 0} · ${fmtBytes(stats.trashBytes)}</span></div>
         <div class="kv"><span class="k">${tH('card.database')}</span><span class="v">${fmtBytes(stats.dbBytes)}</span></div>
-        ${/* DIE ZWEITE GROESSENANGABE, und sie beantwortet eine andere Frage als
-             die Zeile darueber. Die Datenbankgroesse sagt, wie viel Platz die
-             Instanz auf der Platte braucht; sie traegt Indizes, das
-             Sicherheitsprotokoll und freie Seiten aus Geloeschtem. Die
-             Exportgroesse sagt, wie gross die Datei wird, die das Haus
-             verlaesst -- Base64 statt Bytes, dafuer ohne alles, was nicht
-             mitgeht. Die beiden Zahlen sind darum verschieden, und dass die
-             obere die untere ueberschreiten kann, ist kein Fehler.
-             ALLES EINGERECHNET: Fotos, Videos, Dateien, Kommentarbilder. Am
-             Knopf steht darunter, was die eingeschalteten Schalter davon
-             wirklich mitnehmen. */''}
+        ${/* DIE ZWEITE GROESSENANGABE, und sie beantwortet eine andere Frage
+             als die Zeile darueber. */''}
         ${exportTotal(stats) ? `<div class="kv"><span class="k">${tH('card.exportSizeAll')}</span><span class="v">≈ ${fmtBytes(exportTotal(stats))}</span></div>` : ''}
-        ${/* Der Fingerprint beantwortet, was die Versionsnummer nicht kann: ob die
-             Dateien, die hier laufen, WIRKLICH zusammengehoeren. Nach dem
-             Einspielen wird er gegen die Zeile im Aenderungsprotokoll
-             gehalten -- stimmt er nicht, ist ein Dateisatz halb eingespielt. */''}
-        ${/* DIE VERSION STAND IN DER ANTWORT SCHON IMMER, gezeigt hat die Karte
-             sie nie -- sie lief nur in die Fusszeile. Sie gehoert neben den
-             Fingerprint: die Version sagt, WELCHER Stand laufen SOLL, der
-             Fingerprint, ob die Dateien dazu wirklich zusammengehoeren. Wer
-             nach dem Einspielen nachsieht, braucht beide, und zwar
-             nebeneinander. */''}
+        ${/* Der Fingerprint beantwortet, was die Versionsnummer nicht kann:
+             ob die Dateien, die hier laufen, WIRKLICH zusammengehoeren. */''}
+        ${/* DIE VERSION STAND IN DER ANTWORT SCHON IMMER, gezeigt hat die
+             Karte sie nie -- sie lief nur in die Fusszeile. */''}
         <div class="kv"><span class="k">${tH('card.version')}</span><span class="v">${esc(stats.version || '—')}</span></div>
         <div class="kv"><span class="k">${tH('card.fingerprint')}</span><span class="v"><code>${esc(stats.fingerprint || '—')}</code></span></div>
-        ${/* ---- DIE ACHTZEHN DATEIEN -- 0.29.0, Befund 2 ----
-             DER FINGERPRINT SAGT NUR, DASS ETWAS ANDERS IST, und nicht, WAS.
-             Der Handgriff dagegen stand bis hierher allein in der README: eine
-             Schleife ueber `sha256sum`, die man von Hand in einen Container
-             tippt. Wer einen abweichenden Wert bemerkt, sitzt aber genauso oft
-             am Telefon, und dort gibt es keine Shell.
-             AUF VERLANGEN UND NICHT VON SELBST, und das ist keine Zierde,
-             sondern die einzige ehrliche Bauform: DIE INSTANZ KENNT KEINEN
-             SOLLWERT. Er steht im Aenderungsprotokoll, auf Papier. Sie kann
-             also gar nicht wissen, ob etwas abweicht -- eine Zeile „alles in
-             Ordnung" waere eine Behauptung ueber etwas, das sie nicht gelesen
-             hat. Solange niemand drueckt, steht hier deshalb nichts.
-             KEIN UEBERFAHRTEXT: auf dem Telefon waere er gar nichts, und genau
-             dort wird die Liste gebraucht (Betreiber, „muss keine extra
-             Zeile").
-             DIE WERTE KOMMEN AUS DERSELBEN SCHLEIFE WIE DER GESAMTWERT und
-             sind wie er acht Zeichen lang -- so wie `sha256sum | cut -c1-8`
-             in der README. Wer die Liste gegen den Handgriff von dort haelt,
-             vergleicht Gleiches mit Gleichem (Stolperstein 47). */''}
+        ${/* ---- DIE ACHTZEHN DATEIEN -- 0.29.0, Befund 2 ---- DER
+             FINGERPRINT SAGT NUR, DASS ETWAS ANDERS IST, und nicht, WAS. */''}
         ${(stats.fingerprintFiles || []).length ? `<div class="kv kv-act">
           <button class="link-btn" id="fp-files" aria-expanded="false"
             aria-controls="fp-list">${tH('card.showFiles')}</button></div>
         <div class="fp-list" id="fp-list" hidden>${stats.fingerprintFiles.map(z =>
           `<div class="fp-row"><span class="fp-name">${esc(z.name)}</span><code>${esc(z.hash)}</code></div>`).join('')}</div>` : ''}
-        ${/* DER KLARTEXTSCHLUESSEL GEHOERT DEM EIGENTUEMER -- 0.22.0 (E13). Der
-             Admin sieht stattdessen einen Satz: der Schluessel liegt noch
-             neben der Datenbank, und der Eigentuemer sollte das aendern. Der
-             Befehl steht im Kasten „Auf dem Server" (Regel S5). */''}
+        ${/* DER KLARTEXTSCHLUESSEL GEHOERT DEM EIGENTUEMER -- 0.22.0 (E13). */''}
         <div style="margin-top:14px">${stats.keyFromEnv
           ? `<div class="ok-box">${tMarks('card.keyFromSetting', {
               word: '<code>ENCRYPTION_KEY</code>',
@@ -12749,30 +8534,13 @@ function cardStats(fetched) {
             </div>`
             : `<div class="warn-box"><strong>${tH('card.keyStillBeside')}</strong> ${tH('card.keyFileOwner')} <code>ENCRYPTION_KEY</code> ${tH('card.applyLower')}</div>`)}
         </div>
-        ${/* ---- DIE VERFAHREN ----
-             AUS DEM BETRIEB: „was benutzt ihr eigentlich?" Die Antwort stand
-             im Quelltext und sonst nirgends. Sie gehoert hierher, denn wer
-             eine Instanz selbst betreibt, traegt auch die Entscheidung, ob ihm
-             die Verfahren genuegen.
-             VERFAHREN JA, PAKETVERSIONEN NEIN. Ein Verfahrensname sagt, WIE
-             gerechnet wird; eine Bibliotheksversion sagt, WELCHE Luecke passt.
-             Version und Fingerprint darueber sagen nichts ueber eine fremde
-             Bibliothek und bleiben, wo sie sind.
-             DIESE BEGRUENDUNG STAND BIS 0.17.0 AUCH IN DER KARTE, als Satz
-             unter den vier Zeilen. Sie steht jetzt nur noch hier und in der
-             README: eine Oberflaeche sagt, WAS IST, nicht, warum es so gebaut
-             wurde (Projektstand 5.6). Die REGEL gilt unveraendert -- was hier
-             faellt, ist der Satz, nicht der Vorbehalt.
-             GELESEN UND NICHT BEHAUPTET: die Zeilen kommen aus db.js, das die
-             geoeffnete Datei selbst fragt. Eine Kopie hier liefe beim naechsten
-             Wechsel auseinander. */''}
+        ${/* ---- DIE VERFAHREN ---- AUS DEM BETRIEB: „was benutzt ihr
+             eigentlich?" Die Antwort stand im Quelltext und sonst nirgends. */''}
         ${stats.method ? `<div class="sys-part"></div>
         <h4 class="sys-sub">${tH('card.techMethods')}</h4>
-        ${/* SIE HEISST „Verschlüsselung" UND NICHT „Datenbank": eine Zeile mit
-             dieser Beschriftung steht in derselben Karte schon — die
-             Belegung auf der Platte. Zwei Zeilen mit demselben Wort in einer
-             Karte sind eine zu viel, und beim Ablesen greift man die
-             falsche. */''}
+        ${/* SIE HEISST „Verschlüsselung" UND NICHT „Datenbank": eine Zeile
+             mit dieser Beschriftung steht in derselben Karte schon — die
+             Belegung auf der Platte. */''}
         <div class="kv"><span class="k">${tH('card.encryption')}</span><span class="v">${esc(stats.method.cipher || '—')}</span></div>
         <div class="kv"><span class="k">${tH('card.key')}</span><span class="v">${
           stats.method.keyBits ? t('card.keyBits', { keyBits: stats.method.keyBits }) : '—'}</span></div>
@@ -12781,13 +8549,7 @@ function cardStats(fetched) {
       </div>`;
 }
 
-/* DER VERWEIS UNTER DEM FINGERPRINT -- 0.29.0, Befund 2.
-   `hidden` UND NICHT EIN ZWEITES ZEICHNEN: die Liste steht fertig im Baum, und
-   der Klick legt nur um. Sie neu zu bauen hiesse, die achtzehn Zeilen ein
-   zweites Mal aus denselben Daten zusammenzusetzen -- fuer nichts.
-   DER ZUSTAND STEHT AM KNOPF (`aria-expanded`) und nicht in einer Variablen
-   daneben: wer die Karte neu zeichnet, bekommt sie zugeklappt, und das ist
-   richtig -- „Dateien zeigen" ist eine Frage und keine Einstellung. */
+/* DER VERWEIS UNTER DEM FINGERPRINT -- 0.29.0, Befund 2. */
 function setUpStatsOut() {
   const button = document.getElementById('fp-files');
   const list = document.getElementById('fp-list');
@@ -12801,41 +8563,16 @@ function setUpStatsOut() {
   };
 }
 
-/* ---- Karte „Bildablage" — Abschnitt „Datenbank" ----
-   SIE HAT DIE KARTE „Kennzahlen" VERLASSEN, und der Grund ist gewachsen und
-   nicht erfunden. In 0.19.0 stand hier ausdruecklich „es bleibt bei achtzehn
-   Karten", und der Abschnitt war zwei Zeilen und ein Schalter gross. Inzwischen
-   traegt er zwei bis fuenf Formatzeilen, einen Schalter mit Erlaeuterung, einen
-   Knopf, eine Fortschrittszeile und eine Meldung -- DIE KARTE WAR ZU GROSS
-   GEWORDEN, und das ist im Feld aufgefallen. Damit sind es NEUNZEHN Karten.
-
-   ES IST KEINE NEUE FUNKTION: dieselben Zahlen, derselbe Schalter, derselbe
-   Knopf, nur an einem eigenen Platz. Deshalb bleibt die Nummer dieser Runde
-   ein PATCH.
-
-   SIE STEHT NEBEN „Kennzahlen" IM ABSCHNITT „Datenbank" -- die Aufstellung
-   sagt, wovon die Datenbank so gross ist, und der Knopf daneben sagt, ob er
-   noch etwas zu tun hat.
-
-   SICHTBAR FUER JEDEN ADMIN, wie „Kennzahlen": die Zahlen sind eine Auskunft
-   ueber den Bestand. DIE BEIDEN BEDIENELEMENTE STEHEN HINTER EIGENTUEMER --
-   der Schalter bestimmt, wie die ganze Installation ablegt, und der Server
-   weist einen Admin ohne diese Rolle ohnehin ab.
-
-   DIE ZEILE FUER JEDES FORMAT NUR, WENN ES DAS FORMAT GIBT. Eine Installation
-   ohne ein einziges GIF soll keine GIF-Zeile mit einer Null tragen -- eine
-   Null ist eine Aussage, und sie lenkt von den Zahlen ab, um die es geht.
-   LIEGT UEBERHAUPT KEIN BILD DA, sagt die Karte GENAU DAS und verschwindet
-   nicht: eine Karte, die je nach Bestand da ist oder nicht, liesse den
-   Systembereich unter der Hand die Gestalt wechseln. */
+/* ---- Karte „Bildablage" — Abschnitt „Datenbank" ---- SIE HAT DIE KARTE
+   „Kennzahlen" VERLASSEN, und der Grund ist gewachsen und nicht erfunden. */
 function cardImageStore(fetched) {
   const stats = fetched.stats || {};
   const bf = stats.imageFormats || {};
   const rows = IMAGE_FORMATS.filter(f => bf[f.key] && bf[f.key].count);
   const png = bf.png ? bf.png.count : 0;
   // Solange einer laeuft, ist der Knopf tot: der Server sagt dem zweiten Ruf
-  // ohnehin ab, und ein Knopf, der zuverlaessig eine Absage erzeugt, sieht aus
-  // wie ein Fehler.
+  // ohnehin ab, und ein Knopf, der zuverlaessig eine Absage erzeugt, sieht
+  // aus wie ein Fehler.
   const running = !!(stats.conversion && stats.conversion.running);
   return `<div class="sys-card">
         <h3>${tH('card.imageFormats')}</h3>
@@ -12856,14 +8593,7 @@ function cardImageStore(fetched) {
              DIESELBE BAUFORM WIE „Suchanbieter" UND „Sprachen", und das ist
              der Grund für die Wahl der Bauform: die Oberfläche hat für „eines
              von mehreren ist der Standard" genau eine Gestalt, und sie steht
-             schon zweimal da. Ein Auswahlfeld oder eine Reihe Radioknöpfe wäre
-             ein drittes Vokabular für dieselbe Frage — und Radioknöpfe kommen
-             in dieser Oberfläche überhaupt nicht vor.
-             OHNE DAS HÄKCHEN DER BEIDEN ANDEREN: dort gibt es einen VORRAT,
-             aus dem der Benutzer wählt, und daneben den Standard. Hier gibt es
-             keinen Vorrat — die Installation legt in EINEM Verfahren ab.
-             DIE ZEILEN KOMMEN AUS DER LISTE DES SERVERS und nicht aus einer
-             Aufzählung hier; die Wörter kommen aus IMAGE_STORE_WORDS. */''}
+             schon zweimal da. */''}
         <h4 class="sys-sub">${tH('card.storeMethod')}</h4>
         <div class="engine-list" style="margin-top:6px">${IMAGE_STORES.map(k => {
           const w = IMAGE_STORE_WORDS[k];
@@ -12874,31 +8604,16 @@ function cardImageStore(fetched) {
               w ? ` <span class="extra">— ${esc(w.hint())}</span>` : ''}</span>
           </div>`;
         }).join('')}</div>
-        ${/* DIE AUFLAGE STEHT IMMER DA UND NICHT ERST NACH DEM EINSCHALTEN.
-             Sie ist der Grund, aus dem es eine WAHL gibt und keine Regel, und
-             wer sie erst nach dem Umschalten läse, hätte schon gewählt. Zwei
-             Sätze: wofür das verlustbehaftete Verfahren gedacht ist, und wofür
-             ausdrücklich nicht (F6 des Auftrags 0.27.0).
-             UND DER BILLIGSTE WEG STEHT NICHT HIER, sondern an der
-             Einfügestelle (F7): dort trifft ihn jemand, hier liest ihn
-             niemand, der gerade ein Bild einfügt. */''}
+        ${/* DIE AUFLAGE STEHT IMMER DA UND NICHT ERST NACH DEM EINSCHALTEN. */''}
         <p class="hint hint-sm" style="margin:8px 2px 0">${tH('card.storeCaveat')}</p>
         ${/* WAS DIE ABLEITUNGEN TUN, STEHT DANEBEN UND NICHT IN DER WAHL. Sie
-             folgen ihr nicht — sie sind immer WebP (F3). Ohne diesen Satz
-             hielte jemand „PNG" für eine Aussage über die ganze Zeile. */''}
+             folgen ihr nicht — sie sind immer WebP (F3). */''}
         <p class="hint hint-sm" style="margin:6px 2px 0">${tH('card.derivativesWebp')}</p>
         <div class="row-in" style="margin-top:12px">
           <button class="btn btn-sm" id="convert-run"${running || !(png && IMAGE_STORE !== 'png') ? ' disabled' : ''}>${tH('card.catchUpStore')}</button>
         </div>
         ${/* UND DIE ZEILE DARUNTER SAGT, WAS ER ANFASST — sie steht nur da,
-             wenn es etwas zu sagen gibt. Bis 0.26.0 war der Knopf
-             abgeschaltet, sobald kein PNG mehr dalag; 0.27.0 hat ihn wieder
-             belebt, weil die Ableitungen eine zweite Hälfte waren.
-             SEIT 0.33.0 IST DIESE HÄLFTE FORT, UND DAMIT AUCH IHR GRUND. Der
-             Knopf ist wieder das, was er bis 0.26.0 war: tot, solange nichts
-             umzustellen ist. Ein Knopf, der zuverlässig eine Frage ohne
-             Gegenstand öffnet — und dafür ein Passwort verlangt —, sieht aus
-             wie ein Fehler. */''}
+             wenn es etwas zu sagen gibt. */''}
         ${running || !(png && IMAGE_STORE !== 'png') ? '' :
           `<p class="hint hint-sm" style="margin:6px 2px 0">${
             tH('card.catchUpBoth', { n: png })}</p>`}
@@ -12908,14 +8623,7 @@ function cardImageStore(fetched) {
 }
 
 
-/* WAS DIE UHR VERFOLGEN KANN -- eine Tafel und keine zweite Uhr.
-   SEIT 0.19.4 GIBT ES ZWEI LAEUFE, UND SIE KOENNEN SICH UEBERSCHNEIDEN: das
-   Nachziehen faengt 1500 ms nach dem Start an, und wer in genau diesem
-   Augenblick den Umstellungsknopf drueckt, hat beide. Eine zweite Uhr fragte
-   /api/stats ein zweites Mal ab -- genau die Selbstblockade, die 0.19.1
-   gemessen hat.
-   JEDE ZEILE HAT IHREN EIGENEN SATZ, weil die beiden Laeufe verschiedene
-   Dinge zaehlen. Was sie teilen, ist der Takt und die Abfrage. */
+/* WAS DIE UHR VERFOLGEN KANN -- eine Tafel und keine zweite Uhr. */
 /* DER FERTIGSATZ IST EIN RUF -- 0.24.0, wie der Fortschrittssatz darueber
    schon immer einer war (siehe SYS_SECTIONS). */
 const BATCH_RUNS = [
@@ -12927,17 +8635,7 @@ const BATCH_RUNS = [
     finished: () => t('card.thumbnailsRefreshed') }
 ];
 
-/* DIE UHR, DIE DEN LAEUFEN ZUSIEHT. Sie steht ausserhalb der Karte, weil es
-   genau EINE geben darf: zwei Uhren auf denselben Lauf fragten doppelt und
-   meldeten unabhaengig voneinander „fertig".
-   UND SIE HAELT AN, SOBALD KEINE ZEILE MEHR DASTEHT. Ohne diese Frage
-   liefe sie als herrenlose Zusage weiter, auch wenn der Systembereich laengst
-   verlassen ist (Stolperstein 118).
-   GEMELDET WIRD NUR, WAS DIESE UHR HAT LAUFEN SEHEN. `inFlight` sammelt die
-   Laeufe, die sie waehrend ihrer Lebenszeit als laufend gesehen hat; nur
-   deren Ende ist eine Nachricht wert. Ohne diese Merkliste truege ein Lauf,
-   der schon vor dem Oeffnen der Karte fertig war, bei jedem Takt seine
-   Fertigmeldung — er steht ja mit `laeuft: false` in der Antwort. */
+/* DIE UHR, DIE DEN LAEUFEN ZUSIEHT. */
 let inventoryClock = null;
 function followBatchRun() {
   if (inventoryClock) return;
@@ -12947,7 +8645,7 @@ function followBatchRun() {
     if (!BATCH_RUNS.some(l => document.getElementById(l.id))) return stop();
     let s;
     // Ein Fehlschlag haelt an, statt im Sekundentakt weiterzufragen: wer die
-    // Sitzung verloren hat, bekommt sonst eine Meldung je Umlauf.
+// Sitzung verloren hat, bekommt sonst eine Meldung je Umlauf.
     try { s = await api('GET', '/api/stats'); } catch { return stop(); }
     const finished = [];
     for (const l of BATCH_RUNS) {
@@ -12958,10 +8656,7 @@ function followBatchRun() {
     }
     if (inFlight.size) return;
     stop();
-    /* FERTIG HEISST: DIE GANZE KARTE NEU. Die Aufstellung nach Format ist
-       jetzt eine andere, und nur die Fortschrittszeile nachzuziehen hiesse,
-       zwei Staende nebeneinander stehen zu lassen -- unten „fertig", darueber
-       die alte PNG-Zahl. */
+    /* FERTIG HEISST: DIE GANZE KARTE NEU. */
     for (const message of finished) toast(message);
     if (finished.length) renderSystem();
   }, 1500);
@@ -12969,17 +8664,7 @@ function followBatchRun() {
 
 function setUpImageStoreOut(fetched) {
   /* DIE DREI KNOEPFE „Standard" -- 0.27.0, und bis 0.26.0 stand hier ein
-     createToggle() auf ein Haekchen. DERSELBE UMGANG MIT DEM FEHLSCHLAG wie
-     dort und wie bei den Suchanbietern: die neue Stellung wird gezeigt, und
-     wenn der Server absagt, kommt die alte zurueck. Sonst zeigte der
-     Bildschirm etwas anderes an, als der Server haelt.
-     NEU GEZEICHNET WIRD DIE GANZE KARTE und nicht nur der Knopf: die
-     Formatzeile am PNG haengt an derselben Wahl („wird beim Upload zu WebP"),
-     und die Zeile unter dem Nachziehknopf ebenfalls. Drei Stellen von Hand
-     nachzufuehren waere derselbe Fehler in drei Ausfuehrungen.
-     EIN KNOPF AUF DAS SCHON GEWAEHLTE VERFAHREN TUT NICHTS. Er schickte
-     denselben Wert, bekaeme dieselbe Antwort und meldete „gespeichert" fuer
-     eine Aenderung, die es nicht gab. */
+     createToggle() auf ein Haekchen. */
   for (const b of document.querySelectorAll('[data-store-pick]')) {
     b.onclick = async () => {
       const wanted = b.dataset.storePick;
@@ -12992,9 +8677,7 @@ function setUpImageStoreOut(fetched) {
         saved();
       } catch (e) { IMAGE_STORE = before; toast(e.message, true); }
       /* UND DER BESTAND BLEIBT, WIE ER IST -- F5, und das ist die Zusage, an
-         der hier nichts zu tun ist. Kein Lauf haengt an dieser Zeile. Wer die
-         Wahl probiert, soll nicht 500 MB umkodiert bekommen; nachgezogen wird
-         auf Knopfdruck und mit einer zweiten Bestaetigung. */
+         der hier nichts zu tun ist. */
       renderSystem();
     };
   }
@@ -13006,37 +8689,10 @@ function setUpImageStoreOut(fetched) {
       /* DER DIALOG SAGT ES VORHER UND BESCHOENIGT NICHTS: wie viele Bilder,
          wie viel Platz, dass die PNG-Fassung danach nicht mehr da ist, und
          dass die Sicherung des Datenverzeichnisses die einzige Rueckfahrkarte
-         ist. „Unwiderruflich" ist hier richtig und nicht wie beim Loeschen
-         falsch -- fuer Bildbytes gibt es keinen Papierkorb.
-         ER STEHT IM BESTAETIGUNGSFENSTER und nicht als eigener Dialog davor:
-         zwei Fenster hintereinander liest niemand, und das zweite traegt
-         ohnehin die schwerere Frage. */
-      /* DER DIALOG SAGT DREI DINGE UND SONST NICHTS: was geschieht, was danach
-         weg ist, und dass es dauern kann. ER IST IN 0.19.1 GEKUERZT WORDEN --
-         die erste Fassung sagte dasselbe zweimal („nahezu verlustfrei" und
-         „die Bilder bleiben, wie sie aussehen") und erklaerte nebenher, WOHER
-         die fehlende Zeitangabe kommt. Ein Dialog wird gelesen, bevor jemand
-         etwas Unwiderrufliches tut; jeder Satz, den er zu viel traegt, kostet
-         die Aufmerksamkeit fuer die uebrigen.
-         UND WIE LANGE ES DAUERT, STEHT OHNE ZAHL DA. Der Server kennt sie
-         nicht: gemessen 394 ms je Bild auf der Maschine, an der das
-         nachgefahren wurde, gegen 5,3 s je Bild im Feld -- FAKTOR DREIZEHN.
-         Eine Schaetzung waere auf der einen Maschine beruhigend falsch und auf
-         der anderen erschreckend falsch. Fehlt eine Zahl, steht das
-         ausdruecklich da (Stolperstein 252).
-         KEINE RESTLAUFZEIT IN DER FORTSCHRITTSZEILE, aus demselben Grund: sie
-         waere aus dem gemessenen Takt zwar ehrlich zu rechnen, aber sie kostet
-         eine Anzeige, die bei jedem Umlauf springt. */
-      /* UND DIE ZAHL IN SEINEM SATZ NENNT DIE EINE HAELFTE -- 0.33.0. Von
-         0.27.0 bis 0.32.1 nannte er zwei, denn der Lauf zog Originale UND
-         Ableitungen in einem Durchgang; bei der Wahl „PNG" fiel die erste weg
-         und der Dialog sagte nur die zweite. DIE ZWEITE IST GEFALLEN, und
-         damit faellt die Fallunterscheidung mit ihr: es gibt nur noch einen
-         Satz, weil es nur noch eine Sache gibt, die geschieht.
-         DASS HIER NICHTS MEHR ABZUFANGEN IST, HAENGT AM KNOPF und nicht an
-         einer Abfrage: er ist tot, solange nichts umzustellen ist. Eine
-         Absage an dieser Stelle waere ein zweiter Ort fuer dieselbe
-         Entscheidung (Stolperstein 47). */
+         ist. */
+      /* DER DIALOG SAGT DREI DINGE UND SONST NICHTS: was geschieht, was
+         danach weg ist, und dass es dauern kann. */
+      /* UND DIE ZAHL IN SEINEM SATZ NENNT DIE EINE HAELFTE -- 0.33.0. */
       const ok = await secondConfirm('images', null, t('card.catchUpStore'),
         t('card.catchUpAsk', { n: png.count, bytes: fmtBytes(png.bytes),
                                after: fmtBytes(Math.round(png.bytes * 0.37)) }));
@@ -13045,29 +8701,20 @@ function setUpImageStoreOut(fetched) {
       catch (e) { return toast(e.message, true); }
       /* NEU ZEICHNEN STATT DIE ZEILE VON HAND EINZUSETZEN: die Antwort auf
          /api/stats traegt den Lauf jetzt, die Karte baut sich daraus auf, und
-         ruesteKennzahlenAus() haengt die Uhr gleich unten selbst an. Ein
-         zweiter Weg, dieselbe Zeile zu erzeugen, liefe frueher oder spaeter
-         von der Karte weg. */
+         ruesteKennzahlenAus() haengt die Uhr gleich unten selbst an. */
       renderSystem();
     };
   });
 
   // Laeuft beim Oeffnen der Karte schon einer -- weil jemand sie neu geladen
   // hat, von woanders zurueckkommt oder der Server gerade erst angefangen hat
-  // --, wird weitergezaehlt. Seit 0.19.4 gilt das fuer beide Laeufe.
+  // --, wird weitergezaehlt.
   if (fetched.stats && BATCH_RUNS.some(l => fetched.stats[l.field] && fetched.stats[l.field].running))
     followBatchRun();
 }
 
 
-/* DER NAME DER COMPOSE-DATEI -- 0.31.0, Bauabschnitt 1.
-   ER STAND BIS 0.30.3 ALS `card.composeFile` IN DEN SPRACHDATEIEN, und in
-   allen dreien las er sich gleich: „docker-compose.yml". Ein Text, der in drei
-   Sprachen gleich lautet, ist kein Text -- es ist der Name einer Datei, und
-   Dateinamen werden nicht uebersetzt (Regel S8, dieselbe, nach der
-   `public/languages/` schon immer hier steht und nicht dort).
-   ALS KONSTANTE UND NICHT ALS LITERAL IM SATZ: so steht der Name EINMAL da,
-   und der Rest der Vorlage bleibt Auszeichnung. */
+/* DER NAME DER COMPOSE-DATEI -- 0.31.0, Bauabschnitt 1. */
 const COMPOSE_FILE = 'docker-compose.yml';
 
 /* ---- Karte „Sicherung" — Abschnitt „Datenbank" ---- */
@@ -13076,9 +8723,7 @@ function cardBackup() {
         <h3>${tH('card.backup')}</h3>
         <p class="desc">${tMark('card.backupWhatHint', 'card.backupLabel')}</p>
         ${/* DER HINWEIS AUF DEN SCHLUESSEL GEHOERT AN DEN KNOPF, nicht in die
-             Dokumentation: die Kopie ist ohne .env wertlos. Das ist dieselbe
-             Falle, die die README ausfuehrlich beschreibt -- hier steht sie an
-             der Stelle, an der jemand sie tatsaechlich tappt. */''}
+             Dokumentation: die Kopie ist ohne .env wertlos. */''}
         <div class="warn-box" style="margin:0 0 14px"><strong>${tH('card.backupEncrypted')}</strong>
           ${tH('card.withoutKeyFrom')} <code>.env</code> ${tH('card.backupUnopenableHint')}</div>
         <div id="backup-box"></div>
@@ -13089,10 +8734,9 @@ function setUpBackupOut(fetched) {
 }
 
   /* --- Sicherung --- */
-  /* Gezeichnet wird aus dem, was oben schon geholt wurde; nach jedem Schreiben
-     traegt die Antwort den neuen Stand, und die Karte zeichnet sich daraus neu.
-     JEDE LESESTELLE IST ABGEFANGEN: fehlt ein Feld, soll die Karte etwas sagen
-     und nicht der Lauf abreissen. */
+  /* Gezeichnet wird aus dem, was oben schon geholt wurde; nach jedem
+     Schreiben traegt die Antwort den neuen Stand, und die Karte zeichnet sich
+     daraus neu. */
   function drawBackup(fetched) {
     const box = document.getElementById('backup-box');
     if (!box) return;
@@ -13101,20 +8745,7 @@ function setUpBackupOut(fetched) {
       box.innerHTML = `<div class="warn-box">${esc(d.reason || t('card.noBackupDir'))}</div>`;
       return;
     }
-    /* DIESE KARTE SAGT SEIT 0.20.0 NUR NOCH ETWAS UEBER DIE LETZTE SICHERUNG.
-       Die Zeile „Dateien am Ort" (die Zahl der Kopien und wie viele davon mit
-       dem alten Schluessel liegen) ist mit dem ersten Feldbefund
-       herausgefallen: die Karte „Alte Sicherungen" daneben listet ab jetzt
-       ALLE Kopien mit Nummer, Datum und Groesse, und dieselbe Auskunft an zwei
-       Stellen ist eine zu viel (Stolperstein 47). Aus dem Betrieb: „im Fenster
-       ‚Sicherungen' nur Info ueber die letzte Sicherung."
-       DER KASTEN ZUM SCHLUESSELWECHSEL BLEIBT. Er ist keine Auflistung,
-       sondern die Warnung, dass ein alter Schluessel noch gebraucht wird --
-       und in seiner schaerfsten Lage sagt er etwas ueber die JUENGSTE Kopie.
-       „Letzte Sicherung vor N Tagen" kommt aus dem DATEISYSTEM, nicht aus einem
-       Schlüssel in der Datenbank. Der Preis steht hier: ist der Ort nicht
-       erreichbar, sagt die Karte GENAU DAS statt einer Zahl — eine Zahl aus
-       einem Merker wäre in genau diesem Fall die Lüge. */
+    /* DIESE KARTE SAGT SEIT 0.20.0 NUR NOCH ETWAS UEBER DIE LETZTE SICHERUNG. */
     const last = d.last;
     const status = d.error
       ? `<div class="warn-box" style="margin:0 0 12px">${esc(d.error)}</div>`
@@ -13126,19 +8757,8 @@ function setUpBackupOut(fetched) {
              <div class="kv"><span class="k">${tH('card.size')}</span><span class="v">${fmtBytes(last.bytes)}</span></div>`
           : `<p class="desc" style="margin:0 0 12px">${tH('card.noBackupYet')}</p>`));
 
-    /* ZWEI SCHLUESSEL IM UMLAUF — . Wurde der Schlüssel gewechselt,
-       öffnen sich die Kopien von vorher nur noch mit dem ALTEN. Sie sind nicht
-       kaputt; sie brauchen einen anderen Schlüssel als die laufende Instanz.
-       DER KASTEN STEHT NUR DA, WENN ER ETWAS ZU SAGEN HAT: ohne Wechsel gibt
-       es keine zwei Schlüssel, und eine Warnung, die immer dasteht, liest
-       niemand mehr.
-       DIE SCHÄRFSTE LAGE BEKOMMT DEN SCHÄRFSTEN SATZ: ist auch die JÜNGSTE
-       Kopie älter als der Wechsel, gibt es überhaupt keine, die zur laufenden
-       Instanz passt. Das ist etwas anderes als „ein paar alte liegen daneben".
-       WO DER ALTE WERT LIEGT, HÄNGT VOM FALL AB — in der `.env` nur dann, wenn
-       er von dort kam; im Dateifall steht er nach dem Wechsel nirgends mehr.
-       Die Karte weiß das nicht sicher und behauptet es deshalb nicht: sie
-       nennt den Weg, der ihn beim Wechsel genannt hat. */
+    /* ZWEI SCHLUESSEL IM UMLAUF — . Wurde der Schlüssel gewechselt, öffnen
+       sich die Kopien von vorher nur noch mit dem ALTEN. */
     const change = !d.changedAt ? '' : (
       last && last.outdated
         ? `<div class="warn-box" style="margin:0 0 12px"><strong>${tH('card.noBackupForKey')}</strong> ${tH('card.keyChangedOn', { changedAt: fmtDate(d.changedAt) })}
@@ -13150,11 +8770,7 @@ function setUpBackupOut(fetched) {
                  { word: `<strong>${tH('card.oldOne')}</strong>` }, { n: d.outdated })}</div>`
           : `<div class="ok-box" style="margin:0 0 12px">${tH('card.keyChangedHint', { changedAt: fmtDate(d.changedAt) })}</div>`));
     /* ROT ODER GRUEN, und zwar an erster Stelle: die Lage des Sicherungsorts
-       ist die Frage, die vor allen anderen steht. Ein Ort im
-       Arbeitsverzeichnis ist erlaubt und wird nicht abgewiesen -- er wird
-       benannt. Wer hier rot sieht, soll wissen, WARUM, und nicht bloss, DASS.
-       Der grüne Fall sagt nicht "alles gut", sondern was daran gut ist:
-       sonst liest ihn beim nächsten Umbau niemand mehr. */
+       ist die Frage, die vor allen anderen steht. */
     const situation = d.inWorkDir
       ? `<div class="warn-box" id="backup-place" style="margin:0 0 12px">${tMark('card.backupDirHint', 'card.backupDirInProject')} <code>${COMPOSE_FILE}</code>.</div>`
       : `<div class="ok-box" id="backup-place" style="margin:0 0 12px">${tMark('card.backupDirOutsideHint', 'card.outsideProject')}</div>`;
@@ -13178,7 +8794,8 @@ function setUpBackupOut(fetched) {
         const r = await api('PUT', '/api/backup/dir', { place: value });
         // gewechseltAm und veraltet wandern MIT: ohne sie verschwaende der
         // Kasten ueber die alten Sicherungen beim ersten Speichern des
-        // Zielorts, und die Karte saehe danach harmloser aus als die Lage ist.
+        // Zielorts, und die Karte saehe danach harmloser aus als die Lage
+        // ist.
         fetched.backup = { ...fetched.backup, place: r.place, filePath: r.filePath, error: null,
                       reachable: r.reachable, last: r.last, number: r.number,
                       changedAt: r.changedAt, outdated: r.outdated };
@@ -13187,8 +8804,8 @@ function setUpBackupOut(fetched) {
       } catch (e) { toast(e.message, true); }
     };
     /* Der Knopf sperrt sich selbst, solange die Kopie entsteht: VACUUM INTO
-       laeuft synchron, die Instanz steht so lange still, und ein zweiter Klick
-       stellte sich nur in die Schlange. */
+       laeuft synchron, die Instanz steht so lange still, und ein zweiter
+       Klick stellte sich nur in die Schlange. */
     document.getElementById('backup-run').onclick = async (e) => {
       const button = e.currentTarget;
       button.disabled = true;
@@ -13198,9 +8815,7 @@ function setUpBackupOut(fetched) {
         fetched.backup = { ...fetched.backup, reachable: r.reachable, last: r.last, number: r.number,
                       changedAt: r.changedAt, outdated: r.outdated };
         /* EINE MELDUNG UND NICHT ZWEI: toast() raeumt die vorige weg, zwei
-           hintereinander hiessen also, die erste zu verschlucken. Das
-           Aufraeumen ist eine Angabe NEBEN der Sicherung und steht deshalb im
-           selben Satz dahinter. */
+           hintereinander hiessen also, die erste zu verschlucken. */
         toast(t('card.backupWrittenFile', { file: r.file, bytes: fmtBytes(r.bytes) }) +
               (r.cleaned && r.cleaned.removed
                 ? ` · ${t('card.oldBackupsFreed',
@@ -13210,12 +8825,7 @@ function setUpBackupOut(fetched) {
            dieselbe Bauform wie bei der Bildumstellung, und aus demselben
            Grund: die Nachbarkarte "Alte Sicherungen" traegt dann eine
            Vorschau auf Dateien, die es nicht mehr gibt, und zwei Staende
-           nebeneinander sind einer zu viel. DIESE KARTE SELBST AENDERT SICH
-           DABEI NICHT -- sie zeichnet dieselben Zeilen, nur eben aus einer
-           frisch geholten Antwort.
-           OHNE AUFGERAEUMTE KOPIE bleibt es beim Neuzeichnen dieser einen
-           Karte: ein Neuaufbau des ganzen Bereichs leerte die Felder daneben
-           (derselbe Grund wie beim Papierkorb). */
+           nebeneinander sind einer zu viel. */
         if (r.cleaned && r.cleaned.removed) return renderSystem();
         drawBackup(fetched);
       } catch (err) {
@@ -13227,37 +8837,13 @@ function setUpBackupOut(fetched) {
   }
 
 
-/* ---- Karte „Alte Sicherungen" — Abschnitt „Datenbank", seit 0.20.0 ----
-
-   SIE STEHT HINTER "SICHERUNG" UND NICHT DARIN. Die Begruendung steht an ihrer
-   Zeile in SYS_CARDS; hier steht, was auf ihr zu sehen ist.
-
-   DREI TEILE, UND SIE HABEN EINE REIHENFOLGE:
-     1. die REGEL -- der Schalter und die beiden Werte. Was gilt.
-     2. die VORSCHAU -- was die Regel bei diesen Werten JETZT treffen wuerde.
-     3. die KNOEPFE -- die Regel einmal anwenden, und getrennt davon die
-        veralteten Kopien wegraeumen.
-   Wer von oben nach unten liest, weiss vor dem ersten Knopf, was er tut.
-
-   DIE VORSCHAU STEHT IMMER DA, auch wenn der Schalter aus ist: sie ist die
-   Auskunft darueber, was die Regel bei den eingestellten Werten bedeutet, und
-   nicht die Ankuendigung eines Laufs. OHNE VORSCHAU IST ES EINE WETTE.
-
-   DIE REGEL RECHNET DER SERVER, AUCH FUER DIE VORSCHAU. Die Karte schickt die
-   beiden Werte als Abfrage an GET /api/backup und zeichnet, was
-   zurueckkommt -- sie rechnet nichts selbst nach. Eine zweite Fassung der
-   Regel im Browser waere eine zweite Wahrheit darueber, was gleich passiert
-   (Stolperstein 47), und die Vorschau verloere genau das, wofuer es sie gibt. */
+/* ---- Karte „Alte Sicherungen" — Abschnitt „Datenbank", seit 0.20.0 ---- SIE
+   STEHT HINTER "SICHERUNG" UND NICHT DARIN. */
 function cardCleanup() {
   return `<div class="sys-card">
         <h3>${tH('card.oldBackups')}</h3>
         ${/* ZWEI SAETZE, UND JEDER TRAEGT EINE TATSACHE: dass es weg ist, und
-             was ueberhaupt in Frage kommt. Die Fassung bis zum ersten
-             Feldbefund erklaerte dazu, warum der Schalter auf aus steht und was
-             nach einer gescheiterten Sicherung geschieht -- richtig, aber am
-             Bildschirm zu viel. Aus dem Betrieb: „der Text vom GUI muss so kurz
-             wie moeglich sein und dennoch muss zu verstehen sein, was gemeint
-             ist." */''}
+             was ueberhaupt in Frage kommt. */''}
         <p class="desc">${tMark('card.cleanupHint', 'card.finally')}</p>
         <div id="cleanup-box"></div>
       </div>`;
@@ -13266,21 +8852,14 @@ function setUpCleanupOut(fetched) {
   drawCleanup(fetched);
 }
 
-  /* --- Alte Sicherungen ---
-     Gezeichnet wird aus dem, was oben schon geholt wurde -- dieselbe Bauform
-     wie bei der Karte "Sicherung" daneben. Nach jedem Loeschen traegt die
-     Antwort den neuen Stand samt frischer Vorschau, und die Karte zeichnet
-     sich daraus neu.
-     JEDE LESESTELLE IST ABGEFANGEN: fehlt ein Feld, soll die Karte etwas sagen
-     und nicht der Lauf abreissen. */
+  /* --- Alte Sicherungen --- Gezeichnet wird aus dem, was oben schon geholt
+     wurde -- dieselbe Bauform wie bei der Karte "Sicherung" daneben. */
   function drawCleanup(fetched) {
     const box = document.getElementById('cleanup-box');
     if (!box) return;
     const d = fetched.backup || {};
     const a = d.cleanup || {};
-    /* OHNE EINGERICHTETEN ORT SAGT DIE KARTE GENAU DAS UND SONST NICHTS. Ein
-       Schalter, der nie greifen kann, verspricht etwas und haelt es nie -- und
-       die Karte darueber nennt den Weg zum Einhaengepunkt ohnehin schon. */
+    /* OHNE EINGERICHTETEN ORT SAGT DIE KARTE GENAU DAS UND SONST NICHTS. */
     if (!d.configured) {
       box.innerHTML = `<div class="warn-box">${tMarks('card.noBackupDirCard',
         { word: `<strong>${tH('card.backup')}</strong>` })}</div>`;
@@ -13292,52 +8871,16 @@ function setUpCleanupOut(fetched) {
     const days = Number.isInteger(a.days) ? a.days : gT.fallback;
 
     /* DIE LISTE ALLER SICHERUNGEN -- juengste zuerst, nummeriert, NUR ZUM
-       ANSEHEN. Es gibt keinen Knopf je Zeile, und das ist entschieden: eine
-       einzelne Kopie per Klick zu loeschen waere die Loeschroute mit
-       Dateinamen, und die gibt es ausdruecklich nicht (Stolperstein 300).
-
-       KEIN DATEINAME IN DER ZEILE, und dabei geht nichts verloren: der Name IST
-       die Zeitmarke (`kriterion-<Datum>-<Uhrzeit>.sqlite`), und die Zeile nennt
-       Datum und Uhrzeit. Aus dem Betrieb: „dann aber braucht es nicht die
-       vollen Namen, sondern einfach Nummer, Datum, Groesse."
-
-       DIE NUMMER LAEUFT VON DER JUENGSTEN (1) ZUR AELTESTEN -- so, wie die
-       Mindestzahl zaehlt. Damit liest sich „mindestens 3 behalten" unmittelbar
-       an der Liste ab: was faellt, steht ab Nummer 4.
-
-       DER DECKEL LIEGT BEI FUENF ZEILEN (`#cleanup-list` im Stilblatt) und nicht
-       bei den zehn der uebrigen Systemlisten: diese Liste steht MITTEN in ihrer
-       Karte, unter ihr stehen die Zusammenfassung und beide Knoepfe. Ein Ordner
-       mit vierzig Kopien schoebe sie sonst aus dem Blick -- dieselbe Ausnahme
-       und dieselbe Begruendung wie bei `#ex-part-list`. */
-    /* ---- DIE PROBE JE ZEILE -- 0.29.0, Befund 1 ----
-       „prüfen" UND NICHT „Sicherung prüfen" (F1): die Zeile misst am Telefon
-       366 px und trägt schon Nummer, Datum, Alter und Größe. Das Wort
-       „Sicherung" steht im Kartentitel und in jeder Zeile darüber; ein drittes
-       Mal sagt es nichts dazu und bräuchte eine zweite Zeile.
-       JE ZEILE UND NICHT EINMAL FÜR DIE JÜNGSTE: der Befund heißt „es gibt
-       Sicherungen, die noch nie jemand geöffnet hat", und das ist meistens
-       nicht die jüngste — der traut man ohnehin.
-       ES IST KEIN WIDERSPRUCH ZU STOLPERSTEIN 300. Dort ging es um das
-       LÖSCHEN einer einzelnen Kopie über ihren Dateinamen; hier geht die
-       NUMMER hinaus, die in der Zeile ohnehin steht, und der Weg liest nur.
-       DIE ERGEBNISZEILE STEHT UNTER IHRER ZEILE UND BLEIBT (F22): wer zwei
-       Kopien prüft, sieht beide Ergebnisse nebeneinander und kann sie
-       vergleichen. Gemerkt wird nichts — beim nächsten Zeichnen der Karte ist
-       sie fort. */
+       ANSEHEN. */
+    /* ---- DIE PROBE JE ZEILE -- 0.29.0, Befund 1 ---- „prüfen" UND NICHT
+       „Sicherung prüfen" (F1): die Zeile misst am Telefon 366 px und trägt
+       schon Nummer, Datum, Alter und Größe. */
     const row = (z) => {
       const mark = z.affected ? `<span class="cleanup-badge remove">${tH('card.deleteLower')}</span>`
                   : z.outdated ? `<span class="cleanup-badge old">${tH('card.oldKey')}</span>` : '';
       return `<div class="mrow">
         <span class="mname">#${z.nr} · ${esc(fmtDate(z.at))}</span>${mark}
-        ${/* DIE GRÖSSE STEHT VORN, SEIT DER VERWEIS DANEBEN STEHT — 0.29.0.
-             Gemessen bei 390 px fehlen der Zeile 24 Pixel, und irgendetwas muss
-             weichen. Es ist das ALTER: „vor 0 Tagen" ist dieselbe Auskunft wie
-             das Datum zwei Felder weiter links, nur bequemer. Die Größe ist es
-             nicht — sie steht sonst nirgends.
-             Also läuft der Text von hinten aus: „280,0 KB · vor 0 Ta…" statt
-             „vor 0 Tagen · 280,0…". Beide Male dieselbe Zeile, beide Male
-             derselbe Schnitt — nur trifft er jetzt das Entbehrliche. */''}
+        ${/* DIE GRÖSSE STEHT VORN, SEIT DER VERWEIS DANEBEN STEHT — 0.29.0. */''}
         <span class="mcount">${esc(fmtBytes(z.bytes))} · ${
           tH('card.daysAgo', { n: z.daysAgo })}</span>
         <button class="link-btn backup-check" data-nr="${z.nr}">${tH('card.checkBackup')}</button>
@@ -13355,12 +8898,8 @@ function setUpCleanupOut(fetched) {
            <div class="manage-list" id="cleanup-list">${all.map(row).join('')}</div>`
         : `<p class="hint hint-sm" style="margin:2px 2px 0">${tH('card.noBackupInFolder')}</p>`);
 
-    /* WAS DIE REGEL JETZT TREFFEN WUERDE -- eine Zeile unter der Liste, und in
-       ihr steht die Zahl, die Summe und sonst nichts. Die Dateien selbst sind
-       in der Liste darueber mit `löschen` markiert; sie ein zweites Mal
-       aufzuzaehlen waere dieselbe Auskunft an zwei Stellen.
-       TRIFFT DIE REGEL NICHTS, STEHT DER GRUND DA -- eine leere Aussage ohne
-       Erklaerung sieht aus wie ein Fehler. Der Grund kommt vom Server. */
+    /* WAS DIE REGEL JETZT TREFFEN WUERDE -- eine Zeile unter der Liste, und
+       in ihr steht die Zahl, die Summe und sonst nichts. */
     const status = !a.reachable ? '' : (matched.length
       ? `<p class="desc" style="margin:10px 0 6px">${tMarks('card.deleteFreesHint',
            { word: `<strong>${tH('card.backupsDeleteHint', { n: matched.length })}</strong>` },
@@ -13369,8 +8908,7 @@ function setUpCleanupOut(fetched) {
            esc(a.reason || '')}</p>`);
 
     /* DIE KOPIEN VON VOR DEM SCHLUESSELWECHSEL: eigene Zahl, eigene Summe,
-       eigener Knopf. Die Regel fasst sie nicht an -- sie sind nicht
-       entbehrlich, sondern etwas anderes. */
+       eigener Knopf. */
     const outdated = !oldCount ? '' : `
       <div class="sys-part"></div>
       <p class="desc" style="margin:0 0 8px">${tMarks('card.cleanupKeepsHint',
@@ -13418,17 +8956,7 @@ function setUpCleanupOut(fetched) {
       };
     });
 
-    /* --- Die beiden Zahlenfelder. ZWEI EREIGNISSE AN DEMSELBEN FELD, und sie
-       tun zwei verschiedene Dinge:
-         `input`  -- die LISTE wird neu gerechnet, und zwar am Server. Gespeichert
-                     wird dabei nichts und geloescht erst recht nichts. Wer die
-                     Zahl von 3 auf 1 stellt, sieht sofort, was das kostet.
-         `change` -- der Wert wird GESPEICHERT (beim Verlassen des Feldes oder
-                     mit der Eingabetaste). Ein eigener Speicherknopf waere ein
-                     dritter Knopf auf einer Karte, die mit zwei auskommt.
-       DIE GRENZEN HALTEN AM SERVER. `min` und `max` stehen an den Feldern, aber
-       sie sind eine Bitte und keine Klemme -- die Absage kommt vom Server, und
-       die Karte sagt, warum. */
+    /* --- Die beiden Zahlenfelder. */
     const values = () => ({
       keep: Number(document.getElementById('cleanup-keep')?.value),
       days: Number(document.getElementById('cleanup-days')?.value)
@@ -13442,11 +8970,7 @@ function setUpCleanupOut(fetched) {
       try {
         fresh = await api('GET', `/api/backup?keep=${w.keep}&days=${w.days}`);
       } catch { return; }   // eine Zahl ausserhalb der Grenzen: die Liste bleibt stehen
-      /* NUR DIE JUENGSTE ANTWORT ZAEHLT. Wer schnell tippt, hat mehrere
-         Abrufe unterwegs, und sie koennen in beliebiger Reihenfolge
-         ankommen -- ohne diese Frage stuende womoeglich das Ergebnis der
-         vorletzten Eingabe da (dieselbe Ueberlegung wie bei der Wache aus
-         0.19.6: die Ansicht kann fort sein). */
+      /* NUR DIE JUENGSTE ANTWORT ZAEHLT. */
       if (run !== previewRun) return;
       if (!document.getElementById('cleanup-box')) return;
       fetched.backup = fresh;
@@ -13468,14 +8992,7 @@ function setUpCleanupOut(fetched) {
         };
       });
 
-    /* --- Die beiden Knoepfe. BEIDE HINTER DER ZWEITEN BESTAETIGUNG, wie jeder
-       Vorgang, der Bytes unwiderruflich entfernt -- und beide gehen durch
-       DIESELBE Route, unterschieden durch ein Feld im Rumpf.
-       DER DIALOG NENNT DIE ZAHL UND DIE BYTES und beschoenigt nichts. Dass die
-       Route KEINE Dateinamen entgegennimmt, hat einen Preis: zwischen Anzeige
-       und Knopfdruck kann sich der Ordner geaendert haben. Die Antwort nennt
-       deshalb, was WIRKLICH geloescht wurde, und die Karte zeichnet sich
-       daraus neu. */
+    /* --- Die beiden Knoepfe. */
     const clear = async (kind, title, event) => {
       if (!(await secondConfirm('backup', null, title, event))) return;
       let r;
@@ -13487,9 +9004,7 @@ function setUpCleanupOut(fetched) {
       toast(t('card.backupsDeleted', { n: r.removed, bytes: fmtBytes(r.bytes),
         extra: r.notDeleted ? t('card.notDeleted', { notDeleted: r.notDeleted }) : '' }));
       /* DIE NACHBARKARTE NENNT DIE LETZTE SICHERUNG, und die kann jetzt eine
-         andere sein. Zwei Staende nebeneinander stehen zu lassen waere genau
-         die zweite Wahrheit, gegen die diese Runde gebaut ist -- also die
-         GANZE Karte neu, dieselbe Bauform wie bei der Bildumstellung. */
+         andere sein. */
       renderSystem();
     };
     atElement('cleanup-run', (button) => {
@@ -13503,15 +9018,8 @@ function setUpCleanupOut(fetched) {
           { n: oldCount, bytes: fmtBytes(a.oldBytes || 0) }));
     });
 
-    /* ---- Die Sicherungsprobe -- 0.29.0, Befund 1 ----
-       KEINE ZWEITE BESTAETIGUNG: sie liest, sie loescht nicht. Die beiden
-       Knoepfe darueber holen eine, weil sie Dateien wegnehmen.
-       DER KNOPF SPERRT SICH WAEHREND DES LAUFS und sagt es. Die Probe oeffnet
-       eine Datei von womoeglich einem Gigabyte; ein zweiter Druck in derselben
-       Sekunde legte einen zweiten Griff auf dieselbe Datei.
-       GEZEICHNET WIRD IN DIE ZEILE UNTER IHRER ZEILE, nicht in einen
-       gemeinsamen Kasten: zwei Proben nebeneinander sind die Auskunft, um
-       derentwillen die Zeile bleibt. */
+    /* ---- Die Sicherungsprobe -- 0.29.0, Befund 1 ---- KEINE ZWEITE
+       BESTAETIGUNG: sie liest, sie loescht nicht. */
     box.querySelectorAll('.backup-check').forEach(button => {
       button.onclick = async () => {
         const nr = Number(button.dataset.nr);
@@ -13523,11 +9031,7 @@ function setUpCleanupOut(fetched) {
           const r = await api('POST', '/api/backup/check', { nr });
           if (out) {
             out.hidden = false;
-            /* DREI ANTWORTEN, DREI SAETZE. Ein fremder Schluessel und eine
-               fremde Datei sind KEINE Fehler, sondern Auskuenfte (F4) -- sie
-               stehen deshalb in einem gedaempften Kasten und nicht in Rot.
-               DIE ZAHLEN TRAGEN DIE NAMEN DER KARTE „Kennzahlen", damit der
-               Vergleich ohne Kopfrechnen geht (F2). */
+            /* DREI ANTWORTEN, DREI SAETZE. */
             out.innerHTML = r.ok
               ? `<span class="probe-ok">${esc(V.entryMany)} ${r.itemCount} · ${
                    tH('list.photos')} ${r.photoCount} · ${tH('card.checkUsers')} ${r.userCount}${
@@ -13548,28 +9052,12 @@ function cardExport(fetched) {
   const { stats } = fetched;
   return `<div class="sys-card">
         <h3>${tH('card.exportAndImport')}</h3>
-        ${/* DIE ROLLENTEILUNG GEHOERT AN DIE KARTE, nicht nur in die Doku. Wer
-             Export und Sicherung nebeneinander sieht, muss ohne Rueckfrage
-             wissen, welche er will. Ein Satz je Karte, und er steht hier. */''}
+        ${/* DIE ROLLENTEILUNG GEHOERT AN DIE KARTE, nicht nur in die Doku. */''}
         <p class="desc"><strong>${tH('card.exportLabel')}</strong> ${tH('card.exportPurposeHint')} <strong>${tH('card.backup')}</strong>.</p>
         <p class="desc">${tH('card.exportWritesHint')}</p>
-        ${/* DIE ZAHLEN AN DEN KNOEPFEN SIND LEBENDIG. Sie standen bisher fest im
-             Text und rechneten dabei jede fuer sich -- die Haekchen darunter
-             aenderten die Datei, aber keine Zahl. Wer beide Haekchen setzte,
-             fand nirgends, was dabei herauskommt.
-             GERECHNET WIRD AN EINER STELLE, in exportSum(); die Warnung
-             darunter liest dieselbe Zahl. Zwei Rechenwege naennten frueher oder
-             spaeter zwei Groessen fuer dieselbe Datei. */''}
+        ${/* DIE ZAHLEN AN DEN KNOEPFEN SIND LEBENDIG. */''}
         ${/* EIN KIND JE KNOPF UND NICHT DREI -- Befund 3b der Runde 0.26.0.
-             `.btn` ist `inline-flex` mit `gap: 7px`. Text, Zahl und Klammer
-             standen als DREI Flexkinder nebeneinander, und der Abstand setzte
-             sich zwischen sie: „Mit Fotos (~ 301,5 KB )". Das Leerzeichen kam
-             also aus dem Raster und nicht aus dem Text -- wer im Woerterbuch
-             danach suchte, fand nichts.
-             DER GEMEINSAME TRAEGER LOEST ES, ohne `gap` anzuruehren: der
-             Abstand gehoert den Knoepfen mit Zeichen davor und bleibt ihnen.
-             Innerhalb des Traegers steht wieder gewoehnlicher Fliesstext, und
-             der traegt genau die Leerzeichen, die jemand geschrieben hat. */''}
+             `.btn` ist `inline-flex` mit `gap: 7px`. */''}
         <div class="row-in">
           <button class="btn btn-accent btn-sm" id="ex-yes"><span>${tMarks('card.withPhotos',
             { word: '<span id="ex-gr-yes">…</span>' })}</span></button>
@@ -13578,44 +9066,20 @@ function cardExport(fetched) {
         </div>
         <label class="ex-files"><input type="checkbox" id="ex-files">
           ${tH('card.includeFiles', { size: fmtBytes((stats.export?.attachments || 0) + (stats.export?.commentImages || 0)) })}</label>
-        ${/* Eigener Schalter, Vorgabe aus. Ohne ihn bleibt der Platz des Videos
-             in der Datei vermerkt, die Datei selbst fehlt -- der Import sagt
-             dann, wie viele es waren. Stand ein Video an erster Stelle, wird
-             danach das naechste Foto zum Hauptbild. */''}
+        ${/* Eigener Schalter, Vorgabe aus. */''}
         <label class="ex-files"><input type="checkbox" id="ex-videos">
           ${tH('card.includeVideos', { size: fmtBytes(stats.export?.videos || 0) })}</label>
         ${stats.videoCount ? `<p class="hint hint-sm" style="margin:6px 2px 0">
           ${tH('card.videosExcludedHint')}</p>` : ''}
-        ${/* DER HINWEIS STEHT VOR DEM KNOPF UND NICHT HINTER DEM ABBRUCH. Ein
-             Export, der nach zwei Minuten mit einem Speicherfehler aufgibt,
-             sieht aus wie ein kaputtes Programm; er ist aber eine erreichte
-             Grenze, und der Unterschied liegt allein darin, ob die Instanz es
-             vorher sagt.
-             GEWARNT WIRD, VERWEIGERT NICHT. Die Zahl ist eine Schaetzung, und
-             eine Schaetzung darf niemandem den Export wegnehmen, dessen Datei
-             am Ende doch gepasst haette. Wer die Grenze wirklich reisst,
-             bekommt sie von der Route gesagt -- mit derselben Rechnung. */''}
+        ${/* DER HINWEIS STEHT VOR DEM KNOPF UND NICHT HINTER DEM ABBRUCH. */''}
         <div id="ex-warn"></div>
-        ${/* DER WEG, WENN DIE EINE DATEI NICHT GEHT. Er steht IMMER da und
-             nicht erst hinter der Warnung: wer seine Teile auf einen
-             Datentraeger bringen oder durch eine Hochladegrenze schieben will,
-             braucht sie auch unterhalb des Schwellwerts.
-             DIE TEILGROESSE IST WAEHLBAR, NACH OBEN ABER GEDECKELT: oberhalb
-             des Warnwerts baute die Instanz Teile, vor denen sie im selben
-             Atemzug warnt. */''}
+        ${/* DER WEG, WENN DIE EINE DATEI NICHT GEHT. */''}
         <div class="ex-parts">
           <div class="row-in" style="align-items:baseline">
             <button class="btn btn-sm" id="ex-plan">${tH('card.exportInParts')}</button>
             <label class="hint hint-sm" style="display:flex;align-items:baseline;gap:6px">
               ${tH('card.atMost')}
-              ${/* DIE BESCHRIFTUNG KOMMT AUS DEM WERT -- 0.31.1. Bis hierher
-                    standen die vier Zahlen ZWEIMAL da: einmal als
-                    `value="52428800"` und einmal als Schluessel `card.mb50`
-                    mit dem Text „50 MB". Zwei Orte fuer eine Sache, und einer
-                    davon in drei Sprachdateien, obwohl „50 MB" in allen
-                    dreien gleich lautet (Stolperstein 47).
-                    EINE ZAHL UND EINE EINHEIT SIND KEINE SPRACHE. Wer eine
-                    fuenfte Groesse dazustellt, schreibt sie jetzt einmal. */''}
+              ${/* DIE BESCHRIFTUNG KOMMT AUS DEM WERT -- 0.31.1. */''}
               <select class="input input-sm" id="ex-target" style="width:auto">
                 ${[52428800, 104857600, 209715200, 314572800].map(v =>
                   `<option value="${v}"${v === 314572800 ? ' selected' : ''}>${
@@ -13626,17 +9090,9 @@ function cardExport(fetched) {
           </div>
           <div id="ex-plan-out"></div>
         </div>
-        ${/* ---- DER IMPORT STEHT IN DERSELBEN KARTE UND EINE STUFE TIEFER ----
-             ZUSAMMENGELEGT, WEIL SIE DASSELBE MEINEN: die eine Datei geht
-             hinaus, dieselbe Datei kommt herein. Getrennt standen sie als
-             Karte 6 und 7 nebeneinander, und wer die eine suchte, las erst
-             die andere.
-             ABER NICHT GLEICHRANGIG. Der Export LIEST, der Import ERSETZT
-             BESTAND -- die zerstoerende Haelfte darf durch das Zusammenlegen
-             nicht einen Klick naeher ruecken. Sie steht deshalb unter einem
-             Trennstrich, mit eigener, kleinerer Ueberschrift und in der
-             leisen Bauform des Ablagefeldes. Die zweite Bestaetigung bleibt,
-             wo sie war: in askImport(). */''}
+        ${/* ---- DER IMPORT STEHT IN DERSELBEN KARTE UND EINE STUFE TIEFER
+             ---- ZUSAMMENGELEGT, WEIL SIE DASSELBE MEINEN: die eine Datei
+             geht hinaus, dieselbe Datei kommt herein. */''}
         <div class="sys-part"></div>
         <h4 class="sys-sub">${tH('card.import')}</h4>
         <p class="desc">${tMark('card.importHint', 'card.replaceInventory')}</p>
@@ -13652,7 +9108,7 @@ function setUpExportOut(fetched) {
   exportNumbers(fetched);
   atElement('ex-plan', b => b.onclick = drawPartPlan);
   // Aendert sich ein Schalter oder die Teilgroesse, gilt der gezeichnete Plan
-  // nicht mehr -- ein stehengebliebener Plan naennte falsche Grenzen.
+// nicht mehr -- ein stehengebliebener Plan naennte falsche Grenzen.
   for (const id of ['ex-files', 'ex-videos', 'ex-target'])
     atElement(id, e => e.addEventListener('change', () => {
       const boxId = document.getElementById('ex-plan-out');
@@ -13666,13 +9122,11 @@ function setUpExportOut(fetched) {
 }
 
   // Dateien haben einen eigenen Schalter mit Vorgabe aus: bei 50 MB je Datei
-  // waere die Exportdatei sonst schnell unhandlich.
+// waere die Exportdatei sonst schnell unhandlich.
   const withFiles = () => (document.getElementById('ex-files')?.checked ? '&files=1' : '') +
                            (document.getElementById('ex-videos')?.checked ? '&videos=1' : '');
   /* DER EXPORT BLEIBT EINE NAVIGATION -- die Datei laeuft damit an der Platte
-     vorbei statt vollstaendig im Speicher zu stehen. Die zweite Bestaetigung
-     steht deshalb DAVOR und nicht darin: sie holt die Freigabe, danach faehrt
-     der Browser los. */
+     vorbei statt vollstaendig im Speicher zu stehen. */
   const runExport = async (withPhotos) => {
     if (!await secondConfirm('export', null, t('card.confirmExport'),
       t('card.exportHint') +
@@ -13680,17 +9134,9 @@ function setUpExportOut(fetched) {
     window.location = `/api/export?photos=${withPhotos ? 1 : 0}` + withFiles();
   };
 
-  /* DIE GROESSEN AN DEN KNOEPFEN, und sie folgen den Haekchen. Gerufen wird
-     einmal beim Zeichnen und danach bei jeder Aenderung -- eine Zahl, die nur
-     beim Aufbau stimmt, ist schlimmer als keine.
-     GEWARNT WIRD FUER DIE ZAHL, DIE GROESSER IST: die beiden Knoepfe stehen
-     nebeneinander, und ein Hinweis, der nur fuer einen von ihnen gilt, muss
-     sagen, fuer welchen. Deshalb nennt er den Fall beim Namen. */
+  /* DIE GROESSEN AN DEN KNOEPFEN, und sie folgen den Haekchen. */
   function exportNumbers(fetched) {
-    /* `stats` bleibt null, wer nicht Admin ist. Die Karte steht zwar hinter
-       dem Eigentuemer und der ist immer auch Admin -- aber die Rollenleiter
-       ist eine Annahme ueber eine ANDERE Stelle, und diese Zeile traegt sie
-       nicht. */
+    /* `stats` bleibt null, wer nicht Admin ist. */
     const ex = fetched.stats && fetched.stats.export;
     if (!ex) return;
     const toggle = {
@@ -13704,7 +9150,7 @@ function setUpExportOut(fetched) {
     atElement('ex-warn', boxId => {
       if (withPhotos <= ex.warnFrom) { boxId.innerHTML = ''; return; }
       // „Auch ohne Fotos" ist der schlimmere Fall und gehoert deshalb gesagt:
-      // wer ihn hat, kommt mit dem zweiten Knopf nicht davon.
+// wer ihn hat, kommt mit dem zweiten Knopf nicht davon.
       const alsoWithout = withoutPhotos > ex.warnFrom;
       boxId.innerHTML = `<div class="warn-box" style="margin:12px 0 0">
         ${tMarks('card.exportOversizeHint',
@@ -13719,12 +9165,8 @@ function setUpExportOut(fetched) {
     });
   }
 
-  /* ---- Der Export in Teilen ----
-     JEDER TEIL IST EINE VOLLSTAENDIGE EXPORTDATEI. Der Import nimmt sie mit
-     „Zusammenführen" wieder auf, ohne dass an ihm eine Zeile geaendert wurde --
-     genau deshalb gibt es hier kein neues Format und keinen zweiten Leser.
-     GESCHNITTEN WIRD AM SERVER und nicht hier: dort liegen die Groessen, und
-     eine zweite Rechnung in der Oberflaeche liefe irgendwann auseinander. */
+  /* ---- Der Export in Teilen ---- JEDER TEIL IST EINE VOLLSTAENDIGE
+     EXPORTDATEI. */
   const partSwitch = () => 'photos=1' + withFiles();
   async function drawPartPlan() {
     const boxId = document.getElementById('ex-plan-out');
@@ -13741,9 +9183,7 @@ function setUpExportOut(fetched) {
       return;
     }
     /* EIN EINTRAG, DER FUER SICH ALLEIN ZU GROSS IST, WIRD BEIM NAMEN GENANNT
-       und nicht stillschweigend uebergangen. Ein stiller Verlust waere der
-       schlimmere Ausgang -- wer ihn sieht, weiss, dass er die Videos abwaehlen
-       oder diesen einen Eintrag von Hand behandeln muss. */
+       und nicht stillschweigend uebergangen. */
     const tooBig = (plan.tooBig || []).length ? `<div class="warn-box" style="margin:10px 0 0">
       ${tMarks('card.aloneOverLimit', { word: `<strong>${plan.tooBig.length} ${
         esc(vThing(plan.tooBig.length))} ${plural(plan.tooBig.length,
@@ -13763,20 +9203,13 @@ function setUpExportOut(fetched) {
             disabled>${tH('card.load')}</button>
           <span class="trash-meta">${esc(fmtBytes(part.bytes))}</span>
         </div>`).join('')}</div>
-      ${/* DER KNOPF NENNT DIE HANDLUNG UND NICHT DIE MECHANIK. "Alle n Teile
-           freigeben" war das Wort aus dem Maschinenraum -- aus dem Betrieb kam
-           die Frage "was ist mit freigeben gemeint?" zurueck. Derselbe Fehler
-           wie "Code aus deiner App" in 0.12.3.
-           WAS EIN MENSCH WISSEN MUSS, sind zwei Dinge: dass EINMAL gefragt
-           wird, und dass er danach JEDEN TEIL SELBST laedt. Beides steht am
-           Knopf; der Satz darueber sagt, warum ueberhaupt gefragt wird. */''}
+      ${/* DER KNOPF NENNT DIE HANDLUNG UND NICHT DIE MECHANIK. */''}
       <p class="hint hint-sm" style="margin:10px 2px 6px">${tH('card.exportPasswordHint',
         { extra: TWO_FACTOR ? t('card.andTwoFactorCode') : '' })}</p>
       <div class="row-in"><button class="btn btn-accent btn-sm" id="ex-confirm">
         ${tMarks('card.confirmOnce', { word: tH('card.partOrAll', { n: n }) }, { n: n })}</button></div>
-      ${/* DER EINSPIELWEG GEHOERT AN DIE KARTE UND NICHT IN DIE DOKUMENTATION.
-           Wer fuenf Dateien vor sich hat, muss ohne Nachschlagen wissen, in
-           welcher Reihenfolge und mit welchem Knopf sie hineingehen. */''}
+      ${/* DER EINSPIELWEG GEHOERT AN DIE KARTE UND NICHT IN DIE
+           DOKUMENTATION. */''}
       <p class="hint hint-sm" style="margin:10px 2px 0">${tMarks('card.partOrderHint', {
         word:  `<strong>${tH('card.toImport')}</strong>`,
         word2: `<strong>${tH('card.replace')}</strong>`,
@@ -13794,9 +9227,7 @@ function setUpExportOut(fetched) {
       boxId.querySelectorAll('.ex-part-load').forEach(k => { k.disabled = false; });
     });
 
-    /* JEDER KNOPF GILT GENAU EINMAL, weil die Freigabe verbraucht wird. Das
-       steht am Knopf und nicht in einer Fehlermeldung danach: ein zweiter
-       Klick bekaeme sonst eine 403, die wie ein Fehler aussieht. */
+    /* JEDER KNOPF GILT GENAU EINMAL, weil die Freigabe verbraucht wird. */
     boxId.querySelectorAll('.ex-part-load').forEach(k => {
       k.onclick = () => {
         window.location = `/api/export?${partSwitch()}` +
@@ -13809,13 +9240,7 @@ function setUpExportOut(fetched) {
 
 
 /* DER BILLIGERE DER BEIDEN FAELLE: beim Import steht die Groesse VOR dem
-   Einlesen fest. Der Export muss sie schaetzen, hier steht sie an der Datei.
-   UND SIE GEHOERT VOR DAS EINLESEN, nicht dahinter: readAsText() macht aus
-   der Datei EINEN String, und ueber Nodes wie ueber V8s Stringgrenze bricht
-   das ab -- der Dialog sagte danach "Die Datei ließ sich nicht als Export
-   lesen", und das ist die falsche Auskunft. Sie klingt nach einer kaputten
-   Datei; in Wahrheit ist sie zu gross.
-   GEWARNT WIRD, VERWEIGERT NICHT -- dieselbe Regel wie am Export. */
+   Einlesen fest. */
 async function importSizeTested(file, limits) {
   const warnFrom = limits && limits.warnFrom;
   if (!warnFrom || file.size <= warnFrom) return true;
@@ -13839,7 +9264,7 @@ function askImport(file, limits) {
     show();
   };
   // Erst fragen, dann lesen. Andersherum stuende der Browser schon minutenlang
-  // an der Datei, bevor die Warnung ueberhaupt erscheinen koennte.
+// an der Datei, bevor die Warnung ueberhaupt erscheinen koennte.
   importSizeTested(file, limits).then(more => { if (more) reader.readAsText(file); });
 
   function show() {
@@ -13857,13 +9282,7 @@ function askImport(file, limits) {
     bd.innerHTML = `<div class="modal"><h2>${tH('card.import')}</h2>
       <p>${tMarks('card.fileContainsHint', {
         word: `<strong>${info.count} ${esc(vThing(info.count))}</strong>` }, {
-        /* EIGENE BESCHRIFTUNG STATT DER GELIEHENEN -- 0.31.1. Bis hierher
-           stand hier `card.withPhotos`, und das ist die Beschriftung des
-           EXPORTKNOPFES: „Mit Fotos (~" mit einer offenen Klammer, die der
-           Quelltext dort schliesst. Im Dialog schloss sie niemand, und es
-           stand „Die Datei enthaelt 12 Eintraege Mit Fotos (~, erstellt aus
-           ...". Das Gegenstueck „ ohne Fotos" gab es laengst als eigenen
-           Schluessel; jetzt gibt es beide. */
+        /* EIGENE BESCHRIFTUNG STATT DER GELIEHENEN -- 0.31.1. */
         rest: info.withPhotos ? t('card.withPhotosPlain') : t('card.withoutPhotosPlain'),
         from: info.title ? t('card.createdFrom', { title: info.title }) : '',
         when: info.date ? t('card.onDate', { date: fmtDate(info.date.replace('T',' ').slice(0,19)) }) : '' })}</p>
@@ -13918,16 +9337,7 @@ function askImport(file, limits) {
 let setupNeeded = false;
 (async function boot() {
   /* BEIDES VOR DEM ERSTEN ZEICHNEN -- 0.24.0, Bauabschnitt 1: hier steht noch
-     nichts am Bildschirm, also blitzt auch nichts auf. Das Farbschema brauchte
-     0.23.0 einen Vorgriff im Kopf der Seite, weil das Stilblatt vor app.js
-     greift; Text zeichnet allein app.js (Konzept 5.3).
-     DIE KONFIGURATION ZUERST UND DIE SPRACHDATEI DANACH -- 0.24.3,
-     Bauabschnitt 3. Bis 0.24.2 gingen beide NEBENEINANDER hinaus, und das war
-     nur moeglich, weil die Sprache eine Konstante war. Jetzt sagt erst die
-     Konfiguration, welche die Installation vorgibt und welche zur Wahl
-     stehen -- ein Vorgriff waere ein Aufblitzen der falschen Sprache.
-     DAS KOSTET EINEN UMLAUF, und der Satz steht hier, damit ihn niemand fuer
-     ein Versehen haelt. */
+     nichts am Bildschirm, also blitzt auch nichts auf. */
   let cfg = null;
   try {
     cfg = await fetch('/api/config', { credentials: 'same-origin' }).then(r => r.json());
@@ -13937,26 +9347,16 @@ let setupNeeded = false;
     if (cfg && cfg.setupRequired) setupNeeded = true;
     SIGNUP = Boolean(cfg && cfg.signup);
   } catch {}
-  /* DIE ZWEITE UND DRITTE QUELLE DER SPRACHE (Konzept 5.3). Die erste -- der
-     persoenliche Schluessel -- gibt es hier noch nicht; sie kommt mit
-     loadSettings(), sobald jemand angemeldet ist.
-     DAS GEDAECHTNIS WIRD GEGEN DEN VORRAT GEHALTEN: was der Eigentuemer nicht
-     freigegeben hat, gilt auch dann nicht, wenn es einmal darin stand. */
+  /* DIE ZWEITE UND DRITTE QUELLE DER SPRACHE (Konzept 5.3). */
   if (cfg && cfg.language) LANGUAGE_DEFAULT = cfg.language;
   try {
     await loadLanguages(LANGUAGE_DEFAULT);
   } catch (e) {
-    /* DER EINE FESTE SATZ IM QUELLTEXT -- Entscheidung A1 des Auftrags. Ohne
-       die Datei gibt es keinen Schluessel, mit dem sich sagen liesse, dass sie
-       fehlt; und eine Oberflaeche voller ⟦…⟧ waere schlimmer als ein Satz.
-       Er steht namentlich auf der Restliste des Pruefstands. */
+    /* DER EINE FESTE SATZ IM QUELLTEXT -- Entscheidung A1 des Auftrags. */
     app.textContent = 'Die Sprachdatei fehlt.';
     return;
   }
-  /* WAS DIE SEITE SPRICHT, STEHT AM WURZELELEMENT -- 0.24.0, Bauabschnitt 4.
-     Der Vorleser waehlt danach seine Stimme, der Browser danach seine
-     Silbentrennung. Das Attribut in index.html bleibt `de`: es gilt, bis die
-     Datei da ist, und sagt bis dahin die Wahrheit. */
+  /* WAS DIE SEITE SPRICHT, STEHT AM WURZELELEMENT -- 0.24.0, Bauabschnitt 4. */
   applyLanguage();
   try { showVersion(); } catch {}
   document.title = TITLE_PUBLIC;
@@ -13964,18 +9364,13 @@ let setupNeeded = false;
   if (setupNeeded) return showSetup();
   /* Ein Link aus einer Einladung oder Rücksetzung geht VOR der Anmeldemaske,
      aber NACH der Einrichtung: wer einen bekommen hat, will nicht erst ein
-     Passwort eingeben, das er ja gerade nicht kennt. Er geht auch vor der
-     Frage nach einer laufenden Anmeldung -- wer den Link aus einem Browser
-     öffnet, in dem noch jemand angemeldet ist, meint trotzdem den Link. */
+     Passwort eingeben, das er ja gerade nicht kennt. */
   translateAddress();
   const invite = (location.hash || '').match(/^#\/invite\/([0-9a-f]{16,128})$/);
   if (invite) return showInvite(invite[1]);
-  /* Der Bestätigungslink der Selbstanmeldung, — an derselben
-     Stelle und aus demselben Grund wie der Einladungslink: wer ihn anklickt,
-     meint ihn, auch wenn im Browser noch jemand angemeldet ist. Er wird
-     ausdrücklich NICHT vom Schalter abhängig gemacht: wird die Selbstanmeldung
-     abgeschaltet, während eine Bestätigung unterwegs ist, soll der Link nicht
-     stumm auf der Anmeldeseite enden — der Server sagt dann, was gilt. */
+  /* Der Bestätigungslink der Selbstanmeldung, — an derselben Stelle und aus
+     demselben Grund wie der Einladungslink: wer ihn anklickt, meint ihn, auch
+     wenn im Browser noch jemand angemeldet ist. */
   const best = (location.hash || '').match(/^#\/confirm\/([0-9a-f]{16,128})$/);
   if (best) return showConfirm(best[1]);
   try {

@@ -1,55 +1,27 @@
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
-/* IM NEBEN-THREAD BLEIBT ES STILL -- 0.19.3. Der Bestandslauf oeffnet seit
-   dieser Runde eine EIGENE Verbindung und laedt dabei denselben Schluessel
-   denselben Weg (er reist ausdruecklich NICHT ueber workerData). Die Ansagen
-   darueber gelten aber dem Betreiber und nicht dem Lauf: der Schluesselhinweis
-   ist ein halber Bildschirm, und er staende bei jedem Umstellungslauf ein
-   zweites Mal im Containerprotokoll. Wer ihn einmal gelesen hat, liest ihn
-   beim zweiten Mal nicht besser.
-   ES IST DER EINE SCHALTER, DEN DIESE RUNDE BRAUCHT: alles Uebrige, was beim
-   Oeffnen laeuft, ist doppelt ausfuehrbar (siehe db.js). */
+// Die Ansagen dieser Datei gelten dem Betreiber. Im Neben-Thread bleiben
+// sie aus, sonst staenden sie bei jedem Bestandslauf ein zweites Mal im
+// Containerprotokoll.
 const { isMainThread } = require('worker_threads');
 
-// Genau 64 Hex-Zeichen -- an EINER Stelle, weil die Frage an dreien gestellt
+// Genau 64 Hex-Zeichen. An einer Stelle, weil die Frage an dreien gestellt
 // wird: beim Laden, beim Erzeugen und beim Nachziehen der Ablage.
 const HEX_PATTERN = /^[0-9a-fA-F]{64}$/;
 
-/* ================= DER PRUEFSCHALTER -- 0.30.0, F1 und F2 =================
-   WARUM ES IHN GIBT. Der Prueflauf zahlt zwei Kosten, die im Betrieb richtig
-   und beim Pruefen sinnlos sind: die Kostenstufe von scrypt (sie rechnet
-   absichtlich lange) und die drei Mailfristen (sie warten absichtlich lange).
-   Gemessen am 12. September 2026 sind das zusammen rund 75 der 464 Sekunden
-   eines Laufs -- und die Gegenprobe zahlt sie JE RUECKBAU noch einmal.
-
-   WARUM ER HIER STEHT. Diese Datei ist die eine, die liest, WAS DIE INSTANZ
-   AUS IHRER UMGEBUNG NIMMT, bevor irgendetwas laeuft -- bis 0.30.0 war das nur
-   der Schluessel. Sie haengt an keiner anderen Datei des Hauses, und deshalb
-   koennen auth.js und mail.js sie beide lesen, ohne einander zu brauchen. Eine
-   NEUE Datei waere die neunzehnte im Fingerprint gewesen und damit selbst
-   wieder etwas, das geprueft werden muss (F17, dieselbe Ueberlegung).
-
-   WARUM ES EIN SCHALTER IST UND KEINE DREI VARIABLEN. Eine gewoehnliche
-   Umgebungsvariable, die eine Sicherheitsgrenze senkt, senkt sie auch auf dem
-   Wirt -- und zwar aus Versehen, weil sie so heisst, wie man sie erraet. Der
-   Schalter traegt deshalb EINEN Namen, EINE Marke am Anfang und seine
-   Einstellungen dahinter: `SCRYPT_N=1024` bewirkt nichts, `KRITERION_TESTBENCH
-   =1` bewirkt nichts, und nur die vollstaendige Form wird ueberhaupt gelesen.
-
-   UND ER KANN NICHT BELIEBIG WEIT. Jede Einstellung hat einen festen Boden;
-   was darunter steht, wird auf ihn gehoben statt abgewiesen. Eine Instanz, die
-   den Schalter aus Versehen traegt, ist damit langsamer zu pruefen, aber nicht
-   ungeschuetzt.
-
-   DIE AUSLIEFERUNG TRAEGT DIE ECHTEN WERTE FESTGENAGELT: ohne Schalter ist
-   N = 16384 und sind die Fristen 20 / 7 / 7 Sekunden, und der Pruefstand haelt
-   beide Zahlen namentlich (Zusagen 8 und 10). */
+/* Der Pruefschalter. Er senkt fuer den Prueflauf drei Kosten, die im Betrieb
+   richtig und beim Pruefen sinnlos sind: die Kostenstufe von scrypt, die drei
+   Mailfristen und die Wartezeit der Anmeldebremse.
+   Er steht hier, weil diese Datei die eine ist, die aus der Umgebung liest,
+   bevor etwas laeuft; auth.js und mail.js lesen sie beide.
+   Ein Schalter und nicht drei Variablen: nur die vollstaendige Form
+   `pruefstand:name=wert` wird gelesen, `SCRYPT_N=1024` bewirkt nichts. Jede
+   Einstellung hat einen Boden, unter den sie nicht faellt.
+   Ohne Schalter gelten die ausgelieferten Zahlen. */
 const TESTBENCH_NAME = 'KRITERION_TESTBENCH';
 const TESTBENCH_MARK = 'pruefstand';
-/* DER BODEN JE EINSTELLUNG. `scrypt` muss ausserdem eine Zweierpotenz sein --
-   das verlangt scrypt selbst, und eine Zahl, die es nicht ist, wuerde beim
-   ersten Hashen werfen statt beim Lesen aufzufallen. */
+// Der Boden je Einstellung. `scrypt` muss ausserdem eine Zweierpotenz sein.
 const TESTBENCH_FLOOR = { scrypt: 1024, mail: 100, brake: 10 };
 
 function testbenchSwitch() {
@@ -66,9 +38,8 @@ function testbenchSwitch() {
   return Object.keys(outcome).length ? outcome : null;
 }
 
-/* DIE KOSTENSTUFE VON scrypt. Ohne Schalter genau die ausgelieferte Zahl --
-   und mit Schalter keine, die kleiner als der Boden oder keine Zweierpotenz
-   ist. */
+/* Die Kostenstufe von scrypt. Ohne Schalter die ausgelieferte Zahl, mit
+   Schalter keine unter dem Boden und keine, die keine Zweierpotenz ist. */
 function scryptCost(shipped) {
   const set = testbenchSwitch();
   const wish = set && set.scrypt;
@@ -79,23 +50,10 @@ function scryptCost(shipped) {
   return Math.max(TESTBENCH_FLOOR.scrypt, power);
 }
 
-/* DIE MAILFRISTEN. Der Schalter traegt EINEN TEILER und keine drei Zahlen:
-   die drei Fristen stehen in einem Verhaeltnis zueinander -- die aeussere
-   Schranke ist fast dreimal so weit wie Gruss und Verbindung --, und wer sie
-   einzeln stellte, koennte das Verhaeltnis umdrehen. Dann pruefte der Lauf
-   eine Verdrahtung, die es im Betrieb nicht gibt. */
-/* DIE WARTEZEIT DER ANMELDEBREMSE -- 0.30.0, F3. Gesenkt wird NUR das WARTEN,
-   und ausdruecklich nicht die Kurve und nicht die Schwellen: `delay()` liefert
-   weiter den ausgelieferten Wert fuer jeden Zaehlerstand (Zusage 6), weich ab
-   fuenf und hart ab zehn bleiben, wo sie sind, und die harte Sperre dauert
-   ihre fuenf Minuten.
-   WAS DAS FUER EINE INSTANZ BEDEUTET, DIE DEN SCHALTER AUS VERSEHEN TRAEGT:
-   sie bremst das Raten schwaecher, sperrt es aber genauso hart. Der Schutz vor
-   dem Durchprobieren ist die SPERRE und nicht die Verzoegerung -- die
-   Verzoegerung ist die Hoeflichkeit gegenueber dem, der sich vertippt hat.
-   WARUM NICHT IN delay() SELBST: dann waere die Kurve nicht mehr die Kurve,
-   und die Zusage, die sie fuer jeden Zaehlerstand belegt, laese den Schalter
-   statt der Formel. */
+/* Die Wartezeit der Anmeldebremse. Gesenkt wird nur das Warten, nicht die
+   Kurve und nicht die Schwellen: delay() liefert weiter den ausgelieferten
+   Wert, weich ab fuenf und hart ab zehn bleiben, die harte Sperre dauert
+   ihre fuenf Minuten. */
 function brakeWait(shipped) {
   if (!shipped) return 0;
   const set = testbenchSwitch();
@@ -111,9 +69,9 @@ function mailDeadline(shipped) {
   return Math.max(TESTBENCH_FLOOR.mail, Math.round(shipped / part));
 }
 
-// Der Schluessel wird gebraucht, um die Datenbankdatei ueberhaupt zu oeffnen.
-// Er kann deshalb nicht in der Datenbank liegen, sondern nur aus der Umgebung
-// oder aus einer Datei daneben kommen.
+// Der Schluessel oeffnet die Datenbankdatei und kann deshalb nicht darin
+// liegen: er kommt aus der Umgebung oder aus einer Datei daneben. Fehlt
+// beides, wird einer erzeugt.
 function loadKey(dataDir) {
   const fromEnv = process.env.ENCRYPTION_KEY;
   if (fromEnv && fromEnv.trim()) {
@@ -158,29 +116,17 @@ function warnKeyBesideData() {
   );
 }
 
-/* --- Den Schluessel wechseln ---------------------------------------------
-   WER DAS HIER RUFT: ausschliesslich keytool.js auf dem Wirt. Der Server
-   ruft NICHTS davon -- er liest seinen Schluessel beim Start und danach nie
-   wieder. Es steht trotzdem hier und nicht dort: "woher der Schluessel kommt"
-   und "wohin der neue geschrieben wird" sind dieselbe Frage, und zwei Stellen
-   dafuer liefen auseinander. Und es ist hier ohne Datenbank pruefbar.
-
-   ZWEI ABLAGEN, WEIL ES ZWEI HERKUENFTE GIBT -- genau die Unterscheidung, die
-   loadKey() oben trifft:
-     aus der Datei    data/encryption.key wird neu geschrieben, fertig.
-     aus der Umgebung die .env liegt auf dem WIRT und ist per .dockerignore
-                      nicht einmal im Image. Sie muss dem Vorgang eigens
-                      eingehaengt werden; ohne sie kann er nicht zu Ende
-                      gefuehrt werden und wird deshalb gar nicht erst
-                      angefangen. */
+/* Den Schluessel wechseln. Gerufen wird das nur von keytool.js auf dem
+   Wirt; der Server liest seinen Schluessel beim Start und danach nie wieder.
+   Zwei Ablagen, weil loadKey() oben zwei Herkuenfte kennt: die Datei neben
+   der Datenbank und die .env auf dem Wirt. */
 
 function createKey() {
   return crypto.randomBytes(32).toString('hex');
 }
 
-// Die Ablage neben der Datenbank. Erst daneben, dann umbenannt: eine
-// halbgeschriebene Schluesseldatei ist genauso toedlich wie ein halber Wechsel
-// (Stolperstein 8).
+// Die Ablage neben der Datenbank. Erst daneben schreiben, dann umbenennen:
+// eine halbgeschriebene Schluesseldatei oeffnet nichts mehr.
 function writeKeyFile(dataDir, hex) {
   if (!HEX_PATTERN.test(hex)) throw new Error('Der neue Schluessel ist kein 64-stelliger Hexwert.');
   const target = path.join(dataDir, 'encryption.key');
@@ -190,10 +136,8 @@ function writeKeyFile(dataDir, hex) {
   return target;
 }
 
-/* Die aktive ENCRYPTION_KEY-Zeile einer .env -- und ausdruecklich nur eine
-   AKTIVE. Eine auskommentierte Zeile ist keine Einstellung, sondern ein
-   Hinweis; in der .env.example stehen sechs davon. Liefert Nummer und Wert
-   oder null. */
+/* Die aktiven ENCRYPTION_KEY-Zeilen einer .env, mit Nummer und Wert. Eine
+   auskommentierte Zeile zaehlt nicht: in der .env.example stehen sechs. */
 function findEnvLine(lines) {
   const hit = [];
   lines.forEach((z, i) => {
@@ -203,23 +147,9 @@ function findEnvLine(lines) {
   return hit;
 }
 
-/* Schreibt den neuen Wert in die .env und kommentiert den alten aus.
-   DER ALTE WERT IST KEIN ABFALL: er oeffnet jede Sicherung, die vor dem
-   Wechsel entstanden ist. Wer ihn wegwirft, wirft die Sicherungen weg --
-   deshalb bleibt er als Kommentar stehen, mit dem Satz daneben, wofuer er noch
-   gut ist.
-   NUR DIESE EINE ZEILE WIRD ANGEFASST. Alles andere -- Kommentare,
-   Leerzeilen, andere Werte, die Reihenfolge -- bleibt Zeichen fuer Zeichen
-   stehen.
-   `who` ist eine NOTIZ und keine Feststellung: wer den Befehl auf dem Wirt
-   ausfuehren kann, kann sie auch setzen. Sie steht deshalb in der .env und
-   ausdruecklich NICHT im Sicherheitsprotokoll -- dort traegt der Vorgang das
-   leere `who` von usertool.js, und das heisst "ueber den Wirt". */
-/* Die Notiz, WER gewechselt hat, landet in einer Datei, die beim naechsten
-   Start Zeile fuer Zeile gelesen wird. Ein Zeilenumbruch darin schoebe eine
-   erfundene Einstellung dazwischen -- deshalb bleibt vom Text nur, was in eine
-   Zeile gehoert, und er wird gekuerzt. Es ist ohnehin eine Notiz und keine
-   Feststellung. */
+/* Bringt die Notiz `who` auf eine Zeile und kuerzt sie auf 80 Zeichen. Sie
+   landet in einer Datei, die beim Start Zeile fuer Zeile gelesen wird; ein
+   Zeilenumbruch darin schoebe eine erfundene Einstellung dazwischen. */
 function cleanNote(text) {
   const s = String(text == null ? '' : text).replace(/[\r\n]+/g, ' ').trim();
   return (s ? s.slice(0, 80) : 'unbekannt');
@@ -240,27 +170,22 @@ function writeEnvLine(file, oldHex, newHex, who, stamp) {
     throw new Error(`In ${file} stehen ${hit.length} aktive Zeilen ENCRYPTION_KEY=. ` +
       'Welche gemeint ist, entscheidet dieser Befehl nicht.');
   const old = hit[0].value.trim();
-  /* DIE .ENV MUSS ZU DIESER INSTANZ GEHOEREN. Steht dort ein anderer Wert als
-     der, mit dem die Datenbank gerade offen ist, ist es die falsche Datei --
-     und sie zu ueberschreiben naehme jemandem den Schluessel zu einer anderen
-     Instanz weg. */
+  // Die .env muss zu dieser Instanz gehoeren: steht dort ein anderer Wert
+  // als der, mit dem die Datenbank offen ist, ist es die falsche Datei.
   if (old.toLowerCase() !== String(oldHex).toLowerCase())
     throw new Error(`Die Zeile ENCRYPTION_KEY in ${file} traegt einen anderen Wert als den, ` +
       'mit dem diese Datenbank offen ist. Das ist nicht die .env dieser Instanz.');
+  // Der alte Wert bleibt als Kommentar stehen: er oeffnet jede Sicherung von
+  // vor dem Wechsel. Angefasst wird nur diese eine Zeile.
   lines.splice(hit[0].nr, 1,
     `# Abgeloest am ${stamp} durch ${cleanNote(who)} (keytool.js).`,
     '# ER OEFFNET ALLE SICHERUNGEN VON VOR DIESEM ZEITPUNKT -- nicht loeschen,',
     '# bevor er im Passwortspeicher steht.',
     `#ENCRYPTION_KEY=${old}`,
     `ENCRYPTION_KEY=${newHex}`);
-  /* Danebenschreiben, dann umbenennen -- eine halbgeschriebene .env startet
-     nichts mehr (Stolperstein 8).
-     DARAUS FOLGT EINE BEDINGUNG AN DEN AUFRUFER: die .env muss ueber ihr
-     VERZEICHNIS erreichbar sein, nicht als einzeln eingehaengte Datei. Eine
-     Datei-Einhaengung haengt am Inode; ein Umbenennen daneben tauscht den
-     Verzeichniseintrag und liesse die Einhaengung auf der alten Datei stehen.
-     keytool.sh haengt deshalb das Projektverzeichnis ein und nicht die
-     Datei. */
+  /* Danebenschreiben, dann umbenennen. Der Aufrufer muss die .env deshalb
+     ueber ihr Verzeichnis erreichbar machen und nicht als einzeln
+     eingehaengte Datei -- keytool.sh haengt das Projektverzeichnis ein. */
   const becoming = file + '.wird';
   fs.writeFileSync(becoming, lines.join('\n'), { mode: 0o600 });
   fs.renameSync(becoming, file);
@@ -269,7 +194,5 @@ function writeEnvLine(file, oldHex, newHex, who, stamp) {
 
 module.exports = { loadKey, HEX_PATTERN, createKey, cleanNote,
                    writeKeyFile, findEnvLine, writeEnvLine,
-                   /* DER PRUEFSCHALTER GEHT MIT HINAUS -- 0.30.0: auth.js und
-                      mail.js lesen ihn, und der Pruefstand sieht ihm zu. */
                    testbenchSwitch, scryptCost, mailDeadline, brakeWait,
                    TESTBENCH_NAME, TESTBENCH_MARK, TESTBENCH_FLOOR };
