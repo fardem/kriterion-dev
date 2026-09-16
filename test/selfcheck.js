@@ -295,7 +295,7 @@ async function run() {
       ['test/release_030.js', 241],
       ['test/release_031.js', 385],
       ['test/roundtrip.js', 3123],
-      ['test/selfcheck.js', 108],
+      ['test/selfcheck.js', 110],
       ['test/source.js', 595],
       ['test/ui_entry.js', 499],
       ['test/ui_export.js', 453],
@@ -320,7 +320,7 @@ async function run() {
       ['public/app.js', 1816],
       ['public/theme.js', 3],
     ];
-    const COMMENT_TOTAL = { comment: 14168, code: 59651 };
+    const COMMENT_TOTAL = { comment: 14170, code: 59658 };
     check('Der Waechter sieht alle vierunddreissig Dateien',
       crAll.each.length === 34 && COMMENT_ROWS.length === 34,
       `${crAll.each.length} gemessen, ${COMMENT_ROWS.length} genannt`);
@@ -337,6 +337,15 @@ async function run() {
       crAll.comment === COMMENT_TOTAL.comment && crAll.code === COMMENT_TOTAL.code,
       `${crAll.comment} Kommentar (${COMMENT_TOTAL.comment} genannt), ` +
       `${crAll.code} Code (${COMMENT_TOTAL.code} genannt), ${crAll.share.toFixed(1)} Prozent`);
+
+    /* Die beiden bindenden Grenzen -- 0.34.1, Zusagen 4 und 5. Die Zahlen
+       darueber fangen jede Bewegung, diese beiden fangen die Richtung. */
+    check('Der Anteil ueber alles bleibt unter einem Fuenftel',
+      crAll.share <= 20, `${crAll.share.toFixed(1)} Prozent`);
+    const crOver = crAll.each.filter(r => r.comment / r.rows > 0.30)
+      .map(r => `${r.file} ${(r.comment / r.rows * 100).toFixed(0)}%`);
+    check('Und keine Datei liegt ueber dreissig Prozent',
+      crOver.length === 0, crOver.join(' · '));
   }
 
   /* ================= Die Groesse der Funktionen — 0.16.0 ================
