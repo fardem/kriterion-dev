@@ -18460,6 +18460,36 @@ async function sendImport(object, mode, withoutShare = false) {
     `${endNumber.links} Links, ${endNumber.attachments} Dateien`);
   end.close();
 
+  /* ============= Eine ungeeignete Datei laesst nichts zurueck — 0.35.0 =====
+     BEFUND server.js:3053 DER MESSUNG ZUR 0.35.0: die Schleife prueft,
+     wandelt und schreibt jede Datei in einem Durchgang. Scheitert gridImage
+     bei der fuenften von zehn, stehen vier Fotos schon in der Datenbank --
+     und die Antwort ist trotzdem 400. */
+  group('Eine ungeeignete Datei laesst nichts zurueck — 0.35.0');
+  {
+    const uzItem = (await call('POST', '/api/items', { title: 'Halber Upload' })).content;
+    const uzGood = Buffer.from(PNG_BASE64, 'base64');
+    const uzBad = Buffer.from('Das ist kein Bild, sondern Text.', 'utf8');
+    const uzAnswer = await sendMultipart(`/api/items/${uzItem.id}/photos`, 'photos', [
+      { name: 'eins.png', type: 'image/png', content: uzGood },
+      { name: 'zwei.png', type: 'image/png', content: uzBad }
+    ]);
+    check('Die Antwort sagt ab', uzAnswer.status === 400, `Status ${uzAnswer.status}`);
+    /* UND DIE ERSTE DATEI IST NICHT ANGEKOMMEN. Genau das war der Befund. */
+    const uzAfter = (await call('GET', `/api/items/${uzItem.id}`)).content;
+    check('Und die gueltige Datei davor ist nicht angekommen',
+      (uzAfter.photos || []).length === 0, `${(uzAfter.photos || []).length} Fotos`);
+    /* DIE GEGENPROBE: zwei gueltige Dateien kommen beide an. */
+    const uzBoth = await sendMultipart(`/api/items/${uzItem.id}/photos`, 'photos', [
+      { name: 'eins.png', type: 'image/png', content: uzGood },
+      { name: 'zwei.png', type: 'image/png', content: uzGood }
+    ]);
+    check('Zwei gueltige Dateien kommen beide an',
+      uzBoth.status === 201 && (uzBoth.content.photos || []).length === 2,
+      `Status ${uzBoth.status}, ${(uzBoth.content.photos || []).length} Fotos`);
+    await call('DELETE', `/api/items/${uzItem.id}`);
+  }
+
   /* ================= Die Auslieferung geht gezippt hinaus — 0.35.0 =========
      DER SCHWERSTE EINZELBEFUND DER MESSUNG: public/style.css misst 301.048
      Bytes, davon 211.862 in 408 Kommentarbloecken -- 70,5 Prozent. Der Server

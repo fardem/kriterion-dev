@@ -1754,7 +1754,7 @@ mark {
 .engine-own { display: flex; flex-direction: column; gap: 6px; }
 .engine-slot { display: flex; align-items: center; gap: 6px; }
 .engine-slot .input { padding: 7px 9px; }
-.engine-slot #se-name-1, .engine-slot #se-name-2, .engine-slot #se-name-3 { flex: 0 0 8.5em; }
+.engine-slot input[id^="se-name-"] { flex: 0 0 8.5em; }
 .engine-slot input[id^="se-vorlage"] { flex: 1; min-width: 0; }
 
 /* ---------- Testtage ---------- */
@@ -1799,7 +1799,10 @@ mark {
 .cmt-form { display: flex; flex-direction: column; gap: 8px; }
 .cmt-form .ta { min-height: 64px; }
 .cmt-form .btn { align-self: flex-end; }
-.danger-row { display: flex; justify-content: flex-end; margin-top: 16px; }
+/* Der Knopf, der den Eintrag als Datei holt -- 0.35.0. Rechtsbuendig wie die
+   Zeile darunter, aber mit kleinerem Abstand: beide gehoeren zum Fuss. */
+.entry-out { display: flex; justify-content: flex-end; margin-top: 16px; }
+.danger-row { display: flex; justify-content: flex-end; margin-top: 8px; }
 
 /* ---------- Vergleich ---------- */
 /* MITTIG UEBER DIE RAENDER UND DIE AUTOMATISCHEN AUSSENABSTAENDE, NICHT

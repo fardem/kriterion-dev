@@ -807,6 +807,7 @@
   "entry.edited": "bearbeitet",
   "entry.empty": "(leer)",
   "entry.enteredByOn": "Eingetragen von {author} am {created_at}",
+  "entry.exportOne": "{entryOne} exportieren",
   "entry.fileCount": {
     "one": "{n} Datei · {filesize}",
     "other": "{n} Dateien · {filesize}"
@@ -863,6 +864,7 @@
   "entry.pinHint": "Anpinnen — steht dann ganz oben",
   "entry.previewTruncated": "Vorschau gekürzt — die ganze Datei mit ↓ herunterladen.",
   "entry.ratingRemoveHint": "{ratingOne} von {author} für „{name}“ wird entfernt.",
+  "entry.ratingRemoved": "{ratingOne} entfernt",
   "entry.reasonDeleteAsk": "Begründung löschen?",
   "entry.reasonDeleteHint": "Der Text wird endgültig gelöscht. Datum und Verfasser der Ablehnung bleiben erhalten.",
   "entry.reasonEdit": "Begründung ändern",
@@ -873,6 +875,7 @@
   "entry.rejectReasonHint": "Warum abgelehnt? (freiwillig)",
   "entry.remove": "Entfernen",
   "entry.removeAgain": "Wieder entfernen",
+  "entry.removeRating": "{ratingOne} entfernen",
   "entry.removedFromList": "{what} wird aus der Liste entfernt.",
   "entry.removeLink": "Link entfernen",
   "entry.removeLinkAsk": "Link entfernen?",

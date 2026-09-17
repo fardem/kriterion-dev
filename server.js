@@ -247,9 +247,16 @@ auth.setTranslator((req, key, values) => t(localeOf(req), key, values));
 auth.setCompareLocale(compareLocale);
 
 /* WAS EIN GEFANGENER FEHLER SAGT -- 0.24.0, Bauabschnitt 2. */
-const errorText = (req, e) => (e && e.key)
-  ? t(localeOf(req), e.key, e.values || {})
-  : t(localeOf(req), 'server.errorUnknown');
+/* UND WAS ER DEM BETREIBER SAGT -- 0.35.0, BA 8. Ohne Schluessel bleibt dem
+   Leser „Unbekannter Fehler", und das ist richtig: die Oberflaeche nennt
+   keine Stapelabzuege. Dem Betreiber blieb bis dahin aber ebenfalls nichts --
+   fuenfzehn catch-Bloecke schluckten den echten Fehler wortlos. */
+const errorText = (req, e) => {
+  if (!(e && e.key)) console.error('[Kriterion] ' + (e && e.stack ? e.stack : e));
+  return (e && e.key)
+    ? t(localeOf(req), e.key, e.values || {})
+    : t(localeOf(req), 'server.errorUnknown');
+};
 
 const PORT = process.env.PORT || 3000;
 
@@ -3106,9 +3113,12 @@ app.post('/api/items/:id/photos', entryAuthorOnly, upload.array('photos', 40), a
   try {
     if (!db.prepare('SELECT 1 FROM items WHERE id = ?').get(req.params.id))
       return res.status(404).json({ error: t(localeOf(req), 'server.entryUnknown')});
-    let pos = db.prepare('SELECT COALESCE(MAX(sort_order), -1) AS m FROM photos WHERE item_id = ?')
-      .get(req.params.id).m + 1;
-    const into = db.prepare('INSERT INTO photos (item_id, mime_type, data, thumb, medium, sort_order) VALUES (?, ?, ?, ?, ?, ?)');
+    /* ERST ALLE PRUEFEN UND ABLEITEN, DANN SCHREIBEN -- 0.35.0, BA 8.
+       Bis dahin prueft, wandelt und schreibt eine Schleife jede Datei in
+       einem Durchgang: scheiterte gridImage bei der fuenften von zehn, standen
+       vier Fotos bereits in der Datenbank, und die Antwort war trotzdem 400.
+       Eine ungeeignete Datei laesst jetzt gar nichts zurueck. */
+    const ready = [];
     for (const f of req.files || []) {
       if (!await gridImage(f.buffer))
         return res.status(400).json({ error: t(localeOf(req), 'server.imagesOnly')});
@@ -3121,8 +3131,15 @@ app.post('/api/items/:id/photos', entryAuthorOnly, upload.array('photos', 40), a
       /* DAS VERFAHREN GEHT ALS ARGUMENT HINEIN -- 0.27.0, und die Verzweigung
          hier ist damit weggefallen. */
       const start = await storeImage(f.buffer, f.mimetype, imageStore());
-      into.run(req.params.id, start.mime, start.data, v.thumb, v.medium, pos++);
+      ready.push({ mime: start.mime, data: start.data, thumb: v.thumb, medium: v.medium });
     }
+    const into = db.prepare('INSERT INTO photos (item_id, mime_type, data, thumb, medium, sort_order) VALUES (?, ?, ?, ?, ?, ?)');
+    db.transaction(() => {
+      let pos = db.prepare('SELECT COALESCE(MAX(sort_order), -1) AS m FROM photos WHERE item_id = ?')
+        .get(req.params.id).m + 1;
+      for (const p of ready)
+        into.run(req.params.id, p.mime, p.data, p.thumb, p.medium, pos++);
+    })();
     touch.run(req.params.id);
     res.status(201).json(detail(req.params.id, req.user.id, localeOf(req)));
   } catch (e) { next(e); }

@@ -8722,6 +8722,77 @@ const REGRESSIONS = [
     replacement: "    c.images = [];",
     expected: 'Bilder in Kommentaren'
   },
+
+  /* ---- 0.35.0 · BA 7 und BA 8 ------------------------------------------ */
+  {
+    /* Der Waechter ueber die Rueckbauten liest wieder je Rueckbau seine
+       Datei neu ein -- ueber tausend Lesevorgaenge auf 32 Dateien. */
+    nr: '1081', name: 'Der Waechter liest wieder je Rueckbau seine Datei neu',
+    file: 'test/selfcheck.js',
+    search: "    const n = gpFileText(file).split(r.search).length - 1;",
+    replacement: "    gpText.delete(file);\n    const n = gpFileText(file).split(r.search).length - 1;",
+    expected: 'Die Gegenproben greifen'
+  },
+  {
+    /* Der Fotoweg schreibt wieder in der Schleife: eine ungeeignete Datei
+       laesst die gueltigen davor stehen. */
+    nr: '1082', name: 'Der Fotoweg behaelt, was vor der ungeeigneten Datei kam',
+    file: 'server.js',
+    search: "      if (!await gridImage(f.buffer))\n        return res.status(400).json({ error: t(localeOf(req), 'server.imagesOnly')});",
+    replacement: "      if (!await gridImage(f.buffer)) break;",
+    expected: 'Eine ungeeignete Datei laesst nichts zurueck — 0.35.0'
+  },
+  {
+    /* Ein gefangener Fehler ohne Schluessel bleibt wieder stumm. */
+    nr: '1083', name: 'Ein gefangener Fehler ohne Schluessel bleibt wieder stumm',
+    file: 'server.js',
+    search: "  if (!(e && e.key)) console.error('[Kriterion] ' + (e && e.stack ? e.stack : e));",
+    replacement: "",
+    expected: 'Ein gefangener Fehler bleibt nicht stumm — 0.35.0'
+  },
+  {
+    /* Und die beiden Saetze an der Sternzeile stehen wieder deutsch im
+       Skript statt in der Sprachdatei. */
+    nr: '1084', name: 'Zwei deutsche Saetze stehen wieder fest im Skript',
+    file: 'public/app.js',
+    search: "            x.title = t('entry.removeRating');",
+    replacement: "            x.title = `${V.ratingOne} entfernen`;",
+    expected: 'Kein deutscher Bildschirmsatz sitzt fest — die neue Wache — 0.30.0'
+  },
+  {
+    /* Die Zahl der eigenen Suchplaetze steht wieder als festes Array im
+       Skript statt als Zaehlung der Antwort des Servers. */
+    nr: '1085', name: 'Die Zahl der Suchplaetze steht wieder fest im Skript',
+    file: 'public/app.js',
+    search: "    const list = SEARCH_PROVIDERS.filter(a => a.own).map((a, i) => ({",
+    replacement: "    const list = [1, 2, 3].map((a, i) => ({",
+    expected: 'Die Zahl der eigenen Suchplaetze steht an einer Stelle — 0.35.0'
+  },
+  {
+    /* Und das Stilblatt zaehlt die Plaetze wieder einzeln auf. */
+    nr: '1086', name: 'Das Stilblatt zaehlt die Suchplaetze wieder einzeln auf',
+    file: 'public/style.css',
+    search: '.engine-slot input[id^="se-name-"] { flex: 0 0 8.5em; }',
+    replacement: '.engine-slot #se-name-1, .engine-slot #se-name-2 { flex: 0 0 8.5em; }',
+    expected: 'Die Zahl der eigenen Suchplaetze steht an einer Stelle — 0.35.0'
+  },
+  {
+    /* Der Knopf, der den einzelnen Eintrag als Datei holt, ist wieder fort:
+       die Route bleibt, aber kein Element der Oberflaeche ruft sie. */
+    nr: '1087', name: 'Der einzelne Eintrag ist wieder nur ueber die Adresszeile zu holen',
+    file: 'public/app.js',
+    search: "      ? `<div class=\"entry-out\"><button class=\"btn btn-sm\" id=\"exp1\">${tH('entry.exportOne')}</button></div>`",
+    replacement: "      ? ''",
+    expected: 'Der einzelne Eintrag ist ueber die Oberflaeche zu holen — 0.35.0'
+  },
+  {
+    /* Und er ruft wieder den vollen Export statt des einen Eintrags. */
+    nr: '1088', name: 'Der Knopf am Eintrag holt wieder den ganzen Bestand',
+    file: 'public/app.js',
+    search: "    window.location = `/api/items/${id}/export`;",
+    replacement: "    window.location = '/api/export';",
+    expected: 'Der einzelne Eintrag ist ueber die Oberflaeche zu holen — 0.35.0'
+  },
 ];
 
 /* ================= Spuren und Versatz ================= Der Versatz je

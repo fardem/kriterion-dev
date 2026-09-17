@@ -25,18 +25,31 @@ async function run() {
   // Die Zahl der Rueckbauten steht ausdruecklich da: eine Zahl in einem
   // Papier ist eine Behauptung, eine Zahl im Pruefstand ist ein Beleg. Wie
   // sie Runde fuer Runde gewachsen ist, steht in den Aenderungsprotokollen.
-  check(`Es sind genau 1018 Rueckbauten`, gpList.length === 1018, `${gpList.length}`);
+  check(`Es sind genau 1026 Rueckbauten`, gpList.length === 1026, `${gpList.length}`);
   const gpTwice = gpList.map(r => r.nr).filter((n, i, a) => a.indexOf(n) !== i);
   check('Und keine Nummer steht zweimal', gpTwice.length === 0, gpTwice.join(' '));
   /* JEDER GREIFT: der Suchtext kommt in seiner Datei GENAU EINMAL vor. */
+  /* JEDE DATEI EINMAL LESEN -- 0.35.0, BA 7. Die Schleife las fuer jeden der
+     ueber tausend Rueckbauten seine Datei neu ein und legte danach ein
+     split() ueber den ganzen Inhalt; es sind 32 verschiedene Dateien, und
+     counterproof.js allein misst 437 kB. */
   const gpFail = [];
+  const gpText = new Map();
+  const gpFileText = (file) => {
+    if (!gpText.has(file)) gpText.set(file, fs.readFileSync(file, 'utf8'));
+    return gpText.get(file);
+  };
   for (const r of gpList) {
     const file = path.join(__dirname, r.file);
     if (!fs.existsSync(file)) { gpFail.push(`${r.nr}: ${r.file} gibt es nicht`); continue; }
     if (r.copy) continue;
-    const n = fs.readFileSync(file, 'utf8').split(r.search).length - 1;
+    const n = gpFileText(file).split(r.search).length - 1;
     if (n !== 1) gpFail.push(`${r.nr} (${r.file}): ${n} Treffer`);
   }
+  /* UND DIE ZAHL DER GELESENEN DATEIEN STEHT DA: sie ist der Beleg, dass die
+     Schleife wirklich nur einmal je Datei liest. */
+  check('Der Waechter liest hoechstens fuenfunddreissig Dateien',
+    gpText.size <= 35, `${gpText.size} Dateien fuer ${gpList.length} Rueckbauten`);
   check('Jeder Suchtext kommt in seiner Datei genau einmal vor',
     gpFail.length === 0, gpFail.join(' · '));
   // Ein Ersatz, der dem Suchtext gleicht, baut nichts zurueck -- die Kopie
@@ -266,7 +279,7 @@ async function run() {
     if (miss.length) rpStrange.push(`${r.nr} ${r.file}: ${miss.join(' ')}`);
   }
   check('Der Waechter sieht die Rueckbauten auf Pruefstandsdateien',
-    rpChecked === 22, `${rpChecked} Rueckbauten`);
+    rpChecked === 23, `${rpChecked} Rueckbauten`);
   check('Und jeder ihrer Namen steht in der Zieldatei, im Rahmen oder im Suchtext',
     rpStrange.length === 0, rpStrange.slice(0, 6).join(' · '));
 
@@ -293,10 +306,10 @@ async function run() {
       ['test/keychange.js', 70],
       ['test/release_029.js', 60],
       ['test/release_030.js', 239],
-      ['test/release_031.js', 389],
-      ['test/roundtrip.js', 3144],
-      ['test/selfcheck.js', 152],
-      ['test/source.js', 636],
+      ['test/release_031.js', 395],
+      ['test/roundtrip.js', 3151],
+      ['test/selfcheck.js', 158],
+      ['test/source.js', 666],
       ['test/ui_entry.js', 497],
       ['test/ui_export.js', 453],
       ['test/ui_inventory.js', 241],
@@ -305,8 +318,8 @@ async function run() {
       ['test/ui_style.js', 562],
       ['test/ui_system.js', 692],
       ['test/ui_translator.js', 104],
-      ['counterproof.js', 1497],
-      ['server.js', 1477],
+      ['counterproof.js', 1511],
+      ['server.js', 1486],
       ['auth.js', 274],
       ['db.js', 272],
       ['mail.js', 40],
@@ -317,10 +330,10 @@ async function run() {
       ['usertool.js', 51],
       ['twofactor.js', 34],
       ['keytool.js', 55],
-      ['public/app.js', 1836],
+      ['public/app.js', 1849],
       ['public/theme.js', 3],
     ];
-    const COMMENT_TOTAL = { comment: 14383, code: 60091 };
+    const COMMENT_TOTAL = { comment: 14468, code: 60266 };
     check('Der Waechter sieht alle vierunddreissig Dateien',
       crAll.each.length === 34 && COMMENT_ROWS.length === 34,
       `${crAll.each.length} gemessen, ${COMMENT_ROWS.length} genannt`);

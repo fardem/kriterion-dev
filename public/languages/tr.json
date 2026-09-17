@@ -807,6 +807,7 @@
   "entry.edited": "düzenlendi",
   "entry.empty": "(boş)",
   "entry.enteredByOn": "{created_at} tarihinde {author} girdi",
+  "entry.exportOne": "{entryOne} kaydını dışa aktar",
   "entry.fileCount": {
     "one": "{n} dosya · {filesize}",
     "other": "{n} dosya · {filesize}"
@@ -863,6 +864,7 @@
   "entry.pinHint": "Sabitle — sonra en üstte durur",
   "entry.previewTruncated": "Önizleme kısaltıldı — dosyanın tamamını ↓ ile indir.",
   "entry.ratingRemoveHint": "“{name}” için {ratingOne} kaldırılır — {author}.",
+  "entry.ratingRemoved": "{ratingOne} kaldırıldı",
   "entry.reasonDeleteAsk": "Gerekçe silinsin mi?",
   "entry.reasonDeleteHint": "Metin kalıcı olarak siliniyor. Reddin tarihi ve yazarı korunur.",
   "entry.reasonEdit": "Gerekçeyi değiştir",
@@ -873,6 +875,7 @@
   "entry.rejectReasonHint": "Neden reddedildi? (isteğe bağlı)",
   "entry.remove": "Kaldır",
   "entry.removeAgain": "Yeniden kaldır",
+  "entry.removeRating": "{ratingOne} kaldırılsın",
   "entry.removedFromList": "{what} listeden kaldırılıyor.",
   "entry.removeLink": "Bağlantıyı kaldır",
   "entry.removeLinkAsk": "Bağlantı kaldırılsın mı?",

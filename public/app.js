@@ -3881,6 +3881,15 @@ async function renderDetail(id, termAddress) {
     </div>
     </div>
 
+    ${/* DER EINZELNE EINTRAG ALS DATEI -- 0.35.0, BA 8. GET
+         /api/items/:id/export gibt es seit 0.30.0 und hatte bis dahin kein
+         Element in der Oberflaeche: erreichbar nur, wer die Adresse von Hand
+         eintippt. Die Route traegt `ownerOnly`, deshalb sieht den Knopf auch
+         nur der Betreiber. */''}
+    ${OWNER
+      ? `<div class="entry-out"><button class="btn btn-sm" id="exp1">${tH('entry.exportOne')}</button></div>`
+      : ''}
+
     ${/* NUR FUER DEN, DER LOESCHEN DARF -- 0.22.0 (E10). */''}
     ${item.mine === true || ADMIN
       ? `<div class="danger-row"><button class="btn btn-danger btn-sm" id="del">${tH('entry.deleteEntry')}</button></div>`
@@ -4984,7 +4993,7 @@ async function renderDetail(id, termAddress) {
             const x = document.createElement('button');
             x.className = 'xdel';
             x.innerHTML = ICON_X;
-            x.title = `${V.ratingOne} entfernen`;
+            x.title = t('entry.removeRating');
             x.onclick = async () => {
               if (!await confirmBox(t('entry.removeRatingAsk'),
                 t('entry.ratingRemoveHint', { author: authorName(st.author), name: r.name }),
@@ -4992,7 +5001,7 @@ async function renderDetail(id, termAddress) {
               try {
                 item = await api('DELETE', `/api/ratings/${st.id}`);
                 list = await api('GET', `/api/items/${id}/votes`);
-                drawRatings(); drawMatch(); toast(`${V.ratingOne} entfernt`);
+                drawRatings(); drawMatch(); toast(t('entry.ratingRemoved'));
               } catch (e) { toast(e.message, true); }
             };
             s2.appendChild(x);
@@ -5708,6 +5717,13 @@ async function renderDetail(id, termAddress) {
       drawNewImages(); drawNewMarks(); drawComments();
     } catch (e) { toast(e.message, true); }
   };
+
+  /* DERSELBE WEG WIE BEIM VOLLEN EXPORT (drawExport, weiter unten): die
+     Antwort traegt Content-Disposition, der Browser legt die Datei ab. Ueber
+     api() ginge es nicht -- das liest den Rumpf als JSON in den Speicher. */
+  atElement('exp1', b => b.onclick = () => {
+    window.location = `/api/items/${id}/export`;
+  });
 
   /* Die Zahlen kommen vom Server, nicht aus dem geladenen Eintrag: nur dort
      lassen sich eigene von fremden Beiträgen trennen, und zwei Quellen für
@@ -7376,12 +7392,17 @@ function setUpSearchProviderOut() {
     });
   }
 
-  // Immer alle drei Plaetze auf einmal: der Server bekommt den ganzen Stand
-// und raeumt danach den Vorrat auf, falls ein Platz geleert wurde.
+  /* Immer alle Plaetze auf einmal: der Server bekommt den ganzen Stand und
+     raeumt danach den Vorrat auf, falls ein Platz geleert wurde.
+     DIE ZAHL DER PLAETZE KOMMT VOM SERVER -- 0.35.0, BA 8. Bis dahin stand
+     hier das feste Array [1, 2, 3], und die Zahl 3 damit ein zweites Mal
+     neben OWN_SLOTS in server.js:1525. Die Antwort von GET /api/settings
+     traegt je Platz einen Eintrag mit `own: true`; gezaehlt wird, was
+     drawOwn() eine Zeile darueber auch gezeichnet hat. */
   function sendOwn() {
-    const list = [1, 2, 3].map(i => ({
-      name: document.getElementById(`se-name-${i}`)?.value || '',
-      template: document.getElementById(`se-vorlage-${i}`)?.value || ''
+    const list = SEARCH_PROVIDERS.filter(a => a.own).map((a, i) => ({
+      name: document.getElementById(`se-name-${i + 1}`)?.value || '',
+      template: document.getElementById(`se-vorlage-${i + 1}`)?.value || ''
     }));
     return sendProvider({ searchOwn: list }, t('list.saved'));
   }

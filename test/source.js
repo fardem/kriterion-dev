@@ -1183,8 +1183,11 @@ async function run() {
        `card.derivativesAsk` fallen mit der JPEG-Haelfte des Bestandslaufs,
        `server.exportTooOld` kommt mit der Abweisung zu alter Dateien dazu --
        zwei hin, einer her. */
-    check('Und die Zahlen stehen: 1296 Schluessel, 88 Mehrzahlformen, 15 Vokabelnamen',
-      languageKeys.length === 1296 && pluralKeys.length === 88 && vocabularyKeys.length === 15,
+    /* UND SEIT 0.35.0 SIND ES DREI MEHR: `entry.removeRating` und
+       `entry.ratingRemoved` loesen zwei deutsche Saetze aus dem Skript ab,
+       `entry.exportOne` beschriftet den neuen Knopf am Eintrag. */
+    check('Und die Zahlen stehen: 1299 Schluessel, 88 Mehrzahlformen, 15 Vokabelnamen',
+      languageKeys.length === 1299 && pluralKeys.length === 88 && vocabularyKeys.length === 15,
       `${languageKeys.length} / ${pluralKeys.length} / ${vocabularyKeys.length}`);
 
     /* ---- 3. */
@@ -1362,6 +1365,11 @@ async function run() {
     const WORDING_NEW_0321 = ['entry.deletePhoto', 'entry.deleteVideo'];
     /* UND EINER MIT 0.33.0: `server.exportTooOld`. */
     const WORDING_NEW_0330 = ['server.exportTooOld'];
+    /* UND DREI MIT 0.35.0: die beiden Saetze an der Sternzeile, die bis dahin
+       deutsch im Skript standen, und die Beschriftung des Knopfes, der den
+       einzelnen Eintrag als Datei holt. */
+    const WORDING_NEW_0350 = ['entry.removeRating', 'entry.ratingRemoved',
+      'entry.exportOne'];
     /* UND ACHT SCHLUESSEL FALLEN MIT 0.32.1 -- sechs von ihnen gab es schon
        bei der Abnahme, zwei sind erst in 0.32.0 entstanden und schon wieder
        weg. */
@@ -1377,7 +1385,8 @@ async function run() {
       ...WORDING_NEW_0254, ...WORDING_NEW_0260, ...WORDING_NEW_0270,
       ...WORDING_NEW_0280, ...WORDING_NEW_0281, ...WORDING_NEW_0290,
       ...WORDING_NEW_0300, ...WORDING_NEW_0311, ...WORDING_NEW_0314,
-      ...WORDING_NEW_0320, ...WORDING_NEW_0321, ...WORDING_NEW_0330]
+      ...WORDING_NEW_0320, ...WORDING_NEW_0321, ...WORDING_NEW_0330,
+      ...WORDING_NEW_0350]
       .filter(k => !WORDING_GONE_0321.includes(k) && !WORDING_GONE_0330.includes(k));
     const wordingMissing = WORDING_NEW.filter(k => LANGUAGE_FILE[k] === undefined);
     check('Die neuen Schluessel dieser Runde stehen wirklich in der Datei',
@@ -2420,6 +2429,91 @@ async function run() {
     const vOld = screenViolations(btDe.filter(t => LEGACY.includes(t.row)));
     check('Und die neun sind wirklich Verstoesse, keine Vorratsliste',
       vOld.length >= 9, `${vOld.length} Verstoesse`);
+  }
+
+  /* ================= Ein gefangener Fehler bleibt nicht stumm — 0.35.0 ====
+     BEFUND server.js:249 DER MESSUNG ZUR 0.35.0: errorText() liefert
+     „Unbekannter Fehler", sobald der Fehler keinen Schluessel traegt. Fuer den
+     Leser ist das richtig -- die Oberflaeche nennt keine Stapelabzuege. Der
+     Betreiber bekam aber ebenfalls nichts: fuenfzehn catch-Bloecke schluckten
+     den echten Fehler wortlos. */
+  group('Ein gefangener Fehler bleibt nicht stumm — 0.35.0');
+  {
+    const efSource = fs.readFileSync(path.join(__dirname, 'server.js'), 'utf8');
+    const efBody = (efSource.match(/const errorText = \(req, e\) => \{[\s\S]*?\n\};/) || [''])[0];
+    check('errorText steht als Rumpf da und nicht als Ausdruck',
+      efBody.length > 0, efBody ? `${efBody.split('\n').length} Zeilen` : '(nicht gefunden)');
+    check('Und der Fall ohne Schluessel geht ins Protokoll',
+      /console\.error/.test(efBody),
+      efBody.split('\n').filter(z => z.includes('console')).join(' · ') || '(kein console.error)');
+    /* UND NUR DIESER FALL: ein Fehler MIT Schluessel ist beantwortet und
+       gehoert nicht ins Protokoll. */
+    check('Und nur dieser Fall -- ein Fehler mit Schluessel bleibt still',
+      /if \(!\(e && e\.key\)\) console\.error/.test(efBody),
+      (efBody.match(/.*console\.error.*/) || ['(keine Bedingung)'])[0].trim());
+    /* UND DIE MELDUNG NENNT DIE INSTANZ, wie jede andere Zeile dieses
+       Servers -- sonst steht sie ohne Absender im Protokoll des Containers. */
+    check('Und die Zeile nennt die Instanz',
+      /console\.error\('\[Kriterion\] '/.test(efBody),
+      (efBody.match(/.*console\.error.*/) || ['(keine Zeile)'])[0].trim());
+  }
+
+  /* ================= Die Zahl der eigenen Suchplaetze — 0.35.0 ============
+     BEFUND public/app.js:7420 DER MESSUNG ZUR 0.35.0: die Zahl der eigenen
+     Suchplaetze stand dreimal. server.js:1525 als benannte Konstante
+     OWN_SLOTS, public/app.js als festes Array [1, 2, 3] in sendOwn(), und
+     public/style.css als drei einzeln aufgezaehlte Nummern. Wer den vierten
+     Platz anlegt, muss drei Stellen finden. */
+  group('Die Zahl der eigenen Suchplaetze steht an einer Stelle — 0.35.0');
+  {
+    const osServer = fs.readFileSync(path.join(__dirname, 'server.js'), 'utf8');
+    const osApp = fs.readFileSync(path.join(__dirname, 'public', 'app.js'), 'utf8');
+    const osCss = fs.readFileSync(path.join(__dirname, 'public', 'style.css'), 'utf8');
+    check('Die Konstante steht einmal in server.js',
+      (osServer.match(/^const OWN_SLOTS = \d+;$/gm) || []).length === 1,
+      (osServer.match(/^const OWN_SLOTS = .*$/gm) || ['(nicht gefunden)'])[0]);
+    /* UND DAS SKRIPT ZAEHLT, WAS DER SERVER GESCHICKT HAT. */
+    const osBody = (osApp.match(/function sendOwn\(\) \{[\s\S]*?\n  \}/) || [''])[0];
+    check('sendOwn steht als Rumpf da',
+      osBody.length > 0, osBody ? `${osBody.split('\n').length} Zeilen` : '(nicht gefunden)');
+    check('Und es steht kein festes Array mehr darin',
+      !/\[\s*1\s*,\s*2\s*,\s*3\s*\]/.test(osBody),
+      (osBody.match(/\[\s*1\s*,.*\]/) || ['kein festes Array'])[0].trim());
+    check('Und die Plaetze kommen aus der Antwort des Servers',
+      /SEARCH_PROVIDERS\.filter\(a => a\.own\)/.test(osBody),
+      (osBody.match(/.*SEARCH_PROVIDERS.*/) || ['(keine Zeile)'])[0].trim());
+    /* UND DAS STILBLATT ZAEHLT DIE PLAETZE NICHT MEHR EINZELN AUF. */
+    check('Und das Stilblatt nennt keine einzelne Platznummer',
+      !/#se-name-\d/.test(osCss),
+      (osCss.match(/.*#se-name-\d.*/) || ['keine Nummer'])[0].trim());
+    check('Sondern greift die Felder ueber ihren gemeinsamen Anfang',
+      /input\[id\^="se-name-"\]/.test(osCss),
+      (osCss.match(/.*se-name-.*/) || ['(keine Regel)'])[0].trim());
+  }
+
+  /* ================= Der Eintrag als Datei — 0.35.0 =======================
+     BEFUND DER MESSUNG ZUR 0.35.0: GET /api/items/:id/export gibt es seit
+     0.30.0, und kein Element der Oberflaeche rief die Route auf. Erreichbar
+     war sie nur, wer die Adresse von Hand eintippt. */
+  group('Der einzelne Eintrag ist ueber die Oberflaeche zu holen — 0.35.0');
+  {
+    const eoApp = fs.readFileSync(path.join(__dirname, 'public', 'app.js'), 'utf8');
+    const eoLang = JSON.parse(fs.readFileSync(
+      path.join(__dirname, 'public', 'languages', 'de.json'), 'utf8'));
+    check('Der Knopf steht im gezeichneten Eintrag',
+      eoApp.includes(`id="exp1">${'$'}{tH('entry.exportOne')}</button>`),
+      (eoApp.match(/.*id="exp1".*/) || ['(kein Knopf)'])[0].trim());
+    check('Und er ruft genau die Route auf',
+      /window\.location = `\/api\/items\/\$\{id\}\/export`/.test(eoApp),
+      (eoApp.match(/.*\/api\/items\/\$\{id\}\/export.*/) || ['(kein Aufruf)'])[0].trim());
+    /* UND NUR DER BETREIBER SIEHT IHN -- die Route traegt ownerOnly, und ein
+       Knopf, der eine Absage holt, ist schlechter als kein Knopf. */
+    check('Und nur der Betreiber sieht ihn',
+      /\$\{OWNER\n\s*\? `<div class="entry-out">/.test(eoApp),
+      (eoApp.match(/.*class="entry-out".*/) || ['(keine Bedingung)'])[0].trim());
+    check('Seine Beschriftung steht in der Sprachdatei',
+      typeof eoLang['entry.exportOne'] === 'string',
+      String(eoLang['entry.exportOne']));
   }
 
   /* ================= Die Deckung der Sprachdatei — 0.35.0 =================

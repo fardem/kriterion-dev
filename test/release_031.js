@@ -22,7 +22,7 @@ async function run() {
 /* DIE ZAHL DER SCHLUESSEL JE SPRACHDATEI STEHT EINMAL.
    ZWEI GRUPPEN FRAGEN SIE AB: 0.31.0 auf die Deckung der drei Dateien, 0.31.1
    auf den Stand nach dem Verschmelzen. */
-const LANG_KEY_COUNT = 1208;
+const LANG_KEY_COUNT = 1211;
 
 async function check0310() {
   const drRead = (code) => JSON.parse(fs.readFileSync(
@@ -511,7 +511,7 @@ async function check0311() {
    public/app.js ohne Kommentare und ohne Markup, und diese Runde nimmt dort
    toten Code weg und fasst Wiederholungen zusammen. Der Stand von 0.31.4 war
    daa0c9094f2c2305 / 77128aef244a5976. */
-const DE_UNTOUCHED = { one: '13ce6d1957980823', other: '5dc69785f4760d8e' };
+const DE_UNTOUCHED = { one: 'fae6bad6198a2dd9', other: '77e11ebf862d1a91' };
 const DE_BEFORE_0312 = { one: '91b86c5affcba789', other: '07fc3ccdc8a27a03' };
 const DE_ORDERED_0312 = {
   'login.requestAccess': 'Zugang anfragen',
@@ -536,10 +536,13 @@ const EG_CHANGED_AFTER_0312_SHARED = {
   "entry.deletePhoto": "0.32.1: aus `entry.deleteWord` geteilt — „Delete photo\"",
   "entry.deleteVideo": "0.32.1: aus `entry.deleteWord` geteilt — „Delete video\"",
   "entry.dueHint": "0.32.1: „Due date\" ohne „of the task\" — das Vokabelwort stand fest im Satz",
+  "entry.exportOne": "0.35.0: neu — „Export {entryOne}\", die Beschriftung des neuen Knopfes am Eintrag",
   "entry.grade": "0.32.0: der Spaltenkopf der Rechnung wird `{grade}`",
   "entry.gradeLabel": "0.32.0: die Beschriftung am Sternkasten des Zeitpunkts",
   "entry.gradeReplaced": "0.32.0: die Meldung nach dem Ersetzen",
   "entry.noDaysYet": "0.32.1: „a score\" wird `{grade}` — das fuenfzehnte Vokabelwort",
+  "entry.ratingRemoved": "0.35.0: neu — „{ratingOne} removed\", vorher deutsch im Skript",
+  "entry.removeRating": "0.35.0: neu — „Remove {ratingOne}\", vorher deutsch im Skript",
   "list.bellMine": "0.32.0: die Ueberschrift „My {entryMany}\"",
   "list.bellOther": "0.32.0: die Ueberschrift „Everything else\"",
   "list.bellToMe": "0.32.0: die Ueberschrift „Addressed to me\"",
@@ -776,8 +779,13 @@ async function check0312() {
        der Datei -- jede Runde, die einen Schluessel anlegt, traegt ihn ein. */
     /* UND EINER MIT 0.33.0: `server.exportTooOld`, die eine Abweisung des
        Bruchs. */
+    /* UND DREI MIT 0.35.0: `entry.removeRating` und `entry.ratingRemoved` --
+       die beiden Saetze an der Sternzeile, die bis dahin deutsch im Skript
+       standen -- und `entry.exportOne`, die Beschriftung des Knopfes, der den
+       einzelnen Eintrag als Datei holt. */
     const EG_ADDED_AFTER_0312 = ['_afterNumber',
       'card.grade', 'entry.deletePhoto', 'entry.deleteVideo',
+      'entry.exportOne', 'entry.ratingRemoved', 'entry.removeRating',
       'list.bellMine', 'list.bellOther', 'list.bellToMe',
       'list.markedCount', 'mail.ownServer',
       'server.backupsBeforeKey', 'server.cleanupAllYoungest', 'server.cleanupNoBackups',
@@ -826,11 +834,11 @@ async function check0312() {
    39489ec6ae18020b -- vor 0.31.3; derselbe Grund wie oben.
    VOR 0.35.0: en caa4b814e75f8263 / f224721465ac0d35,
    tr ab6bdf35499f7cf9 / ad34f68137acaa2b. */
-const EN_UNTOUCHED = { one: '0005e5a596fdd836', other: '18a0ba2acd60bde3' };
+const EN_UNTOUCHED = { one: '6a5871822b3dbde8', other: '6aa778b03fd87f23' };
 const TR_BEFORE_0313 = { one: '5fec71b10c0dfa3c', other: '18b07eda589b5120' };
 /* bbaca227348609dc / 73d9f1ea0298d519 -- der Stand VOR der Berichtigung an
    der Vorschau der Vokabelkarte, die der Augenschein von 0.31.3 verlangt hat. */
-const TR_AFTER_0313 = { one: '2dcabd845e84a1ef', other: '5ca73b211ea13c7f' };
+const TR_AFTER_0313 = { one: '940df301207b1da9', other: '3529f077e85338e6' };
 
 async function check0313() {
   const tgRead = (code) => JSON.parse(fs.readFileSync(
@@ -1176,7 +1184,9 @@ async function check0313() {
        der englischen Seite -- L5 verlangt es: kein neuer Schluessel ohne alle
        drei Sprachen, und die Deckungsprobe faerbte den Lauf sofort rot. */
     /* UND EINER MIT 0.33.0 -- derselbe wie drueben: `server.exportTooOld`. */
+    /* UND DREI MIT 0.35.0, wie bei Englisch. */
     const TR_ADDED_AFTER_0313 = ['_afterNumber',
+      'entry.exportOne', 'entry.ratingRemoved', 'entry.removeRating',
       'card.grade', 'entry.deletePhoto', 'entry.deleteVideo',
       'list.bellMine', 'list.bellOther', 'list.bellToMe',
       'list.markedCount', 'mail.ownServer',
@@ -1278,7 +1288,11 @@ async function check0313() {
       'card.potentialModeHint':   '0.32.1: „ayrıntı görünümünde" statt „kayıtta" — das Vokabelwort stand fest im Satz',
       'entry.dueHint':            '0.32.1: „Son tarih" ohne „Görevin" — das Vokabelwort stand fest im Satz',
       /* UND EIN FUND DER RUNDE SELBST -- Punkt 31 des Sammelblatts. */
-      'card.checkForeign':        '0.32.0: Punkt 31 — „yedeği" wird „yedeklemesi"'
+      'card.checkForeign':        '0.32.0: Punkt 31 — „yedeği" wird „yedeklemesi"',
+      /* UND ZWEI MIT 0.35.0 -- dieselben beiden wie auf der englischen Seite. */
+      'entry.exportOne':          '0.35.0: neu — „{entryOne} kaydını dışa aktar", die Beschriftung des neuen Knopfes am Eintrag',
+      'entry.removeRating':       '0.35.0: neu — „{ratingOne} kaldırılsın", vorher deutsch im Skript',
+      'entry.ratingRemoved':      '0.35.0: neu — „{ratingOne} kaldırıldı", vorher deutsch im Skript'
     };
     const tgDiff = Object.keys(tgFiles.tr)
       .filter(k => JSON.stringify(tgPrint[k]) !== JSON.stringify(tgFiles.tr[k]));
