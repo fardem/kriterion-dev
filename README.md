@@ -305,9 +305,8 @@ nichts.
 **Dafür gibt es den Fingerprint.** Der Server bildet beim Start eine kurze
 Prüfsumme über alles, was er lädt und ausliefert, und meldet sie unter
 `fingerprint` in `GET /api/stats` — angemeldet, in der Karte „Kennzahlen"
-(Reiter „Datenbank"). Der Sollwert steht zu jeder Version im
-Änderungsprotokoll (`Doku/Aenderungsprotokoll_<Version>.md`, Zeile
-„Fingerprint …").
+(Reiter „Datenbank"). **Der Sollwert steht im `CHANGELOG.md`, im Eintrag der
+Version**, als Zeile „Fingerprint …".
 
 Stimmt er nicht überein, ist der Dateisatz nicht der, der gemeint war — dann
 hilft nur, ihn **vollständig** erneut einzuspielen. **Er schlägt in beide

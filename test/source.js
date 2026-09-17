@@ -939,8 +939,18 @@ async function run() {
       .split('\n').filter(z => z.trim()).length, 0);
   check('Und aus ihnen bleiben mehr als tausend Kommentarzeilen uebrig',
     languageCommentRows > 1000, `${languageCommentRows} Zeilen`);
-  check('Und mindestens zehn Dokumente daneben',
-    languageDocsFiles.length >= 10, `${languageDocsFiles.length} Dokumente`);
+  /* DIE ZAHL HAENGT AM REPOSITORY UND NICHT AM WAECHTER -- 0.35.0. Der
+     oeffentliche Stand traegt kein Doku/ (Doku/Veroeffentlichen.md), und
+     dieselbe Datei laeuft in beiden. Gefordert sind die drei im
+     Wurzelverzeichnis; liegt Doku/ daneben, werden seine Dateien alle
+     mitgelesen. */
+  check('Die drei Dokumente im Wurzelverzeichnis sind dabei, und jede Doku-Datei daneben',
+    languageDocsFiles.length >= 3
+    && (!fs.existsSync(path.join(__dirname, 'Doku'))
+        || languageDocsFiles.filter(n => n.startsWith('Doku')).length
+           === fs.readdirSync(path.join(__dirname, 'Doku'))
+                .filter(n => n.endsWith('.md') && !/^Auftrag_/.test(n)).length),
+    `${languageDocsFiles.length} Dokumente`);
   /* UND DIE DREI IM WURZELVERZEICHNIS SIND NAMENTLICH DABEI. */
   check('Darunter namentlich README.md, CHANGELOG.md und manual-de.md',
     ['README.md', 'CHANGELOG.md', 'manual-de.md']

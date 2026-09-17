@@ -359,8 +359,8 @@ async function run() {
       ['test/release_030.js', 241],
       ['test/release_031.js', 395],
       ['test/roundtrip.js', 3164],
-      ['test/selfcheck.js', 172],
-      ['test/source.js', 701],
+      ['test/selfcheck.js', 175],
+      ['test/source.js', 706],
       ['test/ui_entry.js', 497],
       ['test/ui_export.js', 453],
       ['test/ui_inventory.js', 241],
@@ -384,7 +384,7 @@ async function run() {
       ['public/app.js', 1855],
       ['public/theme.js', 3],
     ];
-    const COMMENT_TOTAL = { comment: 14580, code: 60454 };
+    const COMMENT_TOTAL = { comment: 14588, code: 60466 };
     check('Der Waechter sieht alle vierunddreissig Dateien',
       crAll.each.length === 34 && COMMENT_ROWS.length === 34,
       `${crAll.each.length} gemessen, ${COMMENT_ROWS.length} genannt`);
@@ -552,8 +552,15 @@ async function run() {
       ['kommt am echten Bestand vor', 'der widerlegte Satz zu Rueckbau 433'],
       ['kommt am ECHTEN Bestand vor', 'der widerlegte Satz zu Rueckbau 433']
     ];
-    const searched = ['server.js', 'public/app.js', 'counterproof.js', 'README.md',
-                        'CHANGELOG.md', 'Doku/Aenderungsprotokoll_0.19.0.md'];
+    /* DIE SECHSTE DATEI LIEGT UNTER Doku/ UND FEHLT IM OEFFENTLICHEN STAND
+       -- 0.35.0, siehe Doku/Veroeffentlichen.md. Sie wird gelesen, wenn sie
+       dasteht; die fuenf uebrigen sind Pflicht. */
+    const SEARCH_OPTIONAL = 'Doku/Aenderungsprotokoll_0.19.0.md';
+    const searchAlways = ['server.js', 'public/app.js', 'counterproof.js', 'README.md',
+                        'CHANGELOG.md'];
+    const searched = [...searchAlways,
+      ...(fs.existsSync(path.join(__dirname, ...SEARCH_OPTIONAL.split('/')))
+          ? [SEARCH_OPTIONAL] : [])];
     const matched = [];
     for (const file of searched) {
       const full = path.join(__dirname, ...file.split('/'));
@@ -564,9 +571,12 @@ async function run() {
     }
     /* ERST DAS VORHANDENSEIN DES GEGENSTANDS: ein Waechter,
        der auf null Dateien laeuft, ist gruen und belegt nichts. */
-    check('Der Waechter sieht alle sechs Dateien an',
-      searched.every(d => fs.existsSync(path.join(__dirname, ...d.split('/')))),
-      searched.filter(d => !fs.existsSync(path.join(__dirname, ...d.split('/')))).join(' · '));
+    check('Der Waechter sieht die fuenf Pflichtdateien an, und die sechste wenn sie dasteht',
+      searchAlways.every(d => fs.existsSync(path.join(__dirname, ...d.split('/'))))
+      && searched.length >= 5,
+      `${searched.length} Dateien · ` +
+      (searchAlways.filter(d => !fs.existsSync(path.join(__dirname, ...d.split('/')))).join(' · ')
+       || 'alle da'));
     check('Keine der drei berichtigten Behauptungen steht noch irgendwo',
       matched.length === 0, matched.join(' · '));
     /* UND DIE BERICHTIGUNGEN STEHEN WIRKLICH DA. */

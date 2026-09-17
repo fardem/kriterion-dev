@@ -41,6 +41,8 @@ komprimiert die Auslieferung und kürzt die Kommentare des Stilblatts.*
 > stehen hat, stellt sie auf `GET /api/config` um. Die alte Route lag hinter
 > der Anmeldung und taugte für diesen Zweck ohnehin nicht.
 
+Fingerprint `5297965e` — davor `1f76adac`.
+
 ### Hinzugefügt
 
 - **Der einzelne Eintrag lässt sich als Datei holen.** Der Knopf steht im Fuß des Eintrags; die Route gab es seit 0.30.0, aber kein Bedienelement rief sie auf.

@@ -2127,3 +2127,63 @@ und aus den Kommentaren nehmen, oder die Zahl hinnehmen.* **Das ist eine
 Entscheidung des Betreibers und keine Messung.**
 
 **Was es anfasst** — `public/style.css`, `tools/comments.js`, `test/source.js`.
+
+---
+
+## 43. Der Quelltext verweist auf Papiere, die nicht mitgehen
+
+**Art: Idee** *(Quelltext)* **· Herkunft: 0.35.0, beim Zuschnitt der
+Veröffentlichung gefunden · Einschätzung: groß**
+
+**DER ÖFFENTLICHE STAND TRÄGT KEIN `Doku/`** *(`Doku/Veroeffentlichen.md`)*.
+**Jeder Verweis darauf im Quelltext zeigt dort auf nichts.** Gemessen am
+17. September 2026:
+
+| | ausgelieferte Dateien | Prüfstand |
+|---|---:|---:|
+| Versionsnummern `0.x.y` | **759** | 2.318 |
+| „Befund" | 87 | 73 |
+| „Auftrag" | 9 | 36 |
+| „Stolperstein" | 15 | 8 |
+| „Projektstand" | 3 | 6 |
+
+*Verteilung der 759:* `public/app.js` 324, `server.js` 196,
+`public/style.css` 168, `db.js` 62, Rest 9.
+
+**UND DER SWEEP VON 0.34.3 HAT ZWEI LÖCHER**, die erst jetzt aufgefallen
+sind. Der Wächter „Kein Stolpersteinverweis mehr — 0.34.3"
+*(`test/source.js`)* liest vierunddreißig Dateien und zählt sie selbst nach:
+
+1. **`public/style.css` steht nicht in der Liste.** Dort stehen heute acht
+   Verweise — vor 0.35.0 waren es dreizehn, fünf sind beim Kürzen der
+   Kommentare mitgefallen.
+2. **`db.js` steht in der Liste, und sieben Verweise entgehen ihm trotzdem.**
+   Sie stehen als `-- Stolperstein 47` **innerhalb des SQL-Schematexts**. Der
+   Segmentierer teilt JavaScript in Code, Text und Kommentar; ein
+   SQL-Kommentar in einem Template-String ist für ihn Text.
+
+*Dieselbe Lücke wie bei `tools/comments.js`: jeder Wächter dieses Hauses
+zählt JavaScript, und das Stilblatt liegt außerhalb von allen. Genau deshalb
+hat die Messung zur 0.35.0 dort 70,5 Prozent Kommentar gefunden — es hatte
+sie nie jemand gemessen.*
+
+**Was zu bauen wäre** — *drei Schritte, und der erste ist billig:*
+
+1. **Die zwei Löcher schließen:** `public/style.css` in die Liste des
+   Wächters, und den SQL-Text in `db.js` als Kommentar behandeln. Danach
+   steht die wirkliche Zahl im Prüfstand.
+2. **Die Verweise streichen**, die auf ein Papier zeigen — Rundennummern als
+   Herkunft, Befundnummern, Fragetafelnummern, `Doku/`-Pfade. **Die
+   Begründung bleibt, die gemessene Zahl bleibt**, und die Versionsnummer
+   bleibt dort, wo sie Verhalten bestimmt *(Abschnitt 2 der `CLAUDE.md`)*.
+3. **`tools/comments.js` zählt das Stilblatt mit.**
+
+**Der Umfang ist der einer eigenen Runde**, vergleichbar mit 0.35.0: 759
+Stellen in fünf Dateien, jede einzeln zu lesen. *Schritt 1 allein ist klein
+und kann vorausgehen.*
+
+**Und die Reihenfolge zählt:** wird vorher veröffentlicht, ist Version eins in
+der Öffentlichkeit die mit den toten Zeigern.
+
+**Was es anfasst** — `public/app.js`, `server.js`, `public/style.css`,
+`db.js`, `test/source.js`, `tools/comments.js`.
