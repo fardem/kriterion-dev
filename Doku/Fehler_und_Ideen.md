@@ -2187,3 +2187,100 @@ der Öffentlichkeit die mit den toten Zeigern.
 
 **Was es anfasst** — `public/app.js`, `server.js`, `public/style.css`,
 `db.js`, `test/source.js`, `tools/comments.js`.
+
+---
+
+## 44. Der Kommentarbereich braucht einen Editor
+
+**Art: Idee** *(Oberfläche)* **· Herkunft: Betreiber, 17. September 2026 ·
+Einschätzung: groß**
+
+**GEWÜNSCHT SIND DIE GRUNDFUNKTIONEN EINES SCHREIBFELDS:** Fettdruck,
+Kursiv, Zitat und Aufzählung. Heute ist ein Kommentar reiner Text.
+
+**WAS DAFÜR SCHON DASTEHT, und es ist mehr als erwartet.** Der Kommentartext
+wird nicht als HTML eingesetzt, sondern in Stücke zerlegt und als Knoten
+gebaut: `splitCommentText()` *(`public/app.js`:1421)* zerlegt,
+`buildCommentNodes()` *(1469)* baut mit `createElement` und `textContent`.
+Drei Sorten kennt die Zerlegung bereits — Adressen, Markierungen mit `@` und
+die Hervorhebung des Suchbegriffs.
+
+**Das ist die Bauform, in die ein Editor gehört:** eine vierte und fünfte
+Sorte im Stückemodell, nicht HTML im Text. *Der Weg über `innerHTML` mit
+Benutzertext ist ausgeschlossen* — er wäre genau die Sorte Stelle, die
+0.36.0 in `public/app.js` einzeln durchgeht.
+
+**WAS ZU ENTSCHEIDEN IST, und keine dieser Fragen ist klein:**
+
+1. **Welche Auszeichnung.** Ein Teilsatz von Markdown *(`**fett**`, `*kursiv*`,
+   `> Zitat`, `- Punkt`)* oder eine Leiste, die Marken in den Text schreibt.
+   Markdown ist vertraut und im Rohtext lesbar; eine Leiste ist für den, der
+   Markdown nicht kennt, der einzige Weg. **Beides schließt sich nicht aus:**
+   die Leiste schreibt die Marken, und wer sie kennt, tippt sie selbst.
+2. **Wo geparst wird.** Im Browser, wie heute die Adressen und Markierungen —
+   dann bleibt der Server unberührt. Auf dem Server — dann muss auch die
+   Mailbenachrichtigung damit umgehen.
+3. **Ob die Spalte ein Merkmal braucht.** `comments.text` ist heute `TEXT`
+   *(`db.js`:344)*. Ein Kommentar von vorher ist nach der Änderung ein
+   Kommentar mit Auszeichnung, den niemand ausgezeichnet hat: `**` mitten in
+   einem alten Text würde plötzlich fett. **Entweder das Format steht an der
+   Zeile** *(Schemaänderung)*, **oder die Auszeichnung ist so gewählt, dass
+   ein alter Text sie nicht zufällig trägt.**
+4. **Was die Exportdatei trägt.** Der Kommentartext geht in das Paket
+   *(`server.js`:4066)*. Trägt er Marken, liest eine ältere Fassung sie als
+   Text. **Das ist eine Frage an die Formatnummer.**
+5. **Was die Suche sieht.** Gesucht wird über den Rohtext. Wer `fett` sucht,
+   soll `**fett**` finden — und wer `**` sucht, soll nicht jeden
+   ausgezeichneten Kommentar finden.
+6. **Was die Stellen sehen, die nur Text können.** Die Zeile an der Kachel,
+   die Zählzeile, die Mailbenachrichtigung. Dort muss die Auszeichnung
+   wieder herausfallen.
+
+### Gibt es eine Bibliothek, die man einfach nehmen könnte?
+
+**Es gibt sie, und keine passt.** Gemessen am 17. September 2026, jeweils die
+Browserdatei samt zugehörigem Stilblatt:
+
+| | roh | gezippt | erzeugt |
+|---|---:|---:|---|
+| Quill 2.0.3 | 233.880 | **62.732** | HTML |
+| Trix 2.1.19 | 227.451 | **56.150** | HTML |
+| EasyMDE 2.21.0 | 340.398 | **109.826** | Markdown-Text |
+| marked 18 *(nur Parser, kein Editor)* | 45.843 | **13.891** | HTML |
+| *TipTap, Lexical* | — | — | brauchen einen Bauschritt |
+
+**Zum Vergleich: Kriterion liefert insgesamt 268.441 Bytes gezippt aus**,
+davon 135.399 für `public/app.js`. Quill wären **23 Prozent mehr**, EasyMDE
+**41 Prozent**. Die Runde 0.35.0 hat die Auslieferung von 1.001.488 auf
+268.441 Bytes gebracht; eine dieser Bibliotheken gäbe ein Viertel davon
+zurück.
+
+**Der Größe wegen scheitert es aber nicht, sondern an der Bauform.** Quill,
+Trix und marked erzeugen HTML und setzen es über `innerHTML` ein. Genau das
+tut der Kommentarbereich nicht: er baut Knoten. Eine Bibliothek brächte also
+die Hälfte mit, die billig ist — die Leiste über dem Feld —, und dazu eine
+Zeichnung, die hier nicht verwendet werden kann.
+
+**EasyMDE ist die einzige, die Text statt HTML erzeugt** und damit ins
+Stückemodell passte. Sie ist zugleich die größte und bringt fünf
+Abhängigkeiten mit, darunter CodeMirror.
+
+**Was selbst zu bauen bliebe, ist ohnehin die teure Hälfte:** vier weitere
+Sorten in `splitCommentText()` und `buildCommentNodes()`. Die Leiste über dem
+Feld sind rund fünfzig Zeilen über `selectionStart` und `selectionEnd` eines
+`<textarea>`.
+
+*Ein eigener Parser ist die Stelle, an der sonst Sicherheitslücken entstehen.
+Hier nicht: er erzeugt kein HTML, sondern Knoten. Ein Fehler darin trennt
+falsch, er schleust nichts ein.*
+
+**Was zu bauen wäre** — *erst die sechs Fragen beantworten, dann eine Runde.*
+**Die Reihenfolge zu 0.36.0 ist zu klären:** jener Bauabschnitt geht die 199
+`innerHTML`-Stellen durch, und ein Editor legt neue Stellen an, an denen
+Benutzertext gezeichnet wird. **Erst durchgehen, dann bauen** ist
+wahrscheinlich die billigere Folge.
+
+**Was es anfasst** — `public/app.js` *(Zerlegung, Knotenbau, Eingabefeld)*,
+`public/style.css`, die drei Sprachdateien *(Beschriftungen der Leiste)*,
+`server.js` *(nur bei Entscheidung 2 oder 4)*, `db.js` *(nur bei
+Entscheidung 3)*.
