@@ -8584,6 +8584,26 @@ const REGRESSIONS = [
     replacement: "app.get('/api/health', (req, res) => res.json({ ok: true }));\napp.get('/api/manifest.json'",
     expected: 'Das Startbildzeichen — 0.28.0'
   },
+
+  /* ---- 0.35.0 · BA 2: die Sprachdateien und das Stilblatt --------------- */
+  {
+    /* Die Ausnahmeliste verliert einen der dreiundzwanzig gebauten
+       Schluessel. Er steht dann als toter Schluessel da, obwohl mail.js ihn
+       baut -- der Waechter muss das melden. */
+    nr: '1066', name: 'Die Ausnahmeliste vergisst einen gebauten Schluessel',
+    file: 'test/source.js',
+    search: "      ...['confirm', 'invite', 'reset', 'test'].flatMap(k =>",
+    replacement: "      ...['invite', 'reset', 'test'].flatMap(k =>",
+    expected: 'Jeder Schluessel der Sprachdatei hat einen Leser — 0.35.0'
+  },
+  {
+    /* Eine Sprachdatei verliert einen Schluessel, den Deutsch traegt. */
+    nr: '1067', name: 'Der englischen Sprachdatei fehlt ein Schluessel',
+    file: 'public/languages/en.json',
+    search: "  \"list.backToList\":",
+    replacement: "  \"list.backToListGone\":",
+    expected: 'Jeder Schluessel der Sprachdatei hat einen Leser — 0.35.0'
+  },
 ];
 
 /* ================= Spuren und Versatz ================= Der Versatz je

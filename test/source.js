@@ -2404,6 +2404,78 @@ async function run() {
     check('Und die neun sind wirklich Verstoesse, keine Vorratsliste',
       vOld.length >= 9, `${vOld.length} Verstoesse`);
   }
+
+  /* ================= Die Deckung der Sprachdatei — 0.35.0 =================
+     DER BEFUND DER MESSUNG ZUR 0.35.0: kein einziger Schluessel in
+     public/languages/de.json ist tot -- aber kein Pruefmodul hat das je
+     gemessen. Ein Schluessel ohne Leser faellt damit erst auf, wenn ihn
+     jemand von Hand sucht.
+
+     GEMESSEN WIRD IN EINE RICHTUNG: jeder Schluessel der Sprachdatei hat
+     einen Leser im Quelltext. Die Gegenrichtung -- jeder t()-Ruf hat einen
+     Schluessel -- steht seit 0.24.0 in der Gruppe „Der Sprachwaechter". */
+  group('Jeder Schluessel der Sprachdatei hat einen Leser — 0.35.0');
+  {
+    const lkRead = (name) => fs.readFileSync(path.join(__dirname, ...name.split('/')), 'utf8');
+    /* DIE DREIZEHN DATEIEN, DIE TEXTE NACHSCHLAGEN -- dieselbe Liste wie in
+       tools/comments.js, ohne public/theme.js (es kennt keine Sprache) und
+       um public/index.html erweitert. */
+    const LK_FILES = ['public/app.js', 'public/index.html', 'server.js', 'auth.js',
+      'mail.js', 'db.js', 'keys.js', 'attachments.js', 'images.js',
+      'usertool.js', 'keytool.js', 'twofactor.js', 'batchrun.js'];
+    const lkText = LK_FILES.map(lkRead).join('\n');
+    const lkKeys = Object.keys(JSON.parse(lkRead('public/languages/de.json')))
+      .filter(k => k !== '_locale' && k !== '_name');
+    check('Der Waechter sieht alle Schluessel der Vorgabesprache',
+      lkKeys.length > 1100, `${lkKeys.length} Schluessel`);
+
+    /* ZWEI FAMILIEN WERDEN GEBAUT UND STEHEN DESHALB NIRGENDS WOERTLICH.
+       Sie sind hier NAMENTLICH ausgenommen und nicht ueber ein Muster: eine
+       Ausnahme, die ein Muster ist, waechst mit jedem Tippfehler mit. */
+    const LK_BUILT = [
+      // mail.js:196-197 baut `mail.${kind}.subject` und `mail.${kind}.body`.
+      ...['confirm', 'invite', 'reset', 'test'].flatMap(k =>
+        [`mail.${k}.subject`, `mail.${k}.body`]),
+      // server.js liest die Vorgaben ueber VOCABULARY_PREFIX, public/app.js
+      // baut die Felder aus VOCABULARY_FIELDS.
+      ...['entryOne', 'entryMany', 'testedYes', 'testedNo', 'dayOne', 'dayMany',
+          'reportOne', 'reportMany', 'taskOne', 'taskMany', 'taskDone',
+          'potential', 'ratingOne', 'ratingMany', 'grade'].map(k => `vocabulary.${k}`)
+    ];
+    check('Die beiden gebauten Familien zaehlen dreiundzwanzig Schluessel',
+      LK_BUILT.length === 23, `${LK_BUILT.length}`);
+    /* UND SIE WERDEN WIRKLICH GEBAUT -- sonst waere die Ausnahmeliste eine
+       Erlaubnis fuer toten Text. */
+    check('Und beide Bauformen stehen im Quelltext',
+      /mail\.\$\{kind\}\.subject/.test(lkRead('mail.js'))
+      && /mail\.\$\{kind\}\.body/.test(lkRead('mail.js'))
+      && /const VOCABULARY_PREFIX = 'vocabulary\.';/.test(lkRead('server.js'))
+      && /const VOCABULARY_FIELDS = \[/.test(lkRead('public/app.js')),
+      'eine der beiden Bauformen fehlt');
+    check('Und jeder der dreiundzwanzig steht wirklich in der Sprachdatei',
+      LK_BUILT.every(k => lkKeys.includes(k)),
+      LK_BUILT.filter(k => !lkKeys.includes(k)).join(' · ') || 'alle da');
+
+    const lkDead = lkKeys.filter(k => !LK_BUILT.includes(k) && !lkText.includes(k));
+    check('Kein Schluessel der Sprachdatei steht ohne Leser da',
+      lkDead.length === 0, lkDead.slice(0, 12).join(' · '));
+    /* UND DER WAECHTER WUERDE EINEN TOTEN WIRKLICH MELDEN: ein Schluessel,
+       den es nicht gibt, hat auch keinen Leser. */
+    check('Der Waechter wuerde einen toten Schluessel melden',
+      !lkText.includes('list.thisKeyHasNoReader'),
+      'der erfundene Schluessel steht im Quelltext');
+
+    /* DIE DREI DATEIEN TRAGEN DIESELBEN SCHLUESSEL -- gemessen, nicht
+       angenommen. Die Deckung oben gilt sonst nur fuer Deutsch. */
+    const lkOther = ['en', 'tr'].map(code => {
+      const keys = Object.keys(JSON.parse(lkRead(`public/languages/${code}.json`)))
+        .filter(k => k !== '_locale' && k !== '_name');
+      return { code, missing: lkKeys.filter(k => !keys.includes(k)) };
+    }).filter(z => z.missing.length);
+    check('Und Englisch und Tuerkisch tragen dieselben Schluessel',
+      lkOther.length === 0,
+      lkOther.map(z => `${z.code}: ${z.missing.slice(0, 6).join(' ')}`).join(' · '));
+  }
 }
 
 module.exports = run;

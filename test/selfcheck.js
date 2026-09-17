@@ -25,7 +25,7 @@ async function run() {
   // Die Zahl der Rueckbauten steht ausdruecklich da: eine Zahl in einem
   // Papier ist eine Behauptung, eine Zahl im Pruefstand ist ein Beleg. Wie
   // sie Runde fuer Runde gewachsen ist, steht in den Aenderungsprotokollen.
-  check(`Es sind genau 1003 Rueckbauten`, gpList.length === 1003, `${gpList.length}`);
+  check(`Es sind genau 1005 Rueckbauten`, gpList.length === 1005, `${gpList.length}`);
   const gpTwice = gpList.map(r => r.nr).filter((n, i, a) => a.indexOf(n) !== i);
   check('Und keine Nummer steht zweimal', gpTwice.length === 0, gpTwice.join(' '));
   /* JEDER GREIFT: der Suchtext kommt in seiner Datei GENAU EINMAL vor. */
@@ -266,7 +266,7 @@ async function run() {
     if (miss.length) rpStrange.push(`${r.nr} ${r.file}: ${miss.join(' ')}`);
   }
   check('Der Waechter sieht die Rueckbauten auf Pruefstandsdateien',
-    rpChecked === 21, `${rpChecked} Rueckbauten`);
+    rpChecked === 22, `${rpChecked} Rueckbauten`);
   check('Und jeder ihrer Namen steht in der Zieldatei, im Rahmen oder im Suchtext',
     rpStrange.length === 0, rpStrange.slice(0, 6).join(' · '));
 
@@ -296,7 +296,7 @@ async function run() {
       ['test/release_031.js', 389],
       ['test/roundtrip.js', 3128],
       ['test/selfcheck.js', 152],
-      ['test/source.js', 605],
+      ['test/source.js', 629],
       ['test/ui_entry.js', 497],
       ['test/ui_export.js', 453],
       ['test/ui_inventory.js', 241],
@@ -305,7 +305,7 @@ async function run() {
       ['test/ui_style.js', 562],
       ['test/ui_system.js', 692],
       ['test/ui_translator.js', 104],
-      ['counterproof.js', 1468],
+      ['counterproof.js', 1473],
       ['server.js', 1424],
       ['auth.js', 274],
       ['db.js', 272],
@@ -320,7 +320,7 @@ async function run() {
       ['public/app.js', 1808],
       ['public/theme.js', 3],
     ];
-    const COMMENT_TOTAL = { comment: 14226, code: 59848 };
+    const COMMENT_TOTAL = { comment: 14255, code: 59911 };
     check('Der Waechter sieht alle vierunddreissig Dateien',
       crAll.each.length === 34 && COMMENT_ROWS.length === 34,
       `${crAll.each.length} gemessen, ${COMMENT_ROWS.length} genannt`);

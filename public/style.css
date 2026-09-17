@@ -2656,11 +2656,6 @@ mark {
 .warn-box { background: var(--red-dim); border: 1px solid rgba(var(--red-rgb), .3); border-radius: var(--r-sm); padding: 11px 13px; font-size: .87rem; color: var(--text-2); line-height: 1.55; }
 .warn-box strong { color: var(--red); }
 .ok-box { background: var(--green-dim); border: 1px solid rgba(var(--green-rgb), .3); border-radius: var(--r-sm); padding: 11px 13px; font-size: .87rem; color: var(--text-2); line-height: 1.55; }
-/* Die Zahl der Sicherungen, die noch mit dem ALTEN Schluessel verschluesselt
-   sind (0.8.91). Sie steht IN der Zeile "Dateien am Ort" und nicht nur im
-   Kasten darueber: wer die Zahl liest, soll sofort sehen, dass sie nicht die
-   Zahl der brauchbaren Kopien ist. Nimmt den vorhandenen Rotton, kein neuer. */
-.backup-old { color: var(--red); }
 
 /* ---------- Der zweite Faktor, seit 0.10.0 ----------
    DER ZUSTAND STEHT OHNE KLICK DA, und er steht farbig da: gruen fuer "an",
