@@ -5012,9 +5012,9 @@ const REGRESSIONS = [
     // Die Schranke der Stufen lockert sich: 90 ginge durch.
     nr: '631', name: 'Der Bildstreifen laesst eine ungueltige Stufe durch',
     file: 'server.js',
-    search: "    if (!STRIP_LEVELS.includes(n))",
-    replacement: "    if (!Number.isFinite(n))",
-    expected: 'Die Einstellung strip — 0.22.0'
+    search: "  strip:       { list: STRIP_LEVELS,       cast: Number, fallback: 80,",
+    replacement: "  strip:       { list: [...STRIP_LEVELS, 90], cast: Number, fallback: 80,",
+    expected: 'Die Einstellung streifen — 0.22.0'
   },
   {
     // Die Vorgabe vergisst eines der zwei neuen Woerter -- dreizehn statt vierzehn.
@@ -5743,8 +5743,8 @@ const REGRESSIONS = [
   {
     nr: '732', name: 'Der Import legt die Sprachfassungen nicht wieder hinein',
     file: 'server.js',
-    search: "      ['criterion_names', 'criterion_id', critByName, payload.criteriaNames],",
-    replacement: "      ['criterion_names', 'criterion_id', critByName, null],",
+    search: "      [iCritNameAdd, critByName, payload.criteriaNames],",
+    replacement: "      [iCritNameAdd, critByName, null],",
     expected: 'Der Rueckfall der Namen — 0.24.3'
   },
   /* ---- Die Sprachpillen der Namenskarten -- 0.24.5 ---- ZWOELF RUECKBAUTEN
@@ -8603,6 +8603,52 @@ const REGRESSIONS = [
     search: "  \"list.backToList\":",
     replacement: "  \"list.backToListGone\":",
     expected: 'Jeder Schluessel der Sprachdatei hat einen Leser — 0.35.0'
+  },
+
+  /* ---- 0.35.0 · BA 3: umstaendlich in server.js ------------------------- */
+  {
+    /* Der Leser faellt nicht mehr auf die Vorgabe zurueck: ein Wert, der
+       nicht in der Stufenliste steht, geht unbesehen hinaus. */
+    nr: '1068', name: 'Die Stufeneinstellung faellt nicht mehr auf ihre Vorgabe zurueck',
+    file: 'server.js',
+    search: "  return a.list.includes(v) ? v : a.fallback;",
+    replacement: "  return v;",
+    expected: 'Persoenliche Einstellungen'
+  },
+  {
+    /* Der Schreiber nimmt jeden Wert an, auch einen ausserhalb der Liste. */
+    nr: '1069', name: 'Die Stufeneinstellung nimmt jeden Wert an',
+    file: 'server.js',
+    search: "    if (a.list.includes(v)) {",
+    replacement: "    if (true) {",
+    expected: 'Die Einstellung streifen — 0.22.0'
+  },
+  {
+    /* Die vorbereitete Abfrage des Exports laesst den Ausschnitt weg -- die
+       drei Werte fehlen dann in der Datei. */
+    nr: '1070', name: 'Der Export liest die Fotos wieder ohne ihren Ausschnitt',
+    file: 'server.js',
+    search: "  'SELECT mime_type, data, thumb, medium, focus_x, focus_y, zoom, kind, duration FROM photos WHERE item_id = ? ORDER BY sort_order, id');",
+    replacement: "  'SELECT mime_type, data, thumb, medium, NULL AS focus_x, NULL AS focus_y, NULL AS zoom, kind, duration FROM photos WHERE item_id = ? ORDER BY sort_order, id');",
+    expected: 'Der Export in Teilen'
+  },
+  {
+    /* Suchen und Anlegen legt immer an: der Import bekommt jede Kategorie,
+       jedes Schlagwort und jedes Kriterium ein zweites Mal. */
+    nr: '1071', name: 'Suchen und Anlegen legt immer neu an',
+    file: 'server.js',
+    search: "  const f = find.get(name);\n  return f ? f.id : add.run(name, ...extra()).lastInsertRowid;",
+    replacement: "  const f = null;\n  return f ? f.id : add.run(name, ...extra()).lastInsertRowid;",
+    expected: 'Export und Import'
+  },
+  {
+    /* Das Grundobjekt der Sicherungsantwort verliert die angesagte Dauer --
+       sie fehlt damit in allen drei Rueckgaben auf einmal. */
+    nr: '1072', name: 'Die Sicherungsantwort sagt ihre Dauer nicht mehr an',
+    file: 'server.js',
+    search: "  const base = { place, dbBytes, durationSeconds: duration, cleanup: rule };",
+    replacement: "  const base = { place, dbBytes, cleanup: rule };",
+    expected: 'Die Sicherung auf Knopfdruck'
   },
 ];
 

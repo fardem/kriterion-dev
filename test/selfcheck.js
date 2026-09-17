@@ -25,7 +25,7 @@ async function run() {
   // Die Zahl der Rueckbauten steht ausdruecklich da: eine Zahl in einem
   // Papier ist eine Behauptung, eine Zahl im Pruefstand ist ein Beleg. Wie
   // sie Runde fuer Runde gewachsen ist, steht in den Aenderungsprotokollen.
-  check(`Es sind genau 1005 Rueckbauten`, gpList.length === 1005, `${gpList.length}`);
+  check(`Es sind genau 1010 Rueckbauten`, gpList.length === 1010, `${gpList.length}`);
   const gpTwice = gpList.map(r => r.nr).filter((n, i, a) => a.indexOf(n) !== i);
   check('Und keine Nummer steht zweimal', gpTwice.length === 0, gpTwice.join(' '));
   /* JEDER GREIFT: der Suchtext kommt in seiner Datei GENAU EINMAL vor. */
@@ -305,8 +305,8 @@ async function run() {
       ['test/ui_style.js', 562],
       ['test/ui_system.js', 692],
       ['test/ui_translator.js', 104],
-      ['counterproof.js', 1473],
-      ['server.js', 1424],
+      ['counterproof.js', 1483],
+      ['server.js', 1436],
       ['auth.js', 274],
       ['db.js', 272],
       ['mail.js', 40],
@@ -320,7 +320,7 @@ async function run() {
       ['public/app.js', 1808],
       ['public/theme.js', 3],
     ];
-    const COMMENT_TOTAL = { comment: 14255, code: 59911 };
+    const COMMENT_TOTAL = { comment: 14277, code: 59959 };
     check('Der Waechter sieht alle vierunddreissig Dateien',
       crAll.each.length === 34 && COMMENT_ROWS.length === 34,
       `${crAll.each.length} gemessen, ${COMMENT_ROWS.length} genannt`);

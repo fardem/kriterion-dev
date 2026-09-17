@@ -1435,11 +1435,6 @@ const vocabularyDefaultsAll = () =>
   Object.fromEntries(LANGUAGE_CODES.map(code => [code, vocabularyDefault(code)]));
 // Sichtbare Zeilen der Linkliste, bevor aufgeklappt werden muss.
 const LINK_ROW_LEVELS = [3, 5, 8, 12];
-// Persoenlich.
-const linkRows = (userId) => {
-  const n = Number(getUserSetting(userId, 'linkRows', 5));
-  return LINK_ROW_LEVELS.includes(n) ? n : 5;
-};
 const timelineOn = (userId) => getUserSetting(userId, 'timeline', true) !== false;
 
 /* ---- Suchanbieter ---- */
@@ -1549,34 +1544,34 @@ function writePool(isDefault, active) {
   putSetting.run('searchOn', JSON.stringify([isDefault, ...rest]));
 }
 
-// Zahl der Namen unter einer Suchzeile -- persoenlich, als einzige der vier
-// Sucheinstellungen.
-const searchNames = (userId) => {
-  const n = Number(getUserSetting(userId, 'searchNames', 2));
-  return SEARCH_NAME_LEVELS.includes(n) ? n : 2;
+/* ---- FUENF EINSTELLUNGEN MIT FESTER STUFENLISTE -- 0.35.0, BA 3 ----
+   Sie standen zweimal da: einmal als Leser, einmal als Schreiber, jedes Mal
+   nach demselben Muster. Jetzt steht die Liste einmal, und Leser wie
+   Schreiber lesen aus ihr. Alle fuenf sind persoenlich: ein Wert je Zugang
+   und fuer alle Geraete. */
+const PICK_SETTINGS = {
+  linkRows:    { list: LINK_ROW_LEVELS,    cast: Number, fallback: 5,
+                 wrong: 'server.linkRowsUnknown' },
+  searchNames: { list: SEARCH_NAME_LEVELS, cast: Number, fallback: 2,
+                 wrong: 'server.searchNamesUnknown' },
+  font:        { list: FONT_LEVELS,        cast: Number, fallback: 100,
+                 wrong: 'server.fontUnknown' },
+  theme:       { list: THEME_LEVELS,       cast: String, fallback: THEME_DEFAULT,
+                 wrong: 'server.themeUnknown' },
+  strip:       { list: STRIP_LEVELS,       cast: Number, fallback: 80,
+                 wrong: 'server.stripUnknown' }
 };
-
-// Persoenlich.
-const fontSize = (userId) => {
-  const n = Number(getUserSetting(userId, 'font', 100));
-  return FONT_LEVELS.includes(n) ? n : 100;
-};
-// Persoenlich, wie die Schrift: das Farbschema (0.23.0). Dieselbe Maschine --
-// ein Wert je Zugang, ein Wert fuer alle Geraete.
-const theme = (userId) => {
-  const s = String(getUserSetting(userId, 'theme', THEME_DEFAULT));
-  return THEME_LEVELS.includes(s) ? s : THEME_DEFAULT;
+/* Der Leser: was nicht in der Liste steht, faellt auf die Vorgabe zurueck. */
+const pick = (userId, key) => {
+  const a = PICK_SETTINGS[key];
+  const v = a.cast(getUserSetting(userId, key, a.fallback));
+  return a.list.includes(v) ? v : a.fallback;
 };
 /* DIE SPRACHE DIESES ZUGANGS -- 0.24.3, Bauabschnitt 3. */
 const languageOf = (userId) => {
   const chosen = getUserSetting(userId, 'language', null);
   return typeof chosen === 'string' && languagePool().includes(chosen)
     ? chosen : languageDefault();
-};
-// Persoenlich, wie die Schrift: die Kachelgroesse im Bildstreifen (0.22.0).
-const strip = (userId) => {
-  const n = Number(getUserSetting(userId, 'strip', 80));
-  return STRIP_LEVELS.includes(n) ? n : 80;
 };
 
 /* --- Der Bezugspunkt der Glocke ------------------------------------------
@@ -1621,18 +1616,18 @@ app.get('/api/settings', (req, res) => res.json({
      Reparatur von D1. */
   ...(isAdmin(req)
     ? { categoryNames: categoryNamesAll(), criterionNames: criterionNamesAll() } : {}),
-  font: fontSize(req.user.id),
-  strip: strip(req.user.id),
-  theme: theme(req.user.id),
+  font: pick(req.user.id, 'font'),
+  strip: pick(req.user.id, 'strip'),
+  theme: pick(req.user.id, 'theme'),
   language: languageOf(req.user.id),
   blocks: blocks(req.user.id),
-  linkRows: linkRows(req.user.id),
+  linkRows: pick(req.user.id, 'linkRows'),
   timeline: timelineOn(req.user.id),
   /* DER BEZUGSPUNKT DER GLOCKE. */
   bellSeen: bellSeen(req.user.id),
   search: searchTemplate(),
   searchProviders: searchProviders(),
-  searchNames: searchNames(req.user.id),
+  searchNames: pick(req.user.id, 'searchNames'),
   /* JEDE SPRACHE, FUER DIE EINE DATEI LIEGT -- mit Namen, Vorgabe- und
      Vorratskennzeichnung. */
   languages: languageEntries(),
@@ -1656,6 +1651,20 @@ app.put('/api/settings', (req, res) => {
   /* Die Antwort mischt zwei Haelften, die Rechte auch: persoenliche
      Schluessel schreibt jeder fuer sich, Vokabular und Suchanbieter gehoeren
      dem Admin. */
+  /* Nimmt eine der fuenf Stufeneinstellungen an und schreibt sie. Gibt true
+     zurueck, wenn abgesagt worden ist -- dann hat der Rufer nur noch zu
+     beenden. Geschrieben wird an derselben Stelle wie bisher. */
+  const refused = (key) => {
+    if (req.body[key] === undefined) return false;
+    const a = PICK_SETTINGS[key];
+    const v = a.cast(req.body[key]);
+    if (a.list.includes(v)) {
+      putUserSetting(req.user.id, key, JSON.stringify(v));
+      return false;
+    }
+    res.status(400).json({ error: t(localeOf(req), a.wrong)});
+    return true;
+  };
   const foreign = Object.keys(req.body || {}).filter(k => !PERSONAL_KEYS.includes(k));
   if (foreign.length && !isAdmin(req))
     return res.status(403).json({ error: t(localeOf(req), DENIED_ADMIN)});
@@ -1750,26 +1759,10 @@ app.put('/api/settings', (req, res) => {
     }
     putSetting.run('vocabulary', JSON.stringify(next));
   }
-  if (req.body.font !== undefined) {
-    const n = Number(req.body.font);
-    if (!FONT_LEVELS.includes(n))
-      return res.status(400).json({ error: t(localeOf(req), 'server.fontUnknown')});
-    putUserSetting(req.user.id, 'font', JSON.stringify(n));
-  }
-  if (req.body.strip !== undefined) {
-    const n = Number(req.body.strip);
-    if (!STRIP_LEVELS.includes(n))
-      return res.status(400).json({ error: t(localeOf(req), 'server.stripUnknown')});
-    putUserSetting(req.user.id, 'strip', JSON.stringify(n));
-  }
-  /* DIE KLEMME STEHT AM SERVER UND NICHT NUR IN DER PILLENREIHE -- dieselbe
-     Bauform wie bei der Schrift daruber. */
-  if (req.body.theme !== undefined) {
-    const s = String(req.body.theme);
-    if (!THEME_LEVELS.includes(s))
-      return res.status(400).json({ error: t(localeOf(req), 'server.themeUnknown')});
-    putUserSetting(req.user.id, 'theme', JSON.stringify(s));
-  }
+  if (refused('font')) return;
+  if (refused('strip')) return;
+  /* DIE KLEMME STEHT AM SERVER UND NICHT NUR IN DER PILLENREIHE. */
+  if (refused('theme')) return;
   if (req.body.blocks !== undefined) {
     const input = req.body.blocks || {};
     putUserSetting(req.user.id, 'blocks', JSON.stringify({
@@ -1778,12 +1771,7 @@ app.put('/api/settings', (req, res) => {
       closed: (Array.isArray(input.closed) ? input.closed : []).filter(k => CLOSED_BLOCKS.includes(k))
     }));
   }
-  if (req.body.linkRows !== undefined) {
-    const n = Number(req.body.linkRows);
-    if (!LINK_ROW_LEVELS.includes(n))
-      return res.status(400).json({ error: t(localeOf(req), 'server.linkRowsUnknown')});
-    putUserSetting(req.user.id, 'linkRows', JSON.stringify(n));
-  }
+  if (refused('linkRows')) return;
   if (req.body.timeline !== undefined)
     putUserSetting(req.user.id, 'timeline', JSON.stringify(!!req.body.timeline));
   /* DER MERKZEITPUNKT KOMMT VON DER SERVERUHR, NIE VOM AUFRUFER. */
@@ -1844,12 +1832,7 @@ app.put('/api/settings', (req, res) => {
       return res.status(400).json({ error: t(localeOf(req), 'server.languageUnknown')});
     putUserSetting(req.user.id, 'language', JSON.stringify(wanted));
   }
-  if (req.body.searchNames !== undefined) {
-    const n = Number(req.body.searchNames);
-    if (!SEARCH_NAME_LEVELS.includes(n))
-      return res.status(400).json({ error: t(localeOf(req), 'server.searchNamesUnknown')});
-    putUserSetting(req.user.id, 'searchNames', JSON.stringify(n));
-  }
+  if (refused('searchNames')) return;
   // Die beiden Anlegen-Schalter sind global und damit Adminsache -- ueber die
 // Ableitung ganz oben, ohne zweite Liste und ohne eigene Route.
   for (const k of ['tagsFreeCreate', 'categoriesFreeCreate'])
@@ -1879,13 +1862,13 @@ app.put('/api/settings', (req, res) => {
              vocabulariesOwn: vocabularyOwnAll(),
              vocabularyDefaults: vocabularyDefaultsAll(),
              views: views(req.user.id), viewsCap: VIEWS_CAP,
-             font: fontSize(req.user.id), strip: strip(req.user.id),
-             theme: theme(req.user.id),
+             font: pick(req.user.id, 'font'), strip: pick(req.user.id, 'strip'),
+             theme: pick(req.user.id, 'theme'),
              language: languageOf(req.user.id),
              blocks: blocks(req.user.id),
-             linkRows: linkRows(req.user.id), timeline: timelineOn(req.user.id),
+             linkRows: pick(req.user.id, 'linkRows'), timeline: timelineOn(req.user.id),
              search: searchTemplate(), searchProviders: searchProviders(),
-             searchNames: searchNames(req.user.id),
+             searchNames: pick(req.user.id, 'searchNames'),
              tagsFreeCreate: freeCreate('tagsFreeCreate'),
              categoriesFreeCreate: freeCreate('categoriesFreeCreate'),
              potentialMode: potentialMode(),
@@ -3920,6 +3903,24 @@ function bundleState(userId, switches = {}) {
 
 // Die Abbildung je Eintrag. Sie kommt genau einmal vor; ein Waechter im
 // Pruefstand haelt das fest.
+/* ---- DIE SECHS ABFRAGEN DES EXPORTS -- 0.35.0, BA 3 ----
+   Sie standen bis dahin als db.prepare an Ort und Stelle im Rumpf darunter
+   und wurden damit je Eintrag neu uebersetzt. Ein Export ueber tausend
+   Eintraege uebersetzte sechstausend Mal denselben Text. */
+const qBundleTestDays = db.prepare(
+  'SELECT id, day, rating, user_id FROM test_days WHERE item_id = ? ORDER BY day, id');
+const qBundleRatings = db.prepare(`SELECT c.name, r.value, r.user_id FROM ratings r
+                         JOIN rating_criteria c ON c.id = r.criterion_id WHERE r.item_id = ?
+                         ORDER BY c.sort_order, c.id, r.user_id`);
+const qBundleComments = db.prepare(
+  'SELECT id, text, kind, pinned, created_at, updated_at, user_id, due_date FROM comments WHERE item_id = ? ORDER BY id');
+const qBundleCommentImages = db.prepare(
+  'SELECT filename, data FROM comment_images WHERE comment_id = ? ORDER BY sort_order, id');
+const qBundlePhotos = db.prepare(
+  'SELECT mime_type, data, thumb, medium, focus_x, focus_y, zoom, kind, duration FROM photos WHERE item_id = ? ORDER BY sort_order, id');
+const qBundleAttachments = db.prepare(
+  'SELECT filename, mime_type, data, user_id FROM attachments WHERE item_id = ? ORDER BY sort_order, id');
+
 function entryAsBundle(it, situation) {
   const { authorName, pins, funnel, withPhotos, withFiles, withVideos } = situation;
   const extension = funnel.extension;
@@ -3939,17 +3940,14 @@ function entryAsBundle(it, situation) {
 // Verfasser -- wie an den vier anderen Traegern.
     links: qLinks.all(it.id).map(l => ({ url: l.url, author: authorName(l.user_id) })),
     // ORDER BY day, id: zwei Leute duerfen denselben Tag eintragen.
-    testDays: db.prepare('SELECT id, day, rating, user_id FROM test_days WHERE item_id = ? ORDER BY day, id').all(it.id)
+    testDays: qBundleTestDays.all(it.id)
       .map(x => ({ day: x.day, rating: x.rating, author: authorName(x.user_id),
                    tags: qTestDayTags.all(x.id).map(y => y.name) })),
     // Dasselbe hier: je Kriterium steht eine Zeile JE BEWERTER in der
 // Tabelle.
-    ratings: db.prepare(`SELECT c.name, r.value, r.user_id FROM ratings r
-                         JOIN rating_criteria c ON c.id = r.criterion_id WHERE r.item_id = ?
-                         ORDER BY c.sort_order, c.id, r.user_id`).all(it.id)
+    ratings: qBundleRatings.all(it.id)
       .map(r => ({ name: r.name, value: r.value, author: authorName(r.user_id) })),
-    comments: db.prepare('SELECT id, text, kind, pinned, created_at, updated_at, user_id, due_date FROM comments WHERE item_id = ? ORDER BY id')
-      .all(it.id).map(c => ({
+    comments: qBundleComments.all(it.id).map(c => ({
         text: c.text, kind: c.kind, pinned: !!c.pinned, author: authorName(c.user_id),
         created_at: c.created_at, updated_at: c.updated_at,
         /* DAS FAELLIGKEITSDATUM -- 0.29.0, Formatnummer 16. Ein Feld, das im
@@ -3960,15 +3958,14 @@ function entryAsBundle(it, situation) {
         // Kommentarbilder folgen dem Schalter der Dateien; ein dritter waere
 // zu viel. Die Merkmale gehen immer mit, sie kosten nichts.
         images: withFiles
-          ? db.prepare('SELECT filename, data FROM comment_images WHERE comment_id = ? ORDER BY sort_order, id')
-              .all(c.id).map(b2 => ({ filename: b2.filename, ['data' + extension]: funnel.take(b2.data) }))
+          ? qBundleCommentImages.all(c.id)
+              .map(b2 => ({ filename: b2.filename, ['data' + extension]: funnel.take(b2.data) }))
           : []
       })),
     photos: [], attachments: []
   };
   if (withPhotos) {
-    o.photos = db.prepare('SELECT mime_type, data, thumb, medium, focus_x, focus_y, zoom, kind, duration FROM photos WHERE item_id = ? ORDER BY sort_order, id')
-      .all(it.id).map(p => {
+    o.photos = qBundlePhotos.all(it.id).map(p => {
         /* DER AUSSCHNITT GEHT MIT -- alle DREI Werte, seit Formatnummer 12.
            Ohne `zoom` in der Datei ginge er beim Einspielen verloren, und die
            Zweitinstanz zeigte einen anderen Ausschnitt als die erste. */
@@ -3989,8 +3986,7 @@ function entryAsBundle(it, situation) {
   if (withFiles) {
     // author wie an den fuenf anderen Traegern; ohne das Feld kaemen
 // eingespielte Dateien herrenlos herein. Dafuer steht die Formatnummer 8.
-    o.attachments = db.prepare('SELECT filename, mime_type, data, user_id FROM attachments WHERE item_id = ? ORDER BY sort_order, id')
-      .all(it.id)
+    o.attachments = qBundleAttachments.all(it.id)
       .map(a2 => ({ filename: a2.filename, mime_type: a2.mime_type,
                     author: authorName(a2.user_id), ['data' + extension]: funnel.take(a2.data) }));
   }
@@ -4279,21 +4275,60 @@ const importUpload = multer({ storage: multer.memoryStorage(), limits: { fileSiz
    `art` und `dauer` auf `kind` und `duration`, `valueFromFile` die Werte
    (`bild`, `vorher`), `authorFromFile` den Grabstein (`geloescht-7`). */
 
-async function importInto(payload, userId, mode2, bytesSource = null) {
-  /* ---- DIE EINE ABWEISUNG DIESER RUNDE -- 0.33.0, F15 -------------------
-     SIE STEHT VOR DER ERSTEN ZEILE ARBEIT, nicht erst vor der Transaktion:
-     eine Datei, die nicht hereinkommt, soll auch nicht erst hundert
-     Bildvarianten kosten. */
-  const fileFormat = Number(payload && payload.version);
-  if (!Number.isFinite(fileFormat) || fileFormat < EXCHANGE_FORMAT_MIN) {
-    const e = new Message('server.exportTooOld',
-                          { format: Number.isFinite(fileFormat) ? fileFormat : '?',
-                            oldest: EXCHANGE_FORMAT_MIN });
-    e.denial = true;
-    throw e;
-  }
-  // Ableitungen vorab erzeugen: das geht nicht innerhalb einer Transaktion,
-// weil es asynchron ist.
+/* ---- DIE ANWEISUNGEN DES IMPORTS -- 0.35.0, BA 3 ----
+   Sie standen bis dahin als db.prepare in den Schleifen: je Eintrag, je
+   Kommentar, je Foto und je Tag wurde derselbe Text neu uebersetzt. */
+const iDropItems = db.prepare('DELETE FROM items');
+const iDropCategories = db.prepare('DELETE FROM product_categories');
+const iDropTags = db.prepare('DELETE FROM tags');
+const iCatFind = db.prepare('SELECT id FROM product_categories WHERE name = ? COLLATE NOCASE');
+const iCatAdd = db.prepare('INSERT INTO product_categories (name, language) VALUES (?, ?)');
+const iTagFind = db.prepare('SELECT id FROM tags WHERE name = ? COLLATE NOCASE');
+const iTagAdd = db.prepare('INSERT INTO tags (name) VALUES (?)');
+const iCritFind = db.prepare('SELECT id FROM rating_criteria WHERE name = ? COLLATE NOCASE');
+const iCritLast = db.prepare('SELECT COALESCE(MAX(sort_order), -1) AS m FROM rating_criteria');
+const iCritAdd = db.prepare(
+  'INSERT INTO rating_criteria (name, sort_order, weight, phase, language) VALUES (?, ?, ?, ?, ?)');
+const iItemAdd = db.prepare(`INSERT INTO items
+        (title, description, rejected, rejected_at, rejected_reason, rejected_by,
+         tested, product_category_id, created_at, updated_at, user_id)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, COALESCE(?, datetime('now')), COALESCE(?, datetime('now')), ?)`);
+const iPinAdd = db.prepare('INSERT OR IGNORE INTO item_pins (user_id, item_id) VALUES (?, ?)');
+const iItemTagAdd = db.prepare('INSERT OR IGNORE INTO item_tags (item_id, tag_id) VALUES (?, ?)');
+const iLinkAdd = db.prepare('INSERT INTO links (item_id, url, sort_order, user_id) VALUES (?, ?, ?, ?)');
+// OR REPLACE bleibt: die Datei ist die Wahrheit, der spaetere Wert gewinnt.
+const iTestDayAdd = db.prepare(
+  'INSERT OR REPLACE INTO test_days (item_id, day, rating, user_id) VALUES (?, ?, ?, ?)');
+const iTestDayTagAdd = db.prepare(
+  'INSERT OR IGNORE INTO test_day_tags (test_day_id, tag_id) VALUES (?, ?)');
+const iRatingAdd = db.prepare(
+  'INSERT OR REPLACE INTO ratings (item_id, criterion_id, value, user_id) VALUES (?, ?, ?, ?)');
+const iCommentAdd = db.prepare(`INSERT INTO comments (item_id, text, kind, pinned, created_at, updated_at, user_id, due_date)
+                      VALUES (?, ?, ?, ?, COALESCE(?, datetime('now')), ?, ?, ?)`);
+const iCommentImageAdd = db.prepare(`INSERT INTO comment_images (comment_id, filename, data, thumb, sort_order)
+                      VALUES (?, ?, ?, ?, ?)`);
+const iPhotoAdd = db.prepare(`INSERT INTO photos (item_id, mime_type, data, thumb, medium, focus_x, focus_y, zoom, sort_order, kind, duration)
+                      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`);
+const iAttachmentAdd = db.prepare(`INSERT INTO attachments (item_id, filename, mime_type, size, data, sort_order, user_id)
+                      VALUES (?, ?, ?, ?, ?, ?, ?)`);
+const iUserByName = db.prepare('SELECT id FROM users WHERE username = ?');
+const iCritNameAdd = db.prepare(
+  'INSERT OR REPLACE INTO criterion_names (criterion_id, language, name) VALUES (?, ?, ?)');
+const iCatNameAdd = db.prepare(
+  'INSERT OR REPLACE INTO category_names (category_id, language, name) VALUES (?, ?, ?)');
+
+/* SUCHEN, UND WENN NICHTS DASTEHT, ANLEGEN -- 0.35.0, BA 3. Drei fast gleiche
+   Closures standen dafuer in der Transaktion. Was beim Anlegen neben dem
+   Namen steht, liefert `extra` -- als Funktion, damit es nur gerechnet wird,
+   wenn wirklich angelegt wird. */
+const findOrCreate = (find, add, name, extra = () => []) => {
+  const f = find.get(name);
+  return f ? f.id : add.run(name, ...extra()).lastInsertRowid;
+};
+
+/* Was vor der Transaktion anfaellt: Bildvarianten und Kommentarbilder. Beides
+   ist asynchron und hat deshalb in einer Transaktion nichts zu suchen. */
+async function importPrepare(payload, bytesSource) {
   const prepared = [];
   // Kommentarbilder je Kommentarobjekt, damit sie in der Transaktion
 // bereitliegen.
@@ -4303,8 +4338,7 @@ async function importInto(payload, userId, mode2, bytesSource = null) {
   let videosWithoutFile = 0, videosUnreadable = 0;
   for (const it of payload.items) {
     const photos = [];
-    for (const pRaw of it.photos || []) {
-      const p = pRaw;
+    for (const p of it.photos || []) {
       /* ENTSCHIEDEN WIRD UEBER DAS VORHANDENSEIN DER FELDER, nicht ueber die
          Formatnummer -- die ist im Projekt eine Aussage, keine Bedingung. */
       const isVideo = p.kind === 'video';
@@ -4318,7 +4352,8 @@ async function importInto(payload, userId, mode2, bytesSource = null) {
       /* Bei einem Video kommen die Varianten aus dem STANDBILD, nie aus data:
          dort steht die Videodatei. */
       const template = isVideo ? bytesOf(p, 'standbild', bytesSource) : buf;
-      /* DER ZUSCHNITT AUS DER DATEI GEHT IN DIE ABLEITUNG -- 0.19.5. */
+      /* DEN AUSSCHNITT AUS DER DATEI UEBERNEHMEN -- alle drei Werte, ueber
+         DIESELBE Tafel, die auch die Route benutzt (0.19.5). */
       const im = (name, raw) => displayValue(name, raw) ?? DISPLAY_VALUES[name].fallback;
       const crop = { fx: im('focus_x', p.focus_x), fy: im('focus_y', p.focus_y),
                           zoom: im('zoom', p.zoom) };
@@ -4326,8 +4361,6 @@ async function importInto(payload, userId, mode2, bytesSource = null) {
       // Dieselbe Schaerfe wie beim Hochladen: fehlt EINE der beiden
 // Varianten, wird die Zeile nicht angelegt.
       if (isVideo && (!v.thumb || !v.medium)) { videosUnreadable++; continue; }
-      /* DEN AUSSCHNITT AUS DER DATEI UEBERNEHMEN -- alle drei Werte, ueber
-         DIESELBE Tafel, die auch die Route benutzt. */
       // Die Dauer ist eine Angabe wie der gemeldete Typ, und sie wird
 // genauso beschnitten wie beim Hochladen.
       const d = Math.round(Number(p.duration));
@@ -4365,39 +4398,15 @@ async function importInto(payload, userId, mode2, bytesSource = null) {
     }
     prepared.push({ it, photos, attachments });
   }
+  return { prepared, commentImages, videosWithoutFile, videosUnreadable };
+}
 
-  /* `names` SEIT 0.24.3: die eingespielten Namen je Sprache. Sie stehen in
-     derselben Zaehlung wie alles andere -- was der Import anlegt, zaehlt er. */
-  const stats = { items: 0, photos: 0, videos: 0, comments: 0, links: 0, testDays: 0,
-                  attachments: 0, names: 0 };
-  // Die Nummern der neu angelegten Eintraege.
-  const newIds = [];
-
-  /* EIN Ort, der aus einem Namen eine Id macht -- die Gegenrichtung zur Karte
-     im Export. */
-  const nameStore = new Map();
-  const unknownNames = new Set();
-  let assigned = 0;
-  const qByName = db.prepare('SELECT id FROM users WHERE username = ?');
-  const authorId = (name) => {
-    const clean = String(name == null ? '' : name).trim();
-    if (!clean) return userId;
-    let id = nameStore.get(clean);
-    if (id === undefined) {
-      const u = qByName.get(clean);
-      id = u ? u.id : null;
-      nameStore.set(clean, id);
-    }
-    if (id == null) { unknownNames.add(clean); return userId; }
-    // Der eigene Name ist kein Fremdverweis: er zaehlt nicht als zugeordnet,
-// sonst meldete jede selbst erzeugte Datei eine Zuordnung, die keine ist.
-    if (id !== userId) assigned++;
-    return id;
-  };
-
-  /* Die Gewichte aus der Datei, einmal aufbereitet -- ausdruecklich
-     AUSSERHALB der Transaktion, weil die Antwort unten die verworfenen nennen
-     muss. */
+/* Die beiden Tafeln aus der Datei -- Gewichte und Kaesten -- und die
+   Abweisung, die sich aus den Kaesten ergibt. Alles ausdruecklich AUSSERHALB
+   der Transaktion: die Antwort unten muss die verworfenen Gewichte nennen,
+   und der Konflikt wird vor dem ersten Schreiben abgewiesen (0.21.0). */
+function importTables(payload) {
+  const lower = (name) => String(name).trim().toLocaleLowerCase(compareLocale());
   const fileWeights = new Map();
   const weightsDropped = new Set();
   const rawWeights = payload.criteriaWeights;
@@ -4407,29 +4416,22 @@ async function importInto(payload, userId, mode2, bytesSource = null) {
       if (!clean) continue;
       const g = validWeight(raw);
       if (g === null) { weightsDropped.add(clean); continue; }
-      fileWeights.set(clean.toLocaleLowerCase(compareLocale()), g);
+      fileWeights.set(lower(clean), g);
     }
   }
-
-  /* DIE KAESTEN AUS DER DATEI, im selben Muster wie die Gewichte darueber --
-     0.21.0. */
   const filePhases = new Map();
   const rawPhases = payload.criteriaPhase;
   if (rawPhases && typeof rawPhases === 'object' && !Array.isArray(rawPhases)) {
-    for (const [name, raw] of Object.entries(rawPhases)) {
+    for (const [name, value] of Object.entries(rawPhases)) {
       const clean = String(name || '').trim();
-      const value = raw;
       if (!clean || !PHASES.includes(value)) continue;
-      filePhases.set(clean.toLocaleLowerCase(compareLocale()), value);
+      filePhases.set(lower(clean), value);
     }
   }
   /* DIESELBE LOCALE WIE BEIM SCHREIBEN DER TAFEL DARUEBER -- zwei
      verschiedene Regeln fuer denselben Schluessel faenden einander nie. */
-  const phaseFrom = (name) =>
-    filePhases.get(String(name).trim().toLocaleLowerCase(compareLocale())) || PHASE_DEFAULT;
+  const phaseFrom = (name) => filePhases.get(lower(name)) || PHASE_DEFAULT;
 
-  /* DER KONFLIKT UEBER DIE KAESTEN HINWEG, UND ER WIRD VOR DEM ERSTEN
-     SCHREIBEN ABGEWIESEN -- 0.21.0. */
   const qPhaseOf = db.prepare('SELECT name, phase FROM rating_criteria WHERE name = ? COLLATE NOCASE');
   const conflicts = [];
   for (const name of Array.isArray(payload.criteria) ? payload.criteria : []) {
@@ -4445,14 +4447,65 @@ async function importInto(payload, userId, mode2, bytesSource = null) {
     e.denial = true;
     throw e;
   }
+  return { fileWeights, weightsDropped, phaseFrom, lower };
+}
+
+async function importInto(payload, userId, mode2, bytesSource = null) {
+  /* ---- DIE EINE ABWEISUNG DIESER RUNDE -- 0.33.0, F15 -------------------
+     SIE STEHT VOR DER ERSTEN ZEILE ARBEIT, nicht erst vor der Transaktion:
+     eine Datei, die nicht hereinkommt, soll auch nicht erst hundert
+     Bildvarianten kosten. */
+  const fileFormat = Number(payload && payload.version);
+  if (!Number.isFinite(fileFormat) || fileFormat < EXCHANGE_FORMAT_MIN) {
+    const e = new Message('server.exportTooOld', {
+      format: Number.isFinite(fileFormat) ? fileFormat : '?',
+      oldest: EXCHANGE_FORMAT_MIN
+    });
+    e.denial = true;
+    throw e;
+  }
+  // Ableitungen vorab erzeugen: das geht nicht innerhalb einer Transaktion,
+// weil es asynchron ist.
+  const { prepared, commentImages, videosWithoutFile, videosUnreadable } =
+    await importPrepare(payload, bytesSource);
+
+  /* `names` SEIT 0.24.3: die eingespielten Namen je Sprache. Sie stehen in
+     derselben Zaehlung wie alles andere -- was der Import anlegt, zaehlt er. */
+  const stats = { items: 0, photos: 0, videos: 0, comments: 0, links: 0, testDays: 0,
+                  attachments: 0, names: 0 };
+  // Die Nummern der neu angelegten Eintraege.
+  const newIds = [];
+
+  /* EIN Ort, der aus einem Namen eine Id macht -- die Gegenrichtung zur Karte
+     im Export. */
+  const nameStore = new Map();
+  const unknownNames = new Set();
+  let assigned = 0;
+  const authorId = (name) => {
+    const clean = String(name == null ? '' : name).trim();
+    if (!clean) return userId;
+    let id = nameStore.get(clean);
+    if (id === undefined) {
+      const u = iUserByName.get(clean);
+      id = u ? u.id : null;
+      nameStore.set(clean, id);
+    }
+    if (id == null) { unknownNames.add(clean); return userId; }
+    // Der eigene Name ist kein Fremdverweis: er zaehlt nicht als zugeordnet,
+// sonst meldete jede selbst erzeugte Datei eine Zuordnung, die keine ist.
+    if (id !== userId) assigned++;
+    return id;
+  };
+
+  const { fileWeights, weightsDropped, phaseFrom, lower } = importTables(payload);
 
   // Ein einziger Vorgang: bricht etwas ab, bleibt der Bestand unveraendert.
   db.transaction(() => {
     if (mode2 === 'replace') {
       /* DIESE DREI ZEILEN FUELLEN DEN PAPIERKORB AUSDRUECKLICH NICHT. */
-      db.prepare('DELETE FROM items').run();
-      db.prepare('DELETE FROM product_categories').run();
-      db.prepare('DELETE FROM tags').run();
+      iDropItems.run();
+      iDropCategories.run();
+      iDropTags.run();
     }
     /* DIE ERSTELLUNGSSPRACHE AUS DER DATEI -- 0.25.0, Formatnummer 15. Eine
        Datei der Nummer 14 und aelter traegt das Feld nicht; dann bleibt die
@@ -4467,33 +4520,19 @@ async function importInto(payload, userId, mode2, bytesSource = null) {
     };
     const critLanguages = fileLanguage(payload.criteriaLanguages);
     const catLanguages = fileLanguage(payload.categoryLanguages);
-    const languageOf = (table, name) =>
-      table.get(String(name).trim().toLocaleLowerCase(compareLocale())) || null;
-    const catByName = (name) => {
-      if (!name) return null;
-      const f = db.prepare('SELECT id FROM product_categories WHERE name = ? COLLATE NOCASE').get(name);
-      if (f) return f.id;
-      return db.prepare('INSERT INTO product_categories (name, language) VALUES (?, ?)')
-        .run(name, languageOf(catLanguages, name)).lastInsertRowid;
-    };
-    const tagByName = (name) => {
-      const f = db.prepare('SELECT id FROM tags WHERE name = ? COLLATE NOCASE').get(name);
-      if (f) return f.id;
-      return db.prepare('INSERT INTO tags (name) VALUES (?)').run(name).lastInsertRowid;
-    };
-    const critByName = (name) => {
-      const f = db.prepare('SELECT id FROM rating_criteria WHERE name = ? COLLATE NOCASE').get(name);
-      // EIN BEKANNTES KRITERIUM BEHAELT SEIN GEWICHT.
-      if (f) return f.id;
-      const pos = db.prepare('SELECT COALESCE(MAX(sort_order), -1) AS m FROM rating_criteria').get().m + 1;
-      // Ein NEU angelegtes bekommt das Gewicht aus der Datei, sonst 1,0.
-      const g = fileWeights.get(String(name).trim().toLocaleLowerCase(compareLocale()));
-      /* UND SEINEN KASTEN AUS DER DATEI, sonst 'after'. */
-      return db.prepare(
-        'INSERT INTO rating_criteria (name, sort_order, weight, phase, language) VALUES (?, ?, ?, ?, ?)')
-        .run(name, pos, g === undefined ? 1.0 : g, phaseFrom(name),
-             languageOf(critLanguages, name)).lastInsertRowid;
-    };
+    const languageOf = (table, name) => table.get(lower(name)) || null;
+    /* DREI TAFELN, EIN MUSTER -- 0.35.0, BA 3. Ein bekanntes Kriterium
+       behaelt sein Gewicht; ein NEU angelegtes bekommt Gewicht und Kasten aus
+       der Datei, sonst 1,0 und 'after'. */
+    const catByName = (name) => name
+      ? findOrCreate(iCatFind, iCatAdd, name, () => [languageOf(catLanguages, name)])
+      : null;
+    const tagByName = (name) => findOrCreate(iTagFind, iTagAdd, name);
+    const critByName = (name) => findOrCreate(iCritFind, iCritAdd, name, () => {
+      const g = fileWeights.get(lower(name));
+      return [iCritLast.get().m + 1, g === undefined ? 1.0 : g, phaseFrom(name),
+              languageOf(critLanguages, name)];
+    });
 
     // Kriterien vorab in der Reihenfolge der Datei anlegen.
     for (const name of Array.isArray(payload.criteria) ? payload.criteria : []) {
@@ -4511,10 +4550,7 @@ async function importInto(payload, userId, mode2, bytesSource = null) {
         ? authorId(it.rejected_author) : null;
       /* EINE DATEI DER FORMATNUMMER 10 UND AELTER TRAEGT DIE DREI FELDER
          NICHT. */
-      const id = db.prepare(`INSERT INTO items
-        (title, description, rejected, rejected_at, rejected_reason, rejected_by,
-         tested, product_category_id, created_at, updated_at, user_id)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, COALESCE(?, datetime('now')), COALESCE(?, datetime('now')), ?)`)
+      const id = iItemAdd
         .run(it.title || 'Ohne Titel', it.description || '',
              it.rejected ? 1 : 0,
              it.rejected_at == null ? null : String(it.rejected_at),
@@ -4526,12 +4562,10 @@ async function importInto(payload, userId, mode2, bytesSource = null) {
       newIds.push(id);
       // Der Favorit bleibt beim Einspielenden, auch wenn der Eintrag einem
 // anderen zufaellt: favorite heisst "habe ICH als Favorit markiert".
-      if (it.favorite) db.prepare('INSERT OR IGNORE INTO item_pins (user_id, item_id) VALUES (?, ?)')
-        .run(userId, id);
+      if (it.favorite) iPinAdd.run(userId, id);
       stats.items++;
 
-      for (const name of it.tags || [])
-        db.prepare('INSERT OR IGNORE INTO item_tags (item_id, tag_id) VALUES (?, ?)').run(id, tagByName(name));
+      for (const name of it.tags || []) iItemTagAdd.run(id, tagByName(name));
 
       // Dieselbe Regel wie beim Anlegen, damit sie an einer Stelle steht.
       /* ZWEI FORMEN, EINE SCHLEIFE: bis Formatnummer 6 ist ein Link ein
@@ -4543,40 +4577,36 @@ async function importInto(payload, userId, mode2, bytesSource = null) {
         if (!clean) return;
         const toWhom = (entry && typeof entry === 'object' && 'author' in entry)
           ? authorId(entry.author) : itemAuthor;
-        db.prepare('INSERT INTO links (item_id, url, sort_order, user_id) VALUES (?, ?, ?, ?)')
-          .run(id, clean, lpos++, toWhom);
+        iLinkAdd.run(id, clean, lpos++, toWhom);
         stats.links++;
       });
 
       for (const date of it.testDays || []) {
         if (!/^\d{4}-\d{2}-\d{2}$/.test(date.day || '')) continue;
-        // OR REPLACE bleibt: die Datei ist die Wahrheit, der spaetere Wert
-// gewinnt.
-        const simple = db.prepare(`INSERT OR REPLACE INTO test_days (item_id, day, rating, user_id) VALUES (?, ?, ?, ?)`)
+        const simple = iTestDayAdd
           .run(id, date.day, Math.max(1, Math.min(5, Number(date.rating) || 1)), authorId(date.author));
         // Aeltere Exportdateien haben hier kein Feld -- dann bleibt der
 // Testtag einfach ohne Tags.
         for (const name of Array.isArray(date.tags) ? date.tags : []) {
           const clean = String(name || '').trim();
-          if (clean) db.prepare('INSERT OR IGNORE INTO test_day_tags (test_day_id, tag_id) VALUES (?, ?)')
-            .run(simple.lastInsertRowid, tagByName(clean));
+          if (clean) iTestDayTagAdd.run(simple.lastInsertRowid, tagByName(clean));
         }
         stats.testDays++;
       }
 
       // Wie bei Eintrag, Kommentar und Testtag: der genannte Verfasser, sonst
 // der Einspielende.
-      for (const r of it.ratings || [])
-        db.prepare(`INSERT OR REPLACE INTO ratings (item_id, criterion_id, value, user_id) VALUES (?, ?, ?, ?)`)
-          .run(id, critByName(r.name), Math.max(0, Math.min(5, Number(r.value) || 0)), authorId(r.author));
+      for (const r of it.ratings || []) {
+        const value = Math.max(0, Math.min(5, Number(r.value) || 0));
+        iRatingAdd.run(id, critByName(r.name), value, authorId(r.author));
+      }
 
       for (const c of it.comments || []) {
         // Aeltere Exportdateien kennen kind und pinned nicht -- dann gilt der
 // Kommentar als gewoehnliche Notiz.
         /* UND DAS FAELLIGKEITSDATUM SEIT 0.29.0 (Formatnummer 16). */
         const cDue = c.dueDate === undefined ? { value: null } : dueValue(c.dueDate);
-        const simple = db.prepare(`INSERT INTO comments (item_id, text, kind, pinned, created_at, updated_at, user_id, due_date)
-                      VALUES (?, ?, ?, ?, COALESCE(?, datetime('now')), ?, ?, ?)`)
+        const simple = iCommentAdd
             .run(id, c.text || '', kindValue(c.kind), c.pinned ? 1 : 0,
                  c.created_at || null, c.updated_at || null, authorId(c.author),
                  cDue.error ? null : cDue.value);
@@ -4587,31 +4617,28 @@ async function importInto(payload, userId, mode2, bytesSource = null) {
         setMentions(simple.lastInsertRowid, c.text || '');
         stats.comments++;
         (commentImages.get(c) || []).forEach((b2, i) =>
-          db.prepare(`INSERT INTO comment_images (comment_id, filename, data, thumb, sort_order)
-                      VALUES (?, ?, ?, ?, ?)`)
-            .run(simple.lastInsertRowid, b2.name, b2.big, b2.small, i));
+          iCommentImageAdd.run(simple.lastInsertRowid, b2.name, b2.big, b2.small, i));
       }
 
       // Fortlaufend neu nummeriert: uebergangene Videos hinterlassen keine
 // Luecke in der Reihenfolge.
-      photos.forEach((p, i) =>
-        { db.prepare(`INSERT INTO photos (item_id, mime_type, data, thumb, medium, focus_x, focus_y, zoom, sort_order, kind, duration)
-                      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`)
-            .run(id, p.mime, p.buf, p.thumb, p.medium, p.fx, p.fy, p.zoom, i, p.kind, p.duration);
-          if (p.kind === 'video') stats.videos++; else stats.photos++; });
+      photos.forEach((p, i) => {
+        iPhotoAdd.run(id, p.mime, p.buf, p.thumb, p.medium, p.fx, p.fy, p.zoom, i, p.kind, p.duration);
+        if (p.kind === 'video') stats.videos++; else stats.photos++;
+      });
 
       /* Fehlt das Feld (aeltere Exportdatei oder Export ohne Dateien), bleibt
          der Eintrag einfach ohne Anhaenge. */
-      attachments.forEach((a2, i) =>
-        { db.prepare(`INSERT INTO attachments (item_id, filename, mime_type, size, data, sort_order, user_id)
-                      VALUES (?, ?, ?, ?, ?, ?, ?)`)
-            .run(id, a2.name, a2.mime, a2.buf.length, a2.buf, i,
-                 a2.hasAuthor ? authorId(a2.author) : itemAuthor); stats.attachments++; });
+      attachments.forEach((a2, i) => {
+        const whose = a2.hasAuthor ? authorId(a2.author) : itemAuthor;
+        iAttachmentAdd.run(id, a2.name, a2.mime, a2.buf.length, a2.buf, i, whose);
+        stats.attachments++;
+      });
     }
     /* DIE NAMEN JE SPRACHE -- 0.24.3, Formatnummer 14 (F8c). */
-    for (const [table, column, byName, raw] of [
-      ['criterion_names', 'criterion_id', critByName, payload.criteriaNames],
-      ['category_names', 'category_id', catByName, payload.categoryNames]]) {
+    for (const [add, byName, raw] of [
+      [iCritNameAdd, critByName, payload.criteriaNames],
+      [iCatNameAdd, catByName, payload.categoryNames]]) {
       if (!raw || typeof raw !== 'object') continue;
       for (const [language, words] of Object.entries(raw)) {
         if (!LANGUAGES[language] || !words || typeof words !== 'object') continue;
@@ -4619,8 +4646,7 @@ async function importInto(payload, userId, mode2, bytesSource = null) {
           const clean = String(name || '').trim();
           const id = clean && base ? byName(base) : null;
           if (!id) continue;
-          db.prepare(`INSERT OR REPLACE INTO ${table} (${column}, language, name)
-                      VALUES (?, ?, ?)`).run(id, language, clean);
+          add.run(id, language, clean);
           stats.names++;
         }
       }
@@ -5083,23 +5109,21 @@ app.get('/api/backup', ownerOnly, (req, res) => {
   /* DIE GRENZEN GEHEN MIT HINAUS. */
   const rule = { ...status2, keep, days,
                   limits: { keep: CLEANUP_KEEP, days: CLEANUP_DAYS } };
-  /* UEBERSETZT WIRD HIER -- 0.24.0. */
-  if (!situation.input) return res.json({ configured: false,
-                                   reason: t(localeOf(req), situation.reason, situation.values), place,
-                                   dbBytes, durationSeconds: duration, reachable: false, last: null,
-                                   changedAt, outdated: 0, cleanup: rule });
-  const target = checkPlace(place);
-  if (target.error) return res.json({ configured: true, root: situation.root, place,
-                                     inWorkDir: situation.inWorkDir,
-                                     error: t(localeOf(req), target.error, target.values),
-                                     dbBytes, durationSeconds: duration,
-                                     reachable: false, last: null,
-                                     changedAt, outdated: 0, cleanup: rule });
+  /* DREI ANTWORTEN AUS EINEM GRUNDOBJEKT -- 0.35.0, BA 3. Sie trugen zum
+     grossen Teil dieselben Felder; jede Zeile stand dreimal da.
+     UEBERSETZT WIRD HIER -- 0.24.0. */
+  const base = { place, dbBytes, durationSeconds: duration, cleanup: rule };
+  // Was kein erreichbarer Ort meldet -- zweimal dasselbe.
+  const off = { ...base, reachable: false, last: null, changedAt, outdated: 0 };
+  if (!situation.input) return res.json({ ...off, configured: false,
+    reason: t(localeOf(req), situation.reason, situation.values) });
   // Die Lage der WURZEL, nicht die des gewaehlten Unterverzeichnisses: sie ist
 // eine Eigenschaft der Einrichtung und aendert sich mit dem Zielort nicht.
-  res.json({ configured: true, root: situation.root, place, filePath: target.filePath,
-             inWorkDir: situation.inWorkDir,
-             dbBytes, durationSeconds: duration, ...lastBackup(target.filePath),
+  const here = { configured: true, root: situation.root, inWorkDir: situation.inWorkDir };
+  const target = checkPlace(place);
+  if (target.error) return res.json({ ...off, ...here,
+    error: t(localeOf(req), target.error, target.values) });
+  res.json({ ...base, ...here, filePath: target.filePath, ...lastBackup(target.filePath),
              cleanup: { ...rule, ...cleanupPreview(target.filePath, keep, days, localeOf(req)) } });
 });
 
