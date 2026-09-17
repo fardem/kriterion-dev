@@ -68,7 +68,7 @@ Fingerprint `5297965e` — davor `1f76adac`.
 
 ### Hinzugefügt
 
-- **Der einzelne Eintrag lässt sich als Datei holen.** Der Knopf steht im Fuß des Eintrags; die Route gab es seit 0.30.0, aber kein Bedienelement rief sie auf.
+- **Der einzelne Eintrag lässt sich als Datei holen.** Der Knopf steht im Fuß des Eintrags; die Route gab es seit 0.8.70, aber kein Bedienelement rief sie auf. *(Berichtigt am 17. September 2026: hier stand „seit 0.30.0“. Die Route steht im Änderungsprotokoll 0.8.70, Abschnitt J; 0.30.0 hat mit ihr nichts zu tun.)*
 - **Die Auslieferung geht gezippt hinaus.** Stilblatt, Skript, Sprachdateien und Markup: 1.001.488 Bytes je vollem Aufruf sind 268.441 geworden.
 - **Ein gefangener Fehler ohne Schlüssel geht ins Protokoll.** Bis dahin sah der Betreiber nur „Unbekannter Fehler" — denselben Text wie der Leser.
 

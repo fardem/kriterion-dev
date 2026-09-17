@@ -299,11 +299,15 @@ haben. Die eine Ausnahme heißt `v` und steht namentlich in der Prüfung — sie
 hängt an der Kacheladresse und soll gerade nicht gelesen werden.
 
 **Und der einzelne Eintrag ist über die Oberfläche zu holen.**
-`GET /api/items/:id/export` gibt es seit 0.30.0, und kein Element der
+`GET /api/items/:id/export` gibt es seit 0.8.70, und kein Element der
 Oberfläche rief die Route auf — erreichbar war sie nur, wer die Adresse von
 Hand eintippt. Der Knopf steht im Fuß des Eintrags und nur beim Betreiber: die
 Route trägt `ownerOnly`. Neu ist `entry.exportOne` in allen drei
 Sprachdateien.
+
+> **BERICHTIGT AM 17. SEPTEMBER 2026:** hier stand „seit 0.30.0“. Die Route
+> steht im Änderungsprotokoll 0.8.70, Abschnitt J; 0.30.0 hat mit ihr nichts zu
+> tun. Dieselbe Zahl war auch im CHANGELOG und im Projektstand falsch.
 
 *Das Handbuch beschrieb die Funktion samt einer Beschriftung, die es nicht
 gab („Diesen Eintrag als Datei"). Es nennt jetzt die wirkliche —

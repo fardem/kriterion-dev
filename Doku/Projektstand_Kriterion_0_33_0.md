@@ -12186,7 +12186,7 @@ Datei beim Hochladen lässt nichts zurück *(erst prüfen und ableiten, dann ein
 `db.transaction`)*; die Zahl der eigenen Suchplätze steht an einer Stelle statt
 an dreien; zwei deutsche Sätze an der Sternzeile kommen aus der Sprachdatei.
 **Dazu der Knopf, der den einzelnen Eintrag als Datei holt** —
-`GET /api/items/:id/export` gibt es seit 0.30.0 und hatte kein Bedienelement.
+`GET /api/items/:id/export` gibt es seit 0.8.70 und hatte kein Bedienelement.
 
 **WAS NICHT GEBAUT IST, steht mit Grund im Änderungsprotokoll** *(Abschnitt 9)*
 **und als Punkt 39 bis 42 im Sammelblatt:** vier Schemabefunde, drei „tote"
