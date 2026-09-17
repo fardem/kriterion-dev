@@ -19,13 +19,10 @@ async function run() {
   group('Die Gegenproben greifen');
 
   const gpList = require('./counterproof').REGRESSIONS;
-  /* DIE ZAHL AUSDRUECKLICH, wie bei F_ROUTES und den Listen aus auth.js
-: eine Zahl in einem Papier ist eine Behauptung, eine
-     Zahl im Pruefstand ist ein Beleg. */
   // Die Zahl der Rueckbauten steht ausdruecklich da: eine Zahl in einem
   // Papier ist eine Behauptung, eine Zahl im Pruefstand ist ein Beleg. Wie
   // sie Runde fuer Runde gewachsen ist, steht in den Aenderungsprotokollen.
-  check(`Es sind genau 1032 Rueckbauten`, gpList.length === 1032, `${gpList.length}`);
+  check(`Es sind genau 1036 Rueckbauten`, gpList.length === 1036, `${gpList.length}`);
   const gpTwice = gpList.map(r => r.nr).filter((n, i, a) => a.indexOf(n) !== i);
   check('Und keine Nummer steht zweimal', gpTwice.length === 0, gpTwice.join(' '));
   /* JEDER GREIFT: der Suchtext kommt in seiner Datei GENAU EINMAL vor. */
@@ -354,27 +351,27 @@ async function run() {
       ['test/dom.js', 347],
       ['test/firstlogin.js', 30],
       ['test/frame.js', 164],
-      ['test/keychange.js', 70],
+      ['test/keychange.js', 81],
       ['test/release_029.js', 60],
       ['test/release_030.js', 241],
-      ['test/release_031.js', 395],
-      ['test/roundtrip.js', 3164],
+      ['test/release_031.js', 398],
+      ['test/roundtrip.js', 3198],
       ['test/selfcheck.js', 172],
-      ['test/source.js', 701],
+      ['test/source.js', 710],
       ['test/ui_entry.js', 497],
       ['test/ui_export.js', 453],
       ['test/ui_inventory.js', 241],
-      ['test/ui_language.js', 273],
+      ['test/ui_language.js', 275],
       ['test/ui_overview.js', 494],
       ['test/ui_style.js', 562],
       ['test/ui_system.js', 692],
       ['test/ui_translator.js', 104],
-      ['counterproof.js', 1523],
-      ['server.js', 1487],
+      ['counterproof.js', 1529],
+      ['server.js', 1500],
       ['auth.js', 274],
       ['db.js', 272],
       ['mail.js', 40],
-      ['keys.js', 45],
+      ['keys.js', 50],
       ['attachments.js', 66],
       ['images.js', 27],
       ['batchrun.js', 28],
@@ -384,7 +381,7 @@ async function run() {
       ['public/app.js', 1855],
       ['public/theme.js', 3],
     ];
-    const COMMENT_TOTAL = { comment: 14580, code: 60454 };
+    const COMMENT_TOTAL = { comment: 14663, code: 60667 };
     check('Der Waechter sieht alle vierunddreissig Dateien',
       crAll.each.length === 34 && COMMENT_ROWS.length === 34,
       `${crAll.each.length} gemessen, ${COMMENT_ROWS.length} genannt`);
@@ -552,8 +549,15 @@ async function run() {
       ['kommt am echten Bestand vor', 'der widerlegte Satz zu Rueckbau 433'],
       ['kommt am ECHTEN Bestand vor', 'der widerlegte Satz zu Rueckbau 433']
     ];
-    const searched = ['server.js', 'public/app.js', 'counterproof.js', 'README.md',
-                        'CHANGELOG.md', 'Doku/Aenderungsprotokoll_0.19.0.md'];
+    /* DIE SECHSTE DATEI LIEGT UNTER Doku/ UND FEHLT IM OEFFENTLICHEN STAND
+       -- 0.35.0, siehe Doku/Veroeffentlichen.md. Sie wird gelesen, wenn sie
+       dasteht; die fuenf uebrigen sind Pflicht. */
+    const SEARCH_OPTIONAL = 'Doku/Aenderungsprotokoll_0.19.0.md';
+    const searchAlways = ['server.js', 'public/app.js', 'counterproof.js', 'README.md',
+                        'CHANGELOG.md'];
+    const searched = [...searchAlways,
+      ...(fs.existsSync(path.join(__dirname, ...SEARCH_OPTIONAL.split('/')))
+          ? [SEARCH_OPTIONAL] : [])];
     const matched = [];
     for (const file of searched) {
       const full = path.join(__dirname, ...file.split('/'));
@@ -564,9 +568,12 @@ async function run() {
     }
     /* ERST DAS VORHANDENSEIN DES GEGENSTANDS: ein Waechter,
        der auf null Dateien laeuft, ist gruen und belegt nichts. */
-    check('Der Waechter sieht alle sechs Dateien an',
-      searched.every(d => fs.existsSync(path.join(__dirname, ...d.split('/')))),
-      searched.filter(d => !fs.existsSync(path.join(__dirname, ...d.split('/')))).join(' · '));
+    check('Der Waechter sieht die fuenf Pflichtdateien an, und die sechste wenn sie dasteht',
+      searchAlways.every(d => fs.existsSync(path.join(__dirname, ...d.split('/'))))
+      && searched.length >= 5,
+      `${searched.length} Dateien · ` +
+      (searchAlways.filter(d => !fs.existsSync(path.join(__dirname, ...d.split('/')))).join(' · ')
+       || 'alle da'));
     check('Keine der drei berichtigten Behauptungen steht noch irgendwo',
       matched.length === 0, matched.join(' · '));
     /* UND DIE BERICHTIGUNGEN STEHEN WIRKLICH DA. */

@@ -1,8 +1,7 @@
 # Changelog
 
 Alle beachtenswerten Änderungen an diesem Projekt — **kurzgefasst für den, der
-Kriterion betreibt.** Wie etwas gebaut wurde und warum, steht im
-Änderungsprotokoll der jeweiligen Runde (`Doku/Aenderungsprotokoll_<Version>.md`).
+Kriterion betreibt.**
 
 Das Format folgt [Keep a Changelog](https://keepachangelog.com/de/1.1.0/),
 die Versionsnummern folgen [Semantic Versioning](https://semver.org/lang/de/).
@@ -31,6 +30,30 @@ ihre deutschen Abschnittsüberschriften bleiben.*
 
 *Hier wird mitgeschrieben, während gebaut wird.*
 
+## [0.35.1] - 2026-09-17
+
+*Die drei Sicherheitsbefunde aus der Messung zur 0.35.0, die dort nicht gebaut
+worden sind. Kein Verhalten ändert sich, das jemand bestellt hat — es ändern
+sich drei Antworten, die vorher falsch waren.*
+
+> **Startet der Server nicht mehr und nennt die Meldung `data/encryption.key`,
+> dann ist diese Datei beschädigt.** Sie jetzt durch eine neue zu ersetzen
+> kostet den ganzen Bestand — erst die Sicherung der Datei suchen. Bis 0.35.0
+> ging die beschädigte Datei unbesehen durch, und der Server meldete
+> stattdessen „file is not a database".
+
+Fingerprint `10017d45` — davor `5297965e`.
+
+### Behoben
+
+- **Eine beschädigte `data/encryption.key` hält den Start an.** Bis dahin ging sie ungeprüft an SQLCipher: bei vorhandener Datenbank kam „file is not a database", bei fehlender entstand eine neue unter einem Schlüssel, der sich nicht wiederherstellen lässt.
+- **Eine abgewiesene Einstellungsanfrage lässt den Bestand, wie er war.** Ein Rumpf mit `{font: 80, strip: 999}` schrieb die Schrift und antwortete dann mit 400; elf von dreizehn Absagen standen hinter Schreibstellen.
+- **Eine Papierkorbzeile lässt sich nicht zweimal gleichzeitig zurückholen.** Zwei Anfragen auf dieselbe Nummer legten den Eintrag zweimal an, ohne dass eine der beiden Antworten es sagte; die zweite bekommt jetzt 409.
+
+### Hinzugefügt
+
+- **Ein Satz in allen drei Sprachen** für den zweiten Versuch auf dieselbe Papierkorbzeile.
+
 ## [0.35.0] - 2026-09-17
 
 *Code-Effizienz. Die Runde ändert am Verhalten nichts — bis auf einen Fehler,
@@ -41,9 +64,11 @@ komprimiert die Auslieferung und kürzt die Kommentare des Stilblatts.*
 > stehen hat, stellt sie auf `GET /api/config` um. Die alte Route lag hinter
 > der Anmeldung und taugte für diesen Zweck ohnehin nicht.
 
+Fingerprint `5297965e` — davor `1f76adac`.
+
 ### Hinzugefügt
 
-- **Der einzelne Eintrag lässt sich als Datei holen.** Der Knopf steht im Fuß des Eintrags; die Route gab es seit 0.30.0, aber kein Bedienelement rief sie auf.
+- **Der einzelne Eintrag lässt sich als Datei holen.** Der Knopf steht im Fuß des Eintrags; die Route gab es seit 0.8.70, aber kein Bedienelement rief sie auf. *(Berichtigt am 17. September 2026: hier stand „seit 0.30.0“. Die Route steht im Änderungsprotokoll 0.8.70, Abschnitt J; 0.30.0 hat mit ihr nichts zu tun.)*
 - **Die Auslieferung geht gezippt hinaus.** Stilblatt, Skript, Sprachdateien und Markup: 1.001.488 Bytes je vollem Aufruf sind 268.441 geworden.
 - **Ein gefangener Fehler ohne Schlüssel geht ins Protokoll.** Bis dahin sah der Betreiber nur „Unbekannter Fehler" — denselben Text wie der Leser.
 
@@ -1715,7 +1740,7 @@ nicht mehr übernehmen.*
      zwar (0.8.3 bis v0.8.91), aber die Reihe ist lückenhaft und die
      Schreibweise uneinheitlich — verlässlich verlinkbar ist sie erst ab
      0.10.0. Ab 0.11.0 steht deshalb ein echter Vergleich; für alles vor
-     0.10.0 bleibt das Änderungsprotokoll in `Doku/` das Ziel.
+     0.10.0 gibt es keinen.
      `v0.10.0` liegt am Remote und trägt. ACHTUNG: ab `v0.11.0` fehlen sie alle
      am Remote; solange das so ist, zeigen die Verweise darunter ins Leere.
      SEIT DEM 30. AUGUST 2026 IST ENTSCHIEDEN, DASS KEINE TAGS MEHR GESETZT

@@ -1314,6 +1314,7 @@
   "server.titleMissing": "Please enter a title.",
   "server.titlesBoth": "Both titles must be filled in.",
   "server.trashGone": "That no longer exists in the trash.",
+  "server.trashRestoring": "That is being restored right now.",
   "server.trashUnreadable": "That cannot be read from the trash.",
   "server.twoFactorOff": "The second factor is not switched on.",
   "server.userDeleted": "This user is deleted.",

@@ -1724,19 +1724,17 @@ app.put('/api/settings', (req, res) => {
   /* Die Antwort mischt zwei Haelften, die Rechte auch: persoenliche
      Schluessel schreibt jeder fuer sich, Vokabular und Suchanbieter gehoeren
      dem Admin. */
-  /* Nimmt eine der fuenf Stufeneinstellungen an und schreibt sie. Gibt true
-     zurueck, wenn abgesagt worden ist -- dann hat der Rufer nur noch zu
-     beenden. Geschrieben wird an derselben Stelle wie bisher. */
-  const refused = (key) => {
-    if (req.body[key] === undefined) return false;
+  /* EINE ABSAGE WIRFT, STATT ZU ANTWORTEN: der Wurf verlaesst die
+     Transaktion weiter unten, und sie nimmt zurueck, was schon geschrieben
+     war. */
+  const refuse = (key, values) => { throw new Message(key, values); };
+  /* Nimmt eine der fuenf Stufeneinstellungen an und schreibt sie. */
+  const take = (key) => {
+    if (req.body[key] === undefined) return;
     const a = PICK_SETTINGS[key];
     const v = a.cast(req.body[key]);
-    if (a.list.includes(v)) {
-      putUserSetting(req.user.id, key, JSON.stringify(v));
-      return false;
-    }
-    res.status(400).json({ error: t(localeOf(req), a.wrong)});
-    return true;
+    if (!a.list.includes(v)) refuse(a.wrong);
+    putUserSetting(req.user.id, key, JSON.stringify(v));
   };
   const foreign = Object.keys(req.body || {}).filter(k => !PERSONAL_KEYS.includes(k));
   if (foreign.length && !isAdmin(req))
@@ -1747,210 +1745,214 @@ app.put('/api/settings', (req, res) => {
   if (ownerOnly2.length && !isOwner(req))
     return res.status(403).json({ error: t(localeOf(req), DENIED_OWNER)});
 
-  /* DIE BEIDEN WERTE DER AUFRAEUMREGEL WERDEN HIER GEPRUEFT UND ERST WEITER
-     UNTEN GESCHRIEBEN -- aus demselben Grund wie die Ansichten darunter: eine
-     Absage, die schon etwas geschrieben hat, waere schlimmer als gar keine. */
-  const ruleValues = {};
-  for (const [k, range, event] of [['backupKeep', CLEANUP_KEEP, 'server.ruleKeep'],
-                                  ['backupDays', CLEANUP_DAYS, 'server.ruleDays']]) {
-    if (req.body[k] === undefined) continue;
-    const g = checkRuleValue(req.body[k], range, event);
-    if (g.error) return res.status(400).json({ error: t(localeOf(req), g.error, g.values) });
-    ruleValues[k] = g.value;
-  }
+  /* ---- ALLES WEITERE IN EINER TRANSAKTION -------------------------------
+     Elf Absagen standen hinter Schreibstellen: ein Rumpf mit `{font: 80,
+     strip: 999}` schrieb `font` und antwortete dann mit 400. Die beiden
+     Rechteabsagen darueber stehen vor jeder Zeile Arbeit und bleiben aussen.
+     Die Antwort wird drinnen gebaut und erst danach gesendet. */
+  let answer;
+  try {
+    answer = db.transaction(() => {
 
-  /* DIE WAHL DER BILDABLAGE WIRD HIER GEPRUEFT UND ERST WEITER UNTEN
-     GESCHRIEBEN -- 0.27.0, aus demselben Grund wie die beiden Werte darueber
-     und die Ansichten darunter: eine Absage, die schon etwas geschrieben hat,
-     waere schlimmer als gar keine. */
-  let storeWanted = null;
-  if (req.body.imageStore !== undefined) {
-    if (!isImageStore(req.body.imageStore))
-      return res.status(400).json({ error: t(localeOf(req), 'server.imageStoreUnknown')});
-    storeWanted = req.body.imageStore;
-  }
-
-  /* DIE ANSICHTEN WERDEN HIER GEPRUEFT UND ERST WEITER UNTEN GESCHRIEBEN --
-     VOR dem ersten putUserSetting: eine Absage, die `filters` schon
-     geschrieben hat, waere schlimmer als gar keine. */
-  let viewsText = null;
-  if (req.body.views !== undefined) {
-    const input = Array.isArray(req.body.views) ? req.body.views : [];
-    if (input.length > VIEWS_CAP)
-      return res.status(400).json({
-        error: t(localeOf(req), 'server.viewCap', { cap: VIEWS_CAP })});
-    const clean = [];
-    const names = new Set();
-    for (const a of input) {
-      const name = a && typeof a.name === 'string'
-        ? a.name.trim().slice(0, VIEW_NAME_LENGTH) : '';
-      // Halb ausgefuellt gibt es nicht -- und wortlos verschlucken erst recht
-// nicht, sonst sucht man die Ansicht spaeter in der Liste.
-      if (!name)
-        return res.status(400).json({ error: t(localeOf(req), 'server.viewNameMissing')});
-      /* ZWEI ANSICHTEN MIT DEMSELBEN NAMEN SIND EINE ZU VIEL: der Name ist
-         das Einzige, woran ein Mensch sie auseinanderhaelt. */
-      const key = name.toLocaleLowerCase(compareLocale());
-      if (names.has(key))
-        return res.status(400).json({ error: t(localeOf(req), 'server.viewExists', { name })});
-      names.add(key);
-      clean.push({
-        name,
-        q: a && typeof a.q === 'string' ? a.q.slice(0, VIEW_TERM_LENGTH) : '',
-        filters: a && a.filters && typeof a.filters === 'object' ? a.filters : null
-      });
-    }
-    viewsText = JSON.stringify(clean);
-    if (viewsText.length > VIEWS_CHARS)
-      return res.status(400).json({ error: t(localeOf(req), 'server.viewsTooBig')});
-  }
-
-  if (req.body.filters !== undefined)
-    putUserSetting(req.user.id, 'filters', JSON.stringify(req.body.filters));
-  if (viewsText !== null)
-    putUserSetting(req.user.id, 'views', viewsText);
-  /* DAS VOKABULAR JE SPRACHE -- 0.24.3, Bauabschnitt 6. Der Rumpf traegt
-     dieselbe Form wie die Ablage: ein Objekt je Sprachkennung. */
-  if (req.body.vocabulary !== undefined) {
-    /* EINE FLACHE FORM IM RUMPF MEINT DIE SPRACHE DES RUFERS und nicht die
-       der Installation: wer fuenfzehn Woerter ohne Sprachkennung schickt,
-       meint den Satz, den er gerade vor sich hat. */
-    const incoming = vocabularyStored(req.body.vocabulary, localeOf(req));
-    const next = { ...vocabularyStored(getSetting('vocabulary', null), languageDefault()) };
-    for (const [code, words] of Object.entries(incoming)) {
-      if (!LANGUAGES[code] || !words || typeof words !== 'object') continue;
-      const clean = {};
-      /* EIN LEERES FELD FAELLT HERAUS UND WIRD NICHT ZUR VORGABE -- 0.24.4,
-         die Reparatur von B2, und es ist die eine Zeile, an der sie haengt. */
-      for (const k of Object.keys(vocabularyDefault(code))) {
-        const v = typeof words[k] === 'string' ? words[k].trim().slice(0, 40) : '';
-        if (v) clean[k] = v;
+      /* DIE BEIDEN WERTE DER AUFRAEUMREGEL -- geprueft hier, geschrieben
+         weiter unten bei den uebrigen globalen Schaltern. */
+      const ruleValues = {};
+      for (const [k, range, event] of [['backupKeep', CLEANUP_KEEP, 'server.ruleKeep'],
+                                      ['backupDays', CLEANUP_DAYS, 'server.ruleDays']]) {
+        if (req.body[k] === undefined) continue;
+        const g = checkRuleValue(req.body[k], range, event);
+        if (g.error) refuse(g.error, g.values);
+        ruleValues[k] = g.value;
       }
-      /* UND EINE SPRACHE OHNE EIN EINZIGES WORT FAELLT GANZ HERAUS -- 0.24.4. */
-      if (Object.keys(clean).length) next[code] = clean;
-      else delete next[code];
-    }
-    putSetting.run('vocabulary', JSON.stringify(next));
+
+      /* DIE WAHL DER BILDABLAGE -- geprueft hier, geschrieben weiter unten
+         bei den uebrigen globalen Schaltern. */
+      let storeWanted = null;
+      if (req.body.imageStore !== undefined) {
+        if (!isImageStore(req.body.imageStore)) refuse('server.imageStoreUnknown');
+        storeWanted = req.body.imageStore;
+      }
+
+      /* DIE ANSICHTEN -- geprueft hier, geschrieben gleich darunter
+         zusammen mit `filters`. */
+      let viewsText = null;
+      if (req.body.views !== undefined) {
+        const input = Array.isArray(req.body.views) ? req.body.views : [];
+        if (input.length > VIEWS_CAP) refuse('server.viewCap', { cap: VIEWS_CAP });
+        const clean = [];
+        const names = new Set();
+        for (const a of input) {
+          const name = a && typeof a.name === 'string'
+            ? a.name.trim().slice(0, VIEW_NAME_LENGTH) : '';
+          // Halb ausgefuellt gibt es nicht -- und wortlos verschlucken erst
+          // recht nicht, sonst sucht man die Ansicht spaeter in der Liste.
+          if (!name) refuse('server.viewNameMissing');
+          /* ZWEI ANSICHTEN MIT DEMSELBEN NAMEN SIND EINE ZU VIEL: der Name ist
+             das Einzige, woran ein Mensch sie auseinanderhaelt. */
+          const key = name.toLocaleLowerCase(compareLocale());
+          if (names.has(key)) refuse('server.viewExists', { name });
+          names.add(key);
+          clean.push({
+            name,
+            q: a && typeof a.q === 'string' ? a.q.slice(0, VIEW_TERM_LENGTH) : '',
+            filters: a && a.filters && typeof a.filters === 'object' ? a.filters : null
+          });
+        }
+        viewsText = JSON.stringify(clean);
+        if (viewsText.length > VIEWS_CHARS) refuse('server.viewsTooBig');
+      }
+
+      if (req.body.filters !== undefined)
+        putUserSetting(req.user.id, 'filters', JSON.stringify(req.body.filters));
+      if (viewsText !== null)
+        putUserSetting(req.user.id, 'views', viewsText);
+      /* DAS VOKABULAR JE SPRACHE -- 0.24.3, Bauabschnitt 6. Der Rumpf traegt
+         dieselbe Form wie die Ablage: ein Objekt je Sprachkennung. */
+      if (req.body.vocabulary !== undefined) {
+        /* EINE FLACHE FORM IM RUMPF MEINT DIE SPRACHE DES RUFERS und nicht die
+           der Installation: wer fuenfzehn Woerter ohne Sprachkennung schickt,
+           meint den Satz, den er gerade vor sich hat. */
+        const incoming = vocabularyStored(req.body.vocabulary, localeOf(req));
+        const next = { ...vocabularyStored(getSetting('vocabulary', null), languageDefault()) };
+        for (const [code, words] of Object.entries(incoming)) {
+          if (!LANGUAGES[code] || !words || typeof words !== 'object') continue;
+          const clean = {};
+          /* EIN LEERES FELD FAELLT HERAUS UND WIRD NICHT ZUR VORGABE -- 0.24.4,
+             die Reparatur von B2, und es ist die eine Zeile, an der sie haengt. */
+          for (const k of Object.keys(vocabularyDefault(code))) {
+            const v = typeof words[k] === 'string' ? words[k].trim().slice(0, 40) : '';
+            if (v) clean[k] = v;
+          }
+          /* UND EINE SPRACHE OHNE EIN EINZIGES WORT FAELLT GANZ HERAUS -- 0.24.4. */
+          if (Object.keys(clean).length) next[code] = clean;
+          else delete next[code];
+        }
+        putSetting.run('vocabulary', JSON.stringify(next));
+      }
+      take('font');
+      take('strip');
+      /* DIE KLEMME STEHT AM SERVER UND NICHT NUR IN DER PILLENREIHE. */
+      take('theme');
+      if (req.body.blocks !== undefined) {
+        const input = req.body.blocks || {};
+        putUserSetting(req.user.id, 'blocks', JSON.stringify({
+          side: sortArea(input.side, BLOCK_DEFAULT.side),
+          bottom: sortArea(input.bottom, BLOCK_DEFAULT.bottom),
+          closed: (Array.isArray(input.closed) ? input.closed : []).filter(k => CLOSED_BLOCKS.includes(k))
+        }));
+      }
+      take('linkRows');
+      if (req.body.timeline !== undefined)
+        putUserSetting(req.user.id, 'timeline', JSON.stringify(!!req.body.timeline));
+      /* DER MERKZEITPUNKT KOMMT VON DER SERVERUHR, NIE VOM AUFRUFER. */
+      if (req.body.bellSeen !== undefined)
+        putUserSetting(req.user.id, 'bellSeen',
+          JSON.stringify(db.prepare(`SELECT datetime('now', '-1 second') AS t`).get().t));
+      // Eigene Anbieter zuerst: ein frisch angelegter muss im selben Zug in
+      // den Vorrat aufgenommen werden koennen.
+      if (req.body.searchOwn !== undefined) {
+        const input = Array.isArray(req.body.searchOwn) ? req.body.searchOwn : [];
+        const clean = [];
+        for (let i = 0; i < OWN_SLOTS; i++) {
+          const e = input[i] || {};
+          const name = searchNameClean(e.name);
+          const template = typeof e.template === 'string' ? e.template.trim() : '';
+          if (!name && !template) { clean.push(null); continue; }   // Platz
+                                                                    // geraeumt
+                                                                    // Halb
+                                                                    // ausgefuellt
+                                                                    // gibt es
+                                                                    // nicht --
+                                                                    // und wortlos
+                                                                    // verschlucken
+                                                                    // erst recht
+                                                                    // nicht,
+                                                                    // sonst sucht
+                                                                    // man den
+                                                                    // Anbieter
+                                                                    // spaeter in
+                                                                    // der Liste.
+          if (!name) refuse('server.searchEngineName');
+          if (!searchTemplateOk(template)) refuse('server.searchUrlForm');
+          clean.push({ name, template });
+        }
+        putSetting.run('searchOwn', JSON.stringify(clean));
+        // Faellt ein Anbieter weg, der im Vorrat oder sogar Standard war,
+        // raeumt das Zurueckschreiben das auf: der erste aktive rueckt nach.
+        const pool = searchPool();
+        writePool(pool[0], pool);
+      }
+      // Der Vorrat kommt als Liste von Schluesseln, Standard zuerst.
+      if (req.body.searchOn !== undefined) {
+        const all = allProviders();
+        const input = (Array.isArray(req.body.searchOn) ? req.body.searchOn : [])
+          .filter(k => typeof k === 'string' && all.some(a => a.key === k && a.present));
+        // Den letzten aus dem Vorrat zu nehmen macht jede Suchzeile unbenutzbar.
+        if (!input.length) refuse('server.searchEngineLast');
+        writePool(input[0], input);
+      }
+      /* DIE SPRACHE GEGEN DEN VORRAT -- 0.24.3, Bauabschnitt 3. */
+      if (req.body.language !== undefined) {
+        const wanted = String(req.body.language);
+        if (!languagePool().includes(wanted)) refuse('server.languageUnknown');
+        putUserSetting(req.user.id, 'language', JSON.stringify(wanted));
+      }
+      take('searchNames');
+      // Die beiden Anlegen-Schalter sind global und damit Adminsache -- ueber
+      // die Ableitung ganz oben, ohne zweite Liste und ohne eigene Route.
+      for (const k of ['tagsFreeCreate', 'categoriesFreeCreate'])
+        if (req.body[k] !== undefined) putSetting.run(k, JSON.stringify(!!req.body[k]));
+      /* DIE WAHL DER BILDABLAGE. */
+      if (storeWanted !== null) putSetting.run('imageStore', JSON.stringify(storeWanted));
+      /* DER POTENZIALMODUS -- 0.26.0, derselbe Weg wie der Schalter darueber, und
+         dieselbe Rechtezeile: er steht in OWNER_KEYS, und die Schranke ganz oben
+         an dieser Route weist einen Admin ab, bevor hier eine Zeile faellt. */
+      if (req.body.potentialMode !== undefined)
+        putSetting.run('potentialMode', JSON.stringify(!!req.body.potentialMode));
+      /* DIE AUFRAEUMREGEL DER SICHERUNGEN, 0.20.0 -- derselbe Weg, dieselbe
+         Rechtezeile (OWNER_KEYS ganz oben), und die beiden Zahlen sind oben schon
+         geprueft. */
+      if (req.body.backupCleanup !== undefined)
+        putSetting.run('backupCleanup', JSON.stringify(!!req.body.backupCleanup));
+      for (const [k, v] of Object.entries(ruleValues)) putSetting.run(k, JSON.stringify(v));
+      /* VORGABESPRACHE UND VORRAT -- 0.24.3, Bauabschnitt 2 (F9). */
+      const languagesTouched =
+        req.body.languageDefault !== undefined || req.body.languageOn !== undefined;
+      if (languagesTouched)
+        writeLanguages(
+          req.body.languageDefault !== undefined ? String(req.body.languageDefault) : languageDefault(),
+          req.body.languageOn);
+      return { filters: getUserSetting(req.user.id, 'filters', null),
+                 vocabulary: vocabulary(localeOf(req)), vocabularies: vocabularyAll(),
+                 vocabulariesOwn: vocabularyOwnAll(),
+                 vocabularyDefaults: vocabularyDefaultsAll(),
+                 views: views(req.user.id), viewsCap: VIEWS_CAP,
+                 font: pick(req.user.id, 'font'), strip: pick(req.user.id, 'strip'),
+                 theme: pick(req.user.id, 'theme'),
+                 language: languageOf(req.user.id),
+                 blocks: blocks(req.user.id),
+                 linkRows: pick(req.user.id, 'linkRows'), timeline: timelineOn(req.user.id),
+                 search: searchTemplate(), searchProviders: searchProviders(),
+                 searchNames: pick(req.user.id, 'searchNames'),
+                 tagsFreeCreate: freeCreate('tagsFreeCreate'),
+                 categoriesFreeCreate: freeCreate('categoriesFreeCreate'),
+                 potentialMode: potentialMode(),
+                 languages: languageEntries(),
+                 /* UND DIE BEIDEN NAMENSTAFELN, WENN DIE SPRACHFRAGE BERUEHRT WAR
+                    -- 0.24.6, die Reparatur von E3. */
+                 ...(isAdmin(req) && languagesTouched
+                   ? { categoryNames: categoryNamesAll(), criterionNames: criterionNamesAll() } : {}),
+                 imageStore: imageStore(), imageStores: Object.keys(IMAGE_STORES) };
+
+    })();
+  } catch (e) {
+    /* Nur die eigenen Absagen werden zur Antwort; alles andere geht an den
+       Fehlerweg von Express. */
+    if (e instanceof Message)
+      return res.status(e.status).json({ error: errorText(req, e) });
+    throw e;
   }
-  if (refused('font')) return;
-  if (refused('strip')) return;
-  /* DIE KLEMME STEHT AM SERVER UND NICHT NUR IN DER PILLENREIHE. */
-  if (refused('theme')) return;
-  if (req.body.blocks !== undefined) {
-    const input = req.body.blocks || {};
-    putUserSetting(req.user.id, 'blocks', JSON.stringify({
-      side: sortArea(input.side, BLOCK_DEFAULT.side),
-      bottom: sortArea(input.bottom, BLOCK_DEFAULT.bottom),
-      closed: (Array.isArray(input.closed) ? input.closed : []).filter(k => CLOSED_BLOCKS.includes(k))
-    }));
-  }
-  if (refused('linkRows')) return;
-  if (req.body.timeline !== undefined)
-    putUserSetting(req.user.id, 'timeline', JSON.stringify(!!req.body.timeline));
-  /* DER MERKZEITPUNKT KOMMT VON DER SERVERUHR, NIE VOM AUFRUFER. */
-  if (req.body.bellSeen !== undefined)
-    putUserSetting(req.user.id, 'bellSeen',
-      JSON.stringify(db.prepare(`SELECT datetime('now', '-1 second') AS t`).get().t));
-  // Eigene Anbieter zuerst: ein frisch angelegter muss im selben Zug in den
-// Vorrat aufgenommen werden koennen.
-  if (req.body.searchOwn !== undefined) {
-    const input = Array.isArray(req.body.searchOwn) ? req.body.searchOwn : [];
-    const clean = [];
-    for (let i = 0; i < OWN_SLOTS; i++) {
-      const e = input[i] || {};
-      const name = searchNameClean(e.name);
-      const template = typeof e.template === 'string' ? e.template.trim() : '';
-      if (!name && !template) { clean.push(null); continue; }   // Platz
-                                                                // geraeumt
-                                                                // Halb
-                                                                // ausgefuellt
-                                                                // gibt es
-                                                                // nicht --
-                                                                // und wortlos
-                                                                // verschlucken
-                                                                // erst recht
-                                                                // nicht,
-                                                                // sonst sucht
-                                                                // man den
-                                                                // Anbieter
-                                                                // spaeter in
-                                                                // der Liste.
-      if (!name)
-        return res.status(400).json({ error: t(localeOf(req), 'server.searchEngineName')});
-      if (!searchTemplateOk(template))
-        return res.status(400).json({
-          error: t(localeOf(req), 'server.searchUrlForm')});
-      clean.push({ name, template });
-    }
-    putSetting.run('searchOwn', JSON.stringify(clean));
-    // Faellt ein Anbieter weg, der im Vorrat oder sogar Standard war, raeumt
-// das Zurueckschreiben das auf: der erste aktive rueckt nach.
-    const pool = searchPool();
-    writePool(pool[0], pool);
-  }
-  // Der Vorrat kommt als Liste von Schluesseln, Standard zuerst.
-  if (req.body.searchOn !== undefined) {
-    const all = allProviders();
-    const input = (Array.isArray(req.body.searchOn) ? req.body.searchOn : [])
-      .filter(k => typeof k === 'string' && all.some(a => a.key === k && a.present));
-    // Den letzten aus dem Vorrat zu nehmen macht jede Suchzeile unbenutzbar.
-    if (!input.length)
-      return res.status(400).json({ error: t(localeOf(req), 'server.searchEngineLast')});
-    writePool(input[0], input);
-  }
-  /* DIE SPRACHE GEGEN DEN VORRAT -- 0.24.3, Bauabschnitt 3. */
-  if (req.body.language !== undefined) {
-    const wanted = String(req.body.language);
-    if (!languagePool().includes(wanted))
-      return res.status(400).json({ error: t(localeOf(req), 'server.languageUnknown')});
-    putUserSetting(req.user.id, 'language', JSON.stringify(wanted));
-  }
-  if (refused('searchNames')) return;
-  // Die beiden Anlegen-Schalter sind global und damit Adminsache -- ueber die
-// Ableitung ganz oben, ohne zweite Liste und ohne eigene Route.
-  for (const k of ['tagsFreeCreate', 'categoriesFreeCreate'])
-    if (req.body[k] !== undefined) putSetting.run(k, JSON.stringify(!!req.body[k]));
-  /* DIE WAHL DER BILDABLAGE. */
-  if (storeWanted !== null) putSetting.run('imageStore', JSON.stringify(storeWanted));
-  /* DER POTENZIALMODUS -- 0.26.0, derselbe Weg wie der Schalter darueber, und
-     dieselbe Rechtezeile: er steht in OWNER_KEYS, und die Schranke ganz oben
-     an dieser Route weist einen Admin ab, bevor hier eine Zeile faellt. */
-  if (req.body.potentialMode !== undefined)
-    putSetting.run('potentialMode', JSON.stringify(!!req.body.potentialMode));
-  /* DIE AUFRAEUMREGEL DER SICHERUNGEN, 0.20.0 -- derselbe Weg, dieselbe
-     Rechtezeile (OWNER_KEYS ganz oben), und die beiden Zahlen sind oben schon
-     geprueft. */
-  if (req.body.backupCleanup !== undefined)
-    putSetting.run('backupCleanup', JSON.stringify(!!req.body.backupCleanup));
-  for (const [k, v] of Object.entries(ruleValues)) putSetting.run(k, JSON.stringify(v));
-  /* VORGABESPRACHE UND VORRAT -- 0.24.3, Bauabschnitt 2 (F9). */
-  const languagesTouched =
-    req.body.languageDefault !== undefined || req.body.languageOn !== undefined;
-  if (languagesTouched)
-    writeLanguages(
-      req.body.languageDefault !== undefined ? String(req.body.languageDefault) : languageDefault(),
-      req.body.languageOn);
-  res.json({ filters: getUserSetting(req.user.id, 'filters', null),
-             vocabulary: vocabulary(localeOf(req)), vocabularies: vocabularyAll(),
-             vocabulariesOwn: vocabularyOwnAll(),
-             vocabularyDefaults: vocabularyDefaultsAll(),
-             views: views(req.user.id), viewsCap: VIEWS_CAP,
-             font: pick(req.user.id, 'font'), strip: pick(req.user.id, 'strip'),
-             theme: pick(req.user.id, 'theme'),
-             language: languageOf(req.user.id),
-             blocks: blocks(req.user.id),
-             linkRows: pick(req.user.id, 'linkRows'), timeline: timelineOn(req.user.id),
-             search: searchTemplate(), searchProviders: searchProviders(),
-             searchNames: pick(req.user.id, 'searchNames'),
-             tagsFreeCreate: freeCreate('tagsFreeCreate'),
-             categoriesFreeCreate: freeCreate('categoriesFreeCreate'),
-             potentialMode: potentialMode(),
-             languages: languageEntries(),
-             /* UND DIE BEIDEN NAMENSTAFELN, WENN DIE SPRACHFRAGE BERUEHRT WAR
-                -- 0.24.6, die Reparatur von E3. */
-             ...(isAdmin(req) && languagesTouched
-               ? { categoryNames: categoryNamesAll(), criterionNames: criterionNamesAll() } : {}),
-             imageStore: imageStore(), imageStores: Object.keys(IMAGE_STORES) });
+  res.json(answer);
 });
 
 /* ---- Bewertungskriterien (Skala fest 1-5) ---- */
@@ -4838,6 +4840,13 @@ const qTrashBytes = db.prepare(
 const delTrashOld = db.prepare(
   "DELETE FROM trash WHERE deleted_at < datetime('now', ?)");
 
+/* DIE NUMMERN, DIE GERADE EINGESPIELT WERDEN -- ohne sie sehen zwei
+   gleichzeitige Anfragen dieselbe Zeile und legen den Eintrag zweimal an.
+   Nicht als Spalte an `trash`: das waere eine Schemaaenderung, und ab 0.33.0
+   wird nicht mehr migriert. Nicht als DELETE: `trash_bytes` haengt mit
+   ON DELETE CASCADE daran. Die Liste gilt in diesem Prozess. */
+const trashRestoring = new Set();
+
 /* ZWEI AUFRUFSTELLEN, beide noetig -- beim Start und beim Oeffnen der Karte. */
 function cleanupTrash() {
   const n = delTrashOld.run(`-${TRASH_DAYS} days`).changes;
@@ -4916,9 +4925,16 @@ app.get('/api/trash', adminOnly, (req, res) => {
 /* Wiederherstellen. Es legt einen NEUEN Eintrag an und stellt nicht den alten
    zurueck -- die alte Nummer ist weg, und daran haengt nichts mehr. */
 app.post('/api/trash/:id/restore', ownerOnly, async (req, res, next) => {
+  let claimed = null;
   try {
     const z = db.prepare('SELECT * FROM trash WHERE id = ?').get(req.params.id);
     if (!z) return res.status(404).json({ error: t(localeOf(req), 'server.trashGone')});
+    /* IN ANSPRUCH NEHMEN, BEVOR DER EVENT LOOP FREI WIRD -- zwischen `has`
+       und `add` liegt keine Anweisung, die ihn freigibt. */
+    if (trashRestoring.has(z.id))
+      return res.status(409).json({ error: t(localeOf(req), 'server.trashRestoring')});
+    trashRestoring.add(z.id);
+    claimed = z.id;
     let envelope;
     try { envelope = JSON.parse(z.content); }
     catch { return res.status(500).json({ error: t(localeOf(req), 'server.trashUnreadable')}); }
@@ -4937,6 +4953,10 @@ app.post('/api/trash/:id/restore', ownerOnly, async (req, res, next) => {
     /* DERSELBE WEG WIE AM IMPORT. */
     if (e && e.denial) return res.status(400).json({ error: errorText(req, e) });
     next(e);
+  } finally {
+    // Auch auf jedem Fehlerweg: sonst bliebe die Nummer bis zum Neustart
+    // gesperrt, und der Eintrag waere nicht mehr zurueckzuholen.
+    if (claimed !== null) trashRestoring.delete(claimed);
   }
 });
 

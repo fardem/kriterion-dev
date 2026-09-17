@@ -2127,3 +2127,301 @@ und aus den Kommentaren nehmen, oder die Zahl hinnehmen.* **Das ist eine
 Entscheidung des Betreibers und keine Messung.**
 
 **Was es anfasst** — `public/style.css`, `tools/comments.js`, `test/source.js`.
+
+---
+
+## 43. Der Quelltext verweist auf Papiere, die nicht mitgehen
+
+**Art: Idee** *(Quelltext)* **· Herkunft: 0.35.0, beim Zuschnitt der
+Veröffentlichung gefunden · Einschätzung: groß**
+
+**DER ÖFFENTLICHE STAND TRÄGT KEIN `Doku/`** *(`Doku/Veroeffentlichen.md`)*.
+**Jeder Verweis darauf im Quelltext zeigt dort auf nichts.** Gemessen am
+17. September 2026:
+
+| | ausgelieferte Dateien | Prüfstand |
+|---|---:|---:|
+| Versionsnummern `0.x.y` | **759** | 2.318 |
+| „Befund" | 87 | 73 |
+| „Auftrag" | 9 | 36 |
+| „Stolperstein" | 15 | 8 |
+| „Projektstand" | 3 | 6 |
+
+*Verteilung der 759:* `public/app.js` 324, `server.js` 196,
+`public/style.css` 168, `db.js` 62, Rest 9.
+
+**UND DER SWEEP VON 0.34.3 HAT ZWEI LÖCHER**, die erst jetzt aufgefallen
+sind. Der Wächter „Kein Stolpersteinverweis mehr — 0.34.3"
+*(`test/source.js`)* liest vierunddreißig Dateien und zählt sie selbst nach:
+
+1. **`public/style.css` steht nicht in der Liste.** Dort stehen heute acht
+   Verweise — vor 0.35.0 waren es dreizehn, fünf sind beim Kürzen der
+   Kommentare mitgefallen.
+2. **`db.js` steht in der Liste, und sieben Verweise entgehen ihm trotzdem.**
+   Sie stehen als `-- Stolperstein 47` **innerhalb des SQL-Schematexts**. Der
+   Segmentierer teilt JavaScript in Code, Text und Kommentar; ein
+   SQL-Kommentar in einem Template-String ist für ihn Text.
+
+*Dieselbe Lücke wie bei `tools/comments.js`: jeder Wächter dieses Hauses
+zählt JavaScript, und das Stilblatt liegt außerhalb von allen. Genau deshalb
+hat die Messung zur 0.35.0 dort 70,5 Prozent Kommentar gefunden — es hatte
+sie nie jemand gemessen.*
+
+**Was zu bauen wäre** — *drei Schritte, und der erste ist billig:*
+
+1. **Die zwei Löcher schließen:** `public/style.css` in die Liste des
+   Wächters, und den SQL-Text in `db.js` als Kommentar behandeln. Danach
+   steht die wirkliche Zahl im Prüfstand.
+2. **Die Verweise streichen**, die auf ein Papier zeigen — Rundennummern als
+   Herkunft, Befundnummern, Fragetafelnummern, `Doku/`-Pfade. **Die
+   Begründung bleibt, die gemessene Zahl bleibt**, und die Versionsnummer
+   bleibt dort, wo sie Verhalten bestimmt *(Abschnitt 2 der `CLAUDE.md`)*.
+3. **`tools/comments.js` zählt das Stilblatt mit.**
+
+**Der Umfang ist der einer eigenen Runde**, vergleichbar mit 0.35.0: 759
+Stellen in fünf Dateien, jede einzeln zu lesen. *Schritt 1 allein ist klein
+und kann vorausgehen.*
+
+**Und die Reihenfolge zählt:** wird vorher veröffentlicht, ist Version eins in
+der Öffentlichkeit die mit den toten Zeigern.
+
+**Was es anfasst** — `public/app.js`, `server.js`, `public/style.css`,
+`db.js`, `test/source.js`, `tools/comments.js`.
+
+---
+
+## 44. Kommentare und Beschreibung brauchen einen Editor
+
+**Art: Idee** *(Oberfläche)* **· Herkunft: Betreiber, 17. September 2026 ·
+Einschätzung: groß · Fahrplan: 0.37.0, nach der Sicherheitsrunde**
+
+**GEWÜNSCHT SIND DIE GRUNDFUNKTIONEN EINES SCHREIBFELDS:** Fettdruck,
+Kursiv, Zitat und Aufzählung — **im Kommentar und in der Beschreibung.** Heute
+ist beides reiner Text.
+
+**DIE BEIDEN STELLEN STEHEN VERSCHIEDEN DA, und das ist der Kern des
+Aufwands.**
+
+| | Leseansicht | Schreibansicht |
+|---|---|---|
+| **Kommentar** | `buildCommentNodes()` baut Knoten *(`public/app.js`:5520)* | Textfeld beim Anlegen und beim Ändern *(5585)* |
+| **Beschreibung** | **gibt es nicht** | ein dauerhaft offenes `<textarea>` *(3838)* |
+
+**Die Beschreibung wird nie gezeichnet.** Sie steht als Feld da, wird beim
+Verlassen gespeichert *(4623)*, und was darin steht, sieht man so, wie man es
+getippt hat. **Ein Editor verlangt dort eine Ansicht, die es nicht gibt** —
+und damit einen Weg zwischen Lesen und Ändern, den der Block heute nicht
+kennt. Das ist eine sichtbare Änderung der Bedienung und keine Zutat.
+
+**WAS DAFÜR SCHON DASTEHT, und es ist mehr als erwartet.** Der Kommentartext
+wird nicht als HTML eingesetzt, sondern in Stücke zerlegt und als Knoten
+gebaut: `splitCommentText()` *(`public/app.js`:1421)* zerlegt,
+`buildCommentNodes()` *(1469)* baut mit `createElement` und `textContent`.
+Drei Sorten kennt die Zerlegung bereits — Adressen, Markierungen mit `@` und
+die Hervorhebung des Suchbegriffs.
+
+**Das ist die Bauform, in die ein Editor gehört:** eine vierte und fünfte
+Sorte im Stückemodell, nicht HTML im Text. *Der Weg über `innerHTML` mit
+Benutzertext ist ausgeschlossen* — er wäre genau die Sorte Stelle, die
+0.36.0 in `public/app.js` einzeln durchgeht.
+
+**WAS ZU ENTSCHEIDEN IST, und keine dieser Fragen ist klein:**
+
+
+1. **Welche Auszeichnung.** Ein Teilsatz von Markdown *(`**fett**`, `*kursiv*`,
+   `> Zitat`, `- Punkt`)* oder eine Leiste, die Marken in den Text schreibt.
+   Markdown ist vertraut und im Rohtext lesbar; eine Leiste ist für den, der
+   Markdown nicht kennt, der einzige Weg. **Beides schließt sich nicht aus:**
+   die Leiste schreibt die Marken, und wer sie kennt, tippt sie selbst.
+2. **Wo geparst wird.** Im Browser, wie heute die Adressen und Markierungen —
+   dann bleibt der Server unberührt. Auf dem Server — dann muss auch die
+   Mailbenachrichtigung damit umgehen.
+3. **Ob die Spalte ein Merkmal braucht.** `comments.text` ist heute `TEXT`
+   *(`db.js`:344)*. Ein Kommentar von vorher ist nach der Änderung ein
+   Kommentar mit Auszeichnung, den niemand ausgezeichnet hat: `**` mitten in
+   einem alten Text würde plötzlich fett. **Entweder das Format steht an der
+   Zeile** *(Schemaänderung)*, **oder die Auszeichnung ist so gewählt, dass
+   ein alter Text sie nicht zufällig trägt.**
+4. **Was die Exportdatei trägt.** Der Kommentartext geht in das Paket
+   *(`server.js`:4066)*. Trägt er Marken, liest eine ältere Fassung sie als
+   Text. **Das ist eine Frage an die Formatnummer.**
+5. **Was die Suche sieht.** Gesucht wird über den Rohtext. Wer `fett` sucht,
+   soll `**fett**` finden — und wer `**` sucht, soll nicht jeden
+   ausgezeichneten Kommentar finden.
+6. **Was die Stellen sehen, die nur Text können.** Vier sind gezählt:
+   - die Vorschau an der Kachel nimmt die ersten 40 Zeichen der
+     Rohbeschreibung *(`public/app.js`:975)*,
+   - die Suche zitiert einen **Ausschnitt** der Fundstelle, auf Zeichen
+     geschnitten *(`server.js`, `SNIPPET_LEAD`)* — **ein halb abgeschnittenes
+     `**` stünde sichtbar da**,
+   - die Mailbenachrichtigung trägt den Kommentartext,
+   - die Exportdatei trägt beides.
+
+   Die Beschreibung ist dabei eine der **sieben Volltextquellen**
+   *(`server.js`:2769)*; die Auszeichnung müsste vor dem Schneiden heraus
+   oder beim Schneiden berücksichtigt werden.
+7. **Wie die Beschreibung zwischen Lesen und Ändern umschaltet.** Klick ins
+   Feld, ein Stift daneben, oder beides nebeneinander. **Dieselbe Frage
+   stellt sich beim Kommentar nicht** — er hat den Wechsel schon.
+
+### Gibt es eine Bibliothek, die man einfach nehmen könnte?
+
+**Es gibt sie, und keine passt.** Gemessen am 17. September 2026, jeweils die
+Browserdatei samt zugehörigem Stilblatt:
+
+| | roh | gezippt | erzeugt |
+|---|---:|---:|---|
+| Quill 2.0.3 | 233.880 | **62.732** | HTML |
+| Trix 2.1.19 | 227.451 | **56.150** | HTML |
+| EasyMDE 2.21.0 | 340.398 | **109.826** | Markdown-Text |
+| marked 18 *(nur Parser, kein Editor)* | 45.843 | **13.891** | HTML |
+| *TipTap, Lexical* | — | — | brauchen einen Bauschritt |
+
+**Zum Vergleich: Kriterion liefert insgesamt 268.441 Bytes gezippt aus**,
+davon 135.399 für `public/app.js`. Quill wären **23 Prozent mehr**, EasyMDE
+**41 Prozent**. Die Runde 0.35.0 hat die Auslieferung von 1.001.488 auf
+268.441 Bytes gebracht; eine dieser Bibliotheken gäbe ein Viertel davon
+zurück.
+
+**Der Größe wegen scheitert es aber nicht, sondern an der Bauform.** Quill,
+Trix und marked erzeugen HTML und setzen es über `innerHTML` ein. Genau das
+tut der Kommentarbereich nicht: er baut Knoten. Eine Bibliothek brächte also
+die Hälfte mit, die billig ist — die Leiste über dem Feld —, und dazu eine
+Zeichnung, die hier nicht verwendet werden kann.
+
+**EasyMDE ist die einzige, die Text statt HTML erzeugt** und damit ins
+Stückemodell passte. Sie ist zugleich die größte und bringt fünf
+Abhängigkeiten mit, darunter CodeMirror.
+
+**Was selbst zu bauen bliebe, ist ohnehin die teure Hälfte:** vier weitere
+Sorten in `splitCommentText()` und `buildCommentNodes()`, dazu die fehlende
+Leseansicht der Beschreibung. Die Leiste über dem Feld sind rund fünfzig
+Zeilen über `selectionStart` und `selectionEnd` eines `<textarea>`.
+
+*Der Knotenbau trägt heute schon zwei Leser: den Kommentar und
+`raiseHighlight()` für Titel, Kategorie, Tag und Kontextzeile
+(`public/app.js`:1498). Eine dritte Stelle passt dort hinein.*
+
+*Ein eigener Parser ist die Stelle, an der sonst Sicherheitslücken entstehen.
+Hier nicht: er erzeugt kein HTML, sondern Knoten. Ein Fehler darin trennt
+falsch, er schleust nichts ein.*
+
+**Was zu bauen wäre** — *erst die sechs Fragen beantworten, dann eine Runde.*
+**Die Reihenfolge zu 0.36.0 ist zu klären:** jener Bauabschnitt geht die 199
+`innerHTML`-Stellen durch, und ein Editor legt neue Stellen an, an denen
+Benutzertext gezeichnet wird. **Erst durchgehen, dann bauen** ist
+wahrscheinlich die billigere Folge.
+
+**Was es anfasst** — `public/app.js` *(Zerlegung, Knotenbau, zwei
+Eingabefelder, die neue Leseansicht der Beschreibung, die Kachelvorschau)*,
+`public/style.css`, die drei Sprachdateien *(Beschriftungen der Leiste)*,
+`server.js` *(der Trefferausschnitt immer; die Zerlegung nur bei Entscheidung
+2 oder 4)*, `db.js` *(nur bei Entscheidung 3, und dann für zwei Spalten —
+`comments.text` und `items.description`)*.
+
+---
+
+## 45. Der Einzelexport wird ausgebaut
+
+**Art: Vorgabe des Betreibers, 17. September 2026 · Einschätzung: klein ·
+Fahrplan: 0.35.2**
+
+**`GET /api/items/:id/export` liefert einen Eintrag als Datei, in derselben
+Form wie der volle Export.** Der Betreiber hat am 17. September 2026
+entschieden, dass das Projekt dafür keine Verwendung hat. **Die Route geht
+mit, nicht nur der Knopf** — unter der Bedingung, dass sie für nichts anderes
+gebraucht wird.
+
+**Nachgesehen am 17. September 2026: sie wird für nichts anderes gebraucht.**
+
+| | |
+|---|---|
+| Rufer der Route | **einer** — `public/app.js`:5725, der Knopf am Fuß des Eintrags |
+| `entryAsBundle()` | **bleibt** — drei Rufer: voller Export, Einzelexport, Papierkorb |
+| `exportEnvelope()` | **bleibt** — dieselben Wege |
+| `exportName(suffix)` | **bleibt samt Parameter** — der Teilexport nennt `-teil-N-von-M` |
+| `EXCHANGE_MAX` | **bleibt** — vier weitere Fundstellen |
+
+**Die Herkunft:** die Route ist mit **0.8.70** entstanden, in der Runde
+„Sicherung und Papierkorb". Sie stand nicht in einem Auftrag und war kein
+Wunsch — sie fiel beim Auseinandernehmen des Exportwegs ab: als
+`entryAsBundle()` und `exportEnvelope()` einmal getrennt waren, war ein Export
+mit einem Eintrag statt allen wenige Zeilen. Sie steht in der Dateiliste jener
+Runde unter „Neu".
+
+**Danach hatte sie 26 Runden lang keinen Rufer in der Oberfläche.** Die
+Messung zur 0.35.0 fand sie als Stelle ohne Bedienelement. Zwei Wege standen
+offen — Knopf dazu oder Route raus. Gebaut wurde der Knopf.
+
+### Was der Ausbau anfasst
+
+**Ausgeliefert** *(der Fingerprint ändert sich)*:
+
+| Datei | was |
+|---|---|
+| `server.js`:4372 | die Route, zwölf Zeilen |
+| `public/app.js`:3890 | der Knopf `#exp1` im Fuß des Eintrags |
+| `public/app.js`:5725 | sein Rufer, `window.location` |
+| `public/app.js`:3885 | der Kommentar darüber — **und er nennt eine falsche Versionsnummer**, „seit 0.30.0" statt 0.8.70 |
+| `public/languages/*.json`:810 | `entry.exportOne`, in allen drei Dateien |
+| `public/languages/*.json`:1233 | `server.entryTooBig` — **die Route ist seine einzige Fundstelle**, der Browser kennt ihn nicht |
+
+**Prüfstand:**
+
+| Datei | was |
+|---|---|
+| `test/roundtrip.js`:6654 ff. | die Prüfungen am Einzelexport, die Rechtezeile ab 6691, die 404 bei 6701 |
+| `test/roundtrip.js`:17186 | „Der Einzelexport misst mit derselben Rechnung wie der volle" |
+| `test/source.js`:190 | `F_ROUTES` **73 → 72** |
+| `test/source.js`:2615 ff. | die vier Prüfungen am Knopf und am Schlüssel |
+| `test/source.js`:1200 | die Zahl **1.300 → 1.298** |
+| `test/source.js`:1798 | `server.entryTooBig` verlässt `WORDING_CHANGED_0311` |
+| `test/source.js`:1384 | `WORDING_NEW_0350` verliert einen von drei Einträgen |
+| `test/release_031.js`:25 | `LANG_KEY_COUNT` **1.212 → 1.210** |
+| `test/release_031.js` | vier Sprachtafeln, siehe unten |
+| `counterproof.js` | **1087 und 1088 fallen**, dazu die Gruppe „Der einzelne Eintrag ist über die Oberfläche zu holen — 0.35.0" |
+| die sechs Gleichlaufsummen | neu zu rechnen |
+
+### Die beiden Schlüssel fallen verschieden, und das ist die eine Falle
+
+**Gemessen gegen `tools/englisch-0312.json` und `tools/tuerkisch-0313.json`:**
+
+* **`entry.exportOne` steht in keinem der beiden Vergleichsstände** — er ist
+  mit 0.35.0 entstanden. Er verlässt einfach `EG_ADDED_AFTER_0312`,
+  `TR_ADDED_AFTER_0313`, `EG_CHANGED_AFTER_0312_SHARED` und
+  `TR_CHANGED_AFTER_0313`, und damit ist es getan.
+* **`server.entryTooBig` steht in beiden.** Er muss **namentlich** in
+  `EG_GONE_AFTER_0312` und `TR_GONE_AFTER_0313`, und im deutschen Stand
+  braucht es eine neue `WORDING_GONE`-Liste. **Sonst kippt die Wortlautprobe
+  über 1.082 Sätze:** sie zieht die weggefallenen Sätze auf *beiden* Seiten ab,
+  und ein Satz, der nur auf der einen fehlt, macht die Zahlen ungleich. Die
+  Kommentare in `test/source.js`:1704 bis 1715 beschreiben dieselbe Mechanik
+  für 0.31.0, 0.32.0 und 0.32.1.
+
+### Was danach tot daliegt
+
+**`exchangeParts()` und `exchangeEnvelopeBytes()` bekommen `itemId` dann nur
+noch als `null`.** Beide tragen dafür je ein `onlyOne`, ein `values`, die
+Helfer `and()` und `wo()` — und in den Abfragen stehen **11 Einsetzungen**
+`${and(…)}` oder `${wo(…)}`, die dann immer den leeren String liefern.
+`exchangeBytes(itemId, switches)` verliert damit seinen ersten Parameter.
+
+**Ob das in derselben Runde fällt, ist zu entscheiden.** Dafür spricht, dass es
+sonst als toter Zweig liegen bleibt und die nächste Messung ihn wieder findet.
+Dagegen spricht, dass der Ausbau damit von zwölf Zeilen auf rund fünfzig
+wächst und drei Abfragen anfasst, die der volle Export braucht.
+
+### Was noch zu entscheiden ist
+
+**Welche Stelle der Versionsnummer?** 0.35.0 hat mit `GET /api/health` eine
+Route ausgebaut und war **MINOR**, mit einem Kasten im CHANGELOG. Eine
+ausgebaute Route in einer PATCH-Runde wäre ein anderer Maßstab für dieselbe
+Sache. *Die Nummer 0.35.2 kommt vom Betreiber; die Frage gehört trotzdem
+gestellt, bevor gebaut wird.*
+
+**Was ein Betreiber wissen muss:** wer die Adresse in einem Skript stehen hat,
+bekommt danach 404. Das gehört in einen Kasten, so wie bei `GET /api/health`.
+
+**Papiere:** `README.md`:760, Projektstand (zwei Stellen), eigener
+CHANGELOG-Eintrag. **Der Eintrag 0.35.0 im CHANGELOG bleibt stehen** — was dort
+steht, ist geschehen.

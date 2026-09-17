@@ -22,7 +22,7 @@ async function run() {
 /* DIE ZAHL DER SCHLUESSEL JE SPRACHDATEI STEHT EINMAL.
    ZWEI GRUPPEN FRAGEN SIE AB: 0.31.0 auf die Deckung der drei Dateien, 0.31.1
    auf den Stand nach dem Verschmelzen. */
-const LANG_KEY_COUNT = 1211;
+const LANG_KEY_COUNT = 1212;
 
 async function check0310() {
   const drRead = (code) => JSON.parse(fs.readFileSync(
@@ -568,6 +568,7 @@ const EG_CHANGED_AFTER_0312_SHARED = {
   "server.noUserAddress": "0.32.0: Punkt 29 — am Konto haengt keine Adresse",
   "server.ratingBeforeTest": "0.32.1: „this entry\" faellt weg, „untested\" wird `{testedNo}`",
   "server.signupThanks": "0.32.0: Punkt 29 — die eine Antwort der Zugangsanfrage",
+  "server.trashRestoring": "0.35.1: neu — die Antwort an den zweiten Aufruf, der denselben Papierkorbeintrag wiederherstellen will",
   "vocabulary.grade": "0.32.0: das fuenfzehnte Vokabelwort — „Score\""
 };
 
@@ -783,6 +784,8 @@ async function check0312() {
        die beiden Saetze an der Sternzeile, die bis dahin deutsch im Skript
        standen -- und `entry.exportOne`, die Beschriftung des Knopfes, der den
        einzelnen Eintrag als Datei holt. */
+    /* UND EINER MIT 0.35.1: `server.trashRestoring`, die Antwort an den
+       zweiten Aufruf auf denselben Papierkorbeintrag. */
     const EG_ADDED_AFTER_0312 = ['_afterNumber',
       'card.grade', 'entry.deletePhoto', 'entry.deleteVideo',
       'entry.exportOne', 'entry.ratingRemoved', 'entry.removeRating',
@@ -791,7 +794,7 @@ async function check0312() {
       'server.backupsBeforeKey', 'server.cleanupAllYoungest', 'server.cleanupNoBackups',
       'server.cleanupOldestAge', 'server.exportTooOld', 'server.noAccountOwner',
       'server.noPublicAddress', 'server.noTestMail', 'server.noUserAddress',
-      'server.signupThanks', 'vocabulary.grade'];
+      'server.signupThanks', 'server.trashRestoring', 'vocabulary.grade'];
     /* UND EINER IST GEFALLEN -- `list.otherUser`. */
     /* UND SIEBEN MIT 0.32.1 -- sechs, die 0.32.1 ausbaut, und der geteilte
        `entry.deleteWord`. */
@@ -1185,6 +1188,7 @@ async function check0313() {
        drei Sprachen, und die Deckungsprobe faerbte den Lauf sofort rot. */
     /* UND EINER MIT 0.33.0 -- derselbe wie drueben: `server.exportTooOld`. */
     /* UND DREI MIT 0.35.0, wie bei Englisch. */
+    /* UND EINER MIT 0.35.1, wieder derselbe: `server.trashRestoring`. */
     const TR_ADDED_AFTER_0313 = ['_afterNumber',
       'entry.exportOne', 'entry.ratingRemoved', 'entry.removeRating',
       'card.grade', 'entry.deletePhoto', 'entry.deleteVideo',
@@ -1193,7 +1197,7 @@ async function check0313() {
       'server.backupsBeforeKey', 'server.cleanupAllYoungest', 'server.cleanupNoBackups',
       'server.cleanupOldestAge', 'server.exportTooOld', 'server.noAccountOwner',
       'server.noPublicAddress', 'server.noTestMail', 'server.noUserAddress',
-      'server.signupThanks', 'vocabulary.grade'];
+      'server.signupThanks', 'server.trashRestoring', 'vocabulary.grade'];
     /* UND EINER IST GEFALLEN -- derselbe wie drueben: `list.otherUser`. */
     /* UND SIEBEN MIT 0.32.1 -- dieselben wie im englischen Stand daneben, und
        aus demselben Grund. */
@@ -1222,6 +1226,7 @@ async function check0313() {
       'card.convertFinished':   '0.33.0: der Fertigsatz nennt keine neu gerechneten Vorschaubilder mehr',
       'card.restartHint':       '0.33.0: die zitierte Logzeile heisst jetzt englisch „Key loaded from ENCRYPTION_KEY"',
       'server.exportTooOld':    '0.33.0: neu — die eine Abweisung des Bruchs, eine Datei mit Formatnummer 13 oder aelter kommt nicht mehr herein',
+      'server.trashRestoring':  '0.35.1: neu — die Antwort an den zweiten Aufruf, der denselben Papierkorbeintrag wiederherstellen will',
       'vocabulary.entryMany':   '0.31.4: Öğeler — die Mehrzahl kostet nichts mehr',
       'vocabulary.dayMany':     '0.31.4: Test günleri',
       'vocabulary.reportMany':  '0.31.4: Raporlar',

@@ -939,8 +939,18 @@ async function run() {
       .split('\n').filter(z => z.trim()).length, 0);
   check('Und aus ihnen bleiben mehr als tausend Kommentarzeilen uebrig',
     languageCommentRows > 1000, `${languageCommentRows} Zeilen`);
-  check('Und mindestens zehn Dokumente daneben',
-    languageDocsFiles.length >= 10, `${languageDocsFiles.length} Dokumente`);
+  /* DIE ZAHL HAENGT AM REPOSITORY UND NICHT AM WAECHTER -- 0.35.0. Der
+     oeffentliche Stand traegt kein Doku/ (Doku/Veroeffentlichen.md), und
+     dieselbe Datei laeuft in beiden. Gefordert sind die drei im
+     Wurzelverzeichnis; liegt Doku/ daneben, werden seine Dateien alle
+     mitgelesen. */
+  check('Die drei Dokumente im Wurzelverzeichnis sind dabei, und jede Doku-Datei daneben',
+    languageDocsFiles.length >= 3
+    && (!fs.existsSync(path.join(__dirname, 'Doku'))
+        || languageDocsFiles.filter(n => n.startsWith('Doku')).length
+           === fs.readdirSync(path.join(__dirname, 'Doku'))
+                .filter(n => n.endsWith('.md') && !/^Auftrag_/.test(n)).length),
+    `${languageDocsFiles.length} Dokumente`);
   /* UND DIE DREI IM WURZELVERZEICHNIS SIND NAMENTLICH DABEI. */
   check('Darunter namentlich README.md, CHANGELOG.md und manual-de.md',
     ['README.md', 'CHANGELOG.md', 'manual-de.md']
@@ -1186,8 +1196,10 @@ async function run() {
     /* UND SEIT 0.35.0 SIND ES DREI MEHR: `entry.removeRating` und
        `entry.ratingRemoved` loesen zwei deutsche Saetze aus dem Skript ab,
        `entry.exportOne` beschriftet den neuen Knopf am Eintrag. */
-    check('Und die Zahlen stehen: 1299 Schluessel, 88 Mehrzahlformen, 15 Vokabelnamen',
-      languageKeys.length === 1299 && pluralKeys.length === 88 && vocabularyKeys.length === 15,
+    /* UND SEIT 0.35.1 EINER MEHR: `server.trashRestoring` ist die Antwort an
+       den zweiten Aufruf, der denselben Papierkorbeintrag holen will. */
+    check('Und die Zahlen stehen: 1300 Schluessel, 88 Mehrzahlformen, 15 Vokabelnamen',
+      languageKeys.length === 1300 && pluralKeys.length === 88 && vocabularyKeys.length === 15,
       `${languageKeys.length} / ${pluralKeys.length} / ${vocabularyKeys.length}`);
 
     /* ---- 3. */
@@ -1370,6 +1382,9 @@ async function run() {
        einzelnen Eintrag als Datei holt. */
     const WORDING_NEW_0350 = ['entry.removeRating', 'entry.ratingRemoved',
       'entry.exportOne'];
+    /* UND EINER MIT 0.35.1: die Antwort an den zweiten Aufruf, der denselben
+       Papierkorbeintrag wiederherstellen will. */
+    const WORDING_NEW_0351 = ['server.trashRestoring'];
     /* UND ACHT SCHLUESSEL FALLEN MIT 0.32.1 -- sechs von ihnen gab es schon
        bei der Abnahme, zwei sind erst in 0.32.0 entstanden und schon wieder
        weg. */
@@ -1386,7 +1401,7 @@ async function run() {
       ...WORDING_NEW_0280, ...WORDING_NEW_0281, ...WORDING_NEW_0290,
       ...WORDING_NEW_0300, ...WORDING_NEW_0311, ...WORDING_NEW_0314,
       ...WORDING_NEW_0320, ...WORDING_NEW_0321, ...WORDING_NEW_0330,
-      ...WORDING_NEW_0350]
+      ...WORDING_NEW_0350, ...WORDING_NEW_0351]
       .filter(k => !WORDING_GONE_0321.includes(k) && !WORDING_GONE_0330.includes(k));
     const wordingMissing = WORDING_NEW.filter(k => LANGUAGE_FILE[k] === undefined);
     check('Die neuen Schluessel dieser Runde stehen wirklich in der Datei',

@@ -1427,8 +1427,9 @@ malt gleich richtig — auch vor der Anmeldung. Zwei Leute an einem Browser: der
 zweite sieht für Sekundenbruchteile das Schema des ersten, dann berichtigt der
 Server.
 
-*Wie die Farben zustande gekommen sind — jeder Wert gemessen, nicht
-ausgerechnet — steht in `Doku/Farbkonzept_0_23_0.md`.*
+*Jeder Farbwert ist gemessen und nicht ausgerechnet: kein Wert des hellen
+Schemas unterschreitet, was das dunkle an derselben Paarung erreicht. Die
+Messungen stehen als Kommentar an den Werten selbst, in `public/style.css`.*
 
 ## Schriftgröße
 

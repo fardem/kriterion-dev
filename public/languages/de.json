@@ -1314,6 +1314,7 @@
   "server.titleMissing": "Bitte einen Titel eingeben.",
   "server.titlesBoth": "Beide Titel müssen ausgefüllt sein.",
   "server.trashGone": "Das gibt es im Papierkorb nicht mehr.",
+  "server.trashRestoring": "Das wird gerade wiederhergestellt.",
   "server.trashUnreadable": "Das lässt sich aus dem Papierkorb nicht lesen.",
   "server.twoFactorOff": "Der zweite Faktor ist nicht eingeschaltet.",
   "server.userDeleted": "Dieser Benutzer ist gelöscht.",
