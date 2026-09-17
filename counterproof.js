@@ -8686,6 +8686,42 @@ const REGRESSIONS = [
     replacement: "        catch (e) { toast(e.message, true); }",
     expected: 'Oberflaeche'
   },
+
+  /* ---- 0.35.0 · BA 5: langsam in der Auslieferung ---------------------- */
+  {
+    /* Die Auslieferung geht wieder ungezippt hinaus -- 301.048 Bytes je
+       Aufruf statt 102.620. */
+    nr: '1077', name: 'Die Auslieferung geht wieder ungezippt hinaus',
+    file: 'server.js',
+    search: "  if (!one || !/\\bgzip\\b/.test(req.headers['accept-encoding'] || '')) return next();",
+    replacement: "  if (one || true) return next();",
+    expected: 'Die Auslieferung geht gezippt hinaus — 0.35.0'
+  },
+  {
+    /* Die gezippte Fassung traegt wieder dieselbe Marke wie die rohe -- ein
+       Zwischenspeicher koennte damit die eine fuer die andere halten. */
+    nr: '1078', name: 'Die gezippte Fassung traegt dieselbe Marke wie die rohe',
+    file: 'server.js',
+    search: "      tag: `W/\"${raw.length.toString(16)}-${at.getTime().toString(16)}-gz\"`",
+    replacement: "      tag: `W/\"${raw.length.toString(16)}-${at.getTime().toString(16)}\"`",
+    expected: 'Die Auslieferung geht gezippt hinaus — 0.35.0'
+  },
+  {
+    /* Die Spaltenwahl greift nicht mehr: bei ?size=thumb kommt das Original. */
+    nr: '1079', name: 'Die Fotoroute liest wieder alle drei Blobs',
+    file: 'server.js',
+    search: "  const want = req.query.size === 'thumb' ? 'thumb'\n             : req.query.size === 'medium' ? 'medium' : 'data';",
+    replacement: "  const want = 'data';",
+    expected: 'Der Ausschnitt steckt in der Kachel — 0.19.5'
+  },
+  {
+    /* Die Bilder eines Kommentars kommen nicht mehr mit. */
+    nr: '1080', name: 'Die Bilder eines Kommentars kommen nicht mehr mit',
+    file: 'server.js',
+    search: "    c.images = imagesPer.get(c.id) || [];",
+    replacement: "    c.images = [];",
+    expected: 'Bilder in Kommentaren'
+  },
 ];
 
 /* ================= Spuren und Versatz ================= Der Versatz je

@@ -2985,10 +2985,19 @@ function card(it) {
   if (term) [...a.querySelectorAll('.card-tags .chip')]
     .forEach((chip, i) => highlightInNode(chip, it.tags[i].name, term));
 
-  a.querySelector('.pick-box').addEventListener('click', e => {
+  const pickBox = a.querySelector('.pick-box');
+  pickBox.addEventListener('click', e => {
     e.preventDefault(); e.stopPropagation();
-    state.compare.has(it.id) ? state.compare.delete(it.id) : state.compare.add(it.id);
-    drawBody();
+    const was = state.compare.has(it.id);
+    was ? state.compare.delete(it.id) : state.compare.add(it.id);
+    /* NUR DIE KACHEL UND DIE LEISTE -- 0.35.0, BA 5. drawBody() zeichnete die
+       ganze Liste neu, um an EINER Kachel eine Klasse umzuschalten. Von
+       state.compare haengen genau drei Dinge ab: die Klasse am Verweis, die
+       Klasse samt Titel am Haken und die Vergleichsleiste. */
+    a.classList.toggle('picked', !was);
+    pickBox.classList.toggle('on', !was);
+    pickBox.title = was ? t('list.selectCompare') : t('list.removeCompare');
+    drawCompareBar();
   });
   return a;
 }
@@ -5522,7 +5531,11 @@ async function renderDetail(id, termAddress) {
           field.className = 'input input-sm cmt-due-in';
           field.value = c.dueDate || '';
           field.onchange = () => flip('dueDate', field.value || null);
-          field.onblur = () => { if (field.isConnected) drawComments(); };
+          /* ZURUECK ZUM KNOPF UND NICHT DIE GANZE LISTE NEU -- 0.35.0, BA 5.
+             Verliert das Feld den Fokus, ohne dass jemand ein Datum gewaehlt
+             hat, aendert sich kein Datenstand. Der Weg ueber drawComments()
+             bleibt fuer onchange darueber noetig. */
+          field.onblur = () => { if (field.isConnected) field.replaceWith(dueButton); };
           dueButton.replaceWith(field);
           field.focus();
           try { field.showPicker(); } catch { /* nicht jeder Browser kann das */ }

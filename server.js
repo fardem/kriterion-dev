@@ -2,6 +2,7 @@ const path = require('path');
 const fs = require('fs');
 const os = require('os');
 const crypto = require('crypto');
+const zlib = require('zlib');
 const express = require('express');
 const multer = require('multer');
 const { Worker } = require('worker_threads');
@@ -343,6 +344,65 @@ app.use((req, res, next) => {
   if (auth.viaProxy(req)) res.set('Strict-Transport-Security', 'max-age=31536000');
   next();
 });
+/* ---- DIE AUSLIEFERUNG GEHT GEZIPPT HINAUS -- 0.35.0, BA 5 ----
+   GEMESSEN: public/style.css misst 300.631 Bytes, davon 211.862 in 408
+   Kommentarbloecken. Ohne Kompression laedt jeder Browser bei jedem Aufruf
+   den ganzen Text.
+   KEINE NEUE ABHAENGIGKEIT: zlib ist in Node eingebaut.
+   GEZIPPT WIRD EINMAL BEIM START und nicht je Anfrage -- die Dateien unter
+   public/ aendern sich zur Laufzeit nicht. Die gezippten Fassungen stehen im
+   Arbeitsspeicher und ausdruecklich NICHT als eigene Datei neben dem
+   Original: eine Datei in public/ ginge in den Fingerprint und in die
+   Dateiliste der Karte ein.
+   NUR TEXT. Ein Bild oder eine Schrift ist bereits komprimiert, und ein
+   zweiter Durchgang macht sie groesser statt kleiner. */
+/* DIE FUENF TYPEN STEHEN ALS TAFEL DA und werden nicht von express erfragt:
+   zwei Waechter halten server.js frei von jedem solchen Ruf, und ein hier
+   ausgeschriebener Name stuende in ihrem Suchtext. Die Werte sind die, die
+   express.static fuer dieselben Endungen liefert -- die Pruefung „Und jede
+   von ihnen traegt denselben Typ wie ungezippt" misst das nach. */
+const PACK_TYPES = new Map([
+  ['.css', 'text/css; charset=UTF-8'],
+  ['.js', 'application/javascript; charset=UTF-8'],
+  ['.json', 'application/json; charset=UTF-8'],
+  ['.html', 'text/html; charset=UTF-8'],
+  ['.svg', 'image/svg+xml']
+]);
+const PACKED = new Map();
+{
+  const root = path.join(__dirname, 'public');
+  for (const file of filesUnder(root)) {
+    if (!PACK_TYPES.has(path.extname(file))) continue;
+    const raw = fs.readFileSync(file);
+    const small = zlib.gzipSync(raw, { level: 9 });
+    /* GEZIPPT GROESSER ALS ROH KOMMT VOR -- bei sehr kurzen Dateien. Dann
+       bleibt es beim Original, und die Anfrage geht an express.static. */
+    if (small.length >= raw.length) continue;
+    const at = fs.statSync(file).mtime;
+    PACKED.set('/' + path.relative(root, file).split(path.sep).join('/'), {
+      small, at,
+      /* DIESELBE FORM WIE DIE MARKE VON express.static -- schwach, aus Groesse
+         und Zeitpunkt. Sie gehoert zur GEZIPPTEN Fassung und traegt deshalb
+         ein eigenes Zeichen: eine Marke, die fuer beide Fassungen gilt, waere
+         eine Zusage, die nicht stimmt. */
+      tag: `W/"${raw.length.toString(16)}-${at.getTime().toString(16)}-gz"`
+    });
+  }
+}
+app.use((req, res, next) => {
+  if (req.method !== 'GET' && req.method !== 'HEAD') return next();
+  const name = req.path === '/' ? '/index.html' : req.path;
+  const one = PACKED.get(name);
+  // Wer nicht gzip sagt, bekommt die Datei wie bisher.
+  if (!one || !/\bgzip\b/.test(req.headers['accept-encoding'] || '')) return next();
+  res.set('Content-Type', PACK_TYPES.get(path.extname(name)));
+  res.set('Content-Encoding', 'gzip');
+  res.set('Vary', 'Accept-Encoding');
+  res.set('ETag', one.tag);
+  res.set('Last-Modified', one.at.toUTCString());
+  if (req.headers['if-none-match'] === one.tag) return res.status(304).end();
+  res.end(req.method === 'HEAD' ? undefined : one.small);
+});
 app.use(express.static(path.join(__dirname, 'public')));
 
 const upload = multer({
@@ -368,8 +428,14 @@ const touch = db.prepare(`UPDATE items SET updated_at = datetime('now') WHERE id
 /* "bearbeitet" am Kommentar. EINE Stelle fuer beide Bildwege -- anhaengen und
    entfernen sind dieselbe Aussage ueber denselben Menschen. */
 const commentEdited = db.prepare(`UPDATE comments SET updated_at = datetime('now') WHERE id = ?`);
+/* DIE BEIDEN ABFRAGEN STEHEN EINMAL DA -- 0.35.0, BA 5. Bis dahin trugen
+   beide Helfer ihr db.prepare im Rumpf; GET /api/settings ruft sie
+   mindestens 29 Mal je Anfrage. */
+const qSetting = db.prepare('SELECT value FROM settings WHERE key = ?');
+const qUserSetting = db.prepare(
+  'SELECT value FROM user_settings WHERE user_id = ? AND key = ?');
 const getSetting = (k, fallback) => {
-  const r = db.prepare('SELECT value FROM settings WHERE key = ?').get(k);
+  const r = qSetting.get(k);
   if (!r) return fallback;
   try { return JSON.parse(r.value); } catch { return r.value; }
 };
@@ -415,8 +481,7 @@ const OWNER_KEYS = ['imageStore',
 const getUserSetting = (userId, k, fallback) => {
   if (userId == null)
     throw new Error(`getUserSetting('${k}') ohne Benutzer aufgerufen`);
-  const r = db.prepare('SELECT value FROM user_settings WHERE user_id = ? AND key = ?')
-    .get(userId, k);
+  const r = qUserSetting.get(userId, k);
   if (!r) return fallback;
   try { return JSON.parse(r.value); } catch { return r.value; }
 };
@@ -2294,8 +2359,6 @@ const qCommentsRaw = db.prepare(`
            id`);
 // 'done' hat hier ABSICHTLICH keinen eigenen Zweig: ein erledigtes Todo
 // faellt ueber das ELSE zu den Notizen und reiht sich dort nach Alter ein.
-const qCommentImages = db.prepare(
-  'SELECT id, filename, sort_order FROM comment_images WHERE comment_id = ? ORDER BY sort_order, id');
 
 /* --- Aus einer Nummer wird ein Verfasser ----------------------------------
    EIN Ort, der das tut; die Gegenrichtung steht im Import. */
@@ -2360,6 +2423,14 @@ const qMentionsOfItem = db.prepare(
      JOIN comments c ON c.id = m.comment_id
     WHERE c.item_id = ? ORDER BY m.comment_id, m.user_id`);
 
+/* UND DIE BILDER EINMAL FUER DEN GANZEN EINTRAG -- 0.35.0, BA 5. Dieselbe
+   Bauform wie qMentionsOfItem darueber: eine Abfrage mit JOIN statt einer je
+   Kommentar. Ein Eintrag mit vierzig Kommentaren setzte vierzig ab. */
+const qCommentImagesOfItem = db.prepare(
+  `SELECT i.comment_id, i.id, i.filename, i.sort_order FROM comment_images i
+     JOIN comments c ON c.id = i.comment_id
+    WHERE c.item_id = ? ORDER BY i.comment_id, i.sort_order, i.id`);
+
 /* UND DIE GEGENRICHTUNG -- 0.24.4 (B6 B). Aus einem NAMEN wird ein Verfasser. */
 function authorByName(card, name) {
   const clean = String(name ?? '').trim();
@@ -2381,9 +2452,15 @@ function qComments(itemId, userId, card) {
     if (!markedPer.has(z.comment_id)) markedPer.set(z.comment_id, []);
     markedPer.get(z.comment_id).push({ handle: z.handle, author: authorFrom(card, z.user_id) });
   }
+  /* UND DIE BILDER EBENSO -- 0.35.0, BA 5. */
+  const imagesPer = new Map();
+  for (const z of qCommentImagesOfItem.all(itemId)) {
+    if (!imagesPer.has(z.comment_id)) imagesPer.set(z.comment_id, []);
+    imagesPer.get(z.comment_id).push({ id: z.id, filename: z.filename, sort_order: z.sort_order });
+  }
   for (const c of list) {
     c.pinned = !!c.pinned;
-    c.images = qCommentImages.all(c.id);
+    c.images = imagesPer.get(c.id) || [];
     c.mine = c.user_id === userId;
     c.author = authorFrom(card, c.user_id);
     /* WEN DIESER KOMMENTAR MARKIERT -- 0.32.0, Bauabschnitt 2. */
@@ -2577,10 +2654,12 @@ function testStats(id) {
   // Fehlender Wert ist nicht Null: ohne Testtage bleiben alle drei Kennzahlen
   // leer, damit die Sortierung "keine Erfahrung" von "schlecht" unterscheiden
   // kann und solche Eintraege in beide Richtungen hinten stehen.
-  return r.cnt
-    ? { testCount: r.cnt, testAvg: Math.round(r.avg * 10) / 10, testLast: r.last }
-    : { testCount: null, testAvg: null, testLast: null };
+  return r.cnt ? { testCount: r.cnt, testAvg: Math.round(r.avg * 10) / 10, testLast: r.last }
+               : NO_TESTS;
 }
+/* KEIN GEMEINSAMER WERT FUER DIE LEEREN DREI: Object.assign kopiert, also
+   teilt sich niemand das Objekt. */
+const NO_TESTS = { testCount: null, testAvg: null, testLast: null };
 
 const qMyPin = db.prepare('SELECT 1 FROM item_pins WHERE user_id = ? AND item_id = ?');
 
@@ -3109,15 +3188,29 @@ app.post('/api/items/:id/videos', entryAuthorOnly,
     } catch (e) { next(e); }
   });
 
+/* NUR DIE SPALTE, DIE GEBRAUCHT WIRD -- 0.35.0, BA 5. `SELECT *` zog bei
+   einer Videozeile bis zu 20 MB `data` mit, auch wenn nur die Kachel von rund
+   200 kB verlangt war. Fehlt die gewuenschte Ableitung, wird das Original
+   nachgeholt -- dieselbe Antwort wie bisher, nur ohne den Umweg im
+   Normalfall. */
+const qPhotoBytes = {
+  data:   db.prepare('SELECT id, kind, data AS bytes FROM photos WHERE id = ?'),
+  thumb:  db.prepare('SELECT id, kind, thumb AS bytes FROM photos WHERE id = ?'),
+  medium: db.prepare('SELECT id, kind, medium AS bytes FROM photos WHERE id = ?')
+};
 /* Der ausgelieferte Typ kommt aus den ersten Bytes, nie aus photos.mime_type:
    die Spalte ist eine Angabe des Hochladenden. */
 app.get('/api/photos/:id/raw', (req, res) => {
-  const p = db.prepare('SELECT * FROM photos WHERE id = ?').get(req.params.id);
+  const want = req.query.size === 'thumb' ? 'thumb'
+             : req.query.size === 'medium' ? 'medium' : 'data';
+  const p = qPhotoBytes[want].get(req.params.id);
   if (!p) return res.status(404).end();
-  let blob = p.data;
+  let blob = p.bytes;
   let rangeable = p.kind === 'video';
-  if (req.query.size === 'thumb' && p.thumb) { blob = p.thumb; rangeable = false; }
-  else if (req.query.size === 'medium' && p.medium) { blob = p.medium; rangeable = false; }
+  if (want !== 'data') {
+    if (blob) rangeable = false;
+    else blob = qPhotoBytes.data.get(req.params.id).bytes;
+  }
   attachments.setImageHeader(res, blob, { name: `foto-${p.id}`, maxAge: 86400 });
   if (!rangeable) return res.send(blob);
   res.set('Accept-Ranges', 'bytes');
@@ -3274,8 +3367,12 @@ app.put('/api/items/:id/photo-order', entryAuthorOnly, (req, res) => {
   res.json(detail(req.params.id, req.user.id, localeOf(req)));
 });
 
+/* AUS DER ZEILE WIRD NUR DIE EINTRAGSNUMMER GEBRAUCHT -- 0.35.0, BA 5.
+   `SELECT *` zog data, thumb und medium mit, also bei einem Video bis zu
+   20 MB, nur um danach zu loeschen. */
+const qPhotoItem = db.prepare('SELECT item_id FROM photos WHERE id = ?');
 app.delete('/api/photos/:id', (req, res) => {
-  const p = db.prepare('SELECT * FROM photos WHERE id = ?').get(req.params.id);
+  const p = qPhotoItem.get(req.params.id);
   if (!p) return res.status(404).json({ error: t(localeOf(req), 'server.photoGone')});
   if (!entryFree(req, res, p.item_id)) return;
   db.prepare('DELETE FROM photos WHERE id = ?').run(req.params.id);

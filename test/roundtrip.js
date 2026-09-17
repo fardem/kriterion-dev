@@ -18459,6 +18459,83 @@ async function sendImport(object, mode, withoutShare = false) {
     `${endNumber.test_days} Testtage, ${endNumber.ratings} Bewertungen, ` +
     `${endNumber.links} Links, ${endNumber.attachments} Dateien`);
   end.close();
+
+  /* ================= Die Auslieferung geht gezippt hinaus — 0.35.0 =========
+     DER SCHWERSTE EINZELBEFUND DER MESSUNG: public/style.css misst 301.048
+     Bytes, davon 211.862 in 408 Kommentarbloecken -- 70,5 Prozent. Der Server
+     hat bis 0.34.4 nicht komprimiert, also lud jeder Browser den ganzen Text
+     bei jedem Aufruf. */
+  group('Die Auslieferung geht gezippt hinaus — 0.35.0');
+  {
+    /* ROH HOLEN HEISST: die Antwort NICHT entpacken lassen. fetch() entpackt
+       gzip von selbst, und dann waere die Ersparnis nicht zu sehen -- deshalb
+       hier der Weg ueber node:http. */
+    const gzBytes = (file, encoding, extra = {}) => new Promise((done, fail) => {
+      const rq = require('http').request(
+        `${BASE}/${file}`, { headers: { 'accept-encoding': encoding, ...extra } }, (rs) => {
+          const parts = [];
+          rs.on('data', (d) => parts.push(d));
+          rs.on('end', () => done({
+            status: rs.statusCode,
+            head: (name) => rs.headers[name] || '',
+            raw: Buffer.concat(parts)
+          }));
+        });
+      rq.on('error', fail);
+      rq.end();
+    });
+    const gzCss = await gzBytes('style.css', 'gzip');
+    const gzPlain = await gzBytes('style.css', 'identity');
+    check('Das Stilblatt geht auf Wunsch gezippt hinaus',
+      gzCss.head('content-encoding') === 'gzip',
+      String(gzCss.head('content-encoding')));
+    check('Und ohne Wunsch wie bisher',
+      !gzPlain.head('content-encoding'),
+      String(gzPlain.head('content-encoding')));
+    /* DIE ZAHL GEHOERT IN DIE PRUEFUNG UND NICHT NUR INS PROTOKOLL. */
+    check('Gezippt ist es hoechstens halb so gross',
+      gzCss.raw.length * 2 < gzPlain.raw.length,
+      `${gzPlain.raw.length} roh, ${gzCss.raw.length} gezippt`);
+    /* UND ES IST DIESELBE DATEI: entpackt Byte fuer Byte der Stand auf der
+       Platte. Eine Ersparnis, die den Inhalt aendert, waere keine. */
+    const gzOnDisk = fs.readFileSync(path.join(__dirname, 'public', 'style.css'));
+    check('Und entpackt ist es Byte fuer Byte dieselbe Datei',
+      require('zlib').gunzipSync(gzCss.raw).equals(gzOnDisk),
+      `${require('zlib').gunzipSync(gzCss.raw).length} entpackt, ${gzOnDisk.length} auf der Platte`);
+    check('Und ungezippt ebenso', gzPlain.raw.equals(gzOnDisk),
+      `${gzPlain.raw.length} gegen ${gzOnDisk.length}`);
+    /* DIE MARKE SAGT, DASS ES DIE GEZIPPTE FASSUNG IST -- zwei Fassungen
+       unter einer Marke waeren eine Zusage, die nicht stimmt. */
+    check('Die gezippte Fassung traegt eine eigene Marke',
+      /-gz"$/.test(gzCss.head('etag') || ''),
+      String(gzCss.head('etag')));
+    check('Und sie sagt, dass die Antwort von der Kopfzeile abhaengt',
+      /Accept-Encoding/i.test(gzCss.head('vary') || ''),
+      String(gzCss.head('vary')));
+    /* UND EINE BEKANNTE MARKE SPART DIE ANTWORT GANZ. */
+    const gzAgain = await gzBytes('style.css', 'gzip', { 'if-none-match': gzCss.head('etag') });
+    check('Eine bekannte Marke bekommt 304 und keine Bytes',
+      gzAgain.status === 304 && gzAgain.raw.length === 0,
+      `Status ${gzAgain.status}, ${gzAgain.raw.length} Bytes`);
+    /* DER TYP BLEIBT DER TYP DER DATEI UND WIRD NICHT ZU application/gzip. */
+    check('Der Typ ist derselbe wie bei der ungezippten Auslieferung',
+      gzCss.head('content-type') === gzPlain.head('content-type')
+      && /^text\/css/.test(gzCss.head('content-type') || ''),
+      `${gzCss.head('content-type')} gegen ${gzPlain.head('content-type')}`);
+    /* UND DIE UEBRIGEN AUSGELIEFERTEN TEXTDATEIEN EBENSO. */
+    const gzMore = [], gzWrongType = [];
+    for (const file of ['app.js', 'index.html', 'languages/de.json', 'favicon.svg']) {
+      const one = await gzBytes(file, 'gzip');
+      const plain = await gzBytes(file, 'identity');
+      if (one.head('content-encoding') !== 'gzip') gzMore.push(file);
+      if (one.head('content-type') !== plain.head('content-type'))
+        gzWrongType.push(`${file}: ${one.head('content-type')} gegen ${plain.head('content-type')}`);
+    }
+    check('Auch app.js, die Seite, die Sprachdatei und das Zeichen gehen gezippt hinaus',
+      gzMore.length === 0, gzMore.join(' · '));
+    check('Und jede von ihnen traegt denselben Typ wie ungezippt',
+      gzWrongType.length === 0, gzWrongType.join(' · '));
+  }
 }
 
 module.exports = run;

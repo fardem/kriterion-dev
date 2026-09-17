@@ -411,7 +411,24 @@ async function run() {
                       "res.setHeader('Content-Type'", 'res.type('];
   const typeCount = (text) => TYPE_WORDS
     .map(z => [z, text.split(z).length - 1]).filter(([, n]) => n > 0);
-  const fTypeSelf = typeCount(fSource);
+  /* EINE AUSNAHME SEIT 0.35.0, UND SIE STEHT ALS GANZE ZEILE DA. Die gezippte
+     Auslieferung geht nicht ueber express.static und muss ihren Typ deshalb
+     selbst setzen. Der Wert kommt aus der festen Tafel PACK_TYPES und nicht
+     aus der Datenbank -- das ist der Grund dieses Waechters, und er haelt.
+     Ausgenommen ist die EINE Zeile und nicht das Muster. */
+  const TYPE_ALLOWED = "  res.set('Content-Type', PACK_TYPES.get(path.extname(name)));";
+  check('Die eine erlaubte Stelle steht genau einmal in server.js',
+    fSource.split(TYPE_ALLOWED).length - 1 === 1,
+    `${fSource.split(TYPE_ALLOWED).length - 1} Vorkommen`);
+  /* UND IHRE TAFEL IST FEST UND KURZ: fuenf Endungen, fuenf Werte, keine
+     Zeile davon kommt aus einer Abfrage. */
+  const fPackTable = (fSource.match(/const PACK_TYPES = new Map\(\[[\s\S]*?\]\);/) || [''])[0];
+  check('Und ihre Typtafel steht fest im Quelltext',
+    /\['\.css', 'text\/css; charset=UTF-8'\]/.test(fPackTable)
+    && (fPackTable.match(/\['\./g) || []).length === 5
+    && !/db\.|prepare|SELECT/i.test(fPackTable),
+    fPackTable ? `${(fPackTable.match(/\['\./g) || []).length} Endungen` : '(keine Tafel)');
+  const fTypeSelf = typeCount(fSource.split(TYPE_ALLOWED).join(''));
   check('server.js setzt den Content-Type an keiner Stelle selbst',
     fTypeSelf.length === 0, fTypeSelf.map(([z, n]) => `${z} (${n}x)`).join(' · '));
   /* DIE GEGENPROBE ZUM WAECHTER SELBST. */
