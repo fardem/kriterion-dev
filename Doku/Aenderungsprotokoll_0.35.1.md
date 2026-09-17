@@ -289,14 +289,37 @@ in `test/release_031.js`, dazu `WORDING_NEW_0351` und die Zahl 1.300 in
 
 ## 5. Die Rückbauten
 
-Vier neue, **alle vier gefahren, 0 stumm**:
+Vier neue, **alle vier gefahren, 0 stumm** — je Rückbau ein ganzer Lauf über
+7007 Prüfungen, zwei Nebenspuren, rund 300 Sekunden je Spur:
 
-| Nr | was zurückgebaut wird | welche Gruppe rot wird |
-|---|---|---|
-| 1095 | `keys.js` liest die Schlüsseldatei wieder ungeprüft | Die Schlüsseldatei: was darin steht, wird geprüft |
-| 1096 | Die Einstellungsroute schreibt wieder ohne Transaktion | Eine Absage von `PUT /api/settings` schreibt nichts |
-| 1097 | Das Wiederherstellen nimmt die Zeile nicht in Anspruch | Der Papierkorb: zweimal gleichzeitig zurückholen |
-| 1098 | Die Nummer bleibt nach dem Fehlerweg besetzt | Der Papierkorb: zweimal gleichzeitig zurückholen |
+| Nr | was zurückgebaut wird | bestanden | rot |
+|---|---|---:|---|
+| 1095 | `keys.js` liest die Schlüsseldatei wieder ungeprüft | 6998 | **8 Prüfungen der neuen Gruppe** — alle vier Schadensformen und zu jeder „Und daneben entsteht keine Datenbank" |
+| 1096 | Die Einstellungsroute schreibt wieder ohne Transaktion | 7001 | **5 Prüfungen der neuen Gruppe** — jede der fünf Lagen aus der Tafel in Abschnitt 2 |
+| 1097 | Das Wiederherstellen nimmt die Zeile nicht in Anspruch | 6999 | **4 Prüfungen der neuen Gruppe**, darunter „genau eine gelingt" und „der Eintrag steht genau einmal da" — dazu drei weitere, siehe unten |
+| 1098 | Die Nummer bleibt nach dem Fehlerweg besetzt | 7003 | **1 Prüfung der neuen Gruppe:** „Und den zweiten wieder mit 500 und nicht mit 409 — die Nummer ist frei" |
+
+**Zu jedem der vier kommt „Jeder Suchtext kommt in seiner Datei genau einmal
+vor" rot dazu** — der Rückbau ersetzt den Text, den er sucht. Das ist bei jedem
+Rückbau so und steht deshalb nicht in der Tafel.
+
+**1097 macht außerdem die beiden Wächter über die Sprachdatei rot** — „Kein
+Schlüssel der Sprachdatei steht ohne Leser da" und „Verwendungsprobe: jeder
+Schlüssel der Datei wird gerufen". Die zurückgebaute Zeile ist der einzige
+Leser von `server.trashRestoring`; fällt sie, steht der Schlüssel ohne Rufer
+da. **Der Wächter hätte den fehlenden Anspruch also auch von der Sprachseite
+her gefunden.** Der vierte Rote, „Und die Zahl über alles steht ebenso", folgt
+daraus, dass der Rückbau zwei Codezeilen entfernt.
+
+**Bei 1098 sind zwei Rote übrig, die nicht zum Rückbau gehören:** „Der
+Prüfstand räumt beim Start auf — 0.30.0" und „Und er sagt, was er angefasst
+hat". Die Gruppe fragt, ob der Treiber einen liegengebliebenen Server findet,
+und sie ist unter Last empfindlich — der Lauf fuhr zwei Spuren gleichzeitig,
+also zwei volle Prüfläufe auf derselben Maschine. **Nachgegangen worden ist dem
+nicht:** die benannte Gruppe des Rückbaus wird rot, und das ist, wonach der
+Rückbau fragt. *Im Lauf ohne Rückbau ist die Gruppe grün.*
+
+---
 
 **Drei vorhandene sind nachgezogen worden** — 147, 757 und 1069. Ihr Suchtext
 lag im Rumpf von `PUT /api/settings` und steht dort jetzt vier Spalten weiter
