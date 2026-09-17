@@ -2328,7 +2328,19 @@ Fahrplan: 0.35.2**
 
 **`GET /api/items/:id/export` liefert einen Eintrag als Datei, in derselben
 Form wie der volle Export.** Der Betreiber hat am 17. September 2026
-entschieden, dass das Projekt dafür keine Verwendung hat.
+entschieden, dass das Projekt dafür keine Verwendung hat. **Die Route geht
+mit, nicht nur der Knopf** — unter der Bedingung, dass sie für nichts anderes
+gebraucht wird.
+
+**Nachgesehen am 17. September 2026: sie wird für nichts anderes gebraucht.**
+
+| | |
+|---|---|
+| Rufer der Route | **einer** — `public/app.js`:5725, der Knopf am Fuß des Eintrags |
+| `entryAsBundle()` | **bleibt** — drei Rufer: voller Export, Einzelexport, Papierkorb |
+| `exportEnvelope()` | **bleibt** — dieselben Wege |
+| `exportName(suffix)` | **bleibt samt Parameter** — der Teilexport nennt `-teil-N-von-M` |
+| `EXCHANGE_MAX` | **bleibt** — vier weitere Fundstellen |
 
 **Die Herkunft:** die Route ist mit **0.8.70** entstanden, in der Runde
 „Sicherung und Papierkorb". Sie stand nicht in einem Auftrag und war kein
@@ -2352,6 +2364,7 @@ offen — Knopf dazu oder Route raus. Gebaut wurde der Knopf.
 | `public/app.js`:5725 | sein Rufer, `window.location` |
 | `public/app.js`:3885 | der Kommentar darüber — **und er nennt eine falsche Versionsnummer**, „seit 0.30.0" statt 0.8.70 |
 | `public/languages/*.json`:810 | `entry.exportOne`, in allen drei Dateien |
+| `public/languages/*.json`:1233 | `server.entryTooBig` — **die Route ist seine einzige Fundstelle**, der Browser kennt ihn nicht |
 
 **Prüfstand:**
 
@@ -2361,22 +2374,44 @@ offen — Knopf dazu oder Route raus. Gebaut wurde der Knopf.
 | `test/roundtrip.js`:17186 | „Der Einzelexport misst mit derselben Rechnung wie der volle" |
 | `test/source.js`:190 | `F_ROUTES` **73 → 72** |
 | `test/source.js`:2615 ff. | die vier Prüfungen am Knopf und am Schlüssel |
-| `test/source.js`:1200 | die Zahl **1.300 → 1.299** |
-| `test/release_031.js`:25 | `LANG_KEY_COUNT` **1.212 → 1.211** |
-| `test/release_031.js` | `EG_ADDED_AFTER_0312`, `EG_CHANGED_AFTER_0312_SHARED`, `TR_ADDED_AFTER_0313`, `TR_CHANGED_AFTER_0313` |
-| `test/source.js` | `WORDING_NEW_0350` verliert einen von drei Einträgen |
+| `test/source.js`:1200 | die Zahl **1.300 → 1.298** |
+| `test/source.js`:1798 | `server.entryTooBig` verlässt `WORDING_CHANGED_0311` |
+| `test/source.js`:1384 | `WORDING_NEW_0350` verliert einen von drei Einträgen |
+| `test/release_031.js`:25 | `LANG_KEY_COUNT` **1.212 → 1.210** |
+| `test/release_031.js` | vier Sprachtafeln, siehe unten |
 | `counterproof.js` | **1087 und 1088 fallen**, dazu die Gruppe „Der einzelne Eintrag ist über die Oberfläche zu holen — 0.35.0" |
 | die sechs Gleichlaufsummen | neu zu rechnen |
 
-**Papiere:** `README.md`:760, Projektstand (zwei Stellen), CHANGELOG-Eintrag
-der Runde. **Der Eintrag 0.35.0 im CHANGELOG bleibt stehen** — was dort steht,
-ist geschehen; der Ausbau bekommt seinen eigenen Eintrag.
+### Die beiden Schlüssel fallen verschieden, und das ist die eine Falle
+
+**Gemessen gegen `tools/englisch-0312.json` und `tools/tuerkisch-0313.json`:**
+
+* **`entry.exportOne` steht in keinem der beiden Vergleichsstände** — er ist
+  mit 0.35.0 entstanden. Er verlässt einfach `EG_ADDED_AFTER_0312`,
+  `TR_ADDED_AFTER_0313`, `EG_CHANGED_AFTER_0312_SHARED` und
+  `TR_CHANGED_AFTER_0313`, und damit ist es getan.
+* **`server.entryTooBig` steht in beiden.** Er muss **namentlich** in
+  `EG_GONE_AFTER_0312` und `TR_GONE_AFTER_0313`, und im deutschen Stand
+  braucht es eine neue `WORDING_GONE`-Liste. **Sonst kippt die Wortlautprobe
+  über 1.082 Sätze:** sie zieht die weggefallenen Sätze auf *beiden* Seiten ab,
+  und ein Satz, der nur auf der einen fehlt, macht die Zahlen ungleich. Die
+  Kommentare in `test/source.js`:1704 bis 1715 beschreiben dieselbe Mechanik
+  für 0.31.0, 0.32.0 und 0.32.1.
+
+### Was danach tot daliegt
+
+**`exchangeParts()` und `exchangeEnvelopeBytes()` bekommen `itemId` dann nur
+noch als `null`.** Beide tragen dafür je ein `onlyOne`, ein `values`, die
+Helfer `and()` und `wo()` — und in den Abfragen stehen **11 Einsetzungen**
+`${and(…)}` oder `${wo(…)}`, die dann immer den leeren String liefern.
+`exchangeBytes(itemId, switches)` verliert damit seinen ersten Parameter.
+
+**Ob das in derselben Runde fällt, ist zu entscheiden.** Dafür spricht, dass es
+sonst als toter Zweig liegen bleibt und die nächste Messung ihn wieder findet.
+Dagegen spricht, dass der Ausbau damit von zwölf Zeilen auf rund fünfzig
+wächst und drei Abfragen anfasst, die der volle Export braucht.
 
 ### Was noch zu entscheiden ist
-
-**Geht die Route mit oder nur der Knopf?** Der Knopf allein wegzunehmen führte
-auf den Stand vor 0.35.0 zurück — eine Route ohne Rufer, die die nächste
-Messung wieder findet. **Der Vorschlag ist: beides.**
 
 **Welche Stelle der Versionsnummer?** 0.35.0 hat mit `GET /api/health` eine
 Route ausgebaut und war **MINOR**, mit einem Kasten im CHANGELOG. Eine
@@ -2386,3 +2421,7 @@ gestellt, bevor gebaut wird.*
 
 **Was ein Betreiber wissen muss:** wer die Adresse in einem Skript stehen hat,
 bekommt danach 404. Das gehört in einen Kasten, so wie bei `GET /api/health`.
+
+**Papiere:** `README.md`:760, Projektstand (zwei Stellen), eigener
+CHANGELOG-Eintrag. **Der Eintrag 0.35.0 im CHANGELOG bleibt stehen** — was dort
+steht, ist geschehen.
