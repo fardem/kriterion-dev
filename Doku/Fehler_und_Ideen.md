@@ -1940,6 +1940,41 @@ Nachbar* `dialog.deleteUserAsk` *macht es genauso („{name}" kullanıcısı").*
 Betreiber und nicht an einen Wächter** — *deshalb steht es hier und nicht als
 Prüfung.*
 
+### Nachgesehen am 17. September 2026: alle sechs Stellen nebeneinander
+
+**Türkisch verbindet zwei Substantive auf zwei Weisen, und sie bedeuten
+Verschiedenes:**
+
+| Form | Bau | heißt |
+|---|---|---|
+| **belirtisiz izafet** | nur das zweite Wort bekommt `-i` — `"Alu" etiketi` | **der Tag namens Alu** |
+| **belirtili izafet** | erstes Wort `-in`, zweites `-i` — `"Alu"nun etiketi` | **Alus Tag**, der Tag, der Alu gehört |
+
+**Die sechs Stellen, wie sie heute dastehen:**
+
+| Schlüssel | türkisch | Form | Verhältnis |
+|---|---|---|---|
+| `card.tagDeleteHint` | `"{name}" etiketi her yerden kaldırılıyor` | belirtisiz | der Tag heißt so |
+| `card.marksGoneToo` | `"{name}" etiketi her yerden kaldırılıyor` | belirtisiz | der Tag heißt so |
+| `card.categoryDeleteHint` | `"{name}" kategorisi kaldırılıyor` | belirtisiz | die Kategorie heißt so |
+| `dialog.deleteUserAsk` | `"{name}" kullanıcısı silinsin mi?` | belirtisiz | der Zugang heißt so |
+| `dialog.postsOfOthers` | `"{name}" kullanıcısının katkılarını …` | belirtisiz **+** Genitiv | der Zugang heißt so **und** die Beiträge gehören ihm |
+| `card.linkHolderUser` | `"{username}" kullanıcısının parolasını …` | belirtisiz **+** Genitiv | der Zugang heißt so **und** das Passwort gehört ihm |
+
+**Damit ist die Lage anders, als der Punkt bisher annahm.** Die beiden Stellen,
+die 0.32.1 berichtigt hat, tragen den Genitiv, **weil dort etwas dem Zugang
+gehört** — die Beiträge, das Passwort. An den beiden Tagstellen gehört dem Tag
+nichts: **er selbst wird entfernt.** Der Genitiv würde die Bedeutung ändern —
+`"Alu"nun etiketi` hieße „der Tag, der Alu gehört", und Alu ist der Tag.
+
+*Auch der Nebensatz in `card.marksGoneToo` braucht keinen:* „auch die
+Kennzeichnungen **dort**" steht als `oradaki işaretler` — ein Ortsbezug und
+kein Besitz.
+
+**VORSCHLAG: die beiden Stellen bleiben, wie sie sind, und der Punkt wird
+geschlossen.** *Die Entscheidung liegt beim Betreiber; ändert er sie, sind es
+zwei Werte in einer Datei.*
+
 **Was es anfasst** — `public/languages/tr.json` *(zwei Werte)*.
 
 ---
