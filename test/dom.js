@@ -1070,7 +1070,10 @@ function buildDom(JSDOM, { withoutLanguage = false, settings = { filters: null }
     }
     /* SEIT 0.13.0 KENNT DIE ROUTE EINE AUSWAHL. */
     if (String(url).split('?')[0] === '/api/security-log') {
-      const group = (String(url).match(/[?&]gruppe=([^&]*)/) || [])[1];
+      /* DERSELBE NAME, DEN DER SERVER LIEST -- 0.35.0. Bis dahin stand hier
+         `gruppe`, und weil der Browser denselben deutschen Namen schickte,
+         sah der Pruefstand einen Filter, den es am echten Server nie gab. */
+      const group = (String(url).match(/[?&]group=([^&]*)/) || [])[1];
       if (!group) return give(log);
       const kinds = DOM_PROT_GROUPS[decodeURIComponent(group)];
       if (!kinds) return give({ error: 'Diese Ansicht gibt es nicht.' }, 400);

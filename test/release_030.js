@@ -354,7 +354,8 @@ async function check0300() {
       /* ZWEI BEISPIELADRESSEN UND EINE ABFRAGE. */
       'https://forum.beispiel.de/suche?q=%s',
       'site%3Aforum.beispiel.de',
-      '?gruppe=',
+      /* `?gruppe=` STAND HIER BIS 0.35.0 -- der Parameter heisst jetzt
+         `group`, und damit traegt die Adresse kein deutsches Wort mehr. */
       'Die Sprachdatei fehlt.'
     ];
     const gTexts = screenTextsFrom(gApp);
@@ -385,10 +386,10 @@ async function check0300() {
       gStuck.length === 0,
       gStuck.map(z => `${z.row}: ${JSON.stringify(z.text.slice(0, 60))}`).join(' · '));
     /* DIE ZAHL DER AUSNAHMEN STEHT AUSDRUECKLICH DA. */
-    check('Und es sind genau sechs benannte Ausnahmen — zwei Befehle, drei Adressen, ein Satz',
-      SENTENCE_EXCEPTIONS.length === 6 &&
+    check('Und es sind genau fuenf benannte Ausnahmen — zwei Befehle, zwei Adressen, ein Satz',
+      SENTENCE_EXCEPTIONS.length === 5 &&
       SENTENCE_EXCEPTIONS.filter(x => x.startsWith('docker')).length === 2 &&
-      SENTENCE_EXCEPTIONS.filter(x => /beispiel\.de|gruppe=/.test(x)).length === 3,
+      SENTENCE_EXCEPTIONS.filter(x => /beispiel\.de/.test(x)).length === 2,
       SENTENCE_EXCEPTIONS.join(' · '));
     /* UND DIE DREI FUNDE DIESER RUNDE STEHEN JETZT IM WOERTERBUCH. */
     check('„an", „aus" und „eingerichtet" kommen jetzt aus der Sprachdatei',

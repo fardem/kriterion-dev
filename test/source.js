@@ -2458,6 +2458,55 @@ async function run() {
       (efBody.match(/.*console\.error.*/) || ['(keine Zeile)'])[0].trim());
   }
 
+  /* ================= Die Namen der Abfrageparameter — 0.35.0 =============
+     BEFUND server.js:1048 DER MESSUNG ZUR 0.35.0: der Server liest den Filter
+     des Sicherheitsprotokolls als `req.query.group`, der Browser baute die
+     Adresse mit `?gruppe=`. Der Wert war damit bei jedem echten Aufruf
+     undefiniert, und die Karte zeigte statt der gewaehlten Ansicht die
+     hundert juengsten Zeilen. Seit 0.13.0.
+     IM PRUEFSTAND FIEL ES NICHT AUF, weil der Mock in test/dom.js denselben
+     deutschen Namen las wie der Browser -- zwei Abschriften derselben
+     Annahme, und die dritte Stelle, die zaehlt, stand daneben. */
+  group('Jeder Abfrageparameter des Browsers hat einen Leser — 0.35.0');
+  {
+    const qpApp = fs.readFileSync(path.join(__dirname, 'public', 'app.js'), 'utf8');
+    const qpServer = fs.readFileSync(path.join(__dirname, 'server.js'), 'utf8');
+    const qpClient = new Set([...qpApp.matchAll(/[?&]([a-zA-Z][a-zA-Z0-9_]*)=/g)]
+      .map(m => m[1]));
+    const qpRead = new Set([
+      ...[...qpServer.matchAll(/req\.query\.([a-zA-Z][a-zA-Z0-9_]*)/g)].map(m => m[1]),
+      ...[...qpServer.matchAll(/req\.query\['([^']+)'\]/g)].map(m => m[1])
+    ]);
+    /* ERST DER BEFUND AM GESTELLTEN FALL: ein Waechter, der auf leeren Mengen
+       laeuft, ist gruen und belegt nichts. */
+    check('Der Waechter sieht beide Seiten',
+      qpClient.size >= 15 && qpRead.size >= 15,
+      `${qpClient.size} im Browser, ${qpRead.size} am Server`);
+    /* DIE EINE AUSNAHME, UND SIE STEHT NAMENTLICH DA: `v` haengt an der
+       Kacheladresse und soll GERADE nicht gelesen werden -- es steht dort,
+       damit der Browser eine geaenderte Kachel nicht aus seinem Vorrat
+       nimmt. */
+    const QP_UNREAD = ['v'];
+    const qpOrphan = [...qpClient].filter(n => !qpRead.has(n) && !QP_UNREAD.includes(n));
+    check('Und jeder Parameter, den der Browser baut, wird am Server gelesen',
+      qpOrphan.length === 0, qpOrphan.sort().join(' ') || 'alle gelesen');
+    check('Die eine Ausnahme ist `v` — die Kachelversion, die niemand liest',
+      QP_UNREAD.length === 1 && qpClient.has('v') && !qpRead.has('v'),
+      QP_UNREAD.join(' '));
+    /* UND DER FILTER DES SICHERHEITSPROTOKOLLS NAMENTLICH: er ist der Befund,
+       wegen dessen diese Gruppe dasteht. */
+    check('Der Filter des Sicherheitsprotokolls heisst auf beiden Seiten `group`',
+      /\?group=\$\{encodeURIComponent\(logGroup\)\}/.test(qpApp)
+      && /req\.query\.group/.test(qpServer),
+      (qpApp.match(/.*security-log.*/) || ['(nicht gefunden)'])[0].trim());
+    /* UND DER MOCK DES PRUEFSTANDS LIEST DENSELBEN NAMEN -- sonst faende der
+       Pruefstand einen Filter, den es am echten Server nicht gibt. */
+    const qpDom = fs.readFileSync(path.join(__dirname, 'test', 'dom.js'), 'utf8');
+    check('Und der Mock des Pruefstands liest ihn ebenso',
+      /\[\?&\]group=/.test(qpDom) && !/\[\?&\]gruppe=/.test(qpDom),
+      (qpDom.match(/.*\[\?&\]grou?p?p?e?=.*/) || ['(nicht gefunden)'])[0].trim());
+  }
+
   /* ================= Das Stilblatt — 0.35.0 ==============================
      BEFUND public/style.css:1 DER MESSUNG ZUR 0.35.0: die Datei mass 300.472
      Bytes, davon 211.862 in 408 Kommentarbloecken -- 70,5 Prozent. Der

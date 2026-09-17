@@ -8829,6 +8829,24 @@ const REGRESSIONS = [
     replacement: "      return;",
     expected: 'Die Wartezeiten des Pruefstands — 0.35.0'
   },
+  {
+    /* Der Browser schickt den Filter wieder unter dem deutschen Namen, den
+       der Server nicht liest. */
+    nr: '1093', name: 'Der Filter des Protokolls heisst im Browser wieder `gruppe`',
+    file: 'public/app.js',
+    search: "        (logGroup ? `?group=${encodeURIComponent(logGroup)}` : ''));",
+    replacement: "        (logGroup ? `?gruppe=${encodeURIComponent(logGroup)}` : ''));",
+    expected: 'Jeder Abfrageparameter des Browsers hat einen Leser — 0.35.0'
+  },
+  {
+    /* Und der Mock liest wieder den deutschen Namen -- die Abschrift, die
+       den Befund dreissig Runden lang verdeckt hat. */
+    nr: '1094', name: 'Der Mock des Pruefstands liest wieder den deutschen Namen',
+    file: 'test/dom.js',
+    search: "      const group = (String(url).match(/[?&]group=([^&]*)/) || [])[1];",
+    replacement: "      const group = (String(url).match(/[?&]gruppe=([^&]*)/) || [])[1];",
+    expected: 'Jeder Abfrageparameter des Browsers hat einen Leser — 0.35.0'
+  },
 ];
 
 /* ================= Spuren und Versatz ================= Der Versatz je

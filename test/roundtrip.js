@@ -11230,6 +11230,42 @@ async function sendImport(object, mode, withoutShare = false) {
     prView.content?.rows[0]?.id > prView.content?.rows[1]?.id,
     JSON.stringify(prView.content?.rows.slice(0, 2).map(z => z.id)));
 
+  /* ---- DIE AUSWAHL AM ECHTEN SERVER -- 0.35.0 ----
+     SIE STAND BIS DAHIN IN KEINER PRUEFUNG. Die Route kennt die Auswahl seit
+     0.13.0, und geprueft war nur, dass der Browser sie anhaengt -- gegen
+     einen Mock, der denselben deutschen Namen las wie der Browser. Der echte
+     Server liest `group`, und damit hat die Auswahl nie gegriffen. */
+  const prPick = await prCall(prAnna, 'GET', '/api/security-log?group=failed');
+  check('Die Auswahl „failed" kommt durch',
+    prPick.status === 200 && Array.isArray(prPick.content?.rows),
+    `Status ${prPick.status}`);
+  check('Und sie traegt nur gescheiterte Anmeldungen',
+    (prPick.content?.rows || []).length > 0 &&
+    (prPick.content?.rows || []).every(z => z.event === 'login.fail' || z.event === 'confirm.fail'),
+    JSON.stringify([...new Set((prPick.content?.rows || []).map(z => z.event))]));
+  /* UND SIE SIEBT WIRKLICH -- ohne diese Zeile waere die darueber auch dann
+     gruen, wenn der Server jede Zeile zurueckgaebe und im Bestand zufaellig
+     nur gescheiterte Anmeldungen staenden. */
+  check('Und der ungefilterte Abruf traegt mehr Arten',
+    new Set((prView.content?.rows || []).map(z => z.event)).size >
+    new Set((prPick.content?.rows || []).map(z => z.event)).size,
+    `${new Set((prView.content?.rows || []).map(z => z.event)).size} gegen ` +
+    `${new Set((prPick.content?.rows || []).map(z => z.event)).size} Arten`);
+  check('Die Antwort nennt die gewaehlte Ansicht',
+    prPick.content?.group === 'failed', JSON.stringify(prPick.content?.group));
+  /* UND EINE ANSICHT, DIE ES NICHT GIBT, WIRD ABGEWIESEN. */
+  const prBad = await prCall(prAnna, 'GET', '/api/security-log?group=gibtsnicht');
+  check('Eine unbekannte Ansicht bekommt 400',
+    prBad.status === 400, `Status ${prBad.status}`);
+  /* UND DER DEUTSCHE NAME GREIFT NICHT MEHR -- er ist kein zweiter Weg,
+     sondern ein unbekannter Parameter, und unbekannte Parameter ignoriert
+     die Route. */
+  const prGerman = await prCall(prAnna, 'GET', '/api/security-log?gruppe=failed');
+  check('Der alte deutsche Name waehlt nichts aus',
+    prGerman.status === 200 && prGerman.content?.group == null &&
+    (prGerman.content?.rows || []).length === (prView.content?.rows || []).length,
+    `Status ${prGerman.status}, Ansicht ${JSON.stringify(prGerman.content?.group)}`);
+
   /* DIE LAGE WIRD BEENDET, und das ist keine Ordnungsliebe: ein Server, der
      den Lauf ueberlebt, besetzt seinen Port weiter, und der naechste Lauf
      bekommt auf demselben Port einen FREMDEN Server samt fremder Datenbank. */

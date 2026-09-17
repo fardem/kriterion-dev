@@ -8128,13 +8128,19 @@ function setUpLogOut(fetched) {
   }
 
   /* NACHGELADEN WIRD BEIM KLICK, und zwar NUR diese Karte -- dieselbe Bauform
-     wie sessionsNew() und trashNew(). */
+     wie sessionsNew() und trashNew().
+     DER NAME DES PARAMETERS HEISST SEIT 0.35.0 `group` UND NICHT `gruppe`.
+     Der Server liest ihn in server.js unter diesem Namen, und zwar seit
+     0.13.0; der Browser schickte `gruppe`. Damit war der Wert bei jedem
+     echten Aufruf undefiniert, und die Karte zeigte statt der gewaehlten
+     Ansicht die hundert juengsten Zeilen. Im Pruefstand fiel es nicht auf,
+     weil der Mock in test/dom.js denselben deutschen Namen las. */
   async function logNew(group) {
     logGroup = group || '';
     let d;
     try {
       d = await api('GET', '/api/security-log' +
-        (logGroup ? `?gruppe=${encodeURIComponent(logGroup)}` : ''));
+        (logGroup ? `?group=${encodeURIComponent(logGroup)}` : ''));
     } catch (e) {
       const box = document.getElementById('log-list');
       if (box) box.innerHTML = `<p class="hint">${esc(e.message)}</p>`;

@@ -511,7 +511,7 @@ async function check0311() {
    public/app.js ohne Kommentare und ohne Markup, und diese Runde nimmt dort
    toten Code weg und fasst Wiederholungen zusammen. Der Stand von 0.31.4 war
    daa0c9094f2c2305 / 77128aef244a5976. */
-const DE_UNTOUCHED = { one: 'fae6bad6198a2dd9', other: '77e11ebf862d1a91' };
+const DE_UNTOUCHED = { one: '1046cd6f3ec87cf0', other: '7b6098fc204a3a81' };
 const DE_BEFORE_0312 = { one: '91b86c5affcba789', other: '07fc3ccdc8a27a03' };
 const DE_ORDERED_0312 = {
   'login.requestAccess': 'Zugang anfragen',
@@ -834,11 +834,11 @@ async function check0312() {
    39489ec6ae18020b -- vor 0.31.3; derselbe Grund wie oben.
    VOR 0.35.0: en caa4b814e75f8263 / f224721465ac0d35,
    tr ab6bdf35499f7cf9 / ad34f68137acaa2b. */
-const EN_UNTOUCHED = { one: '6a5871822b3dbde8', other: '6aa778b03fd87f23' };
+const EN_UNTOUCHED = { one: '37234694cb95952b', other: 'f047d132a85034ea' };
 const TR_BEFORE_0313 = { one: '5fec71b10c0dfa3c', other: '18b07eda589b5120' };
 /* bbaca227348609dc / 73d9f1ea0298d519 -- der Stand VOR der Berichtigung an
    der Vorschau der Vokabelkarte, die der Augenschein von 0.31.3 verlangt hat. */
-const TR_AFTER_0313 = { one: '940df301207b1da9', other: '3529f077e85338e6' };
+const TR_AFTER_0313 = { one: 'b006c00a28ebf68f', other: 'a7cf75e2818df03e' };
 
 async function check0313() {
   const tgRead = (code) => JSON.parse(fs.readFileSync(
