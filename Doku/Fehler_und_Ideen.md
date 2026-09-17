@@ -1399,6 +1399,12 @@ Prüfläufe gleichzeitig starten und sehen, welcher Zweig der Erkennung greift.*
 > Flackern in **sechs** von zwölf Läufen.* **Damit stehen drei Zahlen da — 9/21
 > auf vier Spuren, 2/3 und 6/12 auf dreien.** *Rund die Hälfte, gleich welche
 > Spurenzahl; die Vier war nie die Ursache.*
+>
+> **VIERTE ZÄHLUNG, 0.35.1:** *vier Rückbauten auf **zwei** Spuren, das Flackern
+> in **einem** von vier Läufen — Rückbau 1098, Spur 0, dieselben zwei Zusagen.*
+> **Damit ist auch die Zwei gemessen, und sie flackert seltener:** *1/4 gegen
+> rund die Hälfte bei drei und vier Spuren.* *Eine einzelne Zahl aus vier
+> Läufen trägt wenig; sie steht hier, damit die Reihe vollständig ist.*
 
 **Offene Entscheidungen** — *ob der Aufräumer fremde Wegwerfverzeichnisse
 überhaupt ansehen soll, oder nur die unter seiner eigenen Portbasis.*
@@ -1915,10 +1921,17 @@ hat, einmal im Prüfstand.*
 
 ---
 
-## 36. Der Genitiv am Namen fehlt an zwei türkischen Stellen
+## 36. ~~Der Genitiv am Namen fehlt an zwei türkischen Stellen~~ — **GESCHLOSSEN am 17. September 2026: kein Befund**
+
+> **ENTSCHEIDUNG DES BETREIBERS am 17. September 2026**, nachdem alle sechs
+> Stellen mit izafet nebeneinander gehalten worden sind: die beiden Tagstellen
+> bleiben, wie sie sind. **Dem Tag gehört nichts — er selbst wird entfernt**,
+> und der Genitiv würde die Bedeutung ändern. *Der Punkt bleibt hier stehen,
+> weil die Tafel darunter die nächste Durchsicht davon abhält, dieselbe Frage
+> noch einmal zu stellen.*
 
 **Art: Fehler** *(Türkisch)* **· Herkunft: 0.32.1, beim Durchgang durch die
-Endungen gefunden · Einschätzung: klein**
+Endungen gefunden · Einschätzung: klein · Stand: geschlossen**
 
 **ZWEI STELLEN SIND IN 0.32.1 BERICHTIGT WORDEN** *(`dialog.postsOfOthers`,
 `card.linkHolderUser`)*, **eine dritte steht als Grenzfall noch da:**
@@ -1933,6 +1946,41 @@ Nachbar* `dialog.deleteUserAsk` *macht es genauso („{name}" kullanıcısı").*
 **Ob ein türkischer Leser hier den Genitiv erwartet, ist eine Frage an den
 Betreiber und nicht an einen Wächter** — *deshalb steht es hier und nicht als
 Prüfung.*
+
+### Nachgesehen am 17. September 2026: alle sechs Stellen nebeneinander
+
+**Türkisch verbindet zwei Substantive auf zwei Weisen, und sie bedeuten
+Verschiedenes:**
+
+| Form | Bau | heißt |
+|---|---|---|
+| **belirtisiz izafet** | nur das zweite Wort bekommt `-i` — `"Alu" etiketi` | **der Tag namens Alu** |
+| **belirtili izafet** | erstes Wort `-in`, zweites `-i` — `"Alu"nun etiketi` | **Alus Tag**, der Tag, der Alu gehört |
+
+**Die sechs Stellen, wie sie heute dastehen:**
+
+| Schlüssel | türkisch | Form | Verhältnis |
+|---|---|---|---|
+| `card.tagDeleteHint` | `"{name}" etiketi her yerden kaldırılıyor` | belirtisiz | der Tag heißt so |
+| `card.marksGoneToo` | `"{name}" etiketi her yerden kaldırılıyor` | belirtisiz | der Tag heißt so |
+| `card.categoryDeleteHint` | `"{name}" kategorisi kaldırılıyor` | belirtisiz | die Kategorie heißt so |
+| `dialog.deleteUserAsk` | `"{name}" kullanıcısı silinsin mi?` | belirtisiz | der Zugang heißt so |
+| `dialog.postsOfOthers` | `"{name}" kullanıcısının katkılarını …` | belirtisiz **+** Genitiv | der Zugang heißt so **und** die Beiträge gehören ihm |
+| `card.linkHolderUser` | `"{username}" kullanıcısının parolasını …` | belirtisiz **+** Genitiv | der Zugang heißt so **und** das Passwort gehört ihm |
+
+**Damit ist die Lage anders, als der Punkt bisher annahm.** Die beiden Stellen,
+die 0.32.1 berichtigt hat, tragen den Genitiv, **weil dort etwas dem Zugang
+gehört** — die Beiträge, das Passwort. An den beiden Tagstellen gehört dem Tag
+nichts: **er selbst wird entfernt.** Der Genitiv würde die Bedeutung ändern —
+`"Alu"nun etiketi` hieße „der Tag, der Alu gehört", und Alu ist der Tag.
+
+*Auch der Nebensatz in `card.marksGoneToo` braucht keinen:* „auch die
+Kennzeichnungen **dort**" steht als `oradaki işaretler` — ein Ortsbezug und
+kein Besitz.
+
+**SO ENTSCHIEDEN am 17. September 2026: die beiden Stellen bleiben, wie sie
+sind.** *Würde die Entscheidung einmal umgedreht, wären es zwei Werte in einer
+Datei.*
 
 **Was es anfasst** — `public/languages/tr.json` *(zwei Werte)*.
 
