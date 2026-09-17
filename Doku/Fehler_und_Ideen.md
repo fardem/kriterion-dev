@@ -1400,11 +1400,10 @@ Prüfläufe gleichzeitig starten und sehen, welcher Zweig der Erkennung greift.*
 > auf vier Spuren, 2/3 und 6/12 auf dreien.** *Rund die Hälfte, gleich welche
 > Spurenzahl; die Vier war nie die Ursache.*
 >
-> **VIERTE ZÄHLUNG, 0.35.1:** *vier Rückbauten auf **zwei** Spuren, das Flackern
-> in **einem** von vier Läufen — Rückbau 1098, Spur 0, dieselben zwei Zusagen.*
-> **Damit ist auch die Zwei gemessen, und sie flackert seltener:** *1/4 gegen
-> rund die Hälfte bei drei und vier Spuren.* *Eine einzelne Zahl aus vier
-> Läufen trägt wenig; sie steht hier, damit die Reihe vollständig ist.*
+> **VIERTE ZÄHLUNG, 0.35.1:** *sechs Rückbauten auf **zwei** Spuren in zwei
+> Läufen, das Flackern in **zwei** von sechs — Rückbau 1098 und Rückbau 1100,
+> beide dieselben zwei Zusagen.* **Damit ist auch die Zwei gemessen, und sie
+> flackert seltener:** *2/6 gegen rund die Hälfte bei drei und vier Spuren.*
 
 **Offene Entscheidungen** — *ob der Aufräumer fremde Wegwerfverzeichnisse
 überhaupt ansehen soll, oder nur die unter seiner eigenen Portbasis.*
