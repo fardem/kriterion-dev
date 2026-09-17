@@ -25,7 +25,7 @@ async function run() {
   // Die Zahl der Rueckbauten steht ausdruecklich da: eine Zahl in einem
   // Papier ist eine Behauptung, eine Zahl im Pruefstand ist ein Beleg. Wie
   // sie Runde fuer Runde gewachsen ist, steht in den Aenderungsprotokollen.
-  check(`Es sind genau 1028 Rueckbauten`, gpList.length === 1028, `${gpList.length}`);
+  check(`Es sind genau 1030 Rueckbauten`, gpList.length === 1030, `${gpList.length}`);
   const gpTwice = gpList.map(r => r.nr).filter((n, i, a) => a.indexOf(n) !== i);
   check('Und keine Nummer steht zweimal', gpTwice.length === 0, gpTwice.join(' '));
   /* JEDER GREIFT: der Suchtext kommt in seiner Datei GENAU EINMAL vor. */
@@ -214,6 +214,57 @@ async function run() {
   check('Und der Name, den es nie gab, steht in keiner Zeile Code mehr',
     !/pruefung\.js/.test(gpCode), 'pruefung.js steht noch im Code von counterproof.js');
 
+  /* ================= Die Wartezeiten des Pruefstands — 0.35.0 =============
+     BEFUND test/dom.js:1316 DER MESSUNG ZUR 0.35.0: 626 feste Wartezeiten in
+     den Modulen unter test/, zusammen 59.635 ms. Die Module laufen
+     nacheinander, also liegt jede dieser Millisekunden auf der Laufzeit.
+     DIESE RUNDE BAUT DAS WERKZEUG UND NIMMT DIE ELF TEUERSTEN STELLEN: die
+     Wartezeiten von 1100 ms in test/roundtrip.js warteten auf die naechste
+     Sekundengrenze der Uhr und warteten dafuer im Mittel doppelt so lange wie
+     noetig. Die uebrigen 615 Stellen warten auf das Neuzeichnen eines
+     Fensters; jede von ihnen braucht ihre eigene Bedingung, und das ist eine
+     eigene Runde. */
+  group('Die Wartezeiten des Pruefstands — 0.35.0');
+  {
+    const wtRead = (f) => fs.readFileSync(path.join(__dirname, 'test', f), 'utf8');
+    const wtDom = wtRead('dom.js');
+    const wtFrame = wtRead('frame.js');
+    const wtRound = wtRead('roundtrip.js');
+    /* DAS WERKZEUG STEHT DA UND WIRFT AN DER GRENZE. */
+    check('Der Helfer steht in test/dom.js',
+      /async function until\(w, condition, limitMs = \d+, what = /.test(wtDom),
+      (wtDom.match(/.*async function until\(.*/) || ['(nicht gefunden)'])[0].trim());
+    check('Und er wirft an der Grenze, statt stillschweigend weiterzulaufen',
+      /throw new Error\(`until\(\): \$\{what\} ist in \$\{limitMs\} ms nicht eingetreten`\)/.test(wtDom),
+      (wtDom.match(/.*until\(\): .*/) || ['(kein Wurf)'])[0].trim());
+    check('Und er fragt in Fuenf-Millisekunden-Schritten',
+      /const UNTIL_STEP = 5;/.test(wtDom),
+      (wtDom.match(/const UNTIL_STEP = .*/) || ['(keine Schrittweite)'])[0]);
+    /* UND DIE SEKUNDENGRENZE HAT IHREN EIGENEN HELFER. */
+    check('Der Helfer fuer die Sekundengrenze steht in test/frame.js',
+      /async function nextSecond\(limitMs = \d+\)/.test(wtFrame),
+      (wtFrame.match(/.*async function nextSecond\(.*/) || ['(nicht gefunden)'])[0].trim());
+    check('Und er wartet auf die Grenze und nicht auf eine Dauer',
+      /while \(Math\.floor\(Date\.now\(\) \/ 1000\) === now\)/.test(wtFrame),
+      (wtFrame.match(/.*Math\.floor\(Date\.now\(\) \/ 1000\).*/) || ['(keine Grenze)'])[0].trim());
+    /* UND DIE ELF STELLEN SIND WIRKLICH UMGESTELLT. */
+    const wtElf = (wtRound.match(/await nextSecond\(\);/g) || []).length;
+    check('Die elf Stellen in test/roundtrip.js rufen den Helfer',
+      wtElf === 11, `${wtElf} Aufrufe`);
+    check('Und es steht dort keine Wartezeit von 1100 ms mehr',
+      !/setTimeout\(r, 1100\)/.test(wtRound),
+      (wtRound.match(/.*setTimeout\(r, 1100\).*/) || ['keine mehr'])[0].trim());
+    /* UND DIE SUMME ALLER FESTEN WARTEZEITEN IST GEMESSEN UND GEDECKELT. */
+    let wtSum = 0, wtCount = 0;
+    for (const f of fs.readdirSync(path.join(__dirname, 'test')))
+      if (/\.js$/.test(f))
+        for (const m of wtRead(f).matchAll(/setTimeout\(r,\s*(\d+)\)/g)) {
+          wtSum += Number(m[1]); wtCount++;
+        }
+    check('Die festen Wartezeiten summieren sich auf hoechstens 48.000 ms — vor dieser Runde 59.635',
+      wtSum <= 48000, `${wtSum} ms an ${wtCount} Stellen`);
+  }
+
   /* ================= Die Ersatztexte der Rueckbauten — 0.34.1 =============
      Ein Suchtext, der nicht mehr passt, faellt sofort auf: der Rueckbau
      bricht ab und wird gemeldet. */
@@ -279,7 +330,7 @@ async function run() {
     if (miss.length) rpStrange.push(`${r.nr} ${r.file}: ${miss.join(' ')}`);
   }
   check('Der Waechter sieht die Rueckbauten auf Pruefstandsdateien',
-    rpChecked === 23, `${rpChecked} Rueckbauten`);
+    rpChecked === 25, `${rpChecked} Rueckbauten`);
   check('Und jeder ihrer Namen steht in der Zieldatei, im Rahmen oder im Suchtext',
     rpStrange.length === 0, rpStrange.slice(0, 6).join(' · '));
 
@@ -300,15 +351,15 @@ async function run() {
     const COMMENT_ROWS = [
       ['testbench.js', 73],
       ['test/batchrun.js', 87],
-      ['test/dom.js', 328],
+      ['test/dom.js', 344],
       ['test/firstlogin.js', 30],
-      ['test/frame.js', 154],
+      ['test/frame.js', 164],
       ['test/keychange.js', 70],
       ['test/release_029.js', 60],
       ['test/release_030.js', 239],
       ['test/release_031.js', 395],
       ['test/roundtrip.js', 3152],
-      ['test/selfcheck.js', 158],
+      ['test/selfcheck.js', 172],
       ['test/source.js', 682],
       ['test/ui_entry.js', 497],
       ['test/ui_export.js', 453],
@@ -318,7 +369,7 @@ async function run() {
       ['test/ui_style.js', 562],
       ['test/ui_system.js', 692],
       ['test/ui_translator.js', 104],
-      ['counterproof.js', 1516],
+      ['counterproof.js', 1519],
       ['server.js', 1487],
       ['auth.js', 274],
       ['db.js', 272],
@@ -333,7 +384,7 @@ async function run() {
       ['public/app.js', 1849],
       ['public/theme.js', 3],
     ];
-    const COMMENT_TOTAL = { comment: 14491, code: 60311 };
+    const COMMENT_TOTAL = { comment: 14534, code: 60388 };
     check('Der Waechter sieht alle vierunddreissig Dateien',
       crAll.each.length === 34 && COMMENT_ROWS.length === 34,
       `${crAll.each.length} gemessen, ${COMMENT_ROWS.length} genannt`);

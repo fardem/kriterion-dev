@@ -14,7 +14,7 @@ async function run() {
    PORT_OFFSET, PORT, BASE, DATA, USER, PASSWORD, open, startServer,
    shortRun, shortRunAll, setPasswordImInventory, endKind, CASES,
    FINGERPRINT_BASE, smtpEmpfaenger, startFurtherServer, call, names,
-   includingShare, callF, shareMain
+   includingShare, callF, shareMain, nextSecond
   } = H;
   /* DER QUELLTEXT DES SERVERS. Zwei Gruppen dieses Moduls lesen ihn -- die
      Groesse des Exports und die Zeile davor. */
@@ -4826,7 +4826,7 @@ async function sendImport(object, mode, withoutShare = false) {
     JSON.stringify(zpFresh[0]));
   /* UND ER ZIEHT BEIM UEBERSCHREIBEN MIT. */
   const zpBefore = zpFresh[0].set_at;
-  await new Promise(r => setTimeout(r, 1100));
+  await nextSecond();
   await eCall('cookie-e-drei', 'PUT', '/api/items/2/ratings', { criterionId: zpCriterion, value: 2 });
   const zpAfter = zpRows('SELECT set_at, value FROM ratings WHERE item_id = 2 AND criterion_id = ?', zpCriterion)[0];
   check('Und beim Ueberschreiben zieht er mit',
@@ -4857,7 +4857,7 @@ async function sendImport(object, mode, withoutShare = false) {
 
   /* GESETZT WIRD UEBER PUT /api/settings -- kein eigener Weg, und damit
      waechst F_ROUTES nicht. */
-  await new Promise(r => setTimeout(r, 1100));
+  await nextSecond();
   const glSet = await eCall('cookie-e-eins', 'PUT', '/api/settings', { bellSeen: 1 });
   const glAfterSet = (await eCall('cookie-e-eins', 'GET', '/api/settings')).content?.bellSeen;
   check('Er laesst sich ueber die vorhandene Route setzen',
@@ -4895,7 +4895,7 @@ async function sendImport(object, mode, withoutShare = false) {
     JSON.stringify(await glEntry('cookie-e-eins', 1)));
 
   // Ein FREMDER Kommentar -- der Fall, um den es geht.
-  await new Promise(r => setTimeout(r, 1100));
+  await nextSecond();
   await eCall('cookie-e-zwei', 'POST', '/api/items/1/comments', { text: 'Von zwei' });
   check('Ein fremder Kommentar zaehlt',
     (await glEntry('cookie-e-eins', 1))?.newComments === 1,
@@ -4920,9 +4920,9 @@ async function sendImport(object, mode, withoutShare = false) {
     JSON.stringify((await glEntry('cookie-e-eins', 1))?.newFrom));
   /* DIE ZAHL WIRD JE ZUGANG GERECHNET UND NICHT GLOBAL. Der zweite Zugang
      setzt seinen Strich spaeter und sieht deshalb weniger. */
-  await new Promise(r => setTimeout(r, 1100));
+  await nextSecond();
   await eCall('cookie-e-zwei', 'PUT', '/api/settings', { bellSeen: 1 });
-  await new Promise(r => setTimeout(r, 1100));
+  await nextSecond();
   await eCall('cookie-e-eins', 'POST', '/api/items/1/comments', { text: 'Noch einer von eins' });
   /* ZWEI IST NICHT EINS: derselbe Kommentar von „eins" zaehlt fuer „zwei"
      (fremd) und fuer „eins" nicht (eigen). */
@@ -4978,7 +4978,7 @@ async function sendImport(object, mode, withoutShare = false) {
   /* DAS OEFFNEN DER TAFEL SETZT ALLES AUF GESEHEN -- die bewusste Grenze der
      schlanken Fassung: bei einem Zeitstempel gibt es keinen Lesestand je
      Message. */
-  await new Promise(r => setTimeout(r, 1100));
+  await nextSecond();
   await eCall('cookie-e-eins', 'PUT', '/api/settings', { bellSeen: 1 });
   check('Ein neuer Bezugspunkt setzt alles auf gesehen',
     (await glList('cookie-e-eins')).every(i =>
@@ -5018,7 +5018,7 @@ async function sendImport(object, mode, withoutShare = false) {
      niemanden sonst -- also bekommt `zwei` seine Glocke und `drei` nicht. */
   await eCall('cookie-e-zwei', 'PUT', '/api/settings', { bellSeen: 1 });
   await eCall('cookie-e-drei', 'PUT', '/api/settings', { bellSeen: 1 });
-  await new Promise(r => setTimeout(r, 1100));
+  await nextSecond();
   const mkPost = await eCall('cookie-e-eins', 'POST', '/api/items/1/comments',
     { text: 'Schau mal @zwei, und @gibtesnicht auch — post@beispiel.de' });
   check('Markierprobe: der Kommentar entsteht',
@@ -6801,7 +6801,7 @@ async function sendImport(object, mode, withoutShare = false) {
   }
   /* Und der zweite Griff am laufenden Server legt eine ZWEITE Datei an, statt
      die erste zu fressen. Eine Sicherung, die die vorige frisst, ist keine. */
-  await new Promise(r => setTimeout(r, 1100));
+  await nextSecond();
   const siSecond = await siCall('cookie-si-anna', 'POST', '/api/backup');
   check('Ein zweiter Griff legt eine zweite Datei an',
     siSecond.status === 200 && siSecond.content?.file !== siGo.content?.file,
@@ -6954,7 +6954,7 @@ async function sendImport(object, mode, withoutShare = false) {
     /* Eine Sekunde Abstand: der Dateiname traegt Datum und UHRZEIT auf die
        Sekunde genau, und zwei Sicherungen in derselben Sekunde sind eine
        Kollision -- die 409 ist richtig, hier aber nicht die Frage. */
-    await new Promise(r => setTimeout(r, 1100));
+    await nextSecond();
     const go = await siCall('cookie-si-anna', 'POST', '/api/backup');
     check('Die Eigentuemerin kommt durch', go.status === 200, JSON.stringify(go.content));
   }
@@ -7728,7 +7728,7 @@ async function sendImport(object, mode, withoutShare = false) {
     for (const n of auLock) fs.rmSync(path.join(auFolder, n), { force: true });
 
     /* --- UND NACH EINER GELUNGENEN SICHERUNG WIRD AUFGERAEUMT. */
-    await new Promise(r => setTimeout(r, 1100));
+    await nextSecond();
     const ok = await auCall('cookie-au-anna', 'POST', '/api/backup');
     check('Nach einer gelungenen Sicherung raeumt der Anschluss auf',
       ok.status === 200 && ok.content?.cleaned?.removed === 3,
@@ -10161,7 +10161,7 @@ async function sendImport(object, mode, withoutShare = false) {
     /* INNERHALB DER FRIST DARF BELIEBIG OFT GEOEFFNET WERDEN, und das ist der
        Punkt, an dem die Sache sonst kippt: wer neu laedt, weil er gerade
        keine Zeit hatte, steht sonst vor einem toten Link. */
-    await new Promise(r => setTimeout(r, 1100));
+    await nextSecond();
     const frSecond = await FR.call('POST', '/api/token/check', { token: frToken });
     const frAfterSecond = frExpires();
     check('Das zweite Oeffnen traegt ebenfalls', frSecond.status === 200, `Status ${frSecond.status}`);

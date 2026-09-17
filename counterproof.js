@@ -8812,6 +8812,23 @@ const REGRESSIONS = [
     replacement: "",
     expected: 'Das Stilblatt traegt weniger Kommentar als vorher — 0.35.0'
   },
+  {
+    /* Die elf teuersten Wartezeiten stehen wieder als feste Dauer da. */
+    nr: '1091', name: 'Die Sekundengrenze wird wieder als feste Dauer abgewartet',
+    file: 'test/roundtrip.js',
+    search: "  const zpBefore = zpFresh[0].set_at;\n  await nextSecond();",
+    replacement: "  const zpBefore = zpFresh[0].set_at;\n  await new Promise(r => setTimeout(r, 1100));",
+    expected: 'Die Wartezeiten des Pruefstands — 0.35.0'
+  },
+  {
+    /* Und das Werkzeug laeuft an der Grenze stillschweigend weiter, statt
+       zu werfen -- genau der Fehler, gegen den es gebaut ist. */
+    nr: '1092', name: 'Der Helfer laeuft an der Grenze stillschweigend weiter',
+    file: 'test/dom.js',
+    search: "      throw new Error(`until(): ${what} ist in ${limitMs} ms nicht eingetreten`);",
+    replacement: "      return;",
+    expected: 'Die Wartezeiten des Pruefstands — 0.35.0'
+  },
 ];
 
 /* ================= Spuren und Versatz ================= Der Versatz je
