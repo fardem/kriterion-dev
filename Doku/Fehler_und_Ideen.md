@@ -2318,3 +2318,71 @@ Eingabefelder, die neue Leseansicht der Beschreibung, die Kachelvorschau)*,
 `server.js` *(der Trefferausschnitt immer; die Zerlegung nur bei Entscheidung
 2 oder 4)*, `db.js` *(nur bei Entscheidung 3, und dann für zwei Spalten —
 `comments.text` und `items.description`)*.
+
+---
+
+## 45. Der Einzelexport wird ausgebaut
+
+**Art: Vorgabe des Betreibers, 17. September 2026 · Einschätzung: klein ·
+Fahrplan: 0.35.2**
+
+**`GET /api/items/:id/export` liefert einen Eintrag als Datei, in derselben
+Form wie der volle Export.** Der Betreiber hat am 17. September 2026
+entschieden, dass das Projekt dafür keine Verwendung hat.
+
+**Die Herkunft:** die Route ist mit **0.8.70** entstanden, in der Runde
+„Sicherung und Papierkorb". Sie stand nicht in einem Auftrag und war kein
+Wunsch — sie fiel beim Auseinandernehmen des Exportwegs ab: als
+`entryAsBundle()` und `exportEnvelope()` einmal getrennt waren, war ein Export
+mit einem Eintrag statt allen wenige Zeilen. Sie steht in der Dateiliste jener
+Runde unter „Neu".
+
+**Danach hatte sie 26 Runden lang keinen Rufer in der Oberfläche.** Die
+Messung zur 0.35.0 fand sie als Stelle ohne Bedienelement. Zwei Wege standen
+offen — Knopf dazu oder Route raus. Gebaut wurde der Knopf.
+
+### Was der Ausbau anfasst
+
+**Ausgeliefert** *(der Fingerprint ändert sich)*:
+
+| Datei | was |
+|---|---|
+| `server.js`:4372 | die Route, zwölf Zeilen |
+| `public/app.js`:3890 | der Knopf `#exp1` im Fuß des Eintrags |
+| `public/app.js`:5725 | sein Rufer, `window.location` |
+| `public/app.js`:3885 | der Kommentar darüber — **und er nennt eine falsche Versionsnummer**, „seit 0.30.0" statt 0.8.70 |
+| `public/languages/*.json`:810 | `entry.exportOne`, in allen drei Dateien |
+
+**Prüfstand:**
+
+| Datei | was |
+|---|---|
+| `test/roundtrip.js`:6654 ff. | die Prüfungen am Einzelexport, die Rechtezeile ab 6691, die 404 bei 6701 |
+| `test/roundtrip.js`:17186 | „Der Einzelexport misst mit derselben Rechnung wie der volle" |
+| `test/source.js`:190 | `F_ROUTES` **73 → 72** |
+| `test/source.js`:2615 ff. | die vier Prüfungen am Knopf und am Schlüssel |
+| `test/source.js`:1200 | die Zahl **1.300 → 1.299** |
+| `test/release_031.js`:25 | `LANG_KEY_COUNT` **1.212 → 1.211** |
+| `test/release_031.js` | `EG_ADDED_AFTER_0312`, `EG_CHANGED_AFTER_0312_SHARED`, `TR_ADDED_AFTER_0313`, `TR_CHANGED_AFTER_0313` |
+| `test/source.js` | `WORDING_NEW_0350` verliert einen von drei Einträgen |
+| `counterproof.js` | **1087 und 1088 fallen**, dazu die Gruppe „Der einzelne Eintrag ist über die Oberfläche zu holen — 0.35.0" |
+| die sechs Gleichlaufsummen | neu zu rechnen |
+
+**Papiere:** `README.md`:760, Projektstand (zwei Stellen), CHANGELOG-Eintrag
+der Runde. **Der Eintrag 0.35.0 im CHANGELOG bleibt stehen** — was dort steht,
+ist geschehen; der Ausbau bekommt seinen eigenen Eintrag.
+
+### Was noch zu entscheiden ist
+
+**Geht die Route mit oder nur der Knopf?** Der Knopf allein wegzunehmen führte
+auf den Stand vor 0.35.0 zurück — eine Route ohne Rufer, die die nächste
+Messung wieder findet. **Der Vorschlag ist: beides.**
+
+**Welche Stelle der Versionsnummer?** 0.35.0 hat mit `GET /api/health` eine
+Route ausgebaut und war **MINOR**, mit einem Kasten im CHANGELOG. Eine
+ausgebaute Route in einer PATCH-Runde wäre ein anderer Maßstab für dieselbe
+Sache. *Die Nummer 0.35.2 kommt vom Betreiber; die Frage gehört trotzdem
+gestellt, bevor gebaut wird.*
+
+**Was ein Betreiber wissen muss:** wer die Adresse in einem Skript stehen hat,
+bekommt danach 404. Das gehört in einen Kasten, so wie bei `GET /api/health`.
