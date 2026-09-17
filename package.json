@@ -1,6 +1,6 @@
 {
   "name": "kriterion",
-  "version": "0.34.4",
+  "version": "0.35.0",
   "description": "Kriterion - selbstgehostetes Bewertungsarchiv mit verschluesselter Datenbank",
   "main": "server.js",
   "scripts": {

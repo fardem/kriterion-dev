@@ -856,9 +856,11 @@ es zwei, beide in den Einstellungen einstellbar:
   nach eigenen und fremden. Der Dialog sagt dazu, dass der Eintrag dreißig Tage
   im Papierkorb liegt und wer ihn von dort zurückholen kann — der Eigentümer
   der Installation.
-- **„Diesen Eintrag als Datei"** *(Eigentümer)*: derselbe Aufbau wie eine volle
-  Exportdatei, nur mit einem Eintrag — samt Fotos, Videos, Dateien und
-  Kommentarbildern.
+- **„Eintrag exportieren"** *(Eigentümer)*, der Knopf am Fuß des Eintrags:
+  derselbe Aufbau wie eine volle Exportdatei, nur mit einem Eintrag — samt
+  Fotos, Videos, Dateien und Kommentarbildern. Das erste Wort der Beschriftung
+  steht im Vokabular; heißen die Einträge „Maschine", heißt der Knopf
+  „Maschine exportieren".
 
 **Einstellungen** (Zahnrad in der Kopfzeile)
 
