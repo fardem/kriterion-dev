@@ -2458,6 +2458,53 @@ async function run() {
       (efBody.match(/.*console\.error.*/) || ['(keine Zeile)'])[0].trim());
   }
 
+  /* ================= Das Stilblatt — 0.35.0 ==============================
+     BEFUND public/style.css:1 DER MESSUNG ZUR 0.35.0: die Datei mass 300.472
+     Bytes, davon 211.862 in 408 Kommentarbloecken -- 70,5 Prozent. Der
+     Auftrag nennt die Kompression als Mittel; der Betreiber hat am
+     17. September 2026 beides bestellt, Kompression UND kuerzere Kommentare.
+     GEMESSEN AM GEBAUTEN STAND: 195.090 Bytes, davon 106.321 in 409
+     Bloecken -- 54,5 Prozent. Kommentarzeilen 3.131 -> 1.576.
+     KEIN REGELTEXT IST DABEI GEFALLEN: die Zahl der Codezeilen ist
+     unveraendert 1.639, und `tools/comments.js` zaehlt dieses Blatt nicht --
+     es zaehlt JavaScript. Der Waechter hier steht an seiner Stelle. */
+  group('Das Stilblatt traegt weniger Kommentar als vorher — 0.35.0');
+  {
+    const ssRaw = fs.readFileSync(path.join(__dirname, 'public', 'style.css'), 'utf8');
+    const ssBlocks = ssRaw.match(/\/\*[\s\S]*?\*\//g) || [];
+    const ssBytes = ssBlocks.reduce((n, b) => n + Buffer.byteLength(b, 'utf8'), 0);
+    const ssAll = Buffer.byteLength(ssRaw, 'utf8');
+    check('Die Datei misst hoechstens 200.000 Bytes',
+      ssAll <= 200000, `${ssAll} Bytes`);
+    check('Und hoechstens 110.000 davon stehen in Kommentarbloecken',
+      ssBytes <= 110000, `${ssBytes} Bytes in ${ssBlocks.length} Bloecken`);
+    /* UND DER ANTEIL STEHT IN DER PRUEFUNG UND NICHT NUR IM PROTOKOLL. */
+    const ssShare = Math.round(1000 * ssBytes / ssAll) / 10;
+    check('Der Kommentaranteil liegt unter 60 Prozent — vor dieser Runde 70,5',
+      ssShare < 60, `${ssShare} Prozent`);
+    /* UND DER REGELTEXT IST VOLLZAEHLIG DA: gezaehlt werden die Zeilen, auf
+       denen ausserhalb eines Kommentars etwas steht. Faellt eine davon, ist
+       eine Regel mitgegangen und nicht nur ein Satz. */
+    let ssIn = false, ssCode = 0;
+    for (const ln of ssRaw.split('\n')) {
+      let i = 0, has = false;
+      while (i < ln.length) {
+        if (!ssIn && ln.startsWith('/*', i)) { ssIn = true; i += 2; continue; }
+        if (ssIn && ln.startsWith('*/', i)) { ssIn = false; i += 2; continue; }
+        if (!ssIn && !/\s/.test(ln[i])) has = true;
+        i++;
+      }
+      if (has) ssCode++;
+    }
+    check('Und es stehen genau 1639 Regelzeilen da — so viele wie vor der Kuerzung',
+      ssCode === 1639, `${ssCode} Zeilen`);
+    /* UND KEIN BLOCK IST WIEDER LANG GEWORDEN. Der laengste traegt die
+       gerechnete Tafel der Vorschaureihe und misst 26 Zeilen. */
+    const ssLongest = ssBlocks.reduce((n, b) => Math.max(n, b.split('\n').length), 0);
+    check('Und kein Block misst mehr als dreissig Zeilen',
+      ssLongest <= 30, `der laengste misst ${ssLongest} Zeilen`);
+  }
+
   /* ================= Die Zahl der eigenen Suchplaetze — 0.35.0 ============
      BEFUND public/app.js:7420 DER MESSUNG ZUR 0.35.0: die Zahl der eigenen
      Suchplaetze stand dreimal. server.js:1525 als benannte Konstante

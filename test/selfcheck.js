@@ -25,7 +25,7 @@ async function run() {
   // Die Zahl der Rueckbauten steht ausdruecklich da: eine Zahl in einem
   // Papier ist eine Behauptung, eine Zahl im Pruefstand ist ein Beleg. Wie
   // sie Runde fuer Runde gewachsen ist, steht in den Aenderungsprotokollen.
-  check(`Es sind genau 1026 Rueckbauten`, gpList.length === 1026, `${gpList.length}`);
+  check(`Es sind genau 1028 Rueckbauten`, gpList.length === 1028, `${gpList.length}`);
   const gpTwice = gpList.map(r => r.nr).filter((n, i, a) => a.indexOf(n) !== i);
   check('Und keine Nummer steht zweimal', gpTwice.length === 0, gpTwice.join(' '));
   /* JEDER GREIFT: der Suchtext kommt in seiner Datei GENAU EINMAL vor. */
@@ -307,9 +307,9 @@ async function run() {
       ['test/release_029.js', 60],
       ['test/release_030.js', 239],
       ['test/release_031.js', 395],
-      ['test/roundtrip.js', 3151],
+      ['test/roundtrip.js', 3152],
       ['test/selfcheck.js', 158],
-      ['test/source.js', 666],
+      ['test/source.js', 682],
       ['test/ui_entry.js', 497],
       ['test/ui_export.js', 453],
       ['test/ui_inventory.js', 241],
@@ -318,8 +318,8 @@ async function run() {
       ['test/ui_style.js', 562],
       ['test/ui_system.js', 692],
       ['test/ui_translator.js', 104],
-      ['counterproof.js', 1511],
-      ['server.js', 1486],
+      ['counterproof.js', 1516],
+      ['server.js', 1487],
       ['auth.js', 274],
       ['db.js', 272],
       ['mail.js', 40],
@@ -333,7 +333,7 @@ async function run() {
       ['public/app.js', 1849],
       ['public/theme.js', 3],
     ];
-    const COMMENT_TOTAL = { comment: 14468, code: 60266 };
+    const COMMENT_TOTAL = { comment: 14491, code: 60311 };
     check('Der Waechter sieht alle vierunddreissig Dateien',
       crAll.each.length === 34 && COMMENT_ROWS.length === 34,
       `${crAll.each.length} gemessen, ${COMMENT_ROWS.length} genannt`);

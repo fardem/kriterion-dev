@@ -352,9 +352,10 @@ app.use((req, res, next) => {
   next();
 });
 /* ---- DIE AUSLIEFERUNG GEHT GEZIPPT HINAUS -- 0.35.0, BA 5 ----
-   GEMESSEN: public/style.css misst 300.631 Bytes, davon 211.862 in 408
-   Kommentarbloecken. Ohne Kompression laedt jeder Browser bei jedem Aufruf
-   den ganzen Text.
+   GEMESSEN: public/style.css mass vor dieser Runde 300.472 Bytes, davon
+   211.862 in 408 Kommentarbloecken. Ohne Kompression laedt jeder Browser bei
+   jedem Aufruf den ganzen Text. Die Kommentare sind in derselben Runde auf
+   106.321 Bytes gekuerzt; gezippt misst die Datei 62.250 Bytes.
    KEINE NEUE ABHAENGIGKEIT: zlib ist in Node eingebaut.
    GEZIPPT WIRD EINMAL BEIM START und nicht je Anfrage -- die Dateien unter
    public/ aendern sich zur Laufzeit nicht. Die gezippten Fassungen stehen im

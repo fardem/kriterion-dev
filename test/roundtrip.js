@@ -18491,10 +18491,11 @@ async function sendImport(object, mode, withoutShare = false) {
   }
 
   /* ================= Die Auslieferung geht gezippt hinaus — 0.35.0 =========
-     DER SCHWERSTE EINZELBEFUND DER MESSUNG: public/style.css misst 301.048
+     DER SCHWERSTE EINZELBEFUND DER MESSUNG: public/style.css mass 300.472
      Bytes, davon 211.862 in 408 Kommentarbloecken -- 70,5 Prozent. Der Server
      hat bis 0.34.4 nicht komprimiert, also lud jeder Browser den ganzen Text
-     bei jedem Aufruf. */
+     bei jedem Aufruf. Diese Runde tut beides: sie kuerzt die Kommentare und
+     zippt die Auslieferung. */
   group('Die Auslieferung geht gezippt hinaus — 0.35.0');
   {
     /* ROH HOLEN HEISST: die Antwort NICHT entpacken lassen. fetch() entpackt

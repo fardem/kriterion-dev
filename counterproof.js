@@ -8793,6 +8793,25 @@ const REGRESSIONS = [
     replacement: "    window.location = '/api/export';",
     expected: 'Der einzelne Eintrag ist ueber die Oberflaeche zu holen — 0.35.0'
   },
+  {
+    /* Ein Kommentarblock des Stilblatts waechst wieder ueber dreissig
+       Zeilen -- die Bauform, die vor dieser Runde 70,5 Prozent der Datei
+       ausgemacht hat. */
+    nr: '1089', name: 'Ein Block des Stilblatts wird wieder lang',
+    file: 'public/style.css',
+    search: "  /* Gold leiser: voll gesaettigt gehoert Gold den Sternen. */",
+    replacement: "  /* Gold leiser: voll gesaettigt gehoert Gold den Sternen.\n     Zeile 01 des wieder langen Blocks -- Erzaehlform statt Sachverhalt.\n     Zeile 02 des wieder langen Blocks -- Erzaehlform statt Sachverhalt.\n     Zeile 03 des wieder langen Blocks -- Erzaehlform statt Sachverhalt.\n     Zeile 04 des wieder langen Blocks -- Erzaehlform statt Sachverhalt.\n     Zeile 05 des wieder langen Blocks -- Erzaehlform statt Sachverhalt.\n     Zeile 06 des wieder langen Blocks -- Erzaehlform statt Sachverhalt.\n     Zeile 07 des wieder langen Blocks -- Erzaehlform statt Sachverhalt.\n     Zeile 08 des wieder langen Blocks -- Erzaehlform statt Sachverhalt.\n     Zeile 09 des wieder langen Blocks -- Erzaehlform statt Sachverhalt.\n     Zeile 10 des wieder langen Blocks -- Erzaehlform statt Sachverhalt.\n     Zeile 11 des wieder langen Blocks -- Erzaehlform statt Sachverhalt.\n     Zeile 12 des wieder langen Blocks -- Erzaehlform statt Sachverhalt.\n     Zeile 13 des wieder langen Blocks -- Erzaehlform statt Sachverhalt.\n     Zeile 14 des wieder langen Blocks -- Erzaehlform statt Sachverhalt.\n     Zeile 15 des wieder langen Blocks -- Erzaehlform statt Sachverhalt.\n     Zeile 16 des wieder langen Blocks -- Erzaehlform statt Sachverhalt.\n     Zeile 17 des wieder langen Blocks -- Erzaehlform statt Sachverhalt.\n     Zeile 18 des wieder langen Blocks -- Erzaehlform statt Sachverhalt.\n     Zeile 19 des wieder langen Blocks -- Erzaehlform statt Sachverhalt.\n     Zeile 20 des wieder langen Blocks -- Erzaehlform statt Sachverhalt.\n     Zeile 21 des wieder langen Blocks -- Erzaehlform statt Sachverhalt.\n     Zeile 22 des wieder langen Blocks -- Erzaehlform statt Sachverhalt.\n     Zeile 23 des wieder langen Blocks -- Erzaehlform statt Sachverhalt.\n     Zeile 24 des wieder langen Blocks -- Erzaehlform statt Sachverhalt.\n     Zeile 25 des wieder langen Blocks -- Erzaehlform statt Sachverhalt.\n     Zeile 26 des wieder langen Blocks -- Erzaehlform statt Sachverhalt.\n     Zeile 27 des wieder langen Blocks -- Erzaehlform statt Sachverhalt.\n     Zeile 28 des wieder langen Blocks -- Erzaehlform statt Sachverhalt.\n     Zeile 29 des wieder langen Blocks -- Erzaehlform statt Sachverhalt.\n     Zeile 30 des wieder langen Blocks -- Erzaehlform statt Sachverhalt.\n     Zeile 31 des wieder langen Blocks -- Erzaehlform statt Sachverhalt.\n     Zeile 32 des wieder langen Blocks -- Erzaehlform statt Sachverhalt.\n     Zeile 33 des wieder langen Blocks -- Erzaehlform statt Sachverhalt. */" ,
+    expected: 'Das Stilblatt traegt weniger Kommentar als vorher — 0.35.0'
+  },
+  {
+    /* Und eine Regelzeile faellt -- der Waechter zaehlt sie und merkt, dass
+       beim Kuerzen mehr als ein Satz mitgegangen ist. */
+    nr: '1090', name: 'Beim Kuerzen faellt eine Regelzeile mit',
+    file: 'public/style.css',
+    search: "  --gold-line: rgba(var(--gold-rgb), .52);",
+    replacement: "",
+    expected: 'Das Stilblatt traegt weniger Kommentar als vorher — 0.35.0'
+  },
 ];
 
 /* ================= Spuren und Versatz ================= Der Versatz je
