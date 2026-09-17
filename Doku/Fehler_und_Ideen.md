@@ -2190,13 +2190,28 @@ der Öffentlichkeit die mit den toten Zeigern.
 
 ---
 
-## 44. Der Kommentarbereich braucht einen Editor
+## 44. Kommentare und Beschreibung brauchen einen Editor
 
 **Art: Idee** *(Oberfläche)* **· Herkunft: Betreiber, 17. September 2026 ·
 Einschätzung: groß**
 
 **GEWÜNSCHT SIND DIE GRUNDFUNKTIONEN EINES SCHREIBFELDS:** Fettdruck,
-Kursiv, Zitat und Aufzählung. Heute ist ein Kommentar reiner Text.
+Kursiv, Zitat und Aufzählung — **im Kommentar und in der Beschreibung.** Heute
+ist beides reiner Text.
+
+**DIE BEIDEN STELLEN STEHEN VERSCHIEDEN DA, und das ist der Kern des
+Aufwands.**
+
+| | Leseansicht | Schreibansicht |
+|---|---|---|
+| **Kommentar** | `buildCommentNodes()` baut Knoten *(`public/app.js`:5520)* | Textfeld beim Anlegen und beim Ändern *(5585)* |
+| **Beschreibung** | **gibt es nicht** | ein dauerhaft offenes `<textarea>` *(3838)* |
+
+**Die Beschreibung wird nie gezeichnet.** Sie steht als Feld da, wird beim
+Verlassen gespeichert *(4623)*, und was darin steht, sieht man so, wie man es
+getippt hat. **Ein Editor verlangt dort eine Ansicht, die es nicht gibt** —
+und damit einen Weg zwischen Lesen und Ändern, den der Block heute nicht
+kennt. Das ist eine sichtbare Änderung der Bedienung und keine Zutat.
 
 **WAS DAFÜR SCHON DASTEHT, und es ist mehr als erwartet.** Der Kommentartext
 wird nicht als HTML eingesetzt, sondern in Stücke zerlegt und als Knoten
@@ -2211,6 +2226,7 @@ Benutzertext ist ausgeschlossen* — er wäre genau die Sorte Stelle, die
 0.36.0 in `public/app.js` einzeln durchgeht.
 
 **WAS ZU ENTSCHEIDEN IST, und keine dieser Fragen ist klein:**
+
 
 1. **Welche Auszeichnung.** Ein Teilsatz von Markdown *(`**fett**`, `*kursiv*`,
    `> Zitat`, `- Punkt`)* oder eine Leiste, die Marken in den Text schreibt.
@@ -2232,9 +2248,21 @@ Benutzertext ist ausgeschlossen* — er wäre genau die Sorte Stelle, die
 5. **Was die Suche sieht.** Gesucht wird über den Rohtext. Wer `fett` sucht,
    soll `**fett**` finden — und wer `**` sucht, soll nicht jeden
    ausgezeichneten Kommentar finden.
-6. **Was die Stellen sehen, die nur Text können.** Die Zeile an der Kachel,
-   die Zählzeile, die Mailbenachrichtigung. Dort muss die Auszeichnung
-   wieder herausfallen.
+6. **Was die Stellen sehen, die nur Text können.** Vier sind gezählt:
+   - die Vorschau an der Kachel nimmt die ersten 40 Zeichen der
+     Rohbeschreibung *(`public/app.js`:975)*,
+   - die Suche zitiert einen **Ausschnitt** der Fundstelle, auf Zeichen
+     geschnitten *(`server.js`, `SNIPPET_LEAD`)* — **ein halb abgeschnittenes
+     `**` stünde sichtbar da**,
+   - die Mailbenachrichtigung trägt den Kommentartext,
+   - die Exportdatei trägt beides.
+
+   Die Beschreibung ist dabei eine der **sieben Volltextquellen**
+   *(`server.js`:2769)*; die Auszeichnung müsste vor dem Schneiden heraus
+   oder beim Schneiden berücksichtigt werden.
+7. **Wie die Beschreibung zwischen Lesen und Ändern umschaltet.** Klick ins
+   Feld, ein Stift daneben, oder beides nebeneinander. **Dieselbe Frage
+   stellt sich beim Kommentar nicht** — er hat den Wechsel schon.
 
 ### Gibt es eine Bibliothek, die man einfach nehmen könnte?
 
@@ -2266,9 +2294,13 @@ Stückemodell passte. Sie ist zugleich die größte und bringt fünf
 Abhängigkeiten mit, darunter CodeMirror.
 
 **Was selbst zu bauen bliebe, ist ohnehin die teure Hälfte:** vier weitere
-Sorten in `splitCommentText()` und `buildCommentNodes()`. Die Leiste über dem
-Feld sind rund fünfzig Zeilen über `selectionStart` und `selectionEnd` eines
-`<textarea>`.
+Sorten in `splitCommentText()` und `buildCommentNodes()`, dazu die fehlende
+Leseansicht der Beschreibung. Die Leiste über dem Feld sind rund fünfzig
+Zeilen über `selectionStart` und `selectionEnd` eines `<textarea>`.
+
+*Der Knotenbau trägt heute schon zwei Leser: den Kommentar und
+`raiseHighlight()` für Titel, Kategorie, Tag und Kontextzeile
+(`public/app.js`:1498). Eine dritte Stelle passt dort hinein.*
 
 *Ein eigener Parser ist die Stelle, an der sonst Sicherheitslücken entstehen.
 Hier nicht: er erzeugt kein HTML, sondern Knoten. Ein Fehler darin trennt
@@ -2280,7 +2312,9 @@ falsch, er schleust nichts ein.*
 Benutzertext gezeichnet wird. **Erst durchgehen, dann bauen** ist
 wahrscheinlich die billigere Folge.
 
-**Was es anfasst** — `public/app.js` *(Zerlegung, Knotenbau, Eingabefeld)*,
+**Was es anfasst** — `public/app.js` *(Zerlegung, Knotenbau, zwei
+Eingabefelder, die neue Leseansicht der Beschreibung, die Kachelvorschau)*,
 `public/style.css`, die drei Sprachdateien *(Beschriftungen der Leiste)*,
-`server.js` *(nur bei Entscheidung 2 oder 4)*, `db.js` *(nur bei
-Entscheidung 3)*.
+`server.js` *(der Trefferausschnitt immer; die Zerlegung nur bei Entscheidung
+2 oder 4)*, `db.js` *(nur bei Entscheidung 3, und dann für zwei Spalten —
+`comments.text` und `items.description`)*.
