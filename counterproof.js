@@ -1182,8 +1182,8 @@ const REGRESSIONS = [
   {
     nr: '147', name: 'Das Speichern einer Ansicht raeumt die gemerkte Stellung weg',
     file: 'server.js',
-    search: "  if (viewsText !== null)\n    putUserSetting(req.user.id, 'views', viewsText);",
-    replacement: "  if (viewsText !== null) {\n    putUserSetting(req.user.id, 'views', viewsText);\n    putUserSetting(req.user.id, 'filters', 'null');\n  }",
+    search: "      if (viewsText !== null)\n        putUserSetting(req.user.id, 'views', viewsText);",
+    replacement: "      if (viewsText !== null) {\n        putUserSetting(req.user.id, 'views', viewsText);\n        putUserSetting(req.user.id, 'filters', 'null');\n      }",
     expected: 'Gespeicherte Ansichten'
   },
   {
@@ -5929,8 +5929,8 @@ const REGRESSIONS = [
        gar nicht erst. */
     nr: '757', name: 'Die Antwort des Wechsels traegt die Namenstafeln nicht',
     file: 'server.js',
-    search: "             ...(isAdmin(req) && languagesTouched\n" +
-      "               ? { categoryNames: categoryNamesAll(), criterionNames: criterionNamesAll() } : {}),",
+    search: "                 ...(isAdmin(req) && languagesTouched\n" +
+      "                   ? { categoryNames: categoryNamesAll(), criterionNames: criterionNamesAll() } : {}),",
     replacement: "",
     expected: 'Die Namenstafeln je Sprache — 0.24.5'
   },
@@ -5939,8 +5939,8 @@ const REGRESSIONS = [
        auch die auf ein gespeichertes Filterfeld. */
     nr: '758', name: 'Jede Antwort des Schreibwegs traegt die Namenstafeln',
     file: 'server.js',
-    search: "             ...(isAdmin(req) && languagesTouched",
-    replacement: "             ...(isAdmin(req)",
+    search: "                 ...(isAdmin(req) && languagesTouched",
+    replacement: "                 ...(isAdmin(req)",
     expected: 'Die Namenstafeln je Sprache — 0.24.5'
   },
   {
@@ -8619,8 +8619,8 @@ const REGRESSIONS = [
     /* Der Schreiber nimmt jeden Wert an, auch einen ausserhalb der Liste. */
     nr: '1069', name: 'Die Stufeneinstellung nimmt jeden Wert an',
     file: 'server.js',
-    search: "    if (a.list.includes(v)) {",
-    replacement: "    if (true) {",
+    search: "    if (!a.list.includes(v)) refuse(a.wrong);",
+    replacement: "",
     expected: 'Die Einstellung streifen — 0.22.0'
   },
   {
@@ -8846,6 +8846,43 @@ const REGRESSIONS = [
     search: "      const group = (String(url).match(/[?&]group=([^&]*)/) || [])[1];",
     replacement: "      const group = (String(url).match(/[?&]gruppe=([^&]*)/) || [])[1];",
     expected: 'Jeder Abfrageparameter des Browsers hat einen Leser — 0.35.0'
+  },
+  {
+    /* Die Schluesseldatei geht wieder ungeprueft an SQLCipher. */
+    nr: '1095', name: 'Die Schluesseldatei wird ungeprueft gelesen',
+    file: 'keys.js',
+    search: "    if (!HEX_PATTERN.test(hex))\n" +
+      "      throw new Error(`${keyPath} enthaelt keine 64 Hex-Zeichen, sondern `",
+    replacement: "    if (false)\n" +
+      "      throw new Error(`${keyPath} enthaelt keine 64 Hex-Zeichen, sondern `",
+    expected: 'Die Schluesseldatei: was darin steht, wird geprueft'
+  },
+  {
+    /* Der Rumpf der Einstellungsroute laeuft wieder ohne Transaktion: eine
+       Absage nimmt dann nicht mehr zurueck, was sie schon geschrieben hat. */
+    nr: '1096', name: 'Die Einstellungsroute schreibt wieder ohne Transaktion',
+    file: 'server.js',
+    search: "    answer = db.transaction(() => {",
+    replacement: "    answer = (() => {",
+    expected: 'Eine Absage von PUT /api/settings schreibt nichts'
+  },
+  {
+    /* Die Zeile wird nicht mehr in Anspruch genommen: zwei gleichzeitige
+       Anfragen sehen wieder beide dieselbe. */
+    nr: '1097', name: 'Das Wiederherstellen nimmt die Zeile nicht in Anspruch',
+    file: 'server.js',
+    search: "    if (trashRestoring.has(z.id))\n" +
+      "      return res.status(409).json({ error: t(localeOf(req), 'server.trashRestoring')});",
+    replacement: "",
+    expected: 'Der Papierkorb: zweimal gleichzeitig zurueckholen'
+  },
+  {
+    /* Und die Gegenrichtung: die Nummer wird nicht wieder freigegeben. */
+    nr: '1098', name: 'Die Nummer bleibt nach dem Fehlerweg besetzt',
+    file: 'server.js',
+    search: "    if (claimed !== null) trashRestoring.delete(claimed);",
+    replacement: "",
+    expected: 'Der Papierkorb: zweimal gleichzeitig zurueckholen'
   },
 ];
 

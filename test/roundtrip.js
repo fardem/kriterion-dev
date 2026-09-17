@@ -1867,6 +1867,77 @@ async function sendImport(object, mode, withoutShare = false) {
   await call('PUT', '/api/settings', { theme: 'dark' });
 
   /* ---------------------------------------------------------------- */
+  group('Eine Absage von PUT /api/settings schreibt nichts');
+  /* Die Route schrieb, bis die Absage kam: ein Rumpf mit `{font: 80,
+     strip: 999}` schrieb `font` und antwortete dann mit 400. Sie laeuft
+     jetzt als Ganzes in einer Transaktion.
+     GEPRUEFT WIRD ENTLANG DER REIHENFOLGE IM RUMPF: geschrieben wird immer
+     das, was VOR der Absage steht -- sonst belegte die Gruppe nichts. */
+  await call('PUT', '/api/settings', { font: 120, strip: 80, theme: 'dark' });
+  const noWriteStart = (await call('GET', '/api/settings')).content;
+  check('Der Ausgangsstand steht: Schrift 120, Streifen 80, Schema dunkel',
+    noWriteStart.font === 120 && noWriteStart.strip === 80 && noWriteStart.theme === 'dark',
+    JSON.stringify([noWriteStart.font, noWriteStart.strip, noWriteStart.theme]));
+
+  const noWriteFont = await call('PUT', '/api/settings', { font: 80, strip: 999 });
+  check('Gueltige Schrift und ungueltiger Streifen: abgewiesen',
+    noWriteFont.status === 400, `${noWriteFont.status}`);
+  check('Und die Schrift steht unveraendert auf 120',
+    (await call('GET', '/api/settings')).content.font === 120,
+    JSON.stringify((await call('GET', '/api/settings')).content.font));
+
+  const noWriteStrip = await call('PUT', '/api/settings', { strip: 120, theme: 'sepia' });
+  check('Gueltiger Streifen und unbekanntes Schema: abgewiesen',
+    noWriteStrip.status === 400, `${noWriteStrip.status}`);
+  check('Und der Streifen steht unveraendert auf 80',
+    (await call('GET', '/api/settings')).content.strip === 80,
+    JSON.stringify((await call('GET', '/api/settings')).content.strip));
+
+  /* Die Absage der Sprache steht weit hinter den drei Stufen. */
+  const noWriteLanguage = await call('PUT', '/api/settings', { theme: 'light', language: 'xx' });
+  check('Gueltiges Schema und unbekannte Sprache: abgewiesen',
+    noWriteLanguage.status === 400, `${noWriteLanguage.status}`);
+  check('Und das Schema steht unveraendert auf dunkel',
+    (await call('GET', '/api/settings')).content.theme === 'dark',
+    JSON.stringify((await call('GET', '/api/settings')).content.theme));
+
+  /* Der leere Suchvorrat ist die Absage hinter ALLEN persoenlichen
+     Schreibstellen -- Schrift, Streifen, Schema, Bloecke, Linkzeilen,
+     Zeitleiste und Merkzeitpunkt stehen davor. */
+  const noWritePool = await call('PUT', '/api/settings', { font: 80, searchOn: [] });
+  check('Gueltige Schrift und leerer Suchvorrat: abgewiesen',
+    noWritePool.status === 400, `${noWritePool.status}`);
+  check('Und auch hier steht die Schrift unveraendert auf 120',
+    (await call('GET', '/api/settings')).content.font === 120,
+    JSON.stringify((await call('GET', '/api/settings')).content.font));
+
+  /* DIE GLOBALE HAELFTE: das Vokabular steht in der Tabelle settings und
+     nicht am Zugang -- es wird vor den fuenf Stufen geschrieben. */
+  const noWriteVocabularyBefore = (await call('GET', '/api/settings')).content.vocabulary;
+  const noWriteVocabulary = await call('PUT', '/api/settings',
+    { vocabulary: { entryOne: 'Absageprobe' }, font: 999 });
+  check('Gueltiges Vokabular und ungueltige Schrift: abgewiesen',
+    noWriteVocabulary.status === 400, `${noWriteVocabulary.status}`);
+  check('Und das Vokabular steht Wort fuer Wort unveraendert da',
+    JSON.stringify((await call('GET', '/api/settings')).content.vocabulary)
+      === JSON.stringify(noWriteVocabularyBefore),
+    JSON.stringify((await call('GET', '/api/settings')).content.vocabulary));
+
+  /* DIE GEGENPROBE: derselbe Rumpf mit gueltigen Werten geht durch. Ohne sie
+     waere die Gruppe auch dann gruen, wenn die Route gar nichts mehr
+     schriebe. */
+  const noWriteGood = await call('PUT', '/api/settings', { font: 80, strip: 120 });
+  check('Derselbe Rumpf mit zwei gueltigen Werten geht durch und schreibt beide',
+    noWriteGood.status === 200 && noWriteGood.content.font === 80
+    && noWriteGood.content.strip === 120,
+    JSON.stringify([noWriteGood.status, noWriteGood.content?.font, noWriteGood.content?.strip]));
+  await call('PUT', '/api/settings', { font: 120, strip: 80, theme: 'dark' });
+  const noWriteBack = (await call('GET', '/api/settings')).content;
+  check('Und der Ausgangsstand steht wieder',
+    noWriteBack.font === 120 && noWriteBack.strip === 80 && noWriteBack.theme === 'dark',
+    JSON.stringify([noWriteBack.font, noWriteBack.strip, noWriteBack.theme]));
+
+  /* ---------------------------------------------------------------- */
   group('Vokabular in den Servermeldungen');
 
   await call('PUT', '/api/settings', { vocabulary: {
@@ -6406,6 +6477,82 @@ async function sendImport(object, mode, withoutShare = false) {
       (await pkCall('cookie-pk-anna', 'POST', `/api/trash/${secondRow.id ?? -1}/restore`)).status === 404);
     // Aufraeumen
     pkWrite("DELETE FROM items WHERE title IN ('Zum Wegwerfen', 'Zweites Opfer')");
+    pkWrite('DELETE FROM trash');
+  }
+
+  /* ---------------------------------------------------------------- */
+  group('Der Papierkorb: zweimal gleichzeitig zurueckholen');
+
+  /* Dasselbe Muster wie der Link in Abschnitt 7 der Tokengruppe: zwischen dem
+     SELECT auf die Zeile und dem DELETE wird auf das Einspielen gewartet, und
+     dieses Warten gibt den Event Loop frei. Zwei gleichzeitige Anfragen sahen
+     beide dieselbe Zeile und legten den Eintrag zweimal an.
+     DER WEG NACHEINANDER FAENGT DAS NICHT: die zweite Anfrage bekommt dort
+     404, weil die Zeile schon fort ist -- eine andere Lage. */
+  {
+    const twiceId = (await pkCall('cookie-pk-carla', 'POST', '/api/items',
+      { title: 'Zweimal zurueck' })).content?.id;
+    /* ZWOELF FOTOS, UND SIE SIND DER PUNKT: das Einspielen rechnet je Foto
+       zwei Varianten, und erst dieses Rechnen haelt den Vorgang lange genug
+       offen, dass die zweite Anfrage die Zeile wirklich noch sieht. Mit einem
+       leeren Eintrag ist der erste Aufruf fertig, bevor der zweite die Route
+       erreicht -- dann steht 404 da, und die Probe belegt nichts. */
+    for (let i = 0; i < 12; i++)
+      pkWrite('INSERT INTO photos (item_id, mime_type, data, thumb, medium, sort_order) ' +
+        "VALUES (?, 'image/png', ?, ?, ?, ?)", twiceId, pkPng, pkPng, pkPng, i);
+    await pkCall('cookie-pk-carla', 'DELETE', `/api/items/${twiceId}`);
+    const twiceRow = pkOne('SELECT id FROM trash') || {};
+    check('Fuer die gleichzeitige Probe liegt eine Zeile im Papierkorb',
+      Number.isInteger(twiceRow.id), JSON.stringify(twiceRow));
+
+    const [twiceA, twiceB] = await Promise.all([
+      pkCall('cookie-pk-anna', 'POST', `/api/trash/${twiceRow.id ?? -1}/restore`),
+      pkCall('cookie-pk-anna', 'POST', `/api/trash/${twiceRow.id ?? -1}/restore`)
+    ]);
+    check('Zwei gleichzeitige Wiederherstellungen derselben Zeile: genau eine gelingt',
+      [twiceA, twiceB].filter(z => z.status === 200).length === 1,
+      `${twiceA.status} / ${twiceB.status}`);
+    /* UND DAS IST DER EIGENTLICHE SCHADEN: gelingen beide, steht der Eintrag
+       danach zweimal in der Liste, und keine der beiden Antworten sagt es. */
+    check('Und der Eintrag steht genau einmal da',
+      pkRows("SELECT id FROM items WHERE title = 'Zweimal zurueck'").length === 1,
+      JSON.stringify(pkRows("SELECT id FROM items WHERE title = 'Zweimal zurueck'")));
+    const twiceLoser = twiceA.status === 200 ? twiceB : twiceA;
+    check('Der Verlierer bekommt 409 und nicht 404 — die Zeile ist nicht fort, sie ist besetzt',
+      twiceLoser.status === 409, `Status ${twiceLoser.status}: ${JSON.stringify(twiceLoser.content)}`);
+    check('Und die Absage sagt, woran es liegt',
+      /wiederhergestellt/.test(twiceLoser.content?.error || ''), twiceLoser.content?.error);
+    check('Die Papierkorbzeile ist danach fort',
+      pkRows('SELECT id FROM trash WHERE id = ?', twiceRow.id ?? -1).length === 0);
+    check('Und ihre Bytes mit',
+      pkRows('SELECT id FROM trash_bytes WHERE trash_id = ?', twiceRow.id ?? -1).length === 0);
+
+    /* DIE NUMMER WIRD WIEDER FREIGEGEBEN -- sonst waere jeder weitere Versuch
+       auf dieselbe Nummer bis zum Neustart gesperrt. Gefragt wird auf dem
+       FEHLERWEG, denn nur dort bleibt die Zeile liegen: nach einem gelungenen
+       Zurueckholen ist die Nummer fort und kommt nie wieder. */
+    pkWrite("INSERT INTO trash (title, content, deleted_by) VALUES ('Unlesbar', 'kein JSON', 1)");
+    const brokenRow = pkOne("SELECT id FROM trash WHERE title = 'Unlesbar'") || {};
+    const brokenFirst = await pkCall('cookie-pk-anna', 'POST', `/api/trash/${brokenRow.id ?? -1}/restore`);
+    check('Eine unlesbare Zeile beantwortet den ersten Versuch mit 500',
+      brokenFirst.status === 500, `Status ${brokenFirst.status}`);
+    const brokenSecond = await pkCall('cookie-pk-anna', 'POST', `/api/trash/${brokenRow.id ?? -1}/restore`);
+    check('Und den zweiten wieder mit 500 und nicht mit 409 — die Nummer ist frei',
+      brokenSecond.status === 500,
+      `Status ${brokenSecond.status}: ${JSON.stringify(brokenSecond.content)}`);
+    check('Die unlesbare Zeile liegt danach noch da',
+      pkRows('SELECT id FROM trash WHERE id = ?', brokenRow.id ?? -1).length === 1);
+
+    const againId = (await pkCall('cookie-pk-carla', 'POST', '/api/items',
+      { title: 'Noch einmal zurueck' })).content?.id;
+    await pkCall('cookie-pk-carla', 'DELETE', `/api/items/${againId}`);
+    const againRow = pkOne("SELECT id FROM trash WHERE title = 'Noch einmal zurueck'") || {};
+    check('Und die naechste Zeile laesst sich ohne Weiteres zurueckholen',
+      (await pkCall('cookie-pk-anna', 'POST', `/api/trash/${againRow.id ?? -1}/restore`)).status === 200,
+      JSON.stringify(againRow));
+
+    // Aufraeumen
+    pkWrite("DELETE FROM items WHERE title IN ('Zweimal zurueck', 'Noch einmal zurueck')");
     pkWrite('DELETE FROM trash');
   }
 

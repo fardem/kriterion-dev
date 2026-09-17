@@ -246,6 +246,59 @@ function checkKeyChange() {
   check('Und mit dem alten nicht mehr',
     swOpensNot(a4.dir, envOld), 'der alte Wert oeffnet noch');
 
+  /* ---- Die Schluesseldatei wird gelesen UND geprueft -------------------- */
+  group('Die Schluesseldatei: was darin steht, wird geprueft');
+
+  /* Der Start ohne ENCRYPTION_KEY in der Umgebung: dann liest loadKey() die
+     Datei neben der Datenbank. `execFileSync` wirft bei einem Abbruch, hier
+     wird der Rueckgabewert gebraucht. */
+  const keyStart = (directory) => {
+    const r = spawnSync(process.execPath, ['-e', "require('./db'); console.log('offen');"],
+      { cwd: __dirname, encoding: 'utf8', env: swEnvironment(directory, null) });
+    return { code: r.status, out: (r.stdout || '') + (r.stderr || '') };
+  };
+  const keyDir = (name, content) => {
+    const dir = path.join(SW, 'datei-' + name);
+    fs.mkdirSync(dir);
+    fs.writeFileSync(path.join(dir, 'encryption.key'), content);
+    return dir;
+  };
+  const DB_FILE_NAME = 'katalog.sqlite';
+
+  /* VIER FORMEN VON SCHADEN, und alle vier gingen bis 0.35.1 unbesehen an
+     SQLCipher: 64 Hex-Zeichen nimmt es als Schluessel, alles andere als
+     Passwort -- und rechnet sich daraus einen anderen Schluessel. */
+  const KEY_DAMAGED = [
+    ['ohne ein einziges Zeichen', '', 0],
+    ['mit einem Zeichen zu wenig', 'a'.repeat(63), 63],
+    ['mit einem Zeichen zu viel', 'a'.repeat(65), 65],
+    ['mit 64 Zeichen, die keine Hexzeichen sind', 'z'.repeat(64), 64]
+  ];
+  KEY_DAMAGED.forEach(([name, content, length], i) => {
+    const dir = keyDir(String(i), content);
+    const r = keyStart(dir);
+    check(`Eine Schluesseldatei ${name} haelt den Start an`,
+      r.code !== 0 && /encryption\.key/.test(r.out)
+      && new RegExp(`keine 64 Hex-Zeichen, sondern ${length} Zeichen`).test(r.out),
+      `Rueckgabe ${r.code}: ${r.out.slice(0, 220)}`);
+    /* DAS IST DER EIGENTLICHE SCHADEN: ohne die Pruefung entstuende hier eine
+       Datenbank unter einem Schluessel, den niemand mehr herstellen kann. */
+    check('Und daneben entsteht keine Datenbank',
+      !fs.existsSync(path.join(dir, DB_FILE_NAME)),
+      fs.readdirSync(dir).join(' '));
+    check('Und die beschaedigte Datei steht unveraendert da',
+      fs.readFileSync(path.join(dir, 'encryption.key'), 'utf8') === content);
+  });
+
+  /* DIE GEGENPROBE: ein richtiger Wert kommt durch, sonst waere die Gruppe
+     auch dann gruen, wenn gar nichts mehr startet. */
+  const keyGood = keyDir('gut', hexFresh() + '\n');
+  const keyGoodRun = keyStart(keyGood);
+  check('Eine Schluesseldatei mit 64 Hex-Zeichen kommt durch',
+    keyGoodRun.code === 0, `Rueckgabe ${keyGoodRun.code}: ${keyGoodRun.out.slice(0, 220)}`);
+  check('Und die Datenbank steht daneben',
+    fs.existsSync(path.join(keyGood, DB_FILE_NAME)), fs.readdirSync(keyGood).join(' '));
+
   /* ---- Was NICHT in einer Ausgabe steht -------------------------------- */
   group('Der Schluesselwechsel: kein Schluessel, wo keiner hingehoert');
 

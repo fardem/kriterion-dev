@@ -2193,7 +2193,7 @@ der Öffentlichkeit die mit den toten Zeigern.
 ## 44. Kommentare und Beschreibung brauchen einen Editor
 
 **Art: Idee** *(Oberfläche)* **· Herkunft: Betreiber, 17. September 2026 ·
-Einschätzung: groß**
+Einschätzung: groß · Fahrplan: 0.37.0, nach der Sicherheitsrunde**
 
 **GEWÜNSCHT SIND DIE GRUNDFUNKTIONEN EINES SCHREIBFELDS:** Fettdruck,
 Kursiv, Zitat und Aufzählung — **im Kommentar und in der Beschreibung.** Heute

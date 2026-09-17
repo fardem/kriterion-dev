@@ -143,7 +143,9 @@ async function run() {
     for (const file of spSources) {
       const q = fs.readFileSync(path.join(__dirname, file), 'utf8');
       /* tMark() UND tMarks() WERDEN MITGELESEN -- 0.31.1. */
-      const call = /(?<![A-Za-z0-9_.$])(?:tMarks?|tH?|new Message|meldung|message)\(\s*(?:[A-Za-z][A-Za-z0-9_.]*(?:\([^()]*\))?\s*,\s*)?'([a-zäöü][A-Za-z0-9]*(?:\.[A-Za-z0-9_]+)+)'/g;
+      /* UND refuse() -- die Absage von PUT /api/settings traegt den Schluessel
+         und die Werte in derselben Form wie `new Message`. */
+      const call = /(?<![A-Za-z0-9_.$])(?:tMarks?|tH?|new Message|refuse|meldung|message)\(\s*(?:[A-Za-z][A-Za-z0-9_.]*(?:\([^()]*\))?\s*,\s*)?'([a-zäöü][A-Za-z0-9]*(?:\.[A-Za-z0-9_]+)+)'/g;
       for (const m of q.matchAll(call)) {
         let i = m.index + m[0].length, depth = 1;
         while (i < q.length && depth > 0) {

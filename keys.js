@@ -86,6 +86,16 @@ function loadKey(dataDir) {
   const keyPath = path.join(dataDir, 'encryption.key');
   if (fs.existsSync(keyPath)) {
     const hex = fs.readFileSync(keyPath, 'utf8').trim();
+    /* Genau 64 Hex-Zeichen nimmt SQLCipher als Schluessel, alles andere als
+       Passwort. Eine abgeschnittene Datei meldete deshalb nicht sich selbst,
+       sondern `SQLITE_NOTADB file is not a database` -- und wo keine
+       Datenbank liegt, legte sie eine neue unter einem Schluessel an, der
+       sich nicht wiederherstellen laesst. */
+    if (!HEX_PATTERN.test(hex))
+      throw new Error(`${keyPath} enthaelt keine 64 Hex-Zeichen, sondern ` +
+        `${hex.length} Zeichen. Die Datei ist leer, abgeschnitten oder ` +
+        'beschaedigt. Wird sie jetzt ersetzt, ist die vorhandene Datenbank ' +
+        'nicht mehr zu oeffnen -- erst die Sicherung der Datei suchen.');
     warnKeyBesideData();
     return { hex: hex.toLowerCase(), fromEnv: false };
   }

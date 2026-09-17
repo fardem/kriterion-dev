@@ -30,6 +30,30 @@ ihre deutschen Abschnittsüberschriften bleiben.*
 
 *Hier wird mitgeschrieben, während gebaut wird.*
 
+## [0.35.1] - 2026-09-17
+
+*Die drei Sicherheitsbefunde aus der Messung zur 0.35.0, die dort nicht gebaut
+worden sind. Kein Verhalten ändert sich, das jemand bestellt hat — es ändern
+sich drei Antworten, die vorher falsch waren.*
+
+> **Startet der Server nicht mehr und nennt die Meldung `data/encryption.key`,
+> dann ist diese Datei beschädigt.** Sie jetzt durch eine neue zu ersetzen
+> kostet den ganzen Bestand — erst die Sicherung der Datei suchen. Bis 0.35.0
+> ging die beschädigte Datei unbesehen durch, und der Server meldete
+> stattdessen „file is not a database".
+
+Fingerprint `10017d45` — davor `5297965e`.
+
+### Behoben
+
+- **Eine beschädigte `data/encryption.key` hält den Start an.** Bis dahin ging sie ungeprüft an SQLCipher: bei vorhandener Datenbank kam „file is not a database", bei fehlender entstand eine neue unter einem Schlüssel, der sich nicht wiederherstellen lässt.
+- **Eine abgewiesene Einstellungsanfrage lässt den Bestand, wie er war.** Ein Rumpf mit `{font: 80, strip: 999}` schrieb die Schrift und antwortete dann mit 400; elf von dreizehn Absagen standen hinter Schreibstellen.
+- **Eine Papierkorbzeile lässt sich nicht zweimal gleichzeitig zurückholen.** Zwei Anfragen auf dieselbe Nummer legten den Eintrag zweimal an, ohne dass eine der beiden Antworten es sagte; die zweite bekommt jetzt 409.
+
+### Hinzugefügt
+
+- **Ein Satz in allen drei Sprachen** für den zweiten Versuch auf dieselbe Papierkorbzeile.
+
 ## [0.35.0] - 2026-09-17
 
 *Code-Effizienz. Die Runde ändert am Verhalten nichts — bis auf einen Fehler,

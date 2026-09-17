@@ -1,6 +1,6 @@
 # Projektstand — Kriterion
 
-**Kompakte Übergabe · Revision 100 · Stand 17. September 2026 · gebaut: Version 0.35.0**
+**Kompakte Übergabe · Revision 101 · Stand 17. September 2026 · gebaut: Version 0.35.1**
 
 > **REVISION 92 IST DER BRUCH.** *Was dieses Blatt über MIGRATIONSBLÖCKE sagt,
 > gilt ab hier nur noch als Geschichte: mit 0.33.0 sind alle achtzehn gefallen,
@@ -2649,7 +2649,7 @@ nicht an den Browser: die Karte holt die **hundert jüngsten**, und mit der
 Auswahl sind es die hundert jüngsten **dieser Art**. *Ein örtlicher Filter
 durchsuchte genau die hundert, in denen man die gescheiterten Anmeldungen
 nicht findet — das war der Befund.* **Ein unbekannter Schlüssel ist ein 400**,
-kein stillschweigendes „alles". **Die Zuordnung steht als `PROTOKOLL_GRUPPEN`
+kein stillschweigendes „alles". **Die Zuordnung steht als `PROTOKOLL_363`
 in `auth.js`**, neben der Liste der Vorgänge; der Prüfstand rechnet nach, dass
 jeder Vorgang in genau einer Gruppe steht.
 **„Gescheitert" heißt nicht „gescheiterte Anmeldungen":** die Ansicht trägt auch
@@ -6327,7 +6327,7 @@ Bedienung; die Pillen machen 33 Prozent aus.*
   Änderungsdatum.* **Ausgewählt, ohne Fehler, und schlicht falsch.** *Gefunden
   hat es die Zusage, die jede der sieben in beide Richtungen **fährt** statt sie
   zu lesen.*
-- **DIE GRUPPENÜBERSCHRIFTEN KOMMEN AUS DER SPRACHDATEI.** *„Allgemein" und
+- **DIE 363ÜBERSCHRIFTEN KOMMEN AUS DER SPRACHDATEI.** *„Allgemein" und
   „Verlauf" standen bis 0.28.1 als feste Wörter im Quelltext und damit in jeder
   Sprache deutsch am Bildschirm.* **Die beiden anderen brauchen keinen
   Schlüssel** — *sie heißen wie das Vokabular des Betreibers.*
@@ -10288,7 +10288,7 @@ beschränkt und **nicht** der volle Lauf über alle **649** Rückbauten.
 **Und die Runde davor, zum Vergleich — 5374 von 5374 bestanden** (0.20.0) —
 **128 neue, keine weggefallen.**
 
-> **DIE VIER GRUPPENZAHLEN ZU 0.20.0 SIND MIT 0.20.1 BERICHTIGT.** Sie standen
+> **DIE VIER 363ZAHLEN ZU 0.20.0 SIND MIT 0.20.1 BERICHTIGT.** Sie standen
 > als 16 · 72 · 20 · 20 da und waren **geschätzt und nicht gezählt** — die
 > Summe stimmte (128), die Aufteilung nicht. **Nachgemessen an einem vollen
 > Lauf am 0.20.0-Stand** (Fingerprint `12421721`, 5374 von 5374): **16 · 56 ·
@@ -10581,7 +10581,7 @@ vier neuen Gruppen:**
 | Der Bezugspunkt der Glocke in der Oberflaeche | 10 |
 | **zusammen** | **59** |
 
-> **ZWEI GRUPPEN SIND DABEI AUFGELÖST WORDEN, NICHT GELÖSCHT.** „Neu seit: der
+> **ZWEI 363 SIND DABEI AUFGELÖST WORDEN, NICHT GELÖSCHT.** „Neu seit: der
 > Filter in der Uebersicht" und „Neu seit: der Merkzeitpunkt" prüften eine
 > Pille, die es nicht mehr gibt; **ihre Zusagen stehen umgedreht in den beiden
 > neuen Gruppen** — was die Pille KONNTE, muss jetzt nachweislich weg sein
@@ -12060,6 +12060,58 @@ hängengeblieben.* **Dazu zwei vorhandene Rückbauten nachgezogen (710 und 711).
 
 **Fingerprint `d6dbb696`** *(davor `38949534`)*. **Prüfstand 6865 von 6865,
 998 Rückbauten, vier gefahren, 0 stumm.**
+
+### 0.35.1 — „Die drei Sicherheitsbefunde aus der Messung"
+
+**PATCH · 17. September 2026** *(Änderungsprotokoll 0.35.1).* Die drei
+Sicherheitsbefunde der Messung zur 0.35.0, die dort nicht gebaut worden sind.
+Sie standen in der Zeile 0.36.0 des Fahrplans und sind dort herausgenommen
+worden: sie hängen nicht an der Sicherheitsdurchsicht, sie sind je wenige
+Zeilen, und zwei von ihnen können Daten kosten.
+
+**Der erste: die Schlüsseldatei wurde ungeprüft gelesen.** `keys.js`,
+`loadKey`. Der Kommentar in Zeile 9 sagt, die Prüfung auf 64 Hex-Zeichen stehe
+an einer Stelle für alle Fragen — `HEX_PATTERN` griff an dreien und an der
+vierten nicht. **Gemessen am 17. September 2026:** genau 64 Hex-Zeichen nimmt
+SQLCipher als Schlüssel, alles andere als Passwort und rechnet sich daraus
+einen anderen. Bei vorhandener Datenbank kommt deshalb `SQLITE_NOTADB file is
+not a database` — eine Meldung, die die Datenbank nennt und nicht die
+Schlüsseldatei. **Liegt keine Datenbank da, entsteht eine neue unter einem
+Schlüssel, der sich nicht wiederherstellen lässt.** Vier Zeilen, und die
+Meldung nennt die Datei, die gezählte Länge und den Satz, auf den es ankommt:
+erst die Sicherung der Datei suchen.
+
+**Der zweite: `PUT /api/settings` sagte ab, nachdem es geschrieben hatte.**
+Gezählt am Stand 0.35.0: **13 Absagen — elf mit 400, zwei mit 403 — und 14
+Schreibstellen, ohne Transaktion.** Ein Rumpf mit `{font: 80, strip: 999}`
+schrieb `font` und antwortete dann mit 400. **Der ganze Rumpf läuft jetzt in
+einer `db.transaction`**, die Absagen werfen `Message` statt zu antworten, und
+der Wurf nimmt zurück, was schon geschrieben war. Die Antwort wird drinnen
+gebaut und erst danach gesendet. Die beiden Rechteabsagen bleiben außerhalb:
+sie stehen vor jeder Zeile Arbeit. Möglich ist das, weil die Route ganz
+synchron ist — eine `db.transaction` mit einem `await` darin gibt es nicht.
+
+**Der dritte: eine Papierkorbzeile ließ sich zweimal gleichzeitig
+zurückholen.** `POST /api/trash/:id/restore`, dasselbe Muster wie der Link in
+0.34.4: zwischen dem `SELECT` und dem `DELETE` wird auf das Einspielen
+gewartet, und dieses Warten gibt den Event Loop frei. Beide Anfragen bekamen
+200, und der Eintrag stand danach zweimal da. **Der Weg von 0.34.4 stand nicht
+offen:** eine Spalte an `trash` wäre eine Schemaänderung, und ab 0.33.0 wird
+nicht migriert; das `DELETE` als Anspruch geht nicht, weil `trash_bytes` mit
+`ON DELETE CASCADE` daran hängt. **Gebaut ist eine Liste der Nummern, die
+gerade eingespielt werden, im Prozess** — in Anspruch genommen vor dem `await`,
+freigegeben im `finally`, und der Verlierer bekommt **409** mit dem neuen
+Schlüssel `server.trashRestoring`. Sie gilt innerhalb dieses Prozesses; zwei
+Serverprozesse auf derselben Datei liefen weiter gegeneinander.
+
+**An `server.js` sind es 75 neue und 54 entfernte Zeilen** — ohne Leerraum
+gezählt. Der volle Diff nennt 441; die Differenz ist die Einrückung des
+Routenrumpfs.
+
+**Fingerprint `10017d45`** *(davor `5297965e`)*. **Prüfstand 7007 von
+7007, 363 Gruppen, 1036 Rückbauten** *(vier neue, alle gefahren, 0 stumm;
+drei vorhandene nachgezogen, weil ihr Suchtext im Rumpf der Einstellungsroute
+lag)*. **Sprachschlüssel 1.212** *(davor 1.211)*.
 
 ### 0.35.0 — „Code-Effizienz"
 

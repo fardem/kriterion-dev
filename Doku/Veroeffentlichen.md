@@ -73,9 +73,9 @@ node tools/publish.js --trocken
 Schreibt nichts. Meldet, was hinausginge:
 
 ```
-  Version        0.35.0
+  Version        0.35.1
   Ausgangszweig  main
-  Fingerprint    5297965e   (ueber 18 Dateien)
+  Fingerprint    10017d45   (ueber 18 Dateien)
   Hinaus gehen   67 Dateien, 1.234.567 Bytes
   Weggelassen    Doku, CLAUDE.md, tools/dictionary-doc.js, tools/publish.js
   Zweig publish  neu — der erste Commit hat KEINEN Elternteil
