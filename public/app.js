@@ -345,22 +345,44 @@ function autoGrow(el) {
   return fit;
 }
 
+/* ---- DAS GERUEST EINES DIALOGS -- 0.35.0, BA 4 ----
+   Zwoelf Dialoge bauten dasselbe einzeln auf: Knoten anlegen, Klasse setzen,
+   Aufbau hineinschreiben, an den Rumpf haengen, die drei Schliesswege
+   verdrahten (Knopf, Klick auf den Hintergrund, Escape) und den Tastenhorcher
+   wieder abmelden. Der letzte Schritt fehlte an dreien von ihnen -- der
+   Horcher blieb am Dokument stehen, nachdem der Dialog weg war.
+   `cancel` ist der Wert, den Hintergrundklick und Escape liefern. `keys`
+   bekommt jede Taste vor Escape vorgelegt; gibt es true zurueck, ist sie
+   verbraucht. Zurueck kommen der Knoten und das Schliessen. */
+function openModal(html, atClose, cancel, keys) {
+  const bd = document.createElement('div');
+  bd.className = 'backdrop';
+  bd.innerHTML = html;
+  document.body.appendChild(bd);
+  const done = (v) => {
+    document.removeEventListener('keydown', onKey, true);
+    bd.remove();
+    atClose(v);
+  };
+  const onKey = (e) => {
+    if (keys && keys(e, done)) return;
+    if (e.key === 'Escape') done(cancel);
+  };
+  document.addEventListener('keydown', onKey, true);
+  bd.onclick = (e) => { if (e.target === bd) done(cancel); };
+  return { bd, done };
+}
+
 // `kind`: die Farbe des Ja-Knopfs -- 'danger' fuer alles, was wegnimmt, 'accent'
 // fuer eine Handlung, die etwas anlegt (Freischalten, Link erzeugen). 0.22.0.
 function confirmBox(title, text, confirmLabel = t('dialog.delete'), kind = 'danger') {
   return new Promise(resolve => {
-    const bd = document.createElement('div');
-    bd.className = 'backdrop';
-    bd.innerHTML = `<div class="modal"><h2>${esc(title)}</h2><p>${esc(text)}</p>
+    const { bd, done } = openModal(`<div class="modal"><h2>${esc(title)}</h2><p>${esc(text)}</p>
       <div class="modal-acts"><button class="btn btn-ghost" data-no>${tH('dialog.cancel')}</button>
-      <button class="btn btn-${kind === 'accent' ? 'accent' : 'danger'}" data-yes>${esc(confirmLabel)}</button></div></div>`;
-    document.body.appendChild(bd);
-    const done = v => { bd.remove(); resolve(v); };
+      <button class="btn btn-${kind === 'accent' ? 'accent' : 'danger'}" data-yes>${esc(confirmLabel)}</button></div></div>`,
+      resolve, false);
     bd.querySelector('[data-no]').onclick = () => done(false);
     bd.querySelector('[data-yes]').onclick = () => done(true);
-    bd.onclick = e => { if (e.target === bd) done(false); };
-    const onKey = e => { if (e.key === 'Escape') { document.removeEventListener('keydown', onKey, true); done(false); } };
-    document.addEventListener('keydown', onKey, true);
     bd.querySelector('[data-yes]').focus();
   });
 }
@@ -370,25 +392,20 @@ function confirmBox(title, text, confirmLabel = t('dialog.delete'), kind = 'dang
    Browser wie diese Instanz aus und laesst sich nicht beschriften. */
 function nameBox(title, text, fallback = '', okLabel = t('dialog.save'), maxLength = 40) {
   return new Promise(resolve => {
-    const bd = document.createElement('div');
-    bd.className = 'backdrop';
-    bd.innerHTML = `<div class="modal"><h2>${esc(title)}</h2><p class="hint">${esc(text)}</p>
+    const { bd, done } = openModal(`<div class="modal"><h2>${esc(title)}</h2><p class="hint">${esc(text)}</p>
       <div class="field"><input class="input" id="nb-name" maxlength="${maxLength}"
         value="${esc(fallback)}" placeholder="${esc(t('dialog.viewName'))}"></div>
       <div class="modal-acts"><button class="btn btn-ghost" data-no>${tH('dialog.cancel')}</button>
-      <button class="btn btn-accent" data-yes>${esc(okLabel)}</button></div></div>`;
-    document.body.appendChild(bd);
+      <button class="btn btn-accent" data-yes>${esc(okLabel)}</button></div></div>`,
+      resolve, null,
+      (e, shut) => {
+        if (e.key !== 'Enter' || document.activeElement !== field) return false;
+        const w = field.value.trim(); shut(w || null); return true;
+      });
     const field = bd.querySelector('#nb-name');
-    const done = v => { document.removeEventListener('keydown', onKey, true); bd.remove(); resolve(v); };
     const take = () => { const w = field.value.trim(); done(w || null); };
     bd.querySelector('[data-no]').onclick = () => done(null);
     bd.querySelector('[data-yes]').onclick = take;
-    bd.onclick = e => { if (e.target === bd) done(null); };
-    const onKey = e => {
-      if (e.key === 'Escape') done(null);
-      else if (e.key === 'Enter' && document.activeElement === field) take();
-    };
-    document.addEventListener('keydown', onKey, true);
     field.focus(); field.select();
   });
 }
@@ -402,9 +419,7 @@ const confirmReason = () => t('dialog.appWideHint') +
    Faktor eingeschaltet haben. */
 function passwordDialog(title, event, reason, withCode) {
   return new Promise(resolve => {
-    const bd = document.createElement('div');
-    bd.className = 'backdrop';
-    bd.innerHTML = `<div class="modal"><h2>${esc(title)}</h2>
+    const { bd, done } = openModal(`<div class="modal"><h2>${esc(title)}</h2>
       <p>${esc(event)}</p>
       ${reason ? `<p class="desc" style="margin:0">${esc(reason)}</p>` : ''}
       <div class="field" style="margin:0"><label>${tH('dialog.yourPassword')}</label>
@@ -414,20 +429,16 @@ function passwordDialog(title, event, reason, withCode) {
         <input class="input" id="confirm-code" inputmode="text" autocomplete="one-time-code"
           autocapitalize="characters" spellcheck="false" maxlength="16"></div>` : ''}
       <div class="modal-acts"><button class="btn btn-ghost" data-no>${tH('dialog.cancel')}</button>
-      <button class="btn btn-accent" data-yes>${tH('dialog.confirm')}</button></div></div>`;
-    document.body.appendChild(bd);
+      <button class="btn btn-accent" data-yes>${tH('dialog.confirm')}</button></div></div>`,
+      resolve, null);
     const field = bd.querySelector('#confirm-pass');
     const codeField = bd.querySelector('#confirm-code');
     const value = () => ({ password: field.value, ...(codeField ? { code: codeField.value } : {}) });
-    const done = v => { bd.remove(); resolve(v); };
     bd.querySelector('[data-no]').onclick = () => done(null);
     bd.querySelector('[data-yes]').onclick = () => done(value());
-    bd.onclick = e => { if (e.target === bd) done(null); };
     for (const el of [field, codeField]) {
       if (el) el.addEventListener('keydown', e => { if (e.key === 'Enter') done(value()); });
     }
-    const onKey = e => { if (e.key === 'Escape') { document.removeEventListener('keydown', onKey, true); done(null); } };
-    document.addEventListener('keydown', onKey, true);
     field.focus();
   });
 }
@@ -467,25 +478,19 @@ async function secondConfirm(purpose, target, title, event) {
    prompt(): dort stand das fremde Passwort im Klartext auf dem Bildschirm. */
 function newPasswordDialog(title, sentence) {
   return new Promise(resolve => {
-    const bd = document.createElement('div');
-    bd.className = 'backdrop';
-    bd.innerHTML = `<div class="modal"><h2>${esc(title)}</h2><p>${esc(sentence)}</p>
+    const { bd, done } = openModal(`<div class="modal"><h2>${esc(title)}</h2><p>${esc(sentence)}</p>
       <div class="field" style="margin:0"><label for="np-pass">${tH('dialog.newPassword')}</label>
         <input class="input" id="np-pass" type="password" autocomplete="new-password"></div>
       <div class="modal-acts"><button class="btn btn-ghost" data-no>${tH('dialog.cancel')}</button>
-      <button class="btn btn-accent" data-yes>${tH('dialog.setPassword')}</button></div></div>`;
-    document.body.appendChild(bd);
+      <button class="btn btn-accent" data-yes>${tH('dialog.setPassword')}</button></div></div>`,
+      resolve, null,
+      (e, shut) => {
+        if (e.key !== 'Enter' || document.activeElement !== field) return false;
+        shut(field.value || null); return true;
+      });
     const field = bd.querySelector('#np-pass');
-    const done = v => { document.removeEventListener('keydown', onKey, true); bd.remove(); resolve(v); };
-    const take = () => done(field.value || null);
     bd.querySelector('[data-no]').onclick = () => done(null);
-    bd.querySelector('[data-yes]').onclick = take;
-    bd.onclick = e => { if (e.target === bd) done(null); };
-    const onKey = e => {
-      if (e.key === 'Escape') done(null);
-      else if (e.key === 'Enter' && document.activeElement === field) take();
-    };
-    document.addEventListener('keydown', onKey, true);
+    bd.querySelector('[data-yes]').onclick = () => done(field.value || null);
     field.focus();
   });
 }
@@ -5827,6 +5832,38 @@ function trimMore(root) {
 /* „GESPEICHERT" -- ein Muster fuer alle Felder der Einstellungen
    (Woerterbuch): der Toast, und die Karte, in der gespeichert wurde, zeigt es
    400 ms lang am Rand (Stilblatt 1.2). */
+/* ---- EINE PILLENREIHE -- 0.35.0, BA 4 ----
+   Fuenf Funktionen zeichneten dieselbe Reihe: Kasten holen, leeren, ueber die
+   Stufen laufen, je Stufe eine Pille bauen, beim Klick den Wert setzen,
+   sofort anwenden, neu zeichnen, schicken -- und bei einem Fehlschlag auf den
+   alten Wert zurueck.
+   `get` und `set` lesen und schreiben den Wert, `label` beschriftet die
+   Pille, `apply` macht ihn sofort sichtbar (nicht jede Reihe hat das), `key`
+   ist der Schluessel in PUT /api/settings, `mark` sagt, ob das Aufleuchten an
+   der geklickten Pille haengt oder am fokussierten Element. */
+function pillRow({ boxId, levels, get, set, label, apply, key, mark }) {
+  const box = document.getElementById(boxId);
+  if (!box) return;
+  const draw = () => {
+    box.innerHTML = '';
+    levels.forEach(level => {
+      const b = document.createElement('button');
+      b.className = 'pill' + (get() === level ? ' on' : '');
+      b.textContent = label(level);
+      b.onclick = async () => {
+        const before = get();
+        set(level);
+        if (apply) apply();          // sofort sichtbar, auch wenn das Speichern scheitert
+        draw();
+        try { await api('PUT', '/api/settings', { [key]: level }); saved(mark ? b : undefined); }
+        catch (e) { set(before); if (apply) apply(); draw(); toast(e.message, true); }
+      };
+      box.appendChild(b);
+    });
+  };
+  draw();
+}
+
 function saved(el = document.activeElement) {
   toast(t('list.saved'));
   const card = el && el.closest ? el.closest('.sys-card') : null;
@@ -6474,65 +6511,18 @@ function setUpAppearanceOut() {
 
   /* --- Farbschema — 0.23.0, dieselbe Bauform wie die Schriftgröße darunter
      --- DREI PILLEN STATT FÜNF, und die mittlere ist die Vorgabe. */
-  function drawTheme() {
-    const box = document.getElementById('theme');
-    if (!box) return;
-    box.innerHTML = '';
-    THEME_LEVELS.forEach(level => {
-      const b = document.createElement('button');
-      b.className = 'pill' + (THEME === level ? ' on' : '');
-      b.textContent = t(THEME_NAMES[level]);
-      b.onclick = async () => {
-        const before = THEME;
-        THEME = level;
-        applyTheme();
-        drawTheme();
-        try { await api('PUT', '/api/settings', { theme: level }); saved(b); }
-        catch (e) { THEME = before; applyTheme(); drawTheme(); toast(e.message, true); }
-      };
-      box.appendChild(b);
-    });
-  }
-  /* --- Schriftgröße --- */
-  function drawFont() {
-    const box = document.getElementById('fsize');
-    box.innerHTML = '';
-    FONT_LEVELS.forEach(level => {
-      const b = document.createElement('button');
-      b.className = 'pill' + (FONT === level ? ' on' : '');
-      b.textContent = level + ' %';
-      b.onclick = async () => {
-        const before = FONT;
-        FONT = level;
-        applyFont();          // sofort sichtbar, auch wenn das Speichern scheitert
-        drawFont();
-        try { await api('PUT', '/api/settings', { font: level }); saved(b); }
-        catch (e) { FONT = before; applyFont(); drawFont(); toast(e.message, true); }
-      };
-      box.appendChild(b);
-    });
-  }
-  /* DER BILDSTREIFEN, dieselbe Bauform wie die Schriftgroesse darueber: fuenf
-     Pillen, sofort sichtbar, bei einem Fehlschlag zurueck auf den alten Wert. */
-  function drawStrip() {
-    const box = document.getElementById('tiles');
-    if (!box) return;
-    box.innerHTML = '';
-    STRIP_LEVELS.forEach(level => {
-      const b = document.createElement('button');
-      b.className = 'pill' + (STRIP === level ? ' on' : '');
-      b.textContent = level + t('card.px');
-      b.onclick = async () => {
-        const before = STRIP;
-        STRIP = level;
-        applyTiles();
-        drawStrip();
-        try { await api('PUT', '/api/settings', { strip: level }); saved(b); }
-        catch (e) { STRIP = before; applyTiles(); drawStrip(); toast(e.message, true); }
-      };
-      box.appendChild(b);
-    });
-  }
+  /* DREI REIHEN NACH DEMSELBEN MUSTER -- Farbschema, Schriftgroesse und der
+     Bildstreifen: sofort sichtbar, bei einem Fehlschlag zurueck auf den alten
+     Wert. */
+  function drawTheme() { pillRow({ boxId: 'theme', levels: THEME_LEVELS,
+    get: () => THEME, set: v => { THEME = v; }, label: v => t(THEME_NAMES[v]),
+    apply: applyTheme, key: 'theme', mark: true }); }
+  function drawFont() { pillRow({ boxId: 'fsize', levels: FONT_LEVELS,
+    get: () => FONT, set: v => { FONT = v; }, label: v => v + ' %',
+    apply: applyFont, key: 'font', mark: true }); }
+  function drawStrip() { pillRow({ boxId: 'tiles', levels: STRIP_LEVELS,
+    get: () => STRIP, set: v => { STRIP = v; }, label: v => v + t('card.px'),
+    apply: applyTiles, key: 'strip', mark: true }); }
 
 
 /* ---- Karte „Kategorien" — Abschnitt „Bestand" ---- */
@@ -7262,42 +7252,14 @@ function setUpLinksOut() {
 }
 
   /* --- Sichtbare Linkzeilen --- */
-  function drawLinkRows() {
-    const box = document.getElementById('lrows');
-    box.innerHTML = '';
-    LINK_ROW_LEVELS.forEach(n => {
-      const b2 = document.createElement('button');
-      b2.className = 'pill' + (LINK_ROWS === n ? ' on' : '');
-      b2.textContent = n + t('card.rows');
-      b2.onclick = async () => {
-        const before = LINK_ROWS;
-        LINK_ROWS = n;
-        drawLinkRows();
-        try { await api('PUT', '/api/settings', { linkRows: n }); saved(); }
-        catch (e) { LINK_ROWS = before; drawLinkRows(); toast(e.message, true); }
-      };
-      box.appendChild(b2);
-    });
-  }
-
-  function drawSearchNames() {
-    const box = document.getElementById('snames');
-    if (!box) return;
-    box.innerHTML = '';
-    SEARCH_NAME_LEVELS.forEach(n => {
-      const b3 = document.createElement('button');
-      b3.className = 'pill' + (SEARCH_NAMES === n ? ' on' : '');
-      b3.textContent = t('card.names', { n: n });
-      b3.onclick = async () => {
-        const before = SEARCH_NAMES;
-        SEARCH_NAMES = n;
-        drawSearchNames();
-        try { await api('PUT', '/api/settings', { searchNames: n }); saved(); }
-        catch (e) { SEARCH_NAMES = before; drawSearchNames(); toast(e.message, true); }
-      };
-      box.appendChild(b3);
-    });
-  }
+  /* UND ZWEI OHNE SOFORTIGE WIRKUNG: die Zahl der Zeilen wirkt beim naechsten
+     Zeichnen der Linkliste, die Zahl der Namen beim naechsten Aufbau. */
+  function drawLinkRows() { pillRow({ boxId: 'lrows', levels: LINK_ROW_LEVELS,
+    get: () => LINK_ROWS, set: v => { LINK_ROWS = v; }, label: v => v + t('card.rows'),
+    key: 'linkRows' }); }
+  function drawSearchNames() { pillRow({ boxId: 'snames', levels: SEARCH_NAME_LEVELS,
+    get: () => SEARCH_NAMES, set: v => { SEARCH_NAMES = v; }, label: v => t('card.names', { n: v }),
+    key: 'searchNames' }); }
 
 
 /* ---- Karte „Suchanbieter" — Abschnitt „Bestand" ---- */

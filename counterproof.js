@@ -8650,6 +8650,42 @@ const REGRESSIONS = [
     replacement: "  const base = { place, dbBytes, cleanup: rule };",
     expected: 'Die Sicherung auf Knopfdruck'
   },
+
+  /* ---- 0.35.0 · BA 4: umstaendlich in public/app.js -------------------- */
+  {
+    /* Das Geruest haengt den Dialog nicht mehr an den Rumpf -- keiner der
+       vier Dialoge steht dann noch am Bildschirm. */
+    nr: '1073', name: 'Das Dialoggeruest haengt den Knoten nicht mehr an',
+    file: 'public/app.js',
+    search: "  bd.innerHTML = html;\n  document.body.appendChild(bd);",
+    replacement: "  bd.innerHTML = html;",
+    expected: 'Keine Browserfenster mehr — 0.22.0'
+  },
+  {
+    /* Und es meldet den Tastenhorcher beim Schliessen nicht mehr ab -- genau
+       der Schritt, der an dreien der zwoelf Dialoge gefehlt hat. */
+    nr: '1074', name: 'Das Dialoggeruest laesst den Tastenhorcher stehen',
+    file: 'public/app.js',
+    search: "    document.removeEventListener('keydown', onKey, true);\n    bd.remove();\n    atClose(v);",
+    replacement: "    bd.remove();\n    atClose(v);",
+    expected: 'Keine Browserfenster mehr — 0.22.0'
+  },
+  {
+    /* Die Pillenreihe zeichnet sich nach dem Klick nicht mehr neu. */
+    nr: '1075', name: 'Die Pillenreihe zeichnet sich nach dem Klick nicht neu',
+    file: 'public/app.js',
+    search: "        if (apply) apply();          // sofort sichtbar, auch wenn das Speichern scheitert\n        draw();",
+    replacement: "        if (apply) apply();          // sofort sichtbar, auch wenn das Speichern scheitert",
+    expected: 'Oberflaeche'
+  },
+  {
+    /* Und sie nimmt den alten Wert bei einem Fehlschlag nicht zurueck. */
+    nr: '1076', name: 'Die Pillenreihe faellt bei einem Fehlschlag nicht zurueck',
+    file: 'public/app.js',
+    search: "        catch (e) { set(before); if (apply) apply(); draw(); toast(e.message, true); }",
+    replacement: "        catch (e) { toast(e.message, true); }",
+    expected: 'Oberflaeche'
+  },
 ];
 
 /* ================= Spuren und Versatz ================= Der Versatz je
