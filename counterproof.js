@@ -5012,9 +5012,9 @@ const REGRESSIONS = [
     // Die Schranke der Stufen lockert sich: 90 ginge durch.
     nr: '631', name: 'Der Bildstreifen laesst eine ungueltige Stufe durch',
     file: 'server.js',
-    search: "    if (!STRIP_LEVELS.includes(n))",
-    replacement: "    if (!Number.isFinite(n))",
-    expected: 'Die Einstellung strip — 0.22.0'
+    search: "  strip:       { list: STRIP_LEVELS,       cast: Number, fallback: 80,",
+    replacement: "  strip:       { list: [...STRIP_LEVELS, 90], cast: Number, fallback: 80,",
+    expected: 'Die Einstellung streifen — 0.22.0'
   },
   {
     // Die Vorgabe vergisst eines der zwei neuen Woerter -- dreizehn statt vierzehn.
@@ -5743,8 +5743,8 @@ const REGRESSIONS = [
   {
     nr: '732', name: 'Der Import legt die Sprachfassungen nicht wieder hinein',
     file: 'server.js',
-    search: "      ['criterion_names', 'criterion_id', critByName, payload.criteriaNames],",
-    replacement: "      ['criterion_names', 'criterion_id', critByName, null],",
+    search: "      [iCritNameAdd, critByName, payload.criteriaNames],",
+    replacement: "      [iCritNameAdd, critByName, null],",
     expected: 'Der Rueckfall der Namen — 0.24.3'
   },
   /* ---- Die Sprachpillen der Namenskarten -- 0.24.5 ---- ZWOELF RUECKBAUTEN
@@ -8552,6 +8552,300 @@ const REGRESSIONS = [
     search: "if (!report.abort && !report.failed && r.status !== 0) {",
     replacement: "if (false) {",
     expected: 'Der Treiber sieht den Rueckgabewert — 0.34.4'
+  },
+
+  /* ---- 0.35.0 · BA 0: die Befunde der Messung selbst ------------------- */
+  {
+    /* B1: die Schalterprobe vererbt TESTBENCH_TIME wieder an das Kind. Die
+       Pruefung darueber ist dann nur noch gruen, solange der Elternlauf
+       zufaellig keinen Schalter traegt. */
+    nr: '1063', name: 'Die Schalterprobe vererbt den Schalter wieder an das Kind',
+    file: 'test/release_030.js',
+    search: "        env: { ...process.env, TESTBENCH_PROBE: '1', TESTBENCH_TIME: '' } });",
+    replacement: "        env: { ...process.env, TESTBENCH_PROBE: '1' } });",
+    expected: 'Die Schalterprobe haengt nicht am Elternlauf — 0.35.0'
+  },
+
+  /* ---- 0.35.0 · BA 1: tot in den ausgelieferten Dateien ---------------- */
+  {
+    /* Der Sprachname traegt wieder eine Klasse ohne Regel im Stilblatt. */
+    nr: '1064', name: 'Der Sprachname traegt wieder ename statt engine-name',
+    file: 'public/app.js',
+    search: "      st.onclick = () => sendLanguages({ languageDefault: a.code }, t('card.languageDefaultSaved'));\n      const nm = document.createElement('span');\n      nm.className = 'engine-name';",
+    replacement: "      st.onclick = () => sendLanguages({ languageDefault: a.code }, t('card.languageDefaultSaved'));\n      const nm = document.createElement('span');\n      nm.className = 'ename';",
+    expected: 'Die Karte sagt, wo Arbeit liegt — 0.25.0'
+  },
+  {
+    /* Die Route ohne Aufrufer steht wieder da -- hinter requireAuth, also
+       ohne Sitzungscookie mit 401. */
+    nr: '1065', name: 'Die Route /api/health steht wieder da',
+    file: 'server.js',
+    search: "app.get('/api/manifest.json'",
+    replacement: "app.get('/api/health', (req, res) => res.json({ ok: true }));\napp.get('/api/manifest.json'",
+    expected: 'Das Startbildzeichen — 0.28.0'
+  },
+
+  /* ---- 0.35.0 · BA 2: die Sprachdateien und das Stilblatt --------------- */
+  {
+    /* Die Ausnahmeliste verliert einen der dreiundzwanzig gebauten
+       Schluessel. Er steht dann als toter Schluessel da, obwohl mail.js ihn
+       baut -- der Waechter muss das melden. */
+    nr: '1066', name: 'Die Ausnahmeliste vergisst einen gebauten Schluessel',
+    file: 'test/source.js',
+    search: "      ...['confirm', 'invite', 'reset', 'test'].flatMap(k =>",
+    replacement: "      ...['invite', 'reset', 'test'].flatMap(k =>",
+    expected: 'Jeder Schluessel der Sprachdatei hat einen Leser — 0.35.0'
+  },
+  {
+    /* Eine Sprachdatei verliert einen Schluessel, den Deutsch traegt. */
+    nr: '1067', name: 'Der englischen Sprachdatei fehlt ein Schluessel',
+    file: 'public/languages/en.json',
+    search: "  \"list.backToList\":",
+    replacement: "  \"list.backToListGone\":",
+    expected: 'Jeder Schluessel der Sprachdatei hat einen Leser — 0.35.0'
+  },
+
+  /* ---- 0.35.0 · BA 3: umstaendlich in server.js ------------------------- */
+  {
+    /* Der Leser faellt nicht mehr auf die Vorgabe zurueck: ein Wert, der
+       nicht in der Stufenliste steht, geht unbesehen hinaus. */
+    nr: '1068', name: 'Die Stufeneinstellung faellt nicht mehr auf ihre Vorgabe zurueck',
+    file: 'server.js',
+    search: "  return a.list.includes(v) ? v : a.fallback;",
+    replacement: "  return v;",
+    expected: 'Persoenliche Einstellungen'
+  },
+  {
+    /* Der Schreiber nimmt jeden Wert an, auch einen ausserhalb der Liste. */
+    nr: '1069', name: 'Die Stufeneinstellung nimmt jeden Wert an',
+    file: 'server.js',
+    search: "    if (a.list.includes(v)) {",
+    replacement: "    if (true) {",
+    expected: 'Die Einstellung streifen — 0.22.0'
+  },
+  {
+    /* Die vorbereitete Abfrage des Exports laesst den Ausschnitt weg -- die
+       drei Werte fehlen dann in der Datei. */
+    nr: '1070', name: 'Der Export liest die Fotos wieder ohne ihren Ausschnitt',
+    file: 'server.js',
+    search: "  'SELECT mime_type, data, thumb, medium, focus_x, focus_y, zoom, kind, duration FROM photos WHERE item_id = ? ORDER BY sort_order, id');",
+    replacement: "  'SELECT mime_type, data, thumb, medium, NULL AS focus_x, NULL AS focus_y, NULL AS zoom, kind, duration FROM photos WHERE item_id = ? ORDER BY sort_order, id');",
+    expected: 'Der Export in Teilen'
+  },
+  {
+    /* Suchen und Anlegen legt immer an: der Import bekommt jede Kategorie,
+       jedes Schlagwort und jedes Kriterium ein zweites Mal. */
+    nr: '1071', name: 'Suchen und Anlegen legt immer neu an',
+    file: 'server.js',
+    search: "  const f = find.get(name);\n  return f ? f.id : add.run(name, ...extra()).lastInsertRowid;",
+    replacement: "  const f = null;\n  return f ? f.id : add.run(name, ...extra()).lastInsertRowid;",
+    expected: 'Export und Import'
+  },
+  {
+    /* Das Grundobjekt der Sicherungsantwort verliert die angesagte Dauer --
+       sie fehlt damit in allen drei Rueckgaben auf einmal. */
+    nr: '1072', name: 'Die Sicherungsantwort sagt ihre Dauer nicht mehr an',
+    file: 'server.js',
+    search: "  const base = { place, dbBytes, durationSeconds: duration, cleanup: rule };",
+    replacement: "  const base = { place, dbBytes, cleanup: rule };",
+    expected: 'Die Sicherung auf Knopfdruck'
+  },
+
+  /* ---- 0.35.0 · BA 4: umstaendlich in public/app.js -------------------- */
+  {
+    /* Das Geruest haengt den Dialog nicht mehr an den Rumpf -- keiner der
+       vier Dialoge steht dann noch am Bildschirm. */
+    nr: '1073', name: 'Das Dialoggeruest haengt den Knoten nicht mehr an',
+    file: 'public/app.js',
+    search: "  bd.innerHTML = html;\n  document.body.appendChild(bd);",
+    replacement: "  bd.innerHTML = html;",
+    expected: 'Keine Browserfenster mehr — 0.22.0'
+  },
+  {
+    /* Und es meldet den Tastenhorcher beim Schliessen nicht mehr ab -- genau
+       der Schritt, der an dreien der zwoelf Dialoge gefehlt hat. */
+    nr: '1074', name: 'Das Dialoggeruest laesst den Tastenhorcher stehen',
+    file: 'public/app.js',
+    search: "    document.removeEventListener('keydown', onKey, true);\n    bd.remove();\n    atClose(v);",
+    replacement: "    bd.remove();\n    atClose(v);",
+    expected: 'Keine Browserfenster mehr — 0.22.0'
+  },
+  {
+    /* Die Pillenreihe zeichnet sich nach dem Klick nicht mehr neu. */
+    nr: '1075', name: 'Die Pillenreihe zeichnet sich nach dem Klick nicht neu',
+    file: 'public/app.js',
+    search: "        if (apply) apply();          // sofort sichtbar, auch wenn das Speichern scheitert\n        draw();",
+    replacement: "        if (apply) apply();          // sofort sichtbar, auch wenn das Speichern scheitert",
+    expected: 'Oberflaeche'
+  },
+  {
+    /* Und sie nimmt den alten Wert bei einem Fehlschlag nicht zurueck. */
+    nr: '1076', name: 'Die Pillenreihe faellt bei einem Fehlschlag nicht zurueck',
+    file: 'public/app.js',
+    search: "        catch (e) { set(before); if (apply) apply(); draw(); toast(e.message, true); }",
+    replacement: "        catch (e) { toast(e.message, true); }",
+    expected: 'Oberflaeche'
+  },
+
+  /* ---- 0.35.0 · BA 5: langsam in der Auslieferung ---------------------- */
+  {
+    /* Die Auslieferung geht wieder ungezippt hinaus -- 301.048 Bytes je
+       Aufruf statt 102.620. */
+    nr: '1077', name: 'Die Auslieferung geht wieder ungezippt hinaus',
+    file: 'server.js',
+    search: "  if (!one || !/\\bgzip\\b/.test(req.headers['accept-encoding'] || '')) return next();",
+    replacement: "  if (one || true) return next();",
+    expected: 'Die Auslieferung geht gezippt hinaus — 0.35.0'
+  },
+  {
+    /* Die gezippte Fassung traegt wieder dieselbe Marke wie die rohe -- ein
+       Zwischenspeicher koennte damit die eine fuer die andere halten. */
+    nr: '1078', name: 'Die gezippte Fassung traegt dieselbe Marke wie die rohe',
+    file: 'server.js',
+    search: "      tag: `W/\"${raw.length.toString(16)}-${at.getTime().toString(16)}-gz\"`",
+    replacement: "      tag: `W/\"${raw.length.toString(16)}-${at.getTime().toString(16)}\"`",
+    expected: 'Die Auslieferung geht gezippt hinaus — 0.35.0'
+  },
+  {
+    /* Die Spaltenwahl greift nicht mehr: bei ?size=thumb kommt das Original. */
+    nr: '1079', name: 'Die Fotoroute liest wieder alle drei Blobs',
+    file: 'server.js',
+    search: "  const want = req.query.size === 'thumb' ? 'thumb'\n             : req.query.size === 'medium' ? 'medium' : 'data';",
+    replacement: "  const want = 'data';",
+    expected: 'Der Ausschnitt steckt in der Kachel — 0.19.5'
+  },
+  {
+    /* Die Bilder eines Kommentars kommen nicht mehr mit. */
+    nr: '1080', name: 'Die Bilder eines Kommentars kommen nicht mehr mit',
+    file: 'server.js',
+    search: "    c.images = imagesPer.get(c.id) || [];",
+    replacement: "    c.images = [];",
+    expected: 'Bilder in Kommentaren'
+  },
+
+  /* ---- 0.35.0 · BA 7 und BA 8 ------------------------------------------ */
+  {
+    /* Der Waechter ueber die Rueckbauten liest wieder je Rueckbau seine
+       Datei neu ein -- ueber tausend Lesevorgaenge auf 32 Dateien. */
+    nr: '1081', name: 'Der Waechter liest wieder je Rueckbau seine Datei neu',
+    file: 'test/selfcheck.js',
+    search: "    const n = gpFileText(file).split(r.search).length - 1;",
+    replacement: "    gpText.delete(file);\n    const n = gpFileText(file).split(r.search).length - 1;",
+    expected: 'Die Gegenproben greifen'
+  },
+  {
+    /* Der Fotoweg schreibt wieder in der Schleife: eine ungeeignete Datei
+       laesst die gueltigen davor stehen. */
+    nr: '1082', name: 'Der Fotoweg behaelt, was vor der ungeeigneten Datei kam',
+    file: 'server.js',
+    search: "      if (!await gridImage(f.buffer))\n        return res.status(400).json({ error: t(localeOf(req), 'server.imagesOnly')});",
+    replacement: "      if (!await gridImage(f.buffer)) break;",
+    expected: 'Eine ungeeignete Datei laesst nichts zurueck — 0.35.0'
+  },
+  {
+    /* Ein gefangener Fehler ohne Schluessel bleibt wieder stumm. */
+    nr: '1083', name: 'Ein gefangener Fehler ohne Schluessel bleibt wieder stumm',
+    file: 'server.js',
+    search: "  if (!(e && e.key)) console.error('[Kriterion] ' + (e && e.stack ? e.stack : e));",
+    replacement: "",
+    expected: 'Ein gefangener Fehler bleibt nicht stumm — 0.35.0'
+  },
+  {
+    /* Und die beiden Saetze an der Sternzeile stehen wieder deutsch im
+       Skript statt in der Sprachdatei. */
+    nr: '1084', name: 'Zwei deutsche Saetze stehen wieder fest im Skript',
+    file: 'public/app.js',
+    search: "            x.title = t('entry.removeRating');",
+    replacement: "            x.title = `${V.ratingOne} entfernen`;",
+    expected: 'Kein deutscher Bildschirmsatz sitzt fest — die neue Wache — 0.30.0'
+  },
+  {
+    /* Die Zahl der eigenen Suchplaetze steht wieder als festes Array im
+       Skript statt als Zaehlung der Antwort des Servers. */
+    nr: '1085', name: 'Die Zahl der Suchplaetze steht wieder fest im Skript',
+    file: 'public/app.js',
+    search: "    const list = SEARCH_PROVIDERS.filter(a => a.own).map((a, i) => ({",
+    replacement: "    const list = [1, 2, 3].map((a, i) => ({",
+    expected: 'Die Zahl der eigenen Suchplaetze steht an einer Stelle — 0.35.0'
+  },
+  {
+    /* Und das Stilblatt zaehlt die Plaetze wieder einzeln auf. */
+    nr: '1086', name: 'Das Stilblatt zaehlt die Suchplaetze wieder einzeln auf',
+    file: 'public/style.css',
+    search: '.engine-slot input[id^="se-name-"] { flex: 0 0 8.5em; }',
+    replacement: '.engine-slot #se-name-1, .engine-slot #se-name-2 { flex: 0 0 8.5em; }',
+    expected: 'Die Zahl der eigenen Suchplaetze steht an einer Stelle — 0.35.0'
+  },
+  {
+    /* Der Knopf, der den einzelnen Eintrag als Datei holt, ist wieder fort:
+       die Route bleibt, aber kein Element der Oberflaeche ruft sie. */
+    nr: '1087', name: 'Der einzelne Eintrag ist wieder nur ueber die Adresszeile zu holen',
+    file: 'public/app.js',
+    search: "      ? `<div class=\"entry-out\"><button class=\"btn btn-sm\" id=\"exp1\">${tH('entry.exportOne')}</button></div>`",
+    replacement: "      ? ''",
+    expected: 'Der einzelne Eintrag ist ueber die Oberflaeche zu holen — 0.35.0'
+  },
+  {
+    /* Und er ruft wieder den vollen Export statt des einen Eintrags. */
+    nr: '1088', name: 'Der Knopf am Eintrag holt wieder den ganzen Bestand',
+    file: 'public/app.js',
+    search: "    window.location = `/api/items/${id}/export`;",
+    replacement: "    window.location = '/api/export';",
+    expected: 'Der einzelne Eintrag ist ueber die Oberflaeche zu holen — 0.35.0'
+  },
+  {
+    /* Ein Kommentarblock des Stilblatts waechst wieder ueber dreissig
+       Zeilen -- die Bauform, die vor dieser Runde 70,5 Prozent der Datei
+       ausgemacht hat. */
+    nr: '1089', name: 'Ein Block des Stilblatts wird wieder lang',
+    file: 'public/style.css',
+    search: "  /* Gold leiser: voll gesaettigt gehoert Gold den Sternen. */",
+    replacement: "  /* Gold leiser: voll gesaettigt gehoert Gold den Sternen.\n     Zeile 01 des wieder langen Blocks -- Erzaehlform statt Sachverhalt.\n     Zeile 02 des wieder langen Blocks -- Erzaehlform statt Sachverhalt.\n     Zeile 03 des wieder langen Blocks -- Erzaehlform statt Sachverhalt.\n     Zeile 04 des wieder langen Blocks -- Erzaehlform statt Sachverhalt.\n     Zeile 05 des wieder langen Blocks -- Erzaehlform statt Sachverhalt.\n     Zeile 06 des wieder langen Blocks -- Erzaehlform statt Sachverhalt.\n     Zeile 07 des wieder langen Blocks -- Erzaehlform statt Sachverhalt.\n     Zeile 08 des wieder langen Blocks -- Erzaehlform statt Sachverhalt.\n     Zeile 09 des wieder langen Blocks -- Erzaehlform statt Sachverhalt.\n     Zeile 10 des wieder langen Blocks -- Erzaehlform statt Sachverhalt.\n     Zeile 11 des wieder langen Blocks -- Erzaehlform statt Sachverhalt.\n     Zeile 12 des wieder langen Blocks -- Erzaehlform statt Sachverhalt.\n     Zeile 13 des wieder langen Blocks -- Erzaehlform statt Sachverhalt.\n     Zeile 14 des wieder langen Blocks -- Erzaehlform statt Sachverhalt.\n     Zeile 15 des wieder langen Blocks -- Erzaehlform statt Sachverhalt.\n     Zeile 16 des wieder langen Blocks -- Erzaehlform statt Sachverhalt.\n     Zeile 17 des wieder langen Blocks -- Erzaehlform statt Sachverhalt.\n     Zeile 18 des wieder langen Blocks -- Erzaehlform statt Sachverhalt.\n     Zeile 19 des wieder langen Blocks -- Erzaehlform statt Sachverhalt.\n     Zeile 20 des wieder langen Blocks -- Erzaehlform statt Sachverhalt.\n     Zeile 21 des wieder langen Blocks -- Erzaehlform statt Sachverhalt.\n     Zeile 22 des wieder langen Blocks -- Erzaehlform statt Sachverhalt.\n     Zeile 23 des wieder langen Blocks -- Erzaehlform statt Sachverhalt.\n     Zeile 24 des wieder langen Blocks -- Erzaehlform statt Sachverhalt.\n     Zeile 25 des wieder langen Blocks -- Erzaehlform statt Sachverhalt.\n     Zeile 26 des wieder langen Blocks -- Erzaehlform statt Sachverhalt.\n     Zeile 27 des wieder langen Blocks -- Erzaehlform statt Sachverhalt.\n     Zeile 28 des wieder langen Blocks -- Erzaehlform statt Sachverhalt.\n     Zeile 29 des wieder langen Blocks -- Erzaehlform statt Sachverhalt.\n     Zeile 30 des wieder langen Blocks -- Erzaehlform statt Sachverhalt.\n     Zeile 31 des wieder langen Blocks -- Erzaehlform statt Sachverhalt.\n     Zeile 32 des wieder langen Blocks -- Erzaehlform statt Sachverhalt.\n     Zeile 33 des wieder langen Blocks -- Erzaehlform statt Sachverhalt. */" ,
+    expected: 'Das Stilblatt traegt weniger Kommentar als vorher — 0.35.0'
+  },
+  {
+    /* Und eine Regelzeile faellt -- der Waechter zaehlt sie und merkt, dass
+       beim Kuerzen mehr als ein Satz mitgegangen ist. */
+    nr: '1090', name: 'Beim Kuerzen faellt eine Regelzeile mit',
+    file: 'public/style.css',
+    search: "  --gold-line: rgba(var(--gold-rgb), .52);",
+    replacement: "",
+    expected: 'Das Stilblatt traegt weniger Kommentar als vorher — 0.35.0'
+  },
+  {
+    /* Die elf teuersten Wartezeiten stehen wieder als feste Dauer da. */
+    nr: '1091', name: 'Die Sekundengrenze wird wieder als feste Dauer abgewartet',
+    file: 'test/roundtrip.js',
+    search: "  const zpBefore = zpFresh[0].set_at;\n  await nextSecond();",
+    replacement: "  const zpBefore = zpFresh[0].set_at;\n  await new Promise(r => setTimeout(r, 1100));",
+    expected: 'Die Wartezeiten des Pruefstands — 0.35.0'
+  },
+  {
+    /* Und das Werkzeug laeuft an der Grenze stillschweigend weiter, statt
+       zu werfen -- genau der Fehler, gegen den es gebaut ist. */
+    nr: '1092', name: 'Der Helfer laeuft an der Grenze stillschweigend weiter',
+    file: 'test/dom.js',
+    search: "      throw new Error(`until(): ${what} ist in ${limitMs} ms nicht eingetreten`);",
+    replacement: "      return;",
+    expected: 'Die Wartezeiten des Pruefstands — 0.35.0'
+  },
+  {
+    /* Der Browser schickt den Filter wieder unter dem deutschen Namen, den
+       der Server nicht liest. */
+    nr: '1093', name: 'Der Filter des Protokolls heisst im Browser wieder `gruppe`',
+    file: 'public/app.js',
+    search: "        (logGroup ? `?group=${encodeURIComponent(logGroup)}` : ''));",
+    replacement: "        (logGroup ? `?gruppe=${encodeURIComponent(logGroup)}` : ''));",
+    expected: 'Jeder Abfrageparameter des Browsers hat einen Leser — 0.35.0'
+  },
+  {
+    /* Und der Mock liest wieder den deutschen Namen -- die Abschrift, die
+       den Befund dreissig Runden lang verdeckt hat. */
+    nr: '1094', name: 'Der Mock des Pruefstands liest wieder den deutschen Namen',
+    file: 'test/dom.js',
+    search: "      const group = (String(url).match(/[?&]group=([^&]*)/) || [])[1];",
+    replacement: "      const group = (String(url).match(/[?&]gruppe=([^&]*)/) || [])[1];",
+    expected: 'Jeder Abfrageparameter des Browsers hat einen Leser — 0.35.0'
   },
 ];
 

@@ -1,6 +1,6 @@
 # Projektstand — Kriterion
 
-**Kompakte Übergabe · Revision 99 · Stand 16. September 2026 · gebaut: Version 0.34.4**
+**Kompakte Übergabe · Revision 100 · Stand 17. September 2026 · gebaut: Version 0.35.0**
 
 > **REVISION 92 IST DER BRUCH.** *Was dieses Blatt über MIGRATIONSBLÖCKE sagt,
 > gilt ab hier nur noch als Geschichte: mit 0.33.0 sind alle achtzehn gefallen,
@@ -12060,6 +12060,98 @@ hängengeblieben.* **Dazu zwei vorhandene Rückbauten nachgezogen (710 und 711).
 
 **Fingerprint `d6dbb696`** *(davor `38949534`)*. **Prüfstand 6865 von 6865,
 998 Rückbauten, vier gefahren, 0 stumm.**
+
+### 0.35.0 — „Code-Effizienz"
+
+**MINOR · 17. September 2026** *(Änderungsprotokoll 0.35.0).* Die Runde ändert
+am Verhalten nichts — bis auf einen Fehler, den sie behebt. Grundlage ist
+`Doku/Auftrag_0.35.0.md`: **101 Befunde von 17 Lesern, 75 nach der Widerlegung,
+5 davon Sicherheitsbefunde für 0.36.0.** Für die Runde blieben **70 Befunde an
+65 Stellen**; **40 sind gebaut, 24 nicht, eine zum Teil.**
+
+| | Stellen | gebaut | nicht | zum Teil |
+|---|---:|---:|---:|---:|
+| tot | 24 | **21** | 3 | — |
+| umständlich | 15 | **8** | 7 | — |
+| langsam | 21 | **7** | 14 | — |
+| besser | 5 | **4** | — | 1 |
+
+**DIE AUSLIEFERUNG GEHT GEZIPPT HINAUS.** `zlib` gehört zu Node, also kommt
+keine Abhängigkeit dazu. **Gezippt wird einmal beim Start** und nicht je
+Anfrage; die gezippten Fassungen stehen im Arbeitsspeicher und ausdrücklich
+**nicht als Datei in `public/`** — eine Datei dort ginge in den Fingerprint ein.
+Nur Text (`.css`, `.js`, `.json`, `.html`, `.svg`); wird eine Datei gezippt
+größer als roh, bleibt es beim Original. Die gezippte Fassung trägt eine
+**eigene Marke** (`ETag` mit `-gz`) und `Vary: Accept-Encoding`.
+
+**UND DIE KOMMENTARE DES STILBLATTS SIND GEKÜRZT.** Der Auftrag nennt die
+Kompression als Mittel und erklärt die Frage nach den Kommentaren damit für
+erledigt; **der Betreiber hat beides bestellt.**
+
+| | vorher | nachher |
+|---|---:|---:|
+| Ausgelieferter Text je vollem Aufruf | 1.001.488 B | **268.441 B** |
+| `public/style.css` | 300.472 B | **195.090 B** |
+| davon Kommentar | 211.862 B (70,5 %) | **106.321 B (54,5 %)** |
+| Regelzeilen im Stilblatt | 1.639 | **1.639** |
+
+**Keine Regelzeile ist gefallen, und eine Prüfung zählt sie nach.** Gefallen ist
+die Erzählform; geblieben sind die gemessenen Zahlen, die Rundennummern und die
+Begründungen. **Die JS-Norm von 30 Prozent je Datei ist nicht erreicht** — sie
+wäre nur zu erreichen, wenn die Kontrastwerte, Pixelrechnungen und Messtafeln
+aus den Kommentaren fielen. *Abschnitt 9 des Auftrags: keine Quote wird gegen
+die Regel erzwungen.* **Punkt 42 im Sammelblatt.**
+
+**EIN BEFUND WAR KEIN TOTER CODE, SONDERN EIN FEHLER.** Der Server liest den
+Filter des Sicherheitsprotokolls als `req.query.group`, der Browser schickte
+`?gruppe=`. **Seit 0.13.0 hat die Auswahl nie gegriffen** — ein Klick auf
+„Gescheiterte Anmeldungen" holte dieselben hundert jüngsten Zeilen wie ohne
+Filter, und das Handbuch sagte die ganze Zeit das Gegenteil zu. *Im Prüfstand
+fiel es nicht auf, weil der Mock in `test/dom.js` denselben deutschen Namen las
+wie der Browser; der serverseitige Filter stand in keiner einzigen Prüfung.*
+**Der Wächter, der ihn gefunden hätte, steht jetzt da:** jeder
+Abfrageparameter, den `public/app.js` baut, muss in `server.js` einen Leser
+haben — **die eine Ausnahme heißt `v`** und hängt an der Kacheladresse.
+
+**DER PRÜFSTAND WARTET AUF DIE BEDINGUNG STATT AUF EINE DAUER.** `until()` in
+`test/dom.js` fragt in Fünf-Millisekunden-Schritten und **wirft** an der
+Grenze; `nextSecond()` in `test/frame.js` wartet auf die nächste
+Sekundengrenze der Uhr statt fest 1.100 ms. **11 von 625 festen Wartezeiten
+sind umgestellt, 614 bleiben** *(59.635 → 47.520 ms)* — **Punkt 41 im
+Sammelblatt.**
+
+**WAS AN STRUKTUR ANDERS IST:** `importInto` ist in `importPrepare()` und
+`importTables()` geteilt *(373 Zeilen und Tiefe 14 → 228 und 9)*;
+`GET /api/backup` baut eine Antwort statt dreier *(Tiefe 18 → 9)*;
+`PUT /api/settings` liest aus der Tafel `PICK_SETTINGS`; `openModal()` trägt
+das Gerüst von vier Dialogen, `pillRow()` fünf Pillenreihen. **Acht Dialoge
+bleiben einzeln** — sie weichen im Verhalten ab, und ein Gerüst, das jede
+Abweichung als Schalter trägt, ist keins.
+
+**UND VIER STELLEN SIND BESSER:** ein gefangener Fehler ohne Schlüssel geht ins
+Protokoll *(fünfzehn `catch`-Blöcke schluckten ihn wortlos)*; eine ungeeignete
+Datei beim Hochladen lässt nichts zurück *(erst prüfen und ableiten, dann eine
+`db.transaction`)*; die Zahl der eigenen Suchplätze steht an einer Stelle statt
+an dreien; zwei deutsche Sätze an der Sternzeile kommen aus der Sprachdatei.
+**Dazu der Knopf, der den einzelnen Eintrag als Datei holt** —
+`GET /api/items/:id/export` gibt es seit 0.30.0 und hatte kein Bedienelement.
+
+**WAS NICHT GEBAUT IST, steht mit Grund im Änderungsprotokoll** *(Abschnitt 9)*
+**und als Punkt 39 bis 42 im Sammelblatt:** vier Schemabefunde, drei „tote"
+Stellen, die eine Schemaänderung oder eine neue Formatnummer brauchen, drei
+Stellen „langsam im Speicher" *(Export, Import, `intoTrash`)*, zwei
+Obergrenzen beim Hochladen, sieben Stellen, die eine größere Antwort des
+Servers verlangen, vier im Browser sichtbare, und `server.js:2897`, **wo eine
+bestehende Prüfung ausdrücklich festhält, dass die gebündelte Fassung langsamer
+wäre** *(gebaut, gemessen, zurückgenommen)*.
+
+**LAUFZEIT: 299,4 statt 299,8 Sekunden** — Median aus je fünf Läufen, **und das
+ist Rauschen.** *Die elf umgestellten Wartezeiten sparen gerechnet 6,3 s; die
+80 Serverstarts eines vollen Laufs zahlen gemessen 3,3 s für die Kompression
+beim Start — im Betrieb fällt dieser Posten einmal an, im Prüfstand 80-mal.*
+
+**Fingerprint `5297965e`** *(davor `1f76adac`)*. **Prüfstand 6969 von 6969,
+360 Gruppen, 1032 Rückbauten** *(32 neue, alle gefahren, 0 stumm)*.
 
 ### 0.34.4 — „Zwei Funde aus der Messung"
 

@@ -599,6 +599,28 @@ function addSkippedGroups(count) { groupsStill += count; skippedGroupCount++; }
 /* WIE VIELE MODULE DIESER LAUF AUSGELASSEN HAT. */
 const skippedModules = () => skippedGroupCount;
 
+/* ---- UEBER DIE NAECHSTE SEKUNDENGRENZE -- 0.35.0, BA 7 ----
+   SQLite schreibt `datetime('now')` auf die Sekunde genau. Wo eine Pruefung
+   belegt, dass ein Zeitpunkt MITGEZOGEN ist, muss die Uhr dazwischen eine
+   volle Sekunde weitergegangen sein.
+   Bis 0.34.4 stand dafuer an elf Stellen in test/roundtrip.js eine feste
+   Wartezeit von 1100 ms -- zusammen 12.100 ms, und davon war im Mittel die
+   Haelfte umsonst: wer 50 ms vor der Grenze wartet, braucht 50 ms und keine
+   1100. Hier wird die Grenze abgewartet und nicht eine Dauer.
+   DIE FUENFUNDZWANZIG MILLISEKUNDEN DANACH sind der Abstand zur Grenze: der
+   Server liest seine Uhr erst, wenn die Anfrage bei ihm ist. */
+const SECOND_MARGIN = 25;
+async function nextSecond(limitMs = 1500) {
+  const now = Math.floor(Date.now() / 1000);
+  const end = Date.now() + limitMs;
+  while (Math.floor(Date.now() / 1000) === now) {
+    if (Date.now() >= end)
+      throw new Error(`nextSecond(): keine Sekundengrenze in ${limitMs} ms`);
+    await new Promise(r => setTimeout(r, 5));
+  }
+  await new Promise(r => setTimeout(r, SECOND_MARGIN));
+}
+
 /* DER LAUF EINES EINZELNEN MODULS. */
 async function moduleRun(run, name) {
   let abort = '';
@@ -645,6 +667,7 @@ return {
   fs, os, path, crypto, spawn, spawnSync, execFileSync, Worker, Database,
   attachments, sharp, segment, CODE, TEXT, COMMENT, REGEX, vm,
   MAIL_TIMES, BASE_SOURCE, BASE_SCRIPT, RUN_KEYS, BRAKE_STEP,
+  nextSecond, SECOND_MARGIN,
   SCRYPT_SHIPPED, RUN_SCRYPT, readmeFlat, handbookFlat,
   __dirname, require,
   /* der Pruefrahmen */

@@ -252,15 +252,9 @@ const ICON_PIN = char('<path d="M9 4h6l-1 6 2.5 2v2h-9v-2l2.5-2z"/><path d="M12 
 const ICON_REPORT = char('<path d="M5 21V4.5"/><path d="M5 5.5h10.5l-1.6 3.2 1.6 3.3H5"/>');
 /* DAS ZEICHEN „Eintrag entfernen" -- 0.25.0 (F5). */
 const ICON_ERASE = char('<path d="M8.5 20H20"/><path d="M14.5 5.5l4 4-8 8H6.5l-2-2z"/>');
-/* DIE ZWEI FEINEN PFEILE DER KOPFZEILE -- 0.28.0, und ausdruecklich NICHT
-   dieselben Zeichen wie an der Bildreihe. */
-/* ---- DER HAKEN NACH UNTEN UND NACH OBEN -- 0.30.2, Befund 1 ---- KEINE NEUE
-   FORM: `ICON_STEP_BACK` und `ICON_STEP_FWD` gleich darunter sind derselbe
-   Haken, nur gedreht. */
+/* ---- DER HAKEN NACH UNTEN UND NACH OBEN -- 0.30.2, Befund 1 ---- */
 const ICON_MORE_DOWN = char('<path d="M6 9.5L12 15.5l6-6"/>', 1.7);
 const ICON_MORE_UP   = char('<path d="M6 14.5L12 8.5l6 6"/>', 1.7);
-const ICON_STEP_BACK = char('<path d="M14.5 5.5L8 12l6.5 6.5"/>', 1.5);
-const ICON_STEP_FWD  = char('<path d="M9.5 5.5L16 12l-6.5 6.5"/>', 1.5);
 /* DER RUECKWEG IST EIN PFEIL MIT SCHAFT UND KEIN WINKEL -- und das ist kein
    Geschmack, sondern ein Befund aus dem Augenschein vom 11. September 2026.
    ERST TRUGEN BEIDE DENSELBEN WINKEL: der Rueckweg zur Uebersicht und der
@@ -351,22 +345,44 @@ function autoGrow(el) {
   return fit;
 }
 
+/* ---- DAS GERUEST EINES DIALOGS -- 0.35.0, BA 4 ----
+   Zwoelf Dialoge bauten dasselbe einzeln auf: Knoten anlegen, Klasse setzen,
+   Aufbau hineinschreiben, an den Rumpf haengen, die drei Schliesswege
+   verdrahten (Knopf, Klick auf den Hintergrund, Escape) und den Tastenhorcher
+   wieder abmelden. Der letzte Schritt fehlte an dreien von ihnen -- der
+   Horcher blieb am Dokument stehen, nachdem der Dialog weg war.
+   `cancel` ist der Wert, den Hintergrundklick und Escape liefern. `keys`
+   bekommt jede Taste vor Escape vorgelegt; gibt es true zurueck, ist sie
+   verbraucht. Zurueck kommen der Knoten und das Schliessen. */
+function openModal(html, atClose, cancel, keys) {
+  const bd = document.createElement('div');
+  bd.className = 'backdrop';
+  bd.innerHTML = html;
+  document.body.appendChild(bd);
+  const done = (v) => {
+    document.removeEventListener('keydown', onKey, true);
+    bd.remove();
+    atClose(v);
+  };
+  const onKey = (e) => {
+    if (keys && keys(e, done)) return;
+    if (e.key === 'Escape') done(cancel);
+  };
+  document.addEventListener('keydown', onKey, true);
+  bd.onclick = (e) => { if (e.target === bd) done(cancel); };
+  return { bd, done };
+}
+
 // `kind`: die Farbe des Ja-Knopfs -- 'danger' fuer alles, was wegnimmt, 'accent'
 // fuer eine Handlung, die etwas anlegt (Freischalten, Link erzeugen). 0.22.0.
 function confirmBox(title, text, confirmLabel = t('dialog.delete'), kind = 'danger') {
   return new Promise(resolve => {
-    const bd = document.createElement('div');
-    bd.className = 'backdrop';
-    bd.innerHTML = `<div class="modal"><h2>${esc(title)}</h2><p>${esc(text)}</p>
+    const { bd, done } = openModal(`<div class="modal"><h2>${esc(title)}</h2><p>${esc(text)}</p>
       <div class="modal-acts"><button class="btn btn-ghost" data-no>${tH('dialog.cancel')}</button>
-      <button class="btn btn-${kind === 'accent' ? 'accent' : 'danger'}" data-yes>${esc(confirmLabel)}</button></div></div>`;
-    document.body.appendChild(bd);
-    const done = v => { bd.remove(); resolve(v); };
+      <button class="btn btn-${kind === 'accent' ? 'accent' : 'danger'}" data-yes>${esc(confirmLabel)}</button></div></div>`,
+      resolve, false);
     bd.querySelector('[data-no]').onclick = () => done(false);
     bd.querySelector('[data-yes]').onclick = () => done(true);
-    bd.onclick = e => { if (e.target === bd) done(false); };
-    const onKey = e => { if (e.key === 'Escape') { document.removeEventListener('keydown', onKey, true); done(false); } };
-    document.addEventListener('keydown', onKey, true);
     bd.querySelector('[data-yes]').focus();
   });
 }
@@ -376,25 +392,20 @@ function confirmBox(title, text, confirmLabel = t('dialog.delete'), kind = 'dang
    Browser wie diese Instanz aus und laesst sich nicht beschriften. */
 function nameBox(title, text, fallback = '', okLabel = t('dialog.save'), maxLength = 40) {
   return new Promise(resolve => {
-    const bd = document.createElement('div');
-    bd.className = 'backdrop';
-    bd.innerHTML = `<div class="modal"><h2>${esc(title)}</h2><p class="hint">${esc(text)}</p>
+    const { bd, done } = openModal(`<div class="modal"><h2>${esc(title)}</h2><p class="hint">${esc(text)}</p>
       <div class="field"><input class="input" id="nb-name" maxlength="${maxLength}"
         value="${esc(fallback)}" placeholder="${esc(t('dialog.viewName'))}"></div>
       <div class="modal-acts"><button class="btn btn-ghost" data-no>${tH('dialog.cancel')}</button>
-      <button class="btn btn-accent" data-yes>${esc(okLabel)}</button></div></div>`;
-    document.body.appendChild(bd);
+      <button class="btn btn-accent" data-yes>${esc(okLabel)}</button></div></div>`,
+      resolve, null,
+      (e, shut) => {
+        if (e.key !== 'Enter' || document.activeElement !== field) return false;
+        const w = field.value.trim(); shut(w || null); return true;
+      });
     const field = bd.querySelector('#nb-name');
-    const done = v => { document.removeEventListener('keydown', onKey, true); bd.remove(); resolve(v); };
     const take = () => { const w = field.value.trim(); done(w || null); };
     bd.querySelector('[data-no]').onclick = () => done(null);
     bd.querySelector('[data-yes]').onclick = take;
-    bd.onclick = e => { if (e.target === bd) done(null); };
-    const onKey = e => {
-      if (e.key === 'Escape') done(null);
-      else if (e.key === 'Enter' && document.activeElement === field) take();
-    };
-    document.addEventListener('keydown', onKey, true);
     field.focus(); field.select();
   });
 }
@@ -408,9 +419,7 @@ const confirmReason = () => t('dialog.appWideHint') +
    Faktor eingeschaltet haben. */
 function passwordDialog(title, event, reason, withCode) {
   return new Promise(resolve => {
-    const bd = document.createElement('div');
-    bd.className = 'backdrop';
-    bd.innerHTML = `<div class="modal"><h2>${esc(title)}</h2>
+    const { bd, done } = openModal(`<div class="modal"><h2>${esc(title)}</h2>
       <p>${esc(event)}</p>
       ${reason ? `<p class="desc" style="margin:0">${esc(reason)}</p>` : ''}
       <div class="field" style="margin:0"><label>${tH('dialog.yourPassword')}</label>
@@ -420,20 +429,16 @@ function passwordDialog(title, event, reason, withCode) {
         <input class="input" id="confirm-code" inputmode="text" autocomplete="one-time-code"
           autocapitalize="characters" spellcheck="false" maxlength="16"></div>` : ''}
       <div class="modal-acts"><button class="btn btn-ghost" data-no>${tH('dialog.cancel')}</button>
-      <button class="btn btn-accent" data-yes>${tH('dialog.confirm')}</button></div></div>`;
-    document.body.appendChild(bd);
+      <button class="btn btn-accent" data-yes>${tH('dialog.confirm')}</button></div></div>`,
+      resolve, null);
     const field = bd.querySelector('#confirm-pass');
     const codeField = bd.querySelector('#confirm-code');
     const value = () => ({ password: field.value, ...(codeField ? { code: codeField.value } : {}) });
-    const done = v => { bd.remove(); resolve(v); };
     bd.querySelector('[data-no]').onclick = () => done(null);
     bd.querySelector('[data-yes]').onclick = () => done(value());
-    bd.onclick = e => { if (e.target === bd) done(null); };
     for (const el of [field, codeField]) {
       if (el) el.addEventListener('keydown', e => { if (e.key === 'Enter') done(value()); });
     }
-    const onKey = e => { if (e.key === 'Escape') { document.removeEventListener('keydown', onKey, true); done(null); } };
-    document.addEventListener('keydown', onKey, true);
     field.focus();
   });
 }
@@ -473,25 +478,19 @@ async function secondConfirm(purpose, target, title, event) {
    prompt(): dort stand das fremde Passwort im Klartext auf dem Bildschirm. */
 function newPasswordDialog(title, sentence) {
   return new Promise(resolve => {
-    const bd = document.createElement('div');
-    bd.className = 'backdrop';
-    bd.innerHTML = `<div class="modal"><h2>${esc(title)}</h2><p>${esc(sentence)}</p>
+    const { bd, done } = openModal(`<div class="modal"><h2>${esc(title)}</h2><p>${esc(sentence)}</p>
       <div class="field" style="margin:0"><label for="np-pass">${tH('dialog.newPassword')}</label>
         <input class="input" id="np-pass" type="password" autocomplete="new-password"></div>
       <div class="modal-acts"><button class="btn btn-ghost" data-no>${tH('dialog.cancel')}</button>
-      <button class="btn btn-accent" data-yes>${tH('dialog.setPassword')}</button></div></div>`;
-    document.body.appendChild(bd);
+      <button class="btn btn-accent" data-yes>${tH('dialog.setPassword')}</button></div></div>`,
+      resolve, null,
+      (e, shut) => {
+        if (e.key !== 'Enter' || document.activeElement !== field) return false;
+        shut(field.value || null); return true;
+      });
     const field = bd.querySelector('#np-pass');
-    const done = v => { document.removeEventListener('keydown', onKey, true); bd.remove(); resolve(v); };
-    const take = () => done(field.value || null);
     bd.querySelector('[data-no]').onclick = () => done(null);
-    bd.querySelector('[data-yes]').onclick = take;
-    bd.onclick = e => { if (e.target === bd) done(null); };
-    const onKey = e => {
-      if (e.key === 'Escape') done(null);
-      else if (e.key === 'Enter' && document.activeElement === field) take();
-    };
-    document.addEventListener('keydown', onKey, true);
+    bd.querySelector('[data-yes]').onclick = () => done(field.value || null);
     field.focus();
   });
 }
@@ -1331,9 +1330,6 @@ function searchList() {
     .sort((a, b) => (b.isDefault ? 1 : 0) - (a.isDefault ? 1 : 0))
     .slice(0, SEARCH_NAMES);
 }
-// Der Standard ist das Ziel des Zeilenklicks. Faellt er durch die Schranke,
-// gibt es keinen -- der Klick meldet das, statt anderswo zu suchen.
-const searchDefault = () => searchList()[0] || null;
 const searchAddress = (template, text) => template.replace('%s', encodeURIComponent(text));
 
 /* ================= Links im Kommentartext ================= */
@@ -1702,9 +1698,9 @@ const saveFilters = () => {
 };
 
 async function loadAll() {
-  const [items, categories, tags, criteria, titles] = await Promise.all([
+  const [items, categories, tags, titles] = await Promise.all([
     api('GET', '/api/items'), api('GET', '/api/product-categories'), api('GET', '/api/tags'),
-    api('GET', '/api/criteria'), api('GET', '/api/titles')
+    api('GET', '/api/titles')
   ]);
   /* DER UNGEFILTERTE BESTAND KOMMT HIER UND NUR HIER. `all` ist die Quelle,
      `items` das, was gezeigt wird -- beim Betreten der Uebersicht dasselbe. */
@@ -1712,7 +1708,7 @@ async function loadAll() {
      eine Kopie von tausend Objekten waere Arbeit fuer nichts. */
   state.all = items; state.items = items; state.inventory = items.length;
   state.searchError = false;
-  state.categories = categories; state.tags = tags; state.criteria = criteria;
+  state.categories = categories; state.tags = tags;
   TITLE_APP = titles.appTitle; TITLE_PUBLIC = titles.publicTitle;
   document.title = TITLE_APP;
   const settings = SETTINGS;
@@ -1960,17 +1956,11 @@ const termOutAddress = (askKey) => {
 /* JEDE ALTE ADRESSE WIRD UEBERSETZT UND NICHT FALLEN GELASSEN -- 0.24.1 (F4). */
 const OLD_ADDRESSES = { '#/offen': '#/open' };
 const OLD_ADDRESS_ROOTS = { '#/einladung/': '#/invite/', '#/bestaetigung/': '#/confirm/' };
-const OLD_SECTIONS = { personal: 'personal', inventory: 'inventory',
-                       users: 'users', database: 'database' };
 function translateAddress() {
   const h = location.hash || '';
   let fresh = OLD_ADDRESSES[h] || '';
   if (!fresh) for (const [old, now] of Object.entries(OLD_ADDRESS_ROOTS))
     if (h.startsWith(old)) { fresh = now + h.slice(old.length); break; }
-  if (!fresh) {
-    const m = h.match(/^#\/system\/([a-z]+)$/);
-    if (m && OLD_SECTIONS[m[1]]) fresh = `#/system/${OLD_SECTIONS[m[1]]}`;
-  }
   if (!fresh || fresh === h) return false;
   history.replaceState(null, '', fresh);
   return true;
@@ -2995,10 +2985,19 @@ function card(it) {
   if (term) [...a.querySelectorAll('.card-tags .chip')]
     .forEach((chip, i) => highlightInNode(chip, it.tags[i].name, term));
 
-  a.querySelector('.pick-box').addEventListener('click', e => {
+  const pickBox = a.querySelector('.pick-box');
+  pickBox.addEventListener('click', e => {
     e.preventDefault(); e.stopPropagation();
-    state.compare.has(it.id) ? state.compare.delete(it.id) : state.compare.add(it.id);
-    drawBody();
+    const was = state.compare.has(it.id);
+    was ? state.compare.delete(it.id) : state.compare.add(it.id);
+    /* NUR DIE KACHEL UND DIE LEISTE -- 0.35.0, BA 5. drawBody() zeichnete die
+       ganze Liste neu, um an EINER Kachel eine Klasse umzuschalten. Von
+       state.compare haengen genau drei Dinge ab: die Klasse am Verweis, die
+       Klasse samt Titel am Haken und die Vergleichsleiste. */
+    a.classList.toggle('picked', !was);
+    pickBox.classList.toggle('on', !was);
+    pickBox.title = was ? t('list.selectCompare') : t('list.removeCompare');
+    drawCompareBar();
   });
   return a;
 }
@@ -3784,7 +3783,7 @@ async function renderDetail(id, termAddress) {
           </div>
         </div>
 
-        <div class="blocks" id="blocks-side">
+        <div id="blocks-side">
         <div class="block" data-block="kategorie">
           <div class="block-head"><span class="label">${tH('list.category')}</span></div>
           <div class="row-in">
@@ -3832,7 +3831,7 @@ async function renderDetail(id, termAddress) {
       </div>
     </div>
 
-    <div class="blocks" id="blocks-bottom">
+    <div id="blocks-bottom">
 
     <div class="block block-wide" data-block="beschreibung">
       <div class="block-head"><span class="label">${tH('list.description')}</span></div>
@@ -3881,6 +3880,15 @@ async function renderDetail(id, termAddress) {
       </div>
     </div>
     </div>
+
+    ${/* DER EINZELNE EINTRAG ALS DATEI -- 0.35.0, BA 8. GET
+         /api/items/:id/export gibt es seit 0.30.0 und hatte bis dahin kein
+         Element in der Oberflaeche: erreichbar nur, wer die Adresse von Hand
+         eintippt. Die Route traegt `ownerOnly`, deshalb sieht den Knopf auch
+         nur der Betreiber. */''}
+    ${OWNER
+      ? `<div class="entry-out"><button class="btn btn-sm" id="exp1">${tH('entry.exportOne')}</button></div>`
+      : ''}
 
     ${/* NUR FUER DEN, DER LOESCHEN DARF -- 0.22.0 (E10). */''}
     ${item.mine === true || ADMIN
@@ -4985,7 +4993,7 @@ async function renderDetail(id, termAddress) {
             const x = document.createElement('button');
             x.className = 'xdel';
             x.innerHTML = ICON_X;
-            x.title = `${V.ratingOne} entfernen`;
+            x.title = t('entry.removeRating');
             x.onclick = async () => {
               if (!await confirmBox(t('entry.removeRatingAsk'),
                 t('entry.ratingRemoveHint', { author: authorName(st.author), name: r.name }),
@@ -4993,7 +5001,7 @@ async function renderDetail(id, termAddress) {
               try {
                 item = await api('DELETE', `/api/ratings/${st.id}`);
                 list = await api('GET', `/api/items/${id}/votes`);
-                drawRatings(); drawMatch(); toast(`${V.ratingOne} entfernt`);
+                drawRatings(); drawMatch(); toast(t('entry.ratingRemoved'));
               } catch (e) { toast(e.message, true); }
             };
             s2.appendChild(x);
@@ -5532,7 +5540,11 @@ async function renderDetail(id, termAddress) {
           field.className = 'input input-sm cmt-due-in';
           field.value = c.dueDate || '';
           field.onchange = () => flip('dueDate', field.value || null);
-          field.onblur = () => { if (field.isConnected) drawComments(); };
+          /* ZURUECK ZUM KNOPF UND NICHT DIE GANZE LISTE NEU -- 0.35.0, BA 5.
+             Verliert das Feld den Fokus, ohne dass jemand ein Datum gewaehlt
+             hat, aendert sich kein Datenstand. Der Weg ueber drawComments()
+             bleibt fuer onchange darueber noetig. */
+          field.onblur = () => { if (field.isConnected) field.replaceWith(dueButton); };
           dueButton.replaceWith(field);
           field.focus();
           try { field.showPicker(); } catch { /* nicht jeder Browser kann das */ }
@@ -5706,6 +5718,13 @@ async function renderDetail(id, termAddress) {
     } catch (e) { toast(e.message, true); }
   };
 
+  /* DERSELBE WEG WIE BEIM VOLLEN EXPORT (drawExport, weiter unten): die
+     Antwort traegt Content-Disposition, der Browser legt die Datei ab. Ueber
+     api() ginge es nicht -- das liest den Rumpf als JSON in den Speicher. */
+  atElement('exp1', b => b.onclick = () => {
+    window.location = `/api/items/${id}/export`;
+  });
+
   /* Die Zahlen kommen vom Server, nicht aus dem geladenen Eintrag: nur dort
      lassen sich eigene von fremden Beiträgen trennen, und zwei Quellen für
      dieselbe Aussage wären zwei Wahrheiten. */
@@ -5842,6 +5861,38 @@ function trimMore(root) {
 /* „GESPEICHERT" -- ein Muster fuer alle Felder der Einstellungen
    (Woerterbuch): der Toast, und die Karte, in der gespeichert wurde, zeigt es
    400 ms lang am Rand (Stilblatt 1.2). */
+/* ---- EINE PILLENREIHE -- 0.35.0, BA 4 ----
+   Fuenf Funktionen zeichneten dieselbe Reihe: Kasten holen, leeren, ueber die
+   Stufen laufen, je Stufe eine Pille bauen, beim Klick den Wert setzen,
+   sofort anwenden, neu zeichnen, schicken -- und bei einem Fehlschlag auf den
+   alten Wert zurueck.
+   `get` und `set` lesen und schreiben den Wert, `label` beschriftet die
+   Pille, `apply` macht ihn sofort sichtbar (nicht jede Reihe hat das), `key`
+   ist der Schluessel in PUT /api/settings, `mark` sagt, ob das Aufleuchten an
+   der geklickten Pille haengt oder am fokussierten Element. */
+function pillRow({ boxId, levels, get, set, label, apply, key, mark }) {
+  const box = document.getElementById(boxId);
+  if (!box) return;
+  const draw = () => {
+    box.innerHTML = '';
+    levels.forEach(level => {
+      const b = document.createElement('button');
+      b.className = 'pill' + (get() === level ? ' on' : '');
+      b.textContent = label(level);
+      b.onclick = async () => {
+        const before = get();
+        set(level);
+        if (apply) apply();          // sofort sichtbar, auch wenn das Speichern scheitert
+        draw();
+        try { await api('PUT', '/api/settings', { [key]: level }); saved(mark ? b : undefined); }
+        catch (e) { set(before); if (apply) apply(); draw(); toast(e.message, true); }
+      };
+      box.appendChild(b);
+    });
+  };
+  draw();
+}
+
 function saved(el = document.activeElement) {
   toast(t('list.saved'));
   const card = el && el.closest ? el.closest('.sys-card') : null;
@@ -5968,7 +6019,7 @@ async function renderSystem({ keepScroll = false } = {}) {
       aria-expanded="false" aria-controls="sys-tabs">${tH('card.sections')}<span class="fcount">${esc(open.name())}</span></button>
     <nav class="sys-tabs" id="sys-tabs" aria-label="${esc(t('card.sectionsHint'))}">
       ${visibleOnes.map(a => `<a class="sys-tab${a === open ? ' on' : ''}"
-        href="${sysUrl(a.key)}" data-section="${esc(a.key)}"${
+        href="${sysUrl(a.key)}"${
         a === open ? ' aria-current="page"' : ''}>${esc(a.name())}</a>`).join('')}
     </nav>
     <div class="sys-grid">
@@ -6114,7 +6165,7 @@ function setUpLanguagesOut() {
 // ausserhalb des Vorrats ist ein Zustand, den es nicht geben darf.
       st.onclick = () => sendLanguages({ languageDefault: a.code }, t('card.languageDefaultSaved'));
       const nm = document.createElement('span');
-      nm.className = 'ename';
+      nm.className = 'engine-name';
       nm.textContent = a.name;
       row.append(hk, st, nm);
       box.appendChild(row);
@@ -6308,7 +6359,7 @@ function setUpUserOut(fetched) {
     const box = document.getElementById('two-factor-block');
     if (!box || !Array.isArray(codes)) return;
     const boxId = document.createElement('div');
-    boxId.className = 'warn-box two-factor-codebox';
+    boxId.className = 'warn-box';
     boxId.id = 'two-factor-codebox';
     boxId.innerHTML = `<strong>${tH('card.yourRecoveryCodes', { length: codes.length })}</strong>
       ${tMark('card.recoveryCodesHint', 'card.once')}
@@ -6489,65 +6540,18 @@ function setUpAppearanceOut() {
 
   /* --- Farbschema — 0.23.0, dieselbe Bauform wie die Schriftgröße darunter
      --- DREI PILLEN STATT FÜNF, und die mittlere ist die Vorgabe. */
-  function drawTheme() {
-    const box = document.getElementById('theme');
-    if (!box) return;
-    box.innerHTML = '';
-    THEME_LEVELS.forEach(level => {
-      const b = document.createElement('button');
-      b.className = 'pill' + (THEME === level ? ' on' : '');
-      b.textContent = t(THEME_NAMES[level]);
-      b.onclick = async () => {
-        const before = THEME;
-        THEME = level;
-        applyTheme();
-        drawTheme();
-        try { await api('PUT', '/api/settings', { theme: level }); saved(b); }
-        catch (e) { THEME = before; applyTheme(); drawTheme(); toast(e.message, true); }
-      };
-      box.appendChild(b);
-    });
-  }
-  /* --- Schriftgröße --- */
-  function drawFont() {
-    const box = document.getElementById('fsize');
-    box.innerHTML = '';
-    FONT_LEVELS.forEach(level => {
-      const b = document.createElement('button');
-      b.className = 'pill' + (FONT === level ? ' on' : '');
-      b.textContent = level + ' %';
-      b.onclick = async () => {
-        const before = FONT;
-        FONT = level;
-        applyFont();          // sofort sichtbar, auch wenn das Speichern scheitert
-        drawFont();
-        try { await api('PUT', '/api/settings', { font: level }); saved(b); }
-        catch (e) { FONT = before; applyFont(); drawFont(); toast(e.message, true); }
-      };
-      box.appendChild(b);
-    });
-  }
-  /* DER BILDSTREIFEN, dieselbe Bauform wie die Schriftgroesse darueber: fuenf
-     Pillen, sofort sichtbar, bei einem Fehlschlag zurueck auf den alten Wert. */
-  function drawStrip() {
-    const box = document.getElementById('tiles');
-    if (!box) return;
-    box.innerHTML = '';
-    STRIP_LEVELS.forEach(level => {
-      const b = document.createElement('button');
-      b.className = 'pill' + (STRIP === level ? ' on' : '');
-      b.textContent = level + t('card.px');
-      b.onclick = async () => {
-        const before = STRIP;
-        STRIP = level;
-        applyTiles();
-        drawStrip();
-        try { await api('PUT', '/api/settings', { strip: level }); saved(b); }
-        catch (e) { STRIP = before; applyTiles(); drawStrip(); toast(e.message, true); }
-      };
-      box.appendChild(b);
-    });
-  }
+  /* DREI REIHEN NACH DEMSELBEN MUSTER -- Farbschema, Schriftgroesse und der
+     Bildstreifen: sofort sichtbar, bei einem Fehlschlag zurueck auf den alten
+     Wert. */
+  function drawTheme() { pillRow({ boxId: 'theme', levels: THEME_LEVELS,
+    get: () => THEME, set: v => { THEME = v; }, label: v => t(THEME_NAMES[v]),
+    apply: applyTheme, key: 'theme', mark: true }); }
+  function drawFont() { pillRow({ boxId: 'fsize', levels: FONT_LEVELS,
+    get: () => FONT, set: v => { FONT = v; }, label: v => v + ' %',
+    apply: applyFont, key: 'font', mark: true }); }
+  function drawStrip() { pillRow({ boxId: 'tiles', levels: STRIP_LEVELS,
+    get: () => STRIP, set: v => { STRIP = v; }, label: v => v + t('card.px'),
+    apply: applyTiles, key: 'strip', mark: true }); }
 
 
 /* ---- Karte „Kategorien" — Abschnitt „Bestand" ---- */
@@ -7277,42 +7281,14 @@ function setUpLinksOut() {
 }
 
   /* --- Sichtbare Linkzeilen --- */
-  function drawLinkRows() {
-    const box = document.getElementById('lrows');
-    box.innerHTML = '';
-    LINK_ROW_LEVELS.forEach(n => {
-      const b2 = document.createElement('button');
-      b2.className = 'pill' + (LINK_ROWS === n ? ' on' : '');
-      b2.textContent = n + t('card.rows');
-      b2.onclick = async () => {
-        const before = LINK_ROWS;
-        LINK_ROWS = n;
-        drawLinkRows();
-        try { await api('PUT', '/api/settings', { linkRows: n }); saved(); }
-        catch (e) { LINK_ROWS = before; drawLinkRows(); toast(e.message, true); }
-      };
-      box.appendChild(b2);
-    });
-  }
-
-  function drawSearchNames() {
-    const box = document.getElementById('snames');
-    if (!box) return;
-    box.innerHTML = '';
-    SEARCH_NAME_LEVELS.forEach(n => {
-      const b3 = document.createElement('button');
-      b3.className = 'pill' + (SEARCH_NAMES === n ? ' on' : '');
-      b3.textContent = t('card.names', { n: n });
-      b3.onclick = async () => {
-        const before = SEARCH_NAMES;
-        SEARCH_NAMES = n;
-        drawSearchNames();
-        try { await api('PUT', '/api/settings', { searchNames: n }); saved(); }
-        catch (e) { SEARCH_NAMES = before; drawSearchNames(); toast(e.message, true); }
-      };
-      box.appendChild(b3);
-    });
-  }
+  /* UND ZWEI OHNE SOFORTIGE WIRKUNG: die Zahl der Zeilen wirkt beim naechsten
+     Zeichnen der Linkliste, die Zahl der Namen beim naechsten Aufbau. */
+  function drawLinkRows() { pillRow({ boxId: 'lrows', levels: LINK_ROW_LEVELS,
+    get: () => LINK_ROWS, set: v => { LINK_ROWS = v; }, label: v => v + t('card.rows'),
+    key: 'linkRows' }); }
+  function drawSearchNames() { pillRow({ boxId: 'snames', levels: SEARCH_NAME_LEVELS,
+    get: () => SEARCH_NAMES, set: v => { SEARCH_NAMES = v; }, label: v => t('card.names', { n: v }),
+    key: 'searchNames' }); }
 
 
 /* ---- Karte „Suchanbieter" — Abschnitt „Bestand" ---- */
@@ -7416,12 +7392,17 @@ function setUpSearchProviderOut() {
     });
   }
 
-  // Immer alle drei Plaetze auf einmal: der Server bekommt den ganzen Stand
-// und raeumt danach den Vorrat auf, falls ein Platz geleert wurde.
+  /* Immer alle Plaetze auf einmal: der Server bekommt den ganzen Stand und
+     raeumt danach den Vorrat auf, falls ein Platz geleert wurde.
+     DIE ZAHL DER PLAETZE KOMMT VOM SERVER -- 0.35.0, BA 8. Bis dahin stand
+     hier das feste Array [1, 2, 3], und die Zahl 3 damit ein zweites Mal
+     neben OWN_SLOTS in server.js:1525. Die Antwort von GET /api/settings
+     traegt je Platz einen Eintrag mit `own: true`; gezaehlt wird, was
+     drawOwn() eine Zeile darueber auch gezeichnet hat. */
   function sendOwn() {
-    const list = [1, 2, 3].map(i => ({
-      name: document.getElementById(`se-name-${i}`)?.value || '',
-      template: document.getElementById(`se-vorlage-${i}`)?.value || ''
+    const list = SEARCH_PROVIDERS.filter(a => a.own).map((a, i) => ({
+      name: document.getElementById(`se-name-${i + 1}`)?.value || '',
+      template: document.getElementById(`se-vorlage-${i + 1}`)?.value || ''
     }));
     return sendProvider({ searchOwn: list }, t('list.saved'));
   }
@@ -7654,7 +7635,7 @@ function setUpUsersOut() {
     // Der Server gibt den fertigen Link nur heraus, wenn die Einstellung steht.
 // Sonst baut ihn der Browser wie bisher.
     const address = d.link || buildInviteUrl(d.token);
-    box.innerHTML = `<div class="warn-box user-linkbox" style="margin:12px 0 0">
+    box.innerHTML = `<div class="warn-box" style="margin:12px 0 0">
       <strong>${tMarks('card.linkForUser', {
         word: d.purpose === 'reset' ? tH('card.resetLink') : tH('card.inviteLink') },
         { name: d.username || '' })}</strong>
@@ -8147,13 +8128,19 @@ function setUpLogOut(fetched) {
   }
 
   /* NACHGELADEN WIRD BEIM KLICK, und zwar NUR diese Karte -- dieselbe Bauform
-     wie sessionsNew() und trashNew(). */
+     wie sessionsNew() und trashNew().
+     DER NAME DES PARAMETERS HEISST SEIT 0.35.0 `group` UND NICHT `gruppe`.
+     Der Server liest ihn in server.js unter diesem Namen, und zwar seit
+     0.13.0; der Browser schickte `gruppe`. Damit war der Wert bei jedem
+     echten Aufruf undefiniert, und die Karte zeigte statt der gewaehlten
+     Ansicht die hundert juengsten Zeilen. Im Pruefstand fiel es nicht auf,
+     weil der Mock in test/dom.js denselben deutschen Namen las. */
   async function logNew(group) {
     logGroup = group || '';
     let d;
     try {
       d = await api('GET', '/api/security-log' +
-        (logGroup ? `?gruppe=${encodeURIComponent(logGroup)}` : ''));
+        (logGroup ? `?group=${encodeURIComponent(logGroup)}` : ''));
     } catch (e) {
       const box = document.getElementById('log-list');
       if (box) box.innerHTML = `<p class="hint">${esc(e.message)}</p>`;

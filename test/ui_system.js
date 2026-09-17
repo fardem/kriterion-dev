@@ -1896,7 +1896,7 @@ async function run() {
     spFailed().dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
     await new Promise(r => setTimeout(r, 60));
     check('Ein Klick auf eine Ansicht fragt den Server mit der Auswahl',
-      d.sent.some(x => String(x.url) === '/api/security-log?gruppe=failed'),
+      d.sent.some(x => String(x.url) === '/api/security-log?group=failed'),
       JSON.stringify(d.sent.filter(x => String(x.url).startsWith('/api/security-log'))
         .map(x => x.url)));
     check('Und danach steht nur noch die gescheiterte Anmeldung da',

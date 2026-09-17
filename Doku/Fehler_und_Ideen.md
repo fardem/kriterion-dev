@@ -1990,3 +1990,140 @@ ist das noch nicht** — *0.32.1 hat die Kopfzeile gemessen, nicht die Kachel.*
 **Was zu bauen wäre** — *erst messen, dann entscheiden.*
 
 **Was es anfasst** — `public/app.js` *(eine Funktion)*, `public/style.css`.
+
+---
+
+## 39. Vier Befunde verlangen eine Schemaänderung
+
+**Art: Idee** *(Datenbank)* **· Herkunft: 0.35.0, in der Messung vom
+16. September 2026 · Einschätzung: mittel**
+
+**DIE RUNDE 0.35.0 HAT SIE AUSDRÜCKLICH AUSGESCHLOSSEN** *(Abschnitt 9 des
+Auftrags: keine Spalte fällt, keine Tabelle fällt, kein Index kommt dazu)*,
+**und sie hat ihnen dafür eine eigene Nummer zugesagt. Das ist diese.**
+
+**1. Die Spaltenfolge in `photos`** *(`db.js`:145)*. Sie lautet `id`,
+`item_id`, `mime_type`, `data`, `thumb`, `medium`, `kind`, … — die Kachel
+steht damit **hinter** dem Original und lässt sich nicht lesen, ohne die
+Overflow-Kette von `data` zu durchlaufen und zu entschlüsseln. Bei einem Video
+sind das bis zu 20 MB für eine Kachel von rund 200 kB. *Der Weg wäre eine
+Nebentabelle `photo_derivatives(photo_id PRIMARY KEY, thumb, medium)`; die
+Bauform steht mit `trash` und `trash_bytes` schon im Repository.*
+
+**2. Kein Index auf `ratings.criterion_id`** *(`db.js`:338)*. Der einzige Index
+auf `ratings` ist das `UNIQUE` über `(item_id, criterion_id, user_id)`;
+`criterion_id` steht an zweiter Stelle und ist von links nicht greifbar.
+`qCriteria` zählt je Kriterium über alle Bewertungen. **Gemessen: 14,2 ms statt
+73,6 ms** mit `CREATE INDEX idx_ratings_criterion ON ratings(criterion_id,
+value, item_id)`.
+
+**3. Kein deckender Index für `qAttachments`** *(`server.js`:2300)*. Die
+Abfrage liest `sort_order`, `created_at` und `user_id`; alle drei stehen in
+`attachments` hinter `data`, und `data` ist bis 50 MB groß.
+`idx_attachments_item` trägt nur `item_id`.
+
+**4. `length(thumb)` steht nicht in `idx_photos_tile`** *(`server.js`:2429)*.
+`PHOTO_VERSION` hängt den Ausdruck an `PHOTO_COLUMNS` an; SQLite fällt deshalb
+auf den Zeilenzugriff zurück.
+
+**Was zu bauen wäre** — *eine Runde, die das Schema anfassen darf, mit einem
+Weg für Bestandsdatenbanken je Punkt.* **Erst messen, dann entscheiden:** die
+Zahlen oben sind an gestellten Prüflagen gemessen und nicht am laufenden
+Betrieb.
+
+**Was es anfasst** — `db.js`, `server.js`.
+
+---
+
+## 40. Export, Import und Papierkorb führen jedes Byte durch den Arbeitsspeicher
+
+**Art: Idee** *(Betrieb)* **· Herkunft: 0.35.0, in der Messung vom
+16. September 2026 · Einschätzung: groß**
+
+**DREI STELLEN, UND ALLE DREI SIND IN 0.35.0 NICHT GEBAUT WORDEN** — *jede von
+ihnen ändert entweder die Antwort oder verlangt einen Umbau von
+`entryAsBundle`, und Zusage 1 der Runde lautet: kein Verhalten ändert sich.*
+
+**1. Der Export steht dreimal gleichzeitig im Arbeitsspeicher**
+*(`server.js`:4251)*. `entryAsBundle()` erzeugt je Blob einen Base64-String,
+`exportEnvelope()` gibt ein Objekt mit allen diesen Strings zurück, `res.json()`
+serialisiert das Ganze noch einmal. *Der Weg wäre, den Umschlag stückweise zu
+schreiben:* `res.write()` *für den Kopf, je Eintrag ein eigenes*
+`JSON.stringify()`, *dann der Schluss.* **Die Antwort trägt dann keine
+`Content-Length` mehr**, und das ist der Grund, warum es nicht gebaut ist.
+
+**2. Die Importdatei liegt viermal im Speicher** *(`server.js`:4669)*. `multer`
+hält sie als Buffer, `toString('utf8')` macht einen String daraus, `JSON.parse`
+legt das Objekt mit allen Base64-Strings an, und `prepared` sammelt die
+Ableitungen. *Der Weg wäre* `diskStorage` *und eintragsweises Lesen.* **Das
+verlegt die Datei ins Dateisystem und verlangt ein Aufräumen auf jedem
+Fehlerweg** — ein Fehler dort verliert Daten.
+
+**3. `intoTrash` führt jedes Blob durch Node** *(`server.js`:4722)*. Beim
+Löschen eines Eintrags sammelt `funnelStore()` jedes Blob als Buffer, und erst
+danach wird geschrieben. *Der Weg wäre je Trägertabelle eine Anweisung*
+`INSERT INTO trash_bytes (trash_id, part, data) SELECT ?, ?, data FROM …`.
+**Dafür müsste `entryAsBundle` die Blobspalten gar nicht erst lesen** — und
+dieselbe Funktion trägt auch den Export.
+
+**Was zu bauen wäre** — *eine Runde, in der eine geänderte Antwortform erlaubt
+ist, mit einer Messung am laufenden Betrieb davor.* **Die Zahlen der Messung
+sind gezählt, nicht gestoppt.**
+
+**Was es anfasst** — `server.js` *(drei Stellen)*, `test/roundtrip.js`.
+
+---
+
+## 41. 614 feste Wartezeiten stehen noch im Prüfstand
+
+**Art: Idee** *(Prüfstand)* **· Herkunft: 0.35.0 · Einschätzung: mittel**
+
+**IN DEN MODULEN UNTER `test/` STANDEN 625 FESTE WARTEZEITEN** der Form
+`await new Promise(r => setTimeout(r, N))`, **zusammen 59.635 ms**. Die Module
+laufen nacheinander, also liegt jede dieser Millisekunden auf der Laufzeit.
+
+**0.35.0 hat das Werkzeug gebaut und elf Stellen umgestellt:** `until()` in
+`test/dom.js` fragt in Fünf-Millisekunden-Schritten und wirft an der Grenze,
+`nextSecond()` in `test/frame.js` wartet auf die nächste Sekundengrenze der
+Uhr. **614 Stellen bleiben, zusammen 47.520 ms.**
+
+*Sie warten auf das Neuzeichnen eines Fensters, und jede braucht ihre eigene
+Bedingung — es gibt keinen Griff, der alle auf einmal umstellt.* **Ein Versuch
+ist gemessen und zurückgenommen worden:** `sysSection` auf `.sys-card` warten
+zu lassen kehrt zu früh zurück, weil die Karte früher dasteht als ihr Inhalt.
+
+**Was zu bauen wäre** — *Modul für Modul, mit einem vollen Lauf je Modul.*
+**Der Gewinn liegt bei höchstens 47,5 Sekunden**, verteilt über sieben Module
+— und er ist nicht der ganze Gewinn: die elf umgestellten Stellen haben im
+vollen Lauf 6,3 Sekunden gebracht, sichtbar wurde davon nichts, weil derselbe
+Lauf 3,3 Sekunden für die neue Kompression beim Serverstart zahlt
+(Änderungsprotokoll 0.35.0, Abschnitt 10).
+
+**Was es anfasst** — `test/ui_*.js`, `test/roundtrip.js`, `test/release_030.js`.
+
+---
+
+## 42. Der Kommentaranteil des Stilblatts liegt bei 54,5 Prozent
+
+**Art: Idee** *(Quelltext)* **· Herkunft: 0.35.0 · Einschätzung: klein**
+
+**DIE JAVASCRIPT-DATEIEN HALTEN SEIT 0.34.1 HÖCHSTENS 30 PROZENT KOMMENTAR JE
+DATEI.** `public/style.css` lag bei **70,5 Prozent** und liegt nach 0.35.0 bei
+**54,5** *(211.862 → 106.321 Bytes)*.
+
+*Weiter zu kürzen hieße, die gemessenen Zahlen aus den Kommentaren zu nehmen —
+die Kontrastwerte des Farbkonzepts, die Pixelrechnungen der Umbruchpunkte, die
+Messtafeln der Vorschaureihe.* **Abschnitt 9 des Auftrags zu 0.35.0 sagt, dass
+keine Quote gegen die Regel erzwungen wird**, und deshalb steht die Zahl hier
+statt in einer Prüfung mit 30.
+
+**`tools/comments.js` zählt dieses Blatt weiterhin nicht** — es zählt
+JavaScript. Der Wächter über das Stilblatt steht in `test/source.js` und hält
+den erreichten Stand *(höchstens 200.000 Bytes, davon höchstens 110.000 in
+Kommentarblöcken, und genau 1.639 Regelzeilen)*.
+
+**Was zu bauen wäre** — *entweder die Zahlen in ein eigenes Papier verschieben
+und aus den Kommentaren nehmen, oder die Zahl hinnehmen.* **Das ist eine
+Entscheidung des Betreibers und keine Messung.**
+
+**Was es anfasst** — `public/style.css`, `tools/comments.js`, `test/source.js`.

@@ -411,7 +411,24 @@ async function run() {
                       "res.setHeader('Content-Type'", 'res.type('];
   const typeCount = (text) => TYPE_WORDS
     .map(z => [z, text.split(z).length - 1]).filter(([, n]) => n > 0);
-  const fTypeSelf = typeCount(fSource);
+  /* EINE AUSNAHME SEIT 0.35.0, UND SIE STEHT ALS GANZE ZEILE DA. Die gezippte
+     Auslieferung geht nicht ueber express.static und muss ihren Typ deshalb
+     selbst setzen. Der Wert kommt aus der festen Tafel PACK_TYPES und nicht
+     aus der Datenbank -- das ist der Grund dieses Waechters, und er haelt.
+     Ausgenommen ist die EINE Zeile und nicht das Muster. */
+  const TYPE_ALLOWED = "  res.set('Content-Type', PACK_TYPES.get(path.extname(name)));";
+  check('Die eine erlaubte Stelle steht genau einmal in server.js',
+    fSource.split(TYPE_ALLOWED).length - 1 === 1,
+    `${fSource.split(TYPE_ALLOWED).length - 1} Vorkommen`);
+  /* UND IHRE TAFEL IST FEST UND KURZ: fuenf Endungen, fuenf Werte, keine
+     Zeile davon kommt aus einer Abfrage. */
+  const fPackTable = (fSource.match(/const PACK_TYPES = new Map\(\[[\s\S]*?\]\);/) || [''])[0];
+  check('Und ihre Typtafel steht fest im Quelltext',
+    /\['\.css', 'text\/css; charset=UTF-8'\]/.test(fPackTable)
+    && (fPackTable.match(/\['\./g) || []).length === 5
+    && !/db\.|prepare|SELECT/i.test(fPackTable),
+    fPackTable ? `${(fPackTable.match(/\['\./g) || []).length} Endungen` : '(keine Tafel)');
+  const fTypeSelf = typeCount(fSource.split(TYPE_ALLOWED).join(''));
   check('server.js setzt den Content-Type an keiner Stelle selbst',
     fTypeSelf.length === 0, fTypeSelf.map(([z, n]) => `${z} (${n}x)`).join(' · '));
   /* DIE GEGENPROBE ZUM WAECHTER SELBST. */
@@ -1166,8 +1183,11 @@ async function run() {
        `card.derivativesAsk` fallen mit der JPEG-Haelfte des Bestandslaufs,
        `server.exportTooOld` kommt mit der Abweisung zu alter Dateien dazu --
        zwei hin, einer her. */
-    check('Und die Zahlen stehen: 1296 Schluessel, 88 Mehrzahlformen, 15 Vokabelnamen',
-      languageKeys.length === 1296 && pluralKeys.length === 88 && vocabularyKeys.length === 15,
+    /* UND SEIT 0.35.0 SIND ES DREI MEHR: `entry.removeRating` und
+       `entry.ratingRemoved` loesen zwei deutsche Saetze aus dem Skript ab,
+       `entry.exportOne` beschriftet den neuen Knopf am Eintrag. */
+    check('Und die Zahlen stehen: 1299 Schluessel, 88 Mehrzahlformen, 15 Vokabelnamen',
+      languageKeys.length === 1299 && pluralKeys.length === 88 && vocabularyKeys.length === 15,
       `${languageKeys.length} / ${pluralKeys.length} / ${vocabularyKeys.length}`);
 
     /* ---- 3. */
@@ -1345,6 +1365,11 @@ async function run() {
     const WORDING_NEW_0321 = ['entry.deletePhoto', 'entry.deleteVideo'];
     /* UND EINER MIT 0.33.0: `server.exportTooOld`. */
     const WORDING_NEW_0330 = ['server.exportTooOld'];
+    /* UND DREI MIT 0.35.0: die beiden Saetze an der Sternzeile, die bis dahin
+       deutsch im Skript standen, und die Beschriftung des Knopfes, der den
+       einzelnen Eintrag als Datei holt. */
+    const WORDING_NEW_0350 = ['entry.removeRating', 'entry.ratingRemoved',
+      'entry.exportOne'];
     /* UND ACHT SCHLUESSEL FALLEN MIT 0.32.1 -- sechs von ihnen gab es schon
        bei der Abnahme, zwei sind erst in 0.32.0 entstanden und schon wieder
        weg. */
@@ -1360,7 +1385,8 @@ async function run() {
       ...WORDING_NEW_0254, ...WORDING_NEW_0260, ...WORDING_NEW_0270,
       ...WORDING_NEW_0280, ...WORDING_NEW_0281, ...WORDING_NEW_0290,
       ...WORDING_NEW_0300, ...WORDING_NEW_0311, ...WORDING_NEW_0314,
-      ...WORDING_NEW_0320, ...WORDING_NEW_0321, ...WORDING_NEW_0330]
+      ...WORDING_NEW_0320, ...WORDING_NEW_0321, ...WORDING_NEW_0330,
+      ...WORDING_NEW_0350]
       .filter(k => !WORDING_GONE_0321.includes(k) && !WORDING_GONE_0330.includes(k));
     const wordingMissing = WORDING_NEW.filter(k => LANGUAGE_FILE[k] === undefined);
     check('Die neuen Schluessel dieser Runde stehen wirklich in der Datei',
@@ -2403,6 +2429,259 @@ async function run() {
     const vOld = screenViolations(btDe.filter(t => LEGACY.includes(t.row)));
     check('Und die neun sind wirklich Verstoesse, keine Vorratsliste',
       vOld.length >= 9, `${vOld.length} Verstoesse`);
+  }
+
+  /* ================= Ein gefangener Fehler bleibt nicht stumm — 0.35.0 ====
+     BEFUND server.js:249 DER MESSUNG ZUR 0.35.0: errorText() liefert
+     „Unbekannter Fehler", sobald der Fehler keinen Schluessel traegt. Fuer den
+     Leser ist das richtig -- die Oberflaeche nennt keine Stapelabzuege. Der
+     Betreiber bekam aber ebenfalls nichts: fuenfzehn catch-Bloecke schluckten
+     den echten Fehler wortlos. */
+  group('Ein gefangener Fehler bleibt nicht stumm — 0.35.0');
+  {
+    const efSource = fs.readFileSync(path.join(__dirname, 'server.js'), 'utf8');
+    const efBody = (efSource.match(/const errorText = \(req, e\) => \{[\s\S]*?\n\};/) || [''])[0];
+    check('errorText steht als Rumpf da und nicht als Ausdruck',
+      efBody.length > 0, efBody ? `${efBody.split('\n').length} Zeilen` : '(nicht gefunden)');
+    check('Und der Fall ohne Schluessel geht ins Protokoll',
+      /console\.error/.test(efBody),
+      efBody.split('\n').filter(z => z.includes('console')).join(' · ') || '(kein console.error)');
+    /* UND NUR DIESER FALL: ein Fehler MIT Schluessel ist beantwortet und
+       gehoert nicht ins Protokoll. */
+    check('Und nur dieser Fall -- ein Fehler mit Schluessel bleibt still',
+      /if \(!\(e && e\.key\)\) console\.error/.test(efBody),
+      (efBody.match(/.*console\.error.*/) || ['(keine Bedingung)'])[0].trim());
+    /* UND DIE MELDUNG NENNT DIE INSTANZ, wie jede andere Zeile dieses
+       Servers -- sonst steht sie ohne Absender im Protokoll des Containers. */
+    check('Und die Zeile nennt die Instanz',
+      /console\.error\('\[Kriterion\] '/.test(efBody),
+      (efBody.match(/.*console\.error.*/) || ['(keine Zeile)'])[0].trim());
+  }
+
+  /* ================= Die Namen der Abfrageparameter — 0.35.0 =============
+     BEFUND server.js:1048 DER MESSUNG ZUR 0.35.0: der Server liest den Filter
+     des Sicherheitsprotokolls als `req.query.group`, der Browser baute die
+     Adresse mit `?gruppe=`. Der Wert war damit bei jedem echten Aufruf
+     undefiniert, und die Karte zeigte statt der gewaehlten Ansicht die
+     hundert juengsten Zeilen. Seit 0.13.0.
+     IM PRUEFSTAND FIEL ES NICHT AUF, weil der Mock in test/dom.js denselben
+     deutschen Namen las wie der Browser -- zwei Abschriften derselben
+     Annahme, und die dritte Stelle, die zaehlt, stand daneben. */
+  group('Jeder Abfrageparameter des Browsers hat einen Leser — 0.35.0');
+  {
+    const qpApp = fs.readFileSync(path.join(__dirname, 'public', 'app.js'), 'utf8');
+    const qpServer = fs.readFileSync(path.join(__dirname, 'server.js'), 'utf8');
+    const qpClient = new Set([...qpApp.matchAll(/[?&]([a-zA-Z][a-zA-Z0-9_]*)=/g)]
+      .map(m => m[1]));
+    const qpRead = new Set([
+      ...[...qpServer.matchAll(/req\.query\.([a-zA-Z][a-zA-Z0-9_]*)/g)].map(m => m[1]),
+      ...[...qpServer.matchAll(/req\.query\['([^']+)'\]/g)].map(m => m[1])
+    ]);
+    /* ERST DER BEFUND AM GESTELLTEN FALL: ein Waechter, der auf leeren Mengen
+       laeuft, ist gruen und belegt nichts. */
+    check('Der Waechter sieht beide Seiten',
+      qpClient.size >= 15 && qpRead.size >= 15,
+      `${qpClient.size} im Browser, ${qpRead.size} am Server`);
+    /* DIE EINE AUSNAHME, UND SIE STEHT NAMENTLICH DA: `v` haengt an der
+       Kacheladresse und soll GERADE nicht gelesen werden -- es steht dort,
+       damit der Browser eine geaenderte Kachel nicht aus seinem Vorrat
+       nimmt. */
+    const QP_UNREAD = ['v'];
+    const qpOrphan = [...qpClient].filter(n => !qpRead.has(n) && !QP_UNREAD.includes(n));
+    check('Und jeder Parameter, den der Browser baut, wird am Server gelesen',
+      qpOrphan.length === 0, qpOrphan.sort().join(' ') || 'alle gelesen');
+    check('Die eine Ausnahme ist `v` — die Kachelversion, die niemand liest',
+      QP_UNREAD.length === 1 && qpClient.has('v') && !qpRead.has('v'),
+      QP_UNREAD.join(' '));
+    /* UND DER FILTER DES SICHERHEITSPROTOKOLLS NAMENTLICH: er ist der Befund,
+       wegen dessen diese Gruppe dasteht. */
+    check('Der Filter des Sicherheitsprotokolls heisst auf beiden Seiten `group`',
+      /\?group=\$\{encodeURIComponent\(logGroup\)\}/.test(qpApp)
+      && /req\.query\.group/.test(qpServer),
+      (qpApp.match(/.*security-log.*/) || ['(nicht gefunden)'])[0].trim());
+    /* UND DER MOCK DES PRUEFSTANDS LIEST DENSELBEN NAMEN -- sonst faende der
+       Pruefstand einen Filter, den es am echten Server nicht gibt. */
+    const qpDom = fs.readFileSync(path.join(__dirname, 'test', 'dom.js'), 'utf8');
+    check('Und der Mock des Pruefstands liest ihn ebenso',
+      /\[\?&\]group=/.test(qpDom) && !/\[\?&\]gruppe=/.test(qpDom),
+      (qpDom.match(/.*\[\?&\]grou?p?p?e?=.*/) || ['(nicht gefunden)'])[0].trim());
+  }
+
+  /* ================= Das Stilblatt — 0.35.0 ==============================
+     BEFUND public/style.css:1 DER MESSUNG ZUR 0.35.0: die Datei mass 300.472
+     Bytes, davon 211.862 in 408 Kommentarbloecken -- 70,5 Prozent. Der
+     Auftrag nennt die Kompression als Mittel; der Betreiber hat am
+     17. September 2026 beides bestellt, Kompression UND kuerzere Kommentare.
+     GEMESSEN AM GEBAUTEN STAND: 195.090 Bytes, davon 106.321 in 409
+     Bloecken -- 54,5 Prozent. Kommentarzeilen 3.131 -> 1.576.
+     KEIN REGELTEXT IST DABEI GEFALLEN: die Zahl der Codezeilen ist
+     unveraendert 1.639, und `tools/comments.js` zaehlt dieses Blatt nicht --
+     es zaehlt JavaScript. Der Waechter hier steht an seiner Stelle. */
+  group('Das Stilblatt traegt weniger Kommentar als vorher — 0.35.0');
+  {
+    const ssRaw = fs.readFileSync(path.join(__dirname, 'public', 'style.css'), 'utf8');
+    const ssBlocks = ssRaw.match(/\/\*[\s\S]*?\*\//g) || [];
+    const ssBytes = ssBlocks.reduce((n, b) => n + Buffer.byteLength(b, 'utf8'), 0);
+    const ssAll = Buffer.byteLength(ssRaw, 'utf8');
+    check('Die Datei misst hoechstens 200.000 Bytes',
+      ssAll <= 200000, `${ssAll} Bytes`);
+    check('Und hoechstens 110.000 davon stehen in Kommentarbloecken',
+      ssBytes <= 110000, `${ssBytes} Bytes in ${ssBlocks.length} Bloecken`);
+    /* UND DER ANTEIL STEHT IN DER PRUEFUNG UND NICHT NUR IM PROTOKOLL. */
+    const ssShare = Math.round(1000 * ssBytes / ssAll) / 10;
+    check('Der Kommentaranteil liegt unter 60 Prozent — vor dieser Runde 70,5',
+      ssShare < 60, `${ssShare} Prozent`);
+    /* UND DER REGELTEXT IST VOLLZAEHLIG DA: gezaehlt werden die Zeilen, auf
+       denen ausserhalb eines Kommentars etwas steht. Faellt eine davon, ist
+       eine Regel mitgegangen und nicht nur ein Satz. */
+    let ssIn = false, ssCode = 0;
+    for (const ln of ssRaw.split('\n')) {
+      let i = 0, has = false;
+      while (i < ln.length) {
+        if (!ssIn && ln.startsWith('/*', i)) { ssIn = true; i += 2; continue; }
+        if (ssIn && ln.startsWith('*/', i)) { ssIn = false; i += 2; continue; }
+        if (!ssIn && !/\s/.test(ln[i])) has = true;
+        i++;
+      }
+      if (has) ssCode++;
+    }
+    check('Und es stehen genau 1639 Regelzeilen da — so viele wie vor der Kuerzung',
+      ssCode === 1639, `${ssCode} Zeilen`);
+    /* UND KEIN BLOCK IST WIEDER LANG GEWORDEN. Der laengste traegt die
+       gerechnete Tafel der Vorschaureihe und misst 26 Zeilen. */
+    const ssLongest = ssBlocks.reduce((n, b) => Math.max(n, b.split('\n').length), 0);
+    check('Und kein Block misst mehr als dreissig Zeilen',
+      ssLongest <= 30, `der laengste misst ${ssLongest} Zeilen`);
+  }
+
+  /* ================= Die Zahl der eigenen Suchplaetze — 0.35.0 ============
+     BEFUND public/app.js:7420 DER MESSUNG ZUR 0.35.0: die Zahl der eigenen
+     Suchplaetze stand dreimal. server.js:1525 als benannte Konstante
+     OWN_SLOTS, public/app.js als festes Array [1, 2, 3] in sendOwn(), und
+     public/style.css als drei einzeln aufgezaehlte Nummern. Wer den vierten
+     Platz anlegt, muss drei Stellen finden. */
+  group('Die Zahl der eigenen Suchplaetze steht an einer Stelle — 0.35.0');
+  {
+    const osServer = fs.readFileSync(path.join(__dirname, 'server.js'), 'utf8');
+    const osApp = fs.readFileSync(path.join(__dirname, 'public', 'app.js'), 'utf8');
+    const osCss = fs.readFileSync(path.join(__dirname, 'public', 'style.css'), 'utf8');
+    check('Die Konstante steht einmal in server.js',
+      (osServer.match(/^const OWN_SLOTS = \d+;$/gm) || []).length === 1,
+      (osServer.match(/^const OWN_SLOTS = .*$/gm) || ['(nicht gefunden)'])[0]);
+    /* UND DAS SKRIPT ZAEHLT, WAS DER SERVER GESCHICKT HAT. */
+    const osBody = (osApp.match(/function sendOwn\(\) \{[\s\S]*?\n  \}/) || [''])[0];
+    check('sendOwn steht als Rumpf da',
+      osBody.length > 0, osBody ? `${osBody.split('\n').length} Zeilen` : '(nicht gefunden)');
+    check('Und es steht kein festes Array mehr darin',
+      !/\[\s*1\s*,\s*2\s*,\s*3\s*\]/.test(osBody),
+      (osBody.match(/\[\s*1\s*,.*\]/) || ['kein festes Array'])[0].trim());
+    check('Und die Plaetze kommen aus der Antwort des Servers',
+      /SEARCH_PROVIDERS\.filter\(a => a\.own\)/.test(osBody),
+      (osBody.match(/.*SEARCH_PROVIDERS.*/) || ['(keine Zeile)'])[0].trim());
+    /* UND DAS STILBLATT ZAEHLT DIE PLAETZE NICHT MEHR EINZELN AUF. */
+    check('Und das Stilblatt nennt keine einzelne Platznummer',
+      !/#se-name-\d/.test(osCss),
+      (osCss.match(/.*#se-name-\d.*/) || ['keine Nummer'])[0].trim());
+    check('Sondern greift die Felder ueber ihren gemeinsamen Anfang',
+      /input\[id\^="se-name-"\]/.test(osCss),
+      (osCss.match(/.*se-name-.*/) || ['(keine Regel)'])[0].trim());
+  }
+
+  /* ================= Der Eintrag als Datei — 0.35.0 =======================
+     BEFUND DER MESSUNG ZUR 0.35.0: GET /api/items/:id/export gibt es seit
+     0.30.0, und kein Element der Oberflaeche rief die Route auf. Erreichbar
+     war sie nur, wer die Adresse von Hand eintippt. */
+  group('Der einzelne Eintrag ist ueber die Oberflaeche zu holen — 0.35.0');
+  {
+    const eoApp = fs.readFileSync(path.join(__dirname, 'public', 'app.js'), 'utf8');
+    const eoLang = JSON.parse(fs.readFileSync(
+      path.join(__dirname, 'public', 'languages', 'de.json'), 'utf8'));
+    check('Der Knopf steht im gezeichneten Eintrag',
+      eoApp.includes(`id="exp1">${'$'}{tH('entry.exportOne')}</button>`),
+      (eoApp.match(/.*id="exp1".*/) || ['(kein Knopf)'])[0].trim());
+    check('Und er ruft genau die Route auf',
+      /window\.location = `\/api\/items\/\$\{id\}\/export`/.test(eoApp),
+      (eoApp.match(/.*\/api\/items\/\$\{id\}\/export.*/) || ['(kein Aufruf)'])[0].trim());
+    /* UND NUR DER BETREIBER SIEHT IHN -- die Route traegt ownerOnly, und ein
+       Knopf, der eine Absage holt, ist schlechter als kein Knopf. */
+    check('Und nur der Betreiber sieht ihn',
+      /\$\{OWNER\n\s*\? `<div class="entry-out">/.test(eoApp),
+      (eoApp.match(/.*class="entry-out".*/) || ['(keine Bedingung)'])[0].trim());
+    check('Seine Beschriftung steht in der Sprachdatei',
+      typeof eoLang['entry.exportOne'] === 'string',
+      String(eoLang['entry.exportOne']));
+  }
+
+  /* ================= Die Deckung der Sprachdatei — 0.35.0 =================
+     DER BEFUND DER MESSUNG ZUR 0.35.0: kein einziger Schluessel in
+     public/languages/de.json ist tot -- aber kein Pruefmodul hat das je
+     gemessen. Ein Schluessel ohne Leser faellt damit erst auf, wenn ihn
+     jemand von Hand sucht.
+
+     GEMESSEN WIRD IN EINE RICHTUNG: jeder Schluessel der Sprachdatei hat
+     einen Leser im Quelltext. Die Gegenrichtung -- jeder t()-Ruf hat einen
+     Schluessel -- steht seit 0.24.0 in der Gruppe „Der Sprachwaechter". */
+  group('Jeder Schluessel der Sprachdatei hat einen Leser — 0.35.0');
+  {
+    const lkRead = (name) => fs.readFileSync(path.join(__dirname, ...name.split('/')), 'utf8');
+    /* DIE DREIZEHN DATEIEN, DIE TEXTE NACHSCHLAGEN -- dieselbe Liste wie in
+       tools/comments.js, ohne public/theme.js (es kennt keine Sprache) und
+       um public/index.html erweitert. */
+    const LK_FILES = ['public/app.js', 'public/index.html', 'server.js', 'auth.js',
+      'mail.js', 'db.js', 'keys.js', 'attachments.js', 'images.js',
+      'usertool.js', 'keytool.js', 'twofactor.js', 'batchrun.js'];
+    const lkText = LK_FILES.map(lkRead).join('\n');
+    const lkKeys = Object.keys(JSON.parse(lkRead('public/languages/de.json')))
+      .filter(k => k !== '_locale' && k !== '_name');
+    check('Der Waechter sieht alle Schluessel der Vorgabesprache',
+      lkKeys.length > 1100, `${lkKeys.length} Schluessel`);
+
+    /* ZWEI FAMILIEN WERDEN GEBAUT UND STEHEN DESHALB NIRGENDS WOERTLICH.
+       Sie sind hier NAMENTLICH ausgenommen und nicht ueber ein Muster: eine
+       Ausnahme, die ein Muster ist, waechst mit jedem Tippfehler mit. */
+    const LK_BUILT = [
+      // mail.js:196-197 baut `mail.${kind}.subject` und `mail.${kind}.body`.
+      ...['confirm', 'invite', 'reset', 'test'].flatMap(k =>
+        [`mail.${k}.subject`, `mail.${k}.body`]),
+      // server.js liest die Vorgaben ueber VOCABULARY_PREFIX, public/app.js
+      // baut die Felder aus VOCABULARY_FIELDS.
+      ...['entryOne', 'entryMany', 'testedYes', 'testedNo', 'dayOne', 'dayMany',
+          'reportOne', 'reportMany', 'taskOne', 'taskMany', 'taskDone',
+          'potential', 'ratingOne', 'ratingMany', 'grade'].map(k => `vocabulary.${k}`)
+    ];
+    check('Die beiden gebauten Familien zaehlen dreiundzwanzig Schluessel',
+      LK_BUILT.length === 23, `${LK_BUILT.length}`);
+    /* UND SIE WERDEN WIRKLICH GEBAUT -- sonst waere die Ausnahmeliste eine
+       Erlaubnis fuer toten Text. */
+    check('Und beide Bauformen stehen im Quelltext',
+      /mail\.\$\{kind\}\.subject/.test(lkRead('mail.js'))
+      && /mail\.\$\{kind\}\.body/.test(lkRead('mail.js'))
+      && /const VOCABULARY_PREFIX = 'vocabulary\.';/.test(lkRead('server.js'))
+      && /const VOCABULARY_FIELDS = \[/.test(lkRead('public/app.js')),
+      'eine der beiden Bauformen fehlt');
+    check('Und jeder der dreiundzwanzig steht wirklich in der Sprachdatei',
+      LK_BUILT.every(k => lkKeys.includes(k)),
+      LK_BUILT.filter(k => !lkKeys.includes(k)).join(' · ') || 'alle da');
+
+    const lkDead = lkKeys.filter(k => !LK_BUILT.includes(k) && !lkText.includes(k));
+    check('Kein Schluessel der Sprachdatei steht ohne Leser da',
+      lkDead.length === 0, lkDead.slice(0, 12).join(' · '));
+    /* UND DER WAECHTER WUERDE EINEN TOTEN WIRKLICH MELDEN: ein Schluessel,
+       den es nicht gibt, hat auch keinen Leser. */
+    check('Der Waechter wuerde einen toten Schluessel melden',
+      !lkText.includes('list.thisKeyHasNoReader'),
+      'der erfundene Schluessel steht im Quelltext');
+
+    /* DIE DREI DATEIEN TRAGEN DIESELBEN SCHLUESSEL -- gemessen, nicht
+       angenommen. Die Deckung oben gilt sonst nur fuer Deutsch. */
+    const lkOther = ['en', 'tr'].map(code => {
+      const keys = Object.keys(JSON.parse(lkRead(`public/languages/${code}.json`)))
+        .filter(k => k !== '_locale' && k !== '_name');
+      return { code, missing: lkKeys.filter(k => !keys.includes(k)) };
+    }).filter(z => z.missing.length);
+    check('Und Englisch und Tuerkisch tragen dieselben Schluessel',
+      lkOther.length === 0,
+      lkOther.map(z => `${z.code}: ${z.missing.slice(0, 6).join(' ')}`).join(' · '));
   }
 }
 

@@ -31,6 +31,38 @@ ihre deutschen Abschnittsüberschriften bleiben.*
 
 *Hier wird mitgeschrieben, während gebaut wird.*
 
+## [0.35.0] - 2026-09-17
+
+*Code-Effizienz. Die Runde ändert am Verhalten nichts — bis auf einen Fehler,
+den sie behebt: sie nimmt toten Code weg, legt doppelte Bauformen zusammen,
+komprimiert die Auslieferung und kürzt die Kommentare des Stilblatts.*
+
+> **`GET /api/health` fällt weg.** Wer sie in einer Bereitschaftsprüfung
+> stehen hat, stellt sie auf `GET /api/config` um. Die alte Route lag hinter
+> der Anmeldung und taugte für diesen Zweck ohnehin nicht.
+
+### Hinzugefügt
+
+- **Der einzelne Eintrag lässt sich als Datei holen.** Der Knopf steht im Fuß des Eintrags; die Route gab es seit 0.30.0, aber kein Bedienelement rief sie auf.
+- **Die Auslieferung geht gezippt hinaus.** Stilblatt, Skript, Sprachdateien und Markup: 1.001.488 Bytes je vollem Aufruf sind 268.441 geworden.
+- **Ein gefangener Fehler ohne Schlüssel geht ins Protokoll.** Bis dahin sah der Betreiber nur „Unbekannter Fehler" — denselben Text wie der Leser.
+
+### Geändert
+
+- **Eine ungeeignete Datei beim Hochladen lässt nichts zurück.** Bis dahin standen die gültigen Dateien davor schon im Bestand, während die Antwort eine Absage war.
+- **`public/style.css` misst 195.090 statt 300.472 Bytes.** Gekürzt sind die Kommentare; keine Regel ist gefallen.
+- **Der Prüfstand ist um die elf teuersten festen Wartezeiten leichter.**
+- **Zwei Sätze an der Sternzeile kommen aus der Sprachdatei** und nicht mehr aus dem Skript — sie standen auf Englisch und Türkisch deutsch da.
+
+### Behoben
+
+- **Der Filter des Sicherheitsprotokolls greift.** Ein Klick auf „Gescheiterte Anmeldungen", „Anmeldungen", „Zugänge", „Zweiter Faktor" oder „Bestand" holte seit 0.13.0 dieselben hundert jüngsten Zeilen wie ohne Filter — Browser und Server nannten den Parameter verschieden.
+
+### Entfernt
+
+- **`GET /api/health`.** Die Route hatte keinen Leser; den Zustand nennt `GET /api/config`.
+- **Siebzehn Stellen toten Codes** in `server.js`, `public/app.js`, `auth.js`, `attachments.js`, `mail.js`, `keys.js`, `db.js`, `images.js` und `public/style.css`.
+
 ## [0.34.4] - 2026-09-16
 
 *Zwei Funde aus der Messung zur 0.35.0, beide beim Lesen gefunden und nicht,

@@ -400,6 +400,13 @@ Anmeldung den Server betrifft.
 Wird Kriterion über einen Reverse Proxy nach außen gegeben, dann **nur über
 HTTPS**. Und dann gehört `BEHIND_PROXY=1` in die `.env`.
 
+> **Kriterion komprimiert seine Textdateien selbst.** Stilblatt,
+> Skript, Sprachdateien und Markup gehen gezippt hinaus, sobald der Browser es
+> verlangt — rund ein Viertel der ursprünglichen Größe. Ein Proxy, der
+> zusätzlich komprimiert, bringt nichts dazu und packt eine gezippte Antwort
+> im schlechtesten Fall ein zweites Mal ein. `gzip off;` bei nginx,
+> `encode` weglassen bei Caddy.
+
 Ein Reverse Proxy nimmt die Verbindung des Besuchers entgegen und öffnet eine
 eigene zum Container; Kriterion sieht deshalb immer nur den Proxy. Die Adresse
 des Besuchers kommt allein als Header `X-Forwarded-For` an. **Gelesen wird er
@@ -751,7 +758,8 @@ aufbewahrt.
 **Der JSON-Export** ist der Austauschweg: unabhängig von Datenbankformat und
 Schlüssel, dafür unvollständig (Sitzungen, Einstellungen und die Blockanordnung
 fehlen) und mit der ganzen Datei im Arbeitsspeicher. Es lässt sich auch ein
-einzelner Eintrag als Datei ziehen.
+einzelner Eintrag als Datei ziehen: der Knopf steht am Fuß des Eintrags und
+nur beim Betreiber.
 
 > **Und daran hat die eine Datei ihre Grenze.** Sie ist ein einziger Text, und
 > länger als **512 MB** kann ein Text in Node nicht werden — Fotos und Videos

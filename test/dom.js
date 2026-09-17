@@ -1070,7 +1070,10 @@ function buildDom(JSDOM, { withoutLanguage = false, settings = { filters: null }
     }
     /* SEIT 0.13.0 KENNT DIE ROUTE EINE AUSWAHL. */
     if (String(url).split('?')[0] === '/api/security-log') {
-      const group = (String(url).match(/[?&]gruppe=([^&]*)/) || [])[1];
+      /* DERSELBE NAME, DEN DER SERVER LIEST -- 0.35.0. Bis dahin stand hier
+         `gruppe`, und weil der Browser denselben deutschen Namen schickte,
+         sah der Pruefstand einen Filter, den es am echten Server nie gab. */
+      const group = (String(url).match(/[?&]group=([^&]*)/) || [])[1];
       if (!group) return give(log);
       const kinds = DOM_PROT_GROUPS[decodeURIComponent(group)];
       if (!kinds) return give({ error: 'Diese Ansicht gibt es nicht.' }, 400);
@@ -1302,11 +1305,35 @@ function buildDom(JSDOM, { withoutLanguage = false, settings = { filters: null }
   catch (e) { silenceConsole.emit('jsdomError', e instanceof Error ? e : new Error(String(e))); }
   return { w, sent, criteria, example, matchResponse, categoryNames, criterionNames };
 }
+/* ---- WARTEN, BIS ETWAS DASTEHT -- 0.35.0, BA 7 ----
+   BEFUND test/dom.js:1316 DER MESSUNG ZUR 0.35.0: in den Modulen unter test/
+   stehen 626 feste Wartezeiten der Form `await new Promise(r => setTimeout(r,
+   N))`, zusammen 59.635 ms. Die Module laufen nacheinander (spawnSync in
+   testbench.js), also liegt jede dieser Millisekunden auf der Laufzeit.
+   Eine feste Wartezeit ist zweimal falsch: sie wartet zu lange, wenn die
+   Bedingung frueher eintritt, und sie laeuft stillschweigend weiter, wenn sie
+   gar nicht eintritt -- die Pruefung danach faellt dann mit einer Begruendung,
+   die nicht die Ursache nennt.
+   `bis` fragt in Fuenf-Millisekunden-Schritten und WIRFT an der Grenze. Ein
+   Modul, das wirft, meldet seinen Abbruch und faerbt den Lauf rot. */
+const UNTIL_STEP = 5;
+async function until(w, condition, limitMs = 3000, what = 'die Bedingung') {
+  const end = Date.now() + limitMs;
+  for (;;) {
+    let there = false;
+    try { there = !!condition(w); } catch { there = false; }
+    if (there) return;
+    if (Date.now() >= end)
+      throw new Error(`until(): ${what} ist in ${limitMs} ms nicht eingetreten`);
+    await new Promise(r => setTimeout(r, UNTIL_STEP));
+  }
+}
+
 /* DIE TAGZEILE AUFKLAPPEN -- 0.24.0 (Bauabschnitt 0.2). */
 async function openTagRow(w) {
   const button = w.document.getElementById('f-weitere');
   if (button && button.getAttribute('aria-expanded') === 'false') button.onclick();
-  await new Promise(r => setTimeout(r, 20));
+  await until(w, (x) => x.document.getElementById('f-tagzeile'), 200, 'die Tagzeile');
   return w.document.getElementById('f-tagzeile');
 }
 
@@ -1330,6 +1357,11 @@ async function waitSearch(w, limitMs = 3000) {
 async function sysSection(w, key) {
   w.history.replaceState(null, '', `#/system/${key}`);
   await w.renderSystem();
+  /* HIER BLEIBT DIE FESTE WARTEZEIT -- 0.35.0, BA 7, und das ist gemessen:
+     `.sys-card` steht frueher da als ihr Inhalt. Eine Bedingung auf die Karte
+     kehrte zu frueh zurueck, und zwoelf Pruefungen ueber die Karte „Zugaenge"
+     fanden eine leere Liste. Die richtige Bedingung ist je Abschnitt eine
+     andere und gehoert an die Aufrufstelle. */
   await new Promise(r => setTimeout(r, 20));
 }
 
@@ -1507,7 +1539,7 @@ async function sysPass(d) {
 return {
   DOM_PASSWORD, DOM_LOG, DOM_PROT_GROUPS, placeConfirm, confirmImDom,
   DOM_PROVIDER, MAIL_HINT_KEYS, DE_TEXTS, buildDom, openTagRow,
-  SEARCH_WAIT_DEBOUNCE, waitSearch, sysSection, pillName, pillMark,
+  SEARCH_WAIT_DEBOUNCE, waitSearch, until, UNTIL_STEP, sysSection, pillName, pillMark,
   screenTextsFrom, serverTextsFrom, SCREEN_BAN, isAddress,
   screenViolations, sysPass, css123, regel123, withoutMedia
 };

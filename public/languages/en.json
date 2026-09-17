@@ -807,6 +807,7 @@
   "entry.edited": "edited",
   "entry.empty": "(empty)",
   "entry.enteredByOn": "Entered by {author} on {created_at}",
+  "entry.exportOne": "Export {entryOne}",
   "entry.fileCount": {
     "one": "{n} file · {filesize}",
     "other": "{n} files · {filesize}"
@@ -863,6 +864,7 @@
   "entry.pinHint": "Pin it — then it stays at the top",
   "entry.previewTruncated": "Preview shortened — download the whole file with ↓.",
   "entry.ratingRemoveHint": "{ratingOne} by {author} for “{name}” is removed.",
+  "entry.ratingRemoved": "{ratingOne} removed",
   "entry.reasonDeleteAsk": "Delete the reason?",
   "entry.reasonDeleteHint": "The text is deleted for good. The date and the author of the rejection remain.",
   "entry.reasonEdit": "Change the reason",
@@ -873,6 +875,7 @@
   "entry.rejectReasonHint": "Why rejected? (optional)",
   "entry.remove": "Remove",
   "entry.removeAgain": "Remove again",
+  "entry.removeRating": "Remove {ratingOne}",
   "entry.removedFromList": "{what} is removed from the list.",
   "entry.removeLink": "Remove link",
   "entry.removeLinkAsk": "Remove link?",

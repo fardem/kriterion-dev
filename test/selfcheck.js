@@ -25,18 +25,31 @@ async function run() {
   // Die Zahl der Rueckbauten steht ausdruecklich da: eine Zahl in einem
   // Papier ist eine Behauptung, eine Zahl im Pruefstand ist ein Beleg. Wie
   // sie Runde fuer Runde gewachsen ist, steht in den Aenderungsprotokollen.
-  check(`Es sind genau 1000 Rueckbauten`, gpList.length === 1000, `${gpList.length}`);
+  check(`Es sind genau 1032 Rueckbauten`, gpList.length === 1032, `${gpList.length}`);
   const gpTwice = gpList.map(r => r.nr).filter((n, i, a) => a.indexOf(n) !== i);
   check('Und keine Nummer steht zweimal', gpTwice.length === 0, gpTwice.join(' '));
   /* JEDER GREIFT: der Suchtext kommt in seiner Datei GENAU EINMAL vor. */
+  /* JEDE DATEI EINMAL LESEN -- 0.35.0, BA 7. Die Schleife las fuer jeden der
+     ueber tausend Rueckbauten seine Datei neu ein und legte danach ein
+     split() ueber den ganzen Inhalt; es sind 32 verschiedene Dateien, und
+     counterproof.js allein misst 437 kB. */
   const gpFail = [];
+  const gpText = new Map();
+  const gpFileText = (file) => {
+    if (!gpText.has(file)) gpText.set(file, fs.readFileSync(file, 'utf8'));
+    return gpText.get(file);
+  };
   for (const r of gpList) {
     const file = path.join(__dirname, r.file);
     if (!fs.existsSync(file)) { gpFail.push(`${r.nr}: ${r.file} gibt es nicht`); continue; }
     if (r.copy) continue;
-    const n = fs.readFileSync(file, 'utf8').split(r.search).length - 1;
+    const n = gpFileText(file).split(r.search).length - 1;
     if (n !== 1) gpFail.push(`${r.nr} (${r.file}): ${n} Treffer`);
   }
+  /* UND DIE ZAHL DER GELESENEN DATEIEN STEHT DA: sie ist der Beleg, dass die
+     Schleife wirklich nur einmal je Datei liest. */
+  check('Der Waechter liest hoechstens fuenfunddreissig Dateien',
+    gpText.size <= 35, `${gpText.size} Dateien fuer ${gpList.length} Rueckbauten`);
   check('Jeder Suchtext kommt in seiner Datei genau einmal vor',
     gpFail.length === 0, gpFail.join(' · '));
   // Ein Ersatz, der dem Suchtext gleicht, baut nichts zurueck -- die Kopie
@@ -201,6 +214,57 @@ async function run() {
   check('Und der Name, den es nie gab, steht in keiner Zeile Code mehr',
     !/pruefung\.js/.test(gpCode), 'pruefung.js steht noch im Code von counterproof.js');
 
+  /* ================= Die Wartezeiten des Pruefstands — 0.35.0 =============
+     BEFUND test/dom.js:1316 DER MESSUNG ZUR 0.35.0: 626 feste Wartezeiten in
+     den Modulen unter test/, zusammen 59.635 ms. Die Module laufen
+     nacheinander, also liegt jede dieser Millisekunden auf der Laufzeit.
+     DIESE RUNDE BAUT DAS WERKZEUG UND NIMMT DIE ELF TEUERSTEN STELLEN: die
+     Wartezeiten von 1100 ms in test/roundtrip.js warteten auf die naechste
+     Sekundengrenze der Uhr und warteten dafuer im Mittel doppelt so lange wie
+     noetig. Die uebrigen 615 Stellen warten auf das Neuzeichnen eines
+     Fensters; jede von ihnen braucht ihre eigene Bedingung, und das ist eine
+     eigene Runde. */
+  group('Die Wartezeiten des Pruefstands — 0.35.0');
+  {
+    const wtRead = (f) => fs.readFileSync(path.join(__dirname, 'test', f), 'utf8');
+    const wtDom = wtRead('dom.js');
+    const wtFrame = wtRead('frame.js');
+    const wtRound = wtRead('roundtrip.js');
+    /* DAS WERKZEUG STEHT DA UND WIRFT AN DER GRENZE. */
+    check('Der Helfer steht in test/dom.js',
+      /async function until\(w, condition, limitMs = \d+, what = /.test(wtDom),
+      (wtDom.match(/.*async function until\(.*/) || ['(nicht gefunden)'])[0].trim());
+    check('Und er wirft an der Grenze, statt stillschweigend weiterzulaufen',
+      /throw new Error\(`until\(\): \$\{what\} ist in \$\{limitMs\} ms nicht eingetreten`\)/.test(wtDom),
+      (wtDom.match(/.*until\(\): .*/) || ['(kein Wurf)'])[0].trim());
+    check('Und er fragt in Fuenf-Millisekunden-Schritten',
+      /const UNTIL_STEP = 5;/.test(wtDom),
+      (wtDom.match(/const UNTIL_STEP = .*/) || ['(keine Schrittweite)'])[0]);
+    /* UND DIE SEKUNDENGRENZE HAT IHREN EIGENEN HELFER. */
+    check('Der Helfer fuer die Sekundengrenze steht in test/frame.js',
+      /async function nextSecond\(limitMs = \d+\)/.test(wtFrame),
+      (wtFrame.match(/.*async function nextSecond\(.*/) || ['(nicht gefunden)'])[0].trim());
+    check('Und er wartet auf die Grenze und nicht auf eine Dauer',
+      /while \(Math\.floor\(Date\.now\(\) \/ 1000\) === now\)/.test(wtFrame),
+      (wtFrame.match(/.*Math\.floor\(Date\.now\(\) \/ 1000\).*/) || ['(keine Grenze)'])[0].trim());
+    /* UND DIE ELF STELLEN SIND WIRKLICH UMGESTELLT. */
+    const wtElf = (wtRound.match(/await nextSecond\(\);/g) || []).length;
+    check('Die elf Stellen in test/roundtrip.js rufen den Helfer',
+      wtElf === 11, `${wtElf} Aufrufe`);
+    check('Und es steht dort keine Wartezeit von 1100 ms mehr',
+      !/setTimeout\(r, 1100\)/.test(wtRound),
+      (wtRound.match(/.*setTimeout\(r, 1100\).*/) || ['keine mehr'])[0].trim());
+    /* UND DIE SUMME ALLER FESTEN WARTEZEITEN IST GEMESSEN UND GEDECKELT. */
+    let wtSum = 0, wtCount = 0;
+    for (const f of fs.readdirSync(path.join(__dirname, 'test')))
+      if (/\.js$/.test(f))
+        for (const m of wtRead(f).matchAll(/setTimeout\(r,\s*(\d+)\)/g)) {
+          wtSum += Number(m[1]); wtCount++;
+        }
+    check('Die festen Wartezeiten summieren sich auf hoechstens 48.000 ms — vor dieser Runde 59.635',
+      wtSum <= 48000, `${wtSum} ms an ${wtCount} Stellen`);
+  }
+
   /* ================= Die Ersatztexte der Rueckbauten — 0.34.1 =============
      Ein Suchtext, der nicht mehr passt, faellt sofort auf: der Rueckbau
      bricht ab und wird gemeldet. */
@@ -266,7 +330,7 @@ async function run() {
     if (miss.length) rpStrange.push(`${r.nr} ${r.file}: ${miss.join(' ')}`);
   }
   check('Der Waechter sieht die Rueckbauten auf Pruefstandsdateien',
-    rpChecked === 20, `${rpChecked} Rueckbauten`);
+    rpChecked === 26, `${rpChecked} Rueckbauten`);
   check('Und jeder ihrer Namen steht in der Zieldatei, im Rahmen oder im Suchtext',
     rpStrange.length === 0, rpStrange.slice(0, 6).join(' · '));
 
@@ -287,26 +351,26 @@ async function run() {
     const COMMENT_ROWS = [
       ['testbench.js', 73],
       ['test/batchrun.js', 87],
-      ['test/dom.js', 328],
+      ['test/dom.js', 347],
       ['test/firstlogin.js', 30],
-      ['test/frame.js', 154],
+      ['test/frame.js', 164],
       ['test/keychange.js', 70],
       ['test/release_029.js', 60],
-      ['test/release_030.js', 239],
-      ['test/release_031.js', 384],
-      ['test/roundtrip.js', 3125],
-      ['test/selfcheck.js', 140],
-      ['test/source.js', 605],
+      ['test/release_030.js', 241],
+      ['test/release_031.js', 395],
+      ['test/roundtrip.js', 3164],
+      ['test/selfcheck.js', 172],
+      ['test/source.js', 701],
       ['test/ui_entry.js', 497],
       ['test/ui_export.js', 453],
       ['test/ui_inventory.js', 241],
       ['test/ui_language.js', 273],
-      ['test/ui_overview.js', 490],
+      ['test/ui_overview.js', 494],
       ['test/ui_style.js', 562],
       ['test/ui_system.js', 692],
       ['test/ui_translator.js', 104],
-      ['counterproof.js', 1460],
-      ['server.js', 1426],
+      ['counterproof.js', 1523],
+      ['server.js', 1487],
       ['auth.js', 274],
       ['db.js', 272],
       ['mail.js', 40],
@@ -317,10 +381,10 @@ async function run() {
       ['usertool.js', 51],
       ['twofactor.js', 34],
       ['keytool.js', 55],
-      ['public/app.js', 1814],
+      ['public/app.js', 1855],
       ['public/theme.js', 3],
     ];
-    const COMMENT_TOTAL = { comment: 14202, code: 59816 };
+    const COMMENT_TOTAL = { comment: 14580, code: 60454 };
     check('Der Waechter sieht alle vierunddreissig Dateien',
       crAll.each.length === 34 && COMMENT_ROWS.length === 34,
       `${crAll.each.length} gemessen, ${COMMENT_ROWS.length} genannt`);
@@ -674,6 +738,32 @@ async function run() {
     check('Und es ist die einzige rote Zeile',
       (driverText.match(/✗/g) || []).length === 1, driverRed);
     check('Der Lauf endet rot', driver.status === 1, `Code ${driver.status}`);
+  }
+
+  /* ============ Die Schalterprobe haengt nicht am Elternlauf — 0.35.0 =====
+     B1 des Auftrags 0.35.0. test/release_030.js startet ein Kind, um zu
+     belegen, dass die Zeitzeile OHNE Schalter nicht dasteht -- und hat
+     TESTBENCH_TIME dabei an das Kind vererbt. Die Pruefung war gruen, weil
+     der Elternprozess zufaellig keinen Schalter trug: derselbe Stand meldete
+     mit TESTBENCH_TIME=1 nur 6892 von 6893.
+
+     GEPRUEFT WIRD DER QUELLTEXT und nicht ein zweiter Lauf. Ein Lauf, der die
+     Lage nachstellt, kostet elf Sekunden und belegt am Ende dieselbe Zeile. */
+  group('Die Schalterprobe haengt nicht am Elternlauf — 0.35.0');
+  {
+    const switchText = fs.readFileSync(
+      path.join(__dirname, 'test', 'release_030.js'), 'utf8');
+    const probeAt = switchText.indexOf('const tProbe =');
+    const claimAt = switchText.indexOf('Und ohne ihn nicht');
+    check('Die Probe ohne Schalter steht vor der Behauptung ueber sie',
+      probeAt > -1 && claimAt > probeAt,
+      `tProbe bei ${probeAt}, Behauptung bei ${claimAt}`);
+    /* Und sie raeumt den Schalter ausdruecklich weg, statt process.env
+       unbesehen zu uebernehmen. Ohne diese Zeile belegt die Pruefung nur,
+       wie der Elternlauf gerade gestartet worden ist. */
+    const probeCall = switchText.slice(probeAt, switchText.indexOf('});', probeAt));
+    check('Und sie raeumt TESTBENCH_TIME im Kind ausdruecklich weg',
+      /TESTBENCH_TIME:\s*''/.test(probeCall), JSON.stringify(probeCall));
   }
 }
 

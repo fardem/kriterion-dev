@@ -14,7 +14,7 @@ async function run() {
    PORT_OFFSET, PORT, BASE, DATA, USER, PASSWORD, open, startServer,
    shortRun, shortRunAll, setPasswordImInventory, endKind, CASES,
    FINGERPRINT_BASE, smtpEmpfaenger, startFurtherServer, call, names,
-   includingShare, callF, shareMain
+   includingShare, callF, shareMain, nextSecond
   } = H;
   /* DER QUELLTEXT DES SERVERS. Zwei Gruppen dieses Moduls lesen ihn -- die
      Groesse des Exports und die Zeile davor. */
@@ -1700,8 +1700,11 @@ async function sendImport(object, mode, withoutShare = false) {
     check('Die neue Route ist lesend und waechst F_ROUTES nicht',
       /app\.get\('\/api\/manifest\.json'/.test(serverCode)
       && !/app\.(post|put|delete)\('\/api\/manifest\.json'/.test(serverCode));
+    /* 31 -> 30 mit 0.35.0: GET /api/health ist gefallen. Die Route stand
+       hinter app.use('/api', auth.requireAuth) und antwortete ohne
+       Sitzungscookie mit 401; der Container fragt /api/config. */
     check('Und sie ist die EINZIGE neue Route dieser Runde',
-      (serverCode.match(/^app\.get\('/gm) || []).length === 31,
+      (serverCode.match(/^app\.get\('/gm) || []).length === 30,
       String((serverCode.match(/^app\.get\('/gm) || []).length));
 
     // Den Titel zurueckstellen -- die Pruefungen danach rechnen mit dem alten.
@@ -4823,7 +4826,7 @@ async function sendImport(object, mode, withoutShare = false) {
     JSON.stringify(zpFresh[0]));
   /* UND ER ZIEHT BEIM UEBERSCHREIBEN MIT. */
   const zpBefore = zpFresh[0].set_at;
-  await new Promise(r => setTimeout(r, 1100));
+  await nextSecond();
   await eCall('cookie-e-drei', 'PUT', '/api/items/2/ratings', { criterionId: zpCriterion, value: 2 });
   const zpAfter = zpRows('SELECT set_at, value FROM ratings WHERE item_id = 2 AND criterion_id = ?', zpCriterion)[0];
   check('Und beim Ueberschreiben zieht er mit',
@@ -4854,7 +4857,7 @@ async function sendImport(object, mode, withoutShare = false) {
 
   /* GESETZT WIRD UEBER PUT /api/settings -- kein eigener Weg, und damit
      waechst F_ROUTES nicht. */
-  await new Promise(r => setTimeout(r, 1100));
+  await nextSecond();
   const glSet = await eCall('cookie-e-eins', 'PUT', '/api/settings', { bellSeen: 1 });
   const glAfterSet = (await eCall('cookie-e-eins', 'GET', '/api/settings')).content?.bellSeen;
   check('Er laesst sich ueber die vorhandene Route setzen',
@@ -4892,7 +4895,7 @@ async function sendImport(object, mode, withoutShare = false) {
     JSON.stringify(await glEntry('cookie-e-eins', 1)));
 
   // Ein FREMDER Kommentar -- der Fall, um den es geht.
-  await new Promise(r => setTimeout(r, 1100));
+  await nextSecond();
   await eCall('cookie-e-zwei', 'POST', '/api/items/1/comments', { text: 'Von zwei' });
   check('Ein fremder Kommentar zaehlt',
     (await glEntry('cookie-e-eins', 1))?.newComments === 1,
@@ -4917,9 +4920,9 @@ async function sendImport(object, mode, withoutShare = false) {
     JSON.stringify((await glEntry('cookie-e-eins', 1))?.newFrom));
   /* DIE ZAHL WIRD JE ZUGANG GERECHNET UND NICHT GLOBAL. Der zweite Zugang
      setzt seinen Strich spaeter und sieht deshalb weniger. */
-  await new Promise(r => setTimeout(r, 1100));
+  await nextSecond();
   await eCall('cookie-e-zwei', 'PUT', '/api/settings', { bellSeen: 1 });
-  await new Promise(r => setTimeout(r, 1100));
+  await nextSecond();
   await eCall('cookie-e-eins', 'POST', '/api/items/1/comments', { text: 'Noch einer von eins' });
   /* ZWEI IST NICHT EINS: derselbe Kommentar von „eins" zaehlt fuer „zwei"
      (fremd) und fuer „eins" nicht (eigen). */
@@ -4975,7 +4978,7 @@ async function sendImport(object, mode, withoutShare = false) {
   /* DAS OEFFNEN DER TAFEL SETZT ALLES AUF GESEHEN -- die bewusste Grenze der
      schlanken Fassung: bei einem Zeitstempel gibt es keinen Lesestand je
      Message. */
-  await new Promise(r => setTimeout(r, 1100));
+  await nextSecond();
   await eCall('cookie-e-eins', 'PUT', '/api/settings', { bellSeen: 1 });
   check('Ein neuer Bezugspunkt setzt alles auf gesehen',
     (await glList('cookie-e-eins')).every(i =>
@@ -5015,7 +5018,7 @@ async function sendImport(object, mode, withoutShare = false) {
      niemanden sonst -- also bekommt `zwei` seine Glocke und `drei` nicht. */
   await eCall('cookie-e-zwei', 'PUT', '/api/settings', { bellSeen: 1 });
   await eCall('cookie-e-drei', 'PUT', '/api/settings', { bellSeen: 1 });
-  await new Promise(r => setTimeout(r, 1100));
+  await nextSecond();
   const mkPost = await eCall('cookie-e-eins', 'POST', '/api/items/1/comments',
     { text: 'Schau mal @zwei, und @gibtesnicht auch — post@beispiel.de' });
   check('Markierprobe: der Kommentar entsteht',
@@ -6798,7 +6801,7 @@ async function sendImport(object, mode, withoutShare = false) {
   }
   /* Und der zweite Griff am laufenden Server legt eine ZWEITE Datei an, statt
      die erste zu fressen. Eine Sicherung, die die vorige frisst, ist keine. */
-  await new Promise(r => setTimeout(r, 1100));
+  await nextSecond();
   const siSecond = await siCall('cookie-si-anna', 'POST', '/api/backup');
   check('Ein zweiter Griff legt eine zweite Datei an',
     siSecond.status === 200 && siSecond.content?.file !== siGo.content?.file,
@@ -6951,7 +6954,7 @@ async function sendImport(object, mode, withoutShare = false) {
     /* Eine Sekunde Abstand: der Dateiname traegt Datum und UHRZEIT auf die
        Sekunde genau, und zwei Sicherungen in derselben Sekunde sind eine
        Kollision -- die 409 ist richtig, hier aber nicht die Frage. */
-    await new Promise(r => setTimeout(r, 1100));
+    await nextSecond();
     const go = await siCall('cookie-si-anna', 'POST', '/api/backup');
     check('Die Eigentuemerin kommt durch', go.status === 200, JSON.stringify(go.content));
   }
@@ -7725,7 +7728,7 @@ async function sendImport(object, mode, withoutShare = false) {
     for (const n of auLock) fs.rmSync(path.join(auFolder, n), { force: true });
 
     /* --- UND NACH EINER GELUNGENEN SICHERUNG WIRD AUFGERAEUMT. */
-    await new Promise(r => setTimeout(r, 1100));
+    await nextSecond();
     const ok = await auCall('cookie-au-anna', 'POST', '/api/backup');
     check('Nach einer gelungenen Sicherung raeumt der Anschluss auf',
       ok.status === 200 && ok.content?.cleaned?.removed === 3,
@@ -10158,7 +10161,7 @@ async function sendImport(object, mode, withoutShare = false) {
     /* INNERHALB DER FRIST DARF BELIEBIG OFT GEOEFFNET WERDEN, und das ist der
        Punkt, an dem die Sache sonst kippt: wer neu laedt, weil er gerade
        keine Zeit hatte, steht sonst vor einem toten Link. */
-    await new Promise(r => setTimeout(r, 1100));
+    await nextSecond();
     const frSecond = await FR.call('POST', '/api/token/check', { token: frToken });
     const frAfterSecond = frExpires();
     check('Das zweite Oeffnen traegt ebenfalls', frSecond.status === 200, `Status ${frSecond.status}`);
@@ -11226,6 +11229,42 @@ async function sendImport(object, mode, withoutShare = false) {
   check('Die juengste Zeile steht oben',
     prView.content?.rows[0]?.id > prView.content?.rows[1]?.id,
     JSON.stringify(prView.content?.rows.slice(0, 2).map(z => z.id)));
+
+  /* ---- DIE AUSWAHL AM ECHTEN SERVER -- 0.35.0 ----
+     SIE STAND BIS DAHIN IN KEINER PRUEFUNG. Die Route kennt die Auswahl seit
+     0.13.0, und geprueft war nur, dass der Browser sie anhaengt -- gegen
+     einen Mock, der denselben deutschen Namen las wie der Browser. Der echte
+     Server liest `group`, und damit hat die Auswahl nie gegriffen. */
+  const prPick = await prCall(prAnna, 'GET', '/api/security-log?group=failed');
+  check('Die Auswahl „failed" kommt durch',
+    prPick.status === 200 && Array.isArray(prPick.content?.rows),
+    `Status ${prPick.status}`);
+  check('Und sie traegt nur gescheiterte Anmeldungen',
+    (prPick.content?.rows || []).length > 0 &&
+    (prPick.content?.rows || []).every(z => z.event === 'login.fail' || z.event === 'confirm.fail'),
+    JSON.stringify([...new Set((prPick.content?.rows || []).map(z => z.event))]));
+  /* UND SIE SIEBT WIRKLICH -- ohne diese Zeile waere die darueber auch dann
+     gruen, wenn der Server jede Zeile zurueckgaebe und im Bestand zufaellig
+     nur gescheiterte Anmeldungen staenden. */
+  check('Und der ungefilterte Abruf traegt mehr Arten',
+    new Set((prView.content?.rows || []).map(z => z.event)).size >
+    new Set((prPick.content?.rows || []).map(z => z.event)).size,
+    `${new Set((prView.content?.rows || []).map(z => z.event)).size} gegen ` +
+    `${new Set((prPick.content?.rows || []).map(z => z.event)).size} Arten`);
+  check('Die Antwort nennt die gewaehlte Ansicht',
+    prPick.content?.group === 'failed', JSON.stringify(prPick.content?.group));
+  /* UND EINE ANSICHT, DIE ES NICHT GIBT, WIRD ABGEWIESEN. */
+  const prBad = await prCall(prAnna, 'GET', '/api/security-log?group=gibtsnicht');
+  check('Eine unbekannte Ansicht bekommt 400',
+    prBad.status === 400, `Status ${prBad.status}`);
+  /* UND DER DEUTSCHE NAME GREIFT NICHT MEHR -- er ist kein zweiter Weg,
+     sondern ein unbekannter Parameter, und unbekannte Parameter ignoriert
+     die Route. */
+  const prGerman = await prCall(prAnna, 'GET', '/api/security-log?gruppe=failed');
+  check('Der alte deutsche Name waehlt nichts aus',
+    prGerman.status === 200 && prGerman.content?.group == null &&
+    (prGerman.content?.rows || []).length === (prView.content?.rows || []).length,
+    `Status ${prGerman.status}, Ansicht ${JSON.stringify(prGerman.content?.group)}`);
 
   /* DIE LAGE WIRD BEENDET, und das ist keine Ordnungsliebe: ein Server, der
      den Lauf ueberlebt, besetzt seinen Port weiter, und der naechste Lauf
@@ -18456,6 +18495,114 @@ async function sendImport(object, mode, withoutShare = false) {
     `${endNumber.test_days} Testtage, ${endNumber.ratings} Bewertungen, ` +
     `${endNumber.links} Links, ${endNumber.attachments} Dateien`);
   end.close();
+
+  /* ============= Eine ungeeignete Datei laesst nichts zurueck — 0.35.0 =====
+     BEFUND server.js:3053 DER MESSUNG ZUR 0.35.0: die Schleife prueft,
+     wandelt und schreibt jede Datei in einem Durchgang. Scheitert gridImage
+     bei der fuenften von zehn, stehen vier Fotos schon in der Datenbank --
+     und die Antwort ist trotzdem 400. */
+  group('Eine ungeeignete Datei laesst nichts zurueck — 0.35.0');
+  {
+    const uzItem = (await call('POST', '/api/items', { title: 'Halber Upload' })).content;
+    const uzGood = Buffer.from(PNG_BASE64, 'base64');
+    const uzBad = Buffer.from('Das ist kein Bild, sondern Text.', 'utf8');
+    const uzAnswer = await sendMultipart(`/api/items/${uzItem.id}/photos`, 'photos', [
+      { name: 'eins.png', type: 'image/png', content: uzGood },
+      { name: 'zwei.png', type: 'image/png', content: uzBad }
+    ]);
+    check('Die Antwort sagt ab', uzAnswer.status === 400, `Status ${uzAnswer.status}`);
+    /* UND DIE ERSTE DATEI IST NICHT ANGEKOMMEN. Genau das war der Befund. */
+    const uzAfter = (await call('GET', `/api/items/${uzItem.id}`)).content;
+    check('Und die gueltige Datei davor ist nicht angekommen',
+      (uzAfter.photos || []).length === 0, `${(uzAfter.photos || []).length} Fotos`);
+    /* DIE GEGENPROBE: zwei gueltige Dateien kommen beide an. */
+    const uzBoth = await sendMultipart(`/api/items/${uzItem.id}/photos`, 'photos', [
+      { name: 'eins.png', type: 'image/png', content: uzGood },
+      { name: 'zwei.png', type: 'image/png', content: uzGood }
+    ]);
+    check('Zwei gueltige Dateien kommen beide an',
+      uzBoth.status === 201 && (uzBoth.content.photos || []).length === 2,
+      `Status ${uzBoth.status}, ${(uzBoth.content.photos || []).length} Fotos`);
+    await call('DELETE', `/api/items/${uzItem.id}`);
+  }
+
+  /* ================= Die Auslieferung geht gezippt hinaus — 0.35.0 =========
+     DER SCHWERSTE EINZELBEFUND DER MESSUNG: public/style.css mass 300.472
+     Bytes, davon 211.862 in 408 Kommentarbloecken -- 70,5 Prozent. Der Server
+     hat bis 0.34.4 nicht komprimiert, also lud jeder Browser den ganzen Text
+     bei jedem Aufruf. Diese Runde tut beides: sie kuerzt die Kommentare und
+     zippt die Auslieferung. */
+  group('Die Auslieferung geht gezippt hinaus — 0.35.0');
+  {
+    /* ROH HOLEN HEISST: die Antwort NICHT entpacken lassen. fetch() entpackt
+       gzip von selbst, und dann waere die Ersparnis nicht zu sehen -- deshalb
+       hier der Weg ueber node:http. */
+    const gzBytes = (file, encoding, extra = {}) => new Promise((done, fail) => {
+      const rq = require('http').request(
+        `${BASE}/${file}`, { headers: { 'accept-encoding': encoding, ...extra } }, (rs) => {
+          const parts = [];
+          rs.on('data', (d) => parts.push(d));
+          rs.on('end', () => done({
+            status: rs.statusCode,
+            head: (name) => rs.headers[name] || '',
+            raw: Buffer.concat(parts)
+          }));
+        });
+      rq.on('error', fail);
+      rq.end();
+    });
+    const gzCss = await gzBytes('style.css', 'gzip');
+    const gzPlain = await gzBytes('style.css', 'identity');
+    check('Das Stilblatt geht auf Wunsch gezippt hinaus',
+      gzCss.head('content-encoding') === 'gzip',
+      String(gzCss.head('content-encoding')));
+    check('Und ohne Wunsch wie bisher',
+      !gzPlain.head('content-encoding'),
+      String(gzPlain.head('content-encoding')));
+    /* DIE ZAHL GEHOERT IN DIE PRUEFUNG UND NICHT NUR INS PROTOKOLL. */
+    check('Gezippt ist es hoechstens halb so gross',
+      gzCss.raw.length * 2 < gzPlain.raw.length,
+      `${gzPlain.raw.length} roh, ${gzCss.raw.length} gezippt`);
+    /* UND ES IST DIESELBE DATEI: entpackt Byte fuer Byte der Stand auf der
+       Platte. Eine Ersparnis, die den Inhalt aendert, waere keine. */
+    const gzOnDisk = fs.readFileSync(path.join(__dirname, 'public', 'style.css'));
+    check('Und entpackt ist es Byte fuer Byte dieselbe Datei',
+      require('zlib').gunzipSync(gzCss.raw).equals(gzOnDisk),
+      `${require('zlib').gunzipSync(gzCss.raw).length} entpackt, ${gzOnDisk.length} auf der Platte`);
+    check('Und ungezippt ebenso', gzPlain.raw.equals(gzOnDisk),
+      `${gzPlain.raw.length} gegen ${gzOnDisk.length}`);
+    /* DIE MARKE SAGT, DASS ES DIE GEZIPPTE FASSUNG IST -- zwei Fassungen
+       unter einer Marke waeren eine Zusage, die nicht stimmt. */
+    check('Die gezippte Fassung traegt eine eigene Marke',
+      /-gz"$/.test(gzCss.head('etag') || ''),
+      String(gzCss.head('etag')));
+    check('Und sie sagt, dass die Antwort von der Kopfzeile abhaengt',
+      /Accept-Encoding/i.test(gzCss.head('vary') || ''),
+      String(gzCss.head('vary')));
+    /* UND EINE BEKANNTE MARKE SPART DIE ANTWORT GANZ. */
+    const gzAgain = await gzBytes('style.css', 'gzip', { 'if-none-match': gzCss.head('etag') });
+    check('Eine bekannte Marke bekommt 304 und keine Bytes',
+      gzAgain.status === 304 && gzAgain.raw.length === 0,
+      `Status ${gzAgain.status}, ${gzAgain.raw.length} Bytes`);
+    /* DER TYP BLEIBT DER TYP DER DATEI UND WIRD NICHT ZU application/gzip. */
+    check('Der Typ ist derselbe wie bei der ungezippten Auslieferung',
+      gzCss.head('content-type') === gzPlain.head('content-type')
+      && /^text\/css/.test(gzCss.head('content-type') || ''),
+      `${gzCss.head('content-type')} gegen ${gzPlain.head('content-type')}`);
+    /* UND DIE UEBRIGEN AUSGELIEFERTEN TEXTDATEIEN EBENSO. */
+    const gzMore = [], gzWrongType = [];
+    for (const file of ['app.js', 'index.html', 'languages/de.json', 'favicon.svg']) {
+      const one = await gzBytes(file, 'gzip');
+      const plain = await gzBytes(file, 'identity');
+      if (one.head('content-encoding') !== 'gzip') gzMore.push(file);
+      if (one.head('content-type') !== plain.head('content-type'))
+        gzWrongType.push(`${file}: ${one.head('content-type')} gegen ${plain.head('content-type')}`);
+    }
+    check('Auch app.js, die Seite, die Sprachdatei und das Zeichen gehen gezippt hinaus',
+      gzMore.length === 0, gzMore.join(' · '));
+    check('Und jede von ihnen traegt denselben Typ wie ungezippt',
+      gzWrongType.length === 0, gzWrongType.join(' · '));
+  }
 }
 
 module.exports = run;

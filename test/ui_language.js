@@ -263,7 +263,7 @@ async function run() {
       '(prefers-color-scheme: light)',
       '(max-width: 700px), (max-height: 500px) and (max-width: 960px)',
       // Stuecke einer Adresse
-      '?entries=', '&posts=', '?gruppe=', '&days=', '&target=',
+      '?entries=', '&posts=', '?group=', '&days=', '&target=',
       /* UND NEUN WEITERE SEIT 0.31.0, Bauabschnitt 1. */
       '&files=1', '&videos=1', 'photos=1', '?size=thumb',
       '&from=', '&part=', '&parts=',
@@ -322,8 +322,7 @@ async function run() {
       // Die beiden Serverbefehle -- Befehle, keine Saetze.
       'docker compose exec kriterion node usertool.js passwort <name>',
       'docker compose exec kriterion node usertool.js zweifaktor <name>',
-      /* UND DREI ADRESSEN. */
-      '?gruppe=',
+      /* UND ZWEI ADRESSEN -- `?gruppe=` stand hier bis 0.35.0. */
       '<code>https://www.google.com/search?q=site%3Aforum.beispiel.de+%s</code>',
       'https://forum.beispiel.de/suche?q=%s'
     ];
