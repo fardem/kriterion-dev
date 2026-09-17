@@ -2198,6 +2198,24 @@ Veröffentlichung gefunden · Einschätzung: groß**
 *Verteilung der 759:* `public/app.js` 324, `server.js` 196,
 `public/style.css` 168, `db.js` 62, Rest 9.
 
+> **NACHGETRAGEN AM 17. SEPTEMBER 2026, und es sind DREI Löcher, nicht zwei.**
+> *Der Betreiber hat die dritte gefunden:* **`.env.example` nannte zwei alte
+> Versionen** („BIS 0.12.4 WAREN ES FÜNF", „seit 0.13.0") — *in einer Datei, die
+> ein Betreiber vor dem ersten Start liest.* **Sie stand in keiner Dateiliste
+> eines Wächters**, so wie `public/style.css` und `public/index.html`.
+>
+> **Die zwei Sätze sind weg, und die Regel hält jetzt ein Wächter:**
+> `test/source.js`, Gruppe „Keine Versionsnummer als Herkunft" — zwanzig
+> Dateien, **eine Latte je Datei, die nur fallen darf**, zwölf davon auf null.
+> Rückbauten **1099** und **1100**. *Damit ist der erste der drei Schritte
+> unten gebaut, und zwar für die Versionsnummern; die Stolpersteinverweise
+> stehen weiter offen.*
+>
+> **Die Gesamtzahl ist 772 und nicht 759** — *die alte Suche zählte Zeilen
+> statt Vorkommen und hielt eine Adresse wie `192.168.1.50` für eine
+> Versionsnummer.* Die Verteilung: `public/app.js` 328, `server.js` 197,
+> `public/style.css` 175, `db.js` 62, Rest 10.
+
 **UND DER SWEEP VON 0.34.3 HAT ZWEI LÖCHER**, die erst jetzt aufgefallen
 sind. Der Wächter „Kein Stolpersteinverweis mehr — 0.34.3"
 *(`test/source.js`)* liest vierunddreißig Dateien und zählt sie selbst nach:

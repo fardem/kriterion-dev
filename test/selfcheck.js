@@ -22,7 +22,7 @@ async function run() {
   // Die Zahl der Rueckbauten steht ausdruecklich da: eine Zahl in einem
   // Papier ist eine Behauptung, eine Zahl im Pruefstand ist ein Beleg. Wie
   // sie Runde fuer Runde gewachsen ist, steht in den Aenderungsprotokollen.
-  check(`Es sind genau 1036 Rueckbauten`, gpList.length === 1036, `${gpList.length}`);
+  check(`Es sind genau 1038 Rueckbauten`, gpList.length === 1038, `${gpList.length}`);
   const gpTwice = gpList.map(r => r.nr).filter((n, i, a) => a.indexOf(n) !== i);
   check('Und keine Nummer steht zweimal', gpTwice.length === 0, gpTwice.join(' '));
   /* JEDER GREIFT: der Suchtext kommt in seiner Datei GENAU EINMAL vor. */
@@ -45,8 +45,9 @@ async function run() {
   }
   /* UND DIE ZAHL DER GELESENEN DATEIEN STEHT DA: sie ist der Beleg, dass die
      Schleife wirklich nur einmal je Datei liest. */
-  check('Der Waechter liest hoechstens fuenfunddreissig Dateien',
-    gpText.size <= 35, `${gpText.size} Dateien fuer ${gpList.length} Rueckbauten`);
+  // Sechsunddreissig, seit ein Rueckbau auch .env.example anfasst.
+  check('Der Waechter liest hoechstens sechsunddreissig Dateien',
+    gpText.size <= 36, `${gpText.size} Dateien fuer ${gpList.length} Rueckbauten`);
   check('Jeder Suchtext kommt in seiner Datei genau einmal vor',
     gpFail.length === 0, gpFail.join(' · '));
   // Ein Ersatz, der dem Suchtext gleicht, baut nichts zurueck -- die Kopie
@@ -327,7 +328,7 @@ async function run() {
     if (miss.length) rpStrange.push(`${r.nr} ${r.file}: ${miss.join(' ')}`);
   }
   check('Der Waechter sieht die Rueckbauten auf Pruefstandsdateien',
-    rpChecked === 26, `${rpChecked} Rueckbauten`);
+    rpChecked === 27, `${rpChecked} Rueckbauten`);
   check('Und jeder ihrer Namen steht in der Zieldatei, im Rahmen oder im Suchtext',
     rpStrange.length === 0, rpStrange.slice(0, 6).join(' · '));
 
@@ -356,8 +357,8 @@ async function run() {
       ['test/release_030.js', 241],
       ['test/release_031.js', 398],
       ['test/roundtrip.js', 3198],
-      ['test/selfcheck.js', 172],
-      ['test/source.js', 710],
+      ['test/selfcheck.js', 173],
+      ['test/source.js', 728],
       ['test/ui_entry.js', 497],
       ['test/ui_export.js', 453],
       ['test/ui_inventory.js', 241],
@@ -366,7 +367,7 @@ async function run() {
       ['test/ui_style.js', 562],
       ['test/ui_system.js', 692],
       ['test/ui_translator.js', 104],
-      ['counterproof.js', 1529],
+      ['counterproof.js', 1531],
       ['server.js', 1500],
       ['auth.js', 274],
       ['db.js', 272],
@@ -381,7 +382,7 @@ async function run() {
       ['public/app.js', 1855],
       ['public/theme.js', 3],
     ];
-    const COMMENT_TOTAL = { comment: 14663, code: 60667 };
+    const COMMENT_TOTAL = { comment: 14684, code: 60726 };
     check('Der Waechter sieht alle vierunddreissig Dateien',
       crAll.each.length === 34 && COMMENT_ROWS.length === 34,
       `${crAll.each.length} gemessen, ${COMMENT_ROWS.length} genannt`);

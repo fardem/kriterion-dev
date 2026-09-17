@@ -8884,6 +8884,23 @@ const REGRESSIONS = [
     replacement: "",
     expected: 'Der Papierkorb: zweimal gleichzeitig zurueckholen'
   },
+  {
+    /* In einer Datei, die auf null steht, steht wieder eine Herkunftsangabe. */
+    nr: '1099', name: 'Die .env.example nennt wieder eine alte Version',
+    file: '.env.example',
+    search: "# Cookiename, Secure und Strict-Transport-Security haengen NICHT an dieser",
+    replacement: "# BIS 0.12.4 WAREN ES FUENF.\n"
+      + "# Cookiename, Secure und Strict-Transport-Security haengen NICHT an dieser",
+    expected: 'Keine Versionsnummer als Herkunft'
+  },
+  {
+    /* Und der Leser des Waechters sieht wieder in jeder IP eine Version. */
+    nr: '1100', name: 'Der Versionsleser haelt eine Adresse fuer eine Version',
+    file: 'test/source.js',
+    search: "    const vnPattern = () => /(?<![\\d.])\\d+\\.\\d+\\.\\d+(?!\\.?\\d)/g;",
+    replacement: "    const vnPattern = () => /\\b\\d+\\.\\d+\\.\\d+\\b/g;",
+    expected: 'Keine Versionsnummer als Herkunft'
+  },
 ];
 
 /* ================= Spuren und Versatz ================= Der Versatz je
