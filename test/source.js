@@ -2038,6 +2038,68 @@ async function run() {
       stText === 1, `${stText} Vorkommen in counterproof.js`);
   }
 
+  /* ================= Keine Versionsnummer als Herkunft ====================
+     CLAUDE.md, Punkt 2: eine Versionsnummer steht nur da, wo sie Verhalten
+     bestimmt -- „Austauschformat 17", „ab 0.33.0 wird nicht mehr migriert".
+     Nie als Herkunft.
+     DER ALTBESTAND IST GROSS, und deshalb ist dieser Waechter eine LATTE JE
+     DATEI, die nur fallen darf. Zwoelf Dateien stehen auf null und bleiben
+     dort. Ohne diese Latte stand die Regel im Papier und nirgends sonst --
+     sie ist deshalb an Dateien vorbeigegangen, die kein Waechter je gelesen
+     hat: `.env.example`, `public/style.css` und `public/index.html` standen
+     in keiner Dateiliste. */
+  group('Keine Versionsnummer als Herkunft');
+  {
+    /* NICHT MIT \b: eine IP wie 192.168.1.50 traegt drei Punkte und waere
+       sonst eine Versionsnummer. Der Blick nach hinten und nach vorn nimmt
+       jede Zahl aus, an der noch eine Gruppe haengt. */
+    const vnPattern = () => /(?<![\d.])\d+\.\d+\.\d+(?!\.?\d)/g;
+    /* DIE LATTE JE DATEI, gemessen am 17. September 2026. Sie darf FALLEN.
+       Steigt sie, ist eine neue Herkunftsangabe dazugekommen. */
+    const VN_CEILING = {
+      'public/app.js': 328, 'server.js': 197, 'public/style.css': 175,
+      'db.js': 62, 'auth.js': 4, 'public/index.html': 4,
+      'twofactor.js': 1, 'usertool.js': 1,
+      /* AUF NULL, UND DORT BLEIBEND. */
+      '.env.example': 0, 'attachments.js': 0, 'batchrun.js': 0,
+      'images.js': 0, 'keys.js': 0, 'keytool.js': 0, 'mail.js': 0,
+      'public/theme.js': 0, 'public/languages/de.json': 0,
+      'public/languages/en.json': 0, 'public/languages/tr.json': 0,
+      'public/favicon.svg': 0
+    };
+    const VN_TOTAL = 772;
+    const vnFiles = Object.keys(VN_CEILING);
+    check('Der Waechter sieht alle zwanzig Dateien, und jede liegt da',
+      vnFiles.length === 20
+      && vnFiles.every(f => fs.existsSync(path.join(__dirname, ...f.split('/')))),
+      vnFiles.filter(f => !fs.existsSync(path.join(__dirname, ...f.split('/')))).join(' ') || `${vnFiles.length} Dateien`);
+    const vnCount = {};
+    for (const f of vnFiles) {
+      const raw = fs.readFileSync(path.join(__dirname, ...f.split('/')), 'utf8');
+      vnCount[f] = (raw.match(vnPattern()) || []).length;
+    }
+    const vnOver = vnFiles.filter(f => vnCount[f] > VN_CEILING[f]);
+    check('Keine Datei steht ueber ihrer Latte',
+      vnOver.length === 0,
+      vnOver.map(f => `${f}: ${vnCount[f]} statt ${VN_CEILING[f]}`).join(' · ') || 'alle darunter');
+    const vnZero = vnFiles.filter(f => VN_CEILING[f] === 0);
+    check('Zwoelf Dateien tragen keine einzige Versionsnummer',
+      vnZero.length === 12 && vnZero.every(f => vnCount[f] === 0),
+      vnZero.filter(f => vnCount[f] !== 0).map(f => `${f}: ${vnCount[f]}`).join(' · ') || `${vnZero.length} auf null`);
+    const vnNow = vnFiles.reduce((n, f) => n + vnCount[f], 0);
+    check(`Und zusammen sind es ${VN_TOTAL} -- die Zahl steht hier und nicht in einem Papier`,
+      vnNow === VN_TOTAL, `${vnNow} gezaehlt`);
+    /* ZWEI GEGENPROBEN: der Leser muss eine Nummer sehen UND eine Adresse
+       stehen lassen. Ohne die zweite waere jede .env mit einer IP rot. */
+    check('Der Leser wuerde eine Herkunftsangabe melden',
+      ('/* Die Klemme -- 0.19.1, BA 3. */'.match(vnPattern()) || []).length === 1,
+      'der Leser sieht die gestellte Nummer nicht');
+    check('Und er haelt eine Adresse nicht fuer eine Versionsnummer',
+      ('http://192.168.1.50:3100'.match(vnPattern()) || []).length === 0
+      && ('10.0.0.1'.match(vnPattern()) || []).length === 0,
+      'der Leser sieht in einer IP eine Version');
+  }
+
   /* ================= Zugeklappt heisst: die ERSTEN Zeilen — 0.24.1 =========
      Aus dem Betrieb am 7. */
   group('Zugeklappt heisst: die ersten Zeilen — 0.24.1');

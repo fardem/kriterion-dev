@@ -96,10 +96,23 @@ Jeweils ohne zu erzählen, wer sie wann getroffen hat.
 
 ### Der Stand
 
-Gemessen am 17. September 2026: **759 Versionsnummern** in den ausgelieferten
-Dateien, 2.318 im Prüfstand; 87-mal „Befund", 15-mal „Stolperstein", 9-mal
-„Auftrag". Die Regel gilt ab sofort für neue Kommentare. Der Altbestand ist
-Punkt 43 im Sammelblatt.
+**Die Regel hält jetzt ein Wächter** — `test/source.js`, Gruppe „Keine
+Versionsnummer als Herkunft". Er zählt zwanzig ausgelieferte Dateien und
+trägt **eine Latte je Datei, die nur fallen darf**. Zwölf Dateien stehen auf
+**null** und bleiben dort, `.env.example` seit dem 17. September 2026.
+
+**772 Versionsnummern** stehen in den ausgelieferten Dateien: `public/app.js`
+328, `server.js` 197, `public/style.css` 175, `db.js` 62, der Rest 10.
+
+> *Hier stand vorher 759. Die Zahl hat sich nicht geändert, die Messung: die
+> alte Suche zählte Zeilen statt Vorkommen und hielt eine Adresse wie
+> `192.168.1.50` für eine Versionsnummer. Die Zahl im Wächter ist die, die er
+> selbst zählt.*
+
+Der Altbestand ist Punkt 43 im Sammelblatt. **Neue Herkunftsangaben färben den
+Lauf rot** — vorher stand die Regel im Papier und nirgends sonst, und genau
+deshalb ist sie an `.env.example`, `public/style.css` und `public/index.html`
+vorbeigegangen: die drei standen in keiner Dateiliste eines Wächters.
 
 ## 3. Ablauf
 
