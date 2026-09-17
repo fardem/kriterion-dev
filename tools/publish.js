@@ -78,10 +78,16 @@ function fingerprint() {
 }
 
 /* ---- 3. Der Zeiger-ins-Leere-Test ----------------------------------------
-   Jede Datei, die hinausgeht und `Doku/` nennt, zeigt drueben auf nichts. */
+   Jede Datei, die hinausgeht und `Doku/` nennt, zeigt drueben auf nichts.
+   AUSGENOMMEN IST DER PRUEFSTAND: er behandelt das Fehlen des Ordners und
+   muss ihn dafuer nennen -- test/roundtrip.js legt Doku/Neu.md sogar an, um
+   zu belegen, dass es den Fingerprint nicht beruehrt. Ein Treffer dort waere
+   jedes Mal richtig und wuerde den Blick auf die echten verstellen. */
+const OHNE_ZEIGERTEST = /^(test\/|testbench\.js$|counterproof\.js$)/;
 function toteVerweise(dateien) {
   const treffer = [];
   for (const rel of dateien) {
+    if (OHNE_ZEIGERTEST.test(rel)) continue;
     const voll = path.join(WURZEL, rel);
     let text;
     try { text = fs.readFileSync(voll, 'utf8'); } catch { continue; }

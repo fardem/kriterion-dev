@@ -1,8 +1,7 @@
 # Changelog
 
 Alle beachtenswerten Änderungen an diesem Projekt — **kurzgefasst für den, der
-Kriterion betreibt.** Wie etwas gebaut wurde und warum, steht im
-Änderungsprotokoll der jeweiligen Runde (`Doku/Aenderungsprotokoll_<Version>.md`).
+Kriterion betreibt.**
 
 Das Format folgt [Keep a Changelog](https://keepachangelog.com/de/1.1.0/),
 die Versionsnummern folgen [Semantic Versioning](https://semver.org/lang/de/).
@@ -1717,7 +1716,7 @@ nicht mehr übernehmen.*
      zwar (0.8.3 bis v0.8.91), aber die Reihe ist lückenhaft und die
      Schreibweise uneinheitlich — verlässlich verlinkbar ist sie erst ab
      0.10.0. Ab 0.11.0 steht deshalb ein echter Vergleich; für alles vor
-     0.10.0 bleibt das Änderungsprotokoll in `Doku/` das Ziel.
+     0.10.0 gibt es keinen.
      `v0.10.0` liegt am Remote und trägt. ACHTUNG: ab `v0.11.0` fehlen sie alle
      am Remote; solange das so ist, zeigen die Verweise darunter ins Leere.
      SEIT DEM 30. AUGUST 2026 IST ENTSCHIEDEN, DASS KEINE TAGS MEHR GESETZT

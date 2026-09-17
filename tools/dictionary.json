@@ -1,5 +1,5 @@
 {
-  "_about": "Die eine Quelle des Namenswoerterbuchs 0.24.1. Doku/Namenswoerterbuch_0_24_1.md wird hieraus erzeugt (tools/dictionary-doc.js); der Migrationsblock in db.js und die Waechter im Pruefstand lesen dieselbe Datei. Zwei Listen ueber dieselbe Sache duerfen sich nicht widersprechen.",
+  "_about": "Die eine Quelle des Namenswoerterbuchs 0.24.1; tools/dictionary-doc.js erzeugt das Papier daraus; der Migrationsblock in db.js und die Waechter im Pruefstand lesen dieselbe Datei. Zwei Listen ueber dieselbe Sache duerfen sich nicht widersprechen.",
   "words": {
     "ab": "from",
     "abbild": "image",
