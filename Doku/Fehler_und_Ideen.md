@@ -1921,10 +1921,17 @@ hat, einmal im Prüfstand.*
 
 ---
 
-## 36. Der Genitiv am Namen fehlt an zwei türkischen Stellen
+## 36. ~~Der Genitiv am Namen fehlt an zwei türkischen Stellen~~ — **GESCHLOSSEN am 17. September 2026: kein Befund**
+
+> **ENTSCHEIDUNG DES BETREIBERS am 17. September 2026**, nachdem alle sechs
+> Stellen mit izafet nebeneinander gehalten worden sind: die beiden Tagstellen
+> bleiben, wie sie sind. **Dem Tag gehört nichts — er selbst wird entfernt**,
+> und der Genitiv würde die Bedeutung ändern. *Der Punkt bleibt hier stehen,
+> weil die Tafel darunter die nächste Durchsicht davon abhält, dieselbe Frage
+> noch einmal zu stellen.*
 
 **Art: Fehler** *(Türkisch)* **· Herkunft: 0.32.1, beim Durchgang durch die
-Endungen gefunden · Einschätzung: klein**
+Endungen gefunden · Einschätzung: klein · Stand: geschlossen**
 
 **ZWEI STELLEN SIND IN 0.32.1 BERICHTIGT WORDEN** *(`dialog.postsOfOthers`,
 `card.linkHolderUser`)*, **eine dritte steht als Grenzfall noch da:**
@@ -1971,9 +1978,9 @@ nichts: **er selbst wird entfernt.** Der Genitiv würde die Bedeutung ändern �
 Kennzeichnungen **dort**" steht als `oradaki işaretler` — ein Ortsbezug und
 kein Besitz.
 
-**VORSCHLAG: die beiden Stellen bleiben, wie sie sind, und der Punkt wird
-geschlossen.** *Die Entscheidung liegt beim Betreiber; ändert er sie, sind es
-zwei Werte in einer Datei.*
+**SO ENTSCHIEDEN am 17. September 2026: die beiden Stellen bleiben, wie sie
+sind.** *Würde die Entscheidung einmal umgedreht, wären es zwei Werte in einer
+Datei.*
 
 **Was es anfasst** — `public/languages/tr.json` *(zwei Werte)*.
 
