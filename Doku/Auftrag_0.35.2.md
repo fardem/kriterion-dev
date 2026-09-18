@@ -2,8 +2,14 @@
 
 Geschrieben am 17. September 2026. Nicht gebaut. Läuft nach 0.35.1.
 
-**Eine kleine Runde.** Sie nimmt eine Route weg, die das Projekt nicht braucht,
-und zwei Stücke, die dieselben Dateien anfassen.
+**Sie nimmt eine Route weg, die das Projekt nicht braucht, und zwei Stücke, die
+dieselben Dateien anfassen.**
+
+> **NACHGETRAGEN AM 18. SEPTEMBER 2026, und damit ist die Runde keine reine
+> Aufräumrunde mehr.** *Der Betreiber hat im Betrieb zwei Dinge gemeldet:*
+> **ein Fehler beim Hochladen vieler Fotos** *(BA 4 — er trifft ihn heute und
+> ist der einzige Bauabschnitt, der Verhalten ändert)* **und Zeitstempel im
+> Containerprotokoll** *(BA 5)*.
 
 > **GEMESSEN WURDE AUF DEM STAND `803a7f9` (0.35.1).** Prüfstand **7007 von
 > 7007**, 363 Gruppen, 1036 Rückbauten, Fingerprint `10017d45`.
@@ -124,7 +130,103 @@ Danach meldet `node tools/publish.js --trocken` **keinen** Verweis mehr. Der
 Satz in `Doku/Veroeffentlichen.md`, der die Stelle als bekannt offen führt,
 fällt mit.
 
-### BA 4 — Papiere
+### BA 4 — Mehr als 40 Fotos auf einmal
+
+**Gemeldet vom Betreiber am 18. September 2026 aus dem Betrieb, Stand 0.35.1.**
+Er hatte es früher schon einmal bemerkt, bei „mehr als 60 oder vielleicht 80"
+Bildern. **Das Containerprotokoll:**
+
+```
+MulterError: Unexpected field
+  code: 'LIMIT_UNEXPECTED_FILE',
+  field: 'photos',
+```
+
+**`server.js`:3115 nimmt die Fotos mit `upload.array('photos', 40)` an.** Multer
+zählt je Feldnamen herunter und wirft beim 41. Bild
+`LIMIT_UNEXPECTED_FILE` (`node_modules/multer/index.js`:40). Der Feldname im
+Fehler ist `photos`, also der erwartete — es ist die Zahl und nicht der Name.
+
+**Drei Dinge sind daran falsch:**
+
+1. **Es geht alles verloren, nicht nur das über 40.** Multer bricht die ganze
+   Anfrage ab, der Handler läuft nie, es wird kein einziges Foto gespeichert.
+2. **Die Antwort ist englisch und intern.** Der Fehler-Handler
+   (`server.js`:5462) fragt nach `err.key`; ein `MulterError` hat keinen und
+   fällt auf `err.message` zurück. Am Bildschirm steht **„Unexpected field"**.
+3. **Der Browser prüft beim Fotoweg gar nichts** — weder Zahl noch Größe
+   (`public/app.js`:4336, `for (const f of images) fd.append('photos', f)`).
+
+**Dieselbe Lücke trifft die Größe:** ein Foto über 30 MB gibt
+`LIMIT_FILE_SIZE` und damit **„File too large"**, wieder englisch.
+
+**Der Anhangsweg macht beides richtig, und das ist die Vorlage:**
+
+| | Fotos | Anhänge |
+|---|---|---|
+| Zahl je Anfrage | **40, nackt in der Routenzeile** | `ATTACHMENT_COUNT = 20`, benannt |
+| Absage bei zu vielen | **keine** — Multer bricht ab | `server.fileCap`, übersetzt |
+| Größe je Datei | 30 MB, nackt in der Multer-Zeile | `ATTACHMENT_MAX = 50 MB`, benannt |
+| Prüfung im Browser | **keine** | `public/app.js`:5430, `entry.tooBig` |
+
+**Und eine Obergrenze JE EINTRAG gibt es bei Fotos gar nicht.** Die 40 ist nur
+eine Schranke je Anfrage. Wer 80 Bilder hat, darf sie also haben — nur nicht
+in einem Zug.
+
+**Der Weg:**
+
+* `PHOTO_COUNT = 40` und `PHOTO_MAX = 30 MB` als benannte Zahlen, neben
+  `ATTACHMENT_COUNT`, `ATTACHMENT_MAX`, `IMAGE_COUNT`, `IMAGE_MAX` und
+  `VIDEO_MAX`.
+* **Der Browser schickt in Bündeln von `PHOTO_COUNT`.** Dann landen 80 Bilder
+  in zwei Anfragen und der Betreiber merkt nichts. *Das ist der Punkt: die 40
+  ist eine Schranke der Anfrage, keine Aussage über den Eintrag.*
+* **Der Fehler-Handler übersetzt die Multer-Grenzen**, statt `err.message`
+  durchzureichen. Das betrifft **fünf** Hochladewege mit ihren Grenzen:
+
+  | Weg | je Datei | je Anfrage |
+  |---|---:|---:|
+  | Fotos | 30 MB | 40 |
+  | Videos | 20 MB | 1 + 1 Standbild |
+  | Anhänge | 50 MB | 20 |
+  | Kommentarbilder | 20 MB | 6 |
+  | Import | 900 MB | 1 |
+
+  Zwei Schlüssel gibt es schon (`server.fileCap`, `server.imagesOnly`), für
+  `LIMIT_FILE_SIZE` braucht es einen.
+* **Die Zahl steht dann auch im Handbuch.** Heute steht die 40 nirgends —
+  nicht in der README, nicht im Handbuch, in keinem Sprachschlüssel.
+
+*`entry.tooBig` trägt die 50 MB als Text im Satz, während `ATTACHMENT_MAX` sie
+als Zahl trägt — zwei Orte für dieselbe Zahl. Das fällt mit, wenn der Satz
+ohnehin angefasst wird.*
+
+### BA 5 — Das Containerprotokoll bekommt Zeitstempel
+
+**Vorgabe des Betreibers am 18. September 2026:** ein Protokoll ohne
+Zeitstempel ist schwer zu lesen.
+
+**Heute trägt keine Zeile eine Zeit.** Es sind **51 Zeilen** mit `[Kriterion]`
+in sechs Dateien: `server.js` 28, `batchrun.js` 8, `auth.js` 7, `db.js` 5,
+`keys.js` 2, `images.js` 1. Ein Helfer, eine Stelle.
+
+**`docker compose logs -t` setzt heute schon einen Zeitstempel davor**, in UTC.
+Das kostet nichts und hilft sofort — aber ein Protokoll, dessen Zeit davon
+abhängt, wie man es liest, hat keine.
+
+**Der Weg:** ISO 8601 mit Versatz, `2026-09-18T08:21:03+02:00`. **Der Versatz
+kommt aus `TZ`**, und `docker-compose.example.yml` setzt heute nur `PORT=3000`
+— also läuft der Container auf UTC und der Versatz wäre immer `+00:00`.
+**`TZ=Europe/Berlin` gehört in die Beispieldatei**, mit einem Satz daneben, was
+es ändert.
+
+> **DIE GESPEICHERTEN ZEITEN BLEIBEN UTC** — das Sicherheitsprotokoll, die
+> Sicherungsnamen und `exported_at` schreiben `2026-09-18 06:21:03` und werden
+> zwischen Installationen verglichen. **Nur das Containerprotokoll folgt `TZ`.**
+> Dass beide verschieden aussehen, ist dann keine Unklarheit, sondern steht am
+> Versatz: `+02:00` sagt, welche der beiden Uhren gemeint ist.
+
+### BA 6 — Papiere
 
 Änderungsprotokoll 0.35.2, CHANGELOG-Eintrag **mit Kasten** (siehe Abschnitt
 7), Fahrplanzeile auf GEBAUT, Projektstand, `README.md`:760.
@@ -133,9 +235,14 @@ fällt mit.
 
 ## 4. Zusagen an den Prüfstand
 
-1. **Kein Verhalten ändert sich außer dem, was ausgebaut wird.** Der volle
-   Export, der Teilexport und der Papierkorb verhalten sich Byte für Byte wie
-   vorher.
+1. **BA 1 bis BA 3 ändern kein Verhalten außer dem, was ausgebaut wird.** Der
+   volle Export, der Teilexport und der Papierkorb verhalten sich Byte für Byte
+   wie vorher.
+1a. **BA 4 ändert Verhalten, und zwar absichtlich:** wer heute 80 Fotos wählt,
+   verliert alle und liest „Unexpected field"; danach landen sie. Jede neue
+   Zusage steht namentlich im Protokoll.
+1b. **BA 5 ändert das Containerprotokoll und sonst nichts.** Keine gespeicherte
+   Zeit verschiebt sich.
 2. Die Zahl der Prüfungen fällt — und zwar **namentlich**: jede weggefallene
    Prüfung steht im Protokoll.
 3. Die Zahl der Rückbauten fällt um zwei und steigt um die des neuen Wächters.
@@ -155,6 +262,8 @@ fällt mit.
 | **F2** | **Fällt der tote `itemId`-Zweig in derselben Runde?** `exchangeParts()` und `exchangeEnvelopeBytes()` bekommen `itemId` danach nur noch als `null` — je ein `onlyOne`, `values`, `and()`, `wo()` und **11 Einsetzungen** in den Abfragen | *dafür:* er bleibt sonst liegen und die nächste Messung findet ihn wieder. *dagegen:* die Runde wächst von zwölf auf rund fünfzig Zeilen und fasst drei Abfragen an, die der volle Export braucht |
 | **F3** | **Punkt 35** — Gegenprobe 330 reißt `public/app.js` ab, statt eine Prüfung rot zu machen. Laut Sammelblatt gehört sie der Runde, die `counterproof.js` anfasst, und das ist diese | *mitnehmen,* wenn F1 nicht dagegen spricht |
 | **F4** | **Punkt 34** — der Grund eines gescheiterten Versands steht in der Sprache des Empfängers. `e.reason` entsteht in `mail.js` als fertiger Satz und müsste erst als Schlüssel reisen | *messen, bevor entschieden wird.* Ist es nicht klein, geht es in die Zeile ohne Nummer im Fahrplan |
+| **F5** | **Bündeln oder absagen?** Der Browser kann bei mehr als `PHOTO_COUNT` Bildern in mehreren Anfragen schicken — oder absagen und es sagen | *bündeln.* Eine Obergrenze je Eintrag gibt es nicht; die 40 ist eine Schranke der Anfrage. Absagen hieße, eine Grenze zu erfinden, die es nicht gibt. **Die übersetzte Absage wird trotzdem gebaut** — sie fängt jeden anderen Weg zur Route |
+| **F6** | **Folgt das Containerprotokoll `TZ`, oder bleibt alles UTC?** | *`TZ` folgen, gespeicherte Zeiten bleiben UTC.* `TZ=Europe/Berlin` in `docker-compose.example.yml`. Ohne `TZ` steht dort `+00:00` und der Versatz sagt es selbst |
 
 ---
 
@@ -193,6 +302,10 @@ Fahrplan in der Zeile ohne Nummer und bleiben im Sammelblatt offen.
 404.** Das gehört als Kasten in den CHANGELOG, so wie bei `GET /api/health` in
 0.35.0.
 
+**Und: `TZ` entscheidet ab dieser Runde, welche Zeit im Containerprotokoll
+steht.** Ohne `TZ` ist es UTC, wie bisher. Die gespeicherten Zeiten ändern sich
+nicht.
+
 ---
 
 ## 9. Wie diese Runde gefahren wird
@@ -203,6 +316,7 @@ Bauabschnitt**. Kein Fächer, keine Entwurfsrunde.
 | Phase | Form |
 |---|---|
 | **Vorlauf** | die Suchtexte der 1.036 Rückbauten gegen ihre Dateien halten, **bevor** etwas fällt — derselbe Abgleich, der in 0.35.1 drei stumme Rückbauten gefunden hat |
-| **BA 1 bis BA 3** | je ein Schreiber, je ein voller Lauf, je ein Commit |
+| **BA 1 bis BA 5** | je ein Schreiber, je ein voller Lauf, je ein Commit |
+| **BA 4 zuerst** | er ist der einzige, der einen Fehler behebt, den der Betreiber heute hat |
 | **Gegenproben** | `counterproof.js` über die neuen und die berührten, zwei Spuren |
 | **Vor dem Push** | `npm test` vollständig, das Ergebnis wird genannt |
