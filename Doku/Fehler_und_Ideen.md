@@ -2490,3 +2490,63 @@ bekommt danach 404. Das gehört in einen Kasten, so wie bei `GET /api/health`.
 **Papiere:** `README.md`:760, Projektstand (zwei Stellen), eigener
 CHANGELOG-Eintrag. **Der Eintrag 0.35.0 im CHANGELOG bleibt stehen** — was dort
 steht, ist geschehen.
+
+---
+
+## 46. Mehr als 40 Fotos auf einmal verlieren alle Fotos
+
+**Art: Fehler** *(an der Anwendung, im Betrieb gemeldet)* **· Herkunft:
+Betreiber, 18. September 2026, Stand 0.35.1 · Einschätzung: klein ·
+Fahrplan: 0.35.2, BA 4**
+
+**`server.js`:3115 nimmt die Fotos mit `upload.array('photos', 40)` an.** Beim
+41. Bild wirft Multer `LIMIT_UNEXPECTED_FILE` und bricht die **ganze** Anfrage
+ab — es wird kein einziges Foto gespeichert. Am Bildschirm steht
+**„Unexpected field"**, weil der Fehler-Handler (`server.js`:5462) für einen
+Fehler ohne `key` auf `err.message` zurückfällt.
+
+**Der Betreiber hat es zweimal getroffen**, zuletzt am 18. September 2026 und
+früher schon einmal bei „mehr als 60 oder vielleicht 80" Bildern.
+
+**Der Browser prüft beim Fotoweg gar nichts** — weder Zahl noch Größe
+(`public/app.js`:4336). Beim Anhangsweg prüft er beides. **Dieselbe Lücke trifft
+die Größe:** ein Foto über 30 MB gibt „File too large", wieder englisch.
+
+**Eine Obergrenze je Eintrag gibt es bei Fotos nicht.** Die 40 ist eine
+Schranke der Anfrage. Wer 80 Bilder hat, darf sie haben — nur nicht in einem
+Zug.
+
+**Der ganze Zuschnitt steht in `Doku/Auftrag_0.35.2.md`, BA 4** — samt der
+Tafel der fünf Hochladewege und ihrer Grenzen.
+
+**Was es anfasst** — `server.js` *(die benannten Zahlen, der Fehler-Handler)*,
+`public/app.js` *(das Bündeln)*, die drei Sprachdateien *(ein Schlüssel für
+`LIMIT_FILE_SIZE`)*, `manual-de.md`.
+
+---
+
+## 47. Das Containerprotokoll trägt keine Zeitstempel
+
+**Art: Idee** *(Betrieb)* **· Herkunft: Betreiber, 18. September 2026 ·
+Einschätzung: klein · Fahrplan: 0.35.2, BA 5**
+
+**Keine der 51 Zeilen mit `[Kriterion]` trägt eine Zeit.** Verteilung:
+`server.js` 28, `batchrun.js` 8, `auth.js` 7, `db.js` 5, `keys.js` 2,
+`images.js` 1.
+
+`docker compose logs -t` setzt heute schon einen Zeitstempel davor, in UTC.
+**Das hilft sofort und kostet nichts** — aber ein Protokoll, dessen Zeit davon
+abhängt, wie man es liest, hat keine.
+
+**Der Weg:** ISO 8601 mit Versatz, ein Helfer an einer Stelle. **Der Versatz
+kommt aus `TZ`**; `docker-compose.example.yml` setzt heute nur `PORT=3000`,
+also läuft der Container auf UTC. `TZ=Europe/Berlin` gehört in die
+Beispieldatei.
+
+> **DIE GESPEICHERTEN ZEITEN BLEIBEN UTC** — Sicherheitsprotokoll,
+> Sicherungsnamen und `exported_at` werden zwischen Installationen verglichen.
+> Nur das Containerprotokoll folgt `TZ`. Dass beide verschieden aussehen, steht
+> dann am Versatz.
+
+**Was es anfasst** — `server.js`, `db.js`, `keys.js`, `auth.js`, `batchrun.js`,
+`images.js` *(je die `console`-Zeilen)*, `docker-compose.example.yml`.
