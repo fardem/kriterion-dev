@@ -2767,6 +2767,413 @@ const qAllItems = db.prepare('SELECT * FROM items ORDER BY updated_at DESC');
    Schleife darunter und wurden damit einmal je Eintrag uebersetzt. */
 const qAttachmentCounts = db.prepare('SELECT item_id, COUNT(*) n FROM attachments GROUP BY item_id');
 
+/* Der Kern steht zweimal: hier und in public/app.js. Beide Fassungen
+   sind Zeichen fuer Zeichen dieselben; ein Waechter haelt sie gleich,
+   und eine gemeinsame Tafel von Faellen prueft beide.
+   ANFANG DES GETEILTEN KERNS */
+/* ================= Auszeichnung ================= */
+/* Eine Teilmenge von CommonMark. Innerhalb der Teilmenge gilt die
+   Spezifikation; was nicht darin liegt, bleibt gewoehnlicher Text. */
+
+// Die Zeichenklassen der Flankenregel. MARKUP_MARK nimmt Satzzeichen und
+// Symbole, wie die Spezifikation es verlangt.
+const MARKUP_ASCII_MARK = /[!-\/:-@\[-`{-~]/;
+const MARKUP_MARK = /[\p{P}\p{S}]/u;
+const MARKUP_SPACE = /[ \t\n\v\f\r]/;
+
+// Nur diese Ziele werden ein Link -- dieselbe Schranke wie bei der nackten
+// Adresse. Alles andere bleibt der Rohtext, wie er dasteht.
+const MARKUP_TARGET = /^https?:\/\//i;
+
+/* ---- Die Inline-Ebene ---- */
+
+// Was links und rechts eines Zeichenlaufs steht, entscheidet ueber Oeffnen
+// und Schliessen. Zeilenanfang und Zeilenende zaehlen als Leerraum.
+function markupFlanks(text, from, to) {
+  const before = from > 0 ? text[from - 1] : '\n';
+  const after = to < text.length ? text[to] : '\n';
+  const spaceBefore = MARKUP_SPACE.test(before), spaceAfter = MARKUP_SPACE.test(after);
+  const markBefore = MARKUP_MARK.test(before), markAfter = MARKUP_MARK.test(after);
+  const left = !spaceAfter && (!markAfter || spaceBefore || markBefore);
+  const right = !spaceBefore && (!markBefore || spaceAfter || markAfter);
+  return { left, right, markBefore, markAfter };
+}
+
+/* Ein Code-Abschnitt traegt sich selbst: zwischen zwei gleich langen Laeufen
+   von Backticks gilt keine weitere Auszeichnung. Er steht in EINER Zeile --
+   ueber den Umbruch hinweg wuerde ein Zaun aus drei Backticks einer. */
+function markupCode(text, at) {
+  let run = 0;
+  while (text[at + run] === '`') run++;
+  const open = at + run;
+  const stop = text.indexOf('\n', open);
+  const line = stop < 0 ? text.length : stop;
+  let from = open;
+  for (;;) {
+    const found = text.indexOf('`', from);
+    if (found < 0 || found >= line) return null;
+    let n = 0;
+    while (text[found + n] === '`') n++;
+    if (n === run) {
+      let body = text.slice(open, found);
+      // Ein Leerzeichen an beiden Enden faellt weg, damit `` ` `` moeglich ist.
+      if (body[0] === ' ' && body[body.length - 1] === ' ' && /[^ ]/.test(body))
+        body = body.slice(1, -1);
+      return { text: body, end: found + n };
+    }
+    from = found + n;
+  }
+}
+
+// Das Ziel eines Links, ab der oeffnenden Klammer. Ein Titel dahinter wird
+// gelesen und verworfen -- die Teilmenge kennt ihn nicht.
+function markupTarget(text, at) {
+  let i = at + 1;
+  const skip = () => { while (i < text.length && MARKUP_SPACE.test(text[i])) i++; };
+  skip();
+  let target = '';
+  if (text[i] === '<') {
+    i++;
+    for (;;) {
+      if (i >= text.length) return null;
+      const c = text[i];
+      if (c === '\n' || c === '<') return null;
+      if (c === '>') { i++; break; }
+      if (c === '\\' && MARKUP_ASCII_MARK.test(text[i + 1] || '')) { target += text[i + 1]; i += 2; continue; }
+      target += c; i++;
+    }
+  } else {
+    let depth = 0;
+    for (;;) {
+      if (i >= text.length) break;
+      const c = text[i];
+      if (c === '\\' && MARKUP_ASCII_MARK.test(text[i + 1] || '')) { target += text[i + 1]; i += 2; continue; }
+      if (MARKUP_SPACE.test(c) || c.charCodeAt(0) < 0x20 || c === '\x7f') break;
+      if (c === '(') { depth++; target += c; i++; continue; }
+      if (c === ')') { if (!depth) break; depth--; target += c; i++; continue; }
+      target += c; i++;
+    }
+    if (depth) return null;
+  }
+  const afterTarget = i;
+  skip();
+  const quote = text[i];
+  if (i > afterTarget && (quote === '"' || quote === "'" || quote === '(')) {
+    const close = quote === '(' ? ')' : quote;
+    i++;
+    for (;;) {
+      if (i >= text.length) return null;
+      if (text[i] === '\\' && MARKUP_ASCII_MARK.test(text[i + 1] || '')) { i += 2; continue; }
+      if (text[i] === close) { i++; break; }
+      i++;
+    }
+    skip();
+  }
+  if (text[i] !== ')') return null;
+  return { target, end: i + 1 };
+}
+
+// Die Teilmenge traegt zwei Sterne fuer fett und einen Unterstrich fuer
+// kursiv. Jedes andere Paar bleibt stehen, wie es geschrieben wurde.
+const markupWrap = (char, used) =>
+  (char === '*' && used > 1) ? 'strong' : (char === '_' && used < 2) ? 'em' : '';
+
+/* Die Zeichenlaeufe werden nach der Spezifikation gepaart; erst danach
+   entscheidet sich, ob daraus ein Knoten oder wieder Text wird. */
+function markupPairs(parts, marks, bottom) {
+  let at = bottom;
+  while (at < marks.length) {
+    const closer = marks[at];
+    if (!closer.canClose || !closer.node.text) { at++; continue; }
+    let found = -1;
+    for (let i = at - 1; i >= bottom; i--) {
+      const opener = marks[i];
+      if (!opener.canOpen || !opener.node.text || opener.char !== closer.char) continue;
+      /* DIE DREIERREGEL: kann eines der beiden Zeichen beides, darf die Summe
+         kein Vielfaches von drei sein -- es sei denn, beide sind es. */
+      const odd = (opener.canClose || closer.canOpen)
+        && (opener.original + closer.original) % 3 === 0
+        && !(opener.original % 3 === 0 && closer.original % 3 === 0);
+      if (odd) continue;
+      found = i; break;
+    }
+    if (found < 0) {
+      if (!closer.canOpen) marks.splice(at, 1); else at++;
+      continue;
+    }
+    const opener = marks[found];
+    const used = (opener.node.text.length >= 2 && closer.node.text.length >= 2) ? 2 : 1;
+    const from = parts.indexOf(opener.node), to = parts.indexOf(closer.node);
+    const inner = parts.slice(from + 1, to);
+    opener.node.text = opener.node.text.slice(used);
+    closer.node.text = closer.node.text.slice(used);
+    const kind = markupWrap(closer.char, used);
+    const mark = closer.char.repeat(used);
+    const back = kind ? '' : mark + markupFlatten(inner) + mark;
+    parts.splice(from + 1, to - from - 1, kind
+      ? { type: kind, mark, children: inner }
+      : { type: 'text', text: back, raw: back });
+    marks.splice(found + 1, at - found - 1);
+    at = found + 1;
+    if (!opener.node.text) { marks.splice(found, 1); at--; }
+    if (!closer.node.text) marks.splice(at, 1);
+  }
+  marks.length = bottom;
+}
+
+// Ein Baum, der nicht gezeichnet wird, faellt auf seinen Rohtext zurueck --
+// Zeichen fuer Zeichen, damit kein Teil verschwindet.
+function markupFlatten(parts) {
+  return (parts || []).map(p => p.raw !== undefined ? p.raw
+    : p.type === 'text' ? p.text
+    : p.mark + markupFlatten(p.children) + p.mark).join('');
+}
+
+// Ob ein Zeichen selbst maskiert ist -- zwei Backslashes heben sich auf.
+function markupEscaped(source, at) {
+  let n = 0;
+  while (at - 1 - n >= 0 && source[at - 1 - n] === '\\') n++;
+  return n % 2 === 1;
+}
+
+// Benachbarte Textstuecke werden eins; leere fallen heraus.
+function markupJoin(parts) {
+  const out = [];
+  for (const p of parts) {
+    if (p.type !== 'text') { if (p.children) p.children = markupJoin(p.children); out.push(p); continue; }
+    if (!p.text) continue;
+    const raw = p.raw === undefined ? p.text : p.raw;
+    const last = out[out.length - 1];
+    if (last && last.type === 'text') { last.text += p.text; last.raw += raw; continue; }
+    out.push({ type: 'text', text: p.text, raw });
+  }
+  return out;
+}
+
+function markupInline(source) {
+  const parts = [], marks = [], brackets = [];
+  let pos = 0, plain = '', plainSource = '';
+  /* DER ROHTEXT LAEUFT MIT: ein Backslash vor einem Satzzeichen faellt beim
+     Zeichnen weg und muss zurueckkommen, wenn ein Paar doch Text bleibt. */
+  const flush = () => {
+    if (plain) parts.push({ type: 'text', text: plain, raw: plainSource });
+    plain = ''; plainSource = '';
+  };
+  while (pos < source.length) {
+    const c = source[pos];
+    if (c === '\\' && MARKUP_ASCII_MARK.test(source[pos + 1] || '')) {
+      plain += source[pos + 1]; plainSource += source.slice(pos, pos + 2); pos += 2; continue;
+    }
+    if (c === '`') {
+      const span = markupCode(source, pos);
+      /* OHNE GEGENSTUECK BLEIBT DER GANZE LAUF TEXT und nicht nur sein erstes
+         Zeichen -- sonst faende der Rest ein falsches Gegenstueck. */
+      if (!span) {
+        let run = 0;
+        while (source[pos + run] === '`') run++;
+        plain += '`'.repeat(run); plainSource += '`'.repeat(run); pos += run; continue;
+      }
+      flush();
+      parts.push({ type: 'code', text: span.text, raw: source.slice(pos, span.end) });
+      pos = span.end; continue;
+    }
+    if (c === '[') {
+      // EIN BILD WIRD NIE GEZEICHNET: das `!` davor macht die Klammer stumm.
+      const image = source[pos - 1] === '!' && !markupEscaped(source, pos - 1);
+      if (image) { plain = plain.slice(0, -1); plainSource = plainSource.slice(0, -1); }
+      flush();
+      const node = { type: 'text', text: image ? '![' : '[' };
+      parts.push(node);
+      brackets.push({ node, from: image ? pos - 1 : pos, image, floor: marks.length });
+      pos++; continue;
+    }
+    if (c === ']') {
+      const open = brackets.pop();
+      if (!open) { plain += c; plainSource += c; pos++; continue; }
+      const link = source[pos + 1] === '(' ? markupTarget(source, pos + 1) : null;
+      if (!link || !MARKUP_TARGET.test(link.target) || open.image) {
+        /* DER ROHTEXT KOMMT ZURUECK, damit nichts Halbes stehenbleibt: ein
+           Ziel, das kein Link wird, laesst auch den Namen unberuehrt. */
+        flush();
+        const end = link ? link.end : pos + 1;
+        const from = parts.indexOf(open.node);
+        const back = source.slice(open.from, end);
+        parts.splice(from, parts.length - from, { type: 'text', text: back, raw: back });
+        marks.length = open.floor;
+        pos = end; continue;
+      }
+      flush();
+      markupPairs(parts, marks, open.floor);
+      const from = parts.indexOf(open.node);
+      parts.splice(from, parts.length - from, { type: 'link', target: link.target,
+        children: parts.slice(from + 1), raw: source.slice(open.from, link.end) });
+      // EINEN LINK IM LINK GIBT ES NICHT.
+      brackets.length = 0;
+      pos = link.end; continue;
+    }
+    if (c === '*' || c === '_') {
+      let run = 0;
+      while (source[pos + run] === c) run++;
+      const flank = markupFlanks(source, pos, pos + run);
+      flush();
+      const node = { type: 'text', text: c.repeat(run) };
+      parts.push(node);
+      marks.push({ node, char: c, original: run,
+        canOpen: c === '*' ? flank.left : flank.left && (!flank.right || flank.markBefore),
+        canClose: c === '*' ? flank.right : flank.right && (!flank.left || flank.markAfter) });
+      pos += run; continue;
+    }
+    plain += c; plainSource += c; pos++;
+  }
+  flush();
+  markupPairs(parts, marks, 0);
+  return markupJoin(parts);
+}
+
+/* ---- Die Zeilenebene ---- */
+
+const MARKUP_QUOTE = /^ {0,3}>(?: |\t)?/;
+const MARKUP_BULLET = /^( {0,3})(-)(?:( +)(.*)|()())$/;
+const MARKUP_NUMBER = /^( {0,3})(\d{1,9})\.(?:( +)(.*)|()())$/;
+/* Diese vier liegen nicht in der Teilmenge und bleiben Text -- eine
+   Absatzzeile beenden sie trotzdem, sonst zoege ein Zitat sie zu sich. */
+const MARKUP_RULE = /^ {0,3}(?:(?:\*[ \t]*){3,}|(?:-[ \t]*){3,}|(?:_[ \t]*){3,})$/;
+const MARKUP_HEADING = /^ {0,3}#{1,6}(?:[ \t]|$)/;
+const MARKUP_FENCE = /^ {0,3}(?:`{3,}|~{3,})/;
+const MARKUP_ITEM = /^ {0,3}(?:[-+*]|\d{1,9}[.)])(?:[ \t]+\S|[ \t]*$)/;
+const MARKUP_MARKER = /^ {0,3}(?:[-+*]|\d{1,9}[.)])[ \t]+/;
+
+const markupOpensBlock = (line) =>
+  MARKUP_QUOTE.test(line) || MARKUP_RULE.test(line) || MARKUP_HEADING.test(line)
+  || MARKUP_FENCE.test(line) || MARKUP_ITEM.test(line);
+
+// Ob eine Zeile innen auf einem Absatz endet -- nur dann laeuft die naechste
+// Zeile ohne eigenes Zeichen mit. Die Zeichen werden dafuer abgetragen.
+function markupLazy(line) {
+  const quote = line.match(MARKUP_QUOTE);
+  if (quote) return markupLazy(line.slice(quote[0].length));
+  const marker = line.match(MARKUP_MARKER);
+  if (marker) return markupLazy(line.slice(marker[0].length));
+  return /\S/.test(line) && !MARKUP_RULE.test(line)
+    && !MARKUP_HEADING.test(line) && !MARKUP_FENCE.test(line);
+}
+
+// Ein Zitat nimmt seine Zeilen und wird selbst wieder zerlegt.
+function markupQuote(lines, at) {
+  const inner = [];
+  let i = at, running = false;
+  while (i < lines.length) {
+    const marker = lines[i].match(MARKUP_QUOTE);
+    if (marker) {
+      const rest = lines[i].slice(marker[0].length);
+      inner.push(rest);
+      running = markupLazy(rest);
+      i++; continue;
+    }
+    if (running && /\S/.test(lines[i]) && !markupOpensBlock(lines[i])) { inner.push(lines[i]); i++; continue; }
+    break;
+  }
+  return { block: { type: 'quote', blocks: markupBlocks(inner) }, end: i };
+}
+
+// Eine Aufzaehlung sammelt ihre Punkte; eine eingerueckte Folgezeile gehoert
+// zum Punkt darueber.
+function markupList(lines, at, ordered) {
+  const pattern = ordered ? MARKUP_NUMBER : MARKUP_BULLET;
+  const items = [];
+  let i = at, start = 1, blank = false;
+  while (i < lines.length) {
+    const m = lines[i].match(pattern);
+    if (!m || MARKUP_RULE.test(lines[i])) {
+      if (!/\S/.test(lines[i] ?? '')) { blank = true; i++; continue; }
+      const last = items[items.length - 1];
+      if (last && !blank && !markupOpensBlock(lines[i])) { last.push(lines[i]); i++; continue; }
+      break;
+    }
+    blank = false;
+    if (!items.length && ordered) start = Number(m[2]);
+    const markerWidth = m[1].length + (ordered ? m[2].length + 1 : 1);
+    const spaces = m[3] || '';
+    const indent = markerWidth + (spaces.length >= 1 && spaces.length <= 4 ? spaces.length : 1);
+    const item = [m[4] ?? ''];
+    // EIN PUNKT, DER MIT EINER LEERZEILE ANFAENGT, BLEIBT LEER.
+    const bare = (m[4] ?? '') === '';
+    let itemBlank = false;
+    i++;
+    while (i < lines.length) {
+      const line = lines[i];
+      if (!/\S/.test(line)) { if (bare) break; item.push(''); itemBlank = true; i++; continue; }
+      if (line.startsWith(' '.repeat(indent))) { item.push(line.slice(indent)); i++; continue; }
+      if (!itemBlank && !markupOpensBlock(line)) { item.push(line); i++; continue; }
+      break;
+    }
+    while (item.length && !/\S/.test(item[item.length - 1])) { item.pop(); blank = true; }
+    items.push(item);
+  }
+  return { block: { type: ordered ? 'number' : 'bullet', start,
+                    items: items.map(lns => markupBlocks(lns)) }, end: i };
+}
+
+function markupBlocks(lines) {
+  const blocks = [];
+  let i = 0, text = [];
+  const flush = () => {
+    while (text.length && !/\S/.test(text[text.length - 1])) text.pop();
+    if (text.length) blocks.push({ type: 'text', lines: text });
+    text = [];
+  };
+  while (i < lines.length) {
+    const line = lines[i];
+    if (MARKUP_QUOTE.test(line)) { flush(); const r = markupQuote(lines, i); blocks.push(r.block); i = r.end; continue; }
+    // EINE TRENNLINIE IST KEINE AUFZAEHLUNG, und sie bleibt Text.
+    const rule = MARKUP_RULE.test(line);
+    /* MITTEN IN EINEM ABSATZ FAENGT NUR AN, WAS AUCH INHALT HAT -- und eine
+       Nummerierung nur bei der Eins. */
+    const opens = (m, ordered) => !rule && m && (!text.length
+      || ((m[4] || '') !== '' && (!ordered || Number(m[2]) === 1)));
+    if (opens(line.match(MARKUP_BULLET), false)) {
+      flush(); const r = markupList(lines, i, false); blocks.push(r.block); i = r.end; continue;
+    }
+    if (opens(line.match(MARKUP_NUMBER), true)) {
+      flush(); const r = markupList(lines, i, true); blocks.push(r.block); i = r.end; continue;
+    }
+    if (!text.length && !/\S/.test(line)) { i++; continue; }
+    text.push(line); i++;
+  }
+  flush();
+  return blocks;
+}
+
+// Der Rohtext als Baum. Die Zeilenebene liegt ueber der Inline-Ebene, und
+// beide liegen ueber der Zerlegung, die es schon gibt.
+function markupParse(raw) {
+  return markupBlocks(String(raw ?? '').replace(/\r\n|\r/g, '\n').split('\n'));
+}
+
+/* ---- Die Marken heraus ---- */
+
+/* Fuer die Stellen, die nur Text koennen. Sie bekommen denselben Baum und
+   lesen aus ihm den Text, den der Leser zeichnen wuerde. */
+function markupPlainInline(parts) {
+  return parts.map(p => p.type === 'text' || p.type === 'code' ? p.text
+    : markupPlainInline(p.children)).join('');
+}
+
+function markupPlainBlocks(blocks) {
+  const out = [];
+  for (const b of blocks) {
+    if (b.type === 'text') { out.push(markupPlainInline(markupInline(b.lines.join('\n')))); continue; }
+    if (b.type === 'quote') { out.push(markupPlainBlocks(b.blocks)); continue; }
+    for (const item of b.items) out.push(markupPlainBlocks(item));
+  }
+  return out.join('\n');
+}
+
+function markupPlain(raw) {
+  return markupPlainBlocks(markupParse(raw));
+}
+/* ENDE DES GETEILTEN KERNS */
+
 /* ================= Die Volltextsuche ================= SIE SUCHT SIEBEN
    QUELLEN: Titel, Beschreibung, Kategoriename, Tags am Eintrag, Tags an
    Testtagen, Linkadressen und saemtliche Kommentartexte. */
@@ -2808,6 +3215,9 @@ const qFulltext = db.prepare(`
     FROM items i
     LEFT JOIN product_categories c ON c.id = i.product_category_id
    WHERE ${FULLTEXT_SOURCES.map(q => `(${q.value}) IS NOT NULL`).join('\n      OR ')}`);
+
+/* Nur diese beiden der sieben Quellen tragen Auszeichnung. */
+const MARKUP_SOURCES = new Set(['description', 'comment']);
 
 /* WIE LANG EIN AUSSCHNITT IST -- GEMESSEN UND NICHT GESCHAETZT. */
 const SNIPPET_LENGTH = 56;
@@ -2855,7 +3265,10 @@ const fulltextHits = (term) => new Map(qFulltext.all({ q: term }).map(r => {
   const first = hit[0];
   return [r.id, first ? {
     source: first.key,
-    text: snippet(r['f_' + first.key], term),
+    /* Die Marken kommen VOR dem Schneiden heraus: ein halbes `**` stuende
+       sonst sichtbar im Ausschnitt. */
+    text: snippet(MARKUP_SOURCES.has(first.key)
+      ? markupPlain(r['f_' + first.key]) : r['f_' + first.key], term),
     others: hit.length - 1
   } : null];
 }));
@@ -2995,6 +3408,25 @@ app.get('/api/items/:id', (req, res) => {
   const it = detail(req.params.id, req.user.id, localeOf(req));
   if (!it) return res.status(404).json({ error: t(localeOf(req), 'server.entryUnknown')});
   res.json(it);
+});
+
+/* ---- Woran ein Verweis haengt ---- */
+/* Die Marke nennt Titel und Stellung; die Stellung kommt beim Fragen heraus
+   und reist nicht in der Adresse mit. */
+const qCommentRef = db.prepare(`
+  SELECT k.id, k.item_id AS itemId, i.title AS itemTitle,
+         (SELECT COUNT(*) FROM comments v WHERE v.item_id = k.item_id AND v.id <= k.id) AS number
+    FROM comments k JOIN items i ON i.id = k.item_id
+   WHERE k.id = ?`);
+
+/* Dieselbe Schranke wie am Eintrag und keine zweite: angemeldet sein
+   genuegt, denn GET /api/items/:id verlangt auch nicht mehr. */
+app.get('/api/comment-refs', (req, res) => {
+  /* Zweihundert je Ruf -- ein Eintrag mit mehr Verweisen holt den Rest
+     beim naechsten Zeichnen. */
+  const ids = [...new Set(String(req.query.ids || '').split(',')
+    .map(x => Number(x)).filter(Number.isInteger))].slice(0, 200);
+  res.json(ids.map(x => qCommentRef.get(x)).filter(Boolean));
 });
 
 app.post('/api/items', (req, res) => {
@@ -3943,7 +4375,10 @@ app.post('/api/images/convert', ownerOnly, secondConfirmNeeded('images'), (req, 
 /* UND DAS FAELLIGKEITSDATUM AM KOMMENTAR -- Formatnummer 16. */
 /* UND DIE PROGRAMMFASSUNG NEBEN DER FORMATNUMMER -- Nummer 17,
    Frage F16 jener Runde. */
-const EXCHANGE_FORMAT = 17;
+/* UND DIE AUSZEICHNUNG IN KOMMENTAR UND BESCHREIBUNG -- Nummer 18. Die
+   Nummer ist ein Hinweis und keine Schranke: eine aeltere Fassung nimmt die
+   Datei herein und zeigt die Marken als Text. */
+const EXCHANGE_FORMAT = 18;
 
 /* DIE AELTESTE DATEI, DIE NOCH HEREINKOMMT, Frage F15. WARUM ES
    EINE UNTERGRENZE GIBT. */

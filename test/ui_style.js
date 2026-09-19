@@ -2550,6 +2550,44 @@ async function run() {
      Eine Regelpruefung wie die zu [hidden] aus 0.15.1: die Regel steht seit
      0.19.x im Projektstand (10a), und das Stilblatt brach sie an neun
      Stellen. */
+  /* ================= Das Menue der Auszeichnung ================= Es haengt
+     ueber der Kante des Feldes und muss auf einem schmalen Bildschirm
+     umbrechen statt aus dem Bild zu laufen. */
+  group('Das schwebende Menue bleibt im Bild');
+  {
+    const mnRaw = fs.readFileSync(path.join(__dirname, 'public', 'style.css'), 'utf8');
+    const mnRule = regel123('.markup-menu') || '';
+    check('Die Regel des Menues steht im Stilblatt', mnRule.length > 40, mnRule.slice(0, 120));
+    /* AUF 360 PIXELN BREITE BRICHT ES IN ZWEI ZEILEN, STATT AUS DEM BILD ZU
+       LAUFEN -- beides steht an derselben Regel. */
+    check('Es bricht um und bleibt schmaler als der Bildschirm',
+      /flex-wrap: wrap/.test(mnRule) && /max-width: calc\(100vw - 16px\)/.test(mnRule),
+      mnRule.slice(0, 200));
+    check('Und es traegt seine Stufe aus der Stapelordnung, keine eigene Zahl',
+      /z-index: var\(--z-markup-menu\)/.test(mnRule), mnRule.slice(0, 200));
+    /* UND SEINE STUFE LIEGT UNTER DER KOPFZEILE: es soll unter ihr
+       durchlaufen und nicht ueber ihr stehen. */
+    const mnLevel = (name) => Number((mnRaw.match(new RegExp('--' + name + ': (\\d+);')) || [])[1]);
+    check('Und sie liegt unter der Kopfzeile',
+      mnLevel('z-markup-menu') < mnLevel('z-masthead')
+      && mnLevel('z-markup-menu') > mnLevel('z-timeline-hint'),
+      `${mnLevel('z-markup-menu')} gegen ${mnLevel('z-masthead')}`);
+    /* UND DIE NEUEN REGELN TRAGEN KEINE FARBE ALS ZAHL -- sie nehmen die
+       Tokens, die das Blatt schon fuehrt. */
+    const mnOwn = ['.markup-menu', '.markup-quote', '.markup-code', '.markup-ref',
+      '.desc-view', '.markup-list', '.markup-out', '.markup-ask'];
+    const mnRules = mnOwn.map(n => regel123(n) || '');
+    check('Der Waechter sieht die acht neuen Regeln',
+      mnRules.filter(r => r.length > 20).length === 8,
+      mnOwn.filter((n, i) => mnRules[i].length <= 20).join(' ') || 'alle acht');
+    const mnNumbers = mnRules.filter(r => /#[0-9a-fA-F]{3,8}\b|rgba?\([0-9]/.test(r));
+    check('Und keine traegt eine Farbe als Zahl',
+      mnNumbers.length === 0, mnNumbers.join(' | ').slice(0, 200) || 'alle ueber Tokens');
+    check('Und keine legt einen eigenen Block fuer das helle Schema an',
+      (mnRaw.match(/\[data-theme="light"\]/g) || []).length === 2,
+      `${(mnRaw.match(/\[data-theme="light"\]/g) || []).length} Bloecke`);
+  }
+
   group('Kein Milchglas im Stilblatt — 0.22.0');
   {
     const cssRaw = fs.readFileSync(path.join(__dirname, 'public', 'style.css'), 'utf8');

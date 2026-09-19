@@ -30,6 +30,43 @@ ihre deutschen Abschnittsüberschriften bleiben.*
 
 *Hier wird mitgeschrieben, während gebaut wird.*
 
+## [0.38.0] - 2026-09-19
+
+*Kommentar und Beschreibung nehmen Auszeichnung: fett, kursiv, Code, Link mit
+Namen, Zitat, Aufzählung und Nummerierung. Dazu eine Nummer je Kommentar, ein
+Verweis darauf und „mit Zitat antworten".*
+
+> **Was in der Datenbank steht, bleibt Text.** Es gibt keine Schemaänderung,
+> und die Zeichen der Auszeichnung sind so gewählt, dass vorhandener Text sie
+> nicht zufällig trägt — ein einzelner Stern und ein Unterstrich mitten im
+> Wort zeichnen nicht aus, `3*4 und 5*6` bleibt stehen, wie es dasteht.
+>
+> **Die Exportdatei trägt Formatnummer 18.** Eine ältere Fassung nimmt sie
+> weiterhin herein und zeigt die Zeichen dann als Text; die Untergrenze
+> bleibt 14.
+>
+> **Die Beschreibung wird jetzt gelesen und geschrieben** statt nur
+> geschrieben: ein Klick in den Text oder der Stift in der Kopfzeile schaltet
+> auf das Feld, Verlassen speichert, Escape verwirft.
+
+Fingerprint `ff63ecc2` — davor `144a80c7`.
+
+### Hinzugefügt
+
+- **Auszeichnung in Kommentar und Beschreibung** — `**fett**`, `_kursiv_`, `` `Code` ``, `[Name](Adresse)`, `> ` Zitat, `- ` Aufzählung, `1. ` Nummerierung, Backslash als Escape. Eine Teilmenge von CommonMark; innerhalb der Teilmenge gilt die Spezifikation.
+- **Ein Menü über dem Schreibfeld**, sobald es den Schreibzeiger hat — sieben Schalter, dazu Strg+B und Strg+I. Wer die Zeichen kennt, tippt sie weiter selbst.
+- **Eine Leseansicht der Beschreibung.** Klick in den Text oder Stift in der Kopfzeile schaltet auf das Feld, Escape verwirft.
+- **Eine Nummer je Kommentar** in seiner Kopfzeile. Sie zählt nach der Reihenfolge, in der geschrieben wurde; Anpinnen und Art bewegen sie nicht.
+- **Ein Verweis auf einen Kommentar.** Ein Klick auf die Nummer kopiert die Adresse; eingefügt zeigt sie Titel und Nummer statt der Adresse, und ein Klick springt hin und lässt die Zeile aufleuchten. Eine Adresse von einer anderen Instanz bleibt ein Link nach draußen.
+- **„Mit Zitat antworten"** — ganz über die Kopfzeile, ausschnittweise über ein Menü an der Auswahl.
+- **`tools/markupscan.js`** zählt an einer Datenbank, welcher vorhandene Text nach den neuen Regeln anders aussähe.
+
+### Geändert
+
+- **Die Exportdatei trägt Formatnummer 18** statt 17. Die Untergrenze bleibt 14.
+- **Kachelvorschau, eingeklappte Blockkopfzeile und Trefferausschnitt zeigen den Text ohne Zeichen** — ein halbes `**` stünde dort sonst sichtbar da.
+- **Der Wächter über die Abfrageparameter trennt Browseradresse und Anfrage.** Bis hierher war der Suchbegriff in der Adresse nur durch Zufall geprüft.
+
 ## [0.37.0] - 2026-09-19
 
 *Die Kommentare der ausgelieferten Dateien sind verdichtet: keine

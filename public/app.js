@@ -948,6 +948,14 @@ function sortBlocks() {
 const countMark = (kind, icon, number, word) =>
   `<span class="cnum" data-kind="${kind}"${word ? ` title="${esc(word)}"` : ''}>${icon}${number}</span>`;
 
+/* Die Stellung jedes Kommentars in der zeitlichen Reihenfolge. Eine
+   geloeschte Zeile verschiebt die Nummern danach; das ist so entschieden. */
+function commentOrder(comments) {
+  const order = new Map();
+  [...(comments || [])].sort((a, b) => a.id - b.id).forEach((c, i) => order.set(c.id, i + 1));
+  return order;
+}
+
 function commentNumbers(comments) {
   const list = comments || [];
   const n = list.length;
@@ -980,7 +988,8 @@ function blockSummary(name, item) {
     case 'bewertung': return item.avgRating ? '' : t('list.notRatedYet');
     case 'potenzial': return item.potentialRating ? '' : t('list.notEstimatedYet');
     case 'beschreibung': {
-      const text = (item.description || '').trim().replace(/\s+/g, ' ');
+      // Ohne Marken: ein halbes `**` stuende hier sonst sichtbar da.
+      const text = markupPlain(item.description || '').trim().replace(/\s+/g, ' ');
       if (!text) return 'leer';
       return text.length > 40 ? text.slice(0, 40) + ' …' : text;
     }
@@ -1507,6 +1516,817 @@ function highlightInNode(el, text, term) {
   el.replaceChildren(raiseHighlight(text, term));
 }
 
+/* ================= Auszeichnung ================= */
+/* Eine Teilmenge von CommonMark. Innerhalb der Teilmenge gilt die
+   Spezifikation; was nicht darin liegt, bleibt gewoehnlicher Text. */
+
+// Die Zeichenklassen der Flankenregel. MARKUP_MARK nimmt Satzzeichen und
+// Symbole, wie die Spezifikation es verlangt.
+const MARKUP_ASCII_MARK = /[!-\/:-@\[-`{-~]/;
+const MARKUP_MARK = /[\p{P}\p{S}]/u;
+const MARKUP_SPACE = /[ \t\n\v\f\r]/;
+
+// Nur diese Ziele werden ein Link -- dieselbe Schranke wie bei der nackten
+// Adresse. Alles andere bleibt der Rohtext, wie er dasteht.
+const MARKUP_TARGET = /^https?:\/\//i;
+
+/* ---- Die Inline-Ebene ---- */
+
+// Was links und rechts eines Zeichenlaufs steht, entscheidet ueber Oeffnen
+// und Schliessen. Zeilenanfang und Zeilenende zaehlen als Leerraum.
+function markupFlanks(text, from, to) {
+  const before = from > 0 ? text[from - 1] : '\n';
+  const after = to < text.length ? text[to] : '\n';
+  const spaceBefore = MARKUP_SPACE.test(before), spaceAfter = MARKUP_SPACE.test(after);
+  const markBefore = MARKUP_MARK.test(before), markAfter = MARKUP_MARK.test(after);
+  const left = !spaceAfter && (!markAfter || spaceBefore || markBefore);
+  const right = !spaceBefore && (!markBefore || spaceAfter || markAfter);
+  return { left, right, markBefore, markAfter };
+}
+
+/* Ein Code-Abschnitt traegt sich selbst: zwischen zwei gleich langen Laeufen
+   von Backticks gilt keine weitere Auszeichnung. Er steht in EINER Zeile --
+   ueber den Umbruch hinweg wuerde ein Zaun aus drei Backticks einer. */
+function markupCode(text, at) {
+  let run = 0;
+  while (text[at + run] === '`') run++;
+  const open = at + run;
+  const stop = text.indexOf('\n', open);
+  const line = stop < 0 ? text.length : stop;
+  let from = open;
+  for (;;) {
+    const found = text.indexOf('`', from);
+    if (found < 0 || found >= line) return null;
+    let n = 0;
+    while (text[found + n] === '`') n++;
+    if (n === run) {
+      let body = text.slice(open, found);
+      // Ein Leerzeichen an beiden Enden faellt weg, damit `` ` `` moeglich ist.
+      if (body[0] === ' ' && body[body.length - 1] === ' ' && /[^ ]/.test(body))
+        body = body.slice(1, -1);
+      return { text: body, end: found + n };
+    }
+    from = found + n;
+  }
+}
+
+// Das Ziel eines Links, ab der oeffnenden Klammer. Ein Titel dahinter wird
+// gelesen und verworfen -- die Teilmenge kennt ihn nicht.
+function markupTarget(text, at) {
+  let i = at + 1;
+  const skip = () => { while (i < text.length && MARKUP_SPACE.test(text[i])) i++; };
+  skip();
+  let target = '';
+  if (text[i] === '<') {
+    i++;
+    for (;;) {
+      if (i >= text.length) return null;
+      const c = text[i];
+      if (c === '\n' || c === '<') return null;
+      if (c === '>') { i++; break; }
+      if (c === '\\' && MARKUP_ASCII_MARK.test(text[i + 1] || '')) { target += text[i + 1]; i += 2; continue; }
+      target += c; i++;
+    }
+  } else {
+    let depth = 0;
+    for (;;) {
+      if (i >= text.length) break;
+      const c = text[i];
+      if (c === '\\' && MARKUP_ASCII_MARK.test(text[i + 1] || '')) { target += text[i + 1]; i += 2; continue; }
+      if (MARKUP_SPACE.test(c) || c.charCodeAt(0) < 0x20 || c === '\x7f') break;
+      if (c === '(') { depth++; target += c; i++; continue; }
+      if (c === ')') { if (!depth) break; depth--; target += c; i++; continue; }
+      target += c; i++;
+    }
+    if (depth) return null;
+  }
+  const afterTarget = i;
+  skip();
+  const quote = text[i];
+  if (i > afterTarget && (quote === '"' || quote === "'" || quote === '(')) {
+    const close = quote === '(' ? ')' : quote;
+    i++;
+    for (;;) {
+      if (i >= text.length) return null;
+      if (text[i] === '\\' && MARKUP_ASCII_MARK.test(text[i + 1] || '')) { i += 2; continue; }
+      if (text[i] === close) { i++; break; }
+      i++;
+    }
+    skip();
+  }
+  if (text[i] !== ')') return null;
+  return { target, end: i + 1 };
+}
+
+// Die Teilmenge traegt zwei Sterne fuer fett und einen Unterstrich fuer
+// kursiv. Jedes andere Paar bleibt stehen, wie es geschrieben wurde.
+const markupWrap = (char, used) =>
+  (char === '*' && used > 1) ? 'strong' : (char === '_' && used < 2) ? 'em' : '';
+
+/* Die Zeichenlaeufe werden nach der Spezifikation gepaart; erst danach
+   entscheidet sich, ob daraus ein Knoten oder wieder Text wird. */
+function markupPairs(parts, marks, bottom) {
+  let at = bottom;
+  while (at < marks.length) {
+    const closer = marks[at];
+    if (!closer.canClose || !closer.node.text) { at++; continue; }
+    let found = -1;
+    for (let i = at - 1; i >= bottom; i--) {
+      const opener = marks[i];
+      if (!opener.canOpen || !opener.node.text || opener.char !== closer.char) continue;
+      /* DIE DREIERREGEL: kann eines der beiden Zeichen beides, darf die Summe
+         kein Vielfaches von drei sein -- es sei denn, beide sind es. */
+      const odd = (opener.canClose || closer.canOpen)
+        && (opener.original + closer.original) % 3 === 0
+        && !(opener.original % 3 === 0 && closer.original % 3 === 0);
+      if (odd) continue;
+      found = i; break;
+    }
+    if (found < 0) {
+      if (!closer.canOpen) marks.splice(at, 1); else at++;
+      continue;
+    }
+    const opener = marks[found];
+    const used = (opener.node.text.length >= 2 && closer.node.text.length >= 2) ? 2 : 1;
+    const from = parts.indexOf(opener.node), to = parts.indexOf(closer.node);
+    const inner = parts.slice(from + 1, to);
+    opener.node.text = opener.node.text.slice(used);
+    closer.node.text = closer.node.text.slice(used);
+    const kind = markupWrap(closer.char, used);
+    const mark = closer.char.repeat(used);
+    const back = kind ? '' : mark + markupFlatten(inner) + mark;
+    parts.splice(from + 1, to - from - 1, kind
+      ? { type: kind, mark, children: inner }
+      : { type: 'text', text: back, raw: back });
+    marks.splice(found + 1, at - found - 1);
+    at = found + 1;
+    if (!opener.node.text) { marks.splice(found, 1); at--; }
+    if (!closer.node.text) marks.splice(at, 1);
+  }
+  marks.length = bottom;
+}
+
+// Ein Baum, der nicht gezeichnet wird, faellt auf seinen Rohtext zurueck --
+// Zeichen fuer Zeichen, damit kein Teil verschwindet.
+function markupFlatten(parts) {
+  return (parts || []).map(p => p.raw !== undefined ? p.raw
+    : p.type === 'text' ? p.text
+    : p.mark + markupFlatten(p.children) + p.mark).join('');
+}
+
+// Ob ein Zeichen selbst maskiert ist -- zwei Backslashes heben sich auf.
+function markupEscaped(source, at) {
+  let n = 0;
+  while (at - 1 - n >= 0 && source[at - 1 - n] === '\\') n++;
+  return n % 2 === 1;
+}
+
+// Benachbarte Textstuecke werden eins; leere fallen heraus.
+function markupJoin(parts) {
+  const out = [];
+  for (const p of parts) {
+    if (p.type !== 'text') { if (p.children) p.children = markupJoin(p.children); out.push(p); continue; }
+    if (!p.text) continue;
+    const raw = p.raw === undefined ? p.text : p.raw;
+    const last = out[out.length - 1];
+    if (last && last.type === 'text') { last.text += p.text; last.raw += raw; continue; }
+    out.push({ type: 'text', text: p.text, raw });
+  }
+  return out;
+}
+
+function markupInline(source) {
+  const parts = [], marks = [], brackets = [];
+  let pos = 0, plain = '', plainSource = '';
+  /* DER ROHTEXT LAEUFT MIT: ein Backslash vor einem Satzzeichen faellt beim
+     Zeichnen weg und muss zurueckkommen, wenn ein Paar doch Text bleibt. */
+  const flush = () => {
+    if (plain) parts.push({ type: 'text', text: plain, raw: plainSource });
+    plain = ''; plainSource = '';
+  };
+  while (pos < source.length) {
+    const c = source[pos];
+    if (c === '\\' && MARKUP_ASCII_MARK.test(source[pos + 1] || '')) {
+      plain += source[pos + 1]; plainSource += source.slice(pos, pos + 2); pos += 2; continue;
+    }
+    if (c === '`') {
+      const span = markupCode(source, pos);
+      /* OHNE GEGENSTUECK BLEIBT DER GANZE LAUF TEXT und nicht nur sein erstes
+         Zeichen -- sonst faende der Rest ein falsches Gegenstueck. */
+      if (!span) {
+        let run = 0;
+        while (source[pos + run] === '`') run++;
+        plain += '`'.repeat(run); plainSource += '`'.repeat(run); pos += run; continue;
+      }
+      flush();
+      parts.push({ type: 'code', text: span.text, raw: source.slice(pos, span.end) });
+      pos = span.end; continue;
+    }
+    if (c === '[') {
+      // EIN BILD WIRD NIE GEZEICHNET: das `!` davor macht die Klammer stumm.
+      const image = source[pos - 1] === '!' && !markupEscaped(source, pos - 1);
+      if (image) { plain = plain.slice(0, -1); plainSource = plainSource.slice(0, -1); }
+      flush();
+      const node = { type: 'text', text: image ? '![' : '[' };
+      parts.push(node);
+      brackets.push({ node, from: image ? pos - 1 : pos, image, floor: marks.length });
+      pos++; continue;
+    }
+    if (c === ']') {
+      const open = brackets.pop();
+      if (!open) { plain += c; plainSource += c; pos++; continue; }
+      const link = source[pos + 1] === '(' ? markupTarget(source, pos + 1) : null;
+      if (!link || !MARKUP_TARGET.test(link.target) || open.image) {
+        /* DER ROHTEXT KOMMT ZURUECK, damit nichts Halbes stehenbleibt: ein
+           Ziel, das kein Link wird, laesst auch den Namen unberuehrt. */
+        flush();
+        const end = link ? link.end : pos + 1;
+        const from = parts.indexOf(open.node);
+        const back = source.slice(open.from, end);
+        parts.splice(from, parts.length - from, { type: 'text', text: back, raw: back });
+        marks.length = open.floor;
+        pos = end; continue;
+      }
+      flush();
+      markupPairs(parts, marks, open.floor);
+      const from = parts.indexOf(open.node);
+      parts.splice(from, parts.length - from, { type: 'link', target: link.target,
+        children: parts.slice(from + 1), raw: source.slice(open.from, link.end) });
+      // EINEN LINK IM LINK GIBT ES NICHT.
+      brackets.length = 0;
+      pos = link.end; continue;
+    }
+    if (c === '*' || c === '_') {
+      let run = 0;
+      while (source[pos + run] === c) run++;
+      const flank = markupFlanks(source, pos, pos + run);
+      flush();
+      const node = { type: 'text', text: c.repeat(run) };
+      parts.push(node);
+      marks.push({ node, char: c, original: run,
+        canOpen: c === '*' ? flank.left : flank.left && (!flank.right || flank.markBefore),
+        canClose: c === '*' ? flank.right : flank.right && (!flank.left || flank.markAfter) });
+      pos += run; continue;
+    }
+    plain += c; plainSource += c; pos++;
+  }
+  flush();
+  markupPairs(parts, marks, 0);
+  return markupJoin(parts);
+}
+
+/* ---- Die Zeilenebene ---- */
+
+const MARKUP_QUOTE = /^ {0,3}>(?: |\t)?/;
+const MARKUP_BULLET = /^( {0,3})(-)(?:( +)(.*)|()())$/;
+const MARKUP_NUMBER = /^( {0,3})(\d{1,9})\.(?:( +)(.*)|()())$/;
+/* Diese vier liegen nicht in der Teilmenge und bleiben Text -- eine
+   Absatzzeile beenden sie trotzdem, sonst zoege ein Zitat sie zu sich. */
+const MARKUP_RULE = /^ {0,3}(?:(?:\*[ \t]*){3,}|(?:-[ \t]*){3,}|(?:_[ \t]*){3,})$/;
+const MARKUP_HEADING = /^ {0,3}#{1,6}(?:[ \t]|$)/;
+const MARKUP_FENCE = /^ {0,3}(?:`{3,}|~{3,})/;
+const MARKUP_ITEM = /^ {0,3}(?:[-+*]|\d{1,9}[.)])(?:[ \t]+\S|[ \t]*$)/;
+const MARKUP_MARKER = /^ {0,3}(?:[-+*]|\d{1,9}[.)])[ \t]+/;
+
+const markupOpensBlock = (line) =>
+  MARKUP_QUOTE.test(line) || MARKUP_RULE.test(line) || MARKUP_HEADING.test(line)
+  || MARKUP_FENCE.test(line) || MARKUP_ITEM.test(line);
+
+// Ob eine Zeile innen auf einem Absatz endet -- nur dann laeuft die naechste
+// Zeile ohne eigenes Zeichen mit. Die Zeichen werden dafuer abgetragen.
+function markupLazy(line) {
+  const quote = line.match(MARKUP_QUOTE);
+  if (quote) return markupLazy(line.slice(quote[0].length));
+  const marker = line.match(MARKUP_MARKER);
+  if (marker) return markupLazy(line.slice(marker[0].length));
+  return /\S/.test(line) && !MARKUP_RULE.test(line)
+    && !MARKUP_HEADING.test(line) && !MARKUP_FENCE.test(line);
+}
+
+// Ein Zitat nimmt seine Zeilen und wird selbst wieder zerlegt.
+function markupQuote(lines, at) {
+  const inner = [];
+  let i = at, running = false;
+  while (i < lines.length) {
+    const marker = lines[i].match(MARKUP_QUOTE);
+    if (marker) {
+      const rest = lines[i].slice(marker[0].length);
+      inner.push(rest);
+      running = markupLazy(rest);
+      i++; continue;
+    }
+    if (running && /\S/.test(lines[i]) && !markupOpensBlock(lines[i])) { inner.push(lines[i]); i++; continue; }
+    break;
+  }
+  return { block: { type: 'quote', blocks: markupBlocks(inner) }, end: i };
+}
+
+// Eine Aufzaehlung sammelt ihre Punkte; eine eingerueckte Folgezeile gehoert
+// zum Punkt darueber.
+function markupList(lines, at, ordered) {
+  const pattern = ordered ? MARKUP_NUMBER : MARKUP_BULLET;
+  const items = [];
+  let i = at, start = 1, blank = false;
+  while (i < lines.length) {
+    const m = lines[i].match(pattern);
+    if (!m || MARKUP_RULE.test(lines[i])) {
+      if (!/\S/.test(lines[i] ?? '')) { blank = true; i++; continue; }
+      const last = items[items.length - 1];
+      if (last && !blank && !markupOpensBlock(lines[i])) { last.push(lines[i]); i++; continue; }
+      break;
+    }
+    blank = false;
+    if (!items.length && ordered) start = Number(m[2]);
+    const markerWidth = m[1].length + (ordered ? m[2].length + 1 : 1);
+    const spaces = m[3] || '';
+    const indent = markerWidth + (spaces.length >= 1 && spaces.length <= 4 ? spaces.length : 1);
+    const item = [m[4] ?? ''];
+    // EIN PUNKT, DER MIT EINER LEERZEILE ANFAENGT, BLEIBT LEER.
+    const bare = (m[4] ?? '') === '';
+    let itemBlank = false;
+    i++;
+    while (i < lines.length) {
+      const line = lines[i];
+      if (!/\S/.test(line)) { if (bare) break; item.push(''); itemBlank = true; i++; continue; }
+      if (line.startsWith(' '.repeat(indent))) { item.push(line.slice(indent)); i++; continue; }
+      if (!itemBlank && !markupOpensBlock(line)) { item.push(line); i++; continue; }
+      break;
+    }
+    while (item.length && !/\S/.test(item[item.length - 1])) { item.pop(); blank = true; }
+    items.push(item);
+  }
+  return { block: { type: ordered ? 'number' : 'bullet', start,
+                    items: items.map(lns => markupBlocks(lns)) }, end: i };
+}
+
+function markupBlocks(lines) {
+  const blocks = [];
+  let i = 0, text = [];
+  const flush = () => {
+    while (text.length && !/\S/.test(text[text.length - 1])) text.pop();
+    if (text.length) blocks.push({ type: 'text', lines: text });
+    text = [];
+  };
+  while (i < lines.length) {
+    const line = lines[i];
+    if (MARKUP_QUOTE.test(line)) { flush(); const r = markupQuote(lines, i); blocks.push(r.block); i = r.end; continue; }
+    // EINE TRENNLINIE IST KEINE AUFZAEHLUNG, und sie bleibt Text.
+    const rule = MARKUP_RULE.test(line);
+    /* MITTEN IN EINEM ABSATZ FAENGT NUR AN, WAS AUCH INHALT HAT -- und eine
+       Nummerierung nur bei der Eins. */
+    const opens = (m, ordered) => !rule && m && (!text.length
+      || ((m[4] || '') !== '' && (!ordered || Number(m[2]) === 1)));
+    if (opens(line.match(MARKUP_BULLET), false)) {
+      flush(); const r = markupList(lines, i, false); blocks.push(r.block); i = r.end; continue;
+    }
+    if (opens(line.match(MARKUP_NUMBER), true)) {
+      flush(); const r = markupList(lines, i, true); blocks.push(r.block); i = r.end; continue;
+    }
+    if (!text.length && !/\S/.test(line)) { i++; continue; }
+    text.push(line); i++;
+  }
+  flush();
+  return blocks;
+}
+
+// Der Rohtext als Baum. Die Zeilenebene liegt ueber der Inline-Ebene, und
+// beide liegen ueber der Zerlegung, die es schon gibt.
+function markupParse(raw) {
+  return markupBlocks(String(raw ?? '').replace(/\r\n|\r/g, '\n').split('\n'));
+}
+
+/* ---- Die Marken heraus ---- */
+
+/* Fuer die Stellen, die nur Text koennen. Sie bekommen denselben Baum und
+   lesen aus ihm den Text, den der Leser zeichnen wuerde. */
+function markupPlainInline(parts) {
+  return parts.map(p => p.type === 'text' || p.type === 'code' ? p.text
+    : markupPlainInline(p.children)).join('');
+}
+
+function markupPlainBlocks(blocks) {
+  const out = [];
+  for (const b of blocks) {
+    if (b.type === 'text') { out.push(markupPlainInline(markupInline(b.lines.join('\n')))); continue; }
+    if (b.type === 'quote') { out.push(markupPlainBlocks(b.blocks)); continue; }
+    for (const item of b.items) out.push(markupPlainBlocks(item));
+  }
+  return out.join('\n');
+}
+
+function markupPlain(raw) {
+  return markupPlainBlocks(markupParse(raw));
+}
+
+/* ---- Vom Baum zu den Knoten ---- */
+
+/* Das Zeichen fuer „fuehrt nach draussen". Es wird einmal gebaut und danach
+   geklont; gesetzt wird es ueber createElementNS und nicht ueber innerHTML. */
+let MARKUP_OUT = null;
+function markupOutMark() {
+  if (!MARKUP_OUT) {
+    const ns = 'http://www.w3.org/2000/svg';
+    MARKUP_OUT = document.createElementNS(ns, 'svg');
+    for (const [name, value] of [['class', 'icon markup-out'], ['viewBox', '0 0 24 24'],
+      ['fill', 'none'], ['stroke', 'currentColor'], ['stroke-width', '2'],
+      ['stroke-linecap', 'round'], ['stroke-linejoin', 'round'], ['aria-hidden', 'true']])
+      MARKUP_OUT.setAttribute(name, value);
+    for (const d of ['M14 5h5v5', 'M19 5l-7 7', 'M18 13v6H5V6h6']) {
+      const path = document.createElementNS(ns, 'path');
+      path.setAttribute('d', d);
+      MARKUP_OUT.appendChild(path);
+    }
+  }
+  return MARKUP_OUT.cloneNode(true);
+}
+
+/* Die Stuecke eines Absatzes als Knoten. In einem Link wird keine nackte
+   Adresse mehr gesucht -- ein Link im Link gibt es nicht. */
+function markupInlineNodes(parts, into, term, marks, inLink) {
+  for (const p of parts) {
+    if (p.type === 'text') {
+      into.appendChild(inLink ? raiseHighlight(p.text, term)
+        : buildCommentNodes(splitCommentText(p.text, term, marks)));
+      continue;
+    }
+    if (p.type === 'code') {
+      const code = document.createElement('code');
+      code.className = 'markup-code';
+      code.appendChild(raiseHighlight(p.text, term));
+      into.appendChild(code);
+      continue;
+    }
+    if (p.type === 'link') {
+      // Schranke 2, wie bei der nackten Adresse: unmittelbar vor dem href.
+      if (!MARKUP_TARGET.test(String(p.target))) {
+        into.appendChild(raiseHighlight(markupFlatten([p]), term));
+        continue;
+      }
+      const row = COMMENT_REFS.get(markupRefOf(p.target));
+      if (row) { into.appendChild(markupRefNode(row, term)); continue; }
+      const a = document.createElement('a');
+      a.href = String(p.target);
+      a.target = '_blank';
+      a.rel = 'noopener noreferrer';
+      a.className = 'markup-link';
+      a.title = String(p.target);
+      markupInlineNodes(p.children, a, term, marks, true);
+      a.appendChild(markupOutMark());
+      into.appendChild(a);
+      continue;
+    }
+    const el = document.createElement(p.type === 'strong' ? 'strong' : 'em');
+    markupInlineNodes(p.children, el, term, marks, inLink);
+    into.appendChild(el);
+  }
+}
+
+function markupBlockNodes(blocks, into, term, marks) {
+  for (const b of blocks) {
+    if (b.type === 'text') {
+      markupInlineNodes(markupInline(b.lines.join('\n')), into, term, marks, false);
+      continue;
+    }
+    if (b.type === 'quote') {
+      const box = document.createElement('blockquote');
+      box.className = 'markup-quote';
+      markupBlockNodes(b.blocks, box, term, marks);
+      into.appendChild(box);
+      continue;
+    }
+    const list = document.createElement(b.type === 'number' ? 'ol' : 'ul');
+    list.className = 'markup-list';
+    if (b.type === 'number' && b.start !== 1) list.start = b.start;
+    for (const item of b.items) {
+      const row = document.createElement('li');
+      markupBlockNodes(item, row, term, marks);
+      list.appendChild(row);
+    }
+    into.appendChild(list);
+  }
+}
+
+/* Der Leser. Zwischen den Bloecken steht kein Umbruch: ein Blockelement
+   faengt seine Zeile selbst an, und `pre-wrap` zeigte ihn sonst zweimal. */
+function markupNodes(raw, term, marks) {
+  const part = document.createDocumentFragment();
+  markupBlockNodes(markupParse(raw), part, term, marks);
+  return part;
+}
+
+/* ---- Der Verweis auf einen Kommentar ---- */
+
+/* Was die Marke traegt: Titel des Eintrags und Stellung des Kommentars. Was
+   der Leser nicht sehen darf, steht als `null` darin. */
+const COMMENT_REFS = new Map();
+
+/* Beim Zeichnen wird die Herkunft geprueft: eine Adresse von anderswoher
+   bleibt ein gewoehnlicher Link nach draussen. */
+function markupRefOf(target) {
+  const here = location.origin + location.pathname;
+  const text = String(target ?? '');
+  if (!text.startsWith(here + '#/')) return 0;
+  const found = text.slice(here.length).match(ENTRY_PATTERN);
+  return found ? commentOutAddress(found[2]) : 0;
+}
+
+function markupRefScan(parts, want) {
+  for (const p of parts) {
+    if (p.type === 'link') { const n = markupRefOf(p.target); if (n) want.add(n); }
+    if (p.children) markupRefScan(p.children, want);
+  }
+}
+
+function markupRefBlocks(blocks, want) {
+  for (const b of blocks) {
+    if (b.type === 'text') { markupRefScan(markupInline(b.lines.join('\n')), want); continue; }
+    if (b.type === 'quote') { markupRefBlocks(b.blocks, want); continue; }
+    for (const item of b.items) markupRefBlocks(item, want);
+  }
+}
+
+// Welche Verweise eines Textes noch keine Auskunft haben.
+function markupRefMissing(texts) {
+  const want = new Set();
+  for (const text of texts) markupRefBlocks(markupParse(text || ''), want);
+  return [...want].filter(n => !COMMENT_REFS.has(n));
+}
+
+/* Ein Ruf je Zeichnung, gesammelt ueber alle Kommentare und die
+   Beschreibung. Die Route achtet auf dieselbe Schranke wie der Eintrag. */
+async function markupRefLoad(ids) {
+  for (const n of ids) COMMENT_REFS.set(n, null);
+  try {
+    for (const row of await api('GET', `/api/comment-refs?ids=${ids.join(',')}`))
+      COMMENT_REFS.set(row.id, row);
+  } catch { /* ohne Auskunft bleibt der Verweis ein einfacher Link */ }
+}
+
+/* Die Marke statt der Adresse: Titel und Nummer sagen, wohin es geht. */
+function markupRefNode(row, term) {
+  const a = document.createElement('a');
+  a.className = 'markup-ref';
+  a.href = entryAddress(row.itemId, '', row.id);
+  a.title = t('entry.refHint');
+  a.appendChild(raiseHighlight(row.itemTitle, term));
+  const no = document.createElement('span');
+  no.className = 'markup-ref-no';
+  no.textContent = '#' + row.number;
+  a.appendChild(no);
+  return a;
+}
+
+/* ================= Das Menue der Auszeichnung ================= */
+/* Es haengt ueber der oberen Kante des Feldes und nicht am Schreibzeiger:
+   die Schriftgroesse ist einstellbar, eine gerechnete Zeilenhoehe nicht. */
+
+/* Rueckgaengig bleibt brauchbar, solange der Browser die Einsetzung selbst
+   vornimmt. `field.value = …` leerte den Stapel des Browsers. */
+function markupInsert(field, from, to, text) {
+  field.focus();
+  field.setSelectionRange(from, to);
+  let done = false;
+  try { done = document.execCommand('insertText', false, text); }
+  catch { done = false; }
+  if (!done || field.value.slice(from, from + text.length) !== text) {
+    field.value = field.value.slice(0, from) + text + field.value.slice(to);
+    field.setSelectionRange(from + text.length, from + text.length);
+  }
+  field.dispatchEvent(new Event('input', { bubbles: true }));
+}
+
+function markupAround(field, before, after) {
+  const from = field.selectionStart, to = field.selectionEnd;
+  const chosen = field.value.slice(from, to);
+  markupInsert(field, from, to, before + chosen + after);
+  field.setSelectionRange(from + before.length, from + before.length + chosen.length);
+}
+
+/* Ein Zeichen am Zeilenanfang gilt fuer jede beruehrte Zeile. */
+function markupPrefix(field, sign) {
+  const value = field.value;
+  const from = value.lastIndexOf('\n', Math.max(0, field.selectionStart - 1)) + 1;
+  let to = value.indexOf('\n', field.selectionEnd);
+  if (to < 0) to = value.length;
+  const made = value.slice(from, to).split('\n')
+    .map((line, i) => (sign === '1. ' ? `${i + 1}. ` : sign) + line).join('\n');
+  markupInsert(field, from, to, made);
+  field.setSelectionRange(from, from + made.length);
+}
+
+/* Die Schalter. Der Schluessel steht buchstaeblich da, damit der Waechter
+   ueber die Sprachdatei ihn findet. */
+const MARKUP_BUTTONS = [
+  { sign: 'B', style: 'mk-b', label: 'entry.markBold', around: ['**', '**'] },
+  { sign: 'I', style: 'mk-i', label: 'entry.markItalic', around: ['_', '_'] },
+  { sign: '<>', style: 'mk-c', label: 'entry.markCode', around: ['`', '`'] },
+  { sign: '„', style: 'mk-q', label: 'entry.markQuote', prefix: '> ' },
+  { sign: '•', style: 'mk-l', label: 'entry.markBullet', prefix: '- ' },
+  { sign: '1.', style: 'mk-n', label: 'entry.markNumber', prefix: '1. ' },
+  { sign: '↗', style: 'mk-a', label: 'entry.markLink', ask: true }
+];
+
+let MARKUP_MENU = null, MARKUP_FIELD = null, MARKUP_PICK = null;
+
+function markupMenuBox() {
+  if (MARKUP_MENU) return MARKUP_MENU;
+  MARKUP_MENU = document.createElement('div');
+  MARKUP_MENU.className = 'markup-menu';
+  MARKUP_MENU.id = 'markup-menu';
+  MARKUP_MENU.hidden = true;
+  document.body.appendChild(MARKUP_MENU);
+  return MARKUP_MENU;
+}
+
+const markupButton = (sign, style, label) => {
+  const button = document.createElement('button');
+  button.type = 'button';
+  button.className = style;
+  button.textContent = sign;
+  button.title = label;
+  return button;
+};
+
+/* Die Frage nach Adresse oder Name. Ist eine Adresse markiert, fehlt der
+   Name; sonst fehlt die Adresse. */
+function markupAskLink(field) {
+  const from = field.selectionStart, to = field.selectionEnd;
+  const chosen = field.value.slice(from, to);
+  const isAddress = MARKUP_TARGET.test(chosen.trim());
+  const row = document.createElement('div');
+  row.className = 'markup-ask';
+  const input = document.createElement('input');
+  input.className = 'input';
+  input.placeholder = isAddress ? t('entry.markLinkName') : t('entry.markLinkTarget');
+  const take = markupButton('✓', 'mk-ok', t('card.apply'));
+  row.appendChild(input);
+  row.appendChild(take);
+  markupMenuBox().appendChild(row);
+  input.focus();
+  const done = () => {
+    const given = input.value.trim();
+    row.remove();
+    if (!given) { field.focus(); return; }
+    const name = isAddress ? given : (chosen || given);
+    const target = isAddress ? chosen.trim() : given;
+    markupInsert(field, from, to, `[${name}](${target})`);
+  };
+  take.onclick = done;
+  input.onkeydown = (e) => {
+    if (e.key === 'Enter') { e.preventDefault(); done(); }
+    if (e.key === 'Escape') { e.preventDefault(); row.remove(); field.focus(); }
+  };
+}
+
+/* Im Schreibmodus stehen alle Schalter da; im Lesemodus die zwei, die an
+   einer Auswahl etwas tun koennen. */
+function markupMenuFill(field) {
+  const box = markupMenuBox();
+  box.replaceChildren();
+  if (field) {
+    for (const item of MARKUP_BUTTONS) {
+      const button = markupButton(item.sign, item.style, t(item.label));
+      button.onmousedown = (e) => e.preventDefault();
+      button.onclick = () => {
+        if (item.around) return markupAround(field, item.around[0], item.around[1]);
+        if (item.prefix) return markupPrefix(field, item.prefix);
+        markupAskLink(field);
+      };
+      box.appendChild(button);
+    }
+    return;
+  }
+  const cite = markupButton('„', 'mk-q', t('entry.quoteSelection'));
+  cite.onmousedown = (e) => e.preventDefault();
+  cite.onclick = () => { markupQuotePick(); markupMenuHide(); };
+  const copy = markupButton('⧉', 'mk-cp', t('card.copy'));
+  copy.onmousedown = (e) => e.preventDefault();
+  copy.onclick = () => { copyText(markupPickText()); markupMenuHide(); };
+  box.appendChild(cite);
+  box.appendChild(copy);
+}
+
+const markupMenuHide = () => { markupMenuBox().hidden = true; MARKUP_PICK = null; };
+
+/* Ein Feld, das die Ansicht inzwischen weggezeichnet hat, haelt das Menue
+   nicht laenger offen -- beim Entfernen kommt kein `focusout`. */
+function markupLive() {
+  if (MARKUP_FIELD && !MARKUP_FIELD.isConnected) { MARKUP_FIELD = null; markupMenuHide(); }
+  return MARKUP_FIELD;
+}
+
+/* Ueber der Kante des Feldes, und auf einem schmalen Bildschirm nicht aus
+   dem Bild heraus. */
+function markupMenuPlace(box) {
+  const width = box.offsetWidth, height = box.offsetHeight;
+  const left = Math.max(8, Math.min(box.dataset.left * 1, window.innerWidth - width - 8));
+  const above = box.dataset.top * 1 - height - 6;
+  box.style.left = (left + window.scrollX) + 'px';
+  box.style.top = ((above < 4 ? box.dataset.bottom * 1 + 6 : above) + window.scrollY) + 'px';
+}
+
+function markupMenuShow(rect) {
+  const box = markupMenuBox();
+  box.dataset.left = rect.left;
+  box.dataset.top = rect.top;
+  box.dataset.bottom = rect.bottom;
+  box.hidden = false;
+  markupMenuPlace(box);
+}
+
+/* Welches Feld das Menue traegt, steht am Feld und nicht in einer Liste
+   daneben. */
+const markupField = (node) => node && node.tagName === 'TEXTAREA'
+  && node.dataset && node.dataset.markup !== undefined ? node : null;
+
+/* Was im Lesemodus markiert ist -- und ob es ueberhaupt in einem Text
+   liegt, der Auszeichnung traegt. */
+function markupPickText() {
+  return MARKUP_PICK ? MARKUP_PICK.text : '';
+}
+
+function markupQuotePick() {
+  if (MARKUP_PICK) quoteInto(MARKUP_PICK.text, MARKUP_PICK.author, MARKUP_PICK.when);
+}
+
+function markupPickFrom(selection) {
+  if (!selection || selection.isCollapsed) return null;
+  const at = selection.anchorNode;
+  const box = at && (at.nodeType === Node.ELEMENT_NODE ? at : at.parentElement);
+  const body = box && box.closest && box.closest('.cmt-body, .desc-view');
+  if (!body) return null;
+  const text = String(selection).trim();
+  if (!text) return null;
+  const card = body.closest('.cmt');
+  return { text, author: card ? card.dataset.author || '' : '',
+           when: card ? card.dataset.when || '' : '',
+           rect: selection.getRangeAt(0).getBoundingClientRect() };
+}
+
+/* Die Horcher werden EINMAL gesetzt und nicht je Zeichnung -- sonst liefen
+   nach zehn geoeffneten Eintraegen dreissig. */
+let MARKUP_WIRED = false;
+function markupMenuSetUp() {
+  if (MARKUP_WIRED) return;
+  MARKUP_WIRED = true;
+  document.addEventListener('focusin', (e) => {
+    const field = markupField(e.target);
+    if (!field) return;
+    MARKUP_FIELD = field;
+    markupMenuFill(field);
+    markupMenuShow(field.getBoundingClientRect());
+  });
+  document.addEventListener('focusout', (e) => {
+    if (!MARKUP_FIELD || e.target !== MARKUP_FIELD) return;
+    if (e.relatedTarget && e.relatedTarget.closest('.markup-menu')) return;
+    MARKUP_FIELD = null;
+    markupMenuHide();
+  });
+  /* IM LESEMODUS GIBT ES KEINEN FOKUS UND DAMIT KEINE KANTE: dort erscheint
+     das Menue an der Auswahl. */
+  document.addEventListener('selectionchange', () => {
+    if (markupLive()) return;
+    const pick = markupPickFrom(document.getSelection());
+    if (!pick) { markupMenuHide(); return; }
+    MARKUP_PICK = pick;
+    markupMenuFill(null);
+    markupMenuShow(pick.rect);
+  });
+  window.addEventListener('scroll', () => {
+    if (markupLive()) markupMenuShow(MARKUP_FIELD.getBoundingClientRect());
+  }, true);
+  window.addEventListener('resize', () => {
+    if (markupLive()) markupMenuShow(MARKUP_FIELD.getBoundingClientRect());
+  });
+  /* Strg+B und Strg+I -- ueberall sonst steht dasselbe auf denselben
+     Tasten. */
+  document.addEventListener('keydown', (e) => {
+    const field = markupField(e.target);
+    if (!field || !(e.ctrlKey || e.metaKey)) return;
+    const low = String(e.key).toLowerCase();
+    if (low !== 'b' && low !== 'i') return;
+    e.preventDefault();
+    markupAround(field, low === 'b' ? '**' : '_', low === 'b' ? '**' : '_');
+  });
+}
+
+/* ---- Zitieren ---- */
+
+/* Zitiert wird in das Feld und nicht ueber die Zwischenablage: ohne sie
+   bliebe der Ruf still. */
+function quoteInto(text, author, when) {
+  const field = document.getElementById('ctext');
+  if (!field) return;
+  const head = author || when ? t('entry.quoteFrom', { author, date: when }) : '';
+  const lines = String(text).split('\n');
+  const body = (head ? ['> ' + head] : []).concat(lines.map(z => '> ' + z)).join('\n');
+  const at = field.value.length;
+  const before = field.value && !field.value.endsWith('\n\n') ? '\n\n' : '';
+  markupInsert(field, at, at, before + body + '\n\n');
+  field.focus();
+  field.setSelectionRange(field.value.length, field.value.length);
+}
+
 let FONT = 100;
 const FONT_LEVELS = [80, 90, 100, 110, 120];
 // Es wird genau ein Wert gesetzt: das Grundmass am Wurzelelement. Alle
@@ -1924,6 +2744,8 @@ async function start() {
   document.body.classList.remove('login');
   window.removeEventListener('hashchange', route);
   window.addEventListener('hashchange', route);
+  // Die Horcher des Menues stehen einmal und nicht je Zeichnung.
+  markupMenuSetUp();
   // Vor dem ersten Aufbau: sonst greift die Schriftgroesse erst nach dem
   // zweiten Klick und der Direkteinstieg auf einen Eintrag zeigt das
   // Vorgabevokabular.
@@ -1944,12 +2766,24 @@ const rememberSeen = () => {
 /* ================= Der Suchbegriff in der Adresse ======================
    Frueher lebte der Begriff nur in state.search. */
 const ENTRY_PATTERN = /^#\/item\/(\d+)(?:\?(.*))?$/;
-const entryAddress = (id, term) =>
-  `#/item/${id}` + (term ? `?q=${encodeURIComponent(term)}` : '');
+/* Beide Namen stehen ausgeschrieben da, und zwar an ihrem Zeichen: der
+   Waechter ueber die Abfrageparameter liest sie so. */
+const entryAddress = (id, term, comment) => `#/item/${id}`
+  + (term ? `?q=${encodeURIComponent(term)}` : '')
+  + (!comment ? '' : term ? `&c=${Number(comment)}` : `?c=${Number(comment)}`);
 const termOutAddress = (askKey) => {
   try { return new URLSearchParams(askKey || '').get('q') || ''; }
   catch { return ''; }
 };
+/* Die Adresse des Browsers traegt den Kommentar als Zahl und nicht seine
+   Stellung: die Stellung wird beim Zeichnen ermittelt. */
+const commentOutAddress = (askKey) => {
+  try { return Number(new URLSearchParams(askKey || '').get('c')) || 0; }
+  catch { return 0; }
+};
+/* Vollstaendig, damit der Verweis auch in einer Mail funktioniert. */
+const commentAddress = (id, comment) =>
+  location.origin + location.pathname + entryAddress(id, '', comment);
 
 /* JEDE ALTE ADRESSE WIRD UEBERSETZT UND NICHT FALLEN GELASSEN. */
 const OLD_ADDRESSES = { '#/offen': '#/open' };
@@ -1979,7 +2813,7 @@ function route() {
   if (view === 'system') return renderSystem();
   if (view === 'compare') return renderCompare();
   if (view === 'open') return renderOpen();
-  if (m) return renderDetail(+m[1], termOutAddress(m[2]));
+  if (m) return renderDetail(+m[1], termOutAddress(m[2]), commentOutAddress(m[2]));
   return renderList();
 }
 
@@ -3714,14 +4548,14 @@ function sparkline(days) {
 }
 
 /* ================= Detailansicht ================= */
-async function renderDetail(id, termAddress) {
+async function renderDetail(id, termAddress, commentWanted) {
   /* DER BLICK GILT FUER EINEN EINTRAG UND ENDET MIT IHM. */
   GLANCE.clear();
   /* DER BEGRIFF KOMMT AUS DER ADRESSE ODER AUS DEM ZUSTAND -- und danach
      stehen beide gleich. */
   const term = (termAddress || state.search).trim();
   if (term) state.search = term;
-  const wanted = entryAddress(id, term);
+  const wanted = entryAddress(id, term, commentWanted);
   if (location.hash !== wanted &&
       typeof history !== 'undefined' && typeof history.replaceState === 'function')
     history.replaceState(null, '', wanted);
@@ -3832,8 +4666,14 @@ async function renderDetail(id, termAddress) {
     <div id="blocks-bottom">
 
     <div class="block block-wide" data-block="beschreibung">
-      <div class="block-head"><span class="label">${tH('list.description')}</span></div>
-      <textarea class="ta ta-desc" id="desc" placeholder="${esc(t('entry.whatIsThis'))}">${esc(item.description)}</textarea>
+      ${/* DIE VORSCHAU IST EIN BEREICH UND KEIN SCHALTER: sie traegt Links,
+           und ein Schalter mit Links darin ist fuer ein Vorleseprogramm
+           nicht aufloesbar. */''}
+      <div class="block-head"><span class="label">${tH('list.description')}</span>
+        <button class="mact ed" id="descedit" title="${esc(t('entry.edit'))}">${ICON_PEN}</button></div>
+      <div class="desc-view" id="descview"></div>
+      <textarea class="ta ta-desc" id="desc" data-markup hidden
+        placeholder="${esc(t('entry.whatIsThis'))}">${esc(item.description)}</textarea>
     </div>
 
     <div class="block block-wide" id="testblock" data-block="testtage"></div>
@@ -3864,7 +4704,7 @@ async function renderDetail(id, termAddress) {
         <button class="link-btn" id="cjump" title="${esc(t('entry.jumpToInput'))}">${tH('entry.addComment')}</button></div>
       <div class="cmts" id="cmts"></div>
       <div class="cmt-form">
-        <textarea class="ta" id="ctext" placeholder="${esc(t('entry.commentPlaceholder'))}"></textarea>
+        <textarea class="ta" id="ctext" data-markup placeholder="${esc(t('entry.commentPlaceholder'))}"></textarea>
         <div class="cmt-new-imgs" id="cnew-imgs"></div>
         <div class="cmt-form-row">
           <span class="marks">
@@ -4596,13 +5436,56 @@ async function renderDetail(id, termAddress) {
     try { item = await api('PUT', `/api/items/${id}`, { title: v }); toast(t('list.saved')); }
     catch (e) { toast(e.message, true); }
   };
+  /* ---- Die Beschreibung: zwei Wege in den Schreibmodus ---- */
   const descEl = document.getElementById('desc');
-  autoGrow(descEl);
-  descEl.onblur = async () => {
-    if (descEl.value === item.description) return;
-    try { item = await api('PUT', `/api/items/${id}`, { description: descEl.value }); toast(t('list.saved')); }
-    catch (e) { toast(e.message, true); }
+  const descView = document.getElementById('descview');
+  const descFit = autoGrow(descEl);
+  function drawDesc() {
+    descView.replaceChildren();
+    if (!item.description) {
+      const hint = document.createElement('span');
+      hint.className = 'hint';
+      hint.textContent = t('entry.whatIsThis');
+      descView.appendChild(hint);
+      return;
+    }
+    const missing = markupRefMissing([item.description]);
+    if (missing.length) markupRefLoad(missing).then(drawDesc);
+    descView.appendChild(markupNodes(item.description, term, []));
+  }
+  function descWrite(on) {
+    descView.hidden = on;
+    descEl.hidden = !on;
+    if (!on) return drawDesc();
+    descEl.value = item.description;
+    descEl.focus();
+    descFit();
+  }
+  document.getElementById('descedit').onclick = () => descWrite(true);
+  descView.onclick = (e) => { if (!e.target.closest('a')) descWrite(true); };
+  // Escape verwirft und stellt den zuletzt gespeicherten Text her.
+  descEl.onkeydown = (e) => {
+    if (e.key !== 'Escape') return;
+    e.preventDefault();
+    descWrite(false);
   };
+  /* Statt einer geratenen Frist entscheidet das Ziel: liegt es im Menue,
+     schreibt gerade jemand eine Marke. */
+  descEl.addEventListener('focusout', async (e) => {
+    if (e.relatedTarget && e.relatedTarget.closest('.markup-menu')) return;
+    const value = descEl.value;
+    descWrite(false);
+    if (value === item.description) return;
+    try { item = await api('PUT', `/api/items/${id}`, { description: value }); drawDesc(); toast(t('list.saved')); }
+    catch (err) {
+      /* Was nicht gespeichert ist, bleibt im Feld stehen -- die Vorschau
+         zeigte sonst den alten Text und der neue waere still fort. */
+      descWrite(true);
+      descEl.value = value;
+      toast(err.message, true);
+    }
+  });
+  drawDesc();
 
   /* ---- Kategorie ---- */
   /* ---- Wer den Eintrag angelegt hat, und wann ---- Bei genau einem aktiven
@@ -5432,6 +6315,11 @@ async function renderDetail(id, termAddress) {
     const ccount = document.getElementById('ccount');
     ccount.innerHTML = counts.html;
     ccount.title = counts.text;
+    /* Die Nummer ist die Stellung nach `id` und nicht die der Anzeige:
+       Anpinnen und das Umstellen der Art bewegen sie damit nicht. */
+    const order = commentOrder(item.comments);
+    const missing = markupRefMissing(item.comments.map(c => c.text));
+    if (missing.length) markupRefLoad(missing).then(drawComments);
     box.innerHTML = item.comments.length ? '' : emptyState(t('entry.noCommentsYet'));
     item.comments.forEach(c => {
       const report = c.kind === 'report', task = c.kind === 'task',
@@ -5440,6 +6328,11 @@ async function renderDetail(id, termAddress) {
       el.className = 'cmt'
         + (report ? ' report' : task ? ' task' : done ? ' done' : '')
         + (c.pinned ? ' pinned' : '');
+      /* Die Verfasserzeile des Zitats kommt aus der Zeile selbst und nicht
+         aus einem zweiten Zustand daneben. */
+      el.dataset.comment = c.id;
+      el.dataset.author = authorName(c.author);
+      el.dataset.when = fmtDate(c.created_at);
 
       /* FUENF FAELLE, DREI ANTWORTEN -- die Spalten der Rechtetabelle:
          Verfasser, anderer, Admin. */
@@ -5480,12 +6373,14 @@ async function renderDetail(id, termAddress) {
               : `<span class="cmt-due on due-${esc(dueState)}"
                   title="${esc(t('entry.dueHint'))}">${esc(fmtDay(c.dueDate))}</span>`}
           </span>` : ''}
-          <span class="cmt-when">${multipleUsers()
+          <span class="cmt-when"><button class="link-btn cmt-no"
+              title="${esc(t('entry.copyCommentLink'))}">#${Number(order.get(c.id))}</button> · ${multipleUsers()
             ? `<span class="cmt-from">${esc(authorName(c.author))}</span> · ` : ''
           }${esc(fmtDate(c.created_at))}${c.updated_at ? ` · ${tH('entry.edited')}` : ''}${
             c.imagesRemoved ? ` · <span class="cmt-edited">${
               tH('entry.imagesRemovedAdmin', { n: c.imagesRemoved })}</span>` : ''}</span>
-          <span class="acts">${mine ? `<button class="mact ed" title="${esc(t('entry.edit'))}">${ICON_PEN}</button>` : ''
+          <span class="acts"><button class="mact cite" title="${esc(t('entry.quoteComment'))}">„</button>${
+            mine ? `<button class="mact ed" title="${esc(t('entry.edit'))}">${ICON_PEN}</button>` : ''
             }${manage ? `<button class="mact rm" title="${esc(t('dialog.delete'))}">${ICON_X}</button>` : ''}</span>
         </div>
         <div class="cmt-body"></div>
@@ -5493,9 +6388,17 @@ async function renderDetail(id, termAddress) {
 
       /* Der Text kommt nicht aus der Vorlage, sondern als echte Knoten -- so
          kann hier gar kein Markup entstehen. */
-      /* UND DIE MARKIERUNG IST DAS VIERTE STUECK. */
+      /* DIE AUSZEICHNUNG LIEGT UEBER DER ZERLEGUNG: Adresse, Markierung und
+         Suchtreffer laufen weiter durch dieselben drei Stuecke. */
       el.querySelector('.cmt-body')
-        .appendChild(buildCommentNodes(splitCommentText(c.text, term, c.mentions)));
+        .appendChild(markupNodes(c.text, term, c.mentions));
+
+      // Die Raute kopiert die vollstaendige Adresse ueber denselben Weg wie
+      // jeder andere Link im Haus.
+      el.querySelector('.cmt-no').onclick = () =>
+        copyText(commentAddress(id, c.id), t('card.linkCopied'));
+      el.querySelector('.cite').onclick = () =>
+        quoteInto(c.text, authorName(c.author), fmtDate(c.created_at));
 
       const flip = async (field, value) => {
         try { item = await api('PUT', `/api/comments/${c.id}`, { [field]: value }); drawComments(); }
@@ -5560,7 +6463,7 @@ async function renderDetail(id, termAddress) {
       if (mine) el.querySelector('.ed').onclick = () => {
         const wrap = document.createElement('div');
         wrap.className = 'cmt-edit';
-        wrap.innerHTML = `<textarea class="ta"></textarea>
+        wrap.innerHTML = `<textarea class="ta" data-markup></textarea>
           <div class="acts"><button class="btn btn-ghost btn-sm addimg">${tH('entry.addImage')}</button>
           <button class="btn btn-ghost btn-sm cancel">${tH('dialog.cancel')}</button>
           <button class="btn btn-accent btn-sm save">${tH('dialog.save')}</button></div>`;
@@ -5748,6 +6651,16 @@ async function renderDetail(id, termAddress) {
   sortBlocks();
   drawViewer(); drawThumbs(); drawSwitches(); drawAuthor(); drawCat(); drawTags();
   drawRatings(); drawTestDays(); drawLinks(); drawAtts(); drawComments();
+  /* Ein Sprung ohne Markierung liesse den Leser suchen, welche der zwoelf
+     Zeilen gemeint war. */
+  if (commentWanted) {
+    const target = document.querySelector(`.cmt[data-comment="${Number(commentWanted)}"]`);
+    if (target) {
+      target.scrollIntoView({ block: 'center' });
+      target.classList.add('lit');
+      setTimeout(() => target.classList.remove('lit'), 2600);
+    }
+  }
 }
 
 /* ================= Der Systembereich ================= ACHTZEHN KARTEN IN

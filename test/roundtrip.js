@@ -1766,8 +1766,10 @@ async function sendImport(object, mode, withoutShare = false) {
        Sitzungscookie mit 401; der Container fragt /api/config. */
     /* 30 -> 29 mit 0.35.2: GET /api/items/:id/export ist gefallen. Die Route
        hatte 26 Runden lang keinen Rufer in der Oberflaeche. */
-    check('Und sie ist die EINZIGE neue Route dieser Runde',
-      (serverCode.match(/^app\.get\('/gm) || []).length === 29,
+    /* 29 -> 30: GET /api/comment-refs holt Titel und Stellung, auf die ein
+       Verweis zeigt. Lesend, also waechst F_ROUTES auch damit nicht. */
+    check('Und die Zahl der lesenden Routen steht',
+      (serverCode.match(/^app\.get\('/gm) || []).length === 30,
       String((serverCode.match(/^app\.get\('/gm) || []).length));
 
     // Den Titel zurueckstellen -- die Pruefungen danach rechnen mit dem alten.
@@ -3355,8 +3357,8 @@ async function sendImport(object, mode, withoutShare = false) {
   /* --- DIE SPRACHFASSUNGEN REISEN MIT DER DATEI — F8c -------------------
      ALLE, NICHT NUR DIE DES EXPORTIERENDEN. */
   const rnFile = (await callF('GET', '/api/export?photos=0')).content;
-  check('Die Exportdatei traegt die Formatnummer 17',
-    rnFile?.version === 17, JSON.stringify(rnFile?.version));
+  check('Die Exportdatei traegt die Formatnummer 18',
+    rnFile?.version === 18, JSON.stringify(rnFile?.version));
   /* UND DIE PROGRAMMFASSUNG DANEBEN -- 0.33.0, F14. `version` sagt, WELCHE
      FELDER zu erwarten sind; `appVersion` sagt, WAS die Datei geschrieben
      hat. */
@@ -4317,7 +4319,7 @@ async function sendImport(object, mode, withoutShare = false) {
     await call('PUT', `/api/criteria/${exCrit.id}`, { name: 'Üç dilli', language: 'tr' });
     const exFile = (await callF('GET', '/api/export?photos=0')).content;
     check('Ein Export traegt alle drei Sprachfassungen',
-      exFile?.version === 17 &&
+      exFile?.version === 18 &&
       exFile?.criteriaNames?.de?.['Dreisprachig'] === 'Dreisprachig DE' &&
       exFile?.criteriaNames?.tr?.['Dreisprachig'] === 'Üç dilli',
       JSON.stringify([exFile?.version, exFile?.criteriaNames?.de?.['Dreisprachig'],
@@ -4838,7 +4840,7 @@ async function sendImport(object, mode, withoutShare = false) {
   await gSet('Preis', 1); await gSet('Kundendienst', 1);
   const eOneF = includingShare((m, p, k) => eCall('cookie-e-eins', m, p, k), eWord);
   const gOut = (await eOneF('GET', '/api/export?photos=0')).content;
-  check('Die Formatnummer steht auf 17', gOut?.version === 17, JSON.stringify(gOut?.version));
+  check('Die Formatnummer steht auf 18', gOut?.version === 18, JSON.stringify(gOut?.version));
   check('criteria bleibt eine Liste von Namen',
     Array.isArray(gOut?.criteria) && gOut.criteria.every(n => typeof n === 'string'),
     JSON.stringify(gOut?.criteria));
@@ -5512,7 +5514,7 @@ async function sendImport(object, mode, withoutShare = false) {
     e2Entry?.comments?.find(c => c.text === 'Kommentar ohne Verfasser')?.author === null &&
     'author' in (e2Entry?.comments?.find(c => c.text === 'Kommentar ohne Verfasser') || {}),
     JSON.stringify(e2Entry?.comments?.find(c => c.text === 'Kommentar ohne Verfasser')));
-  check('Die Formatnummer der Datei steht auf 17', e2Out?.version === 17, JSON.stringify(e2Out?.version));
+  check('Die Formatnummer der Datei steht auf 18', e2Out?.version === 18, JSON.stringify(e2Out?.version));
 
   /* Der sechste Traeger steht nur in einem Export MIT Dateien -- deshalb ein
      zweiter Ruf. */
@@ -9559,7 +9561,7 @@ async function sendImport(object, mode, withoutShare = false) {
   const agCallF = includingShare((m, p, k) => agCall('cookie-ag-anna', m, p, k), AG_WORD);
   const agFile = (await agCallF('GET', '/api/export?fotos=0')).content;
   const agPackage = agFile?.items?.find(i => i.title === 'Berts Saege');
-  check('Die Formatnummer der Datei steht auf 17', agFile?.version === 17,
+  check('Die Formatnummer der Datei steht auf 18', agFile?.version === 18,
     JSON.stringify(agFile?.version));
   check('Die Datei traegt Datum, Grund und den NAMEN des Ablehnenden',
     agPackage?.rejected_at === agBefore.rejected_at &&
@@ -18524,7 +18526,7 @@ async function sendImport(object, mode, withoutShare = false) {
 
   /* --- Das Austauschformat --------------------------------------------- */
   const phEx = await phExport(PH);
-  check('Die Formatnummer steht auf 17', phEx.version === 17, `${phEx.version}`);
+  check('Die Formatnummer steht auf 18', phEx.version === 18, `${phEx.version}`);
   /* NUR ABWEICHUNGEN, wie bei den Gewichten: ein Nachher-Kriterium taucht in
      criteriaPhase gar nicht auf. */
   check('criteriaPhase nennt nur die Vorher-Kriterien',

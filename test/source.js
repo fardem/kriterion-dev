@@ -1095,8 +1095,11 @@ async function run() {
        (`entry.exportOne`, `server.entryTooBig`). */
     /* UND SEIT 0.36.0 EINER MEHR: `server.deniedOrigin` ist die Absage an
        eine schreibende Anfrage ohne Token gegen fremde Formulare. */
-    check('Und die Zahlen stehen: 1303 Schluessel, 88 Mehrzahlformen, 15 Vokabelnamen',
-      languageKeys.length === 1303 && pluralKeys.length === 88 && vocabularyKeys.length === 15,
+    /* VIERZEHN MEHR MIT DER AUSZEICHNUNG: sieben Schalter des Menues, die
+       zwei Fragen nach Name und Adresse, drei ums Zitieren, der Verweis und
+       sein Hinweis. */
+    check('Und die Zahlen stehen: 1317 Schluessel, 88 Mehrzahlformen, 15 Vokabelnamen',
+      languageKeys.length === 1317 && pluralKeys.length === 88 && vocabularyKeys.length === 15,
       `${languageKeys.length} / ${pluralKeys.length} / ${vocabularyKeys.length}`);
 
     /* ---- 3. */
@@ -1154,8 +1157,10 @@ async function run() {
        `.id = '…'` gar nicht mehr ansaehe: `f-cat-none` steht in keiner
        Stilblattregel und in keinem `id="…"`. */
     const setIds = [...appSource.matchAll(/\.id = ['"]([\w-]+)['"]/g)].map(m => '#' + m[1]);
-    check('Und die elf id, die das Skript selbst setzt, stehen alle in der Gestaltliste',
-      setIds.length === 11 && setIds.every(n => shapes.has(n)),
+    /* ZWOELF SEIT DEM MENUE DER AUSZEICHNUNG: es steht einmal im Dokument
+       und bekommt seine id vom Skript. */
+    check('Und die zwoelf id, die das Skript selbst setzt, stehen alle in der Gestaltliste',
+      setIds.length === 12 && setIds.every(n => shapes.has(n)),
       setIds.filter(n => !shapes.has(n)).join(' ') || `${setIds.length} gesetzte id`);
 
     /* ---- 5. */
@@ -1304,6 +1309,15 @@ async function run() {
     /* UND EINER MIT 0.36.0: die Absage an eine schreibende Anfrage ohne
        Token gegen fremde Formulare. */
     const WORDING_NEW_0360 = ['server.deniedOrigin'];
+    /* UND VIERZEHN MIT DER AUSZEICHNUNG: sieben Schalter des Menues, die
+       zwei Fragen nach Name und Adresse, drei ums Zitieren, der Verweis und
+       sein Hinweis. */
+    const WORDING_NEW_0380 = [
+      'entry.copyCommentLink', 'entry.markBold', 'entry.markBullet',
+      'entry.markCode', 'entry.markItalic', 'entry.markLink',
+      'entry.markLinkName', 'entry.markLinkTarget', 'entry.markNumber',
+      'entry.markQuote', 'entry.quoteComment', 'entry.quoteFrom',
+      'entry.quoteSelection', 'entry.refHint'];
     /* UND ACHT SCHLUESSEL FALLEN MIT 0.32.1 -- sechs von ihnen gab es schon
        bei der Abnahme, zwei sind erst in 0.32.0 entstanden und schon wieder
        weg. */
@@ -1326,7 +1340,7 @@ async function run() {
       ...WORDING_NEW_0300, ...WORDING_NEW_0311, ...WORDING_NEW_0314,
       ...WORDING_NEW_0320, ...WORDING_NEW_0321, ...WORDING_NEW_0330,
       ...WORDING_NEW_0350, ...WORDING_NEW_0351, ...WORDING_NEW_0352,
-      ...WORDING_NEW_0360]
+      ...WORDING_NEW_0360, ...WORDING_NEW_0380]
       .filter(k => !WORDING_GONE_0321.includes(k) && !WORDING_GONE_0330.includes(k)
                 && !WORDING_GONE_0352.includes(k));
     const wordingMissing = WORDING_NEW.filter(k => LANGUAGE_FILE[k] === undefined);
@@ -2345,10 +2359,10 @@ async function run() {
        Schreibstellen UND die Abweisung rechnen -- Zusage 11. */
     check('Die Formatnummer steht genau einmal als Zahl im Quelltext',
       (stServer.match(/EXCHANGE_FORMAT = \d+/g) || []).length === 1 &&
-      /const EXCHANGE_FORMAT = 17;/.test(stServer),
+      /const EXCHANGE_FORMAT = 18;/.test(stServer),
       (stServer.match(/EXCHANGE_FORMAT = \d+/g) || []).join(' · '));
     check('Und die aelteste gelesene daneben, unter ihr',
-      /const EXCHANGE_FORMAT_MIN = 14;/.test(stServer) && 14 < 17,
+      /const EXCHANGE_FORMAT_MIN = 14;/.test(stServer) && 14 < 18,
       (stServer.match(/EXCHANGE_FORMAT_MIN = \d+/g) || []).join(' · '));
   }
 
@@ -2533,28 +2547,55 @@ async function run() {
   {
     const qpApp = fs.readFileSync(path.join(__dirname, 'public', 'app.js'), 'utf8');
     const qpServer = fs.readFileSync(path.join(__dirname, 'server.js'), 'utf8');
-    const qpClient = new Set([...qpApp.matchAll(/[?&]([a-zA-Z][a-zA-Z0-9_]*)=/g)]
-      .map(m => m[1]));
+    /* DIE TRENNUNG: eine Adresse, die mit `#/` anfaengt, gehoert dem
+       Browser; alles andere ist eine Anfrage an den Server. Gelesen wird der
+       Ausdruck, in dem der Parameter steht -- rueckwaerts bis zum Semikolon. */
+    const qpExpression = (at) => qpApp.slice(qpApp.lastIndexOf(';', at) + 1, at);
+    const qpHash = new Set(), qpAsk = new Set();
+    for (const m of qpApp.matchAll(/[?&]([a-zA-Z][a-zA-Z0-9_]*)=/g))
+      (/#\//.test(qpExpression(m.index)) ? qpHash : qpAsk).add(m[1]);
     const qpRead = new Set([
       ...[...qpServer.matchAll(/req\.query\.([a-zA-Z][a-zA-Z0-9_]*)/g)].map(m => m[1]),
       ...[...qpServer.matchAll(/req\.query\['([^']+)'\]/g)].map(m => m[1])
     ]);
+    /* Und die Leser des Browsers: er holt sie aus derselben Adresse. */
+    const qpHashRead = new Set([...qpApp.matchAll(
+      /URLSearchParams\([^)]*\)\.get\('([a-zA-Z][a-zA-Z0-9_]*)'\)/g)].map(m => m[1]));
     /* ERST DER BEFUND AM GESTELLTEN FALL: ein Waechter, der auf leeren Mengen
        laeuft, ist gruen und belegt nichts. */
     check('Der Waechter sieht beide Seiten',
-      qpClient.size >= 15 && qpRead.size >= 15,
-      `${qpClient.size} im Browser, ${qpRead.size} am Server`);
+      qpAsk.size >= 15 && qpRead.size >= 15 && qpHash.size >= 2 && qpHashRead.size >= 2,
+      `${qpAsk.size} Anfragen, ${qpRead.size} am Server, ` +
+      `${qpHash.size} in der Browseradresse, ${qpHashRead.size} Leser im Browser`);
+    /* UND DIE TRENNUNG GREIFT WIRKLICH: `q` und `c` haengen an der Adresse
+       mit `#/`, `group` an einer Anfrage. */
+    check('Und die Trennung greift: die Adresse des Browsers traegt q und c',
+      qpHash.has('q') && qpHash.has('c') && !qpHash.has('group') && qpAsk.has('group'),
+      `Browseradresse: ${[...qpHash].sort().join(' ')}`);
     /* DIE EINE AUSNAHME, UND SIE STEHT NAMENTLICH DA: `v` haengt an der
        Kacheladresse und soll GERADE nicht gelesen werden -- es steht dort,
        damit der Browser eine geaenderte Kachel nicht aus seinem Vorrat
        nimmt. */
     const QP_UNREAD = ['v'];
-    const qpOrphan = [...qpClient].filter(n => !qpRead.has(n) && !QP_UNREAD.includes(n));
-    check('Und jeder Parameter, den der Browser baut, wird am Server gelesen',
+    const qpOrphan = [...qpAsk].filter(n => !qpRead.has(n) && !QP_UNREAD.includes(n));
+    check('Und jeder Parameter einer Anfrage wird am Server gelesen',
       qpOrphan.length === 0, qpOrphan.sort().join(' ') || 'alle gelesen');
+    /* UND JEDER PARAMETER DER BROWSERADRESSE HAT IM BROWSER EINEN LESER.
+       Bis hierher war `?q=` nur durch Zufall gruen: derselbe Name steht in
+       der Volltextsuche des Servers. */
+    const qpLost = [...qpHash].filter(n => !qpHashRead.has(n));
+    check('Und jeder Parameter der Browseradresse hat im Browser einen Leser',
+      qpLost.length === 0, qpLost.sort().join(' ') || 'alle gelesen');
     check('Die eine Ausnahme ist `v` — die Kachelversion, die niemand liest',
-      QP_UNREAD.length === 1 && qpClient.has('v') && !qpRead.has('v'),
+      QP_UNREAD.length === 1 && qpAsk.has('v') && !qpRead.has('v') && !qpHash.has('v'),
       QP_UNREAD.join(' '));
+    /* UND DER WAECHTER FAENGT EINEN PARAMETER OHNE LESER -- gestellt und
+       nachgemessen, auf beiden Seiten der Trennung. */
+    check('Und der Waechter faengt einen Parameter ohne Leser',
+      !qpRead.has('gibtesnicht') && !qpHashRead.has('gibtesnicht')
+      && /#\//.test(qpExpression(qpApp.indexOf('c=${Number(comment)}')))
+      && !/#\//.test(qpExpression(qpApp.indexOf('/api/items?q='))),
+      'der Waechter trennt Adresse und Anfrage nicht');
     /* UND DER FILTER DES SICHERHEITSPROTOKOLLS NAMENTLICH: er ist der Befund,
        wegen dessen diese Gruppe dasteht. */
     check('Der Filter des Sicherheitsprotokolls heisst auf beiden Seiten `group`',
@@ -2593,7 +2634,7 @@ async function run() {
     /* ERST DER BEFUND AM GESTELLTEN FALL: ein Waechter, der auf leeren Mengen
        laeuft, ist gruen und belegt nichts. */
     check('Der Waechter sieht beide Seiten',
-      rrRoutes.length === 102 && rrBrowser.length > 100000,
+      rrRoutes.length === 103 && rrBrowser.length > 100000,
       `${rrRoutes.length} Routen, ${rrBrowser.length} Zeichen im Browser`);
     /* DIE AUSNAHMEN, UND SIE STEHEN NAMENTLICH DA. Die Verwaltungstafel baut
        ihre Adresse aus einem Feld: `api('PUT', `${url}/${entry.id}`)` mit
@@ -2879,8 +2920,11 @@ async function run() {
     /* EINE WENIGER SEIT 0.35.2: `.entry-out` hielt den Knopf, der den
        einzelnen Eintrag als Datei holte. Der Knopf ist fort, die Regel mit
        ihm -- eine Regel ohne Element ist toter Text. */
-    check('Und es stehen genau 1638 Regelzeilen da — eine weniger als vor der Kuerzung',
-      ssCode === 1638, `${ssCode} Zeilen`);
+    /* 1638 WURDEN 1666: achtundzwanzig Regelzeilen kommen dazu, und sie
+       steigt, weil Regeln dazukommen -- das schwebende Menue, die Vorschau
+       der Beschreibung und die sechs Bauformen der Auszeichnung. */
+    check('Und es stehen genau 1666 Regelzeilen da — achtundzwanzig mehr mit der Auszeichnung',
+      ssCode === 1666, `${ssCode} Zeilen`);
     /* UND KEIN BLOCK IST WIEDER LANG GEWORDEN. Die Drei-Zeilen-Regel gilt
        auch fuer dieses Blatt; laenger sein darf allein, wer eine Tafel
        gemessener Werte traegt. Acht tun das. */
