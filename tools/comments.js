@@ -16,10 +16,10 @@ const { segment, COMMENT } = require('./segments.js');
 
 const ROOT = path.join(__dirname, '..');
 const SHIPPED = ['server.js', 'auth.js', 'db.js', 'mail.js', 'keys.js', 'attachments.js',
-  'images.js', 'batchrun.js', 'usertool.js', 'twofactor.js', 'keytool.js',
+  'images.js', 'batchrun.js', 'log.js', 'usertool.js', 'twofactor.js', 'keytool.js',
   'public/app.js', 'public/theme.js'];
 
-// Der Treiber, die Module in test/, counterproof.js und die dreizehn
+// Der Treiber, die Module in test/, counterproof.js und die vierzehn
 // ausgelieferten Dateien. Das Verzeichnis wird gelesen: ein neues Modul ist
 // damit von selbst dabei.
 function sourceFiles() {

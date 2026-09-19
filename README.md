@@ -316,8 +316,8 @@ Richtungen aus: auch eine Datei zu viel ändert ihn.**
 Container (`docker compose exec kriterion sh`):
 
 ```bash
-for f in attachments.js auth.js batchrun.js images.js db.js keys.js mail.js \
-         package.json server.js twofactor.js public/*; do
+for f in attachments.js auth.js batchrun.js images.js db.js keys.js log.js \
+         mail.js package.json server.js twofactor.js public/*; do
   printf "%-26s %s\n" "$f" "$(sha256sum "$f" | cut -c1-8)"
 done
 ```

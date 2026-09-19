@@ -7,6 +7,7 @@ const express = require('express');
 const multer = require('multer');
 const { Worker } = require('worker_threads');
 const attachments = require('./attachments');
+const { logLine, logWarn, logFail } = require('./log');
 // Eine Quelle fuer die Versionsnummer: die package.json. Die fuehrende Null
 // sagt, dass sich noch alles aendern darf; die Veroeffentlichung bekaeme 1.0.0.
 const VERSION = require('./package.json').version;
@@ -252,7 +253,7 @@ auth.setCompareLocale(compareLocale);
    keine Stapelabzuege. Dem Betreiber blieb bis dahin aber ebenfalls nichts --
    fuenfzehn catch-Bloecke schluckten den echten Fehler wortlos. */
 const errorText = (req, e) => {
-  if (!(e && e.key)) console.error('[Kriterion] ' + (e && e.stack ? e.stack : e));
+  if (!(e && e.key)) logFail(e && e.stack ? e.stack : e);
   return (e && e.key)
     ? t(localeOf(req), e.key, e.values || {})
     : t(localeOf(req), 'server.errorUnknown');
@@ -601,7 +602,7 @@ function startBatchThread(task, rows, done, store) {
   w.on('message', (m) => { if (m && m.kind === 'status') batchStates[task] = m.status; });
   w.on('error', (e) => {
     if (batchStates[task]) batchStates[task].running = false;
-    console.error(`[Kriterion] Inventory run (${task}) aborted:`, e.message);
+    logFail(`Inventory run (${task}) aborted:`, e.message);
   });
   w.on('exit', () => { batchThreads.delete(w); if (done) done(); });
   return w;
@@ -835,7 +836,7 @@ app.post('/api/signup', async (req, res) => {
      verworfenen zu unterscheiden. */
   if (plain) {
     sendConfirm(String(name).trim(), String(address).trim(), plain, localeOf(req))
-      .catch(e => console.error('[Kriterion] Bestaetigungsmail:', e && e.message));
+      .catch(e => logFail('Bestaetigungsmail:', e && e.message));
   }
 });
 
@@ -3301,7 +3302,7 @@ function refreshTile(id, done) {
      kein Termin. Ohne unref() haengt ein Herunterfahren bis zu 15 Sekunden. */
   clock.unref?.();
   try { startBatchThread('crop', [{ id: Number(id) }], once); }
-  catch (e) { console.error('[Kriterion] Tile not renewed:', e.message); once(); }
+  catch (e) { logFail('Tile not renewed:', e.message); once(); }
 }
 
 /* Ausschnitt eines Fotos. Drei Zahlen -- und seit 0.19.5 eine neue Kachel
@@ -3940,7 +3941,7 @@ app.post('/api/images/convert', ownerOnly, secondConfirmNeeded('images'), (req, 
      gefallen. */
   batchStates.conversion = { running: true, total: rows.length, done: 0,
                                  converted: 0, stayed: 0, freed: 0 };
-  console.log(`[Kriterion] Inventory run started: ${rows.length} photo row(s) ` +
+  logLine(`Inventory run started: ${rows.length} photo row(s) ` +
     `are looked at; the storage method is "${imageStore()}".`);
   res.status(202).json(batchState('conversion'));
   /* DIE ANTWORT IST SCHON HINAUS, WENN DER THREAD ANFAENGT -- seit 0.19.3
@@ -4804,20 +4805,20 @@ async function importInto(payload, userId, mode2, bytesSource = null) {
   /* Die laute Haelfte. */
   const unknown = [...unknownNames].sort();
   if (unknown.length)
-    console.log(`[Kriterion] Import: unknown authors assigned to the importing ` +
+    logLine(`Import: unknown authors assigned to the importing ` +
                 `account (${unknown.length}): ${unknown.join(', ')}`);
   /* Dieselbe Bauform eine Zeile tiefer: ein Gewicht, das die Spanne
      verlaesst, bricht nichts ab und verschwindet auch nicht wortlos. */
   const dropped = [...weightsDropped].sort();
   if (dropped.length)
-    console.log(`[Kriterion] Import: invalid weight reset to 1.0 ` +
+    logLine(`Import: invalid weight reset to 1.0 ` +
                 `(${dropped.length}): ${dropped.join(', ')}`);
   /* Und dieselbe Bauform ein drittes Mal, an den Videos. */
   if (videosWithoutFile)
-    console.log(`[Kriterion] Import: ${videosWithoutFile} video(s) were not contained ` +
+    logLine(`Import: ${videosWithoutFile} video(s) were not contained ` +
                 `in the file and were skipped.`);
   if (videosUnreadable)
-    console.log(`[Kriterion] Import: ${videosUnreadable} video(s) without a readable ` +
+    logLine(`Import: ${videosUnreadable} video(s) without a readable ` +
                 `still image skipped.`);
   return { ok: true, mode: mode2, ...stats,
            authorAssigned: assigned, authorUnknown: unknown,
@@ -4880,7 +4881,7 @@ const trashRestoring = new Set();
 /* ZWEI AUFRUFSTELLEN, beide noetig -- beim Start und beim Oeffnen der Karte. */
 function cleanupTrash() {
   const n = delTrashOld.run(`-${TRASH_DAYS} days`).changes;
-  if (n) console.log(`[Kriterion] Trash: ${n} row(s) older than ` +
+  if (n) logLine(`Trash: ${n} row(s) older than ` +
     `${TRASH_DAYS} days removed.`);
   return n;
 }
@@ -5233,7 +5234,7 @@ function removeBackups(folder, names) {
       removed++; bytes += st.size;
     } catch (e) {
       stayed.push(short);
-      console.error(`[Kriterion] Backup ${short} not removed: ${e.message}`);
+      logFail(`Backup ${short} not removed: ${e.message}`);
     }
   }
   return { removed, bytes, stayed };
@@ -5322,7 +5323,7 @@ app.post('/api/backup', ownerOnly, (req, res) => {
     fs.renameSync(becoming, file);
   } catch (e) {
     try { if (fs.existsSync(becoming)) fs.unlinkSync(becoming); } catch {}
-    console.error('[Kriterion] Backup failed:', e.message);
+    logFail('Backup failed:', e.message);
     // Fester Text wie ueberall bei einem Fehler DES SERVERS: ein SQL-Fehler
     // nennt Pfade und Tabellen, und die gehoeren ins Protokoll, nicht in die
     // Antwort.
@@ -5331,7 +5332,7 @@ app.post('/api/backup', ownerOnly, (req, res) => {
   const ms = Date.now() - t0;
   let bytes = 0;
   try { bytes = fs.statSync(file).size; } catch {}
-  console.log(`[Kriterion] Backup written: ${path.basename(file)} ` +
+  logLine(`Backup written: ${path.basename(file)} ` +
     `(${bytes} bytes, ${ms} ms).`);
   // Eine vollstaendige Kopie, die das Haus verlaesst -- dieselbe Zeile wie
 // der Export.
@@ -5350,7 +5351,7 @@ app.post('/api/backup', ownerOnly, (req, res) => {
         const out2 = removeBackups(target.filePath, matched.map(d => d.name));
         cleaned = { removed: out2.removed, notDeleted: out2.stayed.length, bytes: out2.bytes };
         if (out2.removed) {
-          console.log(`[Kriterion] Old backups removed: ${out2.removed} ` +
+          logLine(`Old backups removed: ${out2.removed} ` +
             `(${out2.bytes} bytes freed)` +
             `${out2.stayed.length ? `, ${out2.stayed.length} kept` : ''}.`);
           logRemoved(req.user.id, out2.removed);
@@ -5360,7 +5361,7 @@ app.post('/api/backup', ownerOnly, (req, res) => {
   } catch (e) {
     // Die Sicherung ist gelungen; dieser Fehler ist eine Angabe daneben und
 // darf die Antwort nicht in eine Absage verwandeln.
-    console.error('[Kriterion] Clearing up after the backup failed:', e.message);
+    logFail('Clearing up after the backup failed:', e.message);
     cleaned = { removed: 0, notDeleted: 0, bytes: 0, failed: true };
   }
   res.json({ ok: true, file: path.basename(file), filePath: target.filePath, bytes, ms,
@@ -5399,7 +5400,7 @@ app.post('/api/backup/cleanup', ownerOnly,
   }
   const out2 = removeBackups(target.filePath, matched.map(d => d.name));
   if (out2.removed) {
-    console.log(`[Kriterion] Old backups removed (${kind}): ${out2.removed} ` +
+    logLine(`Old backups removed (${kind}): ${out2.removed} ` +
       `(${out2.bytes} bytes freed)${out2.stayed.length ? `, ${out2.stayed.length} kept` : ''}.`);
     /* NUR DIE ZAHL INS SICHERHEITSPROTOKOLL. */
     logRemoved(req.user.id, out2.removed);
@@ -5473,7 +5474,7 @@ app.post('/api/backup/check', ownerOnly, (req, res) => {
 /* DER GRUND WIRD UEBERSETZT UND NICHT ROH HINGESCHRIEBEN -- 0.33.2. */
 {
   const situation = backupState();
-  console.log('[Kriterion] Backup location: ' + (situation.input
+  logLine('Backup location: ' + (situation.input
     ? situation.root
     : `off -- ${t('en', situation.reason, situation.values)}`));
 }
@@ -5517,7 +5518,7 @@ function backfillThumbnails() {
   catch (e) {
     /* DREI VERSUCHE UND DANN RUHE. */
     backfillTries++;
-    console.error(`[Kriterion] Bringing the tiles up to date could not reach the ` +
+    logFail(`Bringing the tiles up to date could not reach the ` +
       `database (${e.code || e.message}) -- attempt ${backfillTries} of 3.` +
       (backfillTries < 3 ? ` Trying again in ${BACKFILL_RETRY_MS / 1000} s.`
                          : ' It is due again on the next start.'));
@@ -5549,7 +5550,7 @@ function maintainStorage() {
     db.pragma('auto_vacuum = INCREMENTAL');
     db.exec('VACUUM');
     db.pragma('wal_checkpoint(TRUNCATE)');
-    console.log('[Kriterion] Automatic storage reclaim set up.');
+    logLine('Automatic storage reclaim set up.');
   } else {
     const free = db.pragma('freelist_count', { simple: true });
     const page = db.pragma('page_size', { simple: true });
@@ -5614,17 +5615,17 @@ app.listen(PORT, () => {
   // holeBenutzer() ist hier RICHTIG: beim Start gibt es keine Anfrage und
 // damit keinen angemeldeten Benutzer.
   const u = auth.getUser();
-  console.log(`[Kriterion] Running on port ${PORT} -- ` +
+  logLine(`Running on port ${PORT} -- ` +
     (u ? `owner: ${u.username}` : 'no account yet, set it up in the browser'));
   /* DER PRUEFSCHALTER SAGT SICH AN -- 0.30.0, F1 und F2. */
   if (keys.testbenchSwitch())
-    console.log(`[Kriterion] TEST SWITCH ACTIVE (${keys.TESTBENCH_NAME}) -- ` +
+    logLine(`TEST SWITCH ACTIVE (${keys.TESTBENCH_NAME}) -- ` +
       `scrypt N=${auth.SCRYPT_COST}, mail timeouts ${mail.SEND_MS}/${mail.CONNECT_MS}/` +
       `${mail.GREETING_MS} ms. FOR THE TEST BENCH ONLY -- where anyone works ` +
       `with this instance, it belongs removed.`);
   /* Die Betriebsart gehoert ins Protokoll: an ihr haengt, ob die Koepfe des
      Proxys ueberhaupt angesehen werden. */
-  console.log(`[Kriterion] Behind proxy: ${auth.BEHIND_PROXY ? 'on' : 'off'} -- ` +
+  logLine(`Behind proxy: ${auth.BEHIND_PROXY ? 'on' : 'off'} -- ` +
     (auth.BEHIND_PROXY
       ? 'X-Forwarded-For and X-Forwarded-Proto are read; over HTTPS that means ' +
         `${auth.COOKIE_SECURE} with Secure and HSTS, over the home network ${auth.COOKIE_NAME}`
@@ -5632,20 +5633,20 @@ app.listen(PORT, () => {
   /* Die oeffentliche Adresse gehoert ins Protokoll: an ihr haengt, welchen
      Link ein Empfaenger bekommt. */
   if (PUBLIC.problem) {
-    console.warn(`[Kriterion] PUBLIC_ADDRESS is unusable: ${PUBLIC.problem} ` +
+    logWarn(`PUBLIC_ADDRESS is unusable: ${PUBLIC.problem} ` +
       'The instance keeps running; the invitation link is built by the admin browser, as before.');
   } else if (PUBLIC.address) {
-    console.log(`[Kriterion] Public address: ${PUBLIC.address} -- ` +
+    logLine(`Public address: ${PUBLIC.address} -- ` +
       'invitation links are built from it.');
     if (auth.BEHIND_PROXY && PUBLIC.address.startsWith('http://')) {
       // Widerspruch, aber kein Verlust: ein falscher Link ist ein toter Link.
 // Eine Absage waere hier haerter als der Schaden.
-      console.warn('[Kriterion] Behind a proxy and still http:// in ' +
+      logWarn('Behind a proxy and still http:// in ' +
         'PUBLIC_ADDRESS -- links sent out then lead past the proxy and into ' +
         'the house without HTTPS.');
     }
   } else {
-    console.log('[Kriterion] Public address: not set -- ' +
+    logLine('Public address: not set -- ' +
       'the invitation link is built by the admin browser.');
   }
   /* Der Mailversand gehoert ins Protokoll, in derselben Form wie die Adresse
@@ -5657,11 +5658,11 @@ app.listen(PORT, () => {
       /* DER ANBIETERNAME KOMMT HIER AUF ENGLISCH -- 0.33.1. */
       const providerShown = z.providerNameKey
         ? t('en', z.providerNameKey) : z.providerName;
-      console.log(`[Kriterion] Mail delivery: ${providerShown} via ${z.server}:${z.port} ` +
+      logLine(`Mail delivery: ${providerShown} via ${z.server}:${z.port} ` +
         `(${z.secure ? 'TLS' : 'STARTTLS'}), sender ${z.sender}.` +
         (PUBLIC.address ? '' : ' Without PUBLIC_ADDRESS nothing is sent all the same.'));
     } else {
-      console.log('[Kriterion] Mail delivery: not set up -- invitation and reset ' +
+      logLine('Mail delivery: not set up -- invitation and reset ' +
         'links are there to copy in the admin area, as before.');
     }
   }

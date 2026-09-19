@@ -2,6 +2,7 @@ const fs = require('fs');
 const path = require('path');
 const Database = require('better-sqlite3-multiple-ciphers');
 const { loadKey } = require('./keys');
+const { logLine, logWarn, logFail } = require('./log');
 // Die eine Ansage dieser Datei bleibt im Neben-Thread still: der
 // Bestandslauf oeffnet dieselbe Datei aus seinem eigenen Thread.
 const { isMainThread } = require('worker_threads');
@@ -1019,7 +1020,7 @@ warnIncompleteDatabase(incompleteDatabase());
 const tryIndex = (name, sql) => {
   try { db.exec(sql); } catch (e) {
     if (isMainThread)
-      console.warn(`[Kriterion] Index ${name} not created: ${e.message} -- ` +
+      logWarn(`Index ${name} not created: ${e.message} -- ` +
         'see the warning above; queries run without it, only slower.');
   }
 };
@@ -1103,7 +1104,7 @@ try {
              ON users(email COLLATE NOCASE) WHERE email IS NOT NULL`);
 } catch {
   doubleEmails = db.prepare(qDoubleEmails).all();
-  console.log('[Kriterion] The address stays without a lock: ' +
+  logLine('The address stays without a lock: ' +
     doubleEmails.map(z => `${z.address} (${z.n})`).join(', ') +
     ' -- used more than once. The "Users" card names them.');
 }
@@ -1129,7 +1130,7 @@ function emailsDoubled() {
     "      SELECT 1 FROM users WHERE role = 'admin' AND status != 'deleted')))" +
     " AND NOT EXISTS (SELECT 1 FROM users WHERE role = 'owner')"
   ).run().changes;
-  if (n) console.log('[Kriterion] This instance had no owner; the oldest ' +
+  if (n) logLine('This instance had no owner; the oldest ' +
     'privileged account is the owner now (role=owner).');
 }
 
@@ -1181,7 +1182,7 @@ function assignInventory() {
     sum += n;
   }
   if (sum) {
-    console.log('[Kriterion] Inventory without an account assigned to the owner: ' +
+    logLine('Inventory without an account assigned to the owner: ' +
       `${counts.items} entries, ${counts.comments} comments, ${counts.test_days} test days, ` +
       `${counts.ratings} ratings, ${counts.links} links, ${counts.attachments} files.`);
   }
@@ -1252,7 +1253,7 @@ const APP_VERSION = require('./package.json').version;
     if (isMainThread) {
       let from = null;
       try { from = JSON.parse(before.value); } catch { from = String(before.value); }
-      console.log(`[Kriterion] This database last ran under ${from}; ` +
+      logLine(`This database last ran under ${from}; ` +
         `it now carries ${APP_VERSION}.`);
     }
   }

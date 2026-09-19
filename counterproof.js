@@ -3421,7 +3421,7 @@ const REGRESSIONS = [
        16383 px je Kante. */
     nr: '458', name: 'Ein Bild, das WebP nicht fassen kann, reisst den Upload ab',
     file: 'images.js',
-    search: "    console.error('[Kriterion] PNG blieb PNG:', e.message);",
+    search: "    logFail('PNG blieb PNG:', e.message);",
     replacement: "    throw e;",
     expected: 'Die Bildablage: PNG kommt herein, WebP geht in die Tabelle'
   },
@@ -4128,8 +4128,8 @@ const REGRESSIONS = [
     /* DAS NACHZIEHEN GIBT SEINE SEITEN NICHT FREI. */
     nr: '516', name: 'Das Nachziehen gibt seine Seiten nicht frei',
     file: 'batchrun.js',
-    search: "  reclaim();\n  report(status);\n  console.log(`[Kriterion] Tiles renewed:",
-    replacement: "  melde(stand);\n  console.log(`[Kriterion] Tiles renewed:",
+    search: "  reclaim();\n  report(status);\n  logLine(`Tiles renewed:",
+    replacement: "  melde(stand);\n  logLine(`Tiles renewed:",
     expected: '(erwartet STUMM — die Wirkung ist eine Dateigroesse, und die waechst in dieser Runde ohnehin)'
   },
   {
@@ -4432,7 +4432,7 @@ const REGRESSIONS = [
        rote Message. */
     nr: '552', name: 'Das Aufraeumen reisst die gelungene Sicherung mit',
     file: 'server.js',
-    search: "    console.error('[Kriterion] Clearing up after the backup failed:', e.message);\n" +
+    search: "    logFail('Clearing up after the backup failed:', e.message);\n" +
            "    cleaned = { removed: 0, notDeleted: 0, bytes: 0, failed: true };\n" +
            "  }",
     replacement: "    throw e;\n" +
@@ -8445,8 +8445,8 @@ const REGRESSIONS = [
     /* UND EINE KONSOLENANSAGE SPRICHT WIEDER DEUTSCH. */
     nr: '1051', name: 'Eine Konsolenansage spricht wieder deutsch',
     file: 'server.js',
-    search: "  console.log(`[Kriterion] Running on port ${PORT} -- ` +",
-    replacement: "  console.log(`[Kriterion] Laeuft auf Port ${PORT} -- ` +",
+    search: "  logLine(`Running on port ${PORT} -- ` +",
+    replacement: "  logLine(`Laeuft auf Port ${PORT} -- ` +",
     expected: 'Die sieben Waechter der Sprachdatei — 0.24.0'
   },
   {
@@ -8501,8 +8501,8 @@ const REGRESSIONS = [
     /* DER BEFUND SELBST: die Zeile schreibt den Schluessel wieder roh hin. */
     nr: '1057', name: 'Die Sicherungszeile schreibt den Schluessel wieder roh hin',
     file: 'server.js',
-    search: "  console.log('[Kriterion] Backup location: ' + (situation.input\n    ? situation.root\n    : `off -- ${t('en', situation.reason, situation.values)}`));",
-    replacement: "  console.log('[Kriterion] Backup location: ' + (situation.input ? situation.root : `off -- ${situation.reason}`));",
+    search: "  logLine('Backup location: ' + (situation.input\n    ? situation.root\n    : `off -- ${t('en', situation.reason, situation.values)}`));",
+    replacement: "  logLine('Backup location: ' + (situation.input ? situation.root : `off -- ${situation.reason}`));",
     expected: 'Die Sicherungsprobe — 0.29.0'
   },
   {
@@ -8746,7 +8746,7 @@ const REGRESSIONS = [
     /* Ein gefangener Fehler ohne Schluessel bleibt wieder stumm. */
     nr: '1083', name: 'Ein gefangener Fehler ohne Schluessel bleibt wieder stumm',
     file: 'server.js',
-    search: "  if (!(e && e.key)) console.error('[Kriterion] ' + (e && e.stack ? e.stack : e));",
+    search: "  if (!(e && e.key)) logFail(e && e.stack ? e.stack : e);",
     replacement: "",
     expected: 'Ein gefangener Fehler bleibt nicht stumm — 0.35.0'
   },
@@ -8933,6 +8933,32 @@ const REGRESSIONS = [
     search: "    if (err.code === 'LIMIT_UNEXPECTED_FILE' || err.code === 'LIMIT_FILE_COUNT')",
     replacement: "    if (false)",
     expected: 'Mehr als 40 Fotos auf einmal — 0.35.2'
+  },
+  /* ---- Das Containerprotokoll und seine Zeit -- 0.35.2, BA 5 ---- */
+  {
+    /* Der Versatz faellt weg -- die Zeile sagt dann nicht mehr, welche Uhr
+       gemeint ist. */
+    nr: '1105', name: 'Der Zeitstempel verliert seinen Versatz',
+    file: 'log.js',
+    search: "         `${sign}${two(Math.floor(away / 60))}:${two(away % 60)}`;",
+    replacement: "         'Z';",
+    expected: 'Das Containerprotokoll traegt seine Zeit — 0.35.2'
+  },
+  {
+    /* Eine Zeile schreibt den Namen wieder selbst und umgeht damit die Zeit. */
+    nr: '1106', name: 'Eine Protokollzeile umgeht den Helfer wieder',
+    file: 'keys.js',
+    search: "  if (isMainThread) logLine('New key created.');",
+    replacement: "  if (isMainThread) console.log('[Kriterion] New key created.');",
+    expected: 'Das Containerprotokoll traegt seine Zeit — 0.35.2'
+  },
+  {
+    /* Ohne TZ laeuft der Container auf UTC, und der Versatz ist immer +00:00. */
+    nr: '1107', name: 'Die Beispieldatei setzt TZ nicht mehr',
+    file: 'docker-compose.example.yml',
+    search: "      - TZ=Europe/Berlin\n",
+    replacement: "",
+    expected: 'Das Containerprotokoll traegt seine Zeit — 0.35.2'
   },
 ];
 

@@ -707,7 +707,10 @@ async function run() {
      das deutsche SUBSTANTIV. */
   const withoutConsole = (src) => {
     let out = '', i = 0;
-    const rx = /\bconsole\.(?:log|warn|error)\s*\(/g;
+    /* SEIT 0.35.2 GEHT DAS CONTAINERPROTOKOLL UEBER log.js -- der Schnitt
+       muss beide Formen nehmen, sonst faende er das englische Wort in einer
+       Protokollzeile wieder. */
+    const rx = /\b(?:console\.(?:log|warn|error)|log(?:Line|Warn|Fail))\s*\(/g;
     let m;
     while ((m = rx.exec(src)) !== null) {
       if (m.index < i) continue;
@@ -1078,7 +1081,7 @@ async function run() {
       .replace(/[_-]/g, ' ').split(/\s+/).filter(Boolean).map(x => x.toLowerCase());
     const isGerman = (name) => pieces(name).some(w => GERMAN[w]);
     const SHIPPED = ['server.js', 'auth.js', 'db.js', 'mail.js', 'keys.js', 'attachments.js',
-      'images.js', 'batchrun.js', 'usertool.js', 'twofactor.js', 'keytool.js',
+      'images.js', 'batchrun.js', 'log.js', 'usertool.js', 'twofactor.js', 'keytool.js',
       'public/app.js', 'public/theme.js'];
     const readShipped = (f) => fs.readFileSync(path.join(__dirname, ...f.split('/')), 'utf8');
 
@@ -1100,7 +1103,7 @@ async function run() {
         if (part.kind === CODE)
           for (const m of part.value.matchAll(/[A-Za-z_$][A-Za-z0-9_$]*/g)) identifiers.add(m[0]);
     check('Der Waechter sieht wirklich den ganzen ausgelieferten Code',
-      identifiers.size > 2000 && SHIPPED.length === 13, `${identifiers.size} Bezeichner aus ${SHIPPED.length} Dateien`);
+      identifiers.size > 2000 && SHIPPED.length === 14, `${identifiers.size} Bezeichner aus ${SHIPPED.length} Dateien`);
 
     /* FALSCHE FREUNDE. */
     const FALSE_FRIENDS = ['MAILTEST_KEY', 'cleanNote', 'liesIn', 'note', 'noteFailure', 'noteSuccess'];
@@ -2012,14 +2015,14 @@ async function run() {
   group('Kein Stolpersteinverweis mehr — 0.34.3');
   {
     const SHIPPED = ['server.js', 'auth.js', 'db.js', 'mail.js', 'keys.js', 'attachments.js',
-      'images.js', 'batchrun.js', 'usertool.js', 'twofactor.js', 'keytool.js',
+      'images.js', 'batchrun.js', 'log.js', 'usertool.js', 'twofactor.js', 'keytool.js',
       'public/app.js', 'public/theme.js'];
     const BENCH = [...benchFiles(), 'counterproof.js'];
     const readShipped = (f) => fs.readFileSync(path.join(__dirname, ...f.split('/')), 'utf8');
     const stWord = 'Stolper' + 'stein';
     const stAll = [...BENCH, ...SHIPPED];
-    check('Der Waechter sieht alle vierunddreissig Dateien',
-      stAll.length === 34, `${stAll.length} Dateien`);
+    check('Der Waechter sieht alle fuenfunddreissig Dateien',
+      stAll.length === 35, `${stAll.length} Dateien`);
     let stRows = 0;
     const stHits = [];
     for (const f of stAll)
@@ -2530,18 +2533,20 @@ async function run() {
     check('errorText steht als Rumpf da und nicht als Ausdruck',
       efBody.length > 0, efBody ? `${efBody.split('\n').length} Zeilen` : '(nicht gefunden)');
     check('Und der Fall ohne Schluessel geht ins Protokoll',
-      /console\.error/.test(efBody),
-      efBody.split('\n').filter(z => z.includes('console')).join(' · ') || '(kein console.error)');
+      /logFail\(/.test(efBody),
+      efBody.split('\n').filter(z => z.includes('logFail')).join(' · ') || '(kein logFail)');
     /* UND NUR DIESER FALL: ein Fehler MIT Schluessel ist beantwortet und
        gehoert nicht ins Protokoll. */
     check('Und nur dieser Fall -- ein Fehler mit Schluessel bleibt still',
-      /if \(!\(e && e\.key\)\) console\.error/.test(efBody),
-      (efBody.match(/.*console\.error.*/) || ['(keine Bedingung)'])[0].trim());
+      /if \(!\(e && e\.key\)\) logFail\(/.test(efBody),
+      (efBody.match(/.*logFail.*/) || ['(keine Bedingung)'])[0].trim());
     /* UND DIE MELDUNG NENNT DIE INSTANZ, wie jede andere Zeile dieses
        Servers -- sonst steht sie ohne Absender im Protokoll des Containers. */
+    /* SEIT 0.35.2 TRAEGT logFail() den Namen, und die Zeile bekommt ihn
+       damit von selbst -- zusammen mit ihrem Zeitstempel. */
     check('Und die Zeile nennt die Instanz',
-      /console\.error\('\[Kriterion\] '/.test(efBody),
-      (efBody.match(/.*console\.error.*/) || ['(keine Zeile)'])[0].trim());
+      /logFail\(e && e\.stack \? e\.stack : e\)/.test(efBody),
+      (efBody.match(/.*logFail.*/) || ['(keine Zeile)'])[0].trim());
   }
 
   /* ================= Die Namen der Abfrageparameter — 0.35.0 =============
@@ -2732,6 +2737,76 @@ async function run() {
     check('Und `entry.tooBig` traegt die Zahl als Platzhalter, nicht als Text',
       /\{mb\}/.test(fgLang['entry.tooBig']) && !/50/.test(fgLang['entry.tooBig']),
       String(fgLang['entry.tooBig']));
+  }
+
+  /* ========== Das Containerprotokoll traegt seine Zeit — 0.35.2, BA 5 =====
+     VORGABE DES BETREIBERS: ein Protokoll ohne Zeitstempel ist schwer zu
+     lesen. `docker compose logs -t` setzt zwar eine Zeit davor -- aber in UTC
+     und nur, wenn man es so aufruft. Ein Protokoll, dessen Zeit davon
+     abhaengt, wie man es liest, hat keine. */
+  group('Das Containerprotokoll traegt seine Zeit — 0.35.2');
+  {
+    const zpFiles = ['server.js', 'db.js', 'auth.js', 'keys.js',
+                     'batchrun.js', 'images.js'];
+    const zpRead = (f) => fs.readFileSync(path.join(__dirname, ...f.split('/')), 'utf8');
+    const zpLog = zpRead('log.js');
+    /* ERST DER HELFER SELBST. */
+    check('log.js liegt daneben und nennt seine vier Ausgaenge',
+      /module\.exports = \{ stamp, logLine, logWarn, logFail, NAME \};/.test(zpLog),
+      (zpLog.match(/module\.exports.*/) || ['(kein Ausgang)'])[0]);
+    /* UND ER HAT KEINE ABHAENGIGKEIT. Er wird auch aus einem Worker-Thread
+       gerufen und darf deshalb nichts aus dem Baum brauchen. */
+    check('Und er braucht keine andere Datei des Projekts',
+      !/require\('\.\//.test(zpLog),
+      (zpLog.match(/require\('\.\/[^']*'\)/g) || ['keine']).join(' '));
+    /* DIE ZEIT WIRD GERECHNET UND NICHT BEHAUPTET: der Stempel wird hier
+       gebaut und gegen eine bekannte Uhrzeit gehalten. */
+    const { stamp } = require('./log.js');
+    const zpShape = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}[+-]\d{2}:\d{2}$/;
+    check('Der Stempel hat die Gestalt von ISO 8601, mit Versatz',
+      zpShape.test(stamp()), stamp());
+    /* UND ER FOLGT DER UHR DES PROZESSES, ALSO TZ. Gerechnet wird gegen die
+       Angaben, die die Date selbst liefert -- eine zweite Rechnung daneben
+       waere dieselbe Rechnung und belegte nichts. */
+    const zpWhen = new Date(2026, 8, 18, 8, 21, 3);
+    const zpOff = -zpWhen.getTimezoneOffset();
+    const zpSign = zpOff < 0 ? '-' : '+';
+    const zpAway = Math.abs(zpOff);
+    const zpWant = `2026-09-18T08:21:03${zpSign}` +
+      `${String(Math.floor(zpAway / 60)).padStart(2, '0')}:` +
+      `${String(zpAway % 60).padStart(2, '0')}`;
+    check('Und er nennt die oertliche Zeit samt ihrem Versatz',
+      stamp(zpWhen) === zpWant, `${stamp(zpWhen)} statt ${zpWant}`);
+    /* DER NAME STEHT AN EINER STELLE. Wer ihn im Ruf mitschreibt, umgeht den
+       Zeitstempel -- und genau das war der Zustand vor dieser Runde. */
+    const zpLoose = [];
+    for (const f of zpFiles) {
+      const raw = zpRead(f);
+      if (raw.includes('[Kriterion]')) zpLoose.push(f);
+      if (!/const \{ logLine, logWarn, logFail \} = require\('\.\/log'\);/.test(raw))
+        zpLoose.push(`${f} ohne require`);
+    }
+    check('Keine der sechs Dateien schreibt den Namen noch selbst',
+      zpLoose.length === 0, zpLoose.join(' · ') || 'alle ueber log.js');
+    /* UND ES SIND WIRKLICH EINUNDFUENFZIG ZEILEN -- ein Waechter, der auf
+       einer leeren Menge laeuft, ist gruen und belegt nichts. */
+    const zpCount = zpFiles.reduce((n, f) =>
+      n + (zpRead(f).match(/\blog(?:Line|Warn|Fail)\(/g) || []).length, 0);
+    check('Und es sind 51 Protokollzeilen in den sechs Dateien',
+      zpCount === 51, `${zpCount} Zeilen`);
+    /* DIE BEISPIELDATEI SETZT TZ. Ohne sie laeuft der Container auf UTC, und
+       der Versatz waere immer +00:00. */
+    const zpCompose = fs.readFileSync(
+      path.join(__dirname, 'docker-compose.example.yml'), 'utf8');
+    check('Und die Beispieldatei setzt TZ',
+      /^\s+- TZ=Europe\/Berlin$/m.test(zpCompose),
+      (zpCompose.match(/.*TZ=.*/) || ['(nicht gesetzt)'])[0].trim());
+    /* DIE GESPEICHERTEN ZEITEN BLEIBEN UTC -- sie werden zwischen
+       Installationen verglichen und folgen TZ ausdruecklich nicht. */
+    const zpAuth = zpRead('auth.js');
+    check('Das Sicherheitsprotokoll schreibt seine Zeit weiter ueber SQLite, also UTC',
+      /datetime\('now'\)/.test(zpAuth) && !/stamp\(/.test(zpAuth),
+      `${(zpAuth.match(/datetime\('now'\)/g) || []).length} Stellen mit datetime('now')`);
   }
 
   /* ================= Der Eintrag als Datei — 0.35.0 =======================

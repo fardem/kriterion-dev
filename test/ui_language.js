@@ -368,7 +368,11 @@ async function run() {
       }
       return out + src.slice(i);
     };
+    /* SEIT 0.35.2 GEHEN DIE PROTOKOLLZEILEN UEBER log.js -- die drei neuen
+       Namen gehoeren in dieselbe Liste wie console.*, sonst liest die
+       Restprobe das Containerprotokoll fuer Bildschirmtext. */
     const SERVER_QUIET = ['console\\.log', 'console\\.error', 'console\\.warn',
+                          'logLine', 'logWarn', 'logFail',
                           'db\\.prepare', 'd\\.prepare'];
     const serverRest = [];
     for (const file of ['server.js', 'auth.js', 'mail.js']) {
@@ -437,7 +441,7 @@ async function run() {
     /* ---- 5d. DIE RESTPROBE FUER DAS CONTAINERPROTOKOLL -- 0.33.0 --------
        DIE LETZTE DEUTSCHE ECKE DES HAUSES. */
     const CONSOLE_FILES = ['server.js', 'db.js', 'auth.js', 'keys.js',
-                           'batchrun.js', 'images.js'];
+                           'batchrun.js', 'images.js', 'log.js'];
     /* ZWEI WOERTER FALLEN AUS DER FRAGE, und beide sind BEFEHLE und keine
        Saetze -- dieselbe Ausnahme, die REST_GERMAN_NAMED weiter oben fuer die
        zwei Serverbefehle macht: `passwort` steht in `node usertool.js
@@ -448,7 +452,11 @@ async function run() {
        Fortsetzung stehen. */
     const consoleCalls = (src) => {
       const out = [];
-      const rx = /\bconsole\.(?:log|warn|error)\s*\(/g;
+      /* SEIT 0.35.2 GEHEN DIE [Kriterion]-ZEILEN UEBER log.js, und der Leser
+         muss beide Formen sehen: `console.log(...)` fuer alles, was ohne
+         Zeitstempel hinausgeht, und `logLine/logWarn/logFail(...)` fuer das
+         Containerprotokoll. Eine Form allein hiesse, die andere zu uebersehen. */
+      const rx = /\b(?:console\.(?:log|warn|error)|log(?:Line|Warn|Fail))\s*\(/g;
       let m;
       while ((m = rx.exec(src)) !== null) {
         let j = m.index + m[0].length, depth = 1, q = null;

@@ -7215,6 +7215,19 @@ async function sendImport(object, mode, withoutShare = false) {
   check('Und jede geschriebene Sicherung steht ebenfalls darin',
     (SI.log().match(/\[Kriterion\] Backup written: /g) || []).length >= 3,
     (SI.log().match(/\[Kriterion\] Backup written: .*/g) || []).join(' · '));
+  /* ================= DIE ZEIT AN JEDER ZEILE — 0.35.2, BA 5 ==============
+     Gemessen am laufenden Server und nicht am Quelltext: eine Zeile, die den
+     Zeitstempel im Ruf traegt und ihn beim Schreiben verliert, faellt hier
+     auf und sonst nirgends. */
+  {
+    const siStamped = SI.log().split('\n').filter(z => z.includes('[Kriterion]'));
+    const siClock = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}[+-]\d{2}:\d{2} \[Kriterion\] /;
+    check('Der Waechter sieht ueberhaupt Protokollzeilen',
+      siStamped.length >= 3, `${siStamped.length} Zeilen`);
+    check('Und jede von ihnen traegt ihre Zeit nach ISO 8601, mit Versatz',
+      siStamped.every(z => siClock.test(z)),
+      siStamped.filter(z => !siClock.test(z)).slice(0, 3).join(' | ') || 'alle gestempelt');
+  }
   await SI.stop();
 
   /* --- DER SICHERUNGSORT DARF NICHT IM DATENVERZEICHNIS LIEGEN. */
