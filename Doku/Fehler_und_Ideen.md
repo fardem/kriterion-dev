@@ -979,7 +979,16 @@ Felder.*
 
 ---
 
-## 21. `express` 5 — die zwei letzten Meldungen von `npm audit`
+## 21. ~~`express` 5 — die zwei letzten Meldungen von `npm audit`~~ — **GESCHLOSSEN am 19. September 2026: erledigt ohne Zutun**
+
+> **KEIN BEFUND MEHR.** *Nachgemessen beim Schreiben des Auftrags zur 0.36.0:*
+> `npm audit` **meldet 0 Lücken.** `express@4.22.3` lässt `qs@6.16.0` zu, und
+> das ist die reparierte Fassung. **Der Sprung auf `express` 5 ist nicht mehr
+> nötig** — ein Patch innerhalb des schon deklarierten Bereichs hat es getan.
+>
+> **Was daraus folgt, steht als BA 4 im Auftrag zur 0.36.0:** heute ist es
+> grün, weil jemand anderes etwas repariert hat, und niemand merkt es, wenn
+> das aufhört. **Es fehlt eine Stelle, die den Lauf rot färbt.**
 
 **Art: Fehler** *(zwei Meldungen mittlerer Schwere, kein Schaden am Bestand)* ·
 **Einschätzung von Claude: nicht dringend** · **Herkunft: 0.24.6**
@@ -2228,6 +2237,12 @@ Entscheidung des Betreibers und keine Messung.**
 **Art: Idee** *(Quelltext)* **· Herkunft: 0.35.0, beim Zuschnitt der
 Veröffentlichung gefunden · Einschätzung: groß · Schritt 1 gebaut**
 
+> **SCHRITT 2 UND 3 SIND DIE RUNDE 0.37.0** *(`Doku/Auftrag_0.37.0.md`,
+> geschrieben am 19. September 2026)*. **Gemessen sind 778 Versionsnummern —
+> 726 in Kommentaren, 0 im Code — und 188 Verweise auf Papiere über den
+> Namen.** *Die Regeln dazu stehen seit dem 19. September 2026 geschärft in
+> `CLAUDE.md`, Abschnitt 2, und binden jede Runde.*
+>
 > **SCHRITT 1 IST MIT 0.35.2 GEBAUT (BA 9).** *Die beiden Löcher des
 > 0.34.3-Sweeps sind zu: `public/style.css` steht in der Dateiliste des
 > Wächters, und eine SQL-Kommentarzeile im Schematext von `db.js` wird als
@@ -2324,7 +2339,8 @@ der Öffentlichkeit die mit den toten Zeigern.
 ## 44. Kommentare und Beschreibung brauchen einen Editor
 
 **Art: Idee** *(Oberfläche)* **· Herkunft: Betreiber, 17. September 2026 ·
-Einschätzung: groß · Fahrplan: 0.37.0, nach der Sicherheitsrunde**
+Einschätzung: groß · Fahrplan: 0.38.0** *(am 19. September 2026 von 0.37.0
+gerückt: der Betreiber hat die Kommentarrunde davorgesetzt)*
 
 **GEWÜNSCHT SIND DIE GRUNDFUNKTIONEN EINES SCHREIBFELDS:** Fettdruck,
 Kursiv, Zitat und Aufzählung — **im Kommentar und in der Beschreibung.** Heute
