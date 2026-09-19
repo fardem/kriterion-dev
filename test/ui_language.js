@@ -590,8 +590,7 @@ async function run() {
       check('Und Grüße, GRÜSSE und GRÜßE fallen auf dasselbe',
         flOut[7] === flOut[8] && flOut[8] === flOut[9],
         JSON.stringify(flOut.slice(7, 10)));
-      /* UND DER PREIS IST BEZAHLT, AUSDRUECKLICH GEPRUEFT -- F7 des Auftrags
-         0.26.0. */
+      /* UND DER PREIS IST BEZAHLT, AUSDRUECKLICH GEPRUEFT. */
       check('Und der Preis steht: Masse und Maße sind fuer die Suche dasselbe',
         flOut[10] === flOut[11], `${flOut[10]} gegen ${flOut[11]}`);
       /* UND DAS GROSSE ẞ FAELLT MIT, weil die Gleichsetzung NACH
@@ -725,9 +724,8 @@ async function run() {
       const value = zlContrast(color, zlReasonLight);
       check(`${name} traegt im hellen Schema ${required.toFixed(1)} : 1 oder mehr gegen den Grund`,
         value >= required, `${color} misst ${value.toFixed(2)} : 1 (Latte ${required})`);
-      // Und die Zahl ist DIE aus dem Auftrag -- nicht bloss irgendeine ueber
-// der Latte. Wer den Wert spaeter anfasst, aendert auch das Papier.
-      check(`Und es sind die ${expected.toFixed(2)} : 1 aus dem Auftrag`,
+      // Und es ist DIE gemessene Zahl -- nicht bloss irgendeine ueber der Latte.
+      check(`Und es sind die gemessenen ${expected.toFixed(2)} : 1`,
         Math.round(value * 100) / 100 === expected, `${value.toFixed(2)} statt ${expected}`);
     }
     /* WAS VORHER DASTAND, UND WARUM ES NICHT TRUG. Die Zeile belegt den

@@ -2553,6 +2553,19 @@ einem Sprung in der eigenen Instanz.
 > drei: Kachelvorschau, Trefferausschnitt, Exportdatei.* **Nachgesehen am
 > 19. September 2026 auf dem Stand 0.37.0.**
 
+> **DIE AUFTRÄGE SIND GEFALLEN — 19. September 2026.** *Der Fahrplan nennt die
+> Regel an drei Stellen: es liegt immer nur einer im Repo. Gelebt wurde sie
+> seit 0.32.0 nicht; acht hatten sich angesammelt.* **Liegen bleibt allein
+> `Doku/Auftrag_0.38.0.md`, weil die Runde ungebaut ist.**
+>
+> *Dazu eine Verschärfung:* **kein Prüfstandsmodul und kein Werkzeug nennt
+> mehr einen Auftrag.** 28 Verweise sind aus Kommentaren gefallen, verteilt
+> über elf Prüfmodule, `counterproof.js` und drei Werkzeuge. **Ein neuer
+> Wächter hält es** — „Auch der Prüfstand nennt keinen Auftrag", über 37
+> Dateien, mit `test/source.js` als einziger benannter Ausnahme: das Modul
+> führt das Muster und seine gestellten Fälle. *Die ausgelieferten Dateien
+> waren schon sauber; das hält der Wächter aus 0.37.0.*
+
 > **Und die Zeilennummern oben sind vom 17. September.** *0.36.0 und 0.37.0
 > haben sie verschoben.* Auf dem Stand 0.37.0 gilt: `splitCommentText()` 1423,
 > `pieceNode()` 1452, `buildCommentNodes()` 1471, `raiseHighlight()` 1501, der

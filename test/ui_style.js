@@ -2434,7 +2434,7 @@ async function run() {
   }
 
   /* ---- Zusage 17 STEHT HIER NICHT ---- „`F_ROUTES` bleibt bei 72, die
-     lesenden bei 31" ist die siebzehnte Zusage des Auftrags, und sie wird
+     lesenden bei 31" ist die siebzehnte Zusage der Runde, und sie wird
      NICHT hier noch einmal aufgeschrieben: das Verzeichnis der schreibenden
      Wege sagt es bereits, Zeile fuer Zeile und mit derselben Zahl. */
 

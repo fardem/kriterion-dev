@@ -2958,7 +2958,7 @@ async function run() {
       `${afterCornerTwo.links + afterCornerTwo.edge}/${afterCornerTwo.top + afterCornerTwo.edge}`);
 
     /* --- DIE KANTE: die gegenueberliegende bleibt liegen, und die andere
-       Achse geht symmetrisch um DEREN MITTE mit (Auftrag 1.3a). */
+       Achse geht symmetrisch um DEREN MITTE mit. */
     /* ZUERST WIEDER EIN MITTLERER RAHMEN. */
     await fresherFrame();
     const vorEdge = frame();

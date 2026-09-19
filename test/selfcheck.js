@@ -403,13 +403,13 @@ async function run() {
       ['test/release_029.js', 60],
       ['test/release_030.js', 241],
       ['test/release_031.js', 419],
-      ['test/roundtrip.js', 3237],
+      ['test/roundtrip.js', 3236],
       ['test/selfcheck.js', 209],
-      ['test/source.js', 884],
+      ['test/source.js', 892],
       ['test/ui_entry.js', 497],
       ['test/ui_export.js', 453],
       ['test/ui_inventory.js', 241],
-      ['test/ui_language.js', 286],
+      ['test/ui_language.js', 284],
       ['test/ui_overview.js', 494],
       ['test/ui_style.js', 563],
       ['test/ui_system.js', 692],
@@ -431,7 +431,7 @@ async function run() {
       ['public/theme.js', 3],
       ['public/style.css', 1187],
     ];
-    const COMMENT_TOTAL = { comment: 15923, code: 63146 };
+    const COMMENT_TOTAL = { comment: 15928, code: 63175 };
     check('Der Waechter sieht alle sechsunddreissig Dateien',
       crAll.each.length === 36 && COMMENT_ROWS.length === 36,
       `${crAll.each.length} gemessen, ${COMMENT_ROWS.length} genannt`);
@@ -811,7 +811,7 @@ async function run() {
   }
 
   /* ============ Die Schalterprobe haengt nicht am Elternlauf — 0.35.0 =====
-     B1 des Auftrags 0.35.0. test/release_030.js startet ein Kind, um zu
+     test/release_030.js startet ein Kind, um zu
      belegen, dass die Zeitzeile OHNE Schalter nicht dasteht -- und hat
      TESTBENCH_TIME dabei an das Kind vererbt. Die Pruefung war gruen, weil
      der Elternprozess zufaellig keinen Schalter trug: derselbe Stand meldete

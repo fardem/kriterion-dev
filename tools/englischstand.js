@@ -8,7 +8,7 @@
 
    WOZU. Fuer Deutsch gibt es eine ABNAHME, und die Wortlautprobe im Pruefstand
    haelt de.json dagegen (tools/wording-0681d42.json, Commit 0681d42). Fuer
-   Englisch gab es keine -- bis zu dieser Runde, und sie IST sie (Auftrag, F9).
+   Englisch gab es keine -- bis zu dieser Runde, und sie IST sie.
    Was hier entsteht, ist der Vergleichsstand: die naechste Runde sieht daran,
    was sie anfasst, und muss es benennen.
 
@@ -29,7 +29,7 @@ const values = JSON.parse(fs.readFileSync(
 const out = {
   _about: 'Die WERTE von public/languages/en.json am gebauten Stand von 0.31.2, '
     + 'Schluessel fuer Schluessel und in der Folge der Datei. Fuer Englisch gibt es keine '
-    + 'Abnahme wie fuer Deutsch (0681d42) -- DIESE Runde ist sie (Auftrag, F9). Der Waechter '
+    + 'Abnahme wie fuer Deutsch (0681d42) -- DIESE Runde ist sie. Der Waechter '
     + '„Englisch sitzt" im Pruefstand haelt en.json dagegen; wer einen englischen Wert '
     + 'anfasst, traegt ihn in EG_CHANGED_AFTER_0312 ein und sagt, warum. ERZEUGT UND NICHT '
     + 'VON HAND GESCHRIEBEN -- node tools/englischstand.js schreibt sie. WARUM ALS DATEI UND '

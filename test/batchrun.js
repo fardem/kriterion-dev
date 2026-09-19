@@ -87,8 +87,8 @@ async function checkBatchRun() {
   }
 
   /* ---- Die Umstellung, aus dem Thread, mit einem zweiten Schreiber daneben
-     ---- DIE ZWEITE HAELFTE IST DER EIGENTLICHE GEGENSTAND: der Auftrag
-     0.19.1 hat diese Runde mit dem Satz zurueckgestellt, ein zweiter
+     ---- DIE ZWEITE HAELFTE IST DER EIGENTLICHE GEGENSTAND: 0.19.1 hat diese
+     Runde mit dem Satz zurueckgestellt, ein zweiter
      Schreiber auf einer WAL-Datei sei heikel. */
   const pngs = (() => {
     const d = open();

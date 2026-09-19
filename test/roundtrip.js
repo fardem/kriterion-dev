@@ -3373,7 +3373,7 @@ async function sendImport(object, mode, withoutShare = false) {
     Object.keys(rnFile?.criteriaNames?.de || {}).every(k => Number.isNaN(Number(k))),
     JSON.stringify(Object.keys(rnFile?.criteriaNames?.de || {})));
   /* UND DIE ERSTELLUNGSSPRACHE REIST MIT -- 0.25.0, Formatnummer 15. Das ist
-     der Befund, den der Auftrag nicht kannte: **der Import ist ein Anlegeweg
+     der spaete Befund: **der Import ist ein Anlegeweg
      wie jeder andere**, und diese Runde sagt zu, dass ab jetzt keine Zeile
      mehr ohne Sprachvermerk entsteht. */
   check('Und sie nennt die Erstellungssprache jeder Zeile — 0.25.0',
@@ -3924,7 +3924,7 @@ async function sendImport(object, mode, withoutShare = false) {
     JSON.stringify(Object.keys(ktUserSettings).filter(k => /Names$/.test(k))));
 
   /* ---- DIE SORTIERUNG BLEIBT AM GRUNDNAMEN ---------------------------
-     AUSDRUECKLICH NICHT GEAENDERT (Auftrag 0.25.0, „Was nicht gebaut wird"):
+     AUSDRUECKLICH NICHT GEAENDERT:
      zwei Leser saehen sonst zwei Reihenfolgen. */
   const ktOrderDe = (await ktRows('de')).map(z => z.id);
   const ktOrderTr = (await ktRows('tr')).map(z => z.id);
@@ -4127,7 +4127,7 @@ async function sendImport(object, mode, withoutShare = false) {
   }
 
   /* ================= Die Befunde der Runde 0.24.4 =======================
-     ELF WAECHTER, und jeder haelt eine Zusicherung aus dem Auftrag fest. */
+     ELF WAECHTER, und jeder haelt eine Zusicherung der Runde fest. */
   group('Die Befunde der Runde 0.24.4 — am laufenden Server');
 
   /* --- DIE EINTRAGSPROBE (B2) ------------------------------------------ Die
@@ -15331,12 +15331,11 @@ async function sendImport(object, mode, withoutShare = false) {
     /README names it/.test(uhOut), JSON.stringify(uhOut.trim().slice(0, 400)));
   check('Und dass die Instanz trotzdem startet',
     /starts anyway/i.test(uhOut), JSON.stringify(uhOut.trim().slice(0, 400)));
-  /* UND ER STEHT IN DERSELBEN FORM WIE DER SCHLUESSELHINWEIS AUS keys.js --
-     das Vorbild, das der Auftrag nennt. */
+  /* UND ER STEHT IN DERSELBEN FORM WIE DER SCHLUESSELHINWEIS AUS keys.js. */
   check('Und er traegt den Rahmen des Schluesselhinweises',
     /-{60,}/.test(uhOut) && /WARNING/.test(uhOut), JSON.stringify(uhOut.trim().slice(0, 120)));
   /* UND KEIN STAPELABZUG. Der Betreiber sieht einen Kasten und keine
-     Ausnahme -- Zusage 6 des Auftrags. */
+     Ausnahme. */
   check('Und nirgends ein Stapelabzug',
     !/\bat .*\.js:\d+/.test(uhOut), JSON.stringify(uhOut.trim().slice(0, 300)));
 
@@ -15882,7 +15881,7 @@ async function sendImport(object, mode, withoutShare = false) {
       (await imageRaw(oldRow.id, '?size=thumb')).bytes.equals(jpegThumb) &&
       (await imageRaw(oldRow.id, '?size=medium')).bytes.equals(jpegMedium),
       (await imageRaw(oldRow.id, '?size=thumb')).bytes.slice(0, 12).toString('hex'));
-    /* UND DIE ERSTE HAELFTE TUT, WAS SIE TAT -- Zusage 8 des Auftrags 0.33.0. */
+    /* UND DIE ERSTE HAELFTE TUT, WAS SIE TAT. */
     check('Und der Lauf hat sie als „nichts zu tun" gezaehlt',
       s2 && s2.stayed >= 1 && s2.converted === 0, JSON.stringify(s2));
     /* UND DAS ORIGINAL DIESER ZEILE IST DABEI BYTE-GENAU DASSELBE GEBLIEBEN. */

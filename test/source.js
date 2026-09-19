@@ -1484,9 +1484,7 @@ async function run() {
     /* UND EINER MIT 0.26.0 -- Befund 3c, aus demselben Grund: der Stand von
        damals kennt ihn, der von heute nicht mehr. */
     const WORDING_GONE_TEXT_0260 = ['Eingestellt wird es vom Admin.'];
-    /* UND SIEBEN FALLEN MIT 0.27.0 -- NAMENTLICH, wie der Auftrag es verlangt
-       (BA 3: „Faellt doch einer, steht er NAMENTLICH hier, in allen drei
-       Sprachen"). */
+    /* UND SIEBEN FALLEN MIT 0.27.0 -- NAMENTLICH und in allen drei Sprachen. */
     const WORDING_GONE_0270 = ['card.convertOnUpload', 'card.pasteWebpHint',
       'card.convertAllPng', 'card.noPngLeft', 'card.convertPngWebp',
       'card.pngConverting', 'card.stayedPng'];
@@ -2746,6 +2744,45 @@ async function run() {
       'der Waechter faerbt sich am blossen Wort');
   }
 
+  /* ====== Auch der Pruefstand nennt keinen Auftrag ======================
+     Ein Auftrag liegt nur, solange seine Runde ungebaut ist -- danach faellt
+     er, und was von ihm bleibt, steht im Aenderungsprotokoll. Der Pruefstand
+     geht mit hinaus, und drueben gibt es kein Doku/. */
+  group('Auch der Pruefstand nennt keinen Auftrag');
+  {
+    const paBench = [...benchFiles(), 'counterproof.js'];
+    const paTools = fs.readdirSync(path.join(__dirname, 'tools'))
+      .filter(n => /\.(?:js|json)$/.test(n)).map(n => 'tools/' + n).sort();
+    /* DIE EINE AUSNAHME, UND SIE STEHT NAMENTLICH DA: dieses Modul FUEHRT das
+       Muster und seine gestellten Faelle. */
+    const PA_FREE = ['test/source.js'];
+    const paAll = [...paBench, ...paTools].filter(f => !PA_FREE.includes(f));
+    check('Der Waechter sieht den Pruefstand und die Werkzeuge',
+      paAll.length >= 35 && paAll.every(f => fs.existsSync(path.join(__dirname, ...f.split('/')))),
+      `${paAll.length} Dateien`);
+    const paHits = [];
+    for (const f of paAll) {
+      const raw = fs.readFileSync(path.join(__dirname, ...f.split('/')), 'utf8');
+      for (const m of raw.matchAll(/Auftr(?:a|ä)g/g))
+        paHits.push(`${f}:${raw.slice(0, m.index).split('\n').length}`);
+    }
+    check('Und keine von ihnen nennt einen Auftrag',
+      paHits.length === 0, paHits.slice(0, 8).join(' · ') || 'kein Verweis');
+    /* UND DER LESER FAENGT WIRKLICH -- sonst waere die Verneinung darueber
+       auch dann wahr, wenn er gar nichts mehr saehe. */
+    check('Der Leser faengt einen gestellten Verweis',
+      /Auftr(?:a|ä)g/.test('/* Zusage 6 des Auftrags. */')
+      && /Auftr(?:a|ä)g/.test('/* Auftrag 0.35.0, BA 3. */')
+      && !/Auftr(?:a|ä)g/.test('/* Der Leser hat einen anderen Zweck. */'),
+      'der Leser sieht einen gestellten Verweis nicht');
+    /* UND DIE AUSNAHME IST NOETIG -- eine Karteileiche waere eine Erlaubnis
+       fuer toten Text. */
+    check('Und die eine Ausnahme traegt die Faelle wirklich',
+      PA_FREE.length === 1
+      && /Auftr(?:a|ä)g/.test(fs.readFileSync(path.join(__dirname, 'test', 'source.js'), 'utf8')),
+      PA_FREE.join(' '));
+  }
+
   /* ====== Der Grund eines Versands reist als Schluessel — 0.35.2, BA 11 ===
      `sendTokenLink()` hat mit 0.32.0 die Sprache des LESERS bekommen; die
      drei Gruende, warum gar nicht erst verschickt wurde, stehen seither in
@@ -2804,8 +2841,8 @@ async function run() {
   /* ================= Das Stilblatt — 0.35.0 ==============================
      BEFUND public/style.css:1 DER MESSUNG ZUR 0.35.0: die Datei mass 300.472
      Bytes, davon 211.862 in 408 Kommentarbloecken -- 70,5 Prozent. Der
-     Auftrag nennt die Kompression als Mittel; der Betreiber hat am
-     17. September 2026 beides bestellt, Kompression UND kuerzere Kommentare.
+     Betreiber hat am 17. September 2026 beides bestellt, Kompression UND
+     kuerzere Kommentare.
      GEMESSEN AM GEBAUTEN STAND: 195.090 Bytes, davon 106.321 in 409
      Bloecken -- 54,5 Prozent. Kommentarzeilen 3.131 -> 1.576.
      KEIN REGELTEXT IST DABEI GEFALLEN: die Zahl der Codezeilen ist

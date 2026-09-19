@@ -576,7 +576,7 @@ async function check0300() {
       /\.vocabulary-grid \.field label \.hint \{ display: inline; margin-left: 4px; \}/.test(kContainer),
       (kContainer.match(/\.vocabulary-grid \.field \{[^\n]*/) || ['(nicht gefunden)'])[0]);
     /* UND DIE BESCHRIFTUNG BLEIBT UEBER DEM FELD. Daneben zu stellen ist der
-       „dritte Weg" aus dem Auftrag -- und er bricht alle vierzehn um. */
+       „dritte Weg" -- und er bricht alle vierzehn um. */
     check('Und die Beschriftung steht weiter UEBER dem Feld, nicht daneben',
       !/\.vocabulary-grid \.field \{[^}]*flex-direction: row/.test(kContainer),
       'die Beschriftung steht neben dem Feld');
