@@ -2221,6 +2221,19 @@ zweimal gekürzt**
 > **`tools/comments.js` zählt das Blatt jetzt mit**, und der Prüfstand nennt
 > seine Zahl eigens: eine Quote bekommt es nicht, weil sie gemessene Zahlen
 > herausnähme. *Damit ist auch der dritte Schritt von Punkt 43 gebaut.*
+
+> **BERICHTIGT AM 19. SEPTEMBER 2026.** *Die Zeilenzahlen oben stimmen — 1.187
+> von 2.963 sind 40 Prozent.* **Die Byteangaben stimmen nicht:** „65.933 von
+> 195.090" nennt als Nenner die Dateigröße nach **0.35.0**, nicht die nach
+> 0.37.0. *Das Blatt misst seit BA 5 nur noch 167.501 Bytes.*
+>
+> **Gemessen mit der Zählweise des Wächters selbst** *(`test/source.js`,
+> Gruppe „Das Stilblatt trägt weniger Kommentar als vorher")*: **78.771 von
+> 167.501 Bytes, also 47,0 Prozent**, in 443 Blöcken. *Der Wert 65.933 lässt
+> sich mit keiner der drei Zählweisen nachstellen.*
+>
+> *Der Anteil ist damit trotzdem gefallen: nach 0.35.0 waren es 106.321 von
+> 195.090 Bytes, also 54,5 Prozent.*
 >
 > **Was offen bleibt, ist die Entscheidung des Betreibers**, ob die Zahlen aus
 > den Kommentaren in ein eigenes Papier wandern. Sie steht unverändert.
@@ -2505,6 +2518,44 @@ Eingabefelder, die neue Leseansicht der Beschreibung, die Kachelvorschau)*,
 `server.js` *(der Trefferausschnitt immer; die Zerlegung nur bei Entscheidung
 2 oder 4)*, `db.js` *(nur bei Entscheidung 3, und dann für zwei Spalten —
 `comments.text` und `items.description`)*.
+
+### Nachtrag vom 19. September 2026 — alle sieben Fragen sind beantwortet
+
+**Die Antworten stehen als `Doku/Auftrag_0.38.0.md`**, gemessen auf dem
+gebauten Stand 0.37.0. Der Auftrag läuft durch: achtzehn Fragen, alle vor der
+ersten Zeile entschieden.
+
+| | Frage | Antwort |
+|---|---|---|
+| 1 | Welche Auszeichnung | **eine Teilmenge von CommonMark.** Innerhalb der Teilmenge gilt die Spezifikation, keine eigene Regel. **Kriterion zeichnet, was CommonMark zeichnet, oder gewöhnlichen Text — nie etwas Drittes** |
+| 2 | Wo geparst wird | im Browser. Der Server bekommt nur eine Funktion, die Marken entfernt |
+| 3 | Merkmal an der Spalte | **nein**, keine Schemaänderung. Kursiv trägt den Unterstrich, weil die Spezifikation dort die Auszeichnung mitten im Wort verbietet — `3*4 und 5*6` bleibt damit Text |
+| 4 | Was die Exportdatei trägt | Formatnummer **17 → 18**. Die Untergrenze bleibt 14, die Nummer ist ein Hinweis und keine Schranke |
+| 5 | Was die Suche sieht | unverändert, sie liest den Rohtext. Der Trefferausschnitt bekommt die Marken vor dem Schneiden heraus |
+| 6 | Die Stellen, die nur Text können | **drei, nicht vier** — siehe die Berichtigung unten |
+| 7 | Umschalten der Beschreibung | Stift in der Blockkopfzeile **und** Klick in den Text, Escape verwirft, Verlassen speichert |
+
+**Grundlage ist ein Vorbau, den der Betreiber mit Google Gemini gemacht hat**,
+auf dem Stand 0.29.0. Der Auftrag nennt neun Übernahmen, zwanzig Befunde und
+sechs Eingriffe, die eine Instanz an eine fremde Betriebsumgebung anpassen —
+der erste davon schaltet die Datenbankverschlüsselung ab.
+
+**Drei Befunde stehen für die übrigen:** `backdrop-filter` ist im Stilblatt
+durch einen Wächter verboten; die Kommentarnummer war die Anzeigeposition und
+verschob sich beim Anpinnen; jede fremde Adresse mit `#/item/…?c=…` wurde zu
+einem Sprung in der eigenen Instanz.
+
+> **BERICHTIGUNG.** *Oben steht „die Mailbenachrichtigung trägt den
+> Kommentartext" als eine von vier Stellen, die nur Text können.* **Das trifft
+> nicht zu.** `mail.js` kennt vier Briefe — Einladung, Rücksetzung,
+> Bestätigung, Probe. Keiner trägt Kommentartext. *Die Zahl fällt von vier auf
+> drei: Kachelvorschau, Trefferausschnitt, Exportdatei.* **Nachgesehen am
+> 19. September 2026 auf dem Stand 0.37.0.**
+
+> **Und die Zeilennummern oben sind vom 17. September.** *0.36.0 und 0.37.0
+> haben sie verschoben.* Auf dem Stand 0.37.0 gilt: `splitCommentText()` 1423,
+> `pieceNode()` 1452, `buildCommentNodes()` 1471, `raiseHighlight()` 1501, der
+> Ruf am Kommentar 5498, `#desc` 3836, das Speichern beim Verlassen 4601.
 
 ---
 
