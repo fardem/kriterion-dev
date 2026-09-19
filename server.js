@@ -8,33 +8,30 @@ const multer = require('multer');
 const { Worker } = require('worker_threads');
 const attachments = require('./attachments');
 const { logLine, logWarn, logFail } = require('./log');
-// Eine Quelle fuer die Versionsnummer: die package.json. Die fuehrende Null
-// sagt, dass sich noch alles aendern darf; die Veroeffentlichung bekaeme 1.0.0.
+// Eine Quelle fuer die Versionsnummer: die package.json.
 const VERSION = require('./package.json').version;
 const sharp = require('sharp');
-/* WIE VIELE THREADS libvips SICH NEHMEN DARF -- ausdruecklich gesetzt und
-   nicht der Vorgabe ueberlassen: sharp macht sie vom Image abhaengig, unter
-   musl oder mit jemalloc ist sie die Kernzahl.
+/* WIE VIELE THREADS libvips SICH NEHMEN DARF, ausdruecklich gesetzt.
    UND os.cpus() IST IM CONTAINER NICHT DIE WAHRHEIT UEBER DAS KONTINGENT: es
    meldet die Kerne des Wirts. */
 sharp.concurrency(Math.max(1, Math.floor(os.cpus().length / 2)));
-/* DIE BILDABLEITUNGEN STEHEN SEIT 0.19.3 IN images.js und nicht mehr hier. */
+/* DIE BILDABLEITUNGEN STEHEN IN images.js und nicht mehr hier. */
 /* `isPng` STEHT HIER NICHT MEHR: die einzige Stelle, die es im Server rief,
-   war die Schleife des Bestandslaufs -- und die faehrt seit 0.19.3 im Thread. */
+   war die Schleife des Bestandslaufs -- und die faehrt im Thread. */
 const { makeVariants, VARIANTS, storeImage, IMAGE_STORES, IMAGE_STORE_DEFAULT, isImageStore } = require('./images');
 const { db, DATA_DIR, DB_FILE, keyFromEnv, keyHex, renumberCriteria, method, searchFold, emailsDoubled } = require('./db');
-/* DERSELBE TREIBER, EIN ZWEITER GRIFF -- 0.29.0, Befund 1. */
+/* DERSELBE TREIBER, EIN ZWEITER GRIFF. */
 const Database = require('better-sqlite3-multiple-ciphers');
 const auth = require('./auth');
-/* DER PRUEFSCHALTER FUER DIE ANSAGE BEIM START -- 0.30.0. */
+/* DER PRUEFSCHALTER FUER DIE ANSAGE BEIM START. */
 const keys = require('./keys');
 const mail = require('./mail');
 
 /* ================= Die Sprachdateien ================= */
-/* TEXT IST DATEN UND NICHT PROGRAMM -- 0.24.0, Bauabschnitt 1. */
+/* TEXT IST DATEN UND NICHT PROGRAMM. */
 const LANGUAGE_DIR = path.join(__dirname, 'public', 'languages');
 
-/* DIE SPRACHE DER AUSLIEFERUNG -- 0.24.3, Vorgabe (1) des Betreibers. */
+/* DIE SPRACHE DER AUSLIEFERUNG, Vorgabe (1) des Betreibers. */
 const LANGUAGE_FALLBACK = 'en';
 
 /* WIE EINE SPRACHKENNUNG AUSSIEHT -- BCP 47, und nicht aus Geschmack: GENAU
@@ -43,7 +40,7 @@ const LANGUAGE_FALLBACK = 'en';
 const LANGUAGE_NAME = /^[a-z]{2,3}(?:-[A-Z][a-z]{3})?(?:-(?:[A-Z]{2}|[0-9]{3}))?$/;
 
 /* EINE ZEILE INS CONTAINERPROTOKOLL, und die Datei zaehlt nicht. */
-/* DIE BEGRUENDUNG IST SEIT 0.33.2 ENGLISCH, und nicht nur der Rahmen um sie
+/* DIE BEGRUENDUNG IST ENGLISCH, und nicht nur der Rahmen um sie
    herum. */
 const languageSkip = (file, why) => console.error(
   `[languages] ${file} does not count as a language: ${why}`);
@@ -120,10 +117,9 @@ function languageDefault() {
   return typeof stored === 'string' && LANGUAGES[stored] ? stored : languageBase();
 }
 
-/* ---- Der Vorrat der Sprachen -- 0.24.3, Bauabschnitt 2 (F9) --------------
-   ZWEI SCHLUESSEL UND NICHT EINER, anders als beim Vorrat der Suchmaschinen:
-   dort traegt `searchOn` beides in einer Liste, weil der Standard IMMER im
-   Vorrat steht und die Liste damit alles sagt. */
+/* ---- Der Vorrat der Sprachen ---------------------------------------------
+   ZWEI SCHLUESSEL UND NICHT EINER, anders als bei den Suchmaschinen: dort
+   steht der Standard IMMER im Vorrat, und die Liste sagt damit alles. */
 function languagePool() {
   const stored = getSetting('languageOn', null);
   const kept = Array.isArray(stored)
@@ -135,8 +131,7 @@ function languagePool() {
 }
 
 /* DER NAME EINER SPRACHE STEHT IN IHRER EIGENEN SPRACHE -- wer die
-   Oberflaeche gerade nicht lesen kann, findet seine trotzdem (Bauabschnitt
-   3). */
+   Oberflaeche gerade nicht lesen kann, findet seine trotzdem. */
 function languageName(code) {
   const own = LANGUAGES[code] && LANGUAGES[code]._name;
   if (typeof own === 'string' && own.trim()) return own.trim();
@@ -155,16 +150,15 @@ function languageEntries() {
   return LANGUAGE_CODES.map(code => ({
     code, name: languageName(code),
     isDefault: code === std, active: pool.includes(code),
-    /* UND IHRE STELLUNGSREGEL -- 0.31.4. `_afterNumber` sagt, welche Form
+    /* UND IHRE STELLUNGSREGEL. `_afterNumber` sagt, welche Form
        hinter einer ZAHL steht: `one` im Tuerkischen, `plural` sonst. */
     afterNumber: LANGUAGES[code]._afterNumber === 'one' ? 'one' : 'plural'
   }));
 }
 
 /* SCHREIBT VORGABE UND VORRAT, AUFGERAEUMT -- dieselbe Bauform wie
-   writePool() bei den Suchmaschinen und aus demselben Grund: es soll nur EINE
-   Aussage ueber den Zustand geben und nicht zwei, die sich widersprechen
-   koennen. */
+   writePool() bei den Suchmaschinen: es soll nur EINE Aussage ueber den
+   Zustand geben und nicht zwei, die sich widersprechen koennen. */
 function writeLanguages(isDefault, active) {
   const known = (c) => !!LANGUAGES[c];
   let std = known(isDefault) ? isDefault : languageDefault();
@@ -199,8 +193,8 @@ function acceptedLanguage(req, pool) {
   return null;
 }
 
-/* WELCHE SPRACHE EINE ANTWORT TRAEGT -- 0.24.3, Bauabschnitt 4. DREI QUELLEN,
-   UND DIE REIHENFOLGE STEHT (Konzept 5.3): 1. */
+/* WELCHE SPRACHE EINE ANTWORT TRAEGT. DREI QUELLEN,
+   UND DIE REIHENFOLGE STEHT: 1. */
 function localeOf(req) {
   const pool = languagePool();
   const chosen = req && req.user ? getUserSetting(req.user.id, 'language', null) : null;
@@ -208,7 +202,7 @@ function localeOf(req) {
   return acceptedLanguage(req, pool) || languageDefault();
 }
 
-/* DIE LOCALE DES VERGLEICHS -- 0.24.3, Bauabschnitt 4, und sie ist NICHT die
+/* DIE LOCALE DES VERGLEICHS, und sie ist NICHT die
    des Lesers. */
 const compareLocale = () => localeTag(languageDefault());
 
@@ -227,17 +221,16 @@ function t(locale, key, values = {}) {
   let vocab = null;
   return String(record).replace(/\{(\w+)\}/g, (whole, name) => {
     if (values[name] !== undefined) return String(values[name]);
-    /* IN DER SPRACHE DES SATZES UND NICHT IN DER DER INSTALLATION -- 0.24.3,
-       Bauabschnitt 6. */
+    /* IN DER SPRACHE DES SATZES UND NICHT IN DER DER INSTALLATION. */
     if (vocab === null) vocab = vocabulary(locale);
     return vocab[name] !== undefined ? String(vocab[name]) : whole;
   });
 }
 
-/* EINE MELDUNG IST EIN SCHLUESSEL UND KEIN SATZ -- 0.24.0, Bauabschnitt 1. */
+/* EINE MELDUNG IST EIN SCHLUESSEL UND KEIN SATZ. */
 const Message = auth.Message;
 
-/* mail.js BEKOMMT DEN UEBERSETZER GEREICHT -- 0.24.0, Bauabschnitt 2. */
+/* mail.js BEKOMMT DEN UEBERSETZER GEREICHT. */
 mail.setTranslator(t);
 /* UND auth.js EBENSO -- fuer die zwei Antworten, die requireAuth() selbst
    gibt. */
@@ -247,11 +240,10 @@ auth.setTranslator((req, key, values) => t(localeOf(req), key, values));
    Schluessel seiner Anmeldebremse. */
 auth.setCompareLocale(compareLocale);
 
-/* WAS EIN GEFANGENER FEHLER SAGT -- 0.24.0, Bauabschnitt 2. */
-/* UND WAS ER DEM BETREIBER SAGT -- 0.35.0, BA 8. Ohne Schluessel bleibt dem
-   Leser „Unbekannter Fehler", und das ist richtig: die Oberflaeche nennt
-   keine Stapelabzuege. Dem Betreiber blieb bis dahin aber ebenfalls nichts --
-   fuenfzehn catch-Bloecke schluckten den echten Fehler wortlos. */
+/* WAS EIN GEFANGENER FEHLER SAGT. */
+/* UND WAS ER DEM BETREIBER SAGT. Der Leser bekommt „Unbekannter Fehler" und
+   keinen Stapelabzug; der Betreiber bekommt den echten Fehler ins
+   Containerprotokoll. */
 const errorText = (req, e) => {
   if (!(e && e.key)) logFail(e && e.stack ? e.stack : e);
   return (e && e.key)
@@ -271,11 +263,9 @@ const linkInfo = (plain) => PUBLIC.address
   : { link: null, linkSource: 'browser' };
 
 /* ---- Der Versand eines Tokenlinks ---- DER TOKEN ENTSTEHT ZUERST, DIE
-   ANTWORT TRAEGT DEN LINK IMMER, UND DER VERSAND IST EIN FELD DARIN -- die
-   bauliche Form des Satzes "E-Mail ist eine Bequemlichkeit, keine
-   Voraussetzung". */
-/* DIE DREI GRUENDE SIND SCHLUESSEL UND KEINE SAETZE -- 0.32.0, Bauabschnitt
-   4. */
+   ANTWORT TRAEGT DEN LINK IMMER, UND DER VERSAND IST EIN FELD DARIN: E-Mail
+   ist eine Bequemlichkeit und keine Voraussetzung. */
+/* DIE DREI GRUENDE SIND SCHLUESSEL UND KEINE SAETZE. */
 async function sendTokenLink(target, token, readerLocale) {
   const account = mail.resolve(getSetting(mail.SETTING_KEY, null));
   if (!mail.configured(account))
@@ -292,7 +282,7 @@ async function sendTokenLink(target, token, readerLocale) {
     days: auth.TOKEN_DAYS, minutes: auth.TOKEN_DEADLINE_MINUTES
   };
   const invite = token.purpose === 'invite';
-  /* DIE SPRACHE DES EMPFAENGERS UND NICHT DIE DES ABSENDERS (Konzept 4.6). */
+  /* DIE SPRACHE DES EMPFAENGERS UND NICHT DIE DES ABSENDERS. */
   const locale = languageOf(token.id);
   const letter = invite ? mail.mailInvite(locale, values2)
                           : mail.mailReset(locale, values2);
@@ -309,9 +299,8 @@ async function sendTokenLink(target, token, readerLocale) {
 const sendWhy = (e, locale) => (e.reasonKey ? t(locale, e.reasonKey) : e.reason);
 
 /* ---- Der Beleg der letzten Testmail --------------------------------------
-   SIE BELEGT "mit DIESEN Werten ist einmal wirklich eine Mail hinausgegangen"
-   und haengt am HASH UEBER DEN ZUGANG: aendert sich etwas daran, passt die
-   Marke nicht mehr. */
+   Er belegt „mit DIESEN Werten ist einmal wirklich eine Mail hinausgegangen"
+   und haengt am Hash ueber den Zugang. */
 const MAILTEST_KEY = 'mailtestOk';
 function mailTestState(raw) {
   const test = getSetting(MAILTEST_KEY, null);
@@ -320,7 +309,7 @@ function mailTestState(raw) {
 
 /* ---- Kann diese Instanz ueberhaupt verschicken --------------------------
    DREI VORAUSSETZUNGEN, UND ALLE DREI SIND NOETIG. */
-/* DER GRUND IST EIN SCHLUESSEL UND KEIN SATZ -- 0.32.0, Bauabschnitt 4. */
+/* DER GRUND IST EIN SCHLUESSEL UND KEIN SATZ. */
 function deliveryReady() {
   const raw = getSetting(mail.SETTING_KEY, null);
   if (!mail.configured(raw)) return { ok: false, key: 'server.noAccountOwner' };
@@ -360,24 +349,12 @@ app.use((req, res, next) => {
   if (auth.viaProxy(req)) res.set('Strict-Transport-Security', 'max-age=31536000');
   next();
 });
-/* ---- DIE AUSLIEFERUNG GEHT GEZIPPT HINAUS -- 0.35.0, BA 5 ----
-   GEMESSEN: public/style.css mass vor dieser Runde 300.472 Bytes, davon
-   211.862 in 408 Kommentarbloecken. Ohne Kompression laedt jeder Browser bei
-   jedem Aufruf den ganzen Text. Die Kommentare sind in derselben Runde auf
-   106.321 Bytes gekuerzt; gezippt misst die Datei 62.250 Bytes.
-   KEINE NEUE ABHAENGIGKEIT: zlib ist in Node eingebaut.
-   GEZIPPT WIRD EINMAL BEIM START und nicht je Anfrage -- die Dateien unter
-   public/ aendern sich zur Laufzeit nicht. Die gezippten Fassungen stehen im
-   Arbeitsspeicher und ausdruecklich NICHT als eigene Datei neben dem
-   Original: eine Datei in public/ ginge in den Fingerprint und in die
-   Dateiliste der Karte ein.
-   NUR TEXT. Ein Bild oder eine Schrift ist bereits komprimiert, und ein
-   zweiter Durchgang macht sie groesser statt kleiner. */
+/* DIE AUSLIEFERUNG GEHT GEZIPPT HINAUS, gezippt einmal beim Start und nicht
+   je Anfrage. Die Fassungen stehen im Arbeitsspeicher und nicht als Datei
+   neben dem Original. NUR TEXT -- ein Bild wuerde groesser. */
 /* DIE FUENF TYPEN STEHEN ALS TAFEL DA und werden nicht von express erfragt:
-   zwei Waechter halten server.js frei von jedem solchen Ruf, und ein hier
-   ausgeschriebener Name stuende in ihrem Suchtext. Die Werte sind die, die
-   express.static fuer dieselben Endungen liefert -- die Pruefung „Und jede
-   von ihnen traegt denselben Typ wie ungezippt" misst das nach. */
+   zwei Waechter halten server.js frei von jedem solchen Ruf. Die Werte sind
+   die, die express.static fuer dieselben Endungen liefert. */
 const PACK_TYPES = new Map([
   ['.css', 'text/css; charset=UTF-8'],
   ['.js', 'application/javascript; charset=UTF-8'],
@@ -400,8 +377,7 @@ const PACKED = new Map();
       small, at,
       /* DIESELBE FORM WIE DIE MARKE VON express.static -- schwach, aus Groesse
          und Zeitpunkt. Sie gehoert zur GEZIPPTEN Fassung und traegt deshalb
-         ein eigenes Zeichen: eine Marke, die fuer beide Fassungen gilt, waere
-         eine Zusage, die nicht stimmt. */
+         ein eigenes Zeichen. */
       tag: `W/"${raw.length.toString(16)}-${at.getTime().toString(16)}-gz"`
     });
   }
@@ -437,11 +413,8 @@ const upload = multer({
       : cb(new Message('server.imagesOnly'))
 });
 
-/* DIE GRENZEN REISEN AM GESUCH MIT. Der Fehler-Handler steht ganz am Ende des
-   Stapels; dort ist nicht mehr zu sehen, an welcher Route die Datei
-   hereinkam, und eine zweite Tafel Route-zu-Grenze liefe beim naechsten Umbau
-   auseinander. Ohne sie reicht multer `err.message` durch, und am Bildschirm
-   steht „Unexpected field". */
+/* DIE GRENZEN REISEN AM GESUCH MIT: der Fehler-Handler sieht die Route nicht
+   mehr. */
 function capped(mw, caps) {
   return (req, res, next) => { req.caps = caps; mw(req, res, next); };
 }
@@ -459,7 +432,7 @@ const touch = db.prepare(`UPDATE items SET updated_at = datetime('now') WHERE id
 /* "bearbeitet" am Kommentar. EINE Stelle fuer beide Bildwege -- anhaengen und
    entfernen sind dieselbe Aussage ueber denselben Menschen. */
 const commentEdited = db.prepare(`UPDATE comments SET updated_at = datetime('now') WHERE id = ?`);
-/* DIE BEIDEN ABFRAGEN STEHEN EINMAL DA -- 0.35.0, BA 5. Bis dahin trugen
+/* DIE BEIDEN ABFRAGEN STEHEN EINMAL DA. Bis dahin trugen
    beide Helfer ihr db.prepare im Rumpf; GET /api/settings ruft sie
    mindestens 29 Mal je Anfrage. */
 const qSetting = db.prepare('SELECT value FROM settings WHERE key = ?');
@@ -485,23 +458,23 @@ const putSetting = { run: (k, v) => {
 
 /* ---- Persoenliche Einstellungen ---- */
 // Die persoenliche Haelfte von settings.
-/* ACHT SEIT 0.17.0, vorher neun: `zuletztGesehen` trug die Pille „Neu seit
+/* ACHT, vorher neun: `zuletztGesehen` trug die Pille „Neu seit
    ..." und hat mit ihr keinen Rufer mehr. */
-/* NEUN SEIT 0.22.0: `strip` -- die Mindestgroesse der Kacheln im
+/* NEUN: `strip` -- die Mindestgroesse der Kacheln im
    Bildstreifen, persoenlich je Zugang, ein Wert fuer alle Geraete, dieselbe
    Maschine wie `font` (E11). */
-/* ZEHN SEIT 0.23.0: `theme` -- hell, dunkel oder wie das Geraet. */
-/* ELF SEIT 0.24.3: `language` -- die Sprache, in der DIESER Zugang die
+/* ZEHN: `theme` -- hell, dunkel oder wie das Geraet. */
+/* ELF: `language` -- die Sprache, in der DIESER Zugang die
    Oberflaeche, die Meldungen und seine Mails liest. */
 const PERSONAL_KEYS = ['filters', 'font', 'blocks', 'linkRows', 'timeline', 'searchNames',
                                 'bellSeen', 'views', 'strip', 'theme', 'language'];
 
-/* DER DRITTE RANG IN DERSELBEN ROUTE, seit 0.19.0. */
-/* SECHS SEIT 0.24.3: `languageDefault` und `languageOn` -- die Vorgabesprache
+/* DER DRITTE RANG IN DERSELBEN ROUTE. */
+/* SECHS: `languageDefault` und `languageOn` -- die Vorgabesprache
    der Installation und der Vorrat, aus dem der Benutzer waehlen darf. */
-/* SIEBEN SEIT 0.26.0: `potentialMode` -- der Schalter, der den ganzen
+/* SIEBEN: `potentialMode` -- der Schalter, der den ganzen
    Potenzialmodus aus- und wieder einschaltet. */
-/* ACHT SEIT 0.27.0? NEIN -- ES BLEIBEN SIEBEN, und genau deshalb steht der
+/* ACHT? NEIN -- ES BLEIBEN SIEBEN, und genau deshalb steht der
    Satz hier. */
 const OWNER_KEYS = ['imageStore',
                                 'backupCleanup', 'backupKeep', 'backupDays',
@@ -536,8 +509,7 @@ const IMAGE_MIME_FORMAT = {
 };
 const formatFromMime = (m) => IMAGE_MIME_FORMAT[String(m || '').trim().toLowerCase()] || 'other';
 
-/* DIE WAHL AUS DEM REITER „Datenbank" -- 0.27.0, und bis 0.26.0 war sie ein
-   Haekchen. */
+/* DIE WAHL AUS DEM REITER „Datenbank" -- frueher ein Haekchen. */
 const imageStore = () => {
   const v = getSetting('imageStore', IMAGE_STORE_DEFAULT);
   return isImageStore(v) ? v : IMAGE_STORE_DEFAULT;
@@ -545,8 +517,8 @@ const imageStore = () => {
 
 /* ---- Den vorhandenen Bestand nachziehen ---- DIES WAR ALS WIRTSSKRIPT
    `images.js` GEPLANT, in der Bauform von usertool.js und keytool.js. */
-/* EINE ABBILDUNG UND NICHT ZWEI VARIABLEN -- 0.19.4. Bis 0.19.3 gab es genau
-   einen Lauf, der einen Stand meldete, und der stand in `umstellung`. */
+/* EINE ABBILDUNG UND NICHT ZWEI VARIABLEN: es gibt mehr als einen Lauf, der
+   einen Stand meldet. */
 const batchStates = { conversion: null, geometry: null };
 
 /* Der Stand fuer /api/stats -- oder null, solange in dieser Laufzeit nie
@@ -554,24 +526,19 @@ const batchStates = { conversion: null, geometry: null };
 const batchState = (task) =>
   batchStates[task] && { ...batchStates[task] };
 
-/* WELCHE ZEILEN DER BESTANDSLAUF ANSIEHT -- 0.19.0, und mit 0.27.0 sind es
-   ALLE FOTOZEILEN statt nur der PNG. */
+/* WELCHE ZEILEN DER BESTANDSLAUF ANSIEHT: ALLE FOTOZEILEN und nicht nur die
+   PNG. */
 const qConvertRows = db.prepare(
   "SELECT id FROM photos WHERE kind != 'video'");
 
-/* WELCHE ZEILEN DAS ERNEUERN DER KACHELN ANSIEHT -- 0.19.4, erweitert 0.19.5.
-   ALLE ZEILEN, UND NICHT DIE FAELLIGEN. */
+/* WELCHE ZEILEN DAS ERNEUERN DER KACHELN ANSIEHT: ALLE ZEILEN, UND NICHT DIE
+   FAELLIGEN. */
 const qTileRows = db.prepare('SELECT id FROM photos');
 
-/* Die vier Abfragen der Bestandskarte, vorbereitet und nicht je Anfrage
-   gebaut: sie laufen bei jedem Zeichnen des Systembereichs.
-
-   `kind` steht in der Spaltenreihenfolge hinter drei Blobs (data, thumb,
-   medium). Wer es aus dem Satz liest, muss ihn bis dorthin durchlaufen -- also
-   die Overflow-Ketten der Blobs lesen und entschluesseln.
-
-   BERICHTIGT GEGEN 0.19.0: substr() AUF EINEM BLOB LIEST DAS BLOB, gemessen
-   657 ms bei 205 MB, das 0,87-fache dessen, was garantiertes Volllesen kostet.
+/* Die vier Abfragen der Bestandskarte, vorbereitet: sie laufen bei jedem
+   Zeichnen des Systembereichs.
+   BERICHTIGT: substr() AUF EINEM BLOB LIEST DAS BLOB, gemessen 657 ms bei
+   205 MB.
 
    GEMESSEN AN EINER SQLCIPHER-DATEI MIT 400 ZEILEN A 512 kB (312 MB):
      COUNT(*)                                        0,0 ms
@@ -590,7 +557,7 @@ const qVideoExportBytes = db.prepare(`
   SELECT COALESCE(SUM(length(data) + COALESCE(length(medium), length(thumb), 0)),0) AS n
     FROM photos WHERE kind IS ?`);
 
-/* ================= DER BESTANDSLAUF IN EINEM EIGENEN THREAD — 0.19.3
+/* ================= DER BESTANDSLAUF IN EINEM EIGENEN THREAD
    ========= DIE SCHLEIFEN SELBST STEHEN IN batchrun.js, und die Begruendung
    mit ihren Messungen steht dort im Kopf. */
 const batchThreads = new Set();
@@ -601,8 +568,7 @@ const BATCHRUN = path.join(__dirname, 'batchrun.js');
 
 /* EIN FEHLER IM THREAD REISST DEN SERVER NICHT AB -- dieselbe Regel wie heute
    fuer eine einzelne Zeile. */
-/* `store` IST DAS VERFAHREN DER ABLAGE UND GEHT NUR DEN BESTANDSLAUF AN --
-   0.27.0. */
+/* `store` IST DAS VERFAHREN DER ABLAGE UND GEHT NUR DEN BESTANDSLAUF AN. */
 function startBatchThread(task, rows, done, store) {
   const w = new Worker(BATCHRUN, { workerData: { task, rows, store } });
   batchThreads.add(w);
@@ -664,7 +630,7 @@ app.get('/api/config', (req, res) => {
 // ueber den Bestand. Wer die Seite aufruft, saehe es ohnehin.
   /* registrierung: die Anmeldeseite muss wissen, ob sie das Formular zeigen
      soll. */
-  /* DAS EINE SPRACHFELD SEIT 0.24.3. Die Anmeldeseite spricht die
+  /* DAS EINE SPRACHFELD. Die Anmeldeseite spricht die
      VORGABESPRACHE der Installation und sonst nichts -- vom Betreiber am 8. */
   res.json({
     title: getSetting('title_public', 'Bewertungskatalog'), version: VERSION,
@@ -674,7 +640,7 @@ app.get('/api/config', (req, res) => {
   });
 });
 
-/* DAS MANIFEST -- 0.28.0, BA 6. */
+/* DAS MANIFEST. */
 app.get('/api/manifest.json', (req, res) => {
   /* UND SIE SETZT DEN AUSGELIEFERTEN TYP NICHT SELBST -- das ist kein
      Versehen. */
@@ -706,9 +672,9 @@ app.post('/api/setup', async (req, res) => {
 
 app.post('/api/login', async (req, res) => {
   const ip = auth.clientIp(req);
-  /* DER GETIPPTE NAME HEISST HIER `username` UND NICHT `user`: `user` ist
-     seit 0.24.1 der ANGEMELDETE (req.user), und zwei Bedeutungen unter einem
-     Namen in einer Route sind eine zu viel. */
+  /* DER GETIPPTE NAME HEISST HIER `username` UND NICHT `user`: `user` ist der
+     ANGEMELDETE (req.user), und zwei Bedeutungen unter einem Namen in einer
+     Route sind eine zu viel. */
   const { user: username, password } = req.body || {};
   // Gezaehlt wird je IP UND je Name.
   const throttle = auth.checkThrottle(ip, username);
@@ -856,7 +822,7 @@ app.post('/api/token/redeem', async (req, res) => {
    ART 'offen'. */
 
 /* DIE EINE ANTWORT. */
-/* SIE IST EINE FUNKTION UND KEINE KONSTANTE -- 0.32.0, Bauabschnitt 4, und
+/* SIE IST EINE FUNKTION UND KEINE KONSTANTE, und
    das aendert an ihrer Zusage nichts: Byte fuer Byte DIESELBE Antwort fuer
    jede Lage, nur eben in der Sprache dessen, der sie liest. */
 const requestAnswer = (locale) => ({ ok: true, message: t(locale, 'server.signupThanks') });
@@ -867,7 +833,7 @@ app.post('/api/signup', async (req, res) => {
      einer Absage. */
   const an = getSetting('signup', false) === true;
   const { name, address } = req.body || {};
-  /* FORM IST OEFFENTLICH, EXISTENZ IST ES NICHT -- 0.32.0, Bauabschnitt 6. */
+  /* FORM IST OEFFENTLICH, EXISTENZ IST ES NICHT. */
   if (!String(name ?? '').trim())
     return res.status(400).json({ error: t(localeOf(req), 'login.usernameMissing') });
   if (!mail.isAddress(address))
@@ -955,7 +921,7 @@ function selfOnly(req, authorId) {
 
 /* Wer einen NEUEN Namen anlegen darf -- Tag oder Kategorie. */
 const freeCreate = (key) => getSetting(key, true) !== false;
-/* DER POTENZIALMODUS -- 0.26.0. */
+/* DER POTENZIALMODUS. */
 const potentialMode = () => getSetting('potentialMode', true) !== false;
 function mayCreate(req, key) {
   return isAdmin(req) || freeCreate(key);
@@ -1031,10 +997,9 @@ app.delete('/api/sessions', (req, res) => {
   res.json({ ended: auth.endOtherSessions(req.user.id, ownOne) });
 });
 
-/* DIE ANGABE HEISST `sessionId` UND NICHT `id`, und das ist kein Geschmack:
-   der Waechter ueber die Routen weist jede Route mit Selbstbezug ab, die eine
-   Nummer AUS DER ADRESSE nimmt -- sonst bliebe eine Route gruen, die die
-   fremde nimmt. */
+/* DIE ANGABE HEISST `sessionId` UND NICHT `id`: der Waechter ueber die Routen
+   weist jede Route mit Selbstbezug ab, die eine Nummer AUS DER ADRESSE
+   nimmt. */
 app.delete('/api/sessions/:sessionId', (req, res) => {
   const ownOne = auth.sessionToken(req);
   // Die eigene ueber diesen Weg zu beenden waere ein zweiter Abmeldeweg neben
@@ -1209,7 +1174,7 @@ app.get('/api/users', adminOnly, (req, res) => {
     ich: req.user.id,
     mayRoles: isOwner(req),
     owner: auth.ownerCount(),
-    /* WELCHE ADRESSEN MEHRFACH VERGEBEN SIND -- 0.29.0, Befund 4. */
+    /* WELCHE ADRESSEN MEHRFACH VERGEBEN SIND. */
     emailsDoubled: emailsDoubled()
   });
 });
@@ -1272,10 +1237,9 @@ app.put('/api/users/:id', adminOnly, async (req, res) => {
   if (!target) return;
   if (role !== undefined && !isOwner(req))
     return res.status(403).json({ error: t(localeOf(req), DENIED_ROLE)});
-  /* DIE ZWEITE BESTAETIGUNG STEHT HIER IM RUMPF UND NICHT IN DER ROUTENZEILE,
-     weil erst der Rumpf sagt, WELCHE der drei Rechteklassen gemeint ist:
-     Rolle und fremdes Passwort verlangen sie, Sperren und Freigeben nicht --
-     das ist umkehrbar und uebergibt nichts. */
+  /* DIE ZWEITE BESTAETIGUNG STEHT IM RUMPF UND NICHT IN DER ROUTENZEILE, weil
+     erst der Rumpf sagt, WELCHE Rechteklasse gemeint ist: Rolle und fremdes
+     Passwort verlangen sie, Sperren und Freigeben nicht. */
   if (role !== undefined && !secondConfirm(req, res, 'role', target.id)) return;
   if (password !== undefined && !secondConfirm(req, res, 'password', target.id)) return;
   try {
@@ -1308,10 +1272,9 @@ app.delete('/api/users/:id', adminOnly, (req, res) => {
 
 /* Was die Karte sieht. DIE ANBIETERLISTE KOMMT MIT: der Server speichert
    einen Schluessel, also muss die Oberflaeche die Namen von ihm bekommen. */
-/* `req` SEIT 0.24.0: die drei Hinweise aus mail.js sind Schluessel geworden
-   (Bauabschnitt 2), und uebersetzt werden sie HIER -- an der Stelle, an der
-   die Anfrage in der Hand liegt und damit feststeht, welche Sprache die
-   Antwort traegt. */
+/* `req`: die drei Hinweise aus mail.js sind Schluessel, und uebersetzt werden
+   sie HIER -- an der Stelle, an der die Anfrage in der Hand liegt und damit
+   feststeht, welche Sprache die Antwort traegt. */
 function mailCard(req) {
   const raw = getSetting(mail.SETTING_KEY, null);
   // Der Vergleich steht in mailTestState() weiter oben -- eine
@@ -1320,15 +1283,14 @@ function mailCard(req) {
   const state = mail.state(raw);
   return {
     ...state,
-    /* UND DER NAME DES GEWAEHLTEN ANBIETERS EBENSO -- 0.32.0, Bauabschnitt 5. */
+    /* UND DER NAME DES GEWAEHLTEN ANBIETERS EBENSO. */
     providerName: state.providerNameKey
       ? t(localeOf(req), state.providerNameKey) : state.providerName,
     // Auch die beiden Hinweise am gewaehlten Anbieter sind Schluessel.
     hint: state.hint ? t(localeOf(req), state.hint) : '',
     hintAlways: t(localeOf(req), state.hintAlways),
-    /* SAMT HINWEIS UND DEN DREI FESTEN WERTEN JE ANBIETER -- seit 0.17.3. */
-    /* UND DER EINE ANBIETERNAME, DER KEINE MARKE IST -- 0.32.0, Bauabschnitt
-       5. */
+    /* SAMT HINWEIS UND DEN DREI FESTEN WERTEN JE ANBIETER. */
+    /* UND DER EINE ANBIETERNAME, DER KEINE MARKE IST. */
     providerList: mail.forChoice().map(a =>
       ({ ...a, name: a.nameKey ? t(localeOf(req), a.nameKey) : a.name,
          hint: a.hint ? t(localeOf(req), a.hint) : '' })),
@@ -1382,8 +1344,8 @@ app.post('/api/mail/test', ownerOnly, async (req, res) => {
   }
   // 200 AUCH BEIM FEHLSCHLAG: der Versuch ist gelaufen, und sein Ergebnis ist
 // die Antwort.
-  /* `address` UND NICHT `an` -- 0.24.3, Bauabschnitt 7. */
-  /* `sentTo` UND NICHT `address` -- 0.24.3, Bauabschnitt 7. */
+  /* `address` UND NICHT `an`. */
+  /* `sentTo` UND NICHT `address`. */
   res.json({ ok: e.ok, reason: sendWhy(e, locale), sentTo: ownOne.email, ...mailCard(req) });
 });
 
@@ -1467,8 +1429,7 @@ app.put('/api/titles', adminOnly, (req, res) => {
 
 /* ---- Einstellungen (Filterwahl, Vokabular, Schriftgroesse) ---- */
 // Das Vokabular benennt die Oberflaeche um.
-/* DIE VORGABEN DER VIERZEHN WOERTER STEHEN SEIT 0.24.0 IN DER SPRACHDATEI
-   (Bauabschnitt 2, Konzept E9). */
+/* DIE VORGABEN DER VIERZEHN WOERTER STEHEN IN DER SPRACHDATEI. */
 const VOCABULARY_PREFIX = 'vocabulary.';
 const vocabularyDefault = (locale) => Object.fromEntries(
   Object.entries(textsOf(locale || languageDefault()))
@@ -1476,9 +1437,9 @@ const vocabularyDefault = (locale) => Object.fromEntries(
     .map(([k, v]) => [k.slice(VOCABULARY_PREFIX.length), v]));
 
 const FONT_LEVELS = [80, 90, 100, 110, 120];
-/* DIE STUFEN DES BILDSTREIFENS, IN BILDPUNKTEN -- 0.22.0 (E11). */
+/* DIE STUFEN DES BILDSTREIFENS, IN BILDPUNKTEN (E11). */
 const STRIP_LEVELS = [60, 80, 100, 120, 150];
-/* DIE DREI STUFEN DES FARBSCHEMAS -- 0.23.0. DIE VORGABE IST `dark` UND NICHT
+/* DIE DREI STUFEN DES FARBSCHEMAS. DIE VORGABE IST `dark` UND NICHT
    `device`: wer nichts einstellt, sieht, was er heute sieht. */
 const THEME_LEVELS = ['light', 'dark', 'device'];
 const THEME_DEFAULT = 'dark';
@@ -1493,7 +1454,7 @@ const BLOCK_DEFAULT = {
 };
 const ALL_BLOCKS = [...BLOCK_DEFAULT.side, ...BLOCK_DEFAULT.bottom];
 
-/* WELCHE BLOECKE IHREN EINKLAPPZUSTAND NICHT MEHR SPEICHERN -- 0.21.0. */
+/* WELCHE BLOECKE IHREN EINKLAPPZUSTAND NICHT MEHR SPEICHERN. */
 const BLOCKS_ALWAYS_OPEN = ['potenzial', 'bewertung'];
 const CLOSED_BLOCKS = ALL_BLOCKS.filter(k => !BLOCKS_ALWAYS_OPEN.includes(k));
 
@@ -1516,7 +1477,7 @@ function blocks(userId) {
   };
 }
 
-/* DIE GESPEICHERTE FORM -- 0.24.3, Bauabschnitt 6, und sie ist die EINE
+/* DIE GESPEICHERTE FORM, und sie ist die EINE
    gespeicherte Form dieses Abschnitts. */
 function vocabularyStored(raw, code) {
   if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return {};
@@ -1525,7 +1486,7 @@ function vocabularyStored(raw, code) {
 }
 
 /* DAS VOKABULAR IN DER SPRACHE DES LESERS, mit zwei Rueckfaellen in dieser
-   Folge (Nachtrag zu E9, Punkt 4): 1. */
+   Folge (Nachtrag zu E9): 1. */
 function vocabulary(locale) {
   const read = locale || languageDefault();
   /* DIE GESPEICHERTE flache Form ist die der VORGABESPRACHE -- sie stammt aus
@@ -1549,7 +1510,7 @@ function vocabulary(locale) {
 const vocabularyAll = () =>
   Object.fromEntries(LANGUAGE_CODES.map(code => [code, vocabulary(code)]));
 
-/* UND ZWEI TAFELN DANEBEN -- 0.24.4, die Reparatur von B1 und B4. */
+/* UND ZWEI TAFELN DANEBEN, die Reparatur von B1 und B4. */
 const vocabularyOwnAll = () => {
   const perLanguage = vocabularyStored(getSetting('vocabulary', null), languageDefault());
   return Object.fromEntries(LANGUAGE_CODES.map(code => {
@@ -1675,11 +1636,9 @@ function writePool(isDefault, active) {
   putSetting.run('searchOn', JSON.stringify([isDefault, ...rest]));
 }
 
-/* ---- FUENF EINSTELLUNGEN MIT FESTER STUFENLISTE -- 0.35.0, BA 3 ----
-   Sie standen zweimal da: einmal als Leser, einmal als Schreiber, jedes Mal
-   nach demselben Muster. Jetzt steht die Liste einmal, und Leser wie
-   Schreiber lesen aus ihr. Alle fuenf sind persoenlich: ein Wert je Zugang
-   und fuer alle Geraete. */
+/* ---- FUENF EINSTELLUNGEN MIT FESTER STUFENLISTE --------------------------
+   Die Liste steht einmal, Leser wie Schreiber lesen aus ihr. Alle fuenf sind
+   persoenlich: ein Wert je Zugang und fuer alle Geraete. */
 const PICK_SETTINGS = {
   linkRows:    { list: LINK_ROW_LEVELS,    cast: Number, fallback: 5,
                  wrong: 'server.linkRowsUnknown' },
@@ -1698,7 +1657,7 @@ const pick = (userId, key) => {
   const v = a.cast(getUserSetting(userId, key, a.fallback));
   return a.list.includes(v) ? v : a.fallback;
 };
-/* DIE SPRACHE DIESES ZUGANGS -- 0.24.3, Bauabschnitt 3. */
+/* DIE SPRACHE DIESES ZUGANGS. */
 const languageOf = (userId) => {
   const chosen = getUserSetting(userId, 'language', null);
   return typeof chosen === 'string' && languagePool().includes(chosen)
@@ -1740,10 +1699,10 @@ app.get('/api/settings', (req, res) => res.json({
   /* UND DIE VIERZEHN WOERTER JE SPRACHE -- fuer den Umschalter in der Karte
      „Vokabular". */
   vocabularies: vocabularyAll(),
-  /* UND ZWEI TAFELN DANEBEN -- 0.24.4. */
+  /* UND ZWEI TAFELN DANEBEN. */
   vocabulariesOwn: vocabularyOwnAll(),
   vocabularyDefaults: vocabularyDefaultsAll(),
-  /* UND DIE NAMEN DER KATEGORIEN UND KRITERIEN JE SPRACHE -- 0.24.5, die
+  /* UND DIE NAMEN DER KATEGORIEN UND KRITERIEN JE SPRACHE, die
      Reparatur von D1. */
   ...(isAdmin(req)
     ? { categoryNames: categoryNamesAll(), criterionNames: criterionNamesAll() } : {}),
@@ -1765,9 +1724,9 @@ app.get('/api/settings', (req, res) => res.json({
   // Abgeleitet beim Lesen, nicht in der Datenbank nachgetragen.
   tagsFreeCreate: freeCreate('tagsFreeCreate'),
   categoriesFreeCreate: freeCreate('categoriesFreeCreate'),
-  /* DER POTENZIALMODUS -- 0.26.0. */
+  /* DER POTENZIALMODUS. */
   potentialMode: potentialMode(),
-  /* DIE WAHL DER BILDABLAGE, seit 0.19.0 als Haekchen und seit 0.27.0 als
+  /* DIE WAHL DER BILDABLAGE, als Haekchen und als
      Wahl aus dreien. */
   imageStore: imageStore(),
   imageStores: Object.keys(IMAGE_STORES),
@@ -1803,11 +1762,9 @@ app.put('/api/settings', (req, res) => {
   if (ownerOnly2.length && !isOwner(req))
     return res.status(403).json({ error: t(localeOf(req), DENIED_OWNER)});
 
-  /* ---- ALLES WEITERE IN EINER TRANSAKTION -------------------------------
-     Elf Absagen standen hinter Schreibstellen: ein Rumpf mit `{font: 80,
-     strip: 999}` schrieb `font` und antwortete dann mit 400. Die beiden
-     Rechteabsagen darueber stehen vor jeder Zeile Arbeit und bleiben aussen.
-     Die Antwort wird drinnen gebaut und erst danach gesendet. */
+  /* ---- ALLES WEITERE IN EINER TRANSAKTION ---------------------------------
+     Sonst schreibt ein Rumpf mit `{font: 80, strip: 999}` das erste Feld und
+     antwortet dann mit 400. Die beiden Rechteabsagen bleiben aussen. */
   let answer;
   try {
     answer = db.transaction(() => {
@@ -1864,7 +1821,7 @@ app.put('/api/settings', (req, res) => {
         putUserSetting(req.user.id, 'filters', JSON.stringify(req.body.filters));
       if (viewsText !== null)
         putUserSetting(req.user.id, 'views', viewsText);
-      /* DAS VOKABULAR JE SPRACHE -- 0.24.3, Bauabschnitt 6. Der Rumpf traegt
+      /* DAS VOKABULAR JE SPRACHE. Der Rumpf traegt
          dieselbe Form wie die Ablage: ein Objekt je Sprachkennung. */
       if (req.body.vocabulary !== undefined) {
         /* EINE FLACHE FORM IM RUMPF MEINT DIE SPRACHE DES RUFERS und nicht die
@@ -1875,13 +1832,13 @@ app.put('/api/settings', (req, res) => {
         for (const [code, words] of Object.entries(incoming)) {
           if (!LANGUAGES[code] || !words || typeof words !== 'object') continue;
           const clean = {};
-          /* EIN LEERES FELD FAELLT HERAUS UND WIRD NICHT ZUR VORGABE -- 0.24.4,
+          /* EIN LEERES FELD FAELLT HERAUS UND WIRD NICHT ZUR VORGABE,
              die Reparatur von B2, und es ist die eine Zeile, an der sie haengt. */
           for (const k of Object.keys(vocabularyDefault(code))) {
             const v = typeof words[k] === 'string' ? words[k].trim().slice(0, 40) : '';
             if (v) clean[k] = v;
           }
-          /* UND EINE SPRACHE OHNE EIN EINZIGES WORT FAELLT GANZ HERAUS -- 0.24.4. */
+          /* UND EINE SPRACHE OHNE EIN EINZIGES WORT FAELLT GANZ HERAUS. */
           if (Object.keys(clean).length) next[code] = clean;
           else delete next[code];
         }
@@ -1949,7 +1906,7 @@ app.put('/api/settings', (req, res) => {
         if (!input.length) refuse('server.searchEngineLast');
         writePool(input[0], input);
       }
-      /* DIE SPRACHE GEGEN DEN VORRAT -- 0.24.3, Bauabschnitt 3. */
+      /* DIE SPRACHE GEGEN DEN VORRAT. */
       if (req.body.language !== undefined) {
         const wanted = String(req.body.language);
         if (!languagePool().includes(wanted)) refuse('server.languageUnknown');
@@ -1962,18 +1919,18 @@ app.put('/api/settings', (req, res) => {
         if (req.body[k] !== undefined) putSetting.run(k, JSON.stringify(!!req.body[k]));
       /* DIE WAHL DER BILDABLAGE. */
       if (storeWanted !== null) putSetting.run('imageStore', JSON.stringify(storeWanted));
-      /* DER POTENZIALMODUS -- 0.26.0, derselbe Weg wie der Schalter darueber, und
+      /* DER POTENZIALMODUS, derselbe Weg wie der Schalter darueber, und
          dieselbe Rechtezeile: er steht in OWNER_KEYS, und die Schranke ganz oben
          an dieser Route weist einen Admin ab, bevor hier eine Zeile faellt. */
       if (req.body.potentialMode !== undefined)
         putSetting.run('potentialMode', JSON.stringify(!!req.body.potentialMode));
-      /* DIE AUFRAEUMREGEL DER SICHERUNGEN, 0.20.0 -- derselbe Weg, dieselbe
+      /* DIE AUFRAEUMREGEL DER SICHERUNGEN -- derselbe Weg, dieselbe
          Rechtezeile (OWNER_KEYS ganz oben), und die beiden Zahlen sind oben schon
          geprueft. */
       if (req.body.backupCleanup !== undefined)
         putSetting.run('backupCleanup', JSON.stringify(!!req.body.backupCleanup));
       for (const [k, v] of Object.entries(ruleValues)) putSetting.run(k, JSON.stringify(v));
-      /* VORGABESPRACHE UND VORRAT -- 0.24.3, Bauabschnitt 2 (F9). */
+      /* VORGABESPRACHE UND VORRAT. */
       const languagesTouched =
         req.body.languageDefault !== undefined || req.body.languageOn !== undefined;
       if (languagesTouched)
@@ -1996,8 +1953,8 @@ app.put('/api/settings', (req, res) => {
                  categoriesFreeCreate: freeCreate('categoriesFreeCreate'),
                  potentialMode: potentialMode(),
                  languages: languageEntries(),
-                 /* UND DIE BEIDEN NAMENSTAFELN, WENN DIE SPRACHFRAGE BERUEHRT WAR
-                    -- 0.24.6, die Reparatur von E3. */
+                 /* UND DIE BEIDEN NAMENSTAFELN, WENN DIE SPRACHFRAGE
+                    BERUEHRT WAR. */
                  ...(isAdmin(req) && languagesTouched
                    ? { categoryNames: categoryNamesAll(), criterionNames: criterionNamesAll() } : {}),
                  imageStore: imageStore(), imageStores: Object.keys(IMAGE_STORES) };
@@ -2019,7 +1976,7 @@ app.put('/api/settings', (req, res) => {
    DER GUELTIGE BEREICH STEHT GENAU HIER. */
 const WEIGHT_MIN = 0.2, WEIGHT_MAX = 2.0;
 
-/* ZU WELCHEM KASTEN EIN KRITERIUM GEHOEREN KANN -- 0.21.0. */
+/* ZU WELCHEM KASTEN EIN KRITERIUM GEHOEREN KANN. */
 const PHASES = ['before', 'after'];
 const PHASE_DEFAULT = 'after';
 
@@ -2033,8 +1990,8 @@ function validWeight(raw) {
   return Math.round(g * 100) / 100;
 }
 
-/* EINE ZAHL IN EINER MELDUNG -- seit 0.24.0 aus der Sprache und nicht mehr
-   aus einem festen Zeichen (Bauabschnitt 4). */
+/* EINE ZAHL IN EINER MELDUNG -- aus der Sprache und nicht mehr
+   aus einem festen Zeichen. */
 const number = (n, locale = languageDefault()) => new Intl.NumberFormat(
   localeTag(locale), { maximumFractionDigits: 2, useGrouping: false })
   .format(Number(n) || 0);
@@ -2045,12 +2002,11 @@ const qCriteria = db.prepare(`
          (SELECT COUNT(DISTINCT r.item_id) FROM ratings r
            WHERE r.criterion_id = c.id AND r.value > 0) AS usage_count
   FROM rating_criteria c ORDER BY c.sort_order, c.id`);
-// Und dieselbe Liste mit den Namen der gelesenen Sprache -- 0.24.3.
+// Und dieselbe Liste mit den Namen der gelesenen Sprache.
 const criteriaFor = (locale) => named(qCriteria.all(), criterionNames(locale));
 
 /* --- Die Kriterien gehoeren dem Admin -------------------------------------
-   Was an allen Eintraegen aller Benutzer erscheint, gehoert dem Admin: ein
-   neues Kriterium erscheint sofort an jedem Eintrag, ein geloeschtes nimmt
+   Ein neues Kriterium erscheint sofort an jedem Eintrag, ein geloeschtes nimmt
    ueberall die vergebenen Sterne mit. */
 
 app.get('/api/criteria', (req, res) => res.json(criteriaFor(localeOf(req))));
@@ -2069,7 +2025,7 @@ app.post('/api/criteria', adminOnly, (req, res) => {
 // keine Phase -- „Wunsch" gibt es einmal oder gar nicht.
   if (db.prepare('SELECT 1 FROM rating_criteria WHERE name = ? COLLATE NOCASE').get(name))
     return res.status(409).json({ error: t(localeOf(req), 'server.criterionExists')});
-  /* UND ES BEKOMMT SEINE SPRACHE SOFORT -- 0.25.0, Bauabschnitt 1. Dieselbe
+  /* UND ES BEKOMMT SEINE SPRACHE SOFORT. Dieselbe
      Zeile wie an der Kategorie und aus demselben Grund. */
   const critNew = newLanguage(req);
   if (critNew === null)
@@ -2106,7 +2062,7 @@ app.put('/api/criteria/:id', adminOnly, (req, res) => {
   const critLanguage = namedLanguage(req, critRow.language);
   if (critLanguage === false)
     return res.status(400).json({ error: t(localeOf(req), 'server.languageUnknown')});
-  /* DAS ✕ AM FELD -- 0.25.0 (F5), dieselbe Stelle wie an der Kategorie: VOR
+  /* DAS ✕ AM FELD, dieselbe Stelle wie an der Kategorie: VOR
      der Namensfrage, weil ein Raeumen keinen Namen mitschickt. */
   if (req.body.clearName === true)
     return sendCleared(req, res, 'criterion_names', 'criterion_id', critRow, critLanguage,
@@ -2147,7 +2103,7 @@ app.delete('/api/criteria/:id', adminOnly, (req, res) => {
   res.status(204).end();
 });
 
-/* ======== DIE KETTE — 0.25.0, Bauabschnitt 2 ==============================
+/* ======== DIE KETTE ==============================
    EIN AUFLOESER, UND ZWAR GENAU EINER. */
 const qCriterionBase = db.prepare('SELECT id, name, language FROM rating_criteria');
 const qCategoryBase = db.prepare('SELECT id, name, language FROM product_categories');
@@ -2192,7 +2148,7 @@ function nameTable(baseRows, translated, locale) {
 const criterionNames = (locale) => nameTable(qCriterionBase.all(), qCriterionNamesAll.all(), locale);
 const categoryNames = (locale) => nameTable(qCategoryBase.all(), qCategoryNamesAll.all(), locale);
 
-/* ======== DIESELBE KETTE ALS TAFEL JE SPRACHE — 0.24.5, umgebaut 0.25.0 ===
+/* ======== DIESELBE KETTE ALS TAFEL JE SPRACHE ============================
    WAS EIN LESER DIESER SPRACHE SAEHE, je Sprache einmal ausgerechnet. */
 const namesAll = (baseRows, translated) => {
   const per = nameIndex(translated);
@@ -2219,9 +2175,8 @@ const named = (rows, table, key = 'id') => rows.map(z => {
   return { ...z, name: hit.name, nameFallback: hit.from === null ? true : hit.from };
 });
 
-/* `baseLanguage()` IST MIT 0.25.0 WEGGEFALLEN, und das ist der Befund A1 in
-   einer Zeile: sie beantwortete „in welcher Sprache ist dieser Name
-   geschrieben" mit „in der, die gerade Vorgabe ist". */
+/* `baseLanguage()` IST WEGGEFALLEN: sie beantwortete „in welcher Sprache ist
+   dieser Name geschrieben" mit „in der, die gerade Vorgabe ist". */
 
 /* SCHREIBT EINEN NAMEN JE SPRACHE. Gibt `true` zurueck, wenn die GRUNDZEILE
    gemeint war -- dann muss der Rufer sie umbenennen. */
@@ -2233,14 +2188,14 @@ function writeName(table, column, id, language, name, rowLanguage) {
   return false;
 }
 
-/* RAEUMT EINEN EINTRAG WEG -- 0.25.0 (F5), das ✕ am Feld. Gibt zurueck, ob es
+/* RAEUMT EINEN EINTRAG WEG, das ✕ am Feld. Gibt zurueck, ob es
    etwas zu raeumen gab. */
 function dropName(table, column, id, language) {
   return db.prepare(`DELETE FROM ${table} WHERE ${column} = ? AND language = ?`)
     .run(id, language).changes > 0;
 }
 
-/* DIE ANTWORT AUF DAS ✕ -- 0.25.0 (F5). Sie steht hier und nicht zweimal in
+/* DIE ANTWORT AUF DAS ✕. Sie steht hier und nicht zweimal in
    den beiden Schreibwegen: es ist dieselbe Frage und dieselbe Absage. */
 function sendCleared(req, res, table, column, row, language, respond) {
   if (language === row.language)
@@ -2249,22 +2204,21 @@ function sendCleared(req, res, table, column, row, language, respond) {
   return res.json(respond());
 }
 
-/* WELCHE SPRACHE EIN SCHREIBWEG MEINT. OHNE ANGABE DIE ZEILE SELBST -- und
-   das ist die wichtigste Zeile dieses Bauabschnitts. */
+/* WELCHE SPRACHE EIN SCHREIBWEG MEINT: ohne Angabe die Zeile selbst. */
 const namedLanguage = (req, rowLanguage) => {
   const wanted = req.body && req.body.language;
   if (wanted === undefined) return rowLanguage;
   return typeof wanted === 'string' && LANGUAGES[wanted] ? wanted : false;
 };
 
-/* DIE SPRACHE EINER NEUEN ZEILE -- 0.25.0. */
+/* DIE SPRACHE EINER NEUEN ZEILE. */
 const newLanguage = (req) => {
   const wanted = req.body && req.body.language;
   if (wanted === undefined) return localeOf(req);
   return typeof wanted === 'string' && LANGUAGES[wanted] ? wanted : null;
 };
 
-/* ======== DER EINE GRIFF FUER DIE UNBEKANNTE ERSTELLUNGSSPRACHE — 0.25.0 ==
+/* ======== DER EINE GRIFF FUER DIE UNBEKANNTE ERSTELLUNGSSPRACHE ==
    DIE ANTWORT AUF F2: die Migration fuellt nichts, und die Karte fragt EINMAL
    nach. */
 app.put('/api/names/language', adminOnly, (req, res) => {
@@ -2281,7 +2235,7 @@ app.put('/api/names/language', adminOnly, (req, res) => {
 
 /* ---- Kategorien ---- */
 /* SORTIERT WIRD NACH DEM NAMEN DER GRUNDTABELLE UND NICHT NACH DEM
-   UEBERSETZTEN -- 0.24.3. */
+   UEBERSETZTEN. */
 app.get('/api/product-categories', (req, res) => res.json(named(db.prepare(`
   SELECT c.*, (SELECT COUNT(*) FROM items i WHERE i.product_category_id = c.id) AS usage_count
   FROM product_categories c ORDER BY c.name COLLATE NOCASE`).all(),
@@ -2296,7 +2250,7 @@ app.post('/api/product-categories', (req, res) => {
 // jeden offen, nur ein NEUER Name haengt am Schalter.
   if (!mayCreate(req, 'categoriesFreeCreate'))
     return res.status(403).json({ error: t(localeOf(req), DENIED_CATEGORY_NEW)});
-  /* UND SIE BEKOMMT IHRE SPRACHE SOFORT -- 0.25.0, Bauabschnitt 1. */
+  /* UND SIE BEKOMMT IHRE SPRACHE SOFORT. */
   const catNew = newLanguage(req);
   if (catNew === null)
     return res.status(400).json({ error: t(localeOf(req), 'server.languageUnknown')});
@@ -2315,7 +2269,7 @@ app.put('/api/product-categories/:id', adminOnly, (req, res) => {
   const catLanguage = namedLanguage(req, catRow.language);
   if (catLanguage === false)
     return res.status(400).json({ error: t(localeOf(req), 'server.languageUnknown')});
-  /* DAS ✕ AM FELD -- 0.25.0 (F5). */
+  /* DAS ✕ AM FELD. */
   if (req.body.clearName === true)
     return sendCleared(req, res, 'category_names', 'category_id', catRow, catLanguage,
       () => named([db.prepare('SELECT * FROM product_categories WHERE id = ?').get(catRow.id)],
@@ -2351,7 +2305,7 @@ app.get('/api/tags', (req, res) => res.json(db.prepare(`
          (SELECT COUNT(*) FROM test_day_tags dt WHERE dt.tag_id = t.id) AS test_usage_count
   FROM tags t ORDER BY t.name COLLATE NOCASE`).all()));
 
-/* EINEN TAG FUER SICH ANLEGEN -- 0.24.4 (B7). */
+/* EINEN TAG FUER SICH ANLEGEN (B7). */
 app.post('/api/tags', (req, res) => {
   const name = (req.body.name || '').trim();
   if (!name) return res.status(400).json({ error: t(localeOf(req), 'server.nameMissing')});
@@ -2442,10 +2396,9 @@ function authorCard() {
 }
 const authorFrom = (card, id) => (id == null ? null : (card.get(id) || null));
 
-/* ---- DIE MARKIERUNG: `@name` im Kommentartext -- 0.32.0, Bauabschnitt 2
-   ---- VOM BETREIBER BESTELLT am 12. September 2026: „das mit dem in
-   kommentaren, berichten und notizen, aufgaben das man ein user markieren
-   kann mit @username". */
+/* ---- DIE MARKIERUNG: `@name` im Kommentartext --------------------------
+   In Kommentaren, Berichten, Notizen und Aufgaben laesst sich ein Zugang mit
+   `@name` markieren. */
 const MENTION_RX = /(?<![\p{L}\p{N}_.@-])@([\p{L}\p{N}](?:[\p{L}\p{N}_.-]*[\p{L}\p{N}_])?)/gu;
 
 /* DIE NAMENSTAFEL -- einmal je Schreibvorgang, nicht je Handgriff. */
@@ -2491,7 +2444,7 @@ const qMentionsOfItem = db.prepare(
      JOIN comments c ON c.id = m.comment_id
     WHERE c.item_id = ? ORDER BY m.comment_id, m.user_id`);
 
-/* UND DIE BILDER EINMAL FUER DEN GANZEN EINTRAG -- 0.35.0, BA 5. Dieselbe
+/* UND DIE BILDER EINMAL FUER DEN GANZEN EINTRAG. Dieselbe
    Bauform wie qMentionsOfItem darueber: eine Abfrage mit JOIN statt einer je
    Kommentar. Ein Eintrag mit vierzig Kommentaren setzte vierzig ab. */
 const qCommentImagesOfItem = db.prepare(
@@ -2499,7 +2452,7 @@ const qCommentImagesOfItem = db.prepare(
      JOIN comments c ON c.id = i.comment_id
     WHERE c.item_id = ? ORDER BY i.comment_id, i.sort_order, i.id`);
 
-/* UND DIE GEGENRICHTUNG -- 0.24.4 (B6 B). Aus einem NAMEN wird ein Verfasser. */
+/* UND DIE GEGENRICHTUNG (B6 B). Aus einem NAMEN wird ein Verfasser. */
 function authorByName(card, name) {
   const clean = String(name ?? '').trim();
   if (!clean) return null;
@@ -2514,13 +2467,13 @@ function authorByName(card, name) {
 function qComments(itemId, userId, card) {
   if (userId == null) throw new Error('qComments() ohne Benutzer aufgerufen');
   const list = qCommentsRaw.all(itemId);
-  /* DIE MARKIERUNGEN EINMAL FUER DEN GANZEN EINTRAG -- 0.32.0. */
+  /* DIE MARKIERUNGEN EINMAL FUER DEN GANZEN EINTRAG. */
   const markedPer = new Map();
   for (const z of qMentionsOfItem.all(itemId)) {
     if (!markedPer.has(z.comment_id)) markedPer.set(z.comment_id, []);
     markedPer.get(z.comment_id).push({ handle: z.handle, author: authorFrom(card, z.user_id) });
   }
-  /* UND DIE BILDER EBENSO -- 0.35.0, BA 5. */
+  /* UND DIE BILDER EBENSO. */
   const imagesPer = new Map();
   for (const z of qCommentImagesOfItem.all(itemId)) {
     if (!imagesPer.has(z.comment_id)) imagesPer.set(z.comment_id, []);
@@ -2531,13 +2484,13 @@ function qComments(itemId, userId, card) {
     c.images = imagesPer.get(c.id) || [];
     c.mine = c.user_id === userId;
     c.author = authorFrom(card, c.user_id);
-    /* WEN DIESER KOMMENTAR MARKIERT -- 0.32.0, Bauabschnitt 2. */
+    /* WEN DIESER KOMMENTAR MARKIERT. */
     c.mentions = markedPer.get(c.id) || [];
     // Der Eingriffsvermerk.
     c.imagesRemoved = c.images_removed;
     delete c.images_removed;
     // Wie der Eingriffsvermerk darueber: die Spalte heisst in der Datenbank
-// mit Unterstrich und am Bildschirm ohne (0.29.0, Befund 3).
+// mit Unterstrich und am Bildschirm ohne.
     c.dueDate = c.due_date || null;
     delete c.due_date;
     delete c.user_id;
@@ -2548,37 +2501,34 @@ function qComments(itemId, userId, card) {
 // art und dauer gehen mit hinaus: woran die Oberflaeche ein Video erkennt,
 // ist allein die Spalte art -- nicht der ausgelieferte Typ und nichts sonst.
 const PHOTO_COLUMNS = 'id, item_id, mime_type, focus_x, focus_y, zoom, sort_order, created_at, kind, duration';
-/* ---- DIE FASSUNG DER KACHEL -- 0.19.5 -------------------------------------
-   SIE STEHT NEBEN DER LISTE UND NICHT IN IHR, und das hat einen Grund: die
-   Liste darueber ist ZUGLEICH die Spaltenliste des deckenden Index
-   `idx_photos_tile`, und `length(thumb)` laesst sich nicht indizieren. */
-/* DER ALIAS HEISST SEIT 0.24.3 `thumbLength` und nicht mehr `fassung` -- er
+/* ---- DIE FASSUNG DER KACHEL ---------------------------------------------
+   SIE STEHT NEBEN DER LISTE UND NICHT IN IHR: die Liste ist zugleich die
+   Spaltenliste von `idx_photos_tile`, und `length(thumb)` indiziert nicht. */
+/* DER ALIAS HEISST `thumbLength` und nicht mehr `fassung` -- er
    reist an der Zeile bis in den Browser, und dort las ihn `p.fassung`. */
 const PHOTO_VERSION = 'length(thumb) AS thumbLength';
 const qPhotos = db.prepare(`SELECT ${PHOTO_COLUMNS}, ${PHOTO_VERSION} FROM photos WHERE item_id = ? ORDER BY sort_order, id`);
 /* DIESELBEN SPALTEN FUER ALLE EINTRAEGE AUF EINMAL -- die Uebersicht ruft
    sie, detail() ruft die Zeile darueber. */
 const qAllPhotos = db.prepare(`SELECT ${PHOTO_COLUMNS}, ${PHOTO_VERSION} FROM photos ORDER BY item_id, sort_order, id`);
-/* `t.*` IST SEIT 0.19.3 EINE SPALTENLISTE, und das ist eine Wegnahme mit
-   Nachweis: ein Schlagwort traegt id, name und created_at, und `created_at`
-   wird in public/app.js an einem Schlagwort NIRGENDS gelesen -- nachgesehen,
-   nicht geglaubt. */
+/* `t.*` IST EINE SPALTENLISTE: ein Schlagwort traegt id, name und created_at,
+   und `created_at` wird in public/app.js an einem Schlagwort nirgends
+   gelesen. */
 const TAG_COLUMNS = 't.id, t.name';
 const qTags = db.prepare(`SELECT ${TAG_COLUMNS} FROM tags t JOIN item_tags it ON it.tag_id = t.id WHERE it.item_id = ? ORDER BY t.name COLLATE NOCASE`);
-/* DIESELBEN SPALTEN FUER ALLE EINTRAEGE AUF EINMAL -- 0.19.3, dieselbe
+/* DIESELBEN SPALTEN FUER ALLE EINTRAEGE AUF EINMAL, dieselbe
    Bauform wie qAllPhotos. */
 const qAllTags = db.prepare(`SELECT it.item_id, ${TAG_COLUMNS} FROM tags t
   JOIN item_tags it ON it.tag_id = t.id ORDER BY it.item_id, t.name COLLATE NOCASE`);
 const qLinks = db.prepare('SELECT id, url, sort_order, created_at, user_id FROM links WHERE item_id = ? ORDER BY sort_order, id');
-/* DIE UEBERSICHT ZAEHLT NUR -- 0.19.3. */
+/* DIE UEBERSICHT ZAEHLT NUR. */
 const qLinkCounts = db.prepare('SELECT item_id, COUNT(*) n FROM links GROUP BY item_id');
 const qCat = db.prepare('SELECT id, name FROM product_categories WHERE id = ?');
 /* Und dieselbe Frage fuer die ganze Liste. */
 const qAllCategories = db.prepare('SELECT id, name FROM product_categories');
 /* --- Schnitt und Anzahl je Kriterium --------------------------------------
-   EINE Abfrage, gruppiert -- ausdruecklich KEIN zweiter JOIN AUF `ratings`
-   neben dem in detail(): zwei JOINs auf DIESELBE Tabelle vervielfachen sich,
-   drei Bewerter ergaeben einen neunfachen Zaehler. */
+   EINE Abfrage, gruppiert -- kein zweiter JOIN auf `ratings` neben dem in
+   detail(): drei Bewerter ergaeben sonst einen neunfachen Zaehler. */
 const qAveragePerCriterion = db.prepare(`
   SELECT r.criterion_id, AVG(r.value * 1.0) AS average, COUNT(*) AS count,
          c.weight, c.phase
@@ -2586,7 +2536,7 @@ const qAveragePerCriterion = db.prepare(`
    WHERE r.item_id = ? AND r.value > 0
    GROUP BY r.criterion_id, c.weight, c.phase`);
 
-/* ZWEI KARTEN JE EINTRAG, EINE JE PHASE -- 0.21.0. */
+/* ZWEI KARTEN JE EINTRAG, EINE JE PHASE. */
 function cardPerPhase(rows) {
   const box = { before: new Map(), after: new Map() };
   for (const z of rows) {
@@ -2601,7 +2551,7 @@ function averagesPerCriterion(itemId) {
   return cardPerPhase(qAveragePerCriterion.all(itemId));
 }
 
-/* DIESELBE ABFRAGE FUER ALLE EINTRAEGE AUF EINMAL -- 0.19.3. */
+/* DIESELBE ABFRAGE FUER ALLE EINTRAEGE AUF EINMAL. */
 const qAveragePerCriterionAll = db.prepare(`
   SELECT r.item_id, r.criterion_id, AVG(r.value * 1.0) AS average, COUNT(*) AS count,
          c.weight, c.phase
@@ -2649,7 +2599,7 @@ function votesPerCriterion(itemId, userId, card) {
 // Kriterien -- NICHT flach ueber alle Bewertungszeilen.
 function totalAverage(card, calc) {
   let counter = 0, denominator = 0;
-  /* DIE VERGLEICHSZAHL -- 0.17.0. Was kaeme heraus, wenn alle Kriterien
+  /* DIE VERGLEICHSZAHL. Was kaeme heraus, wenn alle Kriterien
      gleich zaehlten? */
   let sameCounter = 0;
   const rows = [];
@@ -2693,10 +2643,9 @@ function qTestDays(itemId, userId, card) {
   return days;
 }
 
-/* ---- DIE SCHMALE FASSUNG FUER DIE LISTE — 0.19.3 -------------------------
-   ZWEI FORMEN FUER ZWEI FRAGEN, und der Unterschied steht an beiden:
-   qTestDays() darueber beantwortet „was steht an DIESEM Eintrag" -- dort
-   zeigt die Zeile ihre Schlagworte und ihren Verfasser. */
+/* ---- DIE SCHMALE FASSUNG FUER DIE LISTE ---------------------------------
+   ZWEI FORMEN FUER ZWEI FRAGEN: qTestDays() darueber beantwortet „was steht
+   an DIESEM Eintrag" und zeigt Schlagworte und Verfasser. */
 const qAllTestDaysNarrow = db.prepare(
   'SELECT item_id, id, day, rating, user_id FROM test_days ORDER BY item_id, day DESC, id DESC');
 
@@ -2733,8 +2682,7 @@ const qMyPin = db.prepare('SELECT 1 FROM item_pins WHERE user_id = ? AND item_id
 
 // detail() braucht den Benutzer: "favorite" heisst "habe ICH als Favorit
 // markiert" -- dieselbe Antwort sieht fuer zwei Leute verschieden aus.
-/* DIE SPRACHE STEHT IN DER SIGNATUR UND WIRD NICHT INNEN GEHOLT -- 0.24.3,
-   Bauabschnitt 6a. */
+/* DIE SPRACHE STEHT IN DER SIGNATUR UND WIRD NICHT INNEN GEHOLT. */
 function detail(id, userId, locale) {
   if (userId == null) throw new Error('detail() ohne Benutzer aufgerufen');
   const it = db.prepare('SELECT * FROM items WHERE id = ?').get(id);
@@ -2752,9 +2700,8 @@ function detail(id, userId, locale) {
      wer abgelehnt hat, muss nicht der sein, dem der Eintrag gehoert. */
   it.rejectedMine = it.rejected_by != null && it.rejected_by === userId;
   /* WER ABGELEHNT HAT, GEHT ALS VERFASSEROBJEKT HINAUS UND NIE ALS NUMMER --
-     dieselbe Abbildung wie am Eintrag, am Kommentar und am Testtag, und
-     dieselbe EINE Stelle: aus einem Grabstein wird damit "Geloeschter
-     Benutzer 7" und nicht sein freigegebener Name. */
+     dieselbe EINE Abbildung wie am Eintrag: aus einem Grabstein wird
+     „Geloeschter Benutzer 7" und nicht sein freigegebener Name. */
   it.rejectedAuthor = authorFrom(card, it.rejected_by);
   delete it.rejected_by;
   it.favorite = !!qMyPin.get(userId, id);
@@ -2802,7 +2749,7 @@ function detail(id, userId, locale) {
   }
   /* DIE AUFSTELLUNG GEHT NUR AM EINZELNEN EINTRAG MIT -- dort steht die
      Kopfzahl, und dort wird gefragt, wie sie zustande kommt. */
-  /* ZWEIMAL DIESELBE RECHNUNG UEBER ZWEI GETRENNTE MENGEN -- 0.21.0, und das
+  /* ZWEIMAL DIESELBE RECHNUNG UEBER ZWEI GETRENNTE MENGEN, und das
      ist die ganze Zweiteilung. */
   const calc = {};
   it.avgRating = totalAverage(averages.after, calc);
@@ -2823,8 +2770,8 @@ const qAttachmentCounts = db.prepare('SELECT item_id, COUNT(*) n FROM attachment
 /* ================= Die Volltextsuche ================= SIE SUCHT SIEBEN
    QUELLEN: Titel, Beschreibung, Kategoriename, Tags am Eintrag, Tags an
    Testtagen, Linkadressen und saemtliche Kommentartexte. */
-/* ---- DIE SIEBEN QUELLEN STEHEN GENAU EINMAL -- 0.18.0 ------------------
-   BIS 0.17.5 STAND DIE BEDINGUNG NUR IM `WHERE`, und die Antwort warf weg,
+/* ---- DIE SIEBEN QUELLEN STEHEN GENAU EINMAL ------------------
+   FRUEHER STAND DIE BEDINGUNG NUR IM `WHERE`, und die Antwort warf weg,
    WELCHE der sieben getroffen hatte. */
 const FULLTEXT_SOURCES = [
   { key: 'description',
@@ -2870,7 +2817,7 @@ const SNIPPET_LEAD = 4;
    Kommentar traegt Absaetze; die Kachelzeile ist EINE Zeile. */
 const oneLine = (s) => String(s ?? '').replace(/\s+/g, ' ').trim();
 
-/* KEINE SPRACHE MEHR -- 0.24.4, Bauabschnitt 1 (B8). */
+/* KEINE SPRACHE MEHR (B8). */
 function snippet(text, term) {
   const row = oneLine(text);
   const b = String(term ?? '');
@@ -2895,13 +2842,13 @@ function snippet(text, term) {
 
 /* DER BEGRIFF WIRD GENAU SO ZUGESCHNITTEN WIE VORHER IM BROWSER: aussen
    getrimmt, klein geschrieben. */
-/* DIE NADEL FAELLT DURCH DIESELBE FALTUNG WIE DER HEUHAUFEN -- 0.24.4,
-   Bauabschnitt 1 (B8), und sie nimmt KEINE Sprache mehr entgegen. */
+/* DIE NADEL FAELLT DURCH DIESELBE FALTUNG WIE DER HEUHAUFEN, und sie nimmt
+   KEINE Sprache mehr entgegen. */
 const fulltextTerm = (raw) => (typeof raw === 'string' ? searchFold(raw.trim()) : '');
 
 /* WAS JE EINTRAG HERAUSKOMMT: die erste getroffene Quelle der festen Folge,
    ihr Ausschnitt und die Zahl der WEITEREN getroffenen Quellen. */
-/* OHNE SPRACHE -- 0.24.4 (B8). Sie wurde nur an snippet() weitergereicht,
+/* OHNE SPRACHE (B8). Sie wurde nur an snippet() weitergereicht,
    und der Ausschnitt haengt seit dieser Runde an keiner mehr. */
 const fulltextHits = (term) => new Map(qFulltext.all({ q: term }).map(r => {
   const hit = FULLTEXT_SOURCES.filter(q => r['f_' + q.key] != null);
@@ -2913,7 +2860,7 @@ const fulltextHits = (term) => new Map(qFulltext.all({ q: term }).map(r => {
   } : null];
 }));
 
-/* ---- ZWEI ZAHLEN, DIE MIT DER LISTE MITREISEN -- 0.16.0 ----------------
+/* ---- ZWEI ZAHLEN, DIE MIT DER LISTE MITREISEN ----------------
    BEIDE HAENGEN AN EINER ANTWORT, DIE ES OHNEHIN GIBT, und das ist der ganze
    Punkt. */
 const qOpenPerEntry = db.prepare(
@@ -2921,8 +2868,7 @@ const qOpenPerEntry = db.prepare(
 /* WAS SEIT DEM BEZUGSPUNKT DAZUGEKOMMEN IST -- Kommentare und Bewertungen
    getrennt gefragt, weil sie in verschiedenen Tabellen stehen. */
 /* DIE EIGENE HAND ZAEHLT NICHT -- `user_id IS NOT ?` in beiden Abfragen. */
-/* UND SEIT 0.32.0 SAGT DIESELBE ABFRAGE AUCH, WAS DAVON MICH MARKIERT --
-   Bauabschnitt 1, Zusage 1. */
+/* UND SAGT DIESELBE ABFRAGE AUCH, WAS DAVON MICH MARKIERT, Zusage 1. */
 const qNewComments = db.prepare(
   `SELECT c.item_id AS item_id, c.user_id AS user_id, COUNT(*) AS n,
           SUM(CASE WHEN m.comment_id IS NULL THEN 0 ELSE 1 END) AS marked
@@ -2955,7 +2901,7 @@ app.get('/api/items', (req, res) => {
      dieselbe Antwort wie bei „Neu seit meinem letzten Besuch". */
   const reference = bellSeen(req.user.id);
   const newCommentsPer = new Map(), newRatingsPer = new Map(), newFromPer = new Map();
-  /* DIE VIERTE KARTE -- 0.32.0: wie viele der neuen Kommentare MICH
+  /* DIE VIERTE KARTE: wie viele der neuen Kommentare MICH
      markieren. */
   const newMarkedPer = new Map();
   if (reference) {
@@ -2977,14 +2923,13 @@ app.get('/api/items', (req, res) => {
     for (const z of qNewRatings.all(reference, req.user.id))
       newRatingsPer.set(z.item_id, (newRatingsPer.get(z.item_id) || 0) + z.n);
   }
-  /* DIE FOTOS ALLER EINTRAEGE IN EINER ABFRAGE, seit 0.19.2 -- vorher eine je
-     Eintrag. */
+  /* DIE FOTOS ALLER EINTRAEGE IN EINER ABFRAGE -- vorher eine je Eintrag. */
   const photosPer = new Map();
   for (const f of qAllPhotos.all()) {
     if (!photosPer.has(f.item_id)) photosPer.set(f.item_id, []);
     photosPer.get(f.item_id).push(f);
   }
-  /* UND DIE UEBRIGEN FUENF DERSELBE WEG — 0.19.3. */
+  /* UND DIE UEBRIGEN FUENF DERSELBE WEG. */
   const tagsPer = new Map();
   for (const z of qAllTags.all()) {
     if (!tagsPer.has(z.item_id)) tagsPer.set(z.item_id, []);
@@ -2994,8 +2939,8 @@ app.get('/api/items', (req, res) => {
   const linkCountPer = new Map(qLinkCounts.all().map(z => [z.item_id, z.n]));
   const attachmentCountPer = new Map(qAttachmentCounts.all().map(z => [z.item_id, z.n]));
   const averagesPer = averagesPerEntry();
-  /* DIE KATEGORIEN DER UEBERSICHT, mit den Namen der gelesenen Sprache --
-     0.24.3. Einmal gebaut und nicht je Kachel: die Uebersicht zeigt Hunderte. */
+  /* DIE KATEGORIEN DER UEBERSICHT, mit den Namen der gelesenen Sprache.
+     Einmal gebaut und nicht je Kachel: die Uebersicht zeigt Hunderte. */
   const catPer = new Map(named(qAllCategories.all(), categoryNames(localeOf(req)))
     .map(k => [k.id, k]));
   // Die Testtage nur, wenn die Zeitleiste ueberhaupt an ist -- wie bisher.
@@ -3003,7 +2948,7 @@ app.get('/api/items', (req, res) => {
   for (const it of rows) {
     it.rejected = !!it.rejected; it.tested = !!it.tested;
     it.author = authorFrom(card, it.user_id);
-    /* WEM DER EINTRAG GEHOERT, ALS JA/NEIN -- 0.32.0, Bauabschnitt 1. */
+    /* WEM DER EINTRAG GEHOERT, ALS JA/NEIN. */
     it.mine = it.user_id === req.user.id;
     delete it.user_id;
     it.favorite = myPins.has(it.id);
@@ -3034,14 +2979,13 @@ app.get('/api/items', (req, res) => {
     delete it.rejected_at; delete it.rejected_reason; delete it.rejected_by;
     /* DIE ZAHL DER OFFENEN AUFGABEN AN DIESEM EINTRAG. */
     it.openTasks = openPer.get(it.id) || 0;
-    /* DER TREFFERKONTEXT -- 0.18.0. */
+    /* DER TREFFERKONTEXT. */
     if (term) it.foundAt = hits.get(it.id);
     /* DREI ANGABEN, UND SIE STEHEN ODER FEHLEN GEMEINSAM. */
     if (reference) it.newComments = newCommentsPer.get(it.id) || 0;
     if (reference) it.newRatings = newRatingsPer.get(it.id) || 0;
     if (reference) it.newFrom = [...(newFromPer.get(it.id) || [])].map(uid => authorFrom(card, uid));
-    /* DIE VIERTE ANGABE, UND SIE STEHT MIT DEN DREI ANDEREN ODER GAR NICHT --
-       0.32.0. */
+    /* DIE VIERTE ANGABE, UND SIE STEHT MIT DEN DREI ANDEREN ODER GAR NICHT. */
     if (reference) it.newMarked = newMarkedPer.get(it.id) || 0;
   }
   res.json(rows);
@@ -3177,22 +3121,19 @@ app.post('/api/items/:id/photos', entryAuthorOnly,
   try {
     if (!db.prepare('SELECT 1 FROM items WHERE id = ?').get(req.params.id))
       return res.status(404).json({ error: t(localeOf(req), 'server.entryUnknown')});
-    /* ERST ALLE PRUEFEN UND ABLEITEN, DANN SCHREIBEN -- 0.35.0, BA 8.
-       Bis dahin prueft, wandelt und schreibt eine Schleife jede Datei in
-       einem Durchgang: scheiterte gridImage bei der fuenften von zehn, standen
-       vier Fotos bereits in der Datenbank, und die Antwort war trotzdem 400.
-       Eine ungeeignete Datei laesst jetzt gar nichts zurueck. */
+    /* ERST ALLE PRUEFEN UND ABLEITEN, DANN SCHREIBEN: scheitert die fuenfte von
+       zehn Dateien, darf keine der vier davor in der Datenbank stehen. Eine
+       ungeeignete Datei laesst gar nichts zurueck. */
     const ready = [];
     for (const f of req.files || []) {
       if (!await gridImage(f.buffer))
         return res.status(400).json({ error: t(localeOf(req), 'server.imagesOnly')});
       /* DIE ABLEITUNGEN KOMMEN AUS DER VORLAGE, NICHT AUS DER ABLAGEFASSUNG. */
       const v = await makeVariants(f.buffer, DEFAULT_CROP);
-      /* STRG+V UND DATEIAUSWAHL SIND HIER DERSELBE WEG, und das ist Absicht:
-         in `req.files` steht eine Datei und sonst nichts -- der Server kann
-         die beiden gar nicht unterscheiden, und ein Feld im Formular waere
-         eine BEHAUPTUNG des Browsers darueber, wie das Archiv speichern soll. */
-      /* DAS VERFAHREN GEHT ALS ARGUMENT HINEIN -- 0.27.0, und die Verzweigung
+      /* STRG+V UND DATEIAUSWAHL SIND DERSELBE WEG: in `req.files` steht eine
+         Datei und sonst nichts. Ein Feld im Formular waere eine Behauptung
+         des Browsers darueber, wie das Archiv speichern soll. */
+      /* DAS VERFAHREN GEHT ALS ARGUMENT HINEIN, und die Verzweigung
          hier ist damit weggefallen. */
       const start = await storeImage(f.buffer, f.mimetype, imageStore());
       ready.push({ mime: start.mime, data: start.data, thumb: v.thumb, medium: v.medium });
@@ -3251,7 +3192,7 @@ app.post('/api/items/:id/videos', entryAuthorOnly,
 // gespeichert und angezeigt, nie tragend. Unsinniges wird zu NULL.
       const d = Math.round(Number(req.body.duration));
       const duration = Number.isFinite(d) && d > 0 && d <= 24 * 3600 ? d : null;
-      /* AUCH DAS STANDBILD WIRD ZUGESCHNITTEN -- 0.19.5, mit den Vorgaben. */
+      /* AUCH DAS STANDBILD WIRD ZUGESCHNITTEN, mit den Vorgaben. */
       const v = await makeVariants(stillFrame.buffer, DEFAULT_CROP);
       /* Kaeme hier nichts heraus, bliebe die Zeile OHNE Standbild -- und zwar
          dauerhaft: das Nachruesten beim Start laesst Videozeilen aus, weil es
@@ -3270,11 +3211,9 @@ app.post('/api/items/:id/videos', entryAuthorOnly,
     } catch (e) { next(e); }
   });
 
-/* NUR DIE SPALTE, DIE GEBRAUCHT WIRD -- 0.35.0, BA 5. `SELECT *` zog bei
-   einer Videozeile bis zu 20 MB `data` mit, auch wenn nur die Kachel von rund
-   200 kB verlangt war. Fehlt die gewuenschte Ableitung, wird das Original
-   nachgeholt -- dieselbe Antwort wie bisher, nur ohne den Umweg im
-   Normalfall. */
+/* NUR DIE SPALTE, DIE GEBRAUCHT WIRD: `SELECT *` zieht an einer Videozeile
+   bis zu 20 MB `data` mit, auch wenn nur die Kachel von rund 200 kB verlangt
+   ist. Fehlt die Ableitung, wird das Original nachgeholt. */
 const qPhotoBytes = {
   data:   db.prepare('SELECT id, kind, data AS bytes FROM photos WHERE id = ?'),
   thumb:  db.prepare('SELECT id, kind, thumb AS bytes FROM photos WHERE id = ?'),
@@ -3309,9 +3248,8 @@ app.get('/api/photos/:id/raw', (req, res) => {
 });
 
 /* --- Der Ausschnitt der Vorschau: drei Werte, EINE Spanne ----------------
-   Zwei Wege setzen diese Werte -- die Route gleich darunter und der Import
-   --, und sie unterscheiden sich in genau einem Punkt: WAS BEI UNSINN
-   GESCHIEHT. */
+   Zwei Wege setzen sie, die Route darunter und der Import; sie unterscheiden
+   sich in genau einem Punkt: WAS BEI UNSINN GESCHIEHT. */
 const ZOOM_MIN = 100, ZOOM_MAX = 400;
 const DISPLAY_VALUES = {
   focus_x: { min: 0, max: 100, fallback: 50, digits: 1 },
@@ -3329,13 +3267,13 @@ function displayValue(name, raw) {
   return Math.min(g.max, Math.max(g.min, Math.round(n * f) / f));
 }
 
-/* DIE VORGABE ALS ZUSCHNITT -- 0.19.5. */
+/* DIE VORGABE ALS ZUSCHNITT. */
 const DEFAULT_CROP = { fx: DISPLAY_VALUES.focus_x.fallback,
                             fy: DISPLAY_VALUES.focus_y.fallback,
                             zoom: DISPLAY_VALUES.zoom.fallback };
 
-/* ---- DIE KACHEL WIRD NACH DEM SPEICHERN NEU ERZEUGT -- 0.19.5 ------------
-   BIS 0.19.4 SCHRIEB DIESE ROUTE DREI ZAHLEN UND WAR FERTIG. */
+/* ---- DIE KACHEL WIRD NACH DEM SPEICHERN NEU ERZEUGT ------------
+   FRUEHER SCHRIEB DIESE ROUTE DREI ZAHLEN UND WAR FERTIG. */
 const REFRESH_MS = 15000;
 function refreshTile(id, done) {
   let out2 = false;
@@ -3348,7 +3286,7 @@ function refreshTile(id, done) {
   catch (e) { logFail('Tile not renewed:', e.message); once(); }
 }
 
-/* Ausschnitt eines Fotos. Drei Zahlen -- und seit 0.19.5 eine neue Kachel
+/* Ausschnitt eines Fotos. Drei Zahlen -- und eine neue Kachel
    daraus. */
 app.put('/api/photos/:id/focus', (req, res) => {
   const p = db.prepare('SELECT item_id, zoom FROM photos WHERE id = ?').get(req.params.id);
@@ -3452,7 +3390,7 @@ app.put('/api/items/:id/photo-order', entryAuthorOnly, (req, res) => {
   res.json(detail(req.params.id, req.user.id, localeOf(req)));
 });
 
-/* AUS DER ZEILE WIRD NUR DIE EINTRAGSNUMMER GEBRAUCHT -- 0.35.0, BA 5.
+/* AUS DER ZEILE WIRD NUR DIE EINTRAGSNUMMER GEBRAUCHT.
    `SELECT *` zog data, thumb und medium mit, also bei einem Video bis zu
    20 MB, nur um danach zu loeschen. */
 const qPhotoItem = db.prepare('SELECT item_id FROM photos WHERE id = ?');
@@ -3609,7 +3547,7 @@ app.delete('/api/test-days/:id/tags/:tagId', (req, res) => {
 // Hier steht bewusst KEIN Waechter: beide Wege treffen baulich nur die eigene
 // Zeile -- das ON CONFLICT trifft (item_id, criterion_id, user_id), das
 // DELETE traegt "AND user_id = ?".
-/* VOR DEM TEST WIRD NICHT BEWERTET -- 0.22.1. */
+/* VOR DEM TEST WIRD NICHT BEWERTET. */
 const qCritPhase = db.prepare('SELECT phase FROM rating_criteria WHERE id = ?');
 const qItemTested = db.prepare('SELECT tested FROM items WHERE id = ?');
 
@@ -3636,8 +3574,8 @@ app.put('/api/items/:id/ratings', (req, res) => {
   res.json(detail(req.params.id, req.user.id, localeOf(req)));
 });
 
-/* HIER STAND BIS 0.20.1 `DELETE /api/items/:id/ratings` -- das
-   Sammel-Zuruecksetzen hinter dem Knopf „Meine Bewertung zuruecksetzen". */
+/* HIER STAND `DELETE /api/items/:id/ratings` -- das Sammel-Zuruecksetzen
+   hinter dem Knopf „Meine Bewertung zuruecksetzen". */
 
 /* Wer welchen Wert vergeben hat -- die Ansicht des Admins. NUR DER ADMIN: wer
    wie bewertet hat, ist eine Angabe ueber einzelne Personen. */
@@ -3668,7 +3606,7 @@ const IMAGE_MAX = 20 * 1024 * 1024;
 const IMAGE_COUNT = 6;
 const commentImageUpload = multer({ storage: multer.memoryStorage(), limits: { fileSize: IMAGE_MAX } });
 
-/* DAS KOMMENTARBILD IST SEIT 0.27.0 EBENFALLS WEBP -- BA 4. */
+/* DAS KOMMENTARBILD IST EBENFALLS WEBP. */
 async function encodeCommentImage(buf) {
   const big = await sharp(buf, { failOn: 'none' }).rotate()
     .resize(1600, 1600, { fit: 'inside', withoutEnlargement: true })
@@ -3702,7 +3640,7 @@ async function encodeAll(files) {
 
 // Bilder kommen zusammen mit dem Text, nicht danach: sonst entstuende bei
 // einem Abbruch ein leerer Kommentar mit Bildern.
-/* ---- DAS FAELLIGKEITSDATUM -- 0.29.0, Befund 3 ------------------------ EIN
+/* ---- DAS FAELLIGKEITSDATUM ------------------------ EIN
    ORT, DER ES ZURECHTRUECKT, und beide Wege (Anlegen und Aendern) rufen ihn. */
 const DUE_FORM = /^\d{4}-\d{2}-\d{2}$/;
 function dueValue(raw) {
@@ -3732,13 +3670,13 @@ app.post('/api/items/:id/comments',
     if (k.error) return res.status(400).json({ error: t(localeOf(req), k.error, k.values) });
 
     const pinned = req.body.pinned === '1' || req.body.pinned === true;
-    /* DAS DATUM DARF SCHON BEIM ANLEGEN MITKOMMEN -- 0.29.0. */
+    /* DAS DATUM DARF SCHON BEIM ANLEGEN MITKOMMEN. */
     const due = dueValue(req.body.dueDate === undefined ? null : req.body.dueDate);
     if (due.error) return res.status(400).json({ error: t(localeOf(req), due.error) });
     // Der Schreibende ist der Verfasser.
     const fresh = db.prepare('INSERT INTO comments (item_id, text, kind, pinned, user_id, due_date) VALUES (?, ?, ?, ?, ?, ?)')
       .run(req.params.id, text, kindValue(req.body.kind), pinned ? 1 : 0, req.user.id, due.value);
-    /* DIE MARKIERUNGEN ENTSTEHEN MIT DEM TEXT -- 0.32.0. */
+    /* DIE MARKIERUNGEN ENTSTEHEN MIT DEM TEXT. */
     setMentions(fresh.lastInsertRowid, text);
     if (k.images.length) saveCommentImages(fresh.lastInsertRowid, k.images);
     touch.run(req.params.id);
@@ -3756,7 +3694,7 @@ app.put('/api/comments/:id', (req, res) => {
      Verfasser, AUCH DER ADMIN NICHT. */
   if (req.body.text !== undefined && !selfOnly(req, c.user_id))
     return res.status(403).json({ error: t(localeOf(req), DENIED_SELF)});
-  /* DAS DATUM GEHOERT ZUR ART UND NICHT ZUM TEXT -- 0.29.0: es ist eine
+  /* DAS DATUM GEHOERT ZUR ART UND NICHT ZUM TEXT: es ist eine
      Angabe UEBER die Aufgabe und keine Aussage IN ihr, und deshalb darf es
      dieselbe Runde setzen, die auch die Aufgabenmarke setzt. */
   if ((req.body.kind !== undefined || req.body.pinned !== undefined
@@ -3774,7 +3712,7 @@ app.put('/api/comments/:id', (req, res) => {
     const text = String(req.body.text).trim();
     if (!text) return res.status(400).json({ error: t(localeOf(req), 'server.textMissing')});
     db.prepare(`UPDATE comments SET text = ?, updated_at = datetime('now') WHERE id = ?`).run(text, c.id);
-    /* UND SIE WERDEN NEU AUFGELOEST -- 0.32.0. */
+    /* UND SIE WERDEN NEU AUFGELOEST. */
     setMentions(c.id, text);
   }
   // Eine Aenderung der Merkmale ist keine Bearbeitung des Textes und setzt
@@ -3842,8 +3780,7 @@ app.delete('/api/comment-images/:id', (req, res) => {
 });
 
 // Bild eines Kommentars ausliefern. Dieselben Regeln wie bei den Anhaengen.
-/* DER KOPF KOMMT AUS DEN BYTES UND NICHT AUS EINEM ERFUNDENEN DATEINAMEN --
-   0.27.0, und das ist ein BEFUND dieser Runde. */
+/* DER KOPF KOMMT AUS DEN BYTES UND NICHT AUS EINEM ERFUNDENEN DATEINAMEN. */
 app.get('/api/comment-images/:id/raw', (req, res) => {
   const b = db.prepare('SELECT * FROM comment_images WHERE id = ?').get(req.params.id);
   if (!b) return res.status(404).end();
@@ -3865,7 +3802,7 @@ app.delete('/api/comments/:id', (req, res) => {
 /* ---- Offene Aufgaben quer ueber alle Eintraege ---------------------------
    Eine LESENDE Route ohne Waechter: wer angemeldet ist, sieht die Kommentare
    ohnehin in jedem Eintrag. */
-/* ---- DIE ORDNUNG SEIT 0.29.0 (Befund 3) ----------------------------------
+/* ---- DIE ORDNUNG ----------------------------------
    ERST DAS DATUM, DANN DER EINTRAG. */
 const qOpenTasks = db.prepare(`
   SELECT c.id, c.text, c.created_at, c.user_id, c.item_id, c.due_date,
@@ -3892,8 +3829,7 @@ app.get('/api/open', (req, res) => {
 app.get('/api/stats', adminOnly, (req, res) => {
   let dbBytes = 0;
   try { db.pragma('wal_checkpoint(PASSIVE)'); dbBytes = fs.statSync(DB_FILE).size; } catch {}
-  /* DIE AUFTEILUNG DES BILDBESTANDS -- und sie ist in 0.19.1 ZWEIMAL umgebaut
-     worden, weil der erste Umbau nur die halbe Ursache traf. */
+  /* DIE AUFTEILUNG DES BILDBESTANDS. */
   const kinds = qImageKinds.all().map(z => z.a);
   const p = { n: 0, o: 0 }, vi = { n: 0, o: 0 };
   const imageFormats = {};
@@ -3932,7 +3868,7 @@ app.get('/api/stats', adminOnly, (req, res) => {
     // Art Aussage wie die Zahlen darunter -- eine ueber die INSTANZ ALS
     // GANZES.
     fingerprint: FINGERPRINT.value,
-    /* DIE ACHTZEHN EINZELWERTE -- 0.29.0, Befund 2. */
+    /* DIE ACHTZEHN EINZELWERTE. */
     fingerprintFiles: FINGERPRINT.files,
     /* WAS UNTER DER HAUBE LAEUFT -- abgelesen in db.js, hier nur
        durchgereicht. */
@@ -3947,7 +3883,7 @@ app.get('/api/stats', adminOnly, (req, res) => {
     imageFormats,
     /* WIE WEIT DIE UMSTELLUNG IST -- ODER null. */
     conversion: batchState('conversion'),
-    /* DER ZWEITE LAUF SEIT 0.19.4, und er steht als EIGENES Feld daneben und
+    /* DER ZWEITE LAUF, und er steht als EIGENES Feld daneben und
        nicht im selben: die Karte muss auseinanderhalten koennen, was gerade
        laeuft. */
     geometry: batchState('geometry'),
@@ -3979,7 +3915,7 @@ app.post('/api/images/convert', ownerOnly, secondConfirmNeeded('images'), (req, 
   if (batchStates.conversion && batchStates.conversion.running)
     return res.status(409).json({ error: t(localeOf(req), 'server.convertRunning')});
   const rows = qConvertRows.all();
-  /* DREI ZAHLEN STATT VIER SEIT 0.33.0: `derived` zaehlte die neu gerechneten
+  /* DREI ZAHLEN STATT VIER: `derived` zaehlte die neu gerechneten
      Ableitungspaare, und die zweite Haelfte des Laufs ist mit jener Runde
      gefallen. */
   batchStates.conversion = { running: true, total: rows.length, done: 0,
@@ -3987,9 +3923,9 @@ app.post('/api/images/convert', ownerOnly, secondConfirmNeeded('images'), (req, 
   logLine(`Inventory run started: ${rows.length} photo row(s) ` +
     `are looked at; the storage method is "${imageStore()}".`);
   res.status(202).json(batchState('conversion'));
-  /* DIE ANTWORT IST SCHON HINAUS, WENN DER THREAD ANFAENGT -- seit 0.19.3
+  /* DIE ANTWORT IST SCHON HINAUS, WENN DER THREAD ANFAENGT --
      laeuft die Schleife nicht mehr hier, sondern in batchrun.js. */
-  /* DAS VERFAHREN REIST MIT UND WIRD NICHT IM THREAD GELESEN -- 0.27.0. */
+  /* DAS VERFAHREN REIST MIT UND WIRD NICHT IM THREAD GELESEN. */
   startBatchThread('conversion', rows, null, imageStore());
 });
 
@@ -3999,24 +3935,21 @@ app.post('/api/images/convert', ownerOnly, secondConfirmNeeded('images'), (req, 
 
 // Die Formatnummer ist eine AUSSAGE, keine Bedingung: weder der Import noch
 // die Oberflaeche lesen sie.
-/* VIERZEHN SEIT 0.24.3 (F8c): die Namen der Kriterien und Kategorien JE
+/* VIERZEHN: die Namen der Kriterien und Kategorien JE
    SPRACHE gehen mit hinaus. */
-/* UND SEIT 0.25.0 DIE ERSTELLUNGSSPRACHE DER GRUNDZEILE -- Formatnummer 15.
-   Das ist ein Befund, den der Auftrag nicht kannte: diese Runde sagt zu, dass
-   ab jetzt KEINE Zeile mehr ohne Sprachvermerk entsteht, und der Import ist
-   ein Anlegeweg wie jeder andere. */
-/* UND SEIT 0.29.0 DAS FAELLIGKEITSDATUM AM KOMMENTAR -- Formatnummer 16
-   (Befund 3). */
-/* UND SEIT 0.33.0 DIE PROGRAMMFASSUNG NEBEN DER FORMATNUMMER -- Nummer 17,
+/* UND DIE ERSTELLUNGSSPRACHE DER GRUNDZEILE -- Formatnummer 15. Keine Zeile
+   entsteht ohne Sprachvermerk, und der Import ist ein Anlegeweg wie jeder
+   andere. */
+/* UND DAS FAELLIGKEITSDATUM AM KOMMENTAR -- Formatnummer 16. */
+/* UND DIE PROGRAMMFASSUNG NEBEN DER FORMATNUMMER -- Nummer 17,
    Frage F16 jener Runde. */
 const EXCHANGE_FORMAT = 17;
 
-/* DIE AELTESTE DATEI, DIE NOCH HEREINKOMMT -- 0.33.0, Frage F15. WARUM ES
+/* DIE AELTESTE DATEI, DIE NOCH HEREINKOMMT, Frage F15. WARUM ES
    EINE UNTERGRENZE GIBT. */
 const EXCHANGE_FORMAT_MIN = 14;
 
-/* DIE NAMEN JE SPRACHE, WIE SIE IN DIE DATEI GEHEN -- 0.24.3, Bauabschnitt
-   6a. */
+/* DIE NAMEN JE SPRACHE, WIE SIE IN DIE DATEI GEHEN. */
 function exchangeNames(sql) {
   const out = {};
   for (const z of db.prepare(sql).all())
@@ -4032,10 +3965,9 @@ const exchangeCategoryNames = () => exchangeNames(`
   JOIN product_categories c ON c.id = n.category_id
   ORDER BY n.language, c.name COLLATE NOCASE`);
 
-/* IN WELCHER SPRACHE DER GRUNDNAME GESCHRIEBEN IST -- 0.25.0, Formatnummer
-   15. { <name der grundzeile>: <sprachkennung> }, ueber den NAMEN wie
-   criteriaWeights daneben: der Import findet eine Zeile ueber ihren Namen
-   wieder. */
+/* IN WELCHER SPRACHE DER GRUNDNAME GESCHRIEBEN IST, Formatnummer 15.
+   { <name der grundzeile>: <sprachkennung> }, ueber den NAMEN wie
+   criteriaWeights daneben. */
 const exchangeLanguages = (sql) => Object.fromEntries(
   db.prepare(sql).all().map(z => [z.name, z.language]));
 const exchangeCriterionLanguages = () => exchangeLanguages(
@@ -4091,10 +4023,9 @@ function bundleState(userId, switches = {}) {
 
 // Die Abbildung je Eintrag. Sie kommt genau einmal vor; ein Waechter im
 // Pruefstand haelt das fest.
-/* ---- DIE SECHS ABFRAGEN DES EXPORTS -- 0.35.0, BA 3 ----
-   Sie standen bis dahin als db.prepare an Ort und Stelle im Rumpf darunter
-   und wurden damit je Eintrag neu uebersetzt. Ein Export ueber tausend
-   Eintraege uebersetzte sechstausend Mal denselben Text. */
+/* ---- DIE SECHS ABFRAGEN DES EXPORTS -------------------------------------
+   Vorbereitet und nicht im Rumpf darunter: dort wuerde ein Export ueber
+   tausend Eintraege sechstausend Mal denselben Text uebersetzen. */
 const qBundleTestDays = db.prepare(
   'SELECT id, day, rating, user_id FROM test_days WHERE item_id = ? ORDER BY day, id');
 const qBundleRatings = db.prepare(`SELECT c.name, r.value, r.user_id FROM ratings r
@@ -4138,10 +4069,8 @@ function entryAsBundle(it, situation) {
     comments: qBundleComments.all(it.id).map(c => ({
         text: c.text, kind: c.kind, pinned: !!c.pinned, author: authorName(c.user_id),
         created_at: c.created_at, updated_at: c.updated_at,
-        /* DAS FAELLIGKEITSDATUM -- 0.29.0, Formatnummer 16. Ein Feld, das im
-           Export fehlt, ist beim naechsten Einspielen weg; der Export ist
-           fuer viele die einzige vollstaendige Kopie ausserhalb der
-           Datenbank. */
+        /* DAS FAELLIGKEITSDATUM, Formatnummer 16. Ein Feld, das im Export
+           fehlt, ist beim naechsten Einspielen weg. */
         ...(c.due_date ? { dueDate: c.due_date } : {}),
         // Kommentarbilder folgen dem Schalter der Dateien; ein dritter waere
 // zu viel. Die Merkmale gehen immer mit, sie kosten nichts.
@@ -4191,12 +4120,12 @@ function exportEnvelope(items) {
      String() und bekaeme ein Kriterium namens "[object Object]". */
   const criteriaWeights = {};
   for (const c of critRows) if (c.weight !== 1) criteriaWeights[c.name] = c.weight;
-  /* UND DIE PHASE IM SELBEN MUSTER -- 0.21.0, ein drittes Feld neben den
+  /* UND DIE PHASE IM SELBEN MUSTER, ein drittes Feld neben den
      beiden. */
   const criteriaPhase = {};
   for (const c of critRows) if (c.phase !== 'after') criteriaPhase[c.name] = c.phase;
   return { exported_at: new Date().toISOString(), title, version: EXCHANGE_FORMAT,
-           /* WOMIT GESCHRIEBEN -- 0.33.0, F14. `version` sagt, WELCHE FELDER
+           /* WOMIT GESCHRIEBEN, F14. `version` sagt, WELCHE FELDER
               zu erwarten sind; `appVersion` sagt, WAS die Datei geschrieben
               hat. */
            appVersion: VERSION,
@@ -4218,10 +4147,8 @@ function exportName(suffix) {
 /* WAS DER EXPORT AN BYTES WIRKLICH SCHREIBT -- je Art getrennt und vor dem
    ersten Handgriff. */
 /* ================= WAS HIER STAND, UND WARUM ES FORT IST =================
-   EIN ZWEIG FUER EINEN EINZELNEN EINTRAG: `onlyOne`, `values`, `and()`,
-   `wo()` und vierzehn Einsetzungen in den Abfragen. Er gehoerte der Route,
-   die einen Eintrag als Datei holte; ohne sie konnte er nur noch falsch
-   sein -- beide verbliebenen Rufer reichten `null`. */
+   EIN ZWEIG FUER EINEN EINZELNEN EINTRAG: `onlyOne`, `values`, `and()`, `wo()`
+   und vierzehn Einsetzungen. Beide verbliebenen Rufer reichten `null`. */
 function exchangeParts(switches) {
   const one = (sql) => db.prepare(sql).get().n || 0;
   const base64 = (n) => Math.round(n * 4 / 3);
@@ -4398,11 +4325,11 @@ app.get('/api/export', ownerOnly, secondConfirmNeeded('export'), (req, res) => {
   };
   /* DIE ABSAGE STEHT VOR DEM BAU, nicht hinter dem Abbruch -- dieselbe
      Bauform wie am Einzelexport eine Seite weiter unten. */
-  /* DAS FENSTER. Ohne `von`/`bis` ist es der ganze Bestand -- der Weg von
-     0.12.3 und davor, Zeile fuer Zeile derselbe. */
+  /* DAS FENSTER. Ohne `von`/`bis` ist es der ganze Bestand -- der alte Weg,
+     Zeile fuer Zeile derselbe. */
   const number = (w) => { const n = Number(w); return Number.isInteger(n) && n > 0 ? n : null; };
   const from = number(req.query.from), to = number(req.query.to);
-  /* DIE VIER ABFRAGEANGABEN STEHEN SEIT 0.31.0 FEST IN DER OBERFLAECHE. */
+  /* DIE VIER ABFRAGEANGABEN STEHEN FEST IN DER OBERFLAECHE. */
   const part = number(req.query.part), parts = number(req.query.parts);
   const asPart = from !== null || to !== null || part !== null || parts !== null;
   if (asPart && (from === null || to === null || part === null || parts === null))
@@ -4435,10 +4362,8 @@ app.get('/api/export', ownerOnly, secondConfirmNeeded('export'), (req, res) => {
 });
 
 /* ================= WAS HIER STAND, UND WARUM ES FORT IST =================
-   GET /api/items/:id/export -- der Eintrag als einzelne Datei. Die Route
-   stand in keinem Auftrag und hatte 26 Runden lang keinen Rufer in der
-   Oberflaeche. Sie wird fuer nichts anderes gebraucht: der volle Export und
-   der Teilexport tragen dieselben Buendel. */
+   GET /api/items/:id/export -- der Eintrag als einzelne Datei, 26 Runden ohne
+   Rufer. Voller Export und Teilexport tragen dieselben Buendel. */
 
 /* ---- Import ---- */
 const IMPORT_MAX = 900 * 1024 * 1024;
@@ -4447,12 +4372,11 @@ const importUpload = multer({ storage: multer.memoryStorage(), limits: { fileSiz
 /* DER DESERIALISIERER, und er steht hier statt im Routenrumpf -- aus
    demselben Grund wie die Abbildung eine Seite weiter oben: das
    Wiederherstellen aus dem Papierkorb braucht ihn genauso wie die Datei. */
-/* ================= WAS HIER BIS 0.32.1 STAND, UND WARUM ES FORT IST =======
-   DREI UEBERSETZER FUER EINE DATEI VON VOR 0.24.1: `photoFromFile` holte
-   `art` und `dauer` auf `kind` und `duration`, `valueFromFile` die Werte
-   (`bild`, `vorher`), `authorFromFile` den Grabstein (`geloescht-7`). */
+/* ================= WAS HIER STAND, UND WARUM ES FORT IST =================
+   DREI UEBERSETZER FUER EINE DATEI MIT DEUTSCHEN FELDNAMEN -- `photoFromFile`,
+   `valueFromFile` und `authorFromFile`. */
 
-/* ---- DIE ANWEISUNGEN DES IMPORTS -- 0.35.0, BA 3 ----
+/* ---- DIE ANWEISUNGEN DES IMPORTS ----
    Sie standen bis dahin als db.prepare in den Schleifen: je Eintrag, je
    Kommentar, je Foto und je Tag wurde derselbe Text neu uebersetzt. */
 const iDropItems = db.prepare('DELETE FROM items');
@@ -4494,10 +4418,9 @@ const iCritNameAdd = db.prepare(
 const iCatNameAdd = db.prepare(
   'INSERT OR REPLACE INTO category_names (category_id, language, name) VALUES (?, ?, ?)');
 
-/* SUCHEN, UND WENN NICHTS DASTEHT, ANLEGEN -- 0.35.0, BA 3. Drei fast gleiche
-   Closures standen dafuer in der Transaktion. Was beim Anlegen neben dem
-   Namen steht, liefert `extra` -- als Funktion, damit es nur gerechnet wird,
-   wenn wirklich angelegt wird. */
+/* SUCHEN, UND WENN NICHTS DASTEHT, ANLEGEN. Was beim Anlegen neben dem Namen
+   steht, liefert `extra` -- als Funktion, damit es nur gerechnet wird, wenn
+   wirklich angelegt wird. */
 const findOrCreate = (find, add, name, extra = () => []) => {
   const f = find.get(name);
   return f ? f.id : add.run(name, ...extra()).lastInsertRowid;
@@ -4530,7 +4453,7 @@ async function importPrepare(payload, bytesSource) {
          dort steht die Videodatei. */
       const template = isVideo ? bytesOf(p, 'standbild', bytesSource) : buf;
       /* DEN AUSSCHNITT AUS DER DATEI UEBERNEHMEN -- alle drei Werte, ueber
-         DIESELBE Tafel, die auch die Route benutzt (0.19.5). */
+         DIESELBE Tafel, die auch die Route benutzt. */
       const im = (name, raw) => displayValue(name, raw) ?? DISPLAY_VALUES[name].fallback;
       const crop = { fx: im('focus_x', p.focus_x), fy: im('focus_y', p.focus_y),
                           zoom: im('zoom', p.zoom) };
@@ -4578,10 +4501,9 @@ async function importPrepare(payload, bytesSource) {
   return { prepared, commentImages, videosWithoutFile, videosUnreadable };
 }
 
-/* Die beiden Tafeln aus der Datei -- Gewichte und Kaesten -- und die
-   Abweisung, die sich aus den Kaesten ergibt. Alles ausdruecklich AUSSERHALB
-   der Transaktion: die Antwort unten muss die verworfenen Gewichte nennen,
-   und der Konflikt wird vor dem ersten Schreiben abgewiesen (0.21.0). */
+/* Die beiden Tafeln aus der Datei -- Gewichte und Kaesten -- ausdruecklich
+   AUSSERHALB der Transaktion: die Antwort muss die verworfenen Gewichte
+   nennen, und der Konflikt wird vor dem ersten Schreiben abgewiesen. */
 function importTables(payload) {
   const lower = (name) => String(name).trim().toLocaleLowerCase(compareLocale());
   const fileWeights = new Map();
@@ -4618,7 +4540,7 @@ function importTables(payload) {
     if (da && da.phase !== phaseFrom(clean)) conflicts.push(da.name);
   }
   if (conflicts.length) {
-    /* EIN GANZER SATZ JE ZAHLFORM UND KEIN ZUSAMMENGEKLEBTER -- 0.24.0. */
+    /* EIN GANZER SATZ JE ZAHLFORM UND KEIN ZUSAMMENGEKLEBTER. */
     const e = new Message('server.criteriaConflict',
                           { n: conflicts.length, names: conflicts.join(', ') });
     e.denial = true;
@@ -4628,10 +4550,9 @@ function importTables(payload) {
 }
 
 async function importInto(payload, userId, mode2, bytesSource = null) {
-  /* ---- DIE EINE ABWEISUNG DIESER RUNDE -- 0.33.0, F15 -------------------
+  /* ---- DIE ABWEISUNG EINER ZU ALTEN DATEI ------------------------------
      SIE STEHT VOR DER ERSTEN ZEILE ARBEIT, nicht erst vor der Transaktion:
-     eine Datei, die nicht hereinkommt, soll auch nicht erst hundert
-     Bildvarianten kosten. */
+     eine Datei, die nicht hereinkommt, kostet keine Bildvarianten. */
   const fileFormat = Number(payload && payload.version);
   if (!Number.isFinite(fileFormat) || fileFormat < EXCHANGE_FORMAT_MIN) {
     const e = new Message('server.exportTooOld', {
@@ -4646,7 +4567,7 @@ async function importInto(payload, userId, mode2, bytesSource = null) {
   const { prepared, commentImages, videosWithoutFile, videosUnreadable } =
     await importPrepare(payload, bytesSource);
 
-  /* `names` SEIT 0.24.3: die eingespielten Namen je Sprache. Sie stehen in
+  /* `names`: die eingespielten Namen je Sprache. Sie stehen in
      derselben Zaehlung wie alles andere -- was der Import anlegt, zaehlt er. */
   const stats = { items: 0, photos: 0, videos: 0, comments: 0, links: 0, testDays: 0,
                   attachments: 0, names: 0 };
@@ -4684,7 +4605,7 @@ async function importInto(payload, userId, mode2, bytesSource = null) {
       iDropCategories.run();
       iDropTags.run();
     }
-    /* DIE ERSTELLUNGSSPRACHE AUS DER DATEI -- 0.25.0, Formatnummer 15. Eine
+    /* DIE ERSTELLUNGSSPRACHE AUS DER DATEI, Formatnummer 15. Eine
        Datei der Nummer 14 und aelter traegt das Feld nicht; dann bleibt die
        Spalte leer, und die Karte fragt einmal nach. */
     const fileLanguage = (raw) => {
@@ -4698,7 +4619,7 @@ async function importInto(payload, userId, mode2, bytesSource = null) {
     const critLanguages = fileLanguage(payload.criteriaLanguages);
     const catLanguages = fileLanguage(payload.categoryLanguages);
     const languageOf = (table, name) => table.get(lower(name)) || null;
-    /* DREI TAFELN, EIN MUSTER -- 0.35.0, BA 3. Ein bekanntes Kriterium
+    /* DREI TAFELN, EIN MUSTER. Ein bekanntes Kriterium
        behaelt sein Gewicht; ein NEU angelegtes bekommt Gewicht und Kasten aus
        der Datei, sonst 1,0 und 'after'. */
     const catByName = (name) => name
@@ -4781,16 +4702,15 @@ async function importInto(payload, userId, mode2, bytesSource = null) {
       for (const c of it.comments || []) {
         // Aeltere Exportdateien kennen kind und pinned nicht -- dann gilt der
 // Kommentar als gewoehnliche Notiz.
-        /* UND DAS FAELLIGKEITSDATUM SEIT 0.29.0 (Formatnummer 16). */
+        /* UND DAS FAELLIGKEITSDATUM (Formatnummer 16). */
         const cDue = c.dueDate === undefined ? { value: null } : dueValue(c.dueDate);
         const simple = iCommentAdd
             .run(id, c.text || '', kindValue(c.kind), c.pinned ? 1 : 0,
                  c.created_at || null, c.updated_at || null, authorId(c.author),
                  cDue.error ? null : cDue.value);
-        /* UND DIE MARKIERUNGEN WERDEN IN DIESER INSTANZ NEU AUFGELOEST --
-           0.32.0, F13. Das Austauschformat bleibt 16 und traegt KEINE
-           Zugangsnummern: sie bedeuten in einer fremden Instanz etwas anderes
-           (die Begruendung steht seit 0.24.4 an authorByName()). */
+        /* UND DIE MARKIERUNGEN WERDEN IN DIESER INSTANZ NEU AUFGELOEST. Das
+           Austauschformat bleibt 16 und traegt KEINE Zugangsnummern: sie
+           bedeuten in einer fremden Instanz etwas anderes. */
         setMentions(simple.lastInsertRowid, c.text || '');
         stats.comments++;
         (commentImages.get(c) || []).forEach((b2, i) =>
@@ -4812,7 +4732,7 @@ async function importInto(payload, userId, mode2, bytesSource = null) {
         stats.attachments++;
       });
     }
-    /* DIE NAMEN JE SPRACHE -- 0.24.3, Formatnummer 14 (F8c). */
+    /* DIE NAMEN JE SPRACHE, Formatnummer 14. */
     for (const [add, byName, raw] of [
       [iCritNameAdd, critByName, payload.criteriaNames],
       [iCatNameAdd, catByName, payload.categoryNames]]) {
@@ -4904,9 +4824,7 @@ const delTrashOld = db.prepare(
 
 /* DIE NUMMERN, DIE GERADE EINGESPIELT WERDEN -- ohne sie sehen zwei
    gleichzeitige Anfragen dieselbe Zeile und legen den Eintrag zweimal an.
-   Nicht als Spalte an `trash`: das waere eine Schemaaenderung, und ab 0.33.0
-   wird nicht mehr migriert. Nicht als DELETE: `trash_bytes` haengt mit
-   ON DELETE CASCADE daran. Die Liste gilt in diesem Prozess. */
+   Nicht als DELETE: `trash_bytes` haengt mit ON DELETE CASCADE daran. */
 const trashRestoring = new Set();
 
 /* ZWEI AUFRUFSTELLEN, beide noetig -- beim Start und beim Oeffnen der Karte. */
@@ -4924,7 +4842,7 @@ auth.cleanupTokens();
 // Und dasselbe fuer das Sicherheitsprotokoll: erste Aufrufstelle hier, zweite
 // an GET /api/security-log.
 auth.cleanupLog();
-/* Und die unbestaetigten Anfragen, . */
+/* Und die unbestaetigten Anfragen. */
 auth.cleanupRequests();
 /* Und die Anmeldeversuche. Sie sind die einzigen, die KEINE Karte haben, an
    der ein zweiter Ruf haengen koennte -- deshalb eine Uhr statt eines Rufers. */
@@ -4952,7 +4870,7 @@ function intoTrash(itemId, actor) {
 
 /* Die Liste. LESEND, deshalb kein Eintrag in F_ROUTEN -- der Waechter steht
    trotzdem davor. */
-/* ANLEGER UND ANLAGEDATUM KOMMEN AUS DEM PAKET -- 0.24.4 (B6 B, Schritt 1 aus
+/* ANLEGER UND ANLAGEDATUM KOMMEN AUS DEM PAKET (B6 B, Schritt 1 aus
    F7). */
 const qTrash = db.prepare(`SELECT p.id, p.title, p.deleted_at, p.deleted_by,
     json_extract(p.content, '$.items[0].author') AS created_by,
@@ -4976,7 +4894,7 @@ app.get('/api/trash', adminOnly, (req, res) => {
       // Oberflaeche denselben einen Weg von der Nummer zum Namen geht und ein
       // Grabstein "Gelöschter Benutzer 7" heisst.
       deletedBy: authorFrom(card, z.deleted_by),
-      /* UND WER IHN ANGELEGT HAT, WANN -- 0.24.4 (B6 B). */
+      /* UND WER IHN ANGELEGT HAT, WANN (B6 B). */
       createdBy: z.created_by ? authorByName(card, z.created_by) : null,
       created_at: z.created_at || null,
       files: z.files, bytes: z.bytes,
@@ -5066,7 +4984,7 @@ const APP_DIR = (() => {
    wer das Verzeichnis nachtraeglich einhaengt, soll es nicht mit einem
    Neustart bezahlen. */
 function backupState() {
-  /* DER GRUND IST SEIT 0.24.0 EIN SCHLUESSEL UND KEIN SATZ (Bauabschnitt 2). */
+  /* DER GRUND IST EIN SCHLUESSEL UND KEIN SATZ. */
   if (!BACKUP_DIR)
     return { input: false, reason: 'server.backupDirNotSet', values: {} };
   let root;
@@ -5158,10 +5076,9 @@ function lastBackup(filePath) {
   } };
 }
 
-/* ================= Alte Sicherungen aufraeumen -- 0.20.0 =================
-   DIE REGEL STEHT AN GENAU EINER STELLE, und sie ist eine REINE FUNKTION: sie
-   bekommt eine Dateiliste und die beiden Werte und liefert die zu loeschenden
-   Namen. */
+/* ================= Alte Sicherungen aufraeumen ===========================
+   DIE REGEL STEHT AN GENAU EINER STELLE und ist eine reine Funktion: Liste
+   und zwei Werte hinein, die zu loeschenden Namen heraus. */
 function ruleHit(files, keep, days, now, changeMs) {
   const usable = files
     .filter(d => changeMs == null || d.time >= changeMs)
@@ -5172,7 +5089,7 @@ function ruleHit(files, keep, days, now, changeMs) {
 }
 
 /* Die beiden Werte, geprueft. */
-/* `key` UND NICHT MEHR DER NAME DER REGEL -- 0.24.0, Bauabschnitt 2. */
+/* `key` UND NICHT MEHR DER NAME DER REGEL. */
 function checkRuleValue(raw, range, key) {
   const n = Number(raw);
   if (!Number.isInteger(n) || n < range.min || n > range.max)
@@ -5204,8 +5121,7 @@ const cleanupRow = (d, now) => ({
 
 /* DIE VORSCHAU -- sie steht immer da, auch wenn der Schalter aus ist: sie ist
    die Auskunft darueber, was die Regel bei den eingestellten Werten bedeutet. */
-/* DIE VIER GRUENDE SIND SCHLUESSEL UND KEINE SAETZE -- 0.32.0, Bauabschnitt
-   4. */
+/* DIE VIER GRUENDE SIND SCHLUESSEL UND KEINE SAETZE. */
 function cleanupPreview(filePath, keep, days, locale) {
   const files = backupList(filePath);
   if (files === null) return { reachable: false, files: [], matched: [], bytes: 0, reason: '' };
@@ -5310,9 +5226,9 @@ app.get('/api/backup', ownerOnly, (req, res) => {
   /* DIE GRENZEN GEHEN MIT HINAUS. */
   const rule = { ...status2, keep, days,
                   limits: { keep: CLEANUP_KEEP, days: CLEANUP_DAYS } };
-  /* DREI ANTWORTEN AUS EINEM GRUNDOBJEKT -- 0.35.0, BA 3. Sie trugen zum
+  /* DREI ANTWORTEN AUS EINEM GRUNDOBJEKT. Sie trugen zum
      grossen Teil dieselben Felder; jede Zeile stand dreimal da.
-     UEBERSETZT WIRD HIER -- 0.24.0. */
+     UEBERSETZT WIRD HIER. */
   const base = { place, dbBytes, durationSeconds: duration, cleanup: rule };
   // Was kein erreichbarer Ort meldet -- zweimal dasselbe.
   const off = { ...base, reachable: false, last: null, changedAt, outdated: 0 };
@@ -5372,10 +5288,9 @@ app.post('/api/backup', ownerOnly, (req, res) => {
   // Eine vollstaendige Kopie, die das Haus verlaesst -- dieselbe Zeile wie
 // der Export.
   auth.log('backup', { actor: req.user.id });
-  /* ---- DAS AUFRAEUMEN, UND ZWAR HIER UND NIRGENDS SONST ---- DER AUFRUF
-     STEHT AM ENDE DIESER ROUTE, NACH dem `rename` und nach `statSync` -- an
-     dem einen Augenblick, in dem feststeht, dass eine frische, vollstaendige
-     Kopie da ist. */
+  /* ---- DAS AUFRAEUMEN, UND ZWAR HIER UND NIRGENDS SONST ---- Der Aufruf
+     steht am Ende dieser Route, NACH `rename` und `statSync`: erst dort steht
+     fest, dass eine frische, vollstaendige Kopie da ist. */
   let cleaned = null;
   try {
     const rule = cleanupStatus();
@@ -5451,7 +5366,7 @@ app.post('/api/backup/cleanup', ownerOnly,
                            ...cleanupPreview(target.filePath, after.keep, after.days, localeOf(req)) } });
 });
 
-/* ---- DIE SICHERUNGSPROBE -- 0.29.0, Befund 1 --------------------------
+/* ---- DIE SICHERUNGSPROBE --------------------------
    EINE SICHERUNG OHNE PROBE IST EINE VERMUTUNG. */
 app.post('/api/backup/check', ownerOnly, (req, res) => {
   const situation = backupState();
@@ -5483,7 +5398,7 @@ app.post('/api/backup/check', ownerOnly, (req, res) => {
     return res.json({ ok: false, reason: 'key', at: file.time, bytes: file.bytes, nr });
   }
   try {
-    /* VIER ZAHLEN, UND SIE TRAGEN DIE NAMEN DER KARTE „KENNZAHLEN" (F2) --
+    /* VIER ZAHLEN, UND SIE TRAGEN DIE NAMEN DER KARTE „KENNZAHLEN" --
        dort stehen Fotos und Videos getrennt, und ein Wort „Bilder" gibt es
        nicht. */
     const one = (sql) => probe.prepare(sql).get();
@@ -5506,7 +5421,7 @@ app.post('/api/backup/check', ownerOnly, (req, res) => {
 
 // Einmal beim Start ins Protokoll -- wer den Ort falsch stehen hat, sieht es
 // hier und nicht erst am Knopf.
-/* DER GRUND WIRD UEBERSETZT UND NICHT ROH HINGESCHRIEBEN -- 0.33.2. */
+/* DER GRUND WIRD UEBERSETZT UND NICHT ROH HINGESCHRIEBEN. */
 {
   const situation = backupState();
   logLine('Backup location: ' + (situation.input
@@ -5518,17 +5433,13 @@ app.post('/api/backup/check', ownerOnly, (req, res) => {
 app.use((err, req, res, next) => {
   console.error(err);
   const locale = localeOf(req);
-  /* EINE MELDUNG WIRD HIER UEBERSETZT UND SONST NIRGENDS -- 0.24.0,
-     Bauabschnitt 1. */
+  /* EINE MELDUNG WIRD HIER UEBERSETZT UND SONST NIRGENDS. */
   /* GEFRAGT WIRD NACH `key` UND NICHT NACH DER KLASSE: auth.js wirft die
      Klasse `Message`, mail.js baut sich dieselbe Form selbst -- es ist ein
      Blatt im Abhaengigkeitsbaum und darf auth.js nicht requiren. */
   if (err && err.key)
     return res.status(err.status || 400).json({ error: t(locale, err.key, err.values || {}) });
-  /* MULTER WIRFT SEINE GRENZEN AUF ENGLISCH UND MIT SEINEN EIGENEN WOERTERN:
-     `LIMIT_UNEXPECTED_FILE` heisst „eine Datei zu viel" und stand bis hierher
-     als „Unexpected field" am Bildschirm. Die Zahl dazu kommt aus `req.caps`,
-     das die Route gesetzt hat. */
+  /* multer wirft auf Englisch; die Zahl kommt aus `req.caps`. */
   if (err instanceof multer.MulterError && req.caps) {
     if (err.code === 'LIMIT_FILE_SIZE')
       return res.status(400).json({ error:
@@ -5543,9 +5454,9 @@ app.use((err, req, res, next) => {
 
 /* ================= Start ================= */
 /* AUSDRUECKLICH NUR BILDER. */
-/* ================= EIN BESTANDSLAUF NIMMT DEN SERVER NICHT MIT =============
-   0.30.0, Befund 11 -- und er ist beim Bauen DIESER Runde aufgefallen, an der
-   neuen Meldung aus BA 2 („ein Server, der von selbst endet, ist ein Fund"). */
+/* ================= EIN BESTANDSLAUF NIMMT DEN SERVER NICHT MIT ============
+   Aufgefallen an der Meldung „ein Server, der von selbst endet, ist ein
+   Fund". */
 const BACKFILL_RETRY_MS = 30 * 1000;
 let backfillTries = 0;
 function backfillThumbnails() {
@@ -5570,14 +5481,14 @@ function backfillRun() {
   startBatchThread('thumbnails', open, refreshTiles);
 }
 
-/* DIE KACHELN ERNEUERN -- 0.19.4 als Geometrie, seit 0.19.5 als Zuschnitt. */
+/* DIE KACHELN ERNEUERN als Geometrie, als Zuschnitt. */
 function refreshTiles() {
   const rows = qTileRows.all();
   if (!rows.length) return maintainStorage();
   startBatchThread('geometry', rows, maintainStorage);
 }
 
-/* NICHT MEHR `async` SEIT 0.19.3, und das ist keine Kosmetik: nichts darin
+/* NICHT MEHR `async`, und das ist keine Kosmetik: nichts darin
    ist asynchron, und seit dieser Runde wird es als ABSCHLUSS eines Threads
    gerufen. */
 function maintainStorage() {
@@ -5606,12 +5517,12 @@ function filesUnder(directory) {
   return out2;
 }
 
-/* ER LIEFERT SEIT 0.29.0 ZWEI DINGE AUS EINEM LAUF: den Gesamtwert und die
+/* ER LIEFERT ZWEI DINGE AUS EINEM LAUF: den Gesamtwert und die
    achtzehn Einzelwerte. */
 function buildFingerprint() {
   const ran = Object.keys(require.cache).filter(f =>
     f.startsWith(__dirname + path.sep) && !f.split(path.sep).includes('node_modules'));
-  /* UND DIE DATEI, DIE NUR IM THREAD LEBT -- 0.19.3. */
+  /* UND DIE DATEI, DIE NUR IM THREAD LEBT. */
   const list = [...new Set([...ran, BATCHRUN,
                              ...filesUnder(path.join(__dirname, 'public'))])]
     .map(f => path.relative(__dirname, f).split(path.sep).join('/'))
@@ -5639,7 +5550,7 @@ const FINGERPRINT = buildFingerprint();
 /* Sauberes Herunterfahren. */
 for (const signal of ['SIGTERM', 'SIGINT']) {
   process.on(signal, () => {
-    /* ERST DIE THREADS, DANN DIE DATEI -- 0.19.3. */
+    /* ERST DIE THREADS, DANN DIE DATEI. */
     for (const w of batchThreads) { try { w.terminate(); } catch {} }
     try { db.pragma('wal_checkpoint(TRUNCATE)'); db.close(); } catch {}
     process.exit(0);
@@ -5652,7 +5563,7 @@ app.listen(PORT, () => {
   const u = auth.getUser();
   logLine(`Running on port ${PORT} -- ` +
     (u ? `owner: ${u.username}` : 'no account yet, set it up in the browser'));
-  /* DER PRUEFSCHALTER SAGT SICH AN -- 0.30.0, F1 und F2. */
+  /* DER PRUEFSCHALTER SAGT SICH AN, F1 und F2. */
   if (keys.testbenchSwitch())
     logLine(`TEST SWITCH ACTIVE (${keys.TESTBENCH_NAME}) -- ` +
       `scrypt N=${auth.SCRYPT_COST}, mail timeouts ${mail.SEND_MS}/${mail.CONNECT_MS}/` +
@@ -5690,7 +5601,7 @@ app.listen(PORT, () => {
     const raw = getSetting(mail.SETTING_KEY, null);
     const z = mail.state(raw);
     if (mail.configured(raw)) {
-      /* DER ANBIETERNAME KOMMT HIER AUF ENGLISCH -- 0.33.1. */
+      /* DER ANBIETERNAME KOMMT HIER AUF ENGLISCH. */
       const providerShown = z.providerNameKey
         ? t('en', z.providerNameKey) : z.providerName;
       logLine(`Mail delivery: ${providerShown} via ${z.server}:${z.port} ` +

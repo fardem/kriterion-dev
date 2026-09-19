@@ -3797,8 +3797,8 @@ const REGRESSIONS = [
     /* DER WAECHTER UEBER DIE BERICHTIGTEN BEHAUPTUNGEN LAEUFT INS LEERE. */
     nr: '479', name: 'Die Berichtigung zu substr() faellt aus dem Quelltext',
     file: 'server.js',
-    search: "   BERICHTIGT GEGEN 0.19.0: substr() AUF EINEM BLOB LIEST DAS BLOB, gemessen",
-    replacement: "   BERICHTIGT GEGEN 0.19.0: substr() liest wenig, gemessen",
+    search: "   BERICHTIGT: substr() AUF EINEM BLOB LIEST DAS BLOB, gemessen 657 ms bei",
+    replacement: "   BERICHTIGT: substr() liest wenig, gemessen 657 ms bei",
     expected: 'Die berichtigten Behauptungen stehen nirgends mehr'
   },
 

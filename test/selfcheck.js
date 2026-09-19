@@ -405,7 +405,7 @@ async function run() {
       ['test/release_031.js', 419],
       ['test/roundtrip.js', 3237],
       ['test/selfcheck.js', 206],
-      ['test/source.js', 856],
+      ['test/source.js', 855],
       ['test/ui_entry.js', 497],
       ['test/ui_export.js', 453],
       ['test/ui_inventory.js', 241],
@@ -415,7 +415,7 @@ async function run() {
       ['test/ui_system.js', 692],
       ['test/ui_translator.js', 104],
       ['counterproof.js', 1575],
-      ['server.js', 1536],
+      ['server.js', 1447],
       ['auth.js', 293],
       ['db.js', 128],
       ['mail.js', 43],
@@ -430,7 +430,7 @@ async function run() {
       ['public/app.js', 1857],
       ['public/theme.js', 3],
     ];
-    const COMMENT_TOTAL = { comment: 14884, code: 61277 };
+    const COMMENT_TOTAL = { comment: 14794, code: 61278 };
     check('Der Waechter sieht alle fuenfunddreissig Dateien',
       crAll.each.length === 35 && COMMENT_ROWS.length === 35,
       `${crAll.each.length} gemessen, ${COMMENT_ROWS.length} genannt`);
