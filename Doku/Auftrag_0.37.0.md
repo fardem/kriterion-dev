@@ -32,9 +32,18 @@ stand.** *Sie ist mit dem Bauen von 0.36.0 eingelöst: die Runde kann laufen.*
 
 ---
 
-## 1. Fragetafel — vor der ersten Zeile zu beantworten
+## 1. Fragetafel — beantwortet
 
-| | Frage | Vorschlag |
+> **ALLE ELF SIND ENTSCHIEDEN** — vom Betreiber am 19. September 2026, vor der
+> ersten Zeile. **Diese Runde ist ohne Rückfrage zu fahren.**
+>
+> **Vier davon ändern, was gebaut wird:** F7 nennt den Spaltennamen statt der
+> Fassung, F9 repariert den Kommentarfilter der Gleichlaufprobe, **F10 zieht
+> die Drei-Zeilen-Regel auch über `public/style.css`** — damit wird BA 5 der
+> größte Posten der Runde —, und F11 gibt dem neuen Wächter alle ausgelieferten
+> Dateien bis auf `CHANGELOG.md`.
+
+| | Frage | Entscheidung |
 |---|---|---|
 | **F1** | **Wie heißt die Meldung aus `REQUIRED_COLUMNS` ohne Versionsnummer?** | *sie nennt den alten Spaltennamen statt der Fassung.* „`items.rejected_at` fehlt; unter dem Namen `rejected_grund` liegt sie auch nicht da" sagt einem Betreiber mehr als eine Nummer, die er nachschlagen müsste |
 | **F2** | **Bekommt `public/style.css` ein Ziel für den Anteil?** | *nein.* Der Kommentar dort ist zum guten Teil begründet, und eine Quote erzwingt Kürzungen an Stellen, die sie nicht verdienen |
@@ -42,11 +51,11 @@ stand.** *Sie ist mit dem Bauen von 0.36.0 eingelöst: die Runde kann laufen.*
 | **F4** | **Wird die README umgestellt oder nur gekürzt?** | *erst lesen, dann entscheiden.* BA 6 liefert ein Urteil, keine Umstellung; was daraus folgt, ist eine eigene Zeile im Fahrplan |
 | **F5** | **Zählt der Prüfstand mit?** | *nein, er ist ausgenommen* — wie bei den drei Wächtern davor. Er muss die Nummern nennen dürfen, sonst kann er keine bewachen. **Die alte Begründung „er geht nicht mit hinaus" stimmt nicht** *(siehe V3)* |
 | **F6** | **Welche Blockzählweise gilt?** | *jeder Kommentarteil einzeln* — so sind die 2.735 gezählt, und so halten 96 Prozent die Regel. **Faßt man `//`-Folgen zusammen, sind es 2.177 Blöcke und 122 über drei Zeilen.** Die zweite Zählweise ist die, die ein Leser sieht; die erste ist die, in der alle Zahlen dieses Auftrags stehen |
-| **F7** | **Was wird aus den 21 Nummern in `db.js` und der einen in `auth.js`?** | *offen.* Der Vorschlag aus F1 deckt neun der 18 `REQUIRED_COLUMNS`-Zeilen; für die neun ohne alten Namen, für `LAST_MIGRATING_VERSION`, für das `since` der `LEGACY_TABLES`, für den englischen Warnkasten und für die Laufzeitmeldung in `auth.js`:430 sagt er nichts |
+| **F7** | **Was wird aus den 21 Nummern in `db.js` und der einen in `auth.js`?** | **Der Spaltenname tritt an die Stelle der Fassung.** *Wo es einen alten Namen gibt — neun der 18 —, nennt ihn die Meldung; sonst nennt sie nur die fehlende Spalte.* `LAST_MIGRATING_VERSION`, das `since` der `LEGACY_TABLES` und der englische Warnkasten verlieren die Nummer ebenso. **`auth.js`:430 sagt, dass `AUTH_RESET` nicht mehr gelesen wird**, statt seit wann. *Der Betreiber sieht, was fehlt und wie es hieß; die Nummer müsste er ohnehin nachschlagen* |
 | **F8** | **Heißt die Latte „null" oder „genau diese"?** | *„genau diese".* Fünfzehn Treffer sind keine Fassungsnummern, sechs verlangt die Anleitung, zwei verlangt der Prüfstand. Eine Latte auf null wäre eine Zusage, die kein Bauabschnitt einlösen kann |
-| **F9** | **Was wird aus den sechs Gleichlaufsummen?** | *zwei Wege.* Entweder BA 2 lässt die 29 nachgestellten `//`-Kommentare in `public/app.js` stehen — dann bleiben die Summen gleich und die Zusage trägt. Oder `tools/gleichlaut.js` bekommt einen richtigen Kommentarfilter über `tools/segments.js` — *nicht über eine Regex, ein `//` in `'http://'` darf nicht fallen* — und alle sechs Konstanten werden neu eingetragen. **Der zweite Weg ist ehrlicher und kostet den Vorlauf als Beleg** |
-| **F10** | **Gilt die Drei-Zeilen-Regel auch für `public/style.css`?** | *nein, dort gilt die Grenze 30* — so misst `test/source.js`:2758 heute, und BA 5 nimmt die 184 langen Blöcke ausdrücklich aus. Gilt sie doch, ist BA 5 ein dritter Griff schwerer und Rückbau 1089 auf den neuen Wert zu stellen |
-| **F11** | **Welche Dateiliste nimmt der neue Wächter?** | *offen.* Der Nummernwächter liest 20 Dateien, der `Doku/`-Wächter 24. **Daran hängt `CHANGELOG.md`:** er trägt 11 Papiernamen, und ein Änderungsprotokoll muss die Papiere nennen dürfen, die es fortschreibt |
+| **F9** | **Was wird aus den sechs Gleichlaufsummen?** | **Der Filter wird repariert, die sechs Summen einmal neu eingetragen.** *`tools/gleichlaut.js` liest die Kommentare künftig über `tools/segments.js` und nicht über eine Regex — ein `//` in `'http://'` darf nicht fallen.* **Das geschieht im Vorlauf, vor dem ersten Bauabschnitt**, damit die Summen danach wirklich kommentarfest sind und die Runde belegen können |
+| **F10** | **Gilt die Drei-Zeilen-Regel auch für `public/style.css`?** | **Ja.** *`CLAUDE.md` gilt ohne Ausnahme für jede ausgelieferte Datei.* **BA 5 bekommt damit einen dritten Griff und wird der größte Posten der Runde:** 184 Blöcke über drei Zeilen, 26 davon über acht, einzeln zu lesen und zu entscheiden. *Die Grenze in `test/source.js`:2758 fällt von 30 auf 3, und Rückbau 1089 geht auf den neuen Wert.* **Eine Tafel gemessener Werte bleibt lang** — Kontrastwerte und Pixelmaße sind genau das, was `CLAUDE.md` unter „Doch" führt |
+| **F11** | **Welche Dateiliste nimmt der neue Wächter?** | **Alle ausgelieferten Dateien nach `CLAUDE.md`, Abschnitt 2** — die vierzehn Module, `public/style.css`, `public/index.html`, `public/theme.js`, die drei Sprachdateien, `.env.example`, `docker-compose.example.yml`, `Dockerfile`, `README.md`, `manual-de.md`. **`CHANGELOG.md` ist ausgenommen, und der Grund steht beim Wächter:** ein Änderungsprotokoll muss die Papiere nennen dürfen, die es fortschreibt |
 
 ---
 
@@ -159,7 +168,7 @@ mit 0.36.0 weggefallen)*, „Bauabschnitt" 70, „Konzept" 14, „Auftrag" 10,
 | Verweise auf Papiere über den Namen | 187 | **0 bis auf die Fachwörter, F3** |
 | Abkürzungen `BA <Zahl>`, `(F<Zahl>)`, `Punkt <Zahl>` | **94** | **0** |
 | Blöcke über drei Zeilen, 14 Module | 105 | **nur Tafeln gemessener Werte** |
-| Blöcke über drei Zeilen, `public/style.css` | 184 | *unverändert, siehe BA 5* |
+| Blöcke über drei Zeilen, `public/style.css` | 184 | **nur Tafeln gemessener Werte** *(F10)* |
 | Kommentaranteil `server.js` | 27 % | *fällt, Ziel offen* |
 | Kommentaranteil `public/style.css` | 54,5 % | *fällt, Ziel offen* |
 | Wächter über Papierverweise ohne Pfad | 0 | **1** |
@@ -304,20 +313,27 @@ Versionsnummern.**
 > Pixelmaße, Messtafeln der Vorschaureihe — genau das, was `CLAUDE.md` unter
 > „Doch" führt.* **0.35.0 hat schon einmal gekürzt, von 70,5 auf 54,5 Prozent.**
 
-**Deshalb hier nur zwei Griffe und kein dritter:** die 175 Treffer und die 37
-Papierverweise heraus. **Verdichtet wird nur, wo ein Block eine Abwägung
-erzählt statt eine Zahl zu nennen.**
+**Drei Griffe, und der dritte ist der größte Posten der Runde** *(F10)*: die
+175 Treffer heraus, die 37 Papierverweise heraus, und **184 Blöcke über drei
+Zeilen einzeln lesen und entscheiden** — 26 davon über acht, der längste 24
+Zeilen.
+
+> **EINE TAFEL GEMESSENER WERTE BLEIBT LANG.** *Kontrastwerte, Pixelmaße,
+> Messtafeln der Vorschaureihe sind genau das, was `CLAUDE.md` unter „Doch"
+> führt.* **Was fällt, ist die erzählte Abwägung daneben.**
+
+**Die Grenze in `test/source.js`:2758 fällt von 30 auf 3**, und Rückbau 1089
+geht auf den neuen Wert.
 
 > **SIEBEN DER 175 SIND DATEN UND KEINE FASSUNGEN** *(`11.09.2026`, fünfmal
 > `11.9.2026`, `27.08.2026`)*. **Und eine muss stehen bleiben:**
 > `test/ui_export.js`:527 verlangt `0.12.3` in `public/style.css`.
 
-> **BA 5 UND DIE TAFEL IN ABSCHNITT 2 WIDERSPRACHEN SICH.** *Die Tafel verlangte,
-> dass nach der Runde nur noch Tafeln gemessener Werte über drei Zeilen gehen.*
-> **In `public/style.css` sind 184 der 409 Blöcke länger als drei Zeilen**, und
-> BA 5 nimmt sie ausdrücklich aus. *Die Tafel ist berichtigt; für das Stilblatt
-> gilt weiter die Grenze 30, die `test/source.js`:2758 misst.* **Ob die
-> Drei-Zeilen-Regel auch für das Stilblatt gilt, entscheidet F10.**
+> **BA 5 UND DIE TAFEL IN ABSCHNITT 3 WIDERSPRACHEN SICH, UND F10 HAT ES
+> AUFGELÖST.** *Die Tafel verlangte, dass nach der Runde nur noch Tafeln
+> gemessener Werte über drei Zeilen gehen; BA 5 nahm das Stilblatt aus.*
+> **Jetzt gilt die Regel dort auch** — 409 Blöcke, 184 davon zu lang, und nur
+> 40 einzeilig.
 
 *Punkt 42 des Sammelblatts bleibt danach offen, mit einer neuen Zahl.*
 
