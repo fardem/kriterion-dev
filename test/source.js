@@ -3000,6 +3000,225 @@ async function run() {
       lkOther.length === 0,
       lkOther.map(z => `${z.code}: ${z.missing.slice(0, 6).join(' ')}`).join(' · '));
   }
+
+  /* ---------------------------------------------------------------- */
+  group('Keine nackte Einsetzung in innerHTML');
+
+  /* WAS EINE EINSETZUNG FUEHREN DARF: die vier Maskierer, Number() fuer eine
+     Zahl, eine Symbolkonstante -- und sonst nur, was namentlich dasteht. */
+  const NAKED_CALLS = ['esc', 'tH', 'tMark', 'tMarks', 'Number'];
+  /* DIE BENANNTE AUSNAHMELISTE: Helfer und Traeger, die FERTIGES Markup
+     liefern und es selbst maskieren. In beide Richtungen geschlossen. */
+  const NAKED_FREE = [
+    /* Helfer mit festem Markup */
+    'BRAND_LINE', 'MARK', 'subhead', 'sparkline', 'serverBox', 'countCell',
+    'many', 'inventoryText', 'tileNumber', 'entryNav', 'linkOrigin',
+    'deliveryRow',
+    /* Traeger, die einige Zeilen darueber gebaut werden */
+    'badgeRow', 'cardMarkup', 'findingRow', 'testLine', 'groupRows', 'testRow',
+    'bottom', 'weightField', 'fallbackMark', 'situation', 'stateBox',
+    'changeBox', 'listBox', 'outdatedBox', 'tooBigBox'
+  ];
+
+  /* Der Leser kennt Strings, Vorlagen und Kommentare und sonst nichts --
+     fuer die eine Frage „geht dieser Wert durch einen Maskierer" genuegt das. */
+  function fillingsOf(expr) {
+    const out = [];
+    let i = 0;
+    const stack = [];
+    while (i < expr.length) {
+      const c = expr[i], two = expr.slice(i, i + 2), top = stack[stack.length - 1];
+      if (top === "'" || top === '"') {
+        if (c === '\\') { i += 2; continue; }
+        if (c === top) stack.pop();
+        i++; continue;
+      }
+      if (top === '`') {
+        if (c === '\\') { i += 2; continue; }
+        if (two === '${') {
+          let j = i + 2, depth = 1;
+          const inner = [];
+          while (j < expr.length) {
+            const a = expr[j], t = expr.slice(j, j + 2), tp = inner[inner.length - 1];
+            if (tp === "'" || tp === '"') { if (a === '\\') { j += 2; continue; } if (a === tp) inner.pop(); j++; continue; }
+            if (tp === '`') { if (a === '\\') { j += 2; continue; } if (t === '${') { inner.push('{'); depth++; j += 2; continue; } if (a === '`') inner.pop(); j++; continue; }
+            if (t === '//') { const nl = expr.indexOf('\n', j); j = nl === -1 ? expr.length : nl; continue; }
+            if (t === '/*') { const e = expr.indexOf('*/', j); j = e === -1 ? expr.length : e + 2; continue; }
+            if (a === "'" || a === '"' || a === '`') { inner.push(a); j++; continue; }
+            if (a === '{' || a === '(' || a === '[') { inner.push(a); if (a === '{') depth++; j++; continue; }
+            if (a === '}') { depth--; if (depth === 0) break; inner.pop(); j++; continue; }
+            if (a === ')' || a === ']') { inner.pop(); j++; continue; }
+            j++;
+          }
+          out.push(expr.slice(i + 2, j));
+          i = j + 1; continue;
+        }
+        if (c === '`') stack.pop();
+        i++; continue;
+      }
+      if (two === '//') { const nl = expr.indexOf('\n', i); i = nl === -1 ? expr.length : nl; continue; }
+      if (two === '/*') { const e = expr.indexOf('*/', i); i = e === -1 ? expr.length : e + 2; continue; }
+      if (c === "'" || c === '"' || c === '`') { stack.push(c); i++; continue; }
+      i++;
+    }
+    return out;
+  }
+
+  /* Wo eine Klammer oder eine Vorlage zugeht -- ohne das laesst sich nicht
+     sagen, ob ein Aufruf den GANZEN Ausdruck umschliesst. */
+  function closesAt(s, open) {
+    const stack = [s[open]];
+    let i = open + 1;
+    while (i < s.length && stack.length) {
+      const c = s[i], two = s.slice(i, i + 2), top = stack[stack.length - 1];
+      if (top === "'" || top === '"') { if (c === '\\') { i += 2; continue; } if (c === top) stack.pop(); i++; continue; }
+      if (top === '`') { if (c === '\\') { i += 2; continue; } if (two === '${') { stack.push('{'); i += 2; continue; } if (c === '`') stack.pop(); i++; continue; }
+      if (c === "'" || c === '"' || c === '`') { stack.push(c); i++; continue; }
+      if (c === '(' || c === '[' || c === '{') { stack.push(c); i++; continue; }
+      if (c === ')' || c === ']' || c === '}') { stack.pop(); i++; continue; }
+      i++;
+    }
+    return i - 1;
+  }
+
+  /* Die Schnitte der obersten Ebene -- fuer die Fallunterscheidung. */
+  function cutsOf(s, wanted) {
+    const cuts = [];
+    let i = 0;
+    const stack = [];
+    while (i < s.length) {
+      const c = s[i], two = s.slice(i, i + 2), top = stack[stack.length - 1];
+      if (top === "'" || top === '"') { if (c === '\\') { i += 2; continue; } if (c === top) stack.pop(); i++; continue; }
+      if (top === '`') { if (c === '\\') { i += 2; continue; } if (two === '${') { stack.push('{'); i += 2; continue; } if (c === '`') stack.pop(); i++; continue; }
+      if (two === '//') { const nl = s.indexOf('\n', i); i = nl === -1 ? s.length : nl; continue; }
+      if (two === '/*') { const e = s.indexOf('*/', i); i = e === -1 ? s.length : e + 2; continue; }
+      if (c === "'" || c === '"' || c === '`') { stack.push(c); i++; continue; }
+      if (c === '(' || c === '[' || c === '{') { stack.push(c); i++; continue; }
+      if (c === ')' || c === ']' || c === '}') { stack.pop(); i++; continue; }
+      if (!stack.length && wanted.includes(c)) cuts.push([c, i]);
+      i++;
+    }
+    return cuts;
+  }
+
+  /* Kommentare aus einem Ausdruck nehmen -- eine Einsetzung, in der nur
+     einer steht, ist leer. */
+  function withoutNotes(s) {
+    let out = '', i = 0;
+    const stack = [];
+    while (i < s.length) {
+      const c = s[i], two = s.slice(i, i + 2), top = stack[stack.length - 1];
+      if (top === "'" || top === '"') { if (c === '\\') { out += s.slice(i, i + 2); i += 2; continue; } if (c === top) stack.pop(); out += c; i++; continue; }
+      if (top === '`') { if (c === '\\') { out += s.slice(i, i + 2); i += 2; continue; } if (two === '${') { stack.push('{'); out += two; i += 2; continue; } if (c === '`') stack.pop(); out += c; i++; continue; }
+      if (two === '//') { const nl = s.indexOf('\n', i); i = nl === -1 ? s.length : nl; continue; }
+      if (two === '/*') { const e = s.indexOf('*/', i); i = e === -1 ? s.length : e + 2; continue; }
+      if (c === "'" || c === '"' || c === '`') { stack.push(c); out += c; i++; continue; }
+      if (c === '{' || c === '(' || c === '[') { stack.push(c); out += c; i++; continue; }
+      if (c === '}' || c === ')' || c === ']') { stack.pop(); out += c; i++; continue; }
+      out += c; i++;
+    }
+    return out;
+  }
+
+  /* Geht dieser Wert gefuehrt in das Markup? */
+  function guided(raw) {
+    let s = withoutNotes(raw).trim();
+    if (!s) return true;
+    while (s.startsWith('(') && closesAt(s, 0) === s.length - 1) s = s.slice(1, -1).trim();
+    if (!s) return true;
+    if (/^-?\d+(\.\d+)?$/.test(s)) return true;
+    if (/^[A-Z][A-Z0-9_]*$/.test(s)) return true;
+    if ((s[0] === "'" || s[0] === '"') && closesAt(s, 0) === s.length - 1) return true;
+    const question = cutsOf(s, '?');
+    if (question.length) {
+      const rest = s.slice(question[0][1] + 1);
+      const colon = cutsOf(rest, ':');
+      if (colon.length)
+        return guided(rest.slice(0, colon[0][1])) && guided(rest.slice(colon[0][1] + 1));
+    }
+    const both = cutsOf(s, '&|');
+    for (let k = both.length - 2; k >= 0; k--) {
+      const [c, at] = both[k];
+      if (s[at + 1] !== c) continue;
+      /* `a || b` liefert eines von beiden, `a && b` nur das zweite. */
+      return c === '|' ? guided(s.slice(0, at)) && guided(s.slice(at + 2))
+                       : guided(s.slice(at + 2));
+    }
+    const call = s.match(/^([A-Za-z_$][\w$]*)\s*\(/);
+    if (call && closesAt(s, s.indexOf('(')) === s.length - 1
+        && (NAKED_CALLS.includes(call[1]) || NAKED_FREE.includes(call[1]))) return true;
+    const name = s.match(/^[A-Za-z_$][\w$]*/);
+    if (name && name[0] === s && NAKED_FREE.includes(s)) return true;
+    if (s.startsWith('`') && closesAt(s, 0) === s.length - 1)
+      return fillingsOf(s).every(guided);
+    /* `…map(x => …).join('')` haengt an dem, was der Rumpf liefert. */
+    const map = s.indexOf('.map(');
+    if (map !== -1 && /\.join\s*\(\s*['"`]/.test(s.slice(map))) {
+      const body = s.slice(map + 5, closesAt(s, map + 4));
+      const arrow = body.indexOf('=>');
+      if (arrow !== -1) return guided(body.slice(arrow + 2));
+    }
+    return false;
+  }
+
+  /* Jede Zuweisung an innerHTML in der ausgelieferten Oberflaeche. */
+  function assignments(text) {
+    const out = [];
+    const rx = /\.innerHTML\s*\+?=(?!=)/g;
+    let m;
+    while ((m = rx.exec(text))) {
+      const from = m.index + m[0].length;
+      let i = from;
+      const stack = [];
+      while (i < text.length) {
+        const c = text[i], two = text.slice(i, i + 2), top = stack[stack.length - 1];
+        if (top === "'" || top === '"') { if (c === '\\') { i += 2; continue; } if (c === top) stack.pop(); i++; continue; }
+        if (top === '`') { if (c === '\\') { i += 2; continue; } if (two === '${') { stack.push('{'); i += 2; continue; } if (c === '`') stack.pop(); i++; continue; }
+        if (two === '//') { const nl = text.indexOf('\n', i); i = nl === -1 ? text.length : nl; continue; }
+        if (two === '/*') { const e = text.indexOf('*/', i); i = e === -1 ? text.length : e + 2; continue; }
+        if (c === "'" || c === '"' || c === '`') { stack.push(c); i++; continue; }
+        if (c === '(' || c === '[' || c === '{') { stack.push(c); i++; continue; }
+        if (c === ')' || c === ']' || c === '}') { stack.pop(); i++; continue; }
+        if (c === ';' && !stack.length) break;
+        i++;
+      }
+      out.push({ row: text.slice(0, m.index).split('\n').length,
+                 expr: text.slice(from, i).trim() });
+    }
+    return out;
+  }
+
+  const hSource = fs.readFileSync(path.join(__dirname, 'public/app.js'), 'utf8');
+  const hAll = assignments(hSource);
+  /* ERST DER GEGENSTAND: ein Waechter ueber null Zuweisungen ist gruen und
+     belegt nichts. */
+  check('Der Waechter sieht alle Zuweisungen an innerHTML',
+    hAll.length === 172, `${hAll.length} Zuweisungen`);
+  const hNaked = [];
+  const hUsed = new Set();
+  for (const one of hAll)
+    for (const filling of fillingsOf(one.expr)) {
+      if (!guided(filling)) hNaked.push(`Z. ${one.row}: ${filling.replace(/\s+/g, ' ').slice(0, 60)}`);
+      const lead = withoutNotes(filling).trim().match(/^[A-Za-z_$][\w$]*/);
+      if (lead && NAKED_FREE.includes(lead[0])) hUsed.add(lead[0]);
+    }
+  check('Keine Einsetzung geht ungefuehrt in innerHTML',
+    hNaked.length === 0, hNaked.slice(0, 6).join(' · '));
+  /* UND DIE LISTE IST AUCH IN DER ANDEREN RICHTUNG GESCHLOSSEN. */
+  const hStale = NAKED_FREE.filter(n => !hUsed.has(n));
+  check('Und keine Ausnahme nennt einen Namen, den es nicht mehr gibt',
+    hStale.length === 0, hStale.join(' · '));
+  /* Und die Gegenprobe zum Waechter selbst: er faengt eine gestellte nackte
+     Einsetzung -- und laesst die gefuehrten durch. */
+  check('Der Waechter faengt eine gestellte nackte Einsetzung',
+    !guided('it.title') && !guided('t("list.open")') &&
+    !guided('a ? it.title : ""') && !guided('`<b>${it.title}</b>`'),
+    'die nackte Einsetzung faellt nicht auf');
+  check('Und die gefuehrten laesst er durch',
+    guided('esc(it.title)') && guided('tH("list.open")') && guided('Number(it.id)') &&
+    guided('ICON_X') && guided('a ? esc(it.title) : ""') &&
+    guided('`<b>${esc(it.title)}</b>`') && guided('BRAND_LINE()'),
+    'eine gefuehrte Einsetzung faerbt den Waechter');
 }
 
 module.exports = run;

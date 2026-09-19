@@ -2152,6 +2152,21 @@ const entryNeighbours = (id) => {
   };
 };
 
+/* DIE ZWEI KNOEPFE AM FUSS DES EINTRAGS -- kurz auf dem Knopf, vollstaendig
+   im Titel: als Beschriftung lief der zweite am Telefon aus dem Schirm. */
+function entryNav(id) {
+  const nb = entryNeighbours(id);
+  const stepBtn = (target, word, hint, cls, arrow) =>
+    `<button class="btn btn-sm step ${cls}" data-step="${target == null ? '' : Number(target)}"
+      ${target == null ? 'disabled' : ''} title="${esc(t(hint))}">${arrow === 'before'
+        ? `<span class="step-arrow">\u2039</span> ${tH(word)}`
+        : `${tH(word)} <span class="step-arrow">\u203a</span>`}</button>`;
+  return `<div class="entry-nav">
+    ${stepBtn(nb.prev, 'list.prevInList', 'list.prevHint', 'step-prev', 'before')}
+    ${stepBtn(nb.next, 'list.nextInList', 'list.nextHint', 'step-next', 'after')}
+  </div>`;
+}
+
 /* Der Aufbau. DIE BLAETTERPFEILE STANDEN BIS 0.28.0 HIER, links und rechts
    von der Marke -- und genau das war der Fehler. */
 function subhead({ searchBox = true } = {}) {
@@ -2406,7 +2421,7 @@ function drawFilters() {
   const row = (label) => {
     const r = document.createElement('div');
     r.className = 'frow';
-    r.innerHTML = `<span class="eyebrow">${label}</span>`;
+    r.innerHTML = `<span class="eyebrow">${esc(label)}</span>`;
     box.appendChild(r);
     return r;
   };
@@ -2483,7 +2498,7 @@ function drawFilters() {
   state.categories.forEach(c => {
     const b = document.createElement('button');
     b.className = 'pill' + (f.categoryIds.includes(c.id) ? ' on' : '');
-    b.innerHTML = `${esc(c.name)}<span class="n">${c.usage_count}</span>`;
+    b.innerHTML = `${esc(c.name)}<span class="n">${Number(c.usage_count)}</span>`;
     b.onclick = () => switchCategory(c.id);
     g2.appendChild(b);
   });
@@ -2493,7 +2508,7 @@ function drawFilters() {
     const b = document.createElement('button');
     b.className = 'pill pill-sep' + (f.categoryIds.includes(CATEGORY_NONE) ? ' on' : '');
     b.id = 'f-cat-none';
-    b.innerHTML = `${tH('list.without')}<span class="n">${withoutNumber}</span>`;
+    b.innerHTML = `${tH('list.without')}<span class="n">${Number(withoutNumber)}</span>`;
     b.title = t('list.noCategory');
     b.onclick = () => switchCategory(CATEGORY_NONE);
     g2.appendChild(b);
@@ -2665,7 +2680,7 @@ function drawFilters() {
     else groups.push({ name: b.group, bases: [b] });
   }
   sel.innerHTML = groups.map(g => `<optgroup label="${esc(g.name)}">`
-    + g.bases.map(b => `<option value="${b.key}">${esc(b.word())}</option>`).join('')
+    + g.bases.map(b => `<option value="${esc(b.key)}">${esc(b.word())}</option>`).join('')
     + `</optgroup>`).join('');
   let picked = sortParts(f.sort);
   sel.value = picked.base.key;
@@ -2962,6 +2977,9 @@ function card(it) {
   if (it.rejected) badges.push(`<span class="badge badge-rejected">${tH('list.rejectedInline')}</span>`);
   if (it.tested) badges.push(`<span class="badge badge-tested">${esc(V.testedYes)}</span>`);
 
+  const badgeRow = badges.length
+    ? `<div class="card-badges">${badges.join('')}</div>` : '';
+
   const testLine = it.testCount ? `<div class="card-test">
       <span>${it.testCount} ${esc(vTime(it.testCount))}</span>
       <span class="sep">·</span><span>⌀ ${number(it.testAvg, 1)}</span>
@@ -2978,8 +2996,8 @@ function card(it) {
 
   a.innerHTML = `
     <div class="card-img">
-      ${it.mainPhoto ? `<img src="${imageSource(it.mainPhoto, 'thumb')}" alt="" loading="lazy">` : ICON_PH}
-      ${badges.length ? `<div class="card-badges">${badges.join('')}</div>` : ''}
+      ${it.mainPhoto ? `<img src="${esc(imageSource(it.mainPhoto, 'thumb'))}" alt="" loading="lazy">` : ICON_PH}
+      ${badgeRow}
       ${it.favorite ? `<div class="card-pin" title="${esc(t('list.favorite'))}">★</div>` : ''}
       ${isVideo(it.mainPhoto) ? `<div class="card-play" title="${esc(t('list.video'))}">▶</div>` : ''}
       ${inventoryText(it)}
@@ -2996,7 +3014,7 @@ function card(it) {
           ${tileNumber(it)}
           ${it.linkCount ? `<span class="link-count">${tH('list.linkCount', { n: it.linkCount })}</span>` : ''}
         </span>
-        <button class="pick-box${state.compare.has(it.id) ? ' on' : ''}" title="${state.compare.has(it.id) ? t('list.removeCompare') : t('list.selectCompare')}">${ICON_CHECK}</button>
+        <button class="pick-box${state.compare.has(it.id) ? ' on' : ''}" title="${esc(state.compare.has(it.id) ? t('list.removeCompare') : t('list.selectCompare'))}">${ICON_CHECK}</button>
       </div>
     </div>`;
 
@@ -3103,7 +3121,7 @@ function openCreate() {
     // Die Sprungmarken schliessen den Dialog: ein offener Kasten ueber dem
 // Eintrag, zu dem man gerade gesprungen ist, waere im Weg.
     row.innerHTML = t('list.similarTitles') + matched
-      .map(it => `<a href="#/item/${it.id}" data-close>${esc(it.title)}</a>`).join(', ');
+      .map(it => `<a href="#/item/${Number(it.id)}" data-close>${esc(it.title)}</a>`).join(', ');
     row.querySelectorAll('[data-close]').forEach(a => { a.onclick = () => close(); });
   };
   nt.addEventListener('input', drawSimilar);
@@ -3372,7 +3390,7 @@ async function renderCompare() {
       col.className = 'cmp-col';
       /* JE GRUPPE EINE TRENNZEILE MIT DEM WORT UND DER KOPFZAHL DIESES
          KASTENS, darunter seine Kriterienzeilen. */
-      const groups = GROUPS.filter(g => g.names.length).map(g => {
+      const groupRows = GROUPS.filter(g => g.names.length).map(g => {
         const average = averageFrom(it, g);
         const head = `<div class="cmp-group"><span class="cn">${esc(g.word())}</span>
           <span>${average ? '⌀ ' + number(average, 1) : '–'}</span></div>`;
@@ -3392,12 +3410,12 @@ async function renderCompare() {
         <span class="cn">${esc(V.dayMany)}</span>
         <span class="${days && days === bestTest ? 'cmp-best' : ''}">${days || '–'}</span></div>`;
       col.innerHTML = `
-        <div class="cimg">${it.photos[0] ? `<img src="/api/photos/${it.photos[0].id}/raw?size=medium" alt="">` : ''}</div>
+        <div class="cimg">${it.photos[0] ? `<img src="/api/photos/${Number(it.photos[0].id)}/raw?size=medium" alt="">` : ''}</div>
         <div class="cbody">
           ${it.category ? `<div class="card-cat">${esc(it.category.name)}</div>` : ''}
           <h3>${esc(it.title)}</h3>
-          ${groups}${testRow}
-          <div style="margin-top:12px"><a href="#/item/${it.id}" class="btn btn-sm" style="width:100%">${tH('list.open')}</a></div>
+          ${groupRows}${testRow}
+          <div style="margin-top:12px"><a href="#/item/${Number(it.id)}" class="btn btn-sm" style="width:100%">${tH('list.open')}</a></div>
         </div>`;
       cg.appendChild(col);
     });
@@ -3569,7 +3587,7 @@ function openLightbox(photos, startIdx, title, remove, inside) {
     photos.forEach((p, n) => {
       const tile = document.createElement('button');
       tile.className = 'lb-thumb' + (isVideo(p) ? ' is-video' : '');
-      tile.innerHTML = `<img src="${imageSource(p, 'thumb')}" alt="">` +
+      tile.innerHTML = `<img src="${esc(imageSource(p, 'thumb'))}" alt="">` +
         (isVideo(p) ? `<span class="play-badge">▶</span>` : '');
       tile.onclick = () => { i = n; show(); };
       strip.appendChild(tile);
@@ -3786,7 +3804,7 @@ async function renderDetail(id, termAddress) {
             ${/* EIN MITWACHSENDES FELD UND KEIN EINZEILIGES -- Befund 3a der
                  Runde 0.26.0. */''}
             <textarea class="title-in" id="title" rows="1">${esc(item.title)}</textarea>
-            <button class="pin-btn${item.favorite ? ' on' : ''}" id="pin" title="${item.favorite ? t('entry.unmarkFavorite') : t('entry.markFavorite')}">${item.favorite ? '★' : '☆'}</button>
+            <button class="pin-btn${item.favorite ? ' on' : ''}" id="pin" title="${esc(item.favorite ? t('entry.unmarkFavorite') : t('entry.markFavorite'))}">${item.favorite ? '★' : '☆'}</button>
           </div>
           <div class="hint hint-sm author-row" id="iauthor" hidden></div>
           <div class="switches" style="margin-top:10px">
@@ -3913,23 +3931,7 @@ async function renderDetail(id, termAddress) {
          NICHT IN DER KOPFZEILE, und der Grund steht bei subhead(): zwei
          Pfeile links und rechts von der Marke behaupteten, die Marke zu
          blaettern. */''}
-    ${(() => {
-      const nb = entryNeighbours(id);
-      /* KURZ AUF DEM KNOPF, VOLLSTAENDIG IM TITEL -- und das ist ein Befund
-         aus dem Augenschein vom 11. September 2026. „Eins zurueck in der
-         Uebersicht" war als Tooltip an einem Zeichen geschrieben, wo Laenge
-         nichts kostet; als BESCHRIFTUNG lief der zweite Knopf am Telefon aus
-         dem Schirm. */
-      const stepBtn = (target, word, hint, cls, arrow) =>
-        `<button class="btn btn-sm step ${cls}" data-step="${target == null ? '' : target}"
-          ${target == null ? 'disabled' : ''} title="${esc(t(hint))}">${arrow === 'before'
-            ? `<span class="step-arrow">\u2039</span> ${tH(word)}`
-            : `${tH(word)} <span class="step-arrow">\u203a</span>`}</button>`;
-      return `<div class="entry-nav">
-        ${stepBtn(nb.prev, 'list.prevInList', 'list.prevHint', 'step-prev', 'before')}
-        ${stepBtn(nb.next, 'list.nextInList', 'list.nextHint', 'step-next', 'after')}
-      </div>`;
-    })()}
+    ${entryNav(id)}
   </div>`;
   wireSubhead({ term });
 
@@ -3976,19 +3978,21 @@ async function renderDetail(id, termAddress) {
     if (idx < 0) idx = ps.length - 1;
     /* Am Videoplatz steht der Abspieler -- ausser im Ausschnittmodus. */
     const showsVideo = isVideo(ps[idx]) && !cropMode;
+    /* Einmal gerechnet: Schieber und Beschriftung nennen denselben Wert. */
+    const zoomPercent = Math.round(Number(ps[idx].zoom) || 100);
     v.innerHTML = (showsVideo
         ? `<video controls playsinline preload="metadata"
-             poster="/api/photos/${ps[idx].id}/raw?size=medium"
-             src="/api/photos/${ps[idx].id}/raw"></video>`
-        : `<img src="/api/photos/${ps[idx].id}/raw?size=medium" alt="" title="${esc(t('entry.clickFullscreen'))}">`) + `
+             poster="/api/photos/${Number(ps[idx].id)}/raw?size=medium"
+             src="/api/photos/${Number(ps[idx].id)}/raw"></video>`
+        : `<img src="/api/photos/${Number(ps[idx].id)}/raw?size=medium" alt="" title="${esc(t('entry.clickFullscreen'))}">`) + `
       ${idx === 0 ? `<span class="main-flag">${tH('entry.mainImage')}</span>` : ''}
       ${/* EINE REIHE UND NICHT DREI AUSGERECHNETE ABSTAENDE. */''}
       <div class="vtools${cropMode ? ' open' : ''}">
         <button class="vfocus${cropMode ? ' on' : ''}" title="${esc(t('entry.setCrop'))}"
           aria-label="${esc(t('entry.setCrop'))}">${ICON_CROP}</button>
         ${showsVideo ? `<button class="vfull" title="${esc(t('entry.openFullscreen'))}" aria-label="${esc(t('entry.openFullscreen'))}">${ICON_FULLSCREEN}</button>` : ''}
-        <button class="vremove" title="${isVideo(ps[idx]) ? t('list.video') : t('list.photo')} ${esc(t('entry.delete'))}"
-          aria-label="${isVideo(ps[idx]) ? t('list.video') : t('list.photo')} ${esc(t('entry.delete'))}">${ICON_TRASH}</button>
+        <button class="vremove" title="${esc(isVideo(ps[idx]) ? t('list.video') : t('list.photo'))} ${esc(t('entry.delete'))}"
+          aria-label="${esc(isVideo(ps[idx]) ? t('list.video') : t('list.photo'))} ${esc(t('entry.delete'))}">${ICON_TRASH}</button>
       </div>
       ${/* DER SCHIEBER STEHT NUR IM AUSSCHNITTMODUS, und er steht IM
            BETRACHTER und nicht in einer eigenen Bedienflaeche daneben: der
@@ -3996,12 +4000,12 @@ async function renderDetail(id, termAddress) {
       ${cropMode && !showsVideo ? `<div class="vzoom">
         <label for="vzoom-slider">${tH('entry.zoom')}</label>
         <input type="range" id="vzoom-slider" min="100" max="400" step="5"
-          value="${Number(ps[idx].zoom) || 100}" aria-label="${esc(t('entry.cropZoom'))}">
-        <span class="vzoom-value" id="vzoom-value">${Math.round(Number(ps[idx].zoom) || 100)} %</span>
+          value="${Number(zoomPercent)}" aria-label="${esc(t('entry.cropZoom'))}">
+        <span class="vzoom-value" id="vzoom-value">${Number(zoomPercent)} %</span>
       </div>` : ''}
       ${ps.length > 1 ? `<button class="vnav prev" title="${esc(t('list.previous'))}">‹</button>
         <button class="vnav next" title="${esc(t('list.next'))}">›</button>
-        <span class="vcount">${idx + 1} / ${ps.length}</span>` : ''}`;
+        <span class="vcount">${Number(idx + 1)} / ${Number(ps.length)}</span>` : ''}`;
     const image = v.querySelector('img');
     /* DAS VOLLBILD BEKOMMT DENSELBEN PAPIERKORB -- eine Funktion, zwei Rufer. */
     const innerPlayer = () => v.querySelector('video');
@@ -4272,10 +4276,10 @@ async function renderDetail(id, termAddress) {
 // wenn die Dauer bekannt ist, die Laenge daneben.
       const length = isVideo(p) ? durationText(p.duration) : '';
       const word = isVideo(p) ? t('list.video') : t('list.photo');
-      tile.innerHTML = `<img src="${imageSource(p, 'thumb')}" alt="">` +
+      tile.innerHTML = `<img src="${esc(imageSource(p, 'thumb'))}" alt="">` +
         (isVideo(p) ? `<span class="play-badge">▶</span>` : '') +
-        (length ? `<span class="duration">${length}</span>` : '') +
-        `<span class="num">${i + 1}</span><span class="del" title="${esc(t(isVideo(p) ? 'entry.deleteVideo' : 'entry.deletePhoto'))}">${ICON_X}</span>`;
+        (length ? `<span class="duration">${esc(length)}</span>` : '') +
+        `<span class="num">${Number(i + 1)}</span><span class="del" title="${esc(t(isVideo(p) ? 'entry.deleteVideo' : 'entry.deletePhoto'))}">${ICON_X}</span>`;
       tile.querySelector('.del').onclick = async (e) => {
         e.stopPropagation();
         if (!await confirmBox(t('entry.deleteWordAsk', { word: word }), t('entry.deleteHint', { word: word }))) return;
@@ -4664,7 +4668,7 @@ async function renderDetail(id, termAddress) {
   function drawCat() {
     const s = document.getElementById('cat');
     s.innerHTML = `<option value="">${tH('entry.none')}</option>` + cats.map(c =>
-      `<option value="${c.id}"${item.category && item.category.id === c.id ? ' selected' : ''}>${esc(c.name)}</option>`).join('');
+      `<option value="${Number(c.id)}"${item.category && item.category.id === c.id ? ' selected' : ''}>${esc(c.name)}</option>`).join('');
     s.onchange = async () => {
       try { item = await api('PUT', `/api/items/${id}`, { productCategoryId: s.value ? +s.value : null }); toast(t('list.saved')); }
       catch (e) { toast(e.message, true); }
@@ -4723,7 +4727,7 @@ async function renderDetail(id, termAddress) {
     list.forEach(tag => {
       const b = document.createElement('button');
       b.className = 'pill pill-tag' + (assigned.has(tag.id) ? ' on' : '');
-      b.innerHTML = `${esc(tag.name)}<span class="n">${tag.usage_count}</span>`;
+      b.innerHTML = `${esc(tag.name)}<span class="n">${Number(tag.usage_count)}</span>`;
       b.title = assigned.has(tag.id) ? t('entry.removeTag') : t('entry.setTag');
       b.onclick = async () => {
         try {
@@ -4787,8 +4791,8 @@ async function renderDetail(id, termAddress) {
     // Eintrag.
     box.innerHTML = rows.length ? ''
       : `<span class="hint">${ADMIN
-          ? t('entry.noCriteriaHint')
-          : t('entry.noCriteriaYet')}</span>`;
+          ? tH('entry.noCriteriaHint')
+          : tH('entry.noCriteriaYet')}</span>`;
     // Die Kopfzahl neben der Beschriftung: erst je Kriterium ueber alle, dann
     // ueber die Kriterien -- also genau das Mittel der Zahlen, die rechts in
     // den Zeilen stehen.
@@ -5062,7 +5066,7 @@ async function renderDetail(id, termAddress) {
       ${sparkline(item.testDays)}
       <div class="test-scroll" id="tdays"></div>
       <div class="test-add">
-        <input type="date" id="tdate" max="${today()}" value="${today()}">
+        <input type="date" id="tdate" max="${esc(today())}" value="${esc(today())}">
         <span class="hint">${tH('entry.gradeLabel')}</span><span id="tstars"></span>
         <button class="btn btn-sm" id="tadd">${tH('entry.addDay')}</button>
       </div>`;
@@ -5229,12 +5233,12 @@ async function renderDetail(id, termAddress) {
       const bottom = bottomLinks + (showFrom
         ? `<span class="lfrom">(${esc(authorName(l.author))})</span>` : '');
       row.innerHTML = `<span class="grip" title="${esc(t('entry.dragToSort'))}">⣿</span>
-        <span class="lnum">${n + 1}</span>
+        <span class="lnum">${Number(n + 1)}</span>
         <span class="lurl"><span class="dom">${esc(top)}</span>${
           bottom ? `<span class="lbottom">${bottom}</span>` : ''
         }</span>
         <span class="go">${search ? ICON_SEARCH : '↗'}</span>
-        ${mayPath ? `<button class="xdel" title="${search ? t('entry.removeSearch') : t('entry.removeLink')}">${ICON_X}</button>` : ''}`;
+        ${mayPath ? `<button class="xdel" title="${esc(search ? t('entry.removeSearch') : t('entry.removeLink'))}">${ICON_X}</button>` : ''}`;
       /* IN DER LINKLISTE WIRD DIE ADRESSE HERVORGEHOBEN UND NICHT DER
          ANZEIGENAME -- 0.18.0. */
       highlightInNode(row.querySelector('.dom'), top, term);
@@ -5382,10 +5386,10 @@ async function renderDetail(id, termAddress) {
 
       row.innerHTML = `<span class="aicon">${a.preview === 'image' ? '▣' : a.preview === 'pdf' ? '▤' : a.preview === 'keine' ? '▪' : '▥'}</span>
         <span class="aname">${esc(a.filename)}</span>
-        <span class="asize">${filesize(a.size)}</span>
+        <span class="asize">${esc(filesize(a.size))}</span>
         ${showFrom ? `<span class="afrom">(${esc(authorName(a.author))})</span>` : ''}
         <span class="ago">${canPreview ? (open ? '▾' : '▸') : '↓'}</span>
-        <a class="adl" href="/api/attachments/${a.id}/raw" download title="${esc(t('entry.download'))}">↓</a>
+        <a class="adl" href="/api/attachments/${Number(a.id)}/raw" download title="${esc(t('entry.download'))}">↓</a>
         ${mayPath ? `<button class="xdel" title="${esc(t('entry.deleteFile'))}">${ICON_X}</button>` : ''}`;
 
       // Der Behandler nur dort, wo das Kreuz auch steht.
@@ -5417,15 +5421,15 @@ async function renderDetail(id, termAddress) {
     if (a.preview === 'image') {
       // Bilder in einem img-Element: dort wird nichts ausgeführt, und der
 // Server schickt sie mit nosniff und enger Sicherheitsregel.
-      boxId.innerHTML = `<img src="/api/attachments/${a.id}/raw?inline=1" alt="${esc(a.filename)}">`;
+      boxId.innerHTML = `<img src="/api/attachments/${Number(a.id)}/raw?inline=1" alt="${esc(a.filename)}">`;
     } else if (a.preview === 'pdf') {
       // allow-scripts, aber ausdrücklich OHNE allow-same-origin: die
       // eingebauten PDF-Betrachter von Chrome und Edge bestehen selbst aus
       // HTML und JavaScript und bleiben ohne diese Erlaubnis leer.
-      boxId.innerHTML = `<iframe src="/api/attachments/${a.id}/raw?inline=1"
+      boxId.innerHTML = `<iframe src="/api/attachments/${Number(a.id)}/raw?inline=1"
           sandbox="allow-scripts" referrerpolicy="no-referrer" title="${esc(a.filename)}"></iframe>
         <p class="apdf-hint"><span class="hint">${tH('entry.pdfHint')}</span>
-          <a class="abtn" href="/api/attachments/${a.id}/raw?inline=1" target="_blank" rel="noopener noreferrer">${tH('entry.openNewTab')}</a></p>`;
+          <a class="abtn" href="/api/attachments/${Number(a.id)}/raw?inline=1" target="_blank" rel="noopener noreferrer">${tH('entry.openNewTab')}</a></p>`;
     } else {
       boxId.innerHTML = `<p class="hint">${tH('list.loading')}</p>`;
       api('GET', `/api/attachments/${a.id}/preview`).then(v => {
@@ -5509,28 +5513,28 @@ async function renderDetail(id, termAddress) {
           ${manage ? `
             ${/* JEDE MARKE NENNT AUCH DEN RUECKWEG -- 0.22.0: eine gesetzte Marke
                  sagt „aufheben", nicht noch einmal „markieren". */''}
-            <button class="mark pin${c.pinned ? ' on' : ''}" title="${c.pinned ? t('entry.unpin') : t('entry.pinHint')}">${ICON_PIN}</button>
-            <button class="mark kind${report ? ' on' : ''}" title="${report ? t('entry.unmarkReport') : t('entry.markReport')}">${esc(V.reportOne)}</button>
-            <button class="mark task${task ? ' on' : ''}${done ? ' on done' : ''}" title="${
+            <button class="mark pin${c.pinned ? ' on' : ''}" title="${esc(c.pinned ? t('entry.unpin') : t('entry.pinHint'))}">${ICON_PIN}</button>
+            <button class="mark kind${report ? ' on' : ''}" title="${esc(report ? t('entry.unmarkReport') : t('entry.markReport'))}">${esc(V.reportOne)}</button>
+            <button class="mark task${task ? ' on' : ''}${done ? ' on done' : ''}" title="${esc(
               done ? t('entry.unmark')
                        : task ? t('list.setDone')
                                  : t('entry.markTask')
-            }">${esc(done ? V.taskDone : V.taskOne)}</button>
+            )}">${esc(done ? V.taskDone : V.taskOne)}</button>
             ${/* ---- DAS FÄLLIGKEITSDATUM -- 0.29.0, Befund 3 ---- NUR AN
                  EINER AUFGABE, und erst, wenn die Marke steht (F20). */''}
             ` : ''}
             ${/* SEIT 0.30.1 AUCH AN EINER ERLEDIGTEN OHNE DATUM (F19). */''}
             ${manage
               ? (task || done ? `<button class="link-btn cmt-due${
-                  c.dueDate ? ` on due-${dueState}` : ''}"
+                  c.dueDate ? ` on due-${esc(dueState)}` : ''}"
                   title="${esc(t('entry.dueHint'))}">${c.dueDate
                     ? esc(fmtDay(c.dueDate)) : tH('entry.dueSet')}</button>` : '')
-              : `<span class="cmt-due on due-${dueState}"
+              : `<span class="cmt-due on due-${esc(dueState)}"
                   title="${esc(t('entry.dueHint'))}">${esc(fmtDay(c.dueDate))}</span>`}
           </span>` : ''}
           <span class="cmt-when">${multipleUsers()
             ? `<span class="cmt-from">${esc(authorName(c.author))}</span> · ` : ''
-          }${fmtDate(c.created_at)}${c.updated_at ? ` · ${t('entry.edited')}` : ''}${
+          }${esc(fmtDate(c.created_at))}${c.updated_at ? ` · ${tH('entry.edited')}` : ''}${
             c.imagesRemoved ? ` · <span class="cmt-edited">${
               tH('entry.imagesRemovedAdmin', { n: c.imagesRemoved })}</span>` : ''}</span>
           <span class="acts">${mine ? `<button class="mact ed" title="${esc(t('entry.edit'))}">${ICON_PEN}</button>` : ''
@@ -5583,7 +5587,7 @@ async function renderDetail(id, termAddress) {
       (c.images || []).forEach((b, i) => {
         const k = document.createElement('div');
         k.className = 'cmt-img';
-        k.innerHTML = `<img src="/api/comment-images/${b.id}/raw?size=thumb" alt="" loading="lazy">
+        k.innerHTML = `<img src="/api/comment-images/${Number(b.id)}/raw?size=thumb" alt="" loading="lazy">
           ${manage ? `<button class="del" title="${esc(t('entry.deleteImage'))}">${ICON_X}</button>` : ''}`;
         k.querySelector('img').onclick = () =>
           openLightbox((c.images || []).map(x => ({ id: x.id, source: 'comment' })), i, item.title);
@@ -5685,7 +5689,7 @@ async function renderDetail(id, termAddress) {
       const k = document.createElement('div');
       k.className = 'cmt-img';
       const url = URL.createObjectURL(f);
-      k.innerHTML = `<img src="${url}" alt=""><button class="del" title="${esc(t('entry.removeAgain'))}">${ICON_X}</button>`;
+      k.innerHTML = `<img src="${esc(url)}" alt=""><button class="del" title="${esc(t('entry.removeAgain'))}">${ICON_X}</button>`;
       // Die erzeugte Adresse wieder freigeben, sobald das Bild steht.
       k.querySelector('img').onload = () => URL.revokeObjectURL(url);
       k.querySelector('.del').onclick = () => { newImages.splice(i, 1); drawNewImages(); };
@@ -6022,14 +6026,15 @@ async function renderSystem({ keepScroll = false } = {}) {
   const desired = fromAddress;
   const open = visibleOnes.find(a => a.key === desired) || visibleOnes[0];
   const cards = SYS_CARDS.filter(k => k.section === open.key && k.visible(fetched));
+  const cardMarkup = cards.map(k => k.markup(fetched)).join('\n');
 
   app.innerHTML = `<div class="shell">
     ${/* OHNE SUCHFELD, auf jedem Geraet -- 0.28.1. */''}
     ${subhead({ searchBox: false })}
     <h1 class="page-title">${tH('list.settings')}</h1>
     <p class="hint" style="margin:0 0 16px">${ADMIN
-      ? t('card.settingsHintAll')
-      : t('card.settingsHint')}</p>
+      ? tH('card.settingsHintAll')
+      : tH('card.settingsHint')}</p>
     ${/* EIN MARKUP, ZWEI GESTALTEN -- dieselbe Bauform wie das Menue der
          Kopfzeile aus 0.12.0. */''}
     ${/* DER SCHALTER DARUEBER GEHOERT DEM TELEFON -- 0.28.1, und es ist
@@ -6038,11 +6043,11 @@ async function renderSystem({ keepScroll = false } = {}) {
       aria-expanded="false" aria-controls="sys-tabs">${tH('card.sections')}<span class="fcount">${esc(open.name())}</span></button>
     <nav class="sys-tabs" id="sys-tabs" aria-label="${esc(t('card.sectionsHint'))}">
       ${visibleOnes.map(a => `<a class="sys-tab${a === open ? ' on' : ''}"
-        href="${sysUrl(a.key)}"${
+        href="${esc(sysUrl(a.key))}"${
         a === open ? ' aria-current="page"' : ''}>${esc(a.name())}</a>`).join('')}
     </nav>
     <div class="sys-grid">
-      ${cards.map(k => k.markup(fetched)).join('\n')}
+      ${cardMarkup}
     </div></div>`;
   wireSubhead();
 
@@ -7112,7 +7117,7 @@ function drawNameLanguages(boxId, key, rows) {
     /* DER NAME GEHT DURCH esc(), die Zahl ist eine Zahl -- innerHTML ist
        innerHTML, auch wenn beides aus der eigenen Antwort kommt. */
     b.innerHTML = esc(a.name) + (gaps
-      ? `<span class="n">${gaps}</span>`
+      ? `<span class="n">${Number(gaps)}</span>`
       : '<span class="dot" aria-hidden="true">●</span>');
     b.title = gaps ? t('card.languageMissing', { n: gaps }) : t('card.languageComplete');
     b.onclick = () => { NAMES_SHOWN = a.code; renderSystem({ keepScroll: true }); };
@@ -7230,7 +7235,7 @@ function setUpVocabularyOut() {
          dieser Sprache") an einem anderen Bestand. */
       const gaps = vocabularyMissing(a.code);
       b.innerHTML = esc(a.name) + (gaps
-        ? `<span class="n">${gaps}</span>`
+        ? `<span class="n">${Number(gaps)}</span>`
         : '<span class="dot" aria-hidden="true">●</span>');
       b.title = gaps ? t('card.wordsMissing', { n: gaps }) : t('card.languageComplete');
       b.onclick = () => {
@@ -7616,7 +7621,7 @@ function setUpUsersOut() {
   /* WOHER DIE ADRESSE KAM, GEHOERT AN DIE STELLE, AN DER DER LINK ENTSTEHT. */
   const linkOrigin = (d) => d.linkSource === 'einstellung'
     ? `${tH('card.fromServerSetting')} <code>PUBLIC_ADDRESS</code>`
-    : t('card.fromYourBrowser');
+    : tH('card.fromYourBrowser');
 
   /* WAS DER VERSAND GEMACHT HAT, STEHT NEBEN DEM LINK UND NICHT ANSTELLE VON
      IHM. */
@@ -7738,10 +7743,10 @@ function setUpUsersOut() {
              <option value="admin"${z.role === 'admin' ? ' selected' : ''}>${tH('card.admin')}</option>
              <option value="eigentuemer"${z.role === 'owner' ? ' selected' : ''}>${tH('card.owner')}</option>
            </select>` : ''}
-           <button class="mact user-lock-btn" title="${z.status === 'active' ? t('card.lock') : t('card.unlock')}">${
+           <button class="mact user-lock-btn" title="${esc(z.status === 'active' ? t('card.lock') : t('card.unlock'))}">${
              z.status === 'active' ? ICON_LOCK : ICON_CHECK}</button>
-           <button class="mact user-link-btn" title="${z.withoutPassword ? t('card.createInviteLink')
-             : t('card.createResetLink')}">${ICON_LINK}</button>
+           <button class="mact user-link-btn" title="${esc(z.withoutPassword ? t('card.createInviteLink')
+             : t('card.createResetLink'))}">${ICON_LINK}</button>
            <button class="mact user-pass-btn" title="${esc(t('card.presetPassword'))}">${ICON_KEY}</button>
            <button class="mact rm user-x" title="${esc(t('dialog.deleteUser'))}">${ICON_X}</button>`;
         row.appendChild(tool);
@@ -8139,7 +8144,7 @@ function setUpLogOut(fetched) {
       const empty = n === 0 && logGroup !== key;
       b.className = 'pill' + (logGroup === key ? ' on' : '') + (empty ? ' blank' : '');
       b.dataset.group = key;
-      b.innerHTML = `${esc(t(word))}<span class="n">${n}</span>`;
+      b.innerHTML = `${esc(t(word))}<span class="n">${Number(n)}</span>`;
       b.title = LOG_VIEW_HELP[key] ? t(LOG_VIEW_HELP[key]) : '';
       b.onclick = () => logNew(key);
       box.appendChild(b);
@@ -8308,7 +8313,7 @@ function mailDialog(mailStatus) {
             autocapitalize="off" spellcheck="false"></div>
         <div class="field"><label for="mail-port">${tH('card.port')}</label>
           <input class="input" id="mail-port" type="number" min="1" max="65535"
-            value="${mailStatus.port || ''}"></div>
+            value="${esc(mailStatus.port || '')}"></div>
         <div class="field"><label for="mail-secure">${tH('card.encryption')}</label>
           <select class="input" id="mail-secure">
             <option value="starttls"${mailStatus.secure ? '' : ' selected'}>${tH('card.startTls')}</option>
@@ -8753,7 +8758,7 @@ function setUpBackupOut(fetched) {
     }
     /* DIESE KARTE SAGT SEIT 0.20.0 NUR NOCH ETWAS UEBER DIE LETZTE SICHERUNG. */
     const last = d.last;
-    const status = d.error
+    const stateBox = d.error
       ? `<div class="warn-box" style="margin:0 0 12px">${esc(d.error)}</div>`
       : (!d.reachable
         ? `<div class="warn-box" style="margin:0 0 12px">${tH('server.backupDirUnreachable')}</div>`
@@ -8765,7 +8770,7 @@ function setUpBackupOut(fetched) {
 
     /* ZWEI SCHLUESSEL IM UMLAUF — . Wurde der Schlüssel gewechselt, öffnen
        sich die Kopien von vorher nur noch mit dem ALTEN. */
-    const change = !d.changedAt ? '' : (
+    const changeBox = !d.changedAt ? '' : (
       last && last.outdated
         ? `<div class="warn-box" style="margin:0 0 12px"><strong>${tH('card.noBackupForKey')}</strong> ${tH('card.keyChangedOn', { changedAt: fmtDate(d.changedAt) })}
              <strong>${tH('card.backupNowHint')}</strong></div>`
@@ -8789,8 +8794,8 @@ function setUpBackupOut(fetched) {
           autocapitalize="off" spellcheck="false"></div>
       <button class="btn btn-sm" id="backup-dir-save">${tH('dialog.save')}</button>
       <div class="sys-part"></div>
-      ${status}
-      ${change}
+      ${stateBox}
+      ${changeBox}
       <p class="desc" style="margin:0 0 10px">${tMark('card.duringBackupHint', 'card.brieflyOffline', { dbBytes: fmtBytes(d.dbBytes), durationSeconds: d.durationSeconds })}</p>
       <button class="btn btn-accent btn-sm" id="backup-run">${tH('card.backupNow')}</button>`;
 
@@ -8896,7 +8901,7 @@ function setUpCleanupOut(fetched) {
     const matched = Array.isArray(a.matched) ? a.matched : [];
     const oldCount = Number(a.oldCount) || 0;
 
-    const list = !a.reachable
+    const listBox = !a.reachable
       ? `<div class="warn-box" style="margin:0 0 12px">${esc(d.error ||
            t('server.backupDirUnreachable'))}</div>`
       : (all.length
@@ -8906,7 +8911,7 @@ function setUpCleanupOut(fetched) {
 
     /* WAS DIE REGEL JETZT TREFFEN WUERDE -- eine Zeile unter der Liste, und
        in ihr steht die Zahl, die Summe und sonst nichts. */
-    const status = !a.reachable ? '' : (matched.length
+    const stateBox = !a.reachable ? '' : (matched.length
       ? `<p class="desc" style="margin:10px 0 6px">${tMarks('card.deleteFreesHint',
            { word: `<strong>${tH('card.backupsDeleteHint', { n: matched.length })}</strong>` },
            { bytes: fmtBytes(a.bytes || 0) })}</p>`
@@ -8915,7 +8920,7 @@ function setUpCleanupOut(fetched) {
 
     /* DIE KOPIEN VON VOR DEM SCHLUESSELWECHSEL: eigene Zahl, eigene Summe,
        eigener Knopf. */
-    const outdated = !oldCount ? '' : `
+    const outdatedBox = !oldCount ? '' : `
       <div class="sys-part"></div>
       <p class="desc" style="margin:0 0 8px">${tMarks('card.cleanupKeepsHint',
         { word: `<strong>${tH('card.oldKeyBackupsOnly', { n: oldCount })}</strong>` },
@@ -8935,18 +8940,18 @@ function setUpCleanupOut(fetched) {
       <div class="field"><label for="cleanup-keep">${tH('card.keepAtLeast')}</label>
         <p class="desc" style="margin:0 0 6px">${tH('card.keepAtLeastNote', { min: gB.min, max: gB.max })}</p>
         <input class="input" id="cleanup-keep" type="number" inputmode="numeric"
-          min="${gB.min}" max="${gB.max}" step="1" value="${keep}"></div>
+          min="${Number(gB.min)}" max="${Number(gB.max)}" step="1" value="${Number(keep)}"></div>
       <div class="field"><label for="cleanup-days">${tH('card.deleteFromAge')}</label>
         <p class="desc" style="margin:0 0 6px">${tH('card.backupDeleteRule', { keep: keep, min: gT.min, max: gT.max })}</p>
         <input class="input" id="cleanup-days" type="number" inputmode="numeric"
-          min="${gT.min}" max="${gT.max}" step="1" value="${days}"></div>
+          min="${Number(gT.min)}" max="${Number(gT.max)}" step="1" value="${Number(days)}"></div>
       <div class="sys-part"></div>
-      ${list}
-      ${status}
+      ${listBox}
+      ${stateBox}
       <div class="row-in">
         <button class="btn btn-accent btn-sm" id="cleanup-run"${matched.length ? '' : ' disabled'}>${tH('card.deleteNow')}</button>
       </div>
-      ${outdated}`;
+      ${outdatedBox}`;
 
     /* --- Der Schalter. Bei einem Fehlschlag geht die Stellung zurueck --
        sonst zeigte der Bildschirm etwas anderes an, als der Server haelt. */
@@ -9039,8 +9044,8 @@ function setUpCleanupOut(fetched) {
             out.hidden = false;
             /* DREI ANTWORTEN, DREI SAETZE. */
             out.innerHTML = r.ok
-              ? `<span class="probe-ok">${esc(V.entryMany)} ${r.itemCount} · ${
-                   tH('list.photos')} ${r.photoCount} · ${tH('card.checkUsers')} ${r.userCount}${
+              ? `<span class="probe-ok">${esc(V.entryMany)} ${Number(r.itemCount)} · ${
+                   tH('list.photos')} ${Number(r.photoCount)} · ${tH('card.checkUsers')} ${Number(r.userCount)}${
                    r.contentUntil ? ` · ${tH('card.checkUntil')} ${esc(fmtDate(r.contentUntil))}` : ''}</span>`
               : `<span class="probe-no">${
                    r.reason === 'key' ? tH('card.checkKeyWrong') : tH('card.checkForeign')}</span>`;
@@ -9190,7 +9195,7 @@ function setUpExportOut(fetched) {
     }
     /* EIN EINTRAG, DER FUER SICH ALLEIN ZU GROSS IST, WIRD BEIM NAMEN GENANNT
        und nicht stillschweigend uebergangen. */
-    const tooBig = (plan.tooBig || []).length ? `<div class="warn-box" style="margin:10px 0 0">
+    const tooBigBox = (plan.tooBig || []).length ? `<div class="warn-box" style="margin:10px 0 0">
       ${tMarks('card.aloneOverLimit', { word: `<strong>${plan.tooBig.length} ${
         esc(vThing(plan.tooBig.length))} ${plural(plan.tooBig.length,
         tH('card.matches'), tH('card.match'))} ${tH('card.inNoPart')}</strong>` },
@@ -9199,13 +9204,13 @@ function setUpExportOut(fetched) {
         `<li>${esc(z.title)} — ${esc(fmtBytes(z.bytes))}</li>`).join('')}</ul>
       <p style="margin:8px 0 0">${tH('card.withoutVideosHint')}</p></div>` : '';
 
-    boxId.innerHTML = `${tooBig}
+    boxId.innerHTML = `${tooBigBox}
       ${n ? `<p class="desc" style="margin:10px 0 6px">${tMarks('card.eachAtMost', { word: `<strong>${tH('card.partsNumber', { n: n })}</strong>` },
         { targetSize: fmtBytes(plan.targetSize) })} <strong>${tH('card.partIsComplete')}</strong></p>
       <div class="manage-list" id="ex-part-list">${plan.parts.map(part => `
         <div class="mrow">
           <span class="mname">${tH('card.partOf', { part: part.nr, count: part.count })} ${esc(vThing(part.count))}</span>
-          <button class="mact ex-part-load" data-nr="${part.nr}" data-from="${part.from}" data-to="${part.to}"
+          <button class="mact ex-part-load" data-nr="${Number(part.nr)}" data-from="${Number(part.from)}" data-to="${Number(part.to)}"
             disabled>${tH('card.load')}</button>
           <span class="trash-meta">${esc(fmtBytes(part.bytes))}</span>
         </div>`).join('')}</div>
