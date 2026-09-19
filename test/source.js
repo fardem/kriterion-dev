@@ -2663,6 +2663,89 @@ async function run() {
       'der Leser sieht den gestellten Verweis nicht');
   }
 
+  /* ============ Kein Papierverweis geht mit hinaus ========================
+     DER DRITTE WAECHTER DERSELBEN FORM. Der erste zaehlt Versionsnummern, der
+     zweite faengt den Pfad `Doku/`. Durch die Luecke dazwischen -- der NAME
+     eines Papiers ohne Pfad -- standen 187 Verweise und 94 Abkuerzungen in
+     ausgelieferten Dateien.
+     GELESEN WIRD DER ROHE TEXT und nicht die COMMENT-Teile von
+     tools/segments.js: die SQL-Kommentare im SCHEMA-String von db.js stehen
+     in einer Vorlage, und der Segmentierer haelt eine Vorlage fuer Text.
+     `CHANGELOG.md` STEHT NICHT IN DER LISTE, und das ist keine Nachlaessigkeit:
+     ein Aenderungsprotokoll muss die Papiere nennen duerfen, die es
+     fortschreibt. */
+  group('Kein Papierverweis geht mit hinaus');
+  {
+    /* ALLE AUSGELIEFERTEN DATEIEN NACH CLAUDE.md, ABSCHNITT 2. */
+    const pvFiles = [
+      'server.js', 'auth.js', 'db.js', 'mail.js', 'keys.js', 'attachments.js',
+      'images.js', 'batchrun.js', 'log.js', 'usertool.js', 'twofactor.js',
+      'keytool.js', 'public/app.js', 'public/theme.js',
+      'public/style.css', 'public/index.html',
+      'public/languages/de.json', 'public/languages/en.json',
+      'public/languages/tr.json',
+      '.env.example', 'docker-compose.example.yml', 'Dockerfile',
+      'README.md', 'manual-de.md'];
+    /* EIN NAME MIT NUMMER IST EIN VERWEIS, DAS WORT ALLEIN NICHT: „der Befund
+       war" verweist, „ein Bild ohne Befund" nicht. Die Papiernamen, die es nur
+       einmal gibt, zaehlen ohne Nummer. */
+    const PV_FORMS = [
+      ['Befund <Zahl>', /Befund\s+[A-Z]?\d/g],
+      ['Bauabschnitt', /Bauabschnitt/g],
+      ['Auftrag <Zahl>', /Auftrag\s+[0-9A-Z]/g],
+      ['Konzept <Zahl>', /Konzept\s+[0-9A-Z]/g],
+      ['Projektstand', /Projektstand/g],
+      ['Farbkonzept', /Farbkonzept/g],
+      ['Aenderungsprotokoll', /(?:Ä|Ae)nderungsprotokoll/g],
+      ['Fahrplan', /Fahrplan/g],
+      ['Sammelblatt', /Sammelblatt/g],
+      ['Ideentafel', /Ideentafel/g],
+      ['Woerterbuch', /(?:W|w)(?:ö|oe)rterbuch/g],
+      /* DER FUENFZEHNTE NAME STEHT AUF NULL UND GEHOERT TROTZDEM HIEREIN --
+         damit die Null eine Null bleibt. Ausgeschrieben steht er nur im
+         Muster daneben: ein Waechter aelteren Datums zaehlt ihn in
+         Kommentaren, und dieser hier stuende sonst in seinem Bestand. */
+      ['Stolperstein', /Stolper(?:)stein/g],
+      /* UND DIE DREI ABKUERZUNGEN: sie sind dieselbe Verweisform. */
+      ['BA <Zahl>', /\bBA\s+\d/g],
+      ['(F<Zahl>)', /\(F\d+[a-z]?\)/g],
+      ['Punkt <Zahl>', /\bPunkt\s+\d/g]];
+    check('Der Waechter sieht alle vierundzwanzig Dateien, und jede liegt da',
+      pvFiles.length === 24
+      && pvFiles.every(f => fs.existsSync(path.join(__dirname, ...f.split('/')))),
+      pvFiles.filter(f => !fs.existsSync(path.join(__dirname, ...f.split('/')))).join(' ')
+      || `${pvFiles.length} Dateien`);
+    const pvHits = [];
+    for (const f of pvFiles) {
+      const raw = fs.readFileSync(path.join(__dirname, ...f.split('/')), 'utf8');
+      for (const [name, pattern] of PV_FORMS) {
+        pattern.lastIndex = 0;
+        for (const m of raw.matchAll(pattern))
+          pvHits.push(`${f}:${raw.slice(0, m.index).split('\n').length} (${name})`);
+      }
+    }
+    check('Und keine von ihnen nennt ein Papier beim Namen',
+      pvHits.length === 0, pvHits.slice(0, 8).join(' · ') || 'kein Verweis');
+    /* UND DER WAECHTER FAENGT WIRKLICH: fuenfzehn gestellte Verweise, einer je
+       Form, und drei Saetze, die er in Ruhe lassen muss. */
+    const pvSees = (text) => PV_FORMS.some(([, p]) => { p.lastIndex = 0; return p.test(text); });
+    const pvSet = ['/* Der Befund 4 sagt es. */', '/* Bauabschnitt 3. */',
+      '/* Auftrag 0.35.0. */', '/* Konzept 4.6. */', '/* Projektstand 5.3. */',
+      '/* Farbkonzept. */', '/* Aenderungsprotokoll der Runde. */',
+      '/* Der Fahrplan nennt es. */', '/* Sammelblatt, Punkt 42. */',
+      '/* Ideentafel N1. */', '/* Woerterbuch Englisch. */',
+      '/* Stolper' + 'stein 47. */', '/* -- 0.35.0, BA 5 ---- */',
+      '/* Das Zeichen (F5). */', '/* Punkt 4b. */'];
+    check('Der Leser faengt jede der fuenfzehn Formen',
+      pvSet.length === 15 && pvSet.every(pvSees),
+      pvSet.filter(t => !pvSees(t)).join(' · ') || 'alle fuenfzehn');
+    check('Und laesst das blosse Wort, eine Kachel und ein Datum in Ruhe',
+      !pvSees('/* ein Bild ohne Befund, und das ist keiner. */')
+      && !pvSees('/* Der Auftrag des Lesers ist ein anderer. */')
+      && !pvSees('/* Punkt und Komma, 12. September 2026. */'),
+      'der Waechter faerbt sich am blossen Wort');
+  }
+
   /* ====== Der Grund eines Versands reist als Schluessel — 0.35.2, BA 11 ===
      `sendTokenLink()` hat mit 0.32.0 die Sprache des LESERS bekommen; die
      drei Gruende, warum gar nicht erst verschickt wurde, stehen seither in

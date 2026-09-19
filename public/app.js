@@ -8391,8 +8391,8 @@ function geometryRow(g) {
   if (!g.renewed && !g.skipped) return '';
   /* DIE ZAHL DARF IN BEIDE RICHTUNGEN ZEIGEN. */
   const d = g.grown || 0;
-  /* „mehr" UND „weniger" KAMEN AUS DEM QUELLTEXT -- gefunden beim Bau von BA
-     3, derselbe Fund wie das „und" in der Tagwarnung. */
+  /* „mehr" UND „weniger" KAMEN AUS DEM QUELLTEXT und kommen jetzt aus der
+     Sprachdatei -- derselbe Fund wie das „und" in der Tagwarnung. */
   return `<p class="hint hint-sm" style="margin:8px 2px 0" id="thumbs-running">${
     tH('card.thumbsRefreshed', { renewed: g.renewed, checked: g.checked,
       skipped: g.skipped ? t('card.skipped', { skipped: g.skipped }) : '',

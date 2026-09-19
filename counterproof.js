@@ -9114,6 +9114,33 @@ const REGRESSIONS = [
     replacement: "      const naCounts = { total: 1 };",
     expected: 'Bekannte Luecken in den Abhaengigkeiten'
   },
+
+  /* ---- Der Waechter ueber die Papierverweise -- 0.37.0, BA 7 ----
+     DREI RUECKBAUTEN FUER DREI LAGEN: der Name eines Papiers in einem
+     gewoehnlichen Kommentar, eine Abkuerzung, und derselbe Name in einer
+     SQL-Kommentarzeile des SCHEMA-Strings -- die letzte faengt nur ein
+     Waechter, der den ROHEN Text liest. */
+  {
+    nr: '1127', name: 'Ein Kommentar nennt wieder ein Papier beim Namen',
+    file: 'server.js',
+    search: '/* DIE GRENZEN REISEN AM GESUCH MIT: der Fehler-Handler sieht die Route nicht',
+    replacement: '/* DIE GRENZEN REISEN AM GESUCH MIT -- Projektstand 5.3. Der Fehler-Handler sieht die Route nicht',
+    expected: 'Kein Papierverweis geht mit hinaus'
+  },
+  {
+    nr: '1128', name: 'Ein Kommentar nennt wieder eine Bauabschnittsnummer',
+    file: 'public/style.css',
+    search: '/* ---- Die Vergleichsleiste ---- Statt mittig als Pille nimmt sie auf dem',
+    replacement: '/* ---- Die Vergleichsleiste, BA 5 ---- Statt mittig als Pille nimmt sie auf dem',
+    expected: 'Kein Papierverweis geht mit hinaus'
+  },
+  {
+    nr: '1129', name: 'Eine SQL-Kommentarzeile des Schemas nennt wieder ein Papier',
+    file: 'db.js',
+    search: '-- Anhaenge am Eintrag. mime_type ist der vom Browser gemeldete Typ und dient',
+    replacement: '-- Anhaenge am Eintrag (Konzept 4.6). mime_type ist der gemeldete Typ und dient',
+    expected: 'Kein Papierverweis geht mit hinaus'
+  },
 ];
 
 /* ================= Spuren und Versatz ================= Der Versatz je

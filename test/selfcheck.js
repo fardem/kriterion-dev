@@ -22,7 +22,7 @@ async function run() {
   // Die Zahl der Rueckbauten steht ausdruecklich da: eine Zahl in einem
   // Papier ist eine Behauptung, eine Zahl im Pruefstand ist ein Beleg. Wie
   // sie Runde fuer Runde gewachsen ist, steht in den Aenderungsprotokollen.
-  check(`Es sind genau 1062 Rueckbauten`, gpList.length === 1062, `${gpList.length}`);
+  check(`Es sind genau 1065 Rueckbauten`, gpList.length === 1065, `${gpList.length}`);
   const gpTwice = gpList.map(r => r.nr).filter((n, i, a) => a.indexOf(n) !== i);
   check('Und keine Nummer steht zweimal', gpTwice.length === 0, gpTwice.join(' '));
   /* JEDER GREIFT: der Suchtext kommt in seiner Datei GENAU EINMAL vor. */
@@ -405,7 +405,7 @@ async function run() {
       ['test/release_031.js', 419],
       ['test/roundtrip.js', 3237],
       ['test/selfcheck.js', 206],
-      ['test/source.js', 862],
+      ['test/source.js', 884],
       ['test/ui_entry.js', 497],
       ['test/ui_export.js', 453],
       ['test/ui_inventory.js', 241],
@@ -414,7 +414,7 @@ async function run() {
       ['test/ui_style.js', 563],
       ['test/ui_system.js', 692],
       ['test/ui_translator.js', 104],
-      ['counterproof.js', 1575],
+      ['counterproof.js', 1580],
       ['server.js', 1447],
       ['auth.js', 293],
       ['db.js', 128],
@@ -430,7 +430,7 @@ async function run() {
       ['public/app.js', 1761],
       ['public/theme.js', 3],
     ];
-    const COMMENT_TOTAL = { comment: 14706, code: 61278 };
+    const COMMENT_TOTAL = { comment: 14733, code: 61361 };
     check('Der Waechter sieht alle fuenfunddreissig Dateien',
       crAll.each.length === 35 && COMMENT_ROWS.length === 35,
       `${crAll.each.length} gemessen, ${COMMENT_ROWS.length} genannt`);
