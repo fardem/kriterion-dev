@@ -5,7 +5,8 @@ Gebaut am 17. September 2026, auf 0.34.4. MINOR.
 Die Runde ändert am Verhalten der Anwendung nichts — bis auf einen Fehler,
 den sie behebt (Abschnitt 7). Sie nimmt toten Code weg,
 legt doppelte Bauformen zusammen, komprimiert die Auslieferung und kürzt die
-Kommentare des Stilblatts. Grundlage ist `Doku/Auftrag_0.35.0.md`: 101 Befunde
+Kommentare des Stilblatts. Grundlage war `Doku/Auftrag_0.35.0.md` *(weggefallen — es liegt immer nur einer im Repo)*:
+101 Befunde
 von 17 Lesern, 75 halten der Widerlegung stand, 5 davon sind
 Sicherheitsbefunde und gehen nach 0.36.0. Für die Runde blieben **70 Befunde
 an 65 Stellen**.

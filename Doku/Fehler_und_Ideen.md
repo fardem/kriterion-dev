@@ -2703,8 +2703,10 @@ die Größe:** ein Foto über 30 MB gibt „File too large", wieder englisch.
 Schranke der Anfrage. Wer 80 Bilder hat, darf sie haben — nur nicht in einem
 Zug.
 
-**Der ganze Zuschnitt steht in `Doku/Auftrag_0.35.2.md`, BA 4** — samt der
-Tafel der fünf Hochladewege und ihrer Grenzen.
+**Der ganze Zuschnitt stand in `Doku/Auftrag_0.35.2.md`, BA 4** *(weggefallen
+— es liegt immer nur einer im Repo)* — samt der Tafel der fünf Hochladewege
+und ihrer Grenzen. *Gebaut ist er; was daraus geworden ist, steht im
+Änderungsprotokoll 0.35.2.*
 
 **Was es anfasst** — `server.js` *(die benannten Zahlen, der Fehler-Handler)*,
 `public/app.js` *(das Bündeln)*, die drei Sprachdateien *(ein Schlüssel für
