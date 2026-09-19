@@ -85,7 +85,7 @@ CREATE TABLE IF NOT EXISTS items (
   rejected INTEGER NOT NULL DEFAULT 0,
   -- WANN, WARUM UND VON WEM abgelehnt wurde. Die drei gehoeren zu rejected und
   -- ersetzen es NICHT: ein zweites Merkmal "Ergebnis" daneben waeren zwei
-  -- Wahrheiten ueber dieselbe Sache (Stolperstein 47). Das vorhandene Merkmal
+  -- Wahrheiten ueber dieselbe Sache. Das vorhandene Merkmal
   -- bekommt, was ihm fehlt.
   -- ALLE DREI SIND NULLBAR, und zwar nicht aus Bequemlichkeit: eine Ablehnung
   -- aus einer Instanz vor 0.14.0 kennt weder Datum noch Verfasser, und ein
@@ -99,7 +99,7 @@ CREATE TABLE IF NOT EXISTS items (
   -- Entscheidung. Wer beides gleich behandelt, baut die Haelfte umsonst.
   rejected_at TEXT,
   rejected_reason TEXT,
-  -- ON DELETE SET NULL wie an jedem Traeger (Stolperstein 54): ein entfernter
+  -- ON DELETE SET NULL wie an jedem Traeger: ein entfernter
   -- Zugang nimmt die Entscheidung nicht mit, nur seinen Namen davon.
   rejected_by INTEGER REFERENCES users(id) ON DELETE SET NULL,
   tested INTEGER NOT NULL DEFAULT 0,
@@ -155,9 +155,9 @@ CREATE TABLE IF NOT EXISTS photos (
   -- Bis 0.19.4 stand hier: „Schneidet nichts weg ... die beiden Werte
   -- verschieben nur das sichtbare Fenster der quadratischen Vorschau
   -- (object-position)." Der erste Halbsatz galt fuer die DATEI und gilt
-  -- weiter; der zweite beschrieb den Weg, und der ist ein anderer geworden
-  -- (Stolperstein 201). DIE DREI WERTE SIND DAS REZEPT fuer die Kachel --
-  -- deshalb ist der Ausschnitt jederzeit aenderbar.
+  -- weiter; der zweite beschrieb den Weg, und der ist ein anderer geworden.
+  -- DIE DREI WERTE SIND DAS REZEPT fuer die Kachel -- deshalb ist der
+  -- Ausschnitt jederzeit aenderbar.
   focus_x REAL NOT NULL DEFAULT 50,
   focus_y REAL NOT NULL DEFAULT 50,
   -- Der dritte Wert dieser Art heisst zoom und steht GANZ UNTEN, nicht hier.
@@ -179,9 +179,9 @@ CREATE TABLE IF NOT EXISTS photos (
   -- der DDL weiter oben, saehe eine frisch angelegte Instanz anders aus als
   -- eine migrierte -- dieselbe Datenbank in zwei Spaltenreihenfolgen. Das ist
   -- keine Schoenheitsfrage: SELECT * liefert dann zwei verschiedene
-  -- Reihenfolgen, und der Pruefstand haelt genau das fest (Stolperstein 273 --
-  -- gefunden hat es die Zeile, die 0.16.0 dafuer hinterlassen hat, beim
-  -- allerersten Lauf der Migrationsgruppe dieser Runde).
+  -- Reihenfolgen, und der Pruefstand haelt genau das fest. Gefunden hat es
+  -- die Zeile, die 0.16.0 dafuer hinterlassen hat, beim allerersten Lauf der
+  -- Migrationsgruppe dieser Runde.
   -- set_at an ratings steht aus demselben Grund am Ende seiner Tabelle.
   --
   -- DIE VORGABE IST DER HEUTIGE ZUSTAND, wie bei focus_x/focus_y: jede
@@ -586,9 +586,8 @@ CREATE INDEX IF NOT EXISTS idx_tokens_user ON tokens(user_id);
 
    KEIN FREMDSCHLUESSEL: es gibt niemanden, auf den er zeigen koennte.
    KEIN MIGRATIONSBLOCK: anders als eine SPALTE legt
-   CREATE TABLE IF NOT EXISTS eine fehlende TABELLE bei jedem Start an
-   (Stolperstein 13 gilt der Spalte). Es bleibt bei fuenf markierten
-   Bloecken. */
+   CREATE TABLE IF NOT EXISTS eine fehlende TABELLE bei jedem Start an --
+   die Regel gilt der Spalte. Es bleibt bei fuenf markierten Bloecken. */
 CREATE TABLE IF NOT EXISTS requests (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   hash TEXT NOT NULL UNIQUE,
@@ -670,9 +669,8 @@ CREATE TABLE IF NOT EXISTS two_factor_codes (
 CREATE INDEX IF NOT EXISTS idx_two_factor_codes_user ON two_factor_codes(user_id);
 
 /* KEIN MIGRATIONSBLOCK FUER DIE BEIDEN: anders als eine SPALTE legt
-   CREATE TABLE IF NOT EXISTS eine fehlende TABELLE bei jedem Start an
-   (Stolperstein 13 gilt der Spalte). Es bleibt bei FUENF markierten
-   Bloecken. */
+   CREATE TABLE IF NOT EXISTS eine fehlende TABELLE bei jedem Start an --
+   die Regel gilt der Spalte. Es bleibt bei FUENF markierten Bloecken. */
 
 /* DAS SICHERHEITSPROTOKOLL -- ES HAELT FEST, WER ZUGANG HATTE UND WER DIE
    INSTANZ ALS GANZES ANGEFASST HAT.
@@ -754,7 +752,7 @@ CREATE TABLE IF NOT EXISTS user_settings (
 --
 -- KEIN MIGRATIONSBLOCK, und das ist nachgestellt statt geglaubt: anders als
 -- eine Spalte legt CREATE TABLE IF NOT EXISTS eine fehlende TABELLE bei jedem
--- Start an (Stolperstein 13 gilt der Spalte, nicht der Tabelle). Der
+-- Start an -- die Regel gilt der Spalte, nicht der Tabelle. Der
 -- Pruefstand entfernt sie von Hand aus einer bestehenden Instanz, startet
 -- einmal und sieht nach -- dieselbe Probe wie beim Index auf sessions.user_id.
 --

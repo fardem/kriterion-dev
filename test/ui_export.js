@@ -627,7 +627,7 @@ async function run() {
   check('Das Auswahlfeld der Sortierung steht in derselben Zeile',
     !!flRows()[3]?.querySelector('#f-sort'), flRows()[3]?.innerHTML.slice(0, 120));
   check('Und die Ansichten ebenso',
-    !!flRows()[3]?.querySelector('#ansicht-neu'), flRows()[3]?.innerHTML.slice(0, 200));
+    !!flRows()[3]?.querySelector('#view-save'), flRows()[3]?.innerHTML.slice(0, 200));
   /* KEINE AUSGERECHNETE BREITE, an keiner der drei angefassten Stellen. */
   const flRules = ['.frow-right', '.frow > .pills.cloud', '.frow > .eyebrow-with'];
   const flIncludingPx = flRules.filter(r => /:\s*[0-9.]+px/.test(regel123(r).replace(/gap: [0-9]+px|margin-left: [0-9]+px/g, '')));

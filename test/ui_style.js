@@ -54,7 +54,7 @@ async function run() {
 
   /* ---- DIE GRUPPE STEHT IN DER ZEILE „STATUS" UND IST ABGESETZT. */
   const fromRow = fromAll.w.document.querySelector('#filters .frow');
-  const fromGroup = fromAll.w.document.getElementById('f-abgelehnt');
+  const fromGroup = fromAll.w.document.getElementById('f-rejected');
   check('Die Ablehnung steht in derselben Zeile wie der Teststatus',
     !!fromGroup && fromGroup.closest('.frow') === fromRow,
     fromGroup ? 'andere Zeile' : 'die Gruppe fehlt ganz');
@@ -106,7 +106,7 @@ async function run() {
 
   /* ---- EIN KLICK, WIRKLICH ZUGESTELLT. Ein gebauter DOM
      zeigt nicht, was ein Druck tut. ---- */
-  const fromGruppe2 = fromAll.w.document.getElementById('f-abgelehnt');
+  const fromGruppe2 = fromAll.w.document.getElementById('f-rejected');
   const fromPill = [...fromGruppe2.querySelectorAll('.pill')].find(b => b.textContent === 'Abgelehnt');
   fromPill.dispatchEvent(new fromAll.w.MouseEvent('click', { bubbles: true }));
   await new Promise(r => setTimeout(r, 60));
@@ -114,8 +114,8 @@ async function run() {
     equal(fromTitle(fromAll), ['Getestet und abgelehnt', 'Ungetestet und abgelehnt']),
     JSON.stringify(fromTitle(fromAll)));
   check('Und die Pille steht danach gesetzt da',
-    fromAll.w.document.querySelector('#f-abgelehnt .pill.on')?.textContent === 'Abgelehnt',
-    JSON.stringify(fromAll.w.document.querySelector('#f-abgelehnt .pill.on')?.textContent));
+    fromAll.w.document.querySelector('#f-rejected .pill.on')?.textContent === 'Abgelehnt',
+    JSON.stringify(fromAll.w.document.querySelector('#f-rejected .pill.on')?.textContent));
   /* DIE STELLUNG WIRD GESPEICHERT wie jeder andere Filter -- der Server sieht
      `filters` als undurchschautes Objekt, und der neue Schluessel muss
      einfach mitfahren. */
@@ -144,8 +144,8 @@ async function run() {
     equal(fromTitle(fromOld), ['Getestet und abgelehnt', 'Getestet und nicht abgelehnt']),
     JSON.stringify(fromTitle(fromOld)));
   check('Und sie faellt bei der Ablehnung auf „Alle" zurueck',
-    fromOld.w.document.querySelector('#f-abgelehnt .pill.on')?.textContent === 'Alle',
-    JSON.stringify(fromOld.w.document.querySelector('#f-abgelehnt .pill.on')?.textContent));
+    fromOld.w.document.querySelector('#f-rejected .pill.on')?.textContent === 'Alle',
+    JSON.stringify(fromOld.w.document.querySelector('#f-rejected .pill.on')?.textContent));
   check('Der Schalter zaehlt dort nur den Teststatus',
     /· 1 aktiv/.test(fromNumber(fromOld)), fromNumber(fromOld));
   /* UND EIN UNBEKANNTER WERT NIMMT NICHTS WEG. */
@@ -1809,7 +1809,7 @@ async function run() {
      ich den gerade nicht?" -- Er war nicht zu finden, weil es ihn nicht gab. */
   const frTags = [{ id: 41, name: 'Alu', usage_count: 3, test_usage_count: 0 },
                   { id: 42, name: 'Stahl', usage_count: 2, test_usage_count: 0 }];
-  const frButton = (w) => w.document.getElementById('filter-zurueck');
+  const frButton = (w) => w.document.getElementById('filter-reset');
   {
     /* OHNE EINEN EINZIGEN FILTER steht er nicht da -- und die Leiste steht
        trotzdem, sonst belegte die Verneinung nichts. */
@@ -1842,7 +1842,7 @@ async function run() {
        gesucht wurde, und nicht in einer eigenen Zeile darunter. */
     const row = button?.closest('.frow');
     check('Er steht in der Sortierzeile',
-      !!row?.querySelector('#f-sort') && !!row?.querySelector('#ansicht-neu'),
+      !!row?.querySelector('#f-sort') && !!row?.querySelector('#view-save'),
       row ? [...row.querySelectorAll('.eyebrow')].map(e => e.textContent).join('+') : 'in keiner Zeile');
     check('Und rechts in ihr',
       button?.parentElement?.classList.contains('frow-right-wide'),
@@ -2041,15 +2041,15 @@ async function run() {
     check('Die Prueflage ist wirklich gefiltert, bevor sie zuruecksetzt',
       ksTitle(d).length === 0 || ksTitle(d).length < ksAll.length,
       JSON.stringify(ksTitle(d)));
-    const back = d.w.document.getElementById('filter-zurueck');
+    const back = d.w.document.getElementById('filter-reset');
     check('Und der Ruecksetzer steht da, solange etwas gesetzt ist', !!back,
       back ? back.textContent : '(kein Knopf)');
     await ksClickable(d, back);
     check('Nach „Filter zuruecksetzen" stehen wieder alle vier da — keine Sackgasse',
       equal(ksTitle(d), ksAll), JSON.stringify(ksTitle(d)));
     check('Und der Ruecksetzer ist weg, weil wirklich nichts mehr gesetzt ist',
-      !d.w.document.getElementById('filter-zurueck'),
-      d.w.document.getElementById('filter-zurueck')?.textContent || 'weg');
+      !d.w.document.getElementById('filter-reset'),
+      d.w.document.getElementById('filter-reset')?.textContent || 'weg');
     check('Und der Schalter zaehlt keinen einzigen Filter mehr',
       (d.w.document.querySelector('#filter-toggle .fcount')?.textContent || '') === '',
       JSON.stringify(d.w.document.querySelector('#filter-toggle .fcount')?.textContent));
@@ -2063,12 +2063,12 @@ async function run() {
     check('Ein Klick auf „Ungetestet" filtert wirklich',
       equal(ksTitle(d), ['Idee schwach', 'Idee stark']), JSON.stringify(ksTitle(d)));
     check('Und er zaehlt als EIN gesetzter Filter',
-      d.w.document.getElementById('filter-zurueck')?.textContent === 'Filter zurücksetzen (1)',
-      JSON.stringify(d.w.document.getElementById('filter-zurueck')?.textContent));
+      d.w.document.getElementById('filter-reset')?.textContent === 'Filter zurücksetzen (1)',
+      JSON.stringify(d.w.document.getElementById('filter-reset')?.textContent));
     /* GESPEICHERT WIRD DIE GEWAEHLTE STELLUNG. */
     check('Und die Einstellung traegt genau diese Wahl',
       ksSetting(d)?.tested === 'untested', JSON.stringify(ksSetting(d)?.tested));
-    await ksClickable(d, d.w.document.getElementById('filter-zurueck'));
+    await ksClickable(d, d.w.document.getElementById('filter-reset'));
     check('Zuruecksetzen holt „Alle" zurueck', equal(ksTitle(d), ksAll), JSON.stringify(ksTitle(d)));
     d.w.close();
   }

@@ -22,7 +22,7 @@ async function run() {
   // Die Zahl der Rueckbauten steht ausdruecklich da: eine Zahl in einem
   // Papier ist eine Behauptung, eine Zahl im Pruefstand ist ein Beleg. Wie
   // sie Runde fuer Runde gewachsen ist, steht in den Aenderungsprotokollen.
-  check(`Es sind genau 1046 Rueckbauten`, gpList.length === 1046, `${gpList.length}`);
+  check(`Es sind genau 1051 Rueckbauten`, gpList.length === 1051, `${gpList.length}`);
   const gpTwice = gpList.map(r => r.nr).filter((n, i, a) => a.indexOf(n) !== i);
   check('Und keine Nummer steht zweimal', gpTwice.length === 0, gpTwice.join(' '));
   /* JEDER GREIFT: der Suchtext kommt in seiner Datei GENAU EINMAL vor. */
@@ -66,6 +66,48 @@ async function run() {
   const gpWithoutExpected = gpList.filter(r => !r.expected || !r.name);
   check('Und jeder nennt Name und erwartete Gruppe',
     gpWithoutExpected.length === 0, gpWithoutExpected.map(r => r.nr).join(' '));
+
+  /* ---- JEDER RUECKBAU LAESST EINE LADBARE DATEI ZURUECK — 0.35.2, BA 7 ----
+     Gegenprobe 330 setzte `${tMark(…, 'entry.grade',` auf `${tH(…, { word: '',`
+     und liess die schliessende Klammer des alten Rufs stehen. public/app.js
+     liess sich danach nicht mehr laden, und der Treiber meldete ABGERISSEN
+     statt ROT. EIN RUECKBAU, DER DIE DATEI ZERBRICHT, BELEGT NICHTS: er zeigt
+     nicht, dass die Pruefung greift, sondern nur, dass kaputter Code kaputt
+     ist. Gemessen wird hier, nicht von Hand.
+     KOMPILIERT UND NICHT AUSGEFUEHRT: `new vm.Script` uebersetzt den Text und
+     laeuft ihn nicht. Der Rumpf steht dabei in derselben Huelle, in die Node
+     ein Modul stellt -- sonst waere `return` auf oberster Ebene ein Fehler,
+     und counterproof.js traegt eines. Die Zeile mit `#!` faellt davor weg:
+     Node nimmt sie heraus, vm.Script nicht. */
+  const vm = require('vm');
+  const gpShell = (text) =>
+    '(function (exports, require, module, __filename, __dirname) {'
+    + text.replace(/^#![^\n]*/, '') + '\n});';
+  const gpTorn = [];
+  let gpCompiled = 0;
+  for (const r of gpList) {
+    if (r.replacement === undefined || !r.file.endsWith('.js')) continue;
+    const src = fs.readFileSync(path.join(__dirname, ...r.file.split('/')), 'utf8');
+    /* Ein Suchtext, der nicht trifft, wird weiter oben gemeldet -- hier
+       waere er ein zweites Mal dieselbe Meldung. */
+    if (!src.includes(r.search)) continue;
+    gpCompiled++;
+    try { new vm.Script(gpShell(src.replace(r.search, r.replacement)), { filename: r.file }); }
+    catch (e) { gpTorn.push(`${r.nr} (${r.file}): ${e.message}`); }
+  }
+  check('Der Waechter uebersetzt jeden Rueckbau an einer .js-Datei',
+    gpCompiled > 700, `${gpCompiled} von ${gpList.length} Rueckbauten`);
+  check('Und jeder laesst eine Datei zurueck, die sich uebersetzen laesst',
+    gpTorn.length === 0, gpTorn.slice(0, 6).join(' · ') || 'keine abgerissen');
+  /* UND DER WAECHTER FAENGT DEN FALL, DEN ER MEINT: eine Klammer, die stehen
+     bleibt. Gestellt und nachgemessen -- ohne diese Zeile waere die darueber
+     auch dann gruen, wenn gar nichts mehr uebersetzt wuerde. */
+  const gpBroken = 'const a = f(1,\n  2);'.replace('f(1,', 'g(1, { x: 1,');
+  let gpCaught = false;
+  try { new vm.Script(gpShell(gpBroken), { filename: 'gestellt.js' }); }
+  catch { gpCaught = true; }
+  check('Und er faengt einen Rueckbau, der die Klammer stehen laesst',
+    gpCaught, 'der Waechter sieht den gestellten Abriss nicht');
 
   /* ---- DIE MELDUNG „STUMM" MUSS EINEN STUMMEN RUECKBAU AUCH SEHEN KOENNEN. */
   const gpRead = require('./counterproof').readRun;
@@ -328,10 +370,10 @@ async function run() {
         && !rpBuiltIn.has(n) && !(n in globalThis));
     if (miss.length) rpStrange.push(`${r.nr} ${r.file}: ${miss.join(' ')}`);
   }
-  /* 27 WURDEN 28 MIT 0.35.2: der Routenwaechter bekommt eine Gegenprobe auf
-     seine eigene Ausnahmeliste. */
+  /* 27 WURDEN 29 MIT 0.35.2: der Routenwaechter und die Gestaltprobe
+     bekommen je eine Gegenprobe auf ihren eigenen Leser. */
   check('Der Waechter sieht die Rueckbauten auf Pruefstandsdateien',
-    rpChecked === 28, `${rpChecked} Rueckbauten`);
+    rpChecked === 29, `${rpChecked} Rueckbauten`);
   check('Und jeder ihrer Namen steht in der Zieldatei, im Rahmen oder im Suchtext',
     rpStrange.length === 0, rpStrange.slice(0, 6).join(' · '));
 
@@ -360,8 +402,8 @@ async function run() {
       ['test/release_030.js', 241],
       ['test/release_031.js', 405],
       ['test/roundtrip.js', 3215],
-      ['test/selfcheck.js', 176],
-      ['test/source.js', 829],
+      ['test/selfcheck.js', 195],
+      ['test/source.js', 850],
       ['test/ui_entry.js', 497],
       ['test/ui_export.js', 453],
       ['test/ui_inventory.js', 241],
@@ -370,7 +412,7 @@ async function run() {
       ['test/ui_style.js', 562],
       ['test/ui_system.js', 692],
       ['test/ui_translator.js', 104],
-      ['counterproof.js', 1546],
+      ['counterproof.js', 1566],
       ['server.js', 1518],
       ['auth.js', 274],
       ['db.js', 272],
@@ -386,7 +428,7 @@ async function run() {
       ['public/app.js', 1856],
       ['public/theme.js', 3],
     ];
-    const COMMENT_TOTAL = { comment: 14863, code: 60976 };
+    const COMMENT_TOTAL = { comment: 14923, code: 61055 };
     check('Der Waechter sieht alle fuenfunddreissig Dateien',
       crAll.each.length === 35 && COMMENT_ROWS.length === 35,
       `${crAll.each.length} gemessen, ${COMMENT_ROWS.length} genannt`);
@@ -734,15 +776,17 @@ async function run() {
        jede Verneinung darunter wahr. */
     check('Der Teillauf laeuft ueberhaupt',
       /Pruefungen bestanden/.test(driverText), JSON.stringify(driverText.slice(0, 160)));
-    /* Das Modul hat seine fuenf Zahlen gemeldet -- die sechste Pruefung ist
-       die des Treibers. Die Meldung nennt die Zahlen und NICHT den Satz, in dem
+    /* Das Modul hat seine sieben Zahlen gemeldet -- die achte Pruefung ist
+       die des Treibers. Fuenf und sechs waren es bis 0.35.2; die Gruppe hat
+       zwei Pruefungen dazubekommen, seit sie das Stilblatt und die
+       SQL-Kommentare des Schemas mitliest. Die Meldung nennt die Zahlen und NICHT den Satz, in dem
        sie stehen: counterproof.js liest `\d+ von \d+ Pruefungen bestanden` als
        Gesamtzahl des Laufs und nimmt den ersten Treffer. Stuende der Satz hier,
        traege jeder Gegenprobebericht, in dem diese Pruefung rot wird, die Zahl
        des Teillaufs statt die des Laufs. */
     const driverScore = driverText.match(/(\d+) von (\d+) Pruefungen bestanden/);
     check('Das Modul meldet seine Zahlen noch',
-      driverScore && driverScore[1] === '5' && driverScore[2] === '6',
+      driverScore && driverScore[1] === '7' && driverScore[2] === '8',
       `bestanden ${driverScore ? driverScore[1] : '—'} von ${driverScore ? driverScore[2] : '—'}`);
     check('Und der Treiber nennt den Rueckgabewert beim Wert',
       /Das Modul source meldet keinen Fehler, endete aber mit Rueckgabewert 9/.test(driverText),

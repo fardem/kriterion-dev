@@ -372,7 +372,7 @@ async function check0300() {
       germanWordsIn(" gewichtet").length === 1,
       'die Wache sieht das Wort nicht');
     check('Und an einer Kennung faerbt sie sich nicht',
-      isName('f-abgelehnt') && isName('#/offen') && isName('kategorie') && !isName('Die Marke ist weg'),
+      isName('f-rejected') && isName('#/offen') && isName('kategorie') && !isName('Die Marke ist weg'),
       'das Sieb ueber die Kennungen greift nicht');
     check('Und an einem Bruchstueck mitten in einer Marke ebenso wenig',
       insideMark('" alt="') && insideMark('/raw?size=medium" alt="" title="') &&
@@ -878,7 +878,7 @@ async function check0302() {
     ];
     const vZu = buildDom(JSDOMv, { tags: vTags });
     await new Promise(r => setTimeout(r, 120));
-    const vRow = () => vZu.w.document.getElementById('f-tagzeile');
+    const vRow = () => vZu.w.document.getElementById('f-tagrow');
     check('Zugeklappt und ohne Auswahl ist der Umschalter verborgen',
       !!vRow() && !vRow().classList.contains('tags-live'),
       vRow() ? vRow().className : '(keine Zeile)');
@@ -901,7 +901,7 @@ async function check0302() {
     /* UND AUFGEKLAPPT STEHT ER IMMER DA. */
     const vOpen = buildDom(JSDOMv, { tags: vTags });
     await new Promise(r => setTimeout(r, 120));
-    const vOpenRow = () => vOpen.w.document.getElementById('f-tagzeile');
+    const vOpenRow = () => vOpen.w.document.getElementById('f-tagrow');
     vOpen.w.limitCloud = () => true;
     vOpenRow()?.querySelector('.pill-tag')?.click();
     await new Promise(r => setTimeout(r, 120));
@@ -994,7 +994,7 @@ async function check0303() {
     const wDom = buildDom(JSDOMw, { tags: wTags });
     await wait();
     const w = wDom.w;
-    const wRow = () => w.document.getElementById('f-tagzeile');
+    const wRow = () => w.document.getElementById('f-tagrow');
     let wCalls = [];
     const wRealLimit = w.limitCloud;
     w.limitCloud = (box, rows) => { wCalls.push(rows); return wRealLimit(box, rows); };
@@ -1008,7 +1008,7 @@ async function check0303() {
        Zeile getauscht -- jsdom wertet den schmalen Abschnitt nicht aus. */
     const wRealStyle = w.getComputedStyle.bind(w);
     w.getComputedStyle = (el, ...rest) =>
-      (el && el.id === 'f-tagzeile') ? { display: 'grid' } : wRealStyle(el, ...rest);
+      (el && el.id === 'f-tagrow') ? { display: 'grid' } : wRealStyle(el, ...rest);
     wCalls = [];
     wRow()?.querySelector('.pill-tag.on')?.click();
     await wait();

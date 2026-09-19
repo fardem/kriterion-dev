@@ -1627,7 +1627,7 @@ async function run() {
   /* ================= Gelöschte Zugänge im eigenen Fenster — 0.13.0 ====
      REINE OBERFLÄCHE, Vorbild ist der Dialog "Wer hat bewertet". */
   {
-    const zwButton = () => ziCard(ziEig)?.querySelector('#zug-weg-auf');
+    const zwButton = () => ziCard(ziEig)?.querySelector('#deleted-users');
     check('An der Karte steht ein Knopf zu den geloeschten Zugaengen', !!zwButton(),
       ziCard(ziEig)?.querySelector('#user-remove-row')?.innerHTML);
     check('Und er nennt ihre Zahl', /\(1\)/.test(zwButton()?.textContent || ''),
@@ -1669,7 +1669,7 @@ async function run() {
     check('Der Aufbau steht: eine Instanz ohne Grabstein zeigt ihre Zeile',
       ziRows(d).length === 1, `${ziRows(d).length} Zeilen`);
     check('Und dann steht der Knopf gar nicht erst da',
-      !ziCard(d)?.querySelector('#zug-weg-auf'),
+      !ziCard(d)?.querySelector('#deleted-users'),
       ziCard(d)?.querySelector('#user-remove-row')?.innerHTML);
     d.w.close();
   }

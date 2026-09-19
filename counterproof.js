@@ -2693,10 +2693,17 @@ const REGRESSIONS = [
      Durchschnittsspalte der Liste dahinter, die es bei einem einzigen Zugang
      nicht gibt. */
   {
+    /* DER SUCHTEXT NIMMT DEN GANZEN RUF MIT, und der Ersatz schliesst seine
+       Klammer selbst. Bis dahin blieb die schliessende Klammer des alten Rufs
+       stehen, die Datei liess sich nicht mehr laden, und der Treiber meldete
+       ABGERISSEN statt ROT. Ein Rueckbau, der die Datei zerbricht, belegt
+       nicht, dass die Pruefung greift -- nur, dass kaputter Code kaputt ist. */
     nr: '330', name: 'Der Erklaerkasten verweist wieder auf die Spalte dahinter',
     file: 'public/app.js',
-    search: "${tMark('entry.calcStepsHint', 'entry.grade',",
-    replacement: "${tH('entry.calcStepsHint', { word: '',",
+    search: "${tMark('entry.calcStepsHint', 'entry.grade',\n"
+          + "          { extra: withWeight ? t('entry.calcWithWeight') : t('entry.calcAllEqual') })}",
+    replacement: "${tH('entry.calcStepsHint', { word: '',\n"
+               + "          extra: withWeight ? t('entry.calcWithWeight') : t('entry.calcAllEqual') })}",
     expected: 'Die Rechnung hinter der Kopfzahl'
   },
   /* DIESELBE FRAGE WIE AN DER KRITERIENLISTE, EINE ANSICHT WEITER: passen die
@@ -8971,6 +8978,57 @@ const REGRESSIONS = [
     search: "   Die Werte sind gemessen. Latte: kein Wert unterschreitet, was das",
     replacement: "   Die Werte stehen einzeln in Doku/Farbkonzept_0_23_0.md. Latte: kein Wert unterschreitet, was das",
     expected: 'Kein Verweis auf Doku/ geht mit hinaus — 0.35.2'
+  },
+  /* ---- Jeder Rueckbau laesst eine ladbare Datei zurueck -- 0.35.2, BA 7 ---- */
+  {
+    /* Gegenprobe 330 steht wieder in der Form, die public/app.js zerbricht:
+       der Suchtext nimmt den Ruf nicht mit, und die schliessende Klammer
+       bleibt stehen. Der Waechter muss das sehen. */
+    nr: '1111', name: 'Ein Rueckbau laesst die Klammer wieder stehen',
+    file: 'counterproof.js',
+    search: "    search: \"${tMark('entry.calcStepsHint', 'entry.grade',\\n\"\n"
+          + "          + \"          { extra: withWeight ? t('entry.calcWithWeight') : t('entry.calcAllEqual') })}\",",
+    replacement: "    search: \"${tMark('entry.calcStepsHint', 'entry.grade',\",",
+    expected: 'Die Gegenproben greifen'
+  },
+  /* ---- Deutsch ist keine id -- 0.35.2, BA 8 ---- */
+  {
+    /* Eine id, die das Skript selbst setzt, heisst wieder deutsch. Sie steht
+       in keiner Stilblattregel und in keinem `id="…"` -- vor 0.35.2 hat die
+       Gestaltprobe genau das nicht gesehen. */
+    nr: '1112', name: 'Eine gesetzte id heisst wieder deutsch',
+    file: 'public/app.js',
+    search: "    b.id = 'f-cat-none';",
+    replacement: "    b.id = 'f-kat-ohne';",
+    expected: 'Der Quelltext spricht Englisch — die sechs Waechter'
+  },
+  {
+    /* Und die dritte Quelle faellt wieder weg: der Waechter saehe die elf
+       gesetzten id dann gar nicht mehr. */
+    nr: '1113', name: 'Die Gestaltprobe liest die gesetzten id nicht mehr',
+    file: 'test/source.js',
+    search: "    for (const m of appSource.matchAll(/\\.id = ['\"]([\\w-]+)['\"]/g)) shapes.add('#' + m[1]);",
+    replacement: "",
+    expected: 'Der Quelltext spricht Englisch — die sechs Waechter'
+  },
+  /* ---- Die zwei Loecher des Nummernwaechters -- 0.35.2, BA 9 ---- */
+  {
+    /* Das Stilblatt nennt wieder eine Nummer. Vor 0.35.2 stand es in keiner
+       Dateiliste dieses Waechters. */
+    nr: '1114', name: 'Das Stilblatt nennt wieder eine solche Nummer',
+    file: 'public/style.css',
+    search: "   kommt aus DERSELBEN Bedingung wie die Zelle. */",
+    replacement: "   kommt aus DERSELBEN Bedingung wie die Zelle (Stolper" + "stein 47). */",
+    expected: 'Kein Stolpersteinverweis mehr — 0.34.3'
+  },
+  {
+    /* Und eine SQL-Kommentarzeile des Schematexts ebenso: sie steht in einer
+       Vorlage, und der Segmentierer haelt eine Vorlage fuer Text. */
+    nr: '1115', name: 'Eine SQL-Zeile des Schemas nennt wieder eine Nummer',
+    file: 'db.js',
+    search: "  -- ON DELETE SET NULL wie an jedem Traeger: ein entfernter",
+    replacement: "  -- ON DELETE SET NULL wie an jedem Traeger (Stolper" + "stein 54): ein entfernter",
+    expected: 'Kein Stolpersteinverweis mehr — 0.34.3'
   },
 ];
 

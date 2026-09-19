@@ -1248,12 +1248,27 @@ async function run() {
       for (const m of text.matchAll(/\bclass=["']([^"'${}]+)["']/g))
         for (const one of m[1].split(/\s+/)) if (/^[a-zA-Z][\w-]*$/.test(one)) shapes.add('.' + one);
     }
+    /* DIE DRITTE QUELLE — 0.35.2, BA 8. Bis dahin las dieser Waechter zwei:
+       den Aufbau (`id="…"`) und das Stilblatt. Eine id, die das Skript mit
+       `element.id = '…'` setzt und die in keiner Stilblattregel vorkommt,
+       stand in keiner von beiden -- der Waechter sagte „deutsch ist keine id"
+       und meinte „keine id, die ich sehe". Sechs deutsche sind so
+       durchgekommen. */
+    for (const m of appSource.matchAll(/\.id = ['"]([\w-]+)['"]/g)) shapes.add('#' + m[1]);
     const germanShapes = [...shapes].filter(s => isGerman(s.replace(/^(--|[.#])/, ''))).sort();
     const SHAPE_FALSE_FRIENDS = ['#calc-same-note', '.login-alt', '.rej-note'];
     check('Gestaltprobe: deutsch ist keine id, keine Klasse, keine Variable',
       equal(germanShapes, SHAPE_FALSE_FRIENDS), germanShapes.join(' '));
     check('Und der Waechter sieht wirklich die ganze Gestalt',
       shapes.size > 600, `${shapes.size} Gestaltnamen`);
+    /* UND DIE DRITTE QUELLE TRAEGT WIRKLICH -- 0.35.2, BA 8. Ohne diese
+       Zeile waere die Gestaltprobe auch dann gruen, wenn ihr Leser die
+       `.id = '…'` gar nicht mehr ansaehe: `f-cat-none` steht in keiner
+       Stilblattregel und in keinem `id="…"`. */
+    const setIds = [...appSource.matchAll(/\.id = ['"]([\w-]+)['"]/g)].map(m => '#' + m[1]);
+    check('Und die elf id, die das Skript selbst setzt, stehen alle in der Gestaltliste',
+      setIds.length === 11 && setIds.every(n => shapes.has(n)),
+      setIds.filter(n => !shapes.has(n)).join(' ') || `${setIds.length} gesetzte id`);
 
     /* ---- 5. */
     /* DIE WERTE VON DAMALS STEHEN ALS DATEI DA und werden nicht aus git
@@ -2046,40 +2061,64 @@ async function run() {
      der Runde, die sie getroffen hat. */
   group('Kein Stolpersteinverweis mehr — 0.34.3');
   {
+    /* `public/style.css` KOMMT MIT 0.35.2 DAZU. Es stand in keiner Dateiliste
+       dieses Waechters, und dahinter standen acht Verweise. */
     const SHIPPED = ['server.js', 'auth.js', 'db.js', 'mail.js', 'keys.js', 'attachments.js',
       'images.js', 'batchrun.js', 'log.js', 'usertool.js', 'twofactor.js', 'keytool.js',
-      'public/app.js', 'public/theme.js'];
+      'public/app.js', 'public/theme.js', 'public/style.css'];
     const BENCH = [...benchFiles(), 'counterproof.js'];
     const readShipped = (f) => fs.readFileSync(path.join(__dirname, ...f.split('/')), 'utf8');
     const stWord = 'Stolper' + 'stein';
     const stAll = [...BENCH, ...SHIPPED];
-    check('Der Waechter sieht alle fuenfunddreissig Dateien',
-      stAll.length === 35, `${stAll.length} Dateien`);
+    check('Der Waechter sieht alle sechsunddreissig Dateien',
+      stAll.length === 36, `${stAll.length} Dateien`);
+    /* DAS ZWEITE LOCH — 0.35.2. Der Schematext von db.js steht als Vorlage im
+       Quelltext, und seine Zeilen beginnen mit `--`. Der Segmentierer haelt
+       eine Vorlage fuer Text, und Text sieht dieser Waechter nicht an --
+       dahinter standen sieben Verweise. Eine SQL-Kommentarzeile IST ein
+       Kommentar, und hier wird sie als einer gelesen. */
+    const stSqlRow = /^\s*--/;
     let stRows = 0;
     const stHits = [];
     for (const f of stAll)
       for (const part of segment(readShipped(f), f)) {
-        if (part.kind !== COMMENT) continue;
-        stRows += part.value.split('\n').length;
-        for (const m of part.value.matchAll(new RegExp(`[^\n]*${stWord}[^\n]*`, 'gi')))
-          stHits.push(`${f}: ${m[0].trim().slice(0, 60)}`);
+        const rows = part.kind === COMMENT
+          ? part.value.split('\n')
+          : part.kind === TEXT ? part.value.split('\n').filter(z => stSqlRow.test(z)) : [];
+        if (!rows.length) continue;
+        stRows += rows.length;
+        for (const row of rows)
+          if (new RegExp(stWord, 'i').test(row)) stHits.push(`${f}: ${row.trim().slice(0, 60)}`);
       }
     /* Ein Leser, der nichts findet, macht jede Verneinung darauf wahr. */
     check('Und er liest wirklich Kommentarzeilen',
       stRows > 10000, `${stRows} Zeilen`);
     check('Kein Kommentar nennt mehr einen Stolperstein — 1061 waren es vor 0.34.1',
       stHits.length === 0, stHits.slice(0, 8).join(' · '));
+    /* UND DIE BEIDEN NEUEN QUELLEN TRAGEN WIRKLICH -- ohne diese Zeile waere
+       der Waechter auch dann gruen, wenn er sie gar nicht mehr ansaehe. */
+    check('Und er liest das Stilblatt und die SQL-Kommentare des Schemas',
+      stAll.includes('public/style.css')
+      && segment(readShipped('db.js'), 'db.js')
+           .some(q => q.kind === TEXT && q.value.split('\n').some(z => stSqlRow.test(z))),
+      'eine der beiden Quellen fehlt');
+    check('Und der Leser wuerde einen Verweis in einer SQL-Zeile melden',
+      stSqlRow.test(`  -- wie in 0.19.1 (${stWord} 81)`)
+      && !stSqlRow.test(`  focus_x REAL NOT NULL DEFAULT 50,`),
+      'der Leser sieht die gestellte SQL-Zeile nicht');
     check('Der Leser wuerde einen Verweis melden',
       new RegExp(stWord, 'i').test(`/* Wie in 0.19.1 (${stWord} 81). */`),
       'der Leser sieht den gestellten Text nicht');
-    /* DIE EINE STELLE, DIE BLEIBT, UND SIE IST KEIN KOMMENTAR: der
-       Gegenprobentreiber nennt die Nummer in seiner Meldung an den Wirt. Sie
-       zu aendern hiesse, Code zu aendern. */
+    /* DIE STELLEN, DIE BLEIBEN, UND KEINE VON IHNEN IST EIN KOMMENTAR: der
+       Gegenprobentreiber nennt das Wort in seiner Meldung an den Wirt, und
+       zwei Rueckbauten nennen den Namen der Gruppe, die sie rot machen
+       sollen. Sie zu aendern hiesse, Code zu aendern. Eine 1 wurde mit 0.35.2
+       eine 3. */
     const stText = segment(readShipped('counterproof.js'), 'counterproof.js')
       .filter(q => q.kind !== COMMENT)
       .reduce((n, q) => n + (q.value.match(new RegExp(stWord, 'gi')) || []).length, 0);
-    check('Ausserhalb der Kommentare steht die Nummer noch genau einmal',
-      stText === 1, `${stText} Vorkommen in counterproof.js`);
+    check('Ausserhalb der Kommentare steht das Wort noch genau dreimal',
+      stText === 3, `${stText} Vorkommen in counterproof.js`);
   }
 
   /* ================= Keine Versionsnummer als Herkunft ====================

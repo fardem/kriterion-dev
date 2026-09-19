@@ -2441,7 +2441,7 @@ function drawFilters() {
      ZEILE. */
   secondLabel(r1, t('list.rejection'));
   const g1b = document.createElement('div');
-  g1b.className = 'pills'; g1b.id = 'f-abgelehnt';
+  g1b.className = 'pills'; g1b.id = 'f-rejected';
   [['all',t('list.all')],['ja',t('list.rejected')],['nein',t('list.notRejected')]].forEach(([v,l]) => {
     const b = document.createElement('button');
     b.className = 'pill' + (f.rejected === v ? ' on' : '');
@@ -2478,7 +2478,7 @@ function drawFilters() {
   if (withoutNumber || f.categoryIds.includes(CATEGORY_NONE)) {
     const b = document.createElement('button');
     b.className = 'pill pill-sep' + (f.categoryIds.includes(CATEGORY_NONE) ? ' on' : '');
-    b.id = 'f-kat-ohne';
+    b.id = 'f-cat-none';
     b.innerHTML = `${tH('list.without')}<span class="n">${withoutNumber}</span>`;
     b.title = t('list.noCategory');
     b.onclick = () => switchCategory(CATEGORY_NONE);
@@ -2501,7 +2501,7 @@ function drawFilters() {
     /* GIBT ES NICHTS ZU FILTERN, IST DIE ZEILE GANZ WEG und nicht bloss
        verborgen: eine leere Zeile im Fluss kostete genau den Platz, um den es
        in diesem Befund geht. */
-    r3.id = 'f-tagzeile';
+    r3.id = 'f-tagrow';
     /* `frow-tags` SAGT DEM RASTER, DASS DIES DIE TAGZEILE IST -- 0.30.0 (F9). */
     r3.classList.add('frow-tags');
 
@@ -2720,7 +2720,7 @@ function drawFilters() {
        (13.9.2026): „Ansicht speichern wirkt wie ein auswahl eines
        gespeicherten ansicht. */
     bNew.className = 'link-btn' + (VIEWS.length ? ' link-btn-sep' : '');
-    bNew.id = 'ansicht-neu';
+    bNew.id = 'view-save';
     bNew.textContent = t('list.saveView');
     bNew.title = t('list.saveViewHint');
     bNew.onclick = saveView;
@@ -2743,7 +2743,7 @@ function drawFilters() {
     right5.className = 'frow-right frow-right-wide';
     const bBack = document.createElement('button');
     bBack.className = 'link-btn';
-    bBack.id = 'filter-zurueck';
+    bBack.id = 'filter-reset';
     bBack.textContent = t('list.resetFilters', { filtersSet: filtersSet });
     bBack.title = t('list.resetFiltersHint');
     bBack.onclick = () => {
@@ -7812,7 +7812,7 @@ function setUpUsersOut() {
     const n = userTombstones.length;
     const b = row.ownerDocument.createElement('button');
     b.className = 'btn btn-ghost btn-sm';
-    b.id = 'zug-weg-auf';
+    b.id = 'deleted-users';
     b.textContent = t('card.deletedUsersCount', { n: n });
     b.title = t('card.showDeletedUsers');
     b.onclick = showTombstones;
