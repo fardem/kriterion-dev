@@ -75,7 +75,7 @@ Schreibt nichts. Meldet, was hinausginge:
 ```
   Version        0.35.1
   Ausgangszweig  main
-  Fingerprint    10017d45   (ueber 18 Dateien)
+  Fingerprint    0fc33e91   (ueber 19 Dateien)
   Hinaus gehen   67 Dateien, 1.234.567 Bytes
   Weggelassen    Doku, CLAUDE.md, tools/dictionary-doc.js, tools/publish.js
   Zweig publish  neu — der erste Commit hat KEINEN Elternteil
@@ -93,7 +93,7 @@ zu belegen, dass eine Datei dort den Fingerprint nicht berührt.
 
 **Der Fingerprint muss der der Version sein.** Er steht im Änderungsprotokoll
 der Runde und — für den, der drüben nachsieht — im Eintrag der Version im
-`CHANGELOG.md`. Weicht er ab, ist eine der achtzehn Dateien nicht die
+`CHANGELOG.md`. Weicht er ab, ist eine der neunzehn Dateien nicht die
 erwartete.
 
 ### Schritt 3 — den Zweig herstellen
@@ -185,7 +185,7 @@ anderer und gehört in beide Papiere.
 | | |
 |---|---|
 | **Abbruch „der Arbeitsbaum ist nicht sauber"** | committen oder wegräumen, dann erneut |
-| **Der Fingerprint stimmt nicht** | eine der achtzehn Dateien weicht ab. Die Einzelprüfsummen stehen in der README, Abschnitt über den Fingerprint |
+| **Der Fingerprint stimmt nicht** | eine der neunzehn Dateien weicht ab. Die Einzelprüfsummen stehen in der README, Abschnitt über den Fingerprint |
 | **Verweise auf `Doku/` gehen mit** | beheben, bevor gepusht wird — sonst steht im öffentlichen Repository ein Pfad, den es dort nicht gibt |
 | **Zu viel gepusht** | der Push lässt sich nicht zurücknehmen. Das öffentliche Repository löschen und neu anlegen; die Prüfsummen bleiben sonst über die GitHub-Schnittstelle erreichbar |
 | **Der Zweig `publish` ist verkorkst** | `git branch -D publish` und Schritt 3 erneut. Ist schon gepusht worden, gilt die Zeile darüber |

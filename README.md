@@ -328,7 +328,7 @@ steckt im Image.
 
 **Das geht auch ohne Shell.** Unter dem Fingerprint steht in der Karte
 „Kennzahlen" ein Verweis **„Dateien zeigen"**; er klappt dieselbe Liste auf —
-Name und Prüfsumme, achtzehn Zeilen, dieselben acht Zeichen wie oben.
+Name und Prüfsumme, neunzehn Zeilen, dieselben acht Zeichen wie oben.
 
 Solange niemand auf den Verweis drückt, steht dort nichts. Der Sollwert steht
 im Änderungsprotokoll, verglichen wird mit dem Auge.
@@ -756,9 +756,8 @@ aufbewahrt.
 
 **Der JSON-Export** ist der Austauschweg: unabhängig von Datenbankformat und
 Schlüssel, dafür unvollständig (Sitzungen, Einstellungen und die Blockanordnung
-fehlen) und mit der ganzen Datei im Arbeitsspeicher. Es lässt sich auch ein
-einzelner Eintrag als Datei ziehen: der Knopf steht am Fuß des Eintrags und
-nur beim Betreiber.
+fehlen) und mit der ganzen Datei im Arbeitsspeicher. Er schreibt den ganzen
+Bestand oder, wenn die Datei zu groß würde, einen Teil davon.
 
 > **Und daran hat die eine Datei ihre Grenze.** Sie ist ein einziger Text, und
 > länger als **512 MB** kann ein Text in Node nicht werden — Fotos und Videos
