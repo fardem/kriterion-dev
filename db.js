@@ -511,6 +511,18 @@ CREATE TABLE IF NOT EXISTS sessions (
 -- und legt sich bei jedem Start selbst nach, in frischer wie bestehender Instanz.
 CREATE INDEX IF NOT EXISTS idx_sessions_user ON sessions(user_id);
 
+-- Die Bremse gegen Durchprobieren. Eine eigene Tabelle und keine Spalte an
+-- users: gezaehlt wird je IP und je Name, und eine IP hat keinen Zugang.
+-- who traegt seine Art mit, 'ip:…' oder 'name:…'; until nur bei der IP.
+CREATE TABLE IF NOT EXISTS login_attempts (
+  who TEXT PRIMARY KEY,
+  tries INTEGER NOT NULL DEFAULT 0,
+  until TEXT,
+  seen_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+-- seen_at traegt den letzten Versuch; daran raeumt cleanupAttempts() auf.
+CREATE INDEX IF NOT EXISTS idx_login_attempts_seen ON login_attempts(seen_at);
+
 /* EIN MECHANISMUS, ZWEI ANLAESSE -- Einladung und Ruecksetzung. Beide enden
    im selben Vorgang: jemand setzt sein Passwort selbst, ueber einen Link mit
    begrenzter Haltbarkeit.

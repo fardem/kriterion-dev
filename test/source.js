@@ -24,149 +24,9 @@ async function run() {
   const fSource = fs.readFileSync(path.join(__dirname, 'server.js'), 'utf8');
   const CORE_WORDS = ['mayChange(', 'selfOnly(', 'entryFree(', 'isAdmin(',
     'isOwner(', 'targetUserFree(', 'mayCreate('];
-  const F_ROUTES = [
-    ['POST',   '/api/setup',                     'offen'],
-    ['POST',   '/api/login',                     'offen'],
-    ['POST',   '/api/logout',                    'offen'],
-    /* Der Token, 0.8.80 -- die vierte und fuenfte offene schreibende Route. */
-    ['POST',   '/api/token/check',             'offen'],
-    ['POST',   '/api/token/redeem',           'offen'],
-    /* Die Selbstanmeldung, 0.9.1 -- die sechste und siebte offene schreibende
-       Route. */
-    ['POST',   '/api/signup',             'offen'],
-    ['POST',   '/api/signup/confirm', 'offen'],
-    /* Der zweite Schritt der Anmeldung, 0.10.0 -- die ACHTE offene
-       schreibende Route. */
-    ['POST',   '/api/login/second',                'offen'],
-    ['PUT',    '/api/account',                   'selbstbezug'],
-    /* Meine Sitzungen, 0.8.80. 'selbstbezug' wie PUT /api/account, und aus
-       demselben Grund: die Klemme ist nicht eine Rollenfrage im Rumpf,
-       sondern die Bauform -- user_id kommt aus req.user und nie aus der
-       Adresse. */
-    ['DELETE', '/api/sessions',                  'selbstbezug'],
-    ['DELETE', '/api/sessions/:sessionId',      'selbstbezug'],
-    /* Die Freigabe fuer die schweren Wege, 0.8.90. 'selbstbezug' wie PUT
-       /api/account: der Benutzer kommt aus req.user und nie aus der Adresse
-       -- wer bestaetigt, bestaetigt fuer sich. */
-    ['POST',   '/api/confirm',              'selbstbezug'],
-    /* Der zweite Faktor, 0.10.0 -- VIER Routen, alle 'selbstbezug'. */
-    ['POST',   '/api/two-factor/start',          'selbstbezug'],
-    ['POST',   '/api/two-factor/on',             'selbstbezug'],
-    ['POST',   '/api/two-factor/codes',          'selbstbezug'],
-    ['DELETE', '/api/two-factor',                'selbstbezug'],
-    /* ANLEGEN BRAUCHT KEINE ZWEITE BESTAETIGUNG, und das ist entschieden und
-       nicht vergessen: es erzeugt einen NEUEN Zugang und nimmt niemandem
-       etwas. */
-    ['POST',   '/api/users',                     'adminOnly, im Rumpf'],
-    /* Der Link fuer einen vorhandenen Zugang. */
-    ['POST',   '/api/users/:id/token',           'adminOnly, im Rumpf, zweitbestaetigt'],
-    /* Zwei der drei Rechteklassen dieser Route liegen hinter der zweiten
-       Bestaetigung -- Rolle und fremdes Passwort. */
-    ['PUT',    '/api/users/:id',                 'adminOnly, im Rumpf, zweitbestaetigt'],
-    ['DELETE', '/api/users/:id',                 'adminOnly, im Rumpf, zweitbestaetigt'],
-    /* Der Mailzugang, 0.9.0. */
-    ['PUT',    '/api/mail',                      'ownerOnly, zweitbestaetigt'],
-    /* Die Testmail. nurEigentuemer wie das Setzen daneben -- wer den Zugang
-       nicht sehen darf, testet ihn auch nicht. */
-    ['POST',   '/api/mail/test',                 'ownerOnly'],
-    /* Die Selbstanmeldung hinter der Anmeldung, 0.9.1 -- drei Routen, alle
-       beim ADMIN und nicht beim Eigentuemer: aus einer Anfrage wird nie etwas
-       anderes als ein Zugang mit der Rolle 'user', und den legt der Admin
-       ohnehin an. */
-    ['PUT',    '/api/signup/toggle',    'adminOnly'],
-    ['POST',   '/api/requests/:id/approve',         'adminOnly'],
-    ['DELETE', '/api/requests/:id',              'adminOnly'],
-    ['PUT',    '/api/titles',                    'adminOnly'],
-    ['PUT',    '/api/settings',                  'im Rumpf'],
-    ['POST',   '/api/criteria',                  'adminOnly'],
-    ['PUT',    '/api/criteria/order',            'adminOnly'],
-    ['PUT',    '/api/criteria/:id',              'adminOnly'],
-    ['DELETE', '/api/criteria/:id',              'adminOnly'],
-    // Zuweisen darf jeder, einen NEUEN Namen anlegen haengt am Schalter --
-// deshalb im Rumpf und hinter dem Nachschlagen, nicht vor der Route.
-    ['POST',   '/api/product-categories',        'im Rumpf'],
-    ['PUT',    '/api/product-categories/:id',    'adminOnly'],
-    ['DELETE', '/api/product-categories/:id',    'adminOnly'],
-    /* DER EINE GRIFF FUER DIE UNBEKANNTE ERSTELLUNGSSPRACHE -- 0.25.0 (F2). */
-    ['PUT',    '/api/names/language',            'adminOnly'],
-    /* DER WEG, EINEN TAG FUER SICH ANZULEGEN -- 0.24.4 (B7). */
-    ['POST',   '/api/tags',                      'im Rumpf'],
-    ['PUT',    '/api/tags/:id',                  'adminOnly'],
-    ['DELETE', '/api/tags/:id',                  'adminOnly'],
-    ['POST',   '/api/items/:id/tags',            'entryAuthorOnly, im Rumpf'],
-    ['DELETE', '/api/items/:id/tags/:tagId',     'entryAuthorOnly'],
-    ['POST',   '/api/items',                     'offen'],
-    ['PUT',    '/api/items/:id',                 'im Rumpf'],
-    ['DELETE', '/api/items/:id',                 'entryAuthorOnly'],
-    ['POST',   '/api/items/:id/photos',          'entryAuthorOnly'],
-    // Eigene Route statt der erweiterten Fotoroute: deren fileFilter auf
-// ^image\/ zu lockern naehme die erste Schranke dem Fotoweg mit ab.
-    ['POST',   '/api/items/:id/videos',          'entryAuthorOnly'],
-    ['PUT',    '/api/photos/:id/focus',          'im Rumpf'],
-    // Hochladen darf jeder -- umgestellt mit 0.8.31, aus demselben Grund wie
-// beim Link: eine Datei erscheint nur dort, wo man sie hinsetzt.
-    ['POST',   '/api/items/:id/attachments',     'offen'],
-    ['DELETE', '/api/attachments/:id',           'im Rumpf'],
-    ['PUT',    '/api/items/:id/photo-order',     'entryAuthorOnly'],
-    ['DELETE', '/api/photos/:id',                'im Rumpf'],
-    // Eintragen darf jeder -- wie Kommentar, Testtag und Bewertung. Umgestellt
-// mit 0.8.30: ein Link erscheint nur dort, wo man ihn hinsetzt.
-    ['POST',   '/api/items/:id/links',           'offen'],
-    ['PUT',    '/api/items/:id/link-order',      'entryAuthorOnly'],
-    ['DELETE', '/api/links/:id',                 'im Rumpf'],
-    ['POST',   '/api/items/:id/test-days',       'offen'],
-    ['PUT',    '/api/test-days/:id',             'im Rumpf'],
-    ['DELETE', '/api/test-days/:id',             'im Rumpf'],
-    ['POST',   '/api/test-days/:id/tags',        'im Rumpf'],
-    ['DELETE', '/api/test-days/:id/tags/:tagId', 'im Rumpf'],
-    ['PUT',    '/api/items/:id/ratings',         'offen'],
-    /* DELETE /api/items/:id/ratings STEHT HIER NICHT MEHR -- 0.21.0. */
-    // Die einzige Bewertungsroute MIT Klemme -- hier steht eine fremde Nummer
-// in der Adresse, die eine darueber trifft baulich nur die eigene Zeile.
-    ['DELETE', '/api/ratings/:id',               'im Rumpf'],
-    ['POST',   '/api/items/:id/comments',        'offen'],
-    ['PUT',    '/api/comments/:id',              'im Rumpf'],
-    ['POST',   '/api/comments/:id/images',       'im Rumpf'],
-    ['DELETE', '/api/comment-images/:id',        'im Rumpf'],
-    ['DELETE', '/api/comments/:id',              'im Rumpf'],
-    ['POST',   '/api/import',                    'ownerOnly, zweitbestaetigt'],
-    /* Der Papierkorb, 0.8.70. SEHEN darf ihn der Admin (lesend, deshalb steht
-       GET /api/trash hier nicht) -- HANDELN nur der Eigentuemer:
-       Wiederherstellen legt Zeilen unter FREMDEM Namen an, genau wie der
-       Import, und liegt damit in derselben Rechtezeile. */
-    ['POST',   '/api/trash/:id/restore', 'ownerOnly'],
-    ['DELETE', '/api/trash/:id',            'ownerOnly'],
-    /* Die Sicherung, 0.8.70. Beide beim Eigentuemer, dieselbe Zeile wie
-       Export und Import -- alles, was die Instanz als Ganzes betrifft. */
-    ['PUT',    '/api/backup/dir',             'ownerOnly'],
-    ['POST',   '/api/backup',                 'ownerOnly'],
-    /* Die Bildumstellung, 0.19.0 -- die siebzigste. */
-    ['POST',   '/api/images/convert',          'ownerOnly, zweitbestaetigt'],
-    /* Das Aufraeumen alter Sicherungen, 0.20.0 -- die einundsiebzigste. */
-    ['POST',   '/api/backup/cleanup',      'ownerOnly, zweitbestaetigt'],
-    /* Die Sicherungsprobe, 0.29.0 -- die DREIUNDSIEBZIGSTE. */
-    ['POST',   '/api/backup/check',            'ownerOnly']
-  ];
-
-  function writingRoutes(text) {
-    const rows = text.split('\n');
-    const outcome = [];
-    for (let i = 0; i < rows.length; i++) {
-      const z = rows[i];
-      let method = null, rest = '';
-      for (const [prefix, m] of [["app.post('", 'POST'], ["app.put('", 'PUT'], ["app.delete('", 'DELETE']]) {
-        if (z.startsWith(prefix)) { method = m; rest = z.slice(prefix.length); }
-      }
-      if (!method) continue;
-      const filePath = rest.slice(0, rest.indexOf("'"));
-      const head = rest.slice(rest.indexOf("'") + 1);
-      let core = '';
-      for (let j = i + 1; j < rows.length && !rows[j].startsWith('app.'); j++) core += rows[j] + '\n';
-      outcome.push({ key: `${method} ${filePath}`, head, core });
-    }
-    return outcome;
-  }
-
+  /* DIE LISTE STEHT IN frame.js -- der Waechter ueber die laufende Instanz
+     liest dieselbe. */
+  const { F_ROUTES, writingRoutes } = H;
   const fFound = writingRoutes(fSource);
   const fExpected = new Map(F_ROUTES.map(([m, p, kind]) => [`${m} ${p}`, kind]));
   const fUnknown = fFound.filter(r => !fExpected.has(r.key)).map(r => r.key);
@@ -233,6 +93,29 @@ async function run() {
     fAuth.CONFIRM_PURPOSES[7] === 'images', fAuth.CONFIRM_PURPOSES.join(' '));
   check('Und der neunte heisst sicherung',
     fAuth.CONFIRM_PURPOSES[8] === 'backup', fAuth.CONFIRM_PURPOSES.join(' '));
+
+  /* ---- DIE AUSNAHMEN DES SCHUTZES GEGEN FREMDE FORMULARE ----
+     IN BEIDE RICHTUNGEN GESCHLOSSEN, wie die Liste des Routenwaechters:
+     eine Ausnahme fuer eine Route hinter der Anmeldung faerbt den Lauf rot. */
+  const fGuardLine = "app.use('/api', auth.requireAuth);";
+  const fBoundary = fSource.indexOf(fGuardLine);
+  check('Die Grenze der Anmeldung steht im Quelltext', fBoundary > 0,
+    `${fGuardLine} nicht gefunden`);
+  const fFreeBlock = fSource.slice(fSource.indexOf('const CSRF_FREE = ['),
+                                   fSource.indexOf('const CSRF_FREE_SET'));
+  const fFree = [...fFreeBlock.matchAll(/'([A-Z]+) (\/api\/[\w\/.:-]*)'/g)]
+    .map(m => `${m[1]} ${m[2]}`);
+  /* WELCHE ROUTEN VOR DER ANMELDUNG STEHEN, sagt die Stelle im Quelltext und
+     keine zweite Liste daneben. */
+  const fOpenRoutes = writingRoutes(fSource.slice(0, fBoundary)).map(r => r.key);
+  check('Es sind genau acht offene schreibende Routen',
+    fOpenRoutes.length === 8, `${fOpenRoutes.length}: ${fOpenRoutes.join(' · ')}`);
+  check('Jede von ihnen steht in der Ausnahmeliste',
+    fOpenRoutes.every(k => fFree.includes(k)),
+    fOpenRoutes.filter(k => !fFree.includes(k)).join(' · '));
+  check('Und keine Ausnahme nennt eine Route hinter der Anmeldung',
+    fFree.every(k => fOpenRoutes.includes(k)),
+    fFree.filter(k => !fOpenRoutes.includes(k)).join(' · '));
 
   const GUARD_WORDS = ['adminOnly', 'ownerOnly', 'entryAuthorOnly'];
   const SECOND_WORD = 'secondConfirm';
@@ -1207,8 +1090,10 @@ async function run() {
        (`server.uploadCap`, `server.uploadSize`, `server.videoOne`,
        `server.importOne`), und zwei fallen mit dem Einzelexport
        (`entry.exportOne`, `server.entryTooBig`). */
-    check('Und die Zahlen stehen: 1302 Schluessel, 88 Mehrzahlformen, 15 Vokabelnamen',
-      languageKeys.length === 1302 && pluralKeys.length === 88 && vocabularyKeys.length === 15,
+    /* UND SEIT 0.36.0 EINER MEHR: `server.deniedOrigin` ist die Absage an
+       eine schreibende Anfrage ohne Token gegen fremde Formulare. */
+    check('Und die Zahlen stehen: 1303 Schluessel, 88 Mehrzahlformen, 15 Vokabelnamen',
+      languageKeys.length === 1303 && pluralKeys.length === 88 && vocabularyKeys.length === 15,
       `${languageKeys.length} / ${pluralKeys.length} / ${vocabularyKeys.length}`);
 
     /* ---- 3. */
@@ -1413,6 +1298,9 @@ async function run() {
        Bildschirm stand „Unexpected field". */
     const WORDING_NEW_0352 = ['server.uploadCap', 'server.uploadSize',
       'server.videoOne', 'server.importOne'];
+    /* UND EINER MIT 0.36.0: die Absage an eine schreibende Anfrage ohne
+       Token gegen fremde Formulare. */
+    const WORDING_NEW_0360 = ['server.deniedOrigin'];
     /* UND ACHT SCHLUESSEL FALLEN MIT 0.32.1 -- sechs von ihnen gab es schon
        bei der Abnahme, zwei sind erst in 0.32.0 entstanden und schon wieder
        weg. */
@@ -1434,7 +1322,8 @@ async function run() {
       ...WORDING_NEW_0280, ...WORDING_NEW_0281, ...WORDING_NEW_0290,
       ...WORDING_NEW_0300, ...WORDING_NEW_0311, ...WORDING_NEW_0314,
       ...WORDING_NEW_0320, ...WORDING_NEW_0321, ...WORDING_NEW_0330,
-      ...WORDING_NEW_0350, ...WORDING_NEW_0351, ...WORDING_NEW_0352]
+      ...WORDING_NEW_0350, ...WORDING_NEW_0351, ...WORDING_NEW_0352,
+      ...WORDING_NEW_0360]
       .filter(k => !WORDING_GONE_0321.includes(k) && !WORDING_GONE_0330.includes(k)
                 && !WORDING_GONE_0352.includes(k));
     const wordingMissing = WORDING_NEW.filter(k => LANGUAGE_FILE[k] === undefined);
@@ -3012,12 +2901,13 @@ async function run() {
     }
     check('Keine der sechs Dateien schreibt den Namen noch selbst',
       zpLoose.length === 0, zpLoose.join(' · ') || 'alle ueber log.js');
-    /* UND ES SIND WIRKLICH EINUNDFUENFZIG ZEILEN -- ein Waechter, der auf
-       einer leeren Menge laeuft, ist gruen und belegt nichts. */
+    /* UND ES SIND WIRKLICH ZWEIUNDFUENFZIG ZEILEN -- ein Waechter, der auf
+       einer leeren Menge laeuft, ist gruen und belegt nichts. Die
+       zweiundfuenfzigste sagt, wie viele Anmeldeversuche geraeumt wurden. */
     const zpCount = zpFiles.reduce((n, f) =>
       n + (zpRead(f).match(/\blog(?:Line|Warn|Fail)\(/g) || []).length, 0);
-    check('Und es sind 51 Protokollzeilen in den sechs Dateien',
-      zpCount === 51, `${zpCount} Zeilen`);
+    check('Und es sind 52 Protokollzeilen in den sechs Dateien',
+      zpCount === 52, `${zpCount} Zeilen`);
     /* DIE BEISPIELDATEI SETZT TZ. Ohne sie laeuft der Container auf UTC, und
        der Versatz waere immer +00:00. */
     const zpCompose = fs.readFileSync(

@@ -1222,6 +1222,7 @@
   "server.deniedCategoryNew": "Yeni kategorileri yalnızca yönetici oluşturur. Var olanlar seçilmeye devam edebilir.",
   "server.deniedConfirm": "Bunun için parolan gerekli — bir kez daha onayla.",
   "server.deniedEntry": "Bunu yalnızca oluşturan değiştirebilir — ya da yönetici.",
+  "server.deniedOrigin": "İstek reddedildi. Sayfayı yeniden yükleyip bir daha dene.",
   "server.deniedOwner": "Bunu yalnızca bu kurulumun sahibi yapabilir.",
   "server.deniedOwnUser": "Kendi hesabını “Hesabım” altında değiştirirsin, burada değil.",
   "server.deniedRole": "Rolleri yalnızca bu kurulumun sahibi verir.",

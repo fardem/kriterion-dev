@@ -66,6 +66,13 @@ const COOKIE_NAME = 'kriterion_session';
 const COOKIE_SECURE = `__Host-${COOKIE_NAME}`;
 const cookieName = (req) => viaProxy(req) ? COOKIE_SECURE : COOKIE_NAME;
 
+/* Der Token gegen fremde Formulare, in denselben zwei Formen. Er reist OHNE
+   HttpOnly: das Skript muss ihn lesen koennen, um ihn mitzuschicken. */
+const CSRF_NAME = 'kriterion_csrf';
+const CSRF_SECURE = `__Host-${CSRF_NAME}`;
+const csrfName = (req) => viaProxy(req) ? CSRF_SECURE : CSRF_NAME;
+const CSRF_HEADER = 'x-csrf-token';
+
 /* Die oeffentliche Adresse -- hier steht nur, welcher Wert gilt. Alles ab ?
    und # sowie Zugangsdaten werden abgewiesen, ein Pfad ist erlaubt. */
 /* Das Feld heisst `problem` und nicht wie die Absage einer Route: der Satz
@@ -435,20 +442,48 @@ if (process.env.AUTH_USER || process.env.AUTH_PASSWORD) {
 
 // --- Bremse gegen Durchprobieren ---------------------------------------
 // Ohne Sperre laesst sich ein Passwort beliebig oft raten.
-const attempts = new Map(); // 'ip:…' | 'name:…' -> { count, until }
+// Die Zaehler liegen in login_attempts und nicht im Arbeitsspeicher: ein
+// Neustart setzte sonst jede Sperre auf null.
 const SOFT_LIMIT = 5;    // ab hier verzoegerte Antwort
 const HARD_LIMIT = 10;   // ab hier gesperrt -- NUR bei der IP
-const BLOCK_MS = 5 * 60 * 1000;
+const BLOCK_SECONDS = 5 * 60;
+// Wie lange eine Zeile ohne neuen Versuch stehen bleibt.
+const ATTEMPT_KEEP_MINUTES = 60;
 
 const keyIp = (ip) => `ip:${ip}`;
 const keyName = (name) =>
   `name:${String(name || '').trim().toLocaleLowerCase(comparisonLocale())}`;
+
+/* `blocked` rechnet SQLite aus: zwei Uhren -- die der Datenbank und die des
+   Prozesses -- waeren zwei Wahrheiten darueber, wann eine Sperre endet. */
+const qAttempt = db.prepare(
+  `SELECT tries, until, (until IS NOT NULL AND until > datetime('now')) AS blocked,
+          CAST(ROUND((julianday(until) - julianday('now')) * 86400) AS INTEGER) AS lefts
+     FROM login_attempts WHERE who = ?`);
+const bumpAttempt = db.prepare(
+  `INSERT INTO login_attempts (who, tries) VALUES (?, 1)
+     ON CONFLICT(who) DO UPDATE SET tries = tries + 1, seen_at = datetime('now')`);
+const blockAttempt = db.prepare(
+  `UPDATE login_attempts SET until = datetime('now', ?) WHERE who = ?`);
+const delAttempt = db.prepare('DELETE FROM login_attempts WHERE who = ?');
 
 // Dieselbe Kurve fuer beide Zaehler: eine zweite Rechnung daneben waere eine
 // zweite Wahrheit darueber, wie stark gebremst wird.
 function delay(count) {
   const over = Math.max(0, count - SOFT_LIMIT + 1);
   return over > 0 ? Math.min(over * 700, 4000) : 0;
+}
+
+/* Eine Funktion, zwei Aufrufstellen: beim Start und stuendlich. Eine laufende
+   Sperre bleibt stehen, auch wenn ihre Zeile alt ist. */
+const delAttemptsOld = db.prepare(
+  `DELETE FROM login_attempts WHERE seen_at < datetime('now', ?)
+     AND (until IS NULL OR until <= datetime('now'))`);
+function cleanupAttempts() {
+  const n = delAttemptsOld.run(`-${ATTEMPT_KEEP_MINUTES} minutes`).changes;
+  if (n) logLine(`Login attempts: ${n} row(s) idle for more than ` +
+    `${ATTEMPT_KEEP_MINUTES} minutes and removed.`);
+  return n;
 }
 
 /* Die Adresse des Aufrufers -- Grundlage der Anmeldebremse. */
@@ -463,37 +498,33 @@ function clientIp(req) {
 
 function checkThrottle(ip, name) {
   let delayMs = 0;
-  const a = attempts.get(keyIp(ip));
+  const a = qAttempt.get(keyIp(ip));
   if (a) {
-    if (a.until && Date.now() < a.until) {
-      return { blocked: true, retryInSec: Math.ceil((a.until - Date.now()) / 1000) };
-    }
-    if (a.until) attempts.delete(keyIp(ip));
-    else delayMs = delay(a.count);
+    // Eine Sekunde als Untergrenze: 0 hiesse "gleich wieder", und das stimmt nicht.
+    if (a.blocked) return { blocked: true, retryInSec: Math.max(1, a.lefts) };
+    if (a.until) delAttempt.run(keyIp(ip));
+    else delayMs = delay(a.tries);
   }
-  const b = attempts.get(keyName(name));
-  if (b) delayMs = Math.max(delayMs, delay(b.count));
+  const b = qAttempt.get(keyName(name));
+  if (b) delayMs = Math.max(delayMs, delay(b.tries));
   /* Kurz gestellt wartet die Route kuerzer, die Kurve bleibt die Kurve:
      gezaehlt, gesperrt und geantwortet wird wie ohne Schalter. */
   return { blocked: false, delayMs: keys.brakeWait(delayMs) };
 }
 
 function noteFailure(ip, name) {
-  const a = attempts.get(keyIp(ip)) || { count: 0, until: 0 };
-  a.count++;
-  if (a.count >= HARD_LIMIT) a.until = Date.now() + BLOCK_MS;
-  attempts.set(keyIp(ip), a);
+  bumpAttempt.run(keyIp(ip));
+  const a = qAttempt.get(keyIp(ip));
+  /* Jeder weitere Fehlversuch schiebt das Ende nach hinten -- wer waehrend
+     der Sperre weiterraet, verlaengert sie. */
+  if (a.tries >= HARD_LIMIT) blockAttempt.run(`+${BLOCK_SECONDS} seconds`, keyIp(ip));
   // Ohne until: der Name bekommt bewusst keine harte Sperre.
-  if (String(name || '').trim()) {
-    const b = attempts.get(keyName(name)) || { count: 0, until: 0 };
-    b.count++;
-    attempts.set(keyName(name), b);
-  }
+  if (String(name || '').trim()) bumpAttempt.run(keyName(name));
 }
 
 function noteSuccess(ip, name) {
-  attempts.delete(keyIp(ip));
-  if (String(name || '').trim()) attempts.delete(keyName(name));
+  delAttempt.run(keyIp(ip));
+  if (String(name || '').trim()) delAttempt.run(keyName(name));
 }
 
 // --- Sitzungen ---------------------------------------------------------
@@ -1146,17 +1177,42 @@ function sessionUser(token) {
 
 /* Secure haengt am NAMEN und nicht mehr an der Einstellung: __Host- IMMER mit
    Secure, der Heimnetzname NIE. */
-const sessionCookie = (req, token) =>
-  `${cookieName(req)}=${token}; HttpOnly; Path=/; SameSite=Lax` +
+/* ABGELEITET UND NICHT GEWUERFELT: der Token braucht damit keine Zeile
+   neben der Sitzung und ueberlebt jeden Neustart. Wer ihn hat, hat daraus
+   den Sitzungstoken nicht -- SHA-256 laeuft nur in eine Richtung. */
+const csrfToken = (token) =>
+  crypto.createHash('sha256').update('csrf:' + String(token)).digest('hex');
+
+/* OHNE HttpOnly, und das ist der Zweck: der Sitzungscookie bleibt dem Skript
+   verborgen, dieser hier nicht. */
+const csrfCookie = (req, token) =>
+  `${csrfName(req)}=${csrfToken(token)}; Path=/; SameSite=Lax` +
   `${viaProxy(req) ? '; Secure' : ''}; Max-Age=${SESSION_DAYS * 86400}`;
+
+/* BEIDE COOKIES AUF EINMAL: ein Weg, der nur den einen setzte, liesse den
+   Browser mit einer Sitzung ohne Token zurueck. */
+const sessionCookie = (req, token) => [
+  `${cookieName(req)}=${token}; HttpOnly; Path=/; SameSite=Lax` +
+  `${viaProxy(req) ? '; Secure' : ''}; Max-Age=${SESSION_DAYS * 86400}`,
+  csrfCookie(req, token)
+];
 /* GELOESCHT WERDEN BEIDE NAMEN, nicht nur der des eigenen Wegs. */
 const clearCookie = () => [
   `${COOKIE_SECURE}=; HttpOnly; Path=/; SameSite=Lax; Secure; Max-Age=0`,
-  `${COOKIE_NAME}=; HttpOnly; Path=/; SameSite=Lax; Max-Age=0`
+  `${COOKIE_NAME}=; HttpOnly; Path=/; SameSite=Lax; Max-Age=0`,
+  `${CSRF_SECURE}=; Path=/; SameSite=Lax; Secure; Max-Age=0`,
+  `${CSRF_NAME}=; Path=/; SameSite=Lax; Max-Age=0`
 ];
 
 /* DER SITZUNGSTOKEN DIESER ANFRAGE -- der EINE Leseweg. */
 const sessionToken = (req) => parseCookies(req)[cookieName(req)];
+/* Und derselbe Weg fuer den Token daneben. */
+const csrfCookieValue = (req) => parseCookies(req)[csrfName(req)];
+
+/* Verglichen wird die KOPFZEILE mit dem abgeleiteten Wert und nicht mit dem
+   Cookie: wer einen Cookie setzen kann, setzt sonst beide. */
+const csrfOk = (req, token) =>
+  safeEqual(String(req.headers[CSRF_HEADER] || ''), csrfToken(token));
 
 // req.benutzer ist ab hier fuer jeden geschuetzten Endpunkt gesetzt: { id,
 // username, role, status }.
@@ -1182,10 +1238,12 @@ module.exports = {
   // Die Fehlerklasse; Rufer sind server.js (uebersetzt) und diese Datei.
   Message, setTranslator,
   COOKIE_NAME, COOKIE_SECURE, cookieName, sessionToken, viaProxy,
+  CSRF_NAME, CSRF_SECURE, csrfName, CSRF_HEADER,
+  csrfToken, csrfCookie, csrfCookieValue, csrfOk,
   BEHIND_PROXY, PASSWORD_MIN, SESSION_DAYS, fromEnv,
   PUBLIC_ADDRESS, checkPublicAddress, parseCookies, checkLogin, createSession, destroySession,
   sessionUser, pruneSessions, sessionCookie, clearCookie, requireAuth,
-  clientIp, checkThrottle, noteFailure, noteSuccess,
+  clientIp, checkThrottle, noteFailure, noteSuccess, cleanupAttempts,
   /* DIE KURVE UND DIE GEWAEHLTE KOSTENSTUFE GEHEN MIT HINAUS -- 0.30.0, F1
      und F3. */
   delay, SCRYPT_COST: SCRYPT.N, SCRYPT_SHIPPED,

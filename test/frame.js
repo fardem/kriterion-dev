@@ -387,11 +387,10 @@ function startFurtherServer(dataDirectory, extraEnv, portBase) {
   });
   const callB = async (method, filePath, body) => {
     const opt = { method: method, headers: {} };
-    if (cookieB) opt.headers.cookie = cookieB;
+    if (cookieB) Object.assign(opt.headers, withCsrf(cookieB));
     if (body !== undefined) { opt.headers['content-type'] = 'application/json'; opt.body = JSON.stringify(body); }
     const a = await fetch(base + filePath, opt);
-    const setCookieHeader = a.headers.get('set-cookie');
-    if (setCookieHeader) cookieB = setCookieHeader.split(';')[0];
+    cookieB = jar(cookieB, a);
     let content = null;
     try { content = await a.json(); } catch {}
     return { status: a.status, content };
@@ -410,6 +409,186 @@ function startFurtherServer(dataDirectory, extraEnv, portBase) {
            stop: () => { state.stopped = true; return endKind(kindB); } };
 }
 
+/* ZWEI COOKIES STATT EINEM, also ein Speicher statt der ersten Zeile: der
+   Token gegen fremde Formulare reist neben der Sitzung, und wer nur die erste
+   Zeile behielte, verloere abwechselnd den einen oder den anderen. */
+function jar(before, response) {
+  const fresh = response.headers.getSetCookie();
+  if (!fresh.length) return before;
+  const kept = new Map();
+  for (const one of String(before || '').split(';').map(z => z.trim()).filter(Boolean))
+    kept.set(one.slice(0, one.indexOf('=')), one.slice(one.indexOf('=') + 1));
+  for (const one of fresh) {
+    const pair = one.split(';')[0];
+    const at = pair.indexOf('=');
+    const name = pair.slice(0, at).trim(), value = pair.slice(at + 1).trim();
+    if (value) kept.set(name, value); else kept.delete(name);
+  }
+  return [...kept].map(([k, v]) => `${k}=${v}`).join('; ');
+}
+
+/* Der Token gegen fremde Formulare -- abgeleitet wie in auth.js. Ein
+   Pruefstand, der ihn aus der Antwort naehme, belegte nur sich selbst. */
+const csrfFor = (cookieLine) => {
+  const found = String(cookieLine || '').split(';').map(z => z.trim())
+    .find(z => /^(__Host-)?kriterion_session=/.test(z));
+  if (!found) return '';
+  return crypto.createHash('sha256')
+    .update('csrf:' + found.slice(found.indexOf('=') + 1)).digest('hex');
+};
+/* Sitzungscookie und Token zusammen -- der Browser schickt beide. */
+const withCsrf = (cookieLine, headers = {}) => {
+  const token = csrfFor(cookieLine);
+  return token ? { ...headers, cookie: cookieLine, 'x-csrf-token': token }
+               : { ...headers, cookie: cookieLine };
+};
+
+/* ================= DIE SCHREIBENDEN ROUTEN =================
+   HIER UND NICHT IM WAECHTER DANEBEN: zwei Module lesen sie -- der Waechter
+   ueber den Quelltext und der Waechter ueber die laufende Instanz. */
+const F_ROUTES = [
+  ['POST',   '/api/setup',                     'offen'],
+  ['POST',   '/api/login',                     'offen'],
+  ['POST',   '/api/logout',                    'offen'],
+  /* Der Token, 0.8.80 -- die vierte und fuenfte offene schreibende Route. */
+  ['POST',   '/api/token/check',             'offen'],
+  ['POST',   '/api/token/redeem',           'offen'],
+  /* Die Selbstanmeldung, 0.9.1 -- die sechste und siebte offene schreibende
+     Route. */
+  ['POST',   '/api/signup',             'offen'],
+  ['POST',   '/api/signup/confirm', 'offen'],
+  /* Der zweite Schritt der Anmeldung, 0.10.0 -- die ACHTE offene
+     schreibende Route. */
+  ['POST',   '/api/login/second',                'offen'],
+  ['PUT',    '/api/account',                   'selbstbezug'],
+  /* Meine Sitzungen, 0.8.80. 'selbstbezug' wie PUT /api/account, und aus
+     demselben Grund: die Klemme ist nicht eine Rollenfrage im Rumpf,
+     sondern die Bauform -- user_id kommt aus req.user und nie aus der
+     Adresse. */
+  ['DELETE', '/api/sessions',                  'selbstbezug'],
+  ['DELETE', '/api/sessions/:sessionId',      'selbstbezug'],
+  /* Die Freigabe fuer die schweren Wege, 0.8.90. 'selbstbezug' wie PUT
+     /api/account: der Benutzer kommt aus req.user und nie aus der Adresse
+     -- wer bestaetigt, bestaetigt fuer sich. */
+  ['POST',   '/api/confirm',              'selbstbezug'],
+  /* Der zweite Faktor, 0.10.0 -- VIER Routen, alle 'selbstbezug'. */
+  ['POST',   '/api/two-factor/start',          'selbstbezug'],
+  ['POST',   '/api/two-factor/on',             'selbstbezug'],
+  ['POST',   '/api/two-factor/codes',          'selbstbezug'],
+  ['DELETE', '/api/two-factor',                'selbstbezug'],
+  /* ANLEGEN BRAUCHT KEINE ZWEITE BESTAETIGUNG, und das ist entschieden und
+     nicht vergessen: es erzeugt einen NEUEN Zugang und nimmt niemandem
+     etwas. */
+  ['POST',   '/api/users',                     'adminOnly, im Rumpf'],
+  /* Der Link fuer einen vorhandenen Zugang. */
+  ['POST',   '/api/users/:id/token',           'adminOnly, im Rumpf, zweitbestaetigt'],
+  /* Zwei der drei Rechteklassen dieser Route liegen hinter der zweiten
+     Bestaetigung -- Rolle und fremdes Passwort. */
+  ['PUT',    '/api/users/:id',                 'adminOnly, im Rumpf, zweitbestaetigt'],
+  ['DELETE', '/api/users/:id',                 'adminOnly, im Rumpf, zweitbestaetigt'],
+  /* Der Mailzugang, 0.9.0. */
+  ['PUT',    '/api/mail',                      'ownerOnly, zweitbestaetigt'],
+  /* Die Testmail. nurEigentuemer wie das Setzen daneben -- wer den Zugang
+     nicht sehen darf, testet ihn auch nicht. */
+  ['POST',   '/api/mail/test',                 'ownerOnly'],
+  /* Die Selbstanmeldung hinter der Anmeldung, 0.9.1 -- drei Routen, alle
+     beim ADMIN und nicht beim Eigentuemer: aus einer Anfrage wird nie etwas
+     anderes als ein Zugang mit der Rolle 'user', und den legt der Admin
+     ohnehin an. */
+  ['PUT',    '/api/signup/toggle',    'adminOnly'],
+  ['POST',   '/api/requests/:id/approve',         'adminOnly'],
+  ['DELETE', '/api/requests/:id',              'adminOnly'],
+  ['PUT',    '/api/titles',                    'adminOnly'],
+  ['PUT',    '/api/settings',                  'im Rumpf'],
+  ['POST',   '/api/criteria',                  'adminOnly'],
+  ['PUT',    '/api/criteria/order',            'adminOnly'],
+  ['PUT',    '/api/criteria/:id',              'adminOnly'],
+  ['DELETE', '/api/criteria/:id',              'adminOnly'],
+  // Zuweisen darf jeder, einen NEUEN Namen anlegen haengt am Schalter --
+// deshalb im Rumpf und hinter dem Nachschlagen, nicht vor der Route.
+  ['POST',   '/api/product-categories',        'im Rumpf'],
+  ['PUT',    '/api/product-categories/:id',    'adminOnly'],
+  ['DELETE', '/api/product-categories/:id',    'adminOnly'],
+  /* DER EINE GRIFF FUER DIE UNBEKANNTE ERSTELLUNGSSPRACHE -- 0.25.0 (F2). */
+  ['PUT',    '/api/names/language',            'adminOnly'],
+  /* DER WEG, EINEN TAG FUER SICH ANZULEGEN -- 0.24.4 (B7). */
+  ['POST',   '/api/tags',                      'im Rumpf'],
+  ['PUT',    '/api/tags/:id',                  'adminOnly'],
+  ['DELETE', '/api/tags/:id',                  'adminOnly'],
+  ['POST',   '/api/items/:id/tags',            'entryAuthorOnly, im Rumpf'],
+  ['DELETE', '/api/items/:id/tags/:tagId',     'entryAuthorOnly'],
+  ['POST',   '/api/items',                     'offen'],
+  ['PUT',    '/api/items/:id',                 'im Rumpf'],
+  ['DELETE', '/api/items/:id',                 'entryAuthorOnly'],
+  ['POST',   '/api/items/:id/photos',          'entryAuthorOnly'],
+  // Eigene Route statt der erweiterten Fotoroute: deren fileFilter auf
+// ^image\/ zu lockern naehme die erste Schranke dem Fotoweg mit ab.
+  ['POST',   '/api/items/:id/videos',          'entryAuthorOnly'],
+  ['PUT',    '/api/photos/:id/focus',          'im Rumpf'],
+  // Hochladen darf jeder -- umgestellt mit 0.8.31, aus demselben Grund wie
+// beim Link: eine Datei erscheint nur dort, wo man sie hinsetzt.
+  ['POST',   '/api/items/:id/attachments',     'offen'],
+  ['DELETE', '/api/attachments/:id',           'im Rumpf'],
+  ['PUT',    '/api/items/:id/photo-order',     'entryAuthorOnly'],
+  ['DELETE', '/api/photos/:id',                'im Rumpf'],
+  // Eintragen darf jeder -- wie Kommentar, Testtag und Bewertung. Umgestellt
+// mit 0.8.30: ein Link erscheint nur dort, wo man ihn hinsetzt.
+  ['POST',   '/api/items/:id/links',           'offen'],
+  ['PUT',    '/api/items/:id/link-order',      'entryAuthorOnly'],
+  ['DELETE', '/api/links/:id',                 'im Rumpf'],
+  ['POST',   '/api/items/:id/test-days',       'offen'],
+  ['PUT',    '/api/test-days/:id',             'im Rumpf'],
+  ['DELETE', '/api/test-days/:id',             'im Rumpf'],
+  ['POST',   '/api/test-days/:id/tags',        'im Rumpf'],
+  ['DELETE', '/api/test-days/:id/tags/:tagId', 'im Rumpf'],
+  ['PUT',    '/api/items/:id/ratings',         'offen'],
+  /* DELETE /api/items/:id/ratings STEHT HIER NICHT MEHR -- 0.21.0. */
+  // Die einzige Bewertungsroute MIT Klemme -- hier steht eine fremde Nummer
+// in der Adresse, die eine darueber trifft baulich nur die eigene Zeile.
+  ['DELETE', '/api/ratings/:id',               'im Rumpf'],
+  ['POST',   '/api/items/:id/comments',        'offen'],
+  ['PUT',    '/api/comments/:id',              'im Rumpf'],
+  ['POST',   '/api/comments/:id/images',       'im Rumpf'],
+  ['DELETE', '/api/comment-images/:id',        'im Rumpf'],
+  ['DELETE', '/api/comments/:id',              'im Rumpf'],
+  ['POST',   '/api/import',                    'ownerOnly, zweitbestaetigt'],
+  /* Der Papierkorb, 0.8.70. SEHEN darf ihn der Admin (lesend, deshalb steht
+     GET /api/trash hier nicht) -- HANDELN nur der Eigentuemer:
+     Wiederherstellen legt Zeilen unter FREMDEM Namen an, genau wie der
+     Import, und liegt damit in derselben Rechtezeile. */
+  ['POST',   '/api/trash/:id/restore', 'ownerOnly'],
+  ['DELETE', '/api/trash/:id',            'ownerOnly'],
+  /* Die Sicherung, 0.8.70. Beide beim Eigentuemer, dieselbe Zeile wie
+     Export und Import -- alles, was die Instanz als Ganzes betrifft. */
+  ['PUT',    '/api/backup/dir',             'ownerOnly'],
+  ['POST',   '/api/backup',                 'ownerOnly'],
+  /* Die Bildumstellung, 0.19.0 -- die siebzigste. */
+  ['POST',   '/api/images/convert',          'ownerOnly, zweitbestaetigt'],
+  /* Das Aufraeumen alter Sicherungen, 0.20.0 -- die einundsiebzigste. */
+  ['POST',   '/api/backup/cleanup',      'ownerOnly, zweitbestaetigt'],
+  /* Die Sicherungsprobe, 0.29.0 -- die DREIUNDSIEBZIGSTE. */
+  ['POST',   '/api/backup/check',            'ownerOnly']
+];
+
+function writingRoutes(text) {
+  const rows = text.split('\n');
+  const outcome = [];
+  for (let i = 0; i < rows.length; i++) {
+    const z = rows[i];
+    let method = null, rest = '';
+    for (const [prefix, m] of [["app.post('", 'POST'], ["app.put('", 'PUT'], ["app.delete('", 'DELETE']]) {
+      if (z.startsWith(prefix)) { method = m; rest = z.slice(prefix.length); }
+    }
+    if (!method) continue;
+    const filePath = rest.slice(0, rest.indexOf("'"));
+    const head = rest.slice(rest.indexOf("'") + 1);
+    let core = '';
+    for (let j = i + 1; j < rows.length && !rows[j].startsWith('app.'); j++) core += rows[j] + '\n';
+    outcome.push({ key: `${method} ${filePath}`, head, core });
+  }
+  return outcome;
+}
+
 /* ================= DIESER PRUEFLAUF LIEST DEUTSCH -- 0.24.3 ==============
    Bis 0.24.2 sprach eine frische Installation Deutsch, weil die
    Vorgabesprache eine Konstante im Quelltext war. */
@@ -424,11 +603,10 @@ globalThis.fetch = (url, opt = {}) => {
 let cookie = '';
 async function call(method, filePath, body) {
   const opt = { method: method, headers: {} };
-  if (cookie) opt.headers.cookie = cookie;
+  if (cookie) Object.assign(opt.headers, withCsrf(cookie));
   if (body !== undefined) { opt.headers['content-type'] = 'application/json'; opt.body = JSON.stringify(body); }
   const a = await fetch(BASE + filePath, opt);
-  const setCookieHeader = a.headers.get('set-cookie');
-  if (setCookieHeader) cookie = setCookieHeader.split(';')[0];
+  cookie = jar(cookie, a);
   let content = null;
   try { content = await a.json(); } catch {}
   return { status: a.status, content };
@@ -681,6 +859,7 @@ return {
   SMTP_CASES,
   smtpEmpfaenger, READY_TRIES, READY_STEP, readyFailure, startFurtherServer,
   call, names, confirmNeeded, includingShare, callF, shareMain,
+  csrfFor, withCsrf, jar, F_ROUTES, writingRoutes,
   leftovers, sweepLeftovers, parentOf, ourOwn, benchFiles,
   /* was sich waehrend des Laufs aendert und deshalb nicht zerlegt werden darf */
   get cookie() { return cookie; },

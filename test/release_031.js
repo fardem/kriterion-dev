@@ -22,7 +22,7 @@ async function run() {
 /* DIE ZAHL DER SCHLUESSEL JE SPRACHDATEI STEHT EINMAL.
    ZWEI GRUPPEN FRAGEN SIE AB: 0.31.0 auf die Deckung der drei Dateien, 0.31.1
    auf den Stand nach dem Verschmelzen. */
-const LANG_KEY_COUNT = 1214;
+const LANG_KEY_COUNT = 1215;
 
 async function check0310() {
   const drRead = (code) => JSON.parse(fs.readFileSync(
@@ -560,6 +560,7 @@ const EG_CHANGED_AFTER_0312_SHARED = {
   "server.cleanupNoBackups": "0.32.0: Punkt 29 — die Vorschau des Aufraeumens, Grund 1",
   "server.cleanupOldestAge": "0.32.0: Punkt 29 — Grund 4, jetzt mit Mehrzahlform",
   "server.deniedEntry": "0.32.1: „this entry\" faellt weg — das Vokabelwort stand fest im Satz",
+  "server.deniedOrigin": "0.36.0: neu — die Absage an eine schreibende Anfrage ohne Token gegen fremde Formulare",
   "server.exportTooOld": "0.33.0: neu — die eine Abweisung des Bruchs, eine Datei mit Formatnummer 13 oder aelter kommt nicht mehr herein",
   "server.gradeRange": "0.32.0: die Absage des Servers nennt das Vokabelwort",
   "server.importOne": "0.35.2: neu — die Absage des Imports an eine zweite Datei in derselben Anfrage",
@@ -801,6 +802,9 @@ async function check0312() {
       'server.signupThanks', 'server.trashRestoring',
       /* UND VIER MIT 0.35.2 -- die uebersetzten Absagen der Hochladewege. */
       'server.importOne', 'server.uploadCap', 'server.uploadSize', 'server.videoOne',
+      /* UND EINER MIT 0.36.0 -- die Absage an eine schreibende Anfrage ohne
+         Token gegen fremde Formulare. */
+      'server.deniedOrigin',
       'vocabulary.grade'];
     /* UND EINER IST GEFALLEN -- `list.otherUser`. */
     /* UND SIEBEN MIT 0.32.1 -- sechs, die 0.32.1 ausbaut, und der geteilte
@@ -1210,6 +1214,9 @@ async function check0313() {
       'server.signupThanks', 'server.trashRestoring',
       /* UND VIER MIT 0.35.2 -- dieselben wie drueben. */
       'server.importOne', 'server.uploadCap', 'server.uploadSize', 'server.videoOne',
+      /* UND EINER MIT 0.36.0 -- die Absage an eine schreibende Anfrage ohne
+         Token gegen fremde Formulare. */
+      'server.deniedOrigin',
       'vocabulary.grade'];
     /* UND EINER IST GEFALLEN -- derselbe wie drueben: `list.otherUser`. */
     /* UND SIEBEN MIT 0.32.1 -- dieselben wie im englischen Stand daneben, und
@@ -1240,6 +1247,7 @@ async function check0313() {
       'card.catchUpBoth':       '0.33.0: die Zeile unter dem Knopf sagt nur noch, was mit den Originalen geschieht',
       'card.convertFinished':   '0.33.0: der Fertigsatz nennt keine neu gerechneten Vorschaubilder mehr',
       'card.restartHint':       '0.33.0: die zitierte Logzeile heisst jetzt englisch „Key loaded from ENCRYPTION_KEY"',
+      'server.deniedOrigin':    '0.36.0: neu — die Absage an eine schreibende Anfrage ohne Token gegen fremde Formulare',
       'server.exportTooOld':    '0.33.0: neu — die eine Abweisung des Bruchs, eine Datei mit Formatnummer 13 oder aelter kommt nicht mehr herein',
       'server.trashRestoring':  '0.35.1: neu — die Antwort an den zweiten Aufruf, der denselben Papierkorbeintrag wiederherstellen will',
       'vocabulary.entryMany':   '0.31.4: Öğeler — die Mehrzahl kostet nichts mehr',

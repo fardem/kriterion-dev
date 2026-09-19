@@ -183,10 +183,23 @@ const exportTotal = (stats) => exportSum(stats && stats.export,
 
 /* DER FUENFTE WERT IST MIT 0.24.5 WEGGEFALLEN, und das ist die Reparatur von
    D1 an ihrer Wurzel. */
+/* DER SCHUTZ GEGEN FREMDE FORMULARE -- der Wert steht in einem Cookie ohne
+   HttpOnly, damit genau diese Zeile ihn lesen kann; der Sitzungscookie
+   bleibt dem Skript verborgen. */
+const CSRF_NAMES = ['__Host-kriterion_csrf', 'kriterion_csrf'];
+function csrfHeader() {
+  for (const name of CSRF_NAMES) {
+    const found = document.cookie.split(';')
+      .map(z => z.trim()).find(z => z.startsWith(name + '='));
+    if (found) return { 'x-csrf-token': found.slice(name.length + 1) };
+  }
+  return {};
+}
+
 async function api(method, url, body, isForm = false) {
   /* `Accept-Language` AN JEDER ANFRAGE -- 0.24.3, Bauabschnitt 4. */
   const opts = { method, credentials: 'same-origin',
-                 headers: { 'Accept-Language': LANGUAGE } };
+                 headers: { 'Accept-Language': LANGUAGE, ...csrfHeader() } };
   if (body !== undefined) {
     if (isForm) opts.body = body;
     else { opts.headers['Content-Type'] = 'application/json'; opts.body = JSON.stringify(body); }
@@ -1115,7 +1128,8 @@ function pickImages(finished) {
 
 // Multipart-Formular schicken. api() sendet JSON und taugt dafuer nicht.
 async function sendForm(path, form) {
-  const a = await fetch(path, { method: 'POST', body: form, credentials: 'same-origin' });
+  const a = await fetch(path, { method: 'POST', body: form,
+    credentials: 'same-origin', headers: csrfHeader() });
   const data = await a.json().catch(() => ({}));
   if (a.status === 401) { showLogin(); throw new Error(SESSION_GONE); }
   if (!a.ok) throw new Error(data.error || t('entry.uploadFailed'));
@@ -5445,7 +5459,8 @@ async function renderDetail(id, termAddress) {
     files.forEach(f => fd.append('files', f));
     try {
       toast(t('entry.uploadingTitle'));
-      const r = await fetch(`/api/items/${id}/attachments`, { method: 'POST', body: fd, credentials: 'same-origin' });
+      const r = await fetch(`/api/items/${id}/attachments`, { method: 'POST', body: fd,
+        credentials: 'same-origin', headers: csrfHeader() });
       const data = await r.json();
       if (!r.ok) throw new Error(data.error || t('entry.uploadFailed'));
       item = data; drawAtts();

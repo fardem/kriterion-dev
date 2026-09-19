@@ -1222,6 +1222,7 @@
   "server.deniedCategoryNew": "Only the admin creates new categories. Existing ones can still be chosen.",
   "server.deniedConfirm": "Your password is needed for this — please confirm once more.",
   "server.deniedEntry": "Only the person who created it can change it — or the admin.",
+  "server.deniedOrigin": "The request was rejected. Please reload the page and try again.",
   "server.deniedOwner": "Only the owner of this installation can do that.",
   "server.deniedOwnUser": "You change your own account under “My account”, not here.",
   "server.deniedRole": "Only the owner of this installation assigns roles.",
