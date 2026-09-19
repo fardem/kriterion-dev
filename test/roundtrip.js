@@ -355,6 +355,27 @@ async function sendImport(object, mode, withoutShare = false) {
   check('Und eine offene Route bleibt ohne Token erreichbar', csOpen.status === 400,
     `Status ${csOpen.status}`);
 
+  /* ---- DIE GESTALT DER BEIDEN COOKIES ---- Der Sitzungscookie bleibt dem
+     Skript verborgen, der Token muss lesbar sein: sonst kann ihn niemand
+     mitschicken. */
+  const csLogin = await fetch(BASE + '/api/login',
+    { method: 'POST', headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ user: USER, password: PASSWORD }) });
+  const csCookies = csLogin.headers.getSetCookie();
+  const csSession = csCookies.find(z => z.startsWith('kriterion_session='));
+  const csToken = csCookies.find(z => z.startsWith('kriterion_csrf='));
+  check('Die Anmeldung setzt beide Cookies', Boolean(csSession && csToken),
+    csCookies.map(z => z.split('=')[0]).join(' '));
+  check('Der Sitzungscookie traegt HttpOnly', /;\s*HttpOnly/i.test(csSession || ''),
+    String(csSession).split(';').slice(1).join(';'));
+  check('Und der Token ausdruecklich NICHT', !/;\s*HttpOnly/i.test(csToken || ''),
+    String(csToken).split(';').slice(1).join(';'));
+  /* UND ER IST AUS DER SITZUNG ABGELEITET -- ohne diese Zeile koennte er auch
+     eine zweite Zufallszahl sein, und dann braeuchte er eine eigene Zeile. */
+  check('Und er ist aus dem Sitzungstoken abgeleitet',
+    String(csToken).split(';')[0].split('=')[1] === H.csrfFor(String(csSession).split(';')[0]),
+    String(csToken).split(';')[0]);
+
   group('Umbenennung auf Kriterion');
 
   // Zwei Stellen der Umbenennung stehen bewusst nicht hier, sondern dort, wo
@@ -1608,7 +1629,7 @@ async function sendImport(object, mode, withoutShare = false) {
     /SEARCH_HANDOFF = false;/.test(appSource));
 
   /* ---- Zusage 4 bis 6: die Reihenfolge ---- */
-  const nachbarn = piece('const entryNeighbours =', '\n/* Der Aufbau.');
+  const nachbarn = piece('const entryNeighbours =', '\n/* DIE ZWEI KNOEPFE AM FUSS');
   check('Die Pfeile blaettern in der Reihenfolge der Uebersicht',
     /state\.items \|\| \[\]/.test(nachbarn));
   check('Und nicht im ungefilterten Bestand',
@@ -1619,7 +1640,7 @@ async function sendImport(object, mode, withoutShare = false) {
   check('Und kein Feld daneben, das niemand liest',
     !/ordered/.test(nachbarn));
   /* DER FUSS DES EINTRAGS -- seit 0.28.1 der Ort der beiden Knoepfe. */
-  const foot = piece('      const nb = entryNeighbours(id);', '\n  wireSubhead(');
+  const foot = piece('function entryNav(id) {', '\n/* Der Aufbau.');
   check('Am Anfang und am Ende sind sie gedaempft und bleiben stehen',
     /at > 0 \? list\[at - 1\]\.id : null/.test(nachbarn)
     && /at < list\.length - 1 \? list\[at \+ 1\]\.id : null/.test(nachbarn)

@@ -22,7 +22,7 @@ async function run() {
   // Die Zahl der Rueckbauten steht ausdruecklich da: eine Zahl in einem
   // Papier ist eine Behauptung, eine Zahl im Pruefstand ist ein Beleg. Wie
   // sie Runde fuer Runde gewachsen ist, steht in den Aenderungsprotokollen.
-  check(`Es sind genau 1053 Rueckbauten`, gpList.length === 1053, `${gpList.length}`);
+  check(`Es sind genau 1062 Rueckbauten`, gpList.length === 1062, `${gpList.length}`);
   const gpTwice = gpList.map(r => r.nr).filter((n, i, a) => a.indexOf(n) !== i);
   check('Und keine Nummer steht zweimal', gpTwice.length === 0, gpTwice.join(' '));
   /* JEDER GREIFT: der Suchtext kommt in seiner Datei GENAU EINMAL vor. */
@@ -372,8 +372,10 @@ async function run() {
   }
   /* 27 WURDEN 29 MIT 0.35.2: der Routenwaechter und die Gestaltprobe
      bekommen je eine Gegenprobe auf ihren eigenen Leser. */
+  /* UND 29 WURDEN 31 MIT 0.36.0: der Waechter ueber die Einsetzungen und die
+     Gruppe ueber npm audit bekommen je eine. */
   check('Der Waechter sieht die Rueckbauten auf Pruefstandsdateien',
-    rpChecked === 29, `${rpChecked} Rueckbauten`);
+    rpChecked === 31, `${rpChecked} Rueckbauten`);
   check('Und jeder ihrer Namen steht in der Zieldatei, im Rahmen oder im Suchtext',
     rpStrange.length === 0, rpStrange.slice(0, 6).join(' · '));
 
@@ -395,26 +397,26 @@ async function run() {
       ['testbench.js', 73],
       ['test/batchrun.js', 87],
       ['test/dom.js', 347],
-      ['test/firstlogin.js', 30],
-      ['test/frame.js', 164],
+      ['test/firstlogin.js', 34],
+      ['test/frame.js', 221],
       ['test/keychange.js', 81],
       ['test/release_029.js', 60],
       ['test/release_030.js', 241],
-      ['test/release_031.js', 405],
-      ['test/roundtrip.js', 3215],
-      ['test/selfcheck.js', 195],
-      ['test/source.js', 867],
+      ['test/release_031.js', 414],
+      ['test/roundtrip.js', 3233],
+      ['test/selfcheck.js', 206],
+      ['test/source.js', 854],
       ['test/ui_entry.js', 497],
       ['test/ui_export.js', 453],
       ['test/ui_inventory.js', 241],
-      ['test/ui_language.js', 285],
+      ['test/ui_language.js', 286],
       ['test/ui_overview.js', 494],
       ['test/ui_style.js', 562],
       ['test/ui_system.js', 692],
       ['test/ui_translator.js', 104],
-      ['counterproof.js', 1571],
-      ['server.js', 1523],
-      ['auth.js', 274],
+      ['counterproof.js', 1575],
+      ['server.js', 1534],
+      ['auth.js', 295],
       ['db.js', 272],
       ['mail.js', 48],
       ['keys.js', 50],
@@ -425,10 +427,10 @@ async function run() {
       ['usertool.js', 51],
       ['twofactor.js', 34],
       ['keytool.js', 55],
-      ['public/app.js', 1856],
+      ['public/app.js', 1857],
       ['public/theme.js', 3],
     ];
-    const COMMENT_TOTAL = { comment: 14958, code: 61114 };
+    const COMMENT_TOTAL = { comment: 15082, code: 61619 };
     check('Der Waechter sieht alle fuenfunddreissig Dateien',
       crAll.each.length === 35 && COMMENT_ROWS.length === 35,
       `${crAll.each.length} gemessen, ${COMMENT_ROWS.length} genannt`);
@@ -820,6 +822,42 @@ async function run() {
     const probeCall = switchText.slice(probeAt, switchText.indexOf('});', probeAt));
     check('Und sie raeumt TESTBENCH_TIME im Kind ausdruecklich weg',
       /TESTBENCH_TIME:\s*''/.test(probeCall), JSON.stringify(probeCall));
+  }
+
+  /* ---------------------------------------------------------------- */
+  group('Bekannte Luecken in den Abhaengigkeiten');
+
+  /* DER SCHRITT „Bekannte Luecken" LAEUFT AUF DER WERKBANK und bis zu dieser
+     Fassung nirgends sonst: wer oertlich prueft, sah eine neue Meldung erst
+     nach dem Push. */
+  {
+    const naRun = spawnSync('npm', ['audit', '--json'], {
+      cwd: __dirname, encoding: 'utf8', timeout: 120000 });
+    let naReport = null;
+    try { naReport = JSON.parse(naRun.stdout || ''); } catch {}
+    /* OHNE NETZ WIRD UEBERSPRUNGEN, UND DIE GRUPPE SAGT ES. Ein Pruefstand,
+       der ohne Netz rot wird, ist kein Pruefstand -- und einer, der still
+       ausfaellt, belegt nichts. */
+    const naOffline = !naReport || Boolean(naReport.error);
+    if (naOffline) {
+      const naWhy = (naReport && (naReport.message
+        || (naReport.error && (naReport.error.summary || naReport.error.detail))))
+        || `Rueckgabewert ${naRun.status}, ${(naRun.stderr || '').split('\n')[0]}`;
+      H.skipped += 1;
+      console.log(`  … uebersprungen: npm audit hat keine Auskunft gegeben — ${naWhy}`);
+    } else {
+      const naCounts = (naReport.metadata && naReport.metadata.vulnerabilities) || {};
+      const naNames = Object.keys(naReport.vulnerabilities || {});
+      check('npm audit meldet keine einzige Luecke',
+        Number(naCounts.total) === 0 && naNames.length === 0,
+        `${JSON.stringify(naCounts)} · ${naNames.slice(0, 8).join(' ')}`);
+      /* UND DIE AUSKUNFT IST WIRKLICH EINE: eine leere Tafel machte die Zeile
+         darueber wahr, ohne etwas zu belegen. */
+      check('Und die Auskunft nennt die gezaehlten Stufen',
+        ['info', 'low', 'moderate', 'high', 'critical']
+          .every(z => Number.isFinite(Number(naCounts[z]))),
+        JSON.stringify(naCounts));
+    }
   }
 }
 
