@@ -1,17 +1,7 @@
 #!/usr/bin/env node
-/* Der Schluesselwechsel -- auf dem Wirt, bei ANGEHALTENER Instanz.
- *
- *   node keytool.js zeigen
- *   node keytool.js wechseln [--env <pfad>] [--wer <text>] [--ja]
- *
- * Er laeuft auf dem Wirt und nicht als Knopf in der Oberflaeche: dort liegt
- * die .env, die der Container nicht sieht, und die Instanz muss stehen -- ein
- * laufender Server haelt die Datei im WAL-Modus offen, der Wechsel schaltet
- * auf DELETE um. Zugriff auf den Wirt ist die Berechtigung.
- * Gerufen wird er ueber keytool.sh, das anhaelt, sichert und wieder startet.
- *
- * Er wechselt den Schluessel, nicht das Verfahren: cipher='sqlcipher', die
- * Schluessellaenge und katalog.sqlite bleiben. */
+/* Der Schluesselwechsel auf dem Wirt, bei ANGEHALTENER Instanz: dort liegt
+ * die .env, und ein laufender Server haelt die Datei im WAL-Modus offen.
+ * Gewechselt wird der Schluessel, nicht das Verfahren. */
 const fs = require('fs');
 const path = require('path');
 const readline = require('readline');
@@ -226,12 +216,9 @@ async function commandChange(options) {
     process.exit(1);
   }
 
-  /* ---- Die Ablage, ERST JETZT ----
-     Vor dem Wechsel geschrieben, stuende in der .env ein Schluessel, der zu
-     nichts passt, sobald der Wechsel scheitert. Scheitert umgekehrt das
-     Schreiben, steht der neue Wert auf dem Bildschirm -- das ist die eine
-     Stelle, die zum Abschreiben da ist, und der Merksatz zu Kontrollausgaben
-     nimmt sie ausdruecklich aus. */
+  /* ---- Die Ablage, ERST JETZT ---- Vor dem Wechsel geschrieben, stuende in
+     der .env ein Schluessel, der zu nichts passt, sobald der Wechsel
+     scheitert. Scheitert das Schreiben, steht der Wert auf dem Bildschirm. */
   /* Dieselbe Schreibweise wie jeder Zeitstempel der Instanz ("2026-08-23
      19:56:01", UTC). */
   const stamp = new Date().toISOString().slice(0, 19).replace('T', ' ');
@@ -267,10 +254,9 @@ async function commandChange(options) {
   } else {
     console.log(`  ${path.join(DATA_DIR, 'encryption.key')} trägt den neuen Wert.`);
     console.log(RED(`\n  DER ALTE WERT ÖFFNET ALLE SICHERUNGEN VON VOR ${stamp} UTC.`));
-    /* Nicht "nirgends mehr": die Sicherung des Datenverzeichnisses, die
-       keytool.sh vorher angelegt hat, traegt die alte Schluesseldatei mit.
-       Wer sie weglegt, legt den alten Schluessel mit weg -- und das ist die
-       einzige Stelle, an der er dann noch steht. */
+    /* Nicht "nirgends mehr": die Sicherung, die keytool.sh vorher angelegt
+       hat, traegt die alte Schluesseldatei mit -- und das ist dann die
+       einzige Stelle, an der der alte Wert noch steht. */
     console.log(RED('  Er steht ab jetzt nur noch in der Sicherung, die vor dem Wechsel'));
     console.log(RED('  entstanden ist. Übernimm ihn in den Passwortspeicher:'));
     console.log(`\n    ${keyHex}\n`);

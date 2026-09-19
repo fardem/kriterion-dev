@@ -11,15 +11,9 @@ const { isMainThread } = require('worker_threads');
 // wird: beim Laden, beim Erzeugen und beim Nachziehen der Ablage.
 const HEX_PATTERN = /^[0-9a-fA-F]{64}$/;
 
-/* Der Pruefschalter. Er senkt fuer den Prueflauf drei Kosten, die im Betrieb
-   richtig und beim Pruefen sinnlos sind: die Kostenstufe von scrypt, die drei
-   Mailfristen und die Wartezeit der Anmeldebremse.
-   Er steht hier, weil diese Datei die eine ist, die aus der Umgebung liest,
-   bevor etwas laeuft; auth.js und mail.js lesen sie beide.
-   Ein Schalter und nicht drei Variablen: nur die vollstaendige Form
-   `pruefstand:name=wert` wird gelesen, `SCRYPT_N=1024` bewirkt nichts. Jede
-   Einstellung hat einen Boden, unter den sie nicht faellt.
-   Ohne Schalter gelten die ausgelieferten Zahlen. */
+/* Der Pruefschalter senkt drei Kosten des Prueflaufs: die Kostenstufe von
+   scrypt, die drei Mailfristen und die Wartezeit der Anmeldebremse. Nur die
+   Form `pruefstand:name=wert` wird gelesen, und jede hat einen Boden. */
 const TESTBENCH_NAME = 'KRITERION_TESTBENCH';
 const TESTBENCH_MARK = 'pruefstand';
 // Der Boden je Einstellung. `scrypt` muss ausserdem eine Zweierpotenz sein.
@@ -52,9 +46,8 @@ function scryptCost(shipped) {
 }
 
 /* Die Wartezeit der Anmeldebremse. Gesenkt wird nur das Warten, nicht die
-   Kurve und nicht die Schwellen: delay() liefert weiter den ausgelieferten
-   Wert, weich ab fuenf und hart ab zehn bleiben, die harte Sperre dauert
-   ihre fuenf Minuten. */
+   Kurve und nicht die Schwellen: weich ab fuenf, hart ab zehn, fuenf Minuten
+   Sperre bleiben. */
 function brakeWait(shipped) {
   if (!shipped) return 0;
   const set = testbenchSwitch();
@@ -88,10 +81,8 @@ function loadKey(dataDir) {
   if (fs.existsSync(keyPath)) {
     const hex = fs.readFileSync(keyPath, 'utf8').trim();
     /* Genau 64 Hex-Zeichen nimmt SQLCipher als Schluessel, alles andere als
-       Passwort. Eine abgeschnittene Datei meldete deshalb nicht sich selbst,
-       sondern `SQLITE_NOTADB file is not a database` -- und wo keine
-       Datenbank liegt, legte sie eine neue unter einem Schluessel an, der
-       sich nicht wiederherstellen laesst. */
+       Passwort. Eine abgeschnittene Datei meldete sonst `SQLITE_NOTADB` und
+       bekam eine neue Datenbank unter einem unwiederbringlichen Schluessel. */
     if (!HEX_PATTERN.test(hex))
       throw new Error(`${keyPath} enthaelt keine 64 Hex-Zeichen, sondern ` +
         `${hex.length} Zeichen. Die Datei ist leer, abgeschnitten oder ` +
@@ -127,10 +118,9 @@ function warnKeyBesideData() {
   );
 }
 
-/* Den Schluessel wechseln. Gerufen wird das nur von keytool.js auf dem
-   Wirt; der Server liest seinen Schluessel beim Start und danach nie wieder.
-   Zwei Ablagen, weil loadKey() oben zwei Herkuenfte kennt: die Datei neben
-   der Datenbank und die .env auf dem Wirt. */
+/* Den Schluessel wechseln -- nur von keytool.js auf dem Wirt; der Server
+   liest seinen Schluessel beim Start und danach nie wieder. Zwei Ablagen,
+   weil loadKey() zwei Herkuenfte kennt: die Datei und die .env. */
 
 function createKey() {
   return crypto.randomBytes(32).toString('hex');
