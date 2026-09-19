@@ -1256,9 +1256,17 @@ sondern damit derselbe Bericht nicht ein zweites Mal geglaubt wird.
 
 ---
 
-## 25. Sieben deutsche Bezeichner, die kein Wächter sieht
+## 25. Sechs deutsche Bezeichner, die kein Wächter sieht
 
-**Art: Fehler** *(am Wächter, nicht im Betrieb)* **· Einschätzung: empfohlen ·
+> **NACHGEMESSEN AM 19. SEPTEMBER 2026, und der Punkt ist kleiner geworden.**
+> *Die Überschrift hieß „sieben"; `f-weitere` gibt es nicht mehr.* **Sechs
+> stehen noch, und zwar je einmal in `public/app.js`** — in `testbench.js`,
+> `counterproof.js` und `public/style.css` **keine einzige**. *Die Tafel unten
+> nennt noch „acht Fundstellen an `f-abgelehnt` allein"; das gilt nicht mehr.*
+> **Damit sind es sechs einzeilige Umbenennungen und drei Zeilen im Wächter.**
+> **Fahrplan: 0.35.2, BA 8.**
+
+**Art: Fehler** *(am Wächter, nicht im Betrieb)* **· Einschätzung: klein ·
 Draußen üblich:** *dieselbe Lücke, und niemand hat sie geschlossen.* **Eine
 `id`, die als Text in einer Zuweisung steht, ist für einen Linter eine
 Zeichenfolge wie jede andere** — *ESLints Namensregeln greifen an Bezeichnern,
@@ -1807,8 +1815,12 @@ bleiben, wie sie sind *(dort ist die Mehrzahl richtig)*.
 ## 33. Die Startzeile nennt einen Schlüssel statt eines Satzes
 
 **Art: Fehler** *(am Containerprotokoll, klein)* **· Herkunft: 0.32.0, beim
-Bauen der Restprobe für `server.js` gesehen · Einschätzung: klein, und er
-gehört der Runde, die `backupState()` das nächste Mal anfasst**
+Bauen der Restprobe für `server.js` gesehen · Einschätzung: klein ·
+Fahrplan: 0.35.2, BA 6**
+
+> **DIE BEDINGUNG IST AM 19. SEPTEMBER 2026 EINGETRETEN.** *Hier stand: „er
+> gehört der Runde, die `backupState()` das nächste Mal anfasst".* **BA 5 der
+> 0.35.2 fasst jede `[Kriterion]`-Zeile an, auch diese** — der Punkt geht mit.
 
 **WAS DASTEHT**, auf jeder Installation ohne Sicherungsordner:
 
@@ -1886,8 +1898,13 @@ bleibt in der Sprache des Empfängers** — *es geht allein um den Grund daneben
 ## 35. Eine Gegenprobe reißt die Datei ab, statt eine Prüfung rot zu machen
 
 **Art: Fehler** *(am Gegenprobentreiber)* **· Herkunft: 0.32.0, beim Nachrechnen
-aller Rückbauten gefunden · Einschätzung: klein, und er gehört der Runde, die
-`counterproof.js` das nächste Mal anfasst**
+aller Rückbauten gefunden · Einschätzung: klein · Fahrplan: 0.35.2, BA 7**
+
+> **DIE BEDINGUNG IST AM 19. SEPTEMBER 2026 EINGETRETEN.** *Hier stand: „er
+> gehört der Runde, die `counterproof.js` das nächste Mal anfasst".* **0.35.2
+> fässt die Datei an** — 1087 und 1088 fallen. **Gegenprobe 330 fällt nicht,
+> sie wird berichtigt:** dieselbe Nummer, derselbe Name, ein Ersatz, der die
+> Klammer mitnimmt.
 
 **GEGENPROBE 330** *(„Der Erklärkasten verweist wieder auf die Spalte
 dahinter")* **setzt**
@@ -2237,6 +2254,10 @@ sie nie jemand gemessen.*
 1. **Die zwei Löcher schließen:** `public/style.css` in die Liste des
    Wächters, und den SQL-Text in `db.js` als Kommentar behandeln. Danach
    steht die wirkliche Zahl im Prüfstand.
+   > **SCHRITT 1 IST AM 19. SEPTEMBER 2026 IN DIE 0.35.2 GEGANGEN, BA 9.**
+   > *Gemessen stehen dahinter **15 Verweise**: `public/style.css` 8, `db.js` 7
+   > (Zeilen 87, 101, 158, 181, 589, 673, 756). Die Dateiliste wächst von 13
+   > auf 14 ausgelieferte Dateien.* **Schritt 2 und 3 bleiben offen.**
 2. **Die Verweise streichen**, die auf ein Papier zeigen — Rundennummern als
    Herkunft, Befundnummern, Fragetafelnummern, `Doku/`-Pfade. **Die
    Begründung bleibt, die gemessene Zahl bleibt**, und die Versionsnummer

@@ -11,8 +11,19 @@ dieselben Dateien anfassen.**
 > ist der einzige Bauabschnitt, der Verhalten ändert)* **und Zeitstempel im
 > Containerprotokoll** *(BA 5)*.
 
-> **GEMESSEN WURDE AUF DEM STAND `803a7f9` (0.35.1).** Prüfstand **7007 von
-> 7007**, 363 Gruppen, 1036 Rückbauten, Fingerprint `10017d45`.
+> **NACHGETRAGEN AM 19. SEPTEMBER 2026: vier offene Punkte kommen dazu**, damit
+> die Runde aufräumt — **BA 6 bis BA 9**, Punkt 33, 35, 25 und Schritt 1 von
+> Punkt 43. *Alle vier fassen Dateien an, die die Runde ohnehin anfasst; drei
+> von ihnen sind Lücken in Wächtern, und das ist dieselbe Art Arbeit wie BA 2.*
+> **Damit sind es zehn Bauabschnitte, und die Runde ist nicht mehr klein.**
+
+> **GEMESSEN WURDE AUF DEM STAND `8e404f4` (0.35.1 mit dem Wächter über die
+> Versionsnummern).** Prüfstand **7013 von 7013**, 364 Gruppen, 1038
+> Rückbauten, Fingerprint `10017d45`.
+>
+> *Die Zahlen der ersten Fassung dieses Auftrags — 7007, 363 Gruppen, 1036
+> Rückbauten — galten dem Stand `803a7f9`. Dazwischen liegen der Wächter über
+> die Versionsnummern und seine zwei Rückbauten.*
 
 ---
 
@@ -44,11 +55,22 @@ die Tafel steht in Punkt 45 des Sammelblatts. Also geht sie mit.
 | Routen ohne Rufer im Browser | 0 | **0** |
 | Schlüssel je Sprachdatei | 1.212 | **1.210** |
 | die Zahl in `test/source.js` | 1.300 | **1.298** |
-| Rückbauten | 1.036 | **1.034 + die neuen** |
+| Rückbauten | 1.038 | **1.036 + die neuen** |
 | Verweise auf `Doku/` in ausgelieferten Dateien | 1 | **0** |
 
+**Und die vier Punkte, die am 19. September 2026 dazugekommen sind:**
+
+| | heute | nachher |
+|---|---:|---:|
+| Stolpersteinverweise, die kein Wächter sieht | **15** *(`public/style.css` 8, `db.js` 7)* | **0** |
+| Dateien in der Liste des Stolperstein-Wächters | 13 ausgeliefert | **14** |
+| deutsche `id` über `.id = '…'` in `public/app.js` | **6** | **0** |
+| Quellen der Gestaltprobe | Aufbau und Stilblatt | **und `.id = '…'`** |
+| Gegenproben, die abreißen statt rot zu werden | 1 *(Nummer 330)* | **0** |
+| `[Kriterion]`-Zeilen, die einen Schlüssel statt eines Satzes zeigen | 1 | **0** |
+
 **Der Fingerprint ändert sich** — `server.js`, `public/app.js`,
-`public/style.css`, die drei Sprachdateien und `package.json`.
+`public/style.css`, `db.js`, die drei Sprachdateien und `package.json`.
 
 ---
 
@@ -226,7 +248,91 @@ es ändert.
 > Dass beide verschieden aussehen, ist dann keine Unklarheit, sondern steht am
 > Versatz: `+02:00` sagt, welche der beiden Uhren gemeint ist.
 
-### BA 6 — Papiere
+### BA 6 — Die Startzeile übersetzt ihren Grund (Punkt 33)
+
+**Auf jeder Installation ohne Sicherungsordner steht im Containerprotokoll:**
+
+```
+[Kriterion] Sicherungsort: aus — server.backupDirNotSet
+```
+
+`backupState()` liefert den Grund seit 0.24.0 als Schlüssel und nicht als
+Satz. Das ist richtig — er reist mit seinen Werten, und wer ihn ZEIGT,
+übersetzt ihn. Die Karte „Sicherung" tut das. **Die Startzeile schreibt
+`situation.reason` roh ins Protokoll.**
+
+> **DIESER PUNKT WAR ALS V3 VERWORFEN**, mit dem Grund: er gehört der Runde,
+> die `backupState()` anfasst. **BA 5 fasst jede `[Kriterion]`-Zeile an, auch
+> diese** — damit ist der Grund weg, und der Punkt geht mit.
+
+### BA 7 — Eine Gegenprobe macht rot, statt abzureißen (Punkt 35)
+
+**Gegenprobe 330** setzt in `public/app.js`
+
+```
+${tMark('entry.calcStepsHint', 'entry.grade',   →   ${tH('entry.calcStepsHint', { word: '',
+```
+
+und lässt die schließende Klammer des Rufs stehen. Daraus wird
+`${tH(…, { word: '', { extra: … })}`, und die Datei lädt danach nicht mehr.
+**Der Treiber meldet ABGERISSEN und nicht ROT.** *Ein Rückbau, der die Datei
+zerbricht, belegt nichts: er zeigt nicht, dass die Prüfung greift, sondern
+nur, dass kaputter Code kaputt ist.*
+
+> **DIESER PUNKT STAND ALS F3 IN DER FRAGETAFEL.** Er ist jetzt ein
+> Bauabschnitt: die Runde fasst `counterproof.js` ohnehin an — 1087 und 1088
+> fallen, 1099 und 1100 sind mit 0.35.1 dazugekommen.
+
+### BA 8 — Sechs deutsche `id` und die drei Zeilen, die sie sichtbar machen (Punkt 25)
+
+**Die Gestaltprobe** *(`testbench.js`, „deutsch ist keine id, keine Klasse,
+keine Variable")* **liest `id="…"` aus dem Aufbau und alles, was im Stilblatt
+steht.** Eine `id`, die `public/app.js` mit `element.id = '…'` setzt und die in
+keiner Stilblattregel vorkommt, steht in keiner der beiden Quellen. **Der
+Wächter sagt „deutsch ist keine id" und meint „deutsch ist keine id, die ich
+sehe".**
+
+**Nachgemessen am 19. September 2026 — und der Punkt ist kleiner geworden,
+seit er 0.28.1 aufgeschrieben hat:**
+
+| | Stand 0.28.1 | heute |
+|---|---:|---:|
+| deutsche `id` über `.id = '…'` | 7 | **6** — `f-weitere` gibt es nicht mehr |
+| Fundstellen je `id` | „acht an `f-abgelehnt` allein" | **je eine, in `public/app.js`** |
+| in `testbench.js`, `counterproof.js`, `public/style.css` | mehrere | **keine** |
+
+Die sechs: `f-abgelehnt`, `f-kat-ohne`, `f-tagzeile`, `filter-zurueck`,
+`ansicht-neu`, `zug-weg-auf`. Daneben stehen fünf englische (`f-fav`,
+`f-sort`, `f-sort-dir`, `nassign`, `two-factor-codebox`).
+
+**Damit sind es sechs einzeilige Umbenennungen und drei Zeilen im Wächter** —
+nicht mehr „mechanisch, aber breit". **Die Reihenfolge ist zwingend: erst
+umbenennen, dann den Wächter erweitern**, sonst ist die Runde dazwischen rot.
+
+### BA 9 — Die zwei Löcher des 0.34.3-Sweeps (Punkt 43, Schritt 1)
+
+**Der Wächter „Kein Stolpersteinverweis mehr"** liest dreizehn ausgelieferte
+Dateien und die des Prüfstands. **Zwei Stellen entgehen ihm, und dahinter
+stehen 15 Verweise:**
+
+| | | gemessen am 19. September 2026 |
+|---|---|---:|
+| `public/style.css` | steht nicht in seiner Dateiliste | **8** |
+| `db.js` | die Verweise stehen als `-- Stolperstein 47` **innerhalb des SQL-Schematexts**; der Segmentierer hält einen SQL-Kommentar in einem Template-String für Text | **7** *(Zeilen 87, 101, 158, 181, 589, 673, 756)* |
+
+**Das ist derselbe Griff wie beim Wächter über die Versionsnummern**, der mit
+0.35.1 entstanden ist: dort sind `.env.example`, `public/style.css` und
+`public/index.html` zum ersten Mal in eine Dateiliste gekommen. **Hier geht es
+um dieselben Dateien und dieselbe Lücke.**
+
+**Der Weg:** `public/style.css` in die Liste, den SQL-Text in `db.js` als
+Kommentar behandeln, die 15 Verweise streichen — **die Begründung bleibt
+stehen, nur die Nummer fällt.** Danach steht die wirkliche Zahl im Prüfstand.
+
+*Schritt 2 und 3 von Punkt 43 bleiben offen: die 772 Versionsnummern und
+`tools/comments.js`, das das Stilblatt mitzählt.*
+
+### BA 10 — Papiere
 
 Änderungsprotokoll 0.35.2, CHANGELOG-Eintrag **mit Kasten** (siehe Abschnitt
 7), Fahrplanzeile auf GEBAUT, Projektstand, `README.md`:760.
@@ -245,8 +351,12 @@ es ändert.
    Zeit verschiebt sich.
 2. Die Zahl der Prüfungen fällt — und zwar **namentlich**: jede weggefallene
    Prüfung steht im Protokoll.
-3. Die Zahl der Rückbauten fällt um zwei und steigt um die des neuen Wächters.
-   **1087 und 1088 fallen namentlich.**
+3. Die Zahl der Rückbauten fällt um zwei und steigt um die der neuen Wächter.
+   **1087 und 1088 fallen namentlich.** *Gegenprobe 330 fällt nicht, sie wird
+   berichtigt — sie trägt dieselbe Nummer und denselben Namen.*
+3a. **Die Zahlen der beiden Wächter steigen namentlich:** die Dateiliste des
+   Stolperstein-Wächters von 13 auf 14 ausgelieferte Dateien, und die
+   Gestaltprobe bekommt eine dritte Quelle.
 4. Gegenprobenlauf über die neuen und die berührten Rückbauten, **0 stumm**.
 5. Der Fingerprint ändert sich — erwartet.
 6. Nach dem Lauf: `node tools/publish.js --trocken` meldet 0 Verweise auf
@@ -260,7 +370,7 @@ es ändert.
 |---|---|---|
 | **F1** | **Ist ein Routenausbau eine PATCH-Runde?** 0.35.0 hat `GET /api/health` ausgebaut und war **MINOR**, mit Kasten im CHANGELOG | *offen.* Die Nummer 0.35.2 kommt vom Betreiber; die Frage gehört trotzdem gestellt |
 | **F2** | **Fällt der tote `itemId`-Zweig in derselben Runde?** `exchangeParts()` und `exchangeEnvelopeBytes()` bekommen `itemId` danach nur noch als `null` — je ein `onlyOne`, `values`, `and()`, `wo()` und **11 Einsetzungen** in den Abfragen | *dafür:* er bleibt sonst liegen und die nächste Messung findet ihn wieder. *dagegen:* die Runde wächst von zwölf auf rund fünfzig Zeilen und fasst drei Abfragen an, die der volle Export braucht |
-| **F3** | **Punkt 35** — Gegenprobe 330 reißt `public/app.js` ab, statt eine Prüfung rot zu machen. Laut Sammelblatt gehört sie der Runde, die `counterproof.js` anfasst, und das ist diese | *mitnehmen,* wenn F1 nicht dagegen spricht |
+| ~~**F3**~~ | ~~**Punkt 35**~~ | **BEANTWORTET am 19. September 2026: mitnehmen.** Er ist jetzt **BA 7** |
 | **F4** | **Punkt 34** — der Grund eines gescheiterten Versands steht in der Sprache des Empfängers. `e.reason` entsteht in `mail.js` als fertiger Satz und müsste erst als Schlüssel reisen | *messen, bevor entschieden wird.* Ist es nicht klein, geht es in die Zeile ohne Nummer im Fahrplan |
 | **F5** | **Bündeln oder absagen?** Der Browser kann bei mehr als `PHOTO_COUNT` Bildern in mehreren Anfragen schicken — oder absagen und es sagen | *bündeln.* Eine Obergrenze je Eintrag gibt es nicht; die 40 ist eine Schranke der Anfrage. Absagen hieße, eine Grenze zu erfinden, die es nicht gibt. **Die übersetzte Absage wird trotzdem gebaut** — sie fängt jeden anderen Weg zur Route |
 | **F6** | **Folgt das Containerprotokoll `TZ`, oder bleibt alles UTC?** | *`TZ` folgen, gespeicherte Zeiten bleiben UTC.* `TZ=Europe/Berlin` in `docker-compose.example.yml`. Ohne `TZ` steht dort `+00:00` und der Versatz sagt es selbst |
@@ -287,12 +397,14 @@ nichts, er selbst wird entfernt. Der Genitiv würde die Bedeutung ändern.
 |---|---|---|
 | **V1** | **Nur den Knopf ausbauen und die Route lassen** | das führte auf den Stand vor 0.35.0 zurück — eine Route ohne Rufer, die die nächste Messung wieder findet. *Entscheidung des Betreibers: die Route geht mit* |
 | **V2** | **Den Einzelexport behalten und stattdessen das Handbuch erweitern** | die Frage war, welchen Nutzen das Projekt davon hat. Es hat keinen |
-| **V3** | **Punkt 33** — die Startzeile nennt `server.backupDirNotSet` statt eines Satzes | laut Sammelblatt gehört er der Runde, die `backupState()` anfasst. Diese Runde fasst es nicht an |
+| ~~**V3**~~ | ~~**Punkt 33**~~ | **AUFGEHOBEN am 19. September 2026.** Der Grund war: er gehört der Runde, die `backupState()` anfasst. **BA 5 fasst jede `[Kriterion]`-Zeile an, also auch diese** — er ist jetzt **BA 6** |
 | **V4** | **Punkt 38** — die Kurzform der Zählzeile in der Kachel | Oberfläche, und im Sammelblatt steht „erst messen, dann entscheiden". Gemessen ist nichts |
-| **V5** | **Punkt 27** — der Aufräumer des Prüfstands auf mehreren Spuren | `testbench.js`, und die vierte Zählung vom 17. September 2026 steht erst seit heute da. Eine eigene Runde, keine Mitnahme |
+| **V5** | **Punkt 27** — der Aufräumer des Prüfstands auf mehreren Spuren | `testbench.js`, und diese Runde fässt die Datei nicht an. *Er färbt weiterhin jeden Gegenprobenlauf mit, zuletzt in 2 von 6 Läufen auf zwei Spuren* |
+| **V6** | **Punkt 26** — die Restprobe sieht feste Wörter nicht, die mitten in einer Vorlage stehen | im Sammelblatt steht: „die Zahl zuerst messen, dann entscheiden — es können null sein und es können dreißig sein". **Eine Runde, die dreißig Sätze in drei Sprachen anlegt, ist keine Aufräumrunde** |
+| **V7** | **Punkt 21** — `express` 5 und die zwei Meldungen von `npm audit` | Abhängigkeiten stehen als eigener Punkt in **0.36.0** |
 
-**V3 bis V5 sind nicht erledigt, sondern nicht in dieser Runde.** Sie stehen im
-Fahrplan in der Zeile ohne Nummer und bleiben im Sammelblatt offen.
+**V4 bis V7 sind nicht erledigt, sondern nicht in dieser Runde.** Sie bleiben im
+Sammelblatt offen; V4 und V5 stehen im Fahrplan in der Zeile ohne Nummer.
 
 ---
 
@@ -316,7 +428,7 @@ Bauabschnitt**. Kein Fächer, keine Entwurfsrunde.
 | Phase | Form |
 |---|---|
 | **Vorlauf** | die Suchtexte der 1.036 Rückbauten gegen ihre Dateien halten, **bevor** etwas fällt — derselbe Abgleich, der in 0.35.1 drei stumme Rückbauten gefunden hat |
-| **BA 1 bis BA 5** | je ein Schreiber, je ein voller Lauf, je ein Commit |
+| **BA 1 bis BA 9** | je ein Schreiber, je ein voller Lauf, je ein Commit |
 | **BA 4 zuerst** | er ist der einzige, der einen Fehler behebt, den der Betreiber heute hat |
 | **Gegenproben** | `counterproof.js` über die neuen und die berührten, zwei Spuren |
 | **Vor dem Push** | `npm test` vollständig, das Ergebnis wird genannt |
