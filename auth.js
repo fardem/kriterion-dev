@@ -441,9 +441,8 @@ if (process.env.AUTH_USER || process.env.AUTH_PASSWORD) {
 }
 
 // --- Bremse gegen Durchprobieren ---------------------------------------
-// Ohne Sperre laesst sich ein Passwort beliebig oft raten.
-// Die Zaehler liegen in login_attempts und nicht im Arbeitsspeicher: ein
-// Neustart setzte sonst jede Sperre auf null.
+// Ohne Sperre laesst sich ein Passwort beliebig oft raten. Die Zaehler liegen
+// in login_attempts: im Arbeitsspeicher setzte ein Neustart sie auf null.
 const SOFT_LIMIT = 5;    // ab hier verzoegerte Antwort
 const HARD_LIMIT = 10;   // ab hier gesperrt -- NUR bei der IP
 const BLOCK_SECONDS = 5 * 60;

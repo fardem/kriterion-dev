@@ -415,8 +415,8 @@ async function run() {
       ['test/ui_system.js', 692],
       ['test/ui_translator.js', 104],
       ['counterproof.js', 1575],
-      ['server.js', 1534],
-      ['auth.js', 295],
+      ['server.js', 1536],
+      ['auth.js', 294],
       ['db.js', 272],
       ['mail.js', 48],
       ['keys.js', 50],
@@ -430,7 +430,7 @@ async function run() {
       ['public/app.js', 1857],
       ['public/theme.js', 3],
     ];
-    const COMMENT_TOTAL = { comment: 15082, code: 61619 };
+    const COMMENT_TOTAL = { comment: 15083, code: 61620 };
     check('Der Waechter sieht alle fuenfunddreissig Dateien',
       crAll.each.length === 35 && COMMENT_ROWS.length === 35,
       `${crAll.each.length} gemessen, ${COMMENT_ROWS.length} genannt`);

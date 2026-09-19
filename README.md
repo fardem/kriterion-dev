@@ -480,6 +480,38 @@ sperrt die Adresse damit heute — es liest das Zugriffsprotokoll des Proxys.
 **Das Sicherheitsprotokoll der Installation räumt sich selbst** — es hält 180
 Tage, geprüft beim Start und jedes Mal, wenn die Karte geöffnet wird.
 
+**Die Sperre übersteht einen Neustart.** Die Zähler liegen in der Datenbank,
+nicht im Arbeitsspeicher; eine laufende Sperre gilt weiter, auch wenn der
+Container zwischendurch neu anläuft. Eine Zeile, die eine Stunde ohne neuen
+Versuch steht, wird beim Start und stündlich geräumt.
+
+## Ein eigenes Skript an der Schnittstelle
+
+**Jede schreibende Anfrage braucht einen Token gegen fremde Formulare.** Der
+Browser macht das von selbst; ein eigenes Skript muss es nachbauen.
+
+Der Server setzt den Token bei der Anmeldung als zweiten Cookie neben den
+Sitzungscookie: `kriterion_csrf`, hinter einem Proxy über HTTPS
+`__Host-kriterion_csrf`. **Er trägt kein `HttpOnly`** — anders wäre er nicht
+lesbar. Sein Wert gehört unverändert in die Kopfzeile `x-csrf-token`:
+
+```bash
+curl -c cookies.txt -X POST http://<server>:3199/api/login \
+  -H 'content-type: application/json' \
+  -d '{"user":"anna","password":"…"}'
+
+TOKEN=$(awk '/kriterion_csrf/ { print $7 }' cookies.txt)
+
+curl -b cookies.txt -X POST http://<server>:3199/api/items \
+  -H 'content-type: application/json' -H "x-csrf-token: $TOKEN" \
+  -d '{"title":"Ein Eintrag"}'
+```
+
+**Ohne die Kopfzeile antwortet jede schreibende Route mit 403.** Lesende
+Anfragen brauchen sie nicht, und die Wege vor der Anmeldung — Einrichtung,
+Anmeldung, Abmeldung, die beiden Tokenwege und die Selbstanmeldung — ebenso
+wenig.
+
 ## Dateien am Eintrag — wie sie abgesichert sind
 
 **Eine Installation darf niemals so ausgeliefert werden, dass der Browser sie als
@@ -854,6 +886,11 @@ Start eine leere Neuinstallation vermuten.
 - `sessions` — aktive Anmeldungen, mit `user_id` am Benutzer. In der Karte
   **„Meine Sitzungen"** sieht jeder seine eigenen; adressiert werden sie über
   eine **gerechnete Kennung**, nie über den Sitzungsschlüssel selbst
+- `login_attempts` — die **Bremse gegen Durchprobieren**: je Adresse und je
+  getipptem Namen ein Zähler, bei der Adresse dazu das Ende einer Sperre.
+  Sie liegt in der Datenbank und nicht im Arbeitsspeicher, damit ein Neustart
+  sie nicht aufhebt; eine Zeile ohne neuen Versuch wird nach einer Stunde
+  geräumt
 - `tokens` — Einladungslinks und Links zum Zurücksetzen. **Gespeichert ist nur
   der SHA-256 des Links, nie er selbst**; dazu Benutzer, Anlass, Ablauf und
   wann er eingelöst wurde. Sieben Tage haltbar, einmal gültig; abgelaufene

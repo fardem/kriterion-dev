@@ -30,6 +30,33 @@ ihre deutschen Abschnittsüberschriften bleiben.*
 
 *Hier wird mitgeschrieben, während gebaut wird.*
 
+## [0.36.0] - 2026-09-19
+
+*Drei Sicherheitslücken aus der Durchsicht vom 15. September 2026 — und die
+Automatik für die vierte, die sich von selbst erledigt hatte.*
+
+> **Ein eigenes Skript, das schreibend auf die Schnittstelle zugreift, muss ab
+> dieser Runde einen Token mitschicken.** Er steht im Cookie
+> `kriterion_csrf` (hinter einem Proxy `__Host-kriterion_csrf`) und gehört
+> unverändert in die Kopfzeile `x-csrf-token`. **Ohne ihn antwortet jede
+> schreibende Route mit 403.** Lesende Zugriffe ändern sich nicht, die
+> Anmeldung ändert sich nicht, und der Browser macht es von selbst.
+>
+> **Eine laufende Anmeldesperre übersteht jetzt einen Neustart.** Bis dahin
+> war sie nach jedem Neustart des Containers aufgehoben.
+
+Fingerprint `88f9dcfb` — davor `0fc33e91`.
+
+### Hinzugefügt
+
+- **Jede schreibende Route verlangt einen Token gegen fremde Formulare.** Bis dahin schützte allein `SameSite=Lax`, und das lässt eine Anfrage aus einer Unterseite derselben Instanz durch.
+- **`npm audit` färbt den Prüflauf rot**, sobald eine Lücke gemeldet wird. Ohne Netz wird die Gruppe übersprungen und sagt es.
+
+### Geändert
+
+- **Die Anmeldesperre liegt in der Datenbank statt im Arbeitsspeicher.** Ein Neustart setzte bis dahin jeden Zähler auf null.
+- **Jeder Wert, der in die Oberfläche geschrieben wird, geht durch einen Maskierer.** Ein Wächter hält es fest.
+
 ## [0.35.2] - 2026-09-19
 
 *Eine Route, die das Projekt nicht braucht, geht raus. Dazu zwei Meldungen aus

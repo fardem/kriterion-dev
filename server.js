@@ -648,7 +648,10 @@ app.use((req, res, next) => {
   /* OHNE SITZUNG ENTSCHEIDET DIE ANMELDUNG: ein fremdes Formular ohne Cookie
      kommt an keine Zeile heran, und 403 statt 401 verschoebe die Auskunft. */
   if (!token) return next();
-  if (CSRF_FREE_SET.has(`${req.method} ${req.path}`)) return next();
+  /* Der Schraegstrich am Ende faellt weg: express fuehrt `/api/login/` auf
+     dieselbe Route, und die Ausnahme gilt der Route. */
+  const where = req.path.length > 1 ? req.path.replace(/\/+$/, '') : req.path;
+  if (CSRF_FREE_SET.has(`${req.method} ${where}`)) return next();
   if (auth.csrfOk(req, token)) return next();
   res.status(403).json({ error: t(localeOf(req), 'server.deniedOrigin') });
 });
