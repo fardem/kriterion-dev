@@ -4,7 +4,7 @@ const app = document.getElementById('app');
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 
 /* ================= Die Sprache ================= */
-/* TEXT IST DATEN UND NICHT PROGRAMM -- 0.24.0, Bauabschnitt 1. */
+/* TEXT IST DATEN UND NICHT PROGRAMM. */
 let LANGUAGE = 'en';
 let LOCALE = 'en-GB';
 let TEXTS = {};
@@ -17,7 +17,7 @@ let LANGUAGE_DEFAULT = 'en';
 /* EINMAL GEBAUT UND NICHT JE AUFRUF. `new Intl.PluralRules(...)` je Text waere
    bei 46 Mehrzahlstellen und jedem Neuzeichnen eine gut sichtbare Rechnung. */
 let PLURAL = new Intl.PluralRules(LOCALE);
-/* WELCHE FORM HINTER EINER ZAHL STEHT -- 0.31.4, und die Auskunft kommt aus
+/* WELCHE FORM HINTER EINER ZAHL STEHT, und die Auskunft kommt aus
    der SPRACHDATEI und nicht von hier. */
 let AFTER_NUMBER = 'plural';
 
@@ -49,14 +49,13 @@ function tH(key, values = {}) {
   return fillSentence(languageSentence(key, values), values, true);
 }
 
-/* EIN SATZ MIT EINEM HERVORGEHOBENEN STUECK -- 0.25.4. */
-/* SEIT 0.31.1 NIMMT ER AUCH WERTE. */
+/* EIN SATZ MIT EINEM HERVORGEHOBENEN STUECK. */
+/* NIMMT ER AUCH WERTE. */
 /* DIE WERTE GEHEN AN BEIDE -- an den Satz UND an das hervorgehobene Wort. */
 const tMark = (key, wordKey, values) => tH(key, { ...values, word: '\u0001' })
   .replace('\u0001', `<strong>${tH(wordKey, values)}</strong>`);
 
-/* MEHRERE STUECKE IN EINEM SATZ, UND SIE MUESSEN KEINE SCHLUESSEL SEIN --
-   0.31.1. */
+/* MEHRERE STUECKE IN EINEM SATZ, UND SIE MUESSEN KEINE SCHLUESSEL SEIN. */
 const tMarks = (key, parts, values) => {
   const names = Object.keys(parts), marks = {};
   names.forEach((n, i) => { marks[n] = `\u0001${i}\u0001`; });
@@ -65,7 +64,7 @@ const tMarks = (key, parts, values) => {
   return sentence;
 };
 
-/* DAS MERKMAL DER ABGELAUFENEN SITZUNG -- 0.31.1, und es ist ein BEFUND und
+/* DAS MERKMAL DER ABGELAUFENEN SITZUNG, und es ist ein BEFUND und
    keine Verbesserung. */
 const SESSION_GONE = 'kriterion:session-gone';
 
@@ -84,7 +83,7 @@ function plural(n, one, other) {
   return PLURAL.select(Number(n) || 0) === 'one' ? one : other;
 }
 
-/* DASSELBE, ABER MIT EINER ZAHL DAVOR -- 0.31.4. `plural()` gilt ueberall
+/* DASSELBE, ABER MIT EINER ZAHL DAVOR. `plural()` gilt ueberall
    dort, wo die Form allein von der Zahl abhaengt. */
 function counted(n, one, other) {
   return AFTER_NUMBER === 'one' ? one : plural(n, one, other);
@@ -107,16 +106,15 @@ async function loadLanguage(code) {
   LOCALE = data._locale;
   PLURAL = new Intl.PluralRules(LOCALE);
   /* NUR DIE BEIDEN BEKANNTEN WERTE ZAEHLEN; alles andere -- auch ein
-     Tippfehler -- faellt auf `plural` und damit auf das Verhalten von vor
-     0.31.4. */
+     Tippfehler -- faellt auf `plural`. */
   AFTER_NUMBER = data._afterNumber === 'one' ? 'one' : 'plural';
   TEXTS = data;
-  /* UND DIE VORGABE DES VOKABULARS -- 0.24.0. */
+  /* UND DIE VORGABE DES VOKABULARS. */
   V = { ...vocabularyDefault(), ...V };
   return data;
 }
 
-/* ZWEI DATEIEN, ABER NUR WENN ES SEIN MUSS -- 0.24.3, Bauabschnitt 3. */
+/* ZWEI DATEIEN, ABER NUR WENN ES SEIN MUSS. */
 async function loadLanguages(wanted) {
   await loadLanguage(LANGUAGE_DEFAULT);
   if (!wanted || wanted === LANGUAGE_DEFAULT) return;
@@ -124,14 +122,14 @@ async function loadLanguages(wanted) {
   catch (e) { console.error(`languages/${wanted}.json`, e); }
 }
 
-/* HIER STAND BIS 0.24.3 DAS GEDAECHTNIS DES GERAETS (`kriterion.language`). */
+/* HIER STAND DAS GEDAECHTNIS DES GERAETS (`kriterion.language`). */
 /* WAS AM WURZELELEMENT STEHT -- daran haengen Silbentrennung und Vorleser. */
 const applyLanguage = () => { document.documentElement.lang = LANGUAGE; };
-/* DIE LOCALE DES VERGLEICHS -- 0.24.3, Bauabschnitt 4, und sie ist NICHT die
+/* DIE LOCALE DES VERGLEICHS, und sie ist NICHT die
    des Lesers (LOCALE). */
 const compareLocale = () => TEXTS_FALLBACK._locale || LOCALE;
 
-/* DIE VORGABEN DES VOKABULARS -- 0.24.3, Bauabschnitt 6. */
+/* DIE VORGABEN DES VOKABULARS. */
 const VOCABULARY_PREFIX = 'vocabulary.';
 const vocabularyDefault = () => Object.fromEntries(
   Object.entries(TEXTS)
@@ -143,8 +141,8 @@ function fmtDate(iso) {
   const d = new Date(iso.replace(' ', 'T') + 'Z');
   return d.toLocaleString(LOCALE, { day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit' });
 }
-/* HIER STAND BIS 0.17.0 fmtTagKurz() -- die Kurzform „19.08." fuer die
-   Beschriftung der Pille „Neu seit ...". */
+/* HIER STAND fmtTagKurz() -- die Kurzform „19.08." fuer die Pille
+   „Neu seit ...". */
 function fmtDay(day) {
   const d = new Date(day + 'T12:00:00');
   return d.toLocaleDateString(LOCALE, { day:'2-digit', month:'2-digit', year:'numeric' });
@@ -152,7 +150,7 @@ function fmtDay(day) {
 function weekday(day) {
   return new Date(day + 'T12:00:00').toLocaleDateString(LOCALE, { weekday:'long' });
 }
-/* EINE ZAHL, WIE SIE DIE SPRACHE SCHREIBT -- 0.24.0, Bauabschnitt 4. */
+/* EINE ZAHL, WIE SIE DIE SPRACHE SCHREIBT. */
 function number(n, digits = 0, atMost = digits) {
   const value = Number(n);
   return new Intl.NumberFormat(LOCALE, { minimumFractionDigits: digits,
@@ -181,8 +179,7 @@ function exportSum(ex, s) {
 const exportTotal = (stats) => exportSum(stats && stats.export,
   { withPhotos: true, withFiles: true, withVideos: true });
 
-/* DER FUENFTE WERT IST MIT 0.24.5 WEGGEFALLEN, und das ist die Reparatur von
-   D1 an ihrer Wurzel. */
+/* DER FUENFTE WERT IST WEGGEFALLEN. */
 /* DER SCHUTZ GEGEN FREMDE FORMULARE -- der Wert steht in einem Cookie ohne
    HttpOnly, damit genau diese Zeile ihn lesen kann; der Sitzungscookie
    bleibt dem Skript verborgen. */
@@ -197,7 +194,7 @@ function csrfHeader() {
 }
 
 async function api(method, url, body, isForm = false) {
-  /* `Accept-Language` AN JEDER ANFRAGE -- 0.24.3, Bauabschnitt 4. */
+  /* `Accept-Language` AN JEDER ANFRAGE. */
   const opts = { method, credentials: 'same-origin',
                  headers: { 'Accept-Language': LANGUAGE, ...csrfHeader() } };
   if (body !== undefined) {
@@ -214,7 +211,7 @@ async function api(method, url, body, isForm = false) {
   return res.status === 204 ? null : res.json();
 }
 
-/* `action`: { text, tu } -- ein Knopf in der Meldung, 0.22.0 (E16). */
+/* `action`: { text, tu } -- ein Knopf in der Meldung. */
 function toast(msg, isErr = false, action = null) {
   document.querySelectorAll('.toast').forEach(m => m.remove());
   const el = document.createElement('div');
@@ -253,7 +250,7 @@ const ICON_SEARCH = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none"
 /* DIE GLOCKE. */
 const ICON_BELL = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8.5a6 6 0 1 0-12 0c0 5.2-2 6.5-2 6.5h16s-2-1.3-2-6.5"/><path d="M13.7 19.5a2 2 0 0 1-3.4 0"/></svg>`;
 const ICON_SYS = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.6 1.6 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.6 1.6 0 0 0-1.8-.3 1.6 1.6 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1A1.6 1.6 0 0 0 9 19.4a1.6 1.6 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.6 1.6 0 0 0 .3-1.8 1.6 1.6 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1A1.6 1.6 0 0 0 4.6 9a1.6 1.6 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.6 1.6 0 0 0 1.8.3H9a1.6 1.6 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.6 1.6 0 0 0 1 1.5 1.6 1.6 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.6 1.6 0 0 0-.3 1.8V9a1.6 1.6 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.6 1.6 0 0 0-1.5 1z"/></svg>`;
-/* DIE ZEICHEN DER ZEILENAKTIONEN -- 0.22.0 (Ideentafel N1). */
+/* DIE ZEICHEN DER ZEILENAKTIONEN. */
 const char = (paths, strokeWidth = 1.8) =>
   `<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="${strokeWidth}" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${paths}</svg>`;
 const ICON_X = char('<path d="M6 6l12 12"/><path d="M18 6L6 18"/>');
@@ -264,32 +261,28 @@ const ICON_BOX_CHECK = char('<rect x="4" y="4" width="16" height="16" rx="3"/><p
 const ICON_RESTORE = char('<path d="M9 14L4 9l5-5"/><path d="M4 9h11a5 5 0 0 1 0 10h-4"/>');
 /* Das Zeichen „zuruecksetzen" an der Sternzeile -- ein Kreis, der zurueck
    laeuft, und ausdruecklich kein Kreuz: meine Sterne werden entfernt, nicht
-   geloescht (Woerterbuch, Konzept 4.3). */
+   geloescht. */
 const ICON_RESET = char('<path d="M4.5 12a7.5 7.5 0 1 0 2.6-5.7"/><path d="M4 4v5h5"/>');
 const ICON_LINK = char('<path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1.5 1.5"/><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1.5-1.5"/>');
 const ICON_KEY = char('<circle cx="8" cy="15.5" r="4"/><path d="M11 12.5L20 3.5"/><path d="M17 6.5l2.5 2.5"/><path d="M14.5 9l2 2"/>');
 const ICON_LOCK = char('<circle cx="12" cy="12" r="8.5"/><path d="M6 6l12 12"/>');
 const ICON_PIN = char('<path d="M9 4h6l-1 6 2.5 2v2h-9v-2l2.5-2z"/><path d="M12 14v6.5"/>');
-/* DAS ZEICHEN DES BERICHTS -- 0.32.1. */
+/* DAS ZEICHEN DES BERICHTS. */
 const ICON_REPORT = char('<path d="M5 21V4.5"/><path d="M5 5.5h10.5l-1.6 3.2 1.6 3.3H5"/>');
-/* DAS ZEICHEN „Eintrag entfernen" -- 0.25.0 (F5). */
+/* DAS ZEICHEN „Eintrag entfernen". */
 const ICON_ERASE = char('<path d="M8.5 20H20"/><path d="M14.5 5.5l4 4-8 8H6.5l-2-2z"/>');
-/* ---- DER HAKEN NACH UNTEN UND NACH OBEN -- 0.30.2, Befund 1 ---- */
+/* ---- DER HAKEN NACH UNTEN UND NACH OBEN ---- */
 const ICON_MORE_DOWN = char('<path d="M6 9.5L12 15.5l6-6"/>', 1.7);
 const ICON_MORE_UP   = char('<path d="M6 14.5L12 8.5l6 6"/>', 1.7);
-/* DER RUECKWEG IST EIN PFEIL MIT SCHAFT UND KEIN WINKEL -- und das ist kein
-   Geschmack, sondern ein Befund aus dem Augenschein vom 11. September 2026.
-   ERST TRUGEN BEIDE DENSELBEN WINKEL: der Rueckweg zur Uebersicht und der
-   Pfeil „ein Eintrag zurueck" standen als zwei gleiche Zeichen NEBENEINANDER
-   in derselben Zeile. */
+/* DER RUECKWEG IST EIN PFEIL MIT SCHAFT UND KEIN WINKEL: sonst stehen der
+   Rueckweg zur Uebersicht und der Pfeil „ein Eintrag zurueck" als zwei
+   gleiche Zeichen nebeneinander in derselben Zeile. */
 const ICON_BACK_OUT = char('<path d="M19.5 12H5"/><path d="M11 5.5L4.5 12l6.5 6.5"/>', 1.6);
 
-/* EIN LEERER BEREICH SIEHT GEWOLLT AUS UND NICHT KAPUTT -- 0.22.0 (Ideentafel
-   N3). */
+/* EIN LEERER BEREICH SIEHT GEWOLLT AUS UND NICHT KAPUTT. */
 const emptyState = (sentence) => `<div class="empty-state"><span class="hint">${esc(sentence)}</span></div>`;
 
-/* Die Marke der Instanz — EIN EINGEBAUTES SVG, seit 0.23.0 wieder. UND DAS
-   NIMMT EINE ENTSCHEIDUNG VON 0.9.1 ZURÜCK. */
+/* Die Marke der Instanz — EIN EINGEBAUTES SVG und keine Datei. */
 const MARK = (s = 30) =>
   `<svg class="logo" viewBox="6.5 4.5 19 23" width="${Math.round(s * 19 / 23)}" height="${s}"`
   + ` aria-hidden="true" focusable="false" fill="none" stroke-linecap="round" stroke-width="3">`
@@ -335,7 +328,7 @@ function stars(value, onPick) {
   return w;
 }
 
-/* DER RUECKSETZKNOPF DER STERNZEILE -- 0.22.0 (E15). */
+/* DER RUECKSETZKNOPF DER STERNZEILE. */
 function resetButton(value, onReset) {
   const z = document.createElement('button');
   z.type = 'button';
@@ -367,15 +360,9 @@ function autoGrow(el) {
   return fit;
 }
 
-/* ---- DAS GERUEST EINES DIALOGS -- 0.35.0, BA 4 ----
-   Zwoelf Dialoge bauten dasselbe einzeln auf: Knoten anlegen, Klasse setzen,
-   Aufbau hineinschreiben, an den Rumpf haengen, die drei Schliesswege
-   verdrahten (Knopf, Klick auf den Hintergrund, Escape) und den Tastenhorcher
-   wieder abmelden. Der letzte Schritt fehlte an dreien von ihnen -- der
-   Horcher blieb am Dokument stehen, nachdem der Dialog weg war.
-   `cancel` ist der Wert, den Hintergrundklick und Escape liefern. `keys`
-   bekommt jede Taste vor Escape vorgelegt; gibt es true zurueck, ist sie
-   verbraucht. Zurueck kommen der Knoten und das Schliessen. */
+/* ---- DAS GERUEST EINES DIALOGS -- Knoten, Klasse, Aufbau, die drei
+   Schliesswege und das Abmelden des Tastenhorchers. `cancel` ist der Wert von
+   Hintergrundklick und Escape, `keys` bekommt jede Taste vor Escape. */
 function openModal(html, atClose, cancel, keys) {
   const bd = document.createElement('div');
   bd.className = 'backdrop';
@@ -396,7 +383,7 @@ function openModal(html, atClose, cancel, keys) {
 }
 
 // `kind`: die Farbe des Ja-Knopfs -- 'danger' fuer alles, was wegnimmt, 'accent'
-// fuer eine Handlung, die etwas anlegt (Freischalten, Link erzeugen). 0.22.0.
+// fuer eine Handlung, die etwas anlegt (Freischalten, Link erzeugen).
 function confirmBox(title, text, confirmLabel = t('dialog.delete'), kind = 'danger') {
   return new Promise(resolve => {
     const { bd, done } = openModal(`<div class="modal"><h2>${esc(title)}</h2><p>${esc(text)}</p>
@@ -433,7 +420,7 @@ function nameBox(title, text, fallback = '', okLabel = t('dialog.save'), maxLeng
 }
 
 /* DIE ZWEITE BESTAETIGUNG AM BILDSCHIRM. */
-/* EINE FUNKTION UND KEINE KONSTANTE -- 0.24.0. */
+/* EINE FUNKTION UND KEINE KONSTANTE. */
 const confirmReason = () => t('dialog.appWideHint') +
   t('dialog.confirmPassword');
 
@@ -473,7 +460,7 @@ const confirmField = (title, event) => passwordDialog(title, event,
       t('dialog.recoveryCodeToo')
     : ''), TWO_FACTOR);
 
-/* Dasselbe Fenster fuer die vier Wege des zweiten Faktors selbst, . */
+/* Dasselbe Fenster fuer die vier Wege des zweiten Faktors selbst. */
 const confirmFieldFree = (title, event, withCode) =>
   passwordDialog(title, event, '', withCode === true);
 
@@ -496,7 +483,7 @@ async function secondConfirm(purpose, target, title, event) {
   return true;
 }
 
-/* EIN NEUES PASSWORT FUER EINEN ANDEREN -- 0.22.0, und ausdruecklich KEIN
+/* EIN NEUES PASSWORT FUER EINEN ANDEREN, und ausdruecklich KEIN
    prompt(): dort stand das fremde Passwort im Klartext auf dem Bildschirm. */
 function newPasswordDialog(title, sentence) {
   return new Promise(resolve => {
@@ -517,7 +504,7 @@ function newPasswordDialog(title, sentence) {
   });
 }
 
-/* DAS FENSTER ZUM LOESCHEN EINES BENUTZERS -- 0.22.0, Bauabschnitt 4. */
+/* DAS FENSTER ZUM LOESCHEN EINES BENUTZERS. */
 function userDeleteDialog(name, number, b) {
   return new Promise(resolve => {
     const countWord = (n, singular, more) => (n ? [`${n} ${counted(n, singular, more)}`] : []);
@@ -640,7 +627,7 @@ function showLogin(errMsg) {
     ${SIGNUP ? `<p class="sub login-divider">${tH('login.noAccountYet')}</p>
       <button class="btn login-alt" id="l-request">${tH('login.requestAccess')}</button>` : ''}
     ${/* KEINE SPRACHZEILE UNTER DER MASKE — vom Betreiber am 8. September
-         2026 entschieden, nachdem er 0.24.3 im Feld gesehen hat. */''}
+         2026 entschieden. */''}
   </div></div>`;
   document.title = TITLE_PUBLIC;
   if (SIGNUP) document.getElementById('l-request').onclick = () => showRequest();
@@ -660,7 +647,7 @@ function showLogin(errMsg) {
         return;
       }
       const j = await res.json().catch(() => ({}));
-      /* DER ZWEITE SCHRITT, . */
+      /* DER ZWEITE SCHRITT. */
       if (j.twoFactor) return showSecondFactor(j.ticket);
       location.hash = '#/';
       start();
@@ -714,7 +701,7 @@ function showSecondFactor(ticket, errMsg) {
   c.focus();
 }
 
-/* DIE FORM EINER ADRESSE -- 0.32.0, Bauabschnitt 6. */
+/* DIE FORM EINER ADRESSE. */
 const ADDRESS_FORM = /^[^\s@]+@[^\s@.]+(\.[^\s@.]+)+$/;
 
 /* Die Selbstanmeldung: das Formular und die Antwort darauf. ZWEI FELDER UND
@@ -739,7 +726,7 @@ function showRequest(errMsg, values = {}) {
   const n = document.getElementById('req-name'), m = document.getElementById('req-mail'),
         b = document.getElementById('req-send');
   document.getElementById('req-back').onclick = (e) => { e.preventDefault(); showLogin(); };
-  /* FORM IST OEFFENTLICH, EXISTENZ IST ES NICHT -- 0.32.0, Bauabschnitt 6. */
+  /* FORM IST OEFFENTLICH, EXISTENZ IST ES NICHT. */
   const formFault = () => {
     if (!String(n.value).trim()) return t('login.usernameMissing');
     if (!ADDRESS_FORM.test(String(m.value).trim())) return t('login.emailInvalid');
@@ -921,7 +908,7 @@ const BLOCK_DEFAULT = {
   bottom: ['beschreibung', 'testtage', 'links', 'dateien', 'kommentare']
 };
 /* DIE BEIDEN STERNKAESTEN FUEHREN IHREN EINKLAPPZUSTAND NICHT MEHR IN
-   `closed` -- 0.21.0. */
+   `closed`. */
 const BLOCKS_ALWAYS_OPEN = ['potenzial', 'bewertung'];
 const CLOSED_BLOCKS = [...BLOCK_DEFAULT.side, ...BLOCK_DEFAULT.bottom]
   .filter(k => !BLOCKS_ALWAYS_OPEN.includes(k));
@@ -956,7 +943,7 @@ function sortBlocks() {
   });
 }
 
-/* DIE ZAHLEN AM KOMMENTARBLOCK -- 0.32.1 NEU GEBAUT, und der Grund ist
+/* DIE ZAHLEN AM KOMMENTARBLOCK NEU GEBAUT, und der Grund ist
    gemessen. */
 const countMark = (kind, icon, number, word) =>
   `<span class="cnum" data-kind="${kind}"${word ? ` title="${esc(word)}"` : ''}>${icon}${number}</span>`;
@@ -989,8 +976,7 @@ function blockSummary(name, item) {
   switch (name) {
     case 'kategorie': return item.category ? item.category.name : 'keine';
     case 'tags': return String(item.tags.length);
-    /* DIE BEIDEN STERNKAESTEN TRAGEN HIER NICHTS, SOBALD SIE EINE ZAHL HABEN
-       -- 0.22.1 (Entscheidung E4). */
+    /* DIE BEIDEN STERNKAESTEN TRAGEN HIER NICHTS, SOBALD SIE EINE ZAHL HABEN (Entscheidung E4). */
     case 'bewertung': return item.avgRating ? '' : t('list.notRatedYet');
     case 'potenzial': return item.potentialRating ? '' : t('list.notEstimatedYet');
     case 'beschreibung': {
@@ -1012,7 +998,7 @@ function blockSummary(name, item) {
    -- und umgekehrt. */
 let GLANCE = new Set();
 
-/* WAS DIE REGEL SAGT, WENN NIEMAND GEKLICKT HAT -- 0.21.0. ungetestet ->
+/* WAS DIE REGEL SAGT, WENN NIEMAND GEKLICKT HAT. ungetestet ->
    Potenzial offen, Bewertung zu; getestet -> umgekehrt. */
 const hasStars = (item, phase) => (item.ratings || [])
   .some(r => r.phase === phase && (r.value > 0 || r.avg != null));
@@ -1022,7 +1008,7 @@ function closedByState(name, item) {
   return !item.tested && !hasStars(item, 'after');
 }
 
-/* WELCHER BLOCK AN DIESEM EINTRAG GAR NICHT DASTEHT -- 0.22.1. */
+/* WELCHER BLOCK AN DIESEM EINTRAG GAR NICHT DASTEHT. */
 function blockPathAfterState(name, item) {
   return name === 'bewertung' && !item.tested && !hasStars(item, 'after');
 }
@@ -1050,12 +1036,12 @@ function setUpBlocksOut(item) {
     }
 
     /* FUER GENAU ZWEI BLOECKE ENTSCHEIDET DER ZUSTAND UND NICHT DIE
-       EINSTELLUNG -- 0.21.0. */
+       EINSTELLUNG. */
     const afterState = BLOCKS_ALWAYS_OPEN.includes(name);
     const closed = afterState
       ? (GLANCE.has(name) ? !closedByState(name, item) : closedByState(name, item))
       : BLOCKS.closed.includes(name);
-    /* DER BLOCK WIRD AUSGEBLENDET UND NICHT ENTFERNT -- 0.22.1. */
+    /* DER BLOCK WIRD AUSGEBLENDET UND NICHT ENTFERNT. */
     block.hidden = blockPathAfterState(name, item);
     block.classList.toggle('closed', closed);
     head.querySelector('.bcaret').textContent = closed ? '▸' : '▾';
@@ -1136,10 +1122,9 @@ async function sendForm(path, form) {
   return data;
 }
 
-/* ================= Der Ausschnitt der Vorschau ================= ER WIRD
-   SEIT 0.19.5 NICHT MEHR HIER GERECHNET. */
+/* ================= Der Ausschnitt der Vorschau ================= ER WIRD NICHT MEHR HIER GERECHNET. */
 
-/* ---- DIE EINE RECHNUNG FUER DEN AUSSCHNITT -- 0.19.5 ---- SIE STEHT
+/* ---- DIE EINE RECHNUNG FUER DEN AUSSCHNITT ---- SIE STEHT
    ZWEIMAL, UND DAS IST DER PUNKT. */
 function cropSpecBox(width, height, fx, fy, zoom) {
   const side = Math.min(width, height);   // was die Kachel bei zoom 100 zeigt
@@ -1147,8 +1132,7 @@ function cropSpecBox(width, height, fx, fy, zoom) {
   return { links: fx / 100 * (width - eng), top: fy / 100 * (height - eng), edge: eng };
 }
 
-/* WELCHE GESTE UNTER EINER BERUEHRUNG LIEGT -- 0.22.1. BIS 0.22.0 GAB ES ZWEI
-   GESTEN UND EINEN EINZIGEN GRIFF: die ganze Flaeche. */
+/* WELCHE GESTE UNTER EINER BERUEHRUNG LIEGT. */
 const HANDLE = 12;
 function cropGesture(frame, px, py, handle = HANDLE) {
   const { links, top, edge } = frame;
@@ -1193,13 +1177,13 @@ function sortCloud(tags, highlight) {
 // Begrenzt die Wolke auf n Zeilen und meldet, ob dabei etwas abgeschnitten
 // wurde.
 const CLOUD_GAP = 6;
-/* DIE ZEILENHOEHE EINER WOLKE WIRD AN EINER STELLE GEMESSEN -- 0.30.3. Zwei
+/* DIE ZEILENHOEHE EINER WOLKE WIRD AN EINER STELLE GEMESSEN. Zwei
    Leser fragen sie: die Begrenzung unten und cloudRows(). */
 function cloudLine(box) {
   const first = box.firstElementChild;
   return first ? first.offsetHeight || 0 : 0;
 }
-/* WIE VIELE REIHEN DIE WOLKE UNGEKUERZT BRAUCHT -- 0.30.3, Befund 1. */
+/* WIE VIELE REIHEN DIE WOLKE UNGEKUERZT BRAUCHT. */
 function cloudRows(box) {
   const height = cloudLine(box);
   if (!height) return 0;
@@ -1222,13 +1206,12 @@ function limitCloud(box, rows) {
 // Speicher: er sagt nichts ueber den Bestand aus und gehoert nicht auf den
 // Server.
 const cloudOpen = { overview: false, detail: false };
-/* UND DIE MARKEN EINES TESTTAGS -- 0.30.1, Befund 4 (F9). */
+/* UND DIE MARKEN EINES TESTTAGS. */
 const dayTagsOpen = new Set();
-/* HIER STAND BIS 0.30.0 `MORE_FILTERS_OPEN` -- der Merker, ob die Tagzeile
-   offen steht. */
+/* HIER STAND `MORE_FILTERS_OPEN` -- der Merker, ob die Tagzeile offen
+   steht. */
 
-/* ---- DIE VIER ZUSTÄNDE EINES FÄLLIGKEITSDATUMS -- 0.29.0 (Befund 3),
-   hierher gewandert mit 0.30.0 (Befund 8, F13). */
+/* ---- DIE VIER ZUSTÄNDE EINES FÄLLIGKEITSDATUMS ---- */
 const todayKey = () => {
   const d = new Date();
   const pad = (n) => String(n).padStart(2, '0');
@@ -1259,8 +1242,7 @@ let V = {};
 // Weiterschaltung des Aufgabenknopfes: Notiz -> Aufgabe -> erledigt -> Notiz.
 // Eine Abfolge, kein Entweder-oder -- deshalb ein Knopf statt dreier.
 function taskMore(kind) {
-  /* `note` IST HIER DER FALSCHE FREUND und bleibt stehen -- 0.24.3,
-     Bauabschnitt 7. */
+  /* `note` IST HIER DER FALSCHE FREUND und bleibt stehen. */
   return { note: 'task', task: 'done', done: 'note', report: 'task' }[kind] || 'task';
 }
 /* --- Das Gewicht eines Kriteriums: Komma herein, Komma hinaus -------------
@@ -1279,8 +1261,8 @@ const weightText = (g) => number(Math.round(Number(g) * 100) / 100, 0, 2);
 const weightMark = (g) => (Number(g) === 1 || g == null ? '' : '×' + weightText(g));
 
 const vThing = (n) => counted(n, V.entryOne, V.entryMany);
-/* ---- DER ZAEHLER EINER VERWALTUNGSZEILE -- 0.30.1, Befund 6 ---- IN DER
-   ZEILE STEHT DIE ZAHL, IM TITEL DAS WORT (F14). */
+/* ---- DER ZAEHLER EINER VERWALTUNGSZEILE ---- IN DER
+   ZEILE STEHT DIE ZAHL, IM TITEL DAS WORT. */
 const countCell = (short, long) =>
   `<span class="mcount" title="${esc(long)}">${esc(short)}</span>`;
 const vTime = (n) => counted(n, V.dayOne, V.dayMany);
@@ -1304,15 +1286,14 @@ const LINK_ROW_LEVELS = [3, 5, 8, 12];
 // Platzhalter fuer den Suchtext.
 let SEARCH_PROVIDERS = [];      // alle neun Plaetze, wie der Server sie liefert
 
-/* JEDE SPRACHE, FUER DIE EINE DATEI LIEGT -- 0.24.3. */
+/* JEDE SPRACHE, FUER DIE EINE DATEI LIEGT. */
 let LANGUAGES = [];
-/* DIE FUENFZEHN WOERTER JE SPRACHE, { <kennung>: { ...fuenfzehn } } --
-   0.24.3. */
+/* DIE FUENFZEHN WOERTER JE SPRACHE, { <kennung>: { ...fuenfzehn } }. */
 let VOCABULARIES = {};
-/* UND ZWEI TAFELN DANEBEN -- 0.24.4, die Reparatur von B1, B2 und B4. */
+/* UND ZWEI TAFELN DANEBEN, die Reparatur von B1, B2 und B4. */
 let VOCABULARIES_OWN = {};
 let VOCABULARY_DEFAULTS = {};
-/* DIE VIER SAETZE AUS EINER ANTWORT UEBERNEHMEN -- 0.24.4. */
+/* DIE VIER SAETZE AUS EINER ANTWORT UEBERNEHMEN. */
 function takeVocabulary(r) {
   if (!r || typeof r !== 'object') return;
   if (r.vocabularies) VOCABULARIES = r.vocabularies;
@@ -1320,12 +1301,11 @@ function takeVocabulary(r) {
   if (r.vocabularyDefaults) VOCABULARY_DEFAULTS = r.vocabularyDefaults;
   if (r.vocabulary) V = { ...V, ...r.vocabulary };
 }
-/* WELCHE SPRACHE DER ABSCHNITT „BESTAND" ZEIGT -- 0.24.3, Bauabschnitt 6a,
-   und seit 0.25.2 fuer ALLE VIER KACHELN: die drei Namenskarten UND das
+/* WELCHE SPRACHE DER ABSCHNITT „BESTAND" ZEIGT,
+   und fuer ALLE VIER KACHELN: die drei Namenskarten UND das
    Vokabular. */
 let NAMES_SHOWN = null;
-/* DIE NAMEN JE SPRACHE, ALS TAFEL UND AUF EINMAL -- 0.24.5, und damit faellt
-   der Zwischenspeicher der Runde 0.24.3 weg. */
+/* DIE NAMEN JE SPRACHE, ALS TAFEL UND AUF EINMAL -- ohne Zwischenspeicher. */
 let NAMES_ALL = { cats: {}, crits: {} };
 /* DIE ZWEI TAFELN AUS EINER ANTWORT UEBERNEHMEN. */
 function takeNames(r) {
@@ -1380,8 +1360,8 @@ function trimLinkEnd(address) {
   }
 }
 
-/* ---- DIE HERVORHEBUNG, ALS DRITTES STUECK -- 0.18.0 --------------------
-   BIS 0.17.5 KANNTE DIE ZERLEGUNG ZWEI STUECKE: gewoehnlichen Text und einen
+/* ---- DIE HERVORHEBUNG, ALS DRITTES STUECK --------------------------------
+   Die Zerlegung kannte frueher zwei Stuecke: gewoehnlichen Text und einen
    Link. */
 function splitAtTerm(text, term, rest = {}) {
   const content = String(text ?? '');
@@ -1404,7 +1384,7 @@ function splitAtTerm(text, term, rest = {}) {
 
 // Zerlegt den Rohtext in Stuecke: { text } ist gewoehnlicher Text, { text,
 // ziel } ein Link, { text, treffer } eine Fundstelle des Suchbegriffs.
-/* DIE MARKIERUNG IST DAS VIERTE STUECK DER ZERLEGUNG -- 0.32.0, Leitplanke
+/* DIE MARKIERUNG IST DAS VIERTE STUECK DER ZERLEGUNG, Leitplanke
    L2. */
 const MENTION_TAIL = /[\p{L}\p{N}_.-]/u;
 
@@ -1424,9 +1404,8 @@ function splitAtMention(raw, marks, term, rest) {
     /* DER LAENGSTE HANDGRIFF ZUERST -- sonst truege „@anna" die Markierung,
        wo „@annabelle" steht und beide Namen vergeben sind. */
     /* KLEIN GESCHRIEBEN MIT DER VERGLEICHSSPRACHE und nicht mit der des
-       Lesers -- dieselbe Regel wie im Server (T3): sonst waeren „İstanbul"
-       und „istanbul" fuer den einen derselbe Zugang und fuer den anderen
-       zwei. */
+       Lesers: sonst waeren „İstanbul" und „istanbul" fuer den einen derselbe
+       Zugang und fuer den anderen zwei. */
     const hit = list.filter(m => text.slice(i + 1, i + 1 + m.handle.length)
         .toLocaleLowerCase(compareLocale()) === String(m.handle).toLocaleLowerCase(compareLocale()))
       .sort((a, b) => b.handle.length - a.handle.length)[0];
@@ -1473,7 +1452,7 @@ function splitCommentText(raw, term, marks) {
 function pieceNode(s) {
   const text = String(s?.text ?? '');
   /* DIE MARKIERUNG IST HERVORGEHOBEN WIE EIN TREFFER DER SUCHE UND DOCH ALS
-     EIGENE SACHE ERKENNBAR -- 0.32.0: ein eigenes Element mit eigener Klasse,
+     EIGENE SACHE ERKENNBAR: ein eigenes Element mit eigener Klasse,
      nicht `<mark>`. */
   if (s?.mention) {
     const at = document.createElement('span');
@@ -1536,14 +1515,14 @@ function applyFont() {
   document.documentElement.style.fontSize = (15 * FONT / 100).toFixed(2) + 'px';
 }
 
-/* DER BILDSTREIFEN -- 0.22.0 (E11). */
+/* DER BILDSTREIFEN. */
 let STRIP = 80;
 const STRIP_LEVELS = [60, 80, 100, 120, 150];
 function applyTiles() {
   document.documentElement.style.setProperty('--tile-min', STRIP + 'px');
 }
 
-/* ================= DAS FARBSCHEMA -- 0.23.0 ================= DREI STUFEN
+/* ================= DAS FARBSCHEMA ================= DREI STUFEN
    HIER, ZWEI IM STILBLATT. */
 const THEME_LEVELS = ['light', 'dark', 'device'];
 // Schluessel statt Satz (siehe VERWALTUNGSART) -- Modulebene.
@@ -1551,8 +1530,7 @@ const THEME_NAMES = { light: 'card.light', dark: 'card.dark', device: 'card.like
 const DEVICE_LIGHT = '(prefers-color-scheme: light)';
 /* DER GEMERKTE WERT IST KEINE ZWEITE WAHRHEIT, SONDERN DAS GEDAECHTNIS DER
    LETZTEN. */
-/* DER SCHLUESSEL IM BROWSERSPEICHER, und der alte wird noch gelesen --
-   0.24.1. */
+/* DER SCHLUESSEL IM BROWSERSPEICHER, und der alte wird noch gelesen. */
 const THEME_KEY = 'kriterion.theme';
 const THEME_KEY_0240 = 'kriterion.thema';
 let THEME = (() => {
@@ -1598,16 +1576,15 @@ const isNarrow = () => !!(window.matchMedia && window.matchMedia(NARROW).matches
    deshalb steht er in derselben Auswahl wie jede Kategorie und laesst sich
    mit ihnen zusammen anklicken. */
 const CATEGORY_NONE = 'ohne';
-/* SEIT 0.13.0 EINE LISTE UND KEINE EINZELNE NUMMER. */
-/* `neu` STEHT HIER SEIT 0.17.0 NICHT MEHR. Die Pille „Neu seit ..." ist
+/* EINE LISTE UND KEINE EINZELNE NUMMER. */
+/* `neu` STEHT HIER NICHT MEHR. Die Pille „Neu seit ..." ist
    gestrichen; ihre Auskunft traegt die Glocke. */
 const FILTER_DEFAULT = { categoryIds: [], tagIds: [], tagMode: 'and', tested: 'all',
                          rejected: 'all', favorite: false,
                          sort: 'updated_desc' };
 
-/* ========== DIE SORTIERUNG GAB DEN STATUS VOR -- 0.21.1 bis 0.32.0
-   ========== AUSGEBAUT MIT 0.32.1, auf Entscheidung des Betreibers, und der
-   Grund ist eine SACKGASSE und keine Geschmacksfrage. */
+/* ========== DIE SORTIERUNG GAB DEN STATUS VOR ============================
+   AUSGEBAUT auf Entscheidung des Betreibers: der Weg ist eine Sackgasse. */
 const statusEffective = (f) => f.tested;
 
 const state = {
@@ -1632,25 +1609,25 @@ let NAME = '';
 // Die Schwelle steht GENAU HIER und nirgends sonst.
 const multipleUsers = () => USER_COUNT > 1;
 
-/* DER BEZUGSPUNKT DER GLOCKE, und seit 0.17.0 der EINZIGE. */
+/* DER BEZUGSPUNKT DER GLOCKE, und der EINZIGE. */
 let BELL_SEEN = null;
 
 /* Die beiden Anlegen-Schalter, global und mit Vorgabe an. Der Bildschirm
    haelt sich an dieselbe Regel wie der Server: DER ADMIN KOMMT IMMER DURCH. */
 let TAGS_FREE = true;
 let CATEGORIES_FREE = true;
-/* DER POTENZIALMODUS -- 0.26.0. AN, solange der Server nichts anderes sagt:
+/* DER POTENZIALMODUS. AN, solange der Server nichts anderes sagt:
    dieselbe Vorgabe wie am Server, und aus demselben Grund. */
 let POTENTIAL_MODE = true;
 /* IN WELCHEM VERFAHREN LEGT DIESE INSTANZ ANKOMMENDE PNG AB? Vorgabe wie im
    Server. */
 let IMAGE_STORE = 'webp-lossless';
 let IMAGE_STORES = ['png', 'webp-lossless', 'webp-lossy'];
-/* Ob DIESER Zugang einen zweiten Faktor traegt, . */
+/* Ob DIESER Zugang einen zweiten Faktor traegt. */
 let TWO_FACTOR = false;
 /* Die Frist des Papierkorbs. */
 let TRASH_DAYS = 30;
-/* DIE GESPEICHERTEN ANSICHTEN, . */
+/* DIE GESPEICHERTEN ANSICHTEN. */
 let VIEWS = [];
 let VIEWS_CAP = 8;
 const mayTagCreate = () => ADMIN || TAGS_FREE;
@@ -1678,15 +1655,15 @@ async function loadSettings() {
   // Die vierzehn Woerter JE SPRACHE -- nur die Karte „Vokabular" liest sie.
   if (SETTINGS.vocabularies && typeof SETTINGS.vocabularies === 'object')
     VOCABULARIES = SETTINGS.vocabularies;
-  // Und die beiden Tafeln daneben, 0.24.4: das Eingetragene und die Vorgaben.
+  // Und die beiden Tafeln daneben: das Eingetragene und die Vorgaben.
   if (SETTINGS.vocabulariesOwn && typeof SETTINGS.vocabulariesOwn === 'object')
     VOCABULARIES_OWN = SETTINGS.vocabulariesOwn;
   if (SETTINGS.vocabularyDefaults && typeof SETTINGS.vocabularyDefaults === 'object')
     VOCABULARY_DEFAULTS = SETTINGS.vocabularyDefaults;
-  /* UND DIE NAMEN JE SPRACHE, 0.24.5 -- nur die drei Verwaltungskarten lesen
-     sie, und nur der Admin bekommt sie ueberhaupt geschickt. */
+  /* UND DIE NAMEN JE SPRACHE -- nur die drei Verwaltungskarten lesen sie, und
+     nur der Admin bekommt sie ueberhaupt geschickt. */
   takeNames(SETTINGS);
-  /* DIE ERSTE DER DREI QUELLEN (Konzept 5.3), und sie schlaegt die beiden
+  /* DIE ERSTE DER DREI QUELLEN, und sie schlaegt die beiden
      anderen: was am ZUGANG steht, gilt -- auf jedem Geraet, an dem er sich
      anmeldet. */
   if (typeof SETTINGS.language === 'string' && SETTINGS.language) {
@@ -1743,7 +1720,7 @@ async function loadAll() {
 function filterNormal(raw) {
   const f = { ...FILTER_DEFAULT, ...(raw && typeof raw === 'object' ? raw : {}) };
   f.tagIds = (Array.isArray(f.tagIds) ? f.tagIds : []).filter(id => state.tags.some(tag => tag.id === id));
-  /* DIE UEBERSETZUNG DER ALTEN FORM, an genau dieser einen Stelle. Vor 0.13.0
+  /* DIE UEBERSETZUNG DER ALTEN FORM, an genau dieser einen Stelle: frueher
      stand in einer gespeicherten Ansicht EIN Kategoriewert (`categoryId`). */
   if (!Array.isArray(f.categoryIds))
     f.categoryIds = f.categoryId != null ? [f.categoryId] : [];
@@ -1759,7 +1736,7 @@ function filterNormal(raw) {
     v === CATEGORY_NONE || state.categories.some(c => c.id === v));
   if (f.tagMode !== 'or') f.tagMode = 'and';
   f.favorite = f.favorite === true;
-  /* DER SCHLUESSEL EINER GESTRICHENEN PILLE FAELLT HERAUS -- 0.17.0. */
+  /* DER SCHLUESSEL EINER GESTRICHENEN PILLE FAELLT HERAUS. */
   delete f.fresh;
   return f;
 }
@@ -1845,9 +1822,8 @@ async function viewDelete(name) {
 /* ANGEWANDT WIRD OERTLICH UND SOFORT. */
 function applyView(a) {
   state.filters = filterNormal(a.filters);
-  /* HIER STAND BIS 0.32.0 `STATUS_BY_HAND = true` -- eine gespeicherte
-     Ansicht war eine ausdrueckliche Wahl und schlug die Ableitung der
-     Sortierung. */
+  /* HIER STAND `STATUS_BY_HAND = true` -- eine gespeicherte Ansicht war eine
+     ausdrueckliche Wahl und schlug die Ableitung der Sortierung. */
   state.search = typeof a.q === 'string' ? a.q : '';
   const field = document.getElementById('q');
   if (field) field.value = state.search;
@@ -1897,7 +1873,7 @@ function visibleItems(filter) {
   // UND ist die Vorgabe: mit zwei Tags will man fast immer den Schnitt
 // ("gruen UND schwer"), nicht die Vereinigung.
   if (f.tagIds.length) out = out.filter(i => matchesTags(i, f.tagIds, f.tagMode));
-  /* DIE EINE LESESTELLE DER ABLEITUNG -- 0.21.1. */
+  /* DIE EINE LESESTELLE DER ABLEITUNG. */
   const status = statusEffective(f);
   if (status === 'tested') out = out.filter(i => i.tested);
   else if (status === 'untested') out = out.filter(i => !i.tested);
@@ -1909,7 +1885,7 @@ function visibleItems(filter) {
   // `tested`: Favorit und Teststatus sind unabhaengig, und "getestet UND
   // Favorit" muss moeglich bleiben.
   if (f.favorite) out = out.filter(i => i.favorite);
-  /* HIER STEHT SEIT 0.17.0 KEIN FILTER „Neu seit ..." MEHR. */
+  /* HIER STEHT KEIN FILTER „Neu seit ..." MEHR. */
   /* HIER WIRD NICHT GESUCHT: das macht GET /api/items?q=..., und
      `state.items` traegt bereits nur noch die Treffer. */
 
@@ -1923,14 +1899,13 @@ function visibleItems(filter) {
       case 'updated_asc': return a.updated_at.localeCompare(b.updated_at);
       case 'rating_desc': return (b.avgRating ?? -1) - (a.avgRating ?? -1);
       case 'rating_asc':  return (a.avgRating ?? 99) - (b.avgRating ?? 99);
-      /* SPIEGELBILD DER BEIDEN DARUEBER -- 0.21.0, mit denselben zwei
-         Ersatzwerten und aus demselben Grund: -1 in der einen Richtung und 99
-         in der anderen stellen die Eintraege OHNE Zahl in BEIDEN Richtungen
+      /* SPIEGELBILD DER BEIDEN DARUEBER: -1 in der einen Richtung und 99 in
+         der anderen stellen die Eintraege OHNE Zahl in BEIDEN Richtungen
          hinten an. */
       case 'potential_desc': return (b.potentialRating ?? -1) - (a.potentialRating ?? -1);
       case 'potential_asc':  return (a.potentialRating ?? 99) - (b.potentialRating ?? 99);
       case 'title_asc':   return a.title.localeCompare(b.title, LOCALE);
-      /* SPIEGELBILD, und die Sprache steht auf BEIDEN Seiten -- 0.29.0. */
+      /* SPIEGELBILD, und die Sprache steht auf BEIDEN Seiten. */
       case 'title_desc':  return b.title.localeCompare(a.title, LOCALE);
       case 'tests_desc':  return byTest(a, b, 'testCount', 'desc');
       case 'tests_asc':   return byTest(a, b, 'testCount', 'asc');
@@ -1966,8 +1941,8 @@ const rememberSeen = () => {
   BELL_SEEN = true;
   api('PUT', '/api/settings', { bellSeen: 1 }).catch(() => {});
 };
-/* ================= Der Suchbegriff in der Adresse -- 0.18.0
-   ================= BIS 0.17.5 LEBTE DER BEGRIFF NUR IN state.search. */
+/* ================= Der Suchbegriff in der Adresse ======================
+   Frueher lebte der Begriff nur in state.search. */
 const ENTRY_PATTERN = /^#\/item\/(\d+)(?:\?(.*))?$/;
 const entryAddress = (id, term) =>
   `#/item/${id}` + (term ? `?q=${encodeURIComponent(term)}` : '');
@@ -1976,7 +1951,7 @@ const termOutAddress = (askKey) => {
   catch { return ''; }
 };
 
-/* JEDE ALTE ADRESSE WIRD UEBERSETZT UND NICHT FALLEN GELASSEN -- 0.24.1 (F4). */
+/* JEDE ALTE ADRESSE WIRD UEBERSETZT UND NICHT FALLEN GELASSEN. */
 const OLD_ADDRESSES = { '#/offen': '#/open' };
 const OLD_ADDRESS_ROOTS = { '#/einladung/': '#/invite/', '#/bestaetigung/': '#/confirm/' };
 function translateAddress() {
@@ -1995,7 +1970,7 @@ function route() {
   // Die alte Ansicht ist gleich fort; ihre Wolke darf niemand mehr zeichnen.
   redrawCloud = null;
   const m = h.match(ENTRY_PATTERN);
-  /* DER SYSTEMBEREICH HAT SEIT 0.16.0 FUENF ADRESSEN STATT EINER --
+  /* DER SYSTEMBEREICH HAT FUENF ADRESSEN STATT EINER --
      `#/system` und `#/system/<abschnitt>`. */
   const view = SYS_PATTERN.test(h) ? 'system' : h === '#/compare' ? 'compare'
     : h === '#/open' ? 'open' : m ? 'entry' : 'list';
@@ -2013,26 +1988,25 @@ function route() {
 /* DIE SUMME ENTSTEHT AN GENAU EINER STELLE. */
 const freshCount = (i) => (Number(i.newComments) || 0) + (Number(i.newRatings) || 0);
 const bellNew = () => (state.all || []).reduce((n, i) => n + freshCount(i), 0);
-/* WIE VIELE DAVON MICH MARKIEREN -- 0.32.0, Bauabschnitt 1. */
+/* WIE VIELE DAVON MICH MARKIEREN. */
 const markedCount = (i) => Number(i.newMarked) || 0;
 
-/* WOHER EINE MELDUNG KOMMT -- die drei Herkuenfte der Tafel, 0.32.0 (F3). */
+/* WOHER EINE MELDUNG KOMMT -- die drei Herkuenfte der Tafel. */
 const bellOrigin = (i) =>
   markedCount(i) ? 'marked' : (i.mine ? 'mine' : 'other');
 const openTotal = () => (state.all || []).reduce((n, i) => n + (Number(i.openTasks) || 0), 0);
 
-/* WAS DORT NEU IST, IN WORTEN -- 0.17.0. */
+/* WAS DORT NEU IST, IN WORTEN. */
 const newWords = (i) => {
   const k = Number(i.newComments) || 0, b = Number(i.newRatings) || 0;
-  /* DIE MARKIERUNG STEHT ALS ZEICHEN DANEBEN UND NICHT MEHR IM SATZ --
-     0.32.1. */
+  /* DIE MARKIERUNG STEHT ALS ZEICHEN DANEBEN UND NICHT MEHR IM SATZ. */
   const marked = markedCount(i);
   return [k ? esc(t('list.commentCount', { n: k })) : '',
           marked ? countMark('marked', '@', marked, t('list.markedCount', { n: marked })) : '',
           b ? esc(`${b} ${vRating(b)}`) : ''].filter(Boolean).join(' · ');
 };
 
-/* VON WEM -- 0.17.0. */
+/* VON WEM. */
 const newFromWords = (i) => {
   const names = (Array.isArray(i.newFrom) ? i.newFrom : [])
     .map(authorName).sort((a, b) => String(a).localeCompare(String(b), LOCALE));
@@ -2062,7 +2036,7 @@ function drawHeadCounts() {
 
 /* DIE TAFEL. Sie ist die zweite Haelfte der Glocke und nicht ihr Beiwerk:
    eine Meldung, die man nicht anspringen kann, ist eine Mitteilung ohne Weg. */
-/* DIE DREI ABSCHNITTE DER TAFEL -- 0.32.0, F3. */
+/* DIE DREI ABSCHNITTE DER TAFEL, F3. */
 const BELL_SECTIONS = [['marked', 'list.bellToMe'], ['mine', 'list.bellMine'],
                        ['other', 'list.bellOther']];
 
@@ -2110,7 +2084,7 @@ function showBellPanel() {
       a.innerHTML = `<span class="mname"></span><span class="mcount"></span>
         <span class="bell-from"></span>`;
       a.querySelector('.mname').textContent = it.title;
-      /* HTML UND NICHT TEXT -- newWords() traegt seit 0.32.1 das Zeichen der
+      /* HTML UND NICHT TEXT -- newWords() traegt das Zeichen der
          Markierung. */
       a.querySelector('.mcount').innerHTML = newWords(it);
       a.querySelector('.bell-from').textContent = newFromWords(it);
@@ -2127,18 +2101,17 @@ function showBellPanel() {
     if (it.newComments) it.newComments = 0;
     if (it.newRatings) it.newRatings = 0;
     if (it.newFrom) it.newFrom = [];
-    // Die vierte Angabe geht mit den drei anderen -- 0.32.0.
+    // Die vierte Angabe geht mit den drei anderen.
     if (it.newMarked) it.newMarked = 0;
   }
   drawHeadCounts();
 }
 
-/* ================= Die gemeinsame Kopfzeile der Unteransichten
-   ================= VIER ANSICHTEN TRUGEN EINE ZEILE: `<a href="#/"
-   class="back">`, fuenfmal im Quelltext -- im Eintrag, im Systembereich, in
-   den offenen Aufgaben, im Vergleich und auf dem Fehlerweg des Eintrags. */
+/* ================= Die gemeinsame Kopfzeile der Unteransichten ===========
+   Vier Ansichten trugen `<a href="#/" class="back">` fuenfmal im Quelltext.
+   Sie steht jetzt einmal. */
 
-/* DIE NACHBARN IN DER REIHENFOLGE DER UEBERSICHT -- 0.28.0, F2. */
+/* DIE NACHBARN IN DER REIHENFOLGE DER UEBERSICHT, F2. */
 const entryNeighbours = (id) => {
   const list = state.items || [];
   const at = list.findIndex(x => x && x.id === id);
@@ -2167,8 +2140,8 @@ function entryNav(id) {
   </div>`;
 }
 
-/* Der Aufbau. DIE BLAETTERPFEILE STANDEN BIS 0.28.0 HIER, links und rechts
-   von der Marke -- und genau das war der Fehler. */
+/* Der Aufbau. DIE BLAETTERPFEILE STANDEN HIER, links und rechts von der
+   Marke -- und genau das war der Fehler. */
 function subhead({ searchBox = true } = {}) {
   return `<div class="masthead subhead">
     <a href="#/" class="icon-btn sub-back" title="${esc(t('list.backToList'))}"
@@ -2249,7 +2222,7 @@ let SEARCH_HANDOFF = false;
 
 /* ================= Übersicht ================= */
 async function renderList() {
-  /* NICHT LEEREN, BEVOR ERSATZ DA IST -- 0.26.0, BA 5 (Befund 7a). */
+  /* NICHT LEEREN, BEVOR ERSATZ DA IST. */
   if (!app.firstElementChild)
     app.innerHTML = `<div class="shell"><p class="hint" style="padding-top:44px">${tH('list.loading')}</p></div>`;
   try { await loadAll(); }
@@ -2269,8 +2242,7 @@ async function renderList() {
            Schirm. */''}
       <div class="mast-rest" id="mast-rest">
         ${/* DIE GLOCKE STEHT IN DEMSELBEN BEHAELTER wie die beiden anderen
-             Zeichenknoepfe -- und damit wandert sie auf dem Telefon ohne ein
-             einziges Zutun in die Tafel: ein Markup, zwei Gestalten (0.12.0). */''}
+             Zeichenknoepfe: ein Markup, zwei Gestalten. */''}
         ${BELL_SEEN ? `<button class="icon-btn bell" id="bell" title="${esc(t('list.news'))}"
           aria-label="${esc(t('list.news'))}">${ICON_BELL}<span class="bell-dot" id="bell-dot" hidden></span><span class="mast-word">${tH('list.news')}</span></button>` : ''}
         <button class="icon-btn" id="open" title="${esc(t('list.openTasks'))}">${ICON_OPEN}<span class="open-count" id="open-count" hidden></span><span class="mast-word">${tH('list.openTasks')}</span></button>
@@ -2298,7 +2270,7 @@ async function renderList() {
   atElement('bell', b => b.onclick = showBellPanel);
   drawHeadCounts();
   document.getElementById('sys').onclick = () => { location.hash = '#/system'; };
-  /* DER SCHATTEN DER KOPFZEILE BEIM ROLLEN -- 0.22.0. */
+  /* DER SCHATTEN DER KOPFZEILE BEIM ROLLEN. */
   const scrollGuard = () =>
     document.querySelector('.masthead')?.classList.toggle('scrolled', (window.scrollY || 0) > 8);
   window.addEventListener('scroll', scrollGuard, { passive: true });
@@ -2356,7 +2328,7 @@ async function renderList() {
     window.removeEventListener('scroll', scrollGuard);
   }, { once: true });
 
-  /* DER SCHREIBSTRICH KOMMT AUS DER UNTERANSICHT MIT -- 0.28.0, BA 1. */
+  /* DER SCHREIBSTRICH KOMMT AUS DER UNTERANSICHT MIT. */
   if (SEARCH_HANDOFF) {
     SEARCH_HANDOFF = false;
     atElement('q', el => { el.focus(); el.setSelectionRange(el.value.length, el.value.length); });
@@ -2378,8 +2350,7 @@ function listKeys(e) {
 function filterNumber() {
   const f = state.filters, v = FILTER_DEFAULT;
   let n = 0;
-  /* GEZAEHLT WIRD WIEDER DIE ABWEICHUNG VON DER VORGABE -- 0.32.1, und damit
-     steht hier dieselbe Zeile wie vor 0.21.1. */
+  /* GEZAEHLT WIRD DIE ABWEICHUNG VON DER VORGABE. */
   if (f.tested !== v.tested) n++;
   // Die Ablehnung zaehlt EIGENS mit und nicht mit dem Teststatus zusammen: sie
 // ist ein zweites Merkmal, und beide zugleich verkleinern die Menge zweimal.
@@ -2400,9 +2371,8 @@ function drawFilterSwitch() {
   if (!button || !box) return;
   const n = filterNumber();
   const zu = box.classList.contains('closed');
-  /* HIER STAND BIS 0.32.0 AUCH DIE ABLEITUNG DER SORTIERUNG -- eingeklappt
-     war das Wort neben den Statuspillen nicht zu sehen, und der Schalter war
-     der einzige Ort, der fuer die zugeklappte Leiste noch sprach. */
+  /* HIER STAND AUCH DIE ABLEITUNG DER SORTIERUNG -- eingeklappt war das Wort
+     neben den Statuspillen nicht zu sehen. */
   button.querySelector('.fcount').textContent =
     n ? `· ${t('list.filtersActive', { n })}` : '';
   button.classList.toggle('active', n > 0);
@@ -2460,11 +2430,11 @@ function drawFilters() {
   bFav.onclick = () => { f.favorite = !f.favorite; redraw(); };
   g1.appendChild(bFav);
 
-  /* HIER STAND BIS 0.17.0 DIE PILLE „Neu seit ...". */
+  /* HIER STAND DIE PILLE „Neu seit ...". */
   r1.appendChild(g1);
 
-  /* HIER STANDEN BIS 0.32.0 ZWEI ZUSATZBESCHRIFTUNGEN: „folgt der Sortierung:
-     Getestet" (0.21.1, Regel 4) und „von Hand gewaehlt" (0.32.0, BA 9). */
+  /* HIER STANDEN ZWEI ZUSATZBESCHRIFTUNGEN: „folgt der Sortierung: Getestet"
+     und „von Hand gewaehlt". */
 
   /* ---- Die Ablehnung: ZWEITE GRUPPE DERSELBEN ZEILE ---- KEINE EIGENE
      ZEILE. */
@@ -2513,14 +2483,13 @@ function drawFilters() {
     b.onclick = () => switchCategory(CATEGORY_NONE);
     g2.appendChild(b);
   }
-  /* ---- HIER STAND BIS 0.30.0 DER UMSCHALTER DER TAGZEILE ---- Er kam in
-     0.22.0 (E8) als <summary> eines <details> in einer EIGENEN Zeile und
-     wurde in 0.24.0 zu einem Knopf am rechten Ende der Kategoriezeile. */
+  /* ---- HIER STAND DER UMSCHALTER DER TAGZEILE ---- Er war zuletzt ein Knopf
+     am rechten Ende der Kategoriezeile. */
   // Nur Tags mit mindestens einem Eintrag: Tags, die ausschliesslich an
   // Testtagen haengen, lieferten hier null Treffer.
   const filterTags = state.tags.filter(tag => tag.usage_count > 0);
   const tagsPossible = filterTags.length > 0 || f.tagIds.length > 0;
-  /* DIE ZEILE STEHT DA, SOBALD ES ETWAS ZU FILTERN GIBT -- 0.30.0 (F9). */
+  /* DIE ZEILE STEHT DA, SOBALD ES ETWAS ZU FILTERN GIBT. */
   const tagsOpen = tagsPossible;
   r2.appendChild(g2);
 
@@ -2528,17 +2497,16 @@ function drawFilters() {
   if (tagsOpen) {
     const r3 = row(t('list.tags'));
     /* GIBT ES NICHTS ZU FILTERN, IST DIE ZEILE GANZ WEG und nicht bloss
-       verborgen: eine leere Zeile im Fluss kostete genau den Platz, um den es
-       in diesem Befund geht. */
+       verborgen: eine leere Zeile im Fluss kostet Platz. */
     r3.id = 'f-tagrow';
-    /* `frow-tags` SAGT DEM RASTER, DASS DIES DIE TAGZEILE IST -- 0.30.0 (F9). */
+    /* `frow-tags` SAGT DEM RASTER, DASS DIES DIE TAGZEILE IST. */
     r3.classList.add('frow-tags');
 
     // Umschalter der Verknuepfung. Auf dem Telefon steht er UNTER der
-    // Beschriftung und kleiner (0.30.0, F9); am Schreibtisch weiter daneben.
+    // Beschriftung und kleiner; am Schreibtisch weiter daneben.
     const modeBox = document.createElement('div');
     modeBox.className = 'tagmode' + (f.tagIds.length > 1 ? '' : ' idle');
-    /* DIE BESCHRIFTUNG IST NICHT DAS BINDEWORT -- 0.31.1. */
+    /* DIE BESCHRIFTUNG IST NICHT DAS BINDEWORT. */
     [['and', t('list.tagModeAnd'), t('list.allTagsHint')],
      ['or', t('list.or'), t('list.anyTagHint')]]
       .forEach(([value, text, explanation]) => {
@@ -2578,27 +2546,25 @@ function drawFilters() {
       g3.appendChild(b);
     });
     r3.appendChild(g3);
-    /* ---- WIE VIELE REIHEN DIE ZUGEKLAPPTE WOLKE ZEIGT -- 0.30.3, Befund 1
+    /* ---- WIE VIELE REIHEN DIE ZUGEKLAPPTE WOLKE ZEIGT
        ---- DER BETREIBER, 12. SEPTEMBER 2026, MIT DREI BILDERN: „Aufgeklappt
        sieht es gut aus. */
     const cloudLimit = getComputedStyle(r3).display === 'grid' ? 2 : 1;
     // Rest aufklappbar. Der Knopf erscheint nur, wenn wirklich etwas
 // abgeschnitten ist.
     const trimmed = limitCloud(g3, cloudOpen.overview ? 0 : cloudLimit);
-    /* ---- UND DIE ZEICHEN BEKOMMEN IHRE ZEILE NUR, WENN DIE WOLKE SIE TRAEGT
-       ---- 0.30.3, Befund 1. */
+    /* ---- UND DIE ZEICHEN BEKOMMEN IHRE ZEILE NUR, WENN DIE WOLKE SIE
+       TRAEGT. */
     if (cloudRows(g3) > 1) r3.classList.add('tags-deep');
     /* DIE BEIDEN VERWEISE STEHEN HINTER DER WOLKE, als gewoehnliche
-       Geschwister -- und seit 0.13.0 ist das wieder die natuerliche
+       Geschwister -- und ist das wieder die natuerliche
        Reihenfolge: "mehr" gehoert hinter das, was es aufklappt. */
     const right = document.createElement('div');
-    // Ans Ende SEINER Zeile, wie der Umschalter darueber -- 0.29.0, Befund 6.
+    // Ans Ende SEINER Zeile, wie der Umschalter darueber.
     right.className = 'frow-right frow-right-end';
-    /* ---- ZWEI ZEICHEN STATT ZWEIER WOERTER -- 0.30.2, Befund 1 ----
-       GEMESSEN IN DREI SPRACHEN, aufgeklappt und mit gesetztem Tagfilter: das
-       Zeilenende mass 180 Pixel auf Deutsch, 159 auf Tuerkisch, 109 auf
-       Englisch -- und der Wolke blieben 92, 109 und 175 von 366. Auf Deutsch
-       fiel die Tagzeile damit auf 26 Reihen und 845 Pixel. */
+    /* ---- ZWEI ZEICHEN STATT ZWEIER WOERTER -- gemessen in drei Sprachen,
+       aufgeklappt und mit gesetztem Tagfilter: das Zeilenende mass 180 Pixel
+       auf Deutsch, 159 auf Tuerkisch, 109 auf Englisch, von 366. */
     if (trimmed || cloudOpen.overview) {
       const m = document.createElement('button');
       m.className = 'link-btn icon-link';
@@ -2620,7 +2586,7 @@ function drawFilters() {
     // Ein leerer Kasten bliebe als Flex-Element stehen und naehme der Wolke
 // eine Luecke weg.
     if (right.childElementCount) r3.appendChild(right);
-    /* DIE ZEILE SAGT, OB DER UMSCHALTER ZU SEHEN SEIN MUSS -- 0.30.2. Er
+    /* DIE ZEILE SAGT, OB DER UMSCHALTER ZU SEHEN SEIN MUSS. Er
        steht unter der Klappe: verborgen, solange die Wolke zugeklappt ist. */
     if (cloudOpen.overview || f.tagIds.length > 1) r3.classList.add('tags-live');
   }
@@ -2634,26 +2600,25 @@ function drawFilters() {
   // Auswahlfelder der Instanz.
   sel.id = 'f-sort';
   sel.className = 'select';
-  /* ---- DIE RICHTUNG IST SEIT 0.28.1 KEIN EINTRAG DER LISTE MEHR ---- BIS
-     0.28.0 STAND JEDE SORTIERUNG ZWEIMAL DA, einmal je Richtung: dreizehn
-     Eintraege in vier Gruppen, mit den Ueberschriften siebzehn Zeilen. */
-  /* DIE BEIDEN UEBERSCHRIFTEN KOMMEN AUS DER SPRACHDATEI -- 0.28.1. */
+  /* ---- DIE RICHTUNG IST KEIN EINTRAG DER LISTE MEHR ---- Sonst stuende jede
+     Sortierung zweimal da, einmal je Richtung: dreizehn Eintraege in vier
+     Gruppen, mit den Ueberschriften siebzehn Zeilen. */
+  /* DIE BEIDEN UEBERSCHRIFTEN KOMMEN AUS DER SPRACHDATEI. */
   const GENERAL = t('list.sortGroupGeneral');
   const HISTORY = t('list.sortGroupHistory');
-  /* `start` SAGT, WORAUF EIN WECHSEL AUF DIESE GRUNDLAGE LANDET -- 0.29.0,
-     und es steht an JEDER der sieben und nicht nur an der einen, die
-     abweicht: ein stiller Vorgabewert liesse die Ausnahme wie ein Versehen
-     aussehen. */
+  /* `start` SAGT, WORAUF EIN WECHSEL AUF DIESE GRUNDLAGE LANDET, und es steht
+     an JEDER der sieben: ein stiller Vorgabewert liesse die eine Ausnahme wie
+     ein Versehen aussehen. */
   const SORT_BASES = [
     { key: 'updated',  group: GENERAL,      word: () => t('list.sortChanged'),
       down: 'list.dirNewOld',   up: 'list.dirOldNew',  start: 'down' },
-    /* „Titel" KANN SEIT 0.29.0 BEIDE RICHTUNGEN -- und bis dahin nur die
+    /* „Titel" KANN BEIDE RICHTUNGEN -- und bis dahin nur die
        eine. */
     { key: 'title',    group: GENERAL,      word: () => t('list.sortTitle'),
       down: 'list.dirZA',       up: 'list.dirAZ',     start: 'up' },
     { key: 'rating',   group: V.ratingOne,   word: () => V.ratingOne,
       down: 'list.dirHighLow',  up: 'list.dirLowHigh', start: 'down' },
-    /* NUR BEI EINGESCHALTETEM MODUS -- 0.26.0. Eine Sortierung nach einer Zahl,
+    /* NUR BEI EINGESCHALTETEM MODUS. Eine Sortierung nach einer Zahl,
        die nirgends zu sehen ist, ordnet nach etwas Unsichtbarem. */
     { key: 'potential', group: V.potential,  word: () => V.potential,
       down: 'list.dirHighLow',  up: 'list.dirLowHigh', start: 'down',
@@ -2667,7 +2632,7 @@ function drawFilters() {
   ].filter(b => !b.only || b.only());
   /* GELESEN WIRD VON HINTEN: die Kennung endet auf `_desc` oder `_asc`, und
      der Rest davor ist die Grundlage. */
-  /* WELCHE RICHTUNG GILT, STEHT IM WERT und in nichts sonst -- 0.29.0. */
+  /* WELCHE RICHTUNG GILT, STEHT IM WERT und in nichts sonst. */
   const sortParts = (value) => {
     const stem = String(value || '').replace(/_(desc|asc)$/, '');
     const b = SORT_BASES.find(x => x.key === stem) || SORT_BASES[0];
@@ -2699,13 +2664,13 @@ function drawFilters() {
   /* ZUSAMMENGESETZT WIRD HIER UND NUR HIER -- an beiden Bedienelementen
      dieselbe Zeile. */
   const applySort = () => { f.sort = picked.base.key + (picked.asc ? '_asc' : '_desc'); redraw(); };
-  /* SEIT 0.21.1 WIRD DIE GANZE LEISTE NEU GEZEICHNET UND NICHT NUR DIE LISTE:
+  /* WIRD DIE GANZE LEISTE NEU GEZEICHNET UND NICHT NUR DIE LISTE:
      die Sortierung gibt den Statusfilter vor, und die Statuspillen stehen
      eine Zeile weiter oben. */
   sel.onchange = () => {
     const b = SORT_BASES.find(x => x.key === sel.value) || SORT_BASES[0];
     /* DER WECHSEL NIMMT DIE RICHTUNG DER NEUEN GRUNDLAGE und nicht die der
-       alten -- 0.29.0. */
+       alten. */
     picked = { base: b, asc: b.start === 'up' };
     applySort();
   };
@@ -2745,9 +2710,8 @@ function drawFilters() {
   });
   if (VIEWS.length < VIEWS_CAP) {
     const bNew = document.createElement('button');
-    /* EIN TEXT UND KEINE PILLE -- 0.32.0, Bauabschnitt 10. Der Betreiber
-       (13.9.2026): „Ansicht speichern wirkt wie ein auswahl eines
-       gespeicherten ansicht. */
+    /* EIN TEXT UND KEINE PILLE: eine Pille sieht aus wie die Auswahl einer
+       gespeicherten Ansicht. */
     bNew.className = 'link-btn' + (VIEWS.length ? ' link-btn-sep' : '');
     bNew.id = 'view-save';
     bNew.textContent = t('list.saveView');
@@ -2764,7 +2728,7 @@ function drawFilters() {
   }
   r5.appendChild(g5);
 
-  /* ---- DER RUECKSETZER FUER DIE FILTERLEISTE — 0.17.3 ---- ER STAND BIS
+  /* ---- DER RUECKSETZER FUER DIE FILTERLEISTE ---- ER STAND BIS
      HIERHER NIRGENDS. */
   const filtersSet = filterNumber();
   if (filtersSet) {
@@ -2780,9 +2744,8 @@ function drawFilters() {
          Weg dorthin ist filterNormal(), derselbe wie beim Anwenden einer
          gespeicherten Ansicht. */
       state.filters = filterNormal({ sort: state.filters.sort });
-      /* HIER STAND BIS 0.32.0 `STATUS_BY_HAND = false` -- „Filter
-         zuruecksetzen" setzte auch die Handwahl zurueck, und danach folgte
-         der Statusfilter wieder der Sortierung. */
+      /* HIER STAND `STATUS_BY_HAND = false` -- „Filter zuruecksetzen" setzte auch
+         die Handwahl zurueck. */
       redraw();
     };
     right5.appendChild(bBack);
@@ -2949,7 +2912,7 @@ function inventoryText(it) {
   return `<div class="photo-count">${parts.join(' · ')}</div>`;
 }
 
-/* ================= Der Trefferkontext an der Kachel -- 0.18.0
+/* ================= Der Trefferkontext an der Kachel
    ================= WARUM EIN EINTRAG IN DER TREFFERLISTE STEHT. */
 const FINDING_WORDS = {
   description: () => t('list.description'),
@@ -3010,7 +2973,7 @@ function card(it) {
       ${testLine}
       <div class="card-foot">
         <span class="card-meta-l">
-          ${/* EINE KACHEL, EINE ZAHL -- 0.21.0. */''}
+          ${/* EINE KACHEL, EINE ZAHL. */''}
           ${tileNumber(it)}
           ${it.linkCount ? `<span class="link-count">${tH('list.linkCount', { n: it.linkCount })}</span>` : ''}
         </span>
@@ -3031,9 +2994,8 @@ function card(it) {
     e.preventDefault(); e.stopPropagation();
     const was = state.compare.has(it.id);
     was ? state.compare.delete(it.id) : state.compare.add(it.id);
-    /* NUR DIE KACHEL UND DIE LEISTE -- 0.35.0, BA 5. drawBody() zeichnete die
-       ganze Liste neu, um an EINER Kachel eine Klasse umzuschalten. Von
-       state.compare haengen genau drei Dinge ab: die Klasse am Verweis, die
+    /* NUR DIE KACHEL UND DIE LEISTE und nicht die ganze Liste: von
+       state.compare haengen genau drei Dinge ab -- die Klasse am Verweis, die
        Klasse samt Titel am Haken und die Vergleichsleiste. */
     a.classList.toggle('picked', !was);
     pickBox.classList.toggle('on', !was);
@@ -3043,10 +3005,10 @@ function card(it) {
   return a;
 }
 
-/* DIE ZAHL AUF DER KACHEL -- 0.21.0. */
+/* DIE ZAHL AUF DER KACHEL. */
 function tileNumber(it) {
   const potential = !it.tested;
-  /* IST DER MODUS AUS, STEHT AN DIESER STELLE NICHTS -- 0.26.0, und das ist
+  /* IST DER MODUS AUS, STEHT AN DIESER STELLE NICHTS, und das ist
      die Antwort auf F5: kein Platzhalter, kein Strich, die Zeile schliesst
      sich. */
   if (!POTENTIAL_MODE && potential) return '';
@@ -3189,7 +3151,7 @@ async function renderOpen() {
     } catch (e) { toast(e.message, true); }
   };
 
-  /* DIE EINTEILUNG STEHT SEIT 0.30.0 GANZ OBEN (`dueOf`, Befund 8): der
+  /* DIE EINTEILUNG STEHT GANZ OBEN (`dueOf`): der
      Eintrag faerbt sein Datum nach derselben Auskunft, und zwei Einteilungen
      an zwei Orten liefen auseinander. */
   /* VIER ABSCHNITTE UND NICHT DREI, und der vierte ist kein vierter Zustand:
@@ -3200,7 +3162,7 @@ async function renderOpen() {
   function draw() {
     drawView();
     const visible = onlyMy ? rows.filter(z => z.mine) : rows;
-    /* DIE GRUPPIERUNG NACH EINTRAG BLEIBT — INNERHALB DES ABSCHNITTS (F18). */
+    /* DIE GRUPPIERUNG NACH EINTRAG BLEIBT — INNERHALB DES ABSCHNITTS. */
     const groupsOf = (list) => {
       const out = [];
       for (const z of list) {
@@ -3268,7 +3230,7 @@ async function renderOpen() {
 
         // Verfasser nur ab zwei Zugängen -- bei einem wiederholte der Name nur,
 // wer ohnehin alles geschrieben hat. Dieselbe Schwelle wie überall.
-        /* DAS FÄLLIGKEITSDATUM AN DER ZEILE -- 0.29.0. Es steht nur da, wenn
+        /* DAS FÄLLIGKEITSDATUM AN DER ZEILE. Es steht nur da, wenn
            eines gesetzt ist; im Abschnitt „Ohne Datum" wäre es ohnehin leer. */
         const when = document.createElement('span');
         when.className = 'open-when';
@@ -3295,7 +3257,7 @@ async function renderCompare() {
   try { items = await Promise.all(ids.map(id => api('GET', `/api/items/${id}`))); }
   catch (e) { toast(e.message, true); location.hash = '#/'; return; }
 
-  /* ZWEI GRUPPEN VON ZEILEN -- 0.21.0: erst die Vorher-Kriterien, dann die
+  /* ZWEI GRUPPEN VON ZEILEN: erst die Vorher-Kriterien, dann die
      Nachher-Kriterien, jede mit ihrer eigenen Kopfzahl und einer Trennzeile,
      die das Wort traegt. */
   const names = [];
@@ -3329,7 +3291,7 @@ async function renderCompare() {
   const cg = document.getElementById('cg');
 
   /* DIE ZAHL FUER "MEINE" BILDET DER KLIENT. */
-  /* MIT DER PHASE ALS ARGUMENT -- 0.21.0. */
+  /* MIT DER PHASE ALS ARGUMENT. */
   const ownAverage = (it, phase) => {
     let counter = 0, denominator = 0;
     for (const r of it.ratings) {
@@ -3428,7 +3390,7 @@ async function renderCompare() {
 let lightboxOpen = false;
 
 // Adresse eines Bildes.
-/* DIE EINE STELLE, AN DER EINE BILDADRESSE ENTSTEHT -- und seit 0.19.5 auch
+/* DIE EINE STELLE, AN DER EINE BILDADRESSE ENTSTEHT -- und auch
    die einzige, die die FASSUNG anhaengt. */
 function imageSource(p, filesize) {
   if (p.source === 'comment')
@@ -3753,7 +3715,7 @@ function sparkline(days) {
 
 /* ================= Detailansicht ================= */
 async function renderDetail(id, termAddress) {
-  /* DER BLICK GILT FUER EINEN EINTRAG UND ENDET MIT IHM -- 0.21.0. */
+  /* DER BLICK GILT FUER EINEN EINTRAG UND ENDET MIT IHM. */
   GLANCE.clear();
   /* DER BEGRIFF KOMMT AUS DER ADRESSE ODER AUS DEM ZUSTAND -- und danach
      stehen beide gleich. */
@@ -3786,11 +3748,10 @@ async function renderDetail(id, termAddress) {
       <div>
         <div class="viewer" id="viewer"></div>
         <div class="thumbs" id="thumbs"></div>
-        ${/* DER HINWEISTEXT STEHT IN EINEM EIGENEN SPAN -- Befund 1 der Runde
-             0.26.0. */''}
+        ${/* DER HINWEISTEXT STEHT IN EINEM EIGENEN SPAN. */''}
         <label class="drop" id="drop"><input type="file" id="file" accept="image/*,video/*" multiple><span
           id="drop-text">${tH('entry.addMediaHint')}</span></label>
-        ${/* EIN SATZ UND KEIN ABSATZ -- 0.22.0. */''}
+        ${/* EIN SATZ UND KEIN ABSATZ. */''}
         <p class="hint hint-sm" style="margin:8px 2px 0">
           ${tH('entry.photoOrderHint')} ${tH('entry.clipboardLarger')}</p>
       </div>
@@ -3801,8 +3762,7 @@ async function renderDetail(id, termAddress) {
              Bild. */''}
         <div class="title-head">
           <div class="title-line">
-            ${/* EIN MITWACHSENDES FELD UND KEIN EINZEILIGES -- Befund 3a der
-                 Runde 0.26.0. */''}
+            ${/* EIN MITWACHSENDES FELD UND KEIN EINZEILIGES. */''}
             <textarea class="title-in" id="title" rows="1">${esc(item.title)}</textarea>
             <button class="pin-btn${item.favorite ? ' on' : ''}" id="pin" title="${esc(item.favorite ? t('entry.unmarkFavorite') : t('entry.markFavorite'))}">${item.favorite ? '★' : '☆'}</button>
           </div>
@@ -3811,12 +3771,9 @@ async function renderDetail(id, termAddress) {
             <button class="switch" id="sw-test"><span class="knob"></span><span id="sw-test-t"></span></button>
             <button class="switch" id="sw-rej"><span class="knob"></span><span id="sw-rej-t"></span></button>
           </div>
-          ${/* DIE MARKE „abgelehnt" WIRD ZUR AUSSAGE, und eine Aussage traegt
-               in dieser Instanz ihren Verfasser: „Abgelehnt am 14.03.2026,
-               09:12 von Anna — Lieferzeit über 6 Monate." EIGENE ZEILE UNTER
-               DEM SCHALTER, nicht Text IM Schalter: der Knopf traegt den
-               Zustand, den er umlegt, und ein Satz darin risse ihn bei 120
-               Prozent Schrift ueber die Zeile. */''}
+          ${/* DIE MARKE „abgelehnt" WIRD ZUR AUSSAGE und traegt ihren Verfasser.
+               EIGENE ZEILE UNTER DEM SCHALTER: ein Satz im Schalter risse ihn
+               bei 120 Prozent Schrift ueber die Zeile. */''}
           <div class="hint hint-sm author-row rej-note" id="rej-badge" hidden></div>
           <div class="row-in rej-reason" id="rej-reason-row" hidden>
             <input class="input input-sm" id="rej-reason" maxlength="200"
@@ -3828,9 +3785,9 @@ async function renderDetail(id, termAddress) {
         <div class="block" data-block="kategorie">
           <div class="block-head"><span class="label">${tH('list.category')}</span></div>
           <div class="row-in">
-            ${/* DIE MINDESTBREITE STEHT SEIT 0.29.0 IM STILBLATT und nicht
+            ${/* DIE MINDESTBREITE STEHT IM STILBLATT und nicht
                  mehr hier: inline schlug sie jede Regel, auch die des
-                 schmalen Schirms, und genau die braucht sie (Befund 7). */''}
+                 schmalen Schirms, und genau die braucht sie. */''}
             <select class="select select-sm" id="cat" style="padding:9px 11px"></select>
             ${mayCategoryCreate() ? `<input class="input input-sm" id="newcat" placeholder="${esc(t('entry.newCategoryHint'))}" style="padding:8px 11px">
             <button class="btn btn-sm" id="newcat-b">${tH('entry.create')}</button>` : ''}
@@ -3852,8 +3809,8 @@ async function renderDetail(id, termAddress) {
           <div class="pills cloud" id="tagcloud"></div>
         </div>
 
-        ${/* ZWEI STERNKAESTEN, DIESELBE BAUFORM -- 0.21.0. */''}
-        ${/* DER STERNKASTEN STEHT NUR BEI EINGESCHALTETEM MODUS DA -- 0.26.0,
+        ${/* ZWEI STERNKAESTEN, DIESELBE BAUFORM. */''}
+        ${/* DER STERNKASTEN STEHT NUR BEI EINGESCHALTETEM MODUS DA,
              und zwar GAR NICHT ERST GEZEICHNET und nicht bloss eingeklappt. */''}
         ${POTENTIAL_MODE ? `<div class="block" data-block="potenzial">
           <div class="block-head"><span class="label">${esc(V.potential)}</span>
@@ -3922,15 +3879,14 @@ async function renderDetail(id, termAddress) {
     </div>
     </div>
 
-    ${/* NUR FUER DEN, DER LOESCHEN DARF -- 0.22.0 (E10). */''}
+    ${/* NUR FUER DEN, DER LOESCHEN DARF. */''}
     ${item.mine === true || ADMIN
       ? `<div class="danger-row"><button class="btn btn-danger btn-sm" id="del">${tH('entry.deleteEntry')}</button></div>`
       : ''}
 
-    ${/* ---- DAS BLAETTERN, AM ENDE DES EINTRAGS -- 0.28.1 ---- HIER UND
-         NICHT IN DER KOPFZEILE, und der Grund steht bei subhead(): zwei
-         Pfeile links und rechts von der Marke behaupteten, die Marke zu
-         blaettern. */''}
+    ${/* ---- DAS BLAETTERN, AM ENDE DES EINTRAGS ---- HIER UND NICHT IN DER
+         KOPFZEILE: zwei Pfeile links und rechts von der Marke behaupten, die
+         Marke zu blaettern. */''}
     ${entryNav(id)}
   </div>`;
   wireSubhead({ term });
@@ -3961,11 +3917,11 @@ async function renderDetail(id, termAddress) {
 
   function drawViewer() {
     const v = document.getElementById('viewer');
-    /* DIE ANSICHT KANN FORT SEIN -- 0.19.6. */
+    /* DIE ANSICHT KANN FORT SEIN. */
     if (!v) return;
     // Der Betrachter bleibt bei jedem Neuzeichnen dasselbe Element; innerHTML
     // ersetzt nur die Kinder.
-    /* ALLE FUENF, seit 0.22.1. */
+    /* ALLE FUENF. */
     v.onpointerdown = v.onpointermove = v.onpointerup =
       v.onpointerleave = v.onpointercancel = null;
     v.classList.remove('focus-mode', ...HANDLE_CLASSES);
@@ -4082,7 +4038,7 @@ async function renderDetail(id, termAddress) {
       draw();
     };
 
-    /* DIE FUENF GESTEN -- 0.22.1, und sie sind der Kern dieser Runde. */
+    /* DIE FUENF GESTEN, und sie sind der Kern dieser Runde. */
 
     const limited = (x, lo, hi) => Math.min(hi, Math.max(lo, x));
     // Der Rahmen im Bildmass -- dasselbe Rechteck, das `draw()` hinlegt.
@@ -4108,7 +4064,7 @@ async function renderDetail(id, termAddress) {
       const k = limited(edgeWanted, sideLength / 4, up);
       zoom = limited(Math.round(sideLength * 100 / k / 5) * 5, 100, 400);
       let narrow = sideLength * 100 / zoom;
-      /* UND DIE RASTUNG DARF DEN DECKEL NICHT UEBERSPRINGEN -- 0.22.1, und
+      /* UND DIE RASTUNG DARF DEN DECKEL NICHT UEBERSPRINGEN, und
          das ist ein Fund aus der Gegenprobe. */
       if (narrow > up + 1e-9 && zoom < 400) {
         zoom = Math.min(400, zoom + 5);
@@ -4146,10 +4102,9 @@ async function renderDetail(id, termAddress) {
       }
     };
 
-    /* EIN NEUES RECHTECK -- das ist die Geste aus 0.22.0, unveraendert in
-       ihrer Rechnung: die laengere Seite des aufgezogenen Rechtecks wird die
-       Kante (der Ausschnitt ist immer ein Quadrat, die Kachel auch), aus der
-       linken oberen Ecke folgt der Punkt. */
+    /* EIN NEUES RECHTECK: die laengere Seite des aufgezogenen Rechtecks wird
+       die Kante -- der Ausschnitt ist immer ein Quadrat, die Kachel auch --,
+       aus der linken oberen Ecke folgt der Punkt. */
     const outRect = (a, e) => {
       const f = rect();
       const x1 = limited(a.x - f.links, 0, f.width), y1 = limited(a.y - f.top, 0, f.height);
@@ -4173,7 +4128,7 @@ async function renderDetail(id, termAddress) {
         toast(t('list.saved'));
       } catch (e) { toast(e.message, true); }
     };
-    /* DIE MELDUNG KOMMT AUCH DANN, WENN DIE ANSICHT SCHON FORT IST -- 0.19.6,
+    /* DIE MELDUNG KOMMT AUCH DANN, WENN DIE ANSICHT SCHON FORT IST,
        und das ist die Entscheidung und kein Versehen. */
 
     /* WAS DER ZEIGER ZEIGT, BEVOR JEMAND DRUECKT. */
@@ -4343,7 +4298,7 @@ async function renderDetail(id, termAddress) {
     if (!files.length) return;
     const images = files.filter(f => !/^video\//.test(f.type));
     const videos = files.filter(f => /^video\//.test(f.type));
-    /* NUR DER TEXT WANDERT, NICHT DAS FELD -- Befund 1. */
+    /* NUR DER TEXT WANDERT, NICHT DAS FELD. */
     const dropText = document.getElementById('drop-text');
     const old = dropText.textContent;
     dropText.textContent = t('entry.uploading');
@@ -4353,10 +4308,9 @@ async function renderDetail(id, termAddress) {
         const tooBig = images.find(f => f.size > PHOTO_MAX);
         if (tooBig) throw new Error(t('entry.tooBig',
           { name: tooBig.name, mb: PHOTO_MAX / 1048576 }));
-        /* IN BUENDELN VON PHOTO_COUNT. multer zaehlt je Feldnamen herunter
-           und bricht beim naechsten Bild die GANZE Anfrage ab: aus 80
-           gewaehlten Fotos wuerde sonst kein einziges gespeichertes. Eine
-           Obergrenze je Eintrag ist das nicht -- die 40 gilt der Anfrage. */
+        /* IN BUENDELN VON PHOTO_COUNT: multer bricht beim naechsten Bild die
+           GANZE Anfrage ab, aus 80 gewaehlten Fotos wuerde sonst keines. Eine
+           Obergrenze je Eintrag ist das nicht. */
         for (let at = 0; at < images.length; at += PHOTO_COUNT) {
           const bundle = images.slice(at, at + PHOTO_COUNT);
           const fd = new FormData();
@@ -4461,9 +4415,8 @@ async function renderDetail(id, termAddress) {
   /* DIE AUSSAGE ZUR ABLEHNUNG -- Datum, Verfasser und Grund, und JEDES DER
      DREI DARF FEHLEN. */
   /* OB JEMAND DAS FELD AUSDRUECKLICH GEOEFFNET HAT, ist Ansichtszustand und
-     gehoert deshalb hierher und nicht in `item`: der Server weiss nichts
-     davon, und eine Antwort, die es mitbraechte, waere eine Auskunft ueber
-     ein Fenster. */
+     gehoert nicht in `item`: eine Antwort des Servers, die es mitbraechte,
+     waere eine Auskunft ueber ein Fenster. */
   let reasonOpen = false;
 
   function drawRejection() {
@@ -4561,7 +4514,7 @@ async function renderDetail(id, termAddress) {
   document.getElementById('sw-test').onclick = async () => {
     try {
       item = await api('PUT', `/api/items/${id}`, { tested: !item.tested });
-      /* DER SCHALTER LEERT DEN BLICK -- 0.21.0. */
+      /* DER SCHALTER LEERT DEN BLICK. */
       GLANCE.clear();
       drawSwitches(); drawTestDays(); drawRatings();
     }
@@ -4575,7 +4528,7 @@ async function renderDetail(id, termAddress) {
     try {
       item = await api('PUT', `/api/items/${id}`, core);
       /* BEIM EINSCHALTEN STEHT DAS FELD OFFEN, WENN KEIN GRUND DASTEHT -- und
-         das entscheidet seit 0.15.1 die Regel in drawRejection() und nicht
+         das entscheidet die Regel in drawRejection() und nicht
          dieser Klick. */
       reasonOpen = false;
       drawSwitches();
@@ -4599,11 +4552,9 @@ async function renderDetail(id, termAddress) {
       drawSwitches();
     };
     field.onblur = save;
-    /* ESCAPE SETZT DAS FELD ZURUECK, BEVOR ES SCHLIESST -- und die
-       Reihenfolge ist der ganze Punkt: das Schliessen nimmt dem Feld den
-       Zeiger, das loest onblur aus, und save() vergliche sonst den getippten
-       Text mit dem gespeicherten und schriebe genau das weg, was gerade
-       verworfen werden sollte. */
+    /* ESCAPE SETZT DAS FELD ZURUECK, BEVOR ES SCHLIESST: das Schliessen nimmt
+       dem Feld den Zeiger, das loest onblur aus, und save() schriebe sonst
+       genau das weg, was gerade verworfen werden sollte. */
     field.addEventListener('keydown', e => {
       if (e.key === 'Enter') { e.preventDefault(); field.blur(); }
       else if (e.key === 'Escape') {
@@ -4635,7 +4586,7 @@ async function renderDetail(id, termAddress) {
 
   /* ---- Texte ---- */
   const titleEl = document.getElementById('title');
-  /* EIN TITEL HAT KEINE ZEILEN -- Befund 3a. */
+  /* EIN TITEL HAT KEINE ZEILEN. */
   titleEl.onkeydown = e => { if (e.key === 'Enter') { e.preventDefault(); titleEl.blur(); } };
   const titleFit = autoGrow(titleEl);
   titleEl.onblur = async () => {
@@ -4802,7 +4753,7 @@ async function renderDetail(id, termAddress) {
        einem einzigen Zugang entfaellt. */
     const weightedCalc = rows
       .some(r => (r.value > 0 || r.avg != null) && Number(r.weight) !== 1);
-    /* DIE KOPFZAHL IST SEIT 0.16.0 EIN KNOPF, und er fuehrt zur eigenen
+    /* DIE KOPFZAHL IST EIN KNOPF, und er fuehrt zur eigenen
        Rechnung dieses Eintrags. */
     const averageValue = item[boxId.average];
     if (head) {
@@ -4811,10 +4762,10 @@ async function renderDetail(id, termAddress) {
         const b = document.createElement('button');
         b.className = 'link-btn weight-open';
         b.id = boxId.button;
-        /* DAS WORT KOMMT AUS DER SPRACHDATEI -- 0.30.0, Befund 10 (F15). */
+        /* DAS WORT KOMMT AUS DER SPRACHDATEI. */
         b.textContent = '⌀ ' + number(averageValue, 1) +
           (weightedCalc ? ' ' + t('entry.weighted') : '');
-        /* DER TITEL SAGT, WESSEN ZAHL DAS IST -- 0.22.1 (E5). */
+        /* DER TITEL SAGT, WESSEN ZAHL DAS IST. */
         b.title = t('entry.avgAllHint');
         // DER ERKLAERKNOPF BEKOMMT DEN RECHENWEG SEINES KASTENS.
         b.onclick = () => showCalc(boxId);
@@ -4868,7 +4819,7 @@ async function renderDetail(id, termAddress) {
           a.textContent = r.count > 1 ? `⌀ ${average} (${r.count})` : `⌀ ${average}`;
           a.title = t('entry.avgOf', { average: average, votes: votes });
         } else {
-          /* EIN STRICH, SOLANGE NIEMAND BEWERTET HAT -- 0.21.0. */
+          /* EIN STRICH, SOLANGE NIEMAND BEWERTET HAT. */
           a.textContent = '–';
           a.title = t('entry.notRatedYet');
         }
@@ -4876,8 +4827,7 @@ async function renderDetail(id, termAddress) {
       }
       /* DIE LETZTE ZELLE DER ZEILE, IN JEDER LAGE: der Ruecksetzknopf in
          seiner eigenen Rasterspalte -- steckte er in der Zelle der Zahl,
-         wanderte die Zahl, sobald eine Zeile keinen Knopf traegt (Konzept
-         6.5a). */
+         wanderte die Zahl, sobald eine Zeile keinen Knopf traegt. */
       const zz = document.createElement('span');
       zz.className = 'rreset-cell';
       zz.appendChild(back);
@@ -4886,16 +4836,16 @@ async function renderDetail(id, termAddress) {
       /* HIER STEHT AUSDRÜCKLICH KEINE STIMMENLISTE. */
     });
   }
-  /* ---- „Stimmen": die Ansicht des Admins ---- SIE HIESS BIS 0.20.1 „Wer hat
+  /* ---- „Stimmen": die Ansicht des Admins ---- Sie hiess frueher „Wer hat
      bewertet". */
-  /* ---- Die eigene Rechnung hinter der Kopfzahl -- 0.16.0 ---- DER KASTEN
+  /* ---- Die eigene Rechnung hinter der Kopfzahl ---- DER KASTEN
      LIEST DIE VORHANDENE RECHNUNG, ER RECHNET NICHT NACH. */
   const weightNumber = (n) => {
     const z = Math.round(Number(n) * 100) / 100;
     return number(z, 0, 2);
   };
 
-  /* MIT DEM KASTEN ALS ARGUMENT -- 0.21.0. */
+  /* MIT DEM KASTEN ALS ARGUMENT. */
   function showCalc(boxId) {
     const removed = item[boxId.removed];
     // Ohne Aufstellung kein Kasten. Sie fehlt nur, wenn nichts bewertet ist --
@@ -4911,12 +4861,12 @@ async function renderDetail(id, termAddress) {
     bd.innerHTML = `<div class="modal calc-modal" id="calc-modal">
       <h2>${tMarks('entry.calcHowAvg', { word: esc(weightNumber(removed.result)) })}</h2>
       ${/* DER VERWEIS ZEIGT IN DEN KASTEN UND NICHT AUS IHM HINAUS. */''}
-      ${/* „UEBER ALLE BENUTZER" -- 0.22.1 (E5). */''}
+      ${/* „UEBER ALLE BENUTZER". */''}
       <p><strong>${tH('entry.calcTwoSteps')}</strong> ${tMark('entry.calcStepsHint', 'entry.grade',
           { extra: withWeight ? t('entry.calcWithWeight') : t('entry.calcAllEqual') })}</p>
       <div class="calc" id="calc">
         <div class="calc-row calc-head"><span>${tH('entry.criterion')}</span><span>${tH('entry.grade')}</span><span>${tH('entry.weight')}</span><span>${tH('entry.calcGradeWeight')}</span></div>
-        ${/* DIE LETZTE KRITERIENZEILE HEISST SO -- Befund 4. Sie zieht den
+        ${/* DIE LETZTE KRITERIENZEILE HEISST SO. Sie zieht den
              Strich vor den Summen; das Stilblatt faerbt ihn dort staerker. */''}
         ${removed.rows.map((z, i) => `<div class="calc-row${i === removed.rows.length - 1 ? ' calc-last' : ''}" data-krit="${Number(z.criterionId)}">
           <span class="calc-name">${esc(names.get(z.criterionId) || '—')}</span>
@@ -4929,15 +4879,15 @@ async function renderDetail(id, termAddress) {
           <span id="calc-divisor">${esc(weightNumber(removed.divisor))}</span></div>
         <div class="calc-row calc-result"><span>${tH('entry.result')}</span><span></span><span></span>
           <span id="calc-result">⌀ ${esc(weightNumber(removed.result))}</span></div>
-        ${/* DIE VERGLEICHSZAHL -- 0.17.0. Die Formel stand Zeile fuer Zeile
+        ${/* DIE VERGLEICHSZAHL. Die Formel stand Zeile fuer Zeile
              da und liess trotzdem offen, WOFUER die Gewichte gut sind. */''}
         ${withWeight ? `<div class="calc-row calc-same"><span>${tH('entry.calcNoWeights')}</span>
           <span></span><span></span>
           <span id="calc-same">⌀ ${esc(weightNumber(removed.equalResult))}</span></div>` : ''}
       </div>
-      ${/* ZWEI ABSAETZE UNTER DER TABELLE UND NICHT DREI -- 0.17.3. Bei
+      ${/* ZWEI ABSAETZE UNTER DER TABELLE UND NICHT DREI. Bei
            sieben Kriterien lief der Kasten ueber `88dvh` hinaus und rollte. */''}
-      ${/* ZWEI SAETZE FUER JEDEN, DER DRITTE NUR FUER DEN ADMIN -- 0.22.0. */''}
+      ${/* ZWEI SAETZE FUER JEDEN, DER DRITTE NUR FUER DEN ADMIN. */''}
       <p>${tMark('entry.calcRoundingHint', 'entry.criteriaNoStars')}${ADMIN ? ` ${tMarks('entry.weightsWhere', { word: `<strong>${
         esc(boxId.phase === 'before' ? t('entry.criteriaPotential') : t('entry.criteriaRating'))}</strong>` })}` : ''}</p>
       ${/* WAS DIE GEWICHTUNG AENDERT, IN EINEM SATZ. */''}
@@ -4964,7 +4914,7 @@ async function renderDetail(id, termAddress) {
     bd.onclick = e => { if (e.target === bd) zu(); };
   }
 
-  /* MIT DEM KASTEN ALS ARGUMENT -- 0.21.0, wie die Rechnung darueber. */
+  /* MIT DEM KASTEN ALS ARGUMENT, wie die Rechnung darueber. */
   async function showMatch(boxId) {
     let list;
     try { list = await api('GET', `/api/items/${id}/votes`); }
@@ -5048,8 +4998,8 @@ async function renderDetail(id, termAddress) {
     const el = document.getElementById(k.actor);
     if (el) el.onclick = () => showMatch(k);
   }
-  /* HIER HING BIS 0.20.1 DER KNOPF „Meine Bewertung zuruecksetzen" -- samt
-     confirmBox und samt `DELETE /api/items/:id/ratings` dahinter. */
+  /* HIER HING DER KNOPF „Meine Bewertung zuruecksetzen" -- samt confirmBox und
+     samt `DELETE /api/items/:id/ratings` dahinter. */
 
   /* ---- Testtage ---- */
   function drawTestDays() {
@@ -5100,7 +5050,7 @@ async function renderDetail(id, termAddress) {
       (d.tags || []).forEach(tag => {
         const c = document.createElement('span');
         c.className = 'chip chip-xs';
-        // Mit Namen, damit „Tag" und „Testtag" nicht zusammenfallen (Woerterbuch).
+        // Mit Namen, damit „Tag" und „Testtag" nicht zusammenfallen.
         c.innerHTML = `${esc(tag.name)}<button title="${esc(t('entry.tagQuote', { name: tag.name }))}">${ICON_X}</button>`;
         c.querySelector('button').onclick = async () => {
           try { item = await api('DELETE', `/api/test-days/${d.id}/tags/${tag.id}`); drawTestDays(); loadTagList(); }
@@ -5131,14 +5081,14 @@ async function renderDetail(id, termAddress) {
       };
       tagBox.appendChild(plus);
 
-      /* ---- „MEHR" RECHTS VON DEN MARKEN -- 0.30.1, Befund 4 (F9) ---- DER
+      /* ---- „MEHR" RECHTS VON DEN MARKEN ---- DER
          BETREIBER HAT DIE ENTSCHEIDUNG NICHT SELBST GETROFFEN, SONDERN EINE
          REGEL DAFUER GEGEBEN: „Beides machbar. */
       const more = document.createElement('button');
       more.className = 'link-btn ttag-more';
       more.hidden = true;
 
-      /* DIE ZEILE SAGT SELBST, OB SIE MARKEN TRAEGT -- 0.30.1, Befund 4. */
+      /* DIE ZEILE SAGT SELBST, OB SIE MARKEN TRAEGT. */
       if ((d.tags || []).length) row.classList.add('trow-tags');
 
       // Wer den Tag eingetragen hat -- ab zwei Zugängen. Die Zeitleiste
@@ -5240,7 +5190,7 @@ async function renderDetail(id, termAddress) {
         <span class="go">${search ? ICON_SEARCH : '↗'}</span>
         ${mayPath ? `<button class="xdel" title="${esc(search ? t('entry.removeSearch') : t('entry.removeLink'))}">${ICON_X}</button>` : ''}`;
       /* IN DER LINKLISTE WIRD DIE ADRESSE HERVORGEHOBEN UND NICHT DER
-         ANZEIGENAME -- 0.18.0. */
+         ANZEIGENAME. */
       highlightInNode(row.querySelector('.dom'), top, term);
       if (!search && path) highlightInNode(row.querySelector('.path'), path, term);
 
@@ -5320,9 +5270,9 @@ async function renderDetail(id, termAddress) {
     /* UND AN DEN ANFANG DER LISTE -- 7. September 2026, aus dem Betrieb. */
     box.scrollTop = 0;
     button.hidden = false;
-    // Aus der Sprachdatei -- 0.24.4 (B5), aus demselben Grund wie die
+    // Aus der Sprachdatei, aus demselben Grund wie die
     // Filterzahl: ein Wort neben einer Zahl ist kein Satz und ist deshalb
-    // beim Umzug der Texte in 0.24.0 liegengeblieben.
+    // beim Umzug der Texte liegengeblieben.
     button.textContent = t('entry.showAllLinks', { n: rows.length });
     button.onclick = () => { linksOpen = true; drawLinks(); };
   }
@@ -5496,14 +5446,12 @@ async function renderDetail(id, termAddress) {
       const mine = c.mine === true;
       const manage = mine || ADMIN;
 
-      /* DER EINGRIFFSVERMERK NENNT DIE ROLLE, NICHT DIE PERSON -- und dafuer
-         braucht es kein Feld in der Antwort: DELETE /api/comment-images/:id
-         steht hinter darfAendern, und hochgezaehlt wird nur, wenn ein ANDERER
-         als der Verfasser entfernt. */
-      /* ---- DAS DATUM SIEHT JEDER, AENDERN DARF ES NUR, WER DARF -- 0.30.1
-         ---- BEFUND 8, aus dem Nachsehen und nicht aus dem Feld: der ganze
-         Kennzeichenkasten stand hinter `manage`, und damit sah das
-         Faelligkeitsdatum nur, wer es auch aendern durfte. */
+      /* DER EINGRIFFSVERMERK NENNT DIE ROLLE, NICHT DIE PERSON, und dafuer
+         braucht es kein Feld in der Antwort: hochgezaehlt wird nur, wenn ein
+         ANDERER als der Verfasser entfernt. */
+      /* ---- DAS DATUM SIEHT JEDER, AENDERN DARF ES NUR, WER DARF ---- Stuende
+         der ganze Kennzeichenkasten hinter `manage`, saehe das
+         Faelligkeitsdatum nur, wer es auch aendern darf. */
       const dueShown = (task || done) && c.dueDate;
       /* EIN RUF UND NICHT ZWEI. Knopf und Text zeigen denselben Zustand;
          zweimal zu fragen hiesse, dass sie auseinanderlaufen koennen. */
@@ -5511,7 +5459,7 @@ async function renderDetail(id, termAddress) {
       el.innerHTML = `<div class="cmt-head">
           ${manage || dueShown ? `<span class="marks">
           ${manage ? `
-            ${/* JEDE MARKE NENNT AUCH DEN RUECKWEG -- 0.22.0: eine gesetzte Marke
+            ${/* JEDE MARKE NENNT AUCH DEN RUECKWEG: eine gesetzte Marke
                  sagt „aufheben", nicht noch einmal „markieren". */''}
             <button class="mark pin${c.pinned ? ' on' : ''}" title="${esc(c.pinned ? t('entry.unpin') : t('entry.pinHint'))}">${ICON_PIN}</button>
             <button class="mark kind${report ? ' on' : ''}" title="${esc(report ? t('entry.unmarkReport') : t('entry.markReport'))}">${esc(V.reportOne)}</button>
@@ -5520,10 +5468,10 @@ async function renderDetail(id, termAddress) {
                        : task ? t('list.setDone')
                                  : t('entry.markTask')
             )}">${esc(done ? V.taskDone : V.taskOne)}</button>
-            ${/* ---- DAS FÄLLIGKEITSDATUM -- 0.29.0, Befund 3 ---- NUR AN
-                 EINER AUFGABE, und erst, wenn die Marke steht (F20). */''}
+            ${/* ---- DAS FÄLLIGKEITSDATUM ---- NUR AN
+                 EINER AUFGABE, und erst, wenn die Marke steht. */''}
             ` : ''}
-            ${/* SEIT 0.30.1 AUCH AN EINER ERLEDIGTEN OHNE DATUM (F19). */''}
+            ${/* AUCH AN EINER ERLEDIGTEN OHNE DATUM. */''}
             ${manage
               ? (task || done ? `<button class="link-btn cmt-due${
                   c.dueDate ? ` on due-${esc(dueState)}` : ''}"
@@ -5545,7 +5493,7 @@ async function renderDetail(id, termAddress) {
 
       /* Der Text kommt nicht aus der Vorlage, sondern als echte Knoten -- so
          kann hier gar kein Markup entstehen. */
-      /* UND DIE MARKIERUNG IST DAS VIERTE STUECK -- 0.32.0 (L2). */
+      /* UND DIE MARKIERUNG IST DAS VIERTE STUECK. */
       el.querySelector('.cmt-body')
         .appendChild(buildCommentNodes(splitCommentText(c.text, term, c.mentions)));
 
@@ -5562,7 +5510,7 @@ async function renderDetail(id, termAddress) {
         // denselben Knopf nimmt sie wieder zurueck auf Notiz.
         el.querySelector('.kind').onclick = () => flip('kind', report ? 'note' : 'report');
         el.querySelector('.task').onclick = () => flip('kind', taskMore(c.kind));
-        /* AUS DEM VERWEIS WIRD DAS FELD -- 0.29.0. */
+        /* AUS DEM VERWEIS WIRD DAS FELD. */
         const dueButton = el.querySelector('.cmt-due');
         if (dueButton) dueButton.onclick = () => {
           const field = document.createElement('input');
@@ -5570,10 +5518,9 @@ async function renderDetail(id, termAddress) {
           field.className = 'input input-sm cmt-due-in';
           field.value = c.dueDate || '';
           field.onchange = () => flip('dueDate', field.value || null);
-          /* ZURUECK ZUM KNOPF UND NICHT DIE GANZE LISTE NEU -- 0.35.0, BA 5.
-             Verliert das Feld den Fokus, ohne dass jemand ein Datum gewaehlt
-             hat, aendert sich kein Datenstand. Der Weg ueber drawComments()
-             bleibt fuer onchange darueber noetig. */
+          /* ZURUECK ZUM KNOPF UND NICHT DIE GANZE LISTE NEU: verliert das Feld
+             den Fokus, ohne dass jemand ein Datum gewaehlt hat, aendert sich
+             kein Datenstand. */
           field.onblur = () => { if (field.isConnected) field.replaceWith(dueButton); };
           dueButton.replaceWith(field);
           field.focus();
@@ -5671,7 +5618,7 @@ async function renderDetail(id, termAddress) {
     const kind = document.getElementById('ckind');
     kind.classList.toggle('on', newKind === 'report');
     kind.textContent = V.reportOne;
-    /* GEGEN DAS LITERAL UND NICHT GEGEN DIE SPRACHDATEI -- 0.31.1. */
+    /* GEGEN DAS LITERAL UND NICHT GEGEN DIE SPRACHDATEI. */
     kind.title = newKind === 'report' ? t('entry.unmarkReport') : t('entry.markReport');
     const taskBtn = document.getElementById('ctask');
     const finished = newKind === 'done';
@@ -5808,11 +5755,11 @@ async function renderDetail(id, termAddress) {
 
 /* DIE FUENF ABSCHNITTE, IN DER REIHENFOLGE DER RECHTELEITER: was jedem
    gehoert, steht vorn; was nur der Eigentuemer sieht, steht hinten. */
-/* DIE NAMEN SIND RUFE UND KEINE WERTE -- 0.24.0. */
+/* DIE NAMEN SIND RUFE UND KEINE WERTE. */
 const SYS_SECTIONS = [
   { key: 'personal',     name: () => t('card.personal') },
   { key: 'inventory',    name: () => t('card.inventory') },
-  // „Benutzer" seit 0.22.0 (E2); der Schluessel bleibt, ein Bildschirmtext
+  // „Benutzer"; der Schluessel bleibt, ein Bildschirmtext
 // benennt keine Adresse um.
   { key: 'users',        name: () => t('card.user') },
   { key: 'database',     name: () => t('card.database') },
@@ -5824,7 +5771,7 @@ const SYS_PATTERN = /^#\/system(?:\/([a-z]+))?$/;
 const sysUrl = (key) => `#/system/${key}`;
 
 /* DIE UEBERSETZUNG ALTER ABSCHNITTSADRESSEN IST IN 0.19.2 ABGEBAUT WORDEN --
-   UND IN 0.24.1 ZURUECKGEKOMMEN. */
+   und spaeter zurueckgekommen. */
 
 /* Was eine Karte nicht zeigt, bekommt auch keinen Behandler. */
 const atElement = (id, tu) => { const el = document.getElementById(id); if (el) tu(el); };
@@ -5844,7 +5791,7 @@ document.addEventListener('click', e => {
   if (b) copyText(b.dataset.copy);
 });
 
-/* DER KASTEN „Auf dem Server" -- 0.22.0, Regel S5. */
+/* DER KASTEN „Auf dem Server", Regel S5. */
 function serverBox(sentence, command) {
   if (!OWNER) return '';
   return `<div class="server-box"><div class="server-head">${tH('card.onTheServer')}</div>
@@ -5853,8 +5800,8 @@ function serverBox(sentence, command) {
       data-copy="${esc(command)}">${tH('card.copy')}</button></div></div>`;
 }
 
-/* „MEHR": DIE ZWEITE EBENE DER ERKLAERTEXTE -- 0.22.0, Konzept 4.5. */
-/* „MEHR" WIRD BREITENABHAENGIG -- 0.32.0, Bauabschnitt 10, und der Grund ist
+/* „MEHR": DIE ZWEITE EBENE DER ERKLAERTEXTE. */
+/* „MEHR" WIRD BREITENABHAENGIG, und der Grund ist
    GEMESSEN und nicht geschaetzt. */
 const more = (html) =>
   `<details class="more"><summary>${tH('card.more')}</summary><div class="more-text">${html}</div></details>`;
@@ -5881,18 +5828,11 @@ function trimMore(root) {
   }
 }
 
-/* „GESPEICHERT" -- ein Muster fuer alle Felder der Einstellungen
-   (Woerterbuch): der Toast, und die Karte, in der gespeichert wurde, zeigt es
+/* „GESPEICHERT" -- ein Muster fuer alle Felder der Einstellungen: der Toast, und die Karte, in der gespeichert wurde, zeigt es
    400 ms lang am Rand (Stilblatt 1.2). */
-/* ---- EINE PILLENREIHE -- 0.35.0, BA 4 ----
-   Fuenf Funktionen zeichneten dieselbe Reihe: Kasten holen, leeren, ueber die
-   Stufen laufen, je Stufe eine Pille bauen, beim Klick den Wert setzen,
-   sofort anwenden, neu zeichnen, schicken -- und bei einem Fehlschlag auf den
-   alten Wert zurueck.
-   `get` und `set` lesen und schreiben den Wert, `label` beschriftet die
-   Pille, `apply` macht ihn sofort sichtbar (nicht jede Reihe hat das), `key`
-   ist der Schluessel in PUT /api/settings, `mark` sagt, ob das Aufleuchten an
-   der geklickten Pille haengt oder am fokussierten Element. */
+/* ---- EINE PILLENREIHE -- `get` und `set` lesen und schreiben den Wert,
+   `label` beschriftet, `apply` macht ihn sofort sichtbar, `key` ist der
+   Schluessel in PUT /api/settings, `mark` sagt, woran das Aufleuchten haengt. */
 function pillRow({ boxId, levels, get, set, label, apply, key, mark }) {
   const box = document.getElementById(boxId);
   if (!box) return;
@@ -5944,7 +5884,7 @@ const SYS_CARDS = [
   { key: 'kriterien',    section: 'inventory', visible: () => true,
     markup: () => cardCriteria('after'),
     wireUp: (g) => setUpCriteriaOut(g, 'after') },
-  /* DIE ZWEITE KRITERIENKARTE -- 0.21.0, direkt hinter der ersten. */
+  /* DIE ZWEITE KRITERIENKARTE, direkt hinter der ersten. */
   { key: 'potenzialkriterien', section: 'inventory', visible: () => true,
     markup: () => cardCriteria('before'),
     wireUp: (g) => setUpCriteriaOut(g, 'before') },
@@ -5982,7 +5922,7 @@ const SYS_CARDS = [
 
   { key: 'titel',        section: 'installation', visible: () => ADMIN,
     markup: cardTitle,        wireUp: setUpTitleOut },
-  /* DIE ZWEITE KARTE DES ABSCHNITTS -- 0.24.3, F9. */
+  /* DIE ZWEITE KARTE DES ABSCHNITTS, F9. */
   { key: 'sprachen',     section: 'installation', visible: () => OWNER,
     markup: cardLanguages,    wireUp: setUpLanguagesOut }
 ];
@@ -5994,8 +5934,7 @@ function sysVisibleSections(fetched) {
 }
 
 
-/* `keepScroll`: DIE BILDLAUFSTELLUNG UEBERLEBT DAS NEUZEICHNEN -- 0.24.4
-   (B3). */
+/* `keepScroll`: DIE BILDLAUFSTELLUNG UEBERLEBT DAS NEUZEICHNEN. */
 async function renderSystem({ keepScroll = false } = {}) {
   const side = document.scrollingElement || document.documentElement;
   const scrollBefore = keepScroll && side ? side.scrollTop : 0;
@@ -6029,16 +5968,16 @@ async function renderSystem({ keepScroll = false } = {}) {
   const cardMarkup = cards.map(k => k.markup(fetched)).join('\n');
 
   app.innerHTML = `<div class="shell">
-    ${/* OHNE SUCHFELD, auf jedem Geraet -- 0.28.1. */''}
+    ${/* OHNE SUCHFELD, auf jedem Geraet. */''}
     ${subhead({ searchBox: false })}
     <h1 class="page-title">${tH('list.settings')}</h1>
     <p class="hint" style="margin:0 0 16px">${ADMIN
       ? tH('card.settingsHintAll')
       : tH('card.settingsHint')}</p>
     ${/* EIN MARKUP, ZWEI GESTALTEN -- dieselbe Bauform wie das Menue der
-         Kopfzeile aus 0.12.0. */''}
-    ${/* DER SCHALTER DARUEBER GEHOERT DEM TELEFON -- 0.28.1, und es ist
-         dieselbe Bauform wie der Filterschalter der Uebersicht (0.22.0). */''}
+         Kopfzeile. */''}
+    ${/* DER SCHALTER DARUEBER GEHOERT DEM TELEFON, und es ist dieselbe Bauform wie
+         der Filterschalter der Uebersicht. */''}
     <button class="btn btn-sm sys-toggle" id="sys-toggle"
       aria-expanded="false" aria-controls="sys-tabs">${tH('card.sections')}<span class="fcount">${esc(open.name())}</span></button>
     <nav class="sys-tabs" id="sys-tabs" aria-label="${esc(t('card.sectionsHint'))}">
@@ -6071,13 +6010,12 @@ async function renderSystem({ keepScroll = false } = {}) {
       typeof history !== 'undefined' && typeof history.replaceState === 'function')
     history.replaceState(null, '', sysUrl(open.key));
 
-  /* UND ZULETZT DIE BILDLAUFSTELLUNG -- 0.24.4 (B3), nach dem Zeichnen und
+  /* UND ZULETZT DIE BILDLAUFSTELLUNG, nach dem Zeichnen und
      nach dem Verdrahten: vorher waere die Seite noch die Ladezeile hoch, und
      ein gesetzter scrollTop verpuffte an einer Seite ohne Hoehe. */
   if (keepScroll && side && scrollBefore) side.scrollTop = scrollBefore;
 
-  /* UND DIE AUFKLAPPER, DIE SICH NICHT LOHNEN, FALLEN WEG -- 0.32.0,
-     Bauabschnitt 10. NACH dem Zeichnen und nach dem Verdrahten, aus demselben
+  /* UND DIE AUFKLAPPER, DIE SICH NICHT LOHNEN, FALLEN WEG. NACH dem Zeichnen und nach dem Verdrahten, aus demselben
      Grund wie die Bildlaufstellung eine Zeile hoeher: vorher haette der
      Inhalt keine Hoehe, und die Messung maesse nichts. */
   trimMore(app);
@@ -6138,13 +6076,13 @@ function setUpLanguagesOut() {
     try {
       const s = await api('PUT', '/api/settings', body);
       if (Array.isArray(s.languages)) LANGUAGES = s.languages;
-      /* UND DIE NAMENSTAFELN MIT -- 0.24.6, die Reparatur von E3. */
+      /* UND DIE NAMENSTAFELN MIT, die Reparatur von E3. */
       takeNames(s);
       drawLanguages();
       toast(message);
     } catch (e) { drawLanguages(); toast(e.message, true); }
   }
-  /* DIE ANSAGE NACH DEM UMSCHALTEN -- 0.25.0 (F4). */
+  /* DIE ANSAGE NACH DEM UMSCHALTEN. */
   const languageGaps = (code) => ({
     names: namesMissing('cats', code) + namesMissing('crits', code),
     words: VOCABULARY_FIELDS.filter(
@@ -6271,9 +6209,8 @@ function setUpUserOut(fetched) {
 }
 
   /* --- Der zweite Faktor in der Karte „Zugang“ --- DIESELBE BAUFORM WIE
-     drawRequests(): der Stand kommt vom Server, die Karte zeichnet sich nach
-     jeder Handlung aus der ANTWORT der Handlung neu und fragt nicht ein
-     zweites Mal nach. */
+     drawRequests(): die Karte zeichnet sich aus der ANTWORT der Handlung neu
+     und fragt nicht ein zweites Mal nach. */
   function drawTwoFactor(status) {
     const box = document.getElementById('two-factor-block');
     if (!box || !status) return;
@@ -6388,7 +6325,8 @@ function setUpUserOut(fetched) {
     boxId.innerHTML = `<strong>${tH('card.yourRecoveryCodes', { length: codes.length })}</strong>
       ${tMark('card.recoveryCodesHint', 'card.once')}
       <div class="two-factor-codes">${codes.map(c => `<span>${esc(c)}</span>`).join('')}</div>
-      ${/* DER SERVER-BEFEHL STAND HIER BIS 0.21.1 FUER JEDEN BENUTZER. Jetzt: ein Satz fuer alle, der Kasten nur fuer den Eigentuemer. */''}
+      ${/* DER SERVER-BEFEHL STAND HIER FUER JEDEN BENUTZER. Jetzt: ein Satz fuer
+   alle, der Kasten nur fuer den Eigentuemer. */''}
       <p class="desc" style="margin:8px 0 0">${tH('card.allCodesUsed')}</p>
       ${serverBox(t('card.twoFactorOffUser'), 'docker compose exec kriterion node usertool.js zweifaktor <name>')}`;
     box.appendChild(boxId);
@@ -6401,8 +6339,7 @@ function cardSessions() {
         <h3>${tH('card.mySessions')}</h3>
         <p class="desc">${tH('card.sessionsHint')}</p>
         <div class="manage-list" id="msessions"></div>
-        ${/* DIE FUSSZEILE STEHT NEBEN DER LISTE UND NICHT DARIN -- Befund 2
-             der Runde 0.26.0. */''}
+        ${/* DIE FUSSZEILE STEHT NEBEN DER LISTE UND NICHT DARIN. */''}
         <div class="session-foot" id="msessions-foot"></div>
       </div>`;
 }
@@ -6421,7 +6358,7 @@ function setUpSessionsOut(fetched) {
     const list = (d && Array.isArray(d.sessions)) ? d.sessions : null;
     if (!list) {
       box.innerHTML = `<span class="hint">${tH('card.loginsLoadFailed')}</span>`;
-      // UND DIE FUSSZEILE MIT -- sie steht seit Befund 2 ausserhalb der Liste
+      // UND DIE FUSSZEILE MIT -- sie steht ausserhalb der Liste
 // und wuerde sonst die Zahl der letzten geglueckten Abfrage weitertragen.
       if (foot) foot.innerHTML = '';
       return;
@@ -6531,10 +6468,9 @@ function setUpAppearanceOut() {
   });
 }
 
-  /* --- Sprache — 0.24.3, dieselbe Bauform wie das Farbschema darunter ---
-     DIE NAMEN STEHEN IN IHRER EIGENEN SPRACHE und kommen als freier Text vom
-     Server: wer die Oberfläche gerade nicht lesen kann, findet seine
-     trotzdem. */
+  /* --- Sprache, dieselbe Bauform wie das Farbschema darunter --- DIE NAMEN
+     STEHEN IN IHRER EIGENEN SPRACHE: wer die Oberfläche gerade nicht lesen
+     kann, findet seine trotzdem. */
   function drawLanguagePills() {
     const box = document.getElementById('lang');
     if (!box) return;
@@ -6549,8 +6485,7 @@ function setUpAppearanceOut() {
       b.onclick = async () => {
         if (LANGUAGE === a.code) return;
         try {
-          /* DIE ANTWORT WIRD ANGENOMMEN UND NICHT WEGGEWORFEN -- 0.24.4
-             (Befund B9, beim Bauen der Runde gefunden). */
+          /* DIE ANTWORT WIRD ANGENOMMEN UND NICHT WEGGEWORFEN. */
           takeVocabulary((await api('PUT', '/api/settings', { language: a.code })));
           await loadLanguages(a.code);
           applyLanguage();
@@ -6562,7 +6497,7 @@ function setUpAppearanceOut() {
     });
   }
 
-  /* --- Farbschema — 0.23.0, dieselbe Bauform wie die Schriftgröße darunter
+  /* --- Farbschema, dieselbe Bauform wie die Schriftgröße darunter
      --- DREI PILLEN STATT FÜNF, und die mittlere ist die Vorgabe. */
   /* DREI REIHEN NACH DEMSELBEN MUSTER -- Farbschema, Schriftgroesse und der
      Bildstreifen: sofort sichtbar, bei einem Fehlschlag zurueck auf den alten
@@ -6587,13 +6522,13 @@ function cardCategories() {
         <p class="desc">${ADMIN
           ? tH('card.categoriesHint')
           : t('card.categoriesAdminHint')}</p>
-        ${/* DIE SPRACHZEILE -- 0.24.3, F8b. */''}
+        ${/* DIE SPRACHZEILE, F8b. */''}
         ${ADMIN && LANGUAGES.filter(a => a.active).length > 1
           ? `<div class="pills" id="ncatlang" style="margin-bottom:12px"></div>` : ''}
-        ${/* DER KASTEN FUER DIE UNBEKANNTE ERSTELLUNGSSPRACHE -- 0.25.0 (F2). */''}
+        ${/* DER KASTEN FUER DIE UNBEKANNTE ERSTELLUNGSSPRACHE. */''}
         ${ADMIN ? `<div class="namegap" id="nunknown" hidden></div>` : ''}
         <div class="manage-list" id="mcats"></div>
-        ${/* DAS ANLEGEFELD -- 0.24.4 (B7). */''}
+        ${/* DAS ANLEGEFELD. */''}
         ${manageCreate('cat')}
         ${ADMIN ? `<p class="desc" style="margin:16px 0 8px">${tH('card.adminOnlyCategory')}</p>
         <label class="ex-files"><input type="checkbox" id="cat-free">
@@ -6601,7 +6536,7 @@ function cardCategories() {
       </div>`;
 }
 function setUpCategoriesOut(fetched) {
-  // OHNE AUSWAHL, UND DAS IST KEINE AUSNAHME -- 0.25.1. Diese Kachel zeigt
+  // OHNE AUSWAHL, UND DAS IST KEINE AUSNAHME. Diese Kachel zeigt
   // ALLE Kategorien; ihre Auswahl IST die Tafel.
   drawNameLanguages('ncatlang', 'cats');
   drawNamesUnknown(fetched);
@@ -6618,9 +6553,8 @@ function cardTags() {
           ? tH('card.tagsHint')
           : t('card.tagsAdminHint')}</p>
         <div class="manage-list" id="mtags"></div>
-        ${/* DAS ANLEGEFELD -- 0.24.4 (B7), und fuer die Tags war dafuer eine
-             Zeile mehr zu bauen als ein Eingabefeld: bis 0.24.3 gab es
-             ueberhaupt keinen Weg, einen Tag FUER SICH anzulegen. */''}
+        ${/* DAS ANLEGEFELD -- fuer die Tags eine Zeile mehr als ein Eingabefeld, weil
+             es sonst keinen Weg gaebe, einen Tag FUER SICH anzulegen. */''}
         ${manageCreate('tag')}
         ${ADMIN ? `<p class="desc" style="margin:16px 0 8px">${tH('card.adminOnlyTag')}</p>
         <label class="ex-files"><input type="checkbox" id="tag-free">
@@ -6634,7 +6568,7 @@ function setUpTagsOut(fetched) {
 }
 
 /* ---- Karte „Bewertungskriterien" — Abschnitt „Bestand" ---- */
-/* EINE FUNKTION FUER BEIDE KARTEN -- 0.21.0. */
+/* EINE FUNKTION FUER BEIDE KARTEN. */
 const CRIT_CARD = {
   after:  { list: 'mcrits',  field: 'newcrit',  button: 'newcrit-b' },
   before: { list: 'mpcrits', field: 'newpcrit', button: 'newpcrit-b' }
@@ -6645,7 +6579,7 @@ function cardCriteria(phase) {
   const k = CRIT_CARD[phase];
   return `<div class="sys-card">
         <h3>${tMarks('card.criteriaLabel', { word: esc(before ? V.potential : V.ratingOne) })}</h3>
-        ${/* EIN SATZ AN DER KARTE, DIE FOLGEN HINTER „Mehr" (Konzept 4.5) -- und der
+        ${/* EIN SATZ AN DER KARTE, DIE FOLGEN HINTER „Mehr" -- und der
              Benutzer liest nur, was er tun kann (Regel S5). */''}
         ${before ? `<p class="desc">${tMark('card.potentialStarsHint', 'card.before')}
              ${ADMIN ? t('card.criteriaHint') : t('card.listAdminHint')}</p>
@@ -6659,10 +6593,9 @@ function cardCriteria(phase) {
              Grund. */''}
         ${ADMIN && LANGUAGES.filter(a => a.active).length > 1
           ? `<div class="pills" id="${k.list}-lang" style="margin-bottom:12px"></div>` : ''}
-        ${/* DIE LISTE WIRD GEDAEMPFT, WENN DER MODUS AUS IST -- 0.26.0, F2. */''}
+        ${/* DIE LISTE WIRD GEDAEMPFT, WENN DER MODUS AUS IST, F2. */''}
         <div class="manage-list${before && !POTENTIAL_MODE ? ' list-quiet' : ''}" id="${k.list}"></div>
-        ${/* BEFUND 3c DER RUNDE 0.26.0 -- UND ER FAELLT ANDERS AUS, ALS DER
-             AUFTRAG VORSCHLUG. */''}
+        ${/* NICHT DER NAECHSTLIEGENDE WEG -- die Begruendung steht darunter. */''}
         <p class="desc" style="margin:10px 0 0">${tMark('card.weightExplainHint', 'entry.weight')} ${ADMIN
             ? t('card.weightRangeHint')
             : t('card.weightSystemDefault')}</p>
@@ -6674,10 +6607,9 @@ function cardCriteria(phase) {
              ueberhaupt sichtbar wird. Ohne sie bliebe er da und waere nur nicht auffindbar.
              Sie kostet eine Zeile und der Server merkt davon nichts -- alles zwischen 0,2 und 2
              laesst sich ohnehin eintippen. -->
-        ${/* DIE VORSCHLAGSLISTE STEHT NUR EINMAL IM DOKUMENT -- sie gehoert
-             keiner der beiden Karten, sondern dem Gewichtsfeld, und zwei
-             `datalist` mit derselben Kennung waeren zwei Knoten fuer einen
-             Verweis. */''}
+        ${/* DIE VORSCHLAGSLISTE STEHT NUR EINMAL IM DOKUMENT: sie gehoert dem
+             Gewichtsfeld, und zwei `datalist` mit derselben Kennung waeren
+             zwei Knoten fuer einen Verweis. */''}
         ${before ? '' : `<datalist id="weightsug">
           <option value="0,5"><option value="0,8"><option value="1"><option value="1,2"><option value="1,5">
         </datalist>`}
@@ -6685,7 +6617,7 @@ function cardCriteria(phase) {
           <input class="input input-sm" id="${k.field}" placeholder="${esc(t('card.newCriterion'))}" style="padding:8px 11px">
           <button class="btn btn-sm" id="${k.button}">${tH('entry.create')}</button>
         </div>` : ''}
-        ${/* DER SCHALTER DES POTENZIALMODUS -- 0.26.0, und er steht IN dieser
+        ${/* DER SCHALTER DES POTENZIALMODUS, und er steht IN dieser
              Karte. */''}
         ${before ? `${!POTENTIAL_MODE
             ? `<p class="desc" id="pot-off" style="margin:16px 0 0">${tH('card.potentialModeOff')}</p>` : ''}
@@ -6695,7 +6627,7 @@ function cardCriteria(phase) {
           ${OWNER ? '' : `<p class="desc">${tH('card.potentialModeOwner')}</p>`}` : ''}` : ''}
       </div>`;
 }
-/* DIE ZEILEN EINER KRITERIENKARTE -- 0.25.1. EIN Ausdruck fuer die Liste UND
+/* DIE ZEILEN EINER KRITERIENKARTE. EIN Ausdruck fuer die Liste UND
    fuer die Pillenreihe darueber. */
 function critRows(fetched, phase) {
   return namesFrom(fetched, 'crits').filter(c => c.phase === phase);
@@ -6721,7 +6653,7 @@ function setUpCriteriaOut(fetched, phase) {
     document.getElementById(k.button).onclick = addCrit;
     critField.addEventListener('keydown', e => { if (e.key === 'Enter') addCrit(); });
   }
-  /* DER SCHALTER DES POTENZIALMODUS -- 0.26.0, und nur an der Potenzialkarte. */
+  /* DER SCHALTER DES POTENZIALMODUS, und nur an der Potenzialkarte. */
   if (phase === 'before') createToggle('pot-mode', 'potentialMode',
     () => POTENTIAL_MODE, v => { POTENTIAL_MODE = v; },
     () => renderSystem({ keepScroll: true }));
@@ -6729,7 +6661,7 @@ function setUpCriteriaOut(fetched, phase) {
 
   /* --- Die beiden Anlegen-Schalter --- Nur der Admin bekommt sie zu sehen;
      ein Haken, der zuverlaessig 403 erzeugt, saehe aus wie ein Fehler. */
-  /* `after` SEIT 0.26.0, UND NUR EIN RUFER BRAUCHT ES. */
+  /* `after`, UND NUR EIN RUFER BRAUCHT ES. */
   const createToggle = (id, key, read, remember, after) => {
     const el = document.getElementById(id);
     if (!el) return;
@@ -6746,15 +6678,15 @@ function setUpCriteriaOut(fetched, phase) {
   /* --- Kategorien, Tags und Kriterien verwalten --- */
   // Dieselbe Liste fuer alle drei. Kriterien haben zusaetzlich einen Griff,
 // weil bei ihnen die Reihenfolge etwas bedeutet.
-  /* DIE TABELLE HAELT DEN SCHLUESSEL, DAS WORT HOLT DIE LESESTELLE -- 0.24.0. */
+  /* DIE TABELLE HAELT DEN SCHLUESSEL, DAS WORT HOLT DIE LESESTELLE. */
   const MANAGE_KIND = {
     cat: {
-      /* `create` SEIT 0.24.4 (B7): die Karte kann anlegen, und WIE sie es
+      /* `create`: die Karte kann anlegen, und WIE sie es
          tut, steht hier -- Kennung des Feldes, Kennung des Knopfes, der
          Platzhalter und die Meldung danach. */
       create: { field: 'newmcat', button: 'newmcat-b',
                 hint: 'card.newCategory', done: 'card.categoryCreated' },
-      /* `perLanguage` SEIT 0.24.3: diese Liste traegt einen Namen JE SPRACHE,
+      /* `perLanguage`: diese Liste traegt einen Namen JE SPRACHE,
          und das Umbenennen sagt deshalb, welche gemeint ist. */
       perLanguage: true,
       url: '/api/product-categories', askKey: 'card.deleteCategoryAsk',
@@ -6767,9 +6699,9 @@ function setUpCriteriaOut(fetched, phase) {
       // Beide Verwendungen nennen: sonst wird ein scheinbar ungenutzter Tag
 // entfernt und reisst die Kennzeichnungen an den Testtagen mit.
       counter: e => `${e.usage_count} ${vThing(e.usage_count)} · ${e.test_usage_count} ${vTime(e.test_usage_count)}`,
-      /* ZWEI ZAHLEN OHNE WORT -- 0.30.1, Befund 6 (F13). */
+      /* ZWEI ZAHLEN OHNE WORT. */
       shortCounter: e => `${e.usage_count} · ${e.test_usage_count}`,
-      /* DAS „und" KAM AUS DEM QUELLTEXT -- gefunden beim Bau von BA 3. */
+      /* DAS „und" KAM AUS DEM QUELLTEXT und kommt jetzt aus der Sprachdatei. */
       /* DIE WERTE STEHEN AN BEIDEN RUFEN UND NICHT IN EINER VARIABLEN -- der
          Platzhalterwaechter liest die Rufstelle, und ein Wert, der in einem
          Bezeichner dorthin reist, ist fuer ihn nicht gereicht. */
@@ -6790,7 +6722,7 @@ function setUpCriteriaOut(fetched, phase) {
     }
   };
 
-  /* DIE ANLEGEZEILE EINER VERWALTUNGSKARTE -- 0.24.4 (B7). */
+  /* DIE ANLEGEZEILE EINER VERWALTUNGSKARTE. */
   const manageCreate = (kind) => {
     const spec = MANAGE_KIND[kind].create;
     if (!spec || !ADMIN) return '';
@@ -6807,14 +6739,14 @@ function setUpCriteriaOut(fetched, phase) {
     const add = async () => {
       const name = field.value.trim();
       if (!name) return;
-      /* OHNE SPRACHANGABE -- 0.24.4, Frage F9, und dieselbe Regel wie beim
-         Umbenennen ohne Sprachangabe (0.24.3, Bauabschnitt 6a): angelegt wird
-         IMMER die Grundzeile, und der Umschalter darueber fasst sie nicht an. */
+      /* OHNE SPRACHANGABE, dieselbe Regel wie beim Umbenennen: angelegt wird
+         IMMER die Grundzeile, und der Umschalter darueber fasst sie nicht
+         an. */
       try {
         await api('POST', MANAGE_KIND[kind].url, { name });
         field.value = '';
         toast(t(spec.done));
-        /* DIE NAMENSTAFELN ZIEHT adminNew() NACH -- 0.24.5. */
+        /* DIE NAMENSTAFELN ZIEHT adminNew() NACH. */
         adminNew(fetched);
       } catch (e) { toast(e.message, true); }
     };
@@ -6845,11 +6777,11 @@ function setUpCriteriaOut(fetched, phase) {
                value="${esc(weightText(entry.weight))}"></span>`
           : `<span class="mweight mweight-fixed" title="${esc(t('list.weightedAvg'))}">×${esc(weightText(entry.weight))}</span>`)
         : '';
-      /* DER VERMERK AM RUECKFALL -- 0.24.5 (F4). */
-      /* ZWEI SAETZE UND NICHT EINER -- 0.24.6. */
+      /* DER VERMERK AM RUECKFALL. */
+      /* ZWEI SAETZE UND NICHT EINER. */
       /* BEIDE SCHLUESSEL STEHEN WOERTLICH DA und nicht als Variable. */
-      /* UND SEIT 0.25.0 SAGT DER ZWEITE SATZ ETWAS ANDERES. */
-      /* UND SEIT 0.25.1 NENNT DER SATZ BEIDE SPRACHEN. */
+      /* UND SAGT DER ZWEITE SATZ ETWAS ANDERES. */
+      /* UND NENNT DER SATZ BEIDE SPRACHEN. */
       const fallbackName = entry.nameFallback === true
         ? '' : languageNameOf(entry.nameFallback);
       const shownName = languageNameOf(namesLanguage());
@@ -6861,14 +6793,12 @@ function setUpCriteriaOut(fetched, phase) {
               { missing: shownName, language: fallbackName }))}">${
               tH('card.nameFallback',
               { missing: shownName, language: fallbackName })}</span>`);
-      /* DAS ✕ AM FELD -- 0.25.0 (F5). */
+      /* DAS ✕ AM FELD. */
       const mayClear = may && spec.perLanguage && entry.nameFallback === undefined &&
         entry.language !== namesLanguage();
-      /* DER VERMERK STEHT AM ENDE DER ZEILE UND NICHT MEHR IM NAMENSKASTEN --
-         0.25.1, und das ist der Befund des Betreibers vom 10. September 2026:
-         „warum ist der untere text mit dem hinweis im ersten kachel
-         vollstaendig zu sehen und in den beiden anderen nicht?“ BIS 0.25.0
-         SASS ER IN `.mnamebox`, ALSO IN DER NAMENSSPALTE. */
+      /* DER VERMERK STEHT AM ENDE DER ZEILE UND NICHT IM NAMENSKASTEN: in
+         `.mnamebox` war er in der ersten Kachel vollstaendig zu sehen und in
+         den beiden anderen nicht. */
       if (entry.nameFallback !== undefined) row.classList.add('withback');
       row.innerHTML = `${spec.sortable && may ? `<span class="grip" title="${esc(t('entry.dragToSort'))}">⣿</span>` : ''}
         <span class="mname${
@@ -6904,9 +6834,8 @@ function setUpCriteriaOut(fetched, phase) {
         // "Gewicht 0".
         if (Number.isNaN(g)) { weightInput.value = weightText(entry.weight); return; }
         try {
-          /* DER NAME GEHT DAHIN ZURUECK, WO ER HERKOMMT -- 0.24.6, und das
-             ist ein Befund, den der Auftrag nicht kannte. */
-          /* UND SEIT 0.25.0 GEHT DER VIERTE SCHRITT OHNE SPRACHANGABE
+          /* DER NAME GEHT DAHIN ZURUECK, WO ER HERKOMMT. */
+          /* UND GEHT DER VIERTE SCHRITT OHNE SPRACHANGABE
              ZURUECK. */
           const nameLanguage = entry.nameFallback === true
             ? null : (entry.nameFallback || namesLanguage());
@@ -6930,8 +6859,8 @@ function setUpCriteriaOut(fetched, phase) {
       row.querySelector('.ed').onclick = () => {
         const inp = document.createElement('input');
         inp.className = 'medit';
-        /* IM FELD STEHT NUR DAS EINGETRAGENE -- 0.24.5, und das ist dieselbe
-           Entscheidung wie an den vierzehn Vokabelfeldern (0.24.4, B1/B2). */
+        /* IM FELD STEHT NUR DAS EINGETRAGENE -- dieselbe Entscheidung wie an den
+           vierzehn Vokabelfeldern. */
         inp.value = entry.nameFallback ? '' : entry.name;
         if (entry.nameFallback) inp.placeholder = entry.name;
         row.querySelector('.mname').replaceWith(inp);
@@ -6940,11 +6869,11 @@ function setUpCriteriaOut(fetched, phase) {
         inp.focus(); inp.select();
         const save = async () => {
           const name = inp.value.trim();
-          /* EIN LEERES FELD SCHICKT GAR NICHTS, und seit 0.24.5 ist das an
+          /* EIN LEERES FELD SCHICKT GAR NICHTS, und ist das an
              einer Zeile OHNE Eintrag der gewoehnliche Fall: wer das ✎ oeffnet
              und wieder wegklickt, hat es sich anders ueberlegt. */
           if (!name || name === entry.name) return adminNew(fetched);
-          /* DIE SPRACHE GEHT MIT -- 0.24.3, Bauabschnitt 6a, und NUR an den
+          /* DIE SPRACHE GEHT MIT, und NUR an den
              beiden Listen, die eine haben. */
           const body = spec.perLanguage ? { name, language: namesLanguage() } : { name };
           try { await api('PUT', `${url}/${entry.id}`, body); toast(t('card.renamed'));
@@ -6954,8 +6883,7 @@ function setUpCriteriaOut(fetched, phase) {
         inp.onblur = save;
         inp.onkeydown = e => { if (e.key === 'Enter') inp.blur(); if (e.key === 'Escape') adminNew(fetched); };
       };
-      /* DAS ✕ RAEUMT EINEN EINTRAG WEG UND LOESCHT NICHTS SONST -- 0.25.0
-         (F5). */
+      /* DAS ✕ RAEUMT EINEN EINTRAG WEG UND LOESCHT NICHTS SONST. */
       const clearKnob = row.querySelector('.nx');
       if (clearKnob) clearKnob.onclick = async () => {
         if (!await confirmBox(t('card.nameRemoveAsk'),
@@ -6977,9 +6905,9 @@ function setUpCriteriaOut(fetched, phase) {
     });
   }
   function drawAdmin(fetched) {
-    /* DURCH namesFrom() UND NICHT AUS `fetched` -- 0.24.5. */
+    /* DURCH namesFrom() UND NICHT AUS `fetched`. */
     manageList('mcats', namesFrom(fetched, 'cats'), 'cat', fetched);
-    /* UND DIE PILLENREIHEN MIT -- 0.25.0. Sie tragen seit dieser Runde eine
+    /* UND DIE PILLENREIHEN MIT. Sie tragen seit dieser Runde eine
        ZAHL, und die aendert sich mit jedem Umbenennen, Anlegen und Raeumen. */
     drawNameLanguages('ncatlang', 'cats');
     drawNamesUnknown(fetched);
@@ -6992,7 +6920,7 @@ function setUpCriteriaOut(fetched, phase) {
     }
   }
   async function adminNew(fetched) {
-    /* UND DIE NAMENSTAFELN MIT -- 0.24.5. */
+    /* UND DIE NAMENSTAFELN MIT. */
     const [cats, tags, crits, settings] = await Promise.all([
       api('GET', '/api/product-categories'), api('GET', '/api/tags'), api('GET', '/api/criteria'),
       api('GET', '/api/settings')
@@ -7008,15 +6936,14 @@ function cardVocabulary() {
   return `<div class="sys-card">
         <h3>${tH('card.vocabulary')}</h3>
         <p class="desc">${tMark('card.vocabularyHint', 'card.labelOnlyHint')}</p>
-        ${/* FUENFZEHN FELDER AUS EINER TABELLE -- 0.22.0, und seit 0.32.0
+        ${/* FUENFZEHN FELDER AUS EINER TABELLE, und
              sind es fuenfzehn. */''}
-        ${/* DIE SPRACHZEILE UEBER DEN FELDERN -- 0.24.3, F3. */''}
+        ${/* DIE SPRACHZEILE UEBER DEN FELDERN, F3. */''}
         ${LANGUAGES.filter(a => a.active).length > 1
           ? `<div class="pills" id="vlang" style="margin-bottom:12px"></div>` : ''}
         <div class="vocabulary-grid">
-        ${/* DER HINWEIS FOLGT DER KACHEL UND NICHT DEM LESER -- 0.24.4 (B4). */''}
-        ${/* UND DIE FEHLENDEN ZELLEN GEDAEMPFT MARKIERT -- 0.25.0,
-             Bauabschnitt 4. */''}
+        ${/* DER HINWEIS FOLGT DER KACHEL UND NICHT DEM LESER. */''}
+        ${/* UND DIE FEHLENDEN ZELLEN GEDAEMPFT MARKIERT. */''}
           ${VOCABULARY_FIELDS.map(([id, key, name]) => `<div class="field${
             vocabularyShown()[key] ? '' : ' gap'}"><label for="${id}">${esc(name())}
             <span class="hint">${tH('card.defaultValue', { defaultWord: vocabularyDefaultShown()[key] })}</span></label>
@@ -7030,7 +6957,7 @@ function cardVocabulary() {
       </div>`;
 }
 /* DIE TABELLE DER VOKABELFELDER: Kennung, Schluessel, Beschriftung. */
-/* AUCH HIER RUFE STATT WERTE -- 0.24.0, aus demselben Grund wie bei
+/* AUCH HIER RUFE STATT WERTE, aus demselben Grund wie bei
    SYS_SECTIONS: die Vorgabe steht in der Sprachdatei, und die ist beim
    Auswerten dieser Zeile noch nicht geladen. */
 /* UND DIE BESCHRIFTUNGEN -- Rufe und keine Werte: diese Zeile wird beim Laden
@@ -7042,13 +6969,13 @@ const VOCABULARY_FIELDS = [
   ['v7', 'reportOne', () => t('card.reportOne')], ['v8', 'reportMany', () => t('card.reportMany')],
   ['v9', 'taskOne', () => t('card.taskOne')], ['v10', 'taskMany', () => t('card.taskMany')],
   ['v11', 'taskDone', () => t('card.taskDone')],
-  /* DAS WORT FUER DEN ZWEITEN STERNKASTEN -- 0.21.0. */
+  /* DAS WORT FUER DEN ZWEITEN STERNKASTEN. */
   ['v12', 'potential', () => t('card.potential')],
-  /* UND DAS PAAR FUER DEN ERSTEN -- 0.22.0 (E14): Kastenkopf, Sortierung,
+  /* UND DAS PAAR FUER DEN ERSTEN: Kastenkopf, Sortierung,
      Vergleich, Kachel, Karte, Glocke und Loeschdialoge lesen es. */
   ['v13', 'ratingOne', () => t('card.ratingOne')],
   ['v14', 'ratingMany', () => t('card.ratingMany')],
-  /* UND DAS FUENFZEHNTE -- 0.32.0, Strang 2. */
+  /* UND DAS FUENFZEHNTE, Strang 2. */
   ['v15', 'grade', () => t('card.grade')]
 ];
 /* WELCHE SPRACHE DIE KARTEN „KATEGORIEN" UND „KRITERIEN" GERADE ZEIGEN. */
@@ -7063,10 +6990,10 @@ const baseNamesLanguage = () => (LANGUAGES.find(a => a.isDefault) || {}).code ||
    die Kennung bleibt stehen, wenn keiner ankommt. */
 const languageNameOf = (code) =>
   ((LANGUAGES.find(a => a.code === code) || {}).name) || code;
-/* WELCHE FORM EINE SPRACHE HINTER EINER ZAHL NIMMT -- 0.31.4. */
+/* WELCHE FORM EINE SPRACHE HINTER EINER ZAHL NIMMT. */
 const afterNumberOf = (code) =>
   (((LANGUAGES.find(a => a.code === code) || {}).afterNumber) === 'one' ? 'one' : 'plural');
-/* DIE LISTE IN DER GEZEIGTEN SPRACHE -- 0.24.5, und seit 0.25.0 RECHNET SIE
+/* DIE LISTE IN DER GEZEIGTEN SPRACHE, und RECHNET SIE
    NICHT MEHR MIT. */
 function namesFrom(fetched, key) {
   const rows = fetched[key] || [];
@@ -7077,13 +7004,13 @@ function namesFrom(fetched, key) {
     if (!z || z.id === undefined) return { ...z };
     const hit = shown[z.id];
     if (!hit || hit.name === undefined) return { ...z };
-    /* UND DER STEMPEL DES SERVERS MUSS AUSDRUECKLICH WEG -- 0.25.2. */
+    /* UND DER STEMPEL DES SERVERS MUSS AUSDRUECKLICH WEG. */
     if (hit.from === code) return { ...z, name: hit.name, nameFallback: undefined };
     return { ...z, name: hit.name, nameFallback: hit.from === null ? true : hit.from };
   });
 }
-/* WIE VIELE ZELLEN EINER SPRACHE NICHT EINGETRAGEN SIND -- 0.25.0. */
-/* UND SEIT 0.25.1 ZAEHLT SIE JE KACHEL. `only` ist die Menge der Kennungen,
+/* WIE VIELE ZELLEN EINER SPRACHE NICHT EINGETRAGEN SIND. */
+/* UND ZAEHLT SIE JE KACHEL. `only` ist die Menge der Kennungen,
    die eine Kachel wirklich zeigt; ohne Angabe zaehlt sie die ganze Tafel. */
 const namesMissing = (key, code, only) => {
   const table = (NAMES_ALL[key] || {})[code];
@@ -7108,7 +7035,7 @@ function drawNameLanguages(boxId, key, rows) {
   if (!box) return;
   box.innerHTML = '';
   const shownCode = namesLanguage();
-  /* DIE KENNUNGEN DIESER KACHEL -- 0.25.1. */
+  /* DIE KENNUNGEN DIESER KACHEL. */
   const only = rows ? new Set(rows.map(z => z.id)) : null;
   LANGUAGES.filter(a => a.active).forEach(a => {
     const b = document.createElement('button');
@@ -7127,7 +7054,7 @@ function drawNameLanguages(boxId, key, rows) {
   const card = box.closest('.sys-card');
   if (card) card.classList.toggle('gaps', namesMissing(key, shownCode, only) > 0);
 }
-/* DER KASTEN FUER DIE UNBEKANNTE ERSTELLUNGSSPRACHE -- 0.25.0 (F2). Die
+/* DER KASTEN FUER DIE UNBEKANNTE ERSTELLUNGSSPRACHE. Die
    Migration fuellt nichts, und hier wird EINMAL nachgefragt. */
 function drawNamesUnknown(fetched) {
   const box = document.getElementById('nunknown');
@@ -7158,10 +7085,10 @@ function drawNamesUnknown(fetched) {
   };
   box.append(line, knob);
 }
-/* WELCHE SPRACHE DER ABSCHNITT „BESTAND" GERADE ZEIGT, STEHT SEIT 0.25.2 AN
+/* WELCHE SPRACHE DER ABSCHNITT „BESTAND" GERADE ZEIGT, STEHT AN
    EINER EINZIGEN STELLE -- in `namesLanguage()` weiter oben, und sie gilt
    fuer ALLE VIER KACHELN. */
-/* DIE VIERZEHN WOERTER, DIE IN DEN FELDERN STEHEN -- 0.24.4: das, was fuer
+/* DIE VIERZEHN WOERTER, DIE IN DEN FELDERN STEHEN: das, was fuer
    diese Sprache EINGETRAGEN ist, und sonst nichts. */
 const vocabularyShown = () => VOCABULARIES_OWN[namesLanguage()] || {};
 /* WAS EIN LESER DIESER SPRACHE SAEHE -- mit Rueckfall, und genau dafuer gibt
@@ -7171,7 +7098,7 @@ const vocabularyEffective = () => {
   if (code === LANGUAGE) return V;
   return VOCABULARIES[code] || V;
 };
-/* UND DIE VORGABE DER GEZEIGTEN SPRACHE -- 0.24.4, die Reparatur von B4. */
+/* UND DIE VORGABE DER GEZEIGTEN SPRACHE, die Reparatur von B4. */
 const vocabularyDefaultShown = () =>
   VOCABULARY_DEFAULTS[namesLanguage()] || vocabularyDefault();
 
@@ -7183,8 +7110,7 @@ function setUpVocabularyOut() {
     [key, document.getElementById(id).value]));
   function drawPreview() {
     const w = vFields();
-    /* DER RUECKFALL DER VORSCHAU IST DER SATZ DER GEZEIGTEN SPRACHE --
-       0.24.4, und nicht mehr `V`, der Satz des Lesers. */
+    /* DER RUECKFALL DER VORSCHAU IST DER SATZ DER GEZEIGTEN SPRACHE, und nicht mehr `V`, der Satz des Lesers. */
     const e = vocabularyEffective();
     const entryWord = w.entryOne.trim() || e.entryOne;
     const sm = w.entryMany.trim() || e.entryMany;
@@ -7201,7 +7127,7 @@ function setUpVocabularyOut() {
     const rateOne = w.ratingOne.trim() || e.ratingOne;
     const rateMany = w.ratingMany.trim() || e.ratingMany;
     /* DIE MEHRZAHL IN DER VORSCHAU: MIT ZAHL, WO DIE ZAHL SIE WAEHLT -- und
-       OHNE, wo die Sprache hinter einer Zahl die Einzahl verlangt (0.31.4). */
+       OHNE, wo die Sprache hinter einer Zahl die Einzahl verlangt. */
     const many = (n, word) =>
       (afterNumberOf(namesLanguage()) === 'one' ? esc(word) : `${n} ${esc(word)}`);
     document.getElementById('vpreview').innerHTML =
@@ -7218,7 +7144,7 @@ function setUpVocabularyOut() {
        <span>${tH('card.criteriaPotential', { potentialWord: rateOne })}</span><span>${tH('card.sortPotentialDesc', { potentialWord: rateOne })}</span><span>${many(2, rateMany)}</span>`;
   }
   /* DER UMSCHALTER. */
-  /* WIE VIELE DER VIERZEHN WOERTER EINER SPRACHE FEHLEN -- 0.25.0. */
+  /* WIE VIELE DER VIERZEHN WOERTER EINER SPRACHE FEHLEN. */
   function vocabularyMissing(code) {
     return VOCABULARY_FIELDS.filter(
       ([, key]) => !(((VOCABULARIES_OWN || {})[code] || {})[key])).length;
@@ -7230,7 +7156,7 @@ function setUpVocabularyOut() {
     LANGUAGES.filter(a => a.active).forEach(a => {
       const b = document.createElement('button');
       b.className = 'pill' + (namesLanguage() === a.code ? ' on' : '');
-      /* PUNKT UND ZAHL WIE AN DEN NAMENSKARTEN -- 0.25.0, Bauabschnitt 4, und
+      /* PUNKT UND ZAHL WIE AN DEN NAMENSKARTEN, und
          ausdruecklich dieselbe Gestalt: es ist dieselbe Frage („was fehlt
          dieser Sprache") an einem anderen Bestand. */
       const gaps = vocabularyMissing(a.code);
@@ -7239,16 +7165,16 @@ function setUpVocabularyOut() {
         : '<span class="dot" aria-hidden="true">●</span>');
       b.title = gaps ? t('card.wordsMissing', { n: gaps }) : t('card.languageComplete');
       b.onclick = () => {
-        /* DIESELBE ANGABE WIE AN DEN NAMENSKARTEN -- 0.25.2. Wer hier
+        /* DIESELBE ANGABE WIE AN DEN NAMENSKARTEN. Wer hier
            umschaltet, schaltet den ganzen Abschnitt um, und umgekehrt. */
         NAMES_SHOWN = a.code;
-        /* MIT DER BILDLAUFSTELLUNG -- 0.24.4 (B3). */
+        /* MIT DER BILDLAUFSTELLUNG. */
         renderSystem({ keepScroll: true });
       };
       box.appendChild(b);
     });
     /* UND DER ROTE RAHMEN AN DER KACHEL, solange der GEZEIGTEN Sprache etwas
-       fehlt (F3) -- dieselbe Zeile wie an den Namenskarten. */
+       fehlt -- dieselbe Zeile wie an den Namenskarten. */
     const card = box.closest('.sys-card');
     if (card) card.classList.toggle('gaps', vocabularyMissing(namesLanguage()) > 0);
   }
@@ -7258,16 +7184,16 @@ function setUpVocabularyOut() {
     atElement(id, field => field.addEventListener('input', drawPreview)));
   if (document.getElementById('vpreview')) drawPreview();
 
-  /* GESPEICHERT WIRD JE SPRACHE -- 0.24.3, F3. */
+  /* GESPEICHERT WIRD JE SPRACHE, F3. */
   const vocabularyBody = (words) => ({ [namesLanguage()]: words });
-  /* DIE DREI TAFELN ZIEHEN MIT -- 0.24.4, ueber takeVocabulary() weiter oben. */
+  /* DIE DREI TAFELN ZIEHEN MIT, ueber takeVocabulary() weiter oben. */
   atElement('vsave', vsave => vsave.onclick = async () => {
     try {
       const r = await api('PUT', '/api/settings', { vocabulary: vocabularyBody(vFields()) });
       takeVocabulary(r);
       toast(t('card.vocabularySaved'));
       // Leere Felder bleiben leer, der Hinweis sagt die Vorgabe -- und die
-// Bildlaufstellung bleibt, wo sie war (B3).
+// Bildlaufstellung bleibt, wo sie war.
       renderSystem({ keepScroll: true });
     } catch (e) { toast(e.message, true); }
   });
@@ -7417,12 +7343,8 @@ function setUpSearchProviderOut() {
   }
 
   /* Immer alle Plaetze auf einmal: der Server bekommt den ganzen Stand und
-     raeumt danach den Vorrat auf, falls ein Platz geleert wurde.
-     DIE ZAHL DER PLAETZE KOMMT VOM SERVER -- 0.35.0, BA 8. Bis dahin stand
-     hier das feste Array [1, 2, 3], und die Zahl 3 damit ein zweites Mal
-     neben OWN_SLOTS in server.js:1525. Die Antwort von GET /api/settings
-     traegt je Platz einen Eintrag mit `own: true`; gezaehlt wird, was
-     drawOwn() eine Zeile darueber auch gezeichnet hat. */
+     raeumt danach auf. DIE ZAHL DER PLAETZE KOMMT VOM SERVER -- als festes
+     Array stuende sie ein zweites Mal neben OWN_SLOTS. */
   function sendOwn() {
     const list = SEARCH_PROVIDERS.filter(a => a.own).map((a, i) => ({
       name: document.getElementById(`se-name-${i + 1}`)?.value || '',
@@ -7471,7 +7393,7 @@ function setUpTrashOut(fetched) {
       row.className = 'mrow trash';
       row.dataset.pkid = z.id;
       const open = Number(z.daysOpen);
-      /* DIE ZEILE NENNT DAS LOESCHDATUM UND NICHT DEN ANLEGER -- 0.24.4 (B6
+      /* DIE ZEILE NENNT DAS LOESCHDATUM UND NICHT DEN ANLEGER (B6
          B), entschieden vom Betreiber am 8. */
       const meta = [
         t('card.deletedByOn', { deletedAt: fmtDate(z.deleted_at), deletedBy: authorName(z.deletedBy) }),
@@ -7481,7 +7403,7 @@ function setUpTrashOut(fetched) {
       // Die Knoepfe stehen nur beim Eigentuemer -- der Server verweigert es
       // ohnehin, und ein Knopf, der zuverlaessig eine Fehlermeldung erzeugt,
       // sieht aus wie ein Fehler.
-      /* DAS ZEICHEN STEHT NEBEN DEM SATZ UND NICHT IN IHM -- 0.24.4 (B6 A). */
+      /* DAS ZEICHEN STEHT NEBEN DEM SATZ UND NICHT IN IHM (B6 A). */
       row.innerHTML = `<span class="mname">${esc(z.title)}</span>
         ${OWNER ? `<button class="mact trash-back" title="${esc(t('card.restore'))}">${ICON_RESTORE} ${tH('card.restore')}</button>
         <button class="mact rm trash-remove" title="${esc(t('card.deleteForGood'))}">${ICON_X}</button>` : ''}
@@ -7522,7 +7444,7 @@ function cardUsers() {
         ${more(`${tMark('card.lockInsteadHint', 'card.lockNotDelete')} ${OWNER
             ? t('card.rolesYouOnly')
             : t('card.rolesOwnerHint')}`)}
-        ${/* DER KASTEN ZU DEN DOPPELTEN ADRESSEN -- 0.29.0, Befund 4. */''}
+        ${/* DER KASTEN ZU DEN DOPPELTEN ADRESSEN. */''}
         <div id="user-doubles"></div>
         <div class="manage-list" id="musers"></div>
         ${/* DER KNOPF ZU DEN GRABSTEINEN. */''}
@@ -7534,8 +7456,7 @@ function cardUsers() {
             autocomplete="off" autocapitalize="off" spellcheck="false">
           ${/* DIE ADRESSE BEIM ANLEGEN, und nur hier: ohne sie hat die
                Einladungsmail keinen Empfänger, und den Zugang gibt es in
-               diesem Augenblick noch nicht, also kann sie auch niemand selbst
-               eintragen. */''}
+               diesem Augenblick noch nicht. */''}
           <input class="input input-sm" id="user-mail" type="email" placeholder="${esc(t('card.emailOptional'))}"
             autocomplete="off" autocapitalize="off" spellcheck="false">
           <select class="input input-sm" id="user-kind">
@@ -7626,10 +7547,9 @@ function setUpUsersOut() {
   /* WAS DER VERSAND GEMACHT HAT, STEHT NEBEN DEM LINK UND NICHT ANSTELLE VON
      IHM. */
   const deliveryRow = (d) => {
-    /* DIE ADRESSE STEHT HIER NICHT, und das ist kein Versehen: an einem
-       BESTEHENDEN Zugang hat sie der Betroffene selbst eingetragen, und ein
-       Admin bekommt fremde Postfächer nicht zu sehen — GET /api/users liefert
-       sie aus demselben Grund nicht mit. */
+    /* DIE ADRESSE STEHT HIER NICHT: an einem BESTEHENDEN Zugang hat sie der
+       Betroffene selbst eingetragen, und ein Admin bekommt fremde Postfächer
+       nicht zu sehen. */
     if (d.delivery === 'ok')
       return `<p class="user-send user-send-ok">${tH('card.testMailSent')}</p>`;
     if (d.delivery === 'fehlgeschlagen')
@@ -7646,10 +7566,9 @@ function setUpUsersOut() {
   function showLink(d, boxId = 'user-link') {
     const box = document.getElementById(boxId);
     if (!box || !d || !d.token) return;
-    /* DER ANDERE KASTEN WIRD GELEERT, und das ist keine Aufraeumarbeit: die
-       Kennungen darin sind feste Namen, und zwei Kaesten nebeneinander
-       ergaeben sie doppelt -- getElementById naehme dann den ersten, und der
-       Knopf "Kopieren" kopierte den falschen Link. */
+    /* DER ANDERE KASTEN WIRD GELEERT: die Kennungen darin sind feste Namen,
+       und zwei Kaesten nebeneinander ergaeben sie doppelt -- der Knopf
+       "Kopieren" kopierte dann den falschen Link. */
     for (const other of ['user-link', 'signup-link']) {
       if (other !== boxId) {
         const k = document.getElementById(other);
@@ -7698,7 +7617,7 @@ function setUpUsersOut() {
     catch (e) { if (box.isConnected) box.innerHTML = `<span class="hint">${esc(e.message)}</span>`; return; }
     if (!box.isConnected) return;
     box.innerHTML = '';
-    /* ---- DIE DOPPELTEN ADRESSEN -- 0.29.0, Befund 4 ---- SIE STEHEN NUR DA,
+    /* ---- DIE DOPPELTEN ADRESSEN ---- SIE STEHEN NUR DA,
        WENN ES WELCHE GIBT. */
     const doubles = doc.getElementById('user-doubles');
     if (doubles) {
@@ -7727,7 +7646,7 @@ function setUpUsersOut() {
       const waiting = z.withoutPassword;
       row.innerHTML = `<span class="mname">${esc(authorName({ id: z.id, name: z.username, deleted: false }))}${
           self ? ' <span class="user-mine">(du)</span>' : ''}</span>
-        ${/* ROLLE ALS MARKE, ZUSTAND ALS PUNKT -- 0.22.0 (Konzept 6.7). Die
+        ${/* ROLLE ALS MARKE, ZUSTAND ALS PUNKT. Die
              Marke ist Form, keine Farbe: gefuellt, umrandet, neutral. */''}
         <span class="user-role"><span class="role-badge ${esc(z.role)}">${esc(rolesWord(z.role))}</span></span>
         <span class="user-status" title="${waiting ? esc(t('card.inviteOpen')) : esc(statusWord(z.status))}"><span
@@ -7801,14 +7720,13 @@ function setUpUsersOut() {
           let b;
           try { b = await api('GET', `/api/users/${z.id}/inventory`); }
           catch (e) { return toast(e.message, true); }
-          /* EIN FENSTER MIT ZWEI HAEKCHEN -- 0.22.0, Bauabschnitt 4. */
+          /* EIN FENSTER MIT ZWEI HAEKCHEN. */
           const choice = await userDeleteDialog(z.username, z.id, b);
           if (!choice) return;
           if (!await secondConfirm('remove', z.id, t('dialog.deleteUser'),
             t('card.deleteUserHint', { username: z.username }))) return;
           try {
-            /* `entries` UND `posts` STATT `eintraege` UND `beitraege` --
-               0.24.3, F7. */
+            /* `entries` UND `posts` STATT `eintraege` UND `beitraege`, F7. */
             await api('DELETE', `/api/users/${z.id}?entries=${choice.entries ? 1 : 0}&posts=${choice.posts ? 1 : 0}`);
             toast(t('card.userDeleted'));
           } catch (e) { toast(e.message, true); }
@@ -7850,9 +7768,8 @@ function setUpUsersOut() {
     doc.body.appendChild(bd);
     const zu = () => { bd.remove(); doc.removeEventListener('keydown', onKey, true); };
     /* Escape schliesst nur den OBERSTEN Dialog -- dieselbe Regel wie bei "Wer
-       hat bewertet": aus diesem Fenster heraus geht keiner auf, aber ein
-       Horcher, der jeden Hintergrund schliesst, waere eine Falle fuer den
-       naechsten, der einen dazubaut. */
+       hat bewertet": ein Horcher, der jeden Hintergrund schliesst, waere eine
+       Falle fuer den naechsten, der einen Dialog dazubaut. */
     const onKey = e => {
       if (e.key !== 'Escape') return;
       if ([...doc.querySelectorAll('.backdrop')].pop() !== bd) return;
@@ -7926,13 +7843,13 @@ function setUpRequestsOut(fetched) {
   };
 }
 
-  /* Die Warteschlange der Selbstanmeldung, . */
+  /* Die Warteschlange der Selbstanmeldung. */
   function drawRequests(status) {
     const box = document.getElementById('mrequests');
     if (!box || !status) return;
     const doc = box.ownerDocument;
     const state = document.getElementById('signup-state');
-    /* „an" UND „aus" KOMMEN AUS DEM WOERTERBUCH -- 0.30.0, Befund 10. Sie
+    /* „an" UND „aus" KOMMEN AUS DEM WOERTERBUCH. Sie
        standen fest im Quelltext, und in einer englisch oder tuerkisch
        eingestellten Instanz stand hier deutscher Text. */
     if (state) state.innerHTML = status.an
@@ -8031,7 +7948,7 @@ function setUpLogOut(fetched) {
     'user.self': 'card.ownAccountChanged',
     'link.new': 'card.linkCreated',
     'link.use': 'card.linkUsed',
-    /* DIE FUENF, DIE BIS 0.12.4 FEHLTEN. */
+    /* DIE FUENF, DIE FRUEHER FEHLTEN. */
     'request.approve': 'card.requestApproved',
     'request.reject': 'card.requestRejected',
     'twofactor.on': 'card.twoFactorTurnedOn',
@@ -8057,8 +7974,8 @@ function setUpLogOut(fetched) {
   // Was hinter dem Vorgang noch zu sagen ist. Die Rolle beim Rollenwechsel,
 // der Anlass beim Link, die Betriebsart beim Import -- sonst nichts.
   /* EIN MERKMAL OHNE WORT VERSCHWINDET SPURLOS -- detailWord() faellt still
-     auf den leeren String zurueck, und genau deshalb ist bis 0.12.4 niemandem
-     aufgefallen, dass Woerter fehlten. */
+     auf den leeren String zurueck, und deshalb faellt ein fehlendes Wort
+     niemandem auf. */
   // Schluessel statt Satz (siehe VERWALTUNGSART) -- Modulebene.
   const DETAIL_WORD = {
     user: 'card.user', admin: 'card.admin', owner: 'card.owner',
@@ -8152,13 +8069,8 @@ function setUpLogOut(fetched) {
   }
 
   /* NACHGELADEN WIRD BEIM KLICK, und zwar NUR diese Karte -- dieselbe Bauform
-     wie sessionsNew() und trashNew().
-     DER NAME DES PARAMETERS HEISST SEIT 0.35.0 `group` UND NICHT `gruppe`.
-     Der Server liest ihn in server.js unter diesem Namen, und zwar seit
-     0.13.0; der Browser schickte `gruppe`. Damit war der Wert bei jedem
-     echten Aufruf undefiniert, und die Karte zeigte statt der gewaehlten
-     Ansicht die hundert juengsten Zeilen. Im Pruefstand fiel es nicht auf,
-     weil der Mock in test/dom.js denselben deutschen Namen las. */
+     wie sessionsNew() und trashNew(). DER NAME DES PARAMETERS HEISST `group`
+     UND NICHT `gruppe`: der Server liest ihn unter diesem Namen. */
   async function logNew(group) {
     logGroup = group || '';
     let d;
@@ -8207,8 +8119,7 @@ function setUpLogOut(fetched) {
         z.target != null ? z.target : null, '→ '));
       const detailEl = doc.createElement('span');
       detailEl.className = 'log-detail';
-      /* DIESELBE MARKE WIE IN DER BENUTZERLISTE hinter dem Rollenwort --
-         0.22.0 (Konzept 6.7). */
+      /* DIESELBE MARKE WIE IN DER BENUTZERLISTE hinter dem Rollenwort. */
       if (markText && ROLE_WORD[z.detail]) {
         const mark = doc.createElement('span');
         mark.className = 'role-badge ' + z.detail;
@@ -8239,17 +8150,15 @@ function cardMailDelivery(fetched) {
         <p class="desc">${tMarks('card.emailOptionalHint', {
           word:  `<strong>${tH('card.emailOptional')}</strong>`,
           word2: `<em>${tH('card.additionally')}</em>` })}</p>
-        ${/* „eingerichtet" KAM AUS DEM QUELLTEXT UND SEIN GEGENTEIL AUS DEM
-             WOERTERBUCH — 0.30.0, Befund 10. Dieselbe Zeile, zwei Wege: die
-             Absage las `card.notConfigured`, die Zusage stand fest auf
-             Deutsch da. */''}
+        ${/* „eingerichtet" KAM AUS DEM QUELLTEXT UND SEIN GEGENTEIL AUS DER
+             SPRACHDATEI: die Absage las `card.notConfigured`, die Zusage
+             stand fest auf Deutsch da. */''}
         <div class="kv"><span class="k">${tH('card.state')}</span><span class="v">${mailStatus.configured
           ? `<strong class="mail-on">${tH('card.configured')}</strong>`
           : `<strong class="mail-off">${tH('card.notConfigured')}</strong>`}</span></div>
-        ${/* ---- DIE KARTE ZEIGT, DER DIALOG STELLT EIN — 0.17.3 ---- BIS
-             0.17.2 STANDEN HIER NEUN BEDIENELEMENTE in vier verschiedenen
-             Spaltenaufteilungen, und dazwischen vier Erklärsätze: zwei NEBEN
-             einem Feld, zwei über die volle Breite. */''}
+        ${/* ---- DIE KARTE ZEIGT, DER DIALOG STELLT EIN ---- Hier standen einmal neun
+             Bedienelemente in vier Spaltenaufteilungen, dazwischen vier
+             Erklaersaetze. */''}
         <div class="kv"><span class="k">${tH('card.provider')}</span><span class="v">${mailProviderRow(mailStatus)}</span></div>
         <div class="kv"><span class="k">${tH('card.sender')}</span><span class="v">${mailStatus.sender
           ? esc(mailStatus.sender)
@@ -8285,7 +8194,7 @@ function mailProviderRow(m) {
   return parts.join(' · ');
 }
 
-/* ---- Der Dialog „Mailzugang einrichten" — 0.17.3 ---- EINE SPALTE,
+/* ---- Der Dialog „Mailzugang einrichten" ---- EINE SPALTE,
    BESCHRIFTUNG ÜBER DEM FELD, HINWEIS UNTER SEINER SACHE. */
 function mailDialog(mailStatus) {
   return new Promise(resolve => {
@@ -8436,7 +8345,7 @@ function setUpMailDeliveryOut(fetched) {
 
 /* ---- Die Bildablage in der Karte „Kennzahlen" ---- DIE NAMEN UND DIE
    REIHENFOLGE STEHEN AN EINER STELLE. */
-/* RUFE STATT WERTE -- 0.24.0 (siehe SYS_SECTIONS). */
+/* RUFE STATT WERTE (siehe SYS_SECTIONS). */
 const IMAGE_FORMATS = [
   // Der Hinweis am PNG haengt an der Wahl und steht deshalb in der Karte selbst.
   { key: 'png',     name: () => 'PNG',  hint: () => '' },
@@ -8446,7 +8355,7 @@ const IMAGE_FORMATS = [
   { key: 'other', name: () => t('card.otherFormat'), hint: () => '' }
 ];
 
-/* WIE DIE DREI VERFAHREN AUF DEM BILDSCHIRM HEISSEN -- 0.27.0. DIE SCHLUESSEL
+/* WIE DIE DREI VERFAHREN AUF DEM BILDSCHIRM HEISSEN. DIE SCHLUESSEL
    KOMMEN VOM SERVER, DIE WOERTER VON HIER. */
 const IMAGE_STORE_WORDS = {
   'png':           { name: () => t('card.storePng'),
@@ -8463,9 +8372,9 @@ function switchRow(u) {
   if (u.running)
     return `<p class="hint hint-sm" style="margin:8px 2px 0" id="convert-running">${tH('card.convertRunning')} ` +
            `${tH('card.progressOf', { done: u.done, total: u.total })}</p>`;
-  /* DER FERTIGSATZ NENNT WIEDER EINE HAELFTE -- 0.33.0. Von 0.27.0 bis 0.32.1
-     nannte er zwei: umgestellte ORIGINALE und neu gerechnete ABLEITUNGEN. */
-  /* EIN SATZ STATT VIER BRUCHSTUECKE -- 0.31.1. Die beiden Nachsaetze koennen
+  /* DER FERTIGSATZ NENNT EINE HAELFTE und nicht zwei -- weder die umgestellten
+     ORIGINALE noch die neu gerechneten ABLEITUNGEN einzeln. */
+  /* EIN SATZ STATT VIER BRUCHSTUECKE. Die beiden Nachsaetze koennen
      WEGFALLEN, und genau das war der Grund, den Satz drumherum aufzubrechen. */
   return `<p class="hint hint-sm" style="margin:8px 2px 0" id="convert-running">${
     tH('card.convertFinished', { converted: u.converted, total: u.total,
@@ -8473,14 +8382,14 @@ function switchRow(u) {
       freed: u.freed > 0 ? t('card.freedBytes', { freed: fmtBytes(u.freed) }) : '' })}</p>`;
 }
 
-/* Die zweite Fortschrittszeile — 0.19.4, fuer das Nachziehen der Geometrie. */
+/* Die zweite Fortschrittszeile, fuer das Nachziehen der Geometrie. */
 function geometryRow(g) {
   if (!g) return '';
   if (g.running)
     return `<p class="hint hint-sm" style="margin:8px 2px 0" id="thumbs-running">${tH('card.thumbnails')} ` +
            `${tH('card.refreshProgress', { done: g.done, total: g.total })}</p>`;
   if (!g.renewed && !g.skipped) return '';
-  /* DIE ZAHL DARF IN BEIDE RICHTUNGEN ZEIGEN -- 0.19.5. */
+  /* DIE ZAHL DARF IN BEIDE RICHTUNGEN ZEIGEN. */
   const d = g.grown || 0;
   /* „mehr" UND „weniger" KAMEN AUS DEM QUELLTEXT -- gefunden beim Bau von BA
      3, derselbe Fund wie das „und" in der Tagwarnung. */
@@ -8491,9 +8400,9 @@ function geometryRow(g) {
                                 : t('card.lessBytes', { bytes: fmtBytes(Math.abs(d)) })) })}</p>`;
 }
 
-/* ---- Karte „Kennzahlen" — Abschnitt „Datenbank" ---- SIE TRAEGT SEIT 0.29.0
+/* ---- Karte „Kennzahlen" — Abschnitt „Datenbank" ---- SIE TRAEGT
    WIEDER EINEN BEHANDLER, und zwar genau einen: den Verweis „Dateien zeigen"
-   unter dem Fingerprint (Befund 2). */
+   unter dem Fingerprint. */
 function cardStats(fetched) {
   const { stats } = fetched;
   return `<div class="sys-card">
@@ -8523,14 +8432,14 @@ function cardStats(fetched) {
              Karte sie nie -- sie lief nur in die Fusszeile. */''}
         <div class="kv"><span class="k">${tH('card.version')}</span><span class="v">${esc(stats.version || '—')}</span></div>
         <div class="kv"><span class="k">${tH('card.fingerprint')}</span><span class="v"><code>${esc(stats.fingerprint || '—')}</code></span></div>
-        ${/* ---- DIE ACHTZEHN DATEIEN -- 0.29.0, Befund 2 ---- DER
+        ${/* ---- DIE ACHTZEHN DATEIEN ---- DER
              FINGERPRINT SAGT NUR, DASS ETWAS ANDERS IST, und nicht, WAS. */''}
         ${(stats.fingerprintFiles || []).length ? `<div class="kv kv-act">
           <button class="link-btn" id="fp-files" aria-expanded="false"
             aria-controls="fp-list">${tH('card.showFiles')}</button></div>
         <div class="fp-list" id="fp-list" hidden>${stats.fingerprintFiles.map(z =>
           `<div class="fp-row"><span class="fp-name">${esc(z.name)}</span><code>${esc(z.hash)}</code></div>`).join('')}</div>` : ''}
-        ${/* DER KLARTEXTSCHLUESSEL GEHOERT DEM EIGENTUEMER -- 0.22.0 (E13). */''}
+        ${/* DER KLARTEXTSCHLUESSEL GEHOERT DEM EIGENTUEMER. */''}
         <div style="margin-top:14px">${stats.keyFromEnv
           ? `<div class="ok-box">${tMarks('card.keyFromSetting', {
               word: '<code>ENCRYPTION_KEY</code>',
@@ -8560,7 +8469,7 @@ function cardStats(fetched) {
       </div>`;
 }
 
-/* DER VERWEIS UNTER DEM FINGERPRINT -- 0.29.0, Befund 2. */
+/* DER VERWEIS UNTER DEM FINGERPRINT. */
 function setUpStatsOut() {
   const button = document.getElementById('fp-files');
   const list = document.getElementById('fp-list');
@@ -8600,11 +8509,9 @@ function cardImageStore(fetched) {
           }</span><span class="v">${z.count} · ${fmtBytes(z.bytes)}</span></div>`;
         }).join('') : `<p class="hint hint-sm" style="margin:2px 2px 0">${tH('card.noPhotosYet')}</p>`}
         ${OWNER ? `
-        ${/* ---- DIE WAHL, UND SIE IST EIN KNOPF „Standard" JE ZEILE ----
-             DIESELBE BAUFORM WIE „Suchanbieter" UND „Sprachen", und das ist
-             der Grund für die Wahl der Bauform: die Oberfläche hat für „eines
-             von mehreren ist der Standard" genau eine Gestalt, und sie steht
-             schon zweimal da. */''}
+        ${/* ---- DIE WAHL IST EIN KNOPF „Standard" JE ZEILE ---- DIESELBE BAUFORM
+             WIE „Suchanbieter" UND „Sprachen": die Oberfläche hat für „eines
+             von mehreren ist der Standard" genau eine Gestalt. */''}
         <h4 class="sys-sub">${tH('card.storeMethod')}</h4>
         <div class="engine-list" style="margin-top:6px">${IMAGE_STORES.map(k => {
           const w = IMAGE_STORE_WORDS[k];
@@ -8618,7 +8525,7 @@ function cardImageStore(fetched) {
         ${/* DIE AUFLAGE STEHT IMMER DA UND NICHT ERST NACH DEM EINSCHALTEN. */''}
         <p class="hint hint-sm" style="margin:8px 2px 0">${tH('card.storeCaveat')}</p>
         ${/* WAS DIE ABLEITUNGEN TUN, STEHT DANEBEN UND NICHT IN DER WAHL. Sie
-             folgen ihr nicht — sie sind immer WebP (F3). */''}
+             folgen ihr nicht — sie sind immer WebP. */''}
         <p class="hint hint-sm" style="margin:6px 2px 0">${tH('card.derivativesWebp')}</p>
         <div class="row-in" style="margin-top:12px">
           <button class="btn btn-sm" id="convert-run"${running || !(png && IMAGE_STORE !== 'png') ? ' disabled' : ''}>${tH('card.catchUpStore')}</button>
@@ -8635,7 +8542,7 @@ function cardImageStore(fetched) {
 
 
 /* WAS DIE UHR VERFOLGEN KANN -- eine Tafel und keine zweite Uhr. */
-/* DER FERTIGSATZ IST EIN RUF -- 0.24.0, wie der Fortschrittssatz darueber
+/* DER FERTIGSATZ IST EIN RUF, wie der Fortschrittssatz darueber
    schon immer einer war (siehe SYS_SECTIONS). */
 const BATCH_RUNS = [
   { field: 'conversion', id: 'convert-running',
@@ -8674,8 +8581,8 @@ function followBatchRun() {
 }
 
 function setUpImageStoreOut(fetched) {
-  /* DIE DREI KNOEPFE „Standard" -- 0.27.0, und bis 0.26.0 stand hier ein
-     createToggle() auf ein Haekchen. */
+  /* DIE DREI KNOEPFE „Standard" -- frueher ein createToggle() auf ein
+     Haekchen. */
   for (const b of document.querySelectorAll('[data-store-pick]')) {
     b.onclick = async () => {
       const wanted = b.dataset.storePick;
@@ -8697,13 +8604,12 @@ function setUpImageStoreOut(fetched) {
     button.onclick = async () => {
       const bf = (fetched.stats && fetched.stats.imageFormats) || {};
       const png = bf.png || { count: 0, bytes: 0 };
-      /* DER DIALOG SAGT ES VORHER UND BESCHOENIGT NICHTS: wie viele Bilder,
-         wie viel Platz, dass die PNG-Fassung danach nicht mehr da ist, und
-         dass die Sicherung des Datenverzeichnisses die einzige Rueckfahrkarte
-         ist. */
+      /* DER DIALOG SAGT ES VORHER UND BESCHOENIGT NICHTS: wie viele Bilder, wie
+         viel Platz, dass die PNG-Fassung danach fort ist und nur die
+         Sicherung des Datenverzeichnisses zurueckfuehrt. */
       /* DER DIALOG SAGT DREI DINGE UND SONST NICHTS: was geschieht, was
          danach weg ist, und dass es dauern kann. */
-      /* UND DIE ZAHL IN SEINEM SATZ NENNT DIE EINE HAELFTE -- 0.33.0. */
+      /* UND DIE ZAHL IN SEINEM SATZ NENNT DIE EINE HAELFTE. */
       const ok = await secondConfirm('images', null, t('card.catchUpStore'),
         t('card.catchUpAsk', { n: png.count, bytes: fmtBytes(png.bytes),
                                after: fmtBytes(Math.round(png.bytes * 0.37)) }));
@@ -8725,7 +8631,7 @@ function setUpImageStoreOut(fetched) {
 }
 
 
-/* DER NAME DER COMPOSE-DATEI -- 0.31.0, Bauabschnitt 1. */
+/* DER NAME DER COMPOSE-DATEI. */
 const COMPOSE_FILE = 'docker-compose.yml';
 
 /* ---- Karte „Sicherung" — Abschnitt „Datenbank" ---- */
@@ -8756,7 +8662,7 @@ function setUpBackupOut(fetched) {
       box.innerHTML = `<div class="warn-box">${esc(d.reason || t('card.noBackupDir'))}</div>`;
       return;
     }
-    /* DIESE KARTE SAGT SEIT 0.20.0 NUR NOCH ETWAS UEBER DIE LETZTE SICHERUNG. */
+    /* DIESE KARTE SAGT NUR NOCH ETWAS UEBER DIE LETZTE SICHERUNG. */
     const last = d.last;
     const stateBox = d.error
       ? `<div class="warn-box" style="margin:0 0 12px">${esc(d.error)}</div>`
@@ -8832,11 +8738,9 @@ function setUpBackupOut(fetched) {
                 ? ` · ${t('card.oldBackupsFreed',
                     { n: r.cleaned.removed, bytes: fmtBytes(r.cleaned.bytes) })}`
                 : ''));
-        /* HAT DER ANSCHLUSS ETWAS WEGGERAEUMT, WIRD DIE GANZE KARTE NEU --
-           dieselbe Bauform wie bei der Bildumstellung, und aus demselben
-           Grund: die Nachbarkarte "Alte Sicherungen" traegt dann eine
-           Vorschau auf Dateien, die es nicht mehr gibt, und zwei Staende
-           nebeneinander sind einer zu viel. */
+        /* HAT DER ANSCHLUSS ETWAS WEGGERAEUMT, WIRD DIE GANZE KARTE NEU: die
+           Nachbarkarte "Alte Sicherungen" traegt sonst eine Vorschau auf
+           Dateien, die es nicht mehr gibt. */
         if (r.cleaned && r.cleaned.removed) return renderSystem();
         drawBackup(fetched);
       } catch (err) {
@@ -8848,8 +8752,8 @@ function setUpBackupOut(fetched) {
   }
 
 
-/* ---- Karte „Alte Sicherungen" — Abschnitt „Datenbank", seit 0.20.0 ---- SIE
-   STEHT HINTER "SICHERUNG" UND NICHT DARIN. */
+/* ---- Karte „Alte Sicherungen" — Abschnitt „Datenbank" ---- SIE STEHT
+   HINTER "SICHERUNG" UND NICHT DARIN. */
 function cardCleanup() {
   return `<div class="sys-card">
         <h3>${tH('card.oldBackups')}</h3>
@@ -8883,15 +8787,15 @@ function setUpCleanupOut(fetched) {
 
     /* DIE LISTE ALLER SICHERUNGEN -- juengste zuerst, nummeriert, NUR ZUM
        ANSEHEN. */
-    /* ---- DIE PROBE JE ZEILE -- 0.29.0, Befund 1 ---- „prüfen" UND NICHT
-       „Sicherung prüfen" (F1): die Zeile misst am Telefon 366 px und trägt
+    /* ---- DIE PROBE JE ZEILE ---- „prüfen" UND NICHT
+       „Sicherung prüfen": die Zeile misst am Telefon 366 px und trägt
        schon Nummer, Datum, Alter und Größe. */
     const row = (z) => {
       const mark = z.affected ? `<span class="cleanup-badge remove">${tH('card.deleteLower')}</span>`
                   : z.outdated ? `<span class="cleanup-badge old">${tH('card.oldKey')}</span>` : '';
       return `<div class="mrow">
         <span class="mname">#${z.nr} · ${esc(fmtDate(z.at))}</span>${mark}
-        ${/* DIE GRÖSSE STEHT VORN, SEIT DER VERWEIS DANEBEN STEHT — 0.29.0. */''}
+        ${/* DIE GRÖSSE STEHT VORN, SEIT DER VERWEIS DANEBEN STEHT. */''}
         <span class="mcount">${esc(fmtBytes(z.bytes))} · ${
           tH('card.daysAgo', { n: z.daysAgo })}</span>
         <button class="link-btn backup-check" data-nr="${z.nr}">${tH('card.checkBackup')}</button>
@@ -9029,7 +8933,7 @@ function setUpCleanupOut(fetched) {
           { n: oldCount, bytes: fmtBytes(a.oldBytes || 0) }));
     });
 
-    /* ---- Die Sicherungsprobe -- 0.29.0, Befund 1 ---- KEINE ZWEITE
+    /* ---- Die Sicherungsprobe ---- KEINE ZWEITE
        BESTAETIGUNG: sie liest, sie loescht nicht. */
     box.querySelectorAll('.backup-check').forEach(button => {
       button.onclick = async () => {
@@ -9067,8 +8971,8 @@ function cardExport(fetched) {
         <p class="desc"><strong>${tH('card.exportLabel')}</strong> ${tH('card.exportPurposeHint')} <strong>${tH('card.backup')}</strong>.</p>
         <p class="desc">${tH('card.exportWritesHint')}</p>
         ${/* DIE ZAHLEN AN DEN KNOEPFEN SIND LEBENDIG. */''}
-        ${/* EIN KIND JE KNOPF UND NICHT DREI -- Befund 3b der Runde 0.26.0.
-             `.btn` ist `inline-flex` mit `gap: 7px`. */''}
+        ${/* EIN KIND JE KNOPF UND NICHT DREI. `.btn` ist `inline-flex` mit
+             `gap: 7px`. */''}
         <div class="row-in">
           <button class="btn btn-accent btn-sm" id="ex-yes"><span>${tMarks('card.withPhotos',
             { word: '<span id="ex-gr-yes">…</span>' })}</span></button>
@@ -9090,7 +8994,7 @@ function cardExport(fetched) {
             <button class="btn btn-sm" id="ex-plan">${tH('card.exportInParts')}</button>
             <label class="hint hint-sm" style="display:flex;align-items:baseline;gap:6px">
               ${tH('card.atMost')}
-              ${/* DIE BESCHRIFTUNG KOMMT AUS DEM WERT -- 0.31.1. */''}
+              ${/* DIE BESCHRIFTUNG KOMMT AUS DEM WERT. */''}
               <select class="input input-sm" id="ex-target" style="width:auto">
                 ${[52428800, 104857600, 209715200, 314572800].map(v =>
                   `<option value="${v}"${v === 314572800 ? ' selected' : ''}>${
@@ -9293,7 +9197,7 @@ function askImport(file, limits) {
     bd.innerHTML = `<div class="modal"><h2>${tH('card.import')}</h2>
       <p>${tMarks('card.fileContainsHint', {
         word: `<strong>${info.count} ${esc(vThing(info.count))}</strong>` }, {
-        /* EIGENE BESCHRIFTUNG STATT DER GELIEHENEN -- 0.31.1. */
+        /* EIGENE BESCHRIFTUNG STATT DER GELIEHENEN. */
         rest: info.withPhotos ? t('card.withPhotosPlain') : t('card.withoutPhotosPlain'),
         from: info.title ? t('card.createdFrom', { title: info.title }) : '',
         when: info.date ? t('card.onDate', { date: fmtDate(info.date.replace('T',' ').slice(0,19)) }) : '' })}</p>
@@ -9347,7 +9251,7 @@ function askImport(file, limits) {
 /* ================= Start ================= */
 let setupNeeded = false;
 (async function boot() {
-  /* BEIDES VOR DEM ERSTEN ZEICHNEN -- 0.24.0, Bauabschnitt 1: hier steht noch
+  /* BEIDES VOR DEM ERSTEN ZEICHNEN: hier steht noch
      nichts am Bildschirm, also blitzt auch nichts auf. */
   let cfg = null;
   try {
@@ -9358,16 +9262,16 @@ let setupNeeded = false;
     if (cfg && cfg.setupRequired) setupNeeded = true;
     SIGNUP = Boolean(cfg && cfg.signup);
   } catch {}
-  /* DIE ZWEITE UND DRITTE QUELLE DER SPRACHE (Konzept 5.3). */
+  /* DIE ZWEITE UND DRITTE QUELLE DER SPRACHE. */
   if (cfg && cfg.language) LANGUAGE_DEFAULT = cfg.language;
   try {
     await loadLanguages(LANGUAGE_DEFAULT);
   } catch (e) {
-    /* DER EINE FESTE SATZ IM QUELLTEXT -- Entscheidung A1 des Auftrags. */
+    /* DER EINE FESTE SATZ IM QUELLTEXT. */
     app.textContent = 'Die Sprachdatei fehlt.';
     return;
   }
-  /* WAS DIE SEITE SPRICHT, STEHT AM WURZELELEMENT -- 0.24.0, Bauabschnitt 4. */
+  /* WAS DIE SEITE SPRICHT, STEHT AM WURZELELEMENT. */
   applyLanguage();
   try { showVersion(); } catch {}
   document.title = TITLE_PUBLIC;

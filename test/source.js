@@ -2032,8 +2032,10 @@ async function run() {
        der den einzelnen Eintrag als Datei holte, nannte zwei Nummern als
        Herkunft. Knopf und Kommentar sind fort. */
     const VN_CEILING = {
-      'public/app.js': 326, 'public/style.css': 175,
-      'twofactor.js': 1,
+      'public/style.css': 175,
+      /* Zwei der drei in public/app.js sind SVG-Pfaddaten, der dritte ist der
+         Kommentar, den test/ui_style.js im Wortlaut verlangt. */
+      'public/app.js': 3, 'twofactor.js': 1,
       /* AUF NULL, UND DORT BLEIBEND. server.js, db.js, auth.js,
          public/index.html und usertool.js sind mit dieser Runde dazugekommen. */
       'server.js': 0, 'db.js': 0, 'auth.js': 0, 'public/index.html': 0,
@@ -2044,7 +2046,7 @@ async function run() {
       'public/languages/en.json': 0, 'public/languages/tr.json': 0,
       'public/favicon.svg': 0
     };
-    const VN_TOTAL = 502;
+    const VN_TOTAL = 179;
     const vnFiles = Object.keys(VN_CEILING);
     check('Der Waechter sieht alle zwanzig Dateien, und jede liegt da',
       vnFiles.length === 20

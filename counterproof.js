@@ -3617,8 +3617,8 @@ const REGRESSIONS = [
     /* DER SCHALTER STEHT AUCH DEM ADMIN OHNE EIGENTUEMERROLLE. */
     nr: '457', name: 'Schalter und Knopf stehen jedem Admin',
     file: 'public/app.js',
-    search: "        ${OWNER ? `\n        ${/* ---- DIE WAHL, UND SIE IST EIN KNOPF „Standard\" JE ZEILE ----",
-    replacement: "        ${true ? `\n        ${/* ---- DIE WAHL, UND SIE IST EIN KNOPF „Standard\" JE ZEILE ----",
+    search: "        ${OWNER ? `\n        ${/* ---- DIE WAHL IST EIN KNOPF",
+    replacement: "        ${true ? `\n        ${/* ---- DIE WAHL IST EIN KNOPF",
     expected: 'Die Bildablage in der Oberflaeche'
   },
 
@@ -5847,10 +5847,8 @@ const REGRESSIONS = [
     /* UND DER ZWEITE WEG IN DIE LISTE -- der, den der Auftrag nicht kannte. */
     nr: '747', name: 'drawAdmin liest wieder an namesFrom vorbei',
     file: 'public/app.js',
-    search: "    /* DURCH namesFrom() UND NICHT AUS `fetched` -- 0.24.5. */\n" +
-      "    manageList('mcats', namesFrom(fetched, 'cats'), 'cat', fetched);",
-    replacement: "    /* DURCH namesFrom() UND NICHT AUS `fetched` -- 0.24.5. */\n" +
-      "    manageList('mcats', fetched.cats, 'cat', fetched);",
+    search: "    manageList('mcats', namesFrom(fetched, 'cats'), 'cat', fetched);",
+    replacement: "    manageList('mcats', fetched.cats, 'cat', fetched);",
     expected: 'Die Sprachpillen der Namenskarten — 0.24.5'
   },
   {
