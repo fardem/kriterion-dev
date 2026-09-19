@@ -1252,7 +1252,6 @@ mark {
 .cmt-form .btn { align-self: flex-end; }
 /* Der Knopf, der den Eintrag als Datei holt -- 0.35.0. Rechtsbuendig wie die
    Zeile darunter, aber mit kleinerem Abstand: beide gehoeren zum Fuss. */
-.entry-out { display: flex; justify-content: flex-end; margin-top: 16px; }
 .danger-row { display: flex; justify-content: flex-end; margin-top: 8px; }
 
 /* ---------- Vergleich ---------- */

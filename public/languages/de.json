@@ -807,7 +807,6 @@
   "entry.edited": "bearbeitet",
   "entry.empty": "(leer)",
   "entry.enteredByOn": "Eingetragen von {author} am {created_at}",
-  "entry.exportOne": "{entryOne} exportieren",
   "entry.fileCount": {
     "one": "{n} Datei · {filesize}",
     "other": "{n} Dateien · {filesize}"
@@ -1230,7 +1229,6 @@
   "server.deniedTagNew": "Neue Tags legt nur der Admin an. Vorhandene lassen sich weiterhin vergeben.",
   "server.deniedUser": "An einen Admin oder den Eigentümer kommt nur der Eigentümer dieser Installation.",
   "server.dueInvalid": "Das ist kein gültiges Datum.",
-  "server.entryTooBig": "Dieser {entryOne} ist als Datei zu groß (rund {mb} MB). Die Grenze liegt bei {limit} MB.",
   "server.entryUnknown": "{entryOne} nicht gefunden.",
   "server.error": "Auf dem Server ist ein Fehler aufgetreten.",
   "server.errorUnknown": "Unbekannter Fehler",

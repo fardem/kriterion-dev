@@ -807,7 +807,6 @@
   "entry.edited": "düzenlendi",
   "entry.empty": "(boş)",
   "entry.enteredByOn": "{created_at} tarihinde {author} girdi",
-  "entry.exportOne": "{entryOne} kaydını dışa aktar",
   "entry.fileCount": {
     "one": "{n} dosya · {filesize}",
     "other": "{n} dosya · {filesize}"
@@ -1230,7 +1229,6 @@
   "server.deniedTagNew": "Yeni etiketleri yalnızca yönetici oluşturur. Var olanlar verilmeye devam edebilir.",
   "server.deniedUser": "Bir yöneticiye ya da sahibe yalnızca bu kurulumun sahibi erişebilir.",
   "server.dueInvalid": "Bu geçerli bir tarih değil.",
-  "server.entryTooBig": "Bu {entryOne} dosya olarak çok büyük (yaklaşık {mb} MB). Sınır {limit} MB.",
   "server.entryUnknown": "{entryOne} bulunamadı.",
   "server.error": "Sunucuda bir hata oluştu.",
   "server.errorUnknown": "Bilinmeyen hata",

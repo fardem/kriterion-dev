@@ -496,8 +496,8 @@ async function run() {
       .some(([, n]) => n === 2),
     'der Waechter sieht die zweite Abbildung nicht');
   const fImageCalls = fCodeRows.split('entryAsBundle(').length - 1;
-  check('Sie wird an drei Stellen gerufen: Export, Einzelexport, Papierkorb',
-    fImageCalls === 4, `${fImageCalls} Vorkommen samt Deklaration`);
+  check('Sie wird an zwei Stellen gerufen: Export und Papierkorb',
+    fImageCalls === 3, `${fImageCalls} Vorkommen samt Deklaration`);
 
   /* Dasselbe in der Gegenrichtung. */
   const IMPORT_MARKS = ['function importInto(', 'const itemAuthor = authorId(it.author)'];
@@ -1196,17 +1196,19 @@ async function run() {
        `card.derivativesAsk` fallen mit der JPEG-Haelfte des Bestandslaufs,
        `server.exportTooOld` kommt mit der Abweisung zu alter Dateien dazu --
        zwei hin, einer her. */
-    /* UND SEIT 0.35.0 SIND ES DREI MEHR: `entry.removeRating` und
-       `entry.ratingRemoved` loesen zwei deutsche Saetze aus dem Skript ab,
-       `entry.exportOne` beschriftet den neuen Knopf am Eintrag. */
+    /* UND SEIT 0.35.0 SIND ES ZWEI MEHR: `entry.removeRating` und
+       `entry.ratingRemoved` loesen zwei deutsche Saetze aus dem Skript ab.
+       `entry.exportOne` kam mit derselben Runde dazu und faellt mit 0.35.2
+       wieder -- der Knopf, den er beschriftet hat, ist fort. */
     /* UND SEIT 0.35.1 EINER MEHR: `server.trashRestoring` ist die Antwort an
        den zweiten Aufruf, der denselben Papierkorbeintrag holen will. */
-    /* UND SEIT 0.35.2 VIER MEHR: die Grenzen der Hochladewege sagen ihre
-       Absage jetzt uebersetzt statt in den Woertern von multer --
-       `server.uploadCap`, `server.uploadSize`, `server.videoOne` und
-       `server.importOne`. */
-    check('Und die Zahlen stehen: 1304 Schluessel, 88 Mehrzahlformen, 15 Vokabelnamen',
-      languageKeys.length === 1304 && pluralKeys.length === 88 && vocabularyKeys.length === 15,
+    /* UND SEIT 0.35.2 ZWEI MEHR: vier Grenzen der Hochladewege sagen ihre
+       Absage jetzt uebersetzt statt in den Woertern von multer
+       (`server.uploadCap`, `server.uploadSize`, `server.videoOne`,
+       `server.importOne`), und zwei fallen mit dem Einzelexport
+       (`entry.exportOne`, `server.entryTooBig`). */
+    check('Und die Zahlen stehen: 1302 Schluessel, 88 Mehrzahlformen, 15 Vokabelnamen',
+      languageKeys.length === 1302 && pluralKeys.length === 88 && vocabularyKeys.length === 15,
       `${languageKeys.length} / ${pluralKeys.length} / ${vocabularyKeys.length}`);
 
     /* ---- 3. */
@@ -1387,8 +1389,7 @@ async function run() {
     /* UND DREI MIT 0.35.0: die beiden Saetze an der Sternzeile, die bis dahin
        deutsch im Skript standen, und die Beschriftung des Knopfes, der den
        einzelnen Eintrag als Datei holt. */
-    const WORDING_NEW_0350 = ['entry.removeRating', 'entry.ratingRemoved',
-      'entry.exportOne'];
+    const WORDING_NEW_0350 = ['entry.removeRating', 'entry.ratingRemoved'];
     /* UND EINER MIT 0.35.1: die Antwort an den zweiten Aufruf, der denselben
        Papierkorbeintrag wiederherstellen will. */
     const WORDING_NEW_0351 = ['server.trashRestoring'];
@@ -1407,6 +1408,11 @@ async function run() {
       'entry.deleteWord'];                              // in zwei feste geteilt
     /* UND ZWEI FALLEN MIT 0.33.0 -- die JPEG-Haelfte des Bestandslaufs. */
     const WORDING_GONE_0330 = ['card.catchUpDerivatives', 'card.derivativesAsk'];
+    /* UND ZWEI MIT 0.35.2 -- der Einzelexport geht, und mit ihm die
+       Beschriftung seines Knopfes und die einzige Absage der Route.
+       `server.entryTooBig` stand im Vergleichsstand, `entry.exportOne` nicht:
+       er ist erst mit 0.35.0 entstanden. */
+    const WORDING_GONE_0352 = ['entry.exportOne', 'server.entryTooBig'];
     const WORDING_NEW = [...WORDING_NEW_0243, ...WORDING_NEW_0244,
       ...WORDING_NEW_0245, ...WORDING_NEW_0246, ...WORDING_NEW_0250,
       ...WORDING_NEW_0254, ...WORDING_NEW_0260, ...WORDING_NEW_0270,
@@ -1414,7 +1420,8 @@ async function run() {
       ...WORDING_NEW_0300, ...WORDING_NEW_0311, ...WORDING_NEW_0314,
       ...WORDING_NEW_0320, ...WORDING_NEW_0321, ...WORDING_NEW_0330,
       ...WORDING_NEW_0350, ...WORDING_NEW_0351, ...WORDING_NEW_0352]
-      .filter(k => !WORDING_GONE_0321.includes(k) && !WORDING_GONE_0330.includes(k));
+      .filter(k => !WORDING_GONE_0321.includes(k) && !WORDING_GONE_0330.includes(k)
+                && !WORDING_GONE_0352.includes(k));
     const wordingMissing = WORDING_NEW.filter(k => LANGUAGE_FILE[k] === undefined);
     check('Die neuen Schluessel dieser Runde stehen wirklich in der Datei',
       wordingMissing.length === 0, wordingMissing.join(' ') || 'alle da');
@@ -1664,6 +1671,22 @@ async function run() {
       'Ein Klick auf eine der drei Pillen setzt den Filter selbst.',
       'Vorgabe der Sortierung — ein Klick macht daraus deine eigene Wahl.',
       '{wort} löschen'];
+    /* UND DER WORTLAUT VON `server.entryTooBig` AUS DEM STAND VON DAMALS --
+       sonst stuende er fuer immer in `onlyThen` und die beiden Zahlen der
+       Wortlautprobe liefen auseinander. Er steht hier in der Fassung des
+       Vergleichsstands und nicht in der von heute: abgezogen wird von damals. */
+    const WORDING_GONE_TEXT_0352 = [
+      'Dieser {sacheEinzahl} ist als Datei zu groß (rund {mb} MB). Eine ' +
+      'Exportdatei ist ein einziger Text, und der kann nicht größer als ' +
+      '{grenze} MB werden.'];
+    const goneStill14 = [];
+    for (const code of ['de', 'en', 'tr']) {
+      const file = JSON.parse(fs.readFileSync(
+        path.join(__dirname, 'public', 'languages', `${code}.json`), 'utf8'));
+      for (const k of WORDING_GONE_0352) if (file[k] !== undefined) goneStill14.push(`${code}/${k}`);
+    }
+    check('Und die zwei Schluessel, die 0.35.2 wegnimmt, stehen in keiner Datei mehr',
+      goneStill14.length === 0, goneStill14.join(' ') || 'in allen dreien weg');
     const goneStill13 = [];
     for (const code of ['de', 'en', 'tr']) {
       const file = JSON.parse(fs.readFileSync(
@@ -1703,7 +1726,8 @@ async function run() {
       ...WORDING_GONE_TEXT_0260, ...WORDING_GONE_TEXT_0270,
       ...WORDING_GONE_TEXT_0281, ...WORDING_GONE_TEXT_0300,
       ...WORDING_GONE_TEXT_0310, ...WORDING_GONE_TEXT_0311,
-      ...WORDING_GONE_TEXT_0320, ...WORDING_GONE_TEXT_0321].map(flatten)
+      ...WORDING_GONE_TEXT_0320, ...WORDING_GONE_TEXT_0321,
+      ...WORDING_GONE_TEXT_0352].map(flatten)
       .reduce((list, sentence) => withoutOne(list, sentence), wordingFile.values.map(flatten))
       .sort();
     const wordingNow = valuesOf(wordingOld).map(asBefore).sort();
@@ -1730,8 +1754,12 @@ async function run() {
     /* 1088 WURDEN 1082 MIT 0.32.1, UND DIE BEIDEN ZAHLEN BLEIBEN GLEICH:
        sechs Saetze fallen aus der Datei von heute und werden im selben Zug
        aus dem Stand von damals abgezogen (WORDING_GONE_TEXT_0321). */
-    check('Wortlautprobe: gleich viele Saetze wie bei der Abnahme — 1082',
-      wordingNow.length === wordingThen.length && wordingNow.length === 1082,
+    /* 1082 WURDEN 1081 MIT 0.35.2, UND DIE BEIDEN ZAHLEN BLEIBEN GLEICH:
+       `server.entryTooBig` faellt mit der Route, die ihn als einzige gerufen
+       hat, und sein Wortlaut wird im selben Zug aus dem Stand von damals
+       abgezogen (WORDING_GONE_TEXT_0352). */
+    check('Wortlautprobe: gleich viele Saetze wie bei der Abnahme — 1081',
+      wordingNow.length === wordingThen.length && wordingNow.length === 1081,
       `${wordingThen.length} damals, ${wordingNow.length} heute (ohne die ` +
       `${WORDING_NEW.length} neuen und die weggenommenen)`);
     /* ZWEI SAETZE SIND ANDERE, UND BEIDE SIND BENANNT. */
@@ -1831,7 +1859,7 @@ async function run() {
       "list.searchOffline", "list.searchingShort", "list.visibleCount",
       "login.newPasswordFor", "login.noPhoneHint", "login.requestAccessHint",
       "login.welcome", "mail.hintAlways", "mail.hintGmx",
-      "server.entryTooBig", "server.exportGrew", "server.exportTooBig"];
+      "server.exportGrew", "server.exportTooBig"];
     /* UND EINER MIT 0.31.2 -- der einzige deutsche Wert, den jene Runde
        angefasst hat, und zwar auf Bestellung des Betreibers am 13. September
        2026: „Zugang beantragen" heisst „Zugang anfragen". */
@@ -1859,8 +1887,12 @@ async function run() {
        Seite, und das ist zum ersten Mal seit 0.31.1 die Richtung nach unten. */
     const WORDING_CHANGED_0321 = [
       'entry.noDaysYet', 'server.deniedEntry', 'server.ratingBeforeTest'];
-    check('Und genau hundertsiebenundfuenfzig Saetze sind andere — die hundertneunundfuenfzig von 0.32.0 minus die zwei, die 0.32.1 zurueckholt',
-      onlyThen.length === 157 && onlyNow.length === 155 &&
+    /* 157 UND 155 WURDEN 156 UND 154 MIT 0.35.2 -- einer weniger auf jeder
+       Seite: `server.entryTooBig` stand mit seinem alten Wortlaut in
+       `onlyThen` und mit seinem neuen in `onlyNow`; mit dem Schluessel
+       fallen beide. */
+    check('Und genau hundertsechsundfuenfzig Saetze sind andere — einer weniger, seit der Einzelexport fort ist',
+      onlyThen.length === 156 && onlyNow.length === 154 &&
       WORDING_CHANGED_0321.every(k => LANGUAGE_FILE[k] !== undefined
         && onlyNow.includes(asBefore(LANGUAGE_FILE[k]))) &&
       /* UND DER EINE, DER ZURUECKKOMMT, STEHT AUF KEINER DER BEIDEN SEITEN
@@ -2068,8 +2100,11 @@ async function run() {
     const vnPattern = () => /(?<![\d.])\d+\.\d+\.\d+(?!\.?\d)/g;
     /* DIE LATTE JE DATEI, gemessen am 17. September 2026. Sie darf FALLEN.
        Steigt sie, ist eine neue Herkunftsangabe dazugekommen. */
+    /* `public/app.js` 328 -> 326 MIT 0.35.2: der Kommentar ueber dem Knopf,
+       der den einzelnen Eintrag als Datei holte, nannte zwei Nummern als
+       Herkunft. Knopf und Kommentar sind fort. */
     const VN_CEILING = {
-      'public/app.js': 328, 'server.js': 197, 'public/style.css': 175,
+      'public/app.js': 326, 'server.js': 197, 'public/style.css': 175,
       'db.js': 62, 'auth.js': 4, 'public/index.html': 4,
       'twofactor.js': 1, 'usertool.js': 1,
       /* AUF NULL, UND DORT BLEIBEND. */
@@ -2079,7 +2114,7 @@ async function run() {
       'public/languages/en.json': 0, 'public/languages/tr.json': 0,
       'public/favicon.svg': 0
     };
-    const VN_TOTAL = 772;
+    const VN_TOTAL = 770;
     const vnFiles = Object.keys(VN_CEILING);
     check('Der Waechter sieht alle zwanzig Dateien, und jede liegt da',
       vnFiles.length === 20
@@ -2636,8 +2671,11 @@ async function run() {
       }
       if (has) ssCode++;
     }
-    check('Und es stehen genau 1639 Regelzeilen da — so viele wie vor der Kuerzung',
-      ssCode === 1639, `${ssCode} Zeilen`);
+    /* EINE WENIGER SEIT 0.35.2: `.entry-out` hielt den Knopf, der den
+       einzelnen Eintrag als Datei holte. Der Knopf ist fort, die Regel mit
+       ihm -- eine Regel ohne Element ist toter Text. */
+    check('Und es stehen genau 1638 Regelzeilen da — eine weniger als vor der Kuerzung',
+      ssCode === 1638, `${ssCode} Zeilen`);
     /* UND KEIN BLOCK IST WIEDER LANG GEWORDEN. Der laengste traegt die
        gerechnete Tafel der Vorschaureihe und misst 26 Zeilen. */
     const ssLongest = ssBlocks.reduce((n, b) => Math.max(n, b.split('\n').length), 0);
@@ -2809,30 +2847,11 @@ async function run() {
       `${(zpAuth.match(/datetime\('now'\)/g) || []).length} Stellen mit datetime('now')`);
   }
 
-  /* ================= Der Eintrag als Datei — 0.35.0 =======================
-     BEFUND DER MESSUNG ZUR 0.35.0: GET /api/items/:id/export gibt es seit
-     0.30.0, und kein Element der Oberflaeche rief die Route auf. Erreichbar
-     war sie nur, wer die Adresse von Hand eintippt. */
-  group('Der einzelne Eintrag ist ueber die Oberflaeche zu holen — 0.35.0');
-  {
-    const eoApp = fs.readFileSync(path.join(__dirname, 'public', 'app.js'), 'utf8');
-    const eoLang = JSON.parse(fs.readFileSync(
-      path.join(__dirname, 'public', 'languages', 'de.json'), 'utf8'));
-    check('Der Knopf steht im gezeichneten Eintrag',
-      eoApp.includes(`id="exp1">${'$'}{tH('entry.exportOne')}</button>`),
-      (eoApp.match(/.*id="exp1".*/) || ['(kein Knopf)'])[0].trim());
-    check('Und er ruft genau die Route auf',
-      /window\.location = `\/api\/items\/\$\{id\}\/export`/.test(eoApp),
-      (eoApp.match(/.*\/api\/items\/\$\{id\}\/export.*/) || ['(kein Aufruf)'])[0].trim());
-    /* UND NUR DER BETREIBER SIEHT IHN -- die Route traegt ownerOnly, und ein
-       Knopf, der eine Absage holt, ist schlechter als kein Knopf. */
-    check('Und nur der Betreiber sieht ihn',
-      /\$\{OWNER\n\s*\? `<div class="entry-out">/.test(eoApp),
-      (eoApp.match(/.*class="entry-out".*/) || ['(keine Bedingung)'])[0].trim());
-    check('Seine Beschriftung steht in der Sprachdatei',
-      typeof eoLang['entry.exportOne'] === 'string',
-      String(eoLang['entry.exportOne']));
-  }
+  /* ================= WAS HIER BIS 0.35.2 STAND, UND WARUM ES FORT IST =====
+     Die Gruppe „Der einzelne Eintrag ist ueber die Oberflaeche zu holen"
+     hielt vier Zusagen ueber den Knopf `#exp1` und die Route dahinter. Beide
+     sind mit 0.35.2 ausgebaut: die Route hatte 26 Runden lang keinen Rufer,
+     und das Projekt braucht sie fuer nichts anderes. */
 
   /* ================= Die Deckung der Sprachdatei — 0.35.0 =================
      DER BEFUND DER MESSUNG ZUR 0.35.0: kein einziger Schluessel in

@@ -139,7 +139,6 @@
   "server.datumZukunft": "server.dateFuture",
   "server.eigeneMailFehlt": "server.ownEmailMissing",
   "server.einrichtungFertig": "server.setupDone",
-  "server.eintragZuGross": "server.entryTooBig",
   "server.exportGewachsen": "server.exportGrew",
   "server.exportLeer": "server.exportEmpty",
   "server.exportUngueltig": "server.exportInvalid",

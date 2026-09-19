@@ -3890,15 +3890,6 @@ async function renderDetail(id, termAddress) {
     </div>
     </div>
 
-    ${/* DER EINZELNE EINTRAG ALS DATEI -- 0.35.0, BA 8. GET
-         /api/items/:id/export gibt es seit 0.30.0 und hatte bis dahin kein
-         Element in der Oberflaeche: erreichbar nur, wer die Adresse von Hand
-         eintippt. Die Route traegt `ownerOnly`, deshalb sieht den Knopf auch
-         nur der Betreiber. */''}
-    ${OWNER
-      ? `<div class="entry-out"><button class="btn btn-sm" id="exp1">${tH('entry.exportOne')}</button></div>`
-      : ''}
-
     ${/* NUR FUER DEN, DER LOESCHEN DARF -- 0.22.0 (E10). */''}
     ${item.mine === true || ADMIN
       ? `<div class="danger-row"><button class="btn btn-danger btn-sm" id="del">${tH('entry.deleteEntry')}</button></div>`
@@ -5737,13 +5728,6 @@ async function renderDetail(id, termAddress) {
       drawNewImages(); drawNewMarks(); drawComments();
     } catch (e) { toast(e.message, true); }
   };
-
-  /* DERSELBE WEG WIE BEIM VOLLEN EXPORT (drawExport, weiter unten): die
-     Antwort traegt Content-Disposition, der Browser legt die Datei ab. Ueber
-     api() ginge es nicht -- das liest den Rumpf als JSON in den Speicher. */
-  atElement('exp1', b => b.onclick = () => {
-    window.location = `/api/items/${id}/export`;
-  });
 
   /* Die Zahlen kommen vom Server, nicht aus dem geladenen Eintrag: nur dort
      lassen sich eigene von fremden Beiträgen trennen, und zwei Quellen für

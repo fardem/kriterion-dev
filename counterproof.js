@@ -1378,7 +1378,7 @@ const REGRESSIONS = [
   {
     nr: '171', name: 'Der Umschlag faellt weg — ein Export ohne Fotos waere null Bytes gross',
     file: 'server.js',
-    search: '  return parts.photos + parts.videos + parts.attachments + parts.commentImages + exchangeEnvelopeBytes(itemId);',
+    search: '  return parts.photos + parts.videos + parts.attachments + parts.commentImages + exchangeEnvelopeBytes();',
     replacement: '  return teile.fotos + teile.videos + teile.anhaenge + teile.kommentarbilder;',
     expected: 'Die Exportgroesse sagt sich an'
   },
@@ -1387,14 +1387,14 @@ const REGRESSIONS = [
        RECHNUNG: photos.thumb geht nie in die Datei. */
     nr: '172', name: 'Die Vorschaubilder werden mitgezaehlt, obwohl sie nie mitgehen',
     file: 'server.js',
-    search: "      `SELECT COALESCE(SUM(length(data)),0) n FROM photos WHERE kind != 'video'${and('item_id')}`));",
-    replacement: "      `SELECT COALESCE(SUM(length(data) + COALESCE(length(thumb),0)),0) n FROM photos WHERE kind != 'video'${und('item_id')}`));",
+    search: "      `SELECT COALESCE(SUM(length(data)),0) n FROM photos WHERE kind != 'video'`));",
+    replacement: "      `SELECT COALESCE(SUM(length(data) + COALESCE(length(thumb),0)),0) n FROM photos WHERE art != 'video'`));",
     expected: 'Videos: Kennzahlen und Austausch'
   },
   {
     nr: '173', name: 'Der Export baut erst und sagt danach ab',
     file: 'server.js',
-    search: '  const big = exchangeBytes(null, switches);\n  if (!asPart && big > EXCHANGE_MAX)',
+    search: '  const big = exchangeBytes(switches);\n  if (!asPart && big > EXCHANGE_MAX)',
     replacement: '  const gross = 0;\n  if (!asPart && gross > EXCHANGE_MAX)',
     expected: 'Videos: Kennzahlen und Austausch'
   },
@@ -3828,8 +3828,8 @@ const REGRESSIONS = [
        zusaetzlich. */
     nr: '482', name: 'Die Exportgroesse der Bilder wird ein zweites Mal gefragt',
     file: 'server.js',
-    search: "      ...exchangeParts(null, { withFiles: true }),",
-    replacement: "      ...exchangeParts(null, { mitFotos: true, mitDateien: true, mitVideos: true }),",
+    search: "      ...exchangeParts({ withFiles: true }),",
+    replacement: "      ...exchangeParts({ mitFotos: true, mitDateien: true, mitVideos: true }),",
     expected: 'Die Bildablage: PNG kommt herein, WebP geht in die Tabelle'
   },
   {
@@ -8775,23 +8775,6 @@ const REGRESSIONS = [
     search: '.engine-slot input[id^="se-name-"] { flex: 0 0 8.5em; }',
     replacement: '.engine-slot #se-name-1, .engine-slot #se-name-2 { flex: 0 0 8.5em; }',
     expected: 'Die Zahl der eigenen Suchplaetze steht an einer Stelle — 0.35.0'
-  },
-  {
-    /* Der Knopf, der den einzelnen Eintrag als Datei holt, ist wieder fort:
-       die Route bleibt, aber kein Element der Oberflaeche ruft sie. */
-    nr: '1087', name: 'Der einzelne Eintrag ist wieder nur ueber die Adresszeile zu holen',
-    file: 'public/app.js',
-    search: "      ? `<div class=\"entry-out\"><button class=\"btn btn-sm\" id=\"exp1\">${tH('entry.exportOne')}</button></div>`",
-    replacement: "      ? ''",
-    expected: 'Der einzelne Eintrag ist ueber die Oberflaeche zu holen — 0.35.0'
-  },
-  {
-    /* Und er ruft wieder den vollen Export statt des einen Eintrags. */
-    nr: '1088', name: 'Der Knopf am Eintrag holt wieder den ganzen Bestand',
-    file: 'public/app.js',
-    search: "    window.location = `/api/items/${id}/export`;",
-    replacement: "    window.location = '/api/export';",
-    expected: 'Der einzelne Eintrag ist ueber die Oberflaeche zu holen — 0.35.0'
   },
   {
     /* Ein Kommentarblock des Stilblatts waechst wieder ueber dreissig

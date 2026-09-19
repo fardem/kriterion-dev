@@ -3910,10 +3910,10 @@ app.get('/api/stats', adminOnly, (req, res) => {
     geometry: batchState('geometry'),
     /* DIE ERWARTETE EXPORTGROESSE, je Schalter getrennt. */
     export: {
-      envelope: exchangeEnvelopeBytes(null),
+      envelope: exchangeEnvelopeBytes(),
       /* DIE BILDBYTES KOMMEN AUS DER SCHLEIFE OBEN und nicht aus zwei eigenen
          Abfragen. */
-      ...exchangeParts(null, { withFiles: true }),
+      ...exchangeParts({ withFiles: true }),
       photos: Math.round(exportPhotoBytes * 4 / 3),
       videos: Math.round(exportVideoBytes * 4 / 3),
       /* DREI ZAHLEN UND NICHT ZWEI, weil sie drei verschiedene Dinge sagen:
@@ -4174,61 +4174,57 @@ function exportName(suffix) {
 
 /* WAS DER EXPORT AN BYTES WIRKLICH SCHREIBT -- je Art getrennt und vor dem
    ersten Handgriff. */
-function exchangeParts(itemId, switches) {
-  const onlyOne = itemId !== null;
-  const values = onlyOne ? [itemId] : [];
-  const one = (sql) => db.prepare(sql).get(...values).n || 0;
-  // Der Zusatz haengt an der Spalte, weil das Kommentarbild ueber den
-// Kommentar an den Eintrag kommt und nicht unmittelbar.
-  const and = (column) => onlyOne ? ` AND ${column} = ?` : '';
-  const wo = (column) => onlyOne ? ` WHERE ${column} = ?` : '';
+/* ================= WAS HIER STAND, UND WARUM ES FORT IST =================
+   EIN ZWEIG FUER EINEN EINZELNEN EINTRAG: `onlyOne`, `values`, `and()`,
+   `wo()` und vierzehn Einsetzungen in den Abfragen. Er gehoerte der Route,
+   die einen Eintrag als Datei holte; ohne sie konnte er nur noch falsch
+   sein -- beide verbliebenen Rufer reichten `null`. */
+function exchangeParts(switches) {
+  const one = (sql) => db.prepare(sql).get().n || 0;
   const base64 = (n) => Math.round(n * 4 / 3);
   const parts = { photos: 0, videos: 0, attachments: 0, commentImages: 0 };
   if (switches.withPhotos)
     parts.photos = base64(one(
-      `SELECT COALESCE(SUM(length(data)),0) n FROM photos WHERE kind != 'video'${and('item_id')}`));
+      `SELECT COALESCE(SUM(length(data)),0) n FROM photos WHERE kind != 'video'`));
   /* Der Videoschalter haengt am Fotoschalter, wie in entryAsBundle(): ohne
      Fotos wird die Liste gar nicht erst gebaut, und der Haken an den Videos
      bliebe eine Angabe ohne Wirkung. */
   if (switches.withPhotos && switches.withVideos)
     parts.videos = base64(one(
       `SELECT COALESCE(SUM(length(data) + COALESCE(length(medium), length(thumb), 0)),0) n
-         FROM photos WHERE kind = 'video'${and('item_id')}`));
+         FROM photos WHERE kind = 'video'`));
   if (switches.withFiles) {
     parts.attachments = base64(one(
-      `SELECT COALESCE(SUM(length(data)),0) n FROM attachments${wo('item_id')}`));
+      `SELECT COALESCE(SUM(length(data)),0) n FROM attachments`));
     // Kommentarbilder folgen dem Schalter der Dateien -- dort und hier.
     parts.commentImages = base64(one(
       `SELECT COALESCE(SUM(length(ci.data)),0) n FROM comment_images ci
-         JOIN comments c ON c.id = ci.comment_id${wo('c.item_id')}`));
+         JOIN comments c ON c.id = ci.comment_id`));
   }
   return parts;
 }
 
 /* DER UMSCHLAG -- alles, was die Datei traegt und keine Blob-Spalte ist. */
 const ENVELOPE_PER = { entry: 320, comment: 150, rating: 70, testDay: 90, photo: 110, file: 130 };
-function exchangeEnvelopeBytes(itemId) {
-  const onlyOne = itemId !== null;
-  const values = onlyOne ? [itemId] : [];
-  const one = (sql) => db.prepare(sql).get(...values).n || 0;
-  const wo = (column) => onlyOne ? ` WHERE ${column} = ?` : '';
+function exchangeEnvelopeBytes() {
+  const one = (sql) => db.prepare(sql).get().n || 0;
   /* Die Tags gehen NICHT ueber die Vorratstabelle, sondern ueber die
      Verknuepfung: derselbe Name steht an zwanzig Eintraegen und kostet in der
      Datei zwanzigmal Platz. */
   const text =
       one(`SELECT COALESCE(SUM(length(COALESCE(title,'')) + length(COALESCE(description,''))),0) n
-              FROM items${wo('id')}`)
-    + one(`SELECT COALESCE(SUM(length(COALESCE(text,''))),0) n FROM comments${wo('item_id')}`)
+              FROM items`)
+    + one(`SELECT COALESCE(SUM(length(COALESCE(text,''))),0) n FROM comments`)
     + one(`SELECT COALESCE(SUM(length(t.name)),0) n FROM item_tags it
-              JOIN tags t ON t.id = it.tag_id${wo('it.item_id')}`)
-    + one(`SELECT COALESCE(SUM(length(url)),0) n FROM links${wo('item_id')}`);
+              JOIN tags t ON t.id = it.tag_id`)
+    + one(`SELECT COALESCE(SUM(length(url)),0) n FROM links`);
   const form =
-      one(`SELECT COUNT(*) n FROM items${wo('id')}`) * ENVELOPE_PER.entry
-    + one(`SELECT COUNT(*) n FROM comments${wo('item_id')}`) * ENVELOPE_PER.comment
-    + one(`SELECT COUNT(*) n FROM ratings${wo('item_id')}`) * ENVELOPE_PER.rating
-    + one(`SELECT COUNT(*) n FROM test_days${wo('item_id')}`) * ENVELOPE_PER.testDay
-    + one(`SELECT COUNT(*) n FROM photos${wo('item_id')}`) * ENVELOPE_PER.photo
-    + one(`SELECT COUNT(*) n FROM attachments${wo('item_id')}`) * ENVELOPE_PER.file;
+      one(`SELECT COUNT(*) n FROM items`) * ENVELOPE_PER.entry
+    + one(`SELECT COUNT(*) n FROM comments`) * ENVELOPE_PER.comment
+    + one(`SELECT COUNT(*) n FROM ratings`) * ENVELOPE_PER.rating
+    + one(`SELECT COUNT(*) n FROM test_days`) * ENVELOPE_PER.testDay
+    + one(`SELECT COUNT(*) n FROM photos`) * ENVELOPE_PER.photo
+    + one(`SELECT COUNT(*) n FROM attachments`) * ENVELOPE_PER.file;
   return text + form;
 }
 
@@ -4327,9 +4323,9 @@ function exchangeEnvelopeFrame() {
 }
 
 /* Wie viele Bytes eine Datei traegt, BEVOR sie gebaut wird -- als eine Zahl. */
-function exchangeBytes(itemId, switches) {
-  const parts = exchangeParts(itemId, switches);
-  return parts.photos + parts.videos + parts.attachments + parts.commentImages + exchangeEnvelopeBytes(itemId);
+function exchangeBytes(switches) {
+  const parts = exchangeParts(switches);
+  return parts.photos + parts.videos + parts.attachments + parts.commentImages + exchangeEnvelopeBytes();
 }
 
 /* ---- Export ---- */
@@ -4371,7 +4367,7 @@ app.get('/api/export', ownerOnly, secondConfirmNeeded('export'), (req, res) => {
   if (asPart && (from > to || part > parts || parts > EXCHANGE_PART_MAX))
     return res.status(400).json({ error: t(localeOf(req), 'server.partExportMismatch')});
 
-  const big = exchangeBytes(null, switches);
+  const big = exchangeBytes(switches);
   if (!asPart && big > EXCHANGE_MAX)
     return res.status(413).json({ error:
       t(localeOf(req), 'server.exportTooBig', { mb: Math.round(big / 1048576), limit: Math.round(EXCHANGE_STRING / 1048576) })});
@@ -4395,19 +4391,11 @@ app.get('/api/export', ownerOnly, secondConfirmNeeded('export'), (req, res) => {
   }
 });
 
-/* ---- Ein einzelner Eintrag als Datei ---- Lesend, deshalb kein Eintrag in
-   F_ROUTEN -- der Waechter davor ist derselbe wie am vollen Export. */
-app.get('/api/items/:id/export', ownerOnly, (req, res) => {
-  const it = db.prepare('SELECT * FROM items WHERE id = ?').get(req.params.id);
-  if (!it) return res.status(404).json({ error: t(localeOf(req), 'server.entryUnknown')});
-  const switches = { withPhotos: true, withFiles: true, withVideos: true };
-  const big = exchangeBytes(it.id, switches);
-  if (big > EXCHANGE_MAX)
-    return res.status(413).json({ error: t(localeOf(req), 'server.entryTooBig', { mb: Math.round(big / 1048576), limit: Math.round(EXCHANGE_STRING / 1048576) })});
-  const bundle = entryAsBundle(it, bundleState(req.user.id, switches));
-  res.set('Content-Disposition', `attachment; filename="${exportName('-' + it.id)}"`);
-  res.json(exportEnvelope([bundle]));
-});
+/* ================= WAS HIER STAND, UND WARUM ES FORT IST =================
+   GET /api/items/:id/export -- der Eintrag als einzelne Datei. Die Route
+   stand in keinem Auftrag und hatte 26 Runden lang keinen Rufer in der
+   Oberflaeche. Sie wird fuer nichts anderes gebraucht: der volle Export und
+   der Teilexport tragen dieselben Buendel. */
 
 /* ---- Import ---- */
 const IMPORT_MAX = 900 * 1024 * 1024;

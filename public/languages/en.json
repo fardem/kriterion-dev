@@ -807,7 +807,6 @@
   "entry.edited": "edited",
   "entry.empty": "(empty)",
   "entry.enteredByOn": "Entered by {author} on {created_at}",
-  "entry.exportOne": "Export {entryOne}",
   "entry.fileCount": {
     "one": "{n} file · {filesize}",
     "other": "{n} files · {filesize}"
@@ -1230,7 +1229,6 @@
   "server.deniedTagNew": "Only the admin creates new tags. Existing ones can still be assigned.",
   "server.deniedUser": "Only the owner of this installation can reach an admin or the owner.",
   "server.dueInvalid": "That is not a valid date.",
-  "server.entryTooBig": "This {entryOne} is too big as a file (around {mb} MB). The limit is {limit} MB.",
   "server.entryUnknown": "{entryOne} not found.",
   "server.error": "An error occurred on the server.",
   "server.errorUnknown": "Unknown error",
