@@ -22,7 +22,7 @@ async function run() {
   // Die Zahl der Rueckbauten steht ausdruecklich da: eine Zahl in einem
   // Papier ist eine Behauptung, eine Zahl im Pruefstand ist ein Beleg. Wie
   // sie Runde fuer Runde gewachsen ist, steht in den Aenderungsprotokollen.
-  check(`Es sind genau 1043 Rueckbauten`, gpList.length === 1043, `${gpList.length}`);
+  check(`Es sind genau 1046 Rueckbauten`, gpList.length === 1046, `${gpList.length}`);
   const gpTwice = gpList.map(r => r.nr).filter((n, i, a) => a.indexOf(n) !== i);
   check('Und keine Nummer steht zweimal', gpTwice.length === 0, gpTwice.join(' '));
   /* JEDER GREIFT: der Suchtext kommt in seiner Datei GENAU EINMAL vor. */
@@ -328,8 +328,10 @@ async function run() {
         && !rpBuiltIn.has(n) && !(n in globalThis));
     if (miss.length) rpStrange.push(`${r.nr} ${r.file}: ${miss.join(' ')}`);
   }
+  /* 27 WURDEN 28 MIT 0.35.2: der Routenwaechter bekommt eine Gegenprobe auf
+     seine eigene Ausnahmeliste. */
   check('Der Waechter sieht die Rueckbauten auf Pruefstandsdateien',
-    rpChecked === 27, `${rpChecked} Rueckbauten`);
+    rpChecked === 28, `${rpChecked} Rueckbauten`);
   check('Und jeder ihrer Namen steht in der Zieldatei, im Rahmen oder im Suchtext',
     rpStrange.length === 0, rpStrange.slice(0, 6).join(' · '));
 
@@ -358,8 +360,8 @@ async function run() {
       ['test/release_030.js', 241],
       ['test/release_031.js', 405],
       ['test/roundtrip.js', 3215],
-      ['test/selfcheck.js', 174],
-      ['test/source.js', 799],
+      ['test/selfcheck.js', 176],
+      ['test/source.js', 829],
       ['test/ui_entry.js', 497],
       ['test/ui_export.js', 453],
       ['test/ui_inventory.js', 241],
@@ -368,7 +370,7 @@ async function run() {
       ['test/ui_style.js', 562],
       ['test/ui_system.js', 692],
       ['test/ui_translator.js', 104],
-      ['counterproof.js', 1538],
+      ['counterproof.js', 1546],
       ['server.js', 1518],
       ['auth.js', 274],
       ['db.js', 272],
@@ -384,7 +386,7 @@ async function run() {
       ['public/app.js', 1856],
       ['public/theme.js', 3],
     ];
-    const COMMENT_TOTAL = { comment: 14823, code: 60893 };
+    const COMMENT_TOTAL = { comment: 14863, code: 60976 };
     check('Der Waechter sieht alle fuenfunddreissig Dateien',
       crAll.each.length === 35 && COMMENT_ROWS.length === 35,
       `${crAll.each.length} gemessen, ${COMMENT_ROWS.length} genannt`);

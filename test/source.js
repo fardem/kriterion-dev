@@ -2633,6 +2633,98 @@ async function run() {
       (qpDom.match(/.*\[\?&\]grou?p?p?e?=.*/) || ['(nicht gefunden)'])[0].trim());
   }
 
+  /* ================= Jede Route hat einen Rufer — 0.35.2, BA 2 ============
+     DAS IST DIE LUECKE, DURCH DIE DER EINZELEXPORT 26 RUNDEN GEFALLEN IST.
+     Der Pruefstand kennt seit 0.35.0 „jeder Abfrageparameter des Browsers hat
+     einen Leser" und „jeder Schluessel der Sprachdatei hat einen Leser". Der
+     dritte Satz derselben Form hat gefehlt: eine Route, die kein Element der
+     Oberflaeche ruft, faellt sonst erst auf, wenn jemand von Hand nachsieht. */
+  group('Jede Route hat einen Rufer — 0.35.2');
+  {
+    const rrRead = (f) => fs.readFileSync(path.join(__dirname, ...f.split('/')), 'utf8');
+    const rrServer = rrRead('server.js');
+    /* GELESEN WIRD AUCH DIE SEITE: das Manifest haengt als <link rel> im
+       Kopf und nicht an einem Ruf im Skript. */
+    const rrBrowser = rrRead('public/app.js') + '\n' + rrRead('public/index.html');
+    const rrRoutes = [...rrServer.matchAll(/^app\.(get|post|put|patch|delete)\('([^']+)'/gm)]
+      .map(m => [m[1].toUpperCase(), m[2]]);
+    /* EIN PLATZHALTER STEHT IM BROWSER ALS EINSETZSTELLE ODER ALS FERTIGER
+       WERT -- `/api/items/${id}` ebenso wie `/api/items/7`. */
+    const rrPattern = (p) => new RegExp(p.split('/')
+      .map(part => part.startsWith(':')
+        ? '(?:\\$\\{[^}]*\\}|[^/`\'"]+)'
+        : part.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('/'));
+    /* ERST DER BEFUND AM GESTELLTEN FALL: ein Waechter, der auf leeren Mengen
+       laeuft, ist gruen und belegt nichts. */
+    check('Der Waechter sieht beide Seiten',
+      rrRoutes.length === 102 && rrBrowser.length > 100000,
+      `${rrRoutes.length} Routen, ${rrBrowser.length} Zeichen im Browser`);
+    /* DIE AUSNAHMEN, UND SIE STEHEN NAMENTLICH DA. Die Verwaltungstafel baut
+       ihre Adresse aus einem Feld: `api('PUT', `${url}/${entry.id}`)` mit
+       `url` aus der Tafel. Eine buchstaebliche Suche findet das nicht, und
+       eine Suche, die es faende, faende auch jede andere Adresse. */
+    const RR_OVER_TABLE = ['/api/product-categories/:id', '/api/tags/:id'];
+    const rrOrphan = rrRoutes
+      .filter(([, p]) => !RR_OVER_TABLE.includes(p) && !rrPattern(p).test(rrBrowser))
+      .map(([m, p]) => `${m} ${p}`);
+    check('Und jede Route, die der Server anbietet, wird im Browser gerufen',
+      rrOrphan.length === 0, rrOrphan.join(' · ') || 'alle gerufen');
+    /* UND DIE TAFEL IST IN BEIDE RICHTUNGEN GESCHLOSSEN: eine Ausnahme fuer
+       eine Route, die laengst einen Rufer hat, ist eine Karteileiche. */
+    const rrStale = RR_OVER_TABLE.filter(p => rrPattern(p).test(rrBrowser));
+    check('Und keine der beiden Ausnahmen hat laengst einen buchstaeblichen Rufer',
+      rrStale.length === 0, rrStale.join(' · ') || 'beide noetig');
+    /* UND SIE STEHEN WIRKLICH IN DER TAFEL -- sonst benennt die Liste eine
+       Reiseform, die es gar nicht gibt. */
+    check('Die beiden Adressen stehen in der Verwaltungstafel',
+      RR_OVER_TABLE.every(p => rrBrowser.includes(`url: '${p.replace('/:id', '')}'`))
+      && /api\('PUT', `\$\{url\}\/\$\{entry\.id\}`/.test(rrBrowser),
+      RR_OVER_TABLE.join(' · '));
+    /* UND DER WAECHTER FAENGT WIRKLICH EINE ROUTE OHNE RUFER. Ohne diese
+       Zeile waere er auch dann gruen, wenn sein Leser gar nichts mehr saehe. */
+    check('Und der Waechter faengt eine Route ohne Rufer — gestellt und nachgemessen',
+      !rrPattern('/api/gibt-es-nicht/:id').test(rrBrowser)
+      && rrPattern('/api/items/:id').test(rrBrowser),
+      'der Waechter sieht eine gestellte Route nicht');
+  }
+
+  /* ============ Kein Verweis auf Doku/ geht mit hinaus — 0.35.2, BA 3 =====
+     Der oeffentliche Stand traegt kein Doku/: der Ordner ist der ganze
+     Unterschied zwischen den beiden Repositories. Eine ausgelieferte Datei,
+     die einen Pfad darunter nennt, zeigt drueben auf nichts.
+     `node tools/publish.js --trocken` hat das bisher gemeldet -- aber nur,
+     wenn jemand es aufruft. Hier steht es im Lauf. */
+  group('Kein Verweis auf Doku/ geht mit hinaus — 0.35.2');
+  {
+    const dvFiles = [
+      'server.js', 'auth.js', 'db.js', 'mail.js', 'keys.js', 'attachments.js',
+      'images.js', 'batchrun.js', 'log.js', 'usertool.js', 'twofactor.js',
+      'keytool.js', 'public/app.js', 'public/theme.js',
+      'public/index.html', 'public/style.css', 'public/favicon.svg',
+      '.env.example', 'docker-compose.example.yml', 'Dockerfile',
+      'README.md', 'manual-de.md', 'CHANGELOG.md', 'package.json'];
+    check('Der Waechter sieht alle vierundzwanzig Dateien, und jede liegt da',
+      dvFiles.length === 24
+      && dvFiles.every(f => fs.existsSync(path.join(__dirname, ...f.split('/')))),
+      dvFiles.filter(f => !fs.existsSync(path.join(__dirname, ...f.split('/')))).join(' ')
+      || `${dvFiles.length} Dateien`);
+    const dvHits = [];
+    for (const f of dvFiles) {
+      const raw = fs.readFileSync(path.join(__dirname, ...f.split('/')), 'utf8');
+      raw.split('\n').forEach((z, i) => {
+        if (z.includes('Doku/')) dvHits.push(`${f}:${i + 1}`);
+      });
+    }
+    check('Und keine von ihnen nennt einen Pfad unter Doku/',
+      dvHits.length === 0, dvHits.slice(0, 6).join(' · ') || 'kein Verweis');
+    /* DER PRUEFSTAND SELBST IST AUSGENOMMEN und steht deshalb nicht in der
+       Liste: er behandelt das Fehlen des Ordners und muss ihn dafuer nennen. */
+    check('Und der Leser wuerde einen Verweis melden — gestellt und nachgemessen',
+      '   die Werte stehen in Doku/Farbkonzept.md.'.includes('Doku/')
+      && !'   die Werte sind gemessen.'.includes('Doku/'),
+      'der Leser sieht den gestellten Verweis nicht');
+  }
+
   /* ================= Das Stilblatt — 0.35.0 ==============================
      BEFUND public/style.css:1 DER MESSUNG ZUR 0.35.0: die Datei mass 300.472
      Bytes, davon 211.862 in 408 Kommentarbloecken -- 70,5 Prozent. Der

@@ -8943,6 +8943,35 @@ const REGRESSIONS = [
     replacement: "",
     expected: 'Das Containerprotokoll traegt seine Zeit — 0.35.2'
   },
+  /* ---- Jede Route hat einen Rufer -- 0.35.2, BA 2 ---- */
+  {
+    /* Der Rufer einer Route faellt im Browser weg -- genau die Lage, in der
+       der Einzelexport 26 Runden lang stand. */
+    nr: '1108', name: 'Eine Route verliert ihren Rufer im Browser',
+    file: 'public/app.js',
+    search: "api('PUT', `/api/items/${id}/photo-order`",
+    replacement: "api('PUT', `/api/eintrag/${id}/fotoreihenfolge`",
+    expected: 'Jede Route hat einen Rufer — 0.35.2'
+  },
+  {
+    /* Und die Ausnahmeliste deckt eine Route zu, die laengst einen Rufer hat:
+       dann benennt sie eine Reiseform, die es nicht gibt. */
+    nr: '1109', name: 'Die Ausnahmeliste des Routenwaechters deckt zu viel zu',
+    file: 'test/source.js',
+    search: "    const RR_OVER_TABLE = ['/api/product-categories/:id', '/api/tags/:id'];",
+    replacement: "    const RR_OVER_TABLE = ['/api/product-categories/:id', '/api/tags/:id', '/api/items/:id'];",
+    expected: 'Jede Route hat einen Rufer — 0.35.2'
+  },
+  /* ---- Kein Verweis auf Doku/ -- 0.35.2, BA 3 ---- */
+  {
+    /* Eine ausgelieferte Datei nennt wieder einen Pfad unter Doku/ -- im
+       oeffentlichen Stand zeigt er auf nichts. */
+    nr: '1110', name: 'Das Stilblatt verweist wieder auf eine Datei unter Doku/',
+    file: 'public/style.css',
+    search: "   Die Werte sind gemessen. Latte: kein Wert unterschreitet, was das",
+    replacement: "   Die Werte stehen einzeln in Doku/Farbkonzept_0_23_0.md. Latte: kein Wert unterschreitet, was das",
+    expected: 'Kein Verweis auf Doku/ geht mit hinaus — 0.35.2'
+  },
 ];
 
 /* ================= Spuren und Versatz ================= Der Versatz je

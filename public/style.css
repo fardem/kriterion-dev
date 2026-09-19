@@ -157,8 +157,7 @@
 }
 
 /* ═════════════════ DAS HELLE SCHEMA — 0.23.0 ═════════════════
-   Die Werte sind gemessen und stehen einzeln in
-   Doku/Farbkonzept_0_23_0.md. Latte: kein Wert unterschreitet, was das
+   Die Werte sind gemessen. Latte: kein Wert unterschreitet, was das
    dunkle Schema an derselben Paarung erreicht. NICHT HIER: --accent,
    --photo-rgb, --on-photo, --on-photo-dim, --on-accent, --on-signal,
    --tool-rgb, --lb-surface-rgb, --edge-on-dark-rgb -- was auf einem Foto

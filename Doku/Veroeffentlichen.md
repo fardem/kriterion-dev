@@ -91,12 +91,6 @@ nichts. Dann erst die Verweise beheben, dann weiter.
 und muss ihn dafür nennen; `test/roundtrip.js` legt sogar `Doku/Neu.md` an, um
 zu belegen, dass eine Datei dort den Fingerprint nicht berührt.
 
-> **Eine Stelle steht bekanntermaßen noch offen:** `public/style.css` nennt
-> `Doku/Farbkonzept_0_23_0.md`. Sie gehört zu den 759 Verweisen aus **Punkt 43
-> des Sammelblatts** und fällt mit dieser Runde. Sie jetzt einzeln zu beheben
-> hieße, den Fingerprint einer bereits veröffentlichten Version nachträglich
-> zu ändern.
-
 **Der Fingerprint muss der der Version sein.** Er steht im Änderungsprotokoll
 der Runde und — für den, der drüben nachsieht — im Eintrag der Version im
 `CHANGELOG.md`. Weicht er ab, ist eine der achtzehn Dateien nicht die
