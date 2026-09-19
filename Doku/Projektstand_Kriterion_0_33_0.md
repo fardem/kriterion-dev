@@ -12103,6 +12103,65 @@ Sammelblatt war veraltet.*
 `log.js` ist dazugekommen. **Prüfstand 7040 von 7040, 368 Gruppen, 1053
 Rückbauten, 18 gefahren, 0 stumm.**
 
+### 0.37.0 — „Die Kommentare werden verdichtet"
+
+**MINOR · 19. September 2026** *(Änderungsprotokoll 0.37.0).* Drei Griffe an
+denselben Dateien, in dieser Reihenfolge: jede Versionsnummer als
+Herkunftsangabe heraus, jeden Verweis auf ein Papier heraus, dann verdichten.
+Alle elf Fragen des Auftrags waren vor dem Bauen entschieden, die Runde ist
+ohne Rückfrage gefahren.
+
+**6.387 Kommentarzeilen in den 24 ausgelieferten Dateien sind 5.259
+geworden** — die vierzehn Module von 4.328 auf 3.933, `public/style.css` von
+1.574 auf 1.187, und die SQL-Kommentare im `SCHEMA`-String von `db.js` von 485
+auf 139. *Letztere hat bis dahin kein Werkzeug gemessen: `tools/segments.js`
+führt einen Template-String als Text.*
+
+**770 Versionsnummern als Herkunftsangabe sind fünf geworden**, und keine der
+fünf ist eine: zwei SVG-Pfaddaten, ein Datum und zwei Kommentare, die der
+Prüfstand im Wortlaut verlangt. **281 Papierverweise sind null geworden** — 187
+über den Namen, 94 als Abkürzung.
+
+**Von 289 Blöcken über drei Zeilen bleiben elf, und alle elf tragen eine Tafel
+gemessener Werte.** *Die Drei-Zeilen-Regel gilt seit F10 auch für
+`public/style.css`; das hat BA 5 zum größten Posten der Runde gemacht — 184
+Blöcke einzeln lesen und entscheiden.*
+
+**Gefallen ist ausschließlich Kommentar, und das ist gemessen.** Für jede
+ausgelieferte JavaScript-Datei ist der Text außerhalb der Kommentare vor und
+nach der Runde Zeile für Zeile derselbe; für `public/style.css` zählt der
+Prüfstand 1.638 Regelzeilen vorher wie nachher.
+
+**Eine Meldung liest sich anders** — die eine Ausnahme von „kein Verhalten
+ändert sich": der Kasten über eine unvollständige Datenbank nennt den Namen,
+unter dem eine Spalte früher dalag, statt der Fassung, die sie gebracht hätte.
+„is missing, and not present as `items.rejected_grund` either" ist die
+schärfere Auskunft. `LAST_MIGRATING_VERSION` ist ganz weggefallen; welche
+Fassung den Bestand nachzieht, steht in der README.
+
+**Ein dritter Wächter derselben Form ist dazugekommen** — „Kein Papierverweis
+geht mit hinaus", über alle 24 ausgelieferten Dateien und fünfzehn
+Verweisformen. **Er liest den rohen Text** und nicht die Kommentarteile des
+Segmentierers, damit er die SQL-Kommentare von `db.js` sieht. `CHANGELOG.md`
+steht nicht in seiner Liste, und der Grund steht beim Wächter.
+
+**`tools/comments.js` zählt das Stilblatt mit** — es stand als einzige
+ausgelieferte Datei in keiner Zählung. Eine Quote bekommt es nicht: sein
+Kommentar trägt Kontrastwerte und Pixelmaße. **Punkt 43 des Sammelblatts
+schließt damit alle drei Schritte.**
+
+**Zwei Prüfungen waren falsch gebaut und sind berichtigt:** eine belegte
+„Einladungslink am Bildschirm" an `public/app.js`, wo das Wort nur in
+Kommentaren stand; der Nummernwächter las drei ausgelieferte Dateien nicht.
+
+**Und die Anleitung führte zwölf Tabellen und Spalten unter ihren früheren
+deutschen Namen** — sie heißen seit 0.24.1 englisch, die README war nicht
+mitgezogen.
+
+**Fingerprint `144a80c7`** *(davor `88f9dcfb`)*, weiter über 19 Dateien.
+**Prüfstand 7070 von 7070, 373 Gruppen, 1065 Rückbauten, achtzehn gefahren, 0
+stumm.**
+
 ### 0.36.0 — „Sicherheit"
 
 **MINOR · 19. September 2026** *(Änderungsprotokoll 0.36.0).* Drei der fünf

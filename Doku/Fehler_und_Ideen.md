@@ -2207,9 +2207,23 @@ Lauf 3,3 Sekunden für die neue Kompression beim Serverstart zahlt
 
 ---
 
-## 42. Der Kommentaranteil des Stilblatts liegt bei 54,5 Prozent
+## 42. Der Kommentaranteil des Stilblatts liegt bei 40 Prozent
 
-**Art: Idee** *(Quelltext)* **· Herkunft: 0.35.0 · Einschätzung: klein**
+**Art: Idee** *(Quelltext)* **· Herkunft: 0.35.0 · Einschätzung: klein ·
+zweimal gekürzt**
+
+> **NACHGEMESSEN AM 19. SEPTEMBER 2026, GEBAUTER STAND 0.37.0:** der Anteil
+> liegt bei **40 Prozent** — 1.187 Kommentarzeilen von 2.963. *Gemessen an
+> den Bytes sind es 33,8 Prozent, 65.933 von 195.090.* **1.574 Zeilen in 409
+> Blöcken sind 1.187 in 443 geworden**, und von 184 Blöcken über drei Zeilen
+> bleiben acht — alle acht tragen eine Tafel gemessener Werte.
+>
+> **`tools/comments.js` zählt das Blatt jetzt mit**, und der Prüfstand nennt
+> seine Zahl eigens: eine Quote bekommt es nicht, weil sie gemessene Zahlen
+> herausnähme. *Damit ist auch der dritte Schritt von Punkt 43 gebaut.*
+>
+> **Was offen bleibt, ist die Entscheidung des Betreibers**, ob die Zahlen aus
+> den Kommentaren in ein eigenes Papier wandern. Sie steht unverändert.
 
 **DIE JAVASCRIPT-DATEIEN HALTEN SEIT 0.34.1 HÖCHSTENS 30 PROZENT KOMMENTAR JE
 DATEI.** `public/style.css` lag bei **70,5 Prozent** und liegt nach 0.35.0 bei
@@ -2234,10 +2248,25 @@ Entscheidung des Betreibers und keine Messung.**
 
 ---
 
-## 43. Der Quelltext verweist auf Papiere, die nicht mitgehen
+## 43. ~~Der Quelltext verweist auf Papiere, die nicht mitgehen~~ — **GEBAUT mit 0.37.0**
 
 **Art: Idee** *(Quelltext)* **· Herkunft: 0.35.0, beim Zuschnitt der
-Veröffentlichung gefunden · Einschätzung: groß · Schritt 1 gebaut**
+Veröffentlichung gefunden · Einschätzung: groß · alle drei Schritte gebaut**
+
+> **ALLE DREI SCHRITTE SIND MIT 0.37.0 GEBAUT.** *Gemessen am gebauten Stand:*
+> **770 Versionsnummern als Herkunftsangabe sind fünf geworden**, und keine
+> der fünf ist eine — zwei SVG-Pfaddaten, ein Datum und zwei Kommentare, die
+> der Prüfstand im Wortlaut verlangt. **281 Papierverweise sind null
+> geworden**, 187 über den Namen und 94 als Abkürzung.
+>
+> **Ein dritter Wächter hält es fest** — „Kein Papierverweis geht mit
+> hinaus“, über alle 24 ausgelieferten Dateien, fünfzehn Verweisformen, und er
+> liest den rohen Text, damit er die SQL-Kommentare im `SCHEMA`-String von
+> `db.js` sieht. Rückbauten **1127**, **1128** und **1129**.
+>
+> **Und `tools/comments.js` zählt das Stilblatt mit** — der dritte Schritt,
+> den die Runde beinahe übersehen hätte. Die SQL-Kommentare von `db.js` sind
+> dabei von 485 Zeilen auf 139 gefallen.
 
 > **SCHRITT 2 UND 3 SIND DIE RUNDE 0.37.0** *(`Doku/Auftrag_0.37.0.md`,
 > geschrieben am 19. September 2026, am selben Tag auf dem Stand 0.36.0

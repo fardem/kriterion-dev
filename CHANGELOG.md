@@ -30,6 +30,42 @@ ihre deutschen Abschnittsüberschriften bleiben.*
 
 *Hier wird mitgeschrieben, während gebaut wird.*
 
+## [0.37.0] - 2026-09-19
+
+*Die Kommentare der ausgelieferten Dateien sind verdichtet: keine
+Herkunftsangabe, kein Verweis auf ein Papier, höchstens drei Zeilen je Block.*
+
+> **Am Verhalten ändert sich nichts.** Gefallen ist ausschließlich Kommentar;
+> die Zahl der Zeilen mit Code ist in jeder ausgelieferten Datei dieselbe
+> geblieben, und der Regeltext des Stilblatts ebenso.
+>
+> **Eine Meldung liest sich anders:** der Kasten über eine unvollständige
+> Datenbank nennt jetzt den Namen, unter dem eine Spalte früher dalag, und
+> nicht mehr die Fassung, die sie gebracht hätte. Welche Fassung den Bestand
+> nachzieht, steht in der README.
+>
+> **Und `AUTH_RESET` meldet sich kürzer:** „is no longer read and has no
+> effect" statt „has not been carried out since version 0.8.0".
+
+Fingerprint `144a80c7` — davor `88f9dcfb`.
+
+### Hinzugefügt
+
+- **Ein dritter Wächter über die ausgelieferten Dateien:** keiner von ihnen nennt ein Papier beim Namen. Für Versionsnummern und für den Pfad des Doku-Ordners gab es schon je einen.
+- **`tools/comments.js` zählt das Stilblatt mit.** Es stand als einzige ausgelieferte Datei in keiner Zählung.
+
+### Geändert
+
+- **Der Kasten über eine unvollständige Datenbank nennt den alten Spaltennamen statt der Fassung** — „is missing, and not present as `items.rejected_grund` either".
+- **Die Anleitung führt das Datenmodell unter den Namen, die es wirklich trägt.** Zwölf Tabellen und Spalten standen dort noch unter ihren früheren deutschen Namen.
+- **Die Kommentare in allen 24 ausgelieferten Dateien sind verdichtet** — 6.387 Zeilen sind 5.259 geworden.
+
+### Entfernt
+
+- **770 Versionsnummern als Herkunftsangabe.** Es bleiben fünf, und keine davon ist eine: zwei Pfaddaten eines Zeichens, ein Datum und zwei Kommentare, die der Prüfstand im Wortlaut verlangt.
+- **281 Verweise auf ein Papier des Projekts** — 187 über den Namen, 94 als Abkürzung. Die Papiere gehen nicht mit hinaus; im veröffentlichten Stand zeigen die Verweise auf nichts.
+- **`LAST_MIGRATING_VERSION` in `db.js`.** Die Fassung, über die zuerst zu gehen ist, steht in der README und nicht zweimal.
+
 ## [0.36.0] - 2026-09-19
 
 *Drei Sicherheitslücken aus der Durchsicht vom 15. September 2026 — und die

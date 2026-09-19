@@ -17,11 +17,12 @@ const { segment, COMMENT } = require('./segments.js');
 const ROOT = path.join(__dirname, '..');
 const SHIPPED = ['server.js', 'auth.js', 'db.js', 'mail.js', 'keys.js', 'attachments.js',
   'images.js', 'batchrun.js', 'log.js', 'usertool.js', 'twofactor.js', 'keytool.js',
-  'public/app.js', 'public/theme.js'];
+  'public/app.js', 'public/theme.js', 'public/style.css'];
 
-// Der Treiber, die Module in test/, counterproof.js und die vierzehn
+// Der Treiber, die Module in test/, counterproof.js und die fuenfzehn
 // ausgelieferten Dateien. Das Verzeichnis wird gelesen: ein neues Modul ist
-// damit von selbst dabei.
+// damit von selbst dabei. tools/segments.js zerlegt das Stilblatt wie eine
+// JS-Datei -- es kennt beide Formen.
 function sourceFiles() {
   const bench = fs.readdirSync(path.join(ROOT, 'test'))
     .filter(n => n.endsWith('.js')).sort().map(n => 'test/' + n);
@@ -60,12 +61,16 @@ function measureAll() {
    traegt sie richtig ein. Die Zeilenzahl bleibt dabei gleich -- so viele
    Eintraege wie Dateien, in beiden Durchgaengen.
 
-   MIT PROBE: Zeilenzahl und Zahl der Gruppen muessen vorher und nachher
-   gleich sein. Ein Ersatz, der zu weit greift, faellt sonst erst im Lauf auf. */
+   MIT PROBE: die Zahl der Gruppen bleibt gleich, und die Zeilenzahl wandert
+   um genau so viel, wie die Tafel an Eintraegen gewinnt oder verliert. Ein
+   Ersatz, der zu weit greift, faellt sonst erst im Lauf auf. */
 function writeRows() {
   const where = path.join(ROOT, 'test', 'selfcheck.js');
-  const shape = (text) => [text.split('\n').length,
-    (text.match(/^  group\(/gm) || []).length].join('/');
+  const shape = (text) => ({
+    lines: text.split('\n').length,
+    groups: (text.match(/^  group\(/gm) || []).length,
+    rows: ((text.match(/const COMMENT_ROWS = \[[\s\S]*?\n {4}\];/) || [''])[0]
+      .match(/^ {6}\[/gm) || []).length });
   const before = shape(fs.readFileSync(where, 'utf8'));
 
   const fill = () => {
@@ -83,8 +88,11 @@ function writeRows() {
   const after = fill();
 
   const now = shape(fs.readFileSync(where, 'utf8'));
-  if (now !== before)
-    throw new Error(`Der Ersatz hat zu weit gegriffen: ${before} vorher, ${now} nachher`);
+  const grown = now.rows - before.rows;
+  if (now.groups !== before.groups || now.lines !== before.lines + grown)
+    throw new Error('Der Ersatz hat zu weit gegriffen: '
+      + `${before.lines} Zeilen und ${before.groups} Gruppen bei ${before.rows} `
+      + `Eintraegen vorher, ${now.lines}/${now.groups}/${now.rows} nachher`);
   return after;
 }
 

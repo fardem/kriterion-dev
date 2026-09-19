@@ -155,66 +155,38 @@ genauso wie der Pfad.
 *Wo die Herleitung gebraucht wird, steht sie im Änderungsprotokoll der Runde,
 die sie getroffen hat.*
 
-### Der Stand, gemessen am 19. September 2026
+### Der Stand, gemessen am gebauten Stand 0.37.0
 
-| | |
-|---|---:|
-| Treffer des Nummernmusters in ausgelieferten Dateien | **778** |
-| davon in Kommentaren | 726 |
-| davon in Strings | **44** |
-| davon in `README.md` und `manual-de.md` | 8 |
-| davon im Code | **0** |
-| davon überhaupt keine Fassungsnummer | **15** |
-| **echte Fassungsnummern** | **763** |
-| Verweise auf Papiere über den Namen | **187** |
-| Abkürzungen `BA <Zahl>`, `(F<Zahl>)`, `Punkt <Zahl>` | **94** |
-| Verweise über den Pfad `Doku/` | **0** |
+| | vor 0.37.0 | jetzt |
+|---|---:|---:|
+| Treffer des Nummernmusters in ausgelieferten Dateien | 778 | **13** |
+| davon Herkunftsangaben | **770** | **0** |
+| davon in Strings | 44 | **0** |
+| davon im Code | 0 | **0** |
+| Verweise auf Papiere über den Namen | 187 | **0** |
+| Abkürzungen `BA <Zahl>`, `(F<Zahl>)`, `Punkt <Zahl>` | 94 | **0** |
+| Verweise über den Pfad `Doku/` | 0 | **0** |
 
-*Versionsnummern:* `public/app.js` 326, `server.js` 197, `public/style.css`
-175, `db.js` 62, `README.md` 6, `public/index.html` 4, `auth.js` 4,
-`manual-de.md` 2, `usertool.js` 1, `twofactor.js` 1.
+**DIE DREIZEHN, DIE BLEIBEN, SIND KEINE HERKUNFTSANGABEN:** das Datum
+`1.1.1970` in `twofactor.js`, zwei SVG-Pfaddaten in `public/app.js`:255
+*(`-1.8.3l` und `1.8.3H9`)*, die Adresse `keepachangelog.com/de/1.1.0/` und das
+Beispieldatum `14.03.2026` in der Anleitung, die fünf Nummern, die dort eine
+Handlung bestimmen, und die zwei Kommentare, die der Prüfstand im Wortlaut
+verlangt — `0.19.2` in `public/app.js`, `0.12.3` in `public/style.css`.
 
-*Papierverweise:* „Befund" **86**, „Bauabschnitt" 70, „Konzept" 14,
-„Auftrag" 10, „Projektstand" 4, „Änderungsprotokoll" 2, „Farbkonzept" 1.
-*Hier stand vorher 87 und 188; mit 0.36.0 ist einer in `public/app.js`
-weggefallen.*
+**Drei Wächter halten es fest:** „Keine Versionsnummer als Herkunft" mit einer
+Latte je Datei über dreiundzwanzig Dateien, „Kein Verweis auf Doku/ geht mit
+hinaus" über vierundzwanzig, und seit 0.37.0 **„Kein Papierverweis geht mit
+hinaus"** — über alle vierundzwanzig ausgelieferten Dateien und fünfzehn
+Verweisformen, den rohen Text lesend, damit er die SQL-Kommentare im
+`SCHEMA`-String von `db.js` sieht.
 
-*Abkürzungen:* `(F<Zahl>)` 52, `BA <Zahl>` 39, `Punkt <Zahl>` 3. **Sie sind
-dieselbe Verweisform und standen hier bis zum 19. September 2026 nicht.**
-
-> *Hier stand vorher 772. Die Zahl hat sich nicht geändert, der Umfang der
-> Messung: gezählt werden jetzt auch `README.md` und `manual-de.md`.*
->
-> **FÜNFZEHN DER 778 SIND ÜBERHAUPT KEINE FASSUNGSNUMMERN**, und das Muster
-> `\d+\.\d+\.\d+` kann sie nicht unterscheiden: **zehn Daten**
-> *(`public/style.css` sieben, `public/app.js` zwei, `twofactor.js`
-> `1.1.1970`)*, **zwei SVG-Pfaddaten** in `public/app.js`:255 — *eines lautet
-> `-1.8.3l`, das andere `1.8.3H9`* —, das `1.0.0` im Kommentar über
-> `const VERSION` in `server.js`:12 sowie in der Anleitung die Adresse
-> `keepachangelog.com/de/1.1.0/` und das Beispieldatum `14.03.2026`.
->
-> **UND 44 STEHEN IN STRINGS, NICHT IN KOMMENTAREN.** *Die Regel verbietet sie
-> dort genauso.* 20 in den SQL-Kommentaren des `SCHEMA`-Strings von `db.js`,
-> 18 in `REQUIRED_COLUMNS`, dazu `LAST_MIGRATING_VERSION`, das `since` der
-> `LEGACY_TABLES`, ein Satz im englischen Warnkasten und die Laufzeitmeldung
-> in `auth.js`:430.
-
-**Der Altbestand fällt mit 0.37.0. Bis dahin gilt: keine neue kommt dazu.**
-
-Zwei Wächter halten das schon: „Keine Versionsnummer als Herkunft" mit einer
-Latte je Datei, die nur fallen darf, und „Kein Verweis auf Doku/ geht mit
-hinaus" über vierundzwanzig Dateien. **Für die Papierverweise über den Namen
-gibt es noch keinen — er kommt mit 0.37.0.**
-
-> **DIE STELLEN, AN DENEN DIE REGEL ETWAS KOSTET — ES SIND FÜNF UND NICHT
-> EINE.** `REQUIRED_COLUMNS` in `db.js` nennt in **18 Zeilen** je fehlender
-> Spalte die Fassung, deren Block sie gebracht hätte; der Wert reist in
-> `findings.since` und steht im Warnkasten, den ein Betreiber mit
-> unvollständiger Datenbank liest. **Dieselbe Mechanik trägt drei weitere:**
-> `LAST_MIGRATING_VERSION = '0.32.1'`, das `since` der `LEGACY_TABLES` und ein
-> Satz im englischen Warnkasten. **Die fünfte steht in `auth.js`:430** und geht
-> zur Laufzeit hinaus. **0.37.0 entscheidet, wie diese Meldungen ohne Nummer
-> heißen** — sie fallen nicht ersatzlos.
+> **DIE FÜNF STELLEN, AN DENEN DIE REGEL ETWAS GEKOSTET HAT, SIND GEBAUT.**
+> `REQUIRED_COLUMNS` in `db.js` nennt je fehlender Spalte den Namen, unter dem
+> sie früher dalag, und nicht mehr die Fassung. `LAST_MIGRATING_VERSION` ist
+> weggefallen, das `since` der `LEGACY_TABLES` ebenso, der englische Warnkasten
+> verweist auf die README, und `auth.js`:430 sagt, dass `AUTH_RESET` nicht mehr
+> gelesen wird, statt seit wann.
 
 > **UND SECHS NUMMERN IN DER ANLEITUNG MÜSSEN BLEIBEN.**
 > `test/source.js`:915–923 verlangt, dass `0.33.0`, `0.32.1` und `0.8.0` in
