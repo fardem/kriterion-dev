@@ -355,12 +355,14 @@ fest, dass ohne Mailzugang `mail.noAccount` und ohne brauchbare Adresse
 | **1116, 1117** | der Versandgrund in der Sprache des Empfängers, der Schlüssel als Text |
 | **330** | **berichtigt**, nicht gefallen: dieselbe Nummer, derselbe Name |
 
-**Gefahren und ausgewertet: 20 Gegenproben, 0 stumm.** Jede macht die Gruppe
-rot, die sie treffen soll.
+**Gefahren und ausgewertet: 18 Gegenproben in fünf Läufen, 0 stumm.** Jede
+macht die Gruppe rot, die sie treffen soll. *Gefahren sind die siebzehn neuen
+und der eine, dessen Suchtext BA 11 angefasst hat (05); die Nummer 330 ist im
+Lauf von BA 7 mitgefahren worden.*
 
-Vier bestehende Rückbauten mussten ihren Suchtext nachziehen, weil BA 5 ihre
-Zeile angefasst hat (458, 516, 552, 1051, 1057, 1083), vier weitere wegen F2
-(171, 172, 173, 482) und einer wegen BA 11 (05).
+**Elf bestehende Rückbauten mussten ihren Suchtext nachziehen**, weil diese
+Runde ihre Zeile angefasst hat: sechs wegen BA 5 (458, 516, 552, 1051, 1057,
+1083), vier wegen F2 (171, 172, 173, 482) und einer wegen BA 11 (05).
 
 ---
 
