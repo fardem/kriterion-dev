@@ -345,8 +345,9 @@ nicht.** Was der Start stattdessen tut, ist nachsehen: fehlt eine, schreibt er
 einen Kasten ins Protokoll, der sie beim Namen nennt — und dazu den Namen,
 unter dem sie früher dalag, wo es einen gibt. **Welche Fassung den Bestand
 nachzieht, steht oben unter „Eine neuere Version über eine bestehende
-einspielen".** **Die Zeile kommt bei jedem Start**, solange die Spalte fehlt. **Die Anwendung startet trotzdem** — aber jede Seite,
-die eine der genannten Spalten liest, scheitert.
+einspielen".** **Die Zeile kommt bei jedem Start**, solange die Spalte fehlt.
+**Die Anwendung startet trotzdem** — aber jede Seite, die eine der genannten
+Spalten liest, scheitert.
 
 **Ein Downgrade ist dann keine reine Dateikopie mehr** — deshalb die Sicherung
 davor. Eine ältere Fassung sieht zusätzliche Tabellen und Spalten gar nicht an;
