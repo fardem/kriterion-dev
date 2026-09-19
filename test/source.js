@@ -2032,7 +2032,7 @@ async function run() {
        der den einzelnen Eintrag als Datei holte, nannte zwei Nummern als
        Herkunft. Knopf und Kommentar sind fort. */
     const VN_CEILING = {
-      'public/style.css': 175,
+      'public/style.css': 1,
       /* Zwei der drei in public/app.js sind SVG-Pfaddaten, der dritte ist der
          Kommentar, den test/ui_style.js im Wortlaut verlangt. */
       'public/app.js': 3, 'twofactor.js': 1,
@@ -2046,7 +2046,7 @@ async function run() {
       'public/languages/en.json': 0, 'public/languages/tr.json': 0,
       'public/favicon.svg': 0
     };
-    const VN_TOTAL = 179;
+    const VN_TOTAL = 5;
     const vnFiles = Object.keys(VN_CEILING);
     check('Der Waechter sieht alle zwanzig Dateien, und jede liegt da',
       vnFiles.length === 20
@@ -2755,11 +2755,16 @@ async function run() {
        ihm -- eine Regel ohne Element ist toter Text. */
     check('Und es stehen genau 1638 Regelzeilen da — eine weniger als vor der Kuerzung',
       ssCode === 1638, `${ssCode} Zeilen`);
-    /* UND KEIN BLOCK IST WIEDER LANG GEWORDEN. Der laengste traegt die
-       gerechnete Tafel der Vorschaureihe und misst 26 Zeilen. */
-    const ssLongest = ssBlocks.reduce((n, b) => Math.max(n, b.split('\n').length), 0);
-    check('Und kein Block misst mehr als dreissig Zeilen',
-      ssLongest <= 30, `der laengste misst ${ssLongest} Zeilen`);
+    /* UND KEIN BLOCK IST WIEDER LANG GEWORDEN. Die Drei-Zeilen-Regel gilt
+       auch fuer dieses Blatt; laenger sein darf allein, wer eine Tafel
+       gemessener Werte traegt. Acht tun das. */
+    const ssLines = ssBlocks.map(b => b.split('\n').length);
+    const ssOver = ssLines.filter(n => n > 3).length;
+    const ssLongest = ssLines.reduce((n, m) => Math.max(n, m), 0);
+    check('Genau acht Bloecke gehen ueber drei Zeilen, und alle acht tragen eine Tafel',
+      ssOver === 8, `${ssOver} Bloecke ueber drei Zeilen`);
+    check('Und der laengste misst fuenfzehn Zeilen -- die Staffel der Umbrueche',
+      ssLongest <= 15, `der laengste misst ${ssLongest} Zeilen`);
   }
 
   /* ================= Die Zahl der eigenen Suchplaetze — 0.35.0 ============

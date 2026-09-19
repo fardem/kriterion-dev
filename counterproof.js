@@ -8788,7 +8788,7 @@ const REGRESSIONS = [
     nr: '1089', name: 'Ein Block des Stilblatts wird wieder lang',
     file: 'public/style.css',
     search: "  /* Gold leiser: voll gesaettigt gehoert Gold den Sternen. */",
-    replacement: "  /* Gold leiser: voll gesaettigt gehoert Gold den Sternen.\n     Zeile 01 des wieder langen Blocks -- Erzaehlform statt Sachverhalt.\n     Zeile 02 des wieder langen Blocks -- Erzaehlform statt Sachverhalt.\n     Zeile 03 des wieder langen Blocks -- Erzaehlform statt Sachverhalt.\n     Zeile 04 des wieder langen Blocks -- Erzaehlform statt Sachverhalt.\n     Zeile 05 des wieder langen Blocks -- Erzaehlform statt Sachverhalt.\n     Zeile 06 des wieder langen Blocks -- Erzaehlform statt Sachverhalt.\n     Zeile 07 des wieder langen Blocks -- Erzaehlform statt Sachverhalt.\n     Zeile 08 des wieder langen Blocks -- Erzaehlform statt Sachverhalt.\n     Zeile 09 des wieder langen Blocks -- Erzaehlform statt Sachverhalt.\n     Zeile 10 des wieder langen Blocks -- Erzaehlform statt Sachverhalt.\n     Zeile 11 des wieder langen Blocks -- Erzaehlform statt Sachverhalt.\n     Zeile 12 des wieder langen Blocks -- Erzaehlform statt Sachverhalt.\n     Zeile 13 des wieder langen Blocks -- Erzaehlform statt Sachverhalt.\n     Zeile 14 des wieder langen Blocks -- Erzaehlform statt Sachverhalt.\n     Zeile 15 des wieder langen Blocks -- Erzaehlform statt Sachverhalt.\n     Zeile 16 des wieder langen Blocks -- Erzaehlform statt Sachverhalt.\n     Zeile 17 des wieder langen Blocks -- Erzaehlform statt Sachverhalt.\n     Zeile 18 des wieder langen Blocks -- Erzaehlform statt Sachverhalt.\n     Zeile 19 des wieder langen Blocks -- Erzaehlform statt Sachverhalt.\n     Zeile 20 des wieder langen Blocks -- Erzaehlform statt Sachverhalt.\n     Zeile 21 des wieder langen Blocks -- Erzaehlform statt Sachverhalt.\n     Zeile 22 des wieder langen Blocks -- Erzaehlform statt Sachverhalt.\n     Zeile 23 des wieder langen Blocks -- Erzaehlform statt Sachverhalt.\n     Zeile 24 des wieder langen Blocks -- Erzaehlform statt Sachverhalt.\n     Zeile 25 des wieder langen Blocks -- Erzaehlform statt Sachverhalt.\n     Zeile 26 des wieder langen Blocks -- Erzaehlform statt Sachverhalt.\n     Zeile 27 des wieder langen Blocks -- Erzaehlform statt Sachverhalt.\n     Zeile 28 des wieder langen Blocks -- Erzaehlform statt Sachverhalt.\n     Zeile 29 des wieder langen Blocks -- Erzaehlform statt Sachverhalt.\n     Zeile 30 des wieder langen Blocks -- Erzaehlform statt Sachverhalt.\n     Zeile 31 des wieder langen Blocks -- Erzaehlform statt Sachverhalt.\n     Zeile 32 des wieder langen Blocks -- Erzaehlform statt Sachverhalt.\n     Zeile 33 des wieder langen Blocks -- Erzaehlform statt Sachverhalt. */" ,
+    replacement: "  /* Gold leiser: voll gesaettigt gehoert Gold den Sternen.\n     Zeile 01 des wieder langen Blocks -- Erzaehlform statt Sachverhalt.\n     Zeile 02 des wieder langen Blocks -- Erzaehlform statt Sachverhalt.\n     Zeile 03 des wieder langen Blocks -- Erzaehlform statt Sachverhalt.\n     Zeile 04 des wieder langen Blocks -- Erzaehlform statt Sachverhalt. */",
     expected: 'Das Stilblatt traegt weniger Kommentar als vorher — 0.35.0'
   },
   {
@@ -8973,8 +8973,8 @@ const REGRESSIONS = [
        oeffentlichen Stand zeigt er auf nichts. */
     nr: '1110', name: 'Das Stilblatt verweist wieder auf eine Datei unter Doku/',
     file: 'public/style.css',
-    search: "   Die Werte sind gemessen. Latte: kein Wert unterschreitet, was das",
-    replacement: "   Die Werte stehen einzeln in Doku/Farbkonzept_0_23_0.md. Latte: kein Wert unterschreitet, was das",
+    search: "/* ═════════════════ DAS HELLE SCHEMA ═════════════════ Latte: kein Wert",
+    replacement: "/* ═════════════════ DAS HELLE SCHEMA -- Doku/Farbkonzept_0_23_0.md ═══ Latte: kein Wert",
     expected: 'Kein Verweis auf Doku/ geht mit hinaus — 0.35.2'
   },
   /* ---- Jeder Rueckbau laesst eine ladbare Datei zurueck -- 0.35.2, BA 7 ---- */
@@ -9015,8 +9015,8 @@ const REGRESSIONS = [
        Dateiliste dieses Waechters. */
     nr: '1114', name: 'Das Stilblatt nennt wieder eine solche Nummer',
     file: 'public/style.css',
-    search: "   kommt aus DERSELBEN Bedingung wie die Zelle. */",
-    replacement: "   kommt aus DERSELBEN Bedingung wie die Zelle (Stolper" + "stein 47). */",
+    search: "   Dreispaltenraster schoeben alles um eine Spalte weiter. */",
+    replacement: "   Dreispaltenraster schoeben alles um eine Spalte weiter (Stolper" + "stein 47). */",
     expected: 'Kein Stolpersteinverweis mehr — 0.34.3'
   },
   {
