@@ -1,22 +1,7 @@
 #!/usr/bin/env node
-/* Zugangsverwaltung auf dem Wirt -- derselbe Weg, den Nextcloud
- * (occ user:resetpassword), GitLab und Grafana gehen: ein Befehl auf dem
- * Wirt, ein Name, ein Vorgang.
- *
- *   node usertool.js liste
- *   node usertool.js passwort <name>
- *   node usertool.js entfernen <name> [--eintraege] [--beitraege]
- *   node usertool.js eigentuemer <name>
- *   node usertool.js zweifaktor <name>
- *
- * Die Vorgaenge selbst stehen in auth.js und werden von der Verwaltungskarte
- * genauso gerufen. Hier steht nur die Bedienung: einlesen, fragen, ausgeben.
- * ZUGRIFF AUF DEN WIRT IST DIE BERECHTIGUNG -- wer diesen Befehl ausfuehren
- * kann, koennte auch die .env lesen. Eine Rechtefrage waere hier eine Kulisse.
- * Das bleibt so -- ABER die VIER schreibenden Befehle stehen im
- * Sicherheitsprotokoll. Sonst haette der Notweg als einziger keine Spur, und
- * genau er ist der, den man hinterher nachlesen moechte.
- */
+/* Zugangsverwaltung auf dem Wirt. Die Vorgaenge stehen in auth.js, hier steht
+ * nur die Bedienung; help() unten nennt die Befehle. ZUGRIFF AUF DEN WIRT IST
+ * DIE BERECHTIGUNG -- die vier schreibenden stehen trotzdem im Protokoll. */
 const readline = require('readline');
 const { db } = require('./db');
 const auth = require('./auth');
@@ -59,16 +44,9 @@ ${BOLD('Kriterion — Zugangsverwaltung')}
 `);
 }
 
-/* Liest eine Zeile. Am Terminal wird ein Passwort nicht angezeigt.
- *
- * ZWEI WEGE, UND DAS IST KEINE UMSTAENDLICHKEIT: readline liest bei geroehrter
- * Eingabe VORAUS. Die zweite Zeile ist bereits durchgelaufen, waehrend die
- * erste Antwort noch verarbeitet wird -- die zweite Frage bekaeme dann nie
- * eine Antwort und der Befehl endete wortlos. Genau das ist beim Bauen
- * passiert: "Passwort setzen" lief durch, ohne etwas zu setzen.
- * Am Terminal gibt es das Problem nicht, weil dort erst getippt wird, wenn
- * gefragt ist. Ohne Terminal wird deshalb alles auf einmal gelesen und
- * zeilenweise ausgegeben. */
+/* Liest eine Zeile, am Terminal ohne Anzeige. ZWEI WEGE: readline liest bei
+ * geroehrter Eingabe voraus, und die zweite Frage bekaeme dann nie eine
+ * Antwort -- ohne Terminal wird deshalb alles auf einmal gelesen. */
 const onTerminal = Boolean(process.stdin.isTTY);
 let pool = null, queue = null, masked = false;
 
@@ -114,10 +92,9 @@ function findUser(name) {
 }
 
 const ROLE_KEY = { user: 'Benutzer', admin: 'Admin', owner: 'Eigentümer' };
-/* DIE ZUSTAENDE HEISSEN SEIT 0.24.1 ENGLISCH -- auf dem Bildschirm des Wirts
-   stehen sie weiter so, wie sie dort immer standen. Dieselbe Tafel wie
-   ROLE_KEY darueber und derselbe Grund: der gespeicherte Wert ist Code, das
-   Wort daneben ist Text fuer den, der hinsieht. */
+/* DIE ZUSTAENDE HEISSEN ENGLISCH, auf dem Bildschirm des Wirts stehen sie
+   deutsch. Dieselbe Tafel wie ROLE_KEY darueber: der gespeicherte Wert ist
+   Code, das Wort daneben ist Text fuer den, der hinsieht. */
 const STATUS_WORD = { active: 'aktiv', locked: 'gesperrt', deleted: 'geloescht' };
 
 function commandList() {
@@ -191,14 +168,9 @@ async function commandRemove(name, options) {
   console.log(`"${result.name}" ist entfernt. Die Zeile bleibt als ${result.tombstone} stehen.`);
 }
 
-/* DER NOTWEG AM ZWEITEN FAKTOR -- UND ER SCHALTET NUR AUS.
-   Einschalten gaebe es hier nicht: das Geheimnis muesste auf das Telefon des
-   Betroffenen, und wer es fuer ihn erzeugte, sperrte ihn aus. Ausschalten
-   dagegen MUSS von hier aus gehen -- sonst waere "Telefon weg und
-   Wiederherstellungscodes verbraucht" ein Zustand ohne Ausweg, und genau
-   dagegen ist dieser Weg da.
-   ES IST KEIN UMWEG UM DIE ANMELDUNG: das Passwort bleibt unberuehrt, und wer
-   diesen Befehl ausfuehren kann, koennte ohnehin `passwort` setzen. */
+/* DER NOTWEG AM ZWEITEN FAKTOR SCHALTET NUR AUS. Einschalten sperrte den
+   Betroffenen aus; Ausschalten muss gehen, sonst ist "Telefon weg und
+   Codes verbraucht" ohne Ausweg. Das Passwort bleibt unberuehrt. */
 async function commandTwoFactor(name) {
   const u = findUser(name);
   const status = auth.twoFactorState(u.id);

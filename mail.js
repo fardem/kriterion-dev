@@ -153,14 +153,9 @@ function buildTransport(z) {
   });
 }
 
-/* DER GRUND REIST ALS SCHLUESSEL UND NICHT ALS SATZ, und `send()` bekommt
-   deshalb keine Sprache mehr. Wer den Grund ZEIGT, uebersetzt ihn -- und zwar
-   in der Sprache DESSEN, DER IHN LIEST. Bis dahin entstand er hier mit der
-   Sprache des Empfaengers und landete in der Karte des Admins: ein deutscher
-   Admin, der einen tuerkischen Kollegen einlaedt, las den Grund auf Tuerkisch.
-   `reasonKey` traegt ihn, wo er aus dieser Datei kommt; `reason` traegt die
-   Worte des Anbieters, die niemand uebersetzen kann. Immer nur eines von
-   beiden. */
+/* DER GRUND REIST ALS SCHLUESSEL UND NICHT ALS SATZ: wer ihn zeigt, uebersetzt
+   ihn in der Sprache dessen, der ihn liest. `reasonKey` traegt ihn aus dieser
+   Datei, `reason` die Worte des Anbieters -- immer nur eines von beiden. */
 async function send(raw, to, subject, text) {
   const z = resolve(raw);
   if (!configured(z)) return { ok: false, reasonKey: 'mail.noAccount', reason: '' };

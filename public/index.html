@@ -2,56 +2,31 @@
 <html lang="de">
 <head>
 <meta charset="UTF-8">
-<!-- viewport-fit=cover UEBERGIBT DIE GANZE FLAECHE, Aussparung und
-     Bedienbalken eingeschlossen. Ohne diese Angabe bleiben env(safe-area-inset-*)
-     im Stylesheet auf null, und die Kopfzeile der Instanz liesse sich nicht unter
-     die Statusleiste eines Telefons schieben -- sie laege darunter. Was dadurch
-     unter die Aussparung geraet, holt das Stylesheet mit genau diesen
-     Einrueckungen zurueck; ohne beides zusammen ist die Angabe hier ein
-     Schaden und kein Gewinn. -->
+<!-- viewport-fit=cover UEBERGIBT DIE GANZE FLAECHE. Ohne die Angabe bleiben
+     env(safe-area-inset-*) im Stylesheet auf null; was unter die Aussparung
+     geraet, holt das Stylesheet mit genau diesen Einrueckungen zurueck. -->
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<!-- DIE FARBE DER BROWSERLEISTE. Sie ist --bg aus dem Stylesheet und keine
-     zweite Wahrheit: steht hier ein anderer Wert, sitzt ueber der dunklen Seite
-     ein hellerer Streifen, und genau der laesst eine Seite wie eine Seite
-     aussehen statt wie eine Anwendung.
-     SEIT 0.23.0 IST SIE KEINE ABSCHRIFT MEHR. Zwei Schemata heissen zwei
-     Werte, und beide stehen im Stylesheet; app.js liest den gerade gueltigen
-     mit getComputedStyle aus --bg und setzt ihn hier ein. Der Wert unten ist
-     nur noch der Anstrich fuer die Millisekunden bis dahin -- er ist das
-     dunkle --bg, weil die Vorgabe dunkel ist. -->
+<!-- DIE FARBE DER BROWSERLEISTE. app.js liest den gerade gueltigen Wert mit
+     getComputedStyle aus --bg und setzt ihn hier ein; der Wert unten ist nur
+     der Anstrich bis dahin und deshalb das dunkle --bg. -->
 <meta name="theme-color" content="#0e1012">
 <meta name="robots" content="noindex, nofollow">
-<!-- BEIDE, seit 0.23.0. Welches Schema wirklich gilt, sagt `color-scheme` in
-     den beiden :root-Bloecken des Stylesheets; hier steht nur, dass die
-     Anwendung mit beidem umgehen kann. Davon haengen die Bedienelemente des
-     Browsers ab -- Auswahlfelder, Rollbalken, Datumswaehler. -->
+<!-- BEIDE. Welches Schema gilt, sagt `color-scheme` in den :root-Bloecken des
+     Stylesheets; hier steht nur, dass die Anwendung mit beidem umgehen kann.
+     Davon haengen Auswahlfelder, Rollbalken und Datumswaehler ab. -->
 <meta name="color-scheme" content="light dark">
 <title>Kriterion</title>
 <!-- Die Marke fuer den Tab. EINE SVG-Datei traegt vom 16-Pixel-Tab bis zur
      Lesezeichenleiste; sie bringt ihre eigene dunkle Kachel mit, damit sie
      auch auf einer hellen Leiste steht. -->
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
-<!-- DAS MANIFEST -- 0.28.0. Es macht aus der Seite eine Anwendung, die sich auf
-     einen Startbildschirm legen laesst: Zeichen, Name, Farbe, und beim Oeffnen
-     keine Adresszeile darueber.
-     ES KOMMT VOM SERVER UND NICHT AUS DIESEM VERZEICHNIS, weil der Name der
-     Installation eine Einstellung ist. Eine feste Datei mit "Kriterion" darin
-     waere eine zweite Wahrheit ueber den Namen -- die Kopfzeile sagte das eine,
-     der Startbildschirm das andere. Die Begruendung steht vollstaendig an der
-     Route in server.js.
-     OHNE crossorigin: der Browser holt das Manifest nach der Regel OHNE
-     Anmeldedaten, und die Route ist genau deshalb offen. Stuende hier
-     use-credentials, verlangte er einen Zugang fuer eine Datei, die er braucht,
-     bevor sich jemand anmelden kann. -->
+<!-- DAS MANIFEST KOMMT VOM SERVER UND NICHT AUS DIESEM VERZEICHNIS, weil der
+     Name der Installation eine Einstellung ist. OHNE crossorigin: der Browser
+     holt es ohne Anmeldedaten, und die Route ist genau deshalb offen. -->
 <link rel="manifest" href="/api/manifest.json">
-<!-- WAS VOR DEM ERSTEN ANSTRICH ZU SEHEN IST -- 0.23.0. Die Begruendung steht
-     vollstaendig in der Datei; hier nur, warum sie HIER steht und nicht
-     weiter unten: sie muss VOR dem Stilblatt laufen, sonst blitzt beim
-     Oeffnen das falsche Schema auf. Kein `defer`, kein `async` -- beides
-     liesse sie danach laufen.
-     ALS DATEI UND NICHT INLINE, weil `script-src 'self'` ein Inline-Script
-     abweist. Das ist die Regel des Servers und keine Panne; die Datei kommt
-     von 'self' und braucht weder Hash noch Nonce. -->
+<!-- VOR DEM STILBLATT, sonst blitzt beim Oeffnen das falsche Schema auf; kein
+     `defer` und kein `async`. ALS DATEI UND NICHT INLINE, weil
+     `script-src 'self'` ein Inline-Script abweist. -->
 <script src="theme.js"></script>
 <link rel="stylesheet" href="style.css">
 </head>

@@ -578,9 +578,12 @@ async function run() {
     tokenCount("body: JSON.stringify({ token: schluessel })") === 0,
     'der Waechter faerbt sich am Bezeichner');
   /* Und die Gegenrichtung, damit die Entscheidung nicht bloss eine
-     Verneinung ist: das Wort, das dort STEHEN soll, steht auch da. */
+     Verneinung ist: das Wort, das dort STEHEN soll, steht auch da.
+     GEFRAGT WIRD DIE SPRACHDATEI UND NICHT public/app.js: dort steht
+     Bildschirmtext, im Skript stand das Wort nur in Kommentaren. */
   check('Und das Wort Link steht am Bildschirm wirklich',
-    /Einladungslink/.test(fs.readFileSync(path.join(__dirname, 'public/app.js'), 'utf8')),
+    /Einladungslink/.test(fs.readFileSync(
+      path.join(__dirname, 'public/languages/de.json'), 'utf8')),
     'die Karte nennt den Link nicht beim Namen');
 
   /* SICHERUNG ODER BACKUP -- eines von beiden, und durchgehalten. */
@@ -2032,20 +2035,27 @@ async function run() {
        der den einzelnen Eintrag als Datei holte, nannte zwei Nummern als
        Herkunft. Knopf und Kommentar sind fort. */
     const VN_CEILING = {
-      'public/app.js': 326, 'server.js': 197, 'public/style.css': 175,
-      'db.js': 62, 'auth.js': 4, 'public/index.html': 4,
-      'twofactor.js': 1, 'usertool.js': 1,
-      /* AUF NULL, UND DORT BLEIBEND. */
+      'public/style.css': 1,
+      /* Zwei der drei in public/app.js sind SVG-Pfaddaten, der dritte ist der
+         Kommentar, den test/ui_style.js im Wortlaut verlangt. */
+      'public/app.js': 3, 'twofactor.js': 1,
+      /* AUF NULL, UND DORT BLEIBEND. server.js, db.js, auth.js,
+         public/index.html und usertool.js sind mit dieser Runde dazugekommen. */
+      'server.js': 0, 'db.js': 0, 'auth.js': 0, 'public/index.html': 0,
+      'usertool.js': 0,
       '.env.example': 0, 'attachments.js': 0, 'batchrun.js': 0,
       'images.js': 0, 'keys.js': 0, 'keytool.js': 0, 'mail.js': 0,
       'public/theme.js': 0, 'public/languages/de.json': 0,
       'public/languages/en.json': 0, 'public/languages/tr.json': 0,
-      'public/favicon.svg': 0
+      'public/favicon.svg': 0,
+      /* DREI LOECHER DIESER RUNDE: log.js stand in keiner Dateiliste, und die
+         beiden Dateien, mit denen ein Betreiber anfaengt, ebenso wenig. */
+      'log.js': 0, 'Dockerfile': 0, 'docker-compose.example.yml': 0
     };
-    const VN_TOTAL = 770;
+    const VN_TOTAL = 5;
     const vnFiles = Object.keys(VN_CEILING);
-    check('Der Waechter sieht alle zwanzig Dateien, und jede liegt da',
-      vnFiles.length === 20
+    check('Der Waechter sieht alle dreiundzwanzig Dateien, und jede liegt da',
+      vnFiles.length === 23
       && vnFiles.every(f => fs.existsSync(path.join(__dirname, ...f.split('/')))),
       vnFiles.filter(f => !fs.existsSync(path.join(__dirname, ...f.split('/')))).join(' ') || `${vnFiles.length} Dateien`);
     const vnCount = {};
@@ -2058,8 +2068,8 @@ async function run() {
       vnOver.length === 0,
       vnOver.map(f => `${f}: ${vnCount[f]} statt ${VN_CEILING[f]}`).join(' · ') || 'alle darunter');
     const vnZero = vnFiles.filter(f => VN_CEILING[f] === 0);
-    check('Zwoelf Dateien tragen keine einzige Versionsnummer',
-      vnZero.length === 12 && vnZero.every(f => vnCount[f] === 0),
+    check('Zwanzig Dateien tragen keine einzige Versionsnummer',
+      vnZero.length === 20 && vnZero.every(f => vnCount[f] === 0),
       vnZero.filter(f => vnCount[f] !== 0).map(f => `${f}: ${vnCount[f]}`).join(' · ') || `${vnZero.length} auf null`);
     const vnNow = vnFiles.reduce((n, f) => n + vnCount[f], 0);
     check(`Und zusammen sind es ${VN_TOTAL} -- die Zahl steht hier und nicht in einem Papier`,
@@ -2653,6 +2663,89 @@ async function run() {
       'der Leser sieht den gestellten Verweis nicht');
   }
 
+  /* ============ Kein Papierverweis geht mit hinaus ========================
+     DER DRITTE WAECHTER DERSELBEN FORM. Der erste zaehlt Versionsnummern, der
+     zweite faengt den Pfad `Doku/`. Durch die Luecke dazwischen -- der NAME
+     eines Papiers ohne Pfad -- standen 187 Verweise und 94 Abkuerzungen in
+     ausgelieferten Dateien.
+     GELESEN WIRD DER ROHE TEXT und nicht die COMMENT-Teile von
+     tools/segments.js: die SQL-Kommentare im SCHEMA-String von db.js stehen
+     in einer Vorlage, und der Segmentierer haelt eine Vorlage fuer Text.
+     `CHANGELOG.md` STEHT NICHT IN DER LISTE, und das ist keine Nachlaessigkeit:
+     ein Aenderungsprotokoll muss die Papiere nennen duerfen, die es
+     fortschreibt. */
+  group('Kein Papierverweis geht mit hinaus');
+  {
+    /* ALLE AUSGELIEFERTEN DATEIEN NACH CLAUDE.md, ABSCHNITT 2. */
+    const pvFiles = [
+      'server.js', 'auth.js', 'db.js', 'mail.js', 'keys.js', 'attachments.js',
+      'images.js', 'batchrun.js', 'log.js', 'usertool.js', 'twofactor.js',
+      'keytool.js', 'public/app.js', 'public/theme.js',
+      'public/style.css', 'public/index.html',
+      'public/languages/de.json', 'public/languages/en.json',
+      'public/languages/tr.json',
+      '.env.example', 'docker-compose.example.yml', 'Dockerfile',
+      'README.md', 'manual-de.md'];
+    /* EIN NAME MIT NUMMER IST EIN VERWEIS, DAS WORT ALLEIN NICHT: „der Befund
+       war" verweist, „ein Bild ohne Befund" nicht. Die Papiernamen, die es nur
+       einmal gibt, zaehlen ohne Nummer. */
+    const PV_FORMS = [
+      ['Befund <Zahl>', /Befund\s+[A-Z]?\d/g],
+      ['Bauabschnitt', /Bauabschnitt/g],
+      ['Auftrag <Zahl>', /Auftrag\s+[0-9A-Z]/g],
+      ['Konzept <Zahl>', /Konzept\s+[0-9A-Z]/g],
+      ['Projektstand', /Projektstand/g],
+      ['Farbkonzept', /Farbkonzept/g],
+      ['Aenderungsprotokoll', /(?:Ä|Ae)nderungsprotokoll/g],
+      ['Fahrplan', /Fahrplan/g],
+      ['Sammelblatt', /Sammelblatt/g],
+      ['Ideentafel', /Ideentafel/g],
+      ['Woerterbuch', /(?:W|w)(?:ö|oe)rterbuch/g],
+      /* DER FUENFZEHNTE NAME STEHT AUF NULL UND GEHOERT TROTZDEM HIEREIN --
+         damit die Null eine Null bleibt. Ausgeschrieben steht er nur im
+         Muster daneben: ein Waechter aelteren Datums zaehlt ihn in
+         Kommentaren, und dieser hier stuende sonst in seinem Bestand. */
+      ['Stolperstein', /Stolper(?:)stein/g],
+      /* UND DIE DREI ABKUERZUNGEN: sie sind dieselbe Verweisform. */
+      ['BA <Zahl>', /\bBA\s+\d/g],
+      ['(F<Zahl>)', /\(F\d+[a-z]?\)/g],
+      ['Punkt <Zahl>', /\bPunkt\s+\d/g]];
+    check('Der Waechter sieht alle vierundzwanzig Dateien, und jede liegt da',
+      pvFiles.length === 24
+      && pvFiles.every(f => fs.existsSync(path.join(__dirname, ...f.split('/')))),
+      pvFiles.filter(f => !fs.existsSync(path.join(__dirname, ...f.split('/')))).join(' ')
+      || `${pvFiles.length} Dateien`);
+    const pvHits = [];
+    for (const f of pvFiles) {
+      const raw = fs.readFileSync(path.join(__dirname, ...f.split('/')), 'utf8');
+      for (const [name, pattern] of PV_FORMS) {
+        pattern.lastIndex = 0;
+        for (const m of raw.matchAll(pattern))
+          pvHits.push(`${f}:${raw.slice(0, m.index).split('\n').length} (${name})`);
+      }
+    }
+    check('Und keine von ihnen nennt ein Papier beim Namen',
+      pvHits.length === 0, pvHits.slice(0, 8).join(' · ') || 'kein Verweis');
+    /* UND DER WAECHTER FAENGT WIRKLICH: fuenfzehn gestellte Verweise, einer je
+       Form, und drei Saetze, die er in Ruhe lassen muss. */
+    const pvSees = (text) => PV_FORMS.some(([, p]) => { p.lastIndex = 0; return p.test(text); });
+    const pvSet = ['/* Der Befund 4 sagt es. */', '/* Bauabschnitt 3. */',
+      '/* Auftrag 0.35.0. */', '/* Konzept 4.6. */', '/* Projektstand 5.3. */',
+      '/* Farbkonzept. */', '/* Aenderungsprotokoll der Runde. */',
+      '/* Der Fahrplan nennt es. */', '/* Sammelblatt, Punkt 42. */',
+      '/* Ideentafel N1. */', '/* Woerterbuch Englisch. */',
+      '/* Stolper' + 'stein 47. */', '/* -- 0.35.0, BA 5 ---- */',
+      '/* Das Zeichen (F5). */', '/* Punkt 4b. */'];
+    check('Der Leser faengt jede der fuenfzehn Formen',
+      pvSet.length === 15 && pvSet.every(pvSees),
+      pvSet.filter(t => !pvSees(t)).join(' · ') || 'alle fuenfzehn');
+    check('Und laesst das blosse Wort, eine Kachel und ein Datum in Ruhe',
+      !pvSees('/* ein Bild ohne Befund, und das ist keiner. */')
+      && !pvSees('/* Der Auftrag des Lesers ist ein anderer. */')
+      && !pvSees('/* Punkt und Komma, 12. September 2026. */'),
+      'der Waechter faerbt sich am blossen Wort');
+  }
+
   /* ====== Der Grund eines Versands reist als Schluessel — 0.35.2, BA 11 ===
      `sendTokenLink()` hat mit 0.32.0 die Sprache des LESERS bekommen; die
      drei Gruende, warum gar nicht erst verschickt wurde, stehen seither in
@@ -2751,11 +2844,16 @@ async function run() {
        ihm -- eine Regel ohne Element ist toter Text. */
     check('Und es stehen genau 1638 Regelzeilen da — eine weniger als vor der Kuerzung',
       ssCode === 1638, `${ssCode} Zeilen`);
-    /* UND KEIN BLOCK IST WIEDER LANG GEWORDEN. Der laengste traegt die
-       gerechnete Tafel der Vorschaureihe und misst 26 Zeilen. */
-    const ssLongest = ssBlocks.reduce((n, b) => Math.max(n, b.split('\n').length), 0);
-    check('Und kein Block misst mehr als dreissig Zeilen',
-      ssLongest <= 30, `der laengste misst ${ssLongest} Zeilen`);
+    /* UND KEIN BLOCK IST WIEDER LANG GEWORDEN. Die Drei-Zeilen-Regel gilt
+       auch fuer dieses Blatt; laenger sein darf allein, wer eine Tafel
+       gemessener Werte traegt. Acht tun das. */
+    const ssLines = ssBlocks.map(b => b.split('\n').length);
+    const ssOver = ssLines.filter(n => n > 3).length;
+    const ssLongest = ssLines.reduce((n, m) => Math.max(n, m), 0);
+    check('Genau acht Bloecke gehen ueber drei Zeilen, und alle acht tragen eine Tafel',
+      ssOver === 8, `${ssOver} Bloecke ueber drei Zeilen`);
+    check('Und der laengste misst fuenfzehn Zeilen -- die Staffel der Umbrueche',
+      ssLongest <= 15, `der laengste misst ${ssLongest} Zeilen`);
   }
 
   /* ================= Die Zahl der eigenen Suchplaetze — 0.35.0 ============

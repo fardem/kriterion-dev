@@ -50,6 +50,7 @@
    steht nach dem Umbau derselbe Text in den Dateien? Ob er auch dasselbe
    ERGIBT, sagt nur ein Lauf. */
 const fs=require('fs');
+const { segment, COMMENT } = require('./segments.js');
 const L={}; for (const c of ['de','en','tr']) L[c]=JSON.parse(fs.readFileSync((process.env.LANGDIR || 'public/languages')+'/'+c+'.json','utf8'));
 
 /* Den GANZEN Ruf lesen, mit gezaehlten Klammern -- ein Ruf endet nicht am
@@ -103,11 +104,11 @@ function ersetze(txt, c, form) {
   raus += txt.slice(i);
   return raus;
 }
-/* KOMMENTARE FALLEN WEG, und das ist keine Kleinigkeit: die Probe soll sagen,
-   ob die OBERFLAECHE dasselbe sagt. Ein neuer Absatz Erklaerung im Quelltext
-   hat damit nichts zu tun -- und genau daran ist die erste Fassung dieser
-   Probe gerissen, am eigenen Kommentar zu tMarkText. */
-const ohneKommentar = t => t.replace(/\/\*[\s\S]*?\*\//g,' ').replace(/^[ \t]*\/\/.*$/gm,' ');
+/* KOMMENTARE FALLEN WEG: die Probe sagt, ob die OBERFLAECHE dasselbe sagt.
+   GESCHNITTEN WIRD UEBER segment() UND NICHT UEBER EINE REGEX -- ein `//` in
+   'http://' ist keiner, und ein nachgestellter blieb sonst stehen. */
+const ohneKommentar = (t) => segment(t, 'public/app.js')
+  .map(p => p.kind === COMMENT ? ' ' : p.value).join('');
 const app=ohneKommentar(fs.readFileSync(process.env.APP || 'public/app.js','utf8'));
 /* UND DIE HELFER SELBST FALLEN AUCH WEG. Sie sind Quelltext und kein
    Bildschirmtext; wer tMark() umbaut, aendert nicht, was dasteht. Die erste

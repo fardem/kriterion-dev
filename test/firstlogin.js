@@ -155,7 +155,7 @@ async function checkFirstLogin() {
   const C = startFurtherServer(freshDir, { AUTH_RESET: '1' }, 4100);
   await C.ready;
   check('Der Start sagt laut, dass AUTH_RESET wirkungslos ist',
-    /AUTH_RESET has not been carried out since version 0\.8\.0/.test(C.log()));
+    /AUTH_RESET is no longer read and has no effect/.test(C.log()));
   // Still weglassen waere falsch: wer die Zeile in seiner .env stehen hat,
 // muss den neuen Weg erfahren, und zwar ohne nachzuschlagen.
   check('Und nennt den Weg, der an seine Stelle tritt',

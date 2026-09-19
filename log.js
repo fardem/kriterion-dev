@@ -1,9 +1,6 @@
-/* Das Containerprotokoll: Zeitstempel und Name an einer Stelle. ISO 8601 mit
-   Versatz aus TZ -- ohne TZ steht +00:00 da, und die Zeile sagt damit selbst,
-   welche Uhr gemeint ist. Die GESPEICHERTEN Zeiten folgen TZ nicht:
-   Sicherheitsprotokoll, Sicherungsnamen und exported_at bleiben UTC, weil sie
-   zwischen Installationen verglichen werden. `logLine` und nicht `log`, weil
-   auth.js unter `log()` das Sicherheitsprotokoll fuehrt. */
+/* Das Containerprotokoll: Zeitstempel und Name an einer Stelle, ISO 8601 mit
+   Versatz aus TZ. Die GESPEICHERTEN Zeiten folgen TZ nicht -- sie bleiben UTC,
+   weil sie zwischen Installationen verglichen werden. */
 
 const NAME = '[Kriterion]';
 

@@ -395,8 +395,8 @@ mitnehmen: *Einträge von „…" mitlöschen* (nimmt über die Kaskade auch fre
 Kommentare, Bewertungen und Testtage daran mit — das Fenster nennt die Zahlen)
 und *Beiträge in Einträgen anderer Benutzer mitlöschen*. **„Abbrechen" bricht
 ab**, ohne dass etwas geschieht; danach kommt die zweite Bestätigung. Sitzungen, offene
-Links, Favoriten und persönliche Einstellungen gehen immer mit. Der Name
-`geloescht-<nummer>` ist als Benutzername gesperrt.
+Links, Favoriten und persönliche Einstellungen gehen immer mit. Die Namen
+`deleted-<nummer>` und `geloescht-<nummer>` sind als Benutzername gesperrt.
 
 #### Die zweite Bestätigung
 

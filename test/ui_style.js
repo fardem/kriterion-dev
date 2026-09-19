@@ -1570,11 +1570,12 @@ async function run() {
     /* UND DIE KOMMENTARE TRAGEN DAS WORT WEITER. */
     const iAppRaw = (fs.readFileSync(path.join(__dirname, 'public', 'app.js'), 'utf8')
       .match(/Instanz/g) || []).length;
-    /* ACHT SEIT 0.34.1, vorher 39: die uebrigen standen in Kommentaren, die
-       diese Runde gekuerzt hat. Die Zahl steht weiter im Namen der Pruefung --
-       sie ist die eine Zahl dieser Gruppe, die eine Kuerzung bewegt. */
-    check('In den Kommentaren derselben Datei stehen unveraendert 8 Vorkommen',
-      iAppRaw === 8, `${iAppRaw} Vorkommen`);
+    /* SIEBEN SEIT 0.37.0, vorher 8 und davor 39: die uebrigen standen in
+       Kommentaren, die eine Runde gekuerzt hat. Die Zahl steht im Namen der
+       Pruefung -- sie ist die eine Zahl dieser Gruppe, die eine Kuerzung
+       bewegt. */
+    check('In den Kommentaren derselben Datei stehen unveraendert 7 Vorkommen',
+      iAppRaw === 7, `${iAppRaw} Vorkommen`);
 
     /* UND IN server.js BLEIBT SEIT 0.33.0 KEINE EINZIGE MEHR. */
     const iServer = screenRows('server.js');

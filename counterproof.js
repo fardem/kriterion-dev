@@ -3617,8 +3617,8 @@ const REGRESSIONS = [
     /* DER SCHALTER STEHT AUCH DEM ADMIN OHNE EIGENTUEMERROLLE. */
     nr: '457', name: 'Schalter und Knopf stehen jedem Admin',
     file: 'public/app.js',
-    search: "        ${OWNER ? `\n        ${/* ---- DIE WAHL, UND SIE IST EIN KNOPF „Standard\" JE ZEILE ----",
-    replacement: "        ${true ? `\n        ${/* ---- DIE WAHL, UND SIE IST EIN KNOPF „Standard\" JE ZEILE ----",
+    search: "        ${OWNER ? `\n        ${/* ---- DIE WAHL IST EIN KNOPF",
+    replacement: "        ${true ? `\n        ${/* ---- DIE WAHL IST EIN KNOPF",
     expected: 'Die Bildablage in der Oberflaeche'
   },
 
@@ -3797,8 +3797,8 @@ const REGRESSIONS = [
     /* DER WAECHTER UEBER DIE BERICHTIGTEN BEHAUPTUNGEN LAEUFT INS LEERE. */
     nr: '479', name: 'Die Berichtigung zu substr() faellt aus dem Quelltext',
     file: 'server.js',
-    search: "   BERICHTIGT GEGEN 0.19.0: substr() AUF EINEM BLOB LIEST DAS BLOB, gemessen",
-    replacement: "   BERICHTIGT GEGEN 0.19.0: substr() liest wenig, gemessen",
+    search: "   BERICHTIGT: substr() AUF EINEM BLOB LIEST DAS BLOB, gemessen 657 ms bei",
+    replacement: "   BERICHTIGT: substr() liest wenig, gemessen 657 ms bei",
     expected: 'Die berichtigten Behauptungen stehen nirgends mehr'
   },
 
@@ -5847,10 +5847,8 @@ const REGRESSIONS = [
     /* UND DER ZWEITE WEG IN DIE LISTE -- der, den der Auftrag nicht kannte. */
     nr: '747', name: 'drawAdmin liest wieder an namesFrom vorbei',
     file: 'public/app.js',
-    search: "    /* DURCH namesFrom() UND NICHT AUS `fetched` -- 0.24.5. */\n" +
-      "    manageList('mcats', namesFrom(fetched, 'cats'), 'cat', fetched);",
-    replacement: "    /* DURCH namesFrom() UND NICHT AUS `fetched` -- 0.24.5. */\n" +
-      "    manageList('mcats', fetched.cats, 'cat', fetched);",
+    search: "    manageList('mcats', namesFrom(fetched, 'cats'), 'cat', fetched);",
+    replacement: "    manageList('mcats', fetched.cats, 'cat', fetched);",
     expected: 'Die Sprachpillen der Namenskarten — 0.24.5'
   },
   {
@@ -8327,7 +8325,7 @@ const REGRESSIONS = [
     /* ER ERSCHEINT, ABER OHNE DIE NAMEN. */
     nr: '1036', name: 'Der Kasten nennt die fehlende Spalte nicht mehr beim Namen',
     file: 'db.js',
-    search: "    : `    ${f.place.padEnd(22)} added in ${f.since}` +",
+    search: "    : `    ${f.place.padEnd(22)} is missing` +",
     replacement: "    : `    something is missing` +",
     expected: 'Der Hinweis auf einen unvollstaendigen Bestand — 0.33.0'
   },
@@ -8335,8 +8333,8 @@ const REGRESSIONS = [
     /* UND DIE PROBE SIEHT NUR NOCH EINE SPALTE AN. */
     nr: '1037', name: 'Die Probe fragt nur noch eine einzige Spalte ab',
     file: 'db.js',
-    search: "  for (const [table, column, old, since] of REQUIRED_COLUMNS) {",
-    replacement: "  for (const [table, column, old, since] of REQUIRED_COLUMNS.slice(0, 1)) {",
+    search: "  for (const [table, column, old] of REQUIRED_COLUMNS) {",
+    replacement: "  for (const [table, column, old] of REQUIRED_COLUMNS.slice(0, 1)) {",
     expected: 'Der Hinweis auf einen unvollstaendigen Bestand — 0.33.0'
   },
   {
@@ -8790,7 +8788,7 @@ const REGRESSIONS = [
     nr: '1089', name: 'Ein Block des Stilblatts wird wieder lang',
     file: 'public/style.css',
     search: "  /* Gold leiser: voll gesaettigt gehoert Gold den Sternen. */",
-    replacement: "  /* Gold leiser: voll gesaettigt gehoert Gold den Sternen.\n     Zeile 01 des wieder langen Blocks -- Erzaehlform statt Sachverhalt.\n     Zeile 02 des wieder langen Blocks -- Erzaehlform statt Sachverhalt.\n     Zeile 03 des wieder langen Blocks -- Erzaehlform statt Sachverhalt.\n     Zeile 04 des wieder langen Blocks -- Erzaehlform statt Sachverhalt.\n     Zeile 05 des wieder langen Blocks -- Erzaehlform statt Sachverhalt.\n     Zeile 06 des wieder langen Blocks -- Erzaehlform statt Sachverhalt.\n     Zeile 07 des wieder langen Blocks -- Erzaehlform statt Sachverhalt.\n     Zeile 08 des wieder langen Blocks -- Erzaehlform statt Sachverhalt.\n     Zeile 09 des wieder langen Blocks -- Erzaehlform statt Sachverhalt.\n     Zeile 10 des wieder langen Blocks -- Erzaehlform statt Sachverhalt.\n     Zeile 11 des wieder langen Blocks -- Erzaehlform statt Sachverhalt.\n     Zeile 12 des wieder langen Blocks -- Erzaehlform statt Sachverhalt.\n     Zeile 13 des wieder langen Blocks -- Erzaehlform statt Sachverhalt.\n     Zeile 14 des wieder langen Blocks -- Erzaehlform statt Sachverhalt.\n     Zeile 15 des wieder langen Blocks -- Erzaehlform statt Sachverhalt.\n     Zeile 16 des wieder langen Blocks -- Erzaehlform statt Sachverhalt.\n     Zeile 17 des wieder langen Blocks -- Erzaehlform statt Sachverhalt.\n     Zeile 18 des wieder langen Blocks -- Erzaehlform statt Sachverhalt.\n     Zeile 19 des wieder langen Blocks -- Erzaehlform statt Sachverhalt.\n     Zeile 20 des wieder langen Blocks -- Erzaehlform statt Sachverhalt.\n     Zeile 21 des wieder langen Blocks -- Erzaehlform statt Sachverhalt.\n     Zeile 22 des wieder langen Blocks -- Erzaehlform statt Sachverhalt.\n     Zeile 23 des wieder langen Blocks -- Erzaehlform statt Sachverhalt.\n     Zeile 24 des wieder langen Blocks -- Erzaehlform statt Sachverhalt.\n     Zeile 25 des wieder langen Blocks -- Erzaehlform statt Sachverhalt.\n     Zeile 26 des wieder langen Blocks -- Erzaehlform statt Sachverhalt.\n     Zeile 27 des wieder langen Blocks -- Erzaehlform statt Sachverhalt.\n     Zeile 28 des wieder langen Blocks -- Erzaehlform statt Sachverhalt.\n     Zeile 29 des wieder langen Blocks -- Erzaehlform statt Sachverhalt.\n     Zeile 30 des wieder langen Blocks -- Erzaehlform statt Sachverhalt.\n     Zeile 31 des wieder langen Blocks -- Erzaehlform statt Sachverhalt.\n     Zeile 32 des wieder langen Blocks -- Erzaehlform statt Sachverhalt.\n     Zeile 33 des wieder langen Blocks -- Erzaehlform statt Sachverhalt. */" ,
+    replacement: "  /* Gold leiser: voll gesaettigt gehoert Gold den Sternen.\n     Zeile 01 des wieder langen Blocks -- Erzaehlform statt Sachverhalt.\n     Zeile 02 des wieder langen Blocks -- Erzaehlform statt Sachverhalt.\n     Zeile 03 des wieder langen Blocks -- Erzaehlform statt Sachverhalt.\n     Zeile 04 des wieder langen Blocks -- Erzaehlform statt Sachverhalt. */",
     expected: 'Das Stilblatt traegt weniger Kommentar als vorher — 0.35.0'
   },
   {
@@ -8975,8 +8973,8 @@ const REGRESSIONS = [
        oeffentlichen Stand zeigt er auf nichts. */
     nr: '1110', name: 'Das Stilblatt verweist wieder auf eine Datei unter Doku/',
     file: 'public/style.css',
-    search: "   Die Werte sind gemessen. Latte: kein Wert unterschreitet, was das",
-    replacement: "   Die Werte stehen einzeln in Doku/Farbkonzept_0_23_0.md. Latte: kein Wert unterschreitet, was das",
+    search: "/* ═════════════════ DAS HELLE SCHEMA ═════════════════ Latte: kein Wert",
+    replacement: "/* ═════════════════ DAS HELLE SCHEMA -- Doku/Farbkonzept_0_23_0.md ═══ Latte: kein Wert",
     expected: 'Kein Verweis auf Doku/ geht mit hinaus — 0.35.2'
   },
   /* ---- Jeder Rueckbau laesst eine ladbare Datei zurueck -- 0.35.2, BA 7 ---- */
@@ -9017,8 +9015,8 @@ const REGRESSIONS = [
        Dateiliste dieses Waechters. */
     nr: '1114', name: 'Das Stilblatt nennt wieder eine solche Nummer',
     file: 'public/style.css',
-    search: "   kommt aus DERSELBEN Bedingung wie die Zelle. */",
-    replacement: "   kommt aus DERSELBEN Bedingung wie die Zelle (Stolper" + "stein 47). */",
+    search: "   Dreispaltenraster schoeben alles um eine Spalte weiter. */",
+    replacement: "   Dreispaltenraster schoeben alles um eine Spalte weiter (Stolper" + "stein 47). */",
     expected: 'Kein Stolpersteinverweis mehr — 0.34.3'
   },
   {
@@ -9115,6 +9113,33 @@ const REGRESSIONS = [
     search: "      const naCounts = (naReport.metadata && naReport.metadata.vulnerabilities) || {};",
     replacement: "      const naCounts = { total: 1 };",
     expected: 'Bekannte Luecken in den Abhaengigkeiten'
+  },
+
+  /* ---- Der Waechter ueber die Papierverweise -- 0.37.0, BA 7 ----
+     DREI RUECKBAUTEN FUER DREI LAGEN: der Name eines Papiers in einem
+     gewoehnlichen Kommentar, eine Abkuerzung, und derselbe Name in einer
+     SQL-Kommentarzeile des SCHEMA-Strings -- die letzte faengt nur ein
+     Waechter, der den ROHEN Text liest. */
+  {
+    nr: '1127', name: 'Ein Kommentar nennt wieder ein Papier beim Namen',
+    file: 'server.js',
+    search: '/* DIE GRENZEN REISEN AM GESUCH MIT: der Fehler-Handler sieht die Route nicht',
+    replacement: '/* DIE GRENZEN REISEN AM GESUCH MIT -- Projektstand 5.3. Der Fehler-Handler sieht die Route nicht',
+    expected: 'Kein Papierverweis geht mit hinaus'
+  },
+  {
+    nr: '1128', name: 'Ein Kommentar nennt wieder eine Bauabschnittsnummer',
+    file: 'public/style.css',
+    search: '/* ---- Die Vergleichsleiste ---- Statt mittig als Pille nimmt sie auf dem',
+    replacement: '/* ---- Die Vergleichsleiste, BA 5 ---- Statt mittig als Pille nimmt sie auf dem',
+    expected: 'Kein Papierverweis geht mit hinaus'
+  },
+  {
+    nr: '1129', name: 'Eine SQL-Kommentarzeile des Schemas nennt wieder ein Papier',
+    file: 'db.js',
+    search: '-- Anhaenge am Eintrag. mime_type ist der vom Browser gemeldete Typ und dient',
+    replacement: '-- Anhaenge am Eintrag (Konzept 4.6). mime_type ist der gemeldete Typ und dient',
+    expected: 'Kein Papierverweis geht mit hinaus'
   },
 ];
 

@@ -1,10 +1,6 @@
-/* Anhaenge: Auslieferung und Vorschau. Eine Anlage wird nie so
- * ausgeliefert, dass der Browser sie als Webseite ausfuehrt. Neun Schichten:
- * eigener Content-Type statt dem gemeldeten, octet-stream fuer Unbekanntes,
- * Content-Disposition attachment ausser nach Positivliste, nosniff,
- * default-src 'none' plus sandbox, entschaerfter Dateiname im Header, Text
- * als JSON statt als Datei, kein SVG in der Vorschau, und ohne Dateinamen
- * entscheiden die ersten Bytes. */
+/* Anhaenge: Auslieferung und Vorschau. Eine Anlage wird nie so ausgeliefert,
+ * dass der Browser sie als Webseite ausfuehrt -- neun Schichten, jede an
+ * ihrer Stelle weiter unten benannt. */
 const zlib = require('zlib');
 
 /* ================= Typen ================= */
@@ -162,10 +158,9 @@ function setImageHeader(res, buf, { name = 'image', maxAge = 3600 } = {}) {
   return type;
 }
 
-/* Ranges -- ein Video wird in Ranges ausgeliefert, ein Bild nicht: ohne sie
- * kann der Browser im Video nicht springen. Ungueltiges wird mit 416
- * beantwortet; zurechtgerueckt wird nur ein Ende hinter dem Dateiende.
- * Rueckgabe: null, { ungueltig: true } oder { von, bis } einschliesslich. */
+/* Ranges -- ohne sie kann der Browser im Video nicht springen. Ungueltiges
+ * wird mit 416 beantwortet, zurechtgerueckt nur ein Ende hinter dem
+ * Dateiende. Rueckgabe: null, { ungueltig: true } oder { von, bis }. */
 function rangeOut(header, size) {
   if (typeof header !== 'string') return null;
   const m = header.trim().match(/^bytes=(\d*)-(\d*)$/);

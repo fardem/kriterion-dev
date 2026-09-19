@@ -204,8 +204,8 @@ den Befehl noch eine Erklärung dazu.
 
 Die beiden `usertool.js`-Befehle fragen auf dem Server nach, bevor sie etwas
 tun, und stehen danach im Sicherheitsprotokoll als „per Kommandozeile am
-Server". Was `usertool.js` sonst kann (`liste`, `entfernen`, `eigentuemer`),
-steht im Kopf der Datei.
+Server". Was `usertool.js` sonst kann, sagt es ohne Argument selbst; die Tafel
+darüber nennt alle fünf Befehle.
 
 ## Der Schlüssel — bitte einmal aufmerksam lesen
 
@@ -264,9 +264,10 @@ auch nachdem der Wert in die `.env` umgezogen ist. Dagegen hilft nur ein
 > anhalten.
 >
 > **Und die Instanz sagt es, wenn etwas fehlt.** Steht im Protokoll ein Kasten
-> „this database is incomplete", nennt er jede fehlende Spalte samt der
-> Fassung, die sie gebracht hätte. **Sie startet trotzdem** — aber jede Seite,
-> die eine der genannten Spalten liest, scheitert.
+> „this database is incomplete", nennt er jede fehlende Spalte beim Namen — und
+> dazu den Namen, unter dem sie früher dalag, wo es einen gibt. **Sie startet
+> trotzdem** — aber jede Seite, die eine der genannten Spalten liest,
+> scheitert.
 >
 > **Niemand wird abgemeldet, und einzustellen ist nichts.**
 
@@ -331,7 +332,7 @@ steckt im Image.
 Name und Prüfsumme, neunzehn Zeilen, dieselben acht Zeichen wie oben.
 
 Solange niemand auf den Verweis drückt, steht dort nichts. Der Sollwert steht
-im Änderungsprotokoll, verglichen wird mit dem Auge.
+im `CHANGELOG.md`, verglichen wird mit dem Auge.
 
 Ändert eine Version die Marke der Installation, zeigt der Browser im Reiter
 noch die alte — ein hartes Neuladen (Strg+Umschalt+R) räumt den
@@ -341,10 +342,11 @@ Zwischenspeicher weg.
 
 **Eine fehlende Tabelle legt der Start selbst an. Eine fehlende Spalte dagegen
 nicht.** Was der Start stattdessen tut, ist nachsehen: fehlt eine, schreibt er
-einen Kasten ins Protokoll, der sie beim Namen nennt — mit der Fassung, die sie
-gebracht hätte, und der Fassung, über die zuerst zu gehen wäre. **Die Zeile
-kommt bei jedem Start**, solange die Spalte fehlt. **Die Anwendung startet
-trotzdem** — aber jede Seite, die eine der genannten Spalten liest, scheitert.
+einen Kasten ins Protokoll, der sie beim Namen nennt — und dazu den Namen,
+unter dem sie früher dalag, wo es einen gibt. **Welche Fassung den Bestand
+nachzieht, steht oben unter „Eine neuere Version über eine bestehende
+einspielen".** **Die Zeile kommt bei jedem Start**, solange die Spalte fehlt. **Die Anwendung startet trotzdem** — aber jede Seite,
+die eine der genannten Spalten liest, scheitert.
 
 **Ein Downgrade ist dann keine reine Dateikopie mehr** — deshalb die Sicherung
 davor. Eine ältere Fassung sieht zusätzliche Tabellen und Spalten gar nicht an;
@@ -810,8 +812,7 @@ Bestand oder, wenn die Datei zu groß würde, einen Teil davon.
 > Arbeitsspeicher.
 
 > **Vor einer Version, die die Datenbank anfasst, ist die Sicherung Pflicht.**
-> Ob eine Version das tut, steht im `CHANGELOG.md` über ihren Änderungen, und
-> ausführlich im Änderungsprotokoll der Version.
+> Ob eine Version das tut, steht im `CHANGELOG.md` über ihren Änderungen.
 >
 > **Rüstet sie eine Spalte nach**, lässt sich der Bestand danach nicht mehr
 > ohne Weiteres auf die vorige Version zurückbringen. Der Weg zurück ist dann
@@ -831,8 +832,8 @@ Umbenennung des Projekts bewusst **nicht** mit: ein anderer Name ließe den
 Start eine leere Neuinstallation vermuten.
 
 - `items` — Titel, Beschreibung, Getestet-/Abgelehnt-Merkmal, Kategorie. **Zur
-  Ablehnung gehören drei Spalten:** `rejected_at` (wann), `rejected_grund`
-  (warum, eine Zeile) und `rejected_von` (wer). Alle drei dürfen leer sein.
+  Ablehnung gehören drei Spalten:** `rejected_at` (wann), `rejected_reason`
+  (warum, eine Zeile) und `rejected_by` (wer). Alle drei dürfen leer sein.
   „Getestet" hat keine davon: es ist ein Zustand und keine Entscheidung
 - `item_pins` — der **Favorit**, je Benutzer und je Eintrag; nur Zeilen für
   tatsächlich Markiertes. Die Spalte `items.favorite` bleibt ungenutzt im
@@ -843,13 +844,13 @@ Start eine leere Neuinstallation vermuten.
 - `test_days` — ein Eintrag je Tag mit Gesamtnote, eindeutig pro Eintrag, Tag
   **und Benutzer**
 - `rating_criteria` / `ratings` — gemeinsame Kriterien mit frei bestimmbarer
-  Reihenfolge **und Gewicht** (`gewicht`, 0,2 bis 2, Vorgabe 1), Werte je
+  Reihenfolge **und Gewicht** (`weight`, 0,2 bis 2, Vorgabe 1), Werte je
   Eintrag und je Benutzer. Reihenfolge steuert die Anzeige, Gewicht die
   Rechnung. **`phase` sagt, zu welchem der beiden Sternkästen ein Kriterium
-  gehört** — `vorher` (Potenzial) oder `nachher` (Bewertung), Vorgabe
-  `nachher`; der Name bleibt über beide Kästen hinweg eindeutig. **`ratings`
-  trägt keine Phase** — zu welchem Kasten ein Stern gehört, sagt sein
-  Kriterium. **`ratings.gesetzt_am` hält den Zeitpunkt der letzten Setzung**
+  gehört** — `before` (Potenzial) oder `after` (Bewertung), Vorgabe `after`;
+  der Name bleibt über beide Kästen hinweg eindeutig. **`ratings` trägt keine
+  Phase** — zu welchem Kasten ein Stern gehört, sagt sein Kriterium.
+  **`ratings.set_at` hält den Zeitpunkt der letzten Setzung**
   für die Glocke. Er heißt nicht `created_at`, weil die Zeile beim ersten
   Stern entsteht und danach überschrieben wird, und er hat **keinen
   Vorgabewert**: ältere und **eingespielte** Bewertungen stehen ohne Zeitpunkt
@@ -878,9 +879,9 @@ Start eine leere Neuinstallation vermuten.
   Benutzer eine Zeile pro Schlüssel. Ein Schlüssel aus einer älteren Fassung
   bleibt stehen und wird nicht mehr gelesen; es gibt dafür keinen
   Migrationsblock
-- `users` — Zugang als scrypt-Hash, dazu Rolle (`user` < `admin` <
-  `eigentuemer`), Adresse, Status und letzte Anmeldung. Gelöschte Benutzer
-  bleiben als Zeile ohne Namen (`status = geloescht`, Name `geloescht-<id>`) stehen.
+- `users` — Zugang als scrypt-Hash, dazu Rolle (`user` < `admin` < `owner`),
+  Adresse, Status und letzte Anmeldung. Gelöschte Benutzer bleiben als Zeile
+  ohne Namen (`status = deleted`, Name `deleted-<id>`) stehen.
   **Die Adresse wird überhaupt gefüllt** — beim Anlegen durch den
   Admin, danach nur noch durch den Betreffenden selbst
 - `sessions` — aktive Anmeldungen, mit `user_id` am Benutzer. In der Karte
@@ -895,12 +896,12 @@ Start eine leere Neuinstallation vermuten.
   der SHA-256 des Links, nie er selbst**; dazu Benutzer, Anlass, Ablauf und
   wann er eingelöst wurde. Sieben Tage haltbar, einmal gültig; abgelaufene
   Zeilen räumt die Installation nach dreißig Tagen selbst weg
-- `anfragen` — die **Warteschlange der Registrierung**:
+- `requests` — die **Warteschlange der Registrierung**:
   Wunschname, Adresse, der SHA-256 des Bestätigungslinks und der Zeitpunkt der
   Bestätigung. **Unbestätigte verfallen nach 24 Stunden** und erscheinen beim
   Admin nie; eine bestätigte wartet, so lange es dauert. Höchstens zwanzig
   offene, je Adresse eine
-- `zweifaktor` / `zweifaktor_codes` — der **zweite Faktor**, je Zugang höchstens
+- `two_factor` / `two_factor_codes` — der **zweite Faktor**, je Zugang höchstens
   einer. Das TOTP-Geheimnis liegt dort **im Klartext**: es wird nachgerechnet
   und nicht geprüft, deshalb geht es nicht anders; die verschlüsselte Datenbank
   ist die einzige Schicht darüber. Die acht **Wiederherstellungscodes** stehen
@@ -908,25 +909,25 @@ Start eine leere Neuinstallation vermuten.
   Zeile bleibt stehen, damit die Karte „noch 6 von 8" sagen kann. **Geräumt wird
   hier nichts nach einer Frist** — ein Wiederherstellungscode soll gerade dann
   tragen, wenn das Telefon seit Monaten weg ist
-- `sicherheitsprotokoll` — **wer Zugang hatte und wer die Installation als Ganzes
+- `security_log` — **wer Zugang hatte und wer die Installation als Ganzes
   angefasst hat**. Eine Zeile je Vorgang: Zeitpunkt, was, wer, an
   wem und ein kurzes Merkmal aus einer festen Liste — **kein Freitext, keine
   Namen, keine Adresse**. Beide Benutzerspalten halten einen **Vorgang** fest,
-  keine Zugehörigkeit; ein leeres `wer` heißt „über `usertool.js` auf dem Wirt",
+  keine Zugehörigkeit; ein leeres `actor` heißt „über `usertool.js` auf dem Wirt",
   außer bei einer gescheiterten Anmeldung. 180 Tage haltbar, und die Frist ist
   der einzige Weg hinaus
-- `papierkorb` / `papierkorb_bytes` — der **Papierkorb**. Eine
+- `trash` / `trash_bytes` — der **Papierkorb**. Eine
   Zeile je gelöschtem Eintrag: Zeitpunkt, Löschender, Titel und das ganze Paket
   im Austauschformat; die Bytes (Fotos, Videos, Dateien, Kommentarbilder)
   liegen daneben in der zweiten Tabelle, eine Zeile je Datei. **Keine
   bestehende Abfrage fasst diese Tabellen an** — ein gelöschter Eintrag ist
   wirklich weg und liegt nur zusätzlich noch als Paket daneben. Deshalb gibt es
-  auch **keinen** Zustand `geloescht` an `items`
+  auch **keinen** Zustand `deleted` an `items`
 - `items.user_id` / `comments.user_id` / `test_days.user_id` /
   `ratings.user_id` / `links.user_id` / `attachments.user_id` — der Verfasser,
-  an sechs Trägern. `papierkorb.geloescht_von` sieht aus wie ein siebter, ist
-  aber keiner: es hält fest, **wer gelöscht hat**, und daran hängt kein Recht.
-  Dasselbe gilt für `sicherheitsprotokoll.wer` und `.ziel`.
+  an sechs Trägern. `trash.deleted_by` sieht aus wie ein siebter, ist aber
+  keiner: es hält fest, **wer gelöscht hat**, und daran hängt kein Recht.
+  Dasselbe gilt für `security_log.actor` und `.target`.
   `ON DELETE SET NULL` greift nur bei einem `DELETE` von Hand: die Anwendung
   selbst entfernt keine Benutzerzeile, und Bestand ohne Verfasser fällt beim
   Start an den Eigentümer
@@ -945,8 +946,8 @@ einen SMTP-Empfänger aus Nodes `net`, der Schlüsselwechsel an einer echten
 Datenbank samt Abbruch mit `kill -9`, die Auslieferung von Fotos, Videos und
 Anhängen am ausgelieferten Bytestrom.
 
-Was er abdeckt, steht im Projektstand; welche Gruppe wie lange braucht, sagt der
-Lauf am Ende selbst. **Ein Teillauf startet nur die Module, die er zeigt:**
+Welche Gruppe wie lange braucht, sagt der Lauf am Ende selbst.
+**Ein Teillauf startet nur die Module, die er zeigt:**
 
 ```bash
 node testbench.js Rechte     # nur die Module mit „Rechte" im Gruppennamen

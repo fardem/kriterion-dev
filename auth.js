@@ -1,8 +1,8 @@
 const crypto = require('crypto');
 const { db, assignInventory } = require('./db');
 const { logLine, logWarn, logFail } = require('./log');
-/* DER PRUEFSCHALTER -- 0.30.0, F1. keys.js haengt an keiner anderen Datei des
-   Hauses; dieses require macht deshalb keinen Kreis auf. */
+/* DER PRUEFSCHALTER. keys.js haengt an keiner anderen Datei des Repositorys;
+   dieses require macht deshalb keinen Kreis auf. */
 const keys = require('./keys');
 // Nur wegen istAdresse: die Frage "sieht das ueberhaupt nach einer Adresse
 // aus" wird an drei Stellen gestellt (Anlegen, eigener Zugang, Versand), und
@@ -159,8 +159,8 @@ const ROLES = ['user', 'admin', 'owner'];
 // und ist damit wieder frei.
 const tombstoneName = (id) => `deleted-${id}`;
 /* Damit ein lebender Zugang nicht wie ein Grabstein aussehen kann: das Muster
-   ist als Benutzername gesperrt, in beiden Schreibweisen -- bis 0.24.0 hiess
-   der Grabstein `geloescht-<nr>`. */
+   ist als Benutzername gesperrt, in beiden Schreibweisen -- der Grabstein
+   hiess frueher `geloescht-<nr>`. */
 const TOMBSTONE_PATTERN = /^(deleted|geloescht)-\d+$/i;
 
 // Der EIGENTUEMER mit der kleinsten Nummer -- wer ihn ruft, meint den
@@ -427,8 +427,8 @@ function removeUser(userId, options = {}, actor) {
 // Ein Zuruecksetzen ueber eine Umgebungsvariable gibt es nicht: es machte
 // alle Zugaenge und Zuordnungen mit einem Schlag kaputt.
 if (process.env.AUTH_RESET) {
-  logWarn('AUTH_RESET has not been carried out since version 0.8.0 and ' +
-    'has no effect. The line can be removed from .env. Forgotten password: ' +
+  logWarn('AUTH_RESET is no longer read and has no effect. The line can ' +
+    'be removed from .env. Forgotten password: ' +
     'docker compose exec kriterion node usertool.js passwort <name> -- ' +
     'remove an account: node usertool.js entfernen <name>.');
 }
@@ -946,7 +946,7 @@ function readLog(limit = LOG_LIMIT, group = null) {
     : qLog.all(limit);
   const counts = logCounts();
   /* DIE FELDNAMEN DIESER ANTWORT SIND NOCH DEUTSCH -- sie ziehen mit
-     public/app.js in Bauabschnitt 4 um, wo ihr einziger Leser steht. */
+     public/app.js um, wo ihr einziger Leser steht. */
   return {
     rows: rows,
     // Die Zahl der Zeilen DIESER Ansicht -- sonst stuende unter einer
@@ -1046,7 +1046,7 @@ function startTwoFactor(userId, instanceName, username) {
        created_at = datetime('now')`
   ).run(id, secret);
   return {
-    // Der Feldname bleibt deutsch, bis app.js in Bauabschnitt 4 mitzieht.
+    // Der Feldname bleibt deutsch, bis app.js mitzieht.
     secret: secret, groups: zf.groupsOfFour(secret),
     row: zf.otpauthLine(instanceName, username, secret),
     digits: zf.DIGITS, seconds: zf.STEP_SECONDS
@@ -1243,8 +1243,7 @@ module.exports = {
   PUBLIC_ADDRESS, checkPublicAddress, parseCookies, checkLogin, createSession, destroySession,
   sessionUser, pruneSessions, sessionCookie, clearCookie, requireAuth,
   clientIp, checkThrottle, noteFailure, noteSuccess, cleanupAttempts,
-  /* DIE KURVE UND DIE GEWAEHLTE KOSTENSTUFE GEHEN MIT HINAUS -- 0.30.0, F1
-     und F3. */
+  // Die Kurve und die gewaehlte Kostenstufe gehen mit hinaus.
   delay, SCRYPT_COST: SCRYPT.N, SCRYPT_SHIPPED,
   // Meine Sitzungen und die Token; Rufer ist server.js.
   sessionIdOf, sessionsOf, endSession, endOtherSessions,
