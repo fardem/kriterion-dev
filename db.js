@@ -398,10 +398,6 @@ CREATE TABLE IF NOT EXISTS two_factor_codes (
 -- idx_tokens_user.
 CREATE INDEX IF NOT EXISTS idx_two_factor_codes_user ON two_factor_codes(user_id);
 
-/* KEIN MIGRATIONSBLOCK FUER DIE BEIDEN: anders als eine SPALTE legt
-   CREATE TABLE IF NOT EXISTS eine fehlende TABELLE bei jedem Start an --
-   die Regel gilt der Spalte. Es bleibt bei FUENF markierten Bloecken. */
-
 /* DAS SICHERHEITSPROTOKOLL: wer Zugang hatte und wer die Instanz als Ganzes
    angefasst hat -- KEIN AENDERUNGSVERLAUF und keine Namensspalte, gespeichert
    werden Nummern. Freitext von aussen kommt nicht hinein. */

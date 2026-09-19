@@ -430,7 +430,7 @@ async function run() {
       ['public/app.js', 1761],
       ['public/theme.js', 3],
     ];
-    const COMMENT_TOTAL = { comment: 14702, code: 61280 };
+    const COMMENT_TOTAL = { comment: 14702, code: 61276 };
     check('Der Waechter sieht alle fuenfunddreissig Dateien',
       crAll.each.length === 35 && COMMENT_ROWS.length === 35,
       `${crAll.each.length} gemessen, ${COMMENT_ROWS.length} genannt`);
