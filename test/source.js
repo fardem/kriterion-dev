@@ -578,9 +578,12 @@ async function run() {
     tokenCount("body: JSON.stringify({ token: schluessel })") === 0,
     'der Waechter faerbt sich am Bezeichner');
   /* Und die Gegenrichtung, damit die Entscheidung nicht bloss eine
-     Verneinung ist: das Wort, das dort STEHEN soll, steht auch da. */
+     Verneinung ist: das Wort, das dort STEHEN soll, steht auch da.
+     GEFRAGT WIRD DIE SPRACHDATEI UND NICHT public/app.js: dort steht
+     Bildschirmtext, im Skript stand das Wort nur in Kommentaren. */
   check('Und das Wort Link steht am Bildschirm wirklich',
-    /Einladungslink/.test(fs.readFileSync(path.join(__dirname, 'public/app.js'), 'utf8')),
+    /Einladungslink/.test(fs.readFileSync(
+      path.join(__dirname, 'public/languages/de.json'), 'utf8')),
     'die Karte nennt den Link nicht beim Namen');
 
   /* SICHERUNG ODER BACKUP -- eines von beiden, und durchgehalten. */
@@ -2044,12 +2047,15 @@ async function run() {
       'images.js': 0, 'keys.js': 0, 'keytool.js': 0, 'mail.js': 0,
       'public/theme.js': 0, 'public/languages/de.json': 0,
       'public/languages/en.json': 0, 'public/languages/tr.json': 0,
-      'public/favicon.svg': 0
+      'public/favicon.svg': 0,
+      /* DREI LOECHER DIESER RUNDE: log.js stand in keiner Dateiliste, und die
+         beiden Dateien, mit denen ein Betreiber anfaengt, ebenso wenig. */
+      'log.js': 0, 'Dockerfile': 0, 'docker-compose.example.yml': 0
     };
     const VN_TOTAL = 5;
     const vnFiles = Object.keys(VN_CEILING);
-    check('Der Waechter sieht alle zwanzig Dateien, und jede liegt da',
-      vnFiles.length === 20
+    check('Der Waechter sieht alle dreiundzwanzig Dateien, und jede liegt da',
+      vnFiles.length === 23
       && vnFiles.every(f => fs.existsSync(path.join(__dirname, ...f.split('/')))),
       vnFiles.filter(f => !fs.existsSync(path.join(__dirname, ...f.split('/')))).join(' ') || `${vnFiles.length} Dateien`);
     const vnCount = {};
@@ -2062,8 +2068,8 @@ async function run() {
       vnOver.length === 0,
       vnOver.map(f => `${f}: ${vnCount[f]} statt ${VN_CEILING[f]}`).join(' · ') || 'alle darunter');
     const vnZero = vnFiles.filter(f => VN_CEILING[f] === 0);
-    check('Siebzehn Dateien tragen keine einzige Versionsnummer',
-      vnZero.length === 17 && vnZero.every(f => vnCount[f] === 0),
+    check('Zwanzig Dateien tragen keine einzige Versionsnummer',
+      vnZero.length === 20 && vnZero.every(f => vnCount[f] === 0),
       vnZero.filter(f => vnCount[f] !== 0).map(f => `${f}: ${vnCount[f]}`).join(' · ') || `${vnZero.length} auf null`);
     const vnNow = vnFiles.reduce((n, f) => n + vnCount[f], 0);
     check(`Und zusammen sind es ${VN_TOTAL} -- die Zahl steht hier und nicht in einem Papier`,
