@@ -22,7 +22,7 @@ async function run() {
 /* DIE ZAHL DER SCHLUESSEL JE SPRACHDATEI STEHT EINMAL.
    ZWEI GRUPPEN FRAGEN SIE AB: 0.31.0 auf die Deckung der drei Dateien, 0.31.1
    auf den Stand nach dem Verschmelzen. */
-const LANG_KEY_COUNT = 1212;
+const LANG_KEY_COUNT = 1216;
 
 async function check0310() {
   const drRead = (code) => JSON.parse(fs.readFileSync(
@@ -511,7 +511,7 @@ async function check0311() {
    public/app.js ohne Kommentare und ohne Markup, und diese Runde nimmt dort
    toten Code weg und fasst Wiederholungen zusammen. Der Stand von 0.31.4 war
    daa0c9094f2c2305 / 77128aef244a5976. */
-const DE_UNTOUCHED = { one: '1046cd6f3ec87cf0', other: '7b6098fc204a3a81' };
+const DE_UNTOUCHED = { one: 'a2d519eb284ff943', other: '05dec3b828da9dcb' };
 const DE_BEFORE_0312 = { one: '91b86c5affcba789', other: '07fc3ccdc8a27a03' };
 const DE_ORDERED_0312 = {
   'login.requestAccess': 'Zugang anfragen',
@@ -543,6 +543,7 @@ const EG_CHANGED_AFTER_0312_SHARED = {
   "entry.noDaysYet": "0.32.1: „a score\" wird `{grade}` — das fuenfzehnte Vokabelwort",
   "entry.ratingRemoved": "0.35.0: neu — „{ratingOne} removed\", vorher deutsch im Skript",
   "entry.removeRating": "0.35.0: neu — „Remove {ratingOne}\", vorher deutsch im Skript",
+  "entry.tooBig": "0.35.2: die 50 steht nicht mehr als Text im Satz, sondern kommt als `{mb}` aus ATTACHMENT_MAX",
   "list.bellMine": "0.32.0: die Ueberschrift „My {entryMany}\"",
   "list.bellOther": "0.32.0: die Ueberschrift „Everything else\"",
   "list.bellToMe": "0.32.0: die Ueberschrift „Addressed to me\"",
@@ -562,6 +563,7 @@ const EG_CHANGED_AFTER_0312_SHARED = {
   "server.deniedEntry": "0.32.1: „this entry\" faellt weg — das Vokabelwort stand fest im Satz",
   "server.exportTooOld": "0.33.0: neu — die eine Abweisung des Bruchs, eine Datei mit Formatnummer 13 oder aelter kommt nicht mehr herein",
   "server.gradeRange": "0.32.0: die Absage des Servers nennt das Vokabelwort",
+  "server.importOne": "0.35.2: neu — die Absage des Imports an eine zweite Datei in derselben Anfrage",
   "server.noAccountOwner": "0.32.0: Punkt 29 — der Grund, warum nicht verschickt werden kann",
   "server.noPublicAddress": "0.32.0: Punkt 29 — ohne PUBLIC_ADDRESS wird nicht verschickt",
   "server.noTestMail": "0.32.0: Punkt 29 — seit dem Wechsel kam keine Testmail durch",
@@ -569,6 +571,9 @@ const EG_CHANGED_AFTER_0312_SHARED = {
   "server.ratingBeforeTest": "0.32.1: „this entry\" faellt weg, „untested\" wird `{testedNo}`",
   "server.signupThanks": "0.32.0: Punkt 29 — die eine Antwort der Zugangsanfrage",
   "server.trashRestoring": "0.35.1: neu — die Antwort an den zweiten Aufruf, der denselben Papierkorbeintrag wiederherstellen will",
+  "server.uploadCap": "0.35.2: neu — die Absage an zu viele Dateien in einer Anfrage, vorher multers „Unexpected field\"",
+  "server.uploadSize": "0.35.2: neu — die Absage an eine zu grosse Datei, vorher multers „File too large\"",
+  "server.videoOne": "0.35.2: neu — die Absage des Videowegs an ein zweites Video in derselben Anfrage",
   "vocabulary.grade": "0.32.0: das fuenfzehnte Vokabelwort — „Score\""
 };
 
@@ -794,7 +799,10 @@ async function check0312() {
       'server.backupsBeforeKey', 'server.cleanupAllYoungest', 'server.cleanupNoBackups',
       'server.cleanupOldestAge', 'server.exportTooOld', 'server.noAccountOwner',
       'server.noPublicAddress', 'server.noTestMail', 'server.noUserAddress',
-      'server.signupThanks', 'server.trashRestoring', 'vocabulary.grade'];
+      'server.signupThanks', 'server.trashRestoring',
+      /* UND VIER MIT 0.35.2 -- die uebersetzten Absagen der Hochladewege. */
+      'server.importOne', 'server.uploadCap', 'server.uploadSize', 'server.videoOne',
+      'vocabulary.grade'];
     /* UND EINER IST GEFALLEN -- `list.otherUser`. */
     /* UND SIEBEN MIT 0.32.1 -- sechs, die 0.32.1 ausbaut, und der geteilte
        `entry.deleteWord`. */
@@ -837,11 +845,11 @@ async function check0312() {
    39489ec6ae18020b -- vor 0.31.3; derselbe Grund wie oben.
    VOR 0.35.0: en caa4b814e75f8263 / f224721465ac0d35,
    tr ab6bdf35499f7cf9 / ad34f68137acaa2b. */
-const EN_UNTOUCHED = { one: '37234694cb95952b', other: 'f047d132a85034ea' };
+const EN_UNTOUCHED = { one: '74f6eb57882c0bb4', other: '8c63d27801fc221d' };
 const TR_BEFORE_0313 = { one: '5fec71b10c0dfa3c', other: '18b07eda589b5120' };
 /* bbaca227348609dc / 73d9f1ea0298d519 -- der Stand VOR der Berichtigung an
    der Vorschau der Vokabelkarte, die der Augenschein von 0.31.3 verlangt hat. */
-const TR_AFTER_0313 = { one: 'b006c00a28ebf68f', other: 'a7cf75e2818df03e' };
+const TR_AFTER_0313 = { one: 'f4b6bf12a3f54cf0', other: 'bb9babed88b1a608' };
 
 async function check0313() {
   const tgRead = (code) => JSON.parse(fs.readFileSync(
@@ -1197,7 +1205,10 @@ async function check0313() {
       'server.backupsBeforeKey', 'server.cleanupAllYoungest', 'server.cleanupNoBackups',
       'server.cleanupOldestAge', 'server.exportTooOld', 'server.noAccountOwner',
       'server.noPublicAddress', 'server.noTestMail', 'server.noUserAddress',
-      'server.signupThanks', 'server.trashRestoring', 'vocabulary.grade'];
+      'server.signupThanks', 'server.trashRestoring',
+      /* UND VIER MIT 0.35.2 -- dieselben wie drueben. */
+      'server.importOne', 'server.uploadCap', 'server.uploadSize', 'server.videoOne',
+      'vocabulary.grade'];
     /* UND EINER IST GEFALLEN -- derselbe wie drueben: `list.otherUser`. */
     /* UND SIEBEN MIT 0.32.1 -- dieselben wie im englischen Stand daneben, und
        aus demselben Grund. */
@@ -1297,7 +1308,14 @@ async function check0313() {
       /* UND ZWEI MIT 0.35.0 -- dieselben beiden wie auf der englischen Seite. */
       'entry.exportOne':          '0.35.0: neu — „{entryOne} kaydını dışa aktar", die Beschriftung des neuen Knopfes am Eintrag',
       'entry.removeRating':       '0.35.0: neu — „{ratingOne} kaldırılsın", vorher deutsch im Skript',
-      'entry.ratingRemoved':      '0.35.0: neu — „{ratingOne} kaldırıldı", vorher deutsch im Skript'
+      'entry.ratingRemoved':      '0.35.0: neu — „{ratingOne} kaldırıldı", vorher deutsch im Skript',
+      /* UND FUENF MIT 0.35.2 -- die vier neuen Absagen der Hochladewege und
+         der Satz, der die 50 nicht mehr als Text traegt. */
+      'entry.tooBig':             '0.35.2: die 50 steht nicht mehr im Satz, sondern kommt als {mb}',
+      'server.importOne':         '0.35.2: neu — die Absage des Imports an eine zweite Datei in derselben Anfrage',
+      'server.uploadCap':         '0.35.2: neu — die Absage an zu viele Dateien in einer Anfrage',
+      'server.uploadSize':        '0.35.2: neu — die Absage an eine zu grosse Datei',
+      'server.videoOne':          '0.35.2: neu — die Absage des Videowegs an ein zweites Video'
     };
     const tgDiff = Object.keys(tgFiles.tr)
       .filter(k => JSON.stringify(tgPrint[k]) !== JSON.stringify(tgFiles.tr[k]));

@@ -1198,8 +1198,12 @@ async function run() {
        `entry.exportOne` beschriftet den neuen Knopf am Eintrag. */
     /* UND SEIT 0.35.1 EINER MEHR: `server.trashRestoring` ist die Antwort an
        den zweiten Aufruf, der denselben Papierkorbeintrag holen will. */
-    check('Und die Zahlen stehen: 1300 Schluessel, 88 Mehrzahlformen, 15 Vokabelnamen',
-      languageKeys.length === 1300 && pluralKeys.length === 88 && vocabularyKeys.length === 15,
+    /* UND SEIT 0.35.2 VIER MEHR: die Grenzen der Hochladewege sagen ihre
+       Absage jetzt uebersetzt statt in den Woertern von multer --
+       `server.uploadCap`, `server.uploadSize`, `server.videoOne` und
+       `server.importOne`. */
+    check('Und die Zahlen stehen: 1304 Schluessel, 88 Mehrzahlformen, 15 Vokabelnamen',
+      languageKeys.length === 1304 && pluralKeys.length === 88 && vocabularyKeys.length === 15,
       `${languageKeys.length} / ${pluralKeys.length} / ${vocabularyKeys.length}`);
 
     /* ---- 3. */
@@ -1385,6 +1389,11 @@ async function run() {
     /* UND EINER MIT 0.35.1: die Antwort an den zweiten Aufruf, der denselben
        Papierkorbeintrag wiederherstellen will. */
     const WORDING_NEW_0351 = ['server.trashRestoring'];
+    /* UND VIER MIT 0.35.2: die vier Absagen der Hochladewege. Bis dahin
+       reichte der Fehler-Handler `err.message` von multer durch, und am
+       Bildschirm stand „Unexpected field". */
+    const WORDING_NEW_0352 = ['server.uploadCap', 'server.uploadSize',
+      'server.videoOne', 'server.importOne'];
     /* UND ACHT SCHLUESSEL FALLEN MIT 0.32.1 -- sechs von ihnen gab es schon
        bei der Abnahme, zwei sind erst in 0.32.0 entstanden und schon wieder
        weg. */
@@ -1401,7 +1410,7 @@ async function run() {
       ...WORDING_NEW_0280, ...WORDING_NEW_0281, ...WORDING_NEW_0290,
       ...WORDING_NEW_0300, ...WORDING_NEW_0311, ...WORDING_NEW_0314,
       ...WORDING_NEW_0320, ...WORDING_NEW_0321, ...WORDING_NEW_0330,
-      ...WORDING_NEW_0350, ...WORDING_NEW_0351]
+      ...WORDING_NEW_0350, ...WORDING_NEW_0351, ...WORDING_NEW_0352]
       .filter(k => !WORDING_GONE_0321.includes(k) && !WORDING_GONE_0330.includes(k));
     const wordingMissing = WORDING_NEW.filter(k => LANGUAGE_FILE[k] === undefined);
     check('Die neuen Schluessel dieser Runde stehen wirklich in der Datei',
@@ -2662,6 +2671,67 @@ async function run() {
     check('Sondern greift die Felder ueber ihren gemeinsamen Anfang',
       /input\[id\^="se-name-"\]/.test(osCss),
       (osCss.match(/.*se-name-.*/) || ['(keine Regel)'])[0].trim());
+  }
+
+  /* ================= Die Fotogrenzen haben Namen — 0.35.2, BA 4 ===========
+     BEFUND AUS DEM BETRIEB: `upload.array('photos', 40)` trug die Zahl nackt
+     in der Routenzeile, der Browser prueft nichts, und multer bricht beim
+     41. Bild die GANZE Anfrage ab. Es ging alles verloren, und am Bildschirm
+     stand „Unexpected field". */
+  group('Die Fotogrenzen haben Namen — 0.35.2');
+  {
+    const fgServer = fs.readFileSync(path.join(__dirname, 'server.js'), 'utf8');
+    const fgApp = fs.readFileSync(path.join(__dirname, 'public', 'app.js'), 'utf8');
+    const numberOf = (text, name) => {
+      const hit = text.match(new RegExp(`^const ${name} = ([^;]+);$`, 'm'));
+      return hit ? Function(`return (${hit[1]})`)() : null;
+    };
+    for (const name of ['PHOTO_COUNT', 'PHOTO_MAX'])
+      check(`${name} steht einmal in server.js und einmal in public/app.js`,
+        (fgServer.match(new RegExp(`^const ${name} = `, 'gm')) || []).length === 1
+        && (fgApp.match(new RegExp(`^const ${name} = `, 'gm')) || []).length === 1,
+        `server.js ${(fgServer.match(new RegExp(`^const ${name} = `, 'gm')) || []).length}, ` +
+        `public/app.js ${(fgApp.match(new RegExp(`^const ${name} = `, 'gm')) || []).length}`);
+    /* UND BEIDE SEITEN TRAGEN DIESELBE ZAHL. Der Browser teilt danach auf,
+       der Server weist danach ab -- laufen sie auseinander, verliert der
+       Betreiber wieder Bilder. */
+    check('Und beide Seiten tragen dieselben Zahlen — 40 und 30 MB',
+      numberOf(fgServer, 'PHOTO_COUNT') === 40
+      && numberOf(fgApp, 'PHOTO_COUNT') === 40
+      && numberOf(fgServer, 'PHOTO_MAX') === 30 * 1024 * 1024
+      && numberOf(fgApp, 'PHOTO_MAX') === 30 * 1024 * 1024,
+      `server.js ${numberOf(fgServer, 'PHOTO_COUNT')}/${numberOf(fgServer, 'PHOTO_MAX')} · ` +
+      `public/app.js ${numberOf(fgApp, 'PHOTO_COUNT')}/${numberOf(fgApp, 'PHOTO_MAX')}`);
+    check('Und die Routenzeile nennt keine nackte 40 mehr',
+      !/upload\.array\('photos', 40\)/.test(fgServer)
+      && /upload\.array\('photos', PHOTO_COUNT\)/.test(fgServer),
+      (fgServer.match(/.*upload\.array\('photos'.*/) || ['(keine Zeile)'])[0].trim());
+    /* ALLE FUENF HOCHLADEWEGE REICHEN IHRE GRENZEN AN DEN FEHLER-HANDLER
+       WEITER. Ohne sie steht dort wieder die Message von multer. */
+    /* SECHS ROUTEN AN FUENF WEGEN: Kommentarbilder kommen ueber zwei Routen
+       herein, am neuen Kommentar und am bestehenden. */
+    const fgCapped = (fgServer.match(/capped\(/g) || []).length;
+    check('Und alle sechs Hochladerouten reichen ihre Grenzen weiter',
+      fgCapped === 7, `${fgCapped} Stellen (sechs Routen und der Helfer selbst)`);
+    /* UND DER FEHLER-HANDLER UEBERSETZT DIE BEIDEN GRENZEN VON MULTER. */
+    check('Der Fehler-Handler kennt LIMIT_FILE_SIZE und LIMIT_UNEXPECTED_FILE',
+      /err\.code === 'LIMIT_FILE_SIZE'/.test(fgServer)
+      && /err\.code === 'LIMIT_UNEXPECTED_FILE'/.test(fgServer)
+      && /'server\.uploadSize'/.test(fgServer),
+      'beide Codes');
+    /* UND DER BROWSER SCHICKT IN BUENDELN, statt alles auf einmal zu geben. */
+    check('Und der Browser schickt in Buendeln von PHOTO_COUNT',
+      /for \(let at = 0; at < images\.length; at \+= PHOTO_COUNT\)/.test(fgApp),
+      (fgApp.match(/.*at \+= PHOTO_COUNT.*/) || ['(keine Schleife)'])[0].trim());
+    check('Und er sagt vorher ab, was ueber PHOTO_MAX liegt',
+      /images\.find\(f => f\.size > PHOTO_MAX\)/.test(fgApp),
+      (fgApp.match(/.*f\.size > PHOTO_MAX.*/) || ['(keine Pruefung)'])[0].trim());
+    /* UND DIE 50 STEHT NICHT MEHR ALS TEXT IM SATZ. */
+    const fgLang = JSON.parse(fs.readFileSync(
+      path.join(__dirname, 'public', 'languages', 'de.json'), 'utf8'));
+    check('Und `entry.tooBig` traegt die Zahl als Platzhalter, nicht als Text',
+      /\{mb\}/.test(fgLang['entry.tooBig']) && !/50/.test(fgLang['entry.tooBig']),
+      String(fgLang['entry.tooBig']));
   }
 
   /* ================= Der Eintrag als Datei — 0.35.0 =======================

@@ -26,7 +26,7 @@ Videos liegen darin und werden nie als Datei auf die Platte geschrieben.
 
 | | |
 |---|---|
-| **Einträge anlegen** | Titel, Beschreibung, Kategorie, Tags — dazu Fotos, Kurzvideos bis 20 MB, Dateien bis 50 MB und eine Linkliste |
+| **Einträge anlegen** | Titel, Beschreibung, Kategorie, Tags — dazu Fotos bis 30 MB, Kurzvideos bis 20 MB, Dateien bis 50 MB und eine Linkliste |
 | **Bewerten** | eigene Kriterien mit Sternen von 1 bis 5, je Kriterium ein **Gewicht** zwischen 0,2 und 2, daraus ein gewichteter Gesamtschnitt |
 | **Mitschreiben** | Kommentare in drei Arten — **Notiz**, **Bericht**, **Aufgabe** (mit Erledigt-Haken) —, dazu Bilder am Kommentar |
 | **Testtage führen** | datierte Einträge mit Note und Tags; sie sind die Zeitreihe, die Kriterienbewertung ist das gegenwärtige Urteil |

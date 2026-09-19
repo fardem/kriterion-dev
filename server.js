@@ -413,15 +413,29 @@ app.use((req, res, next) => {
 });
 app.use(express.static(path.join(__dirname, 'public')));
 
+/* 40 Fotos je Anfrage, 30 MB je Datei. Die 40 ist eine Schranke der ANFRAGE
+   und keine Obergrenze je Eintrag -- eine solche gibt es bei Fotos nicht. Der
+   Browser teilt groessere Auswahlen in Buendel von PHOTO_COUNT auf. */
+const PHOTO_COUNT = 40;
+const PHOTO_MAX = 30 * 1024 * 1024;
 const upload = multer({
   storage: multer.memoryStorage(),
-  limits: { fileSize: 30 * 1024 * 1024 },
+  limits: { fileSize: PHOTO_MAX },
   // Erste, grobe Schranke am gemeldeten Typ.
   fileFilter: (req, file, cb) =>
     /^image\//.test(file.mimetype)
       ? cb(null, true)
       : cb(new Message('server.imagesOnly'))
 });
+
+/* DIE GRENZEN REISEN AM GESUCH MIT. Der Fehler-Handler steht ganz am Ende des
+   Stapels; dort ist nicht mehr zu sehen, an welcher Route die Datei
+   hereinkam, und eine zweite Tafel Route-zu-Grenze liefe beim naechsten Umbau
+   auseinander. Ohne sie reicht multer `err.message` durch, und am Bildschirm
+   steht „Unexpected field". */
+function capped(mw, caps) {
+  return (req, res, next) => { req.caps = caps; mw(req, res, next); };
+}
 
 /* Was als Foto hereinkommt, muss ein Rasterbild sein -- dem INHALT nach. */
 const GRID_FORMATS = ['jpeg', 'png', 'webp', 'avif', 'gif', 'tiff'];
@@ -3112,7 +3126,10 @@ app.delete('/api/items/:id', entryAuthorOnly, (req, res) => {
 /* ---- Fotos ---- */
 // Der Waechter steht VOR multer: die Datei eines Fremden soll gar nicht erst
 // eingelesen werden.
-app.post('/api/items/:id/photos', entryAuthorOnly, upload.array('photos', 40), async (req, res, next) => {
+app.post('/api/items/:id/photos', entryAuthorOnly,
+         capped(upload.array('photos', PHOTO_COUNT),
+                { count: PHOTO_COUNT, bytes: PHOTO_MAX, key: 'server.uploadCap' }),
+         async (req, res, next) => {
   try {
     if (!db.prepare('SELECT 1 FROM items WHERE id = ?').get(req.params.id))
       return res.status(404).json({ error: t(localeOf(req), 'server.entryUnknown')});
@@ -3168,7 +3185,8 @@ const videoUpload = multer({
 // Der Waechter steht VOR multer, wie am Fotoweg: die Datei eines Fremden soll
 // gar nicht erst eingelesen werden.
 app.post('/api/items/:id/videos', entryAuthorOnly,
-  videoUpload.fields([{ name: 'video', maxCount: 1 }, { name: 'stillFrame', maxCount: 1 }]),
+  capped(videoUpload.fields([{ name: 'video', maxCount: 1 }, { name: 'stillFrame', maxCount: 1 }]),
+         { count: 1, bytes: VIDEO_MAX, key: 'server.videoOne' }),
   async (req, res, next) => {
     try {
       if (!db.prepare('SELECT 1 FROM items WHERE id = ?').get(req.params.id))
@@ -3317,7 +3335,10 @@ const attachmentUpload = multer({ storage: multer.memoryStorage(), limits: { fil
 
 /* HOCHLADEN DARF JEDER -- dieselbe Regel wie an der Linkzeile und aus
    demselben Grund: eine Datei erscheint nur dort, wo man sie hinsetzt. */
-app.post('/api/items/:id/attachments', attachmentUpload.array('files', ATTACHMENT_COUNT), (req, res, next) => {
+app.post('/api/items/:id/attachments',
+         capped(attachmentUpload.array('files', ATTACHMENT_COUNT),
+                { count: ATTACHMENT_COUNT, bytes: ATTACHMENT_MAX, key: 'server.uploadCap' }),
+         (req, res, next) => {
   try {
     if (!db.prepare('SELECT 1 FROM items WHERE id = ?').get(req.params.id))
       return res.status(404).json({ error: t(localeOf(req), 'server.entryUnknown')});
@@ -3653,7 +3674,10 @@ function dueValue(raw) {
   return { value: text };
 }
 
-app.post('/api/items/:id/comments', commentImageUpload.array('images', IMAGE_COUNT), async (req, res, next) => {
+app.post('/api/items/:id/comments',
+         capped(commentImageUpload.array('images', IMAGE_COUNT),
+                { count: IMAGE_COUNT, bytes: IMAGE_MAX, key: 'server.uploadCap' }),
+         async (req, res, next) => {
   try {
     const text = (req.body.text || '').trim();
     if (!text) return res.status(400).json({ error: t(localeOf(req), 'server.textMissing')});
@@ -3725,7 +3749,10 @@ app.put('/api/comments/:id', (req, res) => {
 });
 
 // Bilder an einem bestehenden Kommentar nachreichen.
-app.post('/api/comments/:id/images', commentImageUpload.array('images', IMAGE_COUNT), async (req, res, next) => {
+app.post('/api/comments/:id/images',
+         capped(commentImageUpload.array('images', IMAGE_COUNT),
+                { count: IMAGE_COUNT, bytes: IMAGE_MAX, key: 'server.uploadCap' }),
+         async (req, res, next) => {
   try {
     const c = db.prepare('SELECT * FROM comments WHERE id = ?').get(req.params.id);
     if (!c) return res.status(404).json({ error: t(localeOf(req), 'server.commentGone')});
@@ -4382,7 +4409,8 @@ app.get('/api/items/:id/export', ownerOnly, (req, res) => {
 });
 
 /* ---- Import ---- */
-const importUpload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 900 * 1024 * 1024 } });
+const IMPORT_MAX = 900 * 1024 * 1024;
+const importUpload = multer({ storage: multer.memoryStorage(), limits: { fileSize: IMPORT_MAX } });
 
 /* DER DESERIALISIERER, und er steht hier statt im Routenrumpf -- aus
    demselben Grund wie die Abbildung eine Seite weiter oben: das
@@ -4801,7 +4829,9 @@ async function importInto(payload, userId, mode2, bytesSource = null) {
    Waechter darueber: eine bis zu 900 MB grosse Datei soll gar nicht erst
    eingelesen werden, wenn die Handlung ohnehin abgewiesen wird. */
 app.post('/api/import', ownerOnly, secondConfirmNeeded('import'),
-         importUpload.single('file'), async (req, res, next) => {
+         capped(importUpload.single('file'),
+                { count: 1, bytes: IMPORT_MAX, key: 'server.importOne' }),
+         async (req, res, next) => {
   try {
     if (!req.file) return res.status(400).json({ error: t(localeOf(req), 'server.noFile')});
     const mode = req.body.mode === 'replace' ? 'replace' : 'merge';
@@ -5459,6 +5489,17 @@ app.use((err, req, res, next) => {
      Blatt im Abhaengigkeitsbaum und darf auth.js nicht requiren. */
   if (err && err.key)
     return res.status(err.status || 400).json({ error: t(locale, err.key, err.values || {}) });
+  /* MULTER WIRFT SEINE GRENZEN AUF ENGLISCH UND MIT SEINEN EIGENEN WOERTERN:
+     `LIMIT_UNEXPECTED_FILE` heisst „eine Datei zu viel" und stand bis hierher
+     als „Unexpected field" am Bildschirm. Die Zahl dazu kommt aus `req.caps`,
+     das die Route gesetzt hat. */
+  if (err instanceof multer.MulterError && req.caps) {
+    if (err.code === 'LIMIT_FILE_SIZE')
+      return res.status(400).json({ error:
+        t(locale, 'server.uploadSize', { mb: Math.round(req.caps.bytes / 1048576) })});
+    if (err.code === 'LIMIT_UNEXPECTED_FILE' || err.code === 'LIMIT_FILE_COUNT')
+      return res.status(400).json({ error: t(locale, req.caps.key, { cap: req.caps.count })});
+  }
   const rank = err.status || err.statusCode || (err instanceof multer.MulterError ? 400 : 500);
   if (rank >= 500) return res.status(500).json({ error: t(locale, 'server.error') });
   res.status(rank).json({ error: err.message || t(locale, 'server.errorUnknown') });

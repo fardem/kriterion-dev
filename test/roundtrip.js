@@ -18673,6 +18673,46 @@ async function sendImport(object, mode, withoutShare = false) {
     await call('DELETE', `/api/items/${uzItem.id}`);
   }
 
+  /* ============= Mehr als 40 Fotos auf einmal — 0.35.2, BA 4 ==============
+     GEMELDET AUS DEM BETRIEB: multer zaehlt je Feldnamen herunter und wirft
+     beim 41. Bild LIMIT_UNEXPECTED_FILE. Der Handler lief nie, es wurde kein
+     einziges Foto gespeichert, und am Bildschirm stand „Unexpected field" --
+     die Message von multer, englisch und aus seinen eigenen Woertern. */
+  group('Mehr als 40 Fotos auf einmal — 0.35.2');
+  {
+    const fzItem = (await call('POST', '/api/items', { title: 'Viele Fotos' })).content;
+    const fzOne = () => ({ name: 'p.png', type: 'image/png',
+      content: Buffer.from(PNG_BASE64, 'base64') });
+    const fzOver = await sendMultipart(`/api/items/${fzItem.id}/photos`, 'photos',
+      Array.from({ length: 41 }, fzOne));
+    check('Einundvierzig Fotos in einer Anfrage werden abgewiesen',
+      fzOver.status === 400, `Status ${fzOver.status}`);
+    /* UND DIE ABSAGE IST DEUTSCH UND NENNT DIE ZAHL. Genau das war der
+       Befund: bis 0.35.2 stand hier „Unexpected field". */
+    check('Und die Absage steht in der Sprache des Lesers und nennt die 40',
+      /40/.test(fzOver.content?.error || '')
+      && !/Unexpected|field/i.test(fzOver.content?.error || ''),
+      JSON.stringify(fzOver.content));
+    const fzAfter = (await call('GET', `/api/items/${fzItem.id}`)).content;
+    check('Und es ist kein einziges Foto angekommen',
+      (fzAfter.photos || []).length === 0, `${(fzAfter.photos || []).length} Fotos`);
+    /* DIE GEGENPROBE: genau vierzig gehen durch. Die Zahl ist die Schranke
+       der ANFRAGE und keine Obergrenze je Eintrag. */
+    const fzFull = await sendMultipart(`/api/items/${fzItem.id}/photos`, 'photos',
+      Array.from({ length: 40 }, fzOne));
+    check('Genau vierzig kommen durch',
+      fzFull.status === 201 && (fzFull.content.photos || []).length === 40,
+      `Status ${fzFull.status}, ${(fzFull.content.photos || []).length} Fotos`);
+    /* UND EIN ZWEITER ZUG LEGT WEITERE VIERZIG DAZU -- es gibt keine
+       Obergrenze je Eintrag, und der Browser teilt genau so auf. */
+    const fzAgain = await sendMultipart(`/api/items/${fzItem.id}/photos`, 'photos',
+      Array.from({ length: 40 }, fzOne));
+    check('Und ein zweiter Zug legt weitere vierzig dazu — achtzig am Eintrag',
+      fzAgain.status === 201 && (fzAgain.content.photos || []).length === 80,
+      `Status ${fzAgain.status}, ${(fzAgain.content.photos || []).length} Fotos`);
+    await call('DELETE', `/api/items/${fzItem.id}`);
+  }
+
   /* ================= Die Auslieferung geht gezippt hinaus — 0.35.0 =========
      DER SCHWERSTE EINZELBEFUND DER MESSUNG: public/style.css mass 300.472
      Bytes, davon 211.862 in 408 Kommentarbloecken -- 70,5 Prozent. Der Server

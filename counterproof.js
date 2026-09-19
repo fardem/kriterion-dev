@@ -8901,6 +8901,39 @@ const REGRESSIONS = [
     replacement: "    const vnPattern = () => /\\b\\d+\\.\\d+\\.\\d+\\b/g;",
     expected: 'Keine Versionsnummer als Herkunft'
   },
+  /* ---- Die Fotogrenzen -- 0.35.2, BA 4 ---- */
+  {
+    /* Die Zahl steht wieder nackt in der Routenzeile. */
+    nr: '1101', name: 'Die Fotoroute nennt die 40 wieder ohne Namen',
+    file: 'server.js',
+    search: "         capped(upload.array('photos', PHOTO_COUNT),",
+    replacement: "         capped(upload.array('photos', 40),",
+    expected: 'Die Fotogrenzen haben Namen — 0.35.2'
+  },
+  {
+    /* Der Browser gibt wieder alles auf einmal -- der Fehler aus dem Betrieb. */
+    nr: '1102', name: 'Der Browser schickt die Fotos wieder in einem Zug',
+    file: 'public/app.js',
+    search: "        for (let at = 0; at < images.length; at += PHOTO_COUNT) {",
+    replacement: "        for (let at = 0; at < images.length; at += 10000) {",
+    expected: 'Die Fotogrenzen haben Namen — 0.35.2'
+  },
+  {
+    /* Die beiden Seiten tragen verschiedene Zahlen. */
+    nr: '1103', name: 'Der Browser teilt nach einer anderen Zahl als der Server',
+    file: 'public/app.js',
+    search: "const PHOTO_COUNT = 40;",
+    replacement: "const PHOTO_COUNT = 60;",
+    expected: 'Die Fotogrenzen haben Namen — 0.35.2'
+  },
+  {
+    /* Der Fehler-Handler reicht wieder die Message von multer durch. */
+    nr: '1104', name: 'Die Absage an zu viele Fotos steht wieder auf Englisch da',
+    file: 'server.js',
+    search: "    if (err.code === 'LIMIT_UNEXPECTED_FILE' || err.code === 'LIMIT_FILE_COUNT')",
+    replacement: "    if (false)",
+    expected: 'Mehr als 40 Fotos auf einmal — 0.35.2'
+  },
 ];
 
 /* ================= Spuren und Versatz ================= Der Versatz je

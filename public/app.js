@@ -69,6 +69,15 @@ const tMarks = (key, parts, values) => {
    keine Verbesserung. */
 const SESSION_GONE = 'kriterion:session-gone';
 
+/* DIE FOTOGRENZEN, und dieselben Zahlen stehen in server.js. Der Browser
+   teilt danach auf und sagt vorher, was zu gross ist; der Server sagt es noch
+   einmal, weil die Route auch ohne Browser erreichbar ist. */
+const PHOTO_COUNT = 40;
+const PHOTO_MAX = 30 * 1024 * 1024;
+// Ebenso am Anhangsweg, und der Satz `entry.tooBig` bekommt die Zahl jetzt
+// als Platzhalter statt sie ein zweites Mal auszuschreiben.
+const ATTACHMENT_MAX = 50 * 1024 * 1024;
+
 /* ZWEI FORMEN, UND DIE ZAHL WAEHLT -- ueber Intl.PluralRules und nicht ueber
    `n === 1`. */
 function plural(n, one, other) {
@@ -4332,10 +4341,20 @@ async function renderDetail(id, termAddress) {
     let finished = 0;
     try {
       if (images.length) {
-        const fd = new FormData();
-        for (const f of images) fd.append('photos', f);
-        item = await api('POST', `/api/items/${id}/photos`, fd, true);
-        finished += images.length;
+        const tooBig = images.find(f => f.size > PHOTO_MAX);
+        if (tooBig) throw new Error(t('entry.tooBig',
+          { name: tooBig.name, mb: PHOTO_MAX / 1048576 }));
+        /* IN BUENDELN VON PHOTO_COUNT. multer zaehlt je Feldnamen herunter
+           und bricht beim naechsten Bild die GANZE Anfrage ab: aus 80
+           gewaehlten Fotos wuerde sonst kein einziges gespeichertes. Eine
+           Obergrenze je Eintrag ist das nicht -- die 40 gilt der Anfrage. */
+        for (let at = 0; at < images.length; at += PHOTO_COUNT) {
+          const bundle = images.slice(at, at + PHOTO_COUNT);
+          const fd = new FormData();
+          for (const f of bundle) fd.append('photos', f);
+          item = await api('POST', `/api/items/${id}/photos`, fd, true);
+          finished += bundle.length;
+        }
       }
       for (const f of videos) {
         dropText.textContent = t('entry.thumbBuilding');
@@ -5428,8 +5447,9 @@ async function renderDetail(id, termAddress) {
     const files = [...e.target.files];
     e.target.value = '';
     if (!files.length) return;
-    const tooBig = files.find(f => f.size > 50 * 1024 * 1024);
-    if (tooBig) return toast(t('entry.tooBig', { name: tooBig.name }), true);
+    const tooBig = files.find(f => f.size > ATTACHMENT_MAX);
+    if (tooBig) return toast(t('entry.tooBig',
+      { name: tooBig.name, mb: ATTACHMENT_MAX / 1048576 }), true);
     const fd = new FormData();
     files.forEach(f => fd.append('files', f));
     try {

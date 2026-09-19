@@ -176,7 +176,10 @@ async function run() {
     /* ZWEI SCHLUESSEL REISEN IN EINER VARIABLEN -- `pruefeRegelwert(wert,
        spanne, was)` bekommt den Namen gereicht und baut die Werte selbst. */
     /* UND ZWEI REISEN SEIT 0.25.4 UEBER `tMark()` -- der Verneinungssatz. */
-    const OVER_HELPER = ['server.ruleKeep', 'server.ruleDays'];
+    /* `server.uploadCap` KOMMT MIT 0.35.2 DAZU: der Fehler-Handler holt den
+       Schluessel aus `req.caps`, das die Route gesetzt hat -- buchstaeblich
+       steht er dort nicht. */
+    const OVER_HELPER = ['server.ruleKeep', 'server.ruleDays', 'server.uploadCap'];
     /* DIE SAETZE MIT AUSZEICHNUNG WERDEN GELESEN UND NICHT AUFGEZAEHLT --
        0.31.1. */
     const spSource = fs.readFileSync(path.join(__dirname, 'public', 'app.js'), 'utf8');
@@ -194,8 +197,8 @@ async function run() {
       phError.length === 0, phError.slice(0, 10).join(' · ') || 'gleich');
     check('Und jeder Platzhalter wird gereicht oder ist ein Vokabelwort',
       unserved.length === 0, unserved.slice(0, 10).join(' · '));
-    check('Und die zwei, die in einer Variablen reisen, stehen namentlich da',
-      OVER_HELPER.length === 2 && OVER_HELPER.every(k => spContent.de[k] !== undefined
+    check('Und die drei, die in einer Variablen reisen, stehen namentlich da',
+      OVER_HELPER.length === 3 && OVER_HELPER.every(k => spContent.de[k] !== undefined
         && placeholderFrom(spContent.de[k]).size > 0), OVER_HELPER.join(' · '));
     check('Und die Saetze mit Auszeichnung kommen aus dem Quelltext',
       MARKED.size >= 38 && MARKED.has('login.linkUnaffected'),
