@@ -1222,6 +1222,7 @@
   "server.deniedCategoryNew": "Neue Kategorien legt nur der Admin an. Vorhandene lassen sich weiterhin wählen.",
   "server.deniedConfirm": "Dafür ist dein Passwort nötig — bitte noch einmal bestätigen.",
   "server.deniedEntry": "Ändern darf nur, wer es angelegt hat — oder der Admin.",
+  "server.deniedOrigin": "Die Anfrage wurde abgewiesen. Bitte die Seite neu laden und noch einmal versuchen.",
   "server.deniedOwner": "Das kann nur der Eigentümer dieser Installation.",
   "server.deniedOwnUser": "Den eigenen Zugang ändert man unter „Mein Konto“, nicht hier.",
   "server.deniedRole": "Rollen vergibt nur der Eigentümer dieser Installation.",

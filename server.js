@@ -621,6 +621,41 @@ function reclaim() {
   try { db.pragma('incremental_vacuum'); db.pragma('wal_checkpoint(TRUNCATE)'); } catch {}
 }
 
+/* ================= Der Schutz gegen fremde Formulare =================
+   EIN WAECHTER VOR ALLEN ROUTEN und keiner je Route: der zweite Weg vergaesse
+   frueher oder spaeter eine. */
+/* DIE OFFENEN ROUTEN STEHEN VOR DER ANMELDUNG und koennen den Token nicht
+   haben -- sie stehen hier namentlich und nirgends sonst. */
+const CSRF_FREE = [
+  'POST /api/setup',
+  'POST /api/login',
+  'POST /api/login/second',
+  'POST /api/logout',
+  'POST /api/token/check',
+  'POST /api/token/redeem',
+  'POST /api/signup',
+  'POST /api/signup/confirm'
+];
+const CSRF_FREE_SET = new Set(CSRF_FREE);
+const WRITING_METHODS = new Set(['POST', 'PUT', 'DELETE', 'PATCH']);
+app.use((req, res, next) => {
+  const token = auth.sessionToken(req);
+  /* Der Token reist mit der Sitzung: ein Browser, der eine Sitzung hat und
+     den Cookie nicht, bekommt ihn an der naechsten Antwort. */
+  if (token && auth.csrfCookieValue(req) !== auth.csrfToken(token))
+    res.append('Set-Cookie', auth.csrfCookie(req, token));
+  if (!WRITING_METHODS.has(req.method)) return next();
+  /* OHNE SITZUNG ENTSCHEIDET DIE ANMELDUNG: ein fremdes Formular ohne Cookie
+     kommt an keine Zeile heran, und 403 statt 401 verschoebe die Auskunft. */
+  if (!token) return next();
+  /* Der Schraegstrich am Ende faellt weg: express fuehrt `/api/login/` auf
+     dieselbe Route, und die Ausnahme gilt der Route. */
+  const where = req.path.length > 1 ? req.path.replace(/\/+$/, '') : req.path;
+  if (CSRF_FREE_SET.has(`${req.method} ${where}`)) return next();
+  if (auth.csrfOk(req, token)) return next();
+  res.status(403).json({ error: t(localeOf(req), 'server.deniedOrigin') });
+});
+
 /* ================= Oeffentlich ================= */
 // Liefert ausschliesslich den Titel VOR der Anmeldung. Der zweite Titel darf
 // hier unter keinen Umstaenden auftauchen.
@@ -4891,6 +4926,10 @@ auth.cleanupTokens();
 auth.cleanupLog();
 /* Und die unbestaetigten Anfragen, . */
 auth.cleanupRequests();
+/* Und die Anmeldeversuche. Sie sind die einzigen, die KEINE Karte haben, an
+   der ein zweiter Ruf haengen koennte -- deshalb eine Uhr statt eines Rufers. */
+auth.cleanupAttempts();
+setInterval(auth.cleanupAttempts, 60 * 60 * 1000).unref();
 
 /* Der Weg hinein. */
 function intoTrash(itemId, actor) {

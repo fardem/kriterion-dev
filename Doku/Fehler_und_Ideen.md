@@ -986,9 +986,11 @@ Felder.*
 > das ist die reparierte Fassung. **Der Sprung auf `express` 5 ist nicht mehr
 > nötig** — ein Patch innerhalb des schon deklarierten Bereichs hat es getan.
 >
-> **Was daraus folgt, steht als BA 4 im Auftrag zur 0.36.0:** heute ist es
-> grün, weil jemand anderes etwas repariert hat, und niemand merkt es, wenn
-> das aufhört. **Es fehlt eine Stelle, die den Lauf rot färbt.**
+> **Was daraus folgte, ist mit 0.36.0 gebaut:** eine Gruppe des Prüfstands
+> ruft `npm audit --json` und wird rot, sobald etwas darin steht. Ohne Netz
+> wird sie übersprungen und sagt es. **Der Punkt ist damit ganz zu** — er war
+> grün, weil jemand anderes etwas repariert hatte, und jetzt merkt es jemand,
+> wenn das aufhört.
 
 **Art: Fehler** *(zwei Meldungen mittlerer Schwere, kein Schaden am Bestand)* ·
 **Einschätzung von Claude: nicht dringend** · **Herkunft: 0.24.6**

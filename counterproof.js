@@ -965,8 +965,8 @@ const REGRESSIONS = [
   },
   {
     nr: '121', name: 'F_ROUTEN kennt den zweiten Schritt der Anmeldung nicht',
-    file: 'test/source.js',
-    search: "    ['POST',   '/api/login/second',                'offen'],",
+    file: 'test/frame.js',
+    search: "  ['POST',   '/api/login/second',                'offen'],",
     replacement: "",
     expected: 'Der Waechter ueber den Quelltext'
   },
@@ -5813,8 +5813,8 @@ const REGRESSIONS = [
   {
     nr: '743', name: 'Der Kopf traegt wieder, was der Rufer verlangt',
     file: 'public/app.js',
-    search: "                 headers: { 'Accept-Language': LANGUAGE } };",
-    replacement: "                 headers: { 'Accept-Language': arguments[4] || LANGUAGE } };",
+    search: "                 headers: { 'Accept-Language': LANGUAGE, ...csrfHeader() } };",
+    replacement: "                 headers: { 'Accept-Language': arguments[4] || LANGUAGE, ...csrfHeader() } };",
     expected: 'Die Namenstafeln je Sprache — 0.24.5'
   },
   {
@@ -6038,7 +6038,7 @@ const REGRESSIONS = [
     nr: '769', name: 'Die Pille traegt weder Punkt noch Zahl',
     file: 'public/app.js',
     search: "    b.innerHTML = esc(a.name) + (gaps\n" +
-      "      ? `<span class=\"n\">${gaps}</span>`\n" +
+      "      ? `<span class=\"n\">${Number(gaps)}</span>`\n" +
       "      : '<span class=\"dot\" aria-hidden=\"true\">●</span>');\n" +
       "    b.title = gaps ? t('card.languageMissing', { n: gaps }) : t('card.languageComplete');",
     replacement: "    b.textContent = a.name;",
@@ -6097,7 +6097,7 @@ const REGRESSIONS = [
     nr: '775', name: 'Die Vokabelpille traegt weder Punkt noch Zahl',
     file: 'public/app.js',
     search: "      b.innerHTML = esc(a.name) + (gaps\n" +
-      "        ? `<span class=\"n\">${gaps}</span>`\n" +
+      "        ? `<span class=\"n\">${Number(gaps)}</span>`\n" +
       "        : '<span class=\"dot\" aria-hidden=\"true\">●</span>');\n" +
       "      b.title = gaps ? t('card.wordsMissing', { n: gaps }) : t('card.languageComplete');",
     replacement: "      b.textContent = a.name;",
@@ -7446,8 +7446,8 @@ const REGRESSIONS = [
        BEDIENBARKEIT. */
     nr: "932", name: "Wer nicht aendern darf, bekommt wieder einen Knopf",
     file: "public/app.js",
-    search: "              : `<span class=\"cmt-due on due-${dueState}\"",
-    replacement: "              : `<button class=\"cmt-due on due-${dueState}\"",
+    search: "              : `<span class=\"cmt-due on due-${esc(dueState)}\"",
+    replacement: "              : `<button class=\"cmt-due on due-${esc(dueState)}\"",
     expected: "Das Faelligkeitsdatum sieht jeder, der den Eintrag sieht \u2014 0.30.1"
   },
   {
@@ -9048,6 +9048,73 @@ const REGRESSIONS = [
     search: "  if (e && e.key) return { reasonKey: e.key, reason: '' };",
     replacement: "  if (e && e.key) return { reasonKey: '', reason: e.key };",
     expected: 'Der Mailversand: die Frist wird gemessen, nicht behauptet'
+  },
+  /* ---- 0.36.0: die Anmeldesperre liegt in der Datenbank ---- */
+  {
+    nr: '1118', name: 'Der Aufraeumer nimmt auch die laufende Sperre mit',
+    file: 'auth.js',
+    search: "  const n = delAttemptsOld.run(`-${ATTEMPT_KEEP_MINUTES} minutes`).changes;",
+    replacement: "  const n = db.prepare('DELETE FROM login_attempts').run().changes;",
+    expected: 'Erstanmeldung: die Sperre ueberlebt den Neustart'
+  },
+  {
+    nr: '1119', name: 'Der Aufraeumer laeuft nicht mehr beim Start',
+    file: 'server.js',
+    search: "auth.cleanupAttempts();\nsetInterval(auth.cleanupAttempts, 60 * 60 * 1000).unref();",
+    replacement: "setInterval(auth.cleanupAttempts, 60 * 60 * 1000).unref();",
+    expected: 'Erstanmeldung: die Sperre ueberlebt den Neustart'
+  },
+  /* ---- 0.36.0: der Schutz gegen fremde Formulare ---- */
+  {
+    nr: '1120', name: 'Der Waechter laesst jede schreibende Anfrage durch',
+    file: 'server.js',
+    search: "  if (auth.csrfOk(req, token)) return next();",
+    replacement: "  if (true) return next();",
+    expected: 'Kein fremdes Formular kommt an eine schreibende Route'
+  },
+  {
+    nr: '1121', name: 'Die Ausnahmeliste nennt eine Route hinter der Anmeldung',
+    file: 'server.js',
+    search: "  'POST /api/signup/confirm'\n];",
+    replacement: "  'POST /api/signup/confirm',\n  'POST /api/items'\n];",
+    expected: 'Der Waechter ueber den Quelltext'
+  },
+  {
+    nr: '1122', name: 'Der Token reist wieder mit HttpOnly und ist unlesbar',
+    file: 'auth.js',
+    search: "  `${csrfName(req)}=${csrfToken(token)}; Path=/; SameSite=Lax` +",
+    replacement: "  `${csrfName(req)}=${csrfToken(token)}; HttpOnly; Path=/; SameSite=Lax` +",
+    expected: 'Kein fremdes Formular kommt an eine schreibende Route'
+  },
+  {
+    nr: '1123', name: 'Der Token wird gewuerfelt statt abgeleitet',
+    file: 'auth.js',
+    search: "  crypto.createHash('sha256').update('csrf:' + String(token)).digest('hex');",
+    replacement: "  crypto.createHash('sha256').update('csrf:').digest('hex');",
+    expected: 'Kein fremdes Formular kommt an eine schreibende Route'
+  },
+  /* ---- 0.36.0: die Einsetzungen in innerHTML ---- */
+  {
+    nr: '1124', name: 'Ein Titel geht wieder ungefuehrt in innerHTML',
+    file: 'public/app.js',
+    search: '      <h3 class="card-title">${esc(it.title)}</h3>',
+    replacement: '      <h3 class="card-title">${it.title}</h3>',
+    expected: 'Keine nackte Einsetzung in innerHTML'
+  },
+  {
+    nr: '1125', name: 'Die Ausnahmeliste traegt einen Namen, den es nicht gibt',
+    file: 'test/source.js',
+    search: "    'changeBox', 'listBox', 'outdatedBox', 'tooBigBox'",
+    replacement: "    'changeBox', 'listBox', 'outdatedBox', 'tooBigBox', 'gibtEsNicht'",
+    expected: 'Keine nackte Einsetzung in innerHTML'
+  },
+  /* ---- 0.36.0: npm audit faerbt den Lauf ---- */
+  {
+    nr: '1126', name: 'Eine gemeldete Luecke faerbt den Lauf nicht mehr',
+    file: 'test/selfcheck.js',
+    search: "      const naCounts = (naReport.metadata && naReport.metadata.vulnerabilities) || {};",
+    replacement: "      const naCounts = { total: 1 };",
+    expected: 'Bekannte Luecken in den Abhaengigkeiten'
   },
 ];
 

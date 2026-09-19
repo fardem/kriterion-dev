@@ -60,12 +60,12 @@ async function run() {
       fk.append('kind', tlKinds[c]);
       fk.append('pinned', c % 2 === 0 ? '1' : '0');
       await fetch(`${tlA.base}/api/items/${it.id}/comments`,
-        { method: 'POST', headers: { cookie: tlA.cookieValue() }, body: fk });
+        { method: 'POST', headers: H.withCsrf(tlA.cookieValue()), body: fk });
     }
     const fa = new FormData();
     fa.append('files', new Blob([tlAttachment], { type: 'text/plain' }), `gross-${i}.txt`);
     await fetch(`${tlA.base}/api/items/${it.id}/attachments`,
-      { method: 'POST', headers: { cookie: tlA.cookieValue() }, body: fa });
+      { method: 'POST', headers: H.withCsrf(tlA.cookieValue()), body: fa });
   }
 
   /* --- Der Plan --- */
@@ -205,7 +205,7 @@ async function run() {
     fd.append('file', new Blob([tlFiles[i].text], { type: 'application/json' }), `teil-${i + 1}.json`);
     fd.append('mode', i === 0 ? 'replace' : 'merge');
     const a = await fetch(`${tlB.base}/api/import`,
-      { method: 'POST', headers: { cookie: tlB.cookieValue() }, body: fd });
+      { method: 'POST', headers: H.withCsrf(tlB.cookieValue()), body: fd });
     check(`Teil ${i + 1} spielt sich ein`, a.status === 200, `${a.status}`);
   }
   const tlAfter = await tlCapture(tlB);
@@ -314,7 +314,7 @@ async function run() {
       const fa = new FormData();
       fa.append('files', new Blob([tzAttachment], { type: 'text/plain' }), `gross-${i}.txt`);
       await fetch(`${tzS.base}/api/items/${it.id}/attachments`,
-        { method: 'POST', headers: { cookie: tzS.cookieValue() }, body: fa });
+        { method: 'POST', headers: H.withCsrf(tzS.cookieValue()), body: fa });
     }
     const tzToggle = 'photos=1&files=1&videos=1';
     const tzPlan = (await tzS.call('GET', `/api/export/plan?${tzToggle}&target=1048576`)).content;

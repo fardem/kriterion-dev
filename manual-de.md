@@ -19,7 +19,9 @@ Sitzung nichts aus, Fotos, Videos und Export eingeschlossen. Sitzungen laufen na
 Tagen ab.
 
 Nach mehreren Fehlversuchen antwortet die Anmeldung verzögert, nach zehn
-Fehlversuchen von derselben Adresse für einige Minuten gar nicht mehr.
+Fehlversuchen von derselben Adresse für einige Minuten gar nicht mehr. **Eine
+laufende Sperre bleibt auch dann bestehen, wenn die Installation
+zwischendurch neu startet.**
 Gezählt wird zusätzlich je Benutzername — dort wird nur verzögert, nie
 gesperrt: eine harte Namenssperre ließe sich gegen fremde Konten richten.
 **Dieselbe Bremse steht vor dem Einlösen eines Einladungslinks oder eines

@@ -307,14 +307,13 @@ async function run() {
     let ffCookie = '';
     const ffCall = async (method, filePath, body) => {
       const opt = { method, headers: {} };
-      if (ffCookie) opt.headers.cookie = ffCookie;
+      if (ffCookie) Object.assign(opt.headers, H.withCsrf(ffCookie));
       if (body !== undefined) {
         opt.headers['content-type'] = 'application/json';
         opt.body = JSON.stringify(body);
       }
       const a = await fetch(ffBase + filePath, opt);
-      const setCookie = a.headers.get('set-cookie');
-      if (setCookie) ffCookie = setCookie.split(';')[0];
+      ffCookie = H.jar(ffCookie, a);
       return { status: a.status, content: await a.json().catch(() => null) };
     };
     const ffSetup = ffUp

@@ -293,7 +293,9 @@ async function run() {
       '<code>https://www.google.com/search?q=site%3Aforum.beispiel.de+%s</code>',
       'https://forum.beispiel.de/suche?q=%s',
       /* DAS MERKMAL DER ABGELAUFENEN SITZUNG -- 0.31.1, Bauabschnitt 4. */
-      'kriterion:session-gone'
+      'kriterion:session-gone',
+      /* DER NAME DES COOKIES, DER DEN SCHUTZ GEGEN FREMDE FORMULARE TRAEGT. */
+      '__Host-kriterion_csrf'
     ].sort();
     const tooMany = rest.filter(t => !REST_EXPECTED.includes(t));
     const missing = REST_EXPECTED.filter(t => !rest.includes(t));
@@ -301,7 +303,7 @@ async function run() {
        derselbe. */
     check('Restprobe: weniger als siebzig lesbare Texte in app.js',
       rest.length < 70, `${rest.length} verschiedene, ${restPlaces.length} Stellen`);
-    check('Und es sind genau die neunundfuenfzig benannten',
+    check('Und es sind genau die sechzig benannten',
       tooMany.length === 0 && missing.length === 0,
       `zu viel: ${tooMany.slice(0, 8).map(t => JSON.stringify(t.slice(0, 40))).join(' · ')} · fehlt: ${missing.slice(0, 8).map(t => JSON.stringify(t.slice(0, 40))).join(' · ')}`);
     // Und der Filter wirft nicht alles weg: ein deutscher Satz geht durch.

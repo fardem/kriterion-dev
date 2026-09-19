@@ -165,7 +165,7 @@ async function sendMultipart(filePath, field, files, fields = {}) {
   parts.push(Buffer.from(`--${limit}--\r\n`, 'utf8'));
   const a = await fetch(BASE + filePath, {
     method: 'POST',
-    headers: { cookie: H.cookie, 'content-type': `multipart/form-data; boundary=${limit}` },
+    headers: { ...H.withCsrf(H.cookie), 'content-type': `multipart/form-data; boundary=${limit}` },
     body: Buffer.concat(parts)
   });
   return { status: a.status, content: await a.json().catch(() => null) };
@@ -232,7 +232,7 @@ async function sendImport(object, mode, withoutShare = false) {
   const body = part('mode', mode) + part('file', JSON.stringify(object), 'export.json') + `--${limit}--\r\n`;
   const a = await fetch(BASE + '/api/import', {
     method: 'POST',
-    headers: { cookie: H.cookie, 'content-type': `multipart/form-data; boundary=${limit}` },
+    headers: { ...H.withCsrf(H.cookie), 'content-type': `multipart/form-data; boundary=${limit}` },
     body: body
   });
   return { status: a.status, content: await a.json().catch(() => null) };
@@ -315,6 +315,67 @@ async function sendImport(object, mode, withoutShare = false) {
   }
 
   /* ---------------------------------------------------------------- */
+  /* ---------------------------------------------------------------- */
+  group('Kein fremdes Formular kommt an eine schreibende Route');
+
+  /* AN DER LAUFENDEN INSTANZ UND NICHT AM QUELLTEXT, Route fuer Route. Die
+     Liste ist dieselbe, die der Rechtewaechter liest. */
+  const csSource = fs.readFileSync(path.join(__dirname, 'server.js'), 'utf8');
+  const csFree = new Set([...csSource.slice(csSource.indexOf('const CSRF_FREE = ['),
+      csSource.indexOf('const CSRF_FREE_SET')).matchAll(/'([A-Z]+) (\/api\/[\w\/.:-]*)'/g)]
+    .map(m => `${m[1]} ${m[2]}`));
+  /* Eine Nummer statt der Klemme: die Anfrage kommt an die Route ohnehin
+     nicht heran, aber ein Pfad mit ':' traefe sie auch nicht. */
+  const csAddress = (filePath) => filePath.replace(/:[A-Za-z]+/g, '7');
+  const csGuarded = H.F_ROUTES.filter(([m, p]) => !csFree.has(`${m} ${p}`));
+  check('Fuenfundsechzig der dreiundsiebzig Routen stehen hinter dem Schutz',
+    csGuarded.length === 65 && H.F_ROUTES.length === 73,
+    `${csGuarded.length} von ${H.F_ROUTES.length}`);
+  const csThrough = [];
+  for (const [method, filePath] of csGuarded) {
+    /* OHNE KOPFZEILE UND MIT SITZUNG -- genau die Lage eines Formulars auf
+       einer fremden Seite. */
+    const a = await fetch(BASE + csAddress(filePath),
+      { method, headers: { cookie: H.cookie, 'content-type': 'application/json' },
+        body: '{}' });
+    if (a.status !== 403) csThrough.push(`${method} ${filePath} → ${a.status}`);
+  }
+  check('Jede von ihnen weist eine Anfrage ohne Token ab',
+    csThrough.length === 0, csThrough.slice(0, 6).join(' · '));
+  /* UND DIE GEGENRICHTUNG: mit Token kommt dieselbe Anfrage an die Route und
+     bekommt die Antwort der Route -- 403 waere hier der Fehler. */
+  const csWith = await fetch(BASE + '/api/links/999999',
+    { method: 'DELETE', headers: H.withCsrf(H.cookie) });
+  check('Mit Token kommt sie an die Route heran', csWith.status === 404,
+    `Status ${csWith.status}`);
+  /* Und die acht offenen Routen bleiben offen: sie stehen vor der Anmeldung
+     und koennen den Token nicht haben. */
+  const csOpen = await fetch(BASE + '/api/signup',
+    { method: 'POST', headers: { 'content-type': 'application/json' }, body: '{}' });
+  check('Und eine offene Route bleibt ohne Token erreichbar', csOpen.status === 400,
+    `Status ${csOpen.status}`);
+
+  /* ---- DIE GESTALT DER BEIDEN COOKIES ---- Der Sitzungscookie bleibt dem
+     Skript verborgen, der Token muss lesbar sein: sonst kann ihn niemand
+     mitschicken. */
+  const csLogin = await fetch(BASE + '/api/login',
+    { method: 'POST', headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ user: USER, password: PASSWORD }) });
+  const csCookies = csLogin.headers.getSetCookie();
+  const csSession = csCookies.find(z => z.startsWith('kriterion_session='));
+  const csToken = csCookies.find(z => z.startsWith('kriterion_csrf='));
+  check('Die Anmeldung setzt beide Cookies', Boolean(csSession && csToken),
+    csCookies.map(z => z.split('=')[0]).join(' '));
+  check('Der Sitzungscookie traegt HttpOnly', /;\s*HttpOnly/i.test(csSession || ''),
+    String(csSession).split(';').slice(1).join(';'));
+  check('Und der Token ausdruecklich NICHT', !/;\s*HttpOnly/i.test(csToken || ''),
+    String(csToken).split(';').slice(1).join(';'));
+  /* UND ER IST AUS DER SITZUNG ABGELEITET -- ohne diese Zeile koennte er auch
+     eine zweite Zufallszahl sein, und dann braeuchte er eine eigene Zeile. */
+  check('Und er ist aus dem Sitzungstoken abgeleitet',
+    String(csToken).split(';')[0].split('=')[1] === H.csrfFor(String(csSession).split(';')[0]),
+    String(csToken).split(';')[0]);
+
   group('Umbenennung auf Kriterion');
 
   // Zwei Stellen der Umbenennung stehen bewusst nicht hier, sondern dort, wo
@@ -1568,7 +1629,7 @@ async function sendImport(object, mode, withoutShare = false) {
     /SEARCH_HANDOFF = false;/.test(appSource));
 
   /* ---- Zusage 4 bis 6: die Reihenfolge ---- */
-  const nachbarn = piece('const entryNeighbours =', '\n/* Der Aufbau.');
+  const nachbarn = piece('const entryNeighbours =', '\n/* DIE ZWEI KNOEPFE AM FUSS');
   check('Die Pfeile blaettern in der Reihenfolge der Uebersicht',
     /state\.items \|\| \[\]/.test(nachbarn));
   check('Und nicht im ungefilterten Bestand',
@@ -1579,7 +1640,7 @@ async function sendImport(object, mode, withoutShare = false) {
   check('Und kein Feld daneben, das niemand liest',
     !/ordered/.test(nachbarn));
   /* DER FUSS DES EINTRAGS -- seit 0.28.1 der Ort der beiden Knoepfe. */
-  const foot = piece('      const nb = entryNeighbours(id);', '\n  wireSubhead(');
+  const foot = piece('function entryNav(id) {', '\n/* Der Aufbau.');
   check('Am Anfang und am Ende sind sie gedaempft und bleiben stehen',
     /at > 0 \? list\[at - 1\]\.id : null/.test(nachbarn)
     && /at < list\.length - 1 \? list\[at \+ 1\]\.id : null/.test(nachbarn)
@@ -2691,7 +2752,7 @@ async function sendImport(object, mode, withoutShare = false) {
   const P1 = startFurtherServer(pDir, {}, 4950);
   await P1.ready;
   const pCall = async (cookieName, method, filePath, body) => {
-    const opt = { method: method, headers: { cookie: `kriterion_session=${cookieName}` } };
+    const opt = { method: method, headers: H.withCsrf(`kriterion_session=${cookieName}`) };
     if (body !== undefined) {
       opt.headers['content-type'] = 'application/json';
       opt.body = JSON.stringify(body);
@@ -2914,7 +2975,7 @@ async function sendImport(object, mode, withoutShare = false) {
   // startFurtherServer zu benutzen -- sonst ueberschriebe der zweite den
   // ersten und es gaebe wieder nur einen Rufer.
   const dCall = async (cookieValue, method, filePath, body) => {
-    const opt = { method: method, headers: { cookie: `kriterion_session=${cookieValue}` } };
+    const opt = { method: method, headers: H.withCsrf(`kriterion_session=${cookieValue}`) };
     if (body !== undefined) {
       opt.headers['content-type'] = 'application/json';
       opt.body = JSON.stringify(body);
@@ -3937,7 +3998,7 @@ async function sendImport(object, mode, withoutShare = false) {
   /* UND DER WEG GEHOERT DEM ADMIN. Ohne diese Zeile koennte jeder Benutzer
      dem ganzen Bestand eine Sprache zuschreiben. */
   const ktUserAssign = await fetch(`${KT.base}/api/names/language`, { method: 'PUT',
-    headers: { cookie: ktCookie, 'content-type': 'application/json' },
+    headers: { ...H.withCsrf(ktCookie), 'content-type': 'application/json' },
     body: JSON.stringify({ language: 'de' }) });
   check('Und der gewoehnliche Zugang kommt an den Weg nicht heran',
     ktUserAssign.status === 403, `Status ${ktUserAssign.status}`);
@@ -4378,8 +4439,12 @@ async function sendImport(object, mode, withoutShare = false) {
       "SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%'")
       .all().map(z => z.name).sort();
     tzDb.close();
-    check('Die Datenbank traegt genau achtundzwanzig Tabellen',
-      tzTables.length === 28, `${tzTables.length}: ${tzTables.join(' ')}`);
+    check('Die Datenbank traegt genau neunundzwanzig Tabellen',
+      tzTables.length === 29, `${tzTables.length}: ${tzTables.join(' ')}`);
+    /* DIE NEUNUNDZWANZIGSTE TRAEGT DIE ANMELDEBREMSE -- sie lag vorher in
+       einer Map, und ein Neustart setzte jeden Zaehler auf null. */
+    check('Und die neue heisst login_attempts',
+      tzTables.includes('login_attempts'), tzTables.join(' '));
     check('Und die beiden neuen aus 0.24.3 stehen darunter',
       tzTables.includes('criterion_names') && tzTables.includes('category_names'),
       tzTables.join(' '));
@@ -4449,7 +4514,7 @@ async function sendImport(object, mode, withoutShare = false) {
   await SE1.ready;
   // Drei echte Cookies nebeneinander, am gemeinsamen Cookiespeicher vorbei.
   const eCall = async (cookieValue, method, filePath, body) => {
-    const opt = { method: method, headers: { cookie: `kriterion_session=${cookieValue}` } };
+    const opt = { method: method, headers: H.withCsrf(`kriterion_session=${cookieValue}`) };
     if (body !== undefined) {
       opt.headers['content-type'] = 'application/json';
       opt.body = JSON.stringify(body);
@@ -5361,7 +5426,7 @@ async function sendImport(object, mode, withoutShare = false) {
   await SE2.ready;
 
   const e2Call = async (cookieValue, method, filePath, body) => {
-    const opt = { method: method, headers: { cookie: `kriterion_session=${cookieValue}` } };
+    const opt = { method: method, headers: H.withCsrf(`kriterion_session=${cookieValue}`) };
     if (body !== undefined) {
       opt.headers['content-type'] = 'application/json';
       opt.body = JSON.stringify(body);
@@ -5384,7 +5449,7 @@ async function sendImport(object, mode, withoutShare = false) {
     const body = part('mode', mode) + part('file', JSON.stringify(object), 'export.json') + `--${limit}--\r\n`;
     const a = await fetch(SE2.base + '/api/import', {
       method: 'POST',
-      headers: { cookie: `kriterion_session=${cookieValue}`, 'content-type': `multipart/form-data; boundary=${limit}` },
+      headers: { ...H.withCsrf(`kriterion_session=${cookieValue}`), 'content-type': `multipart/form-data; boundary=${limit}` },
       body: body
     });
     return { status: a.status, content: await a.json().catch(() => null) };
@@ -5755,7 +5820,7 @@ async function sendImport(object, mode, withoutShare = false) {
     ];
     const a = await fetch(SE2.base + `/api/items/${e2VidItem?.id}/videos`, {
       method: 'POST',
-      headers: { cookie: 'kriterion_session=cookie-e2-anna',
+      headers: { ...H.withCsrf('kriterion_session=cookie-e2-anna'),
                  'content-type': `multipart/form-data; boundary=${limit}` },
       body: Buffer.concat(parts)
     });
@@ -6021,7 +6086,7 @@ async function sendImport(object, mode, withoutShare = false) {
   await PK.ready;
 
   const pkCall = async (cookieValue, method, filePath, body) => {
-    const opt = { method: method, headers: { cookie: `kriterion_session=${cookieValue}` } };
+    const opt = { method: method, headers: H.withCsrf(`kriterion_session=${cookieValue}`) };
     if (body !== undefined) {
       opt.headers['content-type'] = 'application/json';
       opt.body = JSON.stringify(body);
@@ -6041,7 +6106,7 @@ async function sendImport(object, mode, withoutShare = false) {
     const body = part('mode', mode) + part('file', JSON.stringify(object), 'export.json') + `--${limit}--\r\n`;
     const a = await fetch(PK.base + '/api/import', {
       method: 'POST',
-      headers: { cookie: `kriterion_session=${cookieValue}`, 'content-type': `multipart/form-data; boundary=${limit}` },
+      headers: { ...H.withCsrf(`kriterion_session=${cookieValue}`), 'content-type': `multipart/form-data; boundary=${limit}` },
       body: body
     });
     return { status: a.status, content: await a.json().catch(() => null) };
@@ -6686,7 +6751,7 @@ async function sendImport(object, mode, withoutShare = false) {
     d.close();
   }
   const siCall = async (cookieValue, method, filePath, body) => {
-    const opt = { method: method, headers: { cookie: `kriterion_session=${cookieValue}` } };
+    const opt = { method: method, headers: H.withCsrf(`kriterion_session=${cookieValue}`) };
     if (body !== undefined) {
       opt.headers['content-type'] = 'application/json';
       opt.body = JSON.stringify(body);
@@ -6732,7 +6797,7 @@ async function sendImport(object, mode, withoutShare = false) {
       const SI2 = startFurtherServer(siInsideData, { BACKUP_DIR: siInside }, 4500);
       await SI2.ready;
       const a = await fetch(SI2.base + '/api/backup',
-        { headers: { cookie: 'kriterion_session=cookie-si-innen' } });
+        { headers: H.withCsrf('kriterion_session=cookie-si-innen') });
       let inside = null;
       try { inside = await a.json(); } catch {}
       check('Ein Ort IM Arbeitsverzeichnis meldet sich als solcher',
@@ -6742,7 +6807,7 @@ async function sendImport(object, mode, withoutShare = false) {
         JSON.stringify([inside?.configured, inside?.reason, inside?.error]));
       check('Und es laesst sich dort wirklich sichern',
         (await (await fetch(SI2.base + '/api/backup',
-          { method: 'POST', headers: { cookie: 'kriterion_session=cookie-si-innen' } })).json())?.file
+          { method: 'POST', headers: H.withCsrf('kriterion_session=cookie-si-innen') })).json())?.file
           !== undefined);
       check('Die Datei liegt danach im Arbeitsverzeichnis',
         fs.readdirSync(siInside).some(n => /^kriterion-.*\.sqlite$/.test(n)),
@@ -7191,7 +7256,7 @@ async function sendImport(object, mode, withoutShare = false) {
     const SD = startFurtherServer(dDir, { BACKUP_DIR: path.join(dDir, 'sicherung') }, 4360);
     await SD.ready;
     const a = await fetch(SD.base + '/api/backup',
-      { headers: { cookie: 'kriterion_session=cookie-sd-anna' } });
+      { headers: H.withCsrf('kriterion_session=cookie-sd-anna') });
     const content = await a.json().catch(() => null);
     check('Ein Sicherungsort IM Datenverzeichnis bleibt aus',
       content?.configured === false, JSON.stringify(content));
@@ -7199,7 +7264,7 @@ async function sendImport(object, mode, withoutShare = false) {
       /nicht im Datenverzeichnis/.test(content?.reason || ''), content?.reason);
     check('Der Knopf sagt dort ebenfalls ab',
       (await (await fetch(SD.base + '/api/backup', { method: 'POST',
-        headers: { cookie: 'kriterion_session=cookie-sd-anna' } })).json()
+        headers: H.withCsrf('kriterion_session=cookie-sd-anna') })).json()
       ).error?.includes('Datenverzeichnis'), 'keine sprechende Absage');
     /* DIESE ZUSAGE HAT DEN FEHLER FESTGENAGELT und ist deshalb UMGEDREHT und
        nicht geloescht. */
@@ -7239,7 +7304,7 @@ async function sendImport(object, mode, withoutShare = false) {
     const SO = startFurtherServer(oDir, { BACKUP_DIR: '' }, 4420);
     await SO.ready;
     const content = await (await fetch(SO.base + '/api/backup',
-      { headers: { cookie: 'kriterion_session=cookie-so-anna' } })).json().catch(() => null);
+      { headers: H.withCsrf('kriterion_session=cookie-so-anna') })).json().catch(() => null);
     check('Ohne eingerichteten Ort bleibt die Karte aus',
       content?.configured === false, JSON.stringify(content));
     check('Und nennt den Weg dorthin',
@@ -7428,7 +7493,7 @@ async function sendImport(object, mode, withoutShare = false) {
   }
 
   const auCall = async (cookieValue, method, filePath, body) => {
-    const opt = { method: method, headers: { cookie: `kriterion_session=${cookieValue}` } };
+    const opt = { method: method, headers: H.withCsrf(`kriterion_session=${cookieValue}`) };
     if (body !== undefined) {
       opt.headers['content-type'] = 'application/json';
       opt.body = JSON.stringify(body);
@@ -7977,7 +8042,7 @@ async function sendImport(object, mode, withoutShare = false) {
   await F.ready;
 
   const fCall = async (cookieValue, method, filePath, body) => {
-    const opt = { method: method, headers: { cookie: `kriterion_session=${cookieValue}` } };
+    const opt = { method: method, headers: H.withCsrf(`kriterion_session=${cookieValue}`) };
     if (body !== undefined) {
       opt.headers['content-type'] = 'application/json';
       opt.body = JSON.stringify(body);
@@ -7998,7 +8063,7 @@ async function sendImport(object, mode, withoutShare = false) {
     ];
     const a = await fetch(F.base + `/api/items/${itemId}/attachments`, {
       method: 'POST',
-      headers: { cookie: `kriterion_session=${cookieValue}`,
+      headers: { ...H.withCsrf(`kriterion_session=${cookieValue}`),
                  'content-type': `multipart/form-data; boundary=${limit}` },
       body: Buffer.concat(parts)
     });
@@ -8146,7 +8211,7 @@ async function sendImport(object, mode, withoutShare = false) {
     ];
     const a = await fetch(F.base + `/api/items/${itemId}/videos`, {
       method: 'POST',
-      headers: { cookie: `kriterion_session=${cookieValue}`,
+      headers: { ...H.withCsrf(`kriterion_session=${cookieValue}`),
                  'content-type': `multipart/form-data; boundary=${limit}` },
       body: Buffer.concat(parts)
     });
@@ -8556,7 +8621,7 @@ async function sendImport(object, mode, withoutShare = false) {
     const body = part('mode', mode) + part('file', JSON.stringify(object), 'export.json') + `--${limit}--\r\n`;
     const a = await fetch(F.base + '/api/import', {
       method: 'POST',
-      headers: { cookie: `kriterion_session=${cookieValue}`, 'content-type': `multipart/form-data; boundary=${limit}` },
+      headers: { ...H.withCsrf(`kriterion_session=${cookieValue}`), 'content-type': `multipart/form-data; boundary=${limit}` },
       body: body
     });
     return { status: a.status, content: await a.json().catch(() => null) };
@@ -9308,7 +9373,7 @@ async function sendImport(object, mode, withoutShare = false) {
   const AG = startFurtherServer(agDir, {}, 7060);
   await AG.ready;
   const agCall = async (actor, method, filePath, body) => {
-    const opt = { method: method, headers: { cookie: `kriterion_session=${actor}` } };
+    const opt = { method: method, headers: H.withCsrf(`kriterion_session=${actor}`) };
     if (body !== undefined) {
       opt.headers['content-type'] = 'application/json';
       opt.body = JSON.stringify(body);
@@ -9532,7 +9597,7 @@ async function sendImport(object, mode, withoutShare = false) {
   const AGZ = startFurtherServer(agTargetDir, {}, 7120);
   await AGZ.ready;
   const agzCall = async (method, filePath, body) => {
-    const opt = { method: method, headers: { cookie: 'kriterion_session=cookie-agz-anna' } };
+    const opt = { method: method, headers: H.withCsrf('kriterion_session=cookie-agz-anna') };
     if (body !== undefined) {
       opt.headers['content-type'] = 'application/json';
       opt.body = JSON.stringify(body);
@@ -9555,7 +9620,7 @@ async function sendImport(object, mode, withoutShare = false) {
       `--${limit}--\r\n`;
     const a = await fetch(AGZ.base + '/api/import', {
       method: 'POST',
-      headers: { cookie: 'kriterion_session=cookie-agz-anna',
+      headers: { ...H.withCsrf('kriterion_session=cookie-agz-anna'),
                  'content-type': `multipart/form-data; boundary=${limit}` },
       body: body
     });
@@ -9772,7 +9837,7 @@ async function sendImport(object, mode, withoutShare = false) {
     d.close();
   }
   const sbCall = async (cookieValue, method, filePath, body) => {
-    const opt = { method: method, headers: { cookie: `kriterion_session=${cookieValue}` } };
+    const opt = { method: method, headers: H.withCsrf(`kriterion_session=${cookieValue}`) };
     if (body !== undefined) {
       opt.headers['content-type'] = 'application/json';
       opt.body = JSON.stringify(body);
@@ -9960,7 +10025,7 @@ async function sendImport(object, mode, withoutShare = false) {
 
   const tkCall = async (cookieValue, method, filePath, body) => {
     const opt = { method: method, headers: {} };
-    if (cookieValue) opt.headers.cookie = `kriterion_session=${cookieValue}`;
+    if (cookieValue) Object.assign(opt.headers, H.withCsrf(`kriterion_session=${cookieValue}`));
     if (body !== undefined) {
       opt.headers['content-type'] = 'application/json';
       opt.body = JSON.stringify(body);
@@ -10658,7 +10723,7 @@ async function sendImport(object, mode, withoutShare = false) {
   await TB.ready;
   const tbCall = async (cookieValue, method, filePath, body) => {
     const opt = { method: method, headers: {} };
-    if (cookieValue) opt.headers.cookie = `kriterion_session=${cookieValue}`;
+    if (cookieValue) Object.assign(opt.headers, H.withCsrf(`kriterion_session=${cookieValue}`));
     if (body !== undefined) {
       opt.headers['content-type'] = 'application/json';
       opt.body = JSON.stringify(body);
@@ -10745,7 +10810,7 @@ async function sendImport(object, mode, withoutShare = false) {
   const MS = startFurtherServer(msDir, {}, 4560);
   await MS.ready;
   const msCall = async (cookieValue, method, filePath) => {
-    const opt = { method: method, headers: { cookie: `kriterion_session=${cookieValue}` } };
+    const opt = { method: method, headers: H.withCsrf(`kriterion_session=${cookieValue}`) };
     const a = await fetch(MS.base + filePath, opt);
     let content = null, raw = '';
     try { raw = await a.text(); content = JSON.parse(raw); } catch {}
@@ -10980,7 +11045,7 @@ async function sendImport(object, mode, withoutShare = false) {
 
   const prCall = async (cookieValue, method, filePath, body) => {
     const opt = { method: method, headers: {} };
-    if (cookieValue) opt.headers.cookie = `kriterion_session=${cookieValue}`;
+    if (cookieValue) Object.assign(opt.headers, H.withCsrf(`kriterion_session=${cookieValue}`));
     if (body !== undefined) {
       opt.headers['content-type'] = 'application/json';
       opt.body = JSON.stringify(body);
@@ -11150,7 +11215,7 @@ async function sendImport(object, mode, withoutShare = false) {
     const body = part('mode', mode) + part('file', JSON.stringify(object), 'export.json') + `--${limit}--\r\n`;
     const a = await fetch(PR.base + '/api/import', {
       method: 'POST',
-      headers: { cookie: `kriterion_session=${cookieValue}`, 'content-type': `multipart/form-data; boundary=${limit}` },
+      headers: { ...H.withCsrf(`kriterion_session=${cookieValue}`), 'content-type': `multipart/form-data; boundary=${limit}` },
       body: body
     });
     return { status: a.status, content: await a.json().catch(() => null) };
@@ -11393,7 +11458,7 @@ async function sendImport(object, mode, withoutShare = false) {
 
   const zbCall = async (cookieValue, method, filePath, body) => {
     const opt = { method: method, headers: {} };
-    if (cookieValue) opt.headers.cookie = `kriterion_session=${cookieValue}`;
+    if (cookieValue) Object.assign(opt.headers, H.withCsrf(`kriterion_session=${cookieValue}`));
     if (body !== undefined) {
       opt.headers['content-type'] = 'application/json';
       opt.body = JSON.stringify(body);
@@ -11489,7 +11554,7 @@ async function sendImport(object, mode, withoutShare = false) {
     const bundle = { version: 14, title: 'Z', items: [] };
     const a = await fetch(ZB.base + '/api/import', {
       method: 'POST',
-      headers: { cookie: `kriterion_session=${zbAnna}`,
+      headers: { ...H.withCsrf(`kriterion_session=${zbAnna}`),
                  'content-type': `multipart/form-data; boundary=${limit}` },
       body: part('mode', 'merge') + part('file', JSON.stringify(bundle), 'export.json') +
             `--${limit}--\r\n`
@@ -11613,7 +11678,7 @@ async function sendImport(object, mode, withoutShare = false) {
       `--${limit}--\r\n`;
     const a = await fetch(ZB.base + '/api/import', {
       method: 'POST',
-      headers: { cookie: `kriterion_session=${zbAnna}`, 'content-type': `multipart/form-data; boundary=${limit}` },
+      headers: { ...H.withCsrf(`kriterion_session=${zbAnna}`), 'content-type': `multipart/form-data; boundary=${limit}` },
       body: body
     });
     return { status: a.status };
@@ -11726,7 +11791,7 @@ async function sendImport(object, mode, withoutShare = false) {
     await BB.ready;
     const bbCall = async (cookieValue, method, filePath, body) => {
       const opt = { method: method, headers: {} };
-      if (cookieValue) opt.headers.cookie = `kriterion_session=${cookieValue}`;
+      if (cookieValue) Object.assign(opt.headers, H.withCsrf(`kriterion_session=${cookieValue}`));
       if (body !== undefined) {
         opt.headers['content-type'] = 'application/json';
         opt.body = JSON.stringify(body);
@@ -11931,7 +11996,7 @@ async function sendImport(object, mode, withoutShare = false) {
     const request = http.request({
       hostname: u.hostname, port: u.port, path: u.pathname + u.search, method: 'POST',
       headers: { 'content-type': 'application/json', 'content-length': core.length,
-                 cookie: S.cookieValue(), ...head }
+                 ...H.withCsrf(S.cookieValue()), ...head }
     }, a => {
       let text = '';
       a.on('data', d => { text += d; });
@@ -14319,7 +14384,7 @@ async function sendImport(object, mode, withoutShare = false) {
 
   const gCall = async (cookieValue, method, filePath, body) => {
     const opt = { method: method, headers: {} };
-    if (cookieValue) opt.headers.cookie = `kriterion_session=${cookieValue}`;
+    if (cookieValue) Object.assign(opt.headers, H.withCsrf(`kriterion_session=${cookieValue}`));
     if (body !== undefined) {
       opt.headers['content-type'] = 'application/json';
       opt.body = JSON.stringify(body);
@@ -18137,14 +18202,13 @@ async function sendImport(object, mode, withoutShare = false) {
   let vaCookie = '';
   const vaCall = async (method, filePath, body) => {
     const opt = { method: method, headers: {} };
-    if (vaCookie) opt.headers.cookie = vaCookie;
+    if (vaCookie) Object.assign(opt.headers, H.withCsrf(vaCookie));
     if (body !== undefined) {
       opt.headers['content-type'] = 'application/json';
       opt.body = JSON.stringify(body);
     }
     const a = await fetch(BASE + filePath, opt);
-    const setCookieHeader = a.headers.get('set-cookie');
-    if (setCookieHeader) vaCookie = setCookieHeader.split(';')[0];
+    vaCookie = H.jar(vaCookie, a);
     let content = null;
     try { content = await a.json(); } catch {}
     return { status: a.status, content };
@@ -18208,7 +18272,7 @@ async function sendImport(object, mode, withoutShare = false) {
       + part('file', JSON.stringify(object), 'export.json') + `--${limit}--\r\n`;
     const a = await fetch(S.base + '/api/import', {
       method: 'POST',
-      headers: { cookie: S.cookieValue(), 'content-type': `multipart/form-data; boundary=${limit}` },
+      headers: { ...H.withCsrf(S.cookieValue()), 'content-type': `multipart/form-data; boundary=${limit}` },
       body: body
     });
     return { status: a.status, content: await a.json().catch(() => null) };

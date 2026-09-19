@@ -117,6 +117,38 @@ async function checkFirstLogin() {
     (await B.call('POST', '/api/login', { user: 'chefin', password: 'ganz-neues-passwort' })).status === 429);
   await B.stop();
 
+  /* --- Und sie uebersteht einen Neustart --- Bis zu dieser Fassung lagen die
+     Zaehler in einer Map: ein Neustart setzte jeden auf null. */
+  group('Erstanmeldung: die Sperre ueberlebt den Neustart');
+  {
+    const locked = open(path.join(freshDir, 'katalog.sqlite'));
+    const rows = locked.prepare('SELECT who, tries, until FROM login_attempts ORDER BY who').all();
+    check('Die Versuche stehen in der Datenbank',
+      rows.length >= 2 && rows.some(z => z.who.startsWith('ip:') && z.until) &&
+      rows.some(z => z.who === 'name:chefin'), JSON.stringify(rows));
+    /* EINE ALTE ZEILE, DIE DER START WEGRAEUMEN MUSS -- ohne sie belegte die
+       Pruefung darunter nichts. */
+    locked.prepare(`INSERT INTO login_attempts (who, tries, until, seen_at)
+      VALUES ('ip:198.51.100.9', 3, NULL, datetime('now', '-2 hours'))`).run();
+    locked.close();
+  }
+  const B2 = startFurtherServer(freshDir, {}, 4100);
+  await B2.ready;
+  check('Nach dem Neustart gilt die Sperre weiter',
+    (await B2.call('POST', '/api/login',
+      { user: 'chefin', password: 'ganz-neues-passwort' })).status === 429);
+  {
+    const after = open(path.join(freshDir, 'katalog.sqlite'));
+    check('Und die alte Zeile ist beim Start geraeumt',
+      !after.prepare("SELECT 1 FROM login_attempts WHERE who = 'ip:198.51.100.9'").get(),
+      JSON.stringify(after.prepare('SELECT who, tries FROM login_attempts').all()));
+    check('Die laufende Sperre bleibt dabei stehen',
+      after.prepare('SELECT COUNT(*) n FROM login_attempts WHERE until IS NOT NULL').get().n === 1,
+      JSON.stringify(after.prepare('SELECT who, until FROM login_attempts').all()));
+    after.close();
+  }
+  await B2.stop();
+
   /* --- AUTH_RESET wird abgelehnt --- Frueher setzte die Umgebungsvariable
      beim Start ein blankes DELETE FROM users ab. */
   group('AUTH_RESET wird abgelehnt');

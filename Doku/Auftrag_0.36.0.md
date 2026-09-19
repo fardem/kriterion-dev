@@ -1,6 +1,14 @@
 # Auftrag 0.36.0 — „Sicherheit"
 
-Geschrieben am 19. September 2026. Nicht gebaut. Läuft nach 0.35.2.
+Geschrieben am 19. September 2026. **GEBAUT am 19. September 2026** —
+Änderungsprotokoll 0.36.0.
+
+> **WAS BEIM BAUEN ANDERS GEMESSEN WURDE ALS HIER GEPLANT.** *Die 59 Stellen
+> aus Abschnitt 2 sind eine Obergrenze und wurden als solche genannt. BA 0 hat
+> sie gelesen:* **53 Zuweisungen mit zusammen 104 ungeführten Einsetzungen**,
+> und nicht eine davon trug Benutzertext. *Die Messung liest verschachtelte
+> Vorlagen und Fallunterscheidungen mit, die buchstäbliche Zählung nicht.*
+> **Die Ausnahmeliste aus BA 3 hat 27 Einträge.**
 
 > **DIE FRAGETAFEL IST BEANTWORTET** — vom Betreiber am 19. September 2026, vor
 > dem Bauen. **Diese Runde ist ohne Rückfrage zu fahren.** Die Antworten stehen

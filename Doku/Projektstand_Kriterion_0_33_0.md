@@ -12103,6 +12103,59 @@ Sammelblatt war veraltet.*
 `log.js` ist dazugekommen. **Prüfstand 7040 von 7040, 368 Gruppen, 1053
 Rückbauten, 18 gefahren, 0 stumm.**
 
+### 0.36.0 — „Sicherheit"
+
+**MINOR · 19. September 2026** *(Änderungsprotokoll 0.36.0).* Drei der fünf
+Lücken der Durchsicht vom 15. September 2026; eine war beim Schreiben des
+Auftrags von selbst weggefallen, eine gehörte nicht mehr hierher. Alle sechs
+Fragen des Auftrags waren vor dem Bauen entschieden, die Runde ist ohne
+Rückfrage gefahren.
+
+**Kein fremdes Formular kommt mehr an eine schreibende Route.** Bis dahin
+schützte allein `SameSite=Lax`, und das lässt eine Anfrage aus einer
+Unterseite derselben Instanz durch. Ein Wächter vor allen Routen verlangt an
+jeder schreibenden Anfrage die Kopfzeile `x-csrf-token`; **acht offene Routen**
+stehen namentlich in `CSRF_FREE` und sind in beide Richtungen gegen die Routen
+vor `app.use('/api', auth.requireAuth)` geschlossen. Der Token ist aus dem
+Sitzungstoken abgeleitet — `sha256('csrf:' + token)` — und braucht deshalb
+keine eigene Zeile in der Datenbank; er reist als zweiter Cookie **ohne
+`HttpOnly`**, der Sitzungscookie bleibt `HttpOnly`. Verglichen wird die
+Kopfzeile mit dem abgeleiteten Wert und nicht mit dem Cookie daneben: wer einen
+Cookie setzen kann, gewinnt damit nichts. **Ohne Sitzung entscheidet weiter die
+Anmeldung** — 401 und nicht 403.
+
+**Die Anmeldesperre übersteht einen Neustart.** Sie lag in einer `Map` im
+Arbeitsspeicher; ein Neustart setzte jeden Zähler auf null. Neue Tabelle
+`login_attempts`, **28 Tabellen werden 29**. An der Kurve ändert sich nichts —
+weich ab fünf, hart ab zehn, fünf Minuten, und der Name wird nie hart gesperrt.
+Der Aufräumer läuft beim Start und stündlich und lässt eine laufende Sperre
+stehen.
+
+**Jede Einsetzung in `innerHTML` geht geführt hinein.** Gemessen sind **172**
+Zuweisungen in `public/app.js`: 57 ohne Einsetzung, 62 vollständig geführt,
+**53 mit zusammen 104 ungeführten**. *Die 199 der Durchsicht und die 59 des
+Auftrags gelten beide nicht mehr — diese Messung liest verschachtelte Vorlagen
+und Fallunterscheidungen mit.* **Nicht eine der 104 trug Benutzertext:** es
+waren Nummern, formatierte Zeiten, Adressen und Sätze der eigenen Sprachdatei;
+Titel, Tags, Kategorien und Kommentare gingen schon vorher durch `esc()`.
+Gebaut sind 35-mal `Number()`, 25-mal `esc()`, 6-mal `tH()` statt `t()`,
+die neue Funktion `entryNav()` und fünf umbenannte Träger — dazu ein Wächter
+mit einer **benannten Ausnahmeliste von 27 Namen**, in beide Richtungen
+geschlossen.
+
+**`npm audit` färbt den Lauf.** Der Schritt „Bekannte Lücken" lief auf der
+Werkbank und nirgends sonst. Die Gruppe ruft `npm audit --json` und wird rot,
+sobald etwas darin steht; ohne Netz wird sie übersprungen und sagt es. **Punkt
+21 des Sammelblatts ist damit ganz zu.**
+
+**`F_ROUTES` ist nach `test/frame.js` gezogen** — sie lesen jetzt zwei Wächter:
+der über den Quelltext und der über die laufende Instanz, der **65 der 73
+schreibenden Routen einzeln anfragt** und von jeder 403 verlangt.
+
+**Fingerprint `88f9dcfb`** *(davor `0fc33e91`)*, weiter über 19 Dateien.
+**Prüfstand 7064 von 7064, 372 Gruppen, 1062 Rückbauten, neun gefahren, 0
+stumm.**
+
 ### 0.35.1 — „Die drei Sicherheitsbefunde aus der Messung"
 
 **PATCH · 17. September 2026** *(Änderungsprotokoll 0.35.1).* Die drei
