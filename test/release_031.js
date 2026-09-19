@@ -129,8 +129,8 @@ async function check0310() {
       drPairs.length >= 30, `${drPairs.length} Texte mit „…“`);
 
     /* ---- Zusage 5: die vier Video-Meldungen sagen „Video-Vorschaubild" ----
-       „Standbild" IST TECHNISCH RICHTIG UND FUER DEN BENUTZER OHNE BELANG
-       (Auftrag, F10) -- und „Video-Vorschaubild" trifft die Sache genauer:
+       „Standbild" IST TECHNISCH RICHTIG UND FUER DEN BENUTZER OHNE BELANG,
+       und „Video-Vorschaubild" trifft die Sache genauer:
        das Bild liegt in denselben Spalten `thumb`/`medium` wie jedes andere
        Vorschaubild, nur mit `kind = 'video'`. */
     const DR_VIDEO = ['server.videoNeedsStill', 'server.videoStill',
@@ -715,7 +715,7 @@ async function check0312() {
       egEntity.length === 0, egEntity.map(([n]) => n).join(' ') || 'keiner');
 
     /* ---- Zusage 6: kein englischer Wert ist deutlich laenger -----------
-       NUR IN EINE RICHTUNG, und das ist die Entscheidung des Auftrags (F7):
+       NUR IN EINE RICHTUNG, und das ist die Entscheidung der Runde:
        Englisch braucht fuer dieselbe Aussage regelmaessig weniger Zeichen als
        Deutsch, also darf es kuerzer sein und soll es oft. */
     const EG_LONG_FROM = 40, EG_LONG_MAX = 1.15;
@@ -1026,7 +1026,7 @@ async function check0313() {
       tgQuoted.length > TR_QUOTED, `${tgQuoted.length} Formen mit „“…”"`);
 
     /* ---- Zusage 6: kein tuerkischer Wert ist deutlich laenger -----------
-       DIESELBE DECKE WIE BEI ENGLISCH (Auftrag, F8): ab vierzig Zeichen
+       DIESELBE DECKE WIE BEI ENGLISCH: ab vierzig Zeichen
        hoechstens 1,15x. */
     const TR_LONG_FROM = 40, TR_LONG_MAX = 1.15;
     const tgTooLong = tgPairs
@@ -1149,7 +1149,7 @@ async function check0313() {
         .map(k => `${k}: ${tgFiles.tr[k]}`).join(' · '));
 
     /* ---- Zusage 11: die Anrede ist durchgehend dieselbe --------------- sen
-       UND NICHT siz (Auftrag, F4). */
+       UND NICHT siz. */
     const TR_POLITE_VERBS = ['değiştir', 'boşalt', 'gir', 'yanıtla', 'kullan', 'tıkla',
       'seç', 'aç', 'kapat', 'yaz', 'oku', 'bekle', 'dene', 'kaydet', 'sil', 'ekle',
       'ayarla', 'gönder', 'verme', 'ver', 'yükle', 'kopyala', 'başlat', 'yap', 'et',
@@ -1193,7 +1193,7 @@ async function check0313() {
       tgEnd.length === 0, tgEnd.join(' ') || 'alle vier');
 
     /* ---- Zusage 13: der tuerkische Stand liegt als Vergleichsdatei daneben
-       DIESELBE BAUFORM WIE FUER ENGLISCH IN 0.31.2 (Auftrag, F10). */
+       DIESELBE BAUFORM WIE FUER ENGLISCH IN 0.31.2. */
     const tgPrintFile = path.join(__dirname, 'tools', 'tuerkisch-0313.json');
     check('Zusage 13: der tuerkische Stand liegt als Vergleichsdatei daneben',
       fs.existsSync(tgPrintFile), 'tools/tuerkisch-0313.json');

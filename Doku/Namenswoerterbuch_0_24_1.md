@@ -1,19 +1,17 @@
 # Namenswörterbuch 0.24.1 — deutsch → englisch
 
 **Die eine Liste, aus der jeder Bauabschnitt dieser Runde liest.** Sie ist
-beschlossen, bevor der erste Name fällt (Auftrag, Bauabschnitt 0), und wer
-einen Namen findet, den sie nicht kennt, trägt ihn hier nach — nicht
-nebenbei im Code.
+beschlossen, bevor der erste Name fällt, und wer einen Namen findet, den
+sie nicht kennt, trägt ihn hier nach — nicht nebenbei im Code.
 
 > **DIESES BLATT WIRD ERZEUGT UND NICHT VON HAND GESCHRIEBEN.** Die Quelle
 > ist `tools/dictionary.json`; `node tools/dictionary-doc.js` schreibt das
 > Blatt daraus. **Denselben Weg lesen der Migrationsblock in `db.js` und die
-> Wächter im Prüfstand** — aus derselben Datei und nicht aus einer zweiten
-> (Auftrag, Bauabschnitt 6). *Ein Papier, das man neben der Liste pflegen
-> muss, läuft ihr davon.*
+> Wächter im Prüfstand** — aus derselben Datei und nicht aus einer zweiten.
+> *Ein Papier, das man neben der Liste pflegen muss, läuft ihr davon.*
 
-**Die Regel, nach der hier benannt wird, steht im Auftrag unter 0.2 und hat
-einen Namen: gesunder Menschenverstand.** Ein Name muss SINNVOLL sein; unter
+**Die Regel, nach der hier benannt wird, hat einen Namen: gesunder
+Menschenverstand.** Ein Name muss SINNVOLL sein; unter
 den sinnvollen nimmt man den kürzesten. **Die Wörter stehen ausgeschrieben
 da** (F3, 6. September 2026): ein eingebürgertes Fachwort darf im Namen
 stehen, wo es die Sache *ist* — `2FA`, `URL`, `ID`, `API`, `CSV` —, ein Wort
@@ -1169,7 +1167,7 @@ eine still den anderen. **Hier steht, welches Wort ausweicht und wohin.**
 
 | Name | warum er länger sein muss |
 |---|---|
-| `card.passLinkByHandEnd` | Vier Wörter: derselbe Satz steht zweimal in der Datei — einmal für sich, einmal als Ende eines längeren. Der Name muss sagen, welcher von beiden gemeint ist. |
-| `card.noBackupInFolder` | Vier Wörter: „Hier gibt es noch keine Sicherung" und „Im Sicherungsordner gibt es noch keine Sicherung" sind zwei Sätze über zwei Orte. Ohne den Ort wäre der kürzere Name zweideutig. |
-| `card.noBackupForKey` | Vier Wörter: ohne „ForKey" bliebe offen, WORAN die Sicherung nicht passt — und genau das ist die Aussage des Satzes. |
-| `card.notSetNoSend` | Vier Wörter: der Satz trägt zwei Aussagen („nicht gesetzt" und „es wird nicht verschickt"), und die zweite ist die Folge der ersten. |
+| `card.passLinkByHandEnd` | undefined |
+| `card.noBackupInFolder` | undefined |
+| `card.noBackupForKey` | undefined |
+| `card.notSetNoSend` | undefined |

@@ -2715,7 +2715,7 @@ async function run() {
     /* DIE REIHENFOLGE DER FELDER, in einer Zeile abgelesen: Anbieter, die
        drei der eigenen Lage, Benutzername, Passwort, Absenderadresse. */
     const mdFollow = [...(dlg?.querySelectorAll('.field .input') || [])].map(e => e.id);
-    check('Die Felder stehen in der Folge des Auftrags',
+    check('Die Felder stehen in der festgelegten Folge',
       equal(mdFollow, ['mail-provider', 'mail-server', 'mail-port', 'mail-secure',
                        'mail-user', 'mail-pass', 'mail-sender']),
       JSON.stringify(mdFollow));

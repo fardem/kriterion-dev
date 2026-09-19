@@ -4911,8 +4911,8 @@ const REGRESSIONS = [
     expected: 'Die Sortierung gibt den Status vor — 0.21.1'
   },
   {
-    /* DIE ABLEITUNG SCHREIBT SICH IN state.filters -- der Rueckbau, den der
-       Auftrag ausdruecklich verlangt. */
+    /* DIE ABLEITUNG SCHREIBT SICH IN state.filters -- ein ausdruecklich
+       verlangter Rueckbau. */
     /* MITGEZOGEN MIT 0.28.1: seit der Richtungstrennung
        setzt der Behandler nicht mehr `sel.value` unmittelbar, sondern legt
        die Lage in `applySort()` zusammen. */
@@ -4957,7 +4957,7 @@ const REGRESSIONS = [
   /* ================= 0.22.0: die Runde „Die Oberflaeche wird ruhiger"
      ================= ACHTZEHN NEUE, AB NUMMER 624 -- fuer jede neue Regel
      des Pruefstands mindestens einer, und einer, der das Milchglas wieder
-     einsetzt (Auftrag 0.22.0, „Der Pruefstand"). */
+     einsetzt. */
   {
     /* DAS MILCHGLAS KOMMT ZURUECK. */
     nr: '624', name: 'Das Milchglas kommt an die Kopfzeile zurueck',
@@ -5844,7 +5844,7 @@ const REGRESSIONS = [
     expected: 'Die Sprachpillen der Namenskarten — 0.24.5'
   },
   {
-    /* UND DER ZWEITE WEG IN DIE LISTE -- der, den der Auftrag nicht kannte. */
+    /* UND DER ZWEITE WEG IN DIE LISTE -- der spaet gefundene. */
     nr: '747', name: 'drawAdmin liest wieder an namesFrom vorbei',
     file: 'public/app.js',
     search: "    manageList('mcats', namesFrom(fetched, 'cats'), 'cat', fetched);",
@@ -6005,8 +6005,8 @@ const REGRESSIONS = [
     expected: 'Der Rueckfall der Namen — 0.24.3'
   },
   {
-    /* DER EXPORT LAESST DIE ERSTELLUNGSSPRACHEN LIEGEN -- der Befund, den der
-       Auftrag nicht kannte: der Import ist ein Anlegeweg wie jeder andere,
+    /* DER EXPORT LAESST DIE ERSTELLUNGSSPRACHEN LIEGEN -- der spaete Befund:
+       der Import ist ein Anlegeweg wie jeder andere,
        und ohne diese beiden Felder legte er Zeilen ohne Sprachvermerk an. */
     nr: '767', name: 'Der Export nimmt die Erstellungssprachen nicht mit',
     file: 'server.js',

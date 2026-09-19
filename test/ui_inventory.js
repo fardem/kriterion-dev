@@ -1361,8 +1361,8 @@ async function run() {
     exBtnNo?.children.length === 1 &&
     exW.document.getElementById('ex-gr-no')?.parentElement === exBtnNo?.firstElementChild,
     `${exBtnNo?.children.length} Kinder`);
-  /* UND DIE KLAMMER GEHT AUF, BEVOR SIE ZUGEHT -- ein Befund, den der Auftrag
-     nicht kannte und der beim Bauen von 3b aufgefallen ist. */
+  /* UND DIE KLAMMER GEHT AUF, BEVOR SIE ZUGEHT -- ein Befund, der beim Bauen
+     von 3b aufgefallen ist. */
   const exLabel = (el) => (el?.textContent || '').replace(/\s+/g, ' ').trim();
   check('Der Knopf „Mit Fotos" macht seine Klammer auf und wieder zu',
     /\(~.+\)$/.test(exLabel(exBtnYes)), JSON.stringify(exLabel(exBtnYes)));

@@ -2221,6 +2221,19 @@ zweimal gekürzt**
 > **`tools/comments.js` zählt das Blatt jetzt mit**, und der Prüfstand nennt
 > seine Zahl eigens: eine Quote bekommt es nicht, weil sie gemessene Zahlen
 > herausnähme. *Damit ist auch der dritte Schritt von Punkt 43 gebaut.*
+
+> **BERICHTIGT AM 19. SEPTEMBER 2026.** *Die Zeilenzahlen oben stimmen — 1.187
+> von 2.963 sind 40 Prozent.* **Die Byteangaben stimmen nicht:** „65.933 von
+> 195.090" nennt als Nenner die Dateigröße nach **0.35.0**, nicht die nach
+> 0.37.0. *Das Blatt misst seit BA 5 nur noch 167.501 Bytes.*
+>
+> **Gemessen mit der Zählweise des Wächters selbst** *(`test/source.js`,
+> Gruppe „Das Stilblatt trägt weniger Kommentar als vorher")*: **78.771 von
+> 167.501 Bytes, also 47,0 Prozent**, in 443 Blöcken. *Der Wert 65.933 lässt
+> sich mit keiner der drei Zählweisen nachstellen.*
+>
+> *Der Anteil ist damit trotzdem gefallen: nach 0.35.0 waren es 106.321 von
+> 195.090 Bytes, also 54,5 Prozent.*
 >
 > **Was offen bleibt, ist die Entscheidung des Betreibers**, ob die Zahlen aus
 > den Kommentaren in ein eigenes Papier wandern. Sie steht unverändert.
@@ -2268,9 +2281,10 @@ Veröffentlichung gefunden · Einschätzung: groß · alle drei Schritte gebaut*
 > den die Runde beinahe übersehen hätte. Die SQL-Kommentare von `db.js` sind
 > dabei von 485 Zeilen auf 139 gefallen.
 
-> **SCHRITT 2 UND 3 SIND DIE RUNDE 0.37.0** *(`Doku/Auftrag_0.37.0.md`,
+> **SCHRITT 2 UND 3 SIND DIE RUNDE 0.37.0** *(der Auftrag stand als
+> `Doku/Auftrag_0.37.0.md` — weggefallen, es liegt immer nur einer im Repo;
 > geschrieben am 19. September 2026, am selben Tag auf dem Stand 0.36.0
-> nachgemessen)*. **Gemessen sind 778 Treffer des Nummernmusters — 726 in
+> nachgemessen. Was daraus geworden ist, steht im Änderungsprotokoll 0.37.0)*. **Gemessen sind 778 Treffer des Nummernmusters — 726 in
 > Kommentaren, 44 in Strings, 0 im Code, und 15 davon sind überhaupt keine
 > Fassungsnummern; echte sind es 763.** **Dazu 187 Verweise auf Papiere über
 > den Namen und 94 Abkürzungen** — `(F<Zahl>)` 52, `BA <Zahl>` 39,
@@ -2506,6 +2520,57 @@ Eingabefelder, die neue Leseansicht der Beschreibung, die Kachelvorschau)*,
 2 oder 4)*, `db.js` *(nur bei Entscheidung 3, und dann für zwei Spalten —
 `comments.text` und `items.description`)*.
 
+### Nachtrag vom 19. September 2026 — alle sieben Fragen sind beantwortet
+
+**Die Antworten stehen als `Doku/Auftrag_0.38.0.md`**, gemessen auf dem
+gebauten Stand 0.37.0. Der Auftrag läuft durch: achtzehn Fragen, alle vor der
+ersten Zeile entschieden.
+
+| | Frage | Antwort |
+|---|---|---|
+| 1 | Welche Auszeichnung | **eine Teilmenge von CommonMark.** Innerhalb der Teilmenge gilt die Spezifikation, keine eigene Regel. **Kriterion zeichnet, was CommonMark zeichnet, oder gewöhnlichen Text — nie etwas Drittes** |
+| 2 | Wo geparst wird | im Browser. Der Server bekommt nur eine Funktion, die Marken entfernt |
+| 3 | Merkmal an der Spalte | **nein**, keine Schemaänderung. Kursiv trägt den Unterstrich, weil die Spezifikation dort die Auszeichnung mitten im Wort verbietet — `3*4 und 5*6` bleibt damit Text |
+| 4 | Was die Exportdatei trägt | Formatnummer **17 → 18**. Die Untergrenze bleibt 14, die Nummer ist ein Hinweis und keine Schranke |
+| 5 | Was die Suche sieht | unverändert, sie liest den Rohtext. Der Trefferausschnitt bekommt die Marken vor dem Schneiden heraus |
+| 6 | Die Stellen, die nur Text können | **drei, nicht vier** — siehe die Berichtigung unten |
+| 7 | Umschalten der Beschreibung | Stift in der Blockkopfzeile **und** Klick in den Text, Escape verwirft, Verlassen speichert |
+
+**Grundlage ist ein Vorbau, den der Betreiber mit Google Gemini gemacht hat**,
+auf dem Stand 0.29.0. Der Auftrag nennt neun Übernahmen, zwanzig Befunde und
+sechs Eingriffe, die eine Instanz an eine fremde Betriebsumgebung anpassen —
+der erste davon schaltet die Datenbankverschlüsselung ab.
+
+**Drei Befunde stehen für die übrigen:** `backdrop-filter` ist im Stilblatt
+durch einen Wächter verboten; die Kommentarnummer war die Anzeigeposition und
+verschob sich beim Anpinnen; jede fremde Adresse mit `#/item/…?c=…` wurde zu
+einem Sprung in der eigenen Instanz.
+
+> **BERICHTIGUNG.** *Oben steht „die Mailbenachrichtigung trägt den
+> Kommentartext" als eine von vier Stellen, die nur Text können.* **Das trifft
+> nicht zu.** `mail.js` kennt vier Briefe — Einladung, Rücksetzung,
+> Bestätigung, Probe. Keiner trägt Kommentartext. *Die Zahl fällt von vier auf
+> drei: Kachelvorschau, Trefferausschnitt, Exportdatei.* **Nachgesehen am
+> 19. September 2026 auf dem Stand 0.37.0.**
+
+> **DIE AUFTRÄGE SIND GEFALLEN — 19. September 2026.** *Der Fahrplan nennt die
+> Regel an drei Stellen: es liegt immer nur einer im Repo. Gelebt wurde sie
+> seit 0.32.0 nicht; acht hatten sich angesammelt.* **Liegen bleibt allein
+> `Doku/Auftrag_0.38.0.md`, weil die Runde ungebaut ist.**
+>
+> *Dazu eine Verschärfung:* **kein Prüfstandsmodul und kein Werkzeug nennt
+> mehr einen Auftrag.** 28 Verweise sind aus Kommentaren gefallen, verteilt
+> über elf Prüfmodule, `counterproof.js` und drei Werkzeuge. **Ein neuer
+> Wächter hält es** — „Auch der Prüfstand nennt keinen Auftrag", über 37
+> Dateien, mit `test/source.js` als einziger benannter Ausnahme: das Modul
+> führt das Muster und seine gestellten Fälle. *Die ausgelieferten Dateien
+> waren schon sauber; das hält der Wächter aus 0.37.0.*
+
+> **Und die Zeilennummern oben sind vom 17. September.** *0.36.0 und 0.37.0
+> haben sie verschoben.* Auf dem Stand 0.37.0 gilt: `splitCommentText()` 1423,
+> `pieceNode()` 1452, `buildCommentNodes()` 1471, `raiseHighlight()` 1501, der
+> Ruf am Kommentar 5498, `#desc` 3836, das Speichern beim Verlassen 4601.
+
 ---
 
 ## 45. ~~Der Einzelexport wird ausgebaut~~ — **GEBAUT mit 0.35.2, BA 1**
@@ -2651,8 +2716,10 @@ die Größe:** ein Foto über 30 MB gibt „File too large", wieder englisch.
 Schranke der Anfrage. Wer 80 Bilder hat, darf sie haben — nur nicht in einem
 Zug.
 
-**Der ganze Zuschnitt steht in `Doku/Auftrag_0.35.2.md`, BA 4** — samt der
-Tafel der fünf Hochladewege und ihrer Grenzen.
+**Der ganze Zuschnitt stand in `Doku/Auftrag_0.35.2.md`, BA 4** *(weggefallen
+— es liegt immer nur einer im Repo)* — samt der Tafel der fünf Hochladewege
+und ihrer Grenzen. *Gebaut ist er; was daraus geworden ist, steht im
+Änderungsprotokoll 0.35.2.*
 
 **Was es anfasst** — `server.js` *(die benannten Zahlen, der Fehler-Handler)*,
 `public/app.js` *(das Bündeln)*, die drei Sprachdateien *(ein Schlüssel für

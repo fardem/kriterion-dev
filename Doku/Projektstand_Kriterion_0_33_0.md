@@ -12270,9 +12270,10 @@ lag)*. **Sprachschlüssel 1.212** *(davor 1.211)*.
 ### 0.35.0 — „Code-Effizienz"
 
 **MINOR · 17. September 2026** *(Änderungsprotokoll 0.35.0).* Die Runde ändert
-am Verhalten nichts — bis auf einen Fehler, den sie behebt. Grundlage ist
-`Doku/Auftrag_0.35.0.md`: **101 Befunde von 17 Lesern, 75 nach der Widerlegung,
-5 davon Sicherheitsbefunde für 0.36.0.** Für die Runde blieben **70 Befunde an
+am Verhalten nichts — bis auf einen Fehler, den sie behebt. Grundlage war der
+Auftrag `Doku/Auftrag_0.35.0.md` *(weggefallen — es liegt immer nur einer im
+Repo)* mit **101 Befunden von 17 Lesern, 75 nach der Widerlegung, 5 davon
+Sicherheitsbefunde für 0.36.0.** Für die Runde blieben **70 Befunde an
 65 Stellen**; **40 sind gebaut, 24 nicht, eine zum Teil.**
 
 | | Stellen | gebaut | nicht | zum Teil |
@@ -15607,8 +15608,8 @@ nicht hier.
 >
 > **UND AM 15. SEPTEMBER 2026 IST SIE NOCH EINMAL GERÜCKT, auf 0.34.1.** *An
 > jenem Tag ist 0.34.0 gebaut worden; eine 0.33.x danach gibt es nicht. Der
-> Auftrag dazu heißt seit demselben Tag `Doku/Auftrag_0.34.1.md`, und Fahrplan
-> und Projektstand stehen jetzt beide auf dieser Nummer.*
+> Auftrag dazu hieß seit demselben Tag `Doku/Auftrag_0.34.1.md` *(weggefallen — es liegt immer nur einer im Repo)*, und
+> Fahrplan und Projektstand stehen jetzt beide auf dieser Nummer.*
 
 *(Neu am 31. August 2026. **Keine geplante Nummer, sondern die nächste freie
 PATCH-Zahl nach der Bereinigung** — dieselbe Bauform wie die 0.12.x-Zeile im

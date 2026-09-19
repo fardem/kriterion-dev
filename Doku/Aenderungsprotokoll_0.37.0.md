@@ -29,6 +29,10 @@ trug, fällt in Schritt 1 oder 2 ganz weg.
 >
 > Er ändert sich an **jeder** ausgelieferten Datei bis auf `public/favicon.svg`
 > und die drei Sprachdateien: die Runde fasst alle an.
+>
+> **IM FELD BESTÄTIGT AM 19. SEPTEMBER 2026.** *Die laufende Instanz des
+> Betreibers meldet `144a80c7`* — der Stand, der hier steht, ist der Stand, der
+> läuft.
 
 **GEFALLEN IST AUSSCHLIESSLICH KOMMENTAR, und das ist gemessen und nicht
 behauptet.** Für jede ausgelieferte JavaScript-Datei ist der Text außerhalb der
