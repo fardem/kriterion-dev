@@ -2764,6 +2764,61 @@ async function run() {
       'der Leser sieht den gestellten Verweis nicht');
   }
 
+  /* ====== Der Grund eines Versands reist als Schluessel — 0.35.2, BA 11 ===
+     `sendTokenLink()` hat mit 0.32.0 die Sprache des LESERS bekommen; die
+     drei Gruende, warum gar nicht erst verschickt wurde, stehen seither in
+     ihr. Der vierte nicht: `mail.send()` baute ihn mit der Sprache des
+     EMPFAENGERS, und er landete in der Karte des ADMINS. Ein deutscher Admin,
+     der einen tuerkischen Kollegen einlaedt, las den Grund auf Tuerkisch.
+     Es ist derselbe Fehler wie die elf aus Punkt 29, nur eine Ebene tiefer:
+     nicht ein fester Satz in der falschen Sprache, sondern ein uebersetzter
+     in der Sprache des Falschen. */
+  group('Der Grund eines Versands reist als Schluessel — 0.35.2');
+  {
+    const vgMail = fs.readFileSync(path.join(__dirname, 'mail.js'), 'utf8');
+    const vgServer = fs.readFileSync(path.join(__dirname, 'server.js'), 'utf8');
+    check('send() bekommt keine Sprache mehr',
+      /async function send\(raw, to, subject, text\)/.test(vgMail),
+      (vgMail.match(/async function send\([^)]*\)/) || ['(nicht gefunden)'])[0]);
+    check('Und shortReason() ebenso wenig',
+      /function shortReason\(e\)/.test(vgMail),
+      (vgMail.match(/function shortReason\([^)]*\)/) || ['(nicht gefunden)'])[0]);
+    /* UND IN mail.js WIRD KEIN GRUND MEHR UEBERSETZT. `t()` bleibt dort, aber
+       nur noch fuer die vier Briefe. */
+    const vgTranslated = (vgMail.match(/t\(locale, '(mail|server)\.[a-zA-Z]+'\)/g) || []);
+    check('Und in mail.js wird kein Grund mehr zu einem Satz gemacht',
+      vgTranslated.length === 0, vgTranslated.join(' · ') || 'keiner');
+    /* DIE EINE STELLE, DIE DARAUS EINEN SATZ MACHT, NIMMT DIE SPRACHE DES
+       LESERS -- nicht die des Empfaengers, in der der Brief hinausgeht. */
+    check('Und sendTokenLink uebersetzt ihn mit der Sprache des Lesers',
+      /deliveryReason: sendWhy\(e, readerLocale\)/.test(vgServer)
+      && /const sendWhy = \(e, locale\) => \(e\.reasonKey \? t\(locale, e\.reasonKey\) : e\.reason\);/
+           .test(vgServer),
+      (vgServer.match(/.*sendWhy\(e, .*/) || ['(nicht gefunden)'])[0].trim());
+    /* UND GEMESSEN STATT GELESEN: der Ruf wird wirklich gemacht. Ohne
+       Mailzugang und ohne gueltige Adresse kommt er ohne Netz zurueck. */
+    const vgSend = require('./mail.js').send;
+    const vgOff = await vgSend(null, 'wer@beispiel.de', 'Betreff', 'Text');
+    check('Ohne Mailzugang kommt ein Schluessel zurueck und kein Satz',
+      vgOff.ok === false && vgOff.reasonKey === 'mail.noAccount' && vgOff.reason === '',
+      JSON.stringify(vgOff));
+    const vgAccount = { provider: 'eigen', server: 'localhost', port: 25,
+                        user: 'a', password: 'b', sender: 'a@beispiel.de' };
+    const vgBad = await vgSend(vgAccount, 'keine-adresse', 'Betreff', 'Text');
+    check('Und eine unbrauchbare Adresse ebenso',
+      vgBad.ok === false && vgBad.reasonKey === 'mail.recipientInvalid' && vgBad.reason === '',
+      JSON.stringify(vgBad));
+    /* UND BEIDE SCHLUESSEL STEHEN WIRKLICH IN DER SPRACHDATEI -- ein
+       Schluessel ohne Satz waere ein leeres Feld in der Karte. */
+    const vgLang = JSON.parse(fs.readFileSync(
+      path.join(__dirname, 'public', 'languages', 'de.json'), 'utf8'));
+    check('Und die vier Gruende stehen in der Sprachdatei',
+      ['mail.noAccount', 'mail.recipientInvalid', 'mail.timeout', 'mail.unknownError']
+        .every(k => typeof vgLang[k] === 'string'),
+      ['mail.noAccount', 'mail.recipientInvalid', 'mail.timeout', 'mail.unknownError']
+        .filter(k => typeof vgLang[k] !== 'string').join(' ') || 'alle vier');
+  }
+
   /* ================= Das Stilblatt — 0.35.0 ==============================
      BEFUND public/style.css:1 DER MESSUNG ZUR 0.35.0: die Datei mass 300.472
      Bytes, davon 211.862 in 408 Kommentarbloecken -- 70,5 Prozent. Der

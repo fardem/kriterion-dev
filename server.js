@@ -296,10 +296,17 @@ async function sendTokenLink(target, token, readerLocale) {
   const locale = languageOf(token.id);
   const letter = invite ? mail.mailInvite(locale, values2)
                           : mail.mailReset(locale, values2);
-  const e = await mail.send(locale, account, target.email, letter.subject, letter.text);
+  const e = await mail.send(account, target.email, letter.subject, letter.text);
+  /* DER BRIEF GEHT IN DER SPRACHE DES EMPFAENGERS HINAUS, DER GRUND DANEBEN
+     ABER IN DER DES LESERS: die Karte, in der er steht, gehoert dem Admin. */
   return e.ok ? { delivery: 'ok', deliveryReason: '' }
-              : { delivery: 'fehlgeschlagen', deliveryReason: e.reason };
+              : { delivery: 'fehlgeschlagen', deliveryReason: sendWhy(e, readerLocale) };
 }
+
+/* Die eine Stelle, die aus dem Grund eines Versands einen Satz macht --
+   dieselbe Bauform wie deliveryWhy() eine Seite weiter unten. Kommt der Grund
+   vom Anbieter, gibt es nichts zu uebersetzen. */
+const sendWhy = (e, locale) => (e.reasonKey ? t(locale, e.reasonKey) : e.reason);
 
 /* ---- Der Beleg der letzten Testmail --------------------------------------
    SIE BELEGT "mit DIESEN Werten ist einmal wirklich eine Mail hinausgegangen"
@@ -328,14 +335,15 @@ const deliveryWhy = (b, locale) => (b.key ? t(locale, b.key) : '');
    DER DRITTE MAILANLASS. */
 async function sendConfirm(name, address, plain, locale) {
   const account = mail.resolve(getSetting(mail.SETTING_KEY, null));
-  if (!mail.configured(account) || !PUBLIC.address) return { ok: false, reason: 'aus' };
+  if (!mail.configured(account) || !PUBLIC.address)
+    return { ok: false, reasonKey: '', reason: 'aus' };
   const title = getSetting('title_public', 'Bewertungskatalog');
   /* HIER GIBT ES NOCH KEINEN ZUGANG, an dem eine Sprache haengen koennte --
      der Brief geht an jemanden, der sich gerade erst anmeldet. */
   const letter = mail.mailConfirm(locale, { title, username: name,
     link: `${PUBLIC.address}/#/confirm/${plain}`,
     hours: auth.REQUEST_HOURS });
-  return mail.send(locale, account, address, letter.subject, letter.text);
+  return mail.send(account, address, letter.subject, letter.text);
 }
 
 const app = express();
@@ -1332,7 +1340,7 @@ app.post('/api/mail/test', ownerOnly, async (req, res) => {
   const locale = localeOf(req);
   const letter = mail.mailTest(locale, { title: getSetting('title_public', 'Bewertungskatalog'),
                                           username: ownOne.username });
-  const e = await mail.send(locale, raw, ownOne.email, letter.subject, letter.text);
+  const e = await mail.send(raw, ownOne.email, letter.subject, letter.text);
   if (e.ok) {
     putSetting.run(MAILTEST_KEY,
       JSON.stringify({ mark: mail.mark(raw), at: new Date().toISOString().slice(0, 19).replace('T', ' ') }));
@@ -1341,7 +1349,7 @@ app.post('/api/mail/test', ownerOnly, async (req, res) => {
 // die Antwort.
   /* `address` UND NICHT `an` -- 0.24.3, Bauabschnitt 7. */
   /* `sentTo` UND NICHT `address` -- 0.24.3, Bauabschnitt 7. */
-  res.json({ ok: e.ok, reason: e.reason, sentTo: ownOne.email, ...mailCard(req) });
+  res.json({ ok: e.ok, reason: sendWhy(e, locale), sentTo: ownOne.email, ...mailCard(req) });
 });
 
 /* ---- Die Selbstanmeldung hinter der Anmeldung ---------------------------

@@ -45,7 +45,7 @@ const REGRESSIONS = [
     file: 'mail.js',
     /* DER RUECKBAU MACHT DIE FRIST WIRKUNGSLOS, ER ENTFERNT SIE NICHT AUS DEM
        WETTLAUF. */
-    search: "      clock = setTimeout(() => error(new Error(t(locale, 'mail.timeout'))), SEND_MS);",
+    search: "      clock = setTimeout(() => error(late), SEND_MS);",
     replacement: "      uhr = setTimeout(() => {}, SEND_MS);",
     expected: 'Der Mailversand: die Frist wird gemessen, nicht behauptet'
   },
@@ -9029,6 +9029,25 @@ const REGRESSIONS = [
     search: "  -- ON DELETE SET NULL wie an jedem Traeger: ein entfernter",
     replacement: "  -- ON DELETE SET NULL wie an jedem Traeger (Stolper" + "stein 54): ein entfernter",
     expected: 'Kein Stolpersteinverweis mehr — 0.34.3'
+  },
+  /* ---- Der Grund eines Versands reist als Schluessel -- 0.35.2, BA 11 ---- */
+  {
+    /* Der Grund wird wieder in der Sprache des EMPFAENGERS gemacht und landet
+       damit in der Karte des Admins -- genau der Befund aus Punkt 34. */
+    nr: '1116', name: 'Der Versandgrund steht wieder in der Sprache des Empfaengers',
+    file: 'server.js',
+    search: "              : { delivery: 'fehlgeschlagen', deliveryReason: sendWhy(e, readerLocale) };",
+    replacement: "              : { delivery: 'fehlgeschlagen', deliveryReason: sendWhy(e, locale) };",
+    expected: 'Der Grund eines Versands reist als Schluessel — 0.35.2'
+  },
+  {
+    /* Und der Schluessel des Wurfs reist wieder als Text: am Bildschirm
+       staende dann `mail.timeout` statt eines Satzes. */
+    nr: '1117', name: 'Der Schluessel der Frist reist wieder als Text',
+    file: 'mail.js',
+    search: "  if (e && e.key) return { reasonKey: e.key, reason: '' };",
+    replacement: "  if (e && e.key) return { reasonKey: '', reason: e.key };",
+    expected: 'Der Mailversand: die Frist wird gemessen, nicht behauptet'
   },
 ];
 
