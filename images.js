@@ -1,6 +1,7 @@
 /* Die Bildableitungen. Der Anfrageweg (server.js) und der Bestandslauf
    (batchrun.js) rufen dieselben Funktionen. */
 const sharp = require('sharp');
+const { logLine, logWarn, logFail } = require('./log');
 
 /* Die beiden Ableitungen je Foto. */
 const VARIANTS = {
@@ -112,7 +113,7 @@ async function storeImage(buf, reportedType, store) {
   } catch (e) {
     // Laut ins Protokoll, still in der Antwort: das Bild ist gespeichert, nur
 // eben als PNG.
-    console.error('[Kriterion] PNG blieb PNG:', e.message);
+    logFail('PNG blieb PNG:', e.message);
   }
   return { data: buf, mime: reportedType, converted: false };
 }

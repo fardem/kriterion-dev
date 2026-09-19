@@ -400,7 +400,7 @@ async function checkBatchRun() {
     /* 6. EIN FEHLER IM THREAD REISST DEN SERVER NICHT AB, und er laesst die
        Karte auch nicht fuer immer auf „laeuft" stehen. */
     check('Ein Fehler im Thread setzt den Lauf auf beendet und laesst den Rest stehen',
-      /w\.on\('error', \(e\) => \{\s*\n\s*if \(batchStates\[task\]\) batchStates\[task\]\.running = false;\s*\n\s*console\.error\(/
+      /w\.on\('error', \(e\) => \{\s*\n\s*if \(batchStates\[task\]\) batchStates\[task\]\.running = false;\s*\n\s*logFail\(/
         .test(blServer),
       (blServer.match(/w\.on\('error'[\s\S]{0,200}/) || ['(nicht gefunden)'])[0]);
     /* 7. UND ER WIRD JE LAUF ERZEUGT UND DANACH BEENDET -- kein Threadpool,

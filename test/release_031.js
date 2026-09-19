@@ -22,7 +22,7 @@ async function run() {
 /* DIE ZAHL DER SCHLUESSEL JE SPRACHDATEI STEHT EINMAL.
    ZWEI GRUPPEN FRAGEN SIE AB: 0.31.0 auf die Deckung der drei Dateien, 0.31.1
    auf den Stand nach dem Verschmelzen. */
-const LANG_KEY_COUNT = 1212;
+const LANG_KEY_COUNT = 1214;
 
 async function check0310() {
   const drRead = (code) => JSON.parse(fs.readFileSync(
@@ -511,7 +511,7 @@ async function check0311() {
    public/app.js ohne Kommentare und ohne Markup, und diese Runde nimmt dort
    toten Code weg und fasst Wiederholungen zusammen. Der Stand von 0.31.4 war
    daa0c9094f2c2305 / 77128aef244a5976. */
-const DE_UNTOUCHED = { one: '1046cd6f3ec87cf0', other: '7b6098fc204a3a81' };
+const DE_UNTOUCHED = { one: '66e7cb5a6c1c8517', other: '26e8b307bfa5c01c' };
 const DE_BEFORE_0312 = { one: '91b86c5affcba789', other: '07fc3ccdc8a27a03' };
 const DE_ORDERED_0312 = {
   'login.requestAccess': 'Zugang anfragen',
@@ -536,13 +536,13 @@ const EG_CHANGED_AFTER_0312_SHARED = {
   "entry.deletePhoto": "0.32.1: aus `entry.deleteWord` geteilt — „Delete photo\"",
   "entry.deleteVideo": "0.32.1: aus `entry.deleteWord` geteilt — „Delete video\"",
   "entry.dueHint": "0.32.1: „Due date\" ohne „of the task\" — das Vokabelwort stand fest im Satz",
-  "entry.exportOne": "0.35.0: neu — „Export {entryOne}\", die Beschriftung des neuen Knopfes am Eintrag",
   "entry.grade": "0.32.0: der Spaltenkopf der Rechnung wird `{grade}`",
   "entry.gradeLabel": "0.32.0: die Beschriftung am Sternkasten des Zeitpunkts",
   "entry.gradeReplaced": "0.32.0: die Meldung nach dem Ersetzen",
   "entry.noDaysYet": "0.32.1: „a score\" wird `{grade}` — das fuenfzehnte Vokabelwort",
   "entry.ratingRemoved": "0.35.0: neu — „{ratingOne} removed\", vorher deutsch im Skript",
   "entry.removeRating": "0.35.0: neu — „Remove {ratingOne}\", vorher deutsch im Skript",
+  "entry.tooBig": "0.35.2: die 50 steht nicht mehr als Text im Satz, sondern kommt als `{mb}` aus ATTACHMENT_MAX",
   "list.bellMine": "0.32.0: die Ueberschrift „My {entryMany}\"",
   "list.bellOther": "0.32.0: die Ueberschrift „Everything else\"",
   "list.bellToMe": "0.32.0: die Ueberschrift „Addressed to me\"",
@@ -562,6 +562,7 @@ const EG_CHANGED_AFTER_0312_SHARED = {
   "server.deniedEntry": "0.32.1: „this entry\" faellt weg — das Vokabelwort stand fest im Satz",
   "server.exportTooOld": "0.33.0: neu — die eine Abweisung des Bruchs, eine Datei mit Formatnummer 13 oder aelter kommt nicht mehr herein",
   "server.gradeRange": "0.32.0: die Absage des Servers nennt das Vokabelwort",
+  "server.importOne": "0.35.2: neu — die Absage des Imports an eine zweite Datei in derselben Anfrage",
   "server.noAccountOwner": "0.32.0: Punkt 29 — der Grund, warum nicht verschickt werden kann",
   "server.noPublicAddress": "0.32.0: Punkt 29 — ohne PUBLIC_ADDRESS wird nicht verschickt",
   "server.noTestMail": "0.32.0: Punkt 29 — seit dem Wechsel kam keine Testmail durch",
@@ -569,6 +570,9 @@ const EG_CHANGED_AFTER_0312_SHARED = {
   "server.ratingBeforeTest": "0.32.1: „this entry\" faellt weg, „untested\" wird `{testedNo}`",
   "server.signupThanks": "0.32.0: Punkt 29 — die eine Antwort der Zugangsanfrage",
   "server.trashRestoring": "0.35.1: neu — die Antwort an den zweiten Aufruf, der denselben Papierkorbeintrag wiederherstellen will",
+  "server.uploadCap": "0.35.2: neu — die Absage an zu viele Dateien in einer Anfrage, vorher multers „Unexpected field\"",
+  "server.uploadSize": "0.35.2: neu — die Absage an eine zu grosse Datei, vorher multers „File too large\"",
+  "server.videoOne": "0.35.2: neu — die Absage des Videowegs an ein zweites Video in derselben Anfrage",
   "vocabulary.grade": "0.32.0: das fuenfzehnte Vokabelwort — „Score\""
 };
 
@@ -780,29 +784,35 @@ async function check0312() {
        der Datei -- jede Runde, die einen Schluessel anlegt, traegt ihn ein. */
     /* UND EINER MIT 0.33.0: `server.exportTooOld`, die eine Abweisung des
        Bruchs. */
-    /* UND DREI MIT 0.35.0: `entry.removeRating` und `entry.ratingRemoved` --
+    /* UND ZWEI MIT 0.35.0: `entry.removeRating` und `entry.ratingRemoved` --
        die beiden Saetze an der Sternzeile, die bis dahin deutsch im Skript
-       standen -- und `entry.exportOne`, die Beschriftung des Knopfes, der den
-       einzelnen Eintrag als Datei holt. */
+       standen. `entry.exportOne` kam mit derselben Runde dazu und faellt mit
+       0.35.2 wieder, zusammen mit dem Knopf, den er beschriftet hat. */
     /* UND EINER MIT 0.35.1: `server.trashRestoring`, die Antwort an den
        zweiten Aufruf auf denselben Papierkorbeintrag. */
     const EG_ADDED_AFTER_0312 = ['_afterNumber',
       'card.grade', 'entry.deletePhoto', 'entry.deleteVideo',
-      'entry.exportOne', 'entry.ratingRemoved', 'entry.removeRating',
+      'entry.ratingRemoved', 'entry.removeRating',
       'list.bellMine', 'list.bellOther', 'list.bellToMe',
       'list.markedCount', 'mail.ownServer',
       'server.backupsBeforeKey', 'server.cleanupAllYoungest', 'server.cleanupNoBackups',
       'server.cleanupOldestAge', 'server.exportTooOld', 'server.noAccountOwner',
       'server.noPublicAddress', 'server.noTestMail', 'server.noUserAddress',
-      'server.signupThanks', 'server.trashRestoring', 'vocabulary.grade'];
+      'server.signupThanks', 'server.trashRestoring',
+      /* UND VIER MIT 0.35.2 -- die uebersetzten Absagen der Hochladewege. */
+      'server.importOne', 'server.uploadCap', 'server.uploadSize', 'server.videoOne',
+      'vocabulary.grade'];
     /* UND EINER IST GEFALLEN -- `list.otherUser`. */
     /* UND SIEBEN MIT 0.32.1 -- sechs, die 0.32.1 ausbaut, und der geteilte
        `entry.deleteWord`. */
     /* UND ZWEI MIT 0.33.0: `card.catchUpDerivatives` und
        `card.derivativesAsk` -- die JPEG-Haelfte des Bestandslaufs. */
+    /* UND EINER MIT 0.35.2: `server.entryTooBig` -- die einzige Absage der
+       Route, die den einzelnen Eintrag als Datei holte. */
     const EG_GONE_AFTER_0312 = ['card.catchUpDerivatives', 'card.derivativesAsk',
       'entry.deleteWord', 'list.and', 'list.followsSort',
-      'list.ofWhich', 'list.otherUser', 'list.pillHint', 'list.sortDefaultHint'];
+      'list.ofWhich', 'list.otherUser', 'list.pillHint', 'list.sortDefaultHint',
+      'server.entryTooBig'];
     const egAdded = Object.keys(egFiles.en).filter(k => !(k in egPrint));
     const egLost = Object.keys(egPrint).filter(k => !(k in egFiles.en));
     check(`Und sie traegt die Schluessel von en.json — bis auf die benannten neuen (${EG_ADDED_AFTER_0312.length}) und den einen gefallenen`,
@@ -837,11 +847,11 @@ async function check0312() {
    39489ec6ae18020b -- vor 0.31.3; derselbe Grund wie oben.
    VOR 0.35.0: en caa4b814e75f8263 / f224721465ac0d35,
    tr ab6bdf35499f7cf9 / ad34f68137acaa2b. */
-const EN_UNTOUCHED = { one: '37234694cb95952b', other: 'f047d132a85034ea' };
+const EN_UNTOUCHED = { one: '8ead268ee09cdfc8', other: '75ba92e0a7e19b53' };
 const TR_BEFORE_0313 = { one: '5fec71b10c0dfa3c', other: '18b07eda589b5120' };
 /* bbaca227348609dc / 73d9f1ea0298d519 -- der Stand VOR der Berichtigung an
    der Vorschau der Vokabelkarte, die der Augenschein von 0.31.3 verlangt hat. */
-const TR_AFTER_0313 = { one: 'b006c00a28ebf68f', other: 'a7cf75e2818df03e' };
+const TR_AFTER_0313 = { one: '750c9a0e5b2ee443', other: '8d8fa279c5902fe0' };
 
 async function check0313() {
   const tgRead = (code) => JSON.parse(fs.readFileSync(
@@ -1187,25 +1197,30 @@ async function check0313() {
        der englischen Seite -- L5 verlangt es: kein neuer Schluessel ohne alle
        drei Sprachen, und die Deckungsprobe faerbte den Lauf sofort rot. */
     /* UND EINER MIT 0.33.0 -- derselbe wie drueben: `server.exportTooOld`. */
-    /* UND DREI MIT 0.35.0, wie bei Englisch. */
+    /* UND ZWEI MIT 0.35.0, wie bei Englisch. */
     /* UND EINER MIT 0.35.1, wieder derselbe: `server.trashRestoring`. */
     const TR_ADDED_AFTER_0313 = ['_afterNumber',
-      'entry.exportOne', 'entry.ratingRemoved', 'entry.removeRating',
+      'entry.ratingRemoved', 'entry.removeRating',
       'card.grade', 'entry.deletePhoto', 'entry.deleteVideo',
       'list.bellMine', 'list.bellOther', 'list.bellToMe',
       'list.markedCount', 'mail.ownServer',
       'server.backupsBeforeKey', 'server.cleanupAllYoungest', 'server.cleanupNoBackups',
       'server.cleanupOldestAge', 'server.exportTooOld', 'server.noAccountOwner',
       'server.noPublicAddress', 'server.noTestMail', 'server.noUserAddress',
-      'server.signupThanks', 'server.trashRestoring', 'vocabulary.grade'];
+      'server.signupThanks', 'server.trashRestoring',
+      /* UND VIER MIT 0.35.2 -- dieselben wie drueben. */
+      'server.importOne', 'server.uploadCap', 'server.uploadSize', 'server.videoOne',
+      'vocabulary.grade'];
     /* UND EINER IST GEFALLEN -- derselbe wie drueben: `list.otherUser`. */
     /* UND SIEBEN MIT 0.32.1 -- dieselben wie im englischen Stand daneben, und
        aus demselben Grund. */
     /* UND ZWEI MIT 0.33.0, wieder dieselben: die JPEG-Haelfte des
        Bestandslaufs nimmt in allen drei Dateien dieselben zwei Saetze mit. */
+    /* UND EINER MIT 0.35.2, derselbe wie drueben: `server.entryTooBig`. */
     const TR_GONE_AFTER_0313 = ['card.catchUpDerivatives', 'card.derivativesAsk',
       'entry.deleteWord', 'list.and', 'list.followsSort',
-      'list.ofWhich', 'list.otherUser', 'list.pillHint', 'list.sortDefaultHint'];
+      'list.ofWhich', 'list.otherUser', 'list.pillHint', 'list.sortDefaultHint',
+      'server.entryTooBig'];
     const tgAdded = Object.keys(tgFiles.tr).filter(k => !(k in tgPrint));
     const tgLost = Object.keys(tgPrint).filter(k => !(k in tgFiles.tr));
     check(`Und sie traegt die Schluessel von tr.json — bis auf die benannten neuen (${TR_ADDED_AFTER_0313.length}) und den einen gefallenen`,
@@ -1295,9 +1310,15 @@ async function check0313() {
       /* UND EIN FUND DER RUNDE SELBST -- Punkt 31 des Sammelblatts. */
       'card.checkForeign':        '0.32.0: Punkt 31 — „yedeği" wird „yedeklemesi"',
       /* UND ZWEI MIT 0.35.0 -- dieselben beiden wie auf der englischen Seite. */
-      'entry.exportOne':          '0.35.0: neu — „{entryOne} kaydını dışa aktar", die Beschriftung des neuen Knopfes am Eintrag',
       'entry.removeRating':       '0.35.0: neu — „{ratingOne} kaldırılsın", vorher deutsch im Skript',
-      'entry.ratingRemoved':      '0.35.0: neu — „{ratingOne} kaldırıldı", vorher deutsch im Skript'
+      'entry.ratingRemoved':      '0.35.0: neu — „{ratingOne} kaldırıldı", vorher deutsch im Skript',
+      /* UND FUENF MIT 0.35.2 -- die vier neuen Absagen der Hochladewege und
+         der Satz, der die 50 nicht mehr als Text traegt. */
+      'entry.tooBig':             '0.35.2: die 50 steht nicht mehr im Satz, sondern kommt als {mb}',
+      'server.importOne':         '0.35.2: neu — die Absage des Imports an eine zweite Datei in derselben Anfrage',
+      'server.uploadCap':         '0.35.2: neu — die Absage an zu viele Dateien in einer Anfrage',
+      'server.uploadSize':        '0.35.2: neu — die Absage an eine zu grosse Datei',
+      'server.videoOne':          '0.35.2: neu — die Absage des Videowegs an ein zweites Video'
     };
     const tgDiff = Object.keys(tgFiles.tr)
       .filter(k => JSON.stringify(tgPrint[k]) !== JSON.stringify(tgFiles.tr[k]));

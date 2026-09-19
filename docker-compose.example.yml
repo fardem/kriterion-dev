@@ -31,6 +31,12 @@ services:
       - ./kriterion-sicherung:/app/sicherung
     environment:
       - PORT=3000
+      # DIE UHR DES CONTAINERPROTOKOLLS. Ohne diese Zeile laeuft der Container
+      # auf UTC, und jede Protokollzeile endet auf +00:00. Mit ihr steht die
+      # oertliche Zeit da, und der Versatz sagt, welche gemeint ist.
+      # DIE GESPEICHERTEN ZEITEN AENDERN SICH NICHT: Sicherheitsprotokoll,
+      # Sicherungsnamen und exported_at bleiben UTC.
+      - TZ=Europe/Berlin
       # Ohne diese Zeile bleibt die Karte "Sicherung" aus und sagt es. Sie
       # steht hier und nicht in der .env: sie gehoert zur Einhaengung darueber,
       # und ein Pfad ohne Einhaengung schriebe in eine Schicht, die beim

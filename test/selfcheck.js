@@ -22,7 +22,7 @@ async function run() {
   // Die Zahl der Rueckbauten steht ausdruecklich da: eine Zahl in einem
   // Papier ist eine Behauptung, eine Zahl im Pruefstand ist ein Beleg. Wie
   // sie Runde fuer Runde gewachsen ist, steht in den Aenderungsprotokollen.
-  check(`Es sind genau 1038 Rueckbauten`, gpList.length === 1038, `${gpList.length}`);
+  check(`Es sind genau 1053 Rueckbauten`, gpList.length === 1053, `${gpList.length}`);
   const gpTwice = gpList.map(r => r.nr).filter((n, i, a) => a.indexOf(n) !== i);
   check('Und keine Nummer steht zweimal', gpTwice.length === 0, gpTwice.join(' '));
   /* JEDER GREIFT: der Suchtext kommt in seiner Datei GENAU EINMAL vor. */
@@ -45,9 +45,10 @@ async function run() {
   }
   /* UND DIE ZAHL DER GELESENEN DATEIEN STEHT DA: sie ist der Beleg, dass die
      Schleife wirklich nur einmal je Datei liest. */
-  // Sechsunddreissig, seit ein Rueckbau auch .env.example anfasst.
-  check('Der Waechter liest hoechstens sechsunddreissig Dateien',
-    gpText.size <= 36, `${gpText.size} Dateien fuer ${gpList.length} Rueckbauten`);
+  // Achtunddreissig, seit Rueckbauten auch .env.example, log.js und
+// docker-compose.example.yml anfassen.
+  check('Der Waechter liest hoechstens achtunddreissig Dateien',
+    gpText.size <= 38, `${gpText.size} Dateien fuer ${gpList.length} Rueckbauten`);
   check('Jeder Suchtext kommt in seiner Datei genau einmal vor',
     gpFail.length === 0, gpFail.join(' · '));
   // Ein Ersatz, der dem Suchtext gleicht, baut nichts zurueck -- die Kopie
@@ -65,6 +66,48 @@ async function run() {
   const gpWithoutExpected = gpList.filter(r => !r.expected || !r.name);
   check('Und jeder nennt Name und erwartete Gruppe',
     gpWithoutExpected.length === 0, gpWithoutExpected.map(r => r.nr).join(' '));
+
+  /* ---- JEDER RUECKBAU LAESST EINE LADBARE DATEI ZURUECK — 0.35.2, BA 7 ----
+     Gegenprobe 330 setzte `${tMark(…, 'entry.grade',` auf `${tH(…, { word: '',`
+     und liess die schliessende Klammer des alten Rufs stehen. public/app.js
+     liess sich danach nicht mehr laden, und der Treiber meldete ABGERISSEN
+     statt ROT. EIN RUECKBAU, DER DIE DATEI ZERBRICHT, BELEGT NICHTS: er zeigt
+     nicht, dass die Pruefung greift, sondern nur, dass kaputter Code kaputt
+     ist. Gemessen wird hier, nicht von Hand.
+     KOMPILIERT UND NICHT AUSGEFUEHRT: `new vm.Script` uebersetzt den Text und
+     laeuft ihn nicht. Der Rumpf steht dabei in derselben Huelle, in die Node
+     ein Modul stellt -- sonst waere `return` auf oberster Ebene ein Fehler,
+     und counterproof.js traegt eines. Die Zeile mit `#!` faellt davor weg:
+     Node nimmt sie heraus, vm.Script nicht. */
+  const vm = require('vm');
+  const gpShell = (text) =>
+    '(function (exports, require, module, __filename, __dirname) {'
+    + text.replace(/^#![^\n]*/, '') + '\n});';
+  const gpTorn = [];
+  let gpCompiled = 0;
+  for (const r of gpList) {
+    if (r.replacement === undefined || !r.file.endsWith('.js')) continue;
+    const src = fs.readFileSync(path.join(__dirname, ...r.file.split('/')), 'utf8');
+    /* Ein Suchtext, der nicht trifft, wird weiter oben gemeldet -- hier
+       waere er ein zweites Mal dieselbe Meldung. */
+    if (!src.includes(r.search)) continue;
+    gpCompiled++;
+    try { new vm.Script(gpShell(src.replace(r.search, r.replacement)), { filename: r.file }); }
+    catch (e) { gpTorn.push(`${r.nr} (${r.file}): ${e.message}`); }
+  }
+  check('Der Waechter uebersetzt jeden Rueckbau an einer .js-Datei',
+    gpCompiled > 700, `${gpCompiled} von ${gpList.length} Rueckbauten`);
+  check('Und jeder laesst eine Datei zurueck, die sich uebersetzen laesst',
+    gpTorn.length === 0, gpTorn.slice(0, 6).join(' · ') || 'keine abgerissen');
+  /* UND DER WAECHTER FAENGT DEN FALL, DEN ER MEINT: eine Klammer, die stehen
+     bleibt. Gestellt und nachgemessen -- ohne diese Zeile waere die darueber
+     auch dann gruen, wenn gar nichts mehr uebersetzt wuerde. */
+  const gpBroken = 'const a = f(1,\n  2);'.replace('f(1,', 'g(1, { x: 1,');
+  let gpCaught = false;
+  try { new vm.Script(gpShell(gpBroken), { filename: 'gestellt.js' }); }
+  catch { gpCaught = true; }
+  check('Und er faengt einen Rueckbau, der die Klammer stehen laesst',
+    gpCaught, 'der Waechter sieht den gestellten Abriss nicht');
 
   /* ---- DIE MELDUNG „STUMM" MUSS EINEN STUMMEN RUECKBAU AUCH SEHEN KOENNEN. */
   const gpRead = require('./counterproof').readRun;
@@ -327,8 +370,10 @@ async function run() {
         && !rpBuiltIn.has(n) && !(n in globalThis));
     if (miss.length) rpStrange.push(`${r.nr} ${r.file}: ${miss.join(' ')}`);
   }
+  /* 27 WURDEN 29 MIT 0.35.2: der Routenwaechter und die Gestaltprobe
+     bekommen je eine Gegenprobe auf ihren eigenen Leser. */
   check('Der Waechter sieht die Rueckbauten auf Pruefstandsdateien',
-    rpChecked === 27, `${rpChecked} Rueckbauten`);
+    rpChecked === 29, `${rpChecked} Rueckbauten`);
   check('Und jeder ihrer Namen steht in der Zieldatei, im Rahmen oder im Suchtext',
     rpStrange.length === 0, rpStrange.slice(0, 6).join(' · '));
 
@@ -355,36 +400,37 @@ async function run() {
       ['test/keychange.js', 81],
       ['test/release_029.js', 60],
       ['test/release_030.js', 241],
-      ['test/release_031.js', 398],
-      ['test/roundtrip.js', 3198],
-      ['test/selfcheck.js', 173],
-      ['test/source.js', 728],
+      ['test/release_031.js', 405],
+      ['test/roundtrip.js', 3215],
+      ['test/selfcheck.js', 195],
+      ['test/source.js', 867],
       ['test/ui_entry.js', 497],
       ['test/ui_export.js', 453],
       ['test/ui_inventory.js', 241],
-      ['test/ui_language.js', 275],
+      ['test/ui_language.js', 285],
       ['test/ui_overview.js', 494],
       ['test/ui_style.js', 562],
       ['test/ui_system.js', 692],
       ['test/ui_translator.js', 104],
-      ['counterproof.js', 1531],
-      ['server.js', 1500],
+      ['counterproof.js', 1571],
+      ['server.js', 1523],
       ['auth.js', 274],
       ['db.js', 272],
-      ['mail.js', 40],
+      ['mail.js', 48],
       ['keys.js', 50],
       ['attachments.js', 66],
       ['images.js', 27],
       ['batchrun.js', 28],
+      ['log.js', 7],
       ['usertool.js', 51],
       ['twofactor.js', 34],
       ['keytool.js', 55],
-      ['public/app.js', 1855],
+      ['public/app.js', 1856],
       ['public/theme.js', 3],
     ];
-    const COMMENT_TOTAL = { comment: 14684, code: 60726 };
-    check('Der Waechter sieht alle vierunddreissig Dateien',
-      crAll.each.length === 34 && COMMENT_ROWS.length === 34,
+    const COMMENT_TOTAL = { comment: 14958, code: 61114 };
+    check('Der Waechter sieht alle fuenfunddreissig Dateien',
+      crAll.each.length === 35 && COMMENT_ROWS.length === 35,
       `${crAll.each.length} gemessen, ${COMMENT_ROWS.length} genannt`);
     const crWrong = [];
     for (let i = 0; i < COMMENT_ROWS.length; i++) {
@@ -730,15 +776,17 @@ async function run() {
        jede Verneinung darunter wahr. */
     check('Der Teillauf laeuft ueberhaupt',
       /Pruefungen bestanden/.test(driverText), JSON.stringify(driverText.slice(0, 160)));
-    /* Das Modul hat seine fuenf Zahlen gemeldet -- die sechste Pruefung ist
-       die des Treibers. Die Meldung nennt die Zahlen und NICHT den Satz, in dem
+    /* Das Modul hat seine sieben Zahlen gemeldet -- die achte Pruefung ist
+       die des Treibers. Fuenf und sechs waren es bis 0.35.2; die Gruppe hat
+       zwei Pruefungen dazubekommen, seit sie das Stilblatt und die
+       SQL-Kommentare des Schemas mitliest. Die Meldung nennt die Zahlen und NICHT den Satz, in dem
        sie stehen: counterproof.js liest `\d+ von \d+ Pruefungen bestanden` als
        Gesamtzahl des Laufs und nimmt den ersten Treffer. Stuende der Satz hier,
        traege jeder Gegenprobebericht, in dem diese Pruefung rot wird, die Zahl
        des Teillaufs statt die des Laufs. */
     const driverScore = driverText.match(/(\d+) von (\d+) Pruefungen bestanden/);
     check('Das Modul meldet seine Zahlen noch',
-      driverScore && driverScore[1] === '5' && driverScore[2] === '6',
+      driverScore && driverScore[1] === '7' && driverScore[2] === '8',
       `bestanden ${driverScore ? driverScore[1] : '—'} von ${driverScore ? driverScore[2] : '—'}`);
     check('Und der Treiber nennt den Rueckgabewert beim Wert',
       /Das Modul source meldet keinen Fehler, endete aber mit Rueckgabewert 9/.test(driverText),

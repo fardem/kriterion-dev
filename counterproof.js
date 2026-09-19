@@ -45,7 +45,7 @@ const REGRESSIONS = [
     file: 'mail.js',
     /* DER RUECKBAU MACHT DIE FRIST WIRKUNGSLOS, ER ENTFERNT SIE NICHT AUS DEM
        WETTLAUF. */
-    search: "      clock = setTimeout(() => error(new Error(t(locale, 'mail.timeout'))), SEND_MS);",
+    search: "      clock = setTimeout(() => error(late), SEND_MS);",
     replacement: "      uhr = setTimeout(() => {}, SEND_MS);",
     expected: 'Der Mailversand: die Frist wird gemessen, nicht behauptet'
   },
@@ -1378,7 +1378,7 @@ const REGRESSIONS = [
   {
     nr: '171', name: 'Der Umschlag faellt weg — ein Export ohne Fotos waere null Bytes gross',
     file: 'server.js',
-    search: '  return parts.photos + parts.videos + parts.attachments + parts.commentImages + exchangeEnvelopeBytes(itemId);',
+    search: '  return parts.photos + parts.videos + parts.attachments + parts.commentImages + exchangeEnvelopeBytes();',
     replacement: '  return teile.fotos + teile.videos + teile.anhaenge + teile.kommentarbilder;',
     expected: 'Die Exportgroesse sagt sich an'
   },
@@ -1387,14 +1387,14 @@ const REGRESSIONS = [
        RECHNUNG: photos.thumb geht nie in die Datei. */
     nr: '172', name: 'Die Vorschaubilder werden mitgezaehlt, obwohl sie nie mitgehen',
     file: 'server.js',
-    search: "      `SELECT COALESCE(SUM(length(data)),0) n FROM photos WHERE kind != 'video'${and('item_id')}`));",
-    replacement: "      `SELECT COALESCE(SUM(length(data) + COALESCE(length(thumb),0)),0) n FROM photos WHERE kind != 'video'${und('item_id')}`));",
+    search: "      `SELECT COALESCE(SUM(length(data)),0) n FROM photos WHERE kind != 'video'`));",
+    replacement: "      `SELECT COALESCE(SUM(length(data) + COALESCE(length(thumb),0)),0) n FROM photos WHERE art != 'video'`));",
     expected: 'Videos: Kennzahlen und Austausch'
   },
   {
     nr: '173', name: 'Der Export baut erst und sagt danach ab',
     file: 'server.js',
-    search: '  const big = exchangeBytes(null, switches);\n  if (!asPart && big > EXCHANGE_MAX)',
+    search: '  const big = exchangeBytes(switches);\n  if (!asPart && big > EXCHANGE_MAX)',
     replacement: '  const gross = 0;\n  if (!asPart && gross > EXCHANGE_MAX)',
     expected: 'Videos: Kennzahlen und Austausch'
   },
@@ -2693,10 +2693,17 @@ const REGRESSIONS = [
      Durchschnittsspalte der Liste dahinter, die es bei einem einzigen Zugang
      nicht gibt. */
   {
+    /* DER SUCHTEXT NIMMT DEN GANZEN RUF MIT, und der Ersatz schliesst seine
+       Klammer selbst. Bis dahin blieb die schliessende Klammer des alten Rufs
+       stehen, die Datei liess sich nicht mehr laden, und der Treiber meldete
+       ABGERISSEN statt ROT. Ein Rueckbau, der die Datei zerbricht, belegt
+       nicht, dass die Pruefung greift -- nur, dass kaputter Code kaputt ist. */
     nr: '330', name: 'Der Erklaerkasten verweist wieder auf die Spalte dahinter',
     file: 'public/app.js',
-    search: "${tMark('entry.calcStepsHint', 'entry.grade',",
-    replacement: "${tH('entry.calcStepsHint', { word: '',",
+    search: "${tMark('entry.calcStepsHint', 'entry.grade',\n"
+          + "          { extra: withWeight ? t('entry.calcWithWeight') : t('entry.calcAllEqual') })}",
+    replacement: "${tH('entry.calcStepsHint', { word: '',\n"
+               + "          extra: withWeight ? t('entry.calcWithWeight') : t('entry.calcAllEqual') })}",
     expected: 'Die Rechnung hinter der Kopfzahl'
   },
   /* DIESELBE FRAGE WIE AN DER KRITERIENLISTE, EINE ANSICHT WEITER: passen die
@@ -3421,7 +3428,7 @@ const REGRESSIONS = [
        16383 px je Kante. */
     nr: '458', name: 'Ein Bild, das WebP nicht fassen kann, reisst den Upload ab',
     file: 'images.js',
-    search: "    console.error('[Kriterion] PNG blieb PNG:', e.message);",
+    search: "    logFail('PNG blieb PNG:', e.message);",
     replacement: "    throw e;",
     expected: 'Die Bildablage: PNG kommt herein, WebP geht in die Tabelle'
   },
@@ -3828,8 +3835,8 @@ const REGRESSIONS = [
        zusaetzlich. */
     nr: '482', name: 'Die Exportgroesse der Bilder wird ein zweites Mal gefragt',
     file: 'server.js',
-    search: "      ...exchangeParts(null, { withFiles: true }),",
-    replacement: "      ...exchangeParts(null, { mitFotos: true, mitDateien: true, mitVideos: true }),",
+    search: "      ...exchangeParts({ withFiles: true }),",
+    replacement: "      ...exchangeParts({ mitFotos: true, mitDateien: true, mitVideos: true }),",
     expected: 'Die Bildablage: PNG kommt herein, WebP geht in die Tabelle'
   },
   {
@@ -4128,8 +4135,8 @@ const REGRESSIONS = [
     /* DAS NACHZIEHEN GIBT SEINE SEITEN NICHT FREI. */
     nr: '516', name: 'Das Nachziehen gibt seine Seiten nicht frei',
     file: 'batchrun.js',
-    search: "  reclaim();\n  report(status);\n  console.log(`[Kriterion] Tiles renewed:",
-    replacement: "  melde(stand);\n  console.log(`[Kriterion] Tiles renewed:",
+    search: "  reclaim();\n  report(status);\n  logLine(`Tiles renewed:",
+    replacement: "  melde(stand);\n  logLine(`Tiles renewed:",
     expected: '(erwartet STUMM — die Wirkung ist eine Dateigroesse, und die waechst in dieser Runde ohnehin)'
   },
   {
@@ -4432,7 +4439,7 @@ const REGRESSIONS = [
        rote Message. */
     nr: '552', name: 'Das Aufraeumen reisst die gelungene Sicherung mit',
     file: 'server.js',
-    search: "    console.error('[Kriterion] Clearing up after the backup failed:', e.message);\n" +
+    search: "    logFail('Clearing up after the backup failed:', e.message);\n" +
            "    cleaned = { removed: 0, notDeleted: 0, bytes: 0, failed: true };\n" +
            "  }",
     replacement: "    throw e;\n" +
@@ -8445,8 +8452,8 @@ const REGRESSIONS = [
     /* UND EINE KONSOLENANSAGE SPRICHT WIEDER DEUTSCH. */
     nr: '1051', name: 'Eine Konsolenansage spricht wieder deutsch',
     file: 'server.js',
-    search: "  console.log(`[Kriterion] Running on port ${PORT} -- ` +",
-    replacement: "  console.log(`[Kriterion] Laeuft auf Port ${PORT} -- ` +",
+    search: "  logLine(`Running on port ${PORT} -- ` +",
+    replacement: "  logLine(`Laeuft auf Port ${PORT} -- ` +",
     expected: 'Die sieben Waechter der Sprachdatei — 0.24.0'
   },
   {
@@ -8501,8 +8508,8 @@ const REGRESSIONS = [
     /* DER BEFUND SELBST: die Zeile schreibt den Schluessel wieder roh hin. */
     nr: '1057', name: 'Die Sicherungszeile schreibt den Schluessel wieder roh hin',
     file: 'server.js',
-    search: "  console.log('[Kriterion] Backup location: ' + (situation.input\n    ? situation.root\n    : `off -- ${t('en', situation.reason, situation.values)}`));",
-    replacement: "  console.log('[Kriterion] Backup location: ' + (situation.input ? situation.root : `off -- ${situation.reason}`));",
+    search: "  logLine('Backup location: ' + (situation.input\n    ? situation.root\n    : `off -- ${t('en', situation.reason, situation.values)}`));",
+    replacement: "  logLine('Backup location: ' + (situation.input ? situation.root : `off -- ${situation.reason}`));",
     expected: 'Die Sicherungsprobe — 0.29.0'
   },
   {
@@ -8746,7 +8753,7 @@ const REGRESSIONS = [
     /* Ein gefangener Fehler ohne Schluessel bleibt wieder stumm. */
     nr: '1083', name: 'Ein gefangener Fehler ohne Schluessel bleibt wieder stumm',
     file: 'server.js',
-    search: "  if (!(e && e.key)) console.error('[Kriterion] ' + (e && e.stack ? e.stack : e));",
+    search: "  if (!(e && e.key)) logFail(e && e.stack ? e.stack : e);",
     replacement: "",
     expected: 'Ein gefangener Fehler bleibt nicht stumm — 0.35.0'
   },
@@ -8775,23 +8782,6 @@ const REGRESSIONS = [
     search: '.engine-slot input[id^="se-name-"] { flex: 0 0 8.5em; }',
     replacement: '.engine-slot #se-name-1, .engine-slot #se-name-2 { flex: 0 0 8.5em; }',
     expected: 'Die Zahl der eigenen Suchplaetze steht an einer Stelle — 0.35.0'
-  },
-  {
-    /* Der Knopf, der den einzelnen Eintrag als Datei holt, ist wieder fort:
-       die Route bleibt, aber kein Element der Oberflaeche ruft sie. */
-    nr: '1087', name: 'Der einzelne Eintrag ist wieder nur ueber die Adresszeile zu holen',
-    file: 'public/app.js',
-    search: "      ? `<div class=\"entry-out\"><button class=\"btn btn-sm\" id=\"exp1\">${tH('entry.exportOne')}</button></div>`",
-    replacement: "      ? ''",
-    expected: 'Der einzelne Eintrag ist ueber die Oberflaeche zu holen — 0.35.0'
-  },
-  {
-    /* Und er ruft wieder den vollen Export statt des einen Eintrags. */
-    nr: '1088', name: 'Der Knopf am Eintrag holt wieder den ganzen Bestand',
-    file: 'public/app.js',
-    search: "    window.location = `/api/items/${id}/export`;",
-    replacement: "    window.location = '/api/export';",
-    expected: 'Der einzelne Eintrag ist ueber die Oberflaeche zu holen — 0.35.0'
   },
   {
     /* Ein Kommentarblock des Stilblatts waechst wieder ueber dreissig
@@ -8900,6 +8890,164 @@ const REGRESSIONS = [
     search: "    const vnPattern = () => /(?<![\\d.])\\d+\\.\\d+\\.\\d+(?!\\.?\\d)/g;",
     replacement: "    const vnPattern = () => /\\b\\d+\\.\\d+\\.\\d+\\b/g;",
     expected: 'Keine Versionsnummer als Herkunft'
+  },
+  /* ---- Die Fotogrenzen -- 0.35.2, BA 4 ---- */
+  {
+    /* Die Zahl steht wieder nackt in der Routenzeile. */
+    nr: '1101', name: 'Die Fotoroute nennt die 40 wieder ohne Namen',
+    file: 'server.js',
+    search: "         capped(upload.array('photos', PHOTO_COUNT),",
+    replacement: "         capped(upload.array('photos', 40),",
+    expected: 'Die Fotogrenzen haben Namen — 0.35.2'
+  },
+  {
+    /* Der Browser gibt wieder alles auf einmal -- der Fehler aus dem Betrieb. */
+    nr: '1102', name: 'Der Browser schickt die Fotos wieder in einem Zug',
+    file: 'public/app.js',
+    search: "        for (let at = 0; at < images.length; at += PHOTO_COUNT) {",
+    replacement: "        for (let at = 0; at < images.length; at += 10000) {",
+    expected: 'Die Fotogrenzen haben Namen — 0.35.2'
+  },
+  {
+    /* Die beiden Seiten tragen verschiedene Zahlen. */
+    nr: '1103', name: 'Der Browser teilt nach einer anderen Zahl als der Server',
+    file: 'public/app.js',
+    search: "const PHOTO_COUNT = 40;",
+    replacement: "const PHOTO_COUNT = 60;",
+    expected: 'Die Fotogrenzen haben Namen — 0.35.2'
+  },
+  {
+    /* Der Fehler-Handler reicht wieder die Message von multer durch. */
+    nr: '1104', name: 'Die Absage an zu viele Fotos steht wieder auf Englisch da',
+    file: 'server.js',
+    search: "    if (err.code === 'LIMIT_UNEXPECTED_FILE' || err.code === 'LIMIT_FILE_COUNT')",
+    replacement: "    if (false)",
+    expected: 'Mehr als 40 Fotos auf einmal — 0.35.2'
+  },
+  /* ---- Das Containerprotokoll und seine Zeit -- 0.35.2, BA 5 ---- */
+  {
+    /* Der Versatz faellt weg -- die Zeile sagt dann nicht mehr, welche Uhr
+       gemeint ist. */
+    nr: '1105', name: 'Der Zeitstempel verliert seinen Versatz',
+    file: 'log.js',
+    search: "         `${sign}${two(Math.floor(away / 60))}:${two(away % 60)}`;",
+    replacement: "         'Z';",
+    expected: 'Das Containerprotokoll traegt seine Zeit — 0.35.2'
+  },
+  {
+    /* Eine Zeile schreibt den Namen wieder selbst und umgeht damit die Zeit. */
+    nr: '1106', name: 'Eine Protokollzeile umgeht den Helfer wieder',
+    file: 'keys.js',
+    search: "  if (isMainThread) logLine('New key created.');",
+    replacement: "  if (isMainThread) console.log('[Kriterion] New key created.');",
+    expected: 'Das Containerprotokoll traegt seine Zeit — 0.35.2'
+  },
+  {
+    /* Ohne TZ laeuft der Container auf UTC, und der Versatz ist immer +00:00. */
+    nr: '1107', name: 'Die Beispieldatei setzt TZ nicht mehr',
+    file: 'docker-compose.example.yml',
+    search: "      - TZ=Europe/Berlin\n",
+    replacement: "",
+    expected: 'Das Containerprotokoll traegt seine Zeit — 0.35.2'
+  },
+  /* ---- Jede Route hat einen Rufer -- 0.35.2, BA 2 ---- */
+  {
+    /* Der Rufer einer Route faellt im Browser weg -- genau die Lage, in der
+       der Einzelexport 26 Runden lang stand. */
+    nr: '1108', name: 'Eine Route verliert ihren Rufer im Browser',
+    file: 'public/app.js',
+    search: "api('PUT', `/api/items/${id}/photo-order`",
+    replacement: "api('PUT', `/api/eintrag/${id}/fotoreihenfolge`",
+    expected: 'Jede Route hat einen Rufer — 0.35.2'
+  },
+  {
+    /* Und die Ausnahmeliste deckt eine Route zu, die laengst einen Rufer hat:
+       dann benennt sie eine Reiseform, die es nicht gibt. */
+    nr: '1109', name: 'Die Ausnahmeliste des Routenwaechters deckt zu viel zu',
+    file: 'test/source.js',
+    search: "    const RR_OVER_TABLE = ['/api/product-categories/:id', '/api/tags/:id'];",
+    replacement: "    const RR_OVER_TABLE = ['/api/product-categories/:id', '/api/tags/:id', '/api/items/:id'];",
+    expected: 'Jede Route hat einen Rufer — 0.35.2'
+  },
+  /* ---- Kein Verweis auf Doku/ -- 0.35.2, BA 3 ---- */
+  {
+    /* Eine ausgelieferte Datei nennt wieder einen Pfad unter Doku/ -- im
+       oeffentlichen Stand zeigt er auf nichts. */
+    nr: '1110', name: 'Das Stilblatt verweist wieder auf eine Datei unter Doku/',
+    file: 'public/style.css',
+    search: "   Die Werte sind gemessen. Latte: kein Wert unterschreitet, was das",
+    replacement: "   Die Werte stehen einzeln in Doku/Farbkonzept_0_23_0.md. Latte: kein Wert unterschreitet, was das",
+    expected: 'Kein Verweis auf Doku/ geht mit hinaus — 0.35.2'
+  },
+  /* ---- Jeder Rueckbau laesst eine ladbare Datei zurueck -- 0.35.2, BA 7 ---- */
+  {
+    /* Gegenprobe 330 steht wieder in der Form, die public/app.js zerbricht:
+       der Suchtext nimmt den Ruf nicht mit, und die schliessende Klammer
+       bleibt stehen. Der Waechter muss das sehen. */
+    nr: '1111', name: 'Ein Rueckbau laesst die Klammer wieder stehen',
+    file: 'counterproof.js',
+    search: "    search: \"${tMark('entry.calcStepsHint', 'entry.grade',\\n\"\n"
+          + "          + \"          { extra: withWeight ? t('entry.calcWithWeight') : t('entry.calcAllEqual') })}\",",
+    replacement: "    search: \"${tMark('entry.calcStepsHint', 'entry.grade',\",",
+    expected: 'Die Gegenproben greifen'
+  },
+  /* ---- Deutsch ist keine id -- 0.35.2, BA 8 ---- */
+  {
+    /* Eine id, die das Skript selbst setzt, heisst wieder deutsch. Sie steht
+       in keiner Stilblattregel und in keinem `id="…"` -- vor 0.35.2 hat die
+       Gestaltprobe genau das nicht gesehen. */
+    nr: '1112', name: 'Eine gesetzte id heisst wieder deutsch',
+    file: 'public/app.js',
+    search: "    b.id = 'f-cat-none';",
+    replacement: "    b.id = 'f-kat-ohne';",
+    expected: 'Der Quelltext spricht Englisch — die sechs Waechter'
+  },
+  {
+    /* Und die dritte Quelle faellt wieder weg: der Waechter saehe die elf
+       gesetzten id dann gar nicht mehr. */
+    nr: '1113', name: 'Die Gestaltprobe liest die gesetzten id nicht mehr',
+    file: 'test/source.js',
+    search: "    for (const m of appSource.matchAll(/\\.id = ['\"]([\\w-]+)['\"]/g)) shapes.add('#' + m[1]);",
+    replacement: "",
+    expected: 'Der Quelltext spricht Englisch — die sechs Waechter'
+  },
+  /* ---- Die zwei Loecher des Nummernwaechters -- 0.35.2, BA 9 ---- */
+  {
+    /* Das Stilblatt nennt wieder eine Nummer. Vor 0.35.2 stand es in keiner
+       Dateiliste dieses Waechters. */
+    nr: '1114', name: 'Das Stilblatt nennt wieder eine solche Nummer',
+    file: 'public/style.css',
+    search: "   kommt aus DERSELBEN Bedingung wie die Zelle. */",
+    replacement: "   kommt aus DERSELBEN Bedingung wie die Zelle (Stolper" + "stein 47). */",
+    expected: 'Kein Stolpersteinverweis mehr — 0.34.3'
+  },
+  {
+    /* Und eine SQL-Kommentarzeile des Schematexts ebenso: sie steht in einer
+       Vorlage, und der Segmentierer haelt eine Vorlage fuer Text. */
+    nr: '1115', name: 'Eine SQL-Zeile des Schemas nennt wieder eine Nummer',
+    file: 'db.js',
+    search: "  -- ON DELETE SET NULL wie an jedem Traeger: ein entfernter",
+    replacement: "  -- ON DELETE SET NULL wie an jedem Traeger (Stolper" + "stein 54): ein entfernter",
+    expected: 'Kein Stolpersteinverweis mehr — 0.34.3'
+  },
+  /* ---- Der Grund eines Versands reist als Schluessel -- 0.35.2, BA 11 ---- */
+  {
+    /* Der Grund wird wieder in der Sprache des EMPFAENGERS gemacht und landet
+       damit in der Karte des Admins -- genau der Befund aus Punkt 34. */
+    nr: '1116', name: 'Der Versandgrund steht wieder in der Sprache des Empfaengers',
+    file: 'server.js',
+    search: "              : { delivery: 'fehlgeschlagen', deliveryReason: sendWhy(e, readerLocale) };",
+    replacement: "              : { delivery: 'fehlgeschlagen', deliveryReason: sendWhy(e, locale) };",
+    expected: 'Der Grund eines Versands reist als Schluessel — 0.35.2'
+  },
+  {
+    /* Und der Schluessel des Wurfs reist wieder als Text: am Bildschirm
+       staende dann `mail.timeout` statt eines Satzes. */
+    nr: '1117', name: 'Der Schluessel der Frist reist wieder als Text',
+    file: 'mail.js',
+    search: "  if (e && e.key) return { reasonKey: e.key, reason: '' };",
+    replacement: "  if (e && e.key) return { reasonKey: '', reason: e.key };",
+    expected: 'Der Mailversand: die Frist wird gemessen, nicht behauptet'
   },
 ];
 

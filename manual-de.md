@@ -660,7 +660,10 @@ es zwei, beide in den Einstellungen einstellbar:
 - Das **erste Element ist das Hauptbild** — Reihenfolge durch Ziehen der
   Vorschaubilder ändern, mit Maus oder Finger.
 - Fotos lassen sich per Dateiauswahl, **Strg+V aus der Zwischenablage** oder
-  durch Ablegen auf dem Feld hinzufügen.
+  durch Ablegen auf dem Feld hinzufügen. **Ein Foto darf bis 30 MB groß sein.**
+  Wie viele Fotos an einem Eintrag hängen, ist nicht begrenzt; **je Vorgang
+  gehen 40 auf einmal zum Server**, und größere Auswahlen werden vom Browser
+  selbst aufgeteilt.
 - **Kurzvideos bis 20 MB stehen in derselben Reihe** — MP4, WebM und MOV, über
   dasselbe Feld hinzugefügt. In der Vorschauleiste trägt ein Video ein ▶ und
   seine Länge, im Eintrag und im Vollbild wird es mit der Steuerung des

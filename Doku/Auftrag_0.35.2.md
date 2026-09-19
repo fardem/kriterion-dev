@@ -1,6 +1,26 @@
 # Auftrag 0.35.2 — „Der Einzelexport geht raus"
 
-Geschrieben am 17. September 2026. Nicht gebaut. Läuft nach 0.35.1.
+Geschrieben am 17. September 2026. **GEBAUT am 19. September 2026** —
+Änderungsprotokoll 0.35.2.
+
+> **WAS BEIM BAUEN ANDERS GEMESSEN WURDE ALS HIER GEPLANT.** *Die Zahlen unten
+> stehen so, wie sie vor dem Bauen gemessen waren; berichtigt wird hier und
+> nicht dort.*
+>
+> * **`F_ROUTES` bleibt bei 73**, nicht 72. Die Liste führt die SCHREIBENDEN
+>   Routen; die Exportroute ist lesend und stand dort nie.
+> * **Die Schlüsselzahl geht 1.212 → 1.214**, nicht → 1.210: zwei fallen, vier
+>   kommen mit BA 4 dazu. `server.fileCap` sagt „je Eintrag", und eine
+>   Obergrenze je Eintrag gibt es bei Fotos nicht — die Meldung wäre falsch
+>   gewesen.
+> * **Die Ausnahmeliste von BA 2 trägt zwei Adressen, nicht drei.**
+>   `/api/criteria/:id` hat einen buchstäblichen Rufer; `/api/manifest.json`
+>   steht in `public/index.html`, das der Wächter mitliest. **102 Routen, nicht
+>   73** — die 73 galt `F_ROUTES`.
+> * **Der tote Zweig aus F2 trägt 14 Einsetzungen, nicht 11.**
+> * **BA 6 entfiel:** Punkt 33 ist seit 0.33.2 gebaut (Commit `b88bdb4`). Der
+>   Eintrag im Sammelblatt war veraltet.
+> * **F1** 0.35.2 bleibt · **F2** mitnehmen · **F4** mitnehmen, als BA 11.
 
 **Sie nimmt eine Route weg, die das Projekt nicht braucht, und zwei Stücke, die
 dieselben Dateien anfassen.**

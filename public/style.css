@@ -157,8 +157,7 @@
 }
 
 /* ═════════════════ DAS HELLE SCHEMA — 0.23.0 ═════════════════
-   Die Werte sind gemessen und stehen einzeln in
-   Doku/Farbkonzept_0_23_0.md. Latte: kein Wert unterschreitet, was das
+   Die Werte sind gemessen. Latte: kein Wert unterschreitet, was das
    dunkle Schema an derselben Paarung erreicht. NICHT HIER: --accent,
    --photo-rgb, --on-photo, --on-photo-dim, --on-accent, --on-signal,
    --tool-rgb, --lb-surface-rgb, --edge-on-dark-rgb -- was auf einem Foto
@@ -375,8 +374,7 @@ button { cursor: pointer; background: none; border: none; padding: 0; }
 
 /* ---------- Anmeldung ---------- */
 /* DIESELBE EINHEIT UND DERSELBE RUECKFALL WIE AN body.login: zwei Stellen
-   mit derselben Aussage duerfen nicht zwei Einheiten tragen (Stolperstein
-   47). */
+   mit derselben Aussage duerfen nicht zwei Einheiten tragen. */
 .login-screen {
   min-height: 100vh; min-height: 100dvh;
   display: flex; align-items: center; justify-content: center; padding: 24px;
@@ -447,7 +445,7 @@ button { cursor: pointer; background: none; border: none; padding: 0; }
   position: sticky; top: 0; z-index: var(--z-masthead);
   /* DECKEND UND OHNE MILCHGLAS -- 0.22.0. Bis 0.21.1 stand hier
      `backdrop-filter: blur(10px)`, gegen Abschnitt 10a des Projektstands
-     (Stolperstein 314). Neun Stellen sind gefallen, die dunklen Traeger
+     Neun Stellen sind gefallen, die dunklen Traeger
      dafuer eine Spur deckender. Ein Waechter haelt das Blatt frei davon. */
   background: var(--bg);
   transition: box-shadow .15s var(--ease);
@@ -1019,7 +1017,7 @@ mark {
 /* DIE SPALTENZAHL FOLGT DEM ZUSTAND: bei genau einem Zugang haengt
    drawRatings() die Durchschnittszelle gar nicht erst an, und zwei Zellen in
    einem Dreispaltenraster schoeben alles um eine Spalte weiter. Die Klasse
-   kommt aus DERSELBEN Bedingung wie die Zelle (Stolperstein 47). */
+   kommt aus DERSELBEN Bedingung wie die Zelle. */
 .rlist.no-average { grid-template-columns: 1fr auto auto; }
 .rrow { display: contents; }
 .rrow > * { padding: 9px 0; border-bottom: 1px solid var(--line-2); }
@@ -1252,7 +1250,6 @@ mark {
 .cmt-form .btn { align-self: flex-end; }
 /* Der Knopf, der den Eintrag als Datei holt -- 0.35.0. Rechtsbuendig wie die
    Zeile darunter, aber mit kleinerem Abstand: beide gehoeren zum Fuss. */
-.entry-out { display: flex; justify-content: flex-end; margin-top: 16px; }
 .danger-row { display: flex; justify-content: flex-end; margin-top: 8px; }
 
 /* ---------- Vergleich ---------- */
@@ -1319,7 +1316,7 @@ mark {
    Position taete das nicht: wie viele Karten in eine Zeile passen, haengt an
    der Fensterbreite. */
 /* DAS RASTER STRECKT SEINE KINDER: alle Kacheln einer Reihe sind gleich
-   hoch. 0.17.3 hat hier `align-items: start` gesetzt (Stolperstein 201) --
+   hoch. 0.17.3 hat hier `align-items: start` gesetzt --
    die Begruendung „der Leerraum steht IN der Kachel" stimmte nicht, und
    „Bestand" stand als Treppe von 206 bis 909 Pixeln da. */
 .sys-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); grid-auto-flow: dense; gap: 18px; margin-top: 6px; }
@@ -1486,7 +1483,7 @@ mark {
    scheitert -- ein Flexkind traegt von sich aus `min-height: auto`. */
 /* DIE LISTE IST SO HOCH WIE IHR INHALT, HOECHSTENS ABER ZEHN ZEILEN.
    0.17.2 BIS 0.17.4 STAND HIER `flex: 1 1 27.95rem` MIT `max-height:
-   max-content`, und das war der Fehler (Stolperstein 256, 201): `max-content`
+   max-content`, und das war der Fehler: `max-content`
    im Blockfluss ist ein Schluesselwort, auf das kein Verlass ist -- wo es die
    Forderung nicht klemmt, fordert JEDE Liste ihre zehn Zeilen. Gemeldet mit
    Bild (Fingerprint d3113d62): „Zugaenge" mit fuenf Zeilen stand 728 Pixel
@@ -1691,7 +1688,7 @@ mark {
 /* ---- DIE KARTE ZEIGT, DER DIALOG STELLT EIN — 0.17.3 ----
    Hier standen bis 0.17.2 sechs Regeln fuer vier Reihen: neun Bedienelemente
    in vier Spaltenaufteilungen, und das Auge fand keine Spalte. Der Satz
-   steht hier, damit die Reihen nicht wiederkommen (Stolperstein 201). */
+   steht hier, damit die Reihen nicht wiederkommen. */
 .mail-off { color: var(--red); }
 .mail-ok { background: var(--green-dim); border-color: rgba(var(--green-rgb), .3); }
 .mail-ok strong { color: var(--green); }
@@ -2180,7 +2177,7 @@ body:has(.cmp-bar) .toast { bottom: calc(90px + env(safe-area-inset-bottom)); }
 /* Pillen, die zusammen mit der Auswahl null Treffer brächten. Anklickbar
    bleiben sie -- man sieht nur vorher, dass die Liste leer würde. SEIT 0.13.0
    GILT DIE REGEL FÜR JEDE PILLE und nicht mehr nur für Tags: dieselbe Sache
-   darf nicht zwei Verhalten haben (Stolperstein 47). */
+   darf nicht zwei Verhalten haben. */
 .pill.blank { opacity: .34; }
 .pill.blank:hover { opacity: .7; }
 
@@ -2209,7 +2206,7 @@ body:has(.cmp-bar) .toast { bottom: calc(90px + env(safe-area-inset-bottom)); }
    linke Kante gehoerte allein der Art, die drei uebrigen allein der
    Anpinnung. Der Preis wurde sichtbar, wo beide Merkmale zugleich auftreten:
    ein angepinnter Bericht trug orange und gold nebeneinander. Der Absatz
-   bleibt, damit ihn niemand wieder einbaut (Stolperstein 201).
+   bleibt, damit ihn niemand wieder einbaut.
    Angepinnt heisst: die drei uebrigen Kanten nehmen die Farbe der linken an;
    bei einer Notiz wird der ganze Rahmen golden. Die linke Kante aendert sich
    nicht, weder in Farbe noch in Breite -- sonst begaennen die Zeilen auf zwei

@@ -26,7 +26,7 @@ Videos liegen darin und werden nie als Datei auf die Platte geschrieben.
 
 | | |
 |---|---|
-| **Einträge anlegen** | Titel, Beschreibung, Kategorie, Tags — dazu Fotos, Kurzvideos bis 20 MB, Dateien bis 50 MB und eine Linkliste |
+| **Einträge anlegen** | Titel, Beschreibung, Kategorie, Tags — dazu Fotos bis 30 MB, Kurzvideos bis 20 MB, Dateien bis 50 MB und eine Linkliste |
 | **Bewerten** | eigene Kriterien mit Sternen von 1 bis 5, je Kriterium ein **Gewicht** zwischen 0,2 und 2, daraus ein gewichteter Gesamtschnitt |
 | **Mitschreiben** | Kommentare in drei Arten — **Notiz**, **Bericht**, **Aufgabe** (mit Erledigt-Haken) —, dazu Bilder am Kommentar |
 | **Testtage führen** | datierte Einträge mit Note und Tags; sie sind die Zeitreihe, die Kriterienbewertung ist das gegenwärtige Urteil |
@@ -316,8 +316,8 @@ Richtungen aus: auch eine Datei zu viel ändert ihn.**
 Container (`docker compose exec kriterion sh`):
 
 ```bash
-for f in attachments.js auth.js batchrun.js images.js db.js keys.js mail.js \
-         package.json server.js twofactor.js public/*; do
+for f in attachments.js auth.js batchrun.js images.js db.js keys.js log.js \
+         mail.js package.json server.js twofactor.js public/*; do
   printf "%-26s %s\n" "$f" "$(sha256sum "$f" | cut -c1-8)"
 done
 ```
@@ -328,7 +328,7 @@ steckt im Image.
 
 **Das geht auch ohne Shell.** Unter dem Fingerprint steht in der Karte
 „Kennzahlen" ein Verweis **„Dateien zeigen"**; er klappt dieselbe Liste auf —
-Name und Prüfsumme, achtzehn Zeilen, dieselben acht Zeichen wie oben.
+Name und Prüfsumme, neunzehn Zeilen, dieselben acht Zeichen wie oben.
 
 Solange niemand auf den Verweis drückt, steht dort nichts. Der Sollwert steht
 im Änderungsprotokoll, verglichen wird mit dem Auge.
@@ -756,9 +756,8 @@ aufbewahrt.
 
 **Der JSON-Export** ist der Austauschweg: unabhängig von Datenbankformat und
 Schlüssel, dafür unvollständig (Sitzungen, Einstellungen und die Blockanordnung
-fehlen) und mit der ganzen Datei im Arbeitsspeicher. Es lässt sich auch ein
-einzelner Eintrag als Datei ziehen: der Knopf steht am Fuß des Eintrags und
-nur beim Betreiber.
+fehlen) und mit der ganzen Datei im Arbeitsspeicher. Er schreibt den ganzen
+Bestand oder, wenn die Datei zu groß würde, einen Teil davon.
 
 > **Und daran hat die eine Datei ihre Grenze.** Sie ist ein einziger Text, und
 > länger als **512 MB** kann ein Text in Node nicht werden — Fotos und Videos

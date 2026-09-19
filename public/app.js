@@ -69,6 +69,15 @@ const tMarks = (key, parts, values) => {
    keine Verbesserung. */
 const SESSION_GONE = 'kriterion:session-gone';
 
+/* DIE FOTOGRENZEN, und dieselben Zahlen stehen in server.js. Der Browser
+   teilt danach auf und sagt vorher, was zu gross ist; der Server sagt es noch
+   einmal, weil die Route auch ohne Browser erreichbar ist. */
+const PHOTO_COUNT = 40;
+const PHOTO_MAX = 30 * 1024 * 1024;
+// Ebenso am Anhangsweg, und der Satz `entry.tooBig` bekommt die Zahl jetzt
+// als Platzhalter statt sie ein zweites Mal auszuschreiben.
+const ATTACHMENT_MAX = 50 * 1024 * 1024;
+
 /* ZWEI FORMEN, UND DIE ZAHL WAEHLT -- ueber Intl.PluralRules und nicht ueber
    `n === 1`. */
 function plural(n, one, other) {
@@ -2432,7 +2441,7 @@ function drawFilters() {
      ZEILE. */
   secondLabel(r1, t('list.rejection'));
   const g1b = document.createElement('div');
-  g1b.className = 'pills'; g1b.id = 'f-abgelehnt';
+  g1b.className = 'pills'; g1b.id = 'f-rejected';
   [['all',t('list.all')],['ja',t('list.rejected')],['nein',t('list.notRejected')]].forEach(([v,l]) => {
     const b = document.createElement('button');
     b.className = 'pill' + (f.rejected === v ? ' on' : '');
@@ -2469,7 +2478,7 @@ function drawFilters() {
   if (withoutNumber || f.categoryIds.includes(CATEGORY_NONE)) {
     const b = document.createElement('button');
     b.className = 'pill pill-sep' + (f.categoryIds.includes(CATEGORY_NONE) ? ' on' : '');
-    b.id = 'f-kat-ohne';
+    b.id = 'f-cat-none';
     b.innerHTML = `${tH('list.without')}<span class="n">${withoutNumber}</span>`;
     b.title = t('list.noCategory');
     b.onclick = () => switchCategory(CATEGORY_NONE);
@@ -2492,7 +2501,7 @@ function drawFilters() {
     /* GIBT ES NICHTS ZU FILTERN, IST DIE ZEILE GANZ WEG und nicht bloss
        verborgen: eine leere Zeile im Fluss kostete genau den Platz, um den es
        in diesem Befund geht. */
-    r3.id = 'f-tagzeile';
+    r3.id = 'f-tagrow';
     /* `frow-tags` SAGT DEM RASTER, DASS DIES DIE TAGZEILE IST -- 0.30.0 (F9). */
     r3.classList.add('frow-tags');
 
@@ -2711,7 +2720,7 @@ function drawFilters() {
        (13.9.2026): „Ansicht speichern wirkt wie ein auswahl eines
        gespeicherten ansicht. */
     bNew.className = 'link-btn' + (VIEWS.length ? ' link-btn-sep' : '');
-    bNew.id = 'ansicht-neu';
+    bNew.id = 'view-save';
     bNew.textContent = t('list.saveView');
     bNew.title = t('list.saveViewHint');
     bNew.onclick = saveView;
@@ -2734,7 +2743,7 @@ function drawFilters() {
     right5.className = 'frow-right frow-right-wide';
     const bBack = document.createElement('button');
     bBack.className = 'link-btn';
-    bBack.id = 'filter-zurueck';
+    bBack.id = 'filter-reset';
     bBack.textContent = t('list.resetFilters', { filtersSet: filtersSet });
     bBack.title = t('list.resetFiltersHint');
     bBack.onclick = () => {
@@ -3881,15 +3890,6 @@ async function renderDetail(id, termAddress) {
     </div>
     </div>
 
-    ${/* DER EINZELNE EINTRAG ALS DATEI -- 0.35.0, BA 8. GET
-         /api/items/:id/export gibt es seit 0.30.0 und hatte bis dahin kein
-         Element in der Oberflaeche: erreichbar nur, wer die Adresse von Hand
-         eintippt. Die Route traegt `ownerOnly`, deshalb sieht den Knopf auch
-         nur der Betreiber. */''}
-    ${OWNER
-      ? `<div class="entry-out"><button class="btn btn-sm" id="exp1">${tH('entry.exportOne')}</button></div>`
-      : ''}
-
     ${/* NUR FUER DEN, DER LOESCHEN DARF -- 0.22.0 (E10). */''}
     ${item.mine === true || ADMIN
       ? `<div class="danger-row"><button class="btn btn-danger btn-sm" id="del">${tH('entry.deleteEntry')}</button></div>`
@@ -4332,10 +4332,20 @@ async function renderDetail(id, termAddress) {
     let finished = 0;
     try {
       if (images.length) {
-        const fd = new FormData();
-        for (const f of images) fd.append('photos', f);
-        item = await api('POST', `/api/items/${id}/photos`, fd, true);
-        finished += images.length;
+        const tooBig = images.find(f => f.size > PHOTO_MAX);
+        if (tooBig) throw new Error(t('entry.tooBig',
+          { name: tooBig.name, mb: PHOTO_MAX / 1048576 }));
+        /* IN BUENDELN VON PHOTO_COUNT. multer zaehlt je Feldnamen herunter
+           und bricht beim naechsten Bild die GANZE Anfrage ab: aus 80
+           gewaehlten Fotos wuerde sonst kein einziges gespeichertes. Eine
+           Obergrenze je Eintrag ist das nicht -- die 40 gilt der Anfrage. */
+        for (let at = 0; at < images.length; at += PHOTO_COUNT) {
+          const bundle = images.slice(at, at + PHOTO_COUNT);
+          const fd = new FormData();
+          for (const f of bundle) fd.append('photos', f);
+          item = await api('POST', `/api/items/${id}/photos`, fd, true);
+          finished += bundle.length;
+        }
       }
       for (const f of videos) {
         dropText.textContent = t('entry.thumbBuilding');
@@ -5428,8 +5438,9 @@ async function renderDetail(id, termAddress) {
     const files = [...e.target.files];
     e.target.value = '';
     if (!files.length) return;
-    const tooBig = files.find(f => f.size > 50 * 1024 * 1024);
-    if (tooBig) return toast(t('entry.tooBig', { name: tooBig.name }), true);
+    const tooBig = files.find(f => f.size > ATTACHMENT_MAX);
+    if (tooBig) return toast(t('entry.tooBig',
+      { name: tooBig.name, mb: ATTACHMENT_MAX / 1048576 }), true);
     const fd = new FormData();
     files.forEach(f => fd.append('files', f));
     try {
@@ -5717,13 +5728,6 @@ async function renderDetail(id, termAddress) {
       drawNewImages(); drawNewMarks(); drawComments();
     } catch (e) { toast(e.message, true); }
   };
-
-  /* DERSELBE WEG WIE BEIM VOLLEN EXPORT (drawExport, weiter unten): die
-     Antwort traegt Content-Disposition, der Browser legt die Datei ab. Ueber
-     api() ginge es nicht -- das liest den Rumpf als JSON in den Speicher. */
-  atElement('exp1', b => b.onclick = () => {
-    window.location = `/api/items/${id}/export`;
-  });
 
   /* Die Zahlen kommen vom Server, nicht aus dem geladenen Eintrag: nur dort
      lassen sich eigene von fremden Beiträgen trennen, und zwei Quellen für
@@ -7808,7 +7812,7 @@ function setUpUsersOut() {
     const n = userTombstones.length;
     const b = row.ownerDocument.createElement('button');
     b.className = 'btn btn-ghost btn-sm';
-    b.id = 'zug-weg-auf';
+    b.id = 'deleted-users';
     b.textContent = t('card.deletedUsersCount', { n: n });
     b.title = t('card.showDeletedUsers');
     b.onclick = showTombstones;

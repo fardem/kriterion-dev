@@ -496,8 +496,8 @@ async function run() {
       .some(([, n]) => n === 2),
     'der Waechter sieht die zweite Abbildung nicht');
   const fImageCalls = fCodeRows.split('entryAsBundle(').length - 1;
-  check('Sie wird an drei Stellen gerufen: Export, Einzelexport, Papierkorb',
-    fImageCalls === 4, `${fImageCalls} Vorkommen samt Deklaration`);
+  check('Sie wird an zwei Stellen gerufen: Export und Papierkorb',
+    fImageCalls === 3, `${fImageCalls} Vorkommen samt Deklaration`);
 
   /* Dasselbe in der Gegenrichtung. */
   const IMPORT_MARKS = ['function importInto(', 'const itemAuthor = authorId(it.author)'];
@@ -707,7 +707,10 @@ async function run() {
      das deutsche SUBSTANTIV. */
   const withoutConsole = (src) => {
     let out = '', i = 0;
-    const rx = /\bconsole\.(?:log|warn|error)\s*\(/g;
+    /* SEIT 0.35.2 GEHT DAS CONTAINERPROTOKOLL UEBER log.js -- der Schnitt
+       muss beide Formen nehmen, sonst faende er das englische Wort in einer
+       Protokollzeile wieder. */
+    const rx = /\b(?:console\.(?:log|warn|error)|log(?:Line|Warn|Fail))\s*\(/g;
     let m;
     while ((m = rx.exec(src)) !== null) {
       if (m.index < i) continue;
@@ -1078,7 +1081,7 @@ async function run() {
       .replace(/[_-]/g, ' ').split(/\s+/).filter(Boolean).map(x => x.toLowerCase());
     const isGerman = (name) => pieces(name).some(w => GERMAN[w]);
     const SHIPPED = ['server.js', 'auth.js', 'db.js', 'mail.js', 'keys.js', 'attachments.js',
-      'images.js', 'batchrun.js', 'usertool.js', 'twofactor.js', 'keytool.js',
+      'images.js', 'batchrun.js', 'log.js', 'usertool.js', 'twofactor.js', 'keytool.js',
       'public/app.js', 'public/theme.js'];
     const readShipped = (f) => fs.readFileSync(path.join(__dirname, ...f.split('/')), 'utf8');
 
@@ -1100,7 +1103,7 @@ async function run() {
         if (part.kind === CODE)
           for (const m of part.value.matchAll(/[A-Za-z_$][A-Za-z0-9_$]*/g)) identifiers.add(m[0]);
     check('Der Waechter sieht wirklich den ganzen ausgelieferten Code',
-      identifiers.size > 2000 && SHIPPED.length === 13, `${identifiers.size} Bezeichner aus ${SHIPPED.length} Dateien`);
+      identifiers.size > 2000 && SHIPPED.length === 14, `${identifiers.size} Bezeichner aus ${SHIPPED.length} Dateien`);
 
     /* FALSCHE FREUNDE. */
     const FALSE_FRIENDS = ['MAILTEST_KEY', 'cleanNote', 'liesIn', 'note', 'noteFailure', 'noteSuccess'];
@@ -1193,13 +1196,19 @@ async function run() {
        `card.derivativesAsk` fallen mit der JPEG-Haelfte des Bestandslaufs,
        `server.exportTooOld` kommt mit der Abweisung zu alter Dateien dazu --
        zwei hin, einer her. */
-    /* UND SEIT 0.35.0 SIND ES DREI MEHR: `entry.removeRating` und
-       `entry.ratingRemoved` loesen zwei deutsche Saetze aus dem Skript ab,
-       `entry.exportOne` beschriftet den neuen Knopf am Eintrag. */
+    /* UND SEIT 0.35.0 SIND ES ZWEI MEHR: `entry.removeRating` und
+       `entry.ratingRemoved` loesen zwei deutsche Saetze aus dem Skript ab.
+       `entry.exportOne` kam mit derselben Runde dazu und faellt mit 0.35.2
+       wieder -- der Knopf, den er beschriftet hat, ist fort. */
     /* UND SEIT 0.35.1 EINER MEHR: `server.trashRestoring` ist die Antwort an
        den zweiten Aufruf, der denselben Papierkorbeintrag holen will. */
-    check('Und die Zahlen stehen: 1300 Schluessel, 88 Mehrzahlformen, 15 Vokabelnamen',
-      languageKeys.length === 1300 && pluralKeys.length === 88 && vocabularyKeys.length === 15,
+    /* UND SEIT 0.35.2 ZWEI MEHR: vier Grenzen der Hochladewege sagen ihre
+       Absage jetzt uebersetzt statt in den Woertern von multer
+       (`server.uploadCap`, `server.uploadSize`, `server.videoOne`,
+       `server.importOne`), und zwei fallen mit dem Einzelexport
+       (`entry.exportOne`, `server.entryTooBig`). */
+    check('Und die Zahlen stehen: 1302 Schluessel, 88 Mehrzahlformen, 15 Vokabelnamen',
+      languageKeys.length === 1302 && pluralKeys.length === 88 && vocabularyKeys.length === 15,
       `${languageKeys.length} / ${pluralKeys.length} / ${vocabularyKeys.length}`);
 
     /* ---- 3. */
@@ -1239,12 +1248,27 @@ async function run() {
       for (const m of text.matchAll(/\bclass=["']([^"'${}]+)["']/g))
         for (const one of m[1].split(/\s+/)) if (/^[a-zA-Z][\w-]*$/.test(one)) shapes.add('.' + one);
     }
+    /* DIE DRITTE QUELLE — 0.35.2, BA 8. Bis dahin las dieser Waechter zwei:
+       den Aufbau (`id="…"`) und das Stilblatt. Eine id, die das Skript mit
+       `element.id = '…'` setzt und die in keiner Stilblattregel vorkommt,
+       stand in keiner von beiden -- der Waechter sagte „deutsch ist keine id"
+       und meinte „keine id, die ich sehe". Sechs deutsche sind so
+       durchgekommen. */
+    for (const m of appSource.matchAll(/\.id = ['"]([\w-]+)['"]/g)) shapes.add('#' + m[1]);
     const germanShapes = [...shapes].filter(s => isGerman(s.replace(/^(--|[.#])/, ''))).sort();
     const SHAPE_FALSE_FRIENDS = ['#calc-same-note', '.login-alt', '.rej-note'];
     check('Gestaltprobe: deutsch ist keine id, keine Klasse, keine Variable',
       equal(germanShapes, SHAPE_FALSE_FRIENDS), germanShapes.join(' '));
     check('Und der Waechter sieht wirklich die ganze Gestalt',
       shapes.size > 600, `${shapes.size} Gestaltnamen`);
+    /* UND DIE DRITTE QUELLE TRAEGT WIRKLICH -- 0.35.2, BA 8. Ohne diese
+       Zeile waere die Gestaltprobe auch dann gruen, wenn ihr Leser die
+       `.id = '…'` gar nicht mehr ansaehe: `f-cat-none` steht in keiner
+       Stilblattregel und in keinem `id="…"`. */
+    const setIds = [...appSource.matchAll(/\.id = ['"]([\w-]+)['"]/g)].map(m => '#' + m[1]);
+    check('Und die elf id, die das Skript selbst setzt, stehen alle in der Gestaltliste',
+      setIds.length === 11 && setIds.every(n => shapes.has(n)),
+      setIds.filter(n => !shapes.has(n)).join(' ') || `${setIds.length} gesetzte id`);
 
     /* ---- 5. */
     /* DIE WERTE VON DAMALS STEHEN ALS DATEI DA und werden nicht aus git
@@ -1380,11 +1404,15 @@ async function run() {
     /* UND DREI MIT 0.35.0: die beiden Saetze an der Sternzeile, die bis dahin
        deutsch im Skript standen, und die Beschriftung des Knopfes, der den
        einzelnen Eintrag als Datei holt. */
-    const WORDING_NEW_0350 = ['entry.removeRating', 'entry.ratingRemoved',
-      'entry.exportOne'];
+    const WORDING_NEW_0350 = ['entry.removeRating', 'entry.ratingRemoved'];
     /* UND EINER MIT 0.35.1: die Antwort an den zweiten Aufruf, der denselben
        Papierkorbeintrag wiederherstellen will. */
     const WORDING_NEW_0351 = ['server.trashRestoring'];
+    /* UND VIER MIT 0.35.2: die vier Absagen der Hochladewege. Bis dahin
+       reichte der Fehler-Handler `err.message` von multer durch, und am
+       Bildschirm stand „Unexpected field". */
+    const WORDING_NEW_0352 = ['server.uploadCap', 'server.uploadSize',
+      'server.videoOne', 'server.importOne'];
     /* UND ACHT SCHLUESSEL FALLEN MIT 0.32.1 -- sechs von ihnen gab es schon
        bei der Abnahme, zwei sind erst in 0.32.0 entstanden und schon wieder
        weg. */
@@ -1395,14 +1423,20 @@ async function run() {
       'entry.deleteWord'];                              // in zwei feste geteilt
     /* UND ZWEI FALLEN MIT 0.33.0 -- die JPEG-Haelfte des Bestandslaufs. */
     const WORDING_GONE_0330 = ['card.catchUpDerivatives', 'card.derivativesAsk'];
+    /* UND ZWEI MIT 0.35.2 -- der Einzelexport geht, und mit ihm die
+       Beschriftung seines Knopfes und die einzige Absage der Route.
+       `server.entryTooBig` stand im Vergleichsstand, `entry.exportOne` nicht:
+       er ist erst mit 0.35.0 entstanden. */
+    const WORDING_GONE_0352 = ['entry.exportOne', 'server.entryTooBig'];
     const WORDING_NEW = [...WORDING_NEW_0243, ...WORDING_NEW_0244,
       ...WORDING_NEW_0245, ...WORDING_NEW_0246, ...WORDING_NEW_0250,
       ...WORDING_NEW_0254, ...WORDING_NEW_0260, ...WORDING_NEW_0270,
       ...WORDING_NEW_0280, ...WORDING_NEW_0281, ...WORDING_NEW_0290,
       ...WORDING_NEW_0300, ...WORDING_NEW_0311, ...WORDING_NEW_0314,
       ...WORDING_NEW_0320, ...WORDING_NEW_0321, ...WORDING_NEW_0330,
-      ...WORDING_NEW_0350, ...WORDING_NEW_0351]
-      .filter(k => !WORDING_GONE_0321.includes(k) && !WORDING_GONE_0330.includes(k));
+      ...WORDING_NEW_0350, ...WORDING_NEW_0351, ...WORDING_NEW_0352]
+      .filter(k => !WORDING_GONE_0321.includes(k) && !WORDING_GONE_0330.includes(k)
+                && !WORDING_GONE_0352.includes(k));
     const wordingMissing = WORDING_NEW.filter(k => LANGUAGE_FILE[k] === undefined);
     check('Die neuen Schluessel dieser Runde stehen wirklich in der Datei',
       wordingMissing.length === 0, wordingMissing.join(' ') || 'alle da');
@@ -1652,6 +1686,22 @@ async function run() {
       'Ein Klick auf eine der drei Pillen setzt den Filter selbst.',
       'Vorgabe der Sortierung — ein Klick macht daraus deine eigene Wahl.',
       '{wort} löschen'];
+    /* UND DER WORTLAUT VON `server.entryTooBig` AUS DEM STAND VON DAMALS --
+       sonst stuende er fuer immer in `onlyThen` und die beiden Zahlen der
+       Wortlautprobe liefen auseinander. Er steht hier in der Fassung des
+       Vergleichsstands und nicht in der von heute: abgezogen wird von damals. */
+    const WORDING_GONE_TEXT_0352 = [
+      'Dieser {sacheEinzahl} ist als Datei zu groß (rund {mb} MB). Eine ' +
+      'Exportdatei ist ein einziger Text, und der kann nicht größer als ' +
+      '{grenze} MB werden.'];
+    const goneStill14 = [];
+    for (const code of ['de', 'en', 'tr']) {
+      const file = JSON.parse(fs.readFileSync(
+        path.join(__dirname, 'public', 'languages', `${code}.json`), 'utf8'));
+      for (const k of WORDING_GONE_0352) if (file[k] !== undefined) goneStill14.push(`${code}/${k}`);
+    }
+    check('Und die zwei Schluessel, die 0.35.2 wegnimmt, stehen in keiner Datei mehr',
+      goneStill14.length === 0, goneStill14.join(' ') || 'in allen dreien weg');
     const goneStill13 = [];
     for (const code of ['de', 'en', 'tr']) {
       const file = JSON.parse(fs.readFileSync(
@@ -1691,7 +1741,8 @@ async function run() {
       ...WORDING_GONE_TEXT_0260, ...WORDING_GONE_TEXT_0270,
       ...WORDING_GONE_TEXT_0281, ...WORDING_GONE_TEXT_0300,
       ...WORDING_GONE_TEXT_0310, ...WORDING_GONE_TEXT_0311,
-      ...WORDING_GONE_TEXT_0320, ...WORDING_GONE_TEXT_0321].map(flatten)
+      ...WORDING_GONE_TEXT_0320, ...WORDING_GONE_TEXT_0321,
+      ...WORDING_GONE_TEXT_0352].map(flatten)
       .reduce((list, sentence) => withoutOne(list, sentence), wordingFile.values.map(flatten))
       .sort();
     const wordingNow = valuesOf(wordingOld).map(asBefore).sort();
@@ -1718,8 +1769,12 @@ async function run() {
     /* 1088 WURDEN 1082 MIT 0.32.1, UND DIE BEIDEN ZAHLEN BLEIBEN GLEICH:
        sechs Saetze fallen aus der Datei von heute und werden im selben Zug
        aus dem Stand von damals abgezogen (WORDING_GONE_TEXT_0321). */
-    check('Wortlautprobe: gleich viele Saetze wie bei der Abnahme — 1082',
-      wordingNow.length === wordingThen.length && wordingNow.length === 1082,
+    /* 1082 WURDEN 1081 MIT 0.35.2, UND DIE BEIDEN ZAHLEN BLEIBEN GLEICH:
+       `server.entryTooBig` faellt mit der Route, die ihn als einzige gerufen
+       hat, und sein Wortlaut wird im selben Zug aus dem Stand von damals
+       abgezogen (WORDING_GONE_TEXT_0352). */
+    check('Wortlautprobe: gleich viele Saetze wie bei der Abnahme — 1081',
+      wordingNow.length === wordingThen.length && wordingNow.length === 1081,
       `${wordingThen.length} damals, ${wordingNow.length} heute (ohne die ` +
       `${WORDING_NEW.length} neuen und die weggenommenen)`);
     /* ZWEI SAETZE SIND ANDERE, UND BEIDE SIND BENANNT. */
@@ -1819,7 +1874,7 @@ async function run() {
       "list.searchOffline", "list.searchingShort", "list.visibleCount",
       "login.newPasswordFor", "login.noPhoneHint", "login.requestAccessHint",
       "login.welcome", "mail.hintAlways", "mail.hintGmx",
-      "server.entryTooBig", "server.exportGrew", "server.exportTooBig"];
+      "server.exportGrew", "server.exportTooBig"];
     /* UND EINER MIT 0.31.2 -- der einzige deutsche Wert, den jene Runde
        angefasst hat, und zwar auf Bestellung des Betreibers am 13. September
        2026: „Zugang beantragen" heisst „Zugang anfragen". */
@@ -1847,8 +1902,12 @@ async function run() {
        Seite, und das ist zum ersten Mal seit 0.31.1 die Richtung nach unten. */
     const WORDING_CHANGED_0321 = [
       'entry.noDaysYet', 'server.deniedEntry', 'server.ratingBeforeTest'];
-    check('Und genau hundertsiebenundfuenfzig Saetze sind andere — die hundertneunundfuenfzig von 0.32.0 minus die zwei, die 0.32.1 zurueckholt',
-      onlyThen.length === 157 && onlyNow.length === 155 &&
+    /* 157 UND 155 WURDEN 156 UND 154 MIT 0.35.2 -- einer weniger auf jeder
+       Seite: `server.entryTooBig` stand mit seinem alten Wortlaut in
+       `onlyThen` und mit seinem neuen in `onlyNow`; mit dem Schluessel
+       fallen beide. */
+    check('Und genau hundertsechsundfuenfzig Saetze sind andere — einer weniger, seit der Einzelexport fort ist',
+      onlyThen.length === 156 && onlyNow.length === 154 &&
       WORDING_CHANGED_0321.every(k => LANGUAGE_FILE[k] !== undefined
         && onlyNow.includes(asBefore(LANGUAGE_FILE[k]))) &&
       /* UND DER EINE, DER ZURUECKKOMMT, STEHT AUF KEINER DER BEIDEN SEITEN
@@ -2002,40 +2061,64 @@ async function run() {
      der Runde, die sie getroffen hat. */
   group('Kein Stolpersteinverweis mehr — 0.34.3');
   {
+    /* `public/style.css` KOMMT MIT 0.35.2 DAZU. Es stand in keiner Dateiliste
+       dieses Waechters, und dahinter standen acht Verweise. */
     const SHIPPED = ['server.js', 'auth.js', 'db.js', 'mail.js', 'keys.js', 'attachments.js',
-      'images.js', 'batchrun.js', 'usertool.js', 'twofactor.js', 'keytool.js',
-      'public/app.js', 'public/theme.js'];
+      'images.js', 'batchrun.js', 'log.js', 'usertool.js', 'twofactor.js', 'keytool.js',
+      'public/app.js', 'public/theme.js', 'public/style.css'];
     const BENCH = [...benchFiles(), 'counterproof.js'];
     const readShipped = (f) => fs.readFileSync(path.join(__dirname, ...f.split('/')), 'utf8');
     const stWord = 'Stolper' + 'stein';
     const stAll = [...BENCH, ...SHIPPED];
-    check('Der Waechter sieht alle vierunddreissig Dateien',
-      stAll.length === 34, `${stAll.length} Dateien`);
+    check('Der Waechter sieht alle sechsunddreissig Dateien',
+      stAll.length === 36, `${stAll.length} Dateien`);
+    /* DAS ZWEITE LOCH — 0.35.2. Der Schematext von db.js steht als Vorlage im
+       Quelltext, und seine Zeilen beginnen mit `--`. Der Segmentierer haelt
+       eine Vorlage fuer Text, und Text sieht dieser Waechter nicht an --
+       dahinter standen sieben Verweise. Eine SQL-Kommentarzeile IST ein
+       Kommentar, und hier wird sie als einer gelesen. */
+    const stSqlRow = /^\s*--/;
     let stRows = 0;
     const stHits = [];
     for (const f of stAll)
       for (const part of segment(readShipped(f), f)) {
-        if (part.kind !== COMMENT) continue;
-        stRows += part.value.split('\n').length;
-        for (const m of part.value.matchAll(new RegExp(`[^\n]*${stWord}[^\n]*`, 'gi')))
-          stHits.push(`${f}: ${m[0].trim().slice(0, 60)}`);
+        const rows = part.kind === COMMENT
+          ? part.value.split('\n')
+          : part.kind === TEXT ? part.value.split('\n').filter(z => stSqlRow.test(z)) : [];
+        if (!rows.length) continue;
+        stRows += rows.length;
+        for (const row of rows)
+          if (new RegExp(stWord, 'i').test(row)) stHits.push(`${f}: ${row.trim().slice(0, 60)}`);
       }
     /* Ein Leser, der nichts findet, macht jede Verneinung darauf wahr. */
     check('Und er liest wirklich Kommentarzeilen',
       stRows > 10000, `${stRows} Zeilen`);
     check('Kein Kommentar nennt mehr einen Stolperstein — 1061 waren es vor 0.34.1',
       stHits.length === 0, stHits.slice(0, 8).join(' · '));
+    /* UND DIE BEIDEN NEUEN QUELLEN TRAGEN WIRKLICH -- ohne diese Zeile waere
+       der Waechter auch dann gruen, wenn er sie gar nicht mehr ansaehe. */
+    check('Und er liest das Stilblatt und die SQL-Kommentare des Schemas',
+      stAll.includes('public/style.css')
+      && segment(readShipped('db.js'), 'db.js')
+           .some(q => q.kind === TEXT && q.value.split('\n').some(z => stSqlRow.test(z))),
+      'eine der beiden Quellen fehlt');
+    check('Und der Leser wuerde einen Verweis in einer SQL-Zeile melden',
+      stSqlRow.test(`  -- wie in 0.19.1 (${stWord} 81)`)
+      && !stSqlRow.test(`  focus_x REAL NOT NULL DEFAULT 50,`),
+      'der Leser sieht die gestellte SQL-Zeile nicht');
     check('Der Leser wuerde einen Verweis melden',
       new RegExp(stWord, 'i').test(`/* Wie in 0.19.1 (${stWord} 81). */`),
       'der Leser sieht den gestellten Text nicht');
-    /* DIE EINE STELLE, DIE BLEIBT, UND SIE IST KEIN KOMMENTAR: der
-       Gegenprobentreiber nennt die Nummer in seiner Meldung an den Wirt. Sie
-       zu aendern hiesse, Code zu aendern. */
+    /* DIE STELLEN, DIE BLEIBEN, UND KEINE VON IHNEN IST EIN KOMMENTAR: der
+       Gegenprobentreiber nennt das Wort in seiner Meldung an den Wirt, und
+       zwei Rueckbauten nennen den Namen der Gruppe, die sie rot machen
+       sollen. Sie zu aendern hiesse, Code zu aendern. Eine 1 wurde mit 0.35.2
+       eine 3. */
     const stText = segment(readShipped('counterproof.js'), 'counterproof.js')
       .filter(q => q.kind !== COMMENT)
       .reduce((n, q) => n + (q.value.match(new RegExp(stWord, 'gi')) || []).length, 0);
-    check('Ausserhalb der Kommentare steht die Nummer noch genau einmal',
-      stText === 1, `${stText} Vorkommen in counterproof.js`);
+    check('Ausserhalb der Kommentare steht das Wort noch genau dreimal',
+      stText === 3, `${stText} Vorkommen in counterproof.js`);
   }
 
   /* ================= Keine Versionsnummer als Herkunft ====================
@@ -2056,8 +2139,11 @@ async function run() {
     const vnPattern = () => /(?<![\d.])\d+\.\d+\.\d+(?!\.?\d)/g;
     /* DIE LATTE JE DATEI, gemessen am 17. September 2026. Sie darf FALLEN.
        Steigt sie, ist eine neue Herkunftsangabe dazugekommen. */
+    /* `public/app.js` 328 -> 326 MIT 0.35.2: der Kommentar ueber dem Knopf,
+       der den einzelnen Eintrag als Datei holte, nannte zwei Nummern als
+       Herkunft. Knopf und Kommentar sind fort. */
     const VN_CEILING = {
-      'public/app.js': 328, 'server.js': 197, 'public/style.css': 175,
+      'public/app.js': 326, 'server.js': 197, 'public/style.css': 175,
       'db.js': 62, 'auth.js': 4, 'public/index.html': 4,
       'twofactor.js': 1, 'usertool.js': 1,
       /* AUF NULL, UND DORT BLEIBEND. */
@@ -2067,7 +2153,7 @@ async function run() {
       'public/languages/en.json': 0, 'public/languages/tr.json': 0,
       'public/favicon.svg': 0
     };
-    const VN_TOTAL = 772;
+    const VN_TOTAL = 770;
     const vnFiles = Object.keys(VN_CEILING);
     check('Der Waechter sieht alle zwanzig Dateien, und jede liegt da',
       vnFiles.length === 20
@@ -2521,18 +2607,20 @@ async function run() {
     check('errorText steht als Rumpf da und nicht als Ausdruck',
       efBody.length > 0, efBody ? `${efBody.split('\n').length} Zeilen` : '(nicht gefunden)');
     check('Und der Fall ohne Schluessel geht ins Protokoll',
-      /console\.error/.test(efBody),
-      efBody.split('\n').filter(z => z.includes('console')).join(' · ') || '(kein console.error)');
+      /logFail\(/.test(efBody),
+      efBody.split('\n').filter(z => z.includes('logFail')).join(' · ') || '(kein logFail)');
     /* UND NUR DIESER FALL: ein Fehler MIT Schluessel ist beantwortet und
        gehoert nicht ins Protokoll. */
     check('Und nur dieser Fall -- ein Fehler mit Schluessel bleibt still',
-      /if \(!\(e && e\.key\)\) console\.error/.test(efBody),
-      (efBody.match(/.*console\.error.*/) || ['(keine Bedingung)'])[0].trim());
+      /if \(!\(e && e\.key\)\) logFail\(/.test(efBody),
+      (efBody.match(/.*logFail.*/) || ['(keine Bedingung)'])[0].trim());
     /* UND DIE MELDUNG NENNT DIE INSTANZ, wie jede andere Zeile dieses
        Servers -- sonst steht sie ohne Absender im Protokoll des Containers. */
+    /* SEIT 0.35.2 TRAEGT logFail() den Namen, und die Zeile bekommt ihn
+       damit von selbst -- zusammen mit ihrem Zeitstempel. */
     check('Und die Zeile nennt die Instanz',
-      /console\.error\('\[Kriterion\] '/.test(efBody),
-      (efBody.match(/.*console\.error.*/) || ['(keine Zeile)'])[0].trim());
+      /logFail\(e && e\.stack \? e\.stack : e\)/.test(efBody),
+      (efBody.match(/.*logFail.*/) || ['(keine Zeile)'])[0].trim());
   }
 
   /* ================= Die Namen der Abfrageparameter — 0.35.0 =============
@@ -2584,6 +2672,153 @@ async function run() {
       (qpDom.match(/.*\[\?&\]grou?p?p?e?=.*/) || ['(nicht gefunden)'])[0].trim());
   }
 
+  /* ================= Jede Route hat einen Rufer — 0.35.2, BA 2 ============
+     DAS IST DIE LUECKE, DURCH DIE DER EINZELEXPORT 26 RUNDEN GEFALLEN IST.
+     Der Pruefstand kennt seit 0.35.0 „jeder Abfrageparameter des Browsers hat
+     einen Leser" und „jeder Schluessel der Sprachdatei hat einen Leser". Der
+     dritte Satz derselben Form hat gefehlt: eine Route, die kein Element der
+     Oberflaeche ruft, faellt sonst erst auf, wenn jemand von Hand nachsieht. */
+  group('Jede Route hat einen Rufer — 0.35.2');
+  {
+    const rrRead = (f) => fs.readFileSync(path.join(__dirname, ...f.split('/')), 'utf8');
+    const rrServer = rrRead('server.js');
+    /* GELESEN WIRD AUCH DIE SEITE: das Manifest haengt als <link rel> im
+       Kopf und nicht an einem Ruf im Skript. */
+    const rrBrowser = rrRead('public/app.js') + '\n' + rrRead('public/index.html');
+    const rrRoutes = [...rrServer.matchAll(/^app\.(get|post|put|patch|delete)\('([^']+)'/gm)]
+      .map(m => [m[1].toUpperCase(), m[2]]);
+    /* EIN PLATZHALTER STEHT IM BROWSER ALS EINSETZSTELLE ODER ALS FERTIGER
+       WERT -- `/api/items/${id}` ebenso wie `/api/items/7`. */
+    const rrPattern = (p) => new RegExp(p.split('/')
+      .map(part => part.startsWith(':')
+        ? '(?:\\$\\{[^}]*\\}|[^/`\'"]+)'
+        : part.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('/'));
+    /* ERST DER BEFUND AM GESTELLTEN FALL: ein Waechter, der auf leeren Mengen
+       laeuft, ist gruen und belegt nichts. */
+    check('Der Waechter sieht beide Seiten',
+      rrRoutes.length === 102 && rrBrowser.length > 100000,
+      `${rrRoutes.length} Routen, ${rrBrowser.length} Zeichen im Browser`);
+    /* DIE AUSNAHMEN, UND SIE STEHEN NAMENTLICH DA. Die Verwaltungstafel baut
+       ihre Adresse aus einem Feld: `api('PUT', `${url}/${entry.id}`)` mit
+       `url` aus der Tafel. Eine buchstaebliche Suche findet das nicht, und
+       eine Suche, die es faende, faende auch jede andere Adresse. */
+    const RR_OVER_TABLE = ['/api/product-categories/:id', '/api/tags/:id'];
+    const rrOrphan = rrRoutes
+      .filter(([, p]) => !RR_OVER_TABLE.includes(p) && !rrPattern(p).test(rrBrowser))
+      .map(([m, p]) => `${m} ${p}`);
+    check('Und jede Route, die der Server anbietet, wird im Browser gerufen',
+      rrOrphan.length === 0, rrOrphan.join(' · ') || 'alle gerufen');
+    /* UND DIE TAFEL IST IN BEIDE RICHTUNGEN GESCHLOSSEN: eine Ausnahme fuer
+       eine Route, die laengst einen Rufer hat, ist eine Karteileiche. */
+    const rrStale = RR_OVER_TABLE.filter(p => rrPattern(p).test(rrBrowser));
+    check('Und keine der beiden Ausnahmen hat laengst einen buchstaeblichen Rufer',
+      rrStale.length === 0, rrStale.join(' · ') || 'beide noetig');
+    /* UND SIE STEHEN WIRKLICH IN DER TAFEL -- sonst benennt die Liste eine
+       Reiseform, die es gar nicht gibt. */
+    check('Die beiden Adressen stehen in der Verwaltungstafel',
+      RR_OVER_TABLE.every(p => rrBrowser.includes(`url: '${p.replace('/:id', '')}'`))
+      && /api\('PUT', `\$\{url\}\/\$\{entry\.id\}`/.test(rrBrowser),
+      RR_OVER_TABLE.join(' · '));
+    /* UND DER WAECHTER FAENGT WIRKLICH EINE ROUTE OHNE RUFER. Ohne diese
+       Zeile waere er auch dann gruen, wenn sein Leser gar nichts mehr saehe. */
+    check('Und der Waechter faengt eine Route ohne Rufer — gestellt und nachgemessen',
+      !rrPattern('/api/gibt-es-nicht/:id').test(rrBrowser)
+      && rrPattern('/api/items/:id').test(rrBrowser),
+      'der Waechter sieht eine gestellte Route nicht');
+  }
+
+  /* ============ Kein Verweis auf Doku/ geht mit hinaus — 0.35.2, BA 3 =====
+     Der oeffentliche Stand traegt kein Doku/: der Ordner ist der ganze
+     Unterschied zwischen den beiden Repositories. Eine ausgelieferte Datei,
+     die einen Pfad darunter nennt, zeigt drueben auf nichts.
+     `node tools/publish.js --trocken` hat das bisher gemeldet -- aber nur,
+     wenn jemand es aufruft. Hier steht es im Lauf. */
+  group('Kein Verweis auf Doku/ geht mit hinaus — 0.35.2');
+  {
+    const dvFiles = [
+      'server.js', 'auth.js', 'db.js', 'mail.js', 'keys.js', 'attachments.js',
+      'images.js', 'batchrun.js', 'log.js', 'usertool.js', 'twofactor.js',
+      'keytool.js', 'public/app.js', 'public/theme.js',
+      'public/index.html', 'public/style.css', 'public/favicon.svg',
+      '.env.example', 'docker-compose.example.yml', 'Dockerfile',
+      'README.md', 'manual-de.md', 'CHANGELOG.md', 'package.json'];
+    check('Der Waechter sieht alle vierundzwanzig Dateien, und jede liegt da',
+      dvFiles.length === 24
+      && dvFiles.every(f => fs.existsSync(path.join(__dirname, ...f.split('/')))),
+      dvFiles.filter(f => !fs.existsSync(path.join(__dirname, ...f.split('/')))).join(' ')
+      || `${dvFiles.length} Dateien`);
+    const dvHits = [];
+    for (const f of dvFiles) {
+      const raw = fs.readFileSync(path.join(__dirname, ...f.split('/')), 'utf8');
+      raw.split('\n').forEach((z, i) => {
+        if (z.includes('Doku/')) dvHits.push(`${f}:${i + 1}`);
+      });
+    }
+    check('Und keine von ihnen nennt einen Pfad unter Doku/',
+      dvHits.length === 0, dvHits.slice(0, 6).join(' · ') || 'kein Verweis');
+    /* DER PRUEFSTAND SELBST IST AUSGENOMMEN und steht deshalb nicht in der
+       Liste: er behandelt das Fehlen des Ordners und muss ihn dafuer nennen. */
+    check('Und der Leser wuerde einen Verweis melden — gestellt und nachgemessen',
+      '   die Werte stehen in Doku/Farbkonzept.md.'.includes('Doku/')
+      && !'   die Werte sind gemessen.'.includes('Doku/'),
+      'der Leser sieht den gestellten Verweis nicht');
+  }
+
+  /* ====== Der Grund eines Versands reist als Schluessel — 0.35.2, BA 11 ===
+     `sendTokenLink()` hat mit 0.32.0 die Sprache des LESERS bekommen; die
+     drei Gruende, warum gar nicht erst verschickt wurde, stehen seither in
+     ihr. Der vierte nicht: `mail.send()` baute ihn mit der Sprache des
+     EMPFAENGERS, und er landete in der Karte des ADMINS. Ein deutscher Admin,
+     der einen tuerkischen Kollegen einlaedt, las den Grund auf Tuerkisch.
+     Es ist derselbe Fehler wie die elf aus Punkt 29, nur eine Ebene tiefer:
+     nicht ein fester Satz in der falschen Sprache, sondern ein uebersetzter
+     in der Sprache des Falschen. */
+  group('Der Grund eines Versands reist als Schluessel — 0.35.2');
+  {
+    const vgMail = fs.readFileSync(path.join(__dirname, 'mail.js'), 'utf8');
+    const vgServer = fs.readFileSync(path.join(__dirname, 'server.js'), 'utf8');
+    check('send() bekommt keine Sprache mehr',
+      /async function send\(raw, to, subject, text\)/.test(vgMail),
+      (vgMail.match(/async function send\([^)]*\)/) || ['(nicht gefunden)'])[0]);
+    check('Und shortReason() ebenso wenig',
+      /function shortReason\(e\)/.test(vgMail),
+      (vgMail.match(/function shortReason\([^)]*\)/) || ['(nicht gefunden)'])[0]);
+    /* UND IN mail.js WIRD KEIN GRUND MEHR UEBERSETZT. `t()` bleibt dort, aber
+       nur noch fuer die vier Briefe. */
+    const vgTranslated = (vgMail.match(/t\(locale, '(mail|server)\.[a-zA-Z]+'\)/g) || []);
+    check('Und in mail.js wird kein Grund mehr zu einem Satz gemacht',
+      vgTranslated.length === 0, vgTranslated.join(' · ') || 'keiner');
+    /* DIE EINE STELLE, DIE DARAUS EINEN SATZ MACHT, NIMMT DIE SPRACHE DES
+       LESERS -- nicht die des Empfaengers, in der der Brief hinausgeht. */
+    check('Und sendTokenLink uebersetzt ihn mit der Sprache des Lesers',
+      /deliveryReason: sendWhy\(e, readerLocale\)/.test(vgServer)
+      && /const sendWhy = \(e, locale\) => \(e\.reasonKey \? t\(locale, e\.reasonKey\) : e\.reason\);/
+           .test(vgServer),
+      (vgServer.match(/.*sendWhy\(e, .*/) || ['(nicht gefunden)'])[0].trim());
+    /* UND GEMESSEN STATT GELESEN: der Ruf wird wirklich gemacht. Ohne
+       Mailzugang und ohne gueltige Adresse kommt er ohne Netz zurueck. */
+    const vgSend = require('./mail.js').send;
+    const vgOff = await vgSend(null, 'wer@beispiel.de', 'Betreff', 'Text');
+    check('Ohne Mailzugang kommt ein Schluessel zurueck und kein Satz',
+      vgOff.ok === false && vgOff.reasonKey === 'mail.noAccount' && vgOff.reason === '',
+      JSON.stringify(vgOff));
+    const vgAccount = { provider: 'eigen', server: 'localhost', port: 25,
+                        user: 'a', password: 'b', sender: 'a@beispiel.de' };
+    const vgBad = await vgSend(vgAccount, 'keine-adresse', 'Betreff', 'Text');
+    check('Und eine unbrauchbare Adresse ebenso',
+      vgBad.ok === false && vgBad.reasonKey === 'mail.recipientInvalid' && vgBad.reason === '',
+      JSON.stringify(vgBad));
+    /* UND BEIDE SCHLUESSEL STEHEN WIRKLICH IN DER SPRACHDATEI -- ein
+       Schluessel ohne Satz waere ein leeres Feld in der Karte. */
+    const vgLang = JSON.parse(fs.readFileSync(
+      path.join(__dirname, 'public', 'languages', 'de.json'), 'utf8'));
+    check('Und die vier Gruende stehen in der Sprachdatei',
+      ['mail.noAccount', 'mail.recipientInvalid', 'mail.timeout', 'mail.unknownError']
+        .every(k => typeof vgLang[k] === 'string'),
+      ['mail.noAccount', 'mail.recipientInvalid', 'mail.timeout', 'mail.unknownError']
+        .filter(k => typeof vgLang[k] !== 'string').join(' ') || 'alle vier');
+  }
+
   /* ================= Das Stilblatt — 0.35.0 ==============================
      BEFUND public/style.css:1 DER MESSUNG ZUR 0.35.0: die Datei mass 300.472
      Bytes, davon 211.862 in 408 Kommentarbloecken -- 70,5 Prozent. Der
@@ -2622,8 +2857,11 @@ async function run() {
       }
       if (has) ssCode++;
     }
-    check('Und es stehen genau 1639 Regelzeilen da — so viele wie vor der Kuerzung',
-      ssCode === 1639, `${ssCode} Zeilen`);
+    /* EINE WENIGER SEIT 0.35.2: `.entry-out` hielt den Knopf, der den
+       einzelnen Eintrag als Datei holte. Der Knopf ist fort, die Regel mit
+       ihm -- eine Regel ohne Element ist toter Text. */
+    check('Und es stehen genau 1638 Regelzeilen da — eine weniger als vor der Kuerzung',
+      ssCode === 1638, `${ssCode} Zeilen`);
     /* UND KEIN BLOCK IST WIEDER LANG GEWORDEN. Der laengste traegt die
        gerechnete Tafel der Vorschaureihe und misst 26 Zeilen. */
     const ssLongest = ssBlocks.reduce((n, b) => Math.max(n, b.split('\n').length), 0);
@@ -2664,30 +2902,142 @@ async function run() {
       (osCss.match(/.*se-name-.*/) || ['(keine Regel)'])[0].trim());
   }
 
-  /* ================= Der Eintrag als Datei — 0.35.0 =======================
-     BEFUND DER MESSUNG ZUR 0.35.0: GET /api/items/:id/export gibt es seit
-     0.30.0, und kein Element der Oberflaeche rief die Route auf. Erreichbar
-     war sie nur, wer die Adresse von Hand eintippt. */
-  group('Der einzelne Eintrag ist ueber die Oberflaeche zu holen — 0.35.0');
+  /* ================= Die Fotogrenzen haben Namen — 0.35.2, BA 4 ===========
+     BEFUND AUS DEM BETRIEB: `upload.array('photos', 40)` trug die Zahl nackt
+     in der Routenzeile, der Browser prueft nichts, und multer bricht beim
+     41. Bild die GANZE Anfrage ab. Es ging alles verloren, und am Bildschirm
+     stand „Unexpected field". */
+  group('Die Fotogrenzen haben Namen — 0.35.2');
   {
-    const eoApp = fs.readFileSync(path.join(__dirname, 'public', 'app.js'), 'utf8');
-    const eoLang = JSON.parse(fs.readFileSync(
+    const fgServer = fs.readFileSync(path.join(__dirname, 'server.js'), 'utf8');
+    const fgApp = fs.readFileSync(path.join(__dirname, 'public', 'app.js'), 'utf8');
+    const numberOf = (text, name) => {
+      const hit = text.match(new RegExp(`^const ${name} = ([^;]+);$`, 'm'));
+      return hit ? Function(`return (${hit[1]})`)() : null;
+    };
+    for (const name of ['PHOTO_COUNT', 'PHOTO_MAX'])
+      check(`${name} steht einmal in server.js und einmal in public/app.js`,
+        (fgServer.match(new RegExp(`^const ${name} = `, 'gm')) || []).length === 1
+        && (fgApp.match(new RegExp(`^const ${name} = `, 'gm')) || []).length === 1,
+        `server.js ${(fgServer.match(new RegExp(`^const ${name} = `, 'gm')) || []).length}, ` +
+        `public/app.js ${(fgApp.match(new RegExp(`^const ${name} = `, 'gm')) || []).length}`);
+    /* UND BEIDE SEITEN TRAGEN DIESELBE ZAHL. Der Browser teilt danach auf,
+       der Server weist danach ab -- laufen sie auseinander, verliert der
+       Betreiber wieder Bilder. */
+    check('Und beide Seiten tragen dieselben Zahlen — 40 und 30 MB',
+      numberOf(fgServer, 'PHOTO_COUNT') === 40
+      && numberOf(fgApp, 'PHOTO_COUNT') === 40
+      && numberOf(fgServer, 'PHOTO_MAX') === 30 * 1024 * 1024
+      && numberOf(fgApp, 'PHOTO_MAX') === 30 * 1024 * 1024,
+      `server.js ${numberOf(fgServer, 'PHOTO_COUNT')}/${numberOf(fgServer, 'PHOTO_MAX')} · ` +
+      `public/app.js ${numberOf(fgApp, 'PHOTO_COUNT')}/${numberOf(fgApp, 'PHOTO_MAX')}`);
+    check('Und die Routenzeile nennt keine nackte 40 mehr',
+      !/upload\.array\('photos', 40\)/.test(fgServer)
+      && /upload\.array\('photos', PHOTO_COUNT\)/.test(fgServer),
+      (fgServer.match(/.*upload\.array\('photos'.*/) || ['(keine Zeile)'])[0].trim());
+    /* ALLE FUENF HOCHLADEWEGE REICHEN IHRE GRENZEN AN DEN FEHLER-HANDLER
+       WEITER. Ohne sie steht dort wieder die Message von multer. */
+    /* SECHS ROUTEN AN FUENF WEGEN: Kommentarbilder kommen ueber zwei Routen
+       herein, am neuen Kommentar und am bestehenden. */
+    const fgCapped = (fgServer.match(/capped\(/g) || []).length;
+    check('Und alle sechs Hochladerouten reichen ihre Grenzen weiter',
+      fgCapped === 7, `${fgCapped} Stellen (sechs Routen und der Helfer selbst)`);
+    /* UND DER FEHLER-HANDLER UEBERSETZT DIE BEIDEN GRENZEN VON MULTER. */
+    check('Der Fehler-Handler kennt LIMIT_FILE_SIZE und LIMIT_UNEXPECTED_FILE',
+      /err\.code === 'LIMIT_FILE_SIZE'/.test(fgServer)
+      && /err\.code === 'LIMIT_UNEXPECTED_FILE'/.test(fgServer)
+      && /'server\.uploadSize'/.test(fgServer),
+      'beide Codes');
+    /* UND DER BROWSER SCHICKT IN BUENDELN, statt alles auf einmal zu geben. */
+    check('Und der Browser schickt in Buendeln von PHOTO_COUNT',
+      /for \(let at = 0; at < images\.length; at \+= PHOTO_COUNT\)/.test(fgApp),
+      (fgApp.match(/.*at \+= PHOTO_COUNT.*/) || ['(keine Schleife)'])[0].trim());
+    check('Und er sagt vorher ab, was ueber PHOTO_MAX liegt',
+      /images\.find\(f => f\.size > PHOTO_MAX\)/.test(fgApp),
+      (fgApp.match(/.*f\.size > PHOTO_MAX.*/) || ['(keine Pruefung)'])[0].trim());
+    /* UND DIE 50 STEHT NICHT MEHR ALS TEXT IM SATZ. */
+    const fgLang = JSON.parse(fs.readFileSync(
       path.join(__dirname, 'public', 'languages', 'de.json'), 'utf8'));
-    check('Der Knopf steht im gezeichneten Eintrag',
-      eoApp.includes(`id="exp1">${'$'}{tH('entry.exportOne')}</button>`),
-      (eoApp.match(/.*id="exp1".*/) || ['(kein Knopf)'])[0].trim());
-    check('Und er ruft genau die Route auf',
-      /window\.location = `\/api\/items\/\$\{id\}\/export`/.test(eoApp),
-      (eoApp.match(/.*\/api\/items\/\$\{id\}\/export.*/) || ['(kein Aufruf)'])[0].trim());
-    /* UND NUR DER BETREIBER SIEHT IHN -- die Route traegt ownerOnly, und ein
-       Knopf, der eine Absage holt, ist schlechter als kein Knopf. */
-    check('Und nur der Betreiber sieht ihn',
-      /\$\{OWNER\n\s*\? `<div class="entry-out">/.test(eoApp),
-      (eoApp.match(/.*class="entry-out".*/) || ['(keine Bedingung)'])[0].trim());
-    check('Seine Beschriftung steht in der Sprachdatei',
-      typeof eoLang['entry.exportOne'] === 'string',
-      String(eoLang['entry.exportOne']));
+    check('Und `entry.tooBig` traegt die Zahl als Platzhalter, nicht als Text',
+      /\{mb\}/.test(fgLang['entry.tooBig']) && !/50/.test(fgLang['entry.tooBig']),
+      String(fgLang['entry.tooBig']));
   }
+
+  /* ========== Das Containerprotokoll traegt seine Zeit — 0.35.2, BA 5 =====
+     VORGABE DES BETREIBERS: ein Protokoll ohne Zeitstempel ist schwer zu
+     lesen. `docker compose logs -t` setzt zwar eine Zeit davor -- aber in UTC
+     und nur, wenn man es so aufruft. Ein Protokoll, dessen Zeit davon
+     abhaengt, wie man es liest, hat keine. */
+  group('Das Containerprotokoll traegt seine Zeit — 0.35.2');
+  {
+    const zpFiles = ['server.js', 'db.js', 'auth.js', 'keys.js',
+                     'batchrun.js', 'images.js'];
+    const zpRead = (f) => fs.readFileSync(path.join(__dirname, ...f.split('/')), 'utf8');
+    const zpLog = zpRead('log.js');
+    /* ERST DER HELFER SELBST. */
+    check('log.js liegt daneben und nennt seine vier Ausgaenge',
+      /module\.exports = \{ stamp, logLine, logWarn, logFail, NAME \};/.test(zpLog),
+      (zpLog.match(/module\.exports.*/) || ['(kein Ausgang)'])[0]);
+    /* UND ER HAT KEINE ABHAENGIGKEIT. Er wird auch aus einem Worker-Thread
+       gerufen und darf deshalb nichts aus dem Baum brauchen. */
+    check('Und er braucht keine andere Datei des Projekts',
+      !/require\('\.\//.test(zpLog),
+      (zpLog.match(/require\('\.\/[^']*'\)/g) || ['keine']).join(' '));
+    /* DIE ZEIT WIRD GERECHNET UND NICHT BEHAUPTET: der Stempel wird hier
+       gebaut und gegen eine bekannte Uhrzeit gehalten. */
+    const { stamp } = require('./log.js');
+    const zpShape = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}[+-]\d{2}:\d{2}$/;
+    check('Der Stempel hat die Gestalt von ISO 8601, mit Versatz',
+      zpShape.test(stamp()), stamp());
+    /* UND ER FOLGT DER UHR DES PROZESSES, ALSO TZ. Gerechnet wird gegen die
+       Angaben, die die Date selbst liefert -- eine zweite Rechnung daneben
+       waere dieselbe Rechnung und belegte nichts. */
+    const zpWhen = new Date(2026, 8, 18, 8, 21, 3);
+    const zpOff = -zpWhen.getTimezoneOffset();
+    const zpSign = zpOff < 0 ? '-' : '+';
+    const zpAway = Math.abs(zpOff);
+    const zpWant = `2026-09-18T08:21:03${zpSign}` +
+      `${String(Math.floor(zpAway / 60)).padStart(2, '0')}:` +
+      `${String(zpAway % 60).padStart(2, '0')}`;
+    check('Und er nennt die oertliche Zeit samt ihrem Versatz',
+      stamp(zpWhen) === zpWant, `${stamp(zpWhen)} statt ${zpWant}`);
+    /* DER NAME STEHT AN EINER STELLE. Wer ihn im Ruf mitschreibt, umgeht den
+       Zeitstempel -- und genau das war der Zustand vor dieser Runde. */
+    const zpLoose = [];
+    for (const f of zpFiles) {
+      const raw = zpRead(f);
+      if (raw.includes('[Kriterion]')) zpLoose.push(f);
+      if (!/const \{ logLine, logWarn, logFail \} = require\('\.\/log'\);/.test(raw))
+        zpLoose.push(`${f} ohne require`);
+    }
+    check('Keine der sechs Dateien schreibt den Namen noch selbst',
+      zpLoose.length === 0, zpLoose.join(' · ') || 'alle ueber log.js');
+    /* UND ES SIND WIRKLICH EINUNDFUENFZIG ZEILEN -- ein Waechter, der auf
+       einer leeren Menge laeuft, ist gruen und belegt nichts. */
+    const zpCount = zpFiles.reduce((n, f) =>
+      n + (zpRead(f).match(/\blog(?:Line|Warn|Fail)\(/g) || []).length, 0);
+    check('Und es sind 51 Protokollzeilen in den sechs Dateien',
+      zpCount === 51, `${zpCount} Zeilen`);
+    /* DIE BEISPIELDATEI SETZT TZ. Ohne sie laeuft der Container auf UTC, und
+       der Versatz waere immer +00:00. */
+    const zpCompose = fs.readFileSync(
+      path.join(__dirname, 'docker-compose.example.yml'), 'utf8');
+    check('Und die Beispieldatei setzt TZ',
+      /^\s+- TZ=Europe\/Berlin$/m.test(zpCompose),
+      (zpCompose.match(/.*TZ=.*/) || ['(nicht gesetzt)'])[0].trim());
+    /* DIE GESPEICHERTEN ZEITEN BLEIBEN UTC -- sie werden zwischen
+       Installationen verglichen und folgen TZ ausdruecklich nicht. */
+    const zpAuth = zpRead('auth.js');
+    check('Das Sicherheitsprotokoll schreibt seine Zeit weiter ueber SQLite, also UTC',
+      /datetime\('now'\)/.test(zpAuth) && !/stamp\(/.test(zpAuth),
+      `${(zpAuth.match(/datetime\('now'\)/g) || []).length} Stellen mit datetime('now')`);
+  }
+
+  /* ================= WAS HIER BIS 0.35.2 STAND, UND WARUM ES FORT IST =====
+     Die Gruppe „Der einzelne Eintrag ist ueber die Oberflaeche zu holen"
+     hielt vier Zusagen ueber den Knopf `#exp1` und die Route dahinter. Beide
+     sind mit 0.35.2 ausgebaut: die Route hatte 26 Runden lang keinen Rufer,
+     und das Projekt braucht sie fuer nichts anderes. */
 
   /* ================= Die Deckung der Sprachdatei — 0.35.0 =================
      DER BEFUND DER MESSUNG ZUR 0.35.0: kein einziger Schluessel in

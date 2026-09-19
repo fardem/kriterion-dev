@@ -1,6 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
+const { logLine, logWarn, logFail } = require('./log');
 // Die Ansagen dieser Datei gelten dem Betreiber. Im Neben-Thread bleiben
 // sie aus, sonst staenden sie bei jedem Bestandslauf ein zweites Mal im
 // Containerprotokoll.
@@ -79,7 +80,7 @@ function loadKey(dataDir) {
     if (!HEX_PATTERN.test(clean)) {
       throw new Error('ENCRYPTION_KEY muss genau 64 Hex-Zeichen lang sein (erzeugen mit: openssl rand -hex 32)');
     }
-    if (isMainThread) console.log('[Kriterion] Key loaded from ENCRYPTION_KEY.');
+    if (isMainThread) logLine('Key loaded from ENCRYPTION_KEY.');
     return { hex: clean.toLowerCase(), fromEnv: true };
   }
 
@@ -102,7 +103,7 @@ function loadKey(dataDir) {
 
   const hex = crypto.randomBytes(32).toString('hex');
   fs.writeFileSync(keyPath, hex, { mode: 0o600 });
-  if (isMainThread) console.log('[Kriterion] New key created.');
+  if (isMainThread) logLine('New key created.');
   warnKeyBesideData();
   return { hex, fromEnv: false };
 }

@@ -1333,8 +1333,8 @@ async function until(w, condition, limitMs = 3000, what = 'die Bedingung') {
 async function openTagRow(w) {
   const button = w.document.getElementById('f-weitere');
   if (button && button.getAttribute('aria-expanded') === 'false') button.onclick();
-  await until(w, (x) => x.document.getElementById('f-tagzeile'), 200, 'die Tagzeile');
-  return w.document.getElementById('f-tagzeile');
+  await until(w, (x) => x.document.getElementById('f-tagrow'), 200, 'die Tagzeile');
+  return w.document.getElementById('f-tagrow');
 }
 
 

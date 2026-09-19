@@ -176,7 +176,10 @@ async function run() {
     /* ZWEI SCHLUESSEL REISEN IN EINER VARIABLEN -- `pruefeRegelwert(wert,
        spanne, was)` bekommt den Namen gereicht und baut die Werte selbst. */
     /* UND ZWEI REISEN SEIT 0.25.4 UEBER `tMark()` -- der Verneinungssatz. */
-    const OVER_HELPER = ['server.ruleKeep', 'server.ruleDays'];
+    /* `server.uploadCap` KOMMT MIT 0.35.2 DAZU: der Fehler-Handler holt den
+       Schluessel aus `req.caps`, das die Route gesetzt hat -- buchstaeblich
+       steht er dort nicht. */
+    const OVER_HELPER = ['server.ruleKeep', 'server.ruleDays', 'server.uploadCap'];
     /* DIE SAETZE MIT AUSZEICHNUNG WERDEN GELESEN UND NICHT AUFGEZAEHLT --
        0.31.1. */
     const spSource = fs.readFileSync(path.join(__dirname, 'public', 'app.js'), 'utf8');
@@ -194,8 +197,8 @@ async function run() {
       phError.length === 0, phError.slice(0, 10).join(' · ') || 'gleich');
     check('Und jeder Platzhalter wird gereicht oder ist ein Vokabelwort',
       unserved.length === 0, unserved.slice(0, 10).join(' · '));
-    check('Und die zwei, die in einer Variablen reisen, stehen namentlich da',
-      OVER_HELPER.length === 2 && OVER_HELPER.every(k => spContent.de[k] !== undefined
+    check('Und die drei, die in einer Variablen reisen, stehen namentlich da',
+      OVER_HELPER.length === 3 && OVER_HELPER.every(k => spContent.de[k] !== undefined
         && placeholderFrom(spContent.de[k]).size > 0), OVER_HELPER.join(' · '));
     check('Und die Saetze mit Auszeichnung kommen aus dem Quelltext',
       MARKED.size >= 38 && MARKED.has('login.linkUnaffected'),
@@ -365,7 +368,11 @@ async function run() {
       }
       return out + src.slice(i);
     };
+    /* SEIT 0.35.2 GEHEN DIE PROTOKOLLZEILEN UEBER log.js -- die drei neuen
+       Namen gehoeren in dieselbe Liste wie console.*, sonst liest die
+       Restprobe das Containerprotokoll fuer Bildschirmtext. */
     const SERVER_QUIET = ['console\\.log', 'console\\.error', 'console\\.warn',
+                          'logLine', 'logWarn', 'logFail',
                           'db\\.prepare', 'd\\.prepare'];
     const serverRest = [];
     for (const file of ['server.js', 'auth.js', 'mail.js']) {
@@ -434,7 +441,7 @@ async function run() {
     /* ---- 5d. DIE RESTPROBE FUER DAS CONTAINERPROTOKOLL -- 0.33.0 --------
        DIE LETZTE DEUTSCHE ECKE DES HAUSES. */
     const CONSOLE_FILES = ['server.js', 'db.js', 'auth.js', 'keys.js',
-                           'batchrun.js', 'images.js'];
+                           'batchrun.js', 'images.js', 'log.js'];
     /* ZWEI WOERTER FALLEN AUS DER FRAGE, und beide sind BEFEHLE und keine
        Saetze -- dieselbe Ausnahme, die REST_GERMAN_NAMED weiter oben fuer die
        zwei Serverbefehle macht: `passwort` steht in `node usertool.js
@@ -445,7 +452,11 @@ async function run() {
        Fortsetzung stehen. */
     const consoleCalls = (src) => {
       const out = [];
-      const rx = /\bconsole\.(?:log|warn|error)\s*\(/g;
+      /* SEIT 0.35.2 GEHEN DIE [Kriterion]-ZEILEN UEBER log.js, und der Leser
+         muss beide Formen sehen: `console.log(...)` fuer alles, was ohne
+         Zeitstempel hinausgeht, und `logLine/logWarn/logFail(...)` fuer das
+         Containerprotokoll. Eine Form allein hiesse, die andere zu uebersehen. */
+      const rx = /\b(?:console\.(?:log|warn|error)|log(?:Line|Warn|Fail))\s*\(/g;
       let m;
       while ((m = rx.exec(src)) !== null) {
         let j = m.index + m[0].length, depth = 1, q = null;
@@ -1089,7 +1100,7 @@ async function run() {
     /* DIE ZEILE STEHT BEIM AUFBAU DA, OHNE DASS JEMAND GEKLICKT HAT. Bis
        0.30.0 stand sie nur dann da, wenn ein Tagfilter griff. */
     check('Ohne Tagfilter steht die Tagzeile beim Aufbau schon da',
-      !!wfDoc.getElementById('f-tagzeile'), 'die Zeile fehlt');
+      !!wfDoc.getElementById('f-tagrow'), 'die Zeile fehlt');
     check('Und sie steht an ihrem Platz zwischen Kategorie und Sortieren',
       wfRows(wfDoc).join() === 'Status,Kategorie,Tags,Sortieren', wfRows(wfDoc).join(' · '));
     /* DER UMSCHALTER IST FORT -- in keinem Zustand, unter keiner Kennung. */
@@ -1100,20 +1111,20 @@ async function run() {
       [...wfDoc.querySelectorAll('#filters > *')].every(e => e.classList.contains('frow')),
       [...wfDoc.querySelectorAll('#filters > *')].map(e => e.tagName + '.' + e.className).join(' · '));
     check('Die Ablehnung bleibt in der Statuszeile',
-      wfDoc.querySelector('#f-abgelehnt')?.closest('.frow')?.querySelector('.eyebrow')?.textContent === 'Status',
-      wfDoc.querySelector('#f-abgelehnt')?.closest('.frow')?.textContent.slice(0, 60));
+      wfDoc.querySelector('#f-rejected')?.closest('.frow')?.querySelector('.eyebrow')?.textContent === 'Status',
+      wfDoc.querySelector('#f-rejected')?.closest('.frow')?.textContent.slice(0, 60));
     check('Die Zeile traegt Und/Oder und die Wolke',
-      !!wfDoc.querySelector('#f-tagzeile .tagmode')
-        && wfDoc.querySelectorAll('#f-tagzeile .pill-tag').length === 2,
-      `${!!wfDoc.querySelector('#f-tagzeile .tagmode')} · ` +
-      `${wfDoc.querySelectorAll('#f-tagzeile .pill-tag').length} Marken`);
+      !!wfDoc.querySelector('#f-tagrow .tagmode')
+        && wfDoc.querySelectorAll('#f-tagrow .pill-tag').length === 2,
+      `${!!wfDoc.querySelector('#f-tagrow .tagmode')} · ` +
+      `${wfDoc.querySelectorAll('#f-tagrow .pill-tag').length} Marken`);
     /* UND SIE SAGT DEM RASTER SELBST, DASS SIE DIE TAGZEILE IST. */
     check('Und sie traegt `frow-tags` — daran haengt das Raster des Telefons',
-      wfDoc.getElementById('f-tagzeile')?.classList.contains('frow-tags'),
-      wfDoc.getElementById('f-tagzeile')?.className);
+      wfDoc.getElementById('f-tagrow')?.classList.contains('frow-tags'),
+      wfDoc.getElementById('f-tagrow')?.className);
     /* DIE REIHENFOLGE IM AUFBAU: erst „und/Oder", dann die Wolke, dann die
        Verweise. */
-    const wfOrder = [...(wfDoc.getElementById('f-tagzeile')?.children || [])]
+    const wfOrder = [...(wfDoc.getElementById('f-tagrow')?.children || [])]
       .map(e => e.className.split(' ')[0]);
     check('Und die Reihenfolge stimmt: Beschriftung, und/Oder, Wolke, Verweise',
       wfOrder[0] === 'eyebrow' && wfOrder[1] === 'tagmode' && wfOrder[2] === 'pills',
@@ -1124,26 +1135,26 @@ async function run() {
     const wfIncluding = buildDom(JSDOM, { tags: wfTags, settings: { filters: wfFilter([41]) } });
     await new Promise(r => setTimeout(r, 80));
     check('Greift ein Tagfilter, steht die Tagzeile ebenso da',
-      !!wfIncluding.w.document.getElementById('f-tagzeile'), 'die Zeile fehlt');
+      !!wfIncluding.w.document.getElementById('f-tagrow'), 'die Zeile fehlt');
     check('Und filterNumber() zaehlt den Tag weiter mit: der Ruecksetzer sagt (1)',
-      wfIncluding.w.document.getElementById('filter-zurueck')?.textContent === 'Filter zurücksetzen (1)' &&
+      wfIncluding.w.document.getElementById('filter-reset')?.textContent === 'Filter zurücksetzen (1)' &&
       wfIncluding.w.document.querySelector('#filter-toggle .fcount')?.textContent === '· 1 aktiv',
-      JSON.stringify([wfIncluding.w.document.getElementById('filter-zurueck')?.textContent,
+      JSON.stringify([wfIncluding.w.document.getElementById('filter-reset')?.textContent,
                       wfIncluding.w.document.querySelector('#filter-toggle .fcount')?.textContent]));
     /* SEIT 0.30.2 STEHT DAS WORT IM TITEL und nicht mehr im Text -- der
        Ruecksetzer ist ein Kreispfeil. */
     check('Der Rueckweg in der Tagzeile heisst weiterhin „Tags zurücksetzen"',
-      [...wfIncluding.w.document.querySelectorAll('#f-tagzeile .link-btn')]
+      [...wfIncluding.w.document.querySelectorAll('#f-tagrow .link-btn')]
         .some(b => b.getAttribute('title') === 'Tags zurücksetzen'),
-      [...wfIncluding.w.document.querySelectorAll('#f-tagzeile .link-btn')]
+      [...wfIncluding.w.document.querySelectorAll('#f-tagrow .link-btn')]
         .map(b => `„${b.textContent}"/„${b.getAttribute('title')}"`).join(' | '));
     wfIncluding.w.close();
     /* GIBT ES NICHTS ZU FILTERN, IST DIE ZEILE GANZ WEG. Nachgestellt am 5. */
     const wfEmpty = buildDom(JSDOM, { tags: [], settings: { filters: wfFilter([]) } });
     await new Promise(r => setTimeout(r, 80));
     check('Haengt kein Tag an einem Eintrag, steht die Zeile gar nicht da',
-      !wfEmpty.w.document.getElementById('f-tagzeile'),
-      `Zeile: ${!!wfEmpty.w.document.getElementById('f-tagzeile')}`);
+      !wfEmpty.w.document.getElementById('f-tagrow'),
+      `Zeile: ${!!wfEmpty.w.document.getElementById('f-tagrow')}`);
     check('Und die Leiste traegt dann drei Zeilen statt vier',
       wfRows(wfEmpty.w.document).join() === 'Status,Kategorie,Sortieren',
       wfRows(wfEmpty.w.document).join(' · '));
@@ -1155,10 +1166,10 @@ async function run() {
       settings: { filters: wfFilter([41]) } });
     await new Promise(r => setTimeout(r, 80));
     check('Greift ein Filter auf einen Tag ohne Eintraege, steht sie trotzdem da',
-      !!wfEmptyIncluding.w.document.getElementById('f-tagzeile')
-        && [...wfEmptyIncluding.w.document.querySelectorAll('#f-tagzeile .link-btn')]
+      !!wfEmptyIncluding.w.document.getElementById('f-tagrow')
+        && [...wfEmptyIncluding.w.document.querySelectorAll('#f-tagrow .link-btn')]
              .some(b => b.getAttribute('title') === 'Tags zurücksetzen'),
-      `Zeile: ${!!wfEmptyIncluding.w.document.getElementById('f-tagzeile')}`);
+      `Zeile: ${!!wfEmptyIncluding.w.document.getElementById('f-tagrow')}`);
     wfEmptyIncluding.w.close();
     /* ---- WAS MIT DEM UMSCHALTER GEFALLEN IST ---- VIER REGELN IM STILBLATT
        und ein Satz in drei Sprachdateien. */

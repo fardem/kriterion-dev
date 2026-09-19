@@ -1256,7 +1256,13 @@ sondern damit derselbe Bericht nicht ein zweites Mal geglaubt wird.
 
 ---
 
-## 25. Sechs deutsche Bezeichner, die kein Wächter sieht
+## 25. ~~Sechs deutsche Bezeichner, die kein Wächter sieht~~ — **GEBAUT mit 0.35.2, BA 8**
+
+> **GEBAUT am 19. September 2026.** *Die sechs heißen jetzt `f-rejected`,
+> `f-cat-none`, `f-tagrow`, `view-save`, `filter-reset` und `deleted-users`.
+> Die Gestaltprobe liest `.id = '…'` als dritte Quelle und findet damit alle
+> elf gesetzten `id`. Erst umbenannt, dann der Wächter erweitert.*
+
 
 > **NACHGEMESSEN AM 19. SEPTEMBER 2026, und der Punkt ist kleiner geworden.**
 > *Die Überschrift hieß „sieben"; `f-weitere` gibt es nicht mehr.* **Sechs
@@ -1812,7 +1818,15 @@ bleiben, wie sie sind *(dort ist die Mehrzahl richtig)*.
 
 ---
 
-## 33. Die Startzeile nennt einen Schlüssel statt eines Satzes
+## 33. ~~Die Startzeile nennt einen Schlüssel statt eines Satzes~~ — **GESCHLOSSEN am 19. September 2026: schon gebaut**
+
+> **KEIN BEFUND.** *Nachgemessen beim Bauen der 0.35.2: der Punkt ist seit
+> **0.33.2** gebaut (Commit `b88bdb4`). `server.js` schreibt
+> `t('en', situation.reason, situation.values)`, und `test/roundtrip.js`
+> hält seit damals fest, dass in der Zeile „Backup location" kein roher
+> `server.*`-Schlüssel steht. Der Eintrag hier war veraltet; BA 6 der
+> 0.35.2 entfiel deshalb.*
+
 
 **Art: Fehler** *(am Containerprotokoll, klein)* **· Herkunft: 0.32.0, beim
 Bauen der Restprobe für `server.js` gesehen · Einschätzung: klein ·
@@ -1858,7 +1872,15 @@ Installation: es liest der Betreiber und kein Benutzer.*
 
 ---
 
-## 34. Der Grund eines gescheiterten Versands steht in der Sprache des Empfängers
+## 34. ~~Der Grund eines gescheiterten Versands steht in der Sprache des Empfängers~~ — **GEBAUT mit 0.35.2, BA 11**
+
+> **GEBAUT am 19. September 2026.** *`mail.send()` und `shortReason()`
+> bekommen keine Sprache mehr und geben `reasonKey` zurück, wo der Grund
+> aus `mail.js` kommt, und `reason`, wo ihn der Anbieter geschrieben hat.
+> `sendWhy(e, locale)` in `server.js` ist die eine Stelle, die daraus einen
+> Satz macht — mit `readerLocale`. Der Brief bleibt in der Sprache des
+> Empfängers.*
+
 
 **Art: Fehler** *(an der Anwendung; sichtbar für jeden Admin, der nicht die
 Sprache seines Gegenübers liest)* **· Herkunft: 0.32.0, beim Übersetzen der elf
@@ -1895,7 +1917,14 @@ bleibt in der Sprache des Empfängers** — *es geht allein um den Grund daneben
 
 ---
 
-## 35. Eine Gegenprobe reißt die Datei ab, statt eine Prüfung rot zu machen
+## 35. ~~Eine Gegenprobe reißt die Datei ab, statt eine Prüfung rot zu machen~~ — **GEBAUT mit 0.35.2, BA 7**
+
+> **GEBAUT am 19. September 2026.** *Gegenprobe 330 nimmt den ganzen Ruf in
+> ihren Suchtext, und der Ersatz schließt seine Klammer selbst — dieselbe
+> Nummer, derselbe Name. Dazu der Wächter: jeder Rückbau an einer
+> `.js`-Datei muss eine Datei zurücklassen, die sich übersetzen lässt.
+> 795 der 1053 werden so geprüft, in fünf Sekunden.*
+
 
 **Art: Fehler** *(am Gegenprobentreiber)* **· Herkunft: 0.32.0, beim Nachrechnen
 aller Rückbauten gefunden · Einschätzung: klein · Fahrplan: 0.35.2, BA 7**
@@ -2197,7 +2226,23 @@ Entscheidung des Betreibers und keine Messung.**
 ## 43. Der Quelltext verweist auf Papiere, die nicht mitgehen
 
 **Art: Idee** *(Quelltext)* **· Herkunft: 0.35.0, beim Zuschnitt der
-Veröffentlichung gefunden · Einschätzung: groß**
+Veröffentlichung gefunden · Einschätzung: groß · Schritt 1 gebaut**
+
+> **SCHRITT 1 IST MIT 0.35.2 GEBAUT (BA 9).** *Die beiden Löcher des
+> 0.34.3-Sweeps sind zu: `public/style.css` steht in der Dateiliste des
+> Wächters, und eine SQL-Kommentarzeile im Schematext von `db.js` wird als
+> Kommentar gelesen. Die **15 Verweise** sind gestrichen — die Begründung
+> bleibt stehen, nur die Nummer fällt. Der Wächter liest jetzt
+> sechsunddreißig Dateien. Rückbauten **1114** und **1115**.*
+>
+> **Und der letzte Verweis auf `Doku/` in einer ausgelieferten Datei ist mit
+> derselben Runde fort** *(BA 3, `public/style.css`)*. **Ein Wächter über
+> vierundzwanzig Dateien hält es fest**, statt es dem Aufruf von
+> `tools/publish.js` zu überlassen. Rückbau **1110**.
+>
+> **Schritt 2 und 3 bleiben offen:** *die Versionsnummern — jetzt **770**
+> statt 772, weil der Kommentar über dem gefallenen Knopf zwei genannt hat —
+> und `tools/comments.js`, das das Stilblatt nicht mitzählt.*
 
 **DER ÖFFENTLICHE STAND TRÄGT KEIN `Doku/`** *(`Doku/Veroeffentlichen.md`)*.
 **Jeder Verweis darauf im Quelltext zeigt dort auf nichts.** Gemessen am
@@ -2407,7 +2452,13 @@ Eingabefelder, die neue Leseansicht der Beschreibung, die Kachelvorschau)*,
 
 ---
 
-## 45. Der Einzelexport wird ausgebaut
+## 45. ~~Der Einzelexport wird ausgebaut~~ — **GEBAUT mit 0.35.2, BA 1**
+
+> **GEBAUT am 19. September 2026.** *Route, Knopf `#exp1`, Rufer, die
+> Stilregel `.entry-out` und die beiden Sprachschlüssel sind fort; der tote
+> `itemId`-Zweig dahinter ebenso (F2). **`F_ROUTES` bleibt bei 73** — die
+> Route ist lesend und stand dort nie.*
+
 
 **Art: Vorgabe des Betreibers, 17. September 2026 · Einschätzung: klein ·
 Fahrplan: 0.35.2**
@@ -2514,7 +2565,14 @@ steht, ist geschehen.
 
 ---
 
-## 46. Mehr als 40 Fotos auf einmal verlieren alle Fotos
+## 46. ~~Mehr als 40 Fotos auf einmal verlieren alle Fotos~~ — **GEBAUT mit 0.35.2, BA 4**
+
+> **GEBAUT am 19. September 2026.** *`PHOTO_COUNT` und `PHOTO_MAX` sind
+> benannt und stehen auf beiden Seiten gleich; der Browser schickt in
+> Bündeln von 40; der Fehler-Handler übersetzt die Grenzen von multer.
+> Vier neue Schlüssel und nicht einer — `server.fileCap` nennt eine
+> Obergrenze je Eintrag, und die gibt es bei Fotos nicht.*
+
 
 **Art: Fehler** *(an der Anwendung, im Betrieb gemeldet)* **· Herkunft:
 Betreiber, 18. September 2026, Stand 0.35.1 · Einschätzung: klein ·
@@ -2546,7 +2604,13 @@ Tafel der fünf Hochladewege und ihrer Grenzen.
 
 ---
 
-## 47. Das Containerprotokoll trägt keine Zeitstempel
+## 47. ~~Das Containerprotokoll trägt keine Zeitstempel~~ — **GEBAUT mit 0.35.2, BA 5**
+
+> **GEBAUT am 19. September 2026.** *Neues Modul `log.js`; alle 51 Zeilen
+> in sechs Dateien gehen darüber. ISO 8601 mit Versatz aus `TZ`,
+> `TZ=Europe/Berlin` in `docker-compose.example.yml`. Die gespeicherten
+> Zeiten bleiben UTC.*
+
 
 **Art: Idee** *(Betrieb)* **· Herkunft: Betreiber, 18. September 2026 ·
 Einschätzung: klein · Fahrplan: 0.35.2, BA 5**

@@ -29,10 +29,10 @@ const DRAUSSEN = [
   'tools/publish.js'          // dieses Werkzeug
 ];
 
-/* Die achtzehn Dateien des Fingerprints -- dieselbe Liste wie in der README.
+/* Die neunzehn Dateien des Fingerprints -- dieselbe Liste wie in der README.
    `public/` wird dabei ausgelesen, nicht aufgezaehlt. */
 const FINGERPRINT_MODULE = ['attachments.js', 'auth.js', 'batchrun.js', 'images.js',
-  'db.js', 'keys.js', 'mail.js', 'package.json', 'server.js', 'twofactor.js'];
+  'db.js', 'keys.js', 'log.js', 'mail.js', 'package.json', 'server.js', 'twofactor.js'];
 
 const git = (...args) =>
   execFileSync('git', args, { cwd: WURZEL, encoding: 'utf8' }).trim();

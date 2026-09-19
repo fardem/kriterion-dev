@@ -30,6 +30,38 @@ ihre deutschen Abschnittsüberschriften bleiben.*
 
 *Hier wird mitgeschrieben, während gebaut wird.*
 
+## [0.35.2] - 2026-09-19
+
+*Eine Route, die das Projekt nicht braucht, geht raus. Dazu zwei Meldungen aus
+dem Betrieb und vier offene Punkte, die dieselben Dateien anfassen.*
+
+> **`GET /api/items/:id/export` gibt es nicht mehr.** Wer die Adresse in einem
+> Skript stehen hat, bekommt danach **404**. Der volle Export
+> (`GET /api/export`) und der Teilexport liefern dieselben Daten.
+>
+> **`TZ` entscheidet ab dieser Runde, welche Zeit im Containerprotokoll
+> steht.** Ohne `TZ` ist es UTC, wie bisher; `TZ=Europe/Berlin` steht als
+> Vorschlag in `docker-compose.example.yml`. **Die gespeicherten Zeiten ändern
+> sich nicht** — Sicherheitsprotokoll, Sicherungsnamen und Exportzeitpunkte
+> bleiben UTC.
+
+Fingerprint `0fc33e91` — davor `10017d45`.
+
+### Behoben
+
+- **Mehr als 40 Fotos auf einmal kommen an.** Bis dahin brach die ganze Anfrage beim 41. Bild ab, es wurde kein einziges gespeichert, und am Bildschirm stand „Unexpected field". Der Browser teilt die Auswahl jetzt selbst auf.
+- **Die Absagen der Hochladewege stehen in deiner Sprache.** Zu viele Dateien, eine zu große Datei, ein zweites Video, eine zweite Einspieldatei — bis dahin kamen die englischen Worte der eingesetzten Bibliothek durch.
+- **Der Grund eines gescheiterten Mailversands steht in der Sprache dessen, der ihn liest.** Bis dahin in der des Empfängers: wer einen türkischen Kollegen einlud, las den Grund auf Türkisch.
+
+### Geändert
+
+- **Jede Zeile des Containerprotokolls trägt ihre Zeit** — ISO 8601 mit Versatz, der Versatz aus `TZ`.
+- **Der Hinweis auf eine zu große Datei nennt die Grenze**, statt sie im Satz auszuschreiben.
+
+### Entfernt
+
+- **`GET /api/items/:id/export` und der Knopf am Fuß des Eintrags.** Die Route hatte 26 Runden lang keinen Rufer in der Oberfläche; das Projekt braucht sie für nichts.
+
 ## [0.35.1] - 2026-09-17
 
 *Die drei Sicherheitsbefunde aus der Messung zur 0.35.0, die dort nicht gebaut

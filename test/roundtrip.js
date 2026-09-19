@@ -1703,8 +1703,10 @@ async function sendImport(object, mode, withoutShare = false) {
     /* 31 -> 30 mit 0.35.0: GET /api/health ist gefallen. Die Route stand
        hinter app.use('/api', auth.requireAuth) und antwortete ohne
        Sitzungscookie mit 401; der Container fragt /api/config. */
+    /* 30 -> 29 mit 0.35.2: GET /api/items/:id/export ist gefallen. Die Route
+       hatte 26 Runden lang keinen Rufer in der Oberflaeche. */
     check('Und sie ist die EINZIGE neue Route dieser Runde',
-      (serverCode.match(/^app\.get\('/gm) || []).length === 30,
+      (serverCode.match(/^app\.get\('/gm) || []).length === 29,
       String((serverCode.match(/^app\.get\('/gm) || []).length));
 
     // Den Titel zurueckstellen -- die Pruefungen danach rechnen mit dem alten.
@@ -6641,65 +6643,12 @@ async function sendImport(object, mode, withoutShare = false) {
       JSON.stringify(buttonAnnaWithout.content));
   }
 
-  /* ---------------------------------------------------------------- */
-  group('Ein einzelner Eintrag als Datei');
-
-  /* Der kleinste Punkt der Runde -- und der, der dem Papierkorb sein Werkzeug
-     liefert. */
-  {
-    const full = await pkAnnaF('GET', '/api/export?photos=1&files=1&videos=1');
-    check('Der volle Export geht durch', full.status === 200, `Status ${full.status}`);
-    const targetId = pkOne("SELECT id FROM items WHERE title = 'Vollständig'").id;
-    const singleExport = await pkCall('cookie-pk-anna', `GET`, `/api/items/${targetId}/export`);
-    check('Der Einzelexport geht durch', singleExport.status === 200, JSON.stringify(singleExport.content).slice(0, 200));
-    check('Er liefert genau EINEN Eintrag',
-      singleExport.content?.items?.length === 1, JSON.stringify(singleExport.content?.items?.length));
-    // Dieselbe Nummer wie beim vollen Export: ein Einzelexport ist ein
-// vollstaendiges Paket mit einem Eintrag darin, kein halbes.
-    check('Die Formatnummer ist dieselbe wie beim vollen Export',
-      singleExport.content?.version === 17 && full.content?.version === 17,
-      JSON.stringify([singleExport.content?.version, full.content?.version]));
-    check('Der Umschlag traegt dieselben Felder wie beim vollen Export',
-      equal(Object.keys(singleExport.content || {}).sort(), Object.keys(full.content || {}).sort()),
-      JSON.stringify(Object.keys(singleExport.content || {})));
-    check('Und die Kriterien samt Gewichten',
-      equal(singleExport.content?.criteria, full.content?.criteria) &&
-      equal(singleExport.content?.criteriaWeights, full.content?.criteriaWeights),
-      JSON.stringify([singleExport.content?.criteria, singleExport.content?.criteriaWeights]));
-    const outFull = (full.content?.items || []).find(i => i.title === 'Vollständig');
-    check('Der Eintrag selbst ist Zeichen fuer Zeichen derselbe wie im vollen Export',
-      JSON.stringify(singleExport.content?.items?.[0]) === JSON.stringify(outFull) && !!outFull,
-      JSON.stringify(Object.keys(singleExport.content?.items?.[0] || {})));
-
-    // Die Datei kommt durch den IMPORT wieder herein.
-    const again = await pkImport('cookie-pk-anna', singleExport.content, 'merge');
-    check('Die Datei laesst sich einspielen',
-      again.status === 200 && again.content?.items === 1, JSON.stringify(again.content));
-    check('Mit Fotos, Video, Dateien und Kommentaren',
-      again.content?.photos === 1 && again.content?.videos === 1 &&
-      again.content?.attachments === 2 && again.content?.comments === 4,
-      JSON.stringify(again.content));
-    const copies = pkRows("SELECT id FROM items WHERE title = 'Vollständig' ORDER BY id");
-    check('Und es steht ein zweiter Eintrag desselben Namens da',
-      copies.length === 2, JSON.stringify(copies));
-    const copyId = copies[copies.length - 1].id;
-    check('Seine Fotos sind bytegleich mit denen des Originals',
-      equal(pkRows("SELECT kind, sort_order, hex(data) AS h FROM photos WHERE item_id = ? ORDER BY sort_order", copyId),
-             pkRows("SELECT kind, sort_order, hex(data) AS h FROM photos WHERE item_id = ? ORDER BY sort_order", targetId)));
-    pkWrite('DELETE FROM items WHERE id = ?', copyId);
-
-    // Der Waechter am Einzelexport.
-    const singleCarla = await pkCall('cookie-pk-carla', 'GET', `/api/items/${targetId}/export`);
-    check('Ein gewoehnlicher Benutzer zieht keinen Einzelexport',
-      singleCarla.status === 403, `Status ${singleCarla.status}`);
-    const singleBert = await pkCall('cookie-pk-bert', 'GET', `/api/items/${targetId}/export`);
-    check('Ein Admin ohne Eigentuemerrolle auch nicht',
-      singleBert.status === 403, `Status ${singleBert.status}`);
-    check('Die Absage nennt den Eigentuemer',
-      /nur der Eigentümer/.test(singleBert.content?.error || ''), singleBert.content?.error);
-    check('Ein Eintrag, den es nicht gibt, ist eine 404',
-      (await pkCall('cookie-pk-anna', 'GET', '/api/items/999999/export')).status === 404);
-  }
+  /* ================= WAS HIER BIS 0.35.2 STAND, UND WARUM ES FORT IST =====
+     Die Gruppe „Ein einzelner Eintrag als Datei" -- sechzehn Zusagen ueber
+     GET /api/items/:id/export: dass die Datei denselben Umschlag traegt wie
+     der volle Export, sich einspielen laesst und nur dem Eigentuemer gehoert.
+     Die Route ist mit 0.35.2 ausgebaut. Was sie belegt hat, belegt der volle
+     Export weiterhin: er traegt dieselben Buendel aus entryAsBundle(). */
 
   await PK.stop();
   fs.rmSync(pkDir, { recursive: true, force: true });
@@ -7215,6 +7164,19 @@ async function sendImport(object, mode, withoutShare = false) {
   check('Und jede geschriebene Sicherung steht ebenfalls darin',
     (SI.log().match(/\[Kriterion\] Backup written: /g) || []).length >= 3,
     (SI.log().match(/\[Kriterion\] Backup written: .*/g) || []).join(' · '));
+  /* ================= DIE ZEIT AN JEDER ZEILE — 0.35.2, BA 5 ==============
+     Gemessen am laufenden Server und nicht am Quelltext: eine Zeile, die den
+     Zeitstempel im Ruf traegt und ihn beim Schreiben verliert, faellt hier
+     auf und sonst nirgends. */
+  {
+    const siStamped = SI.log().split('\n').filter(z => z.includes('[Kriterion]'));
+    const siClock = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}[+-]\d{2}:\d{2} \[Kriterion\] /;
+    check('Der Waechter sieht ueberhaupt Protokollzeilen',
+      siStamped.length >= 3, `${siStamped.length} Zeilen`);
+    check('Und jede von ihnen traegt ihre Zeit nach ISO 8601, mit Versatz',
+      siStamped.every(z => siClock.test(z)),
+      siStamped.filter(z => !siClock.test(z)).slice(0, 3).join(' | ') || 'alle gestempelt');
+  }
   await SI.stop();
 
   /* --- DER SICHERUNGSORT DARF NICHT IM DATENVERZEICHNIS LIEGEN. */
@@ -15951,9 +15913,9 @@ async function sendImport(object, mode, withoutShare = false) {
       (oneLine.match(/WITH x AS MATERIALIZED \( SELECT mime_type[\s\S]{0,240}/) || [''])[0]);
     /* 4. DIE EXPORTGROESSE DER BILDER WIRD NICHT EIN ZWEITES MAL GEFRAGT. */
     check('Die Exportgroesse der Bilder kommt aus derselben Schleife',
-      oneLine.includes('...exchangeParts(null, { withFiles: true })') &&
+      oneLine.includes('...exchangeParts({ withFiles: true })') &&
       oneLine.includes('photos: Math.round(exportPhotoBytes * 4 / 3)'),
-      (oneLine.match(/\.\.\.exchangeParts\(null[^,]*,[^)]*\)/) || ['(nicht gefunden)'])[0]);
+      (oneLine.match(/\.\.\.exchangeParts\([^)]*\)/) || ['(nicht gefunden)'])[0]);
     /* 5. DIE UEBERSICHT LIEST IHRE FOTOS AUS EINEM DECKENDEN INDEX, und die
        Spaltenliste steht an EINER Stelle. */
     const columns = (oneLine.match(/const PHOTO_COLUMNS = '([^']+)'/) || [])[1] || '';
@@ -17171,23 +17133,22 @@ async function sendImport(object, mode, withoutShare = false) {
        `t` gehoert seither dem Sprachhelfer, und eine lokale Bindung verdeckte
        ihn (Bauabschnitt 1). */
     check('Und die Absage rechnet den Umschlag mit',
-      /return parts\.photos \+ parts\.videos \+ parts\.attachments \+ parts\.commentImages \+ exchangeEnvelopeBytes\(itemId\);/
+      /return parts\.photos \+ parts\.videos \+ parts\.attachments \+ parts\.commentImages \+ exchangeEnvelopeBytes\(\);/
         .test(fSource),
       (fSource.match(/return parts\.photos[^;]*;/) || ['(die Zeile fehlt)'])[0]);
     /* Und die Gegenprobe zum Waechter: er darf nicht gruen sein, weil er auf
        einen Namen zielt, den es gar nicht mehr gibt. */
     check('Der Waechter zielt auf eine Rechnung, die es wirklich gibt',
-      /function exchangeEnvelopeBytes\(itemId\)/.test(fSource) &&
-      /function exchangeBytes\(itemId, switches\)/.test(fSource),
+      /function exchangeEnvelopeBytes\(\)/.test(fSource) &&
+      /function exchangeBytes\(switches\)/.test(fSource),
       'eine der beiden Rechnungen heisst anders');
-    /* DIESELBE FRAGE AM EINZELEXPORT: dort steht die Absage seit den Videos,
-       und sie liest dieselbe Rechnung. */
-    {
-      const singleRoute = (fSource.match(/app\.get\('\/api\/items\/:id\/export'[\s\S]*?\n\}\);/) || [''])[0];
-      check('Der Einzelexport misst mit derselben Rechnung wie der volle',
-        /exchangeBytes\(it\.id, switches\)/.test(singleRoute) && /EXCHANGE_MAX/.test(singleRoute),
-        singleRoute.replace(/\s+/g, ' ').slice(0, 200) || '(keine Route)');
-    }
+    /* UND DER ZWEIG FUER EINEN EINZELNEN EINTRAG IST FORT -- 0.35.2, F2.
+       Er gehoerte dem Einzelexport; ohne dessen Route konnte er nur noch
+       falsch sein, denn beide verbliebenen Rufer reichten `null`. */
+    check('Die Rechnung kennt keinen einzelnen Eintrag mehr',
+      !/const onlyOne = itemId !== null;/.test(fSource)
+      && !/\$\{wo\('item_id'\)\}/.test(fSource) && !/\$\{and\('item_id'\)\}/.test(fSource),
+      (fSource.match(/.*onlyOne.*/) || ['kein Zweig mehr'])[0].trim());
   }
 
   /* ---------------------------------------------------------------- */
@@ -18671,6 +18632,46 @@ async function sendImport(object, mode, withoutShare = false) {
       uzBoth.status === 201 && (uzBoth.content.photos || []).length === 2,
       `Status ${uzBoth.status}, ${(uzBoth.content.photos || []).length} Fotos`);
     await call('DELETE', `/api/items/${uzItem.id}`);
+  }
+
+  /* ============= Mehr als 40 Fotos auf einmal — 0.35.2, BA 4 ==============
+     GEMELDET AUS DEM BETRIEB: multer zaehlt je Feldnamen herunter und wirft
+     beim 41. Bild LIMIT_UNEXPECTED_FILE. Der Handler lief nie, es wurde kein
+     einziges Foto gespeichert, und am Bildschirm stand „Unexpected field" --
+     die Message von multer, englisch und aus seinen eigenen Woertern. */
+  group('Mehr als 40 Fotos auf einmal — 0.35.2');
+  {
+    const fzItem = (await call('POST', '/api/items', { title: 'Viele Fotos' })).content;
+    const fzOne = () => ({ name: 'p.png', type: 'image/png',
+      content: Buffer.from(PNG_BASE64, 'base64') });
+    const fzOver = await sendMultipart(`/api/items/${fzItem.id}/photos`, 'photos',
+      Array.from({ length: 41 }, fzOne));
+    check('Einundvierzig Fotos in einer Anfrage werden abgewiesen',
+      fzOver.status === 400, `Status ${fzOver.status}`);
+    /* UND DIE ABSAGE IST DEUTSCH UND NENNT DIE ZAHL. Genau das war der
+       Befund: bis 0.35.2 stand hier „Unexpected field". */
+    check('Und die Absage steht in der Sprache des Lesers und nennt die 40',
+      /40/.test(fzOver.content?.error || '')
+      && !/Unexpected|field/i.test(fzOver.content?.error || ''),
+      JSON.stringify(fzOver.content));
+    const fzAfter = (await call('GET', `/api/items/${fzItem.id}`)).content;
+    check('Und es ist kein einziges Foto angekommen',
+      (fzAfter.photos || []).length === 0, `${(fzAfter.photos || []).length} Fotos`);
+    /* DIE GEGENPROBE: genau vierzig gehen durch. Die Zahl ist die Schranke
+       der ANFRAGE und keine Obergrenze je Eintrag. */
+    const fzFull = await sendMultipart(`/api/items/${fzItem.id}/photos`, 'photos',
+      Array.from({ length: 40 }, fzOne));
+    check('Genau vierzig kommen durch',
+      fzFull.status === 201 && (fzFull.content.photos || []).length === 40,
+      `Status ${fzFull.status}, ${(fzFull.content.photos || []).length} Fotos`);
+    /* UND EIN ZWEITER ZUG LEGT WEITERE VIERZIG DAZU -- es gibt keine
+       Obergrenze je Eintrag, und der Browser teilt genau so auf. */
+    const fzAgain = await sendMultipart(`/api/items/${fzItem.id}/photos`, 'photos',
+      Array.from({ length: 40 }, fzOne));
+    check('Und ein zweiter Zug legt weitere vierzig dazu — achtzig am Eintrag',
+      fzAgain.status === 201 && (fzAgain.content.photos || []).length === 80,
+      `Status ${fzAgain.status}, ${(fzAgain.content.photos || []).length} Fotos`);
+    await call('DELETE', `/api/items/${fzItem.id}`);
   }
 
   /* ================= Die Auslieferung geht gezippt hinaus — 0.35.0 =========

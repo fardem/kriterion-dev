@@ -809,7 +809,7 @@ async function run() {
   check('Der eigene Zugang ist als solcher gekennzeichnet',
     /\(du\)/.test(gvRows[0]?.textContent || ''), gvRows[0]?.textContent);
   /* Der Grabstein zeigt die NUMMER, nicht den gespeicherten Namen. */
-  const gvPath = gvEig.w.document.getElementById('zug-weg-auf');
+  const gvPath = gvEig.w.document.getElementById('deleted-users');
   check('Der Grabstein steht nicht mehr in dieser Liste',
     !gvRows.some(z => /Gelöschter Benutzer 4/.test(z.textContent || '')),
     gvRows.map(z => z.textContent?.trim()).join(' · '));

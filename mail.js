@@ -153,12 +153,18 @@ function buildTransport(z) {
   });
 }
 
-async function send(locale, raw, to, subject, text) {
+/* DER GRUND REIST ALS SCHLUESSEL UND NICHT ALS SATZ, und `send()` bekommt
+   deshalb keine Sprache mehr. Wer den Grund ZEIGT, uebersetzt ihn -- und zwar
+   in der Sprache DESSEN, DER IHN LIEST. Bis dahin entstand er hier mit der
+   Sprache des Empfaengers und landete in der Karte des Admins: ein deutscher
+   Admin, der einen tuerkischen Kollegen einlaedt, las den Grund auf Tuerkisch.
+   `reasonKey` traegt ihn, wo er aus dieser Datei kommt; `reason` traegt die
+   Worte des Anbieters, die niemand uebersetzen kann. Immer nur eines von
+   beiden. */
+async function send(raw, to, subject, text) {
   const z = resolve(raw);
-  /* Der Grund ist ein Schluessel, wo er aus dieser Datei kommt, und ein Satz,
-     wo ihn der Anbieter geschrieben hat (shortReason). */
-  if (!configured(z)) return { ok: false, reason: t(locale, 'mail.noAccount') };
-  if (!isAddress(to)) return { ok: false, reason: t(locale, 'mail.recipientInvalid') };
+  if (!configured(z)) return { ok: false, reasonKey: 'mail.noAccount', reason: '' };
+  if (!isAddress(to)) return { ok: false, reasonKey: 'mail.recipientInvalid', reason: '' };
   let transport = null;
   try {
     transport = buildTransport(z);
@@ -166,7 +172,11 @@ async function send(locale, raw, to, subject, text) {
        Aufrufer: eine Frist je Route waere an der naechsten vergessen. */
     let clock;
     const deadline = new Promise((_, error) => {
-      clock = setTimeout(() => error(new Error(t(locale, 'mail.timeout'))), SEND_MS);
+      /* DER WURF TRAEGT SEINEN SCHLUESSEL und keinen Satz -- dieselbe Form,
+         die auth.js unter `Message` wirft. */
+      const late = new Error('mail.timeout');
+      late.key = 'mail.timeout';
+      clock = setTimeout(() => error(late), SEND_MS);
     });
     try {
       await Promise.race([
@@ -174,20 +184,22 @@ async function send(locale, raw, to, subject, text) {
         deadline
       ]);
     } finally { clearTimeout(clock); }
-    return { ok: true, reason: '' };
+    return { ok: true, reasonKey: '', reason: '' };
   } catch (e) {
-    /* Die Meldung des Anbieters wird beschnitten: manche Server geben die
-       Anmeldedaten in der Absage zurueck. Der Anfang traegt den Fehlercode. */
-    return { ok: false, reason: shortReason(locale, e) };
+    return { ok: false, ...shortReason(e) };
   } finally {
     // Auch im Fehlerfall: keine haengende Verbindung nach draussen.
     try { if (transport) transport.close(); } catch {}
   }
 }
 
-function shortReason(locale, e) {
-  const raw = String((e && e.message) || t(locale, 'mail.unknownError')).replace(/\s+/g, ' ').trim();
-  return raw.length > 120 ? raw.slice(0, 117) + '…' : raw;
+function shortReason(e) {
+  if (e && e.key) return { reasonKey: e.key, reason: '' };
+  /* Die Meldung des Anbieters wird beschnitten: manche Server geben die
+     Anmeldedaten in der Absage zurueck. Der Anfang traegt den Fehlercode. */
+  const raw = String((e && e.message) || '').replace(/\s+/g, ' ').trim();
+  if (!raw) return { reasonKey: 'mail.unknownError', reason: '' };
+  return { reasonKey: '', reason: raw.length > 120 ? raw.slice(0, 117) + '…' : raw };
 }
 
 /* Die vier Briefe. Die Texte stehen in der Sprachdatei; hier steht nur der

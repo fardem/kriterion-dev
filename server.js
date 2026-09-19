@@ -7,6 +7,7 @@ const express = require('express');
 const multer = require('multer');
 const { Worker } = require('worker_threads');
 const attachments = require('./attachments');
+const { logLine, logWarn, logFail } = require('./log');
 // Eine Quelle fuer die Versionsnummer: die package.json. Die fuehrende Null
 // sagt, dass sich noch alles aendern darf; die Veroeffentlichung bekaeme 1.0.0.
 const VERSION = require('./package.json').version;
@@ -252,7 +253,7 @@ auth.setCompareLocale(compareLocale);
    keine Stapelabzuege. Dem Betreiber blieb bis dahin aber ebenfalls nichts --
    fuenfzehn catch-Bloecke schluckten den echten Fehler wortlos. */
 const errorText = (req, e) => {
-  if (!(e && e.key)) console.error('[Kriterion] ' + (e && e.stack ? e.stack : e));
+  if (!(e && e.key)) logFail(e && e.stack ? e.stack : e);
   return (e && e.key)
     ? t(localeOf(req), e.key, e.values || {})
     : t(localeOf(req), 'server.errorUnknown');
@@ -295,10 +296,17 @@ async function sendTokenLink(target, token, readerLocale) {
   const locale = languageOf(token.id);
   const letter = invite ? mail.mailInvite(locale, values2)
                           : mail.mailReset(locale, values2);
-  const e = await mail.send(locale, account, target.email, letter.subject, letter.text);
+  const e = await mail.send(account, target.email, letter.subject, letter.text);
+  /* DER BRIEF GEHT IN DER SPRACHE DES EMPFAENGERS HINAUS, DER GRUND DANEBEN
+     ABER IN DER DES LESERS: die Karte, in der er steht, gehoert dem Admin. */
   return e.ok ? { delivery: 'ok', deliveryReason: '' }
-              : { delivery: 'fehlgeschlagen', deliveryReason: e.reason };
+              : { delivery: 'fehlgeschlagen', deliveryReason: sendWhy(e, readerLocale) };
 }
+
+/* Die eine Stelle, die aus dem Grund eines Versands einen Satz macht --
+   dieselbe Bauform wie deliveryWhy() eine Seite weiter unten. Kommt der Grund
+   vom Anbieter, gibt es nichts zu uebersetzen. */
+const sendWhy = (e, locale) => (e.reasonKey ? t(locale, e.reasonKey) : e.reason);
 
 /* ---- Der Beleg der letzten Testmail --------------------------------------
    SIE BELEGT "mit DIESEN Werten ist einmal wirklich eine Mail hinausgegangen"
@@ -327,14 +335,15 @@ const deliveryWhy = (b, locale) => (b.key ? t(locale, b.key) : '');
    DER DRITTE MAILANLASS. */
 async function sendConfirm(name, address, plain, locale) {
   const account = mail.resolve(getSetting(mail.SETTING_KEY, null));
-  if (!mail.configured(account) || !PUBLIC.address) return { ok: false, reason: 'aus' };
+  if (!mail.configured(account) || !PUBLIC.address)
+    return { ok: false, reasonKey: '', reason: 'aus' };
   const title = getSetting('title_public', 'Bewertungskatalog');
   /* HIER GIBT ES NOCH KEINEN ZUGANG, an dem eine Sprache haengen koennte --
      der Brief geht an jemanden, der sich gerade erst anmeldet. */
   const letter = mail.mailConfirm(locale, { title, username: name,
     link: `${PUBLIC.address}/#/confirm/${plain}`,
     hours: auth.REQUEST_HOURS });
-  return mail.send(locale, account, address, letter.subject, letter.text);
+  return mail.send(account, address, letter.subject, letter.text);
 }
 
 const app = express();
@@ -413,15 +422,29 @@ app.use((req, res, next) => {
 });
 app.use(express.static(path.join(__dirname, 'public')));
 
+/* 40 Fotos je Anfrage, 30 MB je Datei. Die 40 ist eine Schranke der ANFRAGE
+   und keine Obergrenze je Eintrag -- eine solche gibt es bei Fotos nicht. Der
+   Browser teilt groessere Auswahlen in Buendel von PHOTO_COUNT auf. */
+const PHOTO_COUNT = 40;
+const PHOTO_MAX = 30 * 1024 * 1024;
 const upload = multer({
   storage: multer.memoryStorage(),
-  limits: { fileSize: 30 * 1024 * 1024 },
+  limits: { fileSize: PHOTO_MAX },
   // Erste, grobe Schranke am gemeldeten Typ.
   fileFilter: (req, file, cb) =>
     /^image\//.test(file.mimetype)
       ? cb(null, true)
       : cb(new Message('server.imagesOnly'))
 });
+
+/* DIE GRENZEN REISEN AM GESUCH MIT. Der Fehler-Handler steht ganz am Ende des
+   Stapels; dort ist nicht mehr zu sehen, an welcher Route die Datei
+   hereinkam, und eine zweite Tafel Route-zu-Grenze liefe beim naechsten Umbau
+   auseinander. Ohne sie reicht multer `err.message` durch, und am Bildschirm
+   steht „Unexpected field". */
+function capped(mw, caps) {
+  return (req, res, next) => { req.caps = caps; mw(req, res, next); };
+}
 
 /* Was als Foto hereinkommt, muss ein Rasterbild sein -- dem INHALT nach. */
 const GRID_FORMATS = ['jpeg', 'png', 'webp', 'avif', 'gif', 'tiff'];
@@ -587,7 +610,7 @@ function startBatchThread(task, rows, done, store) {
   w.on('message', (m) => { if (m && m.kind === 'status') batchStates[task] = m.status; });
   w.on('error', (e) => {
     if (batchStates[task]) batchStates[task].running = false;
-    console.error(`[Kriterion] Inventory run (${task}) aborted:`, e.message);
+    logFail(`Inventory run (${task}) aborted:`, e.message);
   });
   w.on('exit', () => { batchThreads.delete(w); if (done) done(); });
   return w;
@@ -821,7 +844,7 @@ app.post('/api/signup', async (req, res) => {
      verworfenen zu unterscheiden. */
   if (plain) {
     sendConfirm(String(name).trim(), String(address).trim(), plain, localeOf(req))
-      .catch(e => console.error('[Kriterion] Bestaetigungsmail:', e && e.message));
+      .catch(e => logFail('Bestaetigungsmail:', e && e.message));
   }
 });
 
@@ -1317,7 +1340,7 @@ app.post('/api/mail/test', ownerOnly, async (req, res) => {
   const locale = localeOf(req);
   const letter = mail.mailTest(locale, { title: getSetting('title_public', 'Bewertungskatalog'),
                                           username: ownOne.username });
-  const e = await mail.send(locale, raw, ownOne.email, letter.subject, letter.text);
+  const e = await mail.send(raw, ownOne.email, letter.subject, letter.text);
   if (e.ok) {
     putSetting.run(MAILTEST_KEY,
       JSON.stringify({ mark: mail.mark(raw), at: new Date().toISOString().slice(0, 19).replace('T', ' ') }));
@@ -1326,7 +1349,7 @@ app.post('/api/mail/test', ownerOnly, async (req, res) => {
 // die Antwort.
   /* `address` UND NICHT `an` -- 0.24.3, Bauabschnitt 7. */
   /* `sentTo` UND NICHT `address` -- 0.24.3, Bauabschnitt 7. */
-  res.json({ ok: e.ok, reason: e.reason, sentTo: ownOne.email, ...mailCard(req) });
+  res.json({ ok: e.ok, reason: sendWhy(e, locale), sentTo: ownOne.email, ...mailCard(req) });
 });
 
 /* ---- Die Selbstanmeldung hinter der Anmeldung ---------------------------
@@ -3112,7 +3135,10 @@ app.delete('/api/items/:id', entryAuthorOnly, (req, res) => {
 /* ---- Fotos ---- */
 // Der Waechter steht VOR multer: die Datei eines Fremden soll gar nicht erst
 // eingelesen werden.
-app.post('/api/items/:id/photos', entryAuthorOnly, upload.array('photos', 40), async (req, res, next) => {
+app.post('/api/items/:id/photos', entryAuthorOnly,
+         capped(upload.array('photos', PHOTO_COUNT),
+                { count: PHOTO_COUNT, bytes: PHOTO_MAX, key: 'server.uploadCap' }),
+         async (req, res, next) => {
   try {
     if (!db.prepare('SELECT 1 FROM items WHERE id = ?').get(req.params.id))
       return res.status(404).json({ error: t(localeOf(req), 'server.entryUnknown')});
@@ -3168,7 +3194,8 @@ const videoUpload = multer({
 // Der Waechter steht VOR multer, wie am Fotoweg: die Datei eines Fremden soll
 // gar nicht erst eingelesen werden.
 app.post('/api/items/:id/videos', entryAuthorOnly,
-  videoUpload.fields([{ name: 'video', maxCount: 1 }, { name: 'stillFrame', maxCount: 1 }]),
+  capped(videoUpload.fields([{ name: 'video', maxCount: 1 }, { name: 'stillFrame', maxCount: 1 }]),
+         { count: 1, bytes: VIDEO_MAX, key: 'server.videoOne' }),
   async (req, res, next) => {
     try {
       if (!db.prepare('SELECT 1 FROM items WHERE id = ?').get(req.params.id))
@@ -3283,7 +3310,7 @@ function refreshTile(id, done) {
      kein Termin. Ohne unref() haengt ein Herunterfahren bis zu 15 Sekunden. */
   clock.unref?.();
   try { startBatchThread('crop', [{ id: Number(id) }], once); }
-  catch (e) { console.error('[Kriterion] Tile not renewed:', e.message); once(); }
+  catch (e) { logFail('Tile not renewed:', e.message); once(); }
 }
 
 /* Ausschnitt eines Fotos. Drei Zahlen -- und seit 0.19.5 eine neue Kachel
@@ -3317,7 +3344,10 @@ const attachmentUpload = multer({ storage: multer.memoryStorage(), limits: { fil
 
 /* HOCHLADEN DARF JEDER -- dieselbe Regel wie an der Linkzeile und aus
    demselben Grund: eine Datei erscheint nur dort, wo man sie hinsetzt. */
-app.post('/api/items/:id/attachments', attachmentUpload.array('files', ATTACHMENT_COUNT), (req, res, next) => {
+app.post('/api/items/:id/attachments',
+         capped(attachmentUpload.array('files', ATTACHMENT_COUNT),
+                { count: ATTACHMENT_COUNT, bytes: ATTACHMENT_MAX, key: 'server.uploadCap' }),
+         (req, res, next) => {
   try {
     if (!db.prepare('SELECT 1 FROM items WHERE id = ?').get(req.params.id))
       return res.status(404).json({ error: t(localeOf(req), 'server.entryUnknown')});
@@ -3653,7 +3683,10 @@ function dueValue(raw) {
   return { value: text };
 }
 
-app.post('/api/items/:id/comments', commentImageUpload.array('images', IMAGE_COUNT), async (req, res, next) => {
+app.post('/api/items/:id/comments',
+         capped(commentImageUpload.array('images', IMAGE_COUNT),
+                { count: IMAGE_COUNT, bytes: IMAGE_MAX, key: 'server.uploadCap' }),
+         async (req, res, next) => {
   try {
     const text = (req.body.text || '').trim();
     if (!text) return res.status(400).json({ error: t(localeOf(req), 'server.textMissing')});
@@ -3725,7 +3758,10 @@ app.put('/api/comments/:id', (req, res) => {
 });
 
 // Bilder an einem bestehenden Kommentar nachreichen.
-app.post('/api/comments/:id/images', commentImageUpload.array('images', IMAGE_COUNT), async (req, res, next) => {
+app.post('/api/comments/:id/images',
+         capped(commentImageUpload.array('images', IMAGE_COUNT),
+                { count: IMAGE_COUNT, bytes: IMAGE_MAX, key: 'server.uploadCap' }),
+         async (req, res, next) => {
   try {
     const c = db.prepare('SELECT * FROM comments WHERE id = ?').get(req.params.id);
     if (!c) return res.status(404).json({ error: t(localeOf(req), 'server.commentGone')});
@@ -3882,10 +3918,10 @@ app.get('/api/stats', adminOnly, (req, res) => {
     geometry: batchState('geometry'),
     /* DIE ERWARTETE EXPORTGROESSE, je Schalter getrennt. */
     export: {
-      envelope: exchangeEnvelopeBytes(null),
+      envelope: exchangeEnvelopeBytes(),
       /* DIE BILDBYTES KOMMEN AUS DER SCHLEIFE OBEN und nicht aus zwei eigenen
          Abfragen. */
-      ...exchangeParts(null, { withFiles: true }),
+      ...exchangeParts({ withFiles: true }),
       photos: Math.round(exportPhotoBytes * 4 / 3),
       videos: Math.round(exportVideoBytes * 4 / 3),
       /* DREI ZAHLEN UND NICHT ZWEI, weil sie drei verschiedene Dinge sagen:
@@ -3913,7 +3949,7 @@ app.post('/api/images/convert', ownerOnly, secondConfirmNeeded('images'), (req, 
      gefallen. */
   batchStates.conversion = { running: true, total: rows.length, done: 0,
                                  converted: 0, stayed: 0, freed: 0 };
-  console.log(`[Kriterion] Inventory run started: ${rows.length} photo row(s) ` +
+  logLine(`Inventory run started: ${rows.length} photo row(s) ` +
     `are looked at; the storage method is "${imageStore()}".`);
   res.status(202).json(batchState('conversion'));
   /* DIE ANTWORT IST SCHON HINAUS, WENN DER THREAD ANFAENGT -- seit 0.19.3
@@ -4146,61 +4182,57 @@ function exportName(suffix) {
 
 /* WAS DER EXPORT AN BYTES WIRKLICH SCHREIBT -- je Art getrennt und vor dem
    ersten Handgriff. */
-function exchangeParts(itemId, switches) {
-  const onlyOne = itemId !== null;
-  const values = onlyOne ? [itemId] : [];
-  const one = (sql) => db.prepare(sql).get(...values).n || 0;
-  // Der Zusatz haengt an der Spalte, weil das Kommentarbild ueber den
-// Kommentar an den Eintrag kommt und nicht unmittelbar.
-  const and = (column) => onlyOne ? ` AND ${column} = ?` : '';
-  const wo = (column) => onlyOne ? ` WHERE ${column} = ?` : '';
+/* ================= WAS HIER STAND, UND WARUM ES FORT IST =================
+   EIN ZWEIG FUER EINEN EINZELNEN EINTRAG: `onlyOne`, `values`, `and()`,
+   `wo()` und vierzehn Einsetzungen in den Abfragen. Er gehoerte der Route,
+   die einen Eintrag als Datei holte; ohne sie konnte er nur noch falsch
+   sein -- beide verbliebenen Rufer reichten `null`. */
+function exchangeParts(switches) {
+  const one = (sql) => db.prepare(sql).get().n || 0;
   const base64 = (n) => Math.round(n * 4 / 3);
   const parts = { photos: 0, videos: 0, attachments: 0, commentImages: 0 };
   if (switches.withPhotos)
     parts.photos = base64(one(
-      `SELECT COALESCE(SUM(length(data)),0) n FROM photos WHERE kind != 'video'${and('item_id')}`));
+      `SELECT COALESCE(SUM(length(data)),0) n FROM photos WHERE kind != 'video'`));
   /* Der Videoschalter haengt am Fotoschalter, wie in entryAsBundle(): ohne
      Fotos wird die Liste gar nicht erst gebaut, und der Haken an den Videos
      bliebe eine Angabe ohne Wirkung. */
   if (switches.withPhotos && switches.withVideos)
     parts.videos = base64(one(
       `SELECT COALESCE(SUM(length(data) + COALESCE(length(medium), length(thumb), 0)),0) n
-         FROM photos WHERE kind = 'video'${and('item_id')}`));
+         FROM photos WHERE kind = 'video'`));
   if (switches.withFiles) {
     parts.attachments = base64(one(
-      `SELECT COALESCE(SUM(length(data)),0) n FROM attachments${wo('item_id')}`));
+      `SELECT COALESCE(SUM(length(data)),0) n FROM attachments`));
     // Kommentarbilder folgen dem Schalter der Dateien -- dort und hier.
     parts.commentImages = base64(one(
       `SELECT COALESCE(SUM(length(ci.data)),0) n FROM comment_images ci
-         JOIN comments c ON c.id = ci.comment_id${wo('c.item_id')}`));
+         JOIN comments c ON c.id = ci.comment_id`));
   }
   return parts;
 }
 
 /* DER UMSCHLAG -- alles, was die Datei traegt und keine Blob-Spalte ist. */
 const ENVELOPE_PER = { entry: 320, comment: 150, rating: 70, testDay: 90, photo: 110, file: 130 };
-function exchangeEnvelopeBytes(itemId) {
-  const onlyOne = itemId !== null;
-  const values = onlyOne ? [itemId] : [];
-  const one = (sql) => db.prepare(sql).get(...values).n || 0;
-  const wo = (column) => onlyOne ? ` WHERE ${column} = ?` : '';
+function exchangeEnvelopeBytes() {
+  const one = (sql) => db.prepare(sql).get().n || 0;
   /* Die Tags gehen NICHT ueber die Vorratstabelle, sondern ueber die
      Verknuepfung: derselbe Name steht an zwanzig Eintraegen und kostet in der
      Datei zwanzigmal Platz. */
   const text =
       one(`SELECT COALESCE(SUM(length(COALESCE(title,'')) + length(COALESCE(description,''))),0) n
-              FROM items${wo('id')}`)
-    + one(`SELECT COALESCE(SUM(length(COALESCE(text,''))),0) n FROM comments${wo('item_id')}`)
+              FROM items`)
+    + one(`SELECT COALESCE(SUM(length(COALESCE(text,''))),0) n FROM comments`)
     + one(`SELECT COALESCE(SUM(length(t.name)),0) n FROM item_tags it
-              JOIN tags t ON t.id = it.tag_id${wo('it.item_id')}`)
-    + one(`SELECT COALESCE(SUM(length(url)),0) n FROM links${wo('item_id')}`);
+              JOIN tags t ON t.id = it.tag_id`)
+    + one(`SELECT COALESCE(SUM(length(url)),0) n FROM links`);
   const form =
-      one(`SELECT COUNT(*) n FROM items${wo('id')}`) * ENVELOPE_PER.entry
-    + one(`SELECT COUNT(*) n FROM comments${wo('item_id')}`) * ENVELOPE_PER.comment
-    + one(`SELECT COUNT(*) n FROM ratings${wo('item_id')}`) * ENVELOPE_PER.rating
-    + one(`SELECT COUNT(*) n FROM test_days${wo('item_id')}`) * ENVELOPE_PER.testDay
-    + one(`SELECT COUNT(*) n FROM photos${wo('item_id')}`) * ENVELOPE_PER.photo
-    + one(`SELECT COUNT(*) n FROM attachments${wo('item_id')}`) * ENVELOPE_PER.file;
+      one(`SELECT COUNT(*) n FROM items`) * ENVELOPE_PER.entry
+    + one(`SELECT COUNT(*) n FROM comments`) * ENVELOPE_PER.comment
+    + one(`SELECT COUNT(*) n FROM ratings`) * ENVELOPE_PER.rating
+    + one(`SELECT COUNT(*) n FROM test_days`) * ENVELOPE_PER.testDay
+    + one(`SELECT COUNT(*) n FROM photos`) * ENVELOPE_PER.photo
+    + one(`SELECT COUNT(*) n FROM attachments`) * ENVELOPE_PER.file;
   return text + form;
 }
 
@@ -4299,9 +4331,9 @@ function exchangeEnvelopeFrame() {
 }
 
 /* Wie viele Bytes eine Datei traegt, BEVOR sie gebaut wird -- als eine Zahl. */
-function exchangeBytes(itemId, switches) {
-  const parts = exchangeParts(itemId, switches);
-  return parts.photos + parts.videos + parts.attachments + parts.commentImages + exchangeEnvelopeBytes(itemId);
+function exchangeBytes(switches) {
+  const parts = exchangeParts(switches);
+  return parts.photos + parts.videos + parts.attachments + parts.commentImages + exchangeEnvelopeBytes();
 }
 
 /* ---- Export ---- */
@@ -4343,7 +4375,7 @@ app.get('/api/export', ownerOnly, secondConfirmNeeded('export'), (req, res) => {
   if (asPart && (from > to || part > parts || parts > EXCHANGE_PART_MAX))
     return res.status(400).json({ error: t(localeOf(req), 'server.partExportMismatch')});
 
-  const big = exchangeBytes(null, switches);
+  const big = exchangeBytes(switches);
   if (!asPart && big > EXCHANGE_MAX)
     return res.status(413).json({ error:
       t(localeOf(req), 'server.exportTooBig', { mb: Math.round(big / 1048576), limit: Math.round(EXCHANGE_STRING / 1048576) })});
@@ -4367,22 +4399,15 @@ app.get('/api/export', ownerOnly, secondConfirmNeeded('export'), (req, res) => {
   }
 });
 
-/* ---- Ein einzelner Eintrag als Datei ---- Lesend, deshalb kein Eintrag in
-   F_ROUTEN -- der Waechter davor ist derselbe wie am vollen Export. */
-app.get('/api/items/:id/export', ownerOnly, (req, res) => {
-  const it = db.prepare('SELECT * FROM items WHERE id = ?').get(req.params.id);
-  if (!it) return res.status(404).json({ error: t(localeOf(req), 'server.entryUnknown')});
-  const switches = { withPhotos: true, withFiles: true, withVideos: true };
-  const big = exchangeBytes(it.id, switches);
-  if (big > EXCHANGE_MAX)
-    return res.status(413).json({ error: t(localeOf(req), 'server.entryTooBig', { mb: Math.round(big / 1048576), limit: Math.round(EXCHANGE_STRING / 1048576) })});
-  const bundle = entryAsBundle(it, bundleState(req.user.id, switches));
-  res.set('Content-Disposition', `attachment; filename="${exportName('-' + it.id)}"`);
-  res.json(exportEnvelope([bundle]));
-});
+/* ================= WAS HIER STAND, UND WARUM ES FORT IST =================
+   GET /api/items/:id/export -- der Eintrag als einzelne Datei. Die Route
+   stand in keinem Auftrag und hatte 26 Runden lang keinen Rufer in der
+   Oberflaeche. Sie wird fuer nichts anderes gebraucht: der volle Export und
+   der Teilexport tragen dieselben Buendel. */
 
 /* ---- Import ---- */
-const importUpload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 900 * 1024 * 1024 } });
+const IMPORT_MAX = 900 * 1024 * 1024;
+const importUpload = multer({ storage: multer.memoryStorage(), limits: { fileSize: IMPORT_MAX } });
 
 /* DER DESERIALISIERER, und er steht hier statt im Routenrumpf -- aus
    demselben Grund wie die Abbildung eine Seite weiter oben: das
@@ -4776,20 +4801,20 @@ async function importInto(payload, userId, mode2, bytesSource = null) {
   /* Die laute Haelfte. */
   const unknown = [...unknownNames].sort();
   if (unknown.length)
-    console.log(`[Kriterion] Import: unknown authors assigned to the importing ` +
+    logLine(`Import: unknown authors assigned to the importing ` +
                 `account (${unknown.length}): ${unknown.join(', ')}`);
   /* Dieselbe Bauform eine Zeile tiefer: ein Gewicht, das die Spanne
      verlaesst, bricht nichts ab und verschwindet auch nicht wortlos. */
   const dropped = [...weightsDropped].sort();
   if (dropped.length)
-    console.log(`[Kriterion] Import: invalid weight reset to 1.0 ` +
+    logLine(`Import: invalid weight reset to 1.0 ` +
                 `(${dropped.length}): ${dropped.join(', ')}`);
   /* Und dieselbe Bauform ein drittes Mal, an den Videos. */
   if (videosWithoutFile)
-    console.log(`[Kriterion] Import: ${videosWithoutFile} video(s) were not contained ` +
+    logLine(`Import: ${videosWithoutFile} video(s) were not contained ` +
                 `in the file and were skipped.`);
   if (videosUnreadable)
-    console.log(`[Kriterion] Import: ${videosUnreadable} video(s) without a readable ` +
+    logLine(`Import: ${videosUnreadable} video(s) without a readable ` +
                 `still image skipped.`);
   return { ok: true, mode: mode2, ...stats,
            authorAssigned: assigned, authorUnknown: unknown,
@@ -4801,7 +4826,9 @@ async function importInto(payload, userId, mode2, bytesSource = null) {
    Waechter darueber: eine bis zu 900 MB grosse Datei soll gar nicht erst
    eingelesen werden, wenn die Handlung ohnehin abgewiesen wird. */
 app.post('/api/import', ownerOnly, secondConfirmNeeded('import'),
-         importUpload.single('file'), async (req, res, next) => {
+         capped(importUpload.single('file'),
+                { count: 1, bytes: IMPORT_MAX, key: 'server.importOne' }),
+         async (req, res, next) => {
   try {
     if (!req.file) return res.status(400).json({ error: t(localeOf(req), 'server.noFile')});
     const mode = req.body.mode === 'replace' ? 'replace' : 'merge';
@@ -4850,7 +4877,7 @@ const trashRestoring = new Set();
 /* ZWEI AUFRUFSTELLEN, beide noetig -- beim Start und beim Oeffnen der Karte. */
 function cleanupTrash() {
   const n = delTrashOld.run(`-${TRASH_DAYS} days`).changes;
-  if (n) console.log(`[Kriterion] Trash: ${n} row(s) older than ` +
+  if (n) logLine(`Trash: ${n} row(s) older than ` +
     `${TRASH_DAYS} days removed.`);
   return n;
 }
@@ -5203,7 +5230,7 @@ function removeBackups(folder, names) {
       removed++; bytes += st.size;
     } catch (e) {
       stayed.push(short);
-      console.error(`[Kriterion] Backup ${short} not removed: ${e.message}`);
+      logFail(`Backup ${short} not removed: ${e.message}`);
     }
   }
   return { removed, bytes, stayed };
@@ -5292,7 +5319,7 @@ app.post('/api/backup', ownerOnly, (req, res) => {
     fs.renameSync(becoming, file);
   } catch (e) {
     try { if (fs.existsSync(becoming)) fs.unlinkSync(becoming); } catch {}
-    console.error('[Kriterion] Backup failed:', e.message);
+    logFail('Backup failed:', e.message);
     // Fester Text wie ueberall bei einem Fehler DES SERVERS: ein SQL-Fehler
     // nennt Pfade und Tabellen, und die gehoeren ins Protokoll, nicht in die
     // Antwort.
@@ -5301,7 +5328,7 @@ app.post('/api/backup', ownerOnly, (req, res) => {
   const ms = Date.now() - t0;
   let bytes = 0;
   try { bytes = fs.statSync(file).size; } catch {}
-  console.log(`[Kriterion] Backup written: ${path.basename(file)} ` +
+  logLine(`Backup written: ${path.basename(file)} ` +
     `(${bytes} bytes, ${ms} ms).`);
   // Eine vollstaendige Kopie, die das Haus verlaesst -- dieselbe Zeile wie
 // der Export.
@@ -5320,7 +5347,7 @@ app.post('/api/backup', ownerOnly, (req, res) => {
         const out2 = removeBackups(target.filePath, matched.map(d => d.name));
         cleaned = { removed: out2.removed, notDeleted: out2.stayed.length, bytes: out2.bytes };
         if (out2.removed) {
-          console.log(`[Kriterion] Old backups removed: ${out2.removed} ` +
+          logLine(`Old backups removed: ${out2.removed} ` +
             `(${out2.bytes} bytes freed)` +
             `${out2.stayed.length ? `, ${out2.stayed.length} kept` : ''}.`);
           logRemoved(req.user.id, out2.removed);
@@ -5330,7 +5357,7 @@ app.post('/api/backup', ownerOnly, (req, res) => {
   } catch (e) {
     // Die Sicherung ist gelungen; dieser Fehler ist eine Angabe daneben und
 // darf die Antwort nicht in eine Absage verwandeln.
-    console.error('[Kriterion] Clearing up after the backup failed:', e.message);
+    logFail('Clearing up after the backup failed:', e.message);
     cleaned = { removed: 0, notDeleted: 0, bytes: 0, failed: true };
   }
   res.json({ ok: true, file: path.basename(file), filePath: target.filePath, bytes, ms,
@@ -5369,7 +5396,7 @@ app.post('/api/backup/cleanup', ownerOnly,
   }
   const out2 = removeBackups(target.filePath, matched.map(d => d.name));
   if (out2.removed) {
-    console.log(`[Kriterion] Old backups removed (${kind}): ${out2.removed} ` +
+    logLine(`Old backups removed (${kind}): ${out2.removed} ` +
       `(${out2.bytes} bytes freed)${out2.stayed.length ? `, ${out2.stayed.length} kept` : ''}.`);
     /* NUR DIE ZAHL INS SICHERHEITSPROTOKOLL. */
     logRemoved(req.user.id, out2.removed);
@@ -5443,7 +5470,7 @@ app.post('/api/backup/check', ownerOnly, (req, res) => {
 /* DER GRUND WIRD UEBERSETZT UND NICHT ROH HINGESCHRIEBEN -- 0.33.2. */
 {
   const situation = backupState();
-  console.log('[Kriterion] Backup location: ' + (situation.input
+  logLine('Backup location: ' + (situation.input
     ? situation.root
     : `off -- ${t('en', situation.reason, situation.values)}`));
 }
@@ -5459,6 +5486,17 @@ app.use((err, req, res, next) => {
      Blatt im Abhaengigkeitsbaum und darf auth.js nicht requiren. */
   if (err && err.key)
     return res.status(err.status || 400).json({ error: t(locale, err.key, err.values || {}) });
+  /* MULTER WIRFT SEINE GRENZEN AUF ENGLISCH UND MIT SEINEN EIGENEN WOERTERN:
+     `LIMIT_UNEXPECTED_FILE` heisst „eine Datei zu viel" und stand bis hierher
+     als „Unexpected field" am Bildschirm. Die Zahl dazu kommt aus `req.caps`,
+     das die Route gesetzt hat. */
+  if (err instanceof multer.MulterError && req.caps) {
+    if (err.code === 'LIMIT_FILE_SIZE')
+      return res.status(400).json({ error:
+        t(locale, 'server.uploadSize', { mb: Math.round(req.caps.bytes / 1048576) })});
+    if (err.code === 'LIMIT_UNEXPECTED_FILE' || err.code === 'LIMIT_FILE_COUNT')
+      return res.status(400).json({ error: t(locale, req.caps.key, { cap: req.caps.count })});
+  }
   const rank = err.status || err.statusCode || (err instanceof multer.MulterError ? 400 : 500);
   if (rank >= 500) return res.status(500).json({ error: t(locale, 'server.error') });
   res.status(rank).json({ error: err.message || t(locale, 'server.errorUnknown') });
@@ -5476,7 +5514,7 @@ function backfillThumbnails() {
   catch (e) {
     /* DREI VERSUCHE UND DANN RUHE. */
     backfillTries++;
-    console.error(`[Kriterion] Bringing the tiles up to date could not reach the ` +
+    logFail(`Bringing the tiles up to date could not reach the ` +
       `database (${e.code || e.message}) -- attempt ${backfillTries} of 3.` +
       (backfillTries < 3 ? ` Trying again in ${BACKFILL_RETRY_MS / 1000} s.`
                          : ' It is due again on the next start.'));
@@ -5508,7 +5546,7 @@ function maintainStorage() {
     db.pragma('auto_vacuum = INCREMENTAL');
     db.exec('VACUUM');
     db.pragma('wal_checkpoint(TRUNCATE)');
-    console.log('[Kriterion] Automatic storage reclaim set up.');
+    logLine('Automatic storage reclaim set up.');
   } else {
     const free = db.pragma('freelist_count', { simple: true });
     const page = db.pragma('page_size', { simple: true });
@@ -5573,17 +5611,17 @@ app.listen(PORT, () => {
   // holeBenutzer() ist hier RICHTIG: beim Start gibt es keine Anfrage und
 // damit keinen angemeldeten Benutzer.
   const u = auth.getUser();
-  console.log(`[Kriterion] Running on port ${PORT} -- ` +
+  logLine(`Running on port ${PORT} -- ` +
     (u ? `owner: ${u.username}` : 'no account yet, set it up in the browser'));
   /* DER PRUEFSCHALTER SAGT SICH AN -- 0.30.0, F1 und F2. */
   if (keys.testbenchSwitch())
-    console.log(`[Kriterion] TEST SWITCH ACTIVE (${keys.TESTBENCH_NAME}) -- ` +
+    logLine(`TEST SWITCH ACTIVE (${keys.TESTBENCH_NAME}) -- ` +
       `scrypt N=${auth.SCRYPT_COST}, mail timeouts ${mail.SEND_MS}/${mail.CONNECT_MS}/` +
       `${mail.GREETING_MS} ms. FOR THE TEST BENCH ONLY -- where anyone works ` +
       `with this instance, it belongs removed.`);
   /* Die Betriebsart gehoert ins Protokoll: an ihr haengt, ob die Koepfe des
      Proxys ueberhaupt angesehen werden. */
-  console.log(`[Kriterion] Behind proxy: ${auth.BEHIND_PROXY ? 'on' : 'off'} -- ` +
+  logLine(`Behind proxy: ${auth.BEHIND_PROXY ? 'on' : 'off'} -- ` +
     (auth.BEHIND_PROXY
       ? 'X-Forwarded-For and X-Forwarded-Proto are read; over HTTPS that means ' +
         `${auth.COOKIE_SECURE} with Secure and HSTS, over the home network ${auth.COOKIE_NAME}`
@@ -5591,20 +5629,20 @@ app.listen(PORT, () => {
   /* Die oeffentliche Adresse gehoert ins Protokoll: an ihr haengt, welchen
      Link ein Empfaenger bekommt. */
   if (PUBLIC.problem) {
-    console.warn(`[Kriterion] PUBLIC_ADDRESS is unusable: ${PUBLIC.problem} ` +
+    logWarn(`PUBLIC_ADDRESS is unusable: ${PUBLIC.problem} ` +
       'The instance keeps running; the invitation link is built by the admin browser, as before.');
   } else if (PUBLIC.address) {
-    console.log(`[Kriterion] Public address: ${PUBLIC.address} -- ` +
+    logLine(`Public address: ${PUBLIC.address} -- ` +
       'invitation links are built from it.');
     if (auth.BEHIND_PROXY && PUBLIC.address.startsWith('http://')) {
       // Widerspruch, aber kein Verlust: ein falscher Link ist ein toter Link.
 // Eine Absage waere hier haerter als der Schaden.
-      console.warn('[Kriterion] Behind a proxy and still http:// in ' +
+      logWarn('Behind a proxy and still http:// in ' +
         'PUBLIC_ADDRESS -- links sent out then lead past the proxy and into ' +
         'the house without HTTPS.');
     }
   } else {
-    console.log('[Kriterion] Public address: not set -- ' +
+    logLine('Public address: not set -- ' +
       'the invitation link is built by the admin browser.');
   }
   /* Der Mailversand gehoert ins Protokoll, in derselben Form wie die Adresse
@@ -5616,11 +5654,11 @@ app.listen(PORT, () => {
       /* DER ANBIETERNAME KOMMT HIER AUF ENGLISCH -- 0.33.1. */
       const providerShown = z.providerNameKey
         ? t('en', z.providerNameKey) : z.providerName;
-      console.log(`[Kriterion] Mail delivery: ${providerShown} via ${z.server}:${z.port} ` +
+      logLine(`Mail delivery: ${providerShown} via ${z.server}:${z.port} ` +
         `(${z.secure ? 'TLS' : 'STARTTLS'}), sender ${z.sender}.` +
         (PUBLIC.address ? '' : ' Without PUBLIC_ADDRESS nothing is sent all the same.'));
     } else {
-      console.log('[Kriterion] Mail delivery: not set up -- invitation and reset ' +
+      logLine('Mail delivery: not set up -- invitation and reset ' +
         'links are there to copy in the admin area, as before.');
     }
   }

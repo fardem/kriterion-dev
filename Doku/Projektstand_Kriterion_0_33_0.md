@@ -1,6 +1,6 @@
 # Projektstand — Kriterion
 
-**Kompakte Übergabe · Revision 101 · Stand 17. September 2026 · gebaut: Version 0.35.1**
+**Kompakte Übergabe · Revision 102 · Stand 19. September 2026 · gebaut: Version 0.35.2**
 
 > **REVISION 92 IST DER BRUCH.** *Was dieses Blatt über MIGRATIONSBLÖCKE sagt,
 > gilt ab hier nur noch als Geschichte: mit 0.33.0 sind alle achtzehn gefallen,
@@ -12060,6 +12060,48 @@ hängengeblieben.* **Dazu zwei vorhandene Rückbauten nachgezogen (710 und 711).
 
 **Fingerprint `d6dbb696`** *(davor `38949534`)*. **Prüfstand 6865 von 6865,
 998 Rückbauten, vier gefahren, 0 stumm.**
+
+### 0.35.2 — „Der Einzelexport geht raus"
+
+**PATCH · 19. September 2026** *(Änderungsprotokoll 0.35.2).* Geplant als
+Aufräumrunde, gebaut mit **zehn Bauabschnitten**; ein elfter war schon gebaut.
+
+**Der Einzelexport ist raus.** `GET /api/items/:id/export` stand in keinem
+Auftrag und hatte 26 Runden lang keinen Rufer in der Oberfläche. Route, Knopf
+`#exp1`, Rufer, die Stilregel `.entry-out` und zwei Sprachschlüssel fallen; der
+tote `itemId`-Zweig in `exchangeParts()` und `exchangeEnvelopeBytes()` ebenso
+*(F2, Entscheidung des Betreibers: mitnehmen — gezählt sind **14** Einsetzungen
+und nicht 11)*. **`F_ROUTES` bleibt bei 73:** die Route ist lesend und stand
+dort nie.
+
+**Zwei Meldungen aus dem Betrieb.** *Mehr als 40 Fotos auf einmal verloren bis
+dahin ALLE Fotos: multer brach die ganze Anfrage ab, und am Bildschirm stand
+„Unexpected field".* **`PHOTO_COUNT` und `PHOTO_MAX` sind benannt und stehen
+auf beiden Seiten gleich, der Browser bündelt, und der Fehler-Handler
+übersetzt die Grenzen von multer** — *vier neue Schlüssel und nicht einer:
+`server.fileCap` nennt eine Obergrenze je Eintrag, und die gibt es bei Fotos
+nicht.* **Das Containerprotokoll trägt Zeitstempel:** *neues Modul `log.js`,
+51 Zeilen in sechs Dateien, ISO 8601 mit Versatz aus `TZ`. Die gespeicherten
+Zeiten bleiben UTC.*
+
+**Drei Wächter sehen jetzt, was sie meinen.** *„Jede Route hat einen Rufer" —
+102 Routen, 0 ohne Rufer, **zwei** Ausnahmen statt der drei erwarteten. Die
+Gestaltprobe liest `.id = '…'` als dritte Quelle; sechs deutsche `id` sind
+umbenannt. Der Nummernwächter liest `public/style.css` und die
+SQL-Kommentare des Schemas; 15 Verweise sind gestrichen.*
+
+**Dazu:** *der letzte Verweis auf `Doku/` in einer ausgelieferten Datei ist
+fort, und ein Wächter über vierundzwanzig Dateien hält es fest. Gegenprobe 330
+macht rot statt abzureißen, und jeder Rückbau an einer `.js`-Datei muss eine
+übersetzbare Datei hinterlassen. Der Grund eines gescheiterten Versands reist
+als Schlüssel und wird in der Sprache DESSEN übersetzt, DER IHN LIEST.*
+
+**Punkt 33 entfiel:** *nachgemessen ist er seit 0.33.2 gebaut; der Eintrag im
+Sammelblatt war veraltet.*
+
+**Fingerprint `0fc33e91`** *(davor `10017d45`)*, **jetzt über 19 Dateien** —
+`log.js` ist dazugekommen. **Prüfstand 7040 von 7040, 368 Gruppen, 1053
+Rückbauten, 20 gefahren, 0 stumm.**
 
 ### 0.35.1 — „Die drei Sicherheitsbefunde aus der Messung"
 

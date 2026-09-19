@@ -6,6 +6,7 @@ const sharp = require('sharp');
    und traegt dort wieder seine Vorgabe. */
 sharp.concurrency(Math.max(1, Math.floor(os.cpus().length / 2)));
 const { db } = require('./db');
+const { logLine, logWarn, logFail } = require('./log');
 const { makeVariants, isPng, storeImage, isUncropped } = require('./images');
 
 /* Eine Meldung je Zeile, und sie traegt den ganzen Stand und keine Zunahme.
@@ -40,7 +41,7 @@ async function convertInventory(rows, store) {
       // Eine Zeile reisst den Lauf nicht ab. Sie bleibt, wie sie ist, wird
 // gezaehlt und genannt.
       status.stayed++;
-      console.error(`[Kriterion] Photo ${id} not converted:`, e.message);
+      logFail(`Photo ${id} not converted:`, e.message);
     }
     status.done++;
     report(status);
@@ -49,7 +50,7 @@ async function convertInventory(rows, store) {
   status.running = false;
   reclaim();
   report(status);
-  console.log(`[Kriterion] Inventory run finished: ${status.converted} of ` +
+  logLine(`Inventory run finished: ${status.converted} of ` +
     `${status.total} originals converted, ${status.stayed} rows had nothing ` +
     `to do, ${status.freed} bytes saved.`);
 }
@@ -63,7 +64,7 @@ const cropFrom = (z) => ({ fx: Number(z.focus_x), fy: Number(z.focus_y),
 /* Die fehlenden Vorschaubilder nachruesten. Nur Bilder: in der Videozeile
    steht in `data` die Videodatei. */
 async function backfillThumbnails(rows) {
-  console.log(`[Kriterion] Creating thumbnails for ${rows.length} photo(s) ...`);
+  logLine(`Creating thumbnails for ${rows.length} photo(s) ...`);
   // Der Zuschnitt geht mit: die drei Zahlen stehen in eigenen Spalten und
 // sind auch dann da, wenn die Ableitung fehlt.
   const get = db.prepare(
@@ -77,10 +78,10 @@ async function backfillThumbnails(rows) {
       const v = await makeVariants(row.data, cropFrom(row));
       upd.run(v.thumb, v.medium, id);
       done++;
-    } catch (e) { console.error(`[Kriterion] Photo ${id} skipped:`, e.message); }
+    } catch (e) { logFail(`Photo ${id} skipped:`, e.message); }
     await new Promise(r => setTimeout(r, 30));
   }
-  console.log(`[Kriterion] ${done} thumbnail(s) created.`);
+  logLine(`${done} thumbnail(s) created.`);
 }
 
 /* Die Kacheln erneuern. Faellig ist eine Zeile, deren `thumb` nicht
@@ -105,7 +106,7 @@ async function refreshTiles(rows) {
       }
     } catch (e) {
       status.skipped++;
-      console.error(`[Kriterion] Photo ${id} not brought up to date:`, e.message);
+      logFail(`Photo ${id} not brought up to date:`, e.message);
     }
     status.done++;
     report(status);
@@ -116,7 +117,7 @@ async function refreshTiles(rows) {
   status.running = false;
   reclaim();
   report(status);
-  console.log(`[Kriterion] Tiles renewed: ${status.renewed} of ` +
+  logLine(`Tiles renewed: ${status.renewed} of ` +
     `${status.checked} rows checked, ${status.skipped} skipped, ` +
     `${status.grown} bytes more.`);
 }
@@ -145,7 +146,7 @@ async function refreshOneTile(rows) {
   let ok = false;
   if (z) {
     try { ok = await refreshRow(id, z) !== null; }
-    catch (e) { console.error(`[Kriterion] Tile ${id} not renewed:`, e.message); }
+    catch (e) { logFail(`Tile ${id} not renewed:`, e.message); }
   }
   parentPort.postMessage({ kind: 'refreshed', id, ok });
 }

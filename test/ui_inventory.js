@@ -1001,7 +1001,7 @@ async function run() {
   /* UND DER KNOPF IST SEIT 0.32.0 KEINE PILLE MEHR -- Bauabschnitt 10. Der
      Betreiber (13.9.2026): „Ansicht speichern wirkt wie ein auswahl eines
      gespeicherten ansicht. */
-  const ansSaveButton = () => ansRow()?.querySelector('#ansicht-neu');
+  const ansSaveButton = () => ansRow()?.querySelector('#view-save');
   check('Und die Zeile steht auch leer da, mit dem Knopf zum Speichern — als Text, nicht als Pille',
     ansPills().length === 0 && !!ansSaveButton()
     && /Ansicht speichern/.test(ansSaveButton().textContent)
@@ -1019,7 +1019,7 @@ async function run() {
   await waitSearch(ansW);
 
   const ansVorSave = ansSettings().length;
-  ansW.document.getElementById('ansicht-neu')
+  ansW.document.getElementById('view-save')
     .dispatchEvent(new ansW.MouseEvent('click', { bubbles: true }));
   await new Promise(r => setTimeout(r, 40));
   const ansNameField = ansW.document.getElementById('nb-name');
@@ -1111,7 +1111,7 @@ async function run() {
   const ad = adDom.w;
   await new Promise(r => setTimeout(r, 80));
   check('Bei vollem Deckel steht kein Knopf zum Speichern mehr da',
-    !ad.document.getElementById('ansicht-neu'), 'der Knopf steht da');
+    !ad.document.getElementById('view-save'), 'der Knopf steht da');
   const adRow = () => [...ad.document.querySelectorAll('.frow')]
     .find(r => [...r.querySelectorAll('.eyebrow')].some(e => e.textContent === 'Ansichten'));
   check('Aber es steht da, WARUM',
