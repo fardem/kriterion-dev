@@ -2281,9 +2281,10 @@ Veröffentlichung gefunden · Einschätzung: groß · alle drei Schritte gebaut*
 > den die Runde beinahe übersehen hätte. Die SQL-Kommentare von `db.js` sind
 > dabei von 485 Zeilen auf 139 gefallen.
 
-> **SCHRITT 2 UND 3 SIND DIE RUNDE 0.37.0** *(`Doku/Auftrag_0.37.0.md`,
+> **SCHRITT 2 UND 3 SIND DIE RUNDE 0.37.0** *(der Auftrag stand als
+> `Doku/Auftrag_0.37.0.md` — weggefallen, es liegt immer nur einer im Repo;
 > geschrieben am 19. September 2026, am selben Tag auf dem Stand 0.36.0
-> nachgemessen)*. **Gemessen sind 778 Treffer des Nummernmusters — 726 in
+> nachgemessen. Was daraus geworden ist, steht im Änderungsprotokoll 0.37.0)*. **Gemessen sind 778 Treffer des Nummernmusters — 726 in
 > Kommentaren, 44 in Strings, 0 im Code, und 15 davon sind überhaupt keine
 > Fassungsnummern; echte sind es 763.** **Dazu 187 Verweise auf Papiere über
 > den Namen und 94 Abkürzungen** — `(F<Zahl>)` 52, `BA <Zahl>` 39,
