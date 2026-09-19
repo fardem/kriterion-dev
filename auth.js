@@ -427,8 +427,8 @@ function removeUser(userId, options = {}, actor) {
 // Ein Zuruecksetzen ueber eine Umgebungsvariable gibt es nicht: es machte
 // alle Zugaenge und Zuordnungen mit einem Schlag kaputt.
 if (process.env.AUTH_RESET) {
-  logWarn('AUTH_RESET has not been carried out since version 0.8.0 and ' +
-    'has no effect. The line can be removed from .env. Forgotten password: ' +
+  logWarn('AUTH_RESET is no longer read and has no effect. The line can ' +
+    'be removed from .env. Forgotten password: ' +
     'docker compose exec kriterion node usertool.js passwort <name> -- ' +
     'remove an account: node usertool.js entfernen <name>.');
 }

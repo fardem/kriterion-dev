@@ -497,34 +497,29 @@ const LEGACY_TABLES = [
   ['zweifaktor', 'two_factor'], ['zweifaktor_codes', 'two_factor_codes']
 ];
 
-/* JEDE SPALTE EINZELN, mit vier Angaben: Tabelle, Spalte, der Name, unter dem
-   sie frueher dalag (oder null), und die Fassung, deren Block sie gebracht
-   haette. DER ALTE NAME IST DIE GENAUERE DIAGNOSE. */
+/* JEDE SPALTE EINZELN, mit drei Angaben: Tabelle, Spalte und der Name, unter
+   dem sie frueher dalag (oder null). DER ALTE NAME IST DIE GENAUERE DIAGNOSE:
+   steht er da, fehlt nicht die Spalte, sondern die Umbenennung. */
 const REQUIRED_COLUMNS = [
-  ['comments',           'images_removed',  null,             '0.8.3'],
-  ['links',              'user_id',         null,             '0.8.30'],
-  ['attachments',        'user_id',         null,             '0.8.31'],
-  ['rating_criteria',    'weight',          'gewicht',        '0.8.40'],
-  ['photos',             'kind',            'art',            '0.8.50'],
-  ['photos',             'duration',        'dauer',          '0.8.50'],
-  ['items',              'rejected_at',     null,             '0.14.0'],
-  ['items',              'rejected_reason', 'rejected_grund', '0.14.0'],
-  ['items',              'rejected_by',     'rejected_von',   '0.14.0'],
-  ['ratings',            'set_at',          'gesetzt_am',     '0.16.0'],
-  ['photos',             'zoom',            null,             '0.19.0'],
-  ['rating_criteria',    'phase',           null,             '0.21.0'],
-  ['tokens',             'purpose',         'zweck',          '0.24.1'],
-  ['tokens',             'expires_at',      'ablauf',         '0.24.1'],
-  ['tokens',             'used_at',         'benutzt_am',     '0.24.1'],
-  ['product_categories', 'language',        null,             '0.25.0'],
-  ['rating_criteria',    'language',        null,             '0.25.0'],
-  ['comments',           'due_date',        null,             '0.29.0']
+  ['comments',           'images_removed',  null],
+  ['links',              'user_id',         null],
+  ['attachments',        'user_id',         null],
+  ['rating_criteria',    'weight',          'gewicht'],
+  ['photos',             'kind',            'art'],
+  ['photos',             'duration',        'dauer'],
+  ['items',              'rejected_at',     null],
+  ['items',              'rejected_reason', 'rejected_grund'],
+  ['items',              'rejected_by',     'rejected_von'],
+  ['ratings',            'set_at',          'gesetzt_am'],
+  ['photos',             'zoom',            null],
+  ['rating_criteria',    'phase',           null],
+  ['tokens',             'purpose',         'zweck'],
+  ['tokens',             'expires_at',      'ablauf'],
+  ['tokens',             'used_at',         'benutzt_am'],
+  ['product_categories', 'language',        null],
+  ['rating_criteria',    'language',        null],
+  ['comments',           'due_date',        null]
 ];
-
-/* DIE LETZTE FASSUNG, DIE DEN WEG HERAUF NOCH KANNTE. Sie steht an EINER
-   Stelle: der Kasten nennt sie, und die Zeile darunter rechnet mit ihr.
-   Eine zweite Angabe daneben liefe beim naechsten Mal von ihr weg. */
-const LAST_MIGRATING_VERSION = '0.32.1';
 
 function incompleteDatabase() {
   const tables = new Set(db.prepare("SELECT name FROM sqlite_master WHERE type = 'table'")
@@ -532,16 +527,17 @@ function incompleteDatabase() {
   const findings = [];
   for (const [old, fresh] of LEGACY_TABLES)
     if (tables.has(old))
-      findings.push({ place: old, fresh, since: '0.24.1', kind: 'table' });
-  for (const [table, column, old, since] of REQUIRED_COLUMNS) {
+      findings.push({ place: old, fresh, kind: 'table' });
+  for (const [table, column, old] of REQUIRED_COLUMNS) {
     /* FEHLT DIE TABELLE, FEHLT KEINE SPALTE. Die DDL legt jede an, die zum
        Schema gehoert; was hier trotzdem fehlte, gehoert nicht dazu, und eine
        Meldung darueber waere ein Fehlalarm. */
     if (!tables.has(table)) continue;
     const columns = db.prepare(`PRAGMA table_info(${table})`).all().map(c => c.name);
     if (columns.includes(column)) continue;
-    findings.push({ place: `${table}.${column}`, since, kind: 'column',
-                    old: old && columns.includes(old) ? `${table}.${old}` : null });
+    findings.push({ place: `${table}.${column}`, kind: 'column',
+                    old: old ? `${table}.${old}` : null,
+                    oldThere: Boolean(old) && columns.includes(old) });
   }
   return findings;
 }
@@ -551,22 +547,26 @@ function incompleteDatabase() {
    ist -- ein Hinweis ohne Weg ist eine Beunruhigung. */
 function warnIncompleteDatabase(findings) {
   if (!isMainThread || !findings.length) return;
+  /* DER ALTE NAME STEHT AUCH DANN DA, WENN ER NICHT MEHR LIEGT: „fehlt, und
+     unter dem alten Namen liegt sie auch nicht" ist die schaerfere Auskunft
+     als „fehlt". */
   const rows = findings.map(f => f.kind === 'table'
-    ? `    ${f.place.padEnd(22)} renamed to ${f.fresh} in ${f.since};\n` +
+    ? `    ${f.place.padEnd(22)} was renamed to ${f.fresh};\n` +
       `    ${''.padEnd(22)} its rows are invisible to this version`
-    : `    ${f.place.padEnd(22)} added in ${f.since}` +
-      (f.old ? `; still present as ${f.old}` : ''));
+    : `    ${f.place.padEnd(22)} is missing` +
+      (f.old ? (f.oldThere ? `; still present as ${f.old}`
+                           : `, and not present as ${f.old} either`) : ''));
   console.warn(
     '\n' +
     '  ------------------------------------------------------------------\n' +
     '  WARNING: this database is incomplete. It is missing parts that\n' +
-    '  earlier versions added while starting up. Kriterion 0.33.0 removed\n' +
-    '  those upgrade steps, so they never run again:\n' +
+    '  earlier versions added while starting up. Those upgrade steps have\n' +
+    '  been removed, so they never run again:\n' +
     '\n' +
     rows.join('\n') + '\n' +
     '\n' +
-    `  To repair it, open this database once with Kriterion ${LAST_MIGRATING_VERSION} --\n` +
-    '  the last version that still carried the upgrade steps -- let it\n' +
+    '  To repair it, open this database once with the last version that\n' +
+    '  still carried the upgrade steps -- the README names it -- let it\n' +
     '  start, shut it down, and come back here.\n' +
     '\n' +
     '  THIS INSTANCE STARTS ANYWAY. Nothing is blocked and nothing is\n' +

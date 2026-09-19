@@ -8327,7 +8327,7 @@ const REGRESSIONS = [
     /* ER ERSCHEINT, ABER OHNE DIE NAMEN. */
     nr: '1036', name: 'Der Kasten nennt die fehlende Spalte nicht mehr beim Namen',
     file: 'db.js',
-    search: "    : `    ${f.place.padEnd(22)} added in ${f.since}` +",
+    search: "    : `    ${f.place.padEnd(22)} is missing` +",
     replacement: "    : `    something is missing` +",
     expected: 'Der Hinweis auf einen unvollstaendigen Bestand — 0.33.0'
   },
@@ -8335,8 +8335,8 @@ const REGRESSIONS = [
     /* UND DIE PROBE SIEHT NUR NOCH EINE SPALTE AN. */
     nr: '1037', name: 'Die Probe fragt nur noch eine einzige Spalte ab',
     file: 'db.js',
-    search: "  for (const [table, column, old, since] of REQUIRED_COLUMNS) {",
-    replacement: "  for (const [table, column, old, since] of REQUIRED_COLUMNS.slice(0, 1)) {",
+    search: "  for (const [table, column, old] of REQUIRED_COLUMNS) {",
+    replacement: "  for (const [table, column, old] of REQUIRED_COLUMNS.slice(0, 1)) {",
     expected: 'Der Hinweis auf einen unvollstaendigen Bestand — 0.33.0'
   },
   {

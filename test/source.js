@@ -2033,20 +2033,18 @@ async function run() {
        Herkunft. Knopf und Kommentar sind fort. */
     const VN_CEILING = {
       'public/app.js': 326, 'server.js': 197, 'public/style.css': 175,
-      /* db.js und auth.js tragen nur noch, was eine Meldung an den Betreiber
-         braucht; alles andere ist Herkunft gewesen und gefallen. */
-      'db.js': 21, 'auth.js': 1,
       'twofactor.js': 1,
-      /* AUF NULL, UND DORT BLEIBEND. public/index.html und usertool.js sind
-         mit dieser Runde dazugekommen. */
-      'public/index.html': 0, 'usertool.js': 0,
+      /* AUF NULL, UND DORT BLEIBEND. db.js, auth.js, public/index.html und
+         usertool.js sind mit dieser Runde dazugekommen: die Meldung an den
+         Betreiber nennt jetzt den alten Spaltennamen statt der Fassung. */
+      'db.js': 0, 'auth.js': 0, 'public/index.html': 0, 'usertool.js': 0,
       '.env.example': 0, 'attachments.js': 0, 'batchrun.js': 0,
       'images.js': 0, 'keys.js': 0, 'keytool.js': 0, 'mail.js': 0,
       'public/theme.js': 0, 'public/languages/de.json': 0,
       'public/languages/en.json': 0, 'public/languages/tr.json': 0,
       'public/favicon.svg': 0
     };
-    const VN_TOTAL = 721;
+    const VN_TOTAL = 699;
     const vnFiles = Object.keys(VN_CEILING);
     check('Der Waechter sieht alle zwanzig Dateien, und jede liegt da',
       vnFiles.length === 20
@@ -2062,8 +2060,8 @@ async function run() {
       vnOver.length === 0,
       vnOver.map(f => `${f}: ${vnCount[f]} statt ${VN_CEILING[f]}`).join(' · ') || 'alle darunter');
     const vnZero = vnFiles.filter(f => VN_CEILING[f] === 0);
-    check('Vierzehn Dateien tragen keine einzige Versionsnummer',
-      vnZero.length === 14 && vnZero.every(f => vnCount[f] === 0),
+    check('Sechzehn Dateien tragen keine einzige Versionsnummer',
+      vnZero.length === 16 && vnZero.every(f => vnCount[f] === 0),
       vnZero.filter(f => vnCount[f] !== 0).map(f => `${f}: ${vnCount[f]}`).join(' · ') || `${vnZero.length} auf null`);
     const vnNow = vnFiles.reduce((n, f) => n + vnCount[f], 0);
     check(`Und zusammen sind es ${VN_TOTAL} -- die Zahl steht hier und nicht in einem Papier`,

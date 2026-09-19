@@ -15181,26 +15181,27 @@ async function sendImport(object, mode, withoutShare = false) {
   group('Der Hinweis auf einen unvollstaendigen Bestand — 0.33.0');
 
   /* DIE ACHTZEHN SPALTEN, DIE DIE ACHTZEHN BLOECKE NACHGERUESTET HAETTEN --
-     jede mit der Fassung, deren Block sie gebracht haette. */
+     jede mit dem Namen, unter dem sie frueher dalag, oder null. Seit 0.37.0
+     nennt der Kasten diesen Namen statt der Fassung. */
   const uhTable = [
-    ['comments',           'images_removed',  '0.8.3'],
-    ['links',              'user_id',         '0.8.30'],
-    ['attachments',        'user_id',         '0.8.31'],
-    ['rating_criteria',    'weight',          '0.8.40'],
-    ['photos',             'kind',            '0.8.50'],
-    ['photos',             'duration',        '0.8.50'],
-    ['items',              'rejected_at',     '0.14.0'],
-    ['items',              'rejected_reason', '0.14.0'],
-    ['items',              'rejected_by',     '0.14.0'],
-    ['ratings',            'set_at',          '0.16.0'],
-    ['photos',             'zoom',            '0.19.0'],
-    ['rating_criteria',    'phase',           '0.21.0'],
-    ['tokens',             'purpose',         '0.24.1'],
-    ['tokens',             'expires_at',      '0.24.1'],
-    ['tokens',             'used_at',         '0.24.1'],
-    ['product_categories', 'language',        '0.25.0'],
-    ['rating_criteria',    'language',        '0.25.0'],
-    ['comments',           'due_date',        '0.29.0']
+    ['comments',           'images_removed',  null],
+    ['links',              'user_id',         null],
+    ['attachments',        'user_id',         null],
+    ['rating_criteria',    'weight',          'gewicht'],
+    ['photos',             'kind',            'art'],
+    ['photos',             'duration',        'dauer'],
+    ['items',              'rejected_at',     null],
+    ['items',              'rejected_reason', 'rejected_grund'],
+    ['items',              'rejected_by',     'rejected_von'],
+    ['ratings',            'set_at',          'gesetzt_am'],
+    ['photos',             'zoom',            null],
+    ['rating_criteria',    'phase',           null],
+    ['tokens',             'purpose',         'zweck'],
+    ['tokens',             'expires_at',      'ablauf'],
+    ['tokens',             'used_at',         'benutzt_am'],
+    ['product_categories', 'language',        null],
+    ['rating_criteria',    'language',        null],
+    ['comments',           'due_date',        null]
   ];
   /* UND DIE SECHS TABELLEN, DIE 0.24.1 UMBENANNT HAT. */
   const uhTables = [
@@ -15287,8 +15288,8 @@ async function sendImport(object, mode, withoutShare = false) {
 
   /* UND JETZT DIE ACHTZEHN PRUEFLAGEN, EINE JE SPALTE. Je Lage: die Spalte
      wegnehmen, die Instanz hochziehen, und drei Dinge festhalten -- 1. */
-  const uhMissed = [], uhUnnamed = [], uhNoVersion = [], uhDead = [];
-  for (const [table, column, since] of uhTable) {
+  const uhMissed = [], uhUnnamed = [], uhNoOldName = [], uhDead = [];
+  for (const [table, column, oldName] of uhTable) {
     fs.rmSync(uhDir, { recursive: true, force: true });
     fs.mkdirSync(uhDir, { recursive: true });
     uhRun(uhDir);
@@ -15301,15 +15302,18 @@ async function sendImport(object, mode, withoutShare = false) {
     }
     if (uhColumns(uhDir, table).includes(column)) uhMissed.push(`${table}.${column}`);
     if (!run.out.includes(`${table}.${column}`)) uhUnnamed.push(`${table}.${column}`);
-    if (!new RegExp(`${table}\\.${column}\\b[^\\n]*${since.replace(/\./g, '\\.')}`).test(run.out))
-      uhNoVersion.push(`${table}.${column} (${since})`);
+    /* NEUN DER ACHTZEHN HABEN EINEN ALTEN NAMEN. Der Kasten nennt ihn auch
+       dann, wenn die alte Spalte nicht mehr dasteht -- das ist die schaerfere
+       Auskunft. */
+    if (oldName && !new RegExp(`${table}\\.${column}\\b[^\\n]*${table}\\.${oldName}\\b`).test(run.out))
+      uhNoOldName.push(`${table}.${column} (${oldName})`);
   }
   check('Keine der achtzehn Spalten waechst noch nach — es gibt keinen Block mehr',
     uhMissed.length === 0, uhMissed.join(' · ') || 'keine');
   check('Jede fehlende Spalte wird im Protokoll BENANNT',
     uhUnnamed.length === 0, uhUnnamed.join(' · ') || 'alle benannt');
-  check('Und neben ihrem Namen steht die Fassung, die sie gebracht haette',
-    uhNoVersion.length === 0, uhNoVersion.join(' · ') || 'alle mit Fassung');
+  check('Und neben ihrem Namen steht der alte, wo es einen gibt',
+    uhNoOldName.length === 0, uhNoOldName.join(' · ') || 'alle neun mit altem Namen');
   check('Und die Instanz kommt in jedem der achtzehn Faelle hoch',
     uhDead.length === 0, uhDead.join(' · ') || 'alle achtzehn oben');
 
@@ -15323,8 +15327,8 @@ async function sendImport(object, mode, withoutShare = false) {
   const uhOut = uhRun(uhDir).out;
   check('Der Kasten sagt, dass die Datenbank unvollstaendig ist',
     /this database is incomplete/i.test(uhOut), JSON.stringify(uhOut.trim().slice(0, 200)));
-  check('Und ueber welche Fassung zuerst zu gehen waere',
-    /0\.32\.1/.test(uhOut), JSON.stringify(uhOut.trim().slice(0, 400)));
+  check('Und wo die Fassung steht, ueber die zuerst zu gehen waere',
+    /README names it/.test(uhOut), JSON.stringify(uhOut.trim().slice(0, 400)));
   check('Und dass die Instanz trotzdem startet',
     /starts anyway/i.test(uhOut), JSON.stringify(uhOut.trim().slice(0, 400)));
   /* UND ER STEHT IN DERSELBEN FORM WIE DER SCHLUESSELHINWEIS AUS keys.js --
@@ -18323,8 +18327,8 @@ async function sendImport(object, mode, withoutShare = false) {
        Zusage, und sie ist der Grund fuer den Kasten zwei Zeilen tiefer. */
     check('Das Oeffnen der Datei ruestet die Spalte NICHT mehr nach',
       !phStill.includes('phase'), phStill.join(', '));
-    check('Sondern benennt sie im Protokoll, samt ihrer Fassung',
-      /rating_criteria\.phase/.test(first.out) && /0\.21\.0/.test(first.out),
+    check('Sondern benennt sie im Protokoll',
+      /rating_criteria\.phase\s+is missing/.test(first.out),
       first.out.trim().slice(-400));
     /* UND DIE INSTANZ KOMMT TROTZDEM HOCH -- Leitplanke L3, und hier ist sie
        gefahren und nicht behauptet: der Prozess endet mit 0, und die Zeile
