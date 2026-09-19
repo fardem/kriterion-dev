@@ -12101,7 +12101,7 @@ Sammelblatt war veraltet.*
 
 **Fingerprint `0fc33e91`** *(davor `10017d45`)*, **jetzt über 19 Dateien** —
 `log.js` ist dazugekommen. **Prüfstand 7040 von 7040, 368 Gruppen, 1053
-Rückbauten, 20 gefahren, 0 stumm.**
+Rückbauten, 18 gefahren, 0 stumm.**
 
 ### 0.35.1 — „Die drei Sicherheitsbefunde aus der Messung"
 
