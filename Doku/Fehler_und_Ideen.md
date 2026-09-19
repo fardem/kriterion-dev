@@ -2240,10 +2240,13 @@ Entscheidung des Betreibers und keine Messung.**
 Veröffentlichung gefunden · Einschätzung: groß · Schritt 1 gebaut**
 
 > **SCHRITT 2 UND 3 SIND DIE RUNDE 0.37.0** *(`Doku/Auftrag_0.37.0.md`,
-> geschrieben am 19. September 2026)*. **Gemessen sind 778 Versionsnummern —
-> 726 in Kommentaren, 0 im Code — und 188 Verweise auf Papiere über den
-> Namen.** *Die Regeln dazu stehen seit dem 19. September 2026 geschärft in
-> `CLAUDE.md`, Abschnitt 2, und binden jede Runde.*
+> geschrieben am 19. September 2026, am selben Tag auf dem Stand 0.36.0
+> nachgemessen)*. **Gemessen sind 778 Treffer des Nummernmusters — 726 in
+> Kommentaren, 44 in Strings, 0 im Code, und 15 davon sind überhaupt keine
+> Fassungsnummern; echte sind es 763.** **Dazu 187 Verweise auf Papiere über
+> den Namen und 94 Abkürzungen** — `(F<Zahl>)` 52, `BA <Zahl>` 39,
+> `Punkt <Zahl>` 3. *Die Regeln dazu stehen seit dem 19. September 2026
+> geschärft in `CLAUDE.md`, Abschnitt 2, und binden jede Runde.*
 >
 > **SCHRITT 1 IST MIT 0.35.2 GEBAUT (BA 9).** *Die beiden Löcher des
 > 0.34.3-Sweeps sind zu: `public/style.css` steht in der Dateiliste des
@@ -2260,6 +2263,12 @@ Veröffentlichung gefunden · Einschätzung: groß · Schritt 1 gebaut**
 > **Schritt 2 und 3 bleiben offen:** *die Versionsnummern — jetzt **770**
 > statt 772, weil der Kommentar über dem gefallenen Knopf zwei genannt hat —
 > und `tools/comments.js`, das das Stilblatt nicht mitzählt.*
+>
+> **DER DRITTE SCHRITT IST DER, DEN DIE RUNDE ÜBERSEHEN HÄTTE.** *`SHIPPED` in
+> `tools/comments.js` führt die vierzehn JavaScript-Module; `public/style.css`
+> steht nicht darin, und die 313 SQL-Kommentarzeilen im `SCHEMA`-String von
+> `db.js` stehen in keiner Zahl.* **Ohne beide Erweiterungen schließt dieser
+> Punkt nur zwei von drei Schritten** — steht so in BA 10 des Auftrags.
 
 **DER ÖFFENTLICHE STAND TRÄGT KEIN `Doku/`** *(`Doku/Veroeffentlichen.md`)*.
 **Jeder Verweis darauf im Quelltext zeigt dort auf nichts.** Gemessen am

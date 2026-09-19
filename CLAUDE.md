@@ -77,8 +77,14 @@ wo der Code es nicht selbst sagt.**
 ### Die Länge
 
 **Höchstens drei Zeilen je Block.** Gemessen am 19. September 2026 halten das
-**96 Prozent** der 2.716 Blöcke in den ausgelieferten Modulen ein; zwei Drittel
-sind einzeilig. Die Regel beschreibt also den Stand und verlangt nichts Neues.
+**96 Prozent** der **2.735** Blöcke in den ausgelieferten Modulen ein; zwei
+Drittel sind einzeilig. Die Regel beschreibt also den Stand und verlangt nichts
+Neues.
+
+*Gezählt wird jeder Kommentarteil einzeln: eine Folge von sechs `//`-Zeilen
+sind sechs einzeilige Blöcke.* **Faßt man sie zu einem zusammen — so, wie ein
+Leser sie sieht —, sind es 2.177 Blöcke und 94 Prozent.** *Hier stand vorher
+2.716; die Zahl ist auf dem Stand 0.36.0 nachgemessen.*
 
 **Und nie mehr Kommentar als Code darunter.** Fünf Zeilen über einer
 zweizeiligen Funktion sind vier zu viel.
@@ -153,23 +159,45 @@ die sie getroffen hat.*
 
 | | |
 |---|---:|
-| Versionsnummern in ausgelieferten Dateien | **778** |
+| Treffer des Nummernmusters in ausgelieferten Dateien | **778** |
 | davon in Kommentaren | 726 |
+| davon in Strings | **44** |
+| davon in `README.md` und `manual-de.md` | 8 |
 | davon im Code | **0** |
-| Verweise auf Papiere über den Namen | **188** |
+| davon überhaupt keine Fassungsnummer | **15** |
+| **echte Fassungsnummern** | **763** |
+| Verweise auf Papiere über den Namen | **187** |
+| Abkürzungen `BA <Zahl>`, `(F<Zahl>)`, `Punkt <Zahl>` | **94** |
 | Verweise über den Pfad `Doku/` | **0** |
 
 *Versionsnummern:* `public/app.js` 326, `server.js` 197, `public/style.css`
 175, `db.js` 62, `README.md` 6, `public/index.html` 4, `auth.js` 4,
 `manual-de.md` 2, `usertool.js` 1, `twofactor.js` 1.
 
-*Papierverweise:* „Befund" 87, „Bauabschnitt" 70, „Konzept" 14, „Auftrag" 10,
-„Projektstand" 4, „Änderungsprotokoll" 2, „Farbkonzept" 1.
+*Papierverweise:* „Befund" **86**, „Bauabschnitt" 70, „Konzept" 14,
+„Auftrag" 10, „Projektstand" 4, „Änderungsprotokoll" 2, „Farbkonzept" 1.
+*Hier stand vorher 87 und 188; mit 0.36.0 ist einer in `public/app.js`
+weggefallen.*
+
+*Abkürzungen:* `(F<Zahl>)` 52, `BA <Zahl>` 39, `Punkt <Zahl>` 3. **Sie sind
+dieselbe Verweisform und standen hier bis zum 19. September 2026 nicht.**
 
 > *Hier stand vorher 772. Die Zahl hat sich nicht geändert, der Umfang der
-> Messung: gezählt werden jetzt auch `README.md` und `manual-de.md`. Zwei der
-> 326 in `public/app.js` sind keine Versionen, sondern SVG-Pfaddaten
-> (`-1.8.3l`) — der Wächter zählt sie mit.*
+> Messung: gezählt werden jetzt auch `README.md` und `manual-de.md`.*
+>
+> **FÜNFZEHN DER 778 SIND ÜBERHAUPT KEINE FASSUNGSNUMMERN**, und das Muster
+> `\d+\.\d+\.\d+` kann sie nicht unterscheiden: **zehn Daten**
+> *(`public/style.css` sieben, `public/app.js` zwei, `twofactor.js`
+> `1.1.1970`)*, **zwei SVG-Pfaddaten** in `public/app.js`:255 — *eines lautet
+> `-1.8.3l`, das andere `1.8.3H9`* —, das `1.0.0` im Kommentar über
+> `const VERSION` in `server.js`:12 sowie in der Anleitung die Adresse
+> `keepachangelog.com/de/1.1.0/` und das Beispieldatum `14.03.2026`.
+>
+> **UND 44 STEHEN IN STRINGS, NICHT IN KOMMENTAREN.** *Die Regel verbietet sie
+> dort genauso.* 20 in den SQL-Kommentaren des `SCHEMA`-Strings von `db.js`,
+> 18 in `REQUIRED_COLUMNS`, dazu `LAST_MIGRATING_VERSION`, das `since` der
+> `LEGACY_TABLES`, ein Satz im englischen Warnkasten und die Laufzeitmeldung
+> in `auth.js`:430.
 
 **Der Altbestand fällt mit 0.37.0. Bis dahin gilt: keine neue kommt dazu.**
 
@@ -178,11 +206,23 @@ Latte je Datei, die nur fallen darf, und „Kein Verweis auf Doku/ geht mit
 hinaus" über vierundzwanzig Dateien. **Für die Papierverweise über den Namen
 gibt es noch keinen — er kommt mit 0.37.0.**
 
-> **DIE EINE STELLE, AN DER DIE REGEL ETWAS KOSTET.** `REQUIRED_COLUMNS` in
-> `db.js` nennt je fehlender Spalte die Fassung, deren Block sie gebracht
-> hätte; der Wert reist in `findings.since` und steht im Warnkasten, den ein
-> Betreiber mit unvollständiger Datenbank liest. **0.37.0 entscheidet, wie
-> diese Meldung ohne Nummer heißt** — sie fällt nicht ersatzlos.
+> **DIE STELLEN, AN DENEN DIE REGEL ETWAS KOSTET — ES SIND FÜNF UND NICHT
+> EINE.** `REQUIRED_COLUMNS` in `db.js` nennt in **18 Zeilen** je fehlender
+> Spalte die Fassung, deren Block sie gebracht hätte; der Wert reist in
+> `findings.since` und steht im Warnkasten, den ein Betreiber mit
+> unvollständiger Datenbank liest. **Dieselbe Mechanik trägt drei weitere:**
+> `LAST_MIGRATING_VERSION = '0.32.1'`, das `since` der `LEGACY_TABLES` und ein
+> Satz im englischen Warnkasten. **Die fünfte steht in `auth.js`:430** und geht
+> zur Laufzeit hinaus. **0.37.0 entscheidet, wie diese Meldungen ohne Nummer
+> heißen** — sie fallen nicht ersatzlos.
+
+> **UND SECHS NUMMERN IN DER ANLEITUNG MÜSSEN BLEIBEN.**
+> `test/source.js`:915–923 verlangt, dass `0.33.0`, `0.32.1` und `0.8.0` in
+> `README.md` und `manual-de.md` stehen — *sie bestimmen eine Handlung: den
+> Zwischenschritt beim Umzug einer alten Datenbank und die älteste übernommene
+> Fassung.* **Eine Nummer, die eine Handlung bestimmt, ist keine
+> Herkunftsangabe.** *Zwei weitere verlangt der Prüfstand im Kommentar:*
+> `0.19.2` in `public/app.js`, `0.12.3` in `public/style.css`.
 
 ## 3. Ablauf
 

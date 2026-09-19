@@ -8,8 +8,12 @@ Geschrieben am 19. September 2026, nachgemessen am selben Tag auf dem Stand
 > falsch, fünf haben sich durch 0.36.0 bewegt, und drei Zusagen tragen nicht,
 > was sie behaupten.** Jede berichtigte Zahl trägt hier den Grund neben sich.
 >
-> **Abschnitt 1 und Abschnitt 2 stehen fast wortgleich auch in `CLAUDE.md`,
-> Abschnitt 2.** *Jede Berichtigung läuft an beiden Stellen.*
+> **Der Bestand und die Zahlen stehen fast wortgleich auch in `CLAUDE.md`,
+> Abschnitt 2.** *Beide sind am 19. September 2026 nachgezogen worden.*
+
+> **DIE FRAGETAFEL STEHT JETZT VORN.** *Sie stand am Ende, und dort wird sie
+> gelesen, wenn die Entscheidung schon gefallen ist.* **Elf Fragen, und vier
+> davon ändern, was gebaut wird.**
 
 **Vorgabe des Betreibers vom 19. September 2026.** Die Runde tut drei Dinge an
 denselben Dateien: sie verdichtet die Kommentare, sie nimmt jede Versionsnummer
@@ -28,7 +32,27 @@ stand.** *Sie ist mit dem Bauen von 0.36.0 eingelöst: die Runde kann laufen.*
 
 ---
 
-## 1. Der Bestand
+## 1. Fragetafel — vor der ersten Zeile zu beantworten
+
+| | Frage | Vorschlag |
+|---|---|---|
+| **F1** | **Wie heißt die Meldung aus `REQUIRED_COLUMNS` ohne Versionsnummer?** | *sie nennt den alten Spaltennamen statt der Fassung.* „`items.rejected_at` fehlt; unter dem Namen `rejected_grund` liegt sie auch nicht da" sagt einem Betreiber mehr als eine Nummer, die er nachschlagen müsste |
+| **F2** | **Bekommt `public/style.css` ein Ziel für den Anteil?** | *nein.* Der Kommentar dort ist zum guten Teil begründet, und eine Quote erzwingt Kürzungen an Stellen, die sie nicht verdienen |
+| **F3** | **Fällt „Befund" auch dort, wo es kein Verweis ist?** | *nein.* „Der Befund war" ist ein Verweis, „ein Bild ohne Befund" nicht. Der Wächter zielt auf `Befund \\d+` und die benannten Papiernamen, nicht auf das Wort. **Gemessen: von 187 Vorkommen tragen 155 eine Nummer** — 148 auf derselben Zeile, 7 auf der nächsten. **32 tragen keine**, zehn davon einen Buchstaben statt einer Ziffer *(„Befund A1", „Konzept E9")*. *Ein Muster allein auf `Befund \\d+` trifft 148 und lässt 39 stehen; das Ziel heißt dann nicht 0, sondern 39.* **Und `db.js`:884 muss stehen bleiben:** dort ist „Befund" das Fachwort, das in `findings` reist — genau die Stelle aus BA 4 |
+| **F4** | **Wird die README umgestellt oder nur gekürzt?** | *erst lesen, dann entscheiden.* BA 6 liefert ein Urteil, keine Umstellung; was daraus folgt, ist eine eigene Zeile im Fahrplan |
+| **F5** | **Zählt der Prüfstand mit?** | *nein, er ist ausgenommen* — wie bei den drei Wächtern davor. Er muss die Nummern nennen dürfen, sonst kann er keine bewachen. **Die alte Begründung „er geht nicht mit hinaus" stimmt nicht** *(siehe V3)* |
+| **F6** | **Welche Blockzählweise gilt?** | *jeder Kommentarteil einzeln* — so sind die 2.735 gezählt, und so halten 96 Prozent die Regel. **Faßt man `//`-Folgen zusammen, sind es 2.177 Blöcke und 122 über drei Zeilen.** Die zweite Zählweise ist die, die ein Leser sieht; die erste ist die, in der alle Zahlen dieses Auftrags stehen |
+| **F7** | **Was wird aus den 21 Nummern in `db.js` und der einen in `auth.js`?** | *offen.* Der Vorschlag aus F1 deckt neun der 18 `REQUIRED_COLUMNS`-Zeilen; für die neun ohne alten Namen, für `LAST_MIGRATING_VERSION`, für das `since` der `LEGACY_TABLES`, für den englischen Warnkasten und für die Laufzeitmeldung in `auth.js`:430 sagt er nichts |
+| **F8** | **Heißt die Latte „null" oder „genau diese"?** | *„genau diese".* Fünfzehn Treffer sind keine Fassungsnummern, sechs verlangt die Anleitung, zwei verlangt der Prüfstand. Eine Latte auf null wäre eine Zusage, die kein Bauabschnitt einlösen kann |
+| **F9** | **Was wird aus den sechs Gleichlaufsummen?** | *zwei Wege.* Entweder BA 2 lässt die 29 nachgestellten `//`-Kommentare in `public/app.js` stehen — dann bleiben die Summen gleich und die Zusage trägt. Oder `tools/gleichlaut.js` bekommt einen richtigen Kommentarfilter über `tools/segments.js` — *nicht über eine Regex, ein `//` in `'http://'` darf nicht fallen* — und alle sechs Konstanten werden neu eingetragen. **Der zweite Weg ist ehrlicher und kostet den Vorlauf als Beleg** |
+| **F10** | **Gilt die Drei-Zeilen-Regel auch für `public/style.css`?** | *nein, dort gilt die Grenze 30* — so misst `test/source.js`:2758 heute, und BA 5 nimmt die 184 langen Blöcke ausdrücklich aus. Gilt sie doch, ist BA 5 ein dritter Griff schwerer und Rückbau 1089 auf den neuen Wert zu stellen |
+| **F11** | **Welche Dateiliste nimmt der neue Wächter?** | *offen.* Der Nummernwächter liest 20 Dateien, der `Doku/`-Wächter 24. **Daran hängt `CHANGELOG.md`:** er trägt 11 Papiernamen, und ein Änderungsprotokoll muss die Papiere nennen dürfen, die es fortschreibt |
+
+---
+
+---
+
+## 2. Der Bestand
 
 **Gemessen am 19. September 2026, auf dem gebauten Stand 0.36.0.** *Die Zahlen
 in Klammern sind die des Auftrags vom selben Tag, gemessen auf 0.35.2.*
@@ -126,7 +150,7 @@ mit 0.36.0 weggefallen)*, „Bauabschnitt" 70, „Konzept" 14, „Auftrag" 10,
 
 ---
 
-## 2. Die Zahlen
+## 3. Die Zahlen
 
 | | heute | nachher |
 |---|---:|---:|
@@ -169,7 +193,7 @@ wird am fertigen Stand, und die Zahl steht danach im Änderungsprotokoll.**
 
 ---
 
-## 3. Bauabschnitte
+## 4. Bauabschnitte
 
 ### BA 1 — `server.js`
 
@@ -467,7 +491,7 @@ Sammelblatt: **Punkt 42 bekommt eine neue Zahl**.
 
 ---
 
-## 4. Zusagen an den Prüfstand
+## 5. Zusagen an den Prüfstand
 
 1. **Kein Verhalten ändert sich.** Diese Runde fasst ausschließlich Kommentare
    an — mit der einen Ausnahme aus BA 4, und die steht namentlich im Protokoll.
@@ -516,24 +540,6 @@ Sammelblatt: **Punkt 42 bekommt eine neue Zahl**.
 > Zahl ist kommentarfest, und sie lässt sich für `server.js` und die zwölf
 > kleinen Module genauso bilden.* **Das ist die Zusage, die diese Runde
 > wirklich geben kann.**
-
----
-
-## 5. Fragetafel — vor der ersten Zeile zu beantworten
-
-| | Frage | Vorschlag |
-|---|---|---|
-| **F1** | **Wie heißt die Meldung aus `REQUIRED_COLUMNS` ohne Versionsnummer?** | *sie nennt den alten Spaltennamen statt der Fassung.* „`items.rejected_at` fehlt; unter dem Namen `rejected_grund` liegt sie auch nicht da" sagt einem Betreiber mehr als eine Nummer, die er nachschlagen müsste |
-| **F2** | **Bekommt `public/style.css` ein Ziel für den Anteil?** | *nein.* Der Kommentar dort ist zum guten Teil begründet, und eine Quote erzwingt Kürzungen an Stellen, die sie nicht verdienen |
-| **F3** | **Fällt „Befund" auch dort, wo es kein Verweis ist?** | *nein.* „Der Befund war" ist ein Verweis, „ein Bild ohne Befund" nicht. Der Wächter zielt auf `Befund \\d+` und die benannten Papiernamen, nicht auf das Wort. **Gemessen: von 187 Vorkommen tragen 155 eine Nummer** — 148 auf derselben Zeile, 7 auf der nächsten. **32 tragen keine**, zehn davon einen Buchstaben statt einer Ziffer *(„Befund A1", „Konzept E9")*. *Ein Muster allein auf `Befund \\d+` trifft 148 und lässt 39 stehen; das Ziel heißt dann nicht 0, sondern 39.* **Und `db.js`:884 muss stehen bleiben:** dort ist „Befund" das Fachwort, das in `findings` reist — genau die Stelle aus BA 4 |
-| **F4** | **Wird die README umgestellt oder nur gekürzt?** | *erst lesen, dann entscheiden.* BA 6 liefert ein Urteil, keine Umstellung; was daraus folgt, ist eine eigene Zeile im Fahrplan |
-| **F5** | **Zählt der Prüfstand mit?** | *nein, er ist ausgenommen* — wie bei den drei Wächtern davor. Er muss die Nummern nennen dürfen, sonst kann er keine bewachen. **Die alte Begründung „er geht nicht mit hinaus" stimmt nicht** *(siehe V3)* |
-| **F6** | **Welche Blockzählweise gilt?** | *jeder Kommentarteil einzeln* — so sind die 2.735 gezählt, und so halten 96 Prozent die Regel. **Faßt man `//`-Folgen zusammen, sind es 2.177 Blöcke und 122 über drei Zeilen.** Die zweite Zählweise ist die, die ein Leser sieht; die erste ist die, in der alle Zahlen dieses Auftrags stehen |
-| **F7** | **Was wird aus den 21 Nummern in `db.js` und der einen in `auth.js`?** | *offen.* Der Vorschlag aus F1 deckt neun der 18 `REQUIRED_COLUMNS`-Zeilen; für die neun ohne alten Namen, für `LAST_MIGRATING_VERSION`, für das `since` der `LEGACY_TABLES`, für den englischen Warnkasten und für die Laufzeitmeldung in `auth.js`:430 sagt er nichts |
-| **F8** | **Heißt die Latte „null" oder „genau diese"?** | *„genau diese".* Fünfzehn Treffer sind keine Fassungsnummern, sechs verlangt die Anleitung, zwei verlangt der Prüfstand. Eine Latte auf null wäre eine Zusage, die kein Bauabschnitt einlösen kann |
-| **F9** | **Was wird aus den sechs Gleichlaufsummen?** | *zwei Wege.* Entweder BA 2 lässt die 29 nachgestellten `//`-Kommentare in `public/app.js` stehen — dann bleiben die Summen gleich und die Zusage trägt. Oder `tools/gleichlaut.js` bekommt einen richtigen Kommentarfilter über `tools/segments.js` — *nicht über eine Regex, ein `//` in `'http://'` darf nicht fallen* — und alle sechs Konstanten werden neu eingetragen. **Der zweite Weg ist ehrlicher und kostet den Vorlauf als Beleg** |
-| **F10** | **Gilt die Drei-Zeilen-Regel auch für `public/style.css`?** | *nein, dort gilt die Grenze 30* — so misst `test/source.js`:2758 heute, und BA 5 nimmt die 184 langen Blöcke ausdrücklich aus. Gilt sie doch, ist BA 5 ein dritter Griff schwerer und Rückbau 1089 auf den neuen Wert zu stellen |
-| **F11** | **Welche Dateiliste nimmt der neue Wächter?** | *offen.* Der Nummernwächter liest 20 Dateien, der `Doku/`-Wächter 24. **Daran hängt `CHANGELOG.md`:** er trägt 11 Papiernamen, und ein Änderungsprotokoll muss die Papiere nennen dürfen, die es fortschreibt |
 
 ---
 
