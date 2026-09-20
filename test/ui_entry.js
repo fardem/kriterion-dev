@@ -1283,6 +1283,18 @@ async function run() {
   check('Was sie tun, steht im Überfahrtext',
     headActions.every(b3 => (b3.getAttribute('title') || '').length > 3),
     headActions.map(b3 => b3.getAttribute('title')).join(' | '));
+  /* DAS ZITATZEICHEN IST GEZEICHNET WIE STIFT UND KREUZ -- als Satzzeichen
+     stand es als einziges Schriftzeichen in der Reihe. */
+  check('Der Zitatknopf traegt ein gezeichnetes Zeichen',
+    wb.document.querySelector('#cmts .cmt-head .cite svg.icon') !== null,
+    wb.document.querySelector('#cmts .cmt-head .cite')?.innerHTML.slice(0, 40) || 'kein Knopf');
+  /* DIE NUMMER STEHT GANZ RECHTS wie im Forum; das Loeschkreuz liegt damit
+     nicht mehr am Rand der Zeile. */
+  const hdKids = [...(wb.document.querySelector('#cmts .cmt-head')?.children || [])];
+  const hdActs = hdKids.findIndex(k3 => k3.classList.contains('acts'));
+  const hdNo = hdKids.findIndex(k3 => k3.classList.contains('cmt-no'));
+  check('Die Nummer steht hinter der Aktionsgruppe',
+    hdActs >= 0 && hdNo > hdActs, hdKids.map(k3 => k3.className).join(' | '));
 
   /* ================= Der Name an der Linkzeile ================= */
   group('Der Name an der Linkzeile');
@@ -4186,6 +4198,19 @@ group('Was der Betrieb an der Auszeichnung gefunden hat');
   check('Der Kasten ohne Nummer zeigt auf den Eintrag und nicht auf einen Kommentar',
     mkRef(mkHere + '#/item/1').getAttribute('href') === '#/item/1',
     mkRef(mkHere + '#/item/1').getAttribute('href'));
+  /* UND ER SPRINGT AUCH DANN, WENN ER AUF DEN EINTRAG ZEIGT, IN DEM ER STEHT:
+     die Adresse steht schon am Ziel, der Browser meldet keinen Wechsel. */
+  {
+    const mkHead = wb.document.querySelector('.title-head');
+    check('Die Prueflage traegt den Titelbereich des Eintrags', mkHead !== null);
+    let mkScrolled = 0;
+    if (mkHead) mkHead.scrollIntoView = () => { mkScrolled++; };
+    const mkEv = new wb.Event('click', { bubbles: true, cancelable: true });
+    mkRef(mkHere + '#/item/1').dispatchEvent(mkEv);
+    check('Ein Klick auf den eigenen Eintrag geht an den Kopf',
+      mkScrolled === 1 && mkEv.defaultPrevented === true,
+      `${mkScrolled} Sprünge, verhindert: ${mkEv.defaultPrevented}`);
+  }
   wb.eval("COMMENT_REFS.delete('c2'); COMMENT_REFS.delete('i1');");
 }
 

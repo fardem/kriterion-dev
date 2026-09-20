@@ -522,17 +522,10 @@ async function check0311() {
    public/app.js ohne Kommentare und ohne Markup, und diese Runde nimmt dort
    toten Code weg und fasst Wiederholungen zusammen. Der Stand von 0.31.4 war
    daa0c9094f2c2305 / 77128aef244a5976. */
-/* UND MIT DEN BEFUNDEN DANACH EIN DRITTES MAL: der Rueckfall der
-   Zwischenablage, die Marke fuer jede Adresse von hier und der Sprung
-   ausserhalb des Zeichnens sind Code, und die Probe misst Code.
-   Der Stand davor war ca0e647191c4b45d / fa9051b4736f2e06,
-   en ae7b45c361487dab / a38f60916aedc01d, tr ac1fa21798b352b5 / e277fb3263e15feb. */
-/* UND MIT DER AUSZEICHNUNG SIND SIE WIEDER ANDERE, AUS DEMSELBEN GRUND:
-   die Runde legt 830 Zeilen Code in public/app.js an und bewegt keinen
-   deutschen Satz. Der Stand davor war
-   3601c96b846df672 / 278c9992bbfe95e5, und vor dem Umbau der Paarung
-   457f4c3c4bb28ec1 / 7bc60ecadb371e0e. */
-const DE_UNTOUCHED = { one: 'daa9a66531bf3943', other: '15359dca57efe311' };
+/* DIE FRUEHEREN DEUTSCHEN SUMMEN, von der aeltesten zur juengsten:
+   457f4c3c4bb28ec1 / 7bc60ecadb371e0e · 3601c96b846df672 / 278c9992bbfe95e5 ·
+   ca0e647191c4b45d / fa9051b4736f2e06 · daa9a66531bf3943 / 15359dca57efe311 */
+const DE_UNTOUCHED = { one: 'fd377642f0130b3b', other: 'b58cc8084be7e688' };
 const DE_BEFORE_0312 = { one: '91b86c5affcba789', other: '07fc3ccdc8a27a03' };
 const DE_ORDERED_0312 = {
   'login.requestAccess': 'Zugang anfragen',
@@ -901,17 +894,15 @@ async function check0312() {
 /* DIE VIER PRUEFSUMMEN DER BASIS, gemessen am gebauten Stand dieser Runde --
    DE_UNTOUCHED steht schon oben bei 0.31.2 und wird hier WEITERBENUTZT und
    nicht abgeschrieben: zwei Zahlen an zwei Orten laufen auseinander. */
-/* 9cfb555855459a0c / 98295846dd0ac5a4 -- 0.31.3 2f8e5b3abe58f9fd /
-   39489ec6ae18020b -- vor 0.31.3; derselbe Grund wie oben.
-   VOR 0.35.0: en caa4b814e75f8263 / f224721465ac0d35,
-   tr ab6bdf35499f7cf9 / ad34f68137acaa2b. */
-/* VOR DER AUSZEICHNUNG: en eec8c1717c54a12f / f874903b6b33781a. */
-const EN_UNTOUCHED = { one: 'cad88cfda93ececc', other: 'e73468286c2f1405' };
+/* DIE FRUEHEREN ENGLISCHEN SUMMEN: 2f8e5b3abe58f9fd / 39489ec6ae18020b ·
+   9cfb555855459a0c / 98295846dd0ac5a4 · caa4b814e75f8263 / f224721465ac0d35 ·
+   eec8c1717c54a12f / f874903b6b33781a · cad88cfda93ececc / e73468286c2f1405 */
+const EN_UNTOUCHED = { one: '68c54e6fc1a90c6d', other: '6ba9dddf3e06cb33' };
 const TR_BEFORE_0313 = { one: '5fec71b10c0dfa3c', other: '18b07eda589b5120' };
-/* bbaca227348609dc / 73d9f1ea0298d519 -- der Stand VOR der Berichtigung an
-   der Vorschau der Vokabelkarte, die der Augenschein von 0.31.3 verlangt hat. */
-/* VOR DER AUSZEICHNUNG: tr eb1ffa65a4bddb95 / f137b990650a241e. */
-const TR_AFTER_0313 = { one: '10c6209ccd6c202e', other: '87be79f31098ad1c' };
+/* DIE FRUEHEREN TUERKISCHEN SUMMEN: bbaca227348609dc / 73d9f1ea0298d519 ·
+   ab6bdf35499f7cf9 / ad34f68137acaa2b · eb1ffa65a4bddb95 / f137b990650a241e ·
+   ac1fa21798b352b5 / e277fb3263e15feb · 10c6209ccd6c202e / 87be79f31098ad1c */
+const TR_AFTER_0313 = { one: '150761ee459bc7fe', other: '1b07235978fc5ba3' };
 
 async function check0313() {
   const tgRead = (code) => JSON.parse(fs.readFileSync(

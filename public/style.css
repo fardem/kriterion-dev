@@ -2877,8 +2877,8 @@ body.login .login-screen { flex: 1 0 auto; min-height: 0; }
      was sie veraendert -- die Umschalter eine Spur kleiner. */
   .cmt-head { flex-wrap: wrap; row-gap: 7px; }
   .cmt-head .cmt-when { order: 1; }
-  .cmt-head .cmt-no { order: 2; }
-  .cmt-head .acts { order: 3; }
+  .cmt-head .acts { order: 2; }
+  .cmt-head .cmt-no { order: 3; }
   .cmt-head .marks { order: 4; flex-basis: 100%; }
   .cmt-head .mark { padding: 6px 11px; }
   /* DIE BEWERTUNGSZEILE: ein langer Kriterienname stand ueber den Rand hinaus,

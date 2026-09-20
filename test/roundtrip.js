@@ -17871,6 +17871,23 @@ async function sendImport(object, mode, withoutShare = false) {
     ['id', 'title', 'tags', 'category', 'avgRating', 'linkCount'].every(f => fkFields.has(f)),
     JSON.stringify([...fkFields]));
 
+  /* DER BEGRIFF STEHT ALLEIN IM ZIEL EINES LINKS. Geschnitten wird auf dem
+     eingeebneten Text, und dort faellt das Ziel weg. */
+  const fkTarget = await vsCreate('Zielprobe Klemmbock');
+  await sendComment(fkTarget.id,
+    { text: 'der Hinweis steht in [dieser Quelle](https://beispiel.test/schrankgriff) und sonst nirgends' });
+  const fkT = await fkFinding('schrankgriff', fkTarget.id);
+  check('Steht der Begriff allein im Ziel eines Links, zeigt ihn der Ausschnitt',
+    !!fkT && fkT.text.toLowerCase().includes('schrankgriff'), JSON.stringify(fkT?.text));
+  /* UND DIE GEGENLAGE: steht er im sichtbaren Text, bleiben die Marken
+     weiterhin draussen. */
+  const fkMark = await vsCreate('Markenprobe Riffelblech');
+  await sendComment(fkMark.id, { text: 'hier steht **Riffelblech** in Fettschrift' });
+  const fkM = await fkFinding('riffelblech', fkMark.id);
+  check('Und steht er im sichtbaren Text, bleiben die Marken draussen',
+    !!fkM && fkM.text.includes('Riffelblech') && !fkM.text.includes('**'),
+    JSON.stringify(fkM?.text));
+
   /* ---------------------------------------------------------------- */
   group('searchText ist fort, und sonst nichts');
 

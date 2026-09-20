@@ -9222,7 +9222,7 @@ const REGRESSIONS = [
   {
     nr: '1141', name: 'Der Trefferausschnitt bekommt die Marken nicht mehr heraus',
     file: 'server.js',
-    search: "    text: snippet(MARKUP_SOURCES.has(first.key)\n      ? markupPlain(r['f_' + first.key]) : r['f_' + first.key], term),",
+    search: "    text: MARKUP_SOURCES.has(first.key)\n      ? snippet(markupPlain(r['f_' + first.key]), term, r['f_' + first.key])\n      : snippet(r['f_' + first.key], term),",
     replacement: "    text: snippet(r['f_' + first.key], term),",
     expected: 'Kriterion zeichnet wie die Spezifikation oder gar nicht'
   },
@@ -9329,6 +9329,41 @@ const REGRESSIONS = [
     file: 'public/app.js',
     search: "    if (p.type === 'text')\n      for (const piece of splitCommentText(p.text, '', []))\n        if (piece.target) { const k = markupRefOf(piece.target); if (k) want.add(k); }",
     replacement: "",
+    expected: 'Was der Betrieb an der Auszeichnung gefunden hat'
+  },
+  {
+    nr: '1157', name: 'Der Trefferausschnitt zeigt das Ziel eines Links wieder nicht',
+    file: 'server.js',
+    search: "  if (hit < 0 && fallback != null\n      && searchFold(oneLine(fallback)).includes(searchFold(b)))\n    return snippet(fallback, term);",
+    replacement: "",
+    expected: 'Der Trefferkontext an der Antwort'
+  },
+  {
+    nr: '1158', name: 'Die Nummer steht in der schmalen Ansicht wieder vor den Aktionen',
+    file: 'public/style.css',
+    search: "  .cmt-head .acts { order: 2; }\n  .cmt-head .cmt-no { order: 3; }",
+    replacement: "  .cmt-head .cmt-no { order: 2; }\n  .cmt-head .acts { order: 3; }",
+    expected: 'Der Stift steht da, und das Loeschen steht abseits'
+  },
+  {
+    nr: '1159', name: 'Die Nummer steht wieder vor der Aktionsgruppe',
+    file: 'public/app.js',
+    search: "          <span class=\"acts\"><button class=\"mact cite\" title=\"${esc(t('entry.quoteComment'))}\">${ICON_QUOTE}</button>${\n            mine ? `<button class=\"mact ed\" title=\"${esc(t('entry.edit'))}\">${ICON_PEN}</button>` : ''\n            }${manage ? `<button class=\"mact rm\" title=\"${esc(t('dialog.delete'))}\">${ICON_X}</button>` : ''}</span>\n          ${/* DIE NUMMER STEHT GANZ RECHTS UND AUSSERHALB DER AKTIONEN: die\n               Gruppe wird beim Bearbeiten unsichtbar, die Nummer bleibt. */''}\n          <button class=\"link-btn cmt-no\"\n              title=\"${esc(t('entry.copyCommentLink'))}\">#${Number(order.get(c.id))}</button>",
+    replacement: "          <button class=\"link-btn cmt-no\"\n              title=\"${esc(t('entry.copyCommentLink'))}\">#${Number(order.get(c.id))}</button>\n          <span class=\"acts\"><button class=\"mact cite\" title=\"${esc(t('entry.quoteComment'))}\">${ICON_QUOTE}</button>${\n            mine ? `<button class=\"mact ed\" title=\"${esc(t('entry.edit'))}\">${ICON_PEN}</button>` : ''\n            }${manage ? `<button class=\"mact rm\" title=\"${esc(t('dialog.delete'))}\">${ICON_X}</button>` : ''}</span>",
+    expected: 'Der Stift steht da, und das Loeschen steht abseits'
+  },
+  {
+    nr: '1160', name: 'Das Zitatzeichen ist wieder ein Satzzeichen',
+    file: 'public/app.js',
+    search: "${ICON_QUOTE}</button>",
+    replacement: "„</button>",
+    expected: 'Linkliste und Aktionszeichen'
+  },
+  {
+    nr: '1161', name: 'Der Kasten ohne Nummer springt wieder nicht',
+    file: 'public/app.js',
+    search: "    if (e.ctrlKey || e.metaKey || e.shiftKey || e.button) return;",
+    replacement: "    if (!row.number || e.ctrlKey || e.metaKey || e.shiftKey || e.button) return;",
     expected: 'Was der Betrieb an der Auszeichnung gefunden hat'
   },
 ];

@@ -255,6 +255,7 @@ const char = (paths, strokeWidth = 1.8) =>
   `<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="${strokeWidth}" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${paths}</svg>`;
 const ICON_X = char('<path d="M6 6l12 12"/><path d="M18 6L6 18"/>');
 const ICON_PEN = char('<path d="M4 20h4L18.5 9.5a2.1 2.1 0 0 0-3-3L5 17z"/><path d="M13.5 6.5l3 3"/>');
+const ICON_QUOTE = char('<path d="M9 7v5a5 5 0 0 1-4 5"/><path d="M19 7v5a5 5 0 0 1-4 5"/>');
 const ICON_CHECK = char('<path d="M5 12.5l4.5 4.5L19 7"/>', 2.1);
 const ICON_BOX = char('<rect x="4" y="4" width="16" height="16" rx="3"/>');
 const ICON_BOX_CHECK = char('<rect x="4" y="4" width="16" height="16" rx="3"/><path d="M8 12.5l3 3 5-6"/>');
@@ -2185,10 +2186,13 @@ function markupRefNode(row, term, name) {
   }
   // Strg-, Umschalt- und Mittelklick bleiben dem Browser.
   a.onclick = (e) => {
-    if (!row.number || e.ctrlKey || e.metaKey || e.shiftKey || e.button) return;
+    if (e.ctrlKey || e.metaKey || e.shiftKey || e.button) return;
     if (location.hash !== a.getAttribute('href')) return;
     e.preventDefault();
-    commentJump(row.id);
+    /* Ein Kasten ohne Nummer zeigt auf den Eintrag selbst: dort gibt es keine
+       Zeile zum Anleuchten, also geht es an den Kopf. */
+    if (row.number) commentJump(row.id);
+    else document.querySelector('.title-head')?.scrollIntoView?.({ block: 'start' });
   };
   return a;
 }
@@ -6512,14 +6516,13 @@ async function renderDetail(id, termAddress, commentWanted) {
           }${esc(fmtDate(c.created_at))}${c.updated_at ? ` · ${tH('entry.edited')}` : ''}${
             c.imagesRemoved ? ` · <span class="cmt-edited">${
               tH('entry.imagesRemovedAdmin', { n: c.imagesRemoved })}</span>` : ''}</span>
-          ${/* DIE NUMMER STEHT RECHTS, ABER AUSSERHALB DER AKTIONEN: die
-               Gruppe wird beim Bearbeiten unsichtbar, und die Nummer soll
-               dabei stehenbleiben. */''}
-          <button class="link-btn cmt-no"
-              title="${esc(t('entry.copyCommentLink'))}">#${Number(order.get(c.id))}</button>
-          <span class="acts"><button class="mact cite" title="${esc(t('entry.quoteComment'))}">„</button>${
+          <span class="acts"><button class="mact cite" title="${esc(t('entry.quoteComment'))}">${ICON_QUOTE}</button>${
             mine ? `<button class="mact ed" title="${esc(t('entry.edit'))}">${ICON_PEN}</button>` : ''
             }${manage ? `<button class="mact rm" title="${esc(t('dialog.delete'))}">${ICON_X}</button>` : ''}</span>
+          ${/* DIE NUMMER STEHT GANZ RECHTS UND AUSSERHALB DER AKTIONEN: die
+               Gruppe wird beim Bearbeiten unsichtbar, die Nummer bleibt. */''}
+          <button class="link-btn cmt-no"
+              title="${esc(t('entry.copyCommentLink'))}">#${Number(order.get(c.id))}</button>
         </div>
         <div class="cmt-body"></div>
         <div class="cmt-imgs"></div>`;

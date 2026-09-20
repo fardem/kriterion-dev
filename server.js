@@ -3273,7 +3273,7 @@ const SNIPPET_LEAD = 4;
 const oneLine = (s) => String(s ?? '').replace(/\s+/g, ' ').trim();
 
 /* KEINE SPRACHE MEHR (B8). */
-function snippet(text, term) {
+function snippet(text, term, fallback) {
   const row = oneLine(text);
   const b = String(term ?? '');
   if (!b) return row.slice(0, SNIPPET_LENGTH);
@@ -3287,10 +3287,13 @@ function snippet(text, term) {
     raw += c.length;
   }
   const hit = flat.indexOf(searchFold(b));
-  const pos = hit < 0 ? -1 : back[hit];
   /* GEFUNDEN WIRD SIE HIER NORMALERWEISE WIEDER -- gesucht hat SQLite auf dem
      Rohtext, geschnitten wird auf dem eingeebneten. Steht der Begriff allein im
-     Ziel eines Links, faellt er dabei weg, und der Ausschnitt faengt vorn an. */
+     Ziel eines Links, schneidet der Rohtext, sofern der ihn zeigt. */
+  if (hit < 0 && fallback != null
+      && searchFold(oneLine(fallback)).includes(searchFold(b)))
+    return snippet(fallback, term);
+  const pos = hit < 0 ? -1 : back[hit];
   const from = pos < 0 ? 0 : Math.max(0, pos - SNIPPET_LEAD);
   const to = from + SNIPPET_LENGTH;
   return (from > 0 ? '…' : '') + row.slice(from, to) + (to < row.length ? '…' : '');
@@ -3313,8 +3316,9 @@ const fulltextHits = (term) => new Map(qFulltext.all({ q: term }).map(r => {
     source: first.key,
     /* Die Marken kommen VOR dem Schneiden heraus: ein halbes `**` stuende
        sonst sichtbar im Ausschnitt. */
-    text: snippet(MARKUP_SOURCES.has(first.key)
-      ? markupPlain(r['f_' + first.key]) : r['f_' + first.key], term),
+    text: MARKUP_SOURCES.has(first.key)
+      ? snippet(markupPlain(r['f_' + first.key]), term, r['f_' + first.key])
+      : snippet(r['f_' + first.key], term),
     others: hit.length - 1
   } : null];
 }));
