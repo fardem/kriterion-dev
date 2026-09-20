@@ -28,8 +28,14 @@ ihre deutschen Abschnittsüberschriften bleiben.*
 
 ## [Unreleased]
 
+*Hier wird mitgeschrieben, während gebaut wird.*
+
+## [0.38.3] - 2026-09-20
+
 *Der Sprung zum Kommentar: er trifft die gemeinte Zeile, bleibt dort stehen,
 und innerhalb eines Eintrags gleitet die Seite hin, statt neu zu zeichnen.*
+
+Fingerprint `a91efceb` — davor `383b2511`.
 
 > **Die Nummer und die Anzeigestelle sind zweierlei.** Die Adresse trägt die
 > Nummer des Kommentars in der Datenbank, nicht seine Stellung in der Liste.
