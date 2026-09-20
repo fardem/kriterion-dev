@@ -135,6 +135,83 @@ beim Bauen vergessen hat.**
   **mit der Begründung**. *Er ist der wichtigste Teil des Blatts: eine verworfene
   Idee ohne aufgeschriebenen Grund kommt in einem halben Jahr als neue zurück.*
 
+**Davor steht seit dem 20. September 2026 ein Wegweiser** — „Der Stand der
+offenen Punkte". *Er nennt jeden offenen Punkt in einem Satz und sagt, wo er
+steht; die Begründung bleibt am Punkt.*
+
+---
+
+## Der Stand der offenen Punkte — 20. September 2026
+
+**Diese Tafel ist ein Wegweiser und kein zweiter Eintrag.** Jede Zeile nennt
+einen Punkt in einem Satz und sagt, wo er ausgearbeitet steht: eine Nummer
+zeigt in Teil I dieses Blatts, *Teil II* auf eine Zeile weiter unten,
+*Fahrplan* auf eine Zeile der Tafel in `Doku/Fahrplan.md`, ein Protokoll auf
+den Abschnitt „Was offen bleibt" der genannten Runde. **Die Begründung steht
+am Punkt und nicht hier.**
+
+**Nutzen, Aufwand und Vorschlag sind eine Einschätzung von Claude und keine
+Entscheidung.** Was gebaut wird, entscheidet der Betreiber, und wohin es kommt,
+sagt der Fahrplan.
+
+### Was im Betrieb auffällt
+
+| steht in | worum es geht | Nutzen | Aufwand | Vorschlag |
+|---|---|---|---|---|
+| **23** | Eine frische Installation legt drei deutsche Kriterien an, obwohl die Auslieferungssprache Englisch ist; ein englischer Leser sieht bei allen dreien den roten Rahmen | mittel | klein | bald |
+| Protokoll 0.38.3 | Ein Verweis auf einen gelöschten Kommentar bleibt eine rohe Adresse und öffnet einen neuen Tab auf denselben Eintrag | mittel | klein | bald |
+| Teil II | `entry.commentPlaceholder` nennt Strg+V; am Telefon gibt es das nicht | klein | ein Halbsatz in drei Sprachen | mitnehmen |
+| Protokoll 0.38.2 | Der Trefferausschnitt zeigt bei einem Treffer im Ziel eines Links den Rohtext samt seiner Marken | niedrig | groß *(gemeinsamer Kern)* | liegen lassen |
+| Protokoll 0.38.3 | Der Halt nach einem Sprung ist eine Frist von 1600 Millisekunden und keine Messung | niedrig | mittel | beobachten |
+| Protokoll 0.38.3 | Der Sprung ans Seitenende ist in Chromium nicht nachgestellt worden | — | — | beobachten |
+| Protokoll 0.38.2 | Die Strichstärke des Löschkreuzes bleibt 1.8, dieselbe wie am Stift und am Zitatzeichen | — | eine Zeile | Entscheidung des Betreibers |
+| **38** | Die Kachel zählt in Worten, der Blockkopf in Zeichen; auf dem Telefon steht die längste Fassung am engsten Ort | klein | klein | erst messen |
+| Fahrplan | Vorgabewerte und Tastaturbedienung beim Sortieren, übrig aus dem gestrichenen 1.0.0-Eintrag | — | — | braucht erst eine Beschreibung |
+
+### Sprache
+
+| steht in | worum es geht | Nutzen | Aufwand | Vorschlag |
+|---|---|---|---|---|
+| **26** | Die Restprobe übersieht jedes feste deutsche Wort, das in einer Vorlage mit `${…}`-Stellen steckt; wie viele es sind, weiß niemand | mittel | mittel | empfohlen |
+| **37** | „Dieser `{entryOne}`" ist richtig für „Eintrag" und falsch für „Bewertung"; ein drittes Feld je Vokabelwort ist für Türkisch abgelehnt | klein | klein | gelegentlich, ohne drittes Feld |
+
+### Datenbank und Betrieb
+
+| steht in | worum es geht | Nutzen | Aufwand | Vorschlag |
+|---|---|---|---|---|
+| **39** | Vier Stellen, an denen die Datenbank mehr liest als nötig; ein fehlender Index kostet 73,6 statt 14,2 Millisekunden | mittel bis hoch | mittel | eigene Runde |
+| **40** | Export, Import und Papierkorb führen jedes Byte durch den Arbeitsspeicher; der Umbau ändert die Antwortform und kann auf einem Fehlerweg Daten verlieren | hoch bei großem Bestand | groß | erst am Bestand messen |
+| **20** | Nach einem Umbenennen holt die Oberfläche vier Antworten statt drei; die vierte ist die größte der Installation | niedrig | klein | liegen lassen |
+
+### Prüfstand und Quelltext
+
+| steht in | worum es geht | Nutzen | Aufwand | Vorschlag |
+|---|---|---|---|---|
+| Teil II | Für die rund dreißig lesenden Routen gibt es kein Verzeichnis; eine `GET`-Route kann still dazukommen oder verschwinden | mittel | mittel | empfohlen |
+| **27** | Der Aufräumer des Prüfstands wird auf vier Spuren in neun von einundzwanzig Läufen rot, bei Rückbauten, die nichts damit zu tun haben | mittel | mittel | empfohlen |
+| **41** | Feste Wartezeiten in den Modulen, zusammen rund 47,5 Sekunden Laufzeit; jede braucht ihre eigene Bedingung | niedrig | groß | liegen lassen |
+| **42**, Fahrplan | Der Kommentaranteil von `public/style.css` liegt bei 40 Prozent; offen ist, ob die gemessenen Zahlen in ein eigenes Papier wandern | niedrig | — | Entscheidung des Betreibers |
+| Fahrplan | „Auffangnetz" und „Grundausstattung" stehen in `CLAUDE.md` unter „nicht verwenden" und tragen Dutzende Prüfgruppen- und Rückbaunamen | niedrig | mittel | eigene Runde |
+
+### Offen gelassen, mit Grund
+
+| steht in | worum es geht | Vorschlag |
+|---|---|---|
+| Protokoll 0.38.0 | Der Bestand des Betreibers ist nie gemessen worden; `tools/markupscan.js` steht bereit | zuerst, es ist ein Kommando |
+| Protokoll 0.38.0 | Der einzelne Stern zeichnet nicht; er kommt erst, wenn eine Messung am Bestand eine Null meldet | hängt an der Messung darüber |
+| Teil II | Der angepinnte Block kann zur Wand werden | beobachten, nicht bauen |
+| Teil II | Der eine abgerissene Prüflauf von 0.9.1 | wer ihn wiedersieht, schreibt den Lauf vollständig mit |
+
+### Ein Vorschlag für die Reihenfolge
+
+| | was | warum zuerst |
+|---|---|---|
+| 1 | **Den Bestand messen** | ein Kommando, und es entscheidet über den einzelnen Stern |
+| 2 | **Ein kleiner Sammelpatch** — die drei deutschen Kriterien, der Verweis auf einen gelöschten Kommentar, Strg+V | alles klein, alles sichtbar, eine Runde |
+| 3 | **Die Schemarunde** *(Punkt 39)* | die einzige offene Sache mit gemessenen Zahlen dahinter |
+| 4 | **Eine Runde an den Wächtern** — lesende Routen, Restprobe, Aufräumer | drei Lücken im Prüfstand, ein Thema |
+| 5 | **Export und Import** *(Punkt 40)* | erst nach einer Messung am Bestand |
+
 ---
 
 # Teil I — Ausgearbeitete Punkte
@@ -1110,7 +1187,14 @@ Kachel. *Die Anzeige ist wahr — der Bestand ist es, der nicht stimmt.*
 
 ---
 
-## 24. Die Sprachdurchsicht — drei Berichte über drei Dateien
+## 24. ~~Die Sprachdurchsicht — drei Berichte über drei Dateien~~ — **GESCHLOSSEN am 20. September 2026: die drei offenen Stücke sind gebaut**
+
+> **NACHGESEHEN AM 20. SEPTEMBER 2026.** *Der Kasten weiter unten nennt drei
+> Stücke als offen; alle drei sind inzwischen gebaut.* **`en.json` mit 0.31.2,
+> `tr.json` mit 0.31.3** — *beide Runden stehen im Fahrplan als gebaut.* **Und
+> „Note" bei 1 bis 5 Sternen ist mit 0.32.0 das fünfzehnte Vokabelwort
+> geworden:** *`vocabulary.grade` steht in allen drei Sprachdateien, und es
+> sind genau fünfzehn.* **Die Überschrift ist nur nie durchgestrichen worden.**
 
 **Art: gemischt** *(harte Fehler, Fragen an die Hausstimme und zwei falsche
 Diagnosen in einem)* · **Einschätzung von Claude: die Fehler bauen, den Rest
