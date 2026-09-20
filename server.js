@@ -3465,14 +3465,29 @@ const qCommentRef = db.prepare(`
     FROM comments k JOIN items i ON i.id = k.item_id
    WHERE k.id = ?`);
 
+const qItemRef = db.prepare('SELECT id AS itemId, title AS itemTitle FROM items WHERE id = ?');
+
 /* Dieselbe Schranke wie am Eintrag und keine zweite: angemeldet sein
    genuegt, denn GET /api/items/:id verlangt auch nicht mehr. */
 app.get('/api/comment-refs', (req, res) => {
-  /* Zweihundert je Ruf -- ein Eintrag mit mehr Verweisen holt den Rest
-     beim naechsten Zeichnen. */
-  const ids = [...new Set(String(req.query.ids || '').split(',')
+  /* Zweihundert JE ART -- sonst verdraengten die Kommentare die Eintraege,
+     und ein Eintrag mit mehr Verweisen holt den Rest beim naechsten
+     Zeichnen. */
+  const numbers = (raw) => [...new Set(String(raw || '').split(',')
     .map(x => Number(x)).filter(Number.isInteger))].slice(0, 200);
-  res.json(ids.map(x => qCommentRef.get(x)).filter(Boolean));
+  const out = [];
+  for (const x of numbers(req.query.ids)) {
+    const row = qCommentRef.get(x);
+    if (row) out.push({ key: 'c' + row.id, ...row });
+  }
+  /* Ein Verweis auf einen Eintrag traegt keine Nummer; null sagt das dem
+     Browser, ohne dass er raten muss. */
+  for (const x of numbers(req.query.items)) {
+    const row = qItemRef.get(x);
+    if (row) out.push({ key: 'i' + row.itemId, id: row.itemId,
+      itemId: row.itemId, itemTitle: row.itemTitle, number: null });
+  }
+  res.json(out);
 });
 
 app.post('/api/items', (req, res) => {

@@ -9194,7 +9194,7 @@ const REGRESSIONS = [
   {
     nr: '1137', name: 'Die Herkunft eines Verweises wird nicht mehr geprueft',
     file: 'public/app.js',
-    search: "  if (!text.startsWith(here + '#/')) return 0;\n  const found = text.slice(here.length).match(ENTRY_PATTERN);",
+    search: "  if (!text.startsWith(here + '#/')) return '';\n  const found = text.slice(here.length).match(ENTRY_PATTERN);",
     replacement: "  const found = text.replace(/^[^#]*/, '').match(ENTRY_PATTERN);",
     expected: 'Was nicht in der Teilmenge liegt, bleibt Text'
   },
@@ -9288,6 +9288,48 @@ const REGRESSIONS = [
     search: "    if (deep >= MARKUP_DEPTH) { at++; continue; }\n",
     replacement: "",
     expected: 'Kriterion zeichnet wie die Spezifikation oder gar nicht'
+  },
+  {
+    nr: '1151', name: 'Die Zwischenablage hat wieder keinen zweiten Weg',
+    file: 'public/app.js',
+    search: "    if (copyByField(text)) toast(message);\n    else toast(t(byHand), true);",
+    replacement: "    toast(t(byHand), true);",
+    expected: 'Was der Betrieb an der Auszeichnung gefunden hat'
+  },
+  {
+    nr: '1152', name: 'Der Leerraum der Auswahl steht wieder in den Marken',
+    file: 'public/app.js',
+    search: "  const core = flanked ? raw.trim() : raw;",
+    replacement: "  const core = raw;",
+    expected: 'Was der Betrieb an der Auszeichnung gefunden hat'
+  },
+  {
+    nr: '1153', name: 'Der Stift traegt wieder den leisesten Wert',
+    file: 'public/style.css',
+    search: ".mact.ed { color: var(--accent-text); }",
+    replacement: ".mact.ed { color: var(--faint); }",
+    expected: 'Der Stift steht da, und das Loeschen steht abseits'
+  },
+  {
+    nr: '1154', name: 'Vor dem Loeschkreuz steht wieder kein Abstand',
+    file: 'public/style.css',
+    search: ".cmt-head button.rm { margin-left: .6em; }",
+    replacement: ".cmt-head button.rm { margin-left: 0; }",
+    expected: 'Der Stift steht da, und das Loeschen steht abseits'
+  },
+  {
+    nr: '1155', name: 'Der Verweis springt wieder nur ueber die Adresse',
+    file: 'public/app.js',
+    search: "  const target = document.querySelector(`.cmt[data-comment=\"${Number(id)}\"]`);\n  if (!target) return false;",
+    replacement: "  const target = document.querySelector('.cmt.lit');\n  if (!target) return false;",
+    expected: 'Was der Betrieb an der Auszeichnung gefunden hat'
+  },
+  {
+    nr: '1156', name: 'Die roh eingefuegte Adresse wird wieder keine Marke',
+    file: 'public/app.js',
+    search: "    if (p.type === 'text')\n      for (const piece of splitCommentText(p.text, '', []))\n        if (piece.target) { const k = markupRefOf(piece.target); if (k) want.add(k); }",
+    replacement: "",
+    expected: 'Was der Betrieb an der Auszeichnung gefunden hat'
   },
 ];
 

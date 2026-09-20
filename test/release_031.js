@@ -522,12 +522,17 @@ async function check0311() {
    public/app.js ohne Kommentare und ohne Markup, und diese Runde nimmt dort
    toten Code weg und fasst Wiederholungen zusammen. Der Stand von 0.31.4 war
    daa0c9094f2c2305 / 77128aef244a5976. */
+/* UND MIT DEN BEFUNDEN DANACH EIN DRITTES MAL: der Rueckfall der
+   Zwischenablage, die Marke fuer jede Adresse von hier und der Sprung
+   ausserhalb des Zeichnens sind Code, und die Probe misst Code.
+   Der Stand davor war ca0e647191c4b45d / fa9051b4736f2e06,
+   en ae7b45c361487dab / a38f60916aedc01d, tr ac1fa21798b352b5 / e277fb3263e15feb. */
 /* UND MIT DER AUSZEICHNUNG SIND SIE WIEDER ANDERE, AUS DEMSELBEN GRUND:
    die Runde legt 830 Zeilen Code in public/app.js an und bewegt keinen
    deutschen Satz. Der Stand davor war
    3601c96b846df672 / 278c9992bbfe95e5, und vor dem Umbau der Paarung
    457f4c3c4bb28ec1 / 7bc60ecadb371e0e. */
-const DE_UNTOUCHED = { one: 'ca0e647191c4b45d', other: 'fa9051b4736f2e06' };
+const DE_UNTOUCHED = { one: 'daa9a66531bf3943', other: '15359dca57efe311' };
 const DE_BEFORE_0312 = { one: '91b86c5affcba789', other: '07fc3ccdc8a27a03' };
 const DE_ORDERED_0312 = {
   'login.requestAccess': 'Zugang anfragen',
@@ -543,11 +548,14 @@ const EG_CHANGED_AFTER_0312_SHARED = {
   "card.catchUpAsk": "0.33.0: der Dialog nennt die Vorschaubilder nicht mehr — die zweite Haelfte des Laufs ist gefallen",
   "card.catchUpBoth": "0.33.0: die Zeile unter dem Knopf ebenso — sie sagt nur noch, was mit den Originalen geschieht",
   "card.convertFinished": "0.33.0: der Fertigsatz nennt keine neu gerechneten Vorschaubilder mehr",
+  "card.copyByHand": "0.38.1: die Meldung nennt den Grund — ohne https gibt der Browser die Zwischenablage nicht frei",
+  "card.copyByHandLink": "0.38.1: derselbe Grund, und das markierte Feld steht weiter daneben",
   "card.grade": "0.32.0: seine Beschriftung in der Vokabelkarte",
   "card.itemMany": "0.32.0: Punkt 28, Fund 5 — dieselbe Sache in der Mehrzahl",
   "card.itemOne": "0.32.0: Punkt 28, Fund 5 — die Beschriftung nennt wieder ihre Sache",
   "card.potentialModeHint": "0.32.1: „in the entry\" wird „in the detail view\" — das Vokabelwort stand fest im Satz",
   "card.restartHint": "0.33.0: die zitierte Logzeile heisst jetzt englisch „Key loaded from ENCRYPTION_KEY\" — das Protokoll spricht englisch (0.32.0, Punkt 28, Fund 1 hatte sie auf „Schluessel\" gebracht)",
+  "card.typeByHand": "0.38.1: derselbe Grund; der Schluessel steht im Dialog darueber",
   "entry.calcGradeWeight": "0.32.0: „Score × weight\" wird `{grade} × weight`",
   "entry.copyCommentLink": "0.38.0: neu — die Raute kopiert die Adresse eines Kommentars",
   "entry.deletePhoto": "0.32.1: aus `entry.deleteWord` geteilt — „Delete photo\"",
@@ -898,12 +906,12 @@ async function check0312() {
    VOR 0.35.0: en caa4b814e75f8263 / f224721465ac0d35,
    tr ab6bdf35499f7cf9 / ad34f68137acaa2b. */
 /* VOR DER AUSZEICHNUNG: en eec8c1717c54a12f / f874903b6b33781a. */
-const EN_UNTOUCHED = { one: 'ae7b45c361487dab', other: 'a38f60916aedc01d' };
+const EN_UNTOUCHED = { one: 'cad88cfda93ececc', other: 'e73468286c2f1405' };
 const TR_BEFORE_0313 = { one: '5fec71b10c0dfa3c', other: '18b07eda589b5120' };
 /* bbaca227348609dc / 73d9f1ea0298d519 -- der Stand VOR der Berichtigung an
    der Vorschau der Vokabelkarte, die der Augenschein von 0.31.3 verlangt hat. */
 /* VOR DER AUSZEICHNUNG: tr eb1ffa65a4bddb95 / f137b990650a241e. */
-const TR_AFTER_0313 = { one: 'ac1fa21798b352b5', other: 'e277fb3263e15feb' };
+const TR_AFTER_0313 = { one: '10c6209ccd6c202e', other: '87be79f31098ad1c' };
 
 async function check0313() {
   const tgRead = (code) => JSON.parse(fs.readFileSync(
@@ -1310,7 +1318,10 @@ async function check0313() {
       'card.catchUpAsk':        '0.33.0: der Dialog nennt die Vorschaubilder nicht mehr — und „mümkündür" wird „olur", damit er unter der Laengenlatte bleibt',
       'card.catchUpBoth':       '0.33.0: die Zeile unter dem Knopf sagt nur noch, was mit den Originalen geschieht',
       'card.convertFinished':   '0.33.0: der Fertigsatz nennt keine neu gerechneten Vorschaubilder mehr',
+      'card.copyByHand': '0.38.1: die Meldung nennt den Grund — ohne https gibt der Browser die Zwischenablage nicht frei',
+      'card.copyByHandLink': '0.38.1: derselbe Grund, und das markierte Feld steht weiter daneben',
       'card.restartHint':       '0.33.0: die zitierte Logzeile heisst jetzt englisch „Key loaded from ENCRYPTION_KEY"',
+      'card.typeByHand': '0.38.1: derselbe Grund; der Schluessel steht im Dialog darueber',
       'entry.copyCommentLink': '0.38.0: neu — die Raute kopiert die Adresse eines Kommentars',
       'entry.markBold': '0.38.0: neu — der Schalter fuer Fettdruck im Menue',
       'entry.markBullet': '0.38.0: neu — der Schalter fuer die Aufzaehlung',

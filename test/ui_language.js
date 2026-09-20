@@ -298,7 +298,9 @@ async function run() {
       '__Host-kriterion_csrf',
       /* DER NAMENSRAUM DER VEKTORZEICHEN -- createElementNS verlangt ihn,
          und ohne ihn ginge das Zeichen nur ueber innerHTML hinein. */
-      'http://www.w3.org/2000/svg'
+      'http://www.w3.org/2000/svg',
+      // Der zweite Abfrageparameter an GET /api/comment-refs.
+      '&items='
     ].sort();
     const tooMany = rest.filter(t => !REST_EXPECTED.includes(t));
     const missing = REST_EXPECTED.filter(t => !rest.includes(t));

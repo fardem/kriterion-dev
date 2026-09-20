@@ -30,6 +30,32 @@ ihre deutschen Abschnittsüberschriften bleiben.*
 
 *Hier wird mitgeschrieben, während gebaut wird.*
 
+## [0.38.1] - 2026-09-20
+
+*Sechs Befunde aus dem Betrieb, am Tag nach 0.38.0 gemeldet.*
+
+> **Über eine Adresse im Netz wird wieder kopiert.** Der Browser gibt die
+> Zwischenablage nur über https und localhost heraus; jetzt kopiert ein
+> kurzlebiges Feld, und erst wenn auch das abweist, sagt die Meldung warum.
+>
+> **Jede Adresse dieser Instanz wird eine Marke**, auch roh eingefügt und auch
+> ohne Kommentarnummer. Eine fremde Adresse bleibt, wie sie dasteht.
+
+Fingerprint `f86abf3b` — davor `43f6f1be`.
+
+### Behoben
+
+- **Ein Klick auf die Kommentarnummer kopierte über eine Adresse im Netz nicht.** `navigator.clipboard` gibt es ohne sicheren Kontext nicht. Jetzt gibt es einen zweiten Weg über `document.execCommand('copy')`, und die Meldung nennt den Grund statt nur „von Hand kopieren".
+- **Eine markierte Zeile mit Einrückung wurde nicht fett.** `**  Zeile  **` ist nach der Flankenregel kein Fettdruck; der Leerraum am Rand der Auswahl bleibt jetzt außerhalb der Marken. Der Code-Abschnitt behält seinen Leerraum.
+- **Der Verweis auf einen Kommentar sprang nur beim ersten Klick.** Stand die Adresse schon am Ziel, meldete der Browser keinen Wechsel. Der Sprung steht jetzt außerhalb des Zeichnens.
+- **Ein gescheiterter Ruf an `GET /api/comment-refs` machte jeden Verweis der Seite bis zum Neuladen zu einem einfachen Link.**
+
+### Geändert
+
+- **Jede Adresse dieser Instanz wird eine Marke** — roh eingefügt wie mit Namen, mit Kommentarnummer wie ohne. Ein selbst gesetzter Name gewinnt gegen den Eintragstitel.
+- **Der Stift trägt die Akzentfarbe** statt des leisesten Werts: Kontrast 6,22 : 1 statt 2,95 im dunklen Schema, 4,97 statt 3,75 im hellen. Dieselbe Regel gilt für alle vier Stifte.
+- **Die Kommentarnummer steht rechts** bei den Schaltern, und vor dem Löschkreuz steht ein Abstand von einer Zeichenbreite — am Finger elf Pixel statt zwei.
+
 ## [0.38.0] - 2026-09-19
 
 *Kommentar und Beschreibung nehmen Auszeichnung: fett, kursiv, Code, Link mit

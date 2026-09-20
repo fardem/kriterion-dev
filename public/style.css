@@ -301,6 +301,9 @@ body {
 a { color: inherit; text-decoration: none; }
 button, input, textarea, select { font: inherit; color: inherit; }
 button { cursor: pointer; background: none; border: none; padding: 0; }
+/* Das Feld, ueber das ohne sicheren Kontext kopiert wird -- ausserhalb des
+   Bildes und nur so lange da, wie das Kopieren dauert. */
+.copy-spare { position: fixed; top: -1000px; left: 0; opacity: 0; }
 :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 4px; }
 ::selection { background: var(--accent); color: var(--on-accent); }
 
@@ -1020,6 +1023,11 @@ mark {
 /* Dieselben Zeichen und dasselbe Verhalten wie am Kommentarkopf -- und wie
    dort STEHEN SIE IMMER DA: die Zeile ist einzeilig, und auf einem Finger
    gibt es kein Ueberfahren. */
+/* JEDER STIFT STEHT FARBIG DA, und zwar derselbe an allen vier Stellen. Mit
+   --faint traegt er im Kommentarkopf 2,95:1 im dunklen und 3,75:1 im hellen
+   Schema, mit der Akzentfarbe 6,22:1 und 4,97:1. */
+.mact.ed { color: var(--accent-text); }
+.mact.ed:hover { color: var(--accent-text-hi); }
 .rej-note .acts { display: flex; gap: 8px; flex-shrink: 0; }
 .rej-note .mact { color: var(--faint); font-size: .8rem; padding: 3px 6px;
                      border-radius: 4px; transition: all .15s var(--ease); }
@@ -1165,7 +1173,10 @@ mark {
 .cmts { display: flex; flex-direction: column; gap: 9px; margin-bottom: 13px; }
 .cmt { background: var(--surface-2); border: 1px solid var(--line); border-radius: var(--r-sm); padding: 10px 12px; }
 .cmt-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; font-family: var(--mono); font-size: .7rem; color: var(--faint); margin-bottom: 6px; }
-.cmt-head .acts { display: flex; gap: 8px; }
+.cmt-head .acts { display: flex; gap: 8px; flex-shrink: 0; }
+/* EIN ABSTAND VOR DEM LOESCHEN, damit es nicht neben dem Stift mitgenommen
+   wird: .6em sind bei .73rem 6,57 Pixel, die Breite eines Zeichens. */
+.cmt-head button.rm { margin-left: .6em; }
 .cmt-head button { color: var(--faint); font-size: .73rem; }
 .cmt-head button:hover { color: var(--accent-text); }
 .cmt-head button.rm:hover { color: var(--red); }
@@ -1228,7 +1239,7 @@ mark {
 .markup-ask .input { flex: 1; min-width: 0; height: 27px; padding: 3px 7px; font-size: .84rem; }
 
 /* ---------- Die Nummer und das Ziel eines Sprungs ---------- */
-.cmt-no { font-family: var(--mono); color: var(--faint); }
+.cmt-no { font-family: var(--mono); color: var(--faint); flex-shrink: 0; }
 /* Ein Sprung ohne Markierung liesse den Leser suchen, welche der zwoelf
    Zeilen gemeint war. */
 .cmt.lit { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-dim); }
@@ -2410,6 +2421,8 @@ body.login .login-screen { flex: 1 0 auto; min-height: 0; }
      waren damit rund elf Pixel gross -- das kleinste Ziel der ganzen Instanz. */
   .cmt-head button { padding: 8px 10px; }
   .cmt-head .acts, .cmt-head .marks { gap: 2px; }
+  /* Am Finger stehen die Flaechen 2 Pixel auseinander; 11 machen daraus 13. */
+  .cmt-head button.rm { margin-left: 11px; }
   /* Die runden Kreuze auf den Bildkacheln. 19 Pixel trifft niemand. */
   .cmt-img .del, .thumb .del { width: 27px; height: 27px; }
   .thumb .del { border-radius: 0 0 0 9px; }
@@ -2864,8 +2877,9 @@ body.login .login-screen { flex: 1 0 auto; min-height: 0; }
      was sie veraendert -- die Umschalter eine Spur kleiner. */
   .cmt-head { flex-wrap: wrap; row-gap: 7px; }
   .cmt-head .cmt-when { order: 1; }
-  .cmt-head .acts { order: 2; }
-  .cmt-head .marks { order: 3; flex-basis: 100%; }
+  .cmt-head .cmt-no { order: 2; }
+  .cmt-head .acts { order: 3; }
+  .cmt-head .marks { order: 4; flex-basis: 100%; }
   .cmt-head .mark { padding: 6px 11px; }
   /* DIE BEWERTUNGSZEILE: ein langer Kriterienname stand ueber den Rand hinaus,
      weil `.rrow` nicht umbricht. Er darf umbrechen -- ein abgeschnittener

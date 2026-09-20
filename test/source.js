@@ -1810,8 +1810,11 @@ async function run() {
        Seite: `server.entryTooBig` stand mit seinem alten Wortlaut in
        `onlyThen` und mit seinem neuen in `onlyNow`; mit dem Schluessel
        fallen beide. */
-    check('Und genau hundertsechsundfuenfzig Saetze sind andere — einer weniger, seit der Einzelexport fort ist',
-      onlyThen.length === 156 && onlyNow.length === 154 &&
+    /* UND 156 UND 154 WURDEN 159 UND 157: die drei Meldungen der
+       Zwischenablage nennen jetzt den Grund, und jede steht mit dem alten
+       Wortlaut drueben und mit dem neuen hier. */
+    check('Und genau hundertneunundfuenfzig Saetze sind andere — drei mehr, seit die Zwischenablage ihren Grund nennt',
+      onlyThen.length === 159 && onlyNow.length === 157 &&
       WORDING_CHANGED_0321.every(k => LANGUAGE_FILE[k] !== undefined
         && onlyNow.includes(asBefore(LANGUAGE_FILE[k]))) &&
       /* UND DER EINE, DER ZURUECKKOMMT, STEHT AUF KEINER DER BEIDEN SEITEN
@@ -1877,7 +1880,7 @@ async function run() {
        ein anderer an ihre Stelle traete -- `list.and`, `list.ofWhich`,
        `list.sortDefaultHint` und `entry.deleteWord`. */
     check('Und sonst kein Zeichen — Satz fuer Satz dieselbe Oberflaeche',
-      equal(restThen, restNow) && restNow.length === 925,
+      equal(restThen, restNow) && restNow.length === 922,
       `${restThen.filter((x, i) => x !== restNow[i]).length} abweichende von ${restNow.length}`);
 
     /* ---- 6. Die Kuerzeprobe ---------------------------------------------
@@ -2920,11 +2923,11 @@ async function run() {
     /* EINE WENIGER SEIT 0.35.2: `.entry-out` hielt den Knopf, der den
        einzelnen Eintrag als Datei holte. Der Knopf ist fort, die Regel mit
        ihm -- eine Regel ohne Element ist toter Text. */
-    /* 1638 WURDEN 1666: achtundzwanzig Regelzeilen kommen dazu, und sie
-       steigt, weil Regeln dazukommen -- das schwebende Menue, die Vorschau
-       der Beschreibung und die sechs Bauformen der Auszeichnung. */
-    check('Und es stehen genau 1666 Regelzeilen da — achtundzwanzig mehr mit der Auszeichnung',
-      ssCode === 1666, `${ssCode} Zeilen`);
+    /* 1638 WURDEN 1672: achtundzwanzig Regelzeilen kamen mit der Auszeichnung
+       dazu und sechs mit den Befunden danach -- das Feld der Zwischenablage,
+       der farbige Stift und der Abstand vor dem Loeschen. */
+    check('Und es stehen genau 1672 Regelzeilen da — vierunddreissig mehr mit der Auszeichnung',
+      ssCode === 1672, `${ssCode} Zeilen`);
     /* UND KEIN BLOCK IST WIEDER LANG GEWORDEN. Die Drei-Zeilen-Regel gilt
        auch fuer dieses Blatt; laenger sein darf allein, wer eine Tafel
        gemessener Werte traegt. Acht tun das. */

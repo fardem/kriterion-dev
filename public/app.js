@@ -1499,6 +1499,16 @@ function buildCommentNodes(pieces) {
     // Schranke 2: unmittelbar vor dem Setzen von href noch einmal pruefen.
 // Faellt der String durch, wird sie gewoehnlicher Text, nicht Link.
     if (s.target && /^https?:\/\//i.test(String(s.target))) {
+      /* EINE ADRESSE VON HIER WIRD DIE MARKE und nicht der Link nach
+         draussen -- nur die fremde bleibt so stehen, wie sie dasteht. */
+      const row = COMMENT_REFS.get(markupRefOf(s.target));
+      if (row) {
+        let k = i;
+        while (k < list.length && String(list[k].target ?? '') === String(s.target)) k++;
+        part.appendChild(markupRefNode(row, ''));
+        i = k - 1;
+        continue;
+      }
       const a = document.createElement('a');
       a.href = String(s.target);
       a.target = '_blank';
@@ -2021,7 +2031,10 @@ function markupInlineNodes(parts, into, term, marks, inLink) {
         continue;
       }
       const row = COMMENT_REFS.get(markupRefOf(p.target));
-      if (row) { into.appendChild(markupRefNode(row, term)); continue; }
+      if (row) {
+        into.appendChild(markupRefNode(row, term, markupPlainInline(p.children)));
+        continue;
+      }
       const a = document.createElement('a');
       a.href = String(p.target);
       a.target = '_blank';
@@ -2079,18 +2092,26 @@ function markupNodes(raw, term, marks) {
 const COMMENT_REFS = new Map();
 
 /* Beim Zeichnen wird die Herkunft geprueft: eine Adresse von anderswoher
-   bleibt ein gewoehnlicher Link nach draussen. */
+   bleibt ein gewoehnlicher Link nach draussen. Heraus kommt der Schluessel
+   der Auskunft -- `c` fuer einen Kommentar, `i` fuer einen Eintrag. */
 function markupRefOf(target) {
   const here = location.origin + location.pathname;
   const text = String(target ?? '');
-  if (!text.startsWith(here + '#/')) return 0;
+  if (!text.startsWith(here + '#/')) return '';
   const found = text.slice(here.length).match(ENTRY_PATTERN);
-  return found ? commentOutAddress(found[2]) : 0;
+  if (!found) return '';
+  const comment = commentOutAddress(found[2]);
+  return comment ? `c${comment}` : `i${Number(found[1])}`;
 }
 
+/* AUCH DIE ROH GESCHRIEBENE ADRESSE ZAEHLT: eine eingefuegte Adresse von
+   hier soll dieselbe Marke werden wie eine mit Namen. */
 function markupRefScan(parts, want) {
   for (const p of parts) {
-    if (p.type === 'link') { const n = markupRefOf(p.target); if (n) want.add(n); }
+    if (p.type === 'link') { const k = markupRefOf(p.target); if (k) want.add(k); }
+    if (p.type === 'text')
+      for (const piece of splitCommentText(p.text, '', []))
+        if (piece.target) { const k = markupRefOf(piece.target); if (k) want.add(k); }
     if (p.children) markupRefScan(p.children, want);
   }
 }
@@ -2112,28 +2133,63 @@ function markupRefMissing(texts) {
 
 /* Ein Ruf je Zeichnung, gesammelt ueber alle Kommentare und die
    Beschreibung. Die Route achtet auf dieselbe Schranke wie der Eintrag. */
-async function markupRefLoad(ids) {
-  /* Nur so viele, wie die Route auf einmal beantwortet -- der Rest kommt
-     beim naechsten Zeichnen, sonst bliebe er ungefragt vorgemerkt. */
-  const ask = ids.slice(0, 200);
-  for (const n of ask) COMMENT_REFS.set(n, null);
+async function markupRefLoad(keys) {
+  /* Nur so viele, wie die Route auf einmal beantwortet -- je Art
+     zweihundert; der Rest kommt beim naechsten Zeichnen. */
+  const ask = keys.slice(0, 400);
+  for (const k of ask) COMMENT_REFS.set(k, null);
+  const cut = (sign) => ask.filter(k => k[0] === sign).map(k => k.slice(1)).join(',');
   try {
-    for (const row of await api('GET', `/api/comment-refs?ids=${ask.join(',')}`))
-      COMMENT_REFS.set(row.id, row);
-  } catch { /* ohne Auskunft bleibt der Verweis ein einfacher Link */ }
+    for (const row of await api('GET',
+      `/api/comment-refs?ids=${cut('c')}&items=${cut('i')}`))
+      COMMENT_REFS.set(row.key, row);
+  } catch {
+    /* EIN GESCHEITERTER RUF WIRD VERGESSEN: bliebe die Vormerkung stehen,
+       waere jeder Verweis der Seite bis zum Neuladen ein einfacher Link. */
+    for (const k of ask) COMMENT_REFS.delete(k);
+  }
 }
 
 /* Die Marke statt der Adresse: Titel und Nummer sagen, wohin es geht. */
-function markupRefNode(row, term) {
+/* DER SPRUNG STEHT AUSSERHALB DES ZEICHNENS: steht die Adresse schon am Ziel,
+   meldet der Browser keinen Wechsel, und ein zweiter Klick auf denselben
+   Verweis loest gar nichts aus. */
+let LIT_TIMER = 0;
+function commentJump(id) {
+  const target = document.querySelector(`.cmt[data-comment="${Number(id)}"]`);
+  if (!target) return false;
+  openBlock('kommentare');
+  clearTimeout(LIT_TIMER);
+  for (const k of document.querySelectorAll('.cmt.lit')) k.classList.remove('lit');
+  target.classList.add('lit');
+  target.scrollIntoView?.({ block: 'center' });
+  LIT_TIMER = setTimeout(() => {
+    for (const k of document.querySelectorAll('.cmt.lit')) k.classList.remove('lit');
+  }, 2600);
+  return true;
+}
+
+/* Ein selbst gesetzter Name gewinnt; die eingefuegte Adresse zieht den Titel
+   des Ziels. Ein Verweis auf einen Eintrag traegt keine Nummer. */
+function markupRefNode(row, term, name) {
   const a = document.createElement('a');
   a.className = 'markup-ref';
-  a.href = entryAddress(row.itemId, '', row.id);
+  a.href = entryAddress(row.itemId, '', row.number ? row.id : 0);
   a.title = t('entry.refHint');
-  a.appendChild(raiseHighlight(row.itemTitle, term));
-  const no = document.createElement('span');
-  no.className = 'markup-ref-no';
-  no.textContent = '#' + row.number;
-  a.appendChild(no);
+  a.appendChild(raiseHighlight(name || row.itemTitle, term));
+  if (row.number) {
+    const no = document.createElement('span');
+    no.className = 'markup-ref-no';
+    no.textContent = '#' + row.number;
+    a.appendChild(no);
+  }
+  // Strg-, Umschalt- und Mittelklick bleiben dem Browser.
+  a.onclick = (e) => {
+    if (!row.number || e.ctrlKey || e.metaKey || e.shiftKey || e.button) return;
+    if (location.hash !== a.getAttribute('href')) return;
+    e.preventDefault();
+    commentJump(row.id);
+  };
   return a;
 }
 
@@ -2156,11 +2212,19 @@ function markupInsert(field, from, to, text) {
   field.dispatchEvent(new Event('input', { bubbles: true }));
 }
 
+/* DER LEERRAUM AM RAND BLEIBT DRAUSSEN: hinter einem oeffnenden `*` oder `_`
+   darf keiner stehen, sonst entsteht keine Auszeichnung. Der Code-Abschnitt
+   kennt die Regel nicht, und eine Auswahl aus lauter Leerraum bleibt ganz. */
 function markupAround(field, before, after) {
   const from = field.selectionStart, to = field.selectionEnd;
-  const chosen = field.value.slice(from, to);
-  markupInsert(field, from, to, before + chosen + after);
-  field.setSelectionRange(from + before.length, from + before.length + chosen.length);
+  const raw = field.value.slice(from, to);
+  const flanked = before === '**' || before === '_';
+  const core = flanked ? raw.trim() : raw;
+  const lead = flanked && core ? raw.length - raw.trimStart().length : 0;
+  const chosen = core || raw;
+  const left = from + lead;
+  markupInsert(field, left, left + chosen.length, before + chosen + after);
+  field.setSelectionRange(left + before.length, left + before.length + chosen.length);
 }
 
 /* Ein Zeichen am Zeilenanfang gilt fuer jede beruehrte Zeile. */
@@ -6443,12 +6507,16 @@ async function renderDetail(id, termAddress, commentWanted) {
               : `<span class="cmt-due on due-${esc(dueState)}"
                   title="${esc(t('entry.dueHint'))}">${esc(fmtDay(c.dueDate))}</span>`}
           </span>` : ''}
-          <span class="cmt-when"><button class="link-btn cmt-no"
-              title="${esc(t('entry.copyCommentLink'))}">#${Number(order.get(c.id))}</button> · ${multipleUsers()
+          <span class="cmt-when">${multipleUsers()
             ? `<span class="cmt-from">${esc(authorName(c.author))}</span> · ` : ''
           }${esc(fmtDate(c.created_at))}${c.updated_at ? ` · ${tH('entry.edited')}` : ''}${
             c.imagesRemoved ? ` · <span class="cmt-edited">${
               tH('entry.imagesRemovedAdmin', { n: c.imagesRemoved })}</span>` : ''}</span>
+          ${/* DIE NUMMER STEHT RECHTS, ABER AUSSERHALB DER AKTIONEN: die
+               Gruppe wird beim Bearbeiten unsichtbar, und die Nummer soll
+               dabei stehenbleiben. */''}
+          <button class="link-btn cmt-no"
+              title="${esc(t('entry.copyCommentLink'))}">#${Number(order.get(c.id))}</button>
           <span class="acts"><button class="mact cite" title="${esc(t('entry.quoteComment'))}">„</button>${
             mine ? `<button class="mact ed" title="${esc(t('entry.edit'))}">${ICON_PEN}</button>` : ''
             }${manage ? `<button class="mact rm" title="${esc(t('dialog.delete'))}">${ICON_X}</button>` : ''}</span>
@@ -6723,17 +6791,8 @@ async function renderDetail(id, termAddress, commentWanted) {
   drawRatings(); drawTestDays(); drawLinks(); drawAtts(); drawComments();
   /* Ein Sprung ohne Markierung liesse den Leser suchen, welche der zwoelf
      Zeilen gemeint war. */
-  if (litComment) {
-    const target = document.querySelector('.cmt.lit');
-    if (target) {
-      openBlock('kommentare');
-      target.scrollIntoView({ block: 'center' });
-      setTimeout(() => {
-        litComment = 0;
-        for (const k of document.querySelectorAll('.cmt.lit')) k.classList.remove('lit');
-      }, 2600);
-    }
-  }
+  if (litComment && commentJump(litComment))
+    setTimeout(() => { litComment = 0; }, 2600);
 }
 
 /* ================= Der Systembereich ================= ACHTZEHN KARTEN IN
@@ -6762,13 +6821,52 @@ const sysUrl = (key) => `#/system/${key}`;
 /* Was eine Karte nicht zeigt, bekommt auch keinen Behandler. */
 const atElement = (id, tu) => { const el = document.getElementById(id); if (el) tu(el); };
 
-/* IN DIE ZWISCHENABLAGE, mit demselben Rueckfall wie am Einladungslink: das
-   Skript darf nicht ueberall an die Ablage, und dann sagt der Toast es. */
-function copyText(text, message = t('card.copied')) {
-  if (navigator.clipboard && navigator.clipboard.writeText) {
-    navigator.clipboard.writeText(text).then(() => toast(message),
-      () => toast(t('card.copyByHand'), true));
-  } else toast(t('card.copyByHand'), true);
+/* DIE ABLAGE UEBER DAS SKRIPT GIBT DER BROWSER NUR IM SICHEREN KONTEXT HERAUS
+   -- https, localhost, 127.0.0.1. Ueber eine Adresse im Netz fehlt sie, und
+   dann kopiert ein kurzlebiges Feld. */
+function copyByField(text) {
+  const pick = window.getSelection();
+  const spans = [];
+  for (let i = 0; i < pick.rangeCount; i++) spans.push(pick.getRangeAt(i));
+  const before = document.activeElement;
+  let from = null, to = null;
+  // Ein Feld vom Typ email oder number wirft beim Lesen der Schreibstelle.
+  try { from = before.selectionStart; to = before.selectionEnd; } catch { from = null; }
+  const box = document.createElement('textarea');
+  box.value = text;
+  box.setAttribute('readonly', '');
+  box.className = 'copy-spare';
+  let done = false;
+  try {
+    document.body.appendChild(box);
+    box.select();
+    box.setSelectionRange(0, text.length);
+    done = document.execCommand('copy');
+  } catch { done = false; }
+  box.remove();
+  /* AUSWAHL UND FOKUS KOMMEN ZURUECK: das Menue im Lesemodus haengt an der
+     Auswahl, und ein Schreibfeld verloere sonst seine Stelle. */
+  try {
+    pick.removeAllRanges();
+    for (const span of spans) pick.addRange(span);
+  } catch { /* ohne Auswahl gibt es nichts zurueckzustellen */ }
+  if (before && before.isConnected && before.focus) {
+    before.focus();
+    if (from !== null) { try { before.setSelectionRange(from, to); } catch { /* kein Feld */ } }
+  }
+  return done;
+}
+
+/* Erst ueber das Skript, dann ueber das Feld, und erst wenn beides abweist,
+   sagt der Toast warum. */
+function copyText(text, message = t('card.copied'), byHand = 'card.copyByHand') {
+  const overField = () => {
+    if (copyByField(text)) toast(message);
+    else toast(t(byHand), true);
+  };
+  if (navigator.clipboard && navigator.clipboard.writeText)
+    navigator.clipboard.writeText(text).then(() => toast(message), overField);
+  else overField();
 }
 // Ein Horcher fuer alle Kopierknoepfe mit data-copy -- auch fuer die, die
 // erst spaeter in die Seite kommen (die Wiederherstellungscodes).
@@ -7277,12 +7375,8 @@ function setUpUserOut(fetched) {
         <button class="btn btn-ghost btn-sm" id="two-factor-cancel">${tH('dialog.cancel')}</button>
       </div>`;
     const field = document.getElementById('two-factor-check');
-    document.getElementById('two-factor-copy').onclick = () => {
-      if (navigator.clipboard && navigator.clipboard.writeText) {
-        navigator.clipboard.writeText(d.secret).then(() => toast(t('card.keyCopied')),
-          () => toast(t('card.typeByHand'), true));
-      } else toast(t('card.typeByHand'), true);
-    };
+    document.getElementById('two-factor-copy').onclick = () =>
+      copyText(d.secret, t('card.keyCopied'), 'card.typeByHand');
     document.getElementById('two-factor-cancel').onclick = () => renderSystem();
     document.getElementById('two-factor-done').onclick = async () => {
       const e = await confirmFieldFree(t('card.twoFactorOn'),
@@ -8581,13 +8675,9 @@ function setUpUsersOut() {
     const field = document.getElementById('user-link-field');
     field.focus(); field.select();
     document.getElementById('user-link-copy').onclick = () => {
+      // Das Feld bleibt markiert: traegt kein Weg, steht der Link wenigstens da.
       field.select();
-      // Die Zwischenablage über das Skript ist nicht überall erlaubt; das
-// markierte Feld daneben ist der Weg, der immer trägt.
-      if (navigator.clipboard && navigator.clipboard.writeText) {
-        navigator.clipboard.writeText(address).then(() => toast(t('card.linkCopied')),
-          () => toast(t('card.copyByHandLink'), true));
-      } else toast(t('card.copyByHandLink'), true);
+      copyText(address, t('card.linkCopied'), 'card.copyByHandLink');
     };
   }
 
