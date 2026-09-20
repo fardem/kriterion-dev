@@ -2703,6 +2703,50 @@ async function run() {
     check('Die drei Stufen stehen in app.js und server.js gleich',
       !!levelsApp && levelsApp === levelsSrv, `app: ${levelsApp} · server: ${levelsSrv}`);
   }
+
+  /* ================= Der Stift und der Abstand vor dem Loeschen ==========
+     ZWEI BEFUNDE DES BETRIEBS: der Stift war der leiseste Wert des Hauses,
+     und das Loeschkreuz stand dem Nachbarn zu nah. */
+  group('Der Stift steht da, und das Loeschen steht abseits');
+  {
+    const psRaw = fs.readFileSync(path.join(__dirname, 'public', 'style.css'), 'utf8');
+    /* DER STIFT TRAEGT EINE REGEL, UND ZWAR EINE FUER ALLE VIER STELLEN:
+       Kommentar, Beschreibung, Ablehnungsgrund und Kartenname. */
+    check('Der Stift traegt die Akzentfarbe statt des leisesten Werts',
+      /\.mact\.ed \{ color: var\(--accent-text\); \}/.test(psRaw),
+      'keine Regel auf .mact.ed');
+    check('Und beim Ueberfahren einen anderen Wert — sonst gaebe er keine Rueckmeldung',
+      /\.mact\.ed:hover \{ color: var\(--accent-text-hi\); \}/.test(psRaw));
+    /* DIE VIER STELLEN TRAGEN WIRKLICH DIESELBE KLASSE. */
+    const psApp = fs.readFileSync(path.join(__dirname, 'public', 'app.js'), 'utf8');
+    check('Und vier Stellen im Code tragen sie',
+      (psApp.match(/mact ed/g) || []).length === 4,
+      `${(psApp.match(/mact ed/g) || []).length} Stellen`);
+
+    /* DER ABSTAND VOR DEM LOESCHEN -- am Zeiger eine Zeichenbreite, am
+       Finger mehr, weil die Flaechen dort dichter stehen. */
+    check('Vor dem Loeschkreuz steht ein Abstand',
+      /\.cmt-head button\.rm \{ margin-left: \.6em; \}/.test(psRaw));
+    check('Und am Finger ein groesserer',
+      /\.cmt-head button\.rm \{ margin-left: 11px; \}/.test(psRaw));
+    /* DIE NUMMER STEHT RECHTS UND AUSSERHALB DER AKTIONEN -- sonst ver-
+       schwaende sie beim Bearbeiten mit der ganzen Gruppe. */
+    check('Die Nummer steht ausserhalb der Aktionsgruppe',
+      /<button class="link-btn cmt-no"/.test(psApp)
+      && !/<span class="acts"><button class="[^"]*cmt-no/.test(psApp));
+    check('Und die Aktionsgruppe schrumpft nicht mehr',
+      /\.cmt-head \.acts \{ display: flex; gap: 8px; flex-shrink: 0; \}/.test(psRaw));
+  }
+
+  /* Das Feld, ueber das ohne sicheren Kontext kopiert wird. */
+  group('Das Feld der Zwischenablage steht ausserhalb des Bildes');
+  {
+    const cpRaw = fs.readFileSync(path.join(__dirname, 'public', 'style.css'), 'utf8');
+    check('Die Regel steht da und haelt das Feld aus dem Bild',
+      /\.copy-spare \{ position: fixed; top: -1000px; left: 0; opacity: 0; \}/.test(cpRaw));
+    check('Und sie traegt keine feste Schriftgroesse',
+      !/\.copy-spare[^}]*font-size/.test(cpRaw));
+  }
 }
 
 module.exports = run;

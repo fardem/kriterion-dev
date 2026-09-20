@@ -3888,14 +3888,16 @@ group('Was nicht in der Teilmenge liegt, bleibt Text');
   /* ---- DIE HERKUNFT WIRD BEIM ZEICHNEN GEPRUEFT ---- */
   const mkHere = wb.location.origin + wb.location.pathname;
   check('Eine Adresse der eigenen Instanz wird zum Verweis',
-    wb.markupRefOf(mkHere + '#/item/1?c=2') === 2,
+    wb.markupRefOf(mkHere + '#/item/1?c=2') === 'c2',
     String(wb.markupRefOf(mkHere + '#/item/1?c=2')));
   check('Eine Adresse von anderswoher dagegen nicht',
-    wb.markupRefOf('https://fremde.example/#/item/1?c=2') === 0
-    && wb.markupRefOf('https://fremde.example/kriterion/#/item/1?c=2') === 0,
+    wb.markupRefOf('https://fremde.example/#/item/1?c=2') === ''
+    && wb.markupRefOf('https://fremde.example/kriterion/#/item/1?c=2') === '',
     String(wb.markupRefOf('https://fremde.example/#/item/1?c=2')));
-  check('Und ohne Kommentarnummer entsteht auch aus der eigenen keiner',
-    wb.markupRefOf(mkHere + '#/item/1') === 0 && wb.markupRefOf(mkHere + '#/list') === 0,
+  /* OHNE KOMMENTARNUMMER ZEIGT SIE AUF DEN EINTRAG -- und auch der bekommt
+     eine Marke, nur ohne Raute und Zahl. */
+  check('Und ohne Kommentarnummer zeigt sie auf den Eintrag',
+    wb.markupRefOf(mkHere + '#/item/1') === 'i1' && wb.markupRefOf(mkHere + '#/list') === '',
     String(wb.markupRefOf(mkHere + '#/item/1')));
   /* UND DIE MARKE ENTSTEHT ERST MIT DER AUSKUNFT: ohne sie bleibt der
      Verweis ein gewoehnlicher Link. */
@@ -4069,6 +4071,122 @@ group('Die Beschreibung wird gelesen und geschrieben');
   wb.document.dispatchEvent(new wb.Event('selectionchange'));
   check('Und ein weggezeichnetes Feld schliesst es wieder',
     menu.hidden, `hidden=${menu.hidden}`);
+}
+
+/* ================= Die sechs Befunde des Betriebs =================
+   GEMELDET AM BILDSCHIRM UND NICHT AM CODE: jeder steht hier mit dem Fall,
+   an dem er aufgefallen ist. */
+group('Was der Betrieb an der Auszeichnung gefunden hat');
+{
+  const mkHere = wb.location.origin + wb.location.pathname;
+  const mkBox = (raw) => {
+    const box = wb.document.createElement('div');
+    box.appendChild(wb.markupNodes(raw, '', []));
+    return box;
+  };
+
+  /* ---- 1. DIE ZWISCHENABLAGE UEBER EINE ADRESSE IM NETZ ---- Ohne sicheren
+     Kontext gibt der Browser `navigator.clipboard` nicht heraus. */
+  const saidBefore = [];
+  const catchToast = (m, red) => saidBefore.push({ m, red });
+  const realToast = wb.toast, realClip = wb.navigator.clipboard;
+  wb.toast = catchToast;
+  try { delete wb.navigator.clipboard; } catch { /* schon fort */ }
+  let copied = null;
+  wb.document.execCommand = (what) => {
+    if (what !== 'copy') return false;
+    copied = wb.document.querySelector('.copy-spare')?.value ?? null;
+    return true;
+  };
+  wb.copyText('DIE ADRESSE', 'card.linkCopied');
+  check('Ohne Zwischenablage kopiert das Feld',
+    copied === 'DIE ADRESSE', JSON.stringify(copied));
+  check('Und der Toast meldet den Erfolg, nicht den Fehler',
+    saidBefore.length === 1 && saidBefore[0].m === 'card.linkCopied' && !saidBefore[0].red,
+    JSON.stringify(saidBefore));
+  check('Und das Feld bleibt nicht stehen',
+    wb.document.querySelector('.copy-spare') === null);
+  /* UND WENN AUCH DAS NICHT TRAEGT, SAGT DIE MELDUNG DEN GRUND. */
+  saidBefore.length = 0;
+  wb.document.execCommand = () => false;
+  wb.copyText('X', 'card.linkCopied');
+  check('Traegt auch das Feld nicht, kommt die Meldung in Rot',
+    saidBefore.length === 1 && saidBefore[0].red, JSON.stringify(saidBefore));
+  const byHand = require(path.join(__dirname, 'public', 'languages', 'de.json'))['card.copyByHand'];
+  check('Und sie nennt den Grund statt nur eine Anweisung',
+    /https/.test(byHand) && /Zwischenablage/.test(byHand), JSON.stringify(byHand));
+  wb.toast = realToast;
+  if (realClip) wb.navigator.clipboard = realClip;
+
+  /* ---- 2. LEERRAUM AM RAND DER AUSWAHL ---- `** fett **` ist nach der
+     Flankenregel kein Fettdruck; der Code-Abschnitt kennt die Regel nicht. */
+  const mkField = wb.document.createElement('textarea');
+  mkField.dataset.markup = '';
+  wb.document.body.appendChild(mkField);
+  const around = (value, from, to, mark) => {
+    mkField.value = value;
+    mkField.focus();
+    mkField.setSelectionRange(from, to);
+    wb.markupAround(mkField, mark, mark);
+    return mkField.value;
+  };
+  check('Der Leerraum am Rand bleibt ausserhalb der Marken',
+    around('   Zeile Text', 0, 9, '**') === '   **Zeile** Text',
+    JSON.stringify(around('   Zeile Text', 0, 9, '**')));
+  check('Und das Ergebnis wird wirklich ein Fettdruck',
+    mkBox('  **Zeile**  ').querySelector('strong') !== null
+    && mkBox('**  Zeile  **').querySelector('strong') === null,
+    mkBox('**  Zeile  **').innerHTML);
+  check('Der Code-Abschnitt behaelt seinen Leerraum',
+    around('  Wort  ', 0, 8, '`') === '`  Wort  `',
+    JSON.stringify(around('  Wort  ', 0, 8, '`')));
+  check('Eine Auswahl aus lauter Leerraum bleibt, wie sie war',
+    around('   ', 0, 3, '**') === '**   **',
+    JSON.stringify(around('   ', 0, 3, '**')));
+  mkField.remove();
+
+  /* ---- 5. DER VERWEIS SPRINGT AUCH BEIM ZWEITEN KLICK ---- Steht die
+     Adresse schon am Ziel, meldet der Browser keinen Wechsel. */
+  const mkRow = wb.document.querySelector('#cmts .cmt[data-comment]');
+  check('Die Prueflage traegt eine Kommentarzeile mit Nummer', mkRow !== null);
+  if (mkRow) {
+    const mkId = Number(mkRow.dataset.comment);
+    mkRow.classList.remove('lit');
+    check('Der Sprung leuchtet die Zeile an',
+      wb.commentJump(mkId) === true && mkRow.classList.contains('lit'));
+    mkRow.classList.remove('lit');
+    check('Und ein zweiter Ruf tut es wieder',
+      wb.commentJump(mkId) === true && mkRow.classList.contains('lit'));
+    check('Ein Kommentar, den es nicht gibt, bleibt folgenlos',
+      wb.commentJump(999999) === false);
+  }
+
+  /* ---- 6. JEDE ADRESSE VON HIER WIRD EINE MARKE ---- */
+  /* COMMENT_REFS ist eine const und steht damit nicht am Fenster; gesetzt
+     wird im Fenster selbst. */
+  wb.eval(`COMMENT_REFS.set('c2', { key: 'c2', id: 2, itemId: 1, itemTitle: 'Der Eintrag', number: 7 });
+           COMMENT_REFS.set('i1', { key: 'i1', id: 1, itemId: 1, itemTitle: 'Der Eintrag', number: null });`);
+  const mkRef = (raw) => mkBox(raw).querySelector('.markup-ref');
+  const mkShow = (raw) => { const r = mkRef(raw); return r ? r.textContent : '(kein Kasten)'; };
+  check('Eine roh eingefuegte Adresse mit Kommentarnummer wird die Marke',
+    mkShow(mkHere + '#/item/1?c=2') === 'Der Eintrag#7', mkShow(mkHere + '#/item/1?c=2'));
+  check('Und eine ohne Nummer wird sie ebenso, nur ohne Raute',
+    mkShow(mkHere + '#/item/1') === 'Der Eintrag', mkShow(mkHere + '#/item/1'));
+  check('Ein selbst gesetzter Name gewinnt gegen den Titel',
+    mkShow(`[siehe dort](${mkHere}#/item/1?c=2)`) === 'siehe dort#7',
+    mkShow(`[siehe dort](${mkHere}#/item/1?c=2)`));
+  check('Auch ohne Nummer',
+    mkShow(`[dort](${mkHere}#/item/1)`) === 'dort', mkShow(`[dort](${mkHere}#/item/1)`));
+  /* UND DIE FREMDE ADRESSE BLEIBT, WIE SIE DASTEHT -- sonst waere jede
+     Adresse eine Marke, und der Leser saehe nicht mehr, wohin er geht. */
+  check('Eine Adresse von anderswoher bleibt ein Link nach draussen',
+    mkRef('https://fremde.example/seite') === null
+    && mkBox('https://fremde.example/seite').querySelector('a[target="_blank"]') !== null,
+    mkBox('https://fremde.example/seite').innerHTML);
+  check('Der Kasten ohne Nummer zeigt auf den Eintrag und nicht auf einen Kommentar',
+    mkRef(mkHere + '#/item/1').getAttribute('href') === '#/item/1',
+    mkRef(mkHere + '#/item/1').getAttribute('href'));
+  wb.eval("COMMENT_REFS.delete('c2'); COMMENT_REFS.delete('i1');");
 }
 
   wb.close();
