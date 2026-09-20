@@ -2736,6 +2736,15 @@ async function run() {
       && !/<span class="acts"><button class="[^"]*cmt-no/.test(psApp));
     check('Und die Aktionsgruppe schrumpft nicht mehr',
       /\.cmt-head \.acts \{ display: flex; gap: 8px; flex-shrink: 0; \}/.test(psRaw));
+    /* UND SIE STEHT GANZ RECHTS: im Quelltext hinter der Gruppe, in der
+       schmalen Ansicht als drittes Stueck. */
+    const psActs = psApp.indexOf('<span class="acts"><button class="mact cite"');
+    const psNo = psApp.indexOf('<button class="link-btn cmt-no"');
+    check('Und zwar hinter der Aktionsgruppe',
+      psActs >= 0 && psNo > psActs, `${psActs} vor ${psNo}`);
+    check('Auch in der schmalen Ansicht',
+      /\.cmt-head \.acts \{ order: 2; \}/.test(psRaw)
+      && /\.cmt-head \.cmt-no \{ order: 3; \}/.test(psRaw));
   }
 
   /* Das Feld, ueber das ohne sicheren Kontext kopiert wird. */

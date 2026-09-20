@@ -30,6 +30,23 @@ ihre deutschen Abschnittsüberschriften bleiben.*
 
 *Hier wird mitgeschrieben, während gebaut wird.*
 
+## [0.38.2] - 2026-09-20
+
+*Die Kopfzeile eines Kommentars, dazu zwei offene Punkte aus 0.38.1.*
+
+Fingerprint `383b2511` — davor `f86abf3b`.
+
+### Geändert
+
+- **Die Kommentarnummer steht ganz rechts**, hinter Zitat, Stift und Löschkreuz. Discourse, phpBB und XenForo stellen die Beitragsnummer ebenso als letztes Element der Kopfzeile dar; GitHub und Stack Overflow zeigen gar keine und machen den Zeitstempel zum Permalink.
+- **Das Löschkreuz liegt damit nicht mehr am Rand der Zeile**, sondern zwischen zwei Abständen.
+- **Der Zitatknopf trägt ein gezeichnetes Zeichen** statt des Satzzeichens `„` — dieselbe Strichstärke und dieselbe Größe wie Stift und Löschkreuz. Im Auszeichnungsmenü bleibt `„` ein Schriftzeichen.
+
+### Behoben
+
+- **Ein Verweiskasten ohne Nummer sprang nicht**, wenn er auf den Eintrag zeigte, in dem er selbst steht. Jetzt geht der Klick an den Kopf des Eintrags.
+- **Der Trefferausschnitt zeigte den Suchbegriff nicht**, wenn er allein im Ziel eines Links stand. Jetzt schneidet der Ausschnitt in diesem Fall den Rohtext — samt seiner Marken.
+
 ## [0.38.1] - 2026-09-20
 
 *Sechs Befunde aus dem Betrieb, am Tag nach 0.38.0 gemeldet.*
