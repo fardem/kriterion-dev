@@ -22,7 +22,7 @@ async function run() {
   // Die Zahl der Rueckbauten steht ausdruecklich da: eine Zahl in einem
   // Papier ist eine Behauptung, eine Zahl im Pruefstand ist ein Beleg. Wie
   // sie Runde fuer Runde gewachsen ist, steht in den Aenderungsprotokollen.
-  check(`Es sind genau 1104 Rueckbauten`, gpList.length === 1104, `${gpList.length}`);
+  check(`Es sind genau 1115 Rueckbauten`, gpList.length === 1115, `${gpList.length}`);
   const gpTwice = gpList.map(r => r.nr).filter((n, i, a) => a.indexOf(n) !== i);
   check('Und keine Nummer steht zweimal', gpTwice.length === 0, gpTwice.join(' '));
   /* JEDER GREIFT: der Suchtext kommt in seiner Datei GENAU EINMAL vor. */
@@ -374,8 +374,10 @@ async function run() {
      bekommen je eine Gegenprobe auf ihren eigenen Leser. */
   /* UND 29 WURDEN 31 MIT 0.36.0: der Waechter ueber die Einsetzungen und die
      Gruppe ueber npm audit bekommen je eine. */
+  /* UND 31 WURDEN 32: das Verzeichnis der lesenden Routen bekommt eine
+     Gegenprobe auf eine falsche Klemme. */
   check('Der Waechter sieht die Rueckbauten auf Pruefstandsdateien',
-    rpChecked === 31, `${rpChecked} Rueckbauten`);
+    rpChecked === 32, `${rpChecked} Rueckbauten`);
   check('Und jeder ihrer Namen steht in der Zieldatei, im Rahmen oder im Suchtext',
     rpStrange.length === 0, rpStrange.slice(0, 6).join(' · '));
 
@@ -398,26 +400,26 @@ async function run() {
       ['test/batchrun.js', 87],
       ['test/dom.js', 347],
       ['test/firstlogin.js', 34],
-      ['test/frame.js', 221],
+      ['test/frame.js', 231],
       ['test/keychange.js', 81],
       ['test/release_029.js', 60],
       ['test/release_030.js', 241],
-      ['test/release_031.js', 433],
-      ['test/roundtrip.js', 3242],
-      ['test/selfcheck.js', 213],
-      ['test/source.js', 917],
-      ['test/ui_entry.js', 612],
+      ['test/release_031.js', 440],
+      ['test/roundtrip.js', 3269],
+      ['test/selfcheck.js', 219],
+      ['test/source.js', 939],
+      ['test/ui_entry.js', 619],
       ['test/ui_export.js', 453],
       ['test/ui_inventory.js', 241],
-      ['test/ui_language.js', 287],
+      ['test/ui_language.js', 292],
       ['test/ui_overview.js', 494],
       ['test/ui_style.js', 585],
       ['test/ui_system.js', 692],
       ['test/ui_translator.js', 104],
-      ['counterproof.js', 1581],
-      ['server.js', 1539],
+      ['counterproof.js', 1593],
+      ['server.js', 1549],
       ['auth.js', 293],
-      ['db.js', 128],
+      ['db.js', 133],
       ['mail.js', 43],
       ['keys.js', 40],
       ['attachments.js', 61],
@@ -427,15 +429,19 @@ async function run() {
       ['usertool.js', 23],
       ['twofactor.js', 34],
       ['keytool.js', 41],
-      ['public/app.js', 1961],
+      ['public/app.js', 1967],
       ['public/theme.js', 3],
-      ['public/style.css', 1215],
+      ['public/style.css', 1217],
     ];
     /* DIE AUSZEICHNUNG BRINGT 830 ZEILEN CODE UND IHREN KOMMENTAR;
        der Anteil bleibt unter einem Fuenftel. Die Zahlen darunter sind
        gestiegen, weil der Sprung zum Kommentar dazugekommen ist -- davor
        standen hier 16394 und 65809. */
-    const COMMENT_TOTAL = { comment: 16438, code: 66056 };
+    /* UND NOCH EINMAL MIT DEN DREI INDEXEN, dem Verzeichnis der lesenden
+       Routen und der Marke am geloeschten Verweis -- davor 16438 und 66056.
+       Der groesste Teil davon steht im Pruefstand, nicht im ausgelieferten
+       Code: die Zahlen der Runde sind nachgezogen. */
+    const COMMENT_TOTAL = { comment: 16557, code: 66429 };
     check('Der Waechter sieht alle sechsunddreissig Dateien',
       crAll.each.length === 36 && COMMENT_ROWS.length === 36,
       `${crAll.each.length} gemessen, ${COMMENT_ROWS.length} genannt`);

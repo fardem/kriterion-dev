@@ -23,7 +23,7 @@ async function run() {
    ZWEI GRUPPEN FRAGEN SIE AB: 0.31.0 auf die Deckung der drei Dateien, 0.31.1
    auf den Stand nach dem Verschmelzen. */
 /* VIERZEHN MEHR MIT DER AUSZEICHNUNG. */
-const LANG_KEY_COUNT = 1229;
+const LANG_KEY_COUNT = 1233;
 
 async function check0310() {
   const drRead = (code) => JSON.parse(fs.readFileSync(
@@ -530,8 +530,9 @@ async function check0311() {
    1b07235978fc5ba3. */
 /* DIE FRUEHEREN DEUTSCHEN SUMMEN, von der aeltesten zur juengsten:
    457f4c3c4bb28ec1 / 7bc60ecadb371e0e · 3601c96b846df672 / 278c9992bbfe95e5 ·
-   ca0e647191c4b45d / fa9051b4736f2e06 · daa9a66531bf3943 / 15359dca57efe311 */
-const DE_UNTOUCHED = { one: 'b6907e61f79ce725', other: '82ff600c40200af5' };
+   ca0e647191c4b45d / fa9051b4736f2e06 · daa9a66531bf3943 / 15359dca57efe311 ·
+   fd377642f0130b3b / b58cc8084be7e688 · b6907e61f79ce725 / 82ff600c40200af5 */
+const DE_UNTOUCHED = { one: '015f17460eceaf7a', other: '7ccda413374a4079' };
 const DE_BEFORE_0312 = { one: '91b86c5affcba789', other: '07fc3ccdc8a27a03' };
 const DE_ORDERED_0312 = {
   'login.requestAccess': 'Zugang anfragen',
@@ -556,6 +557,7 @@ const EG_CHANGED_AFTER_0312_SHARED = {
   "card.restartHint": "0.33.0: die zitierte Logzeile heisst jetzt englisch „Key loaded from ENCRYPTION_KEY\" — das Protokoll spricht englisch (0.32.0, Punkt 28, Fund 1 hatte sie auf „Schluessel\" gebracht)",
   "card.typeByHand": "0.38.1: derselbe Grund; der Schluessel steht im Dialog darueber",
   "entry.calcGradeWeight": "0.32.0: „Score × weight\" wird `{grade} × weight`",
+  "entry.commentPlaceholder": "0.38.4: der Satz nennt die Zwischenablage statt Strg+V — am Telefon gibt es die Tasten nicht",
   "entry.copyCommentLink": "0.38.0: neu — die Raute kopiert die Adresse eines Kommentars",
   "entry.deletePhoto": "0.32.1: aus `entry.deleteWord` geteilt — „Delete photo\"",
   "entry.deleteVideo": "0.32.1: aus `entry.deleteWord` geteilt — „Delete video\"",
@@ -577,6 +579,7 @@ const EG_CHANGED_AFTER_0312_SHARED = {
   "entry.quoteFrom": "0.38.0: neu — die Verfasserzeile ueber dem Zitat",
   "entry.quoteSelection": "0.38.0: neu — einen Ausschnitt zitieren, ueber das Menue im Lesemodus",
   "entry.ratingRemoved": "0.35.0: neu — „{ratingOne} removed\", vorher deutsch im Skript",
+  "entry.refGone": "0.38.4: neu — das Wort an der Marke eines Verweises auf einen geloeschten Kommentar",
   "entry.refHint": "0.38.0: neu — der Hinweis an der Marke eines Verweises",
   "entry.removeRating": "0.35.0: neu — „Remove {ratingOne}\", vorher deutsch im Skript",
   "entry.tooBig": "0.35.2: die 50 steht nicht mehr als Text im Satz, sondern kommt als `{mb}` aus ATTACHMENT_MAX",
@@ -606,6 +609,9 @@ const EG_CHANGED_AFTER_0312_SHARED = {
   "server.noTestMail": "0.32.0: Punkt 29 — seit dem Wechsel kam keine Testmail durch",
   "server.noUserAddress": "0.32.0: Punkt 29 — am Konto haengt keine Adresse",
   "server.ratingBeforeTest": "0.32.1: „this entry\" faellt weg, „untested\" wird `{testedNo}`",
+  "server.seedAppearance": "0.38.4: neu — der Name des ersten mitgelieferten Kriteriums",
+  "server.seedFunction": "0.38.4: neu — der Name des dritten mitgelieferten Kriteriums",
+  "server.seedWorkmanship": "0.38.4: neu — der Name des zweiten mitgelieferten Kriteriums",
   "server.signupThanks": "0.32.0: Punkt 29 — die eine Antwort der Zugangsanfrage",
   "server.trashRestoring": "0.35.1: neu — die Antwort an den zweiten Aufruf, der denselben Papierkorbeintrag wiederherstellen will",
   "server.uploadCap": "0.35.2: neu — die Absage an zu viele Dateien in einer Anfrage, vorher multers „Unexpected field\"",
@@ -842,6 +848,10 @@ async function check0312() {
       /* UND EINER MIT 0.36.0 -- die Absage an eine schreibende Anfrage ohne
          Token gegen fremde Formulare. */
       'server.deniedOrigin',
+      /* UND VIER MIT 0.38.4 -- die drei mitgelieferten Kriterien und das
+         Wort an der Marke eines geloeschten Verweises. */
+      'entry.refGone', 'server.seedAppearance', 'server.seedFunction',
+      'server.seedWorkmanship',
       /* UND VIERZEHN MIT DER AUSZEICHNUNG -- das Menue, der Verweis und
          das Zitieren. */
       'entry.copyCommentLink',
@@ -902,13 +912,15 @@ async function check0312() {
    nicht abgeschrieben: zwei Zahlen an zwei Orten laufen auseinander. */
 /* DIE FRUEHEREN ENGLISCHEN SUMMEN: 2f8e5b3abe58f9fd / 39489ec6ae18020b ·
    9cfb555855459a0c / 98295846dd0ac5a4 · caa4b814e75f8263 / f224721465ac0d35 ·
-   eec8c1717c54a12f / f874903b6b33781a · cad88cfda93ececc / e73468286c2f1405 */
-const EN_UNTOUCHED = { one: 'cdff153c8c0c8545', other: '7e902c8f506f3b35' };
+   eec8c1717c54a12f / f874903b6b33781a · cad88cfda93ececc / e73468286c2f1405 ·
+   68c54e6fc1a90c6d / 6ba9dddf3e06cb33 · cdff153c8c0c8545 / 7e902c8f506f3b35 */
+const EN_UNTOUCHED = { one: '1f666bca14988c58', other: '0255fb6b49b3599f' };
 const TR_BEFORE_0313 = { one: '5fec71b10c0dfa3c', other: '18b07eda589b5120' };
 /* DIE FRUEHEREN TUERKISCHEN SUMMEN: bbaca227348609dc / 73d9f1ea0298d519 ·
    ab6bdf35499f7cf9 / ad34f68137acaa2b · eb1ffa65a4bddb95 / f137b990650a241e ·
-   ac1fa21798b352b5 / e277fb3263e15feb · 10c6209ccd6c202e / 87be79f31098ad1c */
-const TR_AFTER_0313 = { one: 'e1682c1e30d94faf', other: 'd62eb67d7277a51c' };
+   ac1fa21798b352b5 / e277fb3263e15feb · 10c6209ccd6c202e / 87be79f31098ad1c ·
+   e1682c1e30d94faf / d62eb67d7277a51c */
+const TR_AFTER_0313 = { one: 'bb671551a2093a83', other: '7a83111338a3cac7' };
 
 async function check0313() {
   const tgRead = (code) => JSON.parse(fs.readFileSync(
@@ -1270,6 +1282,10 @@ async function check0313() {
       /* UND EINER MIT 0.36.0 -- die Absage an eine schreibende Anfrage ohne
          Token gegen fremde Formulare. */
       'server.deniedOrigin',
+      /* UND VIER MIT 0.38.4 -- die drei mitgelieferten Kriterien und das
+         Wort an der Marke eines geloeschten Verweises. */
+      'entry.refGone', 'server.seedAppearance', 'server.seedFunction',
+      'server.seedWorkmanship',
       /* UND VIERZEHN MIT DER AUSZEICHNUNG -- das Menue, der Verweis und
          das Zitieren. */
       'entry.copyCommentLink',
@@ -1319,6 +1335,7 @@ async function check0313() {
       'card.copyByHandLink': '0.38.1: derselbe Grund, und das markierte Feld steht weiter daneben',
       'card.restartHint':       '0.33.0: die zitierte Logzeile heisst jetzt englisch „Key loaded from ENCRYPTION_KEY"',
       'card.typeByHand': '0.38.1: derselbe Grund; der Schluessel steht im Dialog darueber',
+      'entry.commentPlaceholder': '0.38.4: der Satz nennt die Zwischenablage statt Strg+V',
       'entry.copyCommentLink': '0.38.0: neu — die Raute kopiert die Adresse eines Kommentars',
       'entry.markBold': '0.38.0: neu — der Schalter fuer Fettdruck im Menue',
       'entry.markBullet': '0.38.0: neu — der Schalter fuer die Aufzaehlung',
@@ -1332,7 +1349,11 @@ async function check0313() {
       'entry.quoteComment': '0.38.0: neu — mit Zitat antworten, ueber die Kopfzeile',
       'entry.quoteFrom': '0.38.0: neu — die Verfasserzeile ueber dem Zitat',
       'entry.quoteSelection': '0.38.0: neu — einen Ausschnitt zitieren, ueber das Menue im Lesemodus',
+      'entry.refGone': '0.38.4: neu — das Wort an der Marke eines geloeschten Verweises',
       'entry.refHint': '0.38.0: neu — der Hinweis an der Marke eines Verweises',
+      'server.seedAppearance': '0.38.4: neu — der Name des ersten mitgelieferten Kriteriums',
+      'server.seedFunction': '0.38.4: neu — der Name des dritten mitgelieferten Kriteriums',
+      'server.seedWorkmanship': '0.38.4: neu — der Name des zweiten mitgelieferten Kriteriums',
       'server.deniedOrigin':    '0.36.0: neu — die Absage an eine schreibende Anfrage ohne Token gegen fremde Formulare',
       'server.exportTooOld':    '0.33.0: neu — die eine Abweisung des Bruchs, eine Datei mit Formatnummer 13 oder aelter kommt nicht mehr herein',
       'server.trashRestoring':  '0.35.1: neu — die Antwort an den zweiten Aufruf, der denselben Papierkorbeintrag wiederherstellen will',

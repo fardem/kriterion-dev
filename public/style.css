@@ -1210,6 +1210,9 @@ mark {
 .markup-ref { display: inline-flex; align-items: baseline; gap: 4px; padding: 0 6px; border: 1px solid var(--accent-line); border-radius: 4px; background: var(--accent-dim); }
 .cmt-body a.markup-ref, .desc-view a.markup-ref { text-decoration: none; }
 .markup-ref .markup-ref-no { font-family: var(--mono); font-size: .86em; color: var(--muted); }
+/* Ein Verweis auf einen geloeschten Kommentar traegt kein Klickziel und
+   deshalb auch nicht die Farbe eines Links. */
+.markup-ref.gone { border-color: var(--line); background: var(--surface-2); color: var(--muted); font-style: italic; }
 
 /* ---------- Die Beschreibung, gelesen ---------- */
 /* Dieselbe Schrift und derselbe Innenabstand wie im Feld darunter: der

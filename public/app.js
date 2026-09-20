@@ -2144,10 +2144,14 @@ async function markupRefAsk(ask) {
     const rows = await api('GET',
       `/api/comment-refs?ids=${markupRefCut(ask, 'c')}&items=${markupRefCut(ask, 'i')}`);
     for (const row of rows) COMMENT_REFS.set(row.key, row);
-    // Was der Leser nicht sehen darf, steht als `null` darin und wird nicht
-    // noch einmal gefragt.
-    for (const k of ask) if (!COMMENT_REFS.has(k)) COMMENT_REFS.set(k, null);
-    came = rows.length > 0;
+    /* WAS GEFRAGT UND NICHT BEANTWORTET WURDE, GIBT ES NICHT: der Platzhalter
+       traegt die Marke und wird nicht noch einmal gefragt. */
+    for (const k of ask)
+      if (!COMMENT_REFS.has(k)) COMMENT_REFS.set(k, { key: k, gone: true });
+    /* AUCH EIN PLATZHALTER IST EINE AUSKUNFT: ohne das Neuzeichnen bliebe die
+       rohe Adresse stehen, bis die Ansicht aus einem anderen Grund zeichnet.
+       Ein zweiter Ruf folgt daraus nicht -- jeder Schluessel steht jetzt da. */
+    came = true;
   } catch {
     /* EIN GESCHEITERTER RUF WIRD VERGESSEN: die naechste Zeichnung fragt
        wieder. Neu gezeichnet wird nicht -- der Ruf fragte sich im Kreis. */
@@ -2249,6 +2253,14 @@ function commentJump(id, soft) {
 function markupRefNode(row, term, name) {
   const a = document.createElement('a');
   a.className = 'markup-ref';
+  /* EIN VERWEIS AUF EINEN GELOESCHTEN KOMMENTAR BEKOMMT KEIN KLICKZIEL: die
+     Adresse zeigte auf nichts und oeffnete einen neuen Tab auf denselben
+     Eintrag. Das Wort steht statt des Titels, denn einen gibt es nicht. */
+  if (row.gone) {
+    a.classList.add('gone');
+    a.appendChild(raiseHighlight(t('entry.refGone'), term));
+    return a;
+  }
   a.href = entryAddress(row.itemId, '', row.number ? row.id : 0);
   a.title = t('entry.refHint');
   a.appendChild(raiseHighlight(name || row.itemTitle, term));

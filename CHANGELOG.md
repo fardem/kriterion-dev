@@ -30,6 +30,30 @@ ihre deutschen Abschnittsüberschriften bleiben.*
 
 *Hier wird mitgeschrieben, während gebaut wird.*
 
+## [0.38.4] - 2026-09-21
+
+*Vier kleine Befunde, drei Indexe und ein Verzeichnis der lesenden Routen.*
+
+Fingerprint `0d3111e4` — davor `a91efceb`.
+
+> **Drei Indexe kommen beim nächsten Start von selbst dazu.** Nichts ist zu
+> tun; bei einer großen Datenbank dauert der erste Start etwas länger, weil
+> sie einmal aufgebaut werden. Ein vorhandener `idx_photos_tile` wird dabei
+> neu angelegt: seine Spaltenliste hat sich geändert.
+
+### Hinzugefügt
+
+- **Drei Indexe.** `idx_ratings_criterion` macht die Zählung je Kriterium in der Kriterienkarte schneller — **1,4 statt 6,8 ms** bei 12.000 Bewertungen. Ein deckender Index für die Dateiliste eines Eintrags: **1,0 statt 226,0 ms** bei 200 Dateien zu 256 kB. Und `length(thumb)` kommt in `idx_photos_tile`, damit die Übersicht ihre Fotospalten nicht mehr aus der Zeile liest: **0,7 statt 258,9 ms**.
+
+### Geändert
+
+- **Die drei mitgelieferten Kriterien stehen in der Auslieferungssprache.** Eine frische Installation bekommt „Appearance", „Workmanship" und „Functionality" statt der deutschen Namen; die Spalte für die Sprache sagt dasselbe, und die Kachel zeigt keinen roten Rahmen mehr. **Eine bestehende Installation bekommt nichts dazu** — eingesetzt wird nur in eine leere Tabelle.
+- **Das Kommentarfeld nennt die Zwischenablage statt Strg+V.** Am Telefon gibt es die Tastenkombination nicht.
+
+### Behoben
+
+- **Ein Verweis auf einen gelöschten Kommentar blieb eine rohe Adresse** und öffnete beim Klick einen neuen Tab auf denselben Eintrag. Jetzt steht dort ein Kasten ohne Klickziel mit dem Wort „gelöscht". Ein gescheiterter Ruf ans Netz verhält sich wie vorher: die Adresse bleibt stehen, und beim nächsten Zeichnen wird neu gefragt.
+
 ## [0.38.3] - 2026-09-20
 
 *Der Sprung zum Kommentar: er trifft die gemeinte Zeile, bleibt dort stehen,

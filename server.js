@@ -227,6 +227,27 @@ function t(locale, key, values = {}) {
   });
 }
 
+/* ---- Die drei mitgelieferten Kriterien ---------------------------------
+   SIE ENTSTEHEN HIER UND NICHT IN db.js: ihre Namen stehen in den
+   Sprachdateien, und die liest der Server. Deshalb steht dieser Block hinter
+   readLanguages() und hinter t(). */
+const SEED_CRITERIA = ['server.seedAppearance', 'server.seedWorkmanship',
+                       'server.seedFunction'];
+/* NUR IN EINE LEERE TABELLE: eine bestehende Installation bekommt nichts
+   dazu, auch keinen umbenannten Namen zurueck. */
+if (db.prepare('SELECT COUNT(*) n FROM rating_criteria').get().n === 0) {
+  const insert = db.prepare(
+    'INSERT OR IGNORE INTO rating_criteria (name, sort_order, language) VALUES (?, ?, ?)');
+  /* KEIN NAME IN criterion_names DANEBEN: eine Zeile dort schluege den
+     Grundnamen, und ein Umbenennen ohne Sprachangabe traefe ihn nicht mehr.
+     Die anderen beiden Sprachdateien tragen den Schluessel wegen der
+     Deckungsprobe. */
+  db.transaction(() => SEED_CRITERIA.forEach((key, i) => {
+    const base = languageBase();
+    insert.run(t(base, key), i, base);
+  }))();
+}
+
 /* EINE MELDUNG IST EIN SCHLUESSEL UND KEIN SATZ. */
 const Message = auth.Message;
 

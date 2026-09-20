@@ -589,6 +589,95 @@ function writingRoutes(text) {
   return outcome;
 }
 
+/* ================= DIE LESENDEN ROUTEN =================
+   DIESELBE BAUFORM WIE F_ROUTES und aus demselben Grund: eine Route, die
+   still dazukommt oder verschwindet, faellt sonst niemandem auf. Je Weg der
+   Pfad, die Klemme und ein Satz, warum sie dort sitzt.
+
+   DIE KLEMMEN: `offen` steht vor der Anmeldung, `angemeldet` verlangt nur
+   sie, `selbstbezug` liest aus req.user statt aus der Adresse, die drei
+   Waechternamen stehen im Kopf der Route. */
+const F_READ_ROUTES = [
+  ['/api/config',                  'offen',
+    'Der Browser fragt sie vor jeder Anmeldung: sie sagt, ob die Einrichtung noch aussteht.'],
+  ['/api/manifest.json',           'offen',
+    'Der Browser holt sie fuer das Symbol am Bildschirm, bevor jemand angemeldet ist.'],
+  ['/api/session',                 'offen',
+    'Sie sagt nur, ob eine Anmeldung steht -- und muss das auch sagen koennen, wenn keine steht.'],
+  ['/api/account',                 'selbstbezug',
+    'Der eigene Name, die eigene Adresse und der zweite Faktor; alles kommt aus req.user.'],
+  ['/api/sessions',                'selbstbezug',
+    'Die eigenen Sitzungen. Die Nummer des Zugangs kommt aus req.user und nie aus der Adresse.'],
+  ['/api/security-log',            'ownerOnly',
+    'Das Sicherheitsprotokoll nennt IP-Adresse und Browser fremder Zugaenge.'],
+  ['/api/users',                   'adminOnly',
+    'Die Liste der Zugaenge samt Rolle und Zustand.'],
+  ['/api/users/:id/inventory',     'adminOnly',
+    'Was an einem fremden Zugang haengt -- die Frage steht vor dem Loeschen.'],
+  ['/api/mail',                    'ownerOnly',
+    'Der Mailzugang. Wer ihn nicht setzen darf, sieht ihn auch nicht.'],
+  ['/api/requests',                'adminOnly',
+    'Die offenen Anfragen der Selbstanmeldung; freigeben darf sie der Admin.'],
+  ['/api/titles',                  'angemeldet',
+    'Die beiden Titel der Instanz. Aendern darf sie der Admin, lesen jeder Angemeldete.'],
+  ['/api/settings',                'selbstbezug',
+    'Die eigenen Einstellungen samt der eigenen Rolle; die Nummer kommt aus req.user.'],
+  ['/api/criteria',                'angemeldet',
+    'Die Kriterien gelten fuer alle gleich; anlegen und aendern darf sie der Admin.'],
+  ['/api/product-categories',      'angemeldet',
+    'Dieselbe Ueberlegung wie bei den Kriterien: die Liste ist fuer alle dieselbe.'],
+  ['/api/tags',                    'angemeldet',
+    'Dieselbe Ueberlegung wie bei den Kategorien.'],
+  ['/api/items',                   'angemeldet',
+    'Die Uebersicht. Der Bestand ist nicht je Benutzer getrennt -- wer angemeldet ist, sieht ihn.'],
+  ['/api/items/:id',               'angemeldet',
+    'Der einzelne Eintrag, dieselbe Schranke wie die Uebersicht.'],
+  ['/api/comment-refs',            'angemeldet',
+    'Titel und Stellung fuer die Marke am Verweis; dieselbe Schranke wie am Eintrag.'],
+  ['/api/items/:id/inventory',     'entryAuthorOnly',
+    'Was an einem Eintrag haengt -- die Frage steht vor dem Loeschen.'],
+  ['/api/photos/:id/raw',          'angemeldet',
+    'Das Bild selbst. Es haengt an einem Eintrag, und der steht jedem Angemeldeten offen.'],
+  ['/api/attachments/:id/raw',     'angemeldet',
+    'Die Datei selbst, dieselbe Ueberlegung wie beim Bild.'],
+  ['/api/attachments/:id/preview', 'angemeldet',
+    'Der Textauszug derselben Datei; er wird gelesen und nie als Datei ausgeliefert.'],
+  ['/api/items/:id/votes',         'adminOnly',
+    'Wer wie bewertet hat, namentlich. Die Sterne selbst stehen ohne Namen am Eintrag.'],
+  ['/api/comment-images/:id/raw',  'angemeldet',
+    'Das Bild eines Kommentars, dieselbe Ueberlegung wie beim Bild am Eintrag.'],
+  ['/api/open',                    'angemeldet',
+    'Die offenen Aufgaben ueber alle Eintraege; jede einzelne steht ohnehin am Eintrag.'],
+  ['/api/stats',                   'adminOnly',
+    'Die Kennzahlen der Installation -- Groesse des Bestands und Belegung der Ablage.'],
+  ['/api/export/plan',             'ownerOnly',
+    'Was ein Export umfassen wuerde. Dieselbe Zeile wie der Export selbst.'],
+  ['/api/export',                  'ownerOnly, zweitbestaetigt',
+    'Der ganze Bestand in einer Datei; deshalb die zweite Bestaetigung.'],
+  ['/api/trash',                   'adminOnly',
+    'Der Papierkorb. Sehen darf ihn der Admin, wiederherstellen nur der Eigentuemer.'],
+  ['/api/backup',                  'ownerOnly',
+    'Die Sicherungen samt Ordner -- alles, was die Instanz als Ganzes betrifft.']
+];
+
+function readingRoutes(text) {
+  const rows = text.split('\n');
+  const outcome = [];
+  for (let i = 0; i < rows.length; i++) {
+    const z = rows[i];
+    /* AUCH EINE EINGERUECKTE ZEILE ZAEHLT: sonst bliebe eine Route unsichtbar,
+       die in einem Block steht. */
+    const found = z.match(/^\s*app\.get\('([^']+)'/);
+    if (!found) continue;
+    const head = z.slice(z.indexOf(found[1]) + found[1].length + 1);
+    let core = '';
+    for (let j = i + 1; j < rows.length && !/^\s*app\.[a-z]+\(/.test(rows[j]); j++)
+      core += rows[j] + '\n';
+    outcome.push({ key: found[1], head, core });
+  }
+  return outcome;
+}
+
 /* ================= DIESER PRUEFLAUF LIEST DEUTSCH -- 0.24.3 ==============
    Bis 0.24.2 sprach eine frische Installation Deutsch, weil die
    Vorgabesprache eine Konstante im Quelltext war. */
@@ -859,7 +948,7 @@ return {
   SMTP_CASES,
   smtpEmpfaenger, READY_TRIES, READY_STEP, readyFailure, startFurtherServer,
   call, names, confirmNeeded, includingShare, callF, shareMain,
-  csrfFor, withCsrf, jar, F_ROUTES, writingRoutes,
+  csrfFor, withCsrf, jar, F_ROUTES, writingRoutes, F_READ_ROUTES, readingRoutes,
   leftovers, sweepLeftovers, parentOf, ourOwn, benchFiles,
   /* was sich waehrend des Laufs aendert und deshalb nicht zerlegt werden darf */
   get cookie() { return cookie; },

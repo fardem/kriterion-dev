@@ -117,6 +117,56 @@ async function run() {
     fFree.every(k => fOpenRoutes.includes(k)),
     fFree.filter(k => !fOpenRoutes.includes(k)).join(' · '));
 
+  /* ---- DAS VERZEICHNIS DER LESENDEN ROUTEN ----
+     IN BEIDE RICHTUNGEN GESCHLOSSEN wie die Liste der schreibenden: eine
+     GET-Route kann sonst still dazukommen oder verschwinden. */
+  const { F_READ_ROUTES, readingRoutes } = H;
+  const fRead = readingRoutes(fSource);
+  const fReadWanted = new Map(F_READ_ROUTES.map(([p, kind, why]) => [p, { kind, why }]));
+  const fReadUnknown = fRead.filter(r => !fReadWanted.has(r.key)).map(r => r.key);
+  const fReadGone = [...fReadWanted.keys()].filter(k => !fRead.some(r => r.key === k));
+  check('Der Pruefstand kennt jede lesende Route',
+    fReadUnknown.length === 0 && fReadGone.length === 0,
+    `ohne Eintrag: ${fReadUnknown.join(' · ') || '—'} · verschwunden: ${fReadGone.join(' · ') || '—'}`);
+  /* DIE ZAHL AUSDRUECKLICH, wie bei F_ROUTES: sie ist gezaehlt und nicht
+     geschaetzt -- ein grobes Zaehlen am Zeilenanfang liefert dieselbe. */
+  check('Und es sind genau 30 lesende Routen',
+    F_READ_ROUTES.length === 30 && fRead.length === 30,
+    `${F_READ_ROUTES.length} erwartet, ${fRead.length} gefunden`);
+  // Und jede Zeile traegt ihren Satz: ein leeres Feld belegt nichts.
+  check('Und jede Zeile des Verzeichnisses sagt, warum sie dort sitzt',
+    F_READ_ROUTES.every(([, , why]) => typeof why === 'string' && why.trim().length > 30),
+    F_READ_ROUTES.filter(([, , why]) => !(String(why).trim().length > 30))
+      .map(z => z[0]).join(' · ') || 'alle');
+  /* UND DIE KLEMME STIMMT MIT DEM KOPF DER ROUTE UEBEREIN -- sonst stuende
+     im Verzeichnis eine Behauptung statt einer Auskunft. */
+  const fReadOpen = readingRoutes(fSource.slice(0, fBoundary)).map(r => r.key);
+  const READ_GUARDS = ['adminOnly', 'ownerOnly', 'entryAuthorOnly'];
+  const fReadWrong = [];
+  for (const r of fRead) {
+    const want = fReadWanted.get(r.key);
+    if (!want) continue;
+    const watcher = READ_GUARDS.find(w => want.kind.startsWith(w)) || null;
+    const standing = READ_GUARDS.filter(w => r.head.includes(w));
+    const second = r.head.includes('secondConfirm');
+    if (watcher ? standing.join() !== watcher : standing.length)
+      fReadWrong.push(`${r.key}: Kopf ${standing.join(' ') || '—'} statt ${watcher || '—'}`);
+    if (second !== want.kind.includes('zweitbestaetigt'))
+      fReadWrong.push(`${r.key}: zweite Bestaetigung ${second ? 'im Kopf' : 'fehlt'}`);
+    if ((want.kind === 'offen') !== fReadOpen.includes(r.key))
+      fReadWrong.push(`${r.key}: ${want.kind === 'offen' ? 'steht hinter' : 'steht vor'} der Anmeldung`);
+  }
+  check('Und die Klemme jeder Zeile steht so im Kopf der Route',
+    fReadWrong.length === 0, fReadWrong.join(' · ') || 'alle dreissig');
+  /* DREI STEHEN VOR DER ANMELDUNG, und die Zahl steht ausdruecklich da. */
+  check('Genau drei lesende Routen stehen vor der Anmeldung',
+    fReadOpen.length === 3, `${fReadOpen.length}: ${fReadOpen.join(' · ')}`);
+  // Und der Leser trennt wirklich lesend von schreibend -- an gestellten Zeilen.
+  check('Der Leser sieht auch eine eingerueckte lesende Route und keine schreibende',
+    readingRoutes("  app.get('/api/probe', (req, res) => {\n  });\n").length === 1 &&
+    readingRoutes("app.post('/api/probe', (req, res) => {});\n").length === 0,
+    'der Leser trennt lesend und schreibend nicht');
+
   const GUARD_WORDS = ['adminOnly', 'ownerOnly', 'entryAuthorOnly'];
   const SECOND_WORD = 'secondConfirm';
   const fWithoutWatcher = [], fWithoutGuard = [], fTooMany = [], fWithoutSelf = [], fTooManyGuard = [];
@@ -1098,8 +1148,10 @@ async function run() {
     /* VIERZEHN MEHR MIT DER AUSZEICHNUNG: sieben Schalter des Menues, die
        zwei Fragen nach Name und Adresse, drei ums Zitieren, der Verweis und
        sein Hinweis. */
-    check('Und die Zahlen stehen: 1317 Schluessel, 88 Mehrzahlformen, 15 Vokabelnamen',
-      languageKeys.length === 1317 && pluralKeys.length === 88 && vocabularyKeys.length === 15,
+    /* VIER MEHR: die drei mitgelieferten Kriterien stehen jetzt in den
+       Sprachdateien, dazu das Wort an der Marke des geloeschten Kommentars. */
+    check('Und die Zahlen stehen: 1321 Schluessel, 88 Mehrzahlformen, 15 Vokabelnamen',
+      languageKeys.length === 1321 && pluralKeys.length === 88 && vocabularyKeys.length === 15,
       `${languageKeys.length} / ${pluralKeys.length} / ${vocabularyKeys.length}`);
 
     /* ---- 3. */
@@ -1318,6 +1370,11 @@ async function run() {
       'entry.markLinkName', 'entry.markLinkTarget', 'entry.markNumber',
       'entry.markQuote', 'entry.quoteComment', 'entry.quoteFrom',
       'entry.quoteSelection', 'entry.refHint'];
+    /* UND VIER KOMMEN MIT DIESER RUNDE DAZU: die drei mitgelieferten
+       Kriterien stehen jetzt in den Sprachdateien, dazu das Wort an der
+       Marke eines geloeschten Verweises. */
+    const WORDING_NEW_0384 = ['entry.refGone', 'server.seedAppearance',
+      'server.seedFunction', 'server.seedWorkmanship'];
     /* UND ACHT SCHLUESSEL FALLEN MIT 0.32.1 -- sechs von ihnen gab es schon
        bei der Abnahme, zwei sind erst in 0.32.0 entstanden und schon wieder
        weg. */
@@ -1340,7 +1397,7 @@ async function run() {
       ...WORDING_NEW_0300, ...WORDING_NEW_0311, ...WORDING_NEW_0314,
       ...WORDING_NEW_0320, ...WORDING_NEW_0321, ...WORDING_NEW_0330,
       ...WORDING_NEW_0350, ...WORDING_NEW_0351, ...WORDING_NEW_0352,
-      ...WORDING_NEW_0360, ...WORDING_NEW_0380]
+      ...WORDING_NEW_0360, ...WORDING_NEW_0380, ...WORDING_NEW_0384]
       .filter(k => !WORDING_GONE_0321.includes(k) && !WORDING_GONE_0330.includes(k)
                 && !WORDING_GONE_0352.includes(k));
     const wordingMissing = WORDING_NEW.filter(k => LANGUAGE_FILE[k] === undefined);
@@ -1813,8 +1870,14 @@ async function run() {
     /* UND 156 UND 154 WURDEN 159 UND 157: die drei Meldungen der
        Zwischenablage nennen jetzt den Grund, und jede steht mit dem alten
        Wortlaut drueben und mit dem neuen hier. */
-    check('Und genau hundertneunundfuenfzig Saetze sind andere — drei mehr, seit die Zwischenablage ihren Grund nennt',
-      onlyThen.length === 159 && onlyNow.length === 157 &&
+    /* UND 159 UND 157 WURDEN 160 UND 158: das Kommentarfeld nennt den Weg
+       statt der Tasten, und es steht mit dem alten Wortlaut drueben und mit
+       dem neuen hier. */
+    const WORDING_CHANGED_0384 = ['entry.commentPlaceholder'];
+    check('Und genau hundertsechzig Saetze sind andere — einer mehr, seit das Kommentarfeld den Weg nennt',
+      onlyThen.length === 160 && onlyNow.length === 158 &&
+      WORDING_CHANGED_0384.every(k => LANGUAGE_FILE[k] !== undefined
+        && onlyNow.includes(asBefore(LANGUAGE_FILE[k]))) &&
       WORDING_CHANGED_0321.every(k => LANGUAGE_FILE[k] !== undefined
         && onlyNow.includes(asBefore(LANGUAGE_FILE[k]))) &&
       /* UND DER EINE, DER ZURUECKKOMMT, STEHT AUF KEINER DER BEIDEN SEITEN
@@ -1879,8 +1942,10 @@ async function run() {
     /* 929 WURDEN 925 MIT 0.32.1: vier Saetze sind ganz gefallen, ohne dass
        ein anderer an ihre Stelle traete -- `list.and`, `list.ofWhich`,
        `list.sortDefaultHint` und `entry.deleteWord`. */
+    /* 922 WURDEN 921: ein Satz mehr steht in den Listen darueber statt im
+       Rest -- der Platzhalter des Kommentarfeldes. */
     check('Und sonst kein Zeichen — Satz fuer Satz dieselbe Oberflaeche',
-      equal(restThen, restNow) && restNow.length === 922,
+      equal(restThen, restNow) && restNow.length === 921,
       `${restThen.filter((x, i) => x !== restNow[i]).length} abweichende von ${restNow.length}`);
 
     /* ---- 6. Die Kuerzeprobe ---------------------------------------------
@@ -2926,8 +2991,10 @@ async function run() {
     /* 1638 WURDEN 1672: achtundzwanzig Regelzeilen kamen mit der Auszeichnung
        dazu und sechs mit den Befunden danach -- das Feld der Zwischenablage,
        der farbige Stift und der Abstand vor dem Loeschen. */
-    check('Und es stehen genau 1672 Regelzeilen da — vierunddreissig mehr mit der Auszeichnung',
-      ssCode === 1672, `${ssCode} Zeilen`);
+    /* UND 1672 WURDEN 1673: die Marke am Verweis auf einen geloeschten
+       Kommentar bringt eine Regelzeile mit. */
+    check('Und es stehen genau 1673 Regelzeilen da — fuenfunddreissig mehr mit der Auszeichnung',
+      ssCode === 1673, `${ssCode} Zeilen`);
     /* UND KEIN BLOCK IST WIEDER LANG GEWORDEN. Die Drei-Zeilen-Regel gilt
        auch fuer dieses Blatt; laenger sein darf allein, wer eine Tafel
        gemessener Werte traegt. Acht tun das. */
