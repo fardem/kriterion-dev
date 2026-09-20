@@ -526,7 +526,7 @@ async function check0311() {
    die Runde legt rund fuenfhundert Zeilen Code in public/app.js an und
    bewegt keinen deutschen Satz. Der Stand davor war
    3601c96b846df672 / 278c9992bbfe95e5. */
-const DE_UNTOUCHED = { one: '8190c3e8d6e5659d', other: 'c88e908c8360e2de' };
+const DE_UNTOUCHED = { one: '457f4c3c4bb28ec1', other: '7bc60ecadb371e0e' };
 const DE_BEFORE_0312 = { one: '91b86c5affcba789', other: '07fc3ccdc8a27a03' };
 const DE_ORDERED_0312 = {
   'login.requestAccess': 'Zugang anfragen',
@@ -897,12 +897,12 @@ async function check0312() {
    VOR 0.35.0: en caa4b814e75f8263 / f224721465ac0d35,
    tr ab6bdf35499f7cf9 / ad34f68137acaa2b. */
 /* VOR DER AUSZEICHNUNG: en eec8c1717c54a12f / f874903b6b33781a. */
-const EN_UNTOUCHED = { one: '837e78cb8c25242e', other: '2195df2963e2250f' };
+const EN_UNTOUCHED = { one: '9f2b6930153dc9ba', other: '6d0a2b2d24a3b54e' };
 const TR_BEFORE_0313 = { one: '5fec71b10c0dfa3c', other: '18b07eda589b5120' };
 /* bbaca227348609dc / 73d9f1ea0298d519 -- der Stand VOR der Berichtigung an
    der Vorschau der Vokabelkarte, die der Augenschein von 0.31.3 verlangt hat. */
 /* VOR DER AUSZEICHNUNG: tr eb1ffa65a4bddb95 / f137b990650a241e. */
-const TR_AFTER_0313 = { one: '58415acf7d26a4ed', other: 'ad387ee7b7211f42' };
+const TR_AFTER_0313 = { one: '0768ce9efdcdb918', other: '177f1f74511df7d1' };
 
 async function check0313() {
   const tgRead = (code) => JSON.parse(fs.readFileSync(

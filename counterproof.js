@@ -9194,8 +9194,8 @@ const REGRESSIONS = [
   {
     nr: '1137', name: 'Die Herkunft eines Verweises wird nicht mehr geprueft',
     file: 'public/app.js',
-    search: "  if (!text.startsWith(here + '#/')) return 0;",
-    replacement: "  if (!text.includes('#/')) return 0;",
+    search: "  if (!text.startsWith(here + '#/')) return 0;\n  const found = text.slice(here.length).match(ENTRY_PATTERN);",
+    replacement: "  const found = text.replace(/^[^#]*/, '').match(ENTRY_PATTERN);",
     expected: 'Was nicht in der Teilmenge liegt, bleibt Text'
   },
   {
@@ -9253,6 +9253,27 @@ const REGRESSIONS = [
     search: "  gap: 3px; padding: 3px; max-width: calc(100vw - 16px);",
     replacement: "  gap: 3px; padding: 3px;",
     expected: 'Das schwebende Menue bleibt im Bild'
+  },
+  {
+    nr: '1146', name: 'Die Klammern eines Ziels haben wieder keine Grenze',
+    file: 'public/app.js',
+    search: "      if (c === '(') { if (++depth > MARKUP_NESTING) return null; target += c; i++; continue; }",
+    replacement: "      if (c === '(') { depth++; target += c; i++; continue; }",
+    expected: 'Die Beschreibung wird gelesen und geschrieben'
+  },
+  {
+    nr: '1147', name: 'Die Zeilenebene hat wieder keine Tiefengrenze',
+    file: 'public/app.js',
+    search: "  const deep = depth >= MARKUP_DEPTH;",
+    replacement: "  const deep = false;",
+    expected: 'Die Beschreibung wird gelesen und geschrieben'
+  },
+  {
+    nr: '1148', name: 'Escape in der Beschreibung speichert, statt zu verwerfen',
+    file: 'public/app.js',
+    search: "    descEl.value = item.description;\n    descWrite(false);\n  };",
+    replacement: "    descWrite(false);\n  };",
+    expected: 'Die Beschreibung wird gelesen und geschrieben'
   },
 ];
 

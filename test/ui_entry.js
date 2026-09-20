@@ -3187,7 +3187,7 @@ async function run() {
     const zBare = [...zRaw.replace(zBlock, '').matchAll(/z-index:\s*(\d+)/g)].map(m => m[1]);
     check('Und keine einzelne Regel traegt mehr ihre eigene Zahl',
       zBare.length === 0, zBare.join(' · '));
-    /* DIE ZEHN STUFEN WERDEN AUCH WIRKLICH BENUTZT. Eine Tafel, auf die keine
+    /* JEDE STUFE WIRD AUCH WIRKLICH BENUTZT. Eine Tafel, auf die keine
        Regel zeigt, ordnet nichts. */
     const zUnused = zLevels.map(([n]) => n).filter(n => !zRaw.includes(`var(--${n})`));
     check('Und jede Stufe wird von mindestens einer Regel gelesen',
@@ -3899,9 +3899,29 @@ group('Die Beschreibung wird gelesen und geschrieben');
   df.onkeydown({ key: 'Escape', preventDefault() {} });
   check('Escape verwirft und schaltet zurueck',
     !dv.hidden && df.hidden, `Vorschau hidden=${dv.hidden}`);
-  dv.onclick({ target: dv, closest: () => null });
+  /* UND ER NIMMT DEN TEXT ZURUECK, BEVOR ER VERSTECKT: ein verstecktes Feld
+     verliert im Browser den Fokus, und `focusout` speicherte danach das
+     Verworfene. Der Nachbau kennt diesen Griff des Browsers nicht, deshalb
+     steht die Reihenfolge hier am Quelltext. */
+  check('Und zwar bevor er das Feld versteckt',
+    /descEl\.value = item\.description;\s*\n\s*descWrite\(false\);/.test(
+      fs.readFileSync(path.join(__dirname, 'public', 'app.js'), 'utf8')),
+    'Escape versteckt das Feld, bevor er den Text zuruecknimmt');
+  dv.onclick({ target: dv });
   check('Und ein Klick in den Text schaltet wieder auf das Feld',
     dv.hidden && !df.hidden, `Vorschau hidden=${dv.hidden}`);
+  /* WER TEXT MARKIERT, WILL ZITIEREN UND NICHT SCHREIBEN. */
+  df.onkeydown({ key: 'Escape', preventDefault() {} });
+  dv.textContent = 'ein Satz zum Markieren';
+  const pick = wb.document.createRange();
+  pick.selectNodeContents(dv);
+  wb.document.getSelection().removeAllRanges();
+  wb.document.getSelection().addRange(pick);
+  dv.onclick({ target: dv });
+  check('Eine Auswahl in der Vorschau schaltet nicht auf das Feld',
+    !dv.hidden && df.hidden, `Vorschau hidden=${dv.hidden}`);
+  wb.document.getSelection().removeAllRanges();
+  dv.onclick({ target: dv });
   df.onkeydown({ key: 'Escape', preventDefault() {} });
   /* UND DAS FELD TRAEGT DAS MERKMAL, AN DEM DAS MENUE ES ERKENNT. */
   check('Das Feld der Beschreibung traegt das Menue',
@@ -3961,9 +3981,50 @@ group('Die Beschreibung wird gelesen und geschrieben');
     field.value.startsWith('> ') && field.value.includes(':'),
     JSON.stringify(field.value.slice(0, 60)));
   /* UND DIE NUMMER STEHT AN DER KOPFZEILE UND KOPIERT IHRE ADRESSE. */
+  const mkHtml = (raw) => {
+    const box = wb.document.createElement('div');
+    box.appendChild(wb.markupNodes(raw, '', []));
+    return box.innerHTML;
+  };
   const no = wb.document.querySelector('.cmt .cmt-no');
   check('Und die Kopfzeile traegt die Nummer als Schalter',
     no !== null && /^#\d+$/.test(no.textContent), no ? no.textContent : 'keine Nummer');
+
+  /* ---- ZWEI GRENZEN GEGEN DEN ENDLOSEN TEXT ---- Ein Kommentar ist
+     Benutzertext, und derselbe Leser laeuft am Server im Trefferausschnitt. */
+  const deepQuote = '> '.repeat(4000) + 'x';
+  let deepOk = true, deepTime = 0;
+  {
+    const started = Date.now();
+    try { wb.markupPlain(deepQuote); } catch { deepOk = false; }
+    deepTime = Date.now() - started;
+  }
+  check('Tausende Ebenen Zitat halten den Leser nicht an',
+    deepOk && deepTime < 4000, deepOk ? `${deepTime} ms` : 'der Stapel ist uebergelaufen');
+  check('Und die hundertste Ebene ist die letzte, die gezeichnet wird',
+    (mkHtml('> '.repeat(120) + 'x').match(/<blockquote/g) || []).length === 100,
+    `${(mkHtml('> '.repeat(120) + 'x').match(/<blockquote/g) || []).length} Ebenen`);
+  /* DIE KLAMMERN EINES ZIELS: die Spezifikation nennt drei Ebenen als
+     Mindestmass und erlaubt eine Grenze ausdruecklich. Gemessen wird die
+     Grenze selbst und nicht die Zeit -- eine Zeit ist unter Last unscharf. */
+  const nest = (n) => `[x](https://beispiel.de/${'('.repeat(n)}${')'.repeat(n)})`;
+  /* Gelesen wird der Text ohne Marken: die nackte Adresse darin wuerde
+     ohnehin ein Link, und das sagt nichts ueber die Grenze. */
+  check('Zweiunddreissig Ebenen Klammern im Ziel tragen',
+    wb.markupPlain(nest(32)) === 'x', JSON.stringify(wb.markupPlain(nest(32))).slice(0, 80));
+  check('Und die dreiunddreissigste macht daraus wieder Text',
+    wb.markupPlain(nest(33)) === nest(33), JSON.stringify(wb.markupPlain(nest(33))).slice(0, 80));
+  check('Drei Ebenen tragen erst recht — das Mindestmass der Spezifikation',
+    mkHtml('[x](https://beispiel.de/a(b(c)d)e)').includes('href="https://beispiel.de/a(b(c)d)e"'),
+    mkHtml('[x](https://beispiel.de/a(b(c)d)e)'));
+  let pairTime = 0;
+  {
+    const started = Date.now();
+    wb.markupPlain('[x]('.repeat(12000));
+    pairTime = Date.now() - started;
+  }
+  check('Und zwoelftausend offene Klammern halten den Leser nicht an',
+    pairTime < 4000, `${pairTime} ms`);
 
   /* ---- EIN FELD, DAS DIE ANSICHT WEGGEZEICHNET HAT ---- Beim Entfernen
      eines Feldes kommt kein `focusout`; das Menue bliebe sonst stehen. */

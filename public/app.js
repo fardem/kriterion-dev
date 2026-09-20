@@ -1024,6 +1024,18 @@ function blockPathAfterState(name, item) {
 
 // Wird nach jedem Neuzeichnen aufgerufen und muss deshalb mehrfach ausführbar
 // sein: der Testtagblock etwa schreibt seine Kopfzeile jedes Mal neu.
+/* Ein eingeklappter Block zeigt nichts. Wer hinspringt oder den Stift
+   drueckt, klappt ihn damit auf -- als Blick, nicht als Einstellung. */
+function openBlock(name) {
+  const block = document.querySelector(`.block[data-block="${name}"]`);
+  if (!block || !block.classList.contains('closed')) return;
+  block.classList.remove('closed');
+  const caret = block.querySelector('.bcaret');
+  if (caret) caret.textContent = '▾';
+  const sum = block.querySelector('.bsum');
+  if (sum) sum.textContent = '';
+}
+
 function setUpBlocksOut(item) {
   document.querySelectorAll('.block[data-block]').forEach(block => {
     const name = block.dataset.block;
@@ -1530,6 +1542,12 @@ const MARKUP_SPACE = /[ \t\n\v\f\r]/;
 // Adresse. Alles andere bleibt der Rohtext, wie er dasteht.
 const MARKUP_TARGET = /^https?:\/\//i;
 
+/* ZWEI GRENZEN GEGEN DEN ENDLOSEN TEXT. Die Spezifikation erlaubt die erste
+   ausdruecklich und nennt drei Ebenen als Mindestmass; ohne die zweite
+   traegt der Stapel ein Zitat aus tausend Zeichen `>` nicht. */
+const MARKUP_NESTING = 32;
+const MARKUP_DEPTH = 100;
+
 /* ---- Die Inline-Ebene ---- */
 
 // Was links und rechts eines Zeichenlaufs steht, entscheidet ueber Oeffnen
@@ -1594,7 +1612,7 @@ function markupTarget(text, at) {
       const c = text[i];
       if (c === '\\' && MARKUP_ASCII_MARK.test(text[i + 1] || '')) { target += text[i + 1]; i += 2; continue; }
       if (MARKUP_SPACE.test(c) || c.charCodeAt(0) < 0x20 || c === '\x7f') break;
-      if (c === '(') { depth++; target += c; i++; continue; }
+      if (c === '(') { if (++depth > MARKUP_NESTING) return null; target += c; i++; continue; }
       if (c === ')') { if (!depth) break; depth--; target += c; i++; continue; }
       target += c; i++;
     }
@@ -1795,16 +1813,18 @@ const markupOpensBlock = (line) =>
 // Ob eine Zeile innen auf einem Absatz endet -- nur dann laeuft die naechste
 // Zeile ohne eigenes Zeichen mit. Die Zeichen werden dafuer abgetragen.
 function markupLazy(line) {
-  const quote = line.match(MARKUP_QUOTE);
-  if (quote) return markupLazy(line.slice(quote[0].length));
-  const marker = line.match(MARKUP_MARKER);
-  if (marker) return markupLazy(line.slice(marker[0].length));
-  return /\S/.test(line) && !MARKUP_RULE.test(line)
-    && !MARKUP_HEADING.test(line) && !MARKUP_FENCE.test(line);
+  let rest = String(line);
+  for (;;) {
+    const marker = rest.match(MARKUP_QUOTE) || rest.match(MARKUP_MARKER);
+    if (!marker) break;
+    rest = rest.slice(marker[0].length);
+  }
+  return /\S/.test(rest) && !MARKUP_RULE.test(rest)
+    && !MARKUP_HEADING.test(rest) && !MARKUP_FENCE.test(rest);
 }
 
 // Ein Zitat nimmt seine Zeilen und wird selbst wieder zerlegt.
-function markupQuote(lines, at) {
+function markupQuote(lines, at, depth) {
   const inner = [];
   let i = at, running = false;
   while (i < lines.length) {
@@ -1818,12 +1838,12 @@ function markupQuote(lines, at) {
     if (running && /\S/.test(lines[i]) && !markupOpensBlock(lines[i])) { inner.push(lines[i]); i++; continue; }
     break;
   }
-  return { block: { type: 'quote', blocks: markupBlocks(inner) }, end: i };
+  return { block: { type: 'quote', blocks: markupBlocks(inner, depth + 1) }, end: i };
 }
 
 // Eine Aufzaehlung sammelt ihre Punkte; eine eingerueckte Folgezeile gehoert
 // zum Punkt darueber.
-function markupList(lines, at, ordered) {
+function markupList(lines, at, ordered, depth) {
   const pattern = ordered ? MARKUP_NUMBER : MARKUP_BULLET;
   const items = [];
   let i = at, start = 1, blank = false;
@@ -1856,11 +1876,13 @@ function markupList(lines, at, ordered) {
     items.push(item);
   }
   return { block: { type: ordered ? 'number' : 'bullet', start,
-                    items: items.map(lns => markupBlocks(lns)) }, end: i };
+                    items: items.map(lns => markupBlocks(lns, depth + 1)) }, end: i };
 }
 
-function markupBlocks(lines) {
+function markupBlocks(lines, depth) {
   const blocks = [];
+  // Tiefer als hundert Ebenen bleibt alles Text.
+  const deep = depth >= MARKUP_DEPTH;
   let i = 0, text = [];
   const flush = () => {
     while (text.length && !/\S/.test(text[text.length - 1])) text.pop();
@@ -1869,18 +1891,18 @@ function markupBlocks(lines) {
   };
   while (i < lines.length) {
     const line = lines[i];
-    if (MARKUP_QUOTE.test(line)) { flush(); const r = markupQuote(lines, i); blocks.push(r.block); i = r.end; continue; }
+    if (!deep && MARKUP_QUOTE.test(line)) { flush(); const r = markupQuote(lines, i, depth); blocks.push(r.block); i = r.end; continue; }
     // EINE TRENNLINIE IST KEINE AUFZAEHLUNG, und sie bleibt Text.
     const rule = MARKUP_RULE.test(line);
     /* MITTEN IN EINEM ABSATZ FAENGT NUR AN, WAS AUCH INHALT HAT -- und eine
        Nummerierung nur bei der Eins. */
-    const opens = (m, ordered) => !rule && m && (!text.length
+    const opens = (m, ordered) => !rule && !deep && m && (!text.length
       || ((m[4] || '') !== '' && (!ordered || Number(m[2]) === 1)));
     if (opens(line.match(MARKUP_BULLET), false)) {
-      flush(); const r = markupList(lines, i, false); blocks.push(r.block); i = r.end; continue;
+      flush(); const r = markupList(lines, i, false, depth); blocks.push(r.block); i = r.end; continue;
     }
     if (opens(line.match(MARKUP_NUMBER), true)) {
-      flush(); const r = markupList(lines, i, true); blocks.push(r.block); i = r.end; continue;
+      flush(); const r = markupList(lines, i, true, depth); blocks.push(r.block); i = r.end; continue;
     }
     if (!text.length && !/\S/.test(line)) { i++; continue; }
     text.push(line); i++;
@@ -1892,7 +1914,7 @@ function markupBlocks(lines) {
 // Der Rohtext als Baum. Die Zeilenebene liegt ueber der Inline-Ebene, und
 // beide liegen ueber der Zerlegung, die es schon gibt.
 function markupParse(raw) {
-  return markupBlocks(String(raw ?? '').replace(/\r\n|\r/g, '\n').split('\n'));
+  return markupBlocks(String(raw ?? '').replace(/\r\n|\r/g, '\n').split('\n'), 0);
 }
 
 /* ---- Die Marken heraus ---- */
@@ -2055,9 +2077,12 @@ function markupRefMissing(texts) {
 /* Ein Ruf je Zeichnung, gesammelt ueber alle Kommentare und die
    Beschreibung. Die Route achtet auf dieselbe Schranke wie der Eintrag. */
 async function markupRefLoad(ids) {
-  for (const n of ids) COMMENT_REFS.set(n, null);
+  /* Nur so viele, wie die Route auf einmal beantwortet -- der Rest kommt
+     beim naechsten Zeichnen, sonst bliebe er ungefragt vorgemerkt. */
+  const ask = ids.slice(0, 200);
+  for (const n of ask) COMMENT_REFS.set(n, null);
   try {
-    for (const row of await api('GET', `/api/comment-refs?ids=${ids.join(',')}`))
+    for (const row of await api('GET', `/api/comment-refs?ids=${ask.join(',')}`))
       COMMENT_REFS.set(row.id, row);
   } catch { /* ohne Auskunft bleibt der Verweis ein einfacher Link */ }
 }
@@ -2105,7 +2130,7 @@ function markupAround(field, before, after) {
 /* Ein Zeichen am Zeilenanfang gilt fuer jede beruehrte Zeile. */
 function markupPrefix(field, sign) {
   const value = field.value;
-  const from = value.lastIndexOf('\n', Math.max(0, field.selectionStart - 1)) + 1;
+  const from = field.selectionStart ? value.lastIndexOf('\n', field.selectionStart - 1) + 1 : 0;
   let to = value.indexOf('\n', field.selectionEnd);
   if (to < 0) to = value.length;
   const made = value.slice(from, to).split('\n')
@@ -2196,12 +2221,16 @@ function markupMenuFill(field) {
     }
     return;
   }
+  /* ERST DAS MENUE WEG, DANN ZITIEREN: das Zitat setzt den Fokus in das
+     Schreibfeld, und das Menue gehoert dann dorthin. */
   const cite = markupButton('„', 'mk-q', t('entry.quoteSelection'));
   cite.onmousedown = (e) => e.preventDefault();
-  cite.onclick = () => { markupQuotePick(); markupMenuHide(); };
+  cite.onclick = () => { const pick = MARKUP_PICK; markupMenuHide();
+    if (pick) quoteInto(pick.text, pick.author, pick.when); };
   const copy = markupButton('⧉', 'mk-cp', t('card.copy'));
   copy.onmousedown = (e) => e.preventDefault();
-  copy.onclick = () => { copyText(markupPickText()); markupMenuHide(); };
+  copy.onclick = () => { const pick = MARKUP_PICK; markupMenuHide();
+    if (pick) copyText(pick.text); };
   box.appendChild(cite);
   box.appendChild(copy);
 }
@@ -2241,14 +2270,6 @@ const markupField = (node) => node && node.tagName === 'TEXTAREA'
 
 /* Was im Lesemodus markiert ist -- und ob es ueberhaupt in einem Text
    liegt, der Auszeichnung traegt. */
-function markupPickText() {
-  return MARKUP_PICK ? MARKUP_PICK.text : '';
-}
-
-function markupQuotePick() {
-  if (MARKUP_PICK) quoteInto(MARKUP_PICK.text, MARKUP_PICK.author, MARKUP_PICK.when);
-}
-
 function markupPickFrom(selection) {
   if (!selection || selection.isCollapsed) return null;
   const at = selection.anchorNode;
@@ -4573,6 +4594,8 @@ async function renderDetail(id, termAddress, commentWanted) {
     return;
   }
   let idx = 0;
+  /* Welche Zeile aufleuchtet -- sie ueberlebt damit jedes Neuzeichnen. */
+  let litComment = Number(commentWanted) || 0;
   let cropMode = false;   // Klick setzt dann den Fokuspunkt statt Vollbild zu oeffnen
   let linksOpen = false;        // nur fuer diese Ansicht, nicht auf dem Server
 
@@ -5461,12 +5484,22 @@ async function renderDetail(id, termAddress, commentWanted) {
     descEl.focus();
     descFit();
   }
-  document.getElementById('descedit').onclick = () => descWrite(true);
-  descView.onclick = (e) => { if (!e.target.closest('a')) descWrite(true); };
+  document.getElementById('descedit').onclick = () => { openBlock('beschreibung'); descWrite(true); };
+  descView.onclick = (e) => {
+    if (e.target.closest('a')) return;
+    /* WER TEXT MARKIERT, WILL ZITIEREN UND NICHT SCHREIBEN: das Umschalten
+       naehme ihm die Auswahl und damit das Menue im Lesemodus. */
+    const picked = document.getSelection();
+    if (picked && !picked.isCollapsed) return;
+    descWrite(true);
+  };
   // Escape verwirft und stellt den zuletzt gespeicherten Text her.
   descEl.onkeydown = (e) => {
     if (e.key !== 'Escape') return;
     e.preventDefault();
+    /* ERST DEN TEXT ZURUECKNEHMEN, DANN UMSCHALTEN: das Verstecken nimmt dem
+       Feld den Fokus, und `focusout` speicherte sonst das Verworfene. */
+    descEl.value = item.description;
     descWrite(false);
   };
   /* Statt einer geratenen Frist entscheidet das Ziel: liegt es im Menue,
@@ -6331,6 +6364,7 @@ async function renderDetail(id, termAddress, commentWanted) {
       /* Die Verfasserzeile des Zitats kommt aus der Zeile selbst und nicht
          aus einem zweiten Zustand daneben. */
       el.dataset.comment = c.id;
+      if (litComment === c.id) el.classList.add('lit');
       el.dataset.author = authorName(c.author);
       el.dataset.when = fmtDate(c.created_at);
 
@@ -6653,12 +6687,15 @@ async function renderDetail(id, termAddress, commentWanted) {
   drawRatings(); drawTestDays(); drawLinks(); drawAtts(); drawComments();
   /* Ein Sprung ohne Markierung liesse den Leser suchen, welche der zwoelf
      Zeilen gemeint war. */
-  if (commentWanted) {
-    const target = document.querySelector(`.cmt[data-comment="${Number(commentWanted)}"]`);
+  if (litComment) {
+    const target = document.querySelector('.cmt.lit');
     if (target) {
+      openBlock('kommentare');
       target.scrollIntoView({ block: 'center' });
-      target.classList.add('lit');
-      setTimeout(() => target.classList.remove('lit'), 2600);
+      setTimeout(() => {
+        litComment = 0;
+        for (const k of document.querySelectorAll('.cmt.lit')) k.classList.remove('lit');
+      }, 2600);
     }
   }
 }

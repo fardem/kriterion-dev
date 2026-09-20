@@ -2767,10 +2767,9 @@ const qAllItems = db.prepare('SELECT * FROM items ORDER BY updated_at DESC');
    Schleife darunter und wurden damit einmal je Eintrag uebersetzt. */
 const qAttachmentCounts = db.prepare('SELECT item_id, COUNT(*) n FROM attachments GROUP BY item_id');
 
-/* Der Kern steht zweimal: hier und in public/app.js. Beide Fassungen
-   sind Zeichen fuer Zeichen dieselben; ein Waechter haelt sie gleich,
-   und eine gemeinsame Tafel von Faellen prueft beide.
-   ANFANG DES GETEILTEN KERNS */
+/* ANFANG DES GETEILTEN KERNS -- er steht zweimal, hier und in
+   public/app.js, Zeichen fuer Zeichen gleich. Ein Waechter haelt ihn
+   gleich, und eine gemeinsame Tafel von Faellen prueft beide Fassungen. */
 /* ================= Auszeichnung ================= */
 /* Eine Teilmenge von CommonMark. Innerhalb der Teilmenge gilt die
    Spezifikation; was nicht darin liegt, bleibt gewoehnlicher Text. */
@@ -2784,6 +2783,12 @@ const MARKUP_SPACE = /[ \t\n\v\f\r]/;
 // Nur diese Ziele werden ein Link -- dieselbe Schranke wie bei der nackten
 // Adresse. Alles andere bleibt der Rohtext, wie er dasteht.
 const MARKUP_TARGET = /^https?:\/\//i;
+
+/* ZWEI GRENZEN GEGEN DEN ENDLOSEN TEXT. Die Spezifikation erlaubt die erste
+   ausdruecklich und nennt drei Ebenen als Mindestmass; ohne die zweite
+   traegt der Stapel ein Zitat aus tausend Zeichen `>` nicht. */
+const MARKUP_NESTING = 32;
+const MARKUP_DEPTH = 100;
 
 /* ---- Die Inline-Ebene ---- */
 
@@ -2849,7 +2854,7 @@ function markupTarget(text, at) {
       const c = text[i];
       if (c === '\\' && MARKUP_ASCII_MARK.test(text[i + 1] || '')) { target += text[i + 1]; i += 2; continue; }
       if (MARKUP_SPACE.test(c) || c.charCodeAt(0) < 0x20 || c === '\x7f') break;
-      if (c === '(') { depth++; target += c; i++; continue; }
+      if (c === '(') { if (++depth > MARKUP_NESTING) return null; target += c; i++; continue; }
       if (c === ')') { if (!depth) break; depth--; target += c; i++; continue; }
       target += c; i++;
     }
@@ -3050,16 +3055,18 @@ const markupOpensBlock = (line) =>
 // Ob eine Zeile innen auf einem Absatz endet -- nur dann laeuft die naechste
 // Zeile ohne eigenes Zeichen mit. Die Zeichen werden dafuer abgetragen.
 function markupLazy(line) {
-  const quote = line.match(MARKUP_QUOTE);
-  if (quote) return markupLazy(line.slice(quote[0].length));
-  const marker = line.match(MARKUP_MARKER);
-  if (marker) return markupLazy(line.slice(marker[0].length));
-  return /\S/.test(line) && !MARKUP_RULE.test(line)
-    && !MARKUP_HEADING.test(line) && !MARKUP_FENCE.test(line);
+  let rest = String(line);
+  for (;;) {
+    const marker = rest.match(MARKUP_QUOTE) || rest.match(MARKUP_MARKER);
+    if (!marker) break;
+    rest = rest.slice(marker[0].length);
+  }
+  return /\S/.test(rest) && !MARKUP_RULE.test(rest)
+    && !MARKUP_HEADING.test(rest) && !MARKUP_FENCE.test(rest);
 }
 
 // Ein Zitat nimmt seine Zeilen und wird selbst wieder zerlegt.
-function markupQuote(lines, at) {
+function markupQuote(lines, at, depth) {
   const inner = [];
   let i = at, running = false;
   while (i < lines.length) {
@@ -3073,12 +3080,12 @@ function markupQuote(lines, at) {
     if (running && /\S/.test(lines[i]) && !markupOpensBlock(lines[i])) { inner.push(lines[i]); i++; continue; }
     break;
   }
-  return { block: { type: 'quote', blocks: markupBlocks(inner) }, end: i };
+  return { block: { type: 'quote', blocks: markupBlocks(inner, depth + 1) }, end: i };
 }
 
 // Eine Aufzaehlung sammelt ihre Punkte; eine eingerueckte Folgezeile gehoert
 // zum Punkt darueber.
-function markupList(lines, at, ordered) {
+function markupList(lines, at, ordered, depth) {
   const pattern = ordered ? MARKUP_NUMBER : MARKUP_BULLET;
   const items = [];
   let i = at, start = 1, blank = false;
@@ -3111,11 +3118,13 @@ function markupList(lines, at, ordered) {
     items.push(item);
   }
   return { block: { type: ordered ? 'number' : 'bullet', start,
-                    items: items.map(lns => markupBlocks(lns)) }, end: i };
+                    items: items.map(lns => markupBlocks(lns, depth + 1)) }, end: i };
 }
 
-function markupBlocks(lines) {
+function markupBlocks(lines, depth) {
   const blocks = [];
+  // Tiefer als hundert Ebenen bleibt alles Text.
+  const deep = depth >= MARKUP_DEPTH;
   let i = 0, text = [];
   const flush = () => {
     while (text.length && !/\S/.test(text[text.length - 1])) text.pop();
@@ -3124,18 +3133,18 @@ function markupBlocks(lines) {
   };
   while (i < lines.length) {
     const line = lines[i];
-    if (MARKUP_QUOTE.test(line)) { flush(); const r = markupQuote(lines, i); blocks.push(r.block); i = r.end; continue; }
+    if (!deep && MARKUP_QUOTE.test(line)) { flush(); const r = markupQuote(lines, i, depth); blocks.push(r.block); i = r.end; continue; }
     // EINE TRENNLINIE IST KEINE AUFZAEHLUNG, und sie bleibt Text.
     const rule = MARKUP_RULE.test(line);
     /* MITTEN IN EINEM ABSATZ FAENGT NUR AN, WAS AUCH INHALT HAT -- und eine
        Nummerierung nur bei der Eins. */
-    const opens = (m, ordered) => !rule && m && (!text.length
+    const opens = (m, ordered) => !rule && !deep && m && (!text.length
       || ((m[4] || '') !== '' && (!ordered || Number(m[2]) === 1)));
     if (opens(line.match(MARKUP_BULLET), false)) {
-      flush(); const r = markupList(lines, i, false); blocks.push(r.block); i = r.end; continue;
+      flush(); const r = markupList(lines, i, false, depth); blocks.push(r.block); i = r.end; continue;
     }
     if (opens(line.match(MARKUP_NUMBER), true)) {
-      flush(); const r = markupList(lines, i, true); blocks.push(r.block); i = r.end; continue;
+      flush(); const r = markupList(lines, i, true, depth); blocks.push(r.block); i = r.end; continue;
     }
     if (!text.length && !/\S/.test(line)) { i++; continue; }
     text.push(line); i++;
@@ -3147,7 +3156,7 @@ function markupBlocks(lines) {
 // Der Rohtext als Baum. Die Zeilenebene liegt ueber der Inline-Ebene, und
 // beide liegen ueber der Zerlegung, die es schon gibt.
 function markupParse(raw) {
-  return markupBlocks(String(raw ?? '').replace(/\r\n|\r/g, '\n').split('\n'));
+  return markupBlocks(String(raw ?? '').replace(/\r\n|\r/g, '\n').split('\n'), 0);
 }
 
 /* ---- Die Marken heraus ---- */

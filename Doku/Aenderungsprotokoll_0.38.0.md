@@ -8,14 +8,14 @@ geworden und keiner genommen** — das `<textarea>` ist geblieben, wie es war.
 Gebaut sind zwei Stücke, und dazwischen liegt nichts: ein Leser, der aus Text
 Knoten macht, und ein Menü, das Zeichen in das Feld schreibt.
 
-*Gemessen in `public/app.js`:* **402 Zeilen der Leser** samt Marken-Entferner,
-**96 sein Knotenbau**, **62 der Verweis**, **234 das Menü mit dem Zitieren.**
+*Gemessen in `public/app.js`:* **412 Zeilen der Leser** samt Marken-Entferner,
+**96 sein Knotenbau**, **65 der Verweis**, **262 das Menü mit dem Zitieren.**
 Geschätzt waren 280 für den Leser und 180 für das Menü.
 
 | | vorher | nachher |
 |---|---:|---:|
-| Zeilen in `public/app.js` | 9.295 | **10.209** |
-| davon Kommentar | 1.761 | **1.886** |
+| Zeilen in `public/app.js` | 9.295 | **10.246** |
+| davon Kommentar | 1.761 | **1.901** |
 | Regelzeilen in `public/style.css` | 1.638 | **1.666** |
 | Blöcke über drei Zeilen im Stilblatt | 8 | **8** |
 | Routen | 102 | **103** |
@@ -24,12 +24,12 @@ Geschätzt waren 280 für den Leser und 180 für das Menü.
 | Stufen der Stapelordnung | 10 | **11** |
 | Formatnummer des Austauschs | 17 | **18** |
 | Untergrenze | 14 | **14** |
-| Auslieferung, gzip | 253.736 | **266.677** |
-| Prüfungen | 7.074 | **7.133** |
+| Auslieferung, gzip | 253.736 | **267.386** |
+| Prüfungen | 7.074 | **7.141** |
 | Gruppen | 374 | **378** |
-| Rückbauten | 1.065 | **1.081** |
+| Rückbauten | 1.065 | **1.084** |
 
-> **FINGERPRINT DIESER RUNDE: `ff63ecc2`** — der Stand davor war `144a80c7`.
+> **FINGERPRINT DIESER RUNDE: `2bc44d2e`** — der Stand davor war `144a80c7`.
 >
 > Er ändert sich an `public/app.js`, `public/style.css`, `server.js` und den
 > drei Sprachdateien. `public/index.html`, `public/theme.js` und
@@ -78,6 +78,18 @@ wird `<strong><mark>`.
 **Kein `innerHTML` auf diesem Weg.** Das Zeichen für „führt nach draußen" geht
 über `createElementNS`, wird einmal gebaut und danach geklont. Die Zahl der
 `.innerHTML =`-Stellen in `public/app.js` ist unverändert.
+
+**ZWEI GRENZEN STEHEN GEGEN DEN ENDLOSEN TEXT**, und beide sind nötig, weil
+ein Kommentar Benutzertext ist und derselbe Leser am Server im
+Trefferausschnitt läuft:
+
+| Grenze | Wert | warum |
+|---|---:|---|
+| Klammern im Ziel eines Links | 32 | Die Spezifikation erlaubt eine Grenze ausdrücklich und nennt drei Ebenen als Mindestmaß. Ohne sie brauchte `[x](` dreitausendmal **791 ms**, mit ihr **28**|
+| Ebenen von Zitat und Aufzählung | 100 | Ohne sie lief der Stapel bei `> ` viertausendmal über — ein `RangeError` im Browser **und** am Server |
+
+*Beide sind gemessen und nicht geschätzt, und beide lassen die Tafel der Fälle
+unberührt: die Beispiele der Spezifikation reichen nirgends über drei Ebenen.*
 
 ### Das Menü
 
@@ -227,6 +239,13 @@ keiner davon wäre an gestellten Fällen aufgefallen:
    rückte die Lesestelle um ein Zeichen statt um den ganzen Lauf.
 5. `![[[foo](uri1)](uri2)](uri3)` bekam ein `!` zu viel zurück.
 
+**Und fünf weitere fand eine Durchsicht des fertigen Stands**, keiner davon an
+der Tafel: der Überlauf des Stapels und die quadratische Laufzeit von oben,
+**Escape in der Beschreibung, das den verworfenen Text speicherte** (das
+Verstecken des Feldes nimmt ihm den Fokus, und `focusout` griff danach), das
+Menü, das sich nach dem Zitieren selbst wieder schloss, und der Stift und der
+Sprung, die an einem eingeklappten Block ins Leere liefen.
+
 ---
 
 ## 6. Was der Bestand sagt
@@ -253,20 +272,20 @@ seinen eigenen Bestand mit demselben Werkzeug:* `node tools/markupscan.js`.
 
 | | vorher | nachher | Unterschied |
 |---|---:|---:|---:|
-| `public/app.js` gzip | 131.750 | **143.340** | +11.590 |
+| `public/app.js` gzip | 131.750 | **144.049** | +12.299 |
 | `public/style.css` gzip | 51.694 | **52.557** | +863 |
 | drei Sprachdateien gzip | 68.538 | **69.026** | +488 |
-| **Auslieferung zusammen** | **253.736** | **266.677** | **+12.941** |
+| **Auslieferung zusammen** | **253.736** | **267.386** | **+13.650** |
 
-**+5,1 Prozent.** Geschätzt waren +22,3 KB und +8,8 Prozent; es ist etwa die
+**+5,4 Prozent.** Geschätzt waren +22,3 KB und +8,8 Prozent; es ist etwa die
 Hälfte geworden. *Zum Vergleich: Quill allein kostet 62.732 Bytes, also 24,7
 Prozent, und erledigt weder das Menü noch die Leseansicht der Beschreibung
 noch den Verweis.*
 
 | | neu | entfernt |
 |---|---:|---:|
-| ausgelieferte Dateien | **1.453** | 23 |
-| insgesamt | **3.005** | 850 *(davon 767 der gebaute Auftrag)* |
+| ausgelieferte Dateien | **1.511** | 23 |
+| insgesamt | **3.183** | 853 *(davon 766 der gebaute Auftrag)* |
 
 ---
 
@@ -288,8 +307,9 @@ Jede steht mit ihrem Grund im Prüfstand daneben:
   `public/app.js`; die Runde legt dort rund fünfhundert Zeilen an und bewegt
   keinen deutschen Satz.
 - **Die Kommentarzahlen je Datei** und die Summe darüber, gemessen mit
-  `tools/comments.js --rows`. `public/app.js` steht bei **1.886**
-  Kommentarzeilen — zwei über dem Ziel, das `tools/comments.js` nennt.
+  `tools/comments.js --rows`. `public/app.js` steht bei **1.901**
+  Kommentarzeilen und 19 Prozent; `tools/comments.js` nennt als Ziel ein
+  Viertel der Codezeilen, hier 2.086.
 
 ---
 

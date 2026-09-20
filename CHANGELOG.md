@@ -49,7 +49,7 @@ Verweis darauf und „mit Zitat antworten".*
 > geschrieben: ein Klick in den Text oder der Stift in der Kopfzeile schaltet
 > auf das Feld, Verlassen speichert, Escape verwirft.
 
-Fingerprint `ff63ecc2` — davor `144a80c7`.
+Fingerprint `2bc44d2e` — davor `144a80c7`.
 
 ### Hinzugefügt
 
