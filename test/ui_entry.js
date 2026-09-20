@@ -4214,6 +4214,153 @@ group('Was der Betrieb an der Auszeichnung gefunden hat');
   wb.eval("COMMENT_REFS.delete('c2'); COMMENT_REFS.delete('i1');");
 }
 
+/* ================= Der Sprung zum Kommentar =================
+   Gemeldet aus dem Betrieb: der Verweis oeffnete den richtigen Eintrag, die
+   Seite stand aber am Ende der Liste. */
+group('Der Sprung zum Kommentar trifft und haelt');
+{
+  const spHere = wb.location.origin + wb.location.pathname;
+  const spBox = wb.document.getElementById('cmts');
+  const spWas = spBox.innerHTML;
+  /* DIE ANZEIGE STEHT ANDERS ALS DIE NUMMERIERUNG: gepinnt zuerst, dann die
+     Aufgabe, dann der Bericht, dann die Notizen. */
+  const spOrder = [[41, '#5'], [17, '#2'], [33, '#4'], [8, '#1'], [26, '#3']];
+  const spJumped = [];
+  spBox.innerHTML = '';
+  for (const [id, no] of spOrder) {
+    const el = wb.document.createElement('div');
+    el.className = 'cmt';
+    el.dataset.comment = String(id);
+    const head = wb.document.createElement('div');
+    head.className = 'cmt-head';
+    const nr = wb.document.createElement('button');
+    nr.className = 'cmt-no';
+    nr.textContent = no;
+    head.appendChild(nr);
+    el.appendChild(head);
+    el.scrollIntoView = function (how) { spJumped.push({ id: Number(this.dataset.comment), how }); };
+    spBox.appendChild(el);
+  }
+  const spLit = () => [...wb.document.querySelectorAll('.cmt.lit')]
+    .map(k => k.querySelector('.cmt-no').textContent);
+
+  /* ---- 1. DIE ZEILE WIRD UEBER IHRE NUMMER GEFUNDEN UND NICHT UEBER IHRE
+     STELLUNG ---- */
+  check('Die Anzeige steht anders als die Nummerierung',
+    [...spBox.children].map(k => k.querySelector('.cmt-no').textContent).join(' ')
+      === '#5 #2 #4 #1 #3',
+    [...spBox.children].map(k => k.querySelector('.cmt-no').textContent).join(' '));
+  check('Der Sprung trifft den ersten Kommentar, obwohl er an vierter Stelle steht',
+    wb.commentJump(8) === true && spLit().join('') === '#1'
+      && spJumped.length === 1 && spJumped[0].id === 8,
+    `${spLit().join(' ')} · ${JSON.stringify(spJumped)}`);
+  spJumped.length = 0;
+  check('Und der letzte ebenso, obwohl er an erster Stelle steht',
+    wb.commentJump(41) === true && spLit().join('') === '#5',
+    spLit().join(' '));
+  check('Es leuchtet immer genau eine Zeile',
+    wb.document.querySelectorAll('.cmt.lit').length === 1,
+    String(wb.document.querySelectorAll('.cmt.lit').length));
+  check('Und die leuchtende Zeile steht an EINER Stelle, nicht in jeder Zeichnung',
+    Number(wb.eval('LIT_COMMENT')) === 41, String(wb.eval('LIT_COMMENT')));
+  check('Eine Zeile, die es nicht gibt, laesst nichts leuchten',
+    wb.commentJump(999999) === false && Number(wb.eval('LIT_COMMENT')) === 0,
+    String(wb.eval('LIT_COMMENT')));
+
+  /* ---- 2. IM EIGENEN EINTRAG WIRD GEGLITTEN, NICHT NEU GEZEICHNET ---- */
+  spJumped.length = 0;
+  wb.commentJump(17);
+  check('Aus einem anderen Eintrag heraus wird gesprungen',
+    spJumped.length === 1 && spJumped[0].how && spJumped[0].how.behavior === undefined,
+    JSON.stringify(spJumped[0] && spJumped[0].how));
+  spJumped.length = 0;
+  wb.commentJump(17, true);
+  check('Im eigenen Eintrag gleitet die Seite hin',
+    spJumped.length === 1 && spJumped[0].how && spJumped[0].how.behavior === 'smooth',
+    JSON.stringify(spJumped[0] && spJumped[0].how));
+
+  /* ---- 3. DER KLICK ENTSCHEIDET NACH DEM EINTRAG UND NICHT NACH DER
+     ADRESSE ---- Bis hierher musste die Adresse Zeichen fuer Zeichen am Ziel
+     stehen; ein Verweis auf eine ANDERE Zeile desselben Eintrags zeichnete
+     die ganze Ansicht neu. */
+  wb.eval(`COMMENT_REFS.set('c17', { key: 'c17', id: 17, itemId: 1, itemTitle: 'Der Eintrag', number: 2 });
+           COMMENT_REFS.set('c99', { key: 'c99', id: 99, itemId: 2, itemTitle: 'Ein anderer', number: 1 });`);
+  const spRef = (raw) => {
+    const box = wb.document.createElement('div');
+    box.appendChild(wb.markupNodes(raw, '', []));
+    return box.querySelector('.markup-ref');
+  };
+  const spWasHash = wb.location.hash;
+  const spClick = (a) => {
+    const ev = new wb.Event('click', { bubbles: true, cancelable: true });
+    a.dispatchEvent(ev);
+    return ev.defaultPrevented;
+  };
+  spJumped.length = 0;
+  const spOwn = spRef(spHere + '#/item/1?c=17');
+  check('Ein Verweis in den offenen Eintrag wird vom Klick uebernommen',
+    spClick(spOwn) === true && spJumped.length === 1 && spJumped[0].id === 17,
+    `${spJumped.length} Sprünge`);
+  check('Und die Adresse zieht nach', wb.location.hash === '#/item/1?c=17', wb.location.hash);
+  spJumped.length = 0;
+  check('Ein Verweis in einen anderen Eintrag bleibt dem Browser',
+    spClick(spRef(spHere + '#/item/2?c=99')) === false && spJumped.length === 0,
+    `${spJumped.length} Sprünge`);
+  wb.eval("COMMENT_REFS.delete('c17'); COMMENT_REFS.delete('c99');");
+  wb.history.replaceState(null, '', spWasHash);
+
+  /* ---- 4. DIE ZEILE BLEIBT STEHEN, BIS DIE SEITE RUHIG IST ---- */
+  check('Der Halt hat eine Frist und laesst dem Leser das letzte Wort',
+    Number(wb.eval('JUMP_HOLD_MS')) > 0
+      && wb.eval('JUMP_EVENTS.join(",")') === 'wheel,touchstart,pointerdown,keydown',
+    `${wb.eval('JUMP_HOLD_MS')} ms · ${wb.eval('JUMP_EVENTS.join(",")')}`);
+  check('Und er laesst sich anhalten, ohne dass etwas laeuft',
+    wb.commentHoldStop() === undefined);
+
+  /* ---- 5. EIN LAUFENDER RUF IST KEINE AUSKUNFT ---- Beschreibung und
+     Kommentare fragen dieselbe Adresse; bis hierher bekam nur die erste
+     Stelle ihren Kasten. */
+  const spReal = wb.api;
+  let spCalls = 0;
+  wb.api = async () => {
+    spCalls++;
+    await new Promise(r => setTimeout(r, 20));
+    return [{ key: 'c77', id: 77, itemId: 1, itemTitle: 'Der Eintrag', number: 4 }];
+  };
+  wb.eval("COMMENT_REFS.delete('c77'); COMMENT_REFS_ASK.clear();");
+  const spText = `Siehe ${spHere}#/item/1?c=77`;
+  check('Vor dem Ruf fehlt die Auskunft',
+    wb.markupRefMissing([spText]).join('') === 'c77',
+    wb.markupRefMissing([spText]).join(' '));
+  const spFirst = wb.markupRefLoad(['c77']);
+  const spSecond = wb.markupRefLoad(wb.markupRefMissing([spText]));
+  const spBoth = await Promise.all([spFirst, spSecond]);
+  check('Zwei Stellen fragen dieselbe Adresse, es geht EIN Ruf hinaus',
+    spCalls === 1, `${spCalls} Rufe`);
+  check('Und beide bekommen ihre Auskunft',
+    spBoth[0] === true && spBoth[1] === true, JSON.stringify(spBoth));
+  check('Danach fehlt sie keiner von beiden mehr',
+    wb.markupRefMissing([spText]).length === 0,
+    wb.markupRefMissing([spText]).join(' '));
+  check('Und die Vormerkung bleibt nicht stehen',
+    Number(wb.eval('COMMENT_REFS_ASK.size')) === 0, String(wb.eval('COMMENT_REFS_ASK.size')));
+
+  /* ---- 6. EIN GESCHEITERTER RUF ZEICHNET NICHT NEU ---- sonst fragte die
+     Zeichnung sich selbst im Kreis. */
+  wb.api = async () => { spCalls++; throw new Error('kein Netz'); };
+  spCalls = 0;
+  wb.eval("COMMENT_REFS.delete('c78'); COMMENT_REFS_ASK.clear();");
+  const spFailed = await wb.markupRefLoad(['c78']);
+  check('Ein gescheiterter Ruf meldet, dass keine Auskunft kam',
+    spFailed === false && spCalls === 1, `${spFailed} · ${spCalls} Rufe`);
+  check('Und er wird vergessen, damit die naechste Zeichnung wieder fragt',
+    wb.markupRefMissing([`Siehe ${spHere}#/item/1?c=78`]).join('') === 'c78',
+    wb.markupRefMissing([`Siehe ${spHere}#/item/1?c=78`]).join(' '));
+  wb.api = spReal;
+  wb.eval("COMMENT_REFS.delete('c77'); COMMENT_REFS_ASK.clear();");
+  spBox.innerHTML = spWas;
+}
+
   wb.close();
 }
 

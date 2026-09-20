@@ -28,7 +28,26 @@ ihre deutschen Abschnittsüberschriften bleiben.*
 
 ## [Unreleased]
 
-*Hier wird mitgeschrieben, während gebaut wird.*
+*Der Sprung zum Kommentar: er trifft die gemeinte Zeile, bleibt dort stehen,
+und innerhalb eines Eintrags gleitet die Seite hin, statt neu zu zeichnen.*
+
+> **Die Nummer und die Anzeigestelle sind zweierlei.** Die Adresse trägt die
+> Nummer des Kommentars in der Datenbank, nicht seine Stellung in der Liste.
+> Angepinntes, Aufgaben und Berichte stehen oben und verschieben die Stellung;
+> der Sprung hat davon nie abgehangen. Das ist an 40 Kommentaren mit
+> gepinnten, Aufgaben und Berichten dazwischen nachgemessen — der Verweis auf
+> Kommentar 1 trifft ihn an Anzeigestelle 9 von 31.
+
+### Behoben
+
+- **Die Zeile blieb nach dem Sprung nicht stehen.** Der Sprung stand am Ende der ersten Zeichnung; was danach ankam — Verweiskästen, Vorschauen von Anhängen —, verschob sie. An einer Prüflage mit zwölf Verweisen über dem Ziel: **24 Pixel** am Bildschirm, **72** am Telefon. Jetzt hält der Sprung die Zeile **1600 Millisekunden** an ihrem Platz; Rad, Berührung, Zeiger und Taste des Lesers beenden den Halt sofort.
+- **Ein Verweis, den zwei Stellen derselben Ansicht tragen, wurde nur an einer zum Kasten.** Der laufende Ruf hat den Schlüssel als beantwortet vorgemerkt. Stand dieselbe Adresse in der Beschreibung und in einem Kommentar, behielt der Kommentar die rohe Adresse und öffnete beim Klick einen neuen Tab, statt zu springen.
+- **Ein gescheiterter Ruf an `GET /api/comment-refs` zeichnete neu und fragte damit sofort wieder.** Gezeichnet wird jetzt nur, wenn eine Auskunft angekommen ist.
+
+### Geändert
+
+- **Ein Verweis in den Eintrag, der offen steht, zeichnet die Ansicht nicht mehr neu.** Bis hierher musste die Adresse Zeichen für Zeichen am Ziel stehen; ein Verweis auf eine andere Zeile desselben Eintrags baute die ganze Ansicht ein zweites Mal auf. Jetzt entscheidet der Eintrag: die Seite gleitet zur Zeile, die Adresse zieht ohne Zeichnung nach. `prefers-reduced-motion: reduce` schaltet das Gleiten ab.
+- **Welche Zeile leuchtet, steht an einer Stelle** statt in jeder Zeichnung für sich. Nach einem Sprung im eigenen Eintrag leuchtete sonst beim nächsten Zeichnen wieder die Zeile aus der Adresse.
 
 ## [0.38.2] - 2026-09-20
 

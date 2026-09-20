@@ -2132,39 +2132,113 @@ function markupRefMissing(texts) {
   return [...want].filter(n => !COMMENT_REFS.has(n));
 }
 
+// Ein laufender Ruf ist keine Auskunft: sonst bekaeme die zweite Stelle keine.
+const COMMENT_REFS_ASK = new Map();
+
+const markupRefCut = (ask, sign) =>
+  ask.filter(k => k[0] === sign).map(k => k.slice(1)).join(',');
+
+async function markupRefAsk(ask) {
+  let came = false;
+  try {
+    const rows = await api('GET',
+      `/api/comment-refs?ids=${markupRefCut(ask, 'c')}&items=${markupRefCut(ask, 'i')}`);
+    for (const row of rows) COMMENT_REFS.set(row.key, row);
+    // Was der Leser nicht sehen darf, steht als `null` darin und wird nicht
+    // noch einmal gefragt.
+    for (const k of ask) if (!COMMENT_REFS.has(k)) COMMENT_REFS.set(k, null);
+    came = rows.length > 0;
+  } catch {
+    /* EIN GESCHEITERTER RUF WIRD VERGESSEN: die naechste Zeichnung fragt
+       wieder. Neu gezeichnet wird nicht -- der Ruf fragte sich im Kreis. */
+  } finally {
+    for (const k of ask) COMMENT_REFS_ASK.delete(k);
+  }
+  return came;
+}
+
 /* Ein Ruf je Zeichnung, gesammelt ueber alle Kommentare und die
-   Beschreibung. Die Route achtet auf dieselbe Schranke wie der Eintrag. */
+   Beschreibung. Die Route achtet auf dieselbe Schranke wie der Eintrag.
+   Heraus kommt, ob eine Auskunft ankam -- nur dann lohnt das Neuzeichnen. */
 async function markupRefLoad(keys) {
+  const running = [...new Set(keys.map(k => COMMENT_REFS_ASK.get(k)).filter(Boolean))];
   /* Nur so viele, wie die Route auf einmal beantwortet -- je Art
      zweihundert; der Rest kommt beim naechsten Zeichnen. */
-  const ask = keys.slice(0, 400);
-  for (const k of ask) COMMENT_REFS.set(k, null);
-  const cut = (sign) => ask.filter(k => k[0] === sign).map(k => k.slice(1)).join(',');
-  try {
-    for (const row of await api('GET',
-      `/api/comment-refs?ids=${cut('c')}&items=${cut('i')}`))
-      COMMENT_REFS.set(row.key, row);
-  } catch {
-    /* EIN GESCHEITERTER RUF WIRD VERGESSEN: bliebe die Vormerkung stehen,
-       waere jeder Verweis der Seite bis zum Neuladen ein einfacher Link. */
-    for (const k of ask) COMMENT_REFS.delete(k);
+  const ask = keys.filter(k => !COMMENT_REFS_ASK.has(k)).slice(0, 400);
+  if (ask.length) {
+    const call = markupRefAsk(ask);
+    for (const k of ask) COMMENT_REFS_ASK.set(k, call);
+    running.push(call);
   }
+  return (await Promise.all(running)).some(Boolean);
 }
 
 /* Die Marke statt der Adresse: Titel und Nummer sagen, wohin es geht. */
-/* DER SPRUNG STEHT AUSSERHALB DES ZEICHNENS: steht die Adresse schon am Ziel,
-   meldet der Browser keinen Wechsel, und ein zweiter Klick auf denselben
-   Verweis loest gar nichts aus. */
+/* DER SPRUNG STEHT AUSSERHALB DES ZEICHNENS: er entscheidet nach dem Eintrag
+   und nicht nach der Adresse, und ein zweiter Klick loest ihn wieder aus. */
 let LIT_TIMER = 0;
-function commentJump(id) {
-  const target = document.querySelector(`.cmt[data-comment="${Number(id)}"]`);
-  if (!target) return false;
+// Welche Zeile leuchtet -- eine Angabe fuer alle Zeichnungen der Ansicht.
+let LIT_COMMENT = 0;
+
+const commentRow = (id) =>
+  document.querySelector(`.cmt[data-comment="${Number(id)}"]`);
+
+/* ---- Die Zeile bleibt stehen, bis die Seite ruhig ist ---- Nach dem Sprung
+   zieht sie nach: Verweise werden zu Kaesten, Vorschauen kommen an, der
+   Kommentarblock wird neu gebaut -- und das Ziel wandert unter dem Leser weg. */
+const JUMP_HOLD_MS = 1600;
+let JUMP_FRAME = 0, JUMP_OFF = null;
+const JUMP_EVENTS = ['wheel', 'touchstart', 'pointerdown', 'keydown'];
+
+function commentHoldStop() {
+  if (JUMP_FRAME && typeof cancelAnimationFrame === 'function') cancelAnimationFrame(JUMP_FRAME);
+  JUMP_FRAME = 0;
+  if (JUMP_OFF) JUMP_OFF();
+  JUMP_OFF = null;
+}
+
+/* Der eigene Ruf loest keines dieser Ereignisse aus: was hier ankommt, kommt
+   vom Leser, und dann hat er das letzte Wort. Nachgestellt wird nur, wenn die
+   Zeile sich wirklich bewegt hat. */
+function commentHold(id, want) {
+  commentHoldStop();
+  if (typeof requestAnimationFrame !== 'function') return;
+  const end = Date.now() + JUMP_HOLD_MS;
+  let at = want;
+  JUMP_OFF = () => JUMP_EVENTS.forEach(n => window.removeEventListener(n, commentHoldStop));
+  JUMP_EVENTS.forEach(n => window.addEventListener(n, commentHoldStop, { passive: true }));
+  const step = () => {
+    const row = commentRow(id);
+    if (!row || Date.now() > end) return commentHoldStop();
+    const now = row.getBoundingClientRect().top;
+    if (Math.abs(now - at) > 1) {
+      row.scrollIntoView({ block: 'center' });
+      at = row.getBoundingClientRect().top;
+    }
+    JUMP_FRAME = requestAnimationFrame(step);
+  };
+  JUMP_FRAME = requestAnimationFrame(step);
+}
+
+const SOFT_OK = () => !window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches;
+
+/* `soft` gilt im eigenen Eintrag: dort steht die Seite schon, und ein
+   gleitender Weg zeigt, wohin es ging. */
+function commentJump(id, soft) {
+  const target = commentRow(id);
+  if (!target) { LIT_COMMENT = 0; return false; }
   openBlock('kommentare');
   clearTimeout(LIT_TIMER);
   for (const k of document.querySelectorAll('.cmt.lit')) k.classList.remove('lit');
+  LIT_COMMENT = Number(id);
   target.classList.add('lit');
-  target.scrollIntoView?.({ block: 'center' });
+  const smooth = soft && SOFT_OK();
+  commentHoldStop();
+  target.scrollIntoView?.(smooth ? { behavior: 'smooth', block: 'center' } : { block: 'center' });
+  // Ein gleitender Weg vertruege die Richtigstellung Bild fuer Bild nicht.
+  if (!smooth) commentHold(id, target.getBoundingClientRect?.().top ?? 0);
   LIT_TIMER = setTimeout(() => {
+    LIT_COMMENT = 0;
     for (const k of document.querySelectorAll('.cmt.lit')) k.classList.remove('lit');
   }, 2600);
   return true;
@@ -2187,12 +2261,25 @@ function markupRefNode(row, term, name) {
   // Strg-, Umschalt- und Mittelklick bleiben dem Browser.
   a.onclick = (e) => {
     if (e.ctrlKey || e.metaKey || e.shiftKey || e.button) return;
-    if (location.hash !== a.getAttribute('href')) return;
+    /* IM EIGENEN EINTRAG WIRD NICHT NEU GEZEICHNET: der Umweg ueber die
+       Adresse baute die ganze Ansicht noch einmal auf. */
+    const open = (ENTRY_PATTERN.exec(location.hash || '') || [])[1];
+    if (Number(open) !== Number(row.itemId)) return;
+    // Steht die Zeile nicht da, holt der Browser den Eintrag neu.
+    if (row.number && !commentRow(row.id)) return;
     e.preventDefault();
+    /* Die Adresse zieht nach, ohne zu zeichnen -- sonst zeigte sie nach dem
+       Sprung noch auf die Zeile davor. */
+    const term = termOutAddress((ENTRY_PATTERN.exec(location.hash || '') || [])[2]);
+    const want = entryAddress(row.itemId, term, row.number ? row.id : 0);
+    if (location.hash !== want && typeof history !== 'undefined'
+        && typeof history.replaceState === 'function')
+      history.replaceState(null, '', want);
     /* Ein Kasten ohne Nummer zeigt auf den Eintrag selbst: dort gibt es keine
        Zeile zum Anleuchten, also geht es an den Kopf. */
-    if (row.number) commentJump(row.id);
-    else document.querySelector('.title-head')?.scrollIntoView?.({ block: 'start' });
+    if (row.number) commentJump(row.id, true);
+    else document.querySelector('.title-head')?.scrollIntoView?.(
+      SOFT_OK() ? { behavior: 'smooth', block: 'start' } : { block: 'start' });
   };
   return a;
 }
@@ -4699,7 +4786,7 @@ async function renderDetail(id, termAddress, commentWanted) {
   }
   let idx = 0;
   /* Welche Zeile aufleuchtet -- sie ueberlebt damit jedes Neuzeichnen. */
-  let litComment = Number(commentWanted) || 0;
+  LIT_COMMENT = Number(commentWanted) || 0;
   let cropMode = false;   // Klick setzt dann den Fokuspunkt statt Vollbild zu oeffnen
   let linksOpen = false;        // nur fuer diese Ansicht, nicht auf dem Server
 
@@ -5577,7 +5664,7 @@ async function renderDetail(id, termAddress, commentWanted) {
       return;
     }
     const missing = markupRefMissing([item.description]);
-    if (missing.length) markupRefLoad(missing).then(drawDesc);
+    if (missing.length) markupRefLoad(missing).then(came => { if (came) drawDesc(); });
     descView.appendChild(markupNodes(item.description, term, []));
   }
   function descWrite(on) {
@@ -6456,7 +6543,7 @@ async function renderDetail(id, termAddress, commentWanted) {
        Anpinnen und das Umstellen der Art bewegen sie damit nicht. */
     const order = commentOrder(item.comments);
     const missing = markupRefMissing(item.comments.map(c => c.text));
-    if (missing.length) markupRefLoad(missing).then(drawComments);
+    if (missing.length) markupRefLoad(missing).then(came => { if (came) drawComments(); });
     box.innerHTML = item.comments.length ? '' : emptyState(t('entry.noCommentsYet'));
     item.comments.forEach(c => {
       const report = c.kind === 'report', task = c.kind === 'task',
@@ -6468,7 +6555,7 @@ async function renderDetail(id, termAddress, commentWanted) {
       /* Die Verfasserzeile des Zitats kommt aus der Zeile selbst und nicht
          aus einem zweiten Zustand daneben. */
       el.dataset.comment = c.id;
-      if (litComment === c.id) el.classList.add('lit');
+      if (LIT_COMMENT === c.id) el.classList.add('lit');
       el.dataset.author = authorName(c.author);
       el.dataset.when = fmtDate(c.created_at);
 
@@ -6794,8 +6881,7 @@ async function renderDetail(id, termAddress, commentWanted) {
   drawRatings(); drawTestDays(); drawLinks(); drawAtts(); drawComments();
   /* Ein Sprung ohne Markierung liesse den Leser suchen, welche der zwoelf
      Zeilen gemeint war. */
-  if (litComment && commentJump(litComment))
-    setTimeout(() => { litComment = 0; }, 2600);
+  if (LIT_COMMENT) commentJump(LIT_COMMENT);
 }
 
 /* ================= Der Systembereich ================= ACHTZEHN KARTEN IN
