@@ -9320,8 +9320,8 @@ const REGRESSIONS = [
   {
     nr: '1155', name: 'Der Verweis springt wieder nur ueber die Adresse',
     file: 'public/app.js',
-    search: "  const target = document.querySelector(`.cmt[data-comment=\"${Number(id)}\"]`);\n  if (!target) return false;",
-    replacement: "  const target = document.querySelector('.cmt.lit');\n  if (!target) return false;",
+    search: "  const target = commentRow(id);\n  if (!target) { LIT_COMMENT = 0; return false; }",
+    replacement: "  const target = document.querySelector('.cmt.lit');\n  if (!target) { LIT_COMMENT = 0; return false; }",
     expected: 'Was der Betrieb an der Auszeichnung gefunden hat'
   },
   {
@@ -9365,6 +9365,55 @@ const REGRESSIONS = [
     search: "    if (e.ctrlKey || e.metaKey || e.shiftKey || e.button) return;",
     replacement: "    if (!row.number || e.ctrlKey || e.metaKey || e.shiftKey || e.button) return;",
     expected: 'Was der Betrieb an der Auszeichnung gefunden hat'
+  },
+  {
+    nr: '1162', name: 'Der Klick entscheidet wieder nach der Adresse statt nach dem Eintrag',
+    file: 'public/app.js',
+    search: "    if (Number(open) !== Number(row.itemId)) return;",
+    replacement: "    if (location.hash !== a.getAttribute('href')) return;",
+    expected: 'Der Sprung zum Kommentar trifft und haelt'
+  },
+  {
+    nr: '1163', name: 'Die Adresse zieht nach dem Sprung im eigenen Eintrag wieder nicht nach',
+    file: 'public/app.js',
+    search: "    const want = entryAddress(row.itemId, term, row.number ? row.id : 0);\n    if (location.hash !== want && typeof history !== 'undefined'\n        && typeof history.replaceState === 'function')\n      history.replaceState(null, '', want);",
+    replacement: "",
+    expected: 'Der Sprung zum Kommentar trifft und haelt'
+  },
+  {
+    nr: '1164', name: 'Der Sprung im eigenen Eintrag gleitet wieder nicht',
+    file: 'public/app.js',
+    search: "  const smooth = soft && SOFT_OK();",
+    replacement: "  const smooth = false;",
+    expected: 'Der Sprung zum Kommentar trifft und haelt'
+  },
+  {
+    nr: '1165', name: 'Der Halt nach dem Sprung hat wieder keine Frist',
+    file: 'public/app.js',
+    search: "const JUMP_HOLD_MS = 1600;",
+    replacement: "const JUMP_HOLD_MS = 0;",
+    expected: 'Der Sprung zum Kommentar trifft und haelt'
+  },
+  {
+    nr: '1166', name: 'Ein laufender Ruf gilt wieder als Auskunft',
+    file: 'public/app.js',
+    search: "  const ask = keys.filter(k => !COMMENT_REFS_ASK.has(k)).slice(0, 400);",
+    replacement: "  const ask = keys.slice(0, 400);",
+    expected: 'Der Sprung zum Kommentar trifft und haelt'
+  },
+  {
+    nr: '1167', name: 'Ein gescheiterter Ruf zeichnet wieder neu',
+    file: 'public/app.js',
+    search: "  return came;",
+    replacement: "  return true;",
+    expected: 'Der Sprung zum Kommentar trifft und haelt'
+  },
+  {
+    nr: '1168', name: 'Die leuchtende Zeile steht wieder in jeder Zeichnung fuer sich',
+    file: 'public/app.js',
+    search: "  LIT_COMMENT = Number(id);",
+    replacement: "",
+    expected: 'Der Sprung zum Kommentar trifft und haelt'
   },
 ];
 

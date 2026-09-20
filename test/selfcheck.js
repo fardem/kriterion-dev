@@ -22,7 +22,7 @@ async function run() {
   // Die Zahl der Rueckbauten steht ausdruecklich da: eine Zahl in einem
   // Papier ist eine Behauptung, eine Zahl im Pruefstand ist ein Beleg. Wie
   // sie Runde fuer Runde gewachsen ist, steht in den Aenderungsprotokollen.
-  check(`Es sind genau 1097 Rueckbauten`, gpList.length === 1097, `${gpList.length}`);
+  check(`Es sind genau 1104 Rueckbauten`, gpList.length === 1104, `${gpList.length}`);
   const gpTwice = gpList.map(r => r.nr).filter((n, i, a) => a.indexOf(n) !== i);
   check('Und keine Nummer steht zweimal', gpTwice.length === 0, gpTwice.join(' '));
   /* JEDER GREIFT: der Suchtext kommt in seiner Datei GENAU EINMAL vor. */
@@ -402,11 +402,11 @@ async function run() {
       ['test/keychange.js', 81],
       ['test/release_029.js', 60],
       ['test/release_030.js', 241],
-      ['test/release_031.js', 427],
+      ['test/release_031.js', 433],
       ['test/roundtrip.js', 3242],
-      ['test/selfcheck.js', 211],
+      ['test/selfcheck.js', 213],
       ['test/source.js', 917],
-      ['test/ui_entry.js', 594],
+      ['test/ui_entry.js', 612],
       ['test/ui_export.js', 453],
       ['test/ui_inventory.js', 241],
       ['test/ui_language.js', 287],
@@ -427,13 +427,15 @@ async function run() {
       ['usertool.js', 23],
       ['twofactor.js', 34],
       ['keytool.js', 41],
-      ['public/app.js', 1943],
+      ['public/app.js', 1961],
       ['public/theme.js', 3],
       ['public/style.css', 1215],
     ];
     /* DIE AUSZEICHNUNG BRINGT 830 ZEILEN CODE UND IHREN KOMMENTAR;
-       der Anteil bleibt unter einem Fuenftel. */
-    const COMMENT_TOTAL = { comment: 16394, code: 65809 };
+       der Anteil bleibt unter einem Fuenftel. Die Zahlen darunter sind
+       gestiegen, weil der Sprung zum Kommentar dazugekommen ist -- davor
+       standen hier 16394 und 65809. */
+    const COMMENT_TOTAL = { comment: 16438, code: 66056 };
     check('Der Waechter sieht alle sechsunddreissig Dateien',
       crAll.each.length === 36 && COMMENT_ROWS.length === 36,
       `${crAll.each.length} gemessen, ${COMMENT_ROWS.length} genannt`);

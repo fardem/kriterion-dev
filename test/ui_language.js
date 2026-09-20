@@ -263,9 +263,10 @@ async function run() {
       'Kriterion',
       // Der Ort der Sprachdateien und die Lage, wenn eine fehlt
       'languages/', 'Die Sprachdatei fehlt.',
-      // Auswahl im Stilblatt und zwei Medienabfragen
+      // Auswahl im Stilblatt und drei Medienabfragen
       'button, input, select, a, .bgrip',
       '(prefers-color-scheme: light)',
+      '(prefers-reduced-motion: reduce)',
       '(max-width: 700px), (max-height: 500px) and (max-width: 960px)',
       // Stuecke einer Adresse
       '?entries=', '&posts=', '?group=', '&days=', '&target=',
