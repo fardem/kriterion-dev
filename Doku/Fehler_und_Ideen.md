@@ -2390,11 +2390,27 @@ der Öffentlichkeit die mit den toten Zeigern.
 
 ---
 
-## 44. Kommentare und Beschreibung brauchen einen Editor
+## 44. ~~Kommentare und Beschreibung brauchen einen Editor~~ — **GEBAUT mit 0.38.0**
 
 **Art: Idee** *(Oberfläche)* **· Herkunft: Betreiber, 17. September 2026 ·
-Einschätzung: groß · Fahrplan: 0.38.0** *(am 19. September 2026 von 0.37.0
-gerückt: der Betreiber hat die Kommentarrunde davorgesetzt)*
+Einschätzung: groß · gebaut am 19. September 2026**
+
+> **ES IST KEIN EDITOR GEWORDEN UND KEINER GENOMMEN.** *Das Textfeld ist
+> geblieben, wie es war; gebaut sind ein Leser und ein Menü, und dazwischen
+> liegt nichts.* **Die sieben Fragen sind beantwortet:** eine Teilmenge von
+> CommonMark statt eigener Marken (1), geparst wird im Browser (2), die Spalte
+> bekommt kein Merkmal, weil die Zeichen so gewählt sind, dass vorhandener
+> Text sie nicht zufällig trägt (3), die Exportdatei trägt Formatnummer 18
+> (4), gesucht wird weiter im Rohtext und der Trefferausschnitt bekommt die
+> Zeichen vorher heraus (5), **es sind drei Stellen und nicht vier — die
+> Mailbenachrichtigung trägt keinen Kommentartext** (6), und die Beschreibung
+> schaltet über einen Klick in den Text **und** einen Stift in der Kopfzeile
+> um (7).
+>
+> **Gemessen an den 356 Beispielen der Spezifikation:** 159 werden gezeichnet
+> wie dort, 132 bleiben gewöhnlicher Text, 65 tragen eine Bauform außerhalb
+> der Teilmenge und stehen mit ihrem Grund namentlich in der Prüfung.
+> **Wie gebaut wurde, steht im Änderungsprotokoll 0.38.0.**
 
 **GEWÜNSCHT SIND DIE GRUNDFUNKTIONEN EINES SCHREIBFELDS:** Fettdruck,
 Kursiv, Zitat und Aufzählung — **im Kommentar und in der Beschreibung.** Heute

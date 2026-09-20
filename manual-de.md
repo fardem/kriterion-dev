@@ -758,6 +758,34 @@ es zwei, beide in den Einstellungen einstellbar:
 - **Bilder in Kommentaren**: bis 6 je Kommentar, anhängen oder mit Strg+V
   einfügen. Jedes Bild wird beim Hochladen neu kodiert — gespeichert wird nur
   die verkleinerte Variante samt Kachel, nicht das Original.
+- **Auszeichnung im Text**: Kommentar und Beschreibung nehmen `**fett**`,
+  `_kursiv_`, `` `Code` ``, `[Name](Adresse)`, `> ` für ein Zitat, `- ` für
+  eine Aufzählung und `1. ` für eine Nummerierung — jeweils am Zeilenanfang,
+  wo es um Zeilen geht. Wer die Zeichen nicht kennt, nimmt das Menü: es
+  erscheint über dem Feld, sobald das Feld den Schreibzeiger hat, und schreibt
+  dieselben Zeichen hinein. **Strg+B** und **Strg+I** tun dasselbe für fett
+  und kursiv. Ein Backslash nimmt einem Zeichen seine Wirkung: `\*\*` steht
+  als `**` da. Was nicht in der Liste steht, bleibt Text — ein einzelner
+  Stern, eine Überschrift, eine Tabelle, ein Bild. Gespeichert wird immer
+  genau das, was im Feld steht.
+- **Die Beschreibung wird gelesen und geschrieben.** Sie steht als Text da;
+  ein Klick hinein oder der Stift in der Kopfzeile schaltet auf das Feld,
+  Verlassen speichert, **Escape** verwirft. Im Anlegen-Dialog gibt es das Menü
+  nicht — was dort an Zeichen getippt wird, wirkt in der Beschreibung
+  trotzdem.
+- **Jeder Kommentar trägt eine Nummer** in seiner Kopfzeile, etwa `#3`. Sie
+  zählt in der Reihenfolge, in der die Kommentare geschrieben wurden;
+  Anpinnen und das Umstellen der Art bewegen sie nicht. **Ein Klick auf die
+  Nummer kopiert die Adresse** dieses Kommentars. Wird sie in ein Feld
+  eingefügt, steht dort danach der Titel des Eintrags und die Nummer statt
+  der Adresse, und ein Klick darauf springt hin und lässt die Zeile kurz
+  aufleuchten. Eine Adresse von einer anderen Instanz bleibt ein gewöhnlicher
+  Link nach draußen.
+- **Mit Zitat antworten**: das Anführungszeichen in der Kopfzeile eines
+  Kommentars schreibt ihn mit Verfasserzeile in das Schreibfeld darunter.
+  Markiert man stattdessen ein Stück Text in einem Kommentar oder in der
+  Beschreibung, erscheint ein kleines Menü mit **Zitieren** und **Kopieren**;
+  Zitieren nimmt nur den markierten Ausschnitt.
 - **Zwei Sternkästen: „Potenzial" und „Bewertung".** Sie beantworten zwei
   verschiedene Fragen und berühren einander nicht — kein Stern des einen zählt
   im anderen, und jeder hat eigene Kriterien, eigene Gewichte und einen eigenen

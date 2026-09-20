@@ -22,7 +22,8 @@ async function run() {
 /* DIE ZAHL DER SCHLUESSEL JE SPRACHDATEI STEHT EINMAL.
    ZWEI GRUPPEN FRAGEN SIE AB: 0.31.0 auf die Deckung der drei Dateien, 0.31.1
    auf den Stand nach dem Verschmelzen. */
-const LANG_KEY_COUNT = 1215;
+/* VIERZEHN MEHR MIT DER AUSZEICHNUNG. */
+const LANG_KEY_COUNT = 1229;
 
 async function check0310() {
   const drRead = (code) => JSON.parse(fs.readFileSync(
@@ -521,7 +522,12 @@ async function check0311() {
    public/app.js ohne Kommentare und ohne Markup, und diese Runde nimmt dort
    toten Code weg und fasst Wiederholungen zusammen. Der Stand von 0.31.4 war
    daa0c9094f2c2305 / 77128aef244a5976. */
-const DE_UNTOUCHED = { one: '3601c96b846df672', other: '278c9992bbfe95e5' };
+/* UND MIT DER AUSZEICHNUNG SIND SIE WIEDER ANDERE, AUS DEMSELBEN GRUND:
+   die Runde legt 830 Zeilen Code in public/app.js an und bewegt keinen
+   deutschen Satz. Der Stand davor war
+   3601c96b846df672 / 278c9992bbfe95e5, und vor dem Umbau der Paarung
+   457f4c3c4bb28ec1 / 7bc60ecadb371e0e. */
+const DE_UNTOUCHED = { one: 'ca0e647191c4b45d', other: 'fa9051b4736f2e06' };
 const DE_BEFORE_0312 = { one: '91b86c5affcba789', other: '07fc3ccdc8a27a03' };
 const DE_ORDERED_0312 = {
   'login.requestAccess': 'Zugang anfragen',
@@ -543,14 +549,28 @@ const EG_CHANGED_AFTER_0312_SHARED = {
   "card.potentialModeHint": "0.32.1: „in the entry\" wird „in the detail view\" — das Vokabelwort stand fest im Satz",
   "card.restartHint": "0.33.0: die zitierte Logzeile heisst jetzt englisch „Key loaded from ENCRYPTION_KEY\" — das Protokoll spricht englisch (0.32.0, Punkt 28, Fund 1 hatte sie auf „Schluessel\" gebracht)",
   "entry.calcGradeWeight": "0.32.0: „Score × weight\" wird `{grade} × weight`",
+  "entry.copyCommentLink": "0.38.0: neu — die Raute kopiert die Adresse eines Kommentars",
   "entry.deletePhoto": "0.32.1: aus `entry.deleteWord` geteilt — „Delete photo\"",
   "entry.deleteVideo": "0.32.1: aus `entry.deleteWord` geteilt — „Delete video\"",
   "entry.dueHint": "0.32.1: „Due date\" ohne „of the task\" — das Vokabelwort stand fest im Satz",
   "entry.grade": "0.32.0: der Spaltenkopf der Rechnung wird `{grade}`",
   "entry.gradeLabel": "0.32.0: die Beschriftung am Sternkasten des Zeitpunkts",
   "entry.gradeReplaced": "0.32.0: die Meldung nach dem Ersetzen",
+  "entry.markBold": "0.38.0: neu — der Schalter fuer Fettdruck im Menue",
+  "entry.markBullet": "0.38.0: neu — der Schalter fuer die Aufzaehlung",
+  "entry.markCode": "0.38.0: neu — der Schalter fuer den Code-Abschnitt",
+  "entry.markItalic": "0.38.0: neu — der Schalter fuer Kursivschrift",
+  "entry.markLink": "0.38.0: neu — der Schalter fuer den Link mit Namen",
+  "entry.markLinkName": "0.38.0: neu — die Frage nach dem Namen, wenn eine Adresse markiert ist",
+  "entry.markLinkTarget": "0.38.0: neu — die Frage nach der Adresse, wenn ein Name markiert ist",
+  "entry.markNumber": "0.38.0: neu — der Schalter fuer die Nummerierung",
+  "entry.markQuote": "0.38.0: neu — der Schalter fuer das Zitat",
   "entry.noDaysYet": "0.32.1: „a score\" wird `{grade}` — das fuenfzehnte Vokabelwort",
+  "entry.quoteComment": "0.38.0: neu — mit Zitat antworten, ueber die Kopfzeile",
+  "entry.quoteFrom": "0.38.0: neu — die Verfasserzeile ueber dem Zitat",
+  "entry.quoteSelection": "0.38.0: neu — einen Ausschnitt zitieren, ueber das Menue im Lesemodus",
   "entry.ratingRemoved": "0.35.0: neu — „{ratingOne} removed\", vorher deutsch im Skript",
+  "entry.refHint": "0.38.0: neu — der Hinweis an der Marke eines Verweises",
   "entry.removeRating": "0.35.0: neu — „Remove {ratingOne}\", vorher deutsch im Skript",
   "entry.tooBig": "0.35.2: die 50 steht nicht mehr als Text im Satz, sondern kommt als `{mb}` aus ATTACHMENT_MAX",
   "list.bellMine": "0.32.0: die Ueberschrift „My {entryMany}\"",
@@ -815,6 +835,22 @@ async function check0312() {
       /* UND EINER MIT 0.36.0 -- die Absage an eine schreibende Anfrage ohne
          Token gegen fremde Formulare. */
       'server.deniedOrigin',
+      /* UND VIERZEHN MIT DER AUSZEICHNUNG -- das Menue, der Verweis und
+         das Zitieren. */
+      'entry.copyCommentLink',
+      'entry.markBold',
+      'entry.markBullet',
+      'entry.markCode',
+      'entry.markItalic',
+      'entry.markLink',
+      'entry.markLinkName',
+      'entry.markLinkTarget',
+      'entry.markNumber',
+      'entry.markQuote',
+      'entry.quoteComment',
+      'entry.quoteFrom',
+      'entry.quoteSelection',
+      'entry.refHint',
       'vocabulary.grade'];
     /* UND EINER IST GEFALLEN -- `list.otherUser`. */
     /* UND SIEBEN MIT 0.32.1 -- sechs, die 0.32.1 ausbaut, und der geteilte
@@ -861,11 +897,13 @@ async function check0312() {
    39489ec6ae18020b -- vor 0.31.3; derselbe Grund wie oben.
    VOR 0.35.0: en caa4b814e75f8263 / f224721465ac0d35,
    tr ab6bdf35499f7cf9 / ad34f68137acaa2b. */
-const EN_UNTOUCHED = { one: 'eec8c1717c54a12f', other: 'f874903b6b33781a' };
+/* VOR DER AUSZEICHNUNG: en eec8c1717c54a12f / f874903b6b33781a. */
+const EN_UNTOUCHED = { one: 'ae7b45c361487dab', other: 'a38f60916aedc01d' };
 const TR_BEFORE_0313 = { one: '5fec71b10c0dfa3c', other: '18b07eda589b5120' };
 /* bbaca227348609dc / 73d9f1ea0298d519 -- der Stand VOR der Berichtigung an
    der Vorschau der Vokabelkarte, die der Augenschein von 0.31.3 verlangt hat. */
-const TR_AFTER_0313 = { one: 'eb1ffa65a4bddb95', other: 'f137b990650a241e' };
+/* VOR DER AUSZEICHNUNG: tr eb1ffa65a4bddb95 / f137b990650a241e. */
+const TR_AFTER_0313 = { one: 'ac1fa21798b352b5', other: 'e277fb3263e15feb' };
 
 async function check0313() {
   const tgRead = (code) => JSON.parse(fs.readFileSync(
@@ -1227,6 +1265,22 @@ async function check0313() {
       /* UND EINER MIT 0.36.0 -- die Absage an eine schreibende Anfrage ohne
          Token gegen fremde Formulare. */
       'server.deniedOrigin',
+      /* UND VIERZEHN MIT DER AUSZEICHNUNG -- das Menue, der Verweis und
+         das Zitieren. */
+      'entry.copyCommentLink',
+      'entry.markBold',
+      'entry.markBullet',
+      'entry.markCode',
+      'entry.markItalic',
+      'entry.markLink',
+      'entry.markLinkName',
+      'entry.markLinkTarget',
+      'entry.markNumber',
+      'entry.markQuote',
+      'entry.quoteComment',
+      'entry.quoteFrom',
+      'entry.quoteSelection',
+      'entry.refHint',
       'vocabulary.grade'];
     /* UND EINER IST GEFALLEN -- derselbe wie drueben: `list.otherUser`. */
     /* UND SIEBEN MIT 0.32.1 -- dieselben wie im englischen Stand daneben, und
@@ -1257,6 +1311,20 @@ async function check0313() {
       'card.catchUpBoth':       '0.33.0: die Zeile unter dem Knopf sagt nur noch, was mit den Originalen geschieht',
       'card.convertFinished':   '0.33.0: der Fertigsatz nennt keine neu gerechneten Vorschaubilder mehr',
       'card.restartHint':       '0.33.0: die zitierte Logzeile heisst jetzt englisch „Key loaded from ENCRYPTION_KEY"',
+      'entry.copyCommentLink': '0.38.0: neu — die Raute kopiert die Adresse eines Kommentars',
+      'entry.markBold': '0.38.0: neu — der Schalter fuer Fettdruck im Menue',
+      'entry.markBullet': '0.38.0: neu — der Schalter fuer die Aufzaehlung',
+      'entry.markCode': '0.38.0: neu — der Schalter fuer den Code-Abschnitt',
+      'entry.markItalic': '0.38.0: neu — der Schalter fuer Kursivschrift',
+      'entry.markLink': '0.38.0: neu — der Schalter fuer den Link mit Namen',
+      'entry.markLinkName': '0.38.0: neu — die Frage nach dem Namen, wenn eine Adresse markiert ist',
+      'entry.markLinkTarget': '0.38.0: neu — die Frage nach der Adresse, wenn ein Name markiert ist',
+      'entry.markNumber': '0.38.0: neu — der Schalter fuer die Nummerierung',
+      'entry.markQuote': '0.38.0: neu — der Schalter fuer das Zitat',
+      'entry.quoteComment': '0.38.0: neu — mit Zitat antworten, ueber die Kopfzeile',
+      'entry.quoteFrom': '0.38.0: neu — die Verfasserzeile ueber dem Zitat',
+      'entry.quoteSelection': '0.38.0: neu — einen Ausschnitt zitieren, ueber das Menue im Lesemodus',
+      'entry.refHint': '0.38.0: neu — der Hinweis an der Marke eines Verweises',
       'server.deniedOrigin':    '0.36.0: neu — die Absage an eine schreibende Anfrage ohne Token gegen fremde Formulare',
       'server.exportTooOld':    '0.33.0: neu — die eine Abweisung des Bruchs, eine Datei mit Formatnummer 13 oder aelter kommt nicht mehr herein',
       'server.trashRestoring':  '0.35.1: neu — die Antwort an den zweiten Aufruf, der denselben Papierkorbeintrag wiederherstellen will',

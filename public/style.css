@@ -136,14 +136,16 @@
   /* ================= DIE STAPELORDNUNG =================
      An einer Stelle; vorher zehn Zahlen ueber 2600 Zeilen.
        2 Ausschnittrahmen · 3 Bedienung im Betrachter · 4 Blaetterpfeile ·
-       5 Schwebehinweis · 20 Kopfzeile · 30 ihr Menue · 40 Vergleichsleiste ·
-       90 Vollbild · 100 Dialog · 120 Meldung (faengt keine Klicks).
+       5 Schwebehinweis · 10 Menue der Auszeichnung · 20 Kopfzeile ·
+       30 ihr Menue · 40 Vergleichsleiste · 90 Vollbild · 100 Dialog ·
+       120 Meldung (faengt keine Klicks).
      Die vier untersten liegen INNERHALB des Vollbilds; eine Pruefung haelt
      die Reihenfolge fest. */
   --z-crop-frame: 2;
   --z-viewer-tools: 3;
   --z-page-arrows: 4;
   --z-timeline-hint: 5;
+  --z-markup-menu: 10;
   --z-masthead: 20;
   --z-masthead-menu: 30;
   --z-compare-bar: 40;
@@ -1181,6 +1183,56 @@ mark {
 .cmt-form { display: flex; flex-direction: column; gap: 8px; }
 .cmt-form .ta { min-height: 64px; }
 .cmt-form .btn { align-self: flex-end; }
+/* ---------- Auszeichnung ---------- */
+/* Zwischen zwei Bloecken steht keine Leerzeile: ein Blockelement faengt
+   seine Zeile selbst an, und `pre-wrap` zeigte den Umbruch sonst zweimal. */
+.markup-quote { margin: 5px 0; padding: 1px 0 1px 11px; border-left: 2px solid var(--line-hover); color: var(--text-2); }
+.markup-list { margin: 5px 0; padding-left: 21px; }
+.markup-list li { margin: 1px 0; }
+/* Der Code-Abschnitt nimmt die feste Schrift, die das Blatt schon fuehrt. */
+.markup-code { font-family: var(--mono); font-size: .88em; background: var(--surface-3); border-radius: 3px; padding: 1px 4px; }
+/* Unter einem Namen steht die Adresse nicht mehr da; das Zeichen sagt, dass
+   der Name nach draussen fuehrt. */
+.markup-out { width: .72em; height: .72em; margin-left: 3px; opacity: .8; vertical-align: -.02em; }
+/* Der Verweis nennt Eintrag und Nummer, nicht die Adresse -- eine Adresse
+   sagt nicht, wohin sie fuehrt. */
+.markup-ref { display: inline-flex; align-items: baseline; gap: 4px; padding: 0 6px; border: 1px solid var(--accent-line); border-radius: 4px; background: var(--accent-dim); }
+.cmt-body a.markup-ref, .desc-view a.markup-ref { text-decoration: none; }
+.markup-ref .markup-ref-no { font-family: var(--mono); font-size: .86em; color: var(--muted); }
+
+/* ---------- Die Beschreibung, gelesen ---------- */
+/* Dieselbe Schrift und derselbe Innenabstand wie im Feld darunter: der
+   Wechsel zwischen Lesen und Schreiben macht dann keinen Sprung. */
+.desc-view { min-height: 140px; padding: 11px 13px; border: 1px solid transparent; border-radius: var(--r-sm); font-size: .97rem; line-height: 1.65; white-space: pre-wrap; word-break: break-word; cursor: text; }
+.desc-view:hover { border-color: var(--line); }
+.desc-view a { color: var(--accent-text); text-decoration: underline; text-underline-offset: 2px; }
+.desc-view a:hover { color: var(--accent-text-hi); }
+.desc-view .hint { cursor: default; }
+
+/* ---------- Das schwebende Menue ---------- */
+/* Es haengt ueber der oberen Kante des Feldes und nicht am Schreibzeiger:
+   die Schriftgroesse ist einstellbar, eine gerechnete Zeilenhoehe nicht. */
+.markup-menu {
+  position: absolute; z-index: var(--z-markup-menu); display: flex; flex-wrap: wrap;
+  gap: 3px; padding: 3px; max-width: calc(100vw - 16px);
+  background: var(--surface-3); border: 1px solid var(--line);
+  border-radius: var(--r-sm); box-shadow: var(--sh-menu);
+}
+.markup-menu button { display: inline-flex; align-items: center; justify-content: center; min-width: 29px; height: 27px; padding: 0 7px; border-radius: 5px; color: var(--text-2); font-size: .84rem; }
+.markup-menu button:hover { background: var(--surface); color: var(--accent-text); }
+.markup-menu .mk-b { font-weight: 700; }
+.markup-menu .mk-i { font-style: italic; }
+/* Die Frage nach Adresse oder Name bricht in eine eigene Zeile um, damit das
+   Menue auf einem schmalen Bildschirm nicht aus dem Bild laeuft. */
+.markup-ask { display: flex; gap: 4px; width: 100%; padding: 2px 0 0; }
+.markup-ask .input { flex: 1; min-width: 0; height: 27px; padding: 3px 7px; font-size: .84rem; }
+
+/* ---------- Die Nummer und das Ziel eines Sprungs ---------- */
+.cmt-no { font-family: var(--mono); color: var(--faint); }
+/* Ein Sprung ohne Markierung liesse den Leser suchen, welche der zwoelf
+   Zeilen gemeint war. */
+.cmt.lit { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-dim); }
+
 /* Der Knopf, der den Eintrag als Datei holt. Rechtsbuendig wie die
    Zeile darunter, aber mit kleinerem Abstand: beide gehoeren zum Fuss. */
 .danger-row { display: flex; justify-content: flex-end; margin-top: 8px; }

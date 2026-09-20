@@ -263,11 +263,8 @@ auch nachdem der Wert in die `.env` umgezogen ist. Dagegen hilft nur ein
 > nicht mehr. Der Weg ist: einmal mit 0.32.1 öffnen, hochkommen lassen, wieder
 > anhalten.
 >
-> **Und die Instanz sagt es, wenn etwas fehlt.** Steht im Protokoll ein Kasten
-> „this database is incomplete", nennt er jede fehlende Spalte beim Namen — und
-> dazu den Namen, unter dem sie früher dalag, wo es einen gibt. **Sie startet
-> trotzdem** — aber jede Seite, die eine der genannten Spalten liest,
-> scheitert.
+> **Was der Start meldet, wenn eine Spalte fehlt, und was die Instanz dann
+> noch kann, steht unten unter „Wenn eine Version die Datenbank anfasst".**
 >
 > **Niemand wird abgemeldet, und einzustellen ist nichts.**
 

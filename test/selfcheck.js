@@ -22,7 +22,7 @@ async function run() {
   // Die Zahl der Rueckbauten steht ausdruecklich da: eine Zahl in einem
   // Papier ist eine Behauptung, eine Zahl im Pruefstand ist ein Beleg. Wie
   // sie Runde fuer Runde gewachsen ist, steht in den Aenderungsprotokollen.
-  check(`Es sind genau 1065 Rueckbauten`, gpList.length === 1065, `${gpList.length}`);
+  check(`Es sind genau 1086 Rueckbauten`, gpList.length === 1086, `${gpList.length}`);
   const gpTwice = gpList.map(r => r.nr).filter((n, i, a) => a.indexOf(n) !== i);
   check('Und keine Nummer steht zweimal', gpTwice.length === 0, gpTwice.join(' '));
   /* JEDER GREIFT: der Suchtext kommt in seiner Datei GENAU EINMAL vor. */
@@ -402,20 +402,20 @@ async function run() {
       ['test/keychange.js', 81],
       ['test/release_029.js', 60],
       ['test/release_030.js', 241],
-      ['test/release_031.js', 419],
-      ['test/roundtrip.js', 3236],
-      ['test/selfcheck.js', 209],
-      ['test/source.js', 892],
-      ['test/ui_entry.js', 497],
+      ['test/release_031.js', 431],
+      ['test/roundtrip.js', 3238],
+      ['test/selfcheck.js', 211],
+      ['test/source.js', 914],
+      ['test/ui_entry.js', 570],
       ['test/ui_export.js', 453],
       ['test/ui_inventory.js', 241],
-      ['test/ui_language.js', 284],
+      ['test/ui_language.js', 286],
       ['test/ui_overview.js', 494],
-      ['test/ui_style.js', 563],
+      ['test/ui_style.js', 572],
       ['test/ui_system.js', 692],
       ['test/ui_translator.js', 104],
-      ['counterproof.js', 1580],
-      ['server.js', 1447],
+      ['counterproof.js', 1581],
+      ['server.js', 1536],
       ['auth.js', 293],
       ['db.js', 128],
       ['mail.js', 43],
@@ -427,11 +427,13 @@ async function run() {
       ['usertool.js', 23],
       ['twofactor.js', 34],
       ['keytool.js', 41],
-      ['public/app.js', 1761],
+      ['public/app.js', 1917],
       ['public/theme.js', 3],
-      ['public/style.css', 1187],
+      ['public/style.css', 1207],
     ];
-    const COMMENT_TOTAL = { comment: 15928, code: 63175 };
+    /* DIE AUSZEICHNUNG BRINGT 830 ZEILEN CODE UND IHREN KOMMENTAR;
+       der Anteil bleibt unter einem Fuenftel. */
+    const COMMENT_TOTAL = { comment: 16316, code: 65464 };
     check('Der Waechter sieht alle sechsunddreissig Dateien',
       crAll.each.length === 36 && COMMENT_ROWS.length === 36,
       `${crAll.each.length} gemessen, ${COMMENT_ROWS.length} genannt`);

@@ -295,7 +295,10 @@ async function run() {
       /* DAS MERKMAL DER ABGELAUFENEN SITZUNG -- 0.31.1, Bauabschnitt 4. */
       'kriterion:session-gone',
       /* DER NAME DES COOKIES, DER DEN SCHUTZ GEGEN FREMDE FORMULARE TRAEGT. */
-      '__Host-kriterion_csrf'
+      '__Host-kriterion_csrf',
+      /* DER NAMENSRAUM DER VEKTORZEICHEN -- createElementNS verlangt ihn,
+         und ohne ihn ginge das Zeichen nur ueber innerHTML hinein. */
+      'http://www.w3.org/2000/svg'
     ].sort();
     const tooMany = rest.filter(t => !REST_EXPECTED.includes(t));
     const missing = REST_EXPECTED.filter(t => !rest.includes(t));

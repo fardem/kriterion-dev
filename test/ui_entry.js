@@ -3161,7 +3161,7 @@ async function run() {
     /* ERST DAS VORHANDENSEIN DES GEGENSTANDS: eine Ordnung
        aus null Stufen bestuende jede Verneinung darunter. */
     check('Die Stapelordnung steht als Ganzes in :root',
-      zLevels.length === 10, `${zLevels.length} Stufen: ${zLevels.map(([n]) => n).join(' · ')}`);
+      zLevels.length === 11, `${zLevels.length} Stufen: ${zLevels.map(([n]) => n).join(' · ')}`);
     /* DIE REIHENFOLGE IST DIE DER DATEI. */
     check('Und sie steht von unten nach oben, ohne Sprung zurueck',
       zLevels.every(([, w], i) => i === 0 || w > zLevels[i - 1][1]),
@@ -3187,7 +3187,7 @@ async function run() {
     const zBare = [...zRaw.replace(zBlock, '').matchAll(/z-index:\s*(\d+)/g)].map(m => m[1]);
     check('Und keine einzelne Regel traegt mehr ihre eigene Zahl',
       zBare.length === 0, zBare.join(' · '));
-    /* DIE ZEHN STUFEN WERDEN AUCH WIRKLICH BENUTZT. Eine Tafel, auf die keine
+    /* JEDE STUFE WIRD AUCH WIRKLICH BENUTZT. Eine Tafel, auf die keine
        Regel zeigt, ordnet nichts. */
     const zUnused = zLevels.map(([n]) => n).filter(n => !zRaw.includes(`var(--${n})`));
     check('Und jede Stufe wird von mindestens einer Regel gelesen',
@@ -3218,6 +3218,859 @@ async function run() {
   trow.querySelector('.ttag-add').onclick();
   check('Zweiter Klick öffnet kein zweites Feld',
     trow.querySelectorAll('.ttag-in').length === 1);
+
+/* ================= Die Auszeichnung ================= DIE ZUSAGE DER RUNDE
+   IN EINEM SATZ: Kriterion zeichnet, was CommonMark zeichnet -- oder
+   gewoehnlichen Text. Nie etwas Drittes. */
+group('Kriterion zeichnet wie die Spezifikation oder gar nicht');
+{
+  /* DIE FAELLE SIND DIE BEISPIELE DER SPEZIFIKATION, Fassung 0.31.2, aus den
+     sechs Abschnitten, die die acht Bauformen der Teilmenge tragen. Nummer
+     und Rohtext stehen wie dort; keiner ist ausgedacht. */
+  const MARKUP_CASES = [
+    [12, "\\!\\\"\\#\\$\\%\\&\\'\\(\\)\\*\\+\\,\\-\\.\\/\\:\\;\\<\\=\\>\\?\\@\\[\\\\\\]\\^\\_\\`\\{\\|\\}\\~", "<p>!&quot;#$%&amp;'()*+,-./:;&lt;=&gt;?@[\\]^_`{|}~</p>"],
+    [13, "\\\t\\A\\a\\ \\3\\φ\\«", "<p>\\\t\\A\\a\\ \\3\\φ\\«</p>"],
+    [14, "\\*not emphasized*\n\\<br/> not a tag\n\\[not a link](/foo)\n\\`not code`\n1\\. not a list\n\\* not a list\n\\# not a heading\n\\[foo]: /url \"not a reference\"\n\\&ouml; not a character entity", "<p>*not emphasized*\n&lt;br/&gt; not a tag\n[not a link](/foo)\n`not code`\n1. not a list\n* not a list\n# not a heading\n[foo]: /url &quot;not a reference&quot;\n&amp;ouml; not a character entity</p>"],
+    [15, "\\\\*emphasis*", "<p>\\<em>emphasis</em></p>"],
+    [16, "foo\\\nbar", "<p>foo<br />\nbar</p>"],
+    [17, "`` \\[\\` ``", "<p><code>\\[\\`</code></p>"],
+    [18, "    \\[\\]", "<pre><code>\\[\\]\n</code></pre>"],
+    [19, "~~~\n\\[\\]\n~~~", "<pre><code>\\[\\]\n</code></pre>"],
+    [20, "<https://example.com?find=\\*>", "<p><a href=\"https://example.com?find=%5C*\">https://example.com?find=\\*</a></p>"],
+    [21, "<a href=\"/bar\\/)\">", "<a href=\"/bar\\/)\">"],
+    [22, "[foo](/bar\\* \"ti\\*tle\")", "<p><a href=\"/bar*\" title=\"ti*tle\">foo</a></p>"],
+    [23, "[foo]\n\n[foo]: /bar\\* \"ti\\*tle\"", "<p><a href=\"/bar*\" title=\"ti*tle\">foo</a></p>"],
+    [24, "``` foo\\+bar\nfoo\n```", "<pre><code class=\"language-foo+bar\">foo\n</code></pre>"],
+    [228, "> # Foo\n> bar\n> baz", "<blockquote>\n<h1>Foo</h1>\n<p>bar\nbaz</p>\n</blockquote>"],
+    [229, "># Foo\n>bar\n> baz", "<blockquote>\n<h1>Foo</h1>\n<p>bar\nbaz</p>\n</blockquote>"],
+    [230, "   > # Foo\n   > bar\n > baz", "<blockquote>\n<h1>Foo</h1>\n<p>bar\nbaz</p>\n</blockquote>"],
+    [231, "    > # Foo\n    > bar\n    > baz", "<pre><code>&gt; # Foo\n&gt; bar\n&gt; baz\n</code></pre>"],
+    [232, "> # Foo\n> bar\nbaz", "<blockquote>\n<h1>Foo</h1>\n<p>bar\nbaz</p>\n</blockquote>"],
+    [233, "> bar\nbaz\n> foo", "<blockquote>\n<p>bar\nbaz\nfoo</p>\n</blockquote>"],
+    [234, "> foo\n---", "<blockquote>\n<p>foo</p>\n</blockquote>\n<hr />"],
+    [235, "> - foo\n- bar", "<blockquote>\n<ul>\n<li>foo</li>\n</ul>\n</blockquote>\n<ul>\n<li>bar</li>\n</ul>"],
+    [236, ">     foo\n    bar", "<blockquote>\n<pre><code>foo\n</code></pre>\n</blockquote>\n<pre><code>bar\n</code></pre>"],
+    [237, "> ```\nfoo\n```", "<blockquote>\n<pre><code></code></pre>\n</blockquote>\n<p>foo</p>\n<pre><code></code></pre>"],
+    [238, "> foo\n    - bar", "<blockquote>\n<p>foo\n- bar</p>\n</blockquote>"],
+    [239, ">", "<blockquote>\n</blockquote>"],
+    [240, ">\n>  \n> ", "<blockquote>\n</blockquote>"],
+    [241, ">\n> foo\n>  ", "<blockquote>\n<p>foo</p>\n</blockquote>"],
+    [242, "> foo\n\n> bar", "<blockquote>\n<p>foo</p>\n</blockquote>\n<blockquote>\n<p>bar</p>\n</blockquote>"],
+    [243, "> foo\n> bar", "<blockquote>\n<p>foo\nbar</p>\n</blockquote>"],
+    [244, "> foo\n>\n> bar", "<blockquote>\n<p>foo</p>\n<p>bar</p>\n</blockquote>"],
+    [245, "foo\n> bar", "<p>foo</p>\n<blockquote>\n<p>bar</p>\n</blockquote>"],
+    [246, "> aaa\n***\n> bbb", "<blockquote>\n<p>aaa</p>\n</blockquote>\n<hr />\n<blockquote>\n<p>bbb</p>\n</blockquote>"],
+    [247, "> bar\nbaz", "<blockquote>\n<p>bar\nbaz</p>\n</blockquote>"],
+    [248, "> bar\n\nbaz", "<blockquote>\n<p>bar</p>\n</blockquote>\n<p>baz</p>"],
+    [249, "> bar\n>\nbaz", "<blockquote>\n<p>bar</p>\n</blockquote>\n<p>baz</p>"],
+    [250, "> > > foo\nbar", "<blockquote>\n<blockquote>\n<blockquote>\n<p>foo\nbar</p>\n</blockquote>\n</blockquote>\n</blockquote>"],
+    [251, ">>> foo\n> bar\n>>baz", "<blockquote>\n<blockquote>\n<blockquote>\n<p>foo\nbar\nbaz</p>\n</blockquote>\n</blockquote>\n</blockquote>"],
+    [252, ">     code\n\n>    not code", "<blockquote>\n<pre><code>code\n</code></pre>\n</blockquote>\n<blockquote>\n<p>not code</p>\n</blockquote>"],
+    [253, "A paragraph\nwith two lines.\n\n    indented code\n\n> A block quote.", "<p>A paragraph\nwith two lines.</p>\n<pre><code>indented code\n</code></pre>\n<blockquote>\n<p>A block quote.</p>\n</blockquote>"],
+    [254, "1.  A paragraph\n    with two lines.\n\n        indented code\n\n    > A block quote.", "<ol>\n<li>\n<p>A paragraph\nwith two lines.</p>\n<pre><code>indented code\n</code></pre>\n<blockquote>\n<p>A block quote.</p>\n</blockquote>\n</li>\n</ol>"],
+    [255, "- one\n\n two", "<ul>\n<li>one</li>\n</ul>\n<p>two</p>"],
+    [256, "- one\n\n  two", "<ul>\n<li>\n<p>one</p>\n<p>two</p>\n</li>\n</ul>"],
+    [257, " -    one\n\n     two", "<ul>\n<li>one</li>\n</ul>\n<pre><code> two\n</code></pre>"],
+    [258, " -    one\n\n      two", "<ul>\n<li>\n<p>one</p>\n<p>two</p>\n</li>\n</ul>"],
+    [259, "   > > 1.  one\n>>\n>>     two", "<blockquote>\n<blockquote>\n<ol>\n<li>\n<p>one</p>\n<p>two</p>\n</li>\n</ol>\n</blockquote>\n</blockquote>"],
+    [260, ">>- one\n>>\n  >  > two", "<blockquote>\n<blockquote>\n<ul>\n<li>one</li>\n</ul>\n<p>two</p>\n</blockquote>\n</blockquote>"],
+    [261, "-one\n\n2.two", "<p>-one</p>\n<p>2.two</p>"],
+    [262, "- foo\n\n\n  bar", "<ul>\n<li>\n<p>foo</p>\n<p>bar</p>\n</li>\n</ul>"],
+    [263, "1.  foo\n\n    ```\n    bar\n    ```\n\n    baz\n\n    > bam", "<ol>\n<li>\n<p>foo</p>\n<pre><code>bar\n</code></pre>\n<p>baz</p>\n<blockquote>\n<p>bam</p>\n</blockquote>\n</li>\n</ol>"],
+    [264, "- Foo\n\n      bar\n\n\n      baz", "<ul>\n<li>\n<p>Foo</p>\n<pre><code>bar\n\n\nbaz\n</code></pre>\n</li>\n</ul>"],
+    [265, "123456789. ok", "<ol start=\"123456789\">\n<li>ok</li>\n</ol>"],
+    [266, "1234567890. not ok", "<p>1234567890. not ok</p>"],
+    [267, "0. ok", "<ol start=\"0\">\n<li>ok</li>\n</ol>"],
+    [268, "003. ok", "<ol start=\"3\">\n<li>ok</li>\n</ol>"],
+    [269, "-1. not ok", "<p>-1. not ok</p>"],
+    [270, "- foo\n\n      bar", "<ul>\n<li>\n<p>foo</p>\n<pre><code>bar\n</code></pre>\n</li>\n</ul>"],
+    [271, "  10.  foo\n\n           bar", "<ol start=\"10\">\n<li>\n<p>foo</p>\n<pre><code>bar\n</code></pre>\n</li>\n</ol>"],
+    [272, "    indented code\n\nparagraph\n\n    more code", "<pre><code>indented code\n</code></pre>\n<p>paragraph</p>\n<pre><code>more code\n</code></pre>"],
+    [273, "1.     indented code\n\n   paragraph\n\n       more code", "<ol>\n<li>\n<pre><code>indented code\n</code></pre>\n<p>paragraph</p>\n<pre><code>more code\n</code></pre>\n</li>\n</ol>"],
+    [274, "1.      indented code\n\n   paragraph\n\n       more code", "<ol>\n<li>\n<pre><code> indented code\n</code></pre>\n<p>paragraph</p>\n<pre><code>more code\n</code></pre>\n</li>\n</ol>"],
+    [275, "   foo\n\nbar", "<p>foo</p>\n<p>bar</p>"],
+    [276, "-    foo\n\n  bar", "<ul>\n<li>foo</li>\n</ul>\n<p>bar</p>"],
+    [277, "-  foo\n\n   bar", "<ul>\n<li>\n<p>foo</p>\n<p>bar</p>\n</li>\n</ul>"],
+    [278, "-\n  foo\n-\n  ```\n  bar\n  ```\n-\n      baz", "<ul>\n<li>foo</li>\n<li>\n<pre><code>bar\n</code></pre>\n</li>\n<li>\n<pre><code>baz\n</code></pre>\n</li>\n</ul>"],
+    [279, "-   \n  foo", "<ul>\n<li>foo</li>\n</ul>"],
+    [280, "-\n\n  foo", "<ul>\n<li></li>\n</ul>\n<p>foo</p>"],
+    [281, "- foo\n-\n- bar", "<ul>\n<li>foo</li>\n<li></li>\n<li>bar</li>\n</ul>"],
+    [282, "- foo\n-   \n- bar", "<ul>\n<li>foo</li>\n<li></li>\n<li>bar</li>\n</ul>"],
+    [283, "1. foo\n2.\n3. bar", "<ol>\n<li>foo</li>\n<li></li>\n<li>bar</li>\n</ol>"],
+    [284, "*", "<ul>\n<li></li>\n</ul>"],
+    [285, "foo\n*\n\nfoo\n1.", "<p>foo\n*</p>\n<p>foo\n1.</p>"],
+    [286, " 1.  A paragraph\n     with two lines.\n\n         indented code\n\n     > A block quote.", "<ol>\n<li>\n<p>A paragraph\nwith two lines.</p>\n<pre><code>indented code\n</code></pre>\n<blockquote>\n<p>A block quote.</p>\n</blockquote>\n</li>\n</ol>"],
+    [287, "  1.  A paragraph\n      with two lines.\n\n          indented code\n\n      > A block quote.", "<ol>\n<li>\n<p>A paragraph\nwith two lines.</p>\n<pre><code>indented code\n</code></pre>\n<blockquote>\n<p>A block quote.</p>\n</blockquote>\n</li>\n</ol>"],
+    [288, "   1.  A paragraph\n       with two lines.\n\n           indented code\n\n       > A block quote.", "<ol>\n<li>\n<p>A paragraph\nwith two lines.</p>\n<pre><code>indented code\n</code></pre>\n<blockquote>\n<p>A block quote.</p>\n</blockquote>\n</li>\n</ol>"],
+    [289, "    1.  A paragraph\n        with two lines.\n\n            indented code\n\n        > A block quote.", "<pre><code>1.  A paragraph\n    with two lines.\n\n        indented code\n\n    &gt; A block quote.\n</code></pre>"],
+    [290, "  1.  A paragraph\nwith two lines.\n\n          indented code\n\n      > A block quote.", "<ol>\n<li>\n<p>A paragraph\nwith two lines.</p>\n<pre><code>indented code\n</code></pre>\n<blockquote>\n<p>A block quote.</p>\n</blockquote>\n</li>\n</ol>"],
+    [291, "  1.  A paragraph\n    with two lines.", "<ol>\n<li>A paragraph\nwith two lines.</li>\n</ol>"],
+    [292, "> 1. > Blockquote\ncontinued here.", "<blockquote>\n<ol>\n<li>\n<blockquote>\n<p>Blockquote\ncontinued here.</p>\n</blockquote>\n</li>\n</ol>\n</blockquote>"],
+    [293, "> 1. > Blockquote\n> continued here.", "<blockquote>\n<ol>\n<li>\n<blockquote>\n<p>Blockquote\ncontinued here.</p>\n</blockquote>\n</li>\n</ol>\n</blockquote>"],
+    [294, "- foo\n  - bar\n    - baz\n      - boo", "<ul>\n<li>foo\n<ul>\n<li>bar\n<ul>\n<li>baz\n<ul>\n<li>boo</li>\n</ul>\n</li>\n</ul>\n</li>\n</ul>\n</li>\n</ul>"],
+    [295, "- foo\n - bar\n  - baz\n   - boo", "<ul>\n<li>foo</li>\n<li>bar</li>\n<li>baz</li>\n<li>boo</li>\n</ul>"],
+    [296, "10) foo\n    - bar", "<ol start=\"10\">\n<li>foo\n<ul>\n<li>bar</li>\n</ul>\n</li>\n</ol>"],
+    [297, "10) foo\n   - bar", "<ol start=\"10\">\n<li>foo</li>\n</ol>\n<ul>\n<li>bar</li>\n</ul>"],
+    [298, "- - foo", "<ul>\n<li>\n<ul>\n<li>foo</li>\n</ul>\n</li>\n</ul>"],
+    [299, "1. - 2. foo", "<ol>\n<li>\n<ul>\n<li>\n<ol start=\"2\">\n<li>foo</li>\n</ol>\n</li>\n</ul>\n</li>\n</ol>"],
+    [300, "- # Foo\n- Bar\n  ---\n  baz", "<ul>\n<li>\n<h1>Foo</h1>\n</li>\n<li>\n<h2>Bar</h2>\nbaz</li>\n</ul>"],
+    [301, "- foo\n- bar\n+ baz", "<ul>\n<li>foo</li>\n<li>bar</li>\n</ul>\n<ul>\n<li>baz</li>\n</ul>"],
+    [302, "1. foo\n2. bar\n3) baz", "<ol>\n<li>foo</li>\n<li>bar</li>\n</ol>\n<ol start=\"3\">\n<li>baz</li>\n</ol>"],
+    [303, "Foo\n- bar\n- baz", "<p>Foo</p>\n<ul>\n<li>bar</li>\n<li>baz</li>\n</ul>"],
+    [304, "The number of windows in my house is\n14.  The number of doors is 6.", "<p>The number of windows in my house is\n14.  The number of doors is 6.</p>"],
+    [305, "The number of windows in my house is\n1.  The number of doors is 6.", "<p>The number of windows in my house is</p>\n<ol>\n<li>The number of doors is 6.</li>\n</ol>"],
+    [306, "- foo\n\n- bar\n\n\n- baz", "<ul>\n<li>\n<p>foo</p>\n</li>\n<li>\n<p>bar</p>\n</li>\n<li>\n<p>baz</p>\n</li>\n</ul>"],
+    [307, "- foo\n  - bar\n    - baz\n\n\n      bim", "<ul>\n<li>foo\n<ul>\n<li>bar\n<ul>\n<li>\n<p>baz</p>\n<p>bim</p>\n</li>\n</ul>\n</li>\n</ul>\n</li>\n</ul>"],
+    [308, "- foo\n- bar\n\n<!-- -->\n\n- baz\n- bim", "<ul>\n<li>foo</li>\n<li>bar</li>\n</ul>\n<!-- -->\n<ul>\n<li>baz</li>\n<li>bim</li>\n</ul>"],
+    [309, "-   foo\n\n    notcode\n\n-   foo\n\n<!-- -->\n\n    code", "<ul>\n<li>\n<p>foo</p>\n<p>notcode</p>\n</li>\n<li>\n<p>foo</p>\n</li>\n</ul>\n<!-- -->\n<pre><code>code\n</code></pre>"],
+    [310, "- a\n - b\n  - c\n   - d\n  - e\n - f\n- g", "<ul>\n<li>a</li>\n<li>b</li>\n<li>c</li>\n<li>d</li>\n<li>e</li>\n<li>f</li>\n<li>g</li>\n</ul>"],
+    [311, "1. a\n\n  2. b\n\n   3. c", "<ol>\n<li>\n<p>a</p>\n</li>\n<li>\n<p>b</p>\n</li>\n<li>\n<p>c</p>\n</li>\n</ol>"],
+    [312, "- a\n - b\n  - c\n   - d\n    - e", "<ul>\n<li>a</li>\n<li>b</li>\n<li>c</li>\n<li>d\n- e</li>\n</ul>"],
+    [313, "1. a\n\n  2. b\n\n    3. c", "<ol>\n<li>\n<p>a</p>\n</li>\n<li>\n<p>b</p>\n</li>\n</ol>\n<pre><code>3. c\n</code></pre>"],
+    [314, "- a\n- b\n\n- c", "<ul>\n<li>\n<p>a</p>\n</li>\n<li>\n<p>b</p>\n</li>\n<li>\n<p>c</p>\n</li>\n</ul>"],
+    [315, "* a\n*\n\n* c", "<ul>\n<li>\n<p>a</p>\n</li>\n<li></li>\n<li>\n<p>c</p>\n</li>\n</ul>"],
+    [316, "- a\n- b\n\n  c\n- d", "<ul>\n<li>\n<p>a</p>\n</li>\n<li>\n<p>b</p>\n<p>c</p>\n</li>\n<li>\n<p>d</p>\n</li>\n</ul>"],
+    [317, "- a\n- b\n\n  [ref]: /url\n- d", "<ul>\n<li>\n<p>a</p>\n</li>\n<li>\n<p>b</p>\n</li>\n<li>\n<p>d</p>\n</li>\n</ul>"],
+    [318, "- a\n- ```\n  b\n\n\n  ```\n- c", "<ul>\n<li>a</li>\n<li>\n<pre><code>b\n\n\n</code></pre>\n</li>\n<li>c</li>\n</ul>"],
+    [319, "- a\n  - b\n\n    c\n- d", "<ul>\n<li>a\n<ul>\n<li>\n<p>b</p>\n<p>c</p>\n</li>\n</ul>\n</li>\n<li>d</li>\n</ul>"],
+    [320, "* a\n  > b\n  >\n* c", "<ul>\n<li>a\n<blockquote>\n<p>b</p>\n</blockquote>\n</li>\n<li>c</li>\n</ul>"],
+    [321, "- a\n  > b\n  ```\n  c\n  ```\n- d", "<ul>\n<li>a\n<blockquote>\n<p>b</p>\n</blockquote>\n<pre><code>c\n</code></pre>\n</li>\n<li>d</li>\n</ul>"],
+    [322, "- a", "<ul>\n<li>a</li>\n</ul>"],
+    [323, "- a\n  - b", "<ul>\n<li>a\n<ul>\n<li>b</li>\n</ul>\n</li>\n</ul>"],
+    [324, "1. ```\n   foo\n   ```\n\n   bar", "<ol>\n<li>\n<pre><code>foo\n</code></pre>\n<p>bar</p>\n</li>\n</ol>"],
+    [325, "* foo\n  * bar\n\n  baz", "<ul>\n<li>\n<p>foo</p>\n<ul>\n<li>bar</li>\n</ul>\n<p>baz</p>\n</li>\n</ul>"],
+    [326, "- a\n  - b\n  - c\n\n- d\n  - e\n  - f", "<ul>\n<li>\n<p>a</p>\n<ul>\n<li>b</li>\n<li>c</li>\n</ul>\n</li>\n<li>\n<p>d</p>\n<ul>\n<li>e</li>\n<li>f</li>\n</ul>\n</li>\n</ul>"],
+    [328, "`foo`", "<p><code>foo</code></p>"],
+    [329, "`` foo ` bar ``", "<p><code>foo ` bar</code></p>"],
+    [330, "` `` `", "<p><code>``</code></p>"],
+    [331, "`  ``  `", "<p><code> `` </code></p>"],
+    [332, "` a`", "<p><code> a</code></p>"],
+    [333, "` b `", "<p><code> b </code></p>"],
+    [334, "` `\n`  `", "<p><code> </code>\n<code>  </code></p>"],
+    [335, "``\nfoo\nbar  \nbaz\n``", "<p><code>foo bar   baz</code></p>"],
+    [336, "``\nfoo \n``", "<p><code>foo </code></p>"],
+    [337, "`foo   bar \nbaz`", "<p><code>foo   bar  baz</code></p>"],
+    [338, "`foo\\`bar`", "<p><code>foo\\</code>bar`</p>"],
+    [339, "``foo`bar``", "<p><code>foo`bar</code></p>"],
+    [340, "` foo `` bar `", "<p><code>foo `` bar</code></p>"],
+    [341, "*foo`*`", "<p>*foo<code>*</code></p>"],
+    [342, "[not a `link](/foo`)", "<p>[not a <code>link](/foo</code>)</p>"],
+    [343, "`<a href=\"`\">`", "<p><code>&lt;a href=&quot;</code>&quot;&gt;`</p>"],
+    [344, "<a href=\"`\">`", "<p><a href=\"`\">`</p>"],
+    [345, "`<https://foo.bar.`baz>`", "<p><code>&lt;https://foo.bar.</code>baz&gt;`</p>"],
+    [346, "<https://foo.bar.`baz>`", "<p><a href=\"https://foo.bar.%60baz\">https://foo.bar.`baz</a>`</p>"],
+    [347, "```foo``", "<p>```foo``</p>"],
+    [348, "`foo", "<p>`foo</p>"],
+    [349, "`foo``bar``", "<p>`foo<code>bar</code></p>"],
+    [350, "*foo bar*", "<p><em>foo bar</em></p>"],
+    [351, "a * foo bar*", "<p>a * foo bar*</p>"],
+    [352, "a*\"foo\"*", "<p>a*&quot;foo&quot;*</p>"],
+    [353, "* a *", "<p>* a *</p>"],
+    [354, "*$*alpha.\n\n*£*bravo.\n\n*€*charlie.", "<p>*$*alpha.</p>\n<p>*£*bravo.</p>\n<p>*€*charlie.</p>"],
+    [355, "foo*bar*", "<p>foo<em>bar</em></p>"],
+    [356, "5*6*78", "<p>5<em>6</em>78</p>"],
+    [357, "_foo bar_", "<p><em>foo bar</em></p>"],
+    [358, "_ foo bar_", "<p>_ foo bar_</p>"],
+    [359, "a_\"foo\"_", "<p>a_&quot;foo&quot;_</p>"],
+    [360, "foo_bar_", "<p>foo_bar_</p>"],
+    [361, "5_6_78", "<p>5_6_78</p>"],
+    [362, "пристаням_стремятся_", "<p>пристаням_стремятся_</p>"],
+    [363, "aa_\"bb\"_cc", "<p>aa_&quot;bb&quot;_cc</p>"],
+    [364, "foo-_(bar)_", "<p>foo-<em>(bar)</em></p>"],
+    [365, "_foo*", "<p>_foo*</p>"],
+    [366, "*foo bar *", "<p>*foo bar *</p>"],
+    [367, "*foo bar\n*", "<p>*foo bar\n*</p>"],
+    [368, "*(*foo)", "<p>*(*foo)</p>"],
+    [369, "*(*foo*)*", "<p><em>(<em>foo</em>)</em></p>"],
+    [370, "*foo*bar", "<p><em>foo</em>bar</p>"],
+    [371, "_foo bar _", "<p>_foo bar _</p>"],
+    [372, "_(_foo)", "<p>_(_foo)</p>"],
+    [373, "_(_foo_)_", "<p><em>(<em>foo</em>)</em></p>"],
+    [374, "_foo_bar", "<p>_foo_bar</p>"],
+    [375, "_пристаням_стремятся", "<p>_пристаням_стремятся</p>"],
+    [376, "_foo_bar_baz_", "<p><em>foo_bar_baz</em></p>"],
+    [377, "_(bar)_.", "<p><em>(bar)</em>.</p>"],
+    [378, "**foo bar**", "<p><strong>foo bar</strong></p>"],
+    [379, "** foo bar**", "<p>** foo bar**</p>"],
+    [380, "a**\"foo\"**", "<p>a**&quot;foo&quot;**</p>"],
+    [381, "foo**bar**", "<p>foo<strong>bar</strong></p>"],
+    [382, "__foo bar__", "<p><strong>foo bar</strong></p>"],
+    [383, "__ foo bar__", "<p>__ foo bar__</p>"],
+    [384, "__\nfoo bar__", "<p>__\nfoo bar__</p>"],
+    [385, "a__\"foo\"__", "<p>a__&quot;foo&quot;__</p>"],
+    [386, "foo__bar__", "<p>foo__bar__</p>"],
+    [387, "5__6__78", "<p>5__6__78</p>"],
+    [388, "пристаням__стремятся__", "<p>пристаням__стремятся__</p>"],
+    [389, "__foo, __bar__, baz__", "<p><strong>foo, <strong>bar</strong>, baz</strong></p>"],
+    [390, "foo-__(bar)__", "<p>foo-<strong>(bar)</strong></p>"],
+    [391, "**foo bar **", "<p>**foo bar **</p>"],
+    [392, "**(**foo)", "<p>**(**foo)</p>"],
+    [393, "*(**foo**)*", "<p><em>(<strong>foo</strong>)</em></p>"],
+    [394, "**Gomphocarpus (*Gomphocarpus physocarpus*, syn.\n*Asclepias physocarpa*)**", "<p><strong>Gomphocarpus (<em>Gomphocarpus physocarpus</em>, syn.\n<em>Asclepias physocarpa</em>)</strong></p>"],
+    [395, "**foo \"*bar*\" foo**", "<p><strong>foo &quot;<em>bar</em>&quot; foo</strong></p>"],
+    [396, "**foo**bar", "<p><strong>foo</strong>bar</p>"],
+    [397, "__foo bar __", "<p>__foo bar __</p>"],
+    [398, "__(__foo)", "<p>__(__foo)</p>"],
+    [399, "_(__foo__)_", "<p><em>(<strong>foo</strong>)</em></p>"],
+    [400, "__foo__bar", "<p>__foo__bar</p>"],
+    [401, "__пристаням__стремятся", "<p>__пристаням__стремятся</p>"],
+    [402, "__foo__bar__baz__", "<p><strong>foo__bar__baz</strong></p>"],
+    [403, "__(bar)__.", "<p><strong>(bar)</strong>.</p>"],
+    [404, "*foo [bar](/url)*", "<p><em>foo <a href=\"/url\">bar</a></em></p>"],
+    [405, "*foo\nbar*", "<p><em>foo\nbar</em></p>"],
+    [406, "_foo __bar__ baz_", "<p><em>foo <strong>bar</strong> baz</em></p>"],
+    [407, "_foo _bar_ baz_", "<p><em>foo <em>bar</em> baz</em></p>"],
+    [408, "__foo_ bar_", "<p><em><em>foo</em> bar</em></p>"],
+    [409, "*foo *bar**", "<p><em>foo <em>bar</em></em></p>"],
+    [410, "*foo **bar** baz*", "<p><em>foo <strong>bar</strong> baz</em></p>"],
+    [411, "*foo**bar**baz*", "<p><em>foo<strong>bar</strong>baz</em></p>"],
+    [412, "*foo**bar*", "<p><em>foo**bar</em></p>"],
+    [413, "***foo** bar*", "<p><em><strong>foo</strong> bar</em></p>"],
+    [414, "*foo **bar***", "<p><em>foo <strong>bar</strong></em></p>"],
+    [415, "*foo**bar***", "<p><em>foo<strong>bar</strong></em></p>"],
+    [416, "foo***bar***baz", "<p>foo<em><strong>bar</strong></em>baz</p>"],
+    [417, "foo******bar*********baz", "<p>foo<strong><strong><strong>bar</strong></strong></strong>***baz</p>"],
+    [418, "*foo **bar *baz* bim** bop*", "<p><em>foo <strong>bar <em>baz</em> bim</strong> bop</em></p>"],
+    [419, "*foo [*bar*](/url)*", "<p><em>foo <a href=\"/url\"><em>bar</em></a></em></p>"],
+    [420, "** is not an empty emphasis", "<p>** is not an empty emphasis</p>"],
+    [421, "**** is not an empty strong emphasis", "<p>**** is not an empty strong emphasis</p>"],
+    [422, "**foo [bar](/url)**", "<p><strong>foo <a href=\"/url\">bar</a></strong></p>"],
+    [423, "**foo\nbar**", "<p><strong>foo\nbar</strong></p>"],
+    [424, "__foo _bar_ baz__", "<p><strong>foo <em>bar</em> baz</strong></p>"],
+    [425, "__foo __bar__ baz__", "<p><strong>foo <strong>bar</strong> baz</strong></p>"],
+    [426, "____foo__ bar__", "<p><strong><strong>foo</strong> bar</strong></p>"],
+    [427, "**foo **bar****", "<p><strong>foo <strong>bar</strong></strong></p>"],
+    [428, "**foo *bar* baz**", "<p><strong>foo <em>bar</em> baz</strong></p>"],
+    [429, "**foo*bar*baz**", "<p><strong>foo<em>bar</em>baz</strong></p>"],
+    [430, "***foo* bar**", "<p><strong><em>foo</em> bar</strong></p>"],
+    [431, "**foo *bar***", "<p><strong>foo <em>bar</em></strong></p>"],
+    [432, "**foo *bar **baz**\nbim* bop**", "<p><strong>foo <em>bar <strong>baz</strong>\nbim</em> bop</strong></p>"],
+    [433, "**foo [*bar*](/url)**", "<p><strong>foo <a href=\"/url\"><em>bar</em></a></strong></p>"],
+    [434, "__ is not an empty emphasis", "<p>__ is not an empty emphasis</p>"],
+    [435, "____ is not an empty strong emphasis", "<p>____ is not an empty strong emphasis</p>"],
+    [436, "foo ***", "<p>foo ***</p>"],
+    [437, "foo *\\**", "<p>foo <em>*</em></p>"],
+    [438, "foo *_*", "<p>foo <em>_</em></p>"],
+    [439, "foo *****", "<p>foo *****</p>"],
+    [440, "foo **\\***", "<p>foo <strong>*</strong></p>"],
+    [441, "foo **_**", "<p>foo <strong>_</strong></p>"],
+    [442, "**foo*", "<p>*<em>foo</em></p>"],
+    [443, "*foo**", "<p><em>foo</em>*</p>"],
+    [444, "***foo**", "<p>*<strong>foo</strong></p>"],
+    [445, "****foo*", "<p>***<em>foo</em></p>"],
+    [446, "**foo***", "<p><strong>foo</strong>*</p>"],
+    [447, "*foo****", "<p><em>foo</em>***</p>"],
+    [448, "foo ___", "<p>foo ___</p>"],
+    [449, "foo _\\__", "<p>foo <em>_</em></p>"],
+    [450, "foo _*_", "<p>foo <em>*</em></p>"],
+    [451, "foo _____", "<p>foo _____</p>"],
+    [452, "foo __\\___", "<p>foo <strong>_</strong></p>"],
+    [453, "foo __*__", "<p>foo <strong>*</strong></p>"],
+    [454, "__foo_", "<p>_<em>foo</em></p>"],
+    [455, "_foo__", "<p><em>foo</em>_</p>"],
+    [456, "___foo__", "<p>_<strong>foo</strong></p>"],
+    [457, "____foo_", "<p>___<em>foo</em></p>"],
+    [458, "__foo___", "<p><strong>foo</strong>_</p>"],
+    [459, "_foo____", "<p><em>foo</em>___</p>"],
+    [460, "**foo**", "<p><strong>foo</strong></p>"],
+    [461, "*_foo_*", "<p><em><em>foo</em></em></p>"],
+    [462, "__foo__", "<p><strong>foo</strong></p>"],
+    [463, "_*foo*_", "<p><em><em>foo</em></em></p>"],
+    [464, "****foo****", "<p><strong><strong>foo</strong></strong></p>"],
+    [465, "____foo____", "<p><strong><strong>foo</strong></strong></p>"],
+    [466, "******foo******", "<p><strong><strong><strong>foo</strong></strong></strong></p>"],
+    [467, "***foo***", "<p><em><strong>foo</strong></em></p>"],
+    [468, "_____foo_____", "<p><em><strong><strong>foo</strong></strong></em></p>"],
+    [469, "*foo _bar* baz_", "<p><em>foo _bar</em> baz_</p>"],
+    [470, "*foo __bar *baz bim__ bam*", "<p><em>foo <strong>bar *baz bim</strong> bam</em></p>"],
+    [471, "**foo **bar baz**", "<p>**foo <strong>bar baz</strong></p>"],
+    [472, "*foo *bar baz*", "<p>*foo <em>bar baz</em></p>"],
+    [473, "*[bar*](/url)", "<p>*<a href=\"/url\">bar*</a></p>"],
+    [474, "_foo [bar_](/url)", "<p>_foo <a href=\"/url\">bar_</a></p>"],
+    [475, "*<img src=\"foo\" title=\"*\"/>", "<p>*<img src=\"foo\" title=\"*\"/></p>"],
+    [476, "**<a href=\"**\">", "<p>**<a href=\"**\"></p>"],
+    [477, "__<a href=\"__\">", "<p>__<a href=\"__\"></p>"],
+    [478, "*a `*`*", "<p><em>a <code>*</code></em></p>"],
+    [479, "_a `_`_", "<p><em>a <code>_</code></em></p>"],
+    [480, "**a<https://foo.bar/?q=**>", "<p>**a<a href=\"https://foo.bar/?q=**\">https://foo.bar/?q=**</a></p>"],
+    [481, "__a<https://foo.bar/?q=__>", "<p>__a<a href=\"https://foo.bar/?q=__\">https://foo.bar/?q=__</a></p>"],
+    [482, "[link](/uri \"title\")", "<p><a href=\"/uri\" title=\"title\">link</a></p>"],
+    [483, "[link](/uri)", "<p><a href=\"/uri\">link</a></p>"],
+    [484, "[](./target.md)", "<p><a href=\"./target.md\"></a></p>"],
+    [485, "[link]()", "<p><a href=\"\">link</a></p>"],
+    [486, "[link](<>)", "<p><a href=\"\">link</a></p>"],
+    [487, "[]()", "<p><a href=\"\"></a></p>"],
+    [488, "[link](/my uri)", "<p>[link](/my uri)</p>"],
+    [489, "[link](</my uri>)", "<p><a href=\"/my%20uri\">link</a></p>"],
+    [490, "[link](foo\nbar)", "<p>[link](foo\nbar)</p>"],
+    [491, "[link](<foo\nbar>)", "<p>[link](<foo\nbar>)</p>"],
+    [492, "[a](<b)c>)", "<p><a href=\"b)c\">a</a></p>"],
+    [493, "[link](<foo\\>)", "<p>[link](&lt;foo&gt;)</p>"],
+    [494, "[a](<b)c\n[a](<b)c>\n[a](<b>c)", "<p>[a](&lt;b)c\n[a](&lt;b)c&gt;\n[a](<b>c)</p>"],
+    [495, "[link](\\(foo\\))", "<p><a href=\"(foo)\">link</a></p>"],
+    [496, "[link](foo(and(bar)))", "<p><a href=\"foo(and(bar))\">link</a></p>"],
+    [497, "[link](foo(and(bar))", "<p>[link](foo(and(bar))</p>"],
+    [498, "[link](foo\\(and\\(bar\\))", "<p><a href=\"foo(and(bar)\">link</a></p>"],
+    [499, "[link](<foo(and(bar)>)", "<p><a href=\"foo(and(bar)\">link</a></p>"],
+    [500, "[link](foo\\)\\:)", "<p><a href=\"foo):\">link</a></p>"],
+    [501, "[link](#fragment)\n\n[link](https://example.com#fragment)\n\n[link](https://example.com?foo=3#frag)", "<p><a href=\"#fragment\">link</a></p>\n<p><a href=\"https://example.com#fragment\">link</a></p>\n<p><a href=\"https://example.com?foo=3#frag\">link</a></p>"],
+    [502, "[link](foo\\bar)", "<p><a href=\"foo%5Cbar\">link</a></p>"],
+    [503, "[link](foo%20b&auml;)", "<p><a href=\"foo%20b%C3%A4\">link</a></p>"],
+    [504, "[link](\"title\")", "<p><a href=\"%22title%22\">link</a></p>"],
+    [505, "[link](/url \"title\")\n[link](/url 'title')\n[link](/url (title))", "<p><a href=\"/url\" title=\"title\">link</a>\n<a href=\"/url\" title=\"title\">link</a>\n<a href=\"/url\" title=\"title\">link</a></p>"],
+    [506, "[link](/url \"title \\\"&quot;\")", "<p><a href=\"/url\" title=\"title &quot;&quot;\">link</a></p>"],
+    [507, "[link](/url \"title\")", "<p><a href=\"/url%C2%A0%22title%22\">link</a></p>"],
+    [508, "[link](/url \"title \"and\" title\")", "<p>[link](/url &quot;title &quot;and&quot; title&quot;)</p>"],
+    [509, "[link](/url 'title \"and\" title')", "<p><a href=\"/url\" title=\"title &quot;and&quot; title\">link</a></p>"],
+    [510, "[link](   /uri\n  \"title\"  )", "<p><a href=\"/uri\" title=\"title\">link</a></p>"],
+    [511, "[link] (/uri)", "<p>[link] (/uri)</p>"],
+    [512, "[link [foo [bar]]](/uri)", "<p><a href=\"/uri\">link [foo [bar]]</a></p>"],
+    [513, "[link] bar](/uri)", "<p>[link] bar](/uri)</p>"],
+    [514, "[link [bar](/uri)", "<p>[link <a href=\"/uri\">bar</a></p>"],
+    [515, "[link \\[bar](/uri)", "<p><a href=\"/uri\">link [bar</a></p>"],
+    [516, "[link *foo **bar** `#`*](/uri)", "<p><a href=\"/uri\">link <em>foo <strong>bar</strong> <code>#</code></em></a></p>"],
+    [517, "[![moon](moon.jpg)](/uri)", "<p><a href=\"/uri\"><img src=\"moon.jpg\" alt=\"moon\" /></a></p>"],
+    [518, "[foo [bar](/uri)](/uri)", "<p>[foo <a href=\"/uri\">bar</a>](/uri)</p>"],
+    [519, "[foo *[bar [baz](/uri)](/uri)*](/uri)", "<p>[foo <em>[bar <a href=\"/uri\">baz</a>](/uri)</em>](/uri)</p>"],
+    [520, "![[[foo](uri1)](uri2)](uri3)", "<p><img src=\"uri3\" alt=\"[foo](uri2)\" /></p>"],
+    [521, "*[foo*](/uri)", "<p>*<a href=\"/uri\">foo*</a></p>"],
+    [522, "[foo *bar](baz*)", "<p><a href=\"baz*\">foo *bar</a></p>"],
+    [523, "*foo [bar* baz]", "<p><em>foo [bar</em> baz]</p>"],
+    [524, "[foo <bar attr=\"](baz)\">", "<p>[foo <bar attr=\"](baz)\"></p>"],
+    [525, "[foo`](/uri)`", "<p>[foo<code>](/uri)</code></p>"],
+    [526, "[foo<https://example.com/?search=](uri)>", "<p>[foo<a href=\"https://example.com/?search=%5D(uri)\">https://example.com/?search=](uri)</a></p>"],
+    [527, "[foo][bar]\n\n[bar]: /url \"title\"", "<p><a href=\"/url\" title=\"title\">foo</a></p>"],
+    [528, "[link [foo [bar]]][ref]\n\n[ref]: /uri", "<p><a href=\"/uri\">link [foo [bar]]</a></p>"],
+    [529, "[link \\[bar][ref]\n\n[ref]: /uri", "<p><a href=\"/uri\">link [bar</a></p>"],
+    [530, "[link *foo **bar** `#`*][ref]\n\n[ref]: /uri", "<p><a href=\"/uri\">link <em>foo <strong>bar</strong> <code>#</code></em></a></p>"],
+    [531, "[![moon](moon.jpg)][ref]\n\n[ref]: /uri", "<p><a href=\"/uri\"><img src=\"moon.jpg\" alt=\"moon\" /></a></p>"],
+    [532, "[foo [bar](/uri)][ref]\n\n[ref]: /uri", "<p>[foo <a href=\"/uri\">bar</a>]<a href=\"/uri\">ref</a></p>"],
+    [533, "[foo *bar [baz][ref]*][ref]\n\n[ref]: /uri", "<p>[foo <em>bar <a href=\"/uri\">baz</a></em>]<a href=\"/uri\">ref</a></p>"],
+    [534, "*[foo*][ref]\n\n[ref]: /uri", "<p>*<a href=\"/uri\">foo*</a></p>"],
+    [535, "[foo *bar][ref]*\n\n[ref]: /uri", "<p><a href=\"/uri\">foo *bar</a>*</p>"],
+    [536, "[foo <bar attr=\"][ref]\">\n\n[ref]: /uri", "<p>[foo <bar attr=\"][ref]\"></p>"],
+    [537, "[foo`][ref]`\n\n[ref]: /uri", "<p>[foo<code>][ref]</code></p>"],
+    [538, "[foo<https://example.com/?search=][ref]>\n\n[ref]: /uri", "<p>[foo<a href=\"https://example.com/?search=%5D%5Bref%5D\">https://example.com/?search=][ref]</a></p>"],
+    [539, "[foo][BaR]\n\n[bar]: /url \"title\"", "<p><a href=\"/url\" title=\"title\">foo</a></p>"],
+    [540, "[ẞ]\n\n[SS]: /url", "<p><a href=\"/url\">ẞ</a></p>"],
+    [541, "[Foo\n  bar]: /url\n\n[Baz][Foo bar]", "<p><a href=\"/url\">Baz</a></p>"],
+    [542, "[foo] [bar]\n\n[bar]: /url \"title\"", "<p>[foo] <a href=\"/url\" title=\"title\">bar</a></p>"],
+    [543, "[foo]\n[bar]\n\n[bar]: /url \"title\"", "<p>[foo]\n<a href=\"/url\" title=\"title\">bar</a></p>"],
+    [544, "[foo]: /url1\n\n[foo]: /url2\n\n[bar][foo]", "<p><a href=\"/url1\">bar</a></p>"],
+    [545, "[bar][foo\\!]\n\n[foo!]: /url", "<p>[bar][foo!]</p>"],
+    [546, "[foo][ref[]\n\n[ref[]: /uri", "<p>[foo][ref[]</p>\n<p>[ref[]: /uri</p>"],
+    [547, "[foo][ref[bar]]\n\n[ref[bar]]: /uri", "<p>[foo][ref[bar]]</p>\n<p>[ref[bar]]: /uri</p>"],
+    [548, "[[[foo]]]\n\n[[[foo]]]: /url", "<p>[[[foo]]]</p>\n<p>[[[foo]]]: /url</p>"],
+    [549, "[foo][ref\\[]\n\n[ref\\[]: /uri", "<p><a href=\"/uri\">foo</a></p>"],
+    [550, "[bar\\\\]: /uri\n\n[bar\\\\]", "<p><a href=\"/uri\">bar\\</a></p>"],
+    [551, "[]\n\n[]: /uri", "<p>[]</p>\n<p>[]: /uri</p>"],
+    [552, "[\n ]\n\n[\n ]: /uri", "<p>[\n]</p>\n<p>[\n]: /uri</p>"],
+    [553, "[foo][]\n\n[foo]: /url \"title\"", "<p><a href=\"/url\" title=\"title\">foo</a></p>"],
+    [554, "[*foo* bar][]\n\n[*foo* bar]: /url \"title\"", "<p><a href=\"/url\" title=\"title\"><em>foo</em> bar</a></p>"],
+    [555, "[Foo][]\n\n[foo]: /url \"title\"", "<p><a href=\"/url\" title=\"title\">Foo</a></p>"],
+    [556, "[foo] \n[]\n\n[foo]: /url \"title\"", "<p><a href=\"/url\" title=\"title\">foo</a>\n[]</p>"],
+    [557, "[foo]\n\n[foo]: /url \"title\"", "<p><a href=\"/url\" title=\"title\">foo</a></p>"],
+    [558, "[*foo* bar]\n\n[*foo* bar]: /url \"title\"", "<p><a href=\"/url\" title=\"title\"><em>foo</em> bar</a></p>"],
+    [559, "[[*foo* bar]]\n\n[*foo* bar]: /url \"title\"", "<p>[<a href=\"/url\" title=\"title\"><em>foo</em> bar</a>]</p>"],
+    [560, "[[bar [foo]\n\n[foo]: /url", "<p>[[bar <a href=\"/url\">foo</a></p>"],
+    [561, "[Foo]\n\n[foo]: /url \"title\"", "<p><a href=\"/url\" title=\"title\">Foo</a></p>"],
+    [562, "[foo] bar\n\n[foo]: /url", "<p><a href=\"/url\">foo</a> bar</p>"],
+    [563, "\\[foo]\n\n[foo]: /url \"title\"", "<p>[foo]</p>"],
+    [564, "[foo*]: /url\n\n*[foo*]", "<p>*<a href=\"/url\">foo*</a></p>"],
+    [565, "[foo][bar]\n\n[foo]: /url1\n[bar]: /url2", "<p><a href=\"/url2\">foo</a></p>"],
+    [566, "[foo][]\n\n[foo]: /url1", "<p><a href=\"/url1\">foo</a></p>"],
+    [567, "[foo]()\n\n[foo]: /url1", "<p><a href=\"\">foo</a></p>"],
+    [568, "[foo](not a link)\n\n[foo]: /url1", "<p><a href=\"/url1\">foo</a>(not a link)</p>"],
+    [569, "[foo][bar][baz]\n\n[baz]: /url", "<p>[foo]<a href=\"/url\">bar</a></p>"],
+    [570, "[foo][bar][baz]\n\n[baz]: /url1\n[bar]: /url2", "<p><a href=\"/url2\">foo</a><a href=\"/url1\">baz</a></p>"],
+    [571, "[foo][bar][baz]\n\n[baz]: /url1\n[foo]: /url2", "<p>[foo]<a href=\"/url1\">bar</a></p>"],
+  ];
+  /* UND DIE BAUFORMEN AUSSERHALB DER TEILMENGE, JE BEISPIEL BENANNT. Ein
+     Beispiel, das eine davon traegt, darf abweichen -- jedes andere nicht. */
+  const MARKUP_APART = new Map([
+    [15, "ein Stern oder zwei Unterstriche"],
+    [18, "Codeblock"],
+    [19, "Codeblock"],
+    [20, "rohes HTML oder Adresse in spitzen Klammern"],
+    [21, "rohes HTML oder Adresse in spitzen Klammern"],
+    [23, "Verweisdefinition"],
+    [24, "Codeblock"],
+    [228, "Ueberschrift"],
+    [229, "Ueberschrift"],
+    [230, "Ueberschrift"],
+    [232, "Ueberschrift"],
+    [234, "Trennlinie"],
+    [236, "Codeblock"],
+    [237, "Codeblock"],
+    [246, "Trennlinie"],
+    [252, "Codeblock"],
+    [253, "Codeblock"],
+    [254, "Codeblock"],
+    [257, "Codeblock"],
+    [263, "Codeblock"],
+    [264, "Codeblock"],
+    [270, "Codeblock"],
+    [271, "Codeblock"],
+    [273, "Codeblock"],
+    [274, "Codeblock"],
+    [278, "Codeblock"],
+    [286, "Codeblock"],
+    [287, "Codeblock"],
+    [288, "Codeblock"],
+    [290, "Codeblock"],
+    [297, "Aufzaehlung ausserhalb der Teilmenge"],
+    [300, "Ueberschrift"],
+    [301, "Aufzaehlung ausserhalb der Teilmenge"],
+    [302, "Aufzaehlung ausserhalb der Teilmenge"],
+    [308, "rohes HTML oder Adresse in spitzen Klammern"],
+    [309, "Codeblock"],
+    [313, "Codeblock"],
+    [317, "Verweisdefinition"],
+    [318, "Codeblock"],
+    [320, "Aufzaehlung ausserhalb der Teilmenge"],
+    [321, "Codeblock"],
+    [324, "Codeblock"],
+    [344, "rohes HTML oder Adresse in spitzen Klammern"],
+    [346, "rohes HTML oder Adresse in spitzen Klammern"],
+    [394, "ein Stern oder zwei Unterstriche"],
+    [395, "ein Stern oder zwei Unterstriche"],
+    [399, "ein Stern oder zwei Unterstriche"],
+    [406, "ein Stern oder zwei Unterstriche"],
+    [422, "Ziel ohne http(s)"],
+    [428, "ein Stern oder zwei Unterstriche"],
+    [429, "ein Stern oder zwei Unterstriche"],
+    [430, "ein Stern oder zwei Unterstriche"],
+    [431, "ein Stern oder zwei Unterstriche"],
+    [432, "ein Stern oder zwei Unterstriche"],
+    [433, "Ziel ohne http(s)"],
+    [463, "ein Stern oder zwei Unterstriche"],
+    [468, "ein Stern oder zwei Unterstriche"],
+    [476, "rohes HTML oder Adresse in spitzen Klammern"],
+    [480, "rohes HTML oder Adresse in spitzen Klammern"],
+    [481, "rohes HTML oder Adresse in spitzen Klammern"],
+    [501, "Ziel ohne http(s)"],
+    [526, "rohes HTML oder Adresse in spitzen Klammern"],
+    [537, "Verweisdefinition"],
+    [538, "Verweisdefinition"],
+    [563, "Verweisdefinition"],
+  ]);
+  const MARKUP_REASONS = [
+    "Aufzaehlung ausserhalb der Teilmenge",
+    "Codeblock",
+    "Trennlinie",
+    "Ueberschrift",
+    "Verweisdefinition",
+    "Ziel ohne http(s)",
+    "ein Stern oder zwei Unterstriche",
+    "rohes HTML oder Adresse in spitzen Klammern"
+  ];
+
+  const mkDraw = (raw) => {
+    const box = wb.document.createElement('div');
+    box.appendChild(wb.markupNodes(raw, '', []));
+    return box.innerHTML;
+  };
+  const mkEsc = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  /* Beide Seiten auf dieselbe Form: der Absatz faellt weg, weil .cmt-body
+     pre-wrap traegt; Klasse, Ziel und Titel gehoeren zur Fassung. */
+  const mkNormal = (html) => String(html)
+    .replace(/<svg[\s\S]*?<\/svg>/g, '')
+    .replace(/ (?:class|target|rel|title)="[^"]*"/g, '')
+    .replace(/<\/?p>/g, '')
+    .replace(/\s*(<\/?(?:ul|ol|li|blockquote)[^>]*>)\s*/g, '$1')
+    .replace(/&nbsp;/g, ' ').replace(/&quot;/g, '"')
+    .replace(/[ \t]*\n[ \t]*/g, '\n').replace(/\n+/g, '\n').trim();
+  const mkPlain = (raw) => mkNormal(mkEsc(String(raw).replace(/\n$/, '')));
+
+  /* ERST DER LESER SELBST: ein Waechter ohne Faelle ist gruen und belegt
+     nichts. */
+  check('Der Waechter traegt die Beispiele der Spezifikation',
+    MARKUP_CASES.length === 356 && MARKUP_APART.size === 65,
+    `${MARKUP_CASES.length} Beispiele, ${MARKUP_APART.size} benannt daneben`);
+
+  const mkSame = [], mkText = [], mkAside = [], mkThird = [];
+  for (const [nr, raw, html] of MARKUP_CASES) {
+    let drawn;
+    try { drawn = mkNormal(mkDraw(raw)); } catch (e) { drawn = 'Fehler ' + e.message; }
+    if (drawn === mkNormal(html)) { mkSame.push(nr); continue; }
+    if (drawn === mkPlain(raw)) { mkText.push(nr); continue; }
+    (MARKUP_APART.has(nr) ? mkAside : mkThird).push(nr);
+  }
+  check('Kein Beispiel wird anders gezeichnet als dort oder als Text',
+    mkThird.length === 0,
+    mkThird.slice(0, 12).map(nr => `Beispiel ${nr}`).join(' · ') || 'keines');
+  /* DIE ZAHLEN STEHEN DA. Ohne sie waere die Zusage auch dann gruen, wenn
+     der Leser jedes Beispiel zu Text machte. */
+  check('Und die Zahlen stehen: 159 wie dort, 132 als Text',
+    mkSame.length === 159 && mkText.length === 132,
+    `${mkSame.length} wie dort, ${mkText.length} als Text, ${mkAside.length} daneben`);
+  /* UND DIE TAFEL IST IN BEIDE RICHTUNGEN GESCHLOSSEN: ein Beispiel, das
+     wieder passt, waere eine Karteileiche darin. */
+  const mkStale = [...MARKUP_APART.keys()].filter(nr => !mkAside.includes(nr));
+  check('Und jedes benannte Beispiel weicht wirklich noch ab',
+    mkStale.length === 0, mkStale.join(' ') || 'alle noetig');
+  check('Und jede benannte Bauform kommt wirklich vor',
+    MARKUP_REASONS.length === 8
+    && [...MARKUP_APART.values()].every(why => MARKUP_REASONS.includes(why))
+    && MARKUP_REASONS.every(why => [...MARKUP_APART.values()].includes(why)),
+    MARKUP_REASONS.join(' · '));
+
+  /* ---- ZWEI FASSUNGEN, EINE TAFEL VON FAELLEN ---- Der Kern der
+     Auszeichnung steht in public/app.js und in server.js. Laufen die beiden
+     auseinander, zeigt die Kachel etwas anderes als die Ansicht. */
+  const mkCut = (text) => {
+    const from = text.indexOf('/* ================= Auszeichnung ================= */');
+    const at = text.indexOf('\nfunction markupPlain(', from);
+    const to = text.indexOf('\n}', at);
+    return from < 0 || at < 0 || to < 0 ? '' : text.slice(from, to + 2);
+  };
+  const mkApp = mkCut(fs.readFileSync(path.join(__dirname, 'public', 'app.js'), 'utf8'));
+  const mkServer = mkCut(fs.readFileSync(path.join(__dirname, 'server.js'), 'utf8'));
+  check('Der Kern der Auszeichnung steht in beiden Dateien',
+    mkApp.length > 9000 && mkServer.length > 9000,
+    `${mkApp.length} Zeichen im Browser, ${mkServer.length} am Server`);
+  check('Und beide Fassungen sind Zeichen fuer Zeichen dieselbe',
+    mkApp === mkServer,
+    mkApp === mkServer ? 'gleich' : `${mkApp.length} gegen ${mkServer.length} Zeichen`);
+  /* UND SIE WERDEN WIRKLICH GEFAHREN, nicht nur verglichen: eine gleiche
+     Abschrift, die niemand ausfuehrt, belegt nichts. */
+  const mkServerPlain = new Function(mkServer + '\nreturn markupPlain;')();
+  const mkApart = [];
+  for (const [nr, raw] of MARKUP_CASES)
+    if (mkServerPlain(raw) !== wb.markupPlain(raw)) mkApart.push(nr);
+  check('Und beide liefern an jedem Fall der Tafel dasselbe',
+    mkApart.length === 0, mkApart.slice(0, 10).join(' ') || 'jeder Fall gleich');
+  /* UND DER ENTFERNER TUT WIRKLICH ETWAS -- sonst waere die Gleichheit die
+     zweier Funktionen, die beide nichts tun. */
+  check('Und die Marken kommen wirklich heraus',
+    wb.markupPlain('**fett** und _kursiv_ und `code`') === 'fett und kursiv und code'
+    && wb.markupPlain('> Zitat') === 'Zitat'
+    && wb.markupPlain('- eins\n- zwei') === 'eins\nzwei'
+    && wb.markupPlain('[Name](https://beispiel.de/x)') === 'Name',
+    JSON.stringify(wb.markupPlain('**fett** und _kursiv_ und `code`')));
+  check('Und die beiden Stellen, die nur Text koennen, rufen ihn',
+    /markupPlain\(item\.description/.test(
+      fs.readFileSync(path.join(__dirname, 'public', 'app.js'), 'utf8'))
+    && /markupPlain\(r\['f_' \+ first\.key\]\)/.test(
+      fs.readFileSync(path.join(__dirname, 'server.js'), 'utf8')),
+    'eine der beiden Stellen ruft den Entferner nicht');
+
+  /* ---- DIE LAUFZEIT WAECHST MIT DER LAENGE ---- Der Server ruft den Leser
+     im Ausschnitt der Suche. Waechst er im Quadrat, haelt ein einziger
+     Kommentar den Event Loop fuer alle an. */
+  const mkTime = (text) => {
+    const t0 = process.hrtime.bigint();
+    wb.markupPlain(text);
+    return Number(process.hrtime.bigint() - t0) / 1e6;
+  };
+  const mkShort = mkTime('*a_ '.repeat(16384));
+  const mkLong = mkTime('*a_ '.repeat(65536));
+  check('Ein Text aus 256 KB Marken wird in unter vier Sekunden gelesen',
+    mkLong < 4000, `${Math.round(mkLong)} ms`);
+  /* Die Grenze liegt bei acht, nicht bei vier: die Maschine schwankt, das
+     Quadrat kostet das Sechzehnfache. */
+  check('Und das Vierfache an Text kostet nicht das Sechzehnfache an Zeit',
+    mkLong < mkShort * 8,
+    `${Math.round(mkShort)} ms zu ${Math.round(mkLong)} ms`);
+
+  /* ---- UND DIE VERSCHACHTELUNG HAT EINE GRENZE ---- Ohne sie laesst der
+     Leser bei tausenden Ebenen den Stapel ueberlaufen. */
+  const mkDeep = '*'.repeat(6400) + 'a' + '*'.repeat(6400);
+  let mkDeepOut = '';
+  try { mkDeepOut = wb.markupPlain(mkDeep); } catch (e) { mkDeepOut = 'Fehler ' + e.message; }
+  check('Ein Text aus 6400 Sternen je Seite wird gelesen, ohne abzubrechen',
+    mkDeepOut === '*'.repeat(6200) + 'a' + '*'.repeat(6200),
+    mkDeepOut.slice(0, 40));
+  const mkDeepBox = wb.document.createElement('div');
+  mkDeepBox.appendChild(wb.markupNodes(mkDeep, '', []));
+  check('Und der Baum darunter bleibt hundert Ebenen tief',
+    mkDeepBox.querySelectorAll('strong').length === 100,
+    `${mkDeepBox.querySelectorAll('strong').length} Ebenen`);
+}
+
+/* ================= Die Grenzen der Teilmenge ================= EINE
+   TEILMENGE WAECHST GEFAHRLOS, SIE SCHRUMPFT NICHT: was heute Text bleibt,
+   kann spaeter eine Auszeichnung werden -- umgekehrt nicht. */
+group('Was nicht in der Teilmenge liegt, bleibt Text');
+{
+  const mkHtml = (raw) => {
+    const box = wb.document.createElement('div');
+    box.appendChild(wb.markupNodes(raw, '', []));
+    return box.innerHTML;
+  };
+  const mkEsc = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  /* Jede Bauform, die 5.1 draussen laesst, mit dem Grund daneben. */
+  const OUTSIDE = [
+    ['*kursiv*', 'ein einzelner Stern'],
+    ['__fett__', 'zwei Unterstriche'],
+    ['* Punkt', 'der Stern als Aufzaehlung'],
+    ['+ Punkt', 'das Plus als Aufzaehlung'],
+    ['1) Punkt', 'die Klammer als Nummerierung'],
+    ['# Ueberschrift', 'die Ueberschrift'],
+    ['---', 'die Trennlinie'],
+    ['~~weg~~', 'das Durchstreichen'],
+    ['| a | b |', 'die Tabelle'],
+    ['![Bild](bild.png)', 'das Bild'],
+    ['[Name](/pfad)', 'ein Ziel ohne http(s)'],
+    ['<b>fett</b>', 'rohes HTML'],
+    ['[Text][1]', 'die Verweisdefinition'],
+    ['3*4 und 5*6', 'die Rechnung mit zwei Sternen'],
+    ['datei_name_alt', 'der Unterstrich mitten im Wort']
+  ];
+  const mkKept = OUTSIDE.filter(([raw]) => mkHtml(raw) !== mkEsc(raw));
+  check('Der Waechter traegt jede Bauform, die draussen bleibt',
+    OUTSIDE.length === 15, `${OUTSIDE.length} Bauformen`);
+  check('Und keine davon wird gezeichnet',
+    mkKept.length === 0,
+    mkKept.map(([raw, why]) => `${why}: ${mkHtml(raw)}`).join(' · ') || 'alle bleiben Text');
+  /* UND DER WAECHTER FAENGT DAS GEGENTEIL: was in der Teilmenge liegt, wird
+     gezeichnet. Ohne diese Zeile waere er gruen, wenn gar nichts mehr ginge. */
+  const INSIDE = [['**fett**', 'strong'], ['_kursiv_', 'em'], ['`code`', 'code'],
+    ['> Zitat', 'blockquote'], ['- Punkt', 'ul'], ['1. Punkt', 'ol'],
+    ['[Name](https://beispiel.de/x)', 'a']];
+  const mkLost = INSIDE.filter(([raw, tag]) => !mkHtml(raw).includes('<' + tag));
+  check('Und was in ihr liegt, wird gezeichnet',
+    mkLost.length === 0, mkLost.map(([raw]) => raw).join(' · ') || 'alle sieben');
+  /* Der Backslash nimmt jedem ASCII-Satzzeichen seine Wirkung. */
+  check('Ein Backslash macht aus der Marke ein Zeichen',
+    mkHtml('\\*\\*kein Fettdruck\\*\\*') === '**kein Fettdruck**',
+    mkHtml('\\*\\*kein Fettdruck\\*\\*'));
+
+  /* ---- DIE EINE BENANNTE ABWEICHUNG ---- Die Spezifikation macht aus einem
+     einzelnen Umbruch ein Leerzeichen; `.cmt-body` traegt `pre-wrap`, und
+     jeder vorhandene Kommentar saehe sonst anders aus. */
+  const mkBreak = mkHtml('erste Zeile\nzweite Zeile');
+  check('Ein einzelner Zeilenumbruch bleibt ein Umbruch',
+    mkBreak === 'erste Zeile\nzweite Zeile', JSON.stringify(mkBreak));
+  check('Und es entsteht weder ein Umbruchzeichen noch ein Leerzeichen dafuer',
+    !/<br/.test(mkBreak) && mkBreak.includes('\n'), JSON.stringify(mkBreak));
+  check('Und das Stilblatt traegt den Grund dafuer',
+    /\.cmt-body \{[^}]*white-space: pre-wrap/.test(
+      fs.readFileSync(path.join(__dirname, 'public', 'style.css'), 'utf8')),
+    'pre-wrap steht nicht mehr an .cmt-body');
+
+  /* ---- DIE ZERLEGUNG DARUNTER BLEIBT, WIE SIE IST ---- */
+  const mkMarks = [{ handle: 'bert', author: { id: 2, name: 'bert', deleted: false } }];
+  const mkBox = (raw, term) => {
+    const box = wb.document.createElement('div');
+    box.appendChild(wb.markupNodes(raw, term || '', mkMarks));
+    return box;
+  };
+  const mkMixed = mkBox('**fett** https://beispiel.de/x und @bert dazu', 'fett');
+  check('Die Adresse bleibt ein Link, auch unter der Auszeichnung',
+    mkMixed.querySelector('a[href="https://beispiel.de/x"]') !== null,
+    mkMixed.innerHTML);
+  check('Und die Markierung mit @ bleibt eine Markierung',
+    mkMixed.querySelector('.mention') !== null
+    && mkMixed.querySelector('.mention').textContent === '@bert',
+    mkMixed.innerHTML);
+  check('Und der Suchtreffer bleibt hervorgehoben — auch im Fettdruck',
+    mkMixed.querySelector('strong mark') !== null,
+    mkMixed.innerHTML);
+  check('Und im Code-Abschnitt wird keine Adresse mehr gesucht',
+    mkBox('`https://beispiel.de/x`').querySelector('a') === null,
+    mkBox('`https://beispiel.de/x`').innerHTML);
+  check('Und im Namen eines Links entsteht kein Link im Link',
+    mkBox('[www.beispiel.de](https://andere.example/)').querySelectorAll('a').length === 1,
+    mkBox('[www.beispiel.de](https://andere.example/)').innerHTML);
+
+  /* ---- DIE NUMMER FOLGT DER ZEIT UND NICHT DER ANZEIGE ---- */
+  const mkShown = [{ id: 7, pinned: 1 }, { id: 3, kind: 'task' }, { id: 5, kind: 'note' }];
+  const mkOrder = wb.commentOrder(mkShown);
+  check('Die Nummer eines Kommentars folgt seiner id',
+    mkOrder.get(3) === 1 && mkOrder.get(5) === 2 && mkOrder.get(7) === 3,
+    [...mkOrder].map(([id, n]) => `${id}:${n}`).join(' '));
+  const mkAgain = wb.commentOrder([{ id: 5 }, { id: 7 }, { id: 3, pinned: 1 }]);
+  check('Und sie bewegt sich nicht, wenn Anpinnen die Anzeige umstellt',
+    [...mkAgain].every(([id, n]) => mkOrder.get(id) === n),
+    [...mkAgain].map(([id, n]) => `${id}:${n}`).join(' '));
+
+  /* ---- DIE HERKUNFT WIRD BEIM ZEICHNEN GEPRUEFT ---- */
+  const mkHere = wb.location.origin + wb.location.pathname;
+  check('Eine Adresse der eigenen Instanz wird zum Verweis',
+    wb.markupRefOf(mkHere + '#/item/1?c=2') === 2,
+    String(wb.markupRefOf(mkHere + '#/item/1?c=2')));
+  check('Eine Adresse von anderswoher dagegen nicht',
+    wb.markupRefOf('https://fremde.example/#/item/1?c=2') === 0
+    && wb.markupRefOf('https://fremde.example/kriterion/#/item/1?c=2') === 0,
+    String(wb.markupRefOf('https://fremde.example/#/item/1?c=2')));
+  check('Und ohne Kommentarnummer entsteht auch aus der eigenen keiner',
+    wb.markupRefOf(mkHere + '#/item/1') === 0 && wb.markupRefOf(mkHere + '#/list') === 0,
+    String(wb.markupRefOf(mkHere + '#/item/1')));
+  /* UND DIE MARKE ENTSTEHT ERST MIT DER AUSKUNFT: ohne sie bleibt der
+     Verweis ein gewoehnlicher Link. */
+  check('Ohne Auskunft bleibt der Verweis ein einfacher Link',
+    mkBox(`[hin](${mkHere}#/item/1?c=2)`).querySelector('.markup-ref') === null,
+    mkBox(`[hin](${mkHere}#/item/1?c=2)`).innerHTML);
+}
+
+
+/* ================= Die Beschreibung, das Menue und das Zitat ============
+   Die Beschreibung hatte bis hierher keine Leseansicht: sie stand als Feld
+   da, und was darin stand, sah man so, wie man es getippt hat. */
+group('Die Beschreibung wird gelesen und geschrieben');
+{
+  const dv = wb.document.getElementById('descview');
+  const df = wb.document.getElementById('desc');
+  const de = wb.document.getElementById('descedit');
+  check('Der Block traegt Vorschau, Feld und Stift',
+    dv !== null && df !== null && de !== null,
+    `${dv ? 'Vorschau' : '—'} · ${df ? 'Feld' : '—'} · ${de ? 'Stift' : '—'}`);
+  check('Und die Vorschau steht offen, das Feld nicht',
+    !dv.hidden && df.hidden, `Vorschau hidden=${dv.hidden}, Feld hidden=${df.hidden}`);
+  /* DIE VORSCHAU IST EIN BEREICH UND KEIN SCHALTER: sie traegt Links, und
+     ein Schalter mit Links darin ist fuer ein Vorleseprogramm nicht
+     aufloesbar. */
+  check('Die Vorschau ist kein Schalter',
+    dv.getAttribute('role') !== 'button' && dv.tagName === 'DIV', dv.getAttribute('role'));
+  de.onclick();
+  check('Der Stift schaltet auf das Feld',
+    dv.hidden && !df.hidden, `Vorschau hidden=${dv.hidden}, Feld hidden=${df.hidden}`);
+  /* ESCAPE VERWIRFT UND STELLT DEN ZULETZT GESPEICHERTEN TEXT HER. */
+  df.value = 'etwas ganz anderes';
+  df.onkeydown({ key: 'Escape', preventDefault() {} });
+  check('Escape verwirft und schaltet zurueck',
+    !dv.hidden && df.hidden, `Vorschau hidden=${dv.hidden}`);
+  /* UND ER NIMMT DEN TEXT ZURUECK, BEVOR ER VERSTECKT: ein verstecktes Feld
+     verliert im Browser den Fokus, und `focusout` speicherte danach das
+     Verworfene. Der Nachbau kennt diesen Griff des Browsers nicht, deshalb
+     steht die Reihenfolge hier am Quelltext. */
+  check('Und zwar bevor er das Feld versteckt',
+    /descEl\.value = item\.description;\s*\n\s*descWrite\(false\);/.test(
+      fs.readFileSync(path.join(__dirname, 'public', 'app.js'), 'utf8')),
+    'Escape versteckt das Feld, bevor er den Text zuruecknimmt');
+  dv.onclick({ target: dv });
+  check('Und ein Klick in den Text schaltet wieder auf das Feld',
+    dv.hidden && !df.hidden, `Vorschau hidden=${dv.hidden}`);
+  /* WER TEXT MARKIERT, WILL ZITIEREN UND NICHT SCHREIBEN. */
+  df.onkeydown({ key: 'Escape', preventDefault() {} });
+  dv.textContent = 'ein Satz zum Markieren';
+  const pick = wb.document.createRange();
+  pick.selectNodeContents(dv);
+  wb.document.getSelection().removeAllRanges();
+  wb.document.getSelection().addRange(pick);
+  dv.onclick({ target: dv });
+  check('Eine Auswahl in der Vorschau schaltet nicht auf das Feld',
+    !dv.hidden && df.hidden, `Vorschau hidden=${dv.hidden}`);
+  wb.document.getSelection().removeAllRanges();
+  dv.onclick({ target: dv });
+  df.onkeydown({ key: 'Escape', preventDefault() {} });
+  /* UND DAS FELD TRAEGT DAS MERKMAL, AN DEM DAS MENUE ES ERKENNT. */
+  check('Das Feld der Beschreibung traegt das Menue',
+    df.dataset.markup !== undefined
+    && wb.document.getElementById('ctext').dataset.markup !== undefined,
+    `Beschreibung ${df.dataset.markup !== undefined}`);
+  check('Das Feld im Anlegen-Dialog dagegen nicht',
+    !/id="nd"[^>]*data-markup/.test(
+      fs.readFileSync(path.join(__dirname, 'public', 'app.js'), 'utf8')),
+    'der Dialog traegt das Menue doch');
+
+  /* ---- DAS MENUE ---- Es haengt ueber der Kante des Feldes, es erscheint
+     mit dem Fokus, und seine Horcher stehen einmal. */
+  const field = wb.document.getElementById('ctext');
+  field.focus();
+  const menu = wb.document.getElementById('markup-menu');
+  check('Das Menue steht im Dokument, sobald ein Feld den Fokus hat',
+    menu !== null && !menu.hidden, menu ? `hidden=${menu.hidden}` : 'kein Menue');
+  check('Und es traegt sieben Schalter',
+    menu.querySelectorAll('button').length === 7,
+    `${menu.querySelectorAll('button').length} Schalter`);
+  check('Und es steht genau einmal im Dokument',
+    wb.document.querySelectorAll('.markup-menu').length === 1,
+    String(wb.document.querySelectorAll('.markup-menu').length));
+  /* DIE SCHALTER SCHREIBEN ZEICHEN IN DAS FELD, mehr nicht. */
+  field.value = 'Wort';
+  field.setSelectionRange(0, 4);
+  menu.querySelectorAll('button')[0].onclick();
+  check('Der erste Schalter macht aus der Auswahl Fettdruck',
+    field.value === '**Wort**', JSON.stringify(field.value));
+  field.value = 'Wort';
+  field.setSelectionRange(0, 4);
+  menu.querySelectorAll('button')[1].onclick();
+  check('Und der zweite Kursivschrift mit dem Unterstrich',
+    field.value === '_Wort_', JSON.stringify(field.value));
+  field.value = 'eins\nzwei';
+  field.setSelectionRange(0, 9);
+  menu.querySelectorAll('button')[4].onclick();
+  check('Und der Aufzaehlungsschalter zeichnet jede beruehrte Zeile',
+    field.value === '- eins\n- zwei', JSON.stringify(field.value));
+  field.value = 'eins\nzwei';
+  field.setSelectionRange(0, 9);
+  menu.querySelectorAll('button')[5].onclick();
+  check('Und die Nummerierung zaehlt dabei hoch',
+    field.value === '1. eins\n2. zwei', JSON.stringify(field.value));
+
+  /* ---- ZITIEREN ---- Ganz ueber die Kopfzeile, und die Verfasserzeile
+     kommt aus der Sprachdatei. */
+  field.value = '';
+  const cite = wb.document.querySelector('.cmt .cite');
+  check('Jede Kommentarzeile traegt einen Schalter zum Zitieren', cite !== null);
+  cite.onclick();
+  check('Er schreibt das Zitat in das Feld, jede Zeile mit ihrem Zeichen',
+    field.value.split('\n').filter(z => z).every(z => z.startsWith('> ')),
+    JSON.stringify(field.value.slice(0, 120)));
+  check('Und die Verfasserzeile steht darueber',
+    field.value.startsWith('> ') && field.value.includes(':'),
+    JSON.stringify(field.value.slice(0, 60)));
+  /* UND DIE NUMMER STEHT AN DER KOPFZEILE UND KOPIERT IHRE ADRESSE. */
+  const mkHtml = (raw) => {
+    const box = wb.document.createElement('div');
+    box.appendChild(wb.markupNodes(raw, '', []));
+    return box.innerHTML;
+  };
+  const no = wb.document.querySelector('.cmt .cmt-no');
+  check('Und die Kopfzeile traegt die Nummer als Schalter',
+    no !== null && /^#\d+$/.test(no.textContent), no ? no.textContent : 'keine Nummer');
+
+  /* ---- ZWEI GRENZEN GEGEN DEN ENDLOSEN TEXT ---- Ein Kommentar ist
+     Benutzertext, und derselbe Leser laeuft am Server im Trefferausschnitt. */
+  const deepQuote = '> '.repeat(4000) + 'x';
+  let deepOk = true, deepTime = 0;
+  {
+    const started = Date.now();
+    try { wb.markupPlain(deepQuote); } catch { deepOk = false; }
+    deepTime = Date.now() - started;
+  }
+  check('Tausende Ebenen Zitat halten den Leser nicht an',
+    deepOk && deepTime < 4000, deepOk ? `${deepTime} ms` : 'der Stapel ist uebergelaufen');
+  check('Und die hundertste Ebene ist die letzte, die gezeichnet wird',
+    (mkHtml('> '.repeat(120) + 'x').match(/<blockquote/g) || []).length === 100,
+    `${(mkHtml('> '.repeat(120) + 'x').match(/<blockquote/g) || []).length} Ebenen`);
+  /* DIE KLAMMERN EINES ZIELS: die Spezifikation nennt drei Ebenen als
+     Mindestmass und erlaubt eine Grenze ausdruecklich. Gemessen wird die
+     Grenze selbst und nicht die Zeit -- eine Zeit ist unter Last unscharf. */
+  const nest = (n) => `[x](https://beispiel.de/${'('.repeat(n)}${')'.repeat(n)})`;
+  /* Gelesen wird der Text ohne Marken: die nackte Adresse darin wuerde
+     ohnehin ein Link, und das sagt nichts ueber die Grenze. */
+  check('Zweiunddreissig Ebenen Klammern im Ziel tragen',
+    wb.markupPlain(nest(32)) === 'x', JSON.stringify(wb.markupPlain(nest(32))).slice(0, 80));
+  check('Und die dreiunddreissigste macht daraus wieder Text',
+    wb.markupPlain(nest(33)) === nest(33), JSON.stringify(wb.markupPlain(nest(33))).slice(0, 80));
+  check('Drei Ebenen tragen erst recht — das Mindestmass der Spezifikation',
+    mkHtml('[x](https://beispiel.de/a(b(c)d)e)').includes('href="https://beispiel.de/a(b(c)d)e"'),
+    mkHtml('[x](https://beispiel.de/a(b(c)d)e)'));
+  let pairTime = 0;
+  {
+    const started = Date.now();
+    wb.markupPlain('[x]('.repeat(12000));
+    pairTime = Date.now() - started;
+  }
+  check('Und zwoelftausend offene Klammern halten den Leser nicht an',
+    pairTime < 4000, `${pairTime} ms`);
+
+  /* ---- EIN FELD, DAS DIE ANSICHT WEGGEZEICHNET HAT ---- Beim Entfernen
+     eines Feldes kommt kein `focusout`; das Menue bliebe sonst stehen. */
+  const away = wb.document.createElement('textarea');
+  away.dataset.markup = '';
+  wb.document.body.appendChild(away);
+  away.focus();
+  check('Ein zweites Feld uebernimmt das Menue', !menu.hidden, `hidden=${menu.hidden}`);
+  away.remove();
+  wb.document.dispatchEvent(new wb.Event('selectionchange'));
+  check('Und ein weggezeichnetes Feld schliesst es wieder',
+    menu.hidden, `hidden=${menu.hidden}`);
+}
+
   wb.close();
 }
 

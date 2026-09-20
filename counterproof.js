@@ -1863,7 +1863,7 @@ const REGRESSIONS = [
        zurueck. */
     nr: '233', name: 'Die Formatnummer bleibt auf 15',
     file: 'server.js',
-    search: "const EXCHANGE_FORMAT = 17;",
+    search: "const EXCHANGE_FORMAT = 18;",
     replacement: "const EXCHANGE_FORMAT = 15;",
     expected: 'Die Entscheidung wird mitgeschrieben — 0.14.0'
   },
@@ -3293,8 +3293,8 @@ const REGRESSIONS = [
   {
     nr: '417', name: 'Die Hervorhebung erreicht den Kommentartext nicht mehr',
     file: 'public/app.js',
-    search: "        .appendChild(buildCommentNodes(splitCommentText(c.text, term, c.mentions)));",
-    replacement: "        .appendChild(buildCommentNodes(splitCommentText(c.text, '', c.mentions)));",
+    search: "        .appendChild(markupNodes(c.text, term, c.mentions));",
+    replacement: "        .appendChild(markupNodes(c.text, '', c.mentions));",
     expected: 'Der Suchbegriff in der Adresse'
   },
   {
@@ -3542,7 +3542,7 @@ const REGRESSIONS = [
        Zusage: dort die Entscheidung, hier die Exportdatei. */
     nr: '448', name: 'Die Formatnummer bleibt bei 15, obwohl das Faelligkeitsdatum mitgeht',
     file: 'server.js',
-    search: "const EXCHANGE_FORMAT = 17;",
+    search: "const EXCHANGE_FORMAT = 18;",
     replacement: "const EXCHANGE_FORMAT = 15;",
     expected: 'Die Exportdatei'
   },
@@ -9140,6 +9140,154 @@ const REGRESSIONS = [
     search: '-- Anhaenge am Eintrag. mime_type ist der vom Browser gemeldete Typ und dient',
     replacement: '-- Anhaenge am Eintrag (Konzept 4.6). mime_type ist der gemeldete Typ und dient',
     expected: 'Kein Papierverweis geht mit hinaus'
+  },
+  /* ---- Die Auszeichnung ---- */
+  {
+    nr: '1130', name: 'Der Unterstrich zeichnet auch mitten im Wort aus',
+    file: 'public/app.js',
+    search: "    canOpen: c === '*' ? flank.left : flank.left && (!flank.right || flank.markBefore),",
+    replacement: "    canOpen: flank.left,",
+    expected: 'Kriterion zeichnet wie die Spezifikation oder gar nicht'
+  },
+  {
+    nr: '1131', name: 'Ein einzelner Stern zeichnet kursiv aus',
+    file: 'public/app.js',
+    search: "  (char === '*' && used > 1) ? 'strong' : (char === '_' && used < 2) ? 'em' : '';",
+    replacement: "  (char === '*' && used > 1) ? 'strong' : 'em';",
+    expected: 'Kriterion zeichnet wie die Spezifikation oder gar nicht'
+  },
+  {
+    nr: '1132', name: 'Der Backslash verliert seine Wirkung',
+    file: 'public/app.js',
+    search: "    if (c === '\\\\' && MARKUP_ASCII_MARK.test(source[pos + 1] || '')) {\n      plain += source[pos + 1]; plainSource += source.slice(pos, pos + 2); pos += 2; continue;\n    }",
+    replacement: "    if (false) { continue; }",
+    expected: 'Kriterion zeichnet wie die Spezifikation oder gar nicht'
+  },
+  {
+    nr: '1133', name: 'Ein Code-Abschnitt laeuft wieder ueber den Zeilenumbruch',
+    file: 'public/app.js',
+    search: "    if (found < 0 || found >= line) return null;",
+    replacement: "    if (found < 0) return null;",
+    expected: 'Kriterion zeichnet wie die Spezifikation oder gar nicht'
+  },
+  {
+    nr: '1134', name: 'Ein Lauf ohne Gegenstueck gibt nur sein erstes Zeichen zurueck',
+    file: 'public/app.js',
+    search: "        plain += '`'.repeat(run); plainSource += '`'.repeat(run); pos += run; continue;",
+    replacement: "        plain += '`'; plainSource += '`'; pos += 1; continue;",
+    expected: 'Kriterion zeichnet wie die Spezifikation oder gar nicht'
+  },
+  {
+    nr: '1135', name: 'Ein Ziel ohne http(s) wird doch ein Link',
+    file: 'public/app.js',
+    search: "const MARKUP_TARGET = /^https?:\\/\\//i;",
+    replacement: "const MARKUP_TARGET = /./;",
+    expected: 'Was nicht in der Teilmenge liegt, bleibt Text'
+  },
+  {
+    nr: '1136', name: 'Aus einem einzelnen Zeilenumbruch wird ein Leerzeichen',
+    file: 'public/app.js',
+    search: "      markupInlineNodes(markupInline(b.lines.join('\\n')), into, term, marks, false);",
+    replacement: "      markupInlineNodes(markupInline(b.lines.join(' ')), into, term, marks, false);",
+    expected: 'Was nicht in der Teilmenge liegt, bleibt Text'
+  },
+  {
+    nr: '1137', name: 'Die Herkunft eines Verweises wird nicht mehr geprueft',
+    file: 'public/app.js',
+    search: "  if (!text.startsWith(here + '#/')) return 0;\n  const found = text.slice(here.length).match(ENTRY_PATTERN);",
+    replacement: "  const found = text.replace(/^[^#]*/, '').match(ENTRY_PATTERN);",
+    expected: 'Was nicht in der Teilmenge liegt, bleibt Text'
+  },
+  {
+    nr: '1138', name: 'Die Kommentarnummer folgt wieder der Anzeige',
+    file: 'public/app.js',
+    search: "  [...(comments || [])].sort((a, b) => a.id - b.id).forEach((c, i) => order.set(c.id, i + 1));",
+    replacement: "  [...(comments || [])].forEach((c, i) => order.set(c.id, i + 1));",
+    expected: 'Was nicht in der Teilmenge liegt, bleibt Text'
+  },
+  {
+    nr: '1139', name: 'Die Auszeichnung erreicht die Markierung mit @ nicht mehr',
+    file: 'public/app.js',
+    search: "      into.appendChild(inLink ? raiseHighlight(p.text, term)\n        : buildCommentNodes(splitCommentText(p.text, term, marks)));",
+    replacement: "      into.appendChild(buildCommentNodes(splitCommentText(p.text, term)));",
+    expected: 'Was nicht in der Teilmenge liegt, bleibt Text'
+  },
+  {
+    nr: '1140', name: 'Die beiden Fassungen des Kerns laufen auseinander',
+    file: 'server.js',
+    search: "const MARKUP_SPACE = /[ \\t\\n\\v\\f\\r]/;",
+    replacement: "const MARKUP_SPACE = /[ \\t\\n\\v\\f]/;",
+    expected: 'Kriterion zeichnet wie die Spezifikation oder gar nicht'
+  },
+  {
+    nr: '1141', name: 'Der Trefferausschnitt bekommt die Marken nicht mehr heraus',
+    file: 'server.js',
+    search: "    text: snippet(MARKUP_SOURCES.has(first.key)\n      ? markupPlain(r['f_' + first.key]) : r['f_' + first.key], term),",
+    replacement: "    text: snippet(r['f_' + first.key], term),",
+    expected: 'Kriterion zeichnet wie die Spezifikation oder gar nicht'
+  },
+  {
+    nr: '1142', name: 'Die eingeklappte Blockkopfzeile zeigt die Marken wieder',
+    file: 'public/app.js',
+    search: "      const text = markupPlain(item.description || '').trim().replace(/\\s+/g, ' ');",
+    replacement: "      const text = (item.description || '').trim().replace(/\\s+/g, ' ');",
+    expected: 'Kriterion zeichnet wie die Spezifikation oder gar nicht'
+  },
+  {
+    nr: '1143', name: 'Der Kommentarverweis verliert seinen Leser im Browser',
+    file: 'public/app.js',
+    search: "  try { return Number(new URLSearchParams(askKey || '').get('c')) || 0; }",
+    replacement: "  try { return Number((askKey || '').split('c=')[1]) || 0; }",
+    expected: 'Jeder Abfrageparameter des Browsers hat einen Leser — 0.35.0'
+  },
+  {
+    nr: '1144', name: 'Das schwebende Menue bekommt Milchglas',
+    file: 'public/style.css',
+    search: "  border-radius: var(--r-sm); box-shadow: var(--sh-menu);",
+    replacement: "  border-radius: var(--r-sm); box-shadow: var(--sh-menu); backdrop-filter: blur(12px);",
+    expected: 'Kein Milchglas im Stilblatt — 0.22.0'
+  },
+  {
+    nr: '1145', name: 'Das Menue laeuft auf schmalem Bildschirm aus dem Bild',
+    file: 'public/style.css',
+    search: "  gap: 3px; padding: 3px; max-width: calc(100vw - 16px);",
+    replacement: "  gap: 3px; padding: 3px;",
+    expected: 'Das schwebende Menue bleibt im Bild'
+  },
+  {
+    nr: '1146', name: 'Die Klammern eines Ziels haben wieder keine Grenze',
+    file: 'public/app.js',
+    search: "      if (c === '(') { if (++depth > MARKUP_NESTING) return null; target += c; i++; continue; }",
+    replacement: "      if (c === '(') { depth++; target += c; i++; continue; }",
+    expected: 'Die Beschreibung wird gelesen und geschrieben'
+  },
+  {
+    nr: '1147', name: 'Die Zeilenebene hat wieder keine Tiefengrenze',
+    file: 'public/app.js',
+    search: "  const deep = depth >= MARKUP_DEPTH;",
+    replacement: "  const deep = false;",
+    expected: 'Die Beschreibung wird gelesen und geschrieben'
+  },
+  {
+    nr: '1148', name: 'Escape in der Beschreibung speichert, statt zu verwerfen',
+    file: 'public/app.js',
+    search: "    descEl.value = item.description;\n    descWrite(false);\n  };",
+    replacement: "    descWrite(false);\n  };",
+    expected: 'Die Beschreibung wird gelesen und geschrieben'
+  },
+  {
+    nr: '1149', name: 'Die untere Schranke je Zeichen faellt weg',
+    file: 'public/app.js',
+    search: "    const floor = Math.max(bottom, (floors.has(key) ? floors.get(key) : -1) + 1);",
+    replacement: "    const floor = bottom;",
+    expected: 'Kriterion zeichnet wie die Spezifikation oder gar nicht'
+  },
+  {
+    nr: '1150', name: 'Die Verschachtelung der Auszeichnung hat wieder keine Grenze',
+    file: 'public/app.js',
+    search: "    if (deep >= MARKUP_DEPTH) { at++; continue; }\n",
+    replacement: "",
+    expected: 'Kriterion zeichnet wie die Spezifikation oder gar nicht'
   },
 ];
 

@@ -157,7 +157,7 @@ async function run() {
   // Jeder Teil traegt dieselbe Nummer wie ein voller Export -- ein Teil ist ein
 // vollstaendiges Paket mit weniger Eintraegen darin, kein halbes.
   check('Und jeder Teil traegt die Formatnummer des vollen Exports',
-    tlPackages.every(p => p.version === 17), JSON.stringify(tlPackages.map(p => p.version)));
+    tlPackages.every(p => p.version === 18), JSON.stringify(tlPackages.map(p => p.version)));
   check('Zusammen tragen die Teile jeden Eintrag genau einmal',
     tlPackages.reduce((n, p) => n + p.items.length, 0) === 6 &&
     new Set(tlPackages.flatMap(p => p.items.map(i => i.title))).size === 6,
