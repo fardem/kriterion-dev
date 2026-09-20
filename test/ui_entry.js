@@ -3754,6 +3754,38 @@ group('Kriterion zeichnet wie die Spezifikation oder gar nicht');
     && /markupPlain\(r\['f_' \+ first\.key\]\)/.test(
       fs.readFileSync(path.join(__dirname, 'server.js'), 'utf8')),
     'eine der beiden Stellen ruft den Entferner nicht');
+
+  /* ---- DIE LAUFZEIT WAECHST MIT DER LAENGE ---- Der Server ruft den Leser
+     im Ausschnitt der Suche. Waechst er im Quadrat, haelt ein einziger
+     Kommentar den Event Loop fuer alle an. */
+  const mkTime = (text) => {
+    const t0 = process.hrtime.bigint();
+    wb.markupPlain(text);
+    return Number(process.hrtime.bigint() - t0) / 1e6;
+  };
+  const mkShort = mkTime('*a_ '.repeat(16384));
+  const mkLong = mkTime('*a_ '.repeat(65536));
+  check('Ein Text aus 256 KB Marken wird in unter vier Sekunden gelesen',
+    mkLong < 4000, `${Math.round(mkLong)} ms`);
+  /* Die Grenze liegt bei acht, nicht bei vier: die Maschine schwankt, das
+     Quadrat kostet das Sechzehnfache. */
+  check('Und das Vierfache an Text kostet nicht das Sechzehnfache an Zeit',
+    mkLong < mkShort * 8,
+    `${Math.round(mkShort)} ms zu ${Math.round(mkLong)} ms`);
+
+  /* ---- UND DIE VERSCHACHTELUNG HAT EINE GRENZE ---- Ohne sie laesst der
+     Leser bei tausenden Ebenen den Stapel ueberlaufen. */
+  const mkDeep = '*'.repeat(6400) + 'a' + '*'.repeat(6400);
+  let mkDeepOut = '';
+  try { mkDeepOut = wb.markupPlain(mkDeep); } catch (e) { mkDeepOut = 'Fehler ' + e.message; }
+  check('Ein Text aus 6400 Sternen je Seite wird gelesen, ohne abzubrechen',
+    mkDeepOut === '*'.repeat(6200) + 'a' + '*'.repeat(6200),
+    mkDeepOut.slice(0, 40));
+  const mkDeepBox = wb.document.createElement('div');
+  mkDeepBox.appendChild(wb.markupNodes(mkDeep, '', []));
+  check('Und der Baum darunter bleibt hundert Ebenen tief',
+    mkDeepBox.querySelectorAll('strong').length === 100,
+    `${mkDeepBox.querySelectorAll('strong').length} Ebenen`);
 }
 
 /* ================= Die Grenzen der Teilmenge ================= EINE

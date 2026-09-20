@@ -9275,6 +9275,20 @@ const REGRESSIONS = [
     replacement: "    descWrite(false);\n  };",
     expected: 'Die Beschreibung wird gelesen und geschrieben'
   },
+  {
+    nr: '1149', name: 'Die untere Schranke je Zeichen faellt weg',
+    file: 'public/app.js',
+    search: "    const floor = Math.max(bottom, (floors.has(key) ? floors.get(key) : -1) + 1);",
+    replacement: "    const floor = bottom;",
+    expected: 'Kriterion zeichnet wie die Spezifikation oder gar nicht'
+  },
+  {
+    nr: '1150', name: 'Die Verschachtelung der Auszeichnung hat wieder keine Grenze',
+    file: 'public/app.js',
+    search: "    if (deep >= MARKUP_DEPTH) { at++; continue; }\n",
+    replacement: "",
+    expected: 'Kriterion zeichnet wie die Spezifikation oder gar nicht'
+  },
 ];
 
 /* ================= Spuren und Versatz ================= Der Versatz je

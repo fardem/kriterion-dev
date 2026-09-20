@@ -14,8 +14,8 @@ Geschätzt waren 280 für den Leser und 180 für das Menü.
 
 | | vorher | nachher |
 |---|---:|---:|
-| Zeilen in `public/app.js` | 9.295 | **10.246** |
-| davon Kommentar | 1.761 | **1.901** |
+| Zeilen in `public/app.js` | 9.296 | **10.282** |
+| davon Kommentar | 1.761 | **1.917** |
 | Regelzeilen in `public/style.css` | 1.638 | **1.666** |
 | Blöcke über drei Zeilen im Stilblatt | 8 | **8** |
 | Routen | 102 | **103** |
@@ -24,12 +24,16 @@ Geschätzt waren 280 für den Leser und 180 für das Menü.
 | Stufen der Stapelordnung | 10 | **11** |
 | Formatnummer des Austauschs | 17 | **18** |
 | Untergrenze | 14 | **14** |
-| Auslieferung, gzip | 253.736 | **267.386** |
-| Prüfungen | 7.074 | **7.141** |
+| Auslieferung, gzip | 253.736 | **268.051** |
+| Prüfungen | 7.074 | **7.145** |
 | Gruppen | 374 | **378** |
-| Rückbauten | 1.065 | **1.084** |
+| Rückbauten | 1.065 | **1.086** |
 
-> **FINGERPRINT DIESER RUNDE: `2bc44d2e`** — der Stand davor war `144a80c7`.
+*Beide Zeilenzahlen oben sind mit `tools/comments.js` gezählt. `wc -l` zählt
+je Datei eine Zeile weniger; in einer früheren Fassung dieses Papiers stand
+vorher 9.295 aus `wc -l` neben nachher 10.246 aus dem Werkzeug.*
+
+> **FINGERPRINT DIESER RUNDE: `43f6f1be`** — der Stand davor war `144a80c7`.
 >
 > Er ändert sich an `public/app.js`, `public/style.css`, `server.js` und den
 > drei Sprachdateien. `public/index.html`, `public/theme.js` und
@@ -79,17 +83,37 @@ wird `<strong><mark>`.
 über `createElementNS`, wird einmal gebaut und danach geklont. Die Zahl der
 `.innerHTML =`-Stellen in `public/app.js` ist unverändert.
 
-**ZWEI GRENZEN STEHEN GEGEN DEN ENDLOSEN TEXT**, und beide sind nötig, weil
-ein Kommentar Benutzertext ist und derselbe Leser am Server im
+**DREI GRENZEN STEHEN GEGEN DEN ENDLOSEN TEXT**, und alle drei sind nötig,
+weil ein Kommentar Benutzertext ist und derselbe Leser am Server im
 Trefferausschnitt läuft:
 
 | Grenze | Wert | warum |
 |---|---:|---|
 | Klammern im Ziel eines Links | 32 | Die Spezifikation erlaubt eine Grenze ausdrücklich und nennt drei Ebenen als Mindestmaß. Ohne sie brauchte `[x](` dreitausendmal **791 ms**, mit ihr **28**|
 | Ebenen von Zitat und Aufzählung | 100 | Ohne sie lief der Stapel bei `> ` viertausendmal über — ein `RangeError` im Browser **und** am Server |
+| Ebenen der Auszeichnung | 100 | 6.400 Sterne, ein `a`, 6.400 Sterne ergeben 3.200 verschachtelte Knoten. Der Stapel lief über, sobald der Baum gelesen wurde. Mit der Grenze bleiben 100 Ebenen, der Rest bleibt Text |
 
-*Beide sind gemessen und nicht geschätzt, und beide lassen die Tafel der Fälle
-unberührt: die Beispiele der Spezifikation reichen nirgends über drei Ebenen.*
+*Alle drei sind gemessen und nicht geschätzt, und alle drei lassen die Tafel
+der Fälle unberührt: die Beispiele der Spezifikation reichen nirgends über
+drei Ebenen.*
+
+**UND DIE LAUFZEIT WÄCHST MIT DER LÄNGE, NICHT MIT IHREM QUADRAT.** An zwei
+Stellen tat sie das nicht. Die Paarung suchte ohne die untere Schranke je
+Zeichen, Lauflänge und Rolle, die die Spezifikation vorschreibt, bei jedem
+Schließer den ganzen Stapel ab. Und die Stücke eines Absatzes standen in einem
+Feld, in dem `indexOf` und `splice` je Paar die ganze Folge kosteten; jetzt
+bilden sie eine verkettete Liste.
+
+| Text | vor der zweiten Durchsicht | jetzt |
+|---|---:|---:|
+| `*a_ ` wiederholt, 256 KB | 26.237 ms | **493 ms** |
+| `*a*` wiederholt, 192 KB | 2.317 ms | **170 ms** |
+| `[x](` wiederholt, 256 KB | 1.931 ms | **571 ms** |
+| 6.400 Sterne, `a`, 6.400 Sterne | `RangeError` | **1 ms** |
+
+*Erreichbar ist der Leser am Server über `GET /api/items?q=…`: der Ausschnitt
+eines Treffers läuft durch ihn, und ein einziger langer Kommentar hielte sonst
+den Event Loop für alle an. Express nimmt bis zu 2 MB an.*
 
 ### Das Menü
 
@@ -240,11 +264,19 @@ keiner davon wäre an gestellten Fällen aufgefallen:
 5. `![[[foo](uri1)](uri2)](uri3)` bekam ein `!` zu viel zurück.
 
 **Und fünf weitere fand eine Durchsicht des fertigen Stands**, keiner davon an
-der Tafel: der Überlauf des Stapels und die quadratische Laufzeit von oben,
+der Tafel: der Überlauf des Stapels bei Zitat und Aufzählung und die
+quadratische Laufzeit an den Klammern eines Ziels, beide von oben,
 **Escape in der Beschreibung, das den verworfenen Text speicherte** (das
 Verstecken des Feldes nimmt ihm den Fokus, und `focusout` griff danach), das
 Menü, das sich nach dem Zitieren selbst wieder schloss, und der Stift und der
 Sprung, die an einem eingeklappten Block ins Leere liefen.
+
+**Und zwei fand eine zweite Durchsicht**, beide in der Paarung und beide nur
+über die Laufzeit zu finden: die Suche nach dem öffnenden Zeichen ohne die
+untere Schranke und der Überlauf des Stapels bei tausenden Ebenen der
+Auszeichnung. Die Messwerte stehen in Abschnitt 2. *Gegen beide steht jetzt
+eine Prüfung mit einer Zahl: 256 KB Marken in unter vier Sekunden, und das
+Vierfache an Text kostet nicht das Sechzehnfache an Zeit.*
 
 ---
 
@@ -272,20 +304,20 @@ seinen eigenen Bestand mit demselben Werkzeug:* `node tools/markupscan.js`.
 
 | | vorher | nachher | Unterschied |
 |---|---:|---:|---:|
-| `public/app.js` gzip | 131.750 | **144.049** | +12.299 |
+| `public/app.js` gzip | 131.750 | **144.714** | +12.964 |
 | `public/style.css` gzip | 51.694 | **52.557** | +863 |
 | drei Sprachdateien gzip | 68.538 | **69.026** | +488 |
-| **Auslieferung zusammen** | **253.736** | **267.386** | **+13.650** |
+| **Auslieferung zusammen** | **253.736** | **268.051** | **+14.315** |
 
-**+5,4 Prozent.** Geschätzt waren +22,3 KB und +8,8 Prozent; es ist etwa die
+**+5,6 Prozent.** Geschätzt waren +22,3 KB und +8,8 Prozent; es ist etwa die
 Hälfte geworden. *Zum Vergleich: Quill allein kostet 62.732 Bytes, also 24,7
 Prozent, und erledigt weder das Menü noch die Leseansicht der Beschreibung
 noch den Verweis.*
 
 | | neu | entfernt |
 |---|---:|---:|
-| ausgelieferte Dateien | **1.511** | 23 |
-| insgesamt | **3.183** | 853 *(davon 766 der gebaute Auftrag)* |
+| ausgelieferte Dateien ohne README und Handbuch | **1.585** | 24 |
+| insgesamt | **3.374** | 879 *(davon 766 der gebaute Auftrag)* |
 
 ---
 
@@ -304,12 +336,16 @@ Jede steht mit ihrem Grund im Prüfstand daneben:
 - **10 → 11 Stufen** der Stapelordnung. Die neue liegt unter der Kopfzeile: das
   Menü soll unter ihr durchlaufen, nicht über ihr stehen.
 - **Die sechs Gleichlautsummen.** Sie hängen am ganzen Quelltext von
-  `public/app.js`; die Runde legt dort rund fünfhundert Zeilen an und bewegt
-  keinen deutschen Satz.
+  `public/app.js`; die Runde legt dort 830 Zeilen Code an und bewegt keinen
+  deutschen Satz.
 - **Die Kommentarzahlen je Datei** und die Summe darüber, gemessen mit
-  `tools/comments.js --rows`. `public/app.js` steht bei **1.901**
+  `tools/comments.js --rows`. `public/app.js` steht bei **1.917**
   Kommentarzeilen und 19 Prozent; `tools/comments.js` nennt als Ziel ein
-  Viertel der Codezeilen, hier 2.086.
+  Viertel der Codezeilen, hier 2.091.
+- **Die sechs Gleichlautsummen ein zweites Mal.** Der Umbau der Paarung ist
+  Code, und die Probe misst Code. Der Stand nach dem ersten Bauen war
+  `457f4c3c4bb28ec1` / `7bc60ecadb371e0e`; die Sätze der Oberfläche sind
+  auch dabei unberührt geblieben.
 
 ---
 
@@ -336,3 +372,10 @@ Jede steht mit ihrem Grund im Prüfstand daneben:
   meldet.** Bis dahin bleibt `3*4 und 5*6` Text.
 - **Der Bestand des Betreibers ist nicht gemessen.** Das Werkzeug steht
   bereit; die Zahl aus dem Repository ist null.
+- **Der Trefferausschnitt zeigt den Suchbegriff nicht, wenn er allein im Ziel
+  eines Links steht.** Gefunden wird der Kommentar weiterhin — SQLite sucht im
+  gespeicherten Text. Der Ausschnitt daneben läuft durch den Marken-Entferner,
+  und der nimmt das Ziel heraus; gezeigt wird dann der Anfang des Textes statt
+  der Stelle. `snippet()` in `server.js` nennt den Fall an Ort und Stelle. Die
+  Alternative wäre ein zweiter Ausschnitt über den Rohtext, und der zeigte
+  dann die Marken.

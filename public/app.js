@@ -1643,15 +1643,24 @@ const markupWrap = (char, used) =>
 
 /* Die Zeichenlaeufe werden nach der Spezifikation gepaart; erst danach
    entscheidet sich, ob daraus ein Knoten oder wieder Text wird. */
-function markupPairs(parts, marks, bottom) {
+/* DIE STUECKE STEHEN IN EINER VERKETTETEN LISTE UND NICHT IN EINEM FELD:
+   `indexOf` und `splice` kosteten dort je Paar die ganze Folge. */
+function markupPairs(marks, bottom) {
   let at = bottom;
+  /* DIE UNTERE SCHRANKE JE ZEICHEN, LAENGE UND ROLLE, wie die Spezifikation
+     sie fuehrt: wo einmal kein Oeffner stand, sucht kein zweiter Schliesser
+     noch einmal danach. */
+  const floors = new Map();
   while (at < marks.length) {
     const closer = marks[at];
-    if (!closer.canClose || !closer.node.text) { at++; continue; }
+    if (closer.gone || !closer.canClose || !closer.node.text) { at++; continue; }
+    const key = `${closer.char}${closer.original % 3}${closer.canOpen ? 'o' : ''}`;
+    const floor = Math.max(bottom, (floors.has(key) ? floors.get(key) : -1) + 1);
     let found = -1;
-    for (let i = at - 1; i >= bottom; i--) {
+    for (let i = at - 1; i >= floor; i--) {
       const opener = marks[i];
-      if (!opener.canOpen || !opener.node.text || opener.char !== closer.char) continue;
+      if (opener.gone || !opener.canOpen || !opener.node.text
+          || opener.char !== closer.char) continue;
       /* DIE DREIERREGEL: kann eines der beiden Zeichen beides, darf die Summe
          kein Vielfaches von drei sein -- es sei denn, beide sind es. */
       const odd = (opener.canClose || closer.canOpen)
@@ -1661,25 +1670,37 @@ function markupPairs(parts, marks, bottom) {
       found = i; break;
     }
     if (found < 0) {
-      if (!closer.canOpen) marks.splice(at, 1); else at++;
+      floors.set(key, at - 1);
+      if (!closer.canOpen) closer.gone = true;
+      at++;
       continue;
     }
     const opener = marks[found];
     const used = (opener.node.text.length >= 2 && closer.node.text.length >= 2) ? 2 : 1;
-    const from = parts.indexOf(opener.node), to = parts.indexOf(closer.node);
-    const inner = parts.slice(from + 1, to);
+    const inner = [];
+    let deep = 0;
+    for (let n = opener.node.next; n && n !== closer.node; n = n.next) {
+      inner.push(n);
+      if (n.deep > deep) deep = n.deep;
+    }
+    /* TIEFER ALS HUNDERT EBENEN BLEIBT ALLES TEXT, wie beim Zitat und bei der
+       Aufzaehlung: ein tieferer Baum laesst beim Lesen den Stapel ueberlaufen. */
+    if (deep >= MARKUP_DEPTH) { at++; continue; }
     opener.node.text = opener.node.text.slice(used);
     closer.node.text = closer.node.text.slice(used);
     const kind = markupWrap(closer.char, used);
     const mark = closer.char.repeat(used);
     const back = kind ? '' : mark + markupFlatten(inner) + mark;
-    parts.splice(from + 1, to - from - 1, kind
-      ? { type: kind, mark, children: inner }
-      : { type: 'text', text: back, raw: back });
-    marks.splice(found + 1, at - found - 1);
-    at = found + 1;
-    if (!opener.node.text) { marks.splice(found, 1); at--; }
-    if (!closer.node.text) marks.splice(at, 1);
+    const made = kind ? { type: kind, mark, children: inner, deep: deep + 1 }
+                      : { type: 'text', text: back, raw: back, deep: deep + 1 };
+    opener.node.next = made; made.prev = opener.node;
+    made.next = closer.node; closer.node.prev = made;
+    // Die Zeichen dazwischen sind verbraucht.
+    for (let i = found + 1; i < at; i++) marks[i].gone = true;
+    if (!opener.node.text) opener.gone = true;
+    /* Traegt der Schliesser noch Zeichen, sucht er von derselben Stelle aus
+       weiter -- der naechste Oeffner darunter. */
+    if (!closer.node.text) { closer.gone = true; at++; }
   }
   marks.length = bottom;
 }
@@ -1703,6 +1724,9 @@ function markupEscaped(source, at) {
 function markupJoin(parts) {
   const out = [];
   for (const p of parts) {
+    /* Die Buchfuehrung der Kette faellt hier weg: der Baum, der herauskommt,
+       traegt weder Rueckwege noch die gezaehlte Tiefe. */
+    delete p.prev; delete p.next; delete p.deep;
     if (p.type !== 'text') { if (p.children) p.children = markupJoin(p.children); out.push(p); continue; }
     if (!p.text) continue;
     const raw = p.raw === undefined ? p.text : p.raw;
@@ -1714,12 +1738,19 @@ function markupJoin(parts) {
 }
 
 function markupInline(source) {
-  const parts = [], marks = [], brackets = [];
+  const marks = [], brackets = [];
+  /* Der Kopf traegt nichts; er haelt nur den Anfang der Kette. */
+  const head = { type: 'head' };
+  let tail = head;
+  const add = (node) => { node.prev = tail; tail.next = node; tail = node; return node; };
+  /* Alles hinter einem Stueck abschneiden -- so wird aus einem Paar, das
+     kein Link wird, wieder sein Rohtext. */
+  const cutAfter = (node) => { node.next = null; tail = node; };
   let pos = 0, plain = '', plainSource = '';
   /* DER ROHTEXT LAEUFT MIT: ein Backslash vor einem Satzzeichen faellt beim
      Zeichnen weg und muss zurueckkommen, wenn ein Paar doch Text bleibt. */
   const flush = () => {
-    if (plain) parts.push({ type: 'text', text: plain, raw: plainSource });
+    if (plain) add({ type: 'text', text: plain, raw: plainSource });
     plain = ''; plainSource = '';
   };
   while (pos < source.length) {
@@ -1737,7 +1768,7 @@ function markupInline(source) {
         plain += '`'.repeat(run); plainSource += '`'.repeat(run); pos += run; continue;
       }
       flush();
-      parts.push({ type: 'code', text: span.text, raw: source.slice(pos, span.end) });
+      add({ type: 'code', text: span.text, raw: source.slice(pos, span.end) });
       pos = span.end; continue;
     }
     if (c === '[') {
@@ -1745,8 +1776,7 @@ function markupInline(source) {
       const image = source[pos - 1] === '!' && !markupEscaped(source, pos - 1);
       if (image) { plain = plain.slice(0, -1); plainSource = plainSource.slice(0, -1); }
       flush();
-      const node = { type: 'text', text: image ? '![' : '[' };
-      parts.push(node);
+      const node = add({ type: 'text', text: image ? '![' : '[' });
       brackets.push({ node, from: image ? pos - 1 : pos, image, floor: marks.length });
       pos++; continue;
     }
@@ -1759,17 +1789,21 @@ function markupInline(source) {
            Ziel, das kein Link wird, laesst auch den Namen unberuehrt. */
         flush();
         const end = link ? link.end : pos + 1;
-        const from = parts.indexOf(open.node);
         const back = source.slice(open.from, end);
-        parts.splice(from, parts.length - from, { type: 'text', text: back, raw: back });
+        open.node.text = back; open.node.raw = back;
+        cutAfter(open.node);
         marks.length = open.floor;
         pos = end; continue;
       }
       flush();
-      markupPairs(parts, marks, open.floor);
-      const from = parts.indexOf(open.node);
-      parts.splice(from, parts.length - from, { type: 'link', target: link.target,
-        children: parts.slice(from + 1), raw: source.slice(open.from, link.end) });
+      markupPairs(marks, open.floor);
+      const inner = [];
+      for (let n = open.node.next; n; n = n.next) inner.push(n);
+      open.node.type = 'link';
+      open.node.target = link.target;
+      open.node.children = inner;
+      open.node.raw = source.slice(open.from, link.end);
+      cutAfter(open.node);
       // EINEN LINK IM LINK GIBT ES NICHT.
       brackets.length = 0;
       pos = link.end; continue;
@@ -1779,8 +1813,7 @@ function markupInline(source) {
       while (source[pos + run] === c) run++;
       const flank = markupFlanks(source, pos, pos + run);
       flush();
-      const node = { type: 'text', text: c.repeat(run) };
-      parts.push(node);
+      const node = add({ type: 'text', text: c.repeat(run) });
       marks.push({ node, char: c, original: run,
         canOpen: c === '*' ? flank.left : flank.left && (!flank.right || flank.markBefore),
         canClose: c === '*' ? flank.right : flank.right && (!flank.left || flank.markAfter) });
@@ -1789,7 +1822,10 @@ function markupInline(source) {
     plain += c; plainSource += c; pos++;
   }
   flush();
-  markupPairs(parts, marks, 0);
+  markupPairs(marks, 0);
+  // Die Kette wird eingesammelt; markupJoin raeumt die Verweise weg.
+  const parts = [];
+  for (let n = head.next, next; n; n = next) { next = n.next; parts.push(n); }
   return markupJoin(parts);
 }
 

@@ -49,7 +49,7 @@ Verweis darauf und „mit Zitat antworten".*
 > geschrieben: ein Klick in den Text oder der Stift in der Kopfzeile schaltet
 > auf das Feld, Verlassen speichert, Escape verwirft.
 
-Fingerprint `2bc44d2e` — davor `144a80c7`.
+Fingerprint `43f6f1be` — davor `144a80c7`.
 
 ### Hinzugefügt
 
@@ -66,6 +66,7 @@ Fingerprint `2bc44d2e` — davor `144a80c7`.
 - **Die Exportdatei trägt Formatnummer 18** statt 17. Die Untergrenze bleibt 14.
 - **Kachelvorschau, eingeklappte Blockkopfzeile und Trefferausschnitt zeigen den Text ohne Zeichen** — ein halbes `**` stünde dort sonst sichtbar da.
 - **Der Wächter über die Abfrageparameter trennt Browseradresse und Anfrage.** Bis hierher war der Suchbegriff in der Adresse nur durch Zufall geprüft.
+- **Der Leser hat drei Grenzen und eine Laufzeit, die mit der Länge wächst.** Verschachtelte Auszeichnung endet nach hundert Ebenen; die Paarung führt die untere Schranke der Spezifikation, und die Stücke eines Absatzes bilden eine verkettete Liste. 256 KB Marken brauchen 493 ms statt 26.237.
 
 ## [0.37.0] - 2026-09-19
 
