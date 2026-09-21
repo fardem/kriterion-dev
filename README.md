@@ -1287,14 +1287,9 @@ sagt das Skript vorher ab und rührt nichts an.
 
 ## Wie dieser Code entstanden ist
 
-**Kriterion ist mit [Claude Code](https://claude.com/claude-code) geschrieben
-worden**, dem Kommandozeilenwerkzeug von Anthropic. Was gebaut wird und wie,
-entscheidet der Betreiber; geschrieben, gemessen und geprüft hat das Werkzeug.
-
-**Die Historie weist es Commit für Commit aus:** jeder Commit, an dem es
-mitgeschrieben hat, trägt die Zeile `Co-Authored-By: Claude`, und die nennt
-auch das Modell. Der erste ist vom 10. September 2026. `git log` sagt damit
-für jede Zeile, wie sie entstanden ist.
+**Geschrieben mit [Claude Code](https://claude.com/claude-code), August bis
+September 2026.** Idee, Konzept und die Entscheidung, was gebaut wird, kommen
+vom Betreiber.
 
 ---
 

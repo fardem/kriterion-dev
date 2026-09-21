@@ -845,12 +845,12 @@ async function run() {
       /LGPL/.test(rd) && /sharp-libvips/.test(rd),
       'LGPL oder sharp-libvips fehlt im Abschnitt');
 
-    /* DER TRANSPARENZVERMERK DARF NICHT STILL WEGFALLEN. Er nennt das
-       Werkzeug und zeigt auf die Historie, in der es Commit fuer Commit steht. */
+    /* DER TRANSPARENZVERMERK DARF NICHT STILL WEGFALLEN. Der Zeitraum steht
+       statt einer Versionsnummer: gefordert ist die Form, nicht der Monat. */
     check('Und sagt, wie der Code entstanden ist',
-      /^## Wie dieser Code entstanden ist$/m.test(rd)
-      && /Claude Code/.test(rd) && /Co-Authored-By: Claude/.test(rd),
-      'der Abschnitt, das Werkzeug oder der Verweis auf die Historie fehlt');
+      /^## Wie dieser Code entstanden ist$/m.test(rd) && /Claude Code/.test(rd)
+      && /[A-ZÄÖÜ][a-zäöüß]+\s+bis\s+[A-ZÄÖÜ][a-zäöüß]+\s+20\d\d/.test(rd),
+      'der Abschnitt, das Werkzeug oder der Zeitraum fehlt');
 
     /* KEINE ABHAENGIGKEIT DARF DIE WEITERGABE UNTER MIT VERHINDERN. LGPL
        darf, GPL und AGPL nicht -- sie greifen auf das ganze Werk durch. */

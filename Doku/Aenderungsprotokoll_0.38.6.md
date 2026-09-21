@@ -97,18 +97,24 @@ Auskunft über libvips.
 
 ### Der Abschnitt „Wie dieser Code entstanden ist“
 
-**Er steht vor der Lizenz, nicht darin.** *Entstehung und Lizenz sind zwei
-Sachen: die eine sagt, woher der Code kommt, die andere, was man damit darf.*
+**Drei Zeilen, vor der Lizenz.** *Entstehung und Lizenz sind zwei Sachen: die
+eine sagt, woher der Code kommt, die andere, was man damit darf.* Er nennt das
+Werkzeug, den Zeitraum und die Grenze: **Idee, Konzept und die Entscheidung,
+was gebaut wird, kommen vom Betreiber.**
 
-Er nennt das Werkzeug und zeigt auf die Historie: **jeder Commit, an dem es
-mitgeschrieben hat, trägt die Zeile `Co-Authored-By: Claude`, und die nennt
-auch das Modell.**
+> **STATT EINER VERSIONSNUMMER STEHT EIN ZEITRAUM DA — Vorgabe des
+> Betreibers.** *Eine Nummer wäre für fast jeden Commit falsch: Claude Code
+> wird laufend erneuert, und über die Runden waren es mehrere Fassungen.*
+> **Der Zeitraum gibt denselben Bereich, ohne falsch zu werden.**
 
-> **EINE VERSIONSNUMMER DES WERKZEUGS STEHT NICHT DARIN, und das ist eine
-> Entscheidung.** *Sie veraltet mit dem nächsten Commit — Claude Code wird
-> laufend erneuert, und über die Commits seit dem 10. September 2026 waren es
-> mehrere Fassungen. Eine einzelne Nummer wäre für fast jeden Commit falsch.*
-> **Die Historie ist genauer: sie sagt es je Commit und mit Datum.**
+**„August bis September 2026" ist gemessen:** *das älteste Datum in den Papieren
+ist der 21. August 2026, das älteste Änderungsprotokoll trägt den 26. August.*
+**Die Git-Historie beginnt erst am 10. September 2026** — *das Repository ist
+später angelegt worden als die Arbeit.*
+
+*Der Wächter fordert die **Form** des Zeitraums und nicht den Monat: „Monat bis
+Monat Jahr". Wer weiterbaut, zieht den Endmonat nach; der Prüfstand hält ihn
+nicht auf, wenn er es vergisst.*
 
 ---
 
