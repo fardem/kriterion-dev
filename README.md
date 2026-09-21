@@ -1296,9 +1296,6 @@ mitgeschrieben hat, trägt die Zeile `Co-Authored-By: Claude`, und die nennt
 auch das Modell. Der erste ist vom 10. September 2026. `git log` sagt damit
 für jede Zeile, wie sie entstanden ist.
 
-*Eine Versionsnummer des Werkzeugs steht hier nicht: sie veraltet mit dem
-nächsten Commit, und die Historie ist genauer als eine Nummer.*
-
 ---
 
 ## Lizenz
