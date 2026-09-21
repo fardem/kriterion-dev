@@ -2,21 +2,29 @@
 /* Kriterion — misst, was die Kachel heute kostet. Sie steht in photos hinter
    data; wer sie liest, laeuft durch die Overflow-Kette des Originals.
 
-     node tools/photoscan.js            der Bestand und beide Wege
-     node tools/photoscan.js --laeufe 9 mehr Durchgaenge je Messung
+     node tools/photoscan.js             der Bestand und der Weg zur Kachel
+     node tools/photoscan.js --laeufe 9  mehr Durchgaenge je Messung
+     node tools/photoscan.js --mittlere  auch die mittlere Variante messen
 
    ES WIRD NUR GELESEN. Keine Tabelle entsteht, keine Zeile aendert sich.
-*/
+
+   GEMESSEN WIRD DER WERT UND NICHT SEINE LAENGE: `length(thumb)` liest nur
+   den Record-Kopf und beruehrt den Overflow nie. An einer gestellten Lage
+   mit 200 Zeilen je Gruppe: 0,53 ms gegen 161,54 ms fuer dieselben Kacheln
+   hinter einem Original von 4 MB. */
 const path = require('path');
 
-/* Die Spalten VOR data und die dahinter -- der ganze Unterschied, den eine
-   Nebentabelle ausmachen wuerde. */
-const BEFORE = 'id, item_id, mime_type';
-const AFTER = 'thumb, medium, kind';
+/* Die Klassen nach der Groesse des Originals: eine Seite misst 4 kB, alles
+   darueber liegt im Overflow. Die Grenzen sind Zehnerschritte. */
+const CLASSES = [
+  ['bis 4 kB (eine Seite)', 0, 4096],
+  ['bis 100 kB', 4096, 102400],
+  ['bis 1 MB', 102400, 1048576],
+  ['ueber 1 MB', 1048576, Infinity]
+];
 
 const mb = (n) => (n / 1048576).toFixed(1).replace('.', ',') + ' MB';
-const ms = (n) => n.toFixed(1).replace('.', ',') + ' ms';
-const pct = (a, b) => b === 0 ? '—' : ((a / b - 1) * 100).toFixed(0) + ' %';
+const ms = (n) => n.toFixed(n < 10 ? 2 : 1).replace('.', ',') + ' ms';
 
 /* Der Median und nicht der Mittelwert: ein einzelner langsamer Durchgang --
    die Platte, ein anderer Prozess -- verschiebt ihn nicht. */
@@ -26,15 +34,19 @@ function median(values) {
   return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2;
 }
 
+/* Der erste Lauf steht fuer sich: danach liegt alles im Zwischenspeicher des
+   Betriebssystems, und das ist der Zustand eines laufenden Servers. */
 function timed(fn, runs) {
-  fn();                                    // einmal warm, dann gemessen
+  const first = process.hrtime.bigint();
+  fn();
+  const cold = Number(process.hrtime.bigint() - first) / 1e6;
   const takes = [];
   for (let i = 0; i < runs; i++) {
     const t = process.hrtime.bigint();
     fn();
     takes.push(Number(process.hrtime.bigint() - t) / 1e6);
   }
-  return median(takes);
+  return { cold, warm: median(takes) };
 }
 
 function stock(db) {
@@ -46,11 +58,33 @@ function stock(db) {
       COALESCE(SUM(length(medium)), 0) AS medium,
       COALESCE(MAX(length(data)), 0) AS biggest
     FROM photos`).get();
-  const over = db.prepare(`SELECT
-      SUM(CASE WHEN length(data) > 1048576 THEN 1 ELSE 0 END) AS big,
-      SUM(CASE WHEN length(data) > 10485760 THEN 1 ELSE 0 END) AS huge
-    FROM photos`).get();
-  return { ...n, ...over };
+  return n;
+}
+
+function byClass(db, column, runs) {
+  const pick = db.prepare(
+    'SELECT id, length(data) AS d FROM photos WHERE ' + column + ' IS NOT NULL');
+  const rows = pick.all();
+  const get = db.prepare(`SELECT ${column} AS b FROM photos WHERE id = ?`);
+  const flat = db.prepare('SELECT mime_type AS b FROM photos WHERE id = ?');
+  const out = [];
+  for (const [name, from, to] of CLASSES) {
+    const ids = rows.filter(r => r.d >= from && r.d < to).map(r => r.id);
+    if (!ids.length) continue;
+    const t = timed(() => { for (const id of ids) get.get(id); }, runs);
+    const base = timed(() => { for (const id of ids) flat.get(id); }, runs);
+    out.push({ name, count: ids.length, ...t, base: base.warm });
+  }
+  return out;
+}
+
+function table(title, rows) {
+  console.log(`\n  ${title}`);
+  console.log('    Klasse des Originals    Zeilen   je Zeile     davor   erster Lauf');
+  for (const r of rows)
+    console.log('    ' + r.name.padEnd(22) + String(r.count).padStart(6)
+      + ms(r.warm / r.count).padStart(11) + ms(r.base / r.count).padStart(10)
+      + ms(r.cold).padStart(12));
 }
 
 function main() {
@@ -72,37 +106,22 @@ function main() {
   console.log(`    Kacheln (thumb)         ${mb(s.thumb)}`);
   console.log(`    Mittlere (medium)       ${mb(s.medium)}`);
   console.log(`    Groesstes Original      ${mb(s.biggest)}`);
-  console.log(`    Zeilen ueber 1 MB       ${s.big}   ueber 10 MB: ${s.huge}`);
 
-  /* DIE UEBERSICHT liest alle Zeilen. Einmal nur die Spalten vor data,
-     einmal die dahinter -- derselbe Bestand, dieselbe Zeilenzahl. */
-  const before = db.prepare(`SELECT ${BEFORE} FROM photos ORDER BY item_id, sort_order, id`);
-  const after = db.prepare(`SELECT ${BEFORE}, length(thumb) AS t FROM photos ORDER BY item_id, sort_order, id`);
-  const tBefore = timed(() => before.all(), runs);
-  const tAfter = timed(() => after.all(), runs);
+  const thumbs = byClass(db, 'thumb', runs);
+  table('DIE KACHEL WIRKLICH HOLEN — der Weg der Bildanzeige', thumbs);
+  if (args.includes('--mittlere'))
+    table('DIE MITTLERE VARIANTE', byClass(db, 'medium', runs));
 
-  console.log('\n  ALLE ZEILEN AUF EINMAL — wie die Uebersicht sie holt');
-  console.log(`    nur Spalten vor data    ${ms(tBefore)}`);
-  console.log(`    mit length(thumb)       ${ms(tAfter)}      ${pct(tAfter, tBefore)}`);
-  console.log(`    Unterschied             ${ms(tAfter - tBefore)}`);
-
-  /* DIE EINZELNE KACHEL: derselbe Vergleich je Zeile, ueber den ganzen
-     Bestand summiert. length() liest den Wert, gibt aber nur die Zahl aus. */
-  const ids = db.prepare('SELECT id FROM photos ORDER BY item_id, sort_order, id').all().map(r => r.id);
-  const oneBefore = db.prepare('SELECT length(mime_type) AS n FROM photos WHERE id = ?');
-  const oneAfter = db.prepare('SELECT length(thumb) AS n FROM photos WHERE id = ?');
-  const tOneBefore = timed(() => { for (const id of ids) oneBefore.get(id); }, runs);
-  const tOneAfter = timed(() => { for (const id of ids) oneAfter.get(id); }, runs);
-
-  console.log('\n  ZEILE FUER ZEILE — wie die Kachel geholt wird');
-  console.log(`    Spalte vor data         ${ms(tOneBefore)}   (${ms(tOneBefore / ids.length)} je Zeile)`);
-  console.log(`    Spalte hinter data      ${ms(tOneAfter)}   (${ms(tOneAfter / ids.length)} je Zeile)`);
-  console.log(`    Unterschied             ${ms(tOneAfter - tOneBefore)}`);
-
+  const total = thumbs.reduce((a, r) => a + r.warm, 0);
+  const rows = thumbs.reduce((a, r) => a + r.count, 0);
+  const flat = thumbs.reduce((a, r) => a + r.base, 0);
   console.log('\n  WAS EINE NEBENTABELLE SPAREN WUERDE');
-  console.log(`    je Kachel               ${ms((tOneAfter - tOneBefore) / ids.length)}`);
-  console.log(`    ueber den Bestand       ${ms(tOneAfter - tOneBefore)}`);
-  console.log(`    Median aus ${runs} Durchgaengen, nach einem Aufwaermlauf.\n`);
+  console.log(`    ueber alle ${rows} Kacheln    ${ms(total)}, davon ${ms(flat)} ohne den Umweg`);
+  console.log(`    je Kachel               ${ms((total - flat) / rows)}`);
+  console.log(`    dreissig auf einmal     ${ms((total - flat) / rows * 30)}`);
+  console.log(`\n    "davor" ist dieselbe Zeile, aber eine Spalte VOR data —`);
+  console.log(`    der Anteil, den auch eine Nebentabelle kostet.`);
+  console.log(`    Median aus ${runs} Durchgaengen, der erste steht daneben.\n`);
 }
 
 if (require.main === module) main();
