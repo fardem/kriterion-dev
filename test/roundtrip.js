@@ -10829,17 +10829,18 @@ async function sendImport(object, mode, withoutShare = false) {
     const d = open(path.join(msDir, 'katalog.sqlite'));
     d.prepare("INSERT INTO users (username, password_hash, role) VALUES ('anna', 'x', 'owner')").run();
     d.prepare("INSERT INTO users (username, password_hash) VALUES ('carla', 'x')").run();
-    /* Die Zeitstempel VON HAND, und nicht datetime('now'):
-       vier Zeilen in derselben Sekunde liessen sich in der Reihenfolge nicht
-       unterscheiden, und "zuletzt gesehen" waere unbeweisbar. */
+    /* Abstaende zur Uhr und keine festen Daten: das Fenster von dreissig Tagen
+       laeuft mit, und vier Zeilen in derselben Sekunde liessen sich in der
+       Reihenfolge nicht unterscheiden. */
     const sitz = [
-      ['cookie-ms-anna-1', 1, '2026-08-20 08:00:00', '2026-08-24 07:30:00'],
-      ['cookie-ms-anna-2', 1, '2026-08-18 19:15:00', '2026-08-23 21:00:00'],
-      ['cookie-ms-carla-1', 2, '2026-08-19 09:00:00', '2026-08-24 06:00:00'],
-      ['cookie-ms-carla-2', 2, '2026-08-01 11:00:00', '2026-08-22 09:45:00']
+      ['cookie-ms-anna-1', 1, '-10 days', '-1 days'],
+      ['cookie-ms-anna-2', 1, '-12 days', '-2 days'],
+      ['cookie-ms-carla-1', 2, '-14 days', '-3 days'],
+      ['cookie-ms-carla-2', 2, '-16 days', '-4 days']
     ];
     for (const [t, u, c, l] of sitz)
-      d.prepare('INSERT INTO sessions (token, user_id, created_at, last_seen) VALUES (?, ?, ?, ?)')
+      d.prepare(`INSERT INTO sessions (token, user_id, created_at, last_seen)
+                 VALUES (?, ?, datetime('now', ?), datetime('now', ?))`)
         .run(t, u, c, l);
     d.close();
   }

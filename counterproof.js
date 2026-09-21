@@ -9504,6 +9504,17 @@ const REGRESSIONS = [
     replacement: "  ['/api/stats',                   'angemeldet',",
     expected: 'Der Waechter ueber den Quelltext'
   },
+  /* ---- Die Zeitstempel der Sitzungen ---- */
+  {
+    /* Ein festes Datum entfernt sich Tag fuer Tag vom Fenster der dreissig
+       Tage: die Sitzung faellt heraus, und die Gruppe wird ohne eine
+       Aenderung am Code rot. */
+    nr: '1181', name: 'Eine Sitzung der Prueflage traegt wieder ein festes Datum',
+    file: 'test/roundtrip.js',
+    search: "      ['cookie-ms-carla-2', 2, '-16 days', '-4 days']",
+    replacement: "      ['cookie-ms-carla-2', 2, '2026-08-01 11:00:00', '2026-08-22 09:45:00']",
+    expected: 'Meine Sitzungen: nur die eigenen'
+  },
 ];
 
 /* ================= Spuren und Versatz ================= Der Versatz je

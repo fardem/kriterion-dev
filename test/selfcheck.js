@@ -22,7 +22,7 @@ async function run() {
   // Die Zahl der Rueckbauten steht ausdruecklich da: eine Zahl in einem
   // Papier ist eine Behauptung, eine Zahl im Pruefstand ist ein Beleg. Wie
   // sie Runde fuer Runde gewachsen ist, steht in den Aenderungsprotokollen.
-  check(`Es sind genau 1115 Rueckbauten`, gpList.length === 1115, `${gpList.length}`);
+  check(`Es sind genau 1116 Rueckbauten`, gpList.length === 1116, `${gpList.length}`);
   const gpTwice = gpList.map(r => r.nr).filter((n, i, a) => a.indexOf(n) !== i);
   check('Und keine Nummer steht zweimal', gpTwice.length === 0, gpTwice.join(' '));
   /* JEDER GREIFT: der Suchtext kommt in seiner Datei GENAU EINMAL vor. */
@@ -376,8 +376,9 @@ async function run() {
      Gruppe ueber npm audit bekommen je eine. */
   /* UND 31 WURDEN 32: das Verzeichnis der lesenden Routen bekommt eine
      Gegenprobe auf eine falsche Klemme. */
+  /* UND 32 WURDEN 33: die Zeitstempel der Sitzungen bekommen eine. */
   check('Der Waechter sieht die Rueckbauten auf Pruefstandsdateien',
-    rpChecked === 32, `${rpChecked} Rueckbauten`);
+    rpChecked === 33, `${rpChecked} Rueckbauten`);
   check('Und jeder ihrer Namen steht in der Zieldatei, im Rahmen oder im Suchtext',
     rpStrange.length === 0, rpStrange.slice(0, 6).join(' · '));
 
@@ -406,7 +407,7 @@ async function run() {
       ['test/release_030.js', 241],
       ['test/release_031.js', 440],
       ['test/roundtrip.js', 3269],
-      ['test/selfcheck.js', 219],
+      ['test/selfcheck.js', 220],
       ['test/source.js', 939],
       ['test/ui_entry.js', 619],
       ['test/ui_export.js', 453],
@@ -416,7 +417,7 @@ async function run() {
       ['test/ui_style.js', 585],
       ['test/ui_system.js', 692],
       ['test/ui_translator.js', 104],
-      ['counterproof.js', 1593],
+      ['counterproof.js', 1597],
       ['server.js', 1549],
       ['auth.js', 293],
       ['db.js', 133],
@@ -441,7 +442,7 @@ async function run() {
        Routen und der Marke am geloeschten Verweis -- davor 16438 und 66056.
        Der groesste Teil davon steht im Pruefstand, nicht im ausgelieferten
        Code: die Zahlen der Runde sind nachgezogen. */
-    const COMMENT_TOTAL = { comment: 16557, code: 66429 };
+    const COMMENT_TOTAL = { comment: 16562, code: 66437 };
     check('Der Waechter sieht alle sechsunddreissig Dateien',
       crAll.each.length === 36 && COMMENT_ROWS.length === 36,
       `${crAll.each.length} gemessen, ${COMMENT_ROWS.length} genannt`);
