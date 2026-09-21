@@ -2,10 +2,14 @@
 
 Gebaut wird auf 0.38.4. **PATCH.**
 
-Zwei Befunde des Betreibers vom 21. September 2026, die Zusage des Kastens über
-eine unvollständige Datenbank, der letzte Fehlalarm des Prüfstands und die
-beiden Wörter, die `CLAUDE.md` seit 0.37.0 verbietet. Dazu zwei Handgriffe an
-den Papieren.
+Ein roter Prüfling auf `main`, zwei Befunde des Betreibers vom
+21. September 2026, die Zusage des Kastens über eine unvollständige Datenbank,
+der letzte Fehlalarm des Prüfstands, die beiden Wörter, die `CLAUDE.md` seit
+0.37.0 verbietet, und eine Gliederung für README und Handbuch. Dazu zwei
+Handgriffe an den Papieren.
+
+**Zehn Bauabschnitte, davon einer vor allen anderen:** `main` ist rot, und der
+Grund wird jeden Tag schlimmer.
 
 **Schema: unverändert. Format: unverändert. Keine neue Route.**
 
@@ -30,6 +34,8 @@ Fünfzehn Fragen, entschieden vom Betreiber am 21. September 2026.
 | **F11** bis **F14** | Halt als Frist, Chromium, Strichstärke, Kommentaranteil | nicht beantwortet, bleiben draußen |
 | **F15** | Die Nummer | **0.38.5, PATCH** |
 | **neu** | Die Rechentabelle rollt auf dem Telefon waagerecht | **ja** |
+| **neu** | README und Handbuch bekommen eine Gliederung | **ja, ohne Zeichenbilder in den Überschriften** |
+| **neu** | Die Zeitbombe im Prüfstand | **ja, als BA 0 vor allem anderen** |
 
 ---
 
@@ -264,7 +270,55 @@ Auswahl.
 Datei, in einem Gruppennamen, in einem Prüfungsnamen oder in einem
 Rückbaunamen. Der Wortfilter des Prüfstands nimmt beide auf.
 
-### BA 8 — Schlussarbeiten
+### BA 8 — README und Handbuch bekommen eine Gliederung
+
+**Wunsch des Betreibers vom 21. September 2026**, mit einem Beispiel aus einem
+anderen Projekt. Die Lage: `README.md` hat **1133 Zeilen und 26 Abschnitte
+ohne Inhaltsverzeichnis**, `manual-de.md` hat **1474**.
+
+**Gebaut wird in beiden Dateien:**
+
+1. Ein **Inhaltsverzeichnis mit Sprungmarken** auf jeden Abschnitt.
+2. Ein Trennstrich zwischen den Kapiteln.
+
+**Und in der README zusätzlich:**
+
+3. **Voraussetzungen** als eigener Abschnitt vor der Erstinstallation.
+4. Die Erstinstallation in **nummerierten Schritten** statt als Fließtext.
+5. **Aufbau des Ordners** — welche Datei wofür da ist.
+6. Die verstreuten Fehlerfälle unter **einem** Kapitel: heute stehen sie als
+   „Wenn niemand mehr hereinkommt", „Wenn eine Version die Datenbank anfasst"
+   und „Die alten Namen in der `.env`" an drei Stellen.
+
+**Ohne Zeichenbilder in den Überschriften** — Entscheidung des Betreibers.
+Nebeneffekt: der Anker bleibt sauber. Aus `## Voraussetzungen` wird
+`#voraussetzungen`; mit einem Bild davor trüge er einen führenden Strich, den
+man beim Schreiben der Sprungmarke übersieht.
+
+**Die Abzeichen am Kopf:** Lizenz, Node-Fassung und Docker — ja. **Die Version
+und der Prüflauf — nein.** Eine Versionsnummer in einer ausgelieferten Datei
+ist verboten, ausgenommen sind `package.json` und was der Server über sich
+selbst ausgibt; ein Abzeichen wäre eine dritte Stelle, die von Hand nachzuziehen
+ist. Ein Abzeichen für den Prüflauf zeigt an einem privaten Repository nichts.
+
+> **VIER WÄCHTER BINDEN DIESEN BAUABSCHNITT** (`test/selfcheck.js`:730–769).
+
+| Zusage | was sie für den Umbau heißt |
+|---|---|
+| **Kein Abschnitt steht in beiden Dateien** | die Überschriften der zweiten Ebene dürfen sich nicht überschneiden. **Das Inhaltsverzeichnis darf deshalb keine Überschrift dieser Ebene sein** — sonst stünde derselbe Name in beiden Dateien und die Prüfung fiele. Es wird eine fette Zeile mit einer Liste darunter |
+| **Die Bedienung steht vollständig im Handbuch** | diese sechs bleiben dort, wortgleich: Bedienung · Vokabular · Sprache · Hell oder dunkel · Auf dem Handy und auf dem Tablett · Schriftgröße |
+| **Der Betrieb vollständig in der README** | diese zehn bleiben dort, wortgleich: Erstinstallation · Auf dem Server · Sichern · Datenmodell · Prüfen · Den Schlüssel wechseln · Verschlüsselung · Hinter einem Reverse Proxy · Kurzvideos · Speicherbedarf |
+| **Beide nennen einander** | die README nennt `manual-de.md`, das Handbuch nennt `README.md` |
+
+**Und die sechs Nummern bleiben stehen.** `test/source.js`:915–923 verlangt
+`0.33.0`, `0.32.1` und `0.8.0` in beiden Dateien — sie bestimmen eine Handlung
+und sind keine Herkunftsangabe.
+
+**Prüfung, und sie ist ein Wächter und kein Augenschein:** jede Sprungmarke des
+Inhaltsverzeichnisses trifft eine Überschrift, die es gibt, **und** jede
+Überschrift der zweiten Ebene steht im Inhaltsverzeichnis. In beiden Dateien.
+
+### BA 9 — Schlussarbeiten
 
 - Die festen Zahlen nachziehen: Regelzeilen, Sprachschlüssel, die sechs
   Gleichlautsummen, die Kommentarzahlen je Datei und über alles, die Zahl der
