@@ -2025,7 +2025,40 @@ die Bytes ausliefert. *An derselben gestellten Lage, 40 Zeilen je Klasse:*
 | bis 1 MB | **1,50 ms** |
 | ueber 1 MB | **14,8 ms** |
 
-*Die Zahl am eigenen Bestand misst `tools/photoscan.js`.*
+### Am Bestand des Betreibers gemessen — 22. September 2026
+
+**1997 Zeilen, 407,0 MB Originale, 42,5 MB Kacheln, 98,2 MB mittlere.**
+
+| Groesse des Originals | Zeilen | Kachel | mittlere |
+|---|---:|---:|---:|
+| bis 100 kB | 974 | 0,13 ms | 0,16 ms |
+| bis 1 MB | 987 | 0,19 ms | 0,37 ms |
+| ueber 1 MB | 36 | **3,41 ms** | **3,83 ms** |
+
+**Ueber den ganzen Bestand sind es 429,0 ms, je Kachel 0,21 ms, bei dreissig
+Kacheln auf einmal 6,35 ms.** *Das ist die ganze Ersparnis einer
+Uebersichtsseite — neben dem Aufbau der Seite faellt sie nicht auf.*
+
+**Und sie waechst nicht mit dem Bestand:** *die Zeit je Kachel haengt an der
+Groesse des Originals davor, nicht an der Zahl der Zeilen. Fuenfzig Prozent
+mehr Fotos bringen fuenfzig Prozent mehr Kacheln, jede genauso teuer wie
+heute.*
+
+### Die Spaltenfolge tut dasselbe wie eine Nebentabelle
+
+**Gemessen an einer gestellten Lage von 1000 Zeilen, Kachel 21 kB, Verteilung
+der Originale wie im Bestand:**
+
+| | je Kachel |
+|---|---:|
+| heute — `thumb` hinter `data` | 0,095 ms |
+| **`thumb` und `medium` VOR `data`** | **0,011 ms** |
+| Nebentabelle | 0,009 ms |
+
+**Die Spaltenfolge bringt 95 Prozent dessen, was die Nebentabelle bringt** —
+*und sie braucht keinen zweiten Schreibweg, keinen zweiten Leseweg, keinen
+Eingriff in Export, Import und Papierkorb, und keine Neurechnung: die Bytes
+wandern nur um.* **Am Code aendert sie gar nichts.**
 
 ### Der Weg
 
