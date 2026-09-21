@@ -19,7 +19,7 @@ sharp.concurrency(Math.max(1, Math.floor(os.cpus().length / 2)));
 /* `isPng` STEHT HIER NICHT MEHR: die einzige Stelle, die es im Server rief,
    war die Schleife des Bestandslaufs -- und die faehrt im Thread. */
 const { makeVariants, VARIANTS, storeImage, IMAGE_STORES, IMAGE_STORE_DEFAULT, isImageStore } = require('./images');
-const { db, DATA_DIR, DB_FILE, keyFromEnv, keyHex, renumberCriteria, method, searchFold, emailsDoubled } = require('./db');
+const { db, DATA_DIR, DB_FILE, keyFromEnv, keyHex, renumberCriteria, method, searchFold, emailsDoubled, incompleteDatabase, lateStatement, lateGroup } = require('./db');
 /* DERSELBE TREIBER, EIN ZWEITER GRIFF. */
 const Database = require('better-sqlite3-multiple-ciphers');
 const auth = require('./auth');
@@ -227,6 +227,12 @@ function t(locale, key, values = {}) {
   });
 }
 
+/* UEBER EINER UNVOLLSTAENDIGEN DATENBANK WIRD BEIM START NICHTS GESCHRIEBEN.
+   Der Kasten in db.js sagt beides zu: die Instanz startet, und nichts wird
+   geaendert. Was hier schreibt, koennte ueber einer fehlenden Spalte weder
+   das eine noch das andere halten. */
+const DATABASE_INCOMPLETE = incompleteDatabase().length > 0;
+
 /* ---- Die drei mitgelieferten Kriterien ---------------------------------
    SIE ENTSTEHEN HIER UND NICHT IN db.js: ihre Namen stehen in den
    Sprachdateien, und die liest der Server. Deshalb steht dieser Block hinter
@@ -235,7 +241,8 @@ const SEED_CRITERIA = ['server.seedAppearance', 'server.seedWorkmanship',
                        'server.seedFunction'];
 /* NUR IN EINE LEERE TABELLE: eine bestehende Installation bekommt nichts
    dazu, auch keinen umbenannten Namen zurueck. */
-if (db.prepare('SELECT COUNT(*) n FROM rating_criteria').get().n === 0) {
+if (!DATABASE_INCOMPLETE &&
+    db.prepare('SELECT COUNT(*) n FROM rating_criteria').get().n === 0) {
   const insert = db.prepare(
     'INSERT OR IGNORE INTO rating_criteria (name, sort_order, language) VALUES (?, ?, ?)');
   /* KEIN NAME IN criterion_names DANEBEN: eine Zeile dort schluege den
@@ -549,7 +556,7 @@ const batchState = (task) =>
 
 /* WELCHE ZEILEN DER BESTANDSLAUF ANSIEHT: ALLE FOTOZEILEN und nicht nur die
    PNG. */
-const qConvertRows = db.prepare(
+const qConvertRows = lateStatement(
   "SELECT id FROM photos WHERE kind != 'video'");
 
 /* WELCHE ZEILEN DAS ERNEUERN DER KACHELN ANSIEHT: ALLE ZEILEN, UND NICHT DIE
@@ -565,16 +572,16 @@ const qTileRows = db.prepare('SELECT id FROM photos');
      COUNT(*)                                        0,0 ms
      mime_type gruppiert (Spalte 2, VOR den Blobs)   8,7 ms
      kind gruppiert (Spalte 7, HINTER den Blobs)  1338,8 ms */
-const qImageKinds = db.prepare('SELECT kind AS a FROM photos GROUP BY 1');
-const qPerKind = db.prepare(
+const qImageKinds = lateStatement('SELECT kind AS a FROM photos GROUP BY 1');
+const qPerKind = lateStatement(
   'SELECT COUNT(*) AS n, COALESCE(SUM(length(data)),0) AS o FROM photos WHERE kind IS ?');
-const qPerFormat = db.prepare(`
+const qPerFormat = lateStatement(`
   WITH x AS MATERIALIZED (
     SELECT mime_type AS m, length(data) AS o FROM photos WHERE kind IS ?)
   SELECT m, COUNT(*) AS n, COALESCE(SUM(o),0) AS o FROM x GROUP BY 1`);
 /* Die Videozeile traegt neben `data` auch eine Ableitung, und die geht mit in
    die Exportdatei -- dieselbe Rechnung wie in exchangeParts(). */
-const qVideoExportBytes = db.prepare(`
+const qVideoExportBytes = lateStatement(`
   SELECT COALESCE(SUM(length(data) + COALESCE(length(medium), length(thumb), 0)),0) AS n
     FROM photos WHERE kind IS ?`);
 
@@ -2018,13 +2025,13 @@ const number = (n, locale = languageDefault()) => new Intl.NumberFormat(
   .format(Number(n) || 0);
 
 // Die Reihenfolge ist frei bestimmbar und gilt ueberall gleich.
-const qCriteria = db.prepare(`
+const qCriteria = lateStatement(`
   SELECT c.id, c.name, c.language, c.sort_order, c.weight, c.phase, c.created_at,
          (SELECT COUNT(DISTINCT r.item_id) FROM ratings r
            WHERE r.criterion_id = c.id AND r.value > 0) AS usage_count
   FROM rating_criteria c ORDER BY c.sort_order, c.id`);
 // Und dieselbe Liste mit den Namen der gelesenen Sprache.
-const criteriaFor = (locale) => named(qCriteria.all(), criterionNames(locale));
+const criteriaFor = (locale) => named(qCriteria().all(), criterionNames(locale));
 
 /* --- Die Kriterien gehoeren dem Admin -------------------------------------
    Ein neues Kriterium erscheint sofort an jedem Eintrag, ein geloeschtes nimmt
@@ -2126,8 +2133,8 @@ app.delete('/api/criteria/:id', adminOnly, (req, res) => {
 
 /* ======== DIE KETTE ==============================
    EIN AUFLOESER, UND ZWAR GENAU EINER. */
-const qCriterionBase = db.prepare('SELECT id, name, language FROM rating_criteria');
-const qCategoryBase = db.prepare('SELECT id, name, language FROM product_categories');
+const qCriterionBase = lateStatement('SELECT id, name, language FROM rating_criteria');
+const qCategoryBase = lateStatement('SELECT id, name, language FROM product_categories');
 const qCriterionNamesAll = db.prepare(
   'SELECT criterion_id AS id, language, name FROM criterion_names');
 const qCategoryNamesAll = db.prepare(
@@ -2166,8 +2173,8 @@ function nameTable(baseRows, translated, locale) {
   for (const row of baseRows) out.set(row.id, chainFor(row, per.get(row.id), locale, std));
   return out;
 }
-const criterionNames = (locale) => nameTable(qCriterionBase.all(), qCriterionNamesAll.all(), locale);
-const categoryNames = (locale) => nameTable(qCategoryBase.all(), qCategoryNamesAll.all(), locale);
+const criterionNames = (locale) => nameTable(qCriterionBase().all(), qCriterionNamesAll.all(), locale);
+const categoryNames = (locale) => nameTable(qCategoryBase().all(), qCategoryNamesAll.all(), locale);
 
 /* ======== DIESELBE KETTE ALS TAFEL JE SPRACHE ============================
    WAS EIN LESER DIESER SPRACHE SAEHE, je Sprache einmal ausgerechnet. */
@@ -2185,8 +2192,8 @@ const namesAll = (baseRows, translated) => {
   }
   return out;
 };
-const categoryNamesAll = () => namesAll(qCategoryBase.all(), qCategoryNamesAll.all());
-const criterionNamesAll = () => namesAll(qCriterionBase.all(), qCriterionNamesAll.all());
+const categoryNamesAll = () => namesAll(qCategoryBase().all(), qCategoryNamesAll.all());
+const criterionNamesAll = () => namesAll(qCriterionBase().all(), qCriterionNamesAll.all());
 
 /* SETZT DIE NAMEN EINER TAFEL IN EINE LISTE EIN. */
 const named = (rows, table, key = 'id') => rows.map(z => {
@@ -2388,7 +2395,7 @@ app.delete('/api/items/:id/tags/:tagId', entryAuthorOnly, (req, res) => {
 });
 
 /* ================= Eintraege ================= */
-const qAttachments = db.prepare(`SELECT id, filename, mime_type, size, sort_order, created_at, user_id
+const qAttachments = lateStatement(`SELECT id, filename, mime_type, size, sort_order, created_at, user_id
   FROM attachments WHERE item_id = ? ORDER BY sort_order, id`);
 // Reihenfolge durchgaengig chronologisch, in Gruppen: Angepinntes zuerst
 // (Anpinnen schlaegt die Art), dann Aufgaben, Berichte, Notizen.
@@ -2528,20 +2535,20 @@ const PHOTO_COLUMNS = 'id, item_id, mime_type, focus_x, focus_y, zoom, sort_orde
 /* DER ALIAS HEISST `thumbLength` und nicht mehr `fassung` -- er
    reist an der Zeile bis in den Browser, und dort las ihn `p.fassung`. */
 const PHOTO_VERSION = 'length(thumb) AS thumbLength';
-const qPhotos = db.prepare(`SELECT ${PHOTO_COLUMNS}, ${PHOTO_VERSION} FROM photos WHERE item_id = ? ORDER BY sort_order, id`);
+const qPhotos = lateStatement(`SELECT ${PHOTO_COLUMNS}, ${PHOTO_VERSION} FROM photos WHERE item_id = ? ORDER BY sort_order, id`);
 /* DIESELBEN SPALTEN FUER ALLE EINTRAEGE AUF EINMAL -- die Uebersicht ruft
    sie, detail() ruft die Zeile darueber. */
-const qAllPhotos = db.prepare(`SELECT ${PHOTO_COLUMNS}, ${PHOTO_VERSION} FROM photos ORDER BY item_id, sort_order, id`);
+const qAllPhotos = lateStatement(`SELECT ${PHOTO_COLUMNS}, ${PHOTO_VERSION} FROM photos ORDER BY item_id, sort_order, id`);
 /* `t.*` IST EINE SPALTENLISTE: ein Schlagwort traegt id, name und created_at,
    und `created_at` wird in public/app.js an einem Schlagwort nirgends
    gelesen. */
 const TAG_COLUMNS = 't.id, t.name';
 const qTags = db.prepare(`SELECT ${TAG_COLUMNS} FROM tags t JOIN item_tags it ON it.tag_id = t.id WHERE it.item_id = ? ORDER BY t.name COLLATE NOCASE`);
 /* DIESELBEN SPALTEN FUER ALLE EINTRAEGE AUF EINMAL, dieselbe
-   Bauform wie qAllPhotos. */
+   Bauform wie qAllPhotos(). */
 const qAllTags = db.prepare(`SELECT it.item_id, ${TAG_COLUMNS} FROM tags t
   JOIN item_tags it ON it.tag_id = t.id ORDER BY it.item_id, t.name COLLATE NOCASE`);
-const qLinks = db.prepare('SELECT id, url, sort_order, created_at, user_id FROM links WHERE item_id = ? ORDER BY sort_order, id');
+const qLinks = lateStatement('SELECT id, url, sort_order, created_at, user_id FROM links WHERE item_id = ? ORDER BY sort_order, id');
 /* DIE UEBERSICHT ZAEHLT NUR. */
 const qLinkCounts = db.prepare('SELECT item_id, COUNT(*) n FROM links GROUP BY item_id');
 const qCat = db.prepare('SELECT id, name FROM product_categories WHERE id = ?');
@@ -2550,7 +2557,7 @@ const qAllCategories = db.prepare('SELECT id, name FROM product_categories');
 /* --- Schnitt und Anzahl je Kriterium --------------------------------------
    EINE Abfrage, gruppiert -- kein zweiter JOIN auf `ratings` neben dem in
    detail(): drei Bewerter ergaeben sonst einen neunfachen Zaehler. */
-const qAveragePerCriterion = db.prepare(`
+const qAveragePerCriterion = lateStatement(`
   SELECT r.criterion_id, AVG(r.value * 1.0) AS average, COUNT(*) AS count,
          c.weight, c.phase
     FROM ratings r JOIN rating_criteria c ON c.id = r.criterion_id
@@ -2569,11 +2576,11 @@ function cardPerPhase(rows) {
 }
 
 function averagesPerCriterion(itemId) {
-  return cardPerPhase(qAveragePerCriterion.all(itemId));
+  return cardPerPhase(qAveragePerCriterion().all(itemId));
 }
 
 /* DIESELBE ABFRAGE FUER ALLE EINTRAEGE AUF EINMAL. */
-const qAveragePerCriterionAll = db.prepare(`
+const qAveragePerCriterionAll = lateStatement(`
   SELECT r.item_id, r.criterion_id, AVG(r.value * 1.0) AS average, COUNT(*) AS count,
          c.weight, c.phase
     FROM ratings r JOIN rating_criteria c ON c.id = r.criterion_id
@@ -2584,7 +2591,7 @@ const qAveragePerCriterionAll = db.prepare(`
 // cardPerPhase().
 function averagesPerEntry() {
   const raw = new Map();
-  for (const z of qAveragePerCriterionAll.all()) {
+  for (const z of qAveragePerCriterionAll().all()) {
     if (!raw.has(z.item_id)) raw.set(z.item_id, []);
     raw.get(z.item_id).push(z);
   }
@@ -2598,7 +2605,7 @@ function averagesPerEntry() {
 const EMPTY_BOXES = () => ({ before: new Map(), after: new Map() });
 
 /* Wer welchen Wert vergeben hat -- je Kriterium eine Liste. Wieder eine
-   EIGENE Abfrage, Begruendung bei qAveragePerCriterion. */
+   EIGENE Abfrage, Begruendung bei qAveragePerCriterion(). */
 const qVotesRaw = db.prepare(`
   SELECT id, criterion_id, user_id, value FROM ratings
    WHERE item_id = ? AND value > 0 ORDER BY criterion_id, id`);
@@ -2728,10 +2735,10 @@ function detail(id, userId, locale) {
   it.favorite = !!qMyPin.get(userId, id);
   it.category = it.product_category_id
     ? named([qCat.get(it.product_category_id)], categoryNames(locale))[0] : null;
-  it.photos = qPhotos.all(id);
+  it.photos = qPhotos().all(id);
   /* Nur die Angaben, nie die Bytes. Die Art der Vorschau entscheidet der
      Server anhand der Endung -- die Oberflaeche soll das nicht selbst raten. */
-  it.attachments = qAttachments.all(id).map(a2 => ({
+  it.attachments = qAttachments().all(id).map(a2 => ({
     id: a2.id, filename: a2.filename, mime_type: a2.mime_type, size: a2.size,
     sort_order: a2.sort_order, created_at: a2.created_at,
     preview: attachments.previewKind(a2.filename),
@@ -2740,7 +2747,7 @@ function detail(id, userId, locale) {
   /* Die Linkzeile sagt wie Kommentar, Testtag und Stimme, wem sie gehoert --
      an `mine` haengt das Loeschkreuz, und bei einem Grabstein liesse es sich
      aus dem Verfasserobjekt nicht zurueckrechnen. */
-  it.links = qLinks.all(id).map(l => ({
+  it.links = qLinks().all(id).map(l => ({
     id: l.id, url: l.url, sort_order: l.sort_order, created_at: l.created_at,
     mine: l.user_id === userId, author: authorFrom(card, l.user_id)
   }));
@@ -3360,7 +3367,7 @@ const qNewComments = db.prepare(
      LEFT JOIN comment_mentions m ON m.comment_id = c.id AND m.user_id = ?
     WHERE c.created_at > ? AND c.user_id IS NOT ?
     GROUP BY c.item_id, c.user_id`);
-const qNewRatings = db.prepare(
+const qNewRatings = lateStatement(
   `SELECT item_id, user_id, COUNT(*) AS n FROM ratings
     WHERE set_at IS NOT NULL AND set_at > ? AND value > 0 AND user_id IS NOT ?
     GROUP BY item_id, user_id`);
@@ -3404,12 +3411,12 @@ app.get('/api/items', (req, res) => {
       if (z.marked) newMarkedPer.set(z.item_id, (newMarkedPer.get(z.item_id) || 0) + z.marked);
       actor(z.item_id, z.user_id);
     }
-    for (const z of qNewRatings.all(reference, req.user.id))
+    for (const z of qNewRatings().all(reference, req.user.id))
       newRatingsPer.set(z.item_id, (newRatingsPer.get(z.item_id) || 0) + z.n);
   }
   /* DIE FOTOS ALLER EINTRAEGE IN EINER ABFRAGE -- vorher eine je Eintrag. */
   const photosPer = new Map();
-  for (const f of qAllPhotos.all()) {
+  for (const f of qAllPhotos().all()) {
     if (!photosPer.has(f.item_id)) photosPer.set(f.item_id, []);
     photosPer.get(f.item_id).push(f);
   }
@@ -3732,17 +3739,17 @@ app.post('/api/items/:id/videos', entryAuthorOnly,
 /* NUR DIE SPALTE, DIE GEBRAUCHT WIRD: `SELECT *` zieht an einer Videozeile
    bis zu 20 MB `data` mit, auch wenn nur die Kachel von rund 200 kB verlangt
    ist. Fehlt die Ableitung, wird das Original nachgeholt. */
-const qPhotoBytes = {
+const qPhotoBytes = lateGroup(() => ({
   data:   db.prepare('SELECT id, kind, data AS bytes FROM photos WHERE id = ?'),
   thumb:  db.prepare('SELECT id, kind, thumb AS bytes FROM photos WHERE id = ?'),
   medium: db.prepare('SELECT id, kind, medium AS bytes FROM photos WHERE id = ?')
-};
+}));
 /* Der ausgelieferte Typ kommt aus den ersten Bytes, nie aus photos.mime_type:
    die Spalte ist eine Angabe des Hochladenden. */
 app.get('/api/photos/:id/raw', (req, res) => {
   const want = req.query.size === 'thumb' ? 'thumb'
              : req.query.size === 'medium' ? 'medium' : 'data';
-  const p = qPhotoBytes[want].get(req.params.id);
+  const p = qPhotoBytes()[want].get(req.params.id);
   if (!p) return res.status(404).end();
   let blob = p.bytes;
   let rangeable = p.kind === 'video';
@@ -4066,14 +4073,14 @@ app.delete('/api/test-days/:id/tags/:tagId', (req, res) => {
 // Zeile -- das ON CONFLICT trifft (item_id, criterion_id, user_id), das
 // DELETE traegt "AND user_id = ?".
 /* VOR DEM TEST WIRD NICHT BEWERTET. */
-const qCritPhase = db.prepare('SELECT phase FROM rating_criteria WHERE id = ?');
+const qCritPhase = lateStatement('SELECT phase FROM rating_criteria WHERE id = ?');
 const qItemTested = db.prepare('SELECT tested FROM items WHERE id = ?');
 
 app.put('/api/items/:id/ratings', (req, res) => {
   const v = Math.max(0, Math.min(5, Number(req.body.value) || 0));
   /* GEPRUEFT WIRD NUR EIN WERT GROESSER NULL. */
   if (v > 0) {
-    const crit = qCritPhase.get(req.body.criterionId);
+    const crit = qCritPhase().get(req.body.criterionId);
     const entry = qItemTested.get(req.params.id);
     if (crit && crit.phase === 'after' && entry && !entry.tested)
       return res.status(400).json({
@@ -4322,7 +4329,7 @@ app.delete('/api/comments/:id', (req, res) => {
    ohnehin in jedem Eintrag. */
 /* ---- DIE ORDNUNG ----------------------------------
    ERST DAS DATUM, DANN DER EINTRAG. */
-const qOpenTasks = db.prepare(`
+const qOpenTasks = lateStatement(`
   SELECT c.id, c.text, c.created_at, c.user_id, c.item_id, c.due_date,
          i.title, i.updated_at
     FROM comments c JOIN items i ON i.id = c.item_id
@@ -4332,7 +4339,7 @@ const qOpenTasks = db.prepare(`
             i.updated_at DESC, c.item_id, c.id`);
 app.get('/api/open', (req, res) => {
   const card = authorCard();
-  res.json(qOpenTasks.all().map(z => ({
+  res.json(qOpenTasks().all().map(z => ({
     id: z.id, text: z.text, created_at: z.created_at,
     dueDate: z.due_date || null,
     item: { id: z.item_id, title: z.title },
@@ -4348,16 +4355,16 @@ app.get('/api/stats', adminOnly, (req, res) => {
   let dbBytes = 0;
   try { db.pragma('wal_checkpoint(PASSIVE)'); dbBytes = fs.statSync(DB_FILE).size; } catch {}
   /* DIE AUFTEILUNG DES BILDBESTANDS. */
-  const kinds = qImageKinds.all().map(z => z.a);
+  const kinds = qImageKinds().all().map(z => z.a);
   const p = { n: 0, o: 0 }, vi = { n: 0, o: 0 };
   const imageFormats = {};
   /* DIE EXPORTGROESSE DER BILDER FAELLT HIER MIT AB. */
   let exportPhotoBytes = 0, exportVideoBytes = 0;
   for (const kind of kinds) {
-    const z = qPerKind.get(kind);
+    const z = qPerKind().get(kind);
     if (kind === 'video') {
       vi.n += z.n; vi.o += z.o;
-      exportVideoBytes += qVideoExportBytes.get(kind).n;
+      exportVideoBytes += qVideoExportBytes().get(kind).n;
       continue;
     }
     p.n += z.n; p.o += z.o;
@@ -4365,7 +4372,7 @@ app.get('/api/stats', adminOnly, (req, res) => {
     /* AUSDRUECKLICH OHNE VIDEOS: bei einer Videozeile traegt `data` die
        Videodatei -- ihr Format gehoert in keine Zeile, die „Fotos am Eintrag
        nach Format" ueberschrieben ist. */
-    for (const g of qPerFormat.all(kind)) {
+    for (const g of qPerFormat().all(kind)) {
       const k = formatFromMime(g.m);
       const f = imageFormats[k] || (imageFormats[k] = { count: 0, bytes: 0 });
       f.count += g.n; f.bytes += g.o;
@@ -4432,7 +4439,7 @@ app.post('/api/images/convert', ownerOnly, secondConfirmNeeded('images'), (req, 
   /* ZWEIMAL DRUECKEN STARTET NICHT ZWEIMAL. */
   if (batchStates.conversion && batchStates.conversion.running)
     return res.status(409).json({ error: t(localeOf(req), 'server.convertRunning')});
-  const rows = qConvertRows.all();
+  const rows = qConvertRows().all();
   /* DREI ZAHLEN STATT VIER: `derived` zaehlte die neu gerechneten
      Ableitungspaare, und die zweite Haelfte des Laufs ist mit jener Runde
      gefallen. */
@@ -4552,13 +4559,13 @@ const qBundleTestDays = db.prepare(
 const qBundleRatings = db.prepare(`SELECT c.name, r.value, r.user_id FROM ratings r
                          JOIN rating_criteria c ON c.id = r.criterion_id WHERE r.item_id = ?
                          ORDER BY c.sort_order, c.id, r.user_id`);
-const qBundleComments = db.prepare(
+const qBundleComments = lateStatement(
   'SELECT id, text, kind, pinned, created_at, updated_at, user_id, due_date FROM comments WHERE item_id = ? ORDER BY id');
 const qBundleCommentImages = db.prepare(
   'SELECT filename, data FROM comment_images WHERE comment_id = ? ORDER BY sort_order, id');
-const qBundlePhotos = db.prepare(
+const qBundlePhotos = lateStatement(
   'SELECT mime_type, data, thumb, medium, focus_x, focus_y, zoom, kind, duration FROM photos WHERE item_id = ? ORDER BY sort_order, id');
-const qBundleAttachments = db.prepare(
+const qBundleAttachments = lateStatement(
   'SELECT filename, mime_type, data, user_id FROM attachments WHERE item_id = ? ORDER BY sort_order, id');
 
 function entryAsBundle(it, situation) {
@@ -4578,7 +4585,7 @@ function entryAsBundle(it, situation) {
     tags: qTags.all(it.id).map(x => x.name),
     // Ein Link ist keine nackte String mehr, sondern eine Adresse mit
 // Verfasser -- wie an den vier anderen Traegern.
-    links: qLinks.all(it.id).map(l => ({ url: l.url, author: authorName(l.user_id) })),
+    links: qLinks().all(it.id).map(l => ({ url: l.url, author: authorName(l.user_id) })),
     // ORDER BY day, id: zwei Leute duerfen denselben Tag eintragen.
     testDays: qBundleTestDays.all(it.id)
       .map(x => ({ day: x.day, rating: x.rating, author: authorName(x.user_id),
@@ -4587,7 +4594,7 @@ function entryAsBundle(it, situation) {
 // Tabelle.
     ratings: qBundleRatings.all(it.id)
       .map(r => ({ name: r.name, value: r.value, author: authorName(r.user_id) })),
-    comments: qBundleComments.all(it.id).map(c => ({
+    comments: qBundleComments().all(it.id).map(c => ({
         text: c.text, kind: c.kind, pinned: !!c.pinned, author: authorName(c.user_id),
         created_at: c.created_at, updated_at: c.updated_at,
         /* DAS FAELLIGKEITSDATUM, Formatnummer 16. Ein Feld, das im Export
@@ -4603,7 +4610,7 @@ function entryAsBundle(it, situation) {
     photos: [], attachments: []
   };
   if (withPhotos) {
-    o.photos = qBundlePhotos.all(it.id).map(p => {
+    o.photos = qBundlePhotos().all(it.id).map(p => {
         /* DER AUSSCHNITT GEHT MIT -- alle DREI Werte, seit Formatnummer 12.
            Ohne `zoom` in der Datei ginge er beim Einspielen verloren, und die
            Zweitinstanz zeigte einen anderen Ausschnitt als die erste. */
@@ -4624,7 +4631,7 @@ function entryAsBundle(it, situation) {
   if (withFiles) {
     // author wie an den fuenf anderen Traegern; ohne das Feld kaemen
 // eingespielte Dateien herrenlos herein. Dafuer steht die Formatnummer 8.
-    o.attachments = qBundleAttachments.all(it.id)
+    o.attachments = qBundleAttachments().all(it.id)
       .map(a2 => ({ filename: a2.filename, mime_type: a2.mime_type,
                     author: authorName(a2.user_id), ['data' + extension]: funnel.take(a2.data) }));
   }
@@ -4724,7 +4731,7 @@ function exchangeEnvelopeBytes() {
 const EXCHANGE_PART_MAX = 999;
 
 /* Die Groesse JE EINTRAG, in EINER Abfrage statt in zehn je Eintrag. */
-const qPartSizes = db.prepare(`
+const qPartSizes = lateStatement(`
   SELECT i.id,
     COALESCE((SELECT SUM(length(p.data)) FROM photos p
                WHERE p.item_id = i.id AND p.kind != 'video'), 0) AS photo,
@@ -4765,7 +4772,7 @@ const EXCHANGE_PART_MIN = 1024 * 1024;
 function exchangePlan(switches, targetWanted) {
   const targetSize = Math.min(EXCHANGE_WARN,
     Math.max(EXCHANGE_PART_MIN, Number(targetWanted) > 0 ? Number(targetWanted) : EXCHANGE_WARN));
-  const rows = qPartSizes.all();
+  const rows = qPartSizes().all();
   const reason = exchangeEnvelopeFrame();
   const parts = [];
   const tooBig = [];
@@ -4904,20 +4911,20 @@ const iDropItems = db.prepare('DELETE FROM items');
 const iDropCategories = db.prepare('DELETE FROM product_categories');
 const iDropTags = db.prepare('DELETE FROM tags');
 const iCatFind = db.prepare('SELECT id FROM product_categories WHERE name = ? COLLATE NOCASE');
-const iCatAdd = db.prepare('INSERT INTO product_categories (name, language) VALUES (?, ?)');
+const iCatAdd = lateStatement('INSERT INTO product_categories (name, language) VALUES (?, ?)');
 const iTagFind = db.prepare('SELECT id FROM tags WHERE name = ? COLLATE NOCASE');
 const iTagAdd = db.prepare('INSERT INTO tags (name) VALUES (?)');
 const iCritFind = db.prepare('SELECT id FROM rating_criteria WHERE name = ? COLLATE NOCASE');
 const iCritLast = db.prepare('SELECT COALESCE(MAX(sort_order), -1) AS m FROM rating_criteria');
-const iCritAdd = db.prepare(
+const iCritAdd = lateStatement(
   'INSERT INTO rating_criteria (name, sort_order, weight, phase, language) VALUES (?, ?, ?, ?, ?)');
-const iItemAdd = db.prepare(`INSERT INTO items
+const iItemAdd = lateStatement(`INSERT INTO items
         (title, description, rejected, rejected_at, rejected_reason, rejected_by,
          tested, product_category_id, created_at, updated_at, user_id)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, COALESCE(?, datetime('now')), COALESCE(?, datetime('now')), ?)`);
 const iPinAdd = db.prepare('INSERT OR IGNORE INTO item_pins (user_id, item_id) VALUES (?, ?)');
 const iItemTagAdd = db.prepare('INSERT OR IGNORE INTO item_tags (item_id, tag_id) VALUES (?, ?)');
-const iLinkAdd = db.prepare('INSERT INTO links (item_id, url, sort_order, user_id) VALUES (?, ?, ?, ?)');
+const iLinkAdd = lateStatement('INSERT INTO links (item_id, url, sort_order, user_id) VALUES (?, ?, ?, ?)');
 // OR REPLACE bleibt: die Datei ist die Wahrheit, der spaetere Wert gewinnt.
 const iTestDayAdd = db.prepare(
   'INSERT OR REPLACE INTO test_days (item_id, day, rating, user_id) VALUES (?, ?, ?, ?)');
@@ -4925,13 +4932,13 @@ const iTestDayTagAdd = db.prepare(
   'INSERT OR IGNORE INTO test_day_tags (test_day_id, tag_id) VALUES (?, ?)');
 const iRatingAdd = db.prepare(
   'INSERT OR REPLACE INTO ratings (item_id, criterion_id, value, user_id) VALUES (?, ?, ?, ?)');
-const iCommentAdd = db.prepare(`INSERT INTO comments (item_id, text, kind, pinned, created_at, updated_at, user_id, due_date)
+const iCommentAdd = lateStatement(`INSERT INTO comments (item_id, text, kind, pinned, created_at, updated_at, user_id, due_date)
                       VALUES (?, ?, ?, ?, COALESCE(?, datetime('now')), ?, ?, ?)`);
 const iCommentImageAdd = db.prepare(`INSERT INTO comment_images (comment_id, filename, data, thumb, sort_order)
                       VALUES (?, ?, ?, ?, ?)`);
-const iPhotoAdd = db.prepare(`INSERT INTO photos (item_id, mime_type, data, thumb, medium, focus_x, focus_y, zoom, sort_order, kind, duration)
+const iPhotoAdd = lateStatement(`INSERT INTO photos (item_id, mime_type, data, thumb, medium, focus_x, focus_y, zoom, sort_order, kind, duration)
                       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`);
-const iAttachmentAdd = db.prepare(`INSERT INTO attachments (item_id, filename, mime_type, size, data, sort_order, user_id)
+const iAttachmentAdd = lateStatement(`INSERT INTO attachments (item_id, filename, mime_type, size, data, sort_order, user_id)
                       VALUES (?, ?, ?, ?, ?, ?, ?)`);
 const iUserByName = db.prepare('SELECT id FROM users WHERE username = ?');
 const iCritNameAdd = db.prepare(
@@ -5144,10 +5151,10 @@ async function importInto(payload, userId, mode2, bytesSource = null) {
        behaelt sein Gewicht; ein NEU angelegtes bekommt Gewicht und Kasten aus
        der Datei, sonst 1,0 und 'after'. */
     const catByName = (name) => name
-      ? findOrCreate(iCatFind, iCatAdd, name, () => [languageOf(catLanguages, name)])
+      ? findOrCreate(iCatFind, iCatAdd(), name, () => [languageOf(catLanguages, name)])
       : null;
     const tagByName = (name) => findOrCreate(iTagFind, iTagAdd, name);
-    const critByName = (name) => findOrCreate(iCritFind, iCritAdd, name, () => {
+    const critByName = (name) => findOrCreate(iCritFind, iCritAdd(), name, () => {
       const g = fileWeights.get(lower(name));
       return [iCritLast.get().m + 1, g === undefined ? 1.0 : g, phaseFrom(name),
               languageOf(critLanguages, name)];
@@ -5169,7 +5176,7 @@ async function importInto(payload, userId, mode2, bytesSource = null) {
         ? authorId(it.rejected_author) : null;
       /* EINE DATEI DER FORMATNUMMER 10 UND AELTER TRAEGT DIE DREI FELDER
          NICHT. */
-      const id = iItemAdd
+      const id = iItemAdd()
         .run(it.title || 'Ohne Titel', it.description || '',
              it.rejected ? 1 : 0,
              it.rejected_at == null ? null : String(it.rejected_at),
@@ -5196,7 +5203,7 @@ async function importInto(payload, userId, mode2, bytesSource = null) {
         if (!clean) return;
         const toWhom = (entry && typeof entry === 'object' && 'author' in entry)
           ? authorId(entry.author) : itemAuthor;
-        iLinkAdd.run(id, clean, lpos++, toWhom);
+        iLinkAdd().run(id, clean, lpos++, toWhom);
         stats.links++;
       });
 
@@ -5225,7 +5232,7 @@ async function importInto(payload, userId, mode2, bytesSource = null) {
 // Kommentar als gewoehnliche Notiz.
         /* UND DAS FAELLIGKEITSDATUM (Formatnummer 16). */
         const cDue = c.dueDate === undefined ? { value: null } : dueValue(c.dueDate);
-        const simple = iCommentAdd
+        const simple = iCommentAdd()
             .run(id, c.text || '', kindValue(c.kind), c.pinned ? 1 : 0,
                  c.created_at || null, c.updated_at || null, authorId(c.author),
                  cDue.error ? null : cDue.value);
@@ -5241,7 +5248,7 @@ async function importInto(payload, userId, mode2, bytesSource = null) {
       // Fortlaufend neu nummeriert: uebergangene Videos hinterlassen keine
 // Luecke in der Reihenfolge.
       photos.forEach((p, i) => {
-        iPhotoAdd.run(id, p.mime, p.buf, p.thumb, p.medium, p.fx, p.fy, p.zoom, i, p.kind, p.duration);
+        iPhotoAdd().run(id, p.mime, p.buf, p.thumb, p.medium, p.fx, p.fy, p.zoom, i, p.kind, p.duration);
         if (p.kind === 'video') stats.videos++; else stats.photos++;
       });
 
@@ -5249,7 +5256,7 @@ async function importInto(payload, userId, mode2, bytesSource = null) {
          der Eintrag einfach ohne Anhaenge. */
       attachments.forEach((a2, i) => {
         const whose = a2.hasAuthor ? authorId(a2.author) : itemAuthor;
-        iAttachmentAdd.run(id, a2.name, a2.mime, a2.buf.length, a2.buf, i, whose);
+        iAttachmentAdd().run(id, a2.name, a2.mime, a2.buf.length, a2.buf, i, whose);
         stats.attachments++;
       });
     }
@@ -5359,7 +5366,7 @@ function cleanupTrash() {
 cleanupTrash();
 // Und dasselbe fuer die abgelaufenen Token, nach derselben Bauform: erste
 // Aufrufstelle hier, zweite an GET /api/users.
-auth.cleanupTokens();
+if (!DATABASE_INCOMPLETE) auth.cleanupTokens();
 // Und dasselbe fuer das Sicherheitsprotokoll: erste Aufrufstelle hier, zweite
 // an GET /api/security-log.
 auth.cleanupLog();

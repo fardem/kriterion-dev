@@ -15261,6 +15261,18 @@ async function sendImport(object, mode, withoutShare = false) {
     });
     return { ok: r.status === 0, out: `${r.stdout || ''}${r.stderr || ''}` };
   };
+  /* DIE ZUSAGE GILT DER GANZEN INSTANZ UND NICHT db.js ALLEIN: ein Gesuch,
+     das beim Laden von server.js scheitert, haelt sie unten. PORT=0 nimmt
+     eine beliebige freie Nummer -- gefragt wird, ob das Modul LAEDT, und mit
+     keinem Server geredet. */
+  const uhServer = (directory) => {
+    const r = require('child_process').spawnSync(process.execPath,
+      ['-e', "require('./server.js'); setTimeout(() => process.exit(0), 50);"], {
+        cwd: __dirname, encoding: 'utf8', timeout: 30000,
+        env: { ...process.env, DATA_DIR: directory, ENCRYPTION_KEY: KEY, PORT: '0' }
+      });
+    return { ok: r.status === 0, out: `${r.stdout || ''}${r.stderr || ''}` };
+  };
   const uhColumns = (directory, table) => {
     const d = open(path.join(directory, 'katalog.sqlite'));
     const s = d.prepare(`PRAGMA table_info(${table})`).all().map(c => c.name);
@@ -15313,6 +15325,8 @@ async function sendImport(object, mode, withoutShare = false) {
     uhFreshMissing.map(([t, c]) => `${t}.${c}`).join(' · ') || 'alle da');
   check('Und sie sagt dabei kein Wort ueber eine unvollstaendige Datenbank',
     !/incomplete/i.test(uhFresh.out), JSON.stringify(uhFresh.out.trim()));
+  check('Und die ganze Instanz kommt ueber ihr hoch',
+    uhServer(uhFreshDir).ok, uhServer(uhFreshDir).out.trim().slice(-300));
   check('Und sie legt keinen Merker dafuer an — die Probe fragt den Bestand',
     (() => {
       const d = open(path.join(uhFreshDir, 'katalog.sqlite'));
@@ -15325,7 +15339,7 @@ async function sendImport(object, mode, withoutShare = false) {
 
   /* UND JETZT DIE ACHTZEHN PRUEFLAGEN, EINE JE SPALTE. Je Lage: die Spalte
      wegnehmen, die Instanz hochziehen, und drei Dinge festhalten -- 1. */
-  const uhMissed = [], uhUnnamed = [], uhNoOldName = [], uhDead = [];
+  const uhMissed = [], uhUnnamed = [], uhNoOldName = [], uhDead = [], uhServerDead = [];
   for (const [table, column, oldName] of uhTable) {
     fs.rmSync(uhDir, { recursive: true, force: true });
     fs.mkdirSync(uhDir, { recursive: true });
@@ -15337,6 +15351,13 @@ async function sendImport(object, mode, withoutShare = false) {
       uhDead.push(`${table}.${column}: ${run.out.trim().split('\n').pop()}`);
       continue;
     }
+    /* UND DIE GANZE INSTANZ, nicht nur db.js. Gemessen am 21. September 2026:
+       sechzehn der achtzehn Spalten hielten sie unten, weil dreiunddreissig
+       Gesuche beim Laden vorbereitet wurden. */
+    const runServer = uhServer(uhDir);
+    if (!runServer.ok)
+      uhServerDead.push(`${table}.${column}: ` +
+        (runServer.out.split('\n').find(z => /Error:/.test(z)) || '').trim());
     if (uhColumns(uhDir, table).includes(column)) uhMissed.push(`${table}.${column}`);
     if (!run.out.includes(`${table}.${column}`)) uhUnnamed.push(`${table}.${column}`);
     /* NEUN DER ACHTZEHN HABEN EINEN ALTEN NAMEN. Der Kasten nennt ihn auch
@@ -15353,6 +15374,10 @@ async function sendImport(object, mode, withoutShare = false) {
     uhNoOldName.length === 0, uhNoOldName.join(' · ') || 'alle neun mit altem Namen');
   check('Und die Instanz kommt in jedem der achtzehn Faelle hoch',
     uhDead.length === 0, uhDead.join(' · ') || 'alle achtzehn oben');
+  /* DAS IST DIE ZUSAGE DES KASTENS, und sie wird hier gemessen und nicht
+     geglaubt: „THIS INSTANCE STARTS ANYWAY". */
+  check('Und die ganze Instanz ebenso — das ist die Zusage des Kastens',
+    uhServerDead.length === 0, uhServerDead.join(' · ') || 'alle achtzehn oben');
 
   /* DER KASTEN NENNT AUSSERDEM DEN WEG HERAUS. Ein Hinweis, der sagt, was
      fehlt, aber nicht, was zu tun ist, ist eine Beunruhigung. */
@@ -16003,10 +16028,10 @@ async function sendImport(object, mode, withoutShare = false) {
     check('Die Aufteilung fragt je Art mit einer Gleichheit',
       oneLine.includes("FROM photos WHERE kind IS ?") &&
       !/const qPerKind[^;]*kind != 'video'/.test(oneLine),
-      (oneLine.match(/const qPerKind = db\.prepare\([^;]*/) || ['(nicht gefunden)'])[0]);
+      (oneLine.match(/const qPerKind = lateStatement\([^;]*/) || ['(nicht gefunden)'])[0]);
     check('Und die Arten kommen aus einer eigenen, blobfreien Abfrage',
-      oneLine.includes("const qImageKinds = db.prepare('SELECT kind AS a FROM photos GROUP BY 1')"),
-      (oneLine.match(/const qImageKinds = db\.prepare\([^;]*/) || ['(nicht gefunden)'])[0]);
+      oneLine.includes("const qImageKinds = lateStatement('SELECT kind AS a FROM photos GROUP BY 1')"),
+      (oneLine.match(/const qImageKinds = lateStatement\([^;]*/) || ['(nicht gefunden)'])[0]);
     /* 3. DIE FORMATZEILE BLEIBT MATERIALISIERT -- dort ist die Gruppierung
        ueber eine Blob-Laenge der Kostenpunkt. */
     check('Die Aufteilung nach Format laeuft ueber eine materialisierte Zwischenabfrage',
@@ -16044,28 +16069,28 @@ async function sendImport(object, mode, withoutShare = false) {
     /* UND DIE UEBERSICHT FRAGT EINMAL STATT JE EINTRAG. Ohne diese Zeile
        bliebe gruen, wer den Index anlegt und die Schleife stehen laesst. */
     check('Die Uebersicht holt die Fotos in einer Abfrage',
-      oneLine.includes('const qAllPhotos = db.prepare(') &&
+      oneLine.includes('const qAllPhotos = lateStatement(') &&
       oneLine.includes('const ph = photosPer.get(it.id) || [];'),
       (oneLine.match(/const ph = [^;]*/) || ['(nicht gefunden)'])[0]);
     /* UND detail() BENUTZT WEITER DIESELBEN SPALTEN. */
     check('Und die Einzelabfrage liest dieselben Spalten',
-      oneLine.includes('const qPhotos = db.prepare(`SELECT ${PHOTO_COLUMNS}, ${PHOTO_VERSION} FROM photos WHERE item_id = ?'),
-      (oneLine.match(/const qPhotos = db\.prepare\([^;]*/) || ['(nicht gefunden)'])[0]);
+      oneLine.includes('const qPhotos = lateStatement(`SELECT ${PHOTO_COLUMNS}, ${PHOTO_VERSION} FROM photos WHERE item_id = ?'),
+      (oneLine.match(/const qPhotos = lateStatement\([^;]*/) || ['(nicht gefunden)'])[0]);
     /* UND DIE FASSUNG STEHT NEBEN DER LISTE UND NICHT IN IHR -- 0.19.5. */
     check('Die Fassung steht neben der Spaltenliste und nicht in ihr',
       oneLine.includes("const PHOTO_VERSION = 'length(thumb) AS thumbLength'") &&
       !/PHOTO_COLUMNS = '[^']*thumb/.test(oneLine) &&
-      oneLine.includes('const qAllPhotos = db.prepare(`SELECT ${PHOTO_COLUMNS}, ${PHOTO_VERSION} FROM photos'),
+      oneLine.includes('const qAllPhotos = lateStatement(`SELECT ${PHOTO_COLUMNS}, ${PHOTO_VERSION} FROM photos'),
       (oneLine.match(/const PHOTO_VERSION = [^;]*/) || ['(nicht gefunden)'])[0]);
     /* DER KNOPF WAEHLT SEIT 0.27.0 GROSSZUEGIG AUS -- und die Zusage ist
        mitgegangen statt geloescht zu werden. */
     check('Die Auswahl des Knopfs liest keinen Blob-Inhalt mehr',
-      /qConvertRows = db\.prepare\(\s*"SELECT id FROM photos WHERE kind != 'video'"\);/.test(oneLine.replace(/\s+/g, ' ')) ||
-      /qConvertRows = db\.prepare\([\s\S]{0,200}?SELECT id FROM photos WHERE kind != 'video'\"\);/.test(serverSource),
-      (serverSource.match(/qConvertRows = db\.prepare\([\s\S]{0,200}/) || ['(nicht gefunden)'])[0]);
+      /qConvertRows = lateStatement\(\s*"SELECT id FROM photos WHERE kind != 'video'"\);/.test(oneLine.replace(/\s+/g, ' ')) ||
+      /qConvertRows = lateStatement\([\s\S]{0,200}?SELECT id FROM photos WHERE kind != 'video'\"\);/.test(serverSource),
+      (serverSource.match(/qConvertRows = lateStatement\([\s\S]{0,200}/) || ['(nicht gefunden)'])[0]);
     check('Und sie nennt kein hex(substr(...)) mehr',
-      !/qConvertRows = db\.prepare\([\s\S]{0,200}?hex\(substr/.test(serverSource),
-      (serverSource.match(/qConvertRows = db\.prepare\([\s\S]{0,200}/) || [''])[0]);
+      !/qConvertRows = lateStatement\([\s\S]{0,200}?hex\(substr/.test(serverSource),
+      (serverSource.match(/qConvertRows = lateStatement\([\s\S]{0,200}/) || [''])[0]);
     /* UND DIE FRAGE NACH DEN BYTES STEHT NICHT MEHR IM THREAD -- 0.33.0. */
     const batchSource = fs.readFileSync(path.join(__dirname, 'batchrun.js'), 'utf8');
     const batchCode = batchSource.split('\n')
@@ -18575,7 +18600,7 @@ async function sendImport(object, mode, withoutShare = false) {
   {
     const phSource = fs.readFileSync(path.join(__dirname, 'server.js'), 'utf8');
     const phQuery = (name) =>
-      (phSource.match(new RegExp(`const ${name} = db\\.prepare\\(\`([^\`]*)\``)) || ['', ''])[1];
+      (phSource.match(new RegExp(`const ${name} = lateStatement\\(\`([^\`]*)\``)) || ['', ''])[1];
     const phSingle = phQuery('qAveragePerCriterion');
     const phAll = phQuery('qAveragePerCriterionAll');
     const namesPhase = (a) => /SELECT[\s\S]*?\bc\.phase\b[\s\S]*?FROM/.test(a) &&

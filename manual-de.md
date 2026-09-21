@@ -11,6 +11,32 @@ Bewertungen, Kommentare, Einstellungen, Sprache und die Ansicht auf dem Telefon.
 
 ---
 
+**Inhalt**
+
+- [Anmeldung](#anmeldung)
+  - [Der zweite Faktor, freiwillig](#der-zweite-faktor-freiwillig)
+  - [Rollen und Benutzer](#rollen-und-benutzer)
+  - [Wer was darf](#wer-was-darf)
+  - [Wer was geschrieben hat](#wer-was-geschrieben-hat)
+  - [Zwei Titel](#zwei-titel)
+- [Bedienung](#bedienung)
+- [Auf dem Handy und auf dem Tablett](#auf-dem-handy-und-auf-dem-tablett)
+  - [Die Kopfzeile](#die-kopfzeile)
+  - [Von einem Eintrag zum nächsten](#von-einem-eintrag-zum-nächsten)
+  - [Auf den Startbildschirm legen](#auf-den-startbildschirm-legen)
+  - [Die Glocke und der Zähler „Offen"](#die-glocke-und-der-zähler-offen)
+  - [Die Filter](#die-filter)
+  - [Die Kästen der Übersicht](#die-kästen-der-übersicht)
+  - [Was sonst noch anders ist](#was-sonst-noch-anders-ist)
+  - [Berühren, halten, wischen](#berühren-halten-wischen)
+- [Sprache](#sprache)
+  - [Eine eigene Sprache dazulegen](#eine-eigene-sprache-dazulegen)
+- [Vokabular](#vokabular)
+- [Hell oder dunkel](#hell-oder-dunkel)
+- [Schriftgröße](#schriftgröße)
+
+---
+
 ## Anmeldung
 
 Ohne gültige Anmeldung ist außer dem öffentlichen Titel nichts zu sehen: keine
@@ -556,6 +582,8 @@ es zwei, beide in den Einstellungen einstellbar:
 - **Titel vor der Anmeldung** — zurückhaltend wählen (Vorgabe „Bewertungskatalog")
 - **Titel nach der Anmeldung** — die eigentliche Bezeichnung (Vorgabe „Model Bewertungen")
 
+---
+
 ## Bedienung
 
 **Übersicht**
@@ -1094,6 +1122,8 @@ Eigentümer.
   **Das Gewicht gilt für alle** und ist keine persönliche Einstellung. Wer
   nicht verwalten darf, sieht es trotzdem.
 
+---
+
 ## Auf dem Handy und auf dem Tablett
 
 **Es ist eine Installation und keine zweite Oberfläche.** Es gibt keinen zweiten
@@ -1298,6 +1328,8 @@ Stifte, Blätterpfeile, der Knopf für den Bildausschnitt. **Und was sich beim
 Berührung eines Knopfes rund 300 Millisekunden zurück. **Im Vollbild ist der
 zweite Tipp ausgenommen** — dort zoomt er aufs Original.
 
+---
+
 ## Sprache
 
 **Kriterion spricht Deutsch, Englisch und Türkisch, und jeder stellt für sich
@@ -1341,6 +1373,8 @@ Installation läuft weiter.
 ```
 docker compose logs kriterion | grep '\[languages\]'
 ```
+
+---
 
 ## Vokabular
 
@@ -1435,6 +1469,9 @@ Der Originaltext lässt sich nicht wegräumen — er ist der Name der Zeile.
 > „Sprachen" steht darunter, was der neuen Vorgabesprache fehlt — Namen und
 > Vokabelwörter, mit Zahl. **Verhindert wird nichts:** die Vorgabesprache darf
 > auf eine lückige Sprache stehen, und die Kette hält jede Liste lesbar.
+
+---
+
 ## Hell oder dunkel
 
 **Kriterion hat zwei Farbschemata, und jeder stellt für sich ein, welches er
@@ -1463,6 +1500,8 @@ Server.
 *Jeder Farbwert ist gemessen und nicht ausgerechnet: kein Wert des hellen
 Schemas unterschreitet, was das dunkle an derselben Paarung erreicht. Die
 Messungen stehen als Kommentar an den Werten selbst, in `public/style.css`.*
+
+---
 
 ## Schriftgröße
 

@@ -577,6 +577,22 @@ function warnIncompleteDatabase(findings) {
 }
 warnIncompleteDatabase(incompleteDatabase());
 
+/* ERST BEIM ERSTEN RUF VORBEREITET, und das ist keine Sparsamkeit: ueber
+   einer unvollstaendigen Datenbank wirft db.prepare, und der Kasten darueber
+   saehe niemand -- die Instanz kaeme gar nicht hoch. Der spaete Ruf laesst
+   sie starten und die LESENDE Seite scheitern; genau das sagt der Kasten zu.
+   NICHT die Spaltenliste von der Spalte abhaengig machen: die Seite liefe
+   dann mit fehlenden Daten weiter und behauptete Vollstaendigkeit. */
+const lateStatement = (sql) => {
+  let ready = null;
+  return () => (ready || (ready = db.prepare(sql)));
+};
+/* Dieselbe Verspaetung fuer eine Gruppe, die zusammengehoert. */
+const lateGroup = (build) => {
+  let ready = null;
+  return () => (ready || (ready = build()));
+};
+
 /* DIE INDIZES AUF NACHGERUESTETE SPALTEN STEHEN HIER UNTEN UND NICHT IN DER
    DDL, weil sie eine Klammer tragen: dort truege `db.exec(SCHEMA)` den
    Fehlschlag. Ein fehlender Index kostet Geschwindigkeit, keine Auskunft. */
@@ -805,4 +821,4 @@ module.exports = { db, DATA_DIR, DB_FILE, keyFromEnv: key.fromEnv, keyHex: key.h
                    /* Was eine unvollstaendige Datenbank vermissen laesst. Geht hinaus, damit
                       der Pruefstand die Probe an einer gestellten Lage fragen
                       kann. */
-                   incompleteDatabase };
+                   incompleteDatabase, lateStatement, lateGroup };

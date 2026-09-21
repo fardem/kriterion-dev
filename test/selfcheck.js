@@ -22,7 +22,7 @@ async function run() {
   // Die Zahl der Rueckbauten steht ausdruecklich da: eine Zahl in einem
   // Papier ist eine Behauptung, eine Zahl im Pruefstand ist ein Beleg. Wie
   // sie Runde fuer Runde gewachsen ist, steht in den Aenderungsprotokollen.
-  check(`Es sind genau 1119 Rueckbauten`, gpList.length === 1119, `${gpList.length}`);
+  check(`Es sind genau 1125 Rueckbauten`, gpList.length === 1125, `${gpList.length}`);
   const gpTwice = gpList.map(r => r.nr).filter((n, i, a) => a.indexOf(n) !== i);
   check('Und keine Nummer steht zweimal', gpTwice.length === 0, gpTwice.join(' '));
   /* JEDER GREIFT: der Suchtext kommt in seiner Datei GENAU EINMAL vor. */
@@ -401,13 +401,13 @@ async function run() {
       ['test/batchrun.js', 87],
       ['test/dom.js', 347],
       ['test/firstlogin.js', 34],
-      ['test/frame.js', 231],
+      ['test/frame.js', 238],
       ['test/keychange.js', 81],
       ['test/release_029.js', 60],
-      ['test/release_030.js', 241],
+      ['test/release_030.js', 254],
       ['test/release_031.js', 440],
-      ['test/roundtrip.js', 3269],
-      ['test/selfcheck.js', 220],
+      ['test/roundtrip.js', 3278],
+      ['test/selfcheck.js', 232],
       ['test/source.js', 941],
       ['test/ui_entry.js', 619],
       ['test/ui_export.js', 453],
@@ -417,10 +417,10 @@ async function run() {
       ['test/ui_style.js', 599],
       ['test/ui_system.js', 692],
       ['test/ui_translator.js', 104],
-      ['counterproof.js', 1604],
-      ['server.js', 1549],
+      ['counterproof.js', 1616],
+      ['server.js', 1553],
       ['auth.js', 293],
-      ['db.js', 133],
+      ['db.js', 140],
       ['mail.js', 43],
       ['keys.js', 40],
       ['attachments.js', 61],
@@ -442,7 +442,7 @@ async function run() {
        Routen und der Marke am geloeschten Verweis -- davor 16438 und 66056.
        Der groesste Teil davon steht im Pruefstand, nicht im ausgelieferten
        Code: die Zahlen der Runde sind nachgezogen. */
-    const COMMENT_TOTAL = { comment: 16590, code: 66496 };
+    const COMMENT_TOTAL = { comment: 16654, code: 66646 };
     check('Der Waechter sieht alle sechsunddreissig Dateien',
       crAll.each.length === 36 && COMMENT_ROWS.length === 36,
       `${crAll.each.length} gemessen, ${COMMENT_ROWS.length} genannt`);
@@ -704,14 +704,14 @@ async function run() {
     check('Und `.env` steht weiterhin daneben',
       ignored.includes('.env'), ignored.join(' · '));
     /* DER PFLICHTSCHRITT IN DER README, in derselben Form wie bei `.env`:
-       einmal im Weg ueber git, einmal im Weg ueber das ZIP -- wer nur einen
-       der beiden liest, muss ihn trotzdem finden. */
-    /* DREIMAL, UND JEDES MAL AUS EINEM ANDEREN GRUND: einmal im Weg ueber
-       git, einmal im Weg ueber das ZIP -- wer nur einen der beiden liest,
-       muss ihn trotzdem finden --, und einmal im Pflichtsatz darunter. */
+       einmal im Schritt und einmal im Pflichtsatz darunter. */
+    /* AUS DREI WURDEN ZWEI: die Erstinstallation steht in nummerierten
+       Schritten, und beide Wege -- ueber git und ueber das ZIP -- laufen
+       durch denselben Schritt. Wer nur einen von beiden liest, findet ihn
+       trotzdem, weil sie sich vorher wieder treffen. */
     const copyRows = (readmeFlat.match(/cp docker-compose\.example\.yml docker-compose\.yml/g) || []);
-    check('Die README nennt den Kopierschritt in beiden Einspielwegen und im Pflichtsatz',
-      copyRows.length === 3, `${copyRows.length} Nennungen`);
+    check('Die README nennt den Kopierschritt im Schritt und im Pflichtsatz',
+      copyRows.length === 2, `${copyRows.length} Nennungen`);
     check('Und sagt ausdruecklich, dass er Pflicht ist',
       /Der Schritt `cp docker-compose\.example\.yml docker-compose\.yml` ist Pflicht/
         .test(readmeFlat),
@@ -768,6 +768,51 @@ async function run() {
     check('Und der Betrieb vollstaendig in der README',
       HOST_ONLY.every(n => readmeTops.includes(n)),
       HOST_ONLY.filter(n => !readmeTops.includes(n)).join(' · '));
+
+    /* ---- DAS INHALTSVERZEICHNIS ---- Es steht als FETTE ZEILE und nicht als
+       Ueberschrift: eine zweite Ebene „Inhalt" stuende in beiden Dateien und
+       fiele der Zusage darueber zum Opfer. */
+    /* DIE SPRUNGMARKE WIRD GEBILDET WIE BEI GitHub: klein schreiben,
+       Satzzeichen und Gedankenstriche weg, Leerzeichen zu Bindestrichen. Der
+       Bindestrich selbst bleibt -- aus zwei Leerzeichen um einen
+       Gedankenstrich werden deshalb zwei. */
+    const anchorOf = (text) => text.toLowerCase().trim()
+      .replace(/[\u0000-\u001f!-,./:-@[-^`{-~\u00a0-\u00a9\u00ab-\u00b4\u00b6-\u00b9\u00bb-\u00bf\u00d7\u00f7\u2000-\u206f\u2e00-\u2e7f]/g, '')
+      .replace(/ /g, '-');
+    /* GELESEN WIRD OHNE DIE CODEZAEUNE: eine Raute darin ist keine
+       Ueberschrift, und ein Klammerpaar darin keine Sprungmarke. */
+    const guideParts = (text) => {
+      const heads = [], marks = [];
+      let fence = false;
+      for (const z of text.split('\n')) {
+        if (z.trim().startsWith('```')) { fence = !fence; continue; }
+        if (fence) continue;
+        if (z.startsWith('## ')) heads.push(['h2', z.slice(3).trim()]);
+        else if (z.startsWith('### ')) heads.push(['h3', z.slice(4).trim()]);
+        for (const m of z.matchAll(/\]\(#([^)]+)\)/g)) marks.push(m[1]);
+      }
+      return { heads, marks };
+    };
+    for (const [name, text] of [['README.md', readme], ['manual-de.md', handbook]]) {
+      const { heads, marks } = guideParts(text);
+      /* ERST DAS VORHANDENSEIN: ueber einer Datei ohne Sprungmarken waere
+         jede Verneinung darunter wahr. */
+      check(`${name} traegt ein Inhaltsverzeichnis`,
+        /^\*\*Inhalt\*\*$/m.test(text) && marks.length >= 7,
+        `${marks.length} Sprungmarken`);
+      /* UND „Inhalt" IST KEINE UEBERSCHRIFT DER ZWEITEN EBENE. */
+      check(`Und „Inhalt" steht dort nicht als Abschnitt`,
+        !heads.some(([k, t]) => k === 'h2' && t === 'Inhalt'),
+        heads.filter(([k]) => k === 'h2').map(([, t]) => t).join(' · '));
+      const there = new Set(heads.map(([, t]) => anchorOf(t)));
+      const dead = marks.filter(m => !there.has(m));
+      check(`Und jede seiner Sprungmarken trifft eine Ueberschrift in ${name}`,
+        dead.length === 0, dead.join(' · ') || `${marks.length} Marken, alle treffen`);
+      const missing = heads.filter(([k, t]) => k === 'h2' && !marks.includes(anchorOf(t)))
+        .map(([, t]) => t);
+      check(`Und jeder Abschnitt von ${name} steht im Inhaltsverzeichnis`,
+        missing.length === 0, missing.join(' · ') || `${heads.length} Ueberschriften`);
+    }
   }
 
   /* ============ Der Treiber sieht den Rueckgabewert — 0.34.4 ============

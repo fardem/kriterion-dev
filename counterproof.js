@@ -3646,8 +3646,8 @@ const REGRESSIONS = [
        Arten -- weil `MATERIALIZED` die zweite Ursache gar nicht traf. */
     nr: '461', name: 'Die Arten kommen wieder aus dem Satz statt aus dem Index',
     file: 'server.js',
-    search: "const qImageKinds = db.prepare('SELECT kind AS a FROM photos GROUP BY 1');",
-    replacement: "const qImageKinds = db.prepare('SELECT DISTINCT kind || \\'\\' AS a FROM photos');",
+    search: "const qImageKinds = lateStatement('SELECT kind AS a FROM photos GROUP BY 1');",
+    replacement: "const qImageKinds = lateStatement('SELECT DISTINCT kind || \\'\\' AS a FROM photos');",
     expected: 'Die Bildablage: PNG kommt herein, WebP geht in die Tabelle'
   },
   {
@@ -5735,7 +5735,7 @@ const REGRESSIONS = [
        ab statt namentlich rot zu werden. */
     nr: '719', name: 'Die Kategorienamen werden nicht mehr je Sprache gelesen',
     file: 'server.js',
-    search: "const categoryNames = (locale) => nameTable(qCategoryBase.all(), qCategoryNamesAll.all(), locale);",
+    search: "const categoryNames = (locale) => nameTable(qCategoryBase().all(), qCategoryNamesAll.all(), locale);",
     replacement: "const categoryNames = () => new Map();",
     expected: 'Der Rueckfall der Namen — 0.24.3'
   },
@@ -5788,7 +5788,7 @@ const REGRESSIONS = [
     /* UND DIE TAFEL ENTSCHEIDET WIEDER UEBER EINE SPRACHE. */
     nr: '740', name: 'Der Bauer der Kriterientafel nimmt wieder eine Sprache an',
     file: 'server.js',
-    search: "const criterionNamesAll = () => namesAll(qCriterionBase.all(), qCriterionNamesAll.all());",
+    search: "const criterionNamesAll = () => namesAll(qCriterionBase().all(), qCriterionNamesAll.all());",
     replacement: "const criterionNamesAll = () => {\n" +
       "  const all = namesAll(qCriterionBase.all(), qCriterionNamesAll.all());\n" +
       "  return { [languageDefault()]: all[languageDefault()] };\n};",
@@ -9429,8 +9429,8 @@ const REGRESSIONS = [
        umbenannte Grundausstattung bei jedem Start zurueck. */
     nr: '1171', name: 'Eingesetzt wird nicht mehr nur in eine leere Tabelle',
     file: 'server.js',
-    search: "if (db.prepare('SELECT COUNT(*) n FROM rating_criteria').get().n === 0) {",
-    replacement: "if (true) {",
+    search: "if (!DATABASE_INCOMPLETE &&\n    db.prepare('SELECT COUNT(*) n FROM rating_criteria').get().n === 0) {",
+    replacement: "if (!DATABASE_INCOMPLETE) {",
     expected: 'Die Grundausstattung an einer bestehenden Instanz'
   },
   /* ---- Die Marke am Verweis auf einen geloeschten Kommentar ---- */
@@ -9503,6 +9503,60 @@ const REGRESSIONS = [
     search: "  ['/api/stats',                   'adminOnly',",
     replacement: "  ['/api/stats',                   'angemeldet',",
     expected: 'Der Waechter ueber den Quelltext'
+  },
+  /* ---- Das Inhaltsverzeichnis der Anleitung ---- */
+  {
+    /* EINE SPRUNGMARKE INS LEERE SIEHT AUS WIE EINE, DIE TRIFFT. */
+    nr: '1189', name: 'Eine Sprungmarke der README zeigt auf nichts',
+    file: 'README.md',
+    search: "- [Aufbau des Ordners](#aufbau-des-ordners)",
+    replacement: "- [Aufbau des Ordners](#aufbau-des-verzeichnisses)",
+    expected: "Die Anleitung liegt in zwei Dateien \u2014 0.34.2"
+  },
+  {
+    /* UND EIN ABSCHNITT, DER IM VERZEICHNIS FEHLT. */
+    nr: '1190', name: 'Ein Abschnitt des Handbuchs fehlt im Inhaltsverzeichnis',
+    file: 'manual-de.md',
+    search: "- [Vokabular](#vokabular)\n",
+    replacement: "",
+    expected: "Die Anleitung liegt in zwei Dateien \u2014 0.34.2"
+  },
+  /* ---- Der Rest einer Nebenspur ---- */
+  {
+    /* OHNE DIESE ZEILE NIMMT JEDE SPUR DIE RESTE DER ANDEREN MIT. */
+    nr: '1187', name: 'Der Aufraeumer fragt nicht mehr, wem ein Rest gehoert',
+    file: 'test/frame.js',
+    search: "    const run = Number((environment.find(z => z.startsWith('KRITERION_RUN=')) || '').slice(14));\n    if (run && run !== process.pid && alive(run)) continue;",
+    replacement: "",
+    expected: "Ein Rest gehoert dem Lauf, der ihn hinterlassen hat \u2014 0.38.5"
+  },
+  {
+    /* UND OHNE DIE NUMMER IN DER UMGEBUNG TRAEGT KEIN KIND SIE WEITER. */
+    nr: '1188', name: 'Die Laufnummer steht nicht mehr in der Umgebung',
+    file: 'test/frame.js',
+    search: "process.env.KRITERION_RUN = String(process.pid);",
+    replacement: "",
+    expected: "Ein Rest gehoert dem Lauf, der ihn hinterlassen hat \u2014 0.38.5"
+  },
+  /* ---- Die Zusage „die Instanz startet trotzdem" ---- */
+  {
+    /* EIN EINZIGES FRUEHES GESUCH HAELT DIE GANZE INSTANZ UNTEN: db.prepare
+       wirft ueber der fehlenden Spalte, und der Kasten, der den Start zusagt,
+       ist vorher schon gedruckt. */
+    nr: '1185', name: 'Ein Gesuch ueber rating_criteria wird wieder beim Laden vorbereitet',
+    file: 'server.js',
+    search: "const qCriterionBase = lateStatement('SELECT id, name, language FROM rating_criteria');",
+    replacement: "const qCriterionBase = (() => { const s = db.prepare('SELECT id, name, language FROM rating_criteria'); return () => s; })();",
+    expected: 'Der Hinweis auf einen unvollstaendigen Bestand — 0.33.0'
+  },
+  {
+    /* UND DIE ZWEITE HAELFTE: ueber einem unvollstaendigen Bestand wird beim
+       Start wieder geschrieben. Der Kasten sagt „nothing is changed". */
+    nr: '1186', name: 'Der Start setzt die Kriterien wieder in eine unvollstaendige Datenbank',
+    file: 'server.js',
+    search: "if (!DATABASE_INCOMPLETE &&\n    db.prepare('SELECT COUNT(*) n FROM rating_criteria').get().n === 0) {",
+    replacement: "if (db.prepare('SELECT COUNT(*) n FROM rating_criteria').get().n === 0) {",
+    expected: 'Der Hinweis auf einen unvollstaendigen Bestand — 0.33.0'
   },
   /* ---- Die Zaehlzeile der Meldungstafel ---- */
   {

@@ -149,6 +149,62 @@ async function check0300() {
       `${aOwn.length} eigene Server laufen gerade`);
   }
 
+  /* ---- Der Rest einer NEBENSPUR gehoert ihr ------------------------- */
+  /* GEMESSEN AM 21. SEPTEMBER 2026: bei vier Spuren wurde die Gruppe darueber
+     in neun von zwoelf Laeufen rot. Alle vier stellten einen Rest hin, und
+     wer zuerst raeumte, nahm die drei fremden mit -- danach fand keine der
+     anderen ihren eigenen. */
+  group('Ein Rest gehoert dem Lauf, der ihn hinterlassen hat — 0.38.5');
+  {
+    /* GEWARTET WIRD AUF DIE BEDINGUNG UND NICHT AUF DIE UHR -- und an EINER
+       Stelle, damit die Summe der festen Wartezeiten nicht waechst. */
+    const bUntil = async (condition) => {
+      for (let i = 0; i < 400 && !condition(); i++)
+        await new Promise(r => setTimeout(r, 25));
+      return condition();
+    };
+    const bDir = fs.mkdtempSync(path.join(os.tmpdir(), 'kriterion-fremd-'));
+    /* Eine Nummer, die lebt und nicht diese ist: der Vater dieses Prozesses. */
+    const bForeign = process.ppid;
+    const bScript = (run) =>
+      `const { spawn } = require('child_process');` +
+      `const k = spawn(process.execPath, ['-e', 'setTimeout(() => {}, 60000)'], ` +
+      `{ detached: true, stdio: 'ignore', env: { ...process.env, ` +
+      `DATA_DIR: ${JSON.stringify(bDir)}, KRITERION_RUN: ${JSON.stringify(String(run))} } });` +
+      `k.unref(); console.log(k.pid);`;
+    const bBorn = Number(execFileSync(process.execPath, ['-e', bScript(bForeign)],
+      { encoding: 'utf8' }).trim());
+    const bAlive = (pid) => { try { process.kill(pid, 0); return true; } catch { return false; } };
+    /* Der Helfer ist fort, sobald der Enkel an der Eins haengt. */
+    await bUntil(() => parentOf(bBorn) === 1);
+    check('Der Aufbau steht: ein Rest mit fremder, lebender Laufnummer',
+      bAlive(bBorn) && bForeign !== process.pid && bAlive(bForeign),
+      `PID ${bBorn}, fremder Lauf ${bForeign}`);
+    check('Der Aufraeumer laesst ihn stehen — er gehoert der Nebenspur',
+      !leftovers().some(z => z.pid === bBorn),
+      leftovers().map(z => `${z.pid} ${z.where}`).join(' · ') || 'nichts gefunden');
+    /* UND DIE GEGENRICHTUNG, sonst belegte die Zeile darueber nur, dass der
+       Aufraeumer gar nichts findet: dieselbe Lage mit einer TOTEN Laufnummer. */
+    const bDead = Number(execFileSync(process.execPath,
+      ['-e', 'console.log(process.pid)'], { encoding: 'utf8' }).trim());
+    await bUntil(() => !bAlive(bDead));
+    const bOrphan = Number(execFileSync(process.execPath, ['-e', bScript(bDead)],
+      { encoding: 'utf8' }).trim());
+    await bUntil(() => parentOf(bOrphan) === 1);
+    check('Die Gegenlage steht: derselbe Rest mit einer toten Laufnummer',
+      bAlive(bOrphan) && !bAlive(bDead), `PID ${bOrphan}, toter Lauf ${bDead}`);
+    check('Und diesen findet er',
+      leftovers().some(z => z.pid === bOrphan),
+      leftovers().map(z => `${z.pid} ${z.where}`).join(' · ') || 'nichts gefunden');
+    /* AUFGERAEUMT WIRD VON HAND: sweepLeftovers() naehme den fremden nicht
+       mit, und stehenlassen darf ihn dieser Lauf auch nicht. */
+    for (const pid of [bBorn, bOrphan]) { try { process.kill(pid, 'SIGKILL'); } catch {} }
+    await bUntil(() => !bAlive(bBorn) && !bAlive(bOrphan));
+    check('Und beide sind danach fort — die Prueflage laesst nichts stehen',
+      !bAlive(bBorn) && !bAlive(bOrphan), `${bBorn} ${bAlive(bBorn)}, ${bOrphan} ${bAlive(bOrphan)}`);
+    fs.rmSync(bDir, { recursive: true, force: true });
+  }
+
   /* ---- BA 4: die Schlusstafel --------------------------------------- */
   group('Die Schlusstafel sagt, wo die Zeit hingeht — 0.30.0');
   {

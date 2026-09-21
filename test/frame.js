@@ -752,6 +752,12 @@ const shareMain = (purpose, target = null) =>
    AM 8. */
 const LEFTOVER_ROOT = path.join(os.tmpdir(), 'kriterion-');
 
+/* WELCHER LAUF EINEN PROZESS GESTARTET HAT. Die Nummer wird in die Umgebung
+   gesetzt und reist von dort an jedes Kind und jeden Enkel weiter -- auch an
+   den, dessen Vater stirbt. Vier Nebenspuren teilen sich `/tmp/kriterion-`;
+   ohne diese Nummer nimmt jede die Reste der anderen mit. */
+process.env.KRITERION_RUN = String(process.pid);
+
 function parentOf(pid) {
   let row;
   try { row = fs.readFileSync(`/proc/${pid}/stat`, 'utf8'); } catch { return 0; }
@@ -787,6 +793,11 @@ function leftovers() {
     const father = parentOf(Number(e));
     if (father > 1 && alive(father)) continue;
     if (ourOwn(Number(e))) continue;
+    /* EIN REST IST EIN REST EINES BEENDETEN LAUFS. Laeuft der, der ihn
+       gestartet hat, noch, und ist es nicht dieser hier, gehoert er einer
+       Nebenspur -- sie raeumt ihn selbst weg. */
+    const run = Number((environment.find(z => z.startsWith('KRITERION_RUN=')) || '').slice(14));
+    if (run && run !== process.pid && alive(run)) continue;
     outcome.push({ pid: Number(e), where,
       port: (environment.find(z => z.startsWith('PORT=')) || '').slice(5) });
   }
