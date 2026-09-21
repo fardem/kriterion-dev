@@ -22,7 +22,7 @@ async function run() {
   // Die Zahl der Rueckbauten steht ausdruecklich da: eine Zahl in einem
   // Papier ist eine Behauptung, eine Zahl im Pruefstand ist ein Beleg. Wie
   // sie Runde fuer Runde gewachsen ist, steht in den Aenderungsprotokollen.
-  check(`Es sind genau 1132 Rueckbauten`, gpList.length === 1132, `${gpList.length}`);
+  check(`Es sind genau 1133 Rueckbauten`, gpList.length === 1133, `${gpList.length}`);
   const gpTwice = gpList.map(r => r.nr).filter((n, i, a) => a.indexOf(n) !== i);
   check('Und keine Nummer steht zweimal', gpTwice.length === 0, gpTwice.join(' '));
   /* JEDER GREIFT: der Suchtext kommt in seiner Datei GENAU EINMAL vor. */
@@ -406,7 +406,7 @@ async function run() {
       ['test/release_030.js', 254],
       ['test/release_031.js', 440],
       ['test/roundtrip.js', 3277],
-      ['test/selfcheck.js', 239],
+      ['test/selfcheck.js', 241],
       ['test/source.js', 946],
       ['test/ui_entry.js', 619],
       ['test/ui_export.js', 453],
@@ -416,7 +416,7 @@ async function run() {
       ['test/ui_style.js', 599],
       ['test/ui_system.js', 692],
       ['test/ui_translator.js', 104],
-      ['counterproof.js', 1626],
+      ['counterproof.js', 1627],
       ['server.js', 1553],
       ['auth.js', 293],
       ['db.js', 140],
@@ -441,7 +441,7 @@ async function run() {
        Routen und der Marke am geloeschten Verweis -- davor 16438 und 66056.
        Der groesste Teil davon steht im Pruefstand, nicht im ausgelieferten
        Code: die Zahlen der Runde sind nachgezogen. */
-    const COMMENT_TOTAL = { comment: 16675, code: 66744 };
+    const COMMENT_TOTAL = { comment: 16678, code: 66756 };
     check('Der Waechter sieht alle sechsunddreissig Dateien',
       crAll.each.length === 36 && COMMENT_ROWS.length === 36,
       `${crAll.each.length} gemessen, ${COMMENT_ROWS.length} genannt`);
@@ -844,6 +844,13 @@ async function run() {
     check('Und nennt die LGPL der Bildbibliothek',
       /LGPL/.test(rd) && /sharp-libvips/.test(rd),
       'LGPL oder sharp-libvips fehlt im Abschnitt');
+
+    /* DER TRANSPARENZVERMERK DARF NICHT STILL WEGFALLEN. Er nennt das
+       Werkzeug und zeigt auf die Historie, in der es Commit fuer Commit steht. */
+    check('Und sagt, wie der Code entstanden ist',
+      /^## Wie dieser Code entstanden ist$/m.test(rd)
+      && /Claude Code/.test(rd) && /Co-Authored-By: Claude/.test(rd),
+      'der Abschnitt, das Werkzeug oder der Verweis auf die Historie fehlt');
 
     /* KEINE ABHAENGIGKEIT DARF DIE WEITERGABE UNTER MIT VERHINDERN. LGPL
        darf, GPL und AGPL nicht -- sie greifen auf das ganze Werk durch. */

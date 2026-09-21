@@ -44,7 +44,9 @@ Fingerprint `236d515e` — davor `c4185d0a`.
 - Der Abschnitt sagt auch, was die Abhängigkeiten mitbringen — vor allem die
   LGPL der Bildbibliothek libvips, die `sharp` für die Ableitungen braucht.
 - `package.json` trägt das Feld `license`.
-- Acht Prüfungen halten das fest, darunter eine, die keine Abhängigkeit unter
+- **Die README sagt, wie dieser Code entstanden ist** — mit Claude Code, und die
+  Commit-Historie weist es je Commit aus.
+- Neun Prüfungen halten das fest, darunter eine, die keine Abhängigkeit unter
   GPL oder AGPL durchlässt.
 
 ## [0.38.5] - 2026-09-21

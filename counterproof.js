@@ -9656,6 +9656,14 @@ const REGRESSIONS = [
     replacement: "**Die zwei LGPL-Pakete gehoeren zur Bildbibliothek**",
     expected: 'Die Lizenz geht mit hinaus'
   },
+  {
+    /* OHNE DEN ABSCHNITT STEHT NIRGENDS, WIE DER CODE ENTSTANDEN IST. */
+    nr: '1198', name: 'Der Transparenzvermerk faellt aus der README',
+    file: 'README.md',
+    search: "## Wie dieser Code entstanden ist",
+    replacement: "## Woher der Code kommt",
+    expected: 'Die Lizenz geht mit hinaus'
+  },
 ];
 
 /* ================= Spuren und Versatz ================= Der Versatz je

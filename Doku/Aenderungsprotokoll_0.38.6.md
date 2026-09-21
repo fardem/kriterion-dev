@@ -95,11 +95,26 @@ Auskunft über libvips.
 > Verweis und keine zweite Erklärung".* **Der Auftrag hatte „README und
 > Handbuch" vorgesehen; gebaut ist beides, nur im Handbuch als Verweis.**
 
+### Der Abschnitt „Wie dieser Code entstanden ist“
+
+**Er steht vor der Lizenz, nicht darin.** *Entstehung und Lizenz sind zwei
+Sachen: die eine sagt, woher der Code kommt, die andere, was man damit darf.*
+
+Er nennt das Werkzeug und zeigt auf die Historie: **jeder Commit, an dem es
+mitgeschrieben hat, trägt die Zeile `Co-Authored-By: Claude`, und die nennt
+auch das Modell.**
+
+> **EINE VERSIONSNUMMER DES WERKZEUGS STEHT NICHT DARIN, und das ist eine
+> Entscheidung.** *Sie veraltet mit dem nächsten Commit — Claude Code wird
+> laufend erneuert, und über die Commits seit dem 10. September 2026 waren es
+> mehrere Fassungen. Eine einzelne Nummer wäre für fast jeden Commit falsch.*
+> **Die Historie ist genauer: sie sagt es je Commit und mit Datum.**
+
 ---
 
 ## 4. Der Prüfstand
 
-**Acht neue Prüfungen in einer eigenen Gruppe, „Die Lizenz geht mit hinaus".**
+**Neun neue Prüfungen in einer eigenen Gruppe, „Die Lizenz geht mit hinaus".**
 
 | | was sie hält |
 |---|---|
@@ -110,21 +125,23 @@ Auskunft über libvips.
 | 5 | die README trägt das Abzeichen |
 | 6 | und einen eigenen Abschnitt |
 | 7 | und nennt die LGPL der Bildbibliothek beim Namen |
-| 8 | **keine Abhängigkeit steht unter GPL oder AGPL** |
+| 8 | und sagt, wie der Code entstanden ist |
+| 9 | **keine Abhängigkeit steht unter GPL oder AGPL** |
 
-**Die achte liest `node_modules` und prüft gegen die Außenwelt**, nicht gegen
+**Die neunte liest `node_modules` und prüft gegen die Außenwelt**, nicht gegen
 einen Rückbau: eine neue Abhängigkeit mit der falschen Lizenz fällt beim
 nächsten Lauf auf. *Sie lässt LGPL durch und fängt GPL-2, GPL-3 und jede Form
 von AGPL.*
 
-### Fünf Gegenproben
+### Sechs Gegenproben
 
 `1193` die erste Zeile der `LICENSE` nennt die Lizenz nicht mehr ·
 `1194` der Haftungsausschluss fällt · `1195` `package.json` trägt kein
 Lizenzfeld mehr · `1196` das Abzeichen fällt aus der README ·
-`1197` die README nennt die LGPL-Pakete nicht mehr.
+`1197` die README nennt die LGPL-Pakete nicht mehr ·
+`1198` der Transparenzvermerk fällt aus der README.
 
-**Für die achte Prüfung gibt es keine Gegenprobe:** der Treiber verknüpft
+**Für die neunte Prüfung gibt es keine Gegenprobe:** der Treiber verknüpft
 `node_modules`, statt es zu kopieren — ein Rückbau dort träfe den laufenden
 Bestand.
 
@@ -134,8 +151,8 @@ Bestand.
 
 | | vorher | jetzt |
 |---|---:|---:|
-| Prüfungen | 7.247 | **7.255** |
-| Rückbauten | 1.127 | **1.132** |
+| Prüfungen | 7.247 | **7.256** |
+| Rückbauten | 1.127 | **1.133** |
 | Dateien, die `tools/publish.js` hinausgibt | 69 | **70** |
 | Dateien, über die die drei Wächter lesen | 23 · 24 · 24 | **24 · 25 · 25** |
 

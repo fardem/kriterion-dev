@@ -61,6 +61,7 @@ Videos liegen darin und werden nie als Datei auf die Platte geschrieben.
 - [Den Schlüssel wechseln](#den-schlüssel-wechseln)
   - [Zwei Schlüssel im Umlauf](#zwei-schlüssel-im-umlauf)
   - [Was der Wechsel nicht ist](#was-der-wechsel-nicht-ist)
+- [Wie dieser Code entstanden ist](#wie-dieser-code-entstanden-ist)
 - [Lizenz](#lizenz)
   - [Die Lizenzen der Abhängigkeiten](#die-lizenzen-der-abhängigkeiten)
 
@@ -1281,6 +1282,22 @@ Schlüssel öffnet weiter, der neue wird abgewiesen. Geht dagegen das Journal
 verloren, ist alles verloren — **das** ist der Grund für die Sicherung davor.
 Das Journal wächst dabei auf die Größe der Datenbank; reicht der Platz nicht,
 sagt das Skript vorher ab und rührt nichts an.
+
+---
+
+## Wie dieser Code entstanden ist
+
+**Kriterion ist mit [Claude Code](https://claude.com/claude-code) geschrieben
+worden**, dem Kommandozeilenwerkzeug von Anthropic. Was gebaut wird und wie,
+entscheidet der Betreiber; geschrieben, gemessen und geprüft hat das Werkzeug.
+
+**Die Historie weist es Commit für Commit aus:** jeder Commit, an dem es
+mitgeschrieben hat, trägt die Zeile `Co-Authored-By: Claude`, und die nennt
+auch das Modell. Der erste ist vom 10. September 2026. `git log` sagt damit
+für jede Zeile, wie sie entstanden ist.
+
+*Eine Versionsnummer des Werkzeugs steht hier nicht: sie veraltet mit dem
+nächsten Commit, und die Historie ist genauer als eine Nummer.*
 
 ---
 
