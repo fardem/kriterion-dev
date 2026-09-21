@@ -1,6 +1,6 @@
 # Änderungsprotokoll 0.39.0 — „Die Spaltenfolge: `data` ans Ende"
 
-**Gebaut am 22. September 2026 auf 0.38.6. Fingerprint `XXXXXXXX`, davor
+**Gebaut am 22. September 2026 auf 0.38.6. Fingerprint `2ba1c469`, davor
 `236d515e`.**
 
 **Eine Runde, ein Gegenstand.** In drei Tabellen stand die Dateispalte `data`
@@ -200,7 +200,20 @@ Kernmodul.
 
 ## 8. Der Prüflauf
 
-**`npm test`: 7.276 von 7.276 Prüfungen bestanden, 388 Gruppen.**
+**`npm test`: 7.276 von 7.276 Prüfungen bestanden, 388 Gruppen.** Der Lauf
+braucht 355 Sekunden; die neue Gruppe kostet 7,8 davon, und fünf Sekunden
+davon sind die Wartezeit auf die gehaltene Datei.
 
-**Die vier Rückbauten 1199 bis 1202 sind gefahren und alle vier rot in der
-erwarteten Gruppe.**
+**Die vier Rückbauten sind gefahren, und alle vier sind rot in der erwarteten
+Gruppe:**
+
+| | rot geworden ist |
+|---|---|
+| **1199** — das Schema fällt auf die alte Folge zurück | „In photos, comment_images und attachments ist data die letzte Spalte" und drei Folgeprüfungen |
+| **1200** — das Werkzeug legt die Indexe nicht wieder an | „Die Indexe stehen wieder da, wortgleich" |
+| **1201** — das Werkzeug lässt `foreign_key_check` weg | „Eine Zeile ohne Eintrag bricht das Umschichten ab" und „Und die Tabelle steht danach unverändert in der alten Folge" |
+| **1202** — die Prüfung auf freien Platz fällt weg | „Bei zu wenig Platz kommt die Absage mit der Zahl" |
+
+*Die Prüfung „Jeder Suchtext kommt in seiner Datei genau einmal vor" wird bei
+jedem der vier ebenfalls rot — der Rückbau hat den Suchtext ersetzt. Das ist
+die gewöhnliche Begleiterscheinung und kein eigener Befund.*

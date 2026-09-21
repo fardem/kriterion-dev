@@ -34,7 +34,7 @@ ihre deutschen Abschnittsüberschriften bleiben.*
 
 *Die Spaltenfolge: `data` ans Ende.*
 
-Fingerprint `XXXXXXXX` — davor `236d515e`.
+Fingerprint `2ba1c469` — davor `236d515e`.
 
 > **WER DEN GEWINN WILL, RUFT `tools/reorder.js` EINMAL AUF — bei angehaltener
 > Instanz.** Der Aufruf steht in der README unter „Die Spaltenfolge einer
