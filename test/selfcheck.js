@@ -22,7 +22,7 @@ async function run() {
   // Die Zahl der Rueckbauten steht ausdruecklich da: eine Zahl in einem
   // Papier ist eine Behauptung, eine Zahl im Pruefstand ist ein Beleg. Wie
   // sie Runde fuer Runde gewachsen ist, steht in den Aenderungsprotokollen.
-  check(`Es sind genau 1127 Rueckbauten`, gpList.length === 1127, `${gpList.length}`);
+  check(`Es sind genau 1133 Rueckbauten`, gpList.length === 1133, `${gpList.length}`);
   const gpTwice = gpList.map(r => r.nr).filter((n, i, a) => a.indexOf(n) !== i);
   check('Und keine Nummer steht zweimal', gpTwice.length === 0, gpTwice.join(' '));
   /* JEDER GREIFT: der Suchtext kommt in seiner Datei GENAU EINMAL vor. */
@@ -45,10 +45,9 @@ async function run() {
   }
   /* UND DIE ZAHL DER GELESENEN DATEIEN STEHT DA: sie ist der Beleg, dass die
      Schleife wirklich nur einmal je Datei liest. */
-  // Achtunddreissig, seit Rueckbauten auch .env.example, log.js und
-// docker-compose.example.yml anfassen.
-  check('Der Waechter liest hoechstens achtunddreissig Dateien',
-    gpText.size <= 38, `${gpText.size} Dateien fuer ${gpList.length} Rueckbauten`);
+  // Vierzig, seit Rueckbauten auch LICENSE und package.json anfassen.
+  check('Der Waechter liest hoechstens vierzig Dateien',
+    gpText.size <= 40, `${gpText.size} Dateien fuer ${gpList.length} Rueckbauten`);
   check('Jeder Suchtext kommt in seiner Datei genau einmal vor',
     gpFail.length === 0, gpFail.join(' · '));
   // Ein Ersatz, der dem Suchtext gleicht, baut nichts zurueck -- die Kopie
@@ -407,8 +406,8 @@ async function run() {
       ['test/release_030.js', 254],
       ['test/release_031.js', 440],
       ['test/roundtrip.js', 3277],
-      ['test/selfcheck.js', 232],
-      ['test/source.js', 945],
+      ['test/selfcheck.js', 241],
+      ['test/source.js', 946],
       ['test/ui_entry.js', 619],
       ['test/ui_export.js', 453],
       ['test/ui_inventory.js', 241],
@@ -417,7 +416,7 @@ async function run() {
       ['test/ui_style.js', 599],
       ['test/ui_system.js', 692],
       ['test/ui_translator.js', 104],
-      ['counterproof.js', 1619],
+      ['counterproof.js', 1627],
       ['server.js', 1553],
       ['auth.js', 293],
       ['db.js', 140],
@@ -442,7 +441,7 @@ async function run() {
        Routen und der Marke am geloeschten Verweis -- davor 16438 und 66056.
        Der groesste Teil davon steht im Pruefstand, nicht im ausgelieferten
        Code: die Zahlen der Runde sind nachgezogen. */
-    const COMMENT_TOTAL = { comment: 16660, code: 66661 };
+    const COMMENT_TOTAL = { comment: 16678, code: 66756 };
     check('Der Waechter sieht alle sechsunddreissig Dateien',
       crAll.each.length === 36 && COMMENT_ROWS.length === 36,
       `${crAll.each.length} gemessen, ${COMMENT_ROWS.length} genannt`);
@@ -813,6 +812,68 @@ async function run() {
       check(`Und jeder Abschnitt von ${name} steht im Inhaltsverzeichnis`,
         missing.length === 0, missing.join(' · ') || `${heads.length} Ueberschriften`);
     }
+  }
+
+
+  /* ==================== Die Lizenz geht mit hinaus ====================
+     Ohne LICENSE ist der Stand rechtlich unklar; ohne den Abschnitt in der
+     README weiss niemand, was die Abhaengigkeiten mitbringen. */
+  group('Die Lizenz geht mit hinaus');
+  {
+    const licText = fs.readFileSync(path.join(__dirname, 'LICENSE'), 'utf8');
+    check('LICENSE nennt MIT', /^MIT License$/m.test(licText), licText.slice(0, 60));
+    check('Und traegt einen Urheberrechtsvermerk mit Jahr',
+      /^Copyright \(c\) 20\d\d .+$/m.test(licText),
+      (licText.match(/^Copyright.*$/m) || ['keiner'])[0]);
+    /* DER HAFTUNGSAUSSCHLUSS IST DER TEIL, DEN EIN KUERZEN ZUERST TRIFFT. */
+    check('Und den Haftungsausschluss', /WITHOUT WARRANTY OF ANY KIND/.test(licText)
+      && /IN NO EVENT SHALL/.test(licText), `${licText.length} Zeichen`);
+
+    const pkg = JSON.parse(fs.readFileSync(path.join(__dirname, 'package.json'), 'utf8'));
+    check('package.json traegt dieselbe Lizenz', pkg.license === 'MIT',
+      JSON.stringify(pkg.license));
+
+    const rd = fs.readFileSync(path.join(__dirname, 'README.md'), 'utf8');
+    check('Die README traegt das Abzeichen',
+      /!\[Lizenz\]\(https:\/\/img\.shields\.io\/badge\/Lizenz-MIT-/.test(rd),
+      'das Abzeichen fehlt');
+    check('Und einen eigenen Abschnitt', /^## Lizenz$/m.test(rd),
+      'der Abschnitt „Lizenz" fehlt');
+    /* DIE AUSKUNFT UEBER libvips DARF NICHT STILL WEGFALLEN: sie ist der
+       einzige Punkt, an dem MIT nicht die ganze Antwort ist. */
+    check('Und nennt die LGPL der Bildbibliothek',
+      /LGPL/.test(rd) && /sharp-libvips/.test(rd),
+      'LGPL oder sharp-libvips fehlt im Abschnitt');
+
+    /* DER TRANSPARENZVERMERK DARF NICHT STILL WEGFALLEN. Der Zeitraum steht
+       statt einer Versionsnummer: gefordert ist die Form, nicht der Monat. */
+    check('Und sagt, wie der Code entstanden ist',
+      /^## Wie dieser Code entstanden ist$/m.test(rd) && /Claude Code/.test(rd)
+      && /[A-ZÄÖÜ][a-zäöüß]+\s+bis\s+[A-ZÄÖÜ][a-zäöüß]+\s+20\d\d/.test(rd),
+      'der Abschnitt, das Werkzeug oder der Zeitraum fehlt');
+
+    /* KEINE ABHAENGIGKEIT DARF DIE WEITERGABE UNTER MIT VERHINDERN. LGPL
+       darf, GPL und AGPL nicht -- sie greifen auf das ganze Werk durch. */
+    const modRoot = path.join(__dirname, 'node_modules');
+    const packs = [];
+    for (const e of fs.readdirSync(modRoot, { withFileTypes: true })) {
+      if (!e.isDirectory()) continue;
+      if (e.name.startsWith('@')) {
+        for (const s of fs.readdirSync(path.join(modRoot, e.name), { withFileTypes: true }))
+          if (s.isDirectory()) packs.push(path.join(e.name, s.name));
+      } else if (!e.name.startsWith('.')) packs.push(e.name);
+    }
+    const strict = [];
+    for (const name of packs) {
+      let lic;
+      try {
+        lic = JSON.parse(fs.readFileSync(path.join(modRoot, name, 'package.json'), 'utf8')).license;
+      } catch { continue; }
+      if (typeof lic !== 'string') continue;
+      if (/(^|[^L])GPL-[23]/.test(lic) || /AGPL/.test(lic)) strict.push(`${name} (${lic})`);
+    }
+    check('Keine Abhaengigkeit steht unter GPL oder AGPL',
+      strict.length === 0, strict.join(' · ') || `${packs.length} Pakete gelesen`);
   }
 
   /* ============ Der Treiber sieht den Rueckgabewert — 0.34.4 ============

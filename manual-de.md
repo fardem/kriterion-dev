@@ -4,8 +4,8 @@
 Bewertungen, Kommentare, Einstellungen, Sprache und die Ansicht auf dem Telefon.
 
 > **DER BETRIEB STEHT IN DER [README](README.md).** Installation, der Schlüssel,
-> Sichern, eine neuere Version einspielen, der Reverse Proxy, das Datenmodell und
-> die Ablage von Dateien und Videos stehen dort. **Jede Sache steht an genau
+> Sichern, eine neuere Version einspielen, der Reverse Proxy, das Datenmodell,
+> die Ablage von Dateien und Videos und **die Lizenz** stehen dort. **Jede Sache steht an genau
 > einer der beiden Stellen**; wo die andere gebraucht wird, steht ein Verweis
 > und keine zweite Erklärung.
 

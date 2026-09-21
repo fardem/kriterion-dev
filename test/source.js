@@ -2135,12 +2135,14 @@ async function run() {
       'public/favicon.svg': 0,
       /* DREI LOECHER DIESER RUNDE: log.js stand in keiner Dateiliste, und die
          beiden Dateien, mit denen ein Betreiber anfaengt, ebenso wenig. */
-      'log.js': 0, 'Dockerfile': 0, 'docker-compose.example.yml': 0
+      'log.js': 0, 'Dockerfile': 0, 'docker-compose.example.yml': 0,
+      /* Mit der Lizenz ist die vierundzwanzigste Datei dazugekommen. */
+      'LICENSE': 0
     };
     const VN_TOTAL = 5;
     const vnFiles = Object.keys(VN_CEILING);
-    check('Der Waechter sieht alle dreiundzwanzig Dateien, und jede liegt da',
-      vnFiles.length === 23
+    check('Der Waechter sieht alle vierundzwanzig Dateien, und jede liegt da',
+      vnFiles.length === 24
       && vnFiles.every(f => fs.existsSync(path.join(__dirname, ...f.split('/')))),
       vnFiles.filter(f => !fs.existsSync(path.join(__dirname, ...f.split('/')))).join(' ') || `${vnFiles.length} Dateien`);
     const vnCount = {};
@@ -2153,8 +2155,8 @@ async function run() {
       vnOver.length === 0,
       vnOver.map(f => `${f}: ${vnCount[f]} statt ${VN_CEILING[f]}`).join(' · ') || 'alle darunter');
     const vnZero = vnFiles.filter(f => VN_CEILING[f] === 0);
-    check('Zwanzig Dateien tragen keine einzige Versionsnummer',
-      vnZero.length === 20 && vnZero.every(f => vnCount[f] === 0),
+    check('Einundzwanzig Dateien tragen keine einzige Versionsnummer',
+      vnZero.length === 21 && vnZero.every(f => vnCount[f] === 0),
       vnZero.filter(f => vnCount[f] !== 0).map(f => `${f}: ${vnCount[f]}`).join(' · ') || `${vnZero.length} auf null`);
     const vnNow = vnFiles.reduce((n, f) => n + vnCount[f], 0);
     check(`Und zusammen sind es ${VN_TOTAL} -- die Zahl steht hier und nicht in einem Papier`,
@@ -2752,9 +2754,9 @@ async function run() {
       'keytool.js', 'public/app.js', 'public/theme.js',
       'public/index.html', 'public/style.css', 'public/favicon.svg',
       '.env.example', 'docker-compose.example.yml', 'Dockerfile',
-      'README.md', 'manual-de.md', 'CHANGELOG.md', 'package.json'];
-    check('Der Waechter sieht alle vierundzwanzig Dateien, und jede liegt da',
-      dvFiles.length === 24
+      'README.md', 'manual-de.md', 'CHANGELOG.md', 'package.json', 'LICENSE'];
+    check('Der Waechter sieht alle fuenfundzwanzig Dateien, und jede liegt da',
+      dvFiles.length === 25
       && dvFiles.every(f => fs.existsSync(path.join(__dirname, ...f.split('/')))),
       dvFiles.filter(f => !fs.existsSync(path.join(__dirname, ...f.split('/')))).join(' ')
       || `${dvFiles.length} Dateien`);
@@ -2797,7 +2799,7 @@ async function run() {
       'public/languages/de.json', 'public/languages/en.json',
       'public/languages/tr.json',
       '.env.example', 'docker-compose.example.yml', 'Dockerfile',
-      'README.md', 'manual-de.md'];
+      'README.md', 'manual-de.md', 'LICENSE'];
     /* EIN NAME MIT NUMMER IST EIN VERWEIS, DAS WORT ALLEIN NICHT: „der Befund
        war" verweist, „ein Bild ohne Befund" nicht. Die Papiernamen, die es nur
        einmal gibt, zaehlen ohne Nummer. */
@@ -2822,8 +2824,8 @@ async function run() {
       ['BA <Zahl>', /\bBA\s+\d/g],
       ['(F<Zahl>)', /\(F\d+[a-z]?\)/g],
       ['Punkt <Zahl>', /\bPunkt\s+\d/g]];
-    check('Der Waechter sieht alle vierundzwanzig Dateien, und jede liegt da',
-      pvFiles.length === 24
+    check('Der Waechter sieht alle fuenfundzwanzig Dateien, und jede liegt da',
+      pvFiles.length === 25
       && pvFiles.every(f => fs.existsSync(path.join(__dirname, ...f.split('/')))),
       pvFiles.filter(f => !fs.existsSync(path.join(__dirname, ...f.split('/')))).join(' ')
       || `${pvFiles.length} Dateien`);
