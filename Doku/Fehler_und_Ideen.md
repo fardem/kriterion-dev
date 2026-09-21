@@ -185,7 +185,7 @@ sagt der Fahrplan.
 | Nummer | worum es geht | Schema |
 |---|---|---|
 | **0.38.6** | Die Lizenz — es gibt keine im Repository, und deshalb trägt die README kein Abzeichen dafür | nein |
-| **0.39.0** | Die Fotokachel nach `photo_derivatives`, mit einer Sicherung davor | **ja** |
+| **0.39.0** | Die Fotokachel nach `photo_derivatives`, mit einer Sicherung davor. *Gemessen: der Umweg kostet nur den, der die Kachel wirklich holt — bis 100 kB Original 0,02 ms, ueber 1 MB 14,8 ms* | **ja** |
 | **0.40.0** | Export, Import und Papierkorb ohne den Arbeitsspeicher — erst am Bestand messen | nein |
 | **0.41.0** | 614 feste Wartezeiten im Prüfstand, zusammen 47,5 Sekunden | nein |
 | **0.42.0** | Dokumente über einen Document Server ansehen | nein |

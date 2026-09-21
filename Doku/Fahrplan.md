@@ -2000,6 +2000,33 @@ Original.** SQLite liest eine Zeile von vorn; wer `thumb` will, läuft durch die
 Overflow-Kette von `data` und entschlüsselt sie mit. *Bei einem Video sind das
 bis zu 20 MB für eine Kachel von rund 200 kB.*
 
+### Gemessen am 21. September 2026: der Umweg kostet, das Zaehlen nicht
+
+**`length(thumb)` liest nur den Record-Kopf und beruehrt den Overflow nie.**
+*Gestellte Lage, 200 Zeilen je Gruppe, Kachel immer 20 kB:*
+
+| | Original 4 MB | Original 2 kB |
+|---|---:|---:|
+| `length(thumb)` | 0,53 ms | 0,62 ms |
+| **`thumb` wirklich lesen** | **161,54 ms** | **1,63 ms** |
+| `mime_type` *(Spalte vor `data`)* | 0,49 ms | 0,47 ms |
+
+**Damit ist Befund 4 des Punktes 39 widerlegt** — *dass `length(thumb)` nicht
+in `idx_photos_tile` steht, kostet nichts: der Ausdruck laeuft ueber den Kopf
+und nicht ueber den Wert.* **Ein Index dafuer wird nicht gebaut.**
+
+**Der Umweg kostet nur den, der die Kachel wirklich holt** — die Route, die
+die Bytes ausliefert. *An derselben gestellten Lage, 40 Zeilen je Klasse:*
+
+| Groesse des Originals | je Kachel |
+|---|---:|
+| bis 4 kB | 0,02 ms |
+| bis 100 kB | 0,02 ms |
+| bis 1 MB | **1,50 ms** |
+| ueber 1 MB | **14,8 ms** |
+
+*Die Zahl am eigenen Bestand misst `tools/photoscan.js`.*
+
 ### Der Weg
 
 `photo_derivatives(photo_id PRIMARY KEY, thumb, medium)`. **Die Bauform steht
