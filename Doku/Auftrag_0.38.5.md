@@ -115,8 +115,10 @@ macht.** Ohne diesen Bauabschnitt liefe die Nacht gegen einen Prüfstand, der
 aus einem Grund rot ist, den sie nicht verursacht hat.
 
 **Gebaut wird:** die vier Zeitstempel in `test/roundtrip.js`:10834–10838 werden
-**gegen die Uhr gerechnet statt festgeschrieben** — vier verschiedene Abstände
-innerhalb des Fensters, damit die Reihenfolge nachweisbar bleibt. Der
+**gegen die Uhr gerechnet statt festgeschrieben.** Die Abstände stehen hier und
+werden nicht gewählt: `last_seen` auf **−1, −2, −3 und −4 Tage**, `created_at`
+auf **−10, −12, −14 und −16 Tage**. Alle acht liegen im Fenster, alle acht sind
+verschieden, und die Reihenfolge bleibt damit nachweisbar. Der
 Kommentar daneben nennt heute den Grund für feste Werte („vier Zeilen in
 derselben Sekunde liessen sich in der Reihenfolge nicht unterscheiden"); er
 bleibt richtig und bekommt den zweiten Grund dazu.
@@ -175,15 +177,23 @@ und ob waagerecht gerollt wird.
 
 > **DIE ERSTE SPALTE IST NICHT DIE EINZIGE UNTERGRENZE.** Die Kopfzeile
 > schreibt vier Wörter aus — Kriterium, Note, Gewicht, Rechnung — in Spalten,
-> die auf `auto` stehen. Reicht die Reparatur der ersten Spalte nicht, wird
-> auch dort gemessen und entschieden. **Abkürzungen werden nicht erfunden.**
+> die auf `auto` stehen. **Reicht die Reparatur der ersten Spalte nicht, bekommen
+> die Kopfzellen dasselbe Umbruchrecht.** Gekürzt, abgekürzt oder umbenannt wird
+> nichts: die vier Wörter stehen in den Sprachdateien und gehören dorthin.
 
 **Prüfung:** ein Kriterienname von vierzig Zeichen sprengt die Tabelle bei
 360 Pixeln nicht mehr.
 
 ### BA 4 — Die Zählzeile in Fassung B (F4)
 
-`newWords()` (`public/app.js`:3058) schreibt die Zählzeile der Meldungstafel.
+`newWords()` (`public/app.js`:3058) schreibt die Zählzeile der Meldungstafel,
+und **nur diese eine Stelle wird angefasst.**
+
+> **DIE ÜBERSICHTSKACHEL IST NICHT GEMEINT**, obwohl Punkt 38 von ihr spricht.
+> Sie schreibt seit je **eine** Zahl über `tileNumber()` (`public/app.js`:4035)
+> — „eine Kachel, eine Zahl" steht als Kommentar daneben. Und der Blockkopf
+> (`commentNumbers()`, Zeile 960) hat beide Fassungen schon. **In Worten zählt
+> allein die Meldungstafel.**
 
 | | |
 |---|---|
@@ -221,8 +231,15 @@ Stück) eine Testdatenbank, die Spalte entfernen, den Server starten. Heraus
 kommt eine Tafel: **welche Spalten verhindern den Start, welche nicht.**
 
 **Dann bauen: die Zusage wahr machen**, nicht den Satz abschwächen. Die
-betroffenen Abfragen überleben eine fehlende Spalte — dieselbe Bauform, die
-`db.js` beim Einsetzen der Kriterien schon benutzt (`seedHasLanguage`).
+betroffenen Abfragen werden **erst beim ersten Ruf vorbereitet** statt beim
+Laden des Moduls.
+
+> **UND ZWAR SO UND NICHT ANDERS.** Der nächstliegende Weg wäre, die Spaltenliste
+> von der Spalte abhängig zu machen — die Bauform, die `db.js` beim Einsetzen
+> der Kriterien benutzt (`seedHasLanguage`). **Hier wäre sie falsch:** die Seite
+> liefe dann mit fehlenden Daten weiter, und der Kasten verspricht ausdrücklich
+> das Gegenteil — *„every page that reads one of the parts above fails"*. Der
+> späte Ruf trifft beides: die Instanz startet, und die Seite scheitert.
 
 **Prüfung:** je Spalte der Tafel ein Start ohne sie, und die Instanz antwortet
 auf `/api/config`. Dazu eine Gegenprobe, die den Kasten rot macht, wenn seine
@@ -237,13 +254,20 @@ Läufen rot — bei Rückbauten, die mit ihr nichts zu tun haben.
 **Gebaut wird:** die Lage nachstellen, messen, welcher Zweig der Erkennung
 greift, und beheben, was sich zeigt.
 
-> **DER ABBRUCH STEHT IM AUFTRAG UND NICHT IM ERMESSEN.** Zeigt sich die
-> Ursache nicht, kommt die Messung ins Protokoll, der Punkt bleibt offen, und
-> die Runde geht weiter. **Es wird nicht geraten.**
+> **DER ABBRUCH STEHT IM AUFTRAG UND NICHT IM ERMESSEN.** Die Lage wird
+> **höchstens fünfmal** nachgestellt. Zeigt sich die Ursache dabei nicht, kommt
+> die Messung ins Protokoll — mit der Zahl der Läufe und der Zahl der roten —,
+> der Punkt bleibt offen, und die Runde geht weiter. **Es wird nicht geraten.**
 
 ### BA 7 — Die beiden Wörter (F6)
 
 **Als Letztes**, über einen Baum, der sich nicht mehr bewegt.
+
+> **BA 5 UND DIESER ABSCHNITT FASSEN DENSELBEN RÜCKBAU AN.** `counterproof.js`:8377
+> heißt „Das Auffangnetz uebergeht eine fehlende Spalte nicht mehr" und liegt
+> genau an der Stelle, die BA 5 umbaut. **Deshalb BA 5 zuerst und dieser
+> Abschnitt zuletzt** — umgekehrt würde ein gerade umbenannter Rückbau noch
+> einmal umgebaut.
 
 **Die Ersatzwörter stehen hier und werden nicht in der Nacht erfunden:**
 
@@ -289,6 +313,19 @@ ohne Inhaltsverzeichnis**, `manual-de.md` hat **1474**.
 6. Die verstreuten Fehlerfälle unter **einem** Kapitel: heute stehen sie als
    „Wenn niemand mehr hereinkommt", „Wenn eine Version die Datenbank anfasst"
    und „Die alten Namen in der `.env`" an drei Stellen.
+
+> **DREI FESTLEGUNGEN, DAMIT NICHTS ZU ENTSCHEIDEN BLEIBT.**
+> **Die Reihenfolge der Kapitel bleibt, wie sie ist.** Eingefügt werden nur die
+> neuen Abschnitte; umgestellt wird nichts, außer dass die drei Fehlerfälle
+> unter ihr gemeinsames Kapitel wandern.
+> **Das Verzeichnis führt die Überschriften der zweiten und dritten Ebene**, die
+> dritte eingerückt — die README kommt damit auf 37 Zeilen, das Handbuch auf 21.
+> **Die Abzeichen stehen nur in der README**, nicht im Handbuch.
+
+**Die drei neuen Überschriften stoßen mit nichts zusammen:** das Handbuch trägt
+sieben Überschriften der zweiten Ebene — Anmeldung, Bedienung, Auf dem Handy und
+auf dem Tablett, Sprache, Vokabular, Hell oder dunkel, Schriftgröße. Weder
+Voraussetzungen noch Aufbau des Ordners noch Fehlerbehebung steht darunter.
 
 **Ohne Zeichenbilder in den Überschriften** — Entscheidung des Betreibers.
 Nebeneffekt: der Anker bleibt sauber. Aus `## Voraussetzungen` wird
