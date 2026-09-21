@@ -328,20 +328,25 @@ Spalte `language` fragt — den Code gibt es nicht mehr. Zwei ältere sind
 nachgezogen, weil ihr Suchtext sich geändert hat: `489` (die Spaltenliste des
 deckenden Index) und `1041` (die weiche Landung von `tryIndex`).
 
-| # | Rückbau |
-|---|---|
-| 1169 | Die drei Kriterien entstehen wieder auf Deutsch |
-| 1170 | Die weiteren Sprachen bekommen wieder einen Namen daneben |
-| 1171 | Eingesetzt wird nicht mehr nur in eine leere Tabelle |
-| 1172 | Ein gefragter Schlüssel ohne Antwort wird wieder nichts |
-| 1173 | Die Marke des gelöschten Kommentars bekommt wieder ein Klickziel |
-| 1174 | Das Kommentarfeld verlangt wieder eine Tastenkombination |
-| 1175 | Der Index auf `criterion_id` fällt weg |
-| 1176 | Der deckende Index der Dateiliste fällt weg |
-| 1177 | Die Fassung der Kachel fällt aus der Spaltenliste des Index |
-| 1178 | Ein Index mit alter Spaltenliste bleibt wieder stehen |
-| 1179 | Das Verzeichnis der lesenden Routen verliert eine Zeile |
-| 1180 | Eine Zeile des Verzeichnisses nennt die falsche Klemme |
+**Gefahren am 21. September 2026, vier Nebenspuren, gegen den gebauten Stand:
+14 Gegenproben, 0 STUMM.**
+
+| # | Rückbau | namentlich rot |
+|---|---|---|
+| 489 | Dem deckenden Index fehlt eine Spalte | 5 Prüfungen in 4 Gruppen, darunter „Und der deckende Index trägt genau diese Spalten samt der Fassung" |
+| 1041 | Die Indizes auf nachgerüstete Spalten fallen wieder hart | 4 in 3 Gruppen, darunter „Und die Instanz kommt in jedem der achtzehn Fälle hoch" |
+| 1169 | Die drei Kriterien entstehen wieder auf Deutsch | 6 in 4 Gruppen, darunter „Und die drei tragen die Namen der Auslieferungssprache" |
+| 1170 | Die weiteren Sprachen bekommen wieder einen Namen daneben | 8 in 6 Gruppen, darunter „Und keine weitere Sprache bekommt einen Namen daneben" |
+| 1171 | Eingesetzt wird nicht mehr nur in eine leere Tabelle | 9 in 5 Gruppen, darunter „Die Sterne zeigen genau eine Zeile je Kriterium" |
+| 1172 | Ein gefragter Schlüssel ohne Antwort wird wieder nichts | 5 in 3 Gruppen |
+| 1173 | Die Marke des gelöschten Kommentars bekommt wieder ein Klickziel | 12 in 8 Gruppen |
+| 1174 | Das Kommentarfeld verlangt wieder eine Tastenkombination | 8 in 5 Gruppen, darunter „Und genau hundertsechzig Sätze sind andere" |
+| 1175 | Der Index auf `criterion_id` fällt weg | „Die Kriterienzählung nimmt idx_ratings_criterion" |
+| 1176 | Der deckende Index der Dateiliste fällt weg | 4 in 3 Gruppen, darunter „Die Dateiliste nimmt idx_attachments_list, und er deckt sie" |
+| 1177 | Die Fassung der Kachel fällt aus der Spaltenliste des Index | 4 in 3 Gruppen |
+| 1178 | Ein Index mit alter Spaltenliste bleibt wieder stehen | 5 in 4 Gruppen, darunter „Ein Index mit alter Spaltenliste wird beim Start neu angelegt" |
+| 1179 | Das Verzeichnis der lesenden Routen verliert eine Zeile | 4 in 3 Gruppen, darunter „Der Prüfstand kennt jede lesende Route" |
+| 1180 | Eine Zeile des Verzeichnisses nennt die falsche Klemme | 4 in 3 Gruppen, darunter „Und die Klemme jeder Zeile steht so im Kopf der Route" |
 
 *1170 baut den ersten Versuch aus Abschnitt 3 wieder ein: er trägt die
 Übersetzungen in `criterion_names` ein und fällt damit an der Prüfung auf, die
