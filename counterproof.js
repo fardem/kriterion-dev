@@ -3891,7 +3891,7 @@ const REGRESSIONS = [
        idx_photos_item zurueck und liest wieder den Satz. */
     nr: '489', name: 'Dem deckenden Index fehlt eine Spalte',
     file: 'db.js',
-    search: "zoom, created_at, kind, duration)`);",
+    search: "zoom, created_at, kind, duration, length(thumb))`);",
     replacement: "zoom, art, dauer)`);",
     expected: 'Die Bildablage: PNG kommt herein, WebP geht in die Tabelle'
   },
@@ -8368,8 +8368,8 @@ const REGRESSIONS = [
     /* DIE BEIDEN INDIZES VERLIEREN IHRE KLAMMER. */
     nr: '1041', name: 'Die Indizes auf nachgeruestete Spalten fallen wieder hart',
     file: 'db.js',
-    search: "const tryIndex = (name, sql) => {\n  try { db.exec(sql); } catch (e) {",
-    replacement: "const tryIndex = (name, sql) => {\n  { db.exec(sql); } if (false) { const e = {};",
+    search: "  } catch (e) {\n    if (isMainThread)",
+    replacement: "  } catch (e) {\n    throw e;\n    if (isMainThread)",
     expected: 'Der Hinweis auf einen unvollstaendigen Bestand — 0.33.0'
   },
   {
@@ -8378,14 +8378,6 @@ const REGRESSIONS = [
     file: 'db.js',
     search: "    if (!db.prepare(`PRAGMA table_info(${table})`).all().some(c => c.name === 'user_id')) {\n      counts[table] = 0;\n      continue;\n    }",
     replacement: "",
-    expected: 'Der Hinweis auf einen unvollstaendigen Bestand — 0.33.0'
-  },
-  {
-    /* UND DIE GRUNDAUSSTATTUNG FRAGT NICHT MEHR NACH `language`. */
-    nr: '1043', name: 'Die Grundausstattung fragt nicht mehr nach der Sprachspalte',
-    file: 'db.js',
-    search: "const insertCriterion = db.prepare(seedHasLanguage\n  ? 'INSERT OR IGNORE INTO rating_criteria (name, language) VALUES (?, ?)'\n  : 'INSERT OR IGNORE INTO rating_criteria (name) VALUES (?)');",
-    replacement: "const insertCriterion = db.prepare('INSERT OR IGNORE INTO rating_criteria (name, language) VALUES (?, ?)');",
     expected: 'Der Hinweis auf einen unvollstaendigen Bestand — 0.33.0'
   },
   {
@@ -9414,6 +9406,103 @@ const REGRESSIONS = [
     search: "  LIT_COMMENT = Number(id);",
     replacement: "",
     expected: 'Der Sprung zum Kommentar trifft und haelt'
+  },
+  /* ---- Die drei mitgelieferten Kriterien ---- */
+  {
+    nr: '1169', name: 'Die drei Kriterien entstehen wieder auf Deutsch',
+    file: 'server.js',
+    search: "    const base = languageBase();",
+    replacement: "    const base = 'de';",
+    expected: 'Frische Installation'
+  },
+  {
+    /* EINE ZEILE IN criterion_names SCHLUEGT DEN GRUNDNAMEN: ein Umbenennen
+       ohne Sprachangabe schreibt in die Grundzeile und bliebe wirkungslos. */
+    nr: '1170', name: 'Die weiteren Sprachen bekommen wieder einen Namen daneben',
+    file: 'server.js',
+    search: "    insert.run(t(base, key), i, base);",
+    replacement: "    const row = insert.run(t(base, key), i, base);\n    for (const code of LANGUAGE_CODES) if (code !== base) db.prepare('INSERT OR IGNORE INTO criterion_names (criterion_id, language, name) VALUES (?, ?, ?)').run(row.lastInsertRowid, code, t(code, key));",
+    expected: 'Frische Installation'
+  },
+  {
+    /* DIE LEERE TABELLE IST DIE GANZE BEDINGUNG: ohne sie kaeme eine
+       umbenannte Grundausstattung bei jedem Start zurueck. */
+    nr: '1171', name: 'Eingesetzt wird nicht mehr nur in eine leere Tabelle',
+    file: 'server.js',
+    search: "if (db.prepare('SELECT COUNT(*) n FROM rating_criteria').get().n === 0) {",
+    replacement: "if (true) {",
+    expected: 'Die Grundausstattung an einer bestehenden Instanz'
+  },
+  /* ---- Die Marke am Verweis auf einen geloeschten Kommentar ---- */
+  {
+    nr: '1172', name: 'Ein gefragter Schluessel ohne Antwort wird wieder nichts',
+    file: 'public/app.js',
+    search: "      if (!COMMENT_REFS.has(k)) COMMENT_REFS.set(k, { key: k, gone: true });",
+    replacement: "      if (!COMMENT_REFS.has(k)) COMMENT_REFS.set(k, null);",
+    expected: 'Was der Betrieb an der Auszeichnung gefunden hat'
+  },
+  {
+    nr: '1173', name: 'Die Marke des geloeschten Kommentars bekommt wieder ein Klickziel',
+    file: 'public/app.js',
+    search: "  if (row.gone) {\n    a.classList.add('gone');\n    a.appendChild(raiseHighlight(t('entry.refGone'), term));\n    return a;\n  }",
+    replacement: "",
+    expected: 'Was der Betrieb an der Auszeichnung gefunden hat'
+  },
+  /* ---- Das Kommentarfeld ---- */
+  {
+    nr: '1174', name: 'Das Kommentarfeld verlangt wieder eine Tastenkombination',
+    file: 'public/languages/de.json',
+    search: '"entry.commentPlaceholder": "Kommentar schreiben — Bilder aus der Zwischenablage einfügen …"',
+    replacement: '"entry.commentPlaceholder": "Kommentar schreiben — Bilder mit Strg+V einfügen …"',
+    expected: 'Kein Bildschirmtext verlangt eine Tastenkombination'
+  },
+  /* ---- Die drei Indexe ---- */
+  {
+    nr: '1175', name: 'Der Index auf criterion_id faellt weg',
+    file: 'db.js',
+    search: "CREATE INDEX IF NOT EXISTS idx_ratings_criterion ON ratings(criterion_id, value, item_id);",
+    replacement: "",
+    expected: 'Die drei Indexe und der Abfrageplaner'
+  },
+  {
+    nr: '1176', name: 'Der deckende Index der Dateiliste faellt weg',
+    file: 'db.js',
+    search: "tryIndex('idx_attachments_list', `CREATE INDEX IF NOT EXISTS idx_attachments_list",
+    replacement: "tryIndex('idx_attachments_list', `SELECT 1 -- (",
+    expected: 'Die drei Indexe und der Abfrageplaner'
+  },
+  {
+    nr: '1177', name: 'Die Fassung der Kachel faellt aus der Spaltenliste des Index',
+    file: 'db.js',
+    search: "kind, duration, length(thumb))`);",
+    replacement: "kind, duration)`);",
+    expected: 'Die drei Indexe und der Abfrageplaner'
+  },
+  {
+    /* OHNE DAS FALLENLASSEN BLIEBE EIN INDEX MIT ALTER SPALTENLISTE STEHEN:
+       `CREATE INDEX IF NOT EXISTS` fasst ihn nicht an. */
+    nr: '1178', name: 'Ein Index mit alter Spaltenliste bleibt wieder stehen',
+    file: 'db.js',
+    search: "    if (there && indexWording(there.sql) !== indexWording(sql))\n      db.exec(`DROP INDEX ${name}`);",
+    replacement: "",
+    expected: 'Die drei Indexe und der Abfrageplaner'
+  },
+  /* ---- Das Verzeichnis der lesenden Routen ---- */
+  {
+    nr: '1179', name: 'Das Verzeichnis der lesenden Routen verliert eine Zeile',
+    file: 'test/frame.js',
+    search: "  ['/api/comment-refs',            'angemeldet',\n    'Titel und Stellung fuer die Marke am Verweis; dieselbe Schranke wie am Eintrag.'],",
+    replacement: "",
+    expected: 'Der Waechter ueber den Quelltext'
+  },
+  {
+    /* EINE FALSCHE KLEMME IM VERZEICHNIS IST EINE BEHAUPTUNG: der Waechter
+       haelt sie gegen den Kopf der Route. */
+    nr: '1180', name: 'Eine Zeile des Verzeichnisses nennt die falsche Klemme',
+    file: 'test/frame.js',
+    search: "  ['/api/stats',                   'adminOnly',",
+    replacement: "  ['/api/stats',                   'angemeldet',",
+    expected: 'Der Waechter ueber den Quelltext'
   },
 ];
 

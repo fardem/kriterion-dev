@@ -135,16 +135,16 @@ beim Bauen vergessen hat.**
   **mit der Begründung**. *Er ist der wichtigste Teil des Blatts: eine verworfene
   Idee ohne aufgeschriebenen Grund kommt in einem halben Jahr als neue zurück.*
 
-**Davor steht seit dem 20. September 2026 ein Wegweiser** — „Der Stand der
-offenen Punkte". *Er nennt jeden offenen Punkt in einem Satz und sagt, wo er
-steht; die Begründung bleibt am Punkt.*
+**Davor steht seit dem 20. September 2026 die Tafel „Der Stand der offenen
+Punkte".** *Sie nennt jeden offenen Punkt in einem Satz und sagt, wo er
+ausgearbeitet steht; die Begründung bleibt am Punkt.*
 
 ---
 
-## Der Stand der offenen Punkte — 20. September 2026
+## Der Stand der offenen Punkte — 21. September 2026, nach 0.38.4
 
-**Diese Tafel ist ein Wegweiser und kein zweiter Eintrag.** Jede Zeile nennt
-einen Punkt in einem Satz und sagt, wo er ausgearbeitet steht: eine Nummer
+**Diese Tafel sagt, wo ein Punkt steht, und trägt ihn nicht ein zweites
+Mal.** Jede Zeile nennt einen Punkt in einem Satz und sagt, wo er steht: eine Nummer
 zeigt in Teil I dieses Blatts, *Teil II* auf eine Zeile weiter unten,
 *Fahrplan* auf eine Zeile der Tafel in `Doku/Fahrplan.md`, ein Protokoll auf
 den Abschnitt „Was offen bleibt" der genannten Runde. **Die Begründung steht
@@ -158,36 +158,31 @@ sagt der Fahrplan.
 
 | steht in | worum es geht | Nutzen | Aufwand | Vorschlag |
 |---|---|---|---|---|
-| **23** | Eine frische Installation legt drei deutsche Kriterien an, obwohl die Auslieferungssprache Englisch ist; ein englischer Leser sieht bei allen dreien den roten Rahmen | mittel | klein | bald |
-| Protokoll 0.38.3 | Ein Verweis auf einen gelöschten Kommentar bleibt eine rohe Adresse und öffnet einen neuen Tab auf denselben Eintrag | mittel | klein | bald |
-| Teil II | `entry.commentPlaceholder` nennt Strg+V; am Telefon gibt es das nicht | klein | ein Halbsatz in drei Sprachen | mitnehmen |
 | Protokoll 0.38.2 | Der Trefferausschnitt zeigt bei einem Treffer im Ziel eines Links den Rohtext samt seiner Marken | niedrig | groß *(gemeinsamer Kern)* | liegen lassen |
 | Protokoll 0.38.3 | Der Halt nach einem Sprung ist eine Frist von 1600 Millisekunden und keine Messung | niedrig | mittel | beobachten |
 | Protokoll 0.38.3 | Der Sprung ans Seitenende ist in Chromium nicht nachgestellt worden | — | — | beobachten |
 | Protokoll 0.38.2 | Die Strichstärke des Löschkreuzes bleibt 1.8, dieselbe wie am Stift und am Zitatzeichen | — | eine Zeile | Entscheidung des Betreibers |
-| **38** | Die Kachel zählt in Worten, der Blockkopf in Zeichen; auf dem Telefon steht die längste Fassung am engsten Ort | klein | klein | erst messen |
-| Fahrplan | Vorgabewerte und Tastaturbedienung beim Sortieren, übrig aus dem gestrichenen 1.0.0-Eintrag | — | — | braucht erst eine Beschreibung |
+| **38** | Die Kachel zählt in Worten, der Blockkopf in Zeichen; **gemessen am 21. September 2026:** 36 Zeichen und 227,6 von 340 Pixeln auf Deutsch, dem Titel bleiben 101,4 | klein | klein | Entscheidung des Betreibers |
 
 ### Sprache
 
-| steht in | worum es geht | Nutzen | Aufwand | Vorschlag |
-|---|---|---|---|---|
-| **26** | Die Restprobe übersieht jedes feste deutsche Wort, das in einer Vorlage mit `${…}`-Stellen steckt; wie viele es sind, weiß niemand | mittel | mittel | empfohlen |
-| **37** | „Dieser `{entryOne}`" ist richtig für „Eintrag" und falsch für „Bewertung"; ein drittes Feld je Vokabelwort ist für Türkisch abgelehnt | klein | klein | gelegentlich, ohne drittes Feld |
+*Kein offener Punkt mehr.* **26** *und* **37** *sind am 20. September 2026
+nachgelesen und geschlossen worden:* **26** *war schon gebaut,* **37** *ist
+leer.*
 
 ### Datenbank und Betrieb
 
 | steht in | worum es geht | Nutzen | Aufwand | Vorschlag |
 |---|---|---|---|---|
-| **39** | Vier Stellen, an denen die Datenbank mehr liest als nötig; ein fehlender Index kostet 73,6 statt 14,2 Millisekunden | mittel bis hoch | mittel | eigene Runde |
+| **39** | Von vier Stellen sind **drei mit 0.38.4 gebaut** — die drei Indexe. Offen bleibt die Fotokachel in einer Nebentabelle: die Ableitungen müssten neu gerechnet werden | mittel | groß | Entscheidung des Betreibers |
 | **40** | Export, Import und Papierkorb führen jedes Byte durch den Arbeitsspeicher; der Umbau ändert die Antwortform und kann auf einem Fehlerweg Daten verlieren | hoch bei großem Bestand | groß | erst am Bestand messen |
 | **20** | Nach einem Umbenennen holt die Oberfläche vier Antworten statt drei; die vierte ist die größte der Installation | niedrig | klein | liegen lassen |
+| Teil II | Fehlt `rating_criteria.language`, kommt der Server nicht hoch — der Kasten sagt „startet trotzdem", und für diese eine Spalte stimmt das nicht | klein | klein | gelegentlich |
 
 ### Prüfstand und Quelltext
 
 | steht in | worum es geht | Nutzen | Aufwand | Vorschlag |
 |---|---|---|---|---|
-| Teil II | Für die rund dreißig lesenden Routen gibt es kein Verzeichnis; eine `GET`-Route kann still dazukommen oder verschwinden | mittel | mittel | empfohlen |
 | **27** | Der Aufräumer des Prüfstands wird auf vier Spuren in neun von einundzwanzig Läufen rot, bei Rückbauten, die nichts damit zu tun haben | mittel | mittel | empfohlen |
 | **41** | Feste Wartezeiten in den Modulen, zusammen rund 47,5 Sekunden Laufzeit; jede braucht ihre eigene Bedingung | niedrig | groß | liegen lassen |
 | **42**, Fahrplan | Der Kommentaranteil von `public/style.css` liegt bei 40 Prozent; offen ist, ob die gemessenen Zahlen in ein eigenes Papier wandern | niedrig | — | Entscheidung des Betreibers |
@@ -197,20 +192,21 @@ sagt der Fahrplan.
 
 | steht in | worum es geht | Vorschlag |
 |---|---|---|
-| Protokoll 0.38.0 | Der Bestand des Betreibers ist nie gemessen worden; `tools/markupscan.js` steht bereit | zuerst, es ist ein Kommando |
-| Protokoll 0.38.0 | Der einzelne Stern zeichnet nicht; er kommt erst, wenn eine Messung am Bestand eine Null meldet | hängt an der Messung darüber |
+| *(beantwortet)* | **Der Bestand des Betreibers ist am 20. September 2026 gemessen:** 271 Texte, 22 mit Auszeichnung, kein Schaden | erledigt |
+| *(beantwortet)* | **Der einzelne Stern bleibt draußen:** gemessen am 21. September 2026 sähen **20 von 273** Texten anders aus, also 7,3 Prozent statt der verlangten Null | erledigt |
 | Teil II | Der angepinnte Block kann zur Wand werden | beobachten, nicht bauen |
 | Teil II | Der eine abgerissene Prüflauf von 0.9.1 | wer ihn wiedersieht, schreibt den Lauf vollständig mit |
 
 ### Ein Vorschlag für die Reihenfolge
 
+*Die Schritte 1 bis 4 der Reihenfolge vom 20. September 2026 sind mit 0.38.4
+abgearbeitet; was davon offen blieb, steht in den Zeilen darüber.*
+
 | | was | warum zuerst |
 |---|---|---|
-| 1 | **Den Bestand messen** | ein Kommando, und es entscheidet über den einzelnen Stern |
-| 2 | **Ein kleiner Sammelpatch** — die drei deutschen Kriterien, der Verweis auf einen gelöschten Kommentar, Strg+V | alles klein, alles sichtbar, eine Runde |
-| 3 | **Die Schemarunde** *(Punkt 39)* | die einzige offene Sache mit gemessenen Zahlen dahinter |
-| 4 | **Eine Runde an den Wächtern** — lesende Routen, Restprobe, Aufräumer | drei Lücken im Prüfstand, ein Thema |
-| 5 | **Export und Import** *(Punkt 40)* | erst nach einer Messung am Bestand |
+| 1 | **Der Aufräumer des Prüfstands** *(Punkt 27)* | die letzte der drei Lücken im Prüfstand |
+| 2 | **Die Fotokachel in eine Nebentabelle** *(Punkt 39)* | die Ableitungen müssten neu gerechnet werden — eine Entscheidung, kein Bauauftrag |
+| 3 | **Export und Import** *(Punkt 40)* | erst nach einer Messung am Bestand |
 
 ---
 
@@ -860,28 +856,30 @@ wiedersieht, schreibt den Lauf vollständig mit)**.
 > gefunden wurde es erst, als jemand am laufenden Server nachsah statt im
 > Stilblatt zu suchen.
 
-### Zwei Funde aus dem Bau von 0.28.0 — noch offen
+### Ein Fund aus dem Bau von 0.38.4
 
-*Beide sind beim Bauen aufgefallen, gehören aber nicht in eine Runde über das
-Telefon. Sie warten hier auf ihre.*
+- **Fehlt `rating_criteria.language`, kommt der Server nicht hoch.** *Der
+  Kasten über eine unvollständige Datenbank sagt „THIS INSTANCE STARTS
+  ANYWAY"; für diese eine Spalte stimmt das nicht.* **`qCriteria`
+  (`server.js`) liest `c.language` und wird beim Start vorbereitet** — das
+  scheitert, und der Prozess endet. *Für `db.js` gilt die Zusage weiterhin:
+  das bloße Öffnen der Datei kommt durch.* **Der Befund ist älter als 0.38.4
+  und beim Bauen aufgefallen**, weil das Einsetzen der drei Kriterien aus
+  `db.js` in den Server gezogen ist. *(Claude: klein — entweder die Abfrage
+  verträgt die fehlende Spalte, oder der Kasten sagt, dass der Server bei
+  dieser Spalte anhält)*
 
-- **Es gibt kein Verzeichnis der LESENDEN Routen.** `F_ROUTES` führt die
-  schreibenden — heute 72 — und nagelt jede mit ihrer Klemme fest: eine Route,
-  die im Server steht und nicht in der Liste, färbt den Prüfstand rot.
-  **Für die 31 lesenden Routen gibt es nichts dergleichen.** Eine `GET`-Route
-  kann still dazukommen oder verschwinden, und niemand merkt es. *Aufgefallen
-  bei 0.28.0, weil der Auftrag an drei Stellen „`F_ROUTES` geht auf 73" sagte —
-  das kann nicht sein, die neue Route ist lesend.* **Die Lücke ist älter als
-  diese Runde.** *(Claude: empfohlen, als eigene Runde — es sind 31 Routen, je
-  mit Klemme und Begründung, und das ist dieselbe Arbeit, die F_ROUTES einmal
-  gekostet hat)*
-- **`entry.commentPlaceholder` nennt Strg+V, und am Telefon gibt es das
-  nicht.** *„Kommentar schreiben — Bilder mit Strg+V einfügen …"* — derselbe
-  Befund wie beim Ablegefeld, dieselbe Antwort. **Er ist in 0.28.0
-  ausdrücklich NICHT mitgebaut worden:** der Auftrag hat drei Sätze unter dem
-  Ablegefeld gezählt und genau einen benannt; dieser Satz steht woanders.
-  *Eine Runde wird nicht nebenbei breiter gemacht.* *(Claude: empfohlen, und
-  es ist ein Halbsatz in drei Sprachen)*
+### ~~Zwei Funde aus dem Bau von 0.28.0~~ — **BEIDE GEBAUT mit 0.38.4**
+
+*Beide sind beim Bauen von 0.28.0 aufgefallen und haben seither hier gestanden.*
+
+- ~~**Es gibt kein Verzeichnis der LESENDEN Routen.**~~ **Gebaut mit 0.38.4:**
+  `F_READ_ROUTES` führt die **30** lesenden Wege, je mit Pfad, Klemme und einem
+  Satz; ein Wächter hält die Liste und `server.js` in beide Richtungen
+  gegeneinander. *Die Zahl 31 in der alten Zeile war geschätzt; gemessen sind
+  es 30.*
+- ~~**`entry.commentPlaceholder` nennt Strg+V.**~~ **Gebaut mit 0.38.4:** der
+  Satz nennt in allen drei Sprachen die Zwischenablage statt der Tasten.
 
 ### An den Nummern
 
@@ -1144,7 +1142,15 @@ bekommt eine andere Bedingung. **Punkt und Zahl bleiben davon unberührt.**
 
 ---
 
-## 23. Die drei mitgelieferten Kriterien stehen auf Deutsch
+## 23. ~~Die drei mitgelieferten Kriterien stehen auf Deutsch~~ — **GEBAUT mit 0.38.4**
+
+> **GEBAUT AM 21. SEPTEMBER 2026.** *Der Server legt die drei Kriterien beim
+> Start an, nicht mehr `db.js`: in der Auslieferungssprache und mit `language`
+> auf dieselbe Sprache.* **Die drei Namen stehen als Schlüssel in allen drei
+> Sprachdateien** — `server.seedAppearance`, `server.seedWorkmanship`,
+> `server.seedFunction`. *Eine bestehende Installation bekommt nichts dazu:
+> eingesetzt wird nur in eine leere Tabelle.* **Der Kasten darunter ist der
+> Stand vor der Runde.**
 
 > **DIESER PUNKT IST NICHT DER ROTE RAHMEN — und er bleibt offen.** Der
 > Betreiber hat am 10. September 2026 nach *„Punkt 22 und 23"* zusammen
@@ -1430,7 +1436,16 @@ Baum ist weniger verflochten als ein Datenbankfeld.*
 > einer über den Wächter.** *Sie stehen hier, damit sie nicht ein zweites Mal
 > zufällig gefunden werden müssen.*
 
-## 26. Zwei feste deutsche Wörter im Sortierfeld — und wie sie durchgerutscht sind
+## 26. ~~Zwei feste deutsche Wörter im Sortierfeld~~ — **GESCHLOSSEN am 20. September 2026: die Lücke gibt es nicht mehr**
+
+> **NACHGELESEN AM 20. SEPTEMBER 2026.** *Die Restprobe zerlegt Vorlagen
+> inzwischen an ihren `${…}`-Stellen:* `test/dom.js`:1425 — `template()`
+> schiebt **jedes Stück zwischen zwei `${…}` einzeln** in die Liste.
+> **Zwei Stufen halten den Rest fest:** `test/ui_language.js`:310 deckelt die
+> übrigen lesbaren Texte auf unter siebzig und verlangt sie namentlich in
+> einer Liste; `test/ui_language.js`:345 prüft jeden übrigen Text gegen ein
+> Wörterbuch, mit Gegenprobe an zwei bekannten Wörtern. **Es war nichts zu
+> bauen.** *Der Kasten darunter ist der Stand vor der Durchsicht.*
 
 **Art: Fehler** *(am Wächter; die zwei Wörter selbst sind mit 0.28.1 erledigt)*
 **· Einschätzung: empfohlen — nach der Messung · Draußen üblich:** *Werkzeuge
@@ -2126,7 +2141,15 @@ Datei.*
 
 ---
 
-## 37. Der deutsche Artikel ist dasselbe Problem wie die türkische Endung
+## 37. ~~Der deutsche Artikel ist dasselbe Problem wie die türkische Endung~~ — **GESCHLOSSEN am 20. September 2026: der Punkt ist leer**
+
+> **NACHGELESEN AM 20. SEPTEMBER 2026.** *Von den beiden genannten Sätzen gibt
+> es einen nicht mehr:* `server.entryTooBig` **ist mit dem Einzelexport
+> gefallen.** *Der andere,* `entry.deleteHint` *(„Dieses {word} wird endgültig
+> gelöscht."), wird an beiden Rufstellen* — `public/app.js`:4962 und :5294 —
+> *mit* `list.photo` *oder* `list.video` *gefüllt.* **Beide sind feste Wörter
+> der Sprachdatei, beide sächlich, keine Vokabelwörter: „Dieses" ist immer
+> richtig.** *Der Kasten darunter ist der Stand vor der Durchsicht.*
 
 **Art: Idee** *(Sprache, alle Runden)* **· Herkunft: 0.32.1, beim Bauen von
 Strang 2 aufgefallen · Einschätzung: mittel, und sie hat keinen Anlass**
@@ -2172,10 +2195,33 @@ Bewertungen")*. *Das ist gewollt — in der Kachel steht keine Überschrift
 daneben, die sagt, wovon die Rede ist.*
 
 **Die Frage bleibt trotzdem offen:** *auf dem Telefon ist die Kachel der
-engste Ort der ganzen Anwendung, und dort steht die längste Fassung.* **Gemessen
-ist das noch nicht** — *0.32.1 hat die Kopfzeile gemessen, nicht die Kachel.*
+engste Ort der ganzen Anwendung, und dort steht die längste Fassung.*
 
-**Was zu bauen wäre** — *erst messen, dann entscheiden.*
+### Gemessen am 21. September 2026
+
+**Die Zählzeile ist `newWords()`** *(`public/app.js`:3058)*; sie steht in der
+Meldungstafel als `.mcount`. **Gemessen in Chromium bei 390 Pixeln
+Schirmbreite**, an der ausgelieferten `public/style.css` und mit den
+ausgelieferten Vokabelwörtern:
+
+| Sprache | ungünstigster Fall | Zeichen | Breite | bleibt dem Titel |
+|---|---|---:|---:|---:|
+| Deutsch | „12 Kommentare · @34 · 56 Bewertungen" | 36 | **227,6 px** | 101,4 px |
+| Türkçe | „12 yorum · @34 · 56 Değerlendirme" | 33 | 208,6 px | 120,4 px |
+| English | „12 comments · @34 · 56 Ratings" | 30 | 189,7 px | 139,3 px |
+
+**Die Zeile der Kachel ist innen 340 Pixel breit** *(390 minus 32 Rand des
+Blatts, minus 18 Innenabstand der Zeile)*. **Die Zählzeile bricht in keiner
+der drei Sprachen um** — *sie drückt stattdessen den Titel zusammen: auf
+Deutsch bleiben ihm 101,4 Pixel.* **Umgebrochen wird ab 54 Zeichen** *(über
+331 Pixel)*; bei 52 Zeichen bleiben dem Titel 0,3 Pixel.
+
+*Mit einstelligen Zahlen sind es 33 · 30 · 27 Zeichen und 208,6 · 189,7 ·
+170,7 Pixel.* **Die Vokabelwörter trägt der Betreiber ein** — ein längeres
+eigenes Wort verschiebt die Zahlen, und die Latte von 54 Zeichen sagt, wo.
+
+**Was zu bauen wäre** — *die Entscheidung steht noch aus; die Zahlen liegen
+jetzt vor.*
 
 **Was es anfasst** — `public/app.js` *(eine Funktion)*, `public/style.css`.
 

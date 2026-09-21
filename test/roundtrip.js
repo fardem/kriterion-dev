@@ -262,6 +262,29 @@ async function sendImport(object, mode, withoutShare = false) {
   check('Und jedes Kriterium startet auf Gewicht 1',
     freshCriterion.length === 3 && freshCriterion.every(c => c.weight === 1),
     JSON.stringify(freshCriterion.map(c => `${c.name}:${c.weight}`)));
+  /* ---- DIE DREI STEHEN IN DER AUSLIEFERUNGSSPRACHE ----
+     GELESEN WIRD DIE SPRACHDATEI UND KEINE ZWEITE LISTE DANEBEN. */
+  const freshTexts = Object.fromEntries(['de', 'en', 'tr'].map(code =>
+    [code, JSON.parse(fs.readFileSync(
+      path.join(__dirname, 'public', 'languages', code + '.json'), 'utf8'))]));
+  const SEED_KEYS = ['server.seedAppearance', 'server.seedWorkmanship', 'server.seedFunction'];
+  check('Die drei Schluessel stehen in allen drei Sprachdateien',
+    SEED_KEYS.every(k => ['de', 'en', 'tr']
+      .every(code => typeof freshTexts[code][k] === 'string' && freshTexts[code][k].trim())),
+    SEED_KEYS.map(k => ['de', 'en', 'tr'].map(c => freshTexts[c][k]).join('/')).join(' · '));
+  const freshLanguage = freshDb.prepare(
+    'SELECT name, language FROM rating_criteria ORDER BY sort_order, id').all();
+  check('Und die drei tragen die Namen der Auslieferungssprache',
+    equal(freshLanguage.map(c => c.name), SEED_KEYS.map(k => freshTexts.en[k])),
+    JSON.stringify(freshLanguage.map(c => c.name)));
+  check('Und die Spalte language sagt dieselbe Sprache',
+    freshLanguage.length === 3 && freshLanguage.every(c => c.language === 'en'),
+    JSON.stringify(freshLanguage.map(c => c.language)));
+  /* UND KEIN NAME IN criterion_names DANEBEN: eine Zeile dort schluege den
+     Grundnamen, und ein Umbenennen ohne Sprachangabe traefe ihn nicht mehr. */
+  check('Und keine weitere Sprache bekommt einen Namen daneben',
+    freshDb.prepare('SELECT COUNT(*) n FROM criterion_names').get().n === 0,
+    JSON.stringify(freshDb.prepare('SELECT * FROM criterion_names').all()));
   freshDb.close();
   check('Vor der Einrichtung meldet /api/config Einrichtungsbedarf',
     (await call('GET', '/api/config')).content.setupRequired === true);
@@ -296,6 +319,17 @@ async function sendImport(object, mode, withoutShare = false) {
   check('Anmeldung gelingt', login.status === 200 && H.cookie.startsWith('kriterion_session='));
   check('Eingerichtet meldet /api/config keinen Einrichtungsbedarf',
     (await call('GET', '/api/config')).content.setupRequired === false);
+
+  /* --- UND KEIN ROTER RAHMEN AN DER KACHEL --- Er steht dort, wo der Name aus
+     einer anderen Sprache kommt; in der Auslieferungssprache gelesen, kommt er
+     aus keiner. */
+  {
+    const inEnglish = await (await fetch(`${BASE}/api/criteria`,
+      { headers: { cookie: H.cookie, 'accept-language': 'en' } })).json();
+    check('Die drei mitgelieferten Kriterien stehen ohne Rahmen da, in der Auslieferungssprache',
+      inEnglish.length === 3 && inEnglish.every(c => c.nameFallback === undefined),
+      JSON.stringify(inEnglish.map(c => `${c.name}:${c.nameFallback ?? '—'}`)));
+  }
 
   /* --- Startbestand ueber die Schnittstelle: drei benannte Kriterien und ein
          erster Eintrag mit Sternen; darauf bauen die folgenden Gruppen auf. */
@@ -4028,16 +4062,16 @@ async function sendImport(object, mode, withoutShare = false) {
       stColumns('product_categories').includes('language') &&
       stColumns('rating_criteria').includes('language'),
       JSON.stringify([stColumns('product_categories'), stColumns('rating_criteria')]));
-    /* UND DIE MITGELIEFERTEN KRITERIEN SAGEN WEITER, IN WELCHER SPRACHE SIE
-       STEHEN. */
+    /* UND DAS BLOSSE OEFFNEN LEGT KEIN KRITERIUM MEHR AN: die drei
+       mitgelieferten entstehen im Server, weil ihre Namen in den
+       Sprachdateien stehen. */
     const stSeed = (() => {
       const d = open(stFile);
       const r = d.prepare('SELECT name, language FROM rating_criteria ORDER BY sort_order').all();
       d.close(); return r;
     })();
-    check('Und die drei mitgelieferten Kriterien tragen ihre Sprache',
-      stSeed.length === 3 && stSeed.every(z => z.language === 'de'),
-      JSON.stringify(stSeed));
+    check('Und das blosse Oeffnen der Datei legt kein Kriterium mehr an',
+      stSeed.length === 0, JSON.stringify(stSeed));
     /* UND KEIN START MELDET MEHR EINE MIGRATION. */
     const stSay = shortRunAll(`require('./db'); console.log('da');`, stDir);
     check('Und kein Start meldet noch eine Migration',
@@ -15990,17 +16024,22 @@ async function sendImport(object, mode, withoutShare = false) {
        Spaltenliste steht an EINER Stelle. */
     const columns = (oneLine.match(/const PHOTO_COLUMNS = '([^']+)'/) || [])[1] || '';
     const indexColumns = ((dbSource.replace(/\s+/g, ' ')
-      .match(/idx_photos_tile ON photos\(([^)]+)\)/) || [])[1] || '');
+      .match(/idx_photos_tile ON photos\((.+?)\)`\)/) || [])[1] || '');
     const asList = (t) => t.split(',').map(x => x.trim()).filter(Boolean);
     check('Die Spaltenliste der Fotoabfrage steht an einer Stelle',
       asList(columns).length === 10, columns || '(nicht gefunden)');
+    /* DIE FASSUNG GEHOERT MIT IN DEN INDEX: sie haengt an derselben Abfrage,
+       und ohne den Ausdruck liest SQLite die Zeile. */
+    const version = ((oneLine.match(/const PHOTO_VERSION = '([^']+)'/) || [])[1] || '')
+      .replace(/\s+AS\s+\w+$/, '');
+    const wanted = [...asList(columns), version];
     /* GLEICHE MENGE, NICHT GLEICHE FOLGE: der Index darf anders sortiert sein
        -- er MUSS nur jede Spalte tragen, die die Abfrage liest. */
-    check('Und der deckende Index traegt genau diese Spalten',
-      asList(columns).length > 0 &&
-      asList(columns).every(x => asList(indexColumns).includes(x)) &&
-      asList(indexColumns).every(x => asList(columns).includes(x)),
-      `Abfrage: ${columns} · Index: ${indexColumns}`);
+    check('Und der deckende Index traegt genau diese Spalten samt der Fassung',
+      wanted.length === 11 &&
+      wanted.every(x => asList(indexColumns).includes(x)) &&
+      asList(indexColumns).every(x => wanted.includes(x)),
+      `Abfrage: ${columns}, ${version} · Index: ${indexColumns}`);
     /* UND DIE UEBERSICHT FRAGT EINMAL STATT JE EINTRAG. Ohne diese Zeile
        bliebe gruen, wer den Index anlegt und die Schleife stehen laesst. */
     check('Die Uebersicht holt die Fotos in einer Abfrage',
@@ -17529,6 +17568,88 @@ async function sendImport(object, mode, withoutShare = false) {
       "SELECT name FROM sqlite_master WHERE type = 'index' AND name = 'idx_sessions_user'").get());
     d.close();
   }
+
+  /* ---------------------------------------------------------------- */
+  group('Die drei Indexe und der Abfrageplaner');
+
+  {
+    const d = open(path.join(hDir2, 'katalog.sqlite'));
+    // Was der Abfrageplaner sagt, und nicht, was im Schema steht.
+    const plan = (sql) => d.prepare('EXPLAIN QUERY PLAN ' + sql).all()
+      .map(z => String(z.detail || '')).join(' · ');
+    /* 1. DIE KRITERIENKARTE zaehlt je Kriterium ueber alle Bewertungen.
+       Ohne diesen Index laeuft sie ueber die ganze Tabelle. */
+    const pCriteria = plan(
+      'SELECT COUNT(DISTINCT r.item_id) FROM ratings r WHERE r.criterion_id = 1 AND r.value > 0');
+    check('Die Kriterienzaehlung nimmt idx_ratings_criterion',
+      pCriteria.includes('idx_ratings_criterion'), pCriteria);
+    /* 2. DIE DATEIEN EINES EINTRAGS werden ohne ihren Inhalt gelesen; jede
+       gelesene Spalte steht hinter `data`. */
+    const pAttachments = plan('SELECT id, filename, mime_type, size, sort_order, ' +
+      'created_at, user_id FROM attachments WHERE item_id = 1 ORDER BY sort_order, id');
+    check('Die Dateiliste nimmt idx_attachments_list, und er deckt sie',
+      pAttachments.includes('COVERING INDEX idx_attachments_list'), pAttachments);
+    /* 3. DIE UEBERSICHT holt die Fotospalten samt der Fassung. Fehlte
+       `length(thumb)` im Index, faellt sie auf idx_photos_item zurueck. */
+    const pPhotos = plan('SELECT id, item_id, mime_type, focus_x, focus_y, zoom, ' +
+      'sort_order, created_at, kind, duration, length(thumb) AS thumbLength ' +
+      'FROM photos ORDER BY item_id, sort_order, id');
+    check('Die Fotoabfrage nimmt idx_photos_tile, und er deckt sie',
+      pPhotos.includes('COVERING INDEX idx_photos_tile'), pPhotos);
+    /* UND EINE GEAENDERTE SPALTENLISTE ZIEHT AN EINER BESTEHENDEN DATENBANK
+       NACH: `CREATE INDEX IF NOT EXISTS` allein faengt das nicht. */
+    d.prepare('DROP INDEX idx_photos_tile').run();
+    d.exec('CREATE INDEX idx_photos_tile ON photos(item_id, sort_order, id)');
+    d.close();
+    shortRun(`require('./db'); console.log('da');`, hDir2);
+    const e = open(path.join(hDir2, 'katalog.sqlite'));
+    const wording = String(e.prepare(
+      "SELECT sql FROM sqlite_master WHERE type = 'index' AND name = 'idx_photos_tile'")
+      .get()?.sql || '');
+    check('Ein Index mit alter Spaltenliste wird beim Start neu angelegt',
+      wording.includes('length(thumb)'), wording.replace(/\s+/g, ' '));
+    e.close();
+  }
+
+  /* ---------------------------------------------------------------- */
+  group('Die Grundausstattung an einer bestehenden Instanz');
+
+  {
+    /* DIE LAGE: eine Instanz, die schon gelaufen ist und ihre Kriterien
+       umbenannt hat. Sie darf beim naechsten Start nichts dazubekommen. */
+    const d = open(path.join(hDir2, 'katalog.sqlite'));
+    d.prepare('DELETE FROM rating_criteria WHERE sort_order > 0').run();
+    d.prepare('DELETE FROM criterion_names').run();
+    d.prepare("UPDATE rating_criteria SET name = 'Eigener Name', language = 'de'").run();
+    const before = d.prepare('SELECT name, language FROM rating_criteria').all();
+    check('Die Prueflage steht: ein einziges, umbenanntes Kriterium',
+      before.length === 1 && before[0].name === 'Eigener Name', JSON.stringify(before));
+    d.close();
+    const H3 = startFurtherServer(hDir2, {}, 5640);
+    await H3.ready;
+    await H3.stop();
+    const f = open(path.join(hDir2, 'katalog.sqlite'));
+    const after = f.prepare('SELECT name, language FROM rating_criteria').all();
+    check('Eine Instanz mit vorhandenen Kriterien bekommt keines dazu',
+      after.length === 1 && after[0].name === 'Eigener Name' && after[0].language === 'de',
+      JSON.stringify(after));
+    // Und auch keinen Namen daneben in eine der anderen Sprachen.
+    check('Und auch keinen uebersetzten Namen daneben',
+      f.prepare('SELECT COUNT(*) n FROM criterion_names').get().n === 0,
+      JSON.stringify(f.prepare('SELECT * FROM criterion_names').all()));
+    /* ---- UND IN EINE GELEERTE TABELLE WIRD WIEDER EINGESETZT ---- Die
+       Bedingung ist die leere Tabelle und kein Merker daneben. */
+    f.prepare('DELETE FROM rating_criteria').run();
+    f.close();
+    const H4 = startFurtherServer(hDir2, {}, 5640);
+    await H4.ready;
+    await H4.stop();
+    const g = open(path.join(hDir2, 'katalog.sqlite'));
+    check('In eine geleerte Tabelle wird beim naechsten Start wieder eingesetzt',
+      g.prepare('SELECT COUNT(*) n FROM rating_criteria').get().n === 3,
+      JSON.stringify(g.prepare('SELECT name FROM rating_criteria').all()));
+    g.close();
+  }
   fs.rmSync(hDir2, { recursive: true, force: true });
 
   /* ---------------------------------------------------------------- */
@@ -18353,9 +18474,10 @@ async function sendImport(object, mode, withoutShare = false) {
        hinter dem require steht in der Ausgabe. */
     check('Und die Instanz kommt trotzdem hoch',
       first.status === 0 && /OBEN/.test(first.out), `Status ${first.status}`);
-    /* UND DIE ZEILEN SIND DABEI UNANGETASTET GEBLIEBEN. */
+    /* UND DIE ZEILEN SIND DABEI UNANGETASTET GEBLIEBEN. Es sind die beiden
+       von Hand gesetzten: das Oeffnen der Datei legt keine mehr an. */
     check('Und die Kriterien stehen unveraendert da',
-      allAfter === 5, `${allAfter} Kriterien`);
+      allAfter === 2, `${allAfter} Kriterien`);
     /* UND DER ZWEITE LAUF SAGT DASSELBE. */
     check('Und der zweite Lauf sagt dasselbe — der Hinweis ist kein Merker',
       second.status === 0 && /rating_criteria\.phase/.test(second.out),

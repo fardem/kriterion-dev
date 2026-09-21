@@ -2619,8 +2619,11 @@ async function run() {
     `${fAufg.className} | ${fAufg.textContent}`);
 
   check('Es gibt einen Knopf für Bilder', !!wb.document.getElementById('cimg'));
-  check('Das Textfeld weist auf Strg+V hin',
-    /Strg\+V/i.test(wb.document.getElementById('ctext').getAttribute('placeholder') || ''));
+  /* DER SATZ NENNT DEN WEG UND NICHT DIE TASTEN: am Telefon gibt es keine. */
+  check('Das Textfeld nennt die Zwischenablage und keine Tastenkombination',
+    /Zwischenablage/.test(wb.document.getElementById('ctext').getAttribute('placeholder') || '') &&
+    !/Strg\+V|Ctrl[+-]V/i.test(wb.document.getElementById('ctext').getAttribute('placeholder') || ''),
+    wb.document.getElementById('ctext').getAttribute('placeholder') || '(kein Platzhalter)');
 
   // Strg+V: Bilder werden aufgenommen, eingefuegter Text bleibt unberuehrt.
   const paste = (files) => {
@@ -4211,7 +4214,28 @@ group('Was der Betrieb an der Auszeichnung gefunden hat');
       mkScrolled === 1 && mkEv.defaultPrevented === true,
       `${mkScrolled} Sprünge, verhindert: ${mkEv.defaultPrevented}`);
   }
-  wb.eval("COMMENT_REFS.delete('c2'); COMMENT_REFS.delete('i1');");
+  /* ---- 7. EIN VERWEIS AUF EINEN GELOESCHTEN KOMMENTAR ---- Was gefragt und
+     nicht beantwortet wurde, gibt es nicht. */
+  wb.eval("COMMENT_REFS.set('c4242', { key: 'c4242', gone: true });");
+  const mkGone = mkRef(mkHere + '#/item/1?c=4242');
+  check('Ein Verweis auf einen geloeschten Kommentar wird ein Kasten ohne Klickziel',
+    mkGone !== null && !mkGone.hasAttribute('href') && mkGone.classList.contains('gone'),
+    mkGone ? mkGone.outerHTML : '(kein Kasten)');
+  check('Und er traegt das Wort aus der Sprachdatei',
+    mkGone !== null && mkGone.textContent === wb.t('entry.refGone'),
+    `${mkGone ? mkGone.textContent : '(kein Kasten)'} statt ${wb.t('entry.refGone')}`);
+  /* UND DER VORHANDENE BLEIBT, WIE ER IST: sonst truege jeder Verweis die
+     Marke, und die Unterscheidung waere keine. */
+  check('Ein Verweis auf einen vorhandenen Kommentar bleibt, wie er ist',
+    mkRef(mkHere + '#/item/1?c=2').getAttribute('href') === '#/item/1?c=2',
+    mkRef(mkHere + '#/item/1?c=2').getAttribute('href'));
+  /* UND EIN GESCHEITERTER RUF MACHT WEITERHIN KEINEN KASTEN: dann steht der
+     Schluessel ueberhaupt nicht in der Tafel. */
+  check('Ohne jede Auskunft bleibt die rohe Adresse ein Link nach draussen',
+    mkRef(mkHere + '#/item/1?c=4343') === null &&
+    mkBox(mkHere + '#/item/1?c=4343').querySelector('a[target="_blank"]') !== null,
+    mkBox(mkHere + '#/item/1?c=4343').innerHTML);
+  wb.eval("COMMENT_REFS.delete('c2'); COMMENT_REFS.delete('i1'); COMMENT_REFS.delete('c4242');");
 }
 
 /* ================= Der Sprung zum Kommentar =================

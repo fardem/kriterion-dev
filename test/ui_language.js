@@ -645,6 +645,35 @@ async function run() {
       `${spNames.length} Datei(en) · ${cfgFields} Felder`);
   }
 
+  /* ================= KEIN SATZ VERLANGT EINE TASTENKOMBINATION ===========
+     Am Telefon gibt es keine; der Satz nennt den Weg und nicht die Tasten. */
+  group('Kein Bildschirmtext verlangt eine Tastenkombination');
+  {
+    const ksDir = path.join(__dirname, 'public', 'languages');
+    const KEYSTROKE = /\b(?:Strg|Ctrl|Cmd|Alt|Shift|Umschalt)\s*[+-]\s*[A-Za-z]\b/;
+    const ksHits = [];
+    for (const code of ['de', 'en', 'tr']) {
+      const texts = JSON.parse(fs.readFileSync(path.join(ksDir, code + '.json'), 'utf8'));
+      for (const [k, v] of Object.entries(texts))
+        for (const text of (typeof v === 'string' ? [v] : Object.values(v)))
+          if (KEYSTROKE.test(String(text))) ksHits.push(`${code}/${k}: ${text}`);
+    }
+    check('Kein Satz der drei Sprachdateien nennt eine Tastenkombination',
+      ksHits.length === 0, ksHits.slice(0, 6).join(' · ') || 'keine');
+    /* UND DAS KOMMENTARFELD NAMENTLICH: dort stand sie, und dort faellt ein
+       Rueckfall zuerst auf. */
+    const ksField = ['de', 'en', 'tr'].map(code => String(JSON.parse(fs.readFileSync(
+      path.join(ksDir, code + '.json'), 'utf8'))['entry.commentPlaceholder'] || ''));
+    check('Und das Kommentarfeld nennt in keiner der drei Sprachen mehr Strg+V',
+      ksField.length === 3 && ksField.every(s => s && !/Strg|Ctrl/i.test(s)),
+      ksField.join(' · '));
+    // Und der Leser faende eine, wenn eine dastuende.
+    check('Der Leser faende eine Tastenkombination, wenn eine dastuende',
+      KEYSTROKE.test('Bilder mit Strg+V einfügen') && KEYSTROKE.test('paste with Ctrl-V') &&
+      !KEYSTROKE.test('Bilder aus der Zwischenablage einfügen'),
+      'der Leser trennt Tastenkombination und Satz nicht');
+  }
+
   /* ================= Die Zeitleiste im hellen Schema — 0.24.0
      ================= DIE LUECKE, DIE DAS FARBKONZEPT GELASSEN HAT. */
   /* ================= Der Anbietername ohne Marke -- 0.33.1 ===============
