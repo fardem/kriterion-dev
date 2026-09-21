@@ -1,6 +1,6 @@
 # Änderungsprotokoll 0.38.6 — „Die Lizenz"
 
-**Gebaut am 21. September 2026 auf 0.38.5.**
+**Gebaut am 21. September 2026 auf 0.38.5. Fingerprint `236d515e`, davor `c4185d0a`.**
 
 **Eine Runde, ein Gegenstand.** Der Befund stammt aus BA 8 der 0.38.5: die
 README sollte ein Abzeichen für die Lizenz bekommen, und es gab keine Lizenz,

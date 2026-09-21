@@ -34,7 +34,7 @@ ihre deutschen Abschnittsüberschriften bleiben.*
 
 *Die Lizenz.*
 
-Fingerprint `FINGERPRINT_0386` — davor `c4185d0a`.
+Fingerprint `236d515e` — davor `c4185d0a`.
 
 ### Hinzugefügt
 
