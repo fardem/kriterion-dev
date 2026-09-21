@@ -83,11 +83,17 @@ daneben liegt.*
 darunter „Die Lizenzen der Abhängigkeiten" mit der Tafel von oben und der
 Auskunft über libvips.
 
-> **DAS HANDBUCH BEKOMMT KEINEN ABSCHNITT.** Der Prüfstand hält seit 0.34.2
-> fest, dass keine Überschrift in beiden Dateien steht; die Lizenz gehört zu
-> dem, der Kriterion betreibt oder daran arbeitet, und damit in die README.
-> *Der Auftrag hatte „README und Handbuch" vorgesehen — die Messung hat das
-> widerlegt, bevor es gebaut wurde.*
+> **DAS HANDBUCH BEKOMMT KEINEN ABSCHNITT, ABER EINEN VERWEIS.** Der Kasten am
+> Kopf zählt auf, was in der README steht — Installation, Schlüssel, Sichern,
+> Reverse Proxy, Datenmodell, Dateien und Videos. **Die Lizenz steht jetzt in
+> dieser Aufzählung.**
+>
+> *Ein eigener Abschnitt wäre eine zweite Erklärung derselben Sache: der
+> Prüfstand hält seit 0.34.2 fest, dass keine Überschrift in beiden Dateien
+> steht, und der Kasten am Kopf sagt denselben Satz — „jede Sache steht an
+> genau einer der beiden Stellen; wo die andere gebraucht wird, steht ein
+> Verweis und keine zweite Erklärung".* **Der Auftrag hatte „README und
+> Handbuch" vorgesehen; gebaut ist beides, nur im Handbuch als Verweis.**
 
 ---
 
