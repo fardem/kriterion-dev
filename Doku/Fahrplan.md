@@ -95,8 +95,11 @@ den sie kurz darauf löscht.*
 > Wortlaut der Oberfläche und den Satzbau in `public/app.js` frei umbauen darf.*
 > **Eine Nummer weit hinten hätte sie hinter Runden gestellt, die selbst neue
 > Sätze anlegen** — und jeder davon nach dem Muster, das diese Runde abschafft.
-> *Die 0.40.0 bleibt reserviert und ist weiterhin der Ausweg, falls es ein
-> siebtes Mal eng wird.*
+>
+> **DIE RESERVIERUNG IST AM 21. SEPTEMBER 2026 AUFGEHOBEN.** *Die 0.40.0 trägt
+> den Document Server, die 0.41.0 das Bearbeiten.* **Ein Ausweg wird nicht mehr
+> gebraucht:** der Bruch ist am 14. September 2026 als 0.33.0 gebaut, und jede
+> Runde davor hat ihre Nummer bekommen.
 
 ### Die Regel der freien Zwischenräume endet hier — und auch das hat einen Grund
 
@@ -177,6 +180,8 @@ Sprachumschalter baut, hat damit ein Muster und braucht kein neues.**
 | ~~**0.38.2**~~ | ~~Die Kopfzeile des Kommentars~~ | **GEBAUT am 20. September 2026** auf 0.38.1 — Änderungsprotokoll 0.38.2. *Zwei Wünsche an der Kopfzeile eines Kommentars, dazu zwei der drei Punkte, die 0.38.1 offen gelassen hat.* **Die Kommentarnummer steht ganz rechts, hinter Zitat, Stift und Löschkreuz:** *Discourse, phpBB und XenForo stellen die Beitragsnummer ebenso als letztes Element der Kopfzeile dar, GitHub und Stack Overflow zeigen gar keine und machen den Zeitstempel zum Permalink; in keinem der vier steht sie zwischen zwei Aktionsknöpfen. Das Löschkreuz liegt damit nicht mehr am Rand der Zeile.* **Der Zitatknopf trägt ein gezeichnetes Zeichen** — *`„` war das einzige Schriftzeichen zwischen zwei SVG; ein Rahmen wurde verworfen, weil `button { padding: 0 }` ihn ohne Innenabstand und Eckenradius nicht trägt und Stift und Kreuz dieselben dann auch brauchten.* **Ein Verweiskasten ohne Nummer springt jetzt auch dann, wenn er auf den Eintrag zeigt, in dem er steht** — *die Adresse stand schon am Ziel, der Browser meldete keinen Wechsel.* **Und der Trefferausschnitt zeigt den Suchbegriff, wenn er allein im Ziel eines Links steht** — *geschnitten wird dann der Rohtext samt seiner Marken; ohne Eingriff in den gemeinsamen Kern geht nur eines von beiden.* **Keine Schemaänderung, keine neue Route, kein neuer Schlüssel.** *Acht Prüfungen, fünf Gegenproben (1157–1161), +86 Bytes gzip auf 270.006.* Das Protokoll steht als `Doku/Aenderungsprotokoll_0.38.2.md` | **GEBAUT** | 20.09.2026 |
 | ~~**0.38.1**~~ | ~~Sechs Befunde des Betriebs~~ | **GEBAUT am 20. September 2026** auf 0.38.0 — Änderungsprotokoll 0.38.1. *Der Betreiber hat 0.38.0 eingespielt und binnen einer Stunde sechs Stellen gemeldet.* **Die Zwischenablage über eine Adresse im Netz:** *ohne sicheren Kontext gibt der Browser `navigator.clipboard` nicht heraus; jetzt kopiert ein kurzlebiges Feld über `execCommand`, und die drei Meldungen nennen den Grund statt nur „von Hand kopieren".* **Der Leerraum am Rand einer Auswahl bleibt außerhalb der Marken** — *`**  Zeile  **` ist nach der Flankenregel kein Fettdruck; der Code-Abschnitt ist ausgenommen, weil er die Regel nicht kennt.* **Der Stift trägt die Akzentfarbe:** *6,22 : 1 statt 2,95 im dunklen Schema, eine Regel für alle vier Stifte. Rot war gewünscht und misst 4,76 — die Entscheidung fiel nach der Messung.* **Die Kommentarnummer steht rechts, aber außerhalb der Aktionsgruppe** — *in ihr verschwände sie beim Bearbeiten, und ab dem zehnten Kommentar wäre `#10` drei Zeichen in einer Gruppe, die nur zwei zulässt.* **Vor dem Löschkreuz steht eine Zeichenbreite Abstand, am Finger elf Pixel statt zwei.** **Der Verweis springt auch beim zweiten Klick:** *steht die Adresse schon am Ziel, meldet der Browser keinen Wechsel; der Sprung steht jetzt außerhalb des Zeichnens.* **Und jede Adresse dieser Instanz wird eine Marke** — *roh eingefügt wie mit Namen, mit Kommentarnummer wie ohne; ein selbst gesetzter Name gewinnt gegen den Titel, eine fremde Adresse bleibt, wie sie dasteht.* *Zwei Befunde nebenher: keine Prüfung hatte `GET /api/comment-refs` je gerufen, und ein gescheiterter Ruf machte jeden Verweis der Seite bis zum Neuladen zu einem einfachen Link.* **Keine Schemaänderung, keine neue Route, kein neuer Schlüssel.** *Sechs Gegenproben (1151–1156), +1.869 Bytes gzip auf 269.920.* Das Protokoll steht als `Doku/Aenderungsprotokoll_0.38.1.md` | **GEBAUT** | 20.09.2026 |
 | ~~**0.38.0**~~ | ~~Auszeichnung in Kommentar und Beschreibung~~ | **GEBAUT am 19. September 2026** auf 0.37.0 — Änderungsprotokoll 0.38.0. *Der Auftrag lief durch: zwölf Bauabschnitte, einundzwanzig Fragen vorab entschieden, zwölf verworfene Wege.* **Es ist kein Editor geworden und keiner genommen:** *das Textfeld bleibt; gebaut sind ein Leser von 412 Zeilen, sein Knotenbau von 96, der Verweis von 65 und ein Menü von 262.* **Die Auszeichnung ist eine Teilmenge von CommonMark — acht Bauformen.** *Gemessen an den 356 Beispielen der Spezifikation zu ihren sechs Abschnitten: 159 werden gezeichnet wie dort, 132 bleiben gewöhnlicher Text, 65 tragen eine Bauform außerhalb der Teilmenge und stehen mit ihrem Grund namentlich in der Prüfung.* **Kursiv trägt den Unterstrich**, und `3*4 und 5*6` bleibt damit Text. **Keine Schemaänderung.** *`tools/markupscan.js` misst, welcher vorhandene Text anders aussähe — an den 1.273 deutschen Sätzen der Sprachdatei und den elf Kommentartexten des Prüfstands: null.* **Der Kern steht zweimal, im Browser und am Server, Zeichen für Zeichen gleich; ein Wächter hält sie gleich und eine gemeinsame Tafel prüft beide.** **Formatnummer 17 → 18, Untergrenze bleibt 14. Eine neue Route `GET /api/comment-refs`.** **Der Wächter über die Abfrageparameter steht danach schärfer da:** *Browseradresse und Anfrage sind getrennt; der Suchbegriff in der Adresse war bis hierher nur durch Zufall grün.* *Gemessen:* **1.585 ausgelieferte Zeilen neu, 24 entfernt; +14.315 Bytes gzip auf 268.051** — *geschätzt waren +22,3 KB.* **Eine zweite Durchsicht hat die Paarung des Lesers linear gemacht und ihr eine dritte Grenze gegeben:** *256 KB Marken brauchen 493 ms statt 26.237, und verschachtelte Auszeichnung endet nach hundert Ebenen statt mit einem `RangeError`.* **Die Doppelung in der README ist mit aufgelöst.** Das Protokoll steht als `Doku/Aenderungsprotokoll_0.38.0.md` | **GEBAUT** | 19.09.2026 |
+| **0.40.0** | **Dokumente über einen Document Server ansehen** | **GEPLANT am 21. September 2026.** *Eine Instanz, die einen OnlyOffice Document Server betreibt, zeigt `.docx`, `.xlsx` und `.pptx` im Betrachter — heute gibt es dafür nackten Text oder gar nichts. Ohne Document Server bleibt alles, wie es ist.* **Adresse und Geheimnis stehen in der `.env` oder der Compose-Datei**, *kein Feld in der Oberfläche: ein Geheimnis in `settings` reiste im Export mit.* Der Admin schaltet an und ab, **je Benutzer gibt es keinen Schalter**. *Die teuerste Zeile ist die Sicherheitsregel (`server.js`:370 — `script-src` und `frame-src` müssen eine fremde Adresse aufnehmen); der Document Server holt die Datei ohne Cookie und braucht dafür ein einmaliges Token in der Adresse.* **Und die README muss in dieser Runde sagen, dass eine angesehene Datei im Zwischenspeicher des Document Servers im Klartext liegt** | nein | — |
+| **0.41.0** | **Dokumente über den Document Server bearbeiten** | **GEPLANT am 21. September 2026, setzt 0.40.0 voraus.** *Der Rückweg: der Document Server meldet die geänderte Fassung, Kriterion holt sie und schreibt sie nach `attachments.data`.* **Ohne Geheimnis kein Bearbeiten** — *der Rückweg ist ein Schreibweg ohne Cookie und hängt allein an der Unterschrift.* Ändern darf, wer auch löschen darf: Admin oder wer die Datei hochgeladen hat, `mayChange()` unverändert. **Zwei Fragen sind offen:** *ob der Rückweg dieselbe Zeile ersetzt oder eine zweite anlegt, und was geschieht, wenn die Datei zwischen Öffnen und Rückweg gelöscht wurde* | nein | — |
 | ~~**1.0.0**~~ | ~~Die Zusage~~ | **GESTRICHEN am 15. September 2026** — Vorgabe des Betreibers: es wird kein 1.0.0 geben, was als 1.0 geplant war ist mit **0.33.0** erreicht. Die zwei offenen Punkte des Eintrags stehen in der Zeile darunter | — | — |
 | ~~*ohne Nummer*~~ | ~~**Vorgabewerte und Tastaturbedienung beim Sortieren**~~ | **VORLÄUFIG GESTRICHEN am 21. September 2026:** der Inhalt ist nirgends beschrieben — weder hier noch im Sammelblatt noch im Projektstand steht, welche Vorgabewerte gemeint sind und was die Tastatur beim Sortieren tun soll. *Die Zeile kommt zurück, sobald der Betreiber sagt, was gemeint war.* | — | — |
 | *ohne Nummer* | **Die Doppelung in der README auflösen** | **Befund aus BA 6 der 0.37.0.** *Zwei Abschnitte tragen dieselben drei Sachverhalte:* `README.md`:255–272 „Eine neuere Version über eine bestehende einspielen“ und `README.md`:341–350 „Wenn eine Version die Datenbank anfasst“. **Doppelt stehen da:** dass eine fehlende Spalte nicht mehr nachgerüstet wird, dass der Kasten jede fehlende Spalte samt altem Namen nennt, und dass die Instanz trotzdem startet, aber jede Seite scheitert, die eine der Spalten liest — der dritte fast wörtlich. *Unterschiedlich sind nur der Zwischenschritt über 0.32.1 oben und das Downgrade samt Untergrenze 0.8.0 unten.* **0.37.0 hat nur den Verweis eingesetzt**, damit die zweite Nennung der Fassung wegfällt; das Auflösen ist Umstellen, und F4 jener Runde hat entschieden: Urteil ja, Umstellung nein | **GEBAUT in 0.38.0** | 19.09.2026 |
@@ -1968,6 +1973,154 @@ Punkt 5 der Tafel darüber bleibt: geprüft wird bis heute von Hand.
 
 ---
 
+## 0.40.0 — „Dokumente über einen Document Server ansehen"
+
+**Beschlossen am 21. September 2026.** Eine Instanz, die einen OnlyOffice
+Document Server betreibt, zeigt Bürodateien im Betrachter. **Ohne ihn bleibt
+alles, wie es ist.**
+
+### Was heute dasteht
+
+`previewKind()` (`attachments.js`:66) kennt fünf Arten:
+
+| Endung | heute |
+|---|---|
+| Bild, PDF, Text | eine richtige Vorschau |
+| `.docx` | **nackter Text** — `docxPreview()` (`attachments.js`:245) zieht ihn aus `word/document.xml`, ohne Formatierung, ohne Bilder, ohne Tabellen |
+| `.xlsx`, `.pptx`, `.odt` und alles Übrige | **keine** |
+
+### Wie die Einbindung läuft
+
+Drei Teile, alle Standard:
+
+1. Die Seite lädt `api.js` **vom Document Server** und baut den Betrachter.
+2. Die Konfiguration nennt eine Adresse, unter der **der Document Server** die
+   Datei holt.
+3. Beim Ansehen bleibt es dabei. Der Rückweg gehört zu 0.41.0.
+
+### Was entschieden ist
+
+| | |
+|---|---|
+| **Adresse und Geheimnis** | beide in der `.env` oder der Compose-Datei. **Kein Feld in der Oberfläche** — ein Geheimnis in `settings` reiste im Export mit, und ein Geheimnis, das im Export mitreist, ist verloren |
+| **Der Schalter** | an der Karte im Systembereich, Klemme `adminOnly`. Er ist ein Betriebsschalter für den Fall, dass es mit dem Document Server Ärger gibt — `ownerOnly` trägt im Haus nur das Scharfe |
+| **Je Benutzer** | **kein Schalter.** Es ist keine Wahl zwischen zwei gleichwertigen Wegen: ohne Document Server zeigt eine `.xlsx` gar nichts. Und die Frage ist eine des Betriebs, nicht der Bedienung |
+| **Kein Bestätigungsdialog** | wer nicht nein sagen kann, wird nicht gefragt. Stattdessen ein **ruhiger, ständiger Vermerk** am Betrachter: die Datei wird vom Document Server angezeigt |
+| **Der Ausweg** | herunterladen, wie heute. Wer eine Datei nicht durch den Document Server schicken will, öffnet sie bei sich |
+| **Die Rechte** | `mayChange()` (`server.js`:941) unverändert — Admin oder Verfasser der Datei. **Nicht der Eintragsverfasser:** sonst dürfte er eine fremde Datei bearbeiten, aber nicht löschen |
+| **Die heutige Vorschau** | bleibt **genau wie sie ist**, wenn kein Document Server da ist. Die Mehrheit wird keinen betreiben, und für die darf sich nichts verschlechtern |
+
+### Die Karte sagt, was los ist
+
+Die Bauform steht schon: `server.backupDirNotSet` sagt wörtlich, dass der
+Ordner in der Compose-Datei eingehängt und dort benannt wird. Die Karte
+„Dokumente" braucht **fünf Zustände**, sonst sucht man an der falschen Stelle:
+
+1. Keine Adresse in der `.env` — die Karte nennt den Namen der Zeile.
+2. Kein Geheimnis in der `.env` — dasselbe.
+3. Eingerichtet, aber vom Admin abgeschaltet.
+4. Adresse nicht erreichbar — die Karte nennt die Adresse, die sie versucht hat.
+5. Erreichbar, aber das Geheimnis wird abgewiesen.
+
+### Die vier Hürden, nach Kosten geordnet
+
+**1. Die Sicherheitsregel.** `server.js`:370 setzt
+`default-src 'self'; script-src 'self'; frame-src 'self'`. Der Document Server
+braucht ein **Skript** und einen **Rahmen** von fremder Adresse; `script-src`
+und `frame-src` müssen sie aufnehmen. **Das ist die teuerste Zeile der Runde** —
+die Regel ist heute so eng, weil sie jede fremde Quelle aussperrt, und das ist
+bewusst so gebaut. *`frame-ancestors 'none'` bleibt unberührt: es regelt, wer
+Kriterion einrahmen darf, nicht umgekehrt.*
+
+**2. Der Document Server ist nicht angemeldet.** Er holt die Datei mit einem
+eigenen Ruf, ohne Cookie. `/api/attachments/:id/raw` (`server.js`:3873) braucht
+einen zweiten Weg: ein **kurzlebiges, einmaliges Token in der Adresse**. Die
+Bauform gibt es — die Tabelle `tokens` trägt `purpose`, `expires_at` und
+`used_at`.
+
+**3. Er muss Kriterion erreichen.** Zwei Container: die Adresse, unter der er
+die Datei holt, muss **er** auflösen können — nicht `localhost`, nicht die
+Adresse aus dem Browser. Im selben Docker-Netz also der Dienstname. Daran
+hängen solche Einbindungen am häufigsten.
+
+**4. Der Klartext im Zwischenspeicher.** Die Datenbank liegt verschlüsselt auf
+der Platte. Sobald der Document Server eine Datei holt, **liegt sie im Klartext
+in seinem Zwischenspeicher.** Solange beide Container demselben Betreiber
+gehören und nicht aus dem Netz erreichbar sind, ist das vertretbar — aber es
+ist eine Aussage, die vorher gilt und danach nicht mehr.
+
+> **DIE README MUSS DAS SAGEN, UND ZWAR IN DER RUNDE.** Dort steht heute, dass
+> der Bestand verschlüsselt auf der Platte liegt. Mit dem Document Server gilt
+> das für jede Datei nicht mehr, die jemand ansieht. Der Satz gehört an die
+> Stelle, an der die Verschlüsselung erklärt wird — nicht in eine Fußnote und
+> nicht in eine spätere Runde.
+
+### Was ausdrücklich nicht dazugehört
+
+**Das Bearbeiten.** Es steht als 0.41.0. Der Nutzen ist ungleich verteilt: heute
+sieht man von einer `.xlsx` gar nichts, von einer `.docx` nackten Text — **das
+Ansehen ist der große Sprung, das Bearbeiten der kleine.** Und das Bearbeiten
+bringt den Rückweg samt zwei offenen Fragen mit.
+
+### Was es anfasst
+
+`server.js` *(Sicherheitsregel, die Route mit Token, die Karte)* ·
+`attachments.js` *(eine sechste Art in `previewKind()`)* · `public/app.js`
+*(der Betrachter und der Vermerk)* · `public/style.css` · die drei
+Sprachdateien · `.env.example` und `docker-compose.example.yml` · `README.md`.
+
+**Schema: nein.** Die Tabelle `tokens` steht schon.
+
+---
+
+## 0.41.0 — „Dokumente über den Document Server bearbeiten"
+
+**Beschlossen am 21. September 2026.** Setzt 0.40.0 voraus: Sicherheitsregel,
+Token-Weg und auflösbare Adresse stehen dann schon.
+
+### Der Unterschied zum Ansehen
+
+Beim Ansehen fließt die Datei in eine Richtung. Beim Bearbeiten kommt ein
+Rückweg dazu: der Document Server ruft eine Adresse bei Kriterion, sobald der
+Letzte das Dokument geschlossen hat, und nennt darin die Adresse der geänderten
+Fassung. Kriterion holt sie und schreibt sie nach `attachments.data`.
+
+### Was daran teuer ist
+
+**1. Der Rückweg ist ein Schreibweg.** Die Route, die der Document Server ruft,
+ändert einen Bestand — und sie kommt ohne Cookie. Was sie absichert, ist das
+Geheimnis aus der `.env`: der Document Server unterschreibt damit, Kriterion
+prüft die Unterschrift. **Ohne Geheimnis kein Bearbeiten.** *Beim Ansehen geht
+es auch ohne, solange der Document Server keines verlangt; hier nicht.*
+
+**2. Er muss zurückfinden.** Dieselbe Hürde wie beim Holen, nur andersherum:
+die Adresse, die in der Konfiguration steht, muss **der Document Server**
+auflösen können.
+
+**3. Wer darf ändern.** `mayChange()` (`server.js`:941) — Admin oder wer die
+Datei hochgeladen hat. **Dieselbe Regel wie beim Löschen, und sie bleibt
+unverändert.** Wer nicht ändern darf, bekommt den Betrachter ohne Schreibrecht.
+
+### Die zwei offenen Fragen
+
+1. **Ersetzen oder daneben legen?** Schreibt der Rückweg in dieselbe Zeile oder
+   legt er eine zweite an? Ersetzen ist einfach und verliert den Stand davor.
+   Eine zweite Zeile behält ihn und verdoppelt den Platz — bei bis zu 50 MB je
+   Zeile ist das keine Kleinigkeit.
+2. **Was, wenn die Datei inzwischen gelöscht ist?** Zwischen dem Öffnen und dem
+   Rückweg liegt die ganze Bearbeitungszeit. Fällt die Zeile in dieser Zeit,
+   trägt der Rückweg in eine Zeile ein, die es nicht mehr gibt.
+
+### Was es anfasst
+
+`server.js` *(die Rückwegroute und die Prüfung der Unterschrift)* ·
+`public/app.js` *(Schreibrecht im Betrachter)* · die drei Sprachdateien ·
+`README.md`.
+
+**Schema: nein**, solange der Rückweg ersetzt. Eine zweite Zeile je Fassung
+bräuchte eine Spalte.
+
+---
 ## ~~1.0.0 — „Die Zusage"~~ — gestrichen am 15. September 2026
 
 **Es wird kein 1.0.0 geben.** Vorgabe des Betreibers vom 15. September 2026:

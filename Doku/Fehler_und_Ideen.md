@@ -1354,6 +1354,9 @@ sondern damit derselbe Bericht nicht ein zweites Mal geglaubt wird.
 > (*„Bruch mal auf die 0.33.0 legen.. ist auch ne schöne zahl"*); **0.32.0
 > bleibt frei, als letzter Platz vor dem Bruch.** *Die reservierte 0.40.0 bleibt
 > unangetastet.*
+>
+> **NACHTRAG VOM 21. SEPTEMBER 2026: die Reservierung ist aufgehoben.** *Die
+> 0.40.0 trägt den Document Server, die 0.41.0 das Bearbeiten.*
 
 ---
 
