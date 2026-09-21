@@ -895,7 +895,7 @@ async function run() {
     if (el) el.dispatchEvent(new w.MouseEvent('click', { bubbles: true }));
     await new Promise(r => setTimeout(r, ms));
   };
-  // Dasselbe Auffangnetz fuer ein Eingabefeld.
+  // Dasselbe Abfangen fuer ein Eingabefeld.
   const zfSet = (w, id, value) => {
     const el = w.document.getElementById(id);
     if (el) el.value = value;

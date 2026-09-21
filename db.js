@@ -577,6 +577,22 @@ function warnIncompleteDatabase(findings) {
 }
 warnIncompleteDatabase(incompleteDatabase());
 
+/* ERST BEIM ERSTEN RUF VORBEREITET, und das ist keine Sparsamkeit: ueber
+   einer unvollstaendigen Datenbank wirft db.prepare, und der Kasten darueber
+   saehe niemand -- die Instanz kaeme gar nicht hoch. Der spaete Ruf laesst
+   sie starten und die LESENDE Seite scheitern; genau das sagt der Kasten zu.
+   NICHT die Spaltenliste von der Spalte abhaengig machen: die Seite liefe
+   dann mit fehlenden Daten weiter und behauptete Vollstaendigkeit. */
+const lateStatement = (sql) => {
+  let ready = null;
+  return () => (ready || (ready = db.prepare(sql)));
+};
+/* Dieselbe Verspaetung fuer eine Gruppe, die zusammengehoert. */
+const lateGroup = (build) => {
+  let ready = null;
+  return () => (ready || (ready = build()));
+};
+
 /* DIE INDIZES AUF NACHGERUESTETE SPALTEN STEHEN HIER UNTEN UND NICHT IN DER
    DDL, weil sie eine Klammer tragen: dort truege `db.exec(SCHEMA)` den
    Fehlschlag. Ein fehlender Index kostet Geschwindigkeit, keine Auskunft. */
@@ -677,7 +693,7 @@ function emailsDoubled() {
   return present ? [] : db.prepare(qDoubleEmails).all();
 }
 
-// --- Auffangnetz: die Instanz braucht einen Eigentuemer ---
+// --- Rueckfall: die Instanz braucht einen Eigentuemer ---
 // Gibt es keinen, wird es der aelteste Zugang, DER SCHON RECHTE HAT; erst wenn
 // es auch keinen Admin gibt, der mit der kleinsten Nummer. Der Zwischenschritt
 // ueber den Admin verhindert, dass ein ausdruecklich herabgestufter Erstzugang
@@ -704,7 +720,7 @@ function ownerId() {
   return db.prepare("SELECT MIN(id) AS id FROM users WHERE role = 'owner'").get().id;
 }
 
-// --- Auffangnetz: kein Bestand ohne Benutzer ---
+// --- Rueckfall: kein Bestand ohne Benutzer ---
 /* Alles, was niemandem gehoert, faellt an den Eigentuemer -- auch eine
    Linkzeile und eine Datei. Im Normalbetrieb entsteht das nicht; geloeschte
    Zugaenge bleiben als Grabstein stehen, gefangen werden Fehlerfaelle. */
@@ -757,7 +773,7 @@ function renumberCriteria() {
   db.transaction(() => rows.forEach((r, i) => { if (r.sort_order !== i) upd.run(i, r.id); }))();
 }
 
-// --- Grundausstattung ---
+// --- Vorgabewerte ---
 const setDefault = db.prepare('INSERT OR IGNORE INTO settings (key, value) VALUES (?, ?)');
 setDefault.run('title_public', JSON.stringify('Bewertungskatalog'));
 setDefault.run('title_app', JSON.stringify('Model Bewertungen'));
@@ -805,4 +821,4 @@ module.exports = { db, DATA_DIR, DB_FILE, keyFromEnv: key.fromEnv, keyHex: key.h
                    /* Was eine unvollstaendige Datenbank vermissen laesst. Geht hinaus, damit
                       der Pruefstand die Probe an einer gestellten Lage fragen
                       kann. */
-                   incompleteDatabase };
+                   incompleteDatabase, lateStatement, lateGroup };

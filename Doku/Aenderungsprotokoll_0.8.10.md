@@ -53,7 +53,7 @@ nicht ausgeschlossen, nur nie eingecheckt. Aufgelöst wird damit fest:
 - Beide Stufen auf `node:22-bookworm-slim` statt `node:20-bookworm-slim`.
 - Die Schicht `apt-get install python3 make g++` steht **unverändert**. Sie
   wird auf Node 22 nicht gebraucht (es gibt einen Fertigbau, siehe unten),
-  bleibt aber als Auffangnetz: fehlte er einmal, übersetzte `node-gyp`.
+  bleibt aber als Rückfall: fehlte er einmal, übersetzte `node-gyp`.
 
 ### `server.js` (+65/−0 Zeilen)
 

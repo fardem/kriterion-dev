@@ -168,8 +168,8 @@ ausdrücklich gekippt hat — nur nicht als Entscheidung, sondern als Absturz.**
 | wo | was ohne die Klammer geschähe | was jetzt dasteht |
 |---|---|---|
 | **die beiden Indizes auf `photos`** | `CREATE INDEX … zoom` trifft „no such column" — **die Anwendung kommt nicht hoch** | `tryIndex()` fängt es weich ab und sagt es in EINER Zeile; die Abfragen laufen ohne ihn, nur langsamer |
-| **das Auffangnetz** | `UPDATE links SET user_id = …` scheitert am Vorbereiten | eine Tabelle ohne `user_id` wird übergangen — was es nicht gibt, lässt sich niemandem zuordnen |
-| **die Grundausstattung** | `INSERT … (name, language)` scheitert am Vorbereiten | ohne die Spalte wird nur der Name gesetzt |
+| **der Rückfall** | `UPDATE links SET user_id = …` scheitert am Vorbereiten | eine Tabelle ohne `user_id` wird übergangen — was es nicht gibt, lässt sich niemandem zuordnen |
+| **die mitgelieferten Kriterien** | `INSERT … (name, language)` scheitert am Vorbereiten | ohne die Spalte wird nur der Name gesetzt |
 
 > **UND DIE GRENZE STEHT AUSDRÜCKLICH DA:** *das ÖFFNEN der Datenbank gelingt
 > und sagt, was fehlt.* **Eine Seite, die eine fehlende Spalte LIEST, scheitert
@@ -327,7 +327,7 @@ Protokoll „Schluessel" ohne)*.
 |---|---|---|
 | **1** | Es gibt keine Migrationsfunktion mehr — *gezählt über BEIDE Markenformen* | „Der Wächter über den Quelltext" |
 | **1b** | Und keine Marke ohne Block | ebenda |
-| **2** | `db.exec(SCHEMA)` steht unmittelbar hinter der Grundausstattung | ebenda |
+| **2** | `db.exec(SCHEMA)` steht unmittelbar hinter den mitgelieferten Kriterien | ebenda |
 | **3** | Einer Datenbank, der eine Spalte fehlt, wird sie BENANNT — *achtzehn Prüflagen, eine je Spalte* | „Der Hinweis auf einen unvollständigen Bestand" |
 | **4** | Auch die unvollständige öffnet — *gefahren, nicht behauptet* | ebenda |
 | **5** | Die Probe fragt keinen Merker | ebenda + „Der Stempel der Datenbank" |
@@ -366,7 +366,7 @@ Protokoll „Schluessel" ohne)*.
 | **erster Lauf** | 17 machen Prüfungen rot *(1 bis 10 Punkte, jeder in seiner Gruppe)*, **1042 bleibt STUMM** |
 | **nach der Reparatur** | **0 STUMM** |
 
-**1042 NIMMT DEM AUFFANGNETZ DIE FRAGE NACH `user_id` WEG**, und es wurde kein
+**1042 NIMMT DEM RÜCKFALL DIE FRAGE NACH `user_id` WEG**, und es wurde kein
 Punkt rot. *Der Grund saß in meiner Prüflage und nicht im Rückbau:*
 `assignInventory()` **kehrt VOR seiner Schleife zurück, wenn es gar keinen
 Eigentümer gibt** — *und eine frisch angelegte Datenbank hat keinen.* **Die

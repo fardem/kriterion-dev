@@ -128,7 +128,7 @@ id="wer">Angemeldet als ${esc(NAME)}</span>` unmittelbar vor dem Knopf
 | 6 | **Der Mock stellt `/api/stats`-artig auch `/api/items/1/stimmen` hinter die Rolle** | Nachgebaut, obwohl heute keine Prüflage ihn ohne Rolle ruft | Ein Mock, der die Antwort vereinfacht, löscht genau die Prüfung, für die er gebaut ist. Dass der Zweig heute nicht angesprochen wird, ist eine Aussage über die **Oberfläche** (sie ruft ohne Rolle gar nicht) und keine über den Server. Steht unter „nicht gegengeprüft, mit Grund". |
 | 7 | **Die Prüfung „die Wolke wird abgeschnitten" steht am gestellten Kasten, nicht an der echten Ansicht** | Nötig, beim Bauen aufgefallen | Der erste Versuch stand an `#tagcloud` in einer echten Detailansicht und wurde sofort rot: jsdom rechnet kein Layout, `offsetHeight` der ersten Marke ist null, und `begrenzeWolke()` bricht dann **absichtlich** ab, ohne etwas zu setzen. Prüfbar ist die Funktion nur dort, wo die Höhe gestellt wird (Stolperstein 91). |
 | 8 | **Das Datum steht mit Uhrzeit, nicht nur als Tag** | `fmtDate()` | Es ist dieselbe Angabe wie in der Kopfzeile jedes Kommentars, und zwei Schreibweisen für denselben Zeitpunkt wären eine zu viel. |
-| 9 | **Ein Auffangnetz für ein fehlendes `created_at` gibt es nicht** | Bewusst keins | Die Spalte steht `NOT NULL DEFAULT (datetime('now'))`. Ein Netz gegen etwas, das es nicht gibt, ließe sich nicht gegenprüfen. |
+| 9 | **Einen Rückfall für ein fehlendes `created_at` gibt es nicht** | Bewusst keins | Die Spalte steht `NOT NULL DEFAULT (datetime('now'))`. Ein Rückfall gegen etwas, das es nicht gibt, ließe sich nicht gegenprüfen. |
 
 ---
 

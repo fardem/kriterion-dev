@@ -507,7 +507,7 @@ Prüfungen, nicht an ihrer Zahl (Stolperstein 49).
 | inDenPapierkorb laeuft ohne Transaktion | 4 rot — „UND es bleibt KEINE Papierkorbzeile zurueck" · „Und die Zeile liegt jetzt im Papierkorb" · „Vier Zeilen liegen bereit" · … (1 weitere) |
 | Das Loeschen fuellt den Papierkorb gar nicht | 39 rot — „Genau EINE Zeile liegt im Papierkorb" · „Sie traegt den Titel als eigene Spalte" · „Und den Loeschenden" · … (36 weitere)  **(Lauf danach abgerissen — grober Rückbau, enge Zweitproben daneben)** |
 | Der Papierkorb packt die Bytes doch als Base64 in die JSON | 7 rot — „Die Bytes liegen daneben, eine Zeile je Blob" · „Ihre Nummern sind lueckenlos ab null" · „Die Videobytes stehen nicht in der JSON" · … (4 weitere) |
-| Das Auffangnetz kennt eine Tabelle weniger (enge Zweitprobe: papierkorb selbst eintragen reisst den Start ab) | 4 rot — „Es kennt weiterhin genau die sechs Traeger mit user_id" · „Was die Migration nicht fuellen kann, faengt das Auffangnetz auf" · „Danach steht keine Datei mehr ohne Benutzer" · … (1 weitere) |
+| `Das Auffangnetz kennt eine Tabelle weniger` (enge Zweitprobe: papierkorb selbst eintragen reisst den Start ab) | 4 rot — „Es kennt weiterhin genau die sechs Traeger mit user_id" · `Was die Migration nicht fuellen kann, faengt das Auffangnetz auf` · „Danach steht keine Datei mehr ohne Benutzer" · … (1 weitere) |
 | raeumePapierkorbAuf() faellt beim Start weg | 2 rot — „Schon der Start raeumt sie weg" · „Und sagt es im Protokoll" |
 | raeumePapierkorbAuf() faellt am Oeffnen der Karte weg | 3 rot — „Beim Oeffnen der Karte faellt heraus, was aelter als dreissig Tage ist" · „Und auf der anderen: eine Sekunde danach faellt heraus" · „Die Bytes der herausgefallenen Zeile fallen mit" |
 | Die Frist steht auf 29 statt 30 Tagen | 7 rot — „Die Frist steht in den Einstellungen und nicht nur in der Karte" · „Die Liste nennt die Frist" · „Sie nennt die verbleibenden Tage" · … (4 weitere) |
@@ -609,7 +609,7 @@ Neun neue Gruppen:
 
 Ergänzt wurden „Der Wächter über den Quelltext" (die Abbildung genau einmal,
 der Deserialisierer genau einmal, keine Bestandsabfrage nennt den Papierkorb,
-fünf Migrationsfunktionen, das Auffangnetz unverändert, die Frist an einer
+fünf Migrationsfunktionen, der Rückfall unverändert, die Frist an einer
 Stelle, das Wort „Backup"), „Der Systembereich nach Rolle" (fünfzehn Karten),
 „Kommentare in der Oberflaeche" (der neue Schlusssatz des Löschdialogs) und der
 Mock in `baueDom` (Papierkorb, Sicherung, `videoCount`/`videoBytes`).

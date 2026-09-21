@@ -139,7 +139,7 @@ des Neuladens und der Weg danach stehen alle drei weiter darin.
 * **`versandBereit()`** — die drei Voraussetzungen des Versands mit ihrem Grund
   daneben.
 * **`versendeBestaetigung()`** — gerufen **nachdem** die Antwort geschrieben ist,
-  mit Auffangnetz.
+  abgefangen.
 * **`anfragenKarte()`** — was die Karte sieht.
 * **`GET /api/config`** trägt jetzt `registrierung`. Die Liste bleibt
   abgeschlossen; der Prüfstand nagelt die fünf Namen fest.
@@ -518,7 +518,7 @@ den Lauf dort abreißen.
 
 **Eine Gegenprobe, die den Lauf mitnimmt, sagt nichts darüber, welche Prüfung
 den Rückbau bemerkt hätte** — Stolperstein 138, und diesmal an der eigenen
-Arbeit. Jede Lesestelle in den neuen Gruppen läuft jetzt über ein Auffangnetz.
+Arbeit. Jede Lesestelle in den neuen Gruppen ist jetzt abgefangen.
 
 **Beim zweiten Lauf riss Rückbau 36 immer noch ab**, und die Ursache war eine
 andere und lehrreichere: er ist der einzige Rückbau, der **zusätzliche

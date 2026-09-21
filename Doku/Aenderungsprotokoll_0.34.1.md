@@ -264,7 +264,7 @@ Kaffeesatz und Kartenstapel", „Der Prüfschalter" statt „Der Prüfschalter �
 warum er in einer benutzten Installation nichts zu suchen hat".
 
 Vier Metaphern sind heraus (`CLAUDE.md`, Abschnitt 1): „ein Griff statt n",
-„von Haus aus", „das Auffangnetz für ein `DELETE` von Hand", „Eine unbrauchbare
+„von Haus aus", `das Auffangnetz für ein DELETE von Hand`, „Eine unbrauchbare
 Datei bringt Kriterion nicht um".
 
 **Eine Auslassung ist dabei berichtigt worden.** Beim Kürzen des Abschnitts

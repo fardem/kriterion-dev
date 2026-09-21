@@ -2888,6 +2888,10 @@ body.login .login-screen { flex: 1 0 auto; min-height: 0; }
      weil `.rrow` nicht umbricht. Er darf umbrechen -- ein abgeschnittener
      Name waere schlechter als ein zweizeiliger. */
   .rrow .rname { min-width: 0; overflow-wrap: anywhere; }
+  /* UND DIE RECHENTABELLE AUS DEMSELBEN GRUND: bei 360 Pixeln brauchte sie
+     mit einem Namen aus vierzig Zeichen 378 statt 328 und rollte waagerecht.
+     Die Kopfzeile faellt mit darunter -- sie traegt dieselbe Klasse. */
+  .calc-row > span:first-child { min-width: 0; overflow-wrap: anywhere; }
 
   /* ---- DIE STERNZEILE WIRD ZWEIZEILIG ---- Drei Spalten passen nicht: auf
      360 Bildpunkten bleiben dem Kriteriennamen bei Schriftstufe 120 unter

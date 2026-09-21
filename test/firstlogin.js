@@ -181,7 +181,7 @@ async function checkFirstLogin() {
   afterReset.close();
   await C.stop();
 
-  /* --- Die zweite Aufrufstelle des Auffangnetzes ---------------------------
+  /* --- Die zweite Aufrufstelle des Rueckfalls -----------------------------
      assignInventory() steht an zwei Stellen; die zweite sitzt in
      legeErstenBenutzerAn. */
   group('Erstanmeldung: Einrichtung bei leerer Benutzertabelle');

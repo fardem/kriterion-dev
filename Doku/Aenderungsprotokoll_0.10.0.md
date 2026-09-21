@@ -695,7 +695,7 @@ etwas gesagt:**
 * **89 und 92 rissen ab** — der eine änderte die Zahl der Platzhalter einer
   vorbereiteten Anweisung, der andere ließ die Prüfung auf ein `null` greifen.
   Befund D, Stolperstein 161; behoben über einen wirkungslosen statt entfernten
-  Rückbau und über Auffangnetze an jeder Lesestelle der neuen Gruppen.
+  Rückbau und über abgefangene Lesestellen in den neuen Gruppen.
 * **86 blieb ohne Wirkung** und hat damit Befund E aufgedeckt: der größte
   Testvektor aus RFC 6238 erreicht die obere Hälfte des Zählers gar nicht.
 * **100 und 113 rissen im zweiten Anlauf ab**, aus zwei verschiedenen Gründen:

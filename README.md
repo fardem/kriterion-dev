@@ -1,5 +1,8 @@
 # Kriterion
 
+![Node](https://img.shields.io/badge/Node-22-informational)
+![Docker](https://img.shields.io/badge/Docker-Compose-informational)
+
 **Ein selbstgehostetes Archiv für Dinge, die man sammelt und beurteilt.**
 Geräte, Materialien, Modelle, Prototypen, Bezugsquellen — alles, wovon man
 mehrere hat und zwischen denen man sich irgendwann entscheiden muss.
@@ -22,6 +25,44 @@ Videos liegen darin und werden nie als Datei auf die Platte geschrieben.
 
 ---
 
+**Inhalt**
+
+- [Was du damit machen kannst](#was-du-damit-machen-kannst)
+- [Ist das etwas für dich?](#ist-das-etwas-für-dich)
+- [Woraus es gebaut ist](#woraus-es-gebaut-ist)
+- [Voraussetzungen](#voraussetzungen)
+- [Erstinstallation](#erstinstallation)
+  - [Der erste Zugang](#der-erste-zugang)
+  - [Was danach eingerichtet werden kann — und nichts davon muss](#was-danach-eingerichtet-werden-kann--und-nichts-davon-muss)
+- [Aufbau des Ordners](#aufbau-des-ordners)
+- [Auf dem Server](#auf-dem-server)
+- [Der Schlüssel — bitte einmal aufmerksam lesen](#der-schlüssel--bitte-einmal-aufmerksam-lesen)
+- [Eine neuere Version über eine bestehende einspielen](#eine-neuere-version-über-eine-bestehende-einspielen)
+  - [Prüfen, ob wirklich die neue Version läuft](#prüfen-ob-wirklich-die-neue-version-läuft)
+- [Fehlerbehebung](#fehlerbehebung)
+  - [Wenn niemand mehr hereinkommt](#wenn-niemand-mehr-hereinkommt)
+  - [Wenn eine Version die Datenbank anfasst](#wenn-eine-version-die-datenbank-anfasst)
+  - [Die alten Namen in der `.env`](#die-alten-namen-in-der-env)
+- [Verschlüsselung](#verschlüsselung)
+- [Anmeldung und Benutzer](#anmeldung-und-benutzer)
+- [Hinter einem Reverse Proxy](#hinter-einem-reverse-proxy)
+  - [Beide Wege zugleich](#beide-wege-zugleich)
+- [Gescheiterte Anmeldungen aussperren](#gescheiterte-anmeldungen-aussperren)
+- [Ein eigenes Skript an der Schnittstelle](#ein-eigenes-skript-an-der-schnittstelle)
+- [Dateien am Eintrag — wie sie abgesichert sind](#dateien-am-eintrag--wie-sie-abgesichert-sind)
+- [Kurzvideos](#kurzvideos)
+- [Speicherbedarf](#speicherbedarf)
+- [Sichern](#sichern)
+- [Datenmodell](#datenmodell)
+- [Prüfen](#prüfen)
+  - [Wie lange er braucht — und wo die Zeit hingeht](#wie-lange-er-braucht--und-wo-die-zeit-hingeht)
+  - [Der Prüfschalter](#der-prüfschalter)
+- [Den Schlüssel wechseln](#den-schlüssel-wechseln)
+  - [Zwei Schlüssel im Umlauf](#zwei-schlüssel-im-umlauf)
+  - [Was der Wechsel nicht ist](#was-der-wechsel-nicht-ist)
+
+---
+
 ## Was du damit machen kannst
 
 | | |
@@ -35,6 +76,8 @@ Videos liegen darin und werden nie als Datei auf die Platte geschrieben.
 | **Den Überblick behalten** | „Offen" zeigt alle unerledigten Aufgaben über alle Einträge, die **Glocke** alles, was seit dem letzten Blick dazugekommen ist |
 | **Zu mehreren arbeiten** | Benutzer mit drei Rollen; jeder Beitrag trägt seinen Verfasser |
 | **Sichern** | verschlüsselte Kopie auf Knopfdruck, dazu ein JSON-Export, der ohne Schlüssel auskommt |
+
+---
 
 ## Ist das etwas für dich?
 
@@ -64,6 +107,8 @@ eine öffentliche Datenbank oder etwas, das ohne eigenen Server auskommt.
   alles weiter; nur Einladungs- und Rücksetzungslinks muss man dann selbst
   weiterreichen.
 
+---
+
 ## Woraus es gebaut ist
 
 Node.js mit Express, SQLite über SQLCipher
@@ -77,18 +122,28 @@ Fünf Laufzeitabhängigkeiten, festgenagelt über `package-lock.json`.
 [Keep a Changelog](https://keepachangelog.com/de/1.1.0/), die Versionsnummern
 folgen [Semantic Versioning](https://semver.org/lang/de/).
 
+---
+
+## Voraussetzungen
+
+**Ein Rechner mit Docker und Docker Compose.** Ein NAS, ein kleiner Server,
+ein Intel-N100-Kasten unter OpenMediaVault reicht völlig.
+
+**Sonst nichts.** Node.js, Übersetzer und Datenbank stecken im Image; auf dem
+Wirt muss nichts davon liegen. Gebaut wird gegen Node 22.
+
+---
+
 ## Erstinstallation
 
-**Voraussetzungen:** ein Rechner mit Docker und Docker Compose — ein NAS, ein
-kleiner Server, ein Intel-N100-Kasten unter OpenMediaVault reicht völlig. Sonst
-nichts: Node.js, Übersetzer und Datenbank stecken im Image.
+**Vier Schritte.** Nur der erste geht auf zwei Wegen — über `git` oder über
+das ZIP; die drei danach sind für beide gleich.
+
+**1. Das Projekt holen.**
 
 ```bash
 git clone https://github.com/fardem/kriterion.git
 cd kriterion
-cp .env.example .env
-cp docker-compose.example.yml docker-compose.yml
-docker compose up -d --build
 ```
 
 **Ohne `git` geht es über das ZIP** — auf <https://github.com/fardem/kriterion>
@@ -99,22 +154,28 @@ python3 -m zipfile -e kriterion-main.zip .
 mv kriterion-main kriterion                  # der Ordner heißt nach dem Branch
 cd kriterion
 chmod +x keytool.sh          # das Ausführungsrecht, siehe unten
-cp .env.example .env
-cp docker-compose.example.yml docker-compose.yml
-docker compose up -d --build
 ```
-
-Erreichbar unter `http://<server-ip>:3100`. **Der Port steht in der
-`docker-compose.yml`**, nicht in der `.env`.
 
 > **DIE `chmod`-ZEILE BRAUCHT NUR, WER MIT `python3 -m zipfile` AUSPACKT** —
 > oder unter Windows. **`unzip` und `git clone` bringen das Ausführungsrecht
 > mit.** *Fehlt es, antwortet `./keytool.sh` später mit „Keine
 > Berechtigung"; dann hilft `chmod +x keytool.sh`.*
 
+**2. Die `.env` anlegen.**
+
+```bash
+cp .env.example .env
+```
+
 **Der Schritt `cp .env.example .env` ist Pflicht, auch wenn nichts darin steht.**
 `docker compose` liest die Datei ein und bricht sonst ab, bevor der Container
 startet. Alle Werte dürfen leer bleiben.
+
+**3. Die `docker-compose.yml` anlegen.**
+
+```bash
+cp docker-compose.example.yml docker-compose.yml
+```
 
 **Der Schritt `cp docker-compose.example.yml docker-compose.yml` ist Pflicht.**
 Ohne die Datei bricht `docker compose up` mit
@@ -129,8 +190,17 @@ bearbeitet, verliert sie beim nächsten Auspacken des ZIP.
 > Ändert sich etwas an der Vorlage, steht es im `CHANGELOG.md`; verglichen wird
 > dann von Hand mit `diff docker-compose.example.yml docker-compose.yml`.
 
+**4. Starten.**
+
+```bash
+docker compose up -d --build
+```
+
 **`--build` ist nicht optional**, auch beim ersten Mal nicht: der Quelltext
 steckt im Image, nicht im eingehängten Verzeichnis.
+
+Erreichbar unter `http://<server-ip>:3100`. **Der Port steht in der
+`docker-compose.yml`**, nicht in der `.env`.
 
 ### Der erste Zugang
 
@@ -159,36 +229,42 @@ Die Tafel sagt, wo es steht. **Was die einzelnen Karten tun, steht im
 | **Sicherungsordner** | `docker-compose.yml` | Vorgabe liegt im Projektordner; die empfohlene Lage ist daneben — siehe „Sichern" |
 | **Reverse Proxy** | `.env`, `BEHIND_PROXY=1` | nur wenn die Installation über einen Proxy und HTTPS nach außen geht. **Der Weg über `http://<server-ip>:3100` bleibt daneben offen** — siehe „Hinter einem Reverse Proxy" |
 
-### Wenn niemand mehr hereinkommt
+---
 
-Der gewöhnliche Weg läuft über die Karte „Benutzer": ein Admin erzeugt einen
-**Link zum Zurücksetzen**, und der Betreffende wählt sein Passwort selbst.
-Kommt **niemand mehr** herein, hilft der Weg auf dem Server — nicht die `.env`:
+## Aufbau des Ordners
 
-```bash
-docker compose exec kriterion node usertool.js passwort <name>
-```
+**Welche Datei wofür da ist.** Der Quelltext steckt im Image, nicht im
+eingehängten Verzeichnis; der Ordner auf dem Wirt trägt trotzdem alles, was
+gebaut wird.
 
-Das Passwort wird zweimal abgefragt und gleich dort gesetzt; alle Sitzungen
-dieses Zugangs fallen, Bestand und Rolle bleiben unangetastet — der
-Datenbankschlüssel hängt nicht am Passwort.
-
-| Befehl | was er tut |
+| | |
 |---|---|
-| `node usertool.js liste` | zeigt die vorhandenen Namen, ihre Rolle und ob der zweite Faktor an ist |
-| `node usertool.js passwort <name>` | setzt ein neues Passwort |
-| `node usertool.js zweifaktor <name>` | schaltet den zweiten Faktor **aus** — einschalten geht von dort ausdrücklich nicht |
-| `node usertool.js entfernen <name>` | legt einen Zugang still |
-| `node usertool.js eigentuemer <name>` | der Notausgang, wenn sich der bisherige Eigentümer nicht mehr anmeldet |
+| `server.js` | die Routen und die Auslieferung |
+| `auth.js` | Anmeldung, Sitzungen, Token und das Sicherheitsprotokoll |
+| `db.js` | das Schema und die Verbindung zur verschlüsselten Datei |
+| `keys.js` | der Schlüssel: lesen, erzeugen, prüfen |
+| `attachments.js` | Anhänge: Auslieferung und Vorschau |
+| `images.js` | die Bildableitungen — Kachel und mittlere Variante |
+| `batchrun.js` | die Bestandsläufe, in einem eigenen Thread |
+| `mail.js` | der Versand über SMTP |
+| `twofactor.js` | der zweite Faktor: TOTP nach RFC 6238 |
+| `log.js` | das Containerprotokoll: Zeitstempel und Name an einer Stelle |
+| `usertool.js` | die Zugangsverwaltung auf dem Wirt |
+| `keytool.js`, `keytool.sh` | der Schlüsselwechsel bei angehaltener Instanz |
+| `public/` | `index.html`, `app.js`, `style.css`, `theme.js` und die drei Sprachdateien |
+| `test/`, `testbench.js`, `counterproof.js` | der Prüfstand und die Gegenproben |
+| `Dockerfile`, `docker-compose.example.yml`, `.env.example` | die Vorlagen für den Betrieb |
 
-Läuft der Container gar nicht erst an, tut es
-`docker compose run --rm kriterion node usertool.js …` ebenso.
+**Drei Dinge liegen nicht im Repository und gehören dem Betreiber:**
 
-Das alles setzt Zugriff auf den Server voraus und ist deshalb kein Umweg um die
-Anmeldung. **Der Zugang lässt sich über keine Umgebungsvariable setzen oder
-zurücksetzen** — `AUTH_RESET`, `AUTH_USER` und `AUTH_PASSWORD` werden nicht
-gelesen. Stehen sie in der `.env`, meldet der Start sie als entfernbar; sie
-enthalten ein Passwort im Klartext und gehören heraus.
+| | |
+|---|---|
+| `data/` | die verschlüsselte Datenbank `katalog.sqlite` |
+| `.env` | der Schlüssel und die Einstellungen |
+| `docker-compose.yml` | Port, Einhängung des Sicherungsordners, Containername |
+
+---
+
 ## Auf dem Server
 
 **Drei Handgriffe laufen nicht am Bildschirm, sondern auf dem Server** — dort,
@@ -206,6 +282,8 @@ Die beiden `usertool.js`-Befehle fragen auf dem Server nach, bevor sie etwas
 tun, und stehen danach im Sicherheitsprotokoll als „per Kommandozeile am
 Server". Was `usertool.js` sonst kann, sagt es ohne Argument selbst; die Tafel
 darüber nennt alle fünf Befehle.
+
+---
 
 ## Der Schlüssel — bitte einmal aufmerksam lesen
 
@@ -252,6 +330,9 @@ setzt, muss ihn auch verwahren.
 wurde `data/` in dieser Zeit kopiert, öffnet diese Kopie die Datei bis heute —
 auch nachdem der Wert in die `.env` umgezogen ist. Dagegen hilft nur ein
 **Schlüsselwechsel** — wie der geht, steht ganz am Ende dieser Datei.
+
+---
+
 ## Eine neuere Version über eine bestehende einspielen
 
 > **OB EINE VERSION DIE DATENBANK ANFASST, STEHT IM `CHANGELOG.md` ÜBER IHREN
@@ -335,6 +416,45 @@ im `CHANGELOG.md`, verglichen wird mit dem Auge.
 noch die alte — ein hartes Neuladen (Strg+Umschalt+R) räumt den
 Zwischenspeicher weg.
 
+---
+
+## Fehlerbehebung
+
+**Drei Fälle, und alle drei haben einen Weg heraus.** Wenn niemand mehr
+hereinkommt, wenn eine Version die Datenbank anfasst, und wenn in der `.env`
+noch die alten Namen stehen.
+
+### Wenn niemand mehr hereinkommt
+
+Der gewöhnliche Weg läuft über die Karte „Benutzer": ein Admin erzeugt einen
+**Link zum Zurücksetzen**, und der Betreffende wählt sein Passwort selbst.
+Kommt **niemand mehr** herein, hilft der Weg auf dem Server — nicht die `.env`:
+
+```bash
+docker compose exec kriterion node usertool.js passwort <name>
+```
+
+Das Passwort wird zweimal abgefragt und gleich dort gesetzt; alle Sitzungen
+dieses Zugangs fallen, Bestand und Rolle bleiben unangetastet — der
+Datenbankschlüssel hängt nicht am Passwort.
+
+| Befehl | was er tut |
+|---|---|
+| `node usertool.js liste` | zeigt die vorhandenen Namen, ihre Rolle und ob der zweite Faktor an ist |
+| `node usertool.js passwort <name>` | setzt ein neues Passwort |
+| `node usertool.js zweifaktor <name>` | schaltet den zweiten Faktor **aus** — einschalten geht von dort ausdrücklich nicht |
+| `node usertool.js entfernen <name>` | legt einen Zugang still |
+| `node usertool.js eigentuemer <name>` | der Notausgang, wenn sich der bisherige Eigentümer nicht mehr anmeldet |
+
+Läuft der Container gar nicht erst an, tut es
+`docker compose run --rm kriterion node usertool.js …` ebenso.
+
+Das alles setzt Zugriff auf den Server voraus und ist deshalb kein Umweg um die
+Anmeldung. **Der Zugang lässt sich über keine Umgebungsvariable setzen oder
+zurücksetzen** — `AUTH_RESET`, `AUTH_USER` und `AUTH_PASSWORD` werden nicht
+gelesen. Stehen sie in der `.env`, meldet der Start sie als entfernbar; sie
+enthalten ein Passwort im Klartext und gehören heraus.
+
 ### Wenn eine Version die Datenbank anfasst
 
 **Eine fehlende Tabelle legt der Start selbst an. Eine fehlende Spalte dagegen
@@ -375,6 +495,8 @@ gelesen. Bitte in der .env nachziehen.
 
 **Wer beide setzt, bekommt den neuen.**
 
+---
+
 ## Verschlüsselung
 
 Die **gesamte Datenbankdatei** ist verschlüsselt (SQLCipher, AES-256). Ohne
@@ -387,12 +509,16 @@ Arbeitsspeicher.
 Innerhalb der geöffneten Datenbank steht alles im Klartext; die Suche läuft
 deshalb über sämtliche Felder.
 
+---
+
 ## Anmeldung und Benutzer
 
 **Wie man sich anmeldet, wer was darf, wie Benutzer angelegt und eingeladen
 werden und was der zweite Faktor tut, steht im
 [Handbuch](manual-de.md).** Hier stehen die beiden Stellen, an denen die
 Anmeldung den Server betrifft.
+
+---
 
 ## Hinter einem Reverse Proxy
 
@@ -453,6 +579,8 @@ der Port des Containers im eigenen Netz erreichbar, kann dort jemand von Hand
 einen `X-Forwarded-For` mitschicken und die Anmeldebremse umgehen. Wer das
 ausschließen will, gibt den Port nicht mehr im Netz frei.
 
+---
+
 ## Gescheiterte Anmeldungen aussperren
 
 Die Anmelderoute antwortet unterscheidbar, und das genügt einem Wächter davor:
@@ -485,6 +613,8 @@ nicht im Arbeitsspeicher; eine laufende Sperre gilt weiter, auch wenn der
 Container zwischendurch neu anläuft. Eine Zeile, die eine Stunde ohne neuen
 Versuch steht, wird beim Start und stündlich geräumt.
 
+---
+
 ## Ein eigenes Skript an der Schnittstelle
 
 **Jede schreibende Anfrage braucht einen Token gegen fremde Formulare.** Der
@@ -511,6 +641,8 @@ curl -b cookies.txt -X POST http://<server>:3199/api/items \
 Anfragen brauchen sie nicht, und die Wege vor der Anmeldung — Einrichtung,
 Anmeldung, Abmeldung, die beiden Tokenwege und die Selbstanmeldung — ebenso
 wenig.
+
+---
 
 ## Dateien am Eintrag — wie sie abgesichert sind
 
@@ -601,6 +733,9 @@ Webseite. SVG wird deshalb wie jede andere Datei heruntergeladen.
 Die `.docx`-Vorschau packt das Dokument mit dem eingebauten `zlib` selbst aus
 und liest `word/document.xml` als Text. Absätze und Zeilenumbrüche bleiben,
 alles andere fällt weg.
+
+---
+
 ## Kurzvideos
 
 Ein Video bis **20 MB** liegt in **derselben Reihe wie die Fotos** — dieselbe
@@ -625,6 +760,8 @@ als Anhang an; dort wird sie heruntergeladen statt abgespielt.
 
 Ausgeliefert wird **in Ranges**, damit sich im Video springen lässt. Fotos
 bleiben davon unberührt.
+
+---
 
 ## Speicherbedarf
 
@@ -689,6 +826,9 @@ Stück wächst die Datenbank entsprechend schnell — das ist der Grund für die
 Grenze.
 
 Gelöschter Platz wird automatisch freigegeben.
+
+---
+
 ## Sichern
 
 **Es gibt drei Wege, und sie tun Verschiedenes.**
@@ -823,6 +963,8 @@ Bestand oder, wenn die Datei zu groß würde, einen Teil davon.
 > eingelöst wurde, bekommt von der älteren Version keinen neuen Link — dort
 > hilft nur `node usertool.js passwort <name>`.
 
+---
+
 ## Datenmodell
 
 Die Datenbankdatei heißt `katalog.sqlite`. Der Dateiname wandert bei einer
@@ -929,6 +1071,9 @@ Start eine leere Neuinstallation vermuten.
   `ON DELETE SET NULL` greift nur bei einem `DELETE` von Hand: die Anwendung
   selbst entfernt keine Benutzerzeile, und Bestand ohne Verfasser fällt beim
   Start an den Eigentümer
+
+---
+
 ## Prüfen
 
 ```bash
@@ -1009,6 +1154,8 @@ arbeitet, gehört er entfernt.
 ```
 
 **Steht diese Zeile in deinem Protokoll, gehört der Schalter aus der `.env`.**
+
+---
 
 ## Den Schlüssel wechseln
 

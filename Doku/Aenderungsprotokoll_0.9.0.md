@@ -554,14 +554,14 @@ sagt nichts darüber, welche Prüfung den Rückbau bemerkt hätte.*
   Verlierer in den Wettlauf, statt die Frist zu entfernen: am Verhalten änderte
   das nichts. Der zweite strich sie aus dem Wettlauf — dann warf sie
   **unbehandelt**, und der Server starb. Der dritte macht sie **wirkungslos**
-  und lässt alles stehen. **Und die Prüfung selbst brauchte ein eigenes
-  Auffangnetz:** ohne es hing der Prüflauf, sobald der Rückbau die Frist
+  und lässt alles stehen. **Und die Prüfung selbst brauchte eine eigene
+  Grenze:** ohne sie hing der Prüflauf, sobald der Rückbau die Frist
   wegnahm. Jede Messung der Frist läuft jetzt über eine eigene Grenze beim
   Doppelten der Zusage — *was darunter liegt, ist eine Messung; was darüber
   liegt, ist ein Befund.*
 * **25** — Der Rückbau nimmt den Knopf „noch einmal versuchen" weg, und meine
   Prüfzeile griff ihn mit `.dispatchEvent` auf `null` (Stolperstein 103). Jetzt
-  über ein Auffangnetz.
+  abgefangen.
 * **27** — Der Rückbau zielte auf die **Karte**; `mailstand` ist beim Admin aber
   `null`, weil er gar nicht erst geholt wird — die Karte erschiene also
   trotzdem nicht. Er zielt jetzt auf den **Abruf**, und der ist die tragende

@@ -186,7 +186,7 @@ und Verfasser da.
 *Die Zahl am Ende ist keine Zierde: sie sagt dem Betreiber, wie viele
 Ablehnungen in seinem Bestand von nun an sichtbar unvollständig dastehen.*
 
-**Das Auffangnetz `ordneBestandZu()` fasst `rejected_von` ausdrücklich NICHT
+**Der Rückfall `ordneBestandZu()` fasst `rejected_von` ausdrücklich NICHT
 an.** Dort geht es um `user_id` und um die Frage, wem eine herrenlose Zeile
 gehört. `rejected_von` ist keine Eigentumsangabe, sondern der Name unter einer
 Entscheidung — sie dem Eigentümer zuzuschieben setzte seinen Namen unter eine

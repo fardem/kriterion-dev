@@ -296,7 +296,7 @@ war die nullbare Spalte ohnehin die richtige Antwort — aber die Wahl war keine
 vor jedem Deuten per `diff` belegt, dass der Quelltext der ist, den die Probe
 zu prüfen glaubt (Stolperstein 75).
 
-### Punkt 1 — Schema, Migration, Auffangnetz
+### Punkt 1 — Schema, Migration, Rückfall
 
 | Rückbau | Ergebnis |
 |---|---|
@@ -396,7 +396,7 @@ wertvollste der Runde — er hat Stolperstein 102 gefunden.
   eine frische Anlage trägt die Spalte **ohne** Migration — und der Index auf
   `links` legt sich beim Start selbst nach, während die Spalte es nicht täte.
   Die dritte Zeile hängt an einem Eintrag, der selbst herrenlos ist: sie kann
-  die Migration nicht füllen und fällt danach dem Auffangnetz zu. **Beide Regeln
+  die Migration nicht füllen und fällt danach dem Rückfall zu. **Beide Regeln
   sind an einem Lauf zu sehen.**
 - **Der Name an der Zeile.** Drei Fenster nebeneinander — drei Zugänge mit
   Adminrolle, ein Zugang, drei Zugänge ohne Adminrolle. Die Prüflage trägt
@@ -441,7 +441,7 @@ wurde.*
 >   1.0" in `pruefung.js` (124 Zeilen); der Export von `migration0830` in
 >   `module.exports` trägt dieselbe Marke und fällt mit.
 >   **Was NICHT mitfällt:** `links` in der Tabellenliste von
->   `ordneBestandZu()`. Das Auffangnetz ist keine Migration — es läuft bei jedem
+>   `ordneBestandZu()`. Der Rückfall ist keine Migration — er läuft bei jedem
 >   Start und beantwortet eine andere Frage.
 
 ---

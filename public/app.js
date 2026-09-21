@@ -3054,14 +3054,21 @@ const bellOrigin = (i) =>
   markedCount(i) ? 'marked' : (i.mine ? 'mine' : 'other');
 const openTotal = () => (state.all || []).reduce((n, i) => n + (Number(i.openTasks) || 0), 0);
 
-/* WAS DORT NEU IST, IN WORTEN. */
+/* WAS DORT NEU IST -- in der Zeile mit Zeichen, im Ueberfahrtext mit Worten.
+   Dieselbe Trennung wie in commentNumbers(): die Zeile mass in drei Sprachen
+   36, 33 und 30 Zeichen und drueckte den Titel zusammen. */
 const newWords = (i) => {
   const k = Number(i.newComments) || 0, b = Number(i.newRatings) || 0;
   /* DIE MARKIERUNG STEHT ALS ZEICHEN DANEBEN UND NICHT MEHR IM SATZ. */
   const marked = markedCount(i);
-  return [k ? esc(t('list.commentCount', { n: k })) : '',
-          marked ? countMark('marked', '@', marked, t('list.markedCount', { n: marked })) : '',
-          b ? esc(`${b} ${vRating(b)}`) : ''].filter(Boolean).join(' · ');
+  const comments = k ? t('list.commentCount', { n: k }) : '';
+  const markedWords = marked ? t('list.markedCount', { n: marked }) : '';
+  return {
+    html: [comments ? esc(comments) : '',
+           marked ? countMark('marked', '@', marked) : '',
+           b ? countMark('rating', '★', b) : ''].filter(Boolean).join(' · '),
+    text: [comments, markedWords, b ? `${b} ${vRating(b)}` : ''].filter(Boolean).join(' · ')
+  };
 };
 
 /* VON WEM. */
@@ -3142,9 +3149,11 @@ function showBellPanel() {
       a.innerHTML = `<span class="mname"></span><span class="mcount"></span>
         <span class="bell-from"></span>`;
       a.querySelector('.mname').textContent = it.title;
-      /* HTML UND NICHT TEXT -- newWords() traegt das Zeichen der
-         Markierung. */
-      a.querySelector('.mcount').innerHTML = newWords(it);
+      /* HTML UND NICHT TEXT -- newWords() traegt die Zeichen; der lange
+         Wortlaut steht im Ueberfahrtext. */
+      const counts = newWords(it);
+      a.querySelector('.mcount').innerHTML = counts.html;
+      a.querySelector('.mcount').title = counts.text;
       a.querySelector('.bell-from').textContent = newFromWords(it);
       a.onclick = () => zu();
       box.appendChild(a);

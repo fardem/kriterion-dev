@@ -248,7 +248,7 @@ die JavaScript-Dateien.
 |---|---|---|
 | **1** | Die Doppelung in der README auflösen | eigene Zeile im Fahrplan |
 | **2** | Ob die gemessenen Zahlen des Stilblatts in ein eigenes Papier wandern | Punkt 42, Entscheidung des Betreibers |
-| **3** | „Auffangnetz" und „Grundausstattung" sind Abschnittsnamen in `db.js` und stehen in Dutzenden Prüfnamen | eine eigene Umbenennungsrunde |
+| **3** | `Auffangnetz` und `Grundausstattung` sind Abschnittsnamen in `db.js` und stehen in Dutzenden Prüfnamen | eine eigene Umbenennungsrunde |
 
 *Der dritte Punkt ist beim Bauen aufgefallen: `CLAUDE.md` führt beide Wörter
 unter „nicht verwenden", und sie stehen als Überschrift in `db.js` und im Namen

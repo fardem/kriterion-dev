@@ -255,8 +255,8 @@ async function sendImport(object, mode, withoutShare = false) {
   } catch {
     freshCriterion = freshDb.prepare('SELECT name, sort_order FROM rating_criteria ORDER BY sort_order, id').all();
   }
-  check('Grundausstattung wird angelegt', freshCriterion.length === 3, JSON.stringify(freshCriterion));
-  check('Grundausstattung ist durchnummeriert', equal(freshCriterion.map(c => c.sort_order), [0, 1, 2]));
+  check('Die mitgelieferten Kriterien werden angelegt', freshCriterion.length === 3, JSON.stringify(freshCriterion));
+  check('Die mitgelieferten Kriterien sind durchnummeriert', equal(freshCriterion.map(c => c.sort_order), [0, 1, 2]));
   /* Erst auf Vorhandensein, dann auf die Eigenschaft: eine
      leere Liste liesse every() gruen und belegte nichts. */
   check('Und jedes Kriterium startet auf Gewicht 1',
@@ -2766,7 +2766,7 @@ async function sendImport(object, mode, withoutShare = false) {
     d.prepare('INSERT INTO sessions (token, user_id) VALUES (?, ?)').run('pin-zweiter', 2);
     for (const t of ['Pin eins', 'Pin zwei', 'Pin drei'])
       d.prepare('INSERT INTO items (title, user_id) VALUES (?, 1)').run(t);
-    // Die Grundausstattung raeumen und eigene Kriterien mit bekannten Nummern
+    // Die mitgelieferten Kriterien raeumen und eigene mit bekannten Nummern
 // holen -- feste Nummern truegen, weil AUTOINCREMENT weiterzaehlt.
     d.prepare('DELETE FROM rating_criteria').run();
     const kLook = d.prepare('INSERT INTO rating_criteria (name, sort_order) VALUES (?, 0)').run('Optik').lastInsertRowid;
@@ -2848,9 +2848,9 @@ async function sendImport(object, mode, withoutShare = false) {
   await P1.stop();
   fs.rmSync(pDir, { recursive: true, force: true });
 
-  /* --- Das Auffangnetz an der Einrichtung: herrenloser Bestand faellt dem
+  /* --- Der Rueckfall an der Einrichtung: herrenloser Bestand faellt dem
      ersten Zugang zu. */
-  const eDir = fs.mkdtempSync(path.join(os.tmpdir(), 'kriterion-auffangnetz-'));
+  const eDir = fs.mkdtempSync(path.join(os.tmpdir(), 'kriterion-rueckfall-'));
   shortRun(`require('./db'); console.log('da');`, eDir);
   {
     const d = open(path.join(eDir, 'katalog.sqlite'));
@@ -5745,7 +5745,7 @@ async function sendImport(object, mode, withoutShare = false) {
     e2LinkOldRows.length === 2 && e2LinkOldRows.every(z => z.username === 'bert'),
     JSON.stringify(e2LinkOldRows));
   // Und keine dieser Zeilen ist dabei herrenlos geblieben -- sonst schoebe sie
-// das Auffangnetz beim naechsten Start dem Eigentuemer zu.
+// der Rueckfall beim naechsten Start dem Eigentuemer zu.
   check('Und keine davon bleibt herrenlos',
     e2Names(`SELECT COUNT(*) n FROM links WHERE user_id IS NULL`)[0].n === 0,
     JSON.stringify(e2Names('SELECT id, url, user_id FROM links WHERE user_id IS NULL')));
@@ -10829,17 +10829,18 @@ async function sendImport(object, mode, withoutShare = false) {
     const d = open(path.join(msDir, 'katalog.sqlite'));
     d.prepare("INSERT INTO users (username, password_hash, role) VALUES ('anna', 'x', 'owner')").run();
     d.prepare("INSERT INTO users (username, password_hash) VALUES ('carla', 'x')").run();
-    /* Die Zeitstempel VON HAND, und nicht datetime('now'):
-       vier Zeilen in derselben Sekunde liessen sich in der Reihenfolge nicht
-       unterscheiden, und "zuletzt gesehen" waere unbeweisbar. */
+    /* Abstaende zur Uhr und keine festen Daten: das Fenster von dreissig Tagen
+       laeuft mit, und vier Zeilen in derselben Sekunde liessen sich in der
+       Reihenfolge nicht unterscheiden. */
     const sitz = [
-      ['cookie-ms-anna-1', 1, '2026-08-20 08:00:00', '2026-08-24 07:30:00'],
-      ['cookie-ms-anna-2', 1, '2026-08-18 19:15:00', '2026-08-23 21:00:00'],
-      ['cookie-ms-carla-1', 2, '2026-08-19 09:00:00', '2026-08-24 06:00:00'],
-      ['cookie-ms-carla-2', 2, '2026-08-01 11:00:00', '2026-08-22 09:45:00']
+      ['cookie-ms-anna-1', 1, '-10 days', '-1 days'],
+      ['cookie-ms-anna-2', 1, '-12 days', '-2 days'],
+      ['cookie-ms-carla-1', 2, '-14 days', '-3 days'],
+      ['cookie-ms-carla-2', 2, '-16 days', '-4 days']
     ];
     for (const [t, u, c, l] of sitz)
-      d.prepare('INSERT INTO sessions (token, user_id, created_at, last_seen) VALUES (?, ?, ?, ?)')
+      d.prepare(`INSERT INTO sessions (token, user_id, created_at, last_seen)
+                 VALUES (?, ?, datetime('now', ?), datetime('now', ?))`)
         .run(t, u, c, l);
     d.close();
   }
@@ -12939,9 +12940,9 @@ async function sendImport(object, mode, withoutShare = false) {
       hLetters.length === 1, `${hLetters.length} Briefe an clara, ` +
       `${hOk.letters().length - hVorLetters} neue insgesamt`);
     /* ERST DER GEGENSTAND, DANN DIE EIGENSCHAFT -- und in
-       einer Gruppe ueber einen Vorgang, der scheitern KANN, laeuft jede
-       Lesestelle danach ueber ein Auffangnetz: kommt der
-       Brief nicht, soll die Gruppe rot werden und nicht abreissen. */
+       einer Gruppe ueber einen Vorgang, der scheitern KANN, ist jede
+       Lesestelle danach abgefangen: kommt der Brief nicht, soll die Gruppe
+       rot werden und nicht abreissen. */
     const hMail = hLetters[0] || { head: '', core: '', raw: '' };
     check('Der Empfaenger ist die angefragte Adresse',
       /^To: clara@beispiel\.de$/m.test(hMail.head), hMail.head.split('\n').slice(0, 4).join(' | '));
@@ -13157,7 +13158,7 @@ async function sendImport(object, mode, withoutShare = false) {
       (fCard.requests || []).length === 1 &&
       ((fCard.requests || [])[0] || {}).username === 'frieda',
       JSON.stringify(fCard.requests));
-    /* JEDE LESESTELLE DANACH UEBER EIN AUFFANGNETZ: kommt
+    /* JEDE LESESTELLE DANACH ABGEFANGEN: kommt
        die Zeile nicht, soll die Gruppe rot werden und nicht abreissen -- eine
        Gegenprobe, die den Lauf mitnimmt, sagt nichts darueber, welche
        Pruefung den Rueckbau bemerkt haette. */
@@ -13275,9 +13276,8 @@ async function sendImport(object, mode, withoutShare = false) {
       const s = await regWaitOnMail(hOk, address);
       await hA.S.call('POST', '/api/signup/confirm', { key: s });
       const k = (await hA.S.call('GET', '/api/requests')).content || {};
-      // Ein Auffangnetz statt eines Griffs ins Leere: eine
-      // Nummer, die es nicht gibt, faerbt die Pruefung rot statt den Lauf
-      // abzureissen.
+      // Eine fehlende Antwort ist abgefangen: eine Nummer, die es nicht
+      // gibt, faerbt die Pruefung rot statt den Lauf abzureissen.
       return ((k.requests || []).find(a => a.username === name) || { id: 0 }).id;
     };
     const rCoreId = await rolesState('gustav', 'gustav@beispiel.de');
@@ -13647,7 +13647,7 @@ async function sendImport(object, mode, withoutShare = false) {
       const start = await zfS.call('POST', '/api/two-factor/start', { password });
       await zfQuiet();
       const counter = ZF.nowStep();
-      /* AUFFANGNETZ: gibt /start kein Geheimnis her,
+      /* ABGEFANGEN: gibt /start kein Geheimnis her,
          laeuft alles Weitere trotzdem durch -- mit einem erfundenen Wert, der
          zuverlaessig nicht traegt. */
       const secret = (start.content && start.content.secret) || 'A'.repeat(32);
@@ -13661,7 +13661,7 @@ async function sendImport(object, mode, withoutShare = false) {
 
     // Anmeldung in zwei Schritten, mit einem Code fuer einen bestimmten
     // Zaehler.
-    /* DAS AUFFANGNETZ IST DER GANZE PUNKT DIESER FUNKTION. */
+    /* DAS ABFANGEN IST DER GANZE PUNKT DIESER FUNKTION. */
     const zfLogin = async (z, counter, raw) => {
       await zfS.cookieRemove();
       const one = await zfS.call('POST', '/api/login', { user: z.name, password: z.password });
@@ -13987,7 +13987,7 @@ async function sendImport(object, mode, withoutShare = false) {
       zfFresh.status === 200 && zfFresh.content.codes.length === 8 &&
       zfFresh.content.codesOpen === 8 && zfFresh.content.codesTotal === 8,
       JSON.stringify(zfFresh.content.codesOpen));
-    /* AUFFANGNETZ: gibt die Route keine Codes her -- weil
+    /* ABGEFANGEN: gibt die Route keine Codes her -- weil
        ein Rueckbau sie hat scheitern lassen --, laeuft die Zeile trotzdem
        durch und faellt rot. */
     const zfNewCodes = (zfFresh.content && zfFresh.content.codes) || [];
@@ -15260,6 +15260,18 @@ async function sendImport(object, mode, withoutShare = false) {
     });
     return { ok: r.status === 0, out: `${r.stdout || ''}${r.stderr || ''}` };
   };
+  /* DIE ZUSAGE GILT DER GANZEN INSTANZ UND NICHT db.js ALLEIN: ein Gesuch,
+     das beim Laden von server.js scheitert, haelt sie unten. PORT=0 nimmt
+     eine beliebige freie Nummer -- gefragt wird, ob das Modul LAEDT, und mit
+     keinem Server geredet. */
+  const uhServer = (directory) => {
+    const r = require('child_process').spawnSync(process.execPath,
+      ['-e', "require('./server.js'); setTimeout(() => process.exit(0), 50);"], {
+        cwd: __dirname, encoding: 'utf8', timeout: 30000,
+        env: { ...process.env, DATA_DIR: directory, ENCRYPTION_KEY: KEY, PORT: '0' }
+      });
+    return { ok: r.status === 0, out: `${r.stdout || ''}${r.stderr || ''}` };
+  };
   const uhColumns = (directory, table) => {
     const d = open(path.join(directory, 'katalog.sqlite'));
     const s = d.prepare(`PRAGMA table_info(${table})`).all().map(c => c.name);
@@ -15312,6 +15324,8 @@ async function sendImport(object, mode, withoutShare = false) {
     uhFreshMissing.map(([t, c]) => `${t}.${c}`).join(' · ') || 'alle da');
   check('Und sie sagt dabei kein Wort ueber eine unvollstaendige Datenbank',
     !/incomplete/i.test(uhFresh.out), JSON.stringify(uhFresh.out.trim()));
+  check('Und die ganze Instanz kommt ueber ihr hoch',
+    uhServer(uhFreshDir).ok, uhServer(uhFreshDir).out.trim().slice(-300));
   check('Und sie legt keinen Merker dafuer an — die Probe fragt den Bestand',
     (() => {
       const d = open(path.join(uhFreshDir, 'katalog.sqlite'));
@@ -15324,7 +15338,7 @@ async function sendImport(object, mode, withoutShare = false) {
 
   /* UND JETZT DIE ACHTZEHN PRUEFLAGEN, EINE JE SPALTE. Je Lage: die Spalte
      wegnehmen, die Instanz hochziehen, und drei Dinge festhalten -- 1. */
-  const uhMissed = [], uhUnnamed = [], uhNoOldName = [], uhDead = [];
+  const uhMissed = [], uhUnnamed = [], uhNoOldName = [], uhDead = [], uhServerDead = [];
   for (const [table, column, oldName] of uhTable) {
     fs.rmSync(uhDir, { recursive: true, force: true });
     fs.mkdirSync(uhDir, { recursive: true });
@@ -15336,6 +15350,13 @@ async function sendImport(object, mode, withoutShare = false) {
       uhDead.push(`${table}.${column}: ${run.out.trim().split('\n').pop()}`);
       continue;
     }
+    /* UND DIE GANZE INSTANZ, nicht nur db.js. Gemessen am 21. September 2026:
+       sechzehn der achtzehn Spalten hielten sie unten, weil dreiunddreissig
+       Gesuche beim Laden vorbereitet wurden. */
+    const runServer = uhServer(uhDir);
+    if (!runServer.ok)
+      uhServerDead.push(`${table}.${column}: ` +
+        (runServer.out.split('\n').find(z => /Error:/.test(z)) || '').trim());
     if (uhColumns(uhDir, table).includes(column)) uhMissed.push(`${table}.${column}`);
     if (!run.out.includes(`${table}.${column}`)) uhUnnamed.push(`${table}.${column}`);
     /* NEUN DER ACHTZEHN HABEN EINEN ALTEN NAMEN. Der Kasten nennt ihn auch
@@ -15352,6 +15373,10 @@ async function sendImport(object, mode, withoutShare = false) {
     uhNoOldName.length === 0, uhNoOldName.join(' · ') || 'alle neun mit altem Namen');
   check('Und die Instanz kommt in jedem der achtzehn Faelle hoch',
     uhDead.length === 0, uhDead.join(' · ') || 'alle achtzehn oben');
+  /* DAS IST DIE ZUSAGE DES KASTENS, und sie wird hier gemessen und nicht
+     geglaubt: „THIS INSTANCE STARTS ANYWAY". */
+  check('Und die ganze Instanz ebenso — das ist die Zusage des Kastens',
+    uhServerDead.length === 0, uhServerDead.join(' · ') || 'alle achtzehn oben');
 
   /* DER KASTEN NENNT AUSSERDEM DEN WEG HERAUS. Ein Hinweis, der sagt, was
      fehlt, aber nicht, was zu tun ist, ist eine Beunruhigung. */
@@ -16002,10 +16027,10 @@ async function sendImport(object, mode, withoutShare = false) {
     check('Die Aufteilung fragt je Art mit einer Gleichheit',
       oneLine.includes("FROM photos WHERE kind IS ?") &&
       !/const qPerKind[^;]*kind != 'video'/.test(oneLine),
-      (oneLine.match(/const qPerKind = db\.prepare\([^;]*/) || ['(nicht gefunden)'])[0]);
+      (oneLine.match(/const qPerKind = lateStatement\([^;]*/) || ['(nicht gefunden)'])[0]);
     check('Und die Arten kommen aus einer eigenen, blobfreien Abfrage',
-      oneLine.includes("const qImageKinds = db.prepare('SELECT kind AS a FROM photos GROUP BY 1')"),
-      (oneLine.match(/const qImageKinds = db\.prepare\([^;]*/) || ['(nicht gefunden)'])[0]);
+      oneLine.includes("const qImageKinds = lateStatement('SELECT kind AS a FROM photos GROUP BY 1')"),
+      (oneLine.match(/const qImageKinds = lateStatement\([^;]*/) || ['(nicht gefunden)'])[0]);
     /* 3. DIE FORMATZEILE BLEIBT MATERIALISIERT -- dort ist die Gruppierung
        ueber eine Blob-Laenge der Kostenpunkt. */
     check('Die Aufteilung nach Format laeuft ueber eine materialisierte Zwischenabfrage',
@@ -16043,28 +16068,28 @@ async function sendImport(object, mode, withoutShare = false) {
     /* UND DIE UEBERSICHT FRAGT EINMAL STATT JE EINTRAG. Ohne diese Zeile
        bliebe gruen, wer den Index anlegt und die Schleife stehen laesst. */
     check('Die Uebersicht holt die Fotos in einer Abfrage',
-      oneLine.includes('const qAllPhotos = db.prepare(') &&
+      oneLine.includes('const qAllPhotos = lateStatement(') &&
       oneLine.includes('const ph = photosPer.get(it.id) || [];'),
       (oneLine.match(/const ph = [^;]*/) || ['(nicht gefunden)'])[0]);
     /* UND detail() BENUTZT WEITER DIESELBEN SPALTEN. */
     check('Und die Einzelabfrage liest dieselben Spalten',
-      oneLine.includes('const qPhotos = db.prepare(`SELECT ${PHOTO_COLUMNS}, ${PHOTO_VERSION} FROM photos WHERE item_id = ?'),
-      (oneLine.match(/const qPhotos = db\.prepare\([^;]*/) || ['(nicht gefunden)'])[0]);
+      oneLine.includes('const qPhotos = lateStatement(`SELECT ${PHOTO_COLUMNS}, ${PHOTO_VERSION} FROM photos WHERE item_id = ?'),
+      (oneLine.match(/const qPhotos = lateStatement\([^;]*/) || ['(nicht gefunden)'])[0]);
     /* UND DIE FASSUNG STEHT NEBEN DER LISTE UND NICHT IN IHR -- 0.19.5. */
     check('Die Fassung steht neben der Spaltenliste und nicht in ihr',
       oneLine.includes("const PHOTO_VERSION = 'length(thumb) AS thumbLength'") &&
       !/PHOTO_COLUMNS = '[^']*thumb/.test(oneLine) &&
-      oneLine.includes('const qAllPhotos = db.prepare(`SELECT ${PHOTO_COLUMNS}, ${PHOTO_VERSION} FROM photos'),
+      oneLine.includes('const qAllPhotos = lateStatement(`SELECT ${PHOTO_COLUMNS}, ${PHOTO_VERSION} FROM photos'),
       (oneLine.match(/const PHOTO_VERSION = [^;]*/) || ['(nicht gefunden)'])[0]);
     /* DER KNOPF WAEHLT SEIT 0.27.0 GROSSZUEGIG AUS -- und die Zusage ist
        mitgegangen statt geloescht zu werden. */
     check('Die Auswahl des Knopfs liest keinen Blob-Inhalt mehr',
-      /qConvertRows = db\.prepare\(\s*"SELECT id FROM photos WHERE kind != 'video'"\);/.test(oneLine.replace(/\s+/g, ' ')) ||
-      /qConvertRows = db\.prepare\([\s\S]{0,200}?SELECT id FROM photos WHERE kind != 'video'\"\);/.test(serverSource),
-      (serverSource.match(/qConvertRows = db\.prepare\([\s\S]{0,200}/) || ['(nicht gefunden)'])[0]);
+      /qConvertRows = lateStatement\(\s*"SELECT id FROM photos WHERE kind != 'video'"\);/.test(oneLine.replace(/\s+/g, ' ')) ||
+      /qConvertRows = lateStatement\([\s\S]{0,200}?SELECT id FROM photos WHERE kind != 'video'\"\);/.test(serverSource),
+      (serverSource.match(/qConvertRows = lateStatement\([\s\S]{0,200}/) || ['(nicht gefunden)'])[0]);
     check('Und sie nennt kein hex(substr(...)) mehr',
-      !/qConvertRows = db\.prepare\([\s\S]{0,200}?hex\(substr/.test(serverSource),
-      (serverSource.match(/qConvertRows = db\.prepare\([\s\S]{0,200}/) || [''])[0]);
+      !/qConvertRows = lateStatement\([\s\S]{0,200}?hex\(substr/.test(serverSource),
+      (serverSource.match(/qConvertRows = lateStatement\([\s\S]{0,200}/) || [''])[0]);
     /* UND DIE FRAGE NACH DEN BYTES STEHT NICHT MEHR IM THREAD -- 0.33.0. */
     const batchSource = fs.readFileSync(path.join(__dirname, 'batchrun.js'), 'utf8');
     const batchCode = batchSource.split('\n')
@@ -17612,7 +17637,7 @@ async function sendImport(object, mode, withoutShare = false) {
   }
 
   /* ---------------------------------------------------------------- */
-  group('Die Grundausstattung an einer bestehenden Instanz');
+  group('Die mitgelieferten Kriterien an einer bestehenden Instanz');
 
   {
     /* DIE LAGE: eine Instanz, die schon gelaufen ist und ihre Kriterien
@@ -18574,7 +18599,7 @@ async function sendImport(object, mode, withoutShare = false) {
   {
     const phSource = fs.readFileSync(path.join(__dirname, 'server.js'), 'utf8');
     const phQuery = (name) =>
-      (phSource.match(new RegExp(`const ${name} = db\\.prepare\\(\`([^\`]*)\``)) || ['', ''])[1];
+      (phSource.match(new RegExp(`const ${name} = lateStatement\\(\`([^\`]*)\``)) || ['', ''])[1];
     const phSingle = phQuery('qAveragePerCriterion');
     const phAll = phQuery('qAveragePerCriterionAll');
     const namesPhase = (a) => /SELECT[\s\S]*?\bc\.phase\b[\s\S]*?FROM/.test(a) &&
@@ -18605,9 +18630,9 @@ async function sendImport(object, mode, withoutShare = false) {
     `${phD.calc?.rows?.length} und ${phD.potentialCalc?.rows?.length}`);
   /* UND DIE STERNZEILEN TRAGEN IHRE PHASE MIT -- der Browser filtert danach
      und rechnet nichts. */
-  /* Die Prueflage traegt neben den drei hier angelegten die drei Kriterien
-     der Grundausstattung, die db.js in eine frische Datei legt -- also sechs
-     Zeilen, davon EINE im Kasten „before". */
+  /* Die Prueflage traegt neben den drei hier angelegten die drei
+     mitgelieferten Kriterien, die der Server in eine frische Datei legt --
+     also sechs Zeilen, davon EINE im Kasten „before". */
   check('Jede Sternzeile traegt ihre Phase',
     phD.ratings.length === 6 &&
     phD.ratings.every(r => PHASES_EXPECTED.includes(r.phase)) &&

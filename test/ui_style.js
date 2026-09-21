@@ -780,6 +780,39 @@ async function run() {
     d.w.close();
   }
 
+  /* ---- DIE TABELLE ROLLTE WAAGERECHT ---- Bei 360 Pixeln brauchte sie mit
+     einem Kriteriennamen aus vierzig Zeichen 378 statt 328 Pixel; die erste
+     Spalte mass dabei 190 statt 88,7. */
+  {
+    /* Der Block wird ueber die Klammern gezaehlt und nicht ueber ein Muster:
+       er traegt geschachtelte Regeln. */
+    const caNarrow = (() => {
+      const raw = fs.readFileSync(path.join(__dirname, 'public', 'style.css'), 'utf8');
+      const from = raw.indexOf('@media (max-width: 700px), (max-height: 500px) and (max-width: 960px) {');
+      if (from < 0) return '';
+      let depth = 0;
+      for (let i = raw.indexOf('{', from); i < raw.length; i++) {
+        if (raw[i] === '{') depth++;
+        else if (raw[i] === '}' && --depth === 0) return raw.slice(from, i + 1);
+      }
+      return '';
+    })();
+    /* ERST DAS VORHANDENSEIN DES BLOCKS: ueber einem leeren Text waere jede
+       Verneinung darunter wahr. */
+    check('Die schmale Ansicht steht ueberhaupt im Stilblatt',
+      caNarrow.length > 5000, `${caNarrow.length} Zeichen`);
+    const caCalc = (caNarrow.match(/\.calc-row > span:first-child \{[^}]*\}/) || [''])[0];
+    check('Und die erste Spalte der Rechentabelle darf dort umbrechen',
+      /min-width: 0/.test(caCalc) && /overflow-wrap: anywhere/.test(caCalc),
+      caCalc || '(keine Regel)');
+    /* DIESELBE REPARATUR TRAEGT DIE BEWERTUNGSZEILE, und sie steht daneben:
+       laufen die beiden auseinander, faellt es hier auf. */
+    const caList = (caNarrow.match(/\.rrow \.rname \{[^}]*\}/) || [''])[0];
+    check('Und die Bewertungszeile traegt dieselbe Regel',
+      /min-width: 0/.test(caList) && /overflow-wrap: anywhere/.test(caList),
+      caList || '(keine Regel)');
+  }
+
   /* ================= Die Glocke in der Kopfzeile — 0.16.0 ===============
      DREI DINGE ZUSAMMEN: der Punkt an der Glocke, die Zahl am Knopf „Offen"
      und die Tafel dahinter. */
@@ -889,8 +922,15 @@ async function run() {
     /* MITGENOMMEN MIT 0.17.0: hier stand „3 neue
        Beitraege". */
     const glNumber = (i) => rows[i]?.querySelector('.mcount')?.textContent?.trim();
+    const glTitle = (i) => rows[i]?.querySelector('.mcount')?.getAttribute('title');
     check('Sie nennt die Arten getrennt statt sie zusammenzuzaehlen',
-      glNumber(0) === '3 Kommentare · 1 Bewertung', JSON.stringify(glNumber(0)));
+      glNumber(0) === '3 Kommentare · ★1', JSON.stringify(glNumber(0)));
+    /* DAS WORT BLEIBT BEIM ERSTEN STUECK, die Bewertungen tragen das Zeichen;
+       der lange Wortlaut steht im Ueberfahrtext. Bei 360 Pixeln mass die
+       Zeile in den drei Sprachen 227,6 / 189,7 / 208,6 und jetzt 158,1 /
+       145,4 / 126,5 Pixel. */
+    check('Und der Ueberfahrtext traegt den langen Wortlaut',
+      glTitle(0) === '3 Kommentare · 1 Bewertung', JSON.stringify(glTitle(0)));
     /* BEI NUR EINER ART STEHT AUCH NUR EINE ANGABE DA. */
     check('Bei nur einer Art steht auch nur eine Angabe da',
       glNumber(1) === '1 Kommentar', JSON.stringify(glNumber(1)));
@@ -997,7 +1037,11 @@ async function run() {
     /* UND DIE EINZAHL STEHT RICHTIG DA. „1 Kommentare" ist der Fehler, den
        eine feste Endung macht -- geprueft an BEIDEN Woertern. */
     check('Die Einzahl steht bei beiden Woertern richtig',
-      rows[0]?.querySelector('.mcount')?.textContent?.trim() === '1 Kommentar · 4 Bewertungen',
+      rows[0]?.querySelector('.mcount')?.getAttribute('title') === '1 Kommentar · 4 Bewertungen',
+      JSON.stringify(rows[0]?.querySelector('.mcount')?.getAttribute('title')));
+    /* UND IN DER ZEILE STEHT DAS ZEICHEN. */
+    check('Und in der Zeile steht das Zeichen statt des Wortes',
+      rows[0]?.querySelector('.mcount')?.textContent?.trim() === '1 Kommentar · ★4',
       JSON.stringify(rows[0]?.querySelector('.mcount')?.textContent));
     check('Und die Mehrzahl ebenso',
       rows[1]?.querySelector('.mcount')?.textContent?.trim() === '3 Kommentare',
@@ -1027,11 +1071,11 @@ async function run() {
     check('Die Prueflage traegt zwei Zeilen mit nur Bewertungen',
       rows.length === 2, `${rows.length} Zeilen`);
     check('Nur Bewertungen: nur diese Angabe steht da',
-      rows[0]?.querySelector('.mcount')?.textContent?.trim() === '4 Bewertungen',
+      rows[0]?.querySelector('.mcount')?.textContent?.trim() === '★4',
       JSON.stringify(rows[0]?.querySelector('.mcount')?.textContent));
-    check('Und die Einzahl der Bewertung steht richtig da',
-      rows[1]?.querySelector('.mcount')?.textContent?.trim() === '1 Bewertung',
-      JSON.stringify(rows[1]?.querySelector('.mcount')?.textContent));
+    check('Und die Einzahl der Bewertung steht im Ueberfahrtext richtig da',
+      rows[1]?.querySelector('.mcount')?.getAttribute('title') === '1 Bewertung',
+      JSON.stringify(rows[1]?.querySelector('.mcount')?.getAttribute('title')));
     check('Das Wort „Kommentar" steht dann in keiner Zeile',
       !rows.some(z => /Kommentar/.test(z.textContent || '')),
       rows.map(z => z.textContent.replace(/\s+/g, ' ')).join(' | '));

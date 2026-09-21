@@ -640,8 +640,8 @@ zeigen wie vorher.**
 **Zwei Zeilen der Gruppe „Ohne Proxy ist der Kopf nur eine Behauptung" konnten
 nicht scheitern.** Sie standen **hinter** den zwölf absichtlichen
 Fehlversuchen, die die Adresse hart sperren — die Anmeldung danach liefert 429
-und gar keinen Cookie —, und trugen ein `gCookieKopf === '' ||` als
-Auffangnetz. **Damit waren sie in jedem Lauf wahr, ohne etwas zu belegen.**
+und gar keinen Cookie —, und fingen mit `gCookieKopf === '' ||` den
+Leerfall ab. **Damit waren sie in jedem Lauf wahr, ohne etwas zu belegen.**
 Jetzt steht der Gegenstand ausdrücklich davor („Ohne Proxy kommt überhaupt ein
 Cookie zurück"), und die Sperre wird erst danach ausgelöst.
 
@@ -823,8 +823,8 @@ Projektstand mit **38** geführt, im Änderungsprotokoll 0.12.4 mit **36**.
 193. **Eine Prüfung, die ihren Gegenstand vorher selbst zerstört, kann nicht
     scheitern.** Zwei Zeilen prüften den Cookienamen **nach** zwölf
     absichtlichen Fehlversuchen, die die Adresse hart sperren — die Anmeldung
-    danach liefert 429 und gar keinen Cookie. Ein `wert === '' ||` als
-    Auffangnetz machte beide in jedem Lauf wahr. **STOLPERSTEIN 81 HAT EINE
+    danach liefert 429 und gar keinen Cookie. Ein vorangestelltes
+    `wert === '' ||` machte beide in jedem Lauf wahr. **STOLPERSTEIN 81 HAT EINE
     ZWEITE GESTALT:** nicht der fehlende Gegenstand, sondern der von der
     Prüflage selbst weggenommene. *Reihenfolge ist bei aufeinander aufbauenden
     Lagen ein Teil der Aussage.*

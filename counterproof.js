@@ -1761,7 +1761,7 @@ const REGRESSIONS = [
   /* ---- 0.14.0: der kaputte Cookiewert ---- */
   {
     /* DER BEFUND SELBST, wiederhergestellt: decodeURIComponent() auf JEDEN
-       Wert, ohne Auffangnetz. */
+       Wert, und kein try darum. */
     nr: '217', name: 'Ein kaputter Cookiewert bricht wieder den ganzen Kopf ab',
     file: 'auth.js',
     search: "    let value;\n    try { value = decodeURIComponent(part.slice(i + 1).trim()); }\n" +
@@ -2569,8 +2569,8 @@ const REGRESSIONS = [
     /* DIE NULL STEHT WIEDER DA. */
     nr: '316', name: 'Die Tafel schreibt auch die Null hin',
     file: 'public/app.js',
-    search: "          b ? esc(`${b} ${vRating(b)}`) : ''].filter(Boolean).join(' · ');",
-    replacement: "          esc(`${b} ${vRating(b)}`)].join(' · ');",
+    search: "           b ? countMark('rating', '★', b) : ''].filter(Boolean).join(' · '),",
+    replacement: "           countMark('rating', '★', b)].join(' · '),",
     expected: 'Die Glocke in der Kopfzeile'
   },
   {
@@ -3646,8 +3646,8 @@ const REGRESSIONS = [
        Arten -- weil `MATERIALIZED` die zweite Ursache gar nicht traf. */
     nr: '461', name: 'Die Arten kommen wieder aus dem Satz statt aus dem Index',
     file: 'server.js',
-    search: "const qImageKinds = db.prepare('SELECT kind AS a FROM photos GROUP BY 1');",
-    replacement: "const qImageKinds = db.prepare('SELECT DISTINCT kind || \\'\\' AS a FROM photos');",
+    search: "const qImageKinds = lateStatement('SELECT kind AS a FROM photos GROUP BY 1');",
+    replacement: "const qImageKinds = lateStatement('SELECT DISTINCT kind || \\'\\' AS a FROM photos');",
     expected: 'Die Bildablage: PNG kommt herein, WebP geht in die Tabelle'
   },
   {
@@ -4950,7 +4950,7 @@ const REGRESSIONS = [
        davon sein wird. */
     nr: 'W13', name: 'Die Sprachliste verliert ihren juengsten Eintrag',
     file: 'test/source.js',
-    search: "    ['Faden', 'Thread']\n  ];",
+    search: "    ['Auffangnetz', 'Rueckfall'], ['Grundausstattung', 'Vorgabewerte']\n  ];",
     replacement: "  ];",
     expected: 'Der Sprachwaechter'
   },
@@ -5735,7 +5735,7 @@ const REGRESSIONS = [
        ab statt namentlich rot zu werden. */
     nr: '719', name: 'Die Kategorienamen werden nicht mehr je Sprache gelesen',
     file: 'server.js',
-    search: "const categoryNames = (locale) => nameTable(qCategoryBase.all(), qCategoryNamesAll.all(), locale);",
+    search: "const categoryNames = (locale) => nameTable(qCategoryBase().all(), qCategoryNamesAll.all(), locale);",
     replacement: "const categoryNames = () => new Map();",
     expected: 'Der Rueckfall der Namen — 0.24.3'
   },
@@ -5788,7 +5788,7 @@ const REGRESSIONS = [
     /* UND DIE TAFEL ENTSCHEIDET WIEDER UEBER EINE SPRACHE. */
     nr: '740', name: 'Der Bauer der Kriterientafel nimmt wieder eine Sprache an',
     file: 'server.js',
-    search: "const criterionNamesAll = () => namesAll(qCriterionBase.all(), qCriterionNamesAll.all());",
+    search: "const criterionNamesAll = () => namesAll(qCriterionBase().all(), qCriterionNamesAll.all());",
     replacement: "const criterionNamesAll = () => {\n" +
       "  const all = namesAll(qCriterionBase.all(), qCriterionNamesAll.all());\n" +
       "  return { [languageDefault()]: all[languageDefault()] };\n};",
@@ -8373,8 +8373,8 @@ const REGRESSIONS = [
     expected: 'Der Hinweis auf einen unvollstaendigen Bestand — 0.33.0'
   },
   {
-    /* UND DAS AUFFANGNETZ FRAGT NICHT MEHR NACH `user_id`. */
-    nr: '1042', name: 'Das Auffangnetz uebergeht eine fehlende Spalte nicht mehr',
+    /* UND DER RUECKFALL FRAGT NICHT MEHR NACH `user_id`. */
+    nr: '1042', name: 'Der Rueckfall uebergeht eine fehlende Spalte nicht mehr',
     file: 'db.js',
     search: "    if (!db.prepare(`PRAGMA table_info(${table})`).all().some(c => c.name === 'user_id')) {\n      counts[table] = 0;\n      continue;\n    }",
     replacement: "",
@@ -9425,13 +9425,13 @@ const REGRESSIONS = [
     expected: 'Frische Installation'
   },
   {
-    /* DIE LEERE TABELLE IST DIE GANZE BEDINGUNG: ohne sie kaeme eine
-       umbenannte Grundausstattung bei jedem Start zurueck. */
+    /* DIE LEERE TABELLE IST DIE GANZE BEDINGUNG: ohne sie kaemen die
+       umbenannten mitgelieferten Kriterien bei jedem Start zurueck. */
     nr: '1171', name: 'Eingesetzt wird nicht mehr nur in eine leere Tabelle',
     file: 'server.js',
-    search: "if (db.prepare('SELECT COUNT(*) n FROM rating_criteria').get().n === 0) {",
-    replacement: "if (true) {",
-    expected: 'Die Grundausstattung an einer bestehenden Instanz'
+    search: "if (!DATABASE_INCOMPLETE &&\n    db.prepare('SELECT COUNT(*) n FROM rating_criteria').get().n === 0) {",
+    replacement: "if (!DATABASE_INCOMPLETE) {",
+    expected: 'Die mitgelieferten Kriterien an einer bestehenden Instanz'
   },
   /* ---- Die Marke am Verweis auf einen geloeschten Kommentar ---- */
   {
@@ -9503,6 +9503,116 @@ const REGRESSIONS = [
     search: "  ['/api/stats',                   'adminOnly',",
     replacement: "  ['/api/stats',                   'angemeldet',",
     expected: 'Der Waechter ueber den Quelltext'
+  },
+  /* ---- Die beiden abgelegten Woerter ---- */
+  {
+    /* EIN WORT, DAS NICHT AUF DER LISTE STEHT, WIRD NICHT GEFUNDEN. */
+    nr: '1191', name: 'Der Sprachwaechter kennt die beiden Abschnittsnamen nicht mehr',
+    file: 'test/source.js',
+    search: "    ['Auffangnetz', 'Rueckfall'], ['Grundausstattung', 'Vorgabewerte']",
+    replacement: "    ['Auffangnetz', 'Rueckfall']",
+    expected: 'Der Sprachwaechter'
+  },
+  {
+    /* UND DER ABSCHNITTSNAME STEHT WIEDER IN EINER AUSGELIEFERTEN DATEI. */
+    nr: '1192', name: 'Der Abschnitt in db.js heisst wieder Auffangnetz',
+    file: 'db.js',
+    search: "// --- Rueckfall: kein Bestand ohne Benutzer ---",
+    replacement: "// --- Auffangnetz: kein Bestand ohne Benutzer ---",
+    expected: 'Der Sprachwaechter'
+  },
+  /* ---- Das Inhaltsverzeichnis der Anleitung ---- */
+  {
+    /* EINE SPRUNGMARKE INS LEERE SIEHT AUS WIE EINE, DIE TRIFFT. */
+    nr: '1189', name: 'Eine Sprungmarke der README zeigt auf nichts',
+    file: 'README.md',
+    search: "- [Aufbau des Ordners](#aufbau-des-ordners)",
+    replacement: "- [Aufbau des Ordners](#aufbau-des-verzeichnisses)",
+    expected: "Die Anleitung liegt in zwei Dateien \u2014 0.34.2"
+  },
+  {
+    /* UND EIN ABSCHNITT, DER IM VERZEICHNIS FEHLT. */
+    nr: '1190', name: 'Ein Abschnitt des Handbuchs fehlt im Inhaltsverzeichnis',
+    file: 'manual-de.md',
+    search: "- [Vokabular](#vokabular)\n",
+    replacement: "",
+    expected: "Die Anleitung liegt in zwei Dateien \u2014 0.34.2"
+  },
+  /* ---- Der Rest einer Nebenspur ---- */
+  {
+    /* OHNE DIESE ZEILE NIMMT JEDE SPUR DIE RESTE DER ANDEREN MIT. */
+    nr: '1187', name: 'Der Aufraeumer fragt nicht mehr, wem ein Rest gehoert',
+    file: 'test/frame.js',
+    search: "    const run = Number((environment.find(z => z.startsWith('KRITERION_RUN=')) || '').slice(14));\n    if (run && run !== process.pid && alive(run)) continue;",
+    replacement: "",
+    expected: "Ein Rest gehoert dem Lauf, der ihn hinterlassen hat \u2014 0.38.5"
+  },
+  {
+    /* UND OHNE DIE NUMMER IN DER UMGEBUNG TRAEGT KEIN KIND SIE WEITER. */
+    nr: '1188', name: 'Die Laufnummer steht nicht mehr in der Umgebung',
+    file: 'test/frame.js',
+    search: "process.env.KRITERION_RUN = String(process.pid);",
+    replacement: "",
+    expected: "Ein Rest gehoert dem Lauf, der ihn hinterlassen hat \u2014 0.38.5"
+  },
+  /* ---- Die Zusage „die Instanz startet trotzdem" ---- */
+  {
+    /* EIN EINZIGES FRUEHES GESUCH HAELT DIE GANZE INSTANZ UNTEN: db.prepare
+       wirft ueber der fehlenden Spalte, und der Kasten, der den Start zusagt,
+       ist vorher schon gedruckt. */
+    nr: '1185', name: 'Ein Gesuch ueber rating_criteria wird wieder beim Laden vorbereitet',
+    file: 'server.js',
+    search: "const qCriterionBase = lateStatement('SELECT id, name, language FROM rating_criteria');",
+    replacement: "const qCriterionBase = (() => { const s = db.prepare('SELECT id, name, language FROM rating_criteria'); return () => s; })();",
+    expected: 'Der Hinweis auf einen unvollstaendigen Bestand — 0.33.0'
+  },
+  {
+    /* UND DIE ZWEITE HAELFTE: ueber einem unvollstaendigen Bestand wird beim
+       Start wieder geschrieben. Der Kasten sagt „nothing is changed". */
+    nr: '1186', name: 'Der Start setzt die Kriterien wieder in eine unvollstaendige Datenbank',
+    file: 'server.js',
+    search: "if (!DATABASE_INCOMPLETE &&\n    db.prepare('SELECT COUNT(*) n FROM rating_criteria').get().n === 0) {",
+    replacement: "if (db.prepare('SELECT COUNT(*) n FROM rating_criteria').get().n === 0) {",
+    expected: 'Der Hinweis auf einen unvollstaendigen Bestand — 0.33.0'
+  },
+  /* ---- Die Zaehlzeile der Meldungstafel ---- */
+  {
+    /* DAS WORT STEHT WIEDER IN DER ZEILE: sie wird damit von 25 auf
+       36 Zeichen lang und nimmt dem Titel bei 360 Pixeln knapp 70 Pixel. */
+    nr: '1183', name: 'Die Bewertungen stehen wieder als Wort in der Zeile',
+    file: 'public/app.js',
+    search: "           b ? countMark('rating', '\u2605', b) : ''].filter(Boolean).join(' \u00b7 '),\n    text: [comments, markedWords, b ? `${b} ${vRating(b)}` : ''].filter(Boolean).join(' \u00b7 ')",
+    replacement: "           b ? esc(`${b} ${vRating(b)}`) : ''].filter(Boolean).join(' \u00b7 '),\n    text: [comments, markedWords, b ? `${b} ${vRating(b)}` : ''].filter(Boolean).join(' \u00b7 ')",
+    expected: 'Die Glocke in der Kopfzeile'
+  },
+  {
+    /* UND OHNE DEN UEBERFAHRTEXT IST DER LANGE WORTLAUT GANZ WEG. */
+    nr: '1184', name: 'Der Ueberfahrtext der Zaehlzeile faellt weg',
+    file: 'public/app.js',
+    search: "      a.querySelector('.mcount').title = counts.text;",
+    replacement: "",
+    expected: 'Die Glocke in der Kopfzeile'
+  },
+  /* ---- Die Rechentabelle in der schmalen Ansicht ---- */
+  {
+    /* OHNE DAS UMBRUCHRECHT MISST DIE ERSTE SPALTE IHREN LAENGSTEN NAMEN:
+       bei 360 Pixeln braucht die Tabelle 378 statt 328 und rollt. */
+    nr: '1182', name: 'Die erste Spalte der Rechentabelle darf nicht mehr umbrechen',
+    file: 'public/style.css',
+    search: "  .calc-row > span:first-child { min-width: 0; overflow-wrap: anywhere; }",
+    replacement: "",
+    expected: 'Die Rechnung hinter der Kopfzahl'
+  },
+  /* ---- Die Zeitstempel der Sitzungen ---- */
+  {
+    /* DIE VIER FESTEN ZEITSTEMPEL VON FRUEHER, WORTGLEICH: sie entfernen sich
+       Tag fuer Tag vom Fenster der dreissig Tage, und die Sitzungen fallen
+       heraus, ohne dass am Code etwas geaendert waere. */
+    nr: '1181', name: 'Die Sitzungen der Prueflage tragen wieder feste Zeitstempel',
+    file: 'test/roundtrip.js',
+    search: "    const sitz = [\n      ['cookie-ms-anna-1', 1, '-10 days', '-1 days'],\n      ['cookie-ms-anna-2', 1, '-12 days', '-2 days'],\n      ['cookie-ms-carla-1', 2, '-14 days', '-3 days'],\n      ['cookie-ms-carla-2', 2, '-16 days', '-4 days']\n    ];\n    for (const [t, u, c, l] of sitz)\n      d.prepare(`INSERT INTO sessions (token, user_id, created_at, last_seen)\n                 VALUES (?, ?, datetime('now', ?), datetime('now', ?))`)\n        .run(t, u, c, l);",
+    replacement: "    const sitz = [\n      ['cookie-ms-anna-1', 1, '2026-08-20 08:00:00', '2026-08-24 07:30:00'],\n      ['cookie-ms-anna-2', 1, '2026-08-18 19:15:00', '2026-08-23 21:00:00'],\n      ['cookie-ms-carla-1', 2, '2026-08-19 09:00:00', '2026-08-24 06:00:00'],\n      ['cookie-ms-carla-2', 2, '2026-08-01 11:00:00', '2026-08-22 09:45:00']\n    ];\n    for (const [t, u, c, l] of sitz)\n      d.prepare('INSERT INTO sessions (token, user_id, created_at, last_seen) VALUES (?, ?, ?, ?)')\n        .run(t, u, c, l);",
+    expected: 'Meine Sitzungen: nur die eigenen'
   },
 ];
 

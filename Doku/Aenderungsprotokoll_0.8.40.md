@@ -57,7 +57,7 @@ vorhandenen Zeilen selbst — nachgestellt, nicht geglaubt. Jeder andere Wert
 und um die Frage, wem eine herrenlose Zeile gehört. Ein Gewicht kann nicht
 herrenlos werden — es hat einen `NOT NULL`-Vorgabewert. Die Frage ist gestellt
 und verneint worden; eine Quelltextprüfung hält fest, dass `rating_criteria`
-im Auffangnetz nicht vorkommt.
+im Rückfall nicht vorkommt.
 
 ### `server.js` (+170/−24 Zeilen)
 

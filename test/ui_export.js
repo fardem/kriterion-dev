@@ -286,7 +286,7 @@ async function run() {
 
     await tzQuiet();
     const tzStart = await tzS.call('POST', '/api/two-factor/start', { password: TZ_WORD });
-    // Auffangnetz: gibt /start kein Geheimnis her, laeuft
+    // Abgefangen: gibt /start kein Geheimnis her, laeuft
     // alles Weitere trotzdem durch -- mit einem Wert, der zuverlaessig nicht
     // traegt, statt dass der Lauf hier abreisst.
     const tzSecret = (tzStart.content && tzStart.content.secret) || 'A'.repeat(32);

@@ -1,5 +1,5 @@
 const crypto = require('crypto');
-const { db, assignInventory } = require('./db');
+const { db, assignInventory, lateStatement } = require('./db');
 const { logLine, logWarn, logFail } = require('./log');
 /* DER PRUEFSCHALTER. keys.js haengt an keiner anderen Datei des Repositorys;
    dieses require macht deshalb keinen Kreis auf. */
@@ -202,7 +202,7 @@ async function createFirstUser(name, password) {
     "SELECT ?, ?, 'owner' WHERE NOT EXISTS (SELECT 1 FROM users)"
   ).run(String(name).trim(), hash);
   if (r.changes === 0) throw new Message('server.setupDone');
-  // Zweite Aufrufstelle des Auffangnetzes aus db.js: beim Start einer leeren
+  // Zweite Aufrufstelle des Rueckfalls aus db.js: beim Start einer leeren
   // Instanz lief es ins Leere, weil es noch keinen Benutzer gab -- dieser Weg
   // liefert ihn erst jetzt nach.
   assignInventory();
@@ -650,14 +650,14 @@ const TOKEN_DEADLINE_MINUTES = 15;
 
 // Liefert den Ablauf, der danach gilt -- fuer den Aufrufer, der ihn nennen
 // will.
-const setDeadline = db.prepare(
+const setDeadline = lateStatement(
   `UPDATE tokens SET expires_at = datetime('now', ?)
     WHERE hash = ? AND used_at IS NULL AND expires_at > datetime('now', ?)`);
 function startTokenDeadline(hash) {
   const modifier = `+${TOKEN_DEADLINE_MINUTES} minutes`;
   // ZWEI MODIFIKATOREN WAEREN ZWEI ARGUMENTE -- hier steht
 // derselbe zweimal, einmal als neuer Wert und einmal als Schranke davor.
-  setDeadline.run(modifier, String(hash || ''), modifier);
+  setDeadline().run(modifier, String(hash || ''), modifier);
   return TOKEN_DEADLINE_MINUTES;
 }
 
@@ -665,9 +665,9 @@ const tokenHash = (raw) => crypto.createHash('sha256').update(String(raw)).diges
 
 /* Eine Funktion, zwei Aufrufstellen: beim Start und beim Oeffnen der Karte.
    Eine Instanz, die drei Monate durchlaeuft, raeumte sonst nicht auf. */
-const delTokensOld = db.prepare("DELETE FROM tokens WHERE expires_at < datetime('now', ?)");
+const delTokensOld = lateStatement("DELETE FROM tokens WHERE expires_at < datetime('now', ?)");
 function cleanupTokens() {
-  const n = delTokensOld.run(`-${TOKEN_TRACE_DAYS} days`).changes;
+  const n = delTokensOld().run(`-${TOKEN_TRACE_DAYS} days`).changes;
   if (n) logLine(`Tokens: ${n} row(s) expired for more than ` +
     `${TOKEN_TRACE_DAYS} days and removed.`);
   return n;

@@ -517,7 +517,7 @@ der die Frage gar nicht stellen konnte.** *Daraus wurde Stolperstein 282.*
 **Gefunden hat es der erste Gegenprobenlauf seit 0.19.1 — der dieser Runde.**
 Die Zusage *„Und die Arbeitsdatei ist nicht mehr verfolgt"* (Gruppe „Die
 Compose-Datei wird nicht überschrieben", gebaut in 0.19.1) ruft
-`git ls-files` **ohne Auffangnetz**.
+`git ls-files` **ohne `try`**.
 
 **EINE GEGENPROBENKOPIE HAT KEIN `.git`** — sie entsteht über
 `git archive HEAD`. Der Aufruf wirft dort, und weil er **vor** jeder

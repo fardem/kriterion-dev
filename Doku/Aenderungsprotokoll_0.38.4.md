@@ -18,8 +18,13 @@ misst, einer zieht die Papiere nach. **Schema: ja** — drei Indexe kommen dazu.
 | Prüfungen | 7.201 | **7.227** |
 | Rückbauten | 1.104 | **1.115** |
 
-> **FINGERPRINT DIESER RUNDE: `0d3111e4`** — der Stand davor war
+> **FINGERPRINT DIESER RUNDE: `246372bd`** — der Stand davor war
 > `a91efceb`.
+
+> **HIER STAND `0d3111e4`, UND DIESE ZAHL GEHOERT ZU KEINEM COMMIT.** Sie ist
+> waehrend des Bauens an einem Zwischenstand gemessen worden. Nachgemessen an
+> `8cec0e8`, dem ersten Commit der Runde, und an `bacc93a`, ihrem Merge:
+> beide tragen `246372bd`. Berichtigt in 0.38.5.
 
 > **DIE ZAHL DER AUSLIEFERUNG IST ANDERS GEMESSEN ALS IN 0.38.3.** Dort stand
 > 271.199 für denselben Stand, der hier mit 271.822 in der Spalte „vorher"
@@ -101,8 +106,8 @@ Appearance · Workmanship · Functionality      language = 'en', sort_order 0..2
 ```
 
 **`seedCriteria`, `SEED_LANGUAGE` und das Einsetzen sind aus `db.js` gefallen**
-— neun Zeilen Code und ihr Kommentar. Der Abschnittsname „Grundausstattung"
-bleibt stehen; die zweite Überschrift „Grundausstattung, Fortsetzung" fällt
+— neun Zeilen Code und ihr Kommentar. Der Abschnittsname `Grundausstattung`
+bleibt stehen; die zweite Überschrift `Grundausstattung, Fortsetzung` fällt
 mit dem Abschnitt weg, den sie fortsetzte.
 
 **Kein Name wandert nach `criterion_names`.** Das war der erste Bauversuch und
@@ -317,13 +322,13 @@ Neu sind 26 Prüfungen in fünf Gruppen:
 | Gruppe | was sie festhält |
 |---|---|
 | Frische Installation | die drei Kriterien in der Auslieferungssprache, ihre Schlüssel in allen drei Dateien, `criterion_names` leer, kein Rahmen an der Kachel |
-| Die Grundausstattung an einer bestehenden Instanz | eine Instanz mit vorhandenen Kriterien bekommt keines dazu; eine geleerte Tabelle wird beim nächsten Start wieder gefüllt |
+| Die mitgelieferten Kriterien an einer bestehenden Instanz | eine Instanz mit vorhandenen Kriterien bekommt keines dazu; eine geleerte Tabelle wird beim nächsten Start wieder gefüllt |
 | Die drei Indexe und der Abfrageplaner | je Index ein `EXPLAIN QUERY PLAN`, dazu das Neuanlegen bei geänderter Spaltenliste |
 | Der Wächter über den Quelltext | das Verzeichnis der lesenden Routen, in beide Richtungen, mit Zahl und Klemme |
 | Kein Bildschirmtext verlangt eine Tastenkombination | kein Wert der drei Dateien nennt noch eine, das Kommentarfeld namentlich |
 
 **Elf Gegenproben sind dazugekommen** (1169 bis 1180, ohne 1043), und eine ist
-gefallen: `1043` prüfte, dass die Grundausstattung in `db.js` nicht nach der
+gefallen: `1043` prüfte, dass die mitgelieferten Kriterien in `db.js` nicht nach der
 Spalte `language` fragt — den Code gibt es nicht mehr. Zwei ältere sind
 nachgezogen, weil ihr Suchtext sich geändert hat: `489` (die Spaltenliste des
 deckenden Index) und `1041` (die weiche Landung von `tryIndex`).
