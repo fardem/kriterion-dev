@@ -4214,7 +4214,7 @@ dieselbe Bauform wie `F_ROUTEN` (Stolperstein 243).*
   dann, wenn er ausdrücklich herabgestuft worden ist. **`status != 'geloescht'`
   ebenso wenig:** ein Grabstein darf die Instanz nicht erben. *Seit 0.8.1 bekommt
   der erste Zugang die Rolle direkt beim Anlegen; die Startregel bleibt als
-  Auffangnetz für von Hand veränderte Bestände.*
+  Rückfall für von Hand veränderte Bestände.*
 - **Ein Admin kommt nicht an seinesgleichen** (seit 0.8.0). An einen anderen
   **Admin** oder den **Eigentümer** kommt nur der Eigentümer, und Rollen vergibt
   ohnehin nur er. Ohne diese Zeile wäre die Verwaltung ein Wettrennen. Die Regel
@@ -4234,7 +4234,7 @@ dieselbe Bauform wie `F_ROUTEN` (Stolperstein 243).*
   die Zeile, machte `ON DELETE SET NULL` den ganzen Bestand herrenlos, und
   `ordneBestandZu()` schöbe ihn beim nächsten Start **still** dem Eigentümer zu.
   **Folge: die `ON DELETE`-Klauseln bleiben unverändert** und sind ab jetzt
-  reines Auffangnetz für ein `DELETE` von Hand — der Prüfstand stellt es
+  reiner Rückfall für ein `DELETE` von Hand — der Prüfstand stellt es
   ausdrücklich nach.
 - **Der Name eines entfernten Zugangs wird freigegeben** (seit 0.8.0), das
   Muster `geloescht-<zahl>` ist als Benutzername gesperrt, geprüft an **beiden**
@@ -4745,7 +4745,7 @@ dieselbe Bauform wie `F_ROUTEN` (Stolperstein 243).*
   `ordneBestandZu()` gibt später herrenlos gewordene Zeilen dem **Eigentümer**.
   Zwei verschiedene Fragen — **beide stehen deshalb im Quelltext nebeneinander
   erklärt**, nicht jede für sich.
-- **Ein Auffangnetz mit einem Anlegeweg braucht so viele Aufrufstellen wie es
+- **Ein Rückfall mit einem Anlegeweg braucht so viele Aufrufstellen wie es
   Wege gibt** (seit 0.6.1). `ordneBestandZu()` steht in `db.js` und wird an
   **zwei** Stellen gerufen: beim Start und in `legeErstenBenutzerAn()`. Das
   sieht nach Doppelung aus und ist keine — die Gegenprobe an jeder Stelle macht
@@ -7773,8 +7773,8 @@ Version, in der sie entstanden sind.*
     Rückbau bemerkt hätte.** Stolperstein 103 in seiner unangenehmsten Form:
     dort reißt eine Prüfzeile am eigenen Gegenstand ab, hier an einem
     Gegenstand, den die Gegenprobe absichtlich wegnimmt. *In einer Gruppe über
-    einen Vorgang, der scheitern kann, läuft jede Lesestelle danach über ein
-    Auffangnetz.*
+    einen Vorgang, der scheitern kann, ist jede Lesestelle danach
+    abgefangen.*
 
     **Und die Kehrseite, aus derselben Runde:** eine Gegenprobe, die **keine**
     Prüfung rot macht, sagt nicht „der Code ist richtig", sondern **„hier prüft
@@ -8498,8 +8498,8 @@ Version, in der sie entstanden sind.*
 193. **Eine Prüfung, die ihren Gegenstand vorher selbst zerstört, kann nicht
     scheitern.** Zwei Zeilen prüften den Cookienamen **nach** zwölf
     absichtlichen Fehlversuchen, die die Adresse hart sperren — die Anmeldung
-    danach liefert 429 und gar keinen Cookie. Ein `wert === '' ||` als
-    Auffangnetz machte beide in jedem Lauf wahr. **STOLPERSTEIN 81 HAT EINE
+    danach liefert 429 und gar keinen Cookie. Ein vorangestelltes
+    `wert === '' ||` machte beide in jedem Lauf wahr. **STOLPERSTEIN 81 HAT EINE
     ZWEITE GESTALT:** nicht der fehlende Gegenstand, sondern der von der
     Prüflage selbst weggenommene. *Reihenfolge ist bei aufeinander aufbauenden
     Lagen ein Teil der Aussage.*
@@ -10385,7 +10385,7 @@ beschränkt und **nicht** der volle Lauf über alle **649** Rückbauten.
 > **UND EIN BEFUND, DER ÄLTER IST ALS DIESE RUNDE.** Der erste
 > Gegenprobenlauf seit 0.19.1 hat gezeigt, dass **jede** Gegenprobe seither
 > unauswertbar war: die Zusage „Und die Arbeitsdatei ist nicht mehr verfolgt"
-> ruft `git ls-files` ohne Auffangnetz, und **eine Gegenprobenkopie hat kein
+> ruft `git ls-files` ohne `try`, und **eine Gegenprobenkopie hat kein
 > `.git`** — sie entsteht über `git archive HEAD`. Der Aufruf steht vor jeder
 > Zusicherung und **riss den ganzen Lauf ab**, statt eine Prüfung rot zu
 > färben (Stolpersteine 103 und 161). *0.19.2 hat keinen Lauf gefahren; deshalb
@@ -10977,7 +10977,7 @@ Vorgabe die leere Zelle, und sie wird ebenso geprüft.*
 | Abschnitt | Prüflage | Was er außerdem belegt |
 |---|---|---|
 | 0.8.3 | Datenbank aus 0.8.2, `comments.images_removed` fehlt | die Vorgabe null an der Bestandszeile |
-| 0.8.30 | Datenbank aus 0.8.20 — **so eingerichtet, dass die falsche Antwort auffällt**: der Eintrag gehört `bert`, Eigentümerin ist `chefin` | fielen die Zeilen an den Eigentümer, stünde dort `chefin`; eine dritte Linkzeile an einem herrenlosen Eintrag fällt danach dem Auffangnetz zu — **beide Regeln an einem Lauf** |
+| 0.8.30 | Datenbank aus 0.8.20 — **so eingerichtet, dass die falsche Antwort auffällt**: der Eintrag gehört `bert`, Eigentümerin ist `chefin` | fielen die Zeilen an den Eigentümer, stünde dort `chefin`; eine dritte Linkzeile an einem herrenlosen Eintrag fällt danach dem Rückfall zu — **beide Regeln an einem Lauf** |
 | 0.8.31 | dasselbe an `attachments` | `attachments` fällt **nicht** aus `ordneBestandZu()` mit |
 | 0.8.40 | Datenbank aus 0.8.31, drei Kriterien **mit Bewertungen** | **der gewichtete Gesamtschnitt ist nach der Migration derselbe wie der ungewichtete davor** |
 | 0.8.50 | Datenbank aus 0.8.40, `photos` **mit Fotos darin** | **jede der beiden Spalten wird EINZELN nachgerüstet** (zwei weitere Prüflagen, Stolperstein 108); es gibt **keinen `CHECK`** |
@@ -11937,8 +11937,8 @@ Entwurf war eine harte Absage; der Betreiber hat sie am 14. September 2026
 gekippt: eine Probe, die sich irren kann, darf niemanden aussperren.*
 
 **UND DREI ABBRUCHSTELLEN, DIE DER AUFTRAG NICHT KANNTE.** *Die Blöcke
-wegzunehmen genügt nicht: die beiden Indizes auf `photos`, das Auffangnetz
-(`links.user_id`, `attachments.user_id`) und die Grundausstattung
+wegzunehmen genügt nicht: die beiden Indizes auf `photos`, der Rückfall
+(`links.user_id`, `attachments.user_id`) und die mitgelieferten Kriterien
 (`rating_criteria.language`) stürben an einem `db.prepare`, das schon beim
 VORBEREITEN scheitert.* **Das wäre die gekippte Absage gewesen — nicht als
 Entscheidung, sondern als Absturz.** *Gefunden hat es der umgedrehte Prüfstand,
@@ -12452,8 +12452,9 @@ keine Klammer waren, sondern ein tragender Satzteil („— Stolperstein 47.",
 Stolperstein 8"). Jeder dieser Sätze ist so umgeschrieben, dass er ohne die
 Nummer steht und dasselbe sagt.
 
-**Mitgefallen ist eine Metapher:** „JEDE MESSUNG LÄUFT ÜBER EIN EIGENES
-AUFFANGNETZ" in `test/roundtrip.js` steht auf der Liste in `CLAUDE.md`,
+**Mitgefallen ist eine Metapher:**
+`JEDE MESSUNG LÄUFT ÜBER EIN EIGENES AUFFANGNETZ`
+in `test/roundtrip.js` steht auf der Liste in `CLAUDE.md`,
 Abschnitt 1, und heißt jetzt „JEDE MESSUNG WIRD EINZELN ABGEFANGEN".
 
 **Die eine Stelle, die bleibt, ist kein Kommentar.** `counterproof.js` nennt in
@@ -16248,7 +16249,7 @@ keine mehr.*
   erneut nachgestellt). **Zwei Auflagen kommen aus 0.8.30 dazu, und beide gelten
   für jede folgende Datenbankstufe:** *erstens* ist die Frage, **wem** die
   Bestandszeilen zufallen, eine eigene Entscheidung und nicht dieselbe wie die
-  des Auffangnetzes — *wer das nicht nebeneinander erklärt, hinterlässt einen
+  des Rückfalls — *wer das nicht nebeneinander erklärt, hinterlässt einen
   scheinbaren Widerspruch*; *zweitens* lässt sich eine Fremdschlüsselspalte nur
   **nullbar** nachrüsten (Stolperstein 105). **Und eine dritte aus 0.8.31:**
   liegen mehrere Blöcke vor, gehört ein Prüflauf dazu, der sie **hintereinander
@@ -16308,8 +16309,8 @@ keine mehr.*
   Liste ohne ihn** (Stolperstein 114).
 - **Eine Prüfung, die bei fehlendem Gegenstand grün bleibt, kann gar nicht
   scheitern** (Auflage 21, Stolperstein 81). **Erst das Vorhandensein prüfen,
-  dann die Eigenschaft** — und **jedes Feld, das eine Prüfung anfasst, bekommt
-  ein Auffangnetz** (Stolperstein 170), sonst reißt ein Rückbau den Lauf ab statt
+  dann die Eigenschaft** — und **jedes Feld, das eine Prüfung anfasst, wird
+  abgefangen** (Stolperstein 170), sonst reißt ein Rückbau den Lauf ab statt
   ihn rot zu machen.
 - **Ein Rückbau, der den Lauf abbricht, nennt keinen Namen** (Stolperstein 76).
   **Ist er so grundlegend, gehört eine engere zweite Gegenprobe daneben:** die

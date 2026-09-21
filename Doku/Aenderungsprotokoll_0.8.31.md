@@ -215,7 +215,7 @@ im Projekt.*
 >   1.0" in `pruefung.js`; der Export von `migration0831` in `module.exports`
 >   trägt dieselbe Marke und fällt mit.
 >   **Was NICHT mitfällt:** `attachments` in der Tabellenliste von
->   `ordneBestandZu()` — das Auffangnetz ist keine Migration.
+>   `ordneBestandZu()` — der Rückfall ist keine Migration.
 >   **Und was mit beiden Blöcken zugleich fällt:** die Prüfung „Ein Sprung von
 >   0.8.20 fährt BEIDE Migrationen in einem Start". Sie gehört keinem der beiden
 >   allein.

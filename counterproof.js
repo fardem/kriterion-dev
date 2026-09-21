@@ -1761,7 +1761,7 @@ const REGRESSIONS = [
   /* ---- 0.14.0: der kaputte Cookiewert ---- */
   {
     /* DER BEFUND SELBST, wiederhergestellt: decodeURIComponent() auf JEDEN
-       Wert, ohne Auffangnetz. */
+       Wert, und kein try darum. */
     nr: '217', name: 'Ein kaputter Cookiewert bricht wieder den ganzen Kopf ab',
     file: 'auth.js',
     search: "    let value;\n    try { value = decodeURIComponent(part.slice(i + 1).trim()); }\n" +
@@ -4950,7 +4950,7 @@ const REGRESSIONS = [
        davon sein wird. */
     nr: 'W13', name: 'Die Sprachliste verliert ihren juengsten Eintrag',
     file: 'test/source.js',
-    search: "    ['Faden', 'Thread']\n  ];",
+    search: "    ['Auffangnetz', 'Rueckfall'], ['Grundausstattung', 'Vorgabewerte']\n  ];",
     replacement: "  ];",
     expected: 'Der Sprachwaechter'
   },
@@ -8373,8 +8373,8 @@ const REGRESSIONS = [
     expected: 'Der Hinweis auf einen unvollstaendigen Bestand — 0.33.0'
   },
   {
-    /* UND DAS AUFFANGNETZ FRAGT NICHT MEHR NACH `user_id`. */
-    nr: '1042', name: 'Das Auffangnetz uebergeht eine fehlende Spalte nicht mehr',
+    /* UND DER RUECKFALL FRAGT NICHT MEHR NACH `user_id`. */
+    nr: '1042', name: 'Der Rueckfall uebergeht eine fehlende Spalte nicht mehr',
     file: 'db.js',
     search: "    if (!db.prepare(`PRAGMA table_info(${table})`).all().some(c => c.name === 'user_id')) {\n      counts[table] = 0;\n      continue;\n    }",
     replacement: "",
@@ -9425,13 +9425,13 @@ const REGRESSIONS = [
     expected: 'Frische Installation'
   },
   {
-    /* DIE LEERE TABELLE IST DIE GANZE BEDINGUNG: ohne sie kaeme eine
-       umbenannte Grundausstattung bei jedem Start zurueck. */
+    /* DIE LEERE TABELLE IST DIE GANZE BEDINGUNG: ohne sie kaemen die
+       umbenannten mitgelieferten Kriterien bei jedem Start zurueck. */
     nr: '1171', name: 'Eingesetzt wird nicht mehr nur in eine leere Tabelle',
     file: 'server.js',
     search: "if (!DATABASE_INCOMPLETE &&\n    db.prepare('SELECT COUNT(*) n FROM rating_criteria').get().n === 0) {",
     replacement: "if (!DATABASE_INCOMPLETE) {",
-    expected: 'Die Grundausstattung an einer bestehenden Instanz'
+    expected: 'Die mitgelieferten Kriterien an einer bestehenden Instanz'
   },
   /* ---- Die Marke am Verweis auf einen geloeschten Kommentar ---- */
   {
@@ -9503,6 +9503,23 @@ const REGRESSIONS = [
     search: "  ['/api/stats',                   'adminOnly',",
     replacement: "  ['/api/stats',                   'angemeldet',",
     expected: 'Der Waechter ueber den Quelltext'
+  },
+  /* ---- Die beiden abgelegten Woerter ---- */
+  {
+    /* EIN WORT, DAS NICHT AUF DER LISTE STEHT, WIRD NICHT GEFUNDEN. */
+    nr: '1191', name: 'Der Sprachwaechter kennt die beiden Abschnittsnamen nicht mehr',
+    file: 'test/source.js',
+    search: "    ['Auffangnetz', 'Rueckfall'], ['Grundausstattung', 'Vorgabewerte']",
+    replacement: "    ['Auffangnetz', 'Rueckfall']",
+    expected: 'Der Sprachwaechter'
+  },
+  {
+    /* UND DER ABSCHNITTSNAME STEHT WIEDER IN EINER AUSGELIEFERTEN DATEI. */
+    nr: '1192', name: 'Der Abschnitt in db.js heisst wieder Auffangnetz',
+    file: 'db.js',
+    search: "// --- Rueckfall: kein Bestand ohne Benutzer ---",
+    replacement: "// --- Auffangnetz: kein Bestand ohne Benutzer ---",
+    expected: 'Der Sprachwaechter'
   },
   /* ---- Das Inhaltsverzeichnis der Anleitung ---- */
   {

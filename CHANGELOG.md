@@ -30,6 +30,46 @@ ihre deutschen Abschnittsüberschriften bleiben.*
 
 *Hier wird mitgeschrieben, während gebaut wird.*
 
+## [0.38.5] - 2026-09-21
+
+*Zwei Befunde des Betriebs, eine Zusage, zwei Wörter.*
+
+Fingerprint `c4185d0a` — davor `246372bd`.
+
+### Hinzugefügt
+
+- **README und Handbuch haben ein Inhaltsverzeichnis** mit Sprungmarken auf
+  jeden Abschnitt, dazu Trennstriche zwischen den Kapiteln.
+- **Die README hat drei neue Abschnitte:** Voraussetzungen, Aufbau des Ordners
+  und Fehlerbehebung; die drei Fehlerfälle stehen jetzt unter einem Kapitel.
+- Die Erstinstallation steht in vier nummerierten Schritten statt als Fließtext.
+- Zwei Abzeichen am Kopf der README: Node und Docker.
+
+### Geändert
+
+- **Die Rechentabelle rollt auf dem Telefon nicht mehr waagerecht.** Ein langer
+  Kriterienname schob sie bei 360 Bildpunkten auf 378 statt 328 Pixel.
+- **Die Zählzeile der Meldungstafel ist kürzer:** `12 Kommentare · @34 · ★56`
+  statt `12 Kommentare · @34 · 56 Bewertungen`. Der lange Wortlaut steht im
+  Überfahrtext. Auf Deutsch spart das 69 von 227 Pixeln.
+- **Die Instanz startet jetzt wirklich über einer unvollständigen Datenbank.**
+  Der Kasten beim Start sagt das seit 0.33.0 zu; für sechzehn der achtzehn
+  Spalten stimmte es nicht. Über einer unvollständigen Datenbank schreibt der
+  Start außerdem nichts mehr — auch das sagt der Kasten zu.
+- Zwei Wörter sind umbenannt, beide nur in Kommentaren und Prüfnamen:
+  `Auffangnetz` heißt jetzt **Rückfall** beziehungsweise **Fehler-Handler**,
+  `Grundausstattung` heißt **Vorgabewerte** beziehungsweise **die mitgelieferten Kriterien**.
+
+### Behoben
+
+- **Der Prüfstand war seit dem 21. September rot, ohne dass sich am Code etwas
+  geändert hätte.** Eine Prüflage setzte feste Zeitstempel und maß sie gegen ein
+  mitlaufendes Fenster von dreißig Tagen.
+- Der Aufräumer des Prüfstands nahm bei mehreren gleichzeitigen Läufen die Reste
+  der anderen mit; neun von zwölf Spuren wurden davon rot, jetzt null von zwanzig.
+- Der Fingerprint von 0.38.4 stand in zwei Papieren falsch — `0d3111e4` gehört
+  zu keinem Commit, gemessen sind `246372bd`.
+
 ## [0.38.4] - 2026-09-21
 
 *Vier kleine Befunde, drei Indexe und ein Verzeichnis der lesenden Routen.*
@@ -344,7 +384,7 @@ aus den Kommentaren und stellt eine Prüfung darüber.*
 - **Kein Kommentar nennt mehr einen Stolperstein** — 367 standen nach 0.34.2 noch da, 1.061 waren es vor 0.34.1. 346 waren Klammern mitten im Satz, 21 tragende Satzteile, die von Hand umgeschrieben wurden.
 - **Eine Prüfung hält die Null fest**, samt Gegenprobe am Wächter selbst und der einen benannten Ausnahme: `counterproof.js` nennt eine Nummer in seiner Meldung an den Wirt, und das ist ein Text und kein Kommentar.
 - **Berichtigt: drei Stellen sagten „alle weg", während 367 dastanden** — der Eintrag 0.34.1 hier, das Änderungsprotokoll 0.34.1 und der Projektstand. Sie nennen jetzt die Zahl, die 0.34.1 wirklich erreicht hat.
-- Eine Metapher ist mitgefallen: „JEDE MESSUNG LÄUFT ÜBER EIN EIGENES AUFFANGNETZ" in `test/roundtrip.js`.
+- Eine Metapher ist mitgefallen: `JEDE MESSUNG LAEUFT UEBER EIN EIGENES AUFFANGNETZ` in `test/roundtrip.js`.
 - Rückbau 368 aus 0.34.2 ist nachträglich gegengeprüft: **0 stumm**, rot in „Der Sprachwaechter".
 - Prüfstand 6888 → 6893, Gruppen 348 → 349, Rückbauten 998 → 998.
 

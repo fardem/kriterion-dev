@@ -162,7 +162,7 @@ sagt der Fahrplan.
 | Protokoll 0.38.3 | Der Halt nach einem Sprung ist eine Frist von 1600 Millisekunden und keine Messung | niedrig | mittel | beobachten |
 | Protokoll 0.38.3 | Der Sprung ans Seitenende ist in Chromium nicht nachgestellt worden | — | — | beobachten |
 | Protokoll 0.38.2 | Die Strichstärke des Löschkreuzes bleibt 1.8, dieselbe wie am Stift und am Zitatzeichen | — | eine Zeile | Entscheidung des Betreibers |
-| **38** | Die Kachel zählt in Worten, der Blockkopf in Zeichen; **gemessen am 21. September 2026:** 36 Zeichen und 227,6 von 340 Pixeln auf Deutsch, dem Titel bleiben 101,4 | klein | klein | Entscheidung des Betreibers |
+| **38** | **GEBAUT mit 0.38.5.** Die Zählzeile der Meldungstafel steht in Fassung B: `12 Kommentare · @34 · ★56`. Gemessen bei 360 CSS-Pixeln, deutsch 227,6 → **158,1 px**, englisch 189,7 → 145,4, türkisch 208,6 → 126,5. Der lange Wortlaut steht im Überfahrtext | erledigt | — | erledigt |
 
 ### Sprache
 
@@ -177,16 +177,16 @@ leer.*
 | **39** | Von vier Stellen sind **drei mit 0.38.4 gebaut** — die drei Indexe. Offen bleibt die Fotokachel in einer Nebentabelle: die Ableitungen müssten neu gerechnet werden | mittel | groß | Entscheidung des Betreibers |
 | **40** | Export, Import und Papierkorb führen jedes Byte durch den Arbeitsspeicher; der Umbau ändert die Antwortform und kann auf einem Fehlerweg Daten verlieren | hoch bei großem Bestand | groß | erst am Bestand messen |
 | **20** | Nach einem Umbenennen holt die Oberfläche vier Antworten statt drei; die vierte ist die größte der Installation | niedrig | klein | liegen lassen |
-| Teil II | Fehlt `rating_criteria.language`, kommt der Server nicht hoch — der Kasten sagt „startet trotzdem", und für diese eine Spalte stimmt das nicht | klein | klein | gelegentlich |
+| Teil II | **GEBAUT mit 0.38.5, und es war nicht eine Spalte.** Gemessen: **sechzehn der achtzehn** hielten den Server unten, verursacht von 34 Gesuchen, die beim Laden vorbereitet wurden. Sie werden jetzt erst beim ersten Ruf vorbereitet; nachgemessen kommen alle achtzehn hoch | erledigt | — | erledigt |
 
 ### Prüfstand und Quelltext
 
 | steht in | worum es geht | Nutzen | Aufwand | Vorschlag |
 |---|---|---|---|---|
-| **27** | Der Aufräumer des Prüfstands wird auf vier Spuren in neun von einundzwanzig Läufen rot, bei Rückbauten, die nichts damit zu tun haben | mittel | mittel | empfohlen |
-| **41** | Feste Wartezeiten in den Modulen, zusammen rund 47,5 Sekunden Laufzeit; jede braucht ihre eigene Bedingung | niedrig | groß | liegen lassen |
+| **27** | **GEBAUT mit 0.38.5.** Die Ursache ist gemessen: alle vier Spuren stellen einen Rest hin, und wer zuerst räumt, nimmt die drei fremden mit. `leftovers()` fragt jetzt nach `KRITERION_RUN`. Nachgemessen: neun von zwölf roten Spuren vorher, **null von zwanzig nachher** | erledigt | — | erledigt |
+| **41** | Feste Wartezeiten in den Modulen, zusammen rund 47,6 Sekunden Laufzeit; jede braucht ihre eigene Bedingung. *Die Prüflage von 0.38.5 wartet schon auf die Bedingung und nicht auf die Uhr* | niedrig | groß | liegen lassen |
 | **42**, Fahrplan | Der Kommentaranteil von `public/style.css` liegt bei 40 Prozent; offen ist, ob die gemessenen Zahlen in ein eigenes Papier wandern | niedrig | — | Entscheidung des Betreibers |
-| Fahrplan | „Auffangnetz" und „Grundausstattung" stehen in `CLAUDE.md` unter „nicht verwenden" und tragen Dutzende Prüfgruppen- und Rückbaunamen | niedrig | mittel | eigene Runde |
+| Fahrplan | **GEBAUT mit 0.38.5.** Es waren **74 Stellen** und nicht „Dutzende": 23 Kommentare im Quelltext, 51 in der Prosa der Papiere, dazu fünf in ausgelieferten Dateien und sieben Namen. Der Wortfilter nimmt beide auf | erledigt | — | erledigt |
 
 ### Offen gelassen, mit Grund
 
@@ -1183,7 +1183,7 @@ Kachel. *Die Anzeige ist wahr — der Bestand ist es, der nicht stimmt.*
 * **Die drei Namen englisch ausliefern** und die deutschen als Übersetzung
   daneben. *Dann bräuchte `db.js` die Sprachdateien — die liegen im Server, und
   diese Datei kennt sie nicht.*
-* **Die Grundausstattung wandert dorthin, wo die Sprachen liegen.** Der Server
+* **Die mitgelieferten Kriterien wandern dorthin, wo die Sprachen liegen.** Der Server
   legt sie beim ersten Start an, in der Auslieferungssprache, mit den
   Übersetzungen aus den vorhandenen Dateien. **Das ist eine kleine Runde und
   keine Zeile.**

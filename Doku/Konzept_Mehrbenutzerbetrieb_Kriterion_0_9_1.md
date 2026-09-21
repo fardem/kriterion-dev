@@ -111,7 +111,7 @@ Eintrags. **Das Umsortieren ist nicht mitgewandert.**
 
 **Das Schema in `db.js` ist die Wahrheit, nicht mehr dieses Papier.** Die
 tragenden Entscheidungen: `sessions.user_id` mit `ON DELETE CASCADE` als Wurzel;
-`user_id` an sechs Trägern mit **`ON DELETE SET NULL`** als Auffangnetz; `UNIQUE`
+`user_id` an sechs Trägern mit **`ON DELETE SET NULL`** als Rückfall; `UNIQUE`
 um `user_id` erweitert bei `ratings` und `test_days`; `item_pins` für den
 Favoriten; `user_settings` mit `PRIMARY KEY (user_id, key)`.
 **Nachgestellt dabei: eine Fremdschlüsselspalte lässt sich nur nullbar

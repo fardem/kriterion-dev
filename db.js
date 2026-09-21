@@ -693,7 +693,7 @@ function emailsDoubled() {
   return present ? [] : db.prepare(qDoubleEmails).all();
 }
 
-// --- Auffangnetz: die Instanz braucht einen Eigentuemer ---
+// --- Rueckfall: die Instanz braucht einen Eigentuemer ---
 // Gibt es keinen, wird es der aelteste Zugang, DER SCHON RECHTE HAT; erst wenn
 // es auch keinen Admin gibt, der mit der kleinsten Nummer. Der Zwischenschritt
 // ueber den Admin verhindert, dass ein ausdruecklich herabgestufter Erstzugang
@@ -720,7 +720,7 @@ function ownerId() {
   return db.prepare("SELECT MIN(id) AS id FROM users WHERE role = 'owner'").get().id;
 }
 
-// --- Auffangnetz: kein Bestand ohne Benutzer ---
+// --- Rueckfall: kein Bestand ohne Benutzer ---
 /* Alles, was niemandem gehoert, faellt an den Eigentuemer -- auch eine
    Linkzeile und eine Datei. Im Normalbetrieb entsteht das nicht; geloeschte
    Zugaenge bleiben als Grabstein stehen, gefangen werden Fehlerfaelle. */
@@ -773,7 +773,7 @@ function renumberCriteria() {
   db.transaction(() => rows.forEach((r, i) => { if (r.sort_order !== i) upd.run(i, r.id); }))();
 }
 
-// --- Grundausstattung ---
+// --- Vorgabewerte ---
 const setDefault = db.prepare('INSERT OR IGNORE INTO settings (key, value) VALUES (?, ?)');
 setDefault.run('title_public', JSON.stringify('Bewertungskatalog'));
 setDefault.run('title_app', JSON.stringify('Model Bewertungen'));

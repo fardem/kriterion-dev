@@ -5328,7 +5328,7 @@ app.post('/api/import', ownerOnly, secondConfirmNeeded('import'),
   } catch (e) {
     /* EINE ABSAGE AUS importInto() IST KEIN FEHLER DER INSTANZ, sondern eine
        Auskunft ueber die Datei -- sie geht als 400 mit Message hinaus und
-       nicht als 500 durch das Auffangnetz. */
+       nicht als 500 durch den Fehler-Handler. */
     if (e && e.denial) return res.status(400).json({ error: errorText(req, e) });
     next(e);
   }

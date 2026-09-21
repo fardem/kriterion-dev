@@ -202,7 +202,7 @@ async function createFirstUser(name, password) {
     "SELECT ?, ?, 'owner' WHERE NOT EXISTS (SELECT 1 FROM users)"
   ).run(String(name).trim(), hash);
   if (r.changes === 0) throw new Message('server.setupDone');
-  // Zweite Aufrufstelle des Auffangnetzes aus db.js: beim Start einer leeren
+  // Zweite Aufrufstelle des Rueckfalls aus db.js: beim Start einer leeren
   // Instanz lief es ins Leere, weil es noch keinen Benutzer gab -- dieser Weg
   // liefert ihn erst jetzt nach.
   assignInventory();

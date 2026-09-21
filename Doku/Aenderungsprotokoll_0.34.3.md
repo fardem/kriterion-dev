@@ -49,8 +49,9 @@ Die 21 von Hand sind keine Klammern, sondern tragende Satzteile:
 Antwort auf Stolperstein 8". Jeder Satz ist so umgeschrieben, dass er ohne die
 Nummer steht und dasselbe sagt.
 
-**Mitgefallen ist eine Metapher**: in `test/roundtrip.js` stand „JEDE MESSUNG
-LÄUFT ÜBER EIN EIGENES AUFFANGNETZ". Sie steht auf der Liste in `CLAUDE.md`,
+**Mitgefallen ist eine Metapher**: in `test/roundtrip.js` stand
+`JEDE MESSUNG LÄUFT ÜBER EIN EIGENES AUFFANGNETZ`.
+Sie steht auf der Liste in `CLAUDE.md`,
 Abschnitt 1, und heißt jetzt „JEDE MESSUNG WIRD EINZELN ABGEFANGEN".
 
 ---

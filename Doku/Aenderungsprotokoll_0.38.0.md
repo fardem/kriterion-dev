@@ -353,7 +353,7 @@ Jede steht mit ihrem Grund im Prüfstand daneben:
 
 | | wohin es gehört |
 |---|---|
-| „Auffangnetz" und „Grundausstattung" | eine eigene Umbenennungsrunde |
+| `Auffangnetz` und `Grundausstattung` | eine eigene Umbenennungsrunde |
 | Tabellen, Abhaklisten, Codeblöcke, verschachtelte Listen | je eine eigene Runde; die Tabelle ist der naheliegendste Zuwachs |
 | Bilder über `![…](…)` | **nie.** `img-src 'self' data: blob:` verbietet die fremde Adresse, und eine erlaubte verriete die Adresse jedes Lesers an einen fremden Server |
 | Auszeichnung im Ablehnungsgrund | ein einzeiliges Feld mit 200 Zeichen; eine Zeilenebene hat dort keinen Sinn |

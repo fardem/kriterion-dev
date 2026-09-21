@@ -255,8 +255,8 @@ async function sendImport(object, mode, withoutShare = false) {
   } catch {
     freshCriterion = freshDb.prepare('SELECT name, sort_order FROM rating_criteria ORDER BY sort_order, id').all();
   }
-  check('Grundausstattung wird angelegt', freshCriterion.length === 3, JSON.stringify(freshCriterion));
-  check('Grundausstattung ist durchnummeriert', equal(freshCriterion.map(c => c.sort_order), [0, 1, 2]));
+  check('Die mitgelieferten Kriterien werden angelegt', freshCriterion.length === 3, JSON.stringify(freshCriterion));
+  check('Die mitgelieferten Kriterien sind durchnummeriert', equal(freshCriterion.map(c => c.sort_order), [0, 1, 2]));
   /* Erst auf Vorhandensein, dann auf die Eigenschaft: eine
      leere Liste liesse every() gruen und belegte nichts. */
   check('Und jedes Kriterium startet auf Gewicht 1',
@@ -2766,7 +2766,7 @@ async function sendImport(object, mode, withoutShare = false) {
     d.prepare('INSERT INTO sessions (token, user_id) VALUES (?, ?)').run('pin-zweiter', 2);
     for (const t of ['Pin eins', 'Pin zwei', 'Pin drei'])
       d.prepare('INSERT INTO items (title, user_id) VALUES (?, 1)').run(t);
-    // Die Grundausstattung raeumen und eigene Kriterien mit bekannten Nummern
+    // Die mitgelieferten Kriterien raeumen und eigene mit bekannten Nummern
 // holen -- feste Nummern truegen, weil AUTOINCREMENT weiterzaehlt.
     d.prepare('DELETE FROM rating_criteria').run();
     const kLook = d.prepare('INSERT INTO rating_criteria (name, sort_order) VALUES (?, 0)').run('Optik').lastInsertRowid;
@@ -2848,9 +2848,9 @@ async function sendImport(object, mode, withoutShare = false) {
   await P1.stop();
   fs.rmSync(pDir, { recursive: true, force: true });
 
-  /* --- Das Auffangnetz an der Einrichtung: herrenloser Bestand faellt dem
+  /* --- Der Rueckfall an der Einrichtung: herrenloser Bestand faellt dem
      ersten Zugang zu. */
-  const eDir = fs.mkdtempSync(path.join(os.tmpdir(), 'kriterion-auffangnetz-'));
+  const eDir = fs.mkdtempSync(path.join(os.tmpdir(), 'kriterion-rueckfall-'));
   shortRun(`require('./db'); console.log('da');`, eDir);
   {
     const d = open(path.join(eDir, 'katalog.sqlite'));
@@ -5745,7 +5745,7 @@ async function sendImport(object, mode, withoutShare = false) {
     e2LinkOldRows.length === 2 && e2LinkOldRows.every(z => z.username === 'bert'),
     JSON.stringify(e2LinkOldRows));
   // Und keine dieser Zeilen ist dabei herrenlos geblieben -- sonst schoebe sie
-// das Auffangnetz beim naechsten Start dem Eigentuemer zu.
+// der Rueckfall beim naechsten Start dem Eigentuemer zu.
   check('Und keine davon bleibt herrenlos',
     e2Names(`SELECT COUNT(*) n FROM links WHERE user_id IS NULL`)[0].n === 0,
     JSON.stringify(e2Names('SELECT id, url, user_id FROM links WHERE user_id IS NULL')));
@@ -12940,9 +12940,9 @@ async function sendImport(object, mode, withoutShare = false) {
       hLetters.length === 1, `${hLetters.length} Briefe an clara, ` +
       `${hOk.letters().length - hVorLetters} neue insgesamt`);
     /* ERST DER GEGENSTAND, DANN DIE EIGENSCHAFT -- und in
-       einer Gruppe ueber einen Vorgang, der scheitern KANN, laeuft jede
-       Lesestelle danach ueber ein Auffangnetz: kommt der
-       Brief nicht, soll die Gruppe rot werden und nicht abreissen. */
+       einer Gruppe ueber einen Vorgang, der scheitern KANN, ist jede
+       Lesestelle danach abgefangen: kommt der Brief nicht, soll die Gruppe
+       rot werden und nicht abreissen. */
     const hMail = hLetters[0] || { head: '', core: '', raw: '' };
     check('Der Empfaenger ist die angefragte Adresse',
       /^To: clara@beispiel\.de$/m.test(hMail.head), hMail.head.split('\n').slice(0, 4).join(' | '));
@@ -13158,7 +13158,7 @@ async function sendImport(object, mode, withoutShare = false) {
       (fCard.requests || []).length === 1 &&
       ((fCard.requests || [])[0] || {}).username === 'frieda',
       JSON.stringify(fCard.requests));
-    /* JEDE LESESTELLE DANACH UEBER EIN AUFFANGNETZ: kommt
+    /* JEDE LESESTELLE DANACH ABGEFANGEN: kommt
        die Zeile nicht, soll die Gruppe rot werden und nicht abreissen -- eine
        Gegenprobe, die den Lauf mitnimmt, sagt nichts darueber, welche
        Pruefung den Rueckbau bemerkt haette. */
@@ -13276,9 +13276,8 @@ async function sendImport(object, mode, withoutShare = false) {
       const s = await regWaitOnMail(hOk, address);
       await hA.S.call('POST', '/api/signup/confirm', { key: s });
       const k = (await hA.S.call('GET', '/api/requests')).content || {};
-      // Ein Auffangnetz statt eines Griffs ins Leere: eine
-      // Nummer, die es nicht gibt, faerbt die Pruefung rot statt den Lauf
-      // abzureissen.
+      // Eine fehlende Antwort ist abgefangen: eine Nummer, die es nicht
+      // gibt, faerbt die Pruefung rot statt den Lauf abzureissen.
       return ((k.requests || []).find(a => a.username === name) || { id: 0 }).id;
     };
     const rCoreId = await rolesState('gustav', 'gustav@beispiel.de');
@@ -13648,7 +13647,7 @@ async function sendImport(object, mode, withoutShare = false) {
       const start = await zfS.call('POST', '/api/two-factor/start', { password });
       await zfQuiet();
       const counter = ZF.nowStep();
-      /* AUFFANGNETZ: gibt /start kein Geheimnis her,
+      /* ABGEFANGEN: gibt /start kein Geheimnis her,
          laeuft alles Weitere trotzdem durch -- mit einem erfundenen Wert, der
          zuverlaessig nicht traegt. */
       const secret = (start.content && start.content.secret) || 'A'.repeat(32);
@@ -13662,7 +13661,7 @@ async function sendImport(object, mode, withoutShare = false) {
 
     // Anmeldung in zwei Schritten, mit einem Code fuer einen bestimmten
     // Zaehler.
-    /* DAS AUFFANGNETZ IST DER GANZE PUNKT DIESER FUNKTION. */
+    /* DAS ABFANGEN IST DER GANZE PUNKT DIESER FUNKTION. */
     const zfLogin = async (z, counter, raw) => {
       await zfS.cookieRemove();
       const one = await zfS.call('POST', '/api/login', { user: z.name, password: z.password });
@@ -13988,7 +13987,7 @@ async function sendImport(object, mode, withoutShare = false) {
       zfFresh.status === 200 && zfFresh.content.codes.length === 8 &&
       zfFresh.content.codesOpen === 8 && zfFresh.content.codesTotal === 8,
       JSON.stringify(zfFresh.content.codesOpen));
-    /* AUFFANGNETZ: gibt die Route keine Codes her -- weil
+    /* ABGEFANGEN: gibt die Route keine Codes her -- weil
        ein Rueckbau sie hat scheitern lassen --, laeuft die Zeile trotzdem
        durch und faellt rot. */
     const zfNewCodes = (zfFresh.content && zfFresh.content.codes) || [];
@@ -17638,7 +17637,7 @@ async function sendImport(object, mode, withoutShare = false) {
   }
 
   /* ---------------------------------------------------------------- */
-  group('Die Grundausstattung an einer bestehenden Instanz');
+  group('Die mitgelieferten Kriterien an einer bestehenden Instanz');
 
   {
     /* DIE LAGE: eine Instanz, die schon gelaufen ist und ihre Kriterien
@@ -18631,9 +18630,9 @@ async function sendImport(object, mode, withoutShare = false) {
     `${phD.calc?.rows?.length} und ${phD.potentialCalc?.rows?.length}`);
   /* UND DIE STERNZEILEN TRAGEN IHRE PHASE MIT -- der Browser filtert danach
      und rechnet nichts. */
-  /* Die Prueflage traegt neben den drei hier angelegten die drei Kriterien
-     der Grundausstattung, die db.js in eine frische Datei legt -- also sechs
-     Zeilen, davon EINE im Kasten „before". */
+  /* Die Prueflage traegt neben den drei hier angelegten die drei
+     mitgelieferten Kriterien, die der Server in eine frische Datei legt --
+     also sechs Zeilen, davon EINE im Kasten „before". */
   check('Jede Sternzeile traegt ihre Phase',
     phD.ratings.length === 6 &&
     phD.ratings.every(r => PHASES_EXPECTED.includes(r.phase)) &&

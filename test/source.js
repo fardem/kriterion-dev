@@ -509,7 +509,7 @@ async function run() {
     /due_date TEXT/.test(fDbSource) && /zoom REAL NOT NULL DEFAULT 100/.test(fDbSource) &&
     /rejected_reason TEXT/.test(fDbSource) && /weight REAL NOT NULL DEFAULT 1/.test(fDbSource),
     'eine der vier fehlt im Schema');
-  /* UND db.exec(SCHEMA) STEHT ALS ERSTE ANWEISUNG NACH DER GRUNDAUSSTATTUNG
+  /* UND db.exec(SCHEMA) STEHT ALS ERSTE ANWEISUNG NACH DEN VORGABEWERTEN
      -- Zusage 2. */
   check('db.exec(SCHEMA) steht unmittelbar hinter der Faltung der Suche',
     /db\.function\('kkl'[^\n]*\);\s*\n+db\.exec\(SCHEMA\);/.test(fDbSource),
@@ -530,19 +530,19 @@ async function run() {
     fDbSource.includes('CREATE TABLE IF NOT EXISTS trash (') &&
     fDbSource.includes('CREATE TABLE IF NOT EXISTS trash_bytes ('),
     'die DDL fehlt');
-  /* UND deleted_by GEHOERT AUSDRUECKLICH NICHT INS AUFFANGNETZ. */
+  /* UND deleted_by GEHOERT AUSDRUECKLICH NICHT IN DEN RUECKFALL. */
   const fNetCore = (() => {
     const a = fDbSource.indexOf('function assignInventory(');
     if (a < 0) return '';
     const e = fDbSource.indexOf('\n}', a);
     return e < 0 ? '' : fDbSource.slice(a, e);
   })();
-  check('Das Auffangnetz gibt es ueberhaupt', fNetCore.length > 0, 'assignInventory fehlt');
+  check('Den Rueckfall gibt es ueberhaupt', fNetCore.length > 0, 'assignInventory fehlt');
   check('Es kennt weiterhin genau die sechs Traeger mit user_id',
     /\['items', 'comments', 'test_days', 'ratings', 'links', 'attachments'\]/.test(fNetCore),
     (fNetCore.match(/for \(const tabelle of .*/) || [''])[0]);
   check('Und den Papierkorb ausdruecklich nicht',
-    !fNetCore.includes('trash'), 'papierkorb steht im Auffangnetz');
+    !fNetCore.includes('trash'), 'papierkorb steht im Rueckfall');
 
   /* DIE FRIST STEHT IM SERVER, NICHT IN DER OBERFLAECHE. */
   const fDeadlineDef = fCodeRows.split('TRASH_DAYS = ').length - 1;
@@ -789,7 +789,11 @@ async function run() {
     ['Ereignisschleife', 'Event Loop'], ['Zeichenkette', 'String'],
     ['Abdruck', 'Fingerprint'],
     /* SEIT 0.19.1. */
-    ['Faden', 'Thread']
+    ['Faden', 'Thread'],
+    /* DIE BEIDEN ABSCHNITTSNAMEN AUS db.js. Ihr Ersatz ist deutsch und nicht
+       englisch: „Rueckfall" fuer den herrenlosen Bestand, „Vorgabewerte" fuer
+       Titel und Stempel, „die mitgelieferten Kriterien" fuer die drei. */
+    ['Auffangnetz', 'Rueckfall'], ['Grundausstattung', 'Vorgabewerte']
   ];
   /* ZWEI AUSNAHMEN, UND BEIDE WAEREN SONST FALSCHE TREFFER. */
   const LANGUAGE_EXCEPTION = { Abbild: 'Abbild(?!ung)', Faden: '\\bFaden' };
@@ -940,11 +944,12 @@ async function run() {
   /* Die Liste bleibt kurz -- das ist keine Geschmacksfrage, sondern die
      Bedingung dafuer, dass der Waechter nicht abgeschaltet wird. */
   check('Die Wortliste bleibt kurz',
-    LANGUAGELIST.length <= 15, `${LANGUAGELIST.length} Zeilen`);
-  /* UND DIE ZAHL AUSDRUECKLICH, nicht nur die Obergrenze: vierzehn Zeilen
-     fuer zwoelf Woerter. */
-  check('Es sind vierzehn Zeilen fuer zwoelf Woerter',
-    LANGUAGELIST.length === 14 && new Set(LANGUAGELIST.map(([, w]) => w)).size === 12,
+    LANGUAGELIST.length <= 17, `${LANGUAGELIST.length} Zeilen`);
+  /* UND DIE ZAHL AUSDRUECKLICH, nicht nur die Obergrenze: sechzehn Zeilen
+     fuer vierzehn Woerter. Die beiden letzten sind die Abschnittsnamen aus
+     db.js; sie tragen keine zweite Schreibweise. */
+  check('Es sind sechzehn Zeilen fuer vierzehn Woerter',
+    LANGUAGELIST.length === 16 && new Set(LANGUAGELIST.map(([, w]) => w)).size === 14,
     `${LANGUAGELIST.length} Zeilen, ${new Set(LANGUAGELIST.map(([, w]) => w)).size} Woerter`);
   /* Und die eigenen Bilder des Projekts stehen ausdruecklich NICHT darin:
      sie sind keine Uebersetzungen und bleiben. */

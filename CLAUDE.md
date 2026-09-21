@@ -64,6 +64,16 @@ Richtig sind die englischen Fachwörter: Cookie, Migration, Image, Lockfile,
 Mock, Multipart, Branchname, Downgrade, Event Loop, String, Fingerprint,
 Thread.
 
+**Seit 0.38.5 stehen zwei weitere auf der Liste, und ihr Ersatz ist deutsch:**
+Auffangnetz und Grundausstattung. Richtig sind **Rückfall** (der herrenlose
+Bestand in `db.js`), **Fehler-Handler** (der letzte Stapelrahmen in
+`server.js`), **Vorgabewerte** (Titel und Stempel in `db.js`) und **die
+mitgelieferten Kriterien** (die drei aus dem Server).
+
+*Wo ein Papier den alten Wortlaut ZITIERT — den Namen eines Abschnitts, eines
+Rückbaus oder eines Kommentars —, steht er in Rückstrichen und auf einer
+Zeile: der Filter liest Prosa und lässt Code in Rückstrichen stehen.*
+
 ## 2. Kommentare
 
 **Ein Kommentar sagt in Kurzform, was an der Stelle geschieht — und nur dort,
