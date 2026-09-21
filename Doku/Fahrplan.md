@@ -1,7 +1,10 @@
 # Fahrplan
 
-**Der Plan von 0.26.0 bis 1.0 · Stand 9. September 2026, nach dem Bauen von
-0.25.0**
+**Der Plan von 0.38.6 bis 0.43.0 · Stand 21. September 2026, nach dem Bauen von
+0.38.5**
+
+*Hier stand vorher „von 0.26.0 bis 1.0 · Stand 9. September 2026": beides ist
+überholt — es wird kein 1.0.0 geben, und seither sind dreizehn Runden gebaut.*
 
 **HIER STEHT, WAS EINE NUMMER HAT. SONST NIRGENDS.** *Was noch keine hat, steht
 im Sammelblatt `Doku/Fehler_und_Ideen.md`; was gebaut ist, steht im Projektstand
@@ -97,9 +100,10 @@ den sie kurz darauf löscht.*
 > Sätze anlegen** — und jeder davon nach dem Muster, das diese Runde abschafft.
 >
 > **DIE RESERVIERUNG IST AM 21. SEPTEMBER 2026 AUFGEHOBEN.** *Die 0.40.0 trägt
-> den Document Server, die 0.41.0 das Bearbeiten.* **Ein Ausweg wird nicht mehr
-> gebraucht:** der Bruch ist am 14. September 2026 als 0.33.0 gebaut, und jede
-> Runde davor hat ihre Nummer bekommen.
+> den Umbau von Export und Import, die 0.42.0 und die 0.43.0 den Document
+> Server.* **Ein Ausweg wird nicht mehr gebraucht:** die Bereinigung ist am
+> 14. September 2026 als 0.33.0 gebaut, und jede Runde davor hat ihre Nummer
+> bekommen.
 
 ### Die Regel der freien Zwischenräume endet hier — und auch das hat einen Grund
 
@@ -180,13 +184,17 @@ Sprachumschalter baut, hat damit ein Muster und braucht kein neues.**
 | ~~**0.38.2**~~ | ~~Die Kopfzeile des Kommentars~~ | **GEBAUT am 20. September 2026** auf 0.38.1 — Änderungsprotokoll 0.38.2. *Zwei Wünsche an der Kopfzeile eines Kommentars, dazu zwei der drei Punkte, die 0.38.1 offen gelassen hat.* **Die Kommentarnummer steht ganz rechts, hinter Zitat, Stift und Löschkreuz:** *Discourse, phpBB und XenForo stellen die Beitragsnummer ebenso als letztes Element der Kopfzeile dar, GitHub und Stack Overflow zeigen gar keine und machen den Zeitstempel zum Permalink; in keinem der vier steht sie zwischen zwei Aktionsknöpfen. Das Löschkreuz liegt damit nicht mehr am Rand der Zeile.* **Der Zitatknopf trägt ein gezeichnetes Zeichen** — *`„` war das einzige Schriftzeichen zwischen zwei SVG; ein Rahmen wurde verworfen, weil `button { padding: 0 }` ihn ohne Innenabstand und Eckenradius nicht trägt und Stift und Kreuz dieselben dann auch brauchten.* **Ein Verweiskasten ohne Nummer springt jetzt auch dann, wenn er auf den Eintrag zeigt, in dem er steht** — *die Adresse stand schon am Ziel, der Browser meldete keinen Wechsel.* **Und der Trefferausschnitt zeigt den Suchbegriff, wenn er allein im Ziel eines Links steht** — *geschnitten wird dann der Rohtext samt seiner Marken; ohne Eingriff in den gemeinsamen Kern geht nur eines von beiden.* **Keine Schemaänderung, keine neue Route, kein neuer Schlüssel.** *Acht Prüfungen, fünf Gegenproben (1157–1161), +86 Bytes gzip auf 270.006.* Das Protokoll steht als `Doku/Aenderungsprotokoll_0.38.2.md` | **GEBAUT** | 20.09.2026 |
 | ~~**0.38.1**~~ | ~~Sechs Befunde des Betriebs~~ | **GEBAUT am 20. September 2026** auf 0.38.0 — Änderungsprotokoll 0.38.1. *Der Betreiber hat 0.38.0 eingespielt und binnen einer Stunde sechs Stellen gemeldet.* **Die Zwischenablage über eine Adresse im Netz:** *ohne sicheren Kontext gibt der Browser `navigator.clipboard` nicht heraus; jetzt kopiert ein kurzlebiges Feld über `execCommand`, und die drei Meldungen nennen den Grund statt nur „von Hand kopieren".* **Der Leerraum am Rand einer Auswahl bleibt außerhalb der Marken** — *`**  Zeile  **` ist nach der Flankenregel kein Fettdruck; der Code-Abschnitt ist ausgenommen, weil er die Regel nicht kennt.* **Der Stift trägt die Akzentfarbe:** *6,22 : 1 statt 2,95 im dunklen Schema, eine Regel für alle vier Stifte. Rot war gewünscht und misst 4,76 — die Entscheidung fiel nach der Messung.* **Die Kommentarnummer steht rechts, aber außerhalb der Aktionsgruppe** — *in ihr verschwände sie beim Bearbeiten, und ab dem zehnten Kommentar wäre `#10` drei Zeichen in einer Gruppe, die nur zwei zulässt.* **Vor dem Löschkreuz steht eine Zeichenbreite Abstand, am Finger elf Pixel statt zwei.** **Der Verweis springt auch beim zweiten Klick:** *steht die Adresse schon am Ziel, meldet der Browser keinen Wechsel; der Sprung steht jetzt außerhalb des Zeichnens.* **Und jede Adresse dieser Instanz wird eine Marke** — *roh eingefügt wie mit Namen, mit Kommentarnummer wie ohne; ein selbst gesetzter Name gewinnt gegen den Titel, eine fremde Adresse bleibt, wie sie dasteht.* *Zwei Befunde nebenher: keine Prüfung hatte `GET /api/comment-refs` je gerufen, und ein gescheiterter Ruf machte jeden Verweis der Seite bis zum Neuladen zu einem einfachen Link.* **Keine Schemaänderung, keine neue Route, kein neuer Schlüssel.** *Sechs Gegenproben (1151–1156), +1.869 Bytes gzip auf 269.920.* Das Protokoll steht als `Doku/Aenderungsprotokoll_0.38.1.md` | **GEBAUT** | 20.09.2026 |
 | ~~**0.38.0**~~ | ~~Auszeichnung in Kommentar und Beschreibung~~ | **GEBAUT am 19. September 2026** auf 0.37.0 — Änderungsprotokoll 0.38.0. *Der Auftrag lief durch: zwölf Bauabschnitte, einundzwanzig Fragen vorab entschieden, zwölf verworfene Wege.* **Es ist kein Editor geworden und keiner genommen:** *das Textfeld bleibt; gebaut sind ein Leser von 412 Zeilen, sein Knotenbau von 96, der Verweis von 65 und ein Menü von 262.* **Die Auszeichnung ist eine Teilmenge von CommonMark — acht Bauformen.** *Gemessen an den 356 Beispielen der Spezifikation zu ihren sechs Abschnitten: 159 werden gezeichnet wie dort, 132 bleiben gewöhnlicher Text, 65 tragen eine Bauform außerhalb der Teilmenge und stehen mit ihrem Grund namentlich in der Prüfung.* **Kursiv trägt den Unterstrich**, und `3*4 und 5*6` bleibt damit Text. **Keine Schemaänderung.** *`tools/markupscan.js` misst, welcher vorhandene Text anders aussähe — an den 1.273 deutschen Sätzen der Sprachdatei und den elf Kommentartexten des Prüfstands: null.* **Der Kern steht zweimal, im Browser und am Server, Zeichen für Zeichen gleich; ein Wächter hält sie gleich und eine gemeinsame Tafel prüft beide.** **Formatnummer 17 → 18, Untergrenze bleibt 14. Eine neue Route `GET /api/comment-refs`.** **Der Wächter über die Abfrageparameter steht danach schärfer da:** *Browseradresse und Anfrage sind getrennt; der Suchbegriff in der Adresse war bis hierher nur durch Zufall grün.* *Gemessen:* **1.585 ausgelieferte Zeilen neu, 24 entfernt; +14.315 Bytes gzip auf 268.051** — *geschätzt waren +22,3 KB.* **Eine zweite Durchsicht hat die Paarung des Lesers linear gemacht und ihr eine dritte Grenze gegeben:** *256 KB Marken brauchen 493 ms statt 26.237, und verschachtelte Auszeichnung endet nach hundert Ebenen statt mit einem `RangeError`.* **Die Doppelung in der README ist mit aufgelöst.** Das Protokoll steht als `Doku/Aenderungsprotokoll_0.38.0.md` | **GEBAUT** | 19.09.2026 |
-| **0.40.0** | **Dokumente über einen Document Server ansehen** | **GEPLANT am 21. September 2026.** *Eine Instanz, die einen OnlyOffice Document Server betreibt, zeigt `.docx`, `.xlsx` und `.pptx` im Betrachter — heute gibt es dafür nackten Text oder gar nichts. Ohne Document Server bleibt alles, wie es ist.* **Adresse und Geheimnis stehen in der `.env` oder der Compose-Datei**, *kein Feld in der Oberfläche: ein Geheimnis in `settings` reiste im Export mit.* Der Admin schaltet an und ab, **je Benutzer gibt es keinen Schalter**. *Die teuerste Zeile ist die Sicherheitsregel (`server.js`:370 — `script-src` und `frame-src` müssen eine fremde Adresse aufnehmen); der Document Server holt die Datei ohne Cookie und braucht dafür ein einmaliges Token in der Adresse.* **Und die README muss in dieser Runde sagen, dass eine angesehene Datei im Zwischenspeicher des Document Servers im Klartext liegt** | nein | — |
-| **0.41.0** | **Dokumente über den Document Server bearbeiten** | **GEPLANT am 21. September 2026, setzt 0.40.0 voraus.** *Der Rückweg: der Document Server meldet die geänderte Fassung, Kriterion holt sie und schreibt sie nach `attachments.data`.* **Ohne Geheimnis kein Bearbeiten** — *der Rückweg ist ein Schreibweg ohne Cookie und hängt allein an der Unterschrift.* Ändern darf, wer auch löschen darf: Admin oder wer die Datei hochgeladen hat, `mayChange()` unverändert. **Zwei Fragen sind offen:** *ob der Rückweg dieselbe Zeile ersetzt oder eine zweite anlegt, und was geschieht, wenn die Datei zwischen Öffnen und Rückweg gelöscht wurde* | nein | — |
+| **0.38.6** | **Die Lizenz** | **GEPLANT am 21. September 2026.** *Befund aus BA 8 der 0.38.5: es gibt keine Lizenzdatei im Repository, und deshalb trägt die README kein Abzeichen dafür.* **Vorgabe des Betreibers: offener Quelltext, jeder darf einen Fork anlegen.** *Gemessen an den 157 Paketen unter `node_modules`: 124 MIT, 8 ISC, 6 Apache-2.0, 4 BSD-3-Clause, 3 MIT-0, 2 BSD-2-Clause, 2 LGPL-3.0-or-later. Die beiden LGPL-Pakete sind `@img/sharp-libvips-linux-x64` und `@img/sharp-libvips-linuxmusl-x64` — die vorkompilierte libvips, die `sharp` mitbringt.* **Nichts davon steht MIT entgegen.** Zu bauen: `LICENSE`, `"license": "MIT"` in `package.json`, ein Abschnitt in README und Handbuch, das Abzeichen | nein | — |
+| **0.39.0** | **Die Fotokachel in eine Nebentabelle** | **GEPLANT am 21. September 2026** — *zugeordnet aus Punkt 39 des Sammelblatts, der letzte von dessen vier Befunden; die drei Indexe sind mit 0.38.4 gebaut.* **`photos` (`db.js`:145) führt `thumb` und `medium` hinter `data`.** *Wer die Kachel liest, läuft durch die Overflow-Kette von `data` und entschlüsselt sie — bei einem Video bis zu 20 MB für eine Kachel von rund 200 kB.* Der Weg ist `photo_derivatives(photo_id PRIMARY KEY, thumb, medium)`; **die Bauform steht mit `trash` und `trash_bytes` schon da.** *Die Ableitungen müssen dabei neu gerechnet werden, also mit einer Sicherung davor.* | **ja** | — |
+| **0.40.0** | **Export, Import und Papierkorb ohne den Arbeitsspeicher** | **GEPLANT am 21. September 2026** — *zugeordnet aus Punkt 40 des Sammelblatts.* **Drei Stellen:** *der Export steht dreimal gleichzeitig im Arbeitsspeicher (`server.js`:4251), die Importdatei viermal (`server.js`:4669), und `intoTrash` führt jedes Blob durch Node (`server.js`:4722).* **Der Umbau ändert die Antwortform** — *der Umschlag stückweise geschrieben trägt keine `Content-Length` mehr* — **und kann auf einem Fehlerweg Daten verlieren**, weil die Importdatei dann im Dateisystem liegt und dort aufgeräumt werden muss. *Erst am laufenden Bestand messen, dann entscheiden.* | nein | **ja** |
+| **0.41.0** | **Der Prüfstand wartet auf eine Bedingung statt auf die Uhr** | **GEPLANT am 21. September 2026** — *zugeordnet aus Punkt 41 des Sammelblatts; Ansage des Betreibers vom 21. September 2026: „beim nächsten Mal".* **614 feste Wartezeiten stehen in den Modulen unter `test/`, zusammen 47.520 ms.** *0.35.0 hat das Werkzeug gebaut und elf Stellen umgestellt — `until()` in `test/dom.js`, `nextSecond()` in `test/frame.js`.* **Jede der 614 braucht ihre eigene Bedingung**, es gibt keinen Griff für alle auf einmal. *Modul für Modul, mit einem vollen Lauf je Modul.* | nein | — |
+| **0.42.0** | **Dokumente über einen Document Server ansehen** | **GEPLANT am 21. September 2026.** *Eine Instanz, die einen OnlyOffice Document Server betreibt, zeigt `.docx`, `.xlsx` und `.pptx` im Betrachter — heute gibt es dafür nackten Text oder gar nichts. Ohne Document Server bleibt alles, wie es ist.* **Adresse und Geheimnis stehen in der `.env` oder der Compose-Datei**, *kein Feld in der Oberfläche: ein Geheimnis in `settings` reiste im Export mit.* Der Admin schaltet an und ab, **je Benutzer gibt es keinen Schalter**. *Die teuerste Zeile ist die Sicherheitsregel (`server.js`:370 — `script-src` und `frame-src` müssen eine fremde Adresse aufnehmen); der Document Server holt die Datei ohne Cookie und braucht dafür ein einmaliges Token in der Adresse.* **Und die README muss in dieser Runde sagen, dass eine angesehene Datei im Zwischenspeicher des Document Servers im Klartext liegt** | nein | — |
+| **0.43.0** | **Dokumente über den Document Server bearbeiten** | **GEPLANT am 21. September 2026, setzt 0.42.0 voraus.** *Der Rückweg: der Document Server meldet die geänderte Fassung, Kriterion holt sie und schreibt sie nach `attachments.data`.* **Ohne Geheimnis kein Bearbeiten** — *der Rückweg ist ein Schreibweg ohne Cookie und hängt allein an der Unterschrift.* Ändern darf, wer auch löschen darf: Admin oder wer die Datei hochgeladen hat, `mayChange()` unverändert. **Zwei Fragen sind offen:** *ob der Rückweg dieselbe Zeile ersetzt oder eine zweite anlegt, und was geschieht, wenn die Datei zwischen Öffnen und Rückweg gelöscht wurde* | nein | — |
 | ~~**1.0.0**~~ | ~~Die Zusage~~ | **GESTRICHEN am 15. September 2026** — Vorgabe des Betreibers: es wird kein 1.0.0 geben, was als 1.0 geplant war ist mit **0.33.0** erreicht. Die zwei offenen Punkte des Eintrags stehen in der Zeile darunter | — | — |
 | ~~*ohne Nummer*~~ | ~~**Vorgabewerte und Tastaturbedienung beim Sortieren**~~ | **VORLÄUFIG GESTRICHEN am 21. September 2026:** der Inhalt ist nirgends beschrieben — weder hier noch im Sammelblatt noch im Projektstand steht, welche Vorgabewerte gemeint sind und was die Tastatur beim Sortieren tun soll. *Die Zeile kommt zurück, sobald der Betreiber sagt, was gemeint war.* | — | — |
-| *ohne Nummer* | **Die Doppelung in der README auflösen** | **Befund aus BA 6 der 0.37.0.** *Zwei Abschnitte tragen dieselben drei Sachverhalte:* `README.md`:255–272 „Eine neuere Version über eine bestehende einspielen“ und `README.md`:341–350 „Wenn eine Version die Datenbank anfasst“. **Doppelt stehen da:** dass eine fehlende Spalte nicht mehr nachgerüstet wird, dass der Kasten jede fehlende Spalte samt altem Namen nennt, und dass die Instanz trotzdem startet, aber jede Seite scheitert, die eine der Spalten liest — der dritte fast wörtlich. *Unterschiedlich sind nur der Zwischenschritt über 0.32.1 oben und das Downgrade samt Untergrenze 0.8.0 unten.* **0.37.0 hat nur den Verweis eingesetzt**, damit die zweite Nennung der Fassung wegfällt; das Auflösen ist Umstellen, und F4 jener Runde hat entschieden: Urteil ja, Umstellung nein | **GEBAUT in 0.38.0** | 19.09.2026 |
+| ~~*ohne Nummer*~~ | ~~**Die Doppelung in der README auflösen**~~ | **GEBAUT mit 0.38.0 am 19. September 2026.** *Befund aus BA 6 der 0.37.0: zwei Abschnitte der README trugen dieselben drei Sachverhalte — dass eine fehlende Spalte nicht nachgerüstet wird, dass der Kasten jede fehlende Spalte samt altem Namen nennt, und dass die Instanz startet, aber jede Seite scheitert, die eine der Spalten liest.* **Jetzt verweist jeder der beiden auf den anderen:** `README.md`:348 nach unten, `README.md`:464 nach oben. *0.38.5 hat die README danach noch einmal gegliedert.* | nein | — |
 | *ohne Nummer* | **`public/style.css` noch einmal ansehen** | Vorgabe des Betreibers vom 17. September 2026 zu **Punkt 42** des Sammelblatts. **Der Kommentaranteil liegt bei 40 Prozent — 1.215 Zeilen von 3.029**, gemessen am gebauten Stand 0.38.3. *Hier stand vorher 54,5 %; das war ein Byteanteil am Stand nach 0.35.0, und 0.37.0 hat die Datei danach noch einmal gekürzt.* Die Datei gehört zu den achtzehn des Fingerprints, eine Runde daran ändert ihn | nein | — |
-| *ohne Nummer* | **Drei kleine Punkte, die 0.35.2 ausdrücklich nicht mitnimmt** | *Aus der Durchsicht vom 17. September 2026; sie standen in `Doku/Auftrag_0.35.2.md` *(weggefallen — es liegt immer nur einer im Repo)* als V3 bis V5 und bleiben im Sammelblatt offen.* **Punkt 33** — *am 19. September 2026 geschlossen: schon gebaut.* **Punkt 38** — *die Kachel zählt in Worten, der Blockkopf seit 0.32.1 in Zeichen; erst messen, dann entscheiden.* **Punkt 27** — *der Aufräumer des Prüfstands flackert auf mehreren Spuren; vier Zählungen stehen jetzt da (9/21 auf vier Spuren, 2/3 und 6/12 auf dreien, 1/4 auf zweien), und `testbench.js` ist die einzige Datei.* **Keiner der drei hängt an einem anderen. Offen sind davon noch zwei.** | offen | — |
+| ~~*ohne Nummer*~~ | ~~**Drei kleine Punkte, die 0.35.2 ausdrücklich nicht mitnimmt**~~ | **ALLE DREI SIND ZU, die letzten beiden am 21. September 2026.** *Sie standen in `Doku/Auftrag_0.35.2.md` als V3 bis V5.* **Punkt 33** — *am 19. September 2026 geschlossen: schon gebaut.* **Punkt 38** — *GEBAUT mit 0.38.5: die Zählzeile der Meldungstafel steht in Kurzform, deutsch 227,6 → 158,1 px bei 360 CSS-Pixeln.* **Punkt 27** — *GEBAUT mit 0.38.5: `leftovers()` fragt nach `KRITERION_RUN`, neun von zwölf roten Spuren vorher, null von zwanzig nachher.* | nein | — |
 | ~~*ohne Nummer*~~ | ~~**`Auffangnetz` und `Grundausstattung` umbenennen**~~ | **Befund aus dem Bau der 0.37.0.** *`CLAUDE.md` führt beide Wörter unter „nicht verwenden".* **Sie stehen als Abschnittsüberschrift in `db.js` und in sieben Namen des Prüfstands.** *Sie in einer Runde zu ersetzen, die etwas anderes tut, hieße den Prüfstand umzubenennen — deshalb eine eigene Runde.* **0.38.0 fasst sie ausdrücklich nicht an** *(Entscheidung des Betreibers vom 19. September 2026)* — **GEBAUT mit 0.38.5.** *Hier stand „Dutzende"; gezählt sind es* **74 Stellen**: *fünf in ausgelieferten Dateien, sieben Namen (ein Gruppenname, vier Prüfungsnamen, ein Rückbauname, ein `expected`), 23 Kommentare im Quelltext und 51 in der Prosa der Papiere — der Wortfilter liest auch `Doku/*.md` und `CHANGELOG.md`.* | **gebaut** | — |
 | *danach* | *Große Dateien bis 2 GB* | **ausdrücklich draußen** — siehe unten | ja | — |
 
@@ -1973,7 +1981,127 @@ Punkt 5 der Tafel darüber bleibt: geprüft wird bis heute von Hand.
 
 ---
 
-## 0.40.0 — „Dokumente über einen Document Server ansehen"
+## 0.39.0 — „Die Fotokachel in eine Nebentabelle"
+
+**Zugeordnet am 21. September 2026** aus Punkt 39 des Sammelblatts. *Herkunft:
+0.35.0, in der Messung vom 16. September 2026. Die Runde 0.35.0 hatte eine
+Schemaänderung ausdrücklich ausgeschlossen und ihr dafür eine eigene Nummer
+zugesagt.*
+
+**Der Punkt trug vier Befunde, drei davon sind mit 0.38.4 gebaut:** *der Index
+auf `ratings.criterion_id`, der deckende Index für `qAttachments` und
+`length(thumb)` in `idx_photos_tile`.* **Der vierte ist diese Runde.**
+
+### Die Lage
+
+`photos` (`db.js`:145) führt die Spalten in der Folge `id`, `item_id`,
+`mime_type`, `data`, `thumb`, `medium`, `kind`. **Die Kachel steht hinter dem
+Original.** SQLite liest eine Zeile von vorn; wer `thumb` will, läuft durch die
+Overflow-Kette von `data` und entschlüsselt sie mit. *Bei einem Video sind das
+bis zu 20 MB für eine Kachel von rund 200 kB.*
+
+### Der Weg
+
+`photo_derivatives(photo_id PRIMARY KEY, thumb, medium)`. **Die Bauform steht
+mit `trash` und `trash_bytes` schon im Repository** — eine Nebentabelle, die
+die Blobs eines Vorgangs trägt, ist nichts Neues.
+
+### Was sie teuer macht
+
+**Die Ableitungen müssen umziehen, und das heißt: sie werden neu gerechnet.**
+Deshalb gehört eine Sicherung davor, und deshalb ist es eine eigene Runde und
+kein Bauabschnitt in einer anderen.
+
+**Erst messen, dann entscheiden:** die Zahlen oben sind an gestellten Prüflagen
+gemessen und nicht am laufenden Betrieb.
+
+**Was es anfasst** — `db.js`, `server.js`, `images.js`.
+
+**Schema: ja.**
+
+---
+
+## 0.40.0 — „Export, Import und Papierkorb ohne den Arbeitsspeicher"
+
+**Zugeordnet am 21. September 2026** aus Punkt 40 des Sammelblatts. *Herkunft:
+0.35.0, in der Messung vom 16. September 2026. Alle drei Stellen sind in 0.35.0
+nicht gebaut worden, weil Zusage 1 jener Runde lautete: kein Verhalten ändert
+sich.*
+
+### Drei Stellen
+
+**1. Der Export steht dreimal gleichzeitig im Arbeitsspeicher**
+(`server.js`:4251). `entryAsBundle()` erzeugt je Blob einen Base64-String,
+`exportEnvelope()` gibt ein Objekt mit allen diesen Strings zurück, `res.json()`
+serialisiert das Ganze noch einmal. *Der Weg wäre, den Umschlag stückweise zu
+schreiben:* `res.write()` *für den Kopf, je Eintrag ein eigenes*
+`JSON.stringify()`, *dann der Schluss.* **Die Antwort trägt dann keine
+`Content-Length` mehr**, und das ist der Grund, warum es nicht gebaut ist.
+
+**2. Die Importdatei liegt viermal im Speicher** (`server.js`:4669). `multer`
+hält sie als Buffer, `toString('utf8')` macht einen String daraus, `JSON.parse`
+legt das Objekt mit allen Base64-Strings an, und `prepared` sammelt die
+Ableitungen. *Der Weg wäre* `diskStorage` *und eintragsweises Lesen.* **Das
+verlegt die Datei ins Dateisystem und verlangt ein Aufräumen auf jedem
+Fehlerweg** — ein Fehler dort verliert Daten.
+
+**3. `intoTrash` führt jedes Blob durch Node** (`server.js`:4722). Beim Löschen
+eines Eintrags sammelt `funnelStore()` jedes Blob als Buffer, und erst danach
+wird geschrieben. *Der Weg wäre je Trägertabelle eine Anweisung*
+`INSERT INTO trash_bytes (trash_id, part, data) SELECT ?, ?, data FROM …`.
+**Dafür müsste `entryAsBundle` die Blobspalten gar nicht erst lesen** — und
+dieselbe Funktion trägt auch den Export.
+
+### Die Auflage
+
+**Eine Messung am laufenden Bestand steht davor.** Die Zahlen aus 0.35.0 sind
+gezählt und nicht gestoppt; ob der Umbau sich lohnt, entscheidet der Bestand
+des Betreibers und nicht eine gestellte Prüflage.
+
+**Was es anfasst** — `server.js` *(drei Stellen)*, `test/roundtrip.js`.
+
+**Schema: nein. Format: ja** — die Antwort des Exports ändert ihre Form.
+
+---
+
+## 0.41.0 — „Der Prüfstand wartet auf eine Bedingung statt auf die Uhr"
+
+**Zugeordnet am 21. September 2026** aus Punkt 41 des Sammelblatts, auf Ansage
+des Betreibers: beim nächsten Mal. *Herkunft: 0.35.0.*
+
+### Die Zahl
+
+**In den Modulen unter `test/` standen 625 feste Wartezeiten** der Form
+`await new Promise(r => setTimeout(r, N))`, **zusammen 59.635 ms**. Die Module
+laufen nacheinander, also liegt jede dieser Millisekunden auf der Laufzeit.
+
+**0.35.0 hat das Werkzeug gebaut und elf Stellen umgestellt:** `until()` in
+`test/dom.js` fragt in Fünf-Millisekunden-Schritten und wirft an der Grenze,
+`nextSecond()` in `test/frame.js` wartet auf die nächste Sekundengrenze der
+Uhr. **614 Stellen bleiben, zusammen 47.520 ms.**
+
+### Warum es keinen Griff für alle gibt
+
+Sie warten auf das Neuzeichnen eines Fensters, und **jede braucht ihre eigene
+Bedingung**. *Ein Versuch ist gemessen und zurückgenommen worden:* `sysSection`
+*auf* `.sys-card` *warten zu lassen kehrt zu früh zurück, weil die Karte früher
+dasteht als ihr Inhalt.*
+
+### Was der Gewinn wirklich ist
+
+**Höchstens 47,5 Sekunden**, verteilt über sieben Module — und er ist nicht der
+ganze Gewinn: die elf umgestellten Stellen haben im vollen Lauf 6,3 Sekunden
+gebracht, sichtbar wurde davon nichts, weil derselbe Lauf 3,3 Sekunden für die
+Kompression beim Serverstart zahlt.
+
+**Modul für Modul, mit einem vollen Lauf je Modul.**
+
+**Was es anfasst** — `test/ui_*.js`, `test/roundtrip.js`, `test/release_030.js`.
+
+**Schema: nein.**
+
+---
+## 0.42.0 — „Dokumente über einen Document Server ansehen"
 
 **Beschlossen am 21. September 2026.** Eine Instanz, die einen OnlyOffice
 Document Server betreibt, zeigt Bürodateien im Betrachter. **Ohne ihn bleibt
@@ -2057,7 +2185,7 @@ ist eine Aussage, die vorher gilt und danach nicht mehr.
 
 ### Was ausdrücklich nicht dazugehört
 
-**Das Bearbeiten.** Es steht als 0.41.0. Der Nutzen ist ungleich verteilt: heute
+**Das Bearbeiten.** Es steht als 0.43.0. Der Nutzen ist ungleich verteilt: heute
 sieht man von einer `.xlsx` gar nichts, von einer `.docx` nackten Text — **das
 Ansehen ist der große Sprung, das Bearbeiten der kleine.** Und das Bearbeiten
 bringt den Rückweg samt zwei offenen Fragen mit.
@@ -2073,9 +2201,9 @@ Sprachdateien · `.env.example` und `docker-compose.example.yml` · `README.md`.
 
 ---
 
-## 0.41.0 — „Dokumente über den Document Server bearbeiten"
+## 0.43.0 — „Dokumente über den Document Server bearbeiten"
 
-**Beschlossen am 21. September 2026.** Setzt 0.40.0 voraus: Sicherheitsregel,
+**Beschlossen am 21. September 2026.** Setzt 0.42.0 voraus: Sicherheitsregel,
 Token-Weg und auflösbare Adresse stehen dann schon.
 
 ### Der Unterschied zum Ansehen

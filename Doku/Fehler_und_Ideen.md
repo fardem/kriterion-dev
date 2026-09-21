@@ -141,10 +141,10 @@ ausgearbeitet steht; die Begründung bleibt am Punkt.*
 
 ---
 
-## Der Stand der offenen Punkte — 21. September 2026, nach 0.38.4
+## Der Stand der offenen Punkte — 21. September 2026, nach der Zuordnung
 
-**Diese Tafel sagt, wo ein Punkt steht, und trägt ihn nicht ein zweites
-Mal.** Jede Zeile nennt einen Punkt in einem Satz und sagt, wo er steht: eine Nummer
+**Diese Tafel sagt, wo ein Punkt steht, und trägt ihn nicht ein zweites Mal.**
+Jede Zeile nennt einen Punkt in einem Satz und sagt, wo er steht: eine Nummer
 zeigt in Teil I dieses Blatts, *Teil II* auf eine Zeile weiter unten,
 *Fahrplan* auf eine Zeile der Tafel in `Doku/Fahrplan.md`, ein Protokoll auf
 den Abschnitt „Was offen bleibt" der genannten Runde. **Die Begründung steht
@@ -154,59 +154,41 @@ am Punkt und nicht hier.**
 Entscheidung.** Was gebaut wird, entscheidet der Betreiber, und wohin es kommt,
 sagt der Fahrplan.
 
-### Was im Betrieb auffällt
+> **AM 21. SEPTEMBER 2026 SIND DREI PUNKTE FORTGEZOGEN.** *39, 40 und 41 tragen
+> jetzt die Nummern 0.39.0, 0.40.0 und 0.41.0 und stehen mit ihrer Ausarbeitung
+> im Fahrplan.* **Zwei weitere sind gebaut und deshalb hier weggefallen:** *27
+> und 38, beide mit 0.38.5.*
+
+### Was ohne Nummer offen ist
 
 | steht in | worum es geht | Nutzen | Aufwand | Vorschlag |
 |---|---|---|---|---|
+| **42**, Fahrplan | Der Kommentaranteil von `public/style.css` liegt bei 40 Prozent — 1.215 von 3.029 Zeilen; offen ist, ob die gemessenen Zahlen in ein eigenes Papier wandern | niedrig | — | Entscheidung des Betreibers |
+| **20** | Nach einem Umbenennen holt die Oberfläche vier Antworten statt drei; die vierte ist die größte der Installation | niedrig | klein | liegen lassen |
 | Protokoll 0.38.2 | Der Trefferausschnitt zeigt bei einem Treffer im Ziel eines Links den Rohtext samt seiner Marken | niedrig | groß *(gemeinsamer Kern)* | liegen lassen |
+| Protokoll 0.38.2 | Die Strichstärke des Löschkreuzes bleibt 1.8, dieselbe wie am Stift und am Zitatzeichen | — | eine Zeile | Entscheidung des Betreibers |
 | Protokoll 0.38.3 | Der Halt nach einem Sprung ist eine Frist von 1600 Millisekunden und keine Messung | niedrig | mittel | beobachten |
 | Protokoll 0.38.3 | Der Sprung ans Seitenende ist in Chromium nicht nachgestellt worden | — | — | beobachten |
-| Protokoll 0.38.2 | Die Strichstärke des Löschkreuzes bleibt 1.8, dieselbe wie am Stift und am Zitatzeichen | — | eine Zeile | Entscheidung des Betreibers |
-| **38** | **GEBAUT mit 0.38.5.** Die Zählzeile der Meldungstafel steht in Fassung B: `12 Kommentare · @34 · ★56`. Gemessen bei 360 CSS-Pixeln, deutsch 227,6 → **158,1 px**, englisch 189,7 → 145,4, türkisch 208,6 → 126,5. Der lange Wortlaut steht im Überfahrtext | erledigt | — | erledigt |
+| Teil II | Der angepinnte Block kann zur Wand werden | — | — | beobachten, nicht bauen |
+| Teil II | Der eine abgerissene Prüflauf von 0.9.1 | — | — | wer ihn wiedersieht, schreibt den Lauf vollständig mit |
+
+### Was eine Nummer hat und im Fahrplan steht
+
+| Nummer | worum es geht | Schema |
+|---|---|---|
+| **0.38.6** | Die Lizenz — es gibt keine im Repository, und deshalb trägt die README kein Abzeichen dafür | nein |
+| **0.39.0** | Die Fotokachel nach `photo_derivatives`, mit einer Sicherung davor | **ja** |
+| **0.40.0** | Export, Import und Papierkorb ohne den Arbeitsspeicher — erst am Bestand messen | nein |
+| **0.41.0** | 614 feste Wartezeiten im Prüfstand, zusammen 47,5 Sekunden | nein |
+| **0.42.0** | Dokumente über einen Document Server ansehen | nein |
+| **0.43.0** | Dokumente über den Document Server bearbeiten | nein |
+| *danach* | Große Dateien bis 2 GB — eigenes Papier, im Fahrplan als „danach" | **ja** |
 
 ### Sprache
 
 *Kein offener Punkt mehr.* **26** *und* **37** *sind am 20. September 2026
 nachgelesen und geschlossen worden:* **26** *war schon gebaut,* **37** *ist
 leer.*
-
-### Datenbank und Betrieb
-
-| steht in | worum es geht | Nutzen | Aufwand | Vorschlag |
-|---|---|---|---|---|
-| **39** | Von vier Stellen sind **drei mit 0.38.4 gebaut** — die drei Indexe. Offen bleibt die Fotokachel in einer Nebentabelle: die Ableitungen müssten neu gerechnet werden | mittel | groß | Entscheidung des Betreibers |
-| **40** | Export, Import und Papierkorb führen jedes Byte durch den Arbeitsspeicher; der Umbau ändert die Antwortform und kann auf einem Fehlerweg Daten verlieren | hoch bei großem Bestand | groß | erst am Bestand messen |
-| **20** | Nach einem Umbenennen holt die Oberfläche vier Antworten statt drei; die vierte ist die größte der Installation | niedrig | klein | liegen lassen |
-| Teil II | **GEBAUT mit 0.38.5, und es war nicht eine Spalte.** Gemessen: **sechzehn der achtzehn** hielten den Server unten, verursacht von 34 Gesuchen, die beim Laden vorbereitet wurden. Sie werden jetzt erst beim ersten Ruf vorbereitet; nachgemessen kommen alle achtzehn hoch | erledigt | — | erledigt |
-
-### Prüfstand und Quelltext
-
-| steht in | worum es geht | Nutzen | Aufwand | Vorschlag |
-|---|---|---|---|---|
-| **27** | **GEBAUT mit 0.38.5.** Die Ursache ist gemessen: alle vier Spuren stellen einen Rest hin, und wer zuerst räumt, nimmt die drei fremden mit. `leftovers()` fragt jetzt nach `KRITERION_RUN`. Nachgemessen: neun von zwölf roten Spuren vorher, **null von zwanzig nachher** | erledigt | — | erledigt |
-| **41** | Feste Wartezeiten in den Modulen, zusammen rund 47,6 Sekunden Laufzeit; jede braucht ihre eigene Bedingung. *Die Prüflage von 0.38.5 wartet schon auf die Bedingung und nicht auf die Uhr* | niedrig | groß | liegen lassen |
-| **42**, Fahrplan | Der Kommentaranteil von `public/style.css` liegt bei 40 Prozent; offen ist, ob die gemessenen Zahlen in ein eigenes Papier wandern | niedrig | — | Entscheidung des Betreibers |
-| Fahrplan | **GEBAUT mit 0.38.5.** Es waren **74 Stellen** und nicht „Dutzende": 23 Kommentare im Quelltext, 51 in der Prosa der Papiere, dazu fünf in ausgelieferten Dateien und sieben Namen. Der Wortfilter nimmt beide auf | erledigt | — | erledigt |
-
-### Offen gelassen, mit Grund
-
-| steht in | worum es geht | Vorschlag |
-|---|---|---|
-| *(beantwortet)* | **Der Bestand des Betreibers ist am 20. September 2026 gemessen:** 271 Texte, 22 mit Auszeichnung, kein Schaden | erledigt |
-| *(beantwortet)* | **Der einzelne Stern bleibt draußen:** gemessen am 21. September 2026 sähen **20 von 273** Texten anders aus, also 7,3 Prozent statt der verlangten Null | erledigt |
-| Teil II | Der angepinnte Block kann zur Wand werden | beobachten, nicht bauen |
-| Teil II | Der eine abgerissene Prüflauf von 0.9.1 | wer ihn wiedersieht, schreibt den Lauf vollständig mit |
-
-### Ein Vorschlag für die Reihenfolge
-
-*Die Schritte 1 bis 4 der Reihenfolge vom 20. September 2026 sind mit 0.38.4
-abgearbeitet; was davon offen blieb, steht in den Zeilen darüber.*
-
-| | was | warum zuerst |
-|---|---|---|
-| 1 | **Der Aufräumer des Prüfstands** *(Punkt 27)* | die letzte der drei Lücken im Prüfstand |
-| 2 | **Die Fotokachel in eine Nebentabelle** *(Punkt 39)* | die Ableitungen müssten neu gerechnet werden — eine Entscheidung, kein Bauauftrag |
-| 3 | **Export und Import** *(Punkt 40)* | erst nach einer Messung am Bestand |
 
 ---
 
@@ -238,6 +220,14 @@ sie ist ein Wegweiser und kein zweiter Eintrag.*
 > für eine eingeschobene Runde war. Eine freie Nummer je Zwischenraum lässt die
 > nächste dort Platz finden, ohne dass sich dahinter etwas bewegt.* **Die Regel
 > und der neue Fahrplan stehen im Projektstand, Abschnitt 10.**
+>
+> **AM 21. SEPTEMBER 2026 SIND DREI PUNKTE FORTGEZOGEN — 39, 40 und 41.** *Sie
+> tragen jetzt die Nummern 0.39.0, 0.40.0 und 0.41.0 und stehen mit ihrer
+> vollständigen Ausarbeitung im Fahrplan.* **Der Grund, den Regel 3 verlangt:**
+> *mit 0.38.5 sind die letzten kleinen Punkte gebaut, es blieben genau diese
+> drei großen, und drei große Punkte ohne Reihenfolge sind keine Sammlung mehr,
+> sondern ein Plan ohne Nummern.* **Am selben Tag sind zwei weitere hier
+> weggefallen, weil sie gebaut sind:** *27 und 38, beide mit 0.38.5.*
 >
 > **UND AM 5. SEPTEMBER 2026 EIN DRITTES MAL — diesmal NACH VORN, und diesmal
 > ohne Einschub.** Der Betreiber hat die Mehrsprachigkeit von 0.28.0 auf 0.24.0
@@ -275,6 +265,11 @@ sie ist ein Wegweiser und kein zweiter Eintrag.*
 | **0.24.3** *PATCH (benannte Abweichung), Datenbankstufe* — **GEBAUT am 8. September 2026** | **„Die zweite Sprache" — Stufe 2 der Mehrsprachigkeit.** *Nichts aus diesem Blatt: die Runde stand seit dem 5. September 2026 im Fahrplan, Auftrag `Doku/Auftrag_0.24.3.md` *(weggefallen — es liegt immer nur einer im Repo)*, zwölf Fragen vor der ersten Zeile entschieden.* **Was gebaut wurde, steht im Änderungsprotokoll 0.24.3.** *Mitgefahren sind neun Funde, die nie hier standen, weil sie niemandem aufgefallen waren: sieben stumme Fundstellen aus 0.24.1 — darunter `<html lang>`, das seither auf gar nichts stand — und zwei deutsche Wörter, die seit 0.24.0 fest im Quelltext saßen.* **Stufe 3 (Türkisch) ist damit 0.24.4.** |
 | **0.27.0** *MINOR* *(war 0.21.0, dann 0.22.0, dann 0.24.0, dann 0.26.0)* — **GEBAUT am 10. September 2026** | **„Die wählbare Bildablage" — Punkt 6 dieses Blatts, zusammen mit den Ableitungen aus Punkt 5.** Gebaut ist: `imageStore` mit drei Verfahren (PNG, WebP verlustfrei, WebP verlustbehaftet) als Wahl mit je einem Knopf „Standard", die Auflage in der Karte, der **elfte** Migrationsblock (`convertImages` → `imageStore`, der alte Schlüssel fällt), die Ableitungen auf **WebP** mit neu gesetzten Zahlen (`thumb` 82, `medium` 78) und ein Bestandslauf, der **beide Hälften in einem Durchgang** nachzieht. **`F_ROUTES` bleibt 72, das Austauschformat 15, `OWNER_KEYS` sieben.** **Was gebaut wurde, steht im Änderungsprotokoll 0.27.0.** ***Die Frage, ob `medium` verlustfrei werden soll, ist GEMESSEN und mit NEIN beantwortet*** — *`nearLossless` ist an einem Foto +500,8 %.* ***Und zwei Befunde sind beim Bauen aufgefallen, die der Auftrag nicht kannte:*** *das Kommentarbild wurde mit einem festen Dateinamen ausgeliefert und damit immer als JPEG angekündigt; und die Fertigmeldung der Umstellung stand halb auf Deutsch, egal welche Sprache eingestellt war.* ***Ein offener Punkt gehört genannt:*** *die Fragetafel ist NACH dem Bauen durchgegangen worden und nicht davor — der Betreiber hat die Runde mit „Keine Ahnung was wir damals für die 27.0 ausgemacht haben" in Auftrag gegeben. Die Tafel ist noch am selben Tag vollständig durchgegangen worden — neun Antworten wie vorgeschlagen, eine abweichend (F7: der Satz an der Einfügestelle nennt die Folge und gibt keinen Rat — die Empfehlung fällt, und der Wortlaut hat drei Anläufe gebraucht).* |
 | **0.31.0** *MINOR* *(war 0.19.0, dann 0.21.0, dann 0.22.0, dann 0.23.0, dann 0.26.0, dann 0.28.0, dann 0.30.0, Nummer vorläufig)* | Bereinigung — der Bruch |
+| **0.38.6** *PATCH* — **GEPLANT am 21. September 2026** | **Die Lizenz.** *Befund aus BA 8 der 0.38.5: es gibt keine Lizenzdatei im Repository, und die README trägt deshalb kein Abzeichen dafür.* |
+| **0.39.0** *MINOR, Schema* — **GEPLANT am 21. September 2026** | **Die Fotokachel in eine Nebentabelle.** *Punkt 39 dieses Blatts, sein letzter von vier Befunden — die drei Indexe sind mit 0.38.4 gebaut.* |
+| **0.40.0** *MINOR, Format* — **GEPLANT am 21. September 2026** | **Export, Import und Papierkorb ohne den Arbeitsspeicher.** *Punkt 40 dieses Blatts, vollständig.* |
+| **0.41.0** *MINOR* — **GEPLANT am 21. September 2026** | **Der Prüfstand wartet auf eine Bedingung statt auf die Uhr.** *Punkt 41 dieses Blatts, vollständig.* |
+| **0.42.0** und **0.43.0** *MINOR* — **GEPLANT am 21. September 2026** | **Dokumente über einen Document Server ansehen und bearbeiten.** *Aus keinem Punkt dieses Blatts — eine Frage des Betreibers vom selben Tag.* |
 
 **Was hier bleibt, bleibt aus einem Grund:** die **elf** Punkte unten haben
 **keine Nummer**, weil die meisten von ihnen jetzt nicht gebaut werden sollen —
@@ -295,6 +290,13 @@ Punkt 15, den 0.19.0 liegen ließ — **und sein Grund war ein anderer als
 vorher.*** ***Er ist mit 0.27.0 gebaut, zusammen mit Punkt 6.*** *Ein Sammelblatt, in dem nur noch das Verworfene
 steht, sieht mager aus. Es ist trotzdem der richtige Zustand: alles Übrige ist
 entschieden und hat seinen Ort.*
+
+> **DIE ZAHL „ELF" IST DER STAND VOM SEPTEMBER. GEZÄHLT AM 21. SEPTEMBER 2026
+> STEHEN IN TEIL I 24 PUNKTE, davon 20 durchgestrichen.** *Von den vier übrigen
+> sind zwei wirklich offen — **20** (der vierte Abruf nach dem Umbenennen) und
+> **42** (der Kommentaranteil des Stilblatts).* **Die anderen zwei sind
+> entschieden und stehen nur noch als Herleitung:** *19 ist am 8. September 2026
+> abgelehnt, 22 am 10. September 2026 entschieden.*
 
 > **PUNKT 10 IST INZWISCHEN GEBAUT.** Er ist am 4. September 2026 in die
 > Runde 0.22.0 aufgenommen und am selben Tag gebaut worden: der Bildstreifen
@@ -1356,7 +1358,8 @@ sondern damit derselbe Bericht nicht ein zweites Mal geglaubt wird.
 > unangetastet.*
 >
 > **NACHTRAG VOM 21. SEPTEMBER 2026: die Reservierung ist aufgehoben.** *Die
-> 0.40.0 trägt den Document Server, die 0.41.0 das Bearbeiten.*
+> 0.40.0 trägt den Umbau von Export und Import, die 0.42.0 und die 0.43.0 den
+> Document Server.*
 
 ---
 
@@ -1487,56 +1490,6 @@ anlegt, ist keine Reparatur mehr.*
 
 **Was es anfasst** — `testbench.js`; je nach Messung `public/app.js` und die
 drei Sprachdateien.
-
----
-
-## 27. Der Aufräumer des Prüfstands wird auf vier Spuren unruhig
-
-**Art: Fehler** *(am Prüfstand, nicht an der Anwendung)* **· Herkunft: 0.30.1,
-aus dem Gegenprobenlauf vom 12. September 2026 · Einschätzung: klein, aber
-lästig**
-
-**Was passiert.** *Bei einem Gegenprobenlauf mit **vier** Nebenspuren wurde die
-Prüfgruppe **„Der Prüfstand räumt beim Start auf — 0.30.0"** in **neun von
-einundzwanzig** Läufen rot — und zwar bei Rückbauten, die mit ihr nichts zu tun
-haben* (das Fälligkeitsdatum, die Taggröße, der Zähler). **Rot wurden zwei
-Zusagen:** *„Der Aufräumer findet ihn — am Wegwerfverzeichnis und nicht am
-Namen"* und *„Und er sagt, was er angefasst hat".*
-
-**Warum das kein Fehler dieser Runde ist.** *Die Gruppe prüft, dass der
-Prüfstand beim Start aufräumt, was ein abgebrochener Lauf liegen gelassen hat.
-Sie legt dafür einen verwaisten Server an und sieht nach, ob er weg ist.* **Auf
-vier Spuren laufen vier solche Prüfläufe gleichzeitig, jeder mit eigenen
-Wegwerfverzeichnissen** — *und die Erkennung „der Vater ist fort" aus 0.30.0
-trennt sie zwar, aber offenbar nicht in jedem Zeitfenster.*
-
-> **DIESELBE SORTE BEFUND WIE IN 0.30.0, NUR EINE STUFE FEINER.** *Dort hat der
-> Aufräumer die Server der jeweils anderen Spuren erschlagen; das ist behoben.
-> Hier bleibt ein Rest, der sich nur unter vier gleichzeitigen Läufen zeigt.*
-
-**Was zu tun wäre.** *Die Lage nachstellen und messen, statt zu raten: zwei
-Prüfläufe gleichzeitig starten und sehen, welcher Zweig der Erkennung greift.*
-
-> **NACHGESEHEN AM 12. SEPTEMBER 2026, UND DIE ERSTE VERMUTUNG WAR FALSCH.**
-> *Der Nachlauf mit **drei** Spuren hat dasselbe Flackern gezeigt — in zwei von
-> drei Läufen.* **Es hängt also nicht an der Vier.** *Wie es bei zwei Spuren
-> aussieht, ist nicht gemessen, und deshalb steht hier keine Zahl dazu.*
->
-> **DRITTE ZÄHLUNG, 0.30.3:** *zwölf Rückbauten auf **drei** Spuren, das
-> Flackern in **sechs** von zwölf Läufen.* **Damit stehen drei Zahlen da — 9/21
-> auf vier Spuren, 2/3 und 6/12 auf dreien.** *Rund die Hälfte, gleich welche
-> Spurenzahl; die Vier war nie die Ursache.*
->
-> **VIERTE ZÄHLUNG, 0.35.1:** *sechs Rückbauten auf **zwei** Spuren in zwei
-> Läufen, das Flackern in **zwei** von sechs — Rückbau 1098 und Rückbau 1100,
-> beide dieselben zwei Zusagen.* **Damit ist auch die Zwei gemessen, und sie
-> flackert seltener:** *2/6 gegen rund die Hälfte bei drei und vier Spuren.*
-
-**Offene Entscheidungen** — *ob der Aufräumer fremde Wegwerfverzeichnisse
-überhaupt ansehen soll, oder nur die unter seiner eigenen Portbasis.*
-
-**Was es anfasst** — `testbench.js`.
-
 
 ---
 
@@ -2185,158 +2138,6 @@ Strang 2 es mit den drei anderen gemacht hat.* **Ein Wächter dafür ist teuer:*
 der Betreiber einträgt.*
 
 **Was es anfasst** — die drei Sprachdateien *(zwei Werte)*.
-
----
-
-## 38. Die Kurzform der Zählzeile hat keine Entsprechung in der Kachel
-
-**Art: Idee** *(Oberfläche)* **· Herkunft: 0.32.1 · Einschätzung: klein**
-
-**DER BLOCKKOPF ZÄHLT SEIT 0.32.1 IN ZEICHEN** *(„12 · ⚑3 · ☐3 · ☑2")*, **die
-Kachel in der Übersicht weiterhin in Worten** *(„3 Kommentare · 4
-Bewertungen")*. *Das ist gewollt — in der Kachel steht keine Überschrift
-daneben, die sagt, wovon die Rede ist.*
-
-**Die Frage bleibt trotzdem offen:** *auf dem Telefon ist die Kachel der
-engste Ort der ganzen Anwendung, und dort steht die längste Fassung.*
-
-### Gemessen am 21. September 2026
-
-**Die Zählzeile ist `newWords()`** *(`public/app.js`:3058)*; sie steht in der
-Meldungstafel als `.mcount`. **Gemessen in Chromium bei 390 Pixeln
-Schirmbreite**, an der ausgelieferten `public/style.css` und mit den
-ausgelieferten Vokabelwörtern:
-
-| Sprache | ungünstigster Fall | Zeichen | Breite | bleibt dem Titel |
-|---|---|---:|---:|---:|
-| Deutsch | „12 Kommentare · @34 · 56 Bewertungen" | 36 | **227,6 px** | 101,4 px |
-| Türkçe | „12 yorum · @34 · 56 Değerlendirme" | 33 | 208,6 px | 120,4 px |
-| English | „12 comments · @34 · 56 Ratings" | 30 | 189,7 px | 139,3 px |
-
-**Die Zeile der Kachel ist innen 340 Pixel breit** *(390 minus 32 Rand des
-Blatts, minus 18 Innenabstand der Zeile)*. **Die Zählzeile bricht in keiner
-der drei Sprachen um** — *sie drückt stattdessen den Titel zusammen: auf
-Deutsch bleiben ihm 101,4 Pixel.* **Umgebrochen wird ab 54 Zeichen** *(über
-331 Pixel)*; bei 52 Zeichen bleiben dem Titel 0,3 Pixel.
-
-*Mit einstelligen Zahlen sind es 33 · 30 · 27 Zeichen und 208,6 · 189,7 ·
-170,7 Pixel.* **Die Vokabelwörter trägt der Betreiber ein** — ein längeres
-eigenes Wort verschiebt die Zahlen, und die Latte von 54 Zeichen sagt, wo.
-
-**Was zu bauen wäre** — *die Entscheidung steht noch aus; die Zahlen liegen
-jetzt vor.*
-
-**Was es anfasst** — `public/app.js` *(eine Funktion)*, `public/style.css`.
-
----
-
-## 39. Vier Befunde verlangen eine Schemaänderung
-
-**Art: Idee** *(Datenbank)* **· Herkunft: 0.35.0, in der Messung vom
-16. September 2026 · Einschätzung: mittel**
-
-**DIE RUNDE 0.35.0 HAT SIE AUSDRÜCKLICH AUSGESCHLOSSEN** *(Abschnitt 9 des
-Auftrags: keine Spalte fällt, keine Tabelle fällt, kein Index kommt dazu)*,
-**und sie hat ihnen dafür eine eigene Nummer zugesagt. Das ist diese.**
-
-**1. Die Spaltenfolge in `photos`** *(`db.js`:145)*. Sie lautet `id`,
-`item_id`, `mime_type`, `data`, `thumb`, `medium`, `kind`, … — die Kachel
-steht damit **hinter** dem Original und lässt sich nicht lesen, ohne die
-Overflow-Kette von `data` zu durchlaufen und zu entschlüsseln. Bei einem Video
-sind das bis zu 20 MB für eine Kachel von rund 200 kB. *Der Weg wäre eine
-Nebentabelle `photo_derivatives(photo_id PRIMARY KEY, thumb, medium)`; die
-Bauform steht mit `trash` und `trash_bytes` schon im Repository.*
-
-**2. Kein Index auf `ratings.criterion_id`** *(`db.js`:338)*. Der einzige Index
-auf `ratings` ist das `UNIQUE` über `(item_id, criterion_id, user_id)`;
-`criterion_id` steht an zweiter Stelle und ist von links nicht greifbar.
-`qCriteria` zählt je Kriterium über alle Bewertungen. **Gemessen: 14,2 ms statt
-73,6 ms** mit `CREATE INDEX idx_ratings_criterion ON ratings(criterion_id,
-value, item_id)`.
-
-**3. Kein deckender Index für `qAttachments`** *(`server.js`:2300)*. Die
-Abfrage liest `sort_order`, `created_at` und `user_id`; alle drei stehen in
-`attachments` hinter `data`, und `data` ist bis 50 MB groß.
-`idx_attachments_item` trägt nur `item_id`.
-
-**4. `length(thumb)` steht nicht in `idx_photos_tile`** *(`server.js`:2429)*.
-`PHOTO_VERSION` hängt den Ausdruck an `PHOTO_COLUMNS` an; SQLite fällt deshalb
-auf den Zeilenzugriff zurück.
-
-**Was zu bauen wäre** — *eine Runde, die das Schema anfassen darf, mit einem
-Weg für Bestandsdatenbanken je Punkt.* **Erst messen, dann entscheiden:** die
-Zahlen oben sind an gestellten Prüflagen gemessen und nicht am laufenden
-Betrieb.
-
-**Was es anfasst** — `db.js`, `server.js`.
-
----
-
-## 40. Export, Import und Papierkorb führen jedes Byte durch den Arbeitsspeicher
-
-**Art: Idee** *(Betrieb)* **· Herkunft: 0.35.0, in der Messung vom
-16. September 2026 · Einschätzung: groß**
-
-**DREI STELLEN, UND ALLE DREI SIND IN 0.35.0 NICHT GEBAUT WORDEN** — *jede von
-ihnen ändert entweder die Antwort oder verlangt einen Umbau von
-`entryAsBundle`, und Zusage 1 der Runde lautet: kein Verhalten ändert sich.*
-
-**1. Der Export steht dreimal gleichzeitig im Arbeitsspeicher**
-*(`server.js`:4251)*. `entryAsBundle()` erzeugt je Blob einen Base64-String,
-`exportEnvelope()` gibt ein Objekt mit allen diesen Strings zurück, `res.json()`
-serialisiert das Ganze noch einmal. *Der Weg wäre, den Umschlag stückweise zu
-schreiben:* `res.write()` *für den Kopf, je Eintrag ein eigenes*
-`JSON.stringify()`, *dann der Schluss.* **Die Antwort trägt dann keine
-`Content-Length` mehr**, und das ist der Grund, warum es nicht gebaut ist.
-
-**2. Die Importdatei liegt viermal im Speicher** *(`server.js`:4669)*. `multer`
-hält sie als Buffer, `toString('utf8')` macht einen String daraus, `JSON.parse`
-legt das Objekt mit allen Base64-Strings an, und `prepared` sammelt die
-Ableitungen. *Der Weg wäre* `diskStorage` *und eintragsweises Lesen.* **Das
-verlegt die Datei ins Dateisystem und verlangt ein Aufräumen auf jedem
-Fehlerweg** — ein Fehler dort verliert Daten.
-
-**3. `intoTrash` führt jedes Blob durch Node** *(`server.js`:4722)*. Beim
-Löschen eines Eintrags sammelt `funnelStore()` jedes Blob als Buffer, und erst
-danach wird geschrieben. *Der Weg wäre je Trägertabelle eine Anweisung*
-`INSERT INTO trash_bytes (trash_id, part, data) SELECT ?, ?, data FROM …`.
-**Dafür müsste `entryAsBundle` die Blobspalten gar nicht erst lesen** — und
-dieselbe Funktion trägt auch den Export.
-
-**Was zu bauen wäre** — *eine Runde, in der eine geänderte Antwortform erlaubt
-ist, mit einer Messung am laufenden Betrieb davor.* **Die Zahlen der Messung
-sind gezählt, nicht gestoppt.**
-
-**Was es anfasst** — `server.js` *(drei Stellen)*, `test/roundtrip.js`.
-
----
-
-## 41. 614 feste Wartezeiten stehen noch im Prüfstand
-
-**Art: Idee** *(Prüfstand)* **· Herkunft: 0.35.0 · Einschätzung: mittel**
-
-**IN DEN MODULEN UNTER `test/` STANDEN 625 FESTE WARTEZEITEN** der Form
-`await new Promise(r => setTimeout(r, N))`, **zusammen 59.635 ms**. Die Module
-laufen nacheinander, also liegt jede dieser Millisekunden auf der Laufzeit.
-
-**0.35.0 hat das Werkzeug gebaut und elf Stellen umgestellt:** `until()` in
-`test/dom.js` fragt in Fünf-Millisekunden-Schritten und wirft an der Grenze,
-`nextSecond()` in `test/frame.js` wartet auf die nächste Sekundengrenze der
-Uhr. **614 Stellen bleiben, zusammen 47.520 ms.**
-
-*Sie warten auf das Neuzeichnen eines Fensters, und jede braucht ihre eigene
-Bedingung — es gibt keinen Griff, der alle auf einmal umstellt.* **Ein Versuch
-ist gemessen und zurückgenommen worden:** `sysSection` auf `.sys-card` warten
-zu lassen kehrt zu früh zurück, weil die Karte früher dasteht als ihr Inhalt.
-
-**Was zu bauen wäre** — *Modul für Modul, mit einem vollen Lauf je Modul.*
-**Der Gewinn liegt bei höchstens 47,5 Sekunden**, verteilt über sieben Module
-— und er ist nicht der ganze Gewinn: die elf umgestellten Stellen haben im
-vollen Lauf 6,3 Sekunden gebracht, sichtbar wurde davon nichts, weil derselbe
-Lauf 3,3 Sekunden für die neue Kompression beim Serverstart zahlt
-(Änderungsprotokoll 0.35.0, Abschnitt 10).
-
-**Was es anfasst** — `test/ui_*.js`, `test/roundtrip.js`, `test/release_030.js`.
 
 ---
 
