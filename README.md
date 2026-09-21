@@ -1289,7 +1289,7 @@ sagt das Skript vorher ab und rührt nichts an.
 
 **Geschrieben mit [Claude Code](https://claude.com/claude-code), August bis
 September 2026.** Idee, Konzept und die Entscheidung, was gebaut wird, kommen
-vom Betreiber.
+von [Faruk Demirtas](https://github.com/fardem).
 
 ---
 

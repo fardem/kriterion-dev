@@ -66,9 +66,9 @@ fest.*
 ### `LICENSE`
 
 Der Text der MIT-Lizenz im Wortlaut, mit dem Urheberrechtsvermerk
-`Copyright (c) 2026 Faruk Demirtas`. **21 Zeilen, nichts daran ist eigener
-Text** — eine abgewandelte MIT-Lizenz ist keine MIT-Lizenz mehr, und kein
-Werkzeug erkennt sie.
+`Copyright (c) 2026 Faruk Demirtas (github.com/fardem)`. **21 Zeilen, nichts
+daran ist eigener Text** — eine abgewandelte MIT-Lizenz ist keine MIT-Lizenz
+mehr, und kein Werkzeug erkennt sie.
 
 ### `package.json`
 
@@ -100,7 +100,12 @@ Auskunft über libvips.
 **Drei Zeilen, vor der Lizenz.** *Entstehung und Lizenz sind zwei Sachen: die
 eine sagt, woher der Code kommt, die andere, was man damit darf.* Er nennt das
 Werkzeug, den Zeitraum und die Grenze: **Idee, Konzept und die Entscheidung,
-was gebaut wird, kommen vom Betreiber.**
+was gebaut wird, kommen von Faruk Demirtas.**
+
+> **DORT STAND ZUERST „vom Betreiber“, und das war mehrdeutig.** *Die README
+> duzt ihren Leser und nennt ihn den, der Kriterion betreibt — im selben Satz
+> war aber der Urheber gemeint. Jetzt steht der Name da, mit dem Account als
+> Adresse.*
 
 > **STATT EINER VERSIONSNUMMER STEHT EIN ZEITRAUM DA — Vorgabe des
 > Betreibers.** *Eine Nummer wäre für fast jeden Commit falsch: Claude Code
