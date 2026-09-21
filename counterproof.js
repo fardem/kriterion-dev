@@ -9614,6 +9614,48 @@ const REGRESSIONS = [
     replacement: "    const sitz = [\n      ['cookie-ms-anna-1', 1, '2026-08-20 08:00:00', '2026-08-24 07:30:00'],\n      ['cookie-ms-anna-2', 1, '2026-08-18 19:15:00', '2026-08-23 21:00:00'],\n      ['cookie-ms-carla-1', 2, '2026-08-19 09:00:00', '2026-08-24 06:00:00'],\n      ['cookie-ms-carla-2', 2, '2026-08-01 11:00:00', '2026-08-22 09:45:00']\n    ];\n    for (const [t, u, c, l] of sitz)\n      d.prepare('INSERT INTO sessions (token, user_id, created_at, last_seen) VALUES (?, ?, ?, ?)')\n        .run(t, u, c, l);",
     expected: 'Meine Sitzungen: nur die eigenen'
   },
+  /* ---- Die Lizenz ---- */
+  {
+    /* OHNE DIE ERSTE ZEILE IST NICHT ZU LESEN, WELCHE LIZENZ ES IST. */
+    nr: '1193', name: 'LICENSE nennt die Lizenz nicht mehr beim Namen',
+    file: 'LICENSE',
+    search: "MIT License",
+    replacement: "Lizenzbestimmungen",
+    expected: 'Die Lizenz geht mit hinaus'
+  },
+  {
+    /* DER HAFTUNGSAUSSCHLUSS IST DER TEIL, OHNE DEN MIT KEIN MIT MEHR IST. */
+    nr: '1194', name: 'Der Haftungsausschluss faellt aus der LICENSE',
+    file: 'LICENSE',
+    search: "THE SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR",
+    replacement: "THE SOFTWARE IS PROVIDED AS IS, EXPRESS OR",
+    expected: 'Die Lizenz geht mit hinaus'
+  },
+  {
+    /* EIN PAKET OHNE LIZENZFELD GILT IN JEDEM WERKZEUG ALS UNKLAR. */
+    nr: '1195', name: 'package.json traegt kein Lizenzfeld mehr',
+    file: 'package.json',
+    search: "  \"license\": \"MIT\",\n",
+    replacement: "",
+    expected: 'Die Lizenz geht mit hinaus'
+  },
+  {
+    /* OHNE DAS ABZEICHEN SIEHT MAN DIE LIZENZ ERST AM ENDE DER README. */
+    nr: '1196', name: 'Das Lizenzabzeichen faellt aus der README',
+    file: 'README.md',
+    search: "![Lizenz](https://img.shields.io/badge/Lizenz-MIT-informational)\n",
+    replacement: "",
+    expected: 'Die Lizenz geht mit hinaus'
+  },
+  {
+    /* DIE AUSKUNFT UEBER libvips IST DER EINZIGE PUNKT, AN DEM MIT NICHT DIE
+       GANZE ANTWORT IST. */
+    nr: '1197', name: 'Die README nennt die LGPL-Pakete nicht mehr',
+    file: 'README.md',
+    search: "**Die zwei LGPL-Pakete sind `@img/sharp-libvips-linux-x64` und\n`@img/sharp-libvips-linuxmusl-x64`**",
+    replacement: "**Die zwei LGPL-Pakete gehoeren zur Bildbibliothek**",
+    expected: 'Die Lizenz geht mit hinaus'
+  },
 ];
 
 /* ================= Spuren und Versatz ================= Der Versatz je

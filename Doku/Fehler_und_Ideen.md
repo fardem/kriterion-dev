@@ -154,6 +154,14 @@ am Punkt und nicht hier.**
 Entscheidung.** Was gebaut wird, entscheidet der Betreiber, und wohin es kommt,
 sagt der Fahrplan.
 
+> **VIER ZEILEN SIND AM 21. SEPTEMBER 2026 ENTSCHIEDEN WORDEN.** *Die
+> Strichstärke des Löschkreuzes ist **abgelehnt** und bleibt bei 1.8.* **Die
+> drei übrigen ruhen:** *„erst wenn etwas Negatives auffällt" — der
+> Trefferausschnitt, der Halt von 1600 Millisekunden und der Sprung ans
+> Seitenende in Chromium.* **Ruhen heißt: nicht suchen, nicht messen, nicht
+> bauen.** *Wer eines davon im Betrieb bemerkt, schreibt es als neuen Punkt
+> auf.*
+
 > **AM 21. SEPTEMBER 2026 SIND DREI PUNKTE FORTGEZOGEN.** *39, 40 und 41 tragen
 > jetzt die Nummern 0.39.0, 0.40.0 und 0.41.0 und stehen mit ihrer Ausarbeitung
 > im Fahrplan.* **Zwei weitere sind gebaut und deshalb hier weggefallen:** *27
@@ -165,10 +173,10 @@ sagt der Fahrplan.
 |---|---|---|---|---|
 | **42**, Fahrplan | Der Kommentaranteil von `public/style.css` liegt bei 40 Prozent — 1.215 von 3.029 Zeilen; offen ist, ob die gemessenen Zahlen in ein eigenes Papier wandern | niedrig | — | Entscheidung des Betreibers |
 | **20** | Nach einem Umbenennen holt die Oberfläche vier Antworten statt drei; die vierte ist die größte der Installation | niedrig | klein | liegen lassen |
-| Protokoll 0.38.2 | Der Trefferausschnitt zeigt bei einem Treffer im Ziel eines Links den Rohtext samt seiner Marken | niedrig | groß *(gemeinsamer Kern)* | liegen lassen |
-| Protokoll 0.38.2 | Die Strichstärke des Löschkreuzes bleibt 1.8, dieselbe wie am Stift und am Zitatzeichen | — | eine Zeile | Entscheidung des Betreibers |
-| Protokoll 0.38.3 | Der Halt nach einem Sprung ist eine Frist von 1600 Millisekunden und keine Messung | niedrig | mittel | beobachten |
-| Protokoll 0.38.3 | Der Sprung ans Seitenende ist in Chromium nicht nachgestellt worden | — | — | beobachten |
+| ~~Protokoll 0.38.2~~ | ~~Die Strichstärke des Löschkreuzes bleibt 1.8, dieselbe wie am Stift und am Zitatzeichen~~ | — | — | **ABGELEHNT am 21. September 2026** |
+| ~~Protokoll 0.38.2~~ | ~~Der Trefferausschnitt zeigt bei einem Treffer im Ziel eines Links den Rohtext samt seiner Marken~~ | — | — | **RUHT seit dem 21. September 2026** |
+| ~~Protokoll 0.38.3~~ | ~~Der Halt nach einem Sprung ist eine Frist von 1600 Millisekunden und keine Messung~~ | — | — | **RUHT seit dem 21. September 2026** |
+| ~~Protokoll 0.38.3~~ | ~~Der Sprung ans Seitenende ist in Chromium nicht nachgestellt worden~~ | — | — | **RUHT seit dem 21. September 2026** |
 | Teil II | Der angepinnte Block kann zur Wand werden | — | — | beobachten, nicht bauen |
 | Teil II | Der eine abgerissene Prüflauf von 0.9.1 | — | — | wer ihn wiedersieht, schreibt den Lauf vollständig mit |
 

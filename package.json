@@ -1,8 +1,9 @@
 {
   "name": "kriterion",
-  "version": "0.38.5",
+  "version": "0.38.6",
   "description": "Kriterion - selbstgehostetes Bewertungsarchiv mit verschluesselter Datenbank",
   "main": "server.js",
+  "license": "MIT",
   "scripts": {
     "start": "node server.js",
     "test": "node testbench.js"

@@ -30,6 +30,23 @@ ihre deutschen Abschnittsüberschriften bleiben.*
 
 *Hier wird mitgeschrieben, während gebaut wird.*
 
+## [0.38.6] - 2026-09-21
+
+*Die Lizenz.*
+
+Fingerprint `FINGERPRINT_0386` — davor `c4185d0a`.
+
+### Hinzugefügt
+
+- **Kriterion steht unter der MIT-Lizenz.** Der Text liegt als `LICENSE` im
+  Repository; ein Fork braucht keine Erlaubnis.
+- Die README hat einen Abschnitt „Lizenz" und ein drittes Abzeichen am Kopf.
+- Der Abschnitt sagt auch, was die Abhängigkeiten mitbringen — vor allem die
+  LGPL der Bildbibliothek libvips, die `sharp` für die Ableitungen braucht.
+- `package.json` trägt das Feld `license`.
+- Acht Prüfungen halten das fest, darunter eine, die keine Abhängigkeit unter
+  GPL oder AGPL durchlässt.
+
 ## [0.38.5] - 2026-09-21
 
 *Zwei Befunde des Betriebs, eine Zusage, zwei Wörter.*

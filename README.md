@@ -2,6 +2,7 @@
 
 ![Node](https://img.shields.io/badge/Node-22-informational)
 ![Docker](https://img.shields.io/badge/Docker-Compose-informational)
+![Lizenz](https://img.shields.io/badge/Lizenz-MIT-informational)
 
 **Ein selbstgehostetes Archiv für Dinge, die man sammelt und beurteilt.**
 Geräte, Materialien, Modelle, Prototypen, Bezugsquellen — alles, wovon man
@@ -60,6 +61,8 @@ Videos liegen darin und werden nie als Datei auf die Platte geschrieben.
 - [Den Schlüssel wechseln](#den-schlüssel-wechseln)
   - [Zwei Schlüssel im Umlauf](#zwei-schlüssel-im-umlauf)
   - [Was der Wechsel nicht ist](#was-der-wechsel-nicht-ist)
+- [Lizenz](#lizenz)
+  - [Die Lizenzen der Abhängigkeiten](#die-lizenzen-der-abhängigkeiten)
 
 ---
 
@@ -1278,3 +1281,30 @@ Schlüssel öffnet weiter, der neue wird abgewiesen. Geht dagegen das Journal
 verloren, ist alles verloren — **das** ist der Grund für die Sicherung davor.
 Das Journal wächst dabei auf die Größe der Datenbank; reicht der Platz nicht,
 sagt das Skript vorher ab und rührt nichts an.
+
+---
+
+## Lizenz
+
+**MIT.** Der Text steht in `LICENSE`.
+
+Das heißt: du darfst Kriterion verwenden, verändern, weitergeben und verkaufen,
+auch als Teil einer größeren Sache. **Eine Bedingung:** der Lizenztext und der
+Urheberrechtsvermerk gehen mit. Eine Garantie gibt es nicht, und eine Haftung
+übernimmt niemand.
+
+**Ein Fork braucht keine Erlaubnis.**
+
+### Die Lizenzen der Abhängigkeiten
+
+Gemessen an den 157 Paketen, die `npm install` anlegt: 124 MIT, 8 ISC,
+6 Apache-2.0, 4 BSD-3-Clause, 3 MIT-0, 2 BSD-2-Clause, 2 LGPL-3.0-or-later,
+der Rest CC0, 0BSD, BlueOak und Pakete mit einem Wahlrecht.
+
+**Die zwei LGPL-Pakete sind `@img/sharp-libvips-linux-x64` und
+`@img/sharp-libvips-linuxmusl-x64`** — die vorkompilierte libvips, die `sharp`
+für die Bildableitungen mitbringt. Die LGPL verlangt bei der **Weitergabe einer
+Binärdatei**, dass ihr Lizenztext mitgeht und die Bibliothek austauschbar
+bleibt. *Wer Kriterion aus diesem Repository baut, lädt `sharp` selbst über
+npm; wer ein fertiges Image weitergibt, gibt libvips mit weiter und hat diese
+Pflicht.*
