@@ -2993,8 +2993,10 @@ async function run() {
        der farbige Stift und der Abstand vor dem Loeschen. */
     /* UND 1672 WURDEN 1673: die Marke am Verweis auf einen geloeschten
        Kommentar bringt eine Regelzeile mit. */
-    check('Und es stehen genau 1673 Regelzeilen da — fuenfunddreissig mehr mit der Auszeichnung',
-      ssCode === 1673, `${ssCode} Zeilen`);
+    /* UND 1673 WURDEN 1674: die erste Spalte der Rechentabelle darf in der
+       schmalen Ansicht umbrechen. */
+    check('Und es stehen genau 1674 Regelzeilen da — fuenfunddreissig mehr mit der Auszeichnung',
+      ssCode === 1674, `${ssCode} Zeilen`);
     /* UND KEIN BLOCK IST WIEDER LANG GEWORDEN. Die Drei-Zeilen-Regel gilt
        auch fuer dieses Blatt; laenger sein darf allein, wer eine Tafel
        gemessener Werte traegt. Acht tun das. */

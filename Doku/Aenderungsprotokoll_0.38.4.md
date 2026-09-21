@@ -18,8 +18,13 @@ misst, einer zieht die Papiere nach. **Schema: ja** — drei Indexe kommen dazu.
 | Prüfungen | 7.201 | **7.227** |
 | Rückbauten | 1.104 | **1.115** |
 
-> **FINGERPRINT DIESER RUNDE: `0d3111e4`** — der Stand davor war
+> **FINGERPRINT DIESER RUNDE: `246372bd`** — der Stand davor war
 > `a91efceb`.
+
+> **HIER STAND `0d3111e4`, UND DIESE ZAHL GEHOERT ZU KEINEM COMMIT.** Sie ist
+> waehrend des Bauens an einem Zwischenstand gemessen worden. Nachgemessen an
+> `8cec0e8`, dem ersten Commit der Runde, und an `bacc93a`, ihrem Merge:
+> beide tragen `246372bd`. Berichtigt in 0.38.5.
 
 > **DIE ZAHL DER AUSLIEFERUNG IST ANDERS GEMESSEN ALS IN 0.38.3.** Dort stand
 > 271.199 für denselben Stand, der hier mit 271.822 in der Spalte „vorher"

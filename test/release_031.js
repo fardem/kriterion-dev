@@ -532,7 +532,7 @@ async function check0311() {
    457f4c3c4bb28ec1 / 7bc60ecadb371e0e · 3601c96b846df672 / 278c9992bbfe95e5 ·
    ca0e647191c4b45d / fa9051b4736f2e06 · daa9a66531bf3943 / 15359dca57efe311 ·
    fd377642f0130b3b / b58cc8084be7e688 · b6907e61f79ce725 / 82ff600c40200af5 */
-const DE_UNTOUCHED = { one: '015f17460eceaf7a', other: '7ccda413374a4079' };
+const DE_UNTOUCHED = { one: '4b0abbd60f65807b', other: '84dad7c0086755d1' };
 const DE_BEFORE_0312 = { one: '91b86c5affcba789', other: '07fc3ccdc8a27a03' };
 const DE_ORDERED_0312 = {
   'login.requestAccess': 'Zugang anfragen',
@@ -914,13 +914,13 @@ async function check0312() {
    9cfb555855459a0c / 98295846dd0ac5a4 · caa4b814e75f8263 / f224721465ac0d35 ·
    eec8c1717c54a12f / f874903b6b33781a · cad88cfda93ececc / e73468286c2f1405 ·
    68c54e6fc1a90c6d / 6ba9dddf3e06cb33 · cdff153c8c0c8545 / 7e902c8f506f3b35 */
-const EN_UNTOUCHED = { one: '1f666bca14988c58', other: '0255fb6b49b3599f' };
+const EN_UNTOUCHED = { one: 'a162f49132220b4f', other: '3ff874893a28fe31' };
 const TR_BEFORE_0313 = { one: '5fec71b10c0dfa3c', other: '18b07eda589b5120' };
 /* DIE FRUEHEREN TUERKISCHEN SUMMEN: bbaca227348609dc / 73d9f1ea0298d519 ·
    ab6bdf35499f7cf9 / ad34f68137acaa2b · eb1ffa65a4bddb95 / f137b990650a241e ·
    ac1fa21798b352b5 / e277fb3263e15feb · 10c6209ccd6c202e / 87be79f31098ad1c ·
    e1682c1e30d94faf / d62eb67d7277a51c */
-const TR_AFTER_0313 = { one: 'bb671551a2093a83', other: '7a83111338a3cac7' };
+const TR_AFTER_0313 = { one: '7d4e5fd082b2f9e1', other: 'bfcfc70232d3103d' };
 
 async function check0313() {
   const tgRead = (code) => JSON.parse(fs.readFileSync(

@@ -22,7 +22,7 @@ async function run() {
   // Die Zahl der Rueckbauten steht ausdruecklich da: eine Zahl in einem
   // Papier ist eine Behauptung, eine Zahl im Pruefstand ist ein Beleg. Wie
   // sie Runde fuer Runde gewachsen ist, steht in den Aenderungsprotokollen.
-  check(`Es sind genau 1116 Rueckbauten`, gpList.length === 1116, `${gpList.length}`);
+  check(`Es sind genau 1119 Rueckbauten`, gpList.length === 1119, `${gpList.length}`);
   const gpTwice = gpList.map(r => r.nr).filter((n, i, a) => a.indexOf(n) !== i);
   check('Und keine Nummer steht zweimal', gpTwice.length === 0, gpTwice.join(' '));
   /* JEDER GREIFT: der Suchtext kommt in seiner Datei GENAU EINMAL vor. */
@@ -408,16 +408,16 @@ async function run() {
       ['test/release_031.js', 440],
       ['test/roundtrip.js', 3269],
       ['test/selfcheck.js', 220],
-      ['test/source.js', 939],
+      ['test/source.js', 941],
       ['test/ui_entry.js', 619],
       ['test/ui_export.js', 453],
       ['test/ui_inventory.js', 241],
       ['test/ui_language.js', 292],
       ['test/ui_overview.js', 494],
-      ['test/ui_style.js', 585],
+      ['test/ui_style.js', 599],
       ['test/ui_system.js', 692],
       ['test/ui_translator.js', 104],
-      ['counterproof.js', 1597],
+      ['counterproof.js', 1604],
       ['server.js', 1549],
       ['auth.js', 293],
       ['db.js', 133],
@@ -430,9 +430,9 @@ async function run() {
       ['usertool.js', 23],
       ['twofactor.js', 34],
       ['keytool.js', 41],
-      ['public/app.js', 1967],
+      ['public/app.js', 1969],
       ['public/theme.js', 3],
-      ['public/style.css', 1217],
+      ['public/style.css', 1220],
     ];
     /* DIE AUSZEICHNUNG BRINGT 830 ZEILEN CODE UND IHREN KOMMENTAR;
        der Anteil bleibt unter einem Fuenftel. Die Zahlen darunter sind
@@ -442,7 +442,7 @@ async function run() {
        Routen und der Marke am geloeschten Verweis -- davor 16438 und 66056.
        Der groesste Teil davon steht im Pruefstand, nicht im ausgelieferten
        Code: die Zahlen der Runde sind nachgezogen. */
-    const COMMENT_TOTAL = { comment: 16562, code: 66437 };
+    const COMMENT_TOTAL = { comment: 16590, code: 66496 };
     check('Der Waechter sieht alle sechsunddreissig Dateien',
       crAll.each.length === 36 && COMMENT_ROWS.length === 36,
       `${crAll.each.length} gemessen, ${COMMENT_ROWS.length} genannt`);

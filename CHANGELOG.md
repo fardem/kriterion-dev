@@ -34,7 +34,10 @@ ihre deutschen Abschnittsüberschriften bleiben.*
 
 *Vier kleine Befunde, drei Indexe und ein Verzeichnis der lesenden Routen.*
 
-Fingerprint `0d3111e4` — davor `a91efceb`.
+Fingerprint `246372bd` — davor `a91efceb`.
+
+*Hier stand `0d3111e4`; diese Zahl gehört zu keinem Commit, sie ist an einem
+Zwischenstand gemessen worden. Berichtigt in 0.38.5.*
 
 > **Drei Indexe kommen beim nächsten Start von selbst dazu.** Nichts ist zu
 > tun; bei einer großen Datenbank dauert der erste Start etwas länger, weil

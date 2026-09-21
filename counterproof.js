@@ -2569,8 +2569,8 @@ const REGRESSIONS = [
     /* DIE NULL STEHT WIEDER DA. */
     nr: '316', name: 'Die Tafel schreibt auch die Null hin',
     file: 'public/app.js',
-    search: "          b ? esc(`${b} ${vRating(b)}`) : ''].filter(Boolean).join(' · ');",
-    replacement: "          esc(`${b} ${vRating(b)}`)].join(' · ');",
+    search: "           b ? countMark('rating', '★', b) : ''].filter(Boolean).join(' · '),",
+    replacement: "           countMark('rating', '★', b)].join(' · '),",
     expected: 'Die Glocke in der Kopfzeile'
   },
   {
@@ -9504,15 +9504,43 @@ const REGRESSIONS = [
     replacement: "  ['/api/stats',                   'angemeldet',",
     expected: 'Der Waechter ueber den Quelltext'
   },
+  /* ---- Die Zaehlzeile der Meldungstafel ---- */
+  {
+    /* DAS WORT STEHT WIEDER IN DER ZEILE: sie wird damit von 25 auf
+       36 Zeichen lang und nimmt dem Titel bei 360 Pixeln knapp 70 Pixel. */
+    nr: '1183', name: 'Die Bewertungen stehen wieder als Wort in der Zeile',
+    file: 'public/app.js',
+    search: "           b ? countMark('rating', '\u2605', b) : ''].filter(Boolean).join(' \u00b7 '),\n    text: [comments, markedWords, b ? `${b} ${vRating(b)}` : ''].filter(Boolean).join(' \u00b7 ')",
+    replacement: "           b ? esc(`${b} ${vRating(b)}`) : ''].filter(Boolean).join(' \u00b7 '),\n    text: [comments, markedWords, b ? `${b} ${vRating(b)}` : ''].filter(Boolean).join(' \u00b7 ')",
+    expected: 'Die Glocke in der Kopfzeile'
+  },
+  {
+    /* UND OHNE DEN UEBERFAHRTEXT IST DER LANGE WORTLAUT GANZ WEG. */
+    nr: '1184', name: 'Der Ueberfahrtext der Zaehlzeile faellt weg',
+    file: 'public/app.js',
+    search: "      a.querySelector('.mcount').title = counts.text;",
+    replacement: "",
+    expected: 'Die Glocke in der Kopfzeile'
+  },
+  /* ---- Die Rechentabelle in der schmalen Ansicht ---- */
+  {
+    /* OHNE DAS UMBRUCHRECHT MISST DIE ERSTE SPALTE IHREN LAENGSTEN NAMEN:
+       bei 360 Pixeln braucht die Tabelle 378 statt 328 und rollt. */
+    nr: '1182', name: 'Die erste Spalte der Rechentabelle darf nicht mehr umbrechen',
+    file: 'public/style.css',
+    search: "  .calc-row > span:first-child { min-width: 0; overflow-wrap: anywhere; }",
+    replacement: "",
+    expected: 'Die Rechnung hinter der Kopfzahl'
+  },
   /* ---- Die Zeitstempel der Sitzungen ---- */
   {
-    /* Ein festes Datum entfernt sich Tag fuer Tag vom Fenster der dreissig
-       Tage: die Sitzung faellt heraus, und die Gruppe wird ohne eine
-       Aenderung am Code rot. */
-    nr: '1181', name: 'Eine Sitzung der Prueflage traegt wieder ein festes Datum',
+    /* DIE VIER FESTEN ZEITSTEMPEL VON FRUEHER, WORTGLEICH: sie entfernen sich
+       Tag fuer Tag vom Fenster der dreissig Tage, und die Sitzungen fallen
+       heraus, ohne dass am Code etwas geaendert waere. */
+    nr: '1181', name: 'Die Sitzungen der Prueflage tragen wieder feste Zeitstempel',
     file: 'test/roundtrip.js',
-    search: "      ['cookie-ms-carla-2', 2, '-16 days', '-4 days']",
-    replacement: "      ['cookie-ms-carla-2', 2, '2026-08-01 11:00:00', '2026-08-22 09:45:00']",
+    search: "    const sitz = [\n      ['cookie-ms-anna-1', 1, '-10 days', '-1 days'],\n      ['cookie-ms-anna-2', 1, '-12 days', '-2 days'],\n      ['cookie-ms-carla-1', 2, '-14 days', '-3 days'],\n      ['cookie-ms-carla-2', 2, '-16 days', '-4 days']\n    ];\n    for (const [t, u, c, l] of sitz)\n      d.prepare(`INSERT INTO sessions (token, user_id, created_at, last_seen)\n                 VALUES (?, ?, datetime('now', ?), datetime('now', ?))`)\n        .run(t, u, c, l);",
+    replacement: "    const sitz = [\n      ['cookie-ms-anna-1', 1, '2026-08-20 08:00:00', '2026-08-24 07:30:00'],\n      ['cookie-ms-anna-2', 1, '2026-08-18 19:15:00', '2026-08-23 21:00:00'],\n      ['cookie-ms-carla-1', 2, '2026-08-19 09:00:00', '2026-08-24 06:00:00'],\n      ['cookie-ms-carla-2', 2, '2026-08-01 11:00:00', '2026-08-22 09:45:00']\n    ];\n    for (const [t, u, c, l] of sitz)\n      d.prepare('INSERT INTO sessions (token, user_id, created_at, last_seen) VALUES (?, ?, ?, ?)')\n        .run(t, u, c, l);",
     expected: 'Meine Sitzungen: nur die eigenen'
   },
 ];
