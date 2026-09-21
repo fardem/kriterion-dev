@@ -407,7 +407,7 @@ async function run() {
       ['test/release_031.js', 440],
       ['test/roundtrip.js', 3277],
       ['test/selfcheck.js', 239],
-      ['test/source.js', 945],
+      ['test/source.js', 946],
       ['test/ui_entry.js', 619],
       ['test/ui_export.js', 453],
       ['test/ui_inventory.js', 241],
@@ -441,7 +441,7 @@ async function run() {
        Routen und der Marke am geloeschten Verweis -- davor 16438 und 66056.
        Der groesste Teil davon steht im Pruefstand, nicht im ausgelieferten
        Code: die Zahlen der Runde sind nachgezogen. */
-    const COMMENT_TOTAL = { comment: 16674, code: 66743 };
+    const COMMENT_TOTAL = { comment: 16675, code: 66744 };
     check('Der Waechter sieht alle sechsunddreissig Dateien',
       crAll.each.length === 36 && COMMENT_ROWS.length === 36,
       `${crAll.each.length} gemessen, ${COMMENT_ROWS.length} genannt`);

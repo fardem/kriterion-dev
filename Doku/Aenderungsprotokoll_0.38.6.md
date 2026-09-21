@@ -130,7 +130,14 @@ Bestand.
 |---|---:|---:|
 | Prüfungen | 7.247 | **7.255** |
 | Rückbauten | 1.127 | **1.132** |
-| Dateien im Repository, die mit hinausgehen | 24 | **25** |
+| Dateien, die `tools/publish.js` hinausgibt | 69 | **70** |
+| Dateien, über die die drei Wächter lesen | 23 · 24 · 24 | **24 · 25 · 25** |
+
+**`LICENSE` steht in allen drei Wächterlisten** — „Keine Versionsnummer als
+Herkunft", „Kein Verweis auf Doku/ geht mit hinaus" und „Kein Papierverweis
+geht mit hinaus". *Der MIT-Text trägt nichts davon, und genau deshalb gehört
+eine Latte darüber: eine ausgelieferte Datei ohne Wächter ist die Lücke, durch
+die es später hineinkommt.*
 
 ---
 
