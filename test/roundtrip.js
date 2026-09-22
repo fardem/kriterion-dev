@@ -15239,13 +15239,6 @@ async function sendImport(object, mode, withoutShare = false) {
     ['rating_criteria',    'language',        null],
     ['comments',           'due_date',        null]
   ];
-  /* UND DIE SECHS TABELLEN, DIE 0.24.1 UMBENANNT HAT. */
-  const uhTables = [
-    ['anfragen', 'requests'], ['sicherheitsprotokoll', 'security_log'],
-    ['papierkorb', 'trash'], ['papierkorb_bytes', 'trash_bytes'],
-    ['zweifaktor', 'two_factor'], ['zweifaktor_codes', 'two_factor_codes']
-  ];
-
   const uhDir = fs.mkdtempSync(path.join(os.tmpdir(), 'kriterion-hinweis-'));
   const uhFreshDir = fs.mkdtempSync(path.join(os.tmpdir(), 'kriterion-hinweis-frisch-'));
   /* GEFAHREN UND NICHT GELESEN: die Instanz wird wirklich hochgezogen, wie in
@@ -15303,12 +15296,6 @@ async function sendImport(object, mode, withoutShare = false) {
     const d = open(path.join(directory, 'katalog.sqlite'));
     d.prepare("INSERT INTO users (username, password_hash, role, status) VALUES (?,?,?,?)")
       .run('hinweisanna', 'x', 'owner', 'active');
-    d.close();
-  };
-  const uhRenameTable = (directory, fresh, old) => {
-    const d = open(path.join(directory, 'katalog.sqlite'));
-    d.pragma('foreign_keys = OFF');
-    d.exec(`ALTER TABLE ${fresh} RENAME TO ${old}`);
     d.close();
   };
 
@@ -15388,8 +15375,9 @@ async function sendImport(object, mode, withoutShare = false) {
   const uhOut = uhRun(uhDir).out;
   check('Der Kasten sagt, dass die Datenbank unvollstaendig ist',
     /this database is incomplete/i.test(uhOut), JSON.stringify(uhOut.trim().slice(0, 200)));
-  check('Und wo die Fassung steht, ueber die zuerst zu gehen waere',
-    /README names it/.test(uhOut), JSON.stringify(uhOut.trim().slice(0, 400)));
+  check('Und was zu tun ist: die Sicherung zurueckspielen',
+    /Restore the data directory from a backup/.test(uhOut),
+    JSON.stringify(uhOut.trim().slice(0, 400)));
   check('Und dass die Instanz trotzdem startet',
     /starts anyway/i.test(uhOut), JSON.stringify(uhOut.trim().slice(0, 400)));
   /* UND ER STEHT IN DERSELBEN FORM WIE DER SCHLUESSELHINWEIS AUS keys.js. */
@@ -15399,25 +15387,6 @@ async function sendImport(object, mode, withoutShare = false) {
      Ausnahme. */
   check('Und nirgends ein Stapelabzug',
     !/\bat .*\.js:\d+/.test(uhOut), JSON.stringify(uhOut.trim().slice(0, 300)));
-
-  /* DIE ZWEITE HAELFTE DER PROBE: EINE TABELLE UNTER IHREM ALTEN NAMEN. */
-  const uhTableMissed = [];
-  for (const [old, fresh] of uhTables) {
-    fs.rmSync(uhDir, { recursive: true, force: true });
-    fs.mkdirSync(uhDir, { recursive: true });
-    uhRun(uhDir);
-    uhGrow(uhDir);
-    uhRenameTable(uhDir, fresh, old);
-    const run2 = uhRun(uhDir);
-    if (!run2.ok) {
-      uhTableMissed.push(`${old}: Start abgebrochen (${run2.out.trim().split('\n').pop()})`);
-      continue;
-    }
-    if (!run2.out.includes(old) || !run2.out.includes(fresh))
-      uhTableMissed.push(`${old} → ${fresh} nicht benannt`);
-  }
-  check('Eine Tabelle unter ihrem alten Namen wird mit BEIDEN Namen benannt',
-    uhTableMissed.length === 0, uhTableMissed.join(' · ') || 'alle sechs benannt');
 
   /* UND DER WAECHTER FAENGT WIRKLICH ETWAS. */
   const { incompleteDatabase: uhProbe } = require('./db');
@@ -17592,6 +17561,51 @@ async function sendImport(object, mode, withoutShare = false) {
     check('Und beim naechsten Start von selbst wieder da', !!d.prepare(
       "SELECT name FROM sqlite_master WHERE type = 'index' AND name = 'idx_sessions_user'").get());
     d.close();
+  }
+
+  /* ---------------------------------------------------------------- */
+  group('Die Spaltenfolge: data steht am Ende');
+
+  {
+    /* SQLite liest eine Zeile von vorn. Was hinter einem grossen BLOB steht,
+       ist nur ueber dessen Overflow-Kette erreichbar. */
+    /* GELESEN WIRD DER SCHEMA-STRING AUS db.js und nicht eine Abschrift. Was
+       nicht mit einem Spaltennamen anfaengt, ist eine Bedingung der Tabelle:
+       UNIQUE(trash_id, part) steht hinter data und ist keine Spalte. */
+    const sfSource = fs.readFileSync(path.join(__dirname, 'db.js'), 'utf8');
+    const SF_CONSTRAINT = /^(UNIQUE|PRIMARY|FOREIGN|CHECK|CONSTRAINT)\b/i;
+    const sfColumns = (table) => {
+      const head = `CREATE TABLE IF NOT EXISTS ${table} (`;
+      const at = sfSource.indexOf(head);
+      if (at < 0) return [];
+      const end = sfSource.indexOf('\n);', at);
+      if (end < 0) return [];
+      return sfSource.slice(at + head.length, end).split('\n')
+        .map(z => z.trim())
+        .filter(z => z && !z.startsWith('--') && !SF_CONSTRAINT.test(z))
+        .map(z => z.split(/[\s(]/)[0]);
+    };
+    const SF_TABLES = ['photos', 'comment_images', 'attachments'];
+    const sfRead = [...SF_TABLES, 'trash_bytes'].map(t => [t, sfColumns(t)]);
+    /* ERST DER GEGENSTAND: eine leere Liste haette data nicht am Ende und
+       machte die Verneinung darunter trotzdem wahr. */
+    check('Die vier BLOB-Tabellen stehen im Schema und tragen ihre Spalten',
+      sfRead.length === 4 && sfRead.every(([, c]) => c.length >= 4),
+      sfRead.map(([t, c]) => `${t}: ${c.length}`).join(', '));
+    const sfNotLast = sfRead.filter(([, c]) => c[c.length - 1] !== 'data');
+    check('In photos, comment_images und attachments ist data die letzte Spalte',
+      sfRead.slice(0, 3).every(([, c]) => c[c.length - 1] === 'data'),
+      sfNotLast.map(([t, c]) => `${t} endet auf ${c[c.length - 1]}`).join(' \u00b7 '));
+    check('Und in trash_bytes ebenso',
+      sfColumns('trash_bytes').pop() === 'data', sfColumns('trash_bytes').join(', '));
+    /* UND DIE ANGELEGTE DATENBANK HAELT ES AUCH. */
+    const d = open(path.join(hDir2, 'katalog.sqlite'));
+    const sfLast = [...SF_TABLES, 'trash_bytes'].map(t =>
+      [t, d.prepare(`PRAGMA table_info("${t}")`).all().map(c => c.name).pop()]);
+    d.close();
+    check('Und eine von der DDL angelegte Datenbank traegt dieselbe Folge',
+      sfLast.every(([, n]) => n === 'data'),
+      sfLast.map(([t, n]) => `${t} endet auf ${n}`).join(' \u00b7 '));
   }
 
   /* ---------------------------------------------------------------- */

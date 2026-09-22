@@ -8325,8 +8325,8 @@ const REGRESSIONS = [
     /* ER ERSCHEINT, ABER OHNE DIE NAMEN. */
     nr: '1036', name: 'Der Kasten nennt die fehlende Spalte nicht mehr beim Namen',
     file: 'db.js',
-    search: "    : `    ${f.place.padEnd(22)} is missing` +",
-    replacement: "    : `    something is missing` +",
+    search: "    `    ${f.place.padEnd(22)} is missing` +",
+    replacement: "    `    something is missing` +",
     expected: 'Der Hinweis auf einen unvollstaendigen Bestand — 0.33.0'
   },
   {
@@ -8335,14 +8335,6 @@ const REGRESSIONS = [
     file: 'db.js',
     search: "  for (const [table, column, old] of REQUIRED_COLUMNS) {",
     replacement: "  for (const [table, column, old] of REQUIRED_COLUMNS.slice(0, 1)) {",
-    expected: 'Der Hinweis auf einen unvollstaendigen Bestand — 0.33.0'
-  },
-  {
-    /* UND SIE SIEHT DIE ALTEN TABELLENNAMEN NICHT MEHR. */
-    nr: '1038', name: 'Die Probe uebersieht eine Tabelle unter ihrem alten Namen',
-    file: 'db.js',
-    search: "  for (const [old, fresh] of LEGACY_TABLES)",
-    replacement: "  for (const [old, fresh] of [])",
     expected: 'Der Hinweis auf einen unvollstaendigen Bestand — 0.33.0'
   },
   {
@@ -9677,30 +9669,6 @@ const REGRESSIONS = [
     replacement: "  filename TEXT NOT NULL DEFAULT 'bild.jpg',\n  data BLOB NOT NULL,\n"
       + "  thumb BLOB,\n  sort_order INTEGER NOT NULL DEFAULT 0,\n"
       + "  created_at TEXT NOT NULL DEFAULT (datetime('now'))\n);",
-    expected: 'Die Spaltenfolge: data steht am Ende'
-  },
-  {
-    /* OHNE DIESE ZEILE STEHT DIE TABELLE DANACH OHNE IHRE INDEXE DA. */
-    nr: '1200', name: 'Das Werkzeug legt die Indexe nicht wieder an',
-    file: 'tools/reorder.js',
-    search: "  for (const b of belong) db.exec(b.sql);\n",
-    replacement: "",
-    expected: 'Die Spaltenfolge: data steht am Ende'
-  },
-  {
-    /* OHNE DIE PROBE WIRD EIN VERWAISTER VERWEIS FESTGESCHRIEBEN. */
-    nr: '1201', name: 'Das Werkzeug laesst foreign_key_check weg',
-    file: 'tools/reorder.js',
-    search: "  const broken = db.pragma('foreign_key_check');",
-    replacement: "  const broken = [];",
-    expected: 'Die Spaltenfolge: data steht am Ende'
-  },
-  {
-    /* OHNE DIE ABSAGE LAEUFT DAS UMSCHICHTEN AUF EINEN VOLLEN TRAEGER. */
-    nr: '1202', name: 'Die Pruefung auf freien Platz faellt weg',
-    file: 'tools/reorder.js',
-    search: "  if (l.enough === false) {\n    console.error(RED('Zu wenig Platz auf dem Datentr\u00e4ger.'));",
-    replacement: "  if (false) {\n    console.error(RED('Zu wenig Platz auf dem Datentr\u00e4ger.'));",
     expected: 'Die Spaltenfolge: data steht am Ende'
   },
 ];

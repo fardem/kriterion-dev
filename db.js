@@ -488,16 +488,6 @@ db.exec(SCHEMA);
 /* Die Probe auf einen unvollstaendigen Bestand -- sie meldet, sie sperrt
    nicht. Gefragt wird der Bestand und kein Merker. Sie steht HINTER
    db.exec(SCHEMA): was danach fehlt, ist eine Spalte und keine Tabelle. */
-
-/* Die sechs Tabellen, die frueher deutsch hiessen. Steht eine noch unter dem
-   alten Namen da, hat die DDL daneben eine leere neue angelegt und die Zeilen
-   liegen unsichtbar im alten Namen. */
-const LEGACY_TABLES = [
-  ['anfragen', 'requests'], ['sicherheitsprotokoll', 'security_log'],
-  ['papierkorb', 'trash'], ['papierkorb_bytes', 'trash_bytes'],
-  ['zweifaktor', 'two_factor'], ['zweifaktor_codes', 'two_factor_codes']
-];
-
 /* JEDE SPALTE EINZELN, mit drei Angaben: Tabelle, Spalte und der Name, unter
    dem sie frueher dalag (oder null). DER ALTE NAME IST DIE GENAUERE DIAGNOSE:
    steht er da, fehlt nicht die Spalte, sondern die Umbenennung. */
@@ -526,9 +516,6 @@ function incompleteDatabase() {
   const tables = new Set(db.prepare("SELECT name FROM sqlite_master WHERE type = 'table'")
     .all().map(z => z.name));
   const findings = [];
-  for (const [old, fresh] of LEGACY_TABLES)
-    if (tables.has(old))
-      findings.push({ place: old, fresh, kind: 'table' });
   for (const [table, column, old] of REQUIRED_COLUMNS) {
     /* FEHLT DIE TABELLE, FEHLT KEINE SPALTE. Die DDL legt jede an, die zum
        Schema gehoert; was hier trotzdem fehlte, gehoert nicht dazu, und eine
@@ -536,7 +523,7 @@ function incompleteDatabase() {
     if (!tables.has(table)) continue;
     const columns = db.prepare(`PRAGMA table_info(${table})`).all().map(c => c.name);
     if (columns.includes(column)) continue;
-    findings.push({ place: `${table}.${column}`, kind: 'column',
+    findings.push({ place: `${table}.${column}`,
                     old: old ? `${table}.${old}` : null,
                     oldThere: Boolean(old) && columns.includes(old) });
   }
@@ -551,38 +538,34 @@ function warnIncompleteDatabase(findings) {
   /* DER ALTE NAME STEHT AUCH DANN DA, WENN ER NICHT MEHR LIEGT: „fehlt, und
      unter dem alten Namen liegt sie auch nicht" ist die schaerfere Auskunft
      als „fehlt". */
-  const rows = findings.map(f => f.kind === 'table'
-    ? `    ${f.place.padEnd(22)} was renamed to ${f.fresh};\n` +
-      `    ${''.padEnd(22)} its rows are invisible to this version`
-    : `    ${f.place.padEnd(22)} is missing` +
-      (f.old ? (f.oldThere ? `; still present as ${f.old}`
-                           : `, and not present as ${f.old} either`) : ''));
+  const rows = findings.map(f =>
+    `    ${f.place.padEnd(22)} is missing` +
+    (f.old ? (f.oldThere ? `; still present as ${f.old}`
+                         : `, and not present as ${f.old} either`) : ''));
   console.warn(
     '\n' +
     '  ------------------------------------------------------------------\n' +
-    '  WARNING: this database is incomplete. It is missing parts that\n' +
-    '  earlier versions added while starting up. Those upgrade steps have\n' +
-    '  been removed, so they never run again:\n' +
+    '  WARNING: this database is incomplete. These columns belong to the\n' +
+    '  schema and are not there:\n' +
     '\n' +
     rows.join('\n') + '\n' +
     '\n' +
-    '  To repair it, open this database once with the last version that\n' +
-    '  still carried the upgrade steps -- the README names it -- let it\n' +
-    '  start, shut it down, and come back here.\n' +
+    '  Restore the data directory from a backup. Nothing here adds a\n' +
+    '  missing column: this version creates the schema in full and never\n' +
+    '  changes an existing table.\n' +
     '\n' +
     '  THIS INSTANCE STARTS ANYWAY. Nothing is blocked and nothing is\n' +
-    '  changed; but every page that reads one of the parts above fails\n' +
-    '  until the database has been through that version.\n' +
+    '  changed; but every page that reads one of the columns above fails\n' +
+    '  until the database is complete.\n' +
     '  ------------------------------------------------------------------\n'
   );
 }
 warnIncompleteDatabase(incompleteDatabase());
 
-/* ERST BEIM ERSTEN RUF VORBEREITET, und das ist keine Sparsamkeit: ueber
-   einer unvollstaendigen Datenbank wirft db.prepare, und der Kasten darueber
-   saehe niemand -- die Instanz kaeme gar nicht hoch. Der spaete Ruf laesst
-   sie starten und die LESENDE Seite scheitern; genau das sagt der Kasten zu.
-   NICHT die Spaltenliste von der Spalte abhaengig machen: die Seite liefe
+/* ERST BEIM ERSTEN RUF VORBEREITET: ueber einer unvollstaendigen Datenbank
+   wirft db.prepare, und die Instanz kaeme gar nicht hoch. Der spaete Ruf
+   laesst sie starten und die LESENDE Seite scheitern. */
+/* NICHT die Spaltenliste von der Spalte abhaengig machen: die Seite liefe
    dann mit fehlenden Daten weiter und behauptete Vollstaendigkeit. */
 const lateStatement = (sql) => {
   let ready = null;
@@ -822,7 +805,4 @@ module.exports = { db, DATA_DIR, DB_FILE, keyFromEnv: key.fromEnv, keyHex: key.h
                    /* Was eine unvollstaendige Datenbank vermissen laesst. Geht hinaus, damit
                       der Pruefstand die Probe an einer gestellten Lage fragen
                       kann. */
-                   incompleteDatabase, lateStatement, lateGroup,
-                   /* Die DDL. Geht hinaus, damit tools/reorder.js die neue
-                      Tabelle aus derselben Vorlage anlegt wie der Start. */
-                   SCHEMA };
+                   incompleteDatabase, lateStatement, lateGroup };

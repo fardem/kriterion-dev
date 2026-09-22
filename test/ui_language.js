@@ -407,9 +407,7 @@ async function run() {
       /* 2 · DER BILDSCHIRM DES WIRTS -- UND DIESE SORTE IST MIT 0.33.2 FAST
          LEER GEWORDEN. */
       'Eigener Server',
-      /* 3 · ALTE DEUTSCHE NAMEN AUS DER .env. */
-      'SICHERUNG_DIR', 'OEFFENTLICHE_ADRESSE',
-      /* 4 · GESPEICHERTE WERTE UND BEZEICHNER. */
+      /* 3 · GESPEICHERTE WERTE UND BEZEICHNER. */
       'Ohne Titel', 'Model Bewertungen', 'bild.jpg', 'bild-', 'foto-', 'standbild',
       '-teil-', '-von-', 'aus', 'eigen', 'unbekannt', 'wieder', 'wirt', 'note',
       'beschreibung', 'bewertung', 'datei', 'dateien', 'einstellung',
@@ -454,7 +452,7 @@ async function run() {
        Saetze -- dieselbe Ausnahme, die REST_GERMAN_NAMED weiter oben fuer die
        zwei Serverbefehle macht: `passwort` steht in `node usertool.js
        passwort <name>`, dem Weg, den die Zeile ueber AUTH_RESET nennt. */
-    const CONSOLE_COMMAND_WORDS = ['passwort', 'rand'];
+    const CONSOLE_COMMAND_WORDS = ['rand'];
     /* GELESEN WIRD DER GANZE RUF mit gezaehlten Klammern -- eine Meldung kann
        ueber drei Zeilen gehen, und ein Schnitt am Zeilenende liesse ihre
        Fortsetzung stehen. */
@@ -520,7 +518,7 @@ async function run() {
     const consoleRaw = CONSOLE_FILES
       .map(f => consoleCalls(fs.readFileSync(path.join(__dirname, f), 'utf8'))
         .map(c => c.text).join('\n')).join('\n');
-    check('Und beide Befehlswoerter stehen wirklich in einer Konsolenansage',
+    check('Und das Befehlswort steht wirklich in einer Konsolenansage',
       CONSOLE_COMMAND_WORDS.every(w => new RegExp(`\\b${w}\\b`).test(consoleRaw)),
       CONSOLE_COMMAND_WORDS.filter(w => !new RegExp(`\\b${w}\\b`).test(consoleRaw)).join(' · '));
 

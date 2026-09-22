@@ -177,12 +177,12 @@ die sie getroffen hat.*
 | Abkürzungen `BA <Zahl>`, `(F<Zahl>)`, `Punkt <Zahl>` | 94 | **0** |
 | Verweise über den Pfad `Doku/` | 0 | **0** |
 
-**DIE DREIZEHN, DIE BLEIBEN, SIND KEINE HERKUNFTSANGABEN:** das Datum
-`1.1.1970` in `twofactor.js`, zwei SVG-Pfaddaten in `public/app.js`:255
-*(`-1.8.3l` und `1.8.3H9`)*, die Adresse `keepachangelog.com/de/1.1.0/` und das
-Beispieldatum `14.03.2026` in der Anleitung, die fünf Nummern, die dort eine
-Handlung bestimmen, und die zwei Kommentare, die der Prüfstand im Wortlaut
-verlangt — `0.19.2` in `public/app.js`, `0.12.3` in `public/style.css`.
+**WAS BLEIBT, SIND KEINE HERKUNFTSANGABEN:** das Datum `1.1.1970` in
+`twofactor.js`, zwei SVG-Pfaddaten in `public/app.js`:255 *(`-1.8.3l` und
+`1.8.3H9`)*, die Adresse `keepachangelog.com/de/1.1.0/` und das Beispieldatum
+`14.03.2026` in der Anleitung, und die zwei Kommentare, die der Prüfstand im
+Wortlaut verlangt — `0.19.2` in `public/app.js`, `0.12.3` in
+`public/style.css`.
 
 **Drei Wächter halten es fest:** „Keine Versionsnummer als Herkunft" mit einer
 Latte je Datei über dreiundzwanzig Dateien, „Kein Verweis auf Doku/ geht mit
@@ -191,19 +191,18 @@ hinaus"** — über alle vierundzwanzig ausgelieferten Dateien und fünfzehn
 Verweisformen, den rohen Text lesend, damit er die SQL-Kommentare im
 `SCHEMA`-String von `db.js` sieht.
 
-> **DIE FÜNF STELLEN, AN DENEN DIE REGEL ETWAS GEKOSTET HAT, SIND GEBAUT.**
+> **DIE STELLEN, AN DENEN DIE REGEL ETWAS GEKOSTET HAT, SIND GEBAUT.**
 > `REQUIRED_COLUMNS` in `db.js` nennt je fehlender Spalte den Namen, unter dem
 > sie früher dalag, und nicht mehr die Fassung. `LAST_MIGRATING_VERSION` ist
-> weggefallen, das `since` der `LEGACY_TABLES` ebenso, der englische Warnkasten
-> verweist auf die README, und `auth.js`:430 sagt, dass `AUTH_RESET` nicht mehr
-> gelesen wird, statt seit wann.
+> weggefallen, und der englische Warnkasten verweist auf die Sicherung statt
+> auf eine ältere Fassung.
 
-> **UND SECHS NUMMERN IN DER ANLEITUNG MÜSSEN BLEIBEN.**
-> `test/source.js`:915–923 verlangt, dass `0.33.0`, `0.32.1` und `0.8.0` in
-> `README.md` und `manual-de.md` stehen — *sie bestimmen eine Handlung: den
-> Zwischenschritt beim Umzug einer alten Datenbank und die älteste übernommene
-> Fassung.* **Eine Nummer, die eine Handlung bestimmt, ist keine
-> Herkunftsangabe.** *Zwei weitere verlangt der Prüfstand im Kommentar:*
+> **IN DER ANLEITUNG STEHT KEINE VERSIONSNUMMER MEHR.** Bis 0.39.1 standen
+> sechs da — `0.33.0`, `0.32.1` und `0.8.0` in `README.md` und `manual-de.md`.
+> *Sie bestimmten eine Handlung an einem Bestand aus einer Fassung, die es
+> öffentlich nie gegeben hat, und sind mit ihr weggefallen.* Der Wächter in
+> `test/source.js` hat sich dabei umgekehrt: er verlangte sie, jetzt verbietet
+> er jede. *Zwei Nummern verlangt der Prüfstand weiterhin im Kommentar:*
 > `0.19.2` in `public/app.js`, `0.12.3` in `public/style.css`.
 
 ## 3. Ablauf

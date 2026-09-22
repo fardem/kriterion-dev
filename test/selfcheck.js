@@ -22,7 +22,7 @@ async function run() {
   // Die Zahl der Rueckbauten steht ausdruecklich da: eine Zahl in einem
   // Papier ist eine Behauptung, eine Zahl im Pruefstand ist ein Beleg. Wie
   // sie Runde fuer Runde gewachsen ist, steht in den Aenderungsprotokollen.
-  check(`Es sind genau 1137 Rueckbauten`, gpList.length === 1137, `${gpList.length}`);
+  check(`Es sind genau 1133 Rueckbauten`, gpList.length === 1133, `${gpList.length}`);
   const gpTwice = gpList.map(r => r.nr).filter((n, i, a) => a.indexOf(n) !== i);
   check('Und keine Nummer steht zweimal', gpTwice.length === 0, gpTwice.join(' '));
   /* JEDER GREIFT: der Suchtext kommt in seiner Datei GENAU EINMAL vor. */
@@ -45,9 +45,9 @@ async function run() {
   }
   /* UND DIE ZAHL DER GELESENEN DATEIEN STEHT DA: sie ist der Beleg, dass die
      Schleife wirklich nur einmal je Datei liest. */
-  // Einundvierzig, seit drei Rueckbauten tools/reorder.js anfassen.
-  check('Der Waechter liest hoechstens einundvierzig Dateien',
-    gpText.size <= 41, `${gpText.size} Dateien fuer ${gpList.length} Rueckbauten`);
+  // Vierzig, seit Rueckbauten auch LICENSE und package.json anfassen.
+  check('Der Waechter liest hoechstens vierzig Dateien',
+    gpText.size <= 40, `${gpText.size} Dateien fuer ${gpList.length} Rueckbauten`);
   check('Jeder Suchtext kommt in seiner Datei genau einmal vor',
     gpFail.length === 0, gpFail.join(' · '));
   // Ein Ersatz, der dem Suchtext gleicht, baut nichts zurueck -- die Kopie
@@ -405,22 +405,21 @@ async function run() {
       ['test/release_029.js', 60],
       ['test/release_030.js', 254],
       ['test/release_031.js', 440],
-      ['test/reorder.js', 36],
-      ['test/roundtrip.js', 3277],
+      ['test/roundtrip.js', 3284],
       ['test/selfcheck.js', 241],
-      ['test/source.js', 946],
+      ['test/source.js', 949],
       ['test/ui_entry.js', 619],
       ['test/ui_export.js', 453],
       ['test/ui_inventory.js', 241],
-      ['test/ui_language.js', 292],
+      ['test/ui_language.js', 291],
       ['test/ui_overview.js', 494],
       ['test/ui_style.js', 599],
       ['test/ui_system.js', 692],
       ['test/ui_translator.js', 104],
-      ['counterproof.js', 1632],
+      ['counterproof.js', 1628],
       ['server.js', 1553],
-      ['auth.js', 293],
-      ['db.js', 142],
+      ['auth.js', 288],
+      ['db.js', 136],
       ['mail.js', 43],
       ['keys.js', 40],
       ['attachments.js', 61],
@@ -442,9 +441,9 @@ async function run() {
        Routen und der Marke am geloeschten Verweis -- davor 16438 und 66056.
        Der groesste Teil davon steht im Pruefstand, nicht im ausgelieferten
        Code: die Zahlen der Runde sind nachgezogen. */
-    const COMMENT_TOTAL = { comment: 16721, code: 67110 };
-    check('Der Waechter sieht alle siebenunddreissig Dateien',
-      crAll.each.length === 37 && COMMENT_ROWS.length === 37,
+    const COMMENT_TOTAL = { comment: 16679, code: 66732 };
+    check('Der Waechter sieht alle sechsunddreissig Dateien',
+      crAll.each.length === 36 && COMMENT_ROWS.length === 36,
       `${crAll.each.length} gemessen, ${COMMENT_ROWS.length} genannt`);
     const crWrong = [];
     for (let i = 0; i < COMMENT_ROWS.length; i++) {

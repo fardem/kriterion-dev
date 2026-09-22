@@ -67,7 +67,6 @@ const MODULE = [
   'firstlogin',
   'batchrun',
   'keychange',
-  'reorder',
   'release_029',
   'release_030',
   'release_031',

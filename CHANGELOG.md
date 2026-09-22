@@ -30,6 +30,46 @@ ihre deutschen Abschnittsüberschriften bleiben.*
 
 *Hier wird mitgeschrieben, während gebaut wird.*
 
+## [0.39.1] - 2026-09-22
+
+*Was für vergangene Prozesse gebaut wurde, geht heraus.*
+
+Fingerprint `9d48cbbc` — davor `2ba1c469`.
+
+> **WER EINEN DER VIER DEUTSCHEN NAMEN IN SEINER `.env` STEHEN HAT, ZIEHT SIE
+> VOR DEM EINSPIELEN NACH.** `HINTER_PROXY` heißt `BEHIND_PROXY`,
+> `OEFFENTLICHE_ADRESSE` heißt `PUBLIC_ADDRESS`, `SICHERUNG_DIR` heißt
+> `BACKUP_DIR` und `NEUER_SCHLUESSEL` heißt `NEW_KEY`. **Sie werden ab dieser
+> Version nicht mehr gelesen**, und die Einstellung fiele still auf ihren
+> Vorgabewert zurück — ein Reverse Proxy würde dann nicht mehr erkannt.
+>
+> **Sonst ist nichts zu tun.** Am Bestand ändert sich nichts.
+
+### Entfernt
+
+- **Fünf Werkzeuge unter `tools/`, zusammen 921 Zeilen.** `reorder.js` hat
+  seinen einen Lauf hinter sich; `rename.js`, `rename-test.js`, `gestalt.js`
+  und `scan-words.js` gehörten zu Umbenennungen, die abgeschlossen sind.
+- **Die vier deutschen Umgebungsnamen** werden nicht mehr gelesen.
+- **Die Warnungen zu `AUTH_RESET`, `AUTH_USER` und `AUTH_PASSWORD`** beim
+  Start. Die Werte waren schon vorher wirkungslos und sind es weiter.
+- **Die Behandlung von sechs Tabellen unter ihren alten deutschen Namen.**
+- Aus README, Handbuch und `.env.example` alles, was einen Weg über eine
+  frühere Version beschrieb. **In der Anleitung steht keine Versionsnummer
+  mehr.**
+
+### Behoben
+
+- **`.env.example` nannte `./schluessel.sh`.** Das Skript heißt `keytool.sh`.
+- **Das Handbuch nannte die Formatnummer 17, der Server trägt 18.** Die Zahl
+  war mit 0.38.0 gehoben und das Papier nicht nachgezogen worden; ein neuer
+  Wächter hält beide jetzt gegeneinander.
+
+### Geändert
+
+- Der Kasten über einer unvollständigen Datenbank verweist auf die Sicherung
+  statt auf eine ältere Version.
+
 ## [0.39.0] - 2026-09-22
 
 *Die Spaltenfolge: `data` ans Ende.*

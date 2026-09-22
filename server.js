@@ -5486,7 +5486,7 @@ app.delete('/api/trash/:id', ownerOnly, (req, res) => {
    sie gehoert in die Oberflaeche und nicht nur in die Dokumente: VACUUM INTO
    -- der SICHERUNGSWEG. */
 
-const BACKUP_DIR = String(auth.fromEnv('BACKUP_DIR', 'SICHERUNG_DIR') || '').trim();
+const BACKUP_DIR = String(auth.fromEnv('BACKUP_DIR') || '').trim();
 // Gemessen an einer verschluesselten Instanz: rund 10 ms je MB.
 const BACKUP_MS_PER_MB = 20;
 const BACKUP_PATTERN = /^kriterion-.+\.sqlite$/;

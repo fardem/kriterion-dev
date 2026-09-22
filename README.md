@@ -40,11 +40,9 @@ Videos liegen darin und werden nie als Datei auf die Platte geschrieben.
 - [Der Schlüssel — bitte einmal aufmerksam lesen](#der-schlüssel--bitte-einmal-aufmerksam-lesen)
 - [Eine neuere Version über eine bestehende einspielen](#eine-neuere-version-über-eine-bestehende-einspielen)
   - [Prüfen, ob wirklich die neue Version läuft](#prüfen-ob-wirklich-die-neue-version-läuft)
-  - [Die Spaltenfolge einer bestehenden Datenbank](#die-spaltenfolge-einer-bestehenden-datenbank)
 - [Fehlerbehebung](#fehlerbehebung)
   - [Wenn niemand mehr hereinkommt](#wenn-niemand-mehr-hereinkommt)
   - [Wenn eine Version die Datenbank anfasst](#wenn-eine-version-die-datenbank-anfasst)
-  - [Die alten Namen in der `.env`](#die-alten-namen-in-der-env)
 - [Verschlüsselung](#verschlüsselung)
 - [Anmeldung und Benutzer](#anmeldung-und-benutzer)
 - [Hinter einem Reverse Proxy](#hinter-einem-reverse-proxy)
@@ -344,11 +342,6 @@ auch nachdem der Wert in die `.env` umgezogen ist. Dagegen hilft nur ein
 > ÄNDERUNGEN.** Steht dort ein Kasten, ist etwas zu tun; steht dort keiner, ist
 > die Sicherung Empfehlung und nicht Pflicht.
 >
-> **WER VON EINER FASSUNG VOR 0.33.0 KOMMT, GEHT ZUERST ÜBER 0.32.1.** Bis
-> dahin rüstete der Start jede fehlende Spalte selbst nach; heute tut er es
-> nicht mehr. Der Weg ist: einmal mit 0.32.1 öffnen, hochkommen lassen, wieder
-> anhalten.
->
 > **Was der Start meldet, wenn eine Spalte fehlt, und was die Instanz dann
 > noch kann, steht unten unter „Wenn eine Version die Datenbank anfasst".**
 >
@@ -421,45 +414,6 @@ im `CHANGELOG.md`, verglichen wird mit dem Auge.
 noch die alte — ein hartes Neuladen (Strg+Umschalt+R) räumt den
 Zwischenspeicher weg.
 
-### Die Spaltenfolge einer bestehenden Datenbank
-
-**Das ist freiwillig. Wer nichts tut, verliert nichts** — die Instanz läuft
-weiter wie bisher.
-
-In `photos`, `comment_images` und `attachments` steht die Dateispalte `data`
-am Ende der Zeile. Eine Datenbank, die vor dieser Version angelegt wurde, führt
-sie weiter vorn; alles dahinter ist dann nur über die Overflow-Kette des Blobs
-erreichbar, und die Kachel der Übersicht liegt dahinter. **Gemessen an einer
-Prüflage von 500 Fotos: 0,91 ms je Kachel vorher, 0,01 ms nachher.**
-
-Umgeschichtet wird von Hand, mit angehaltener Instanz:
-
-```bash
-docker compose down
-docker compose run --rm kriterion node tools/reorder.js zeigen
-docker compose run --rm kriterion node tools/reorder.js umschichten
-docker compose up -d
-```
-
-`zeigen` ändert nichts. Es sagt je Tabelle, ob `data` schon am Ende steht, wie
-viele Zeilen und Bytes darin liegen, wie viel Platz frei ist und wie lange es
-dauern würde.
-
-**Drei Dinge gehören dazu:**
-
-- **Die Instanz muss stehen.** Hält ein anderer Prozess die Datei, bricht das
-  Werkzeug ab und ändert nichts.
-- **Vorher sichern.** Die Umschichtung läuft in einer Transaktion, und ein
-  Abbruch stellt den alten Stand her — das ist der Grund für die Sicherung,
-  nicht der Abbruch.
-- **Das Dreifache der Datenbankgröße muss frei sein.** Währenddessen steht die
-  Datei doppelt da, und das abschließende `VACUUM` legt noch einmal eine in
-  voller Größe an. Ist weniger da, bricht das Werkzeug ab und nennt die Zahl.
-
-**Danach ist die Datei nicht größer als vorher** — gemessen 231,7 MB vor und
-nach dem Lauf. Die Folge ändert die Anordnung in der Zeile, nicht die
-Datenmenge. Ein zweiter Aufruf erkennt den fertigen Stand und ändert nichts.
-
 ---
 
 ## Fehlerbehebung
@@ -513,31 +467,6 @@ Spalten liest, scheitert.
 **Ein Downgrade ist dann keine reine Dateikopie mehr** — deshalb die Sicherung
 davor. Eine ältere Fassung sieht zusätzliche Tabellen und Spalten gar nicht an;
 was darin steht, bleibt stehen, aber niemand zeigt es mehr.
-
-**Vorausgesetzt wird eine Datenbank aus Version 0.8.0 oder neuer.** Ein älterer
-Bestand wird nicht übernommen; er braucht den Zwischenschritt über 0.8.0, die
-letzte Version, die ihn noch lesen konnte.
-
-### Die alten Namen in der `.env`
-
-**Drei Werte hießen früher deutsch. Die alten Namen werden weiter gelesen.**
-
-| früher | heute | wo er steht |
-|---|---|---|
-| `HINTER_PROXY` | `BEHIND_PROXY` | `.env` |
-| `OEFFENTLICHE_ADRESSE` | `PUBLIC_ADDRESS` | `.env` |
-| `SICHERUNG_DIR` | `BACKUP_DIR` | `docker-compose.yml` |
-
-**Eine `.env` von gestern gilt unverändert weiter.** Steht der alte Name da,
-wird er gelesen, und die Instanz schreibt beim Start eine Zeile ins
-Containerprotokoll:
-
-```
-[Kriterion] HINTER_PROXY heisst jetzt BEHIND_PROXY — der alte Name wird noch
-gelesen. Bitte in der .env nachziehen.
-```
-
-**Wer beide setzt, bekommt den neuen.**
 
 ---
 
