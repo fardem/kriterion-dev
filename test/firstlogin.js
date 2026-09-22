@@ -149,17 +149,15 @@ async function checkFirstLogin() {
   }
   await B2.stop();
 
-  /* --- AUTH_RESET wird abgelehnt --- Frueher setzte die Umgebungsvariable
+  /* --- AUTH_RESET bleibt wirkungslos --- Frueher setzte die Umgebungsvariable
      beim Start ein blankes DELETE FROM users ab. */
-  group('AUTH_RESET wird abgelehnt');
+  /* Der Start sagt dazu nichts mehr: eine .env mit dieser Zeile stammt aus
+     einer Fassung, die es nie gegeben hat. */
+  group('AUTH_RESET bleibt wirkungslos');
   const C = startFurtherServer(freshDir, { AUTH_RESET: '1' }, 4100);
   await C.ready;
-  check('Der Start sagt laut, dass AUTH_RESET wirkungslos ist',
-    /AUTH_RESET is no longer read and has no effect/.test(C.log()));
-  // Still weglassen waere falsch: wer die Zeile in seiner .env stehen hat,
-// muss den neuen Weg erfahren, und zwar ohne nachzuschlagen.
-  check('Und nennt den Weg, der an seine Stelle tritt',
-    /usertool\.js passwort/.test(C.log()));
+  check('Der Start sagt dazu kein Wort',
+    !/AUTH_RESET/.test(C.log()), C.log().slice(-300));
   check('Der Start bricht deswegen nicht ab',
     (await C.call('GET', '/api/config')).status === 200);
   check('Es ist KEINE Einrichtung noetig',

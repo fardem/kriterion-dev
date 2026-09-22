@@ -1029,12 +1029,11 @@ Eigentümer.
 - **Import** einer Exportdatei, wahlweise *ersetzen* oder *zusammenführen* —
   ebenfalls nur für den Eigentümer: eine Exportdatei kann Beiträge unter
   fremdem Namen anlegen.
-  **Das Austauschformat trägt die Nummer 17.** Sie sagt, welche Felder zu
+  **Das Austauschformat trägt die Nummer 18.** Sie sagt, welche Felder zu
   erwarten sind; die Programmfassung steht daneben.
   **Gelesen wird ab Nummer 14, und alles Ältere wird abgewiesen:** eine solche
   Datei trägt an ihren Fotos noch andere Feldnamen. Abgewiesen wird die Datei
-  und nicht der Start; wer eine solche hat, spielt sie
-  in eine Fassung bis 0.32.1 ein und exportiert sie dort neu.
+  und nicht der Start; der Bestand bleibt dabei unberührt.
   **Innerhalb der lesbaren Spanne entscheidet, welche Felder dastehen, und nie
   die Nummer** — fehlt eines, bleibt es leer. Ein fehlender Ablehnender fällt
   ausdrücklich nicht an den Einspielenden.

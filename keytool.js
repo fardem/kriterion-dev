@@ -167,7 +167,7 @@ async function commandChange(options) {
     process.exit(1);
   }
 
-  const fresh = String(auth.fromEnv('NEW_KEY', 'NEUER_SCHLUESSEL') || '').trim() || keys.createKey();
+  const fresh = String(auth.fromEnv('NEW_KEY') || '').trim() || keys.createKey();
   if (!keys.HEX_PATTERN.test(fresh)) {
     console.error(RED('NEW_KEY ist kein 64-stelliger Hexwert.')); process.exit(1);
   }

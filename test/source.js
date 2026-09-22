@@ -970,28 +970,16 @@ async function run() {
   const handbookRaw = fs.readFileSync(path.join(__dirname, 'manual-de.md'), 'utf8');
   const guideRaw = readmeRaw + '\n' + handbookRaw;
   const readmeNumbers = guideRaw.match(/\b0\.\d+\.\d+\b/g) || [];
-  const README_NUMBERS = ['0.33.0', '0.32.1', '0.8.0'];
-  check('Die Anleitung nennt ueberhaupt noch die Nummern, die eine Handlung bestimmen',
-    README_NUMBERS.every(v => readmeNumbers.includes(v)),
-    JSON.stringify(README_NUMBERS.filter(v => !readmeNumbers.includes(v))));
-  check('Und keine andere Nummer steht mehr darin',
-    readmeNumbers.every(v => README_NUMBERS.includes(v)),
-    [...new Set(readmeNumbers.filter(v => !README_NUMBERS.includes(v)))].join(' · '));
-  check('Es sind genau sechs Nennungen und keine mehr',
-    readmeNumbers.length === 6, `${readmeNumbers.length}: ${readmeNumbers.join(' ')}`);
-  /* UND JEDE EINZELNE STEHT DA, WEIL SIE ETWAS BESTIMMT. */
-  check('Der Zwischenschritt ueber die letzte migrierende Fassung steht ausdruecklich da',
-    /WER VON EINER FASSUNG VOR 0\.33\.0 KOMMT, GEHT ZUERST ÜBER 0\.32\.1/.test(readmeRaw),
-    'die Zeile des Zwischenschritts fehlt');
-  check('Und die aelteste Datenbank, die noch uebernommen wird',
-    /Datenbank aus Version 0\.8\.0 oder neuer/.test(readmeRaw),
-    'die Untergrenze fehlt');
-  /* UND DIE ZWEITE STELLE, AN DER 0.32.1 EINE HANDLUNG BESTIMMT: eine
-     Exportdatei, die zu alt ist, geht denselben Weg wie eine zu alte
-     Datenbank -- ueber dieselbe Fassung. */
-  check('Und der Weg fuer eine abgewiesene Exportdatei nennt dieselbe Fassung',
-    /in eine Fassung bis 0\.32\.1 ein und exportiert sie dort neu/.test(handbookRaw),
-    'der Weg fuer die Datei fehlt');
+  /* ERST DER GEGENSTAND: ueber zwei leeren Dateien waere die Verneinung
+     darunter wahr, ohne etwas zu belegen. */
+  check('Der Waechter liest beide Dateien wirklich',
+    readmeRaw.length > 20000 && handbookRaw.length > 20000,
+    `${readmeRaw.length} / ${handbookRaw.length} Zeichen`);
+  /* KEINE EINZIGE MEHR: bis hierher standen sechs da, und jede bestimmte eine
+     Handlung an einem Bestand aus einer Fassung, die es nie gegeben hat. */
+  check('In der Anleitung steht keine Versionsnummer mehr',
+    readmeNumbers.length === 0,
+    [...new Set(readmeNumbers)].join(' · '));
   /* UND KEINE PROTOKOLLZEILE EINER MIGRATION STEHT MEHR ALS ZITAT DA. */
   check('Und keine Protokollzeile einer Migration steht mehr als Zitat da',
     !/Migration auf 0\.\d+\.\d+\)/.test(guideRaw),
@@ -1999,7 +1987,7 @@ async function run() {
         if (part.kind === CODE)
           for (const m of part.value.matchAll(/[A-Za-z_$][A-Za-z0-9_$]*/g)) benchNames.add(m[0]);
     check('Der Waechter sieht wirklich den ganzen Pruefstand',
-      benchNames.size > 2000 && BENCH.length === 22,
+      benchNames.size > 2000 && BENCH.length === 21,
       `${benchNames.size} Bezeichner aus ${BENCH.length} Dateien`);
 
     /* Die dreizehn sind keine Benennungen, sondern Gegenstaende von
@@ -2047,8 +2035,8 @@ async function run() {
     const readShipped = (f) => fs.readFileSync(path.join(__dirname, ...f.split('/')), 'utf8');
     const stWord = 'Stolper' + 'stein';
     const stAll = [...BENCH, ...SHIPPED];
-    check('Der Waechter sieht alle siebenunddreissig Dateien',
-      stAll.length === 37, `${stAll.length} Dateien`);
+    check('Der Waechter sieht alle sechsunddreissig Dateien',
+      stAll.length === 36, `${stAll.length} Dateien`);
     /* DAS ZWEITE LOCH — 0.35.2. Der Schematext von db.js steht als Vorlage im
        Quelltext, und seine Zeilen beginnen mit `--`. Der Segmentierer haelt
        eine Vorlage fuer Text, und Text sieht dieser Waechter nicht an --
@@ -2439,6 +2427,18 @@ async function run() {
     check('Und die aelteste gelesene daneben, unter ihr',
       /const EXCHANGE_FORMAT_MIN = 14;/.test(stServer) && 14 < 18,
       (stServer.match(/EXCHANGE_FORMAT_MIN = \d+/g) || []).join(' · '));
+    /* UND DAS HANDBUCH NENNT DIESELBE ZAHL. Sie stand dort auf 17, waehrend
+       der Server 18 trug: die Nummer war gehoben und das Papier nicht
+       nachgezogen worden, und niemand hielt beide gegeneinander. */
+    const stFormat = Number((stServer.match(/const EXCHANGE_FORMAT = (\d+);/) || [])[1]);
+    const stFormatMin = Number((stServer.match(/const EXCHANGE_FORMAT_MIN = (\d+);/) || [])[1]);
+    const stBookFormat = Number((handbookRaw.match(
+      /Das Austauschformat trägt die Nummer (\d+)/) || [])[1]);
+    const stBookMin = Number((handbookRaw.match(/Gelesen wird ab Nummer (\d+)/) || [])[1]);
+    check('Das Handbuch nennt dieselbe Formatnummer wie der Server',
+      stBookFormat === stFormat, `Handbuch ${stBookFormat}, Server ${stFormat}`);
+    check('Und dieselbe aelteste gelesene',
+      stBookMin === stFormatMin, `Handbuch ${stBookMin}, Server ${stFormatMin}`);
   }
 
   /* ================= Der Bildschirmtext-Waechter — 0.22.0 =================
@@ -3159,13 +3159,13 @@ async function run() {
     }
     check('Keine der sechs Dateien schreibt den Namen noch selbst',
       zpLoose.length === 0, zpLoose.join(' · ') || 'alle ueber log.js');
-    /* UND ES SIND WIRKLICH ZWEIUNDFUENFZIG ZEILEN -- ein Waechter, der auf
-       einer leeren Menge laeuft, ist gruen und belegt nichts. Die
-       zweiundfuenfzigste sagt, wie viele Anmeldeversuche geraeumt wurden. */
+    /* UND ES SIND WIRKLICH NEUNUNDVIERZIG ZEILEN -- ein Waechter, der auf
+       einer leeren Menge laeuft, ist gruen und belegt nichts. Drei sind mit
+       den Ansagen an eine .env aus alter Zeit weggefallen. */
     const zpCount = zpFiles.reduce((n, f) =>
       n + (zpRead(f).match(/\blog(?:Line|Warn|Fail)\(/g) || []).length, 0);
-    check('Und es sind 52 Protokollzeilen in den sechs Dateien',
-      zpCount === 52, `${zpCount} Zeilen`);
+    check('Und es sind 49 Protokollzeilen in den sechs Dateien',
+      zpCount === 49, `${zpCount} Zeilen`);
     /* DIE BEISPIELDATEI SETZT TZ. Ohne sie laeuft der Container auf UTC, und
        der Versatz waere immer +00:00. */
     const zpCompose = fs.readFileSync(

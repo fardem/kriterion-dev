@@ -36,21 +36,14 @@ class Message extends Error {
 
 /* BEHIND_PROXY -- ein Kopf vom Aufrufer ist eine Behauptung und keine
    Feststellung. */
-/* Die Umgebungsvariablen heissen englisch, der alte Name gilt weiter und
-   meldet sich im Containerprotokoll. */
-function fromEnv(name, oldName) {
+/* Ein Wert aus der Umgebung, leer wie nicht gesetzt: eine Zeile mit nichts
+   dahinter ist keine Angabe. */
+function fromEnv(name) {
   const value = process.env[name];
-  if (String(value ?? '').trim() !== '') return value;
-  const old = process.env[oldName];
-  if (String(old ?? '').trim() !== '') {
-    logWarn(`${oldName} is called ${name} now -- the old name ` +
-      'is still read. Please update your .env.');
-    return old;
-  }
-  return value;
+  return String(value ?? '').trim() !== '' ? value : undefined;
 }
 
-const BEHIND_PROXY = /^(1|true|ja|an|yes|on)$/i.test(String(fromEnv('BEHIND_PROXY', 'HINTER_PROXY') || '').trim());
+const BEHIND_PROXY = /^(1|true|ja|an|yes|on)$/i.test(String(fromEnv('BEHIND_PROXY') || '').trim());
 
 /* Kam diese Anfrage ueber den Proxy? Daran haengen Cookiename, Secure und
    HSTS, je Anfrage. */
@@ -96,7 +89,7 @@ function checkPublicAddress(raw) {
   const address = (u.origin + u.pathname).replace(/\/+$/, '');
   return { address, set: true };
 }
-const PUBLIC_ADDRESS = checkPublicAddress(fromEnv('PUBLIC_ADDRESS', 'OEFFENTLICHE_ADRESSE'));
+const PUBLIC_ADDRESS = checkPublicAddress(fromEnv('PUBLIC_ADDRESS'));
 
 const SESSION_DAYS = 30;
 
@@ -421,23 +414,6 @@ function removeUser(userId, options = {}, actor) {
      Grabstein traegt seine Nummer weiter, target zeigt auf etwas. */
   log('user.delete', { actor: acting, target: u.id });
   return { id: u.id, name: u.username, tombstone: tombstoneName(u.id), counts, options };
-}
-
-// --- AUTH_RESET wird abgelehnt ------------------------------------------
-// Ein Zuruecksetzen ueber eine Umgebungsvariable gibt es nicht: es machte
-// alle Zugaenge und Zuordnungen mit einem Schlag kaputt.
-if (process.env.AUTH_RESET) {
-  logWarn('AUTH_RESET is no longer read and has no effect. The line can ' +
-    'be removed from .env. Forgotten password: ' +
-    'docker compose exec kriterion node usertool.js passwort <name> -- ' +
-    'remove an account: node usertool.js entfernen <name>.');
-}
-
-// AUTH_USER/AUTH_PASSWORD werden nicht mehr gelesen. Der erste Zugang entsteht
-// ueber die Einrichtungsseite; wer die Zeilen noch in der .env hat, erfaehrt es.
-if (process.env.AUTH_USER || process.env.AUTH_PASSWORD) {
-  logWarn('AUTH_USER/AUTH_PASSWORD are no longer read and can be ' +
-    'removed from .env. The first account is created on the setup page.');
 }
 
 // --- Bremse gegen Durchprobieren ---------------------------------------
