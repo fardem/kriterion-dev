@@ -70,10 +70,12 @@ function biggest(db) {
     FROM items it ORDER BY bytes DESC LIMIT 1`).get();
 }
 
+/* Geteilt wird in der Vorgabestellung: Fotos ja, Dateien und Videos nein. */
 function parts(db, target) {
   const rows = db.prepare(`SELECT it.id,
       COALESCE((SELECT SUM(length(data) + COALESCE(length(thumb), 0)
-                + COALESCE(length(medium), 0)) FROM photos WHERE item_id = it.id), 0)
+                + COALESCE(length(medium), 0)) FROM photos
+                WHERE item_id = it.id AND kind <> 'video'), 0)
       AS bytes FROM items it ORDER BY it.id`).all();
   let n = 1, cur = 0, top = 0, alone = 0;
   for (const r of rows) {
@@ -154,13 +156,17 @@ function main() {
   }
 
   const big = biggest(db);
-  console.log('\n  DIE TEILUNG');
-  for (const target of [WARN, LIMIT]) {
-    const p = parts(db, target);
-    console.log('    bei Zielgroesse ' + mb(target).padStart(9) + ': '
-      + pad(p.n, 3) + ' Teile, groesster ' + mb(p.top)
-      + (p.alone ? `, ${p.alone} Eintraege passen in keinen` : ''));
-  }
+  /* Groesser als die Warnschwelle geht nicht: exchangePlan deckelt die
+     gewuenschte Zielgroesse dort. */
+  const p = parts(db, WARN);
+  const need = cases(s, text)[1].out;
+  console.log('\n  DIE TEILUNG — Vorgabestellung, hoechste Zielgroesse ' + mb(WARN));
+  console.log('    Teile                ' + pad(p.n, 3)
+    + (p.alone ? `, ${p.alone} Eintraege passen in keinen` : ''));
+  console.log('    groesster Teil       ' + mb(p.top)
+    + '   noch ' + mb(WARN - p.top) + ' Luft darin');
+  console.log('    Platz in ' + p.n + ' Teilen     ' + mb(p.n * WARN)
+    + '   gebraucht ' + mb(need) + ', frei ' + mb(p.n * WARN - need));
   console.log('    groesster Eintrag    ' + mb(b64(big.bytes)) + ' als Base64  — '
     + (b64(big.bytes) > LIMIT ? 'PASST IN KEINEN TEIL' : 'passt') + `  (#${big.id})`);
 
@@ -173,11 +179,12 @@ function main() {
     console.log('    roh                       ' + pad(mb(big.bytes), 11));
     console.log('    als Base64, Zeichen       ' + pad(mb(m.chars), 11)
       + '   in ' + ms(m.took));
-    console.log('    dabei mehr belegt (RSS)   ' + pad(mb(m.grew), 11));
     console.log('    alles in EINEM String     ' + pad(mb(m.oneLen), 11)
       + '   in ' + ms(m.tOne));
-    console.log('    danach belegt (RSS)       ' + pad(mb(m.whole), 11)
-      + '   ' + (m.whole / big.bytes).toFixed(1).replace('.', ',') + '-fach das Rohe');
+    /* Der RSS wird genannt und nicht gedeutet: der Aufraeumer laeuft
+       dazwischen, und die Zahl faellt dann sogar negativ aus. */
+    console.log('    RSS dabei                 ' + pad(mb(m.grew), 11)
+      + ' / ' + mb(m.whole) + '   (der Aufraeumer verzerrt sie)');
   }
   console.log();
 }

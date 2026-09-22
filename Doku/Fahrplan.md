@@ -2164,6 +2164,46 @@ wird geschrieben. *Der Weg wäre je Trägertabelle eine Anweisung*
 **Dafür müsste `entryAsBundle` die Blobspalten gar nicht erst lesen** — und
 dieselbe Funktion trägt auch den Export.
 
+### Was der Umbau bringt — nachgestellt und gemessen
+
+**Dieselben Daten, zwei Wege, je ein eigener Prozess.** *40 Einträge zu je
+6,0 MB, Datei 320,0 MB. Gemessen synchron an den Stellen, an denen es zählt:
+ein Zeitgeber käme während `JSON.stringify` nie dran, der Event Loop steht so
+lange.*
+
+| | RSS-Spitze | Laufzeit |
+|---|---:|---:|
+| alles in einen String — wie heute | **+640,5 MB** | 4,48 s |
+| stückweise geschrieben | **+113,2 MB** | 2,37 s |
+
+**Der Speicher fällt um den Faktor 5,7, die Laufzeit fast auf die Hälfte.**
+*Und die 113,2 MB hängen am größten Einzeleintrag, nicht am Bestand: sie
+wachsen nicht mit.*
+
+> **DAMIT FÄLLT DER ZWANG ZUM TEILEXPORT.** *Ein stückweise geschriebener
+> Umschlag baut nie einen String über der Grenze — die Datei darf beliebig groß
+> werden.* **Der Teilexport bleibt als Wahl**, für wen kleinere Dateien braucht
+> — eine Hochladegrenze, ein Datenträger, eine langsame Verbindung.
+
+### Die Grenze ist nicht vom Arbeitsspeicher abhängig
+
+**`MAX_STRING_LENGTH` misst auf jeder 64-Bit-Maschine dasselbe: 536.870.888
+Bytes.** *Sie hängt an der Engine und der Architektur, nicht am
+Arbeitsspeicher; eine Instanz mit einem Gigabyte hat dieselbe Zahl wie eine mit
+sechzehn.* **Der Server liest sie schon heute bei jedem Start aus der
+Umgebung** — insoweit ist sie bereits nachgeführt.
+
+**Was bei einer kleinen Instanz wirklich knapp wird, ist der Arbeitsspeicher**,
+und den deckt die Zahl gar nicht ab: der heutige Weg braucht 640,5 MB für eine
+Datei von 320 MB, also lange bevor die Grenze in Sicht kommt. *Eine
+Warnschwelle, die den freien Speicher mitrechnet, wäre vor dem Umbau ein
+Pflaster — nach ihm ist sie nicht mehr nötig.*
+
+*Wer sie dennoch je bauen will: `os.totalmem()` nennt im Container den Speicher
+des Wirts und nicht die Grenze des Containers. Die steht in
+`/sys/fs/cgroup/memory.max`, und ohne gesetzte Grenze trägt die Datei den
+höchsten Wert eines vorzeichenbehafteten 64-Bit-Worts.*
+
 ### Der Hinweis vor dem Lauf — Vorgabe des Betreibers vom 22. September 2026
 
 **Vor dem Export und vor dem Import steht ein Dialog**, der ansagt, was kommt:
@@ -2186,13 +2226,48 @@ gezählt und nicht gestoppt; ob der Umbau sich lohnt, entscheidet der Bestand
 des Betreibers und nicht eine gestellte Prüflage. *Das Werkzeug dafür ist
 `tools/exportscan.js`.*
 
+### Am Bestand des Betreibers gemessen — 22. September 2026
+
+**Mit `tools/exportscan.js`, 86 Einträge:**
+
+| Träger | Zeilen | roh | als Base64 |
+|---|---:|---:|---:|
+| Fotos (Original) | 1979 | 331,3 MB | 441,8 MB |
+| Kacheln | 1994 | 42,5 MB | 56,7 MB |
+| Mittlere Variante | 1994 | 98,4 MB | 131,3 MB |
+| Videos | 15 | 85,9 MB | 114,6 MB |
+| Anlagen | 20 | 34,6 MB | 46,2 MB |
+| Bilder in Kommentaren | 50 | 1,7 MB | 2,3 MB |
+| Text | 86 | 20,0 MB | 26,6 MB |
+
+**Der Export in einer Datei geht nicht mehr.** Gegen die Grenze von 460,8 MB:
+
+| Schalterstellung | als Base64 | |
+|---|---:|---|
+| nur Text | 26,6 MB | passt |
+| **mit Fotos — die Vorgabe** | **656,4 MB** | **zu groß um 195,6 MB** |
+| mit Fotos und Dateien | 704,8 MB | zu groß um 244,0 MB |
+| mit allem, auch Videos | 819,4 MB | zu groß um 358,6 MB |
+
+**Der Teilexport trägt weiter:** *drei Teile in der Vorgabestellung, der größte
+298,3 MB. Kein Eintrag passt in keinen Teil — der größte misst 53,6 MB.*
+
+> **WAS AUSFÄLLT, IST DER EXPORT IN EINER DATEI, nicht der Export.** *Die Zahl
+> der Teile wächst mit dem Bestand, und beim Wiederherstellen sind sie
+> nacheinander einzuspielen.* **Nach dem Umbau ist es wieder eine Datei, bei
+> jeder Größe.**
+
 ### Was an einer gestellten Lage schon gemessen ist
 
-**`JSON.stringify` über alle Bündel auf einmal ist die teuerste einzelne
-Zeile.** *An 21,1 MB Base64 gemessen: 364,3 ms — die Bündel selbst zu bauen
-kostete 8,0 ms.* **Und der Arbeitsspeicher steht dabei auf dem 1,7-fachen des
-rohen Bestands**, gemessen am RSS und nicht am Heap: V8 legt lange Strings
-ausserhalb des Heap ab.
+**`JSON.stringify` über alle Bündel auf einmal kostet ein Vielfaches des
+Bauens.** *An 21,1 MB Base64: 364,3 ms gegen 8,0 ms.* **Auf dem Gerät des
+Betreibers ist es weit billiger** — *53,6 MB in 85,9 ms gegen 16,9 ms; die
+gestellte Lage lief auf langsamerer Hardware.* **Die Laufzeit ist also nicht
+der Grund für die Runde. Der Grund ist allein die Grenze.**
+
+*Der Arbeitsspeicher ist nicht verlässlich zu messen: der Aufräumer läuft
+dazwischen, und die RSS-Zahl fiel am Bestand sogar negativ aus. Das Werkzeug
+nennt sie und deutet sie nicht.*
 
 **Was es anfasst** — `server.js` *(drei Stellen)*, `public/app.js` *(der
 Dialog)*, die drei Sprachdateien, `test/roundtrip.js`.
