@@ -34,7 +34,7 @@ ihre deutschen Abschnittsüberschriften bleiben.*
 
 *Export und Import ohne den Arbeitsspeicher.*
 
-Fingerprint `477b61aa` — davor `9d48cbbc`.
+Fingerprint `7681fc64` — davor `9d48cbbc`.
 
 > **DER EXPORT GEHT WIEDER IN EINER DATEI — bei jeder Bestandsgröße.** Die
 > Absage „dieser Export wäre zu groß" gibt es nicht mehr.

@@ -1,6 +1,6 @@
 # Änderungsprotokoll 0.40.0 — „Export und Import ohne den Arbeitsspeicher"
 
-**Gebaut am 22. September 2026 auf 0.39.1. Fingerprint `477b61aa`, davor
+**Gebaut am 22. September 2026 auf 0.39.1. Fingerprint `7681fc64`, davor
 `9d48cbbc`.**
 
 **Eine Runde, ein Gegenstand.** Der Export baute die ganze Datei als einen
