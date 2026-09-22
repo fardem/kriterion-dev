@@ -34,7 +34,7 @@ ihre deutschen Abschnittsüberschriften bleiben.*
 
 *Export und Import ohne den Arbeitsspeicher.*
 
-Fingerprint `@FP@` — davor `9d48cbbc`.
+Fingerprint `477b61aa` — davor `9d48cbbc`.
 
 > **DER EXPORT GEHT WIEDER IN EINER DATEI — bei jeder Bestandsgröße.** Die
 > Absage „dieser Export wäre zu groß" gibt es nicht mehr.
@@ -50,9 +50,10 @@ Fingerprint `@FP@` — davor `9d48cbbc`.
 ### Geändert
 
 - **Der Export schreibt stückweise statt in einem Zug.** Gemessen an 40
-  Einträgen zu je 6,0 MB, Datei 320,0 MB: die RSS-Spitze fällt von +1.125,8 MB auf
-  +314,8 MB, die Laufzeit von 16,02 s auf 3,95 s. Die Zahl hängt am größten
-  Einzeleintrag und wächst nicht mehr mit dem Bestand.
+  Einträgen zu je 6,0 MB, Datei 320,0 MB: die RSS-Spitze fällt von
+  **+1.125,8 MB** auf **+314,8 MB**, die Laufzeit von 16,02 s auf 3,95 s. Sie
+  wächst nicht mehr mit dem Bestand — bei einer Datei von 640,0 MB sind es
+  +315,0 MB.
 - **Der Import liest die Datei eintragsweise von der Platte.** Sie liegt in
   `DATA_DIR/import`, wird auf jedem Weg wieder entfernt, und der Serverstart
   leert den Ordner.

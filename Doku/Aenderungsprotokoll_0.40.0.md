@@ -1,6 +1,6 @@
 # Änderungsprotokoll 0.40.0 — „Export und Import ohne den Arbeitsspeicher"
 
-**Gebaut am 22. September 2026 auf 0.39.1. Fingerprint `@FP@`, davor
+**Gebaut am 22. September 2026 auf 0.39.1. Fingerprint `477b61aa`, davor
 `9d48cbbc`.**
 
 **Eine Runde, ein Gegenstand.** Der Export baute die ganze Datei als einen
@@ -150,14 +150,14 @@ Kennzahlen. **`EXCHANGE_WARN` bleibt** als Hinweis auf die Größe und als Decke
 
 | | vorher | jetzt |
 |---|---:|---:|
-| Prüfungen | 7.256 | **7.286** |
+| Prüfungen | 7.256 | **7.288** |
 | Gruppen | 388 | **389** |
 | Rückbauten | 1.133 | **1.135** |
 | Portbasen des Laufs | 63 | **64** |
 | Protokollzeilen in den sechs Dateien | 49 | **53** |
 | Schlüssel je Sprachdatei | 1.233 | **1.243** |
-| Kommentarzeilen über alles | 16.679 | **16.801** |
-| Codezeilen über alles | 66.732 | **67.245** |
+| Kommentarzeilen über alles | 16.679 | **16.810** |
+| Codezeilen über alles | 66.732 | **67.264** |
 
 ---
 
@@ -179,10 +179,10 @@ Herunterladen ist eine eigene Runde.
 
 ## 7. Der Prüflauf
 
-**`npm test`: 7.286 von 7.286 Prüfungen bestanden, 389 Gruppen.**
+**`npm test`: 7.288 von 7.288 Prüfungen bestanden, 389 Gruppen.**
 
 **Die neue Gruppe „Der Export schreibt stückweise" trägt 19 Prüfungen** und
-kostet 8,8 Sekunden. Sie fährt eine eigene Instanz und hält die neun
+kostet 8,2 Sekunden. Sie fährt eine eigene Instanz und hält die neun
 Zusagen des Auftrags:
 
 | | |
@@ -199,4 +199,20 @@ Zusagen des Auftrags:
 
 **Die vier Rückbauten sind gefahren:**
 
-@GEGENPROBEN@
+| | rot geworden ist |
+|---|---|
+| **1200** — der Export schreibt den Schluss `]}` nicht mehr | „Der Kopf steht vorn, die Einträge dahinter, der Schluss am Ende", „Und das Ganze ist gültiges JSON mit beiden Einträgen", „Jeder Teil ist für sich gültiges JSON" und fünf weitere in sechs Gruppen |
+| **1201** — das `finally` des Imports fällt weg | „Und der Import hat seine Datei weggeräumt", „Auch beim Fehler bleibt keine Datei liegen" und fünf weitere |
+| **1202** — der Rückstau wird nicht beachtet | „Und sie wächst beim Schreiben um weniger als 200 MB" und „Der Schreiber hält bei Rückstau an" |
+| **1203** — die blobfreie Abfrage des Papierkorbs liest wieder die Bytes | „Und keine von ihnen liest die Spalte data" |
+
+*Die Prüfung „Jeder Suchtext kommt in seiner Datei genau einmal vor" wird bei
+jedem der vier ebenfalls rot — der Rückbau hat den Suchtext ersetzt. Das ist
+die gewöhnliche Begleiterscheinung und kein eigener Befund.*
+
+**Keine der vier ist stumm geblieben.**
+
+*Beim ersten Lauf von 1200 riss das Modul `roundtrip` an einer Lesestelle ab,
+die eine unlesbare Exportdatei nicht abfing — dasselbe in `ui_export`. Beide
+Stellen sind nachgezogen; seither werden die Prüfungen darunter rot, statt den
+Lauf abzureißen.*

@@ -1167,9 +1167,8 @@ Zwei Knöpfe — **mit Fotos** und **ohne Fotos** —, an jedem steht die erwart
 Größe. Zwei Haken daneben nehmen **angehängte Dateien** und **Videos** mit;
 beide sind ab Werk aus.
 
-**Eine Höchstgröße gibt es nicht.** Die Datei wird stückweise geschrieben; der
-Arbeitsspeicher der Installation hängt am größten einzelnen Eintrag und nicht
-am Bestand.
+**Eine Höchstgröße gibt es nicht.** Die Datei wird stückweise geschrieben, und
+der Arbeitsspeicher der Installation wächst dabei nicht mit dem Bestand.
 
 ### Der Export in Teilen
 

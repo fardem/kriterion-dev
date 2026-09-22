@@ -960,10 +960,13 @@ async function sendImport(object, mode, withoutShare = false) {
   group('Export und Import');
 
   const exported = await callF('GET', '/api/export?photos=0');
+  /* JEDE LESESTELLE ABGEFANGEN: eine unlesbare Datei soll die Pruefungen
+     darunter ROT faerben und nicht den Lauf abreissen. */
   check('Export nennt die Kriterienreihenfolge',
-    equal(exported.content.criteria, names(after)), JSON.stringify(exported.content.criteria));
+    equal(exported.content?.criteria, names(after)), JSON.stringify(exported.content?.criteria));
   check('Bestehende Felder unveraendert',
-    Array.isArray(exported.content.items) && 'ratings' in exported.content.items[0] && 'testDays' in exported.content.items[0]);
+    Array.isArray(exported.content?.items) && 'ratings' in exported.content.items[0]
+    && 'testDays' in exported.content.items[0]);
 
   // Alte Exportdatei ohne das neue Feld: muss weiterhin laufen.
   const oldFile = { exported_at: new Date().toISOString(), title: 'Alt', version: 14, items: [
@@ -6395,6 +6398,14 @@ async function sendImport(object, mode, withoutShare = false) {
   const pkBeforeFiles = pkRows(
     'SELECT filename, mime_type, size, sort_order, user_id, hex(data) AS h FROM attachments ' +
     'WHERE item_id = ? ORDER BY sort_order', pkItemId);
+  /* DAS STANDBILD UND DIE KOMMENTARBILDER EBENSO -- sie gehen als eigene
+     Zeilen in den Papierkorb, und was dort liegt, wird gleich verglichen. */
+  const pkBeforeStill = pkRows(
+    "SELECT hex(COALESCE(medium, thumb)) AS h FROM photos WHERE item_id = ? AND kind = 'video' " +
+    'ORDER BY sort_order', pkItemId);
+  const pkBeforeCommentImages = pkRows(
+    'SELECT hex(ci.data) AS h FROM comment_images ci JOIN comments c ON c.id = ci.comment_id ' +
+    'WHERE c.item_id = ? ORDER BY c.id, ci.sort_order, ci.id', pkItemId);
   check('Die Prueflage traegt wirklich alles',
     pkBefore?.photos?.length === 2 && pkBefore?.comments?.length === 4 &&
     pkBefore?.links?.length === 2 && pkBefore?.testDays?.length === 2 &&
@@ -6438,6 +6449,21 @@ async function sendImport(object, mode, withoutShare = false) {
     pkBytesRows.length === 6, JSON.stringify(pkBytesRows));
   check('Ihre Nummern sind lueckenlos ab null',
     equal(pkBytesRows.map(z => z.part), [0, 1, 2, 3, 4, 5]), JSON.stringify(pkBytesRows.map(z => z.part)));
+  /* UND SIE TRAGEN DIESELBEN BYTES WIE VORHER DIE TRAEGER -- kopiert wird
+     innerhalb von SQLite, und eine Kopie, die etwas anderes ablegt, faellt
+     erst beim Zurueckholen auf. */
+  const pkBytesHex = pkRows('SELECT hex(data) AS h FROM trash_bytes WHERE trash_id = ? ' +
+    'ORDER BY part', pkRow.id ?? -1).map(z => z.h);
+  const pkExpectHex = [
+    ...pkBeforeCommentImages.map(z => z.h),
+    ...pkBeforeBytes.flatMap(z => z.kind === 'video' ? [z.h, pkBeforeStill[0]?.h] : [z.h]),
+    ...pkBeforeFiles.map(z => z.h)];
+  check('Der Waechter hat ueberhaupt sechs Traegerwerte vor sich',
+    pkExpectHex.length === 6 && pkExpectHex.every(h => typeof h === 'string' && h.length > 0),
+    JSON.stringify(pkExpectHex.map(h => (h || '').length)));
+  check('Und trash_bytes traegt Byte fuer Byte dieselben',
+    equal(pkBytesHex, pkExpectHex),
+    JSON.stringify(pkBytesHex.map((h, i) => `${(h || '').length}/${(pkExpectHex[i] || '').length}`)));
   const pkBytesSum = pkBytesRows.reduce((s, z) => s + z.n, 0);
   /* DER EIGENTLICHE BELEG: die Videodatei steht NICHT in der JSON. */
   check('Die Videobytes stehen nicht in der JSON',
