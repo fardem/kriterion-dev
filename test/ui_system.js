@@ -2191,13 +2191,41 @@ async function run() {
     await sysSection(d.w, 'database');
     d.w.document.getElementById('ex-no')?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
     await new Promise(r => setTimeout(r, 60));
-    check('Vor dem Export steht der Dialog', !!zdDialog(d), 'kein Dialog');
+    /* ERST DER HINWEIS AUF DEN LAUF, DANN DIE ZWEITE BESTAETIGUNG. */
+    const zdNotice = () => [...d.w.document.querySelectorAll('.backdrop .modal')]
+      .find(m => /Bevor der Export läuft/.test(m.textContent || ''));
+    check('Vor dem Export steht der Hinweis auf den Lauf', !!zdNotice(), 'kein Hinweis');
+    const zdWays = zdNotice()?.textContent?.replace(/\s+/g, ' ') || '';
+    check('Er sagt an, dass es dauert und keinen Fortschritt gibt',
+      /dauern/.test(zdWays) && /keine Fortschrittsanzeige/.test(zdWays)
+      && /Fenster muss offen bleiben/.test(zdWays), zdWays.slice(0, 260));
+    check('Und er stellt alle drei Wege nebeneinander',
+      /Export in einer Datei/.test(zdWays) && /In Teilen exportieren/.test(zdWays)
+      && /Sicherung/.test(zdWays), zdWays.slice(0, 320));
+    check('Bis dahin steht der Dialog der zweiten Bestaetigung nicht da',
+      !zdDialog(d), 'er steht schon da');
+    zdNotice()?.querySelector('[data-yes]')?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
+    await new Promise(r => setTimeout(r, 60));
+    check('Danach steht der Dialog', !!zdDialog(d), 'kein Dialog');
     check('Und er nennt, was der Export mitnimmt',
       /Verfassernamen/.test(zdDialog(d)?.closest('.modal')?.textContent || ''),
       zdDialog(d)?.closest('.modal')?.textContent?.replace(/\s+/g, ' ').slice(0, 220));
     await confirmImDom(d, 'egal', true);
     check('Nach dem Abbruch wird keine Freigabe geholt',
       !zdAsked(d, '/api/confirm'), d.sent.map(x => x.url).join(' · '));
+  }
+  /* UND DER ABBRUCH AM HINWEIS SELBST: er holt weder Freigabe noch Dialog. */
+  {
+    const d = await ziSystem({ isAdmin: true, isOwner: true });
+    await sysSection(d.w, 'database');
+    d.w.document.getElementById('ex-no')?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
+    await new Promise(r => setTimeout(r, 60));
+    const zdBack = [...d.w.document.querySelectorAll('.backdrop')]
+      .find(b => /Bevor der Export läuft/.test(b.textContent || ''));
+    zdBack?.querySelector('[data-no]')?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
+    await new Promise(r => setTimeout(r, 60));
+    check('Nach dem Abbruch am Hinweis steht kein Passwortfenster',
+      !zdDialog(d) && !zdAsked(d, '/api/confirm'), d.sent.map(x => x.url).join(' · '));
   }
   /* Was hier NICHT steht und warum: der Import laeuft ueber eine echte Datei
      und einen FileReader; sein Weg ist serverseitig belegt (Gruppe "jeder

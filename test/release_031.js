@@ -23,7 +23,9 @@ async function run() {
    ZWEI GRUPPEN FRAGEN SIE AB: 0.31.0 auf die Deckung der drei Dateien, 0.31.1
    auf den Stand nach dem Verschmelzen. */
 /* VIERZEHN MEHR MIT DER AUSZEICHNUNG. */
-const LANG_KEY_COUNT = 1233;
+/* UND ZEHN MEHR MIT DEM HINWEIS VOR EXPORT UND IMPORT: zwoelf kommen dazu,
+   zwei fallen mit der Absage vor dem Gesamtexport. */
+const LANG_KEY_COUNT = 1243;
 
 async function check0310() {
   const drRead = (code) => JSON.parse(fs.readFileSync(
@@ -471,7 +473,9 @@ async function check0311() {
        keine Bequemlichkeit: NEUNUNDDREISSIG Eintraege zeigten schon vor
        0.31.1 ins Leere -- auf `login.not`, `list.sortAvgDesc`,
        `card.convertAllPng` und die vierzehn deutschen Vokabelnamen. */
-    const DS_OLD_DANGLING = 39;
+    /* EINUNDVIERZIG SEIT DEM STUECKWEISEN EXPORT: `server.exportTooBig` und
+       `server.exportGrew` gibt es nicht mehr. */
+    const DS_OLD_DANGLING = 41;
     const dsDangling = Object.entries(dsTable).filter(([, target]) => !(target in dsFiles.de));
     check('Kein Eintrag der Umbenennungstafel zeigt auf einen Schluessel DIESER Runde',
       dsDangling.length === DS_OLD_DANGLING,
@@ -532,7 +536,12 @@ async function check0311() {
    457f4c3c4bb28ec1 / 7bc60ecadb371e0e · 3601c96b846df672 / 278c9992bbfe95e5 ·
    ca0e647191c4b45d / fa9051b4736f2e06 · daa9a66531bf3943 / 15359dca57efe311 ·
    fd377642f0130b3b / b58cc8084be7e688 · b6907e61f79ce725 / 82ff600c40200af5 */
-const DE_UNTOUCHED = { one: '4b0abbd60f65807b', other: '84dad7c0086755d1' };
+/* UND WIEDER ANDERE, DIESMAL MIT EINEM DEUTSCHEN GRUND: der Hinweis vor
+   Export und Import bringt elf Saetze mit, und die beiden Absagen des
+   Gesamtexports fallen. Der Stand davor war de 4b0abbd60f65807b /
+   84dad7c0086755d1, en a162f49132220b4f / 3ff874893a28fe31,
+   tr 7d4e5fd082b2f9e1 / bfcfc70232d3103d. */
+const DE_UNTOUCHED = { one: '733a7fc85f03ba68', other: 'e3dd61bee56400bb' };
 const DE_BEFORE_0312 = { one: '91b86c5affcba789', other: '07fc3ccdc8a27a03' };
 const DE_ORDERED_0312 = {
   'login.requestAccess': 'Zugang anfragen',
@@ -545,17 +554,29 @@ const DE_ORDERED_0312 = {
    misst denselben Stand noch einmal von ihrer Seite aus. */
 const EG_CHANGED_AFTER_0312_SHARED = {
   "_afterNumber": "0.31.4: der Mechanismus — fuer Englisch `plural`, also das Verhalten von vorher",
+  "card.carryOn": "0.40.0: neu — der Knopf, der den Hinweis vor Export und Import bestaetigt",
   "card.catchUpAsk": "0.33.0: der Dialog nennt die Vorschaubilder nicht mehr — die zweite Haelfte des Laufs ist gefallen",
   "card.catchUpBoth": "0.33.0: die Zeile unter dem Knopf ebenso — sie sagt nur noch, was mit den Originalen geschieht",
   "card.convertFinished": "0.33.0: der Fertigsatz nennt keine neu gerechneten Vorschaubilder mehr",
   "card.copyByHand": "0.38.1: die Meldung nennt den Grund — ohne https gibt der Browser die Zwischenablage nicht frei",
   "card.copyByHandLink": "0.38.1: derselbe Grund, und das markierte Feld steht weiter daneben",
+  "card.exportOversizeHint": "0.40.0: der Hinweis nennt keine Hoechstgroesse je Datei mehr — die Grenze des Gesamtexports ist fort",
+  "card.exportRunTitle": "0.40.0: neu — die Ueberschrift des Hinweises vor dem Export",
   "card.grade": "0.32.0: seine Beschriftung in der Vokabelkarte",
+  "card.importRunTitle": "0.40.0: neu — die Ueberschrift des Hinweises vor dem Import",
   "card.itemMany": "0.32.0: Punkt 28, Fund 5 — dieselbe Sache in der Mehrzahl",
   "card.itemOne": "0.32.0: Punkt 28, Fund 5 — die Beschriftung nennt wieder ihre Sache",
   "card.potentialModeHint": "0.32.1: „in the entry\" wird „in the detail view\" — das Vokabelwort stand fest im Satz",
   "card.restartHint": "0.33.0: die zitierte Logzeile heisst jetzt englisch „Key loaded from ENCRYPTION_KEY\" — das Protokoll spricht englisch (0.32.0, Punkt 28, Fund 1 hatte sie auf „Schluessel\" gebracht)",
+  "card.runKeepOpen": "0.40.0: neu — das Fenster muss offen bleiben",
+  "card.runNoProgress": "0.40.0: neu — es gibt keine Fortschrittsanzeige",
+  "card.runTakesTime": "0.40.0: neu — es kann je nach Bestand und Verbindung dauern",
   "card.typeByHand": "0.38.1: derselbe Grund; der Schluessel steht im Dialog darueber",
+  "card.wayBackupHint": "0.40.0: neu — wofuer die Sicherung der Weg ist",
+  "card.wayFile": "0.40.0: neu — der Name des ersten der drei Wege",
+  "card.wayFileHint": "0.40.0: neu — wofuer der Export in einer Datei der Weg ist",
+  "card.wayPartsHint": "0.40.0: neu — wofuer der Export in Teilen der Weg ist",
+  "card.whichWayHeading": "0.40.0: neu — die Ueberschrift der Gegenueberstellung",
   "entry.calcGradeWeight": "0.32.0: „Score × weight\" wird `{grade} × weight`",
   "entry.commentPlaceholder": "0.38.4: der Satz nennt die Zwischenablage statt Strg+V — am Telefon gibt es die Tasten nicht",
   "entry.copyCommentLink": "0.38.0: neu — die Raute kopiert die Adresse eines Kommentars",
@@ -603,6 +624,7 @@ const EG_CHANGED_AFTER_0312_SHARED = {
   "server.deniedOrigin": "0.36.0: neu — die Absage an eine schreibende Anfrage ohne Token gegen fremde Formulare",
   "server.exportTooOld": "0.33.0: neu — die eine Abweisung des Bruchs, eine Datei mit Formatnummer 13 oder aelter kommt nicht mehr herein",
   "server.gradeRange": "0.32.0: die Absage des Servers nennt das Vokabelwort",
+  "server.importNoSpace": "0.40.0: neu — die Absage, wenn der freie Platz fuer die Importdatei nicht reicht",
   "server.importOne": "0.35.2: neu — die Absage des Imports an eine zweite Datei in derselben Anfrage",
   "server.noAccountOwner": "0.32.0: Punkt 29 — der Grund, warum nicht verschickt werden kann",
   "server.noPublicAddress": "0.32.0: Punkt 29 — ohne PUBLIC_ADDRESS wird nicht verschickt",
@@ -868,7 +890,13 @@ async function check0312() {
       'entry.quoteFrom',
       'entry.quoteSelection',
       'entry.refHint',
-      'vocabulary.grade'];
+      'vocabulary.grade',
+      /* UND ZWOELF MIT DEM STUECKWEISEN EXPORT -- der Hinweis vor Export und
+         Import und die Absage an zu wenig Platz. */
+      'card.carryOn', 'card.exportRunTitle', 'card.importRunTitle',
+      'card.runKeepOpen', 'card.runNoProgress', 'card.runTakesTime',
+      'card.wayBackupHint', 'card.wayFile', 'card.wayFileHint',
+      'card.wayPartsHint', 'card.whichWayHeading', 'server.importNoSpace'];
     /* UND EINER IST GEFALLEN -- `list.otherUser`. */
     /* UND SIEBEN MIT 0.32.1 -- sechs, die 0.32.1 ausbaut, und der geteilte
        `entry.deleteWord`. */
@@ -876,10 +904,12 @@ async function check0312() {
        `card.derivativesAsk` -- die JPEG-Haelfte des Bestandslaufs. */
     /* UND EINER MIT 0.35.2: `server.entryTooBig` -- die einzige Absage der
        Route, die den einzelnen Eintrag als Datei holte. */
+    /* UND ZWEI MIT DEM STUECKWEISEN EXPORT: die Absage vor dem Bau und das
+       Netz darunter -- der Gesamtexport hat keine Grenze mehr. */
     const EG_GONE_AFTER_0312 = ['card.catchUpDerivatives', 'card.derivativesAsk',
       'entry.deleteWord', 'list.and', 'list.followsSort',
       'list.ofWhich', 'list.otherUser', 'list.pillHint', 'list.sortDefaultHint',
-      'server.entryTooBig'];
+      'server.entryTooBig', 'server.exportGrew', 'server.exportTooBig'];
     const egAdded = Object.keys(egFiles.en).filter(k => !(k in egPrint));
     const egLost = Object.keys(egPrint).filter(k => !(k in egFiles.en));
     check(`Und sie traegt die Schluessel von en.json — bis auf die benannten neuen (${EG_ADDED_AFTER_0312.length}) und den einen gefallenen`,
@@ -914,13 +944,13 @@ async function check0312() {
    9cfb555855459a0c / 98295846dd0ac5a4 · caa4b814e75f8263 / f224721465ac0d35 ·
    eec8c1717c54a12f / f874903b6b33781a · cad88cfda93ececc / e73468286c2f1405 ·
    68c54e6fc1a90c6d / 6ba9dddf3e06cb33 · cdff153c8c0c8545 / 7e902c8f506f3b35 */
-const EN_UNTOUCHED = { one: 'a162f49132220b4f', other: '3ff874893a28fe31' };
+const EN_UNTOUCHED = { one: '2543775bdc0f5fa2', other: '8aca799913c25836' };
 const TR_BEFORE_0313 = { one: '5fec71b10c0dfa3c', other: '18b07eda589b5120' };
 /* DIE FRUEHEREN TUERKISCHEN SUMMEN: bbaca227348609dc / 73d9f1ea0298d519 ·
    ab6bdf35499f7cf9 / ad34f68137acaa2b · eb1ffa65a4bddb95 / f137b990650a241e ·
    ac1fa21798b352b5 / e277fb3263e15feb · 10c6209ccd6c202e / 87be79f31098ad1c ·
    e1682c1e30d94faf / d62eb67d7277a51c */
-const TR_AFTER_0313 = { one: '7d4e5fd082b2f9e1', other: 'bfcfc70232d3103d' };
+const TR_AFTER_0313 = { one: 'edd9d4245b7d6a59', other: '3abd365c66c5194d' };
 
 async function check0313() {
   const tgRead = (code) => JSON.parse(fs.readFileSync(
@@ -1302,17 +1332,23 @@ async function check0313() {
       'entry.quoteFrom',
       'entry.quoteSelection',
       'entry.refHint',
-      'vocabulary.grade'];
+      'vocabulary.grade',
+      /* UND ZWOELF MIT DEM STUECKWEISEN EXPORT -- dieselben wie drueben. */
+      'card.carryOn', 'card.exportRunTitle', 'card.importRunTitle',
+      'card.runKeepOpen', 'card.runNoProgress', 'card.runTakesTime',
+      'card.wayBackupHint', 'card.wayFile', 'card.wayFileHint',
+      'card.wayPartsHint', 'card.whichWayHeading', 'server.importNoSpace'];
     /* UND EINER IST GEFALLEN -- derselbe wie drueben: `list.otherUser`. */
     /* UND SIEBEN MIT 0.32.1 -- dieselben wie im englischen Stand daneben, und
        aus demselben Grund. */
     /* UND ZWEI MIT 0.33.0, wieder dieselben: die JPEG-Haelfte des
        Bestandslaufs nimmt in allen drei Dateien dieselben zwei Saetze mit. */
     /* UND EINER MIT 0.35.2, derselbe wie drueben: `server.entryTooBig`. */
+    /* UND ZWEI MIT DEM STUECKWEISEN EXPORT -- dieselben wie drueben. */
     const TR_GONE_AFTER_0313 = ['card.catchUpDerivatives', 'card.derivativesAsk',
       'entry.deleteWord', 'list.and', 'list.followsSort',
       'list.ofWhich', 'list.otherUser', 'list.pillHint', 'list.sortDefaultHint',
-      'server.entryTooBig'];
+      'server.entryTooBig', 'server.exportGrew', 'server.exportTooBig'];
     const tgAdded = Object.keys(tgFiles.tr).filter(k => !(k in tgPrint));
     const tgLost = Object.keys(tgPrint).filter(k => !(k in tgFiles.tr));
     check(`Und sie traegt die Schluessel von tr.json — bis auf die benannten neuen (${TR_ADDED_AFTER_0313.length}) und den einen gefallenen`,
@@ -1433,7 +1469,21 @@ async function check0313() {
       'server.importOne':         '0.35.2: neu — die Absage des Imports an eine zweite Datei in derselben Anfrage',
       'server.uploadCap':         '0.35.2: neu — die Absage an zu viele Dateien in einer Anfrage',
       'server.uploadSize':        '0.35.2: neu — die Absage an eine zu grosse Datei',
-      'server.videoOne':          '0.35.2: neu — die Absage des Videowegs an ein zweites Video'
+      'server.videoOne':          '0.35.2: neu — die Absage des Videowegs an ein zweites Video',
+      /* UND DREIZEHN MIT DEM STUECKWEISEN EXPORT -- dieselben wie drueben. */
+      'card.carryOn':             '0.40.0: neu — der Knopf, der den Hinweis bestaetigt',
+      'card.exportOversizeHint':  '0.40.0: der Hinweis nennt keine Hoechstgroesse je Datei mehr',
+      'card.exportRunTitle':      '0.40.0: neu — die Ueberschrift des Hinweises vor dem Export',
+      'card.importRunTitle':      '0.40.0: neu — die Ueberschrift des Hinweises vor dem Import',
+      'card.runKeepOpen':         '0.40.0: neu — das Fenster muss offen bleiben',
+      'card.runNoProgress':       '0.40.0: neu — es gibt keine Fortschrittsanzeige',
+      'card.runTakesTime':        '0.40.0: neu — es kann je nach Bestand und Verbindung dauern',
+      'card.wayBackupHint':       '0.40.0: neu — wofuer die Sicherung der Weg ist',
+      'card.wayFile':             '0.40.0: neu — der Name des ersten der drei Wege',
+      'card.wayFileHint':         '0.40.0: neu — wofuer der Export in einer Datei der Weg ist',
+      'card.wayPartsHint':        '0.40.0: neu — wofuer der Export in Teilen der Weg ist',
+      'card.whichWayHeading':     '0.40.0: neu — die Ueberschrift der Gegenueberstellung',
+      'server.importNoSpace':     '0.40.0: neu — die Absage bei zu wenig freiem Platz'
     };
     const tgDiff = Object.keys(tgFiles.tr)
       .filter(k => JSON.stringify(tgPrint[k]) !== JSON.stringify(tgFiles.tr[k]));

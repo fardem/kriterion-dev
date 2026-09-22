@@ -165,8 +165,11 @@ if (process.env.TESTBENCH_PROBE) {
   /* ZWEIUNDSECHZIG SEIT 0.24.0: die Lage „Server ohne de.json" (Bauabschnitt
      1) bringt ihre eigene Basis mit -- sie startet einen Server, der gerade
      NICHT hochkommen soll, und braucht dafuer genau eine Nummer. */
+  /* VIERUNDSECHZIG: die Lage des stueckweisen Exports bringt ihre eigene
+     Basis mit -- sie startet denselben Server zweimal, vor und nach dem
+     Leeren des Importordners. */
   check('Der Lauf hat seine Portbasen vermerkt',
-    pbBases.length === 63 && pbCases.length >= 60,
+    pbBases.length === 64 && pbCases.length >= 60,
     `${pbBases.length} Basen aus ${pbCases.length} Prueflagen: ${pbBases.join(' ')}`);
   // Und der Empfaenger selbst ist wirklich gelaufen: eine Liste ohne
   // Eintraege machte die Rechnung darueber wahr, ohne etwas zu belegen.

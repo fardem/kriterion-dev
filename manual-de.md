@@ -20,6 +20,12 @@ Bewertungen, Kommentare, Einstellungen, Sprache und die Ansicht auf dem Telefon.
   - [Wer was geschrieben hat](#wer-was-geschrieben-hat)
   - [Zwei Titel](#zwei-titel)
 - [Bedienung](#bedienung)
+- [Export und Import](#export-und-import)
+  - [Welcher Weg wann passt](#welcher-weg-wann-passt)
+  - [Was vor dem Lauf angesagt wird](#was-vor-dem-lauf-angesagt-wird)
+  - [Der Export in einer Datei](#der-export-in-einer-datei)
+  - [Der Export in Teilen](#der-export-in-teilen)
+  - [Der Import](#der-import)
 - [Auf dem Handy und auf dem Tablett](#auf-dem-handy-und-auf-dem-tablett)
   - [Die Kopfzeile](#die-kopfzeile)
   - [Von einem Eintrag zum nächsten](#von-einem-eintrag-zum-nächsten)
@@ -1120,6 +1126,80 @@ Eigentümer.
 
   **Das Gewicht gilt für alle** und ist keine persönliche Einstellung. Wer
   nicht verwalten darf, sieht es trotzdem.
+
+---
+
+## Export und Import
+
+**Der Export schreibt den Bestand in eine Datei, der Import liest sie wieder
+ein.** Beides steht in den Einstellungen im Abschnitt „Datenbank", in der Karte
+**„Export und Import"**; beides darf nur der Eigentümer, und vor beidem wird
+das Passwort verlangt.
+
+### Welcher Weg wann passt
+
+| Weg | wofür |
+|---|---|
+| **Export in einer Datei** | Umzug, Archiv, Weitergabe. Unverschlüsselt und auch von einer späteren Version lesbar |
+| **Export in Teilen** | wenn eine Hochladegrenze, ein Datenträger oder eine langsame Verbindung dagegen spricht |
+| **Sicherung** | der Notfall. Die vollständige, verschlüsselte Kopie der Datenbank — mit allem, was im Export fehlt. Sie steht in der [README](README.md) |
+
+**Die Exportdatei enthält nicht alles.** Zugänge, Passwörter, Sitzungen, das
+Sicherheitsprotokoll, der Papierkorb und die persönlichen Einstellungen gehen
+nicht mit. Wer eine vollständige Kopie braucht, nimmt die Sicherung.
+
+### Was vor dem Lauf angesagt wird
+
+**Vor dem Export und vor dem Import steht ein Fenster.** Es nennt die drei Wege
+und sagt drei Dinge an:
+
+- Je nach Bestand und Verbindung kann es einige Minuten dauern.
+- **Es gibt keine Fortschrittsanzeige.**
+- Das Fenster muss offen bleiben, bis es fertig ist.
+
+*Der Grund für die fehlende Anzeige: die Datei entsteht beim Schreiben. Ihre
+Größe steht erst fest, wenn sie fertig ist, und der Browser kann deshalb keinen
+Balken zeigen.*
+
+### Der Export in einer Datei
+
+Zwei Knöpfe — **mit Fotos** und **ohne Fotos** —, an jedem steht die erwartete
+Größe. Zwei Haken daneben nehmen **angehängte Dateien** und **Videos** mit;
+beide sind ab Werk aus.
+
+**Eine Höchstgröße gibt es nicht.** Die Datei wird stückweise geschrieben; der
+Arbeitsspeicher der Installation hängt am größten einzelnen Eintrag und nicht
+am Bestand.
+
+### Der Export in Teilen
+
+**Jeder Teil ist eine vollständige Exportdatei.** Der Knopf „In Teilen
+exportieren" rechnet den Schnitt aus und zeigt, wie viele Teile es gibt und wie
+groß jeder wird; die gewünschte Größe je Datei steht daneben zur Wahl. Das
+Passwort wird **einmal** verlangt, danach lädt jeder Knopf seinen Teil.
+
+**Beim Einspielen zählt die Reihenfolge:** der erste Teil mit „Ersetzen", jeder
+weitere mit „Zusammenführen".
+
+### Der Import
+
+Die Datei wird auf die Karte gezogen oder ausgewählt; danach steht da, wie viele
+Einträge sie enthält, woher sie kommt und wann sie geschrieben wurde. Zwei Wege
+stehen zur Wahl:
+
+- **Zusammenführen** legt an, was in der Datei steht, und lässt den vorhandenen
+  Bestand stehen.
+- **Ersetzen** löscht den vorhandenen Bestand vorher. Das lässt sich nicht
+  rückgängig machen.
+
+**Der Import ist ein einziger Vorgang:** er ändert entweder alles oder nichts.
+Bricht er ab, steht der Bestand unverändert da.
+
+**Eine abgebrochene Datei kommt nicht herein.** Reißt die Verbindung während des
+Exports ab, fehlt der Datei das Ende; der Import weist sie ab.
+
+**Vor dem Hochladen wird der freie Platz geprüft.** Reicht er nicht, sagt die
+Installation ab, bevor etwas geschrieben wird.
 
 ---
 

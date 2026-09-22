@@ -3,6 +3,7 @@ const fs = require('fs');
 const os = require('os');
 const crypto = require('crypto');
 const zlib = require('zlib');
+const { StringDecoder } = require('string_decoder');
 const express = require('express');
 const multer = require('multer');
 const { Worker } = require('worker_threads');
@@ -4507,17 +4508,19 @@ const exchangeCategoryLanguages = () => exchangeLanguages(
 const EXCHANGE_STRING = require('buffer').constants.MAX_STRING_LENGTH;
 const EXCHANGE_MAX = Math.floor(EXCHANGE_STRING * 0.9);
 
-/* Der Wert, ab dem die Instanz WARNT -- deutlich unter der Grenze, an der sie
-   ABSAGT. */
+/* Der Wert, ab dem die Instanz auf die Groesse HINWEIST. Er deckelt ausserdem
+   die waehlbare Teilgroesse. */
 const EXCHANGE_WARN = 300 * 1024 * 1024;
 
 // Der Trichter der Exportdatei. Base64 blaeht um ein Drittel auf, und das ist
 // der Preis dafuer, dass eine Textdatei Bytes tragen kann.
-const FUNNEL_FILE = { extension: '_base64', take: (buf) => buf.toString('base64') };
+const FUNNEL_FILE = { extension: '_base64', blobs: true, take: (buf) => buf.toString('base64') };
 
-/* Der Trichter des Papierkorbs. */
-function funnelStore(collector) {
-  return { extension: '_ref', take: (buf) => { collector.push(buf); return collector.length - 1; } };
+/* Der Trichter des Papierkorbs: er nimmt keine Bytes, sondern die Herkunft --
+   Tabelle, Zeile und Spalte. Kopiert wird innerhalb von SQLite. */
+function funnelStore(sources) {
+  return { extension: '_ref', blobs: false,
+           take: (buf, from) => { sources.push(from); return sources.length - 1; } };
 }
 
 /* Die Gegenrichtung, einmal fuer beide Formen. */
@@ -4562,11 +4565,23 @@ const qBundleRatings = db.prepare(`SELECT c.name, r.value, r.user_id FROM rating
 const qBundleComments = lateStatement(
   'SELECT id, text, kind, pinned, created_at, updated_at, user_id, due_date FROM comments WHERE item_id = ? ORDER BY id');
 const qBundleCommentImages = db.prepare(
-  'SELECT filename, data FROM comment_images WHERE comment_id = ? ORDER BY sort_order, id');
+  'SELECT id, filename, data FROM comment_images WHERE comment_id = ? ORDER BY sort_order, id');
 const qBundlePhotos = lateStatement(
   'SELECT mime_type, data, thumb, medium, focus_x, focus_y, zoom, kind, duration FROM photos WHERE item_id = ? ORDER BY sort_order, id');
 const qBundleAttachments = lateStatement(
   'SELECT filename, mime_type, data, user_id FROM attachments WHERE item_id = ? ORDER BY sort_order, id');
+
+/* DIESELBEN DREI ZEILEN OHNE DIE BLOBSPALTEN -- der Papierkorb kopiert die
+   Bytes innerhalb von SQLite und braucht nur die Zeilennummer. `still` sagt,
+   ob es ein Standbild gibt. */
+const qRefCommentImages = db.prepare(
+  'SELECT id, filename FROM comment_images WHERE comment_id = ? ORDER BY sort_order, id');
+const qRefPhotos = lateStatement(
+  `SELECT id, mime_type, focus_x, focus_y, zoom, kind, duration,
+     (medium IS NOT NULL OR thumb IS NOT NULL) AS still
+     FROM photos WHERE item_id = ? ORDER BY sort_order, id`);
+const qRefAttachments = lateStatement(
+  'SELECT id, filename, mime_type, user_id FROM attachments WHERE item_id = ? ORDER BY sort_order, id');
 
 function entryAsBundle(it, situation) {
   const { authorName, pins, funnel, withPhotos, withFiles, withVideos } = situation;
@@ -4603,27 +4618,31 @@ function entryAsBundle(it, situation) {
         // Kommentarbilder folgen dem Schalter der Dateien; ein dritter waere
 // zu viel. Die Merkmale gehen immer mit, sie kosten nichts.
         images: withFiles
-          ? qBundleCommentImages.all(c.id)
-              .map(b2 => ({ filename: b2.filename, ['data' + extension]: funnel.take(b2.data) }))
+          ? (funnel.blobs ? qBundleCommentImages : qRefCommentImages).all(c.id)
+              .map(b2 => ({ filename: b2.filename,
+                            ['data' + extension]: funnel.take(b2.data, ['commentImage', b2.id]) }))
           : []
       })),
     photos: [], attachments: []
   };
   if (withPhotos) {
-    o.photos = qBundlePhotos().all(it.id).map(p => {
+    o.photos = (funnel.blobs ? qBundlePhotos() : qRefPhotos()).all(it.id).map(p => {
         /* DER AUSSCHNITT GEHT MIT -- alle DREI Werte, seit Formatnummer 12.
            Ohne `zoom` in der Datei ginge er beim Einspielen verloren, und die
            Zweitinstanz zeigte einen anderen Ausschnitt als die erste. */
         const z = { mime_type: p.mime_type, focus_x: p.focus_x, focus_y: p.focus_y,
                     zoom: p.zoom, kind: p.kind };
-        if (p.kind !== 'video') { z['data' + extension] = funnel.take(p.data); return z; }
+        if (p.kind !== 'video') {
+          z['data' + extension] = funnel.take(p.data, ['photo', p.id]);
+          return z;
+        }
         z.duration = p.duration;
         /* OHNE DEN SCHALTER BLEIBT DIE ZEILE ALS MARKE STEHEN -- ohne Bytes. */
         if (withVideos) {
-          z['data' + extension] = funnel.take(p.data);
+          z['data' + extension] = funnel.take(p.data, ['photo', p.id]);
           /* Das Standbild geht EIGENS mit. */
-          const sb = p.medium || p.thumb;
-          if (sb) z['standbild' + extension] = funnel.take(sb);
+          const sb = funnel.blobs ? (p.medium || p.thumb) : p.still;
+          if (sb) z['standbild' + extension] = funnel.take(sb, ['still', p.id]);
         }
         return z;
       });
@@ -4631,9 +4650,10 @@ function entryAsBundle(it, situation) {
   if (withFiles) {
     // author wie an den fuenf anderen Traegern; ohne das Feld kaemen
 // eingespielte Dateien herrenlos herein. Dafuer steht die Formatnummer 8.
-    o.attachments = qBundleAttachments().all(it.id)
+    o.attachments = (funnel.blobs ? qBundleAttachments() : qRefAttachments()).all(it.id)
       .map(a2 => ({ filename: a2.filename, mime_type: a2.mime_type,
-                    author: authorName(a2.user_id), ['data' + extension]: funnel.take(a2.data) }));
+                    author: authorName(a2.user_id),
+                    ['data' + extension]: funnel.take(a2.data, ['file', a2.id]) }));
   }
   return o;
 }
@@ -4662,6 +4682,38 @@ function exportEnvelope(items) {
            criteriaLanguages: exchangeCriterionLanguages(),
            categoryNames: exchangeCategoryNames(),
            categoryLanguages: exchangeCategoryLanguages(), items };
+}
+
+/* ---- Die Datei entsteht stueckweise ------------------------------------
+   Der Kopf kommt aus demselben Umschlag ohne Eintraege, nur ohne den Schluss
+   `]}`. Zwei Bauformen fuer dieselbe Datei liefen auseinander. */
+function exportHead() {
+  const head = JSON.stringify(exportEnvelope([]));
+  return head.slice(0, -']}'.length);
+}
+
+/* Geschrieben wird erst weiter, wenn der Socket wieder Luft hat -- sonst
+   stuende die ganze Datei in seinem Puffer. */
+function untilDrained(res) {
+  return new Promise((done, fail) => {
+    const gone = () => { res.off('drain', ready); fail(new Error('the client closed the connection')); };
+    const ready = () => { res.off('close', gone); done(); };
+    res.once('drain', ready);
+    res.once('close', gone);
+  });
+}
+
+/* Der Export als Folge von Schreibvorgaengen. Die Koepfe stehen vor dem
+   ersten; danach geht keiner mehr hinaus. */
+async function writeExport(res, rows, situation) {
+  const push = async (text) => { if (!res.write(text)) await untilDrained(res); };
+  await push(exportHead());
+  let first = true;
+  for (const it of rows) {
+    await push((first ? '' : ',') + JSON.stringify(entryAsBundle(it, situation)));
+    first = false;
+  }
+  res.end(']}');
 }
 
 // Der Dateiname einer Exportdatei. Aus dem Titel der Instanz, damit zwei
@@ -4820,12 +4872,6 @@ function exchangeEnvelopeFrame() {
                           items: [] }).length;
 }
 
-/* Wie viele Bytes eine Datei traegt, BEVOR sie gebaut wird -- als eine Zahl. */
-function exchangeBytes(switches) {
-  const parts = exchangeParts(switches);
-  return parts.photos + parts.videos + parts.attachments + parts.commentImages + exchangeEnvelopeBytes();
-}
-
 /* ---- Export ---- */
 // Nur der Eigentuemer.
 /* DIE ZWEITE BESTAETIGUNG ALS WAECHTER, und hier gab es keine Wahl: der Knopf
@@ -4840,7 +4886,7 @@ app.get('/api/export/plan', ownerOnly, (req, res) => {
   }, req.query.target));
 });
 
-app.get('/api/export', ownerOnly, secondConfirmNeeded('export'), (req, res) => {
+app.get('/api/export', ownerOnly, secondConfirmNeeded('export'), async (req, res) => {
   const switches = {
     withPhotos: req.query.photos !== '0',
     // Eigener Schalter, Vorgabe aus: bei 50 MB je Datei waere die Exportdatei
@@ -4851,8 +4897,6 @@ app.get('/api/export', ownerOnly, secondConfirmNeeded('export'), (req, res) => {
        EINEM String. */
     withVideos: req.query.videos === '1'
   };
-  /* DIE ABSAGE STEHT VOR DEM BAU, nicht hinter dem Abbruch -- dieselbe
-     Bauform wie am Einzelexport eine Seite weiter unten. */
   /* DAS FENSTER. Ohne `von`/`bis` ist es der ganze Bestand -- der alte Weg,
      Zeile fuer Zeile derselbe. */
   const number = (w) => { const n = Number(w); return Number.isInteger(n) && n > 0 ? n : null; };
@@ -4865,27 +4909,24 @@ app.get('/api/export', ownerOnly, secondConfirmNeeded('export'), (req, res) => {
   if (asPart && (from > to || part > parts || parts > EXCHANGE_PART_MAX))
     return res.status(400).json({ error: t(localeOf(req), 'server.partExportMismatch')});
 
-  const big = exchangeBytes(switches);
-  if (!asPart && big > EXCHANGE_MAX)
-    return res.status(413).json({ error:
-      t(localeOf(req), 'server.exportTooBig', { mb: Math.round(big / 1048576), limit: Math.round(EXCHANGE_STRING / 1048576) })});
   const situation = bundleState(req.user.id, switches);
-  const items = (asPart
+  const rows = asPart
     ? db.prepare('SELECT * FROM items WHERE id BETWEEN ? AND ? ORDER BY id').all(from, to)
-    : db.prepare('SELECT * FROM items ORDER BY id').all()).map(it => entryAsBundle(it, situation));
+    : db.prepare('SELECT * FROM items ORDER BY id').all();
   /* Ein Teil steht als solcher im Protokoll -- sonst saehe ein Bestand, der
      in fuenf Teilen hinausgeht, aus wie fuenf volle Exporte. */
   auth.log('export', { actor: req.user.id, detail: asPart ? 'part' : null });
+  /* DIE BEIDEN KOEPFE STEHEN VOR DEM ERSTEN SCHREIBEN. */
+  res.set('Content-Type', 'application/json');
   res.set('Content-Disposition',
     `attachment; filename="${exportName(asPart ? `-teil-${part}-von-${parts}` : '')}"`);
-  /* DAS NETZ UNTER DER SCHAETZUNG. Die Absage oben rechnet, sie misst nicht
-     -- faellt sie zu niedrig aus, wirft `res.json` genau hier. */
-  try { res.json(exportEnvelope(items)); }
+  try { await writeExport(res, rows, situation); }
   catch (e) {
-    if (!(e instanceof RangeError)) throw e;
-    res.removeHeader('Content-Disposition');
-    res.status(413).json({ error:
-      t(localeOf(req), 'server.exportGrew', { limit: Math.round(EXCHANGE_STRING / 1048576) })});
+    /* EIN FEHLERCODE GEHT NICHT MEHR HINAUS: die Antwort traegt schon 200.
+       Die Datei bricht ohne `]}` ab und ist damit ungueltiges JSON -- der
+       Import weist sie ab. */
+    logFail(`Export broke off after the response had started: ${e.message}`);
+    res.end();
   }
 });
 
@@ -4894,8 +4935,190 @@ app.get('/api/export', ownerOnly, secondConfirmNeeded('export'), (req, res) => {
    Rufer. Voller Export und Teilexport tragen dieselben Buendel. */
 
 /* ---- Import ---- */
-const IMPORT_MAX = 900 * 1024 * 1024;
-const importUpload = multer({ storage: multer.memoryStorage(), limits: { fileSize: IMPORT_MAX } });
+const IMPORT_MAX = 4 * 1024 * 1024 * 1024;
+/* Der Aufschlag auf die angekuendigte Groesse, wie beim Schluesselwechsel. */
+const IMPORT_MARGIN = 1.1;
+
+/* DIE DATEI LIEGT IM DATENVERZEICHNIS UND NICHT IN /tmp: das ist im Container
+   oft klein und liegt nicht auf dem eingehaengten Datentraeger. */
+const IMPORT_DIR = path.join(DATA_DIR, 'import');
+fs.mkdirSync(IMPORT_DIR, { recursive: true });
+
+/* Erste und einzige Aufrufstelle: der Start. Ein Absturz mitten im Import
+   laesst eine Datei liegen, und das `finally` der Route erreicht sie nicht
+   mehr. */
+function clearImports() {
+  let n = 0;
+  for (const name of fs.readdirSync(IMPORT_DIR)) {
+    try { fs.rmSync(path.join(IMPORT_DIR, name), { recursive: true, force: true }); n++; }
+    catch (e) { logWarn(`Import: ${name} could not be removed -- ${e.message}`); }
+  }
+  return n;
+}
+{
+  const left = clearImports();
+  if (left) logLine(`Import: ${left} leftover file(s) removed at startup.`);
+}
+
+const importUpload = multer({
+  storage: multer.diskStorage({
+    destination: (req, file, cb) => cb(null, IMPORT_DIR),
+    filename: (req, file, cb) => cb(null, crypto.randomBytes(16).toString('hex') + '.json')
+  }),
+  limits: { fileSize: IMPORT_MAX }
+});
+
+/* DER FREIE PLATZ, BEVOR EIN BYTE GESCHRIEBEN WIRD -- dieselbe Bauform wie im
+   Schluesselwerkzeug. Ein unbekannter Wert ist KEINE Absage: statfs kann auf
+   einem ungewoehnlichen Dateisystem scheitern. */
+function importSpace(req, res, next) {
+  const wanted = Math.ceil(Number(req.headers['content-length'] || 0) * IMPORT_MARGIN);
+  let free = null;
+  try { const z = fs.statfsSync(IMPORT_DIR); free = z.bsize * z.bavail; } catch {}
+  if (free !== null && wanted > free)
+    return res.status(507).json({ error: t(localeOf(req), 'server.importNoSpace',
+      { needed: Math.round(wanted / 1048576), free: Math.round(free / 1048576) })});
+  next();
+}
+
+/* ---- DIE DATEI WIRD STUECKWEISE GELESEN --------------------------------
+   Der Kopf steht vorn und ist klein, `items` ist eine Liste. Ein `JSON.parse`
+   darueber legte jeden Base64-String zugleich in den Arbeitsspeicher. */
+const IMPORT_CHUNK = 1024 * 1024;
+const SPACE_CHARS = ' \t\n\r';
+// Zahl, true, false und null enden vor einem dieser Zeichen.
+const VALUE_END = ',}]' + SPACE_CHARS;
+
+/* Eine ungueltige Datei ist eine Auskunft ueber die Datei und kein Fehler der
+   Instanz -- sie geht als 400 hinaus. */
+const brokenFile = () => {
+  const e = new Message('server.exportInvalid');
+  e.denial = true;
+  return e;
+};
+
+/* Die Lesestelle in der Datei. Gelesen wird in Bloecken; was hinter der
+   Lesestelle liegt, faellt auf Zuruf weg. */
+function jsonCursor(fd) {
+  const decoder = new StringDecoder('utf8');
+  const raw = Buffer.allocUnsafe(IMPORT_CHUNK);
+  let text = '', at = 0, ended = false;
+  const fill = () => {
+    if (ended) return false;
+    const n = fs.readSync(fd, raw, 0, raw.length, null);
+    if (!n) { text += decoder.end(); ended = true; return false; }
+    text += decoder.write(raw.subarray(0, n));
+    return true;
+  };
+  return {
+    char() { while (at >= text.length && fill()); return at < text.length ? text[at] : null; },
+    step() { at++; },
+    mark: () => at,
+    since: (was) => text.slice(was, at),
+    forget() { text = text.slice(at); at = 0; }
+  };
+}
+
+const skipSpace = (c) => { while (SPACE_CHARS.includes(c.char())) c.step(); };
+
+/* Laeuft ueber einen String samt seinen Maskierungen. */
+function skipString(c) {
+  c.step();
+  for (;;) {
+    const z = c.char();
+    if (z === null) throw brokenFile();
+    c.step();
+    if (z === '\\') { if (c.char() === null) throw brokenFile(); c.step(); continue; }
+    if (z === '"') return;
+  }
+}
+
+/* Laeuft ueber genau einen Wert und laesst die Lesestelle dahinter. */
+function skipValue(c) {
+  skipSpace(c);
+  const first = c.char();
+  if (first === null) throw brokenFile();
+  if (first === '"') return skipString(c);
+  if (first !== '{' && first !== '[') {
+    while (c.char() !== null && !VALUE_END.includes(c.char())) c.step();
+    return;
+  }
+  let depth = 0;
+  for (;;) {
+    const z = c.char();
+    if (z === null) throw brokenFile();
+    if (z === '"') { skipString(c); continue; }
+    c.step();
+    if (z === '{' || z === '[') depth++;
+    else if (z === '}' || z === ']') { depth--; if (!depth) return; }
+  }
+}
+
+/* Der Kopf als Objekt, die Eintraege als Folge. Der Kopf ist vollstaendig,
+   sobald die Folge zu Ende gelesen ist; die Felder VOR `items` stehen sofort
+   da, und in einer Datei dieser Instanz stehen sie alle dort. */
+function exchangeFromFile(file) {
+  const fd = fs.openSync(file, 'r');
+  const c = jsonCursor(fd);
+  // Ohne Prototyp: ein Feld namens __proto__ aus der Datei setzte sonst den
+  // Prototyp des Kopfes statt ein Feld darin.
+  const head = Object.create(null);
+  let open = true;
+  const close = () => { if (open) { open = false; try { fs.closeSync(fd); } catch {} } };
+  const parsed = (text) => { try { return JSON.parse(text); } catch { throw brokenFile(); } };
+  const value = () => { const was = c.mark(); skipValue(c); const w = c.since(was); c.forget(); return w; };
+  /* Liest Kopffelder, bis `items` ansteht oder das Objekt zu ist. */
+  const nextField = () => {
+    for (;;) {
+      skipSpace(c);
+      const z = c.char();
+      if (z === '}') { c.step(); return null; }
+      if (z === ',') { c.step(); continue; }
+      if (z !== '"') throw brokenFile();
+      const was = c.mark();
+      skipString(c);
+      const name = parsed(c.since(was));
+      c.forget();
+      skipSpace(c);
+      if (c.char() !== ':') throw brokenFile();
+      c.step();
+      if (name === 'items') return name;
+      head[name] = parsed(value());
+    }
+  };
+  try {
+    skipSpace(c);
+    if (c.char() !== '{') throw brokenFile();
+    c.step();
+    if (nextField() === null) { close(); return { head, items: null }; }
+    skipSpace(c);
+    if (c.char() !== '[') throw brokenFile();
+    c.step();
+  } catch (e) { close(); throw e; }
+
+  function* entries() {
+    try {
+      for (let first = true; ; first = false) {
+        skipSpace(c);
+        const z = c.char();
+        if (z === null) throw brokenFile();
+        if (z === ']') { c.step(); break; }
+        if (!first) { if (z !== ',') throw brokenFile(); c.step(); }
+        skipSpace(c);
+        if (c.char() === ']') throw brokenFile();
+        yield parsed(value());
+      }
+      /* Was hinter der Liste steht, gehoert wieder zum Kopf -- und der
+         Schluss `}` MUSS dastehen: ohne ihn ist die Datei abgebrochen. */
+      for (;;) {
+        const name = nextField();
+        if (name === null) break;
+        if (name === 'items') throw brokenFile();
+      }
+    } finally { close(); }
+  }
+  return { head, items: entries() };
+}
 
 /* DER DESERIALISIERER, und er steht hier statt im Routenrumpf -- aus
    demselben Grund wie die Abbildung eine Seite weiter oben: das
@@ -5024,6 +5247,11 @@ async function importPrepare(payload, bytesSource) {
       }
       if (done.length) commentImages.set(c, done);
     }
+    /* DIE BASE64-STRINGS WERDEN NICHT MEHR GEBRAUCHT: was die Transaktion
+       liest, steht in `photos` und `attachments`. */
+    it.photos = undefined;
+    it.attachments = undefined;
+    for (const c of it.comments || []) c.images = undefined;
     prepared.push({ it, photos, attachments });
   }
   return { prepared, commentImages, videosWithoutFile, videosUnreadable };
@@ -5305,24 +5533,27 @@ async function importInto(payload, userId, mode2, bytesSource = null) {
 }
 
 /* Nur der Eigentuemer. */
-/* DIE ZWEITE BESTAETIGUNG STEHT VOR multer, aus demselben Grund wie der
-   Waechter darueber: eine bis zu 900 MB grosse Datei soll gar nicht erst
-   eingelesen werden, wenn die Handlung ohnehin abgewiesen wird. */
-app.post('/api/import', ownerOnly, secondConfirmNeeded('import'),
+/* DIE ZWEITE BESTAETIGUNG UND DIE PLATZPROBE STEHEN VOR multer: eine Datei
+   von mehreren Gigabyte soll gar nicht erst geschrieben werden, wenn die
+   Handlung ohnehin abgewiesen wird oder der Platz nicht reicht. */
+app.post('/api/import', ownerOnly, secondConfirmNeeded('import'), importSpace,
          capped(importUpload.single('file'),
                 { count: 1, bytes: IMPORT_MAX, key: 'server.importOne' }),
          async (req, res, next) => {
+  if (!req.file) return res.status(400).json({ error: t(localeOf(req), 'server.noFile')});
+  /* DAS `finally` STEHT UM ALLES: die Datei muss auf jedem Weg wieder weg --
+     beim Erfolg, beim Fehler, beim Abbruch des Browsers. */
   try {
-    if (!req.file) return res.status(400).json({ error: t(localeOf(req), 'server.noFile')});
     const mode = req.body.mode === 'replace' ? 'replace' : 'merge';
-    let payload;
-    try { payload = JSON.parse(req.file.buffer.toString('utf8')); }
-    catch { return res.status(400).json({ error: t(localeOf(req), 'server.exportInvalid')}); }
-    if (!payload || !Array.isArray(payload.items))
+    const file = exchangeFromFile(req.file.path);
+    if (!file.items)
       return res.status(400).json({ error: t(localeOf(req), 'server.exportEmpty')});
     // newIds bleibt hier liegen: eine Datei mit hundert Eintraegen liefert
 // hundert Nummern, mit denen die Oberflaeche nichts anfaengt.
-    const { newIds, ...response } = await importInto(payload, req.user.id, mode);
+    /* Der Kopf reist als Ganzes weiter: was HINTER der Liste steht, traegt er
+       nach, sobald die Liste gelesen ist. */
+    file.head.items = file.items;
+    const { newIds, ...response } = await importInto(file.head, req.user.id, mode);
     auth.log('import', { actor: req.user.id, detail: mode });
     res.json(response);
   } catch (e) {
@@ -5331,6 +5562,9 @@ app.post('/api/import', ownerOnly, secondConfirmNeeded('import'),
        nicht als 500 durch den Fehler-Handler. */
     if (e && e.denial) return res.status(400).json({ error: errorText(req, e) });
     next(e);
+  } finally {
+    try { fs.rmSync(req.file.path, { force: true }); }
+    catch (e) { logWarn(`Import: ${req.file.path} stayed behind -- ${e.message}`); }
   }
 });
 
@@ -5343,8 +5577,19 @@ const TRASH_DAYS = 30;
 
 const insertTrash = db.prepare(
   'INSERT INTO trash (title, content, deleted_by) VALUES (?, ?, ?)');
-const insertTrashBytes = db.prepare(
-  'INSERT INTO trash_bytes (trash_id, part, data) VALUES (?, ?, ?)');
+/* JE TRAEGERSPALTE EINE ANWEISUNG, und keine von ihnen fuehrt die Bytes durch
+   Node: SQLite liest die Zelle und schreibt sie in derselben Anweisung. */
+const insertTrashBytes = {
+  commentImage: db.prepare(
+    'INSERT INTO trash_bytes (trash_id, part, data) SELECT ?, ?, data FROM comment_images WHERE id = ?'),
+  photo: db.prepare(
+    'INSERT INTO trash_bytes (trash_id, part, data) SELECT ?, ?, data FROM photos WHERE id = ?'),
+  // Dieselbe Wahl wie im Buendel: das mittlere Bild, sonst die Vorschau.
+  still: db.prepare(
+    'INSERT INTO trash_bytes (trash_id, part, data) SELECT ?, ?, COALESCE(medium, thumb) FROM photos WHERE id = ?'),
+  file: db.prepare(
+    'INSERT INTO trash_bytes (trash_id, part, data) SELECT ?, ?, data FROM attachments WHERE id = ?')
+};
 const qTrashBytes = db.prepare(
   'SELECT data FROM trash_bytes WHERE trash_id = ? AND part = ?');
 const delTrashOld = db.prepare(
@@ -5381,16 +5626,17 @@ setInterval(auth.cleanupAttempts, 60 * 60 * 1000).unref();
 function intoTrash(itemId, actor) {
   const it = db.prepare('SELECT * FROM items WHERE id = ?').get(itemId);
   if (!it) return null;
-  const collector = [];
+  const sources = [];
   const situation = bundleState(actor, {
     // Ohne Schalter: der Papierkorb ist kein Export, sondern der Rueckweg.
 // Ein Rueckweg, der die Videos wegliesse, waere keiner.
-    withPhotos: true, withFiles: true, withVideos: true, funnel: funnelStore(collector)
+    withPhotos: true, withFiles: true, withVideos: true, funnel: funnelStore(sources)
   });
   return db.transaction(() => {
     const envelope = exportEnvelope([entryAsBundle(it, situation)]);
     const p = insertTrash.run(it.title, JSON.stringify(envelope), actor);
-    collector.forEach((buf, nr) => insertTrashBytes.run(p.lastInsertRowid, nr, buf));
+    sources.forEach(([column, id], nr) =>
+      insertTrashBytes[column].run(p.lastInsertRowid, nr, id));
     db.prepare('DELETE FROM items WHERE id = ?').run(it.id);
     return p.lastInsertRowid;
   })();

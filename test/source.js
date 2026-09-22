@@ -361,7 +361,15 @@ async function run() {
     && (fPackTable.match(/\['\./g) || []).length === 5
     && !/db\.|prepare|SELECT/i.test(fPackTable),
     fPackTable ? `${(fPackTable.match(/\['\./g) || []).length} Endungen` : '(keine Tafel)');
-  const fTypeSelf = typeCount(fSource.split(TYPE_ALLOWED).join(''));
+  /* EINE ZWEITE AUSNAHME, und auch sie steht als ganze Zeile da: der Export
+     schreibt stueckweise und kommt deshalb nicht mehr ueber res.json(), das
+     den Typ selbst setzte. Der Wert ist ein fester String. */
+  const TYPE_EXPORT = "  res.set('Content-Type', 'application/json');";
+  check('Die zweite erlaubte Stelle steht genau einmal in server.js',
+    fSource.split(TYPE_EXPORT).length - 1 === 1,
+    `${fSource.split(TYPE_EXPORT).length - 1} Vorkommen`);
+  const fTypeSelf = typeCount(
+    fSource.split(TYPE_ALLOWED).join('').split(TYPE_EXPORT).join(''));
   check('server.js setzt den Content-Type an keiner Stelle selbst',
     fTypeSelf.length === 0, fTypeSelf.map(([z, n]) => `${z} (${n}x)`).join(' · '));
   /* DIE GEGENPROBE ZUM WAECHTER SELBST. */
@@ -463,9 +471,26 @@ async function run() {
 // Zeilen bliebe jede Verneinung darauf wahr und belegte nichts.
   check('Der Waechter findet die Abfragen auf den Bestand ueberhaupt',
     fInventoryRows.length > 30, `${fInventoryRows.length} Zeilen`);
+  /* VIER BENANNTE AUSNAHMEN: die Kopieranweisungen des Papierkorbs lesen den
+     Bestand ungefiltert und SCHREIBEN nach trash_bytes. Keine bestehende
+     Abfrage wird dadurch enger. */
+  const fTrashCopies = fInventoryRows.filter(z => z.includes('INSERT INTO trash_bytes'));
+  check('Die vier Kopieranweisungen des Papierkorbs stehen da',
+    fTrashCopies.length === 4, `${fTrashCopies.length} Zeilen`);
+  check('Und keine von ihnen verengt den Bestand',
+    fTrashCopies.every(z => /WHERE id = \?'\)/.test(z) && !/deleted/i.test(z)),
+    fTrashCopies.filter(z => !/WHERE id = \?'\)/.test(z)).join(' · '));
   check('Keine davon nennt den Papierkorb oder einen Zustand geloescht',
-    tainted(fInventoryRows).length === 0,
-    tainted(fInventoryRows).slice(0, 3).join(' · '));
+    tainted(fInventoryRows.filter(z => !fTrashCopies.includes(z))).length === 0,
+    tainted(fInventoryRows.filter(z => !fTrashCopies.includes(z))).slice(0, 3).join(' · '));
+  /* UND DIE DREI ABFRAGEN, DIE DER PAPIERKORB STATT DER VOLLEN NIMMT, LESEN
+     WIRKLICH KEINE BYTES -- sonst waere die Kopie in SQLite umsonst. */
+  const fRefQueries = fSource.match(/const qRef\w+ = [\s\S]*?\);\n/g) || [];
+  check('Der Papierkorb hat drei Abfragen ohne Blobspalten',
+    fRefQueries.length === 3, `${fRefQueries.length} Abfragen`);
+  check('Und keine von ihnen liest die Spalte data',
+    fRefQueries.every(z => !/\bdata\b/.test(z)),
+    fRefQueries.filter(z => /\bdata\b/.test(z)).join(' · ').slice(0, 200));
   check('Und er wuerde einen solchen Zusatz wirklich finden',
     tainted(inventoryQueries(
       "  const x = db.prepare('SELECT * FROM items WHERE deleted = 0').all();")).length === 1,
@@ -1143,8 +1168,11 @@ async function run() {
        sein Hinweis. */
     /* VIER MEHR: die drei mitgelieferten Kriterien stehen jetzt in den
        Sprachdateien, dazu das Wort an der Marke des geloeschten Kommentars. */
-    check('Und die Zahlen stehen: 1321 Schluessel, 88 Mehrzahlformen, 15 Vokabelnamen',
-      languageKeys.length === 1321 && pluralKeys.length === 88 && vocabularyKeys.length === 15,
+    /* UND ZEHN MEHR: elf Saetze des Hinweises vor Export und Import und die
+       Absage an zu wenig Platz, dagegen zwei Absagen weniger -- die Grenze
+       des Gesamtexports ist fort. */
+    check('Und die Zahlen stehen: 1331 Schluessel, 88 Mehrzahlformen, 15 Vokabelnamen',
+      languageKeys.length === 1331 && pluralKeys.length === 88 && vocabularyKeys.length === 15,
       `${languageKeys.length} / ${pluralKeys.length} / ${vocabularyKeys.length}`);
 
     /* ---- 3. */
@@ -1383,6 +1411,24 @@ async function run() {
        `server.entryTooBig` stand im Vergleichsstand, `entry.exportOne` nicht:
        er ist erst mit 0.35.0 entstanden. */
     const WORDING_GONE_0352 = ['entry.exportOne', 'server.entryTooBig'];
+    /* UND ZWOELF KOMMEN DAZU: der Hinweis vor Export und Import mit seiner
+       Gegenueberstellung der drei Wege, dazu die Absage an zu wenig Platz. */
+    const WORDING_NEW_0400 = ['card.carryOn', 'card.exportRunTitle',
+      'card.importRunTitle', 'card.runKeepOpen', 'card.runNoProgress',
+      'card.runTakesTime', 'card.wayBackupHint', 'card.wayFile',
+      'card.wayFileHint', 'card.wayPartsHint', 'card.whichWayHeading',
+      'server.importNoSpace'];
+    /* UND ZWEI FALLEN: die Absage vor dem Bau und das Netz darunter. Der
+       Gesamtexport hat keine Grenze mehr. */
+    const WORDING_GONE_0400 = ['server.exportTooBig', 'server.exportGrew'];
+    const goneStill18 = [];
+    for (const code of ['de', 'en', 'tr']) {
+      const file = JSON.parse(fs.readFileSync(
+        path.join(__dirname, 'public', 'languages', `${code}.json`), 'utf8'));
+      for (const k of WORDING_GONE_0400) if (file[k] !== undefined) goneStill18.push(`${code}/${k}`);
+    }
+    check('Und die zwei Schluessel der Absage stehen in keiner Datei mehr',
+      goneStill18.length === 0, goneStill18.join(' ') || 'in allen dreien weg');
     const WORDING_NEW = [...WORDING_NEW_0243, ...WORDING_NEW_0244,
       ...WORDING_NEW_0245, ...WORDING_NEW_0246, ...WORDING_NEW_0250,
       ...WORDING_NEW_0254, ...WORDING_NEW_0260, ...WORDING_NEW_0270,
@@ -1390,7 +1436,8 @@ async function run() {
       ...WORDING_NEW_0300, ...WORDING_NEW_0311, ...WORDING_NEW_0314,
       ...WORDING_NEW_0320, ...WORDING_NEW_0321, ...WORDING_NEW_0330,
       ...WORDING_NEW_0350, ...WORDING_NEW_0351, ...WORDING_NEW_0352,
-      ...WORDING_NEW_0360, ...WORDING_NEW_0380, ...WORDING_NEW_0384]
+      ...WORDING_NEW_0360, ...WORDING_NEW_0380, ...WORDING_NEW_0384,
+      ...WORDING_NEW_0400]
       .filter(k => !WORDING_GONE_0321.includes(k) && !WORDING_GONE_0330.includes(k)
                 && !WORDING_GONE_0352.includes(k));
     const wordingMissing = WORDING_NEW.filter(k => LANGUAGE_FILE[k] === undefined);
@@ -1648,6 +1695,12 @@ async function run() {
       'Dieser {sacheEinzahl} ist als Datei zu groß (rund {mb} MB). Eine ' +
       'Exportdatei ist ein einziger Text, und der kann nicht größer als ' +
       '{grenze} MB werden.'];
+    /* UND DIE ZWEI WORTLAUTE DER ABSAGE AUS DEM STAND VON DAMALS -- sonst
+       stuenden sie fuer immer in `onlyThen` und die beiden Zahlen der
+       Wortlautprobe liefen auseinander. */
+    const WORDING_GONE_TEXT_0400 = [
+      'Dieser Export wäre rund {mb} MB groß. Eine Exportdatei ist ein einziger Text, und der kann nicht größer als {grenze} MB werden. Nimm die Sicherung — sie schreibt den ganzen Bestand und braucht dafür keinen nennenswerten Arbeitsspeicher.',
+      'Dieser Export ist zu groß geworden. Eine Exportdatei ist ein einziger Text, und der kann nicht größer als {grenze} MB werden. Nimm die Sicherung — sie schreibt den ganzen Bestand und braucht dafür keinen nennenswerten Arbeitsspeicher.'];
     const goneStill14 = [];
     for (const code of ['de', 'en', 'tr']) {
       const file = JSON.parse(fs.readFileSync(
@@ -1696,7 +1749,7 @@ async function run() {
       ...WORDING_GONE_TEXT_0281, ...WORDING_GONE_TEXT_0300,
       ...WORDING_GONE_TEXT_0310, ...WORDING_GONE_TEXT_0311,
       ...WORDING_GONE_TEXT_0320, ...WORDING_GONE_TEXT_0321,
-      ...WORDING_GONE_TEXT_0352].map(flatten)
+      ...WORDING_GONE_TEXT_0352, ...WORDING_GONE_TEXT_0400].map(flatten)
       .reduce((list, sentence) => withoutOne(list, sentence), wordingFile.values.map(flatten))
       .sort();
     const wordingNow = valuesOf(wordingOld).map(asBefore).sort();
@@ -1727,8 +1780,11 @@ async function run() {
        `server.entryTooBig` faellt mit der Route, die ihn als einzige gerufen
        hat, und sein Wortlaut wird im selben Zug aus dem Stand von damals
        abgezogen (WORDING_GONE_TEXT_0352). */
-    check('Wortlautprobe: gleich viele Saetze wie bei der Abnahme — 1081',
-      wordingNow.length === wordingThen.length && wordingNow.length === 1081,
+    /* 1081 WURDEN 1079: die beiden Absagen des Gesamtexports fallen aus der
+       Datei von heute und werden im selben Zug aus dem Stand von damals
+       abgezogen (WORDING_GONE_TEXT_0400). */
+    check('Wortlautprobe: gleich viele Saetze wie bei der Abnahme — 1079',
+      wordingNow.length === wordingThen.length && wordingNow.length === 1079,
       `${wordingThen.length} damals, ${wordingNow.length} heute (ohne die ` +
       `${WORDING_NEW.length} neuen und die weggenommenen)`);
     /* ZWEI SAETZE SIND ANDERE, UND BEIDE SIND BENANNT. */
@@ -1781,7 +1837,7 @@ async function run() {
       'card.backupWrittenFile', 'card.keyBesideDb', 'card.keyStillBeside',
       'server.backupInDataDir', 'card.itemOne', 'card.itemMany',
       'card.cleanupAfterBackup', 'card.backupUnopenableHint',
-      'server.exportGrew', 'server.backupDirGone', 'server.backupDirNotSet',
+      'server.backupDirGone', 'server.backupDirNotSet',
       'server.backupConcurrent', 'server.targetNotNumber', 'server.partExportIncomplete',
       'mail.invite.body', 'mail.confirm.body', 'mail.test.body',
       'card.adminOnlyCategory', 'card.adminOnlyTag', 'card.lastSeen', 'card.linkUsed',
@@ -1827,8 +1883,7 @@ async function run() {
       "entry.weightsWhere",
       "list.searchOffline", "list.searchingShort", "list.visibleCount",
       "login.newPasswordFor", "login.noPhoneHint", "login.requestAccessHint",
-      "login.welcome", "mail.hintAlways", "mail.hintGmx",
-      "server.exportGrew", "server.exportTooBig"];
+      "login.welcome", "mail.hintAlways", "mail.hintGmx"];
     /* UND EINER MIT 0.31.2 -- der einzige deutsche Wert, den jene Runde
        angefasst hat, und zwar auf Bestellung des Betreibers am 13. September
        2026: „Zugang beantragen" heisst „Zugang anfragen". */
@@ -1867,8 +1922,11 @@ async function run() {
        statt der Tasten, und es steht mit dem alten Wortlaut drueben und mit
        dem neuen hier. */
     const WORDING_CHANGED_0384 = ['entry.commentPlaceholder'];
-    check('Und genau hundertsechzig Saetze sind andere — einer mehr, seit das Kommentarfeld den Weg nennt',
-      onlyThen.length === 160 && onlyNow.length === 158 &&
+    /* UND ZWEI WENIGER AUF JEDER SEITE: `server.exportGrew` und
+       `server.exportTooBig` gibt es nicht mehr, und ihre beiden Wortlaute
+       stehen damit auf keiner der beiden Seiten. */
+    check('Und genau hundertachtundfuenfzig Saetze sind andere — zwei weniger, seit die Absage fort ist',
+      onlyThen.length === 158 && onlyNow.length === 156 &&
       WORDING_CHANGED_0384.every(k => LANGUAGE_FILE[k] !== undefined
         && onlyNow.includes(asBefore(LANGUAGE_FILE[k]))) &&
       WORDING_CHANGED_0321.every(k => LANGUAGE_FILE[k] !== undefined
@@ -3159,13 +3217,13 @@ async function run() {
     }
     check('Keine der sechs Dateien schreibt den Namen noch selbst',
       zpLoose.length === 0, zpLoose.join(' · ') || 'alle ueber log.js');
-    /* UND ES SIND WIRKLICH NEUNUNDVIERZIG ZEILEN -- ein Waechter, der auf
-       einer leeren Menge laeuft, ist gruen und belegt nichts. Drei sind mit
-       den Ansagen an eine .env aus alter Zeit weggefallen. */
+    /* UND ES SIND WIRKLICH DREIUNDFUENFZIG ZEILEN -- ein Waechter, der auf
+       einer leeren Menge laeuft, ist gruen und belegt nichts. Vier sind mit
+       dem stueckweisen Export und Import dazugekommen. */
     const zpCount = zpFiles.reduce((n, f) =>
       n + (zpRead(f).match(/\blog(?:Line|Warn|Fail)\(/g) || []).length, 0);
-    check('Und es sind 49 Protokollzeilen in den sechs Dateien',
-      zpCount === 49, `${zpCount} Zeilen`);
+    check('Und es sind 53 Protokollzeilen in den sechs Dateien',
+      zpCount === 53, `${zpCount} Zeilen`);
     /* DIE BEISPIELDATEI SETZT TZ. Ohne sie laeuft der Container auf UTC, und
        der Versatz waere immer +00:00. */
     const zpCompose = fs.readFileSync(

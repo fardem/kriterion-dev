@@ -1402,11 +1402,12 @@ async function run() {
   check('Ueber dem Schwellwert steht die Warnung da', warnText.length > 40, warnText.slice(0, 80));
   check('Sie nennt die erwartete Groesse',
     warnText.includes(exG.fmtBytes(920 * MB)), warnText.slice(0, 160));
-  /* ZU NENNEN IST DIE ZAHL, BEI DER ES KIPPT -- nicht die, bei der es
-     unbequem wird. */
-  check('Und die Grenze, an der es wirklich kippt',
-    warnText.includes(exG.fmtBytes(exBig.string)), warnText.slice(0, 220));
-  check('Und zwar Nodes Stringgrenze und nicht unsere Marge davor',
+  /* KEINE GRENZE MEHR: der Export schreibt stueckweise, und eine Hoechst-
+     groesse je Datei gibt es nicht. Genannt wird, was wirklich kommt. */
+  check('Sie sagt an, dass es dauert und keinen Fortschritt gibt',
+    /dauern/.test(warnText) && /Fortschrittsanzeige/.test(warnText), warnText.slice(0, 220));
+  check('Und sie nennt keine Zahl mehr als Grenze',
+    !warnText.includes(exG.fmtBytes(exBig.string)) &&
     !warnText.includes(exG.fmtBytes(exBig.limit)) &&
     !warnText.includes(exG.fmtBytes(exBig.warnFrom)), warnText.slice(0, 220));
   check('Sie verweist auf die Sicherung als den anderen Weg',

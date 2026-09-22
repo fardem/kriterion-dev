@@ -30,6 +30,53 @@ ihre deutschen Abschnittsüberschriften bleiben.*
 
 *Hier wird mitgeschrieben, während gebaut wird.*
 
+## [0.40.0] - 2026-09-22
+
+*Export und Import ohne den Arbeitsspeicher.*
+
+Fingerprint `@FP@` — davor `9d48cbbc`.
+
+> **DER EXPORT GEHT WIEDER IN EINER DATEI — bei jeder Bestandsgröße.** Die
+> Absage „dieser Export wäre zu groß" gibt es nicht mehr.
+>
+> **DAFÜR ZEIGT DER BROWSER KEINEN FORTSCHRITT MEHR.** Die Datei entsteht beim
+> Schreiben, ihre Größe steht vorher nicht fest. **Ein Dialog sagt das vor dem
+> Export und vor dem Import an** und stellt dabei die drei Wege nebeneinander.
+>
+> **Sonst ist nichts zu tun.** Das Austauschformat bleibt 18, der Inhalt der
+> Datei ist Zeichen für Zeichen derselbe, und eine ältere Datei kommt
+> unverändert herein.
+
+### Geändert
+
+- **Der Export schreibt stückweise statt in einem Zug.** Gemessen an 40
+  Einträgen zu je 6,0 MB, Datei 320,0 MB: die RSS-Spitze fällt von +1.125,8 MB auf
+  +314,8 MB, die Laufzeit von 16,02 s auf 3,95 s. Die Zahl hängt am größten
+  Einzeleintrag und wächst nicht mehr mit dem Bestand.
+- **Der Import liest die Datei eintragsweise von der Platte.** Sie liegt in
+  `DATA_DIR/import`, wird auf jedem Weg wieder entfernt, und der Serverstart
+  leert den Ordner.
+- **Die Grenze für die Importdatei steigt von 900 MB auf 4 GB**, und vor dem
+  Hochladen wird der freie Platz geprüft.
+- **Der Papierkorb kopiert die Bytes innerhalb von SQLite**, statt jedes Blob
+  durch Node zu führen.
+- Der Hinweis über dem Exportknopf nennt keine Höchstgröße je Datei mehr.
+
+### Entfernt
+
+- **Die Absage vor dem Gesamtexport** und der Fang darunter. Die Grenze bleibt
+  als Latte je Teil im Teilexport.
+- **`Content-Length` an der Exportantwort.** Der Browser kennt die Größe nicht
+  mehr und zeigt keinen Fortschritt.
+
+### Hinzugefügt
+
+- **Ein Dialog vor Export und Import.** Er sagt an, dass es dauern kann, dass
+  es keine Fortschrittsanzeige gibt und dass das Fenster offen bleiben muss —
+  und er stellt Export in einer Datei, Export in Teilen und Sicherung
+  nebeneinander.
+- **Der Abschnitt „Export und Import" im Handbuch.**
+
 ## [0.39.1] - 2026-09-22
 
 *Was für vergangene Prozesse gebaut wurde, geht heraus.*

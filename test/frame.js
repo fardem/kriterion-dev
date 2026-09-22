@@ -402,7 +402,7 @@ function startFurtherServer(dataDirectory, extraEnv, portBase) {
     }
     throw new Error(readyFailure(portBase, port, dataDirectory, log));
   })();
-  return { ready, call: callB, log: () => log, base,
+  return { ready, call: callB, log: () => log, base, pid: kindB.pid,
            cookieRemove: () => { cookieB = ''; },
            // Der laufende Sitzungscookie zum Mitgeben.
            cookieValue: () => cookieB,
