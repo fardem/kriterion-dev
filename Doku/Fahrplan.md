@@ -2164,13 +2164,38 @@ wird geschrieben. *Der Weg wäre je Trägertabelle eine Anweisung*
 **Dafür müsste `entryAsBundle` die Blobspalten gar nicht erst lesen** — und
 dieselbe Funktion trägt auch den Export.
 
+### Der Hinweis vor dem Lauf — Vorgabe des Betreibers vom 22. September 2026
+
+**Vor dem Export und vor dem Import steht ein Dialog**, der ansagt, was kommt:
+dass es je nach Bestand und Verbindung dauern kann, **dass es keine
+Fortschrittsanzeige gibt** und dass das Fenster offen bleiben muss.
+
+*Damit ist der Grund gelöst, an dem die Runde bisher hing.* **Der stückweise
+geschriebene Umschlag trägt keine `Content-Length` mehr, und ohne sie kann der
+Browser keinen Balken zeigen.** Der Weg ist nicht, den Balken zu retten,
+sondern vorher zu sagen, dass es keinen gibt.
+
+*Der Dialog ist keine Rückfrage mit Ausweg: er hat einen Knopf zum Weitermachen
+und einen zum Abbrechen, und er kommt vor jedem Lauf. Ein Häkchen „nicht mehr
+zeigen" ist nicht vorgesehen — wer exportiert, tut es selten.*
+
 ### Die Auflage
 
 **Eine Messung am laufenden Bestand steht davor.** Die Zahlen aus 0.35.0 sind
 gezählt und nicht gestoppt; ob der Umbau sich lohnt, entscheidet der Bestand
-des Betreibers und nicht eine gestellte Prüflage.
+des Betreibers und nicht eine gestellte Prüflage. *Das Werkzeug dafür ist
+`tools/exportscan.js`.*
 
-**Was es anfasst** — `server.js` *(drei Stellen)*, `test/roundtrip.js`.
+### Was an einer gestellten Lage schon gemessen ist
+
+**`JSON.stringify` über alle Bündel auf einmal ist die teuerste einzelne
+Zeile.** *An 21,1 MB Base64 gemessen: 364,3 ms — die Bündel selbst zu bauen
+kostete 8,0 ms.* **Und der Arbeitsspeicher steht dabei auf dem 1,7-fachen des
+rohen Bestands**, gemessen am RSS und nicht am Heap: V8 legt lange Strings
+ausserhalb des Heap ab.
+
+**Was es anfasst** — `server.js` *(drei Stellen)*, `public/app.js` *(der
+Dialog)*, die drei Sprachdateien, `test/roundtrip.js`.
 
 **Schema: nein. Format: ja** — die Antwort des Exports ändert ihre Form.
 
