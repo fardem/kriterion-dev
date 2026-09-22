@@ -10226,9 +10226,34 @@ function setUpExportOut(fetched) {
 // waere die Exportdatei sonst schnell unhandlich.
   const withFiles = () => (document.getElementById('ex-files')?.checked ? '&files=1' : '') +
                            (document.getElementById('ex-videos')?.checked ? '&videos=1' : '');
+
+  /* ---- DER HINWEIS VOR DEM LAUF ---- Er sagt an, was kommt, und stellt die
+     drei Wege nebeneinander. KEIN HAEKCHEN „nicht mehr zeigen": wer
+     exportiert, tut es selten. */
+  function longRunNotice(titleKey) {
+    return new Promise(resolve => {
+      const { bd, done } = openModal(`<div class="modal"><h2>${tH(titleKey)}</h2>
+        <p>${tH('card.runTakesTime')} ${tH('card.runNoProgress')} ${tH('card.runKeepOpen')}</p>
+        <div class="warn-box"><strong>${tH('card.whichWayHeading')}</strong>
+          <ul style="margin:6px 0 0 18px">
+            <li><strong>${tH('card.wayFile')}</strong> — ${tH('card.wayFileHint')}</li>
+            <li><strong>${tH('card.exportInParts')}</strong> — ${tH('card.wayPartsHint')}</li>
+            <li><strong>${tH('card.backup')}</strong> — ${tH('card.wayBackupHint')}</li>
+          </ul></div>
+        <div class="modal-acts">
+          <button class="btn btn-ghost" data-no>${tH('dialog.cancel')}</button>
+          <button class="btn btn-accent" data-yes>${tH('card.carryOn')}</button>
+        </div></div>`, resolve, false);
+      bd.querySelector('[data-no]').onclick = () => done(false);
+      bd.querySelector('[data-yes]').onclick = () => done(true);
+      bd.querySelector('[data-yes]').focus();
+    });
+  }
+
   /* DER EXPORT BLEIBT EINE NAVIGATION -- die Datei laeuft damit an der Platte
      vorbei statt vollstaendig im Speicher zu stehen. */
   const runExport = async (withPhotos) => {
+    if (!await longRunNotice('card.exportRunTitle')) return;
     if (!await secondConfirm('export', null, t('card.confirmExport'),
       t('card.exportHint') +
       t('card.exportContentHint'))) return;
@@ -10256,8 +10281,7 @@ function setUpExportOut(fetched) {
       boxId.innerHTML = `<div class="warn-box" style="margin:12px 0 0">
         ${tMarks('card.exportOversizeHint',
           { word: `<strong>${tH('card.exportWithPhotos', { withPhotos: fmtBytes(withPhotos) })}</strong>` },
-          { string: fmtBytes(ex.string),
-            rest: alsoWithout
+          { rest: alsoWithout
               ? t('card.sizeWithoutPhotos', { withoutPhotos: fmtBytes(withoutPhotos) })
               : t('card.withoutPhotosSize', { withoutPhotos: fmtBytes(withoutPhotos) }) })}
         <p style="margin:9px 0 0">${tMarks('card.usePartsHint', {
@@ -10401,6 +10425,7 @@ function askImport(file, limits) {
     bd.onclick = e => { if (e.target === bd) close(); };
 
     const run = async (mode) => {
+      if (!await longRunNotice('card.importRunTitle')) return;
       if (mode === 'replace' && !await confirmBox(t('card.replaceAsk'),
         t('card.importWipeHint'), t('card.replace'))) return;
       if (!await secondConfirm('import', null, t('card.confirmImport'),

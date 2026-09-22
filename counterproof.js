@@ -1372,16 +1372,11 @@ const REGRESSIONS = [
     expected: 'Handy und Tablett: die Staffel der Umbruchpunkte'
   },
   /* ---- 0.12.3: der Export sagt seine Groesse an ---- */
-  /* DIE SIEBEN HIER ZIELEN AUF DIE RECHNUNG UND AUF DIE KLEMME, nicht auf die
+  /* DIE FUENF HIER ZIELEN AUF DIE RECHNUNG UND AUF DIE KLEMME, nicht auf die
      Anzeige daneben: eine Zahl, die falsch gerechnet wird, faellt am
      Bildschirm nicht auf -- sie sieht genauso aus wie eine richtige. */
-  {
-    nr: '171', name: 'Der Umschlag faellt weg — ein Export ohne Fotos waere null Bytes gross',
-    file: 'server.js',
-    search: '  return parts.photos + parts.videos + parts.attachments + parts.commentImages + exchangeEnvelopeBytes();',
-    replacement: '  return teile.fotos + teile.videos + teile.anhaenge + teile.kommentarbilder;',
-    expected: 'Die Exportgroesse sagt sich an'
-  },
+  /* ZWEI SIND MIT DEM STUECKWEISEN EXPORT GEFALLEN: `exchangeBytes()` hat
+     keinen Rufer mehr, und die Absage vor dem Bau gibt es nicht mehr. */
   {
     /* DIE SUMME UEBER ALLE BLOB-SPALTEN IST DIE NAHELIEGENDE UND FALSCHE
        RECHNUNG: photos.thumb geht nie in die Datei. */
@@ -1389,13 +1384,6 @@ const REGRESSIONS = [
     file: 'server.js',
     search: "      `SELECT COALESCE(SUM(length(data)),0) n FROM photos WHERE kind != 'video'`));",
     replacement: "      `SELECT COALESCE(SUM(length(data) + COALESCE(length(thumb),0)),0) n FROM photos WHERE art != 'video'`));",
-    expected: 'Videos: Kennzahlen und Austausch'
-  },
-  {
-    nr: '173', name: 'Der Export baut erst und sagt danach ab',
-    file: 'server.js',
-    search: '  const big = exchangeBytes(switches);\n  if (!asPart && big > EXCHANGE_MAX)',
-    replacement: '  const gross = 0;\n  if (!asPart && gross > EXCHANGE_MAX)',
     expected: 'Videos: Kennzahlen und Austausch'
   },
   {
@@ -7894,8 +7882,8 @@ const REGRESSIONS = [
     /* ZUSAGE 7: ein Satz mehr, bei gleicher Laenge. */
     nr: '984', name: 'Ein englischer Wert traegt einen Satz mehr als sein deutscher',
     file: 'public/languages/en.json',
-    search: "  \"server.exportGrew\": \"The export file has passed the limit of {limit} MB. Use the backup — it writes the whole inventory and does not know this limit.\",",
-    replacement: "  \"server.exportGrew\": \"The export file has passed the limit of {limit} MB. Use the backup. It writes the whole inventory and does not know this limit.\",",
+    search: "  \"card.wayBackupHint\": \"the emergency. The complete, encrypted copy of the database — with everything the export leaves out.\",",
+    replacement: "  \"card.wayBackupHint\": \"the emergency. The complete, encrypted copy of the database. With everything the export leaves out.\",",
     expected: 'Englisch sitzt — 0.31.2'
   },
   {
@@ -7985,8 +7973,8 @@ const REGRESSIONS = [
     /* ZUSAGE 7: ein Satz mehr, bei gleicher Laenge. */
     nr: '995', name: 'Ein tuerkischer Wert traegt einen Satz mehr als sein deutscher',
     file: 'public/languages/tr.json',
-    search: "  \"server.exportGrew\": \"Dışa aktarma dosyası {limit} MB sınırını aştı. Yedeklemeyi kullan — o bütün veriyi yazar ve bu sınırı tanımaz.\",",
-    replacement: "  \"server.exportGrew\": \"Dışa aktarma dosyası {limit} MB sınırını aştı. Yedeklemeyi kullan. O bütün veriyi yazar ve bu sınırı tanımaz.\",",
+    search: "  \"card.wayBackupHint\": \"acil durum. Veritabanının eksiksiz, şifrelenmiş kopyası — dışa aktarmanın atladığı her şeyle birlikte.\",",
+    replacement: "  \"card.wayBackupHint\": \"acil durum. Veritabanının eksiksiz, şifrelenmiş kopyası. Dışa aktarmanın atladığı her şeyle birlikte.\",",
     expected: 'Tuerkisch sitzt — 0.31.3'
   },
   {
@@ -9670,6 +9658,43 @@ const REGRESSIONS = [
       + "  thumb BLOB,\n  sort_order INTEGER NOT NULL DEFAULT 0,\n"
       + "  created_at TEXT NOT NULL DEFAULT (datetime('now'))\n);",
     expected: 'Die Spaltenfolge: data steht am Ende'
+  },
+  /* ---- Export und Import ohne den Arbeitsspeicher ---- */
+  {
+    /* OHNE DEN SCHLUSS IST DIE DATEI UNGUELTIGES JSON -- und genau das ist
+       der eingebaute Schutz, wenn mitten im Schreiben etwas schiefgeht. */
+    nr: '1200', name: 'Der Export schreibt den Schluss nicht mehr',
+    file: 'server.js',
+    search: "  res.end(']}');",
+    replacement: '  res.end();',
+    expected: 'Der Export schreibt stueckweise'
+  },
+  {
+    /* EINE DATEI IM DATEISYSTEM MUSS AUF JEDEM WEG WIEDER WEG. */
+    nr: '1201', name: 'Der Import laesst seine Datei liegen',
+    file: 'server.js',
+    search: '  } finally {\n    try { fs.rmSync(req.file.path, { force: true }); }\n'
+      + '    catch (e) { logWarn(`Import: ${req.file.path} stayed behind -- ${e.message}`); }\n  }\n});',
+    replacement: '  }\n});',
+    expected: 'Der Export schreibt stueckweise'
+  },
+  {
+    /* OHNE DIE WARTE AUF drain SAMMELT SICH DIE GANZE DATEI IM PUFFER DES
+       SOCKETS, und der Umbau haette nichts gebracht. */
+    nr: '1202', name: 'Der Export beachtet den Rueckstau nicht mehr',
+    file: 'server.js',
+    search: '  const push = async (text) => { if (!res.write(text)) await untilDrained(res); };',
+    replacement: '  const push = async (text) => { res.write(text); };',
+    expected: 'Der Export schreibt stueckweise'
+  },
+  {
+    /* DER PAPIERKORB KOPIERT INNERHALB VON SQLITE -- die Abfrage ohne
+       Blobspalten ist die Bedingung dafuer. */
+    nr: '1203', name: 'Die blobfreie Abfrage des Papierkorbs liest wieder die Bytes',
+    file: 'server.js',
+    search: '  `SELECT id, mime_type, focus_x, focus_y, zoom, kind, duration,',
+    replacement: '  `SELECT id, data, mime_type, focus_x, focus_y, zoom, kind, duration,',
+    expected: 'Der Waechter ueber den Quelltext'
   },
 ];
 

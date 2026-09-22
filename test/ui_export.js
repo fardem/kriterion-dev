@@ -150,18 +150,20 @@ async function run() {
   check('Jeder Teil ist fuer sich gueltiges JSON', tlPackages.every(p => p && Array.isArray(p.items)));
   /* DERSELBE UMSCHLAG UND DIESELBE FORMATNUMMER -- daran haengt, dass der
      vorhandene Import sie ohne eine Zeile Aenderung annimmt. */
+  /* JEDE LESESTELLE ABGEFANGEN: ist ein Teil nicht lesbar, sollen die
+     Pruefungen darunter ROT werden und nicht der Lauf abreissen. */
   check('Jeder Teil traegt denselben Umschlag wie ein voller Export',
-    tlPackages.every(p => p.version === tlPackages[0].version && p.title === tlPackages[0].title
-      && Array.isArray(p.criteria) && p.criteria.length === tlPackages[0].criteria.length),
-    JSON.stringify(tlPackages.map(p => [p.version, p.criteria?.length])));
+    tlPackages.every(p => p?.version === tlPackages[0]?.version && p?.title === tlPackages[0]?.title
+      && Array.isArray(p?.criteria) && p.criteria.length === tlPackages[0]?.criteria?.length),
+    JSON.stringify(tlPackages.map(p => [p?.version, p?.criteria?.length])));
   // Jeder Teil traegt dieselbe Nummer wie ein voller Export -- ein Teil ist ein
 // vollstaendiges Paket mit weniger Eintraegen darin, kein halbes.
   check('Und jeder Teil traegt die Formatnummer des vollen Exports',
-    tlPackages.every(p => p.version === 18), JSON.stringify(tlPackages.map(p => p.version)));
+    tlPackages.every(p => p?.version === 18), JSON.stringify(tlPackages.map(p => p?.version)));
   check('Zusammen tragen die Teile jeden Eintrag genau einmal',
-    tlPackages.reduce((n, p) => n + p.items.length, 0) === 6 &&
-    new Set(tlPackages.flatMap(p => p.items.map(i => i.title))).size === 6,
-    JSON.stringify(tlPackages.map(p => p.items.length)));
+    tlPackages.reduce((n, p) => n + (p?.items?.length || 0), 0) === 6 &&
+    new Set(tlPackages.flatMap(p => (p?.items || []).map(i => i.title))).size === 6,
+    JSON.stringify(tlPackages.map(p => p?.items?.length)));
   // Und die Schaetzung war keine Erfindung: die wirkliche Datei liegt in der
 // Naehe der angesagten Groesse und ueber ihr nicht.
   check('Die angesagte Groesse trifft die wirkliche',

@@ -22,7 +22,7 @@ async function run() {
   // Die Zahl der Rueckbauten steht ausdruecklich da: eine Zahl in einem
   // Papier ist eine Behauptung, eine Zahl im Pruefstand ist ein Beleg. Wie
   // sie Runde fuer Runde gewachsen ist, steht in den Aenderungsprotokollen.
-  check(`Es sind genau 1133 Rueckbauten`, gpList.length === 1133, `${gpList.length}`);
+  check(`Es sind genau 1135 Rueckbauten`, gpList.length === 1135, `${gpList.length}`);
   const gpTwice = gpList.map(r => r.nr).filter((n, i, a) => a.indexOf(n) !== i);
   check('Und keine Nummer steht zweimal', gpTwice.length === 0, gpTwice.join(' '));
   /* JEDER GREIFT: der Suchtext kommt in seiner Datei GENAU EINMAL vor. */
@@ -396,7 +396,7 @@ async function run() {
   {
     const crAll = require('./tools/comments.js').measureAll();
     const COMMENT_ROWS = [
-      ['testbench.js', 73],
+      ['testbench.js', 76],
       ['test/batchrun.js', 87],
       ['test/dom.js', 347],
       ['test/firstlogin.js', 34],
@@ -404,20 +404,20 @@ async function run() {
       ['test/keychange.js', 81],
       ['test/release_029.js', 60],
       ['test/release_030.js', 254],
-      ['test/release_031.js', 440],
-      ['test/roundtrip.js', 3284],
+      ['test/release_031.js', 456],
+      ['test/roundtrip.js', 3309],
       ['test/selfcheck.js', 241],
-      ['test/source.js', 949],
+      ['test/source.js', 975],
       ['test/ui_entry.js', 619],
-      ['test/ui_export.js', 453],
+      ['test/ui_export.js', 455],
       ['test/ui_inventory.js', 241],
       ['test/ui_language.js', 291],
       ['test/ui_overview.js', 494],
-      ['test/ui_style.js', 599],
-      ['test/ui_system.js', 692],
+      ['test/ui_style.js', 604],
+      ['test/ui_system.js', 694],
       ['test/ui_translator.js', 104],
-      ['counterproof.js', 1628],
-      ['server.js', 1553],
+      ['counterproof.js', 1638],
+      ['server.js', 1599],
       ['auth.js', 288],
       ['db.js', 136],
       ['mail.js', 43],
@@ -429,9 +429,9 @@ async function run() {
       ['usertool.js', 23],
       ['twofactor.js', 34],
       ['keytool.js', 41],
-      ['public/app.js', 1969],
+      ['public/app.js', 1972],
       ['public/theme.js', 3],
-      ['public/style.css', 1220],
+      ['public/style.css', 1225],
     ];
     /* DIE AUSZEICHNUNG BRINGT 830 ZEILEN CODE UND IHREN KOMMENTAR;
        der Anteil bleibt unter einem Fuenftel. Die Zahlen darunter sind
@@ -441,7 +441,7 @@ async function run() {
        Routen und der Marke am geloeschten Verweis -- davor 16438 und 66056.
        Der groesste Teil davon steht im Pruefstand, nicht im ausgelieferten
        Code: die Zahlen der Runde sind nachgezogen. */
-    const COMMENT_TOTAL = { comment: 16679, code: 66732 };
+    const COMMENT_TOTAL = { comment: 16822, code: 67279 };
     check('Der Waechter sieht alle sechsunddreissig Dateien',
       crAll.each.length === 36 && COMMENT_ROWS.length === 36,
       `${crAll.each.length} gemessen, ${COMMENT_ROWS.length} genannt`);

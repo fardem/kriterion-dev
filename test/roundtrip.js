@@ -960,10 +960,13 @@ async function sendImport(object, mode, withoutShare = false) {
   group('Export und Import');
 
   const exported = await callF('GET', '/api/export?photos=0');
+  /* JEDE LESESTELLE ABGEFANGEN: eine unlesbare Datei soll die Pruefungen
+     darunter ROT faerben und nicht den Lauf abreissen. */
   check('Export nennt die Kriterienreihenfolge',
-    equal(exported.content.criteria, names(after)), JSON.stringify(exported.content.criteria));
+    equal(exported.content?.criteria, names(after)), JSON.stringify(exported.content?.criteria));
   check('Bestehende Felder unveraendert',
-    Array.isArray(exported.content.items) && 'ratings' in exported.content.items[0] && 'testDays' in exported.content.items[0]);
+    Array.isArray(exported.content?.items) && 'ratings' in exported.content.items[0]
+    && 'testDays' in exported.content.items[0]);
 
   // Alte Exportdatei ohne das neue Feld: muss weiterhin laufen.
   const oldFile = { exported_at: new Date().toISOString(), title: 'Alt', version: 14, items: [
@@ -1055,6 +1058,205 @@ async function sendImport(object, mode, withoutShare = false) {
   check('Und die Exportdatei traegt sie',
     gewOut?.criteriaWeights?.[gewRound[0].name] === 0.6, JSON.stringify(gewOut?.criteriaWeights));
 
+  /* ---------------------------------------------------------------- */
+  group('Der Export schreibt stueckweise');
+
+  /* EINE EIGENE INSTANZ: die Prueflage waechst hier ueber die alte Grenze,
+     und das gehoert nicht in den Hauptbestand. */
+  const sxDir = fs.mkdtempSync(path.join(os.tmpdir(), 'kriterion-stueckweise-'));
+  const sxWord = 'annas-stueckweises-wort';
+  const sxPng = Buffer.from(PNG_BASE64, 'base64');
+  {
+    shortRun(`require('./db'); console.log('da');`, sxDir);
+    const d = open(path.join(sxDir, 'katalog.sqlite'));
+    d.prepare("INSERT INTO users (username, password_hash) VALUES ('anna', 'x')").run();
+    d.prepare("INSERT INTO users (username, password_hash) VALUES ('bert', 'x')").run();
+    d.prepare("INSERT INTO sessions (token, user_id) VALUES ('cookie-sx-anna', 1)").run();
+    const catId = d.prepare("INSERT INTO product_categories (name) VALUES ('Werkzeug')")
+      .run().lastInsertRowid;
+    const tagId = d.prepare("INSERT INTO tags (name) VALUES ('Alu')").run().lastInsertRowid;
+    d.prepare('DELETE FROM rating_criteria').run();
+    const critId = d.prepare("INSERT INTO rating_criteria (name, sort_order) VALUES ('Optik', 0)")
+      .run().lastInsertRowid;
+    for (const [title, whose] of [['Erster', 1], ['Zweiter', 2]]) {
+      const id = d.prepare(`INSERT INTO items (title, description, product_category_id,
+          created_at, updated_at, user_id)
+        VALUES (?, ?, ?, '2026-01-02 03:04:05', '2026-02-03 04:05:06', ?)`)
+        .run(title, 'Zeile eins\nZeile zwei', catId, whose).lastInsertRowid;
+      d.prepare(`INSERT INTO photos (item_id, mime_type, data, thumb, medium, sort_order, kind)
+                 VALUES (?, 'image/png', ?, ?, ?, 0, 'image')`).run(id, sxPng, sxPng, sxPng);
+      d.prepare(`INSERT INTO attachments (item_id, filename, mime_type, size, data, sort_order, user_id)
+                 VALUES (?, 'zettel.txt', 'text/plain', 5, ?, 0, ?)`)
+        .run(id, Buffer.from('hallo'), whose);
+      d.prepare("INSERT INTO links (item_id, url, sort_order, user_id) VALUES (?, 'https://eins.test', 0, ?)")
+        .run(id, whose);
+      d.prepare('INSERT INTO item_tags (item_id, tag_id) VALUES (?, ?)').run(id, tagId);
+      d.prepare(`INSERT INTO comments (item_id, text, kind, pinned, created_at, user_id)
+                 VALUES (?, 'Eine Notiz', 'note', 0, '2026-03-01 10:00:00', ?)`).run(id, whose);
+      d.prepare('INSERT INTO ratings (item_id, criterion_id, value, user_id) VALUES (?, ?, 4, ?)')
+        .run(id, critId, whose);
+      d.prepare("INSERT INTO test_days (item_id, day, rating, user_id) VALUES (?, '2026-04-01', 3, ?)")
+        .run(id, whose);
+      d.prepare('INSERT INTO item_pins (user_id, item_id) VALUES (1, ?)').run(id);
+    }
+    d.close();
+  }
+  setPasswordImInventory(sxDir, 'anna', sxWord);
+  const sxImportDir = path.join(sxDir, 'import');
+  let SX = startFurtherServer(sxDir, {}, 4800);
+  await SX.ready;
+
+  const sxHead = () => H.withCsrf('kriterion_session=cookie-sx-anna');
+  const sxCall = async (method, where, body) => {
+    const opt = { method, headers: sxHead() };
+    if (body !== undefined) {
+      opt.headers['content-type'] = 'application/json';
+      opt.body = JSON.stringify(body);
+    }
+    const a = await fetch(SX.base + where, opt);
+    let content = null;
+    try { content = await a.json(); } catch {}
+    return { status: a.status, content };
+  };
+  const sxShare = (purpose) =>
+    sxCall('POST', '/api/confirm', { password: sxWord, purpose, target: null });
+  /* Der Export geht ueber einen rohen fetch: gebraucht werden die Kopfzeilen
+     und der Strom, nicht ein fertiges Objekt. */
+  const sxExport = async (query = '?photos=1&files=1') => {
+    await sxShare('export');
+    return fetch(SX.base + '/api/export' + query, { headers: sxHead() });
+  };
+  const sxImport = async (text, mode) => {
+    await sxShare('import');
+    const limit = '----pruefungsx' + crypto.randomBytes(6).toString('hex');
+    const body = Buffer.concat([
+      Buffer.from(`--${limit}\r\nContent-Disposition: form-data; name="mode"\r\n\r\n${mode}\r\n`),
+      Buffer.from(`--${limit}\r\nContent-Disposition: form-data; name="file"; ` +
+        `filename="export.json"\r\nContent-Type: application/json\r\n\r\n`),
+      Buffer.from(text), Buffer.from(`\r\n--${limit}--\r\n`)]);
+    const a = await fetch(SX.base + '/api/import', {
+      method: 'POST',
+      headers: { ...sxHead(), 'content-type': `multipart/form-data; boundary=${limit}` },
+      body
+    });
+    return { status: a.status, content: await a.json().catch(() => null) };
+  };
+
+  /* ---- 1. Der Export schreibt gueltiges JSON ---- */
+  const sxFirst = await sxExport();
+  const sxText = await sxFirst.text();
+  check('Der Export antwortet und nennt seinen Typ',
+    sxFirst.status === 200 && /application\/json/.test(sxFirst.headers.get('content-type') || ''),
+    `${sxFirst.status} · ${sxFirst.headers.get('content-type')}`);
+  /* OHNE LAENGE: sie stuende erst fest, wenn die Datei fertig waere. */
+  check('Und traegt keine Laenge mehr',
+    sxFirst.headers.get('content-length') === null,
+    String(sxFirst.headers.get('content-length')));
+  check('Der Kopf steht vorn, die Eintraege dahinter, der Schluss am Ende',
+    sxText.startsWith('{"exported_at":') && sxText.includes('"items":[{') && sxText.endsWith(']}'),
+    sxText.slice(0, 60) + ' … ' + sxText.slice(-20));
+  let sxPaper = null;
+  try { sxPaper = JSON.parse(sxText); } catch {}
+  check('Und das Ganze ist gueltiges JSON mit beiden Eintraegen',
+    !!sxPaper && sxPaper.items?.length === 2 && sxPaper.version === 18,
+    sxPaper ? `${sxPaper.items?.length} Eintraege, Nummer ${sxPaper.version}` : 'nicht lesbar');
+  check('Die Bytes der Fotos und Dateien gehen mit',
+    !!sxPaper?.items?.[0]?.photos?.[0]?.data_base64 &&
+    !!sxPaper?.items?.[0]?.attachments?.[0]?.data_base64,
+    JSON.stringify(Object.keys(sxPaper?.items?.[0]?.photos?.[0] || {})));
+
+  /* ---- 3. Der Rundlauf ---- Was der Export schreibt, liest der Import
+     wieder ein: dieselbe Instanz, ersetzend, und danach dieselbe Datei. */
+  const sxBack = await sxImport(sxText, 'replace');
+  check('Die Datei laesst sich wieder einspielen',
+    sxBack.status === 200 && sxBack.content?.items === 2,
+    JSON.stringify(sxBack.content).slice(0, 200));
+  const sxSecond = await (await sxExport()).text();
+  const sxWithoutTime = (w) => w.replace(/^\{"exported_at":"[^"]+"/, '{"exported_at":"—"');
+  check('Der Bestand danach gleicht dem davor — Zeichen fuer Zeichen',
+    sxWithoutTime(sxSecond) === sxWithoutTime(sxText),
+    `${sxSecond.length} gegen ${sxText.length} Zeichen`);
+  /* ---- 5a. Die Datei ist danach weg ---- */
+  check('Und der Import hat seine Datei weggeraeumt',
+    fs.readdirSync(sxImportDir).length === 0, fs.readdirSync(sxImportDir).join(' '));
+
+  /* ---- 4. Eine Datei ohne den Schluss wird abgewiesen ---- */
+  const sxBroken = await sxImport(sxText.slice(0, -2), 'replace');
+  check('Eine Datei ohne den Schluss wird abgewiesen',
+    sxBroken.status === 400, `${sxBroken.status} · ${JSON.stringify(sxBroken.content)}`);
+  check('Und der Bestand ist unberuehrt geblieben',
+    ((await sxCall('GET', '/api/items')).content || []).length === 2,
+    JSON.stringify(((await sxCall('GET', '/api/items')).content || []).length));
+  /* ---- 5b. Auch beim Fehler ---- */
+  check('Auch beim Fehler bleibt keine Datei liegen',
+    fs.readdirSync(sxImportDir).length === 0, fs.readdirSync(sxImportDir).join(' '));
+
+  /* ---- 6. Der Serverstart leert den Ordner ---- Ein Absturz mitten im
+     Import erreicht das finally nicht mehr. */
+  await SX.stop();
+  fs.writeFileSync(path.join(sxImportDir, 'uebrig.json'), '{"items":[]}');
+  check('Die Prueflage steht: eine Datei liegt im Ordner',
+    fs.readdirSync(sxImportDir).length === 1, fs.readdirSync(sxImportDir).join(' '));
+  SX = startFurtherServer(sxDir, {}, 4800);
+  await SX.ready;
+  check('Der Serverstart leert den Ordner',
+    fs.readdirSync(sxImportDir).length === 0, fs.readdirSync(sxImportDir).join(' '));
+  check('Und er sagt es ins Protokoll',
+    /Import: 1 leftover file\(s\) removed at startup\./.test(SX.log()),
+    SX.log().split('\n').filter(z => /Import:/.test(z)).join(' · ') || '(keine Zeile)');
+
+  /* ---- 2 und 9. Eine Prueflage ueber der alten Grenze ---- Sie waere
+     vorher abgesagt worden: ein Tagname je Eintrag, und die Rechnung des
+     Umschlags zaehlt ihn je Verknuepfung. */
+  {
+    const d = open(path.join(sxDir, 'katalog.sqlite'));
+    d.pragma('busy_timeout = 8000');
+    const big = d.prepare('INSERT INTO tags (name) VALUES (?)')
+      .run('T'.repeat(1024 * 1024)).lastInsertRowid;
+    const add = d.prepare("INSERT INTO items (title, user_id) VALUES (?, 1)");
+    const link = d.prepare('INSERT INTO item_tags (item_id, tag_id) VALUES (?, ?)');
+    d.transaction(() => {
+      for (let i = 1; i <= 500; i++) link.run(add.run(`Gross ${i}`).lastInsertRowid, big);
+    })();
+    d.close();
+  }
+  const sxStats = (await sxCall('GET', '/api/stats')).content || {};
+  check('Die Prueflage liegt ueber der alten Grenze',
+    sxStats.export?.envelope > sxStats.export?.limit,
+    `${sxStats.export?.envelope} gegen ${sxStats.export?.limit}`);
+  const sxHwm = () => {
+    try {
+      const m = fs.readFileSync(`/proc/${SX.pid}/status`, 'utf8').match(/VmHWM:\s+(\d+) kB/);
+      return m ? Number(m[1]) * 1024 : 0;
+    } catch { return 0; }
+  };
+  const sxBefore = sxHwm();
+  const sxBig = await sxExport('?photos=0');
+  let sxBytes = 0, sxTail = '';
+  {
+    const reader = sxBig.body.getReader();
+    for (;;) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      sxBytes += value.length;
+      sxTail = Buffer.from(value.slice(Math.max(0, value.length - 4))).toString('utf8');
+    }
+  }
+  const sxAfter = sxHwm();
+  check('Ein Export ueber der alten Grenze geht durch',
+    sxBig.status === 200 && sxBytes > sxStats.export?.limit,
+    `${sxBig.status}, ${sxBytes} Bytes gegen ${sxStats.export?.limit}`);
+  check('Und die Datei ist am Ende vollstaendig',
+    sxTail.endsWith(']}'), JSON.stringify(sxTail));
+  /* DER RUECKSTAU, GEMESSEN: ohne ihn stuende die ganze Datei im Puffer des
+     Sockets, und die Spitze laege ueber ihrer Groesse. */
+  check('Der Waechter kommt an die Spitze des Servers heran',
+    sxBefore > 0 && sxAfter >= sxBefore, `${sxBefore} / ${sxAfter}`);
+  check('Und sie waechst beim Schreiben um weniger als 200 MB',
+    sxAfter - sxBefore < 200 * 1024 * 1024,
+    `${Math.round((sxAfter - sxBefore) / 1048576)} MB bei ${Math.round(sxBytes / 1048576)} MB Datei`);
+  await SX.stop();
+  fs.rmSync(sxDir, { recursive: true, force: true });
   /* ---------------------------------------------------------------- */
   group('Die Marke der Instanz');
 
@@ -6196,6 +6398,14 @@ async function sendImport(object, mode, withoutShare = false) {
   const pkBeforeFiles = pkRows(
     'SELECT filename, mime_type, size, sort_order, user_id, hex(data) AS h FROM attachments ' +
     'WHERE item_id = ? ORDER BY sort_order', pkItemId);
+  /* DAS STANDBILD UND DIE KOMMENTARBILDER EBENSO -- sie gehen als eigene
+     Zeilen in den Papierkorb, und was dort liegt, wird gleich verglichen. */
+  const pkBeforeStill = pkRows(
+    "SELECT hex(COALESCE(medium, thumb)) AS h FROM photos WHERE item_id = ? AND kind = 'video' " +
+    'ORDER BY sort_order', pkItemId);
+  const pkBeforeCommentImages = pkRows(
+    'SELECT hex(ci.data) AS h FROM comment_images ci JOIN comments c ON c.id = ci.comment_id ' +
+    'WHERE c.item_id = ? ORDER BY c.id, ci.sort_order, ci.id', pkItemId);
   check('Die Prueflage traegt wirklich alles',
     pkBefore?.photos?.length === 2 && pkBefore?.comments?.length === 4 &&
     pkBefore?.links?.length === 2 && pkBefore?.testDays?.length === 2 &&
@@ -6239,6 +6449,21 @@ async function sendImport(object, mode, withoutShare = false) {
     pkBytesRows.length === 6, JSON.stringify(pkBytesRows));
   check('Ihre Nummern sind lueckenlos ab null',
     equal(pkBytesRows.map(z => z.part), [0, 1, 2, 3, 4, 5]), JSON.stringify(pkBytesRows.map(z => z.part)));
+  /* UND SIE TRAGEN DIESELBEN BYTES WIE VORHER DIE TRAEGER -- kopiert wird
+     innerhalb von SQLite, und eine Kopie, die etwas anderes ablegt, faellt
+     erst beim Zurueckholen auf. */
+  const pkBytesHex = pkRows('SELECT hex(data) AS h FROM trash_bytes WHERE trash_id = ? ' +
+    'ORDER BY part', pkRow.id ?? -1).map(z => z.h);
+  const pkExpectHex = [
+    ...pkBeforeCommentImages.map(z => z.h),
+    ...pkBeforeBytes.flatMap(z => z.kind === 'video' ? [z.h, pkBeforeStill[0]?.h] : [z.h]),
+    ...pkBeforeFiles.map(z => z.h)];
+  check('Der Waechter hat ueberhaupt sechs Traegerwerte vor sich',
+    pkExpectHex.length === 6 && pkExpectHex.every(h => typeof h === 'string' && h.length > 0),
+    JSON.stringify(pkExpectHex.map(h => (h || '').length)));
+  check('Und trash_bytes traegt Byte fuer Byte dieselben',
+    equal(pkBytesHex, pkExpectHex),
+    JSON.stringify(pkBytesHex.map((h, i) => `${(h || '').length}/${(pkExpectHex[i] || '').length}`)));
   const pkBytesSum = pkBytesRows.reduce((s, z) => s + z.n, 0);
   /* DER EIGENTLICHE BELEG: die Videodatei steht NICHT in der JSON. */
   check('Die Videobytes stehen nicht in der JSON',
@@ -17209,41 +17434,41 @@ async function sendImport(object, mode, withoutShare = false) {
       typeof exStats?.commentImageCount === 'number' && typeof exStats?.commentImageBytes === 'number',
       JSON.stringify({ n: exStats?.commentImageCount, o: exStats?.commentImageBytes }));
   }
-  /* DIE ABSAGE STEHT VOR DEM BAU, nicht hinter dem Abbruch. */
+  /* DIE DATEI ENTSTEHT STUECKWEISE, und die Koepfe stehen vor dem ersten
+     Schreiben. */
   {
     const core = (fSource.match(/app\.get\('\/api\/export'[\s\S]*?\n\}\);/) || [''])[0];
     check('Die Exportroute steht ueberhaupt da', core.length > 200, String(core.length));
-    check('Sie misst ihre Groesse, bevor sie baut',
-      core.indexOf('exchangeBytes') > 0 &&
-      core.indexOf('exchangeBytes') < core.indexOf('entryAsBundle'),
-      `${core.indexOf('exchangeBytes')} gegen ${core.indexOf('entryAsBundle')}`);
-    check('Und sagt ab, statt am String zu zerbrechen',
-      /EXCHANGE_MAX\)?\s*\n?\s*return res\.status\(413\)/.test(core) ||
-      /> EXCHANGE_MAX/.test(core) && /413/.test(core),
-      core.replace(/\s+/g, ' ').slice(0, 240));
-    /* DAS NETZ BLEIBT DARUNTER: die Absage rechnet, sie misst nicht. */
-    check('Und faengt den Wurf ab, falls die Schaetzung zu niedrig war',
-      /RangeError/.test(core) && /removeHeader\('Content-Disposition'\)/.test(core),
+    check('Sie schreibt stueckweise und baut keinen einzigen String',
+      /await writeExport\(res, rows, situation\)/.test(core) && !/res\.json\(/.test(core),
       core.replace(/\s+/g, ' ').slice(-240));
-    /* KEIN STROM. Er steht im Fahrplan als (c) und ausdruecklich nicht in
-       dieser Runde: ein Umbau an einer Stelle, die nachweislich funktioniert. */
-    check('Der Export bleibt eine Antwort und wird kein Strom',
-      !/res\.write\(|createReadStream|pipe\(/.test(core),
-      core.replace(/\s+/g, ' ').slice(0, 200));
-    /* DIE ABSAGE MUSS DEN UMSCHLAG MITRECHNEN, sonst laesst sie genau die
-       Datei durch, die an ihm zerbricht. */
-    /* DIE VARIABLE HEISST SEIT 0.24.0 `parts` UND NICHT MEHR `t`: der Name
-       `t` gehoert seither dem Sprachhelfer, und eine lokale Bindung verdeckte
-       ihn (Bauabschnitt 1). */
-    check('Und die Absage rechnet den Umschlag mit',
-      /return parts\.photos \+ parts\.videos \+ parts\.attachments \+ parts\.commentImages \+ exchangeEnvelopeBytes\(\);/
-        .test(fSource),
-      (fSource.match(/return parts\.photos[^;]*;/) || ['(die Zeile fehlt)'])[0]);
+    /* DIE BEIDEN KOEPFE STEHEN VOR DEM ERSTEN SCHREIBEN -- danach geht keiner
+       mehr hinaus. */
+    check('Und die beiden Koepfe stehen vor dem ersten Schreiben',
+      core.indexOf("res.set('Content-Type'") > 0 &&
+      core.indexOf("res.set('Content-Disposition'") > core.indexOf("res.set('Content-Type'") &&
+      core.indexOf("res.set('Content-Disposition'") < core.indexOf('writeExport'),
+      `${core.indexOf("res.set('Content-Type'")} / ` +
+      `${core.indexOf("res.set('Content-Disposition'")} / ${core.indexOf('writeExport')}`);
+    /* KEINE ABSAGE VOR DEM BAU MEHR: die Grenze des Gesamtexports ist fort,
+       und mit ihr das Netz darunter. */
+    check('Und sie sagt nicht mehr ab, bevor sie baut',
+      !/EXCHANGE_MAX/.test(core) && !/413/.test(core) && !/RangeError/.test(core),
+      core.replace(/\s+/g, ' ').slice(0, 240));
+    /* DER RUECKSTAU WIRD BEACHTET: ohne das sammelt sich die ganze Datei im
+       Puffer des Sockets, und der Umbau haette nichts gebracht. */
+    const fWrite = (fSource.match(/async function writeExport\([\s\S]*?\n\}/) || [''])[0];
+    check('Der Schreiber haelt bei Rueckstau an',
+      /if \(!res\.write\(text\)\) await untilDrained\(res\);/.test(fWrite),
+      fWrite.replace(/\s+/g, ' ').slice(0, 200) || '(kein Schreiber)');
+    check('Und er wartet dabei wirklich auf drain',
+      /res\.once\('drain', ready\);/.test(fSource),
+      (fSource.match(/.*once\('drain'.*/) || ['(keine Zeile)'])[0].trim());
     /* Und die Gegenprobe zum Waechter: er darf nicht gruen sein, weil er auf
        einen Namen zielt, den es gar nicht mehr gibt. */
     check('Der Waechter zielt auf eine Rechnung, die es wirklich gibt',
       /function exchangeEnvelopeBytes\(\)/.test(fSource) &&
-      /function exchangeBytes\(switches\)/.test(fSource),
+      /function exchangeParts\(switches\)/.test(fSource),
       'eine der beiden Rechnungen heisst anders');
     /* UND DER ZWEIG FUER EINEN EINZELNEN EINTRAG IST FORT -- 0.35.2, F2.
        Er gehoerte dem Einzelexport; ohne dessen Route konnte er nur noch
