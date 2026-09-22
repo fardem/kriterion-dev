@@ -114,6 +114,24 @@ Abbrechen, **kein Häkchen „nicht mehr zeigen"**.
 Elf Sätze in den drei Sprachdateien, dazu die Absage bei zu wenig Platz. Zwei
 sind gefallen: `server.exportTooBig` und `server.exportGrew`.
 
+### Ein Befund nebenbei: die Rechentabelle am Telefon
+
+**Gemeldet vom Betreiber während der Runde.** Der Kasten hinter der Kopfzahl
+legt seine vier Spalten als Raster `1fr auto auto auto`. Die drei `auto`-Spalten
+nehmen sich ihre Breite zuerst; die Namensspalte bekommt, was übrig bleibt, und
+darf in der schmalen Ansicht auf null fallen.
+
+**Gemessen bei 360 Pixeln, mit Chromium gerendert:** mit dem Vokabelwort „Note"
+misst die Kopfzeile der vierten Spalte 108 Pixel und der Namensspalte bleiben
+89. Mit „Bewertung" misst sie 151, und der Namensspalte bleiben **2** — der
+Name stand Buchstabe unter Buchstabe, eine Zeile wurde 697 Pixel hoch.
+
+**Gebaut ist die zweizeilige Form**, dieselbe Bauform wie an der Sternzeile:
+der Name steht in einer eigenen Zeile über den drei Zahlen, das Raster hat dort
+drei Spalten statt vier. Die Oberfläche baut unverändert vier Zellen je Zeile.
+*Bei 320 Pixeln bricht nichts mehr um, und die breite Ansicht ist Pixel für
+Pixel dieselbe geblieben.*
+
 ---
 
 ## 3. Was weggefallen ist
@@ -150,14 +168,15 @@ Kennzahlen. **`EXCHANGE_WARN` bleibt** als Hinweis auf die Größe und als Decke
 
 | | vorher | jetzt |
 |---|---:|---:|
-| Prüfungen | 7.256 | **7.288** |
+| Prüfungen | 7.256 | **7.291** |
 | Gruppen | 388 | **389** |
 | Rückbauten | 1.133 | **1.135** |
 | Portbasen des Laufs | 63 | **64** |
 | Protokollzeilen in den sechs Dateien | 49 | **53** |
 | Schlüssel je Sprachdatei | 1.233 | **1.243** |
-| Kommentarzeilen über alles | 16.679 | **16.810** |
-| Codezeilen über alles | 66.732 | **67.264** |
+| Regelzeilen im Stilblatt | 1.674 | **1.678** |
+| Kommentarzeilen über alles | 16.679 | **16.822** |
+| Codezeilen über alles | 66.732 | **67.279** |
 
 ---
 
@@ -179,10 +198,10 @@ Herunterladen ist eine eigene Runde.
 
 ## 7. Der Prüflauf
 
-**`npm test`: 7.288 von 7.288 Prüfungen bestanden, 389 Gruppen.**
+**`npm test`: 7.291 von 7.291 Prüfungen bestanden, 389 Gruppen.**
 
 **Die neue Gruppe „Der Export schreibt stückweise" trägt 19 Prüfungen** und
-kostet 8,2 Sekunden. Sie fährt eine eigene Instanz und hält die neun
+kostet 8,0 Sekunden. Sie fährt eine eigene Instanz und hält die neun
 Zusagen des Auftrags:
 
 | | |
@@ -201,7 +220,7 @@ Zusagen des Auftrags:
 
 | | rot geworden ist |
 |---|---|
-| **1200** — der Export schreibt den Schluss `]}` nicht mehr | „Der Kopf steht vorn, die Einträge dahinter, der Schluss am Ende", „Und das Ganze ist gültiges JSON mit beiden Einträgen", „Jeder Teil ist für sich gültiges JSON" und fünf weitere in sechs Gruppen |
+| **1200** — der Export schreibt den Schluss `]}` nicht mehr | 24 Prüfungen in acht Gruppen, darunter „Und das Ganze ist gültiges JSON mit beiden Einträgen", „Die Datei lässt sich wieder einspielen" und „Jeder Teil ist für sich gültiges JSON" |
 | **1201** — das `finally` des Imports fällt weg | „Und der Import hat seine Datei weggeräumt", „Auch beim Fehler bleibt keine Datei liegen" und fünf weitere |
 | **1202** — der Rückstau wird nicht beachtet | „Und sie wächst beim Schreiben um weniger als 200 MB" und „Der Schreiber hält bei Rückstau an" |
 | **1203** — die blobfreie Abfrage des Papierkorbs liest wieder die Bytes | „Und keine von ihnen liest die Spalte data" |
@@ -212,7 +231,10 @@ die gewöhnliche Begleiterscheinung und kein eigener Befund.*
 
 **Keine der vier ist stumm geblieben.**
 
-*Beim ersten Lauf von 1200 riss das Modul `roundtrip` an einer Lesestelle ab,
-die eine unlesbare Exportdatei nicht abfing — dasselbe in `ui_export`. Beide
-Stellen sind nachgezogen; seither werden die Prüfungen darunter rot, statt den
-Lauf abzureißen.*
+*Beim ersten Lauf von 1200 riss das Modul `roundtrip` schon in der Gruppe
+„Export und Import" ab, weil eine Lesestelle eine unlesbare Exportdatei nicht
+abfing — dasselbe in `ui_export`. Beide Stellen sind nachgezogen, und der
+zweite Lauf nennt 24 rote Prüfungen statt neun. `roundtrip` bricht dabei
+weiterhin ab, eine Gruppe später: rund zwanzig weitere Lesestellen auf eine
+Exportdatei lesen `.content` ohne Fragezeichen. Sie gehören einer eigenen
+Runde und nicht dieser.*

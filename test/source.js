@@ -3060,8 +3060,10 @@ async function run() {
        Kommentar bringt eine Regelzeile mit. */
     /* UND 1673 WURDEN 1674: die erste Spalte der Rechentabelle darf in der
        schmalen Ansicht umbrechen. */
-    check('Und es stehen genau 1674 Regelzeilen da — fuenfunddreissig mehr mit der Auszeichnung',
-      ssCode === 1674, `${ssCode} Zeilen`);
+    /* UND 1674 WURDEN 1678: die Rechentabelle wird in der schmalen Ansicht
+       zweizeilig -- vier Regelzeilen. */
+    check('Und es stehen genau 1678 Regelzeilen da — neununddreissig mehr mit der Auszeichnung',
+      ssCode === 1678, `${ssCode} Zeilen`);
     /* UND KEIN BLOCK IST WIEDER LANG GEWORDEN. Die Drei-Zeilen-Regel gilt
        auch fuer dieses Blatt; laenger sein darf allein, wer eine Tafel
        gemessener Werte traegt. Acht tun das. */

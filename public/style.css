@@ -2892,6 +2892,15 @@ body.login .login-screen { flex: 1 0 auto; min-height: 0; }
      mit einem Namen aus vierzig Zeichen 378 statt 328 und rollte waagerecht.
      Die Kopfzeile faellt mit darunter -- sie traegt dieselbe Klasse. */
   .calc-row > span:first-child { min-width: 0; overflow-wrap: anywhere; }
+  /* ---- UND SIE WIRD ZWEIZEILIG ---- Mit dem Vokabelwort „Bewertung" statt
+     „Note" mass die Kopfzeile 151 statt 108 Pixel, der Namensspalte blieben 2,
+     und der Name stand Buchstabe unter Buchstabe. */
+/* NAME OBEN, DIE DREI ZAHLEN DARUNTER, und die Trennlinie liegt unter der
+     zweiten Zeile -- dieselbe Bauform wie an der Sternzeile. */
+  .calc { grid-template-columns: auto auto 1fr; }
+  .calc-row > span:first-child { grid-column: 1 / -1; border-bottom: none; padding-bottom: 0; }
+  .calc-row > span:nth-child(2), .calc-row > span:nth-child(3) { text-align: left; }
+  .calc-same > span:not(:first-child) { border-top: none; }
 
   /* ---- DIE STERNZEILE WIRD ZWEIZEILIG ---- Drei Spalten passen nicht: auf
      360 Bildpunkten bleiben dem Kriteriennamen bei Schriftstufe 120 unter

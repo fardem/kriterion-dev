@@ -407,13 +407,13 @@ async function run() {
       ['test/release_031.js', 456],
       ['test/roundtrip.js', 3309],
       ['test/selfcheck.js', 241],
-      ['test/source.js', 973],
+      ['test/source.js', 975],
       ['test/ui_entry.js', 619],
       ['test/ui_export.js', 455],
       ['test/ui_inventory.js', 241],
       ['test/ui_language.js', 291],
       ['test/ui_overview.js', 494],
-      ['test/ui_style.js', 599],
+      ['test/ui_style.js', 604],
       ['test/ui_system.js', 694],
       ['test/ui_translator.js', 104],
       ['counterproof.js', 1638],
@@ -431,7 +431,7 @@ async function run() {
       ['keytool.js', 41],
       ['public/app.js', 1972],
       ['public/theme.js', 3],
-      ['public/style.css', 1220],
+      ['public/style.css', 1225],
     ];
     /* DIE AUSZEICHNUNG BRINGT 830 ZEILEN CODE UND IHREN KOMMENTAR;
        der Anteil bleibt unter einem Fuenftel. Die Zahlen darunter sind
@@ -441,7 +441,7 @@ async function run() {
        Routen und der Marke am geloeschten Verweis -- davor 16438 und 66056.
        Der groesste Teil davon steht im Pruefstand, nicht im ausgelieferten
        Code: die Zahlen der Runde sind nachgezogen. */
-    const COMMENT_TOTAL = { comment: 16810, code: 67264 };
+    const COMMENT_TOTAL = { comment: 16822, code: 67279 };
     check('Der Waechter sieht alle sechsunddreissig Dateien',
       crAll.each.length === 36 && COMMENT_ROWS.length === 36,
       `${crAll.each.length} gemessen, ${COMMENT_ROWS.length} genannt`);

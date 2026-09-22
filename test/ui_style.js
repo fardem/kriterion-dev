@@ -811,6 +811,22 @@ async function run() {
     check('Und die Bewertungszeile traegt dieselbe Regel',
       /min-width: 0/.test(caList) && /overflow-wrap: anywhere/.test(caList),
       caList || '(keine Regel)');
+    /* ---- UND SIE WIRD ZWEIZEILIG ---- Umbrechen allein reichte nicht: die
+       drei Zahlenspalten nehmen sich ihre Breite zuerst, und mit einem
+       laengeren Vokabelwort blieben dem Namen zwei Pixel. */
+    const caGrid = (caNarrow.match(/\.calc \{[^}]*\}/) || [''])[0];
+    check('Das Raster der Rechentabelle hat am Telefon drei Spalten',
+      /grid-template-columns: auto auto 1fr;/.test(caGrid), caGrid || '(keine Regel)');
+    const caName = (caNarrow.match(/\.calc-row > span:first-child \{ grid-column:[^}]*\}/) || [''])[0];
+    check('Und der Name steht ueber ihnen in einer eigenen Zeile',
+      /grid-column: 1 \/ -1/.test(caName) && /border-bottom: none/.test(caName),
+      caName || '(keine Regel)');
+    /* DIE VIERTE ZELLE JE ZEILE BLEIBT -- die Oberflaeche baut weiter vier,
+       nur das Raster legt sie anders. */
+    check('Die Oberflaeche baut weiterhin vier Zellen je Zeile',
+      (regel123('.calc').match(/grid-template-columns: ([^;}]+)/) || ['', ''])[1]
+        .trim().split(/\s+/).filter(Boolean).length === 4,
+      regel123('.calc') || '(keine Regel)');
   }
 
   /* ================= Die Glocke in der Kopfzeile — 0.16.0 ===============

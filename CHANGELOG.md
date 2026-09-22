@@ -63,6 +63,13 @@ Fingerprint `477b61aa` — davor `9d48cbbc`.
   durch Node zu führen.
 - Der Hinweis über dem Exportknopf nennt keine Höchstgröße je Datei mehr.
 
+### Behoben
+
+- **Die Rechentabelle hinter der Kopfzahl stand am Telefon Buchstabe unter
+  Buchstabe.** Ein längeres Wort in der Vokabelkarte — „Bewertung" statt
+  „Note" — ließ der Namensspalte zwei Pixel. Sie steht jetzt in einer eigenen
+  Zeile über den drei Zahlen.
+
 ### Entfernt
 
 - **Die Absage vor dem Gesamtexport** und der Fang darunter. Die Grenze bleibt
