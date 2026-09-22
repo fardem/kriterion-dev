@@ -30,6 +30,43 @@ ihre deutschen Abschnittsüberschriften bleiben.*
 
 *Hier wird mitgeschrieben, während gebaut wird.*
 
+## [0.39.0] - 2026-09-22
+
+*Die Spaltenfolge: `data` ans Ende.*
+
+Fingerprint `2ba1c469` — davor `236d515e`.
+
+> **WER DEN GEWINN WILL, RUFT `tools/reorder.js` EINMAL AUF — bei angehaltener
+> Instanz.** Der Aufruf steht in der README unter „Die Spaltenfolge einer
+> bestehenden Datenbank". Das Dreifache der Datenbankgröße muss dabei frei
+> sein; danach ist die Datei nicht größer als vorher.
+>
+> **WER NICHTS TUT, VERLIERT NICHTS.** Die Instanz läuft weiter wie bisher, nur
+> langsamer beim Holen der Kacheln. Es wird nichts erzwungen und nichts
+> gewarnt.
+
+### Geändert
+
+- **In `photos`, `comment_images` und `attachments` steht `data` jetzt am
+  Ende der Zeile.** SQLite liest eine Zeile von vorn; was hinter einem großen
+  Blob steht, ist nur über dessen Overflow-Kette erreichbar. Die Kachel der
+  Übersicht stand dahinter.
+- Gemessen an einer Prüflage von 500 Fotos und 126 MB Originalen: **0,91 ms je
+  Kachel vorher, 0,01 ms nachher**; bei dreißig Kacheln auf einmal 27,4 ms
+  gegen 0,28 ms.
+- **Am Code ändert sich keine Zeile.** Keine Route, keine Antwort, keine
+  Anzeige, kein Austauschformat — die Spaltenfolge ist dem SQL gleichgültig.
+
+### Hinzugefügt
+
+- **`tools/reorder.js`** bringt eine bestehende Datenbank auf die neue Folge:
+  `zeigen` sagt den Stand, `umschichten` schichtet um und gibt den Platz mit
+  `VACUUM` zurück. Indexe und Trigger werden wortgleich wieder angelegt.
+- Das Werkzeug bricht ab, wenn die Instanz läuft, wenn zu wenig Platz frei ist
+  oder wenn `PRAGMA foreign_key_check` etwas findet; ein zweiter Aufruf
+  erkennt den fertigen Stand.
+- Zwanzig Prüfungen und vier Rückbauten halten die Folge und das Werkzeug fest.
+
 ## [0.38.6] - 2026-09-21
 
 *Die Lizenz.*

@@ -9664,6 +9664,45 @@ const REGRESSIONS = [
     replacement: "## Woher der Code kommt",
     expected: 'Die Lizenz geht mit hinaus'
   },
+  /* ---- Die Spaltenfolge ---- */
+  {
+    /* DIE ALTE FOLGE AN comment_images: data wieder vor thumb. */
+    nr: '1199', name: 'Das Schema faellt auf die alte Folge zurueck',
+    file: 'db.js',
+    search: "  filename TEXT NOT NULL DEFAULT 'bild.jpg',\n  thumb BLOB,\n"
+      + "  sort_order INTEGER NOT NULL DEFAULT 0,\n"
+      + "  created_at TEXT NOT NULL DEFAULT (datetime('now')),\n"
+      + "  -- data am Ende: was dahinter steht, ist nur ueber die Overflow-Kette zu lesen.\n"
+      + "  data BLOB NOT NULL\n);",
+    replacement: "  filename TEXT NOT NULL DEFAULT 'bild.jpg',\n  data BLOB NOT NULL,\n"
+      + "  thumb BLOB,\n  sort_order INTEGER NOT NULL DEFAULT 0,\n"
+      + "  created_at TEXT NOT NULL DEFAULT (datetime('now'))\n);",
+    expected: 'Die Spaltenfolge: data steht am Ende'
+  },
+  {
+    /* OHNE DIESE ZEILE STEHT DIE TABELLE DANACH OHNE IHRE INDEXE DA. */
+    nr: '1200', name: 'Das Werkzeug legt die Indexe nicht wieder an',
+    file: 'tools/reorder.js',
+    search: "  for (const b of belong) db.exec(b.sql);\n",
+    replacement: "",
+    expected: 'Die Spaltenfolge: data steht am Ende'
+  },
+  {
+    /* OHNE DIE PROBE WIRD EIN VERWAISTER VERWEIS FESTGESCHRIEBEN. */
+    nr: '1201', name: 'Das Werkzeug laesst foreign_key_check weg',
+    file: 'tools/reorder.js',
+    search: "  const broken = db.pragma('foreign_key_check');",
+    replacement: "  const broken = [];",
+    expected: 'Die Spaltenfolge: data steht am Ende'
+  },
+  {
+    /* OHNE DIE ABSAGE LAEUFT DAS UMSCHICHTEN AUF EINEN VOLLEN TRAEGER. */
+    nr: '1202', name: 'Die Pruefung auf freien Platz faellt weg',
+    file: 'tools/reorder.js',
+    search: "  if (l.enough === false) {\n    console.error(RED('Zu wenig Platz auf dem Datentr\u00e4ger.'));",
+    replacement: "  if (false) {\n    console.error(RED('Zu wenig Platz auf dem Datentr\u00e4ger.'));",
+    expected: 'Die Spaltenfolge: data steht am Ende'
+  },
 ];
 
 /* ================= Spuren und Versatz ================= Der Versatz je

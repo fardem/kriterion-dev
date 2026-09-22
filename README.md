@@ -40,6 +40,7 @@ Videos liegen darin und werden nie als Datei auf die Platte geschrieben.
 - [Der Schlüssel — bitte einmal aufmerksam lesen](#der-schlüssel--bitte-einmal-aufmerksam-lesen)
 - [Eine neuere Version über eine bestehende einspielen](#eine-neuere-version-über-eine-bestehende-einspielen)
   - [Prüfen, ob wirklich die neue Version läuft](#prüfen-ob-wirklich-die-neue-version-läuft)
+  - [Die Spaltenfolge einer bestehenden Datenbank](#die-spaltenfolge-einer-bestehenden-datenbank)
 - [Fehlerbehebung](#fehlerbehebung)
   - [Wenn niemand mehr hereinkommt](#wenn-niemand-mehr-hereinkommt)
   - [Wenn eine Version die Datenbank anfasst](#wenn-eine-version-die-datenbank-anfasst)
@@ -419,6 +420,45 @@ im `CHANGELOG.md`, verglichen wird mit dem Auge.
 Ändert eine Version die Marke der Installation, zeigt der Browser im Reiter
 noch die alte — ein hartes Neuladen (Strg+Umschalt+R) räumt den
 Zwischenspeicher weg.
+
+### Die Spaltenfolge einer bestehenden Datenbank
+
+**Das ist freiwillig. Wer nichts tut, verliert nichts** — die Instanz läuft
+weiter wie bisher.
+
+In `photos`, `comment_images` und `attachments` steht die Dateispalte `data`
+am Ende der Zeile. Eine Datenbank, die vor dieser Version angelegt wurde, führt
+sie weiter vorn; alles dahinter ist dann nur über die Overflow-Kette des Blobs
+erreichbar, und die Kachel der Übersicht liegt dahinter. **Gemessen an einer
+Prüflage von 500 Fotos: 0,91 ms je Kachel vorher, 0,01 ms nachher.**
+
+Umgeschichtet wird von Hand, mit angehaltener Instanz:
+
+```bash
+docker compose down
+docker compose run --rm kriterion node tools/reorder.js zeigen
+docker compose run --rm kriterion node tools/reorder.js umschichten
+docker compose up -d
+```
+
+`zeigen` ändert nichts. Es sagt je Tabelle, ob `data` schon am Ende steht, wie
+viele Zeilen und Bytes darin liegen, wie viel Platz frei ist und wie lange es
+dauern würde.
+
+**Drei Dinge gehören dazu:**
+
+- **Die Instanz muss stehen.** Hält ein anderer Prozess die Datei, bricht das
+  Werkzeug ab und ändert nichts.
+- **Vorher sichern.** Die Umschichtung läuft in einer Transaktion, und ein
+  Abbruch stellt den alten Stand her — das ist der Grund für die Sicherung,
+  nicht der Abbruch.
+- **Das Dreifache der Datenbankgröße muss frei sein.** Währenddessen steht die
+  Datei doppelt da, und das abschließende `VACUUM` legt noch einmal eine in
+  voller Größe an. Ist weniger da, bricht das Werkzeug ab und nennt die Zahl.
+
+**Danach ist die Datei nicht größer als vorher** — gemessen 231,7 MB vor und
+nach dem Lauf. Die Folge ändert die Anordnung in der Zeile, nicht die
+Datenmenge. Ein zweiter Aufruf erkennt den fertigen Stand und ändert nichts.
 
 ---
 

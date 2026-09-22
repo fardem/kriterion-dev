@@ -107,7 +107,6 @@ CREATE TABLE IF NOT EXISTS photos (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   item_id INTEGER NOT NULL REFERENCES items(id) ON DELETE CASCADE,
   mime_type TEXT NOT NULL,
-  data BLOB NOT NULL,
   thumb BLOB,
   medium BLOB,
   -- Kein CHECK auf die beiden erlaubten Werte, obwohl SQLite einen annaehme:
@@ -120,14 +119,14 @@ CREATE TABLE IF NOT EXISTS photos (
   -- SIND DAS REZEPT der Kachel -- der Ausschnitt ist jederzeit aenderbar.
   focus_x REAL NOT NULL DEFAULT 50,
   focus_y REAL NOT NULL DEFAULT 50,
-  -- Der dritte Wert dieser Art heisst zoom und steht GANZ UNTEN, nicht hier.
-  -- Der Grund steht dort.
+  -- Der dritte Wert dieser Art heisst zoom und steht weiter unten.
   sort_order INTEGER NOT NULL DEFAULT 0,
   created_at TEXT NOT NULL DEFAULT (datetime('now')),
   -- WIE ENG DAS FENSTER SITZT, in Prozent: 100 heisst „so weit wie das Bild
-  -- hergibt", 400 viermal so nah. Er steht hier unten, weil ADD COLUMN eine
-  -- Spalte immer hinten anhaengt; die Spanne steht im Server, nicht als CHECK.
-  zoom REAL NOT NULL DEFAULT 100
+  -- hergibt", 400 viermal so nah; die Spanne steht im Server, nicht als CHECK.
+  zoom REAL NOT NULL DEFAULT 100,
+  -- data am Ende: was dahinter steht, ist nur ueber die Overflow-Kette zu lesen.
+  data BLOB NOT NULL
 );
 CREATE INDEX IF NOT EXISTS idx_photos_item ON photos(item_id, sort_order);
 
@@ -238,10 +237,11 @@ CREATE TABLE IF NOT EXISTS comment_images (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   comment_id INTEGER NOT NULL REFERENCES comments(id) ON DELETE CASCADE,
   filename TEXT NOT NULL DEFAULT 'bild.jpg',
-  data BLOB NOT NULL,
   thumb BLOB,
   sort_order INTEGER NOT NULL DEFAULT 0,
-  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  -- data am Ende: was dahinter steht, ist nur ueber die Overflow-Kette zu lesen.
+  data BLOB NOT NULL
 );
 CREATE INDEX IF NOT EXISTS idx_comment_images_comment ON comment_images(comment_id);
 CREATE INDEX IF NOT EXISTS idx_comments_item ON comments(item_id);
@@ -289,10 +289,11 @@ CREATE TABLE IF NOT EXISTS attachments (
   filename TEXT NOT NULL,
   mime_type TEXT NOT NULL DEFAULT '',
   size INTEGER NOT NULL DEFAULT 0,
-  data BLOB NOT NULL,
   sort_order INTEGER NOT NULL DEFAULT 0,
   created_at TEXT NOT NULL DEFAULT (datetime('now')),
-  user_id INTEGER REFERENCES users(id) ON DELETE SET NULL
+  user_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
+  -- data am Ende: was dahinter steht, ist nur ueber die Overflow-Kette zu lesen.
+  data BLOB NOT NULL
 );
 CREATE INDEX IF NOT EXISTS idx_attachments_item ON attachments(item_id);
 
@@ -821,4 +822,7 @@ module.exports = { db, DATA_DIR, DB_FILE, keyFromEnv: key.fromEnv, keyHex: key.h
                    /* Was eine unvollstaendige Datenbank vermissen laesst. Geht hinaus, damit
                       der Pruefstand die Probe an einer gestellten Lage fragen
                       kann. */
-                   incompleteDatabase, lateStatement, lateGroup };
+                   incompleteDatabase, lateStatement, lateGroup,
+                   /* Die DDL. Geht hinaus, damit tools/reorder.js die neue
+                      Tabelle aus derselben Vorlage anlegt wie der Start. */
+                   SCHEMA };

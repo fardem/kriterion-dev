@@ -1999,7 +1999,7 @@ async function run() {
         if (part.kind === CODE)
           for (const m of part.value.matchAll(/[A-Za-z_$][A-Za-z0-9_$]*/g)) benchNames.add(m[0]);
     check('Der Waechter sieht wirklich den ganzen Pruefstand',
-      benchNames.size > 2000 && BENCH.length === 21,
+      benchNames.size > 2000 && BENCH.length === 22,
       `${benchNames.size} Bezeichner aus ${BENCH.length} Dateien`);
 
     /* Die dreizehn sind keine Benennungen, sondern Gegenstaende von
@@ -2047,8 +2047,8 @@ async function run() {
     const readShipped = (f) => fs.readFileSync(path.join(__dirname, ...f.split('/')), 'utf8');
     const stWord = 'Stolper' + 'stein';
     const stAll = [...BENCH, ...SHIPPED];
-    check('Der Waechter sieht alle sechsunddreissig Dateien',
-      stAll.length === 36, `${stAll.length} Dateien`);
+    check('Der Waechter sieht alle siebenunddreissig Dateien',
+      stAll.length === 37, `${stAll.length} Dateien`);
     /* DAS ZWEITE LOCH — 0.35.2. Der Schematext von db.js steht als Vorlage im
        Quelltext, und seine Zeilen beginnen mit `--`. Der Segmentierer haelt
        eine Vorlage fuer Text, und Text sieht dieser Waechter nicht an --
