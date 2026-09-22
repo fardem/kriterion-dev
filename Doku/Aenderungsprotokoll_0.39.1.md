@@ -1,6 +1,6 @@
 # Änderungsprotokoll 0.39.1 — „Was für vergangene Prozesse gebaut wurde, geht heraus"
 
-**Gebaut am 22. September 2026 auf 0.39.0. Fingerprint `XXXXXXXX`, davor
+**Gebaut am 22. September 2026 auf 0.39.0. Fingerprint `9d48cbbc`, davor
 `2ba1c469`.**
 
 **Vorgabe des Betreibers: 0.39.0 ist die einzige Fassung, die es öffentlich je
@@ -188,4 +188,16 @@ Runde gegangen, aber es sind nicht dieselben.*
 
 **`npm test`: 7.256 von 7.256 Prüfungen bestanden, 388 Gruppen, 389 Sekunden.**
 
-**Die vier Rückbauten, die diese Runde verändert hat, sind gefahren.**
+**Die vier Rückbauten, die diese Runde berührt hat, sind gefahren — keiner ist
+stumm geblieben:**
+
+| | rot geworden ist |
+|---|---|
+| **1035** — der Hinweis wird nicht mehr gerufen | 10 Prüfungen in 3 Gruppen, darunter **„Und was zu tun ist: die Sicherung zurückspielen"** — der umgeschriebene Kastentext wird wirklich geprüft |
+| **1036** — der Kasten nennt die Spalte nicht mehr beim Namen | 5 Prüfungen; sein Suchtext ist mitgezogen, weil die Verzweigung auf `kind` weggefallen ist |
+| **1037** — die Probe fragt nur noch eine Spalte ab | 10 Prüfungen in 3 Gruppen |
+| **1199** — das Schema fällt auf die alte Folge zurück | „In photos, comment_images und attachments ist data die letzte Spalte" und die Prüfung an der angelegten Datenbank, jetzt in `test/roundtrip.js` |
+
+*Die Prüfung „Jeder Suchtext kommt in seiner Datei genau einmal vor" wird bei
+dreien ebenfalls rot — der Rückbau hat den Suchtext ersetzt. Das ist die
+gewöhnliche Begleiterscheinung und kein eigener Befund.*

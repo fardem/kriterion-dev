@@ -34,7 +34,7 @@ ihre deutschen Abschnittsüberschriften bleiben.*
 
 *Was für vergangene Prozesse gebaut wurde, geht heraus.*
 
-Fingerprint `XXXXXXXX` — davor `2ba1c469`.
+Fingerprint `9d48cbbc` — davor `2ba1c469`.
 
 > **WER EINEN DER VIER DEUTSCHEN NAMEN IN SEINER `.env` STEHEN HAT, ZIEHT SIE
 > VOR DEM EINSPIELEN NACH.** `HINTER_PROXY` heißt `BEHIND_PROXY`,
