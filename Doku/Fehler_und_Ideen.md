@@ -141,7 +141,7 @@ ausgearbeitet steht; die Begründung bleibt am Punkt.*
 
 ---
 
-## Der Stand der offenen Punkte — 21. September 2026, nach der Zuordnung
+## Der Stand der offenen Punkte — 23. September 2026, nach der Zuordnung
 
 **Diese Tafel sagt, wo ein Punkt steht, und trägt ihn nicht ein zweites Mal.**
 Jede Zeile nennt einen Punkt in einem Satz und sagt, wo er steht: eine Nummer
@@ -166,6 +166,13 @@ sagt der Fahrplan.
 > jetzt die Nummern 0.39.0, 0.40.0 und 0.41.0 und stehen mit ihrer Ausarbeitung
 > im Fahrplan.* **Zwei weitere sind gebaut und deshalb hier weggefallen:** *27
 > und 38, beide mit 0.38.5.*
+>
+> **AM 23. SEPTEMBER 2026 SIND VIER PUNKTE FORTGEZOGEN.** 48 bis 51 stehen mit
+> ihrer Ausarbeitung im Fahrplan unter 0.41.0. Ansage des Betreibers: „wir
+> nehmen alle Punkte für 0.41.0 auf." Drei weitere Punkte vom selben Tag
+> stehen nur dort: der abgewiesene Schreibzugriff nach dem Umlegen von
+> `BEHIND_PROXY`, ein Download für jedes Bild und jedes Video und kurze Videos
+> in Kommentaren.
 
 ### Was ohne Nummer offen ist
 
@@ -187,7 +194,7 @@ sagt der Fahrplan.
 | **0.38.6** | Die Lizenz — es gibt keine im Repository, und deshalb trägt die README kein Abzeichen dafür | nein |
 | **0.39.0** | Die Fotokachel nach `photo_derivatives`, mit einer Sicherung davor. *Gemessen: der Umweg kostet nur den, der die Kachel wirklich holt — bis 100 kB Original 0,02 ms, ueber 1 MB 14,8 ms* | **ja** |
 | **0.40.0** | Export, Import und Papierkorb ohne den Arbeitsspeicher — erst am Bestand messen | nein |
-| **0.41.0** | 614 feste Wartezeiten im Prüfstand, zusammen 47,5 Sekunden | nein |
+| **0.41.0** | Backup, Videos in Kommentaren und der Prüfstand ohne feste Wartezeiten: 618 feste Wartezeiten, die Hinweise zu Export, Import und Backup und sieben Punkte vom 23. September 2026. Auftrag erteilt am 23. September 2026 | **ja** |
 | **0.42.0** | Dokumente über einen Document Server ansehen | nein |
 | **0.43.0** | Dokumente über den Document Server bearbeiten | nein |
 | *danach* | Große Dateien bis 2 GB — eigenes Papier, im Fahrplan als „danach" | **ja** |
@@ -237,6 +244,11 @@ sie ist ein Wegweiser und kein zweiter Eintrag.*
 > sondern ein Plan ohne Nummern.* **Am selben Tag sind zwei weitere hier
 > weggefallen, weil sie gebaut sind:** *27 und 38, beide mit 0.38.5.*
 >
+> **AM 23. SEPTEMBER 2026 SIND VIER PUNKTE FORTGEZOGEN — 48 bis 51.** Sie
+> stehen mit ihrer Ausarbeitung im Fahrplan unter 0.41.0. Der Grund, den
+> Regel 3 verlangt: die Ansage des Betreibers „wir nehmen alle Punkte für
+> 0.41.0 auf".
+>
 > **UND AM 5. SEPTEMBER 2026 EIN DRITTES MAL — diesmal NACH VORN, und diesmal
 > ohne Einschub.** Der Betreiber hat die Mehrsprachigkeit von 0.28.0 auf 0.24.0
 > vorgezogen. *Die wählbare Bildablage (Punkte 5 und 6) steht seither auf
@@ -276,7 +288,7 @@ sie ist ein Wegweiser und kein zweiter Eintrag.*
 | **0.38.6** *PATCH* — **GEPLANT am 21. September 2026** | **Die Lizenz.** *Befund aus BA 8 der 0.38.5: es gibt keine Lizenzdatei im Repository, und die README trägt deshalb kein Abzeichen dafür.* |
 | **0.39.0** *MINOR, Schema* — **GEPLANT am 21. September 2026** | **Die Fotokachel in eine Nebentabelle.** *Punkt 39 dieses Blatts, sein letzter von vier Befunden — die drei Indexe sind mit 0.38.4 gebaut.* |
 | **0.40.0** *MINOR, Format* — **GEPLANT am 21. September 2026** | **Export, Import und Papierkorb ohne den Arbeitsspeicher.** *Punkt 40 dieses Blatts, vollständig.* |
-| **0.41.0** *MINOR* — **GEPLANT am 21. September 2026** | **Der Prüfstand wartet auf eine Bedingung statt auf die Uhr.** *Punkt 41 dieses Blatts, vollständig.* |
+| **0.41.0** *MINOR* — **AUFTRAG ERTEILT am 23. September 2026** | **Backup, Videos in Kommentaren und der Prüfstand ohne feste Wartezeiten.** *Punkt 41 dieses Blatts, vollständig, dazu 48 bis 51. Bis zum Auftrag hieß die Runde „Der Prüfstand wartet auf eine Bedingung statt auf die Uhr".* |
 | **0.42.0** und **0.43.0** *MINOR* — **GEPLANT am 21. September 2026** | **Dokumente über einen Document Server ansehen und bearbeiten.** *Aus keinem Punkt dieses Blatts — eine Frage des Betreibers vom selben Tag.* |
 
 **Was hier bleibt, bleibt aus einem Grund:** die **elf** Punkte unten haben
@@ -2716,3 +2728,4 @@ Beispieldatei.
 
 **Was es anfasst** — `server.js`, `db.js`, `keys.js`, `auth.js`, `batchrun.js`,
 `images.js` *(je die `console`-Zeilen)*, `docker-compose.example.yml`.
+

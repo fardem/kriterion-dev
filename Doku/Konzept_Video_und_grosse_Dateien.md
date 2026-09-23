@@ -249,6 +249,8 @@ Sprungprobe aus Abschnitt 11.
   Anhang, nicht ein Umkodierer.
 - **Videos in Kommentaren.** Kommentarbilder sind bewusst klein und werden
   neu kodiert. Ein Video dort wäre ein dritter Speicherweg für dieselbe Sache.
+  **Der Betreiber hat am 23. September 2026 anders entschieden:** kurze
+  Videos in Kommentaren stehen im Fahrplan unter 0.41.0.
 - **Automatisches Abspielen, Vorschau beim Überfahren, Endloswiedergabe.**
   Nichts davon gehört in ein Bewertungsarchiv.
 - **Ein Video als Anhang gleichzeitig am Fotoplatz.** Eine Datei, ein Platz.
