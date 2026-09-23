@@ -70,9 +70,9 @@ Videos liegen darin und werden nie als Datei auf die Platte geschrieben.
 
 | | |
 |---|---|
-| **Einträge anlegen** | Titel, Beschreibung, Kategorie, Tags — dazu Fotos bis 30 MB, Kurzvideos bis 20 MB, Dateien bis 50 MB und eine Linkliste |
+| **Einträge anlegen** | Titel, Beschreibung, Kategorie, Tags — dazu Fotos, Kurzvideos, Dateien und eine Linkliste; die Grenze je Datei stellt der Eigentümer ein |
 | **Bewerten** | eigene Kriterien mit Sternen von 1 bis 5, je Kriterium ein **Gewicht** zwischen 0,2 und 2, daraus ein gewichteter Gesamtschnitt |
-| **Mitschreiben** | Kommentare in drei Arten — **Notiz**, **Bericht**, **Aufgabe** (mit Erledigt-Haken) —, dazu Bilder am Kommentar |
+| **Mitschreiben** | Kommentare in drei Arten — **Notiz**, **Bericht**, **Aufgabe** (mit Erledigt-Haken) —, dazu Bilder und Kurzvideos am Kommentar |
 | **Testtage führen** | datierte Einträge mit Note und Tags; sie sind die Zeitreihe, die Kriterienbewertung ist das gegenwärtige Urteil |
 | **Vergleichen** | mehrere Einträge nebeneinander, Kriterium für Kriterium |
 | **Suchen und filtern** | Volltextsuche über Titel, Beschreibung, Kategorie, Tags, Links und Kommentare — **jede Trefferkachel sagt, wo das Wort steht, und der Begriff ist hervorgehoben**; Filterstellungen lassen sich als **Ansicht** speichern |
@@ -553,6 +553,21 @@ eine neue Anmeldung.
 **Fällt der Proxy aus, ist nichts zu tun.** Läuft ein Zertifikat ab oder klemmt
 der Name im DNS, geht `http://<server-ip>:3100` von selbst.
 
+### Die Größe einer Anfrage
+
+**Der Proxy muss Anfragen in der Größe der höchsten eingestellten Grenze
+durchlassen.** Die Grenzen stehen in der Karte „Grenzen beim Hochladen"; die
+Vorgabe für einen Anhang ist 50 MB, das Höchste 100 MB.
+
+| | |
+|---|---|
+| nginx | `client_max_body_size`, etwa `client_max_body_size 100m;`. Die Vorgabe von nginx ist 1 MB |
+| Cloudflare | lässt in den Tarifen Free und Pro 100 MB je Anfrage durch |
+
+Sagt der Proxy mit 413 ab, zeigt Kriterion „Die Datei ist größer, als der
+Reverse Proxy davor durchlässt." Eine Absage von Kriterion selbst behält ihren
+Wortlaut.
+
 **Was die Einstellung nicht ist:** eine Liste, wer den Kopf setzen darf. Bleibt
 der Port des Containers im eigenen Netz erreichbar, kann dort jemand von Hand
 einen `X-Forwarded-For` mitschicken und die Anmeldebremse umgehen. Wer das
@@ -717,7 +732,8 @@ alles andere fällt weg.
 
 ## Kurzvideos
 
-Ein Video bis **20 MB** liegt in **derselben Reihe wie die Fotos** — dieselbe
+Ein Video bis **20 MB** — die Vorgabe; der Eigentümer stellt bis 100 MB ein —
+liegt in **derselben Reihe wie die Fotos** — dieselbe
 Tabelle, dieselbe Reihenfolge, dieselben Rechte, dieselbe Verschlüsselung. Es
 gibt keine zweite Liste und damit keine zweite Antwort auf die Frage, was das
 Hauptbild ist. Erlaubt sind **MP4, WebM und MOV**; entschieden wird nach dem
@@ -731,7 +747,7 @@ mit eigener Angriffsfläche und eigenem Aktualisierungsbedarf —, und der Serve
 kann, kann es auch nicht hochladen, und **das Standbild belegt nichts** — es
 ist eine Vorschau, keine Aussage über den Inhalt der Datei.
 
-**20 MB und nicht mehr**, und die Zahl ist gemessen: 50 MB kosten beim Lesen
+**20 MB als Vorgabe**, und die Zahl ist gemessen: 50 MB kosten beim Lesen
 aus der verschlüsselten Datenbank rund eine halbe Sekunde, mit dem gesamten
 Blob im Arbeitsspeicher — eine BLOB-Zeile wird nicht stückweise gelesen. 20 MB
 reichen für ein bis zwei Minuten Handyvideo. Wer mehr braucht, hängt die Datei
@@ -739,6 +755,11 @@ als Anhang an; dort wird sie heruntergeladen statt abgespielt.
 
 Ausgeliefert wird **in Ranges**, damit sich im Video springen lässt. Fotos
 bleiben davon unberührt.
+
+**Videos in Kommentaren gehen denselben Weg**: dieselben drei Formate, ein
+Standbild aus dem Browser als Kachel, dieselbe Auslieferung in Ranges. Sie
+liegen in einer eigenen Tabelle `comment_videos` und zählen mit den Bildern
+zusammen zur Grenze von sechs je Kommentar.
 
 ---
 
@@ -976,10 +997,12 @@ Start eine leere Neuinstallation vermuten.
   da, und die Glocke übergeht solche Zeilen
 - `product_categories`, `tags`, `item_tags`
 - `comments` — mit Bearbeitungszeitpunkt und `images_removed`: die Zahl der
-  Bilder, die ein **anderer** als der Verfasser entfernt hat
+  Bilder und Videos, die ein **anderer** als der Verfasser entfernt hat
 - `test_day_tags` — Tags an einzelnen Testtagen, getrennt von `item_tags`
 - `comments.kind` / `comments.pinned` — Art und Anpinnung je Kommentar
 - `comment_images` — Bilder in Kommentaren, eigene Tabelle neben `attachments`
+- `comment_videos` — Videos in Kommentaren samt Standbild und Dauer; kommt bei
+  einer bestehenden Datenbank beim ersten Start dazu
 - `attachments` — angehängte Dateien samt Bytes **und Verfasser**
 - `photos.focus_x` / `photos.focus_y` / `photos.zoom` — Fokuspunkt und Weite der
   quadratischen Vorschau. `zoom` ist ein Prozentwert; 100 heißt „so weit wie das

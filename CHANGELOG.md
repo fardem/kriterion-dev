@@ -30,6 +30,67 @@ ihre deutschen Abschnittsüberschriften bleiben.*
 
 *Hier wird mitgeschrieben, während gebaut wird.*
 
+## [0.41.0] - 2026-09-23
+
+*Backup, Videos in Kommentaren und der Prüfstand ohne feste Wartezeiten.*
+
+Fingerprint `d5aaeb21` — davor `7681fc64`.
+
+> **DIE DATENBANK BEKOMMT BEIM ERSTEN START DIE TABELLE `comment_videos`.** Zu
+> tun ist nichts.
+>
+> **DAS AUSTAUSCHFORMAT IST 19.** Eine ältere Fassung übergeht die
+> Kommentarvideos; eine Datei mit Format 18 kommt weiter herein.
+>
+> **DIE EIGENE `.env` UND DIE EIGENE `docker-compose.yml` BLEIBEN, WIE SIE
+> SIND.** Wer die `docker-compose.yml` aus der Vorlage neu anlegt, setzt die
+> beiden Pfade auf `kriterion-sicherung` und `/app/sicherung` zurück. Die
+> Befehle von `usertool.js` und `keytool.sh` heißen englisch: `list`,
+> `password`, `remove`, `owner`, `twofactor`, `show`, `change`.
+>
+> **WER EINE GRENZE BEIM HOCHLADEN HEBT, HEBT AUCH DIE DES REVERSE PROXYS** —
+> bei nginx `client_max_body_size`.
+
+### Hinzugefügt
+
+- **Videos in Kommentaren** — MP4, WebM und MOV bis 20 MB, mit Standbild aus
+  dem Browser; zusammen mit den Bildern höchstens sechs je Kommentar.
+- **Ein Download je Foto und Video** in der Bildansicht, auch an Kommentaren.
+- **Die Karte „Grenzen beim Hochladen"** im Abschnitt „Datenbank": Foto,
+  Kommentarbild, Video, Kommentarvideo und Anhang, einstellbar bis 50 bzw.
+  100 MB. Ändern kann der Eigentümer.
+- **Eine Grenze je Eintrag von rund 345 MB.** Ein Hochladen darüber wird
+  abgesagt; der Export in einer Datei nennt einen älteren Eintrag darüber und
+  sagt ab, der Export in Teilen lässt ihn aus.
+- Eine Antwort 413 des Reverse Proxys sagt am Bildschirm, was los ist.
+- Dialog und Karten sagen, was Export, Import und Backup enthalten; nach dem
+  Import nennt die Meldung die Verfasser, die dem Einspielenden zugefallen sind.
+
+### Geändert
+
+- **Das Wort heißt Backup**, in der Oberfläche, im Handbuch und in der README.
+- **Neue Installationen bekommen englische Bezeichnungen**: `kriterion-backup`,
+  `/app/backup`, `kriterion-old`, `data-before-update-<Datum>`,
+  `.env.before-key-change-…`, `photo-<Nummer>`, `image-<Nummer>`,
+  `-part-<n>-of-<m>`.
+- `.env.example` und `docker-compose.example.yml` sind kürzer: je Einstellung
+  eine Überschrift und höchstens vier Zeilen.
+- **Der Prüfstand wartet auf Bedingungen statt auf feste Zeiten.**
+
+### Behoben
+
+- Das Hinweisfeld an der Zeitleiste lief am Rand aus dem Bild und schrumpfte
+  auf 35 Pixel Breite.
+- Die Formatierleiste stand bei einem langen Kommentar unter dem Feld oder
+  außerhalb des Bildes; sie steht jetzt am Feld.
+- Nach dem Umlegen von `BEHIND_PROXY` wurden Schreibzugriffe abgewiesen,
+  solange der Browser das Cookie gegen fremde Formulare unter dem anderen Namen
+  mitschickte. Der Server löscht es jetzt; ein Neuladen genügt.
+
+### Entfernt
+
+- Die deutschen Befehle von `usertool.js` und `keytool.sh`.
+
 ## [0.40.0] - 2026-09-22
 
 *Export und Import ohne den Arbeitsspeicher.*

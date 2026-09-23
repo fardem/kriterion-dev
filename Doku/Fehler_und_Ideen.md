@@ -288,7 +288,7 @@ sie ist ein Wegweiser und kein zweiter Eintrag.*
 | **0.38.6** *PATCH* — **GEPLANT am 21. September 2026** | **Die Lizenz.** *Befund aus BA 8 der 0.38.5: es gibt keine Lizenzdatei im Repository, und die README trägt deshalb kein Abzeichen dafür.* |
 | **0.39.0** *MINOR, Schema* — **GEPLANT am 21. September 2026** | **Die Fotokachel in eine Nebentabelle.** *Punkt 39 dieses Blatts, sein letzter von vier Befunden — die drei Indexe sind mit 0.38.4 gebaut.* |
 | **0.40.0** *MINOR, Format* — **GEPLANT am 21. September 2026** | **Export, Import und Papierkorb ohne den Arbeitsspeicher.** *Punkt 40 dieses Blatts, vollständig.* |
-| **0.41.0** *MINOR* — **AUFTRAG ERTEILT am 23. September 2026** | **Backup, Videos in Kommentaren und der Prüfstand ohne feste Wartezeiten.** *Punkt 41 dieses Blatts, vollständig, dazu 48 bis 51. Bis zum Auftrag hieß die Runde „Der Prüfstand wartet auf eine Bedingung statt auf die Uhr".* |
+| **0.41.0** *MINOR* — **GEBAUT am 23. September 2026** | **Backup, Videos in Kommentaren und der Prüfstand ohne feste Wartezeiten.** *Punkt 41 dieses Blatts, vollständig, dazu 48 bis 51. Bis zum Auftrag hieß die Runde „Der Prüfstand wartet auf eine Bedingung statt auf die Uhr".* |
 | **0.42.0** und **0.43.0** *MINOR* — **GEPLANT am 21. September 2026** | **Dokumente über einen Document Server ansehen und bearbeiten.** *Aus keinem Punkt dieses Blatts — eine Frage des Betreibers vom selben Tag.* |
 
 **Was hier bleibt, bleibt aus einem Grund:** die **elf** Punkte unten haben
@@ -2729,3 +2729,18 @@ Beispieldatei.
 **Was es anfasst** — `server.js`, `db.js`, `keys.js`, `auth.js`, `batchrun.js`,
 `images.js` *(je die `console`-Zeilen)*, `docker-compose.example.yml`.
 
+
+## 52. Das Backup der `.env` vor dem Schlüsselwechsel steht in keiner Ignorierliste
+
+**Art: Fehler** *(Betrieb)* **· Herkunft: Bau von 0.41.0, 23. September 2026 ·
+Einschätzung: klein · Fahrplan: offen**
+
+`keytool.sh change` legt `.env.before-key-change-<Marke>` neben die `.env`.
+Die Datei trägt den alten Schlüssel. Sie steht weder in `.gitignore` noch in
+`.dockerignore`: `COPY . .` im `Dockerfile` nimmt sie beim nächsten Bau mit
+ins Image. Unter dem alten Namen `.env.vor-schluesselwechsel-<Marke>` war es
+genauso.
+
+**Der Weg:** `.env.*` in beide Listen, mit `!.env.example` in der
+`.gitignore`. 0.41.0 ändert daran nichts, weil der Auftrag kein Verhalten
+außerhalb seiner Bauabschnitte ändert.

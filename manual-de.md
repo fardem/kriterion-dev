@@ -523,8 +523,8 @@ Am einzelnen Eintrag gilt:
 | sehen, wer welchen Wert bewertet hat | — | — | ✔ |
 | fremde Bewertung löschen | — | — | ✔ |
 | Note einer fremden Bewertung ändern | — | — | — |
-| Bild an einen Kommentar hängen | ✔ | — | — |
-| Bild aus einem Kommentar löschen | ✔ | — | ✔ |
+| Bild oder Video an einen Kommentar hängen | ✔ | — | — |
+| Bild oder Video aus einem Kommentar löschen | ✔ | — | ✔ |
 **Löschen ja, umschreiben nein** ist die Regel dahinter: ein Admin räumt auf,
 aber er verändert keine fremde Aussage unter fremdem Namen. Deshalb darf er
 einen Kommentar löschen, nicht aber dessen Text ändern — und deshalb darf er
@@ -575,8 +575,8 @@ Server dabei nicht.
 **In der Kopfzeile steht, wer angemeldet ist** — neben dem Knopf „Abmelden",
 und zwar auch dann, wenn es nur einen Zugang gibt.
 
-Entfernt ein Admin ein Bild aus einem fremden Kommentar, steht in dessen
-Kopfzeile ein **Vermerk**: „2 Bilder vom Admin entfernt". Er nennt eine
+Entfernt ein Admin ein Bild oder Video aus einem fremden Kommentar, steht in
+dessen Kopfzeile ein **Vermerk**: „2 Bilder oder Videos vom Admin entfernt". Er nennt eine
 **Rolle, keine Person**, und ist für jeden sichtbar. Es ist die einzige Stelle,
 an der Kriterion einen Eingriff festhält; einen Änderungsverlauf gibt es nicht.
 ### Zwei Titel
@@ -693,14 +693,18 @@ es zwei, beide in den Einstellungen einstellbar:
   denselben Papierkorb wie die Ansicht darunter**, mit derselben Rückfrage; er
   steht abgesetzt und vor dem Schließenkreuz. War es das letzte Bild, geht das
   Vollbild zu. An einem Kommentarbild gibt es ihn nicht.
+  **Der Pfeil ↓ im Vollbild lädt die Datei herunter** — Foto, Video,
+  Kommentarbild und Kommentarvideo, jeweils so, wie sie gespeichert ist. Der
+  Dateiname trägt die Nummer, etwa `photo-12.jpg`.
 - Das **erste Element ist das Hauptbild** — Reihenfolge durch Ziehen der
   Vorschaubilder ändern, mit Maus oder Finger.
 - Fotos lassen sich per Dateiauswahl, **Strg+V aus der Zwischenablage** oder
-  durch Ablegen auf dem Feld hinzufügen. **Ein Foto darf bis 30 MB groß sein.**
+  durch Ablegen auf dem Feld hinzufügen. **Ein Foto darf bis 30 MB groß sein**;
+  die Grenze stellt der Eigentümer in der Karte „Grenzen beim Hochladen" ein.
   Wie viele Fotos an einem Eintrag hängen, ist nicht begrenzt; **je Vorgang
   gehen 40 auf einmal zum Server**, und größere Auswahlen werden vom Browser
   selbst aufgeteilt.
-- **Kurzvideos bis 20 MB stehen in derselben Reihe** — MP4, WebM und MOV, über
+- **Kurzvideos bis 20 MB (einstellbar bis 100 MB) stehen in derselben Reihe** — MP4, WebM und MOV, über
   dasselbe Feld hinzugefügt. In der Vorschauleiste trägt ein Video ein ▶ und
   seine Länge, im Eintrag und im Vollbild wird es mit der Steuerung des
   Browsers abgespielt; darin lässt sich springen. Nichts spielt von selbst los,
@@ -717,7 +721,7 @@ es zwei, beide in den Einstellungen einstellbar:
   an der Marke bleibt daneben bestehen.
 - **Testtage** können eigene Tags tragen, zwischen Datum und Sternen. Derselbe
   Vorrat wie am Eintrag, aber eine eigene Verknüpfung.
-- **Dateien** am Eintrag, bis 50 MB je Stück und höchstens 20. Ein Klick auf die
+- **Dateien** am Eintrag, bis 50 MB je Stück (einstellbar bis 100 MB) und höchstens 20. Ein Klick auf die
   Zeile tut das Naheliegende — was der Server ansehen kann (Bilder, PDF,
   Text/Markdown/CSV/Log, `.docx`) klappt auf und wieder zu, alles andere wird
   heruntergeladen. Der Pfeil rechts zeigt vorher an, was passiert; ein eigener
@@ -789,9 +793,12 @@ es zwei, beide in den Einstellungen einstellbar:
   Adresse; eine schließende Klammer bleibt nur, wenn die Adresse eine unpaarige
   öffnende enthält. Angezeigt wird die Adresse vollständig. Beim Bearbeiten
   steht weiterhin der Rohtext im Textfeld; gespeichert ändert sich nichts.
-- **Bilder in Kommentaren**: bis 6 je Kommentar, anhängen oder mit Strg+V
-  einfügen. Jedes Bild wird beim Hochladen neu kodiert — gespeichert wird nur
-  die verkleinerte Variante samt Kachel, nicht das Original.
+- **Bilder und Videos in Kommentaren**: zusammen bis 6 je Kommentar, anhängen
+  oder mit Strg+V einfügen. Jedes Bild wird beim Hochladen neu kodiert —
+  gespeichert wird nur die verkleinerte Variante samt Kachel, nicht das
+  Original. **Ein Video** (MP4, WebM oder MOV, bis 20 MB) wird unverändert
+  gespeichert; die Kachel ist ein Standbild, das der Browser beim Hochladen
+  zieht. Die Kachel trägt ▶ und die Länge, abgespielt wird im Vollbild.
 - **Auszeichnung im Text**: Kommentar und Beschreibung nehmen `**fett**`,
   `_kursiv_`, `` `Code` ``, `[Name](Adresse)`, `> ` für ein Zitat, `- ` für
   eine Aufzählung und `1. ` für eine Nummerierung — jeweils am Zeilenanfang,
@@ -939,7 +946,7 @@ Reihenfolge folgt der Rechteleiter.
 | **Persönlich** | `#/system/personal` | Mein Konto, Meine Sitzungen, Darstellung |
 | **Bestand** | `#/system/inventory` | Kategorien, Tags, Bewertung: Kriterien, Potenzial: Kriterien, Vokabular, Links, Suchmaschinen, Papierkorb |
 | **Benutzer** | `#/system/users` | Benutzer, Anfragen, Sicherheitsprotokoll, Mailversand |
-| **Datenbank** | `#/system/database` | Kennzahlen, Bildformate, Backup, Alte Backups, Export und Import |
+| **Datenbank** | `#/system/database` | Kennzahlen, Bildformate, Grenzen beim Hochladen, Backup, Alte Backups, Export und Import |
 | **Installation** | `#/system/installation` | Titel |
 
 `#/system/database` lässt sich weitergeben, in einem neuen Fenster öffnen und
@@ -997,6 +1004,22 @@ Eigentümer.
   **Welche Fassung welcher Bibliothek das rechnet, steht dort ausdrücklich
   nicht.** Ein Verfahrensname sagt, *wie* gerechnet wird; eine Versionsnummer
   sagt, *welche Lücke passt*.
+- **Grenzen beim Hochladen** *(Admin sieht, Eigentümer ändert)*: die größte
+  Datei je Art in MB.
+
+  | Art | Vorgabe | einstellbar |
+  |---|---:|---:|
+  | Foto | 30 | 1 bis 50 |
+  | Bild im Kommentar | 20 | 1 bis 50 |
+  | Video | 20 | 1 bis 100 |
+  | Video im Kommentar | 20 | 1 bis 100 |
+  | Anhang | 50 | 1 bis 100 |
+
+  Eine Änderung gilt ab dem nächsten Hochladen, ohne Neustart; vorhandene
+  Dateien bleiben, wie sie sind. **Steht ein Reverse Proxy davor, muss er
+  Anfragen in dieser Größe durchlassen** — siehe „Hinter einem Reverse Proxy"
+  in der README. Sagt er ab, steht am Bildschirm „Die Datei ist größer, als der
+  Reverse Proxy davor durchlässt."
 - **Benutzer** verwalten — anlegen mit Passwort oder mit Link, sperren,
   Passwort zurücksetzen direkt oder mit Link, Rolle wechseln, löschen; siehe
   „Rollen und Benutzer" oben *(Admin)*. **Gelöschte Benutzer stehen in einem
@@ -1018,10 +1041,12 @@ Eigentümer.
   eigenem Häkchen mit** — ohne es nennt die Datei sie, enthält sie aber nicht,
   und der Import sagt beim Einspielen, wie viele gefehlt haben.
   **Die Karte nennt die erwartete Dateigröße, bevor der Knopf gedrückt wird**,
-  und die Zahl folgt den Häkchen. Ab **300 MB** steht ein Hinweis darunter:
-  eine Exportdatei ist ein einziger Text und kann nicht größer als 512 MB
-  werden. **Gewarnt wird, verweigert nicht.** Wird die Grenze wirklich
-  gerissen, sagt die Installation ab, bevor sie anfängt zu bauen.
+  und die Zahl folgt den Häkchen. Ab **300 MB** steht ein Hinweis darunter,
+  dass es dauert. **Ein Eintrag fasst höchstens rund 345 MB** an Fotos,
+  Videos, Dateien, Kommentarbildern und Kommentarvideos: Export und Import
+  lesen jeden Eintrag als einen Text. Ein Hochladen darüber wird abgesagt.
+  Liegt ein älterer Eintrag schon darüber, sagt der Export in einer Datei ab,
+  bevor er anfängt, und nennt ihn; der Export in Teilen lässt ihn aus.
 - **Export in Teilen** *(Eigentümer)* — der Weg, wenn die eine Datei nicht mehr
   geht. Die Installation rechnet aus, wie viele Teile es braucht, und **jeder
   Teil ist eine vollständige Exportdatei**: derselbe Umschlag, dieselbe
@@ -1146,7 +1171,7 @@ das Passwort verlangt.
 
 **Die Exportdatei enthält nur die Einträge.** Nicht darin stehen: Benutzer,
 Passwörter, Sitzungen, zweiter Faktor, Mailversand, Titel, Vokabular,
-Suchmaschinen, Bildformate, Ort des Backups, persönliche Einstellungen,
+Suchmaschinen, Bildformate, Grenzen beim Hochladen, Ort des Backups, persönliche Einstellungen,
 Sicherheitsprotokoll, Papierkorb. **Nur das Backup ist eine vollständige
 Sicherung der Datenbank.**
 
