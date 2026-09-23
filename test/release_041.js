@@ -4,7 +4,7 @@
 const H = require('./frame.js');
 const D = require('./dom.js');
 const {
-  buildDom, until, openRequests
+  buildDom, until, openRequests, sysSection, confirmImDom
 } = D;
 
 async function run() {
@@ -536,6 +536,67 @@ async function run() {
     check('Hinter dem Proxy wird das Cookie ohne __Host- geloescht',
       /^kriterion_csrf=; Path=\/; SameSite=Lax; Max-Age=0$/.test(behind || '') && alone === null,
       probe);
+  }
+
+  /* ================= Was Export, Import und Backup enthalten ================= */
+  group('Was Export, Import und Backup enthalten');
+  {
+    const WANT = {
+      'card.onlyBackupComplete': 'Nur das Backup ist eine vollständige Sicherung der Datenbank.',
+      'card.exportOnlyEntries': 'Export und Import enthalten nur die {entryMany} — keine Benutzer und keine Einstellungen von Kriterion.',
+      'card.wayBackupHint': 'der Notfall. Die vollständige, verschlüsselte Sicherung der Datenbank — auch mit Benutzern und Einstellungen.',
+      'card.exportPurposeHint': 'für Umzug, Archiv und Weitergabe — unverschlüsselt, auch mit späteren Versionen lesbar. Er enthält nur die {entryMany}, keine Benutzer und keine Einstellungen. Für den Notfall: Karte',
+      'card.backupWhatHint': '{word} die vollständige, verschlüsselte Sicherung der Datenbank — auch mit Benutzern und Einstellungen, die der Export nicht enthält. Lässt sich nur in dieselbe Programmversion zurückspielen.'
+    };
+    const off = Object.keys(WANT).filter(k => DE[k] !== WANT[k]);
+    check('Die fuenf Saetze stehen im Wortlaut des Auftrags', off.length === 0, off.join(' ') || 'alle');
+    const read = (code) => JSON.parse(fs.readFileSync(path.join(__dirname, 'public', 'languages', `${code}.json`), 'utf8'));
+    const missing = ['en', 'tr'].flatMap(c => Object.keys(WANT).filter(k => !read(c)[k]).map(k => `${c}/${k}`));
+    check('Englisch und Tuerkisch tragen dieselben Schluessel', missing.length === 0, missing.join(' ') || 'alle');
+    if (JSDOM) {
+      const dm = buildDom(JSDOM, {});
+      const w = dm.w;
+      await until(w, (x) => x.document.getElementById('count') && openRequests(x) === 0, 2000, 'die Uebersicht');
+      await sysSection(w, 'database');
+      const cards = w.document.querySelector('.sys-grid')?.textContent.replace(/\s+/g, ' ') || '';
+      check('Die Karte „Export und Import" nennt, was fehlt',
+        cards.includes('Er enthält nur die Einträge, keine Benutzer und keine Einstellungen.'), cards.slice(0, 160));
+      check('Die Karte des Backups nennt Benutzer und Einstellungen',
+        cards.includes('die vollständige, verschlüsselte Sicherung der Datenbank — auch mit Benutzern und Einstellungen, die der Export nicht enthält.'),
+        cards.slice(0, 160));
+      w.document.getElementById('ex-yes')?.dispatchEvent(new w.MouseEvent('click', { bubbles: true }));
+      await until(w, (x) => x.document.querySelector('.backdrop .warn-box'), 2000, 'der Hinweis vor dem Export');
+      const notice = w.document.querySelector('.backdrop .warn-box')?.textContent.replace(/\s+/g, ' ') || '';
+      check('Der Dialog nennt das Backup als einzige vollstaendige Sicherung',
+        notice.includes('Nur das Backup ist eine vollständige Sicherung der Datenbank.'), notice.slice(-220));
+      check('Und dass Export und Import nur die Eintraege tragen',
+        notice.includes('Export und Import enthalten nur die Einträge — keine Benutzer und keine Einstellungen von Kriterion.'),
+        notice.slice(-220));
+      w.document.querySelector('.backdrop [data-no]')?.dispatchEvent(new w.MouseEvent('click', { bubbles: true }));
+      // Nach dem Dateiimport nennt die Meldung die Verfasser, die dem Einspielenden zugefallen sind.
+      const inner = w.fetch;
+      w.fetch = (url, opt) => (url === '/api/import'
+        ? Promise.resolve({ ok: true, status: 200, json: async () => ({ ok: true, items: 1, photos: 0,
+            videos: 0, attachments: 0, authorUnknown: ['anna', 'bernd'] }) })
+        : inner(url, opt));
+      const file = new w.File([JSON.stringify({ version: 19, items: [{ title: 'X' }] })], 'export.json',
+        { type: 'application/json' });
+      w.document.getElementById('imp').onchange({ target: { files: [file], value: '' } });
+      await until(w, (x) => x.document.querySelector('.backdrop [data-merge]'), 2000, 'die Frage nach der Art');
+      w.document.querySelector('.backdrop [data-merge]').dispatchEvent(new w.MouseEvent('click', { bubbles: true }));
+      const runNotice = (x) => [...x.document.querySelectorAll('.backdrop')]
+        .find(b => b.querySelector('h2')?.textContent === DE['card.importRunTitle']);
+      await until(w, runNotice, 2000, 'der Hinweis vor dem Import');
+      runNotice(w).querySelector('[data-yes]').dispatchEvent(new w.MouseEvent('click', { bubbles: true }));
+      await until(w, (x) => x.document.getElementById('confirm-pass'), 2000, 'die zweite Bestaetigung');
+      await confirmImDom(dm);
+      await until(w, (x) => /zugeordnet/.test(x.document.querySelector('.toast')?.textContent || ''),
+        2000, 'die Meldung nach dem Import').catch(() => {});
+      const toast = w.document.querySelector('.toast')?.textContent || '';
+      check('Nach dem Dateiimport nennt die Meldung die zugefallenen Verfasser',
+        toast.includes(deText('card.postsAssignedHint', { names: 'anna, bernd' })), toast);
+      w.close();
+    }
   }
 }
 

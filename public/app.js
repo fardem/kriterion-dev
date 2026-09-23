@@ -10332,7 +10332,8 @@ function setUpExportOut(fetched) {
             <li><strong>${tH('card.wayFile')}</strong> — ${tH('card.wayFileHint')}</li>
             <li><strong>${tH('card.exportInParts')}</strong> — ${tH('card.wayPartsHint')}</li>
             <li><strong>${tH('card.backup')}</strong> — ${tH('card.wayBackupHint')}</li>
-          </ul></div>
+          </ul>
+          <p style="margin:8px 0 0">${tH('card.onlyBackupComplete')} ${tH('card.exportOnlyEntries')}</p></div>
         <div class="modal-acts">
           <button class="btn btn-ghost" data-no>${tH('dialog.cancel')}</button>
           <button class="btn btn-accent" data-yes>${tH('card.carryOn')}</button>
@@ -10537,8 +10538,11 @@ function askImport(file, limits) {
       try {
         const r = await api('POST', '/api/import', fd, true);
         busy.remove();
+        // Die Verfasser, die dem Einspielenden zugefallen sind, wie beim Papierkorb.
+        const open = Array.isArray(r.authorUnknown) ? r.authorUnknown : [];
         toast(t('card.importedCounts', { items: r.items, thing: vThing(r.items),
-          photos: r.photos, videos: r.videos || 0, attachments: r.attachments }));
+          photos: r.photos, videos: r.videos || 0, attachments: r.attachments }) +
+          (open.length ? t('card.postsAssignedHint', { names: open.join(', ') }) : ''));
         /* Nicht abbrechen, melden -- und laut genug, dass es auffaellt: fehlt
            ein Video, kann das naechste Foto zum Hauptbild geworden sein. */
         const missing = (r.videosWithoutFile || 0) + (r.videosUnreadable || 0);

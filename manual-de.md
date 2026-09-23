@@ -1142,11 +1142,17 @@ das Passwort verlangt.
 |---|---|
 | **Export in einer Datei** | Umzug, Archiv, Weitergabe. Unverschlüsselt und auch von einer späteren Version lesbar |
 | **Export in Teilen** | wenn eine Hochladegrenze, ein Datenträger oder eine langsame Verbindung dagegen spricht |
-| **Sicherung** | der Notfall. Die vollständige, verschlüsselte Kopie der Datenbank — mit allem, was im Export fehlt. Sie steht in der [README](README.md) |
+| **Backup** | der Notfall. Die vollständige, verschlüsselte Sicherung der Datenbank — auch mit Benutzern und Einstellungen. Es steht in der [README](README.md) |
 
-**Die Exportdatei enthält nicht alles.** Zugänge, Passwörter, Sitzungen, das
-Sicherheitsprotokoll, der Papierkorb und die persönlichen Einstellungen gehen
-nicht mit. Wer eine vollständige Kopie braucht, nimmt die Sicherung.
+**Die Exportdatei enthält nur die Einträge.** Nicht darin stehen: Benutzer,
+Passwörter, Sitzungen, zweiter Faktor, Mailversand, Titel, Vokabular,
+Suchmaschinen, Bildformate, Ort des Backups, persönliche Einstellungen,
+Sicherheitsprotokoll, Papierkorb. **Nur das Backup ist eine vollständige
+Sicherung der Datenbank.**
+
+**Beim Umzug:** wer eine neue Installation mit einer Exportdatei füllt, legt
+die Benutzer vorher mit denselben Benutzernamen an. Sonst fallen ihre Beiträge
+an den, der einspielt; die Meldung nach dem Import nennt diese Namen.
 
 ### Was vor dem Lauf angesagt wird
 
