@@ -1,7 +1,7 @@
 # Fahrplan
 
-**Der Plan von 0.41.0 bis 0.43.0 · Stand 22. September 2026, nach dem Bauen von
-0.40.0**
+**Der Plan von 0.41.0 bis 0.43.0 · Stand 23. September 2026, nach der Zuordnung
+der Befunde zu 0.41.0**
 
 *Hier stand vorher „von 0.26.0 bis 1.0 · Stand 9. September 2026": beides ist
 überholt — es wird kein 1.0.0 geben, und seither sind dreizehn Runden gebaut.*
@@ -188,7 +188,7 @@ Sprachumschalter baut, hat damit ein Muster und braucht kein neues.**
 | ~~**0.39.0**~~ | ~~**Die Spaltenfolge: `data` ans Ende**~~ | **GEBAUT am 22. September 2026** auf 0.38.6 — Änderungsprotokoll 0.39.0. *Zugeordnet war für diese Nummer die Nebentabelle `photo_derivatives`; gebaut ist die Spaltenfolge.* **In `photos`, `comment_images` und `attachments` steht `data` jetzt am Ende der Zeile.** *SQLite liest eine Zeile von vorn; was hinter einem großen Blob steht, ist nur über dessen Overflow-Kette erreichbar, und die Kachel der Übersicht stand dahinter.* **Gemessen an einer verschlüsselten Prüflage von 500 Fotos und 126,0 MB Originalen: 0,91 ms je Kachel vorher, 0,01 ms nachher**, *bei dreißig Kacheln auf einmal 27,4 gegen 0,28 ms.* **Die Nebentabelle `photo_derivatives` ist ausdrücklich nicht gebaut** — *gemessen 0,009 ms je Kachel mit ihr gegen 0,011 ms mit der Spaltenfolge; **die Differenz beträgt 0,002 ms** und ist einen zweiten Schreibweg, einen zweiten Leseweg, einen Eingriff in Export, Import und Papierkorb und eine Neurechnung aller Ableitungen nicht wert.* **`tools/reorder.js` bringt eine bestehende Datenbank auf die neue Folge** — *ein Aufruf bei angehaltener Instanz, kein Migrationsblock; Indexe und Trigger werden wortgleich wieder angelegt, `VACUUM` gibt den Platz zurück. Gemessen 44,7 ms je MB, Datei 231,7 MB vor und nach dem Lauf.* **Am Code ändert sich keine Zeile.** **MINOR** *(1.133 → 1.137 Rückbauten, Prüfstand 7.256 → 7.276). Ein neues Modul `test/reorder.js` mit einer Gruppe und zwanzig Prüfungen. Fingerprint `2ba1c469`* | **ja** | 22.09.2026 |
 | ~~**0.39.1**~~ | ~~**Was für vergangene Prozesse gebaut wurde, geht heraus**~~ | **GEBAUT am 22. September 2026** auf 0.39.0 — Änderungsprotokoll 0.39.1. *Vorgabe des Betreibers: 0.39.0 ist die einzige Fassung, die es öffentlich je geben wird; vor ihr liegt keine, aus der jemand einen Bestand, eine `.env` oder eine Exportdatei mitbrächte.* **Fünf Werkzeuge unter `tools/` sind fort, zusammen 921 Zeilen** — *`reorder.js` nach seinem einen Lauf, dazu `rename.js`, `rename-test.js`, `gestalt.js` und `scan-words.js`. Gemessen vor dem Bau: **null** der sieben Eigennamen steht noch als Bezeichner im Code, die 318 Vorkommen liegen in Kommentaren und Prüfnamen — der Umbenenner hat keinen Gegenstand mehr.* **Die vier deutschen Umgebungsnamen werden nicht mehr gelesen**, *und das ist die einzige Verhaltensänderung der Runde; sie steht im Kasten über dem Changelog-Eintrag.* **`LEGACY_TABLES`, drei `AUTH_*`-Warnungen und jede Versionsnummer aus der Anleitung sind gefallen** — *der Wächter über die Nummern hat sich dabei umgekehrt: er verlangte sechs, jetzt verbietet er jede.* **`lateStatement` und `REQUIRED_COLUMNS` bleiben ausdrücklich** — *der Rückbau hätte 30 Deklarationen und rund 60 Aufrufe in `server.js` gekostet und null Zeilen gebracht; nur der Text des Kastens ist umgeschrieben und verweist auf die Sicherung statt auf eine ältere Version.* **Zwei Fehler nebenbei behoben:** *`.env.example` nannte `./schluessel.sh` statt `keytool.sh`, und das Handbuch trug die Formatnummer 17, während der Server 18 trägt — ein neuer Wächter hält beide gegeneinander.* **PATCH** *(1.137 → 1.133 Rückbauten, Prüfstand 7.276 → 7.256, 1.575 Zeilen entfernt und 150 hinzugekommen). Fingerprint `9d48cbbc`* | nein | 22.09.2026 |
 | ~~**0.40.0**~~ | ~~**Export, Import und Papierkorb ohne den Arbeitsspeicher**~~ | **GEBAUT am 22. September 2026** auf 0.39.1 — Änderungsprotokoll 0.40.0. **Der Export schreibt stückweise:** *Kopf, Bündel für Bündel, Schluss — und bei Rückstau wartet er auf `drain`.* **Die RSS-Spitze fällt von +1.125,8 MB auf +314,8 MB**, die Laufzeit von 16,02 s auf 3,95 s — gemessen an 40 Einträgen zu je 6,0 MB, Datei 320,0 MB. **Damit fällt die Absage vor dem Gesamtexport**; `EXCHANGE_MAX` bleibt als Latte je Teil im Teilexport. **Der Import liest die Datei eintragsweise von der Platte** — `diskStorage` in `DATA_DIR/import`, ein `finally` um alles, und der Serverstart leert den Ordner. `IMPORT_MAX` steigt von 900 MB auf 4 GB, und vor dem Hochladen wird der freie Platz geprüft. **Der Papierkorb kopiert die Bytes innerhalb von SQLite** — vier `INSERT … SELECT`, und `entryAsBundle` liest die Blobspalten dafür gar nicht erst. **Die Antwort trägt keine `Content-Length` mehr**, und ein Dialog sagt das vor Export und Import an; er stellt zugleich die drei Wege nebeneinander. Das Austauschformat bleibt **18**, der Inhalt der Datei ist Zeichen für Zeichen derselbe. Fingerprint `7681fc64` (davor `9d48cbbc`) | nein | nein |
-| **0.41.0** | **Der Prüfstand wartet auf eine Bedingung statt auf die Uhr** | **GEPLANT am 21. September 2026** — *zugeordnet aus Punkt 41 des Sammelblatts; Ansage des Betreibers vom 21. September 2026: „beim nächsten Mal".* **614 feste Wartezeiten stehen in den Modulen unter `test/`, zusammen 47.520 ms.** *0.35.0 hat das Werkzeug gebaut und elf Stellen umgestellt — `until()` in `test/dom.js`, `nextSecond()` in `test/frame.js`.* **Jede der 614 braucht ihre eigene Bedingung**, es gibt keinen Griff für alle auf einmal. *Modul für Modul, mit einem vollen Lauf je Modul.* **DAZU EIN ZWEITER GEGENSTAND, angesagt vom Betreiber am 22. September 2026:** *eine frische Installation bekommt aus einer Exportdatei nicht alles zurück — Zugänge, Mailzugang, Titel, Vokabular, Suchanbieter, Bildablage, persönliche Einstellungen, Sicherheitsprotokoll und Papierkorb stehen nicht darin.* **Am Ablauf wird nichts geändert, gebaut werden die Hinweise:** *nur das Backup ist ein vollständiges Backup; Export und Import tragen die Einträge und sonst nichts.* **Im Dialog, in beiden Karten und im Handbuch.** **Und das Wort heißt Backup** — *das deutsche fällt: 57 Werte in `de.json`, 107 Treffer in Quelltext und Papieren; die Schlüsselnamen tragen `backup` schon* | nein | — |
+| **0.41.0** | **Der Prüfstand wartet auf eine Bedingung statt auf die Uhr** | **GEPLANT am 21. September 2026** — *zugeordnet aus Punkt 41 des Sammelblatts; Ansage des Betreibers vom 21. September 2026: „beim nächsten Mal".* **614 feste Wartezeiten stehen in den Modulen unter `test/`, zusammen 47.520 ms.** *0.35.0 hat das Werkzeug gebaut und elf Stellen umgestellt — `until()` in `test/dom.js`, `nextSecond()` in `test/frame.js`.* **Jede der 614 braucht ihre eigene Bedingung**, es gibt keinen Griff für alle auf einmal. *Modul für Modul, mit einem vollen Lauf je Modul.* **DAZU EIN ZWEITER GEGENSTAND, angesagt vom Betreiber am 22. September 2026:** *eine frische Installation bekommt aus einer Exportdatei nicht alles zurück — Zugänge, Mailzugang, Titel, Vokabular, Suchanbieter, Bildablage, persönliche Einstellungen, Sicherheitsprotokoll und Papierkorb stehen nicht darin.* **Am Ablauf wird nichts geändert, gebaut werden die Hinweise:** *nur das Backup ist eine vollständige Sicherung der Datenbank; Export und Import tragen die Einträge und sonst nichts.* **Im Dialog, in beiden Karten und im Handbuch.** **Und das Wort heißt Backup** — *das deutsche fällt: 57 Werte in `de.json`, 107 Treffer in Quelltext und Papieren; die Schlüsselnamen tragen `backup` schon* **DAZU SIEBEN PUNKTE VOM 23. SEPTEMBER 2026:** *die Punkte 48 bis 51 des Sammelblatts — der Satz zum Backup, das Hinweisfeld an der Zeitleiste, die Formatierleiste am langen Kommentar, die Beispieldateien —, der abgewiesene Schreibzugriff nach dem Umlegen von `BEHIND_PROXY`, ein Download für jedes Bild und jedes Video und kurze Videos in Kommentaren.* **Schema und Format sind offen, allein wegen der Videos in Kommentaren** | **offen** | **offen** |
 | **0.42.0** | **Dokumente über einen Document Server ansehen** | **GEPLANT am 21. September 2026.** *Eine Instanz, die einen OnlyOffice Document Server betreibt, zeigt `.docx`, `.xlsx` und `.pptx` im Betrachter — heute gibt es dafür nackten Text oder gar nichts. Ohne Document Server bleibt alles, wie es ist.* **Adresse und Geheimnis stehen in der `.env` oder der Compose-Datei**, *kein Feld in der Oberfläche: ein Geheimnis in `settings` reiste im Export mit.* Der Admin schaltet an und ab, **je Benutzer gibt es keinen Schalter**. *Die teuerste Zeile ist die Sicherheitsregel (`server.js`:370 — `script-src` und `frame-src` müssen eine fremde Adresse aufnehmen); der Document Server holt die Datei ohne Cookie und braucht dafür ein einmaliges Token in der Adresse.* **Und die README muss in dieser Runde sagen, dass eine angesehene Datei im Zwischenspeicher des Document Servers im Klartext liegt** | nein | — |
 | **0.43.0** | **Dokumente über den Document Server bearbeiten** | **GEPLANT am 21. September 2026, setzt 0.42.0 voraus.** *Der Rückweg: der Document Server meldet die geänderte Fassung, Kriterion holt sie und schreibt sie nach `attachments.data`.* **Ohne Geheimnis kein Bearbeiten** — *der Rückweg ist ein Schreibweg ohne Cookie und hängt allein an der Unterschrift.* Ändern darf, wer auch löschen darf: Admin oder wer die Datei hochgeladen hat, `mayChange()` unverändert. **Zwei Fragen sind offen:** *ob der Rückweg dieselbe Zeile ersetzt oder eine zweite anlegt, und was geschieht, wenn die Datei zwischen Öffnen und Rückweg gelöscht wurde* | nein | — |
 | ~~**1.0.0**~~ | ~~Die Zusage~~ | **GESTRICHEN am 15. September 2026** — Vorgabe des Betreibers: es wird kein 1.0.0 geben, was als 1.0 geplant war ist mit **0.33.0** erreicht. Die zwei offenen Punkte des Eintrags stehen in der Zeile darunter | — | — |
@@ -2372,6 +2372,10 @@ Treffer in Quelltext und Papieren.**
 umgestellt ist** — das deutsche Wort gegen `Backup`, wie `Keks` gegen
 `Cookie`.
 
+Der Satz zum Backup braucht das Wort als Beschreibung: „eine vollständige
+Sicherung der Datenbank". Der Eintrag braucht deshalb eine Ausnahme oder
+entfällt; siehe Punkt 48 unten.
+
 ### Was dafür zu bauen ist
 
 > **AM ABLAUF WIRD NICHTS GEÄNDERT** — Vorgabe des Betreibers vom 22. September
@@ -2381,7 +2385,7 @@ umgestellt ist** — das deutsche Wort gegen `Backup`, wie `Keks` gegen
 
 **Die zwei Sätze, die überall stehen müssen:**
 
-1. **Nur das Backup ist ein vollständiges Backup.**
+1. **Nur das Backup ist eine vollständige Sicherung der Datenbank.**
 2. **Export und Import tragen die Einträge und sonst nichts** — keine Zugänge
    und auch keine Einstellungen von Kriterion.
 
@@ -2400,7 +2404,461 @@ Antwort trägt `authorUnknown` schon, das Containerprotokoll nennt sie, und
 beim Zurückholen aus dem Papierkorb zeigt die Oberfläche sie auch
 (`public/app.js`:8608) — nach dem Dateiimport nicht.
 
-**Schema: nein.**
+### Dazu: sieben Punkte vom 23. September 2026
+
+**Ansage des Betreibers vom 23. September 2026:** „wir nehmen alle Punkte für
+0.41.0 auf." Vier davon standen als Punkte 48 bis 51 im Sammelblatt und sind
+mit ihrer Ausarbeitung hierher gezogen. Drei kamen am selben Tag dazu und
+stehen nur hier.
+
+| | worum es geht | Art | Schema |
+|---|---|---|---|
+| Punkt 48 | Der Satz zum Backup: „Nur das Backup ist eine vollständige Sicherung der Datenbank." | Wortlaut | nein |
+| Punkt 49 | Das Hinweisfeld an der Zeitleiste wird am rechten Rand schmal und hoch | Fehler | nein |
+| Punkt 50 | Die Formatierleiste verdeckt bei einem langen Kommentar die Knöpfe | Fehler | nein |
+| Punkt 51 | Die Beispieldateien erklären zu viel; zwei Angaben darin sind falsch | Dokumentation | nein |
+| neu | Nach dem Umlegen von `BEHIND_PROXY` wird jede schreibende Anfrage abgewiesen | Fehler | nein |
+| neu | Ein Download für jedes Bild und jedes Video | Neue Funktion | nein |
+| neu | Kurze Videos in Kommentaren | Neue Funktion | **offen** |
+
+#### Nur das Backup ist eine vollständige Sicherung der Datenbank — Punkt 48 des Sammelblatts
+
+**Art: Verbesserung** (Wortlaut) · **Herkunft: 0.40.0**, Betreiber am
+23. September 2026 · **Einschätzung: klein** · zugeordnet zu
+0.41.0
+
+##### Woher
+
+Vorgabe des Betreibers vom 23. September 2026, beim Lesen des
+Fahrplaneintrags zu 0.41.0. Der Satz „Nur das Backup ist ein vollständiges
+Backup." ist richtig, auf Deutsch aber besser so:
+
+> **Nur das Backup ist eine vollständige Sicherung der Datenbank.**
+
+Im neuen Satz ist „Backup" der Name und „Sicherung der Datenbank" die
+Beschreibung.
+
+##### Was auffiel
+
+Der alte Satz stand zweimal in diesem Fahrplan: in der Zeile 0.41.0 der
+Tafel und als Satz 1 unter „Was dafür zu bauen ist". Beide Stellen tragen
+seit der Zuordnung den neuen Satz.
+
+Oberfläche, Handbuch und README sagen heute „Kopie der Datenbank". Im
+Wortlaut „vollständige, verschlüsselte Kopie der Datenbank" steht es an
+**fünf Stellen**:
+
+| Datei | Stelle |
+|---|---|
+| `public/languages/de.json`:59 | `card.backupWhatHint`, Karte des Backups |
+| `public/languages/de.json`:699 | `card.wayBackupHint`, Dialog vor Export und Import |
+| `manual-de.md`:1051 | Liste der Karten, Eintrag „Sicherung" |
+| `manual-de.md`:1145 | Tabelle der drei Wege im Abschnitt „Export und Import" |
+| `README.md`:818 | Abschnitt „Sichern" |
+
+Dieselbe Aussage in anderer Form: `manual-de.md`:124 und :1149,
+`README.md`:81.
+
+Vier Prüfungen halten den heutigen Wortlaut fest: `test/source.js`:1577
+(Liste der Bildschirmtexte), `test/source.js`:2547 und :2552 (benannte
+Ausnahme der Verbotsliste), `test/ui_system.js`:3534 (Karte des Backups).
+
+##### Was es nicht ist
+
+Kein Fehler. Beide Sätze sind richtig. Am Ablauf ändert sich nichts.
+
+##### Offene Entscheidungen
+
+1. **Der Wortfilter.** Der Abschnitt „Das Wort heißt Backup" oben kündigt
+   einen Eintrag an: das deutsche Wort gegen `Backup`. Der Filter liest die
+   Prosa von `manual-de.md`, `README.md`, `CHANGELOG.md` und `Doku/*.md` und
+   würde den neuen Satz dort melden. Der Eintrag braucht eine Ausnahme für
+   „der Datenbank" oder entfällt.
+2. **Die Verbotsliste der Oberfläche.** `SCREEN_BAN` in `test/dom.js`:1466
+   sperrt „Kopie" am Bildschirm schon heute, mit einer Ausnahme:
+   `Kopien?\b(?!\s+der\s+Datenbank)`. Nach der Änderung wird diese Ausnahme
+   nicht mehr gebraucht. Ein Eintrag für das deutsche Wort bräuchte dieselbe.
+3. **Englisch und Türkisch.** Die Vorgabe betrifft den deutschen Wortlaut.
+   `en.json` sagt „copy", `tr.json` sagt „kopya".
+
+##### Was es anfasst
+
+`public/languages/de.json` (2 Werte), `manual-de.md` (4 Stellen), `README.md`
+(2), `test/source.js`,
+`test/ui_system.js`, `test/dom.js`. Keine Route, kein Schema, kein Format.
+
+#### Der Hinweis an der Zeitleiste wird am rechten Rand schmal und hoch — Punkt 49 des Sammelblatts
+
+**Art: Fehler** (Darstellung) · **Herkunft: 0.31.0**, Betreiber am
+23. September 2026 · **Einschätzung: klein** · zugeordnet zu 0.41.0
+
+##### Woher
+
+Befund des Betreibers vom 23. September 2026, mit drei Bildschirmfotos. Fährt
+die Maus über einen Punkt weit rechts auf der Zeitleiste, wird das
+Hinweisfeld sehr schmal und sehr hoch. Datum und Note stehen dann ein Zeichen
+je Zeile untereinander (Bild 1 und 2). Bei einem Punkt weiter innen ist die
+Darstellung richtig (Bild 3).
+
+##### Was auffiel
+
+`.timeline-hint` (`public/style.css`:1907) ist absolut positioniert.
+`showHint()` (`public/app.js`:3962) setzt `left` auf die Lage des Punktes;
+eine Breite setzt niemand. Der Browser nimmt als Breite deshalb den Platz
+zwischen `left` und dem rechten Rand der Zeitleiste. `translateX(-50%)`
+verschiebt das Feld erst danach und gibt ihm keinen Platz zurück.
+`overflow-wrap: anywhere` erlaubt den Umbruch nach jedem Zeichen.
+
+Gemessen in Chromium, Zeitleiste 900 px breit, Titel „Sky-Watcher I Star
+Adevnturer":
+
+| Punkt bei | Breite | Höhe |
+|---:|---:|---:|
+| 0 bis 70 % | 210 px | 73 px |
+| 80 % | 180 px | 73 px |
+| 90 % | 90 px | 147 px |
+| 95 % | 45 px | 366 px |
+| 100 % | 35 px | 647 px |
+
+Das Feld wird schmaler, sobald rechts vom Punkt weniger als 210 px frei sind.
+Bei 900 px sind das die rechten 23 Prozent der Zeitleiste; in einem
+schmaleren Fenster ist der Anteil größer. Bild 3 liegt schon in diesem
+Bereich: der Titel bricht in zwei Zeilen um, bleibt aber lesbar.
+
+Am linken Rand fehlt die Begrenzung ebenfalls. Bei 0 % ragt das Feld 105 px
+links aus der Zeitleiste, bei 10 % 15 px. Gemeldet ist das nicht.
+
+Die Obergrenze `max-width: min(14rem, 46%)` mit `overflow-wrap: anywhere` kam
+mit 0.31.0. Vorher trug das Feld `white-space: nowrap` und ragte am rechten
+Ende aus der Zeitleiste.
+
+##### Was gebaut werden könnte
+
+`showHint()` misst das Feld nach dem Einfügen und verschiebt es so weit nach
+innen, dass es ganz in der Zeitleiste steht. Dafür braucht das Feld eine
+Breite, die nicht vom Platz rechts vom Punkt abhängt: `width: max-content`
+unter der bestehenden Obergrenze. **Einschätzung von Claude: empfohlen.**
+**Draußen üblich: ja** — Floating UI verschiebt ein Hinweisfeld am Rand mit
+`shift()` nach innen, ECharts hält es mit `confine` in der Grafik.
+
+##### Offene Entscheidungen
+
+1. Ob der linke Rand mitgenommen wird, obwohl dort nichts gemeldet ist.
+   Dieselbe Verschiebung deckt beide Ränder.
+
+##### Was es anfasst
+
+`public/app.js` (`showHint()`), `public/style.css` (`.timeline-hint`),
+`test/ui_style.js`:1409 bis :1414 — die Prüfung verlangt die Obergrenze und
+den Umbruch; beide bleiben. jsdom rechnet keine Breiten: eine Prüfung der
+Lage braucht gesetzte Maße. Keine Route, kein Schema, kein Format.
+
+#### Die Formatierleiste verdeckt bei einem langen Kommentar die Knöpfe — Punkt 50 des Sammelblatts
+
+**Art: Fehler** (Bedienung) · **Herkunft: 0.38.0**, Betreiber am
+23. September 2026 · **Einschätzung: klein** · zugeordnet zu 0.41.0
+
+##### Woher
+
+Befund des Betreibers vom 23. September 2026, mit zwei Bildschirmfotos vom
+Telefon. Beim Schreiben eines Kommentars steht die Formatierleiste über dem
+Feld (Bild 1). Das ist richtig. Bei einem langen Kommentar steht sie an der
+Unterkante des Feldes und verdeckt die Knöpfe darunter (Bild 2: „Speichern"
+beim Bearbeiten; beim neuen Kommentar „+ Bild").
+
+Vorschlag des Betreibers: die Leiste an der Unterkante des Feldes, oder beim
+Scrollen mitlaufend, solange das Feld sichtbar ist — mindestens eine Lösung,
+die draußen üblich ist.
+
+##### Was auffiel
+
+`markupMenuPlace()` (`public/app.js`:2452) setzt die Leiste 6 px über die
+Oberkante des Feldes. Liegt diese Stelle weniger als 4 px unter dem oberen
+Fensterrand, setzt sie die Leiste 6 px unter die Unterkante. Dort stehen die
+Knöpfe des Formulars. Die Leiste ist absolut positioniert und liegt mit
+`--z-markup-menu` über ihnen.
+
+Aus dem Code gelesen und nicht gemessen:
+
+- Ist das Feld höher als das Fenster und beide Kanten liegen außerhalb, steht
+  die Leiste außerhalb des sichtbaren Bereichs.
+- Die feste Kopfzeile (`.masthead`, `position: sticky`) ist in die Schwelle
+  von 4 px nicht eingerechnet. Liegt die Oberkante des Feldes unter der
+  Kopfzeile, steht die Leiste hinter ihr: `--z-markup-menu` ist kleiner als
+  `--z-masthead`.
+
+##### Was gebaut werden könnte
+
+Die Leiste steht im Fluss der Seite als Kopfzeile des Feldes, mit
+`position: sticky` und `top` in Höhe der festen Kopfzeile. Sie läuft beim
+Scrollen mit, solange das Feld sichtbar ist, und bleibt am Ende des Feldes
+stehen. Sie verlässt den Bereich des Feldes nicht und kann die Knöpfe darunter
+nicht verdecken. Die Lage wird von CSS bestimmt; `markupMenuPlace()` und der
+Scroll-Horcher entfallen für das Feld. **Einschätzung von Claude: empfohlen.**
+
+**Draußen üblich: ja.** GitHub und GitLab setzen die Formatierleiste fest über
+das Kommentarfeld. Bei langen Texten wächst das Feld nur bis zu einer
+Höchsthöhe und rollt dann in sich; die Leiste bleibt sichtbar. Google Docs und
+der WordPress-Editor halten die Leiste oben fest, während der Text darunter
+rollt. Auf dem Telefon setzen Slack und GitHub Mobile die Leiste über die
+Bildschirmtastatur.
+
+Das Menü an einer Auswahl im Lesemodus (Zitieren, Kopieren) bleibt, wie es
+ist: es gehört zur Auswahl und nicht zu einem Feld.
+
+##### Offene Entscheidungen
+
+1. Mitlaufend unter der Kopfzeile (Vorschlag oben) oder fest an der
+   Unterkante des Feldes. Die Unterkante liegt bei einem langen Kommentar oft
+   außerhalb des Fensters.
+2. Ob das Feld eine Höchsthöhe bekommt und dann in sich rollt. Das ändert,
+   wie ein langer Kommentar sich schreibt, und ist deshalb eine eigene Frage.
+
+##### Was es anfasst
+
+`public/app.js` (`markupMenuPlace()`, `markupMenuShow()`, die Horcher in
+`markupMenuSetUp()`), `public/style.css` (`.markup-menu`),
+`test/ui_entry.js`:3989 und `test/ui_style.js`:2619 bis :2634 (Lage und
+Ebene der Leiste). Keine Route, kein Schema, kein Format.
+
+#### Die Beispieldateien erklären zu viel — Punkt 51 des Sammelblatts
+
+**Art: Verbesserung** (Dokumentation) · **Herkunft: 0.40.0**, Betreiber am
+23. September 2026 · **Einschätzung: klein** · zugeordnet zu 0.41.0
+
+##### Woher
+
+Befund des Betreibers vom 23. September 2026. Je Einstellung gehört in die
+Beispieldatei: wofür sie da ist, was sie bewirkt und wovon sie abhängt, zum
+Beispiel vom Mailversand. Nicht hinein gehören Cookienamen und der genaue
+Ablauf. Der Betreiber hat die Blöcke `BEHIND_PROXY` und `PUBLIC_ADDRESS`
+selbst gekürzt und dazu gesagt: das ist schon genug, und auch das dürfte
+kürzer sein.
+
+##### Was auffiel
+
+| Datei | Zeilen | davon Kommentar | Einstellungen |
+|---|---:|---:|---:|
+| `.env.example` | 130 | 120 | 3, davon 2 auskommentiert |
+| `docker-compose.example.yml` | 44 | 29 | 15 Zeilen |
+
+Kommentarzeilen je Block in `.env.example`: `ENCRYPTION_KEY` 17,
+`BEHIND_PROXY` 21, `PUBLIC_ADDRESS` 33, „Was hier bewusst nicht steht" 23,
+„Den Schlüssel wechseln" 17. In `docker-compose.example.yml` stehen 20
+Kommentarzeilen über der Einhängung des Backups, 5 über `TZ` und 4 über
+`BACKUP_DIR`.
+
+Zwei Angaben in `.env.example` sind falsch:
+
+- Zeile 94 nennt `node zugang.js passwort <name>`. Die Datei heißt
+  `usertool.js`; `README.md`:280 nennt den richtigen Befehl.
+- Zeile 92 und 93 sagen, der Start melde `AUTH_RESET`, `AUTH_USER` und
+  `AUTH_PASSWORD`. Diese Warnungen sind mit 0.39.1 entfallen.
+
+##### Was gebaut werden könnte
+
+Je Einstellung höchstens vier Zeilen: wofür, was sie bewirkt, wovon sie
+abhängt. Begründungen fallen heraus. Entwurf für die beiden Blöcke des
+Betreibers:
+
+```
+# BEHIND_PROXY -- steht ein Reverse Proxy davor?
+# Leer: Kriterion ist direkt erreichbar (Heimnetz, Port 3100).
+# 1: ein Reverse Proxy mit HTTPS steht davor. Kriterion wertet dann dessen
+# X-Forwarded-Kopfzeilen aus.
+# BEHIND_PROXY=
+
+# PUBLIC_ADDRESS -- die Adresse, unter der Kriterion von aussen erreichbar ist.
+# Ohne Mailversand optional. Mit Mailversand Pflicht: ohne sie verschickt
+# Kriterion keine Links, und die Selbstanmeldung laesst sich nicht einschalten.
+# Hinter einem Reverse Proxy beginnt sie mit https://.
+# PUBLIC_ADDRESS=https://kriterion.beispiel.de
+```
+
+„Was hier bewusst nicht steht" wird eine Liste mit einer Zeile je Eintrag:
+wo Zugang, Port, Ort des Backups und Mailzugang stattdessen eingestellt
+werden.
+
+##### Offene Entscheidungen
+
+1. Die Umbenennung in „Backup" (Abschnitt „Das Wort heißt Backup" oben)
+   fasst dieselben Zeilen an und kommt im selben Schritt. Die beiden Dateien
+   tragen das deutsche Wort 18-mal, `docker-compose.example.yml` 12-mal und
+   `.env.example` 6-mal. 9 davon sind Pfade (`kriterion-sicherung`,
+   `/app/sicherung`). Offen ist, ob die Pfade mit umbenannt werden: ein
+   geänderter Pfad verlegt den Ordner bestehender Installationen.
+2. Ob die README die herausfallenden Begründungen aufnimmt oder ob sie
+   entfallen.
+
+##### Was es anfasst
+
+`.env.example`, `docker-compose.example.yml`. Die Prüfungen lesen aus der
+Compose-Datei nur Einstellungen: Dienstname, `BACKUP_DIR` samt Einhängung
+und `TZ` (`test/roundtrip.js`:424, `test/source.js`:3232). Die Wächter gegen
+Versionsnummern und Verweise auf `Doku/` lesen beide Dateien mit. Keine
+Route, kein Schema, kein Format.
+
+#### Nach dem Umlegen von `BEHIND_PROXY` wird jede schreibende Anfrage abgewiesen
+
+**Art: Fehler** (Anmeldung) · **Herkunft: 0.39.1**, Betreiber am
+23. September 2026 · **Einschätzung: klein** · zugeordnet zu 0.41.0
+
+##### Woher
+
+Befund des Betreibers vom 23. September 2026 an seiner zweiten
+Testinstallation. Die `.env` trug noch `HINTER_PROXY`. Der Name wird seit
+0.39.1 nicht mehr gelesen, und der Reverse Proxy wurde nicht mehr erkannt.
+Lesen ging, Schreiben nicht: ein neuer Kommentar endete mit „Die Anfrage wurde
+abgewiesen. Bitte die Seite neu laden und noch einmal versuchen."
+(`server.deniedOrigin`, `server.js`:651). Neu laden half nicht. Nach dem
+Umbenennen in `BEHIND_PROXY` lief die Installation wieder.
+
+##### Was auffiel
+
+Der Server wählt die Namen der beiden Cookies je Anfrage. Über einen
+erkannten Proxy mit HTTPS heißen sie `__Host-kriterion_session` und
+`__Host-kriterion_csrf`, sonst `kriterion_session` und `kriterion_csrf`
+(`auth.js`:58 bis :66). Die Seite liest zuerst `__Host-kriterion_csrf`
+(`public/app.js`:186).
+
+Wird der Proxy nicht mehr erkannt, findet der Server die Sitzung unter dem
+anderen Namen nicht, und der Benutzer meldet sich neu an. Danach stehen beide
+Cookies im Browser. Die Seite schickt den Wert des alten. Er passt nicht zur
+neuen Sitzung, und jede schreibende Anfrage bekommt 403. Das alte Cookie
+bleibt bis zum Abmelden — `clearCookie()` in `auth.js` löscht alle vier
+Namen — oder bis es nach `SESSION_DAYS` abläuft.
+
+Dasselbe geschieht, wenn `BEHIND_PROXY` absichtlich ausgeschaltet wird.
+`.env.example`:45 bis :47 nennt dafür nur eine neue Anmeldung.
+
+Aus dem Code gelesen; der Ablauf beim Betreiber passt dazu. Nachgestellt ist
+er nicht.
+
+##### Was gebaut werden könnte
+
+Der Wächter vor allen Routen (`server.js`:636) setzt das Cookie gegen fremde
+Formulare schon heute nach, wenn es fehlt oder nicht passt (`server.js`:641).
+Er löscht dabei zusätzlich das Cookie unter dem anderen Namen (`Max-Age=0`).
+Danach hilft auch das Neuladen, das die Meldung empfiehlt. **Einschätzung von
+Claude: empfohlen.**
+
+##### Was es anfasst
+
+`server.js` (der Wächter), `auth.js` (die Namen und `clearCookie()`),
+`.env.example`, `test/`. Keine Route, kein Schema, kein Format.
+
+#### Ein Download für jedes Bild und jedes Video
+
+**Art: Neue Funktion** · **Herkunft: 0.40.0**, Betreiber am 23. September 2026
+· **Einschätzung: klein** · zugeordnet zu 0.41.0
+
+##### Woher
+
+Wunsch des Betreibers vom 23. September 2026: „Ein Downloadbutton für alle
+Bilder und Videos."
+
+##### Was heute dasteht
+
+- Anhänge haben einen Download: ein Link mit `download`
+  (`public/app.js`:6470).
+- Fotos und Videos eines Eintrags und die Bilder eines Kommentars öffnen sich
+  in der Bildansicht `openLightbox()` (`public/app.js`:4492). Sie hat Knöpfe
+  für Zoom, Löschen und Schließen, keinen für den Download.
+- `/api/photos/:id/raw` liefert das Original aus, Videos mit Range.
+  `/api/comment-images/:id/raw` liefert das Kommentarbild so aus, wie es beim
+  Hochladen neu kodiert wurde; das Original gibt es nicht mehr.
+- `photos` hat keine Spalte für den Dateinamen. Der Name kommt aus
+  `setImageHeader()` (`attachments.js`:145): `foto-<Nummer>.<Endung>`, bei
+  Kommentarbildern `bild-<Nummer>.<Endung>`.
+
+##### Was gebaut werden könnte
+
+Ein Knopf in der Kopfzeile der Bildansicht, als Link mit `download` auf die
+Adresse des Originals. Der Server bleibt, wie er ist: das Attribut wirkt bei
+Adressen derselben Herkunft. **Einschätzung von Claude: empfohlen.**
+**Draußen üblich: ja** — Google Fotos und Nextcloud haben den Download in der
+Kopfzeile der Einzelansicht.
+
+##### Offene Entscheidungen
+
+1. Ein Knopf je Bild und Video in der Bildansicht, oder zusätzlich „alle
+   herunterladen" für einen Eintrag. Das zweite braucht eine Route, die ein
+   ZIP schreibt; `package.json` hat dafür keine Abhängigkeit.
+2. Der Dateiname: `foto-<Nummer>` wie heute, oder der Titel des Eintrags mit
+   laufender Nummer.
+
+##### Was es anfasst
+
+`public/app.js` (`openLightbox()`), `public/style.css` (`.lb-tools`), die drei
+Sprachdateien (ein Titel für den Knopf), `test/`. Ohne ZIP: keine Route, kein
+Schema, kein Format.
+
+#### Kurze Videos in Kommentaren
+
+**Art: Neue Funktion** · **Herkunft: 0.40.0**, Betreiber am 23. September 2026
+· **Einschätzung: mittel** · zugeordnet zu 0.41.0
+
+##### Woher
+
+Wunsch des Betreibers vom 23. September 2026: „kurze Videos auch für die
+Kommentare".
+
+> **DAS KONZEPT HAT ES AUSDRÜCKLICH NICHT VORGESCHLAGEN.**
+> `Doku/Konzept_Video_und_grosse_Dateien.md`, Abschnitt 16: „Kommentarbilder
+> sind bewusst klein und werden neu kodiert. Ein Video dort wäre ein dritter
+> Speicherweg für dieselbe Sache." **Der Betreiber hat am 23. September 2026
+> anders entschieden.**
+
+##### Was heute dasteht
+
+- `comment_images` (`db.js`:236) hat `filename`, `thumb`, `sort_order`,
+  `created_at` und `data`. Eine Spalte für die Art oder die Dauer gibt es
+  nicht.
+- Jedes Kommentarbild wird beim Hochladen neu kodiert (`encodeAll()`,
+  `server.js`:4156). Ein Video ginge dabei nicht durch. Einen Umkodierer gibt
+  es nicht; das Konzept schließt `ffmpeg` aus.
+- Videos am Eintrag stehen in `photos` mit `kind = 'video'` und `duration`.
+  Der Browser schickt ein Standbild mit (`stillFrame`), daraus entsteht die
+  Kachel. Die Grenze ist 20 MB (`VIDEO_MAX`, `server.js`:3684), ein Video je
+  Hochladen.
+- `/api/comment-images/:id/raw` liefert ohne Range aus. Ohne Range lässt sich
+  ein Video nicht spulen.
+- Der Import kodiert jedes Kommentarbild neu und übergeht ohne Meldung, was er
+  nicht lesen kann (`server.js`:5246). Ein Video in einer Exportdatei ginge
+  dort heute verloren.
+
+##### Was gebaut werden könnte
+
+Der Weg der Eintragsvideos, auf den Kommentar übertragen: Video und Standbild
+zusammen hochladen, den Typ aus den Bytes prüfen, das Standbild wird die
+Kachel, ausgeliefert wird mit Range. **Einschätzung von Claude: machbar, aber
+der größte Punkt dieser Liste** — er braucht voraussichtlich Schema und
+Austauschformat.
+
+##### Offene Entscheidungen
+
+1. **Die Grenze für „kurz".** Größe, Dauer oder beides. Die Einträge nehmen
+   20 MB je Video.
+2. **Die Spalten.** `kind` und `duration` in `comment_images` heißt Schema:
+   ja. Ohne eigene Spalte müsste die Art bei jeder Anzeige aus den ersten
+   Bytes gelesen werden.
+3. **Das Austauschformat.** Ein Video in der Exportdatei braucht die Art im
+   Datensatz, oder der Import erkennt sie aus den Bytes. Mit einem neuen Feld
+   steigt das Format von 18 auf 19.
+4. **Die Zahl.** Ein Kommentar nimmt heute höchstens sechs Bilder
+   (`IMAGE_COUNT`). Offen ist, ob ein Video eines davon ist.
+5. **Die Runde.** Alle anderen Punkte in 0.41.0 kommen ohne Schema aus. Dieser
+   Punkt kann eine eigene Runde bekommen.
+
+##### Was es anfasst
+
+`db.js` (`comment_images`), `server.js` (Hochladen, Auslieferung mit Range,
+Export, Import, Papierkorb), `public/app.js` (Kommentarformular, Anzeige,
+Bildansicht), die drei Sprachdateien, `README.md`, `manual-de.md`, `test/`,
+`counterproof.js`.
+
+**Schema: offen.** Alle Punkte bis auf die Videos in Kommentaren kommen ohne
+Schema und ohne neues Austauschformat aus. Für die Videos ist beides offen.
 
 ---
 ## 0.42.0 — „Dokumente über einen Document Server ansehen"

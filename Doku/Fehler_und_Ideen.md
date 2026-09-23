@@ -141,7 +141,7 @@ ausgearbeitet steht; die Begründung bleibt am Punkt.*
 
 ---
 
-## Der Stand der offenen Punkte — 21. September 2026, nach der Zuordnung
+## Der Stand der offenen Punkte — 23. September 2026, nach der Zuordnung
 
 **Diese Tafel sagt, wo ein Punkt steht, und trägt ihn nicht ein zweites Mal.**
 Jede Zeile nennt einen Punkt in einem Satz und sagt, wo er steht: eine Nummer
@@ -166,6 +166,13 @@ sagt der Fahrplan.
 > jetzt die Nummern 0.39.0, 0.40.0 und 0.41.0 und stehen mit ihrer Ausarbeitung
 > im Fahrplan.* **Zwei weitere sind gebaut und deshalb hier weggefallen:** *27
 > und 38, beide mit 0.38.5.*
+>
+> **AM 23. SEPTEMBER 2026 SIND VIER PUNKTE FORTGEZOGEN.** 48 bis 51 stehen mit
+> ihrer Ausarbeitung im Fahrplan unter 0.41.0. Ansage des Betreibers: „wir
+> nehmen alle Punkte für 0.41.0 auf." Drei weitere Punkte vom selben Tag
+> stehen nur dort: der abgewiesene Schreibzugriff nach dem Umlegen von
+> `BEHIND_PROXY`, ein Download für jedes Bild und jedes Video und kurze Videos
+> in Kommentaren.
 
 ### Was ohne Nummer offen ist
 
@@ -173,10 +180,6 @@ sagt der Fahrplan.
 |---|---|---|---|---|
 | **42**, Fahrplan | Der Kommentaranteil von `public/style.css` liegt bei 40 Prozent — 1.215 von 3.029 Zeilen; offen ist, ob die gemessenen Zahlen in ein eigenes Papier wandern | niedrig | — | Entscheidung des Betreibers |
 | **20** | Nach einem Umbenennen holt die Oberfläche vier Antworten statt drei; die vierte ist die größte der Installation | niedrig | klein | liegen lassen |
-| **48** | Der Satz zum Backup heißt „Nur das Backup ist eine vollständige Sicherung der Datenbank"; Oberfläche, Handbuch und README sagen heute an fünf Stellen „Kopie der Datenbank" | mittel | klein | für den nächsten Patch vorgemerkt — Ansage des Betreibers vom 23. September 2026 |
-| **49** | Der Hinweis an der Zeitleiste wird am rechten Rand schmal und hoch; bei einem Punkt ganz rechts steht ein Zeichen je Zeile | mittel | klein | für den nächsten Patch gesammelt — Befund des Betreibers vom 23. September 2026 |
-| **50** | Die Formatierleiste springt bei einem langen Kommentar unter das Feld und verdeckt die Knöpfe darunter | hoch | klein | für den nächsten Patch gesammelt — Befund des Betreibers vom 23. September 2026 |
-| **51** | Die Beispieldateien erklären zu viel — `.env.example` hat 120 Kommentarzeilen für drei Einstellungen, und zwei Angaben darin sind falsch | mittel | klein | für den nächsten Patch gesammelt — Befund des Betreibers vom 23. September 2026 |
 | ~~Protokoll 0.38.2~~ | ~~Die Strichstärke des Löschkreuzes bleibt 1.8, dieselbe wie am Stift und am Zitatzeichen~~ | — | — | **ABGELEHNT am 21. September 2026** |
 | ~~Protokoll 0.38.2~~ | ~~Der Trefferausschnitt zeigt bei einem Treffer im Ziel eines Links den Rohtext samt seiner Marken~~ | — | — | **RUHT seit dem 21. September 2026** |
 | ~~Protokoll 0.38.3~~ | ~~Der Halt nach einem Sprung ist eine Frist von 1600 Millisekunden und keine Messung~~ | — | — | **RUHT seit dem 21. September 2026** |
@@ -191,7 +194,7 @@ sagt der Fahrplan.
 | **0.38.6** | Die Lizenz — es gibt keine im Repository, und deshalb trägt die README kein Abzeichen dafür | nein |
 | **0.39.0** | Die Fotokachel nach `photo_derivatives`, mit einer Sicherung davor. *Gemessen: der Umweg kostet nur den, der die Kachel wirklich holt — bis 100 kB Original 0,02 ms, ueber 1 MB 14,8 ms* | **ja** |
 | **0.40.0** | Export, Import und Papierkorb ohne den Arbeitsspeicher — erst am Bestand messen | nein |
-| **0.41.0** | 614 feste Wartezeiten im Prüfstand, zusammen 47,5 Sekunden | nein |
+| **0.41.0** | 614 feste Wartezeiten im Prüfstand, zusammen 47,5 Sekunden; dazu die Hinweise zu Export, Import und Backup und sieben Punkte vom 23. September 2026, darunter kurze Videos in Kommentaren | **offen** |
 | **0.42.0** | Dokumente über einen Document Server ansehen | nein |
 | **0.43.0** | Dokumente über den Document Server bearbeiten | nein |
 | *danach* | Große Dateien bis 2 GB — eigenes Papier, im Fahrplan als „danach" | **ja** |
@@ -240,6 +243,11 @@ sie ist ein Wegweiser und kein zweiter Eintrag.*
 > drei großen, und drei große Punkte ohne Reihenfolge sind keine Sammlung mehr,
 > sondern ein Plan ohne Nummern.* **Am selben Tag sind zwei weitere hier
 > weggefallen, weil sie gebaut sind:** *27 und 38, beide mit 0.38.5.*
+>
+> **AM 23. SEPTEMBER 2026 SIND VIER PUNKTE FORTGEZOGEN — 48 bis 51.** Sie
+> stehen mit ihrer Ausarbeitung im Fahrplan unter 0.41.0. Der Grund, den
+> Regel 3 verlangt: die Ansage des Betreibers „wir nehmen alle Punkte für
+> 0.41.0 auf".
 >
 > **UND AM 5. SEPTEMBER 2026 EIN DRITTES MAL — diesmal NACH VORN, und diesmal
 > ohne Einschub.** Der Betreiber hat die Mehrsprachigkeit von 0.28.0 auf 0.24.0
@@ -2721,288 +2729,3 @@ Beispieldatei.
 **Was es anfasst** — `server.js`, `db.js`, `keys.js`, `auth.js`, `batchrun.js`,
 `images.js` *(je die `console`-Zeilen)*, `docker-compose.example.yml`.
 
----
-
-## 48. Nur das Backup ist eine vollständige Sicherung der Datenbank
-
-**Art: Verbesserung** (Wortlaut) · **Herkunft: 0.40.0**, Betreiber am
-23. September 2026 · **Einschätzung: klein** · Ansage des Betreibers: für den
-nächsten Patch vormerken, bis dahin wird gesammelt
-
-### Woher
-
-Vorgabe des Betreibers vom 23. September 2026, beim Lesen des
-Fahrplaneintrags zu 0.41.0. Der Satz „Nur das Backup ist ein vollständiges
-Backup." ist richtig, auf Deutsch aber besser so:
-
-> **Nur das Backup ist eine vollständige Sicherung der Datenbank.**
-
-Im neuen Satz ist „Backup" der Name und „Sicherung der Datenbank" die
-Beschreibung.
-
-### Was auffiel
-
-Der alte Satz steht zweimal in `Doku/Fahrplan.md`: in der Zeile 0.41.0 der
-Tafel und als Satz 1 unter „Was dafür zu bauen ist".
-
-Oberfläche, Handbuch und README sagen heute „Kopie der Datenbank". Im
-Wortlaut „vollständige, verschlüsselte Kopie der Datenbank" steht es an
-**fünf Stellen**:
-
-| Datei | Stelle |
-|---|---|
-| `public/languages/de.json`:59 | `card.backupWhatHint`, Karte des Backups |
-| `public/languages/de.json`:699 | `card.wayBackupHint`, Dialog vor Export und Import |
-| `manual-de.md`:1051 | Liste der Karten, Eintrag „Sicherung" |
-| `manual-de.md`:1145 | Tabelle der drei Wege im Abschnitt „Export und Import" |
-| `README.md`:818 | Abschnitt „Sichern" |
-
-Dieselbe Aussage in anderer Form: `manual-de.md`:124 und :1149,
-`README.md`:81.
-
-Vier Prüfungen halten den heutigen Wortlaut fest: `test/source.js`:1577
-(Liste der Bildschirmtexte), `test/source.js`:2547 und :2552 (benannte
-Ausnahme der Verbotsliste), `test/ui_system.js`:3534 (Karte des Backups).
-
-### Was es nicht ist
-
-Kein Fehler. Beide Sätze sind richtig. Am Ablauf ändert sich nichts.
-
-### Offene Entscheidungen
-
-1. **Der Wortfilter.** Der Fahrplan kündigt unter „Das Wort heißt Backup"
-   einen Eintrag an: das deutsche Wort gegen `Backup`. Der Filter liest die
-   Prosa von `manual-de.md`, `README.md`, `CHANGELOG.md` und `Doku/*.md` und
-   würde den neuen Satz dort melden. Der Eintrag braucht eine Ausnahme für
-   „der Datenbank" oder entfällt.
-2. **Die Verbotsliste der Oberfläche.** `SCREEN_BAN` in `test/dom.js`:1466
-   sperrt „Kopie" am Bildschirm schon heute, mit einer Ausnahme:
-   `Kopien?\b(?!\s+der\s+Datenbank)`. Nach der Änderung wird diese Ausnahme
-   nicht mehr gebraucht. Ein Eintrag für das deutsche Wort bräuchte dieselbe.
-3. **Englisch und Türkisch.** Die Vorgabe betrifft den deutschen Wortlaut.
-   `en.json` sagt „copy", `tr.json` sagt „kopya".
-
-### Was es anfasst
-
-`public/languages/de.json` (2 Werte), `manual-de.md` (4 Stellen), `README.md`
-(2), `Doku/Fahrplan.md` (2 Stellen im Eintrag 0.41.0), `test/source.js`,
-`test/ui_system.js`, `test/dom.js`. Keine Route, kein Schema, kein Format.
-
----
-
-## 49. Der Hinweis an der Zeitleiste wird am rechten Rand schmal und hoch
-
-**Art: Fehler** (Darstellung) · **Herkunft: 0.31.0**, Betreiber am
-23. September 2026 · **Einschätzung: klein** · gesammelt für den nächsten
-Patch
-
-### Woher
-
-Befund des Betreibers vom 23. September 2026, mit drei Bildschirmfotos. Fährt
-die Maus über einen Punkt weit rechts auf der Zeitleiste, wird das
-Hinweisfeld sehr schmal und sehr hoch. Datum und Note stehen dann ein Zeichen
-je Zeile untereinander (Bild 1 und 2). Bei einem Punkt weiter innen ist die
-Darstellung richtig (Bild 3).
-
-### Was auffiel
-
-`.timeline-hint` (`public/style.css`:1907) ist absolut positioniert.
-`showHint()` (`public/app.js`:3962) setzt `left` auf die Lage des Punktes;
-eine Breite setzt niemand. Der Browser nimmt als Breite deshalb den Platz
-zwischen `left` und dem rechten Rand der Zeitleiste. `translateX(-50%)`
-verschiebt das Feld erst danach und gibt ihm keinen Platz zurück.
-`overflow-wrap: anywhere` erlaubt den Umbruch nach jedem Zeichen.
-
-Gemessen in Chromium, Zeitleiste 900 px breit, Titel „Sky-Watcher I Star
-Adevnturer":
-
-| Punkt bei | Breite | Höhe |
-|---:|---:|---:|
-| 0 bis 70 % | 210 px | 73 px |
-| 80 % | 180 px | 73 px |
-| 90 % | 90 px | 147 px |
-| 95 % | 45 px | 366 px |
-| 100 % | 35 px | 647 px |
-
-Das Feld wird schmaler, sobald rechts vom Punkt weniger als 210 px frei sind.
-Bei 900 px sind das die rechten 23 Prozent der Zeitleiste; in einem
-schmaleren Fenster ist der Anteil größer. Bild 3 liegt schon in diesem
-Bereich: der Titel bricht in zwei Zeilen um, bleibt aber lesbar.
-
-Am linken Rand fehlt die Begrenzung ebenfalls. Bei 0 % ragt das Feld 105 px
-links aus der Zeitleiste, bei 10 % 15 px. Gemeldet ist das nicht.
-
-Die Obergrenze `max-width: min(14rem, 46%)` mit `overflow-wrap: anywhere` kam
-mit 0.31.0. Vorher trug das Feld `white-space: nowrap` und ragte am rechten
-Ende aus der Zeitleiste.
-
-### Was gebaut werden könnte
-
-`showHint()` misst das Feld nach dem Einfügen und verschiebt es so weit nach
-innen, dass es ganz in der Zeitleiste steht. Dafür braucht das Feld eine
-Breite, die nicht vom Platz rechts vom Punkt abhängt: `width: max-content`
-unter der bestehenden Obergrenze. **Einschätzung von Claude: empfohlen.**
-**Draußen üblich: ja** — Floating UI verschiebt ein Hinweisfeld am Rand mit
-`shift()` nach innen, ECharts hält es mit `confine` in der Grafik.
-
-### Offene Entscheidungen
-
-1. Ob der linke Rand mitgenommen wird, obwohl dort nichts gemeldet ist.
-   Dieselbe Verschiebung deckt beide Ränder.
-
-### Was es anfasst
-
-`public/app.js` (`showHint()`), `public/style.css` (`.timeline-hint`),
-`test/ui_style.js`:1409 bis :1414 — die Prüfung verlangt die Obergrenze und
-den Umbruch; beide bleiben. jsdom rechnet keine Breiten: eine Prüfung der
-Lage braucht gesetzte Maße. Keine Route, kein Schema, kein Format.
-
----
-
-## 50. Die Formatierleiste verdeckt bei einem langen Kommentar die Knöpfe
-
-**Art: Fehler** (Bedienung) · **Herkunft: 0.38.0**, Betreiber am
-23. September 2026 · **Einschätzung: klein** · gesammelt für den nächsten
-Patch
-
-### Woher
-
-Befund des Betreibers vom 23. September 2026, mit zwei Bildschirmfotos vom
-Telefon. Beim Schreiben eines Kommentars steht die Formatierleiste über dem
-Feld (Bild 1). Das ist richtig. Bei einem langen Kommentar steht sie an der
-Unterkante des Feldes und verdeckt die Knöpfe darunter (Bild 2: „Speichern"
-beim Bearbeiten; beim neuen Kommentar „+ Bild").
-
-Vorschlag des Betreibers: die Leiste an der Unterkante des Feldes, oder beim
-Scrollen mitlaufend, solange das Feld sichtbar ist — mindestens eine Lösung,
-die draußen üblich ist.
-
-### Was auffiel
-
-`markupMenuPlace()` (`public/app.js`:2452) setzt die Leiste 6 px über die
-Oberkante des Feldes. Liegt diese Stelle weniger als 4 px unter dem oberen
-Fensterrand, setzt sie die Leiste 6 px unter die Unterkante. Dort stehen die
-Knöpfe des Formulars. Die Leiste ist absolut positioniert und liegt mit
-`--z-markup-menu` über ihnen.
-
-Aus dem Code gelesen und nicht gemessen:
-
-- Ist das Feld höher als das Fenster und beide Kanten liegen außerhalb, steht
-  die Leiste außerhalb des sichtbaren Bereichs.
-- Die feste Kopfzeile (`.masthead`, `position: sticky`) ist in die Schwelle
-  von 4 px nicht eingerechnet. Liegt die Oberkante des Feldes unter der
-  Kopfzeile, steht die Leiste hinter ihr: `--z-markup-menu` ist kleiner als
-  `--z-masthead`.
-
-### Was gebaut werden könnte
-
-Die Leiste steht im Fluss der Seite als Kopfzeile des Feldes, mit
-`position: sticky` und `top` in Höhe der festen Kopfzeile. Sie läuft beim
-Scrollen mit, solange das Feld sichtbar ist, und bleibt am Ende des Feldes
-stehen. Sie verlässt den Bereich des Feldes nicht und kann die Knöpfe darunter
-nicht verdecken. Die Lage wird von CSS bestimmt; `markupMenuPlace()` und der
-Scroll-Horcher entfallen für das Feld. **Einschätzung von Claude: empfohlen.**
-
-**Draußen üblich: ja.** GitHub und GitLab setzen die Formatierleiste fest über
-das Kommentarfeld. Bei langen Texten wächst das Feld nur bis zu einer
-Höchsthöhe und rollt dann in sich; die Leiste bleibt sichtbar. Google Docs und
-der WordPress-Editor halten die Leiste oben fest, während der Text darunter
-rollt. Auf dem Telefon setzen Slack und GitHub Mobile die Leiste über die
-Bildschirmtastatur.
-
-Das Menü an einer Auswahl im Lesemodus (Zitieren, Kopieren) bleibt, wie es
-ist: es gehört zur Auswahl und nicht zu einem Feld.
-
-### Offene Entscheidungen
-
-1. Mitlaufend unter der Kopfzeile (Vorschlag oben) oder fest an der
-   Unterkante des Feldes. Die Unterkante liegt bei einem langen Kommentar oft
-   außerhalb des Fensters.
-2. Ob das Feld eine Höchsthöhe bekommt und dann in sich rollt. Das ändert,
-   wie ein langer Kommentar sich schreibt, und ist deshalb eine eigene Frage.
-
-### Was es anfasst
-
-`public/app.js` (`markupMenuPlace()`, `markupMenuShow()`, die Horcher in
-`markupMenuSetUp()`), `public/style.css` (`.markup-menu`),
-`test/ui_entry.js`:3989 und `test/ui_style.js`:2619 bis :2634 (Lage und
-Ebene der Leiste). Keine Route, kein Schema, kein Format.
-
----
-
-## 51. Die Beispieldateien erklären zu viel
-
-**Art: Verbesserung** (Dokumentation) · **Herkunft: 0.40.0**, Betreiber am
-23. September 2026 · **Einschätzung: klein** · gesammelt für den nächsten
-Patch
-
-### Woher
-
-Befund des Betreibers vom 23. September 2026. Je Einstellung gehört in die
-Beispieldatei: wofür sie da ist, was sie bewirkt und wovon sie abhängt, zum
-Beispiel vom Mailversand. Nicht hinein gehören Cookienamen und der genaue
-Ablauf. Der Betreiber hat die Blöcke `BEHIND_PROXY` und `PUBLIC_ADDRESS`
-selbst gekürzt und dazu gesagt: das ist schon genug, und auch das dürfte
-kürzer sein.
-
-### Was auffiel
-
-| Datei | Zeilen | davon Kommentar | Einstellungen |
-|---|---:|---:|---:|
-| `.env.example` | 130 | 120 | 3, davon 2 auskommentiert |
-| `docker-compose.example.yml` | 44 | 29 | 15 Zeilen |
-
-Kommentarzeilen je Block in `.env.example`: `ENCRYPTION_KEY` 17,
-`BEHIND_PROXY` 21, `PUBLIC_ADDRESS` 33, „Was hier bewusst nicht steht" 23,
-„Den Schlüssel wechseln" 17. In `docker-compose.example.yml` stehen 20
-Kommentarzeilen über der Einhängung des Backups, 5 über `TZ` und 4 über
-`BACKUP_DIR`.
-
-Zwei Angaben in `.env.example` sind falsch:
-
-- Zeile 94 nennt `node zugang.js passwort <name>`. Die Datei heißt
-  `usertool.js`; `README.md`:280 nennt den richtigen Befehl.
-- Zeile 92 und 93 sagen, der Start melde `AUTH_RESET`, `AUTH_USER` und
-  `AUTH_PASSWORD`. Diese Warnungen sind mit 0.39.1 entfallen.
-
-### Was gebaut werden könnte
-
-Je Einstellung höchstens vier Zeilen: wofür, was sie bewirkt, wovon sie
-abhängt. Begründungen fallen heraus. Entwurf für die beiden Blöcke des
-Betreibers:
-
-```
-# BEHIND_PROXY -- steht ein Reverse Proxy davor?
-# Leer: Kriterion ist direkt erreichbar (Heimnetz, Port 3100).
-# 1: ein Reverse Proxy mit HTTPS steht davor. Kriterion wertet dann dessen
-# X-Forwarded-Kopfzeilen aus.
-# BEHIND_PROXY=
-
-# PUBLIC_ADDRESS -- die Adresse, unter der Kriterion von aussen erreichbar ist.
-# Ohne Mailversand optional. Mit Mailversand Pflicht: ohne sie verschickt
-# Kriterion keine Links, und die Selbstanmeldung laesst sich nicht einschalten.
-# Hinter einem Reverse Proxy beginnt sie mit https://.
-# PUBLIC_ADDRESS=https://kriterion.beispiel.de
-```
-
-„Was hier bewusst nicht steht" wird eine Liste mit einer Zeile je Eintrag:
-wo Zugang, Port, Ort des Backups und Mailzugang stattdessen eingestellt
-werden.
-
-### Offene Entscheidungen
-
-1. Ob die Umbenennung in „Backup" aus dem Fahrplaneintrag 0.41.0 im selben
-   Schritt mitkommt. Die beiden Dateien tragen das deutsche Wort 18-mal,
-   `docker-compose.example.yml` 12-mal und `.env.example` 6-mal. 9 davon
-   sind Pfade (`kriterion-sicherung`, `/app/sicherung`). Ein geänderter Pfad
-   verlegt den Ordner bestehender Installationen.
-2. Ob die README die herausfallenden Begründungen aufnimmt oder ob sie
-   entfallen.
-
-### Was es anfasst
-
-`.env.example`, `docker-compose.example.yml`. Die Prüfungen lesen aus der
-Compose-Datei nur Einstellungen: Dienstname, `BACKUP_DIR` samt Einhängung
-und `TZ` (`test/roundtrip.js`:424, `test/source.js`:3232). Die Wächter gegen
-Versionsnummern und Verweise auf `Doku/` lesen beide Dateien mit. Keine
-Route, kein Schema, kein Format.
