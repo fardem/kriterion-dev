@@ -19,6 +19,9 @@ offen ist.
   einzeln herunterladen.
 - Eine neue Installation zeigt nur englische Bezeichnungen: Ordner, Pfade,
   Befehle, Dateinamen.
+- Die Größengrenzen für Fotos, Bilder und Videos sind im Systembereich
+  einstellbar, innerhalb fester Obergrenzen. Kein Eintrag wird größer, als
+  Export und Import tragen können.
 - Drei Fehler aus dem Betrieb sind behoben. Die Beispieldateien sind kurz und
   richtig.
 
@@ -35,6 +38,7 @@ offen ist.
 | Drei Fehler | Das Hinweisfeld an der Zeitleiste, die Formatierleiste am langen Kommentar, das Cookie nach dem Umlegen von `BEHIND_PROXY` |
 | Die Beispieldateien | `.env.example` hat 120 Kommentarzeilen für drei Einstellungen und zwei falsche Angaben |
 | Zwei Wünsche | Download je Foto und Video; kurze Videos in Kommentaren |
+| Größengrenzen | Fest im Code: Foto 30 MB, Kommentarbild 20 MB, Video 20 MB. Für einen ganzen Eintrag gibt es keine Grenze, obwohl Export und Import eine haben |
 
 ---
 
@@ -52,6 +56,7 @@ offen ist.
 | 23. September 2026 | Der Auftrag kommt „mit Schemaänderung": kurze Videos in Kommentaren gehören dazu |
 | 23. September 2026 | „Download pro Video/Foto (kein Download für alle nötig)" |
 | 23. September 2026 | „In jeder neuen Installation muss jede Bezeichnung vom System englisch sein. Nur bei bereits angelegten darf es Sicherung heißen." |
+| 23. September 2026 | Die Größengrenzen für Bilder und Videos werden im Systembereich in MB einstellbar. Was heute fest eingestellt ist, wird die Vorgabe |
 
 ### Entschieden in diesem Auftrag
 
@@ -75,7 +80,10 @@ offen ist.
 | Bestehende Installationen | Behalten, was angelegt ist: ihre `docker-compose.yml`, den Ordner `kriterion-sicherung`, die Kopien von `keytool.sh`. Der Update-Weg der README nimmt dafür die `docker-compose.yml` mit; heute tut er das nicht (`README.md`:353 bis :363) |
 | Namen im Prüfstand | Gruppen-, Prüfungs- und Rückbaunamen gehören zu keiner Installation und bleiben. Sie umzubenennen ist eine eigene Runde |
 | Englisch und Türkisch | Sagen schon `Backup` und `Yedekleme`. Sie bekommen nur die neuen Sätze und Schlüssel, sinngleich |
-| Ändert sich eine bestehende Route? | Nein. Neu sind drei Routen für Kommentarvideos (BA 3), und `POST /api/items/:id/comments` nimmt zusätzlich ein Video an |
+| Grenzen beim Hochladen | Einstellbar für Foto, Kommentarbild, Video und Kommentarvideo. Vorgabe ist der heutige Wert. Die Obergrenzen stehen fest: 50 MB für Bilder, 100 MB für Videos (BA 13) |
+| Wer stellt sie ein? | Der Eigentümer, wie die Bildformate (`OWNER_KEYS`, `server.js`:508). Admins sehen die Karte |
+| Grenze je Eintrag | Fest, rund 345 MB für alle Dateien eines Eintrags zusammen. Hochladen und Export prüfen sie (BA 13) |
+| Ändert sich eine bestehende Route? | Für bisherige Anfragen nicht. Neu sind drei Routen für Kommentarvideos (BA 3); `POST /api/items/:id/comments` nimmt zusätzlich ein Video an; `/api/settings` kennt `uploadLimits`; `GET /api/export` sagt bei einem zu großen Eintrag mit 413 ab (BA 13) |
 
 ---
 
@@ -415,7 +423,72 @@ ENCRYPTION_KEY=
 
 Die übrigen Zeilen ohne `#` bleiben Zeichen für Zeichen, wie sie sind.
 
-### BA 13 — Der Prüfstand
+### BA 13 — Die Grenzen beim Hochladen
+
+Vorgabe des Betreibers vom 23. September 2026. MB heißt hier wie im Code
+1.048.576 Bytes.
+
+| Art | heute fest | Vorgabe | einstellbar |
+|---|---|---:|---:|
+| Foto am Eintrag | `PHOTO_MAX`, `server.js`:434 | 30 MB | 1 bis 50 MB |
+| Bild im Kommentar | `IMAGE_MAX`, `server.js`:4131 | 20 MB | 1 bis 50 MB |
+| Video am Eintrag | `VIDEO_MAX`, `server.js`:3684 | 20 MB | 1 bis 100 MB |
+| Video im Kommentar | neu (BA 3) | 20 MB | 1 bis 100 MB |
+
+**Warum diese Obergrenzen, und warum sie fest sind:**
+
+- Jede Datei liegt beim Hochladen ganz im Arbeitsspeicher
+  (`multer.memoryStorage()`) und geht als ein Blob in SQLite.
+- Ein Foto über 50 MB ist ein Scan oder eine Rohdatei und gehört an die
+  Anhänge. `sharp` entpackt jedes Foto vollständig; der Speicherbedarf wächst
+  mit der Pixelzahl.
+- 100 MB Video sind bei 17 Mbit/s, üblich für 1080p am Telefon, rund 47
+  Sekunden; 20 MB rund 9 Sekunden. Cloudflare lässt in den Tarifen Free und
+  Pro 100 MB je Anfrage durch.
+- Diese SQLite-Bauform nimmt höchstens 536.870.888 Bytes je Blob, gemessen am
+  23. September 2026.
+
+**Die Karte:**
+
+- „Grenzen beim Hochladen", im Abschnitt „Datenbank" hinter „Bildformate".
+  Kartenschlüssel `limits`. Admins sehen sie, ändern kann der Eigentümer.
+- Gespeichert in `settings` unter `uploadLimits`, vier ganze Zahlen in MB.
+  `uploadLimits` kommt zu `OWNER_KEYS`; der Kommentar dort und seine Prüfung
+  zählen dann acht.
+- Der Server hält die Spanne und weist einen Wert außerhalb ab.
+  `GET /api/settings` nennt die Werte und die Obergrenzen.
+- Eine Grenze gilt ab dem nächsten Hochladen, ohne Neustart: `multer` bekommt
+  sie je Anfrage.
+- Der Browser prüft vorher mit denselben Werten. `PHOTO_MAX` in
+  `public/app.js`:75 fällt weg; die Werte kommen vom Server.
+- Eine gesenkte Grenze lässt vorhandene Dateien unberührt.
+
+**Die Grenze je Eintrag, fest:**
+
+- Export und Import lesen jeden Eintrag als einen String. Er fasst höchstens
+  536.870.888 Zeichen (`MAX_STRING_LENGTH`, Node 22). Base64 macht aus drei
+  Bytes vier Zeichen, und `EXCHANGE_MAX` (`server.js`:4509) lässt 10 Prozent
+  Luft. Ein Eintrag fasst damit rund 345 MB Fotos, Videos, Dateien und
+  Kommentarbilder zusammen.
+- Heute prüft das niemand. 20 Anhänge zu 50 MB sind 1.000 MB an einem
+  Eintrag. Der Export in einer Datei bricht an so einem Eintrag ab, und die
+  Datei endet ohne `]}` — ohne Meldung am Bildschirm. Das ist seit 0.40.0 so;
+  vorher sagte die Größenprüfung des ganzen Exports ab.
+- Neu beim Hochladen: ein Foto, Video, Anhang, Kommentarbild oder
+  Kommentarvideo, das den Eintrag über `EXCHANGE_MAX` brächte, wird abgesagt.
+  Gerechnet wird mit `partBytes()` (`server.js`:4810), alle Schalter an. Die
+  Meldung nennt die Grenze in MB.
+- Neu beim Export in einer Datei: vor dem ersten Schreiben rechnet der Server
+  jeden Eintrag mit den gewählten Schaltern. Liegt einer über `EXCHANGE_MAX`,
+  sagt er mit 413 ab und nennt die Einträge wie der Dialog des Teilexports
+  (`public/app.js`:10312).
+- Neu beim Teilexport: ein Teil lässt die Einträge aus, die der Schnittplan
+  als zu groß nennt. Heute schreibt ihn `id BETWEEN ? AND ?` trotzdem mit,
+  wenn er in der Spanne liegt.
+- Für die Prüflage senkt der Prüfstand `EXCHANGE_MAX` über
+  `KRITERION_EXCHANGE_MAX`. Nur er setzt diese Variable.
+
+### BA 14 — Der Prüfstand
 
 | | was gehalten wird |
 |---|---|
@@ -434,6 +507,8 @@ Die übrigen Zeilen ohne `#` bleiben Zeichen für Zeichen, wie sie sind.
 | 13 | `SCREEN_BAN` meldet das alte Wort und lässt „Sicherung der Datenbank" durch. Der neue Wächter über README, Handbuch, Beispieldateien und Serverausgaben ist grün |
 | 14 | Jeder Befehl `node <datei>.js` in `.env.example` nennt eine Datei, die es gibt. Die Kommentarzeilen je Einstellung halten die Regel aus BA 12 |
 | 15 | Die Beispieldateien und die Befehlsblöcke der README nennen für eine neue Installation nur englische Bezeichnungen. `usertool.js` und `keytool.js` nehmen nur die englischen Befehle an |
+| 16 | Der Server hält die Spanne der vier Grenzen: 0 MB und 101 MB für ein Video werden abgewiesen, 100 MB angenommen. Eine geänderte Grenze gilt beim nächsten Hochladen ohne Neustart. Nur der Eigentümer ändert sie |
+| 17 | Mit gesenkter Grenze je Eintrag: ein Hochladen darüber wird abgesagt; der Export in einer Datei sagt vor dem ersten Byte mit 413 ab und nennt den Eintrag; der Teilexport lässt ihn aus |
 
 **Gegenproben**, je eine: eine feste Wartezeit kommt in ein Modul zurück · der
 Range-Zweig der Route für Kommentarvideos fällt weg · der Import kodiert ein
@@ -442,9 +517,10 @@ Link verliert `download` · die Verschiebung des Hinweisfelds fällt weg · die
 Leiste wird nicht angedockt · die Löschung des anderen Cookies fällt weg · ein
 Wert in `de.json` sagt wieder „Sicherung" · `.env.example` nennt wieder
 `zugang.js` · `docker-compose.example.yml` hängt wieder `kriterion-sicherung`
-ein.
+ein · der Server nimmt eine Grenze über der Obergrenze an · die Prüfung je
+Eintrag beim Hochladen fällt weg.
 
-### BA 14 — Dokumentation und Zahlen
+### BA 15 — Dokumentation und Zahlen
 
 - **`Doku/Aenderungsprotokoll_0.41.0.md`** mit den Messungen am fertigen
   Stand: Laufzeit des Prüfstands vorher und nachher (je drei volle Läufe, der
@@ -460,9 +536,12 @@ ein.
   Befehle von `usertool.js` und `keytool.sh` heißen englisch.
 - **`manual-de.md`** — Export und Import (BA 9), das Wort (BA 10), die
   englischen Befehle (BA 11), Videos in Kommentaren, der Download in der
-  Bildansicht, „Das Austauschformat trägt die Nummer 19."
+  Bildansicht, die Karte „Grenzen beim Hochladen" und die Grenze je Eintrag
+  (BA 13), „Das Austauschformat trägt die Nummer 19."
 - **`README.md`** — das Wort (BA 10), die Bezeichnungen und der Update-Weg
-  (BA 11), die Beispieldateien (BA 12).
+  (BA 11), die Beispieldateien (BA 12). Dazu ein Satz zum Reverse Proxy: er
+  muss Anfragen in der Größe der höchsten eingestellten Grenze durchlassen,
+  bei nginx über `client_max_body_size`.
 - **`Doku/Fahrplan.md`** — die Zeile 0.41.0 durchstreichen und füllen, Schema
   `ja`, Format `18 → 19`; der Abschnitt bekommt oben „GEBAUT am …".
 - **`package.json`** auf `0.41.0`, `package-lock.json` mit.
@@ -487,6 +566,9 @@ ein.
 | Namen im Prüfstand mit dem alten Wort | Sie gehören zu keiner Installation. Eine eigene Runde |
 | Das alte Wort in Änderungsprotokollen und im CHANGELOG | Sie halten fest, was zu ihrer Zeit galt |
 | Eine Höchsthöhe für das Kommentarfeld | Sie änderte, wie sich ein langer Kommentar schreibt |
+| Einstellbare Grenzen für Anhänge und für die Zahl je Hochladen | Nicht verlangt. Anhänge bleiben bei 50 MB, die Zahlen bleiben, wie sie sind |
+| Einträge, die heute schon über der Grenze je Eintrag liegen | Sie bleiben, wie sie sind. Abgesagt wird nur neues Hochladen, und der Export nennt sie |
+| Eine einstellbare Grenze je Eintrag | Sie folgt aus der Länge eines Strings und nicht aus einer Vorliebe |
 | Eine Änderung am Ablauf von Export, Import und Backup | Vorgabe des Betreibers |
 
 ---
