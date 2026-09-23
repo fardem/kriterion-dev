@@ -4,7 +4,7 @@
 const H = require('./frame.js');
 const D = require('./dom.js');
 const {
-  buildDom, waitSearch, sysSection
+  buildDom, waitSearch, sysSection, until, openRequests
 } = D;
 
 async function run() {
@@ -15,6 +15,9 @@ async function run() {
   let JSDOM;
   try { ({ JSDOM } = require('jsdom')); }
   catch { console.log('  … uebersprungen: jsdom fehlt (npm install)'); return; }
+  // Eine Ansicht ist fertig, wenn ihr Kennzeichen dasteht und keine Anfrage mehr offen ist.
+  const listReady = (x) => !!x.document.getElementById('q') && openRequests(x) === 0;
+  const entryReady = (x) => !!x.document.getElementById('ratings') && openRequests(x) === 0;
 
   /* ================= Vergleich: meine / alle ================= */
   /* ================= Das Gewicht in der Oberflaeche ================= */
@@ -23,7 +26,7 @@ async function run() {
   /* Vorgabelage des Mocks: Gewichte 1,5 · 1 · 0,5, eigene Werte 3 · 3 · 3. */
   const gwEntry = buildDom(JSDOM, { hash: '#/item/1',
     settings: { filters: null, userCount: 3, isAdmin: true } });
-  await new Promise(r => setTimeout(r, 80));
+  await until(gwEntry.w, entryReady, 2000, 'die Detailansicht');
   const gwDoc = gwEntry.w.document;
   const gwMarks = () => [...gwDoc.querySelectorAll('#ratings .rrow .rname')]
     .map(z => z.querySelector('.rweight')?.textContent || '');
@@ -50,7 +53,7 @@ async function run() {
   /* GEGENLAGE 1: alle Gewichte auf 1. */
   const gwEqual = buildDom(JSDOM, { hash: '#/item/1', criteriaWeights: [1, 1, 1],
     settings: { filters: null, userCount: 3, isAdmin: true } });
-  await new Promise(r => setTimeout(r, 80));
+  await until(gwEqual.w, entryReady, 2000, 'die Detailansicht');
   check('Stehen alle Gewichte auf 1, steht keine Marke da',
     gwEqual.w.document.querySelectorAll('#ratings .rweight').length === 0,
     `${gwEqual.w.document.querySelectorAll('#ratings .rweight').length} Marken`);
@@ -64,7 +67,7 @@ async function run() {
   const gwUnrated = buildDom(JSDOM, { hash: '#/item/1',
     criteriaWeights: [1, 1, 1.5], ownValues: [3, 3, 0],
     settings: { filters: null, userCount: 3, isAdmin: true } });
-  await new Promise(r => setTimeout(r, 80));
+  await until(gwUnrated.w, entryReady, 2000, 'die Detailansicht');
   const gwUDoc = gwUnrated.w.document;
   check('Ein Gewicht an einem unbewerteten Kriterium steht trotzdem an der Zeile',
     [...gwUDoc.querySelectorAll('#ratings .rrow .rname')]
@@ -83,7 +86,7 @@ async function run() {
     tags: [{ id: 31, name: 'Grün', usage_count: 3, test_usage_count: 1 },
            { id: 32, name: 'Blau', usage_count: 0, test_usage_count: 0 }],
     settings: { filters: null, userCount: 3, isAdmin: true } });
-  await new Promise(r => setTimeout(r, 80));
+  await until(gwSys.w, listReady, 2000, 'die Uebersicht');
   await sysSection(gwSys.w, 'inventory');
   const gwSDoc = gwSys.w.document;
   const gwFields = () => [...gwSDoc.querySelectorAll('#mcrits .mweight-field')];
@@ -153,7 +156,9 @@ async function run() {
     const before = gwPuts().length;
     field.value = text;
     field.dispatchEvent(new gwSys.w.Event('change', { bubbles: true }));
-    await new Promise(r => setTimeout(r, 40));
+    // Ein unlesbarer Wert schickt nichts und setzt das Feld sofort zurueck.
+    await until(gwSys.w, (x) => (gwPuts().length > before || field.value !== text) &&
+      openRequests(x) === 0, 2000, 'die Antwort auf den Gewichtswechsel');
     return { fresh: gwPuts().length - before, last: gwPuts().pop() };
   };
 
@@ -207,7 +212,7 @@ async function run() {
      ueberlebt den Gewichtswechsel daneben. Ein refresh() risse es weg. */
   const gwRow = gwSDoc.querySelectorAll('#mcrits .mrow')[1];
   gwRow.querySelector('.ed').dispatchEvent(new gwSys.w.MouseEvent('click', { bubbles: true }));
-  await new Promise(r => setTimeout(r, 20));
+  await until(gwSys.w, () => gwRow.querySelector('input.medit'), 2000, 'das Umbenennfeld');
   check('Ein Umbenennen laesst sich oeffnen', !!gwRow.querySelector('input.medit'));
   const gwRenameField = gwRow.querySelector('input.medit');
   gwRenameField.value = 'Halb getippt';
@@ -222,7 +227,8 @@ async function run() {
   const gwVorRename = gwPuts().length;
   gwRenameField.value = 'Neuer Name';
   gwRenameField.dispatchEvent(new gwSys.w.Event('blur', { bubbles: true }));
-  await new Promise(r => setTimeout(r, 40));
+  await until(gwSys.w, (x) => gwPuts().length > gwVorRename && openRequests(x) === 0, 2000,
+    'die Antwort auf das Umbenennen');
   const gwRenameCall = gwPuts()[gwPuts().length - 1];
   check('Das Umbenennen schickt nur den Namen, kein Gewicht',
     gwPuts().length > gwVorRename && gwRenameCall?.body?.weight === undefined,
@@ -243,7 +249,8 @@ async function run() {
   gwRows[0].querySelector('.mweight-field').dispatchEvent(gwCursor('pointerdown', 0));
   gwSDoc.dispatchEvent(gwCursor('pointermove', 120));
   gwSDoc.dispatchEvent(gwCursor('pointerup', 120));
-  await new Promise(r => setTimeout(r, 40));
+  // Wartet, ob die Anfrage zur Reihenfolge ausbleibt.
+  await new Promise(r => setTimeout(r, 20));
   check('Am Gewichtsfeld beginnt kein Ziehen',
     gwSent.filter(z => z.url === '/api/criteria/order').length === gwVorSort,
     'die Zeile wurde umsortiert');
@@ -252,7 +259,8 @@ async function run() {
   gwRows[0].dispatchEvent(gwCursor('pointerdown', 0));
   gwSDoc.dispatchEvent(gwCursor('pointermove', 120));
   gwSDoc.dispatchEvent(gwCursor('pointerup', 120));
-  await new Promise(r => setTimeout(r, 40));
+  await until(gwSys.w, (x) => gwSent.filter(z => z.url === '/api/criteria/order').length > gwVorSort &&
+    openRequests(x) === 0, 2000, 'die gespeicherte Reihenfolge');
   check('Am Rest der Zeile beginnt es sehr wohl',
     gwSent.filter(z => z.url === '/api/criteria/order').length > gwVorSort,
     'das Ziehen geht gar nicht mehr');
@@ -264,7 +272,7 @@ async function run() {
      Eigentuemer ohne Adminrecht kann es gar nicht geben. */
   const gwOnlyRead = buildDom(JSDOM, { hash: '',
     settings: { filters: null, userCount: 3, isAdmin: false, isOwner: false } });
-  await new Promise(r => setTimeout(r, 80));
+  await until(gwOnlyRead.w, listReady, 2000, 'die Uebersicht');
   await sysSection(gwOnlyRead.w, 'inventory');
   const gwNDoc = gwOnlyRead.w.document;
   check('Ohne Adminrecht steht kein Eingabefeld da',
@@ -313,14 +321,16 @@ async function run() {
     const dom = buildDom(JSDOM, { hash: '', overviewItems: twoCards, secondEntry: second,
       settings: { filters: null, userCount } });
     const w = dom.w;
-    await new Promise(r => setTimeout(r, 80));
+    await until(w, listReady, 2000, 'die Uebersicht');
     // Der echte Weg: beide Haken setzen, dann die Leiste druecken.
     [...w.document.querySelectorAll('.pick-box')].forEach(k =>
       k.dispatchEvent(new w.MouseEvent('click', { bubbles: true })));
-    await new Promise(r => setTimeout(r, 40));
+    await until(w, (x) => x.document.querySelector('.cmp-bar .btn:not([disabled])'), 2000,
+      'die Vergleichsleiste mit zwei Karten');
     const bar = w.document.querySelector('.cmp-bar .btn');
     if (bar) bar.dispatchEvent(new w.MouseEvent('click', { bubbles: true }));
-    await new Promise(r => setTimeout(r, 120));
+    await until(w, (x) => x.document.querySelector('.cmp-col') && openRequests(x) === 0, 2000,
+      'die Vergleichsansicht');
     return { dom, w };
   };
 
@@ -364,7 +374,7 @@ async function run() {
 
   /* Ein wirklich zugestellter Druck, kein Behandleraufruf. */
   cmpView('meine').dispatchEvent(new wVgl.MouseEvent('click', { bubbles: true }));
-  await new Promise(r => setTimeout(r, 40));
+  await until(wVgl, () => cmpView('meine').classList.contains('on'), 2000, 'die Stellung „meine"');
   check('Ein Druck schaltet auf „meine" um',
     cmpView('meine').classList.contains('on') &&
     !cmpView('alle').classList.contains('on'),
@@ -423,13 +433,15 @@ async function run() {
   const cmpTwo = buildDom(JSDOM, { hash: '', overviewItems: twoCards,
     secondEntry: second, criteriaPhases: ['after', 'after', 'before'],
     settings: { filters: null, userCount: 3 } });
-  await new Promise(r => setTimeout(r, 100));
+  await until(cmpTwo.w, listReady, 2000, 'die Uebersicht');
   [...cmpTwo.w.document.querySelectorAll('.pick-box')].forEach(k =>
     k.dispatchEvent(new cmpTwo.w.MouseEvent('click', { bubbles: true })));
-  await new Promise(r => setTimeout(r, 40));
+  await until(cmpTwo.w, (x) => x.document.querySelector('.cmp-bar .btn:not([disabled])'), 2000,
+    'die Vergleichsleiste mit zwei Karten');
   const cmpTwoBar = cmpTwo.w.document.querySelector('.cmp-bar .btn');
   if (cmpTwoBar) cmpTwoBar.dispatchEvent(new cmpTwo.w.MouseEvent('click', { bubbles: true }));
-  await new Promise(r => setTimeout(r, 140));
+  await until(cmpTwo.w, (x) => x.document.querySelector('.cmp-col') && openRequests(x) === 0, 2000,
+    'die Vergleichsansicht');
   const zColumn = (n) => cmpTwo.w.document.querySelectorAll('.cmp-col')[n];
   const zGroups = (n) => [...zColumn(n).querySelectorAll('.cmp-group')]
     .map(g => `${g.firstElementChild.textContent.trim()}|${g.lastElementChild.textContent.trim()}`);
@@ -452,7 +464,8 @@ async function run() {
      rechnet der Browser selbst -- die einzige zweite Rechenstelle. */
   const zView = cmpTwo.w.document.querySelector('#cmp-view [data-view="meine"]');
   zView.dispatchEvent(new cmpTwo.w.MouseEvent('click', { bubbles: true }));
-  await new Promise(r => setTimeout(r, 40));
+  await until(cmpTwo.w, (x) => x.document.querySelector('#cmp-view [data-view="meine"]')
+    .classList.contains('on'), 2000, 'die Stellung „meine"');
   check('In Stellung „meine" rechnet jede Gruppe fuer sich',
     equal(zGroups(1), ['Potenzial|–', 'Bewertung|⌀ 4,6']), JSON.stringify(zGroups(1)));
   cmpTwo.w.close();
@@ -471,7 +484,7 @@ async function run() {
     JSON.stringify(vglPuts.map(g => g.body)));
 
   cmpView('alle').dispatchEvent(new wVgl.MouseEvent('click', { bubbles: true }));
-  await new Promise(r => setTimeout(r, 40));
+  await until(wVgl, () => cmpView('alle').classList.contains('on'), 2000, 'die Stellung „alle"');
   check('Und zurueck geht es auch',
     cmpView('alle').classList.contains('on') && cmpRows(1)[0] === '2 / 5',
     JSON.stringify(cmpRows(1)));
@@ -504,7 +517,7 @@ async function run() {
   }));
   const suDom = buildDom(JSDOM, { overviewItems: suInventory });
   const su = suDom.w;
-  await new Promise(r => setTimeout(r, 80));
+  await until(su, listReady, 2000, 'die Uebersicht');
   const suCards = () => [...su.document.querySelectorAll('.card-title')].map(k => k.textContent);
   const suCount = () => su.document.getElementById('count').textContent;
   const suSearchQueries = () => suDom.sent.filter(g => String(g.url).startsWith('/api/items?q='));
@@ -533,9 +546,10 @@ async function run() {
   /* DER DEBOUNCE. */
   const suBefore = suSearchQueries().length;
   for (const word of ['mak', 'maki', 'makita']) {
+    const clock = su.eval('searchClock');
     suField.value = word;
     suField.dispatchEvent(new su.Event('input'));
-    await new Promise(r => setTimeout(r, 25));
+    await until(su, (x) => x.eval('searchClock') !== clock, 2000, 'der neu gestartete Debounce');
   }
   await waitSearch(su);
   check('Drei Anschlaege schnell hintereinander sind EINE Anfrage',
@@ -556,7 +570,7 @@ async function run() {
   check('Das Kreuz zum Leeren steht da, solange etwas im Feld steht',
     suX.style.display === 'block', suX.style.display);
   suX.dispatchEvent(new su.MouseEvent('click', { bubbles: true }));
-  await new Promise(r => setTimeout(r, 120));
+  await until(su, (x) => suCards().length === 6 && openRequests(x) === 0, 2000, 'die ganze Liste');
   check('Leeren holt den Bestand ohne neue Anfrage',
     suListQueries().length === suVorClear,
     `${suListQueries().length - suVorClear} zusaetzlich: ` +
@@ -570,21 +584,23 @@ async function run() {
      DIE AUF "bosch" NICHT UEBERSCHREIBEN. */
   const uhDom = buildDom(JSDOM, { overviewItems: suInventory, searchThrottles: [400, 0] });
   const uh = uhDom.w;
-  await new Promise(r => setTimeout(r, 80));
+  await until(uh, listReady, 2000, 'die Uebersicht');
   const uhCards = () => [...uh.document.querySelectorAll('.card-title')].map(k => k.textContent);
   const uhField = uh.document.getElementById('q');
   uhField.value = 'makita';
   uhField.dispatchEvent(new uh.Event('input'));
-  await new Promise(r => setTimeout(r, 300));          // Debounce durch, Anfrage 1 unterwegs
+  await until(uh, () => uhDom.sent.some(g => g.url === '/api/items?q=makita'), 2000,
+    'die erste Suchanfrage');
   uhField.value = 'bosch';
   uhField.dispatchEvent(new uh.Event('input'));
-  await new Promise(r => setTimeout(r, 300));          // Debounce durch, Anfrage 2 sofort da
+  await until(uh, (x) => uhDom.sent.some(g => g.url === '/api/items?q=bosch') &&
+    !x.eval('state.searchRunning'), 2000, 'die Antwort auf die zweite Suchanfrage');
   const uhSearchQueries = uhDom.sent.filter(g => String(g.url).startsWith('/api/items?q='));
   check('Der Aufbau steht: beide Suchanfragen sind wirklich hinausgegangen',
     uhSearchQueries.length === 2, JSON.stringify(uhSearchQueries.map(g => g.url)));
   check('Und die zweite ist zuerst zurueck: die Liste zeigt ihren Treffer',
     equal(uhCards(), ['Bosch Akkuschrauber']), JSON.stringify(uhCards()));
-  await new Promise(r => setTimeout(r, 500));          // jetzt kommt Anfrage 1 nach
+  await until(uh, (x) => openRequests(x) === 0, 2000, 'die Antwort auf die erste Suchanfrage');
   check('Die spaeter eintreffende AELTERE Antwort ueberschreibt sie NICHT',
     equal(uhCards(), ['Bosch Akkuschrauber']), JSON.stringify(uhCards()));
   // Und die Zaehlzeile sagt nicht mehr "sucht ..." -- es ist nichts mehr offen.
@@ -597,7 +613,7 @@ async function run() {
      NICHT SCHEITERN -- sie lief im Arbeitsspeicher. */
   const suBroken = buildDom(JSDOM, { overviewItems: suInventory, searchError: true });
   const sk = suBroken.w;
-  await new Promise(r => setTimeout(r, 80));
+  await until(sk, listReady, 2000, 'die Uebersicht');
   const skCards = () => [...sk.document.querySelectorAll('.card-title')].map(k => k.textContent);
   check('Der Aufbau steht: die Liste ist zunaechst vollstaendig',
     skCards().length === 6, `${skCards().length}`);
@@ -634,7 +650,7 @@ async function run() {
   ];
   const trDom = buildDom(JSDOM, { overviewItems: trInventory });
   const tr = trDom.w;
-  await new Promise(r => setTimeout(r, 80));
+  await until(tr, listReady, 2000, 'die Uebersicht');
   const trRows = () => [...tr.document.querySelectorAll('.card-find')];
 
   check('Der Aufbau steht: die Uebersicht zeigt beide Kacheln',
@@ -695,7 +711,8 @@ async function run() {
      Adresse. Die Hervorhebung gehoert der Suche und nicht dem Eintrag. */
   trField.value = '';
   trField.dispatchEvent(new tr.Event('input'));
-  await new Promise(r => setTimeout(r, 160));
+  await until(tr, (x) => !x.document.querySelector('.card-find') && openRequests(x) === 0, 2000,
+    'die Liste ohne Trefferzeilen');
   check('Das Leeren nimmt alle Trefferzeilen wieder weg',
     trRows().length === 0, `${trRows().length} Zeilen`);
   check('Und alle Marken dazu',
@@ -713,7 +730,7 @@ async function run() {
     foundAt: { source: 'anhangname',
                   text: 'Bosch <img src=x onerror=alert(1)> Handbuch', others: 0 } }] });
   const tu = trUnknown.w;
-  await new Promise(r => setTimeout(r, 80));
+  await until(tu, listReady, 2000, 'die Uebersicht');
   const tuField = tu.document.getElementById('q');
   tuField.value = 'bosch';
   tuField.dispatchEvent(new tu.Event('input'));
@@ -746,7 +763,7 @@ async function run() {
     foundAt: { source: 'beschreibung', text: '…urobella im Text…', others: 1 } }];
   const hvDom = buildDom(JSDOM, { overviewItems: hvInventory });
   const hv = hvDom.w;
-  await new Promise(r => setTimeout(r, 80));
+  await until(hv, listReady, 2000, 'die Uebersicht');
   const hvMarks = (wo) => [...hv.document.querySelectorAll(`${wo} mark`)].map(m => m.textContent);
 
   check('Ohne Suche traegt die Kachel keine einzige Marke',
@@ -815,7 +832,8 @@ async function run() {
      oeffnete und neu lud, verlor ihn -- und mit ihm die Hervorhebung. */
   const adBuild = async (h) => {
     const d = buildDom(JSDOM, { hash: h });
-    await new Promise(r => setTimeout(r, 200));
+    await until(d.w, (x) => (adIsEntry(x) || adIsList(x)) && openRequests(x) === 0, 2000,
+      'die Detailansicht oder die Uebersicht');
     return d.w;
   };
   const adIsEntry = (w) => !!w.document.querySelector('.title-in');
@@ -894,7 +912,7 @@ async function run() {
   const adSearchRow = buildDom(JSDOM, { hash: '#/item/1?q=startpage' });
   adSearchRow.example.links = [{ id: 87, url: 'Startpage Handbuch 3000', sort_order: 0,
     created_at: '2026-08-04 13:00:00', mine: false, author: null }];
-  await new Promise(r => setTimeout(r, 200));
+  await until(adSearchRow.w, entryReady, 2000, 'die Detailansicht');
   const adSz = adSearchRow.w;
   const adNames = [...adSz.document.querySelectorAll('#links .snames .sname')];
   check('Der Aufbau steht: die Suchzeile nennt wirklich Anbieter mit demselben Wort',
@@ -955,7 +973,7 @@ async function run() {
     updated_at: '2026-08-01 10:00:00',
     foundAt: { source: 'titel', text: 'Beispiel', others: 0 } }] });
   const adN = adAfterDom.w;
-  await new Promise(r => setTimeout(r, 80));
+  await until(adN, listReady, 2000, 'die Uebersicht');
   const adNField = adN.document.getElementById('q');
   adNField.value = 'beispiel';
   adNField.dispatchEvent(new adN.Event('input'));
@@ -965,7 +983,7 @@ async function run() {
     `${adN.document.querySelectorAll('.card-find').length}`);
   // Ein Weg in den Eintrag, der die Adresse OHNE Begriff setzt.
   adN.location.hash = '#/item/1';
-  await new Promise(r => setTimeout(r, 300));
+  await until(adN, entryReady, 2000, 'die Detailansicht');
   check('Ein Weg ohne Begriff bekommt ihn nachtraeglich in die Adresse',
     adN.location.hash === '#/item/1?q=beispiel', adN.location.hash);
   check('Und die Hervorhebung steht daraufhin im Eintrag',
@@ -986,7 +1004,7 @@ async function run() {
     settings: { filters: null, views: [], viewsCap: 8 }
   });
   const ansW = ansDom.w;
-  await new Promise(r => setTimeout(r, 80));
+  await until(ansW, listReady, 2000, 'die Uebersicht');
   /* SEIT 0.13.0 TEILEN SICH SORTIEREN UND ANSICHTEN EINE ZEILE, und die Zeile
      traegt deshalb ZWEI Beschriftungen. */
   const ansRow = () => [...ansW.document.querySelectorAll('.frow')]
@@ -1012,7 +1030,8 @@ async function run() {
   // Erst etwas einstellen, damit die Ansicht auch etwas zu merken hat.
   const ansFav = ansW.document.getElementById('f-fav');
   ansFav.dispatchEvent(new ansW.MouseEvent('click', { bubbles: true }));
-  await new Promise(r => setTimeout(r, 40));
+  await until(ansW, (x) => x.document.getElementById('f-fav').classList.contains('on') &&
+    openRequests(x) === 0, 2000, 'der Favoritenfilter');
   const ansSearchField = ansW.document.getElementById('q');
   ansSearchField.value = 'makita';
   ansSearchField.dispatchEvent(new ansW.Event('input'));
@@ -1021,13 +1040,14 @@ async function run() {
   const ansVorSave = ansSettings().length;
   ansW.document.getElementById('view-save')
     .dispatchEvent(new ansW.MouseEvent('click', { bubbles: true }));
-  await new Promise(r => setTimeout(r, 40));
+  await until(ansW, (x) => x.document.getElementById('nb-name'), 2000, 'der Namensdialog');
   const ansNameField = ansW.document.getElementById('nb-name');
   check('Der Knopf fragt nach einem Namen', !!ansNameField, 'kein Namensfeld');
   ansNameField.value = 'Favoriten, Makita';
   ansNameField.closest('.modal').querySelector('[data-yes]')
     .dispatchEvent(new ansW.MouseEvent('click', { bubbles: true }));
-  await new Promise(r => setTimeout(r, 60));
+  await until(ansW, (x) => ansSettings().slice(ansVorSave).some(g => g.body && g.body.views) &&
+    openRequests(x) === 0, 2000, 'die gespeicherte Ansicht');
   const ansSent = ansSettings().slice(ansVorSave).find(g => g.body && g.body.views);
   check('Speichern schickt die Ansicht an den Server', !!ansSent,
     JSON.stringify(ansSettings().slice(ansVorSave).map(g => Object.keys(g.body || {}))));
@@ -1051,7 +1071,7 @@ async function run() {
     ] }
   });
   const aw = awDom.w;
-  await new Promise(r => setTimeout(r, 80));
+  await until(aw, listReady, 2000, 'die Uebersicht');
   const awPill = () => [...aw.document.querySelectorAll('.frow .pill')]
     .find(b => b.textContent.replace('✕', '').trim() === 'Nur Bosch');
   check('Eine gespeicherte Ansicht steht als Knopf da', !!awPill(), 'kein Knopf');
@@ -1086,12 +1106,15 @@ async function run() {
      geloescht. */
   const awBefore = awDom.sent.filter(g => g.url === '/api/settings' && g.method === 'PUT').length;
   awPill().querySelector('.view-remove').dispatchEvent(new aw.MouseEvent('click', { bubbles: true }));
-  await new Promise(r => setTimeout(r, 40));
+  await until(aw, (x) => x.document.querySelector('.backdrop .modal'), 2000,
+    'die Rueckfrage zum Loeschen');
   const awQuestion = aw.document.querySelector('.backdrop .modal');
   check('Das Kreuz fragt vorher nach', !!awQuestion && /löschen/.test(awQuestion.textContent),
     awQuestion ? awQuestion.textContent.slice(0, 60) : 'kein Dialog');
   awQuestion.querySelector('[data-yes]').dispatchEvent(new aw.MouseEvent('click', { bubbles: true }));
-  await new Promise(r => setTimeout(r, 60));
+  await until(aw, (x) => awDom.sent.filter(g => g.url === '/api/settings' && g.method === 'PUT')
+    .slice(awBefore).some(g => g.body && g.body.views) && openRequests(x) === 0, 2000,
+    'die gekuerzte Liste der Ansichten');
   const awPath = awDom.sent.filter(g => g.url === '/api/settings' && g.method === 'PUT')
     .slice(awBefore).find(g => g.body && g.body.views);
   check('Und schickt danach die gekuerzte Liste',
@@ -1109,7 +1132,7 @@ async function run() {
       views: Array.from({ length: 8 }, (_, i) => ({ name: 'A' + i, q: '', filters: {} })) }
   });
   const ad = adDom.w;
-  await new Promise(r => setTimeout(r, 80));
+  await until(ad, listReady, 2000, 'die Uebersicht');
   check('Bei vollem Deckel steht kein Knopf zum Speichern mehr da',
     !ad.document.getElementById('view-save'), 'der Knopf steht da');
   const adRow = () => [...ad.document.querySelectorAll('.frow')]
@@ -1133,12 +1156,13 @@ async function run() {
     ] }
   });
   const ag = agDom.w;
-  await new Promise(r => setTimeout(r, 80));
+  await until(ag, listReady, 2000, 'die Uebersicht');
   const agPill = () => [...ag.document.querySelectorAll('.frow .pill')]
     .find(b => b.textContent.replace('✕', '').trim() === 'Mit Fremdnummern');
   check('Der Aufbau steht: die Ansicht mit fremden Nummern steht da', !!agPill(), 'kein Knopf');
   agPill().dispatchEvent(new ag.MouseEvent('click', { bubbles: true }));
-  await new Promise(r => setTimeout(r, 80));
+  await until(ag, (x) => agPill()?.classList.contains('on') && openRequests(x) === 0, 2000,
+    'die gewaehlte Ansicht');
   check('Eine Ansicht mit geloeschter Kategorie wirft nichts',
     !!ag.document.getElementById('body'), 'die Ansicht ist zerbrochen');
   /* UND SIE ZEIGT NICHT NICHTS. */
@@ -1169,20 +1193,29 @@ async function run() {
   ];
   const dpDom = buildDom(JSDOM, { overviewItems: dpInventory });
   const dp = dpDom.w;
-  await new Promise(r => setTimeout(r, 80));
+  await until(dp, listReady, 2000, 'die Uebersicht');
   dp.document.getElementById('new').dispatchEvent(new dp.MouseEvent('click', { bubbles: true }));
-  await new Promise(r => setTimeout(r, 40));
+  await until(dp, (x) => x.document.getElementById('nt-similar'), 2000, 'der Anlegen-Dialog');
   const dpTitle = dp.document.getElementById('nt');
   const dpRow = () => dp.document.getElementById('nt-similar');
   check('Der Aufbau steht: der Anlegen-Dialog hat eine Zeile dafuer', !!dpRow(), 'keine Zeile');
   check('Und sie ist zunaechst leer', dpRow().innerHTML === '', dpRow().innerHTML);
 
-  const dpType = async (value) => {
+  /* Die Zeile wird bei jedem Anschlag neu gebildet: gewartet wird, bis ihr
+     alter Inhalt ersetzt ist, oder bei leerer Zeile auf den ersten Treffer. */
+  const dpType = async (value, hit = true) => {
+    const old = dpRow().firstChild;
     dpTitle.value = value;
     dpTitle.dispatchEvent(new dp.Event('input'));
-    await new Promise(r => setTimeout(r, 20));
+    if (!old && !hit) {
+      // Wartet, ob die leere Zeile leer bleibt.
+      await new Promise(r => setTimeout(r, 20));
+      return;
+    }
+    await until(dp, () => (old ? !old.isConnected : !!dpRow().firstChild), 2000,
+      'die neu gebildete Hinweiszeile');
   };
-  await dpType('bos');
+  await dpType('bos', false);
   check('Unter vier Zeichen sagt sie nichts', dpRow().innerHTML === '', dpRow().textContent);
   await dpType('bosch');
   check('Ab vier Zeichen nennt sie den aehnlichen Eintrag',
@@ -1196,7 +1229,7 @@ async function run() {
   await dpType('gsr18v');
   check('Sonderzeichen fallen beim Vergleich weg',
     /Bosch GSR 18V-60/.test(dpRow().textContent), dpRow().textContent);
-  await dpType('Etwas ganz anderes');
+  await dpType('Etwas ganz anderes', false);
   check('Ein Titel ohne Aehnlichkeit laesst die Zeile leer',
     dpRow().innerHTML === '', dpRow().textContent);
 
@@ -1213,7 +1246,8 @@ async function run() {
     dp.document.getElementById('ns').outerHTML.slice(0, 90));
   const dpBefore = dpDom.sent.filter(g => g.url === '/api/items' && g.method === 'POST').length;
   dp.document.getElementById('ns').dispatchEvent(new dp.MouseEvent('click', { bubbles: true }));
-  await new Promise(r => setTimeout(r, 60));
+  await until(dp, (x) => !x.document.getElementById('nt') && openRequests(x) === 0, 2000,
+    'der geschlossene Anlegen-Dialog');
   check('Trotz des Hinweises wird wirklich angelegt',
     dpDom.sent.filter(g => g.url === '/api/items' && g.method === 'POST').length === dpBefore + 1,
     'der Hinweis hat es verhindert');
@@ -1223,7 +1257,7 @@ async function run() {
      Trefferliste. */
   const dsDom = buildDom(JSDOM, { overviewItems: dpInventory });
   const ds = dsDom.w;
-  await new Promise(r => setTimeout(r, 80));
+  await until(ds, listReady, 2000, 'die Uebersicht');
   const dsField = ds.document.getElementById('q');
   dsField.value = 'makita';
   dsField.dispatchEvent(new ds.Event('input'));
@@ -1232,11 +1266,12 @@ async function run() {
     ds.document.querySelectorAll('.card-title').length === 1,
     `${ds.document.querySelectorAll('.card-title').length} Karten`);
   ds.document.getElementById('new').dispatchEvent(new ds.MouseEvent('click', { bubbles: true }));
-  await new Promise(r => setTimeout(r, 40));
+  await until(ds, (x) => x.document.getElementById('nt-similar'), 2000, 'der Anlegen-Dialog');
   const dsTitle = ds.document.getElementById('nt');
   dsTitle.value = 'bosch gsr';
   dsTitle.dispatchEvent(new ds.Event('input'));
-  await new Promise(r => setTimeout(r, 20));
+  await until(ds, (x) => x.document.getElementById('nt-similar').firstChild, 2000,
+    'die Hinweiszeile');
   check('Der Hinweis findet den Eintrag auch dann, wenn die Suche ihn ausblendet',
     /Bosch GSR 18V-60/.test(ds.document.getElementById('nt-similar').textContent),
     ds.document.getElementById('nt-similar').textContent);
@@ -1249,7 +1284,7 @@ async function run() {
      DASSELBE SVG. */
   const mbDom = buildDom(JSDOM, { overviewItems: suInventory });
   const mb = mbDom.w;
-  await new Promise(r => setTimeout(r, 80));
+  await until(mb, listReady, 2000, 'die Uebersicht');
   const mbMark = mb.document.querySelector('.masthead .brand svg.logo');
   check('Die Kopfzeile zeichnet die Marke selbst', !!mbMark,
     mb.document.querySelector('.masthead .brand')?.innerHTML.slice(0, 120) || '(keine Kopfzeile)');
@@ -1269,7 +1304,8 @@ async function run() {
 
   const mlDom = buildDom(JSDOM, { loggedIn: false });
   const ml = mlDom.w;
-  await new Promise(r => setTimeout(r, 80));
+  await until(ml, (x) => x.document.querySelector('.login-card') && openRequests(x) === 0, 2000,
+    'die Anmeldeseite');
   const mlMark = ml.document.querySelector('.login-brand svg.logo');
   check('Die Anmeldeseite traegt sie ebenso', !!mlMark,
     ml.document.querySelector('.login-card')?.innerHTML.slice(0, 120) || '(keine Karte)');
@@ -1290,9 +1326,10 @@ async function run() {
   const exBuild = async (statsExport) => {
     const d = buildDom(JSDOM, { statsExport,
       settings: { filters: null, isAdmin: true, isOwner: true } });
-    await new Promise(r => setTimeout(r, 60));
+    await until(d.w, listReady, 2000, 'die Uebersicht');
     await sysSection(d.w, 'database');
-    await new Promise(r => setTimeout(r, 20));
+    await until(d.w, (x) => x.document.getElementById('ex-yes') && openRequests(x) === 0, 2000,
+      'die Exportkarte');
     return d;
   };
   const MB = 1024 * 1024;
