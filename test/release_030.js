@@ -4,7 +4,7 @@
 const H = require('./frame.js');
 const D = require('./dom.js');
 const {
-  buildDom, sysSection, screenTextsFrom, SCREEN_BAN
+  buildDom, sysSection, screenTextsFrom, SCREEN_BAN, until, openRequests
 } = D;
 
 async function run() {
@@ -35,7 +35,11 @@ async function check0300() {
     fs.writeFileSync(path.join(wDir, 'werkzeug.js'), wSleep);
     const wKinds = ['testbench.js', 'server.js', 'werkzeug.js'].map(n =>
       spawn(process.execPath, [path.join(wDir, n)], { cwd: wDir, env: { ...process.env, PORT: '' } }));
-    await new Promise(r => setTimeout(r, 700));
+    // Jeder Prozess traegt sein Skript in der Befehlszeile, sobald node gestartet ist.
+    await until(null, () => wKinds.every((k, i) => {
+      try { return fs.readFileSync(`/proc/${k.pid}/cmdline`, 'utf8').includes(path.join(wDir, ['testbench.js', 'server.js', 'werkzeug.js'][i])); }
+      catch { return false; }
+    }), 5000, 'der Start der drei Prozesse');
     const wSeen = cp.foreignServer();
     const wHas = (n) => wSeen.some(z => z.pid === wKinds[n].pid);
     check('Der Waechter sieht einen ECHT gestarteten node testbench.js',
@@ -121,8 +125,8 @@ async function check0300() {
       `k.unref(); console.log(k.pid);`;
     const aBorn = Number(execFileSync(process.execPath, ['-e', aScript],
       { encoding: 'utf8', env: { ...process.env, DATA_DIR: aDir } }).trim());
-    // Der Helfer ist fort; der Enkel lebt und haengt nicht mehr an uns.
-    await new Promise(r => setTimeout(r, 400));
+    // Der Helfer ist fort, sobald der Enkel an der Eins haengt.
+    await until(null, () => parentOf(aBorn) === 1, 5000, 'das Ende des Helfers');
     const aAlive = (pid) => { try { process.kill(pid, 0); return true; } catch { return false; } };
     check('Der Aufbau steht: ein echter Rest laeuft und ist nicht unser Kind',
       aAlive(aBorn) && !ourOwn(aBorn) && parentOf(aBorn) !== process.pid,
@@ -132,8 +136,7 @@ async function check0300() {
       aFound.some(z => z.pid === aBorn),
       aFound.map(z => `${z.pid} ${z.where}`).join(' · ') || 'nichts gefunden');
     const aSweep = sweepLeftovers();
-    /* GEWARTET WIRD AUF DAS ENDE UND NICHT AUF DIE UHR. */
-    for (let i = 0; i < 50 && aAlive(aBorn); i++) await new Promise(r => setTimeout(r, 100));
+    await until(null, () => !aAlive(aBorn), 5000, 'das Ende des Rests').catch(() => {});
     check('Und er raeumt ihn wirklich weg — der Prozess lebt danach nicht mehr',
       !aAlive(aBorn), `PID ${aBorn} lebt noch`);
     check('Und das Wegwerfverzeichnis ist mit fort',
@@ -156,13 +159,8 @@ async function check0300() {
      anderen ihren eigenen. */
   group('Ein Rest gehoert dem Lauf, der ihn hinterlassen hat — 0.38.5');
   {
-    /* GEWARTET WIRD AUF DIE BEDINGUNG UND NICHT AUF DIE UHR -- und an EINER
-       Stelle, damit die Summe der festen Wartezeiten nicht waechst. */
-    const bUntil = async (condition) => {
-      for (let i = 0; i < 400 && !condition(); i++)
-        await new Promise(r => setTimeout(r, 25));
-      return condition();
-    };
+    // Laeuft die Zeit ab, sagen es die Pruefungen danach.
+    const bUntil = (condition, what) => until(null, condition, 10000, what).catch(() => false);
     const bDir = fs.mkdtempSync(path.join(os.tmpdir(), 'kriterion-fremd-'));
     /* Eine Nummer, die lebt und nicht diese ist: der Vater dieses Prozesses. */
     const bForeign = process.ppid;
@@ -176,7 +174,7 @@ async function check0300() {
       { encoding: 'utf8' }).trim());
     const bAlive = (pid) => { try { process.kill(pid, 0); return true; } catch { return false; } };
     /* Der Helfer ist fort, sobald der Enkel an der Eins haengt. */
-    await bUntil(() => parentOf(bBorn) === 1);
+    await bUntil(() => parentOf(bBorn) === 1, 'das Ende des ersten Helfers');
     check('Der Aufbau steht: ein Rest mit fremder, lebender Laufnummer',
       bAlive(bBorn) && bForeign !== process.pid && bAlive(bForeign),
       `PID ${bBorn}, fremder Lauf ${bForeign}`);
@@ -187,10 +185,10 @@ async function check0300() {
        Aufraeumer gar nichts findet: dieselbe Lage mit einer TOTEN Laufnummer. */
     const bDead = Number(execFileSync(process.execPath,
       ['-e', 'console.log(process.pid)'], { encoding: 'utf8' }).trim());
-    await bUntil(() => !bAlive(bDead));
+    await bUntil(() => !bAlive(bDead), 'das Ende des toten Laufs');
     const bOrphan = Number(execFileSync(process.execPath, ['-e', bScript(bDead)],
       { encoding: 'utf8' }).trim());
-    await bUntil(() => parentOf(bOrphan) === 1);
+    await bUntil(() => parentOf(bOrphan) === 1, 'das Ende des zweiten Helfers');
     check('Die Gegenlage steht: derselbe Rest mit einer toten Laufnummer',
       bAlive(bOrphan) && !bAlive(bDead), `PID ${bOrphan}, toter Lauf ${bDead}`);
     check('Und diesen findet er',
@@ -199,7 +197,7 @@ async function check0300() {
     /* AUFGERAEUMT WIRD VON HAND: sweepLeftovers() naehme den fremden nicht
        mit, und stehenlassen darf ihn dieser Lauf auch nicht. */
     for (const pid of [bBorn, bOrphan]) { try { process.kill(pid, 'SIGKILL'); } catch {} }
-    await bUntil(() => !bAlive(bBorn) && !bAlive(bOrphan));
+    await bUntil(() => !bAlive(bBorn) && !bAlive(bOrphan), 'das Ende beider Reste');
     check('Und beide sind danach fort — die Prueflage laesst nichts stehen',
       !bAlive(bBorn) && !bAlive(bOrphan), `${bBorn} ${bAlive(bBorn)}, ${bOrphan} ${bAlive(bOrphan)}`);
     fs.rmSync(bDir, { recursive: true, force: true });
@@ -405,8 +403,8 @@ async function check0300() {
        -- ohne die Datei gibt es keinen Schluessel, mit dem sich sagen liesse,
        dass sie fehlt (Entscheidung A1 aus 0.24.0) */
     const SENTENCE_EXCEPTIONS = [
-      'docker compose exec kriterion node usertool.js passwort <name>',
-      'docker compose exec kriterion node usertool.js zweifaktor <name>',
+      'docker compose exec kriterion node usertool.js password <name>',
+      'docker compose exec kriterion node usertool.js twofactor <name>',
       /* ZWEI BEISPIELADRESSEN UND EINE ABFRAGE. */
       'https://forum.beispiel.de/suche?q=%s',
       'site%3Aforum.beispiel.de',
@@ -533,7 +531,8 @@ async function check0300() {
     try { ({ JSDOM: JSDOMd } = require('jsdom')); } catch { JSDOMd = null; }
     check('jsdom steht fuer die vier Zustaende bereit', !!JSDOMd, 'ohne jsdom keine Oberflaechenprobe');
     const dDom = buildDom(JSDOMd, { hash: '#/item/1', commentInventory: dComments });
-    await new Promise(r => setTimeout(r, 200));
+    await until(dDom.w, (x) => x.document.querySelector('.cmt-head') && openRequests(x) === 0,
+      2000, 'die Kommentare der Detailansicht');
     const dSeen = [...dDom.w.document.querySelectorAll('.cmt-due')]
       .map(b => (b.className.match(/due-[a-z]+/) || ['—'])[0]);
     check('Fuenf Aufgaben, fuenf Zustaende — gefahren und nicht am Markup gelesen',
@@ -727,7 +726,8 @@ async function check0301() {
         tags: [91, 92, 93, 94, 95, 96, 97].map((n, i) => ({ id: n, name: 'Tag' + i })) }
     ];
     const uDom = buildDom(JSDOMu, { hash: '#/item/1', dayInventory: uDays });
-    await new Promise(r => setTimeout(r, 200));
+    await until(uDom.w, (x) => x.document.querySelector('.trow') && openRequests(x) === 0,
+      2000, 'die Testtage der Detailansicht');
     const uRows = [...uDom.w.document.querySelectorAll('.trow')];
     check('Drei Testtage stehen da', uRows.length === 3, String(uRows.length));
     check('Nur die Zeilen MIT Tags tragen die Klasse',
@@ -775,7 +775,8 @@ async function check0301() {
       return uReal(box, rows);
     };
     await uDom.w.renderDetail(1);
-    await new Promise(r => setTimeout(r, 250));
+    await until(uDom.w, (x) => openRequests(x) === 0 &&
+      uCalls.some(c => /(^|\s)ttags(\s|$)/.test(c.cls || '')), 2000, 'die Tags der Testtage');
     uDom.w.limitCloud = uReal;
     check('Und der Aufbau begrenzt die Tags eines Testtags auf EINE Reihe',
       uCalls.some(c => /(^|\s)ttags(\s|$)/.test(c.cls || '') && c.rows === 1),
@@ -807,7 +808,8 @@ async function check0301() {
     const uSys = buildDom(JSDOMu, { tags: [
       { id: 91, name: 'BIOS', usage_count: 4, test_usage_count: 2 },
       { id: 92, name: 'Gelb', usage_count: 1, test_usage_count: 0 }] });
-    await new Promise(r => setTimeout(r, 250));
+    await until(uSys.w, (x) => x.document.getElementById('count') && openRequests(x) === 0,
+      2000, 'die Uebersicht');
     /* DERSELBE WEG WIE UEBERALL IM SYSTEMBEREICH: der Abschnitt „Bestand"
        wird geoeffnet, sonst steht seine Karte gar nicht im Dokument. */
     await sysSection(uSys.w, 'inventory');
@@ -832,7 +834,8 @@ async function check0301() {
     /* EIN ZUGANG, DER WEDER VERFASSER NOCH ADMIN IST. */
     const uForeign = buildDom(JSDOMu, { hash: '#/item/1', commentInventory: uComments,
       settings: { filters: null, isAdmin: false } });
-    await new Promise(r => setTimeout(r, 250));
+    await until(uForeign.w, (x) => x.document.querySelector('.cmt-head') && openRequests(x) === 0,
+      2000, 'die Kommentare der Detailansicht');
     const uDue = uForeign.w.document.querySelector('.cmt-due');
     check('Das Datum steht da, obwohl der Leser es nicht aendern darf', !!uDue,
       uForeign.w.document.querySelector('.cmt-head')?.outerHTML?.slice(0, 160) || '(kein Kopf)');
@@ -852,7 +855,8 @@ async function check0301() {
       { id: 82, kind: 'done', text: 'Erledigt, ohne Datum', dueDate: null, pinned: false,
         mine: true, imagesRemoved: 0, author: { id: 1, name: 'chefin' }, images: [],
         created_at: '2026-09-01 09:00:00', updated_at: null }] });
-    await new Promise(r => setTimeout(r, 250));
+    await until(uOwn.w, (x) => x.document.querySelector('.cmt-head') && openRequests(x) === 0,
+      2000, 'die Kommentare der Detailansicht');
     const uAfter = uOwn.w.document.querySelector('.cmt-due');
     check('Eine erledigte Aufgabe ohne Datum bekommt wieder einen Knopf',
       !!uAfter && uAfter.tagName === 'BUTTON',
@@ -933,7 +937,10 @@ async function check0302() {
       { id: 43, name: 'Holz', usage_count: 1, test_usage_count: 0 }
     ];
     const vZu = buildDom(JSDOMv, { tags: vTags });
-    await new Promise(r => setTimeout(r, 120));
+    const vChosen = (w, n) => until(w, (x) => openRequests(x) === 0 &&
+      x.document.querySelectorAll('#f-tagrow .pill-tag.on').length === n, 2000, `${n} gewaehlte Tags`);
+    await until(vZu.w, (x) => x.document.getElementById('f-tagrow') && openRequests(x) === 0,
+      2000, 'die Tagzeile der Uebersicht');
     const vRow = () => vZu.w.document.getElementById('f-tagrow');
     check('Zugeklappt und ohne Auswahl ist der Umschalter verborgen',
       !!vRow() && !vRow().classList.contains('tags-live'),
@@ -941,7 +948,7 @@ async function check0302() {
     /* EIN TAG GENUEGT NICHT: der Umschalter entscheidet erst ab zweien ueber
        das Ergebnis. */
     vRow()?.querySelector('.pill-tag')?.click();
-    await new Promise(r => setTimeout(r, 120));
+    await vChosen(vZu.w, 1);
     check('Mit EINEM gewaehlten Tag bleibt er verborgen',
       !!vRow() && !vRow().classList.contains('tags-live'),
       vRow() ? vRow().className : '(keine Zeile)');
@@ -949,25 +956,28 @@ async function check0302() {
        Befund, wegen dessen bis 0.30.0 „Tags (2)" am alten Umschalter stand:
        ein Filter, der greift und nicht zu sehen ist. */
     [...(vRow()?.querySelectorAll('.pill-tag') || [])].find(b => !b.classList.contains('on'))?.click();
-    await new Promise(r => setTimeout(r, 120));
+    await vChosen(vZu.w, 2);
     check('Ab ZWEI gewaehlten Tags steht er da — er greift dann',
       !!vRow() && vRow().classList.contains('tags-live'),
       vRow() ? vRow().className : '(keine Zeile)');
     vZu.w.close();
     /* UND AUFGEKLAPPT STEHT ER IMMER DA. */
     const vOpen = buildDom(JSDOMv, { tags: vTags });
-    await new Promise(r => setTimeout(r, 120));
+    await until(vOpen.w, (x) => x.document.getElementById('f-tagrow') && openRequests(x) === 0,
+      2000, 'die Tagzeile der Uebersicht');
     const vOpenRow = () => vOpen.w.document.getElementById('f-tagrow');
     vOpen.w.limitCloud = () => true;
     vOpenRow()?.querySelector('.pill-tag')?.click();
-    await new Promise(r => setTimeout(r, 120));
+    await vChosen(vOpen.w, 1);
     vOpenRow()?.querySelector('.pill-tag.on')?.click();
-    await new Promise(r => setTimeout(r, 120));
+    await vChosen(vOpen.w, 0);
     check('Der Griff zum Aufklappen steht da, sobald etwas abgeschnitten ist',
       !!vOpenRow()?.querySelector('.frow-right-end .link-btn'),
       vOpenRow() ? vOpenRow().innerHTML.slice(0, 120) : '(keine Zeile)');
     vOpenRow()?.querySelector('.frow-right-end .link-btn')?.click();
-    await new Promise(r => setTimeout(r, 120));
+    await until(vOpen.w, (x) => openRequests(x) === 0 &&
+      x.document.querySelector('#f-tagrow .frow-right-end .link-btn')?.title === x.t('list.less'),
+      2000, 'die aufgeklappte Tagzeile');
     check('Aufgeklappt steht er da, auch ohne Auswahl',
       !!vOpenRow() && vOpenRow().classList.contains('tags-live'),
       vOpenRow() ? vOpenRow().className : '(keine Zeile)');
@@ -991,7 +1001,6 @@ async function check0303() {
   const wNarrow = (wCss.match(/@media \(max-width: 700px\), \(max-height: 500px\) and \(max-width: 960px\) \{[\s\S]*$/) || [''])[0];
   let JSDOMw;
   try { ({ JSDOM: JSDOMw } = require('jsdom')); } catch { JSDOMw = null; }
-  const wait = () => new Promise(r => setTimeout(r, 120));
 
   group('Die zugeklappte Tagzeile fuellt ihre Hoehe — 0.30.3');
   {
@@ -1011,7 +1020,8 @@ async function check0303() {
        NICHT GELESEN, und zwar am Mock: jsdom rechnet keine Hoehen, also
        bekommt die Zeile einen Kasten, der welche nennt. */
     const wEmpty = buildDom(JSDOMw, { tags: [] });
-    await wait();
+    await until(wEmpty.w, (x) => x.document.getElementById('count') && openRequests(x) === 0,
+      2000, 'die Uebersicht');
     const wWindow = wEmpty.w;
     const wBox = (high, full) => ({ firstElementChild: { offsetHeight: high }, scrollHeight: full });
     check('cloudRows zaehlt EINE Reihe als eine',
@@ -1048,16 +1058,19 @@ async function check0303() {
       { id: 63, name: 'Holz', usage_count: 1, test_usage_count: 0 }
     ];
     const wDom = buildDom(JSDOMw, { tags: wTags });
-    await wait();
+    await until(wDom.w, (x) => x.document.getElementById('f-tagrow') && openRequests(x) === 0,
+      2000, 'die Tagzeile der Uebersicht');
     const w = wDom.w;
     const wRow = () => w.document.getElementById('f-tagrow');
+    const wChosen = (n) => until(w, (x) => openRequests(x) === 0 &&
+      x.document.querySelectorAll('#f-tagrow .pill-tag.on').length === n, 2000, `${n} gewaehlte Tags`);
     let wCalls = [];
     const wRealLimit = w.limitCloud;
     w.limitCloud = (box, rows) => { wCalls.push(rows); return wRealLimit(box, rows); };
     /* JSDOM MELDET FUER EIN DIV KEIN RASTER -- das ist der Schreibtisch. */
     wCalls = [];
     wRow()?.querySelector('.pill-tag')?.click();
-    await wait();
+    await wChosen(1);
     check('Am Schreibtisch zeigt die zugeklappte Wolke EINE Reihe',
       wCalls.length > 0 && wCalls[wCalls.length - 1] === 1, `gerufen mit ${wCalls.join(', ')}`);
     /* UND JETZT DAS TELEFON: die Antwort des Stilblatts wird fuer diese eine
@@ -1067,7 +1080,7 @@ async function check0303() {
       (el && el.id === 'f-tagrow') ? { display: 'grid' } : wRealStyle(el, ...rest);
     wCalls = [];
     wRow()?.querySelector('.pill-tag.on')?.click();
-    await wait();
+    await wChosen(0);
     check('Am Telefon zeigt sie ZWEI — die Hoehe ist ohnehin bezahlt',
       wCalls.length > 0 && wCalls[wCalls.length - 1] === 2, `gerufen mit ${wCalls.join(', ')}`);
     /* ---- Zusage 6: aufgeklappt gilt keine Begrenzung ---- Die Zahl gilt nur
@@ -1075,9 +1088,11 @@ async function check0303() {
     w.limitCloud = (box, rows) => { wCalls.push(rows); return true; };
     wCalls = [];
     wRow()?.querySelector('.pill-tag')?.click();
-    await wait();
+    await wChosen(1);
     wRow()?.querySelector('.frow-right-end .link-btn')?.click();
-    await wait();
+    await until(w, (x) => openRequests(x) === 0 &&
+      x.document.querySelector('#f-tagrow .frow-right-end .link-btn')?.title === x.t('list.less'),
+      2000, 'die aufgeklappte Tagzeile');
     check('Aufgeklappt gilt keine Begrenzung',
       wCalls[wCalls.length - 1] === 0, `gerufen mit ${wCalls.join(', ')}`);
 
@@ -1089,7 +1104,7 @@ async function check0303() {
     const wRealCounter = w.cloudRows;
     w.cloudRows = () => 2;
     wRow()?.querySelector('.pill-tag')?.click();
-    await wait();
+    await wChosen(0);
     check('Ab ZWEI Reihen traegt die Zeile `tags-deep`',
       !!wRow()?.classList.contains('tags-deep'), wRow() ? wRow().className : '(keine Zeile)');
     w.cloudRows = () => 1;
@@ -1097,7 +1112,7 @@ async function check0303() {
        stellt die gewaehlten nach vorn, der erste Klick hat die eine also
        wieder abgewaehlt -- und `.pill-tag.on` traf danach ins Leere. */
     wRow()?.querySelector('.pill-tag')?.click();
-    await wait();
+    await wChosen(1);
     check('Bei EINER Reihe traegt sie es nicht',
       !!wRow() && !wRow().classList.contains('tags-deep'),
       wRow() ? wRow().className : '(keine Zeile)');

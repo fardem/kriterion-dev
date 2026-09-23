@@ -4,7 +4,7 @@
 const H = require('./frame.js');
 const D = require('./dom.js');
 const {
-  buildDom
+  buildDom, until, openRequests
 } = D;
 
 async function run() {
@@ -90,7 +90,8 @@ async function run() {
 
     /* ---- Der Helfer im Browser ---- */
     const spDom = buildDom(JSDOM, { settings: { filters: null } });
-    await new Promise(r => setTimeout(r, 80));
+    await until(spDom.w, (x) => x.document.getElementById('count') && openRequests(x) === 0,
+      2000, 'die Uebersicht');
     const spW = spDom.w;
     /* DIE GESTELLTEN TEXTE WERDEN IN DIE GELADENEN GESCHOBEN. */
     const spSet = (obj) => spW.eval(`TEXTS = ${JSON.stringify(obj)}; TEXTS_FALLBACK = TEXTS;`);
@@ -158,7 +159,8 @@ async function run() {
     /* SCHEITERT SIE, ZEICHNET boot() EINEN EINZIGEN FESTEN SATZ UND HAELT AN
        (Entscheidung A1). */
     const spWithout = buildDom(JSDOM, { withoutLanguage: true });
-    await new Promise(r => setTimeout(r, 120));
+    await until(spWithout.w, (x) => openRequests(x) === 0 &&
+      x.document.getElementById('app').textContent !== '', 2000, 'die Seite ohne Sprachdatei');
     check('Fehlt die Sprachdatei, steht ein einziger fester Satz da',
       spWithout.w.document.getElementById('app')?.textContent === 'Die Sprachdatei fehlt.',
       JSON.stringify(spWithout.w.document.getElementById('app')?.textContent?.slice(0, 80)));
@@ -169,7 +171,8 @@ async function run() {
     spWithout.w.close();
     /* UND DIE GEGENLAGE: mit Datei zeichnet dieselbe Seite ihre Ansicht. */
     const spIncluding = buildDom(JSDOM, {});
-    await new Promise(r => setTimeout(r, 120));
+    await until(spIncluding.w, (x) => openRequests(x) === 0 &&
+      x.document.querySelectorAll('#app *').length > 0, 2000, 'die Seite mit Sprachdatei');
     check('Mit Datei zeichnet dieselbe Seite ihre Ansicht',
       spIncluding.w.document.querySelectorAll('#app *').length > 0
         && spIncluding.w.document.getElementById('app').textContent !== 'Die Sprachdatei fehlt.',
@@ -293,11 +296,9 @@ async function run() {
     ffKind.stdout.on('data', d => { ffLog += d; });
     ffKind.stderr.on('data', d => { ffLog += d; });
     const ffBase = `http://127.0.0.1:${ffPort}`;
-    let ffUp = false;
-    for (let i = 0; i < 120 && !ffUp; i++) {
-      await new Promise(r => setTimeout(r, 100));
-      try { ffUp = (await fetch(`${ffBase}/api/config`)).ok; } catch {}
-    }
+    // Kommt er nicht hoch, sagt es die Pruefung darunter samt Protokoll.
+    const ffUp = await until(null, async () => (await fetch(`${ffBase}/api/config`)).ok,
+      12000, 'der Start des Servers', 20).catch(() => false);
     /* DIE ERSTE UND WICHTIGSTE ZUSICHERUNG: er kommt hoch. Alles Weitere
        waere ohne sie eine Aussage ueber einen Server, den es nicht gibt. */
     check('Mit drei unbrauchbaren Dateien im Verzeichnis startet der Server trotzdem',

@@ -324,7 +324,7 @@ button { cursor: pointer; background: none; border: none; padding: 0; }
 .brand .count, .card-test, .rating-inline, .link-count, .rrow .ravg, .rrow .rname .rweight,
 .mrow .mcount, .mrow .mweight, .kv .v, .log-time, .session-time, .trash-meta, .cmt-head,
 .lb-count, .vcount, .bsum, .calc-row > span, .open-when, .card-find .find-more,
-.thumb .num, .thumb .duration, .lrow .lnum, .cmp-crit, .cmp-group, .pill .n, .photo-count,
+.thumb .num, .thumb .duration, .cmt-img .duration, .lrow .lnum, .cmp-crit, .cmp-group, .pill .n, .photo-count,
 .two-factor-codes span, .user-status, .filter-toggle .fcount, .open-count {
   font-variant-numeric: tabular-nums;
 }
@@ -834,13 +834,13 @@ mark {
 .thumb .del { position: absolute; top: 0; right: 0; width: 19px; height: 19px; background: rgba(var(--photo-rgb), .82); color: var(--on-photo); font-size: .73rem; display: flex; align-items: center; justify-content: center; border-radius: 0 0 0 6px; opacity: 0; transition: opacity .15s var(--ease); }
 /* Marke und Laenge am Video: beides folgt aus Art und Dauer.
    pointer-events: none, sonst faengt die Marke das Ziehen zum Umsortieren ab. */
-.thumb .play-badge, .lb-thumb .play-badge {
+.thumb .play-badge, .lb-thumb .play-badge, .cmt-img .play-badge {
   position: absolute; top: 3px; left: 3px; pointer-events: none;
   font-size: .58rem; line-height: 1; color: var(--text-2);
   width: 16px; height: 16px; display: flex; align-items: center; justify-content: center;
   background: rgba(var(--photo-rgb), .82); border-radius: 999px; padding-left: 1px;
 }
-.thumb .duration {
+.thumb .duration, .cmt-img .duration {
   position: absolute; bottom: 0; right: 0; pointer-events: none;
   background: rgba(var(--photo-rgb), .82); color: var(--on-photo);
   font-family: var(--mono); font-size: .58rem; padding: 1px 4px; border-radius: 5px 0 0 0;
@@ -1234,6 +1234,9 @@ mark {
 }
 .markup-menu button { display: inline-flex; align-items: center; justify-content: center; min-width: 29px; height: 27px; padding: 0 7px; border-radius: 5px; color: var(--text-2); font-size: .84rem; }
 .markup-menu button:hover { background: var(--surface); color: var(--accent-text); }
+/* Angedockt steht die Leiste als Kopfzeile des Feldes; `top` setzt das Skript
+   auf die Hoehe der Kopfzeile der Seite. */
+.markup-menu.docked { position: sticky; margin-bottom: 4px; box-shadow: none; }
 .markup-menu .mk-b { font-weight: 700; }
 .markup-menu .mk-i { font-style: italic; }
 /* Die Frage nach Adresse oder Name bricht in eine eigene Zeile um, damit das
@@ -1403,15 +1406,13 @@ mark {
 .open-section:first-child { margin-top: 0; }
 .open-section.overdue { color: var(--red); }
 
-/* ---- Die Sicherungsprobe in der Liste ---- Die Ergebniszeile steht
-   eingerueckt unter der ihren: sie sagt etwas UEBER die Zeile. Zwei Farben
-   und kein Rot -- „nicht lesbar" ist eine Auskunft. */
+/* ---- Die Probe eines Backups in der Liste ---- Die Ergebniszeile steht
+   eingerueckt unter ihrer Zeile, in zwei Farben ohne Rot. */
 /* OHNE EIGENEN ABSTAND: die Zeile ist ein Flex-Kasten mit `gap`, und ein
    `margin` daneben waere ein zweiter Abstand ueber dieselbe Luecke. */
 .mrow .backup-check { flex-shrink: 0; }
-/* DIE ZEITMARKE IST DER NAME DER KOPIE UND WIRD NICHT GEKUERZT -- die
-   Uhrzeit unterscheidet zwei Kopien desselben Tages. Geschrumpft wird das
-   Alter rechts; es ist dieselbe Auskunft wie das Datum links. */
+/* Die Zeitmarke ist der Name des Backups und wird nicht gekuerzt; die
+   Uhrzeit unterscheidet zwei Backups desselben Tages. Gekuerzt wird das Alter. */
 #cleanup-list .mrow .mname { flex: 0 0 auto; }
 #cleanup-list .mrow .mcount { flex: 1 1 0; min-width: 0; overflow: hidden;
   text-overflow: ellipsis; white-space: nowrap; text-align: right; }
@@ -1484,13 +1485,11 @@ mark {
    Gigabyte ergeben siebzig Zeilen. */
 #ex-part-list { flex: none; max-height: 280px; }
 
-/* DIE ZWEITE AUSNAHME mit derselben Begruendung: unter der Sicherungsliste
-   stehen Loeschzeile, Knopf und die Kopien mit dem alten Schluessel.
+/* Die Liste der Backups rollt ebenso: darunter stehen Loeschzeile und Knopf.
    13.98rem sind fuenf Zeilen -- 5 x 41,92 / 15 = 13,973. */
 #cleanup-list { flex: none; max-height: 13.98rem; }
-/* DIE MARKE AN EINER ZEILE DER SICHERUNGSLISTE: rot heisst „faellt beim
-   naechsten Lauf", gedaempft „liegt hier und die Regel fasst sie nicht an".
-   Eine Farbe fuer beides waere die Verwechslung. */
+/* Die Marke an einer Zeile der Backup-Liste: rot heisst „faellt beim
+   naechsten Lauf", gedaempft „die Regel fasst es nicht an". */
 .mrow .cleanup-badge { flex-shrink: 0; font-size: .7rem; letter-spacing: .03em; text-transform: uppercase; }
 .mrow .cleanup-badge.remove { color: var(--red); }
 .mrow .cleanup-badge.old { color: var(--faint); }
@@ -1771,6 +1770,7 @@ mark {
 .lb-count { font-family: var(--mono); font-size: .8rem; color: var(--muted); }
 .lb-btn { width: 34px; height: 34px; border-radius: 8px; border: 1px solid var(--line); background: var(--surface); display: flex; align-items: center; justify-content: center; color: var(--text-2); font-size: 1rem; transition: all .15s var(--ease); }
 .lb-btn:hover { background: var(--surface-3); color: var(--text); border-color: var(--line-hover-2); }
+.lb-btn.download { text-decoration: none; }
 /* DER PAPIERKORB IM VOLLBILD steht abgesetzt und faerbt sich beim
    Ueberfahren rot. Die Luecke davor ist der Punkt: neben dem
    Schliessenkreuz waere er die gefaehrlichste Nachbarschaft der Instanz. */
@@ -1901,15 +1901,15 @@ body:has(.cmp-bar) .toast { bottom: calc(90px + env(safe-area-inset-bottom)); }
   position: absolute; transform: translateX(-50%); top: 3px;
   font-family: var(--mono); font-size: .63rem; color: var(--timeline-year); white-space: nowrap;
 }
-/* DER KASTEN IST GEDECKELT UND BRICHT UM: mit `white-space: nowrap` machte
-   ein langer Titel ihn beliebig breit. Zwei Masse -- `14rem` deckelt in
-   Zeilen, `46%` an der Achse, das kleinere gewinnt. */
+/* Der Kasten ist gedeckelt und bricht um: `14rem` deckelt in Zeilen, `46%`
+   an der Achse. `max-content` loest die Breite vom Platz rechts vom Punkt;
+   showHint() schiebt ihn danach in die Zeitleiste. */
 .timeline-hint {
   position: absolute; bottom: 100%; transform: translateX(-50%);
   margin-bottom: -6px; padding: 7px 10px; z-index: var(--z-timeline-hint); pointer-events: none;
   background: var(--surface-2); border: 1px solid var(--line); border-radius: var(--r-sm);
   display: flex; flex-direction: column; gap: 2px;
-  max-width: min(14rem, 46%); overflow-wrap: anywhere;
+  width: max-content; max-width: min(14rem, 46%); overflow-wrap: anywhere;
   box-shadow: var(--sh-menu);
 }
 .timeline-hint strong { font-size: .83rem; font-weight: 600; }

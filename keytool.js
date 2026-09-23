@@ -17,34 +17,34 @@ const BOLD = (t) => `\x1b[1m${t}\x1b[0m`;
 // Platte, die auf das letzte Byte genau reicht, keine ist.
 const SPACE_MARGIN = 1.1;
 // Gemessen an einer verschluesselten Instanz: rund 20 ms je MB (5189 ms fuer
-// 261 MB). Dieselbe Zahl wie SICHERUNG_MS_JE_MB in server.js -- und sie steht
-// hier ein zweites Mal, weil server.js beim Wechsel gar nicht laeuft.
+// 261 MB). Dieselbe Zahl wie BACKUP_MS_PER_MB in server.js; server.js laeuft
+// beim Wechsel nicht.
 const MS_PER_MB = 20;
 
 function help() {
   console.log(`
 ${BOLD('Kriterion — Schlüsselwechsel')}
 
-  node keytool.js zeigen
+  node keytool.js show
       Sagt, woher der Schlüssel kommt, wie groß die Datenbank ist, wie viel
       Platz frei ist und wann zuletzt gewechselt wurde. Ändert nichts.
 
-  node keytool.js wechseln [--env <pfad>] [--wer <text>] [--ja]
+  node keytool.js change [--env <pfad>] [--by <text>] [--yes]
       Gibt der Datenbank einen neuen Schlüssel und zieht die Ablage nach.
       --env <pfad>   die .env des Wirts. PFLICHT, wenn der Schlüssel aus der
                      Umgebung kommt — ohne sie ließe sich der Wechsel nicht zu
                      Ende führen, und dann wird er gar nicht erst angefangen.
-      --wer <text>   wer den Wechsel ausgelöst hat. Steht als Notiz in der .env
+      --by <text>    wer den Wechsel ausgelöst hat. Steht als Notiz in der .env
                      neben dem abgelösten Wert, nicht im Sicherheitsprotokoll.
-      --ja           ohne Rückfrage. Für keytool.sh und den Prüfstand.
+      --yes          ohne Rückfrage. Für keytool.sh und den Prüfstand.
 
 ${RED('  DIE INSTANZ MUSS DABEI STEHEN.')} Ein laufender Server hält die Datei im
   WAL-Modus offen; der Wechsel schaltet auf DELETE um. keytool.sh nimmt
   einem das ab.
 
-${RED('  VORHER SICHERN — Datenverzeichnis UND .env.')} Bricht der Wechsel ab,
-  stellt das Rollback-Journal den alten Stand her; geht das Journal verloren,
-  ist alles verloren. Das ist der Grund für die Sicherung, nicht der Abbruch.
+${RED('  VORHER EIN BACKUP ANLEGEN — Datenverzeichnis UND .env.')} Bricht der Wechsel
+  ab, stellt das Rollback-Journal den alten Stand her; geht das Journal
+  verloren, ist alles verloren. Das ist der Grund für das Backup, nicht der Abbruch.
 `);
 }
 
@@ -181,16 +181,16 @@ async function commandChange(options) {
   console.log(`  Freier Platz     ${mb(l.free)} — gebraucht werden ${mb(l.needed)}`);
   console.log(`  Ablage danach    ${options.env || path.join(DATA_DIR, 'encryption.key')}`);
   console.log(RED('\n  WAS DANACH GILT:'));
-  console.log(RED('  · Jede Sicherung, die JETZT dasteht, ist mit dem ALTEN Schlüssel'));
+  console.log(RED('  · Jedes Backup, das JETZT dasteht, ist mit dem ALTEN Schlüssel'));
   console.log(RED('    verschlüsselt und bleibt es. Ab dem Wechsel sind zwei Schlüssel im'));
-  console.log(RED('    Umlauf — heb den alten auf, sonst sind die alten Kopien wertlos.'));
+  console.log(RED('    Umlauf — heb den alten auf, sonst sind die alten Backups wertlos.'));
   if (options.env)
     console.log(RED(`  · Der alte Wert bleibt auskommentiert in ${options.env} stehen.`));
-  console.log(RED('  · Die Karte „Sicherung" markiert ab dann jede ältere Kopie rot.'));
+  console.log(RED('  · Die Karte „Backup" markiert ab dann jedes ältere Backup rot.'));
   console.log(RED('  · Ohne den passenden Schlüssel sind die Daten endgültig verloren.'));
-  console.log(`\n  Vorher gesichert? Datenverzeichnis UND ${options.env ? '.env' : 'Schlüsseldatei'}.`);
+  console.log(`\n  Vorher ein Backup angelegt? Datenverzeichnis UND ${options.env ? '.env' : 'Schlüsseldatei'}.`);
 
-  if (!options.ja) {
+  if (!options.yes) {
     const answer = (await ask('\nWirklich wechseln? [ja/nein] ')).trim().toLowerCase();
     if (answer !== 'ja') { console.log('Abgebrochen, nichts geändert.'); return; }
   }
@@ -211,7 +211,7 @@ async function commandChange(options) {
   const intact = db.pragma('integrity_check', { simple: true });
   if (intact !== 'ok') {
     console.error(RED(`\nDie Datenbank meldet nach dem Wechsel: ${intact}`));
-    console.error('Spiel die Sicherung zurück. Der NEUE Schlüssel lautet:');
+    console.error('Spiel das Backup zurück. Der NEUE Schlüssel lautet:');
     console.error(`\n    ${fresh}\n`);
     process.exit(1);
   }
@@ -248,16 +248,14 @@ async function commandChange(options) {
   console.log(`  integrity_check: ${intact}`);
   if (options.env) {
     console.log(`  ${options.env}: der neue Wert steht aktiv, der alte auskommentiert darüber.`);
-    console.log(RED(`\n  DER ALTE WERT ÖFFNET ALLE SICHERUNGEN VON VOR ${stamp} UTC.`));
+    console.log(RED(`\n  DER ALTE WERT ÖFFNET ALLE BACKUPS VON VOR ${stamp} UTC.`));
     console.log(RED('  Übernimm ihn in den Passwortspeicher, bevor du die Zeile entfernst:'));
     console.log(`\n    ${old}\n`);
   } else {
     console.log(`  ${path.join(DATA_DIR, 'encryption.key')} trägt den neuen Wert.`);
-    console.log(RED(`\n  DER ALTE WERT ÖFFNET ALLE SICHERUNGEN VON VOR ${stamp} UTC.`));
-    /* Nicht "nirgends mehr": die Sicherung, die keytool.sh vorher angelegt
-       hat, traegt die alte Schluesseldatei mit -- und das ist dann die
-       einzige Stelle, an der der alte Wert noch steht. */
-    console.log(RED('  Er steht ab jetzt nur noch in der Sicherung, die vor dem Wechsel'));
+    console.log(RED(`\n  DER ALTE WERT ÖFFNET ALLE BACKUPS VON VOR ${stamp} UTC.`));
+    // Die Kopie des Datenverzeichnisses von keytool.sh traegt die alte Schluesseldatei mit.
+    console.log(RED('  Er steht ab jetzt nur noch im Backup, das vor dem Wechsel'));
     console.log(RED('  entstanden ist. Übernimm ihn in den Passwortspeicher:'));
     console.log(`\n    ${keyHex}\n`);
   }
@@ -277,12 +275,12 @@ async function main() {
   };
   const options = {
     env: get('--env'),
-    who: get('--wer') || 'unbekannt',
-    ja: args.includes('--ja')
+    who: get('--by') || 'unbekannt',
+    yes: args.includes('--yes')
   };
   switch (command) {
-    case 'zeigen': commandShow(); break;
-    case 'wechseln': await commandChange(options); break;
+    case 'show': commandShow(); break;
+    case 'change': await commandChange(options); break;
     default:
       if (command) console.error(RED(`Unbekannter Befehl: ${command}`));
       help();

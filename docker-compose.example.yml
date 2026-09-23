@@ -8,37 +8,15 @@ services:
       - "3100:3000"
     volumes:
       - ./data:/app/data
-      # DER SICHERUNGSORT. Er liegt hier IM Projektverzeichnis -- das haelt die
-      # Uebersicht, ist aber ausdruecklich nicht die sichere Lage: beim
-      # Einspielen wird das Projektverzeichnis umbenannt
-      # (kriterion -> kriterion-alt), und die Sicherungen wandern mit. Wer den
-      # alten Ordner danach wegraeumt, raeumt sie mit weg. Die Karte
-      # "Sicherung" sagt das im Klartext und markiert es rot.
-      #
-      # AUSSERHALB IST DIE EMPFOHLENE LAGE. Dafuer beide Zeilen zusammen auf
-      #   - ../kriterion-sicherung:/sicherung
-      #   - BACKUP_DIR=/sicherung
-      # aendern. Ein relativer Pfad loest docker gegen den Ort DIESER Datei
-      # auf, also zeigt ../kriterion-sicherung vor und nach dem Einspielen auf
-      # dasselbe Verzeichnis. Beide Haelften gehoeren zusammen und duerfen
-      # nicht auseinanderlaufen.
-      #
-      # DIE ROT-GRUEN-ANZEIGE HAENGT AN DIESER SPIEGELUNG: was unter ./
-      # eingehaengt wird, gehoert unter /app; was unter ../ eingehaengt wird,
-      # daneben. Der Container sieht den Wirt nicht -- er liest die Lage an
-      # seinem eigenen Pfad ab. Wer den Schnitt anders legt, nimmt der Anzeige
-      # ihre Grundlage.
-      - ./kriterion-sicherung:/app/sicherung
+      # Das Backup. Die Vorgabe liegt im Projektordner und wandert beim Update
+      # mit nach kriterion-old. Sicherer ausserhalb; dann beide Zeilen aendern:
+      #   - ../kriterion-backup:/backup
+      #   - BACKUP_DIR=/backup
+      - ./kriterion-backup:/app/backup
     environment:
       - PORT=3000
-      # DIE UHR DES CONTAINERPROTOKOLLS. Ohne diese Zeile laeuft der Container
-      # auf UTC, und jede Protokollzeile endet auf +00:00. Mit ihr steht die
-      # oertliche Zeit da, und der Versatz sagt, welche gemeint ist.
-      # DIE GESPEICHERTEN ZEITEN AENDERN SICH NICHT: Sicherheitsprotokoll,
-      # Sicherungsnamen und exported_at bleiben UTC.
+      # Zeitzone des Containerprotokolls. Gespeicherte Zeiten bleiben UTC.
       - TZ=Europe/Berlin
-      # Ohne diese Zeile bleibt die Karte "Sicherung" aus und sagt es. Sie
-      # steht hier und nicht in der .env: sie gehoert zur Einhaengung darueber,
-      # und ein Pfad ohne Einhaengung schriebe in eine Schicht, die beim
-      # naechsten Bau verschwindet.
-      - BACKUP_DIR=/app/sicherung
+      # Ohne diese Zeile bleibt die Karte "Backup" aus. Sie gehoert zur
+      # Einhaengung oben.
+      - BACKUP_DIR=/app/backup

@@ -236,7 +236,7 @@ CREATE TABLE IF NOT EXISTS comments (
 CREATE TABLE IF NOT EXISTS comment_images (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   comment_id INTEGER NOT NULL REFERENCES comments(id) ON DELETE CASCADE,
-  filename TEXT NOT NULL DEFAULT 'bild.jpg',
+  filename TEXT NOT NULL DEFAULT 'image.jpg',
   thumb BLOB,
   sort_order INTEGER NOT NULL DEFAULT 0,
   created_at TEXT NOT NULL DEFAULT (datetime('now')),
@@ -245,6 +245,20 @@ CREATE TABLE IF NOT EXISTS comment_images (
 );
 CREATE INDEX IF NOT EXISTS idx_comment_images_comment ON comment_images(comment_id);
 CREATE INDEX IF NOT EXISTS idx_comments_item ON comments(item_id);
+
+-- Videos in Kommentaren, ohne Umkodieren gespeichert. thumb ist die Kachel aus
+-- dem Standbild und zugleich das Poster im Abspieler.
+CREATE TABLE IF NOT EXISTS comment_videos (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  comment_id INTEGER NOT NULL REFERENCES comments(id) ON DELETE CASCADE,
+  filename TEXT NOT NULL DEFAULT 'video.mp4',
+  duration INTEGER,
+  thumb BLOB,
+  sort_order INTEGER NOT NULL DEFAULT 0,
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  data BLOB NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_comment_videos_comment ON comment_videos(comment_id);
 
 -- WEN EIN KOMMENTAR MARKIERT: DIE ZUGANGSNUMMER UND NICHT DER NAME -- ein
 -- freigegebener Name zeigte sonst auf den Falschen. handle sagt nur, WIE die

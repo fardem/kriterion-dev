@@ -1522,7 +1522,7 @@ const REGRESSIONS = [
        ablesen kann. */
     nr: '190', name: 'Alle Teile heissen gleich',
     file: 'server.js',
-    search: "    `attachment; filename=\"${exportName(asPart ? `-teil-${part}-von-${parts}` : '')}\"`);",
+    search: "    `attachment; filename=\"${exportName(asPart ? `-part-${part}-of-${parts}` : '')}\"`);",
     replacement: "    `attachment; filename=\"${exportName('')}\"`);",
     expected: 'Der Export in Teilen'
   },
@@ -1851,7 +1851,7 @@ const REGRESSIONS = [
        zurueck. */
     nr: '233', name: 'Die Formatnummer bleibt auf 15',
     file: 'server.js',
-    search: "const EXCHANGE_FORMAT = 18;",
+    search: "const EXCHANGE_FORMAT = 19;",
     replacement: "const EXCHANGE_FORMAT = 15;",
     expected: 'Die Entscheidung wird mitgeschrieben — 0.14.0'
   },
@@ -3450,10 +3450,8 @@ const REGRESSIONS = [
     nr: '437', name: 'Der Schalter der Bildablage ist nur noch Adminsache',
     file: 'server.js',
     search: "const OWNER_KEYS = ['imageStore',\n" +
-           "                                'backupCleanup', 'backupKeep', 'backupDays',\n" +
-           "                                'languageDefault', 'languageOn', 'potentialMode'];",
-    replacement: "const OWNER_KEYS = ['backupCleanup', 'backupKeep', 'backupDays',\n" +
-           "                                'languageDefault', 'languageOn', 'potentialMode'];",
+           "                                'backupCleanup', 'backupKeep', 'backupDays',\n",
+    replacement: "const OWNER_KEYS = ['backupCleanup', 'backupKeep', 'backupDays',\n",
     expected: 'Die Bildablage: die Rechte'
   },
   {
@@ -3530,7 +3528,7 @@ const REGRESSIONS = [
        Zusage: dort die Entscheidung, hier die Exportdatei. */
     nr: '448', name: 'Die Formatnummer bleibt bei 15, obwohl das Faelligkeitsdatum mitgeht',
     file: 'server.js',
-    search: "const EXCHANGE_FORMAT = 18;",
+    search: "const EXCHANGE_FORMAT = 19;",
     replacement: "const EXCHANGE_FORMAT = 15;",
     expected: 'Die Exportdatei'
   },
@@ -3701,7 +3699,7 @@ const REGRESSIONS = [
     /* DIE BILDABLAGE HAT KEINE EIGENE KARTE MEHR. */
     nr: '469', name: 'Die Bildablage faellt aus der Kartentabelle',
     file: 'public/app.js',
-    search: "  { key: 'bildablage',   section: 'database', visible: () => ADMIN,\n" +
+    search: "  { key: 'imagestore',   section: 'database', visible: () => ADMIN,\n" +
            "    markup: cardImageStore,   wireUp: setUpImageStoreOut },\n",
     replacement: "",
     expected: 'Die Bildablage in der Oberflaeche'
@@ -3710,16 +3708,16 @@ const REGRESSIONS = [
     /* SIE STEHT IM FALSCHEN ABSCHNITT. */
     nr: '470', name: 'Die Karte „Bildablage" steht im Abschnitt „Bestand"',
     file: 'public/app.js',
-    search: "  { key: 'bildablage',   section: 'database',",
-    replacement: "  { schluessel: 'bildablage',   abschnitt: 'inventory',",
+    search: "  { key: 'imagestore',   section: 'database',",
+    replacement: "  { schluessel: 'imagestore',   abschnitt: 'inventory',",
     expected: 'Die Bildablage in der Oberflaeche'
   },
   {
     /* SIE VERSCHWINDET, WENN KEIN BILD DALIEGT. */
     nr: '471', name: 'Die Karte „Bildablage" verschwindet ohne Bilder',
     file: 'public/app.js',
-    search: "  { key: 'bildablage',   section: 'database', visible: () => ADMIN,",
-    replacement: "  { key: 'bildablage',   section: 'database',\n" +
+    search: "  { key: 'imagestore',   section: 'database', visible: () => ADMIN,",
+    replacement: "  { key: 'imagestore',   section: 'database',\n" +
             "    sichtbar: (g) => ADMIN && !!Object.keys((g.stats && g.stats.bildFormate) || {}).length,",
     expected: 'Die Bildablage in der Oberflaeche'
   },
@@ -3728,16 +3726,16 @@ const REGRESSIONS = [
     /* AN DER MEHRZAHLFORM UND NICHT AN DER EINZAHL -- ein Fund vom 6. */
     nr: '472', name: 'Der Dialog sagt nicht mehr, dass es dauern kann',
     file: 'public/languages/de.json',
-    search: "werden konvertiert, die Originale ersetzt (danach etwa {after}). Rückgängig nur mit einer vorher angelegten Sicherung. Dauer: Minuten bis Stunden.\"",
-    replacement: "werden konvertiert, die Originale ersetzt (danach etwa {after}). Rückgängig nur mit einer vorher angelegten Sicherung.\"",
+    search: "werden konvertiert, die Originale ersetzt (danach etwa {after}). Rückgängig nur mit einem vorher angelegten Backup. Dauer: Minuten bis Stunden.\"",
+    replacement: "werden konvertiert, die Originale ersetzt (danach etwa {after}). Rückgängig nur mit einem vorher angelegten Backup.\"",
     expected: 'Die Bildablage in der Oberflaeche'
   },
   {
     /* ER ERFINDET DOCH EINE ZAHL. */
     nr: '473', name: 'Der Dialog erfindet doch eine Minutenangabe',
     file: 'public/languages/de.json',
-    search: "Rückgängig nur mit einer vorher angelegten Sicherung. Dauer: Minuten bis Stunden.\"\n  },",
-    replacement: "Rückgängig nur mit einer vorher angelegten Sicherung. Dauer: etwa 20 Minuten.\"\n  },",
+    search: "Rückgängig nur mit einem vorher angelegten Backup. Dauer: Minuten bis Stunden.\"\n  },",
+    replacement: "Rückgängig nur mit einem vorher angelegten Backup. Dauer: etwa 20 Minuten.\"\n  },",
     expected: 'Die Bildablage in der Oberflaeche'
   },
   {
@@ -4516,7 +4514,7 @@ const REGRESSIONS = [
     /* DIE ZWANZIGSTE KARTE FAELLT WEG. */
     nr: '561', name: 'Die Karte „Alte Sicherungen" faellt aus dem Systembereich',
     file: 'public/app.js',
-    search: "  { key: 'aufraeumen',   section: 'database', visible: () => OWNER,\n" +
+    search: "  { key: 'cleanup',      section: 'database', visible: () => OWNER,\n" +
            "    markup: cardCleanup,   wireUp: setUpCleanupOut },",
     replacement: "",
     expected: 'Der Systembereich nach Rolle'
@@ -4526,8 +4524,8 @@ const REGRESSIONS = [
        Karte "Sicherung" daneben faellt damit weg. */
     nr: '562', name: 'Die Karte „Alte Sicherungen" steht schon beim Admin',
     file: 'public/app.js',
-    search: "  { key: 'aufraeumen',   section: 'database', visible: () => OWNER,",
-    replacement: "  { key: 'aufraeumen',   section: 'database', sichtbar: () => ADMIN,",
+    search: "  { key: 'cleanup',      section: 'database', visible: () => OWNER,",
+    replacement: "  { key: 'cleanup',      section: 'database', sichtbar: () => ADMIN,",
     expected: 'Der Systembereich nach Rolle'
   },
   {
@@ -4984,7 +4982,7 @@ const REGRESSIONS = [
     nr: '628', name: 'Ein Server-Befehl steht wieder im Fliesstext der Karte Mein Konto',
     file: 'public/languages/de.json',
     search: "\"card.forgotPasswordHint\": \"Ein vergessenes Passwort setzt du auf dem Server zurück:\",",
-    replacement: "\"card.forgotPasswordHint\": \"Ein vergessenes Passwort setzt du mit docker compose exec kriterion node usertool.js passwort <name> zurück.\",",
+    replacement: "\"card.forgotPasswordHint\": \"Ein vergessenes Passwort setzt du mit docker compose exec kriterion node usertool.js password <name> zurück.\",",
     expected: 'Server-Befehle nur im Kasten — 0.22.0'
   },
   {
@@ -6320,7 +6318,7 @@ const REGRESSIONS = [
        gedeckelt -- am rechten Ende der Achse ragt er dann wieder hinaus. */
     nr: '803', name: 'Der Hinweis an der Zeitleiste laeuft wieder hinaus',
     file: 'public/style.css',
-    search: '  max-width: min(14rem, 46%); overflow-wrap: anywhere;',
+    search: '  width: max-content; max-width: min(14rem, 46%); overflow-wrap: anywhere;',
     replacement: '  white-space: nowrap;',
     expected: 'Die kleinen Fehler fallen — 0.26.0'
   },
@@ -6371,8 +6369,8 @@ const REGRESSIONS = [
        Adminsache -- die Antwort auf F3 ist damit zurueckgenommen. */
     nr: '809', name: 'Der Potenzialmodus ist wieder gewoehnliche Adminsache',
     file: 'server.js',
-    search: "                                'languageDefault', 'languageOn', 'potentialMode'];",
-    replacement: "                                'languageDefault', 'languageOn'];",
+    search: "                                'languageDefault', 'languageOn', 'potentialMode',\n",
+    replacement: "                                'languageDefault', 'languageOn',\n",
     expected: 'Der Potenzialmodus — 0.26.0'
   },
   {
@@ -7882,8 +7880,8 @@ const REGRESSIONS = [
     /* ZUSAGE 7: ein Satz mehr, bei gleicher Laenge. */
     nr: '984', name: 'Ein englischer Wert traegt einen Satz mehr als sein deutscher',
     file: 'public/languages/en.json',
-    search: "  \"card.wayBackupHint\": \"the emergency. The complete, encrypted copy of the database — with everything the export leaves out.\",",
-    replacement: "  \"card.wayBackupHint\": \"the emergency. The complete, encrypted copy of the database. With everything the export leaves out.\",",
+    search: "  \"card.wayBackupHint\": \"the emergency. The complete, encrypted copy of the database — including users and settings.\",",
+    replacement: "  \"card.wayBackupHint\": \"the emergency. The complete, encrypted copy of the database. Including users and settings.\",",
     expected: 'Englisch sitzt — 0.31.2'
   },
   {
@@ -7973,8 +7971,8 @@ const REGRESSIONS = [
     /* ZUSAGE 7: ein Satz mehr, bei gleicher Laenge. */
     nr: '995', name: 'Ein tuerkischer Wert traegt einen Satz mehr als sein deutscher',
     file: 'public/languages/tr.json',
-    search: "  \"card.wayBackupHint\": \"acil durum. Veritabanının eksiksiz, şifrelenmiş kopyası — dışa aktarmanın atladığı her şeyle birlikte.\",",
-    replacement: "  \"card.wayBackupHint\": \"acil durum. Veritabanının eksiksiz, şifrelenmiş kopyası. Dışa aktarmanın atladığı her şeyle birlikte.\",",
+    search: "  \"card.wayBackupHint\": \"acil durum. Veritabanının eksiksiz, şifrelenmiş kopyası — kullanıcılar ve ayarlar dahil.\",",
+    replacement: "  \"card.wayBackupHint\": \"acil durum. Veritabanının eksiksiz, şifrelenmiş kopyası. Kullanıcılar ve ayarlar dahil.\",",
     expected: 'Tuerkisch sitzt — 0.31.3'
   },
   {
@@ -8848,9 +8846,9 @@ const REGRESSIONS = [
     /* In einer Datei, die auf null steht, steht wieder eine Herkunftsangabe. */
     nr: '1099', name: 'Die .env.example nennt wieder eine alte Version',
     file: '.env.example',
-    search: "# Cookiename, Secure und Strict-Transport-Security haengen NICHT an dieser",
+    search: "# BEHIND_PROXY -- steht ein Reverse Proxy davor?",
     replacement: "# BIS 0.12.4 WAREN ES FUENF.\n"
-      + "# Cookiename, Secure und Strict-Transport-Security haengen NICHT an dieser",
+      + "# BEHIND_PROXY -- steht ein Reverse Proxy davor?",
     expected: 'Keine Versionsnummer als Herkunft'
   },
   {
@@ -8866,8 +8864,8 @@ const REGRESSIONS = [
     /* Die Zahl steht wieder nackt in der Routenzeile. */
     nr: '1101', name: 'Die Fotoroute nennt die 40 wieder ohne Namen',
     file: 'server.js',
-    search: "         capped(upload.array('photos', PHOTO_COUNT),",
-    replacement: "         capped(upload.array('photos', 40),",
+    search: "         cappedLive(bytes => photoUpload(bytes).array('photos', PHOTO_COUNT),",
+    replacement: "         cappedLive(bytes => photoUpload(bytes).array('photos', 40),",
     expected: 'Die Fotogrenzen haben Namen — 0.35.2'
   },
   {
@@ -9095,8 +9093,8 @@ const REGRESSIONS = [
   {
     nr: '1127', name: 'Ein Kommentar nennt wieder ein Papier beim Namen',
     file: 'server.js',
-    search: '/* DIE GRENZEN REISEN AM GESUCH MIT: der Fehler-Handler sieht die Route nicht',
-    replacement: '/* DIE GRENZEN REISEN AM GESUCH MIT -- Projektstand 5.3. Der Fehler-Handler sieht die Route nicht',
+    search: '// Die Grenzen reisen am Gesuch mit: der Fehler-Handler sieht die Route nicht mehr.',
+    replacement: '// Die Grenzen reisen am Gesuch mit -- Projektstand 5.3. Der Fehler-Handler sieht die Route nicht mehr.',
     expected: 'Kein Papierverweis geht mit hinaus'
   },
   {
@@ -9649,12 +9647,12 @@ const REGRESSIONS = [
     /* DIE ALTE FOLGE AN comment_images: data wieder vor thumb. */
     nr: '1199', name: 'Das Schema faellt auf die alte Folge zurueck',
     file: 'db.js',
-    search: "  filename TEXT NOT NULL DEFAULT 'bild.jpg',\n  thumb BLOB,\n"
+    search: "  filename TEXT NOT NULL DEFAULT 'image.jpg',\n  thumb BLOB,\n"
       + "  sort_order INTEGER NOT NULL DEFAULT 0,\n"
       + "  created_at TEXT NOT NULL DEFAULT (datetime('now')),\n"
       + "  -- data am Ende: was dahinter steht, ist nur ueber die Overflow-Kette zu lesen.\n"
       + "  data BLOB NOT NULL\n);",
-    replacement: "  filename TEXT NOT NULL DEFAULT 'bild.jpg',\n  data BLOB NOT NULL,\n"
+    replacement: "  filename TEXT NOT NULL DEFAULT 'image.jpg',\n  data BLOB NOT NULL,\n"
       + "  thumb BLOB,\n  sort_order INTEGER NOT NULL DEFAULT 0,\n"
       + "  created_at TEXT NOT NULL DEFAULT (datetime('now'))\n);",
     expected: 'Die Spaltenfolge: data steht am Ende'
@@ -9695,6 +9693,106 @@ const REGRESSIONS = [
     search: '  `SELECT id, mime_type, focus_x, focus_y, zoom, kind, duration,',
     replacement: '  `SELECT id, data, mime_type, focus_x, focus_y, zoom, kind, duration,',
     expected: 'Der Waechter ueber den Quelltext'
+  },
+  /* ---- Videos in Kommentaren, Download, Hinweisfeld, Leiste, Cookie, Backup, Grenzen ---- */
+  {
+    nr: '1204', name: 'Eine feste Wartezeit kommt in ein Modul zurueck',
+    file: 'test/ui_translator.js',
+    search: "    const spW = spDom.w;\n    /* DIE GESTELLTEN TEXTE",
+    replacement: "    await new Promise(r => setTimeout(r, 60));\n    const spW = spDom.w;\n    /* DIE GESTELLTEN TEXTE",
+    expected: 'Die Wartezeiten des Pruefstands — 0.35.0'
+  },
+  {
+    nr: '1205', name: 'Die Route der Kommentarvideos kennt keinen Range mehr',
+    file: 'server.js',
+    search: '  sendRanged(req, res, v.bytes);\n});',
+    replacement: '  res.send(v.bytes);\n});',
+    expected: 'Kommentarvideos: Auslieferung mit Range'
+  },
+  {
+    nr: '1206', name: 'Der Import kodiert ein Kommentarvideo als Bild',
+    file: 'server.js',
+    search: "                      duration: durationValue(v.duration), thumb: still, data });",
+    replacement: "                      duration: durationValue(v.duration), thumb: still,\n"
+      + "                      data: (await encodeCommentImage(still)).big });",
+    expected: 'Kommentarvideos: Rundlauf mit Format 19'
+  },
+  {
+    nr: '1207', name: 'Der Papierkorb kopiert das Standbild nicht',
+    file: 'server.js',
+    search: "    'INSERT INTO trash_bytes (trash_id, part, data) SELECT ?, ?, thumb FROM comment_videos WHERE id = ?'),",
+    replacement: "    'INSERT INTO trash_bytes (trash_id, part, data) SELECT ?, ?, data FROM comment_videos WHERE id = ?'),",
+    expected: 'Kommentarvideos: der Papierkorb'
+  },
+  {
+    nr: '1208', name: 'Der Link in der Bildansicht verliert download',
+    file: 'public/app.js',
+    search: '        <a class="lb-btn download" download title=',
+    replacement: '        <a class="lb-btn download" title=',
+    expected: 'Download je Foto und Video in der Bildansicht'
+  },
+  {
+    nr: '1209', name: 'Die Verschiebung des Hinweisfelds faellt weg',
+    file: 'public/app.js',
+    search: '  return Math.min(axis - width / 2, Math.max(width / 2, point));',
+    replacement: '  return point;',
+    expected: 'Das Hinweisfeld bleibt in der Zeitleiste'
+  },
+  {
+    nr: '1210', name: 'Die Formatierleiste wird nicht mehr angedockt',
+    file: 'public/app.js',
+    search: "  if (box.nextElementSibling !== field) wrap.insertBefore(box, field);\n  box.classList.add('docked');",
+    replacement: "  return markupMenuShow(field.getBoundingClientRect());",
+    expected: 'Die Formatierleiste steht am Feld'
+  },
+  {
+    nr: '1211', name: 'Das Cookie unter dem anderen Namen bleibt stehen',
+    file: 'server.js',
+    search: '  if (stale) res.append(\'Set-Cookie\', stale);\n',
+    replacement: '',
+    expected: 'Das Cookie unter dem anderen Namen wird geloescht'
+  },
+  {
+    nr: '1212', name: 'Ein Wert in de.json sagt wieder Sicherung',
+    file: 'public/languages/de.json',
+    search: '  "card.lastBackup": "Letztes Backup",',
+    replacement: '  "card.lastBackup": "Letzte Sicherung",',
+    expected: 'Das Wort heisst Backup'
+  },
+  {
+    nr: '1213', name: 'Die .env.example nennt wieder zugang.js',
+    file: '.env.example',
+    search: '#   docker compose exec kriterion node usertool.js password <name>',
+    replacement: '#   docker compose exec kriterion node zugang.js password <name>',
+    expected: 'Die Beispieldateien'
+  },
+  {
+    nr: '1214', name: 'Die Compose-Vorlage haengt wieder kriterion-sicherung ein',
+    file: 'docker-compose.example.yml',
+    search: '      - ./kriterion-backup:/app/backup\n',
+    replacement: '      - ./kriterion-sicherung:/app/backup\n',
+    expected: 'Englische Bezeichnungen in neuen Installationen'
+  },
+  {
+    nr: '1215', name: 'Der Server nimmt eine Grenze ueber der Obergrenze an',
+    file: 'server.js',
+    search: '          if (!Number.isInteger(n) || n < g.min || n > g.max)\n            refuse(\'server.uploadLimitRange\'',
+    replacement: '          if (!Number.isInteger(n) || n < g.min)\n            refuse(\'server.uploadLimitRange\'',
+    expected: 'Die Grenzen beim Hochladen'
+  },
+  {
+    nr: '1216', name: 'Die Pruefung je Eintrag beim Hochladen faellt weg',
+    file: 'server.js',
+    search: '  const z = qPartSizeOf().get(itemId);\n  if (!z) return false;',
+    replacement: '  const z = qPartSizeOf().get(itemId);\n  return false;',
+    expected: 'Die Grenze je Eintrag'
+  },
+  {
+    nr: '1217', name: 'Eine Antwort 413 ohne JSON zeigt wieder den Statuscode',
+    file: 'public/app.js',
+    search: "    else if (res.status === 413) m = t('error.proxyTooLarge');\n",
+    replacement: '',
+    expected: 'Die Antwort 413 vom Reverse Proxy'
   },
 ];
 

@@ -87,7 +87,7 @@ function loadKey(dataDir) {
       throw new Error(`${keyPath} enthaelt keine 64 Hex-Zeichen, sondern ` +
         `${hex.length} Zeichen. Die Datei ist leer, abgeschnitten oder ` +
         'beschaedigt. Wird sie jetzt ersetzt, ist die vorhandene Datenbank ' +
-        'nicht mehr zu oeffnen -- erst die Sicherung der Datei suchen.');
+        'nicht mehr zu oeffnen -- erst ein Backup der Datei suchen.');
     warnKeyBesideData();
     return { hex: hex.toLowerCase(), fromEnv: false };
   }
@@ -138,7 +138,7 @@ function writeKeyFile(dataDir, hex) {
 }
 
 /* Die aktiven ENCRYPTION_KEY-Zeilen einer .env, mit Nummer und Wert. Eine
-   auskommentierte Zeile zaehlt nicht: in der .env.example stehen sechs. */
+   auskommentierte Zeile zaehlt nicht. */
 function findEnvLine(lines) {
   const hit = [];
   lines.forEach((z, i) => {
@@ -176,11 +176,11 @@ function writeEnvLine(file, oldHex, newHex, who, stamp) {
   if (old.toLowerCase() !== String(oldHex).toLowerCase())
     throw new Error(`Die Zeile ENCRYPTION_KEY in ${file} traegt einen anderen Wert als den, ` +
       'mit dem diese Datenbank offen ist. Das ist nicht die .env dieser Instanz.');
-  // Der alte Wert bleibt als Kommentar stehen: er oeffnet jede Sicherung von
+  // Der alte Wert bleibt als Kommentar stehen: er oeffnet jedes Backup von
   // vor dem Wechsel. Angefasst wird nur diese eine Zeile.
   lines.splice(hit[0].nr, 1,
     `# Abgeloest am ${stamp} durch ${cleanNote(who)} (keytool.js).`,
-    '# ER OEFFNET ALLE SICHERUNGEN VON VOR DIESEM ZEITPUNKT -- nicht loeschen,',
+    '# ER OEFFNET ALLE BACKUPS VON VOR DIESEM ZEITPUNKT -- nicht loeschen,',
     '# bevor er im Passwortspeicher steht.',
     `#ENCRYPTION_KEY=${old}`,
     `ENCRYPTION_KEY=${newHex}`);

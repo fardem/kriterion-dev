@@ -64,12 +64,18 @@ async function confirmImDom(d, password = 'chefinnen-langes-wort', cancel = fals
   const button = field.closest('.modal')?.querySelector(cancel ? '[data-no]' : '[data-yes]');
   if (!button) return false;
   field.value = password;
-  /* SEIT 0.10.0 KANN DASSELBE WINDOW EIN ZWEITES FELD TRAGEN -- aber nur bei
-     Zugaengen mit zweitem Faktor. */
+  // Das Codefeld steht nur bei Zugaengen mit zweitem Faktor da.
   const codeField = d.w.document.getElementById('confirm-code');
   if (codeField && code !== undefined) codeField.value = code;
+  const before = d.sent.length;
   button.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
-  await new Promise(r => setTimeout(r, 60));
+  if (cancel) {
+    // Wartet, ob nach dem Abbruch eine Anfrage ausbleibt.
+    await new Promise(r => setTimeout(r, 20));
+    return true;
+  }
+  await until(d.w, (x) => x.document.getElementById('confirm-pass') !== field &&
+    d.sent.length > before && openRequests(x) === 0, 3000, 'die Antwort auf die Bestaetigung');
   return true;
 }
 
@@ -126,6 +132,7 @@ function buildDom(JSDOM, { withoutLanguage = false, settings = { filters: null }
      die Karte muss auseinanderhalten koennen, welcher der beiden laeuft. */
   statsGeometry = null,
   convertImages = true,
+  uploadLimits = null,
   twoFactorCodes = null, loginFactor = false, searchError = false, searchThrottles = null,
   categories = [{ id: 21, name: 'Werkzeug', usage_count: 2, language: 'de' },
                 { id: 22, name: 'Material', usage_count: 0, language: 'de' }],
@@ -287,8 +294,14 @@ function buildDom(JSDOM, { withoutLanguage = false, settings = { filters: null }
   ];
   /* Die Sicherung der Prueflage. Vorgabe: eingerichtet, mit einer Sicherung
      von vor drei Tagen. */
+  // Die Grenzen beim Hochladen in MB, mit der Spanne des Servers.
+  const uploadLimitsMock = { photo: 30, commentImage: 20, video: 20, commentVideo: 20, attachment: 50,
+    ...(uploadLimits || {}) };
+  const UPLOAD_RANGES_MOCK = { photo: { min: 1, max: 50, fallback: 30 },
+    commentImage: { min: 1, max: 50, fallback: 20 }, video: { min: 1, max: 100, fallback: 20 },
+    commentVideo: { min: 1, max: 100, fallback: 20 }, attachment: { min: 1, max: 100, fallback: 50 } };
   const backup = backupStatus || {
-    configured: true, root: '/sicherung', place: 'taeglich', filePath: '/sicherung/taeglich',
+    configured: true, root: '/backup', place: 'taeglich', filePath: '/backup/taeglich',
     // Die Vorgabe ist die EMPFOHLENE Lage -- ausserhalb. Die Gegenlage steht
 // als eigener Aufbau in der Gruppe darunter.
     inWorkDir: false,
@@ -305,7 +318,7 @@ function buildDom(JSDOM, { withoutLanguage = false, settings = { filters: null }
       limits: { keep: { fallback: 3, min: 1, max: 20 },
                  days: { fallback: 30, min: 7, max: 365 } },
       reachable: true, matched: [], bytes: 0,
-      reason: 'Alle 2 Kopien sind unter den jüngsten 3.',
+      reason: 'Alle 2 Backups sind unter den jüngsten 3.',
       /* DIE VOLLSTAENDIGE LISTE -- in der Vorgabelage die beiden Kopien, die
          `zahl: 2` daneben behauptet. */
       files: [
@@ -555,7 +568,7 @@ function buildDom(JSDOM, { withoutLanguage = false, settings = { filters: null }
     `<p class="version-row" id="version"></p></body></html>`,
     { runScripts: 'dangerously', url: `${BASE}/${hash}`, virtualConsole: silenceConsole });
   const w = dom.window;
-  w.fetch = async (url, opt = {}) => {
+  const answer = async (url, opt = {}) => {
     /* DER KOPF WIRD MITGESCHRIEBEN -- 0.24.5. */
     const askedLanguage = Object.entries((opt && opt.headers) || {})
       .find(([h]) => h.toLowerCase() === 'accept-language');
@@ -837,6 +850,7 @@ function buildDom(JSDOM, { withoutLanguage = false, settings = { filters: null }
     };
     if (url === '/api/settings' && (opt.method || 'GET') === 'GET')
       return give({ name: 'chefin', trashDays: 30, convertImages,
+        uploadLimits: { ...uploadLimitsMock }, uploadLimitRanges: UPLOAD_RANGES_MOCK,
         twoFactor: zfStatusMock.an === true,
         ...(settings.isAdmin === false ? {} : {
           categoryNames: namesTableMock(categories, categoryNames),
@@ -848,6 +862,18 @@ function buildDom(JSDOM, { withoutLanguage = false, settings = { filters: null }
     if (url === '/api/settings' && opt.method === 'PUT') {
       const sentBody = opt.body ? JSON.parse(opt.body) : {};
       if (sentBody.convertImages !== undefined) convertImages = !!sentBody.convertImages;
+      // Die Grenzen beim Hochladen: dieselbe Spanne und dieselbe Absage wie am Server.
+      if (sentBody.uploadLimits) {
+        if (settings.isOwner === false)
+          return give({ error: 'Das kann nur der Eigentümer dieser Installation.' }, 403);
+        for (const [k, v] of Object.entries(sentBody.uploadLimits)) {
+          const g = UPLOAD_RANGES_MOCK[k];
+          if (!g || !Number.isInteger(v) || v < g.min || v > g.max)
+            return give({ error: `Die Grenze muss eine ganze Zahl von ${g?.min} bis ${g?.max} MB sein.` }, 400);
+          uploadLimitsMock[k] = v;
+        }
+        return give({ uploadLimits: { ...uploadLimitsMock } });
+      }
       /* EIN SPRACHWECHSEL ANTWORTET MIT DEM SATZ DER NEUEN SPRACHE -- 0.24.4,
          und der echte Server tut genau das (nachgemessen: `localeOf(req)`
          liest den persoenlichen Schluessel, der in derselben Anfrage
@@ -890,7 +916,8 @@ function buildDom(JSDOM, { withoutLanguage = false, settings = { filters: null }
       return give({ convertImages });
     }
     if (url === '/api/settings') return give({ name: 'chefin', trashDays: 30,
-      convertImages, twoFactor: zfStatusMock.an === true, ...settings });
+      convertImages, twoFactor: zfStatusMock.an === true,
+      uploadLimits: { ...uploadLimitsMock }, uploadLimitRanges: UPLOAD_RANGES_MOCK, ...settings });
     /* DER PAPIERKORB IM MOCK, und er muss BEIDE Zustaende koennen: gefuellt
        und leer. */
     if (url === '/api/trash') {
@@ -933,7 +960,7 @@ function buildDom(JSDOM, { withoutLanguage = false, settings = { filters: null }
           affected: names.has(z.file), outdated: oldNames.has(z.file) })),
         matched, bytes: matched.reduce((n, z) => n + z.bytes, 0),
         reason: matched.length ? '' : (cleanupCopies.length <= keep
-          ? `Alle ${cleanupCopies.length} Kopien sind unter den jüngsten ${keep}.`
+          ? `Alle ${cleanupCopies.length} Backups sind unter den jüngsten ${keep}.`
           : `Die älteste ist ${cleanupCopies[cleanupCopies.length - 1].daysAgo} Tage alt.`) } });
     }
     /* Und der Loeschweg. */
@@ -955,7 +982,7 @@ function buildDom(JSDOM, { withoutLanguage = false, settings = { filters: null }
       if (k.kind === 'outdated') { backup.outdated = 0; a.oldCount = 0; a.oldBytes = 0;
                                   a.oldFiles = []; }
       backup.cleanup = { ...a, matched: [], bytes: 0,
-                               reason: 'Alle Kopien sind unter den jüngsten ' + a.keep + '.' };
+                               reason: 'Alle Backups sind unter den jüngsten ' + a.keep + '.' };
       return give({ ok: true, kind: k.kind, removed: outdatedFiles.length, notDeleted: 0, bytes,
                    reachable: true, number: backup.number, last: backup.last,
                    changedAt: backup.changedAt ?? null,
@@ -969,9 +996,9 @@ function buildDom(JSDOM, { withoutLanguage = false, settings = { filters: null }
     if (url === '/api/backup/dir' && opt.method === 'PUT') {
       const place = String(JSON.parse(opt.body || '{}').place || '');
       if (place.includes('..') || place.startsWith('/'))
-        return give({ error: 'Der Ort ist ein Unterverzeichnis des eingerichteten Sicherungsorts.' }, 400);
+        return give({ error: 'Der Unterordner liegt im eingerichteten Backup-Ordner.' }, 400);
       backup.place = place;
-      backup.filePath = place ? `/sicherung/${place}` : '/sicherung';
+      backup.filePath = place ? `/backup/${place}` : '/backup';
       backup.error = null;
       // gewechseltAm und veraltet gehen MIT -- der echte Server breitet
       // letzteSicherung() auch hier aus, und ein Mock, der sie weglaesst,
@@ -1299,35 +1326,38 @@ function buildDom(JSDOM, { withoutLanguage = false, settings = { filters: null }
     }
     return give({});
   };
+  /* Zaehlt die offenen Anfragen fuer openRequests(). Abgezogen wird erst nach
+     einem Durchlauf des Event Loop: dann hat die Seite die Antwort verarbeitet. */
+  w.fetch = (url, opt) => {
+    PENDING.set(w, openRequests(w) + 1);
+    return answer(url, opt).finally(() =>
+      setTimeout(() => PENDING.set(w, openRequests(w) - 1), 0));
+  };
   /* DIE UEBERSETZUNG KOMMT AUS DEM GRUNDDOKUMENT -- 0.30.0, F4. Gelaufen wird
      sie im Zusammenhang DIESES Fensters; geteilt ist allein die Uebersetzung. */
   try { BASE_SCRIPT.runInContext(dom.getInternalVMContext()); }
   catch (e) { silenceConsole.emit('jsdomError', e instanceof Error ? e : new Error(String(e))); }
   return { w, sent, criteria, example, matchResponse, categoryNames, criterionNames };
 }
-/* ---- WARTEN, BIS ETWAS DASTEHT -- 0.35.0, BA 7 ----
-   BEFUND test/dom.js:1316 DER MESSUNG ZUR 0.35.0: in den Modulen unter test/
-   stehen 626 feste Wartezeiten der Form `await new Promise(r => setTimeout(r,
-   N))`, zusammen 59.635 ms. Die Module laufen nacheinander (spawnSync in
-   testbench.js), also liegt jede dieser Millisekunden auf der Laufzeit.
-   Eine feste Wartezeit ist zweimal falsch: sie wartet zu lange, wenn die
-   Bedingung frueher eintritt, und sie laeuft stillschweigend weiter, wenn sie
-   gar nicht eintritt -- die Pruefung danach faellt dann mit einer Begruendung,
-   die nicht die Ursache nennt.
-   `bis` fragt in Fuenf-Millisekunden-Schritten und WIRFT an der Grenze. Ein
-   Modul, das wirft, meldet seinen Abbruch und faerbt den Lauf rot. */
+/* ---- WARTEN, BIS ETWAS DASTEHT ----
+   Fragt die Bedingung alle `stepMs` und wirft an der Grenze. Die Bedingung
+   darf ein Promise liefern; zurueck kommt ihr erster wahrer Wert. */
 const UNTIL_STEP = 5;
-async function until(w, condition, limitMs = 3000, what = 'die Bedingung') {
+async function until(w, condition, limitMs = 3000, what = 'die Bedingung', stepMs = UNTIL_STEP) {
   const end = Date.now() + limitMs;
   for (;;) {
     let there = false;
-    try { there = !!condition(w); } catch { there = false; }
-    if (there) return;
+    try { there = await condition(w); } catch { there = false; }
+    if (there) return there;
     if (Date.now() >= end)
       throw new Error(`until(): ${what} ist in ${limitMs} ms nicht eingetreten`);
-    await new Promise(r => setTimeout(r, UNTIL_STEP));
+    await new Promise(r => setTimeout(r, stepMs));
   }
 }
+
+// Die Anfragen eines Fensters an den gestellten Server, die noch keine Antwort haben.
+const PENDING = new WeakMap();
+const openRequests = (w) => PENDING.get(w) || 0;
 
 /* DIE TAGZEILE AUFKLAPPEN -- 0.24.0 (Bauabschnitt 0.2). */
 async function openTagRow(w) {
@@ -1338,31 +1368,20 @@ async function openTagRow(w) {
 }
 
 
-/* WARTEN, BIS DIE SUCHE DURCH IST. */
-const SEARCH_WAIT_DEBOUNCE = 300;
+/* WARTEN, BIS DIE SUCHE DURCH IST: der Debounce ist abgelaufen, und keine
+   Suchanfrage ist mehr unterwegs. */
 async function waitSearch(w, limitMs = 3000) {
-  await new Promise(r => setTimeout(r, SEARCH_WAIT_DEBOUNCE));
-  const to = Date.now() + limitMs;
-  while (Date.now() < to) {
-    const z = w.document.getElementById('count');
-    if (!z || !/sucht/.test(z.textContent)) break;
-    await new Promise(r => setTimeout(r, 20));
-  }
-  // Eine Runde durch den Event Loop, damit das Neuzeichnen durch ist.
-  await new Promise(r => setTimeout(r, 20));
+  await until(w, (x) => x.eval('searchClock') === null && !x.eval('state.searchRunning') &&
+    openRequests(x) === 0, limitMs, 'das Ende der Suche');
 }
 
-/* ---- Einen bestimmten Abschnitt des Systembereichs zeichnen -- 0.16.0 ----
-   SEIT 0.16.0 ZEIGT DER SYSTEMBEREICH IMMER GENAU EINEN ABSCHNITT. */
+/* ---- Einen Abschnitt des Systembereichs zeichnen ----
+   Eine Karte steht frueher da als ihr Inhalt: gewartet wird, bis die
+   Anfragen, mit denen die Karten nachladen, beantwortet sind. */
 async function sysSection(w, key) {
   w.history.replaceState(null, '', `#/system/${key}`);
   await w.renderSystem();
-  /* HIER BLEIBT DIE FESTE WARTEZEIT -- 0.35.0, BA 7, und das ist gemessen:
-     `.sys-card` steht frueher da als ihr Inhalt. Eine Bedingung auf die Karte
-     kehrte zu frueh zurueck, und zwoelf Pruefungen ueber die Karte „Zugaenge"
-     fanden eine leere Liste. Die richtige Bedingung ist je Abschnitt eine
-     andere und gehoert an die Aufrufstelle. */
-  await new Promise(r => setTimeout(r, 20));
+  await until(w, (x) => openRequests(x) === 0, 3000, `die Karten des Abschnitts ${key}`);
 }
 
 /* ---- DER NAME UND DAS MERKMAL EINER SPRACHPILLE -- 0.25.0 ---------------
@@ -1479,7 +1498,7 @@ const SCREEN_BAN = [
   [/\bgezogen\b/, 'gezogen (für erstellt)'], [/\bStück\b/, 'Stück (für Dateien)'],
   [/\bBoden\b|\bSchere\b|\bDeckel\b|\bPille\b|\bKiste\b|\bKlemme\b|\bWächter\b|Stolperstein|Rückbau|Bestandslauf|Migrationsblock|Austauschformat/, 'ein Bild des Projekts'],
   [/Fingerprint(?!\))/, 'Fingerprint ohne Erklärung'],
-  [/Systembereich|Selbstanmeldung|Suchanbieter|Startanbieter|Bildablage|\bStimmen?\b|Gesamtschnitt|Sicherungsort|Zielort|Verwaltungsbereich|Rücksetzlink|Wunsch-Benutzername|Zugänge\b|Bewertungskriterien|Freigeben|Freigegeben|unwiderruflich|stillgelegt|Alles anzeigen|Kopien?\b(?!\s+der\s+Datenbank)/, 'ein Wort, das das Wörterbuch ersetzt hat'],
+  [/Systembereich|Selbstanmeldung|Suchanbieter|Startanbieter|Bildablage|\bStimmen?\b|Gesamtschnitt|Sicherungsort|Zielort|Verwaltungsbereich|Rücksetzlink|Wunsch-Benutzername|Zugänge\b|Bewertungskriterien|Freigeben|Freigegeben|unwiderruflich|stillgelegt|Alles anzeigen|Kopien?\b|Sicherung(?!\s+der\s+Datenbank)|\bsichern\b/, 'ein Wort, das das Wörterbuch ersetzt hat'],
   [/\bZugangs?\b(?! anfragen)(?!\?)/, 'Zugang (für Benutzer/Konto)'],
   [/\b0\.\d+\.\d+\b/, 'eine Versionsnummer'],
 ];
@@ -1502,7 +1521,7 @@ async function sysPass(d) {
   for (const address of tab) {
     d.w.history.replaceState(null, '', address);
     await d.w.renderSystem();
-    await new Promise(r => setTimeout(r, 30));
+    await until(d.w, (x) => openRequests(x) === 0, 3000, `die Karten unter ${address}`);
     cards.push(...[...d.w.document.querySelectorAll('.sys-grid > .sys-card h3')]
       .map(h => h.textContent.trim()));
     pieces.push(d.w.document.getElementById('app')?.textContent || '');
@@ -1539,7 +1558,7 @@ async function sysPass(d) {
 return {
   DOM_PASSWORD, DOM_LOG, DOM_PROT_GROUPS, placeConfirm, confirmImDom,
   DOM_PROVIDER, MAIL_HINT_KEYS, DE_TEXTS, buildDom, openTagRow,
-  SEARCH_WAIT_DEBOUNCE, waitSearch, until, UNTIL_STEP, sysSection, pillName, pillMark,
+  waitSearch, until, UNTIL_STEP, openRequests, sysSection, pillName, pillMark,
   screenTextsFrom, serverTextsFrom, SCREEN_BAN, isAddress,
   screenViolations, sysPass, css123, regel123, withoutMedia
 };

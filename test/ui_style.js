@@ -4,8 +4,16 @@
 const H = require('./frame.js');
 const D = require('./dom.js');
 const {
-  buildDom, waitSearch, sysSection, css123, regel123, withoutMedia
+  buildDom, waitSearch, sysSection, css123, regel123, withoutMedia, until, openRequests
 } = D;
+// Die Uebersicht steht an ihrer Zaehlzeile, und jede Antwort ist verarbeitet.
+const listDrawn = (x) => !!x.document.getElementById('count')?.textContent &&
+  openRequests(x) === 0;
+// Die Detailansicht steht an ihrem Ablehnungsschalter, und jede Antwort ist verarbeitet.
+const detailDrawn = (x) => !!x.document.getElementById('sw-rej-t')?.textContent &&
+  openRequests(x) === 0;
+// Das Neuzeichnen hat das Element ersetzt; ein fehlendes Element gilt als erledigt.
+const replaced = (el) => (x) => !el?.isConnected && openRequests(x) === 0;
 
 async function run() {
   const {
@@ -42,7 +50,7 @@ async function run() {
      setzen. */
   const fromBuild = async (filters) => {
     const d = buildDom(JSDOM, { overviewItems: fromInventory, settings: { filters } });
-    await new Promise(r => setTimeout(r, 80));
+    await until(d.w, listDrawn, 2000, 'die Uebersicht');
     return d;
   };
 
@@ -109,7 +117,7 @@ async function run() {
   const fromGruppe2 = fromAll.w.document.getElementById('f-rejected');
   const fromPill = [...fromGruppe2.querySelectorAll('.pill')].find(b => b.textContent === 'Abgelehnt');
   fromPill.dispatchEvent(new fromAll.w.MouseEvent('click', { bubbles: true }));
-  await new Promise(r => setTimeout(r, 60));
+  await until(fromAll.w, replaced(fromPill), 2000, 'die gefilterte Uebersicht');
   check('Ein Druck auf „Abgelehnt" verkleinert die Liste sofort',
     equal(fromTitle(fromAll), ['Getestet und abgelehnt', 'Ungetestet und abgelehnt']),
     JSON.stringify(fromTitle(fromAll)));
@@ -170,7 +178,7 @@ async function run() {
     const d = buildDom(JSDOM, { hash: '#/item/1', entryMine: owner,
       rejection: { at: '2026-03-14 09:12:00', reason, author },
       settings: { filters: null, userCount: 3, isAdmin: admin } });
-    await new Promise(r => setTimeout(r, 80));
+    await until(d.w, detailDrawn, 2000, 'die Detailansicht');
     return d;
   };
   const ruhMark = (d) => d.w.document.getElementById('rej-badge');
@@ -180,6 +188,8 @@ async function run() {
   const ruhPath = (d) => d.w.document.querySelector('#rej-badge .mact.rm');
   const ruhRow = (d) => d.w.document.getElementById('rej-reason-row');
   const ruhField = (d) => d.w.document.getElementById('rej-reason');
+  const ruhSaved = (d, x) => openRequests(x) === 0 &&
+    d.sent.some(g => g.method === 'PUT' && g.url === '/api/items/1');
 
   // --- Der Ablehnende: Aussage im Ruhezustand, Stift und Papierkorb ---
   {
@@ -201,7 +211,7 @@ async function run() {
 
     // --- Ein Klick auf den TEXT oeffnet das Feld ---
     ruhWhy(d).dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
-    await new Promise(r => setTimeout(r, 40));
+    await until(d.w, () => ruhRow(d)?.hidden === false, 2000, 'das offene Begruendungsfeld');
     check('Ein Klick auf den Text oeffnet das Feld',
       ruhRow(d)?.hidden === false && ruhField(d)?.value === 'Zu ruhig',
       JSON.stringify([ruhRow(d)?.hidden, ruhField(d)?.value]));
@@ -215,12 +225,13 @@ async function run() {
     const ruhVorEsc = d.sent.length;
     ruhField(d).value = 'Doch nicht so';
     ruhField(d).dispatchEvent(new d.w.KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
-    await new Promise(r => setTimeout(r, 40));
+    await until(d.w, () => ruhRow(d)?.hidden === true, 2000, 'das geschlossene Begruendungsfeld');
     /* UND JETZT DAS, WAS EIN ECHTER BROWSER VON SELBST TUT: das Schliessen
        nimmt dem Feld den Zeiger, und das loest `blur` aus -- also den
        Speicherweg. */
     ruhField(d).dispatchEvent(new d.w.FocusEvent('blur'));
-    await new Promise(r => setTimeout(r, 60));
+    // Wartet, ob nach dem Blur eine Anfrage ausbleibt.
+    await new Promise(r => setTimeout(r, 20));
     check('Escape schliesst das Feld, ohne etwas zu schicken',
       ruhRow(d)?.hidden === true && d.sent.length === ruhVorEsc,
       JSON.stringify(d.sent.slice(ruhVorEsc).map(g => g.body)));
@@ -233,12 +244,12 @@ async function run() {
 
     // --- Ueber das ✎ ebenso, und Enter speichert und schliesst ---
     ruhPen(d).dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
-    await new Promise(r => setTimeout(r, 40));
+    await until(d.w, () => ruhRow(d)?.hidden === false, 2000, 'das offene Begruendungsfeld');
     check('Das Stiftsymbol oeffnet dasselbe Feld',
       ruhRow(d)?.hidden === false, JSON.stringify(ruhRow(d)?.hidden));
     ruhField(d).value = 'Zu laut';
     ruhField(d).dispatchEvent(new d.w.KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
-    await new Promise(r => setTimeout(r, 60));
+    await until(d.w, (x) => ruhSaved(d, x), 2000, 'der gespeicherte Grund');
     const ruhSent = d.sent.filter(g => g.method === 'PUT' && g.url === '/api/items/1').pop();
     check('Enter schickt den neuen Grund und schliesst das Feld',
       equal(Object.keys(ruhSent?.body || {}), ['rejectedReason']) &&
@@ -255,7 +266,8 @@ async function run() {
   {
     const d = await ruhBuild(ruhIch, 'Zu ruhig');
     ruhPath(d).dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
-    await new Promise(r => setTimeout(r, 40));
+    await until(d.w, (x) => x.document.querySelector('.backdrop .modal') || ruhSaved(d, x),
+      2000, 'die Rueckfrage des Papierkorbs');
     /* GEFRAGT WIRD VORHER: die Angabe ist danach nirgends wiederherzustellen.
        Solange das Fenster offen steht, ist nichts hinausgegangen. */
     const ruhQuestion = d.w.document.querySelector('.backdrop .modal');
@@ -271,7 +283,7 @@ async function run() {
        REISST DEN GANZEN LAUF AB. */
     ruhQuestion?.querySelector('[data-yes]')
       ?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
-    await new Promise(r => setTimeout(r, 60));
+    await until(d.w, (x) => ruhSaved(d, x), 2000, 'der entfernte Grund');
     const ruhPathCore = d.sent.filter(g => g.method === 'PUT' && g.url === '/api/items/1').pop();
     check('Nach dem Ja geht ein leerer Grund hinaus, und sonst nichts',
       equal(Object.keys(ruhPathCore?.body || {}), ['rejectedReason']) &&
@@ -284,7 +296,8 @@ async function run() {
        weiterhin wahr, nur der Grund fehlt. */
     ruhField(d).dispatchEvent(new d.w.KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
     ruhField(d).dispatchEvent(new d.w.FocusEvent('blur'));
-    await new Promise(r => setTimeout(r, 60));
+    // Wartet, ob Escape und Blur die Aussage unveraendert lassen.
+    await new Promise(r => setTimeout(r, 20));
     check('Datum und Verfasser stehen weiter da',
       ruhSentence(d)?.textContent === 'Abgelehnt am 14.03.2026, 09:12 von chefin',
       JSON.stringify(ruhSentence(d)?.textContent));
@@ -304,12 +317,13 @@ async function run() {
   {
     const d = await ruhBuild(ruhIch, 'Zu ruhig');
     ruhPath(d).dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
-    await new Promise(r => setTimeout(r, 40));
+    await until(d.w, (x) => x.document.querySelector('.backdrop .modal') || ruhSaved(d, x),
+      2000, 'die Rueckfrage des Papierkorbs');
     // Dieselbe Absicherung wie beim Ja daneben: ohne Rueckfrage gibt es kein
 // Fenster, und ein Griff ins Leere risse den Lauf ab.
     d.w.document.querySelector('.backdrop [data-no]')
       ?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
-    await new Promise(r => setTimeout(r, 40));
+    await until(d.w, (x) => !x.document.querySelector('.backdrop'), 2000, 'die geschlossene Rueckfrage');
     check('Ein Nein schickt nichts und laesst den Grund stehen',
       !d.sent.some(g => g.method === 'PUT' && g.url === '/api/items/1') &&
       ruhWhy(d)?.textContent === 'Zu ruhig', JSON.stringify(ruhWhy(d)?.textContent));
@@ -325,7 +339,8 @@ async function run() {
     check('Und der Text ist bei ihm nicht anklickbar',
       !ruhWhy(d)?.classList.contains('clickable'), ruhWhy(d)?.className);
     ruhWhy(d).dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
-    await new Promise(r => setTimeout(r, 40));
+    // Wartet, ob das Feld nach dem Klick geschlossen bleibt.
+    await new Promise(r => setTimeout(r, 20));
     check('Ein Klick auf den Text oeffnet dort gar nichts',
       ruhRow(d)?.hidden === true, JSON.stringify(ruhRow(d)?.hidden));
     check('Die Aussage selbst steht ihm trotzdem vollstaendig da',
@@ -384,12 +399,14 @@ async function run() {
   {
     const d = buildDom(JSDOM, { hash: '#/item/1',
       settings: { filters: null, userCount: 3, isAdmin: true } });
-    await new Promise(r => setTimeout(r, 80));
+    await until(d.w, detailDrawn, 2000, 'die Detailansicht');
     check('Ohne Ablehnung steht das Feld zu Beginn nicht offen',
       ruhRow(d)?.hidden === true, JSON.stringify(ruhRow(d)?.hidden));
     d.w.document.getElementById('sw-rej')
       .dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
-    await new Promise(r => setTimeout(r, 60));
+    await until(d.w, (x) => openRequests(x) === 0 &&
+      d.sent.some(g => g.method === 'PUT' && g.body?.rejected === true),
+      2000, 'die eingeschaltete Ablehnung');
     check('Beim Einschalten steht es sofort offen',
       ruhRow(d)?.hidden === false, JSON.stringify(ruhRow(d)?.hidden));
     check('Und der Zeiger steht darin',
@@ -397,7 +414,9 @@ async function run() {
     // Und beim Ausschalten schliesst es sich wieder.
     d.w.document.getElementById('sw-rej')
       .dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
-    await new Promise(r => setTimeout(r, 60));
+    await until(d.w, (x) => openRequests(x) === 0 &&
+      d.sent.some(g => g.method === 'PUT' && g.body?.rejected === false),
+      2000, 'die ausgeschaltete Ablehnung');
     check('Beim Ausschalten schliesst es sich wieder',
       ruhRow(d)?.hidden === true && ruhMark(d)?.hidden === true,
       JSON.stringify([ruhRow(d)?.hidden, ruhMark(d)?.hidden]));
@@ -465,7 +484,7 @@ async function run() {
   {
     const d = buildDom(JSDOM, {
       settings: { filters: null, isAdmin: true, isOwner: true } });
-    await new Promise(r => setTimeout(r, 60));
+    await until(d.w, listDrawn, 2000, 'die Uebersicht');
     await sysSection(d.w, 'database');
     const cards = [...d.w.document.querySelectorAll('.sys-grid > .sys-card')];
     const ex = cards.find(k => k.querySelector('h3')?.textContent.trim() === 'Export und Import');
@@ -524,7 +543,7 @@ async function run() {
 
   {
     const d = buildDom(JSDOM, { hash: '#/item/1' });
-    await new Promise(r => setTimeout(r, 90));
+    await until(d.w, detailDrawn, 2000, 'die Detailansicht');
     const doc = d.w.document;
     const head = () => doc.getElementById('rhead');
     check('Die Kopfzahl steht ueberhaupt da', !!head(), 'kein #rhead');
@@ -537,7 +556,7 @@ async function run() {
     // Kein Kasten, bevor jemand klickt.
     check('Vor dem Klick steht kein Kasten da', !doc.getElementById('calc-modal'));
     button()?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
-    await new Promise(r => setTimeout(r, 40));
+    await until(d.w, (x) => x.document.getElementById('calc-modal'), 2000, 'der Kasten der Rechnung');
     const box = doc.getElementById('calc-modal');
     check('Der Klick oeffnet den Kasten', !!box, doc.body.innerHTML.slice(0, 160));
     check('Und die Ueberschrift nennt die Zahl dieses Eintrags',
@@ -681,7 +700,7 @@ async function run() {
 
     // Escape schliesst ihn, wie jeden Dialog dieser Instanz.
     doc.dispatchEvent(new d.w.KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
-    await new Promise(r => setTimeout(r, 20));
+    await until(d.w, (x) => !x.document.getElementById('calc-modal'), 2000, 'der geschlossene Kasten');
     check('Escape schliesst den Kasten wieder', !doc.getElementById('calc-modal'));
     d.w.close();
   }
@@ -691,10 +710,10 @@ async function run() {
      dasselbe hinzuschreiben ist keine Auskunft. */
   {
     const d = buildDom(JSDOM, { hash: '#/item/1', criteriaWeights: [1, 1, 1] });
-    await new Promise(r => setTimeout(r, 90));
+    await until(d.w, detailDrawn, 2000, 'die Detailansicht');
     const doc = d.w.document;
     doc.querySelector('#rhead .weight-open')?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
-    await new Promise(r => setTimeout(r, 40));
+    await until(d.w, (x) => x.document.getElementById('calc-modal'), 2000, 'der Kasten der Rechnung');
     const box = doc.getElementById('calc-modal');
     check('Auch ohne Gewichtung geht der Kasten auf', !!box, doc.body.innerHTML.slice(0, 160));
     check('Aber er nennt keine Vergleichszahl',
@@ -715,10 +734,10 @@ async function run() {
      dieselbe Zahl hinzuschreiben. */
   {
     const d = buildDom(JSDOM, { hash: '#/item/1', calculationEqual: 3 });
-    await new Promise(r => setTimeout(r, 90));
+    await until(d.w, detailDrawn, 2000, 'die Detailansicht');
     const doc = d.w.document;
     doc.querySelector('#rhead .weight-open')?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
-    await new Promise(r => setTimeout(r, 40));
+    await until(d.w, (x) => x.document.getElementById('calc-modal'), 2000, 'der Kasten der Rechnung');
     const box = doc.getElementById('calc-modal');
     check('Die Prueflage taugt: hier sind beide Zahlen wirklich gleich',
       doc.getElementById('calc-same')?.textContent.trim() ===
@@ -738,7 +757,7 @@ async function run() {
      leeres Fenster oeffnet, ist einer zu viel. */
   {
     const d = buildDom(JSDOM, { hash: '#/item/1', withoutRating: true });
-    await new Promise(r => setTimeout(r, 90));
+    await until(d.w, detailDrawn, 2000, 'die Detailansicht');
     check('Ohne Bewertung steht dort ueberhaupt nichts',
       (d.w.document.getElementById('rhead')?.textContent || '') === '',
       JSON.stringify(d.w.document.getElementById('rhead')?.innerHTML));
@@ -757,7 +776,7 @@ async function run() {
   {
     const d = buildDom(JSDOM, { hash: '#/item/1',
       settings: { filters: null, userCount: 1, isAdmin: true } });
-    await new Promise(r => setTimeout(r, 90));
+    await until(d.w, detailDrawn, 2000, 'die Detailansicht');
     const doc = d.w.document;
     /* ERST DIE LAGE SELBST: die Spalte hinter dem Kasten fehlt hier wirklich.
        Faende sich hier doch eine, belegte die Zusage darunter nichts. */
@@ -765,7 +784,7 @@ async function run() {
       doc.querySelectorAll('#ratings .rrow .ravg').length === 0,
       `${doc.querySelectorAll('#ratings .rrow .ravg').length} Durchschnittszellen`);
     doc.querySelector('#rhead .weight-open')?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
-    await new Promise(r => setTimeout(r, 40));
+    await until(d.w, (x) => x.document.getElementById('calc-modal'), 2000, 'der Kasten der Rechnung');
     const box = doc.getElementById('calc-modal');
     check('Auch bei einem einzigen Zugang geht der Kasten auf', !!box,
       doc.body.innerHTML.slice(0, 160));
@@ -857,9 +876,10 @@ async function run() {
     const d = buildDom(JSDOM, { overviewItems: glInventory(fresh),
       settings: { filters: null, userCount: 3,
         bellSeen: '2026-08-01 00:00:00', ...more } });
-    await new Promise(r => setTimeout(r, 90));
+    await until(d.w, listDrawn, 2000, 'die Uebersicht');
     return d;
   };
+  const glPanel = (x) => x.document.getElementById('bell-modal') && openRequests(x) === 0;
 
   {
     /* OHNE BEZUGSPUNKT GIBT ES KEINE GLOCKE. */
@@ -870,7 +890,7 @@ async function run() {
     /* UND SIE ENTSTEHT BEIM VERLASSEN DER UEBERSICHT -- sonst gaebe es keinen
        Weg, sie je zu bekommen. */
     withoutPhotos.w.location.hash = '#/item/1';
-    await new Promise(r => setTimeout(r, 90));
+    await until(withoutPhotos.w, detailDrawn, 2000, 'die Detailansicht');
     const withoutPut = withoutPhotos.sent.filter(g => g.method === 'PUT' && g.url === '/api/settings').pop();
     check('Der Bezugspunkt wird beim Verlassen der Uebersicht gesetzt',
       withoutPut?.body?.bellSeen !== undefined, JSON.stringify(withoutPut?.body));
@@ -916,7 +936,7 @@ async function run() {
     /* DIE TAFEL. Sie ist die zweite Haelfte der Glocke: eine Message, die man
        nicht anspringen kann, ist eine Mitteilung ohne Weg. */
     doc.getElementById('bell')?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
-    await new Promise(r => setTimeout(r, 40));
+    await until(d.w, glPanel, 2000, 'die Tafel der Glocke');
     const panel = doc.getElementById('bell-modal');
     check('Der Klick oeffnet die Tafel', !!panel, doc.body.innerHTML.slice(0, 140));
     /* UND SIE SAGT, WESSEN BEITRAEGE SIE MELDET. */
@@ -1014,7 +1034,7 @@ async function run() {
     // Und die Tafel bleibt trotzdem erreichbar und sagt, dass nichts da ist.
     still.w.document.getElementById('bell')
       .dispatchEvent(new still.w.MouseEvent('click', { bubbles: true }));
-    await new Promise(r => setTimeout(r, 40));
+    await until(still.w, glPanel, 2000, 'die Tafel der Glocke');
     check('Die Tafel sagt es dann auch',
       /Keine Neuigkeiten\./.test(
         still.w.document.getElementById('bell-list')?.textContent || ''),
@@ -1030,7 +1050,7 @@ async function run() {
     const withoutTasks = buildDom(JSDOM, {
       overviewItems: glInventory([[0, 0, []], [0, 0, []]]).map(i => ({ ...i, openTasks: 0 })),
       settings: { filters: null, userCount: 3, bellSeen: '2026-08-01 00:00:00' } });
-    await new Promise(r => setTimeout(r, 90));
+    await until(withoutTasks.w, listDrawn, 2000, 'die Uebersicht');
     check('Ohne offene Aufgaben traegt der Knopf keine Zahl',
       withoutTasks.w.document.getElementById('open-count')?.hidden === true &&
       (withoutTasks.w.document.getElementById('open-count')?.textContent || '') === '',
@@ -1043,7 +1063,7 @@ async function run() {
     const d = await glBuild([[1, 4, [glFrom.bert]], [3, 0, [glFrom.carla]]]);
     const doc = d.w.document;
     doc.getElementById('bell')?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
-    await new Promise(r => setTimeout(r, 40));
+    await until(d.w, glPanel, 2000, 'die Tafel der Glocke');
     const rows = [...doc.querySelectorAll('#bell-list .bell-row')];
     check('Die Prueflage taugt: die Teile ordnen anders als die Summe',
       rows.length === 2, `${rows.length} Zeilen`);
@@ -1082,7 +1102,7 @@ async function run() {
     const d = await glBuild([[0, 4, []], [0, 1, []]]);
     const doc = d.w.document;
     doc.getElementById('bell')?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
-    await new Promise(r => setTimeout(r, 40));
+    await until(d.w, glPanel, 2000, 'die Tafel der Glocke');
     const rows = [...doc.querySelectorAll('#bell-list .bell-row')];
     check('Die Prueflage traegt zwei Zeilen mit nur Bewertungen',
       rows.length === 2, `${rows.length} Zeilen`);
@@ -1118,7 +1138,7 @@ async function run() {
       doc.getElementById('bell')?.title === 'Keine Neuigkeiten',
       JSON.stringify(doc.getElementById('bell')?.title));
     doc.getElementById('bell')?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
-    await new Promise(r => setTimeout(r, 40));
+    await until(d.w, glPanel, 2000, 'die Tafel der Glocke');
     const rows = [...doc.querySelectorAll('#bell-list .bell-row')];
     check('Und die Tafel bleibt leer, statt ihm die eigene Hand zu melden',
       rows.length === 0, `${rows.length} Zeilen`);
@@ -1154,10 +1174,10 @@ async function run() {
 
   {
     const d = buildDom(JSDOM, { hash: '#/item/1' });
-    await new Promise(r => setTimeout(r, 90));
+    await until(d.w, detailDrawn, 2000, 'die Detailansicht');
     const doc = d.w.document;
     doc.querySelector('#viewer img')?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
-    await new Promise(r => setTimeout(r, 40));
+    await until(d.w, (x) => x.document.querySelector('.lightbox'), 2000, 'das Vollbild');
     check('Das Vollbild geht auf', !!doc.querySelector('.lightbox'));
     const removed = () => doc.querySelector('.lightbox .lb-btn.remove');
     check('Und es traegt einen Papierkorb', !!removed(), 'kein Papierkorb im Vollbild');
@@ -1167,13 +1187,15 @@ async function run() {
     const tools = [...doc.querySelectorAll('.lightbox .lb-tools .lb-btn')]
       .map(b => b.className.replace('lb-btn ', ''));
     check('Und er steht vor dem Schliessen, nicht daneben',
-      equal(tools, ['zoom', 'remove', 'close']), JSON.stringify(tools));
+      equal(tools, ['download', 'zoom', 'remove', 'close']), JSON.stringify(tools));
 
     const imagesBefore = [...doc.querySelectorAll('.lightbox .lb-thumb')].length;
     /* MIT FRAGEZEICHEN, und das ist keine Zierde: nimmt ein Rueckbau den
        Papierkorb weg, ist `removed()` null. */
     removed()?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
-    await new Promise(r => setTimeout(r, 40));
+    await until(d.w, (x) => !removed() || x.document.querySelector('.backdrop .modal') ||
+      (d.sent.some(g => g.method === 'DELETE') && openRequests(x) === 0),
+      2000, 'die Rueckfrage des Papierkorbs');
     const askKey = doc.querySelector('.backdrop .modal');
     check('Der Papierkorb fragt zuerst nach', !!askKey, doc.body.innerHTML.slice(0, 140));
     check('Und die Frage nennt, was verschwindet',
@@ -1181,7 +1203,7 @@ async function run() {
     // Abbrechen: es darf nichts hinausgehen und nichts verschwinden.
     doc.querySelector('.backdrop [data-no]')
       ?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
-    await new Promise(r => setTimeout(r, 40));
+    await until(d.w, (x) => !x.document.querySelector('.backdrop'), 2000, 'die geschlossene Rueckfrage');
     check('Nach dem Abbrechen wird nichts geschickt',
       !d.sent.some(x => x.method === 'DELETE' && x.url.startsWith('/api/photos/')),
       d.sent.slice(-3).map(x => `${x.method} ${x.url}`).join(' · '));
@@ -1190,10 +1212,13 @@ async function run() {
       `${[...doc.querySelectorAll('.lightbox .lb-thumb')].length} statt ${imagesBefore}`);
 
     removed()?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
-    await new Promise(r => setTimeout(r, 40));
+    await until(d.w, (x) => !removed() || x.document.querySelector('.backdrop .modal') ||
+      (d.sent.some(g => g.method === 'DELETE') && openRequests(x) === 0),
+      2000, 'die Rueckfrage des Papierkorbs');
     doc.querySelector('.backdrop [data-yes]')
       ?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
-    await new Promise(r => setTimeout(r, 80));
+    await until(d.w, (x) => openRequests(x) === 0 &&
+      (!removed() || d.sent.some(g => g.method === 'DELETE')), 2000, 'das geloeschte Bild');
     check('Nach dem Bestaetigen geht das Loeschen ueber DIESELBE Route hinaus',
       d.sent.some(x => x.method === 'DELETE' && /^\/api\/photos\/\d+$/.test(x.url)),
       d.sent.slice(-3).map(x => `${x.method} ${x.url}`).join(' · '));
@@ -1207,11 +1232,11 @@ async function run() {
   {
     /* DIE GEGENLAGE: ein Kommentarbild bekommt KEINEN Papierkorb im Vollbild. */
     const d = buildDom(JSDOM, { hash: '#/item/1' });
-    await new Promise(r => setTimeout(r, 90));
+    await until(d.w, detailDrawn, 2000, 'die Detailansicht');
     const image = d.w.document.querySelector('.kbild img, .komm-bild img, .cimgs img');
     if (image) {
       image.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
-      await new Promise(r => setTimeout(r, 40));
+      await until(d.w, (x) => x.document.querySelector('.lightbox'), 2000, 'das Vollbild');
     }
     check('Ein Kommentarbild im Vollbild traegt keinen Papierkorb',
       !image || !d.w.document.querySelector('.lightbox .lb-btn.remove'),
@@ -1231,7 +1256,7 @@ async function run() {
   const zt = async (signup) => {
     const d = buildDom(JSDOM, { signup,
       settings: { filters: null, userCount: 4, isAdmin: false, isOwner: false } });
-    await new Promise(r => setTimeout(r, 60));
+    await until(d.w, listDrawn, 2000, 'die Uebersicht');
     await sysSection(d.w, 'personal');
     return d;
   };
@@ -1296,7 +1321,7 @@ async function run() {
       requestsStatus: { an: false, deliveryReady: true, deliveryReason: '', cap: 20,
                        hours: 24, requests: [] },
       settings: { filters: null, userCount: 4, isAdmin: true, isOwner: true } });
-    await new Promise(r => setTimeout(r, 60));
+    await until(d.w, listDrawn, 2000, 'die Uebersicht');
     await sysSection(d.w, 'personal');
     const mark = () => d.w.document.getElementById('acc-mail')
       ?.closest('.field')?.querySelector('label')?.textContent || '';
@@ -1305,7 +1330,9 @@ async function run() {
     await sysSection(d.w, 'users');
     d.w.document.getElementById('signup-toggle')
       ?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
-    await new Promise(r => setTimeout(r, 80));
+    await until(d.w, (x) => openRequests(x) === 0 &&
+      d.sent.some(g => g.method === 'PUT' && g.url === '/api/signup/toggle'),
+      2000, 'die Antwort auf den Schalter');
     check('Der Schalter ist wirklich hinausgegangen',
       d.sent.some(x => x.method === 'PUT' && x.url === '/api/signup/toggle'),
       d.sent.slice(-2).map(x => `${x.method} ${x.url}`).join(' · '));
@@ -1469,7 +1496,7 @@ async function run() {
       current: n === 0 }));
     const d = buildDom(JSDOM, { sessionsInventory: khSessions,
       settings: { filters: null, userCount: 4, isAdmin: true, isOwner: true } });
-    await new Promise(r => setTimeout(r, 60));
+    await until(d.w, listDrawn, 2000, 'die Uebersicht');
     await sysSection(d.w, 'personal');
     const rowList = [...d.w.document.querySelectorAll('#msessions .mrow.session')];
     check('Zehn Anmeldungen ergeben zehn gezeichnete Zeilen',
@@ -1520,10 +1547,11 @@ async function run() {
   for (const oldAddress of ['anlage', 'instanz', 'scheune']) {
     const d = buildDom(JSDOM,
       { settings: { filters: null, userCount: 4, isAdmin: true, isOwner: true } });
-    await new Promise(r => setTimeout(r, 60));
+    await until(d.w, listDrawn, 2000, 'die Uebersicht');
     d.w.history.replaceState(null, '', `#/system/${oldAddress}`);
     await d.w.renderSystem();
-    await new Promise(r => setTimeout(r, 40));
+    await until(d.w, (x) => x.document.querySelector('.sys-grid') && openRequests(x) === 0,
+      2000, 'der Systembereich');
     /* ALLE DREI NEHMEN DENSELBEN WEG -- die beiden alten Namen sind nichts
        Besonderes mehr. */
     check(`„${oldAddress}" faellt auf den ersten sichtbaren Abschnitt zurueck`,
@@ -1634,8 +1662,9 @@ async function run() {
        Kommentaren, die eine Runde gekuerzt hat. Die Zahl steht im Namen der
        Pruefung -- sie ist die eine Zahl dieser Gruppe, die eine Kuerzung
        bewegt. */
-    check('In den Kommentaren derselben Datei stehen unveraendert 7 Vorkommen',
-      iAppRaw === 7, `${iAppRaw} Vorkommen`);
+    // Sechs: der Kommentar am Knopf des Backups ist gekuerzt und nennt die Instanz nicht mehr.
+    check('In den Kommentaren derselben Datei stehen 6 Vorkommen',
+      iAppRaw === 6, `${iAppRaw} Vorkommen`);
 
     /* UND IN server.js BLEIBT SEIT 0.33.0 KEINE EINZIGE MEHR. */
     const iServer = screenRows('server.js');
@@ -1682,13 +1711,13 @@ async function run() {
   /* DER EINZIGE ECHTE FEHLER DIESER RUNDE. */
   {
     const d = buildDom(JSDOM, { hash: '#/item/1' });
-    await new Promise(r => setTimeout(r, 90));
+    await until(d.w, detailDrawn, 2000, 'die Detailansicht');
     const doc = d.w.document;
     const clickable = (el) => el?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
     const includingSource = () => [...doc.querySelectorAll('video')].filter(v => v.getAttribute('src'));
     const viewer = doc.getElementById('viewer');
     clickable(viewer?.querySelector('.vnav.next'));
-    await new Promise(r => setTimeout(r, 30));
+    await until(d.w, (x) => x.document.querySelector('#viewer video'), 2000, 'der Abspieler am Videoplatz');
     const inside = viewer?.querySelector('video');
     check('Am Videoplatz steht ein Abspieler mit seiner Quelle',
       inside?.getAttribute('src') === '/api/photos/6/raw', inside?.getAttribute('src'));
@@ -1697,7 +1726,7 @@ async function run() {
     inside.currentTime = 12.5;
 
     clickable(viewer?.querySelector('.vfull'));
-    await new Promise(r => setTimeout(r, 40));
+    await until(d.w, (x) => x.document.querySelector('.lightbox'), 2000, 'das Vollbild');
     check('Im Vollbild gibt es zwei Abspielelemente',
       doc.querySelectorAll('video').length === 2, `${doc.querySelectorAll('video').length}`);
     check('Aber nur EINES traegt noch eine Quelle', includingSource().length === 1,
@@ -1715,7 +1744,7 @@ async function run() {
     // Weitergelaufen im Vollbild, dann zu: die Stelle geht denselben Weg zurueck.
     includingSource()[0].currentTime = 20;
     clickable(doc.querySelector('.lightbox .close'));
-    await new Promise(r => setTimeout(r, 40));
+    await until(d.w, (x) => !x.document.querySelector('.lightbox'), 2000, 'das geschlossene Vollbild');
     check('Nach dem Schliessen traegt wieder genau einer eine Quelle',
       includingSource().length === 1 && includingSource()[0] === inside,
       `${includingSource().length} Quellen`);
@@ -1725,11 +1754,11 @@ async function run() {
     /* ESCAPE GEHT DENSELBEN WEG WIE DAS KREUZ und nicht einen zweiten
        daneben. */
     clickable(viewer?.querySelector('.vfull'));
-    await new Promise(r => setTimeout(r, 40));
+    await until(d.w, (x) => x.document.querySelector('.lightbox'), 2000, 'das Vollbild');
     check('Beim zweiten Oeffnen gibt der innere wieder ab',
       !inside.getAttribute('src') && includingSource().length === 1, inside.getAttribute('src'));
     doc.dispatchEvent(new d.w.KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
-    await new Promise(r => setTimeout(r, 40));
+    await until(d.w, (x) => !x.document.querySelector('.lightbox'), 2000, 'das geschlossene Vollbild');
     check('Escape schliesst das Vollbild',
       !doc.querySelector('.lightbox'), 'das Vollbild steht noch');
     check('Und gibt die Quelle auf demselben Weg zurueck',
@@ -1738,13 +1767,15 @@ async function run() {
     /* BEIM BLAETTERN: das Anhalten gibt es schon, der Wechsel muss dazu
        passen. */
     clickable(viewer?.querySelector('.vfull'));
-    await new Promise(r => setTimeout(r, 40));
+    await until(d.w, (x) => x.document.querySelector('.lightbox'), 2000, 'das Vollbild');
     clickable(doc.querySelector('.lightbox .prev'));
-    await new Promise(r => setTimeout(r, 30));
+    await until(d.w, (x) =>
+      /^1 \//.test(x.document.querySelector('.lightbox .lb-count')?.textContent || ''),
+      2000, 'das Foto im Vollbild');
     check('Am Foto im Vollbild traegt gar kein Abspieler eine Quelle',
       includingSource().length === 0, includingSource().map(v => v.getAttribute('src')).join(' · '));
     clickable(doc.querySelector('.lightbox .close'));
-    await new Promise(r => setTimeout(r, 40));
+    await until(d.w, (x) => !x.document.querySelector('.lightbox'), 2000, 'das geschlossene Vollbild');
     check('Auch vom Foto aus bekommt der innere seine Quelle zurueck',
       includingSource().length === 1 && includingSource()[0] === inside, `${includingSource().length} Quellen`);
     d.w.close();
@@ -1753,18 +1784,22 @@ async function run() {
     /* BEIM LOESCHEN AUS DEM VOLLBILD gibt es das Video danach nicht mehr, und
        der innere Abspieler darf nicht auf eine Adresse zeigen, die weg ist. */
     const d = buildDom(JSDOM, { hash: '#/item/1' });
-    await new Promise(r => setTimeout(r, 90));
+    await until(d.w, detailDrawn, 2000, 'die Detailansicht');
     const doc = d.w.document;
     const clickable = (el) => el?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
     const viewer = doc.getElementById('viewer');
     clickable(viewer?.querySelector('.vnav.next'));
-    await new Promise(r => setTimeout(r, 30));
+    await until(d.w, (x) => x.document.querySelector('#viewer video'), 2000, 'der Abspieler am Videoplatz');
     clickable(viewer?.querySelector('.vfull'));
-    await new Promise(r => setTimeout(r, 40));
-    clickable(doc.querySelector('.lightbox .lb-btn.remove'));
-    await new Promise(r => setTimeout(r, 40));
+    await until(d.w, (x) => x.document.querySelector('.lightbox'), 2000, 'das Vollbild');
+    const lbTrash = (x) => x.document.querySelector('.lightbox .lb-btn.remove');
+    clickable(lbTrash(d.w));
+    await until(d.w, (x) => !lbTrash(x) || x.document.querySelector('.backdrop [data-yes]') ||
+      (d.sent.some(g => g.method === 'DELETE') && openRequests(x) === 0),
+      2000, 'die Rueckfrage des Papierkorbs');
     clickable(doc.querySelector('.backdrop [data-yes]'));
-    await new Promise(r => setTimeout(r, 120));
+    await until(d.w, (x) => openRequests(x) === 0 &&
+      (!lbTrash(x) || d.sent.some(g => g.method === 'DELETE')), 2000, 'das geloeschte Video');
     check('Nach dem Loeschen ging es wirklich ueber die Route hinaus',
       d.sent.some(x => x.method === 'DELETE' && x.url === '/api/photos/6'),
       d.sent.slice(-3).map(x => `${x.method} ${x.url}`).join(' · '));
@@ -1777,20 +1812,21 @@ async function run() {
     /* DIE SCHUTZZEILE BEIM LOESCHEN, gestellt an einem Rufer, der den
        Betrachter darunter NICHT neu zeichnet. */
     const d = buildDom(JSDOM, { hash: '#/item/1' });
-    await new Promise(r => setTimeout(r, 90));
+    await until(d.w, detailDrawn, 2000, 'die Detailansicht');
     const doc = d.w.document;
     const inside = doc.createElement('video');
     inside.setAttribute('src', '/api/photos/6/raw');
     doc.body.appendChild(inside);
     d.w.openLightbox([{ id: 6, kind: 'video', duration: 42 }], 0, 'Probe',
       async () => true, () => inside);
-    await new Promise(r => setTimeout(r, 40));
+    await until(d.w, (x) => x.document.querySelector('.lightbox'), 2000, 'das Vollbild');
     check('Auch hier gibt der innere Abspieler zuerst ab',
       !inside.getAttribute('src') && !!doc.querySelector('.lightbox'),
       inside.getAttribute('src'));
     doc.querySelector('.lightbox .lb-btn.remove')
       ?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
-    await new Promise(r => setTimeout(r, 60));
+    await until(d.w, (x) => !x.document.querySelector('.lightbox .lb-btn.remove'),
+      2000, 'das Vollbild ohne Papierkorb');
     check('Nach dem letzten Bild geht das Vollbild zu',
       !doc.querySelector('.lightbox'), 'das Vollbild steht noch');
     check('Und die geloeschte Quelle wandert NICHT zurueck',
@@ -1800,7 +1836,7 @@ async function run() {
   {
     /* DIE GEGENLAGE: OHNE VIDEO VERHAELT SICH DAS VOLLBILD WIE BISHER. */
     const d = buildDom(JSDOM, { hash: '#/item/1' });
-    await new Promise(r => setTimeout(r, 90));
+    await until(d.w, detailDrawn, 2000, 'die Detailansicht');
     const doc = d.w.document;
     const viewer = doc.getElementById('viewer');
     check('Am Fotoplatz gibt es gar keinen inneren Abspieler',
@@ -1808,7 +1844,7 @@ async function run() {
       viewer?.innerHTML?.slice(0, 90));
     viewer?.querySelector('img')
       ?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
-    await new Promise(r => setTimeout(r, 40));
+    await until(d.w, (x) => x.document.querySelector('.lightbox'), 2000, 'das Vollbild');
     const lbVideo = doc.querySelector('.lightbox .lb-video');
     check('Das Vollbild geht trotzdem auf', !!doc.querySelector('.lightbox'));
     check('Sein Abspieler bleibt verborgen und ohne Quelle',
@@ -1830,7 +1866,7 @@ async function run() {
     const d = buildDom(JSDOM, { hash: '#/item/1',
       settings: { filters: null, userCount: 3, isAdmin: true },
       voteColumns: [{ avg: 3.5, count: 2 }, { avg: 4, count: 1 }, { avg: null, count: 0 }] });
-    await new Promise(r => setTimeout(r, 90));
+    await until(d.w, detailDrawn, 2000, 'die Detailansicht');
     const kColumns = [...d.w.document.querySelectorAll('#ratings .rrow .ravg')];
     check('Die Prueflage traegt zwei, eine und keine Stimme',
       kColumns.length === 3, `${kColumns.length}`);
@@ -1875,7 +1911,7 @@ async function run() {
     /* OHNE EINEN EINZIGEN FILTER steht er nicht da -- und die Leiste steht
        trotzdem, sonst belegte die Verneinung nichts. */
     const d = buildDom(JSDOM, { tags: frTags, settings: { filters: null } });
-    await new Promise(r => setTimeout(r, 80));
+    await until(d.w, listDrawn, 2000, 'die Uebersicht');
     check('Die Filterleiste steht da',
       !!d.w.document.querySelector('#filters .frow'), 'keine Leiste');
     check('Ohne gesetzten Filter steht kein Ruecksetzer da',
@@ -1890,7 +1926,7 @@ async function run() {
       settings: { filters: { categoryIds: [21, 22], tagIds: [41, 42], tagMode: 'and',
                                   tested: 'tested', rejected: 'all', favorite: false,
                                   sort: 'title_asc' } } });
-    await new Promise(r => setTimeout(r, 80));
+    await until(d.w, listDrawn, 2000, 'die Uebersicht');
     const button = frButton(d.w);
     check('Mit gesetzten Filtern steht der Ruecksetzer da', !!button, 'kein Knopf');
     check('Und er nennt die Zahl',
@@ -1926,7 +1962,7 @@ async function run() {
     // MIT `?.`: ob der Knopf dasteht, hat die Zeile oben schon gefragt
 // -- an einer Null soll der Lauf nicht abreissen.
     button?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
-    await new Promise(r => setTimeout(r, 80));
+    await until(d.w, replaced(button), 2000, 'die zurueckgesetzte Filterleiste');
     const after = d.sent.slice(vorDemClickable);
     /* GELESEN WIRD DIE STELLUNG DORT, WO SIE HINAUSGEHT -- im Rumpf des
        letzten PUT. */
@@ -1975,7 +2011,7 @@ async function run() {
                        filters: { categoryIds: [], tagIds: [41], tagMode: 'and',
                                   tested: 'all', rejected: 'all', favorite: false,
                                   sort: 'updated_desc' } } });
-    await new Promise(r => setTimeout(r, 80));
+    await until(d.w, listDrawn, 2000, 'die Uebersicht');
     const pills = () => [...d.w.document.querySelectorAll('#filters .pill')]
       .map(b => b.textContent.replace('✕', '').trim());
     check('Die gespeicherte Ansicht steht in der Leiste',
@@ -1988,7 +2024,8 @@ async function run() {
        Knopf da -- dann bleibt die Zeile darueber rot, statt dass der Lauf an
        einer Null abreisst. */
     frButton(d.w)?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
-    await new Promise(r => setTimeout(r, 80));
+    await until(d.w, (x) => (d.sent.length > anBefore || !frButton(x)) && openRequests(x) === 0,
+      2000, 'die zurueckgesetzte Filterleiste');
     check('Nach dem Zuruecksetzen steht sie immer noch da',
       pills().includes('Meine Sicht'), JSON.stringify(pills()));
     check('Und sie ist dabei nicht neu geschrieben worden',
@@ -2032,7 +2069,7 @@ async function run() {
   const ksBuild = async (filters, further = {}) => {
     const d = buildDom(JSDOM, { overviewItems: ksInventory,
       settings: { filters, ...further } });
-    await new Promise(r => setTimeout(r, 90));
+    await until(d.w, listDrawn, 2000, 'die Uebersicht');
     return d;
   };
   const ksPill = (d, text) => [...d.w.document.querySelectorAll('#filters .pill')]
@@ -2041,7 +2078,7 @@ async function run() {
      nicht, und der Ereignisdurchlauf gehoert dazu. */
   const ksClickable = async (d, el) => {
     el?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
-    await new Promise(r => setTimeout(r, 50));
+    await until(d.w, replaced(el), 2000, 'die neu gezeichnete Filterleiste');
   };
   // Die Sortierung wird ueber ihr eigenes Bedienelement gestellt und nicht
 // ueber eine zweite gebaute Lage: nur so ist der WECHSEL geprueft.
@@ -2053,10 +2090,10 @@ async function run() {
     if (!sel) return false;
     sel.value = String(value).replace(/_(desc|asc)$/, '');
     sel.onchange();
-    await new Promise(r => setTimeout(r, 50));
+    await until(d.w, replaced(sel), 2000, 'die neue Sortierung');
     if (String(value).endsWith('_asc')) {
       const dir = d.w.document.getElementById('f-sort-dir');
-      if (dir && !dir.disabled) { dir.click(); await new Promise(r => setTimeout(r, 50)); }
+      if (dir && !dir.disabled) { dir.click(); await until(d.w, replaced(dir), 2000, 'die neue Richtung'); }
     }
     return true;
   };
@@ -2238,12 +2275,12 @@ async function run() {
       settings: { potentialMode: true,
         filters: { categoryIds: [], tagIds: [], tagMode: 'and', tested: 'all',
                    rejected: 'all', favorite: false, sort: 'updated_desc' } } });
-    await new Promise(r => setTimeout(r, 90));
+    await until(d.w, listDrawn, 2000, 'die Uebersicht');
     /* DIE HANDWAHL WIRD GESETZT, BEVOR SORTIERT WIRD. */
     const allPills = [...d.w.document.querySelectorAll('#filters .pill')]
       .find(b => b.textContent.trim() === 'Alle');
     allPills?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
-    await new Promise(r => setTimeout(r, 60));
+    await until(d.w, replaced(allPills), 2000, 'die neu gezeichnete Filterleiste');
     return d;
   };
 
@@ -2285,18 +2322,19 @@ async function run() {
     const soSechs = ['updated', 'rating', 'potential', 'tests', 'testavg', 'testlast'];
     const soFrom = {}, soOn = {};
     for (const key of soSechs) {
-      if (soField(d)) { soField(d).value = key; soField(d).onchange(); }
-      await new Promise(r => setTimeout(r, 50));
+      const field = soField(d);
+      if (field) { field.value = key; field.onchange(); }
+      await until(d.w, replaced(field), 2000, 'die neue Sortierung');
       soFrom[key] = soOrder(d);
-      soDir(d)?.click();
-      await new Promise(r => setTimeout(r, 50));
+      let dir = soDir(d);
+      dir?.click();
+      await until(d.w, replaced(dir), 2000, 'die umgedrehte Richtung');
       soOn[key] = soOrder(d);
-      /* ZURUECK IN DIE ABSTEIGENDE LAGE, damit die naechste Grundlage von
-         derselben Stellung aus anfaengt -- die Richtung bleibt beim Wechsel
-         der Grundlage stehen, und ohne diesen Zug maesse die naechste Runde
-         etwas anderes als die vorige. */
-      soDir(d)?.click();
-      await new Promise(r => setTimeout(r, 50));
+      /* ZURUECK IN DIE ABSTEIGENDE LAGE: die Richtung bleibt beim Wechsel der
+         Grundlage stehen, und die naechste Runde finge sonst anders an. */
+      dir = soDir(d);
+      dir?.click();
+      await until(d.w, replaced(dir), 2000, 'die absteigende Richtung');
     }
     /* JEDE LAGE IST EINDEUTIG: drei verschiedene Zahlen, also drei
        verschiedene Plaetze. */
@@ -2314,10 +2352,10 @@ async function run() {
     check('Und keine zwei von ihnen ergeben dieselbe Folge',
       new Set(soSechs.map(k => soFrom[k].join('>'))).size === 6,
       soSechs.map(k => `${k}: ${soFrom[k].join('>')}`).join(' · '));
-    /* DIE SIEBTE KANN SEIT 0.29.0 BEIDE RICHTUNGEN -- Befund 8, aus dem
-       Betrieb gemeldet (11.9.2026): „Z bis A kann nicht angewahlt werden". */
-    if (soField(d)) { soField(d).value = 'title'; soField(d).onchange(); }
-    await new Promise(r => setTimeout(r, 50));
+    /* DIE SIEBTE KANN BEIDE RICHTUNGEN: auch „Z bis A" laesst sich anwaehlen. */
+    const soTitleField = soField(d);
+    if (soTitleField) { soTitleField.value = 'title'; soTitleField.onchange(); }
+    await until(d.w, replaced(soTitleField), 2000, 'die Sortierung nach Titel');
     const soTitle = soOrder(d);
     check('Die siebte ordnet nach Titel, aufsteigend',
       equal(soTitle, ['Alpha', 'Beta', 'Gamma']), JSON.stringify(soTitle));
@@ -2326,8 +2364,9 @@ async function run() {
       `${soDir(d)?.textContent} · disabled=${soDir(d)?.disabled}`);
     /* UND EIN DRUCK DARAUF DREHT SIE WIRKLICH UM -- gefahren und nicht am
        Wortlaut abgelesen. */
-    soDir(d)?.click();
-    await new Promise(r => setTimeout(r, 50));
+    const soTitleDir = soDir(d);
+    soTitleDir?.click();
+    await until(d.w, replaced(soTitleDir), 2000, 'die umgedrehte Richtung');
     check('Und ein Druck darauf dreht die Reihenfolge um',
       equal(soOrder(d), [...soTitle].reverse()) && soDir(d)?.textContent === 'Z → A',
       `${soOrder(d).join('>')} · ${soDir(d)?.textContent}`);
@@ -2449,7 +2488,7 @@ async function run() {
   {
     const soSys = async (narrow) => {
       const d = buildDom(JSDOM, {});
-      await new Promise(r => setTimeout(r, 60));
+      await until(d.w, listDrawn, 2000, 'die Uebersicht');
       d.w.matchMedia = () => ({ matches: narrow, addEventListener() {}, addListener() {} });
       await sysSection(d.w, 'inventory');
       return d;
@@ -2506,7 +2545,8 @@ async function run() {
     const pmBuild = async (further = {}, hash = '') => {
       const d = buildDom(JSDOM, { overviewItems: pmInventory, hash,
         settings: { filters: null, ...further } });
-      await new Promise(r => setTimeout(r, 200));
+      await until(d.w, hash ? detailDrawn : listDrawn, 2000,
+        hash ? 'die Detailansicht' : 'die Uebersicht');
       return d;
     };
     const pmOn = await pmBuild({ potentialMode: true });
@@ -2535,7 +2575,7 @@ async function run() {
     const pmHintBuild = async (mode) => {
       const d = buildDom(JSDOM, { overviewItems: pmNoValue,
         settings: { filters: null, potentialMode: mode } });
-      await new Promise(r => setTimeout(r, 200));
+      await until(d.w, listDrawn, 2000, 'die Uebersicht');
       return d;
     };
     const pmHintOn = await pmHintBuild(true);

@@ -5,7 +5,7 @@ const H = require('./frame.js');
 const D = require('./dom.js');
 const {
   placeConfirm, buildDom, openTagRow, waitSearch, sysSection, pillName,
-  pillMark
+  pillMark, until, openRequests
 } = D;
 
 async function run() {
@@ -23,8 +23,18 @@ async function run() {
     return;
   }
 
+  // Die Ansicht ist gezeichnet, und jede Antwort ist verarbeitet.
+  const overviewReady = (x) => !!x.document.getElementById('count') && openRequests(x) === 0;
+  const detailReady = (x) => !!x.document.getElementById('ratings') && openRequests(x) === 0;
+  const openReady = (x) => !!x.document.getElementById('open-list') && openRequests(x) === 0;
+  // An der Stelle von `before` steht ein neu gezeichnetes Element.
+  const redrawn = (id, before) => (x) => {
+    const el = x.document.getElementById(id);
+    return !!el && el !== before && openRequests(x) === 0;
+  };
+
   const { w, sent, criteria, example } = buildDom(JSDOM);
-  await new Promise(r => setTimeout(r, 60));
+  await until(w, overviewReady, 2000, 'die Uebersicht');
 
   /* --- Mitwachsendes Feld: die Rechnung, nicht nur das Vorhandensein --- */
   const field = w.document.createElement('textarea');
@@ -67,7 +77,8 @@ async function run() {
 
   /* --- Einrichtung geht der Anmeldung vor --- */
   const inDom = buildDom(JSDOM, { setup: true, loggedIn: false });
-  await new Promise(r => setTimeout(r, 80));
+  await until(inDom.w, (x) => !!x.document.getElementById('sb') && openRequests(x) === 0,
+    2000, 'die Einrichtungsseite');
   const eText = inDom.w.document.body.textContent;
   check('Bei Einrichtungsbedarf kommt die Einrichtungsseite, nicht die Anmeldung',
     !!inDom.w.document.getElementById('sb') && !inDom.w.document.getElementById('lb'));
@@ -83,7 +94,8 @@ async function run() {
   setField(inDom.w.document, 'sp2', 'zehn-zeichen-und-mahr');
   inDom.sent.length = 0;
   inDom.w.document.getElementById('sb').click();
-  await new Promise(r => setTimeout(r, 40));
+  await until(inDom.w, (x) => !!x.document.querySelector('.login-error'), 2000,
+    'die Meldung der Einrichtungsseite');
   check('Zwei ungleiche Passwoerter gehen nicht an den Server',
     !inDom.sent.some(g => g.url === '/api/setup'),
     JSON.stringify(inDom.sent.map(g => g.url)));
@@ -158,7 +170,8 @@ async function run() {
   rowList[0].dispatchEvent(cursor('pointerdown', 0));
   w.document.dispatchEvent(cursor('pointermove', 120));
   w.document.dispatchEvent(cursor('pointerup', 120));
-  await new Promise(r => setTimeout(r, 30));
+  await until(w, (x) => sent.some(g => g.method === 'PUT' &&
+    g.url === '/api/criteria/order') && openRequests(x) === 0, 2000, 'die gespeicherte Reihenfolge');
 
   const command = sent.filter(s => s.url === '/api/criteria/order').pop();
   check('Ziehen schickt die neue Reihenfolge', !!command && command.method === 'PUT', JSON.stringify(command));
@@ -170,7 +183,8 @@ async function run() {
   const fresh = [...w.document.querySelectorAll('#mcrits .mrow')];
   fresh[0].dispatchEvent(cursor('pointerdown', 0));
   w.document.dispatchEvent(cursor('pointerup', 2));
-  await new Promise(r => setTimeout(r, 30));
+  // Wartet, ob nach dem blossen Anfassen eine Anfrage ausbleibt.
+  await new Promise(r => setTimeout(r, 20));
   check('Blosses Anfassen ohne Bewegung sortiert nichts',
     sent.filter(s => s.url === '/api/criteria/order').length === 1,
     `${sent.filter(s => s.url === '/api/criteria/order').length} Aufrufe`);
@@ -184,7 +198,8 @@ async function run() {
   const fontButtons = [...w.document.querySelectorAll('#fsize .pill')];
   const targetFont = fontButtons.find(b => b.textContent === '120 %');
   targetFont?.dispatchEvent(new w.MouseEvent('click', { bubbles: true }));
-  await new Promise(r => setTimeout(r, 30));
+  await until(w, (x) => sent.some(s => s.method === 'PUT' && s.url === '/api/settings' &&
+    s.body && s.body.font !== undefined) && openRequests(x) === 0, 2000, 'die gespeicherte Schriftgroesse');
   const putFont = sent.filter(s => s.url === '/api/settings' && s.method === 'PUT')
     .filter(s => s.body && s.body.font !== undefined).pop();
   check('Der Klick auf die Schriftgroesse wird wirklich zugestellt',
@@ -204,7 +219,8 @@ async function run() {
   const rowsButtons = [...w.document.querySelectorAll('#lrows .pill')];
   rowsButtons.find(b => b.textContent === '12 Zeilen')
     ?.dispatchEvent(new w.MouseEvent('click', { bubbles: true }));
-  await new Promise(r => setTimeout(r, 30));
+  await until(w, (x) => sent.some(s => s.method === 'PUT' && s.url === '/api/settings' &&
+    s.body && s.body.linkRows !== undefined) && openRequests(x) === 0, 2000, 'die gespeicherten Linkzeilen');
   const putRows = sent.filter(s => s.url === '/api/settings' && s.method === 'PUT')
     .filter(s => s.body && s.body.linkRows !== undefined).pop();
   check('Der Klick auf die Linkzeilen ebenso',
@@ -238,7 +254,7 @@ async function run() {
 // Vokabular waere also nicht geladen gewesen.
   const two = buildDom(JSDOM, { settings: own, hash: '#/item/1' });
   const w2 = two.w;
-  await new Promise(r => setTimeout(r, 80));
+  await until(w2, detailReady, 2000, 'die Detailansicht');
 
   check('Schriftgroesse haengt am Wurzelelement',
     parseFloat(w2.document.documentElement.style.fontSize) === 18,
@@ -259,7 +275,7 @@ async function run() {
      nicht mit dem Gegenstand. */
   const vokDom = buildDom(JSDOM, { settings: ownFull, hash: '#/item/1' });
   const wVok = vokDom.w;
-  await new Promise(r => setTimeout(r, 80));
+  await until(wVok, detailReady, 2000, 'die Detailansicht');
   const kzVok = wVok.document.getElementById('ccount');
   /* SEIT 0.32.1 STEHT DAS VOKABULAR IM `title` UND NICHT MEHR AM BILDSCHIRM
      -- die Kopfzeile zeigt Zahl und Zeichen. */
@@ -286,7 +302,7 @@ async function run() {
   group('Favorit: der Knopf im Eintrag');
   const pinDom = buildDom(JSDOM, { hash: '#/item/1' });
   const wp = pinDom.w;
-  await new Promise(r => setTimeout(r, 80));
+  await until(wp, detailReady, 2000, 'die Detailansicht');
   const pinButton = () => wp.document.getElementById('pin');
 
   check('Der Knopf steht da und zeigt den leeren Stern',
@@ -296,7 +312,8 @@ async function run() {
   /* Nicht .click() und nicht die Behandlerfunktion von Hand rufen: beides
      ginge am Fehler vorbei. */
   pinButton().dispatchEvent(new wp.MouseEvent('click', { bubbles: true }));
-  await new Promise(r => setTimeout(r, 60));
+  await until(wp, (x) => pinDom.sent.some(g => g.url === '/api/items/1' && g.body &&
+    g.body.favorite !== undefined) && openRequests(x) === 0, 2000, 'der gespeicherte Favorit');
 
   const pinSent = pinDom.sent.filter(
     g => g.url === '/api/items/1' && g.body && g.body.favorite !== undefined);
@@ -319,7 +336,9 @@ async function run() {
   // Und wieder zurueck -- der Weg heraus ist derselbe Weg und traegt
 // dieselbe Falle.
   pinButton().dispatchEvent(new wp.MouseEvent('click', { bubbles: true }));
-  await new Promise(r => setTimeout(r, 60));
+  await until(wp, (x) => pinDom.sent.filter(g => g.url === '/api/items/1' && g.body &&
+    g.body.favorite !== undefined).length === 2 && openRequests(x) === 0, 2000,
+    'der zurueckgenommene Favorit');
   check('Erneuter Klick nimmt den Favoriten zurueck',
     pinButton()?.textContent === '☆' && pinButton()?.className === 'pin-btn',
     `${JSON.stringify(pinButton()?.textContent)} / ${JSON.stringify(pinButton()?.className)}`);
@@ -345,7 +364,7 @@ async function run() {
 
   // Uebersicht im selben Fenster
   w2.location.hash = '#/';
-  await new Promise(r => setTimeout(r, 80));
+  await until(w2, overviewReady, 2000, 'die Uebersicht');
   const textList = w2.document.body.textContent;
   check('Anlegeknopf zeigt die Einzahl',
     w2.document.getElementById('new').textContent === '+ Maschine');
@@ -377,7 +396,7 @@ async function run() {
   /* ================= Systembereich: Vokabular pflegen ================= */
   const three = buildDom(JSDOM, { settings: own });
   const w3 = three.w;
-  await new Promise(r => setTimeout(r, 60));
+  await until(w3, overviewReady, 2000, 'die Uebersicht');
   await sysSection(w3, 'inventory');
 
   const fields = ['v1','v2','v3','v4','v5','v6','v7','v8','v9','v10','v11','v12','v13','v14','v15']
@@ -462,7 +481,7 @@ async function run() {
       vocabulary: usEffective.de, vocabularies: usEffective,
       vocabulariesOwn: usOwn, vocabularyDefaults: usDefaults } });
     const w4 = four.w;
-    await new Promise(r => setTimeout(r, 80));
+    await until(w4, overviewReady, 2000, 'die Uebersicht');
     await sysSection(w4, 'inventory');
     /* GEZAEHLT WERDEN PILLEN UND NICHT KINDER -- 0.24.6. */
     const usPills = (boxId) => [...((w4.document.getElementById(boxId) || {})
@@ -490,7 +509,7 @@ async function run() {
     const usEnglish = [...w4.document.getElementById('vlang').children]
       .find(b => pillName(b) === 'English');
     usEnglish.dispatchEvent(new w4.Event('click', { bubbles: true }));
-    await new Promise(r => setTimeout(r, 120));
+    await until(w4, redrawn('vlang', usEnglish.parentElement), 2000, 'die umgeschaltete Kachel');
     check('Ein Klick schaltet die Kachel um — und die Pille zeigt es',
       usPills('vlang')[1] === 'English*', usPills('vlang').join('|'));
     check('Und das Feld zeigt danach das fuer Englisch eingetragene Wort',
@@ -504,7 +523,8 @@ async function run() {
     /* --- DER RUMPF DES PUT (B2) -------------------------------------- */
     setField(w4.document, 'v1', 'Widget2');
     w4.document.getElementById('vsave').dispatchEvent(new w4.Event('click', { bubbles: true }));
-    await new Promise(r => setTimeout(r, 120));
+    await until(w4, (x) => four.sent.some(g => g.method === 'PUT' && g.url === '/api/settings' &&
+      g.body && g.body.vocabulary) && openRequests(x) === 0, 2000, 'das gespeicherte Vokabular');
     const usPut = four.sent.filter(g => g.method === 'PUT' && g.url === '/api/settings')
       .map(g => g.body).filter(b => b && b.vocabulary).pop();
     check('Und der Rumpf des PUT nennt die Sprache der Kachel',
@@ -527,7 +547,7 @@ async function run() {
       languages: [{ code: 'de', name: 'Deutsch', isDefault: true, active: true },
                   { code: 'en', name: 'English', isDefault: false, active: true }] } });
     const wSp = spDom.w;
-    await new Promise(r => setTimeout(r, 80));
+    await until(wSp, overviewReady, 2000, 'die Uebersicht');
     await sysSection(wSp, 'personal');
     const spHint = () => ([...wSp.document.querySelectorAll('.desc')]
       .map(z => z.textContent.replace(/\s+/g, ' ').trim())
@@ -540,7 +560,7 @@ async function run() {
       'keine Sprachzeile in der Karte „Darstellung"');
     if (spPill) {
       spPill.dispatchEvent(new wSp.Event('click', { bubbles: true }));
-      await new Promise(r => setTimeout(r, 250));
+      await until(wSp, redrawn('lang', spPill.parentElement), 2000, 'die Karte in der neuen Sprache');
       check('Sprachprobe: der Wechsel nimmt die Oberflaeche mit',
         /blocks/i.test(spHint()), spHint());
       /* UND DIE VIERZEHN WOERTER GEHEN MIT. Das ist der Befund: bis 0.24.3
@@ -558,7 +578,7 @@ async function run() {
       languages: [{ code: 'de', name: 'Deutsch', isDefault: true, active: true },
                   { code: 'en', name: 'English', isDefault: false, active: true }] } });
     const wSt = stDom.w;
-    await new Promise(r => setTimeout(r, 80));
+    await until(wSt, overviewReady, 2000, 'die Uebersicht');
     await sysSection(wSt, 'inventory');
     const stSide = wSt.document.scrollingElement || wSt.document.documentElement;
     stSide.scrollTop = 640;
@@ -568,7 +588,7 @@ async function run() {
       .find(b => pillName(b) === 'English');
     stPill.dispatchEvent(new wSt.Event('click', { bubbles: true }));
     stSide.scrollTop = 0;                 // der Zusammenfall, den jsdom nicht hat
-    await new Promise(r => setTimeout(r, 200));
+    await until(wSt, redrawn('vlang', stPill.parentElement), 2000, 'die umgeschaltete Kachel');
     check('Stellungsprobe: die Bildlaufstellung ueberlebt das Umschalten',
       stSide.scrollTop === 640, `${stSide.scrollTop} statt 640`);
     /* UND SIE UEBERLEBT NUR DORT. */
@@ -576,7 +596,8 @@ async function run() {
     const stPlain = wSt.renderSystem();
     stSide.scrollTop = 0;
     await stPlain;
-    await new Promise(r => setTimeout(r, 40));
+    // Wartet, ob nach dem Neuzeichnen das Zurueckholen der Bildlaufstellung ausbleibt.
+    await new Promise(r => setTimeout(r, 20));
     check('Und ein gewoehnliches Neuzeichnen holt sie nicht zurueck',
       stSide.scrollTop === 0, `${stSide.scrollTop} statt 0`);
     wSt.close();
@@ -620,7 +641,7 @@ async function run() {
       const knob = npPill(w, boxId, name);
       if (!knob) return false;
       knob.dispatchEvent(new w.Event('click', { bubbles: true }));
-      await new Promise(r => setTimeout(r, 140));
+      await until(w, redrawn(boxId, knob.parentElement), 2000, `die Pillenreihe ${boxId}`);
       return true;
     };
 
@@ -632,7 +653,7 @@ async function run() {
         criteriaPhases: ['after', 'after', 'before']
       });
       const wNp = npDom.w;
-      await new Promise(r => setTimeout(r, 80));
+      await until(wNp, overviewReady, 2000, 'die Uebersicht');
       await sysSection(wNp, 'inventory');
       const readerName = npLanguages.find(a => a.code === reader).name;
       /* DER AUFBAU ZUERST: ohne die drei Pillenreihen und die drei Listen
@@ -702,7 +723,7 @@ async function run() {
         criteriaPhases: ['after', 'after', 'before']
       });
       const wSeq = seqDom.w;
-      await new Promise(r => setTimeout(r, 80));
+      await until(wSeq, overviewReady, 2000, 'die Uebersicht');
       await sysSection(wSeq, 'inventory');
       await npPress(wSeq, 'ncatlang', 'Türkçe');
       check('Folgeprobe, Schritt 1: der englische Leser drueckt Türkçe und liest Tuerkisch',
@@ -716,7 +737,7 @@ async function run() {
         'keine Sprachzeile in der Karte „Darstellung"');
       if (seqOwn) {
         seqOwn.dispatchEvent(new wSeq.Event('click', { bubbles: true }));
-        await new Promise(r => setTimeout(r, 260));
+        await until(wSeq, redrawn('lang', seqOwn.parentElement), 2000, 'die Karte in der neuen Sprache');
       }
       /* UND SCHRITT 3: DIESELBE PILLE NOCH EINMAL. Sie muss dasselbe zeigen
          wie beim ersten Mal -- die Namen der Sprache, die auf ihr steht. */
@@ -738,7 +759,7 @@ async function run() {
         criteriaPhases: ['after', 'after', 'before']
       });
       const wFb = fbDom.w;
-      await new Promise(r => setTimeout(r, 80));
+      await until(wFb, overviewReady, 2000, 'die Uebersicht');
       await sysSection(wFb, 'inventory');
       await npPress(wFb, 'ncatlang', 'Türkçe');
       const fbRowOf = (boxId, name) => [...wFb.document.querySelectorAll(`#${boxId} .mrow`)]
@@ -793,7 +814,7 @@ async function run() {
         criteriaPhases: ['after', 'after', 'before']
       });
       const wRn = rnDom.w;
-      await new Promise(r => setTimeout(r, 80));
+      await until(wRn, overviewReady, 2000, 'die Uebersicht');
       await sysSection(wRn, 'inventory');
       await npPress(wRn, 'ncatlang', 'Türkçe');
       const rnRow = [...wRn.document.querySelectorAll('#mcats .mrow')]
@@ -807,8 +828,9 @@ async function run() {
         if (rnField) {
           rnField.value = 'Takım';
           rnField.dispatchEvent(new wRn.Event('blur', { bubbles: true }));
+          await until(wRn, (x) => rnDom.sent.some(g => g.method === 'PUT' &&
+            g.url === '/api/product-categories/21') && openRequests(x) === 0, 2000, 'das Umbenennen');
         }
-        await new Promise(r => setTimeout(r, 200));
         /* DER RUMPF NENNT DIE SPRACHE DER PILLE -- 0.24.3, Bauabschnitt 6a. */
         const rnPut = rnDom.sent.filter(g => g.method === 'PUT' &&
           g.url === '/api/product-categories/21').pop();
@@ -845,7 +867,7 @@ async function run() {
         criteriaPhases: ['after', 'after', 'before']
       });
       const wRo = roDom.w;
-      await new Promise(r => setTimeout(r, 80));
+      await until(wRo, overviewReady, 2000, 'die Uebersicht');
       await sysSection(wRo, 'inventory');
       check('Rollenprobe: der gewoehnliche Benutzer sieht keine Sprachzeile',
         ['ncatlang', 'mcrits-lang', 'mpcrits-lang', 'vlang']
@@ -869,7 +891,8 @@ async function run() {
   check('Aktuelle Stufe ist hervorgehoben',
     levels.find(b => b.classList.contains('on'))?.textContent === '120 %');
   levels[0].dispatchEvent(new w3.Event('click'));
-  await new Promise(r => setTimeout(r, 30));
+  await until(w3, (x) => three.sent.some(s => s.method === 'PUT' && s.body &&
+    s.body.font !== undefined) && openRequests(x) === 0, 2000, 'die gespeicherte Schriftstufe');
   check('Klick auf eine Stufe wirkt sofort',
     parseFloat(w3.document.documentElement.style.fontSize) === 12,
     `ist: ${w3.document.documentElement.style.fontSize}`);
@@ -886,7 +909,7 @@ async function run() {
     dayOne: 'Z', dayMany: '<u id="boese3">Zs</u>'
   }}});
   const w4 = four.w;
-  await new Promise(r => setTimeout(r, 80));
+  await until(w4, overviewReady, 2000, 'die Uebersicht');
   check('Uebersicht macht aus dem Vokabular kein HTML',
     !w4.document.getElementById('boese') && !w4.document.getElementById('boese2') &&
     !w4.document.getElementById('boese3') &&
@@ -894,7 +917,7 @@ async function run() {
     w4.document.getElementById('new').textContent);
   // Auch Karte, Detailansicht und Verwaltungsliste setzen Vokabelwoerter ein.
   w4.location.hash = '#/item/1';
-  await new Promise(r => setTimeout(r, 80));
+  await until(w4, detailReady, 2000, 'die Detailansicht');
   check('Detailansicht macht aus dem Vokabular kein HTML',
     !w4.document.getElementById('boese') && !w4.document.getElementById('boese3'));
   await sysSection(w4, 'inventory');
@@ -906,7 +929,7 @@ async function run() {
      DASSELBE ZEICHEN, DIE ANDEREN DREI ANSICHTEN. */
   {
     const rf = buildDom(JSDOM, {});
-    await new Promise(r => setTimeout(r, 80));
+    await until(rf.w, overviewReady, 2000, 'die Uebersicht');
     const rfText = () => rf.w.document.body.textContent || '';
     const rfFinding = [];
     const rfLook = (wo) => {
@@ -916,11 +939,12 @@ async function run() {
     rfLook('Liste');
     const rfList = rfText().length;
     rf.w.location.hash = '#/item/1';
-    await new Promise(r => setTimeout(r, 80));
+    await until(rf.w, detailReady, 2000, 'die Detailansicht');
     rfLook('Eintrag');
     const rfEntry = rfText().length;
     rf.w.showLogin();
-    await new Promise(r => setTimeout(r, 40));
+    await until(rf.w, (x) => !!x.document.getElementById('lb') && openRequests(x) === 0, 2000,
+      'die Anmeldeseite');
     rfLook('Anmeldung');
     check('Rueckfallprobe: kein ⟦…⟧ in Liste, Eintrag und Anmeldung',
       rfFinding.length === 0, rfFinding.join(' · '));
@@ -971,7 +995,7 @@ async function run() {
       const knob = axPills(w, boxId).find(b => pillName(b) === name);
       if (!knob) return false;
       knob.dispatchEvent(new w.Event('click', { bubbles: true }));
-      await new Promise(r => setTimeout(r, 140));
+      await until(w, redrawn(boxId, knob.parentElement), 2000, `die Pillenreihe ${boxId}`);
       return true;
     };
     /* WAS AN EINER PILLE STEHT -- der Punkt oder die Zahl. `pillMark()` liest
@@ -993,7 +1017,10 @@ async function run() {
       const knob = row && row.querySelector('.sdefault');
       if (!knob) return false;
       knob.dispatchEvent(new w.Event('click', { bubbles: true }));
-      await new Promise(r => setTimeout(r, 180));
+      await until(w, (x) => {
+        const now = [...x.document.querySelectorAll('#langs .engine')].find(z => z.dataset.k === code);
+        return !!now && now !== row && openRequests(x) === 0;
+      }, 2000, 'die neu gezeichnete Sprachliste');
       return true;
     };
     /* WAS EIN VERMERK SAGEN DARF: genau die eine erwartete Sprache und keine
@@ -1019,7 +1046,7 @@ async function run() {
         criteriaPhases: ['after', 'after', 'before']
       });
       const wAx = axDom.w;
-      await new Promise(r => setTimeout(r, 80));
+      await until(wAx, overviewReady, 2000, 'die Uebersicht');
       /* ZUERST DER WECHSEL, DANN DIE KARTE. */
       await sysSection(wAx, 'installation');
       const axSwitched = await axSetDefault(wAx, std);
@@ -1072,7 +1099,7 @@ async function run() {
         criteriaPhases: ['after', 'after', 'before']
       });
       const wPz = pzDom.w;
-      await new Promise(r => setTimeout(r, 80));
+      await until(wPz, overviewReady, 2000, 'die Uebersicht');
       await sysSection(wPz, 'inventory');
       check('Pillenprobe: die vollstaendige Sprache traegt den Punkt, jede andere ihre Zahl',
         axMarks(wPz, 'ncatlang') === 'Deutsch:● English:1 Türkçe:1',
@@ -1105,7 +1132,7 @@ async function run() {
         criteriaPhases: ['after', 'after', 'before']
       });
       const wX = xDom.w;
-      await new Promise(r => setTimeout(r, 80));
+      await until(wX, overviewReady, 2000, 'die Uebersicht');
       await sysSection(wX, 'inventory');
       await axPress(wX, 'ncatlang', 'English');
       check('Zeichenprobe: das ✕ steht an der Zeile mit englischem Eintrag',
@@ -1128,7 +1155,8 @@ async function run() {
       const xWatch = placeConfirm(wX, true, xTranscript);
       if (xKnob) {
         xKnob.dispatchEvent(new wX.Event('click', { bubbles: true }));
-        await new Promise(r => setTimeout(r, 300));
+        await until(wX, (x) => xDom.sent.some(g => g.method === 'PUT' &&
+          g.url === '/api/product-categories/22') && openRequests(x) === 0, 2000, 'der geraeumte Name');
       }
       xWatch.disconnect();
       /* UND DIE RUECKFRAGE NENNT DIE SPRACHE, die geraeumt wird. Ein Dialog,
@@ -1167,7 +1195,7 @@ async function run() {
         criteriaPhases: ['after', 'after', 'before']
       });
       const wUk = ukDom.w;
-      await new Promise(r => setTimeout(r, 80));
+      await until(wUk, overviewReady, 2000, 'die Uebersicht');
       await sysSection(wUk, 'inventory');
       const ukBox = () => wUk.document.getElementById('nunknown');
       check('Nachfrageprobe: der Kasten steht da und nennt die Zahl ueber beide Tafeln',
@@ -1186,7 +1214,8 @@ async function run() {
       const ukKnob = ukBox() && ukBox().querySelector('button');
       if (ukKnob) {
         ukKnob.dispatchEvent(new wUk.Event('click', { bubbles: true }));
-        await new Promise(r => setTimeout(r, 300));
+        await until(wUk, (x) => ukDom.sent.some(g => g.method === 'PUT' &&
+          g.url === '/api/names/language') && openRequests(x) === 0, 2000, 'die zugeordnete Sprache');
       }
       const ukPut = ukDom.sent.filter(g => g.method === 'PUT' &&
         g.url === '/api/names/language').pop();
@@ -1213,7 +1242,7 @@ async function run() {
         criteriaPhases: ['after', 'after', 'before']
       });
       const wVg = vgDom.w;
-      await new Promise(r => setTimeout(r, 80));
+      await until(wVg, overviewReady, 2000, 'die Uebersicht');
       await sysSection(wVg, 'inventory');
       /* FUENFZEHN WOERTER SEIT 0.32.0, EINES EINGETRAGEN: Deutsch fehlen
          vierzehn, den beiden anderen alle fuenfzehn. */
@@ -1244,7 +1273,7 @@ async function run() {
         criteriaPhases: ['after', 'after', 'before']
       });
       const wVf = vfDom.w;
-      await new Promise(r => setTimeout(r, 80));
+      await until(wVf, overviewReady, 2000, 'die Uebersicht');
       await sysSection(wVf, 'inventory');
       check('Und eine vollstaendige Kachel „Vokabular" traegt Punkte und keinen Rahmen',
         axMarks(wVf, 'vlang') === 'Deutsch:● English:● Türkçe:●' && !axFramed(wVf, 'vlang'),
@@ -1262,7 +1291,7 @@ async function run() {
         criteriaPhases: ['after', 'after', 'before']
       });
       const wAn = anDom.w;
-      await new Promise(r => setTimeout(r, 80));
+      await until(wAn, overviewReady, 2000, 'die Uebersicht');
       await sysSection(wAn, 'installation');
       const anHint = () => {
         const box = wAn.document.getElementById('langs');
@@ -1310,7 +1339,7 @@ async function run() {
         criteriaPhases: ['after', 'after', 'before']
       });
       const wAv = avDom.w;
-      await new Promise(r => setTimeout(r, 80));
+      await until(wAv, overviewReady, 2000, 'die Uebersicht');
       await sysSection(wAv, 'installation');
       const avBox = wAv.document.getElementById('langs');
       check('Und sie steht nicht da, wenn der Vorgabesprache nichts fehlt',
@@ -1328,7 +1357,7 @@ async function run() {
         criteriaPhases: ['after', 'after', 'before']
       });
       const wNz = nzDom.w;
-      await new Promise(r => setTimeout(r, 80));
+      await until(wNz, overviewReady, 2000, 'die Uebersicht');
       await sysSection(wNz, 'installation');
       const nzBefore = nzDom.sent.filter(g => (g.method || 'GET') === 'GET' &&
         g.url === '/api/settings').length;
@@ -1351,7 +1380,7 @@ async function run() {
         criterionNames: gwNames, criteriaPhases: ['after', 'after', 'before']
       });
       const wGw = gwDom.w;
-      await new Promise(r => setTimeout(r, 80));
+      await until(wGw, overviewReady, 2000, 'die Uebersicht');
       await sysSection(wGw, 'inventory');
       await axPress(wGw, 'mcrits-lang', 'English');
       const gwRow = [...wGw.document.querySelectorAll('#mcrits .mrow')]
@@ -1363,7 +1392,8 @@ async function run() {
       if (gwField) {
         gwField.value = '1,5';
         gwField.dispatchEvent(new wGw.Event('change', { bubbles: true }));
-        await new Promise(r => setTimeout(r, 220));
+        await until(wGw, (x) => gwDom.sent.some(g => g.method === 'PUT' &&
+          g.url === '/api/criteria/7') && openRequests(x) === 0, 2000, 'das gespeicherte Gewicht');
         const gwPut = gwDom.sent.filter(g => g.method === 'PUT' &&
           g.url === '/api/criteria/7').pop();
         check('Gewichtsprobe: der Rumpf nennt die Sprache, aus der der Name stammt',
@@ -1392,7 +1422,8 @@ async function run() {
       if (gwBackField) {
         gwBackField.value = '0,8';
         gwBackField.dispatchEvent(new wGw.Event('change', { bubbles: true }));
-        await new Promise(r => setTimeout(r, 220));
+        await until(wGw, (x) => gwDom.sent.some(g => g.method === 'PUT' &&
+          g.url === '/api/criteria/8') && openRequests(x) === 0, 2000, 'das gespeicherte Gewicht');
         const gwPut2 = gwDom.sent.filter(g => g.method === 'PUT' &&
           g.url === '/api/criteria/8').pop();
         check('Rueckfallprobe: der Rumpf nennt die Sprache des Rueckfalls und nicht die der Pille',
@@ -1418,7 +1449,7 @@ async function run() {
         criterionNames: { en: { 7: 'First', 8: 'Then' }, tr: { 9: 'Sonuncu' } }
       });
       const wKz = kzDom.w;
-      await new Promise(r => setTimeout(r, 80));
+      await until(wKz, overviewReady, 2000, 'die Uebersicht');
       await sysSection(wKz, 'inventory');
       /* DER AUFBAU ZUERST. Ohne ihn belegten die Zahlen darunter nichts: eine
          Kachel, die gar keine Liste hat, zaehlt auch keine Luecken. */
@@ -1472,7 +1503,8 @@ async function run() {
       const kzWatch = placeConfirm(wKz, true, []);
       if (kzX) {
         kzX.dispatchEvent(new wKz.Event('click', { bubbles: true }));
-        await new Promise(r => setTimeout(r, 320));
+        await until(wKz, (x) => kzDom.sent.some(g => g.method === 'PUT' &&
+          g.url === '/api/criteria/9') && openRequests(x) === 0, 2000, 'der geraeumte Name');
       }
       kzWatch.disconnect();
       check('Raeumprobe: der tuerkische Eintrag des Potenzialkastens ist weg',
@@ -1547,7 +1579,7 @@ async function run() {
         criteriaPhases: ['after', 'after', 'before']
       });
       const wAl = alDom.w;
-      await new Promise(r => setTimeout(r, 80));
+      await until(wAl, overviewReady, 2000, 'die Uebersicht');
       await sysSection(wAl, 'inventory');
       /* WELCHE PILLE IN EINER REIHE ANSTEHT -- gebraucht wird es zweimal: als
          Beleg, dass der Leser wirklich Tuerkisch liest, und unten fuer den
@@ -1821,7 +1853,7 @@ async function run() {
   group('Zeitleiste der Testtage');
 
   const { w: wz } = buildDom(JSDOM, {});
-  await new Promise(r => setTimeout(r, 60));
+  await until(wz, overviewReady, 2000, 'die Uebersicht');
 
   // Rechnung zuerst, unabhaengig vom Bildschirm.
   check('Anteil: Anfang, Mitte, Ende',
@@ -1856,13 +1888,13 @@ async function run() {
   wz.close();
 
   const few = buildDom(JSDOM, { overviewItems: buildItems(4, 1) }).w;
-  await new Promise(r => setTimeout(r, 80));
+  await until(few, overviewReady, 2000, 'die Uebersicht');
   check('Unter fünf Testtagen bleibt das Band weg',
     few.document.getElementById('timeline').innerHTML === '');
   few.close();
 
   const wviel = buildDom(JSDOM, { overviewItems: buildItems(6, 1) }).w;
-  await new Promise(r => setTimeout(r, 80));
+  await until(wviel, overviewReady, 2000, 'die Uebersicht');
   const zlBox = () => wviel.document.getElementById('timeline');
   check('Ab fünf Testtagen erscheint das Band', !!zlBox().querySelector('.timeline'));
   const points = [...zlBox().querySelectorAll('.timeline-dot')];
@@ -1897,7 +1929,7 @@ async function run() {
     `${zlBox().querySelectorAll('.timeline-dot').length} Punkte`);
   searchField.value = '';
   searchField.oninput();
-  await new Promise(r => setTimeout(r, 40));
+  await waitSearch(wviel);
   check('Ohne Suche kommt sie zurück', zlBox().querySelectorAll('.timeline-dot').length === 6,
     `${zlBox().querySelectorAll('.timeline-dot').length} Punkte`);
 
@@ -1917,7 +1949,7 @@ async function run() {
   ];
   const cloudsDom = buildDom(JSDOM, { tags: pool, hash: '#/item/1' });
   const ww = cloudsDom.w;
-  await new Promise(r => setTimeout(r, 80));
+  await until(ww, detailReady, 2000, 'die Detailansicht');
 
   check('Wolke sortiert nach Häufigkeit',
     equal(ww.sortCloud(pool, new Set()).map(t => t.name),
@@ -1964,14 +1996,16 @@ async function run() {
 // vergebenen ihn zuruecknehmen -- zwei verschiedene Aufrufe.
   const free = cloud.find(b2 => !b2.classList.contains('on'));
   free.onclick();
-  await new Promise(r => setTimeout(r, 30));
+  await until(ww, (x) => cloudsDom.sent.some(g => g.method === 'POST' && /\/tags$/.test(g.url)) &&
+    openRequests(x) === 0, 2000, 'der vergebene Tag');
   const assigns = cloudsDom.sent.filter(x => x.method === 'POST' && /\/tags$/.test(x.url)).pop();
   check('Klick auf einen freien Tag vergibt ihn',
     assigns && assigns.body.name === free.textContent.replace(/\d+$/, ''),
     JSON.stringify(assigns));
   const used = [...ww.document.querySelectorAll('#tagcloud .pill')].find(b2 => b2.classList.contains('on'));
   used.onclick();
-  await new Promise(r => setTimeout(r, 30));
+  await until(ww, (x) => cloudsDom.sent.some(g => g.method === 'DELETE' && /\/tags\//.test(g.url)) &&
+    openRequests(x) === 0, 2000, 'der zurueckgenommene Tag');
   const takes = cloudsDom.sent.filter(x => x.method === 'DELETE' && /\/tags\//.test(x.url)).pop();
   check('Erneuter Klick nimmt ihn zurück', !!takes, JSON.stringify(takes));
 
@@ -1992,7 +2026,7 @@ async function run() {
   const zuDom = buildDom(JSDOM, { tags: pool, hash: '#/item/1',
     settings: { filters: null, blocks: { closed: ['tags'] } } });
   const zw = zuDom.w;
-  await new Promise(r => setTimeout(r, 80));
+  await until(zw, detailReady, 2000, 'die Detailansicht');
   const tagBlock = zw.document.querySelector('.block[data-block="tags"]');
   check('Der Tagblock kommt eingeklappt herein',
     tagBlock?.classList.contains('closed'), tagBlock?.className);
@@ -2006,7 +2040,8 @@ async function run() {
   const beforePill = zw.document.querySelector('#tagcloud .pill');
   tagBlock.querySelector('.block-head')
     .dispatchEvent(new zw.MouseEvent('click', { bubbles: true }));
-  await new Promise(r => setTimeout(r, 30));
+  await until(zw, (x) => !tagBlock.classList.contains('closed') && openRequests(x) === 0, 2000,
+    'der aufgeklappte Tagblock');
   check('Der Klick auf die Kopfzeile klappt den Block auf',
     !tagBlock.classList.contains('closed'), tagBlock.className);
   const afterPill = zw.document.querySelector('#tagcloud .pill');
@@ -2044,7 +2079,7 @@ async function run() {
     settings: { filters: null }
   });
   const wf = filterDom.w;
-  await new Promise(r => setTimeout(r, 80));
+  await until(wf, overviewReady, 2000, 'die Uebersicht');
 
   // Die reine Rechnung zuerst, unabhaengig von der Oberflaeche.
   const entry = inventory[0];
@@ -2082,7 +2117,8 @@ async function run() {
 
   check('Die Marken stehen in der Tagzeile und lassen sich anklicken',
     markClick('Grün'), '(keine Tagzeile oder keine Marke darin)');
-  await new Promise(r => setTimeout(r, 20));
+  await until(wf, (x) => mark('Grün')?.classList.contains('on') && openRequests(x) === 0, 2000,
+    'der gewaehlte Tag Grün');
   check('Ein Tag filtert wie gehabt',
     equal(title().sort(), ['Grün und leicht', 'Grün und schwer', 'Nur grün']), JSON.stringify(title()));
 
@@ -2090,7 +2126,8 @@ async function run() {
   check('Und sie stehen auch bei greifendem Filter noch da',
     !!mark('Schwer'), '(die Tagzeile ist bei greifendem Filter verschwunden)');
   markClick('Schwer');
-  await new Promise(r => setTimeout(r, 20));
+  await until(wf, (x) => mark('Schwer')?.classList.contains('on') && openRequests(x) === 0, 2000,
+    'der gewaehlte Tag Schwer');
   check('Zwei Tags mit UND zeigen nur den Schnitt',
     equal(title(), ['Grün und schwer']), JSON.stringify(title()));
   check('Der Umschalter ruht jetzt nicht mehr',
@@ -2098,7 +2135,8 @@ async function run() {
 
   check('Der Umschalter steht in der Tagzeile und laesst sich anklicken',
     modeClick('or'), '(kein Umschalter -- die Tagzeile fehlt)');
-  await new Promise(r => setTimeout(r, 20));
+  await until(wf, (x) => mode('or')?.classList.contains('on') && openRequests(x) === 0, 2000,
+    'die Verknuepfung ODER');
   check('Umschalten auf ODER erweitert das Ergebnis',
     equal(title().sort(), ['Grün und leicht', 'Grün und schwer', 'Nur grün', 'Nur schwer']),
     JSON.stringify(title()));
@@ -2113,7 +2151,8 @@ async function run() {
 
   // Sackgassen: im UND-Modus muss vorher sichtbar sein, was leer laeuft.
   modeClick('and');
-  await new Promise(r => setTimeout(r, 20));
+  await until(wf, (x) => mode('and')?.classList.contains('on') && openRequests(x) === 0, 2000,
+    'die Verknuepfung UND');
   const emptyMarks = [...wf.document.querySelectorAll('#filters .pill-tag.blank')].map(b => b.textContent);
   check('Aussichtslose Tags werden gedämpft',
     equal(emptyMarks, ['Leicht']), JSON.stringify(emptyMarks));
@@ -2124,18 +2163,22 @@ async function run() {
   check('Ein Hinweis erklärt die Dämpfung', /keine Treffer/i.test(mark('Leicht')?.title || ''));
 
   modeClick('or');
-  await new Promise(r => setTimeout(r, 20));
+  await until(wf, (x) => mode('or')?.classList.contains('on') && openRequests(x) === 0, 2000,
+    'die Verknuepfung ODER');
   check('Im ODER-Modus wird nichts gedämpft',
     wf.document.querySelectorAll('#filters .pill-tag.blank').length === 0);
 
   // Der Fall, in dem der Schutz für gewählte Tags erst greift: eine Auswahl
   // ohne jeden Treffer.
   modeClick('and');
-  await new Promise(r => setTimeout(r, 20));
+  await until(wf, (x) => mode('and')?.classList.contains('on') && openRequests(x) === 0, 2000,
+    'die Verknuepfung UND');
   markClick('Grün');          // abwählen
-  await new Promise(r => setTimeout(r, 20));
+  await until(wf, (x) => !!mark('Grün') && !mark('Grün').classList.contains('on') &&
+    openRequests(x) === 0, 2000, 'der abgewaehlte Tag Grün');
   markClick('Leicht');        // Schwer + Leicht: kein Eintrag hat beide
-  await new Promise(r => setTimeout(r, 20));
+  await until(wf, (x) => mark('Leicht')?.classList.contains('on') && openRequests(x) === 0, 2000,
+    'der gewaehlte Tag Leicht');
   check('Diese Auswahl ergibt wirklich keinen Treffer', title().length === 0, JSON.stringify(title()));
   check('Auch bei leerem Ergebnis bleiben gewählte Tags ungedämpft',
     !!mark('Schwer') && !!mark('Leicht') &&
@@ -2148,7 +2191,7 @@ async function run() {
   // Aeltere gespeicherte Filter kennen die Verknuepfung nicht.
   const oldFilter = buildDom(JSDOM, { tags: tagPool, overviewItems: inventory,
     settings: { filters: { tagIds: [1, 2], tested: 'all', sort: 'updated_desc' } } });
-  await new Promise(r => setTimeout(r, 80));
+  await until(oldFilter.w, overviewReady, 2000, 'die Uebersicht');
   check('Ältere Filter ohne Verknüpfung bekommen UND',
     equal([...oldFilter.w.document.querySelectorAll('.card .card-title')].map(e => e.textContent),
            ['Grün und schwer']),
@@ -2157,7 +2200,7 @@ async function run() {
 
   const orFilter = buildDom(JSDOM, { tags: tagPool, overviewItems: inventory,
     settings: { filters: { tagIds: [1, 2], tagMode: 'or', tested: 'all', sort: 'updated_desc' } } });
-  await new Promise(r => setTimeout(r, 80));
+  await until(orFilter.w, overviewReady, 2000, 'die Uebersicht');
   check('Gespeichertes ODER wird wiederhergestellt',
     [...orFilter.w.document.querySelectorAll('.card .card-title')].length === 4);
   orFilter.w.close();
@@ -2188,7 +2231,7 @@ async function run() {
     [...d.w.document.querySelectorAll('.card .card-title')].map(e => e.textContent);
   const favBuild = async (filters) => {
     const d = buildDom(JSDOM, { overviewItems: favInventory, settings: { filters } });
-    await new Promise(r => setTimeout(r, 80));
+    await until(d.w, overviewReady, 2000, 'die Uebersicht');
     return d;
   };
 
@@ -2212,7 +2255,10 @@ async function run() {
   const favEverything = [...favValue.w.document.querySelectorAll('#filters .pill')]
     .find(b => b.textContent.trim() === 'Alle');
   favEverything?.dispatchEvent(new favValue.w.MouseEvent('click', { bubbles: true }));
-  await new Promise(r => setTimeout(r, 30));
+  await until(favValue.w, (x) => {
+    const all = [...x.document.querySelectorAll('#filters .pill')].find(b => b.textContent.trim() === 'Alle');
+    return !!all && all !== favEverything && openRequests(x) === 0;
+  }, 2000, 'die neu gezeichnete Filterzeile');
   const favValueT = favTitleFrom(favValue);
   check('Ein Favorit ohne Wertung steht bei Bewertungssortierung am Ende',
     favValueT[favValueT.length - 1] === 'Zeta ohne Wertung', JSON.stringify(favValueT));
@@ -2251,7 +2297,8 @@ async function run() {
   check('Vor dem Klick ist er nicht gesetzt',
     !favButton?.classList.contains('on'), favButton?.className);
   favButton?.dispatchEvent(new wv.MouseEvent('click', { bubbles: true }));
-  await new Promise(r => setTimeout(r, 30));
+  await until(wv, (x) => x.document.getElementById('f-fav')?.classList.contains('on') &&
+    openRequests(x) === 0, 2000, 'der gesetzte Favoritenfilter');
   check('Ein zugestellter Klick schaltet den Filter ein',
     equal(favTitleFrom(favClickable), ['Beta mit Wertung', 'Zeta ohne Wertung']),
     JSON.stringify(favTitleFrom(favClickable)));
@@ -2259,7 +2306,8 @@ async function run() {
     wv.document.getElementById('f-fav')?.classList.contains('on'),
     wv.document.getElementById('f-fav')?.className);
   wv.document.getElementById('f-fav')?.dispatchEvent(new wv.MouseEvent('click', { bubbles: true }));
-  await new Promise(r => setTimeout(r, 30));
+  await until(wv, (x) => x.document.getElementById('f-fav')?.classList.contains('on') === false &&
+    openRequests(x) === 0, 2000, 'der zurueckgenommene Favoritenfilter');
   check('Erneuter Klick nimmt ihn zurueck',
     favTitleFrom(favClickable).length === 4 &&
     !wv.document.getElementById('f-fav')?.classList.contains('on'),
@@ -2323,7 +2371,7 @@ async function run() {
 
   const offBuild = async (opt = {}) => {
     const d = buildDom(JSDOM, { hash: '#/open', ...opt });
-    await new Promise(r => setTimeout(r, 90));
+    await until(d.w, openReady, 2000, 'die Ansicht Offen');
     return d;
   };
   const offRows = (d) => [...d.w.document.querySelectorAll('.open-row')];
@@ -2383,14 +2431,16 @@ async function run() {
     !offView(offAll, 'meine')?.classList.contains('on'),
     `${offView(offAll, 'meine')?.className} | ${offView(offAll, 'alle')?.className}`);
   offView(offAll, 'meine').dispatchEvent(new offAll.w.MouseEvent('click', { bubbles: true }));
-  await new Promise(r => setTimeout(r, 40));
+  await until(offAll.w, () => offView(offAll, 'meine')?.classList.contains('on'), 2000,
+    'die Stellung „meine"');
   check('„meine" zeigt nur die eigenen Aufgaben',
     equal(offTexts(offAll), ['Eine Aufgabe']), JSON.stringify(offTexts(offAll)));
   check('Und die Zeile darueber sagt, was gezeigt wird',
     /eigenen/.test(offAll.w.document.getElementById('open-hint')?.textContent || ''),
     offAll.w.document.getElementById('open-hint')?.textContent);
   offView(offAll, 'alle').dispatchEvent(new offAll.w.MouseEvent('click', { bubbles: true }));
-  await new Promise(r => setTimeout(r, 40));
+  await until(offAll.w, () => offView(offAll, 'alle')?.classList.contains('on'), 2000,
+    'die Stellung „alle"');
   check('Und zurueck geht es auch', offTexts(offAll).length === 3, JSON.stringify(offTexts(offAll)));
   offAll.w.close();
 
@@ -2429,7 +2479,8 @@ async function run() {
   offAdmin.sent.length = 0;
   offRows(offAdmin)[0].querySelector('.open-check')
     .dispatchEvent(new offAdmin.w.MouseEvent('click', { bubbles: true }));
-  await new Promise(r => setTimeout(r, 50));
+  await until(offAdmin.w, (x) => offAdmin.sent.some(g => g.method === 'PUT') && openRequests(x) === 0,
+    2000, 'der gesetzte Haken');
   const offSent = offAdmin.sent.filter(g => g.method === 'PUT');
   check('Der Haken schreibt ueber die vorhandene Kommentarroute',
     offSent.length === 1 && offSent[0].url === '/api/comments/65',
@@ -2457,7 +2508,8 @@ async function run() {
   offAdmin.sent.length = 0;
   offRows(offAdmin)[0].querySelector('.open-check')
     .dispatchEvent(new offAdmin.w.MouseEvent('click', { bubbles: true }));
-  await new Promise(r => setTimeout(r, 50));
+  await until(offAdmin.w, (x) => offAdmin.sent.some(g => g.method === 'PUT') && openRequests(x) === 0,
+    2000, 'der zurueckgenommene Haken');
   check('Ein zweiter Druck nimmt ihn wieder weg -- und macht keine Notiz daraus',
     offAdmin.sent.filter(g => g.method === 'PUT')[0]?.body?.kind === 'task',
     JSON.stringify(offAdmin.sent.filter(g => g.method === 'PUT').map(g => g.body)));
@@ -2469,11 +2521,12 @@ async function run() {
      Ansicht neu aufgebaut, ist die abgehakte Zeile fort. */
   offRows(offAdmin)[0].querySelector('.open-check')
     .dispatchEvent(new offAdmin.w.MouseEvent('click', { bubbles: true }));
-  await new Promise(r => setTimeout(r, 50));
+  await until(offAdmin.w, (x) => offRows(offAdmin)[0]?.classList.contains('done') &&
+    openRequests(x) === 0, 2000, 'der erneut gesetzte Haken');
   offAdmin.w.location.hash = '#/';
-  await new Promise(r => setTimeout(r, 60));
+  await until(offAdmin.w, overviewReady, 2000, 'die Uebersicht');
   offAdmin.w.location.hash = '#/open';
-  await new Promise(r => setTimeout(r, 90));
+  await until(offAdmin.w, openReady, 2000, 'die Ansicht Offen');
   check('Beim naechsten Aufbau ist die abgehakte Zeile fort',
     equal(offTexts(offAdmin), ['Fremde Aufgabe', 'Herrenlose Aufgabe']),
     JSON.stringify(offTexts(offAdmin)));
@@ -2492,17 +2545,20 @@ async function run() {
   const offNotMy = await offBuild({ settings: { filters: null, userCount: 3 } });
   offView(offNotMy, 'meine')
     .dispatchEvent(new offNotMy.w.MouseEvent('click', { bubbles: true }));
-  await new Promise(r => setTimeout(r, 40));
+  await until(offNotMy.w, () => offView(offNotMy, 'meine')?.classList.contains('on'), 2000,
+    'die Stellung „meine"');
   offRows(offNotMy)[0].querySelector('.open-check')
     .dispatchEvent(new offNotMy.w.MouseEvent('click', { bubbles: true }));
-  await new Promise(r => setTimeout(r, 50));
+  await until(offNotMy.w, (x) => offNotMy.sent.some(g => g.method === 'PUT' &&
+    g.url === '/api/comments/65') && openRequests(x) === 0, 2000, 'der gesetzte Haken');
   offNotMy.w.location.hash = '#/';
-  await new Promise(r => setTimeout(r, 60));
+  await until(offNotMy.w, overviewReady, 2000, 'die Uebersicht');
   offNotMy.w.location.hash = '#/open';
-  await new Promise(r => setTimeout(r, 90));
+  await until(offNotMy.w, openReady, 2000, 'die Ansicht Offen');
   offView(offNotMy, 'meine')
     .dispatchEvent(new offNotMy.w.MouseEvent('click', { bubbles: true }));
-  await new Promise(r => setTimeout(r, 40));
+  await until(offNotMy.w, () => offView(offNotMy, 'meine')?.classList.contains('on'), 2000,
+    'die Stellung „meine"');
   check('„Von mir ist nichts offen" sagt etwas anderes als „nichts offen"',
     /Von mir ist nichts offen/.test(
       offNotMy.w.document.getElementById('open-hint')?.textContent || ''),
@@ -2535,7 +2591,7 @@ async function run() {
 
   /* Der Weg in die Ansicht: ein Knopf in der Kopfzeile, neben dem Zahnrad. */
   const offHead = buildDom(JSDOM, { settings: { filters: null, userCount: 3 } });
-  await new Promise(r => setTimeout(r, 90));
+  await until(offHead.w, overviewReady, 2000, 'die Uebersicht');
   const offButton = offHead.w.document.getElementById('open');
   check('Die Kopfzeile traegt einen Knopf in die Ansicht', !!offButton);
   check('Und er steht neben dem Zahnrad',
@@ -2548,7 +2604,7 @@ async function run() {
     offHead.w.document.getElementById('open-count')?.textContent === '1',
     offHead.w.document.getElementById('open-count')?.textContent);
   offButton?.dispatchEvent(new offHead.w.MouseEvent('click', { bubbles: true }));
-  await new Promise(r => setTimeout(r, 90));
+  await until(offHead.w, openReady, 2000, 'die Ansicht Offen');
   check('Ein zugestellter Klick fuehrt in die Ansicht',
     offHead.w.location.hash === '#/open' &&
     !!offHead.w.document.querySelector('.open-group'),
@@ -2596,7 +2652,7 @@ async function run() {
       overviewItems: nsInventory, tags: nsTagPool,
       settings: { filters, ...more }
     });
-    await new Promise(r => setTimeout(r, 90));
+    await until(d.w, overviewReady, 2000, 'die Uebersicht');
     return d;
   };
   const nsDefault = { categoryIds: [], tagIds: [], tagMode: 'and', tested: 'all',
@@ -2675,7 +2731,7 @@ async function run() {
   check('Das Betreten der Uebersicht merkt sich nichts',
     nsPuts().length === 0, JSON.stringify(nsPuts().map(g => g.body)));
   nsPath.w.location.hash = '#/item/1';
-  await new Promise(r => setTimeout(r, 90));
+  await until(nsPath.w, detailReady, 2000, 'die Detailansicht');
   check('Das Verlassen der Uebersicht setzt den Bezugspunkt',
     nsPuts().length === 1 && nsPuts()[0].body?.bellSeen !== undefined,
     JSON.stringify(nsPuts().map(g => g.body)));
@@ -2693,7 +2749,7 @@ async function run() {
      Verlassen GAR NICHTS mehr hinaus. */
   const nsAlready = await nsBuild(nsDefault, { bellSeen: '2026-08-01 00:00:00' });
   nsAlready.w.location.hash = '#/item/1';
-  await new Promise(r => setTimeout(r, 90));
+  await until(nsAlready.w, detailReady, 2000, 'die Detailansicht');
   check('Mit vorhandenem Bezugspunkt faehrt beim Verlassen nichts mehr hinaus',
     nsAlready.sent.filter(g => g.method === 'PUT' && g.url === '/api/settings'
       && g.body?.bellSeen !== undefined).length === 0,
@@ -2706,8 +2762,11 @@ async function run() {
      an der Uebersicht und nicht an einem einzelnen Ziel. */
   for (const target of ['#/open', '#/system', '#/compare']) {
     const d = await nsBuild(nsDefault);
+    const nsShown = d.w.document.getElementById('app').firstElementChild;
     d.w.location.hash = target;
-    await new Promise(r => setTimeout(r, 90));
+    // Jedes Ziel zeichnet #app neu; `#/compare` ohne Auswahl fuehrt in die Uebersicht zurueck.
+    await until(d.w, (x) => x.document.getElementById('app').firstElementChild !== nsShown &&
+      openRequests(x) === 0, 2000, `die Ansicht hinter ${target}`);
     check(`Auch der Weg nach ${target} setzt den Bezugspunkt`,
       d.sent.filter(g => g.method === 'PUT' && g.url === '/api/settings'
         && g.body?.bellSeen !== undefined).length === 1,
@@ -2720,7 +2779,8 @@ async function run() {
   const nsStays = await nsBuild(nsDefault);
   nsStays.w.document.getElementById('f-fav')
     ?.dispatchEvent(new nsStays.w.MouseEvent('click', { bubbles: true }));
-  await new Promise(r => setTimeout(r, 60));
+  await until(nsStays.w, (x) => x.document.getElementById('f-fav')?.classList.contains('on') &&
+    openRequests(x) === 0, 2000, 'der gesetzte Favoritenfilter');
   check('Ein Filterklick in der Uebersicht setzt keinen Bezugspunkt',
     nsStays.sent.filter(g => g.method === 'PUT' && g.url === '/api/settings'
       && g.body?.bellSeen !== undefined).length === 0,

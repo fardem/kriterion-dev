@@ -13,28 +13,28 @@ function help() {
   console.log(`
 ${BOLD('Kriterion — Zugangsverwaltung')}
 
-  node usertool.js liste
+  node usertool.js list
       Alle Zugaenge mit Nummer, Rolle, Status und Zahl der Eintraege.
 
-  node usertool.js passwort <name>
+  node usertool.js password <name>
       Setzt das Passwort neu. Fragt es zweimal ab; alle Sitzungen dieses
       Zugangs fallen. Rolle, Nummer und Bestand bleiben unangetastet.
       Das ist der haeufige Fall: Passwort vergessen.
 
-  node usertool.js entfernen <name> [--eintraege] [--beitraege]
+  node usertool.js remove <name> [--entries] [--posts]
       Macht aus dem Zugang einen Grabstein: die Zeile bleibt mit ihrer Nummer
       stehen, der Name wird freigegeben, die Beitraege bleiben sichtbar und
       tragen kuenftig "Geloeschter Benutzer <nr>". Fragt vorher nach.
-        --eintraege   loescht zusaetzlich SEINE Eintraege. Nimmt ueber die
+        --entries     loescht zusaetzlich SEINE Eintraege. Nimmt ueber die
                       Kaskade auch FREMDE Kommentare und Bewertungen mit.
-        --beitraege   loescht zusaetzlich seine Kommentare, Bewertungen und
+        --posts       loescht zusaetzlich seine Kommentare, Bewertungen und
                       Testtage in fremden Eintraegen.
 
-  node usertool.js eigentuemer <name>
+  node usertool.js owner <name>
       Macht den Zugang zum Eigentuemer der Instanz. Der Notausgang, wenn sich
       der bisherige nicht mehr anmeldet.
 
-  node usertool.js zweifaktor <name>
+  node usertool.js twofactor <name>
       Schaltet den zweiten Faktor AUS. Der Notausgang, wenn das Telefon weg
       ist und auch die Wiederherstellungscodes aufgebraucht sind. Fragt vorher
       nach; Passwort, Rolle und Bestand bleiben unangetastet.
@@ -85,7 +85,7 @@ function findUser(name) {
   const u = db.prepare('SELECT id FROM users WHERE username = ? COLLATE NOCASE').get(String(name || ''));
   if (!u) {
     console.error(RED(`Kein Zugang mit dem Namen "${name}".`));
-    console.error('Vorhandene Namen zeigt: node usertool.js liste');
+    console.error('Vorhandene Namen zeigt: node usertool.js list');
     process.exit(1);
   }
   return auth.getUser2(u.id);
@@ -101,10 +101,8 @@ function commandList() {
   const lines = auth.listUsers();
   if (!lines.length) { console.log('Es ist noch kein Zugang eingerichtet.'); return; }
   const width = Math.max(4, ...lines.map(z => z.username.length));
-  // Die Spalte "2FA" . Sie sagt AN oder AUS und nie mehr -- das
-  // Geheimnis steht auch hier nicht, und die Zahl der Wiederherstellungscodes
-  // gehoert an den einen Ort, an dem sie jemanden angeht: die Karte "Zugang"
-  // des Betroffenen und den Befehl `zweifaktor` daneben.
+  // Die Spalte "2FA" sagt nur AN oder AUS; die Zahl der Wiederherstellungscodes
+  // nennen die Karte "Zugang" und der Befehl `twofactor`.
   console.log(`\n  ${'Nr'.padStart(3)}  ${'Name'.padEnd(width)}  ${'Rolle'.padEnd(11)}  ` +
               `${'Status'.padEnd(9)}  ${'2FA'.padEnd(4)}  ${'Einträge'.padStart(8)}  Letzte Anmeldung`);
   console.log('  ' + '─'.repeat(width + 58));
@@ -147,15 +145,15 @@ async function commandRemove(name, options) {
   console.log(`  Eigene Beiträge in fremden Einträgen: ${z.comments} Kommentare, ` +
               `${z.ratings} Bewertungen, ${z.testDays} Testtage`);
   if (options.entries) {
-    console.log(RED(`  --eintraege: seine ${z.entries} Einträge werden gelöscht — mitsamt ` +
+    console.log(RED(`  --entries: seine ${z.entries} Einträge werden gelöscht — mitsamt ` +
       `${z.foreignComments} fremden Kommentaren, ${z.foreignRatings} fremden Bewertungen ` +
       `und ${z.foreignTestDays} fremden Testtagen daran.`));
   } else {
-    console.log('  Ohne --eintraege bleiben sie stehen und tragen künftig ' +
+    console.log('  Ohne --entries bleiben sie stehen und tragen künftig ' +
       `"Gelöschter Benutzer ${u.id}".`);
   }
   if (options.posts) {
-    console.log(RED('  --beitraege: seine Kommentare, Bewertungen und Testtage in fremden ' +
+    console.log(RED('  --posts: seine Kommentare, Bewertungen und Testtage in fremden ' +
       'Einträgen werden gelöscht.'));
   }
   console.log('  Der Name wird freigegeben und ist danach wieder vergebbar.');
@@ -204,16 +202,16 @@ function commandOwner(name) {
 
 async function main() {
   const [command, name, ...rest] = process.argv.slice(2);
-  const options = { entries: rest.includes('--eintraege'), posts: rest.includes('--beitraege') };
+  const options = { entries: rest.includes('--entries'), posts: rest.includes('--posts') };
   const needsName = () => {
     if (!name) { console.error(RED('Es fehlt der Benutzername.')); help(); process.exit(1); }
   };
   switch (command) {
-    case 'liste': commandList(); break;
-    case 'passwort': needsName(); await commandPassword(name); break;
-    case 'entfernen': needsName(); await commandRemove(name, options); break;
-    case 'eigentuemer': needsName(); commandOwner(name); break;
-    case 'zweifaktor': needsName(); await commandTwoFactor(name); break;
+    case 'list': commandList(); break;
+    case 'password': needsName(); await commandPassword(name); break;
+    case 'remove': needsName(); await commandRemove(name, options); break;
+    case 'owner': needsName(); commandOwner(name); break;
+    case 'twofactor': needsName(); await commandTwoFactor(name); break;
     default:
       if (command) console.error(RED(`Unbekannter Befehl: ${command}`));
       help();

@@ -550,6 +550,9 @@ const F_ROUTES = [
   ['PUT',    '/api/comments/:id',              'im Rumpf'],
   ['POST',   '/api/comments/:id/images',       'im Rumpf'],
   ['DELETE', '/api/comment-images/:id',        'im Rumpf'],
+  // Videos in Kommentaren: dieselben Klemmen wie bei den Kommentarbildern.
+  ['POST',   '/api/comments/:id/videos',       'im Rumpf'],
+  ['DELETE', '/api/comment-videos/:id',        'im Rumpf'],
   ['DELETE', '/api/comments/:id',              'im Rumpf'],
   ['POST',   '/api/import',                    'ownerOnly, zweitbestaetigt'],
   /* Der Papierkorb, 0.8.70. SEHEN darf ihn der Admin (lesend, deshalb steht
@@ -646,6 +649,8 @@ const F_READ_ROUTES = [
     'Wer wie bewertet hat, namentlich. Die Sterne selbst stehen ohne Namen am Eintrag.'],
   ['/api/comment-images/:id/raw',  'angemeldet',
     'Das Bild eines Kommentars, dieselbe Ueberlegung wie beim Bild am Eintrag.'],
+  ['/api/comment-videos/:id/raw',  'angemeldet',
+    'Das Video eines Kommentars und seine Kachel, dieselbe Ueberlegung wie beim Kommentarbild.'],
   ['/api/open',                    'angemeldet',
     'Die offenen Aufgaben ueber alle Eintraege; jede einzelne steht ohnehin am Eintrag.'],
   ['/api/stats',                   'adminOnly',
@@ -894,6 +899,7 @@ async function nextSecond(limitMs = 1500) {
   while (Math.floor(Date.now() / 1000) === now) {
     if (Date.now() >= end)
       throw new Error(`nextSecond(): keine Sekundengrenze in ${limitMs} ms`);
+    // Schritt der Abfrage, bis die Sekunde wechselt.
     await new Promise(r => setTimeout(r, 5));
   }
   await new Promise(r => setTimeout(r, SECOND_MARGIN));

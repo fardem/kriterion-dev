@@ -68,14 +68,15 @@ const tMarks = (key, parts, values) => {
    keine Verbesserung. */
 const SESSION_GONE = 'kriterion:session-gone';
 
-/* DIE FOTOGRENZEN, und dieselben Zahlen stehen in server.js. Der Browser
-   teilt danach auf und sagt vorher, was zu gross ist; der Server sagt es noch
-   einmal, weil die Route auch ohne Browser erreichbar ist. */
+/* Fotos je Anfrage, dieselbe Zahl wie in server.js. Der Browser teilt danach
+   auf; der Server prueft noch einmal, weil die Route auch ohne Browser erreichbar ist. */
 const PHOTO_COUNT = 40;
-const PHOTO_MAX = 30 * 1024 * 1024;
-// Ebenso am Anhangsweg, und der Satz `entry.tooBig` bekommt die Zahl jetzt
-// als Platzhalter statt sie ein zweites Mal auszuschreiben.
-const ATTACHMENT_MAX = 50 * 1024 * 1024;
+/* Die Grenzen beim Hochladen in MB; die Werte kommen aus GET /api/settings. */
+let UPLOAD_LIMITS = { photo: 30, commentImage: 20, video: 20, commentVideo: 20, attachment: 50 };
+let UPLOAD_LIMIT_RANGES = {};
+// Die erste Datei ueber der Grenze ihrer Art, oder null.
+const overLimit = (files, kind) => files.find(f => f.size > UPLOAD_LIMITS[kind] * 1048576) || null;
+const tooBigText = (file, kind) => t('entry.tooBig', { name: file.name, mb: UPLOAD_LIMITS[kind] });
 
 /* ZWEI FORMEN, UND DIE ZAHL WAEHLT -- ueber Intl.PluralRules und nicht ueber
    `n === 1`. */
@@ -205,7 +206,11 @@ async function api(method, url, body, isForm = false) {
   if (res.status === 401) { showLogin(); throw new Error(SESSION_GONE); }
   if (!res.ok) {
     let m = t('error.serverStatus', { status: res.status });
-    try { const j = await res.json(); if (j.error) m = j.error; } catch {}
+    let j = null;
+    try { j = await res.json(); } catch {}
+    if (j && j.error) m = j.error;
+    // Eine 413 ohne JSON kommt vom Reverse Proxy davor, nicht von Kriterion.
+    else if (res.status === 413) m = t('error.proxyTooLarge');
     throw new Error(m);
   }
   return res.status === 204 ? null : res.json();
@@ -1123,10 +1128,10 @@ function imagesFromClipboard(e) {
 }
 
 // Dateiauswahl fuer Bilder, ohne dass ein Feld im Aufbau stehen muss.
-function pickImages(finished) {
+function pickImages(finished, withVideos = false) {
   const inp = document.createElement('input');
   inp.type = 'file';
-  inp.accept = 'image/*';
+  inp.accept = withVideos ? 'image/*,video/*' : 'image/*';
   inp.multiple = true;
   inp.onchange = () => { finished([...inp.files]); inp.remove(); };
   inp.style.display = 'none';
@@ -1140,8 +1145,48 @@ async function sendForm(path, form) {
     credentials: 'same-origin', headers: csrfHeader() });
   const data = await a.json().catch(() => ({}));
   if (a.status === 401) { showLogin(); throw new Error(SESSION_GONE); }
-  if (!a.ok) throw new Error(data.error || t('entry.uploadFailed'));
+  if (!a.ok) throw new Error(data.error ||
+    (a.status === 413 ? t('error.proxyTooLarge') : t('entry.uploadFailed')));
   return data;
+}
+
+/* Ein Standbild aus dem gewaehlten Video ziehen -- IM BROWSER, ohne dass
+   der Server das Video je oeffnen muesste. Eintrag und Kommentar rufen es. */
+async function stillFrame(file, second = 1) {
+  const v = document.createElement('video');
+  v.preload = 'metadata'; v.muted = true; v.playsInline = true;
+  v.src = URL.createObjectURL(file);
+  try {
+    await new Promise((ok, fail) => {
+      v.onloadedmetadata = ok;
+      v.onerror = () => fail(new Error(t('entry.videoUnplayable')));
+    });
+    // Ein Video ohne Bildmasse -- etwa eine reine Tonspur -- ergaebe eine
+    // Zeichenflaeche der Groesse null und damit gar kein Standbild.
+    if (!v.videoWidth || !v.videoHeight)
+      throw new Error(t('entry.videoNoImage'));
+    v.currentTime = Math.min(second, (v.duration || 2) / 2);
+    await new Promise((ok, fail) => {
+      v.onseeked = ok;
+      v.onerror = () => fail(new Error(t('entry.videoUnplayable')));
+    });
+    const c = document.createElement('canvas');
+    c.width = v.videoWidth; c.height = v.videoHeight;
+    c.getContext('2d').drawImage(v, 0, 0);
+    const image = await new Promise(r => c.toBlob(r, 'image/jpeg', 0.85));
+    if (!image) throw new Error(t('entry.videoNoThumb'));
+    return { image, duration: Math.round(v.duration) || null };
+  } finally { URL.revokeObjectURL(v.src); }
+}
+
+// Video, Standbild und Dauer als ein Formular.
+async function videoForm(file) {
+  const { image, duration } = await stillFrame(file);
+  const fd = new FormData();
+  fd.append('video', file, file.name);
+  fd.append('stillFrame', image, 'stillframe.jpg');
+  if (duration) fd.append('duration', String(duration));
+  return fd;
 }
 
 /* ================= Der Ausschnitt der Vorschau ================= ER WIRD NICHT MEHR HIER GERECHNET. */
@@ -2447,7 +2492,7 @@ function markupLive() {
   return MARKUP_FIELD;
 }
 
-/* Ueber der Kante des Feldes, und auf einem schmalen Bildschirm nicht aus
+/* Ueber der Kante der Auswahl, und auf einem schmalen Bildschirm nicht aus
    dem Bild heraus. */
 function markupMenuPlace(box) {
   const width = box.offsetWidth, height = box.offsetHeight;
@@ -2459,12 +2504,33 @@ function markupMenuPlace(box) {
 
 function markupMenuShow(rect) {
   const box = markupMenuBox();
+  // An einer Auswahl steht das Menue absolut im Dokument.
+  if (box.parentElement !== document.body) document.body.appendChild(box);
+  box.classList.remove('docked');
   box.dataset.left = rect.left;
   box.dataset.top = rect.top;
   box.dataset.bottom = rect.bottom;
   box.hidden = false;
   markupMenuPlace(box);
 }
+
+/* Die Hoehe der festen Kopfzeile: darunter haelt die angedockte Leiste an. */
+const mastheadHeight = () => document.querySelector('.masthead')?.offsetHeight || 0;
+
+/* Im Schreibmodus steht die Leiste im Fluss direkt ueber dem Feld, in dessen
+   Behaelter `.markup-wrap`. `position: sticky` laesst sie beim Scrollen bis
+   zum Ende des Behaelters mitlaufen; die Knoepfe darunter bleiben frei. */
+function markupMenuDock(field) {
+  const wrap = field.closest('.markup-wrap');
+  if (!wrap) return markupMenuShow(field.getBoundingClientRect());
+  const box = markupMenuBox();
+  if (box.nextElementSibling !== field) wrap.insertBefore(box, field);
+  box.classList.add('docked');
+  box.style.left = '';
+  box.style.top = mastheadHeight() + 'px';
+  box.hidden = false;
+}
+const markupDocked = () => markupMenuBox().classList.contains('docked');
 
 /* Welches Feld das Menue traegt, steht am Feld und nicht in einer Liste
    daneben. */
@@ -2498,7 +2564,7 @@ function markupMenuSetUp() {
     if (!field) return;
     MARKUP_FIELD = field;
     markupMenuFill(field);
-    markupMenuShow(field.getBoundingClientRect());
+    markupMenuDock(field);
   });
   document.addEventListener('focusout', (e) => {
     if (!MARKUP_FIELD || e.target !== MARKUP_FIELD) return;
@@ -2516,11 +2582,12 @@ function markupMenuSetUp() {
     markupMenuFill(null);
     markupMenuShow(pick.rect);
   });
+  // Angedockt folgt die Leiste dem Scrollen von selbst; nur ein Feld ohne Behaelter wird nachgesetzt.
   window.addEventListener('scroll', () => {
-    if (markupLive()) markupMenuShow(MARKUP_FIELD.getBoundingClientRect());
+    if (markupLive() && !markupDocked()) markupMenuShow(MARKUP_FIELD.getBoundingClientRect());
   }, true);
   window.addEventListener('resize', () => {
-    if (markupLive()) markupMenuShow(MARKUP_FIELD.getBoundingClientRect());
+    if (markupLive()) markupMenuDock(MARKUP_FIELD);
   });
   /* Strg+B und Strg+I -- ueberall sonst steht dasselbe auf denselben
      Tasten. */
@@ -2728,6 +2795,8 @@ async function loadSettings() {
   if (Array.isArray(SETTINGS.imageStores) && SETTINGS.imageStores.length)
     IMAGE_STORES = SETTINGS.imageStores;
   if (SETTINGS.trashDays) TRASH_DAYS = SETTINGS.trashDays;
+  if (SETTINGS.uploadLimits) UPLOAD_LIMITS = { ...UPLOAD_LIMITS, ...SETTINGS.uploadLimits };
+  if (SETTINGS.uploadLimitRanges) UPLOAD_LIMIT_RANGES = SETTINGS.uploadLimitRanges;
   TWO_FACTOR = SETTINGS.twoFactor === true;
   applyFont();
   applyTiles();
@@ -3961,11 +4030,22 @@ function drawTimeline(list) {
 
 function showHint(box, point, p) {
   hideHint(box);
+  const line = box.querySelector('.timeline');
   const h = document.createElement('div');
   h.className = 'timeline-hint';
   h.innerHTML = `<strong>${esc(p.title)}</strong><span>${tH('list.gradeShort', { date: fmtDay(p.date), score: p.score })}</span>`;
   h.style.left = point.style.left;
-  box.querySelector('.timeline').appendChild(h);
+  line.appendChild(h);
+  // Erst nach dem Einfuegen hat das Feld eine Breite.
+  const axis = line.clientWidth, width = h.offsetWidth;
+  if (axis && width)
+    h.style.left = hintCenter(parseFloat(point.style.left) / 100 * axis, width, axis) + 'px';
+}
+/* Die Mitte des Hinweisfelds in Pixeln: ueber dem Punkt, aber so weit nach
+   innen, dass das Feld an beiden Raendern in der Zeitleiste bleibt. */
+function hintCenter(point, width, axis) {
+  if (width >= axis) return axis / 2;
+  return Math.min(axis - width / 2, Math.max(width / 2, point));
 }
 function hideHint(box) { box.querySelector('.timeline-hint')?.remove(); }
 
@@ -4462,6 +4542,9 @@ let lightboxOpen = false;
 function imageSource(p, filesize) {
   if (p.source === 'comment')
     return `/api/comment-images/${p.id}/raw${filesize === 'thumb' ? '?size=thumb' : ''}`;
+  // Ein Kommentarvideo hat nur die Kachel; sie ist auch das Poster.
+  if (p.source === 'commentVideo')
+    return `/api/comment-videos/${p.id}/raw${filesize ? '?size=thumb' : ''}`;
   if (!filesize) return `/api/photos/${p.id}/raw`;
   const f = Number(p.thumbLength);
   const version = filesize === 'thumb' && Number.isFinite(f) ? `&v=${f}` : '';
@@ -4501,6 +4584,7 @@ function openLightbox(photos, startIdx, title, remove, inside) {
       <span class="lb-title">${esc(title || '')}</span>
       <div class="lb-tools">
         <span class="lb-count"></span>
+        <a class="lb-btn download" download title="${esc(t('entry.download'))}">↓</a>
         <button class="lb-btn zoom" title="${esc(t('list.zoomFull'))}">⊕</button>
         ${/* DER PAPIERKORB STEHT ABGESETZT, mit einer groesseren Luecke davor
              -- dieselbe Ueberlegung wie ueber dem grossen Bild darunter: die
@@ -4595,6 +4679,8 @@ function openLightbox(photos, startIdx, title, remove, inside) {
     } else {
       img.src = imageSource(photos[i], 'medium');
     }
+    // Der Download zeigt auf das Original, beim Kommentarbild auf das gespeicherte Bild.
+    lb.querySelector('.download').href = imageSource(photos[i], '');
     // Ohne Original kein Zoomknopf -- ein Knopf, der nichts tut, wirkt kaputt.
     lb.querySelector('.zoom').hidden = !hasOriginal(photos[i]);
     img.title = hasOriginal(photos[i]) ? t('list.clickZoomHint') : '';
@@ -4907,8 +4993,8 @@ async function renderDetail(id, termAddress, commentWanted) {
       <div class="block-head"><span class="label">${tH('list.description')}</span>
         <button class="mact ed" id="descedit" title="${esc(t('entry.edit'))}">${ICON_PEN}</button></div>
       <div class="desc-view" id="descview"></div>
-      <textarea class="ta ta-desc" id="desc" data-markup hidden
-        placeholder="${esc(t('entry.whatIsThis'))}">${esc(item.description)}</textarea>
+      <div class="markup-wrap"><textarea class="ta ta-desc" id="desc" data-markup hidden
+        placeholder="${esc(t('entry.whatIsThis'))}">${esc(item.description)}</textarea></div>
     </div>
 
     <div class="block block-wide" id="testblock" data-block="testtage"></div>
@@ -4939,7 +5025,7 @@ async function renderDetail(id, termAddress, commentWanted) {
         <button class="link-btn" id="cjump" title="${esc(t('entry.jumpToInput'))}">${tH('entry.addComment')}</button></div>
       <div class="cmts" id="cmts"></div>
       <div class="cmt-form">
-        <textarea class="ta" id="ctext" data-markup placeholder="${esc(t('entry.commentPlaceholder'))}"></textarea>
+        <div class="markup-wrap"><textarea class="ta" id="ctext" data-markup placeholder="${esc(t('entry.commentPlaceholder'))}"></textarea></div>
         <div class="cmt-new-imgs" id="cnew-imgs"></div>
         <div class="cmt-form-row">
           <span class="marks">
@@ -5338,35 +5424,6 @@ async function renderDetail(id, termAddress, commentWanted) {
     });
   }
 
-  /* Ein Standbild aus dem gewaehlten Video ziehen -- IM BROWSER, ohne dass
-     der Server das Video je oeffnen muesste. */
-  async function stillFrame(file, second = 1) {
-    const v = document.createElement('video');
-    v.preload = 'metadata'; v.muted = true; v.playsInline = true;
-    v.src = URL.createObjectURL(file);
-    try {
-      await new Promise((ok, fail) => {
-        v.onloadedmetadata = ok;
-        v.onerror = () => fail(new Error(t('entry.videoUnplayable')));
-      });
-      // Ein Video ohne Bildmasse -- etwa eine reine Tonspur -- ergaebe eine
-// Zeichenflaeche der Groesse null und damit gar kein Standbild.
-      if (!v.videoWidth || !v.videoHeight)
-        throw new Error(t('entry.videoNoImage'));
-      v.currentTime = Math.min(second, (v.duration || 2) / 2);
-      await new Promise((ok, fail) => {
-        v.onseeked = ok;
-        v.onerror = () => fail(new Error(t('entry.videoUnplayable')));
-      });
-      const c = document.createElement('canvas');
-      c.width = v.videoWidth; c.height = v.videoHeight;
-      c.getContext('2d').drawImage(v, 0, 0);
-      const image = await new Promise(r => c.toBlob(r, 'image/jpeg', 0.85));
-      if (!image) throw new Error(t('entry.videoNoThumb'));
-      return { image, duration: Math.round(v.duration) || null };
-    } finally { URL.revokeObjectURL(v.src); }
-  }
-
   // Fotos gehen gebuendelt in einem Vorgang, Videos einzeln: jedes bringt sein
 // eigenes Standbild mit, und zwei benannte Felder tragen nur ein Paar.
   async function uploadFiles(files) {
@@ -5379,10 +5436,10 @@ async function renderDetail(id, termAddress, commentWanted) {
     dropText.textContent = t('entry.uploading');
     let finished = 0;
     try {
+      const bigPhoto = overLimit(images, 'photo'), bigVideo = overLimit(videos, 'video');
+      if (bigPhoto) throw new Error(tooBigText(bigPhoto, 'photo'));
+      if (bigVideo) throw new Error(tooBigText(bigVideo, 'video'));
       if (images.length) {
-        const tooBig = images.find(f => f.size > PHOTO_MAX);
-        if (tooBig) throw new Error(t('entry.tooBig',
-          { name: tooBig.name, mb: PHOTO_MAX / 1048576 }));
         /* IN BUENDELN VON PHOTO_COUNT: multer bricht beim naechsten Bild die
            GANZE Anfrage ab, aus 80 gewaehlten Fotos wuerde sonst keines. Eine
            Obergrenze je Eintrag ist das nicht. */
@@ -6534,18 +6591,14 @@ async function renderDetail(id, termAddress, commentWanted) {
     const files = [...e.target.files];
     e.target.value = '';
     if (!files.length) return;
-    const tooBig = files.find(f => f.size > ATTACHMENT_MAX);
-    if (tooBig) return toast(t('entry.tooBig',
-      { name: tooBig.name, mb: ATTACHMENT_MAX / 1048576 }), true);
+    const tooBig = overLimit(files, 'attachment');
+    if (tooBig) return toast(tooBigText(tooBig, 'attachment'), true);
     const fd = new FormData();
     files.forEach(f => fd.append('files', f));
     try {
       toast(t('entry.uploadingTitle'));
-      const r = await fetch(`/api/items/${id}/attachments`, { method: 'POST', body: fd,
-        credentials: 'same-origin', headers: csrfHeader() });
-      const data = await r.json();
-      if (!r.ok) throw new Error(data.error || t('entry.uploadFailed'));
-      item = data; drawAtts();
+      item = await sendForm(`/api/items/${id}/attachments`, fd);
+      drawAtts();
       toast(t('entry.filesAttached', { n: files.length }));
     } catch (e2) { toast(e2.message, true); }
   };
@@ -6680,20 +6733,31 @@ async function renderDetail(id, termAddress, commentWanted) {
         };
       }
 
-      // Bilder als Kacheln unter dem Text; Klick öffnet das vorhandene Vollbild.
-// Das ✕ nur bei Verfasser oder Admin -- ansehen darf jeder.
+      // Bilder und dahinter Videos als Kacheln unter dem Text; ein Klick oeffnet
+// das Vollbild. Das ✕ nur bei Verfasser oder Admin -- ansehen darf jeder.
       const imgBox = el.querySelector('.cmt-imgs');
-      (c.images || []).forEach((b, i) => {
+      const media = [...(c.images || []).map(x => ({ id: x.id, source: 'comment' })),
+        ...(c.videos || []).map(x => ({ id: x.id, source: 'commentVideo', kind: 'video',
+                                         duration: x.duration }))];
+      media.forEach((m, i) => {
+        const video = isVideo(m);
+        const length = video ? durationText(m.duration) : '';
         const k = document.createElement('div');
-        k.className = 'cmt-img';
-        k.innerHTML = `<img src="/api/comment-images/${Number(b.id)}/raw?size=thumb" alt="" loading="lazy">
-          ${manage ? `<button class="del" title="${esc(t('entry.deleteImage'))}">${ICON_X}</button>` : ''}`;
-        k.querySelector('img').onclick = () =>
-          openLightbox((c.images || []).map(x => ({ id: x.id, source: 'comment' })), i, item.title);
+        k.className = 'cmt-img' + (video ? ' is-video' : '');
+        k.innerHTML = `<img src="${esc(imageSource(m, 'thumb'))}" alt="" loading="lazy">` +
+          (video ? `<span class="play-badge">▶</span>` : '') +
+          (length ? `<span class="duration">${esc(length)}</span>` : '') +
+          (manage ? `<button class="del" title="${esc(t(video ? 'entry.deleteVideo' : 'entry.deleteImage'))}">${ICON_X}</button>` : '');
+        k.querySelector('img').onclick = () => {
+          openLightbox(media, i, item.title);
+          if (video) document.querySelector('.lightbox .lb-video')?.play?.()?.catch?.(() => {});
+        };
         if (manage) k.querySelector('.del').onclick = async (e) => {
           e.stopPropagation();
-          if (!await confirmBox(t('entry.deleteImageAsk'), t('entry.imageDeleteHint'))) return;
-          try { item = await api('DELETE', `/api/comment-images/${b.id}`); drawComments(); }
+          const word = t('list.video');
+          if (!await confirmBox(video ? t('entry.deleteWordAsk', { word }) : t('entry.deleteImageAsk'),
+            video ? t('entry.deleteHint', { word }) : t('entry.imageDeleteHint'))) return;
+          try { item = await api('DELETE', `/api/comment-${video ? 'videos' : 'images'}/${m.id}`); drawComments(); }
           catch (err) { toast(err.message, true); }
         };
         imgBox.appendChild(k);
@@ -6702,7 +6766,7 @@ async function renderDetail(id, termAddress, commentWanted) {
       if (manage) el.querySelector('.rm').onclick = async () => {
         if (!await confirmBox(t('entry.deleteCommentAsk'),
           t('entry.commentDeleteHint',
-            { extra: (c.images || []).length ? t('entry.withAllImages') : '' }))) return;
+            { extra: media.length ? t('entry.withAllImages') : '' }))) return;
         try { await api('DELETE', `/api/comments/${c.id}`); item = await api('GET', `/api/items/${id}`); drawComments(); }
         catch (e) { toast(e.message, true); }
       };
@@ -6712,7 +6776,7 @@ async function renderDetail(id, termAddress, commentWanted) {
       if (mine) el.querySelector('.ed').onclick = () => {
         const wrap = document.createElement('div');
         wrap.className = 'cmt-edit';
-        wrap.innerHTML = `<textarea class="ta" data-markup></textarea>
+        wrap.innerHTML = `<div class="markup-wrap"><textarea class="ta" data-markup></textarea></div>
           <div class="acts"><button class="btn btn-ghost btn-sm addimg">${tH('entry.addImage')}</button>
           <button class="btn btn-ghost btn-sm cancel">${tH('dialog.cancel')}</button>
           <button class="btn btn-accent btn-sm save">${tH('dialog.save')}</button></div>`;
@@ -6726,16 +6790,29 @@ async function renderDetail(id, termAddress, commentWanted) {
         // Beim Bearbeiten hat der Kommentar schon eine Id -- Bilder gehen
 // deshalb sofort an den Server, ohne auf das Speichern zu warten.
         const addLater = async (files) => {
+          const images = files.filter(f => !/^video\//.test(f.type));
+          const videos = files.filter(f => /^video\//.test(f.type));
           if (!files.length) return;
-          const fd = new FormData();
-          files.forEach(f => fd.append('images', f));
+          const big = overLimit(images, 'commentImage') || overLimit(videos, 'commentVideo');
+          if (big) return toast(tooBigText(big, big.type.startsWith('video/') ? 'commentVideo' : 'commentImage'), true);
+          let sent = 0;
           try {
-            item = await sendForm(`/api/comments/${c.id}/images`, fd);
-            toast(t('entry.imagesAttached', { n: files.length }));
-            drawComments();
+            if (images.length) {
+              const fd = new FormData();
+              images.forEach(f => fd.append('images', f));
+              item = await sendForm(`/api/comments/${c.id}/images`, fd);
+              sent += images.length;
+            }
+            // Ein Video je Anfrage, jedes mit seinem Standbild.
+            for (const f of videos) {
+              item = await sendForm(`/api/comments/${c.id}/videos`, await videoForm(f));
+              sent++;
+            }
+            toast(t('entry.imagesAttached', { n: sent }));
           } catch (e) { toast(e.message, true); }
+          if (sent) drawComments();
         };
-        wrap.querySelector('.addimg').onclick = () => pickImages(addLater);
+        wrap.querySelector('.addimg').onclick = () => pickImages(addLater, true);
         ta.addEventListener('paste', (e) => {
           const images = imagesFromClipboard(e);
           if (!images.length) return;
@@ -6760,7 +6837,7 @@ async function renderDetail(id, termAddress, commentWanted) {
   // Kommentar hat noch keine Id, und bei einem Abbruch entstuende sonst ein
   // leerer Kommentar mit Bildern.
   const fitCtext = autoGrow(document.getElementById('ctext'));
-  let newImages = [];
+  let newImages = [], newVideo = null;
   let newPinned = false, newKind = 'note';
 
   function drawNewMarks() {
@@ -6794,11 +6871,30 @@ async function renderDetail(id, termAddress, commentWanted) {
       k.querySelector('.del').onclick = () => { newImages.splice(i, 1); drawNewImages(); };
       box.appendChild(k);
     });
+    if (!newVideo) return;
+    // Das Video zeigt sein Standbild mit dem Abspielzeichen.
+    const k = document.createElement('div');
+    k.className = 'cmt-img is-video';
+    const url = URL.createObjectURL(newVideo.image);
+    k.innerHTML = `<img src="${esc(url)}" alt=""><span class="play-badge">▶</span>` +
+      `<button class="del" title="${esc(t('entry.removeAgain'))}">${ICON_X}</button>`;
+    k.querySelector('img').onload = () => URL.revokeObjectURL(url);
+    k.querySelector('.del').onclick = () => { newVideo = null; drawNewImages(); };
+    box.appendChild(k);
   }
-  const takeImages = (files) => {
+  const takeImages = async (files) => {
     const images = files.filter(f => f.type.startsWith('image/'));
-    if (!images.length) return;
-    if (newImages.length + images.length > 6) return toast(t('entry.imageCapHint'), true);
+    const videos = files.filter(f => f.type.startsWith('video/'));
+    if (!images.length && !videos.length) return;
+    const big = overLimit(images, 'commentImage') || overLimit(videos, 'commentVideo');
+    if (big) return toast(tooBigText(big, big.type.startsWith('video/') ? 'commentVideo' : 'commentImage'), true);
+    if (videos.length > 1 || (videos.length && newVideo)) return toast(t('server.videoOne'), true);
+    if (newImages.length + images.length + (newVideo || videos.length ? 1 : 0) > 6)
+      return toast(t('entry.imageCapHint'), true);
+    if (videos.length) {
+      try { newVideo = { file: videos[0], ...await stillFrame(videos[0]) }; }
+      catch (e) { return toast(e.message, true); }
+    }
     newImages = [...newImages, ...images];
     drawNewImages();
   };
@@ -6809,7 +6905,7 @@ async function renderDetail(id, termAddress, commentWanted) {
     () => { newKind = newKind === 'report' ? 'note' : 'report'; drawNewMarks(); };
   document.getElementById('ctask').onclick =
     () => { newKind = taskMore(newKind); drawNewMarks(); };
-  document.getElementById('cimg').onclick = () => pickImages(takeImages);
+  document.getElementById('cimg').onclick = () => pickImages(takeImages, true);
 
   /* Der Sprung ans Schreibfeld. */
   document.getElementById('cjump').onclick = () => {
@@ -6839,10 +6935,15 @@ async function renderDetail(id, termAddress, commentWanted) {
     fd.append('kind', newKind);
     fd.append('pinned', newPinned ? '1' : '0');
     newImages.forEach(f => fd.append('images', f));
+    if (newVideo) {
+      fd.append('video', newVideo.file, newVideo.file.name);
+      fd.append('stillFrame', newVideo.image, 'stillframe.jpg');
+      if (newVideo.duration) fd.append('duration', String(newVideo.duration));
+    }
     try {
       item = await sendForm(`/api/items/${id}/comments`, fd);
       ta.value = ''; fitCtext();
-      newImages = []; newPinned = false; newKind = 'note';
+      newImages = []; newVideo = null; newPinned = false; newKind = 'note';
       drawNewImages(); drawNewMarks(); drawComments();
     } catch (e) { toast(e.message, true); }
   };
@@ -7061,63 +7162,64 @@ function saved(el = document.activeElement) {
 }
 
 
-/* ---- DIE NEUNZEHN KARTEN ---- `visible` ist die Klemme, `markup` das
-   Aussehen, `wireUp` die Behandler. */
+/* ---- Die Karten des Systembereichs ---- `visible` ist die Klemme, `markup`
+   das Aussehen, `wireUp` die Behandler. */
 const SYS_CARDS = [
-  { key: 'zugang',       section: 'personal', visible: () => true,
+  { key: 'myaccount',    section: 'personal', visible: () => true,
     markup: cardUser,       wireUp: setUpUserOut },
-  { key: 'sitzungen',    section: 'personal', visible: () => true,
+  { key: 'sessions',     section: 'personal', visible: () => true,
     markup: cardSessions,    wireUp: setUpSessionsOut },
-  { key: 'darstellung',  section: 'personal', visible: () => true,
+  { key: 'appearance',   section: 'personal', visible: () => true,
     markup: cardAppearance,  wireUp: setUpAppearanceOut },
 
-  { key: 'kategorien',   section: 'inventory', visible: () => true,
+  { key: 'categories',   section: 'inventory', visible: () => true,
     markup: cardCategories,   wireUp: setUpCategoriesOut },
   { key: 'tags',         section: 'inventory', visible: () => true,
     markup: cardTags,         wireUp: setUpTagsOut },
-  { key: 'kriterien',    section: 'inventory', visible: () => true,
+  { key: 'criteria',     section: 'inventory', visible: () => true,
     markup: () => cardCriteria('after'),
     wireUp: (g) => setUpCriteriaOut(g, 'after') },
   /* DIE ZWEITE KRITERIENKARTE, direkt hinter der ersten. */
-  { key: 'potenzialkriterien', section: 'inventory', visible: () => true,
+  { key: 'potentialcriteria', section: 'inventory', visible: () => true,
     markup: () => cardCriteria('before'),
     wireUp: (g) => setUpCriteriaOut(g, 'before') },
-  { key: 'vokabular',    section: 'inventory', visible: () => ADMIN,
+  { key: 'vocabulary',   section: 'inventory', visible: () => ADMIN,
     markup: cardVocabulary,    wireUp: setUpVocabularyOut },
   { key: 'links',        section: 'inventory', visible: () => true,
     markup: cardLinks,        wireUp: setUpLinksOut },
-  { key: 'suchanbieter', section: 'inventory', visible: () => ADMIN,
+  { key: 'searchengines', section: 'inventory', visible: () => ADMIN,
     markup: cardSearchProvider, wireUp: setUpSearchProviderOut },
-  { key: 'papierkorb',   section: 'inventory', visible: () => ADMIN,
+  { key: 'trash',        section: 'inventory', visible: () => ADMIN,
     markup: cardTrash,   wireUp: setUpTrashOut },
 
-  { key: 'zugaenge',     section: 'users', visible: () => ADMIN,
+  { key: 'accounts',     section: 'users', visible: () => ADMIN,
     markup: cardUsers,     wireUp: setUpUsersOut },
-  { key: 'anfragen',     section: 'users', visible: (g) => ADMIN && !!g.requests,
+  { key: 'requests',     section: 'users', visible: (g) => ADMIN && !!g.requests,
     markup: cardRequests,     wireUp: setUpRequestsOut },
-  { key: 'protokoll',    section: 'users', visible: (g) => OWNER && !!g.log,
+  { key: 'log',          section: 'users', visible: (g) => OWNER && !!g.log,
     markup: cardLog,    wireUp: setUpLogOut },
-  { key: 'mailversand',  section: 'users', visible: (g) => OWNER && !!g.mailStatus,
+  { key: 'mail',         section: 'users', visible: (g) => OWNER && !!g.mailStatus,
     markup: cardMailDelivery,  wireUp: setUpMailDeliveryOut },
 
-  { key: 'kennzahlen',   section: 'database', visible: () => ADMIN,
+  { key: 'stats',        section: 'database', visible: () => ADMIN,
     markup: cardStats,    wireUp: setUpStatsOut },
-  { key: 'bildablage',   section: 'database', visible: () => ADMIN,
+  { key: 'imagestore',   section: 'database', visible: () => ADMIN,
     markup: cardImageStore,   wireUp: setUpImageStoreOut },
-  { key: 'sicherung',    section: 'database', visible: () => OWNER,
+  // Admins sehen die Grenzen, aendern kann sie der Eigentuemer.
+  { key: 'limits',       section: 'database', visible: () => ADMIN,
+    markup: cardLimits,       wireUp: setUpLimitsOut },
+  { key: 'backup',       section: 'database', visible: () => OWNER,
     markup: cardBackup,    wireUp: setUpBackupOut },
-  /* UNMITTELBAR HINTER "SICHERUNG", und die Reihenfolge ist geprueft und
-     nicht zufaellig: die eine Karte legt Kopien an, die andere raeumt sie
-     weg. */
-  { key: 'aufraeumen',   section: 'database', visible: () => OWNER,
+  // Direkt hinter "Backup": die eine Karte legt Backups an, die andere raeumt sie weg.
+  { key: 'cleanup',      section: 'database', visible: () => OWNER,
     markup: cardCleanup,   wireUp: setUpCleanupOut },
   { key: 'export',       section: 'database', visible: () => OWNER,
     markup: cardExport,       wireUp: setUpExportOut },
 
-  { key: 'titel',        section: 'installation', visible: () => ADMIN,
+  { key: 'titles',       section: 'installation', visible: () => ADMIN,
     markup: cardTitle,        wireUp: setUpTitleOut },
-  /* DIE ZWEITE KARTE DES ABSCHNITTS, F9. */
-  { key: 'sprachen',     section: 'installation', visible: () => OWNER,
+  /* Die zweite Karte des Abschnitts. */
+  { key: 'languages',    section: 'installation', visible: () => OWNER,
     markup: cardLanguages,    wireUp: setUpLanguagesOut }
 ];
 
@@ -7367,7 +7469,7 @@ function cardUser(fetched) {
         <p class="desc" style="margin:0 0 10px">${SIGNUP
           ? `${tMark('card.addressRequiredHint', 'card.addressRequired')} `
           : ''}${tH('card.resetMailHint')}</p>
-        ${serverBox(t('card.forgotPasswordHint'), 'docker compose exec kriterion node usertool.js passwort <name>')}
+        ${serverBox(t('card.forgotPasswordHint'), 'docker compose exec kriterion node usertool.js password <name>')}
         <button class="btn btn-accent btn-sm" id="acc-save" style="margin-top:10px">${tH('dialog.save')}</button>
 
         ${/* DER ZWEITE FAKTOR STEHT IN DIESER KARTE UND BEKOMMT KEINE EIGENE
@@ -7518,7 +7620,7 @@ function setUpUserOut(fetched) {
       ${/* DER SERVER-BEFEHL STAND HIER FUER JEDEN BENUTZER. Jetzt: ein Satz fuer
    alle, der Kasten nur fuer den Eigentuemer. */''}
       <p class="desc" style="margin:8px 0 0">${tH('card.allCodesUsed')}</p>
-      ${serverBox(t('card.twoFactorOffUser'), 'docker compose exec kriterion node usertool.js zweifaktor <name>')}`;
+      ${serverBox(t('card.twoFactorOffUser'), 'docker compose exec kriterion node usertool.js twofactor <name>')}`;
     box.appendChild(boxId);
   }
 
@@ -8668,7 +8770,7 @@ function cardUsers() {
              Grund: der Befehl läuft auf dem Wirt, und dort sitzt in der Regel
              der Eigentümer. */''}
         ${OWNER
-          ? `<div style="margin-top:16px">${serverBox(t('card.lockedOutHint'), 'docker compose exec kriterion node usertool.js passwort <name>')}</div>`
+          ? `<div style="margin-top:16px">${serverBox(t('card.lockedOutHint'), 'docker compose exec kriterion node usertool.js password <name>')}</div>`
           : `<p class="desc" style="margin:16px 0 0">${tMark('card.lockedOutCard', 'card.owner')}</p>`}
       </div>`;
 }
@@ -9143,8 +9245,7 @@ function setUpLogOut(fetched) {
     'export': 'card.exportCreated',
     'import': 'card.imported',
     'backup': 'card.backupWritten',
-    /* EINE ZEILE JE ENTFERNTER KOPIE, deshalb der Singular: vier entfernte
-       Kopien sind vier Zeilen. */
+    // Eine Zeile je entferntem Backup, deshalb der Singular.
     'backup.delete': 'card.oldBackupDeleted',
     // Die Zeile nennt, DASS gewechselt wurde, nie WOHIN -- sie traegt weder
     // Ziel noch Merkmal, und der Handelnde ist immer leer: gewechselt wird
@@ -9727,6 +9828,42 @@ function cardImageStore(fetched) {
 }
 
 
+/* ---- Karte „Grenzen beim Hochladen" — Abschnitt „Datenbank" ---- */
+const LIMIT_KINDS = [['photo', 'card.limitPhoto'], ['commentImage', 'card.limitCommentImage'],
+  ['video', 'card.limitVideo'], ['commentVideo', 'card.limitCommentVideo'],
+  ['attachment', 'card.limitAttachment']];
+function cardLimits() {
+  return `<div class="sys-card">
+        <h3>${tH('card.uploadLimits')}</h3>
+        <p class="desc">${tH('card.uploadLimitsHint')}</p>
+        ${LIMIT_KINDS.map(([kind, label]) => {
+          const g = UPLOAD_LIMIT_RANGES[kind] || {};
+          return `<div class="field"><label for="limit-${kind}">${tH(label)}</label>
+          <p class="desc" style="margin:0 0 6px">${tH('card.limitRange', { min: g.min, max: g.max })}</p>
+          <input class="input" id="limit-${kind}" type="number" inputmode="numeric" data-limit="${kind}"
+            min="${Number(g.min)}" max="${Number(g.max)}" step="1" value="${Number(UPLOAD_LIMITS[kind])}"${
+            OWNER ? '' : ' disabled'}></div>`;
+        }).join('')}
+        <p class="hint hint-sm" style="margin:6px 2px 0">${tH('card.proxyBodyHint')}</p>
+      </div>`;
+}
+function setUpLimitsOut() {
+  if (!OWNER) return;
+  document.querySelectorAll('[data-limit]').forEach(el => {
+    el.onchange = async () => {
+      try {
+        const r = await api('PUT', '/api/settings', { uploadLimits: { [el.dataset.limit]: Number(el.value) } });
+        if (r.uploadLimits) UPLOAD_LIMITS = { ...UPLOAD_LIMITS, ...r.uploadLimits };
+        saved(el);
+      } catch (e) {
+        el.value = UPLOAD_LIMITS[el.dataset.limit];
+        toast(e.message, true);
+      }
+    };
+  });
+}
+
+
 /* WAS DIE UHR VERFOLGEN KANN -- eine Tafel und keine zweite Uhr. */
 /* DER FERTIGSATZ IST EIN RUF, wie der Fortschrittssatz darueber
    schon immer einer war (siehe SYS_SECTIONS). */
@@ -9790,9 +9927,8 @@ function setUpImageStoreOut(fetched) {
     button.onclick = async () => {
       const bf = (fetched.stats && fetched.stats.imageFormats) || {};
       const png = bf.png || { count: 0, bytes: 0 };
-      /* DER DIALOG SAGT ES VORHER UND BESCHOENIGT NICHTS: wie viele Bilder, wie
-         viel Platz, dass die PNG-Fassung danach fort ist und nur die
-         Sicherung des Datenverzeichnisses zurueckfuehrt. */
+      // Der Dialog nennt vorher Zahl und Platz; die PNG-Fassung bringt danach
+      // nur ein Backup des Datenverzeichnisses zurueck.
       /* DER DIALOG SAGT DREI DINGE UND SONST NICHTS: was geschieht, was
          danach weg ist, und dass es dauern kann. */
       /* UND DIE ZAHL IN SEINEM SATZ NENNT DIE EINE HAELFTE. */
@@ -9820,13 +9956,12 @@ function setUpImageStoreOut(fetched) {
 /* DER NAME DER COMPOSE-DATEI. */
 const COMPOSE_FILE = 'docker-compose.yml';
 
-/* ---- Karte „Sicherung" — Abschnitt „Datenbank" ---- */
+/* ---- Karte „Backup" — Abschnitt „Datenbank" ---- */
 function cardBackup() {
   return `<div class="sys-card">
         <h3>${tH('card.backup')}</h3>
         <p class="desc">${tMark('card.backupWhatHint', 'card.backupLabel')}</p>
-        ${/* DER HINWEIS AUF DEN SCHLUESSEL GEHOERT AN DEN KNOPF, nicht in die
-             Dokumentation: die Kopie ist ohne .env wertlos. */''}
+        ${/* Der Hinweis auf den Schluessel steht am Knopf: das Backup ist ohne .env wertlos. */''}
         <div class="warn-box" style="margin:0 0 14px"><strong>${tH('card.backupEncrypted')}</strong>
           ${tH('card.withoutKeyFrom')} <code>.env</code> ${tH('card.backupUnopenableHint')}</div>
         <div id="backup-box"></div>
@@ -9836,7 +9971,7 @@ function setUpBackupOut(fetched) {
   drawBackup(fetched);
 }
 
-  /* --- Sicherung --- */
+  /* --- Backup --- */
   /* Gezeichnet wird aus dem, was oben schon geholt wurde; nach jedem
      Schreiben traegt die Antwort den neuen Stand, und die Karte zeichnet sich
      daraus neu. */
@@ -9848,7 +9983,7 @@ function setUpBackupOut(fetched) {
       box.innerHTML = `<div class="warn-box">${esc(d.reason || t('card.noBackupDir'))}</div>`;
       return;
     }
-    /* DIESE KARTE SAGT NUR NOCH ETWAS UEBER DIE LETZTE SICHERUNG. */
+    /* Diese Karte sagt nur etwas ueber das letzte Backup. */
     const last = d.last;
     const stateBox = d.error
       ? `<div class="warn-box" style="margin:0 0 12px">${esc(d.error)}</div>`
@@ -9860,8 +9995,7 @@ function setUpBackupOut(fetched) {
              <div class="kv"><span class="k">${tH('card.size')}</span><span class="v">${fmtBytes(last.bytes)}</span></div>`
           : `<p class="desc" style="margin:0 0 12px">${tH('card.noBackupYet')}</p>`));
 
-    /* ZWEI SCHLUESSEL IM UMLAUF — . Wurde der Schlüssel gewechselt, öffnen
-       sich die Kopien von vorher nur noch mit dem ALTEN. */
+    // Nach einem Schluesselwechsel oeffnen sich die Backups von vorher nur mit dem alten.
     const changeBox = !d.changedAt ? '' : (
       last && last.outdated
         ? `<div class="warn-box" style="margin:0 0 12px"><strong>${tH('card.noBackupForKey')}</strong> ${tH('card.keyChangedOn', { changedAt: fmtDate(d.changedAt) })}
@@ -9872,8 +10006,7 @@ function setUpBackupOut(fetched) {
                (${esc(fmtDate(d.changedAt))}). ${tMarks('card.opensOnlyWith',
                  { word: `<strong>${tH('card.oldOne')}</strong>` }, { n: d.outdated })}</div>`
           : `<div class="ok-box" style="margin:0 0 12px">${tH('card.keyChangedHint', { changedAt: fmtDate(d.changedAt) })}</div>`));
-    /* ROT ODER GRUEN, und zwar an erster Stelle: die Lage des Sicherungsorts
-       ist die Frage, die vor allen anderen steht. */
+    // Rot oder gruen an erster Stelle: die Lage des Backup-Ordners.
     const situation = d.inWorkDir
       ? `<div class="warn-box" id="backup-place" style="margin:0 0 12px">${tMark('card.backupDirHint', 'card.backupDirInProject')} <code>${COMPOSE_FILE}</code>.</div>`
       : `<div class="ok-box" id="backup-place" style="margin:0 0 12px">${tMark('card.backupDirOutsideHint', 'card.outsideProject')}</div>`;
@@ -9895,10 +10028,8 @@ function setUpBackupOut(fetched) {
       const value = document.getElementById('backup-dir').value;
       try {
         const r = await api('PUT', '/api/backup/dir', { place: value });
-        // gewechseltAm und veraltet wandern MIT: ohne sie verschwaende der
-        // Kasten ueber die alten Sicherungen beim ersten Speichern des
-        // Zielorts, und die Karte saehe danach harmloser aus als die Lage
-        // ist.
+        // changedAt und outdated wandern mit, sonst verschwaende der Kasten
+        // ueber die alten Backups beim ersten Speichern des Ortes.
         fetched.backup = { ...fetched.backup, place: r.place, filePath: r.filePath, error: null,
                       reachable: r.reachable, last: r.last, number: r.number,
                       changedAt: r.changedAt, outdated: r.outdated };
@@ -9906,9 +10037,7 @@ function setUpBackupOut(fetched) {
         drawBackup(fetched);
       } catch (e) { toast(e.message, true); }
     };
-    /* Der Knopf sperrt sich selbst, solange die Kopie entsteht: VACUUM INTO
-       laeuft synchron, die Instanz steht so lange still, und ein zweiter
-       Klick stellte sich nur in die Schlange. */
+    // Der Knopf sperrt sich, solange das Backup entsteht: VACUUM INTO laeuft synchron.
     document.getElementById('backup-run').onclick = async (e) => {
       const button = e.currentTarget;
       button.disabled = true;
@@ -9924,9 +10053,8 @@ function setUpBackupOut(fetched) {
                 ? ` · ${t('card.oldBackupsFreed',
                     { n: r.cleaned.removed, bytes: fmtBytes(r.cleaned.bytes) })}`
                 : ''));
-        /* HAT DER ANSCHLUSS ETWAS WEGGERAEUMT, WIRD DIE GANZE KARTE NEU: die
-           Nachbarkarte "Alte Sicherungen" traegt sonst eine Vorschau auf
-           Dateien, die es nicht mehr gibt. */
+        // Wurde aufgeraeumt, zeichnet sich der Abschnitt neu: die Karte
+        // "Alte Backups" zeigte sonst entfernte Dateien.
         if (r.cleaned && r.cleaned.removed) return renderSystem();
         drawBackup(fetched);
       } catch (err) {
@@ -9938,8 +10066,7 @@ function setUpBackupOut(fetched) {
   }
 
 
-/* ---- Karte „Alte Sicherungen" — Abschnitt „Datenbank" ---- SIE STEHT
-   HINTER "SICHERUNG" UND NICHT DARIN. */
+/* ---- Karte „Alte Backups" — Abschnitt „Datenbank", hinter „Backup" ---- */
 function cardCleanup() {
   return `<div class="sys-card">
         <h3>${tH('card.oldBackups')}</h3>
@@ -9953,8 +10080,7 @@ function setUpCleanupOut(fetched) {
   drawCleanup(fetched);
 }
 
-  /* --- Alte Sicherungen --- Gezeichnet wird aus dem, was oben schon geholt
-     wurde -- dieselbe Bauform wie bei der Karte "Sicherung" daneben. */
+  /* --- Alte Backups --- Gezeichnet wird aus dem, was oben schon geholt wurde. */
   function drawCleanup(fetched) {
     const box = document.getElementById('cleanup-box');
     if (!box) return;
@@ -9971,11 +10097,8 @@ function setUpCleanupOut(fetched) {
     const keep = Number.isInteger(a.keep) ? a.keep : gB.fallback;
     const days = Number.isInteger(a.days) ? a.days : gT.fallback;
 
-    /* DIE LISTE ALLER SICHERUNGEN -- juengste zuerst, nummeriert, NUR ZUM
-       ANSEHEN. */
-    /* ---- DIE PROBE JE ZEILE ---- „prüfen" UND NICHT
-       „Sicherung prüfen": die Zeile misst am Telefon 366 px und trägt
-       schon Nummer, Datum, Alter und Größe. */
+    /* Die Liste aller Backups, juengste zuerst, nummeriert. Der Knopf heisst
+       nur „prüfen": die Zeile misst am Telefon 366 px. */
     const row = (z) => {
       const mark = z.affected ? `<span class="cleanup-badge remove">${tH('card.deleteLower')}</span>`
                   : z.outdated ? `<span class="cleanup-badge old">${tH('card.oldKey')}</span>` : '';
@@ -10008,7 +10131,7 @@ function setUpCleanupOut(fetched) {
       : `<p class="desc" style="margin:10px 0 6px">${tH('card.nothingDeleted')} ${
            esc(a.reason || '')}</p>`);
 
-    /* DIE KOPIEN VON VOR DEM SCHLUESSELWECHSEL: eigene Zahl, eigene Summe,
+    /* Die Backups von vor dem Schluesselwechsel: eigene Zahl, eigene Summe,
        eigener Knopf. */
     const outdatedBox = !oldCount ? '' : `
       <div class="sys-part"></div>
@@ -10104,8 +10227,7 @@ function setUpCleanupOut(fetched) {
                            cleanup: { ...(fetched.backup || {}).cleanup, ...r.cleanup } };
       toast(t('card.backupsDeleted', { n: r.removed, bytes: fmtBytes(r.bytes),
         extra: r.notDeleted ? t('card.notDeleted', { notDeleted: r.notDeleted }) : '' }));
-      /* DIE NACHBARKARTE NENNT DIE LETZTE SICHERUNG, und die kann jetzt eine
-         andere sein. */
+      // Die Karte "Backup" nennt das letzte Backup, und das kann jetzt ein anderes sein.
       renderSystem();
     };
     atElement('cleanup-run', (button) => {
@@ -10119,8 +10241,7 @@ function setUpCleanupOut(fetched) {
           { n: oldCount, bytes: fmtBytes(a.oldBytes || 0) }));
     });
 
-    /* ---- Die Sicherungsprobe ---- KEINE ZWEITE
-       BESTAETIGUNG: sie liest, sie loescht nicht. */
+    /* ---- Die Probe eines Backups ---- Ohne Rueckfrage: sie liest nur. */
     box.querySelectorAll('.backup-check').forEach(button => {
       button.onclick = async () => {
         const nr = Number(button.dataset.nr);
@@ -10239,7 +10360,8 @@ function setUpExportOut(fetched) {
             <li><strong>${tH('card.wayFile')}</strong> — ${tH('card.wayFileHint')}</li>
             <li><strong>${tH('card.exportInParts')}</strong> — ${tH('card.wayPartsHint')}</li>
             <li><strong>${tH('card.backup')}</strong> — ${tH('card.wayBackupHint')}</li>
-          </ul></div>
+          </ul>
+          <p style="margin:8px 0 0">${tH('card.onlyBackupComplete')} ${tH('card.exportOnlyEntries')}</p></div>
         <div class="modal-acts">
           <button class="btn btn-ghost" data-no>${tH('dialog.cancel')}</button>
           <button class="btn btn-accent" data-yes>${tH('card.carryOn')}</button>
@@ -10444,8 +10566,11 @@ function askImport(file, limits) {
       try {
         const r = await api('POST', '/api/import', fd, true);
         busy.remove();
+        // Die Verfasser, die dem Einspielenden zugefallen sind, wie beim Papierkorb.
+        const open = Array.isArray(r.authorUnknown) ? r.authorUnknown : [];
         toast(t('card.importedCounts', { items: r.items, thing: vThing(r.items),
-          photos: r.photos, videos: r.videos || 0, attachments: r.attachments }));
+          photos: r.photos, videos: r.videos || 0, attachments: r.attachments }) +
+          (open.length ? t('card.postsAssignedHint', { names: open.join(', ') }) : ''));
         /* Nicht abbrechen, melden -- und laut genug, dass es auffaellt: fehlt
            ein Video, kann das naechste Foto zum Hauptbild geworden sein. */
         const missing = (r.videosWithoutFile || 0) + (r.videosUnreadable || 0);

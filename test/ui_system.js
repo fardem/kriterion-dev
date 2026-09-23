@@ -6,7 +6,7 @@ const H = require('./frame.js');
 const D = require('./dom.js');
 const {
   DOM_PASSWORD, placeConfirm, confirmImDom, buildDom, sysSection,
-  sysPass
+  sysPass, until, openRequests
 } = D;
 
 async function run() {
@@ -33,7 +33,8 @@ async function run() {
 
   const outDom = createDom(false, false);
   const wOut = outDom.w;
-  await new Promise(r => setTimeout(r, 80));
+  await until(wOut, (x) => x.document.getElementById('ratings') && openRequests(x) === 0,
+    2000, 'die Detailansicht');
 
   check('Ohne Recht verschwindet die Zeile zum Anlegen eines Tags',
     !wOut.document.getElementById('newtag') && !wOut.document.getElementById('newtag-b'),
@@ -59,7 +60,7 @@ async function run() {
   check('Am Testtag bleibt der Knopf fuer Tags stehen',
     !!aTrow && !!aTrow.querySelector('.ttag-add'), 'kein + am Testtag');
   aTrow.querySelector('.ttag-add').dispatchEvent(new wOut.MouseEvent('click', { bubbles: true }));
-  await new Promise(r => setTimeout(r, 20));
+  await until(wOut, () => aTrow.querySelector('.ttag-in'), 2000, 'das Eingabefeld am Testtag');
   check('Und er oeffnet weiterhin das Eingabefeld',
     !!aTrow.querySelector('.ttag-in'), 'das Feld bleibt zu');
   /* Ein Behandler an einem fehlenden Element risse die ganze Ansicht mit --
@@ -72,7 +73,8 @@ async function run() {
 
   const admDom = createDom(true, false);
   const wAdm = admDom.w;
-  await new Promise(r => setTimeout(r, 80));
+  await until(wAdm, (x) => x.document.getElementById('ratings') && openRequests(x) === 0,
+    2000, 'die Detailansicht');
   check('Der Admin behaelt beide Zeilen, auch bei ausgeschaltetem Schalter',
     !!wAdm.document.getElementById('newtag') && !!wAdm.document.getElementById('newcat'),
     'dem Admin fehlt eine der beiden Zeilen');
@@ -80,7 +82,8 @@ async function run() {
 
   const anDom = createDom(false, true);
   const wAn = anDom.w;
-  await new Promise(r => setTimeout(r, 80));
+  await until(wAn, (x) => x.document.getElementById('ratings') && openRequests(x) === 0,
+    2000, 'die Detailansicht');
   check('Mit eingeschaltetem Schalter sieht auch der Benutzer beide Zeilen wieder',
     !!wAn.document.getElementById('newtag') && !!wAn.document.getElementById('newcat'),
     'die Zeilen bleiben weg');
@@ -89,7 +92,8 @@ async function run() {
   anDom.sent.length = 0;
   setField(wAn.document, 'newtag', 'Ganz neu');
   wAn.document.getElementById('newtag-b').dispatchEvent(new wAn.MouseEvent('click', { bubbles: true }));
-  await new Promise(r => setTimeout(r, 40));
+  await until(wAn, (x) => anDom.sent.some(g => /\/api\/items\/1\/tags$/.test(g.url)) &&
+    openRequests(x) === 0, 2000, 'die Antwort auf den neuen Tag');
   const anSent = anDom.sent.filter(g => /\/api\/items\/1\/tags$/.test(g.url)).pop();
   check('Der Knopf schickt den neuen Namen an den Eintrag',
     anSent && anSent.method === 'POST' && anSent.body?.name === 'Ganz neu',
@@ -102,7 +106,8 @@ async function run() {
   const sysDom = buildDom(JSDOM, { settings: { filters: null, isAdmin: true,
     tagsFreeCreate: false, categoriesFreeCreate: true } });
   const wSys = sysDom.w;
-  await new Promise(r => setTimeout(r, 60));
+  await until(wSys, (x) => x.document.getElementById('count') && openRequests(x) === 0,
+    2000, 'die Uebersicht');
   await sysSection(wSys, 'inventory');
   const checkTag = wSys.document.getElementById('tag-free');
   const checkCategory = wSys.document.getElementById('cat-free');
@@ -123,7 +128,8 @@ async function run() {
   sysDom.sent.length = 0;
   checkTag.checked = true;
   checkTag.dispatchEvent(new wSys.Event('change', { bubbles: true }));
-  await new Promise(r => setTimeout(r, 40));
+  await until(wSys, (x) => sysDom.sent.some(g => g.url === '/api/settings') &&
+    openRequests(x) === 0, 2000, 'die Antwort auf den Haken');
   const checkSent = sysDom.sent.filter(
     g => g.url === '/api/settings' && g.body && g.body.tagsFreeCreate !== undefined).pop();
   check('Der Haken schickt genau seinen eigenen Schluessel, sonst nichts',
@@ -140,7 +146,8 @@ async function run() {
   const sysUser = buildDom(JSDOM, { settings: { filters: null,
     isAdmin: false, isOwner: false } });
   const wSysU = sysUser.w;
-  await new Promise(r => setTimeout(r, 60));
+  await until(wSysU, (x) => x.document.getElementById('count') && openRequests(x) === 0,
+    2000, 'die Uebersicht');
   await sysSection(wSysU, 'inventory');
   check('Ein Benutzer bekommt die Haken gar nicht erst zu sehen',
     !wSysU.document.getElementById('tag-free') && !wSysU.document.getElementById('cat-free'),
@@ -165,9 +172,11 @@ async function run() {
   const buildSystem = async (roles, requestsStatus = null) => {
     const d = buildDom(JSDOM, { tags: rTags, requestsStatus,
       settings: { filters: null, userCount: 4, ...roles } });
-    await new Promise(r => setTimeout(r, 60));
+    await until(d.w, (x) => x.document.getElementById('count') && openRequests(x) === 0,
+      2000, 'die Uebersicht');
     await d.w.renderSystem();
-    await new Promise(r => setTimeout(r, 40));
+    await until(d.w, (x) => x.document.querySelector('.sys-grid') && openRequests(x) === 0,
+      2000, 'der Systembereich');
     return d;
   };
   /* Die Karten werden an ihrer UEBERSCHRIFT abgezaehlt, nicht an einer id:
@@ -207,18 +216,19 @@ async function run() {
   /* ZWEIUNDZWANZIG SEIT 0.24.3: „Sprachen" kommt dazu und steht UNMITTELBAR
      HINTER „Titel" -- die zweite Karte des Abschnitts „Installation", der bis
      dahin genau eine trug. */
+  // Dreiundzwanzig: „Grenzen beim Hochladen" steht hinter „Bildformate".
   const ALL_CARDS = [
     'Mein Konto', 'Meine Sitzungen', 'Darstellung',
     'Kategorien', 'Tags', 'Bewertung: Kriterien', 'Potenzial: Kriterien',
     'Vokabular', 'Links', 'Suchmaschinen', 'Papierkorb',
     'Benutzer', 'Anfragen', 'Sicherheitsprotokoll', 'Mailversand',
-    'Kennzahlen', 'Bildformate', 'Sicherung', 'Alte Sicherungen', 'Export und Import',
+    'Kennzahlen', 'Bildformate', 'Grenzen beim Hochladen', 'Backup', 'Alte Backups', 'Export und Import',
     'Titel', 'Sprachen'];
-  check('Die Eigentuemerin sieht alle zweiundzwanzig Karten',
+  check('Die Eigentuemerin sieht alle dreiundzwanzig Karten',
     equal(kEig, ALL_CARDS), kEig.join(' · '));
   // Die ZAHL ausdruecklich, wie bei F_ROUTES: eine Karte, die still
 // verschwindet, faellt sonst niemandem auf.
-  check('Und es sind wirklich zweiundzwanzig', ALL_CARDS.length === 22 && kEig.length === 22,
+  check('Und es sind wirklich dreiundzwanzig', ALL_CARDS.length === 23 && kEig.length === 23,
     `${ALL_CARDS.length} erwartet, ${kEig.length} gezeichnet`);
   /* UND DIE ZWEITE KRITERIENKARTE STEHT HINTER DER ERSTEN -- dieselbe
      Nachbarschaftszusage wie bei „Alte Sicherungen" darunter, und aus
@@ -230,9 +240,9 @@ async function run() {
     `Potenzial: Kriterien: ${kEig.indexOf('Potenzial: Kriterien')}`);
   /* UND SIE STEHT HINTER "SICHERUNG" -- die Reihenfolge ist geprueft und
      nicht zufaellig. */
-  check('Und "Alte Sicherungen" steht unmittelbar hinter "Sicherung"',
-    kEig.indexOf('Alte Sicherungen') === kEig.indexOf('Sicherung') + 1,
-    `Sicherung: ${kEig.indexOf('Sicherung')} · Alte Sicherungen: ${kEig.indexOf('Alte Sicherungen')}`);
+  check('Und "Alte Backups" steht unmittelbar hinter "Backup"',
+    kEig.indexOf('Alte Backups') === kEig.indexOf('Backup') + 1,
+    `Backup: ${kEig.indexOf('Backup')} · Alte Backups: ${kEig.indexOf('Alte Backups')}`);
   // Und keine steht zweimal -- eine Karte, die in zwei Abschnitten haengt,
 // faellt an der Summe sonst gar nicht auf.
   check('Und keine Karte steht in zwei Abschnitten',
@@ -280,7 +290,8 @@ async function run() {
      der Knopf in der Kopfzeile setzt. */
   rUser.w.history.replaceState(null, '', '#/system');
   await rUser.w.renderSystem();
-  await new Promise(r => setTimeout(r, 20));
+  await until(rUser.w, (x) => x.document.querySelector('.sys-tab.on')?.getAttribute('href') ===
+    '#/system/personal' && openRequests(x) === 0, 2000, 'der erste Abschnitt');
   check('Und `#/system` ohne Abschnitt loest sich auf den ersten auf',
     rUser.w.location.hash === '#/system/personal', rUser.w.location.hash);
 
@@ -307,7 +318,7 @@ async function run() {
       kAdm.includes(card) && !kUser.includes(card),
       `Admin: ${kAdm.includes(card)} · Benutzer: ${kUser.includes(card)}`);
   }
-  for (const card of ['Export und Import', 'Sicherung', 'Alte Sicherungen',
+  for (const card of ['Export und Import', 'Backup', 'Alte Backups',
                        'Sicherheitsprotokoll', 'Mailversand']) {
     check(`Die Karte "${card}" steht nur beim Eigentuemer`,
       kEig.includes(card) && !kAdm.includes(card) && !kUser.includes(card),
@@ -321,7 +332,7 @@ async function run() {
   const kOut = (await sysPass(rOut)).cards;
   check('Ist die Selbstanmeldung aus und nichts offen, steht die Karte "Anfragen" trotzdem',
     kOut.includes('Anfragen'), kOut.join(' · '));
-  check('Und es sind auch dann zweiundzwanzig', kOut.length === 22 && equal(kOut, ALL_CARDS),
+  check('Und es sind auch dann dreiundzwanzig', kOut.length === 23 && equal(kOut, ALL_CARDS),
     `${kOut.length} gezeichnet`);
   // Die Karte steht im Abschnitt „Zugaenge" -- dorthin, bevor an ihr geprueft wird.
   await sysSection(rOut.w, 'users');
@@ -407,7 +418,8 @@ async function run() {
     [...rUser.w.document.querySelectorAll('#fsize .pill')].map(b => b.textContent).join(' · '));
   if (rPill) {
     rPill.dispatchEvent(new rUser.w.MouseEvent('click', { bubbles: true }));
-    await new Promise(r => setTimeout(r, 40));
+    await until(rUser.w, (x) => rUser.sent.some(g => g.method === 'PUT' && g.url === '/api/settings') &&
+      openRequests(x) === 0, 2000, 'die gespeicherte Schriftgroesse');
   }
   const rSent = rUser.sent.filter(x => x.method === 'PUT' && x.url === '/api/settings').pop();
   check('Und der Druck speichert sie wirklich',
@@ -441,7 +453,7 @@ async function run() {
     rUserCard?.textContent?.slice(0, 200));
   /* SEIT 0.17.1 HAENGT DER BEFEHL AN DER ROLLE. */
   check('Beim gewoehnlichen Benutzer steht der Wirtsbefehl nicht mehr da',
-    !!rUserCard && !/usertool\.js passwort/.test(rUserCard.textContent || ''),
+    !!rUserCard && !/usertool\.js password/.test(rUserCard.textContent || ''),
     rUserCard?.textContent?.slice(0, 300));
   /* DER SATZ IST MIT 0.31.1 EIN ANDERER, und sein Gegenstand ist derselbe. */
   check('Sondern der Satz, der ihm wirklich hilft',
@@ -452,7 +464,7 @@ async function run() {
     const eigUser = [...rEig.w.document.querySelectorAll('.sys-card')]
       .find(k => k.querySelector('h3')?.textContent.trim() === 'Mein Konto');
     check('Beim Eigentuemer steht er sehr wohl — im Kasten „Auf dem Server"',
-      !!eigUser && /usertool\.js passwort/.test(eigUser.textContent || ''),
+      !!eigUser && /usertool\.js password/.test(eigUser.textContent || ''),
       eigUser?.textContent?.slice(0, 300));
   }
   // Und ausdruecklich in der ganzen Oberflaeche nicht mehr als Anleitung:
@@ -541,7 +553,8 @@ async function run() {
      die Sicherheitsregel aus Abschnitt 5a. */
   const eiBuild = async (key) => {
     const d = buildDom(JSDOM, { hash: `#/invite/${key}` });
-    await new Promise(r => setTimeout(r, 80));
+    await until(d.w, (x) => x.document.querySelector('#ep, #eb-again, #lu, #count') &&
+      openRequests(x) === 0, 2000, 'die Einladungsseite');
     return d;
   };
 
@@ -628,7 +641,8 @@ async function run() {
      SCHLUESSEL NICHT WEGWERFEN. */
   const eiThrottle = await (async () => {
     const d = buildDom(JSDOM, { hash: `#/invite/${'d'.repeat(64)}`, tokenThrottle: 1 });
-    await new Promise(r => setTimeout(r, 80));
+    await until(d.w, (x) => x.document.querySelector('#ep, #eb-again, #lu, #count') &&
+      openRequests(x) === 0, 2000, 'die Einladungsseite');
     return d;
   })();
   check('Eine Absage der Bremse fuehrt NICHT auf die Anmeldemaske',
@@ -648,10 +662,11 @@ async function run() {
        Ordnungsliebe: eine Gegenprobe nimmt genau
        diesen Knopf weg, und ein .dispatchEvent auf null riss den ganzen Lauf
        ab, statt die Pruefungen darunter rot zu faerben. */
-    // Ein WIRKLICH zugestelltes Ereignis, samt Durchlauf
-// der Event Loop -- ein Knopf ist erst geprueft, wenn er geklickt wurde.
+    // Ein wirklich zugestelltes Ereignis: ein Knopf ist erst geprueft, wenn er geklickt wurde.
     if (eiButton) eiButton.dispatchEvent(new eiThrottle.w.MouseEvent('click', { bubbles: true }));
-    await new Promise(r => setTimeout(r, 80));
+    await until(eiThrottle.w, (x) => !eiButton ||
+      (eiThrottle.sent.filter(g => g.url === '/api/token/check').length > 1 && openRequests(x) === 0),
+      2000, 'die Antwort auf den zweiten Anlauf');
     check('Und der zweite Anlauf fuehrt wirklich zum Formular',
       !!eiThrottle.w.document.getElementById('ep') &&
       /Willkommen, carla/.test(eiThrottle.w.document.body.textContent),
@@ -679,8 +694,10 @@ async function run() {
     const d = await eiBuild('d'.repeat(64));
     setField(d.w.document, 'ep', 'kurz');
     setField(d.w.document, 'ep2', 'kurz');
-    d.w.document.getElementById('eb').dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
-    await new Promise(r => setTimeout(r, 60));
+    let ebBefore = d.w.document.getElementById('eb');
+    ebBefore.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
+    await until(d.w, (x) => x.document.getElementById('eb') !== ebBefore && openRequests(x) === 0,
+      2000, 'die neu gezeichnete Einladungsseite');
     check('Ein zu kurzes Passwort geht gar nicht erst an den Server',
       !d.sent.some(x => x.url === '/api/token/redeem'),
       d.sent.map(x => x.url).join(' · '));
@@ -690,8 +707,10 @@ async function run() {
 
     setField(d.w.document, 'ep', 'ein-gutes-passwort');
     setField(d.w.document, 'ep2', 'ein-anderes-passwort');
-    d.w.document.getElementById('eb').dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
-    await new Promise(r => setTimeout(r, 60));
+    ebBefore = d.w.document.getElementById('eb');
+    ebBefore.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
+    await until(d.w, (x) => x.document.getElementById('eb') !== ebBefore && openRequests(x) === 0,
+      2000, 'die neu gezeichnete Einladungsseite');
     check('Zwei verschiedene Passwoerter ebenso wenig',
       !d.sent.some(x => x.url === '/api/token/redeem'),
       d.sent.map(x => x.url).join(' · '));
@@ -701,8 +720,10 @@ async function run() {
 
     setField(d.w.document, 'ep', 'ein-gutes-passwort');
     setField(d.w.document, 'ep2', 'ein-gutes-passwort');
-    d.w.document.getElementById('eb').dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
-    await new Promise(r => setTimeout(r, 120));
+    ebBefore = d.w.document.getElementById('eb');
+    ebBefore.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
+    await until(d.w, (x) => x.document.getElementById('eb') !== ebBefore && openRequests(x) === 0,
+      2000, 'die Seite nach dem Setzen des Passworts');
     const set = d.sent.find(x => x.url === '/api/token/redeem');
     check('Zwei gleiche gehen an den Server',
       !!set && set.method === 'POST', JSON.stringify(set));
@@ -726,7 +747,8 @@ async function run() {
      Paar las sich als Bild mit einer Ueberschrift darunter -- zwei Dinge
      statt einem. */
   const mzDom = buildDom(JSDOM, { loggedIn: false, signup: false });
-  await new Promise(r => setTimeout(r, 80));
+  await until(mzDom.w, (x) => x.document.getElementById('lu') && openRequests(x) === 0,
+    2000, 'die Anmeldeseite');
   const mzRow = mzDom.w.document.querySelector('.login-card .login-brand');
   check('Die Anmeldeseite traegt eine Markenzeile', Boolean(mzRow),
     'keine Zeile im Baum');
@@ -760,7 +782,8 @@ async function run() {
   /* DAS FORMULAR STEHT NUR DA, WENN DER SERVER SAGT, DASS DIE SELBSTANMELDUNG
      AN IST. */
   const sOut = buildDom(JSDOM, { loggedIn: false, signup: false });
-  await new Promise(r => setTimeout(r, 80));
+  await until(sOut.w, (x) => x.document.getElementById('lu') && openRequests(x) === 0,
+    2000, 'die Anmeldeseite');
   check('Ist die Selbstanmeldung aus, steht auf der Anmeldeseite kein Formular',
     !sOut.w.document.getElementById('l-request'), 'der Knopf steht da');
   check('Und auch die Frage darueber nicht',
@@ -770,7 +793,8 @@ async function run() {
     'die Anmeldemaske fehlt');
 
   const sAn = buildDom(JSDOM, { loggedIn: false, signup: true });
-  await new Promise(r => setTimeout(r, 80));
+  await until(sAn.w, (x) => x.document.getElementById('lu') && openRequests(x) === 0,
+    2000, 'die Anmeldeseite');
   const sReference = sAn.w.document.getElementById('l-request');
   check('Ist sie an, steht der Weg "Zugang anfragen" da', Boolean(sReference),
     'der Weg fehlt');
@@ -847,7 +871,7 @@ async function run() {
   /* UEBER EIN WIRKLICH ZUGESTELLTES EREIGNIS -- ein
      aufgerufener Behandler belegt nicht, dass ein Klick ankommt. */
   sReference.dispatchEvent(new sAn.w.MouseEvent('click', { bubbles: true, cancelable: true }));
-  await new Promise(r => setTimeout(r, 40));
+  await until(sAn.w, (x) => !x.document.getElementById('lu'), 2000, 'das Anfrageformular');
   const sName = sAn.w.document.getElementById('req-name');
   const sMail = sAn.w.document.getElementById('req-mail');
   check('Der Klick fuehrt zum Formular mit Name und Adresse',
@@ -861,9 +885,10 @@ async function run() {
     `${sName.getAttribute('maxlength')} / ${sMail.getAttribute('maxlength')}`);
   sName.value = 'neuling';
   sMail.value = 'neuling@beispiel.de';
-  sAn.w.document.getElementById('req-send')
-    .dispatchEvent(new sAn.w.MouseEvent('click', { bubbles: true, cancelable: true }));
-  await new Promise(r => setTimeout(r, 80));
+  const sSend = sAn.w.document.getElementById('req-send');
+  sSend.dispatchEvent(new sAn.w.MouseEvent('click', { bubbles: true, cancelable: true }));
+  await until(sAn.w, (x) => x.document.getElementById('req-send') !== sSend && openRequests(x) === 0,
+    2000, 'die Seite nach dem Abschicken');
   const sSent = sAn.sent.find(x => x.url === '/api/signup');
   check('Das Abschicken geht an POST /api/signup',
     Boolean(sSent) && sSent.method === 'POST',
@@ -890,10 +915,11 @@ async function run() {
   group('Die Anmeldeseite: der zweite Schritt');
 
   /* WAS DER MENSCH SIEHT, IST DIE HAELFTE DIESER RUNDE. */
-  /* GEDRUECKT WIRD PER dispatchEvent SAMT DURCHLAUF DES EVENT LOOPS. */
-  const zdClickable = async (w, el, ms = 80) => {
-    if (el) el.dispatchEvent(new w.MouseEvent('click', { bubbles: true }));
-    await new Promise(r => setTimeout(r, ms));
+  /* Klickt per dispatchEvent und wartet auf `condition`; fehlt der Knopf, wird nicht gewartet. */
+  const zdClickable = async (w, el, condition, what) => {
+    if (!el) return;
+    el.dispatchEvent(new w.MouseEvent('click', { bubbles: true }));
+    await until(w, condition, 2000, what);
   };
   // Dasselbe Abfangen fuer ein Eingabefeld.
   const zfSet = (w, id, value) => {
@@ -904,10 +930,13 @@ async function run() {
 
   const zdLogin = async (factor) => {
     const d = buildDom(JSDOM, { loggedIn: false, loginFactor: factor });
-    await new Promise(r => setTimeout(r, 80));
+    await until(d.w, (x) => x.document.getElementById('lu') && openRequests(x) === 0,
+      2000, 'die Anmeldeseite');
     setField(d.w.document, 'lu', 'chefin');
     setField(d.w.document, 'lp', 'chefins-wort-100');
-    await zdClickable(d.w, d.w.document.getElementById('lb'));
+    const lb = d.w.document.getElementById('lb');
+    await zdClickable(d.w, lb, (x) => !lb.isConnected && openRequests(x) === 0,
+      'die Seite nach der Anmeldung');
     return d;
   };
 
@@ -953,7 +982,9 @@ async function run() {
   // Ein falscher Code: die Seite bleibt stehen, nennt die Absage und geht mit
 // dem FRISCHEN Ausweis weiter -- ein Tippfehler kostet nicht das Passwort.
   zfSet(zdIncluding.w, 'two-factor-code', '000000');
-  await zdClickable(zdIncluding.w, zdIncluding.w.document.getElementById('two-factor-send'));
+  const zdSend1 = zdIncluding.w.document.getElementById('two-factor-send');
+  await zdClickable(zdIncluding.w, zdSend1, (x) => !zdSend1.isConnected && openRequests(x) === 0,
+    'die Seite nach dem falschen Code');
   const zdWrong = zdIncluding.sent.filter(g => g.url === '/api/login/second').pop();
   check('Ein falscher Code laesst den Menschen auf dieser Seite',
     Boolean(zdIncluding.w.document.getElementById('two-factor-code')), 'die Seite ist gewechselt');
@@ -969,7 +1000,9 @@ async function run() {
 
   // Und jetzt der richtige.
   zfSet(zdIncluding.w, 'two-factor-code', '123456');
-  await zdClickable(zdIncluding.w, zdIncluding.w.document.getElementById('two-factor-send'));
+  const zdSend2 = zdIncluding.w.document.getElementById('two-factor-send');
+  await zdClickable(zdIncluding.w, zdSend2, (x) => !zdSend2.isConnected && openRequests(x) === 0,
+    'die Seite nach dem richtigen Code');
   const zdRight = zdIncluding.sent.filter(g => g.url === '/api/login/second').pop();
   check('Der zweite Anlauf nimmt den FRISCHEN Ausweis aus der Absage',
     zdRight?.body?.ticket === 'ausweis-2', JSON.stringify(zdRight?.body));
@@ -982,7 +1015,9 @@ async function run() {
      bliebe der Satz auf dem Bildschirm eine Behauptung. */
   const zdAgain = await zdLogin(true);
   zfSet(zdAgain.w, 'two-factor-code', 'AAAAA-BBBBB');
-  await zdClickable(zdAgain.w, zdAgain.w.document.getElementById('two-factor-send'));
+  const zdSend3 = zdAgain.w.document.getElementById('two-factor-send');
+  await zdClickable(zdAgain.w, zdSend3, (x) => !zdSend3.isConnected && openRequests(x) === 0,
+    'die Seite nach dem Wiederherstellungscode');
   check('Ein Wiederherstellungscode traegt in demselben Feld',
     !zdAgain.w.document.querySelector('.login-card'),
     zdAgain.w.document.querySelector('.login-card')?.textContent?.slice(0, 80));
@@ -992,10 +1027,14 @@ async function run() {
      bei, war der Code falsch; liegt keiner bei, ist hier nichts mehr zu
      holen. */
   const zdPath = await zdLogin(true);
+  const zdSendOld = zdPath.w.document.getElementById('two-factor-send');
   zdPath.w.showSecondFactor('erfundener-ausweis');
-  await new Promise(r => setTimeout(r, 40));
+  await until(zdPath.w, (x) => x.document.getElementById('two-factor-send') !== zdSendOld,
+    2000, 'der zweite Schritt mit dem erfundenen Ausweis');
   zfSet(zdPath.w, 'two-factor-code', '123456');
-  await zdClickable(zdPath.w, zdPath.w.document.getElementById('two-factor-send'));
+  const zdSend4 = zdPath.w.document.getElementById('two-factor-send');
+  await zdClickable(zdPath.w, zdSend4, (x) => !zdSend4.isConnected && openRequests(x) === 0,
+    'die Seite nach dem abgelaufenen Ausweis');
   check('Ein abgelaufener Ausweis fuehrt zurueck auf die Anmeldeseite',
     Boolean(zdPath.w.document.getElementById('lp')) && !zdPath.w.document.getElementById('two-factor-code'),
     zdPath.w.document.querySelector('.login-card')?.textContent?.slice(0, 100));
@@ -1007,10 +1046,13 @@ async function run() {
      sieht sie aus wie vor dieser Runde, und von einem zweiten Faktor steht
      dort kein Wort. */
   const zdWord = buildDom(JSDOM, { loggedIn: false, loginFactor: true });
-  await new Promise(r => setTimeout(r, 80));
+  await until(zdWord.w, (x) => x.document.getElementById('lu') && openRequests(x) === 0,
+    2000, 'die Anmeldeseite');
   setField(zdWord.w.document, 'lu', 'chefin');
   setField(zdWord.w.document, 'lp', 'falsches-wort-100');
-  await zdClickable(zdWord.w, zdWord.w.document.getElementById('lb'));
+  const zdLb = zdWord.w.document.getElementById('lb');
+  await zdClickable(zdWord.w, zdLb, (x) => !zdLb.isConnected && openRequests(x) === 0,
+    'die Seite nach dem falschen Passwort');
   check('Bei falschem Passwort bleibt es bei der gewohnten Absage',
     /Benutzername oder Passwort/.test(
       zdWord.w.document.querySelector('.login-error')?.textContent || '') &&
@@ -1026,9 +1068,11 @@ async function run() {
   /* KEINE NEUE KARTE -- es bleibt bei achtzehn. Der zweite Faktor steht dort,
      wo Name, Passwort und Adresse stehen: beim eigenen Zugang. */
   const zkOut = buildDom(JSDOM, { hash: '#/system' });
-  await new Promise(r => setTimeout(r, 60));
+  await until(zkOut.w, (x) => x.document.querySelector('.sys-grid') && openRequests(x) === 0,
+    2000, 'der Systembereich');
   await zkOut.w.renderSystem();
-  await new Promise(r => setTimeout(r, 60));
+  await until(zkOut.w, (x) => x.document.querySelector('.sys-grid') && openRequests(x) === 0,
+    2000, 'der neu gezeichnete Systembereich');
   const zkBlock = () => zkOut.w.document.getElementById('two-factor-block');
   check('Der Block steht in der Karte "Mein Konto" und nicht in einer eigenen',
     Boolean(zkBlock()) && zkBlock().closest('.sys-card')?.querySelector('h3')?.textContent === 'Mein Konto',
@@ -1036,8 +1080,8 @@ async function run() {
   /* GEZAEHLT WIRD UEBER ALLE ABSCHNITTE, seit der Systembereich immer nur
      einen zeigt. */
   const zkAll = (await sysPass(zkOut)).cards;
-  check('Und die Zahl der Karten bleibt bei zweiundzwanzig',
-    zkAll.length === 22, `${zkAll.length}: ${zkAll.join(' · ')}`);
+  check('Und die Zahl der Karten bleibt bei dreiundzwanzig',
+    zkAll.length === 23, `${zkAll.length}: ${zkAll.join(' · ')}`);
   await sysSection(zkOut.w, 'personal');
   /* DER ZUSTAND STEHT OHNE KLICK DA. "An seit ..." oder "aus" -- nicht hinter
      einem Knopf, den man erst druecken muss. */
@@ -1052,7 +1096,8 @@ async function run() {
     /kein Internet/.test(zkBlock()?.textContent || ''), zkBlock()?.textContent?.slice(0, 300));
 
   // Einschalten, Schritt 1: hinter dem bisherigen Passwort.
-  await zdClickable(zkOut.w, zkOut.w.document.getElementById('two-factor-on'));
+  await zdClickable(zkOut.w, zkOut.w.document.getElementById('two-factor-on'),
+    (x) => x.document.getElementById('confirm-pass'), 'das Passwortfenster');
   check('Einschalten fragt zuerst nach dem bisherigen Passwort',
     Boolean(zkOut.w.document.getElementById('confirm-pass')), 'kein Passwortfenster');
   check('Und dort steht KEIN Codefeld -- es gibt noch keinen Code zu fragen',
@@ -1078,12 +1123,14 @@ async function run() {
 
   // Schritt 2: der Code aus der App.
   zfSet(zkOut.w, 'two-factor-check', '000000');
-  await zdClickable(zkOut.w, zkOut.w.document.getElementById('two-factor-done'));
+  await zdClickable(zkOut.w, zkOut.w.document.getElementById('two-factor-done'),
+    (x) => x.document.getElementById('confirm-pass'), 'das Passwortfenster');
   await confirmImDom(zkOut, 'chefins-wort-100');
   check('Ein falscher Code schaltet nicht ein',
     Boolean(zkOut.w.document.getElementById('two-factor-check')), 'die Seite ist gewechselt');
   zfSet(zkOut.w, 'two-factor-check', '123456');
-  await zdClickable(zkOut.w, zkOut.w.document.getElementById('two-factor-done'));
+  await zdClickable(zkOut.w, zkOut.w.document.getElementById('two-factor-done'),
+    (x) => x.document.getElementById('confirm-pass'), 'das Passwortfenster');
   await confirmImDom(zkOut, 'chefins-wort-100');
   check('Mit richtigem Code steht der Zustand auf "an"',
     /Zweiter Faktor: an/.test(zkBlock()?.textContent || ''), zkBlock()?.textContent?.slice(0, 120));
@@ -1105,11 +1152,12 @@ async function run() {
     /getrennt vom Handy/.test(zkBox()?.textContent || ''),
     zkBox()?.textContent?.slice(0, 220));
   check('Er nennt den Notweg ueber den Wirt fuer den Fall, dass alles weg ist',
-    /usertool\.js zweifaktor/.test(zkBox()?.textContent || ''),
+    /usertool\.js twofactor/.test(zkBox()?.textContent || ''),
     zkBox()?.textContent?.slice(-160));
   // Und beim naechsten Aufbau der Karte sind sie fort.
   await zkOut.w.renderSystem();
-  await new Promise(r => setTimeout(r, 60));
+  await until(zkOut.w, (x) => x.document.querySelector('.sys-grid') && openRequests(x) === 0,
+    2000, 'der neu gezeichnete Systembereich');
   check('Beim naechsten Aufbau der Karte sind sie fort',
     !zkOut.w.document.getElementById('two-factor-codebox'), 'die Codes stehen noch da');
   check('Der Zustand "an" steht dagegen weiterhin ohne Klick da',
@@ -1120,7 +1168,8 @@ async function run() {
 
   /* NEUE CODES -- der Fall, den niemand plant. Hinter Passwort UND Code, und
      das Fenster zeigt jetzt BEIDE Felder. */
-  await zdClickable(zkOut.w, zkOut.w.document.getElementById('two-factor-new'));
+  await zdClickable(zkOut.w, zkOut.w.document.getElementById('two-factor-new'),
+    (x) => x.document.getElementById('confirm-pass'), 'das Passwortfenster');
   check('Neue Codes fragen nach Passwort UND Code',
     Boolean(zkOut.w.document.getElementById('confirm-pass')) &&
     Boolean(zkOut.w.document.getElementById('confirm-code')), 'ein Feld fehlt');
@@ -1133,14 +1182,16 @@ async function run() {
     /noch 8 von 8/.test(zkBlock()?.textContent || ''), zkBlock()?.textContent?.slice(0, 160));
 
   // Ausschalten: Passwort und Code, danach wieder "aus".
-  await zdClickable(zkOut.w, zkOut.w.document.getElementById('two-factor-off'));
+  await zdClickable(zkOut.w, zkOut.w.document.getElementById('two-factor-off'),
+    (x) => x.document.getElementById('confirm-pass'), 'das Passwortfenster');
   check('Ausschalten fragt ebenfalls nach beidem',
     Boolean(zkOut.w.document.getElementById('confirm-pass')) &&
     Boolean(zkOut.w.document.getElementById('confirm-code')), 'ein Feld fehlt');
   await confirmImDom(zkOut, 'chefins-wort-100', false, '000000');
   check('Mit falschem Code bleibt er an',
     /Zweiter Faktor: an/.test(zkBlock()?.textContent || ''), zkBlock()?.textContent?.slice(0, 90));
-  await zdClickable(zkOut.w, zkOut.w.document.getElementById('two-factor-off'));
+  await zdClickable(zkOut.w, zkOut.w.document.getElementById('two-factor-off'),
+    (x) => x.document.getElementById('confirm-pass'), 'das Passwortfenster');
   await confirmImDom(zkOut, 'chefins-wort-100', false, '123456');
   check('Mit richtigem Code steht der Zustand wieder auf "aus"',
     /Zweiter Faktor: aus/.test(zkBlock()?.textContent || ''), zkBlock()?.textContent?.slice(0, 90));
@@ -1151,9 +1202,11 @@ async function run() {
   /* DIE WARNUNG, WENN ES KNAPP WIRD. */
   const zkTight = buildDom(JSDOM, { hash: '#/system',
     twoFactorState: { an: true, since: '2026-08-14 10:00:00', codesOpen: 1, codesTotal: 8 } });
-  await new Promise(r => setTimeout(r, 60));
+  await until(zkTight.w, (x) => x.document.querySelector('.sys-grid') && openRequests(x) === 0,
+    2000, 'der Systembereich');
   await zkTight.w.renderSystem();
-  await new Promise(r => setTimeout(r, 60));
+  await until(zkTight.w, (x) => x.document.querySelector('.sys-grid') && openRequests(x) === 0,
+    2000, 'der neu gezeichnete Systembereich');
   const zkTightText = zkTight.w.document.getElementById('two-factor-block')?.textContent || '';
   check('Bei einem uebrigen Code bittet die Karte um neue Codes',
     /noch 1 von 8/.test(zkTightText) && /rechtzeitig neue erzeugen/.test(zkTightText),
@@ -1163,9 +1216,11 @@ async function run() {
     /14\.08\.2026/.test(zkTightText) && !/2026-08-14/.test(zkTightText), zkTightText.slice(0, 120));
   const zkFull = buildDom(JSDOM, { hash: '#/system',
     twoFactorState: { an: true, since: '2026-08-14 10:00:00', codesOpen: 8, codesTotal: 8 } });
-  await new Promise(r => setTimeout(r, 60));
+  await until(zkFull.w, (x) => x.document.querySelector('.sys-grid') && openRequests(x) === 0,
+    2000, 'der Systembereich');
   await zkFull.w.renderSystem();
-  await new Promise(r => setTimeout(r, 60));
+  await until(zkFull.w, (x) => x.document.querySelector('.sys-grid') && openRequests(x) === 0,
+    2000, 'der neu gezeichnete Systembereich');
   check('Bei acht uebrigen steht die Warnung NICHT da',
     !/knapp/.test(zkFull.w.document.getElementById('two-factor-block')?.textContent || ''),
     zkFull.w.document.getElementById('two-factor-block')?.textContent?.slice(0, 200));
@@ -1174,11 +1229,13 @@ async function run() {
      Codefeld steht nur bei Zugaengen mit zweitem Faktor. */
   const zkBest = buildDom(JSDOM, { hash: '#/system',
     twoFactorState: { an: true, since: '2026-08-14 10:00:00', codesOpen: 8, codesTotal: 8 } });
-  await new Promise(r => setTimeout(r, 60));
+  await until(zkBest.w, (x) => x.document.querySelector('.sys-grid') && openRequests(x) === 0,
+    2000, 'der Systembereich');
   await zkBest.w.renderSystem();
-  await new Promise(r => setTimeout(r, 60));
+  await until(zkBest.w, (x) => x.document.querySelector('.sys-grid') && openRequests(x) === 0,
+    2000, 'der neu gezeichnete Systembereich');
   zkBest.w.secondConfirm('export', null, 'Export', 'Alles herunterladen');
-  await new Promise(r => setTimeout(r, 40));
+  await until(zkBest.w, (x) => x.document.getElementById('confirm-pass'), 2000, 'das Passwortfenster');
   check('Mit zweitem Faktor traegt das Bestaetigungsfenster ein Codefeld',
     Boolean(zkBest.w.document.getElementById('confirm-code')), 'kein Codefeld');
   /* SEIT 0.19.2 IM NOMINATIV: „weil in deinem Profil ein zweiter Faktor
@@ -1206,11 +1263,13 @@ async function run() {
     zkBestCall?.body?.code === '123456' && zkBestCall?.body?.password === 'chefins-wort-100',
     JSON.stringify(zkBestCall?.body));
   const zkWithout = buildDom(JSDOM, { hash: '#/system' });
-  await new Promise(r => setTimeout(r, 60));
+  await until(zkWithout.w, (x) => x.document.querySelector('.sys-grid') && openRequests(x) === 0,
+    2000, 'der Systembereich');
   await zkWithout.w.renderSystem();
-  await new Promise(r => setTimeout(r, 60));
+  await until(zkWithout.w, (x) => x.document.querySelector('.sys-grid') && openRequests(x) === 0,
+    2000, 'der neu gezeichnete Systembereich');
   zkWithout.w.secondConfirm('export', null, 'Export', 'Alles herunterladen');
-  await new Promise(r => setTimeout(r, 40));
+  await until(zkWithout.w, (x) => x.document.getElementById('confirm-pass'), 2000, 'das Passwortfenster');
   check('Ohne zweiten Faktor steht dort kein Codefeld',
     Boolean(zkWithout.w.document.getElementById('confirm-pass')) &&
     !zkWithout.w.document.getElementById('confirm-code'), 'ein Codefeld steht da');
@@ -1246,7 +1305,8 @@ async function run() {
   /* DER SCHLUESSEL STEHT IM FRAGMENT (#/confirm/…) und geht damit nie an den
      Server -- dieselbe Bauform wie beim Einladungslink. */
   const beGood = buildDom(JSDOM, { hash: `#/confirm/${'d'.repeat(64)}` });
-  await new Promise(r => setTimeout(r, 90));
+  await until(beGood.w, (x) => x.document.getElementById('confirm-back') && openRequests(x) === 0,
+    2000, 'die Bestaetigungsseite');
   const beCall = beGood.sent.find(x => x.url === '/api/signup/confirm');
   check('Der Aufruf mit einem Bestaetigungslink fragt den Server nach ihm',
     Boolean(beCall) && beCall.method === 'POST',
@@ -1276,7 +1336,8 @@ async function run() {
     `${beGood.w.document.querySelectorAll('input[type="password"]').length} Passwortfelder`);
 
   const beDead = buildDom(JSDOM, { hash: `#/confirm/${'9'.repeat(64)}` });
-  await new Promise(r => setTimeout(r, 90));
+  await until(beDead.w, (x) => x.document.getElementById('confirm-back') && openRequests(x) === 0,
+    2000, 'die Bestaetigungsseite');
   check('Ein erfundener Schluessel fuehrt zur Absage',
     /gilt nicht mehr/.test(beDead.w.document.querySelector('.login-error')?.textContent || ''),
     beDead.w.document.querySelector('.login-error')?.textContent || '(keine Absage)');
@@ -1293,9 +1354,11 @@ async function run() {
   const sCardBuild = async (status) => {
     const d = buildDom(JSDOM, { requestsStatus: status,
       settings: { filters: null, isAdmin: true, isOwner: true } });
-    await new Promise(r => setTimeout(r, 60));
+    await until(d.w, (x) => x.document.getElementById('count') && openRequests(x) === 0,
+      2000, 'die Uebersicht');
     await sysSection(d.w, 'users');
-    await new Promise(r => setTimeout(r, 40));
+    await until(d.w, (x) => x.document.getElementById('mrequests') && openRequests(x) === 0,
+      2000, 'die Karte der Anfragen');
     return d;
   };
   const sCardStatus = () => ({ an: true, deliveryReady: true, deliveryReason: '', cap: 20,
@@ -1329,7 +1392,8 @@ async function run() {
   placeConfirm(kA.w, true);
   kRows[0].querySelector('.signup-approve')
     .dispatchEvent(new kA.w.MouseEvent('click', { bubbles: true, cancelable: true }));
-  await new Promise(r => setTimeout(r, 80));
+  await until(kA.w, (x) => kA.sent.some(g => g.url.startsWith('/api/requests/')) &&
+    openRequests(x) === 0, 2000, 'die Antwort auf die Freischaltung');
   const kFree = kA.sent.find(x => x.url === '/api/requests/11/approve');
   check('Der Knopf "Freischalten" ruft die Route mit der Nummer der Zeile',
     Boolean(kFree) && kFree.method === 'POST',
@@ -1360,7 +1424,8 @@ async function run() {
   placeConfirm(kFrom.w, true);
   [...kFrom.w.document.querySelectorAll('#mrequests .mrow')][1].querySelector('.signup-reject')
     .dispatchEvent(new kFrom.w.MouseEvent('click', { bubbles: true, cancelable: true }));
-  await new Promise(r => setTimeout(r, 80));
+  await until(kFrom.w, (x) => kFrom.sent.some(g => g.url.startsWith('/api/requests/')) &&
+    openRequests(x) === 0, 2000, 'die Antwort auf die Ablehnung');
   check('Der Knopf "Ablehnen" ruft DELETE mit der Nummer der Zeile',
     kFrom.sent.some(x => x.method === 'DELETE' && x.url === '/api/requests/12'),
     kFrom.sent.filter(x => /anfragen/.test(x.url)).map(x => `${x.method} ${x.url}`).join(' · '));
@@ -1375,7 +1440,8 @@ async function run() {
   const kSch = await sCardBuild(sCardStatus());
   kSch.w.document.getElementById('signup-toggle')
     .dispatchEvent(new kSch.w.MouseEvent('click', { bubbles: true, cancelable: true }));
-  await new Promise(r => setTimeout(r, 80));
+  await until(kSch.w, (x) => kSch.sent.some(g => g.url === '/api/signup/toggle') &&
+    openRequests(x) === 0, 2000, 'die Antwort auf den Schalter');
   const kSchCall = kSch.sent.find(x => x.url === '/api/signup/toggle');
   check('Der Schalter ruft PUT /api/signup/toggle',
     Boolean(kSchCall) && kSchCall.method === 'PUT',
@@ -1428,9 +1494,11 @@ async function run() {
   /* DIE KARTE IN BEIDEN ZUSTAENDEN -- mehrere Anmeldungen und eine einzige. */
   const msSystem = async (roles, opt = {}) => {
     const d = buildDom(JSDOM, { settings: { filters: null, userCount: 4, ...roles }, ...opt });
-    await new Promise(r => setTimeout(r, 60));
+    await until(d.w, (x) => x.document.getElementById('count') && openRequests(x) === 0,
+      2000, 'die Uebersicht');
     await d.w.renderSystem();
-    await new Promise(r => setTimeout(r, 60));
+    await until(d.w, (x) => x.document.querySelector('.sys-grid') && openRequests(x) === 0,
+      2000, 'der Systembereich');
     return d;
   };
   const msCard = (d) => [...d.w.document.querySelectorAll('.sys-grid > .sys-card')]
@@ -1525,9 +1593,10 @@ async function run() {
   {
     const d = await msSystem({ isAdmin: true, isOwner: true });
     const before = msSessionRows(d).length;
-    msSessionRows(d).find(r => !r.classList.contains('session-mine'))?.querySelector('.session-x')
-      ?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
-    await new Promise(r => setTimeout(r, 60));
+    const msX = msSessionRows(d).find(r => !r.classList.contains('session-mine'))?.querySelector('.session-x');
+    msX?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
+    await until(d.w, (x) => !msX || (d.sent.some(g => g.method === 'DELETE') && openRequests(x) === 0),
+      2000, 'die neu gezeichnete Liste der Sitzungen');
     check('Das Kreuz schickt das Beenden an den Server',
       d.sent.some(x => x.method === 'DELETE' && x.url === `/api/sessions/${'b'.repeat(64)}`),
       d.sent.slice(-3).map(x => `${x.method} ${x.url}`).join(' · '));
@@ -1544,7 +1613,8 @@ async function run() {
     const d = await msSystem({ isAdmin: true, isOwner: true });
     const msNo = placeConfirm(d.w, false);
     msCard(d)?.querySelector('#sessions-all')?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
-    await new Promise(r => setTimeout(r, 60));
+    await until(d.w, (x) => !x.document.querySelector('.backdrop') && openRequests(x) === 0,
+      2000, 'die geschlossene Rueckfrage');
     check('Wer abbricht, beendet nichts',
       !d.sent.some(x => x.method === 'DELETE' && x.url === '/api/sessions'),
       d.sent.slice(-3).map(x => `${x.method} ${x.url}`).join(' · '));
@@ -1553,8 +1623,10 @@ async function run() {
 
     msNo.disconnect();
     placeConfirm(d.w, true);
-    msCard(d)?.querySelector('#sessions-all')?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
-    await new Promise(r => setTimeout(r, 60));
+    const msAll = msCard(d)?.querySelector('#sessions-all');
+    msAll?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
+    await until(d.w, (x) => !msAll || (d.sent.some(g => g.method === 'DELETE') && openRequests(x) === 0),
+      2000, 'die neu gezeichnete Liste der Sitzungen');
     check('Nach der Bestaetigung geht es an den Server',
       d.sent.some(x => x.method === 'DELETE' && x.url === '/api/sessions'),
       d.sent.slice(-3).map(x => `${x.method} ${x.url}`).join(' · '));
@@ -1583,9 +1655,11 @@ async function run() {
   const ziRows = (d) => [...(ziCard(d)?.querySelectorAll('#musers .mrow.user') || [])];
   const ziSystem = async (roles, opt = {}) => {
     const d = buildDom(JSDOM, { settings: { filters: null, userCount: 4, ...roles }, ...opt });
-    await new Promise(r => setTimeout(r, 60));
+    await until(d.w, (x) => x.document.getElementById('count') && openRequests(x) === 0,
+      2000, 'die Uebersicht');
     await sysSection(d.w, 'users');
-    await new Promise(r => setTimeout(r, 40));
+    await until(d.w, (x) => x.document.querySelector('.sys-grid') && openRequests(x) === 0,
+      2000, 'der Abschnitt der Benutzer');
     return d;
   };
 
@@ -1632,9 +1706,10 @@ async function run() {
       ziCard(ziEig)?.querySelector('#user-remove-row')?.innerHTML);
     check('Und er nennt ihre Zahl', /\(1\)/.test(zwButton()?.textContent || ''),
       zwButton()?.textContent);
-    zwButton()?.dispatchEvent(new ziEig.w.MouseEvent('click', { bubbles: true }));
-    await new Promise(r => setTimeout(r, 40));
     const zwDialog = () => ziEig.w.document.getElementById('tombstone-modal');
+    const zwOpen = zwButton();
+    zwOpen?.dispatchEvent(new ziEig.w.MouseEvent('click', { bubbles: true }));
+    await until(ziEig.w, () => !zwOpen || zwDialog(), 2000, 'das Fenster der geloeschten Zugaenge');
     check('Der Klick oeffnet ein eigenes Fenster', !!zwDialog(), 'kein Fenster');
     const zwRows = () => [...(zwDialog()?.querySelectorAll('.mrow.user') || [])];
     check('Darin steht der Grabstein', zwRows().length === 1 &&
@@ -1656,8 +1731,9 @@ async function run() {
     check('Und nennt sperren als den umkehrbaren Weg',
       /sperren/.test(zwDialog()?.textContent || ''),
       zwDialog()?.textContent?.replace(/\s+/g, ' ').slice(0, 300));
-    zwDialog()?.querySelector('[data-no]')?.dispatchEvent(new ziEig.w.MouseEvent('click', { bubbles: true }));
-    await new Promise(r => setTimeout(r, 30));
+    const zwClose = zwDialog()?.querySelector('[data-no]');
+    zwClose?.dispatchEvent(new ziEig.w.MouseEvent('click', { bubbles: true }));
+    await until(ziEig.w, () => !zwClose || !zwClose.isConnected, 2000, 'das geschlossene Fenster');
     check('Und es laesst sich wieder schliessen', !zwDialog(), 'das Fenster bleibt stehen');
   }
   /* OHNE GRABSTEIN KEIN KNOPF. */
@@ -1680,8 +1756,10 @@ async function run() {
     const d = await ziSystem({ isAdmin: true, isOwner: true });
     placeConfirm(d.w, true);
     const row = ziRows(d).find(r => (r.querySelector('.mname')?.textContent || '').includes('carla'));
-    row?.querySelector('.user-link-btn')?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
-    await new Promise(r => setTimeout(r, 60));
+    const linkButton = row?.querySelector('.user-link-btn');
+    linkButton?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
+    await until(d.w, (x) => !linkButton || x.document.getElementById('confirm-pass'),
+      2000, 'der Dialog der zweiten Bestaetigung');
     /* SEIT 0.8.90 STEHT DIE ZWEITE BESTAETIGUNG DAVOR. */
     check('Vor dem Link steht die zweite Bestaetigung',
       !!d.w.document.getElementById('confirm-pass'), 'kein Dialog');
@@ -1730,8 +1808,10 @@ async function run() {
     // bert TRAEGT eine Adresse, carla nicht -- damit laesst sich der Zweig
 // "keine Adresse hinterlegt" ueberhaupt stellen.
     const row = ziRows(d).find(r => (r.querySelector('.mname')?.textContent || '').includes(opt.actor || 'bert'));
-    row?.querySelector('.user-link-btn')?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
-    await new Promise(r => setTimeout(r, 60));
+    const linkButton = row?.querySelector('.user-link-btn');
+    linkButton?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
+    await until(d.w, (x) => !linkButton || x.document.getElementById('confirm-pass'),
+      2000, 'der Dialog der zweiten Bestaetigung');
     await confirmImDom(d);
     return d;
   };
@@ -1894,7 +1974,8 @@ async function run() {
 
     /* DER KLICK FRAGT DEN SERVER und filtert nicht im Browser. */
     spFailed().dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
-    await new Promise(r => setTimeout(r, 60));
+    await until(d.w, (x) => d.sent.filter(g => String(g.url).startsWith('/api/security-log')).length > 1 &&
+      openRequests(x) === 0, 2000, 'die gefilterte Liste');
     check('Ein Klick auf eine Ansicht fragt den Server mit der Auswahl',
       d.sent.some(x => String(x.url) === '/api/security-log?group=failed'),
       JSON.stringify(d.sent.filter(x => String(x.url).startsWith('/api/security-log'))
@@ -1911,7 +1992,8 @@ async function run() {
     // Und wieder zurueck: eine Ansicht, aus der es keinen Weg heraus gibt,
 // waere eine Falle.
     spFilter()[0].dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
-    await new Promise(r => setTimeout(r, 60));
+    await until(d.w, (x) => d.sent.filter(g => String(g.url).startsWith('/api/security-log')).length > 2 &&
+      openRequests(x) === 0, 2000, 'die ungefilterte Liste');
     check('Zurueck auf "Alle" zeigt wieder alle vier Zeilen',
       spRows(d).length === 4, `${spRows(d).length} Zeilen`);
 
@@ -1948,7 +2030,8 @@ async function run() {
     /* DER SPRUNG FINDET DIE ZEILE IN DER KARTE "ZUGAENGE". Wer das Protokoll
        sieht, ist Eigentuemer und damit immer auch Admin -- die Karte ist da. */
     spWhoButton?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
-    await new Promise(r => setTimeout(r, 40));
+    await until(d.w, (x) => !spWhoButton || x.document.querySelector('#musers .mrow-flash'),
+      2000, 'die hervorgehobene Zeile');
     check('Ein Klick hebt die Zeile in der Karte "Zugaenge" hervor',
       !!d.w.document.querySelector('#musers .mrow[data-mid="1"].mrow-flash'),
       d.w.document.getElementById('musers')?.innerHTML.slice(0, 200));
@@ -2048,8 +2131,10 @@ async function run() {
     const d = await ziSystem({ isAdmin: true, isOwner: true });
     placeConfirm(d.w, true);
     const row = ziRows(d).find(r => (r.querySelector('.mname')?.textContent || '').includes('carla'));
-    row?.querySelector('.user-link-btn')?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
-    await new Promise(r => setTimeout(r, 60));
+    const linkButton = row?.querySelector('.user-link-btn');
+    linkButton?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
+    await until(d.w, (x) => !linkButton || x.document.getElementById('confirm-pass'),
+      2000, 'der Dialog der zweiten Bestaetigung');
     check('Der Dialog steht da', !!zdDialog(d), 'kein Dialog');
     /* SEIT 0.19.2 KUERZER: der Nebensatz ueber die fremde offene Anmeldung
        ist weg, der Grund steht in einem Satz. */
@@ -2077,8 +2162,10 @@ async function run() {
     const d = await ziSystem({ isAdmin: true, isOwner: true });
     placeConfirm(d.w, true);
     const row = ziRows(d).find(r => (r.querySelector('.mname')?.textContent || '').includes('carla'));
-    row?.querySelector('.user-link-btn')?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
-    await new Promise(r => setTimeout(r, 60));
+    const linkButton = row?.querySelector('.user-link-btn');
+    linkButton?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
+    await until(d.w, (x) => !linkButton || x.document.getElementById('confirm-pass'),
+      2000, 'der Dialog der zweiten Bestaetigung');
     await confirmImDom(d, 'ganz-falsch-hier');
     check('Mit falschem Passwort wird die Freigabe gefragt',
       zdAsked(d, '/api/confirm'), d.sent.map(x => x.url).join(' · '));
@@ -2096,7 +2183,8 @@ async function run() {
     const row = ziRows(d).find(r => (r.querySelector('.mname')?.textContent || '').includes('carla'));
     const field = row?.querySelector('.user-role-sel');
     if (field) { field.value = 'admin'; field.dispatchEvent(new d.w.Event('change', { bubbles: true })); }
-    await new Promise(r => setTimeout(r, 60));
+    await until(d.w, (x) => !field || x.document.getElementById('confirm-pass'),
+      2000, 'der Dialog der zweiten Bestaetigung');
     check('Vor dem Rollenwechsel steht der Dialog', !!zdDialog(d), 'kein Dialog');
     await confirmImDom(d);
     const zdShare = d.sent.find(x => x.url === '/api/confirm');
@@ -2120,8 +2208,10 @@ async function run() {
        statt dass die Zeile zum Passwortfeld rot wuerde. */
     d.w.prompt = () => null;
     const row = ziRows(d).find(r => (r.querySelector('.mname')?.textContent || '').includes('carla'));
-    row?.querySelector('.user-pass-btn')?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
-    await new Promise(r => setTimeout(r, 60));
+    const passButton = row?.querySelector('.user-pass-btn');
+    passButton?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
+    await until(d.w, (x) => !passButton || x.document.getElementById('np-pass'),
+      2000, 'das Fenster fuer das fremde Passwort');
     /* SEIT 0.22.0 KOMMT DAS FREMDE PASSWORT AUS EINEM EIGENEN WINDOW MIT
        PASSWORTFELD -- nicht mehr aus prompt(), wo es im Klartext stand
        (Bauabschnitt 4). */
@@ -2135,7 +2225,8 @@ async function run() {
     if (npField) {
       npField.value = 'carlas-neues-langes-wort';
       npField.closest('.modal').querySelector('[data-yes]').dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
-      await new Promise(r => setTimeout(r, 60));
+      await until(d.w, (x) => x.document.getElementById('confirm-pass'),
+        2000, 'der Dialog der zweiten Bestaetigung');
     }
     check('Danach steht der Dialog der zweiten Bestaetigung', !!zdDialog(d), 'kein Dialog');
     await confirmImDom(d);
@@ -2149,8 +2240,11 @@ async function run() {
   {
     const d = await ziSystem({ isAdmin: true, isOwner: true });
     const row = ziRows(d).find(r => (r.querySelector('.mname')?.textContent || '').includes('carla'));
-    row?.querySelector('.user-x')?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
-    await new Promise(r => setTimeout(r, 60));
+    const removeButton = row?.querySelector('.user-x');
+    removeButton?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
+    await until(d.w, (x) => !removeButton ||
+      (x.document.getElementById('delete-user') && openRequests(x) === 0),
+      2000, 'das Fenster zum Loeschen');
     /* ---- 0.22.0: EIN WINDOW STATT DREI RUECKFRAGEN (Bauabschnitt 4) ----
        Bis 0.21.1 stellte der Weg drei confirm() hintereinander, und in den
        ersten beiden hiess „Abbrechen" nicht abbrechen. */
@@ -2162,8 +2256,10 @@ async function run() {
       /sperren statt löschen/.test(zdText), zdText.slice(0, 300));
     check('Und sagt, dass er umkehrbar ist und der Name bleibt',
       /umkehrbar/.test(zdText) && /der Name bleibt/.test(zdText), zdText.slice(0, 300));
-    zdModal?.querySelector('[data-yes]')?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
-    await new Promise(r => setTimeout(r, 60));
+    const zdYes = zdModal?.querySelector('[data-yes]');
+    zdYes?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
+    await until(d.w, (x) => !zdYes || x.document.getElementById('confirm-pass'),
+      2000, 'der Dialog der zweiten Bestaetigung');
     check('Danach steht der Dialog der zweiten Bestaetigung', !!zdDialog(d), 'kein Dialog');
     /* DAS PASSWORTFENSTER SAGT, WAS GESCHIEHT UND DASS ES ENDGUELTIG IST --
        die Rueckgaengig-Formel des Woerterbuchs. */
@@ -2189,8 +2285,9 @@ async function run() {
     // Der Export steht seit 0.16.0 im Abschnitt „Datenbank" und in derselben
 // Karte wie der Import.
     await sysSection(d.w, 'database');
-    d.w.document.getElementById('ex-no')?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
-    await new Promise(r => setTimeout(r, 60));
+    const exNo = d.w.document.getElementById('ex-no');
+    exNo?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
+    await until(d.w, (x) => !exNo || x.document.querySelector('.backdrop'), 2000, 'der Hinweis auf den Lauf');
     /* ERST DER HINWEIS AUF DEN LAUF, DANN DIE ZWEITE BESTAETIGUNG. */
     const zdNotice = () => [...d.w.document.querySelectorAll('.backdrop .modal')]
       .find(m => /Bevor der Export läuft/.test(m.textContent || ''));
@@ -2201,11 +2298,13 @@ async function run() {
       && /Fenster muss offen bleiben/.test(zdWays), zdWays.slice(0, 260));
     check('Und er stellt alle drei Wege nebeneinander',
       /Export in einer Datei/.test(zdWays) && /In Teilen exportieren/.test(zdWays)
-      && /Sicherung/.test(zdWays), zdWays.slice(0, 320));
+      && /Backup/.test(zdWays), zdWays.slice(0, 320));
     check('Bis dahin steht der Dialog der zweiten Bestaetigung nicht da',
       !zdDialog(d), 'er steht schon da');
-    zdNotice()?.querySelector('[data-yes]')?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
-    await new Promise(r => setTimeout(r, 60));
+    const zdGo = zdNotice()?.querySelector('[data-yes]');
+    zdGo?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
+    await until(d.w, (x) => !zdGo || x.document.getElementById('confirm-pass'),
+      2000, 'der Dialog der zweiten Bestaetigung');
     check('Danach steht der Dialog', !!zdDialog(d), 'kein Dialog');
     check('Und er nennt, was der Export mitnimmt',
       /Verfassernamen/.test(zdDialog(d)?.closest('.modal')?.textContent || ''),
@@ -2218,12 +2317,13 @@ async function run() {
   {
     const d = await ziSystem({ isAdmin: true, isOwner: true });
     await sysSection(d.w, 'database');
-    d.w.document.getElementById('ex-no')?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
-    await new Promise(r => setTimeout(r, 60));
+    const exNo = d.w.document.getElementById('ex-no');
+    exNo?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
+    await until(d.w, (x) => !exNo || x.document.querySelector('.backdrop'), 2000, 'der Hinweis auf den Lauf');
     const zdBack = [...d.w.document.querySelectorAll('.backdrop')]
       .find(b => /Bevor der Export läuft/.test(b.textContent || ''));
     zdBack?.querySelector('[data-no]')?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
-    await new Promise(r => setTimeout(r, 60));
+    await until(d.w, () => !zdBack?.isConnected, 2000, 'der geschlossene Hinweis');
     check('Nach dem Abbruch am Hinweis steht kein Passwortfenster',
       !zdDialog(d) && !zdAsked(d, '/api/confirm'), d.sent.map(x => x.url).join(' · '));
   }
@@ -2242,8 +2342,10 @@ async function run() {
     const d = await ziSystem({ isAdmin: true, isOwner: true }, opt);
     placeConfirm(d.w, true);
     const row = ziRows(d).find(r => (r.querySelector('.mname')?.textContent || '').includes('carla'));
-    row?.querySelector('.user-link-btn')?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
-    await new Promise(r => setTimeout(r, 60));
+    const linkButton = row?.querySelector('.user-link-btn');
+    linkButton?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
+    await until(d.w, (x) => !linkButton || x.document.getElementById('confirm-pass'),
+      2000, 'der Dialog der zweiten Bestaetigung');
     await confirmImDom(d);
     return d;
   };
@@ -2331,9 +2433,10 @@ async function run() {
     const d = await ziSystem({ isAdmin: true, isOwner: true });
     const before = ziRows(d).length;
     setField(d.w.document, 'user-name', 'neuling');
-    d.w.document.getElementById('user-create')
-      ?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
-    await new Promise(r => setTimeout(r, 60));
+    const createButton = d.w.document.getElementById('user-create');
+    createButton?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
+    await until(d.w, (x) => !createButton || (d.sent.some(g => g.method === 'POST' && g.url === '/api/users') &&
+      openRequests(x) === 0), 2000, 'die Antwort auf das Anlegen');
     const create = d.sent.find(x => x.method === 'POST' && x.url === '/api/users');
     check('Der Knopf legt den Zugang an',
       !!create && create.body?.username === 'neuling', JSON.stringify(create));
@@ -2358,9 +2461,10 @@ async function run() {
     kind.dispatchEvent(new d.w.Event('change'));
     setField(d.w.document, 'user-name', 'mitpasswort');
     setField(d.w.document, 'user-pass', 'ein-passwort-1');
-    d.w.document.getElementById('user-create')
-      ?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
-    await new Promise(r => setTimeout(r, 60));
+    const createButton = d.w.document.getElementById('user-create');
+    createButton?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
+    await until(d.w, (x) => !createButton || (d.sent.some(g => g.method === 'POST' && g.url === '/api/users') &&
+      openRequests(x) === 0), 2000, 'die Antwort auf das Anlegen');
     const create = d.sent.find(x => x.method === 'POST' && x.url === '/api/users');
     check('Der gewoehnliche Weg schickt das Passwort',
       create?.body?.password === 'ein-passwort-1', JSON.stringify(create?.body));
@@ -2378,9 +2482,10 @@ async function run() {
       !!d.w.document.getElementById('user-mail'), 'kein Adressfeld');
     setField(d.w.document, 'user-name', 'neuling');
     setField(d.w.document, 'user-mail', 'neuling@beispiel.de');
-    d.w.document.getElementById('user-create')
-      ?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
-    await new Promise(r => setTimeout(r, 60));
+    const createButton = d.w.document.getElementById('user-create');
+    createButton?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
+    await until(d.w, (x) => !createButton || (d.sent.some(g => g.method === 'POST' && g.url === '/api/users') &&
+      openRequests(x) === 0), 2000, 'die Antwort auf das Anlegen');
     const create = d.sent.find(x => x.method === 'POST' && x.url === '/api/users');
     check('Die Adresse geht mit an den Server',
       create?.body?.email === 'neuling@beispiel.de', JSON.stringify(create?.body));
@@ -2394,9 +2499,10 @@ async function run() {
     // dasselbe; mitzuschicken gibt es trotzdem nichts.
     const d = await ziSystem({ isAdmin: true, isOwner: true });
     setField(d.w.document, 'user-name', 'ohnemail');
-    d.w.document.getElementById('user-create')
-      ?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
-    await new Promise(r => setTimeout(r, 60));
+    const createButton = d.w.document.getElementById('user-create');
+    createButton?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
+    await until(d.w, (x) => !createButton || (d.sent.some(g => g.method === 'POST' && g.url === '/api/users') &&
+      openRequests(x) === 0), 2000, 'die Antwort auf das Anlegen');
     const create = d.sent.find(x => x.method === 'POST' && x.url === '/api/users');
     check('Ohne Adresse geht kein leeres Feld hinaus',
       create?.body?.email === undefined, JSON.stringify(create?.body));
@@ -2438,9 +2544,10 @@ async function run() {
     const d = await ziSystem({ isAdmin: false, isOwner: false });
     setField(d.w.document, 'acc-old', DOM_PASSWORD);
     setField(d.w.document, 'acc-mail', 'neue@beispiel.de');
-    d.w.document.getElementById('acc-save')
-      ?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
-    await new Promise(r => setTimeout(r, 80));
+    const saveButton = d.w.document.getElementById('acc-save');
+    saveButton?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
+    await until(d.w, (x) => !saveButton || (d.sent.some(g => g.method === 'PUT' && g.url === '/api/account') &&
+      openRequests(x) === 0), 2000, 'die neu gezeichnete Karte „Mein Konto“');
     const put = d.sent.find(x => x.method === 'PUT' && x.url === '/api/account');
     check('Der Knopf schickt die Adresse mit',
       put?.body?.email === 'neue@beispiel.de', JSON.stringify(put?.body));
@@ -2460,9 +2567,10 @@ async function run() {
     const d = await ziSystem({ isAdmin: false, isOwner: false });
     setField(d.w.document, 'acc-old', DOM_PASSWORD);
     setField(d.w.document, 'acc-mail', '');
-    d.w.document.getElementById('acc-save')
-      ?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
-    await new Promise(r => setTimeout(r, 80));
+    const saveButton = d.w.document.getElementById('acc-save');
+    saveButton?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
+    await until(d.w, (x) => !saveButton || (d.sent.some(g => g.method === 'PUT' && g.url === '/api/account') &&
+      openRequests(x) === 0), 2000, 'die neu gezeichnete Karte „Mein Konto“');
     const put = d.sent.find(x => x.method === 'PUT' && x.url === '/api/account');
     check('Ein geleertes Feld geht als leerer Wert hinaus, nicht als fehlendes',
       put?.body?.email === '' && 'email' in (put?.body || {}), JSON.stringify(put?.body));
@@ -2575,9 +2683,10 @@ async function run() {
        Ein Knopf, der nur im guten Fall geprueft ist, ist halb geprueft. */
     const d = await ziSystem({ isAdmin: true, isOwner: true },
       { publicAddress: 'https://kriterion.beispiel.de' });
-    d.w.document.getElementById('mail-test')
-      ?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
-    await new Promise(r => setTimeout(r, 80));
+    const testButton = d.w.document.getElementById('mail-test');
+    testButton?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
+    await until(d.w, (x) => !testButton || (d.sent.some(g => g.url === '/api/mail/test') &&
+      openRequests(x) === 0), 2000, 'die Antwort auf die Testmail');
     check('Der Testknopf fragt den Server',
       d.sent.some(x => x.method === 'POST' && x.url === '/api/mail/test'),
       d.sent.slice(-3).map(x => `${x.method} ${x.url}`).join(' · '));
@@ -2599,9 +2708,10 @@ async function run() {
   {
     const d = await ziSystem({ isAdmin: true, isOwner: true },
       { publicAddress: 'https://kriterion.beispiel.de', mailError: true });
-    d.w.document.getElementById('mail-test')
-      ?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
-    await new Promise(r => setTimeout(r, 80));
+    const testButton = d.w.document.getElementById('mail-test');
+    testButton?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
+    await until(d.w, (x) => !testButton || (d.sent.some(g => g.url === '/api/mail/test') &&
+      openRequests(x) === 0), 2000, 'die Antwort auf die Testmail');
     check('Ein Fehlschlag steht ebenfalls in der Karte',
       /fehlgeschlagen/.test(d.w.document.getElementById('mail-result')?.textContent || ''),
       d.w.document.getElementById('mail-result')?.textContent);
@@ -2617,9 +2727,10 @@ async function run() {
     // OHNE EIGENE ADRESSE sagt die Absage, wo sie einzutragen ist.
     const d = await ziSystem({ isAdmin: true, isOwner: true },
       { publicAddress: 'https://kriterion.beispiel.de', ownAddress: '' });
-    d.w.document.getElementById('mail-test')
-      ?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
-    await new Promise(r => setTimeout(r, 80));
+    const testButton = d.w.document.getElementById('mail-test');
+    testButton?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
+    await until(d.w, (x) => !testButton || (d.sent.some(g => g.url === '/api/mail/test') &&
+      openRequests(x) === 0), 2000, 'die Antwort auf die Testmail');
     check('Ohne eigene Adresse sagt die Karte, wo sie einzutragen ist',
       /Zugang/.test(d.w.document.getElementById('mail-result')?.textContent || ''),
       d.w.document.getElementById('mail-result')?.textContent);
@@ -2631,9 +2742,10 @@ async function run() {
 
   /* DIE KARTE ZEIGT, DER DIALOG STELLT EIN. */
   const mdOpen = async (d) => {
-    d.w.document.getElementById('mail-setup')
-      ?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
-    await new Promise(r => setTimeout(r, 60));
+    const setupButton = d.w.document.getElementById('mail-setup');
+    setupButton?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
+    await until(d.w, (x) => !setupButton || x.document.getElementById('mail-dialog'),
+      2000, 'der Dialog „Mailzugang“');
     return d.w.document.getElementById('mail-dialog');
   };
   {
@@ -2750,7 +2862,7 @@ async function run() {
     // ABBRECHEN SCHLIESST OHNE ZU SCHREIBEN.
     const mdBefore = d.sent.length;
     dlg.querySelector('[data-no]').dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
-    await new Promise(r => setTimeout(r, 40));
+    await until(d.w, (x) => !x.document.getElementById('mail-dialog'), 2000, 'der geschlossene Dialog');
     check('Abbrechen schliesst den Dialog', !d.w.document.getElementById('mail-dialog'));
     check('Und schreibt dabei nichts',
       !d.sent.slice(mdBefore).some(x => x.method !== 'GET'),
@@ -2771,9 +2883,12 @@ async function run() {
     setField(d.w.document, 'mail-user', 'instanz@gmail.com');
     setField(d.w.document, 'mail-pass', 'erfundenes-app-passwort');
     setField(d.w.document, 'mail-sender', 'instanz@gmail.com');
-    d.w.document.getElementById('mail-save')
-      ?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
-    await new Promise(r => setTimeout(r, 60));
+    const mdSave = d.w.document.getElementById('mail-save');
+    mdSave?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
+    // Ohne Rueckfrage geht der Mailzugang sofort hinaus; dann wird auf die Antwort gewartet.
+    await until(d.w, (x) => !mdSave || x.document.getElementById('confirm-pass') ||
+      (d.sent.some(g => g.method === 'PUT' && g.url === '/api/mail') && openRequests(x) === 0),
+      2000, 'der Dialog der zweiten Bestaetigung');
     check('Vor dem Speichern steht die zweite Bestaetigung',
       !!d.w.document.getElementById('confirm-pass'), 'kein Dialog');
     check('Und der Server ist bis dahin NICHT gefragt worden',
@@ -2788,11 +2903,13 @@ async function run() {
       d.w.document.getElementById('mail-user')?.value === 'instanz@gmail.com',
       d.w.document.getElementById('mail-user')?.value);
     // Und noch einmal, diesmal mit Freigabe.
-    d.w.document.getElementById('mail-save')
-      ?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
-    await new Promise(r => setTimeout(r, 60));
+    const mdSave2 = d.w.document.getElementById('mail-save');
+    mdSave2?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
+    await until(d.w, (x) => !mdSave2 || x.document.getElementById('confirm-pass'),
+      2000, 'der Dialog der zweiten Bestaetigung');
     await confirmImDom(d);
-    await new Promise(r => setTimeout(r, 80));
+    await until(d.w, (x) => d.sent.some(g => g.method === 'PUT' && g.url === '/api/mail') &&
+      openRequests(x) === 0, 2000, 'der gespeicherte Mailzugang');
     const put = d.sent.find(x => x.method === 'PUT' && x.url === '/api/mail');
     check('Danach geht der Zugang an den Server',
       put?.body?.provider === 'gmail' && put?.body?.user === 'instanz@gmail.com',
@@ -2818,9 +2935,11 @@ async function run() {
   /* DIE KARTE IN BEIDEN ZUSTAENDEN -- gefuellt und leer. */
   const pkSystem = async (roles, opt = {}) => {
     const d = buildDom(JSDOM, { settings: { filters: null, userCount: 4, ...roles }, ...opt });
-    await new Promise(r => setTimeout(r, 60));
+    await until(d.w, (x) => x.document.getElementById('count') && openRequests(x) === 0,
+      2000, 'die Uebersicht');
     await sysSection(d.w, 'inventory');
-    await new Promise(r => setTimeout(r, 40));
+    await until(d.w, (x) => x.document.querySelector('.sys-grid') && openRequests(x) === 0,
+      2000, 'der Abschnitt „Bestand“');
     return d;
   };
   const pkCard = (d) => [...d.w.document.querySelectorAll('.sys-grid > .sys-card')]
@@ -2916,9 +3035,10 @@ async function run() {
   {
     const d = await pkSystem({ isAdmin: true, isOwner: true });
     const before = pkTrashRows(d).length;
-    pkTrashRows(d)[0]?.querySelector('.trash-back')
-      ?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
-    await new Promise(r => setTimeout(r, 60));
+    const pkBack = pkTrashRows(d)[0]?.querySelector('.trash-back');
+    pkBack?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
+    await until(d.w, (x) => !pkBack || (d.sent.some(g => g.method === 'POST' && g.url.startsWith('/api/trash/')) &&
+      openRequests(x) === 0), 2000, 'die neu gezeichnete Liste des Papierkorbs');
     check('Der Knopf schickt das Zurueckholen an den Server',
       d.sent.some(x => x.method === 'POST' && x.url === '/api/trash/501/restore'),
       d.sent.slice(-3).map(x => `${x.method} ${x.url}`).join(' · '));
@@ -2939,9 +3059,10 @@ async function run() {
      genannt. Die zweite Zeile der Prueflage traegt sie. */
   {
     const d = await pkSystem({ isAdmin: true, isOwner: true });
-    pkTrashRows(d)[1]?.querySelector('.trash-back')
-      ?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
-    await new Promise(r => setTimeout(r, 60));
+    const pkBack = pkTrashRows(d)[1]?.querySelector('.trash-back');
+    pkBack?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
+    await until(d.w, (x) => !pkBack || (d.sent.some(g => g.method === 'POST' && g.url.startsWith('/api/trash/')) &&
+      openRequests(x) === 0), 2000, 'die neu gezeichnete Liste des Papierkorbs');
     check('Unbekannte Verfasser stehen in der Meldung',
       /dora/.test(d.w.document.querySelector('.toast')?.textContent || ''),
       d.w.document.querySelector('.toast')?.textContent);
@@ -2952,29 +3073,32 @@ async function run() {
   {
     const d = await pkSystem({ isAdmin: true, isOwner: true });
     const before = pkTrashRows(d).length;
-    pkTrashRows(d)[0]?.querySelector('.trash-remove')
-      ?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
-    await new Promise(r => setTimeout(r, 40));
+    const pkRemove = pkTrashRows(d)[0]?.querySelector('.trash-remove');
+    pkRemove?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
+    await until(d.w, (x) => !pkRemove || x.document.querySelector('.backdrop .modal'),
+      2000, 'die Rueckfrage');
     const askKey = d.w.document.querySelector('.backdrop .modal');
     check('Das Kreuz fragt zuerst nach', !!askKey, d.w.document.body.innerHTML.slice(0, 120));
     check('Und die Frage nennt den Titel und sagt, dass es danach keinen Rueckweg gibt',
       /Weggeworfenes/.test(askKey?.textContent || '') && /nicht rückgängig machen/.test(askKey?.textContent || ''),
       askKey?.textContent);
     // Erst abbrechen: danach darf NICHTS geschickt worden sein.
-    d.w.document.querySelector('.backdrop [data-no]')
-      ?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
-    await new Promise(r => setTimeout(r, 40));
+    const pkNo = d.w.document.querySelector('.backdrop [data-no]');
+    pkNo?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
+    await until(d.w, () => !pkNo?.isConnected, 2000, 'die geschlossene Rueckfrage');
     check('Nach dem Abbrechen wird nichts geschickt',
       !d.sent.some(x => x.method === 'DELETE' && x.url.startsWith('/api/trash/')),
       d.sent.slice(-3).map(x => `${x.method} ${x.url}`).join(' · '));
     check('Und die Zeile steht noch da', pkTrashRows(d).length === before);
 
-    pkTrashRows(d)[0]?.querySelector('.trash-remove')
-      ?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
-    await new Promise(r => setTimeout(r, 40));
-    d.w.document.querySelector('.backdrop [data-yes]')
-      ?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
-    await new Promise(r => setTimeout(r, 60));
+    const pkRemove2 = pkTrashRows(d)[0]?.querySelector('.trash-remove');
+    pkRemove2?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
+    await until(d.w, (x) => !pkRemove2 || x.document.querySelector('.backdrop .modal'),
+      2000, 'die Rueckfrage');
+    const pkYes = d.w.document.querySelector('.backdrop [data-yes]');
+    pkYes?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
+    await until(d.w, (x) => !pkYes || (d.sent.some(g => g.method === 'DELETE') && openRequests(x) === 0),
+      2000, 'die neu gezeichnete Liste des Papierkorbs');
     check('Nach dem Bestaetigen geht das Entfernen hinaus',
       d.sent.some(x => x.method === 'DELETE' && x.url === '/api/trash/501'),
       d.sent.slice(-3).map(x => `${x.method} ${x.url}`).join(' · '));
@@ -3183,7 +3307,10 @@ async function run() {
     /* DER KNOPF FRAGT ERST DAS PASSWORT. */
     baEig.sent.length = 0;
     button?.onclick();
-    await new Promise(r => setTimeout(r, 40));
+    // Ohne Rueckfrage geht der Lauf sofort hinaus; dann wird auf die Antwort gewartet.
+    await until(baEig.w, (x) => !button || x.document.getElementById('confirm-pass') ||
+      (baEig.sent.some(g => g.url === '/api/images/convert') && openRequests(x) === 0),
+      2000, 'der Dialog der zweiten Bestaetigung');
     const dialog = baEig.w.document.querySelector('.backdrop .modal');
     const dialogText = (baEig.w.document.body.textContent || '');
     check('Der Knopf schreibt nicht sofort los',
@@ -3209,8 +3336,8 @@ async function run() {
       !/JPEG-Vorschaubilder werden dabei neu generiert/
         .test(dialogText.replace(/\s+/g, ' ')),
       dialogText.replace(/\s+/g, ' ').slice(0, 400));
-    check('Und dass nur eine vorher angelegte Sicherung zurueckfuehrt',
-      /Rückgängig nur mit einer vorher angelegten Sicherung/.test(dialogText),
+    check('Und dass nur ein vorher angelegtes Backup zurueckfuehrt',
+      /Rückgängig nur mit einem vorher angelegten Backup/.test(dialogText),
       dialogText.replace(/\s+/g, ' ').slice(0, 300));
     /* DASS ES DAUERN KANN -- ausdruecklich OHNE Zahl. */
     check('Und dass sich die Dauer nicht vorhersagen laesst',
@@ -3249,8 +3376,8 @@ async function run() {
     check('Und das Umschalten ruft den Lauf ueber den Bestand nicht',
       !baEig.sent.some(g => g.url === '/api/images/convert'),
       baEig.sent.map(g => `${g.method} ${g.url}`).join(' · '));
-    /* DEM NEUZEICHNEN SEINEN TAKT LASSEN, BEVOR DAS FENSTER FAELLT. */
-    await new Promise(r => setTimeout(r, 60));
+    await until(baEig.w, (x) => x.document.querySelector('.sys-grid') && openRequests(x) === 0,
+      2000, 'der neu gezeichnete Systembereich');
     baEig.w.close();
 
     /* ---- DIE DREI GEGENLAGEN ---- */
@@ -3384,7 +3511,7 @@ async function run() {
     return d;
   };
   const siCard = (d) => [...d.w.document.querySelectorAll('.sys-grid > .sys-card')]
-    .find(c => c.querySelector('h3')?.textContent.trim() === 'Sicherung');
+    .find(c => c.querySelector('h3')?.textContent.trim() === 'Backup');
   const siEig = await siSystem({ isAdmin: true, isOwner: true });
   const siAdm = await siSystem({ isAdmin: true, isOwner: false });
 
@@ -3424,7 +3551,7 @@ async function run() {
       /Empfohlen ist ein Ordner außerhalb/.test(box?.textContent || ''), box?.textContent);
     check('Er nennt den Grund und nicht nur das Urteil',
       /anderen Platte/.test(box?.textContent || '') &&
-      /zerstört ein Fehler am Projektordner Original und\s+Sicherung zugleich/
+      /zerstört ein Fehler am Projektordner Original und\s+Backup zugleich/
         .test(box?.textContent || ''), box?.textContent);
     check('Und er sagt, WO es umgestellt wird',
       /docker-compose\.yml/.test(box?.textContent || ''), box?.textContent);
@@ -3470,7 +3597,7 @@ async function run() {
       { backupStatus: siStatusIncluding({ changedAt: '2026-08-21 08:00:00', outdated: 2 }) });
     const partlyRed = siBoxes(partly, 'warn-box').join(' ');
     check('Nach einem Wechsel nennt ein roter Kasten die Zahl der alten Kopien',
-      /2 Sicherungen stammen von vor dem Schlüsselwechsel/.test(partlyRed), partlyRed.slice(0, 300));
+      /2 Backups stammen von vor dem Schlüsselwechsel/.test(partlyRed), partlyRed.slice(0, 300));
     check('Und er nennt den Zeitpunkt des Wechsels',
       /21\.08\.2026/.test(partlyRed), partlyRed.slice(0, 300));
     /* SEIT 0.22.0 (Anlage F) SAGT DER KASTEN NUR NOCH, WOMIT SICH DIE ALTEN
@@ -3489,7 +3616,7 @@ async function run() {
     const one = await siSystem({ isAdmin: true, isOwner: true },
       { backupStatus: siStatusIncluding({ changedAt: '2026-08-21 08:00:00', outdated: 1 }) });
     check('Bei genau einer alten Kopie steht die Einzahl da',
-      /1 Sicherung stammt von vor dem Schlüsselwechsel/.test(siBoxes(one, 'warn-box').join(' ')),
+      /1 Backup stammt von vor dem Schlüsselwechsel/.test(siBoxes(one, 'warn-box').join(' ')),
       siBoxes(one, 'warn-box').join(' ').slice(0, 300));
 
     // Alles veraltet -- die schaerfste Lage: es gibt ueberhaupt keine
@@ -3502,9 +3629,9 @@ async function run() {
                   at: '2026-08-20 03:00:00', daysAgo: 3, outdated: true } }) });
     const everythingRed = siBoxes(everything, 'warn-box').join(' ');
     check('Ist auch die juengste Kopie aelter, sagt die Karte GENAU DAS',
-      /Keine Sicherung passt zum aktuellen Schlüssel/.test(everythingRed), everythingRed.slice(0, 300));
+      /Kein Backup passt zum aktuellen Schlüssel/.test(everythingRed), everythingRed.slice(0, 300));
     check('Und sie sagt, was jetzt zu tun ist',
-      /Bitte jetzt neu sichern\./.test(everythingRed), everythingRed.slice(0, 400));
+      /Bitte jetzt ein neues Backup anlegen\./.test(everythingRed), everythingRed.slice(0, 400));
     check('Und sie sagt, wohin der alte Schluessel gehoert — 0.22.0',
       /Passwort-Manager/.test(everythingRed), everythingRed.slice(0, 400));
 
@@ -3514,7 +3641,7 @@ async function run() {
       { backupStatus: siStatusIncluding({ changedAt: '2026-08-19 08:00:00', outdated: 0 }) });
     const greenBox = siBoxes(green, 'ok-box').join(' ');
     check('Sind alle Kopien juenger als der Wechsel, ist der Kasten gruen',
-      /Alle Sicherungen hier sind jünger/.test(greenBox), greenBox.slice(0, 400));
+      /Alle Backups hier sind jünger/.test(greenBox), greenBox.slice(0, 400));
     check('Und im gruenen Fall steht keine Warnung ueber alte Kopien da',
       !/alten Schlüssel/.test(siText(green)), siText(green).slice(0, 300));
   }
@@ -3528,10 +3655,10 @@ async function run() {
   // SEIT 0.22.0 OHNE „Austauschweg" (Verbotsliste): die Karte sagt, wofuer der Export ist.
   check('Sie sagt, wofuer der Export ist — 0.22.0',
     /für Umzug, Archiv und Weitergabe/.test(siExportCard?.textContent || ''), siExportCard?.textContent?.slice(0, 200));
-  check('Und verweist auf die Sicherung',
-    /Sicherung/.test(siExportCard?.textContent || ''), siExportCard?.textContent?.slice(0, 300));
-  check('Die Sicherungskarte sagt, was die Sicherung ist — 0.22.0',
-    /vollständige, verschlüsselte\s+Kopie der Datenbank/.test(siCard(siEig)?.textContent || ''),
+  check('Und verweist auf das Backup',
+    /Backup/.test(siExportCard?.textContent || ''), siExportCard?.textContent?.slice(0, 300));
+  check('Die Karte „Backup" sagt, was das Backup ist — 0.22.0',
+    /vollständige, verschlüsselte\s+Sicherung der Datenbank/.test(siCard(siEig)?.textContent || ''),
     siCard(siEig)?.textContent?.slice(0, 200));
   check('Und sagt, dass sie nur in dieselbe Programmversion zurueckgeht — 0.22.0',
     /nur in dieselbe Programmversion zurückspielen/.test(siCard(siEig)?.textContent || ''),
@@ -3547,12 +3674,12 @@ async function run() {
     /\.env/.test(siWarn?.textContent || ''), siWarn?.textContent);
 
   check('Die Karte nennt den eingerichteten Ort',
-    /\/sicherung/.test(siCard(siEig)?.textContent || ''),
+    /\/backup/.test(siCard(siEig)?.textContent || ''),
     siCard(siEig)?.textContent?.slice(0, 400));
   check('Das Feld traegt das eingestellte Unterverzeichnis',
     siEig.w.document.getElementById('backup-dir')?.value === 'taeglich',
     siEig.w.document.getElementById('backup-dir')?.value);
-  check('Die letzte Sicherung steht mit ihren Tagen da',
+  check('Das letzte Backup steht mit seinen Tagen da',
     /vor 3 Tagen/.test(siCard(siEig)?.textContent || ''),
     siCard(siEig)?.textContent?.slice(0, 600));
   check('Samt Dateiname und Groesse',
@@ -3571,12 +3698,12 @@ async function run() {
   /* DER NICHT EINGERICHTETE FALL. */
   {
     const d = await siSystem({ isAdmin: true, isOwner: true },
-      { backupStatus: { configured: false, reason: 'Es ist kein Sicherungsort eingerichtet. ' +
+      { backupStatus: { configured: false, reason: 'Es ist kein Backup-Ordner eingerichtet. ' +
         'Die docker-compose.yml hängt ihn ein.', place: '', dbBytes: 1, durationSeconds: 1,
         reachable: false, last: null } });
     check('Ohne eingerichteten Ort steht die Karte trotzdem da', !!siCard(d));
     check('Und sagt, warum sie nicht kann',
-      /kein Sicherungsort eingerichtet/.test(siCard(d)?.textContent || ''),
+      /kein Backup-Ordner eingerichtet/.test(siCard(d)?.textContent || ''),
       siCard(d)?.textContent?.slice(0, 300));
     check('Der Knopf steht dann gar nicht erst da',
       !d.w.document.getElementById('backup-run'), 'der Knopf steht da');
@@ -3589,10 +3716,10 @@ async function run() {
   {
     const d = await siSystem({ isAdmin: true, isOwner: true },
       { backupStatus: { configured: true, root: '/sicherung', place: 'weg',
-        error: 'Das Verzeichnis „weg“ gibt es unter dem Sicherungsort nicht.',
+        error: 'Den Unterordner „weg“ gibt es im Backup-Ordner nicht.',
         dbBytes: 1024, durationSeconds: 1, reachable: false, last: null } });
     check('Ein Zielort mit Fehler bekommt keine Zahl, sondern die Begruendung',
-      /gibt es unter dem Sicherungsort nicht/.test(siCard(d)?.textContent || ''),
+      /gibt es im Backup-Ordner nicht/.test(siCard(d)?.textContent || ''),
       siCard(d)?.textContent?.slice(0, 400));
     check('Und nirgends steht "vor 0 Tagen"',
       !/vor \d+ Tag/.test(siCard(d)?.textContent || ''),
@@ -3603,17 +3730,18 @@ async function run() {
       { backupStatus: { configured: true, root: '/sicherung', place: '',
         filePath: '/sicherung', dbBytes: 1024, durationSeconds: 1, reachable: true,
         last: null, number: 0 } });
-    check('Ein leerer Ort sagt, dass dort noch keine Sicherung liegt',
-      /noch keine Sicherung/.test(siCard(d)?.textContent || ''),
+    check('Ein leerer Ort sagt, dass dort noch kein Backup liegt',
+      /noch kein Backup/.test(siCard(d)?.textContent || ''),
       siCard(d)?.textContent?.slice(0, 400));
   }
 
   /* DER KNOPF, mit einem WIRKLICH zugestellten Ereignis. */
   {
     const d = await siSystem({ isAdmin: true, isOwner: true });
-    d.w.document.getElementById('backup-run')
-      ?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
-    await new Promise(r => setTimeout(r, 60));
+    const siRun = d.w.document.getElementById('backup-run');
+    siRun?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
+    await until(d.w, (x) => !siRun || (d.sent.some(g => g.method === 'POST' && g.url === '/api/backup') &&
+      openRequests(x) === 0), 2000, 'die neu gezeichnete Karte „Sicherung“');
     check('Der Knopf schickt die Sicherung an den Server',
       d.sent.some(x => x.method === 'POST' && x.url === '/api/backup'),
       d.sent.slice(-3).map(x => `${x.method} ${x.url}`).join(' · '));
@@ -3633,9 +3761,11 @@ async function run() {
   {
     const d = await siSystem({ isAdmin: true, isOwner: true });
     if (d.w.document.getElementById('backup-dir')) setField(d.w.document, 'backup-dir', 'woechentlich');
-    d.w.document.getElementById('backup-dir-save')
-      ?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
-    await new Promise(r => setTimeout(r, 60));
+    const siDirs = () => d.sent.filter(g => g.method === 'PUT' && g.url === '/api/backup/dir').length;
+    const siSave = d.w.document.getElementById('backup-dir-save');
+    siSave?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
+    await until(d.w, (x) => !siSave || (siDirs() === 1 && openRequests(x) === 0),
+      2000, 'die Antwort auf den Zielort');
     check('Der Zielort geht mit dem eingetippten Wert hinaus',
       d.sent.some(x => x.method === 'PUT' && x.url === '/api/backup/dir' &&
         x.body?.place === 'woechentlich'),
@@ -3645,11 +3775,12 @@ async function run() {
       d.w.document.getElementById('backup-dir')?.value);
 
     if (d.w.document.getElementById('backup-dir')) setField(d.w.document, 'backup-dir', '../raus');
-    d.w.document.getElementById('backup-dir-save')
-      ?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
-    await new Promise(r => setTimeout(r, 60));
+    const siSave2 = d.w.document.getElementById('backup-dir-save');
+    siSave2?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
+    await until(d.w, (x) => !siSave2 || (siDirs() === 2 && openRequests(x) === 0),
+      2000, 'die Absage zum Zielort');
     check('Eine Absage des Servers wird gesagt',
-      /Unterverzeichnis/.test(d.w.document.querySelector('.toast')?.textContent || ''),
+      /Unterordner liegt im eingerichteten Backup-Ordner/.test(d.w.document.querySelector('.toast')?.textContent || ''),
       d.w.document.querySelector('.toast')?.textContent);
     check('Und der Ort bleibt der alte',
       d.w.document.getElementById('backup-dir')?.value === '../raus',
@@ -3658,12 +3789,12 @@ async function run() {
 
 
   /* ---------------------------------------------------------------- */
-  group('Die Karte „Alte Sicherungen" in der Oberflaeche');
+  group('Die Karte „Alte Backups" in der Oberflaeche');
 
   /* SIE STEHT IM ABSCHNITT „DATENBANK", HINTER „SICHERUNG" -- die Reihenfolge
      ist geprueft und nicht zufaellig. */
   const afCard = (d) => [...d.w.document.querySelectorAll('.sys-grid > .sys-card')]
-    .find(c => c.querySelector('h3')?.textContent.trim() === 'Alte Sicherungen');
+    .find(c => c.querySelector('h3')?.textContent.trim() === 'Alte Backups');
   const afText = (d) => String(afCard(d)?.textContent || '').replace(/\s+/g, ' ').trim();
   const afRows = (d) => [...(d.w.document.querySelectorAll('#cleanup-list .mrow') || [])]
     .map(z => z.textContent.replace(/\s+/g, ' ').trim());
@@ -3712,11 +3843,11 @@ async function run() {
   check('Die Karte steht da', !!afCard(afEig), afEig.w.document.body.innerHTML.slice(0, 200));
 
   /* --- DIE LISTE ALLER SICHERUNGEN. */
-  check('Die Karte listet ALLE Sicherungen',
+  check('Die Karte listet ALLE Backups',
     afRows(afEig).length === AF_COPIES.length,
     `${afRows(afEig).length} Zeilen, ${AF_COPIES.length} erwartet`);
   check('Und nennt ihre Zahl in der Ueberschrift',
-    /Sicherungen \(5\)/.test(afText(afEig)), afText(afEig).slice(0, 300));
+    /Backups \(5\)/.test(afText(afEig)), afText(afEig).slice(0, 300));
   /* DIE NUMMER LAEUFT VON DER JUENGSTEN (1) ZUR AELTESTEN -- so, wie die
      Mindestzahl zaehlt. */
   check('Die Nummern laufen von der juengsten zur aeltesten',
@@ -3768,7 +3899,7 @@ async function run() {
   check('Der Kopftext sagt, dass es endgueltig ist — 0.22.0',
     /— endgültig\./.test(afText(afEig)), afText(afEig).slice(0, 300));
   check('Und dass nur das Namensschema der Installation gelöscht wird',
-    /nur Sicherungen, die Kriterion selbst angelegt hat/.test(afText(afEig)),
+    /nur Backups, die Kriterion selbst angelegt hat/.test(afText(afEig)),
     afText(afEig).slice(0, 300));
   /* UND DIE SAETZE, DIE MIT DEM FELDBEFUND GEFALLEN SIND, STEHEN NICHT MEHR
      DA. */
@@ -3804,7 +3935,7 @@ async function run() {
 
   /* --- WAS DIE REGEL TRIFFT: eine Zeile unter der Liste. --- */
   check('Unter der Liste steht, wie viele fallen und was frei wird',
-    /2 Sicherungen werden gelöscht — 100,0 MB frei\./.test(afText(afEig)),
+    /2 Backups werden gelöscht — 100,0 MB frei\./.test(afText(afEig)),
     afText(afEig).slice(0, 900));
   check('Der Knopf steht da und ist bedienbar',
     afEig.w.document.getElementById('cleanup-run')?.disabled === false,
@@ -3818,9 +3949,9 @@ async function run() {
      Erklaerung sieht aus wie ein Fehler. Und der Knopf ist dann tot. */
   {
     const d = await afSystem({}, { matched: [], bytes: 0, files: afFiles(20, 30),
-      reason: 'Alle 5 Kopien sind unter den jüngsten 20.' });
+      reason: 'Alle 5 Backups sind unter den jüngsten 20.' });
     check('Trifft die Regel nichts, sagt die Karte das mit dem Grund',
-      /Es wird nichts gelöscht\. Alle 5 Kopien sind unter den jüngsten 20\./.test(afText(d)),
+      /Es wird nichts gelöscht\. Alle 5 Backups sind unter den jüngsten 20\./.test(afText(d)),
       afText(d).slice(0, 600));
     check('Und der Knopf ist dann nicht bedienbar',
       d.w.document.getElementById('cleanup-run')?.disabled === true,
@@ -3834,9 +3965,9 @@ async function run() {
   /* LIEGT NICHTS DA, SAGT DIE KARTE GENAU DAS -- statt einer leeren Liste. */
   {
     const d = await afSystem({ number: 0, last: null },
-      { files: [], matched: [], bytes: 0, reason: 'An diesem Ort liegt noch keine Sicherung.' });
-    check('Ohne eine einzige Sicherung sagt die Karte das',
-      /Im Sicherungsordner gibt es noch keine Sicherung\./.test(afText(d)), afText(d).slice(0, 400));
+      { files: [], matched: [], bytes: 0, reason: 'Hier gibt es noch kein Backup.' });
+    check('Ohne ein einziges Backup sagt die Karte das',
+      /Im Backup-Ordner gibt es noch kein Backup\./.test(afText(d)), afText(d).slice(0, 400));
     check('Und es steht keine leere Liste da',
       !d.w.document.getElementById('cleanup-list'), 'die Liste steht da');
   }
@@ -3847,7 +3978,7 @@ async function run() {
     const d = await afSystem({ changedAt: '2026-08-01 08:00:00', outdated: 2 },
       { oldCount: 2, oldBytes: 104857600, oldFiles: AF_COPIES.slice(3),
         matched: [], bytes: 0, files: afFiles(3, 30, oldNames),
-        reason: 'Keine der 5 Kopien stammt von nach dem Schlüsselwechsel.' });
+        reason: 'Keines der 5 Backups stammt von nach dem Schlüsselwechsel.' });
     check('Die veralteten Kopien bekommen ihre eigene Marke in der Liste',
       equal(afRows(d).filter(z => /ALTER SCHLÜSSEL|alter Schlüssel/i.test(z))
                .map(z => (z.match(/^#(\d+)/) || [])[1]), ['4', '5']),
@@ -3856,12 +3987,12 @@ async function run() {
       afRows(d).every(z => !(/löschen/i.test(z) && /alter Schlüssel/i.test(z))),
       afRows(d).join(' · '));
     check('Darunter stehen ihre Zahl und ihre Summe',
-      /2 Sicherungen öffnen sich nur mit dem alten Schlüssel \(100,0 MB\)/.test(afText(d)),
+      /2 Backups öffnen sich nur mit dem alten Schlüssel \(100,0 MB\)/.test(afText(d)),
       afText(d).slice(0, 900));
     check('Und die Karte sagt, dass das Aufraeumen sie nicht anfasst — 0.22.0',
       /Das automatische Aufräumen löscht sie nicht\./.test(afText(d)), afText(d).slice(0, 900));
     check('Und sie bekommen einen eigenen Knopf',
-      /2 Sicherungen mit altem Schlüssel löschen/.test(
+      /2 Backups mit altem Schlüssel löschen/.test(
         d.w.document.getElementById('cleanup-old')?.textContent || ''),
       d.w.document.getElementById('cleanup-old')?.textContent);
     // Die Einzahl gehoert geprueft, sonst steht dort "1 Sicherungen oeffnen".
@@ -3869,8 +4000,8 @@ async function run() {
       { oldCount: 1, oldBytes: 52428800, oldFiles: AF_COPIES.slice(4),
         files: afFiles(3, 30, [AF_COPIES[4].file]) });
     check('Bei genau einer steht die Einzahl da',
-      /1 Sicherung öffnet sich nur mit dem alten Schlüssel/.test(afText(one)) &&
-      /1 Sicherung mit altem Schlüssel löschen/.test(
+      /1 Backup öffnet sich nur mit dem alten Schlüssel/.test(afText(one)) &&
+      /1 Backup mit altem Schlüssel löschen/.test(
         one.w.document.getElementById('cleanup-old')?.textContent || ''),
       afText(one).slice(0, 700));
   }
@@ -3878,10 +4009,10 @@ async function run() {
      Schalter, der nie greifen kann, verspricht etwas und haelt es nie. */
   {
     const d = await afSystem({ configured: false,
-      reason: 'Es ist kein Sicherungsort eingerichtet.' });
+      reason: 'Es ist kein Backup-Ordner eingerichtet.' });
     check('Ohne eingerichteten Ort steht die Karte trotzdem da', !!afCard(d));
     check('Und sagt, warum sie nichts zu tun hat',
-      /kein Sicherungsordner eingerichtet/.test(afText(d)), afText(d).slice(0, 300));
+      /kein Backup-Ordner eingerichtet/.test(afText(d)), afText(d).slice(0, 300));
     check('Der Schalter steht dann gar nicht erst da',
       !d.w.document.getElementById('cleanup-toggle') && !d.w.document.getElementById('cleanup-run'),
       'der Schalter steht da');
@@ -3893,9 +4024,10 @@ async function run() {
     const d = await afSystem();
     /* JEDER GRIFF AUF EINEN KNOTEN IST ABGEFANGEN. */
     setField(d.w.document, 'cleanup-keep', '2');
-    d.w.document.getElementById('cleanup-keep')
-      ?.dispatchEvent(new d.w.Event('input', { bubbles: true }));
-    await new Promise(r => setTimeout(r, 80));
+    const afKeep = d.w.document.getElementById('cleanup-keep');
+    afKeep?.dispatchEvent(new d.w.Event('input', { bubbles: true }));
+    await until(d.w, (x) => !afKeep || (d.sent.some(g => String(g.url).startsWith('/api/backup?')) &&
+      openRequests(x) === 0), 2000, 'die neu gerechnete Vorschau');
     const asked = d.sent.filter(x => String(x.url).startsWith('/api/backup?'));
     check('Eine Aenderung am Feld fragt den Stand neu am Server',
       asked.length === 1 && /keep=2/.test(asked[0].url) &&
@@ -3913,9 +4045,10 @@ async function run() {
       d.sent.slice(-4).map(x => `${x.method || 'GET'} ${x.url}`).join(' · '));
     /* ERST DAS VERLASSEN DES FELDES SPEICHERT. Ein eigener Speicherknopf waere
        ein dritter Knopf auf einer Karte, die mit zwei auskommt. */
-    d.w.document.getElementById('cleanup-keep')
-      ?.dispatchEvent(new d.w.Event('change', { bubbles: true }));
-    await new Promise(r => setTimeout(r, 60));
+    const afKeep2 = d.w.document.getElementById('cleanup-keep');
+    afKeep2?.dispatchEvent(new d.w.Event('change', { bubbles: true }));
+    await until(d.w, (x) => !afKeep2 || (d.sent.some(g => g.method === 'PUT' && g.url === '/api/settings') &&
+      openRequests(x) === 0), 2000, 'der gespeicherte Wert');
     check('Erst das Verlassen des Feldes speichert den Wert',
       d.sent.some(x => x.method === 'PUT' && x.url === '/api/settings' &&
         x.body?.backupKeep === 2),
@@ -3928,7 +4061,8 @@ async function run() {
     const afS = d.w.document.getElementById('cleanup-toggle');
     if (afS) afS.checked = true;
     afS?.dispatchEvent(new d.w.Event('change', { bubbles: true }));
-    await new Promise(r => setTimeout(r, 60));
+    await until(d.w, (x) => !afS || (d.sent.some(g => g.method === 'PUT' && g.url === '/api/settings') &&
+      openRequests(x) === 0), 2000, 'die gespeicherte Stellung des Schalters');
     check('Der Schalter geht ueber PUT /api/settings hinaus',
       d.sent.some(x => x.method === 'PUT' && x.url === '/api/settings' &&
         x.body?.backupCleanup === true),
@@ -3938,13 +4072,14 @@ async function run() {
      im Dialog schickt gar nichts. --- */
   {
     const d = await afSystem();
-    d.w.document.getElementById('cleanup-run')
-      ?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
-    await new Promise(r => setTimeout(r, 60));
+    const afRun = d.w.document.getElementById('cleanup-run');
+    afRun?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
+    await until(d.w, (x) => !afRun || x.document.getElementById('confirm-pass'),
+      2000, 'der Dialog der zweiten Bestaetigung');
     check('Der Knopf fragt erst nach dem Passwort',
       !!d.w.document.getElementById('confirm-pass'), 'kein Bestaetigungsfenster');
     check('Und der Dialog nennt Zahl und Bytes und sagt, dass es endgueltig ist — 0.22.0',
-      /2 Sicherungen \(100,0 MB\) werden endgültig gelöscht\./.test(
+      /2 Backups \(100,0 MB\) werden endgültig gelöscht\./.test(
         d.w.document.querySelector('.modal')?.textContent || ''),
       d.w.document.querySelector('.modal')?.textContent?.slice(0, 400));
     await confirmImDom(d, 'egal', true);
@@ -3956,11 +4091,13 @@ async function run() {
      Dateiname. --- */
   {
     const d = await afSystem();
-    d.w.document.getElementById('cleanup-run')
-      ?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
-    await new Promise(r => setTimeout(r, 60));
+    const afRun = d.w.document.getElementById('cleanup-run');
+    afRun?.dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
+    await until(d.w, (x) => !afRun || x.document.getElementById('confirm-pass'),
+      2000, 'der Dialog der zweiten Bestaetigung');
     await confirmImDom(d);
-    await new Promise(r => setTimeout(r, 120));
+    await until(d.w, (x) => !afRun || (d.sent.some(g => g.url === '/api/backup/cleanup') &&
+      openRequests(x) === 0), 2000, 'die Antwort auf das Loeschen');
     const outcome = d.sent.filter(x => x.url === '/api/backup/cleanup');
     check('Mit Bestaetigung geht das Loeschen hinaus',
       outcome.length === 1 && outcome[0].method === 'POST' && outcome[0].body?.kind === 'rule',
@@ -3970,7 +4107,7 @@ async function run() {
       equal(Object.keys(outcome[0]?.body || {}), ['kind']),
       JSON.stringify(outcome[0]?.body));
     check('Eine Meldung nennt, wie viele wirklich geloescht wurden',
-      /2 Sicherungen gelöscht/.test(d.w.document.querySelector('.toast')?.textContent || ''),
+      /2 Backups gelöscht/.test(d.w.document.querySelector('.toast')?.textContent || ''),
       d.w.document.querySelector('.toast')?.textContent);
   }
 }

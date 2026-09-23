@@ -3,7 +3,7 @@
 const H = require('./frame.js');
 const D = require('./dom.js');
 const {
-  buildDom
+  buildDom, until
 } = D;
 
 async function run() {
@@ -362,8 +362,9 @@ async function sendImport(object, mode, withoutShare = false) {
      nicht heran, aber ein Pfad mit ':' traefe sie auch nicht. */
   const csAddress = (filePath) => filePath.replace(/:[A-Za-z]+/g, '7');
   const csGuarded = H.F_ROUTES.filter(([m, p]) => !csFree.has(`${m} ${p}`));
-  check('Fuenfundsechzig der dreiundsiebzig Routen stehen hinter dem Schutz',
-    csGuarded.length === 65 && H.F_ROUTES.length === 73,
+  // Zwei mehr mit den Kommentarvideos: Hochladen und Loeschen.
+  check('Siebenundsechzig der fuenfundsiebzig Routen stehen hinter dem Schutz',
+    csGuarded.length === 67 && H.F_ROUTES.length === 75,
     `${csGuarded.length} von ${H.F_ROUTES.length}`);
   const csThrough = [];
   for (const [method, filePath] of csGuarded) {
@@ -603,11 +604,8 @@ async function sendImport(object, mode, withoutShare = false) {
     kindQ.stdout.on('data', d => { prot += d; });
     kindQ.stderr.on('data', d => { prot += d; });
     try {
-      let ready = false;
-      for (let i = 0; i < 120 && !ready; i++) {
-        await new Promise(r => setTimeout(r, 100));
-        try { ready = (await fetch(`${base}/api/config`)).ok; } catch {}
-      }
+      const ready = await until(null, async () => (await fetch(`${base}/api/config`)).ok,
+        12000, 'der Start des Servers', 20).catch(() => false);
       if (!ready) throw new Error(`Server aus der Kopie (Port ${port}) nicht erreichbar\n${prot}`);
       const setupCall = await fetch(`${base}/api/setup`, {
         method: 'POST', headers: { 'content-type': 'application/json' },
@@ -1158,7 +1156,7 @@ async function sendImport(object, mode, withoutShare = false) {
   let sxPaper = null;
   try { sxPaper = JSON.parse(sxText); } catch {}
   check('Und das Ganze ist gueltiges JSON mit beiden Eintraegen',
-    !!sxPaper && sxPaper.items?.length === 2 && sxPaper.version === 18,
+    !!sxPaper && sxPaper.items?.length === 2 && sxPaper.version === 19,
     sxPaper ? `${sxPaper.items?.length} Eintraege, Nummer ${sxPaper.version}` : 'nicht lesbar');
   check('Die Bytes der Fotos und Dateien gehen mit',
     !!sxPaper?.items?.[0]?.photos?.[0]?.data_base64 &&
@@ -2004,8 +2002,9 @@ async function sendImport(object, mode, withoutShare = false) {
        hatte 26 Runden lang keinen Rufer in der Oberflaeche. */
     /* 29 -> 30: GET /api/comment-refs holt Titel und Stellung, auf die ein
        Verweis zeigt. Lesend, also waechst F_ROUTES auch damit nicht. */
+    // 30 -> 31: GET /api/comment-videos/:id/raw liefert ein Kommentarvideo.
     check('Und die Zahl der lesenden Routen steht',
-      (serverCode.match(/^app\.get\('/gm) || []).length === 30,
+      (serverCode.match(/^app\.get\('/gm) || []).length === 31,
       String((serverCode.match(/^app\.get\('/gm) || []).length));
 
     // Den Titel zurueckstellen -- die Pruefungen danach rechnen mit dem alten.
@@ -3092,8 +3091,9 @@ async function sendImport(object, mode, withoutShare = false) {
   /* VIERUNDZWANZIG SEIT 0.21.0, vorher fuenfundzwanzig: DELETE
      /api/items/:id/ratings ist weggefallen und mit ihm seine Aufrufstelle. */
   const withoutUser = calls.filter(a => !/,\s*req\.user\.id\s*,\s*localeOf\(req\s*$/.test(a));
+  // 24 -> 26: Hochladen und Loeschen eines Kommentarvideos antworten mit dem Eintrag.
   check('Keine Aufrufstelle von detail() ohne Benutzer und ohne Sprache',
-    calls.length === 24 && withoutUser.length === 0,
+    calls.length === 26 && withoutUser.length === 0,
     `${calls.length} Aufrufe, unvollstaendig: ${JSON.stringify(withoutUser)}`);
   check('detail() klemmt einen fehlenden Benutzer ab, statt still false zu liefern',
     /function detail\(id, userId, locale\) \{\s*\n\s*if \(userId == null\) throw/.test(source),
@@ -3593,8 +3593,8 @@ async function sendImport(object, mode, withoutShare = false) {
   /* --- DIE SPRACHFASSUNGEN REISEN MIT DER DATEI — F8c -------------------
      ALLE, NICHT NUR DIE DES EXPORTIERENDEN. */
   const rnFile = (await callF('GET', '/api/export?photos=0')).content;
-  check('Die Exportdatei traegt die Formatnummer 18',
-    rnFile?.version === 18, JSON.stringify(rnFile?.version));
+  check('Die Exportdatei traegt die Formatnummer 19',
+    rnFile?.version === 19, JSON.stringify(rnFile?.version));
   /* UND DIE PROGRAMMFASSUNG DANEBEN -- 0.33.0, F14. `version` sagt, WELCHE
      FELDER zu erwarten sind; `appVersion` sagt, WAS die Datei geschrieben
      hat. */
@@ -4306,7 +4306,7 @@ async function sendImport(object, mode, withoutShare = false) {
     check('OWNER_KEYS traegt `imageStore` und nicht mehr `convertImages`',
       stOwnerKeys.includes('imageStore') && !stOwnerKeys.includes('convertImages'),
       stOwnerKeys.join(' · '));
-    check('Und es bleiben genau sieben Schluessel', stOwnerKeys.length === 7,
+    check('Und es sind genau acht Schluessel', stOwnerKeys.length === 8,
       `${stOwnerKeys.length}: ${stOwnerKeys.join(' · ')}`);
   }
 
@@ -4555,7 +4555,7 @@ async function sendImport(object, mode, withoutShare = false) {
     await call('PUT', `/api/criteria/${exCrit.id}`, { name: 'Üç dilli', language: 'tr' });
     const exFile = (await callF('GET', '/api/export?photos=0')).content;
     check('Ein Export traegt alle drei Sprachfassungen',
-      exFile?.version === 18 &&
+      exFile?.version === 19 &&
       exFile?.criteriaNames?.de?.['Dreisprachig'] === 'Dreisprachig DE' &&
       exFile?.criteriaNames?.tr?.['Dreisprachig'] === 'Üç dilli',
       JSON.stringify([exFile?.version, exFile?.criteriaNames?.de?.['Dreisprachig'],
@@ -4677,8 +4677,9 @@ async function sendImport(object, mode, withoutShare = false) {
       "SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%'")
       .all().map(z => z.name).sort();
     tzDb.close();
-    check('Die Datenbank traegt genau neunundzwanzig Tabellen',
-      tzTables.length === 29, `${tzTables.length}: ${tzTables.join(' ')}`);
+    // Die dreissigste traegt die Videos in Kommentaren.
+    check('Die Datenbank traegt genau dreissig Tabellen',
+      tzTables.length === 30 && tzTables.includes('comment_videos'), `${tzTables.length}: ${tzTables.join(' ')}`);
     /* DIE NEUNUNDZWANZIGSTE TRAEGT DIE ANMELDEBREMSE -- sie lag vorher in
        einer Map, und ein Neustart setzte jeden Zaehler auf null. */
     check('Und die neue heisst login_attempts',
@@ -5076,7 +5077,7 @@ async function sendImport(object, mode, withoutShare = false) {
   await gSet('Preis', 1); await gSet('Kundendienst', 1);
   const eOneF = includingShare((m, p, k) => eCall('cookie-e-eins', m, p, k), eWord);
   const gOut = (await eOneF('GET', '/api/export?photos=0')).content;
-  check('Die Formatnummer steht auf 18', gOut?.version === 18, JSON.stringify(gOut?.version));
+  check('Die Formatnummer steht auf 19', gOut?.version === 19, JSON.stringify(gOut?.version));
   check('criteria bleibt eine Liste von Namen',
     Array.isArray(gOut?.criteria) && gOut.criteria.every(n => typeof n === 'string'),
     JSON.stringify(gOut?.criteria));
@@ -5750,7 +5751,7 @@ async function sendImport(object, mode, withoutShare = false) {
     e2Entry?.comments?.find(c => c.text === 'Kommentar ohne Verfasser')?.author === null &&
     'author' in (e2Entry?.comments?.find(c => c.text === 'Kommentar ohne Verfasser') || {}),
     JSON.stringify(e2Entry?.comments?.find(c => c.text === 'Kommentar ohne Verfasser')));
-  check('Die Formatnummer der Datei steht auf 18', e2Out?.version === 18, JSON.stringify(e2Out?.version));
+  check('Die Formatnummer der Datei steht auf 19', e2Out?.version === 19, JSON.stringify(e2Out?.version));
 
   /* Der sechste Traeger steht nur in einem Export MIT Dateien -- deshalb ein
      zweiter Ruf. */
@@ -7084,12 +7085,12 @@ async function sendImport(object, mode, withoutShare = false) {
      dass DANACH KEINE DATEI DA LIEGT -- eine Absage, nach der trotzdem etwas
      geschrieben wurde, waere das Schlimmste. */
   const siDenials = [
-    ['../raus', 'ein Pfad nach oben', /Unterordner liegt im eingerichteten Sicherungsordner/],
-    ['/etc', 'ein absoluter Pfad', /Unterordner liegt im eingerichteten Sicherungsordner/],
-    ['a/../b', 'ein Punktpunkt mitten im Pfad', /Unterordner liegt im eingerichteten Sicherungsordner/],
-    ['..', 'ein nacktes Punktpunkt', /Unterordner liegt im eingerichteten Sicherungsordner/],
-    ['taeglich\\weg', 'ein Gegenschraegstrich', /Unterordner liegt im eingerichteten Sicherungsordner/],
-    ['gibtsnicht', 'ein Verzeichnis, das es nicht gibt', /gibt es im Sicherungsordner nicht/],
+    ['../raus', 'ein Pfad nach oben', /Unterordner liegt im eingerichteten Backup-Ordner/],
+    ['/etc', 'ein absoluter Pfad', /Unterordner liegt im eingerichteten Backup-Ordner/],
+    ['a/../b', 'ein Punktpunkt mitten im Pfad', /Unterordner liegt im eingerichteten Backup-Ordner/],
+    ['..', 'ein nacktes Punktpunkt', /Unterordner liegt im eingerichteten Backup-Ordner/],
+    ['taeglich\\weg', 'ein Gegenschraegstrich', /Unterordner liegt im eingerichteten Backup-Ordner/],
+    ['gibtsnicht', 'ein Verzeichnis, das es nicht gibt', /gibt es im Backup-Ordner nicht/],
     ['zeigtAufDaten', 'ein Symlink aus der Wurzel heraus', /führt aus dem/]
   ];
   for (const [place, event, pattern] of siDenials) {
@@ -7345,7 +7346,7 @@ async function sendImport(object, mode, withoutShare = false) {
     check('Ein verschwundener Zielort ergibt keine Zahl, sondern eine Ansage',
       r.content?.last === null && !!r.content?.error, JSON.stringify(r.content));
     check('Und die Ansage spricht',
-      /gibt es im Sicherungsordner nicht/.test(r.content?.error || ''), r.content?.error);
+      /gibt es im Backup-Ordner nicht/.test(r.content?.error || ''), r.content?.error);
     const go = await siCall('cookie-si-anna', 'POST', '/api/backup');
     check('Und der Knopf laeuft dort nicht ins Leere, sondern sagt ab',
       go.status === 400, `Status ${go.status} · ${JSON.stringify(go.content)}`);
@@ -9820,7 +9821,7 @@ async function sendImport(object, mode, withoutShare = false) {
   const agCallF = includingShare((m, p, k) => agCall('cookie-ag-anna', m, p, k), AG_WORD);
   const agFile = (await agCallF('GET', '/api/export?fotos=0')).content;
   const agPackage = agFile?.items?.find(i => i.title === 'Berts Saege');
-  check('Die Formatnummer der Datei steht auf 18', agFile?.version === 18,
+  check('Die Formatnummer der Datei steht auf 19', agFile?.version === 19,
     JSON.stringify(agFile?.version));
   check('Die Datei traegt Datum, Grund und den NAMEN des Ablehnenden',
     agPackage?.rejected_at === agBefore.rejected_at &&
@@ -12330,7 +12331,7 @@ async function sendImport(object, mode, withoutShare = false) {
       { username: 'bert', sendInvite: true, email: 'bert@beispiel.de' });
     check('Eine Einladung geht hinaus', fresh.content?.delivery === 'ok',
       `${fresh.content?.delivery} · ${fresh.content?.deliveryReason}`);
-    await new Promise(r => setTimeout(r, 300));
+    await until(null, () => E.letters().length > 0, 3000, 'der Brief der Einladung');
     const letters = E.letters();
     check('Der Empfaenger hat genau EINEN Brief bekommen', letters.length === 1,
       `${letters.length} Briefe`);
@@ -12397,7 +12398,7 @@ async function sendImport(object, mode, withoutShare = false) {
       second.content?.linkSource === 'einstellung', JSON.stringify(second.content?.linkSource));
     check('Und der Frist',
       second.content?.minutes === 15, JSON.stringify(second.content?.minutes));
-    await new Promise(r => setTimeout(r, 300));
+    await until(null, () => E.letters().length > 1, 3000, 'der zweite Brief');
     const secondMail = E.letters()[1] || { core: '' };
     check('Die zweite Mail traegt den zweiten Schluessel',
       secondMail.core.includes(second.content?.token), secondMail.core.slice(0, 300));
@@ -12428,9 +12429,8 @@ async function sendImport(object, mode, withoutShare = false) {
     check('Der Token entsteht auch dort, und der Link steht in der Antwort',
       /^[0-9a-f]{64}$/.test(withoutAdr.content?.token || '') && Boolean(withoutAdr.content?.link),
       JSON.stringify([withoutAdr.content?.token, withoutAdr.content?.link]));
+    // Wartet, ob ein Brief an den Zugang ohne Adresse ausbleibt.
     await new Promise(r => setTimeout(r, 200));
-    // UND DER EMPFAENGER HAT NICHTS BEKOMMEN. Ohne diese Zeile bliebe offen,
-// ob wirklich nichts hinausging oder nur das Feld anders heisst.
     check('Und der Empfaenger hat davon nichts gesehen',
       E.letters().length === 2, `${E.letters().length} Briefe`);
 
@@ -12556,6 +12556,7 @@ async function sendImport(object, mode, withoutShare = false) {
     check('Und der Grund nennt die Einstellung',
       /PUBLIC_ADDRESS/.test(oFresh.content?.deliveryReason || ''),
       JSON.stringify(oFresh.content?.deliveryReason));
+    // Wartet, ob ohne oeffentliche Adresse ein Brief ausbleibt.
     await new Promise(r => setTimeout(r, 200));
     check('Der Empfaenger hat wirklich nichts bekommen',
       O.letters().length === 0, `${O.letters().length} Briefe`);
@@ -12577,7 +12578,7 @@ async function sendImport(object, mode, withoutShare = false) {
     check('Ein gefaelschter Host-Kopf aendert den Link nicht',
       hContent.link === `https://kriterion.beispiel.de/#/invite/${hContent.token}`,
       JSON.stringify(hContent.link));
-    await new Promise(r => setTimeout(r, 300));
+    await until(null, () => H.letters().length > 0, 3000, 'der Brief mit dem Link');
     const hMail = (H.letters()[0] || { core: '' }).core;
     check('Und der Link IN DER MAIL ebenso wenig',
       hMail.includes('https://kriterion.beispiel.de/#/invite/') &&
@@ -12673,7 +12674,7 @@ async function sendImport(object, mode, withoutShare = false) {
       `${tIncluding.content?.ok} · ${tIncluding.content?.reason}`);
     check('Und zwar an die eigene Adresse', tIncluding.content?.sentTo === 'anna@beispiel.de',
       JSON.stringify(tIncluding.content?.sentTo));
-    await new Promise(r => setTimeout(r, 300));
+    await until(null, () => T.letters().length > 0, 3000, 'die Testmail');
     const tLetters = T.letters();
     check('Der Empfaenger sah genau die eigene Adresse',
       tLetters.length === 1 && /^To: anna@beispiel\.de$/m.test(tLetters[0].head),
@@ -12688,7 +12689,7 @@ async function sendImport(object, mode, withoutShare = false) {
       { 'x-mail-to': 'fremd3@boese.net' }, {})).content;
     check('Und ein Kopf ebenso wenig', tHeadContent.sentTo === 'anna@beispiel.de',
       JSON.stringify(tHeadContent.sentTo));
-    await new Promise(r => setTimeout(r, 300));
+    await until(null, () => T.letters().length >= 3, 3000, 'die drei Testmails');
     check('Keiner der drei Versuche hat eine fremde Adresse erreicht',
       T.letters().every(b => !/boese\.net/.test(b.raw)) && T.letters().length === 3,
       `${T.letters().length} Briefe, fremde Adressen: ` +
@@ -12916,16 +12917,9 @@ async function sendImport(object, mode, withoutShare = false) {
       const m = b[b.length - 1].core.match(/#\/confirm\/([0-9a-f]{64})/);
       return m ? m[1] : null;
     };
-    /* Wartet, bis der Brief an diese Adresse da ist -- statt fest zu
-       schlafen. */
-    const regWaitOnMail = async (empf, an, ms = 15000) => {
-      for (let i = 0; i < ms / 50; i++) {
-        const k = regKey(empf, an);
-        if (k) return k;
-        await new Promise(r => setTimeout(r, 50));
-      }
-      return null;
-    };
+    // Wartet, bis der Brief an diese Adresse da ist, und liefert seinen Schluessel.
+    const regWaitOnMail = (empf, an, ms = 15000) =>
+      until(null, () => regKey(empf, an), ms, `der Brief an ${an}`).catch(() => null);
     const regSql = (dir, sql) => JSON.parse(shortRun(
       `const { db } = require('./db'); console.log(JSON.stringify(db.prepare(${JSON.stringify(sql)}).all()));`,
       dir));
@@ -13018,7 +13012,7 @@ async function sendImport(object, mode, withoutShare = false) {
     check('Keine der vier Lagen wartet auf den Mailserver',
       gE.every(([, e]) => e.ms < 500), gE.map(([w, e]) => `${w}: ${Math.round(e.ms)} ms`).join(' · '));
     /* UND DIE GEGENLAGE ZUR MESSUNG SELBST: der troepfelnde Empfaenger muss
-       ueberhaupt gehalten haben. */
+       ueberhaupt gehalten haben. Gewartet wird, ob ein Brief ausbleibt. */
     await new Promise(r => setTimeout(r, 600));
     check('Der troepfelnde Empfaenger haelt den Versand dabei wirklich fest',
       gTr.letters().length === 0, `${gTr.letters().length} Briefe angekommen`);
@@ -13424,7 +13418,9 @@ async function sendImport(object, mode, withoutShare = false) {
     check('Und die Antwort traegt die neue, leere Liste gleich mit',
       Array.isArray(fFree.content?.requests) && fFree.content.requests.length === 0,
       JSON.stringify(fFree.content?.requests));
-    await new Promise(r => setTimeout(r, 800));
+    await until(null, () => hOk.letters().some(b => b.core.includes(
+      `https://kriterion.beispiel.de/#/invite/${fFree.content?.token}`)), 3000, 'die Einladungsmail')
+      .catch(() => {});
     check('Die Einladungsmail geht hinaus', fFree.content?.delivery === 'ok',
       `${fFree.content?.delivery} · ${fFree.content?.deliveryReason}`);
     /* GESUCHT WIRD DER BRIEF MIT DIESEM LINK und nicht der letzte in der
@@ -13552,6 +13548,7 @@ async function sendImport(object, mode, withoutShare = false) {
     check('Und der Name steht in keiner Benutzerzeile',
       !JSON.stringify(regSql(hA.dir, 'SELECT username FROM users')).includes('konrad'),
       JSON.stringify(regSql(hA.dir, 'SELECT username FROM users')));
+    // Wartet, ob eine Absagemail ausbleibt.
     await new Promise(r => setTimeout(r, 400));
     check('Es geht keine Absagemail hinaus -- Benachrichtigungen gibt es nicht',
       hOk.letters().length === fromLettersVor, `${hOk.letters().length - fromLettersVor} neue Briefe`);
@@ -13855,10 +13852,9 @@ async function sendImport(object, mode, withoutShare = false) {
       `const { db } = require('./db'); console.log(JSON.stringify(db.prepare(${JSON.stringify(sql)}).all()));`,
       zfDir));
 
-    /* WARTET, BIS IM LAUFENDEN WINDOW NOCH GENUG ZEIT IST. */
-    const zfQuiet = async () => {
-      while (30000 - (Date.now() % 30000) < 9000) await new Promise(r => setTimeout(r, 200));
-    };
+    // Wartet, bis im laufenden Fenster des Codes noch neun Sekunden bleiben.
+    const zfQuiet = () => until(null, () => 30000 - (Date.now() % 30000) >= 9000,
+      10000, 'genug Zeit im Fenster des Codes', 50);
 
     /* Legt einen Zugang mit eingeschaltetem zweitem Faktor an und liefert
        alles, was die Lage danach braucht. */
@@ -14491,8 +14487,8 @@ async function sendImport(object, mode, withoutShare = false) {
         return { code: e.status == null ? 1 : e.status, stdout: (e.stdout || '') + (e.stderr || '') };
       }
     };
-    const zfListOut = zfCommand(['liste']);
-    check('usertool.js liste nennt eine Spalte 2FA',
+    const zfListOut = zfCommand(['list']);
+    check('usertool.js list nennt eine Spalte 2FA',
       /2FA/.test(zfListOut.stdout) && /jonas\s+Benutzer\s+aktiv\s+an/.test(zfListOut.stdout),
       zfListOut.stdout.split('\n').filter(z => /jonas|2FA/.test(z)).join(' | '));
     check('Und sie steht bei einem Zugang ohne Faktor auf aus',
@@ -14500,15 +14496,15 @@ async function sendImport(object, mode, withoutShare = false) {
       zfListOut.stdout.split('\n').filter(z => /anna/.test(z)).join(' | '));
     check('Ein Geheimnis steht in der Liste nicht',
       !zfListOut.stdout.includes(zfI.secret));
-    const zfNo = zfCommand(['zweifaktor', 'jonas'], 'nein\n');
-    check('usertool.js zweifaktor fragt nach und laesst bei "nein" alles stehen',
+    const zfNo = zfCommand(['twofactor', 'jonas'], 'nein\n');
+    check('usertool.js twofactor fragt nach und laesst bei "nein" alles stehen',
       /Wirklich ausschalten/.test(zfNo.stdout) && /Abgebrochen/.test(zfNo.stdout) &&
       zfSql(`SELECT * FROM two_factor WHERE user_id = ${zfI.id}`).length === 1,
       zfNo.stdout.trim().split('\n').pop());
     check('Und nennt vorher den Stand samt Zahl der uebrigen Codes',
       /Eingeschaltet seit/.test(zfNo.stdout) && /von 8 noch offen/.test(zfNo.stdout),
       zfNo.stdout.split('\n').filter(z => /offen|seit/.test(z)).join(' | '));
-    const zfJa = zfCommand(['zweifaktor', 'jonas'], 'ja\n');
+    const zfJa = zfCommand(['twofactor', 'jonas'], 'ja\n');
     check('Bei "ja" ist der zweite Faktor aus',
       zfJa.code === 0 && /ist ausgeschaltet/.test(zfJa.stdout) &&
       zfSql(`SELECT * FROM two_factor WHERE user_id = ${zfI.id}`).length === 0 &&
@@ -14524,16 +14520,16 @@ async function sendImport(object, mode, withoutShare = false) {
       `SELECT actor, target FROM security_log WHERE event = 'twofactor.off' ORDER BY id DESC LIMIT 1`);
     check('Die Protokollzeile traegt das leere wer des Wirts',
       zfHost[0].actor === null && zfHost[0].target === zfI.id, JSON.stringify(zfHost[0]));
-    const zfAgain = zfCommand(['zweifaktor', 'jonas']);
+    const zfAgain = zfCommand(['twofactor', 'jonas']);
     check('Ein zweiter Aufruf sagt, dass nichts zu tun ist',
       zfAgain.code === 0 && /keinen zweiten Faktor/.test(zfAgain.stdout),
       zfAgain.stdout.trim());
     check('Und die Hilfe nennt den Befehl samt der Grenze "nur ausschalten"',
-      /usertool\.js zweifaktor/.test(zfCommand([]).stdout) &&
+      /usertool\.js twofactor/.test(zfCommand([]).stdout) &&
       /EINSCHALTEN GEHT VON HIER AUS NICHT/.test(zfCommand([]).stdout));
     check('Einen Befehl zum EINSCHALTEN gibt es nicht',
-      zfCommand(['zweifaktor', 'jonas', '--an']).code === 0 &&
-      /keinen zweiten Faktor/.test(zfCommand(['zweifaktor', 'jonas', '--an']).stdout));
+      zfCommand(['twofactor', 'jonas', '--an']).code === 0 &&
+      /keinen zweiten Faktor/.test(zfCommand(['twofactor', 'jonas', '--an']).stdout));
 
     /* ---------------------------------------------------------------- */
     group('Der zweite Faktor: die Tabellen legen sich selbst an');
@@ -15321,13 +15317,13 @@ async function sendImport(object, mode, withoutShare = false) {
   await Z.call('POST', '/api/items', { title: 'Ein Eintrag' });
   await Z.stop();
 
-  const zList = zCommand(['liste']);
-  check('usertool.js liste nennt die Zugaenge samt Rolle',
+  const zList = zCommand(['list']);
+  check('usertool.js list nennt die Zugaenge samt Rolle',
     /anna/.test(zList.stdout) && /Eigentümer/.test(zList.stdout) && /bert/.test(zList.stdout),
     zList.stdout.split('\n').filter(Boolean).slice(-4).join(' | '));
 
-  const zPass = zCommand(['passwort', 'bert'], 'berts-neues-wort\nberts-neues-wort\n');
-  check('usertool.js passwort setzt das Passwort', /gesetzt/.test(zPass.stdout) && zPass.code === 0,
+  const zPass = zCommand(['password', 'bert'], 'berts-neues-wort\nberts-neues-wort\n');
+  check('usertool.js password setzt das Passwort', /gesetzt/.test(zPass.stdout) && zPass.code === 0,
     zPass.stdout.split('\n').filter(Boolean).pop());
   const Z2 = startFurtherServer(zDir, {}, 5900);
   await Z2.ready;
@@ -15338,11 +15334,11 @@ async function sendImport(object, mode, withoutShare = false) {
   await Z2.stop();
 
   // Zwei verschiedene Eingaben: der Befehl darf dann NICHTS setzen.
-  const zTap = zCommand(['passwort', 'bert'], 'wort-eins-lang\nwort-zwei-lang\n');
+  const zTap = zCommand(['password', 'bert'], 'wort-eins-lang\nwort-zwei-lang\n');
   check('Zwei verschiedene Eingaben aendern nichts',
     zTap.code === 1 && /nicht überein/.test(zTap.stdout), zTap.stdout.split('\n').filter(Boolean).pop());
 
-  const zNo = zCommand(['entfernen', 'bert'], 'nein\n');
+  const zNo = zCommand(['remove', 'bert'], 'nein\n');
   check('Die Sicherheitsabfrage nennt die Zahlen vor der Entscheidung',
     /Eigene Einträge: 0/.test(zNo.stdout), zNo.stdout.split('\n').filter(Boolean).slice(1, 3).join(' | '));
   check('Ein "nein" aendert nichts',
@@ -15350,7 +15346,7 @@ async function sendImport(object, mode, withoutShare = false) {
     zRows('SELECT status FROM users WHERE username = ?', 'bert')[0]?.status === 'active',
     JSON.stringify(zRows('SELECT username, status FROM users')));
 
-  const zJa = zCommand(['entfernen', 'bert'], 'ja\n');
+  const zJa = zCommand(['remove', 'bert'], 'ja\n');
   const zBertId = zRows("SELECT id FROM users WHERE status = 'deleted'")[0]?.id;
   check('Ein "ja" macht den Grabstein',
     zJa.code === 0 && zBertId != null &&
@@ -15359,15 +15355,15 @@ async function sendImport(object, mode, withoutShare = false) {
   check('Der Eintrag der Instanz bleibt dabei unangetastet',
     zRows('SELECT COUNT(*) n FROM items')[0].n === 1);
 
-  const zEig = zCommand(['eigentuemer', 'anna']);
-  check('usertool.js eigentuemer laeuft auch, wenn es schon stimmt',
+  const zEig = zCommand(['owner', 'anna']);
+  check('usertool.js owner laeuft auch, wenn es schon stimmt',
     zEig.code === 0 && zRows('SELECT role FROM users WHERE username = ?', 'anna')[0]?.role === 'owner');
-  const zNothing = zCommand(['passwort', 'gibtesnicht']);
+  const zNothing = zCommand(['password', 'gibtesnicht']);
   check('Ein unbekannter Name endet mit Fehlercode und nennt den Weg zur Liste',
-    zNothing.code === 1 && /usertool\.js liste/.test(zNothing.stdout),
+    zNothing.code === 1 && /usertool\.js list\b/.test(zNothing.stdout),
     zNothing.stdout.split('\n').filter(Boolean).pop());
   const zHelp = zCommand([]);
-  check('Ohne Befehl kommt die Hilfe', /node usertool\.js passwort/.test(zHelp.stdout) && zHelp.code === 0);
+  check('Ohne Befehl kommt die Hilfe', /node usertool\.js password/.test(zHelp.stdout) && zHelp.code === 0);
 
   fs.rmSync(zDir, { recursive: true, force: true });
   /* ---------------------------------------------------------------- */
@@ -15408,12 +15404,12 @@ async function sendImport(object, mode, withoutShare = false) {
 
     // ES TUT SEINE DINGE WEITERHIN OHNE RUECKFRAGE -- keine Bestaetigung,
 // keine Rechtefrage, nur der Befehl.
-    const zjPass = zjCommand(['passwort', 'bert'], 'berts-neues-wort\nberts-neues-wort\n');
+    const zjPass = zjCommand(['password', 'bert'], 'berts-neues-wort\nberts-neues-wort\n');
     check('usertool.js setzt das Passwort weiterhin ohne jede Rueckfrage',
       zjPass.code === 0 && /gesetzt/.test(zjPass.stdout), zjPass.stdout.split('\n').filter(Boolean).pop());
-    const zjEig = zjCommand(['eigentuemer', 'carla']);
+    const zjEig = zjCommand(['owner', 'carla']);
     check('Und macht weiterhin ohne Rueckfrage zum Eigentuemer', zjEig.code === 0);
-    const zjPath = zjCommand(['entfernen', 'bert'], 'ja\n');
+    const zjPath = zjCommand(['remove', 'bert'], 'ja\n');
     check('Und entfernt weiterhin nach der einen Sicherheitsabfrage', zjPath.code === 0);
 
     const zjBertId = zjRows("SELECT id FROM users WHERE username LIKE 'deleted-%'")[0]?.id;
@@ -16055,12 +16051,11 @@ async function sendImport(object, mode, withoutShare = false) {
      ihre Grenze und die Zusagen darunter werden rot -- der Lauf laeuft
      weiter. */
   let baStatus = null;
-  for (let i = 0; i < 400; i++) {
+  await until(null, async () => {
     const st = (await call('GET', '/api/stats')).content;
     baStatus = (st && st.conversion) || null;
-    if (baStatus && !baStatus.running) break;
-    await new Promise(r => setTimeout(r, 50));
-  }
+    return baStatus && !baStatus.running;
+  }, 20000, 'das Ende des Bestandslaufs', 50).catch(() => {});
   const status = baStatus || {};
   check('Der Fortschritt steht in den Kennzahlen und läuft aus',
     baStatus && baStatus.running === false, JSON.stringify(baStatus));
@@ -16120,12 +16115,11 @@ async function sendImport(object, mode, withoutShare = false) {
     check('Der Lauf startet auch ohne ein einziges offenes PNG', catchUp.status === 202,
       `Status ${catchUp.status}: ${JSON.stringify(catchUp.content)}`);
     let s2 = null;
-    for (let i = 0; i < 400; i++) {
+    await until(null, async () => {
       const st = (await call('GET', '/api/stats')).content;
       s2 = (st && st.conversion) || null;
-      if (s2 && !s2.running) break;
-      await new Promise(r => setTimeout(r, 50));
-    }
+      return s2 && !s2.running;
+    }, 20000, 'das Ende des Nachlaufs', 50).catch(() => {});
     check('Und er laeuft aus', s2 && s2.running === false, JSON.stringify(s2));
     /* ER ZAEHLT KEINE ABLEITUNGEN MEHR -- die vierte Zahl ist mit ihrer
        Haelfte gefallen. */
@@ -16176,12 +16170,11 @@ async function sendImport(object, mode, withoutShare = false) {
       run2.status === 202 && run2.content && run2.content.total >= 1,
       JSON.stringify(run2.content));
     let s3 = null;
-    for (let i = 0; i < 400; i++) {
+    await until(null, async () => {
       const st = (await call('GET', '/api/stats')).content;
       s3 = (st && st.conversion) || null;
-      if (s3 && !s3.running) break;
-      await new Promise(r => setTimeout(r, 50));
-    }
+      return s3 && !s3.running;
+    }, 20000, 'das Ende des zweiten Laufs', 50).catch(() => {});
     check('Und er laeuft aus', s3 && s3.running === false, JSON.stringify(s3));
     check('Und die falsch benannte Zeile liegt danach unverändert da',
       (await imageRaw(wrongPhoto.id)).bytes.equals(jpegTemplate) &&
@@ -17450,11 +17443,10 @@ async function sendImport(object, mode, withoutShare = false) {
       core.indexOf("res.set('Content-Disposition'") < core.indexOf('writeExport'),
       `${core.indexOf("res.set('Content-Type'")} / ` +
       `${core.indexOf("res.set('Content-Disposition'")} / ${core.indexOf('writeExport')}`);
-    /* KEINE ABSAGE VOR DEM BAU MEHR: die Grenze des Gesamtexports ist fort,
-       und mit ihr das Netz darunter. */
-    check('Und sie sagt nicht mehr ab, bevor sie baut',
-      !/EXCHANGE_MAX/.test(core) && !/413/.test(core) && !/RangeError/.test(core),
-      core.replace(/\s+/g, ' ').slice(0, 240));
+    // Die Grenze des Gesamtexports ist fort; abgesagt wird nur wegen eines einzelnen Eintrags.
+    check('Und sie sagt nur ab, wenn ein einzelner Eintrag zu gross ist',
+      /const oversized = exchangePlan\(switches\)\.tooBig;/.test(core) && /res\.status\(413\)/.test(core)
+      && !/RangeError/.test(core), core.replace(/\s+/g, ' ').slice(0, 240));
     /* DER RUECKSTAU WIRD BEACHTET: ohne das sammelt sich die ganze Datei im
        Puffer des Sockets, und der Umbau haette nichts gebracht. */
     const fWrite = (fSource.match(/async function writeExport\([\s\S]*?\n\}/) || [''])[0];
@@ -17504,7 +17496,7 @@ async function sendImport(object, mode, withoutShare = false) {
   check('Und darf eingebettet werden -- sonst spielte es nicht, sondern liefe herunter',
     /^inline;/.test(vRaw.h['content-disposition'] || ''), vRaw.h['content-disposition']);
   check('Der Name traegt die Endung des ERKANNTEN Typs',
-    /filename="foto-\d+\.mp4"/.test(vRaw.h['content-disposition'] || ''), vRaw.h['content-disposition']);
+    /filename="photo-\d+\.mp4"/.test(vRaw.h['content-disposition'] || ''), vRaw.h['content-disposition']);
   check('nosniff steht auch am Video', vRaw.h['x-content-type-options'] === 'nosniff');
   check('Auch das Video bekommt die Sicherheitsregel',
     /default-src 'none'/.test(vRaw.h['content-security-policy'] || '') &&
@@ -17619,8 +17611,8 @@ async function sendImport(object, mode, withoutShare = false) {
     await BF.ready;
     // Das Nachruesten startet 1,5 Sekunden nach dem Zuhoeren und macht je
     // Zeile 30 ms Pause.
-    for (let i = 0; i < 60 && !/Vorschaubild\(er\) erzeugt/.test(BF.log()); i++)
-      await new Promise(r => setTimeout(r, 100));
+    await until(null, () => /Vorschaubild\(er\) erzeugt/.test(BF.log()), 6000,
+      'die Meldung des Nachruestens').catch(() => {});
     await BF.stop();
     const bfRows = (() => {
       const d = open(path.join(bfDir, 'katalog.sqlite'));
@@ -17751,7 +17743,8 @@ async function sendImport(object, mode, withoutShare = false) {
   check('Vor dem Herunterfahren steht etwas in der WAL', walBefore > 0, `${walBefore} Bytes`);
 
   await H2.stop();                       // schickt SIGTERM
-  await new Promise(r => setTimeout(r, 300));
+  await until(null, () => { try { process.kill(H2.pid, 0); return false; } catch { return true; } },
+    3000, 'das Ende des Servers');
   const walAfter = fs.existsSync(walPath) ? fs.statSync(walPath).size : 0;
   /* Nach SIGTERM ist die WAL abgeschlossen. */
   check('Nach SIGTERM ist die WAL abgeschlossen', walAfter === 0, `${walAfter} Bytes`);
@@ -18929,7 +18922,7 @@ async function sendImport(object, mode, withoutShare = false) {
 
   /* --- Das Austauschformat --------------------------------------------- */
   const phEx = await phExport(PH);
-  check('Die Formatnummer steht auf 18', phEx.version === 18, `${phEx.version}`);
+  check('Die Formatnummer steht auf 19', phEx.version === 19, `${phEx.version}`);
   /* NUR ABWEICHUNGEN, wie bei den Gewichten: ein Nachher-Kriterium taucht in
      criteriaPhase gar nicht auf. */
   check('criteriaPhase nennt nur die Vorher-Kriterien',

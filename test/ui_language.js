@@ -5,7 +5,7 @@ const H = require('./frame.js');
 const D = require('./dom.js');
 const {
   buildDom, sysSection, screenTextsFrom, serverTextsFrom, sysPass,
-  css123, regel123
+  css123, regel123, until, openRequests
 } = D;
 
 async function run() {
@@ -17,6 +17,10 @@ async function run() {
   let JSDOM;
   try { ({ JSDOM } = require('jsdom')); }
   catch { console.log('  … uebersprungen: jsdom fehlt (npm install)'); return; }
+  // Eine Ansicht ist fertig, wenn ihr Kennzeichen dasteht und keine Anfrage mehr offen ist.
+  const listReady = (x) => !!x.document.getElementById('q') && openRequests(x) === 0;
+  const entryReady = (x) => !!x.document.getElementById('ratings') && openRequests(x) === 0;
+  const sysReady = (x) => !!x.document.querySelector('.sys-grid > .sys-card') && openRequests(x) === 0;
 
   /* ================= Die sieben Waechter der Sprachdatei — 0.24.0 =========
      SIEBEN FRAGEN, DIE EINE SPRACHDATEI SICH GEFALLEN LASSEN MUSS. */
@@ -258,6 +262,8 @@ async function run() {
       'Enter', 'Escape', 'ArrowLeft', 'ArrowRight', 'INPUT', 'TEXTAREA', 'SELECT',
       // Formen, Typen und Ziele
       'image/', 'image/*', 'image/jpeg', 'PNG', 'JPEG', 'GIF', '_blank', 'https://',
+      // Die Auswahl im Kommentar nimmt auch Videos.
+      'image/*,video/*', 'video/',
       'SSL/TLS', 'STARTTLS',
       // Der Name des Programms, bevor /api/config antwortet
       'Kriterion',
@@ -281,8 +287,8 @@ async function run() {
       /* DER VORSATZ DER VOKABELSCHLUESSEL -- 0.24.3, Bauabschnitt 6. */
       'vocabulary.',
       // Die vier Serverbefehle -- in jeder Sprache dieselben
-      'docker compose exec kriterion node usertool.js passwort <name>',
-      'docker compose exec kriterion node usertool.js zweifaktor <name>',
+      'docker compose exec kriterion node usertool.js password <name>',
+      'docker compose exec kriterion node usertool.js twofactor <name>',
       // Markup um einen technischen Namen herum
       '<code>PUBLIC_ADDRESS</code>', '<code>ENCRYPTION_KEY</code>',
       '<code>data/</code>', '<code>http://</code>', '<code>public/languages/</code>',
@@ -333,8 +339,8 @@ async function run() {
       // Der eine feste Satz: er steht, bevor es eine Sprachdatei gibt.
       'Die Sprachdatei fehlt.',
       // Die beiden Serverbefehle -- Befehle, keine Saetze.
-      'docker compose exec kriterion node usertool.js passwort <name>',
-      'docker compose exec kriterion node usertool.js zweifaktor <name>',
+      'docker compose exec kriterion node usertool.js password <name>',
+      'docker compose exec kriterion node usertool.js twofactor <name>',
       /* UND ZWEI ADRESSEN -- `?gruppe=` stand hier bis 0.35.0. */
       '<code>https://www.google.com/search?q=site%3Aforum.beispiel.de+%s</code>',
       'https://forum.beispiel.de/suche?q=%s'
@@ -408,8 +414,8 @@ async function run() {
          LEER GEWORDEN. */
       'Eigener Server',
       /* 3 · GESPEICHERTE WERTE UND BEZEICHNER. */
-      'Ohne Titel', 'Model Bewertungen', 'bild.jpg', 'bild-', 'foto-', 'standbild',
-      '-teil-', '-von-', 'aus', 'eigen', 'unbekannt', 'wieder', 'wirt', 'note',
+      'Ohne Titel', 'Model Bewertungen', 'standbild',
+      'aus', 'eigen', 'unbekannt', 'wieder', 'wirt', 'note',
       'beschreibung', 'bewertung', 'datei', 'dateien', 'einstellung',
       'kategorie', 'kommentare', 'potenzial', 'testtage'
     ];
@@ -861,12 +867,12 @@ async function run() {
         .map(f => `${f} ${appCode.split(f).length - 1}x`).join(' · '));
     /* DAS LOESCHFENSTER FUER EINEN BENUTZER: „Abbrechen" bricht ab. */
     const blDom = buildDom(JSDOM, { settings: { filters: null, userCount: 4, isAdmin: true, isOwner: true } });
-    await new Promise(r => setTimeout(r, 60));
+    await until(blDom.w, listReady, 2000, 'die Uebersicht');
     const blW = blDom.w;
     const blStatus = { entries: 5, foreignComments: 3, foreignRatings: 0, foreignTestDays: 0, foreignLinks: 0, foreignFiles: 0,
                       comments: 2, ratings: 1, testDays: 0, links: 0, files: 0 };
     const blP = blW.userDeleteDialog('bert', 2, blStatus);
-    await new Promise(r => setTimeout(r, 20));
+    await until(blW, (x) => x.document.getElementById('delete-user'), 2000, 'das Loeschfenster');
     const blDialog = blW.document.getElementById('delete-user');
     check('Das Loeschfenster fuer einen Benutzer ist EIN Fenster mit Titel „Benutzer „x“ löschen?"',
       blDialog?.querySelector('h2')?.textContent === 'Benutzer „bert“ löschen?',
@@ -889,7 +895,7 @@ async function run() {
        gesetzt, das zweite nicht -- genau so, wie es der Aufrufer an die Route
        weitergibt. */
     const blP2 = blW.userDeleteDialog('bert', 2, blStatus);
-    await new Promise(r => setTimeout(r, 20));
+    await until(blW, (x) => x.document.getElementById('delete-user'), 2000, 'das zweite Loeschfenster');
     const blF2 = blW.document.getElementById('delete-user');
     blF2.querySelector('#bl-entries').checked = true;
     blF2.querySelector('[data-yes]').dispatchEvent(new blW.MouseEvent('click', { bubbles: true }));
@@ -898,7 +904,7 @@ async function run() {
     /* DAS FREMDE PASSWORT KOMMT AUS EINEM PASSWORTFELD und nicht aus prompt():
        dort stand es im Klartext auf dem Bildschirm. */
     const npP = blW.newPasswordDialog('Passwort für „bert" setzen', 'Mindestens 10 Zeichen.');
-    await new Promise(r => setTimeout(r, 20));
+    await until(blW, (x) => x.document.getElementById('np-pass'), 2000, 'das Passwortfenster');
     const npField = blW.document.getElementById('np-pass');
     check('Das Fenster fuer ein fremdes Passwort hat ein Passwortfeld',
       npField?.type === 'password' && npField?.autocomplete === 'new-password', JSON.stringify(npField?.type));
@@ -954,9 +960,9 @@ async function run() {
       /* DIE KARTEN MIT AUFKLAPPERN STEHEN IM ABSCHNITT „Bestand" -- vier von
          den acht. */
       const tmDom = buildDom(JSDOM, { settings: { filters: null } });
-      await new Promise(r => setTimeout(r, 60));
+      await until(tmDom.w, listReady, 2000, 'die Uebersicht');
       await sysSection(tmDom.w, 'inventory');
-      await new Promise(r => setTimeout(r, 60));
+      await until(tmDom.w, sysReady, 2000, 'die Karten des Abschnitts Bestand');
       const tmOpen = tmDom.w.document.querySelectorAll('details.more').length;
       const tmFlat = tmDom.w.document.querySelectorAll('.more-plain').length;
       check('Und ohne gemessene Hoehe bleibt jeder Aufklapper stehen',
@@ -974,15 +980,16 @@ async function run() {
        Kasten, die Eigentuemerin drei -- Mein Konto, Benutzer, Kennzahlen. */
     const skRoles = async (roles) => {
       const d = buildDom(JSDOM, { settings: { filters: null, userCount: 4, ...roles } });
-      await new Promise(r => setTimeout(r, 60));
+      await until(d.w, listReady, 2000, 'die Uebersicht');
       await d.w.renderSystem();
-      await new Promise(r => setTimeout(r, 40));
+      await until(d.w, (x) => x.document.querySelector('.sys-tab') && sysReady(x), 2000,
+        'die Abschnitte des Systembereichs');
       const dg = await sysPass(d);
       let boxes = 0, complete = true;
       for (const address of dg.tab) {
         d.w.history.replaceState(null, '', address);
         await d.w.renderSystem();
-        await new Promise(r => setTimeout(r, 30));
+        await until(d.w, sysReady, 2000, `die Karten unter ${address}`);
         for (const k of d.w.document.querySelectorAll('.server-box')) {
           boxes++;
           if (k.querySelector('.server-head')?.textContent.trim() !== 'Auf dem Server' ||
@@ -1014,12 +1021,12 @@ async function run() {
   {
     const stDom = buildDom(JSDOM, { hash: '#/item/1',
       settings: { filters: null, userCount: 3, isAdmin: true } });
-    await new Promise(r => setTimeout(r, 80));
+    await until(stDom.w, entryReady, 2000, 'die Detailansicht');
     const stDoc = stDom.w.document;
     const stRows = [...stDoc.querySelectorAll('#ratings .rrow')];
     const stNull = buildDom(JSDOM, { hash: '#/item/1', ownValues: [3, 3, 0],
       settings: { filters: null, userCount: 3, isAdmin: true } });
-    await new Promise(r => setTimeout(r, 80));
+    await until(stNull.w, entryReady, 2000, 'die Detailansicht');
     const stNullRows = [...stNull.w.document.querySelectorAll('#ratings .rrow')];
     /* (1) EIGENE RASTERSPALTE: jede Zeile hat vier Zellen, die letzte ist die
        des Knopfs -- auch in der Zeile OHNE eigenen Stern. */
@@ -1064,7 +1071,7 @@ async function run() {
        Abstand aus dem Raster: mindestens 12 px. */
     const stOne = buildDom(JSDOM, { hash: '#/item/1',
       settings: { filters: null, userCount: 1, isAdmin: true } });
-    await new Promise(r => setTimeout(r, 80));
+    await until(stOne.w, entryReady, 2000, 'die Detailansicht');
     const stOneRows = [...stOne.w.document.querySelectorAll('#ratings .rrow')];
     check('Bei einem einzigen Zugang hat die Zeile drei Zellen, die letzte ist der Knopf',
       stOneRows.length === 3 && stOne.w.document.getElementById('ratings')?.classList.contains('no-average') &&
@@ -1084,7 +1091,8 @@ async function run() {
        Rumpf, nur mit 3 statt 0. */
     stDom.sent.length = 0;
     stRows[0].querySelector('.rreset').dispatchEvent(new stDom.w.MouseEvent('click', { bubbles: true }));
-    await new Promise(r => setTimeout(r, 60));
+    await until(stDom.w, (x) => stDom.sent.some(g => /\/ratings/.test(g.url)) && openRequests(x) === 0,
+      2000, 'die Antwort auf das Zuruecksetzen');
     const stCalls = stDom.sent.filter(g => /\/ratings/.test(g.url));
     check('Ein Klick auf den Knopf schickt PUT mit value 0 — und nichts anderes',
       stCalls.length === 1 && stCalls[0].method === 'PUT' && stCalls[0].body?.value === 0 &&
@@ -1098,7 +1106,8 @@ async function run() {
       JSON.stringify(stToast?.textContent));
     stDom.sent.length = 0;
     stToast.querySelector('.toast-btn').dispatchEvent(new stDom.w.MouseEvent('click', { bubbles: true }));
-    await new Promise(r => setTimeout(r, 60));
+    await until(stDom.w, (x) => stDom.sent.some(g => /\/ratings/.test(g.url)) && openRequests(x) === 0,
+      2000, 'die Antwort auf „Rückgängig"');
     const stBack = stDom.sent.filter(g => /\/ratings/.test(g.url));
     check('„Rückgängig" schreibt den alten Wert zurueck: derselbe PUT mit value 3',
       stBack.length === 1 && stBack[0].method === 'PUT' && stBack[0].body?.value === 3 &&
@@ -1128,7 +1137,7 @@ async function run() {
     const wfRows = (d) => [...d.querySelectorAll('#filters .frow')]
       .map(z => z.querySelector('.eyebrow')?.textContent);
     const wfWithout = buildDom(JSDOM, { tags: wfTags, settings: { filters: wfFilter([]) } });
-    await new Promise(r => setTimeout(r, 80));
+    await until(wfWithout.w, listReady, 2000, 'die Uebersicht');
     const wfDoc = wfWithout.w.document;
     /* DIE ZEILE STEHT BEIM AUFBAU DA, OHNE DASS JEMAND GEKLICKT HAT. Bis
        0.30.0 stand sie nur dann da, wenn ein Tagfilter griff. */
@@ -1166,7 +1175,7 @@ async function run() {
     /* GREIFT EIN TAGFILTER, STEHT SIE ERST RECHT DA -- und der Rueckweg
        ebenfalls. */
     const wfIncluding = buildDom(JSDOM, { tags: wfTags, settings: { filters: wfFilter([41]) } });
-    await new Promise(r => setTimeout(r, 80));
+    await until(wfIncluding.w, listReady, 2000, 'die Uebersicht');
     check('Greift ein Tagfilter, steht die Tagzeile ebenso da',
       !!wfIncluding.w.document.getElementById('f-tagrow'), 'die Zeile fehlt');
     check('Und filterNumber() zaehlt den Tag weiter mit: der Ruecksetzer sagt (1)',
@@ -1184,7 +1193,7 @@ async function run() {
     wfIncluding.w.close();
     /* GIBT ES NICHTS ZU FILTERN, IST DIE ZEILE GANZ WEG. Nachgestellt am 5. */
     const wfEmpty = buildDom(JSDOM, { tags: [], settings: { filters: wfFilter([]) } });
-    await new Promise(r => setTimeout(r, 80));
+    await until(wfEmpty.w, listReady, 2000, 'die Uebersicht');
     check('Haengt kein Tag an einem Eintrag, steht die Zeile gar nicht da',
       !wfEmpty.w.document.getElementById('f-tagrow'),
       `Zeile: ${!!wfEmpty.w.document.getElementById('f-tagrow')}`);
@@ -1197,7 +1206,7 @@ async function run() {
     const wfEmptyIncluding = buildDom(JSDOM, {
       tags: [{ id: 41, name: 'Alu', usage_count: 0, test_usage_count: 2 }],
       settings: { filters: wfFilter([41]) } });
-    await new Promise(r => setTimeout(r, 80));
+    await until(wfEmptyIncluding.w, listReady, 2000, 'die Uebersicht');
     check('Greift ein Filter auf einen Tag ohne Eintraege, steht sie trotzdem da',
       !!wfEmptyIncluding.w.document.getElementById('f-tagrow')
         && [...wfEmptyIncluding.w.document.querySelectorAll('#f-tagrow .link-btn')]
@@ -1252,7 +1261,7 @@ async function run() {
     const rwEntry = async (roles, mine) => {
       const d = buildDom(JSDOM, { hash: '#/item/1', entryMine: mine,
         settings: { filters: null, userCount: 3, ...roles } });
-      await new Promise(r => setTimeout(r, 80));
+      await until(d.w, entryReady, 2000, 'die Detailansicht');
       const da = !!d.w.document.getElementById('del');
       const danger = d.w.document.querySelectorAll('.danger-row').length;
       d.w.close();
@@ -1269,9 +1278,9 @@ async function run() {
        Admin liest einen Satz. */
     const rwSystem = async (roles, section) => {
       const d = buildDom(JSDOM, { settings: { filters: null, userCount: 4, ...roles } });
-      await new Promise(r => setTimeout(r, 60));
+      await until(d.w, listReady, 2000, 'die Uebersicht');
       await sysSection(d.w, section);
-      await new Promise(r => setTimeout(r, 40));
+      await until(d.w, sysReady, 2000, `die Karten des Abschnitts ${section}`);
       return d;
     };
     const rwEigK = await rwSystem({ isAdmin: true, isOwner: true }, 'database');

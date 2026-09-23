@@ -4,7 +4,7 @@
 Bewertungen, Kommentare, Einstellungen, Sprache und die Ansicht auf dem Telefon.
 
 > **DER BETRIEB STEHT IN DER [README](README.md).** Installation, der Schlüssel,
-> Sichern, eine neuere Version einspielen, der Reverse Proxy, das Datenmodell,
+> Backup, eine neuere Version einspielen, der Reverse Proxy, das Datenmodell,
 > die Ablage von Dateien und Videos und **die Lizenz** stehen dort. **Jede Sache steht an genau
 > einer der beiden Stellen**; wo die andere gebraucht wird, steht ein Verweis
 > und keine zweite Erklärung.
@@ -115,13 +115,13 @@ dabei alle.
 beim vergessenen Passwort:
 
 ```bash
-docker compose exec kriterion node usertool.js zweifaktor <name>
+docker compose exec kriterion node usertool.js twofactor <name>
 ```
 
 Er schaltet den zweiten Faktor **aus** und lässt Passwort, Rolle und Bestand in
 Ruhe. **Einschalten geht von dort nicht.**
 
-Die Kopie über die Karte „Sicherung" enthält den gesamten Datenbestand und damit
+Das Backup über die Karte „Backup" enthält den gesamten Datenbestand und damit
 auch die Geheimnisse der zweiten Faktoren — verschlüsselt, wie Passwörter und
 Sitzungen auch. Der **JSON-Export** enthält sie nicht.
 
@@ -202,7 +202,7 @@ Link zum Zurücksetzen geht.
   Anmeldungen dieses Zugangs fallen sofort.
 
 Kommt niemand mehr herein, hilft der Weg über den Server:
-`docker compose exec kriterion node usertool.js passwort <name>`.
+`docker compose exec kriterion node usertool.js password <name>`.
 
 #### Wohin der Link zeigt — `PUBLIC_ADDRESS`
 
@@ -466,7 +466,7 @@ Die Einstellungen zeigen dem **Eigentümer** eine Karte
 Installation als Ganzes angefasst hat**: Anmeldungen (gelungen und gescheitert),
 angelegte, gesperrte, entsperrte und gelöschte Benutzer, vergebene Rollen,
 gesetzte Passwörter, erzeugte und eingelöste Links, Export, Import,
-Sicherung — und den **Schlüsselwechsel**. Der trägt weder Ziel noch
+Backup — und den **Schlüsselwechsel**. Der trägt weder Ziel noch
 Merkmal und keinen Handelnden: gewechselt wird auf dem Wirt. **Die Zeile nennt,
 DASS gewechselt wurde, nie WOHIN** — ein Schlüssel steht in keiner
 Protokollzeile.
@@ -523,8 +523,8 @@ Am einzelnen Eintrag gilt:
 | sehen, wer welchen Wert bewertet hat | — | — | ✔ |
 | fremde Bewertung löschen | — | — | ✔ |
 | Note einer fremden Bewertung ändern | — | — | — |
-| Bild an einen Kommentar hängen | ✔ | — | — |
-| Bild aus einem Kommentar löschen | ✔ | — | ✔ |
+| Bild oder Video an einen Kommentar hängen | ✔ | — | — |
+| Bild oder Video aus einem Kommentar löschen | ✔ | — | ✔ |
 **Löschen ja, umschreiben nein** ist die Regel dahinter: ein Admin räumt auf,
 aber er verändert keine fremde Aussage unter fremdem Namen. Deshalb darf er
 einen Kommentar löschen, nicht aber dessen Text ändern — und deshalb darf er
@@ -575,8 +575,8 @@ Server dabei nicht.
 **In der Kopfzeile steht, wer angemeldet ist** — neben dem Knopf „Abmelden",
 und zwar auch dann, wenn es nur einen Zugang gibt.
 
-Entfernt ein Admin ein Bild aus einem fremden Kommentar, steht in dessen
-Kopfzeile ein **Vermerk**: „2 Bilder vom Admin entfernt". Er nennt eine
+Entfernt ein Admin ein Bild oder Video aus einem fremden Kommentar, steht in
+dessen Kopfzeile ein **Vermerk**: „2 Bilder oder Videos vom Admin entfernt". Er nennt eine
 **Rolle, keine Person**, und ist für jeden sichtbar. Es ist die einzige Stelle,
 an der Kriterion einen Eingriff festhält; einen Änderungsverlauf gibt es nicht.
 ### Zwei Titel
@@ -693,14 +693,18 @@ es zwei, beide in den Einstellungen einstellbar:
   denselben Papierkorb wie die Ansicht darunter**, mit derselben Rückfrage; er
   steht abgesetzt und vor dem Schließenkreuz. War es das letzte Bild, geht das
   Vollbild zu. An einem Kommentarbild gibt es ihn nicht.
+  **Der Pfeil ↓ im Vollbild lädt die Datei herunter** — Foto, Video,
+  Kommentarbild und Kommentarvideo, jeweils so, wie sie gespeichert ist. Der
+  Dateiname trägt die Nummer, etwa `photo-12.jpg`.
 - Das **erste Element ist das Hauptbild** — Reihenfolge durch Ziehen der
   Vorschaubilder ändern, mit Maus oder Finger.
 - Fotos lassen sich per Dateiauswahl, **Strg+V aus der Zwischenablage** oder
-  durch Ablegen auf dem Feld hinzufügen. **Ein Foto darf bis 30 MB groß sein.**
+  durch Ablegen auf dem Feld hinzufügen. **Ein Foto darf bis 30 MB groß sein**;
+  die Grenze stellt der Eigentümer in der Karte „Grenzen beim Hochladen" ein.
   Wie viele Fotos an einem Eintrag hängen, ist nicht begrenzt; **je Vorgang
   gehen 40 auf einmal zum Server**, und größere Auswahlen werden vom Browser
   selbst aufgeteilt.
-- **Kurzvideos bis 20 MB stehen in derselben Reihe** — MP4, WebM und MOV, über
+- **Kurzvideos bis 20 MB (einstellbar bis 100 MB) stehen in derselben Reihe** — MP4, WebM und MOV, über
   dasselbe Feld hinzugefügt. In der Vorschauleiste trägt ein Video ein ▶ und
   seine Länge, im Eintrag und im Vollbild wird es mit der Steuerung des
   Browsers abgespielt; darin lässt sich springen. Nichts spielt von selbst los,
@@ -717,7 +721,7 @@ es zwei, beide in den Einstellungen einstellbar:
   an der Marke bleibt daneben bestehen.
 - **Testtage** können eigene Tags tragen, zwischen Datum und Sternen. Derselbe
   Vorrat wie am Eintrag, aber eine eigene Verknüpfung.
-- **Dateien** am Eintrag, bis 50 MB je Stück und höchstens 20. Ein Klick auf die
+- **Dateien** am Eintrag, bis 50 MB je Stück (einstellbar bis 100 MB) und höchstens 20. Ein Klick auf die
   Zeile tut das Naheliegende — was der Server ansehen kann (Bilder, PDF,
   Text/Markdown/CSV/Log, `.docx`) klappt auf und wieder zu, alles andere wird
   heruntergeladen. Der Pfeil rechts zeigt vorher an, was passiert; ein eigener
@@ -789,9 +793,12 @@ es zwei, beide in den Einstellungen einstellbar:
   Adresse; eine schließende Klammer bleibt nur, wenn die Adresse eine unpaarige
   öffnende enthält. Angezeigt wird die Adresse vollständig. Beim Bearbeiten
   steht weiterhin der Rohtext im Textfeld; gespeichert ändert sich nichts.
-- **Bilder in Kommentaren**: bis 6 je Kommentar, anhängen oder mit Strg+V
-  einfügen. Jedes Bild wird beim Hochladen neu kodiert — gespeichert wird nur
-  die verkleinerte Variante samt Kachel, nicht das Original.
+- **Bilder und Videos in Kommentaren**: zusammen bis 6 je Kommentar, anhängen
+  oder mit Strg+V einfügen. Jedes Bild wird beim Hochladen neu kodiert —
+  gespeichert wird nur die verkleinerte Variante samt Kachel, nicht das
+  Original. **Ein Video** (MP4, WebM oder MOV, bis 20 MB) wird unverändert
+  gespeichert; die Kachel ist ein Standbild, das der Browser beim Hochladen
+  zieht. Die Kachel trägt ▶ und die Länge, abgespielt wird im Vollbild.
 - **Auszeichnung im Text**: Kommentar und Beschreibung nehmen `**fett**`,
   `_kursiv_`, `` `Code` ``, `[Name](Adresse)`, `> ` für ein Zitat, `- ` für
   eine Aufzählung und `1. ` für eine Nummerierung — jeweils am Zeilenanfang,
@@ -936,13 +943,13 @@ Reihenfolge folgt der Rechteleiter.
 
 | Abschnitt | Adresse | Karten |
 |---|---|---|
-| **Persönlich** | `#/system/persoenlich` | Mein Konto, Meine Sitzungen, Darstellung |
-| **Bestand** | `#/system/bestand` | Kategorien, Tags, Bewertung: Kriterien, Potenzial: Kriterien, Vokabular, Links, Suchmaschinen, Papierkorb |
-| **Benutzer** | `#/system/zugaenge` | Benutzer, Anfragen, Sicherheitsprotokoll, Mailversand |
-| **Datenbank** | `#/system/datenbank` | Kennzahlen, Bildformate, Sicherung, Alte Sicherungen, Export und Import |
+| **Persönlich** | `#/system/personal` | Mein Konto, Meine Sitzungen, Darstellung |
+| **Bestand** | `#/system/inventory` | Kategorien, Tags, Bewertung: Kriterien, Potenzial: Kriterien, Vokabular, Links, Suchmaschinen, Papierkorb |
+| **Benutzer** | `#/system/users` | Benutzer, Anfragen, Sicherheitsprotokoll, Mailversand |
+| **Datenbank** | `#/system/database` | Kennzahlen, Bildformate, Grenzen beim Hochladen, Backup, Alte Backups, Export und Import |
 | **Installation** | `#/system/installation` | Titel |
 
-`#/system/datenbank` lässt sich weitergeben, in einem neuen Fenster öffnen und
+`#/system/database` lässt sich weitergeben, in einem neuen Fenster öffnen und
 mit der Zurück-Taste wieder verlassen. `#/system` ohne Abschnitt bleibt gültig
 und löst sich auf den ersten sichtbaren auf. Die alten Adressen
 `#/system/anlage` und `#/system/instanz` führen beide zu „Installation" und
@@ -979,7 +986,7 @@ acht Karten: seinen eigenen **Zugang**, **Meine Sitzungen**, die
 **Darstellung**, die **Links** und die vier Listen **Kategorien**, **Tags**,
 **Bewertungskriterien** und **Potenzial: Kriterien** — die letzten vier ohne
 Bedienzeichen, nur zum Nachsehen. Alles Übrige steht dem **Admin**, Export,
-Import, Sicherung und **Sicherheitsprotokoll** allein dem **Eigentümer**. Beim
+Import, Backup und **Sicherheitsprotokoll** allein dem **Eigentümer**. Beim
 **Papierkorb** steht die Karte dem Admin, die beiden Knöpfe daran nur dem
 Eigentümer.
 
@@ -997,6 +1004,22 @@ Eigentümer.
   **Welche Fassung welcher Bibliothek das rechnet, steht dort ausdrücklich
   nicht.** Ein Verfahrensname sagt, *wie* gerechnet wird; eine Versionsnummer
   sagt, *welche Lücke passt*.
+- **Grenzen beim Hochladen** *(Admin sieht, Eigentümer ändert)*: die größte
+  Datei je Art in MB.
+
+  | Art | Vorgabe | einstellbar |
+  |---|---:|---:|
+  | Foto | 30 | 1 bis 50 |
+  | Bild im Kommentar | 20 | 1 bis 50 |
+  | Video | 20 | 1 bis 100 |
+  | Video im Kommentar | 20 | 1 bis 100 |
+  | Anhang | 50 | 1 bis 100 |
+
+  Eine Änderung gilt ab dem nächsten Hochladen, ohne Neustart; vorhandene
+  Dateien bleiben, wie sie sind. **Steht ein Reverse Proxy davor, muss er
+  Anfragen in dieser Größe durchlassen** — siehe „Hinter einem Reverse Proxy"
+  in der README. Sagt er ab, steht am Bildschirm „Die Datei ist größer, als der
+  Reverse Proxy davor durchlässt."
 - **Benutzer** verwalten — anlegen mit Passwort oder mit Link, sperren,
   Passwort zurücksetzen direkt oder mit Link, Rolle wechseln, löschen; siehe
   „Rollen und Benutzer" oben *(Admin)*. **Gelöschte Benutzer stehen in einem
@@ -1018,10 +1041,12 @@ Eigentümer.
   eigenem Häkchen mit** — ohne es nennt die Datei sie, enthält sie aber nicht,
   und der Import sagt beim Einspielen, wie viele gefehlt haben.
   **Die Karte nennt die erwartete Dateigröße, bevor der Knopf gedrückt wird**,
-  und die Zahl folgt den Häkchen. Ab **300 MB** steht ein Hinweis darunter:
-  eine Exportdatei ist ein einziger Text und kann nicht größer als 512 MB
-  werden. **Gewarnt wird, verweigert nicht.** Wird die Grenze wirklich
-  gerissen, sagt die Installation ab, bevor sie anfängt zu bauen.
+  und die Zahl folgt den Häkchen. Ab **300 MB** steht ein Hinweis darunter,
+  dass es dauert. **Ein Eintrag fasst höchstens rund 345 MB** an Fotos,
+  Videos, Dateien, Kommentarbildern und Kommentarvideos: Export und Import
+  lesen jeden Eintrag als einen Text. Ein Hochladen darüber wird abgesagt.
+  Liegt ein älterer Eintrag schon darüber, sagt der Export in einer Datei ab,
+  bevor er anfängt, und nennt ihn; der Export in Teilen lässt ihn aus.
 - **Export in Teilen** *(Eigentümer)* — der Weg, wenn die eine Datei nicht mehr
   geht. Die Installation rechnet aus, wie viele Teile es braucht, und **jeder
   Teil ist eine vollständige Exportdatei**: derselbe Umschlag, dieselbe
@@ -1035,7 +1060,7 @@ Eigentümer.
 - **Import** einer Exportdatei, wahlweise *ersetzen* oder *zusammenführen* —
   ebenfalls nur für den Eigentümer: eine Exportdatei kann Beiträge unter
   fremdem Namen anlegen.
-  **Das Austauschformat trägt die Nummer 18.** Sie sagt, welche Felder zu
+  **Das Austauschformat trägt die Nummer 19.** Sie sagt, welche Felder zu
   erwarten sind; die Programmfassung steht daneben.
   **Gelesen wird ab Nummer 14, und alles Ältere wird abgewiesen:** eine solche
   Datei trägt an ihren Fotos noch andere Feldnamen. Abgewiesen wird die Datei
@@ -1048,31 +1073,31 @@ Eigentümer.
   alles andere fällt an den Einspielenden. **Ein unbekannter Name legt keinen
   Zugang an**; er wird im Protokoll genannt. Links und Dateien aus einer Datei
   ohne Verfasserfeld fallen an den Verfasser des Eintrags.
-- **Sicherung** *(Eigentümer)*: eine vollständige, verschlüsselte Kopie der
-  Datenbank auf Knopfdruck — siehe „Sichern" in der README. Die Karte nennt den
-  Sicherungsordner, den Unterordner darunter, wann zuletzt gesichert wurde und
-  wie lange es dauern wird. **Ganz oben steht, wie der Sicherungsordner liegt:**
-  rot im Projektordner, grün außerhalb. Abgewiesen wird keine der beiden Lagen.
-  Sie markiert außerdem jede Kopie rot, die noch mit dem alten Schlüssel
-  verschlüsselt ist.
-- **Alte Sicherungen** *(Eigentümer)*: listet alle Sicherungen im
-  Sicherungsordner und entfernt alte, ohne Shell auf dem Wirt. Die Liste führt
-  sie mit **Nummer, Datum, Alter und Größe**, jüngste zuerst; ab der sechsten
-  Zeile rollt sie. **In der Liste wird nichts gelöscht.**
-  **Gelöscht wird eine Sicherung nur, wenn beides zutrifft:** sie liegt nicht
+- **Backup** *(Eigentümer)*: legt auf Knopfdruck ein vollständiges,
+  verschlüsseltes Backup der Datenbank an — siehe „Backup" in der README. Die
+  Karte nennt den Backup-Ordner, den Unterordner darunter, wann zuletzt ein
+  Backup angelegt wurde und wie lange es dauern wird. **Ganz oben steht, wie der
+  Backup-Ordner liegt:** rot im Projektordner, grün außerhalb. Abgewiesen wird
+  keine der beiden Lagen. Sie markiert außerdem jedes Backup rot, das noch mit
+  dem alten Schlüssel verschlüsselt ist.
+- **Alte Backups** *(Eigentümer)*: listet alle Backups im Backup-Ordner und
+  entfernt alte, ohne Shell auf dem Wirt. Die Liste führt sie mit **Nummer,
+  Datum, Alter und Größe**, jüngste zuerst; ab der sechsten Zeile rollt sie.
+  **In der Liste wird nichts gelöscht.**
+  **Gelöscht wird ein Backup nur, wenn beides zutrifft:** es liegt nicht
   unter den jüngsten N **und** ist älter als X Tage. Beide Werte lassen sich
   einstellen (1 bis 20 und 7 bis 365 Tage); die Grenzen hält der Server. **Der
-  Schalter „Nach jeder erfolgreichen Sicherung aufräumen" steht auf AUS**,
+  Schalter „Nach erfolgreichem Backup aufräumen" steht auf AUS**,
   daneben ein Knopf hinter der Passwortabfrage.
-  **An jeder Zeile steht ein „prüfen".** Es öffnet diese Kopie probeweise,
-  zählt darin und macht sie wieder zu — die laufende Datenbank wird nicht
+  **An jeder Zeile steht ein „prüfen".** Es öffnet dieses Backup probeweise,
+  zählt darin und macht es wieder zu — die laufende Datenbank wird nicht
   angefasst. Darunter erscheint eine Zeile: so viele Einträge, so viele Fotos,
   so viele Zugänge, und bis zu welchem Datum der Inhalt reicht. Die Zeile
-  bleibt stehen; gespeichert wird nichts. Lässt sich eine Kopie mit dem
+  bleibt stehen; gespeichert wird nichts. Lässt sich ein Backup mit dem
   Schlüssel dieser Installation nicht öffnen, steht dort **„Mit diesem
   Schlüssel nicht lesbar"**.
-  **Eine Sicherung zurückzuspielen kann die Oberfläche nicht**; dafür gibt es
-  den Abschnitt „Sichern" in der README. Was die Regel anfasst und was sie
+  **Ein Backup zurückzuspielen kann die Oberfläche nicht**; dafür gibt es
+  den Abschnitt „Backup" in der README. Was die Regel anfasst und was sie
   liegen lässt, steht ebenfalls dort.
 - **Papierkorb** *(Admin sieht, Eigentümer handelt)*: was in den letzten
   dreißig Tagen gelöscht wurde, mit Titel, **Löschdatum**, Löschendem, der
@@ -1142,11 +1167,17 @@ das Passwort verlangt.
 |---|---|
 | **Export in einer Datei** | Umzug, Archiv, Weitergabe. Unverschlüsselt und auch von einer späteren Version lesbar |
 | **Export in Teilen** | wenn eine Hochladegrenze, ein Datenträger oder eine langsame Verbindung dagegen spricht |
-| **Sicherung** | der Notfall. Die vollständige, verschlüsselte Kopie der Datenbank — mit allem, was im Export fehlt. Sie steht in der [README](README.md) |
+| **Backup** | der Notfall. Die vollständige, verschlüsselte Sicherung der Datenbank — auch mit Benutzern und Einstellungen. Es steht in der [README](README.md) |
 
-**Die Exportdatei enthält nicht alles.** Zugänge, Passwörter, Sitzungen, das
-Sicherheitsprotokoll, der Papierkorb und die persönlichen Einstellungen gehen
-nicht mit. Wer eine vollständige Kopie braucht, nimmt die Sicherung.
+**Die Exportdatei enthält nur die Einträge.** Nicht darin stehen: Benutzer,
+Passwörter, Sitzungen, zweiter Faktor, Mailversand, Titel, Vokabular,
+Suchmaschinen, Bildformate, Grenzen beim Hochladen, Ort des Backups, persönliche Einstellungen,
+Sicherheitsprotokoll, Papierkorb. **Nur das Backup ist eine vollständige
+Sicherung der Datenbank.**
+
+**Beim Umzug:** wer eine neue Installation mit einer Exportdatei füllt, legt
+die Benutzer vorher mit denselben Benutzernamen an. Sonst fallen ihre Beiträge
+an den, der einspielt; die Meldung nach dem Import nennt diese Namen.
 
 ### Was vor dem Lauf angesagt wird
 
