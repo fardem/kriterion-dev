@@ -17,6 +17,8 @@ offen ist.
   Wort heißt Backup.
 - Kommentare nehmen kurze Videos auf. Jedes Foto und jedes Video lässt sich
   einzeln herunterladen.
+- Eine neue Installation zeigt nur englische Bezeichnungen: Ordner, Pfade,
+  Befehle, Dateinamen.
 - Drei Fehler aus dem Betrieb sind behoben. Die Beispieldateien sind kurz und
   richtig.
 
@@ -29,6 +31,7 @@ offen ist.
 | Feste Wartezeiten im Prüfstand | 618 Stellen, zusammen 47.625 ms, in 13 Modulen, gemessen an `47e8cf6`. Ein voller Lauf dauert 401,6 bis 410,4 s |
 | Export und Import | Nach dem Einspielen einer Exportdatei in eine frische Installation fehlten Benutzer und Mailversand. Das ist so gebaut und steht nirgends am Bildschirm |
 | Das Wort | Die Oberfläche sagt „Sicherung", an 57 Schlüsseln in `de.json` |
+| Deutsche Bezeichnungen | Eine neue Installation legt `kriterion-sicherung` an, `usertool.js` kennt `passwort`, `keytool.sh` kennt `wechseln` |
 | Drei Fehler | Das Hinweisfeld an der Zeitleiste, die Formatierleiste am langen Kommentar, das Cookie nach dem Umlegen von `BEHIND_PROXY` |
 | Die Beispieldateien | `.env.example` hat 120 Kommentarzeilen für drei Einstellungen und zwei falsche Angaben |
 | Zwei Wünsche | Download je Foto und Video; kurze Videos in Kommentaren |
@@ -48,6 +51,7 @@ offen ist.
 | 23. September 2026 | „wir nehmen alle Punkte für 0.41.0 auf" |
 | 23. September 2026 | Der Auftrag kommt „mit Schemaänderung": kurze Videos in Kommentaren gehören dazu |
 | 23. September 2026 | „Download pro Video/Foto (kein Download für alle nötig)" |
+| 23. September 2026 | „In jeder neuen Installation muss jede Bezeichnung vom System englisch sein. Nur bei bereits angelegten darf es Sicherung heißen." |
 
 ### Entschieden in diesem Auftrag
 
@@ -62,13 +66,14 @@ offen ist.
 | Wer darf? | Wie bei Kommentarbildern: hinzufügen nur der Verfasser, löschen Verfasser und Admin |
 | Der Zähler „vom Admin entfernt" | `images_removed` zählt Videos mit. Wortlaut: „{n} Bild oder Video vom Admin entfernt", Mehrzahl „{n} Bilder oder Videos vom Admin entfernt" |
 | Austauschformat | 19. Der Kommentar bekommt `videos`, unter dem Schalter der Dateien wie die Kommentarbilder. Eine Datei mit Format 18 bleibt lesbar. Eine ältere Fassung übergeht `videos` beim Einlesen |
-| Download | Ein Knopf je Foto und Video in der Bildansicht. Kein Download für alle. Keine neue Route; die Dateinamen setzt der Server wie heute |
+| Download | Ein Knopf je Foto und Video in der Bildansicht. Kein Download für alle. Keine neue Route. Die Dateinamen werden englisch (BA 11) |
 | Hinweisfeld an der Zeitleiste | Es bekommt eine eigene Breite und wird nach innen verschoben, an beiden Rändern |
 | Formatierleiste | Kopfzeile des Feldes, mit `position: sticky` unter der festen Kopfzeile. Das Feld bekommt keine Höchsthöhe |
 | Cookie nach `BEHIND_PROXY` | Der Wächter vor allen Routen löscht das Cookie gegen fremde Formulare unter dem anderen Namen |
 | Wortfilter für Kommentare und `Doku/` | Bekommt keinen Eintrag. `Doku/` enthält das alte Wort 818-mal in 73 Dateien, und Änderungsprotokolle bleiben, wie sie sind. Stattdessen zwei Wächter über die ausgelieferten Texte (BA 10) |
-| Pfade und Kennungen | Bleiben: `kriterion-sicherung`, `/app/sicherung`, `/sicherung`, der Kartenschlüssel `'sicherung'` (`public/app.js`:7107). Ein geänderter Pfad verlegt den Ordner bestehender Installationen |
-| Namen im Prüfstand | Gruppen-, Prüfungs- und Rückbaunamen mit dem alten Wort bleiben. Sie umzubenennen ist eine eigene Runde |
+| Bezeichnungen in einer neuen Installation | Englisch: Ordner, Pfade, Befehle, Optionen, Dateinamen und die Kartenschlüssel des Systembereichs (BA 11) |
+| Bestehende Installationen | Behalten, was angelegt ist: ihre `docker-compose.yml`, den Ordner `kriterion-sicherung`, die Kopien von `keytool.sh`. Der Update-Weg der README nimmt dafür die `docker-compose.yml` mit; heute tut er das nicht (`README.md`:353 bis :363) |
+| Namen im Prüfstand | Gruppen-, Prüfungs- und Rückbaunamen gehören zu keiner Installation und bleiben. Sie umzubenennen ist eine eigene Runde |
 | Englisch und Türkisch | Sagen schon `Backup` und `Yedekleme`. Sie bekommen nur die neuen Sätze und Schlüssel, sinngleich |
 | Ändert sich eine bestehende Route? | Nein. Neu sind drei Routen für Kommentarvideos (BA 3), und `POST /api/items/:id/comments` nimmt zusätzlich ein Video an |
 
@@ -180,8 +185,8 @@ CREATE INDEX IF NOT EXISTS idx_comment_videos_comment ON comment_videos(comment_
   `/api/photos/:id/raw`, `/api/comment-images/:id/raw` oder
   `/api/comment-videos/:id/raw`.
 - Zeichen und Titel wie am Anhang: „↓" und `entry.download`.
-- Der Server bleibt unverändert. Die Dateinamen bleiben `foto-<Nummer>` und
-  `bild-<Nummer>`, neu ist `video-<Nummer>`, je mit der Endung aus den Bytes.
+- Keine neue Route. Die Dateinamen heißen `photo-<Nummer>`, `image-<Nummer>`
+  und `video-<Nummer>`, je mit der Endung aus den Bytes (BA 11).
 
 ### BA 6 — Das Hinweisfeld an der Zeitleiste
 
@@ -267,7 +272,7 @@ BA 9.
 | `manual-de.md` | 16 Stellen und „Kopie" im Sinn des Backups (Zeilen 124, 1051, 1056, 1067, 1071, 1145, 1149) |
 | Ausgaben auf dem Server | `keytool.js` (sechs Zeilen), `keytool.sh` (Hilfetext und Ausgabe), `keys.js` (die Meldung in Zeile 90 und der Kommentar, den es in die `.env` schreibt) |
 | Kommentare | `server.js` 13, `public/app.js` 16, `public/style.css` 3, `auth.js` 1, `keys.js` 1, `keytool.js` 3. Der Kommentar in `keytool.js`:20 nennt `SICHERUNG_MS_JE_MB`; die Konstante heißt `BACKUP_MS_PER_MB` |
-| Beispieldateien | BA 11 |
+| Beispieldateien | BA 12 |
 
 „Kopie" bleibt, wo eine Kopie von `./data` gemeint ist (`README.md`:333, 809,
 896, 921, 1137, 1139, 1184, 1189).
@@ -282,12 +287,58 @@ BA 9.
 2. Ein neuer Wächter liest `README.md`, `manual-de.md`, die Kommentare von
    `.env.example` und `docker-compose.example.yml` und die Ausgaben von
    `keytool.js`, `keytool.sh` und `keys.js`. Das alte Wort darf dort nur in
-   „Sicherung der Datenbank" und in den Pfaden stehen.
+   „Sicherung der Datenbank" stehen und in der einen Zeile des Update-Wegs,
+   die den Ordner einer bestehenden Installation mitnimmt.
 
 Prüfungen, die den alten Wortlaut festhalten, gehen mit: `test/source.js`:1577
 und die Prüfungen der Karten in `test/ui_system.js` ab Zeile 3530.
 
-### BA 11 — Die Beispieldateien
+### BA 11 — Englische Bezeichnungen in neuen Installationen
+
+Vorgabe des Betreibers vom 23. September 2026. Eine bestehende Installation
+behält, was sie angelegt hat, und läuft nach dem Update ohne Änderung weiter.
+
+| Wo | bisher | neu |
+|---|---|---|
+| Ordner des Backups | `kriterion-sicherung` | `kriterion-backup` |
+| Pfad im Container | `/app/sicherung` | `/app/backup` |
+| Pfad außerhalb des Projektordners | `/sicherung` | `/backup` |
+| Ordner beim Update (README) | `kriterion-alt` | `kriterion-old` |
+| Kopie von `data/` vor dem Update (README) | `sicherung-data-<Datum>` | `data-before-update-<Datum>` |
+| Probe der Wiederherstellung (README) | `kriterion-probe` | `kriterion-check` |
+| Kopien von `keytool.sh` | `.env.vor-schluesselwechsel-<Marke>`, `../kriterion-data-vor-schluesselwechsel-<Marke>` | `.env.before-key-change-<Marke>`, `../kriterion-data-before-key-change-<Marke>` |
+| Befehle von `usertool.js` | `liste`, `passwort`, `entfernen`, `eigentuemer`, `zweifaktor`, `--eintraege`, `--beitraege` | `list`, `password`, `remove`, `owner`, `twofactor`, `--entries`, `--posts` |
+| Befehle von `keytool.sh` und `keytool.js` | `zeigen`, `wechseln`, `--wer`, `--ja` | `show`, `change`, `--by`, `--yes` |
+| Dateiname beim Teilexport | `-teil-<n>-von-<m>` | `-part-<n>-of-<m>` |
+| Dateiname beim Download | `foto-<Nummer>`, `bild-<Nummer>` | `photo-<Nummer>`, `image-<Nummer>` |
+| Vorgabename eines Kommentarbilds | `bild.jpg` | `image.jpg` |
+| Kartenschlüssel im Systembereich (`public/app.js`:7067 bis :7120) | `zugang`, `sitzungen`, `darstellung`, `kategorien`, `kriterien`, `potenzialkriterien`, `vokabular`, `suchanbieter`, `papierkorb`, `zugaenge`, `anfragen`, `protokoll`, `mailversand`, `kennzahlen`, `bildablage`, `sicherung`, `aufraeumen`, `titel`, `sprachen` | `myaccount`, `sessions`, `appearance`, `categories`, `criteria`, `potentialcriteria`, `vocabulary`, `searchengines`, `trash`, `accounts`, `requests`, `log`, `mail`, `stats`, `imagestore`, `backup`, `cleanup`, `titles`, `languages` |
+
+- Die deutschen Befehle von `usertool.js` und `keytool` fallen weg. Ein
+  unbekannter Befehl nennt die Liste der englischen, wie heute. Die
+  Oberfläche zeigt zwei davon in drei Kästen zum Kopieren
+  (`public/app.js`:7370, :7521, :8671); sie gehen mit.
+- Die Kartenschlüssel stehen in keiner Adresse und in keiner Ablage. Die
+  Adresse nennt nur den Abschnitt (`#/system/<abschnitt>`), und die
+  Abschnitte heißen schon englisch.
+- Der Update-Weg in `README.md` wird:
+
+```bash
+cd .../kriterion && docker compose down
+cd .. && cp -r kriterion/data ./data-before-update-$(date +%F)
+mv kriterion kriterion-old
+python3 -m zipfile -e kriterion-main.zip .
+mv kriterion-main kriterion               # der Ordner heißt nach dem Branch
+cp -r kriterion-old/data kriterion/data
+cp kriterion-old/.env kriterion/.env      # ohne diese Zeile startet nichts
+cp kriterion-old/docker-compose.yml kriterion/   # deine Pfade und dein Port
+mv kriterion-old/kriterion-backup kriterion/ 2>/dev/null      # nur bei Ort im Projekt
+mv kriterion-old/kriterion-sicherung kriterion/ 2>/dev/null   # derselbe Ordner unter dem alten Namen
+chmod +x kriterion/keytool.sh             # python3 legt das Recht nicht an
+cd kriterion && docker compose up -d --build
+```
+
+### BA 12 — Die Beispieldateien
 
 Je Einstellung eine Überschriftzeile und höchstens vier Zeilen darunter:
 wofür, was sie bewirkt, wovon sie abhängt. In der Compose-Datei höchstens vier
@@ -330,15 +381,15 @@ ENCRYPTION_KEY=
 # ---------------------------------------------------------------------------
 # NICHT IN DIESER DATEI
 # Benutzer und Passwort: beim ersten Aufruf im Browser. Passwort vergessen:
-#   docker compose exec kriterion node usertool.js passwort <name>
+#   docker compose exec kriterion node usertool.js password <name>
 # Port und Ort des Backups: docker-compose.yml.
 # Mailzugang: in der Oberflaeche, Karte "Mailversand".
 
 
 # ---------------------------------------------------------------------------
 # DEN SCHLUESSEL WECHSELN -- nur auf dem Server:
-#   ./keytool.sh zeigen      # Lage ansehen, aendert nichts
-#   ./keytool.sh wechseln    # anhalten, Backup, wechseln, starten
+#   ./keytool.sh show        # Lage ansehen, aendert nichts
+#   ./keytool.sh change      # anhalten, Backup, wechseln, starten
 # Backups von vor dem Wechsel oeffnen sich nur mit dem alten Schluessel. Das
 # Skript laesst ihn auskommentiert hier stehen: nicht loeschen.
 ```
@@ -349,22 +400,22 @@ ENCRYPTION_KEY=
     volumes:
       - ./data:/app/data
       # Das Backup. Die Vorgabe liegt im Projektordner und wandert beim Update
-      # mit nach kriterion-alt. Sicherer ausserhalb; dann beide Zeilen aendern:
-      #   - ../kriterion-sicherung:/sicherung
-      #   - BACKUP_DIR=/sicherung
-      - ./kriterion-sicherung:/app/sicherung
+      # mit nach kriterion-old. Sicherer ausserhalb; dann beide Zeilen aendern:
+      #   - ../kriterion-backup:/backup
+      #   - BACKUP_DIR=/backup
+      - ./kriterion-backup:/app/backup
     environment:
       - PORT=3000
       # Zeitzone des Containerprotokolls. Gespeicherte Zeiten bleiben UTC.
       - TZ=Europe/Berlin
       # Ohne diese Zeile bleibt die Karte "Backup" aus. Sie gehoert zur
       # Einhaengung oben.
-      - BACKUP_DIR=/app/sicherung
+      - BACKUP_DIR=/app/backup
 ```
 
-Die Zeilen ohne `#` bleiben Zeichen für Zeichen, wie sie sind.
+Die übrigen Zeilen ohne `#` bleiben Zeichen für Zeichen, wie sie sind.
 
-### BA 12 — Der Prüfstand
+### BA 13 — Der Prüfstand
 
 | | was gehalten wird |
 |---|---|
@@ -381,7 +432,8 @@ Die Zeilen ohne `#` bleiben Zeichen für Zeichen, wie sie sind.
 | 11 | Eine Anfrage mit beiden Cookies gegen fremde Formulare bekommt die Löschung des anderen. Die nächste schreibende Anfrage gelingt |
 | 12 | Der Dialog zeigt die beiden Sätze, die beiden Karten den neuen Wortlaut. Nach dem Dateiimport nennt die Meldung die zugefallenen Verfasser |
 | 13 | `SCREEN_BAN` meldet das alte Wort und lässt „Sicherung der Datenbank" durch. Der neue Wächter über README, Handbuch, Beispieldateien und Serverausgaben ist grün |
-| 14 | Jeder Befehl `node <datei>.js` in `.env.example` nennt eine Datei, die es gibt. Die Kommentarzeilen je Einstellung halten die Regel aus BA 11 |
+| 14 | Jeder Befehl `node <datei>.js` in `.env.example` nennt eine Datei, die es gibt. Die Kommentarzeilen je Einstellung halten die Regel aus BA 12 |
+| 15 | Die Beispieldateien und die Befehlsblöcke der README nennen für eine neue Installation nur englische Bezeichnungen. `usertool.js` und `keytool.js` nehmen nur die englischen Befehle an |
 
 **Gegenproben**, je eine: eine feste Wartezeit kommt in ein Modul zurück · der
 Range-Zweig der Route für Kommentarvideos fällt weg · der Import kodiert ein
@@ -389,9 +441,10 @@ Kommentarvideo als Bild · der Papierkorb kopiert das Standbild nicht · der
 Link verliert `download` · die Verschiebung des Hinweisfelds fällt weg · die
 Leiste wird nicht angedockt · die Löschung des anderen Cookies fällt weg · ein
 Wert in `de.json` sagt wieder „Sicherung" · `.env.example` nennt wieder
-`zugang.js`.
+`zugang.js` · `docker-compose.example.yml` hängt wieder `kriterion-sicherung`
+ein.
 
-### BA 13 — Dokumentation und Zahlen
+### BA 14 — Dokumentation und Zahlen
 
 - **`Doku/Aenderungsprotokoll_0.41.0.md`** mit den Messungen am fertigen
   Stand: Laufzeit des Prüfstands vorher und nachher (je drei volle Läufe, der
@@ -401,11 +454,15 @@ Wert in `de.json` sagt wieder „Sicherung" · `.env.example` nennt wieder
 - **`CHANGELOG.md`** — `## [0.41.0]` mit einem Kasten: die Datenbank bekommt
   beim ersten Start die Tabelle `comment_videos`, zu tun ist nichts; das
   Austauschformat ist 19, eine ältere Fassung übergeht die Kommentarvideos;
-  die eigene `.env` bleibt, wie sie ist.
-- **`manual-de.md`** — Export und Import (BA 9), das Wort (BA 10), Videos in
-  Kommentaren, der Download in der Bildansicht, „Das Austauschformat trägt die
-  Nummer 19."
-- **`README.md`** — das Wort (BA 10) und die Beispieldateien (BA 11).
+  die eigene `.env` und die eigene `docker-compose.yml` bleiben, wie sie
+  sind. Wer die `docker-compose.yml` aus der Vorlage neu anlegt, setzt die
+  beiden Pfade auf `kriterion-sicherung` und `/app/sicherung` zurück; die
+  Befehle von `usertool.js` und `keytool.sh` heißen englisch.
+- **`manual-de.md`** — Export und Import (BA 9), das Wort (BA 10), die
+  englischen Befehle (BA 11), Videos in Kommentaren, der Download in der
+  Bildansicht, „Das Austauschformat trägt die Nummer 19."
+- **`README.md`** — das Wort (BA 10), die Bezeichnungen und der Update-Weg
+  (BA 11), die Beispieldateien (BA 12).
 - **`Doku/Fahrplan.md`** — die Zeile 0.41.0 durchstreichen und füllen, Schema
   `ja`, Format `18 → 19`; der Abschnitt bekommt oben „GEBAUT am …".
 - **`package.json`** auf `0.41.0`, `package-lock.json` mit.
@@ -425,7 +482,9 @@ Wert in `de.json` sagt wieder „Sicherung" · `.env.example` nennt wieder
 | Umkodieren von Videos | Das Konzept zu Video schließt `ffmpeg` aus |
 | Eine Grenze für die Dauer eines Videos | Der Server kann die Dauer ohne Umkodierer nicht prüfen |
 | Spalten in `comment_images` | Sie erreichten bestehende Installationen nur über einen Migrationsblock |
-| Pfade, Kennungen und Namen im Prüfstand mit dem alten Wort | Ein neuer Pfad verlegt den Ordner; die Namen sind eine eigene Runde |
+| Neue Namen für Ordner und Dateien bestehender Installationen | Vorgabe des Betreibers: was angelegt ist, behält seinen Namen |
+| Interne Namen im Code: DOM-Kennungen, CSS-Klassen, Variablen in `keytool.sh` | Sie stehen in keiner Installation. Eine eigene Runde |
+| Namen im Prüfstand mit dem alten Wort | Sie gehören zu keiner Installation. Eine eigene Runde |
 | Das alte Wort in Änderungsprotokollen und im CHANGELOG | Sie halten fest, was zu ihrer Zeit galt |
 | Eine Höchsthöhe für das Kommentarfeld | Sie änderte, wie sich ein langer Kommentar schreibt |
 | Eine Änderung am Ablauf von Export, Import und Backup | Vorgabe des Betreibers |
@@ -437,7 +496,8 @@ Wert in `de.json` sagt wieder „Sicherung" · `.env.example` nennt wieder
 1. `npm test` läuft vor jedem Push vollständig durch. Das Ergebnis wird
    genannt.
 2. Der Bestand bleibt unberührt. Die einzige Änderung an einer bestehenden
-   Datenbank ist die neue Tabelle.
+   Datenbank ist die neue Tabelle. Eine bestehende Installation läuft nach
+   dem Update mit ihrer eigenen `docker-compose.yml` weiter.
 3. Die Kommentarregel gilt: höchstens drei Zeilen je Block, nie mehr Kommentar
    als Code, keine Versionsnummer, kein Verweis auf `Doku/`.
 4. Kein Pull Request, wenn keiner verlangt wurde.
