@@ -1171,13 +1171,23 @@ const sessionCookie = (req, token) => [
   `${viaProxy(req) ? '; Secure' : ''}; Max-Age=${SESSION_DAYS * 86400}`,
   csrfCookie(req, token)
 ];
+/* Die Loeschung des Tokens je Name; `__Host-` verlangt Secure und Path=/. */
+const CSRF_CLEAR = {
+  [CSRF_SECURE]: `${CSRF_SECURE}=; Path=/; SameSite=Lax; Secure; Max-Age=0`,
+  [CSRF_NAME]: `${CSRF_NAME}=; Path=/; SameSite=Lax; Max-Age=0`
+};
 /* GELOESCHT WERDEN BEIDE NAMEN, nicht nur der des eigenen Wegs. */
 const clearCookie = () => [
   `${COOKIE_SECURE}=; HttpOnly; Path=/; SameSite=Lax; Secure; Max-Age=0`,
   `${COOKIE_NAME}=; HttpOnly; Path=/; SameSite=Lax; Max-Age=0`,
-  `${CSRF_SECURE}=; Path=/; SameSite=Lax; Secure; Max-Age=0`,
-  `${CSRF_NAME}=; Path=/; SameSite=Lax; Max-Age=0`
+  CSRF_CLEAR[CSRF_SECURE], CSRF_CLEAR[CSRF_NAME]
 ];
+/* Der Token unter dem Namen, der fuer diese Anfrage nicht gilt, stammt von vor
+   dem Umlegen von BEHIND_PROXY; die Seite laese sonst ihn. Liefert die Loeschung. */
+function staleCsrfClear(req) {
+  const other = csrfName(req) === CSRF_SECURE ? CSRF_NAME : CSRF_SECURE;
+  return parseCookies(req)[other] === undefined ? null : CSRF_CLEAR[other];
+}
 
 /* DER SITZUNGSTOKEN DIESER ANFRAGE -- der EINE Leseweg. */
 const sessionToken = (req) => parseCookies(req)[cookieName(req)];
@@ -1214,7 +1224,7 @@ module.exports = {
   Message, setTranslator,
   COOKIE_NAME, COOKIE_SECURE, cookieName, sessionToken, viaProxy,
   CSRF_NAME, CSRF_SECURE, csrfName, CSRF_HEADER,
-  csrfToken, csrfCookie, csrfCookieValue, csrfOk,
+  csrfToken, csrfCookie, csrfCookieValue, csrfOk, staleCsrfClear,
   BEHIND_PROXY, PASSWORD_MIN, SESSION_DAYS, fromEnv,
   PUBLIC_ADDRESS, checkPublicAddress, parseCookies, checkLogin, createSession, destroySession,
   sessionUser, pruneSessions, sessionCookie, clearCookie, requireAuth,

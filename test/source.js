@@ -2034,7 +2034,7 @@ async function run() {
         if (part.kind === CODE)
           for (const m of part.value.matchAll(/[A-Za-z_$][A-Za-z0-9_$]*/g)) benchNames.add(m[0]);
     check('Der Waechter sieht wirklich den ganzen Pruefstand',
-      benchNames.size > 2000 && BENCH.length === 21,
+      benchNames.size > 2000 && BENCH.length === 22,
       `${benchNames.size} Bezeichner aus ${BENCH.length} Dateien`);
 
     /* Die dreizehn sind keine Benennungen, sondern Gegenstaende von
@@ -3042,8 +3042,8 @@ async function run() {
     /* EINE WENIGER SEIT 0.35.2: `.entry-out` hielt den Knopf, der den
        einzelnen Eintrag als Datei holte. Der Knopf ist fort, die Regel mit
        ihm -- eine Regel ohne Element ist toter Text. */
-    check('Und es stehen genau 1679 Regelzeilen da',
-      ssCode === 1679, `${ssCode} Zeilen`);
+    check('Und es stehen genau 1680 Regelzeilen da',
+      ssCode === 1680, `${ssCode} Zeilen`);
     /* UND KEIN BLOCK IST WIEDER LANG GEWORDEN. Die Drei-Zeilen-Regel gilt
        auch fuer dieses Blatt; laenger sein darf allein, wer eine Tafel
        gemessener Werte traegt. Acht tun das. */

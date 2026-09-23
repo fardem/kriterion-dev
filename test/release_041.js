@@ -395,6 +395,148 @@ async function run() {
       photo?.text === '↓' && photo?.title === DE['entry.download'], JSON.stringify(photo));
     w.close();
   }
+
+  /* ================= Das Hinweisfeld an der Zeitleiste ================= */
+  group('Das Hinweisfeld bleibt in der Zeitleiste');
+  {
+    const css = fs.readFileSync(path.join(__dirname, 'public', 'style.css'), 'utf8').replace(/\s+/g, ' ');
+    const rule = (css.match(/\.timeline-hint \{[^}]*\}/) || [''])[0];
+    check('Die Regel hat width: max-content und behaelt Deckel und Umbruch',
+      /width: max-content;/.test(rule) && /max-width: min\(14rem, 46%\)/.test(rule) &&
+      /overflow-wrap: anywhere/.test(rule), rule.slice(0, 200));
+    if (JSDOM) {
+      const items = Array.from({ length: 6 }, (_, i) => ({
+        id: i + 1, title: 'Sky-Watcher I Star Adevnturer ' + (i + 1), rejected: false, tested: true,
+        favorite: false, category: null, tags: [], mainPhoto: null, photoCount: 0, linkCount: 0,
+        avgRating: 3, testCount: 1, testAvg: 4, testLast: 4, updated_at: '2026-08-01 10:00:00',
+        testDays: [{ id: i, day: `202${3 + (i % 3)}-0${1 + i}-15`, rating: 3 }] }));
+      const dm = buildDom(JSDOM, { overviewItems: items });
+      const w = dm.w;
+      await until(w, (x) => x.document.querySelector('#timeline .timeline-dot') && openRequests(x) === 0,
+        2000, 'die Zeitleiste');
+      // Die Rechnung ohne DOM: Zeitleiste 900 px, Feld 210 px breit.
+      const spans = [0, 450, 810, 855, 900].map(at => {
+        const c = w.hintCenter(at, 210, 900);
+        return [at, c - 105, c + 105];
+      });
+      check('Die Rechnung haelt das Feld an beiden Raendern in der Zeitleiste',
+        spans.every(([, a, b]) => a >= 0 && b <= 900) && spans[1][1] === 345,
+        spans.map(([at, a, b]) => `${at}: ${a}…${b}`).join(' · '));
+      check('Und ein Feld, breiter als die Zeitleiste, steht in ihrer Mitte',
+        w.hintCenter(20, 1000, 900) === 450, String(w.hintCenter(20, 1000, 900)));
+      // Mit gesetzten Massen: jsdom rechnet keine Breiten.
+      const proto = w.HTMLElement.prototype;
+      const was = { o: Object.getOwnPropertyDescriptor(proto, 'offsetWidth'),
+                    c: Object.getOwnPropertyDescriptor(w.Element.prototype, 'clientWidth') };
+      Object.defineProperty(proto, 'offsetWidth', { configurable: true,
+        get() { return this.classList && this.classList.contains('timeline-hint') ? 210 : 0; } });
+      Object.defineProperty(w.Element.prototype, 'clientWidth', { configurable: true,
+        get() { return this.classList && this.classList.contains('timeline') ? 900 : 0; } });
+      const dots = [...w.document.querySelectorAll('#timeline .timeline-dot')];
+      const at = (dot) => {
+        dot.onpointerenter({ pointerType: 'mouse' });
+        const h = w.document.querySelector('#timeline .timeline-hint');
+        return h ? h.style.left : '(kein Feld)';
+      };
+      const right = at(dots[dots.length - 1]);
+      const left = at(dots[0]);
+      Object.defineProperty(proto, 'offsetWidth', was.o);
+      Object.defineProperty(w.Element.prototype, 'clientWidth', was.c);
+      check('Am rechten Ende schiebt showHint() das Feld nach innen', right === '795px', right);
+      check('Und am linken Ende ebenso', left === '105px', left);
+      w.close();
+    }
+  }
+
+  /* ================= Die Formatierleiste ================= */
+  group('Die Formatierleiste steht am Feld');
+  {
+    const css = fs.readFileSync(path.join(__dirname, 'public', 'style.css'), 'utf8').replace(/\s+/g, ' ');
+    const docked = (css.match(/\.markup-menu\.docked \{[^}]*\}/) || [''])[0];
+    const free = (css.match(/\.markup-menu \{[^}]*\}/) || [''])[0];
+    check('Angedockt steht sie mit position: sticky', /position: sticky;/.test(docked), docked);
+    check('Sonst steht das Menue absolut', /position: absolute;/.test(free), free.slice(0, 80));
+    if (JSDOM) {
+      const dm = buildDom(JSDOM, { hash: '#/item/1' });
+      const w = dm.w;
+      await until(w, (x) => x.document.getElementById('ctext') && openRequests(x) === 0,
+        2000, 'die Detailansicht');
+      const field = w.document.getElementById('ctext');
+      field.focus();
+      const menu = w.document.getElementById('markup-menu');
+      const wrap = field.parentElement;
+      check('Mit Fokus steht die Leiste im Behaelter direkt ueber dem Feld',
+        !!menu && !menu.hidden && wrap.classList.contains('markup-wrap') &&
+        menu.parentElement === wrap && menu.nextElementSibling === field,
+        menu ? `${menu.parentElement?.className} / ${menu.nextElementSibling?.id}` : 'kein Menue');
+      check('Der Behaelter traegt nur Leiste und Feld',
+        wrap.children.length === 2, [...wrap.children].map(k => k.tagName).join(' '));
+      check('Die Leiste ist angedockt und haelt unter der Kopfzeile',
+        menu.classList.contains('docked') && menu.style.top === '0px' && menu.style.left === '',
+        `${menu.className} top=${menu.style.top} left=${menu.style.left}`);
+      check('Die Knoepfe unter dem Feld liegen ausserhalb des Behaelters',
+        !wrap.contains(w.document.getElementById('cadd')) && !wrap.contains(w.document.getElementById('cimg')));
+      // Das Feld der Beschreibung und das Bearbeitungsfeld tragen denselben Behaelter.
+      check('Auch das Feld der Beschreibung steht in einem Behaelter',
+        w.document.getElementById('desc')?.parentElement?.classList.contains('markup-wrap'));
+      field.blur();
+      check('Ohne Fokus ist sie weg', menu.hidden, `hidden=${menu.hidden}`);
+      // Im Lesemodus: das Menue an einer Auswahl steht absolut im Dokument.
+      const body = w.document.querySelector('.cmt .cmt-body');
+      // jsdom kennt keine Masse an einer Auswahl.
+      w.Range.prototype.getBoundingClientRect = () => ({ left: 10, top: 300, bottom: 320 });
+      const range = w.document.createRange();
+      range.selectNodeContents(body);
+      w.document.getSelection().removeAllRanges();
+      w.document.getSelection().addRange(range);
+      w.document.dispatchEvent(new w.Event('selectionchange'));
+      check('Das Menue an einer Auswahl steht weiter absolut',
+        !menu.hidden && menu.parentElement === w.document.body && !menu.classList.contains('docked'),
+        `${menu.parentElement?.tagName} ${menu.className}`);
+      w.close();
+    }
+  }
+
+  /* ================= Das Cookie nach dem Umlegen von BEHIND_PROXY ================= */
+  group('Das Cookie unter dem anderen Namen wird geloescht');
+  {
+    // Das Cookie des Pruefers ohne Proxy heisst kriterion_csrf; das andere stammt von vorher.
+    const own = String(H.cookie);
+    const stale = 'f'.repeat(64);
+    const both = `${own}; __Host-kriterion_csrf=${stale}; __Host-kriterion_session=${'e'.repeat(64)}`;
+    const a = await fetch(BASE + '/api/settings', { headers: { cookie: both } });
+    const set = a.headers.getSetCookie();
+    const clear = set.find(z => z.startsWith('__Host-kriterion_csrf='));
+    check('Eine Anfrage mit beiden Cookies bekommt die Loeschung des anderen',
+      !!clear && /Max-Age=0/.test(clear) && /; Secure/.test(clear) && /Path=\//.test(clear),
+      set.join(' | ') || 'kein Set-Cookie');
+    check('Das Sitzungscookie unter dem anderen Namen bleibt unberuehrt',
+      !set.some(z => z.startsWith('__Host-kriterion_session=')), set.join(' | '));
+    check('Ohne das andere Cookie kommt keine Loeschung',
+      !(await fetch(BASE + '/api/settings', { headers: { cookie: own } })).headers.getSetCookie()
+        .some(z => /Max-Age=0/.test(z)));
+    // Die Seite las bisher den Wert des alten Cookies und wurde abgewiesen.
+    const post = (token) => fetch(BASE + '/api/items', { method: 'POST',
+      headers: { cookie: own, 'x-csrf-token': token, 'content-type': 'application/json' },
+      body: JSON.stringify({ title: 'Nach dem Umlegen' }) });
+    const denied = await post(stale);
+    check('Mit dem Wert des alten Cookies wird abgewiesen', denied.status === 403, `${denied.status}`);
+    const fine = await post(H.csrfFor(own));
+    check('Nach der Loeschung gelingt die naechste schreibende Anfrage',
+      fine.status < 300, `${fine.status}`);
+    // Hinter dem Proxy gilt die Gegenrichtung.
+    const probe = require('child_process').execFileSync(process.execPath, ['-e',
+      "const a = require('./auth'); const q = (c, p) => ({ headers: { cookie: c, 'x-forwarded-proto': p } });" +
+      "console.log(JSON.stringify([a.staleCsrfClear(q('kriterion_csrf=1; __Host-kriterion_csrf=2', 'https'))," +
+      " a.staleCsrfClear(q('__Host-kriterion_csrf=2', 'https'))]));"],
+      { cwd: __dirname, encoding: 'utf8', env: { ...process.env, BEHIND_PROXY: '1',
+        DATA_DIR: fs.mkdtempSync(path.join(os.tmpdir(), 'kriterion-proxy-')), ENCRYPTION_KEY: H.KEY } })
+      .trim().split('\n').pop();
+    const [behind, alone] = JSON.parse(probe);
+    check('Hinter dem Proxy wird das Cookie ohne __Host- geloescht',
+      /^kriterion_csrf=; Path=\/; SameSite=Lax; Max-Age=0$/.test(behind || '') && alone === null,
+      probe);
+  }
 }
 
 module.exports = run;

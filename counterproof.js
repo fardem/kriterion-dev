@@ -6320,7 +6320,7 @@ const REGRESSIONS = [
        gedeckelt -- am rechten Ende der Achse ragt er dann wieder hinaus. */
     nr: '803', name: 'Der Hinweis an der Zeitleiste laeuft wieder hinaus',
     file: 'public/style.css',
-    search: '  max-width: min(14rem, 46%); overflow-wrap: anywhere;',
+    search: '  width: max-content; max-width: min(14rem, 46%); overflow-wrap: anywhere;',
     replacement: '  white-space: nowrap;',
     expected: 'Die kleinen Fehler fallen — 0.26.0'
   },

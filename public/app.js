@@ -2486,7 +2486,7 @@ function markupLive() {
   return MARKUP_FIELD;
 }
 
-/* Ueber der Kante des Feldes, und auf einem schmalen Bildschirm nicht aus
+/* Ueber der Kante der Auswahl, und auf einem schmalen Bildschirm nicht aus
    dem Bild heraus. */
 function markupMenuPlace(box) {
   const width = box.offsetWidth, height = box.offsetHeight;
@@ -2498,12 +2498,33 @@ function markupMenuPlace(box) {
 
 function markupMenuShow(rect) {
   const box = markupMenuBox();
+  // An einer Auswahl steht das Menue absolut im Dokument.
+  if (box.parentElement !== document.body) document.body.appendChild(box);
+  box.classList.remove('docked');
   box.dataset.left = rect.left;
   box.dataset.top = rect.top;
   box.dataset.bottom = rect.bottom;
   box.hidden = false;
   markupMenuPlace(box);
 }
+
+/* Die Hoehe der festen Kopfzeile: darunter haelt die angedockte Leiste an. */
+const mastheadHeight = () => document.querySelector('.masthead')?.offsetHeight || 0;
+
+/* Im Schreibmodus steht die Leiste im Fluss direkt ueber dem Feld, in dessen
+   Behaelter `.markup-wrap`. `position: sticky` laesst sie beim Scrollen bis
+   zum Ende des Behaelters mitlaufen; die Knoepfe darunter bleiben frei. */
+function markupMenuDock(field) {
+  const wrap = field.closest('.markup-wrap');
+  if (!wrap) return markupMenuShow(field.getBoundingClientRect());
+  const box = markupMenuBox();
+  if (box.nextElementSibling !== field) wrap.insertBefore(box, field);
+  box.classList.add('docked');
+  box.style.left = '';
+  box.style.top = mastheadHeight() + 'px';
+  box.hidden = false;
+}
+const markupDocked = () => markupMenuBox().classList.contains('docked');
 
 /* Welches Feld das Menue traegt, steht am Feld und nicht in einer Liste
    daneben. */
@@ -2537,7 +2558,7 @@ function markupMenuSetUp() {
     if (!field) return;
     MARKUP_FIELD = field;
     markupMenuFill(field);
-    markupMenuShow(field.getBoundingClientRect());
+    markupMenuDock(field);
   });
   document.addEventListener('focusout', (e) => {
     if (!MARKUP_FIELD || e.target !== MARKUP_FIELD) return;
@@ -2555,11 +2576,12 @@ function markupMenuSetUp() {
     markupMenuFill(null);
     markupMenuShow(pick.rect);
   });
+  // Angedockt folgt die Leiste dem Scrollen von selbst; nur ein Feld ohne Behaelter wird nachgesetzt.
   window.addEventListener('scroll', () => {
-    if (markupLive()) markupMenuShow(MARKUP_FIELD.getBoundingClientRect());
+    if (markupLive() && !markupDocked()) markupMenuShow(MARKUP_FIELD.getBoundingClientRect());
   }, true);
   window.addEventListener('resize', () => {
-    if (markupLive()) markupMenuShow(MARKUP_FIELD.getBoundingClientRect());
+    if (markupLive()) markupMenuDock(MARKUP_FIELD);
   });
   /* Strg+B und Strg+I -- ueberall sonst steht dasselbe auf denselben
      Tasten. */
@@ -4000,11 +4022,22 @@ function drawTimeline(list) {
 
 function showHint(box, point, p) {
   hideHint(box);
+  const line = box.querySelector('.timeline');
   const h = document.createElement('div');
   h.className = 'timeline-hint';
   h.innerHTML = `<strong>${esc(p.title)}</strong><span>${tH('list.gradeShort', { date: fmtDay(p.date), score: p.score })}</span>`;
   h.style.left = point.style.left;
-  box.querySelector('.timeline').appendChild(h);
+  line.appendChild(h);
+  // Erst nach dem Einfuegen hat das Feld eine Breite.
+  const axis = line.clientWidth, width = h.offsetWidth;
+  if (axis && width)
+    h.style.left = hintCenter(parseFloat(point.style.left) / 100 * axis, width, axis) + 'px';
+}
+/* Die Mitte des Hinweisfelds in Pixeln: ueber dem Punkt, aber so weit nach
+   innen, dass das Feld an beiden Raendern in der Zeitleiste bleibt. */
+function hintCenter(point, width, axis) {
+  if (width >= axis) return axis / 2;
+  return Math.min(axis - width / 2, Math.max(width / 2, point));
 }
 function hideHint(box) { box.querySelector('.timeline-hint')?.remove(); }
 
@@ -4952,8 +4985,8 @@ async function renderDetail(id, termAddress, commentWanted) {
       <div class="block-head"><span class="label">${tH('list.description')}</span>
         <button class="mact ed" id="descedit" title="${esc(t('entry.edit'))}">${ICON_PEN}</button></div>
       <div class="desc-view" id="descview"></div>
-      <textarea class="ta ta-desc" id="desc" data-markup hidden
-        placeholder="${esc(t('entry.whatIsThis'))}">${esc(item.description)}</textarea>
+      <div class="markup-wrap"><textarea class="ta ta-desc" id="desc" data-markup hidden
+        placeholder="${esc(t('entry.whatIsThis'))}">${esc(item.description)}</textarea></div>
     </div>
 
     <div class="block block-wide" id="testblock" data-block="testtage"></div>
@@ -4984,7 +5017,7 @@ async function renderDetail(id, termAddress, commentWanted) {
         <button class="link-btn" id="cjump" title="${esc(t('entry.jumpToInput'))}">${tH('entry.addComment')}</button></div>
       <div class="cmts" id="cmts"></div>
       <div class="cmt-form">
-        <textarea class="ta" id="ctext" data-markup placeholder="${esc(t('entry.commentPlaceholder'))}"></textarea>
+        <div class="markup-wrap"><textarea class="ta" id="ctext" data-markup placeholder="${esc(t('entry.commentPlaceholder'))}"></textarea></div>
         <div class="cmt-new-imgs" id="cnew-imgs"></div>
         <div class="cmt-form-row">
           <span class="marks">
@@ -6739,7 +6772,7 @@ async function renderDetail(id, termAddress, commentWanted) {
       if (mine) el.querySelector('.ed').onclick = () => {
         const wrap = document.createElement('div');
         wrap.className = 'cmt-edit';
-        wrap.innerHTML = `<textarea class="ta" data-markup></textarea>
+        wrap.innerHTML = `<div class="markup-wrap"><textarea class="ta" data-markup></textarea></div>
           <div class="acts"><button class="btn btn-ghost btn-sm addimg">${tH('entry.addImage')}</button>
           <button class="btn btn-ghost btn-sm cancel">${tH('dialog.cancel')}</button>
           <button class="btn btn-accent btn-sm save">${tH('dialog.save')}</button></div>`;

@@ -639,6 +639,8 @@ app.use((req, res, next) => {
      den Cookie nicht, bekommt ihn an der naechsten Antwort. */
   if (token && auth.csrfCookieValue(req) !== auth.csrfToken(token))
     res.append('Set-Cookie', auth.csrfCookie(req, token));
+  const stale = auth.staleCsrfClear(req);
+  if (stale) res.append('Set-Cookie', stale);
   if (!WRITING_METHODS.has(req.method)) return next();
   /* OHNE SITZUNG ENTSCHEIDET DIE ANMELDUNG: ein fremdes Formular ohne Cookie
      kommt an keine Zeile heran, und 403 statt 401 verschoebe die Auskunft. */

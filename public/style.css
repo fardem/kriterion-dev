@@ -1234,6 +1234,9 @@ mark {
 }
 .markup-menu button { display: inline-flex; align-items: center; justify-content: center; min-width: 29px; height: 27px; padding: 0 7px; border-radius: 5px; color: var(--text-2); font-size: .84rem; }
 .markup-menu button:hover { background: var(--surface); color: var(--accent-text); }
+/* Angedockt steht die Leiste als Kopfzeile des Feldes; `top` setzt das Skript
+   auf die Hoehe der Kopfzeile der Seite. */
+.markup-menu.docked { position: sticky; margin-bottom: 4px; box-shadow: none; }
 .markup-menu .mk-b { font-weight: 700; }
 .markup-menu .mk-i { font-style: italic; }
 /* Die Frage nach Adresse oder Name bricht in eine eigene Zeile um, damit das
@@ -1902,15 +1905,15 @@ body:has(.cmp-bar) .toast { bottom: calc(90px + env(safe-area-inset-bottom)); }
   position: absolute; transform: translateX(-50%); top: 3px;
   font-family: var(--mono); font-size: .63rem; color: var(--timeline-year); white-space: nowrap;
 }
-/* DER KASTEN IST GEDECKELT UND BRICHT UM: mit `white-space: nowrap` machte
-   ein langer Titel ihn beliebig breit. Zwei Masse -- `14rem` deckelt in
-   Zeilen, `46%` an der Achse, das kleinere gewinnt. */
+/* Der Kasten ist gedeckelt und bricht um: `14rem` deckelt in Zeilen, `46%`
+   an der Achse. `max-content` loest die Breite vom Platz rechts vom Punkt;
+   showHint() schiebt ihn danach in die Zeitleiste. */
 .timeline-hint {
   position: absolute; bottom: 100%; transform: translateX(-50%);
   margin-bottom: -6px; padding: 7px 10px; z-index: var(--z-timeline-hint); pointer-events: none;
   background: var(--surface-2); border: 1px solid var(--line); border-radius: var(--r-sm);
   display: flex; flex-direction: column; gap: 2px;
-  max-width: min(14rem, 46%); overflow-wrap: anywhere;
+  width: max-content; max-width: min(14rem, 46%); overflow-wrap: anywhere;
   box-shadow: var(--sh-menu);
 }
 .timeline-hint strong { font-size: .83rem; font-weight: 600; }
