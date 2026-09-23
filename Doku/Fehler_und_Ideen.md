@@ -175,6 +175,7 @@ sagt der Fahrplan.
 | **20** | Nach einem Umbenennen holt die Oberfläche vier Antworten statt drei; die vierte ist die größte der Installation | niedrig | klein | liegen lassen |
 | **48** | Der Satz zum Backup heißt „Nur das Backup ist eine vollständige Sicherung der Datenbank"; Oberfläche, Handbuch und README sagen heute an fünf Stellen „Kopie der Datenbank" | mittel | klein | für den nächsten Patch vorgemerkt — Ansage des Betreibers vom 23. September 2026 |
 | **49** | Der Hinweis an der Zeitleiste wird am rechten Rand schmal und hoch; bei einem Punkt ganz rechts steht ein Zeichen je Zeile | mittel | klein | für den nächsten Patch gesammelt — Befund des Betreibers vom 23. September 2026 |
+| **50** | Die Formatierleiste springt bei einem langen Kommentar unter das Feld und verdeckt die Knöpfe darunter | hoch | klein | für den nächsten Patch gesammelt — Befund des Betreibers vom 23. September 2026 |
 | ~~Protokoll 0.38.2~~ | ~~Die Strichstärke des Löschkreuzes bleibt 1.8, dieselbe wie am Stift und am Zitatzeichen~~ | — | — | **ABGELEHNT am 21. September 2026** |
 | ~~Protokoll 0.38.2~~ | ~~Der Trefferausschnitt zeigt bei einem Treffer im Ziel eines Links den Rohtext samt seiner Marken~~ | — | — | **RUHT seit dem 21. September 2026** |
 | ~~Protokoll 0.38.3~~ | ~~Der Halt nach einem Sprung ist eine Frist von 1600 Millisekunden und keine Messung~~ | — | — | **RUHT seit dem 21. September 2026** |
@@ -2854,3 +2855,74 @@ unter der bestehenden Obergrenze. **Einschätzung von Claude: empfohlen.**
 `test/ui_style.js`:1409 bis :1414 — die Prüfung verlangt die Obergrenze und
 den Umbruch; beide bleiben. jsdom rechnet keine Breiten: eine Prüfung der
 Lage braucht gesetzte Maße. Keine Route, kein Schema, kein Format.
+
+---
+
+## 50. Die Formatierleiste verdeckt bei einem langen Kommentar die Knöpfe
+
+**Art: Fehler** (Bedienung) · **Herkunft: 0.38.0**, Betreiber am
+23. September 2026 · **Einschätzung: klein** · gesammelt für den nächsten
+Patch
+
+### Woher
+
+Befund des Betreibers vom 23. September 2026, mit zwei Bildschirmfotos vom
+Telefon. Beim Schreiben eines Kommentars steht die Formatierleiste über dem
+Feld (Bild 1). Das ist richtig. Bei einem langen Kommentar steht sie an der
+Unterkante des Feldes und verdeckt die Knöpfe darunter (Bild 2: „Speichern"
+beim Bearbeiten; beim neuen Kommentar „+ Bild").
+
+Vorschlag des Betreibers: die Leiste an der Unterkante des Feldes, oder beim
+Scrollen mitlaufend, solange das Feld sichtbar ist — mindestens eine Lösung,
+die draußen üblich ist.
+
+### Was auffiel
+
+`markupMenuPlace()` (`public/app.js`:2452) setzt die Leiste 6 px über die
+Oberkante des Feldes. Liegt diese Stelle weniger als 4 px unter dem oberen
+Fensterrand, setzt sie die Leiste 6 px unter die Unterkante. Dort stehen die
+Knöpfe des Formulars. Die Leiste ist absolut positioniert und liegt mit
+`--z-markup-menu` über ihnen.
+
+Aus dem Code gelesen und nicht gemessen:
+
+- Ist das Feld höher als das Fenster und beide Kanten liegen außerhalb, steht
+  die Leiste außerhalb des sichtbaren Bereichs.
+- Die feste Kopfzeile (`.masthead`, `position: sticky`) ist in die Schwelle
+  von 4 px nicht eingerechnet. Liegt die Oberkante des Feldes unter der
+  Kopfzeile, steht die Leiste hinter ihr: `--z-markup-menu` ist kleiner als
+  `--z-masthead`.
+
+### Was gebaut werden könnte
+
+Die Leiste steht im Fluss der Seite als Kopfzeile des Feldes, mit
+`position: sticky` und `top` in Höhe der festen Kopfzeile. Sie läuft beim
+Scrollen mit, solange das Feld sichtbar ist, und bleibt am Ende des Feldes
+stehen. Sie verlässt den Bereich des Feldes nicht und kann die Knöpfe darunter
+nicht verdecken. Die Lage wird von CSS bestimmt; `markupMenuPlace()` und der
+Scroll-Horcher entfallen für das Feld. **Einschätzung von Claude: empfohlen.**
+
+**Draußen üblich: ja.** GitHub und GitLab setzen die Formatierleiste fest über
+das Kommentarfeld. Bei langen Texten wächst das Feld nur bis zu einer
+Höchsthöhe und rollt dann in sich; die Leiste bleibt sichtbar. Google Docs und
+der WordPress-Editor halten die Leiste oben fest, während der Text darunter
+rollt. Auf dem Telefon setzen Slack und GitHub Mobile die Leiste über die
+Bildschirmtastatur.
+
+Das Menü an einer Auswahl im Lesemodus (Zitieren, Kopieren) bleibt, wie es
+ist: es gehört zur Auswahl und nicht zu einem Feld.
+
+### Offene Entscheidungen
+
+1. Mitlaufend unter der Kopfzeile (Vorschlag oben) oder fest an der
+   Unterkante des Feldes. Die Unterkante liegt bei einem langen Kommentar oft
+   außerhalb des Fensters.
+2. Ob das Feld eine Höchsthöhe bekommt und dann in sich rollt. Das ändert,
+   wie ein langer Kommentar sich schreibt, und ist deshalb eine eigene Frage.
+
+### Was es anfasst
+
+`public/app.js` (`markupMenuPlace()`, `markupMenuShow()`, die Horcher in
+`markupMenuSetUp()`), `public/style.css` (`.markup-menu`),
+`test/ui_entry.js`:3989 und `test/ui_style.js`:2619 bis :2634 (Lage und
+Ebene der Leiste). Keine Route, kein Schema, kein Format.
