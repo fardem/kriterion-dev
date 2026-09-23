@@ -894,6 +894,7 @@ async function nextSecond(limitMs = 1500) {
   while (Math.floor(Date.now() / 1000) === now) {
     if (Date.now() >= end)
       throw new Error(`nextSecond(): keine Sekundengrenze in ${limitMs} ms`);
+    // Schritt der Abfrage, bis die Sekunde wechselt.
     await new Promise(r => setTimeout(r, 5));
   }
   await new Promise(r => setTimeout(r, SECOND_MARGIN));

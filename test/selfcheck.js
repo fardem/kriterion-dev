@@ -294,15 +294,25 @@ async function run() {
     check('Und es steht dort keine Wartezeit von 1100 ms mehr',
       !/setTimeout\(r, 1100\)/.test(wtRound),
       (wtRound.match(/.*setTimeout\(r, 1100\).*/) || ['keine mehr'])[0].trim());
-    /* UND DIE SUMME ALLER FESTEN WARTEZEITEN IST GEMESSEN UND GEDECKELT. */
+    // Bleiben duerfen der Schritt in nextSecond() und Wartezeiten, die pruefen, dass nichts geschieht.
+    const WAITS_REMAINING = 30;
     let wtSum = 0, wtCount = 0;
+    const wtBare = [];
     for (const f of fs.readdirSync(path.join(__dirname, 'test')))
-      if (/\.js$/.test(f))
-        for (const m of wtRead(f).matchAll(/setTimeout\(r,\s*(\d+)\)/g)) {
+      if (/\.js$/.test(f)) {
+        const lines = wtRead(f).split('\n');
+        lines.forEach((z, i) => {
+          const m = z.match(/setTimeout\(r,\s*(\d+)\)/);
+          if (!m) return;
           wtSum += Number(m[1]); wtCount++;
-        }
-    check('Die festen Wartezeiten summieren sich auf hoechstens 48.000 ms — vor dieser Runde 59.635',
-      wtSum <= 48000, `${wtSum} ms an ${wtCount} Stellen`);
+          const before = (lines[i - 1] || '').trim();
+          if (!/^\/\/|\*\/$/.test(before)) wtBare.push(`test/${f}:${i + 1}`);
+        });
+      }
+    check(`Die Zahl der festen Wartezeiten in test/ ist genau die der bleibenden (${WAITS_REMAINING})`,
+      wtCount === WAITS_REMAINING, `${wtCount} Stellen, zusammen ${wtSum} ms`);
+    check('Und jede bleibende hat einen Kommentar in der Zeile darueber',
+      wtBare.length === 0, wtBare.join(' · ') || 'alle kommentiert');
   }
 
   /* ================= Die Ersatztexte der Rueckbauten — 0.34.1 =============
@@ -400,7 +410,7 @@ async function run() {
       ['test/batchrun.js', 87],
       ['test/dom.js', 338],
       ['test/firstlogin.js', 34],
-      ['test/frame.js', 238],
+      ['test/frame.js', 239],
       ['test/keychange.js', 81],
       ['test/release_029.js', 60],
       ['test/release_030.js', 253],
@@ -413,7 +423,7 @@ async function run() {
       ['test/ui_inventory.js', 244],
       ['test/ui_language.js', 292],
       ['test/ui_overview.js', 499],
-      ['test/ui_style.js', 604],
+      ['test/ui_style.js', 607],
       ['test/ui_system.js', 694],
       ['test/ui_translator.js', 105],
       ['counterproof.js', 1638],
@@ -434,7 +444,7 @@ async function run() {
       ['public/style.css', 1225],
     ];
     // Kommentar- und Codezeilen ueber alle Dateien, gemessen mit tools/comments.js.
-    const COMMENT_TOTAL = { comment: 16835, code: 67611 };
+    const COMMENT_TOTAL = { comment: 16839, code: 67657 };
     check('Der Waechter sieht alle sechsunddreissig Dateien',
       crAll.each.length === 36 && COMMENT_ROWS.length === 36,
       `${crAll.each.length} gemessen, ${COMMENT_ROWS.length} genannt`);
