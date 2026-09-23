@@ -4,7 +4,7 @@
 const H = require('./frame.js');
 const D = require('./dom.js');
 const {
-  DOM_PROVIDER, buildDom, openTagRow, sysSection
+  DOM_PROVIDER, buildDom, openTagRow, sysSection, until, openRequests
 } = D;
 
 async function run() {
@@ -18,6 +18,8 @@ async function run() {
   catch { console.log('  … uebersprungen: jsdom fehlt (npm install)'); return; }
   /* DER BEISPIELEINTRAG DES GESTELLTEN SERVERS. */
   const { example } = buildDom(JSDOM);
+  // Eine Ansicht steht, wenn ihr Element da ist und keine Anfrage mehr offen ist.
+  const shown = (sel) => (x) => !!x.document.querySelector(sel) && openRequests(x) === 0;
 
   /* ================= Blöcke ================= */
   group('Blöcke anordnen und einklappen');
@@ -31,7 +33,7 @@ async function run() {
   }};
   const bd = buildDom(JSDOM, { settings: ownOrder, hash: '#/item/1' });
   const wb = bd.w;
-  await new Promise(r => setTimeout(r, 80));
+  await until(wb, shown('#ratings'), 2000, 'die Detailansicht');
 
   check('Ordnen: Unbekanntes raus, Fehlendes hinten dran',
     equal(wb.sortArea(['bewertung', 'quatsch', 'bewertung'], ['kategorie', 'tags', 'bewertung']),
@@ -58,7 +60,8 @@ async function run() {
 
   // Aufklappen per Klick auf die Kopfzeile
   links.querySelector('.block-head').onclick({ target: links.querySelector('.label') });
-  await new Promise(r => setTimeout(r, 20));
+  await until(wb, (x) => !links.classList.contains('closed') && bd.sent.some(r => r.body?.blocks) &&
+    openRequests(x) === 0, 2000, 'der aufgeklappte Linkblock');
   check('Klick auf die Kopfzeile klappt auf', !links.classList.contains('closed'));
   const savedB = bd.sent.filter(x => x.body && x.body.blocks).pop();
   check('Einklappzustand wird serverseitig gespeichert',
@@ -79,7 +82,8 @@ async function run() {
   /* DIESELBEN ZAHLEN AUCH EINGEKLAPPT -- eingeklappt ist gerade der Moment,
      in dem man nicht hineinsieht. */
   comments.querySelector('.block-head').onclick({ target: comments.querySelector('.label') });
-  await new Promise(r => setTimeout(r, 20));
+  await until(wb, (x) => comments.classList.contains('closed') && openRequests(x) === 0,
+    2000, 'der eingeklappte Kommentarblock');
   check('Der Kommentarblock laesst sich einklappen', comments.classList.contains('closed'));
   check('Eingeklappt steht dort keine leere Klammer',
     comments.querySelector('.bsum').textContent === '',
@@ -92,7 +96,8 @@ async function run() {
       + `"${comments.querySelector('#ccount')?.title}"`);
   // Wieder aufklappen, damit die Gruppen darunter denselben Aufbau vorfinden.
   comments.querySelector('.block-head').onclick({ target: comments.querySelector('.label') });
-  await new Promise(r => setTimeout(r, 20));
+  await until(wb, (x) => !comments.classList.contains('closed') && openRequests(x) === 0,
+    2000, 'der aufgeklappte Kommentarblock');
   check('Und wieder auf', !comments.classList.contains('closed'));
 
   /* UMGEDREHT STATT GELOESCHT. */
@@ -124,6 +129,7 @@ async function run() {
   sideBlocks[0].dispatchEvent(zeiger2('pointerdown', 0, sideBlocks[0]));
   wb.document.dispatchEvent(zeiger2('pointermove', 200));
   wb.document.dispatchEvent(zeiger2('pointerup', 200));
+  // Wartet, ob nach dem Ziehen am Rumpf eine Verschiebung ausbleibt.
   await new Promise(r => setTimeout(r, 20));
   /* VIER BLOECKE IN DER SEITENSPALTE SEIT 0.21.0 -- der Potenzialblock haengt
      hinten, weil die gespeicherte Ordnung ihn nicht kennt (ordneBereich). */
@@ -134,7 +140,8 @@ async function run() {
   sideBlocks[0].querySelector('.bgrip').dispatchEvent(zeiger2('pointerdown', 0));
   wb.document.dispatchEvent(zeiger2('pointermove', 200));
   wb.document.dispatchEvent(zeiger2('pointerup', 200));
-  await new Promise(r => setTimeout(r, 20));
+  await until(wb, (x) => namen2('#blocks-side')[0] !== 'bewertung' && openRequests(x) === 0,
+    2000, 'die verschobene Reihenfolge');
   check('Ziehen am Griff verschiebt den Block',
     equal(namen2('#blocks-side'), ['kategorie', 'tags', 'bewertung', 'potenzial']),
     JSON.stringify(namen2('#blocks-side')));
@@ -204,7 +211,7 @@ async function run() {
 
   // Bildvorschau: muss in einem img landen, nicht in einem iframe.
   clickable(fileRows[1]);
-  await new Promise(r => setTimeout(r, 20));
+  await until(wb, shown('#atts .apreview'), 2000, 'die Bildvorschau');
   const imageV = wb.document.querySelector('#atts .apreview img');
   check('Bildvorschau benutzt ein img-Element', !!imageV);
   check('Bildvorschau fordert inline an', /inline=1/.test(imageV?.getAttribute('src') || ''));
@@ -213,12 +220,13 @@ async function run() {
   check('Offene Zeile ist als solche erkennbar',
     !![...wb.document.querySelectorAll('#atts .arow')][1]?.classList.contains('open'));
   clickableRow(1);
-  await new Promise(r => setTimeout(r, 20));
+  await until(wb, (x) => !x.document.querySelector('#atts .apreview') && openRequests(x) === 0,
+    2000, 'die geschlossene Vorschau');
   check('Erneuter Klick klappt die Vorschau wieder zu', !wb.document.querySelector('#atts .apreview'));
 
   // PDF-Vorschau: iframe, aber gesandboxt.
   clickableRow(2);
-  await new Promise(r => setTimeout(r, 20));
+  await until(wb, shown('#atts .apreview'), 2000, 'die PDF-Vorschau');
   const pdfV = wb.document.querySelector('#atts .apreview iframe');
   check('PDF-Vorschau benutzt ein iframe', !!pdfV);
   check('PDF-iframe ist gesandboxt', !!pdfV && pdfV.hasAttribute('sandbox'),
@@ -246,7 +254,7 @@ async function run() {
 
   // Textvorschau: kommt als JSON und wird als Text gesetzt, nicht als HTML.
   clickableRow(0);
-  await new Promise(r => setTimeout(r, 40));
+  await until(wb, shown('#atts .apreview'), 2000, 'die Textvorschau');
   const textV = wb.document.querySelector('#atts .atext');
   check('Textvorschau steht im Dokument', !!textV && /Zweite Zeile/.test(textV.textContent));
   check('Textvorschau lädt keine Datei nach',
@@ -262,12 +270,13 @@ async function run() {
       return old(url, opt);
     };
   })(dangerous.w.fetch);
-  await new Promise(r => setTimeout(r, 80));
+  await until(dangerous.w, shown('#ratings'), 2000, 'die Detailansicht');
   await dangerous.w.renderDetail(1);
-  await new Promise(r => setTimeout(r, 20));
+  await until(dangerous.w, shown('#atts .arow'), 2000, 'die neu gezeichnete Dateiliste');
   const gz = [...dangerous.w.document.querySelectorAll('#atts .arow')][0];
   gz.onclick({ target: gz.querySelector('.aname') });   // eigenes Fenster, eigener Helfer entfaellt
-  await new Promise(r => setTimeout(r, 40));
+  // Die gestellte Vorschau zaehlt nicht als offene Anfrage: gewartet wird auf ihren Text.
+  await until(dangerous.w, shown('#atts .atext'), 2000, 'der gesetzte Vorschautext');
   check('Text, der wie HTML aussieht, wird nicht zu HTML',
     !dangerous.w.document.getElementById('boese-datei') &&
     /<b id="boese-datei">/.test(dangerous.w.document.querySelector('#atts .atext').textContent));
@@ -292,7 +301,7 @@ async function run() {
   // Gespeicherter Stand beim Laden der Seite: kein Filter.
   const wFilt = buildDom(JSDOM, { tags: fTags, overviewItems: fItems,
     settings: { filters: { tagIds: [], tested: 'all', sort: 'updated_desc' } } }).w;
-  await new Promise(r => setTimeout(r, 80));
+  await until(wFilt, shown('#filters'), 2000, 'die Uebersicht');
 
   const visible = () => [...wFilt.document.querySelectorAll('.card .card-title')].map(e => e.textContent);
   check('Zu Beginn sind alle zu sehen', visible().length === 2, JSON.stringify(visible()));
@@ -308,14 +317,15 @@ async function run() {
   check('Die Marke „Grün" steht in der Tagzeile', !!tagPill('Grün'),
     '(keine Tagzeile oder keine Marke darin)');
   tagPill('Grün')?.onclick();
-  await new Promise(r => setTimeout(r, 20));
+  await until(wFilt, (x) => !!tagPill('Grün')?.classList.contains('on') && openRequests(x) === 0,
+    2000, 'der gesetzte Tagfilter');
   check('Ein Tagfilter greift', equal(visible(), ['Mit Tag']), JSON.stringify(visible()));
 
   // Der entscheidende Fall: in einen Eintrag und wieder zurück.
   wFilt.location.hash = '#/item/1';
-  await new Promise(r => setTimeout(r, 80));
+  await until(wFilt, shown('#ratings'), 2000, 'die Detailansicht');
   wFilt.location.hash = '#/';
-  await new Promise(r => setTimeout(r, 80));
+  await until(wFilt, shown('#filters'), 2000, 'die Uebersicht');
   check('Nach der Rückkehr steht der Filter noch',
     equal(visible(), ['Mit Tag']), JSON.stringify(visible()));
   check('Und die Marke ist weiterhin hervorgehoben',
@@ -325,11 +335,12 @@ async function run() {
   check('Und sie steht noch da, um sie wieder aufzuheben', !!tagPill('Grün'),
     '(die Tagzeile ist bei greifendem Filter verschwunden)');
   tagPill('Grün')?.onclick();
-  await new Promise(r => setTimeout(r, 20));
+  await until(wFilt, (x) => !tagPill('Grün')?.classList.contains('on') && openRequests(x) === 0,
+    2000, 'der aufgehobene Tagfilter');
   wFilt.location.hash = '#/item/1';
-  await new Promise(r => setTimeout(r, 80));
+  await until(wFilt, shown('#ratings'), 2000, 'die Detailansicht');
   wFilt.location.hash = '#/';
-  await new Promise(r => setTimeout(r, 80));
+  await until(wFilt, shown('#filters'), 2000, 'die Uebersicht');
   check('Ein aufgehobener Filter kommt nicht zurück',
     visible().length === 2, JSON.stringify(visible()));
   wFilt.close();
@@ -341,7 +352,7 @@ async function run() {
 
   const eMore = buildDom(JSDOM, { hash: '#/item/1',
     settings: { filters: null, userCount: 3, isAdmin: true } });
-  await new Promise(r => setTimeout(r, 80));
+  await until(eMore.w, shown('#ratings'), 2000, 'die Detailansicht');
   const eDoc = eMore.w.document;
   const eColumns = [...eDoc.querySelectorAll('#ratings .rrow .ravg')];
   check('Bei mehreren Zugaengen steht die Durchschnittsspalte da',
@@ -401,7 +412,7 @@ async function run() {
 
   const eSingle = buildDom(JSDOM, { hash: '#/item/1',
     settings: { filters: null, userCount: 1, isAdmin: true } });
-  await new Promise(r => setTimeout(r, 80));
+  await until(eSingle.w, shown('#ratings'), 2000, 'die Detailansicht');
   check('Bei einem einzigen Zugang bleibt die Spalte weg',
     eSingle.w.document.querySelectorAll('#ratings .rrow .ravg').length === 0,
     `${eSingle.w.document.querySelectorAll('#ratings .rrow .ravg').length}`);
@@ -465,7 +476,7 @@ async function run() {
      stehenbleibt. */
   const eHead1 = buildDom(JSDOM, {
     settings: { filters: null, userCount: 1, isAdmin: true, name: 'chefin' } });
-  await new Promise(r => setTimeout(r, 80));
+  await until(eHead1.w, shown('#filters'), 2000, 'die Uebersicht');
   check('Die Kopfzeile nennt auch bei einem einzigen Zugang, wer angemeldet ist',
     /Angemeldet als chefin/.test(eHead1.w.document.getElementById('who')?.textContent || ''),
     JSON.stringify(eHead1.w.document.getElementById('who')?.textContent));
@@ -473,7 +484,7 @@ async function run() {
 
   const eHead = buildDom(JSDOM, {
     settings: { filters: null, userCount: 3, isAdmin: true, name: 'bert' } });
-  await new Promise(r => setTimeout(r, 80));
+  await until(eHead.w, shown('#filters'), 2000, 'die Uebersicht');
   const eWho = eHead.w.document.getElementById('who');
   check('Und ab zwei Zugaengen ebenso, mit dem Namen des Angemeldeten',
     /Angemeldet als bert/.test(eWho?.textContent || ''), JSON.stringify(eWho?.textContent));
@@ -529,7 +540,9 @@ async function run() {
   [...eHead.w.document.querySelectorAll('#filters .pill')]
     .find(b => b.textContent.trim() === 'Getestet')
     ?.dispatchEvent(new eHead.w.MouseEvent('click', { bubbles: true }));
-  await new Promise(r => setTimeout(r, 20));
+  await until(eHead.w, (x) => !![...x.document.querySelectorAll('#filters .pill')]
+      .find(b => b.textContent.trim() === 'Getestet')?.classList.contains('on') && openRequests(x) === 0,
+    2000, 'der gesetzte Filter „Getestet"');
   const eSchalter2 = eHead.w.document.getElementById('filter-toggle');
   check('Die Zahl am Schalter folgt der Filterstellung',
     /1 aktiv/.test(eSchalter2?.querySelector('.fcount')?.textContent || '') &&
@@ -541,7 +554,7 @@ async function run() {
      kein HTML werden. Dieselbe Regel wie beim Vokabular. */
   const eBad = buildDom(JSDOM, { settings: { filters: null, userCount: 3,
     isAdmin: true, name: '<b id="boese9">X</b>' } });
-  await new Promise(r => setTimeout(r, 80));
+  await until(eBad.w, shown('#filters'), 2000, 'die Uebersicht');
   check('Aus einem Benutzernamen wird in der Kopfzeile kein HTML',
     !eBad.w.document.getElementById('boese9') &&
     (eBad.w.document.getElementById('who')?.textContent || '').includes('<b id="boese9">X</b>'),
@@ -551,20 +564,21 @@ async function run() {
   /* Nach dem Umbenennen des eigenen Zugangs zieht die Kopfzeile nach. */
   const eUm = buildDom(JSDOM, {
     settings: { filters: null, userCount: 3, isAdmin: true, name: 'chefin' } });
-  await new Promise(r => setTimeout(r, 80));
+  await until(eUm.w, shown('#filters'), 2000, 'die Uebersicht');
   await eUm.w.renderSystem();
-  await new Promise(r => setTimeout(r, 30));
+  await until(eUm.w, shown('#acc-save'), 2000, 'die Karte des eigenen Zugangs');
   setField(eUm.w.document, 'acc-old', 'altes-passwort');
   setField(eUm.w.document, 'acc-user', 'chefin2');
   eUm.w.document.getElementById('acc-save')
     .dispatchEvent(new eUm.w.MouseEvent('click', { bubbles: true }));
-  await new Promise(r => setTimeout(r, 60));
+  await until(eUm.w, (x) => eUm.sent.some(r => r.method === 'PUT' && r.url === '/api/account') &&
+    openRequests(x) === 0, 2000, 'die Antwort auf das Umbenennen');
   check('Das Umbenennen geht wirklich an den Server',
     eUm.sent.some(x => x.method === 'PUT' && x.url === '/api/account' &&
                             x.body?.username === 'chefin2'),
     JSON.stringify(eUm.sent.slice(-2)));
   await eUm.w.renderList();
-  await new Promise(r => setTimeout(r, 60));
+  await until(eUm.w, shown('#filters'), 2000, 'die Uebersicht');
   check('Und die Kopfzeile nennt danach den neuen Namen',
     /Angemeldet als chefin2/.test(eUm.w.document.getElementById('who')?.textContent || ''),
     JSON.stringify(eUm.w.document.getElementById('who')?.textContent));
@@ -581,7 +595,7 @@ async function run() {
   // Wirklich zugestellt, nicht von Hand gerufen -- und danach durch die
 // Event Loop.
   eDoc.getElementById('rwho')?.dispatchEvent(new eMore.w.MouseEvent('click', { bubbles: true }));
-  await new Promise(r => setTimeout(r, 40));
+  await until(eMore.w, shown('.backdrop #vote-list'), 2000, 'der Dialog mit den Stimmen');
   check('Der Knopf holt die Stimmen beim Server',
     eMore.sent.some(x => x.method === 'GET' && x.url === '/api/items/1/votes'),
     JSON.stringify(eMore.sent.slice(-3)));
@@ -622,7 +636,8 @@ async function run() {
   const eX = eVoteRows[0]?.querySelectorAll('.rvote .xdel')[0];
   if (eX) {
     eX.dispatchEvent(new eMore.w.MouseEvent('click', { bubbles: true }));
-    await new Promise(r => setTimeout(r, 30));
+    await until(eMore.w, (x) => x.document.querySelectorAll('.backdrop').length > 1,
+      2000, 'die Rueckfrage zum Entfernen');
     const eQuestion = [...eDoc.querySelectorAll('.backdrop')].pop();
     check('Das ✕ fragt vorher nach',
       !!eQuestion && eQuestion !== eView?.closest('.backdrop'),
@@ -631,7 +646,9 @@ async function run() {
       /bert/.test(eQuestion?.textContent || '') && /wird entfernt/.test(eQuestion?.textContent || ''),
       eQuestion?.querySelector('p')?.textContent);
     eQuestion?.querySelector('[data-yes]')?.dispatchEvent(new eMore.w.MouseEvent('click', { bubbles: true }));
-    await new Promise(r => setTimeout(r, 60));
+    await until(eMore.w, (x) => openRequests(x) === 0 &&
+      eMore.sent.some(r => r.method === 'DELETE' && /^\/api\/ratings\//.test(r.url)),
+      2000, 'die neu geholte Stimmenliste');
   }
   const eRemoved = eMore.sent.filter(x => x.method === 'DELETE' && /^\/api\/ratings\//.test(x.url)).pop();
   check('Der Klick entfernt wirklich genau diese Bewertung',
@@ -647,9 +664,11 @@ async function run() {
   const eVorCancel = eMore.sent.length;
   if (eKreuz2) {
     eKreuz2.dispatchEvent(new eMore.w.MouseEvent('click', { bubbles: true }));
-    await new Promise(r => setTimeout(r, 30));
+    await until(eMore.w, (x) => x.document.querySelectorAll('.backdrop').length > 1,
+      2000, 'die Rueckfrage zum Entfernen');
     eDoc.dispatchEvent(new eMore.w.KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
-    await new Promise(r => setTimeout(r, 30));
+    await until(eMore.w, (x) => x.document.querySelectorAll('.backdrop').length === 1 &&
+      openRequests(x) === 0, 2000, 'die geschlossene Rueckfrage');
   }
   check('Ein Abbruch nimmt nur die Rueckfrage weg, nicht die Ansicht',
     eDoc.querySelectorAll('.backdrop').length === 1 &&
@@ -660,7 +679,8 @@ async function run() {
     JSON.stringify(eMore.sent.slice(eVorCancel)));
   // Zumachen, sonst steht der Dialog beim Loeschdialog darunter noch im Weg.
   eDoc.querySelector('.backdrop [data-no]')?.dispatchEvent(new eMore.w.MouseEvent('click', { bubbles: true }));
-  await new Promise(r => setTimeout(r, 20));
+  await until(eMore.w, (x) => x.document.querySelectorAll('.backdrop').length === 0 &&
+    openRequests(x) === 0, 2000, 'der geschlossene Dialog');
   check('Und danach ist die Ansicht wirklich zu',
     eDoc.querySelectorAll('.backdrop').length === 0,
     `${eDoc.querySelectorAll('.backdrop').length} Dialoge`);
@@ -669,7 +689,7 @@ async function run() {
      Bedingung. */
   const eNoAdmin = buildDom(JSDOM, { hash: '#/item/1',
     settings: { filters: null, userCount: 3, isAdmin: false } });
-  await new Promise(r => setTimeout(r, 80));
+  await until(eNoAdmin.w, shown('#ratings'), 2000, 'die Detailansicht');
   /* Dieselbe Gegenprobe wie eine Lage weiter oben, und aus demselben Grund
      seit 0.21.0 an der Sternzeile statt am weggefallenen Ruecksetzer. */
   check('Ohne Adminrolle gibt es den Aufruf gar nicht',
@@ -689,7 +709,7 @@ async function run() {
      Die Zahlen kommen vom Server, nicht aus dem geladenen Eintrag: nur dort
      lassen sich eigene von fremden Beitraegen trennen. */
   eDoc.getElementById('del').dispatchEvent(new eMore.w.MouseEvent('click', { bubbles: true }));
-  await new Promise(r => setTimeout(r, 40));
+  await until(eMore.w, shown('.backdrop .modal p'), 2000, 'der Loeschdialog');
   check('Der Loeschknopf holt die Zahlen beim Server',
     eMore.sent.some(x => x.url === '/api/items/1/inventory'),
     JSON.stringify(eMore.sent.slice(-3)));
@@ -719,7 +739,8 @@ async function run() {
   check('Und die fremden in einem eigenen Satz',
     /Und von anderen: 8 Links, 7 Dateien, 4 Kommentare, 3 Bewertungen, 2 Testtage/.test(eDialog), eDialog);
   eDoc.querySelector('.backdrop [data-no]')?.dispatchEvent(new eMore.w.MouseEvent('click', { bubbles: true }));
-  await new Promise(r => setTimeout(r, 20));
+  await until(eMore.w, (x) => x.document.querySelectorAll('.backdrop').length === 0 &&
+    openRequests(x) === 0, 2000, 'der geschlossene Loeschdialog');
   eMore.w.close();
 
   /* --- Das Anlegefeld im Systembereich, mit zugestelltem Ereignis --- Beide
@@ -731,7 +752,7 @@ async function run() {
   ];
   const eSys = buildDom(JSDOM, { tags: eSysTags,
     settings: { filters: null, userCount: 3, isAdmin: true } });
-  await new Promise(r => setTimeout(r, 60));
+  await until(eSys.w, shown('#filters'), 2000, 'die Uebersicht');
   await sysSection(eSys.w, 'inventory');
   const eField = eSys.w.document.getElementById('newcrit');
   check('Der Systembereich hat ein Anlegefeld fuer Kriterien', !!eField);
@@ -751,7 +772,8 @@ async function run() {
 // Event Loop.
     eSys.w.document.getElementById('newcrit-b')
       .dispatchEvent(new eSys.w.MouseEvent('click', { bubbles: true }));
-    await new Promise(r => setTimeout(r, 40));
+    await until(eSys.w, (x) => eSys.sent.some(r => r.method === 'POST' && r.url === '/api/criteria') &&
+      openRequests(x) === 0, 2000, 'das angelegte Kriterium');
   }
   const eCreated = eSys.sent.filter(x => x.method === 'POST' && x.url === '/api/criteria').pop();
   check('Der Klick legt das Kriterium wirklich an',
@@ -765,7 +787,7 @@ async function run() {
   const eSysUser = buildDom(JSDOM, { tags: eSysTags,
     settings: { filters: null, userCount: 3,
       isAdmin: false, isOwner: false } });
-  await new Promise(r => setTimeout(r, 60));
+  await until(eSysUser.w, shown('#filters'), 2000, 'die Uebersicht');
   await sysSection(eSysUser.w, 'inventory');
   check('Ohne Adminrolle gibt es kein Anlegefeld',
     !eSysUser.w.document.getElementById('newcrit'));
@@ -799,7 +821,7 @@ async function run() {
      sieht aus wie ein Fehler. */
   const gvEig = buildDom(JSDOM, { settings: { filters: null, userCount: 4,
     isAdmin: true, isOwner: true } });
-  await new Promise(r => setTimeout(r, 60));
+  await until(gvEig.w, shown('#filters'), 2000, 'die Uebersicht');
   await sysSection(gvEig.w, 'users');
   const gvRows = [...gvEig.w.document.querySelectorAll('#musers .mrow')];
   /* DREI ZEILEN SEIT 0.13.0, VORHER VIER: der Grabstein steht nicht mehr
@@ -838,7 +860,8 @@ async function run() {
   setField(gvEig.w.document, 'user-pass', 'ein-langes-wort');
   gvEig.w.document.getElementById('user-create')
     .dispatchEvent(new gvEig.w.MouseEvent('click', { bubbles: true }));
-  await new Promise(r => setTimeout(r, 40));
+  await until(gvEig.w, (x) => gvEig.sent.some(r => r.method === 'POST' && r.url === '/api/users') &&
+    openRequests(x) === 0, 2000, 'der angelegte Zugang');
   const gvCreated = gvEig.sent.filter(x => x.method === 'POST' && x.url === '/api/users').pop();
   check('Der Klick legt den Zugang wirklich an',
     gvCreated?.body?.username === 'neuer' && gvCreated?.body?.role === 'user',
@@ -856,7 +879,7 @@ async function run() {
       { id: 2, username: 'bert', role: 'admin', status: 'active', last_login: null, created_at: '', entries: 2 },
       { id: 3, username: 'carla', role: 'user', status: 'active', last_login: null, created_at: '', entries: 0 }
     ] } });
-  await new Promise(r => setTimeout(r, 60));
+  await until(gvAdm.w, shown('#filters'), 2000, 'die Uebersicht');
   await sysSection(gvAdm.w, 'users');
   const gvARows = [...gvAdm.w.document.querySelectorAll('#musers .mrow')];
   check('Ein Admin sieht die Karte ebenfalls', gvARows.length === 3, `${gvARows.length}`);
@@ -873,7 +896,7 @@ async function run() {
   /* DIE ADRESSE ZEIGT AUF EINEN ABSCHNITT, DEN ES FUER IHN NICHT GIBT -- und
      genau das ist hier zusaetzlich zu belegen: sie faellt auf den ersten
      sichtbaren zurueck, statt eine leere Seite zu zeigen. */
-  await new Promise(r => setTimeout(r, 60));
+  await until(gvUser.w, shown('#filters'), 2000, 'die Uebersicht');
   await sysSection(gvUser.w, 'users');
   check('Ohne Adminrolle gibt es die Karte "Zugaenge" nicht',
     !gvUser.w.document.getElementById('musers') &&
@@ -895,7 +918,7 @@ async function run() {
   }));
   const eZl = buildDom(JSDOM, { overviewItems: eZlItems,
     settings: { filters: null, timeline: true, userCount: 3 } }).w;
-  await new Promise(r => setTimeout(r, 80));
+  await until(eZl, shown('#filters'), 2000, 'die Uebersicht');
   const eAll = [...eZl.document.querySelectorAll('#timeline .timeline-dot')];
   check('Alle Testtage stehen in der Zeitleiste, auch die fremden',
     eAll.length === 6, `${eAll.length}`);
@@ -914,9 +937,9 @@ async function run() {
     { id: 2, day: '2026-08-02', rating: 3, mine: true, tags: [] },
     { id: 3, day: '2026-08-01', rating: 4, mine: true, tags: [] }
   ];
-  await new Promise(r => setTimeout(r, 80));
+  await until(eSpark.w, shown('#ratings'), 2000, 'die Detailansicht');
   await eSpark.w.renderDetail(1);
-  await new Promise(r => setTimeout(r, 30));
+  await until(eSpark.w, shown('#ratings'), 2000, 'die neu gezeichnete Detailansicht');
   const eCircles = [...eSpark.w.document.querySelectorAll('#testblock .spark circle')];
   check('Die Verlaufskurve zeichnet jeden Testtag',
     eCircles.length === 3, `${eCircles.length}`);
@@ -938,14 +961,14 @@ async function run() {
   }));
   const zlAn = buildDom(JSDOM, { overviewItems: zlItems,
     settings: { filters: null, timeline: true } }).w;
-  await new Promise(r => setTimeout(r, 80));
+  await until(zlAn, shown('#filters'), 2000, 'die Uebersicht');
   check('Eingeschaltet erscheint die Zeitleiste',
     !!zlAn.document.querySelector('#timeline .timeline'));
   zlAn.close();
 
   const zlOut = buildDom(JSDOM, { overviewItems: zlItems,
     settings: { filters: null, timeline: false } }).w;
-  await new Promise(r => setTimeout(r, 80));
+  await until(zlOut, shown('#filters'), 2000, 'die Uebersicht');
   check('Abgeschaltet bleibt sie weg',
     zlOut.document.getElementById('timeline').innerHTML === '');
   check('Das Kartenraster steht trotzdem',
@@ -953,14 +976,15 @@ async function run() {
   zlOut.close();
 
   const sysZl = buildDom(JSDOM, { settings: { filters: null, timeline: false, linkRows: 12 } });
-  await new Promise(r => setTimeout(r, 60));
+  await until(sysZl.w, shown('#filters'), 2000, 'die Uebersicht');
   await sysSection(sysZl.w, 'personal');
   const checkbox = sysZl.w.document.getElementById('timeline-on');
   check('Der Systembereich hat einen Schalter dafür', !!checkbox);
   check('Er zeigt den gespeicherten Zustand', checkbox.checked === false);
   checkbox.checked = true;
   checkbox.onchange();
-  await new Promise(r => setTimeout(r, 30));
+  await until(sysZl.w, (x) => sysZl.sent.some(r => r.body?.timeline !== undefined) &&
+    openRequests(x) === 0, 2000, 'die gespeicherte Zeitleiste');
   const zlSent = sysZl.sent.filter(x => x.body && x.body.timeline !== undefined).pop();
   check('Umschalten wird serverseitig gespeichert',
     zlSent?.body.timeline === true, JSON.stringify(zlSent?.body));
@@ -974,7 +998,8 @@ async function run() {
     lzLevels.find(b3 => b3.classList.contains('on'))?.textContent === '12 Zeilen',
     lzLevels.map(b3 => b3.textContent).join(' '));
   lzLevels[0].onclick();
-  await new Promise(r => setTimeout(r, 30));
+  await until(sysZl.w, (x) => sysZl.sent.some(r => r.body?.linkRows !== undefined) &&
+    openRequests(x) === 0, 2000, 'die gespeicherte Stufe der Linkzeilen');
   const lzSent = sysZl.sent.filter(x => x.body && x.body.linkRows !== undefined).pop();
   check('Eine andere Stufe wird gespeichert', lzSent?.body.linkRows === 3,
     JSON.stringify(lzSent?.body));
@@ -1009,7 +1034,8 @@ async function run() {
 
   // Haekchen setzen nimmt in den Vorrat auf, ohne den Standard anzufassen.
   anbRows.find(z => z.dataset.k === 'ddg')?.querySelector('input[type=checkbox]')?.click();
-  await new Promise(r => setTimeout(r, 30));
+  await until(sysZl.w, (x) => sysZl.sent.some(r => r.body?.searchOn !== undefined) &&
+    openRequests(x) === 0, 2000, 'der gespeicherte Vorrat');
   const poolSent = sysZl.sent.filter(x => x.body && x.body.searchOn !== undefined).pop();
   check('Ein Häkchen nimmt einen Anbieter in den Vorrat auf',
     (poolSent?.body.searchOn || []).includes('ddg'),
@@ -1022,7 +1048,8 @@ async function run() {
 // ein Standard ausserhalb des Vorrats ist ein unmoeglicher Zustand.
   [...sysZl.w.document.querySelectorAll('#engines .engine')]
     .find(z => z.dataset.k === 'brave')?.querySelector('.sdefault')?.click();
-  await new Promise(r => setTimeout(r, 30));
+  await until(sysZl.w, (x) => sysZl.sent.some(r => r.body?.searchOn?.[0] === 'brave') &&
+    openRequests(x) === 0, 2000, 'der gespeicherte Startanbieter');
   const stdSent = sysZl.sent.filter(x => x.body && x.body.searchOn !== undefined).pop();
   check('Der Startknopf schickt den Anbieter an erster Stelle',
     stdSent?.body.searchOn?.[0] === 'brave', JSON.stringify(stdSent?.body.searchOn));
@@ -1043,7 +1070,8 @@ async function run() {
   setField(sysZl.w.document, 'se-name-2', 'Zweites Forum');
   setField(sysZl.w.document, 'se-vorlage-2', 'https://zwei.beispiel.de/?q=%s');
   sysZl.w.document.getElementById('se-b-2').onclick();
-  await new Promise(r => setTimeout(r, 30));
+  await until(sysZl.w, (x) => sysZl.sent.some(r => r.body?.searchOwn !== undefined) &&
+    openRequests(x) === 0, 2000, 'die gespeicherten eigenen Anbieter');
   const eigSent = sysZl.sent.filter(x => x.body && x.body.searchOwn !== undefined).pop();
   check('Ein eigener Anbieter wird mit Name und Vorlage gespeichert',
     eigSent?.body.searchOwn?.[1]?.name === 'Zweites Forum' &&
@@ -1062,7 +1090,8 @@ async function run() {
   check('Die Einzahl steht in der Einzahl', namesLevels[0]?.textContent === '1 Name',
     namesLevels[0]?.textContent);
   namesLevels[0]?.onclick?.();
-  await new Promise(r => setTimeout(r, 30));
+  await until(sysZl.w, (x) => sysZl.sent.some(r => r.body?.searchNames !== undefined) &&
+    openRequests(x) === 0, 2000, 'die gespeicherte Zahl der Namen');
   const namesSent = sysZl.sent.filter(x => x.body && x.body.searchNames !== undefined).pop();
   check('Eine andere Stufe wird gespeichert', namesSent?.body.searchNames === 1,
     JSON.stringify(namesSent?.body));
@@ -1071,7 +1100,7 @@ async function run() {
   /* --- Zahl der Namen: der Deckel und der Fall "weniger da als bestellt" --- */
   // Stufe 1 ist die knappste Anzeige: ein Name, naemlich der Standard.
   const inName = buildDom(JSDOM, { hash: '#/item/1', settings: { filters: null, searchNames: 1 } });
-  await new Promise(r => setTimeout(r, 60));
+  await until(inName.w, shown('#ratings'), 2000, 'die Detailansicht');
   const inNamesBox = [...inName.w.document.querySelectorAll('#links .lrow')][7];
   check('Stufe 1 zeigt allein den Startanbieter',
     [...(inNamesBox?.querySelectorAll('.sname') || [])].map(s => s.textContent).join() === 'Startpage',
@@ -1082,7 +1111,7 @@ async function run() {
 // Plaetze und kein Auffuellen mit Anbietern, die niemand gewaehlt hat.
   const fewerActive = buildDom(JSDOM, { hash: '#/item/1', settings: { filters: null, searchNames: 4,
     searchProviders: DOM_PROVIDER.map(a => ({ ...a, active: a.key === 'startpage', isDefault: a.key === 'startpage' })) } });
-  await new Promise(r => setTimeout(r, 60));
+  await until(fewerActive.w, shown('#ratings'), 2000, 'die Detailansicht');
   const fewRow = [...fewerActive.w.document.querySelectorAll('#links .lrow')][7];
   check('Sind weniger im Vorrat als bestellt, stehen weniger da',
     (fewRow?.querySelectorAll('.sname') || []).length === 1,
@@ -1093,7 +1122,7 @@ async function run() {
   const sysBad = buildDom(JSDOM, { hash: '#/item/1', settings: { filters: null,
     searchProviders: DOM_PROVIDER.map(a => a.key === 'startpage'
       ? { ...a, template: 'javascript:alert(1)/*%s*/' } : a) } });
-  await new Promise(r => setTimeout(r, 60));
+  await until(sysBad.w, shown('#ratings'), 2000, 'die Detailansicht');
   const bRow = [...sysBad.w.document.querySelectorAll('#links .lrow')][7];
   let bTarget = null;
   sysBad.w.open = (u) => { bTarget = u; };
@@ -1105,7 +1134,7 @@ async function run() {
     (kind === 'pointerdown' ? el : sysBad.w.document).dispatchEvent(e);
   };
   bType(bRow, 'pointerdown'); bType(bRow, 'pointerup');
-  await new Promise(r => setTimeout(r, 20));
+  await until(sysBad.w, () => bTarget !== null, 2000, 'der Aufruf der Suche');
   check('Eine unerlaubte Vorlage aus der Datenbank wird nicht geöffnet',
     !/^javascript:/i.test(String(bTarget)), String(bTarget));
   check('Der durchgefallene Anbieter steht gar nicht erst unter der Zeile',
@@ -1118,7 +1147,7 @@ async function run() {
   // Faellt jede Vorlage durch, wird nicht ersatzweise irgendwo gesucht.
   const noProvider = buildDom(JSDOM, { hash: '#/item/1', settings: { filters: null,
     searchProviders: DOM_PROVIDER.map(a => ({ ...a, template: 'javascript:alert(1)/*%s*/' })) } });
-  await new Promise(r => setTimeout(r, 60));
+  await until(noProvider.w, shown('#ratings'), 2000, 'die Detailansicht');
   const kRow = [...noProvider.w.document.querySelectorAll('#links .lrow')][7];
   let kTarget = null;
   noProvider.w.open = (u) => { kTarget = u; };
@@ -1129,6 +1158,7 @@ async function run() {
     Object.defineProperty(e, 'pointerType', { value: 'mouse' });
     (kind === 'pointerdown' ? kRow : noProvider.w.document).dispatchEvent(e);
   }
+  // Wartet, ob ohne gueltigen Anbieter ein Aufruf ausbleibt.
   await new Promise(r => setTimeout(r, 20));
   check('Ohne einen einzigen gültigen Anbieter wird nichts geöffnet',
     kTarget === null, String(kTarget));
@@ -1150,7 +1180,8 @@ async function run() {
     JSON.stringify([wb.document.getElementById('links').style.maxHeight,
                     wb.document.getElementById('links').style.overflowY]));
   moreButton?.onclick?.();
-  await new Promise(r => setTimeout(r, 20));
+  await until(wb, (x) => x.document.getElementById('links').style.maxHeight === '',
+    2000, 'die aufgeklappte Linkliste');
   const mehr2 = wb.document.getElementById('links-more');
   check('Aufgeklappt fällt die Höhenbegrenzung weg',
     wb.document.getElementById('links').style.maxHeight === '',
@@ -1162,7 +1193,8 @@ async function run() {
     JSON.stringify(wb.document.getElementById('links').style.overflowY));
   check('Und der Knopf klappt wieder zu', /weniger/.test(mehr2?.textContent || ''), mehr2?.textContent);
   mehr2?.onclick?.();
-  await new Promise(r => setTimeout(r, 20));
+  await until(wb, (x) => x.document.getElementById('links').style.maxHeight !== '',
+    2000, 'die zugeklappte Linkliste');
   check('Zuklappen begrenzt wieder',
     wb.document.getElementById('links').style.maxHeight !== '');
 
@@ -1233,13 +1265,13 @@ async function run() {
   const openBefore = wb.open;
   wb.open = (u) => { targetSearch = u; };
   typeInto(searchRow);
-  await new Promise(r => setTimeout(r, 20));
+  await until(wb, () => targetSearch !== null, 2000, 'der Aufruf der Suche');
   check('Ein Klick auf die Zeile öffnet die Suche beim Startanbieter',
     targetSearch === 'https://www.startpage.com/sp/search?query=Handbuch%203000', String(targetSearch));
   check('Der Suchtext ist dabei kodiert', !/ /.test(String(targetSearch)));
   targetSearch = null;
   typeInto(linkZeile0);
-  await new Promise(r => setTimeout(r, 20));
+  await until(wb, () => targetSearch !== null, 2000, 'der Aufruf der Adresse');
   check('Bei einer Adresse wird sie selbst geöffnet',
     targetSearch === 'https://beispiel.de/0', String(targetSearch));
 
@@ -1247,12 +1279,12 @@ async function run() {
 // das ist der ganze Zweck der Namensliste.
   targetSearch = null;
   anbNames[2]?.onclick?.({ stopPropagation: () => {} });
-  await new Promise(r => setTimeout(r, 20));
+  await until(wb, () => targetSearch !== null, 2000, 'der Aufruf beim Alternativanbieter');
   check('Ein Klick auf einen Alternativnamen sucht dort',
     targetSearch === 'https://forum.beispiel.de/suche?q=Handbuch%203000', String(targetSearch));
   targetSearch = null;
   anbNames[0]?.onclick?.({ stopPropagation: () => {} });
-  await new Promise(r => setTimeout(r, 20));
+  await until(wb, () => targetSearch !== null, 2000, 'der Aufruf beim Startanbieter');
   check('Ein Klick auf den Startanbieter tut dasselbe wie die Zeile',
     targetSearch === 'https://www.startpage.com/sp/search?query=Handbuch%203000', String(targetSearch));
 
@@ -1268,6 +1300,7 @@ async function run() {
     }
   };
   namesType(anbNames[2]);
+  // Wartet, ob nach dem Zeigerdruck auf den Namen der Zeilenklick ausbleibt.
   await new Promise(r => setTimeout(r, 20));
   check('Ein Zeigerdruck auf einen Namen löst den Zeilenklick nicht mit aus',
     targetSearch === null, String(targetSearch));
@@ -1307,7 +1340,7 @@ async function run() {
 
   const lvMore = buildDom(JSDOM, { hash: '#/item/1',
     settings: { filters: null, userCount: 3 } });
-  await new Promise(r => setTimeout(r, 80));
+  await until(lvMore.w, shown('#ratings'), 2000, 'die Detailansicht');
   const lvM = lvRows(lvMore.w);
   // Erst das Vorhandensein, dann die Eigenschaft: ohne Zeilen waere jede
 // Aussage ueber sie wahr.
@@ -1375,7 +1408,7 @@ async function run() {
      Schwelle steht in mehrereBenutzer() und nirgends sonst. */
   const lvOne = buildDom(JSDOM, { hash: '#/item/1',
     settings: { filters: null, userCount: 1 } });
-  await new Promise(r => setTimeout(r, 80));
+  await until(lvOne.w, shown('#ratings'), 2000, 'die Detailansicht');
   const lvE = lvRows(lvOne.w);
   check('Auch bei einem einzigen Zugang stehen alle Zeilen da',
     lvE.length === 8, `${lvE.length}`);
@@ -1394,7 +1427,7 @@ async function run() {
   /* Die zweite Gegenlage: mehrere Zugaenge, aber ohne Adminrolle. */
   const lvUser = buildDom(JSDOM, { hash: '#/item/1',
     settings: { filters: null, userCount: 3, isAdmin: false } });
-  await new Promise(r => setTimeout(r, 80));
+  await until(lvUser.w, shown('#ratings'), 2000, 'die Detailansicht');
   const lvU = lvRows(lvUser.w);
   check('Ohne Adminrolle steht das Kreuz nur an der eigenen Zeile',
     lvU.filter(z => !!z.querySelector('.xdel')).length === 1 && !!lvU[5].querySelector('.xdel'),
@@ -1436,7 +1469,7 @@ async function run() {
 
   const avMore = buildDom(JSDOM, { hash: '#/item/1',
     settings: { filters: null, userCount: 3 } });
-  await new Promise(r => setTimeout(r, 80));
+  await until(avMore.w, shown('#ratings'), 2000, 'die Detailansicht');
   const avM = avRows(avMore.w);
   check('Die Dateiliste steht bei mehreren Zugaengen vollstaendig da',
     avM.length === 4, `${avM.length}`);
@@ -1466,7 +1499,7 @@ async function run() {
   // Erste Gegenlage: ein Zugang -- kein Name, aber das Kreuz bleibt.
   const avOne = buildDom(JSDOM, { hash: '#/item/1',
     settings: { filters: null, userCount: 1 } });
-  await new Promise(r => setTimeout(r, 80));
+  await until(avOne.w, shown('#ratings'), 2000, 'die Detailansicht');
   const avE = avRows(avOne.w);
   check('Auch bei einem einzigen Zugang stehen alle Dateien da',
     avE.length === 4, `${avE.length}`);
@@ -1482,7 +1515,7 @@ async function run() {
 // trennen sich sichtbar.
   const avUser = buildDom(JSDOM, { hash: '#/item/1',
     settings: { filters: null, userCount: 3, isAdmin: false } });
-  await new Promise(r => setTimeout(r, 80));
+  await until(avUser.w, shown('#ratings'), 2000, 'die Detailansicht');
   const avU = avRows(avUser.w);
   check('Ohne Adminrolle steht das Kreuz nur an der eigenen Datei',
     avU.filter(z => !!z.querySelector('.xdel')).length === 1 && !!avU[2].querySelector('.xdel'),
@@ -1529,7 +1562,8 @@ async function run() {
   cursorOn(firstBlock.querySelector('.bgrip'), 'pointerdown', 0, 0, 'mouse');
   cursorOn(null, 'pointermove', 0, 200, 'mouse');
   cursorOn(null, 'pointerup', 0, 200, 'mouse');
-  await new Promise(r => setTimeout(r, 20));
+  await until(wb, (x) => !equal(side(), exit) && openRequests(x) === 0,
+    2000, 'die verschobene Reihenfolge');
   check('Mit der Maus wird sofort gezogen', !equal(side(), exit), JSON.stringify(side()));
 
   // Auf dem Finger: sofortiges Wischen ist Scrollen, kein Sortieren.
@@ -1538,6 +1572,7 @@ async function run() {
   cursorOn(b2.querySelector('.bgrip'), 'pointerdown', 0, 0, 'touch');
   cursorOn(null, 'pointermove', 0, 200, 'touch');
   cursorOn(null, 'pointerup', 0, 200, 'touch');
+  // Wartet, ob nach dem sofortigen Wischen eine Umsortierung ausbleibt.
   await new Promise(r => setTimeout(r, 20));
   check('Sofortiges Wischen sortiert nichts — das ist Scrollen',
     equal(side(), now), JSON.stringify(side()));
@@ -1550,10 +1585,12 @@ async function run() {
   const slow = wb.document.querySelector('#blocks-side > .block');
   cursorOn(slow.querySelector('.bgrip'), 'pointerdown', 0, 0, 'touch');
   cursorOn(null, 'pointermove', 0, 120, 'touch');     // gewischt = gescrollt
-  await new Promise(r => setTimeout(r, 480));           // und die Zeit laeuft ab
+  // Wartet ueber die Haltezeit von 400 ms hinaus, ob der Griff ausbleibt.
+  await new Promise(r => setTimeout(r, 420));
   check('Ein langsamer Wisch greift auch nach der Haltezeit nicht zu',
     !wb.document.querySelector('.handle-ready'));
   cursorOn(null, 'pointerup', 0, 120, 'touch');
+  // Wartet, ob nach dem Loslassen eine Umsortierung ausbleibt.
   await new Promise(r => setTimeout(r, 20));
   check('Und sortiert nichts um', equal(side(), now), JSON.stringify(side()));
 
@@ -1563,14 +1600,16 @@ async function run() {
   const linkRow = wb.document.querySelector('#links .lrow');
   cursorOn(linkRow, 'pointerdown', 0, 0, 'touch');
   cursorOn(null, 'pointermove', 0, 140, 'touch');
-  await new Promise(r => setTimeout(r, 480));
+  // Wartet ueber die Haltezeit von 400 ms hinaus, ob der Griff ausbleibt.
+  await new Promise(r => setTimeout(r, 420));
   cursorOn(null, 'pointerup', 0, 140, 'touch');
+  // Wartet, ob nach dem Wisch das Oeffnen des Links ausbleibt.
   await new Promise(r => setTimeout(r, 20));
   check('Ein Wisch über einer Linkzeile öffnet den Link nicht', opened === 0, `${opened}`);
   // Ein echter Tipp dagegen schon.
   cursorOn(linkRow, 'pointerdown', 0, 0, 'touch');
   cursorOn(null, 'pointerup', 0, 0, 'touch');
-  await new Promise(r => setTimeout(r, 20));
+  await until(wb, () => opened > 0, 2000, 'der geoeffnete Link');
   check('Ein Tipp öffnet ihn sehr wohl', opened === 1, `${opened}`);
 
   // Auf dem Finger: erst halten, dann ziehen.
@@ -1579,12 +1618,13 @@ async function run() {
   cursorOn(null, 'pointermove', 0, 3, 'touch');   // winzige Bewegung ist erlaubt
   check('Vor Ablauf der Haltezeit ist noch nichts gegriffen',
     !wb.document.querySelector('.handle-ready'));
-  await new Promise(r => setTimeout(r, 480));
+  await until(wb, (x) => x.document.querySelector('.handle-ready'), 2000, 'die gegriffene Zeile');
   check('Nach der Haltezeit meldet die Zeile, dass sie am Finger hängt',
     !!wb.document.querySelector('.handle-ready'));
   cursorOn(null, 'pointermove', 0, 200, 'touch');
   cursorOn(null, 'pointerup', 0, 200, 'touch');
-  await new Promise(r => setTimeout(r, 20));
+  await until(wb, (x) => !equal(side(), now) && openRequests(x) === 0,
+    2000, 'die verschobene Reihenfolge');
   check('Nach dem Halten wird gezogen', !equal(side(), now), JSON.stringify(side()));
   check('Danach bleibt kein Ziehzustand übrig',
     !wb.document.querySelector('.dragging, .handle-ready'));
@@ -1592,7 +1632,7 @@ async function run() {
   // Ein abgebrochener Zeiger (der Browser übernimmt das Scrollen) räumt auf.
   const b4 = wb.document.querySelector('#blocks-side > .block');
   cursorOn(b4.querySelector('.bgrip'), 'pointerdown', 0, 0, 'touch');
-  await new Promise(r => setTimeout(r, 480));
+  await until(wb, (x) => x.document.querySelector('.handle-ready'), 2000, 'die gegriffene Zeile');
   cursorOn(null, 'pointercancel', 0, 0, 'touch');
   check('Ein abgebrochener Zeiger räumt auf',
     !wb.document.querySelector('.handle-ready'));
@@ -1647,7 +1687,7 @@ async function run() {
     field.scrollIntoView = () => { scrolled++; };
     field.blur();
     cjHead?.dispatchEvent(new wb.MouseEvent('click', { bubbles: true }));
-    await new Promise(r => setTimeout(r, 40));
+    await until(wb, (x) => x.document.activeElement === field, 2000, 'der Zeiger im Schreibfeld');
     check('Der Klick rollt zum Schreibfeld', scrolled === 1, `${scrolled}`);
     check('Und setzt den Zeiger hinein', wb.document.activeElement === field,
       wb.document.activeElement?.id || '(nichts)');
@@ -1658,13 +1698,15 @@ async function run() {
     const cjBlock = field.closest('.block');
     wb.document.querySelector('[data-block="kommentare"] .block-head')
       .onclick({ target: wb.document.querySelector('[data-block="kommentare"] .label') });
-    await new Promise(r => setTimeout(r, 40));
+    await until(wb, (x) => cjBlock.classList.contains('closed') && openRequests(x) === 0,
+      2000, 'der eingeklappte Kommentarblock');
     check('Die Prueflage bekommt den Block wirklich zu',
       cjBlock.classList.contains('closed'), cjBlock.className);
     scrolled = 0;
     wb.document.getElementById('cjump')
       .dispatchEvent(new wb.MouseEvent('click', { bubbles: true }));
-    await new Promise(r => setTimeout(r, 40));
+    await until(wb, (x) => !cjBlock.classList.contains('closed') && openRequests(x) === 0,
+      2000, 'der aufgeklappte Kommentarblock');
     check('Der Sprungknopf klappt einen geschlossenen Block zuerst auf',
       !cjBlock.classList.contains('closed'), cjBlock.className);
     check('Und rollt danach trotzdem ans Feld',
@@ -1793,13 +1835,15 @@ async function run() {
   const lastKind = () => bd.sent.filter(x => x.body && x.body.kind !== undefined).pop();
   bd.sent.length = 0;
   buttons(1).aufg.onclick();
-  await new Promise(r => setTimeout(r, 30));
+  await until(wb, (x) => bd.sent.some(r => r.body?.kind !== undefined) && openRequests(x) === 0,
+    2000, 'die gespeicherte Art');
   check('Der Aufgabenknopf am Bericht schaltet auf Aufgabe, nicht auf beides',
     lastKind()?.body.kind === 'task' && lastKind().body.text === undefined,
     JSON.stringify(lastKind()?.body));
   bd.sent.length = 0;
   buttons(4).aufg.onclick();
-  await new Promise(r => setTimeout(r, 30));
+  await until(wb, (x) => bd.sent.some(r => r.body?.kind !== undefined) && openRequests(x) === 0,
+    2000, 'die gespeicherte Art');
   check('Ein zweiter Druck setzt die Aufgabe auf erledigt',
     lastKind()?.body.kind === 'done', JSON.stringify(lastKind()?.body));
   bd.sent.length = 0;
@@ -1833,13 +1877,15 @@ async function run() {
     kmts[1].querySelector('.kind').textContent);
 
   kmts[2].querySelector('.kind').onclick();
-  await new Promise(r => setTimeout(r, 30));
+  await until(wb, (x) => bd.sent.some(r => r.body?.kind !== undefined) && openRequests(x) === 0,
+    2000, 'die gespeicherte Art');
   const asReport = bd.sent.filter(x => x.body && x.body.kind !== undefined).pop();
   check('Klick auf die Art schickt nur die Art',
     asReport?.body.kind === 'report' && asReport.body.text === undefined,
     JSON.stringify(asReport?.body));
   kmts[1].querySelector('.pin').onclick();
-  await new Promise(r => setTimeout(r, 30));
+  await until(wb, (x) => bd.sent.some(r => r.body?.pinned !== undefined) && openRequests(x) === 0,
+    2000, 'die gespeicherte Anpinnung');
   const pinned = bd.sent.filter(x => x.body && x.body.pinned !== undefined).pop();
   check('Klick auf die Anpinnung schickt nur die Anpinnung',
     pinned?.body.pinned === true && pinned.body.text === undefined,
@@ -1854,7 +1900,7 @@ async function run() {
 
   // Vollbild: Kommentarbilder haben kein Original, also keinen Zoom.
   imagesK[0].querySelector('img').onclick();
-  await new Promise(r => setTimeout(r, 20));
+  await until(wb, shown('.lightbox'), 2000, 'das Vollbild');
   const lb = wb.document.querySelector('.lightbox');
   check('Klick öffnet das Vollbild', !!lb);
   check('Das Vollbild zeigt das Kommentarbild',
@@ -1889,7 +1935,7 @@ async function run() {
      Links und Dateien tragen ihren Hinweis, Kommentare bisher nicht. */
   /* AN EINEM FRISCHEN AUFBAU. */
   const kzDom = buildDom(JSDOM, { settings: ownOrder, hash: '#/item/1' });
-  await new Promise(r => setTimeout(r, 90));
+  await until(kzDom.w, shown('#ratings'), 2000, 'die Detailansicht');
   const kCount = kzDom.w.document.getElementById('ccount');
   check('Der Kommentarblock traegt seine Zahlen in der Kopfzeile',
     !!kCount && kCount.textContent === '6 · 1 · 1 · 1'
@@ -1995,7 +2041,7 @@ async function run() {
      Bildschirm bietet nicht mehr an, was der Server abweist. */
   const bnA = buildDom(JSDOM, { hash: '#/item/1',
     settings: { filters: null, userCount: 3, isAdmin: false } });
-  await new Promise(r => setTimeout(r, 80));
+  await until(bnA.w, shown('#ratings'), 2000, 'die Detailansicht');
   const nKmts = [...bnA.w.document.querySelectorAll('#cmts .cmt')];
   const nNumber = (choice) => nKmts.filter(k => k.querySelector(choice)).length;
   check('Der Gegenaufbau zeigt dieselben sechs Kommentare',
@@ -2021,7 +2067,8 @@ async function run() {
 
   /* "+ Bild" ist Bearbeiten und steht ausschliesslich im Bearbeitenmodus. */
   nKmts[4].querySelector('.ed').dispatchEvent(new bnA.w.MouseEvent('click', { bubbles: true }));
-  await new Promise(r => setTimeout(r, 30));
+  await until(bnA.w, (x) => nKmts[4].querySelector('.cmt-edit') && openRequests(x) === 0,
+    2000, 'das Bearbeitenfeld');
   check('Am eigenen Kommentar führt ✎ zum Feld und zu „+ Bild"',
     !!nKmts[4].querySelector('.cmt-edit .addimg') && !!nKmts[4].querySelector('.cmt-edit textarea'),
     nKmts[4].querySelector('.cmt-edit') ? 'kein + Bild' : 'kein Bearbeitenfeld');
@@ -2275,7 +2322,7 @@ async function run() {
   /* --- Vollbild: Pfeile und Zoom --- */
   const moreImages = [{ id: 91, source: 'comment' }, { id: 92, source: 'comment' }];
   wb.openLightbox(moreImages, 0, 'Probe');
-  await new Promise(r => setTimeout(r, 20));
+  await until(wb, (x) => x.document.querySelector('.lightbox'), 2000, 'das Vollbild');
   const lb2 = wb.document.querySelector('.lightbox');
   const arrows = [...lb2.querySelectorAll('.lb-nav')];
   check('Es gibt Pfeile für vor und zurück', arrows.length === 2);
@@ -2287,12 +2334,12 @@ async function run() {
   check('Sie hängen direkt an der Lightbox, die nie scrollt',
     arrows.every(p => p.parentElement === lb2));
   lb2.querySelector('.close').onclick();
-  await new Promise(r => setTimeout(r, 20));
+  await until(wb, (x) => !x.document.querySelector('.lightbox'), 2000, 'das geschlossene Vollbild');
 
   // Zoom: Maus ein Klick, Finger zwei Tipper.
   const includingOriginal = [{ id: 5 }, { id: 6 }];
   wb.openLightbox(includingOriginal, 0, 'Zoomprobe');
-  await new Promise(r => setTimeout(r, 20));
+  await until(wb, (x) => x.document.querySelector('.lightbox'), 2000, 'das Vollbild');
   const lb3 = wb.document.querySelector('.lightbox');
   const stage = lb3.querySelector('.lb-stage');
   const image = lb3.querySelector('.lb-stage img');
@@ -2308,16 +2355,19 @@ async function run() {
 
   tap('touch');
   check('Ein einzelner Tipp zoomt nicht', !stage.classList.contains('zoomed'));
+  // Abstand zwischen den Tipps, kuerzer als die 300 ms des Doppeltipps.
   await new Promise(r => setTimeout(r, 20));
   tap('touch');
   check('Der zweite Tipp kurz danach zoomt', stage.classList.contains('zoomed'));
   tap('touch');
+  // Abstand zwischen den Tipps, kuerzer als die 300 ms des Doppeltipps.
   await new Promise(r => setTimeout(r, 20));
   tap('touch');
   check('Doppeltipp holt auch wieder zurück', !stage.classList.contains('zoomed'));
 
   // Zwei Tipper mit zu viel Abstand sind zwei einzelne, kein Doppeltipp.
   tap('touch');
+  // Abstand zwischen den Tipps, laenger als die 300 ms des Doppeltipps.
   await new Promise(r => setTimeout(r, 360));
   tap('touch');
   check('Zwei langsame Tipper zoomen nicht', !stage.classList.contains('zoomed'));
@@ -2342,7 +2392,8 @@ async function run() {
   // Die Rechnung muss auch angeschlossen sein -- eine Funktion, die niemand
 // ruft, ist so gut wie nicht vorhanden.
   const lb4 = (wb.openLightbox(includingOriginal, 0, 'Mitte'), wb.document.querySelector('.lightbox'));
-  await new Promise(r => setTimeout(r, 20));
+  await until(wb, (x) => x.document.querySelectorAll('.lightbox').length > 1,
+    2000, 'das zweite Vollbild');
   const buehne4 = lb4.querySelector('.lb-stage'), bild4 = lb4.querySelector('.lb-stage img');
   ['scrollWidth', 'clientWidth', 'scrollHeight', 'clientHeight'].forEach((k, n) =>
     Object.defineProperty(buehne4, k, { value: [3000, 1000, 2400, 800][n], configurable: true }));
@@ -2364,7 +2415,7 @@ async function run() {
     buehne4.scrollLeft === 0 && buehne4.scrollTop === 0,
     `${buehne4.scrollLeft}/${buehne4.scrollTop}`);
   lb4.querySelector('.close').onclick();
-  await new Promise(r => setTimeout(r, 20));
+  await until(wb, () => !lb4.isConnected, 2000, 'das geschlossene Vollbild');
 
   /* ---------------------------------------------------------------- */
   group('Videos am Bildschirm');
@@ -2373,7 +2424,7 @@ async function run() {
      nichts sonst. */
   const vDom = buildDom(JSDOM, { hash: '#/item/1' });
   const wVid = vDom.w;
-  await new Promise(r => setTimeout(r, 60));
+  await until(wVid, shown('#ratings'), 2000, 'die Detailansicht');
 
   const vTiles = [...wVid.document.querySelectorAll('#thumbs .thumb')];
   // Erst das Vorhandensein, dann die Eigenschaft -- und ausdruecklich BEIDE
@@ -2410,7 +2461,7 @@ async function run() {
   check('Und dort steht kein eigener Vollbildknopf -- der Klick aufs Bild tut es',
     !vViewer.querySelector('.vfull'), vViewer?.innerHTML?.slice(0, 160));
   vViewer?.querySelector('.vnav.next')?.dispatchEvent(new wVid.Event('click', { bubbles: true }));
-  await new Promise(r => setTimeout(r, 20));
+  await until(wVid, () => vViewer?.querySelector('video'), 2000, 'der Abspieler im Betrachter');
   const vPlayer = vViewer.querySelector('video');
   check('Beim Video steht ein Abspieler',
     !!vPlayer && !vViewer.querySelector('img'), vViewer?.innerHTML?.slice(0, 120));
@@ -2426,7 +2477,7 @@ async function run() {
   check('Am Videoplatz gibt es einen Knopf ins Vollbild',
     !!vViewer.querySelector('.vfull'), vViewer?.innerHTML?.slice(0, 160));
   vViewer?.querySelector('.vfull')?.dispatchEvent(new wVid.Event('click', { bubbles: true }));
-  await new Promise(r => setTimeout(r, 30));
+  await until(wVid, (x) => x.document.querySelector('.lightbox'), 2000, 'das Vollbild');
   {
     const lb = wVid.document.querySelector('.lightbox');
     check('Und er oeffnet das Vollbild am richtigen Element',
@@ -2434,13 +2485,13 @@ async function run() {
       lb.querySelector('.lb-video')?.getAttribute('src') === '/api/photos/6/raw',
       lb ? lb.querySelector('.lb-video')?.getAttribute('src') : 'kein Vollbild');
     lb?.querySelector('.close').dispatchEvent(new wVid.Event('click', { bubbles: true }));
-    await new Promise(r => setTimeout(r, 30));
+    await until(wVid, (x) => !x.document.querySelector('.lightbox'), 2000, 'das geschlossene Vollbild');
   }
 
   /* DER AUSSCHNITTMODUS BLEIBT AM VIDEOPLATZ BEDIENBAR -- eingestellt wird
      die Kachel, und die gibt es dort genauso. */
   vViewer?.querySelector('.vfocus')?.dispatchEvent(new wVid.Event('click', { bubbles: true }));
-  await new Promise(r => setTimeout(r, 20));
+  await until(wVid, () => vViewer?.classList.contains('focus-mode'), 2000, 'der Ausschnittmodus');
   check('Im Ausschnittmodus zeigt der Videoplatz sein Standbild',
     !!vViewer.querySelector('img') && !vViewer.querySelector('video'),
     vViewer?.innerHTML?.slice(0, 120));
@@ -2448,14 +2499,15 @@ async function run() {
     !!vViewer.querySelector('.focus-frame') && vViewer.classList.contains('focus-mode'),
     vViewer?.className);
   vViewer?.querySelector('.vfocus')?.dispatchEvent(new wVid.Event('click', { bubbles: true }));
-  await new Promise(r => setTimeout(r, 20));
+  await until(wVid, () => !vViewer?.classList.contains('focus-mode'),
+    2000, 'der verlassene Ausschnittmodus');
   check('Nach dem Verlassen steht der Abspieler wieder da',
     !!vViewer.querySelector('video'), vViewer?.innerHTML?.slice(0, 120));
 
   /* DAS VOLLBILD. */
   const vMixed = [{ id: 5, kind: 'image', duration: null }, { id: 6, kind: 'video', duration: 42 }];
   wVid.openLightbox(vMixed, 1, 'Vollbildprobe');
-  await new Promise(r => setTimeout(r, 20));
+  await until(wVid, (x) => x.document.querySelector('.lightbox'), 2000, 'das Vollbild');
   const vLb = wVid.document.querySelector('.lightbox');
   const vLbVideo = vLb?.querySelector('.lb-video'), vLbImage = vLb?.querySelector('.lb-stage img');
   check('Das Vollbild hat ueberhaupt einen Abspieler', !!vLbVideo, 'kein .lb-video');
@@ -2483,7 +2535,7 @@ async function run() {
   // messen, und mehr braucht es auch nicht -- genau daran haengt, ob der Ton
   // weiterlaeuft.
   vLb?.querySelector('.prev')?.dispatchEvent(new wVid.Event('click', { bubbles: true }));
-  await new Promise(r => setTimeout(r, 20));
+  await until(wVid, () => vLbVideo?.hidden === true, 2000, 'das Foto im Vollbild');
   check('Beim Blaettern wird angehalten und die Quelle abgeraeumt',
     vLbVideo?.hidden === true && !vLbVideo?.getAttribute('src'),
     JSON.stringify({ hidden: vLbVideo?.hidden, src: vLbVideo?.getAttribute('src') }));
@@ -2492,11 +2544,11 @@ async function run() {
     JSON.stringify(vLb?.querySelector('.zoom')?.hidden));
   // Zurueck aufs Video, dann schliessen: auch dabei muss angehalten werden.
   vLb?.querySelector('.next')?.dispatchEvent(new wVid.Event('click', { bubbles: true }));
-  await new Promise(r => setTimeout(r, 20));
+  await until(wVid, () => vLbVideo?.hidden === false, 2000, 'das Video im Vollbild');
   check('Zurueck am Video laeuft der Abspieler wieder',
     vLbVideo?.getAttribute('src') === '/api/photos/6/raw', vLbVideo?.getAttribute('src'));
   vLb?.querySelector('.close')?.dispatchEvent(new wVid.Event('click', { bubbles: true }));
-  await new Promise(r => setTimeout(r, 20));
+  await until(wVid, (x) => !x.document.querySelector('.lightbox'), 2000, 'das geschlossene Vollbild');
   check('Beim Verlassen wird ebenfalls angehalten',
     !vLbVideo?.getAttribute('src'), vLbVideo?.getAttribute('src'));
   check('Und das Vollbild ist zu', !wVid.document.querySelector('.lightbox'));
@@ -2504,7 +2556,7 @@ async function run() {
   /* Die Marken in der Vorschauleiste des Vollbilds -- dieselbe Ableitung aus
      kind, an einer zweiten Stelle. */
   wVid.openLightbox(vMixed, 0, 'Leistenprobe');
-  await new Promise(r => setTimeout(r, 20));
+  await until(wVid, (x) => x.document.querySelector('.lightbox'), 2000, 'das Vollbild');
   const vStrip = [...wVid.document.querySelectorAll('.lb-strip .lb-thumb')];
   check('Die Leiste im Vollbild zeigt beide Zeilen', vStrip.length === 2,
     `${vStrip.length}`);
@@ -2512,7 +2564,7 @@ async function run() {
     !!vStrip[1]?.querySelector('.play-badge') && !vStrip[0]?.querySelector('.play-badge'),
     vStrip.map(t => t.innerHTML.slice(0, 40)).join(' | '));
   wVid.document.querySelector('.lightbox .close')?.dispatchEvent(new wVid.Event('click', { bubbles: true }));
-  await new Promise(r => setTimeout(r, 20));
+  await until(wVid, (x) => !x.document.querySelector('.lightbox'), 2000, 'das geschlossene Vollbild');
 
   /* Und die Laengenangabe an ihren Raendern. */
   check('Die Laengenangabe rechnet Minuten und Sekunden richtig',
@@ -2531,7 +2583,7 @@ async function run() {
   }];
   const vCard = async (mainKind, f, v) => {
     const d = buildDom(JSDOM, { overviewItems: vCardsInventory(mainKind, f, v) });
-    await new Promise(r => setTimeout(r, 60));
+    await until(d.w, shown('#filters'), 2000, 'die Uebersicht');
     const card = d.w.document.querySelector('.card');
     return { card, counter: card?.querySelector('.photo-count')?.textContent,
              mark: !!card?.querySelector('.card-play') };
@@ -2565,7 +2617,7 @@ async function run() {
     /justify-content: flex-start/.test(ruleZ('.lb-stage.zoomed')),
     ruleZ('.lb-stage.zoomed') || '(keine Regel)');
   lb3.querySelector('.close').onclick();
-  await new Promise(r => setTimeout(r, 20));
+  await until(wb, () => !lb3.isConnected, 2000, 'das geschlossene Vollbild');
 
   /* --- Versionsnummer auf jeder Ansicht --- */
   const vz = () => wb.document.getElementById('version')?.textContent || '';
@@ -2573,14 +2625,14 @@ async function run() {
   check('Sie liegt außerhalb von #app und übersteht das Neuzeichnen',
     !wb.document.getElementById('app').contains(wb.document.getElementById('version')));
   wb.location.hash = '#/';
-  await new Promise(r => setTimeout(r, 80));
+  await until(wb, shown('#filters'), 2000, 'die Uebersicht');
   check('Auch in der Übersicht', /^Kriterion 0\./.test(vz()), vz());
   await wb.renderSystem();
   check('Auch im Systembereich', /^Kriterion 0\./.test(vz()), vz());
   wb.showLogin();
   check('Auch auf der Anmeldeseite', /^Kriterion 0\./.test(vz()), vz());
   wb.location.hash = '#/item/1';
-  await new Promise(r => setTimeout(r, 80));
+  await until(wb, shown('#ratings'), 2000, 'die Detailansicht');
 
   check('Adressen: Foto und Kommentarbild werden unterschieden',
     wb.imageSource({ id: 9 }, 'medium') === '/api/photos/9/raw?size=medium' &&
@@ -2636,7 +2688,8 @@ async function run() {
   wb.URL.createObjectURL = () => 'blob:test';
   wb.URL.revokeObjectURL = () => {};
   const includingImageE = paste([makeFile('image/png')]);
-  await new Promise(r => setTimeout(r, 20));
+  await until(wb, (x) => x.document.querySelectorAll('#cnew-imgs .cmt-img').length > 0,
+    2000, 'die aufgenommene Kachel');
   check('Eingefügtes Bild wird aufgenommen',
     wb.document.querySelectorAll('#cnew-imgs .cmt-img').length === 1);
   check('Dabei wird das Einfügen abgefangen', includingImageE.defaultPrevented);
@@ -2687,7 +2740,7 @@ async function run() {
       testAvg: null, testLast: null, updated_at: '2026-08-01 10:00:00', testDays: [],
       mainPhoto: { id: 5, focus_x: 10, focus_y: 90, zoom: 250, thumbLength: 20481 } }]
   });
-  await new Promise(r => setTimeout(r, 80));
+  await until(focusDom.w, shown('#filters'), 2000, 'die Uebersicht');
   const cardsImage = focusDom.w.document.querySelector('.card-img img');
   /* DIE KACHEL TRAEGT KEINEN ZUSCHNITT MEHR AM BILD. */
   check('Die Karte setzt keine object-position mehr',
@@ -2709,7 +2762,7 @@ async function run() {
         testAvg: null, testLast: null, updated_at: '2026-08-01 10:00:00', testDays: [],
         mainPhoto: { id: 7, focus_x: 50, focus_y: 50, zoom: 100 } }]
     });
-    await new Promise(r => setTimeout(r, 80));
+    await until(withoutPhotos.w, shown('#filters'), 2000, 'die Uebersicht');
     const b2 = withoutPhotos.w.document.querySelector('.card-img img');
     check('Fehlt die Fassung, steht sie nicht in der Adresse',
       b2.getAttribute('src') === '/api/photos/7/raw?size=thumb', b2.getAttribute('src'));
@@ -2742,7 +2795,8 @@ async function run() {
   check('Ausschnitt-Modus ist zunächst aus',
     !vf.classList.contains('on') && !wb.document.querySelector('.viewer').classList.contains('focus-mode'));
   vf.onclick();
-  await new Promise(r => setTimeout(r, 20));
+  await until(wb, (x) => x.document.querySelector('.viewer')?.classList.contains('focus-mode'),
+    2000, 'der Ausschnittmodus');
   check('Schalter aktiviert den Modus',
     wb.document.querySelector('.viewer').classList.contains('focus-mode'));
   check('Ein Rahmen zeigt den künftigen Ausschnitt', !!wb.document.querySelector('.focus-frame'));
@@ -2772,7 +2826,8 @@ async function run() {
 
   bd.sent.length = 0;
   pull(250);
-  await new Promise(r => setTimeout(r, 20));
+  await until(wb, (x) => zoomValue() !== '100 %' && openRequests(x) === 0,
+    2000, 'der gezogene Wert am Rahmen');
   check('Das Ziehen schreibt den Wert an den Rahmen',
     zoomValue() === '250 %', zoomValue());
   check('Und es schickt dabei noch nichts',
@@ -2807,7 +2862,8 @@ async function run() {
   }
   pull(250);
   pull(250, 'change');
-  await new Promise(r => setTimeout(r, 30));
+  await until(wb, (x) => bd.sent.some(g => /\/focus$/.test(g.url)) && openRequests(x) === 0,
+    2000, 'der gespeicherte Ausschnitt');
   const zoomCall = bd.sent.find(g => /\/focus$/.test(g.url));
   check('Das Loslassen speichert', !!zoomCall, JSON.stringify(bd.sent.map(g => g.url)));
   check('Und schickt alle drei Werte in EINEM Ruf',
@@ -2818,6 +2874,7 @@ async function run() {
   bd.sent.length = 0;
   slider?.dispatchEvent(new wb.Event('pointerdown', { bubbles: true }));
   slider?.dispatchEvent(new wb.Event('pointerup', { bubbles: true }));
+  // Wartet, ob nach dem Griff an den Schieber eine Anfrage ausbleibt.
   await new Promise(r => setTimeout(r, 20));
   /* ZWEI HAELFTEN, und ohne die erste belegt die zweite nichts: fehlt der
      Schieber ganz, ist „es wurde nichts geschickt" trivial wahr. */
@@ -2879,12 +2936,19 @@ async function run() {
 
     const cursor = (kind, x, y, art2) => betr.dispatchEvent(
       new wb.MouseEvent(kind, { bubbles: true, clientX: x, clientY: y, ...(art2 || {}) }));
-    const drag = async ([x1, y1], [x2, y2]) => {
+    // `saves`: der Zug soll speichern; sonst wird geprueft, ob das Speichern ausbleibt.
+    const drag = async ([x1, y1], [x2, y2], saves = true) => {
       bd.sent.length = 0;
       cursor('pointerdown', x1, y1);
       cursor('pointermove', x2, y2);
       cursor('pointerup', x2, y2);
-      await new Promise(r => setTimeout(r, 30));
+      if (saves) {
+        await until(wb, (x) => bd.sent.some(g => /\/focus$/.test(g.url)) && openRequests(x) === 0,
+          2000, 'der gespeicherte Ausschnitt');
+      } else {
+        // Wartet, ob nach dem Griff ohne Weg das Speichern ausbleibt.
+        await new Promise(r => setTimeout(r, 20));
+      }
       return bd.sent.find(g => /\/focus$/.test(g.url))?.body || null;
     };
     // Der Rahmen im selben Mass wie der Zeiger.
@@ -2899,8 +2963,10 @@ async function run() {
       .find(([x, y]) => x < r.links || x > r.links + r.edge ||
                         y < r.top || y > r.top + r.edge) || [10, 10];
     const fresherFrame = async () => {
+      bd.sent.length = 0;
       pull(400); pull(400, 'change');
-      await new Promise(r => setTimeout(r, 30));
+      await until(wb, (x) => bd.sent.some(g => /\/focus$/.test(g.url)) && openRequests(x) === 0,
+        2000, 'der gespeicherte Ausschnitt');
       const [ax, ay] = outsidePoints(frame());
       return drag([ax, ay], [ax < 300 ? ax + 280 : ax - 280, ay < 200 ? ay + 280 : ay - 280]);
     };
@@ -2908,7 +2974,8 @@ async function run() {
     /* EIN BEKANNTER AUSGANGSZUSTAND, und zwar ueber die Bedienung selbst: ein
        neues Rechteck von (60,60) nach (360,360). */
     pull(250); pull(250, 'change');
-    await new Promise(r => setTimeout(r, 20));
+    await until(wb, (x) => bd.sent.some(g => /\/focus$/.test(g.url)) && openRequests(x) === 0,
+      2000, 'der gespeicherte Ausschnitt');
     const freshCore = await drag([60, 60], [360, 360]);
     const r0 = frame();
     check('Ein Zug ausserhalb zieht einen neuen Ausschnitt auf',
@@ -3010,7 +3077,7 @@ async function run() {
     /* --- EIN GRIFF OHNE BEWEGUNG (Entscheidung E1). */
     const vorClickable = frame();
     const [kx, ky] = center(vorClickable);
-    const insideCore = await drag([kx, ky], [kx + 2, ky + 1]);
+    const insideCore = await drag([kx, ky], [kx + 2, ky + 1], false);
     check('Ein Griff IM Rahmen ohne Weg speichert nichts',
       insideCore === null, JSON.stringify(insideCore));
     check('Und er verstellt den Rahmen auch nicht',
@@ -3052,12 +3119,14 @@ async function run() {
       { bubbles: true, clientX: r2.links + 4, clientY: r2.top + 4 });
     Object.defineProperty(tapEvent, 'pointerType', { value: 'touch' });
     cursor('pointerup', r2.links + 4, r2.top + 4);
+    // Wartet, ob nach dem Griff ohne Weg an der Ecke eine Anfrage ausbleibt.
     await new Promise(r => setTimeout(r, 20));
     const r3 = frame();
     betr.dispatchEvent(tapEvent);
     cursor('pointermove', r3.links + 44, r3.top + 4);
     cursor('pointerup', r3.links + 44, r3.top + 4);
-    await new Promise(r => setTimeout(r, 30));
+    await until(wb, (x) => bd.sent.some(g => /\/focus$/.test(g.url)) && openRequests(x) === 0,
+      2000, 'der gespeicherte Ausschnitt');
     const r4 = frame();
     check('Ein Finger an der Ecke schiebt, statt die Weite zu aendern',
       Math.abs(r4.edge - r3.edge) < 0.001 && r4.links > r3.links,
@@ -3068,7 +3137,8 @@ async function run() {
      ersetzt, sondern nur sein Inhalt -- was an ihm selbst haengt, ueberlebt. */
   const viewer = wb.document.querySelector('.viewer');
   wb.document.querySelector('.vfocus').onclick();
-  await new Promise(r => setTimeout(r, 20));
+  await until(wb, () => !viewer.classList.contains('focus-mode'),
+    2000, 'der verlassene Ausschnittmodus');
   check('Zweiter Klick verlaesst den Modus', !viewer.classList.contains('focus-mode'));
   check('Der Rahmen ist weg', !wb.document.querySelector('.focus-frame'));
   check('Und die Zeigerbehandler sind abgeraeumt',
@@ -3079,11 +3149,12 @@ async function run() {
   bd.sent.length = 0;
   viewer.dispatchEvent(new wb.Event('pointerdown', { bubbles: true }));
   viewer.dispatchEvent(new wb.Event('pointerup', { bubbles: true }));
+  // Wartet, ob nach dem Klick ausserhalb des Modus das Speichern ausbleibt.
   await new Promise(r => setTimeout(r, 20));
   check('Ein Klick speichert keinen Ausschnitt mehr',
     !bd.sent.some(g => /\/focus$/.test(g.url)), JSON.stringify(bd.sent.map(g => g.url)));
   wb.document.querySelector('.viewer img').onclick();
-  await new Promise(r => setTimeout(r, 20));
+  await until(wb, (x) => x.document.querySelector('.lightbox'), 2000, 'das Vollbild');
   check('Und oeffnet wieder das Vollbild', !!wb.document.querySelector('.lightbox'));
   wb.document.querySelectorAll('.lightbox, .backdrop').forEach(e => e.remove());
 
@@ -3095,12 +3166,13 @@ async function run() {
   {
     const awayDom = buildDom(JSDOM, { hash: '#/item/1' });
     const wf = awayDom.w;
-    await new Promise(r => setTimeout(r, 120));
+    await until(wf, shown('#ratings'), 2000, 'die Detailansicht');
     const vfF = wf.document.querySelector('.vfocus');
     /* ERST DIE PRUEFLAGE, DANN DIE ZUSAGE. */
     check('Die Prueflage steht: der Betrachter hat seinen Ausschnittschalter', !!vfF);
     vfF?.onclick();
-    await new Promise(r => setTimeout(r, 20));
+    await until(wf, (x) => x.document.querySelector('.viewer')?.classList.contains('focus-mode'),
+      2000, 'der Ausschnittmodus');
     const schF = wf.document.querySelector('#vzoom-slider');
     check('Und den Schieber fuer die Weite', !!schF);
 
@@ -3115,20 +3187,21 @@ async function run() {
       schF.value = '400';
       schF.dispatchEvent(new wf.Event('change', { bubbles: true }));
     }
-    await new Promise(r => setTimeout(r, 20));
+    await until(wf, () => typeof release === 'function', 2000, 'der angehaltene Ruf');
     check('Das Speichern des engsten Ausschnitts ist unterwegs und noch unbeantwortet',
       typeof release === 'function', String(release));
 
     // Und jetzt geht der Benutzer zurueck -- ueber die Adresse, wie im Feld.
     wf.location.hash = '#/';
-    await new Promise(r => setTimeout(r, 120));
+    await until(wf, shown('#filters'), 2000, 'die Uebersicht');
     check('Die Uebersicht steht und der Bilderstreifen ist fort',
       !wf.document.getElementById('thumbs') && !wf.document.getElementById('viewer'),
       wf.document.getElementById('thumbs') ? 'Streifen noch da' : 'Betrachter noch da');
 
     // Erst jetzt kommt die Antwort zurueck.
     release?.();
-    await new Promise(r => setTimeout(r, 120));
+    await until(wf, (x) => awayDom.sent.some(r => /\/focus$/.test(r.url)) && openRequests(x) === 0,
+      2000, 'die Antwort auf das Speichern');
     const messages = [...wf.document.querySelectorAll('.toast')];
     check('Keine rote Meldung, wenn die Antwort in eine fortgegangene Ansicht faellt',
       !messages.some(t => t.classList.contains('err')),
@@ -3145,7 +3218,7 @@ async function run() {
   {
     const standsDom = buildDom(JSDOM, { hash: '#/item/1' });
     const ws = standsDom.w;
-    await new Promise(r => setTimeout(r, 120));
+    await until(ws, shown('#ratings'), 2000, 'die Detailansicht');
     const strip = ws.document.querySelectorAll('#thumbs .thumb');
     check('Bei stehender Ansicht zeichnet der Streifen seine Kacheln',
       strip.length > 0, `${strip.length} Kacheln`);
@@ -4348,6 +4421,7 @@ group('Der Sprung zum Kommentar trifft und haelt');
   let spCalls = 0;
   wb.api = async () => {
     spCalls++;
+    // Die gestellte Antwort braucht 20 ms: der erste Ruf ist noch unterwegs, wenn der zweite fragt.
     await new Promise(r => setTimeout(r, 20));
     return [{ key: 'c77', id: 77, itemId: 1, itemTitle: 'Der Eintrag', number: 4 }];
   };
