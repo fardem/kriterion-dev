@@ -174,6 +174,7 @@ sagt der Fahrplan.
 | **42**, Fahrplan | Der Kommentaranteil von `public/style.css` liegt bei 40 Prozent — 1.215 von 3.029 Zeilen; offen ist, ob die gemessenen Zahlen in ein eigenes Papier wandern | niedrig | — | Entscheidung des Betreibers |
 | **20** | Nach einem Umbenennen holt die Oberfläche vier Antworten statt drei; die vierte ist die größte der Installation | niedrig | klein | liegen lassen |
 | **48** | Der Satz zum Backup heißt „Nur das Backup ist eine vollständige Sicherung der Datenbank"; Oberfläche, Handbuch und README sagen heute an fünf Stellen „Kopie der Datenbank" | mittel | klein | für den nächsten Patch vorgemerkt — Ansage des Betreibers vom 23. September 2026 |
+| **49** | Der Hinweis an der Zeitleiste wird am rechten Rand schmal und hoch; bei einem Punkt ganz rechts steht ein Zeichen je Zeile | mittel | klein | für den nächsten Patch gesammelt — Befund des Betreibers vom 23. September 2026 |
 | ~~Protokoll 0.38.2~~ | ~~Die Strichstärke des Löschkreuzes bleibt 1.8, dieselbe wie am Stift und am Zitatzeichen~~ | — | — | **ABGELEHNT am 21. September 2026** |
 | ~~Protokoll 0.38.2~~ | ~~Der Trefferausschnitt zeigt bei einem Treffer im Ziel eines Links den Rohtext samt seiner Marken~~ | — | — | **RUHT seit dem 21. September 2026** |
 | ~~Protokoll 0.38.3~~ | ~~Der Halt nach einem Sprung ist eine Frist von 1600 Millisekunden und keine Messung~~ | — | — | **RUHT seit dem 21. September 2026** |
@@ -2784,3 +2785,72 @@ Kein Fehler. Beide Sätze sind richtig. Am Ablauf ändert sich nichts.
 `public/languages/de.json` (2 Werte), `manual-de.md` (4 Stellen), `README.md`
 (2), `Doku/Fahrplan.md` (2 Stellen im Eintrag 0.41.0), `test/source.js`,
 `test/ui_system.js`, `test/dom.js`. Keine Route, kein Schema, kein Format.
+
+---
+
+## 49. Der Hinweis an der Zeitleiste wird am rechten Rand schmal und hoch
+
+**Art: Fehler** (Darstellung) · **Herkunft: 0.31.0**, Betreiber am
+23. September 2026 · **Einschätzung: klein** · gesammelt für den nächsten
+Patch
+
+### Woher
+
+Befund des Betreibers vom 23. September 2026, mit drei Bildschirmfotos. Fährt
+die Maus über einen Punkt weit rechts auf der Zeitleiste, wird das
+Hinweisfeld sehr schmal und sehr hoch. Datum und Note stehen dann ein Zeichen
+je Zeile untereinander (Bild 1 und 2). Bei einem Punkt weiter innen ist die
+Darstellung richtig (Bild 3).
+
+### Was auffiel
+
+`.timeline-hint` (`public/style.css`:1907) ist absolut positioniert.
+`showHint()` (`public/app.js`:3962) setzt `left` auf die Lage des Punktes;
+eine Breite setzt niemand. Der Browser nimmt als Breite deshalb den Platz
+zwischen `left` und dem rechten Rand der Zeitleiste. `translateX(-50%)`
+verschiebt das Feld erst danach und gibt ihm keinen Platz zurück.
+`overflow-wrap: anywhere` erlaubt den Umbruch nach jedem Zeichen.
+
+Gemessen in Chromium, Zeitleiste 900 px breit, Titel „Sky-Watcher I Star
+Adevnturer":
+
+| Punkt bei | Breite | Höhe |
+|---:|---:|---:|
+| 0 bis 70 % | 210 px | 73 px |
+| 80 % | 180 px | 73 px |
+| 90 % | 90 px | 147 px |
+| 95 % | 45 px | 366 px |
+| 100 % | 35 px | 647 px |
+
+Das Feld wird schmaler, sobald rechts vom Punkt weniger als 210 px frei sind.
+Bei 900 px sind das die rechten 23 Prozent der Zeitleiste; in einem
+schmaleren Fenster ist der Anteil größer. Bild 3 liegt schon in diesem
+Bereich: der Titel bricht in zwei Zeilen um, bleibt aber lesbar.
+
+Am linken Rand fehlt die Begrenzung ebenfalls. Bei 0 % ragt das Feld 105 px
+links aus der Zeitleiste, bei 10 % 15 px. Gemeldet ist das nicht.
+
+Die Obergrenze `max-width: min(14rem, 46%)` mit `overflow-wrap: anywhere` kam
+mit 0.31.0. Vorher trug das Feld `white-space: nowrap` und ragte am rechten
+Ende aus der Zeitleiste.
+
+### Was gebaut werden könnte
+
+`showHint()` misst das Feld nach dem Einfügen und verschiebt es so weit nach
+innen, dass es ganz in der Zeitleiste steht. Dafür braucht das Feld eine
+Breite, die nicht vom Platz rechts vom Punkt abhängt: `width: max-content`
+unter der bestehenden Obergrenze. **Einschätzung von Claude: empfohlen.**
+**Draußen üblich: ja** — Floating UI verschiebt ein Hinweisfeld am Rand mit
+`shift()` nach innen, ECharts hält es mit `confine` in der Grafik.
+
+### Offene Entscheidungen
+
+1. Ob der linke Rand mitgenommen wird, obwohl dort nichts gemeldet ist.
+   Dieselbe Verschiebung deckt beide Ränder.
+
+### Was es anfasst
+
+`public/app.js` (`showHint()`), `public/style.css` (`.timeline-hint`),
+`test/ui_style.js`:1409 bis :1414 — die Prüfung verlangt die Obergrenze und
+den Umbruch; beide bleiben. jsdom rechnet keine Breiten: eine Prüfung der
+Lage braucht gesetzte Maße. Keine Route, kein Schema, kein Format.
