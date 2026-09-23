@@ -4,7 +4,7 @@
 const H = require('./frame.js');
 const D = require('./dom.js');
 const {
-  buildDom, waitSearch
+  buildDom, waitSearch, until, openRequests
 } = D;
 
 async function run() {
@@ -1681,7 +1681,9 @@ async function check0314() {
       const anDom = buildDom(JSDOMan,
         { settings: { filters: null, language: 'tr', vocabulary: anVocabulary } });
       const wAn = anDom.w;
-      await new Promise(r => setTimeout(r, 120));
+      // Ein Rueckbau, der app.js zerbricht, macht die Zusagen rot und reisst den Lauf nicht ab.
+      await until(wAn, (x) => x.document.getElementById('count') && openRequests(x) === 0,
+        2000, 'die tuerkische Uebersicht').catch(() => {});
       /* GEKLAMMERT WIE JEDER GRIFF IN EIN FREMDES FENSTER: ein Rueckbau, der
          `app.js` zerbricht, soll eine Zusage rot machen und nicht den Lauf
          abreissen -- und der Fehler soll im Befund stehen und nicht im
