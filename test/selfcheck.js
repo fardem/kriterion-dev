@@ -398,7 +398,7 @@ async function run() {
     const COMMENT_ROWS = [
       ['testbench.js', 76],
       ['test/batchrun.js', 87],
-      ['test/dom.js', 347],
+      ['test/dom.js', 338],
       ['test/firstlogin.js', 34],
       ['test/frame.js', 238],
       ['test/keychange.js', 81],
@@ -406,7 +406,7 @@ async function run() {
       ['test/release_030.js', 254],
       ['test/release_031.js', 456],
       ['test/roundtrip.js', 3309],
-      ['test/selfcheck.js', 241],
+      ['test/selfcheck.js', 234],
       ['test/source.js', 975],
       ['test/ui_entry.js', 619],
       ['test/ui_export.js', 455],
@@ -433,15 +433,8 @@ async function run() {
       ['public/theme.js', 3],
       ['public/style.css', 1225],
     ];
-    /* DIE AUSZEICHNUNG BRINGT 830 ZEILEN CODE UND IHREN KOMMENTAR;
-       der Anteil bleibt unter einem Fuenftel. Die Zahlen darunter sind
-       gestiegen, weil der Sprung zum Kommentar dazugekommen ist -- davor
-       standen hier 16394 und 65809. */
-    /* UND NOCH EINMAL MIT DEN DREI INDEXEN, dem Verzeichnis der lesenden
-       Routen und der Marke am geloeschten Verweis -- davor 16438 und 66056.
-       Der groesste Teil davon steht im Pruefstand, nicht im ausgelieferten
-       Code: die Zahlen der Runde sind nachgezogen. */
-    const COMMENT_TOTAL = { comment: 16822, code: 67279 };
+    // Kommentar- und Codezeilen ueber alle Dateien, gemessen mit tools/comments.js.
+    const COMMENT_TOTAL = { comment: 16806, code: 67286 };
     check('Der Waechter sieht alle sechsunddreissig Dateien',
       crAll.each.length === 36 && COMMENT_ROWS.length === 36,
       `${crAll.each.length} gemessen, ${COMMENT_ROWS.length} genannt`);
