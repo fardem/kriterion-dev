@@ -3,7 +3,7 @@
 const H = require('./frame.js');
 const D = require('./dom.js');
 const {
-  buildDom
+  buildDom, until
 } = D;
 
 async function run() {
@@ -603,11 +603,8 @@ async function sendImport(object, mode, withoutShare = false) {
     kindQ.stdout.on('data', d => { prot += d; });
     kindQ.stderr.on('data', d => { prot += d; });
     try {
-      let ready = false;
-      for (let i = 0; i < 120 && !ready; i++) {
-        await new Promise(r => setTimeout(r, 100));
-        try { ready = (await fetch(`${base}/api/config`)).ok; } catch {}
-      }
+      const ready = await until(null, async () => (await fetch(`${base}/api/config`)).ok,
+        12000, 'der Start des Servers', 20).catch(() => false);
       if (!ready) throw new Error(`Server aus der Kopie (Port ${port}) nicht erreichbar\n${prot}`);
       const setupCall = await fetch(`${base}/api/setup`, {
         method: 'POST', headers: { 'content-type': 'application/json' },
@@ -12330,7 +12327,7 @@ async function sendImport(object, mode, withoutShare = false) {
       { username: 'bert', sendInvite: true, email: 'bert@beispiel.de' });
     check('Eine Einladung geht hinaus', fresh.content?.delivery === 'ok',
       `${fresh.content?.delivery} · ${fresh.content?.deliveryReason}`);
-    await new Promise(r => setTimeout(r, 300));
+    await until(null, () => E.letters().length > 0, 3000, 'der Brief der Einladung');
     const letters = E.letters();
     check('Der Empfaenger hat genau EINEN Brief bekommen', letters.length === 1,
       `${letters.length} Briefe`);
@@ -12397,7 +12394,7 @@ async function sendImport(object, mode, withoutShare = false) {
       second.content?.linkSource === 'einstellung', JSON.stringify(second.content?.linkSource));
     check('Und der Frist',
       second.content?.minutes === 15, JSON.stringify(second.content?.minutes));
-    await new Promise(r => setTimeout(r, 300));
+    await until(null, () => E.letters().length > 1, 3000, 'der zweite Brief');
     const secondMail = E.letters()[1] || { core: '' };
     check('Die zweite Mail traegt den zweiten Schluessel',
       secondMail.core.includes(second.content?.token), secondMail.core.slice(0, 300));
@@ -12428,9 +12425,8 @@ async function sendImport(object, mode, withoutShare = false) {
     check('Der Token entsteht auch dort, und der Link steht in der Antwort',
       /^[0-9a-f]{64}$/.test(withoutAdr.content?.token || '') && Boolean(withoutAdr.content?.link),
       JSON.stringify([withoutAdr.content?.token, withoutAdr.content?.link]));
+    // Wartet, ob ein Brief an den Zugang ohne Adresse ausbleibt.
     await new Promise(r => setTimeout(r, 200));
-    // UND DER EMPFAENGER HAT NICHTS BEKOMMEN. Ohne diese Zeile bliebe offen,
-// ob wirklich nichts hinausging oder nur das Feld anders heisst.
     check('Und der Empfaenger hat davon nichts gesehen',
       E.letters().length === 2, `${E.letters().length} Briefe`);
 
@@ -12556,6 +12552,7 @@ async function sendImport(object, mode, withoutShare = false) {
     check('Und der Grund nennt die Einstellung',
       /PUBLIC_ADDRESS/.test(oFresh.content?.deliveryReason || ''),
       JSON.stringify(oFresh.content?.deliveryReason));
+    // Wartet, ob ohne oeffentliche Adresse ein Brief ausbleibt.
     await new Promise(r => setTimeout(r, 200));
     check('Der Empfaenger hat wirklich nichts bekommen',
       O.letters().length === 0, `${O.letters().length} Briefe`);
@@ -12577,7 +12574,7 @@ async function sendImport(object, mode, withoutShare = false) {
     check('Ein gefaelschter Host-Kopf aendert den Link nicht',
       hContent.link === `https://kriterion.beispiel.de/#/invite/${hContent.token}`,
       JSON.stringify(hContent.link));
-    await new Promise(r => setTimeout(r, 300));
+    await until(null, () => H.letters().length > 0, 3000, 'der Brief mit dem Link');
     const hMail = (H.letters()[0] || { core: '' }).core;
     check('Und der Link IN DER MAIL ebenso wenig',
       hMail.includes('https://kriterion.beispiel.de/#/invite/') &&
@@ -12673,7 +12670,7 @@ async function sendImport(object, mode, withoutShare = false) {
       `${tIncluding.content?.ok} · ${tIncluding.content?.reason}`);
     check('Und zwar an die eigene Adresse', tIncluding.content?.sentTo === 'anna@beispiel.de',
       JSON.stringify(tIncluding.content?.sentTo));
-    await new Promise(r => setTimeout(r, 300));
+    await until(null, () => T.letters().length > 0, 3000, 'die Testmail');
     const tLetters = T.letters();
     check('Der Empfaenger sah genau die eigene Adresse',
       tLetters.length === 1 && /^To: anna@beispiel\.de$/m.test(tLetters[0].head),
@@ -12688,7 +12685,7 @@ async function sendImport(object, mode, withoutShare = false) {
       { 'x-mail-to': 'fremd3@boese.net' }, {})).content;
     check('Und ein Kopf ebenso wenig', tHeadContent.sentTo === 'anna@beispiel.de',
       JSON.stringify(tHeadContent.sentTo));
-    await new Promise(r => setTimeout(r, 300));
+    await until(null, () => T.letters().length >= 3, 3000, 'die drei Testmails');
     check('Keiner der drei Versuche hat eine fremde Adresse erreicht',
       T.letters().every(b => !/boese\.net/.test(b.raw)) && T.letters().length === 3,
       `${T.letters().length} Briefe, fremde Adressen: ` +
@@ -12916,16 +12913,9 @@ async function sendImport(object, mode, withoutShare = false) {
       const m = b[b.length - 1].core.match(/#\/confirm\/([0-9a-f]{64})/);
       return m ? m[1] : null;
     };
-    /* Wartet, bis der Brief an diese Adresse da ist -- statt fest zu
-       schlafen. */
-    const regWaitOnMail = async (empf, an, ms = 15000) => {
-      for (let i = 0; i < ms / 50; i++) {
-        const k = regKey(empf, an);
-        if (k) return k;
-        await new Promise(r => setTimeout(r, 50));
-      }
-      return null;
-    };
+    // Wartet, bis der Brief an diese Adresse da ist, und liefert seinen Schluessel.
+    const regWaitOnMail = (empf, an, ms = 15000) =>
+      until(null, () => regKey(empf, an), ms, `der Brief an ${an}`).catch(() => null);
     const regSql = (dir, sql) => JSON.parse(shortRun(
       `const { db } = require('./db'); console.log(JSON.stringify(db.prepare(${JSON.stringify(sql)}).all()));`,
       dir));
@@ -13018,7 +13008,7 @@ async function sendImport(object, mode, withoutShare = false) {
     check('Keine der vier Lagen wartet auf den Mailserver',
       gE.every(([, e]) => e.ms < 500), gE.map(([w, e]) => `${w}: ${Math.round(e.ms)} ms`).join(' · '));
     /* UND DIE GEGENLAGE ZUR MESSUNG SELBST: der troepfelnde Empfaenger muss
-       ueberhaupt gehalten haben. */
+       ueberhaupt gehalten haben. Gewartet wird, ob ein Brief ausbleibt. */
     await new Promise(r => setTimeout(r, 600));
     check('Der troepfelnde Empfaenger haelt den Versand dabei wirklich fest',
       gTr.letters().length === 0, `${gTr.letters().length} Briefe angekommen`);
@@ -13424,7 +13414,9 @@ async function sendImport(object, mode, withoutShare = false) {
     check('Und die Antwort traegt die neue, leere Liste gleich mit',
       Array.isArray(fFree.content?.requests) && fFree.content.requests.length === 0,
       JSON.stringify(fFree.content?.requests));
-    await new Promise(r => setTimeout(r, 800));
+    await until(null, () => hOk.letters().some(b => b.core.includes(
+      `https://kriterion.beispiel.de/#/invite/${fFree.content?.token}`)), 3000, 'die Einladungsmail')
+      .catch(() => {});
     check('Die Einladungsmail geht hinaus', fFree.content?.delivery === 'ok',
       `${fFree.content?.delivery} · ${fFree.content?.deliveryReason}`);
     /* GESUCHT WIRD DER BRIEF MIT DIESEM LINK und nicht der letzte in der
@@ -13552,6 +13544,7 @@ async function sendImport(object, mode, withoutShare = false) {
     check('Und der Name steht in keiner Benutzerzeile',
       !JSON.stringify(regSql(hA.dir, 'SELECT username FROM users')).includes('konrad'),
       JSON.stringify(regSql(hA.dir, 'SELECT username FROM users')));
+    // Wartet, ob eine Absagemail ausbleibt.
     await new Promise(r => setTimeout(r, 400));
     check('Es geht keine Absagemail hinaus -- Benachrichtigungen gibt es nicht',
       hOk.letters().length === fromLettersVor, `${hOk.letters().length - fromLettersVor} neue Briefe`);
@@ -13855,10 +13848,9 @@ async function sendImport(object, mode, withoutShare = false) {
       `const { db } = require('./db'); console.log(JSON.stringify(db.prepare(${JSON.stringify(sql)}).all()));`,
       zfDir));
 
-    /* WARTET, BIS IM LAUFENDEN WINDOW NOCH GENUG ZEIT IST. */
-    const zfQuiet = async () => {
-      while (30000 - (Date.now() % 30000) < 9000) await new Promise(r => setTimeout(r, 200));
-    };
+    // Wartet, bis im laufenden Fenster des Codes noch neun Sekunden bleiben.
+    const zfQuiet = () => until(null, () => 30000 - (Date.now() % 30000) >= 9000,
+      10000, 'genug Zeit im Fenster des Codes', 50);
 
     /* Legt einen Zugang mit eingeschaltetem zweitem Faktor an und liefert
        alles, was die Lage danach braucht. */
@@ -16055,12 +16047,11 @@ async function sendImport(object, mode, withoutShare = false) {
      ihre Grenze und die Zusagen darunter werden rot -- der Lauf laeuft
      weiter. */
   let baStatus = null;
-  for (let i = 0; i < 400; i++) {
+  await until(null, async () => {
     const st = (await call('GET', '/api/stats')).content;
     baStatus = (st && st.conversion) || null;
-    if (baStatus && !baStatus.running) break;
-    await new Promise(r => setTimeout(r, 50));
-  }
+    return baStatus && !baStatus.running;
+  }, 20000, 'das Ende des Bestandslaufs', 50).catch(() => {});
   const status = baStatus || {};
   check('Der Fortschritt steht in den Kennzahlen und läuft aus',
     baStatus && baStatus.running === false, JSON.stringify(baStatus));
@@ -16120,12 +16111,11 @@ async function sendImport(object, mode, withoutShare = false) {
     check('Der Lauf startet auch ohne ein einziges offenes PNG', catchUp.status === 202,
       `Status ${catchUp.status}: ${JSON.stringify(catchUp.content)}`);
     let s2 = null;
-    for (let i = 0; i < 400; i++) {
+    await until(null, async () => {
       const st = (await call('GET', '/api/stats')).content;
       s2 = (st && st.conversion) || null;
-      if (s2 && !s2.running) break;
-      await new Promise(r => setTimeout(r, 50));
-    }
+      return s2 && !s2.running;
+    }, 20000, 'das Ende des Nachlaufs', 50).catch(() => {});
     check('Und er laeuft aus', s2 && s2.running === false, JSON.stringify(s2));
     /* ER ZAEHLT KEINE ABLEITUNGEN MEHR -- die vierte Zahl ist mit ihrer
        Haelfte gefallen. */
@@ -16176,12 +16166,11 @@ async function sendImport(object, mode, withoutShare = false) {
       run2.status === 202 && run2.content && run2.content.total >= 1,
       JSON.stringify(run2.content));
     let s3 = null;
-    for (let i = 0; i < 400; i++) {
+    await until(null, async () => {
       const st = (await call('GET', '/api/stats')).content;
       s3 = (st && st.conversion) || null;
-      if (s3 && !s3.running) break;
-      await new Promise(r => setTimeout(r, 50));
-    }
+      return s3 && !s3.running;
+    }, 20000, 'das Ende des zweiten Laufs', 50).catch(() => {});
     check('Und er laeuft aus', s3 && s3.running === false, JSON.stringify(s3));
     check('Und die falsch benannte Zeile liegt danach unverändert da',
       (await imageRaw(wrongPhoto.id)).bytes.equals(jpegTemplate) &&
@@ -17619,8 +17608,8 @@ async function sendImport(object, mode, withoutShare = false) {
     await BF.ready;
     // Das Nachruesten startet 1,5 Sekunden nach dem Zuhoeren und macht je
     // Zeile 30 ms Pause.
-    for (let i = 0; i < 60 && !/Vorschaubild\(er\) erzeugt/.test(BF.log()); i++)
-      await new Promise(r => setTimeout(r, 100));
+    await until(null, () => /Vorschaubild\(er\) erzeugt/.test(BF.log()), 6000,
+      'die Meldung des Nachruestens').catch(() => {});
     await BF.stop();
     const bfRows = (() => {
       const d = open(path.join(bfDir, 'katalog.sqlite'));
@@ -17751,7 +17740,8 @@ async function sendImport(object, mode, withoutShare = false) {
   check('Vor dem Herunterfahren steht etwas in der WAL', walBefore > 0, `${walBefore} Bytes`);
 
   await H2.stop();                       // schickt SIGTERM
-  await new Promise(r => setTimeout(r, 300));
+  await until(null, () => { try { process.kill(H2.pid, 0); return false; } catch { return true; } },
+    3000, 'das Ende des Servers');
   const walAfter = fs.existsSync(walPath) ? fs.statSync(walPath).size : 0;
   /* Nach SIGTERM ist die WAL abgeschlossen. */
   check('Nach SIGTERM ist die WAL abgeschlossen', walAfter === 0, `${walAfter} Bytes`);

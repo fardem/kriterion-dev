@@ -434,7 +434,7 @@ async function run() {
       ['public/style.css', 1225],
     ];
     // Kommentar- und Codezeilen ueber alle Dateien, gemessen mit tools/comments.js.
-    const COMMENT_TOTAL = { comment: 16807, code: 67303 };
+    const COMMENT_TOTAL = { comment: 16807, code: 67293 };
     check('Der Waechter sieht alle sechsunddreissig Dateien',
       crAll.each.length === 36 && COMMENT_ROWS.length === 36,
       `${crAll.each.length} gemessen, ${COMMENT_ROWS.length} genannt`);
