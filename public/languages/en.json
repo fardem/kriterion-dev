@@ -755,7 +755,7 @@
   "entry.addComment": "+ Comment",
   "entry.addDay": "+ Enter {dayOne}",
   "entry.added": "{count} {what} added",
-  "entry.addImage": "+ Image",
+  "entry.addImage": "+ Image/Video",
   "entry.addMediaHint": "Add photos and videos — several at a time",
   "entry.addTagDay": "Add tag ({dayOne})",
   "entry.adminOnlyHint": "Visible to admins only. {ratingMany} of other users can be removed here, but not changed.",
@@ -832,15 +832,15 @@
   "entry.grade": "{grade}",
   "entry.gradeLabel": "{grade}:",
   "entry.gradeReplaced": "{grade} for {day} replaced",
-  "entry.imageCapHint": "At most 6 images per comment.",
+  "entry.imageCapHint": "At most 6 images or videos per comment.",
   "entry.imageDeleteHint": "The image is deleted for good.",
   "entry.imagesAttached": {
-    "one": "image attached",
-    "other": "{n} images attached"
+    "one": "image or video attached",
+    "other": "{n} images or videos attached"
   },
   "entry.imagesRemovedAdmin": {
-    "one": "{n} image removed by the admin",
-    "other": "{n} images removed by the admin"
+    "one": "{n} image or video removed by the admin",
+    "other": "{n} images or videos removed by the admin"
   },
   "entry.jumpToInput": "Jump to the input field",
   "entry.layoutSaved": "Layout saved",
@@ -944,7 +944,7 @@
   "entry.whatIsThis": "What is this about?",
   "entry.whoRated": "Who?",
   "entry.whoRatedWord": "Who rated — {word}",
-  "entry.withAllImages": " — with all images",
+  "entry.withAllImages": " — with all images and videos",
   "entry.zoom": "Zoom",
   "error.serverStatus": "The server reports an error ({status}).",
   "list.all": "All",
@@ -1267,7 +1267,7 @@
   "server.fileNotText": "This file cannot be read as text.",
   "server.fontUnknown": "There is no such font size.",
   "server.gradeRange": "{grade} must be between 1 and 5.",
-  "server.imageCap": "At most {cap} images per comment.",
+  "server.imageCap": "At most {cap} images or videos per comment.",
   "server.imageGone": "This image no longer exists.",
   "server.imagesOnly": "Only image files are allowed",
   "server.imageStoreUnknown": "There is no such method for storing images.",

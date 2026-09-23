@@ -1123,10 +1123,10 @@ function imagesFromClipboard(e) {
 }
 
 // Dateiauswahl fuer Bilder, ohne dass ein Feld im Aufbau stehen muss.
-function pickImages(finished) {
+function pickImages(finished, withVideos = false) {
   const inp = document.createElement('input');
   inp.type = 'file';
-  inp.accept = 'image/*';
+  inp.accept = withVideos ? 'image/*,video/*' : 'image/*';
   inp.multiple = true;
   inp.onchange = () => { finished([...inp.files]); inp.remove(); };
   inp.style.display = 'none';
@@ -1142,6 +1142,45 @@ async function sendForm(path, form) {
   if (a.status === 401) { showLogin(); throw new Error(SESSION_GONE); }
   if (!a.ok) throw new Error(data.error || t('entry.uploadFailed'));
   return data;
+}
+
+/* Ein Standbild aus dem gewaehlten Video ziehen -- IM BROWSER, ohne dass
+   der Server das Video je oeffnen muesste. Eintrag und Kommentar rufen es. */
+async function stillFrame(file, second = 1) {
+  const v = document.createElement('video');
+  v.preload = 'metadata'; v.muted = true; v.playsInline = true;
+  v.src = URL.createObjectURL(file);
+  try {
+    await new Promise((ok, fail) => {
+      v.onloadedmetadata = ok;
+      v.onerror = () => fail(new Error(t('entry.videoUnplayable')));
+    });
+    // Ein Video ohne Bildmasse -- etwa eine reine Tonspur -- ergaebe eine
+    // Zeichenflaeche der Groesse null und damit gar kein Standbild.
+    if (!v.videoWidth || !v.videoHeight)
+      throw new Error(t('entry.videoNoImage'));
+    v.currentTime = Math.min(second, (v.duration || 2) / 2);
+    await new Promise((ok, fail) => {
+      v.onseeked = ok;
+      v.onerror = () => fail(new Error(t('entry.videoUnplayable')));
+    });
+    const c = document.createElement('canvas');
+    c.width = v.videoWidth; c.height = v.videoHeight;
+    c.getContext('2d').drawImage(v, 0, 0);
+    const image = await new Promise(r => c.toBlob(r, 'image/jpeg', 0.85));
+    if (!image) throw new Error(t('entry.videoNoThumb'));
+    return { image, duration: Math.round(v.duration) || null };
+  } finally { URL.revokeObjectURL(v.src); }
+}
+
+// Video, Standbild und Dauer als ein Formular.
+async function videoForm(file) {
+  const { image, duration } = await stillFrame(file);
+  const fd = new FormData();
+  fd.append('video', file, file.name);
+  fd.append('stillFrame', image, 'stillframe.jpg');
+  if (duration) fd.append('duration', String(duration));
+  return fd;
 }
 
 /* ================= Der Ausschnitt der Vorschau ================= ER WIRD NICHT MEHR HIER GERECHNET. */
@@ -4462,6 +4501,9 @@ let lightboxOpen = false;
 function imageSource(p, filesize) {
   if (p.source === 'comment')
     return `/api/comment-images/${p.id}/raw${filesize === 'thumb' ? '?size=thumb' : ''}`;
+  // Ein Kommentarvideo hat nur die Kachel; sie ist auch das Poster.
+  if (p.source === 'commentVideo')
+    return `/api/comment-videos/${p.id}/raw${filesize ? '?size=thumb' : ''}`;
   if (!filesize) return `/api/photos/${p.id}/raw`;
   const f = Number(p.thumbLength);
   const version = filesize === 'thumb' && Number.isFinite(f) ? `&v=${f}` : '';
@@ -4501,6 +4543,7 @@ function openLightbox(photos, startIdx, title, remove, inside) {
       <span class="lb-title">${esc(title || '')}</span>
       <div class="lb-tools">
         <span class="lb-count"></span>
+        <a class="lb-btn download" download title="${esc(t('entry.download'))}">↓</a>
         <button class="lb-btn zoom" title="${esc(t('list.zoomFull'))}">⊕</button>
         ${/* DER PAPIERKORB STEHT ABGESETZT, mit einer groesseren Luecke davor
              -- dieselbe Ueberlegung wie ueber dem grossen Bild darunter: die
@@ -4595,6 +4638,8 @@ function openLightbox(photos, startIdx, title, remove, inside) {
     } else {
       img.src = imageSource(photos[i], 'medium');
     }
+    // Der Download zeigt auf das Original, beim Kommentarbild auf das gespeicherte Bild.
+    lb.querySelector('.download').href = imageSource(photos[i], '');
     // Ohne Original kein Zoomknopf -- ein Knopf, der nichts tut, wirkt kaputt.
     lb.querySelector('.zoom').hidden = !hasOriginal(photos[i]);
     img.title = hasOriginal(photos[i]) ? t('list.clickZoomHint') : '';
@@ -5336,35 +5381,6 @@ async function renderDetail(id, termAddress, commentWanted) {
       });
       box.appendChild(tile);
     });
-  }
-
-  /* Ein Standbild aus dem gewaehlten Video ziehen -- IM BROWSER, ohne dass
-     der Server das Video je oeffnen muesste. */
-  async function stillFrame(file, second = 1) {
-    const v = document.createElement('video');
-    v.preload = 'metadata'; v.muted = true; v.playsInline = true;
-    v.src = URL.createObjectURL(file);
-    try {
-      await new Promise((ok, fail) => {
-        v.onloadedmetadata = ok;
-        v.onerror = () => fail(new Error(t('entry.videoUnplayable')));
-      });
-      // Ein Video ohne Bildmasse -- etwa eine reine Tonspur -- ergaebe eine
-// Zeichenflaeche der Groesse null und damit gar kein Standbild.
-      if (!v.videoWidth || !v.videoHeight)
-        throw new Error(t('entry.videoNoImage'));
-      v.currentTime = Math.min(second, (v.duration || 2) / 2);
-      await new Promise((ok, fail) => {
-        v.onseeked = ok;
-        v.onerror = () => fail(new Error(t('entry.videoUnplayable')));
-      });
-      const c = document.createElement('canvas');
-      c.width = v.videoWidth; c.height = v.videoHeight;
-      c.getContext('2d').drawImage(v, 0, 0);
-      const image = await new Promise(r => c.toBlob(r, 'image/jpeg', 0.85));
-      if (!image) throw new Error(t('entry.videoNoThumb'));
-      return { image, duration: Math.round(v.duration) || null };
-    } finally { URL.revokeObjectURL(v.src); }
   }
 
   // Fotos gehen gebuendelt in einem Vorgang, Videos einzeln: jedes bringt sein
@@ -6680,20 +6696,31 @@ async function renderDetail(id, termAddress, commentWanted) {
         };
       }
 
-      // Bilder als Kacheln unter dem Text; Klick öffnet das vorhandene Vollbild.
-// Das ✕ nur bei Verfasser oder Admin -- ansehen darf jeder.
+      // Bilder und dahinter Videos als Kacheln unter dem Text; ein Klick oeffnet
+// das Vollbild. Das ✕ nur bei Verfasser oder Admin -- ansehen darf jeder.
       const imgBox = el.querySelector('.cmt-imgs');
-      (c.images || []).forEach((b, i) => {
+      const media = [...(c.images || []).map(x => ({ id: x.id, source: 'comment' })),
+        ...(c.videos || []).map(x => ({ id: x.id, source: 'commentVideo', kind: 'video',
+                                         duration: x.duration }))];
+      media.forEach((m, i) => {
+        const video = isVideo(m);
+        const length = video ? durationText(m.duration) : '';
         const k = document.createElement('div');
-        k.className = 'cmt-img';
-        k.innerHTML = `<img src="/api/comment-images/${Number(b.id)}/raw?size=thumb" alt="" loading="lazy">
-          ${manage ? `<button class="del" title="${esc(t('entry.deleteImage'))}">${ICON_X}</button>` : ''}`;
-        k.querySelector('img').onclick = () =>
-          openLightbox((c.images || []).map(x => ({ id: x.id, source: 'comment' })), i, item.title);
+        k.className = 'cmt-img' + (video ? ' is-video' : '');
+        k.innerHTML = `<img src="${esc(imageSource(m, 'thumb'))}" alt="" loading="lazy">` +
+          (video ? `<span class="play-badge">▶</span>` : '') +
+          (length ? `<span class="duration">${esc(length)}</span>` : '') +
+          (manage ? `<button class="del" title="${esc(t(video ? 'entry.deleteVideo' : 'entry.deleteImage'))}">${ICON_X}</button>` : '');
+        k.querySelector('img').onclick = () => {
+          openLightbox(media, i, item.title);
+          if (video) document.querySelector('.lightbox .lb-video')?.play?.()?.catch?.(() => {});
+        };
         if (manage) k.querySelector('.del').onclick = async (e) => {
           e.stopPropagation();
-          if (!await confirmBox(t('entry.deleteImageAsk'), t('entry.imageDeleteHint'))) return;
-          try { item = await api('DELETE', `/api/comment-images/${b.id}`); drawComments(); }
+          const word = t('list.video');
+          if (!await confirmBox(video ? t('entry.deleteWordAsk', { word }) : t('entry.deleteImageAsk'),
+            video ? t('entry.deleteHint', { word }) : t('entry.imageDeleteHint'))) return;
+          try { item = await api('DELETE', `/api/comment-${video ? 'videos' : 'images'}/${m.id}`); drawComments(); }
           catch (err) { toast(err.message, true); }
         };
         imgBox.appendChild(k);
@@ -6702,7 +6729,7 @@ async function renderDetail(id, termAddress, commentWanted) {
       if (manage) el.querySelector('.rm').onclick = async () => {
         if (!await confirmBox(t('entry.deleteCommentAsk'),
           t('entry.commentDeleteHint',
-            { extra: (c.images || []).length ? t('entry.withAllImages') : '' }))) return;
+            { extra: media.length ? t('entry.withAllImages') : '' }))) return;
         try { await api('DELETE', `/api/comments/${c.id}`); item = await api('GET', `/api/items/${id}`); drawComments(); }
         catch (e) { toast(e.message, true); }
       };
@@ -6726,16 +6753,27 @@ async function renderDetail(id, termAddress, commentWanted) {
         // Beim Bearbeiten hat der Kommentar schon eine Id -- Bilder gehen
 // deshalb sofort an den Server, ohne auf das Speichern zu warten.
         const addLater = async (files) => {
+          const images = files.filter(f => !/^video\//.test(f.type));
+          const videos = files.filter(f => /^video\//.test(f.type));
           if (!files.length) return;
-          const fd = new FormData();
-          files.forEach(f => fd.append('images', f));
+          let sent = 0;
           try {
-            item = await sendForm(`/api/comments/${c.id}/images`, fd);
-            toast(t('entry.imagesAttached', { n: files.length }));
-            drawComments();
+            if (images.length) {
+              const fd = new FormData();
+              images.forEach(f => fd.append('images', f));
+              item = await sendForm(`/api/comments/${c.id}/images`, fd);
+              sent += images.length;
+            }
+            // Ein Video je Anfrage, jedes mit seinem Standbild.
+            for (const f of videos) {
+              item = await sendForm(`/api/comments/${c.id}/videos`, await videoForm(f));
+              sent++;
+            }
+            toast(t('entry.imagesAttached', { n: sent }));
           } catch (e) { toast(e.message, true); }
+          if (sent) drawComments();
         };
-        wrap.querySelector('.addimg').onclick = () => pickImages(addLater);
+        wrap.querySelector('.addimg').onclick = () => pickImages(addLater, true);
         ta.addEventListener('paste', (e) => {
           const images = imagesFromClipboard(e);
           if (!images.length) return;
@@ -6760,7 +6798,7 @@ async function renderDetail(id, termAddress, commentWanted) {
   // Kommentar hat noch keine Id, und bei einem Abbruch entstuende sonst ein
   // leerer Kommentar mit Bildern.
   const fitCtext = autoGrow(document.getElementById('ctext'));
-  let newImages = [];
+  let newImages = [], newVideo = null;
   let newPinned = false, newKind = 'note';
 
   function drawNewMarks() {
@@ -6794,11 +6832,28 @@ async function renderDetail(id, termAddress, commentWanted) {
       k.querySelector('.del').onclick = () => { newImages.splice(i, 1); drawNewImages(); };
       box.appendChild(k);
     });
+    if (!newVideo) return;
+    // Das Video zeigt sein Standbild mit dem Abspielzeichen.
+    const k = document.createElement('div');
+    k.className = 'cmt-img is-video';
+    const url = URL.createObjectURL(newVideo.image);
+    k.innerHTML = `<img src="${esc(url)}" alt=""><span class="play-badge">▶</span>` +
+      `<button class="del" title="${esc(t('entry.removeAgain'))}">${ICON_X}</button>`;
+    k.querySelector('img').onload = () => URL.revokeObjectURL(url);
+    k.querySelector('.del').onclick = () => { newVideo = null; drawNewImages(); };
+    box.appendChild(k);
   }
-  const takeImages = (files) => {
+  const takeImages = async (files) => {
     const images = files.filter(f => f.type.startsWith('image/'));
-    if (!images.length) return;
-    if (newImages.length + images.length > 6) return toast(t('entry.imageCapHint'), true);
+    const videos = files.filter(f => f.type.startsWith('video/'));
+    if (!images.length && !videos.length) return;
+    if (videos.length > 1 || (videos.length && newVideo)) return toast(t('server.videoOne'), true);
+    if (newImages.length + images.length + (newVideo || videos.length ? 1 : 0) > 6)
+      return toast(t('entry.imageCapHint'), true);
+    if (videos.length) {
+      try { newVideo = { file: videos[0], ...await stillFrame(videos[0]) }; }
+      catch (e) { return toast(e.message, true); }
+    }
     newImages = [...newImages, ...images];
     drawNewImages();
   };
@@ -6809,7 +6864,7 @@ async function renderDetail(id, termAddress, commentWanted) {
     () => { newKind = newKind === 'report' ? 'note' : 'report'; drawNewMarks(); };
   document.getElementById('ctask').onclick =
     () => { newKind = taskMore(newKind); drawNewMarks(); };
-  document.getElementById('cimg').onclick = () => pickImages(takeImages);
+  document.getElementById('cimg').onclick = () => pickImages(takeImages, true);
 
   /* Der Sprung ans Schreibfeld. */
   document.getElementById('cjump').onclick = () => {
@@ -6839,10 +6894,15 @@ async function renderDetail(id, termAddress, commentWanted) {
     fd.append('kind', newKind);
     fd.append('pinned', newPinned ? '1' : '0');
     newImages.forEach(f => fd.append('images', f));
+    if (newVideo) {
+      fd.append('video', newVideo.file, newVideo.file.name);
+      fd.append('stillFrame', newVideo.image, 'stillframe.jpg');
+      if (newVideo.duration) fd.append('duration', String(newVideo.duration));
+    }
     try {
       item = await sendForm(`/api/items/${id}/comments`, fd);
       ta.value = ''; fitCtext();
-      newImages = []; newPinned = false; newKind = 'note';
+      newImages = []; newVideo = null; newPinned = false; newKind = 'note';
       drawNewImages(); drawNewMarks(); drawComments();
     } catch (e) { toast(e.message, true); }
   };

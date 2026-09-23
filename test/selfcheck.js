@@ -410,14 +410,15 @@ async function run() {
       ['test/batchrun.js', 87],
       ['test/dom.js', 338],
       ['test/firstlogin.js', 34],
-      ['test/frame.js', 239],
+      ['test/frame.js', 240],
       ['test/keychange.js', 81],
       ['test/release_029.js', 60],
       ['test/release_030.js', 253],
       ['test/release_031.js', 457],
+      ['test/release_041.js', 20],
       ['test/roundtrip.js', 3309],
       ['test/selfcheck.js', 234],
-      ['test/source.js', 975],
+      ['test/source.js', 948],
       ['test/ui_entry.js', 637],
       ['test/ui_export.js', 456],
       ['test/ui_inventory.js', 244],
@@ -427,7 +428,7 @@ async function run() {
       ['test/ui_system.js', 694],
       ['test/ui_translator.js', 105],
       ['counterproof.js', 1638],
-      ['server.js', 1599],
+      ['server.js', 1607],
       ['auth.js', 288],
       ['db.js', 136],
       ['mail.js', 43],
@@ -439,12 +440,12 @@ async function run() {
       ['usertool.js', 23],
       ['twofactor.js', 34],
       ['keytool.js', 41],
-      ['public/app.js', 1972],
+      ['public/app.js', 1977],
       ['public/theme.js', 3],
       ['public/style.css', 1225],
     ];
     // Kommentar- und Codezeilen ueber alle Dateien, gemessen mit tools/comments.js.
-    const COMMENT_TOTAL = { comment: 16839, code: 67657 };
+    const COMMENT_TOTAL = { comment: 16846, code: 68268 };
     check('Der Waechter sieht alle sechsunddreissig Dateien',
       crAll.each.length === 36 && COMMENT_ROWS.length === 36,
       `${crAll.each.length} gemessen, ${COMMENT_ROWS.length} genannt`);

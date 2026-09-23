@@ -755,7 +755,7 @@
   "entry.addComment": "+ Kommentar",
   "entry.addDay": "+ {dayOne} eintragen",
   "entry.added": "{count} {what} hinzugefügt",
-  "entry.addImage": "+ Bild",
+  "entry.addImage": "+ Bild/Video",
   "entry.addMediaHint": "Fotos und Videos hinzufügen — mehrere möglich",
   "entry.addTagDay": "Tag hinzufügen ({dayOne})",
   "entry.adminOnlyHint": "Nur für Admins sichtbar. {ratingMany} anderer Benutzer lassen sich hier entfernen, aber nicht ändern.",
@@ -832,15 +832,15 @@
   "entry.grade": "{grade}",
   "entry.gradeLabel": "{grade}:",
   "entry.gradeReplaced": "{grade} für den {day} ersetzt",
-  "entry.imageCapHint": "Höchstens 6 Bilder je Kommentar.",
+  "entry.imageCapHint": "Höchstens 6 Bilder oder Videos je Kommentar.",
   "entry.imageDeleteHint": "Das Bild wird endgültig gelöscht.",
   "entry.imagesAttached": {
-    "one": "Bild angehängt",
-    "other": "{n} Bilder angehängt"
+    "one": "Bild oder Video angehängt",
+    "other": "{n} Bilder oder Videos angehängt"
   },
   "entry.imagesRemovedAdmin": {
-    "one": "{n} Bild vom Admin entfernt",
-    "other": "{n} Bilder vom Admin entfernt"
+    "one": "{n} Bild oder Video vom Admin entfernt",
+    "other": "{n} Bilder oder Videos vom Admin entfernt"
   },
   "entry.jumpToInput": "Zum Eingabefeld springen",
   "entry.layoutSaved": "Anordnung gespeichert",
@@ -944,7 +944,7 @@
   "entry.whatIsThis": "Worum geht es hier?",
   "entry.whoRated": "Wer?",
   "entry.whoRatedWord": "Wer hat bewertet — {word}",
-  "entry.withAllImages": " — mit allen Bildern",
+  "entry.withAllImages": " — mit allen Bildern und Videos",
   "entry.zoom": "Zoom",
   "error.serverStatus": "Der Server meldet einen Fehler ({status}).",
   "list.all": "Alle",
@@ -1267,7 +1267,7 @@
   "server.fileNotText": "Diese Datei lässt sich nicht als Text lesen.",
   "server.fontUnknown": "Diese Schriftgröße gibt es nicht.",
   "server.gradeRange": "{grade} muss zwischen 1 und 5 liegen.",
-  "server.imageCap": "Höchstens {cap} Bilder je Kommentar.",
+  "server.imageCap": "Höchstens {cap} Bilder oder Videos je Kommentar.",
   "server.imageGone": "Dieses Bild gibt es nicht mehr.",
   "server.imagesOnly": "Nur Bilddateien sind erlaubt",
   "server.imageStoreUnknown": "Dieses Verfahren zum Speichern von Bildern gibt es nicht.",

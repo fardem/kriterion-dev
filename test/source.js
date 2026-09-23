@@ -34,20 +34,9 @@ async function run() {
   check('Der Pruefstand kennt jede schreibende Route',
     fUnknown.length === 0 && fGone.length === 0,
     `ohne Entscheidung: ${fUnknown.join(' · ') || '—'} · verschwunden: ${fGone.join(' · ') || '—'}`);
-  /* Die ZAHL selbst, ausdruecklich: 0.8.50 brachte EINE neue schreibende
-     Route mit, den Videoweg -- 46 wurden 47. Bleibt die Zahl stehen, hat sich
-     am Rechtebild nichts verschoben; waechst sie unbemerkt, faellt genau das
-     hier auf. */
-  /* 0.11.0 bewegt sie NICHT. Die Volltextsuche laeuft ueber GET
-     /api/items?q=... */
-  /* 0.19.0 bewegt sie um EINE: 69 werden 70 -- POST /api/images/convert. */
-  /* 0.20.0 bewegt sie um EINE: 70 werden 71 -- POST /api/backup/cleanup. */
-  /* 0.21.0 bewegt sie um EINE nach UNTEN: 71 werden 70 -- DELETE
-     /api/items/:id/ratings faellt weg. */
-  /* 0.24.4 bewegt sie um EINE: 70 werden 71 -- POST /api/tags. */
-  /* 0.29.0 bewegt sie um EINE: 72 werden 73 -- POST /api/backup/check. */
-  check('Und es sind jetzt genau 73 schreibende Routen',
-    F_ROUTES.length === 73 && fFound.length === 73,
+  // Die Zahl ausdruecklich: waechst sie unbemerkt, faellt es hier auf.
+  check('Und es sind jetzt genau 75 schreibende Routen',
+    F_ROUTES.length === 75 && fFound.length === 75,
     `${F_ROUTES.length} erwartet, ${fFound.length} gefunden`);
   /* DIE GESCHLOSSENEN LISTEN AUS auth.js, ausdruecklich mit ihrer ZAHL --
      dieselbe Bauform wie F_ROUTES und aus demselben Grund:
@@ -130,8 +119,8 @@ async function run() {
     `ohne Eintrag: ${fReadUnknown.join(' · ') || '—'} · verschwunden: ${fReadGone.join(' · ') || '—'}`);
   /* DIE ZAHL AUSDRUECKLICH, wie bei F_ROUTES: sie ist gezaehlt und nicht
      geschaetzt -- ein grobes Zaehlen am Zeilenanfang liefert dieselbe. */
-  check('Und es sind genau 30 lesende Routen',
-    F_READ_ROUTES.length === 30 && fRead.length === 30,
+  check('Und es sind genau 31 lesende Routen',
+    F_READ_ROUTES.length === 31 && fRead.length === 31,
     `${F_READ_ROUTES.length} erwartet, ${fRead.length} gefunden`);
   // Und jede Zeile traegt ihren Satz: ein leeres Feld belegt nichts.
   check('Und jede Zeile des Verzeichnisses sagt, warum sie dort sitzt',
@@ -460,7 +449,7 @@ async function run() {
   /* --- 0.8.70: DER PAPIERKORB FASST KEINE BESTEHENDE ABFRAGE AN -----------
      Die tragende Regel der Runde. */
   const DATATABLES = ['items', 'photos', 'comments', 'ratings', 'test_days',
-                            'links', 'attachments', 'comment_images', 'item_tags',
+                            'links', 'attachments', 'comment_images', 'comment_videos', 'item_tags',
                             'test_day_tags', 'item_pins'];
   const inventoryQueries = (text) => text.split('\n')
     .filter(z => DATATABLES.some(t =>
@@ -471,23 +460,22 @@ async function run() {
 // Zeilen bliebe jede Verneinung darauf wahr und belegte nichts.
   check('Der Waechter findet die Abfragen auf den Bestand ueberhaupt',
     fInventoryRows.length > 30, `${fInventoryRows.length} Zeilen`);
-  /* VIER BENANNTE AUSNAHMEN: die Kopieranweisungen des Papierkorbs lesen den
-     Bestand ungefiltert und SCHREIBEN nach trash_bytes. Keine bestehende
-     Abfrage wird dadurch enger. */
+  /* Benannte Ausnahmen: die Kopieranweisungen des Papierkorbs lesen den
+     Bestand ungefiltert und schreiben nach trash_bytes. */
   const fTrashCopies = fInventoryRows.filter(z => z.includes('INSERT INTO trash_bytes'));
-  check('Die vier Kopieranweisungen des Papierkorbs stehen da',
-    fTrashCopies.length === 4, `${fTrashCopies.length} Zeilen`);
+  check('Die sechs Kopieranweisungen des Papierkorbs stehen da',
+    fTrashCopies.length === 6, `${fTrashCopies.length} Zeilen`);
   check('Und keine von ihnen verengt den Bestand',
     fTrashCopies.every(z => /WHERE id = \?'\)/.test(z) && !/deleted/i.test(z)),
     fTrashCopies.filter(z => !/WHERE id = \?'\)/.test(z)).join(' · '));
   check('Keine davon nennt den Papierkorb oder einen Zustand geloescht',
     tainted(fInventoryRows.filter(z => !fTrashCopies.includes(z))).length === 0,
     tainted(fInventoryRows.filter(z => !fTrashCopies.includes(z))).slice(0, 3).join(' · '));
-  /* UND DIE DREI ABFRAGEN, DIE DER PAPIERKORB STATT DER VOLLEN NIMMT, LESEN
-     WIRKLICH KEINE BYTES -- sonst waere die Kopie in SQLite umsonst. */
+  /* Die Abfragen, die der Papierkorb statt der vollen nimmt, lesen keine
+     Bytes -- sonst waere die Kopie in SQLite umsonst. */
   const fRefQueries = fSource.match(/const qRef\w+ = [\s\S]*?\);\n/g) || [];
-  check('Der Papierkorb hat drei Abfragen ohne Blobspalten',
-    fRefQueries.length === 3, `${fRefQueries.length} Abfragen`);
+  check('Der Papierkorb hat vier Abfragen ohne Blobspalten',
+    fRefQueries.length === 4, `${fRefQueries.length} Abfragen`);
   check('Und keine von ihnen liest die Spalte data',
     fRefQueries.every(z => !/\bdata\b/.test(z)),
     fRefQueries.filter(z => /\bdata\b/.test(z)).join(' · ').slice(0, 200));
@@ -1922,11 +1910,14 @@ async function run() {
        statt der Tasten, und es steht mit dem alten Wortlaut drueben und mit
        dem neuen hier. */
     const WORDING_CHANGED_0384 = ['entry.commentPlaceholder'];
-    /* UND ZWEI WENIGER AUF JEDER SEITE: `server.exportGrew` und
-       `server.exportTooBig` gibt es nicht mehr, und ihre beiden Wortlaute
-       stehen damit auf keiner der beiden Seiten. */
-    check('Und genau hundertachtundfuenfzig Saetze sind andere — zwei weniger, seit die Absage fort ist',
-      onlyThen.length === 158 && onlyNow.length === 156 &&
+    // Mit den Videos in Kommentaren sagen sechs Schluessel „Bild oder Video".
+    const WORDING_CHANGED_VIDEO = ['entry.addImage', 'entry.imageCapHint', 'server.imageCap',
+      'entry.withAllImages', 'entry.imagesAttached', 'entry.imagesRemovedAdmin'];
+    const flatValues = (v) => (v && typeof v === 'object' ? Object.values(v) : [v]);
+    check('Und genau 166 Saetze sind andere, jeder davon benannt',
+      onlyThen.length === 166 && onlyNow.length === 164 &&
+      WORDING_CHANGED_VIDEO.every(k => LANGUAGE_FILE[k] !== undefined &&
+        flatValues(LANGUAGE_FILE[k]).every(v => onlyNow.includes(asBefore(v)))) &&
       WORDING_CHANGED_0384.every(k => LANGUAGE_FILE[k] !== undefined
         && onlyNow.includes(asBefore(LANGUAGE_FILE[k]))) &&
       WORDING_CHANGED_0321.every(k => LANGUAGE_FILE[k] !== undefined
@@ -1993,10 +1984,8 @@ async function run() {
     /* 929 WURDEN 925 MIT 0.32.1: vier Saetze sind ganz gefallen, ohne dass
        ein anderer an ihre Stelle traete -- `list.and`, `list.ofWhich`,
        `list.sortDefaultHint` und `entry.deleteWord`. */
-    /* 922 WURDEN 921: ein Satz mehr steht in den Listen darueber statt im
-       Rest -- der Platzhalter des Kommentarfeldes. */
     check('Und sonst kein Zeichen — Satz fuer Satz dieselbe Oberflaeche',
-      equal(restThen, restNow) && restNow.length === 921,
+      equal(restThen, restNow) && restNow.length === 913,
       `${restThen.filter((x, i) => x !== restNow[i]).length} abweichende von ${restNow.length}`);
 
     /* ---- 6. Die Kuerzeprobe ---------------------------------------------
@@ -2093,8 +2082,8 @@ async function run() {
     const readShipped = (f) => fs.readFileSync(path.join(__dirname, ...f.split('/')), 'utf8');
     const stWord = 'Stolper' + 'stein';
     const stAll = [...BENCH, ...SHIPPED];
-    check('Der Waechter sieht alle sechsunddreissig Dateien',
-      stAll.length === 36, `${stAll.length} Dateien`);
+    check('Der Waechter sieht alle siebenunddreissig Dateien',
+      stAll.length === 37, `${stAll.length} Dateien`);
     /* DAS ZWEITE LOCH — 0.35.2. Der Schematext von db.js steht als Vorlage im
        Quelltext, und seine Zeilen beginnen mit `--`. Der Segmentierer haelt
        eine Vorlage fuer Text, und Text sieht dieser Waechter nicht an --
@@ -2480,10 +2469,10 @@ async function run() {
        Schreibstellen UND die Abweisung rechnen -- Zusage 11. */
     check('Die Formatnummer steht genau einmal als Zahl im Quelltext',
       (stServer.match(/EXCHANGE_FORMAT = \d+/g) || []).length === 1 &&
-      /const EXCHANGE_FORMAT = 18;/.test(stServer),
+      /const EXCHANGE_FORMAT = 19;/.test(stServer),
       (stServer.match(/EXCHANGE_FORMAT = \d+/g) || []).join(' · '));
     check('Und die aelteste gelesene daneben, unter ihr',
-      /const EXCHANGE_FORMAT_MIN = 14;/.test(stServer) && 14 < 18,
+      /const EXCHANGE_FORMAT_MIN = 14;/.test(stServer) && 14 < 19,
       (stServer.match(/EXCHANGE_FORMAT_MIN = \d+/g) || []).join(' · '));
     /* UND DAS HANDBUCH NENNT DIESELBE ZAHL. Sie stand dort auf 17, waehrend
        der Server 18 trug: die Nummer war gehoben und das Papier nicht
@@ -2767,7 +2756,7 @@ async function run() {
     /* ERST DER BEFUND AM GESTELLTEN FALL: ein Waechter, der auf leeren Mengen
        laeuft, ist gruen und belegt nichts. */
     check('Der Waechter sieht beide Seiten',
-      rrRoutes.length === 103 && rrBrowser.length > 100000,
+      rrRoutes.length === 106 && rrBrowser.length > 100000,
       `${rrRoutes.length} Routen, ${rrBrowser.length} Zeichen im Browser`);
     /* DIE AUSNAHMEN, UND SIE STEHEN NAMENTLICH DA. Die Verwaltungstafel baut
        ihre Adresse aus einem Feld: `api('PUT', `${url}/${entry.id}`)` mit
@@ -3053,17 +3042,8 @@ async function run() {
     /* EINE WENIGER SEIT 0.35.2: `.entry-out` hielt den Knopf, der den
        einzelnen Eintrag als Datei holte. Der Knopf ist fort, die Regel mit
        ihm -- eine Regel ohne Element ist toter Text. */
-    /* 1638 WURDEN 1672: achtundzwanzig Regelzeilen kamen mit der Auszeichnung
-       dazu und sechs mit den Befunden danach -- das Feld der Zwischenablage,
-       der farbige Stift und der Abstand vor dem Loeschen. */
-    /* UND 1672 WURDEN 1673: die Marke am Verweis auf einen geloeschten
-       Kommentar bringt eine Regelzeile mit. */
-    /* UND 1673 WURDEN 1674: die erste Spalte der Rechentabelle darf in der
-       schmalen Ansicht umbrechen. */
-    /* UND 1674 WURDEN 1678: die Rechentabelle wird in der schmalen Ansicht
-       zweizeilig -- vier Regelzeilen. */
-    check('Und es stehen genau 1678 Regelzeilen da — neununddreissig mehr mit der Auszeichnung',
-      ssCode === 1678, `${ssCode} Zeilen`);
+    check('Und es stehen genau 1679 Regelzeilen da',
+      ssCode === 1679, `${ssCode} Zeilen`);
     /* UND KEIN BLOCK IST WIEDER LANG GEWORDEN. Die Drei-Zeilen-Regel gilt
        auch fuer dieses Blatt; laenger sein darf allein, wer eine Tafel
        gemessener Werte traegt. Acht tun das. */
@@ -3142,13 +3122,11 @@ async function run() {
       !/upload\.array\('photos', 40\)/.test(fgServer)
       && /upload\.array\('photos', PHOTO_COUNT\)/.test(fgServer),
       (fgServer.match(/.*upload\.array\('photos'.*/) || ['(keine Zeile)'])[0].trim());
-    /* ALLE FUENF HOCHLADEWEGE REICHEN IHRE GRENZEN AN DEN FEHLER-HANDLER
-       WEITER. Ohne sie steht dort wieder die Message von multer. */
-    /* SECHS ROUTEN AN FUENF WEGEN: Kommentarbilder kommen ueber zwei Routen
-       herein, am neuen Kommentar und am bestehenden. */
+    /* Jede Hochladeroute reicht ihre Grenzen an den Fehler-Handler weiter,
+       sonst steht dort die englische Meldung von multer. */
     const fgCapped = (fgServer.match(/capped\(/g) || []).length;
-    check('Und alle sechs Hochladerouten reichen ihre Grenzen weiter',
-      fgCapped === 7, `${fgCapped} Stellen (sechs Routen und der Helfer selbst)`);
+    check('Und alle sieben Hochladerouten reichen ihre Grenzen weiter',
+      fgCapped === 8, `${fgCapped} Stellen (sieben Routen und der Helfer selbst)`);
     /* UND DER FEHLER-HANDLER UEBERSETZT DIE BEIDEN GRENZEN VON MULTER. */
     check('Der Fehler-Handler kennt LIMIT_FILE_SIZE und LIMIT_UNEXPECTED_FILE',
       /err\.code === 'LIMIT_FILE_SIZE'/.test(fgServer)
@@ -3511,7 +3489,7 @@ async function run() {
   /* ERST DER GEGENSTAND: ein Waechter ueber null Zuweisungen ist gruen und
      belegt nichts. */
   check('Der Waechter sieht alle Zuweisungen an innerHTML',
-    hAll.length === 172, `${hAll.length} Zuweisungen`);
+    hAll.length === 173, `${hAll.length} Zuweisungen`);
   const hNaked = [];
   const hUsed = new Set();
   for (const one of hAll)

@@ -324,7 +324,7 @@ button { cursor: pointer; background: none; border: none; padding: 0; }
 .brand .count, .card-test, .rating-inline, .link-count, .rrow .ravg, .rrow .rname .rweight,
 .mrow .mcount, .mrow .mweight, .kv .v, .log-time, .session-time, .trash-meta, .cmt-head,
 .lb-count, .vcount, .bsum, .calc-row > span, .open-when, .card-find .find-more,
-.thumb .num, .thumb .duration, .lrow .lnum, .cmp-crit, .cmp-group, .pill .n, .photo-count,
+.thumb .num, .thumb .duration, .cmt-img .duration, .lrow .lnum, .cmp-crit, .cmp-group, .pill .n, .photo-count,
 .two-factor-codes span, .user-status, .filter-toggle .fcount, .open-count {
   font-variant-numeric: tabular-nums;
 }
@@ -834,13 +834,13 @@ mark {
 .thumb .del { position: absolute; top: 0; right: 0; width: 19px; height: 19px; background: rgba(var(--photo-rgb), .82); color: var(--on-photo); font-size: .73rem; display: flex; align-items: center; justify-content: center; border-radius: 0 0 0 6px; opacity: 0; transition: opacity .15s var(--ease); }
 /* Marke und Laenge am Video: beides folgt aus Art und Dauer.
    pointer-events: none, sonst faengt die Marke das Ziehen zum Umsortieren ab. */
-.thumb .play-badge, .lb-thumb .play-badge {
+.thumb .play-badge, .lb-thumb .play-badge, .cmt-img .play-badge {
   position: absolute; top: 3px; left: 3px; pointer-events: none;
   font-size: .58rem; line-height: 1; color: var(--text-2);
   width: 16px; height: 16px; display: flex; align-items: center; justify-content: center;
   background: rgba(var(--photo-rgb), .82); border-radius: 999px; padding-left: 1px;
 }
-.thumb .duration {
+.thumb .duration, .cmt-img .duration {
   position: absolute; bottom: 0; right: 0; pointer-events: none;
   background: rgba(var(--photo-rgb), .82); color: var(--on-photo);
   font-family: var(--mono); font-size: .58rem; padding: 1px 4px; border-radius: 5px 0 0 0;
@@ -1771,6 +1771,7 @@ mark {
 .lb-count { font-family: var(--mono); font-size: .8rem; color: var(--muted); }
 .lb-btn { width: 34px; height: 34px; border-radius: 8px; border: 1px solid var(--line); background: var(--surface); display: flex; align-items: center; justify-content: center; color: var(--text-2); font-size: 1rem; transition: all .15s var(--ease); }
 .lb-btn:hover { background: var(--surface-3); color: var(--text); border-color: var(--line-hover-2); }
+.lb-btn.download { text-decoration: none; }
 /* DER PAPIERKORB IM VOLLBILD steht abgesetzt und faerbt sich beim
    Ueberfahren rot. Die Luecke davor ist der Punkt: neben dem
    Schliessenkreuz waere er die gefaehrlichste Nachbarschaft der Instanz. */

@@ -755,7 +755,7 @@
   "entry.addComment": "+ Yorum",
   "entry.addDay": "+ {dayOne} gir",
   "entry.added": "{count} {what} eklendi",
-  "entry.addImage": "+ Resim",
+  "entry.addImage": "+ Resim/Video",
   "entry.addMediaHint": "Fotoğraf ve video ekle — birden fazla olabilir",
   "entry.addTagDay": "Etiket ekle ({dayOne})",
   "entry.adminOnlyHint": "Yalnızca yöneticilere görünür. Başka kullanıcıların verdiği {ratingMany} burada kaldırılabilir ama değiştirilemez.",
@@ -832,15 +832,15 @@
   "entry.grade": "{grade}",
   "entry.gradeLabel": "{grade}:",
   "entry.gradeReplaced": "{day} günü için {grade} değiştirildi",
-  "entry.imageCapHint": "Yorum başına en çok 6 resim.",
+  "entry.imageCapHint": "Yorum başına en çok 6 resim veya video.",
   "entry.imageDeleteHint": "Resim kalıcı olarak siliniyor.",
   "entry.imagesAttached": {
-    "one": "resim eklendi",
-    "other": "{n} resim eklendi"
+    "one": "resim veya video eklendi",
+    "other": "{n} resim veya video eklendi"
   },
   "entry.imagesRemovedAdmin": {
-    "one": "{n} resim yönetici tarafından kaldırıldı",
-    "other": "{n} resim yönetici tarafından kaldırıldı"
+    "one": "{n} resim veya video yönetici tarafından kaldırıldı",
+    "other": "{n} resim veya video yönetici tarafından kaldırıldı"
   },
   "entry.jumpToInput": "Yazma alanına git",
   "entry.layoutSaved": "Düzen kaydedildi",
@@ -944,7 +944,7 @@
   "entry.whatIsThis": "Burada konu ne?",
   "entry.whoRated": "Kim?",
   "entry.whoRatedWord": "Kim değerlendirdi — {word}",
-  "entry.withAllImages": " — bütün resimlerle",
+  "entry.withAllImages": " — bütün resim ve videolarla",
   "entry.zoom": "Yakınlaştırma",
   "error.serverStatus": "Sunucu bir hata bildiriyor ({status}).",
   "list.all": "Tümü",
@@ -1267,7 +1267,7 @@
   "server.fileNotText": "Bu dosya metin olarak okunamıyor.",
   "server.fontUnknown": "Böyle bir yazı boyutu yok.",
   "server.gradeRange": "{grade} 1 ile 5 arasında olmalı.",
-  "server.imageCap": "Yorum başına en çok {cap} resim.",
+  "server.imageCap": "Yorum başına en çok {cap} resim veya video.",
   "server.imageGone": "Bu resim artık yok.",
   "server.imagesOnly": "Yalnızca resim dosyalarına izin verilir",
   "server.imageStoreUnknown": "Görselleri saklamak için böyle bir yöntem yok.",

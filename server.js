@@ -2480,6 +2480,10 @@ const qCommentImagesOfItem = db.prepare(
   `SELECT i.comment_id, i.id, i.filename, i.sort_order FROM comment_images i
      JOIN comments c ON c.id = i.comment_id
     WHERE c.item_id = ? ORDER BY i.comment_id, i.sort_order, i.id`);
+const qCommentVideosOfItem = db.prepare(
+  `SELECT v.comment_id, v.id, v.filename, v.duration, v.sort_order FROM comment_videos v
+     JOIN comments c ON c.id = v.comment_id
+    WHERE c.item_id = ? ORDER BY v.comment_id, v.sort_order, v.id`);
 
 /* UND DIE GEGENRICHTUNG (B6 B). Aus einem NAMEN wird ein Verfasser. */
 function authorByName(card, name) {
@@ -2508,9 +2512,16 @@ function qComments(itemId, userId, card) {
     if (!imagesPer.has(z.comment_id)) imagesPer.set(z.comment_id, []);
     imagesPer.get(z.comment_id).push({ id: z.id, filename: z.filename, sort_order: z.sort_order });
   }
+  const videosPer = new Map();
+  for (const z of qCommentVideosOfItem.all(itemId)) {
+    if (!videosPer.has(z.comment_id)) videosPer.set(z.comment_id, []);
+    videosPer.get(z.comment_id).push({ id: z.id, filename: z.filename, duration: z.duration,
+                                       sort_order: z.sort_order });
+  }
   for (const c of list) {
     c.pinned = !!c.pinned;
     c.images = imagesPer.get(c.id) || [];
+    c.videos = videosPer.get(c.id) || [];
     c.mine = c.user_id === userId;
     c.author = authorFrom(card, c.user_id);
     /* WEN DIESER KOMMENTAR MARKIERT. */
@@ -3682,6 +3693,12 @@ app.post('/api/items/:id/photos', entryAuthorOnly,
 // der verschluesselten Datenbank eine halbe Sekunde -- mit dem ganzen Blob im
 // Arbeitsspeicher, denn eine BLOB-Zeile wird nicht stueckweise gelesen.
 const VIDEO_MAX = 20 * 1024 * 1024;
+/* Die Dauer ist eine Angabe des Hochladenden wie der gemeldete Typ:
+   gespeichert und angezeigt, nie tragend. Unsinniges wird zu NULL. */
+function durationValue(raw) {
+  const d = Math.round(Number(raw));
+  return Number.isFinite(d) && d > 0 && d <= 24 * 3600 ? d : null;
+}
 const videoUpload = multer({
   storage: multer.memoryStorage(),
   limits: { fileSize: VIDEO_MAX },
@@ -3714,10 +3731,7 @@ app.post('/api/items/:id/videos', entryAuthorOnly,
 // Bild lesen kann, kommt nicht herein.
       if (!await gridImage(stillFrame.buffer))
         return res.status(400).json({ error: t(localeOf(req), 'server.stillNotImage')});
-      // Die Dauer ist eine Angabe des Hochladenden wie der gemeldete Typ:
-// gespeichert und angezeigt, nie tragend. Unsinniges wird zu NULL.
-      const d = Math.round(Number(req.body.duration));
-      const duration = Number.isFinite(d) && d > 0 && d <= 24 * 3600 ? d : null;
+      const duration = durationValue(req.body.duration);
       /* AUCH DAS STANDBILD WIRD ZUGESCHNITTEN, mit den Vorgaben. */
       const v = await makeVariants(stillFrame.buffer, DEFAULT_CROP);
       /* Kaeme hier nichts heraus, bliebe die Zeile OHNE Standbild -- und zwar
@@ -3760,18 +3774,22 @@ app.get('/api/photos/:id/raw', (req, res) => {
   }
   attachments.setImageHeader(res, blob, { name: `foto-${p.id}`, maxAge: 86400 });
   if (!rangeable) return res.send(blob);
+  sendRanged(req, res, blob);
+});
+
+/* Liefert ein Video mit Range aus. Ungueltiges wird abgewiesen, nicht
+   zurechtgebogen: ein Abspieler zeigte sonst Bildsalat statt Fehler. */
+function sendRanged(req, res, blob) {
   res.set('Accept-Ranges', 'bytes');
   const b = attachments.rangeOut(req.headers.range, blob.length);
   if (!b) return res.send(blob);
-  // Ungueltiges wird abgewiesen, nicht zurechtgebogen: ein Abspieler, der
-// etwas anderes bekommt als er verlangt hat, zeigt Bildsalat statt Fehler.
   if (b.invalid) {
     res.set('Content-Range', `bytes */${blob.length}`);
     return res.status(416).end();
   }
   res.set('Content-Range', `bytes ${b.from}-${b.to}/${blob.length}`);
   res.status(206).send(blob.slice(b.from, b.to + 1));
-});
+}
 
 /* --- Der Ausschnitt der Vorschau: drei Werte, EINE Spanne ----------------
    Zwei Wege setzen sie, die Route darunter und der Import; sie unterscheiden
@@ -4132,6 +4150,46 @@ const IMAGE_MAX = 20 * 1024 * 1024;
 const IMAGE_COUNT = 6;
 const commentImageUpload = multer({ storage: multer.memoryStorage(), limits: { fileSize: IMAGE_MAX } });
 
+/* Videos in Kommentaren: dieselbe Grenze und dieselben Formate wie am Eintrag,
+   gespeichert ohne Umkodieren. Bilder und Videos zusammen hoechstens IMAGE_COUNT. */
+const COMMENT_VIDEO_MAX = VIDEO_MAX;
+const commentUpload = multer({ storage: multer.memoryStorage(),
+  limits: { fileSize: Math.max(IMAGE_MAX, COMMENT_VIDEO_MAX) } });
+const COMMENT_FILES = [{ name: 'images', maxCount: IMAGE_COUNT },
+  { name: 'video', maxCount: 1 }, { name: 'stillFrame', maxCount: 1 }];
+// Ein zweites Video oder Standbild bekommt die Absage der Eintragsvideos.
+const commentCaps = (count, key) => ({ count, bytes: Math.max(IMAGE_MAX, COMMENT_VIDEO_MAX), key,
+  fieldKeys: { video: 'server.videoOne', stillFrame: 'server.videoOne' } });
+const tooBig = (files, max) => (files || []).some(f => f.size > max);
+const commentFileCount = db.prepare(`SELECT
+  (SELECT COUNT(*) FROM comment_images WHERE comment_id = ?) +
+  (SELECT COUNT(*) FROM comment_videos WHERE comment_id = ?) AS n`);
+
+/* Prueft Video und Standbild und macht aus dem Standbild die Kachel, auf dem
+   Weg der Kommentarbilder. Liefert {} ohne Video, sonst { video } oder { error }. */
+async function commentVideoFrom(req) {
+  const video = req.files?.video?.[0], still = req.files?.stillFrame?.[0];
+  if (!video && !still) return {};
+  if (!video || !still) return { error: 'server.videoStill' };
+  if (tooBig([video, still], COMMENT_VIDEO_MAX))
+    return { error: 'server.uploadSize', values: { mb: Math.round(COMMENT_VIDEO_MAX / 1048576) } };
+  if (!Object.values(attachments.VIDEO_TYPES).includes(attachments.typeFromBytes(video.buffer)))
+    return { error: 'server.videosOnly' };
+  if (!await gridImage(still.buffer)) return { error: 'server.stillNotImage' };
+  let thumb = null;
+  try { thumb = (await encodeCommentImage(still.buffer)).small; } catch { thumb = null; }
+  if (!thumb) return { error: 'server.stillNoPreview' };
+  return { video: { name: path.basename(String(video.originalname || 'video.mp4')).slice(0, 200),
+                    data: video.buffer, thumb, duration: durationValue(req.body.duration) } };
+}
+
+function saveCommentVideo(commentId, v) {
+  const pos = db.prepare('SELECT COALESCE(MAX(sort_order), -1) AS m FROM comment_videos WHERE comment_id = ?')
+    .get(commentId).m + 1;
+  db.prepare(`INSERT INTO comment_videos (comment_id, filename, duration, thumb, sort_order, data)
+              VALUES (?, ?, ?, ?, ?, ?)`).run(commentId, v.name, v.duration, v.thumb, pos, v.data);
+}
+
 /* DAS KOMMENTARBILD IST EBENFALLS WEBP. */
 async function encodeCommentImage(buf) {
   const big = await sharp(buf, { failOn: 'none' }).rotate()
@@ -4183,8 +4241,7 @@ function dueValue(raw) {
 }
 
 app.post('/api/items/:id/comments',
-         capped(commentImageUpload.array('images', IMAGE_COUNT),
-                { count: IMAGE_COUNT, bytes: IMAGE_MAX, key: 'server.uploadCap' }),
+         capped(commentUpload.fields(COMMENT_FILES), commentCaps(IMAGE_COUNT, 'server.uploadCap')),
          async (req, res, next) => {
   try {
     const text = (req.body.text || '').trim();
@@ -4192,7 +4249,15 @@ app.post('/api/items/:id/comments',
     if (!db.prepare('SELECT 1 FROM items WHERE id = ?').get(req.params.id))
       return res.status(404).json({ error: t(localeOf(req), 'server.entryUnknown')});
 
-    const k = await encodeAll(req.files);
+    const images = req.files?.images || [];
+    if (tooBig(images, IMAGE_MAX))
+      return res.status(400).json({ error: t(localeOf(req), 'server.uploadSize',
+        { mb: Math.round(IMAGE_MAX / 1048576) }) });
+    const cv = await commentVideoFrom(req);
+    if (cv.error) return res.status(400).json({ error: t(localeOf(req), cv.error, cv.values) });
+    if (images.length + (cv.video ? 1 : 0) > IMAGE_COUNT)
+      return res.status(400).json({ error: t(localeOf(req), 'server.imageCap', { cap: IMAGE_COUNT })});
+    const k = await encodeAll(images);
     if (k.error) return res.status(400).json({ error: t(localeOf(req), k.error, k.values) });
 
     const pinned = req.body.pinned === '1' || req.body.pinned === true;
@@ -4205,6 +4270,7 @@ app.post('/api/items/:id/comments',
     /* DIE MARKIERUNGEN ENTSTEHEN MIT DEM TEXT. */
     setMentions(fresh.lastInsertRowid, text);
     if (k.images.length) saveCommentImages(fresh.lastInsertRowid, k.images);
+    if (cv.video) saveCommentVideo(fresh.lastInsertRowid, cv.video);
     touch.run(req.params.id);
     res.status(201).json(detail(req.params.id, req.user.id, localeOf(req)));
   } catch (e) { next(e); }
@@ -4267,8 +4333,7 @@ app.post('/api/comments/:id/images',
     // HINZUFUEGEN nur der Verfasser -- ein Bild an einem fremden Kommentar
 // waere ein Zusatz zu einer fremden Aussage.
     if (!selfOnly(req, c.user_id)) return res.status(403).json({ error: t(localeOf(req), DENIED_SELF)});
-    const da = db.prepare('SELECT COUNT(*) n FROM comment_images WHERE comment_id = ?').get(c.id).n;
-    if (da + (req.files || []).length > IMAGE_COUNT)
+    if (commentFileCount.get(c.id, c.id).n + (req.files || []).length > IMAGE_COUNT)
       return res.status(400).json({ error: t(localeOf(req), 'server.imageCap', { cap: IMAGE_COUNT })});
     const k = await encodeAll(req.files);
     if (k.error) return res.status(400).json({ error: t(localeOf(req), k.error, k.values) });
@@ -4313,6 +4378,59 @@ app.get('/api/comment-images/:id/raw', (req, res) => {
   const blob = req.query.size === 'thumb' && b.thumb ? b.thumb : b.data;
   attachments.setImageHeader(res, blob, { name: `bild-${b.id}` });
   res.send(blob);
+});
+
+// Ein Video an einen bestehenden Kommentar, nur der Verfasser -- wie bei den Bildern.
+app.post('/api/comments/:id/videos',
+         capped(commentUpload.fields(COMMENT_FILES.slice(1)), commentCaps(1, 'server.videoOne')),
+         async (req, res, next) => {
+  try {
+    const c = db.prepare('SELECT * FROM comments WHERE id = ?').get(req.params.id);
+    if (!c) return res.status(404).json({ error: t(localeOf(req), 'server.commentGone')});
+    if (!selfOnly(req, c.user_id)) return res.status(403).json({ error: t(localeOf(req), DENIED_SELF)});
+    const cv = await commentVideoFrom(req);
+    if (cv.error || !cv.video)
+      return res.status(400).json({ error: t(localeOf(req), cv.error || 'server.videoStill', cv.values) });
+    if (commentFileCount.get(c.id, c.id).n + 1 > IMAGE_COUNT)
+      return res.status(400).json({ error: t(localeOf(req), 'server.imageCap', { cap: IMAGE_COUNT })});
+    saveCommentVideo(c.id, cv.video);
+    commentEdited.run(c.id);
+    touch.run(c.item_id);
+    res.status(201).json(detail(c.item_id, req.user.id, localeOf(req)));
+  } catch (e) { next(e); }
+});
+
+// Loeschen wie beim Kommentarbild: Verfasser und Admin; der Admin zaehlt mit.
+app.delete('/api/comment-videos/:id', (req, res) => {
+  const v = db.prepare(`SELECT cv.id, cv.comment_id, c.item_id, c.user_id FROM comment_videos cv
+                        JOIN comments c ON c.id = cv.comment_id WHERE cv.id = ?`).get(req.params.id);
+  if (!v) return res.status(404).json({ error: t(localeOf(req), 'server.imageGone')});
+  if (!mayChange(req, v.user_id)) return res.status(403).json({ error: t(localeOf(req), DENIED_SELF)});
+  db.prepare('DELETE FROM comment_videos WHERE id = ?').run(v.id);
+  if (v.user_id !== req.user.id)
+    db.prepare('UPDATE comments SET images_removed = images_removed + 1 WHERE id = ?').run(v.comment_id);
+  else
+    commentEdited.run(v.comment_id);
+  const rest = db.prepare('SELECT id FROM comment_videos WHERE comment_id = ? ORDER BY sort_order, id').all(v.comment_id);
+  const u = db.prepare('UPDATE comment_videos SET sort_order = ? WHERE id = ?');
+  rest.forEach((r, i) => u.run(i, r.id));
+  touch.run(v.item_id);
+  reclaim();
+  res.json(detail(v.item_id, req.user.id, localeOf(req)));
+});
+
+/* Nur die verlangte Spalte: das Video traegt bis zu COMMENT_VIDEO_MAX. */
+const qCommentVideoBytes = {
+  data:  db.prepare('SELECT id, data AS bytes FROM comment_videos WHERE id = ?'),
+  thumb: db.prepare('SELECT id, thumb AS bytes FROM comment_videos WHERE id = ?')
+};
+app.get('/api/comment-videos/:id/raw', (req, res) => {
+  const thumb = req.query.size === 'thumb';
+  const v = qCommentVideoBytes[thumb ? 'thumb' : 'data'].get(req.params.id);
+  if (!v || !v.bytes) return res.status(404).end();
+  attachments.setImageHeader(res, v.bytes, { name: `video-${v.id}`, maxAge: 86400 });
+  if (thumb) return res.send(v.bytes);
+  sendRanged(req, res, v.bytes);
 });
 
 app.delete('/api/comments/:id', (req, res) => {
@@ -4388,6 +4506,7 @@ app.get('/api/stats', adminOnly, (req, res) => {
     FROM trash`).get();
   /* Kommentarbilder standen bisher in keiner Zeile. */
   const ci = db.prepare('SELECT COUNT(*) AS n, COALESCE(SUM(length(data)),0) + COALESCE(SUM(length(thumb)),0) AS o FROM comment_images').get();
+  const cv = db.prepare('SELECT COUNT(*) AS n, COALESCE(SUM(length(data)),0) + COALESCE(SUM(length(thumb)),0) AS o FROM comment_videos').get();
   res.json({
     version: VERSION,
     // Der Fingerprint steht hier und nicht in /api/config: er ist dieselbe
@@ -4404,6 +4523,7 @@ app.get('/api/stats', adminOnly, (req, res) => {
     attachmentCount: an.n, attachmentBytes: an.o,
     trashCount: pk.n, trashBytes: pk.o,
     commentImageCount: ci.n, commentImageBytes: ci.o,
+    commentVideoCount: cv.n, commentVideoBytes: cv.o,
     /* DIE FOTOS AM EINTRAG NACH FORMAT -- die Auskunft, um derentwillen die
        Abfrage oben zusammengelegt wurde. */
     imageFormats,
@@ -4472,7 +4592,7 @@ app.post('/api/images/convert', ownerOnly, secondConfirmNeeded('images'), (req, 
 /* UND DIE AUSZEICHNUNG IN KOMMENTAR UND BESCHREIBUNG -- Nummer 18. Die
    Nummer ist ein Hinweis und keine Schranke: eine aeltere Fassung nimmt die
    Datei herein und zeigt die Marken als Text. */
-const EXCHANGE_FORMAT = 18;
+const EXCHANGE_FORMAT = 19;
 
 /* DIE AELTESTE DATEI, DIE NOCH HEREINKOMMT, Frage F15. WARUM ES
    EINE UNTERGRENZE GIBT. */
@@ -4566,6 +4686,8 @@ const qBundleComments = lateStatement(
   'SELECT id, text, kind, pinned, created_at, updated_at, user_id, due_date FROM comments WHERE item_id = ? ORDER BY id');
 const qBundleCommentImages = db.prepare(
   'SELECT id, filename, data FROM comment_images WHERE comment_id = ? ORDER BY sort_order, id');
+const qBundleCommentVideos = db.prepare(
+  'SELECT id, filename, duration, thumb, data FROM comment_videos WHERE comment_id = ? ORDER BY sort_order, id');
 const qBundlePhotos = lateStatement(
   'SELECT mime_type, data, thumb, medium, focus_x, focus_y, zoom, kind, duration FROM photos WHERE item_id = ? ORDER BY sort_order, id');
 const qBundleAttachments = lateStatement(
@@ -4576,6 +4698,9 @@ const qBundleAttachments = lateStatement(
    ob es ein Standbild gibt. */
 const qRefCommentImages = db.prepare(
   'SELECT id, filename FROM comment_images WHERE comment_id = ? ORDER BY sort_order, id');
+const qRefCommentVideos = db.prepare(
+  `SELECT id, filename, duration, (thumb IS NOT NULL) AS thumb
+     FROM comment_videos WHERE comment_id = ? ORDER BY sort_order, id`);
 const qRefPhotos = lateStatement(
   `SELECT id, mime_type, focus_x, focus_y, zoom, kind, duration,
      (medium IS NOT NULL OR thumb IS NOT NULL) AS still
@@ -4621,6 +4746,13 @@ function entryAsBundle(it, situation) {
           ? (funnel.blobs ? qBundleCommentImages : qRefCommentImages).all(c.id)
               .map(b2 => ({ filename: b2.filename,
                             ['data' + extension]: funnel.take(b2.data, ['commentImage', b2.id]) }))
+          : [],
+        /* Die Videos folgen demselben Schalter; das Standbild ist die Kachel. */
+        videos: withFiles
+          ? (funnel.blobs ? qBundleCommentVideos : qRefCommentVideos).all(c.id).map(v => ({
+              filename: v.filename, duration: v.duration,
+              ['data' + extension]: funnel.take(v.data, ['commentVideo', v.id]),
+              ...(v.thumb ? { ['still' + extension]: funnel.take(v.thumb, ['commentVideoStill', v.id]) } : {}) }))
           : []
       })),
     photos: [], attachments: []
@@ -4732,7 +4864,7 @@ function exportName(suffix) {
 function exchangeParts(switches) {
   const one = (sql) => db.prepare(sql).get().n || 0;
   const base64 = (n) => Math.round(n * 4 / 3);
-  const parts = { photos: 0, videos: 0, attachments: 0, commentImages: 0 };
+  const parts = { photos: 0, videos: 0, attachments: 0, commentImages: 0, commentVideos: 0 };
   if (switches.withPhotos)
     parts.photos = base64(one(
       `SELECT COALESCE(SUM(length(data)),0) n FROM photos WHERE kind != 'video'`));
@@ -4750,6 +4882,8 @@ function exchangeParts(switches) {
     parts.commentImages = base64(one(
       `SELECT COALESCE(SUM(length(ci.data)),0) n FROM comment_images ci
          JOIN comments c ON c.id = ci.comment_id`));
+    parts.commentVideos = base64(one(
+      `SELECT COALESCE(SUM(length(data) + COALESCE(length(thumb), 0)),0) n FROM comment_videos`));
   }
   return parts;
 }
@@ -4792,6 +4926,8 @@ const qPartSizes = lateStatement(`
     COALESCE((SELECT SUM(length(a.data)) FROM attachments a WHERE a.item_id = i.id), 0) AS attachment,
     COALESCE((SELECT SUM(length(ci.data)) FROM comment_images ci
                 JOIN comments c ON c.id = ci.comment_id WHERE c.item_id = i.id), 0) AS commentImage,
+    COALESCE((SELECT SUM(length(cv.data) + COALESCE(length(cv.thumb), 0)) FROM comment_videos cv
+                JOIN comments c ON c.id = cv.comment_id WHERE c.item_id = i.id), 0) AS commentVideo,
     length(COALESCE(i.title,'')) + length(COALESCE(i.description,'')) AS text,
     COALESCE((SELECT SUM(length(c.text)) FROM comments c WHERE c.item_id = i.id), 0) AS commentText,
     COALESCE((SELECT SUM(length(t.name)) FROM item_tags it JOIN tags t ON t.id = it.tag_id
@@ -4812,7 +4948,7 @@ function partBytes(z, switches) {
   let n = 0;
   if (switches.withPhotos) n += z.photo;
   if (switches.withPhotos && switches.withVideos) n += z.video;
-  if (switches.withFiles) n += z.attachment + z.commentImage;
+  if (switches.withFiles) n += z.attachment + z.commentImage + z.commentVideo;
   return base64(n) + z.text + z.commentText + z.tagtext + z.linktext
     + ENVELOPE_PER.entry + z.nk * ENVELOPE_PER.comment + z.nb * ENVELOPE_PER.rating
     + z.nz * ENVELOPE_PER.testDay + z.nf * ENVELOPE_PER.photo + z.nd * ENVELOPE_PER.file;
@@ -5159,6 +5295,8 @@ const iCommentAdd = lateStatement(`INSERT INTO comments (item_id, text, kind, pi
                       VALUES (?, ?, ?, ?, COALESCE(?, datetime('now')), ?, ?, ?)`);
 const iCommentImageAdd = db.prepare(`INSERT INTO comment_images (comment_id, filename, data, thumb, sort_order)
                       VALUES (?, ?, ?, ?, ?)`);
+const iCommentVideoAdd = db.prepare(`INSERT INTO comment_videos (comment_id, filename, duration, thumb, sort_order, data)
+                      VALUES (?, ?, ?, ?, ?, ?)`);
 const iPhotoAdd = lateStatement(`INSERT INTO photos (item_id, mime_type, data, thumb, medium, focus_x, focus_y, zoom, sort_order, kind, duration)
                       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`);
 const iAttachmentAdd = lateStatement(`INSERT INTO attachments (item_id, filename, mime_type, size, data, sort_order, user_id)
@@ -5184,6 +5322,7 @@ async function importPrepare(payload, bytesSource) {
   // Kommentarbilder je Kommentarobjekt, damit sie in der Transaktion
 // bereitliegen.
   const commentImages = new Map();
+  const commentVideos = new Map();
   /* Die laute Haelfte der Videos: nicht abbrechen, melden -- dieselbe Haltung
      wie bei unbekannten Verfassernamen und ungueltigen Gewichten. */
   let videosWithoutFile = 0, videosUnreadable = 0;
@@ -5212,14 +5351,11 @@ async function importPrepare(payload, bytesSource) {
       // Dieselbe Schaerfe wie beim Hochladen: fehlt EINE der beiden
 // Varianten, wird die Zeile nicht angelegt.
       if (isVideo && (!v.thumb || !v.medium)) { videosUnreadable++; continue; }
-      // Die Dauer ist eine Angabe wie der gemeldete Typ, und sie wird
-// genauso beschnitten wie beim Hochladen.
-      const d = Math.round(Number(p.duration));
       photos.push({ mime: p.mime_type || (isVideo ? 'video/mp4' : 'image/jpeg'),
                     buf, thumb: v.thumb, medium: v.medium,
                     fx: crop.fx, fy: crop.fy, zoom: crop.zoom,
                     kind: isVideo ? 'video' : 'image',
-                    duration: isVideo && Number.isFinite(d) && d > 0 && d <= 24 * 3600 ? d : null });
+                    duration: isVideo ? durationValue(p.duration) : null });
     }
     const attachments = [];
     for (const a2 of it.attachments || []) {
@@ -5246,15 +5382,26 @@ async function importPrepare(payload, bytesSource) {
         } catch { /* unlesbares Bild wird stillschweigend uebergangen */ }
       }
       if (done.length) commentImages.set(c, done);
+      /* Das Video ohne Umkodieren; das Standbild wird unveraendert die Kachel. */
+      const videos = [];
+      for (const v of Array.isArray(c.videos) ? c.videos : []) {
+        const data = bytesOf(v, 'data', bytesSource);
+        if (!data) continue;
+        const still = bytesOf(v, 'still', bytesSource);
+        if (!still || !await gridImage(still)) { videosUnreadable++; continue; }
+        videos.push({ name: path.basename(String(v.filename || 'video.mp4')).slice(0, 200),
+                      duration: durationValue(v.duration), thumb: still, data });
+      }
+      if (videos.length) commentVideos.set(c, videos);
     }
     /* DIE BASE64-STRINGS WERDEN NICHT MEHR GEBRAUCHT: was die Transaktion
        liest, steht in `photos` und `attachments`. */
     it.photos = undefined;
     it.attachments = undefined;
-    for (const c of it.comments || []) c.images = undefined;
+    for (const c of it.comments || []) { c.images = undefined; c.videos = undefined; }
     prepared.push({ it, photos, attachments });
   }
-  return { prepared, commentImages, videosWithoutFile, videosUnreadable };
+  return { prepared, commentImages, commentVideos, videosWithoutFile, videosUnreadable };
 }
 
 /* Die beiden Tafeln aus der Datei -- Gewichte und Kaesten -- ausdruecklich
@@ -5320,13 +5467,13 @@ async function importInto(payload, userId, mode2, bytesSource = null) {
   }
   // Ableitungen vorab erzeugen: das geht nicht innerhalb einer Transaktion,
 // weil es asynchron ist.
-  const { prepared, commentImages, videosWithoutFile, videosUnreadable } =
+  const { prepared, commentImages, commentVideos, videosWithoutFile, videosUnreadable } =
     await importPrepare(payload, bytesSource);
 
   /* `names`: die eingespielten Namen je Sprache. Sie stehen in
      derselben Zaehlung wie alles andere -- was der Import anlegt, zaehlt er. */
   const stats = { items: 0, photos: 0, videos: 0, comments: 0, links: 0, testDays: 0,
-                  attachments: 0, names: 0 };
+                  attachments: 0, names: 0, commentVideos: 0 };
   // Die Nummern der neu angelegten Eintraege.
   const newIds = [];
 
@@ -5471,6 +5618,10 @@ async function importInto(payload, userId, mode2, bytesSource = null) {
         stats.comments++;
         (commentImages.get(c) || []).forEach((b2, i) =>
           iCommentImageAdd.run(simple.lastInsertRowid, b2.name, b2.big, b2.small, i));
+        (commentVideos.get(c) || []).forEach((v, i) => {
+          iCommentVideoAdd.run(simple.lastInsertRowid, v.name, v.duration, v.thumb, i, v.data);
+          stats.commentVideos++;
+        });
       }
 
       // Fortlaufend neu nummeriert: uebergangene Videos hinterlassen keine
@@ -5582,6 +5733,10 @@ const insertTrash = db.prepare(
 const insertTrashBytes = {
   commentImage: db.prepare(
     'INSERT INTO trash_bytes (trash_id, part, data) SELECT ?, ?, data FROM comment_images WHERE id = ?'),
+  commentVideo: db.prepare(
+    'INSERT INTO trash_bytes (trash_id, part, data) SELECT ?, ?, data FROM comment_videos WHERE id = ?'),
+  commentVideoStill: db.prepare(
+    'INSERT INTO trash_bytes (trash_id, part, data) SELECT ?, ?, thumb FROM comment_videos WHERE id = ?'),
   photo: db.prepare(
     'INSERT INTO trash_bytes (trash_id, part, data) SELECT ?, ?, data FROM photos WHERE id = ?'),
   // Dieselbe Wahl wie im Buendel: das mittlere Bild, sonst die Vorschau.
@@ -6219,7 +6374,8 @@ app.use((err, req, res, next) => {
       return res.status(400).json({ error:
         t(locale, 'server.uploadSize', { mb: Math.round(req.caps.bytes / 1048576) })});
     if (err.code === 'LIMIT_UNEXPECTED_FILE' || err.code === 'LIMIT_FILE_COUNT')
-      return res.status(400).json({ error: t(locale, req.caps.key, { cap: req.caps.count })});
+      return res.status(400).json({ error: t(locale,
+        req.caps.fieldKeys?.[err.field] || req.caps.key, { cap: req.caps.count })});
   }
   const rank = err.status || err.statusCode || (err instanceof multer.MulterError ? 400 : 500);
   if (rank >= 500) return res.status(500).json({ error: t(locale, 'server.error') });

@@ -1851,7 +1851,7 @@ const REGRESSIONS = [
        zurueck. */
     nr: '233', name: 'Die Formatnummer bleibt auf 15',
     file: 'server.js',
-    search: "const EXCHANGE_FORMAT = 18;",
+    search: "const EXCHANGE_FORMAT = 19;",
     replacement: "const EXCHANGE_FORMAT = 15;",
     expected: 'Die Entscheidung wird mitgeschrieben — 0.14.0'
   },
@@ -3530,7 +3530,7 @@ const REGRESSIONS = [
        Zusage: dort die Entscheidung, hier die Exportdatei. */
     nr: '448', name: 'Die Formatnummer bleibt bei 15, obwohl das Faelligkeitsdatum mitgeht',
     file: 'server.js',
-    search: "const EXCHANGE_FORMAT = 18;",
+    search: "const EXCHANGE_FORMAT = 19;",
     replacement: "const EXCHANGE_FORMAT = 15;",
     expected: 'Die Exportdatei'
   },
