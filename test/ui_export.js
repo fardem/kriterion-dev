@@ -4,7 +4,7 @@
 const H = require('./frame.js');
 const D = require('./dom.js');
 const {
-  buildDom, openTagRow, sysSection, css123, regel123, withoutMedia
+  buildDom, openTagRow, sysSection, css123, regel123, withoutMedia, until, openRequests
 } = D;
 
 async function run() {
@@ -16,6 +16,8 @@ async function run() {
   let JSDOM;
   try { ({ JSDOM } = require('jsdom')); }
   catch { console.log('  … uebersprungen: jsdom fehlt (npm install)'); return; }
+  const listReady = (x) => x.document.querySelector('#filters .frow') && openRequests(x) === 0;
+  const detailReady = (x) => x.document.getElementById('ratings') && openRequests(x) === 0;
 
   /* ---------------------------------------------------------------- */
   group('Der Export in Teilen');
@@ -272,10 +274,8 @@ async function run() {
        an EINER Stelle, statt an jeder Aufrufstelle noch einmal. */
     let tzUsed = -1;
     const tzCode = async () => {
-      for (;;) {
-        if (30000 - (Date.now() % 30000) >= 9000 && ZF2.nowStep() + 1 > tzUsed) break;
-        await new Promise(r => setTimeout(r, 200));
-      }
+      await until(null, () => 30000 - (Date.now() % 30000) >= 9000 && ZF2.nowStep() + 1 > tzUsed,
+        35000, 'ein unverbrauchter Zeitschritt mit 9 s Rest', 50);
       tzUsed = ZF2.nowStep() + 1;
       return ZF2.code(tzSecret, tzUsed);
     };
@@ -283,7 +283,8 @@ async function run() {
     const TZ_NO_CODE = '000000';
 
     const tzQuiet = async () => {
-      while (30000 - (Date.now() % 30000) < 9000) await new Promise(r => setTimeout(r, 200));
+      await until(null, () => 30000 - (Date.now() % 30000) >= 9000,
+        10000, 'ein Zeitschritt mit 9 s Rest', 50);
     };
 
     await tzQuiet();
@@ -551,7 +552,7 @@ async function run() {
     { id: 41, name: 'Alu', usage_count: 3 }, { id: 42, name: 'Stahl', usage_count: 2 },
     { id: 43, name: 'Holz', usage_count: 1 }] });
   const fzW = fzDom.w;
-  await new Promise(r => setTimeout(r, 80));
+  await until(fzW, listReady, 2000, 'die Uebersicht');
   // Aufgeklappt wie ein Benutzer es tut -- zugeklappt gibt es die Zeile seit
 // 0.24.0 gar nicht (Bauabschnitt 0.2).
   await openTagRow(fzW);
@@ -563,7 +564,8 @@ async function run() {
   check('Ohne Auswahl steht der Kasten gar nicht erst da',
     !fRow?.querySelector('.frow-right'), fRow?.innerHTML.slice(0, 160));
   fRow?.querySelector('.pill-tag')?.click();
-  await new Promise(r => setTimeout(r, 40));
+  await until(fzW, (x) => x.document.querySelector('#filters .pill-tag.on') && openRequests(x) === 0,
+    2000, 'der gewaehlte Tag');
   const fZeile2 = [...fzW.document.querySelectorAll('.frow')]
     .find(z => z.querySelector('.eyebrow')?.textContent === 'Tags');
   const fRight = fZeile2?.querySelector('.frow-right');
@@ -590,7 +592,8 @@ async function run() {
   // Und wieder weg: ein leerer Kasten bliebe als Flex-Element stehen und
 // schoebe die Wolke um eine Luecke nach rechts.
   fRight?.querySelector('.link-btn')?.click();
-  await new Promise(r => setTimeout(r, 40));
+  await until(fzW, (x) => !x.document.querySelector('#filters .pill-tag.on') && openRequests(x) === 0,
+    2000, 'die geleerte Tagauswahl');
   const fZeile3 = [...fzW.document.querySelectorAll('.frow')]
     .find(z => z.querySelector('.eyebrow')?.textContent === 'Tags');
   check('Faellt die Auswahl weg, verschwindet auch der Kasten wieder',
@@ -605,7 +608,7 @@ async function run() {
   const flDom = buildDom(JSDOM, { tags: [
     { id: 41, name: 'Alu', usage_count: 3 }, { id: 42, name: 'Stahl', usage_count: 2 }] });
   const flW = flDom.w;
-  await new Promise(r => setTimeout(r, 80));
+  await until(flW, listReady, 2000, 'die Uebersicht');
   /* AUFGEKLAPPT GEZAEHLT. */
   await openTagRow(flW);
   const flRows = () => [...flW.document.querySelectorAll('#filters .frow')];
@@ -656,7 +659,7 @@ async function run() {
     settings: { filters: { categoryIds: [], tagIds: [1], tagMode: 'and', tested: 'all',
                                 rejected: 'all', favorite: false, sort: 'title_asc' } } });
   const flOldW = flOldDom.w;
-  await new Promise(r => setTimeout(r, 80));
+  await until(flOldW, listReady, 2000, 'die Uebersicht');
   const flPill = (w, name) => [...w.document.querySelectorAll('#filters .pill-tag')]
     .find(b => b.textContent.trim() === name);
   const flEmptyPill = flPill(flOldW, 'Blau');
@@ -687,7 +690,7 @@ async function run() {
     settings: { filters: { categoryIds: [], tagIds: [1], tagMode: 'and', tested: 'all',
                                 rejected: 'all', favorite: false, sort: 'title_asc' } } });
   const flFreshW = flFreshDom.w;
-  await new Promise(r => setTimeout(r, 80));
+  await until(flFreshW, listReady, 2000, 'die Uebersicht');
   const flFullPill = flPill(flFreshW, 'Blau');
   check('Mit Treffern steht sie in voller Helligkeit da',
     !!flFullPill && !flFullPill.classList.contains('blank'), flFullPill?.className);
@@ -711,7 +714,7 @@ async function run() {
   const kmDom = buildDom(JSDOM, { overviewItems: kmInventory, categories: kmCategory,
                                  settings: { filters: null } });
   const kmW = kmDom.w;
-  await new Promise(r => setTimeout(r, 80));
+  await until(kmW, listReady, 2000, 'die Uebersicht');
   const kmRow = () => [...kmW.document.querySelectorAll('#filters .frow')]
     .find(z => z.querySelector('.eyebrow')?.textContent === 'Kategorie');
   const kmPills = () => [...(kmRow()?.querySelectorAll('.pill') || [])];
@@ -741,15 +744,21 @@ async function run() {
   check('Ohne Auswahl steht "Alle" auf an und die Liste zeigt alles',
     kmAn().join() === 'Alle' && kmCards() === 5, `${JSON.stringify(kmAn())} · ${kmCards()}`);
 
-  kmClickable('Werkzeug'); await new Promise(r => setTimeout(r, 40));
+  kmClickable('Werkzeug');
+  await until(kmW, (x) => kmAn().some(n => n.startsWith('Werkzeug')) && openRequests(x) === 0,
+    2000, 'die Pille Werkzeug an');
   check('Eine Kategorie wirkt wie bisher', kmCards() === 2, `${kmCards()} Karten`);
-  kmClickable('Material'); await new Promise(r => setTimeout(r, 40));
+  kmClickable('Material');
+  await until(kmW, (x) => kmAn().some(n => n.startsWith('Material')) && openRequests(x) === 0,
+    2000, 'die Pille Material an');
   /* MEHRERE ZUGLEICH, UND ES IST DIE VEREINIGUNG. Ein Schnitt waere garantiert
      leer -- ein Eintrag traegt genau eine Kategorie. */
   check('Zwei Kategorien zugleich zeigen beide Gruppen', kmCards() === 3, `${kmCards()} Karten`);
   check('Und beide Pillen stehen auf an',
     kmAn().length === 2 && kmAn().every(n => /Werkzeug|Material/.test(n)), JSON.stringify(kmAn()));
-  kmClickable('Ohne'); await new Promise(r => setTimeout(r, 40));
+  kmClickable('Ohne');
+  await until(kmW, (x) => kmAn().some(n => n.startsWith('Ohne')) && openRequests(x) === 0,
+    2000, 'die Pille Ohne an');
   check('"Ohne" laesst sich dazunehmen wie jeder andere Wert', kmCards() === 5,
     `${kmCards()} Karten`);
   /* DREI GEWAEHLTE KATEGORIEN ZAEHLEN ALS EIN FILTER -- anders als die Tags,
@@ -758,12 +767,14 @@ async function run() {
   check('Die Filterzahl zaehlt drei gewaehlte Werte als EINEN Filter',
     /· 1 aktiv/.test(kmW.document.querySelector('#filter-toggle .fcount')?.textContent || ''),
     kmW.document.querySelector('#filter-toggle .fcount')?.textContent);
-  kmClickable('Werkzeug'); await new Promise(r => setTimeout(r, 40));
+  kmClickable('Werkzeug');
+  await until(kmW, (x) => !kmAn().some(n => n.startsWith('Werkzeug')) && openRequests(x) === 0,
+    2000, 'die Pille Werkzeug aus');
   check('Ein zweiter Klick nimmt einen Wert wieder heraus', kmCards() === 3,
     `${kmCards()} Karten`);
   const kmAll = kmPills().find(b => b.textContent.trim() === 'Alle');
   kmAll?.dispatchEvent(new kmW.MouseEvent('click', { bubbles: true }));
-  await new Promise(r => setTimeout(r, 40));
+  await until(kmW, (x) => kmAn().includes('Alle') && openRequests(x) === 0, 2000, 'die Pille Alle an');
   check('"Alle" raeumt die ganze Auswahl weg',
     kmAn().join() === 'Alle' && kmCards() === 5, `${JSON.stringify(kmAn())} · ${kmCards()}`);
 
@@ -813,7 +824,7 @@ async function run() {
   /* --- 2g und 2h: die Versionszeile --- */
   const vzDom = buildDom(JSDOM, {});
   const vzW = vzDom.w;
-  await new Promise(r => setTimeout(r, 80));
+  await until(vzW, listReady, 2000, 'die Uebersicht');
   const vzRow = vzW.document.getElementById('version');
   // Seit 0.23.0 ein SVG und kein Bild -- es muss die Schemavariablen lesen.
   const vzMark = vzRow?.querySelector('svg.logo');
@@ -867,7 +878,7 @@ async function run() {
     tags: [{ id: 41, name: 'Alu', usage_count: 3 }, { id: 42, name: 'Stahl', usage_count: 2 }],
     settings: { filters: { tagIds: [41] } } });
   const obW = obDom.w;
-  await new Promise(r => setTimeout(r, 80));
+  await until(obW, listReady, 2000, 'die Uebersicht');
   const obTagRow = [...obW.document.querySelectorAll('#filters .frow')]
     .find(z => z.querySelector('.eyebrow')?.textContent === 'Tags');
   const obKind = (choice) => obTagRow && [...obTagRow.children].some(k => k.matches(choice));
@@ -964,7 +975,7 @@ async function run() {
   const amState = async (rejection, userCount = 3) => {
     const d = buildDom(JSDOM, { hash: '#/item/1', rejection,
       settings: { filters: null, userCount } });
-    await new Promise(r => setTimeout(r, 80));
+    await until(d.w, detailReady, 2000, 'die Detailansicht');
     return d;
   };
   const amText = (d) => d.w.document.getElementById('rej-badge');
@@ -1033,7 +1044,7 @@ async function run() {
     const dWithout = buildDom(JSDOM, { hash: '#/item/1',
       rejection: { at: null, reason: null, author: null },
       settings: { filters: null, userCount: 3, isAdmin: false } });
-    await new Promise(r => setTimeout(r, 80));
+    await until(dWithout.w, detailReady, 2000, 'die Detailansicht');
     check('Ist gar nichts bekannt und darf niemand schreiben, bleibt die Zeile weg',
       amText(dWithout)?.hidden === true,
       JSON.stringify([amText(dWithout)?.hidden, amText(dWithout)?.textContent]));
@@ -1084,7 +1095,8 @@ async function run() {
     const button = w.document.getElementById('sw-rej');
     // Ausschalten: NUR das Merkmal geht hinaus, die Angaben bleiben.
     button.dispatchEvent(new w.MouseEvent('click', { bubbles: true }));
-    await new Promise(r => setTimeout(r, 40));
+    await until(w, (x) => d.sent.filter(g => g.method === 'PUT' && g.url === '/api/items/1')
+      .length === 1 && openRequests(x) === 0, 2000, 'die Antwort auf das Ausschalten');
     const outCore = d.sent.filter(x => x.method === 'PUT' && x.url === '/api/items/1').pop();
     check('Ein Ausschalten schickt nur das Merkmal',
       equal(Object.keys(outCore?.body || {}), ['rejected']) &&
@@ -1094,7 +1106,8 @@ async function run() {
       JSON.stringify([amText(d)?.hidden, amRow(d)?.hidden]));
     /* WIEDER EINSCHALTEN: die alte Begruendung geht MIT hinaus. */
     button.dispatchEvent(new w.MouseEvent('click', { bubbles: true }));
-    await new Promise(r => setTimeout(r, 40));
+    await until(w, (x) => d.sent.filter(g => g.method === 'PUT' && g.url === '/api/items/1')
+      .length === 2 && openRequests(x) === 0, 2000, 'die Antwort auf das Einschalten');
     const inCore = d.sent.filter(x => x.method === 'PUT' && x.url === '/api/items/1').pop();
     check('Ein Einschalten nimmt die alte Begruendung als Vorschlag mit',
       inCore?.body?.rejected === true && inCore?.body?.rejectedReason === 'Alte Begründung',
@@ -1108,11 +1121,11 @@ async function run() {
     // Der Grund selbst: getippt, Feld verlassen, und erst dann geht er hinaus.
 // Aufgemacht wird es dafuer ueber das ✎ -- offen ist es hier nicht mehr.
     amPen(d).dispatchEvent(new w.MouseEvent('click', { bubbles: true }));
-    await new Promise(r => setTimeout(r, 40));
+    await until(w, () => amRow(d)?.hidden === false, 2000, 'das offene Feld fuer den Grund');
     const before = d.sent.length;
     amField(d).value = 'Preis zu hoch';
     amField(d).dispatchEvent(new w.FocusEvent('blur'));
-    await new Promise(r => setTimeout(r, 40));
+    await until(w, (x) => d.sent.length > before && openRequests(x) === 0, 2000, 'die Antwort auf den Grund');
     const reasonCore = d.sent.filter(x => x.method === 'PUT' && x.url === '/api/items/1').pop();
     check('Der getippte Grund geht beim Verlassen des Feldes hinaus',
       d.sent.length > before && equal(Object.keys(reasonCore?.body || {}), ['rejectedReason']) &&
@@ -1124,7 +1137,7 @@ async function run() {
     amPen(d).dispatchEvent(new w.MouseEvent('click', { bubbles: true }));
     const vorIdle = d.sent.length;
     amField(d).dispatchEvent(new w.FocusEvent('blur'));
-    await new Promise(r => setTimeout(r, 40));
+    await until(w, (x) => amRow(d)?.hidden === true && openRequests(x) === 0, 2000, 'das geschlossene Feld');
     check('Ein unveraendertes Feld schickt gar nichts',
       d.sent.length === vorIdle, JSON.stringify(d.sent.slice(vorIdle)));
     w.close();
@@ -1136,7 +1149,7 @@ async function run() {
       overviewItems: [{ id: 1, title: 'Beispiel', rejected: true, tested: false, favorite: false,
         category: null, tags: [], mainPhoto: null, photoCount: 0, linkCount: 0, avgRating: 3,
         testCount: 0, testAvg: null, testLast: null, updated_at: '2026-08-01 10:00:00' }] });
-    await new Promise(r => setTimeout(r, 80));
+    await until(d.w, listReady, 2000, 'die Uebersicht');
     const card = d.w.document.querySelector('.card');
     check('Die Kachel traegt weiterhin die Marke "abgelehnt"',
       card?.querySelector('.badge-rejected')?.textContent === 'abgelehnt',
@@ -1156,7 +1169,7 @@ async function run() {
      traegt keine Regel darunter einen Fall, auf den sie zutraefe. */
   const slDom = buildDom(JSDOM, { hash: '#/item/1',
     settings: { filters: null, userCount: 3, isAdmin: true } });
-  await new Promise(r => setTimeout(r, 80));
+  await until(slDom.w, detailReady, 2000, 'die Detailansicht');
   const slDoc = slDom.w.document;
   const slBox = slDoc.getElementById('ratings');
   const slRows = [...(slBox?.querySelectorAll('.rrow') || [])];
@@ -1252,7 +1265,7 @@ async function run() {
   {
     const szDom = buildDom(JSDOM, { hash: '#/item/1',
       settings: { filters: null, userCount: 3, isAdmin: true } });
-    await new Promise(r => setTimeout(r, 80));
+    await until(szDom.w, detailReady, 2000, 'die Detailansicht');
     const szDoc = szDom.w.document;
     const szRows = [...szDoc.querySelectorAll('#ratings .rrow')];
     /* ERST DER GEGENSTAND: die Prueflage braucht eine Zeile
@@ -1260,7 +1273,7 @@ async function run() {
        zwischen sichtbar und unsichtbar gar nicht tragen. */
     const szNull = buildDom(JSDOM, { hash: '#/item/1', ownValues: [3, 3, 0],
       settings: { filters: null, userCount: 3, isAdmin: true } });
-    await new Promise(r => setTimeout(r, 80));
+    await until(szNull.w, detailReady, 2000, 'die Detailansicht');
     const szNullRows = [...szNull.w.document.querySelectorAll('#ratings .rrow')];
 
     /* UMGEDREHT MIT 0.22.0 (E15): das × in der Sternreihe ist der runde
@@ -1297,7 +1310,8 @@ async function run() {
     szDom.sent.length = 0;
     szRows[0].querySelector('.rreset')
       .dispatchEvent(new szDom.w.MouseEvent('click', { bubbles: true }));
-    await new Promise(r => setTimeout(r, 60));
+    await until(szDom.w, (x) => szDom.sent.some(g => /\/ratings/.test(g.url)) && openRequests(x) === 0,
+      2000, 'die Anfrage des Ruecksetzers');
     const szCalls = szDom.sent.filter(g => /\/ratings/.test(g.url));
     check('Ein Tipp auf das × schickt PUT mit value 0 — und nichts anderes',
       szCalls.length === 1 && szCalls[0].method === 'PUT' && szCalls[0].body?.value === 0 &&
@@ -1312,7 +1326,8 @@ async function run() {
     szDom.sent.length = 0;
     szRows[1].querySelector('.stars')
       .dispatchEvent(new szDom.w.MouseEvent('dblclick', { bubbles: true }));
-    await new Promise(r => setTimeout(r, 60));
+    // Wartet, ob nach dem Doppelklick eine Anfrage ausbleibt.
+    await new Promise(r => setTimeout(r, 20));
     check('Ein Doppelklick auf die Sterne tut nichts mehr',
       szDom.sent.length === 0, JSON.stringify(szDom.sent));
     check('Und die Sternreihe traegt keinen Ueberfahrtext mehr',
@@ -1370,7 +1385,7 @@ async function run() {
     const zkTested = buildDom(JSDOM, { hash: '#/item/1', criteriaPhases: zkPhases,
       voteColumns: [{ avg: 3.4, count: 5 }, { avg: 4.1, count: 128 }, { avg: 4.2, count: 2 }],
       settings: { filters: null, userCount: 3, isAdmin: true } });
-    await new Promise(r => setTimeout(r, 80));
+    await until(zkTested.w, detailReady, 2000, 'die Detailansicht');
     const zkDoc = zkTested.w.document;
 
     /* DER NEUE BLOCK STEHT VOR DEM BEWERTUNGSBLOCK -- geschaetzt wird, bevor
@@ -1398,7 +1413,7 @@ async function run() {
                       zkDoc.getElementById('phead')?.textContent]));
     /* UND DER ERKLAERKNOPF ZEIGT DEN RECHENWEG SEINES KASTENS. */
     zkDoc.getElementById('pweight-open')?.dispatchEvent(new zkTested.w.MouseEvent('click', { bubbles: true }));
-    await new Promise(r => setTimeout(r, 40));
+    await until(zkTested.w, (x) => x.document.getElementById('calc-modal'), 2000, 'der Erklaerkasten des Potenzials');
     const zkCalc = zkDoc.getElementById('calc-modal');
     const zkCalcRows = [...(zkCalc?.querySelectorAll('.calc-row[data-krit]') || [])]
       .map(z => z.querySelector('.calc-name').textContent.trim());
@@ -1441,7 +1456,7 @@ async function run() {
                       zkDoc.getElementById('pweight-open')?.title]));
     /* UND DER ERKLAERKASTEN SAGT ES AUCH -- am Ort der Erklaerung. */
     zkDoc.getElementById('weight-open')?.dispatchEvent(new zkTested.w.MouseEvent('click', { bubbles: true }));
-    await new Promise(r => setTimeout(r, 40));
+    await until(zkTested.w, (x) => x.document.getElementById('calc-modal'), 2000, 'der Erklaerkasten der Bewertung');
     const zkErkl = zkDoc.getElementById('calc-modal');
     check('Der Erklaerkasten nennt die Menge, ueber die gerechnet wird',
       /über alle\s+Benutzer/.test(zkErkl?.textContent || ''),
@@ -1453,7 +1468,8 @@ async function run() {
     zkTested.sent.length = 0;
     zkDoc.querySelector('.block[data-block="potenzial"] .block-head')
       .dispatchEvent(new zkTested.w.MouseEvent('click', { bubbles: true }));
-    await new Promise(r => setTimeout(r, 40));
+    await until(zkTested.w, (x) => zkZu('potenzial') === false && openRequests(x) === 0,
+      2000, 'der aufgeklappte Potenzialblock');
     check('Ein Klick auf den Kopf klappt auf',
       zkZu('potenzial') === false, JSON.stringify(zkZu('potenzial')));
     check('Und loest kein PUT /api/settings aus',
@@ -1461,9 +1477,11 @@ async function run() {
       JSON.stringify(zkTested.sent));
     /* DIE GEGENPROBE: ein gewoehnlicher Block speichert weiter. */
     zkTested.sent.length = 0;
+    const zkTagsZu = zkZu('tags');
     zkDoc.querySelector('.block[data-block="tags"] .block-head')
       .dispatchEvent(new zkTested.w.MouseEvent('click', { bubbles: true }));
-    await new Promise(r => setTimeout(r, 40));
+    await until(zkTested.w, (x) => zkZu('tags') !== zkTagsZu && openRequests(x) === 0,
+      2000, 'der umgeschaltete Tagblock');
     check('Ein gewoehnlicher Block speichert dagegen weiter',
       zkTested.sent.some(g => g.url === '/api/settings' && g.body?.blocks),
       JSON.stringify(zkTested.sent.map(g => g.url)));
@@ -1474,7 +1492,7 @@ async function run() {
       ownValues: [0, 0, 4], voteColumns: [{ avg: null, count: 0 }, { avg: null, count: 0 }, { avg: 4.2, count: 2 }],
       untested: true,
       settings: { filters: null, userCount: 3, isAdmin: true } });
-    await new Promise(r => setTimeout(r, 80));
+    await until(zkIdea.w, detailReady, 2000, 'die Detailansicht');
     const zkIdeaZu = (name) => zkIdea.w.document
       .querySelector(`.block[data-block="${name}"]`)?.classList.contains('closed');
     check('An einer Idee ohne Bewertungssterne steht das Potenzial offen',
@@ -1490,12 +1508,14 @@ async function run() {
        Kasten offen, ohne dass jemand klickt. */
     zkIdea.w.document.querySelector('.block[data-block="potenzial"] .block-head')
       .dispatchEvent(new zkIdea.w.MouseEvent('click', { bubbles: true }));
-    await new Promise(r => setTimeout(r, 40));
+    await until(zkIdea.w, (x) => zkIdeaZu('potenzial') === true && openRequests(x) === 0,
+      2000, 'der zugeklappte Potenzialblock');
     check('Ein Blick klappt das Potenzial an der Idee zu',
       zkIdeaZu('potenzial') === true, JSON.stringify(zkIdeaZu('potenzial')));
     zkIdea.w.document.getElementById('sw-test')
       .dispatchEvent(new zkIdea.w.MouseEvent('click', { bubbles: true }));
-    await new Promise(r => setTimeout(r, 80));
+    await until(zkIdea.w, (x) => zkIdea.sent.some(g => g.method === 'PUT' && g.url === '/api/items/1') &&
+      openRequests(x) === 0, 2000, 'die Antwort auf den Schalter Getestet');
     check('Der Schalter „Getestet" stellt die Regel wieder her',
       zkIdeaZu('bewertung') === false && zkIdeaZu('potenzial') === true,
       JSON.stringify([zkIdeaZu('bewertung'), zkIdeaZu('potenzial')]));
@@ -1508,7 +1528,7 @@ async function run() {
     const zkOld = buildDom(JSDOM, { hash: '#/item/1', criteriaPhases: zkPhases,
       ownValues: [4, 0, 4], untested: true,
       settings: { filters: null, userCount: 3, isAdmin: true } });
-    await new Promise(r => setTimeout(r, 80));
+    await until(zkOld.w, detailReady, 2000, 'die Detailansicht');
     check('Eine Idee MIT Bewertungssternen zeigt sie trotzdem',
       zkOld.w.document.querySelector('.block[data-block="bewertung"]')
         ?.classList.contains('closed') === false,
@@ -1523,7 +1543,7 @@ async function run() {
     const zkEmpty = buildDom(JSDOM, { hash: '#/item/1', criteriaPhases: zkPhases,
       potentialValue: null, ownValues: [4, 4, 0],
       settings: { filters: null, userCount: 3, isAdmin: true } });
-    await new Promise(r => setTimeout(r, 80));
+    await until(zkEmpty.w, detailReady, 2000, 'die Detailansicht');
     const zkEmptyDoc = zkEmpty.w.document;
     check('Die Prueflage steht: der Potenzialkasten ist zu und hat keine Zahl',
       zkEmptyDoc.querySelector('.block[data-block="potenzial"]')?.classList.contains('closed') === true &&
@@ -1557,18 +1577,20 @@ async function run() {
       voteColumns: [{ avg: null, count: 0 }, { avg: null, count: 0 }, { avg: null, count: 0 }],
       untested: true, secondEntry: zkSecond,
       settings: { filters: null, userCount: 3, isAdmin: true } });
-    await new Promise(r => setTimeout(r, 80));
+    await until(zkChange.w, detailReady, 2000, 'die Detailansicht');
     const zkWZu = (name) => zkChange.w.document
       .querySelector(`.block[data-block="${name}"]`)?.classList.contains('closed');
     check('An Eintrag 1 steht das Potenzial nach der Regel offen',
       zkWZu('potenzial') === false, JSON.stringify(zkWZu('potenzial')));
     zkChange.w.document.querySelector('.block[data-block="potenzial"] .block-head')
       ?.dispatchEvent(new zkChange.w.MouseEvent('click', { bubbles: true }));
-    await new Promise(r => setTimeout(r, 40));
+    await until(zkChange.w, (x) => zkWZu('potenzial') === true && openRequests(x) === 0,
+      2000, 'der zugeklappte Potenzialblock');
     check('Ein Blick klappt es dort gegen die Regel zu',
       zkWZu('potenzial') === true, JSON.stringify(zkWZu('potenzial')));
     zkChange.w.location.hash = '#/item/2';
-    await new Promise(r => setTimeout(r, 120));
+    await until(zkChange.w, (x) => x.document.getElementById('title')?.value === 'Zweite Idee' &&
+      openRequests(x) === 0, 2000, 'die Detailansicht des zweiten Eintrags');
     /* ERST DAS OBJEKT, DANN SEIN ZUSTAND: steht der Kasten
        nach dem Wechsel gar nicht da, sagt `undefined === true` dasselbe wie
        „offen" -- und die Zeile darunter waere gruen, ohne etwas zu belegen. */
@@ -1585,7 +1607,7 @@ async function run() {
        DER GEGENPROBE: die Rueckbauten 597 und 598 kamen beide STUMM zurueck. */
     const zkSys = buildDom(JSDOM, { hash: '', criteriaPhases: zkPhases,
       settings: { filters: null, userCount: 3, isAdmin: true } });
-    await new Promise(r => setTimeout(r, 80));
+    await until(zkSys.w, listReady, 2000, 'die Uebersicht');
     await sysSection(zkSys.w, 'inventory');
     const zkCardsNames = (id) => [...(zkSys.w.document.getElementById(id)
       ?.querySelectorAll('.mrow .mname') || [])].map(n => n.textContent);
@@ -1606,7 +1628,8 @@ async function run() {
       zkPField.value = 'Wunsch';
       zkSys.w.document.getElementById('newpcrit-b')
         ?.dispatchEvent(new zkSys.w.MouseEvent('click', { bubbles: true }));
-      await new Promise(r => setTimeout(r, 60));
+      await until(zkSys.w, (x) => zkSys.sent.some(g => g.method === 'POST' && g.url === '/api/criteria') &&
+        openRequests(x) === 0, 2000, 'das angelegte Potenzialkriterium');
     }
     const zkCreated = zkSys.sent
       .filter(x => x.method === 'POST' && x.url === '/api/criteria').pop();
@@ -1617,10 +1640,12 @@ async function run() {
        nichts. */
     const zkNField = zkSys.w.document.getElementById('newcrit');
     if (zkNField) {
+      const zkPosts = zkSys.sent.filter(x => x.method === 'POST' && x.url === '/api/criteria').length;
       zkNField.value = 'Preis';
       zkSys.w.document.getElementById('newcrit-b')
         ?.dispatchEvent(new zkSys.w.MouseEvent('click', { bubbles: true }));
-      await new Promise(r => setTimeout(r, 60));
+      await until(zkSys.w, (x) => zkSys.sent.filter(g => g.method === 'POST' && g.url === '/api/criteria')
+        .length > zkPosts && openRequests(x) === 0, 2000, 'das angelegte Bewertungskriterium');
     }
     const zkAngelegt2 = zkSys.sent
       .filter(x => x.method === 'POST' && x.url === '/api/criteria').pop();
@@ -1635,7 +1660,7 @@ async function run() {
     const zkWord = buildDom(JSDOM, { hash: '#/item/1', criteriaPhases: zkPhases,
       settings: { filters: null, userCount: 3, isAdmin: true,
                        vocabulary: { potential: 'Erwartung' } } });
-    await new Promise(r => setTimeout(r, 80));
+    await until(zkWord.w, detailReady, 2000, 'die Detailansicht');
     const zkHead = zkWord.w.document
       .querySelector('.block[data-block="potenzial"] .block-head .label');
     check('Der Kopf des Potenzialblocks steht ueberhaupt da',
@@ -1666,7 +1691,7 @@ async function run() {
     ];
     const zkUeb = buildDom(JSDOM, { hash: '', overviewItems: zkCards,
       settings: { filters: null, userCount: 3 } });
-    await new Promise(r => setTimeout(r, 120));
+    await until(zkUeb.w, listReady, 2000, 'die Uebersicht');
     const zkTile = (n) => [...zkUeb.w.document.querySelectorAll('.card')][n];
     const zkNumber = (n) => zkTile(n)?.querySelector('.rating-inline')?.textContent.trim()
       ?? zkTile(n)?.querySelector('.card-meta-l .hint')?.textContent.trim();
@@ -1711,7 +1736,8 @@ async function run() {
     const zkField = () => zkUeb.w.document.getElementById('f-sort');
     const zkDir = () => zkUeb.w.document.getElementById('f-sort-dir');
     if (zkField()) { zkField().value = 'potential'; zkField().onchange(); }
-    await new Promise(r => setTimeout(r, 60));
+    await until(zkUeb.w, (x) => /^potential_/.test(x.eval('state.filters.sort')) && openRequests(x) === 0,
+      2000, 'die Sortierung nach Potenzial');
     check('Nach Potenzial sortiert steht der ganze Bestand da — 0.32.1',
       equal(zkTitle(), ['Geprueft', 'Idee', 'Blanko']), JSON.stringify(zkTitle()));
     check('Nach Potenzial absteigend stehen Eintraege ohne Zahl hinten',
@@ -1719,8 +1745,10 @@ async function run() {
     /* DER UMSCHALTER SAGT DIE KONKRETE RICHTUNG und nicht „absteigend“. */
     check('Und der Umschalter daneben nennt die geltende Richtung — 0.28.1',
       zkDir()?.textContent === 'hoch → niedrig', JSON.stringify(zkDir()?.textContent));
+    const zkSortVor = zkUeb.w.eval('state.filters.sort');
     zkDir()?.click();
-    await new Promise(r => setTimeout(r, 60));
+    await until(zkUeb.w, (x) => x.eval('state.filters.sort') !== zkSortVor && openRequests(x) === 0,
+      2000, 'die umgedrehte Sortierung');
     check('Und aufsteigend ebenfalls',
       zkTitle()[zkTitle().length - 1] === 'Blanko', JSON.stringify(zkTitle()));
     check('Und der Umschalter nennt danach die andere Richtung — 0.28.1',
@@ -1779,7 +1807,7 @@ async function run() {
   for (const [howMany, word] of [[3, 'mehreren Zugaengen'], [1, 'einem einzigen Zugang']]) {
     const rz = buildDom(JSDOM, { hash: '#/item/1',
       settings: { filters: null, userCount: howMany, isAdmin: true } });
-    await new Promise(r => setTimeout(r, 80));
+    await until(rz.w, detailReady, 2000, 'die Detailansicht');
     const rzBox = rz.w.document.getElementById('ratings');
     const rzRows = [...(rzBox?.querySelectorAll('.rrow') || [])];
     /* ERST DER GEGENSTAND: ohne Zeilen traegt keine Zusage darunter einen
@@ -1876,9 +1904,10 @@ async function run() {
      nach der CSS-Regel ebenfalls auf `auto`. */
   {
     const az = buildDom(JSDOM, { settings: { filters: null, userCount: 4, isAdmin: true } });
-    await new Promise(r => setTimeout(r, 60));
+    await until(az.w, listReady, 2000, 'die Uebersicht');
     await az.w.renderSystem();
-    await new Promise(r => setTimeout(r, 60));
+    await until(az.w, (x) => x.document.getElementById('msessions') && openRequests(x) === 0,
+      2000, 'der Systembereich');
     const azOwn = az.w.document.querySelector('#msessions .mrow.session.session-mine');
     check('Die eigene Anmeldung steht als markierte Zeile da',
       !!azOwn, az.w.document.getElementById('msessions')?.innerHTML?.slice(0, 160));
@@ -1924,7 +1953,7 @@ async function run() {
       rejection: rejected ? { at: '2026-03-14 09:12:00', reason,
         author: { id: 1, name: 'chefin', deleted: false } } : null,
       settings: { filters: null, userCount: 3, isAdmin: true } });
-    await new Promise(r => setTimeout(r, 80));
+    await until(d.w, detailReady, 2000, 'die Detailansicht');
     return d;
   };
   const fsField = (d) => d.w.document.getElementById('rej-reason-row');
@@ -1946,11 +1975,12 @@ async function run() {
       rejection: { at: '2026-03-14 09:12:00', reason: 'Ein Grund von frueher',
                    author: { id: 1, name: 'chefin', deleted: false } },
       settings: { filters: null, userCount: 3, isAdmin: true } });
-    await new Promise(r => setTimeout(r, 80));
+    await until(d.w, detailReady, 2000, 'die Detailansicht');
     // Das Merkmal zuruecknehmen -- Datum, Grund und Verfasser bleiben stehen.
     d.w.document.getElementById('sw-rej')
       .dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
-    await new Promise(r => setTimeout(r, 60));
+    await until(d.w, (x) => d.sent.filter(g => g.method === 'PUT' && g.url === '/api/items/1')
+      .length === 1 && openRequests(x) === 0, 2000, 'die Antwort auf das Zuruecknehmen');
     check('Zurueckgenommen, aber Grund noch in der Zeile: trotzdem beides weg',
       fsMark(d)?.hidden === true && fsField(d)?.hidden === true,
       JSON.stringify([fsMark(d)?.hidden, fsField(d)?.hidden]));
@@ -1981,10 +2011,12 @@ async function run() {
     /* UND ES BLEIBT ZU, AUCH NACH EINEM NEUEN ZEICHNEN. */
     d.w.document.getElementById('sw-rej')
       .dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
-    await new Promise(r => setTimeout(r, 60));
+    await until(d.w, (x) => d.sent.filter(g => g.method === 'PUT' && g.url === '/api/items/1')
+      .length === 1 && openRequests(x) === 0, 2000, 'die Antwort auf das Zuruecknehmen');
     d.w.document.getElementById('sw-rej')
       .dispatchEvent(new d.w.MouseEvent('click', { bubbles: true }));
-    await new Promise(r => setTimeout(r, 80));
+    await until(d.w, (x) => d.sent.filter(g => g.method === 'PUT' && g.url === '/api/items/1')
+      .length === 2 && openRequests(x) === 0, 2000, 'die Antwort auf das erneute Ablehnen');
     check('Ein erneutes Ablehnen macht es nicht auf -- der Grund steht ja da',
       fsField(d)?.hidden === true && fsMark(d)?.hidden === false,
       JSON.stringify([fsField(d)?.hidden, fsMark(d)?.hidden]));
@@ -1998,7 +2030,7 @@ async function run() {
       rejection: { at: '2026-03-14 09:12:00', reason: null,
                    author: { id: 2, name: 'Anna', deleted: false } },
       settings: { filters: null, userCount: 3, isAdmin: false } });
-    await new Promise(r => setTimeout(r, 80));
+    await until(d.w, detailReady, 2000, 'die Detailansicht');
     check('Wer nicht schreiben darf, bekommt auch ohne Grund kein Feld',
       fsField(d)?.hidden === true, JSON.stringify(fsField(d)?.hidden));
     check('Die Aussage liest er dafuer',
