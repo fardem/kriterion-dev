@@ -1917,7 +1917,7 @@ async function run() {
     .map(z => z.textContent);
   /* DER VERMERK NENNT DIE ROLLE. */
   check('Der Eingriffsvermerk steht als eigene Angabe in der Kopfzeile',
-    equal(notes, ['1 Bild vom Admin entfernt', '2 Bilder vom Admin entfernt']),
+    equal(notes, ['1 Bild oder Video vom Admin entfernt', '2 Bilder oder Videos vom Admin entfernt']),
     JSON.stringify(notes));
   check('Und er nennt die Rolle, nicht die Person',
     notes.every(z => /vom Admin/.test(z)) &&

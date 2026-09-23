@@ -1187,7 +1187,7 @@ async function run() {
     const tools = [...doc.querySelectorAll('.lightbox .lb-tools .lb-btn')]
       .map(b => b.className.replace('lb-btn ', ''));
     check('Und er steht vor dem Schliessen, nicht daneben',
-      equal(tools, ['zoom', 'remove', 'close']), JSON.stringify(tools));
+      equal(tools, ['download', 'zoom', 'remove', 'close']), JSON.stringify(tools));
 
     const imagesBefore = [...doc.querySelectorAll('.lightbox .lb-thumb')].length;
     /* MIT FRAGEZEICHEN, und das ist keine Zierde: nimmt ein Rueckbau den
@@ -1662,8 +1662,9 @@ async function run() {
        Kommentaren, die eine Runde gekuerzt hat. Die Zahl steht im Namen der
        Pruefung -- sie ist die eine Zahl dieser Gruppe, die eine Kuerzung
        bewegt. */
-    check('In den Kommentaren derselben Datei stehen unveraendert 7 Vorkommen',
-      iAppRaw === 7, `${iAppRaw} Vorkommen`);
+    // Sechs: der Kommentar am Knopf des Backups ist gekuerzt und nennt die Instanz nicht mehr.
+    check('In den Kommentaren derselben Datei stehen 6 Vorkommen',
+      iAppRaw === 6, `${iAppRaw} Vorkommen`);
 
     /* UND IN server.js BLEIBT SEIT 0.33.0 KEINE EINZIGE MEHR. */
     const iServer = screenRows('server.js');

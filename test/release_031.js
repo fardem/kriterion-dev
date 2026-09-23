@@ -542,7 +542,7 @@ async function check0311() {
    84dad7c0086755d1, en a162f49132220b4f / 3ff874893a28fe31,
    tr 7d4e5fd082b2f9e1 / bfcfc70232d3103d. */
 // Davor 733a7fc85f03ba68 / e3dd61bee56400bb: das Wort Backup, die Hinweise zum Export und die Grenzen.
-const DE_UNTOUCHED = { one: 'e3b05eb35283a51f', other: '88cac0197308f512' };
+const DE_UNTOUCHED = { one: 'b054e6310a03994c', other: 'e310e2a9a662f681' };
 const DE_BEFORE_0312 = { one: '91b86c5affcba789', other: '07fc3ccdc8a27a03' };
 const DE_ORDERED_0312 = {
   'login.requestAccess': 'Zugang anfragen',
@@ -985,7 +985,7 @@ async function check0312() {
    eec8c1717c54a12f / f874903b6b33781a · cad88cfda93ececc / e73468286c2f1405 ·
    68c54e6fc1a90c6d / 6ba9dddf3e06cb33 · cdff153c8c0c8545 / 7e902c8f506f3b35 */
 // Davor 2543775bdc0f5fa2 / 8aca799913c25836.
-const EN_UNTOUCHED = { one: 'c5a1b516501db524', other: 'f49e7461e8fa2b49' };
+const EN_UNTOUCHED = { one: 'ad37adf10daaa319', other: '555ff2f14c41854a' };
 const TR_BEFORE_0313 = { one: '5fec71b10c0dfa3c', other: '18b07eda589b5120' };
 /* DIE FRUEHEREN TUERKISCHEN SUMMEN: bbaca227348609dc / 73d9f1ea0298d519 ·
    ab6bdf35499f7cf9 / ad34f68137acaa2b · eb1ffa65a4bddb95 / f137b990650a241e ·
