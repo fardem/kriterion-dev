@@ -188,7 +188,7 @@ Sprachumschalter baut, hat damit ein Muster und braucht kein neues.**
 | ~~**0.39.0**~~ | ~~**Die Spaltenfolge: `data` ans Ende**~~ | **GEBAUT am 22. September 2026** auf 0.38.6 — Änderungsprotokoll 0.39.0. *Zugeordnet war für diese Nummer die Nebentabelle `photo_derivatives`; gebaut ist die Spaltenfolge.* **In `photos`, `comment_images` und `attachments` steht `data` jetzt am Ende der Zeile.** *SQLite liest eine Zeile von vorn; was hinter einem großen Blob steht, ist nur über dessen Overflow-Kette erreichbar, und die Kachel der Übersicht stand dahinter.* **Gemessen an einer verschlüsselten Prüflage von 500 Fotos und 126,0 MB Originalen: 0,91 ms je Kachel vorher, 0,01 ms nachher**, *bei dreißig Kacheln auf einmal 27,4 gegen 0,28 ms.* **Die Nebentabelle `photo_derivatives` ist ausdrücklich nicht gebaut** — *gemessen 0,009 ms je Kachel mit ihr gegen 0,011 ms mit der Spaltenfolge; **die Differenz beträgt 0,002 ms** und ist einen zweiten Schreibweg, einen zweiten Leseweg, einen Eingriff in Export, Import und Papierkorb und eine Neurechnung aller Ableitungen nicht wert.* **`tools/reorder.js` bringt eine bestehende Datenbank auf die neue Folge** — *ein Aufruf bei angehaltener Instanz, kein Migrationsblock; Indexe und Trigger werden wortgleich wieder angelegt, `VACUUM` gibt den Platz zurück. Gemessen 44,7 ms je MB, Datei 231,7 MB vor und nach dem Lauf.* **Am Code ändert sich keine Zeile.** **MINOR** *(1.133 → 1.137 Rückbauten, Prüfstand 7.256 → 7.276). Ein neues Modul `test/reorder.js` mit einer Gruppe und zwanzig Prüfungen. Fingerprint `2ba1c469`* | **ja** | 22.09.2026 |
 | ~~**0.39.1**~~ | ~~**Was für vergangene Prozesse gebaut wurde, geht heraus**~~ | **GEBAUT am 22. September 2026** auf 0.39.0 — Änderungsprotokoll 0.39.1. *Vorgabe des Betreibers: 0.39.0 ist die einzige Fassung, die es öffentlich je geben wird; vor ihr liegt keine, aus der jemand einen Bestand, eine `.env` oder eine Exportdatei mitbrächte.* **Fünf Werkzeuge unter `tools/` sind fort, zusammen 921 Zeilen** — *`reorder.js` nach seinem einen Lauf, dazu `rename.js`, `rename-test.js`, `gestalt.js` und `scan-words.js`. Gemessen vor dem Bau: **null** der sieben Eigennamen steht noch als Bezeichner im Code, die 318 Vorkommen liegen in Kommentaren und Prüfnamen — der Umbenenner hat keinen Gegenstand mehr.* **Die vier deutschen Umgebungsnamen werden nicht mehr gelesen**, *und das ist die einzige Verhaltensänderung der Runde; sie steht im Kasten über dem Changelog-Eintrag.* **`LEGACY_TABLES`, drei `AUTH_*`-Warnungen und jede Versionsnummer aus der Anleitung sind gefallen** — *der Wächter über die Nummern hat sich dabei umgekehrt: er verlangte sechs, jetzt verbietet er jede.* **`lateStatement` und `REQUIRED_COLUMNS` bleiben ausdrücklich** — *der Rückbau hätte 30 Deklarationen und rund 60 Aufrufe in `server.js` gekostet und null Zeilen gebracht; nur der Text des Kastens ist umgeschrieben und verweist auf die Sicherung statt auf eine ältere Version.* **Zwei Fehler nebenbei behoben:** *`.env.example` nannte `./schluessel.sh` statt `keytool.sh`, und das Handbuch trug die Formatnummer 17, während der Server 18 trägt — ein neuer Wächter hält beide gegeneinander.* **PATCH** *(1.137 → 1.133 Rückbauten, Prüfstand 7.276 → 7.256, 1.575 Zeilen entfernt und 150 hinzugekommen). Fingerprint `9d48cbbc`* | nein | 22.09.2026 |
 | ~~**0.40.0**~~ | ~~**Export, Import und Papierkorb ohne den Arbeitsspeicher**~~ | **GEBAUT am 22. September 2026** auf 0.39.1 — Änderungsprotokoll 0.40.0. **Der Export schreibt stückweise:** *Kopf, Bündel für Bündel, Schluss — und bei Rückstau wartet er auf `drain`.* **Die RSS-Spitze fällt von +1.125,8 MB auf +314,8 MB**, die Laufzeit von 16,02 s auf 3,95 s — gemessen an 40 Einträgen zu je 6,0 MB, Datei 320,0 MB. **Damit fällt die Absage vor dem Gesamtexport**; `EXCHANGE_MAX` bleibt als Latte je Teil im Teilexport. **Der Import liest die Datei eintragsweise von der Platte** — `diskStorage` in `DATA_DIR/import`, ein `finally` um alles, und der Serverstart leert den Ordner. `IMPORT_MAX` steigt von 900 MB auf 4 GB, und vor dem Hochladen wird der freie Platz geprüft. **Der Papierkorb kopiert die Bytes innerhalb von SQLite** — vier `INSERT … SELECT`, und `entryAsBundle` liest die Blobspalten dafür gar nicht erst. **Die Antwort trägt keine `Content-Length` mehr**, und ein Dialog sagt das vor Export und Import an; er stellt zugleich die drei Wege nebeneinander. Das Austauschformat bleibt **18**, der Inhalt der Datei ist Zeichen für Zeichen derselbe. Fingerprint `7681fc64` (davor `9d48cbbc`) | nein | nein |
-| **0.41.0** | **Der Prüfstand wartet auf eine Bedingung statt auf die Uhr** | **GEPLANT am 21. September 2026** — *zugeordnet aus Punkt 41 des Sammelblatts; Ansage des Betreibers vom 21. September 2026: „beim nächsten Mal".* **614 feste Wartezeiten stehen in den Modulen unter `test/`, zusammen 47.520 ms.** *0.35.0 hat das Werkzeug gebaut und elf Stellen umgestellt — `until()` in `test/dom.js`, `nextSecond()` in `test/frame.js`.* **Jede der 614 braucht ihre eigene Bedingung**, es gibt keinen Griff für alle auf einmal. *Modul für Modul, mit einem vollen Lauf je Modul.* | nein | — |
+| **0.41.0** | **Der Prüfstand wartet auf eine Bedingung statt auf die Uhr** | **GEPLANT am 21. September 2026** — *zugeordnet aus Punkt 41 des Sammelblatts; Ansage des Betreibers vom 21. September 2026: „beim nächsten Mal".* **614 feste Wartezeiten stehen in den Modulen unter `test/`, zusammen 47.520 ms.** *0.35.0 hat das Werkzeug gebaut und elf Stellen umgestellt — `until()` in `test/dom.js`, `nextSecond()` in `test/frame.js`.* **Jede der 614 braucht ihre eigene Bedingung**, es gibt keinen Griff für alle auf einmal. *Modul für Modul, mit einem vollen Lauf je Modul.* **DAZU EIN ZWEITER GEGENSTAND, angesagt vom Betreiber am 22. September 2026:** *eine frische Installation bekommt aus einer Exportdatei nicht alles zurück — Zugänge, Mailzugang, Titel, Vokabular, Suchanbieter, Bildablage, persönliche Einstellungen, Sicherheitsprotokoll und Papierkorb stehen nicht darin.* **Am Ablauf wird nichts geändert, gebaut werden die Hinweise:** *nur das Backup ist ein vollständiges Backup; Export und Import tragen die Einträge und sonst nichts.* **Im Dialog, in beiden Karten und im Handbuch.** **Und das Wort heißt Backup** — *das deutsche fällt: 57 Werte in `de.json`, 107 Treffer in Quelltext und Papieren; die Schlüsselnamen tragen `backup` schon* | nein | — |
 | **0.42.0** | **Dokumente über einen Document Server ansehen** | **GEPLANT am 21. September 2026.** *Eine Instanz, die einen OnlyOffice Document Server betreibt, zeigt `.docx`, `.xlsx` und `.pptx` im Betrachter — heute gibt es dafür nackten Text oder gar nichts. Ohne Document Server bleibt alles, wie es ist.* **Adresse und Geheimnis stehen in der `.env` oder der Compose-Datei**, *kein Feld in der Oberfläche: ein Geheimnis in `settings` reiste im Export mit.* Der Admin schaltet an und ab, **je Benutzer gibt es keinen Schalter**. *Die teuerste Zeile ist die Sicherheitsregel (`server.js`:370 — `script-src` und `frame-src` müssen eine fremde Adresse aufnehmen); der Document Server holt die Datei ohne Cookie und braucht dafür ein einmaliges Token in der Adresse.* **Und die README muss in dieser Runde sagen, dass eine angesehene Datei im Zwischenspeicher des Document Servers im Klartext liegt** | nein | — |
 | **0.43.0** | **Dokumente über den Document Server bearbeiten** | **GEPLANT am 21. September 2026, setzt 0.42.0 voraus.** *Der Rückweg: der Document Server meldet die geänderte Fassung, Kriterion holt sie und schreibt sie nach `attachments.data`.* **Ohne Geheimnis kein Bearbeiten** — *der Rückweg ist ein Schreibweg ohne Cookie und hängt allein an der Unterschrift.* Ändern darf, wer auch löschen darf: Admin oder wer die Datei hochgeladen hat, `mayChange()` unverändert. **Zwei Fragen sind offen:** *ob der Rückweg dieselbe Zeile ersetzt oder eine zweite anlegt, und was geschieht, wenn die Datei zwischen Öffnen und Rückweg gelöscht wurde* | nein | — |
 | ~~**1.0.0**~~ | ~~Die Zusage~~ | **GESTRICHEN am 15. September 2026** — Vorgabe des Betreibers: es wird kein 1.0.0 geben, was als 1.0 geplant war ist mit **0.33.0** erreicht. Die zwei offenen Punkte des Eintrags stehen in der Zeile darunter | — | — |
@@ -2317,6 +2317,88 @@ Kompression beim Serverstart zahlt.
 **Modul für Modul, mit einem vollen Lauf je Modul.**
 
 **Was es anfasst** — `test/ui_*.js`, `test/roundtrip.js`, `test/release_030.js`.
+
+### Der zweite Gegenstand: was eine Exportdatei nicht zurückbringt
+
+**Angesagt vom Betreiber am 22. September 2026**, nach dem Einspielen einer
+Exportdatei in eine frische Installation: die Einträge waren da, die Zugänge
+und der Mailzugang nicht.
+
+**Das ist so gebaut, und es steht nirgends am Bildschirm.** Die Exportdatei
+trägt den Bestand, nicht die Installation. Nicht darin stehen:
+
+| Tabelle | was fehlt |
+|---|---|
+| `users`, `sessions`, `tokens`, `two_factor` | Zugänge, Passwörter, Sitzungen, Einladungslinks, zweiter Faktor |
+| `settings` | der Mailzugang, beide Titel, das Vokabular, die Suchanbieter, die Bildablage, der Sicherungsort |
+| `user_settings` | Filter, Schriftgröße, Blöcke, Thema und Sprache je Zugang |
+| `security_log`, `login_attempts`, `requests` | Protokoll und Anmeldeversuche |
+| `trash`, `trash_bytes` | der Papierkorb |
+
+**Der ersetzende Import löscht drei Tabellen** — `items`,
+`product_categories`, `tags` (`server.js`:5360) — und fasst Zugänge und
+Einstellungen nicht an. Er kann sie also nicht weggenommen haben; fehlen sie,
+hat die Instanz sie nie gehabt.
+
+**Die Folge trifft die Verfasser.** `authorId()` sucht den Zugang über den
+NAMEN; findet er ihn nicht, fällt der Beitrag an den Einspielenden. Wer den
+Bestand umzieht, legt die Zugänge also vorher mit denselben Benutzernamen an.
+
+### Das Wort heißt Backup
+
+**Vorgabe des Betreibers vom 22. September 2026:** *„such nicht Sicherung,
+richtige Begriffe sind: Import, Export, Backup."* **Die drei Wege heißen ab
+0.41.0 Export, Import und Backup**, und das deutsche Wort fällt.
+
+**Gemessen am Stand 0.40.0: 57 Werte in `public/languages/de.json`, dazu 107
+Treffer in Quelltext und Papieren.**
+
+| | Treffer |
+|---|---:|
+| `README.md` | 43 |
+| `public/app.js` — Kommentare | 17 |
+| `manual-de.md` | 16 |
+| `server.js` — Kommentare | 13 |
+| `docker-compose.example.yml` | 12 |
+| `.env.example` | 6 |
+
+> **DIE SCHLÜSSELNAMEN SIND SCHON RICHTIG.** *51 tragen `backup` im Namen —
+> `card.backup`, `card.backupWhatHint`, `server.backupDirGone`.* **Angefasst
+> wird der deutsche Wortlaut, nicht das Format und nicht die Schnittstelle.**
+> *Englisch und Türkisch sagen schon heute `backup` und `yedekleme`: null
+> Treffer.*
+
+**Der Wortfilter des Prüfstands bekommt den Eintrag, sobald der Wortlaut
+umgestellt ist** — das deutsche Wort gegen `Backup`, wie `Keks` gegen
+`Cookie`.
+
+### Was dafür zu bauen ist
+
+> **AM ABLAUF WIRD NICHTS GEÄNDERT** — Vorgabe des Betreibers vom 22. September
+> 2026: „du brauchst die Funktion nicht verändern, passt schon so." **Gebaut
+> werden die Hinweise.** Sie müssen zwei Fragen beantworten: *was sichert man
+> womit, und was ist wo drin.*
+
+**Die zwei Sätze, die überall stehen müssen:**
+
+1. **Nur das Backup ist ein vollständiges Backup.**
+2. **Export und Import tragen die Einträge und sonst nichts** — keine Zugänge
+   und auch keine Einstellungen von Kriterion.
+
+**Wo sie hingehören:**
+
+| Ort | was heute fehlt |
+|---|---|
+| Der Dialog vor Export und Import | er stellt seit 0.40.0 die drei Wege nebeneinander, sagt aber nicht, was in keinem davon steckt |
+| Die Karte „Export und Import" | `card.exportPurposeHint` nennt Umzug, Archiv und Weitergabe — nicht, was fehlt |
+| Die Karte des Backups | `card.backupWhatHint` sagt „auch mit dem, was der Export nicht enthält" — was das ist, steht nirgends |
+| **Das Handbuch** | der Abschnitt „Export und Import" zählt Zugänge, Passwörter, Sitzungen, Sicherheitsprotokoll, Papierkorb und persönliche Einstellungen auf; **der Mailzugang und die übrigen Einstellungen fehlen in der Liste** |
+
+**Dazu, als Kleinigkeit am selben Ort:** nach dem Dateiimport nennt die
+Oberfläche die Verfasser nicht, die dem Einspielenden zugefallen sind. Die
+Antwort trägt `authorUnknown` schon, das Containerprotokoll nennt sie, und
+beim Zurückholen aus dem Papierkorb zeigt die Oberfläche sie auch
+(`public/app.js`:8608) — nach dem Dateiimport nicht.
 
 **Schema: nein.**
 
