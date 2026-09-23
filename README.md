@@ -52,7 +52,7 @@ Videos liegen darin und werden nie als Datei auf die Platte geschrieben.
 - [Dateien am Eintrag — wie sie abgesichert sind](#dateien-am-eintrag--wie-sie-abgesichert-sind)
 - [Kurzvideos](#kurzvideos)
 - [Speicherbedarf](#speicherbedarf)
-- [Sichern](#sichern)
+- [Backup](#backup)
 - [Datenmodell](#datenmodell)
 - [Prüfen](#prüfen)
   - [Wie lange er braucht — und wo die Zeit hingeht](#wie-lange-er-braucht--und-wo-die-zeit-hingeht)
@@ -78,7 +78,7 @@ Videos liegen darin und werden nie als Datei auf die Platte geschrieben.
 | **Suchen und filtern** | Volltextsuche über Titel, Beschreibung, Kategorie, Tags, Links und Kommentare — **jede Trefferkachel sagt, wo das Wort steht, und der Begriff ist hervorgehoben**; Filterstellungen lassen sich als **Ansicht** speichern |
 | **Den Überblick behalten** | „Offen" zeigt alle unerledigten Aufgaben über alle Einträge, die **Glocke** alles, was seit dem letzten Blick dazugekommen ist |
 | **Zu mehreren arbeiten** | Benutzer mit drei Rollen; jeder Beitrag trägt seinen Verfasser |
-| **Sichern** | verschlüsselte Kopie auf Knopfdruck, dazu ein JSON-Export, der ohne Schlüssel auskommt |
+| **Backup** | verschlüsseltes Backup auf Knopfdruck, dazu ein JSON-Export, der ohne Schlüssel auskommt |
 
 ---
 
@@ -183,7 +183,7 @@ cp docker-compose.example.yml docker-compose.yml
 **Der Schritt `cp docker-compose.example.yml docker-compose.yml` ist Pflicht.**
 Ohne die Datei bricht `docker compose up` mit
 „no configuration file provided: not found" ab. **Die Vorlage liegt im Repo, die
-Arbeitskopie nicht** — hier stehen Port, Einhängung des Sicherungsordners und
+Arbeitskopie nicht** — hier stehen Port, Einhängung des Backup-Ordners und
 Containername, und das sind *deine* Werte. Wer sie in einer verfolgten Datei
 bearbeitet, verliert sie beim nächsten Auspacken des ZIP.
 
@@ -229,7 +229,7 @@ Die Tafel sagt, wo es steht. **Was die einzelnen Karten tun, steht im
 | **Vokabular** | Einstellungen › Bestand, Karte „Vokabular" | fünfzehn Wörter der Oberfläche umbenennen, etwa „Eintrag" → „Modell" |
 | **Weitere Benutzer** | Einstellungen › Benutzer, Karte „Benutzer" | anlegen oder über einen Einladungslink einladen |
 | **Mailversand** | Einstellungen › Benutzer, Karte „Mailversand" | nur für Einladungslinks und Links zum Zurücksetzen; ohne ihn läuft alles weiter |
-| **Sicherungsordner** | `docker-compose.yml` | Vorgabe liegt im Projektordner; die empfohlene Lage ist daneben — siehe „Sichern" |
+| **Backup-Ordner** | `docker-compose.yml` | Vorgabe liegt im Projektordner; die empfohlene Lage ist daneben — siehe „Backup" |
 | **Reverse Proxy** | `.env`, `BEHIND_PROXY=1` | nur wenn die Installation über einen Proxy und HTTPS nach außen geht. **Der Weg über `http://<server-ip>:3100` bleibt daneben offen** — siehe „Hinter einem Reverse Proxy" |
 
 ---
@@ -264,7 +264,7 @@ gebaut wird.
 |---|---|
 | `data/` | die verschlüsselte Datenbank `katalog.sqlite` |
 | `.env` | der Schlüssel und die Einstellungen |
-| `docker-compose.yml` | Port, Einhängung des Sicherungsordners, Containername |
+| `docker-compose.yml` | Port, Einhängung des Backup-Ordners, Containername |
 
 ---
 
@@ -277,8 +277,8 @@ den Befehl noch eine Erklärung dazu.
 
 | Handgriff | Befehl | wo der Kasten steht |
 |---|---|---|
-| **Ein vergessenes Passwort zurücksetzen** — wenn kein Admin mehr hereinkommt | `docker compose exec kriterion node usertool.js passwort <name>` | Karte „Mein Konto" und Karte „Benutzer" |
-| **Den zweiten Faktor eines Benutzers ausschalten** — wenn Handy und Wiederherstellungscodes weg sind | `docker compose exec kriterion node usertool.js zweifaktor <name>` | Karte „Mein Konto", beim zweiten Faktor |
+| **Ein vergessenes Passwort zurücksetzen** — wenn kein Admin mehr hereinkommt | `docker compose exec kriterion node usertool.js password <name>` | Karte „Mein Konto" und Karte „Benutzer" |
+| **Den zweiten Faktor eines Benutzers ausschalten** — wenn Handy und Wiederherstellungscodes weg sind | `docker compose exec kriterion node usertool.js twofactor <name>` | Karte „Mein Konto", beim zweiten Faktor |
 | **Den Schlüssel in die `.env` nehmen** und danach neu starten | `docker compose up -d` | Karte „Kennzahlen", solange der Schlüssel neben der Datenbank liegt |
 
 Die beiden `usertool.js`-Befehle fragen auf dem Server nach, bevor sie etwas
@@ -315,15 +315,15 @@ Nur bei einer noch leeren Installation darf der Schlüssel auch von Hand kommen
 Jedes Einspielen einer neuen Version erzeugt den Container neu und liest sie
 dabei erneut. Fehlt sie dann, öffnet sich die Datenbank nicht mehr.
 
-**Hier geht es in der Praxis schief:** Wer anschließend den kompletten
-Projektordner sichert, hat die `.env` mit in der Sicherung — und damit den
+**Hier geht es in der Praxis schief:** Wer anschließend vom kompletten
+Projektordner ein Backup anlegt, hat die `.env` mit im Backup — und damit den
 Schlüssel wieder neben den Daten.
 
-> **Merksatz:** `.env` und `data/` gehören **nicht** in dieselbe Sicherung.
+> **Merksatz:** `.env` und `data/` gehören **nicht** in dasselbe Backup.
 > Den Schlüssel getrennt aufbewahren, zum Beispiel im Passwortspeicher.
-> **Das gilt auch für die Sicherung auf Knopfdruck:** ihre Kopie ist
-> verschlüsselt und ohne den Schlüssel wertlos — der Sicherungsordner ist deshalb nicht
-> der Ort für die `.env`.
+> **Das gilt auch für das Backup auf Knopfdruck:** es ist verschlüsselt und
+> ohne den Schlüssel wertlos — der Backup-Ordner ist deshalb nicht der Ort für
+> die `.env`.
 
 **Die Kehrseite:** Ohne den Schlüssel sind alle Daten endgültig verloren. Es
 gibt keine Hintertür und keine Wiederherstellung. Wer den Schlüssel selbst
@@ -340,7 +340,7 @@ auch nachdem der Wert in die `.env` umgezogen ist. Dagegen hilft nur ein
 
 > **OB EINE VERSION DIE DATENBANK ANFASST, STEHT IM `CHANGELOG.md` ÜBER IHREN
 > ÄNDERUNGEN.** Steht dort ein Kasten, ist etwas zu tun; steht dort keiner, ist
-> die Sicherung Empfehlung und nicht Pflicht.
+> das Backup Empfehlung und nicht Pflicht.
 >
 > **Was der Start meldet, wenn eine Spalte fehlt, und was die Instanz dann
 > noch kann, steht unten unter „Wenn eine Version die Datenbank anfasst".**
@@ -348,18 +348,24 @@ auch nachdem der Wert in die `.env` umgezogen ist. Dagegen hilft nur ein
 > **Niemand wird abgemeldet, und einzustellen ist nichts.**
 
 **Der Weg ersetzt das Verzeichnis, statt darüber zu kopieren.** Bestand
-(`data/`), Schlüssel (`.env`) und Sicherungen ziehen von Hand mit:
+(`data/`), Schlüssel (`.env`), die `docker-compose.yml` und die Backups ziehen
+von Hand mit. Eine bestehende Installation behält ihre `docker-compose.yml` und
+damit ihren bisherigen Backup-Ordner; die letzte `mv`-Zeile nimmt ihn mit. Wer
+die `docker-compose.yml` neu aus der Vorlage anlegt, setzt die beiden Pfade auf
+den bisherigen Ordner und den bisherigen Pfad im Container zurück.
 
 ```bash
 cd .../kriterion && docker compose down
-cd .. && cp -r kriterion/data ./sicherung-data-$(date +%F)
-mv kriterion kriterion-alt
+cd .. && cp -r kriterion/data ./data-before-update-$(date +%F)
+mv kriterion kriterion-old
 python3 -m zipfile -e kriterion-main.zip .
 mv kriterion-main kriterion               # der Ordner heißt nach dem Branch
-cp -r kriterion-alt/data kriterion/data
-cp kriterion-alt/.env kriterion/.env      # ohne diese Zeile startet nichts
-mv kriterion-alt/kriterion-sicherung kriterion/ 2>/dev/null   # nur bei Ort im Projekt
-chmod +x kriterion/keytool.sh          # python3 legt das Recht nicht an
+cp -r kriterion-old/data kriterion/data
+cp kriterion-old/.env kriterion/.env      # ohne diese Zeile startet nichts
+cp kriterion-old/docker-compose.yml kriterion/   # deine Pfade und dein Port
+mv kriterion-old/kriterion-backup kriterion/ 2>/dev/null      # nur bei Ort im Projekt
+mv kriterion-old/kriterion-sicherung kriterion/ 2>/dev/null   # derselbe Ordner unter dem alten Namen
+chmod +x kriterion/keytool.sh             # python3 legt das Recht nicht an
 cd kriterion && docker compose up -d --build
 ```
 
@@ -429,7 +435,7 @@ Der gewöhnliche Weg läuft über die Karte „Benutzer": ein Admin erzeugt eine
 Kommt **niemand mehr** herein, hilft der Weg auf dem Server — nicht die `.env`:
 
 ```bash
-docker compose exec kriterion node usertool.js passwort <name>
+docker compose exec kriterion node usertool.js password <name>
 ```
 
 Das Passwort wird zweimal abgefragt und gleich dort gesetzt; alle Sitzungen
@@ -438,11 +444,11 @@ Datenbankschlüssel hängt nicht am Passwort.
 
 | Befehl | was er tut |
 |---|---|
-| `node usertool.js liste` | zeigt die vorhandenen Namen, ihre Rolle und ob der zweite Faktor an ist |
-| `node usertool.js passwort <name>` | setzt ein neues Passwort |
-| `node usertool.js zweifaktor <name>` | schaltet den zweiten Faktor **aus** — einschalten geht von dort ausdrücklich nicht |
-| `node usertool.js entfernen <name>` | legt einen Zugang still |
-| `node usertool.js eigentuemer <name>` | der Notausgang, wenn sich der bisherige Eigentümer nicht mehr anmeldet |
+| `node usertool.js list` | zeigt die vorhandenen Namen, ihre Rolle und ob der zweite Faktor an ist |
+| `node usertool.js password <name>` | setzt ein neues Passwort |
+| `node usertool.js twofactor <name>` | schaltet den zweiten Faktor **aus** — einschalten geht von dort ausdrücklich nicht |
+| `node usertool.js remove <name>` | legt einen Zugang still |
+| `node usertool.js owner <name>` | der Notausgang, wenn sich der bisherige Eigentümer nicht mehr anmeldet |
 
 Läuft der Container gar nicht erst an, tut es
 `docker compose run --rm kriterion node usertool.js …` ebenso.
@@ -464,7 +470,7 @@ einspielen".** **Die Zeile kommt bei jedem Start**, solange die Spalte fehlt.
 **Die Anwendung startet trotzdem** — aber jede Seite, die eine der genannten
 Spalten liest, scheitert.
 
-**Ein Downgrade ist dann keine reine Dateikopie mehr** — deshalb die Sicherung
+**Ein Downgrade ist dann keine reine Dateikopie mehr** — deshalb das Backup
 davor. Eine ältere Fassung sieht zusätzliche Tabellen und Spalten gar nicht an;
 was darin steht, bleibt stehen, aber niemand zeigt es mehr.
 
@@ -750,7 +756,7 @@ bleibt PNG.
 **Es ist eine Wahl aus drei Verfahren und kein Häkchen.** In
 den Einstellungen unter **Datenbank → Bildformate** steht die Karte „Verfahren
 der Ablage" mit drei Zeilen; die gewählte trägt den Knopf **Standard**
-(nur der Eigentümer, dieselbe Rechtezeile wie Export, Sicherung und Schlüssel):
+(nur der Eigentümer, dieselbe Rechtezeile wie Export, Backup und Schlüssel):
 
 | Verfahren | was es tut |
 |---|---|
@@ -774,7 +780,7 @@ führt zu erheblich größeren Dateien.")*.
 
 **Daneben steht der Knopf „Vorhandene Bilder konvertieren"** für den vorhandenen
 Bestand — er fragt vorher das Passwort und sagt, was er tut: die alte Fassung
-ist danach weg, und zurück führt nur eine vorher angelegte Sicherung des
+ist danach weg, und zurück führt nur ein vorher angelegtes Backup des
 Datenverzeichnisses. **Das Umschalten allein rührt den Bestand nicht an.**
 
 Zusätzlich entstehen zwei kleinere Varianten: eine
@@ -802,11 +808,11 @@ Gelöschter Platz wird automatisch freigegeben.
 
 ---
 
-## Sichern
+## Backup
 
 **Es gibt drei Wege, und sie tun Verschiedenes.**
 
-| | Sicherung auf Knopfdruck | Kopie von `./data` | JSON-Export |
+| | Backup auf Knopfdruck | Kopie von `./data` | JSON-Export |
 |---|---|---|---|
 | **Wozu** | der Notfall, im laufenden Betrieb | der Notfall, bei angehaltenem Server | Umzug, Archiv, Weitergabe |
 | **Vollständig** | ja, samt Sitzungen und Einstellungen | ja | nein |
@@ -814,54 +820,54 @@ Gelöschter Platz wird automatisch freigegeben.
 | **Überlebt einen Formatwechsel** | nein | nein | ja |
 | **Server muss stehen** | nein | ja | nein |
 
-**Die Sicherung auf Knopfdruck** steht in den Einstellungen beim Eigentümer.
-Sie erzeugt über `VACUUM INTO` eine vollständige, verschlüsselte Kopie der
-Datenbank — konsistent, auch während gearbeitet wird. Die Karte nennt vorher,
-wie lange es dauert; **während die Kopie entsteht, steht die Installation
-still** (rund zehn bis zwanzig Millisekunden je Megabyte). Sie zeigt außerdem,
-wann zuletzt gesichert wurde — gelesen im Sicherungsordner selbst, nicht aus
-einem Merker in der Datenbank.
-**Und sie zeigt, welche Kopien noch mit dem alten Schlüssel verschlüsselt
-sind**, falls je gewechselt wurde: jede Kopie, die älter ist als der Wechsel,
-wird rot markiert. Ist auch die jüngste älter, sagt die Karte, dass überhaupt
-keine zum heutigen Schlüssel passt.
+**Das Backup auf Knopfdruck** steht in den Einstellungen beim Eigentümer.
+Es entsteht über `VACUUM INTO`, vollständig und verschlüsselt — konsistent,
+auch während gearbeitet wird. Die Karte nennt vorher, wie lange es dauert;
+**während das Backup entsteht, steht die Installation still** (rund zehn bis
+zwanzig Millisekunden je Megabyte). Sie zeigt außerdem, wann zuletzt ein
+Backup angelegt wurde — gelesen im Backup-Ordner selbst, nicht aus einem
+Merker in der Datenbank.
+**Und sie zeigt, welche Backups noch mit dem alten Schlüssel verschlüsselt
+sind**, falls je gewechselt wurde: jedes Backup, das älter ist als der Wechsel,
+wird rot markiert. Ist auch das jüngste älter, sagt die Karte, dass überhaupt
+keines zum heutigen Schlüssel passt.
 
-**Alte Kopien lassen sich entfernen, ohne dass du eine Shell öffnest.** Jede
-Kopie ist so groß wie die ganze Datenbank. Zuständig ist die Karte **„Alte
-Sicherungen"** neben der Sicherungskarte.
+**Alte Backups lassen sich entfernen, ohne dass du eine Shell öffnest.** Jedes
+Backup ist so groß wie die ganze Datenbank. Zuständig ist die Karte **„Alte
+Backups"** neben der Karte „Backup".
 
-> **Die Regel hat zwei Bedingungen, und beide müssen zutreffen: eine Kopie
-> fällt nur, wenn sie NICHT unter den jüngsten N ist UND älter als X Tage.**
+> **Die Regel hat zwei Bedingungen, und beide müssen zutreffen: ein Backup
+> fällt nur, wenn es NICHT unter den jüngsten N ist UND älter als X Tage.**
 
 **Was du wissen musst, bevor du den Schalter umlegst:**
 
 - **Er steht auf AUS.** Bis du ihn umlegst, ändert sich an deinem
-  Sicherungsordner nichts.
-- **Aufgeräumt wird nur im Anschluss an eine Sicherung, die gelungen ist** —
-  oder auf Knopfdruck. **Eine Zeitsteuerung gibt es nicht.** Schlägt die
-  Sicherung fehl, bleibt jede Kopie liegen.
+  Backup-Ordner nichts.
+- **Aufgeräumt wird nur im Anschluss an ein Backup, das gelungen ist** —
+  oder auf Knopfdruck. **Eine Zeitsteuerung gibt es nicht.** Schlägt das
+  Backup fehl, bleibt jedes vorhandene liegen.
 - **Die Karte zeigt vorher, was daliegt und was fällt.** Sie listet alle
-  Sicherungen mit Nummer, Datum, Alter und Größe und markiert die, die beim
+  Backups mit Nummer, Datum, Alter und Größe und markiert die, die beim
   nächsten Lauf fallen. Einen Papierkorb gibt es dafür nicht.
 - **Angefasst wird ausschließlich, was dem Namensschema der Installation
   entspricht** (`kriterion-….sqlite`), nur im eingestellten Ordner, **nie in
   Unterverzeichnissen**, und nur, was wirklich eine Datei ist — ein Symlink ist
-  keine Sicherung. **Eine eigene Datei, die du dort ablegst, bleibt liegen.**
-- **Kopien von vor einem Schlüsselwechsel fasst die Regel gar nicht an.** Sie
+  kein Backup. **Eine eigene Datei, die du dort ablegst, bleibt liegen.**
+- **Backups von vor einem Schlüsselwechsel fasst die Regel gar nicht an.** Sie
   stehen in der Karte getrennt, mit eigener Zahl und eigener Summe, und haben
   einen eigenen Knopf.
 - **Jede Löschung steht im Sicherheitsprotokoll**, unter „Bestand" — eine Zeile
-  je entfernter Kopie, **ohne Dateinamen und ohne Pfad**.
+  je entferntem Backup, **ohne Dateinamen und ohne Pfad**.
 
-**Der Sicherungsordner wird eingehängt, nicht eingetippt.** Die
+**Der Backup-Ordner wird eingehängt, nicht eingetippt.** Die
 `docker-compose.yml` bringt ihn mit:
 
 ```yaml
     volumes:
       - ./data:/app/data
-      - ./kriterion-sicherung:/app/sicherung
+      - ./kriterion-backup:/app/backup
     environment:
-      - BACKUP_DIR=/app/sicherung
+      - BACKUP_DIR=/app/backup
 ```
 
 Beide Zeilen gehören zusammen und stehen in derselben Datei: ein Pfad ohne
@@ -871,22 +877,22 @@ ein **Unterverzeichnis** wählen; es muss dort schon liegen, angelegt wird
 keines.
 
 > **Die Vorgabe legt den Ort ins Projektverzeichnis. Die empfohlene Lage ist
-> daneben.** Die Karte „Sicherung" markiert den Ort im Projektverzeichnis
+> daneben.** Die Karte „Backup" markiert den Ort im Projektverzeichnis
 > **rot**, einen Ort außerhalb **grün**. Dagegen sprechen: beim Einspielen
-> einer neuen Version wird das Projektverzeichnis umbenannt und die Sicherungen
-> wandern mit; ein Fehlgriff am Projektordner nähme Original und Sicherung auf
+> einer neuen Version wird das Projektverzeichnis umbenannt und die Backups
+> wandern mit; ein Fehlgriff am Projektordner nähme Original und Backup auf
 > einmal; beide liegen auf derselben Platte.
 >
 > **Umgestellt wird es in der `docker-compose.yml`, beide Zeilen zusammen:**
 >
 > ```yaml
->       - ../kriterion-sicherung:/sicherung
+>       - ../kriterion-backup:/backup
 >     environment:
->       - BACKUP_DIR=/sicherung
+>       - BACKUP_DIR=/backup
 > ```
 >
-> Dann entfällt auch die zusätzliche Zeile im Einspielweg. Ein relativer Pfad
-> löst `docker` gegen den Ort der `docker-compose.yml` auf.
+> Dann entfallen auch die beiden zusätzlichen Zeilen im Einspielweg. Ein
+> relativer Pfad löst `docker` gegen den Ort der `docker-compose.yml` auf.
 >
 > **Die Anzeige hängt an der Spiegelung:** was auf dem Wirt unter `./` liegt,
 > gehört im Container unter `/app`, was daneben liegen soll, daneben.
@@ -918,23 +924,23 @@ Bestand oder, wenn die Datei zu groß würde, einen Teil davon.
 > **Bestätigt wird dabei einmal** — Passwort und, wenn der Zugang einen zweiten
 > Faktor trägt, ein Code. Danach lädst du jeden Teil selbst.
 >
-> **Für eine Kopie zum Zurückspielen bleibt die Sicherung der kürzere Weg** —
-> ein Knopfdruck statt n Dateien, und sie braucht keinen nennenswerten
+> **Für eine Kopie zum Zurückspielen bleibt das Backup der kürzere Weg** —
+> ein Knopfdruck statt n Dateien, und es braucht keinen nennenswerten
 > Arbeitsspeicher.
 
-> **Vor einer Version, die die Datenbank anfasst, ist die Sicherung Pflicht.**
+> **Vor einer Version, die die Datenbank anfasst, ist das Backup Pflicht.**
 > Ob eine Version das tut, steht im `CHANGELOG.md` über ihren Änderungen.
 >
 > **Rüstet sie eine Spalte nach**, lässt sich der Bestand danach nicht mehr
 > ohne Weiteres auf die vorige Version zurückbringen. Der Weg zurück ist dann
-> die Sicherung, die vor dem Einspielen entstanden ist.
+> das Backup, das vor dem Einspielen entstanden ist.
 >
 > **Legt sie nur eine neue Tabelle an**, sieht eine ältere Version die gar
 > nicht an — und was darin steht, ist nach einem Downgrade unerreichbar, ohne
 > dass etwas danach aussieht. Was im Papierkorb liegt, ist dann nicht
 > wiederherstellbar; ein Zugang, der über einen Link angelegt und noch nicht
 > eingelöst wurde, bekommt von der älteren Version keinen neuen Link — dort
-> hilft nur `node usertool.js passwort <name>`.
+> hilft nur `node usertool.js password <name>`.
 
 ---
 
@@ -984,7 +990,7 @@ Start eine leere Neuinstallation vermuten.
   anlegen darf, und das **Verfahren der Bildablage** (`imageStore`, ein Wert aus
   dreien; eine Zeile aus einer älteren Fassung unter anderem Namen bleibt
   unbeachtet stehen). Sache des Admins — das Verfahren der Bildablage nur des
-  **Eigentümers**, in derselben Rechtezeile wie Export, Sicherung und Schlüssel
+  **Eigentümers**, in derselben Rechtezeile wie Export, Backup und Schlüssel
 - `user_settings` — die **persönliche** Hälfte, **zehn** Schlüssel: zuletzt
   benutzte Filterwahl, gespeicherte Ansichten, Bezugspunkt der Glocke,
   Farbschema, Schriftgröße, Größe der Bilder im Bildstreifen, Blockanordnung,
@@ -1141,14 +1147,14 @@ Schlüsseldatei zu löschen hilft nur gegen künftige Kopien.
 Gewechselt wird **auf dem Wirt**, im Projektverzeichnis:
 
 ```bash
-./keytool.sh zeigen       # Lage ansehen, ändert nichts
-./keytool.sh wechseln     # anhalten, sichern, wechseln, starten
+./keytool.sh show         # Lage ansehen, ändert nichts
+./keytool.sh change       # anhalten, Backup anlegen, wechseln, starten
 ```
 
 > **„Keine Berechtigung"?** Dann fehlt dem Skript das Ausführungsrecht — das
 > passiert beim Auspacken mit `python3 -m zipfile -e` und unter Windows. Einmal
 > `chmod +x keytool.sh`, und es ist erledigt; ohne das Recht geht auch
-> `bash keytool.sh zeigen`.
+> `bash keytool.sh show`.
 
 **In der Oberfläche gibt es dafür keinen Knopf.** Steht der Schlüssel in der
 `.env`, liegt diese Datei auf dem Wirt und nicht im Image; die Anwendung
@@ -1156,11 +1162,12 @@ erreicht sie nicht. Das Skript zieht Datenbank und `.env` **in einem Zug** nach.
 
 **Was das Skript tut, in dieser Reihenfolge:**
 
-1. `.env` sichern (`.env.vor-schluesselwechsel-…`)
+1. ein Backup der `.env` anlegen (`.env.before-key-change-…`)
 2. neuen Wert erzeugen (`openssl rand -hex 32`)
 3. die Installation **anhalten** — ein laufender Server hält die Datenbank im
    WAL-Modus offen, und der Wechsel braucht `journal_mode = DELETE`
-4. das Datenverzeichnis sichern (`../kriterion-data-vor-schluesselwechsel-…`)
+4. ein Backup des Datenverzeichnisses anlegen
+   (`../kriterion-data-before-key-change-…`)
 5. wechseln, in einem Wegwerf-Container
 6. **erst nach Erfolg** den neuen Wert eintragen — in die `.env` oder in
    `data/encryption.key`, je nachdem, woher der alte kam
@@ -1187,17 +1194,17 @@ deshalb eine **Kopie der echten Installation** — mit ihrem Bestand **und ihrer
 ```bash
 cd .../DockerAppData                       # eine Ebene über dem Projekt
 docker compose -f kriterion/docker-compose.yml stop    # ruhige Kopie, offene WAL vermeiden
-cp -a kriterion kriterion-probe
+cp -a kriterion kriterion-check
 docker compose -f kriterion/docker-compose.yml start   # die echte darf sofort weiterlaufen
 
-cd kriterion-probe
-rm -rf kriterion-sicherung .git .env.vor-*   # data BLEIBT. .env BLEIBT.
-sed -i 's/^    container_name: kriterion$/    container_name: kriterion-probe/' docker-compose.yml
+cd kriterion-check
+rm -rf kriterion-backup .git .env.before-*   # data BLEIBT. .env BLEIBT.
+sed -i 's/^    container_name: kriterion$/    container_name: kriterion-check/' docker-compose.yml
 sed -i 's/"3100:3000"/"3199:3000"/' docker-compose.yml
 chmod +x keytool.sh
 docker compose up -d --build
 # auf http://<server>:3199 anmelden — dieselben Benutzer, derselbe Bestand
-./keytool.sh wechseln
+./keytool.sh change
 docker compose logs --tail 30 kriterion
 ```
 
@@ -1216,16 +1223,16 @@ vier müssen stimmen:
 | Ansage vor dem Wechsel | die **echte** Größe, z. B. `662.5 MB, erwartete Dauer rund 13 Sekunden` — nicht `0.2 MB` |
 | nach dem Wechsel | `integrity_check: ok` |
 | im Protokoll danach | `Läuft auf Port 3000 — Eigentümer: <dein Name>` — **nicht** „noch kein Zugang" |
-| im Browser auf `:3199` | Einträge, Fotos, Kommentare vollständig; Karte „Sicherung" markiert die alten Kopien rot |
+| im Browser auf `:3199` | Einträge, Fotos, Kommentare vollständig; Karte „Backup" markiert die alten Backups rot |
 
-Danach die Probe wegräumen: `cd .. && docker compose -f kriterion-probe/docker-compose.yml down && rm -rf kriterion-probe`.
+Danach die Probe wegräumen: `cd .. && docker compose -f kriterion-check/docker-compose.yml down && rm -rf kriterion-check`.
 **Die `.env` der Probe niemals an die echte Installation zurückkopieren** — sie trägt
 einen Schlüssel, zu dem nur die Probedaten passen.
 
 ### Zwei Schlüssel im Umlauf
 
-**Ab dem Wechsel gibt es zwei Schlüssel.** Jede Sicherung, die vorher entstanden
-ist, bleibt mit dem **alten** verschlüsselt. Sie ist nicht kaputt — sie braucht
+**Ab dem Wechsel gibt es zwei Schlüssel.** Jedes Backup, das vorher entstanden
+ist, bleibt mit dem **alten** verschlüsselt. Es ist nicht kaputt — es braucht
 nur einen anderen Schlüssel als die laufende Installation.
 
 Dagegen stehen drei Dinge:
@@ -1233,9 +1240,9 @@ Dagegen stehen drei Dinge:
 * **Der alte Wert bleibt auskommentiert in der `.env` stehen**, mit Datum, mit
   dem Namen dessen, der gewechselt hat, und mit dem Satz, wofür er noch gut
   ist. **Nicht löschen, bevor er im Passwortspeicher steht.**
-* **Die Karte „Sicherung" markiert jede Kopie rot, die älter ist als der
-  Wechsel** — und wenn auch die jüngste älter ist, sagt sie das deutlicher:
-  dann passt überhaupt keine, und es gehört sofort neu gesichert.
+* **Die Karte „Backup" markiert jedes Backup rot, das älter ist als der
+  Wechsel** — und wenn auch das jüngste älter ist, sagt sie das deutlicher:
+  dann passt überhaupt keines, und ein neues Backup gehört sofort angelegt.
 * **Der JSON-Export braucht keinen Schlüssel.**
 
 ### Was der Wechsel nicht ist
@@ -1248,7 +1255,7 @@ hängt an keinem Passwort.
 Bricht der Wechsel mitten hinein ab (Stromausfall, `kill -9`), ist das
 **folgenlos**: das Rollback-Journal stellt den alten Stand her, der **alte**
 Schlüssel öffnet weiter, der neue wird abgewiesen. Geht dagegen das Journal
-verloren, ist alles verloren — **das** ist der Grund für die Sicherung davor.
+verloren, ist alles verloren — **das** ist der Grund für das Backup davor.
 Das Journal wächst dabei auf die Größe der Datenbank; reicht der Platz nicht,
 sagt das Skript vorher ab und rührt nichts an.
 

@@ -146,7 +146,7 @@ async function run() {
     tlFiles.push({ head: a.headers.get('content-disposition') || '', text: await a.text() });
   }
   check('Der Dateiname nennt Teil und Gesamtzahl',
-    tlFiles.every((d, i) => d.head.includes(`-teil-${i + 1}-von-${tlN}-`)),
+    tlFiles.every((d, i) => d.head.includes(`-part-${i + 1}-of-${tlN}-`)),
     tlFiles.map(d => d.head).join(' | '));
   const tlPackages = tlFiles.map(d => { try { return JSON.parse(d.text); } catch { return null; } });
   check('Jeder Teil ist fuer sich gueltiges JSON', tlPackages.every(p => p && Array.isArray(p.items)));
@@ -161,7 +161,7 @@ async function run() {
   // Jeder Teil traegt dieselbe Nummer wie ein voller Export -- ein Teil ist ein
 // vollstaendiges Paket mit weniger Eintraegen darin, kein halbes.
   check('Und jeder Teil traegt die Formatnummer des vollen Exports',
-    tlPackages.every(p => p?.version === 18), JSON.stringify(tlPackages.map(p => p?.version)));
+    tlPackages.every(p => p?.version === 19), JSON.stringify(tlPackages.map(p => p?.version)));
   check('Zusammen tragen die Teile jeden Eintrag genau einmal',
     tlPackages.reduce((n, p) => n + (p?.items?.length || 0), 0) === 6 &&
     new Set(tlPackages.flatMap(p => (p?.items || []).map(i => i.title))).size === 6,

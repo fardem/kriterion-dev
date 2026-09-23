@@ -818,7 +818,7 @@ const EVENTS = [
   /* 'twofactor.on', 'twofactor.off' und 'twofactor.reset'. Der dritte sagt,
      dass ein Wiederherstellungscode verbraucht wurde. */
   'twofactor.on', 'twofactor.off', 'twofactor.reset',
-  /* 'backup.delete' -- eine entfernte alte Sicherung, eine Zeile je Kopie. */
+  /* 'backup.delete' -- ein entferntes altes Backup, eine Zeile je Backup. */
   'export', 'import', 'backup', 'backup.delete', 'key'
 ];
 /* Die geschlossene Liste fuer merkmal. */
@@ -884,9 +884,8 @@ const LOG_GROUPS = {
           'user.delete', 'user.self', 'link.new', 'link.use',
           'request.approve', 'request.reject'],
   twofactor: ['twofactor.on', 'twofactor.off', 'twofactor.reset'],
-  // 'backup.delete' steht in DERSELBEN Gruppe wie 'backup': wer nachsieht,
-  // was mit dem Bestand geschehen ist, sucht das Anlegen und das Wegraeumen
-  // einer Kopie am selben Ort.
+  // 'backup.delete' steht in derselben Gruppe wie 'backup': Anlegen und
+  // Entfernen eines Backups stehen zusammen.
   inventory: ['export', 'import', 'backup', 'backup.delete', 'key']
 };
 

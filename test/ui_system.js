@@ -221,7 +221,7 @@ async function run() {
     'Kategorien', 'Tags', 'Bewertung: Kriterien', 'Potenzial: Kriterien',
     'Vokabular', 'Links', 'Suchmaschinen', 'Papierkorb',
     'Benutzer', 'Anfragen', 'Sicherheitsprotokoll', 'Mailversand',
-    'Kennzahlen', 'Bildformate', 'Sicherung', 'Alte Sicherungen', 'Export und Import',
+    'Kennzahlen', 'Bildformate', 'Backup', 'Alte Backups', 'Export und Import',
     'Titel', 'Sprachen'];
   check('Die Eigentuemerin sieht alle zweiundzwanzig Karten',
     equal(kEig, ALL_CARDS), kEig.join(' · '));
@@ -239,9 +239,9 @@ async function run() {
     `Potenzial: Kriterien: ${kEig.indexOf('Potenzial: Kriterien')}`);
   /* UND SIE STEHT HINTER "SICHERUNG" -- die Reihenfolge ist geprueft und
      nicht zufaellig. */
-  check('Und "Alte Sicherungen" steht unmittelbar hinter "Sicherung"',
-    kEig.indexOf('Alte Sicherungen') === kEig.indexOf('Sicherung') + 1,
-    `Sicherung: ${kEig.indexOf('Sicherung')} · Alte Sicherungen: ${kEig.indexOf('Alte Sicherungen')}`);
+  check('Und "Alte Backups" steht unmittelbar hinter "Backup"',
+    kEig.indexOf('Alte Backups') === kEig.indexOf('Backup') + 1,
+    `Backup: ${kEig.indexOf('Backup')} · Alte Backups: ${kEig.indexOf('Alte Backups')}`);
   // Und keine steht zweimal -- eine Karte, die in zwei Abschnitten haengt,
 // faellt an der Summe sonst gar nicht auf.
   check('Und keine Karte steht in zwei Abschnitten',
@@ -317,7 +317,7 @@ async function run() {
       kAdm.includes(card) && !kUser.includes(card),
       `Admin: ${kAdm.includes(card)} · Benutzer: ${kUser.includes(card)}`);
   }
-  for (const card of ['Export und Import', 'Sicherung', 'Alte Sicherungen',
+  for (const card of ['Export und Import', 'Backup', 'Alte Backups',
                        'Sicherheitsprotokoll', 'Mailversand']) {
     check(`Die Karte "${card}" steht nur beim Eigentuemer`,
       kEig.includes(card) && !kAdm.includes(card) && !kUser.includes(card),
@@ -452,7 +452,7 @@ async function run() {
     rUserCard?.textContent?.slice(0, 200));
   /* SEIT 0.17.1 HAENGT DER BEFEHL AN DER ROLLE. */
   check('Beim gewoehnlichen Benutzer steht der Wirtsbefehl nicht mehr da',
-    !!rUserCard && !/usertool\.js passwort/.test(rUserCard.textContent || ''),
+    !!rUserCard && !/usertool\.js password/.test(rUserCard.textContent || ''),
     rUserCard?.textContent?.slice(0, 300));
   /* DER SATZ IST MIT 0.31.1 EIN ANDERER, und sein Gegenstand ist derselbe. */
   check('Sondern der Satz, der ihm wirklich hilft',
@@ -463,7 +463,7 @@ async function run() {
     const eigUser = [...rEig.w.document.querySelectorAll('.sys-card')]
       .find(k => k.querySelector('h3')?.textContent.trim() === 'Mein Konto');
     check('Beim Eigentuemer steht er sehr wohl — im Kasten „Auf dem Server"',
-      !!eigUser && /usertool\.js passwort/.test(eigUser.textContent || ''),
+      !!eigUser && /usertool\.js password/.test(eigUser.textContent || ''),
       eigUser?.textContent?.slice(0, 300));
   }
   // Und ausdruecklich in der ganzen Oberflaeche nicht mehr als Anleitung:
@@ -1151,7 +1151,7 @@ async function run() {
     /getrennt vom Handy/.test(zkBox()?.textContent || ''),
     zkBox()?.textContent?.slice(0, 220));
   check('Er nennt den Notweg ueber den Wirt fuer den Fall, dass alles weg ist',
-    /usertool\.js zweifaktor/.test(zkBox()?.textContent || ''),
+    /usertool\.js twofactor/.test(zkBox()?.textContent || ''),
     zkBox()?.textContent?.slice(-160));
   // Und beim naechsten Aufbau der Karte sind sie fort.
   await zkOut.w.renderSystem();
@@ -2297,7 +2297,7 @@ async function run() {
       && /Fenster muss offen bleiben/.test(zdWays), zdWays.slice(0, 260));
     check('Und er stellt alle drei Wege nebeneinander',
       /Export in einer Datei/.test(zdWays) && /In Teilen exportieren/.test(zdWays)
-      && /Sicherung/.test(zdWays), zdWays.slice(0, 320));
+      && /Backup/.test(zdWays), zdWays.slice(0, 320));
     check('Bis dahin steht der Dialog der zweiten Bestaetigung nicht da',
       !zdDialog(d), 'er steht schon da');
     const zdGo = zdNotice()?.querySelector('[data-yes]');
@@ -3335,8 +3335,8 @@ async function run() {
       !/JPEG-Vorschaubilder werden dabei neu generiert/
         .test(dialogText.replace(/\s+/g, ' ')),
       dialogText.replace(/\s+/g, ' ').slice(0, 400));
-    check('Und dass nur eine vorher angelegte Sicherung zurueckfuehrt',
-      /Rückgängig nur mit einer vorher angelegten Sicherung/.test(dialogText),
+    check('Und dass nur ein vorher angelegtes Backup zurueckfuehrt',
+      /Rückgängig nur mit einem vorher angelegten Backup/.test(dialogText),
       dialogText.replace(/\s+/g, ' ').slice(0, 300));
     /* DASS ES DAUERN KANN -- ausdruecklich OHNE Zahl. */
     check('Und dass sich die Dauer nicht vorhersagen laesst',
@@ -3510,7 +3510,7 @@ async function run() {
     return d;
   };
   const siCard = (d) => [...d.w.document.querySelectorAll('.sys-grid > .sys-card')]
-    .find(c => c.querySelector('h3')?.textContent.trim() === 'Sicherung');
+    .find(c => c.querySelector('h3')?.textContent.trim() === 'Backup');
   const siEig = await siSystem({ isAdmin: true, isOwner: true });
   const siAdm = await siSystem({ isAdmin: true, isOwner: false });
 
@@ -3550,7 +3550,7 @@ async function run() {
       /Empfohlen ist ein Ordner außerhalb/.test(box?.textContent || ''), box?.textContent);
     check('Er nennt den Grund und nicht nur das Urteil',
       /anderen Platte/.test(box?.textContent || '') &&
-      /zerstört ein Fehler am Projektordner Original und\s+Sicherung zugleich/
+      /zerstört ein Fehler am Projektordner Original und\s+Backup zugleich/
         .test(box?.textContent || ''), box?.textContent);
     check('Und er sagt, WO es umgestellt wird',
       /docker-compose\.yml/.test(box?.textContent || ''), box?.textContent);
@@ -3596,7 +3596,7 @@ async function run() {
       { backupStatus: siStatusIncluding({ changedAt: '2026-08-21 08:00:00', outdated: 2 }) });
     const partlyRed = siBoxes(partly, 'warn-box').join(' ');
     check('Nach einem Wechsel nennt ein roter Kasten die Zahl der alten Kopien',
-      /2 Sicherungen stammen von vor dem Schlüsselwechsel/.test(partlyRed), partlyRed.slice(0, 300));
+      /2 Backups stammen von vor dem Schlüsselwechsel/.test(partlyRed), partlyRed.slice(0, 300));
     check('Und er nennt den Zeitpunkt des Wechsels',
       /21\.08\.2026/.test(partlyRed), partlyRed.slice(0, 300));
     /* SEIT 0.22.0 (Anlage F) SAGT DER KASTEN NUR NOCH, WOMIT SICH DIE ALTEN
@@ -3615,7 +3615,7 @@ async function run() {
     const one = await siSystem({ isAdmin: true, isOwner: true },
       { backupStatus: siStatusIncluding({ changedAt: '2026-08-21 08:00:00', outdated: 1 }) });
     check('Bei genau einer alten Kopie steht die Einzahl da',
-      /1 Sicherung stammt von vor dem Schlüsselwechsel/.test(siBoxes(one, 'warn-box').join(' ')),
+      /1 Backup stammt von vor dem Schlüsselwechsel/.test(siBoxes(one, 'warn-box').join(' ')),
       siBoxes(one, 'warn-box').join(' ').slice(0, 300));
 
     // Alles veraltet -- die schaerfste Lage: es gibt ueberhaupt keine
@@ -3628,9 +3628,9 @@ async function run() {
                   at: '2026-08-20 03:00:00', daysAgo: 3, outdated: true } }) });
     const everythingRed = siBoxes(everything, 'warn-box').join(' ');
     check('Ist auch die juengste Kopie aelter, sagt die Karte GENAU DAS',
-      /Keine Sicherung passt zum aktuellen Schlüssel/.test(everythingRed), everythingRed.slice(0, 300));
+      /Kein Backup passt zum aktuellen Schlüssel/.test(everythingRed), everythingRed.slice(0, 300));
     check('Und sie sagt, was jetzt zu tun ist',
-      /Bitte jetzt neu sichern\./.test(everythingRed), everythingRed.slice(0, 400));
+      /Bitte jetzt ein neues Backup anlegen\./.test(everythingRed), everythingRed.slice(0, 400));
     check('Und sie sagt, wohin der alte Schluessel gehoert — 0.22.0',
       /Passwort-Manager/.test(everythingRed), everythingRed.slice(0, 400));
 
@@ -3640,7 +3640,7 @@ async function run() {
       { backupStatus: siStatusIncluding({ changedAt: '2026-08-19 08:00:00', outdated: 0 }) });
     const greenBox = siBoxes(green, 'ok-box').join(' ');
     check('Sind alle Kopien juenger als der Wechsel, ist der Kasten gruen',
-      /Alle Sicherungen hier sind jünger/.test(greenBox), greenBox.slice(0, 400));
+      /Alle Backups hier sind jünger/.test(greenBox), greenBox.slice(0, 400));
     check('Und im gruenen Fall steht keine Warnung ueber alte Kopien da',
       !/alten Schlüssel/.test(siText(green)), siText(green).slice(0, 300));
   }
@@ -3654,10 +3654,10 @@ async function run() {
   // SEIT 0.22.0 OHNE „Austauschweg" (Verbotsliste): die Karte sagt, wofuer der Export ist.
   check('Sie sagt, wofuer der Export ist — 0.22.0',
     /für Umzug, Archiv und Weitergabe/.test(siExportCard?.textContent || ''), siExportCard?.textContent?.slice(0, 200));
-  check('Und verweist auf die Sicherung',
-    /Sicherung/.test(siExportCard?.textContent || ''), siExportCard?.textContent?.slice(0, 300));
-  check('Die Sicherungskarte sagt, was die Sicherung ist — 0.22.0',
-    /vollständige, verschlüsselte\s+Kopie der Datenbank/.test(siCard(siEig)?.textContent || ''),
+  check('Und verweist auf das Backup',
+    /Backup/.test(siExportCard?.textContent || ''), siExportCard?.textContent?.slice(0, 300));
+  check('Die Karte „Backup" sagt, was das Backup ist — 0.22.0',
+    /vollständige, verschlüsselte\s+Sicherung der Datenbank/.test(siCard(siEig)?.textContent || ''),
     siCard(siEig)?.textContent?.slice(0, 200));
   check('Und sagt, dass sie nur in dieselbe Programmversion zurueckgeht — 0.22.0',
     /nur in dieselbe Programmversion zurückspielen/.test(siCard(siEig)?.textContent || ''),
@@ -3673,12 +3673,12 @@ async function run() {
     /\.env/.test(siWarn?.textContent || ''), siWarn?.textContent);
 
   check('Die Karte nennt den eingerichteten Ort',
-    /\/sicherung/.test(siCard(siEig)?.textContent || ''),
+    /\/backup/.test(siCard(siEig)?.textContent || ''),
     siCard(siEig)?.textContent?.slice(0, 400));
   check('Das Feld traegt das eingestellte Unterverzeichnis',
     siEig.w.document.getElementById('backup-dir')?.value === 'taeglich',
     siEig.w.document.getElementById('backup-dir')?.value);
-  check('Die letzte Sicherung steht mit ihren Tagen da',
+  check('Das letzte Backup steht mit seinen Tagen da',
     /vor 3 Tagen/.test(siCard(siEig)?.textContent || ''),
     siCard(siEig)?.textContent?.slice(0, 600));
   check('Samt Dateiname und Groesse',
@@ -3697,12 +3697,12 @@ async function run() {
   /* DER NICHT EINGERICHTETE FALL. */
   {
     const d = await siSystem({ isAdmin: true, isOwner: true },
-      { backupStatus: { configured: false, reason: 'Es ist kein Sicherungsort eingerichtet. ' +
+      { backupStatus: { configured: false, reason: 'Es ist kein Backup-Ordner eingerichtet. ' +
         'Die docker-compose.yml hängt ihn ein.', place: '', dbBytes: 1, durationSeconds: 1,
         reachable: false, last: null } });
     check('Ohne eingerichteten Ort steht die Karte trotzdem da', !!siCard(d));
     check('Und sagt, warum sie nicht kann',
-      /kein Sicherungsort eingerichtet/.test(siCard(d)?.textContent || ''),
+      /kein Backup-Ordner eingerichtet/.test(siCard(d)?.textContent || ''),
       siCard(d)?.textContent?.slice(0, 300));
     check('Der Knopf steht dann gar nicht erst da',
       !d.w.document.getElementById('backup-run'), 'der Knopf steht da');
@@ -3715,10 +3715,10 @@ async function run() {
   {
     const d = await siSystem({ isAdmin: true, isOwner: true },
       { backupStatus: { configured: true, root: '/sicherung', place: 'weg',
-        error: 'Das Verzeichnis „weg“ gibt es unter dem Sicherungsort nicht.',
+        error: 'Den Unterordner „weg“ gibt es im Backup-Ordner nicht.',
         dbBytes: 1024, durationSeconds: 1, reachable: false, last: null } });
     check('Ein Zielort mit Fehler bekommt keine Zahl, sondern die Begruendung',
-      /gibt es unter dem Sicherungsort nicht/.test(siCard(d)?.textContent || ''),
+      /gibt es im Backup-Ordner nicht/.test(siCard(d)?.textContent || ''),
       siCard(d)?.textContent?.slice(0, 400));
     check('Und nirgends steht "vor 0 Tagen"',
       !/vor \d+ Tag/.test(siCard(d)?.textContent || ''),
@@ -3729,8 +3729,8 @@ async function run() {
       { backupStatus: { configured: true, root: '/sicherung', place: '',
         filePath: '/sicherung', dbBytes: 1024, durationSeconds: 1, reachable: true,
         last: null, number: 0 } });
-    check('Ein leerer Ort sagt, dass dort noch keine Sicherung liegt',
-      /noch keine Sicherung/.test(siCard(d)?.textContent || ''),
+    check('Ein leerer Ort sagt, dass dort noch kein Backup liegt',
+      /noch kein Backup/.test(siCard(d)?.textContent || ''),
       siCard(d)?.textContent?.slice(0, 400));
   }
 
@@ -3779,7 +3779,7 @@ async function run() {
     await until(d.w, (x) => !siSave2 || (siDirs() === 2 && openRequests(x) === 0),
       2000, 'die Absage zum Zielort');
     check('Eine Absage des Servers wird gesagt',
-      /Unterverzeichnis/.test(d.w.document.querySelector('.toast')?.textContent || ''),
+      /Unterordner liegt im eingerichteten Backup-Ordner/.test(d.w.document.querySelector('.toast')?.textContent || ''),
       d.w.document.querySelector('.toast')?.textContent);
     check('Und der Ort bleibt der alte',
       d.w.document.getElementById('backup-dir')?.value === '../raus',
@@ -3788,12 +3788,12 @@ async function run() {
 
 
   /* ---------------------------------------------------------------- */
-  group('Die Karte „Alte Sicherungen" in der Oberflaeche');
+  group('Die Karte „Alte Backups" in der Oberflaeche');
 
   /* SIE STEHT IM ABSCHNITT „DATENBANK", HINTER „SICHERUNG" -- die Reihenfolge
      ist geprueft und nicht zufaellig. */
   const afCard = (d) => [...d.w.document.querySelectorAll('.sys-grid > .sys-card')]
-    .find(c => c.querySelector('h3')?.textContent.trim() === 'Alte Sicherungen');
+    .find(c => c.querySelector('h3')?.textContent.trim() === 'Alte Backups');
   const afText = (d) => String(afCard(d)?.textContent || '').replace(/\s+/g, ' ').trim();
   const afRows = (d) => [...(d.w.document.querySelectorAll('#cleanup-list .mrow') || [])]
     .map(z => z.textContent.replace(/\s+/g, ' ').trim());
@@ -3842,11 +3842,11 @@ async function run() {
   check('Die Karte steht da', !!afCard(afEig), afEig.w.document.body.innerHTML.slice(0, 200));
 
   /* --- DIE LISTE ALLER SICHERUNGEN. */
-  check('Die Karte listet ALLE Sicherungen',
+  check('Die Karte listet ALLE Backups',
     afRows(afEig).length === AF_COPIES.length,
     `${afRows(afEig).length} Zeilen, ${AF_COPIES.length} erwartet`);
   check('Und nennt ihre Zahl in der Ueberschrift',
-    /Sicherungen \(5\)/.test(afText(afEig)), afText(afEig).slice(0, 300));
+    /Backups \(5\)/.test(afText(afEig)), afText(afEig).slice(0, 300));
   /* DIE NUMMER LAEUFT VON DER JUENGSTEN (1) ZUR AELTESTEN -- so, wie die
      Mindestzahl zaehlt. */
   check('Die Nummern laufen von der juengsten zur aeltesten',
@@ -3898,7 +3898,7 @@ async function run() {
   check('Der Kopftext sagt, dass es endgueltig ist — 0.22.0',
     /— endgültig\./.test(afText(afEig)), afText(afEig).slice(0, 300));
   check('Und dass nur das Namensschema der Installation gelöscht wird',
-    /nur Sicherungen, die Kriterion selbst angelegt hat/.test(afText(afEig)),
+    /nur Backups, die Kriterion selbst angelegt hat/.test(afText(afEig)),
     afText(afEig).slice(0, 300));
   /* UND DIE SAETZE, DIE MIT DEM FELDBEFUND GEFALLEN SIND, STEHEN NICHT MEHR
      DA. */
@@ -3934,7 +3934,7 @@ async function run() {
 
   /* --- WAS DIE REGEL TRIFFT: eine Zeile unter der Liste. --- */
   check('Unter der Liste steht, wie viele fallen und was frei wird',
-    /2 Sicherungen werden gelöscht — 100,0 MB frei\./.test(afText(afEig)),
+    /2 Backups werden gelöscht — 100,0 MB frei\./.test(afText(afEig)),
     afText(afEig).slice(0, 900));
   check('Der Knopf steht da und ist bedienbar',
     afEig.w.document.getElementById('cleanup-run')?.disabled === false,
@@ -3948,9 +3948,9 @@ async function run() {
      Erklaerung sieht aus wie ein Fehler. Und der Knopf ist dann tot. */
   {
     const d = await afSystem({}, { matched: [], bytes: 0, files: afFiles(20, 30),
-      reason: 'Alle 5 Kopien sind unter den jüngsten 20.' });
+      reason: 'Alle 5 Backups sind unter den jüngsten 20.' });
     check('Trifft die Regel nichts, sagt die Karte das mit dem Grund',
-      /Es wird nichts gelöscht\. Alle 5 Kopien sind unter den jüngsten 20\./.test(afText(d)),
+      /Es wird nichts gelöscht\. Alle 5 Backups sind unter den jüngsten 20\./.test(afText(d)),
       afText(d).slice(0, 600));
     check('Und der Knopf ist dann nicht bedienbar',
       d.w.document.getElementById('cleanup-run')?.disabled === true,
@@ -3964,9 +3964,9 @@ async function run() {
   /* LIEGT NICHTS DA, SAGT DIE KARTE GENAU DAS -- statt einer leeren Liste. */
   {
     const d = await afSystem({ number: 0, last: null },
-      { files: [], matched: [], bytes: 0, reason: 'An diesem Ort liegt noch keine Sicherung.' });
-    check('Ohne eine einzige Sicherung sagt die Karte das',
-      /Im Sicherungsordner gibt es noch keine Sicherung\./.test(afText(d)), afText(d).slice(0, 400));
+      { files: [], matched: [], bytes: 0, reason: 'Hier gibt es noch kein Backup.' });
+    check('Ohne ein einziges Backup sagt die Karte das',
+      /Im Backup-Ordner gibt es noch kein Backup\./.test(afText(d)), afText(d).slice(0, 400));
     check('Und es steht keine leere Liste da',
       !d.w.document.getElementById('cleanup-list'), 'die Liste steht da');
   }
@@ -3977,7 +3977,7 @@ async function run() {
     const d = await afSystem({ changedAt: '2026-08-01 08:00:00', outdated: 2 },
       { oldCount: 2, oldBytes: 104857600, oldFiles: AF_COPIES.slice(3),
         matched: [], bytes: 0, files: afFiles(3, 30, oldNames),
-        reason: 'Keine der 5 Kopien stammt von nach dem Schlüsselwechsel.' });
+        reason: 'Keines der 5 Backups stammt von nach dem Schlüsselwechsel.' });
     check('Die veralteten Kopien bekommen ihre eigene Marke in der Liste',
       equal(afRows(d).filter(z => /ALTER SCHLÜSSEL|alter Schlüssel/i.test(z))
                .map(z => (z.match(/^#(\d+)/) || [])[1]), ['4', '5']),
@@ -3986,12 +3986,12 @@ async function run() {
       afRows(d).every(z => !(/löschen/i.test(z) && /alter Schlüssel/i.test(z))),
       afRows(d).join(' · '));
     check('Darunter stehen ihre Zahl und ihre Summe',
-      /2 Sicherungen öffnen sich nur mit dem alten Schlüssel \(100,0 MB\)/.test(afText(d)),
+      /2 Backups öffnen sich nur mit dem alten Schlüssel \(100,0 MB\)/.test(afText(d)),
       afText(d).slice(0, 900));
     check('Und die Karte sagt, dass das Aufraeumen sie nicht anfasst — 0.22.0',
       /Das automatische Aufräumen löscht sie nicht\./.test(afText(d)), afText(d).slice(0, 900));
     check('Und sie bekommen einen eigenen Knopf',
-      /2 Sicherungen mit altem Schlüssel löschen/.test(
+      /2 Backups mit altem Schlüssel löschen/.test(
         d.w.document.getElementById('cleanup-old')?.textContent || ''),
       d.w.document.getElementById('cleanup-old')?.textContent);
     // Die Einzahl gehoert geprueft, sonst steht dort "1 Sicherungen oeffnen".
@@ -3999,8 +3999,8 @@ async function run() {
       { oldCount: 1, oldBytes: 52428800, oldFiles: AF_COPIES.slice(4),
         files: afFiles(3, 30, [AF_COPIES[4].file]) });
     check('Bei genau einer steht die Einzahl da',
-      /1 Sicherung öffnet sich nur mit dem alten Schlüssel/.test(afText(one)) &&
-      /1 Sicherung mit altem Schlüssel löschen/.test(
+      /1 Backup öffnet sich nur mit dem alten Schlüssel/.test(afText(one)) &&
+      /1 Backup mit altem Schlüssel löschen/.test(
         one.w.document.getElementById('cleanup-old')?.textContent || ''),
       afText(one).slice(0, 700));
   }
@@ -4008,10 +4008,10 @@ async function run() {
      Schalter, der nie greifen kann, verspricht etwas und haelt es nie. */
   {
     const d = await afSystem({ configured: false,
-      reason: 'Es ist kein Sicherungsort eingerichtet.' });
+      reason: 'Es ist kein Backup-Ordner eingerichtet.' });
     check('Ohne eingerichteten Ort steht die Karte trotzdem da', !!afCard(d));
     check('Und sagt, warum sie nichts zu tun hat',
-      /kein Sicherungsordner eingerichtet/.test(afText(d)), afText(d).slice(0, 300));
+      /kein Backup-Ordner eingerichtet/.test(afText(d)), afText(d).slice(0, 300));
     check('Der Schalter steht dann gar nicht erst da',
       !d.w.document.getElementById('cleanup-toggle') && !d.w.document.getElementById('cleanup-run'),
       'der Schalter steht da');
@@ -4078,7 +4078,7 @@ async function run() {
     check('Der Knopf fragt erst nach dem Passwort',
       !!d.w.document.getElementById('confirm-pass'), 'kein Bestaetigungsfenster');
     check('Und der Dialog nennt Zahl und Bytes und sagt, dass es endgueltig ist — 0.22.0',
-      /2 Sicherungen \(100,0 MB\) werden endgültig gelöscht\./.test(
+      /2 Backups \(100,0 MB\) werden endgültig gelöscht\./.test(
         d.w.document.querySelector('.modal')?.textContent || ''),
       d.w.document.querySelector('.modal')?.textContent?.slice(0, 400));
     await confirmImDom(d, 'egal', true);
@@ -4106,7 +4106,7 @@ async function run() {
       equal(Object.keys(outcome[0]?.body || {}), ['kind']),
       JSON.stringify(outcome[0]?.body));
     check('Eine Meldung nennt, wie viele wirklich geloescht wurden',
-      /2 Sicherungen gelöscht/.test(d.w.document.querySelector('.toast')?.textContent || ''),
+      /2 Backups gelöscht/.test(d.w.document.querySelector('.toast')?.textContent || ''),
       d.w.document.querySelector('.toast')?.textContent);
   }
 }

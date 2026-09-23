@@ -1522,7 +1522,7 @@ const REGRESSIONS = [
        ablesen kann. */
     nr: '190', name: 'Alle Teile heissen gleich',
     file: 'server.js',
-    search: "    `attachment; filename=\"${exportName(asPart ? `-teil-${part}-von-${parts}` : '')}\"`);",
+    search: "    `attachment; filename=\"${exportName(asPart ? `-part-${part}-of-${parts}` : '')}\"`);",
     replacement: "    `attachment; filename=\"${exportName('')}\"`);",
     expected: 'Der Export in Teilen'
   },
@@ -3701,7 +3701,7 @@ const REGRESSIONS = [
     /* DIE BILDABLAGE HAT KEINE EIGENE KARTE MEHR. */
     nr: '469', name: 'Die Bildablage faellt aus der Kartentabelle',
     file: 'public/app.js',
-    search: "  { key: 'bildablage',   section: 'database', visible: () => ADMIN,\n" +
+    search: "  { key: 'imagestore',   section: 'database', visible: () => ADMIN,\n" +
            "    markup: cardImageStore,   wireUp: setUpImageStoreOut },\n",
     replacement: "",
     expected: 'Die Bildablage in der Oberflaeche'
@@ -3710,16 +3710,16 @@ const REGRESSIONS = [
     /* SIE STEHT IM FALSCHEN ABSCHNITT. */
     nr: '470', name: 'Die Karte „Bildablage" steht im Abschnitt „Bestand"',
     file: 'public/app.js',
-    search: "  { key: 'bildablage',   section: 'database',",
-    replacement: "  { schluessel: 'bildablage',   abschnitt: 'inventory',",
+    search: "  { key: 'imagestore',   section: 'database',",
+    replacement: "  { schluessel: 'imagestore',   abschnitt: 'inventory',",
     expected: 'Die Bildablage in der Oberflaeche'
   },
   {
     /* SIE VERSCHWINDET, WENN KEIN BILD DALIEGT. */
     nr: '471', name: 'Die Karte „Bildablage" verschwindet ohne Bilder',
     file: 'public/app.js',
-    search: "  { key: 'bildablage',   section: 'database', visible: () => ADMIN,",
-    replacement: "  { key: 'bildablage',   section: 'database',\n" +
+    search: "  { key: 'imagestore',   section: 'database', visible: () => ADMIN,",
+    replacement: "  { key: 'imagestore',   section: 'database',\n" +
             "    sichtbar: (g) => ADMIN && !!Object.keys((g.stats && g.stats.bildFormate) || {}).length,",
     expected: 'Die Bildablage in der Oberflaeche'
   },
@@ -3728,16 +3728,16 @@ const REGRESSIONS = [
     /* AN DER MEHRZAHLFORM UND NICHT AN DER EINZAHL -- ein Fund vom 6. */
     nr: '472', name: 'Der Dialog sagt nicht mehr, dass es dauern kann',
     file: 'public/languages/de.json',
-    search: "werden konvertiert, die Originale ersetzt (danach etwa {after}). Rückgängig nur mit einer vorher angelegten Sicherung. Dauer: Minuten bis Stunden.\"",
-    replacement: "werden konvertiert, die Originale ersetzt (danach etwa {after}). Rückgängig nur mit einer vorher angelegten Sicherung.\"",
+    search: "werden konvertiert, die Originale ersetzt (danach etwa {after}). Rückgängig nur mit einem vorher angelegten Backup. Dauer: Minuten bis Stunden.\"",
+    replacement: "werden konvertiert, die Originale ersetzt (danach etwa {after}). Rückgängig nur mit einem vorher angelegten Backup.\"",
     expected: 'Die Bildablage in der Oberflaeche'
   },
   {
     /* ER ERFINDET DOCH EINE ZAHL. */
     nr: '473', name: 'Der Dialog erfindet doch eine Minutenangabe',
     file: 'public/languages/de.json',
-    search: "Rückgängig nur mit einer vorher angelegten Sicherung. Dauer: Minuten bis Stunden.\"\n  },",
-    replacement: "Rückgängig nur mit einer vorher angelegten Sicherung. Dauer: etwa 20 Minuten.\"\n  },",
+    search: "Rückgängig nur mit einem vorher angelegten Backup. Dauer: Minuten bis Stunden.\"\n  },",
+    replacement: "Rückgängig nur mit einem vorher angelegten Backup. Dauer: etwa 20 Minuten.\"\n  },",
     expected: 'Die Bildablage in der Oberflaeche'
   },
   {
@@ -4516,7 +4516,7 @@ const REGRESSIONS = [
     /* DIE ZWANZIGSTE KARTE FAELLT WEG. */
     nr: '561', name: 'Die Karte „Alte Sicherungen" faellt aus dem Systembereich',
     file: 'public/app.js',
-    search: "  { key: 'aufraeumen',   section: 'database', visible: () => OWNER,\n" +
+    search: "  { key: 'cleanup',      section: 'database', visible: () => OWNER,\n" +
            "    markup: cardCleanup,   wireUp: setUpCleanupOut },",
     replacement: "",
     expected: 'Der Systembereich nach Rolle'
@@ -4526,8 +4526,8 @@ const REGRESSIONS = [
        Karte "Sicherung" daneben faellt damit weg. */
     nr: '562', name: 'Die Karte „Alte Sicherungen" steht schon beim Admin',
     file: 'public/app.js',
-    search: "  { key: 'aufraeumen',   section: 'database', visible: () => OWNER,",
-    replacement: "  { key: 'aufraeumen',   section: 'database', sichtbar: () => ADMIN,",
+    search: "  { key: 'cleanup',      section: 'database', visible: () => OWNER,",
+    replacement: "  { key: 'cleanup',      section: 'database', sichtbar: () => ADMIN,",
     expected: 'Der Systembereich nach Rolle'
   },
   {
@@ -4984,7 +4984,7 @@ const REGRESSIONS = [
     nr: '628', name: 'Ein Server-Befehl steht wieder im Fliesstext der Karte Mein Konto',
     file: 'public/languages/de.json',
     search: "\"card.forgotPasswordHint\": \"Ein vergessenes Passwort setzt du auf dem Server zurück:\",",
-    replacement: "\"card.forgotPasswordHint\": \"Ein vergessenes Passwort setzt du mit docker compose exec kriterion node usertool.js passwort <name> zurück.\",",
+    replacement: "\"card.forgotPasswordHint\": \"Ein vergessenes Passwort setzt du mit docker compose exec kriterion node usertool.js password <name> zurück.\",",
     expected: 'Server-Befehle nur im Kasten — 0.22.0'
   },
   {
@@ -7882,8 +7882,8 @@ const REGRESSIONS = [
     /* ZUSAGE 7: ein Satz mehr, bei gleicher Laenge. */
     nr: '984', name: 'Ein englischer Wert traegt einen Satz mehr als sein deutscher',
     file: 'public/languages/en.json',
-    search: "  \"card.wayBackupHint\": \"the emergency. The complete, encrypted copy of the database — with everything the export leaves out.\",",
-    replacement: "  \"card.wayBackupHint\": \"the emergency. The complete, encrypted copy of the database. With everything the export leaves out.\",",
+    search: "  \"card.wayBackupHint\": \"the emergency. The complete, encrypted copy of the database — including users and settings.\",",
+    replacement: "  \"card.wayBackupHint\": \"the emergency. The complete, encrypted copy of the database. Including users and settings.\",",
     expected: 'Englisch sitzt — 0.31.2'
   },
   {
@@ -7973,8 +7973,8 @@ const REGRESSIONS = [
     /* ZUSAGE 7: ein Satz mehr, bei gleicher Laenge. */
     nr: '995', name: 'Ein tuerkischer Wert traegt einen Satz mehr als sein deutscher',
     file: 'public/languages/tr.json',
-    search: "  \"card.wayBackupHint\": \"acil durum. Veritabanının eksiksiz, şifrelenmiş kopyası — dışa aktarmanın atladığı her şeyle birlikte.\",",
-    replacement: "  \"card.wayBackupHint\": \"acil durum. Veritabanının eksiksiz, şifrelenmiş kopyası. Dışa aktarmanın atladığı her şeyle birlikte.\",",
+    search: "  \"card.wayBackupHint\": \"acil durum. Veritabanının eksiksiz, şifrelenmiş kopyası — kullanıcılar ve ayarlar dahil.\",",
+    replacement: "  \"card.wayBackupHint\": \"acil durum. Veritabanının eksiksiz, şifrelenmiş kopyası. Kullanıcılar ve ayarlar dahil.\",",
     expected: 'Tuerkisch sitzt — 0.31.3'
   },
   {
@@ -8848,9 +8848,9 @@ const REGRESSIONS = [
     /* In einer Datei, die auf null steht, steht wieder eine Herkunftsangabe. */
     nr: '1099', name: 'Die .env.example nennt wieder eine alte Version',
     file: '.env.example',
-    search: "# Cookiename, Secure und Strict-Transport-Security haengen NICHT an dieser",
+    search: "# BEHIND_PROXY -- steht ein Reverse Proxy davor?",
     replacement: "# BIS 0.12.4 WAREN ES FUENF.\n"
-      + "# Cookiename, Secure und Strict-Transport-Security haengen NICHT an dieser",
+      + "# BEHIND_PROXY -- steht ein Reverse Proxy davor?",
     expected: 'Keine Versionsnummer als Herkunft'
   },
   {
@@ -9649,12 +9649,12 @@ const REGRESSIONS = [
     /* DIE ALTE FOLGE AN comment_images: data wieder vor thumb. */
     nr: '1199', name: 'Das Schema faellt auf die alte Folge zurueck',
     file: 'db.js',
-    search: "  filename TEXT NOT NULL DEFAULT 'bild.jpg',\n  thumb BLOB,\n"
+    search: "  filename TEXT NOT NULL DEFAULT 'image.jpg',\n  thumb BLOB,\n"
       + "  sort_order INTEGER NOT NULL DEFAULT 0,\n"
       + "  created_at TEXT NOT NULL DEFAULT (datetime('now')),\n"
       + "  -- data am Ende: was dahinter steht, ist nur ueber die Overflow-Kette zu lesen.\n"
       + "  data BLOB NOT NULL\n);",
-    replacement: "  filename TEXT NOT NULL DEFAULT 'bild.jpg',\n  data BLOB NOT NULL,\n"
+    replacement: "  filename TEXT NOT NULL DEFAULT 'image.jpg',\n  data BLOB NOT NULL,\n"
       + "  thumb BLOB,\n  sort_order INTEGER NOT NULL DEFAULT 0,\n"
       + "  created_at TEXT NOT NULL DEFAULT (datetime('now'))\n);",
     expected: 'Die Spaltenfolge: data steht am Ende'

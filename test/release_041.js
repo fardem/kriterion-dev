@@ -549,7 +549,7 @@ async function run() {
       'card.backupWhatHint': '{word} die vollständige, verschlüsselte Sicherung der Datenbank — auch mit Benutzern und Einstellungen, die der Export nicht enthält. Lässt sich nur in dieselbe Programmversion zurückspielen.'
     };
     const off = Object.keys(WANT).filter(k => DE[k] !== WANT[k]);
-    check('Die fuenf Saetze stehen im Wortlaut des Auftrags', off.length === 0, off.join(' ') || 'alle');
+    check('Die fuenf Saetze stehen im verlangten Wortlaut', off.length === 0, off.join(' ') || 'alle');
     const read = (code) => JSON.parse(fs.readFileSync(path.join(__dirname, 'public', 'languages', `${code}.json`), 'utf8'));
     const missing = ['en', 'tr'].flatMap(c => Object.keys(WANT).filter(k => !read(c)[k]).map(k => `${c}/${k}`));
     check('Englisch und Tuerkisch tragen dieselben Schluessel', missing.length === 0, missing.join(' ') || 'alle');
@@ -597,6 +597,126 @@ async function run() {
         toast.includes(deText('card.postsAssignedHint', { names: 'anna, bernd' })), toast);
       w.close();
     }
+  }
+
+  const readText = (f) => fs.readFileSync(path.join(__dirname, f), 'utf8');
+  // Das alte Wort; „Sicherung der Datenbank" ist als Beschreibung erlaubt.
+  const OLD_WORD = /[Ss]icherung(?!\s+der\s+Datenbank)|SICHERUNG|\b[Ss]ichern\b|\bSICHERN\b|\bgesichert\b/;
+  const UPDATE_LINE = 'mv kriterion-old/kriterion-sicherung kriterion/ 2>/dev/null   # derselbe Ordner unter dem alten Namen';
+  const hashComments = (text) => text.split('\n').filter(z => /^\s*#/.test(z));
+  const jsOutput = (text) => text.replace(/\/\*[\s\S]*?\*\//g, '')
+    .split('\n').filter(z => !/^\s*\/\//.test(z)).map(z => z.replace(/\s\/\/ .*$/, ''));
+  const shOutput = (text) => text.split('\n').filter(z => !/^\s*#/.test(z));
+
+  group('Das Wort heisst Backup');
+  {
+    const ban = (text) => D.SCREEN_BAN.some(([re]) => re.test(text));
+    check('Die Verbotsliste meldet das alte Wort',
+      ban('Letzte Sicherung') && ban('Jetzt sichern') && ban('Sicherungsordner'), 'nicht gemeldet');
+    check('Und laesst „Sicherung der Datenbank" durch',
+      !ban('Nur das Backup ist eine vollständige Sicherung der Datenbank.'), 'gemeldet');
+    const flat = (v) => (v && typeof v === 'object' ? Object.values(v).flatMap(flat) : [String(v)]);
+    const deHits = Object.entries(DE).filter(([, v]) => flat(v).some(x => OLD_WORD.test(x))).map(([k]) => k);
+    check('Kein Wert in de.json sagt „Sicherung" ausser „Sicherung der Datenbank"',
+      deHits.length === 0, deHits.join(' ') || 'keiner');
+    const sources = [
+      ['README.md', readText('README.md').split('\n')],
+      ['manual-de.md', readText('manual-de.md').split('\n')],
+      ['.env.example', hashComments(readText('.env.example'))],
+      ['docker-compose.example.yml', hashComments(readText('docker-compose.example.yml'))],
+      ['keytool.js', jsOutput(readText('keytool.js'))],
+      ['keys.js', jsOutput(readText('keys.js'))],
+      ['keytool.sh', shOutput(readText('keytool.sh'))]];
+    const hits = sources.flatMap(([f, lines]) => lines
+      .filter(z => OLD_WORD.test(z) && z.trim() !== UPDATE_LINE)
+      .map(z => `${f}: ${z.trim().slice(0, 70)}`));
+    check('README, Handbuch, Beispieldateien und Werkzeuge sagen Backup',
+      hits.length === 0, hits.slice(0, 4).join(' · ') || 'keine Stelle');
+    const updateLines = readText('README.md').split('\n').filter(z => z.trim() === UPDATE_LINE).length;
+    check('Die eine Zeile des Update-Wegs mit dem alten Ordnernamen steht genau einmal da',
+      updateLines === 1, `${updateLines}x`);
+    check('Der Leser faengt das alte Wort in einem Kommentar und in einer Ausgabe',
+      jsOutput("console.log('Vorher sichern');").some(z => OLD_WORD.test(z)) &&
+      !jsOutput('// Die Sicherung').some(z => OLD_WORD.test(z)) &&
+      hashComments('# Die Sicherung\nX=1').some(z => OLD_WORD.test(z)), 'nicht gefangen');
+  }
+
+  group('Die Beispieldateien');
+  {
+    const env = readText('.env.example');
+    const named = [...env.matchAll(/\bnode\s+([\w.-]+\.js)\b/g)].map(m => m[1]);
+    const missing = named.filter(f => !fs.existsSync(path.join(__dirname, f)));
+    check('Jeder Befehl node <datei>.js in .env.example nennt eine Datei, die es gibt',
+      named.length > 0 && missing.length === 0, missing.join(' ') || named.join(' '));
+    const blocks = env.split(/^# -{20,}$/m).slice(1).map(b => b.split('\n').filter(z => /^#/.test(z)));
+    const longBlocks = blocks.filter(b => b.length > 5).map(b => b[0]);
+    check('Je Einstellung eine Ueberschriftzeile und hoechstens vier Zeilen darunter',
+      blocks.length === 5 && longBlocks.length === 0,
+      `${blocks.length} Abschnitte; zu lang: ${longBlocks.join(' · ') || 'keiner'}`);
+    const active = env.split('\n').filter(z => z.trim() && !/^\s*#/.test(z));
+    check('Und aktiv steht nur ENCRYPTION_KEY=', equal(active, ['ENCRYPTION_KEY=']), JSON.stringify(active));
+    const compose = readText('docker-compose.example.yml').split('\n');
+    let run = 0, longest = 0;
+    for (const z of compose) { run = /^\s*#/.test(z) ? run + 1 : 0; longest = Math.max(longest, run); }
+    check('In der Compose-Datei hoechstens vier Kommentarzeilen je Eintrag', longest <= 4, `${longest} Zeilen`);
+    const lines = compose.filter(z => z.trim() && !/^\s*#/.test(z));
+    check('Und ohne Kommentar stehen die Zeilen der Vorlage', equal(lines, [
+      'services:', '  kriterion:', '    build: .', '    container_name: kriterion',
+      '    restart: unless-stopped', '    env_file: .env', '    ports:', '      - "3100:3000"',
+      '    volumes:', '      - ./data:/app/data', '      - ./kriterion-backup:/app/backup',
+      '    environment:', '      - PORT=3000', '      - TZ=Europe/Berlin', '      - BACKUP_DIR=/app/backup']),
+      lines.join(' | ').slice(0, 200));
+  }
+
+  group('Englische Bezeichnungen in neuen Installationen');
+  {
+    const GERMAN = /kriterion-sicherung|\/app\/sicherung|\/sicherung\b|kriterion-alt\b|sicherung-data-|kriterion-probe|vor-schluesselwechsel|usertool\.js (liste|passwort|entfernen|eigentuemer|zweifaktor)\b|--eintraege|--beitraege|keytool\.(sh|js) (zeigen|wechseln)\b|--wer\b|--ja\b/;
+    const readme = readText('README.md');
+    const bashBlocks = [...readme.matchAll(/```(?:bash|sh|yaml)?\n([\s\S]*?)```/g)].flatMap(m => m[1].split('\n'));
+    const places = [
+      ['.env.example', readText('.env.example').split('\n')],
+      ['docker-compose.example.yml', readText('docker-compose.example.yml').split('\n')],
+      ['README.md (Befehlsbloecke)', bashBlocks],
+      ['manual-de.md', readText('manual-de.md').split('\n')]];
+    const found = places.flatMap(([f, lines]) => lines
+      .filter(z => GERMAN.test(z) && z.trim() !== UPDATE_LINE).map(z => `${f}: ${z.trim().slice(0, 70)}`));
+    check('Beispieldateien und Befehle der README nennen nur englische Bezeichnungen',
+      bashBlocks.length > 50 && found.length === 0, found.slice(0, 4).join(' · ') || `${bashBlocks.length} Zeilen gelesen`);
+    const { spawnSync } = require('child_process');
+    const toolDir = fs.mkdtempSync(path.join(os.tmpdir(), 'kriterion-befehle-'));
+    const toolKey = crypto.randomBytes(32).toString('hex');
+    const tool = (file, args) => {
+      const r = spawnSync(process.execPath, [file, ...args], { cwd: __dirname, encoding: 'utf8', input: '',
+        env: { ...process.env, DATA_DIR: toolDir, ENCRYPTION_KEY: toolKey } });
+      return { code: r.status, out: (r.stdout || '') + (r.stderr || '') };
+    };
+    const oldUser = ['liste', 'passwort', 'entfernen', 'eigentuemer', 'zweifaktor']
+      .map(c => tool('usertool.js', c === 'liste' ? [c] : [c, 'niemand']));
+    check('usertool.js nimmt die deutschen Befehle nicht mehr an',
+      oldUser.every(r => r.code === 1 && /Unbekannter Befehl/.test(r.out)),
+      oldUser.map(r => r.code).join(' '));
+    const help = oldUser[0].out;
+    check('Und nennt dabei die englischen',
+      ['list', 'password <name>', 'remove <name> [--entries] [--posts]', 'owner <name>', 'twofactor <name>']
+        .every(c => help.includes(`node usertool.js ${c}`)), help.slice(0, 200));
+    const list = tool('usertool.js', ['list']);
+    check('usertool.js list laeuft', list.code === 0, list.out.slice(0, 120));
+    const oldKey = ['zeigen', 'wechseln'].map(c => tool('keytool.js', [c]));
+    check('keytool.js nimmt zeigen und wechseln nicht mehr an und nennt show und change',
+      oldKey.every(r => r.code === 1 && /Unbekannter Befehl/.test(r.out) &&
+        /node keytool\.js show/.test(r.out) && /node keytool\.js change \[--env <pfad>\] \[--by <text>\] \[--yes\]/.test(r.out)),
+      oldKey.map(r => r.code).join(' '));
+    const sh = readText('keytool.sh');
+    check('keytool.sh kennt nur show und change',
+      /^\s{2}show\)$/m.test(sh) && /^\s{2}change\)$/m.test(sh) && !/zeigen\)|wechseln\)/.test(sh) &&
+      /lauf change "\$\{ENV_ARGUMENTE\[@\]\}" --by "\$WER" --yes/.test(sh), 'Faelle oder Aufruf weichen ab');
+    const app = readText('public/app.js');
+    const keys = [...app.matchAll(/^  \{ key: '([a-z]+)',\s+section: '/gm)].map(m => m[1]);
+    check('Die Kartenschluessel im Systembereich sind englisch', equal(keys, ['myaccount', 'sessions',
+      'appearance', 'categories', 'tags', 'criteria', 'potentialcriteria', 'vocabulary', 'links',
+      'searchengines', 'trash', 'accounts', 'requests', 'log', 'mail', 'stats', 'imagestore', 'backup',
+      'cleanup', 'export', 'titles', 'languages']), keys.join(' '));
+    fs.rmSync(toolDir, { recursive: true, force: true });
   }
 }
 

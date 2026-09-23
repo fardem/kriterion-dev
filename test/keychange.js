@@ -104,7 +104,7 @@ function checkKeyChange() {
     a1.journal === 'wal',
     `Schluessel ${a1.hex.length} Zeichen, journal ${a1.journal}`);
 
-  const defaultWord = swCall(['wechseln', '--ja'], a1.dir, null);
+  const defaultWord = swCall(['change', '--yes'], a1.dir, null);
   check('Der Wechsel laeuft durch', defaultWord.code === 0, `Rueckgabe ${defaultWord.code}\n${defaultWord.stdout.slice(-400)}`);
   const a1neu = swAttempt(
     () => fs.readFileSync(path.join(a1.dir, 'encryption.key'), 'utf8').trim(), '');
@@ -161,7 +161,7 @@ function checkKeyChange() {
   const a3 = swInstance('dateifall');
   const envForeign = path.join(SW, 'fremd.env');
   fs.writeFileSync(envForeign, `ENCRYPTION_KEY=${hexFresh()}\n`);
-  const w3 = swCall(['wechseln', '--env', envForeign, '--ja'], a3.dir, null);
+  const w3 = swCall(['change', '--env', envForeign, '--yes'], a3.dir, null);
   check('Im Dateifall wird eine mitgegebene .env abgewiesen',
     w3.code === 1 && /kommt gar nicht aus der Umgebung/.test(w3.stdout), w3.stdout.slice(0, 200));
   check('Und dabei wurde nichts gewechselt: die Schluesseldatei steht unveraendert',
@@ -181,7 +181,7 @@ function checkKeyChange() {
     'PUBLIC_ADDRESS=https://beispiel.test\n';
   fs.writeFileSync(envFile, envBefore);
 
-  const w4ohne = swCall(['wechseln', '--ja'], a4.dir, envOld);
+  const w4ohne = swCall(['change', '--yes'], a4.dir, envOld);
   check('Im .env-Fall wird OHNE die .env abgewiesen',
     w4ohne.code === 1 && /kommt aus der Umgebung/.test(w4ohne.stdout), w4ohne.stdout.slice(0, 200));
   check('Und dabei wurde nichts gewechselt: der alte Schluessel oeffnet weiter',
@@ -189,7 +189,7 @@ function checkKeyChange() {
   check('Und die .env steht Zeichen fuer Zeichen unveraendert da',
     fs.readFileSync(envFile, 'utf8') === envBefore);
 
-  const w4fremd = swCall(['wechseln', '--env', envForeign, '--ja'], a4.dir, envOld);
+  const w4fremd = swCall(['change', '--env', envForeign, '--yes'], a4.dir, envOld);
   check('Eine .env mit einem FREMDEN Wert wird abgewiesen',
     w4fremd.code === 1 && /anderen Wert/.test(w4fremd.stdout), w4fremd.stdout.slice(0, 200));
   check('Und auch dabei wurde nichts gewechselt',
@@ -197,17 +197,17 @@ function checkKeyChange() {
 
   const envWithout = path.join(SW, 'ohne.env');
   fs.writeFileSync(envWithout, '# ENCRYPTION_KEY=nur ein Kommentar\nBEHIND_PROXY=1\n');
-  const w4leer = swCall(['wechseln', '--env', envWithout, '--ja'], a4.dir, envOld);
+  const w4leer = swCall(['change', '--env', envWithout, '--yes'], a4.dir, envOld);
   check('Eine .env ohne AKTIVE Schluesselzeile wird abgewiesen',
     w4leer.code === 1 && /0 aktive Zeilen/.test(w4leer.stdout), w4leer.stdout.slice(0, 200));
 
   const envTwo = path.join(SW, 'zwei.env');
   fs.writeFileSync(envTwo, `ENCRYPTION_KEY=${envOld}\nENCRYPTION_KEY=${envOld}\n`);
-  const w4zwei = swCall(['wechseln', '--env', envTwo, '--ja'], a4.dir, envOld);
+  const w4zwei = swCall(['change', '--env', envTwo, '--yes'], a4.dir, envOld);
   check('Und eine mit ZWEI aktiven Zeilen ebenfalls',
     w4zwei.code === 1 && /2 aktive Zeilen/.test(w4zwei.stdout), w4zwei.stdout.slice(0, 200));
 
-  const w4 = swCall(['wechseln', '--env', envFile, '--wer', 'pruefstand', '--ja'], a4.dir, envOld);
+  const w4 = swCall(['change', '--env', envFile, '--by', 'pruefstand', '--yes'], a4.dir, envOld);
   check('Mit der richtigen .env laeuft der Wechsel durch',
     w4.code === 0, `Rueckgabe ${w4.code}\n${w4.stdout.slice(-400)}`);
   const envAfter = fs.readFileSync(envFile, 'utf8');
@@ -223,7 +223,7 @@ function checkKeyChange() {
   check('Der alte Wert steht auskommentiert darueber',
     envRows.includes(`#ENCRYPTION_KEY=${envOld}`), envAfter);
   check('Mit dem Satz daneben, wofuer er noch gut ist',
-    /ER OEFFNET ALLE SICHERUNGEN VON VOR DIESEM ZEITPUNKT/.test(envAfter));
+    /ER OEFFNET ALLE BACKUPS VON VOR DIESEM ZEITPUNKT/.test(envAfter));
   check('Und mit der Notiz, wer gewechselt hat',
     /^# Abgeloest am \d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2} durch pruefstand \(keytool\.js\)\.$/m
       .test(envAfter), envRows.find(z => z.startsWith('# Abgeloest')));
@@ -333,7 +333,7 @@ function checkKeyChange() {
   swAttempt(() => d4.close());
 
   /* IN DER AUSGABE DES WECHSELS steht der ALTE Wert -- absichtlich, denn er
-     oeffnet die Sicherungen von vorher und ist ab jetzt sonst nirgends mehr. */
+     oeffnet die Backups von vorher und ist ab jetzt sonst nirgends mehr. */
   check('Die Ausgabe des Wechsels nennt den ALTEN Wert zum Aufheben',
     w4.stdout.includes(envOld), w4.stdout.slice(-300));
   check('Den NEUEN nennt sie nicht',
@@ -423,10 +423,10 @@ function checkKeyChange() {
   /* DIE ANSAGE STEHT IMMER: was der Wechsel an Platz braucht, rechnet
      keytool.js aus der Groesse der Datenbank -- das Journal waechst auf ihre
      Groesse. */
-  const show = swCall(['zeigen'], a5.dir, null);
+  const show = swCall(['show'], a5.dir, null);
   const zBig = Number((show.stdout.match(/Datenbank\s+([\d.]+) MB/) || [])[1]);
   const zNeeded = Number((show.stdout.match(/Wechsel\s+([\d.]+) MB/) || [])[1]);
-  check('zeigen nennt Groesse, Platzbedarf und Dauer',
+  check('show nennt Groesse, Platzbedarf und Dauer',
     zBig > 0 && zNeeded > 0 && /Erwartete Dauer\s+rund \d+ Sekunden/.test(show.stdout),
     show.stdout);
   check('Und der Platzbedarf liegt ueber der Groesse der Datenbank',
@@ -461,7 +461,7 @@ function checkKeyChange() {
     const fill = Math.max(0, s.bsize * s.bavail - Math.floor(dbBytes * 0.6));
     try { fs.writeFileSync(path.join(eng, 'fuell'), Buffer.alloc(fill)); } catch {}
     const before = fs.readFileSync(path.join(engDir, 'encryption.key'), 'utf8');
-    const w6 = swCall(['wechseln', '--ja'], engDir, null);
+    const w6 = swCall(['change', '--yes'], engDir, null);
     check('Bei zu wenig Platz kommt die Absage mit Begruendung',
       w6.code === 1 && /Zu wenig Platz/.test(w6.stdout) && /Journal/.test(w6.stdout),
       `Rueckgabe ${w6.code}: ${w6.stdout.slice(0, 300)}`);
@@ -518,7 +518,7 @@ function checkKeyChange() {
 
   /* Der veraltete Umgebungswert ist die Lage, in der jemand den Wechsel ein
      zweites Mal faehrt, ohne die .env nachgezogen zu haben. */
-  const second = swCall(['wechseln', '--env', envFile, '--ja'], a4.dir, envOld);
+  const second = swCall(['change', '--env', envFile, '--yes'], a4.dir, envOld);
   check('Ein zweiter Wechsel mit dem VERALTETEN Umgebungswert wird abgewiesen',
     second.code !== 0, `Rueckgabe ${second.code}: ${second.stdout.slice(0, 200)}`);
   check('Und die .env steht dabei unveraendert da',

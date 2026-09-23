@@ -403,8 +403,8 @@ async function check0300() {
        -- ohne die Datei gibt es keinen Schluessel, mit dem sich sagen liesse,
        dass sie fehlt (Entscheidung A1 aus 0.24.0) */
     const SENTENCE_EXCEPTIONS = [
-      'docker compose exec kriterion node usertool.js passwort <name>',
-      'docker compose exec kriterion node usertool.js zweifaktor <name>',
+      'docker compose exec kriterion node usertool.js password <name>',
+      'docker compose exec kriterion node usertool.js twofactor <name>',
       /* ZWEI BEISPIELADRESSEN UND EINE ABFRAGE. */
       'https://forum.beispiel.de/suche?q=%s',
       'site%3Aforum.beispiel.de',

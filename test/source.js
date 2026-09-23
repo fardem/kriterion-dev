@@ -649,11 +649,10 @@ async function run() {
       path.join(__dirname, 'public/languages/de.json'), 'utf8')),
     'die Karte nennt den Link nicht beim Namen');
 
-  /* SICHERUNG ODER BACKUP -- eines von beiden, und durchgehalten. */
+  // Das Wort heisst Backup; das alte steht nur noch in „Sicherung der Datenbank".
   const BACKUP_FILES = ['server.js', 'db.js', 'auth.js', 'attachments.js', 'keys.js',
-                             'public/app.js', 'public/index.html', 'usertool.js'];
-  /* GROSSGESCHRIEBEN GESUCHT, und das ist keine Nachlaessigkeit: gemeint ist
-     das deutsche SUBSTANTIV. */
+                             'public/app.js', 'public/index.html', 'usertool.js',
+                             'keytool.js', 'public/style.css'];
   const withoutConsole = (src) => {
     let out = '', i = 0;
     /* SEIT 0.35.2 GEHT DAS CONTAINERPROTOKOLL UEBER log.js -- der Schnitt
@@ -676,20 +675,23 @@ async function run() {
     }
     return out + src.slice(i);
   };
-  const backupCount = (text) => (withoutConsole(text).match(/\bBackup\b/g) || []).length;
+  const backupCount = (text) => (withoutConsole(text)
+    .match(/[Ss]icherung(?!\s+der\s+Datenbank)|SICHERUNG|\b[Ss]ichern\b|\bSICHERN\b|\bgesichert\b/g) || []).length;
   const fBackup = BACKUP_FILES
     .map(d => [d, backupCount(fs.readFileSync(path.join(__dirname, d), 'utf8'))])
     .filter(([, n]) => n > 0);
-  check('Das Wort Backup steht in keiner ausgelieferten Datei mehr',
+  check('Das alte Wort Sicherung steht in keinem ausgelieferten Modul mehr',
     fBackup.length === 0, fBackup.map(([d, n]) => `${d} (${n}x)`).join(' · '));
   check('Und der Waechter wuerde es wirklich finden',
-    backupCount('// Das gehoert ins Backup.') === 1, 'der Waechter sieht das Wort nicht');
-  check('Den Bezeichner db.backup() laesst er dagegen in Ruhe',
-    backupCount('  try { await d.backup(ziel); } catch {}') === 0,
-    'der Waechter faerbt sich am Bezeichner');
-  /* UND DER SCHNITT SCHNEIDET WIRKLICH NUR DEN RUF. */
+    backupCount('// Das gehoert in die Sicherung.') === 1 &&
+    backupCount('/* DIE SICHERUNG IST PFLICHT. */') === 1 &&
+    backupCount("t('Vorher sichern')") === 1, 'der Waechter sieht das Wort nicht');
+  check('„Sicherung der Datenbank" und „Sicherheit" laesst er stehen',
+    backupCount("'Nur das Backup ist eine vollständige Sicherung der Datenbank.'") === 0 &&
+    backupCount('// Das Sicherheitsprotokoll') === 0,
+    'der Waechter faerbt sich an einer erlaubten Stelle');
   check('Und der Schnitt nimmt nur den Konsolenruf, nicht die Zeile daneben',
-    backupCount("console.log('Backup written'); // Das gehoert ins Backup.") === 1,
+    backupCount("console.log('Sicherung'); // Das gehoert in die Sicherung.") === 1,
     'der Schnitt nimmt zu viel oder zu wenig weg');
 
   /* SICHERHEITSPROTOKOLL ODER PROTOKOLL -- eines von beiden, und
@@ -1159,8 +1161,8 @@ async function run() {
     /* UND ZEHN MEHR: elf Saetze des Hinweises vor Export und Import und die
        Absage an zu wenig Platz, dagegen zwei Absagen weniger -- die Grenze
        des Gesamtexports ist fort. */
-    check('Und die Zahlen stehen: 1331 Schluessel, 88 Mehrzahlformen, 15 Vokabelnamen',
-      languageKeys.length === 1331 && pluralKeys.length === 88 && vocabularyKeys.length === 15,
+    check('Und die Zahlen stehen: 1333 Schluessel, 88 Mehrzahlformen, 15 Vokabelnamen',
+      languageKeys.length === 1333 && pluralKeys.length === 88 && vocabularyKeys.length === 15,
       `${languageKeys.length} / ${pluralKeys.length} / ${vocabularyKeys.length}`);
 
     /* ---- 3. */
@@ -1409,6 +1411,8 @@ async function run() {
     /* UND ZWEI FALLEN: die Absage vor dem Bau und das Netz darunter. Der
        Gesamtexport hat keine Grenze mehr. */
     const WORDING_GONE_0400 = ['server.exportTooBig', 'server.exportGrew'];
+    // Zwei neue: was der Export enthaelt und was nur das Backup enthaelt.
+    const WORDING_NEW_0410 = ['card.exportOnlyEntries', 'card.onlyBackupComplete'];
     const goneStill18 = [];
     for (const code of ['de', 'en', 'tr']) {
       const file = JSON.parse(fs.readFileSync(
@@ -1425,7 +1429,7 @@ async function run() {
       ...WORDING_NEW_0320, ...WORDING_NEW_0321, ...WORDING_NEW_0330,
       ...WORDING_NEW_0350, ...WORDING_NEW_0351, ...WORDING_NEW_0352,
       ...WORDING_NEW_0360, ...WORDING_NEW_0380, ...WORDING_NEW_0384,
-      ...WORDING_NEW_0400]
+      ...WORDING_NEW_0400, ...WORDING_NEW_0410]
       .filter(k => !WORDING_GONE_0321.includes(k) && !WORDING_GONE_0330.includes(k)
                 && !WORDING_GONE_0352.includes(k));
     const wordingMissing = WORDING_NEW.filter(k => LANGUAGE_FILE[k] === undefined);
@@ -1913,9 +1917,32 @@ async function run() {
     // Mit den Videos in Kommentaren sagen sechs Schluessel „Bild oder Video".
     const WORDING_CHANGED_VIDEO = ['entry.addImage', 'entry.imageCapHint', 'server.imageCap',
       'entry.withAllImages', 'entry.imagesAttached', 'entry.imagesRemovedAdmin'];
+    // Das Wort heisst Backup: 51 Schluessel mit geaendertem Wortlaut, dazu die Hinweise zu Export und Backup.
+    const WORDING_CHANGED_0410 = [
+      'card.backup', 'card.backupDeleteRule', 'card.backupDir',
+      'card.backupDirInProject', 'card.backupEncrypted', 'card.backupLabel',
+      'card.backupNow', 'card.backupNowHint', 'card.backupRunning',
+      'card.backupsBeforeChange', 'card.backupsCount', 'card.backupsDeleted',
+      'card.backupsDeleteHint', 'card.backupsPurgeHint', 'card.backupWritten',
+      'card.backupWrittenFile', 'card.cleanupAfterBackup', 'card.cleanupHint',
+      'card.deleteBackups', 'card.deleteOldKeyBackups', 'card.duringBackupHint',
+      'card.exportPurposeHint', 'card.keepAtLeastNote', 'card.keyChangedHint',
+      'card.keyChangedOn', 'card.lastBackup', 'card.logDataHint',
+      'card.neverSameBackup', 'card.noBackupDir', 'card.noBackupDirCard',
+      'card.noBackupForKey', 'card.noBackupInFolder', 'card.noBackupYet',
+      'card.oldBackupDeleted', 'card.oldBackups', 'card.oldBackupsFreed',
+      'card.oldKeyBackupsDelete', 'card.oldKeyBackupsOnly',
+      'card.oldKeyBackupsPurge', 'card.restoreViaBackup',
+      'server.backupConcurrent', 'server.backupDirGone', 'server.backupDirNotSet',
+      'server.backupDirUnreachable', 'server.backupFailed',
+      'server.backupInDataDir', 'server.cleanupNoBackups',
+      'server.keyNeverChanged', 'server.subDirForm', 'server.subDirGone',
+      'server.subDirOutside'];
     const flatValues = (v) => (v && typeof v === 'object' ? Object.values(v) : [v]);
-    check('Und genau 166 Saetze sind andere, jeder davon benannt',
-      onlyThen.length === 166 && onlyNow.length === 164 &&
+    check('Und genau 211 Saetze sind andere, jeder davon benannt',
+      onlyThen.length === 211 && onlyNow.length === 209 &&
+      WORDING_CHANGED_0410.every(k => LANGUAGE_FILE[k] !== undefined &&
+        flatValues(LANGUAGE_FILE[k]).every(v => onlyNow.includes(asBefore(v)))) &&
       WORDING_CHANGED_VIDEO.every(k => LANGUAGE_FILE[k] !== undefined &&
         flatValues(LANGUAGE_FILE[k]).every(v => onlyNow.includes(asBefore(v)))) &&
       WORDING_CHANGED_0384.every(k => LANGUAGE_FILE[k] !== undefined
@@ -1985,7 +2012,7 @@ async function run() {
        ein anderer an ihre Stelle traete -- `list.and`, `list.ofWhich`,
        `list.sortDefaultHint` und `entry.deleteWord`. */
     check('Und sonst kein Zeichen — Satz fuer Satz dieselbe Oberflaeche',
-      equal(restThen, restNow) && restNow.length === 913,
+      equal(restThen, restNow) && restNow.length === 868,
       `${restThen.filter((x, i) => x !== restNow[i]).length} abweichende von ${restNow.length}`);
 
     /* ---- 6. Die Kuerzeprobe ---------------------------------------------
@@ -2533,12 +2560,12 @@ async function run() {
       screenViolations([{ text: 'Die Note muss zwischen 1 und 5 liegen.', row: 1 },
                             { text: 'Zugang anfragen', row: 1 }, { text: 'Noch keinen Zugang?', row: 1 },
                             { text: 'Prüfsumme (Fingerprint)', row: 1 },
-                            { text: 'verschlüsselte Kopie der Datenbank', row: 1 },
+                            { text: 'vollständige Sicherung der Datenbank', row: 1 },
                             { text: '/api/items/1/ratings', row: 1 }]).length === 0,
       JSON.stringify(screenViolations([{ text: 'Die Note muss zwischen 1 und 5 liegen.', row: 1 },
                             { text: 'Zugang anfragen', row: 1 }, { text: 'Noch keinen Zugang?', row: 1 },
                             { text: 'Prüfsumme (Fingerprint)', row: 1 },
-                            { text: 'verschlüsselte Kopie der Datenbank', row: 1 },
+                            { text: 'vollständige Sicherung der Datenbank', row: 1 },
                             { text: '/api/items/1/ratings', row: 1 }])));
     check('Die Liste traegt mindestens dreissig Zeilen',
       SCREEN_BAN.length >= 30, `${SCREEN_BAN.length} Zeilen`);

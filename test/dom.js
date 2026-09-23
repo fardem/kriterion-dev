@@ -294,7 +294,7 @@ function buildDom(JSDOM, { withoutLanguage = false, settings = { filters: null }
   /* Die Sicherung der Prueflage. Vorgabe: eingerichtet, mit einer Sicherung
      von vor drei Tagen. */
   const backup = backupStatus || {
-    configured: true, root: '/sicherung', place: 'taeglich', filePath: '/sicherung/taeglich',
+    configured: true, root: '/backup', place: 'taeglich', filePath: '/backup/taeglich',
     // Die Vorgabe ist die EMPFOHLENE Lage -- ausserhalb. Die Gegenlage steht
 // als eigener Aufbau in der Gruppe darunter.
     inWorkDir: false,
@@ -311,7 +311,7 @@ function buildDom(JSDOM, { withoutLanguage = false, settings = { filters: null }
       limits: { keep: { fallback: 3, min: 1, max: 20 },
                  days: { fallback: 30, min: 7, max: 365 } },
       reachable: true, matched: [], bytes: 0,
-      reason: 'Alle 2 Kopien sind unter den jüngsten 3.',
+      reason: 'Alle 2 Backups sind unter den jüngsten 3.',
       /* DIE VOLLSTAENDIGE LISTE -- in der Vorgabelage die beiden Kopien, die
          `zahl: 2` daneben behauptet. */
       files: [
@@ -939,7 +939,7 @@ function buildDom(JSDOM, { withoutLanguage = false, settings = { filters: null }
           affected: names.has(z.file), outdated: oldNames.has(z.file) })),
         matched, bytes: matched.reduce((n, z) => n + z.bytes, 0),
         reason: matched.length ? '' : (cleanupCopies.length <= keep
-          ? `Alle ${cleanupCopies.length} Kopien sind unter den jüngsten ${keep}.`
+          ? `Alle ${cleanupCopies.length} Backups sind unter den jüngsten ${keep}.`
           : `Die älteste ist ${cleanupCopies[cleanupCopies.length - 1].daysAgo} Tage alt.`) } });
     }
     /* Und der Loeschweg. */
@@ -961,7 +961,7 @@ function buildDom(JSDOM, { withoutLanguage = false, settings = { filters: null }
       if (k.kind === 'outdated') { backup.outdated = 0; a.oldCount = 0; a.oldBytes = 0;
                                   a.oldFiles = []; }
       backup.cleanup = { ...a, matched: [], bytes: 0,
-                               reason: 'Alle Kopien sind unter den jüngsten ' + a.keep + '.' };
+                               reason: 'Alle Backups sind unter den jüngsten ' + a.keep + '.' };
       return give({ ok: true, kind: k.kind, removed: outdatedFiles.length, notDeleted: 0, bytes,
                    reachable: true, number: backup.number, last: backup.last,
                    changedAt: backup.changedAt ?? null,
@@ -975,9 +975,9 @@ function buildDom(JSDOM, { withoutLanguage = false, settings = { filters: null }
     if (url === '/api/backup/dir' && opt.method === 'PUT') {
       const place = String(JSON.parse(opt.body || '{}').place || '');
       if (place.includes('..') || place.startsWith('/'))
-        return give({ error: 'Der Ort ist ein Unterverzeichnis des eingerichteten Sicherungsorts.' }, 400);
+        return give({ error: 'Der Unterordner liegt im eingerichteten Backup-Ordner.' }, 400);
       backup.place = place;
-      backup.filePath = place ? `/sicherung/${place}` : '/sicherung';
+      backup.filePath = place ? `/backup/${place}` : '/backup';
       backup.error = null;
       // gewechseltAm und veraltet gehen MIT -- der echte Server breitet
       // letzteSicherung() auch hier aus, und ein Mock, der sie weglaesst,
@@ -1477,7 +1477,7 @@ const SCREEN_BAN = [
   [/\bgezogen\b/, 'gezogen (für erstellt)'], [/\bStück\b/, 'Stück (für Dateien)'],
   [/\bBoden\b|\bSchere\b|\bDeckel\b|\bPille\b|\bKiste\b|\bKlemme\b|\bWächter\b|Stolperstein|Rückbau|Bestandslauf|Migrationsblock|Austauschformat/, 'ein Bild des Projekts'],
   [/Fingerprint(?!\))/, 'Fingerprint ohne Erklärung'],
-  [/Systembereich|Selbstanmeldung|Suchanbieter|Startanbieter|Bildablage|\bStimmen?\b|Gesamtschnitt|Sicherungsort|Zielort|Verwaltungsbereich|Rücksetzlink|Wunsch-Benutzername|Zugänge\b|Bewertungskriterien|Freigeben|Freigegeben|unwiderruflich|stillgelegt|Alles anzeigen|Kopien?\b(?!\s+der\s+Datenbank)/, 'ein Wort, das das Wörterbuch ersetzt hat'],
+  [/Systembereich|Selbstanmeldung|Suchanbieter|Startanbieter|Bildablage|\bStimmen?\b|Gesamtschnitt|Sicherungsort|Zielort|Verwaltungsbereich|Rücksetzlink|Wunsch-Benutzername|Zugänge\b|Bewertungskriterien|Freigeben|Freigegeben|unwiderruflich|stillgelegt|Alles anzeigen|Kopien?\b|Sicherung(?!\s+der\s+Datenbank)|\bsichern\b/, 'ein Wort, das das Wörterbuch ersetzt hat'],
   [/\bZugangs?\b(?! anfragen)(?!\?)/, 'Zugang (für Benutzer/Konto)'],
   [/\b0\.\d+\.\d+\b/, 'eine Versionsnummer'],
 ];

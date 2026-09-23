@@ -4,7 +4,7 @@
 Bewertungen, Kommentare, Einstellungen, Sprache und die Ansicht auf dem Telefon.
 
 > **DER BETRIEB STEHT IN DER [README](README.md).** Installation, der Schlüssel,
-> Sichern, eine neuere Version einspielen, der Reverse Proxy, das Datenmodell,
+> Backup, eine neuere Version einspielen, der Reverse Proxy, das Datenmodell,
 > die Ablage von Dateien und Videos und **die Lizenz** stehen dort. **Jede Sache steht an genau
 > einer der beiden Stellen**; wo die andere gebraucht wird, steht ein Verweis
 > und keine zweite Erklärung.
@@ -115,13 +115,13 @@ dabei alle.
 beim vergessenen Passwort:
 
 ```bash
-docker compose exec kriterion node usertool.js zweifaktor <name>
+docker compose exec kriterion node usertool.js twofactor <name>
 ```
 
 Er schaltet den zweiten Faktor **aus** und lässt Passwort, Rolle und Bestand in
 Ruhe. **Einschalten geht von dort nicht.**
 
-Die Kopie über die Karte „Sicherung" enthält den gesamten Datenbestand und damit
+Das Backup über die Karte „Backup" enthält den gesamten Datenbestand und damit
 auch die Geheimnisse der zweiten Faktoren — verschlüsselt, wie Passwörter und
 Sitzungen auch. Der **JSON-Export** enthält sie nicht.
 
@@ -202,7 +202,7 @@ Link zum Zurücksetzen geht.
   Anmeldungen dieses Zugangs fallen sofort.
 
 Kommt niemand mehr herein, hilft der Weg über den Server:
-`docker compose exec kriterion node usertool.js passwort <name>`.
+`docker compose exec kriterion node usertool.js password <name>`.
 
 #### Wohin der Link zeigt — `PUBLIC_ADDRESS`
 
@@ -466,7 +466,7 @@ Die Einstellungen zeigen dem **Eigentümer** eine Karte
 Installation als Ganzes angefasst hat**: Anmeldungen (gelungen und gescheitert),
 angelegte, gesperrte, entsperrte und gelöschte Benutzer, vergebene Rollen,
 gesetzte Passwörter, erzeugte und eingelöste Links, Export, Import,
-Sicherung — und den **Schlüsselwechsel**. Der trägt weder Ziel noch
+Backup — und den **Schlüsselwechsel**. Der trägt weder Ziel noch
 Merkmal und keinen Handelnden: gewechselt wird auf dem Wirt. **Die Zeile nennt,
 DASS gewechselt wurde, nie WOHIN** — ein Schlüssel steht in keiner
 Protokollzeile.
@@ -936,13 +936,13 @@ Reihenfolge folgt der Rechteleiter.
 
 | Abschnitt | Adresse | Karten |
 |---|---|---|
-| **Persönlich** | `#/system/persoenlich` | Mein Konto, Meine Sitzungen, Darstellung |
-| **Bestand** | `#/system/bestand` | Kategorien, Tags, Bewertung: Kriterien, Potenzial: Kriterien, Vokabular, Links, Suchmaschinen, Papierkorb |
-| **Benutzer** | `#/system/zugaenge` | Benutzer, Anfragen, Sicherheitsprotokoll, Mailversand |
-| **Datenbank** | `#/system/datenbank` | Kennzahlen, Bildformate, Sicherung, Alte Sicherungen, Export und Import |
+| **Persönlich** | `#/system/personal` | Mein Konto, Meine Sitzungen, Darstellung |
+| **Bestand** | `#/system/inventory` | Kategorien, Tags, Bewertung: Kriterien, Potenzial: Kriterien, Vokabular, Links, Suchmaschinen, Papierkorb |
+| **Benutzer** | `#/system/users` | Benutzer, Anfragen, Sicherheitsprotokoll, Mailversand |
+| **Datenbank** | `#/system/database` | Kennzahlen, Bildformate, Backup, Alte Backups, Export und Import |
 | **Installation** | `#/system/installation` | Titel |
 
-`#/system/datenbank` lässt sich weitergeben, in einem neuen Fenster öffnen und
+`#/system/database` lässt sich weitergeben, in einem neuen Fenster öffnen und
 mit der Zurück-Taste wieder verlassen. `#/system` ohne Abschnitt bleibt gültig
 und löst sich auf den ersten sichtbaren auf. Die alten Adressen
 `#/system/anlage` und `#/system/instanz` führen beide zu „Installation" und
@@ -979,7 +979,7 @@ acht Karten: seinen eigenen **Zugang**, **Meine Sitzungen**, die
 **Darstellung**, die **Links** und die vier Listen **Kategorien**, **Tags**,
 **Bewertungskriterien** und **Potenzial: Kriterien** — die letzten vier ohne
 Bedienzeichen, nur zum Nachsehen. Alles Übrige steht dem **Admin**, Export,
-Import, Sicherung und **Sicherheitsprotokoll** allein dem **Eigentümer**. Beim
+Import, Backup und **Sicherheitsprotokoll** allein dem **Eigentümer**. Beim
 **Papierkorb** steht die Karte dem Admin, die beiden Knöpfe daran nur dem
 Eigentümer.
 
@@ -1048,31 +1048,31 @@ Eigentümer.
   alles andere fällt an den Einspielenden. **Ein unbekannter Name legt keinen
   Zugang an**; er wird im Protokoll genannt. Links und Dateien aus einer Datei
   ohne Verfasserfeld fallen an den Verfasser des Eintrags.
-- **Sicherung** *(Eigentümer)*: eine vollständige, verschlüsselte Kopie der
-  Datenbank auf Knopfdruck — siehe „Sichern" in der README. Die Karte nennt den
-  Sicherungsordner, den Unterordner darunter, wann zuletzt gesichert wurde und
-  wie lange es dauern wird. **Ganz oben steht, wie der Sicherungsordner liegt:**
-  rot im Projektordner, grün außerhalb. Abgewiesen wird keine der beiden Lagen.
-  Sie markiert außerdem jede Kopie rot, die noch mit dem alten Schlüssel
-  verschlüsselt ist.
-- **Alte Sicherungen** *(Eigentümer)*: listet alle Sicherungen im
-  Sicherungsordner und entfernt alte, ohne Shell auf dem Wirt. Die Liste führt
-  sie mit **Nummer, Datum, Alter und Größe**, jüngste zuerst; ab der sechsten
-  Zeile rollt sie. **In der Liste wird nichts gelöscht.**
-  **Gelöscht wird eine Sicherung nur, wenn beides zutrifft:** sie liegt nicht
+- **Backup** *(Eigentümer)*: legt auf Knopfdruck ein vollständiges,
+  verschlüsseltes Backup der Datenbank an — siehe „Backup" in der README. Die
+  Karte nennt den Backup-Ordner, den Unterordner darunter, wann zuletzt ein
+  Backup angelegt wurde und wie lange es dauern wird. **Ganz oben steht, wie der
+  Backup-Ordner liegt:** rot im Projektordner, grün außerhalb. Abgewiesen wird
+  keine der beiden Lagen. Sie markiert außerdem jedes Backup rot, das noch mit
+  dem alten Schlüssel verschlüsselt ist.
+- **Alte Backups** *(Eigentümer)*: listet alle Backups im Backup-Ordner und
+  entfernt alte, ohne Shell auf dem Wirt. Die Liste führt sie mit **Nummer,
+  Datum, Alter und Größe**, jüngste zuerst; ab der sechsten Zeile rollt sie.
+  **In der Liste wird nichts gelöscht.**
+  **Gelöscht wird ein Backup nur, wenn beides zutrifft:** es liegt nicht
   unter den jüngsten N **und** ist älter als X Tage. Beide Werte lassen sich
   einstellen (1 bis 20 und 7 bis 365 Tage); die Grenzen hält der Server. **Der
-  Schalter „Nach jeder erfolgreichen Sicherung aufräumen" steht auf AUS**,
+  Schalter „Nach erfolgreichem Backup aufräumen" steht auf AUS**,
   daneben ein Knopf hinter der Passwortabfrage.
-  **An jeder Zeile steht ein „prüfen".** Es öffnet diese Kopie probeweise,
-  zählt darin und macht sie wieder zu — die laufende Datenbank wird nicht
+  **An jeder Zeile steht ein „prüfen".** Es öffnet dieses Backup probeweise,
+  zählt darin und macht es wieder zu — die laufende Datenbank wird nicht
   angefasst. Darunter erscheint eine Zeile: so viele Einträge, so viele Fotos,
   so viele Zugänge, und bis zu welchem Datum der Inhalt reicht. Die Zeile
-  bleibt stehen; gespeichert wird nichts. Lässt sich eine Kopie mit dem
+  bleibt stehen; gespeichert wird nichts. Lässt sich ein Backup mit dem
   Schlüssel dieser Installation nicht öffnen, steht dort **„Mit diesem
   Schlüssel nicht lesbar"**.
-  **Eine Sicherung zurückzuspielen kann die Oberfläche nicht**; dafür gibt es
-  den Abschnitt „Sichern" in der README. Was die Regel anfasst und was sie
+  **Ein Backup zurückzuspielen kann die Oberfläche nicht**; dafür gibt es
+  den Abschnitt „Backup" in der README. Was die Regel anfasst und was sie
   liegen lässt, steht ebenfalls dort.
 - **Papierkorb** *(Admin sieht, Eigentümer handelt)*: was in den letzten
   dreißig Tagen gelöscht wurde, mit Titel, **Löschdatum**, Löschendem, der

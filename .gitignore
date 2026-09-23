@@ -4,4 +4,5 @@ data/
 docker-compose.yml
 *.log
 .DS_Store
+kriterion-backup*/
 kriterion-sicherung*/

@@ -236,7 +236,7 @@ CREATE TABLE IF NOT EXISTS comments (
 CREATE TABLE IF NOT EXISTS comment_images (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   comment_id INTEGER NOT NULL REFERENCES comments(id) ON DELETE CASCADE,
-  filename TEXT NOT NULL DEFAULT 'bild.jpg',
+  filename TEXT NOT NULL DEFAULT 'image.jpg',
   thumb BLOB,
   sort_order INTEGER NOT NULL DEFAULT 0,
   created_at TEXT NOT NULL DEFAULT (datetime('now')),

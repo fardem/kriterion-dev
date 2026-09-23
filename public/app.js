@@ -7157,60 +7157,58 @@ function saved(el = document.activeElement) {
 /* ---- DIE NEUNZEHN KARTEN ---- `visible` ist die Klemme, `markup` das
    Aussehen, `wireUp` die Behandler. */
 const SYS_CARDS = [
-  { key: 'zugang',       section: 'personal', visible: () => true,
+  { key: 'myaccount',    section: 'personal', visible: () => true,
     markup: cardUser,       wireUp: setUpUserOut },
-  { key: 'sitzungen',    section: 'personal', visible: () => true,
+  { key: 'sessions',     section: 'personal', visible: () => true,
     markup: cardSessions,    wireUp: setUpSessionsOut },
-  { key: 'darstellung',  section: 'personal', visible: () => true,
+  { key: 'appearance',   section: 'personal', visible: () => true,
     markup: cardAppearance,  wireUp: setUpAppearanceOut },
 
-  { key: 'kategorien',   section: 'inventory', visible: () => true,
+  { key: 'categories',   section: 'inventory', visible: () => true,
     markup: cardCategories,   wireUp: setUpCategoriesOut },
   { key: 'tags',         section: 'inventory', visible: () => true,
     markup: cardTags,         wireUp: setUpTagsOut },
-  { key: 'kriterien',    section: 'inventory', visible: () => true,
+  { key: 'criteria',     section: 'inventory', visible: () => true,
     markup: () => cardCriteria('after'),
     wireUp: (g) => setUpCriteriaOut(g, 'after') },
   /* DIE ZWEITE KRITERIENKARTE, direkt hinter der ersten. */
-  { key: 'potenzialkriterien', section: 'inventory', visible: () => true,
+  { key: 'potentialcriteria', section: 'inventory', visible: () => true,
     markup: () => cardCriteria('before'),
     wireUp: (g) => setUpCriteriaOut(g, 'before') },
-  { key: 'vokabular',    section: 'inventory', visible: () => ADMIN,
+  { key: 'vocabulary',   section: 'inventory', visible: () => ADMIN,
     markup: cardVocabulary,    wireUp: setUpVocabularyOut },
   { key: 'links',        section: 'inventory', visible: () => true,
     markup: cardLinks,        wireUp: setUpLinksOut },
-  { key: 'suchanbieter', section: 'inventory', visible: () => ADMIN,
+  { key: 'searchengines', section: 'inventory', visible: () => ADMIN,
     markup: cardSearchProvider, wireUp: setUpSearchProviderOut },
-  { key: 'papierkorb',   section: 'inventory', visible: () => ADMIN,
+  { key: 'trash',        section: 'inventory', visible: () => ADMIN,
     markup: cardTrash,   wireUp: setUpTrashOut },
 
-  { key: 'zugaenge',     section: 'users', visible: () => ADMIN,
+  { key: 'accounts',     section: 'users', visible: () => ADMIN,
     markup: cardUsers,     wireUp: setUpUsersOut },
-  { key: 'anfragen',     section: 'users', visible: (g) => ADMIN && !!g.requests,
+  { key: 'requests',     section: 'users', visible: (g) => ADMIN && !!g.requests,
     markup: cardRequests,     wireUp: setUpRequestsOut },
-  { key: 'protokoll',    section: 'users', visible: (g) => OWNER && !!g.log,
+  { key: 'log',          section: 'users', visible: (g) => OWNER && !!g.log,
     markup: cardLog,    wireUp: setUpLogOut },
-  { key: 'mailversand',  section: 'users', visible: (g) => OWNER && !!g.mailStatus,
+  { key: 'mail',         section: 'users', visible: (g) => OWNER && !!g.mailStatus,
     markup: cardMailDelivery,  wireUp: setUpMailDeliveryOut },
 
-  { key: 'kennzahlen',   section: 'database', visible: () => ADMIN,
+  { key: 'stats',        section: 'database', visible: () => ADMIN,
     markup: cardStats,    wireUp: setUpStatsOut },
-  { key: 'bildablage',   section: 'database', visible: () => ADMIN,
+  { key: 'imagestore',   section: 'database', visible: () => ADMIN,
     markup: cardImageStore,   wireUp: setUpImageStoreOut },
-  { key: 'sicherung',    section: 'database', visible: () => OWNER,
+  { key: 'backup',       section: 'database', visible: () => OWNER,
     markup: cardBackup,    wireUp: setUpBackupOut },
-  /* UNMITTELBAR HINTER "SICHERUNG", und die Reihenfolge ist geprueft und
-     nicht zufaellig: die eine Karte legt Kopien an, die andere raeumt sie
-     weg. */
-  { key: 'aufraeumen',   section: 'database', visible: () => OWNER,
+  // Direkt hinter "Backup": die eine Karte legt Backups an, die andere raeumt sie weg.
+  { key: 'cleanup',      section: 'database', visible: () => OWNER,
     markup: cardCleanup,   wireUp: setUpCleanupOut },
   { key: 'export',       section: 'database', visible: () => OWNER,
     markup: cardExport,       wireUp: setUpExportOut },
 
-  { key: 'titel',        section: 'installation', visible: () => ADMIN,
+  { key: 'titles',       section: 'installation', visible: () => ADMIN,
     markup: cardTitle,        wireUp: setUpTitleOut },
-  /* DIE ZWEITE KARTE DES ABSCHNITTS, F9. */
-  { key: 'sprachen',     section: 'installation', visible: () => OWNER,
+  /* Die zweite Karte des Abschnitts. */
+  { key: 'languages',    section: 'installation', visible: () => OWNER,
     markup: cardLanguages,    wireUp: setUpLanguagesOut }
 ];
 
@@ -7460,7 +7458,7 @@ function cardUser(fetched) {
         <p class="desc" style="margin:0 0 10px">${SIGNUP
           ? `${tMark('card.addressRequiredHint', 'card.addressRequired')} `
           : ''}${tH('card.resetMailHint')}</p>
-        ${serverBox(t('card.forgotPasswordHint'), 'docker compose exec kriterion node usertool.js passwort <name>')}
+        ${serverBox(t('card.forgotPasswordHint'), 'docker compose exec kriterion node usertool.js password <name>')}
         <button class="btn btn-accent btn-sm" id="acc-save" style="margin-top:10px">${tH('dialog.save')}</button>
 
         ${/* DER ZWEITE FAKTOR STEHT IN DIESER KARTE UND BEKOMMT KEINE EIGENE
@@ -7611,7 +7609,7 @@ function setUpUserOut(fetched) {
       ${/* DER SERVER-BEFEHL STAND HIER FUER JEDEN BENUTZER. Jetzt: ein Satz fuer
    alle, der Kasten nur fuer den Eigentuemer. */''}
       <p class="desc" style="margin:8px 0 0">${tH('card.allCodesUsed')}</p>
-      ${serverBox(t('card.twoFactorOffUser'), 'docker compose exec kriterion node usertool.js zweifaktor <name>')}`;
+      ${serverBox(t('card.twoFactorOffUser'), 'docker compose exec kriterion node usertool.js twofactor <name>')}`;
     box.appendChild(boxId);
   }
 
@@ -8761,7 +8759,7 @@ function cardUsers() {
              Grund: der Befehl läuft auf dem Wirt, und dort sitzt in der Regel
              der Eigentümer. */''}
         ${OWNER
-          ? `<div style="margin-top:16px">${serverBox(t('card.lockedOutHint'), 'docker compose exec kriterion node usertool.js passwort <name>')}</div>`
+          ? `<div style="margin-top:16px">${serverBox(t('card.lockedOutHint'), 'docker compose exec kriterion node usertool.js password <name>')}</div>`
           : `<p class="desc" style="margin:16px 0 0">${tMark('card.lockedOutCard', 'card.owner')}</p>`}
       </div>`;
 }
@@ -9236,8 +9234,7 @@ function setUpLogOut(fetched) {
     'export': 'card.exportCreated',
     'import': 'card.imported',
     'backup': 'card.backupWritten',
-    /* EINE ZEILE JE ENTFERNTER KOPIE, deshalb der Singular: vier entfernte
-       Kopien sind vier Zeilen. */
+    // Eine Zeile je entferntem Backup, deshalb der Singular.
     'backup.delete': 'card.oldBackupDeleted',
     // Die Zeile nennt, DASS gewechselt wurde, nie WOHIN -- sie traegt weder
     // Ziel noch Merkmal, und der Handelnde ist immer leer: gewechselt wird
@@ -9883,9 +9880,8 @@ function setUpImageStoreOut(fetched) {
     button.onclick = async () => {
       const bf = (fetched.stats && fetched.stats.imageFormats) || {};
       const png = bf.png || { count: 0, bytes: 0 };
-      /* DER DIALOG SAGT ES VORHER UND BESCHOENIGT NICHTS: wie viele Bilder, wie
-         viel Platz, dass die PNG-Fassung danach fort ist und nur die
-         Sicherung des Datenverzeichnisses zurueckfuehrt. */
+      // Der Dialog nennt vorher Zahl und Platz; die PNG-Fassung bringt danach
+      // nur ein Backup des Datenverzeichnisses zurueck.
       /* DER DIALOG SAGT DREI DINGE UND SONST NICHTS: was geschieht, was
          danach weg ist, und dass es dauern kann. */
       /* UND DIE ZAHL IN SEINEM SATZ NENNT DIE EINE HAELFTE. */
@@ -9913,13 +9909,12 @@ function setUpImageStoreOut(fetched) {
 /* DER NAME DER COMPOSE-DATEI. */
 const COMPOSE_FILE = 'docker-compose.yml';
 
-/* ---- Karte „Sicherung" — Abschnitt „Datenbank" ---- */
+/* ---- Karte „Backup" — Abschnitt „Datenbank" ---- */
 function cardBackup() {
   return `<div class="sys-card">
         <h3>${tH('card.backup')}</h3>
         <p class="desc">${tMark('card.backupWhatHint', 'card.backupLabel')}</p>
-        ${/* DER HINWEIS AUF DEN SCHLUESSEL GEHOERT AN DEN KNOPF, nicht in die
-             Dokumentation: die Kopie ist ohne .env wertlos. */''}
+        ${/* Der Hinweis auf den Schluessel steht am Knopf: das Backup ist ohne .env wertlos. */''}
         <div class="warn-box" style="margin:0 0 14px"><strong>${tH('card.backupEncrypted')}</strong>
           ${tH('card.withoutKeyFrom')} <code>.env</code> ${tH('card.backupUnopenableHint')}</div>
         <div id="backup-box"></div>
@@ -9929,7 +9924,7 @@ function setUpBackupOut(fetched) {
   drawBackup(fetched);
 }
 
-  /* --- Sicherung --- */
+  /* --- Backup --- */
   /* Gezeichnet wird aus dem, was oben schon geholt wurde; nach jedem
      Schreiben traegt die Antwort den neuen Stand, und die Karte zeichnet sich
      daraus neu. */
@@ -9941,7 +9936,7 @@ function setUpBackupOut(fetched) {
       box.innerHTML = `<div class="warn-box">${esc(d.reason || t('card.noBackupDir'))}</div>`;
       return;
     }
-    /* DIESE KARTE SAGT NUR NOCH ETWAS UEBER DIE LETZTE SICHERUNG. */
+    /* Diese Karte sagt nur etwas ueber das letzte Backup. */
     const last = d.last;
     const stateBox = d.error
       ? `<div class="warn-box" style="margin:0 0 12px">${esc(d.error)}</div>`
@@ -9953,8 +9948,7 @@ function setUpBackupOut(fetched) {
              <div class="kv"><span class="k">${tH('card.size')}</span><span class="v">${fmtBytes(last.bytes)}</span></div>`
           : `<p class="desc" style="margin:0 0 12px">${tH('card.noBackupYet')}</p>`));
 
-    /* ZWEI SCHLUESSEL IM UMLAUF — . Wurde der Schlüssel gewechselt, öffnen
-       sich die Kopien von vorher nur noch mit dem ALTEN. */
+    // Nach einem Schluesselwechsel oeffnen sich die Backups von vorher nur mit dem alten.
     const changeBox = !d.changedAt ? '' : (
       last && last.outdated
         ? `<div class="warn-box" style="margin:0 0 12px"><strong>${tH('card.noBackupForKey')}</strong> ${tH('card.keyChangedOn', { changedAt: fmtDate(d.changedAt) })}
@@ -9965,8 +9959,7 @@ function setUpBackupOut(fetched) {
                (${esc(fmtDate(d.changedAt))}). ${tMarks('card.opensOnlyWith',
                  { word: `<strong>${tH('card.oldOne')}</strong>` }, { n: d.outdated })}</div>`
           : `<div class="ok-box" style="margin:0 0 12px">${tH('card.keyChangedHint', { changedAt: fmtDate(d.changedAt) })}</div>`));
-    /* ROT ODER GRUEN, und zwar an erster Stelle: die Lage des Sicherungsorts
-       ist die Frage, die vor allen anderen steht. */
+    // Rot oder gruen an erster Stelle: die Lage des Backup-Ordners.
     const situation = d.inWorkDir
       ? `<div class="warn-box" id="backup-place" style="margin:0 0 12px">${tMark('card.backupDirHint', 'card.backupDirInProject')} <code>${COMPOSE_FILE}</code>.</div>`
       : `<div class="ok-box" id="backup-place" style="margin:0 0 12px">${tMark('card.backupDirOutsideHint', 'card.outsideProject')}</div>`;
@@ -9988,10 +9981,8 @@ function setUpBackupOut(fetched) {
       const value = document.getElementById('backup-dir').value;
       try {
         const r = await api('PUT', '/api/backup/dir', { place: value });
-        // gewechseltAm und veraltet wandern MIT: ohne sie verschwaende der
-        // Kasten ueber die alten Sicherungen beim ersten Speichern des
-        // Zielorts, und die Karte saehe danach harmloser aus als die Lage
-        // ist.
+        // changedAt und outdated wandern mit, sonst verschwaende der Kasten
+        // ueber die alten Backups beim ersten Speichern des Ortes.
         fetched.backup = { ...fetched.backup, place: r.place, filePath: r.filePath, error: null,
                       reachable: r.reachable, last: r.last, number: r.number,
                       changedAt: r.changedAt, outdated: r.outdated };
@@ -9999,9 +9990,7 @@ function setUpBackupOut(fetched) {
         drawBackup(fetched);
       } catch (e) { toast(e.message, true); }
     };
-    /* Der Knopf sperrt sich selbst, solange die Kopie entsteht: VACUUM INTO
-       laeuft synchron, die Instanz steht so lange still, und ein zweiter
-       Klick stellte sich nur in die Schlange. */
+    // Der Knopf sperrt sich, solange das Backup entsteht: VACUUM INTO laeuft synchron.
     document.getElementById('backup-run').onclick = async (e) => {
       const button = e.currentTarget;
       button.disabled = true;
@@ -10017,9 +10006,8 @@ function setUpBackupOut(fetched) {
                 ? ` · ${t('card.oldBackupsFreed',
                     { n: r.cleaned.removed, bytes: fmtBytes(r.cleaned.bytes) })}`
                 : ''));
-        /* HAT DER ANSCHLUSS ETWAS WEGGERAEUMT, WIRD DIE GANZE KARTE NEU: die
-           Nachbarkarte "Alte Sicherungen" traegt sonst eine Vorschau auf
-           Dateien, die es nicht mehr gibt. */
+        // Wurde aufgeraeumt, zeichnet sich der Abschnitt neu: die Karte
+        // "Alte Backups" zeigte sonst entfernte Dateien.
         if (r.cleaned && r.cleaned.removed) return renderSystem();
         drawBackup(fetched);
       } catch (err) {
@@ -10031,8 +10019,7 @@ function setUpBackupOut(fetched) {
   }
 
 
-/* ---- Karte „Alte Sicherungen" — Abschnitt „Datenbank" ---- SIE STEHT
-   HINTER "SICHERUNG" UND NICHT DARIN. */
+/* ---- Karte „Alte Backups" — Abschnitt „Datenbank", hinter „Backup" ---- */
 function cardCleanup() {
   return `<div class="sys-card">
         <h3>${tH('card.oldBackups')}</h3>
@@ -10046,8 +10033,7 @@ function setUpCleanupOut(fetched) {
   drawCleanup(fetched);
 }
 
-  /* --- Alte Sicherungen --- Gezeichnet wird aus dem, was oben schon geholt
-     wurde -- dieselbe Bauform wie bei der Karte "Sicherung" daneben. */
+  /* --- Alte Backups --- Gezeichnet wird aus dem, was oben schon geholt wurde. */
   function drawCleanup(fetched) {
     const box = document.getElementById('cleanup-box');
     if (!box) return;
@@ -10064,11 +10050,8 @@ function setUpCleanupOut(fetched) {
     const keep = Number.isInteger(a.keep) ? a.keep : gB.fallback;
     const days = Number.isInteger(a.days) ? a.days : gT.fallback;
 
-    /* DIE LISTE ALLER SICHERUNGEN -- juengste zuerst, nummeriert, NUR ZUM
-       ANSEHEN. */
-    /* ---- DIE PROBE JE ZEILE ---- „prüfen" UND NICHT
-       „Sicherung prüfen": die Zeile misst am Telefon 366 px und trägt
-       schon Nummer, Datum, Alter und Größe. */
+    /* Die Liste aller Backups, juengste zuerst, nummeriert. Der Knopf heisst
+       nur „prüfen": die Zeile misst am Telefon 366 px. */
     const row = (z) => {
       const mark = z.affected ? `<span class="cleanup-badge remove">${tH('card.deleteLower')}</span>`
                   : z.outdated ? `<span class="cleanup-badge old">${tH('card.oldKey')}</span>` : '';
@@ -10101,7 +10084,7 @@ function setUpCleanupOut(fetched) {
       : `<p class="desc" style="margin:10px 0 6px">${tH('card.nothingDeleted')} ${
            esc(a.reason || '')}</p>`);
 
-    /* DIE KOPIEN VON VOR DEM SCHLUESSELWECHSEL: eigene Zahl, eigene Summe,
+    /* Die Backups von vor dem Schluesselwechsel: eigene Zahl, eigene Summe,
        eigener Knopf. */
     const outdatedBox = !oldCount ? '' : `
       <div class="sys-part"></div>
@@ -10197,8 +10180,7 @@ function setUpCleanupOut(fetched) {
                            cleanup: { ...(fetched.backup || {}).cleanup, ...r.cleanup } };
       toast(t('card.backupsDeleted', { n: r.removed, bytes: fmtBytes(r.bytes),
         extra: r.notDeleted ? t('card.notDeleted', { notDeleted: r.notDeleted }) : '' }));
-      /* DIE NACHBARKARTE NENNT DIE LETZTE SICHERUNG, und die kann jetzt eine
-         andere sein. */
+      // Die Karte "Backup" nennt das letzte Backup, und das kann jetzt ein anderes sein.
       renderSystem();
     };
     atElement('cleanup-run', (button) => {
@@ -10212,8 +10194,7 @@ function setUpCleanupOut(fetched) {
           { n: oldCount, bytes: fmtBytes(a.oldBytes || 0) }));
     });
 
-    /* ---- Die Sicherungsprobe ---- KEINE ZWEITE
-       BESTAETIGUNG: sie liest, sie loescht nicht. */
+    /* ---- Die Probe eines Backups ---- Ohne Rueckfrage: sie liest nur. */
     box.querySelectorAll('.backup-check').forEach(button => {
       button.onclick = async () => {
         const nr = Number(button.dataset.nr);

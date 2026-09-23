@@ -67,8 +67,8 @@
   "card.calculating": "Hesaplanıyor …",
   "card.carryOn": "Devam",
   "card.catchUpAsk": {
-    "one": "{n} PNG fotoğraf ({bytes}) dönüştürülür, özgün dosya değiştirilir (sonrasında yaklaşık {after}). Geri alma yalnızca önceden alınmış bir yedeklemeyle olur. Süre: dakikalar ile saatler arası.",
-    "other": "{n} PNG fotoğraf ({bytes}) dönüştürülür, özgün dosyalar değiştirilir (sonrasında yaklaşık {after}). Geri alma yalnızca önceden alınmış bir yedeklemeyle olur. Süre: dakikalar ile saatler arası."
+    "one": "{n} PNG fotoğraf ({bytes}) dönüştürülür, özgün dosya değiştirilir (sonrasında yaklaşık {after}). Geri alma yalnızca önceden alınmış bir yedekle olur. Süre: dakikalar ile saatler arası.",
+    "other": "{n} PNG fotoğraf ({bytes}) dönüştürülür, özgün dosyalar değiştirilir (sonrasında yaklaşık {after}). Geri alma yalnızca önceden alınmış bir yedekle olur. Süre: dakikalar ile saatler arası."
   },
   "card.catchUpBoth": {
     "one": "{n} PNG özgün dosya dönüştürülür.",
@@ -841,8 +841,8 @@
     "other": "{n} resim veya video eklendi"
   },
   "entry.imagesRemovedAdmin": {
-    "one": "{n} resim veya video yönetici tarafından kaldırıldı",
-    "other": "{n} resim veya video yönetici tarafından kaldırıldı"
+    "one": "Yönetici {n} resim veya video kaldırdı",
+    "other": "Yönetici {n} resim veya video kaldırdı"
   },
   "entry.jumpToInput": "Yazma alanına git",
   "entry.layoutSaved": "Düzen kaydedildi",
@@ -1222,8 +1222,8 @@
   },
   "server.categoryGone": "Bu kategori artık yok.",
   "server.cleanupAllYoungest": {
-    "one": "Tek yedekleme en yeni {keep} tanesinin arasında.",
-    "other": "{n} yedeklemenin hepsi en yeni {keep} tanesinin arasında."
+    "one": "Tek yedek en yeni {keep} yedek arasında.",
+    "other": "{n} yedeğin hepsi en yeni {keep} yedek arasında."
   },
   "server.cleanupNoBackups": "Burada henüz yedekleme yok.",
   "server.cleanupOldestAge": {

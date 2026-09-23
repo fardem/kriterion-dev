@@ -1406,15 +1406,13 @@ mark {
 .open-section:first-child { margin-top: 0; }
 .open-section.overdue { color: var(--red); }
 
-/* ---- Die Sicherungsprobe in der Liste ---- Die Ergebniszeile steht
-   eingerueckt unter der ihren: sie sagt etwas UEBER die Zeile. Zwei Farben
-   und kein Rot -- „nicht lesbar" ist eine Auskunft. */
+/* ---- Die Probe eines Backups in der Liste ---- Die Ergebniszeile steht
+   eingerueckt unter ihrer Zeile, in zwei Farben ohne Rot. */
 /* OHNE EIGENEN ABSTAND: die Zeile ist ein Flex-Kasten mit `gap`, und ein
    `margin` daneben waere ein zweiter Abstand ueber dieselbe Luecke. */
 .mrow .backup-check { flex-shrink: 0; }
-/* DIE ZEITMARKE IST DER NAME DER KOPIE UND WIRD NICHT GEKUERZT -- die
-   Uhrzeit unterscheidet zwei Kopien desselben Tages. Geschrumpft wird das
-   Alter rechts; es ist dieselbe Auskunft wie das Datum links. */
+/* Die Zeitmarke ist der Name des Backups und wird nicht gekuerzt; die
+   Uhrzeit unterscheidet zwei Backups desselben Tages. Gekuerzt wird das Alter. */
 #cleanup-list .mrow .mname { flex: 0 0 auto; }
 #cleanup-list .mrow .mcount { flex: 1 1 0; min-width: 0; overflow: hidden;
   text-overflow: ellipsis; white-space: nowrap; text-align: right; }
@@ -1487,13 +1485,11 @@ mark {
    Gigabyte ergeben siebzig Zeilen. */
 #ex-part-list { flex: none; max-height: 280px; }
 
-/* DIE ZWEITE AUSNAHME mit derselben Begruendung: unter der Sicherungsliste
-   stehen Loeschzeile, Knopf und die Kopien mit dem alten Schluessel.
+/* Die Liste der Backups rollt ebenso: darunter stehen Loeschzeile und Knopf.
    13.98rem sind fuenf Zeilen -- 5 x 41,92 / 15 = 13,973. */
 #cleanup-list { flex: none; max-height: 13.98rem; }
-/* DIE MARKE AN EINER ZEILE DER SICHERUNGSLISTE: rot heisst „faellt beim
-   naechsten Lauf", gedaempft „liegt hier und die Regel fasst sie nicht an".
-   Eine Farbe fuer beides waere die Verwechslung. */
+/* Die Marke an einer Zeile der Backup-Liste: rot heisst „faellt beim
+   naechsten Lauf", gedaempft „die Regel fasst es nicht an". */
 .mrow .cleanup-badge { flex-shrink: 0; font-size: .7rem; letter-spacing: .03em; text-transform: uppercase; }
 .mrow .cleanup-badge.remove { color: var(--red); }
 .mrow .cleanup-badge.old { color: var(--faint); }

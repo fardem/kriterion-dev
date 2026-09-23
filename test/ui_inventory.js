@@ -1447,8 +1447,8 @@ async function run() {
     !warnText.includes(exG.fmtBytes(exBig.string)) &&
     !warnText.includes(exG.fmtBytes(exBig.limit)) &&
     !warnText.includes(exG.fmtBytes(exBig.warnFrom)), warnText.slice(0, 220));
-  check('Sie verweist auf die Sicherung als den anderen Weg',
-    /Sicherung/.test(warnText), warnText.slice(0, 200));
+  check('Sie verweist auf das Backup als den anderen Weg',
+    /Backup/.test(warnText), warnText.slice(0, 200));
   /* GEWARNT WIRD, VERWEIGERT NICHT. */
   check('Der Knopf bleibt trotzdem da und bleibt bedienbar',
     !!exG.document.getElementById('ex-yes') && !exG.document.getElementById('ex-yes').disabled);
@@ -1463,8 +1463,8 @@ async function run() {
   const warnSmooth = warnText.replace(/\s+/g, ' ');
   check('Und sie nennt den Weg in Teilen als die Antwort',
     /In Teilen exportieren/.test(warnSmooth), warnSmooth.slice(0, 400));
-  check('Und die Sicherung als den kürzeren Weg zum Zurückspielen',
-    /Sicherung/.test(warnSmooth), warnSmooth.slice(0, 400));
+  check('Und das Backup als den kürzeren Weg zum Zurückspielen',
+    /Karte Backup/.test(warnSmooth), warnSmooth.slice(0, 400));
   /* ZWEI FAELLE, UND SIE SAGEN VERSCHIEDENES. */
   check('Bleibt der Weg ohne Fotos unter der Marke, nennt die Warnung ihn',
     /ohne Fotos rund/.test(warnText) && !/auch ohne Fotos/.test(warnText),

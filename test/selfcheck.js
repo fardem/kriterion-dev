@@ -415,21 +415,21 @@ async function run() {
       ['test/release_029.js', 60],
       ['test/release_030.js', 253],
       ['test/release_031.js', 457],
-      ['test/release_041.js', 31],
-      ['test/roundtrip.js', 3309],
+      ['test/release_041.js', 34],
+      ['test/roundtrip.js', 3313],
       ['test/selfcheck.js', 234],
-      ['test/source.js', 948],
+      ['test/source.js', 947],
       ['test/ui_entry.js', 637],
       ['test/ui_export.js', 456],
       ['test/ui_inventory.js', 244],
-      ['test/ui_language.js', 292],
+      ['test/ui_language.js', 293],
       ['test/ui_overview.js', 499],
       ['test/ui_style.js', 607],
       ['test/ui_system.js', 694],
       ['test/ui_translator.js', 105],
       ['counterproof.js', 1638],
-      ['server.js', 1607],
-      ['auth.js', 291],
+      ['server.js', 1590],
+      ['auth.js', 290],
       ['db.js', 136],
       ['mail.js', 43],
       ['keys.js', 40],
@@ -437,15 +437,15 @@ async function run() {
       ['images.js', 27],
       ['batchrun.js', 28],
       ['log.js', 4],
-      ['usertool.js', 23],
+      ['usertool.js', 21],
       ['twofactor.js', 34],
-      ['keytool.js', 41],
-      ['public/app.js', 1986],
+      ['keytool.js', 39],
+      ['public/app.js', 1968],
       ['public/theme.js', 3],
-      ['public/style.css', 1227],
+      ['public/style.css', 1223],
     ];
     // Kommentar- und Codezeilen ueber alle Dateien, gemessen mit tools/comments.js.
-    const COMMENT_TOTAL = { comment: 16871, code: 68433 };
+    const COMMENT_TOTAL = { comment: 16834, code: 68643 };
     check('Der Waechter sieht alle siebenunddreissig Dateien',
       crAll.each.length === 37 && COMMENT_ROWS.length === 37,
       `${crAll.each.length} gemessen, ${COMMENT_ROWS.length} genannt`);
@@ -762,7 +762,7 @@ async function run() {
        damit ein zurueckgewanderter Abschnitt auffaellt. */
     const BENCH_ONLY = ['Bedienung', 'Vokabular', 'Sprache', 'Hell oder dunkel',
       'Auf dem Handy und auf dem Tablett', 'Schriftgröße'];
-    const HOST_ONLY = ['Erstinstallation', 'Auf dem Server', 'Sichern',
+    const HOST_ONLY = ['Erstinstallation', 'Auf dem Server', 'Backup',
       'Datenmodell', 'Prüfen', 'Den Schlüssel wechseln', 'Verschlüsselung',
       'Hinter einem Reverse Proxy', 'Kurzvideos', 'Speicherbedarf'];
     check('Die Bedienung steht vollstaendig im Handbuch',

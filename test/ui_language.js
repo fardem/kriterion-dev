@@ -262,6 +262,8 @@ async function run() {
       'Enter', 'Escape', 'ArrowLeft', 'ArrowRight', 'INPUT', 'TEXTAREA', 'SELECT',
       // Formen, Typen und Ziele
       'image/', 'image/*', 'image/jpeg', 'PNG', 'JPEG', 'GIF', '_blank', 'https://',
+      // Die Auswahl im Kommentar nimmt auch Videos.
+      'image/*,video/*', 'video/',
       'SSL/TLS', 'STARTTLS',
       // Der Name des Programms, bevor /api/config antwortet
       'Kriterion',
@@ -285,8 +287,8 @@ async function run() {
       /* DER VORSATZ DER VOKABELSCHLUESSEL -- 0.24.3, Bauabschnitt 6. */
       'vocabulary.',
       // Die vier Serverbefehle -- in jeder Sprache dieselben
-      'docker compose exec kriterion node usertool.js passwort <name>',
-      'docker compose exec kriterion node usertool.js zweifaktor <name>',
+      'docker compose exec kriterion node usertool.js password <name>',
+      'docker compose exec kriterion node usertool.js twofactor <name>',
       // Markup um einen technischen Namen herum
       '<code>PUBLIC_ADDRESS</code>', '<code>ENCRYPTION_KEY</code>',
       '<code>data/</code>', '<code>http://</code>', '<code>public/languages/</code>',
@@ -337,8 +339,8 @@ async function run() {
       // Der eine feste Satz: er steht, bevor es eine Sprachdatei gibt.
       'Die Sprachdatei fehlt.',
       // Die beiden Serverbefehle -- Befehle, keine Saetze.
-      'docker compose exec kriterion node usertool.js passwort <name>',
-      'docker compose exec kriterion node usertool.js zweifaktor <name>',
+      'docker compose exec kriterion node usertool.js password <name>',
+      'docker compose exec kriterion node usertool.js twofactor <name>',
       /* UND ZWEI ADRESSEN -- `?gruppe=` stand hier bis 0.35.0. */
       '<code>https://www.google.com/search?q=site%3Aforum.beispiel.de+%s</code>',
       'https://forum.beispiel.de/suche?q=%s'
@@ -412,8 +414,8 @@ async function run() {
          LEER GEWORDEN. */
       'Eigener Server',
       /* 3 · GESPEICHERTE WERTE UND BEZEICHNER. */
-      'Ohne Titel', 'Model Bewertungen', 'bild.jpg', 'bild-', 'foto-', 'standbild',
-      '-teil-', '-von-', 'aus', 'eigen', 'unbekannt', 'wieder', 'wirt', 'note',
+      'Ohne Titel', 'Model Bewertungen', 'standbild',
+      'aus', 'eigen', 'unbekannt', 'wieder', 'wirt', 'note',
       'beschreibung', 'bewertung', 'datei', 'dateien', 'einstellung',
       'kategorie', 'kommentare', 'potenzial', 'testtage'
     ];

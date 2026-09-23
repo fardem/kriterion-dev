@@ -1955,9 +1955,7 @@ app.put('/api/settings', (req, res) => {
          an dieser Route weist einen Admin ab, bevor hier eine Zeile faellt. */
       if (req.body.potentialMode !== undefined)
         putSetting.run('potentialMode', JSON.stringify(!!req.body.potentialMode));
-      /* DIE AUFRAEUMREGEL DER SICHERUNGEN -- derselbe Weg, dieselbe
-         Rechtezeile (OWNER_KEYS ganz oben), und die beiden Zahlen sind oben schon
-         geprueft. */
+      // Die Aufraeumregel der Backups; die beiden Zahlen sind oben schon geprueft.
       if (req.body.backupCleanup !== undefined)
         putSetting.run('backupCleanup', JSON.stringify(!!req.body.backupCleanup));
       for (const [k, v] of Object.entries(ruleValues)) putSetting.run(k, JSON.stringify(v));
@@ -3774,7 +3772,7 @@ app.get('/api/photos/:id/raw', (req, res) => {
     if (blob) rangeable = false;
     else blob = qPhotoBytes.data.get(req.params.id).bytes;
   }
-  attachments.setImageHeader(res, blob, { name: `foto-${p.id}`, maxAge: 86400 });
+  attachments.setImageHeader(res, blob, { name: `photo-${p.id}`, maxAge: 86400 });
   if (!rangeable) return res.send(blob);
   sendRanged(req, res, blob);
 });
@@ -4218,7 +4216,7 @@ async function encodeAll(files) {
   for (const f of files || []) {
     try {
       const { big, small } = await encodeCommentImage(f.buffer);
-      out.push({ name: path.basename(String(f.originalname || 'bild.jpg')).slice(0, 200), big, small });
+      out.push({ name: path.basename(String(f.originalname || 'image.jpg')).slice(0, 200), big, small });
     } catch { return { error: 'server.imageUnreadable', values: { name: f.originalname } }; }
   }
   return { images: out };
@@ -4378,7 +4376,7 @@ app.get('/api/comment-images/:id/raw', (req, res) => {
   const b = db.prepare('SELECT * FROM comment_images WHERE id = ?').get(req.params.id);
   if (!b) return res.status(404).end();
   const blob = req.query.size === 'thumb' && b.thumb ? b.thumb : b.data;
-  attachments.setImageHeader(res, blob, { name: `bild-${b.id}` });
+  attachments.setImageHeader(res, blob, { name: `image-${b.id}` });
   res.send(blob);
 });
 
@@ -5057,7 +5055,7 @@ app.get('/api/export', ownerOnly, secondConfirmNeeded('export'), async (req, res
   /* DIE BEIDEN KOEPFE STEHEN VOR DEM ERSTEN SCHREIBEN. */
   res.set('Content-Type', 'application/json');
   res.set('Content-Disposition',
-    `attachment; filename="${exportName(asPart ? `-teil-${part}-von-${parts}` : '')}"`);
+    `attachment; filename="${exportName(asPart ? `-part-${part}-of-${parts}` : '')}"`);
   try { await writeExport(res, rows, situation); }
   catch (e) {
     /* EIN FEHLERCODE GEHT NICHT MEHR HINAUS: die Antwort traegt schon 200.
@@ -5380,7 +5378,7 @@ async function importPrepare(payload, bytesSource) {
         if (!raw) continue;
         try {
           const { big, small } = await encodeCommentImage(raw);
-          done.push({ name: path.basename(String(b2.filename || 'bild.jpg')).slice(0, 200), big, small });
+          done.push({ name: path.basename(String(b2.filename || 'image.jpg')).slice(0, 200), big, small });
         } catch { /* unlesbares Bild wird stillschweigend uebergangen */ }
       }
       if (done.length) commentImages.set(c, done);
@@ -5885,17 +5883,14 @@ app.delete('/api/trash/:id', ownerOnly, (req, res) => {
 });
 
 
-/* ================= Die Sicherung ================= DIE ROLLENTEILUNG, und
-   sie gehoert in die Oberflaeche und nicht nur in die Dokumente: VACUUM INTO
-   -- der SICHERUNGSWEG. */
+/* ================= Das Backup ================= VACUUM INTO. */
 
 const BACKUP_DIR = String(auth.fromEnv('BACKUP_DIR') || '').trim();
 // Gemessen an einer verschluesselten Instanz: rund 10 ms je MB.
 const BACKUP_MS_PER_MB = 20;
 const BACKUP_PATTERN = /^kriterion-.+\.sqlite$/;
-/* --- Die Aufraeumregel: ZWEI BEDINGUNGEN, und beide muessen zutreffen ---
-   Geloescht wird eine Kopie nur, wenn sie BEIDES ist: nicht unter den N
-   juengsten UND aelter als X Tage. */
+/* Die Aufraeumregel: geloescht wird ein Backup nur, wenn es nicht unter den
+   N juengsten UND aelter als X Tage ist. */
 const CLEANUP_KEEP = { fallback: 3, min: 1, max: 20 };
 const CLEANUP_DAYS = { fallback: 30, min: 7, max: 365 };
 const DAY_MS = 86400000;
@@ -5926,8 +5921,7 @@ function backupState() {
   catch { return { input: false, reason: 'server.backupDirUnreadable', values: { folder: BACKUP_DIR } }; }
   let data;
   try { data = fs.realpathSync(DATA_DIR); } catch { data = path.resolve(DATA_DIR); }
-  // EINE SICHERUNG NEBEN DEM ORIGINAL IST KEINE. Beide Richtungen, denn beide
-// sind falsch: der Sicherungsort im Datenverzeichnis und umgekehrt.
+  // Ein Backup im Datenverzeichnis ist keines; beide Richtungen werden abgewiesen.
   if (liesIn(root, data) || liesIn(data, root))
     return { input: false, reason: 'server.backupInDataDir', values: {} };
   return { input: true, root, inWorkDir: liesIn(root, APP_DIR) };
@@ -5956,8 +5950,7 @@ function checkPlace(raw) {
   return { place: s, filePath: real };
 }
 
-/* "Letzte Sicherung vor N Tagen" kommt aus dem DATEISYSTEM, nicht aus einem
-   Schluessel in settings. */
+// "Letztes Backup vor N Tagen" kommt aus dem Dateisystem, nicht aus settings.
 /* ZWEI SCHLUESSEL IM UMLAUF -- die unangenehmste Falle des ganzen Projekts. */
 function changeMark() {
   const raw = getSetting('keyChangedAt', null);
@@ -5966,7 +5959,7 @@ function changeMark() {
   return Number.isFinite(ms) ? { at: raw, ms } : null;
 }
 
-/* DIE LISTE DER KOPIEN AM ORT -- EINMAL AUFGEBAUT UND VON DREIEN GENUTZT. */
+/* Die Liste der Backups am Ort, von drei Routen genutzt. */
 function backupList(filePath) {
   let names;
   try { names = fs.readdirSync(filePath); }
@@ -5989,7 +5982,7 @@ function lastBackup(filePath) {
   const files = backupList(filePath);
   if (files === null)
     return { reachable: false, last: null, number: 0, changedAt, outdated: 0 };
-  // Ohne Wechsel ist KEINE Kopie veraltet -- und nicht etwa jede.
+  // Ohne Wechsel ist kein Backup veraltet.
   const outdated = mark ? files.filter(d => d.time < mark.ms).length : 0;
   if (!files.length)
     return { reachable: true, last: null, number: 0, changedAt, outdated: 0 };
@@ -6001,15 +5994,14 @@ function lastBackup(filePath) {
     // Zeitstempel ein Datum zu machen, und der erwartet diese Form.
     at: new Date(j.time).toISOString().slice(0, 19).replace('T', ' '),
     daysAgo: Math.max(0, Math.floor((Date.now() - j.time) / 86400000)),
-    // Auch die JUENGSTE Kopie kann aelter sein als der Wechsel -- dann ist
-// ueberhaupt keine brauchbare da, und das ist die schaerfste Lage.
+    // Ist auch das juengste Backup aelter als der Wechsel, passt keines.
     outdated: Boolean(mark && j.time < mark.ms)
   } };
 }
 
-/* ================= Alte Sicherungen aufraeumen ===========================
-   DIE REGEL STEHT AN GENAU EINER STELLE und ist eine reine Funktion: Liste
-   und zwei Werte hinein, die zu loeschenden Namen heraus. */
+/* ================= Alte Backups aufraeumen ===========================
+   Die Regel als reine Funktion: Liste und zwei Werte hinein, die zu
+   loeschenden Namen heraus. */
 function ruleHit(files, keep, days, now, changeMs) {
   const usable = files
     .filter(d => changeMs == null || d.time >= changeMs)
@@ -6069,9 +6061,7 @@ function cleanupPreview(filePath, keep, days, locale) {
     else if (usable.length <= keep)
       reason = t(locale, 'server.cleanupAllYoungest', { n: usable.length, keep: keep });
     else {
-      // Die AELTESTE der Kopien, die der Boden nicht mehr deckt -- sie ist
-      // die, die als naechste faellt, und ihr Alter ist die Auskunft, auf die
-      // es ankommt.
+      // Das aelteste Backup ausserhalb der juengsten N faellt als naechstes.
       const next2 = usable[usable.length - 1];
       const from2 = Math.max(0, Math.floor((now - next2.time) / DAY_MS));
       reason = t(locale, 'server.cleanupOldestAge', { n: from2 });
@@ -6097,7 +6087,7 @@ function cleanupPreview(filePath, keep, days, locale) {
 }
 
 /* DAS LOESCHEN. */
-/* EINE ZEILE JE ENTFERNTER KOPIE, und das ist eine Entscheidung. */
+/* Eine Protokollzeile je entferntem Backup. */
 const logRemoved = (actor, number) => {
   for (let i = 0; i < number; i++) auth.log('backup.delete', { actor });
 };
@@ -6135,9 +6125,8 @@ app.get('/api/backup', ownerOnly, (req, res) => {
   // Die erwartete Dauer wird aus der Groesse gerechnet und VORHER genannt:
 // waehrend VACUUM INTO laeuft, steht die Instanz.
   const duration = Math.max(1, Math.round(dbBytes / 1048576 * BACKUP_MS_PER_MB / 1000));
-  /* Die Marke steht auch dann in der Antwort, wenn der Zielort nicht
-     erreichbar ist: DASS gewechselt wurde, ist eine Aussage ueber die Instanz
-     und haengt nicht am Sicherungsort. */
+  // Die Marke des Wechsels steht auch dann in der Antwort, wenn der Ort des
+  // Backups nicht erreichbar ist.
   const mark = changeMark();
   const changedAt = mark ? mark.at : null;
   /* DIE VORSCHAU RECHNET MIT DEN WERTEN AUS DER ABFRAGE, WENN WELCHE
@@ -6190,8 +6179,7 @@ app.post('/api/backup', ownerOnly, (req, res) => {
   if (!situation.input) return res.status(400).json({ error: t(localeOf(req), situation.reason, situation.values) });
   const target = checkPlace(getSetting('backupPlace', ''));
   if (target.error) return res.status(400).json({ error: t(localeOf(req), target.error, target.values) });
-  /* NAME MIT DATUM UND UHRZEIT. Ueberschreiben waere die schlechteste
-     Antwort: eine Sicherung, die die vorige frisst, ist keine. */
+  // Name mit Datum und Uhrzeit: ein Backup ueberschreibt nie das vorige.
   const mark = new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-');
   const file = path.join(target.filePath, `kriterion-${mark}.sqlite`);
   if (fs.existsSync(file))
@@ -6216,12 +6204,10 @@ app.post('/api/backup', ownerOnly, (req, res) => {
   try { bytes = fs.statSync(file).size; } catch {}
   logLine(`Backup written: ${path.basename(file)} ` +
     `(${bytes} bytes, ${ms} ms).`);
-  // Eine vollstaendige Kopie, die das Haus verlaesst -- dieselbe Zeile wie
-// der Export.
+  // Ein vollstaendiges Backup: dieselbe Protokollzeile wie der Export.
   auth.log('backup', { actor: req.user.id });
-  /* ---- DAS AUFRAEUMEN, UND ZWAR HIER UND NIRGENDS SONST ---- Der Aufruf
-     steht am Ende dieser Route, NACH `rename` und `statSync`: erst dort steht
-     fest, dass eine frische, vollstaendige Kopie da ist. */
+  // Aufgeraeumt wird nur hier, nach `rename` und `statSync`: erst dann ist
+  // das neue Backup vollstaendig da.
   let cleaned = null;
   try {
     const rule = cleanupStatus();
@@ -6240,8 +6226,7 @@ app.post('/api/backup', ownerOnly, (req, res) => {
       }
     }
   } catch (e) {
-    // Die Sicherung ist gelungen; dieser Fehler ist eine Angabe daneben und
-// darf die Antwort nicht in eine Absage verwandeln.
+    // Das Backup ist gelungen; ein Fehler beim Aufraeumen macht daraus keine Absage.
     logFail('Clearing up after the backup failed:', e.message);
     cleaned = { removed: 0, notDeleted: 0, bytes: 0, failed: true };
   }
@@ -6297,8 +6282,7 @@ app.post('/api/backup/cleanup', ownerOnly,
                            ...cleanupPreview(target.filePath, after.keep, after.days, localeOf(req)) } });
 });
 
-/* ---- DIE SICHERUNGSPROBE --------------------------
-   EINE SICHERUNG OHNE PROBE IST EINE VERMUTUNG. */
+/* ---- Die Probe eines Backups: oeffnen, zaehlen, schliessen ---- */
 app.post('/api/backup/check', ownerOnly, (req, res) => {
   const situation = backupState();
   if (!situation.input)
@@ -6344,8 +6328,7 @@ app.post('/api/backup/check', ownerOnly, (req, res) => {
     return res.json(out);
   } catch {
     try { probe.close(); } catch {}
-    // Sie laesst sich oeffnen und kennt `items` nicht: eine fremde
-// SQLite-Datei, keine Sicherung dieser Instanz.
+    // Laesst sich oeffnen und kennt `items` nicht: eine fremde SQLite-Datei.
     return res.json({ ok: false, reason: 'foreign', at: file.time, bytes: file.bytes, nr });
   }
 });

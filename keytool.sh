@@ -1,29 +1,16 @@
 #!/usr/bin/env bash
-# Schluesselwechsel auf dem Wirt -- der ganze Ablauf in einem Aufruf.
-#
-#   ./keytool.sh zeigen      sagt die Lage, aendert nichts
-#   ./keytool.sh wechseln    haelt an, sichert, wechselt, startet
-#
-# DIESES SKRIPT MACHT DEN ABLAUF, NICHT DEN WECHSEL. Der steht in
-# keytool.js und laeuft im Container: PRAGMA rekey braucht SQLCipher, und
-# die Bibliothek liegt im Image. Auf dem Wirt liegt dafuer die .env -- sie wird
-# dem Wegwerf-Container eigens eingehaengt. Der LAUFENDE Container bekommt sie
-# nie zu sehen.
-#
-# WARUM DIE INSTANZ DABEI STEHT: ein laufender Server haelt katalog.sqlite im
-# WAL-Modus offen, und der Wechsel muss auf DELETE umschalten. Zwei Schreiber
-# an dieser Stelle sind genau der Zustand, den niemand will.
-#
-# DIE SICHERUNG IST PFLICHT UND KEINE EMPFEHLUNG. Bricht der Wechsel ab, stellt
-# das Rollback-Journal den alten Stand her; geht das Journal verloren, ist alles
-# verloren -- DAS ist der Grund fuer die Sicherung, nicht der Abbruch.
+# Schluesselwechsel auf dem Wirt: ./keytool.sh show | change
+# Der Wechsel selbst steht in keytool.js und laeuft in einem Wegwerf-Container,
+# weil PRAGMA rekey SQLCipher aus dem Image braucht.
+
+# Die Instanz steht beim Wechsel: der Server haelt katalog.sqlite im WAL-Modus offen.
+# Das Backup ist Pflicht: geht das Rollback-Journal verloren, ist alles verloren.
 set -euo pipefail
 
 cd "$(dirname "$0")"
 BEFEHL="${1:-}"
 MARKE="$(date -u +%Y-%m-%dT%H-%M-%SZ)"
-# Eine NOTIZ und keine Feststellung: wer diesen Befehl ausfuehren kann, kann sie
-# auch setzen. Sie steht deshalb in der .env und nicht im Sicherheitsprotokoll.
+# Wer den Wechsel ausloest, als Notiz: deshalb in der .env und nicht im Sicherheitsprotokoll.
 WER="$(id -un 2>/dev/null || echo unbekannt)"
 [ -n "${SUDO_USER:-}" ] && WER="$SUDO_USER (sudo als $WER)"
 
@@ -35,17 +22,9 @@ if [ ! -f docker-compose.yml ]; then
   exit 1
 fi
 
-# Ein Wegwerf-Container aus demselben Image. --rm, keine veroeffentlichten
-# Ports, und das PROJEKTVERZEICHNIS als eigene Einhaengung -- die .env ist im
-# Image nicht (.dockerignore), und der LAUFENDE Container soll sie auch
-# weiterhin nicht sehen.
-#
-# EINGEHAENGT WIRD DAS VERZEICHNIS UND NICHT DIE DATEI. Eine Datei-Einhaengung
-# haengt am Inode; keytool.js schreibt die neue .env daneben und benennt sie
-# um (Stolperstein 8), und ein Umbenennen tauscht den Verzeichniseintrag --
-# die Einhaengung bliebe dann auf der alten Datei stehen, und auf dem Wirt
-# aendert sich nichts. Der Wegwerf-Container sieht das Projektverzeichnis
-# damit unter /app/wirt; er laeuft genau einen Befehl und wird danach entfernt.
+# Wegwerf-Container ohne Ports; nur er sieht die .env, unter /app/wirt.
+# Eingehaengt wird das Verzeichnis, nicht die Datei: keytool.js benennt die neue
+# .env um, und eine Datei-Einhaengung bliebe auf dem alten Inode stehen.
 lauf() {
   docker compose run --rm --no-deps \
     ${ENV_EINHAENGUNG:+-v "$PWD:/app/wirt:rw"} \
@@ -54,12 +33,12 @@ lauf() {
 }
 
 case "$BEFEHL" in
-  zeigen)
+  show)
     ENV_EINHAENGUNG=""
-    lauf zeigen
+    lauf show
     ;;
 
-  wechseln)
+  change)
     fett "Schluesselwechsel — Kriterion"
     echo
 
@@ -75,11 +54,10 @@ case "$BEFEHL" in
       echo "  neben der Datenbank und wird dort nachgezogen."
     fi
 
-    # 1. Die .env sichern. VOR allem anderen: sie ist die kleinste Datei und
-    #    die, ohne die nichts mehr startet.
+    # 1. Backup der .env, vor allem anderen: ohne sie startet nichts mehr.
     if [ -f .env ]; then
-      cp -p .env ".env.vor-schluesselwechsel-$MARKE"
-      echo "  .env gesichert: .env.vor-schluesselwechsel-$MARKE"
+      cp -p .env ".env.before-key-change-$MARKE"
+      echo "  Backup der .env: .env.before-key-change-$MARKE"
     fi
 
     # 2. Den neuen Wert HIER erzeugen und nicht im Container: so geht er nie
@@ -95,13 +73,13 @@ case "$BEFEHL" in
     echo "  Instanz anhalten …"
     docker compose stop
 
-    # 4. Das Datenverzeichnis sichern. PFLICHT.
-    ZIEL="../kriterion-data-vor-schluesselwechsel-$MARKE"
-    echo "  Datenverzeichnis sichern nach $ZIEL …"
+    # 4. Backup des Datenverzeichnisses. Pflicht.
+    ZIEL="../kriterion-data-before-key-change-$MARKE"
+    echo "  Backup des Datenverzeichnisses nach $ZIEL …"
     cp -a data "$ZIEL"
 
     # 5. Der Wechsel selbst.
-    if lauf wechseln "${ENV_ARGUMENTE[@]}" --wer "$WER" --ja; then
+    if lauf change "${ENV_ARGUMENTE[@]}" --by "$WER" --yes; then
       echo
       echo "  Instanz starten …"
       docker compose up -d
@@ -111,16 +89,16 @@ case "$BEFEHL" in
       echo "  Erwartet wird die Zeile „Schluessel aus ENCRYPTION_KEY geladen.“"
       echo "  bzw. die Warnung, dass der Schluessel neben der Datenbank liegt."
       echo
-      echo "  Die Sicherungen von VOR dem Wechsel oeffnen sich nur mit dem ALTEN"
+      echo "  Die Backups von VOR dem Wechsel oeffnen sich nur mit dem ALTEN"
       echo "  Schluessel. Er steht auskommentiert in der .env bzw. in"
-      echo "  .env.vor-schluesselwechsel-$MARKE — und gehoert in den Passwortspeicher."
+      echo "  .env.before-key-change-$MARKE — und gehoert in den Passwortspeicher."
     else
       echo
       rot "  Der Wechsel ist nicht durchgelaufen. Die Instanz bleibt ANGEHALTEN."
       rot "  Lies die Meldung darueber, bevor du irgendetwas startest."
       echo "  Zurueck geht es so:"
       echo "      rm -rf data && cp -a $ZIEL data"
-      echo "      cp .env.vor-schluesselwechsel-$MARKE .env"
+      echo "      cp .env.before-key-change-$MARKE .env"
       echo "      docker compose up -d"
       exit 1
     fi
@@ -131,19 +109,19 @@ case "$BEFEHL" in
 
 Kriterion — Schluesselwechsel auf dem Wirt
 
-  ./keytool.sh zeigen
+  ./keytool.sh show
       Woher der Schluessel kommt, wie gross die Datenbank ist, wie viel Platz
       frei ist, wann zuletzt gewechselt wurde. Aendert nichts.
 
-  ./keytool.sh wechseln
-      Sichert .env und Datenverzeichnis, haelt die Instanz an, gibt der
-      Datenbank einen neuen Schluessel, zieht die Ablage nach und startet
-      wieder. Der alte Wert bleibt auskommentiert in der .env stehen -- er
-      oeffnet alle Sicherungen von vor dem Wechsel.
+  ./keytool.sh change
+      Legt ein Backup von .env und Datenverzeichnis an, haelt die Instanz an,
+      gibt der Datenbank einen neuen Schluessel, zieht die Ablage nach und
+      startet wieder. Der alte Wert bleibt auskommentiert in der .env stehen --
+      er oeffnet alle Backups von vor dem Wechsel.
 
   ES IST DER EINZIGE VORGANG, DER BEI FALSCHER HANDHABUNG ALLES VERLIERT.
   Probier ihn an einer Wegwerfinstanz aus, bevor du ihn an der echten faehrst:
-      mkdir /tmp/kriterion-probe && cd /tmp/kriterion-probe
+      mkdir /tmp/kriterion-check && cd /tmp/kriterion-check
 
 ENDE
     [ -n "$BEFEHL" ] && exit 1 || exit 0
