@@ -19,8 +19,8 @@ offen ist.
   einzeln herunterladen.
 - Eine neue Installation zeigt nur englische Bezeichnungen: Ordner, Pfade,
   Befehle, Dateinamen.
-- Die Größengrenzen für Fotos, Bilder und Videos sind im Systembereich
-  einstellbar, innerhalb fester Obergrenzen. Kein Eintrag wird größer, als
+- Die Größengrenzen für Fotos, Bilder, Videos und Anhänge sind im
+  Systembereich einstellbar, innerhalb fester Obergrenzen. Kein Eintrag wird größer, als
   Export und Import tragen können.
 - Drei Fehler aus dem Betrieb sind behoben. Die Beispieldateien sind kurz und
   richtig.
@@ -38,7 +38,7 @@ offen ist.
 | Drei Fehler | Das Hinweisfeld an der Zeitleiste, die Formatierleiste am langen Kommentar, das Cookie nach dem Umlegen von `BEHIND_PROXY` |
 | Die Beispieldateien | `.env.example` hat 120 Kommentarzeilen für drei Einstellungen und zwei falsche Angaben |
 | Zwei Wünsche | Download je Foto und Video; kurze Videos in Kommentaren |
-| Größengrenzen | Fest im Code: Foto 30 MB, Kommentarbild 20 MB, Video 20 MB. Für einen ganzen Eintrag gibt es keine Grenze, obwohl Export und Import eine haben |
+| Größengrenzen | Fest im Code: Foto 30 MB, Kommentarbild 20 MB, Video 20 MB, Anhang 50 MB. Für einen ganzen Eintrag gibt es keine Grenze, obwohl Export und Import eine haben |
 
 ---
 
@@ -57,6 +57,9 @@ offen ist.
 | 23. September 2026 | „Download pro Video/Foto (kein Download für alle nötig)" |
 | 23. September 2026 | „In jeder neuen Installation muss jede Bezeichnung vom System englisch sein. Nur bei bereits angelegten darf es Sicherung heißen." |
 | 23. September 2026 | Die Größengrenzen für Bilder und Videos werden im Systembereich in MB einstellbar. Was heute fest eingestellt ist, wird die Vorgabe |
+| 23. September 2026 | Nur der Eigentümer ändert die Grenzen, Admins sehen die Karte: „ist in Ordnung" |
+| 23. September 2026 | Die Grenze für Anhänge kommt auf dieselbe Karte |
+| 23. September 2026 | Der Hinweis auf den Reverse Proxy: „ist in Ordnung und wichtig" |
 
 ### Entschieden in diesem Auftrag
 
@@ -80,8 +83,9 @@ offen ist.
 | Bestehende Installationen | Behalten, was angelegt ist: ihre `docker-compose.yml`, den Ordner `kriterion-sicherung`, die Kopien von `keytool.sh`. Der Update-Weg der README nimmt dafür die `docker-compose.yml` mit; heute tut er das nicht (`README.md`:353 bis :363) |
 | Namen im Prüfstand | Gruppen-, Prüfungs- und Rückbaunamen gehören zu keiner Installation und bleiben. Sie umzubenennen ist eine eigene Runde |
 | Englisch und Türkisch | Sagen schon `Backup` und `Yedekleme`. Sie bekommen nur die neuen Sätze und Schlüssel, sinngleich |
-| Grenzen beim Hochladen | Einstellbar für Foto, Kommentarbild, Video und Kommentarvideo. Vorgabe ist der heutige Wert. Die Obergrenzen stehen fest: 50 MB für Bilder, 100 MB für Videos (BA 13) |
-| Wer stellt sie ein? | Der Eigentümer, wie die Bildformate (`OWNER_KEYS`, `server.js`:508). Admins sehen die Karte |
+| Grenzen beim Hochladen | Einstellbar für Foto, Kommentarbild, Video, Kommentarvideo und Anhang. Vorgabe ist der heutige Wert. Die Obergrenzen stehen fest: 50 MB für Bilder, 100 MB für Videos und Anhänge (BA 13) |
+| Wer stellt sie ein? | Der Eigentümer, wie die Bildformate (`OWNER_KEYS`, `server.js`:508). Admins sehen die Karte. Vom Betreiber bestätigt |
+| Reverse Proxy | Die Karte sagt, dass ein Reverse Proxy Anfragen dieser Größe durchlassen muss; README und CHANGELOG sagen es für nginx. Antwortet etwas vor Kriterion mit 413 ohne JSON, nennt die Oberfläche den Reverse Proxy statt eines Statuscodes (BA 13) |
 | Grenze je Eintrag | Fest, rund 345 MB für alle Dateien eines Eintrags zusammen. Hochladen und Export prüfen sie (BA 13) |
 | Ändert sich eine bestehende Route? | Für bisherige Anfragen nicht. Neu sind drei Routen für Kommentarvideos (BA 3); `POST /api/items/:id/comments` nimmt zusätzlich ein Video an; `/api/settings` kennt `uploadLimits`; `GET /api/export` sagt bei einem zu großen Eintrag mit 413 ab (BA 13) |
 
@@ -434,6 +438,7 @@ Vorgabe des Betreibers vom 23. September 2026. MB heißt hier wie im Code
 | Bild im Kommentar | `IMAGE_MAX`, `server.js`:4131 | 20 MB | 1 bis 50 MB |
 | Video am Eintrag | `VIDEO_MAX`, `server.js`:3684 | 20 MB | 1 bis 100 MB |
 | Video im Kommentar | neu (BA 3) | 20 MB | 1 bis 100 MB |
+| Anhang am Eintrag | `ATTACHMENT_MAX`, `server.js`:3840 | 50 MB | 1 bis 100 MB |
 
 **Warum diese Obergrenzen, und warum sie fest sind:**
 
@@ -447,21 +452,36 @@ Vorgabe des Betreibers vom 23. September 2026. MB heißt hier wie im Code
   Pro 100 MB je Anfrage durch.
 - Diese SQLite-Bauform nimmt höchstens 536.870.888 Bytes je Blob, gemessen am
   23. September 2026.
+- Anhänge haben dieselbe Obergrenze wie Videos; für Arbeitsspeicher und
+  Reverse Proxy gilt dieselbe Rechnung. 20 Anhänge zu 100 MB fängt die Grenze
+  je Eintrag ab.
 
 **Die Karte:**
 
 - „Grenzen beim Hochladen", im Abschnitt „Datenbank" hinter „Bildformate".
   Kartenschlüssel `limits`. Admins sehen sie, ändern kann der Eigentümer.
-- Gespeichert in `settings` unter `uploadLimits`, vier ganze Zahlen in MB.
+- Gespeichert in `settings` unter `uploadLimits`, fünf ganze Zahlen in MB.
   `uploadLimits` kommt zu `OWNER_KEYS`; der Kommentar dort und seine Prüfung
   zählen dann acht.
 - Der Server hält die Spanne und weist einen Wert außerhalb ab.
   `GET /api/settings` nennt die Werte und die Obergrenzen.
 - Eine Grenze gilt ab dem nächsten Hochladen, ohne Neustart: `multer` bekommt
   sie je Anfrage.
-- Der Browser prüft vorher mit denselben Werten. `PHOTO_MAX` in
-  `public/app.js`:75 fällt weg; die Werte kommen vom Server.
+- Der Browser prüft vorher mit denselben Werten. `PHOTO_MAX` und
+  `ATTACHMENT_MAX` in `public/app.js`:75 und :78 fallen weg; die Werte kommen
+  vom Server.
 - Eine gesenkte Grenze lässt vorhandene Dateien unberührt.
+
+**Der Reverse Proxy** — vom Betreiber als wichtig bestätigt:
+
+- Die Karte zeigt unter den Feldern den Satz: „Steht ein Reverse Proxy
+  davor, muss er Anfragen in dieser Größe durchlassen — bei nginx über
+  client_max_body_size." Neuer Schlüssel `card.proxyBodyHint`.
+- Antwortet etwas vor Kriterion mit 413 und ohne JSON, zeigt `api()`
+  (`public/app.js`:196) statt „Der Server meldet einen Fehler (413)." den
+  neuen Satz `error.proxyTooLarge`: „Die Datei ist größer, als der Reverse
+  Proxy davor durchlässt." Eine Absage von Kriterion selbst hat JSON und
+  behält ihren Wortlaut.
 
 **Die Grenze je Eintrag, fest:**
 
@@ -507,8 +527,9 @@ Vorgabe des Betreibers vom 23. September 2026. MB heißt hier wie im Code
 | 13 | `SCREEN_BAN` meldet das alte Wort und lässt „Sicherung der Datenbank" durch. Der neue Wächter über README, Handbuch, Beispieldateien und Serverausgaben ist grün |
 | 14 | Jeder Befehl `node <datei>.js` in `.env.example` nennt eine Datei, die es gibt. Die Kommentarzeilen je Einstellung halten die Regel aus BA 12 |
 | 15 | Die Beispieldateien und die Befehlsblöcke der README nennen für eine neue Installation nur englische Bezeichnungen. `usertool.js` und `keytool.js` nehmen nur die englischen Befehle an |
-| 16 | Der Server hält die Spanne der vier Grenzen: 0 MB und 101 MB für ein Video werden abgewiesen, 100 MB angenommen. Eine geänderte Grenze gilt beim nächsten Hochladen ohne Neustart. Nur der Eigentümer ändert sie |
+| 16 | Der Server hält die Spanne der fünf Grenzen: 0 MB und 101 MB für ein Video werden abgewiesen, 100 MB angenommen. Eine geänderte Grenze gilt beim nächsten Hochladen ohne Neustart. Nur der Eigentümer ändert sie |
 | 17 | Mit gesenkter Grenze je Eintrag: ein Hochladen darüber wird abgesagt; der Export in einer Datei sagt vor dem ersten Byte mit 413 ab und nennt den Eintrag; der Teilexport lässt ihn aus |
+| 18 | Eine Antwort 413 ohne JSON zeigt `error.proxyTooLarge`; eine Absage von Kriterion mit JSON zeigt ihren eigenen Satz. Die Karte zeigt `card.proxyBodyHint` |
 
 **Gegenproben**, je eine: eine feste Wartezeit kommt in ein Modul zurück · der
 Range-Zweig der Route für Kommentarvideos fällt weg · der Import kodiert ein
@@ -518,7 +539,8 @@ Leiste wird nicht angedockt · die Löschung des anderen Cookies fällt weg · e
 Wert in `de.json` sagt wieder „Sicherung" · `.env.example` nennt wieder
 `zugang.js` · `docker-compose.example.yml` hängt wieder `kriterion-sicherung`
 ein · der Server nimmt eine Grenze über der Obergrenze an · die Prüfung je
-Eintrag beim Hochladen fällt weg.
+Eintrag beim Hochladen fällt weg · eine Antwort 413 ohne JSON zeigt wieder
+den Statuscode.
 
 ### BA 15 — Dokumentation und Zahlen
 
@@ -531,7 +553,8 @@ Eintrag beim Hochladen fällt weg.
   beim ersten Start die Tabelle `comment_videos`, zu tun ist nichts; das
   Austauschformat ist 19, eine ältere Fassung übergeht die Kommentarvideos;
   die eigene `.env` und die eigene `docker-compose.yml` bleiben, wie sie
-  sind. Wer die `docker-compose.yml` aus der Vorlage neu anlegt, setzt die
+  sind; wer eine Grenze beim Hochladen hebt, hebt auch die des Reverse
+  Proxys. Wer die `docker-compose.yml` aus der Vorlage neu anlegt, setzt die
   beiden Pfade auf `kriterion-sicherung` und `/app/sicherung` zurück; die
   Befehle von `usertool.js` und `keytool.sh` heißen englisch.
 - **`manual-de.md`** — Export und Import (BA 9), das Wort (BA 10), die
@@ -539,9 +562,10 @@ Eintrag beim Hochladen fällt weg.
   Bildansicht, die Karte „Grenzen beim Hochladen" und die Grenze je Eintrag
   (BA 13), „Das Austauschformat trägt die Nummer 19."
 - **`README.md`** — das Wort (BA 10), die Bezeichnungen und der Update-Weg
-  (BA 11), die Beispieldateien (BA 12). Dazu ein Satz zum Reverse Proxy: er
-  muss Anfragen in der Größe der höchsten eingestellten Grenze durchlassen,
-  bei nginx über `client_max_body_size`.
+  (BA 11), die Beispieldateien (BA 12). Dazu im Abschnitt zum Reverse Proxy:
+  er muss Anfragen in der Größe der höchsten eingestellten Grenze
+  durchlassen, bei nginx über `client_max_body_size`; Cloudflare lässt in
+  den Tarifen Free und Pro 100 MB je Anfrage durch.
 - **`Doku/Fahrplan.md`** — die Zeile 0.41.0 durchstreichen und füllen, Schema
   `ja`, Format `18 → 19`; der Abschnitt bekommt oben „GEBAUT am …".
 - **`package.json`** auf `0.41.0`, `package-lock.json` mit.
@@ -566,7 +590,7 @@ Eintrag beim Hochladen fällt weg.
 | Namen im Prüfstand mit dem alten Wort | Sie gehören zu keiner Installation. Eine eigene Runde |
 | Das alte Wort in Änderungsprotokollen und im CHANGELOG | Sie halten fest, was zu ihrer Zeit galt |
 | Eine Höchsthöhe für das Kommentarfeld | Sie änderte, wie sich ein langer Kommentar schreibt |
-| Einstellbare Grenzen für Anhänge und für die Zahl je Hochladen | Nicht verlangt. Anhänge bleiben bei 50 MB, die Zahlen bleiben, wie sie sind |
+| Eine einstellbare Zahl je Hochladen | Nicht verlangt. Die Zahlen bleiben, wie sie sind |
 | Einträge, die heute schon über der Grenze je Eintrag liegen | Sie bleiben, wie sie sind. Abgesagt wird nur neues Hochladen, und der Export nennt sie |
 | Eine einstellbare Grenze je Eintrag | Sie folgt aus der Länge eines Strings und nicht aus einer Vorliebe |
 | Eine Änderung am Ablauf von Export, Import und Backup | Vorgabe des Betreibers |
