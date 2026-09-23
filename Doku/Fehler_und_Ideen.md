@@ -176,6 +176,7 @@ sagt der Fahrplan.
 | **48** | Der Satz zum Backup heißt „Nur das Backup ist eine vollständige Sicherung der Datenbank"; Oberfläche, Handbuch und README sagen heute an fünf Stellen „Kopie der Datenbank" | mittel | klein | für den nächsten Patch vorgemerkt — Ansage des Betreibers vom 23. September 2026 |
 | **49** | Der Hinweis an der Zeitleiste wird am rechten Rand schmal und hoch; bei einem Punkt ganz rechts steht ein Zeichen je Zeile | mittel | klein | für den nächsten Patch gesammelt — Befund des Betreibers vom 23. September 2026 |
 | **50** | Die Formatierleiste springt bei einem langen Kommentar unter das Feld und verdeckt die Knöpfe darunter | hoch | klein | für den nächsten Patch gesammelt — Befund des Betreibers vom 23. September 2026 |
+| **51** | Die Beispieldateien erklären zu viel — `.env.example` hat 120 Kommentarzeilen für drei Einstellungen, und zwei Angaben darin sind falsch | mittel | klein | für den nächsten Patch gesammelt — Befund des Betreibers vom 23. September 2026 |
 | ~~Protokoll 0.38.2~~ | ~~Die Strichstärke des Löschkreuzes bleibt 1.8, dieselbe wie am Stift und am Zitatzeichen~~ | — | — | **ABGELEHNT am 21. September 2026** |
 | ~~Protokoll 0.38.2~~ | ~~Der Trefferausschnitt zeigt bei einem Treffer im Ziel eines Links den Rohtext samt seiner Marken~~ | — | — | **RUHT seit dem 21. September 2026** |
 | ~~Protokoll 0.38.3~~ | ~~Der Halt nach einem Sprung ist eine Frist von 1600 Millisekunden und keine Messung~~ | — | — | **RUHT seit dem 21. September 2026** |
@@ -2926,3 +2927,82 @@ ist: es gehört zur Auswahl und nicht zu einem Feld.
 `markupMenuSetUp()`), `public/style.css` (`.markup-menu`),
 `test/ui_entry.js`:3989 und `test/ui_style.js`:2619 bis :2634 (Lage und
 Ebene der Leiste). Keine Route, kein Schema, kein Format.
+
+---
+
+## 51. Die Beispieldateien erklären zu viel
+
+**Art: Verbesserung** (Dokumentation) · **Herkunft: 0.40.0**, Betreiber am
+23. September 2026 · **Einschätzung: klein** · gesammelt für den nächsten
+Patch
+
+### Woher
+
+Befund des Betreibers vom 23. September 2026. Je Einstellung gehört in die
+Beispieldatei: wofür sie da ist, was sie bewirkt und wovon sie abhängt, zum
+Beispiel vom Mailversand. Nicht hinein gehören Cookienamen und der genaue
+Ablauf. Der Betreiber hat die Blöcke `BEHIND_PROXY` und `PUBLIC_ADDRESS`
+selbst gekürzt und dazu gesagt: das ist schon genug, und auch das dürfte
+kürzer sein.
+
+### Was auffiel
+
+| Datei | Zeilen | davon Kommentar | Einstellungen |
+|---|---:|---:|---:|
+| `.env.example` | 130 | 120 | 3, davon 2 auskommentiert |
+| `docker-compose.example.yml` | 44 | 29 | 15 Zeilen |
+
+Kommentarzeilen je Block in `.env.example`: `ENCRYPTION_KEY` 17,
+`BEHIND_PROXY` 21, `PUBLIC_ADDRESS` 33, „Was hier bewusst nicht steht" 23,
+„Den Schlüssel wechseln" 17. In `docker-compose.example.yml` stehen 20
+Kommentarzeilen über der Einhängung des Backups, 5 über `TZ` und 4 über
+`BACKUP_DIR`.
+
+Zwei Angaben in `.env.example` sind falsch:
+
+- Zeile 94 nennt `node zugang.js passwort <name>`. Die Datei heißt
+  `usertool.js`; `README.md`:280 nennt den richtigen Befehl.
+- Zeile 92 und 93 sagen, der Start melde `AUTH_RESET`, `AUTH_USER` und
+  `AUTH_PASSWORD`. Diese Warnungen sind mit 0.39.1 entfallen.
+
+### Was gebaut werden könnte
+
+Je Einstellung höchstens vier Zeilen: wofür, was sie bewirkt, wovon sie
+abhängt. Begründungen fallen heraus. Entwurf für die beiden Blöcke des
+Betreibers:
+
+```
+# BEHIND_PROXY -- steht ein Reverse Proxy davor?
+# Leer: Kriterion ist direkt erreichbar (Heimnetz, Port 3100).
+# 1: ein Reverse Proxy mit HTTPS steht davor. Kriterion wertet dann dessen
+# X-Forwarded-Kopfzeilen aus.
+# BEHIND_PROXY=
+
+# PUBLIC_ADDRESS -- die Adresse, unter der Kriterion von aussen erreichbar ist.
+# Ohne Mailversand optional. Mit Mailversand Pflicht: ohne sie verschickt
+# Kriterion keine Links, und die Selbstanmeldung laesst sich nicht einschalten.
+# Hinter einem Reverse Proxy beginnt sie mit https://.
+# PUBLIC_ADDRESS=https://kriterion.beispiel.de
+```
+
+„Was hier bewusst nicht steht" wird eine Liste mit einer Zeile je Eintrag:
+wo Zugang, Port, Ort des Backups und Mailzugang stattdessen eingestellt
+werden.
+
+### Offene Entscheidungen
+
+1. Ob die Umbenennung in „Backup" aus dem Fahrplaneintrag 0.41.0 im selben
+   Schritt mitkommt. Die beiden Dateien tragen das deutsche Wort 18-mal,
+   `docker-compose.example.yml` 12-mal und `.env.example` 6-mal. 9 davon
+   sind Pfade (`kriterion-sicherung`, `/app/sicherung`). Ein geänderter Pfad
+   verlegt den Ordner bestehender Installationen.
+2. Ob die README die herausfallenden Begründungen aufnimmt oder ob sie
+   entfallen.
+
+### Was es anfasst
+
+`.env.example`, `docker-compose.example.yml`. Die Prüfungen lesen aus der
+Compose-Datei nur Einstellungen: Dienstname, `BACKUP_DIR` samt Einhängung
+und `TZ` (`test/roundtrip.js`:424, `test/source.js`:3232). Die Wächter gegen
+Versionsnummern und Verweise auf `Doku/` lesen beide Dateien mit. Keine
+Route, kein Schema, kein Format.
