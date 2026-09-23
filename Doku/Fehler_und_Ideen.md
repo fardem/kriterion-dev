@@ -173,6 +173,7 @@ sagt der Fahrplan.
 |---|---|---|---|---|
 | **42**, Fahrplan | Der Kommentaranteil von `public/style.css` liegt bei 40 Prozent — 1.215 von 3.029 Zeilen; offen ist, ob die gemessenen Zahlen in ein eigenes Papier wandern | niedrig | — | Entscheidung des Betreibers |
 | **20** | Nach einem Umbenennen holt die Oberfläche vier Antworten statt drei; die vierte ist die größte der Installation | niedrig | klein | liegen lassen |
+| **48** | Der Satz zum Backup heißt „Nur das Backup ist eine vollständige Sicherung der Datenbank"; Oberfläche, Handbuch und README sagen heute an fünf Stellen „Kopie der Datenbank" | mittel | klein | für den nächsten Patch vorgemerkt — Ansage des Betreibers vom 23. September 2026 |
 | ~~Protokoll 0.38.2~~ | ~~Die Strichstärke des Löschkreuzes bleibt 1.8, dieselbe wie am Stift und am Zitatzeichen~~ | — | — | **ABGELEHNT am 21. September 2026** |
 | ~~Protokoll 0.38.2~~ | ~~Der Trefferausschnitt zeigt bei einem Treffer im Ziel eines Links den Rohtext samt seiner Marken~~ | — | — | **RUHT seit dem 21. September 2026** |
 | ~~Protokoll 0.38.3~~ | ~~Der Halt nach einem Sprung ist eine Frist von 1600 Millisekunden und keine Messung~~ | — | — | **RUHT seit dem 21. September 2026** |
@@ -2716,3 +2717,70 @@ Beispieldatei.
 
 **Was es anfasst** — `server.js`, `db.js`, `keys.js`, `auth.js`, `batchrun.js`,
 `images.js` *(je die `console`-Zeilen)*, `docker-compose.example.yml`.
+
+---
+
+## 48. Nur das Backup ist eine vollständige Sicherung der Datenbank
+
+**Art: Verbesserung** (Wortlaut) · **Herkunft: 0.40.0**, Betreiber am
+23. September 2026 · **Einschätzung: klein** · Ansage des Betreibers: für den
+nächsten Patch vormerken, bis dahin wird gesammelt
+
+### Woher
+
+Vorgabe des Betreibers vom 23. September 2026, beim Lesen des
+Fahrplaneintrags zu 0.41.0. Der Satz „Nur das Backup ist ein vollständiges
+Backup." ist richtig, auf Deutsch aber besser so:
+
+> **Nur das Backup ist eine vollständige Sicherung der Datenbank.**
+
+Im neuen Satz ist „Backup" der Name und „Sicherung der Datenbank" die
+Beschreibung.
+
+### Was auffiel
+
+Der alte Satz steht zweimal in `Doku/Fahrplan.md`: in der Zeile 0.41.0 der
+Tafel und als Satz 1 unter „Was dafür zu bauen ist".
+
+Oberfläche, Handbuch und README sagen heute „Kopie der Datenbank". Im
+Wortlaut „vollständige, verschlüsselte Kopie der Datenbank" steht es an
+**fünf Stellen**:
+
+| Datei | Stelle |
+|---|---|
+| `public/languages/de.json`:59 | `card.backupWhatHint`, Karte des Backups |
+| `public/languages/de.json`:699 | `card.wayBackupHint`, Dialog vor Export und Import |
+| `manual-de.md`:1051 | Liste der Karten, Eintrag „Sicherung" |
+| `manual-de.md`:1145 | Tabelle der drei Wege im Abschnitt „Export und Import" |
+| `README.md`:818 | Abschnitt „Sichern" |
+
+Dieselbe Aussage in anderer Form: `manual-de.md`:124 und :1149,
+`README.md`:81.
+
+Vier Prüfungen halten den heutigen Wortlaut fest: `test/source.js`:1577
+(Liste der Bildschirmtexte), `test/source.js`:2547 und :2552 (benannte
+Ausnahme der Verbotsliste), `test/ui_system.js`:3534 (Karte des Backups).
+
+### Was es nicht ist
+
+Kein Fehler. Beide Sätze sind richtig. Am Ablauf ändert sich nichts.
+
+### Offene Entscheidungen
+
+1. **Der Wortfilter.** Der Fahrplan kündigt unter „Das Wort heißt Backup"
+   einen Eintrag an: das deutsche Wort gegen `Backup`. Der Filter liest die
+   Prosa von `manual-de.md`, `README.md`, `CHANGELOG.md` und `Doku/*.md` und
+   würde den neuen Satz dort melden. Der Eintrag braucht eine Ausnahme für
+   „der Datenbank" oder entfällt.
+2. **Die Verbotsliste der Oberfläche.** `SCREEN_BAN` in `test/dom.js`:1466
+   sperrt „Kopie" am Bildschirm schon heute, mit einer Ausnahme:
+   `Kopien?\b(?!\s+der\s+Datenbank)`. Nach der Änderung wird diese Ausnahme
+   nicht mehr gebraucht. Ein Eintrag für das deutsche Wort bräuchte dieselbe.
+3. **Englisch und Türkisch.** Die Vorgabe betrifft den deutschen Wortlaut.
+   `en.json` sagt „copy", `tr.json` sagt „kopya".
+
+### Was es anfasst
+
+`public/languages/de.json` (2 Werte), `manual-de.md` (4 Stellen), `README.md`
+(2), `Doku/Fahrplan.md` (2 Stellen im Eintrag 0.41.0), `test/source.js`,
+`test/ui_system.js`, `test/dom.js`. Keine Route, kein Schema, kein Format.
