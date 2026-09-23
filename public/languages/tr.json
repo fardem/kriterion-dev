@@ -67,8 +67,8 @@
   "card.calculating": "Hesaplanıyor …",
   "card.carryOn": "Devam",
   "card.catchUpAsk": {
-    "one": "{n} PNG fotoğraf ({bytes}) dönüştürülür, özgün dosya değiştirilir (sonrasında yaklaşık {after}). Geri alma yalnızca önceden alınmış bir yedekle olur. Süre: dakikalar ile saatler arası.",
-    "other": "{n} PNG fotoğraf ({bytes}) dönüştürülür, özgün dosyalar değiştirilir (sonrasında yaklaşık {after}). Geri alma yalnızca önceden alınmış bir yedekle olur. Süre: dakikalar ile saatler arası."
+    "one": "{n} PNG fotoğraf ({bytes}) dönüştürülür, özgün dosya değiştirilir (sonrasında yaklaşık {after}). Geri alma yalnızca önceden alınmış bir yedeklemeyle olur. Süre: dakikalardan saatlere.",
+    "other": "{n} PNG fotoğraf ({bytes}) dönüştürülür, özgün dosyalar değiştirilir (sonrasında yaklaşık {after}). Geri alma yalnızca önceden alınmış bir yedeklemeyle olur. Süre: dakikalardan saatlere."
   },
   "card.catchUpBoth": {
     "one": "{n} PNG özgün dosya dönüştürülür.",
@@ -291,6 +291,12 @@
   "card.lessBytes": " — {bytes} daha az",
   "card.light": "Açık",
   "card.likeDevice": "Otomatik",
+  "card.limitAttachment": "Ek",
+  "card.limitCommentImage": "Yorumdaki resim",
+  "card.limitCommentVideo": "Yorumdaki video",
+  "card.limitPhoto": "Fotoğraf",
+  "card.limitRange": "{min} ile {max} MB arası",
+  "card.limitVideo": "Video",
   "card.linkCopied": "Bağlantı kopyalandı",
   "card.linkCreated": "Bağlantı oluşturuldu",
   "card.linkForUser": "“{name}” için {word} — yalnızca bir kez gösterilir.",
@@ -501,6 +507,7 @@
   "card.provider": "Sağlayıcı",
   "card.providerPassword": "Sağlayıcıdaki parola",
   "card.providerUsername": "Sağlayıcıdaki kullanıcı adı",
+  "card.proxyBodyHint": "Önünde bir reverse proxy varsa, bu boyuttaki istekleri geçirmesi gerekir — nginx'te client_max_body_size ile.",
   "card.publicAddress": "Genel adres",
   "card.publicTitle": "genel başlık",
   "card.publicTitleHint": "{word} giriş sayfasında yer alır ve adresi açan herkese görünür.",
@@ -675,6 +682,8 @@
   "card.unknownName": "bilinmeyen ad",
   "card.unlock": "Kilidi aç",
   "card.unlocked": "Kilit açıldı",
+  "card.uploadLimits": "Yükleme sınırları",
+  "card.uploadLimitsHint": "Her türde en büyük dosya, MB olarak. Değişiklik bir sonraki yüklemeden itibaren geçerlidir; mevcut dosyalar olduğu gibi kalır.",
   "card.use": "Fayda",
   "card.usePartsHint": "{word} kullan; her parça eksiksiz bir dışa aktarma dosyasıdır. Yedekleme için {word2} kartı daha basit.",
   "card.user": "Kullanıcı",
@@ -948,6 +957,7 @@
   "entry.whoRatedWord": "Kim değerlendirdi — {word}",
   "entry.withAllImages": " — bütün resim ve videolarla",
   "entry.zoom": "Yakınlaştırma",
+  "error.proxyTooLarge": "Dosya, öndeki reverse proxy'nin geçirdiğinden büyük.",
   "error.serverStatus": "Sunucu bir hata bildiriyor ({status}).",
   "list.all": "Tümü",
   "list.allTagsHint": "Seçilen bütün etiketleri taşıyan {entryMany}",
@@ -1222,8 +1232,8 @@
   },
   "server.categoryGone": "Bu kategori artık yok.",
   "server.cleanupAllYoungest": {
-    "one": "Tek yedek en yeni {keep} yedek arasında.",
-    "other": "{n} yedeğin hepsi en yeni {keep} yedek arasında."
+    "one": "Tek yedekleme en yeni {keep} tanesinin arasında.",
+    "other": "{n} yedeklemenin tümü en yeni {keep} tanesi arasında."
   },
   "server.cleanupNoBackups": "Burada henüz yedekleme yok.",
   "server.cleanupOldestAge": {
@@ -1258,6 +1268,8 @@
   "server.deniedTagNew": "Yeni etiketleri yalnızca yönetici oluşturur. Var olanlar verilmeye devam edebilir.",
   "server.deniedUser": "Bir yöneticiye ya da sahibe yalnızca bu kurulumun sahibi erişebilir.",
   "server.dueInvalid": "Bu geçerli bir tarih değil.",
+  "server.entriesTooLarge": "{entryOne} başına {mb} MB sınırının üstünde: {names}. Geri kalanı parçalar halinde dışa aktarılabilir.",
+  "server.entryTooLarge": "{entryOne} başına en çok {mb} MB: dışa aktarma fazlasını almaz.",
   "server.entryUnknown": "{entryOne} bulunamadı.",
   "server.error": "Sunucuda bir hata oluştu.",
   "server.errorUnknown": "Bilinmeyen hata",
@@ -1348,6 +1360,7 @@
   "server.trashUnreadable": "Bu, çöp kutusundan okunamıyor.",
   "server.twoFactorOff": "İki adımlı doğrulama açık değil.",
   "server.uploadCap": "Tek seferde en çok {cap} dosya.",
+  "server.uploadLimitRange": "“{what}”, {min} ile {max} MB arasında bir tam sayı olmalı.",
   "server.uploadSize": "Bir dosya {mb} MB'tan büyük.",
   "server.userDeleted": "Bu kullanıcı silinmiş.",
   "server.userUnknown": "Böyle bir kullanıcı yok.",

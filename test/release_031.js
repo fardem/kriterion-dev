@@ -25,7 +25,7 @@ async function run() {
 /* VIERZEHN MEHR MIT DER AUSZEICHNUNG. */
 /* UND ZEHN MEHR MIT DEM HINWEIS VOR EXPORT UND IMPORT: zwoelf kommen dazu,
    zwei fallen mit der Absage vor dem Gesamtexport. */
-const LANG_KEY_COUNT = 1243;
+const LANG_KEY_COUNT = 1258;
 
 async function check0310() {
   const drRead = (code) => JSON.parse(fs.readFileSync(
@@ -541,7 +541,8 @@ async function check0311() {
    Gesamtexports fallen. Der Stand davor war de 4b0abbd60f65807b /
    84dad7c0086755d1, en a162f49132220b4f / 3ff874893a28fe31,
    tr 7d4e5fd082b2f9e1 / bfcfc70232d3103d. */
-const DE_UNTOUCHED = { one: '733a7fc85f03ba68', other: 'e3dd61bee56400bb' };
+// Davor 733a7fc85f03ba68 / e3dd61bee56400bb: das Wort Backup, die Hinweise zum Export und die Grenzen.
+const DE_UNTOUCHED = { one: 'e3b05eb35283a51f', other: '88cac0197308f512' };
 const DE_BEFORE_0312 = { one: '91b86c5affcba789', other: '07fc3ccdc8a27a03' };
 const DE_ORDERED_0312 = {
   'login.requestAccess': 'Zugang anfragen',
@@ -554,29 +555,43 @@ const DE_ORDERED_0312 = {
    misst denselben Stand noch einmal von ihrer Seite aus. */
 const EG_CHANGED_AFTER_0312_SHARED = {
   "_afterNumber": "0.31.4: der Mechanismus — fuer Englisch `plural`, also das Verhalten von vorher",
+  "card.backupWhatHint": "0.41.0: die Karte nennt Benutzer und Einstellungen, die der Export nicht enthaelt",
   "card.carryOn": "0.40.0: neu — der Knopf, der den Hinweis vor Export und Import bestaetigt",
   "card.catchUpAsk": "0.33.0: der Dialog nennt die Vorschaubilder nicht mehr — die zweite Haelfte des Laufs ist gefallen",
   "card.catchUpBoth": "0.33.0: die Zeile unter dem Knopf ebenso — sie sagt nur noch, was mit den Originalen geschieht",
   "card.convertFinished": "0.33.0: der Fertigsatz nennt keine neu gerechneten Vorschaubilder mehr",
   "card.copyByHand": "0.38.1: die Meldung nennt den Grund — ohne https gibt der Browser die Zwischenablage nicht frei",
   "card.copyByHandLink": "0.38.1: derselbe Grund, und das markierte Feld steht weiter daneben",
+  "card.exportOnlyEntries": "0.41.0: neu — Export und Import enthalten nur die Eintraege",
   "card.exportOversizeHint": "0.40.0: der Hinweis nennt keine Hoechstgroesse je Datei mehr — die Grenze des Gesamtexports ist fort",
+  "card.exportPurposeHint": "0.41.0: der Satz nennt, was der Export nicht enthaelt",
   "card.exportRunTitle": "0.40.0: neu — die Ueberschrift des Hinweises vor dem Export",
   "card.grade": "0.32.0: seine Beschriftung in der Vokabelkarte",
   "card.importRunTitle": "0.40.0: neu — die Ueberschrift des Hinweises vor dem Import",
   "card.itemMany": "0.32.0: Punkt 28, Fund 5 — dieselbe Sache in der Mehrzahl",
   "card.itemOne": "0.32.0: Punkt 28, Fund 5 — die Beschriftung nennt wieder ihre Sache",
+  "card.limitAttachment": "0.41.0: neu — die Beschriftung der Grenze fuer Anhaenge",
+  "card.limitCommentImage": "0.41.0: neu — die Beschriftung der Grenze fuer Bilder im Kommentar",
+  "card.limitCommentVideo": "0.41.0: neu — die Beschriftung der Grenze fuer Videos im Kommentar",
+  "card.limitPhoto": "0.41.0: neu — die Beschriftung der Grenze fuer Fotos",
+  "card.limitRange": "0.41.0: neu — die Spanne unter jedem Feld der Grenzen",
+  "card.limitVideo": "0.41.0: neu — die Beschriftung der Grenze fuer Videos",
+  "card.onlyBackupComplete": "0.41.0: neu — nur das Backup ist eine vollstaendige Sicherung der Datenbank",
   "card.potentialModeHint": "0.32.1: „in the entry\" wird „in the detail view\" — das Vokabelwort stand fest im Satz",
+  "card.proxyBodyHint": "0.41.0: neu — der Reverse Proxy muss Anfragen dieser Groesse durchlassen",
   "card.restartHint": "0.33.0: die zitierte Logzeile heisst jetzt englisch „Key loaded from ENCRYPTION_KEY\" — das Protokoll spricht englisch (0.32.0, Punkt 28, Fund 1 hatte sie auf „Schluessel\" gebracht)",
   "card.runKeepOpen": "0.40.0: neu — das Fenster muss offen bleiben",
   "card.runNoProgress": "0.40.0: neu — es gibt keine Fortschrittsanzeige",
   "card.runTakesTime": "0.40.0: neu — es kann je nach Bestand und Verbindung dauern",
   "card.typeByHand": "0.38.1: derselbe Grund; der Schluessel steht im Dialog darueber",
+  "card.uploadLimits": "0.41.0: neu — die Ueberschrift der Karte „Grenzen beim Hochladen\"",
+  "card.uploadLimitsHint": "0.41.0: neu — was die Karte einstellt und ab wann es gilt",
   "card.wayBackupHint": "0.40.0: neu — wofuer die Sicherung der Weg ist",
   "card.wayFile": "0.40.0: neu — der Name des ersten der drei Wege",
   "card.wayFileHint": "0.40.0: neu — wofuer der Export in einer Datei der Weg ist",
   "card.wayPartsHint": "0.40.0: neu — wofuer der Export in Teilen der Weg ist",
   "card.whichWayHeading": "0.40.0: neu — die Ueberschrift der Gegenueberstellung",
+  "entry.addImage": "0.41.0: der Knopf im Kommentar nennt Bild und Video",
   "entry.calcGradeWeight": "0.32.0: „Score × weight\" wird `{grade} × weight`",
   "entry.commentPlaceholder": "0.38.4: der Satz nennt die Zwischenablage statt Strg+V — am Telefon gibt es die Tasten nicht",
   "entry.copyCommentLink": "0.38.0: neu — die Raute kopiert die Adresse eines Kommentars",
@@ -586,6 +601,9 @@ const EG_CHANGED_AFTER_0312_SHARED = {
   "entry.grade": "0.32.0: der Spaltenkopf der Rechnung wird `{grade}`",
   "entry.gradeLabel": "0.32.0: die Beschriftung am Sternkasten des Zeitpunkts",
   "entry.gradeReplaced": "0.32.0: die Meldung nach dem Ersetzen",
+  "entry.imageCapHint": "0.41.0: die Grenze zaehlt Bilder und Videos zusammen",
+  "entry.imagesAttached": "0.41.0: die Meldung nennt Bilder und Videos",
+  "entry.imagesRemovedAdmin": "0.41.0: die Marke nennt Bilder und Videos",
   "entry.markBold": "0.38.0: neu — der Schalter fuer Fettdruck im Menue",
   "entry.markBullet": "0.38.0: neu — der Schalter fuer die Aufzaehlung",
   "entry.markCode": "0.38.0: neu — der Schalter fuer den Code-Abschnitt",
@@ -604,6 +622,8 @@ const EG_CHANGED_AFTER_0312_SHARED = {
   "entry.refHint": "0.38.0: neu — der Hinweis an der Marke eines Verweises",
   "entry.removeRating": "0.35.0: neu — „Remove {ratingOne}\", vorher deutsch im Skript",
   "entry.tooBig": "0.35.2: die 50 steht nicht mehr als Text im Satz, sondern kommt als `{mb}` aus ATTACHMENT_MAX",
+  "entry.withAllImages": "0.41.0: die Loeschfrage nennt Bilder und Videos",
+  "error.proxyTooLarge": "0.41.0: neu — die Antwort 413 des Reverse Proxys ohne JSON",
   "list.bellMine": "0.32.0: die Ueberschrift „My {entryMany}\"",
   "list.bellOther": "0.32.0: die Ueberschrift „Everything else\"",
   "list.bellToMe": "0.32.0: die Ueberschrift „Addressed to me\"",
@@ -622,8 +642,11 @@ const EG_CHANGED_AFTER_0312_SHARED = {
   "server.cleanupOldestAge": "0.32.0: Punkt 29 — Grund 4, jetzt mit Mehrzahlform",
   "server.deniedEntry": "0.32.1: „this entry\" faellt weg — das Vokabelwort stand fest im Satz",
   "server.deniedOrigin": "0.36.0: neu — die Absage an eine schreibende Anfrage ohne Token gegen fremde Formulare",
+  "server.entriesTooLarge": "0.41.0: neu — der Export in einer Datei sagt ab und nennt die Eintraege",
+  "server.entryTooLarge": "0.41.0: neu — die Absage an ein Hochladen ueber der Grenze je Eintrag",
   "server.exportTooOld": "0.33.0: neu — die eine Abweisung des Bruchs, eine Datei mit Formatnummer 13 oder aelter kommt nicht mehr herein",
   "server.gradeRange": "0.32.0: die Absage des Servers nennt das Vokabelwort",
+  "server.imageCap": "0.41.0: die Absage zaehlt Bilder und Videos zusammen",
   "server.importNoSpace": "0.40.0: neu — die Absage, wenn der freie Platz fuer die Importdatei nicht reicht",
   "server.importOne": "0.35.2: neu — die Absage des Imports an eine zweite Datei in derselben Anfrage",
   "server.noAccountOwner": "0.32.0: Punkt 29 — der Grund, warum nicht verschickt werden kann",
@@ -637,6 +660,7 @@ const EG_CHANGED_AFTER_0312_SHARED = {
   "server.signupThanks": "0.32.0: Punkt 29 — die eine Antwort der Zugangsanfrage",
   "server.trashRestoring": "0.35.1: neu — die Antwort an den zweiten Aufruf, der denselben Papierkorbeintrag wiederherstellen will",
   "server.uploadCap": "0.35.2: neu — die Absage an zu viele Dateien in einer Anfrage, vorher multers „Unexpected field\"",
+  "server.uploadLimitRange": "0.41.0: neu — die Absage an eine Grenze ausserhalb ihrer Spanne",
   "server.uploadSize": "0.35.2: neu — die Absage an eine zu grosse Datei, vorher multers „File too large\"",
   "server.videoOne": "0.35.2: neu — die Absage des Videowegs an ein zweites Video in derselben Anfrage",
   "vocabulary.grade": "0.32.0: das fuenfzehnte Vokabelwort — „Score\""
@@ -896,7 +920,23 @@ async function check0312() {
       'card.carryOn', 'card.exportRunTitle', 'card.importRunTitle',
       'card.runKeepOpen', 'card.runNoProgress', 'card.runTakesTime',
       'card.wayBackupHint', 'card.wayFile', 'card.wayFileHint',
-      'card.wayPartsHint', 'card.whichWayHeading', 'server.importNoSpace'];
+      'card.wayPartsHint', 'card.whichWayHeading', 'server.importNoSpace',
+      // Die Hinweise zu Export und Backup und die Grenzen beim Hochladen.
+      'card.exportOnlyEntries',
+      'card.onlyBackupComplete',
+      'card.uploadLimits',
+      'card.uploadLimitsHint',
+      'card.limitPhoto',
+      'card.limitCommentImage',
+      'card.limitVideo',
+      'card.limitCommentVideo',
+      'card.limitAttachment',
+      'card.limitRange',
+      'card.proxyBodyHint',
+      'error.proxyTooLarge',
+      'server.uploadLimitRange',
+      'server.entryTooLarge',
+      'server.entriesTooLarge'];
     /* UND EINER IST GEFALLEN -- `list.otherUser`. */
     /* UND SIEBEN MIT 0.32.1 -- sechs, die 0.32.1 ausbaut, und der geteilte
        `entry.deleteWord`. */
@@ -944,13 +984,15 @@ async function check0312() {
    9cfb555855459a0c / 98295846dd0ac5a4 · caa4b814e75f8263 / f224721465ac0d35 ·
    eec8c1717c54a12f / f874903b6b33781a · cad88cfda93ececc / e73468286c2f1405 ·
    68c54e6fc1a90c6d / 6ba9dddf3e06cb33 · cdff153c8c0c8545 / 7e902c8f506f3b35 */
-const EN_UNTOUCHED = { one: '2543775bdc0f5fa2', other: '8aca799913c25836' };
+// Davor 2543775bdc0f5fa2 / 8aca799913c25836.
+const EN_UNTOUCHED = { one: 'c5a1b516501db524', other: 'f49e7461e8fa2b49' };
 const TR_BEFORE_0313 = { one: '5fec71b10c0dfa3c', other: '18b07eda589b5120' };
 /* DIE FRUEHEREN TUERKISCHEN SUMMEN: bbaca227348609dc / 73d9f1ea0298d519 ·
    ab6bdf35499f7cf9 / ad34f68137acaa2b · eb1ffa65a4bddb95 / f137b990650a241e ·
    ac1fa21798b352b5 / e277fb3263e15feb · 10c6209ccd6c202e / 87be79f31098ad1c ·
    e1682c1e30d94faf / d62eb67d7277a51c */
-const TR_AFTER_0313 = { one: 'edd9d4245b7d6a59', other: '3abd365c66c5194d' };
+// Davor edd9d4245b7d6a59 / 3abd365c66c5194d.
+const TR_AFTER_0313 = { one: '2de9cf88abafd9a7', other: '13ab6e0d78cf78d3' };
 
 async function check0313() {
   const tgRead = (code) => JSON.parse(fs.readFileSync(
@@ -1337,7 +1379,23 @@ async function check0313() {
       'card.carryOn', 'card.exportRunTitle', 'card.importRunTitle',
       'card.runKeepOpen', 'card.runNoProgress', 'card.runTakesTime',
       'card.wayBackupHint', 'card.wayFile', 'card.wayFileHint',
-      'card.wayPartsHint', 'card.whichWayHeading', 'server.importNoSpace'];
+      'card.wayPartsHint', 'card.whichWayHeading', 'server.importNoSpace',
+      // Die Hinweise zu Export und Backup und die Grenzen beim Hochladen.
+      'card.exportOnlyEntries',
+      'card.onlyBackupComplete',
+      'card.uploadLimits',
+      'card.uploadLimitsHint',
+      'card.limitPhoto',
+      'card.limitCommentImage',
+      'card.limitVideo',
+      'card.limitCommentVideo',
+      'card.limitAttachment',
+      'card.limitRange',
+      'card.proxyBodyHint',
+      'error.proxyTooLarge',
+      'server.uploadLimitRange',
+      'server.entryTooLarge',
+      'server.entriesTooLarge'];
     /* UND EINER IST GEFALLEN -- derselbe wie drueben: `list.otherUser`. */
     /* UND SIEBEN MIT 0.32.1 -- dieselben wie im englischen Stand daneben, und
        aus demselben Grund. */
@@ -1364,7 +1422,7 @@ async function check0313() {
        fallen weg, und `_afterNumber` ist der Mechanismus selbst. */
     const TR_CHANGED_AFTER_0313 = {
       '_afterNumber':           '0.31.4: der Mechanismus — hinter einer Zahl die Einzahl',
-      'card.catchUpAsk':        '0.33.0: der Dialog nennt die Vorschaubilder nicht mehr — und „mümkündür" wird „olur", damit er unter der Laengenlatte bleibt',
+      'card.catchUpAsk':        '0.33.0: der Dialog nennt die Vorschaubilder nicht mehr — und „mümkündür" wird „olur", damit er unter der Laengenlatte bleibt; 0.41.0: die Dauer kuerzer, weil der deutsche Satz mit „Backup" kuerzer ist',
       'card.catchUpBoth':       '0.33.0: die Zeile unter dem Knopf sagt nur noch, was mit den Originalen geschieht',
       'card.convertFinished':   '0.33.0: der Fertigsatz nennt keine neu gerechneten Vorschaubilder mehr',
       'card.copyByHand': '0.38.1: die Meldung nennt den Grund — ohne https gibt der Browser die Zwischenablage nicht frei',
@@ -1483,7 +1541,31 @@ async function check0313() {
       'card.wayFileHint':         '0.40.0: neu — wofuer der Export in einer Datei der Weg ist',
       'card.wayPartsHint':        '0.40.0: neu — wofuer der Export in Teilen der Weg ist',
       'card.whichWayHeading':     '0.40.0: neu — die Ueberschrift der Gegenueberstellung',
-      'server.importNoSpace':     '0.40.0: neu — die Absage bei zu wenig freiem Platz'
+      'server.importNoSpace':     '0.40.0: neu — die Absage bei zu wenig freiem Platz',
+      // Dieselben wie drueben.
+      'card.backupWhatHint': '0.41.0: die Karte nennt Benutzer und Einstellungen, die der Export nicht enthaelt',
+      'card.exportOnlyEntries': '0.41.0: neu — Export und Import enthalten nur die Eintraege',
+      'card.exportPurposeHint': '0.41.0: der Satz nennt, was der Export nicht enthaelt',
+      'card.limitAttachment': '0.41.0: neu — die Beschriftung der Grenze fuer Anhaenge',
+      'card.limitCommentImage': '0.41.0: neu — die Beschriftung der Grenze fuer Bilder im Kommentar',
+      'card.limitCommentVideo': '0.41.0: neu — die Beschriftung der Grenze fuer Videos im Kommentar',
+      'card.limitPhoto': '0.41.0: neu — die Beschriftung der Grenze fuer Fotos',
+      'card.limitRange': '0.41.0: neu — die Spanne unter jedem Feld der Grenzen',
+      'card.limitVideo': '0.41.0: neu — die Beschriftung der Grenze fuer Videos',
+      'card.onlyBackupComplete': '0.41.0: neu — nur das Backup ist eine vollstaendige Sicherung der Datenbank',
+      'card.proxyBodyHint': '0.41.0: neu — der Reverse Proxy muss Anfragen dieser Groesse durchlassen',
+      'card.uploadLimits': '0.41.0: neu — die Ueberschrift der Karte „Grenzen beim Hochladen"',
+      'card.uploadLimitsHint': '0.41.0: neu — was die Karte einstellt und ab wann es gilt',
+      'entry.addImage': '0.41.0: der Knopf im Kommentar nennt Bild und Video',
+      'entry.imageCapHint': '0.41.0: die Grenze zaehlt Bilder und Videos zusammen',
+      'entry.imagesAttached': '0.41.0: die Meldung nennt Bilder und Videos',
+      'entry.imagesRemovedAdmin': '0.41.0: die Marke nennt Bilder und Videos',
+      'entry.withAllImages': '0.41.0: die Loeschfrage nennt Bilder und Videos',
+      'error.proxyTooLarge': '0.41.0: neu — die Antwort 413 des Reverse Proxys ohne JSON',
+      'server.entriesTooLarge': '0.41.0: neu — der Export in einer Datei sagt ab und nennt die Eintraege',
+      'server.entryTooLarge': '0.41.0: neu — die Absage an ein Hochladen ueber der Grenze je Eintrag',
+      'server.imageCap': '0.41.0: die Absage zaehlt Bilder und Videos zusammen',
+      'server.uploadLimitRange': '0.41.0: neu — die Absage an eine Grenze ausserhalb ihrer Spanne'
     };
     const tgDiff = Object.keys(tgFiles.tr)
       .filter(k => JSON.stringify(tgPrint[k]) !== JSON.stringify(tgFiles.tr[k]));

@@ -3450,10 +3450,8 @@ const REGRESSIONS = [
     nr: '437', name: 'Der Schalter der Bildablage ist nur noch Adminsache',
     file: 'server.js',
     search: "const OWNER_KEYS = ['imageStore',\n" +
-           "                                'backupCleanup', 'backupKeep', 'backupDays',\n" +
-           "                                'languageDefault', 'languageOn', 'potentialMode'];",
-    replacement: "const OWNER_KEYS = ['backupCleanup', 'backupKeep', 'backupDays',\n" +
-           "                                'languageDefault', 'languageOn', 'potentialMode'];",
+           "                                'backupCleanup', 'backupKeep', 'backupDays',\n",
+    replacement: "const OWNER_KEYS = ['backupCleanup', 'backupKeep', 'backupDays',\n",
     expected: 'Die Bildablage: die Rechte'
   },
   {
@@ -6371,8 +6369,8 @@ const REGRESSIONS = [
        Adminsache -- die Antwort auf F3 ist damit zurueckgenommen. */
     nr: '809', name: 'Der Potenzialmodus ist wieder gewoehnliche Adminsache',
     file: 'server.js',
-    search: "                                'languageDefault', 'languageOn', 'potentialMode'];",
-    replacement: "                                'languageDefault', 'languageOn'];",
+    search: "                                'languageDefault', 'languageOn', 'potentialMode',\n",
+    replacement: "                                'languageDefault', 'languageOn',\n",
     expected: 'Der Potenzialmodus — 0.26.0'
   },
   {
@@ -8866,8 +8864,8 @@ const REGRESSIONS = [
     /* Die Zahl steht wieder nackt in der Routenzeile. */
     nr: '1101', name: 'Die Fotoroute nennt die 40 wieder ohne Namen',
     file: 'server.js',
-    search: "         capped(upload.array('photos', PHOTO_COUNT),",
-    replacement: "         capped(upload.array('photos', 40),",
+    search: "         cappedLive(bytes => photoUpload(bytes).array('photos', PHOTO_COUNT),",
+    replacement: "         cappedLive(bytes => photoUpload(bytes).array('photos', 40),",
     expected: 'Die Fotogrenzen haben Namen — 0.35.2'
   },
   {
@@ -9095,8 +9093,8 @@ const REGRESSIONS = [
   {
     nr: '1127', name: 'Ein Kommentar nennt wieder ein Papier beim Namen',
     file: 'server.js',
-    search: '/* DIE GRENZEN REISEN AM GESUCH MIT: der Fehler-Handler sieht die Route nicht',
-    replacement: '/* DIE GRENZEN REISEN AM GESUCH MIT -- Projektstand 5.3. Der Fehler-Handler sieht die Route nicht',
+    search: '// Die Grenzen reisen am Gesuch mit: der Fehler-Handler sieht die Route nicht mehr.',
+    replacement: '// Die Grenzen reisen am Gesuch mit -- Projektstand 5.3. Der Fehler-Handler sieht die Route nicht mehr.',
     expected: 'Kein Papierverweis geht mit hinaus'
   },
   {
@@ -9695,6 +9693,106 @@ const REGRESSIONS = [
     search: '  `SELECT id, mime_type, focus_x, focus_y, zoom, kind, duration,',
     replacement: '  `SELECT id, data, mime_type, focus_x, focus_y, zoom, kind, duration,',
     expected: 'Der Waechter ueber den Quelltext'
+  },
+  /* ---- Videos in Kommentaren, Download, Hinweisfeld, Leiste, Cookie, Backup, Grenzen ---- */
+  {
+    nr: '1204', name: 'Eine feste Wartezeit kommt in ein Modul zurueck',
+    file: 'test/ui_translator.js',
+    search: "    const spW = spDom.w;\n    /* DIE GESTELLTEN TEXTE",
+    replacement: "    await new Promise(r => setTimeout(r, 60));\n    const spW = spDom.w;\n    /* DIE GESTELLTEN TEXTE",
+    expected: 'Die Wartezeiten des Pruefstands — 0.35.0'
+  },
+  {
+    nr: '1205', name: 'Die Route der Kommentarvideos kennt keinen Range mehr',
+    file: 'server.js',
+    search: '  sendRanged(req, res, v.bytes);\n});',
+    replacement: '  res.send(v.bytes);\n});',
+    expected: 'Kommentarvideos: Auslieferung mit Range'
+  },
+  {
+    nr: '1206', name: 'Der Import kodiert ein Kommentarvideo als Bild',
+    file: 'server.js',
+    search: "                      duration: durationValue(v.duration), thumb: still, data });",
+    replacement: "                      duration: durationValue(v.duration), thumb: still,\n"
+      + "                      data: (await encodeCommentImage(still)).big });",
+    expected: 'Kommentarvideos: Rundlauf mit Format 19'
+  },
+  {
+    nr: '1207', name: 'Der Papierkorb kopiert das Standbild nicht',
+    file: 'server.js',
+    search: "    'INSERT INTO trash_bytes (trash_id, part, data) SELECT ?, ?, thumb FROM comment_videos WHERE id = ?'),",
+    replacement: "    'INSERT INTO trash_bytes (trash_id, part, data) SELECT ?, ?, data FROM comment_videos WHERE id = ?'),",
+    expected: 'Kommentarvideos: der Papierkorb'
+  },
+  {
+    nr: '1208', name: 'Der Link in der Bildansicht verliert download',
+    file: 'public/app.js',
+    search: '        <a class="lb-btn download" download title=',
+    replacement: '        <a class="lb-btn download" title=',
+    expected: 'Download je Foto und Video in der Bildansicht'
+  },
+  {
+    nr: '1209', name: 'Die Verschiebung des Hinweisfelds faellt weg',
+    file: 'public/app.js',
+    search: '  return Math.min(axis - width / 2, Math.max(width / 2, point));',
+    replacement: '  return point;',
+    expected: 'Das Hinweisfeld bleibt in der Zeitleiste'
+  },
+  {
+    nr: '1210', name: 'Die Formatierleiste wird nicht mehr angedockt',
+    file: 'public/app.js',
+    search: "  if (box.nextElementSibling !== field) wrap.insertBefore(box, field);\n  box.classList.add('docked');",
+    replacement: "  return markupMenuShow(field.getBoundingClientRect());",
+    expected: 'Die Formatierleiste steht am Feld'
+  },
+  {
+    nr: '1211', name: 'Das Cookie unter dem anderen Namen bleibt stehen',
+    file: 'server.js',
+    search: '  if (stale) res.append(\'Set-Cookie\', stale);\n',
+    replacement: '',
+    expected: 'Das Cookie unter dem anderen Namen wird geloescht'
+  },
+  {
+    nr: '1212', name: 'Ein Wert in de.json sagt wieder Sicherung',
+    file: 'public/languages/de.json',
+    search: '  "card.lastBackup": "Letztes Backup",',
+    replacement: '  "card.lastBackup": "Letzte Sicherung",',
+    expected: 'Das Wort heisst Backup'
+  },
+  {
+    nr: '1213', name: 'Die .env.example nennt wieder zugang.js',
+    file: '.env.example',
+    search: '#   docker compose exec kriterion node usertool.js password <name>',
+    replacement: '#   docker compose exec kriterion node zugang.js password <name>',
+    expected: 'Die Beispieldateien'
+  },
+  {
+    nr: '1214', name: 'Die Compose-Vorlage haengt wieder kriterion-sicherung ein',
+    file: 'docker-compose.example.yml',
+    search: '      - ./kriterion-backup:/app/backup\n',
+    replacement: '      - ./kriterion-sicherung:/app/backup\n',
+    expected: 'Englische Bezeichnungen in neuen Installationen'
+  },
+  {
+    nr: '1215', name: 'Der Server nimmt eine Grenze ueber der Obergrenze an',
+    file: 'server.js',
+    search: '          if (!Number.isInteger(n) || n < g.min || n > g.max)\n            refuse(\'server.uploadLimitRange\'',
+    replacement: '          if (!Number.isInteger(n) || n < g.min)\n            refuse(\'server.uploadLimitRange\'',
+    expected: 'Die Grenzen beim Hochladen'
+  },
+  {
+    nr: '1216', name: 'Die Pruefung je Eintrag beim Hochladen faellt weg',
+    file: 'server.js',
+    search: '  const z = qPartSizeOf().get(itemId);\n  if (!z) return false;',
+    replacement: '  const z = qPartSizeOf().get(itemId);\n  return false;',
+    expected: 'Die Grenze je Eintrag'
+  },
+  {
+    nr: '1217', name: 'Eine Antwort 413 ohne JSON zeigt wieder den Statuscode',
+    file: 'public/app.js',
+    search: "    else if (res.status === 413) m = t('error.proxyTooLarge');\n",
+    replacement: '',
+    expected: 'Die Antwort 413 vom Reverse Proxy'
   },
 ];
 

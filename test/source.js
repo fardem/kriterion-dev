@@ -1161,8 +1161,8 @@ async function run() {
     /* UND ZEHN MEHR: elf Saetze des Hinweises vor Export und Import und die
        Absage an zu wenig Platz, dagegen zwei Absagen weniger -- die Grenze
        des Gesamtexports ist fort. */
-    check('Und die Zahlen stehen: 1333 Schluessel, 88 Mehrzahlformen, 15 Vokabelnamen',
-      languageKeys.length === 1333 && pluralKeys.length === 88 && vocabularyKeys.length === 15,
+    check('Und die Zahlen stehen: 1346 Schluessel, 88 Mehrzahlformen, 15 Vokabelnamen',
+      languageKeys.length === 1346 && pluralKeys.length === 88 && vocabularyKeys.length === 15,
       `${languageKeys.length} / ${pluralKeys.length} / ${vocabularyKeys.length}`);
 
     /* ---- 3. */
@@ -1411,8 +1411,12 @@ async function run() {
     /* UND ZWEI FALLEN: die Absage vor dem Bau und das Netz darunter. Der
        Gesamtexport hat keine Grenze mehr. */
     const WORDING_GONE_0400 = ['server.exportTooBig', 'server.exportGrew'];
-    // Zwei neue: was der Export enthaelt und was nur das Backup enthaelt.
-    const WORDING_NEW_0410 = ['card.exportOnlyEntries', 'card.onlyBackupComplete'];
+    // Was der Export enthaelt, was nur das Backup enthaelt, und die Grenzen beim Hochladen.
+    const WORDING_NEW_0410 = ['card.exportOnlyEntries', 'card.onlyBackupComplete',
+      'card.uploadLimits', 'card.uploadLimitsHint', 'card.limitPhoto', 'card.limitCommentImage',
+      'card.limitVideo', 'card.limitCommentVideo', 'card.limitAttachment', 'card.limitRange',
+      'card.proxyBodyHint', 'error.proxyTooLarge', 'server.uploadLimitRange',
+      'server.entryTooLarge', 'server.entriesTooLarge'];
     const goneStill18 = [];
     for (const code of ['de', 'en', 'tr']) {
       const file = JSON.parse(fs.readFileSync(
@@ -3129,31 +3133,27 @@ async function run() {
       const hit = text.match(new RegExp(`^const ${name} = ([^;]+);$`, 'm'));
       return hit ? Function(`return (${hit[1]})`)() : null;
     };
-    for (const name of ['PHOTO_COUNT', 'PHOTO_MAX'])
-      check(`${name} steht einmal in server.js und einmal in public/app.js`,
-        (fgServer.match(new RegExp(`^const ${name} = `, 'gm')) || []).length === 1
-        && (fgApp.match(new RegExp(`^const ${name} = `, 'gm')) || []).length === 1,
-        `server.js ${(fgServer.match(new RegExp(`^const ${name} = `, 'gm')) || []).length}, ` +
-        `public/app.js ${(fgApp.match(new RegExp(`^const ${name} = `, 'gm')) || []).length}`);
-    /* UND BEIDE SEITEN TRAGEN DIESELBE ZAHL. Der Browser teilt danach auf,
-       der Server weist danach ab -- laufen sie auseinander, verliert der
-       Betreiber wieder Bilder. */
-    check('Und beide Seiten tragen dieselben Zahlen — 40 und 30 MB',
-      numberOf(fgServer, 'PHOTO_COUNT') === 40
-      && numberOf(fgApp, 'PHOTO_COUNT') === 40
-      && numberOf(fgServer, 'PHOTO_MAX') === 30 * 1024 * 1024
-      && numberOf(fgApp, 'PHOTO_MAX') === 30 * 1024 * 1024,
-      `server.js ${numberOf(fgServer, 'PHOTO_COUNT')}/${numberOf(fgServer, 'PHOTO_MAX')} · ` +
-      `public/app.js ${numberOf(fgApp, 'PHOTO_COUNT')}/${numberOf(fgApp, 'PHOTO_MAX')}`);
+    check('PHOTO_COUNT steht einmal in server.js und einmal in public/app.js',
+      (fgServer.match(/^const PHOTO_COUNT = /gm) || []).length === 1
+      && (fgApp.match(/^const PHOTO_COUNT = /gm) || []).length === 1,
+      `server.js ${(fgServer.match(/^const PHOTO_COUNT = /gm) || []).length}, ` +
+      `public/app.js ${(fgApp.match(/^const PHOTO_COUNT = /gm) || []).length}`);
+    // Die Grenze je Foto ist einstellbar; die Vorgabe steht auf beiden Seiten gleich.
+    check('Und beide Seiten tragen dieselben Zahlen — 40 und die Vorgabe 30 MB',
+      numberOf(fgServer, 'PHOTO_COUNT') === 40 && numberOf(fgApp, 'PHOTO_COUNT') === 40
+      && /photo: \{ fallback: 30, min: 1, max: 50,/.test(fgServer)
+      && /let UPLOAD_LIMITS = \{ photo: 30,/.test(fgApp) && !/PHOTO_MAX/.test(fgServer + fgApp),
+      `server.js ${numberOf(fgServer, 'PHOTO_COUNT')} · public/app.js ${numberOf(fgApp, 'PHOTO_COUNT')}`);
     check('Und die Routenzeile nennt keine nackte 40 mehr',
-      !/upload\.array\('photos', 40\)/.test(fgServer)
-      && /upload\.array\('photos', PHOTO_COUNT\)/.test(fgServer),
-      (fgServer.match(/.*upload\.array\('photos'.*/) || ['(keine Zeile)'])[0].trim());
+      !/\.array\('photos', 40\)/.test(fgServer)
+      && /photoUpload\(bytes\)\.array\('photos', PHOTO_COUNT\)/.test(fgServer),
+      (fgServer.match(/.*\.array\('photos'.*/) || ['(keine Zeile)'])[0].trim());
     /* Jede Hochladeroute reicht ihre Grenzen an den Fehler-Handler weiter,
        sonst steht dort die englische Meldung von multer. */
-    const fgCapped = (fgServer.match(/capped\(/g) || []).length;
+    const fgLive = (fgServer.match(/cappedLive\(/g) || []).length;
     check('Und alle sieben Hochladerouten reichen ihre Grenzen weiter',
-      fgCapped === 8, `${fgCapped} Stellen (sieben Routen und der Helfer selbst)`);
+      fgLive === 7 && /capped\(importUpload\.single\('file'\)/.test(fgServer),
+      `${fgLive} Stellen mit cappedLive (sechs Routen und der Helfer selbst), dazu der Import`);
     /* UND DER FEHLER-HANDLER UEBERSETZT DIE BEIDEN GRENZEN VON MULTER. */
     check('Der Fehler-Handler kennt LIMIT_FILE_SIZE und LIMIT_UNEXPECTED_FILE',
       /err\.code === 'LIMIT_FILE_SIZE'/.test(fgServer)
@@ -3164,9 +3164,9 @@ async function run() {
     check('Und der Browser schickt in Buendeln von PHOTO_COUNT',
       /for \(let at = 0; at < images\.length; at \+= PHOTO_COUNT\)/.test(fgApp),
       (fgApp.match(/.*at \+= PHOTO_COUNT.*/) || ['(keine Schleife)'])[0].trim());
-    check('Und er sagt vorher ab, was ueber PHOTO_MAX liegt',
-      /images\.find\(f => f\.size > PHOTO_MAX\)/.test(fgApp),
-      (fgApp.match(/.*f\.size > PHOTO_MAX.*/) || ['(keine Pruefung)'])[0].trim());
+    check('Und er sagt vorher ab, was ueber der Grenze je Foto liegt',
+      /overLimit\(images, 'photo'\)/.test(fgApp),
+      (fgApp.match(/.*overLimit\(images, 'photo'\).*/) || ['(keine Pruefung)'])[0].trim());
     /* UND DIE 50 STEHT NICHT MEHR ALS TEXT IM SATZ. */
     const fgLang = JSON.parse(fs.readFileSync(
       path.join(__dirname, 'public', 'languages', 'de.json'), 'utf8'));

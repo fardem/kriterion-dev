@@ -132,6 +132,7 @@ function buildDom(JSDOM, { withoutLanguage = false, settings = { filters: null }
      die Karte muss auseinanderhalten koennen, welcher der beiden laeuft. */
   statsGeometry = null,
   convertImages = true,
+  uploadLimits = null,
   twoFactorCodes = null, loginFactor = false, searchError = false, searchThrottles = null,
   categories = [{ id: 21, name: 'Werkzeug', usage_count: 2, language: 'de' },
                 { id: 22, name: 'Material', usage_count: 0, language: 'de' }],
@@ -293,6 +294,12 @@ function buildDom(JSDOM, { withoutLanguage = false, settings = { filters: null }
   ];
   /* Die Sicherung der Prueflage. Vorgabe: eingerichtet, mit einer Sicherung
      von vor drei Tagen. */
+  // Die Grenzen beim Hochladen in MB, mit der Spanne des Servers.
+  const uploadLimitsMock = { photo: 30, commentImage: 20, video: 20, commentVideo: 20, attachment: 50,
+    ...(uploadLimits || {}) };
+  const UPLOAD_RANGES_MOCK = { photo: { min: 1, max: 50, fallback: 30 },
+    commentImage: { min: 1, max: 50, fallback: 20 }, video: { min: 1, max: 100, fallback: 20 },
+    commentVideo: { min: 1, max: 100, fallback: 20 }, attachment: { min: 1, max: 100, fallback: 50 } };
   const backup = backupStatus || {
     configured: true, root: '/backup', place: 'taeglich', filePath: '/backup/taeglich',
     // Die Vorgabe ist die EMPFOHLENE Lage -- ausserhalb. Die Gegenlage steht
@@ -843,6 +850,7 @@ function buildDom(JSDOM, { withoutLanguage = false, settings = { filters: null }
     };
     if (url === '/api/settings' && (opt.method || 'GET') === 'GET')
       return give({ name: 'chefin', trashDays: 30, convertImages,
+        uploadLimits: { ...uploadLimitsMock }, uploadLimitRanges: UPLOAD_RANGES_MOCK,
         twoFactor: zfStatusMock.an === true,
         ...(settings.isAdmin === false ? {} : {
           categoryNames: namesTableMock(categories, categoryNames),
@@ -854,6 +862,18 @@ function buildDom(JSDOM, { withoutLanguage = false, settings = { filters: null }
     if (url === '/api/settings' && opt.method === 'PUT') {
       const sentBody = opt.body ? JSON.parse(opt.body) : {};
       if (sentBody.convertImages !== undefined) convertImages = !!sentBody.convertImages;
+      // Die Grenzen beim Hochladen: dieselbe Spanne und dieselbe Absage wie am Server.
+      if (sentBody.uploadLimits) {
+        if (settings.isOwner === false)
+          return give({ error: 'Das kann nur der Eigentümer dieser Installation.' }, 403);
+        for (const [k, v] of Object.entries(sentBody.uploadLimits)) {
+          const g = UPLOAD_RANGES_MOCK[k];
+          if (!g || !Number.isInteger(v) || v < g.min || v > g.max)
+            return give({ error: `Die Grenze muss eine ganze Zahl von ${g?.min} bis ${g?.max} MB sein.` }, 400);
+          uploadLimitsMock[k] = v;
+        }
+        return give({ uploadLimits: { ...uploadLimitsMock } });
+      }
       /* EIN SPRACHWECHSEL ANTWORTET MIT DEM SATZ DER NEUEN SPRACHE -- 0.24.4,
          und der echte Server tut genau das (nachgemessen: `localeOf(req)`
          liest den persoenlichen Schluessel, der in derselben Anfrage
@@ -896,7 +916,8 @@ function buildDom(JSDOM, { withoutLanguage = false, settings = { filters: null }
       return give({ convertImages });
     }
     if (url === '/api/settings') return give({ name: 'chefin', trashDays: 30,
-      convertImages, twoFactor: zfStatusMock.an === true, ...settings });
+      convertImages, twoFactor: zfStatusMock.an === true,
+      uploadLimits: { ...uploadLimitsMock }, uploadLimitRanges: UPLOAD_RANGES_MOCK, ...settings });
     /* DER PAPIERKORB IM MOCK, und er muss BEIDE Zustaende koennen: gefuellt
        und leer. */
     if (url === '/api/trash') {

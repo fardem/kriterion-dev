@@ -169,8 +169,9 @@ if (process.env.TESTBENCH_PROBE) {
   /* VIERUNDSECHZIG: die Lage des stueckweisen Exports bringt ihre eigene
      Basis mit -- sie startet denselben Server zweimal, vor und nach dem
      Leeren des Importordners. */
+  // Fuenfundsechzig: die Grenze je Eintrag braucht eine Instanz mit gesenktem EXCHANGE_MAX.
   check('Der Lauf hat seine Portbasen vermerkt',
-    pbBases.length === 64 && pbCases.length >= 60,
+    pbBases.length === 65 && pbCases.length >= 60,
     `${pbBases.length} Basen aus ${pbCases.length} Prueflagen: ${pbBases.join(' ')}`);
   // Und der Empfaenger selbst ist wirklich gelaufen: eine Liste ohne
   // Eintraege machte die Rechnung darueber wahr, ohne etwas zu belegen.

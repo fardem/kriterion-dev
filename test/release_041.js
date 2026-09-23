@@ -714,9 +714,162 @@ async function run() {
     const keys = [...app.matchAll(/^  \{ key: '([a-z]+)',\s+section: '/gm)].map(m => m[1]);
     check('Die Kartenschluessel im Systembereich sind englisch', equal(keys, ['myaccount', 'sessions',
       'appearance', 'categories', 'tags', 'criteria', 'potentialcriteria', 'vocabulary', 'links',
-      'searchengines', 'trash', 'accounts', 'requests', 'log', 'mail', 'stats', 'imagestore', 'backup',
+      'searchengines', 'trash', 'accounts', 'requests', 'log', 'mail', 'stats', 'imagestore', 'limits', 'backup',
       'cleanup', 'export', 'titles', 'languages']), keys.join(' '));
     fs.rmSync(toolDir, { recursive: true, force: true });
+  }
+
+  group('Die Grenzen beim Hochladen');
+  {
+    const limits = (await call('GET', '/api/settings')).content;
+    check('GET /api/settings nennt die fuenf Grenzen und ihre Obergrenzen',
+      equal(limits.uploadLimits, { photo: 30, commentImage: 20, video: 20, commentVideo: 20, attachment: 50 }) &&
+      limits.uploadLimitRanges?.photo?.max === 50 && limits.uploadLimitRanges?.commentImage?.max === 50 &&
+      limits.uploadLimitRanges?.video?.max === 100 && limits.uploadLimitRanges?.commentVideo?.max === 100 &&
+      limits.uploadLimitRanges?.attachment?.max === 100, JSON.stringify([limits.uploadLimits, limits.uploadLimitRanges]));
+    const zero = await call('PUT', '/api/settings', { uploadLimits: { video: 0 } });
+    const over = await call('PUT', '/api/settings', { uploadLimits: { video: 101 } });
+    const photoOver = await call('PUT', '/api/settings', { uploadLimits: { photo: 51 } });
+    check('0 MB und 101 MB fuer ein Video werden abgewiesen, 51 MB fuer ein Foto ebenso',
+      zero.status === 400 && over.status === 400 && photoOver.status === 400 &&
+      /Video.*1 bis 100 MB/.test(over.content?.error || ''), `${zero.status} ${over.status} ${photoOver.status} ${over.content?.error}`);
+    const hundred = await call('PUT', '/api/settings', { uploadLimits: { video: 100 } });
+    check('100 MB werden angenommen', hundred.status === 200 && hundred.content?.uploadLimits?.video === 100,
+      JSON.stringify(hundred.content?.uploadLimits));
+    const admin = await account('grenzen-admin', 'admin');
+    const byAdmin = await admin.as('PUT', '/api/settings', { uploadLimits: { photo: 10 } });
+    check('Nur der Eigentuemer aendert sie', byAdmin.status === 403, String(byAdmin.status));
+    // Eine geaenderte Grenze gilt beim naechsten Hochladen, ohne Neustart.
+    const lItem = await newItem('Grenzen');
+    const photo = await sharp({ create: { width: 900, height: 900, channels: 3, background: '#5a7' } })
+      .png({ compressionLevel: 0 }).toBuffer();
+    await call('PUT', '/api/settings', { uploadLimits: { photo: 1 } });
+    const small = await send(`/api/items/${lItem}/photos`, {}, [{ field: 'photos', name: 'a.png', type: 'image/png', content: photo }]);
+    check('Mit 1 MB wird ein groesseres Foto abgesagt, und die Absage nennt 1 MB',
+      photo.length > 1048576 && small.status === 400 && small.content?.error === deText('server.uploadSize', { mb: 1 }),
+      `${photo.length} Bytes · ${small.status} ${small.content?.error}`);
+    await call('PUT', '/api/settings', { uploadLimits: { photo: 30 } });
+    const again = await send(`/api/items/${lItem}/photos`, {}, [{ field: 'photos', name: 'a.png', type: 'image/png', content: photo }]);
+    check('Mit 30 MB geht dasselbe Foto durch', again.status === 201, `${again.status} ${again.content?.error}`);
+    await call('PUT', '/api/settings', { uploadLimits: { video: 20 } });
+    const d = db();
+    const stored = JSON.parse(d.prepare("SELECT value FROM settings WHERE key = 'uploadLimits'").get()?.value || '{}');
+    d.close();
+    check('Gespeichert in settings unter uploadLimits', equal(stored,
+      { photo: 30, commentImage: 20, video: 20, commentVideo: 20, attachment: 50 }), JSON.stringify(stored));
+    const serverCode = readText('server.js');
+    check('uploadLimits steht in OWNER_KEYS',
+      /const OWNER_KEYS = \[[^\]]*'uploadLimits'[^\]]*\]/.test(serverCode), 'fehlt');
+    check('In public/app.js stehen PHOTO_MAX und ATTACHMENT_MAX nicht mehr',
+      !/PHOTO_MAX|ATTACHMENT_MAX/.test(readText('public/app.js')), 'noch da');
+  }
+
+  group('Die Grenze je Eintrag');
+  {
+    // 2.800.000 Zeichen sind 2 MB an Dateien; KRITERION_EXCHANGE_MAX setzt nur der Pruefstand.
+    const eDir = fs.mkdtempSync(path.join(os.tmpdir(), 'kriterion-je-eintrag-'));
+    const B = H.startFurtherServer(eDir, { KRITERION_EXCHANGE_MAX: '2800000' }, 7340);
+    await B.ready;
+    await B.call('POST', '/api/setup', { user: 'eigen', password: 'eigen-langes-wort-41' });
+    const sendB = async (url, files) => {
+      const fd = new FormData();
+      for (const f of files) fd.append(f.field, new Blob([f.content], { type: f.type }), f.name);
+      const a = await fetch(B.base + url, { method: 'POST', body: fd, headers: withCsrf(B.cookieValue()) });
+      return { status: a.status, content: await a.json().catch(() => null) };
+    };
+    const file = (n) => ({ field: 'files', name: 'daten.bin', type: 'application/octet-stream', content: crypto.randomBytes(n) });
+    const eItem = (await B.call('POST', '/api/items', { title: 'Voll' })).content.id;
+    const first = await sendB(`/api/items/${eItem}/attachments`, [file(1536 * 1024)]);
+    check('Unter der Grenze je Eintrag geht ein Anhang durch', first.status === 201, `${first.status} ${first.content?.error}`);
+    const second = await sendB(`/api/items/${eItem}/attachments`, [file(1024 * 1024)]);
+    check('Ein Hochladen darueber wird abgesagt und nennt die Grenze in MB',
+      second.status === 413 && /Höchstens 2 MB je Eintrag/.test(second.content?.error || ''),
+      `${second.status} ${second.content?.error}`);
+    const cItem = (await B.call('POST', '/api/items', { title: 'Mit Kommentarvideo' })).content.id;
+    await sendB(`/api/items/${cItem}/attachments`, [file(1536 * 1024)]);
+    const fd = new FormData();
+    fd.append('text', 'Zu viel');
+    for (const f of videoFiles(mp4(1024 * 1024))) fd.append(f.field, new Blob([f.content], { type: f.type }), f.name);
+    const cv = await fetch(B.base + `/api/items/${cItem}/comments`, { method: 'POST', body: fd, headers: withCsrf(B.cookieValue()) });
+    check('Ein Kommentarvideo ueber der Grenze je Eintrag wird ebenso abgesagt', cv.status === 413, String(cv.status));
+    // Ein Eintrag, der schon vorher zu gross war, am Hochladen vorbei in die Datenbank.
+    const big = (await B.call('POST', '/api/items', { title: 'Altbestand' })).content.id;
+    const e = open(path.join(eDir, 'katalog.sqlite'));
+    e.prepare(`INSERT INTO attachments (item_id, filename, mime_type, size, data, sort_order, user_id)
+               VALUES (?, 'gross.bin', 'application/octet-stream', ?, ?, 0, 1)`)
+      .run(big, 2500 * 1024, crypto.randomBytes(2500 * 1024));
+    e.close();
+    const plan = (await B.call('GET', '/api/export/plan?files=1')).content;
+    check('Der Schnittplan nennt ihn als zu gross', (plan?.tooBig || []).some(z => z.title === 'Altbestand'),
+      JSON.stringify(plan?.tooBig));
+    await B.call('POST', '/api/confirm', { password: 'eigen-langes-wort-41', purpose: 'export' });
+    const whole = await fetch(B.base + '/api/export?photos=1&files=1', { headers: withCsrf(B.cookieValue()) });
+    const wholeBody = await whole.json().catch(() => null);
+    check('Der Export in einer Datei sagt vor dem ersten Byte mit 413 ab und nennt den Eintrag',
+      whole.status === 413 && /Altbestand/.test(wholeBody?.error || '') && /2 MB/.test(wholeBody?.error || ''),
+      `${whole.status} ${wholeBody?.error}`);
+    await B.call('POST', '/api/confirm', { password: 'eigen-langes-wort-41', purpose: 'export', target: '1' });
+    const part = await fetch(B.base + `/api/export?photos=1&files=1&from=1&to=${big}&part=1&parts=1`,
+      { headers: withCsrf(B.cookieValue()) });
+    const partBody = await part.json().catch(() => null);
+    const titles = (partBody?.items || []).map(i => i.title);
+    check('Der Teilexport laesst ihn aus und traegt die uebrigen',
+      part.status === 200 && !titles.includes('Altbestand') && titles.includes('Voll'), `${part.status} ${titles.join(' · ')}`);
+    const withoutFiles = await (async () => {
+      await B.call('POST', '/api/confirm', { password: 'eigen-langes-wort-41', purpose: 'export' });
+      const a = await fetch(B.base + '/api/export?photos=1', { headers: withCsrf(B.cookieValue()) });
+      await a.arrayBuffer();
+      return a.status;
+    })();
+    check('Ohne Dateien passt er und der Export laeuft', withoutFiles === 200, String(withoutFiles));
+    await B.stop();
+    fs.rmSync(eDir, { recursive: true, force: true });
+  }
+
+  group('Die Antwort 413 vom Reverse Proxy');
+  if (JSDOM) {
+    const dm = buildDom(JSDOM, { uploadLimits: { photo: 5 } });
+    const w = dm.w;
+    await until(w, (x) => x.document.getElementById('count') && openRequests(x) === 0, 2000, 'die Uebersicht');
+    check('Der Browser prueft mit den Werten des Servers', w.eval('UPLOAD_LIMITS.photo') === 5, String(w.eval('UPLOAD_LIMITS.photo')));
+    const inner = w.fetch;
+    const reply = (status, json) => Promise.resolve({ ok: false, status,
+      json: async () => { if (json === undefined) throw new SyntaxError('kein JSON'); return json; } });
+    w.fetch = (url, opt) => (url === '/api/proxy-probe' ? reply(413) : url === '/api/own-probe'
+      ? reply(413, { error: 'Eigene Absage.' }) : inner(url, opt));
+    const caught = async (expr) => { try { await w.eval(expr); return ''; } catch (e) { return e.message; } };
+    const plain = await caught("api('POST', '/api/proxy-probe', {})");
+    const own = await caught("api('POST', '/api/own-probe', {})");
+    const form = await caught("sendForm('/api/proxy-probe', new FormData())");
+    check('Eine Antwort 413 ohne JSON zeigt error.proxyTooLarge', plain === DE['error.proxyTooLarge'] &&
+      form === DE['error.proxyTooLarge'], `${plain} · ${form}`);
+    check('Eine Absage von Kriterion mit JSON behaelt ihren Satz', own === 'Eigene Absage.', own);
+    w.fetch = inner;
+    await sysSection(w, 'database');
+    const card = [...w.document.querySelectorAll('.sys-card')]
+      .find(c => c.querySelector('h3')?.textContent.trim() === DE['card.uploadLimits']);
+    check('Die Karte steht im Abschnitt Datenbank hinter „Bildformate"', !!card &&
+      card.previousElementSibling?.querySelector('h3')?.textContent.trim() === DE['card.imageFormats'],
+      card ? card.previousElementSibling?.querySelector('h3')?.textContent : 'keine Karte');
+    check('Und zeigt card.proxyBodyHint', !!card && card.textContent.includes(DE['card.proxyBodyHint']), 'fehlt');
+    const field = w.document.getElementById('limit-video');
+    field.value = '101';
+    field.onchange();
+    await until(w, (x) => openRequests(x) === 0 && x.document.querySelector('.toast'), 2000, 'die Absage');
+    check('Ein Wert ueber der Obergrenze wird abgesagt und das Feld zurueckgesetzt',
+      field.value === '20' && /1 bis 100 MB/.test(w.document.querySelector('.toast')?.textContent || ''),
+      `${field.value} ${w.document.querySelector('.toast')?.textContent}`);
+    field.value = '60';
+    field.onchange();
+    await until(w, (x) => openRequests(x) === 0 && x.eval('UPLOAD_LIMITS.video') === 60, 2000, 'die neue Grenze');
+    check('Ein Wert in der Spanne gilt danach auch im Browser', w.eval('UPLOAD_LIMITS.video') === 60, 'nicht uebernommen');
+    w.close();
+    const adminView = buildDom(JSDOM, { settings: { isOwner: false } });
+    await until(adminView.w, (x) => x.document.getElementById('count') && openRequests(x) === 0, 2000, 'die Uebersicht');
+    await sysSection(adminView.w, 'database');
+    const adminField = adminView.w.document.getElementById('limit-photo');
+    check('Der Admin sieht die Grenzen, aendern kann er sie nicht', !!adminField && adminField.disabled, adminField ? 'bedienbar' : 'keine Karte');
+    adminView.w.close();
   }
 }
 

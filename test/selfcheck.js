@@ -406,29 +406,29 @@ async function run() {
   {
     const crAll = require('./tools/comments.js').measureAll();
     const COMMENT_ROWS = [
-      ['testbench.js', 76],
+      ['testbench.js', 77],
       ['test/batchrun.js', 87],
-      ['test/dom.js', 338],
+      ['test/dom.js', 340],
       ['test/firstlogin.js', 34],
       ['test/frame.js', 240],
       ['test/keychange.js', 81],
       ['test/release_029.js', 60],
       ['test/release_030.js', 253],
-      ['test/release_031.js', 457],
-      ['test/release_041.js', 34],
-      ['test/roundtrip.js', 3313],
+      ['test/release_031.js', 463],
+      ['test/release_041.js', 37],
+      ['test/roundtrip.js', 3312],
       ['test/selfcheck.js', 234],
-      ['test/source.js', 947],
+      ['test/source.js', 945],
       ['test/ui_entry.js', 637],
       ['test/ui_export.js', 456],
       ['test/ui_inventory.js', 244],
       ['test/ui_language.js', 293],
       ['test/ui_overview.js', 499],
       ['test/ui_style.js', 607],
-      ['test/ui_system.js', 694],
+      ['test/ui_system.js', 695],
       ['test/ui_translator.js', 105],
-      ['counterproof.js', 1638],
-      ['server.js', 1590],
+      ['counterproof.js', 1639],
+      ['server.js', 1591],
       ['auth.js', 290],
       ['db.js', 136],
       ['mail.js', 43],
@@ -440,12 +440,12 @@ async function run() {
       ['usertool.js', 21],
       ['twofactor.js', 34],
       ['keytool.js', 39],
-      ['public/app.js', 1968],
+      ['public/app.js', 1970],
       ['public/theme.js', 3],
       ['public/style.css', 1223],
     ];
     // Kommentar- und Codezeilen ueber alle Dateien, gemessen mit tools/comments.js.
-    const COMMENT_TOTAL = { comment: 16834, code: 68643 };
+    const COMMENT_TOTAL = { comment: 16848, code: 69100 };
     check('Der Waechter sieht alle siebenunddreissig Dateien',
       crAll.each.length === 37 && COMMENT_ROWS.length === 37,
       `${crAll.each.length} gemessen, ${COMMENT_ROWS.length} genannt`);

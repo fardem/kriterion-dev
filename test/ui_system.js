@@ -216,18 +216,19 @@ async function run() {
   /* ZWEIUNDZWANZIG SEIT 0.24.3: „Sprachen" kommt dazu und steht UNMITTELBAR
      HINTER „Titel" -- die zweite Karte des Abschnitts „Installation", der bis
      dahin genau eine trug. */
+  // Dreiundzwanzig: „Grenzen beim Hochladen" steht hinter „Bildformate".
   const ALL_CARDS = [
     'Mein Konto', 'Meine Sitzungen', 'Darstellung',
     'Kategorien', 'Tags', 'Bewertung: Kriterien', 'Potenzial: Kriterien',
     'Vokabular', 'Links', 'Suchmaschinen', 'Papierkorb',
     'Benutzer', 'Anfragen', 'Sicherheitsprotokoll', 'Mailversand',
-    'Kennzahlen', 'Bildformate', 'Backup', 'Alte Backups', 'Export und Import',
+    'Kennzahlen', 'Bildformate', 'Grenzen beim Hochladen', 'Backup', 'Alte Backups', 'Export und Import',
     'Titel', 'Sprachen'];
-  check('Die Eigentuemerin sieht alle zweiundzwanzig Karten',
+  check('Die Eigentuemerin sieht alle dreiundzwanzig Karten',
     equal(kEig, ALL_CARDS), kEig.join(' · '));
   // Die ZAHL ausdruecklich, wie bei F_ROUTES: eine Karte, die still
 // verschwindet, faellt sonst niemandem auf.
-  check('Und es sind wirklich zweiundzwanzig', ALL_CARDS.length === 22 && kEig.length === 22,
+  check('Und es sind wirklich dreiundzwanzig', ALL_CARDS.length === 23 && kEig.length === 23,
     `${ALL_CARDS.length} erwartet, ${kEig.length} gezeichnet`);
   /* UND DIE ZWEITE KRITERIENKARTE STEHT HINTER DER ERSTEN -- dieselbe
      Nachbarschaftszusage wie bei „Alte Sicherungen" darunter, und aus
@@ -331,7 +332,7 @@ async function run() {
   const kOut = (await sysPass(rOut)).cards;
   check('Ist die Selbstanmeldung aus und nichts offen, steht die Karte "Anfragen" trotzdem',
     kOut.includes('Anfragen'), kOut.join(' · '));
-  check('Und es sind auch dann zweiundzwanzig', kOut.length === 22 && equal(kOut, ALL_CARDS),
+  check('Und es sind auch dann dreiundzwanzig', kOut.length === 23 && equal(kOut, ALL_CARDS),
     `${kOut.length} gezeichnet`);
   // Die Karte steht im Abschnitt „Zugaenge" -- dorthin, bevor an ihr geprueft wird.
   await sysSection(rOut.w, 'users');
@@ -1079,8 +1080,8 @@ async function run() {
   /* GEZAEHLT WIRD UEBER ALLE ABSCHNITTE, seit der Systembereich immer nur
      einen zeigt. */
   const zkAll = (await sysPass(zkOut)).cards;
-  check('Und die Zahl der Karten bleibt bei zweiundzwanzig',
-    zkAll.length === 22, `${zkAll.length}: ${zkAll.join(' · ')}`);
+  check('Und die Zahl der Karten bleibt bei dreiundzwanzig',
+    zkAll.length === 23, `${zkAll.length}: ${zkAll.join(' · ')}`);
   await sysSection(zkOut.w, 'personal');
   /* DER ZUSTAND STEHT OHNE KLICK DA. "An seit ..." oder "aus" -- nicht hinter
      einem Knopf, den man erst druecken muss. */

@@ -4306,7 +4306,7 @@ async function sendImport(object, mode, withoutShare = false) {
     check('OWNER_KEYS traegt `imageStore` und nicht mehr `convertImages`',
       stOwnerKeys.includes('imageStore') && !stOwnerKeys.includes('convertImages'),
       stOwnerKeys.join(' · '));
-    check('Und es bleiben genau sieben Schluessel', stOwnerKeys.length === 7,
+    check('Und es sind genau acht Schluessel', stOwnerKeys.length === 8,
       `${stOwnerKeys.length}: ${stOwnerKeys.join(' · ')}`);
   }
 
@@ -17443,11 +17443,10 @@ async function sendImport(object, mode, withoutShare = false) {
       core.indexOf("res.set('Content-Disposition'") < core.indexOf('writeExport'),
       `${core.indexOf("res.set('Content-Type'")} / ` +
       `${core.indexOf("res.set('Content-Disposition'")} / ${core.indexOf('writeExport')}`);
-    /* KEINE ABSAGE VOR DEM BAU MEHR: die Grenze des Gesamtexports ist fort,
-       und mit ihr das Netz darunter. */
-    check('Und sie sagt nicht mehr ab, bevor sie baut',
-      !/EXCHANGE_MAX/.test(core) && !/413/.test(core) && !/RangeError/.test(core),
-      core.replace(/\s+/g, ' ').slice(0, 240));
+    // Die Grenze des Gesamtexports ist fort; abgesagt wird nur wegen eines einzelnen Eintrags.
+    check('Und sie sagt nur ab, wenn ein einzelner Eintrag zu gross ist',
+      /const oversized = exchangePlan\(switches\)\.tooBig;/.test(core) && /res\.status\(413\)/.test(core)
+      && !/RangeError/.test(core), core.replace(/\s+/g, ' ').slice(0, 240));
     /* DER RUECKSTAU WIRD BEACHTET: ohne das sammelt sich die ganze Datei im
        Puffer des Sockets, und der Umbau haette nichts gebracht. */
     const fWrite = (fSource.match(/async function writeExport\([\s\S]*?\n\}/) || [''])[0];

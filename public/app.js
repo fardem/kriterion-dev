@@ -68,14 +68,15 @@ const tMarks = (key, parts, values) => {
    keine Verbesserung. */
 const SESSION_GONE = 'kriterion:session-gone';
 
-/* DIE FOTOGRENZEN, und dieselben Zahlen stehen in server.js. Der Browser
-   teilt danach auf und sagt vorher, was zu gross ist; der Server sagt es noch
-   einmal, weil die Route auch ohne Browser erreichbar ist. */
+/* Fotos je Anfrage, dieselbe Zahl wie in server.js. Der Browser teilt danach
+   auf; der Server prueft noch einmal, weil die Route auch ohne Browser erreichbar ist. */
 const PHOTO_COUNT = 40;
-const PHOTO_MAX = 30 * 1024 * 1024;
-// Ebenso am Anhangsweg, und der Satz `entry.tooBig` bekommt die Zahl jetzt
-// als Platzhalter statt sie ein zweites Mal auszuschreiben.
-const ATTACHMENT_MAX = 50 * 1024 * 1024;
+/* Die Grenzen beim Hochladen in MB; die Werte kommen aus GET /api/settings. */
+let UPLOAD_LIMITS = { photo: 30, commentImage: 20, video: 20, commentVideo: 20, attachment: 50 };
+let UPLOAD_LIMIT_RANGES = {};
+// Die erste Datei ueber der Grenze ihrer Art, oder null.
+const overLimit = (files, kind) => files.find(f => f.size > UPLOAD_LIMITS[kind] * 1048576) || null;
+const tooBigText = (file, kind) => t('entry.tooBig', { name: file.name, mb: UPLOAD_LIMITS[kind] });
 
 /* ZWEI FORMEN, UND DIE ZAHL WAEHLT -- ueber Intl.PluralRules und nicht ueber
    `n === 1`. */
@@ -205,7 +206,11 @@ async function api(method, url, body, isForm = false) {
   if (res.status === 401) { showLogin(); throw new Error(SESSION_GONE); }
   if (!res.ok) {
     let m = t('error.serverStatus', { status: res.status });
-    try { const j = await res.json(); if (j.error) m = j.error; } catch {}
+    let j = null;
+    try { j = await res.json(); } catch {}
+    if (j && j.error) m = j.error;
+    // Eine 413 ohne JSON kommt vom Reverse Proxy davor, nicht von Kriterion.
+    else if (res.status === 413) m = t('error.proxyTooLarge');
     throw new Error(m);
   }
   return res.status === 204 ? null : res.json();
@@ -1140,7 +1145,8 @@ async function sendForm(path, form) {
     credentials: 'same-origin', headers: csrfHeader() });
   const data = await a.json().catch(() => ({}));
   if (a.status === 401) { showLogin(); throw new Error(SESSION_GONE); }
-  if (!a.ok) throw new Error(data.error || t('entry.uploadFailed'));
+  if (!a.ok) throw new Error(data.error ||
+    (a.status === 413 ? t('error.proxyTooLarge') : t('entry.uploadFailed')));
   return data;
 }
 
@@ -2789,6 +2795,8 @@ async function loadSettings() {
   if (Array.isArray(SETTINGS.imageStores) && SETTINGS.imageStores.length)
     IMAGE_STORES = SETTINGS.imageStores;
   if (SETTINGS.trashDays) TRASH_DAYS = SETTINGS.trashDays;
+  if (SETTINGS.uploadLimits) UPLOAD_LIMITS = { ...UPLOAD_LIMITS, ...SETTINGS.uploadLimits };
+  if (SETTINGS.uploadLimitRanges) UPLOAD_LIMIT_RANGES = SETTINGS.uploadLimitRanges;
   TWO_FACTOR = SETTINGS.twoFactor === true;
   applyFont();
   applyTiles();
@@ -5428,10 +5436,10 @@ async function renderDetail(id, termAddress, commentWanted) {
     dropText.textContent = t('entry.uploading');
     let finished = 0;
     try {
+      const bigPhoto = overLimit(images, 'photo'), bigVideo = overLimit(videos, 'video');
+      if (bigPhoto) throw new Error(tooBigText(bigPhoto, 'photo'));
+      if (bigVideo) throw new Error(tooBigText(bigVideo, 'video'));
       if (images.length) {
-        const tooBig = images.find(f => f.size > PHOTO_MAX);
-        if (tooBig) throw new Error(t('entry.tooBig',
-          { name: tooBig.name, mb: PHOTO_MAX / 1048576 }));
         /* IN BUENDELN VON PHOTO_COUNT: multer bricht beim naechsten Bild die
            GANZE Anfrage ab, aus 80 gewaehlten Fotos wuerde sonst keines. Eine
            Obergrenze je Eintrag ist das nicht. */
@@ -6583,18 +6591,14 @@ async function renderDetail(id, termAddress, commentWanted) {
     const files = [...e.target.files];
     e.target.value = '';
     if (!files.length) return;
-    const tooBig = files.find(f => f.size > ATTACHMENT_MAX);
-    if (tooBig) return toast(t('entry.tooBig',
-      { name: tooBig.name, mb: ATTACHMENT_MAX / 1048576 }), true);
+    const tooBig = overLimit(files, 'attachment');
+    if (tooBig) return toast(tooBigText(tooBig, 'attachment'), true);
     const fd = new FormData();
     files.forEach(f => fd.append('files', f));
     try {
       toast(t('entry.uploadingTitle'));
-      const r = await fetch(`/api/items/${id}/attachments`, { method: 'POST', body: fd,
-        credentials: 'same-origin', headers: csrfHeader() });
-      const data = await r.json();
-      if (!r.ok) throw new Error(data.error || t('entry.uploadFailed'));
-      item = data; drawAtts();
+      item = await sendForm(`/api/items/${id}/attachments`, fd);
+      drawAtts();
       toast(t('entry.filesAttached', { n: files.length }));
     } catch (e2) { toast(e2.message, true); }
   };
@@ -6789,6 +6793,8 @@ async function renderDetail(id, termAddress, commentWanted) {
           const images = files.filter(f => !/^video\//.test(f.type));
           const videos = files.filter(f => /^video\//.test(f.type));
           if (!files.length) return;
+          const big = overLimit(images, 'commentImage') || overLimit(videos, 'commentVideo');
+          if (big) return toast(tooBigText(big, big.type.startsWith('video/') ? 'commentVideo' : 'commentImage'), true);
           let sent = 0;
           try {
             if (images.length) {
@@ -6880,6 +6886,8 @@ async function renderDetail(id, termAddress, commentWanted) {
     const images = files.filter(f => f.type.startsWith('image/'));
     const videos = files.filter(f => f.type.startsWith('video/'));
     if (!images.length && !videos.length) return;
+    const big = overLimit(images, 'commentImage') || overLimit(videos, 'commentVideo');
+    if (big) return toast(tooBigText(big, big.type.startsWith('video/') ? 'commentVideo' : 'commentImage'), true);
     if (videos.length > 1 || (videos.length && newVideo)) return toast(t('server.videoOne'), true);
     if (newImages.length + images.length + (newVideo || videos.length ? 1 : 0) > 6)
       return toast(t('entry.imageCapHint'), true);
@@ -7154,8 +7162,8 @@ function saved(el = document.activeElement) {
 }
 
 
-/* ---- DIE NEUNZEHN KARTEN ---- `visible` ist die Klemme, `markup` das
-   Aussehen, `wireUp` die Behandler. */
+/* ---- Die Karten des Systembereichs ---- `visible` ist die Klemme, `markup`
+   das Aussehen, `wireUp` die Behandler. */
 const SYS_CARDS = [
   { key: 'myaccount',    section: 'personal', visible: () => true,
     markup: cardUser,       wireUp: setUpUserOut },
@@ -7197,6 +7205,9 @@ const SYS_CARDS = [
     markup: cardStats,    wireUp: setUpStatsOut },
   { key: 'imagestore',   section: 'database', visible: () => ADMIN,
     markup: cardImageStore,   wireUp: setUpImageStoreOut },
+  // Admins sehen die Grenzen, aendern kann sie der Eigentuemer.
+  { key: 'limits',       section: 'database', visible: () => ADMIN,
+    markup: cardLimits,       wireUp: setUpLimitsOut },
   { key: 'backup',       section: 'database', visible: () => OWNER,
     markup: cardBackup,    wireUp: setUpBackupOut },
   // Direkt hinter "Backup": die eine Karte legt Backups an, die andere raeumt sie weg.
@@ -9814,6 +9825,42 @@ function cardImageStore(fetched) {
         ${switchRow(stats.conversion)}
         ${geometryRow(stats.geometry)}` : ''}
       </div>`;
+}
+
+
+/* ---- Karte „Grenzen beim Hochladen" — Abschnitt „Datenbank" ---- */
+const LIMIT_KINDS = [['photo', 'card.limitPhoto'], ['commentImage', 'card.limitCommentImage'],
+  ['video', 'card.limitVideo'], ['commentVideo', 'card.limitCommentVideo'],
+  ['attachment', 'card.limitAttachment']];
+function cardLimits() {
+  return `<div class="sys-card">
+        <h3>${tH('card.uploadLimits')}</h3>
+        <p class="desc">${tH('card.uploadLimitsHint')}</p>
+        ${LIMIT_KINDS.map(([kind, label]) => {
+          const g = UPLOAD_LIMIT_RANGES[kind] || {};
+          return `<div class="field"><label for="limit-${kind}">${tH(label)}</label>
+          <p class="desc" style="margin:0 0 6px">${tH('card.limitRange', { min: g.min, max: g.max })}</p>
+          <input class="input" id="limit-${kind}" type="number" inputmode="numeric" data-limit="${kind}"
+            min="${Number(g.min)}" max="${Number(g.max)}" step="1" value="${Number(UPLOAD_LIMITS[kind])}"${
+            OWNER ? '' : ' disabled'}></div>`;
+        }).join('')}
+        <p class="hint hint-sm" style="margin:6px 2px 0">${tH('card.proxyBodyHint')}</p>
+      </div>`;
+}
+function setUpLimitsOut() {
+  if (!OWNER) return;
+  document.querySelectorAll('[data-limit]').forEach(el => {
+    el.onchange = async () => {
+      try {
+        const r = await api('PUT', '/api/settings', { uploadLimits: { [el.dataset.limit]: Number(el.value) } });
+        if (r.uploadLimits) UPLOAD_LIMITS = { ...UPLOAD_LIMITS, ...r.uploadLimits };
+        saved(el);
+      } catch (e) {
+        el.value = UPLOAD_LIMITS[el.dataset.limit];
+        toast(e.message, true);
+      }
+    };
+  });
 }
 
 
