@@ -9358,7 +9358,7 @@ function setUpLogOut(fetched) {
     if (!rows.length) {
       /* ZWEI LEERE FAELLE, ZWEI SAETZE. */
       box.innerHTML = logGroup
-        ? `<p class="hint">${tH('card.noEventKind')} ${esc(String(d && d.days || ''))} ${tH('card.daysDot')}</p>`
+        ? `<p class="hint">${tH('card.noEventKind', { days: d && d.days || '' })}</p>`
         : `<p class="hint">${tH('card.noEventYet')}</p>`;
       if (foot) foot.textContent = '';
       return;
@@ -9394,10 +9394,10 @@ function setUpLogOut(fetched) {
     }
     if (foot) {
       const total = Number(d.total) || rows.length;
-      const kind = logGroup ? t('card.ofThisKind') : '';
       foot.textContent = total > rows.length
-        ? t('card.logNewestHint', { length: rows.length, total: total, kind: kind })
-        : t('card.eventCount', { n: total, kind: kind });
+        ? (logGroup ? t('card.logNewestKind', { length: rows.length, total: total })
+                    : t('card.logNewestHint', { length: rows.length, total: total }))
+        : (logGroup ? t('card.eventCountKind', { n: total }) : t('card.eventCount', { n: total }));
     }
   }
 

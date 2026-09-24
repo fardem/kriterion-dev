@@ -4963,8 +4963,8 @@ const REGRESSIONS = [
        Benutzers, wie bis 0.21.1 an den Wiederherstellungscodes. */
     nr: '628', name: 'Ein Server-Befehl steht wieder im Fliesstext der Karte Mein Konto',
     file: 'public/languages/de.json',
-    search: "\"card.forgotPasswordHint\": \"Ein vergessenes Passwort setzt du auf dem Server zurück:\",",
-    replacement: "\"card.forgotPasswordHint\": \"Ein vergessenes Passwort setzt du mit docker compose exec kriterion node usertool.js password <name> zurück.\",",
+    search: "\"card.forgotPasswordHint\": \"Das Passwort eines Benutzers auf dem Server zurücksetzen:\",",
+    replacement: "\"card.forgotPasswordHint\": \"Das Passwort eines Benutzers mit docker compose exec kriterion node usertool.js password <name> zurücksetzen.\",",
     expected: 'Server-Befehle nur im Kasten — 0.22.0'
   },
   {
@@ -7890,8 +7890,8 @@ const REGRESSIONS = [
     /* ZUSAGE 8: die letzte HTML-Entitaet kommt zurueck. */
     nr: '996', name: 'Ein tuerkischer Wert traegt wieder eine HTML-Entitaet',
     file: 'public/languages/tr.json',
-    search: "katkıları bundan sonra “Silinen kullanıcı” adıyla ve bir numarayla görünür.",
-    replacement: "katkıları bundan sonra “Silinen kullanıcı &lt;numara&gt;” altında görünür.",
+    search: "Katkılar kalır ve “Silinen kullanıcı” adıyla bir numarayla görünür.",
+    replacement: "Katkılar kalır ve “Silinen kullanıcı &lt;numara&gt;” altında görünür.",
     expected: 'Tuerkisch sitzt — 0.31.3'
   },
   {
@@ -7914,8 +7914,8 @@ const REGRESSIONS = [
     /* ZUSAGE 11: die eine siz-Form kommt zurueck. */
     nr: '999', name: 'Ein tuerkischer Wert spricht den Benutzer wieder hoeflich an',
     file: 'public/languages/tr.json',
-    search: "Birini değiştir ya da boşalt — bir sonraki başlatmada",
-    replacement: "Birini değiştirin ya da boşaltın — bir sonraki başlatmada",
+    search: "Çift adresleri değiştir ya da boşalt;",
+    replacement: "Çift adresleri değiştirin ya da boşaltın;",
     expected: 'Tuerkisch sitzt — 0.31.3'
   },
   {
