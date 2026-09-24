@@ -4200,7 +4200,7 @@ group('Was der Betrieb an der Auszeichnung gefunden hat');
     saidBefore.length === 1 && saidBefore[0].red, JSON.stringify(saidBefore));
   const byHand = require(path.join(__dirname, 'public', 'languages', 'de.json'))['card.copyByHand'];
   check('Und sie nennt den Grund statt nur eine Anweisung',
-    /https/.test(byHand) && /Zwischenablage/.test(byHand), JSON.stringify(byHand));
+    /https/i.test(byHand) && /Zwischenablage/.test(byHand), JSON.stringify(byHand));
   wb.toast = realToast;
   if (realClip) wb.navigator.clipboard = realClip;
 
@@ -4452,8 +4452,14 @@ group('Der Sprung zum Kommentar trifft und haelt');
   check('Und er wird vergessen, damit die naechste Zeichnung wieder fragt',
     wb.markupRefMissing([`Siehe ${spHere}#/item/1?c=78`]).join('') === 'c78',
     wb.markupRefMissing([`Siehe ${spHere}#/item/1?c=78`]).join(' '));
+  wb.api = async () => [];
+  wb.eval("COMMENT_REFS.delete('c79'); COMMENT_REFS_ASK.clear();");
+  await wb.markupRefLoad(['c79']);
+  check('Ein gefragter Schluessel ohne Antwort traegt danach die Marke „geloescht“',
+    wb.eval("JSON.stringify(COMMENT_REFS.get('c79'))") === '{"key":"c79","gone":true}',
+    String(wb.eval("JSON.stringify(COMMENT_REFS.get('c79'))")));
   wb.api = spReal;
-  wb.eval("COMMENT_REFS.delete('c77'); COMMENT_REFS_ASK.clear();");
+  wb.eval("COMMENT_REFS.delete('c77'); COMMENT_REFS.delete('c79'); COMMENT_REFS_ASK.clear();");
   spBox.innerHTML = spWas;
 }
 
