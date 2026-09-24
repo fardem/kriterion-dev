@@ -32,7 +32,7 @@ Nicht:
 ### Begriffe
 
 Für Dinge der Oberfläche gilt der Name aus `public/languages/de.json`, nicht der
-aus dem Code. Beispiel: Karte „Verschlüsselung", nicht „Systembereich".
+aus dem Code. Beispiel: „Einstellungen", nicht „Systembereich".
 
 Diese Eigennamen bleiben, bis sie in einer eigenen Runde umbenannt werden:
 `Fahrplan`, `Projektstand`, `Änderungsprotokoll`, `Prüfstand` (`testbench.js`),
