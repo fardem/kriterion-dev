@@ -1283,7 +1283,7 @@ async function run() {
     check('Der Admin sieht statt des Schluessels einen Satz an den Eigentuemer',
       !rwAdmK.w.document.getElementById('keyline') &&
       !/ENCRYPTION_KEY=abab/.test(rwAdmK.w.document.getElementById('app')?.textContent || '') &&
-      /Der Eigentümer sollte ihn in die Server-Einstellung/.test(rwAdmK.w.document.getElementById('app')?.textContent || '') &&
+      D.shows(rwAdmK.w.document.getElementById('app')?.textContent, 'card.keyStillBeside') &&
       !rwAdmK.w.document.querySelector('.server-box'),
       (rwAdmK.w.document.querySelector('.warn-box')?.textContent || '').slice(0, 160));
     rwEigK.w.close(); rwAdmK.w.close();

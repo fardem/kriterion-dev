@@ -124,7 +124,7 @@ docker compose up -d --build
 unter `http://<server-ip>:3100` erreichbar.
 
 Beim ersten Aufruf im Browser werden Benutzername und Passwort gesetzt
-(mindestens zehn Zeichen). Dieser Account ist der Eigentümer. Kriterien,
+(mindestens zehn Zeichen). Dieser Account ist der Eigentümer-Admin. Kriterien,
 weitere Benutzer und Mailversand werden in der Oberfläche eingerichtet; siehe
 [Handbuch](manual-de.md).
 
@@ -165,7 +165,7 @@ und Schlüssel zusammen.
 **Schlüssel in die `.env` übernehmen:**
 
 1. In der Oberfläche den Wert aus der Karte „Kennzahlen" kopieren (nur für den
-   Eigentümer sichtbar).
+   Eigentümer-Admin sichtbar).
 2. `ENCRYPTION_KEY=<Wert>` in die `.env` eintragen.
 3. `docker compose up -d`
 4. Im Protokoll prüfen: `Key loaded from ENCRYPTION_KEY.`
@@ -387,7 +387,7 @@ stehen im Sicherheitsprotokoll als „per Kommandozeile am Server".
 | `docker compose exec kriterion node usertool.js password <name>` | neues Passwort setzen; alle Sitzungen des Benutzers enden |
 | `docker compose exec kriterion node usertool.js twofactor <name>` | zweiten Faktor ausschalten (einschalten geht nur in der Oberfläche) |
 | `docker compose exec kriterion node usertool.js remove <name>` | Account stilllegen |
-| `docker compose exec kriterion node usertool.js owner <name>` | Eigentümer bestimmen, wenn der bisherige nicht mehr hereinkommt |
+| `docker compose exec kriterion node usertool.js owner <name>` | Eigentümer-Admin bestimmen, wenn der bisherige nicht mehr hereinkommt |
 | `./keytool.sh show`, `./keytool.sh change` | Schlüssel anzeigen oder wechseln |
 
 Läuft der Container nicht, geht dasselbe mit

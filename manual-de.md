@@ -39,7 +39,7 @@ mehr. Bitte beim Admin einen neuen anfordern."
 ### Zweiter Faktor
 
 Freiwillig, je Account, ab Werk aus. Niemand kann ihn für einen anderen ein-
-oder ausschalten, auch der Eigentümer nicht. Der Code kommt aus einer App auf
+oder ausschalten, auch der Eigentümer-Admin nicht. Der Code kommt aus einer App auf
 dem Telefon; Kriterion verschickt keine Codes.
 
 Einschalten in der Karte „Mein Account":
@@ -62,7 +62,7 @@ vom Telefon aufbewahren.** Ohne sie ist ein verlorenes Telefon ein verlorener
 Account. Neue Codes gibt es in „Mein Account" gegen Passwort und Code; die alten
 verfallen dann.
 
-Sind Telefon und Codes weg, schaltet der Eigentümer den zweiten Faktor auf dem
+Sind Telefon und Codes weg, schaltet der Eigentümer-Admin den zweiten Faktor auf dem
 Server aus (README, „Befehle auf dem Server").
 
 ### Zweite Bestätigung
@@ -80,16 +80,16 @@ Nicht bestätigt werden: Sperren und Entsperren, Anlegen eines Benutzers,
 | Rolle | darf |
 |---|---|
 | Benutzer | eigene Einträge, Kommentare, Bewertungen, Testtage, Favoriten |
-| Admin | zusätzlich Kriterien, Tags, Kategorien, Titel, Vokabular, Suchmaschinen; fremde Beiträge löschen (nicht ändern); Benutzer verwalten, aber keine Admins und nicht den Eigentümer |
-| Eigentümer | zusätzlich Export, Import, Backup, Mailzugang, Rollenvergabe, Schlüsselwert, Sicherheitsprotokoll |
+| Admin | zusätzlich Kriterien, Tags, Kategorien, Titel, Vokabular, Suchmaschinen; fremde Beiträge löschen (nicht ändern); Benutzer verwalten, aber keine Admins und nicht den Eigentümer-Admin |
+| Eigentümer-Admin | zusätzlich Export, Import, Backup, Mailzugang, Rollenvergabe, Schlüsselwert, Sicherheitsprotokoll |
 
-Wer die Installation einrichtet, ist Eigentümer. Die Rolle lässt sich
+Wer die Installation einrichtet, ist Eigentümer-Admin. Die Rolle lässt sich
 weitergeben.
 
 Verwaltet wird in der Karte „Benutzer" (Einstellungen › Benutzer). Es gilt:
 
-- Ein Admin ändert keine anderen Admins und nicht den Eigentümer.
-- Der letzte aktive Eigentümer lässt sich nicht herabstufen, sperren oder
+- Ein Admin ändert keine anderen Admins und nicht den Eigentümer-Admin.
+- Der letzte aktive Eigentümer-Admin lässt sich nicht herabstufen, sperren oder
   entfernen.
 - Niemand sperrt oder entfernt sich selbst.
 
@@ -161,7 +161,7 @@ Optional. Ohne Mailzugang stehen alle Links zum Kopieren da. Kriterion
 verschickt nur zwei Arten von E-Mails, beide als reiner Text: Tokenlinks und
 die Testmail.
 
-Den Mailzugang richtet nur der Eigentümer ein, in der Karte „Mailversand"
+Den Mailzugang richtet nur der Eigentümer-Admin ein, in der Karte „Mailversand"
 (Einstellungen › Benutzer). Der Dialog fragt Anbieter (GMX, Web.de, Gmail,
 Strato, IONOS oder „Eigener Server"), Benutzername, Passwort und
 Absenderadresse. Server, Port und Verschlüsselung kommen bei den Vorlagen aus
@@ -193,7 +193,7 @@ werden nicht gespeichert. Jeder sieht nur seine eigenen Sitzungen.
 
 ### Sicherheitsprotokoll
 
-Nur für den Eigentümer. Es verzeichnet Anmeldungen (gelungen und
+Nur für den Eigentümer-Admin. Es verzeichnet Anmeldungen (gelungen und
 gescheitert), Änderungen an Benutzern und Rollen, gesetzte Passwörter,
 erzeugte und eingelöste Links, Export, Import, Backup und Schlüsselwechsel.
 Nicht darin: Inhalte von Einträgen, IP-Adressen, Browserkennungen.
@@ -317,7 +317,7 @@ geht direkt dort.
 
 - Hinzufügen per Dateiauswahl, Strg+V oder Ablegen auf dem Feld.
 - Fotos bis 30 MB, Videos (MP4, WebM, MOV) bis 20 MB. Die Grenzen stellt der
-  Eigentümer ein. Die Zahl der Fotos ist nicht begrenzt.
+  Eigentümer-Admin ein. Die Zahl der Fotos ist nicht begrenzt.
 - Das erste Element ist das Hauptbild. Reihenfolge durch Ziehen der
   Vorschaubilder.
 - Blättern mit ← → oder den Pfeilen. Ein Klick öffnet das Vollbild, ein
@@ -377,11 +377,11 @@ Kopfzeile einklappen. Die Anordnung gilt für alle Einträge und wird in
 
 Jedes Löschen fragt nach. Beim Eintrag nennt die Rückfrage, was daran hängt.
 Gelöschte Einträge liegen 30 Tage im Papierkorb; zurückholen kann sie der
-Eigentümer (Einstellungen › Bestand, Karte „Papierkorb").
+Eigentümer-Admin (Einstellungen › Bestand, Karte „Papierkorb").
 
 ### Eintrag exportieren
 
-Nur Eigentümer: „Eintrag exportieren" am Fuß des Eintrags schreibt eine
+Nur für den Eigentümer-Admin: „Eintrag exportieren" am Fuß des Eintrags schreibt eine
 Exportdatei mit diesem einen Eintrag samt Dateien.
 
 ## Kommentare
@@ -426,7 +426,7 @@ Durchschnitten:
 An einem getesteten Eintrag ist die Bewertung offen und das Potenzial
 zugeklappt, sonst umgekehrt. Der zugeklappte Kasten zeigt seine Zahl im Kopf.
 Der Potenzialmodus lässt sich in der Karte „Potenzial: Kriterien" abschalten
-(nur Eigentümer); die Sterne bleiben dabei erhalten.
+(nur Eigentümer-Admin); die Sterne bleiben dabei erhalten.
 
 - Die Sterne sind die eigene Bewertung. Ab zwei Benutzern steht daneben der
   Schnitt aller, ab zwei Bewertungen mit Anzahl.
@@ -457,12 +457,12 @@ eigene Adresse. Abschnitte ohne sichtbare Karte erscheinen nicht.
 
 Ein Benutzer sieht seine eigenen Karten und die Listen der Kategorien, Tags
 und Kriterien ohne Bearbeitung. Alles Weitere sieht der Admin; Export, Import,
-Backup und Sicherheitsprotokoll nur der Eigentümer.
+Backup und Sicherheitsprotokoll nur der Eigentümer-Admin.
 
 | Karte | Inhalt |
 |---|---|
 | Titel | Titel vor der Anmeldung (für jeden sichtbar, zurückhaltend wählen) und Titel nach der Anmeldung |
-| Kennzahlen | Umfang des Bestands, Datenbankgröße, Version, Fingerprint, Verschlüsselungsverfahren; für den Eigentümer der Schlüsselwert |
+| Kennzahlen | Umfang des Bestands, Datenbankgröße, Version, Fingerprint, Verschlüsselungsverfahren; für den Eigentümer-Admin der Schlüsselwert |
 | Kategorien, Tags | anlegen, umbenennen, löschen; ein Häkchen legt fest, ob jeder neue Namen am Eintrag anlegen darf |
 | Bewertung: Kriterien, Potenzial: Kriterien | anlegen, umbenennen, sortieren, gewichten (0,2 bis 2, Vorgabe 1) |
 | Suchmaschinen | sechs eingebaute und bis zu drei eigene (`%s` als Platzhalter); eine ist Standard |
@@ -471,7 +471,7 @@ Backup und Sicherheitsprotokoll nur der Eigentümer.
 
 ### Grenzen beim Hochladen
 
-Nur der Eigentümer ändert sie. Sie gelten ab dem nächsten Hochladen.
+Nur der Eigentümer-Admin ändert sie. Sie gelten ab dem nächsten Hochladen.
 
 | Art | Vorgabe (MB) | einstellbar (MB) |
 |---|---:|---:|
@@ -499,7 +499,7 @@ Vorher ein Backup anlegen.
 
 ### Backup
 
-Nur Eigentümer. Legt ein vollständiges, verschlüsseltes Backup an. Die Karte
+Nur für den Eigentümer-Admin. Legt ein vollständiges, verschlüsseltes Backup an. Die Karte
 zeigt Ort und Dauer, das letzte Backup und die Lage des Backup-Ordners: rot im
 Projektordner, grün außerhalb. Backups von vor einem Schlüsselwechsel sind rot
 markiert. Zurückspielen geht nur auf dem Server (README, „Backup").
@@ -524,7 +524,7 @@ jüngsten N (1 bis 20) **und** ist älter als X Tage (7 bis 365).
 
 ### Papierkorb
 
-Der Admin sieht, der Eigentümer handelt. Die Karte listet die Löschungen der
+Der Admin sieht, der Eigentümer-Admin handelt. Die Karte listet die Löschungen der
 letzten 30 Tage. „Zurückholen" legt den Eintrag mit allen Inhalten neu an,
 „Endgültig entfernen" löscht ihn. Nicht zurück kommen Favoriten anderer.
 Einträge, die beim Löschen eines Benutzers oder durch einen ersetzenden Import
@@ -532,7 +532,7 @@ wegfallen, landen nicht im Papierkorb.
 
 ## Export und Import
 
-Beides in der Karte „Export und Import", nur für den Eigentümer, mit
+Beides in der Karte „Export und Import", nur für den Eigentümer-Admin, mit
 Passwortabfrage.
 
 | Weg | wofür |
@@ -590,7 +590,7 @@ Deutsch, Englisch und Türkisch. Jeder wählt seine Sprache in „Darstellung";
 der Wechsel wirkt sofort. Ohne eigene Wahl gilt die Sprache des Browsers, sonst
 die Vorgabesprache der Installation. Die Anmeldeseite zeigt die Vorgabesprache.
 
-Der Eigentümer legt in „Einstellungen › Installation › Sprachen" die
+Der Eigentümer-Admin legt in „Einstellungen › Installation › Sprachen" die
 Vorgabesprache und die wählbaren Sprachen fest. Eine neue Installation startet
 auf Englisch.
 
