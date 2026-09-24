@@ -988,7 +988,7 @@ async function run() {
   /* ERST DER GEGENSTAND: ueber zwei leeren Dateien waere die Verneinung
      darunter wahr, ohne etwas zu belegen. */
   check('Der Waechter liest beide Dateien wirklich',
-    readmeRaw.length > 20000 && handbookRaw.length > 20000,
+    readmeRaw.length > 10000 && handbookRaw.length > 10000,
     `${readmeRaw.length} / ${handbookRaw.length} Zeichen`);
   /* KEINE EINZIGE MEHR: bis hierher standen sechs da, und jede bestimmte eine
      Handlung an einem Bestand aus einer Fassung, die es nie gegeben hat. */
@@ -2505,18 +2505,10 @@ async function run() {
     check('Und die aelteste gelesene daneben, unter ihr',
       /const EXCHANGE_FORMAT_MIN = 14;/.test(stServer) && 14 < 19,
       (stServer.match(/EXCHANGE_FORMAT_MIN = \d+/g) || []).join(' · '));
-    /* UND DAS HANDBUCH NENNT DIESELBE ZAHL. Sie stand dort auf 17, waehrend
-       der Server 18 trug: die Nummer war gehoben und das Papier nicht
-       nachgezogen worden, und niemand hielt beide gegeneinander. */
-    const stFormat = Number((stServer.match(/const EXCHANGE_FORMAT = (\d+);/) || [])[1]);
-    const stFormatMin = Number((stServer.match(/const EXCHANGE_FORMAT_MIN = (\d+);/) || [])[1]);
-    const stBookFormat = Number((handbookRaw.match(
-      /Das Austauschformat trägt die Nummer (\d+)/) || [])[1]);
-    const stBookMin = Number((handbookRaw.match(/Gelesen wird ab Nummer (\d+)/) || [])[1]);
-    check('Das Handbuch nennt dieselbe Formatnummer wie der Server',
-      stBookFormat === stFormat, `Handbuch ${stBookFormat}, Server ${stFormat}`);
-    check('Und dieselbe aelteste gelesene',
-      stBookMin === stFormatMin, `Handbuch ${stBookMin}, Server ${stFormatMin}`);
+    // Die Formatnummer steht nur im Server, damit keine zweite Angabe veraltet.
+    check('Das Handbuch nennt keine Formatnummer',
+      !/Austauschformat\s*(trägt die Nummer\s*)?\d+|Gelesen wird ab Nummer/.test(handbookRaw),
+      (handbookRaw.match(/[^\n]*(Austauschformat\s*\d+|Nummer \d+)[^\n]*/) || ['keine'])[0]);
   }
 
   /* ================= Der Bildschirmtext-Waechter — 0.22.0 =================

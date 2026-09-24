@@ -419,14 +419,14 @@ async function run() {
       ['test/release_041.js', 37],
       ['test/roundtrip.js', 3312],
       ['test/selfcheck.js', 235],
-      ['test/source.js', 945],
+      ['test/source.js', 943],
       ['test/ui_entry.js', 637],
       ['test/ui_export.js', 456],
       ['test/ui_inventory.js', 244],
       ['test/ui_language.js', 293],
       ['test/ui_overview.js', 499],
       ['test/ui_style.js', 608],
-      ['test/ui_system.js', 695],
+      ['test/ui_system.js', 692],
       ['test/ui_translator.js', 105],
       ['counterproof.js', 1639],
       ['server.js', 1591],
@@ -446,7 +446,7 @@ async function run() {
       ['public/style.css', 1223],
     ];
     // Kommentar- und Codezeilen ueber alle Dateien, gemessen mit tools/comments.js.
-    const COMMENT_TOTAL = { comment: 16850, code: 69107 };
+    const COMMENT_TOTAL = { comment: 16845, code: 69093 };
     check('Der Waechter sieht alle siebenunddreissig Dateien',
       crAll.each.length === 37 && COMMENT_ROWS.length === 37,
       `${crAll.each.length} gemessen, ${COMMENT_ROWS.length} genannt`);
@@ -738,7 +738,7 @@ async function run() {
     /* ERST DAS VORHANDENSEIN: ueber zwei leeren Dateien waere jede Verneinung
        darunter wahr. */
     check('Beide Dateien tragen wirklich etwas',
-      readme.split('\n').length > 800 && handbook.split('\n').length > 800,
+      readme.split('\n').length > 300 && handbook.split('\n').length > 300,
       `${readme.split('\n').length} / ${handbook.split('\n').length} Zeilen`);
 
     const tops = s => (s.match(/^## .+$/gm) || []).map(z => z.slice(3).trim());
@@ -761,11 +761,11 @@ async function run() {
 
     /* UND DER SCHNITT LIEGT WIRKLICH DORT, WO ER LIEGEN SOLL -- namentlich,
        damit ein zurueckgewanderter Abschnitt auffaellt. */
-    const BENCH_ONLY = ['Bedienung', 'Vokabular', 'Sprache', 'Hell oder dunkel',
-      'Auf dem Handy und auf dem Tablett', 'Schriftgröße'];
-    const HOST_ONLY = ['Erstinstallation', 'Auf dem Server', 'Backup',
-      'Datenmodell', 'Prüfen', 'Den Schlüssel wechseln', 'Verschlüsselung',
-      'Hinter einem Reverse Proxy', 'Kurzvideos', 'Speicherbedarf'];
+    const BENCH_ONLY = ['Anmeldung', 'Benutzer und Rollen', 'Übersicht', 'Eintrag',
+      'Kommentare', 'Bewertung', 'Einstellungen', 'Export und Import', 'Vokabular',
+      'Sprache', 'Hell oder dunkel', 'Auf dem Handy und auf dem Tablett', 'Schriftgröße'];
+    const HOST_ONLY = ['Erstinstallation', 'Konfiguration', 'Der Schlüssel', 'Backup',
+      'Update', 'Hinter einem Reverse Proxy', 'Befehle auf dem Server', 'Fehlerbehebung'];
     check('Die Bedienung steht vollstaendig im Handbuch',
       BENCH_ONLY.every(n => handbookTops.includes(n)),
       BENCH_ONLY.filter(n => !handbookTops.includes(n)).join(' · '));

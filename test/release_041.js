@@ -602,7 +602,6 @@ async function run() {
   const readText = (f) => fs.readFileSync(path.join(__dirname, f), 'utf8');
   // Das alte Wort; „Sicherung der Datenbank" ist als Beschreibung erlaubt.
   const OLD_WORD = /[Ss]icherung(?!\s+der\s+Datenbank)|SICHERUNG|\b[Ss]ichern\b|\bSICHERN\b|\bgesichert\b/;
-  const UPDATE_LINE = 'mv kriterion-old/kriterion-sicherung kriterion/ 2>/dev/null   # derselbe Ordner unter dem alten Namen';
   const hashComments = (text) => text.split('\n').filter(z => /^\s*#/.test(z));
   const jsOutput = (text) => text.replace(/\/\*[\s\S]*?\*\//g, '')
     .split('\n').filter(z => !/^\s*\/\//.test(z)).map(z => z.replace(/\s\/\/ .*$/, ''));
@@ -628,13 +627,10 @@ async function run() {
       ['keys.js', jsOutput(readText('keys.js'))],
       ['keytool.sh', shOutput(readText('keytool.sh'))]];
     const hits = sources.flatMap(([f, lines]) => lines
-      .filter(z => OLD_WORD.test(z) && z.trim() !== UPDATE_LINE)
+      .filter(z => OLD_WORD.test(z))
       .map(z => `${f}: ${z.trim().slice(0, 70)}`));
     check('README, Handbuch, Beispieldateien und Werkzeuge sagen Backup',
       hits.length === 0, hits.slice(0, 4).join(' · ') || 'keine Stelle');
-    const updateLines = readText('README.md').split('\n').filter(z => z.trim() === UPDATE_LINE).length;
-    check('Die eine Zeile des Update-Wegs mit dem alten Ordnernamen steht genau einmal da',
-      updateLines === 1, `${updateLines}x`);
     check('Der Leser faengt das alte Wort in einem Kommentar und in einer Ausgabe',
       jsOutput("console.log('Vorher sichern');").some(z => OLD_WORD.test(z)) &&
       !jsOutput('// Die Sicherung').some(z => OLD_WORD.test(z)) &&
@@ -685,7 +681,7 @@ async function run() {
       ['README.md (Befehlsbloecke)', bashBlocks],
       ['manual-de.md', readText('manual-de.md').split('\n')]];
     const found = places.flatMap(([f, lines]) => lines
-      .filter(z => GERMAN.test(z) && z.trim() !== UPDATE_LINE).map(z => `${f}: ${z.trim().slice(0, 70)}`));
+      .filter(z => GERMAN.test(z)).map(z => `${f}: ${z.trim().slice(0, 70)}`));
     check('Beispieldateien und Befehle der README nennen nur englische Bezeichnungen',
       bashBlocks.length > 50 && found.length === 0, found.slice(0, 4).join(' · ') || `${bashBlocks.length} Zeilen gelesen`);
     const { spawnSync } = require('child_process');

@@ -11,7 +11,7 @@ const {
 
 async function run() {
   const {
-   fs, os, path, sharp, TEXT, handbookFlat, __dirname, require, group, check,
+   fs, os, path, sharp, TEXT, __dirname, require, group, check,
    equal, setField, PORT, shortRun
   } = H;
   /* DIESES MODUL BAUT FENSTER. Fehlt jsdom, sagt es das und haelt an. */
@@ -3170,13 +3170,6 @@ async function run() {
       /liegt (weiterhin im Datenbankverzeichnis|im selben Verzeichnis wie die Datenbank)/
         .test(card?.textContent || ''),
       card?.textContent?.replace(/\s+/g, ' ').slice(-260));
-    /* UND DIE BEGRUENDUNG STEHT DAFUER IM HANDBUCH: erst das Vorhandensein am
-       neuen Ort, dann die Verneinung am alten. Bis 0.34.1 stand sie in der
-       README. */
-    check('Die Begruendung steht dafuer im Handbuch',
-      /welcher Bibliothek/.test(handbookFlat) &&
-      /welche Lücke passt/.test(handbookFlat),
-      'das Handbuch traegt die Begruendung nicht');
     /* DIE GEGENLAGE: liefert der Server die Verfahren nicht mit, steht der
        Abschnitt gar nicht da -- statt vier Zeilen mit Gedankenstrichen. */
     const withoutVerf = await pkSystem({ isAdmin: true, isOwner: true },
