@@ -444,9 +444,9 @@ async function run() {
     check('Er sagt, dass EINMAL bestätigt wird',
       /Einmal bestätigen, dann/.test(tzEverything), 'Knopftext');
     check('Und dass danach jeder Teil selbst geladen wird',
-      /danach lädst du jeden\s+Teil einzeln/.test(tzEverything), 'Satz über dem Knopf');
+      /danach jeden\s+Teil einzeln laden/.test(tzEverything), 'Satz über dem Knopf');
     check('Der Satz darüber sagt, was vorher abgefragt wird — 0.22.0',
-      /Vor dem Export wird einmal dein\s+Passwort/.test(tzEverything), 'Grundsatz');
+      /Vor dem Export (?:wird|werden) einmal das\s+Passwort/.test(tzEverything), 'Grundsatz');
 
     tzS.stop();
     fs.rmSync(tzDir, { recursive: true, force: true });

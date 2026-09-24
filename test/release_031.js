@@ -220,7 +220,6 @@ async function check0311() {
     /* ZWEI SORTEN STEHEN WEITERHIN MIT EINEM TRENNER ODER EINEM EINZELNEN
        WORT DA, und keine von beiden ist ein Bruchstueck. */
     const DS_JOINED = {
-      'card.createdFrom':        ['card.fileContainsHint',   'from'],
       'card.freedBytes':         ['card.convertFinished',    'freed'],
       'card.lessBytes':          ['card.thumbsRefreshed',    'change'],
       'card.moreBytes':          ['card.thumbsRefreshed',    'change'],

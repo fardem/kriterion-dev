@@ -3256,10 +3256,9 @@ async function run() {
     check('„WebP verlustfrei" nennt sich die Vorgabe',
       /WebP verlustfrei/.test(storeText('webp-lossless')) &&
       /Vorgabe/.test(storeText('webp-lossless')), storeText('webp-lossless'));
-    check('„WebP verlustbehaftet" nennt die Zwischenablage und die Auflage',
-      /WebP verlustbehaftet/.test(storeText('webp-lossy')) &&
-      /Zwischenablage/.test(storeText('webp-lossy')) &&
-      /Auflage/.test(storeText('webp-lossy')), storeText('webp-lossy'));
+    check('„WebP verlustbehaftet" nennt die Zwischenablage und die Einschraenkung',
+      D.shows(storeText('webp-lossy'), 'card.storeLossy') &&
+      D.shows(storeText('webp-lossy'), 'card.storeLossyHint'), storeText('webp-lossy'));
     const button = baEig.w.document.getElementById('convert-run');
     check('Und den Knopf, der den Bestand umstellt', !!button);
     check('Der Knopf ist bedienbar, solange kein Lauf laeuft', !!button && !button.disabled);
@@ -3274,13 +3273,13 @@ async function run() {
     check('Die Karte nennt die Auflage: verlustbehaftet spart bei Fotos zwei Drittel',
       /Verlustbehaftet: bei Fotos rund zwei Drittel kleiner/.test(baCardText),
       baCardText.slice(0, 400));
-    check('Und dass es beim Bildschirmfoto mit Text GRÖSSER wird',
-      /bei Bildschirmfotos mit Text dagegen GRÖSSER/.test(baCardText),
+    check('Und dass es beim Bildschirmfoto mit Text groesser wird',
+      D.shows(baCardText, 'card.storeCaveat'),
       baCardText.slice(0, 400));
     /* DIE DRITTE HAELFTE HAT MIT 0.31.0 IHRE SACHE GEWECHSELT und ist deshalb
        umgestellt und nicht gefallen. */
-    check('Und dass die Wahl fuer alles gilt, was hereinkommt',
-      /Die Wahl gilt für alles, was hereinkommt/.test(baCardText), baCardText.slice(0, 400));
+    check('Und dass die Wahl fuer alle neuen Uploads gilt',
+      /neuen Uploads/.test(baCardText), baCardText.slice(0, 400));
     /* UND DIE ABLEITUNGEN FOLGEN DER WAHL NICHT (F3). Ohne diesen Satz hielte
        jemand „PNG" fuer eine Aussage ueber die ganze Zeile. */
     check('Und dass die Vorschaubilder der Wahl nicht folgen',
@@ -3533,9 +3532,7 @@ async function run() {
     check('Und er sagt, dass es anders empfohlen ist — 0.22.0',
       /Empfohlen ist ein Ordner außerhalb/.test(box?.textContent || ''), box?.textContent);
     check('Er nennt den Grund und nicht nur das Urteil',
-      /anderen Platte/.test(box?.textContent || '') &&
-      /zerstört ein Fehler am Projektordner Original und\s+Backup zugleich/
-        .test(box?.textContent || ''), box?.textContent);
+      D.shows(box?.textContent, 'card.backupDirHint'), box?.textContent);
     check('Und er sagt, WO es umgestellt wird',
       /docker-compose\.yml/.test(box?.textContent || ''), box?.textContent);
     /* DIE KARTE BLEIBT BENUTZBAR. Der Kasten ist eine Auskunft, keine
@@ -3907,8 +3904,8 @@ async function run() {
                     afT()?.getAttribute('min'), afT()?.getAttribute('max')]));
   /* DIE BESCHRIFTUNGEN SAGEN, WAS DAS FELD TUT, und nicht, wie das Bild dazu
      heisst. Und die VORGABE steht nicht daneben: sie steht im Feld. */
-  check('Die Beschriftungen heissen „Mindestens behalten" und „Löschen ab Alter (Tage)"',
-    /Mindestens behalten/.test(afText(afEig)) && /Löschen ab Alter \(Tage\)/.test(afText(afEig)),
+  check('Die Beschriftungen heissen wie in der Sprachdatei',
+    D.shows(afText(afEig), 'card.keepAtLeast') && D.shows(afText(afEig), 'card.deleteFromAge'),
     afText(afEig).slice(0, 500));
   check('Und keine nennt ihre Vorgabe ein zweites Mal',
     !/Vorgabe/.test(afText(afEig)), afText(afEig).slice(0, 600));

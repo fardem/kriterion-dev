@@ -7663,8 +7663,8 @@ const REGRESSIONS = [
        Funktionswort. */
     nr: '966', name: 'Ein Schluessel traegt wieder ein blosses Fuellwort',
     file: 'public/languages/de.json',
-    search: "  \"card.withPhotosPlain\": \" mit Fotos\",",
-    replacement: "  \"card.withPhotosPlain\": \"und\",",
+    search: "  \"card.partLoaded\": \"geladen\",",
+    replacement: "  \"card.partLoaded\": \"und\",",
     expected: 'Deutsch sitzt — 0.31.1'
   },
   {
@@ -7849,8 +7849,8 @@ const REGRESSIONS = [
     /* ZUSAGE 3: ein Platz faellt aus dem tuerkischen Satz. */
     nr: '991', name: 'Ein tuerkischer Wert verliert einen Platzhalter',
     file: 'public/languages/tr.json',
-    search: "\"card.deleteFreesHint\": {\n    \"one\": \"**{n} yedekleme silinecek** — {bytes} boş.\",",
-    replacement: "\"card.deleteFreesHint\": {\n    \"one\": \"**{n} yedekleme silinecek** — boş.\",",
+    search: "\"card.deleteFreesHint\": {\n    \"one\": \"**{n} yedekleme silinecek** — {bytes} boşalır.\",",
+    replacement: "\"card.deleteFreesHint\": {\n    \"one\": \"**{n} yedekleme silinecek** — boşalır.\",",
     expected: 'Tuerkisch sitzt — 0.31.3'
   },
   {

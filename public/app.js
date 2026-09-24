@@ -9630,8 +9630,8 @@ const IMAGE_STORE_WORDS = {
 function switchRow(u) {
   if (!u) return '';
   if (u.running)
-    return `<p class="hint hint-sm" style="margin:8px 2px 0" id="convert-running">${tH('card.convertRunning')} ` +
-           `${tH('card.progressOf', { done: u.done, total: u.total })}</p>`;
+    return `<p class="hint hint-sm" style="margin:8px 2px 0" id="convert-running">${
+      tH('card.convertProgress', { done: u.done, total: u.total })}</p>`;
   /* DER FERTIGSATZ NENNT EINE HAELFTE und nicht zwei -- weder die umgestellten
      ORIGINALE noch die neu gerechneten ABLEITUNGEN einzeln. */
   /* EIN SATZ STATT VIER BRUCHSTUECKE. Die beiden Nachsaetze koennen
@@ -9646,8 +9646,8 @@ function switchRow(u) {
 function geometryRow(g) {
   if (!g) return '';
   if (g.running)
-    return `<p class="hint hint-sm" style="margin:8px 2px 0" id="thumbs-running">${tH('card.thumbnails')} ` +
-           `${tH('card.refreshProgress', { done: g.done, total: g.total })}</p>`;
+    return `<p class="hint hint-sm" style="margin:8px 2px 0" id="thumbs-running">${
+      tH('card.thumbnailsProgress', { done: g.done, total: g.total })}</p>`;
   if (!g.renewed && !g.skipped) return '';
   /* DIE ZAHL DARF IN BEIDE RICHTUNGEN ZEIGEN. */
   const d = g.grown || 0;
@@ -10411,8 +10411,7 @@ function setUpExportOut(fetched) {
           <span class="trash-meta">${esc(fmtBytes(part.bytes))}</span>
         </div>`).join('')}</div>
       ${/* DER KNOPF NENNT DIE HANDLUNG UND NICHT DIE MECHANIK. */''}
-      <p class="hint hint-sm" style="margin:10px 2px 6px">${tH('card.exportPasswordHint',
-        { extra: TWO_FACTOR ? t('card.andTwoFactorCode') : '' })}</p>
+      <p class="hint hint-sm" style="margin:10px 2px 6px">${TWO_FACTOR ? tH('card.exportCodeHint') : tH('card.exportPasswordHint')}</p>
       <div class="row-in"><button class="btn btn-accent btn-sm" id="ex-confirm">
         ${tH('card.confirmOnce', { n: n })}</button></div>
       ${/* DER EINSPIELWEG GEHOERT AN DIE KARTE UND NICHT IN DIE
@@ -10481,12 +10480,14 @@ function askImport(file, limits) {
       bd.onclick = e => { if (e.target === bd) bd.remove(); };
       return;
     }
+    const fileDate = info.date ? fmtDate(info.date.replace('T',' ').slice(0,19)) : '';
     bd.innerHTML = `<div class="modal"><h2>${tH('card.import')}</h2>
-      <p>${tH('card.fileContainsHint', { n: info.count, thing: vThing(info.count),
-        /* EIGENE BESCHRIFTUNG STATT DER GELIEHENEN. */
-        rest: info.withPhotos ? t('card.withPhotosPlain') : t('card.withoutPhotosPlain'),
-        from: info.title ? t('card.createdFrom', { title: info.title }) : '',
-        when: info.date ? t('card.onDate', { date: fmtDate(info.date.replace('T',' ').slice(0,19)) }) : '' })}</p>
+      <p>${info.withPhotos
+        ? tH('card.fileContainsHint', { n: info.count, thing: vThing(info.count) })
+        : tH('card.fileWithoutPhotos', { n: info.count, thing: vThing(info.count) })} ${
+        info.title && fileDate ? tH('card.fileOrigin', { title: info.title, date: fileDate })
+        : info.title ? tH('card.fileOriginTitle', { title: info.title })
+        : fileDate ? tH('card.fileOriginDate', { date: fileDate }) : ''}</p>
       <p>${tH('card.importQuestion')}</p>
       <div class="warn-box">${tH('card.replaceExplainHint')}<br><br>
         ${tH('card.mergeExplainHint')}</div>
