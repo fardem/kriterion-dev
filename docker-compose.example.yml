@@ -5,11 +5,11 @@ services:
     restart: unless-stopped
     env_file: .env
     ports:
+      # Links der Port am Server.
       - "3100:3000"
     volumes:
       - ./data:/app/data
-      # Das Backup. Die Vorgabe liegt im Projektordner und wandert beim Update
-      # mit nach kriterion-old. Sicherer ausserhalb; dann beide Zeilen aendern:
+      # Backup-Ordner. Besser ausserhalb des Projekts, dann beide Zeilen so:
       #   - ../kriterion-backup:/backup
       #   - BACKUP_DIR=/backup
       - ./kriterion-backup:/app/backup
@@ -17,6 +17,5 @@ services:
       - PORT=3000
       # Zeitzone des Containerprotokolls. Gespeicherte Zeiten bleiben UTC.
       - TZ=Europe/Berlin
-      # Ohne diese Zeile bleibt die Karte "Backup" aus. Sie gehoert zur
-      # Einhaengung oben.
+      # Ohne diese Zeile keine Karte "Backup". Pfad wie in der Einhaengung oben.
       - BACKUP_DIR=/app/backup

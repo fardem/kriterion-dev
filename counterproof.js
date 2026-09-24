@@ -8846,9 +8846,9 @@ const REGRESSIONS = [
     /* In einer Datei, die auf null steht, steht wieder eine Herkunftsangabe. */
     nr: '1099', name: 'Die .env.example nennt wieder eine alte Version',
     file: '.env.example',
-    search: "# BEHIND_PROXY -- steht ein Reverse Proxy davor?",
+    search: "# BEHIND_PROXY -- 1, wenn ein Reverse Proxy mit HTTPS davor steht.",
     replacement: "# BIS 0.12.4 WAREN ES FUENF.\n"
-      + "# BEHIND_PROXY -- steht ein Reverse Proxy davor?",
+      + "# BEHIND_PROXY -- 1, wenn ein Reverse Proxy mit HTTPS davor steht.",
     expected: 'Keine Versionsnummer als Herkunft'
   },
   {
@@ -9760,10 +9760,11 @@ const REGRESSIONS = [
     expected: 'Das Wort heisst Backup'
   },
   {
-    nr: '1213', name: 'Die .env.example nennt wieder zugang.js',
+    nr: '1213', name: 'Die .env.example bekommt wieder einen Abschnitt ohne Einstellung',
     file: '.env.example',
-    search: '#   docker compose exec kriterion node usertool.js password <name>',
-    replacement: '#   docker compose exec kriterion node zugang.js password <name>',
+    search: '# PUBLIC_ADDRESS=https://kriterion.beispiel.de\n',
+    replacement: '# PUBLIC_ADDRESS=https://kriterion.beispiel.de\n\n'
+      + '# ' + '-'.repeat(75) + '\n# NICHT IN DIESER DATEI\n# Mailzugang: in der Oberflaeche.\n',
     expected: 'Die Beispieldateien'
   },
   {

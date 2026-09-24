@@ -2,241 +2,187 @@
 
 ## 1. Sprache
 
-**Deutsch, sachlich, ohne Bilder.** Gilt für Chat-Antworten, Commit-Nachrichten,
-Pull-Request-Beschreibungen, Code-Kommentare und Dokumentation.
+Deutsch, sachlich, kurz. Gilt für Chat, Commits, Pull Requests, Kommentare und
+Dokumentation. Im Chat duzen wir uns. Dokumentation und Commits kommen ohne
+Anrede aus.
 
-### Nicht verwenden
-
-- **Metaphern und Umschreibungen für technische Dinge.**
-  Kein „Haus", „Papiere", „Griff", „Bruch", „Strang", „Auffangnetz",
-  „Grundausstattung", „die Grenze ist fort".
-- **Gehobene oder literarische Formulierungen.**
-  Kein „Wer misst, misst zuletzt", kein „sie sperrt niemanden aus",
-  kein „das System behauptet nie etwas Falsches".
-- **Slang und Jargon.**
-- **Fettdruck und Kursivschrift in jedem zweiten Satz.** Fettdruck nur für
-  Ergebnisse und Zahlen, auf die es ankommt.
-- **Erzählform.** Kein Spannungsbogen, keine Pointe, keine rhetorischen Fragen.
-- **Erklärbär.** Nicht mehr erklären, als gebraucht wird. Kein Unterricht, kein
-  Jargon, keine Nebenschauplätze. **Der Leser soll lesen, wissen, verstehen** —
-  nicht belehrt werden.
-
-### Anrede
-
-**Wir duzen uns.** Der Betreiber duzt Claude, Claude duzt zurück — in
-Chat-Antworten. Dokumentation und Commit-Nachrichten bleiben sachlich und
-kommen ohne direkte Anrede aus.
-
-### Stattdessen
-
-- Kurze Sätze, ein Sachverhalt pro Satz.
-- Normale Fachbegriffe: Repository, Branch, Commit, Pull Request, Datenbank,
-  Tabelle, Spalte, Migration, Test, Testlauf, Dokumentation, Dialog.
+- Ein Sachverhalt pro Satz.
+- Normale Fachbegriffe: Repository, Branch, Commit, Datenbank, Tabelle, Spalte,
+  Migration, Test, Dialog.
 - Zahlen, Dateinamen und Zeilennummern statt Andeutungen.
-- Bei einem Fehler: was ist passiert, wo, und warum.
+- Bei einem Fehler: was ist passiert, wo, warum.
+- Fettdruck nur für Ergebnisse und Zahlen, auf die es ankommt. Keine Sätze in
+  Großbuchstaben.
 
-### Gegenüberstellung
+Nicht:
+
+- Metaphern für technische Dinge.
+- Gehobene oder literarische Formulierungen, Erzählform, rhetorische Fragen.
+- Slang.
+- Erklärungen, nach denen niemand gefragt hat.
 
 | statt | besser |
 |---|---|
 | „Eine Vorlage gibt es im Haus nicht" | „Im Repository gibt es keine Vorlage" |
 | „die Papiere nachziehen" | „CHANGELOG, README und `Doku/` aktualisieren" |
-| „der Griff, der die Zahl hinschrieb" | „der Commit, der die Zahl eingetragen hat" |
+| „Drei Wächter halten es fest" | „Drei Tests prüfen das" |
+| „mit einer Latte je Datei" | „mit einem Grenzwert je Datei" |
 | „die Grenze ist nicht verschoben, sie ist fort" | „Die Prüfung vor `db.exec(SCHEMA)` entfällt" |
-| „achtzehn Blöcke sind gefallen" | „18 Migrationsblöcke wurden entfernt" |
 
-### Ausnahme: bestehende Eigennamen
+### Begriffe
 
-Diese Namen stehen in Dateinamen, Funktionsnamen und tausenden Testnamen. Sie
-bleiben, bis sie in einer eigenen Runde umbenannt werden:
+Für Dinge der Oberfläche gilt der Name aus `public/languages/de.json`, nicht der
+aus dem Code. Beispiel: „Einstellungen", nicht „Systembereich".
 
+Diese Eigennamen bleiben, bis sie in einer eigenen Runde umbenannt werden:
 `Fahrplan`, `Projektstand`, `Änderungsprotokoll`, `Prüfstand` (`testbench.js`),
-`Gegenprobe` und `Rückbau` (`counterproof.js`), `Stolperstein`.
+`Gegenprobe` und `Rückbau` (`counterproof.js`), `Stolperstein`. Neue Begriffe
+dieser Art werden nicht erfunden.
 
-**Neue Begriffe dieser Art werden nicht erfunden.**
+`testbench.js` meldet diese Wörter in Kommentaren und `Doku/*.md`:
 
-### Wortfilter des Prüfstands
+| nicht | sondern |
+|---|---|
+| Keks, Umstieg, Abbild, Sperrdatei | Cookie, Migration, Image, Lockfile |
+| Doppelgänger, mehrteilig, Zweigname | Mock, Multipart, Branchname |
+| Rückschritt, Ereignisschleife | Downgrade, Event Loop |
+| Zeichenkette, Abdruck, Faden | String, Fingerprint, Thread |
+| Auffangnetz | Rückfall (`db.js`), Fehler-Handler (`server.js`) |
+| Grundausstattung | Vorgabewerte, die mitgelieferten Kriterien |
 
-`testbench.js` prüft Kommentare und `Doku/*.md` auf abgelegte Wörter. Nicht
-verwenden: Keks, Umstieg, Abbild, Sperrdatei, Doppelgänger, mehrteilig,
-Zweigname, Rückschritt, Ereignisschleife, Zeichenkette, Abdruck, Faden.
-Richtig sind die englischen Fachwörter: Cookie, Migration, Image, Lockfile,
-Mock, Multipart, Branchname, Downgrade, Event Loop, String, Fingerprint,
-Thread.
+Wird ein alter Wortlaut zitiert, steht er in Rückstrichen auf einer Zeile. Der
+Filter prüft keinen Code in Rückstrichen.
 
-**Seit 0.38.5 stehen zwei weitere auf der Liste, und ihr Ersatz ist deutsch:**
-Auffangnetz und Grundausstattung. Richtig sind **Rückfall** (der herrenlose
-Bestand in `db.js`), **Fehler-Handler** (der letzte Stapelrahmen in
-`server.js`), **Vorgabewerte** (Titel und Stempel in `db.js`) und **die
-mitgelieferten Kriterien** (die drei aus dem Server).
+## 2. Was in einen Text gehört
 
-*Wo ein Papier den alten Wortlaut ZITIERT — den Namen eines Abschnitts, eines
-Rückbaus oder eines Kommentars —, steht er in Rückstrichen und auf einer
-Zeile: der Filter liest Prosa und lässt Code in Rückstrichen stehen.*
+Ein Text beschreibt die Stelle, an der er steht. Das gilt für Kommentare,
+Konfigurationsdateien, README-Abschnitte und Texte der Oberfläche.
 
-## 2. Kommentare
+- Nur was der Leser an dieser Stelle braucht, um richtig zu handeln. Ein Satz,
+  ohne den niemand einen Fehler macht, wird gestrichen.
+- Was an anderer Stelle eingestellt oder getan wird, steht dort und nicht hier.
+- Keine Inhalte aus der README kopieren. Höchstens ein Verweis auf den Abschnitt.
+- Das Innenleben nur nennen, wenn der Leser es für eine Entscheidung braucht.
+- Warnungen nur bei Datenverlust oder Folgen für die Sicherheit.
 
-**Ein Kommentar sagt in Kurzform, was an der Stelle geschieht — und nur dort,
-wo der Code es nicht selbst sagt.**
+### Konfigurationsdateien
 
-> **DIESE REGEL BINDET JEDE RUNDE, UND SIE GILT, BIS DER BETREIBER SIE SELBST
-> ÄNDERT.** Keine Runde setzt sie aus — nicht mit Begründung, nicht für einen
-> Altbestand, nicht „nur diesmal". Wer eine Zeile anfasst, bringt ihren
-> Kommentar auf diese Regel, auch wenn die Runde von etwas anderem handelt.
+`.env.example`, `docker-compose.example.yml`, `Dockerfile`. Je Einstellung
+höchstens vier Zeilen, meist reichen zwei. Sie nennen:
 
-### Die Länge
+1. Name und Wirkung.
+2. Was gilt, wenn der Wert leer ist oder fehlt.
+3. Wann und wie man ihn ändert, falls das nicht offensichtlich ist.
 
-**Höchstens drei Zeilen je Block.** Gemessen am 19. September 2026 halten das
-**96 Prozent** der **2.735** Blöcke in den ausgelieferten Modulen ein; zwei
-Drittel sind einzeilig. Die Regel beschreibt also den Stand und verlangt nichts
-Neues.
+```sh
+# BEHIND_PROXY -- 1, wenn ein Reverse Proxy mit HTTPS davor steht.
+# Leer: Kriterion ist direkt erreichbar (Port 3100).
+# BEHIND_PROXY=
+```
 
-*Gezählt wird jeder Kommentarteil einzeln: eine Folge von sechs `//`-Zeilen
-sind sechs einzeilige Blöcke.* **Faßt man sie zu einem zusammen — so, wie ein
-Leser sie sieht —, sind es 2.177 Blöcke und 94 Prozent.** *Hier stand vorher
-2.716; die Zahl ist auf dem Stand 0.36.0 nachgemessen.*
+## 3. Kommentare
 
-**Und nie mehr Kommentar als Code darunter.** Fünf Zeilen über einer
-zweizeiligen Funktion sind vier zu viel.
+Gilt für jeden Kommentar in JavaScript, CSS, HTML, Shell, SQL und YAML, in
+jeder Runde, bis der Betreiber die Regel ändert. Wird eine Zeile geändert,
+wird ihr Kommentar mit angepasst oder gelöscht.
 
-*Länger darf ein Block nur sein, wenn er eine Tafel gemessener Werte trägt —
-Kontrastwerte, Pixelmaße, Laufzeiten. Eine Begründung ist keine Tafel.*
+### Wann ein Kommentar steht
 
-### Der Inhalt
+Nur, wenn der Code eine Frage offenlässt:
 
-**Der Kommentar nennt die Sache, nicht den Weg zu ihr.** Was abgewogen wurde,
-gehört ins Änderungsprotokoll der Runde, nicht neben die Zeile.
+- warum diese Lösung und nicht die naheliegende
+- eine Bedingung von außen: Browserfehler, Grenze von SQLite, Verhalten einer
+  Bibliothek
+- Einheit oder Herkunft einer Zahl
+- eine Reihenfolge, die nicht vertauscht werden darf
+- eine Stelle, die zusammen mit einer anderen geändert werden muss, mit
+  Datei- und Bezeichnername
+
+Sagt ein besserer Name oder eine Konstante dasselbe, wird umbenannt statt
+kommentiert.
+
+### Form
+
+- Ein Satz, höchstens drei Zeilen. Nie mehr Kommentar als Code darunter.
+- Präsens, beschreibt den jetzigen Stand.
+- Stichwort- und Infinitivstil sind erlaubt: „Neue Spalten auch hier eintragen."
+- Keine Betonung durch Großbuchstaben. Groß bleiben nur Abkürzungen und
+  SQL-Schlüsselwörter.
+- Keine Überschrift im Kommentar. Abschnittsmarken in langen Dateien stehen in
+  einer Zeile: `/* ---- Filter ---- */`.
+- Keine Metaphern, keine Sätze mit „Wer …, der …", keine Anrede.
+- Länger darf nur eine Tabelle gemessener Werte sein: eine Zeile, was gemessen
+  wurde, dann die Werte, kein Fließtext darum.
+
+### Was nicht in einen Kommentar gehört
+
+Das steht in Git oder im Änderungsprotokoll:
+
+- was vorher dort stand, was „berichtigt" wurde, wer was entschieden hat
+- die Abwägung
+- Versionsnummern, Befund-, Stolperstein- und Bauabschnittsnummern
+- Verweise auf `Doku/`
+
+Außerdem nicht: die Wiederholung der Zeile darunter und die Wiedergabe dessen,
+was eine andere Datei tut. Dort genügen Datei- und Bezeichnername.
+
+### Beispiele aus dem Repository
 
 | statt | besser |
 |---|---|
-| „Der Fehler-Handler steht ganz am Ende des Stapels; dort ist nicht mehr zu sehen, an welcher Route die Datei hereinkam, und eine zweite Tafel Route-zu-Grenze liefe beim nächsten Umbau auseinander." | „Die Grenzen reisen am Gesuch mit: der Fehler-Handler sieht die Route nicht mehr." |
-| „Multer wirft seine Grenzen auf Englisch und mit seinen eigenen Wörtern: `LIMIT_UNEXPECTED_FILE` heißt „eine Datei zu viel" und stand bis hierher als „Unexpected field" am Bildschirm." | „multer wirft auf Englisch; die Zahl kommt aus `req.caps`." |
+| `server.js`: „UEBER EINER UNVOLLSTAENDIGEN DATENBANK WIRD BEIM START NICHTS GESCHRIEBEN. Der Kasten in db.js sagt beides zu: die Instanz startet, und nichts wird geaendert. Was hier schreibt, koennte ueber einer fehlenden Spalte weder das eine noch das andere halten." | „Bei fehlenden Spalten schreibt der Start nichts in die Datenbank." |
+| `public/app.js`: „GEFRAGT WIRD DER BESTAND UND NICHT DIE GEZEIGTE MENGE: eine Suche ohne Treffer ist kein leerer Bestand, und "Noch nichts erfasst" waere dort die falsche Auskunft." | „`state.inventory` statt `list`: eine Suche ohne Treffer ist kein leerer Bestand." |
+| `public/app.js`: „Der Deckel wird GESAGT und nicht durch einen fehlenden Knopf angedeutet: ein Knopf, der einfach nicht mehr da ist, sieht aus wie ein Fehler." | „Bei `VIEWS_CAP` einen Hinweis zeigen; ein fehlender Knopf sähe aus wie ein Fehler." |
+| `public/app.js`: „---- DER RUECKSETZER FUER DIE FILTERLEISTE ---- ER STAND BIS HIERHER NIRGENDS." | „---- Filter zurücksetzen ----" |
+| `db.js`: „Wer in der Uebersicht eine Spalte ergaenzt, ergaenzt sie AUCH HIER -- eine Pruefung haelt die Liste und PHOTO_SPALTEN gegeneinander." | „Muss alle Spalten aus `PHOTO_COLUMNS` in `server.js` enthalten, sonst liest SQLite die ganze Zeile." |
 
-### Nicht
+Gemessene Werte, kurz:
 
-- **Keine Versionsnummer.** Die Regel steht unten und ist hart.
-- **Kein Verweis auf ein Papier.** Die Regel steht unten und ist hart.
-- **Stolpersteinnummern, Befundnummern, Fragetafelnummern** („F10"),
-  Bauabschnittsnummern.
-- **Das Erzählen einer Abwägung.**
-- **Jargon und flapsige Bemerkungen.**
-- **Die Wiederholung der Zeile darunter.**
+```js
+/* kind steht hinter drei Blobs; ohne Index liest jede Abfrage die ganze Zeile.
+   312 MB, 400 Zeilen: kind gruppiert 1338,8 ms, mit Index 0,1 ms.
+   Nur `kind IS ?` nutzt den Index, `kind != ?` nicht. */
+```
 
-### Doch
+### Keine Versionsnummern, keine Verweise auf `Doku/`
 
-- Die **gemessene Zahl** — Kontrastwerte, Pixelmaße, Laufzeiten.
-- Der **Grund für eine Reihenfolge**.
-- Die **Absage an einen naheliegenden Weg**, damit ihn niemand wieder einbaut.
+In ausgelieferten Dateien steht keine Versionsnummer und kein Verweis auf eine
+Datei aus `Doku/`, weder mit Pfad noch mit Namen („Projektstand 5.3",
+„Befund 11"). `Doku/` wird nicht veröffentlicht. Verhalten wird ohne Nummer
+beschrieben: „es wird nicht migriert", nicht „ab 0.33.0 wird nicht migriert".
 
-Jeweils in einem Satz und ohne zu erzählen, wer sie wann getroffen hat.
+Ausgeliefert sind: die vierzehn JavaScript-Module, `public/style.css`,
+`public/index.html`, `public/theme.js`, die drei Sprachdateien, `.env.example`,
+`docker-compose.example.yml`, `Dockerfile`, `README.md`, `manual-de.md`.
 
-### Versionsnummern — hart
+Ausnahmen:
 
-**In einer ausgelieferten Datei steht keine Versionsnummer.** Nicht im
-Kommentar, nicht in einem String, nicht im Code.
+- die eigene Version in `package.json` und in der Ausgabe des Servers
+- `1.1.1970` in `twofactor.js`, die SVG-Pfade `-1.8.3l` und `1.8.3H9` in
+  `public/app.js`, `keepachangelog.com/de/1.1.0/` und `14.03.2026` in der
+  Anleitung (keine Versionsangaben)
+- `0.19.2` in `public/app.js` und `0.12.3` in `public/style.css` (vom
+  Prüfstand verlangt)
 
-Nicht: „seit 0.28.1", „bis 0.19.4 stand hier", „0.35.0 hat das eingeführt",
-„der Block von 0.25.0".
+Tests in `test/source.js` prüfen beide Regeln.
 
-**Ausgeliefert sind** die vierzehn JavaScript-Module, `public/style.css`,
-`public/index.html`, `public/theme.js`, die drei Sprachdateien,
-`.env.example`, `docker-compose.example.yml`, `Dockerfile`, `README.md` und
-`manual-de.md`.
-
-**Ausgenommen ist allein die eigene Versionsnummer** — `package.json` und was
-der Server über sich selbst ausgibt.
-
-*Eine Regel des Verhaltens wird ohne Nummer geschrieben:* „es wird nicht
-migriert" *statt* „ab 0.33.0 wird nicht mehr migriert".
-
-### Verweise auf Papiere — hart
-
-**In einer ausgelieferten Datei steht kein Verweis auf ein Papier aus
-`Doku/`.** Weder über den Pfad noch über den Namen.
-
-Nicht: `Doku/Farbkonzept_0_23_0.md`, „Projektstand 5.3", „Konzept 4.6",
-„Auftrag 0.32.0", „Befund 11", „Bauabschnitt 3", „Stolperstein 47",
-„Änderungsprotokoll".
-
-**Der Grund gilt für beide Formen: der Ordner geht nicht mit hinaus.** Ein
-Verweis darauf zeigt im veröffentlichten Stand auf nichts — der Name ohne Pfad
-genauso wie der Pfad.
-
-*Wo die Herleitung gebraucht wird, steht sie im Änderungsprotokoll der Runde,
-die sie getroffen hat.*
-
-### Der Stand, gemessen am gebauten Stand 0.37.0
-
-| | vor 0.37.0 | jetzt |
-|---|---:|---:|
-| Treffer des Nummernmusters in ausgelieferten Dateien | 778 | **13** |
-| davon Herkunftsangaben | **770** | **0** |
-| davon in Strings | 44 | **0** |
-| davon im Code | 0 | **0** |
-| Verweise auf Papiere über den Namen | 187 | **0** |
-| Abkürzungen `BA <Zahl>`, `(F<Zahl>)`, `Punkt <Zahl>` | 94 | **0** |
-| Verweise über den Pfad `Doku/` | 0 | **0** |
-
-**WAS BLEIBT, SIND KEINE HERKUNFTSANGABEN:** das Datum `1.1.1970` in
-`twofactor.js`, zwei SVG-Pfaddaten in `public/app.js`:255 *(`-1.8.3l` und
-`1.8.3H9`)*, die Adresse `keepachangelog.com/de/1.1.0/` und das Beispieldatum
-`14.03.2026` in der Anleitung, und die zwei Kommentare, die der Prüfstand im
-Wortlaut verlangt — `0.19.2` in `public/app.js`, `0.12.3` in
-`public/style.css`.
-
-**Drei Wächter halten es fest:** „Keine Versionsnummer als Herkunft" mit einer
-Latte je Datei über dreiundzwanzig Dateien, „Kein Verweis auf Doku/ geht mit
-hinaus" über vierundzwanzig, und seit 0.37.0 **„Kein Papierverweis geht mit
-hinaus"** — über alle vierundzwanzig ausgelieferten Dateien und fünfzehn
-Verweisformen, den rohen Text lesend, damit er die SQL-Kommentare im
-`SCHEMA`-String von `db.js` sieht.
-
-> **DIE STELLEN, AN DENEN DIE REGEL ETWAS GEKOSTET HAT, SIND GEBAUT.**
-> `REQUIRED_COLUMNS` in `db.js` nennt je fehlender Spalte den Namen, unter dem
-> sie früher dalag, und nicht mehr die Fassung. `LAST_MIGRATING_VERSION` ist
-> weggefallen, und der englische Warnkasten verweist auf die Sicherung statt
-> auf eine ältere Fassung.
-
-> **IN DER ANLEITUNG STEHT KEINE VERSIONSNUMMER MEHR.** Bis 0.39.1 standen
-> sechs da — `0.33.0`, `0.32.1` und `0.8.0` in `README.md` und `manual-de.md`.
-> *Sie bestimmten eine Handlung an einem Bestand aus einer Fassung, die es
-> öffentlich nie gegeben hat, und sind mit ihr weggefallen.* Der Wächter in
-> `test/source.js` hat sich dabei umgekehrt: er verlangte sie, jetzt verbietet
-> er jede. *Zwei Nummern verlangt der Prüfstand weiterhin im Kommentar:*
-> `0.19.2` in `public/app.js`, `0.12.3` in `public/style.css`.
-
-## 3. Ablauf
+## 4. Ablauf
 
 - Entwicklung auf dem Branch, der in der Aufgabe genannt ist.
-- Vor jedem Push läuft `npm test` vollständig durch. Das Ergebnis wird genannt.
-- Commit-Nachricht: erste Zeile sagt, was geändert wurde. Darunter der Grund,
-  wenn er nicht offensichtlich ist.
-- Einen Pull Request nur anlegen, wenn er verlangt wurde.
+- Vor jedem Push läuft `npm test` vollständig. Das Ergebnis wird genannt.
+- Commit: erste Zeile sagt, was geändert wurde, höchstens 72 Zeichen. Nach
+  einer Leerzeile der Grund, wenn er nicht offensichtlich ist.
+- Pull Request nur, wenn er verlangt wurde.
 
-## 4. Versionen
+## 5. Versionen
 
-### Das Schema darf sich ändern
+- Kriterion ist nicht veröffentlicht. Verträglichkeit mit früheren Fassungen
+  ist nicht nötig. Das Schema darf sich ändern; es werden nur keine
+  Migrationsblöcke mehr geschrieben.
+- Es gibt kein 1.0.0. Das Ziel von 1.0 ist mit 0.33.0 erreicht. Die Zeile
+  „1.0.0 — Die Zusage" im Fahrplan ist überholt. „Vor 1.0.0" ist kein Argument.
 
-**Klarstellung des Betreibers vom 19. September 2026: Kriterion ist nicht
-veröffentlicht.** Es muss keine Verträglichkeit mit früheren Fassungen
-hergestellt werden.
+## 6. Zahlen
 
-**Der Satz „ab 0.33.0 wird nicht migriert" ist keine Fessel für das Schema.**
-Er sagt, dass keine Migrationsblöcke mehr geschrieben werden — nicht, dass
-Tabellen und Spalten stehen bleiben müssen. **Gebaut wird, was die Sache
-verlangt.**
-
-### Es wird kein 1.0.0 geben
-
-**Es wird kein 1.0.0 geben.** Was ursprünglich als 1.0 geplant war, ist mit
-**0.33.0** erreicht. Die Zeile „1.0.0 — Die Zusage" steht noch im Fahrplan und
-ist überholt.
-
-Daraus folgt: **1.0.0 ist kein Stichtag und kein Argument.** Eine Runde wird
-nicht damit begründet, dass sie „vor 1.0.0" liegen müsse.
-
-## 5. Zahlen
-
-Gemessene Zahlen in der Dokumentation werden am fertigen Stand gemessen, nicht
-an einem Zwischenstand. Wird eine bereits veröffentlichte Zahl korrigiert, steht
-daneben, warum sie sich geändert hat.
+Gemessen wird am fertigen Stand, nicht an einem Zwischenstand. Wird eine
+veröffentlichte Zahl korrigiert, steht daneben, warum sie sich geändert hat.
