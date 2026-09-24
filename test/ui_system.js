@@ -1146,7 +1146,7 @@ async function run() {
     /nur dieses eine Mal/.test(zkBox()?.textContent || ''),
     zkBox()?.textContent?.slice(0, 140));
   check('Und wo sie hingehoeren -- getrennt vom Handy',
-    /getrennt vom Handy/.test(zkBox()?.textContent || ''),
+    D.shows(zkBox()?.textContent, 'card.recoveryCodesHint'),
     zkBox()?.textContent?.slice(0, 220));
   check('Er nennt den Notweg ueber den Wirt fuer den Fall, dass alles weg ist',
     /usertool\.js twofactor/.test(zkBox()?.textContent || ''),
@@ -1720,7 +1720,7 @@ async function run() {
       !/noch kein Passwort/.test(zwRows()[0].textContent || ''), zwRows()[0].textContent);
     /* DAS WINDOW SAGT, WARUM DER NAME NICHT DASTEHT. */
     check('Es sagt, dass der urspruengliche Name nicht aufbewahrt wird',
-      /Der Name ist wieder frei und wird nicht gespeichert/.test(zwDialog()?.textContent || ''),
+      D.shows(zwDialog()?.textContent, 'card.nameFreedHint'),
       zwDialog()?.textContent?.replace(/\s+/g, ' ').slice(0, 300));
     check('Und nennt sperren als den umkehrbaren Weg',
       /sperren/.test(zwDialog()?.textContent || ''),
@@ -1813,7 +1813,7 @@ async function run() {
     const d = await vzLink({ publicAddress: 'https://kriterion.beispiel.de' });
     const box = d.w.document.getElementById('user-link');
     check('Bei erfolgreichem Versand sagt der Kasten es',
-      /hinausgegangen/.test(box?.textContent || ''), box?.textContent?.slice(0, 400));
+      D.shows(box?.textContent, 'card.testMailSent'), box?.textContent?.slice(0, 400));
     check('Und der Link steht trotzdem da',
       !!d.w.document.getElementById('user-link-field'), 'kein Linkfeld');
     /* DIE ADRESSE DES EMPFAENGERS STEHT NICHT IM KASTEN, und das ist kein
@@ -1918,7 +1918,7 @@ async function run() {
     check('Die Karte nennt die Frist',
       /180 Tage/.test(spText(d)), spText(d).replace(/\s+/g, ' ').slice(0, 200));
     check('Und sagt, dass es keinen anderen Weg hinaus gibt',
-      /von Hand geht es nicht/.test(spText(d)),
+      D.shows(spText(d), 'card.logKeepsHint'),
       spText(d).replace(/\s+/g, ' ').slice(0, 260));
     check('Sie sagt ausdruecklich, dass sie kein Aenderungsverlauf ist',
       /Nicht\s+enthalten: Inhalte, Bewertungen/.test(spText(d)), spText(d).replace(/\s+/g, ' ').slice(0, 260));
