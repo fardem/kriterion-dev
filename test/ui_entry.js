@@ -4200,7 +4200,7 @@ group('Was der Betrieb an der Auszeichnung gefunden hat');
     saidBefore.length === 1 && saidBefore[0].red, JSON.stringify(saidBefore));
   const byHand = require(path.join(__dirname, 'public', 'languages', 'de.json'))['card.copyByHand'];
   check('Und sie nennt den Grund statt nur eine Anweisung',
-    /https/.test(byHand) && /Zwischenablage/.test(byHand), JSON.stringify(byHand));
+    /https/i.test(byHand) && /Zwischenablage/.test(byHand), JSON.stringify(byHand));
   wb.toast = realToast;
   if (realClip) wb.navigator.clipboard = realClip;
 
