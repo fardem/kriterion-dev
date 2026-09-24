@@ -2913,8 +2913,8 @@ const REGRESSIONS = [
        gezogen, die Nummernpruefung liest beide Dateien. */
     nr: '368', name: 'Die Anleitung erzaehlt wieder, seit wann etwas gilt',
     file: 'manual-de.md',
-    search: "**Über der Liste steht eine Reihe von Ansichten**",
-    replacement: "**Seit 0.13.0 steht über der Liste eine Reihe von Ansichten**",
+    search: "Die Ansichten „Alle · Gescheitert · Anmeldungen · Benutzer · Zweiter Faktor ·",
+    replacement: "Seit 0.13.0 zeigen die Ansichten „Alle · Gescheitert · Anmeldungen · Benutzer · Zweiter Faktor ·",
     expected: 'Der Sprachwaechter'
   },
 
@@ -9504,8 +9504,8 @@ const REGRESSIONS = [
     /* EINE SPRUNGMARKE INS LEERE SIEHT AUS WIE EINE, DIE TRIFFT. */
     nr: '1189', name: 'Eine Sprungmarke der README zeigt auf nichts',
     file: 'README.md',
-    search: "- [Aufbau des Ordners](#aufbau-des-ordners)",
-    replacement: "- [Aufbau des Ordners](#aufbau-des-verzeichnisses)",
+    search: "- [Konfiguration](#konfiguration)",
+    replacement: "- [Konfiguration](#einstellungen-der-dateien)",
     expected: "Die Anleitung liegt in zwei Dateien \u2014 0.34.2"
   },
   {
