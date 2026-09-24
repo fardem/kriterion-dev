@@ -105,12 +105,16 @@ const DOM_PROVIDER = [
 const MAIL_HINT_KEYS = { gmail: 'mail.hintGmail', gmx: 'mail.hintGmx', web: 'mail.hintWebDe' };
 const DE_TEXTS = JSON.parse(fs.readFileSync(
   path.join(__dirname, 'public', 'languages', 'de.json'), 'utf8'));
-// Prueft einen Oberflaechentext ueber seinen Schluessel; Platzhalter werden uebersprungen.
+// Prueft einen Text ueber seinen Schluessel; Platzhalter zaehlen nicht, eine Pluralform genuegt.
 const shows = (text, key) => {
   const flat = String(text || '').replace(/\s+/g, ' ');
-  const parts = String(DE_TEXTS[key] ?? '').split(/\{[^}]*\}/)
-    .map(p => p.replace(/\s+/g, ' ').trim()).filter(Boolean);
-  return parts.length > 0 && parts.every(p => flat.includes(p));
+  const raw = DE_TEXTS[key];
+  const forms = raw && typeof raw === 'object' ? Object.values(raw) : [raw ?? ''];
+  return forms.some(form => {
+    const parts = String(form).split(/\{[^}]*\}/)
+      .map(p => p.replace(/\s+/g, ' ').trim()).filter(Boolean);
+    return parts.length > 0 && parts.every(p => flat.includes(p));
+  });
 };
 
 function buildDom(JSDOM, { withoutLanguage = false, settings = { filters: null }, hash = '', tags = [], overviewItems = null, setup = false, loggedIn = true, users = null, testDays = null, secondEntry = null, criteriaWeights = [1.5, 1, 0.5], ownValues = [3, 3, 3], withoutRating = false,
@@ -233,7 +237,7 @@ function buildDom(JSDOM, { withoutLanguage = false, settings = { filters: null }
   let zfCodesMock = twoFactorCodes ||
     ['AAAAA-BBBBB', 'CCCCC-DDDDD', 'EEEEE-FFFFF', 'GGGGG-HHHHH',
      'JJJJJ-KKKKK', 'MMMMM-NNNNN', 'PPPPP-QQQQQ', 'RRRRR-SSSSS'];
-  const MAIL_DENIED = 'Das kann nur der Eigentümer dieser Installation.';
+  const MAIL_DENIED = DE_TEXTS['server.deniedOwner'];
   /* DIE ANBIETERLISTE, WIE SIE ÜBER /api/mail HEREINKOMMT -- seit 0.17.3 samt
      Hinweis und den drei festen Werten je Anbieter. */
   const MAIL_PROVIDER_MOCK = [
@@ -872,7 +876,7 @@ function buildDom(JSDOM, { withoutLanguage = false, settings = { filters: null }
       // Die Grenzen beim Hochladen: dieselbe Spanne und dieselbe Absage wie am Server.
       if (sentBody.uploadLimits) {
         if (settings.isOwner === false)
-          return give({ error: 'Das kann nur der Eigentümer dieser Installation.' }, 403);
+          return give({ error: DE_TEXTS['server.deniedOwner'] }, 403);
         for (const [k, v] of Object.entries(sentBody.uploadLimits)) {
           const g = UPLOAD_RANGES_MOCK[k];
           if (!g || !Number.isInteger(v) || v < g.min || v > g.max)
@@ -936,7 +940,7 @@ function buildDom(JSDOM, { withoutLanguage = false, settings = { filters: null }
        mit -- antwortete er jedem mit 200, waere die Rolle unpruefbar. */
     if (String(url).split('?')[0] === '/api/backup' && (opt.method || 'GET') === 'GET') {
       if (settings.isOwner === false)
-        return give({ error: 'Das kann nur der Eigentümer dieser Installation.' }, 403);
+        return give({ error: DE_TEXTS['server.deniedOwner'] }, 403);
       /* DIE VORSCHAU RECHNET WIRKLICH -- und zwar aus den Werten der ABFRAGE,
          wie der echte Server. */
       const q = String(url).split('?')[1] || '';
@@ -973,7 +977,7 @@ function buildDom(JSDOM, { withoutLanguage = false, settings = { filters: null }
     /* Und der Loeschweg. */
     if (url === '/api/backup/cleanup' && opt.method === 'POST') {
       if (settings.isOwner === false)
-        return give({ error: 'Das kann nur der Eigentümer dieser Installation.' }, 403);
+        return give({ error: DE_TEXTS['server.deniedOwner'] }, 403);
       const k = JSON.parse(opt.body || '{}');
       if (k.kind !== 'rule' && k.kind !== 'outdated')
         return give({ error: 'Diese Art des Aufräumens gibt es nicht.' }, 400);
