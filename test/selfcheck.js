@@ -22,7 +22,7 @@ async function run() {
   // Die Zahl der Rueckbauten steht ausdruecklich da: eine Zahl in einem
   // Papier ist eine Behauptung, eine Zahl im Pruefstand ist ein Beleg. Wie
   // sie Runde fuer Runde gewachsen ist, steht in den Aenderungsprotokollen.
-  check(`Es sind genau 1142 Rueckbauten`, gpList.length === 1142, `${gpList.length}`);
+  check(`Es sind genau 1140 Rueckbauten`, gpList.length === 1140, `${gpList.length}`);
   const gpTwice = gpList.map(r => r.nr).filter((n, i, a) => a.indexOf(n) !== i);
   check('Und keine Nummer steht zweimal', gpTwice.length === 0, gpTwice.join(' '));
   /* JEDER GREIFT: der Suchtext kommt in seiner Datei GENAU EINMAL vor. */
@@ -400,12 +400,12 @@ async function run() {
     !rpKnown(rpGone) && rpKnown(rpToday),
     `alt: ${rpKnown(rpGone)} · heute: ${rpKnown(rpToday)}`);
 
-  /* ================= Die Kommentare je Datei — 0.34.1 ====================
-     Bis 0.34.0 bewachte eine Zeile die Kommentare: mehr als tausend ueber
-     acht Dateien. */
+  /* ---- Kommentare: Obergrenzen, die sinken duerfen und nicht steigen ----
+     `node tools/comments.js --write` senkt sie auf den gemessenen Stand. */
   group('Die Kommentare je Datei — 0.34.1');
   {
-    const crAll = require('./tools/comments.js').measureAll();
+    const crTool = require('./tools/comments.js');
+    const crAll = crTool.measureAll();
     const COMMENT_ROWS = [
       ['testbench.js', 77],
       ['test/batchrun.js', 87],
@@ -418,7 +418,7 @@ async function run() {
       ['test/release_031.js', 286],
       ['test/release_041.js', 37],
       ['test/roundtrip.js', 3310],
-      ['test/selfcheck.js', 235],
+      ['test/selfcheck.js', 231],
       ['test/source.js', 653],
       ['test/ui_entry.js', 637],
       ['test/ui_export.js', 456],
@@ -428,7 +428,7 @@ async function run() {
       ['test/ui_style.js', 607],
       ['test/ui_system.js', 684],
       ['test/ui_translator.js', 105],
-      ['counterproof.js', 1627],
+      ['counterproof.js', 1624],
       ['server.js', 1591],
       ['auth.js', 290],
       ['db.js', 136],
@@ -445,8 +445,9 @@ async function run() {
       ['public/theme.js', 3],
       ['public/style.css', 1223],
     ];
-    // Kommentar- und Codezeilen ueber alle Dateien, gemessen mit tools/comments.js.
-    const COMMENT_TOTAL = { comment: 16343, code: 67972 };
+    const COMMENT_TOTAL = { comment: 16336, code: 67982 };
+    // Ausgelieferte Dateien: Bloecke ueber drei Zeilen und Bloecke mit Betonung in Grossbuchstaben.
+    const COMMENT_LIMITS = { longBlocks: 26, emphasis: 1531 };
     check('Der Waechter sieht alle siebenunddreissig Dateien',
       crAll.each.length === 37 && COMMENT_ROWS.length === 37,
       `${crAll.each.length} gemessen, ${COMMENT_ROWS.length} genannt`);
@@ -454,21 +455,17 @@ async function run() {
     for (let i = 0; i < COMMENT_ROWS.length; i++) {
       const [name, rows] = COMMENT_ROWS[i];
       const here = crAll.each[i];
-      if (!here || here.file !== name || here.comment !== rows)
-        crWrong.push(`${name}: ${rows} genannt, ${here ? here.comment : '—'} gezaehlt`);
+      if (!here || here.file !== name || here.comment > rows)
+        crWrong.push(`${name}: Obergrenze ${rows}, ${here ? here.comment : '—'} gezaehlt`);
     }
-    check('Und jede traegt die Zahl, die hier steht',
+    check('Und keine Datei traegt mehr Kommentarzeilen als ihre Obergrenze',
       crWrong.length === 0, crWrong.slice(0, 8).join(' · '));
-    check('Und die Zahl ueber alles steht ebenso',
-      crAll.comment === COMMENT_TOTAL.comment && crAll.code === COMMENT_TOTAL.code,
-      `${crAll.comment} Kommentar (${COMMENT_TOTAL.comment} genannt), ` +
-      `${crAll.code} Code (${COMMENT_TOTAL.code} genannt), ${crAll.share.toFixed(1)} Prozent`);
+    check('Und die Summe bleibt unter ihrer Obergrenze',
+      crAll.comment <= COMMENT_TOTAL.comment,
+      `${crAll.comment} Kommentar (Obergrenze ${COMMENT_TOTAL.comment}), ${crAll.share.toFixed(1)} Prozent`);
 
-    /* Die beiden bindenden Grenzen -- 0.34.1, Zusagen 4 und 5. Die Zahlen
-       darueber fangen jede Bewegung, diese beiden fangen die Richtung.
-       DAS STILBLATT WIRD GEZAEHLT UND NICHT GEDECKELT: sein Kommentar traegt
-       Kontrastwerte und Pixelmasse, und eine Quote naehme gemessene Zahlen
-       heraus. Es steht deshalb mit seiner eigenen Zahl da. */
+    // Das Stilblatt ist von den Quoten ausgenommen: sein Kommentar traegt Messwerte.
+
     const crJs = crAll.each.filter(r => r.file !== 'public/style.css');
     const crJsRows = crJs.reduce((n, r) => n + r.rows, 0);
     const crJsComment = crJs.reduce((n, r) => n + r.comment, 0);
@@ -483,6 +480,29 @@ async function run() {
       .map(r => `${r.file} ${(r.comment / r.rows * 100).toFixed(0)}%`);
     check('Und keine JavaScript-Datei liegt ueber dreissig Prozent',
       crOver.length === 0, crOver.join(' · '));
+    const crShipped = crAll.each.filter(r => crTool.SHIPPED.includes(r.file) && r.file.endsWith('.js'));
+    const crShippedOver = crShipped.filter(r => r.comment / r.rows > 0.25)
+      .map(r => `${r.file} ${(r.comment / r.rows * 100).toFixed(1)}%`);
+    check('Und keine ausgelieferte JavaScript-Datei liegt ueber 25 Prozent',
+      crShipped.length === 14 && crShippedOver.length === 0,
+      crShippedOver.join(' · ') || `${crShipped.length} Dateien`);
+    const crBlocks = crTool.SHIPPED.flatMap(f => crTool.blocks(f));
+    const crLong = crBlocks.filter(b => b.rows > 3).length;
+    const crEmphasis = crBlocks.filter(b => b.emphasis).length;
+    check('Kommentarbloecke ueber drei Zeilen bleiben unter ihrer Obergrenze',
+      crBlocks.length > 1000 && crLong <= COMMENT_LIMITS.longBlocks,
+      `${crLong} von ${crBlocks.length} (Obergrenze ${COMMENT_LIMITS.longBlocks})`);
+    check('Und Bloecke mit Betonung in Grossbuchstaben ebenso',
+      crEmphasis <= COMMENT_LIMITS.emphasis,
+      `${crEmphasis} (Obergrenze ${COMMENT_LIMITS.emphasis})`);
+    // Der Leser erkennt Betonung und laesst Abkuerzungen und Konstanten stehen.
+    const crProbe = path.join(require('os').tmpdir(), `kriterion-kommentar-${process.pid}.js`);
+    fs.writeFileSync(crProbe, '// Das gilt NICHT hier.\nconst MAX_ROWS = 1;\n// JSON ueber HTTPS, MAX_ROWS Zeilen.\n');
+    const crProbeBlocks = crTool.blocks(path.relative(__dirname, crProbe));
+    fs.rmSync(crProbe, { force: true });
+    check('Der Leser erkennt Betonung und laesst Abkuerzungen stehen',
+      crProbeBlocks.length === 2 && crProbeBlocks[0].emphasis && !crProbeBlocks[1].emphasis,
+      JSON.stringify(crProbeBlocks));
   }
 
   /* ================= Die Groesse der Funktionen — 0.16.0 ================

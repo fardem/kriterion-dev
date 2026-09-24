@@ -34,6 +34,9 @@ Nicht:
 Für Dinge der Oberfläche gilt der Name aus `public/languages/de.json`, nicht der
 aus dem Code. Beispiel: „Einstellungen", nicht „Systembereich".
 
+Gängige englische IT-Begriffe bleiben englisch, auch in der Oberfläche: Update,
+Backup, Migration, Account, Link, Cookie, Login. Sie werden nicht eingedeutscht.
+
 Diese Eigennamen bleiben, bis sie in einer eigenen Runde umbenannt werden:
 `Fahrplan`, `Projektstand`, `Änderungsprotokoll`, `Prüfstand` (`testbench.js`),
 `Gegenprobe` und `Rückbau` (`counterproof.js`), `Stolperstein`. Neue Begriffe
@@ -85,6 +88,11 @@ höchstens vier Zeilen, meist reichen zwei. Sie nennen:
 Gilt für jeden Kommentar in JavaScript, CSS, HTML, Shell, SQL und YAML, in
 jeder Runde, bis der Betreiber die Regel ändert. Wird eine Zeile geändert,
 wird ihr Kommentar mit angepasst oder gelöscht.
+
+`test/selfcheck.js` setzt Obergrenzen für Kommentarzeilen je Datei, lange
+Blöcke und Betonung in Großbuchstaben. Nach dem Kürzen senkt
+`node tools/comments.js --write` sie auf den neuen Stand. Angehoben werden sie
+nur mit Begründung im Commit.
 
 ### Wann ein Kommentar steht
 

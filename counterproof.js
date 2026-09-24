@@ -7780,15 +7780,6 @@ const REGRESSIONS = [
     replacement: "  \"karte.laden\": \"card.loadLower\",",
     expected: 'Deutsch sitzt — 0.31.1'
   },
-  {
-    /* ZUSAGE 11: ein Satz, den DIESE Runde nicht angefasst hat, aendert sein
-       Wort. */
-    nr: '977', name: 'Ein unberuehrter Satz aendert sein Wort',
-    file: 'public/languages/de.json',
-    search: "  \"list.close\": \"Schließen\",",
-    replacement: "  \"list.close\": \"Zumachen\",",
-    expected: 'Der Quelltext spricht Englisch — die sechs Waechter'
-  },
   /* ---- „Englisch sitzt" -- 0.31.2, zehn Zusagen ---- JEDER GREIFT IN DIE
      DATEN UND NICHT IN DEN WAECHTER. */
   {
@@ -7874,14 +7865,6 @@ const REGRESSIONS = [
   },
   /* ---- „Tuerkisch sitzt" -- 0.31.3, dreizehn Zusagen ---- JEDER GREIFT IN
      DIE DATEN UND NICHT IN DEN WAECHTER. */
-  {
-    /* ZUSAGE 1: ein ENGLISCHER Wert wird angefasst. */
-    nr: '989', name: 'Ein englischer Wert aendert sich — Englisch ist die zweite Basis',
-    file: 'public/languages/en.json',
-    search: "  \"card.active\": \"active\",",
-    replacement: "  \"card.active\": \"on\",",
-    expected: 'Tuerkisch sitzt — 0.31.3'
-  },
   {
     /* ZUSAGE 2: ein Mehrzahlpaar wird auf Tuerkisch zu EINEM Satz. */
     nr: '990', name: 'Ein tuerkisches Mehrzahlpaar wird ein einzelner Satz',

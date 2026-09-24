@@ -46,6 +46,41 @@ function measure(file) {
   return { file, rows, comment: marked.size, code, target: Math.round(code * 0.25) };
 }
 
+// Abkuerzungen, die gross geschrieben werden und keine Betonung sind.
+const ABBREVIATIONS = new Set(('HTTP HTTPS JSON HTML UTF8 NULL TRUE FALSE CSRF TOTP SMTP UUID ASCII MIME ' +
+  'HMAC HEIC WEBP JPEG AVIF ARIA WCAG EXIF SQLITE SQLCIPHER AGPL DKIM DMARC STARTTLS RGBA HSLA ' +
+  'OKLCH XLSX DOCX CRLF EBML FTYP IETF IPV4 IPV6 LGPL').split(' '));
+
+/* Kommentarbloecke einer Datei. Aufeinanderfolgende Zeilenkommentare zaehlen
+   als ein Block. `emphasis`: ein Wort aus vier oder mehr Grossbuchstaben,
+   das keine Abkuerzung ist und im Code derselben Datei nicht vorkommt. */
+function blocks(file) {
+  const src = fs.readFileSync(path.join(ROOT, ...file.split('/')), 'utf8');
+  const parts = segment(src, file);
+  const codeWords = new Set(parts.filter(p => p.kind !== COMMENT)
+    .flatMap(p => p.value.match(/\b[A-Z][A-Z0-9_]{3,}\b/g) || []));
+  const out = [];
+  let at = 0, lastEnd = -2;
+  for (const part of parts) {
+    if (part.kind === COMMENT) {
+      const from = src.slice(0, at).split('\n').length;
+      const to = src.slice(0, at + part.value.length).split('\n').length;
+      const prev = out[out.length - 1];
+      const ownLine = /^[ \t]*$/.test(src.slice(src.lastIndexOf('\n', at - 1) + 1, at));
+      if (part.value.startsWith('//') && ownLine && prev && prev.line && from === lastEnd + 1) {
+        prev.to = to; prev.text += part.value;
+      } else out.push({ from, to, line: part.value.startsWith('//') && ownLine, text: part.value });
+      lastEnd = to;
+    }
+    at += part.value.length;
+  }
+  return out.map(b => ({
+    from: b.from, rows: b.to - b.from + 1,
+    emphasis: (b.text.match(/\b[A-ZÄÖÜ]{4,}\b/g) || [])
+      .some(w => !ABBREVIATIONS.has(w) && !codeWords.has(w))
+  }));
+}
+
 function measureAll() {
   const each = sourceFiles().map(measure);
   const rows = each.reduce((n, r) => n + r.rows, 0);
@@ -80,7 +115,12 @@ function writeRows() {
       .replace(/(const COMMENT_ROWS = \[)[\s\S]*?(\n {4}\];)/,
         (m, open, close) => `${open}\n${list}${close}`)
       .replace(/const COMMENT_TOTAL = \{ comment: \d+, code: \d+ \};/,
-        `const COMMENT_TOTAL = { comment: ${all.comment}, code: ${all.code} };`);
+        `const COMMENT_TOTAL = { comment: ${all.comment}, code: ${all.code} };`)
+      .replace(/const COMMENT_LIMITS = \{ longBlocks: \d+, emphasis: \d+ \};/, () => {
+        const b = SHIPPED.flatMap(blocks);
+        return `const COMMENT_LIMITS = { longBlocks: ${b.filter(x => x.rows > 3).length}, ` +
+          `emphasis: ${b.filter(x => x.emphasis).length} };`;
+      });
     fs.writeFileSync(where, next);
     return all;
   };
@@ -121,4 +161,4 @@ if (require.main === module) {
   }
 }
 
-module.exports = { sourceFiles, measure, measureAll, writeRows };
+module.exports = { blocks, SHIPPED, sourceFiles, measure, measureAll, writeRows };
