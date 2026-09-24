@@ -647,12 +647,18 @@ async function run() {
     const named = [...env.matchAll(/\bnode\s+([\w.-]+\.js)\b/g)].map(m => m[1]);
     const missing = named.filter(f => !fs.existsSync(path.join(__dirname, f)));
     check('Jeder Befehl node <datei>.js in .env.example nennt eine Datei, die es gibt',
-      named.length > 0 && missing.length === 0, missing.join(' ') || named.join(' '));
-    const blocks = env.split(/^# -{20,}$/m).slice(1).map(b => b.split('\n').filter(z => /^#/.test(z)));
-    const longBlocks = blocks.filter(b => b.length > 5).map(b => b[0]);
-    check('Je Einstellung eine Ueberschriftzeile und hoechstens vier Zeilen darunter',
-      blocks.length === 5 && longBlocks.length === 0,
-      `${blocks.length} Abschnitte; zu lang: ${longBlocks.join(' · ') || 'keiner'}`);
+      missing.length === 0, missing.join(' ') || 'kein Befehl');
+    const sections = env.split(/^# -{20,}$/m).slice(1);
+    const names = sections.map(b => (b.match(/^# ([A-Z_]+) --/m) || [])[1]);
+    const unset = sections.filter((b, i) => !names[i] || !new RegExp(`^#? ?${names[i]}=`, 'm').test(b))
+      .map(b => b.trim().split('\n')[0]);
+    check('Jeder Abschnitt der .env.example gehoert zu einer Einstellung darin',
+      sections.length === 3 && unset.length === 0,
+      `${sections.length} Abschnitte; ohne Einstellung: ${unset.join(' · ') || 'keiner'}`);
+    const longBlocks = sections.map(b => b.split('\n').filter(z => /^#/.test(z) && !/^# ?[A-Z_]+=/.test(z)))
+      .filter(b => b.length > 4).map(b => b[0]);
+    check('Je Einstellung hoechstens vier Kommentarzeilen',
+      longBlocks.length === 0, longBlocks.join(' · ') || 'keine zu lang');
     const active = env.split('\n').filter(z => z.trim() && !/^\s*#/.test(z));
     check('Und aktiv steht nur ENCRYPTION_KEY=', equal(active, ['ENCRYPTION_KEY=']), JSON.stringify(active));
     const compose = readText('docker-compose.example.yml').split('\n');
