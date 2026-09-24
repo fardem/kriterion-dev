@@ -3748,14 +3748,6 @@ const REGRESSIONS = [
     expected: 'Die Threadzahl von sharp — 0.19.1'
   },
   {
-    /* DER BILDSCHIRMTEXT SAGT WIEDER „der Instanz". */
-    nr: '476', name: 'Die Absage nennt wieder „den Eigentümer der Instanz"',
-    file: 'public/languages/de.json',
-    search: "\"server.deniedOwner\": \"Das kann nur der Eigentümer dieser Installation.\",",
-    replacement: "\"server.deniedOwner\": \"Das kann nur der Eigentümer der Instanz.\",",
-    expected: 'Die Rechte am Papierkorb'
-  },
-  {
     /* DIE ARBEITSDATEI STEHT WIEDER NICHT IN DER IGNORIERLISTE. */
     nr: '477', name: 'Die docker-compose.yml steht nicht mehr in der .gitignore',
     file: '.gitignore',
@@ -5109,24 +5101,6 @@ const REGRESSIONS = [
     expected: 'Der Bildschirmtext-Waechter'
   },
   {
-    /* EINE DER VIER ALTLASTEN VERSCHWINDET AUS DER DATEI, ohne dass jemand
-       die Liste im Pruefstand nachzieht. */
-    nr: '678', name: 'Eine benannte Altlast verschwindet aus der Sprachdatei',
-    file: 'public/languages/de.json',
-    search: "  \"server.criteriaConflict\": {",
-    replacement: "  \"server.criteriaConflictX\": {",
-    expected: 'Der Bildschirmtext-Waechter'
-  },
-  {
-    /* UND DIE ANDERE RICHTUNG: eine Altlast wird richtiggestellt, bleibt aber
-       auf der Liste stehen. */
-    nr: '679', name: 'Eine Altlast ist behoben und steht doch noch auf der Liste',
-    file: 'public/languages/de.json',
-    search: "  \"server.backupInDataDir\": \"Der Backup-Ordner darf nicht im Datenverzeichnis liegen — sonst schützt das Backup vor nichts.\",",
-    replacement: "  \"server.backupInDataDir\": \"Der Backup-Ordner darf nicht im Datenverzeichnis stehen.\",",
-    expected: 'Der Bildschirmtext-Waechter'
-  },
-  {
     /* DER UEBERSETZER WIRD mail.js NICHT MEHR GEREICHT -- jeder Brief stuende
        dann als Klammerausdruck da, und der Link waere fort. */
     nr: '680', name: 'mail.js bekommt den Uebersetzer nicht mehr gereicht',
@@ -5183,8 +5157,8 @@ const REGRESSIONS = [
     /* EIN WERT MIT SPITZER KLAMMER. */
     nr: '666', name: 'Ein Wert der Sprachdatei traegt eine spitze Klammer',
     file: 'public/languages/de.json',
-    search: '"server.errorUnknown": "Unbekannter Fehler"',
-    replacement: '"server.errorUnknown": "<b>Unbekannter Fehler</b>"',
+    search: "\"server.errorUnknown\": \"Unbekannter Fehler.\"",
+    replacement: "\"server.errorUnknown\": \"<b>Unbekannter Fehler.</b>\"",
     expected: 'Der Sprachhelfer und die Ladung — 0.24.0'
   },
   {
@@ -7630,8 +7604,8 @@ const REGRESSIONS = [
     /* ZUSAGE 5: EINE der vier Meldungen faellt zurueck auf „Standbild". */
     nr: '957', name: 'Eine der vier Video-Meldungen sagt wieder „Standbild"',
     file: 'public/languages/de.json',
-    search: "  \"server.videoStill\": \"Video und Video-Vorschaubild gehören zusammen\",",
-    replacement: "  \"server.videoStill\": \"Video und Standbild gehören zusammen\",",
+    search: "  \"server.videoStill\": \"Video und Video-Vorschaubild gehören zusammen.\",",
+    replacement: "  \"server.videoStill\": \"Video und Standbild gehören zusammen.\",",
     expected: 'Die Sprachdateien werden gegengelesen — 0.31.0'
   },
   {

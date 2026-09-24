@@ -1795,18 +1795,9 @@ async function run() {
     const vApp = screenViolations(btApp);
     check('Kein Bildschirmtext in app.js traegt ein Wort der Verbotsliste',
       vApp.length === 0, vApp.slice(0, 12).join(' · '));
-    // Bekannte Verstoesse, die noch zur Abstimmung anstehen.
-    const LEGACY = ['server.criteriaConflict', 'server.backupInDataDir'];
-    check('Die benannten Altlasten stehen wirklich noch in der Sprachdatei',
-      LEGACY.every(k => spDe[k] !== undefined),
-      LEGACY.filter(k => spDe[k] === undefined).join(' · ') || 'alle da');
-    const vDe = screenViolations(btDe.filter(t => !LEGACY.includes(t.row)));
-    check('Kein Wert der Sprachdatei ebenso — ausser den benannten Altlasten',
+    const vDe = screenViolations(btDe);
+    check('Kein Wert der Sprachdatei traegt ein Wort der Verbotsliste',
       vDe.length === 0, vDe.slice(0, 12).join(' · '));
-    // Jede Altlast ist ein echter Verstoss; eine behobene faellt aus der Liste.
-    const vFixed = LEGACY.filter(k => screenViolations(btDe.filter(t => t.row === k)).length === 0);
-    check('Und jede benannte Altlast ist wirklich ein Verstoss',
-      vFixed.length === 0, vFixed.join(' · ') || 'alle verstossen noch');
   }
 
   /* ================= Ein gefangener Fehler bleibt nicht stumm — 0.35.0 ====

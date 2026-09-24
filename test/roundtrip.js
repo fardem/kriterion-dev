@@ -7742,7 +7742,7 @@ async function sendImport(object, mode, withoutShare = false) {
     d.prepare("INSERT INTO settings (key, value) VALUES ('backupPlace', ?)").run('"kopien"');
     d.close();
   }
-  setPasswordImInventory(auDir, 'anna', AU_WORD);
+  for (const n of ['anna', 'bert', 'carla']) setPasswordImInventory(auDir, n, AU_WORD);
   const AU = startFurtherServer(auDir, { BACKUP_DIR: auRoot }, 4300);
   await AU.ready;
   /* bert BEKOMMT DIE ADMINROLLE ERST JETZT -- ohne ihn waere "Eigentuemer"
@@ -7925,7 +7925,8 @@ async function sendImport(object, mode, withoutShare = false) {
     const late = await auCall('cookie-au-anna', 'GET', '/api/backup?keep=3&days=365');
     check('Ist nichts alt genug, nennt der Grund das Alter der aeltesten',
       (late.content?.cleanup?.matched || []).length === 0 &&
-      /^Die älteste ist 20[01] Tage alt\.$/.test(late.content?.cleanup?.reason || ''),
+      D.shows(late.content?.cleanup?.reason, 'server.cleanupOldestAge') &&
+      /\b20[01]\b/.test(late.content?.cleanup?.reason || ''),
       late.content?.cleanup?.reason);
   }
 
@@ -7985,7 +7986,7 @@ async function sendImport(object, mode, withoutShare = false) {
         { password: AU_WORD, purpose: 'backup', target: null });
       const repeatCall = await auCall(actor, 'POST', '/api/backup/cleanup', { kind: 'rule' });
       check(`${name} kommt auch mit Freigabe nicht durch`,
-        repeatCall.status === 403, `Freigabe ${free.status}, Route ${repeatCall.status}`);
+        free.status === 200 && repeatCall.status === 403, `Freigabe ${free.status}, Route ${repeatCall.status}`);
     }
     check('Und nach allen Absagen liegt jede Datei noch da',
       equal(auDa(), before), auDa().join(' · '));
@@ -8363,7 +8364,7 @@ async function sendImport(object, mode, withoutShare = false) {
     `Status ${fForeignTitle.status}`);
   check('Und der Titel steht unveraendert da', fTitle(2) === 'Von Bert', fTitle(2));
   check('Die Absage nennt den Grund',
-    /angelegt hat/.test(fForeignTitle.content?.error || ''), fForeignTitle.content?.error);
+    D.shows(fForeignTitle.content?.error, 'server.deniedEntry'), fForeignTitle.content?.error);
 
   const fOwnTitle = await fCall('cookie-f-bert', 'PUT', '/api/items/2', { description: 'von bert selbst' });
   check('Der Verfasser aendert seinen eigenen Eintrag', fOwnTitle.status === 200,
@@ -9144,7 +9145,7 @@ async function sendImport(object, mode, withoutShare = false) {
   check('Wer nicht loeschen darf, bekommt die Zahlen nicht', fBForeign.status === 403,
     `Status ${fBForeign.status}`);
   check('Die Absage nennt den Grund',
-    /angelegt hat/.test(fBForeign.content?.error || ''), fBForeign.content?.error);
+    D.shows(fBForeign.content?.error, 'server.deniedEntry'), fBForeign.content?.error);
 
   /* ---------------------------------------------------------------- */
   group('Wer hat bewertet -- die Ansicht des Admins');
@@ -9739,7 +9740,7 @@ async function sendImport(object, mode, withoutShare = false) {
   check('Und die Begruendung steht danach unveraendert da', agAnna.unchanged,
     JSON.stringify(agRow().rejected_reason));
   check('Die Absage sagt, dass nur der Verfasser aendert',
-    /nur, wer es geschrieben hat/.test(agAnna.error || ''), agAnna.error);
+    D.shows(agAnna.error, 'server.deniedSelf'), agAnna.error);
   const agBert = await agForeign('cookie-ag-bert');
   check('Der Verfasser DES EINTRAGS wird ebenso abgewiesen',
     agBert.status === 403 && agBert.unchanged, JSON.stringify(agBert));
@@ -9965,7 +9966,7 @@ async function sendImport(object, mode, withoutShare = false) {
     agFreshAnna.status === 403 && agRow().rejected_reason === '',
     JSON.stringify([agFreshAnna.status, agRow().rejected_reason]));
   check('Die Absage sagt weiterhin, dass nur der Verfasser aendert',
-    /nur, wer es geschrieben hat/.test(agFreshAnna.content?.error || ''), agFreshAnna.content?.error);
+    D.shows(agFreshAnna.content?.error, 'server.deniedSelf'), agFreshAnna.content?.error);
   const agFreshCarla = await agCall('cookie-ag-carla', 'PUT', '/api/items/1',
     { rejectedReason: 'Neu von der Ablehnenden' });
   check('Die Ablehnende schreibt danach sehr wohl eine neue',
@@ -18955,7 +18956,7 @@ async function sendImport(object, mode, withoutShare = false) {
     criteria: ['Aus alter Datei'], criteriaPhase: { 'Aus alter Datei': 'before' },
     items: [{ title: 'Streit', ratings: [{ name: 'Aus alter Datei', value: 5 }] }] });
   check('Ein Namenskonflikt ueber die Kaesten hinweg weist ab',
-    phConflict.status === 400 && /anderen Kasten/.test(phConflict.content.error || '') &&
+    phConflict.status === 400 && D.shows(phConflict.content.error, 'server.criteriaConflict') &&
     /Aus alter Datei/.test(phConflict.content.error || ''),
     `${phConflict.status} ${JSON.stringify(phConflict.content)}`);
   /* UND ZWAR VOR DEM ERSTEN SCHREIBEN: an JEDER Tabelle steht dieselbe
