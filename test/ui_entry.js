@@ -722,10 +722,8 @@ async function run() {
      Aenderung dieser Runde an etwas, das taeglich benutzt wird: mit dem
      Papierkorb ist das Loeschen nicht mehr unwiderruflich, und ein Dialog,
      der es weiter behauptete, sagte etwas Falsches. */
-  check('Sein Schlusssatz nennt den Papierkorb samt Frist',
-    /landet für 30 Tage im Papierkorb/.test(eDialog), eDialog);
-  check('Und wer wiederherstellen darf',
-    /wiederherstellen kann es nur der Eigentümer/.test(eDialog), eDialog);
+  check('Sein Schlusssatz nennt Papierkorb, Frist und wer wiederherstellen darf',
+    D.shows(eDialog, 'entry.trashHint') && /30/.test(eDialog), eDialog);
   check('Das Wort "unwiderruflich" steht nicht mehr darin',
     !/unwiderruflich/i.test(eDialog), eDialog);
   /* Seit 0.8.30 die Links, seit 0.8.31 auch die Dateien: was fremd sein kann,
@@ -2671,9 +2669,9 @@ async function run() {
     `${fAufg.className} | ${fAufg.textContent}`);
 
   check('Es gibt einen Knopf für Bilder', !!wb.document.getElementById('cimg'));
-  /* DER SATZ NENNT DEN WEG UND NICHT DIE TASTEN: am Telefon gibt es keine. */
-  check('Das Textfeld nennt die Zwischenablage und keine Tastenkombination',
-    /Zwischenablage/.test(wb.document.getElementById('ctext').getAttribute('placeholder') || '') &&
+  // Keine Tastenkombination im Platzhalter: am Telefon gibt es keine.
+  check('Das Textfeld traegt seinen Platzhalter und keine Tastenkombination',
+    D.shows(wb.document.getElementById('ctext').getAttribute('placeholder'), 'entry.commentPlaceholder') &&
     !/Strg\+V|Ctrl[+-]V/i.test(wb.document.getElementById('ctext').getAttribute('placeholder') || ''),
     wb.document.getElementById('ctext').getAttribute('placeholder') || '(kein Platzhalter)');
 

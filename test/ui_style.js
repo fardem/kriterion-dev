@@ -942,10 +942,8 @@ async function run() {
     check('Der Klick oeffnet die Tafel', !!panel, doc.body.innerHTML.slice(0, 140));
     /* UND SIE SAGT, WESSEN BEITRAEGE SIE MELDET. */
     const glSentence = (panel?.textContent || '').replace(/\s+/g, ' ');
-    /* SEIT 0.32.0 SAGT ER MEHR -- F4. */
-    check('Sie sagt, dass sie die Beitraege der ANDEREN meldet — und nach welcher Herkunft',
-      /Was andere seit deinem letzten Besuch eingetragen haben/.test(glSentence)
-      && /an dich gerichtet/.test(glSentence) && /alles andere/.test(glSentence),
+    check('Sie sagt, dass sie die Beitraege der anderen meldet',
+      D.shows(glSentence, 'list.newCommentsHint'),
       glSentence.slice(0, 200));
     check('Und sie verspricht nicht mehr die eigenen mit',
       !/von allen/.test(glSentence) && !/eigenen stehen mit da/.test(glSentence),

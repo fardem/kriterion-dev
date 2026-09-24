@@ -4320,7 +4320,6 @@ async function renderOpen() {
       ? (rows.length ? t('list.nothingOpenMine')
                        : t('list.nothingOpen'))
       : t('list.openGroupedBy', { length: visible.length, task: vTask(visible.length) })
-        + `${V.entryOne}.`
         + (multipleUsers() ? (onlyMy ? t('list.showingOwn')
                                          : t('list.showingAll')) : '');
 
@@ -4902,7 +4901,7 @@ async function renderDetail(id, termAddress, commentWanted) {
           id="drop-text">${tH('entry.addMediaHint')}</span></label>
         ${/* EIN SATZ UND KEIN ABSATZ. */''}
         <p class="hint hint-sm" style="margin:8px 2px 0">
-          ${tH('entry.photoOrderHint')} ${tH('entry.clipboardLarger')}</p>
+          ${tH('entry.photoOrderHint', { mb: UPLOAD_LIMITS.video })} ${tH('entry.clipboardLarger')}</p>
       </div>
 
       <div class="meta-col">
@@ -5009,7 +5008,7 @@ async function renderDetail(id, termAddress, commentWanted) {
       <div class="row-in">
         <input type="file" id="afile" multiple hidden>
         <button class="btn btn-sm" id="aadd">${tH('entry.attachFiles')}</button>
-        <span class="hint">${tH('entry.fileLimitHint')}</span>
+        <span class="hint">${tH('entry.fileLimitHint', { mb: UPLOAD_LIMITS.attachment })}</span>
       </div>
     </div>
 
@@ -6975,13 +6974,12 @@ async function renderDetail(id, termAddress, commentWanted) {
       ...(b.foreignTestDays ? [`${b.foreignTestDays} ${vTime(b.foreignTestDays)}`] : [])
     ];
 
-    /* DER DIALOG NENNT ZAHLEN, UND SEIN SCHLUSSSATZ NENNT DEN PAPIERKORB. */
+    // Zuerst die Zahlen, zuletzt der Papierkorb.
     const sentences = [t('entry.titleDeleteHint', { title: item.title })];
     if (content.length) sentences.push(t('entry.alsoGoes', { what: content.join(', ') }));
     if (own.length) sentences.push(t('entry.alsoFromMe', { what: own.join(', ') }));
     if (foreign.length) sentences.push(t('entry.andFromOthers', { what: foreign.join(', ') }));
-    sentences.push(t('entry.trashHint', { trashDays: TRASH_DAYS }) +
-      t('entry.restoreOwnerOnly'));
+    sentences.push(t('entry.trashHint', { trashDays: TRASH_DAYS }));
 
     if (!await confirmBox(t('entry.deleteEntryAsk'), sentences.join(' '))) return;
     try { await api('DELETE', `/api/items/${id}`); state.compare.delete(id); location.hash = '#/'; }
