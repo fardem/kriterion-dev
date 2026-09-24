@@ -239,8 +239,8 @@ const REGRESSIONS = [
        Minuten"). */
     nr: '30', name: 'Die Frist steht nicht mehr auf der Einladungsseite',
     file: 'public/app.js',
-    search: "        ${status.minutes ? `${tMark('login.linkValidHint', 'login.linkValidMinutes', { n: status.minutes })}` : ''}",
-    replacement: "        ${false ? `${tMark('login.linkValidHint', 'login.linkValidMinutes', { n: status.minutes })}` : ''}",
+    search: "        ${status.minutes ? `${tH('login.linkValidHint', { n: status.minutes })}` : ''}",
+    replacement: "        ${false ? `${tH('login.linkValidHint', { n: status.minutes })}` : ''}",
     expected: 'Die Einladungsseite in der Oberflaeche'
   },
   /* ---- Die Selbstanmeldung: die immer gleiche Antwort ---- */
@@ -2679,11 +2679,9 @@ const REGRESSIONS = [
        ABGERISSEN statt ROT. Ein Rueckbau, der die Datei zerbricht, belegt
        nicht, dass die Pruefung greift -- nur, dass kaputter Code kaputt ist. */
     nr: '330', name: 'Der Erklaerkasten verweist wieder auf die Spalte dahinter',
-    file: 'public/app.js',
-    search: "${tMark('entry.calcStepsHint', 'entry.grade',\n"
-          + "          { extra: withWeight ? t('entry.calcWithWeight') : t('entry.calcAllEqual') })}",
-    replacement: "${tH('entry.calcStepsHint', { word: '',\n"
-               + "          extra: withWeight ? t('entry.calcWithWeight') : t('entry.calcAllEqual') })}",
+    file: 'public/languages/de.json',
+    search: "(Spalte **{grade}**)",
+    replacement: "(Spalte dahinter)",
     expected: 'Die Rechnung hinter der Kopfzahl'
   },
   /* DIESELBE FRAGE WIE AN DER KRITERIENLISTE, EINE ANSICHT WEITER: passen die
@@ -2862,8 +2860,8 @@ const REGRESSIONS = [
   {
     nr: '363', name: 'Die Begruendung zum fehlenden Adressfeld steht wieder in der Karte',
     file: 'public/languages/de.json',
-    search: "\"card.testMailGoesHint\": \"Die Testmail geht {word}. Antwortet der Mailserver nicht, bricht der",
-    replacement: "\"card.mailTimeoutHint\": \" — es gibt kein Adressfeld daneben, und zwar mit Absicht: ein Knopf, der an eine beliebige Adresse schickt, wäre ein offener Mailverteiler hinter einer Anmeldung. Antwortet der Mailserver nicht, bricht der",
+    search: "\"card.testMailGoesHint\": \"Die Testmail geht **ausschließlich an die Adresse deines eigenen Accounts**. Antwortet der Mailserver nicht, bricht der",
+    replacement: "\"card.testMailGoesHint\": \"Die Testmail geht an deinen Account — es gibt kein Adressfeld daneben, und zwar mit Absicht: ein Knopf, der an eine beliebige Adresse schickt, wäre ein offener Mailverteiler hinter einer Anmeldung. Antwortet der Mailserver nicht, bricht der",
     expected: 'Die Karte „Mailversand“'
   },
   {
@@ -2970,7 +2968,7 @@ const REGRESSIONS = [
   {
     nr: '377', name: 'Der Dialog kuerzt die zweite Bestaetigung ab',
     file: 'public/app.js',
-    search: "      if (!await secondConfirm('mail', null, t('card.saveMailAccount'),\n        t('card.mailServerHint') +\n        t('card.toSetPassword'))) return;\n",
+    search: "      if (!await secondConfirm('mail', null, t('card.saveMailAccount'),\n        t('card.mailServerHint'))) return;\n",
     replacement: "",
     expected: 'Der Dialog „Mailzugang einrichten“ — 0.17.3'
   },
@@ -3012,7 +3010,7 @@ const REGRESSIONS = [
   {
     nr: '383', name: 'Die ausgeschriebene Rechnung steht wieder unter der Tabelle',
     file: 'public/app.js',
-    search: "      <p>${tMark('entry.calcRoundingHint', 'entry.criteriaNoStars')}",
+    search: "      <p>${tH('entry.calcRoundingHint')}",
     replacement: "      <p><strong>${tH('entry.criteriaNoStars')}</strong> ${tH('entry.calcRounding')} ${esc(gewZahl(weg.summe))} ÷ ${esc(gewZahl(weg.teiler))}",
     expected: 'Die Rechnung hinter der Kopfzahl'
   },
@@ -4008,8 +4006,8 @@ const REGRESSIONS = [
     /* EINE DER ACHT STELLEN SAGT WIEDER „Instanz". */
     nr: '505', name: 'Eine Stelle im Bildschirmtext sagt wieder „Instanz"',
     file: 'public/languages/de.json',
-    search: "\"card.emailOptionalHint\": \"{word} Ohne Mailzugang zeigt Kriterion",
-    replacement: "\"card.emailOptionalHint\": \"{word} Ohne Mailzugang zeigt die Instanz",
+    search: "\"card.emailOptionalHint\": \"**E-Mail ist optional.** Ohne Mailzugang zeigt Kriterion",
+    replacement: "\"card.emailOptionalHint\": \"**E-Mail ist optional.** Ohne Mailzugang zeigt die Instanz",
     expected: '„Instanz" steht in keinem Bildschirmtext mehr — 0.19.1 und 0.19.3'
   },
 
@@ -5275,8 +5273,8 @@ const REGRESSIONS = [
     // Der Klartextschluessel steht wieder vor jedem Admin (E13).
     nr: '639', name: 'Der Klartextschluessel steht wieder vor dem Admin',
     file: 'public/app.js',
-    search: "          : (OWNER\n            ? `<div class=\"warn-box\">${tMark('card.keyBesideHint', 'card.keyBesideDb')}",
-    replacement: "          : (ADMIN\n            ? `<div class=\"warn-box\">${tMark('card.keyBesideHint', 'card.keyBesideDb')}",
+    search: "          : (OWNER\n            ? `<div class=\"warn-box\">${tH('card.keyBesideHint')}",
+    replacement: "          : (ADMIN\n            ? `<div class=\"warn-box\">${tH('card.keyBesideHint')}",
     expected: 'Die Rollenweichen — 0.22.0'
   },
   {
@@ -6197,8 +6195,8 @@ const REGRESSIONS = [
     /* UND DER ZAEHLWERT REIST WIEDER UNTER EINEM FREMDEN NAMEN. */
     nr: '794', name: 'Der Zaehlwert reist wieder unter einem fremden Namen',
     file: 'public/app.js',
-    search: "tMark('card.logKeepsHint', 'card.inDays', { n: log.days })",
-    replacement: "tMark('card.logKeepsHint', 'card.inDays', { days: log.days })",
+    search: "tH('card.logKeepsHint', { n: log.days })",
+    replacement: "tH('card.logKeepsHint', { days: log.days })",
     expected: 'Ein Satz, den jede Sprache selbst schneidet — 0.25.4'
   },
 
@@ -7706,10 +7704,10 @@ const REGRESSIONS = [
   },
   {
     /* ZUSAGE 5: ein tMark-Satz verliert seinen Platz. */
-    nr: '971', name: 'Ein Satz mit Hervorhebung verliert seinen Platz',
+    nr: '971', name: 'Ein deutscher Satz verliert seine Hervorhebung',
     file: 'public/languages/de.json',
-    search: "  \"login.welcome\": \"Willkommen, {word} — bitte ein Passwort wählen.\",",
-    replacement: "  \"login.welcome\": \"Willkommen, — bitte ein Passwort wählen.\",",
+    search: "  \"login.welcome\": \"Willkommen, **{name}** — bitte ein Passwort wählen.\",",
+    replacement: "  \"login.welcome\": \"Willkommen, {name} — bitte ein Passwort wählen.\",",
     expected: 'Deutsch sitzt — 0.31.1'
   },
   {
@@ -7776,16 +7774,16 @@ const REGRESSIONS = [
     /* ZUSAGE 3: ein Platz faellt aus dem englischen Satz. */
     nr: '980', name: 'Ein englischer Wert verliert einen Platzhalter',
     file: 'public/languages/en.json',
-    search: "  \"card.deleteFreesHint\": \"{word} — {bytes} free.\",",
-    replacement: "  \"card.deleteFreesHint\": \"{word} — free.\",",
+    search: "\"card.deleteFreesHint\": {\n    \"one\": \"**{n} backup will be deleted** — {bytes} free.\",",
+    replacement: "\"card.deleteFreesHint\": {\n    \"one\": \"**{n} backup will be deleted** — free.\",",
     expected: 'Englisch sitzt — 0.31.2'
   },
   {
     /* ZUSAGE 4: die Verbotsliste. */
     nr: '981', name: 'Ein englischer Wert traegt wieder ein Wort der Verbotsliste',
     file: 'public/languages/en.json',
-    search: "  \"card.keyBesideDb\": \"The key is in the same directory as the database\",",
-    replacement: "  \"card.keyBesideDb\": \"The key sits next to the database\",",
+    search: "\"card.keyBesideHint\": \"**The key is in the same directory as the database**",
+    replacement: "\"card.keyBesideHint\": \"**The key sits next to the database**",
     expected: 'Englisch sitzt — 0.31.2'
   },
   {
@@ -7851,8 +7849,8 @@ const REGRESSIONS = [
     /* ZUSAGE 3: ein Platz faellt aus dem tuerkischen Satz. */
     nr: '991', name: 'Ein tuerkischer Wert verliert einen Platzhalter',
     file: 'public/languages/tr.json',
-    search: "  \"card.deleteFreesHint\": \"{word} — {bytes} boş.\",",
-    replacement: "  \"card.deleteFreesHint\": \"{word} — boş.\",",
+    search: "\"card.deleteFreesHint\": {\n    \"one\": \"**{n} yedekleme silinecek** — {bytes} boş.\",",
+    replacement: "\"card.deleteFreesHint\": {\n    \"one\": \"**{n} yedekleme silinecek** — boş.\",",
     expected: 'Tuerkisch sitzt — 0.31.3'
   },
   {
@@ -8845,14 +8843,12 @@ const REGRESSIONS = [
   },
   /* ---- Jeder Rueckbau laesst eine ladbare Datei zurueck -- 0.35.2, BA 7 ---- */
   {
-    /* Gegenprobe 330 steht wieder in der Form, die public/app.js zerbricht:
-       der Suchtext nimmt den Ruf nicht mit, und die schliessende Klammer
-       bleibt stehen. Der Waechter muss das sehen. */
+    /* Gegenprobe 377 nimmt nur die erste Zeile des Rufs mit; der Rest bleibt stehen
+       und zerbricht public/app.js. Der Waechter muss das sehen. */
     nr: '1111', name: 'Ein Rueckbau laesst die Klammer wieder stehen',
     file: 'counterproof.js',
-    search: "    search: \"${tMark('entry.calcStepsHint', 'entry.grade',\\n\"\n"
-          + "          + \"          { extra: withWeight ? t('entry.calcWithWeight') : t('entry.calcAllEqual') })}\",",
-    replacement: "    search: \"${tMark('entry.calcStepsHint', 'entry.grade',\",",
+    search: "    search: \"      if (!await secondConfirm('mail', null, t('card.saveMailAccount'),\\n        t('card.mailServerHint'))) return;\\n\",",
+    replacement: "    search: \"      if (!await secondConfirm('mail', null, t('card.saveMailAccount'),\\n\",",
     expected: 'Die Gegenproben greifen'
   },
   /* ---- Deutsch ist keine id -- 0.35.2, BA 8 ---- */
@@ -9690,6 +9686,27 @@ const REGRESSIONS = [
     search: "    else if (res.status === 413) m = t('error.proxyTooLarge');\n",
     replacement: '',
     expected: 'Die Antwort 413 vom Reverse Proxy'
+  },
+  {
+    nr: '1218', name: 'tH() zeigt die Sterne statt Fettdruck',
+    file: 'public/app.js',
+    search: "  const sentence = languageSentence(key, values).replace(/\\*\\*(.+?)\\*\\*/g, '<strong>$1</strong>');",
+    replacement: "  const sentence = languageSentence(key, values);",
+    expected: 'Was Export, Import und Backup enthalten'
+  },
+  {
+    nr: '1219', name: 'Ein Satz wird wieder aus Schluesseln zusammengesetzt',
+    file: 'public/app.js',
+    search: "${tMarks('card.withoutKeyFrom', { word: '<code>.env</code>' })}",
+    replacement: "${tMarks('card.withoutKeyFrom', { word: `<code>.env</code> ${tH('card.backupNowHint')}` })}",
+    expected: 'Deutsch sitzt — 0.31.1'
+  },
+  {
+    nr: '1220', name: 'Ein Text des Servers traegt wieder `**`',
+    file: 'public/languages/de.json',
+    search: "\"mail.confirm.subject\": \"",
+    replacement: "\"mail.confirm.subject\": \"**Kriterion** ",
+    expected: 'Deutsch sitzt — 0.31.1'
   },
 ];
 

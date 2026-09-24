@@ -545,8 +545,8 @@ async function run() {
       'card.onlyBackupComplete': 'Nur das Backup ist eine vollständige Sicherung der Datenbank.',
       'card.exportOnlyEntries': 'Export und Import enthalten nur die {entryMany} — keine Benutzer und keine Einstellungen von Kriterion.',
       'card.wayBackupHint': 'der Notfall. Die vollständige, verschlüsselte Sicherung der Datenbank — auch mit Benutzern und Einstellungen.',
-      'card.exportPurposeHint': 'für Umzug, Archiv und Weitergabe — unverschlüsselt, auch mit späteren Versionen lesbar. Er enthält nur die {entryMany}, keine Benutzer und keine Einstellungen. Für den Notfall: Karte',
-      'card.backupWhatHint': '{word} die vollständige, verschlüsselte Sicherung der Datenbank — auch mit Benutzern und Einstellungen, die der Export nicht enthält. Lässt sich nur in dieselbe Programmversion zurückspielen.'
+      'card.exportPurposeHint': '**Export:** für Umzug, Archiv und Weitergabe — unverschlüsselt, auch mit späteren Versionen lesbar. Er enthält nur die {entryMany}, keine Benutzer und keine Einstellungen. Für den Notfall: Karte **Backup**.',
+      'card.backupWhatHint': '**Backup:** die vollständige, verschlüsselte Sicherung der Datenbank — auch mit Benutzern und Einstellungen, die der Export nicht enthält. Lässt sich nur in dieselbe Programmversion zurückspielen.'
     };
     const off = Object.keys(WANT).filter(k => DE[k] !== WANT[k]);
     check('Die fuenf Saetze stehen im verlangten Wortlaut', off.length === 0, off.join(' ') || 'alle');
@@ -561,6 +561,9 @@ async function run() {
       const cards = w.document.querySelector('.sys-grid')?.textContent.replace(/\s+/g, ' ') || '';
       check('Die Karte „Export und Import" nennt, was fehlt',
         cards.includes('Er enthält nur die Einträge, keine Benutzer und keine Einstellungen.'), cards.slice(0, 160));
+      const exportLabel = [...w.document.querySelectorAll('.sys-grid strong')].map(x => x.textContent);
+      check('`**…**` erscheint als Fettdruck und nicht als Zeichen',
+        exportLabel.includes('Export:') && !cards.includes('**'), exportLabel.slice(0, 6).join(' · '));
       check('Die Karte des Backups nennt Benutzer und Einstellungen',
         cards.includes('die vollständige, verschlüsselte Sicherung der Datenbank — auch mit Benutzern und Einstellungen, die der Export nicht enthält.'),
         cards.slice(0, 160));

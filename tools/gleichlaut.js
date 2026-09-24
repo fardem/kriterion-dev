@@ -139,7 +139,7 @@ for (const c of ['de','en','tr']) for (const form of ['one','other']) {
        trennt im Browser keine Woerter, und wer es zum Leerzeichen macht, liest
        „Benutzer , seit" vor dem Umbau und „Benutzer, seit" danach und haelt
        den Unterschied fuer einen Verlust. Es war keiner. */
-    .replace(/<[^>]+>/g,'')
+    .replace(/<[^>]+>/g,'').replace(/\*\*/g,'')
     .replace(/`/g,'')
     /* UND DIE VORLAGENKLAMMERN AUCH. Drei Rufe nebeneinander tragen drei
        ${ } -- ein verschmolzener nur noch eines. Zaehlte die Probe sie mit,

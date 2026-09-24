@@ -1796,7 +1796,7 @@ async function run() {
 
       /* ---- DIE ZWEI MEHRZAHLFORMEN, DIE NIE EINE WAREN ------------------
          Die Form waehlt `PLURAL.select(values.n)` und NUR ueber `n`. */
-      const vsCount = ['card.inDays', 'login.linkValidMinutes'];
+      const vsCount = ['card.logKeepsHint', 'login.linkValidHint'];
       const vsWithoutN = [];
       for (const [code, langFile] of Object.entries(vsFiles))
         for (const k of vsCount) {
@@ -1819,10 +1819,8 @@ async function run() {
         vsCount.map(k => `${k}: ${JSON.stringify(vsFiles.tr[k])}`).join(' · '));
       /* UND DIE ANDERE HAELFTE DERSELBEN REPARATUR: DER ZAEHLWERT WIRD
          GEREICHT. */
-      /* SEIT 0.31.1 GEHT DER WERT DURCH tMark() -- beide Saetze tragen dort
-         eine Hervorhebung, und der Zaehlwert reist im dritten Parameter mit. */
       const vsPassed = (vsSource.match(
-        /(?:card\.inDays|login\.linkValidMinutes)',\s*\{\s*n:/g) || []).length;
+        /(?:card\.logKeepsHint|login\.linkValidHint)',\s*\{\s*n:/g) || []).length;
       check('Und beide Stellen reichen den Zählwert unter dem Namen n',
         vsPassed === 2, `${vsPassed} von 2`);
     }

@@ -2665,7 +2665,7 @@ async function run() {
     check('Die Begruendung zum fehlenden Adressfeld steht nicht in der Karte',
       !/offener Mailverteiler/.test(t), t.slice(0, 60));
     check('Was die Testmail tut, steht aber weiterhin da',
-      D.shows(t, 'card.ownAddressOnly'), t.slice(-140));
+      D.shows(t, 'card.testMailGoesHint'), t.slice(-140));
     d.w.close();
   }
   {
