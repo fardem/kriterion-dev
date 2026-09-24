@@ -105,6 +105,13 @@ const DOM_PROVIDER = [
 const MAIL_HINT_KEYS = { gmail: 'mail.hintGmail', gmx: 'mail.hintGmx', web: 'mail.hintWebDe' };
 const DE_TEXTS = JSON.parse(fs.readFileSync(
   path.join(__dirname, 'public', 'languages', 'de.json'), 'utf8'));
+// Prueft einen Oberflaechentext ueber seinen Schluessel; Platzhalter werden uebersprungen.
+const shows = (text, key) => {
+  const flat = String(text || '').replace(/\s+/g, ' ');
+  const parts = String(DE_TEXTS[key] ?? '').split(/\{[^}]*\}/)
+    .map(p => p.replace(/\s+/g, ' ').trim()).filter(Boolean);
+  return parts.length > 0 && parts.every(p => flat.includes(p));
+};
 
 function buildDom(JSDOM, { withoutLanguage = false, settings = { filters: null }, hash = '', tags = [], overviewItems = null, setup = false, loggedIn = true, users = null, testDays = null, secondEntry = null, criteriaWeights = [1.5, 1, 0.5], ownValues = [3, 3, 3], withoutRating = false,
   /* ZU WELCHEM KASTEN JEDES DER DREI KRITERIEN GEHOERT, seit 0.21.0. */
@@ -1557,7 +1564,7 @@ async function sysPass(d) {
 
 return {
   DOM_PASSWORD, DOM_LOG, DOM_PROT_GROUPS, placeConfirm, confirmImDom,
-  DOM_PROVIDER, MAIL_HINT_KEYS, DE_TEXTS, buildDom, openTagRow,
+  DOM_PROVIDER, MAIL_HINT_KEYS, DE_TEXTS, shows, buildDom, openTagRow,
   waitSearch, until, UNTIL_STEP, openRequests, sysSection, pillName, pillMark,
   screenTextsFrom, serverTextsFrom, SCREEN_BAN, isAddress,
   screenViolations, sysPass, css123, regel123, withoutMedia

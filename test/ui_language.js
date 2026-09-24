@@ -205,7 +205,7 @@ async function run() {
       OVER_HELPER.length === 3 && OVER_HELPER.every(k => spContent.de[k] !== undefined
         && placeholderFrom(spContent.de[k]).size > 0), OVER_HELPER.join(' · '));
     check('Und die Saetze mit Auszeichnung kommen aus dem Quelltext',
-      MARKED.size >= 38 && MARKED.has('login.linkUnaffected'),
+      MARKED.size >= 38 && MARKED.has('login.noPhoneHint'),
       `${MARKED.size} Saetze mit Auszeichnung`);
     check('Und es sind wirklich fuenfzehn Vokabelwoerter',
       VOCABLES.length === 15, `${VOCABLES.length}: ${VOCABLES.join(' ')}`);
@@ -883,7 +883,7 @@ async function run() {
       /2 Kommentare, 1 Bewertung/.test(blDialog?.textContent || ''),
       (blDialog?.textContent || '').replace(/\s+/g, ' ').slice(0, 300));
     check('Und den Satz zum Sperren als Alternative',
-      /sperren statt löschen/.test(blDialog?.textContent || ''), '');
+      D.shows(blDialog?.textContent, 'dialog.lockInsteadHint'), '');
     check('Zwei Knoepfe: „Abbrechen" und „Benutzer löschen"',
       blDialog?.querySelector('[data-no]')?.textContent === 'Abbrechen' &&
       blDialog?.querySelector('[data-yes]')?.textContent === 'Benutzer löschen',
@@ -1350,8 +1350,8 @@ async function run() {
     check('Die Seite heisst „Einstellungen", und ihr Satz nennt die Installation nur dem Admin',
       rwUserB.w.document.querySelector('.page-title')?.textContent === 'Einstellungen' &&
       rwAdmB.w.document.querySelector('.page-title')?.textContent === 'Einstellungen' &&
-      /dein Konto und den Bestand\./.test(rwUserB.w.document.querySelector('.page-title + .hint')?.textContent || '') &&
-      /den Bestand und die Installation\./.test(rwAdmB.w.document.querySelector('.page-title + .hint')?.textContent || ''),
+      D.shows(rwUserB.w.document.querySelector('.page-title + .hint')?.textContent, 'card.settingsHint') &&
+      D.shows(rwAdmB.w.document.querySelector('.page-title + .hint')?.textContent, 'card.settingsHintAll'),
       JSON.stringify([rwUserB.w.document.querySelector('.page-title + .hint')?.textContent,
                       rwAdmB.w.document.querySelector('.page-title + .hint')?.textContent]));
     rwUserB.w.close(); rwAdmB.w.close();

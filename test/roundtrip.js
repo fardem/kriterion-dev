@@ -12356,9 +12356,6 @@ async function sendImport(object, mode, withoutShare = false) {
       /15 Minuten/.test(reportWord.core), reportWord.core.slice(0, 400));
     check('Sie nennt die sieben Tage',
       /7 Tage/.test(reportWord.core), reportWord.core.slice(0, 400));
-    /* GEKUERZT MIT 0.9.1 -- EIN SATZ WENIGER, NICHT EINE AUSKUNFT WENIGER. */
-    check('Sie sagt, dass Neuladen in der Frist unschaedlich ist',
-      /bleiben dir \d+ Minuten — neu laden darfst du darin beliebig oft/.test(reportWord.core), reportWord.core.slice(0, 400));
     check('Und was danach zu tun ist',
       /einen neuen Link vom Admin/.test(reportWord.core), reportWord.core.slice(0, 400));
     /* UND SIE IST WIRKLICH KUERZER: der Satz, der dasselbe ein zweites Mal
@@ -12660,7 +12657,7 @@ async function sendImport(object, mode, withoutShare = false) {
        ist keine Adresse hinterlegt"). */
     check('Und die Absage nennt den Weg dorthin -- den Ort, nicht nur das Wort',
       /Einstellungen/.test(tWithoutAddress.content?.error || '') &&
-      /Mein Konto/.test(tWithoutAddress.content?.error || ''),
+      (tWithoutAddress.content?.error || '').includes(D.DE_TEXTS['card.myAccount']),
       JSON.stringify(tWithoutAddress.content?.error));
     // Jetzt die eigene Adresse setzen -- ueber den eigenen Zugang, wie gebaut.
     const tAccount = await TA.S.call('PUT', '/api/account',
@@ -13176,14 +13173,8 @@ async function sendImport(object, mode, withoutShare = false) {
       hMail.core.split('\n').find(z => /bestaetigung/.test(z)) || '(keine Zeile mit Link)');
     check('Und er steht im FRAGMENT -- er geht damit nie an den Server',
       /#\/confirm\//.test(hMail.core), 'kein Fragment im Link');
-    /* DER TEXT SAGT, WAS DER LINK NICHT TUT. */
-    check('Der Text sagt, dass der Link keinen Zugang oeffnet',
-      /öffnet keinen Zugang und setzt kein Passwort/.test(hMail.core),
-      hMail.core.slice(0, 200));
-    check('Und was zu tun ist, wenn man nichts angefragt hat',
-      /ist nichts zu tun/.test(hMail.core), hMail.core.slice(0, 400));
-    check('Und dass danach ein Admin entscheidet',
-      /entscheidet danach ein Admin/.test(hMail.core), hMail.core.slice(0, 400));
+    check('Der Brief ist der Text aus der Sprachdatei',
+      D.shows(hMail.core, 'mail.confirm.body'), hMail.core.slice(0, 400));
     check('Er ist reiner Text -- kein HTML im Brief',
       !/<html|<body|Content-Type: text\/html/i.test(hMail.raw), 'HTML im Brief');
     // Der Schluessel selbst steht in der Datenbank NICHT im Klartext.

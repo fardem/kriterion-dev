@@ -6,6 +6,7 @@ const D = require('./dom.js');
 const {
   buildDom, waitSearch, sysSection, css123, regel123, withoutMedia, until, openRequests
 } = D;
+const ACCOUNT_CARD = D.DE_TEXTS['card.myAccount'];
 // Die Uebersicht steht an ihrer Zaehlzeile, und jede Antwort ist verarbeitet.
 const listDrawn = (x) => !!x.document.getElementById('count')?.textContent &&
   openRequests(x) === 0;
@@ -1260,12 +1261,11 @@ async function run() {
     await sysSection(d.w, 'personal');
     return d;
   };
-  // SEIT 0.22.0 HEISST DIE KARTE „Mein Konto" (E2).
   const ztCard = (d) => [...d.w.document.querySelectorAll('.sys-grid > .sys-card')]
-    .find(c => c.querySelector('h3')?.textContent.trim() === 'Mein Konto');
+    .find(c => c.querySelector('h3')?.textContent.trim() === ACCOUNT_CARD);
   {
     const dOut = await zt(false), dAn = await zt(true);
-    check('Die Karte „Mein Konto" steht in beiden Lagen da',
+    check('Die Karte „Mein Account" steht in beiden Lagen da',
       !!ztCard(dOut) && !!ztCard(dAn),
       `${!!ztCard(dOut)} / ${!!ztCard(dAn)}`);
     const tOut = ztCard(dOut)?.textContent || '', tAn = ztCard(dAn)?.textContent || '';

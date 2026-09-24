@@ -124,7 +124,7 @@ docker compose up -d --build
 unter `http://<server-ip>:3100` erreichbar.
 
 Beim ersten Aufruf im Browser werden Benutzername und Passwort gesetzt
-(mindestens zehn Zeichen). Dieser Zugang ist der Eigentümer. Kriterien,
+(mindestens zehn Zeichen). Dieser Account ist der Eigentümer. Kriterien,
 weitere Benutzer und Mailversand werden in der Oberfläche eingerichtet; siehe
 [Handbuch](manual-de.md).
 
@@ -134,7 +134,7 @@ weitere Benutzer und Mailversand werden in der Oberfläche eingerichtet; siehe
 |---|---|---|
 | `.env` | `ENCRYPTION_KEY`: Schlüssel der Datenbank | Schlüssel liegt in `data/encryption.key`, siehe [Der Schlüssel](#der-schlüssel) |
 | `.env` | `BEHIND_PROXY=1`: Reverse Proxy mit HTTPS davor | direkter Zugriff, siehe [Hinter einem Reverse Proxy](#hinter-einem-reverse-proxy) |
-| `.env` | `PUBLIC_ADDRESS`: Adresse von außen, etwa `https://kriterion.beispiel.de` | Links baut der Browser aus seiner Adresse; keine Links per Mail, keine Registrierung |
+| `.env` | `PUBLIC_ADDRESS`: Adresse von außen, etwa `https://kriterion.beispiel.de` | Links baut der Browser aus seiner Adresse; keine Links per E-Mail, keine Registrierung |
 | `docker-compose.yml` | Port, links in `"3100:3000"` | 3100 |
 | `docker-compose.yml` | Backup-Ordner: Einhängung und `BACKUP_DIR` | `./kriterion-backup`, siehe [Backup](#backup) |
 | `docker-compose.yml` | `TZ`: Zeitzone des Protokolls | `Europe/Berlin` |
@@ -374,7 +374,7 @@ Der Start meldet die Lage im Protokoll: `Behind proxy: on` oder `off`.
   lässt in Free und Pro 100 MB durch.
 
 Für CrowdSec oder fail2ban antwortet `POST /api/login` unterscheidbar: 401
-(Name oder Passwort falsch), 429 (zu viele Versuche), 403 (Zugang gesperrt).
+(Name oder Passwort falsch), 429 (zu viele Versuche), 403 (Account gesperrt).
 
 ## Befehle auf dem Server
 
@@ -386,7 +386,7 @@ stehen im Sicherheitsprotokoll als „per Kommandozeile am Server".
 | `docker compose exec kriterion node usertool.js list` | Benutzer, Rolle, zweiter Faktor |
 | `docker compose exec kriterion node usertool.js password <name>` | neues Passwort setzen; alle Sitzungen des Benutzers enden |
 | `docker compose exec kriterion node usertool.js twofactor <name>` | zweiten Faktor ausschalten (einschalten geht nur in der Oberfläche) |
-| `docker compose exec kriterion node usertool.js remove <name>` | Zugang stilllegen |
+| `docker compose exec kriterion node usertool.js remove <name>` | Account stilllegen |
 | `docker compose exec kriterion node usertool.js owner <name>` | Eigentümer bestimmen, wenn der bisherige nicht mehr hereinkommt |
 | `./keytool.sh show`, `./keytool.sh change` | Schlüssel anzeigen oder wechseln |
 

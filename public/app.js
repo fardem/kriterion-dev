@@ -425,10 +425,8 @@ function nameBox(title, text, fallback = '', okLabel = t('dialog.save'), maxLeng
   });
 }
 
-/* DIE ZWEITE BESTAETIGUNG AM BILDSCHIRM. */
-/* EINE FUNKTION UND KEINE KONSTANTE. */
-const confirmReason = () => t('dialog.appWideHint') +
-  t('dialog.confirmPassword');
+// Eine Funktion, weil die Sprache beim Laden des Skripts noch nicht feststeht.
+const confirmReason = () => t('dialog.appWideHint');
 
 /* STEHT HIER EIN ZWEITES FELD -- aber nur bei Zugaengen, die einen zweiten
    Faktor eingeschaltet haben. */
@@ -458,13 +456,9 @@ function passwordDialog(title, event, reason, withCode) {
   });
 }
 
-/* Das Fenster der ZWEITEN BESTAETIGUNG. Ob das Codefeld dasteht, entscheidet
-   ZWEIFAKTOR und damit der Server -- die Oberflaeche raet es nie. */
+// Ob das Codefeld erscheint, meldet der Server über TWO_FACTOR.
 const confirmField = (title, event) => passwordDialog(title, event,
-  confirmReason() + (TWO_FACTOR
-    ? t('dialog.twoFactorOn') +
-      t('dialog.recoveryCodeToo')
-    : ''), TWO_FACTOR);
+  confirmReason() + (TWO_FACTOR ? ' ' + t('dialog.twoFactorOn') : ''), TWO_FACTOR);
 
 /* Dasselbe Fenster fuer die vier Wege des zweiten Faktors selbst. */
 const confirmFieldFree = (title, event, withCode) =>
@@ -802,7 +796,7 @@ async function showConfirm(key) {
       ${BRAND_LINE()}
       ${good ? `<p class="sub" id="confirm-ok">${tMark('login.requestConfirmedHint', 'login.confirmed')}</p>`
         : `<div class="login-error">${esc(message)}</div>
-        ${again ? `<p class="sub">${tMark('login.linkUnaffected', 'login.linkUnaffectedWord')}</p><button class="btn btn-accent" id="confirm-again">${tH('login.tryAgain')}</button>`
+        ${again ? `<p class="sub">${tH('login.linkUnaffected')}</p><button class="btn btn-accent" id="confirm-again">${tH('login.tryAgain')}</button>`
           : ''}`}
       <p class="sub" style="margin:14px 0 0"><a href="#" id="confirm-back">${tH('login.backToSignIn')}</a></p>
     </div></div>`;
@@ -849,7 +843,7 @@ async function showInvite(key) {
     app.innerHTML = `<div class="login-screen"><div class="login-card">
       ${BRAND_LINE()}
       <div class="login-error">${esc(message)}</div>
-      <p class="sub">${tMark('login.linkUnaffectedRetry', 'login.linkUnaffectedWord')}</p>
+      <p class="sub">${tH('login.linkUnaffectedRetry')}</p>
       <button class="btn btn-accent" id="eb-again">${tH('login.tryAgain')}</button>
     </div></div>`;
     document.getElementById('eb-again').onclick = () => showInvite(key);
@@ -869,7 +863,7 @@ async function showInvite(key) {
       ${/* DIE FRIST GEHÖRT AN DIE STELLE, AN DER SIE LÄUFT. */''}
       <p class="sub" style="margin:0 0 4px">${tH('login.minChars', { min: min })}
         ${status.minutes ? `${tMark('login.linkValidHint', 'login.linkValidMinutes', { n: status.minutes })}` : ''}
-        <br>${tH('login.logoutHint')}</p>
+        <br>${tH('login.logoutHint')}<br>${tH('login.forgotHint')}</p>
       <button class="btn btn-accent" id="eb">${tH('dialog.setPassword')}</button>
     </div></div>`;
 
