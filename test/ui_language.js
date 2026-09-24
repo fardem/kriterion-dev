@@ -146,7 +146,7 @@ async function run() {
     const passedMap = new Map();
     for (const file of spSources) {
       const q = fs.readFileSync(path.join(__dirname, file), 'utf8');
-      /* tMark() UND tMarks() WERDEN MITGELESEN -- 0.31.1. */
+      /* tMarks() wird mitgelesen. */
       /* UND refuse() -- die Absage von PUT /api/settings traegt den Schluessel
          und die Werte in derselben Form wie `new Message`. */
       const call = /(?<![A-Za-z0-9_.$])(?:tMarks?|tH?|new Message|refuse|meldung|message)\(\s*(?:[A-Za-z][A-Za-z0-9_.]*(?:\([^()]*\))?\s*,\s*)?'([a-zäöü][A-Za-z0-9]*(?:\.[A-Za-z0-9_]+)+)'/g;
@@ -167,19 +167,8 @@ async function run() {
         for (const n of (m[2] || '').matchAll(/([A-Za-z_][A-Za-z0-9_]*)\s*:/g)) passedMap.get(m[1]).add(n[1]);
       }
     }
-    /* UND DAS WORT BEKOMMT DIESELBEN WERTE WIE SEIN SATZ -- 0.31.1. */
-    for (const file of spSources) {
-      const q = fs.readFileSync(path.join(__dirname, file), 'utf8');
-      for (const m of q.matchAll(/\btMark\(\s*'([^']+)'\s*,\s*'([^']+)'/g)) {
-        const vom = passedMap.get(m[1]);
-        if (!vom) continue;
-        if (!passedMap.has(m[2])) passedMap.set(m[2], new Set());
-        for (const name of vom) passedMap.get(m[2]).add(name);
-      }
-    }
     /* ZWEI SCHLUESSEL REISEN IN EINER VARIABLEN -- `pruefeRegelwert(wert,
        spanne, was)` bekommt den Namen gereicht und baut die Werte selbst. */
-    /* UND ZWEI REISEN SEIT 0.25.4 UEBER `tMark()` -- der Verneinungssatz. */
     /* `server.uploadCap` KOMMT MIT 0.35.2 DAZU: der Fehler-Handler holt den
        Schluessel aus `req.caps`, das die Route gesetzt hat -- buchstaeblich
        steht er dort nicht. */
@@ -204,9 +193,9 @@ async function run() {
     check('Und die drei, die in einer Variablen reisen, stehen namentlich da',
       OVER_HELPER.length === 3 && OVER_HELPER.every(k => spContent.de[k] !== undefined
         && placeholderFrom(spContent.de[k]).size > 0), OVER_HELPER.join(' · '));
-    check('Und die Saetze mit Auszeichnung kommen aus dem Quelltext',
-      MARKED.size >= 38 && MARKED.has('login.noPhoneHint'),
-      `${MARKED.size} Saetze mit Auszeichnung`);
+    check('Und die Saetze mit eingesetztem HTML kommen aus dem Quelltext',
+      MARKED.size > 0 && MARKED.has('card.keyFromSetting'),
+      `${MARKED.size} Saetze mit eingesetztem HTML`);
     check('Und es sind wirklich fuenfzehn Vokabelwoerter',
       VOCABLES.length === 15, `${VOCABLES.length}: ${VOCABLES.join(' ')}`);
 

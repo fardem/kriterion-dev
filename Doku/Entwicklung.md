@@ -231,3 +231,8 @@ etwa `pt-BR.json`. Pflicht sind `"_locale"` (für Datum, Zahl, Mehrzahl) und
 `"_name"` (Eigenname der Sprache). Fehlende Schlüssel fallen auf die
 Vorgabesprache zurück. Eine unbrauchbare Datei wird übergangen; der Grund steht
 im Protokoll (`docker compose logs kriterion | grep '\[languages\]'`).
+
+Ein Satz steht ganz in einem Schlüssel. Betonte Wörter stehen darin zwischen
+`**…**`; `tH()` macht daraus Fettdruck, `t()` lässt die Zeichen weg. Jede
+Sprache betont im selben Satz gleich viele Stellen. `mail.*` und `server.*`
+tragen kein `**`, weil der Server sie als reinen Text einsetzt.

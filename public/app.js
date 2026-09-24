@@ -40,22 +40,18 @@ function fillSentence(sentence, values, mask) {
   });
 }
 
-// Fuer textContent, title und placeholder: der nackte Text.
+// Fuer textContent, title und placeholder: der nackte Text, `**` entfaellt.
 function t(key, values = {}) {
-  return fillSentence(languageSentence(key, values), values, false);
+  return fillSentence(languageSentence(key, values).replace(/\*\*/g, ''), values, false);
 }
-// Fuer innerHTML: derselbe Text, aber jeder eingesetzte Wert maskiert.
+// Fuer innerHTML: `**Wort**` wird fett, jeder eingesetzte Wert maskiert.
+// Fett vor dem Einsetzen, damit ein `**` in einem Wert nichts auszeichnet.
 function tH(key, values = {}) {
-  return fillSentence(languageSentence(key, values), values, true);
+  const sentence = languageSentence(key, values).replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+  return fillSentence(sentence, values, true);
 }
 
-/* EIN SATZ MIT EINEM HERVORGEHOBENEN STUECK. */
-/* NIMMT ER AUCH WERTE. */
-/* DIE WERTE GEHEN AN BEIDE -- an den Satz UND an das hervorgehobene Wort. */
-const tMark = (key, wordKey, values) => tH(key, { ...values, word: '\u0001' })
-  .replace('\u0001', `<strong>${tH(wordKey, values)}</strong>`);
-
-/* MEHRERE STUECKE IN EINEM SATZ, UND SIE MUESSEN KEINE SCHLUESSEL SEIN. */
+// Setzt fertiges HTML (`<code>`, `<span>`) in `{word}`, `{word2}` …; Text gehoert in den Satz.
 const tMarks = (key, parts, values) => {
   const names = Object.keys(parts), marks = {};
   names.forEach((n, i) => { marks[n] = `\u0001${i}\u0001`; });
@@ -672,7 +668,7 @@ function showSecondFactor(ticket, errMsg) {
       <input class="input" id="two-factor-code" inputmode="text" autocomplete="one-time-code"
         autocapitalize="characters" spellcheck="false" maxlength="16"></div>
     <button class="btn btn-accent" id="two-factor-send">${tH('login.signIn')}</button>
-    <p class="sub" style="margin:14px 0 0">${tMark('login.noPhoneHint', 'login.recoveryCode')}</p>
+    <p class="sub" style="margin:14px 0 0">${tH('login.noPhoneHint')}</p>
   </div></div>`;
   document.title = TITLE_PUBLIC;
   const c = document.getElementById('two-factor-code'), b = document.getElementById('two-factor-send');
@@ -794,7 +790,7 @@ async function showConfirm(key) {
   function draw(good, message, again) {
     app.innerHTML = `<div class="login-screen"><div class="login-card">
       ${BRAND_LINE()}
-      ${good ? `<p class="sub" id="confirm-ok">${tMark('login.requestConfirmedHint', 'login.confirmed')}</p>`
+      ${good ? `<p class="sub" id="confirm-ok">${tH('login.requestConfirmedHint')}</p>`
         : `<div class="login-error">${esc(message)}</div>
         ${again ? `<p class="sub">${tH('login.linkUnaffected')}</p><button class="btn btn-accent" id="confirm-again">${tH('login.tryAgain')}</button>`
           : ''}`}
@@ -853,8 +849,8 @@ async function showInvite(key) {
     app.innerHTML = `<div class="login-screen"><div class="login-card">
       ${BRAND_LINE()}
       <p class="sub">${status.withoutPassword
-        ? tMarks('login.welcome', { word: `<strong>${esc(status.username)}</strong>` })
-        : tMarks('login.newPasswordFor', { word: `<strong>${esc(status.username)}</strong>` })}</p>
+        ? tH('login.welcome', { name: status.username })
+        : tH('login.newPasswordFor', { name: status.username })}</p>
       ${errMsg ? `<div class="login-error">${esc(errMsg)}</div>` : ''}
       <div class="field"><label for="ep">${tH('login.password')}</label>
         <input class="input" id="ep" type="password" autocomplete="new-password"></div>
@@ -862,7 +858,7 @@ async function showInvite(key) {
         <input class="input" id="ep2" type="password" autocomplete="new-password"></div>
       ${/* DIE FRIST GEHÖRT AN DIE STELLE, AN DER SIE LÄUFT. */''}
       <p class="sub" style="margin:0 0 4px">${tH('login.minChars', { min: min })}
-        ${status.minutes ? `${tMark('login.linkValidHint', 'login.linkValidMinutes', { n: status.minutes })}` : ''}
+        ${status.minutes ? `${tH('login.linkValidHint', { n: status.minutes })}` : ''}
         <br>${tH('login.logoutHint')}<br>${tH('login.forgotHint')}</p>
       <button class="btn btn-accent" id="eb">${tH('dialog.setPassword')}</button>
     </div></div>`;
@@ -6037,10 +6033,10 @@ async function renderDetail(id, termAddress, commentWanted) {
     const bd = document.createElement('div');
     bd.className = 'backdrop';
     bd.innerHTML = `<div class="modal calc-modal" id="calc-modal">
-      <h2>${tMarks('entry.calcHowAvg', { word: esc(weightNumber(removed.result)) })}</h2>
+      <h2>${tH('entry.calcHowAvg', { avg: weightNumber(removed.result) })}</h2>
       ${/* DER VERWEIS ZEIGT IN DEN KASTEN UND NICHT AUS IHM HINAUS. */''}
       ${/* „UEBER ALLE BENUTZER". */''}
-      <p><strong>${tH('entry.calcTwoSteps')}</strong> ${tMark('entry.calcStepsHint', 'entry.grade',
+      <p>${tH('entry.calcStepsHint',
           { extra: withWeight ? t('entry.calcWithWeight') : t('entry.calcAllEqual') })}</p>
       <div class="calc" id="calc">
         <div class="calc-row calc-head"><span>${tH('entry.criterion')}</span><span>${tH('entry.grade')}</span><span>${tH('entry.weight')}</span><span>${tH('entry.calcGradeWeight')}</span></div>
@@ -6066,16 +6062,13 @@ async function renderDetail(id, termAddress, commentWanted) {
       ${/* ZWEI ABSAETZE UNTER DER TABELLE UND NICHT DREI. Bei
            sieben Kriterien lief der Kasten ueber `88dvh` hinaus und rollte. */''}
       ${/* ZWEI SAETZE FUER JEDEN, DER DRITTE NUR FUER DEN ADMIN. */''}
-      <p>${tMark('entry.calcRoundingHint', 'entry.criteriaNoStars')}${ADMIN ? ` ${tMarks('entry.weightsWhere', { word: `<strong>${
-        esc(boxId.phase === 'before' ? t('entry.criteriaPotential') : t('entry.criteriaRating'))}</strong>` })}` : ''}</p>
+      <p>${tH('entry.calcRoundingHint')}${ADMIN ? ` ${tH('entry.weightsWhere', {
+        criteria: boxId.phase === 'before' ? t('entry.criteriaPotential') : t('entry.criteriaRating') })}` : ''}</p>
       ${/* WAS DIE GEWICHTUNG AENDERT, IN EINEM SATZ. */''}
       ${withWeight ? (sameNumber
-        ? `<p id="calc-same-note">${tMarks('entry.calcNoChange',
-            { word: `<strong>⌀ ${esc(weightNumber(removed.result))}</strong>` })}</p>`
-        : `<p id="calc-same-note">${tMarks('entry.calcIfEqual', {
-            word:  `<strong>${tH('entry.calcEquals')}</strong>`,
-            word2: `<strong>⌀ ${esc(weightNumber(removed.equalResult))}</strong>`,
-            word3: `<strong>⌀ ${esc(weightNumber(removed.result))}</strong>` })}
+        ? `<p id="calc-same-note">${tH('entry.calcNoChange', { avg: weightNumber(removed.result) })}</p>`
+        : `<p id="calc-same-note">${tH('entry.calcIfEqual', {
+            equal: weightNumber(removed.equalResult), result: weightNumber(removed.result) })}
             <strong>${tH('entry.calcDifference')}</strong></p>`) : ''}
       <div class="modal-acts"><button class="btn btn-ghost" data-no>${tH('list.close')}</button></div></div>`;
     document.body.appendChild(bd);
@@ -7315,7 +7308,7 @@ function cardTitle(fetched) {
   const { titles } = fetched;
   return `<div class="sys-card">
         <h3>${tH('list.title')}</h3>
-        <p class="desc">${tMark('card.publicTitleHint', 'card.publicTitle')} ${tMark('card.internalTitleHint', 'card.internalTitles')}</p>
+        <p class="desc">${tH('card.publicTitleHint')} ${tH('card.internalTitleHint')}</p>
         <div class="field"><label>${tH('card.titleBeforeLogin')}</label>
           <input class="input" id="tp" value="${esc(titles.publicTitle)}"></div>
         <div class="field"><label>${tH('card.titleAfterLogin')}</label>
@@ -7349,8 +7342,7 @@ function cardLanguages() {
         ${/* DIE PFADE STEHEN IM QUELLTEXT UND NICHT IN DER SPRACHDATEI: ein
              Verzeichnisname ist ein technischer Name und in jeder Sprache
              derselbe (Regel S8). */''}
-        ${more(`${tH('card.languagesFileBefore')} <code>public/languages/</code>
-          ${tH('card.languagesFileAfter')}`)}
+        ${more(tMarks('card.languagesFileHint', { word: '<code>public/languages/</code>' }))}
       </div>`;
 }
 function setUpLanguagesOut() {
@@ -7459,7 +7451,7 @@ function cardUser(fetched) {
         <div class="field"><label>${tH('card.repeatNewPassword')}</label>
           <input class="input" id="acc-new2" type="password" autocomplete="new-password"></div>
         <p class="desc" style="margin:0 0 10px">${SIGNUP
-          ? `${tMark('card.addressRequiredHint', 'card.addressRequired')} `
+          ? `${tH('card.addressRequiredHint')} `
           : ''}${tH('card.resetMailHint')}</p>
         ${serverBox(t('card.forgotPasswordHint'), 'docker compose exec kriterion node usertool.js password <name>')}
         <button class="btn btn-accent btn-sm" id="acc-save" style="margin-top:10px">${tH('dialog.save')}</button>
@@ -7504,7 +7496,7 @@ function setUpUserOut(fetched) {
     if (!box || !status) return;
     box.innerHTML = status.an ? `
       <div class="two-factor-state two-factor-on">
-        ${tMark('card.twoFactorStateOn', 'card.twoFactorIsOn', { since: fmtDate(status.since) })}
+        ${tH('card.twoFactorStateOn', { since: fmtDate(status.since) })}
         <div class="two-factor-count">${tH('card.recoveryCodes')}
           <strong>${tH('card.codesLeft', { codesLeft: status.codesOpen, codesTotal: status.codesTotal })}</strong>${status.codesOpen <= 2
             ? ` — <strong>${tH('card.codesRunningOut')}</strong>` : ''}</div>
@@ -7513,7 +7505,7 @@ function setUpUserOut(fetched) {
         <button class="btn btn-sm" id="two-factor-new">${tH('card.newRecoveryCodes')}</button>
         <button class="btn btn-ghost btn-sm" id="two-factor-off">${tH('card.twoFactorOff')}</button>
       </div>` : `
-      <div class="two-factor-state two-factor-off">${tMark('card.twoFactorStateOff', 'card.twoFactorIsOff')}</div>
+      <div class="two-factor-state two-factor-off">${tH('card.twoFactorStateOff')}</div>
       <p class="desc" style="margin:8px 0 10px">${tH('card.twoFactorHint')}</p>
       <button class="btn btn-sm" id="two-factor-on">${tH('card.twoFactorOn')}</button>`;
 
@@ -7542,8 +7534,7 @@ function setUpUserOut(fetched) {
 
     atElement('two-factor-off', b => b.onclick = async () => {
       const e = await ask(t('card.twoFactorOff'),
-        t('card.twoFactorOffHint') +
-        t('card.becomeInvalid'), true);
+        t('card.twoFactorOffHint'), true);
       if (e === null) return;
       try {
         drawTwoFactor(await api('DELETE', '/api/two-factor', e));
@@ -7562,7 +7553,7 @@ function setUpUserOut(fetched) {
     box.innerHTML = `
       <div class="warn-box two-factor-setup">
         <strong>${tH('card.twoFactorStep1')}</strong>
-        ${tMark('card.shownOnceHint', 'card.onlyThisOnce')}
+        ${tH('card.shownOnceHint')}
         <div class="two-factor-key" id="two-factor-secret">${esc(d.groups)}</div>
         <div class="row-in" style="margin:8px 0 0">
           <button class="btn btn-sm" id="two-factor-copy">${tH('card.copyKey')}</button>
@@ -7607,7 +7598,7 @@ function setUpUserOut(fetched) {
     boxId.className = 'warn-box';
     boxId.id = 'two-factor-codebox';
     boxId.innerHTML = `<strong>${tH('card.yourRecoveryCodes', { length: codes.length })}</strong>
-      ${tMark('card.recoveryCodesHint', 'card.once')}
+      ${tH('card.recoveryCodesHint')}
       <div class="two-factor-codes">${codes.map(c => `<span>${esc(c)}</span>`).join('')}</div>
       ${/* DER SERVER-BEFEHL STAND HIER FUER JEDEN BENUTZER. Jetzt: ein Satz fuer
    alle, der Kasten nur fuer den Eigentuemer. */''}
@@ -7673,11 +7664,10 @@ function setUpSessionsOut(fetched) {
     /* DIE ZAHL IST DIE AUSKUNFT DIESER KARTE. */
     if (!foot) return;
     foot.innerHTML = other
-      ? `<p class="desc" style="margin:10px 0 8px">${tMarks('card.otherSessionsHint',
-          { word: `<strong>${tH('card.moreSessions', { n: other })}</strong>` }, { n: other })}
+      ? `<p class="desc" style="margin:10px 0 8px">${tH('card.otherSessionsHint', { n: other })}
           ${tH('card.sessionIdleHint', { days: d.days || 30 })}</p>
          <button class="btn btn-sm" id="sessions-all">${tH('card.endOtherSessions')}</button>`
-      : `<p class="desc" style="margin:10px 0 0">${tMark('card.onlySessionHint', 'card.only')}</p>`;
+      : `<p class="desc" style="margin:10px 0 0">${tH('card.onlySessionHint')}</p>`;
     const all = doc.getElementById('sessions-all');
     if (all) all.onclick = async () => {
       if (!await confirmBox(t('card.endSessionsAsk'), t('card.thisSessionStays'), t('card.end'))) return;
@@ -7862,13 +7852,12 @@ function cardCriteria(phase) {
   const before = phase === 'before';
   const k = CRIT_CARD[phase];
   return `<div class="sys-card">
-        <h3>${tMarks('card.criteriaLabel', { word: esc(before ? V.potential : V.ratingOne) })}</h3>
+        <h3>${tH('card.criteriaLabel', { label: before ? V.potential : V.ratingOne })}</h3>
         ${/* EIN SATZ AN DER KARTE, DIE FOLGEN HINTER „Mehr" -- und der
              Benutzer liest nur, was er tun kann (Regel S5). */''}
-        ${before ? `<p class="desc">${tMark('card.potentialStarsHint', 'card.before')}
+        ${before ? `<p class="desc">${tH('card.potentialStarsHint')}
              ${ADMIN ? t('card.criteriaHint') : t('card.listAdminHint')}</p>
-           ${ADMIN ? more(`${tH('card.criteriaTip')} <em>${tH('card.wanted')}</em> ${tH('card.weight')}
-             <em>${tH('card.use')}</em>, ${tMark('card.criteriaOrderHint', 'card.feasibility')}`) : ''}`
+           ${ADMIN ? more(tH('card.criteriaTip')) : ''}`
           : `<p class="desc">${ADMIN
           ? t('card.criteriaHintDelete')
           : tH('card.criteriaAdminHint')}</p>
@@ -7880,7 +7869,7 @@ function cardCriteria(phase) {
         ${/* DIE LISTE WIRD GEDAEMPFT, WENN DER MODUS AUS IST, F2. */''}
         <div class="manage-list${before && !POTENTIAL_MODE ? ' list-quiet' : ''}" id="${k.list}"></div>
         ${/* NICHT DER NAECHSTLIEGENDE WEG -- die Begruendung steht darunter. */''}
-        <p class="desc" style="margin:10px 0 0">${tMark('card.weightExplainHint', 'entry.weight')} ${ADMIN
+        <p class="desc" style="margin:10px 0 0">${tH('card.weightExplainHint')} ${ADMIN
             ? t('card.weightRangeHint')
             : t('card.weightSystemDefault')}</p>
         <!-- Ein Textfeld MIT Vorschlagsliste, kein Auswahlfeld: feste Stufen decken 0,2 bis 2 nicht
@@ -8219,7 +8208,7 @@ function setUpCriteriaOut(fetched, phase) {
 function cardVocabulary() {
   return `<div class="sys-card">
         <h3>${tH('card.vocabulary')}</h3>
-        <p class="desc">${tMark('card.vocabularyHint', 'card.labelOnlyHint')}</p>
+        <p class="desc">${tH('card.vocabularyHint')}</p>
         ${/* FUENFZEHN FELDER AUS EINER TABELLE, und
              sind es fuenfzehn. */''}
         ${/* DIE SPRACHZEILE UEBER DEN FELDERN, F3. */''}
@@ -8504,7 +8493,7 @@ function cardLinks() {
         <p class="desc">${tH('card.linkRowsHint')}</p>
         <div class="pills" id="lrows"></div>
 
-        <p class="desc sys-part">${tMark('card.linkListHint', 'card.search')}</p>
+        <p class="desc sys-part">${tH('card.linkListHint')}</p>
         <p class="desc" style="margin:0 0 8px">${tH('card.engineCountHint')}</p>
         <div class="pills" id="snames"></div>
       </div>`;
@@ -8529,7 +8518,7 @@ function setUpLinksOut() {
 function cardSearchProvider() {
   return `<div class="sys-card">
         <h3>${tH('card.searchEngines')}</h3>
-        <p class="desc">${tMark('card.engineCheckboxHint', 'card.standard')}</p>
+        <p class="desc">${tH('card.engineCheckboxHint')}</p>
         ${more(t('card.searchUsersHint'))}
         <div class="engine-list" id="engines"></div>
 
@@ -8642,7 +8631,7 @@ function setUpSearchProviderOut() {
 function cardTrash() {
   return `<div class="sys-card">
         <h3>${tH('card.trash')}</h3>
-        <p class="desc">${tMark('card.trashKeepsHint', 'card.trashDays', { trashDays: TRASH_DAYS })}
+        <p class="desc">${tH('card.trashKeepsHint', { trashDays: TRASH_DAYS })}
           ${OWNER ? '' : t('card.trashOwnerHint')}</p>
         <div class="manage-list" id="mtrash"></div>
       </div>`;
@@ -8725,7 +8714,7 @@ function cardUsers() {
   return `<div class="sys-card wide">
         <h3>${tH('card.user')}</h3>
         <p class="desc">${tH('card.usersHint')}</p>
-        ${more(`${tMark('card.lockInsteadHint', 'card.lockNotDelete')} ${OWNER
+        ${more(`${tH('card.lockInsteadHint')} ${OWNER
             ? t('card.rolesYouOnly')
             : t('card.rolesOwnerHint')}`)}
         ${/* DER KASTEN ZU DEN DOPPELTEN ADRESSEN. */''}
@@ -8734,7 +8723,7 @@ function cardUsers() {
         ${/* DER KNOPF ZU DEN GRABSTEINEN. */''}
         <div class="row-in" id="user-remove-row" style="margin-top:8px"></div>
 
-        <p class="desc" style="margin:16px 0 8px">${tMark('card.newUserHint', 'card.inviteLink')}</p>
+        <p class="desc" style="margin:16px 0 8px">${tH('card.newUserHint')}</p>
         <div class="user-new">
           <input class="input input-sm" id="user-name" placeholder="${esc(t('login.username'))}"
             autocomplete="off" autocapitalize="off" spellcheck="false">
@@ -8763,7 +8752,7 @@ function cardUsers() {
              der Eigentümer. */''}
         ${OWNER
           ? `<div style="margin-top:16px">${serverBox(t('card.lockedOutHint'), 'docker compose exec kriterion node usertool.js password <name>')}</div>`
-          : `<p class="desc" style="margin:16px 0 0">${tMark('card.lockedOutCard', 'card.owner')}</p>`}
+          : `<p class="desc" style="margin:16px 0 0">${tH('card.lockedOutCard')}</p>`}
       </div>`;
 }
 function setUpUsersOut() {
@@ -8825,7 +8814,7 @@ function setUpUsersOut() {
      HÄLT. */
   /* WOHER DIE ADRESSE KAM, GEHOERT AN DIE STELLE, AN DER DER LINK ENTSTEHT. */
   const linkOrigin = (d) => d.linkSource === 'einstellung'
-    ? `${tH('card.fromServerSetting')} <code>PUBLIC_ADDRESS</code>`
+    ? tMarks('card.fromServerSetting', { word: '<code>PUBLIC_ADDRESS</code>' })
     : tH('card.fromYourBrowser');
 
   /* WAS DER VERSAND GEMACHT HAT, STEHT NEBEN DEM LINK UND NICHT ANSTELLE VON
@@ -8863,13 +8852,10 @@ function setUpUsersOut() {
 // Sonst baut ihn der Browser wie bisher.
     const address = d.link || buildInviteUrl(d.token);
     box.innerHTML = `<div class="warn-box" style="margin:12px 0 0">
-      <strong>${tMarks('card.linkForUser', {
-        word: d.purpose === 'reset' ? tH('card.resetLink') : tH('card.inviteLink') },
-        { name: d.username || '' })}</strong>
-      ${tMarks('card.linkHolderHint', {
-        word:  `<strong>${d.days || 7} ${tH('card.days')}</strong>`,
-        word2: `<strong>${tH('card.once')}</strong>`,
-        word3: `<strong>${d.minutes || 15} ${tH('card.minutes')}</strong>` })}
+      <strong>${d.purpose === 'reset'
+        ? tH('card.resetLinkFor', { name: d.username || '' })
+        : tH('card.inviteLinkFor', { name: d.username || '' })}</strong>
+      ${tH('card.linkHolderHint', { days: d.days || 7, minutes: d.minutes || 15 })}
       <div class="user-link-row"><input class="input input-sm" id="user-link-field" readonly
         value="${esc(address)}"><button class="btn btn-sm" id="user-link-copy">${tH('card.copy')}</button></div>
       <p class="user-link-origin" id="user-link-origin">${tH('card.linkPointsTo')}
@@ -9042,7 +9028,7 @@ function setUpUsersOut() {
     const bd = doc.createElement('div');
     bd.className = 'backdrop';
     bd.innerHTML = `<div class="modal" id="tombstone-modal"><h2>${tH('card.deletedUsers')}</h2>
-      <p>${tMark('card.nameFreedHint', 'card.locks')}</p>
+      <p>${tH('card.nameFreedHint')}</p>
       <div class="manage-list" id="tombstone-list"></div>
       <div class="modal-acts"><button class="btn btn-ghost" data-no>${tH('list.close')}</button></div></div>`;
     doc.body.appendChild(bd);
@@ -9081,10 +9067,8 @@ function cardRequests(fetched) {
   const { requests } = fetched;
   return `<div class="sys-card wide">
         <h3>${tH('card.requests')}</h3>
-        <p class="desc">${tMark('card.signupHint', 'card.signupLabel')}${requests.an ? '' : ` <strong>${tH('card.signupOffNow')}</strong>`}</p>
-        ${more(tMarks('card.approveRejectHint', {
-          word:  `<strong>${tH('card.approve')}</strong>`,
-          word2: `<strong>${tH('card.reject')}</strong>` }, { hours: requests.hours }))}
+        <p class="desc">${tH('card.signupHint')}${requests.an ? '' : ` <strong>${tH('card.signupOffNow')}</strong>`}</p>
+        ${more(tH('card.approveRejectHint', { hours: requests.hours }))}
         <div class="kv"><span class="k">${tH('card.signup')}</span><span class="v" id="signup-state">${
           requests.an ? `<strong class="mail-on">${tH('card.on')}</strong>`
                       : `<strong class="mail-off">${tH('card.off')}</strong>`
@@ -9198,8 +9182,8 @@ function cardLog(fetched) {
   const { log } = fetched;
   return `<div class="sys-card wide">
         <h3>${tH('card.securityLog')}</h3>
-        <p class="desc">${tMark('card.logHint', 'card.notIncluded')}</p>
-        <p class="desc">${tMark('card.logKeepsHint', 'card.inDays', { n: log.days })}</p>
+        <p class="desc">${tH('card.logHint')}</p>
+        <p class="desc">${tH('card.logKeepsHint', { n: log.days })}</p>
         ${/* DIE FILTERLEISTE. Sie steht VOR der Liste, wie jede Filterreihe
              in dieser Instanz -- man waehlt, bevor man liest. */''}
         <div class="pills" id="log-filter" style="margin:0 0 12px"></div>
@@ -9426,9 +9410,7 @@ function cardMailDelivery(fetched) {
         <h3>${tH('card.mailDelivery')}</h3>
         ${/* DIE ACHTZEHNTE KARTE, und sie gehört dem EIGENTÜMER — nicht dem
              Admin, obwohl der die Einladungen verschickt. */''}
-        <p class="desc">${tMarks('card.emailOptionalHint', {
-          word:  `<strong>${tH('card.emailOptional')}</strong>`,
-          word2: `<em>${tH('card.additionally')}</em>` })}</p>
+        <p class="desc">${tH('card.emailOptionalHint')}</p>
         ${/* „eingerichtet" KAM AUS DEM QUELLTEXT UND SEIN GEGENTEIL AUS DER
              SPRACHDATEI: die Absage las `card.notConfigured`, die Zusage
              stand fest auf Deutsch da. */''}
@@ -9448,7 +9430,7 @@ function cardMailDelivery(fetched) {
         <div class="kv"><span class="k">${tH('card.lastTestedOk')}</span><span class="v">${mailStatus.testedAt
           ? esc(mailStatus.testedAt) : tH('card.never')}</span></div>
         ${mailStatus.addressSet ? '' : `<p class="warn-box" style="margin:10px 0 0">
-          <strong>${tH('card.withoutServerSetting')} <code>PUBLIC_ADDRESS</code> ${tH('card.nothingSent')}</strong> ${tH('card.addressNeededHint')}</p>`}
+          ${tMarks('card.withoutServerSetting', { word: '<code>PUBLIC_ADDRESS</code>' })}</p>`}
         ${/* ZWEI KNÖPFE, und der erste sagt, was er tut: einrichten, wenn
              noch nichts steht, ändern, wenn etwas steht. */''}
         <div class="row-in" style="margin-top:14px">
@@ -9456,7 +9438,7 @@ function cardMailDelivery(fetched) {
             mailStatus.configured ? tH('card.change') : tH('card.setUp')}</button>
           <button class="btn btn-sm" id="mail-test">${tH('card.testMailToMe')}</button>
         </div>
-        <p class="desc" style="margin:10px 0 0">${tMark('card.testMailGoesHint', 'card.ownAddressOnly', { seconds: mailStatus.seconds })}</p>
+        <p class="desc" style="margin:10px 0 0">${tH('card.testMailGoesHint', { seconds: mailStatus.seconds })}</p>
         <div id="mail-result"></div>
       </div>`;
 }
@@ -9575,8 +9557,7 @@ function mailDialog(mailStatus) {
         sender: field('sender').value.trim()
       };
       if (!await secondConfirm('mail', null, t('card.saveMailAccount'),
-        t('card.mailServerHint') +
-        t('card.toSetPassword'))) return;
+        t('card.mailServerHint'))) return;
       try {
         await api('PUT', '/api/mail', body);
         toast(t('card.mailAccountSaved'));
@@ -9722,16 +9703,14 @@ function cardStats(fetched) {
         <div style="margin-top:14px">${stats.keyFromEnv
           ? `<div class="ok-box">${tMarks('card.keyFromSetting', {
               word: '<code>ENCRYPTION_KEY</code>',
-              word2: `<strong>${tMarks('card.neverSameBackup',
-                { word: '<code>.env</code>', word2: '<code>data/</code>' })}</strong>` })}</div>`
+              word2: '<code>.env</code>', word3: '<code>data/</code>' })}</div>`
           : (OWNER
-            ? `<div class="warn-box">${tMark('card.keyBesideHint', 'card.keyBesideDb')}
-              <p style="margin:9px 0 6px">${tMarks('card.keyIntoEnv', {
-                word: `<strong>${tH('card.thisOne')}</strong>`, word2: '<code>.env</code>' })}</p>
+            ? `<div class="warn-box">${tH('card.keyBesideHint')}
+              <p style="margin:9px 0 6px">${tMarks('card.keyIntoEnv', { word: '<code>.env</code>' })}</p>
               <code class="keyline" id="keyline">ENCRYPTION_KEY=${esc(stats.keyHex || '')}</code>
               ${serverBox(t('card.restartHint'), 'docker compose up -d')}
             </div>`
-            : `<div class="warn-box"><strong>${tH('card.keyStillBeside')}</strong> ${tH('card.keyFileOwner')} <code>ENCRYPTION_KEY</code> ${tH('card.applyLower')}</div>`)}
+            : `<div class="warn-box">${tMarks('card.keyStillBeside', { word: '<code>ENCRYPTION_KEY</code>' })}</div>`)}
         </div>
         ${/* ---- DIE VERFAHREN ---- AUS DEM BETRIEB: „was benutzt ihr
              eigentlich?" Die Antwort stand im Quelltext und sonst nirgends. */''}
@@ -9952,10 +9931,10 @@ const COMPOSE_FILE = 'docker-compose.yml';
 function cardBackup() {
   return `<div class="sys-card">
         <h3>${tH('card.backup')}</h3>
-        <p class="desc">${tMark('card.backupWhatHint', 'card.backupLabel')}</p>
+        <p class="desc">${tH('card.backupWhatHint')}</p>
         ${/* Der Hinweis auf den Schluessel steht am Knopf: das Backup ist ohne .env wertlos. */''}
         <div class="warn-box" style="margin:0 0 14px"><strong>${tH('card.backupEncrypted')}</strong>
-          ${tH('card.withoutKeyFrom')} <code>.env</code> ${tH('card.backupUnopenableHint')}</div>
+          ${tMarks('card.withoutKeyFrom', { word: '<code>.env</code>' })}</div>
         <div id="backup-box"></div>
       </div>`;
 }
@@ -9990,18 +9969,17 @@ function setUpBackupOut(fetched) {
     // Nach einem Schluesselwechsel oeffnen sich die Backups von vorher nur mit dem alten.
     const changeBox = !d.changedAt ? '' : (
       last && last.outdated
-        ? `<div class="warn-box" style="margin:0 0 12px"><strong>${tH('card.noBackupForKey')}</strong> ${tH('card.keyChangedOn', { changedAt: fmtDate(d.changedAt) })}
+        ? `<div class="warn-box" style="margin:0 0 12px">${tH('card.noBackupForKey', { changedAt: fmtDate(d.changedAt) })}
              <strong>${tH('card.backupNowHint')}</strong></div>`
         : (d.outdated
           ? `<div class="warn-box" style="margin:0 0 12px"><strong>${
                tH('card.backupsBeforeChange', { n: d.outdated })}</strong>
-               (${esc(fmtDate(d.changedAt))}). ${tMarks('card.opensOnlyWith',
-                 { word: `<strong>${tH('card.oldOne')}</strong>` }, { n: d.outdated })}</div>`
+               (${esc(fmtDate(d.changedAt))}). ${tH('card.opensOnlyWith', { n: d.outdated })}</div>`
           : `<div class="ok-box" style="margin:0 0 12px">${tH('card.keyChangedHint', { changedAt: fmtDate(d.changedAt) })}</div>`));
     // Rot oder gruen an erster Stelle: die Lage des Backup-Ordners.
     const situation = d.inWorkDir
-      ? `<div class="warn-box" id="backup-place" style="margin:0 0 12px">${tMark('card.backupDirHint', 'card.backupDirInProject')} <code>${COMPOSE_FILE}</code>.</div>`
-      : `<div class="ok-box" id="backup-place" style="margin:0 0 12px">${tMark('card.backupDirOutsideHint', 'card.outsideProject')}</div>`;
+      ? `<div class="warn-box" id="backup-place" style="margin:0 0 12px">${tH('card.backupDirHint')} <code>${COMPOSE_FILE}</code>.</div>`
+      : `<div class="ok-box" id="backup-place" style="margin:0 0 12px">${tH('card.backupDirOutsideHint')}</div>`;
     box.innerHTML = `
       ${situation}
       <div class="field"><label>${tH('card.backupDir')}</label>
@@ -10013,7 +9991,7 @@ function setUpBackupOut(fetched) {
       <div class="sys-part"></div>
       ${stateBox}
       ${changeBox}
-      <p class="desc" style="margin:0 0 10px">${tMark('card.duringBackupHint', 'card.brieflyOffline', { dbBytes: fmtBytes(d.dbBytes), durationSeconds: d.durationSeconds })}</p>
+      <p class="desc" style="margin:0 0 10px">${tH('card.duringBackupHint', { dbBytes: fmtBytes(d.dbBytes), durationSeconds: d.durationSeconds })}</p>
       <button class="btn btn-accent btn-sm" id="backup-run">${tH('card.backupNow')}</button>`;
 
     document.getElementById('backup-dir-save').onclick = async () => {
@@ -10064,7 +10042,7 @@ function cardCleanup() {
         <h3>${tH('card.oldBackups')}</h3>
         ${/* ZWEI SAETZE, UND JEDER TRAEGT EINE TATSACHE: dass es weg ist, und
              was ueberhaupt in Frage kommt. */''}
-        <p class="desc">${tMark('card.cleanupHint', 'card.finally')}</p>
+        <p class="desc">${tH('card.cleanupHint')}</p>
         <div id="cleanup-box"></div>
       </div>`;
 }
@@ -10080,8 +10058,7 @@ function setUpCleanupOut(fetched) {
     const a = d.cleanup || {};
     /* OHNE EINGERICHTETEN ORT SAGT DIE KARTE GENAU DAS UND SONST NICHTS. */
     if (!d.configured) {
-      box.innerHTML = `<div class="warn-box">${tMarks('card.noBackupDirCard',
-        { word: `<strong>${tH('card.backup')}</strong>` })}</div>`;
+      box.innerHTML = `<div class="warn-box">${tH('card.noBackupDirCard')}</div>`;
       return;
     }
     const gB = (a.limits && a.limits.keep) || { min: 1, max: 20, fallback: 3 };
@@ -10117,9 +10094,8 @@ function setUpCleanupOut(fetched) {
     /* WAS DIE REGEL JETZT TREFFEN WUERDE -- eine Zeile unter der Liste, und
        in ihr steht die Zahl, die Summe und sonst nichts. */
     const stateBox = !a.reachable ? '' : (matched.length
-      ? `<p class="desc" style="margin:10px 0 6px">${tMarks('card.deleteFreesHint',
-           { word: `<strong>${tH('card.backupsDeleteHint', { n: matched.length })}</strong>` },
-           { bytes: fmtBytes(a.bytes || 0) })}</p>`
+      ? `<p class="desc" style="margin:10px 0 6px">${tH('card.deleteFreesHint',
+           { n: matched.length, bytes: fmtBytes(a.bytes || 0) })}</p>`
       : `<p class="desc" style="margin:10px 0 6px">${tH('card.nothingDeleted')} ${
            esc(a.reason || '')}</p>`);
 
@@ -10127,9 +10103,8 @@ function setUpCleanupOut(fetched) {
        eigener Knopf. */
     const outdatedBox = !oldCount ? '' : `
       <div class="sys-part"></div>
-      <p class="desc" style="margin:0 0 8px">${tMarks('card.cleanupKeepsHint',
-        { word: `<strong>${tH('card.oldKeyBackupsOnly', { n: oldCount })}</strong>` },
-        { bytes: fmtBytes(a.oldBytes || 0) })}</p>
+      <p class="desc" style="margin:0 0 8px">${tH('card.cleanupKeepsHint',
+        { n: oldCount, bytes: fmtBytes(a.oldBytes || 0) })}</p>
       <div class="row-in">
         <button class="btn btn-sm" id="cleanup-old">${
           tH('card.oldKeyBackupsDelete', { n: oldCount })}</button>
@@ -10267,7 +10242,7 @@ function cardExport(fetched) {
   return `<div class="sys-card">
         <h3>${tH('card.exportAndImport')}</h3>
         ${/* DIE ROLLENTEILUNG GEHOERT AN DIE KARTE, nicht nur in die Doku. */''}
-        <p class="desc"><strong>${tH('card.exportLabel')}</strong> ${tH('card.exportPurposeHint')} <strong>${tH('card.backup')}</strong>.</p>
+        <p class="desc">${tH('card.exportPurposeHint')}</p>
         <p class="desc">${tH('card.exportWritesHint')}</p>
         ${/* DIE ZAHLEN AN DEN KNOEPFEN SIND LEBENDIG. */''}
         ${/* EIN KIND JE KNOPF UND NICHT DREI. `.btn` ist `inline-flex` mit
@@ -10309,7 +10284,7 @@ function cardExport(fetched) {
              geht hinaus, dieselbe Datei kommt herein. */''}
         <div class="sys-part"></div>
         <h4 class="sys-sub">${tH('card.import')}</h4>
-        <p class="desc">${tMark('card.importHint', 'card.replaceInventory')}</p>
+        <p class="desc">${tH('card.importHint')}</p>
         <label class="drop drop-quiet" id="imp-drop"><input type="file" id="imp" accept="application/json,.json">
           ${tH('card.pickExportFile')}</label>
       </div>`;
@@ -10369,8 +10344,7 @@ function setUpExportOut(fetched) {
   const runExport = async (withPhotos) => {
     if (!await longRunNotice('card.exportRunTitle')) return;
     if (!await secondConfirm('export', null, t('card.confirmExport'),
-      t('card.exportHint') +
-      t('card.exportContentHint'))) return;
+      t('card.exportHint'))) return;
     window.location = `/api/export?photos=${withPhotos ? 1 : 0}` + withFiles();
   };
 
@@ -10393,14 +10367,11 @@ function setUpExportOut(fetched) {
 // wer ihn hat, kommt mit dem zweiten Knopf nicht davon.
       const alsoWithout = withoutPhotos > ex.warnFrom;
       boxId.innerHTML = `<div class="warn-box" style="margin:12px 0 0">
-        ${tMarks('card.exportOversizeHint',
-          { word: `<strong>${tH('card.exportWithPhotos', { withPhotos: fmtBytes(withPhotos) })}</strong>` },
-          { rest: alsoWithout
+        ${tH('card.exportOversizeHint',
+          { withPhotos: fmtBytes(withPhotos), rest: alsoWithout
               ? t('card.sizeWithoutPhotos', { withoutPhotos: fmtBytes(withoutPhotos) })
               : t('card.withoutPhotosSize', { withoutPhotos: fmtBytes(withoutPhotos) }) })}
-        <p style="margin:9px 0 0">${tMarks('card.usePartsHint', {
-          word: `<strong>${tH('card.exportPartsQuoted')}</strong>`,
-          word2: `<strong>${tH('card.backup')}</strong>` })}</p></div>`;
+        <p style="margin:9px 0 0">${tH('card.usePartsHint')}</p></div>`;
     });
   }
 
@@ -10424,17 +10395,14 @@ function setUpExportOut(fetched) {
     /* EIN EINTRAG, DER FUER SICH ALLEIN ZU GROSS IST, WIRD BEIM NAMEN GENANNT
        und nicht stillschweigend uebergangen. */
     const tooBigBox = (plan.tooBig || []).length ? `<div class="warn-box" style="margin:10px 0 0">
-      ${tMarks('card.aloneOverLimit', { word: `<strong>${plan.tooBig.length} ${
-        esc(vThing(plan.tooBig.length))} ${plural(plan.tooBig.length,
-        tH('card.matches'), tH('card.match'))} ${tH('card.inNoPart')}</strong>` },
-        { string: fmtBytes(plan.string) })}
+      ${tH('card.aloneOverLimit', { n: plan.tooBig.length, thing: vThing(plan.tooBig.length),
+        string: fmtBytes(plan.string) })}
       <ul style="margin:6px 0 0 18px">${plan.tooBig.map(z =>
         `<li>${esc(z.title)} — ${esc(fmtBytes(z.bytes))}</li>`).join('')}</ul>
       <p style="margin:8px 0 0">${tH('card.withoutVideosHint')}</p></div>` : '';
 
     boxId.innerHTML = `${tooBigBox}
-      ${n ? `<p class="desc" style="margin:10px 0 6px">${tMarks('card.eachAtMost', { word: `<strong>${tH('card.partsNumber', { n: n })}</strong>` },
-        { targetSize: fmtBytes(plan.targetSize) })} <strong>${tH('card.partIsComplete')}</strong></p>
+      ${n ? `<p class="desc" style="margin:10px 0 6px">${tH('card.eachAtMost', { n: n, targetSize: fmtBytes(plan.targetSize) })} <strong>${tH('card.partIsComplete')}</strong></p>
       <div class="manage-list" id="ex-part-list">${plan.parts.map(part => `
         <div class="mrow">
           <span class="mname">${tH('card.partOf', { part: part.nr, count: part.count })} ${esc(vThing(part.count))}</span>
@@ -10446,13 +10414,10 @@ function setUpExportOut(fetched) {
       <p class="hint hint-sm" style="margin:10px 2px 6px">${tH('card.exportPasswordHint',
         { extra: TWO_FACTOR ? t('card.andTwoFactorCode') : '' })}</p>
       <div class="row-in"><button class="btn btn-accent btn-sm" id="ex-confirm">
-        ${tMarks('card.confirmOnce', { word: tH('card.partOrAll', { n: n }) }, { n: n })}</button></div>
+        ${tH('card.confirmOnce', { n: n })}</button></div>
       ${/* DER EINSPIELWEG GEHOERT AN DIE KARTE UND NICHT IN DIE
            DOKUMENTATION. */''}
-      <p class="hint hint-sm" style="margin:10px 2px 0">${tMarks('card.partOrderHint', {
-        word:  `<strong>${tH('card.toImport')}</strong>`,
-        word2: `<strong>${tH('card.replace')}</strong>`,
-        word3: `<strong>${tH('card.merge')}</strong>` })}</p>` : ''}`;
+      <p class="hint hint-sm" style="margin:10px 2px 0">${tH('card.partOrderHint')}</p>` : ''}`;
 
     /* GEFRAGT WIRD EINMAL, GEPRUEFT WIRD JE TEIL. Ohne das muesste das Passwort
        je Datei getippt werden -- bei fünf Teilen fünfmal. */
@@ -10485,9 +10450,7 @@ async function importSizeTested(file, limits) {
   if (!warnFrom || file.size <= warnFrom) return true;
   const limit = limits.string;
   return confirmBox(t('card.fileVeryBig'),
-    t('card.fileTooBig', { size: fmtBytes(file.size), limit: fmtBytes(limit) }) +
-    t('card.importAbortsHint') +
-    t('card.restoreViaBackup'),
+    t('card.fileTooBig', { size: fmtBytes(file.size), limit: fmtBytes(limit) }),
     t('card.tryAnyway'));
 }
 
@@ -10519,15 +10482,14 @@ function askImport(file, limits) {
       return;
     }
     bd.innerHTML = `<div class="modal"><h2>${tH('card.import')}</h2>
-      <p>${tMarks('card.fileContainsHint', {
-        word: `<strong>${info.count} ${esc(vThing(info.count))}</strong>` }, {
+      <p>${tH('card.fileContainsHint', { n: info.count, thing: vThing(info.count),
         /* EIGENE BESCHRIFTUNG STATT DER GELIEHENEN. */
         rest: info.withPhotos ? t('card.withPhotosPlain') : t('card.withoutPhotosPlain'),
         from: info.title ? t('card.createdFrom', { title: info.title }) : '',
         when: info.date ? t('card.onDate', { date: fmtDate(info.date.replace('T',' ').slice(0,19)) }) : '' })}</p>
       <p>${tH('card.importQuestion')}</p>
-      <div class="warn-box">${tMark('card.replaceExplainHint', 'card.replace')}<br><br>
-        ${tMark('card.mergeExplainHint', 'card.merge')}</div>
+      <div class="warn-box">${tH('card.replaceExplainHint')}<br><br>
+        ${tH('card.mergeExplainHint')}</div>
       <div class="modal-acts">
         <button class="btn btn-ghost" data-cancel>${tH('dialog.cancel')}</button>
         <button class="btn" data-merge>${tH('card.merge')}</button>

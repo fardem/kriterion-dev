@@ -22,7 +22,7 @@ async function run() {
   // Die Zahl der Rueckbauten steht ausdruecklich da: eine Zahl in einem
   // Papier ist eine Behauptung, eine Zahl im Pruefstand ist ein Beleg. Wie
   // sie Runde fuer Runde gewachsen ist, steht in den Aenderungsprotokollen.
-  check(`Es sind genau 1137 Rueckbauten`, gpList.length === 1137, `${gpList.length}`);
+  check(`Es sind genau 1140 Rueckbauten`, gpList.length === 1140, `${gpList.length}`);
   const gpTwice = gpList.map(r => r.nr).filter((n, i, a) => a.indexOf(n) !== i);
   check('Und keine Nummer steht zweimal', gpTwice.length === 0, gpTwice.join(' '));
   /* JEDER GREIFT: der Suchtext kommt in seiner Datei GENAU EINMAL vor. */
@@ -66,18 +66,9 @@ async function run() {
   check('Und jeder nennt Name und erwartete Gruppe',
     gpWithoutExpected.length === 0, gpWithoutExpected.map(r => r.nr).join(' '));
 
-  /* ---- JEDER RUECKBAU LAESST EINE LADBARE DATEI ZURUECK — 0.35.2, BA 7 ----
-     Gegenprobe 330 setzte `${tMark(…, 'entry.grade',` auf `${tH(…, { word: '',`
-     und liess die schliessende Klammer des alten Rufs stehen. public/app.js
-     liess sich danach nicht mehr laden, und der Treiber meldete ABGERISSEN
-     statt ROT. EIN RUECKBAU, DER DIE DATEI ZERBRICHT, BELEGT NICHTS: er zeigt
-     nicht, dass die Pruefung greift, sondern nur, dass kaputter Code kaputt
-     ist. Gemessen wird hier, nicht von Hand.
-     KOMPILIERT UND NICHT AUSGEFUEHRT: `new vm.Script` uebersetzt den Text und
-     laeuft ihn nicht. Der Rumpf steht dabei in derselben Huelle, in die Node
-     ein Modul stellt -- sonst waere `return` auf oberster Ebene ein Fehler,
-     und counterproof.js traegt eines. Die Zeile mit `#!` faellt davor weg:
-     Node nimmt sie heraus, vm.Script nicht. */
+  /* ---- Jeder Rueckbau laesst eine uebersetzbare Datei zurueck; sonst zeigt er nur kaputten Code ----
+     `new vm.Script` uebersetzt ohne Ausfuehren. Die Huelle erlaubt `return` wie ein Node-Modul,
+     `#!` faellt weg, weil vm.Script die Zeile nicht kennt. */
   const vm = require('vm');
   const gpShell = (text) =>
     '(function (exports, require, module, __filename, __dirname) {'
@@ -415,20 +406,20 @@ async function run() {
       ['test/keychange.js', 81],
       ['test/release_029.js', 60],
       ['test/release_030.js', 253],
-      ['test/release_031.js', 285],
+      ['test/release_031.js', 280],
       ['test/release_041.js', 37],
       ['test/roundtrip.js', 3310],
-      ['test/selfcheck.js', 231],
+      ['test/selfcheck.js', 222],
       ['test/source.js', 651],
       ['test/ui_entry.js', 637],
       ['test/ui_export.js', 456],
       ['test/ui_inventory.js', 244],
-      ['test/ui_language.js', 293],
-      ['test/ui_overview.js', 488],
+      ['test/ui_language.js', 291],
+      ['test/ui_overview.js', 486],
       ['test/ui_style.js', 606],
       ['test/ui_system.js', 684],
       ['test/ui_translator.js', 105],
-      ['counterproof.js', 1619],
+      ['counterproof.js', 1618],
       ['server.js', 1591],
       ['auth.js', 290],
       ['db.js', 136],
@@ -441,13 +432,13 @@ async function run() {
       ['usertool.js', 21],
       ['twofactor.js', 34],
       ['keytool.js', 39],
-      ['public/app.js', 1968],
+      ['public/app.js', 1966],
       ['public/theme.js', 3],
       ['public/style.css', 1223],
     ];
-    const COMMENT_TOTAL = { comment: 16327, code: 67958 };
+    const COMMENT_TOTAL = { comment: 16306, code: 67922 };
     // Ausgelieferte Dateien: Bloecke ueber drei Zeilen und Bloecke mit Betonung in Grossbuchstaben.
-    const COMMENT_LIMITS = { longBlocks: 26, emphasis: 1530 };
+    const COMMENT_LIMITS = { longBlocks: 26, emphasis: 1526 };
     check('Der Waechter sieht alle siebenunddreissig Dateien',
       crAll.each.length === 37 && COMMENT_ROWS.length === 37,
       `${crAll.each.length} gemessen, ${COMMENT_ROWS.length} genannt`);

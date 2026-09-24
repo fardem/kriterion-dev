@@ -105,13 +105,13 @@ const DOM_PROVIDER = [
 const MAIL_HINT_KEYS = { gmail: 'mail.hintGmail', gmx: 'mail.hintGmx', web: 'mail.hintWebDe' };
 const DE_TEXTS = JSON.parse(fs.readFileSync(
   path.join(__dirname, 'public', 'languages', 'de.json'), 'utf8'));
-// Prueft einen Text ueber seinen Schluessel; Platzhalter zaehlen nicht, eine Pluralform genuegt.
+// Prueft einen Text ueber seinen Schluessel; Platzhalter und `**` zaehlen nicht, eine Pluralform genuegt.
 const shows = (text, key) => {
   const flat = String(text || '').replace(/\s+/g, ' ');
   const raw = DE_TEXTS[key];
   const forms = raw && typeof raw === 'object' ? Object.values(raw) : [raw ?? ''];
   return forms.some(form => {
-    const parts = String(form).split(/\{[^}]*\}/)
+    const parts = String(form).replace(/\*\*/g, '').split(/\{[^}]*\}/)
       .map(p => p.replace(/\s+/g, ' ').trim()).filter(Boolean);
     return parts.length > 0 && parts.every(p => flat.includes(p));
   });
