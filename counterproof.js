@@ -6454,8 +6454,8 @@ const REGRESSIONS = [
     /* F7 — DER SATZ AN DER EINFUEGESTELLE. */
     nr: '824', name: 'Der Satz an der Einfuegestelle wird nicht gezeichnet',
     file: 'public/app.js',
-    search: "          ${tH('entry.photoOrderHint')} ${tH('entry.clipboardLarger')}</p>",
-    replacement: "          ${tH('entry.photoOrderHint')}</p>",
+    search: "          ${tH('entry.photoOrderHint', { mb: UPLOAD_LIMITS.video })} ${tH('entry.clipboardLarger')}</p>",
+    replacement: "          ${tH('entry.photoOrderHint', { mb: UPLOAD_LIMITS.video })}</p>",
     expected: 'Der Eintrag am Bildschirm'
   },
   {
@@ -9352,8 +9352,8 @@ const REGRESSIONS = [
   {
     nr: '1174', name: 'Das Kommentarfeld verlangt wieder eine Tastenkombination',
     file: 'public/languages/de.json',
-    search: '"entry.commentPlaceholder": "Kommentar schreiben — Bilder aus der Zwischenablage einfügen …"',
-    replacement: '"entry.commentPlaceholder": "Kommentar schreiben — Bilder mit Strg+V einfügen …"',
+    search: "\"entry.commentPlaceholder\": \"Kommentar schreiben …\"",
+    replacement: "\"entry.commentPlaceholder\": \"Kommentar schreiben, Bilder mit Strg+V einfügen …\"",
     expected: 'Kein Bildschirmtext verlangt eine Tastenkombination'
   },
   /* ---- Die drei Indexe ---- */

@@ -670,8 +670,7 @@ async function check0313() {
     check('Zusage 3: jeder Platzhalter des deutschen Satzes steht auch im tuerkischen — und keiner mehr',
       tgPlaceOff.length === 0, tgPlaceOff.slice(0, 6).join(' · ') || 'alle gleich');
 
-    /* ---- Zusage 4: die Verbotsliste, und sie liest STAEMME --------------
-       ELF MUSTER, JEDES MIT SEINEM GRUND. */
+    // Zusage 4: die Verbotsliste liest Wortstaemme, jedes Muster mit seinem Grund.
     const TR_STEM = (s) => new RegExp(`(?<![\\p{L}\\p{N}_])${s}`, 'u');
     const TR_FORBIDDEN = [
       [TR_STEM('hap'),                'hap — Kopfschmerztablette; CSS-Jargon fuer einen Knopf'],
@@ -684,7 +683,8 @@ async function check0313() {
       [TR_STEM('son\\s+görülme'),     'son görülme — woertlich aus „last seen"; es heisst son etkinlik'],
       [TR_STEM('içeri\\s+gir'),       'içeri girer — Kneipenton fuer den Zugang zu einem Konto'],
       [TR_STEM('[Kk]imse\\s+okum'),   'Kimse okumaz — zu flapsig fuer einen Transaktionsbrief'],
-      [TR_STEM('Şu:'),                'Şu: — der deutsche Artikel als „Dieses da:"; der Grammatik-Kollaps selbst']
+      [TR_STEM('Şu:'),                'Şu: — der deutsche Artikel als „Dieses da:"; der Grammatik-Kollaps selbst'],
+      [TR_STEM('[Yy]edek(?!leme)'),   'yedek — Ersatzteil; das Backup heisst yedekleme, festgelegt vom Betreiber']
     ];
     /* ERST DER LESER SELBST: ein Waechter, dessen Muster nichts finden KANN,
        ist gruen und sagt nichts. */
@@ -701,12 +701,15 @@ async function check0313() {
       TR_FORBIDDEN[0][0].test('haptan') && TR_FORBIDDEN[2][0].test('sabit resmi') &&
       TR_FORBIDDEN[3][0].test('Şey, tekil') && !/\bŞey\b/.test('Şey, tekil'),
       'der Stammleser liest wie ein Wortleser');
+    check('Und er faengt „yedek" und laesst „yedekleme" stehen',
+      TR_FORBIDDEN[11][0].test('yedek dosyası') && !TR_FORBIDDEN[11][0].test('yedekleme klasörü'),
+      'yedek oder yedekleme falsch gelesen');
     /* UND ER FAERBT SICH NICHT AM HARMLOSEN WORT. */
     check('Und er faerbt sich an einem Platzhalter NICHT — `{thing}` ist das Vokabelwort',
       !TR_FORBIDDEN.some(([rx]) => rx.test(tgBare('{items} {thing}, {photos} fotoğraf'))),
       'ein Platz faerbt den Waechter');
-    check('Und es sind wirklich elf Muster, jedes mit seinem Grund',
-      TR_FORBIDDEN.length === 11 && TR_FORBIDDEN.every(([, why]) => why.length > 20),
+    check('Und jedes Muster nennt seinen Grund',
+      TR_FORBIDDEN.length >= 12 && TR_FORBIDDEN.every(([, why]) => why.length > 20),
       `${TR_FORBIDDEN.length} Muster`);
     const tgForbidden = [];
     for (const [name, , , tr] of tgPairs)
@@ -1155,7 +1158,7 @@ async function check0314() {
       /* DIE GEGENRICHTUNG AM BILDSCHIRM: OHNE Zahl steht die Mehrzahl sehr
          wohl da. */
       const AN_MANY_ON_SCREEN = [['list.openTasks', 'taskMany'],
-        ['list.noCategory', 'entryMany'], ['list.newCommentsHint', 'entryMany']];
+        ['list.noCategory', 'entryMany'], ['list.newCommentsHint', 'ratingMany']];
       const anMissing = AN_MANY_ON_SCREEN.filter(([key, voc]) =>
         !anSay(`t('${key}')`).includes(String(anFiles.tr['vocabulary.' + voc])));
       check('Zusage 6, am gerenderten Text: ohne Zahl steht die Mehrzahl da — „Açık Görevler"',
