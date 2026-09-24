@@ -7742,7 +7742,7 @@ async function sendImport(object, mode, withoutShare = false) {
     d.prepare("INSERT INTO settings (key, value) VALUES ('backupPlace', ?)").run('"kopien"');
     d.close();
   }
-  setPasswordImInventory(auDir, 'anna', AU_WORD);
+  for (const n of ['anna', 'bert', 'carla']) setPasswordImInventory(auDir, n, AU_WORD);
   const AU = startFurtherServer(auDir, { BACKUP_DIR: auRoot }, 4300);
   await AU.ready;
   /* bert BEKOMMT DIE ADMINROLLE ERST JETZT -- ohne ihn waere "Eigentuemer"
@@ -7986,7 +7986,7 @@ async function sendImport(object, mode, withoutShare = false) {
         { password: AU_WORD, purpose: 'backup', target: null });
       const repeatCall = await auCall(actor, 'POST', '/api/backup/cleanup', { kind: 'rule' });
       check(`${name} kommt auch mit Freigabe nicht durch`,
-        repeatCall.status === 403, `Freigabe ${free.status}, Route ${repeatCall.status}`);
+        free.status === 200 && repeatCall.status === 403, `Freigabe ${free.status}, Route ${repeatCall.status}`);
     }
     check('Und nach allen Absagen liegt jede Datei noch da',
       equal(auDa(), before), auDa().join(' · '));
